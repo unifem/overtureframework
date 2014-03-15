@@ -1,0 +1,55 @@
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{6.cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.05}{.05}{.05}{.05}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (13,13);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,6.75) node[anchor=south west] {\trimfig{cuspBrokenTrimSubCurve}{\figWidtha}};
+ \draw (2,9.5) node[anchor=west] {\smallss 1. original trim curve.};
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{cuspBrokenTrimCusp}{\figWidtha}};
+ \draw (2.5,5.0) node[anchor=west] {\smallss 2. cusp (middle right).};
+%
+ \draw (7,6.75) node[anchor=south west] {\trimfig{cuspBrokenTrimHide}{\figWidtha}};
+ \draw (11,11) node[anchor=west] {\smallss 3. split and hide.};
+%
+ \draw (7,0.0) node[anchor=south west] {\trimfig{cuspBrokenTrimJoin}{\figWidtha}};
+ \draw (10.5,5) node[anchor=west] {\smallss 4. join with line.};
+%
+%\draw[step=1cm,gray] (0,0) grid (13,13);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{A trimming curve that self-intersects at a cusp can be fixed by 
+splitting one of the curves near the cusp and replacing the small section
+with a straight line. }
+\label{fig:selfIntersectingTrimCurveFig}
+\end{figure}
+}
+%{
+%\newcommand{\figWidth}{7.5cm}
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.05}{.95}{.1}{.95}}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,-.5)(15.75,12.5)
+%  \rput(3.50, 9.50){\clipfig{cuspBrokenTrimSubCurve.ps}{\figWidth}}
+%  \rput(3.50, 2.00){\clipfig{cuspBrokenTrimCusp.ps}{\figWidth}}
+%  \rput(11.5, 9.50){\clipfig{cuspBrokenTrimHide.ps}{\figWidth}}
+%  \rput(11.5, 2.00){\clipfig{cuspBrokenTrimJoin.ps}{\figWidth}}
+%%
+%\rput[l](3,8){\psframebox*{\smallss 1. original trim curve.}}
+%\rput[l](3,5){\psframebox*{\smallss 2. cusp (middle right).}}
+%\rput[l](12,11){\psframebox*{\smallss 3. split and hide.}}
+%\rput[l](12,5){\psframebox*{\smallss 4. join with line.}}
+%%\psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{A trimming curve that self-intersects at a cusp can be fixed by 
+%splitting one of the curves near the cusp and replacing the small section
+%with a straight line. 
+%}
+%\label{fig:selfIntersectingTrimCurveFig}
+%\end{figure}
+%}

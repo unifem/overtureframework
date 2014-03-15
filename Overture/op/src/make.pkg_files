@@ -1,0 +1,24 @@
+PKGDIR := $(OvertureCheckout)/op/src
+
+L_SRC := ncarfft.f BoundaryConditionParameters.C \
+	$(addsuffix .C, MappedGridOperators MGOC MGOD spectralDerivatives FourierOperators) \
+	$(addsuffix .C, BoundaryOperators applyBCC SparseRep) \
+	$(addprefix Generic, $(addsuffix Operators.C, MappedGrid GridCollection CompositeGrid)) \
+	$(addsuffix .C,fixBoundaryCorners GridCollectionOperators CompositeGridOperators) \
+	$(addsuffix .C,finishBoundaryConditions UnstructuredOperators UnstructuredBoundaryOperators AssignInterpNeighbours)
+
+SRC_FILES += $(L_SRC)
+
+L_HDRS := defineParametricDerivMacros.h opStencilCoeff.h $(addsuffix .h, SparseRep BoundaryConditionParameters BCTypes ) \
+	$(addsuffix .h,MappedGridOperators MappedGridOperatorsInclude FourierOperators AssignInterpNeighbours )\
+	$(addprefix Generic, $(addsuffix Operators.h, MappedGrid GridCollection CompositeGrid)) \
+	$(addsuffix .h,GenericCollectionOperators GridCollectionOperators CompositeGridOperators) \
+	$(addsuffix .h,UnstructuredOperators) \
+	$(addprefix defineDiffOrder, $(addsuffix f.h, 2 4 6 8)) \
+	$(addprefix defineDiffNewerOrder, $(addsuffix f.h, 2 4 6 8)) \
+	$(addprefix opStencilCoeffOrder, $(addsuffix .h, 2 4 6 8)) \
+	$(addprefix declareDiffOrder, $(addsuffix f.h, 2 4 6 8))
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+

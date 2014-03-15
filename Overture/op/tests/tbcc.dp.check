@@ -1,0 +1,831 @@
+<<square5/square/order=2/std/finishBC (extrapolate)       >>                                    : err = 0.0e+00
+<<square5/square/order=2/std/finishBC (evenSymmetry)      >>                                    : err = 0.0e+00
+<<square5/square/order=2/std/finishBC (oddSymmetry)       >>                                    : err = 0.0e+00
+<<square5/square/order=2/std/finishBC (taylor2ndOrderEven)>>                                    : err = 0.0e+00
+<<square5/square/order=2/cons/identity>>                                                        : err = 0.0e+00
+<<square5/square/order=2/cons/laplacian>>                                                       : err = 0.0e+00
+<<square5/square/order=2/cons/x>>                                                               : err = 0.0e+00
+<<square5/square/order=2/cons/xx>>                                                              : err = 0.0e+00
+<<square5/square/order=2/cons/y>>                                                               : err = 0.0e+00
+<<square5/square/order=2/cons/xy>>                                                              : err = 0.0e+00
+<<square5/square/order=2/cons/yy>>                                                              : err = 0.0e+00
+<<square5/square/order=2/cons/r1>>                                                              : err = 0.0e+00
+<<square5/square/order=2/cons/r1r1>>                                                            : err = 0.0e+00
+<<square5/square/order=2/cons/r2>>                                                              : err = 0.0e+00
+<<square5/square/order=2/cons/r1r2>>                                                            : err = 0.0e+00
+<<square5/square/order=2/cons/r2r2>>                                                            : err = 0.0e+00
+<<square5/square/order=2/cons/divScalarGrad arith>>                                             : err = 0.0e+00
+<<square5/square/order=2/cons/divScalarGrad arith (opt)>>                                       : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx0) arith>>                                                 : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx1) arith>>                                                 : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx0) arith>>                                                 : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx1) arith>>                                                 : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<square5/square/order=2/cons/divScalarGrad harmonic>>                                          : err = 0.0e+00
+<<square5/square/order=2/cons/divScalarGrad harmonic (opt)>>                                    : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx0) harmonic>>                                              : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx1) harmonic>>                                              : err = 0.0e+00
+<<square5/square/order=2/cons/Dx0(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx0) harmonic>>                                              : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx1) harmonic>>                                              : err = 0.0e+00
+<<square5/square/order=2/cons/Dx1(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<square5/square/order=2/std/identity>>                                                         : err = 0.0e+00
+<<square5/square/order=2/std/identity (opt)>>                                                   : err = 0.0e+00
+<<square5/square/order=2/std/laplacian>>                                                        : err = 0.0e+00
+<<square5/square/order=2/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<square5/square/order=2/std/x>>                                                                : err = 0.0e+00
+<<square5/square/order=2/std/x (opt)>>                                                          : err = 0.0e+00
+<<square5/square/order=2/std/xx>>                                                               : err = 0.0e+00
+<<square5/square/order=2/std/xx (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=2/std/y>>                                                                : err = 0.0e+00
+<<square5/square/order=2/std/y (opt)>>                                                          : err = 0.0e+00
+<<square5/square/order=2/std/xy>>                                                               : err = 0.0e+00
+<<square5/square/order=2/std/xy (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=2/std/yy>>                                                               : err = 0.0e+00
+<<square5/square/order=2/std/yy (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=2/std/r1>>                                                               : err = 0.0e+00
+<<square5/square/order=2/std/r1 (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=2/std/r1r1>>                                                             : err = 0.0e+00
+<<square5/square/order=2/std/r1r1 (opt)>>                                                       : err = 0.0e+00
+<<square5/square/order=2/std/r2>>                                                               : err = 0.0e+00
+<<square5/square/order=2/std/r2 (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=2/std/r1r2>>                                                             : err = 0.0e+00
+<<square5/square/order=2/std/r1r2 (opt)>>                                                       : err = 0.0e+00
+<<square5/square/order=2/std/r2r2>>                                                             : err = 0.0e+00
+<<square5/square/order=2/std/r2r2 (opt)>>                                                       : err = 0.0e+00
+<<square5/square/order=2/std/divScalarGrad  >>                                                  : err = 0.0e+00
+<<square5/square/order=2/std/divScalarGrad   (opt)>>                                            : err = 0.0e+00
+<<square5/square/order=2/std/Dx0(sDx0)  >>                                                      : err = 0.0e+00
+<<square5/square/order=2/std/Dx0(sDx1)  >>                                                      : err = 0.0e+00
+<<square5/square/order=2/std/Dx1(sDx0)  >>                                                      : err = 0.0e+00
+<<square5/square/order=2/std/Dx1(sDx1)  >>                                                      : err = 0.0e+00
+<<square5/square/order=2/std/dirichlet>>                                                        : err = 0.0e+00
+<<square5/square/order=2/std/neumann>>                                                          : err = 0.0e+00
+<<square5/square/order=2/std/normalDotScalarGrad>>                                              : err = 0.0e+00
+<<square5/square/order=2/std/generalMixedDerivative>>                                           : err = 0.0e+00
+<<square5/square/order=2/std/normalComponent>>                                                  : err = 0.0e+00
+<<square5/square/order=2/std/tangentialComponent>>                                              : err = 0.0e+00
+<<square5/square/order=2/std/generalizedDivergence>>                                            : err = 0.0e+00
+<<square5/square/order=2/std/normalDerivativeOf[Normal/Tangent]>>                               : err = 0.0e+00
+<<square5/square/order=2/std/vectorSymmetry>>                                                   : err = 0.0e+00
+<<square5/square/order=2/std/evenSymmetry>>                                                     : err = 0.0e+00
+<<square5/square/order=2/std/extrapolate[Normal/Tangent]>>                                      : err = 0.0e+00
+<<square5/square/order=4/std/finishBC (extrapolate)       >>                                    : err = 0.0e+00
+<<square5/square/order=4/std/finishBC (evenSymmetry)      >>                                    : err = 0.0e+00
+<<square5/square/order=4/std/finishBC (oddSymmetry)       >>                                    : err = 0.0e+00
+<<square5/square/order=4/std/finishBC (taylor2ndOrderEven)>>                                    : err = 0.0e+00
+<<square5/square/order=4/std/finishBC (taylor4thOrderEven)>>                                    : err = 0.0e+00
+<<square5/square/order=4/std/identity>>                                                         : err = 0.0e+00
+<<square5/square/order=4/std/identity (opt)>>                                                   : err = 0.0e+00
+<<square5/square/order=4/std/laplacian>>                                                        : err = 0.0e+00
+<<square5/square/order=4/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<square5/square/order=4/std/x>>                                                                : err = 0.0e+00
+<<square5/square/order=4/std/x (opt)>>                                                          : err = 0.0e+00
+<<square5/square/order=4/std/xx>>                                                               : err = 0.0e+00
+<<square5/square/order=4/std/xx (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=4/std/y>>                                                                : err = 0.0e+00
+<<square5/square/order=4/std/y (opt)>>                                                          : err = 0.0e+00
+<<square5/square/order=4/std/xy>>                                                               : err = 0.0e+00
+<<square5/square/order=4/std/xy (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=4/std/yy>>                                                               : err = 0.0e+00
+<<square5/square/order=4/std/yy (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=4/std/r1>>                                                               : err = 0.0e+00
+<<square5/square/order=4/std/r1 (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=4/std/r1r1>>                                                             : err = 0.0e+00
+<<square5/square/order=4/std/r1r1 (opt)>>                                                       : err = 0.0e+00
+<<square5/square/order=4/std/r2>>                                                               : err = 0.0e+00
+<<square5/square/order=4/std/r2 (opt)>>                                                         : err = 0.0e+00
+<<square5/square/order=4/std/r1r2>>                                                             : err = 0.0e+00
+<<square5/square/order=4/std/r1r2 (opt)>>                                                       : err = 0.0e+00
+<<square5/square/order=4/std/r2r2>>                                                             : err = 0.0e+00
+<<square5/square/order=4/std/r2r2 (opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=2/std/finishBC (extrapolate)       >>                                        : err = 0.0e+00
+<<cic/square/order=2/std/finishBC (evenSymmetry)      >>                                        : err = 0.0e+00
+<<cic/square/order=2/std/finishBC (oddSymmetry)       >>                                        : err = 0.0e+00
+<<cic/square/order=2/std/finishBC (taylor2ndOrderEven)>>                                        : err = 0.0e+00
+<<cic/square/order=2/cons/identity>>                                                            : err = 0.0e+00
+<<cic/square/order=2/cons/laplacian>>                                                           : err = 0.0e+00
+<<cic/square/order=2/cons/x>>                                                                   : err = 0.0e+00
+<<cic/square/order=2/cons/xx>>                                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/y>>                                                                   : err = 0.0e+00
+<<cic/square/order=2/cons/xy>>                                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/yy>>                                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/r1>>                                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/r1r1>>                                                                : err = 0.0e+00
+<<cic/square/order=2/cons/r2>>                                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/r1r2>>                                                                : err = 0.0e+00
+<<cic/square/order=2/cons/r2r2>>                                                                : err = 0.0e+00
+<<cic/square/order=2/cons/divScalarGrad arith>>                                                 : err = 0.0e+00
+<<cic/square/order=2/cons/divScalarGrad arith (opt)>>                                           : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx0) arith>>                                                     : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx0) opt, arith>>                                                : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx1) arith>>                                                     : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx1) opt, arith>>                                                : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx0) arith>>                                                     : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx0) opt, arith>>                                                : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx1) arith>>                                                     : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx1) opt, arith>>                                                : err = 0.0e+00
+<<cic/square/order=2/cons/divScalarGrad harmonic>>                                              : err = 0.0e+00
+<<cic/square/order=2/cons/divScalarGrad harmonic (opt)>>                                        : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx0) harmonic>>                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx0) opt, harmonic>>                                             : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx1) harmonic>>                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/Dx0(sDx1) opt, harmonic>>                                             : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx0) harmonic>>                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx0) opt, harmonic>>                                             : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx1) harmonic>>                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/Dx1(sDx1) opt, harmonic>>                                             : err = 0.0e+00
+<<cic/square/order=2/std/identity>>                                                             : err = 0.0e+00
+<<cic/square/order=2/std/identity (opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=2/std/laplacian>>                                                            : err = 0.0e+00
+<<cic/square/order=2/std/laplacian (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=2/std/x>>                                                                    : err = 0.0e+00
+<<cic/square/order=2/std/x (opt)>>                                                              : err = 0.0e+00
+<<cic/square/order=2/std/xx>>                                                                   : err = 0.0e+00
+<<cic/square/order=2/std/xx (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=2/std/y>>                                                                    : err = 0.0e+00
+<<cic/square/order=2/std/y (opt)>>                                                              : err = 0.0e+00
+<<cic/square/order=2/std/xy>>                                                                   : err = 0.0e+00
+<<cic/square/order=2/std/xy (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=2/std/yy>>                                                                   : err = 0.0e+00
+<<cic/square/order=2/std/yy (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=2/std/r1>>                                                                   : err = 0.0e+00
+<<cic/square/order=2/std/r1 (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=2/std/r1r1>>                                                                 : err = 0.0e+00
+<<cic/square/order=2/std/r1r1 (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=2/std/r2>>                                                                   : err = 0.0e+00
+<<cic/square/order=2/std/r2 (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=2/std/r1r2>>                                                                 : err = 0.0e+00
+<<cic/square/order=2/std/r1r2 (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=2/std/r2r2>>                                                                 : err = 0.0e+00
+<<cic/square/order=2/std/r2r2 (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=2/std/divScalarGrad  >>                                                      : err = 0.0e+00
+<<cic/square/order=2/std/divScalarGrad   (opt)>>                                                : err = 0.0e+00
+<<cic/square/order=2/std/Dx0(sDx0)  >>                                                          : err = 0.0e+00
+<<cic/square/order=2/std/Dx0(sDx1)  >>                                                          : err = 0.0e+00
+<<cic/square/order=2/std/Dx1(sDx0)  >>                                                          : err = 0.0e+00
+<<cic/square/order=2/std/Dx1(sDx1)  >>                                                          : err = 0.0e+00
+<<cic/square/order=2/std/dirichlet>>                                                            : err = 0.0e+00
+<<cic/square/order=2/std/neumann>>                                                              : err = 0.0e+00
+<<cic/square/order=2/std/normalDotScalarGrad>>                                                  : err = 0.0e+00
+<<cic/square/order=2/std/generalMixedDerivative>>                                               : err = 0.0e+00
+<<cic/square/order=2/std/normalComponent>>                                                      : err = 0.0e+00
+<<cic/square/order=2/std/tangentialComponent>>                                                  : err = 0.0e+00
+<<cic/square/order=2/std/generalizedDivergence>>                                                : err = 0.0e+00
+<<cic/square/order=2/std/normalDerivativeOf[Normal/Tangent]>>                                   : err = 0.0e+00
+<<cic/square/order=2/std/vectorSymmetry>>                                                       : err = 0.0e+00
+<<cic/square/order=2/std/evenSymmetry>>                                                         : err = 0.0e+00
+<<cic/square/order=2/std/extrapolate[Normal/Tangent]>>                                          : err = 0.0e+00
+<<cic/square/order=4/std/finishBC (extrapolate)       >>                                        : err = 0.0e+00
+<<cic/square/order=4/std/finishBC (evenSymmetry)      >>                                        : err = 0.0e+00
+<<cic/square/order=4/std/finishBC (oddSymmetry)       >>                                        : err = 0.0e+00
+<<cic/square/order=4/std/finishBC (taylor2ndOrderEven)>>                                        : err = 0.0e+00
+<<cic/square/order=4/std/finishBC (taylor4thOrderEven)>>                                        : err = 0.0e+00
+<<cic/square/order=4/std/identity>>                                                             : err = 0.0e+00
+<<cic/square/order=4/std/identity (opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=4/std/laplacian>>                                                            : err = 0.0e+00
+<<cic/square/order=4/std/laplacian (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=4/std/x>>                                                                    : err = 0.0e+00
+<<cic/square/order=4/std/x (opt)>>                                                              : err = 0.0e+00
+<<cic/square/order=4/std/xx>>                                                                   : err = 0.0e+00
+<<cic/square/order=4/std/xx (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=4/std/y>>                                                                    : err = 0.0e+00
+<<cic/square/order=4/std/y (opt)>>                                                              : err = 0.0e+00
+<<cic/square/order=4/std/xy>>                                                                   : err = 0.0e+00
+<<cic/square/order=4/std/xy (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=4/std/yy>>                                                                   : err = 0.0e+00
+<<cic/square/order=4/std/yy (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=4/std/r1>>                                                                   : err = 0.0e+00
+<<cic/square/order=4/std/r1 (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=4/std/r1r1>>                                                                 : err = 0.0e+00
+<<cic/square/order=4/std/r1r1 (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=4/std/r2>>                                                                   : err = 0.0e+00
+<<cic/square/order=4/std/r2 (opt)>>                                                             : err = 0.0e+00
+<<cic/square/order=4/std/r1r2>>                                                                 : err = 0.0e+00
+<<cic/square/order=4/std/r1r2 (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=4/std/r2r2>>                                                                 : err = 0.0e+00
+<<cic/square/order=4/std/r2r2 (opt)>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=2/std/finishBC (extrapolate)       >>                                       : err = 0.0e+00
+<<cic/Annulus/order=2/std/finishBC (evenSymmetry)      >>                                       : err = 0.0e+00
+<<cic/Annulus/order=2/std/finishBC (oddSymmetry)       >>                                       : err = 0.0e+00
+<<cic/Annulus/order=2/std/finishBC (taylor2ndOrderEven)>>                                       : err = 0.0e+00
+<<cic/Annulus/order=2/cons/identity>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=2/cons/laplacian>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=2/cons/x>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=2/cons/xx>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/y>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=2/cons/xy>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/yy>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/r1>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/r1r1>>                                                               : err = 0.0e+00
+<<cic/Annulus/order=2/cons/r2>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/r1r2>>                                                               : err = 0.0e+00
+<<cic/Annulus/order=2/cons/r2r2>>                                                               : err = 0.0e+00
+<<cic/Annulus/order=2/cons/divScalarGrad arith>>                                                : err = 0.0e+00
+<<cic/Annulus/order=2/cons/divScalarGrad arith (opt)>>                                          : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx0) arith>>                                                    : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx0) opt, arith>>                                               : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx1) arith>>                                                    : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx1) opt, arith>>                                               : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx0) arith>>                                                    : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx0) opt, arith>>                                               : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx1) arith>>                                                    : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx1) opt, arith>>                                               : err = 0.0e+00
+<<cic/Annulus/order=2/cons/divScalarGrad harmonic>>                                             : err = 0.0e+00
+<<cic/Annulus/order=2/cons/divScalarGrad harmonic (opt)>>                                       : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx0) harmonic>>                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx0) opt, harmonic>>                                            : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx1) harmonic>>                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx0(sDx1) opt, harmonic>>                                            : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx0) harmonic>>                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx0) opt, harmonic>>                                            : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx1) harmonic>>                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/cons/Dx1(sDx1) opt, harmonic>>                                            : err = 0.0e+00
+<<cic/Annulus/order=2/std/identity>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=2/std/identity (opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=2/std/laplacian>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=2/std/laplacian (opt)>>                                                     : err = 0.0e+00
+<<cic/Annulus/order=2/std/x>>                                                                   : err = 0.0e+00
+<<cic/Annulus/order=2/std/x (opt)>>                                                             : err = 0.0e+00
+<<cic/Annulus/order=2/std/xx>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=2/std/xx (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=2/std/y>>                                                                   : err = 0.0e+00
+<<cic/Annulus/order=2/std/y (opt)>>                                                             : err = 0.0e+00
+<<cic/Annulus/order=2/std/xy>>                                                                  : err = 8.5e-02
+<<cic/Annulus/order=2/std/xy (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=2/std/yy>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=2/std/yy (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=2/std/r1>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=2/std/r1 (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=2/std/r1r1>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=2/std/r1r1 (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=2/std/r2>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=2/std/r2 (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=2/std/r1r2>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=2/std/r1r2 (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=2/std/r2r2>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=2/std/r2r2 (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=2/std/divScalarGrad  >>                                                     : err = 0.0e+00
+<<cic/Annulus/order=2/std/divScalarGrad   (opt)>>                                               : err = 2.0e-02
+<<cic/Annulus/order=2/std/Dx0(sDx0)  >>                                                         : err = 0.0e+00
+<<cic/Annulus/order=2/std/Dx0(sDx1)  >>                                                         : err = 8.5e-02
+<<cic/Annulus/order=2/std/Dx1(sDx0)  >>                                                         : err = 8.5e-02
+<<cic/Annulus/order=2/std/Dx1(sDx1)  >>                                                         : err = 0.0e+00
+<<cic/Annulus/order=2/std/dirichlet>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=2/std/neumann>>                                                             : err = 0.0e+00
+<<cic/Annulus/order=2/std/normalDotScalarGrad>>                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/std/generalMixedDerivative>>                                              : err = 3.5e-02
+<<cic/Annulus/order=2/std/normalComponent>>                                                     : err = 0.0e+00
+<<cic/Annulus/order=2/std/tangentialComponent>>                                                 : err = 0.0e+00
+<<cic/Annulus/order=2/std/generalizedDivergence>>                                               : err = 2.5e-02
+<<cic/Annulus/order=2/std/normalDerivativeOf[Normal/Tangent]>>                                  : err = 0.0e+00
+<<cic/Annulus/order=2/std/vectorSymmetry>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=2/std/evenSymmetry>>                                                        : err = 0.0e+00
+<<cic/Annulus/order=2/std/extrapolate[Normal/Tangent]>>                                         : err = 0.0e+00
+<<cic/Annulus/order=4/std/finishBC (extrapolate)       >>                                       : err = 0.0e+00
+<<cic/Annulus/order=4/std/finishBC (evenSymmetry)      >>                                       : err = 0.0e+00
+<<cic/Annulus/order=4/std/finishBC (oddSymmetry)       >>                                       : err = 0.0e+00
+<<cic/Annulus/order=4/std/finishBC (taylor2ndOrderEven)>>                                       : err = 0.0e+00
+<<cic/Annulus/order=4/std/finishBC (taylor4thOrderEven)>>                                       : err = 0.0e+00
+<<cic/Annulus/order=4/std/identity>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=4/std/identity (opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=4/std/laplacian>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=4/std/laplacian (opt)>>                                                     : err = 0.0e+00
+<<cic/Annulus/order=4/std/x>>                                                                   : err = 0.0e+00
+<<cic/Annulus/order=4/std/x (opt)>>                                                             : err = 0.0e+00
+<<cic/Annulus/order=4/std/xx>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=4/std/xx (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=4/std/y>>                                                                   : err = 0.0e+00
+<<cic/Annulus/order=4/std/y (opt)>>                                                             : err = 0.0e+00
+<<cic/Annulus/order=4/std/xy>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=4/std/xy (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=4/std/yy>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=4/std/yy (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=4/std/r1>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=4/std/r1 (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=4/std/r1r1>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=4/std/r1r1 (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=4/std/r2>>                                                                  : err = 0.0e+00
+<<cic/Annulus/order=4/std/r2 (opt)>>                                                            : err = 0.0e+00
+<<cic/Annulus/order=4/std/r1r2>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=4/std/r1r2 (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=4/std/r2r2>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=4/std/r2r2 (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=2/std/finishBC (extrapolate)       >>                                           : err = 0.0e+00
+<<sib/box/order=2/std/finishBC (evenSymmetry)      >>                                           : err = 0.0e+00
+<<sib/box/order=2/std/finishBC (oddSymmetry)       >>                                           : err = 0.0e+00
+<<sib/box/order=2/std/finishBC (taylor2ndOrderEven)>>                                           : err = 0.0e+00
+<<sib/box/order=2/cons/identity>>                                                               : err = 0.0e+00
+<<sib/box/order=2/cons/laplacian>>                                                              : err = 0.0e+00
+<<sib/box/order=2/cons/x>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/cons/xx>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/y>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/cons/xy>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/yy>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/z>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/cons/xz>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/yz>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/zz>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/r1>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/r1r1>>                                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/r2>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/r1r2>>                                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/r2r2>>                                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/r3>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/r1r3>>                                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/r2r3>>                                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/r3r3>>                                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/divScalarGrad arith>>                                                    : err = 0.0e+00
+<<sib/box/order=2/cons/divScalarGrad arith (opt)>>                                              : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx0) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx0) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx1) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx1) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx2) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx2) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx0) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx0) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx1) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx1) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx2) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx2) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx0) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx0) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx1) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx1) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx2) arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx2) opt, arith>>                                                   : err = 0.0e+00
+<<sib/box/order=2/cons/divScalarGrad harmonic>>                                                 : err = 0.0e+00
+<<sib/box/order=2/cons/divScalarGrad harmonic (opt)>>                                           : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx0) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx0) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx1) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx1) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx2) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx0(sDx2) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx0) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx0) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx1) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx1) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx2) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx1(sDx2) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx0) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx0) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx1) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx1) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx2) harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/Dx2(sDx2) opt, harmonic>>                                                : err = 0.0e+00
+<<sib/box/order=2/std/identity>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/identity (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=2/std/laplacian>>                                                               : err = 0.0e+00
+<<sib/box/order=2/std/laplacian (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=2/std/x>>                                                                       : err = 0.0e+00
+<<sib/box/order=2/std/x (opt)>>                                                                 : err = 0.0e+00
+<<sib/box/order=2/std/xx>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/xx (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/y>>                                                                       : err = 0.0e+00
+<<sib/box/order=2/std/y (opt)>>                                                                 : err = 0.0e+00
+<<sib/box/order=2/std/xy>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/xy (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/yy>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/yy (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/z>>                                                                       : err = 0.0e+00
+<<sib/box/order=2/std/z (opt)>>                                                                 : err = 0.0e+00
+<<sib/box/order=2/std/xz>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/xz (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/yz>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/yz (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/zz>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/zz (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/r1>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/r1 (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/r1r1>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/r1r1 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/r2>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/r2 (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/r1r2>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/r1r2 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/r2r2>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/r2r2 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/r3>>                                                                      : err = 0.0e+00
+<<sib/box/order=2/std/r3 (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=2/std/r1r3>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/r1r3 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/r2r3>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/r2r3 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/r3r3>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/r3r3 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/divScalarGrad  >>                                                         : err = 0.0e+00
+<<sib/box/order=2/std/divScalarGrad   (opt)>>                                                   : err = 0.0e+00
+<<sib/box/order=2/std/Dx0(sDx0)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx0(sDx1)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx0(sDx2)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx1(sDx0)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx1(sDx1)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx1(sDx2)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx2(sDx0)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx2(sDx1)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/Dx2(sDx2)  >>                                                             : err = 0.0e+00
+<<sib/box/order=2/std/dirichlet>>                                                               : err = 0.0e+00
+<<sib/box/order=2/std/neumann>>                                                                 : err = 0.0e+00
+<<sib/box/order=2/std/normalDotScalarGrad>>                                                     : err = 0.0e+00
+<<sib/box/order=2/std/generalMixedDerivative>>                                                  : err = 0.0e+00
+<<sib/box/order=2/std/normalComponent>>                                                         : err = 0.0e+00
+<<sib/box/order=2/std/tangentialComponent>>                                                     : err = 0.0e+00
+<<sib/box/order=2/std/generalizedDivergence>>                                                   : err = 0.0e+00
+<<sib/box/order=2/std/normalDerivativeOf[Normal/Tangent]>>                                      : err = 0.0e+00
+<<sib/box/order=2/std/vectorSymmetry>>                                                          : err = 0.0e+00
+<<sib/box/order=2/std/evenSymmetry>>                                                            : err = 0.0e+00
+<<sib/box/order=2/std/extrapolate[Normal/Tangent]>>                                             : err = 0.0e+00
+<<sib/box/order=4/std/finishBC (extrapolate)       >>                                           : err = 0.0e+00
+<<sib/box/order=4/std/finishBC (evenSymmetry)      >>                                           : err = 0.0e+00
+<<sib/box/order=4/std/finishBC (oddSymmetry)       >>                                           : err = 0.0e+00
+<<sib/box/order=4/std/finishBC (taylor2ndOrderEven)>>                                           : err = 0.0e+00
+<<sib/box/order=4/std/finishBC (taylor4thOrderEven)>>                                           : err = 0.0e+00
+<<sib/box/order=4/std/identity>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/identity (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=4/std/laplacian>>                                                               : err = 0.0e+00
+<<sib/box/order=4/std/laplacian (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=4/std/x>>                                                                       : err = 0.0e+00
+<<sib/box/order=4/std/x (opt)>>                                                                 : err = 0.0e+00
+<<sib/box/order=4/std/xx>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/xx (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/y>>                                                                       : err = 0.0e+00
+<<sib/box/order=4/std/y (opt)>>                                                                 : err = 0.0e+00
+<<sib/box/order=4/std/xy>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/xy (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/yy>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/yy (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/z>>                                                                       : err = 0.0e+00
+<<sib/box/order=4/std/z (opt)>>                                                                 : err = 0.0e+00
+<<sib/box/order=4/std/xz>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/xz (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/yz>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/yz (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/zz>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/zz (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/r1>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/r1 (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/r1r1>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/r1r1 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/r2>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/r2 (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/r1r2>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/r1r2 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/r2r2>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/r2r2 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/r3>>                                                                      : err = 0.0e+00
+<<sib/box/order=4/std/r3 (opt)>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/r1r3>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/r1r3 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/r2r3>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/r2r3 (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/r3r3>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/r3r3 (opt)>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/std/finishBC (extrapolate)       >>                                    : err = 0.0e+00
+<<sib/north-pole/order=2/std/finishBC (evenSymmetry)      >>                                    : err = 0.0e+00
+<<sib/north-pole/order=2/std/finishBC (oddSymmetry)       >>                                    : err = 0.0e+00
+<<sib/north-pole/order=2/std/finishBC (taylor2ndOrderEven)>>                                    : err = 0.0e+00
+<<sib/north-pole/order=2/cons/identity>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=2/cons/laplacian>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=2/cons/x>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/cons/xx>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/y>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/cons/xy>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/yy>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/z>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/cons/xz>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/yz>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/zz>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r1>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r1r1>>                                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r2>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r1r2>>                                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r2r2>>                                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r3>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r1r3>>                                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r2r3>>                                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/r3r3>>                                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/divScalarGrad arith>>                                             : err = 0.0e+00
+<<sib/north-pole/order=2/cons/divScalarGrad arith (opt)>>                                       : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx0) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx1) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx2) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx2) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx0) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx1) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx2) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx2) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx0) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx1) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx2) arith>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx2) opt, arith>>                                            : err = 0.0e+00
+<<sib/north-pole/order=2/cons/divScalarGrad harmonic>>                                          : err = 0.0e+00
+<<sib/north-pole/order=2/cons/divScalarGrad harmonic (opt)>>                                    : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx0) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx1) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx2) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx0(sDx2) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx0) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx1) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx2) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx1(sDx2) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx0) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx1) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx2) harmonic>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/cons/Dx2(sDx2) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/identity>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/identity (opt)>>                                                   : err = 0.0e+00
+<<sib/north-pole/order=2/std/laplacian>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=2/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=2/std/x>>                                                                : err = 0.0e+00
+<<sib/north-pole/order=2/std/x (opt)>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=2/std/xx>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/xx (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/y>>                                                                : err = 0.0e+00
+<<sib/north-pole/order=2/std/y (opt)>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=2/std/xy>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/xy (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/yy>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/yy (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/z>>                                                                : err = 0.0e+00
+<<sib/north-pole/order=2/std/z (opt)>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=2/std/xz>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/xz (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/yz>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/yz (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/zz>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/zz (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1 (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1r1>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1r1 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=2/std/r2>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/r2 (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1r2>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=2/std/r2r2>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=2/std/r2r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=2/std/r3>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/r3 (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1r3>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=2/std/r1r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=2/std/r2r3>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=2/std/r2r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=2/std/r3r3>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=2/std/r3r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=2/std/divScalarGrad  >>                                                  : err = 0.0e+00
+<<sib/north-pole/order=2/std/divScalarGrad   (opt)>>                                            : err = 1.3e-01
+<<sib/north-pole/order=2/std/Dx0(sDx0)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx0(sDx1)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx0(sDx2)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx1(sDx0)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx1(sDx1)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx1(sDx2)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx2(sDx0)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx2(sDx1)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/Dx2(sDx2)  >>                                                      : err = 0.0e+00
+<<sib/north-pole/order=2/std/dirichlet>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=2/std/neumann>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=2/std/normalDotScalarGrad>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/std/generalMixedDerivative>>                                           : err = 1.2e-01
+<<sib/north-pole/order=2/std/normalComponent>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=2/std/tangentialComponent>>                                              : err = 0.0e+00
+<<sib/north-pole/order=2/std/generalizedDivergence>>                                            : err = 8.5e-02
+<<sib/north-pole/order=2/std/normalDerivativeOf[Normal/Tangent]>>                               : err = 0.0e+00
+<<sib/north-pole/order=2/std/vectorSymmetry>>                                                   : err = 0.0e+00
+<<sib/north-pole/order=2/std/evenSymmetry>>                                                     : err = 0.0e+00
+<<sib/north-pole/order=2/std/extrapolate[Normal/Tangent]>>                                      : err = 0.0e+00
+<<sib/north-pole/order=4/std/finishBC (extrapolate)       >>                                    : err = 0.0e+00
+<<sib/north-pole/order=4/std/finishBC (evenSymmetry)      >>                                    : err = 0.0e+00
+<<sib/north-pole/order=4/std/finishBC (oddSymmetry)       >>                                    : err = 0.0e+00
+<<sib/north-pole/order=4/std/finishBC (taylor2ndOrderEven)>>                                    : err = 0.0e+00
+<<sib/north-pole/order=4/std/finishBC (taylor4thOrderEven)>>                                    : err = 0.0e+00
+<<sib/north-pole/order=4/std/identity>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/identity (opt)>>                                                   : err = 0.0e+00
+<<sib/north-pole/order=4/std/laplacian>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=4/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=4/std/x>>                                                                : err = 0.0e+00
+<<sib/north-pole/order=4/std/x (opt)>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=4/std/xx>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/xx (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/y>>                                                                : err = 0.0e+00
+<<sib/north-pole/order=4/std/y (opt)>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=4/std/xy>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/xy (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/yy>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/yy (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/z>>                                                                : err = 0.0e+00
+<<sib/north-pole/order=4/std/z (opt)>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=4/std/xz>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/xz (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/yz>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/yz (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/zz>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/zz (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1 (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1r1>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1r1 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=4/std/r2>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/r2 (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1r2>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=4/std/r2r2>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/r2r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=4/std/r3>>                                                               : err = 0.0e+00
+<<sib/north-pole/order=4/std/r3 (opt)>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1r3>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/r1r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=4/std/r2r3>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/r2r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=4/std/r3r3>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/r3r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/std/finishBC (extrapolate)       >>                                    : err = 0.0e+00
+<<sib/south-pole/order=2/std/finishBC (evenSymmetry)      >>                                    : err = 0.0e+00
+<<sib/south-pole/order=2/std/finishBC (oddSymmetry)       >>                                    : err = 0.0e+00
+<<sib/south-pole/order=2/std/finishBC (taylor2ndOrderEven)>>                                    : err = 0.0e+00
+<<sib/south-pole/order=2/cons/identity>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=2/cons/laplacian>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/cons/x>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/cons/xx>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/y>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/cons/xy>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/yy>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/z>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/cons/xz>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/yz>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/zz>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r1>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r1r1>>                                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r2>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r1r2>>                                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r2r2>>                                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r3>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r1r3>>                                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r2r3>>                                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/r3r3>>                                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/divScalarGrad arith>>                                             : err = 0.0e+00
+<<sib/south-pole/order=2/cons/divScalarGrad arith (opt)>>                                       : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx0) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx1) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx2) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx2) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx0) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx1) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx2) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx2) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx0) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx0) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx1) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx1) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx2) arith>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx2) opt, arith>>                                            : err = 0.0e+00
+<<sib/south-pole/order=2/cons/divScalarGrad harmonic>>                                          : err = 0.0e+00
+<<sib/south-pole/order=2/cons/divScalarGrad harmonic (opt)>>                                    : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx0) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx1) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx2) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx0(sDx2) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx0) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx1) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx2) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx1(sDx2) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx0) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx0) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx1) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx1) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx2) harmonic>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/cons/Dx2(sDx2) opt, harmonic>>                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/identity>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/identity (opt)>>                                                   : err = 0.0e+00
+<<sib/south-pole/order=2/std/laplacian>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=2/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<sib/south-pole/order=2/std/x>>                                                                : err = 0.0e+00
+<<sib/south-pole/order=2/std/x (opt)>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=2/std/xx>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/xx (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/y>>                                                                : err = 0.0e+00
+<<sib/south-pole/order=2/std/y (opt)>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=2/std/xy>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/xy (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/yy>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/yy (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/z>>                                                                : err = 0.0e+00
+<<sib/south-pole/order=2/std/z (opt)>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=2/std/xz>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/xz (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/yz>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/yz (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/zz>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/zz (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1 (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1r1>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1r1 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/std/r2>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/r2 (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1r2>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/std/r2r2>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=2/std/r2r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/std/r3>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/r3 (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1r3>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=2/std/r1r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/std/r2r3>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=2/std/r2r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/std/r3r3>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=2/std/r3r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=2/std/divScalarGrad  >>                                                  : err = 0.0e+00
+<<sib/south-pole/order=2/std/divScalarGrad   (opt)>>                                            : err = 1.1e-01
+<<sib/south-pole/order=2/std/Dx0(sDx0)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx0(sDx1)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx0(sDx2)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx1(sDx0)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx1(sDx1)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx1(sDx2)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx2(sDx0)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx2(sDx1)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/Dx2(sDx2)  >>                                                      : err = 0.0e+00
+<<sib/south-pole/order=2/std/dirichlet>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=2/std/neumann>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=2/std/normalDotScalarGrad>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/std/generalMixedDerivative>>                                           : err = 1.8e-01
+<<sib/south-pole/order=2/std/normalComponent>>                                                  : err = 0.0e+00
+<<sib/south-pole/order=2/std/tangentialComponent>>                                              : err = 0.0e+00
+<<sib/south-pole/order=2/std/generalizedDivergence>>                                            : err = 1.2e-01
+<<sib/south-pole/order=2/std/normalDerivativeOf[Normal/Tangent]>>                               : err = 0.0e+00
+<<sib/south-pole/order=2/std/vectorSymmetry>>                                                   : err = 0.0e+00
+<<sib/south-pole/order=2/std/evenSymmetry>>                                                     : err = 0.0e+00
+<<sib/south-pole/order=2/std/extrapolate[Normal/Tangent]>>                                      : err = 0.0e+00
+<<sib/south-pole/order=4/std/finishBC (extrapolate)       >>                                    : err = 0.0e+00
+<<sib/south-pole/order=4/std/finishBC (evenSymmetry)      >>                                    : err = 0.0e+00
+<<sib/south-pole/order=4/std/finishBC (oddSymmetry)       >>                                    : err = 0.0e+00
+<<sib/south-pole/order=4/std/finishBC (taylor2ndOrderEven)>>                                    : err = 0.0e+00
+<<sib/south-pole/order=4/std/finishBC (taylor4thOrderEven)>>                                    : err = 0.0e+00
+<<sib/south-pole/order=4/std/identity>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/identity (opt)>>                                                   : err = 0.0e+00
+<<sib/south-pole/order=4/std/laplacian>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=4/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<sib/south-pole/order=4/std/x>>                                                                : err = 0.0e+00
+<<sib/south-pole/order=4/std/x (opt)>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=4/std/xx>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/xx (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/y>>                                                                : err = 0.0e+00
+<<sib/south-pole/order=4/std/y (opt)>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=4/std/xy>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/xy (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/yy>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/yy (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/z>>                                                                : err = 0.0e+00
+<<sib/south-pole/order=4/std/z (opt)>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=4/std/xz>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/xz (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/yz>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/yz (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/zz>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/zz (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1 (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1r1>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1r1 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=4/std/r2>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/r2 (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1r2>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=4/std/r2r2>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=4/std/r2r2 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=4/std/r3>>                                                               : err = 0.0e+00
+<<sib/south-pole/order=4/std/r3 (opt)>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1r3>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=4/std/r1r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=4/std/r2r3>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=4/std/r2r3 (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=4/std/r3r3>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=4/std/r3r3 (opt)>>                                                       : err = 0.0e+00

@@ -1,0 +1,100 @@
+#
+# Makefile.in : used by the configure script
+#
+
+# DYNAMIC_LIBRARY = ../lib/libOgmg.so
+#hpux DYNAMIC_LIBRARY = libOgmg.sl
+
+# NO_REAL is for Ander's files
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o .c .o
+#kkc 100325 .C.o:; $(CC) $(CCFLAGS)  -DNO_REAL  -I$(HDF)/include -c $*.C
+#kkc 100325 .c.o:; $(cc) $(CFLAGS)  -DNO_REAL -I. -I$(HDF)/include -c $*.c
+.C.o:; $(CC) $(CCFLAGS)  -DNO_REAL  -c $*.C
+.c.o:; $(cc) $(CFLAGS)  -DNO_REAL -I.  -c $*.c
+#kkc 050203 because default optimization fails to build on the gps cluster (too much memory) .f.o:; $(FC) $(FFLAGSO) -c $*.f
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default: depend_date Ogmg_Opt_date Ogmg_date 
+
+SourceC=  Ogmg.C ogmgTests.C OgmgParameters.C displayMaskLaTeX.C singular.C  
+       
+
+Ogmg_C_date: ${SourceC:.C=.o}
+	  touch $@
+
+# Always compile these C++ files optimized:
+filesOpt= assignBoundaryConditionCoefficients.C buildExtraLevels.C buildExtraLevelsNew.C boundaryConditions.C \
+          checkGrid.C coarseToFine.C defect.C fineToCoarse.C lineSmooth.C ogmgUtil.C operatorAveraging.C \
+          predefined.C smooth.C smoothBoundary.C
+Ogmg_Opt_date: ${filesOpt:.C=.o}
+	  touch $@
+
+# CCFLAGSOGMG = $(CCFLAGSO)
+# Don't compile optimized for now:
+CCFLAGSOGMG = $(CCFLAGS)
+
+assignBoundaryConditionCoefficients.o : ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+buildExtraLevelsNew.o :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+buildExtraLevels.o    :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+boundaryConditions.o  :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+checkGrid.o           :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+coarseToFine.o        :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+defect.o              :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+fineToCoarse.o        :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+lineSmooth.o          :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+ogmgUtil.o            :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+operatorAveraging.o   :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+predefined.o          :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+smooth.o              :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+smoothBoundary.o      :                 ${@:.o=.C}; $(CC) $(CCFLAGSOGMG) -c ${@:.o=.C}
+
+# Always compile these next files optimized
+
+defectOpt.o         : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothOpt.o         : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+averageOpt.o        : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+bcOpt.o             : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+bc3dOrder4.o        : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+lineSmoothOpt.o     : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+defect2dOrder2.o    : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+defect2dOrder4.o    : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+defect3dOrder2.o    : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+defect3dOrder4.o    : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothRB2dOrder2.o  : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothRB2dOrder4.o  : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothRB3dOrder2.o  : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothRB3dOrder4.o  : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothJAC2dOrder2.o : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothJAC2dOrder4.o : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothJAC3dOrder2.o : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smoothJAC3dOrder4.o : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smOpt.o             : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smRB2dOrder2.o      : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smRB2dOrder4.o      : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smRB3dOrder2.o      : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+smRB3dOrder4.o      : ${@:.o=.f}; $(FC) $(FFLAGSO) -c ${@:.o=.f}
+
+SourceF= defectOpt.f smoothOpt.f averageOpt.f bcOpt.f bc3dOrder4.f lineSmoothOpt.f \
+         defect2dOrder2.f defect2dOrder4.f defect3dOrder2.f defect3dOrder4.f  \
+         smoothRB2dOrder2.f  smoothRB2dOrder4.f smoothRB3dOrder2.f smoothRB3dOrder4.f \
+         smoothJAC2dOrder2.f  smoothJAC2dOrder4.f smoothJAC3dOrder2.f smoothJAC3dOrder4.f \
+         smOpt.f smRB2dOrder2.f  smRB2dOrder4.f  smRB3dOrder2.f  smRB3dOrder4.f
+Ogmg_f_date: ${SourceF:.f=.o}
+	  touch $@
+
+#Ogmg_f_date: ${SourceF:.f=.o}
+#	  touch $@
+
+Source = $(SourceC) $(SourceF) $(filesOpt)
+
+Ogmg_date=Ogmg_f_date Ogmg_C_date Ogmg_Opt_date 
+Ogmg_date:$(Ogmg_date); touch $@
+
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+.PRECIOUS: Ogmg_date depend_date
+

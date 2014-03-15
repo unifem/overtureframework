@@ -1,0 +1,4 @@
+A++ Internal_Index bounds checking: ON 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum error with dirichlet bc's= 3.576279e-06
+Maximum error with neumann bc's= 4.768372e-06

@@ -1,0 +1,22 @@
+* mpirun -np 2 -all-local pwave 
+* mpirun -tv -np 2 -all-local pwave  (run with the totalview debugger)
+*  mpirun-wdh -np 2 pwave
+*
+* -grid=cic.4.hdf -cmd=pwave1.cmd
+* noplot -grid=cic4.order4.hdf -cmd=pwave1.cmd
+* -grid=cic2.order4.hdf -cmd=pwave1.cmd
+* -grid=cic3.order4.hdf -cmd=pwave1.cmd
+* -grid=cic4.order4.hdf -cmd=pwave1.cmd
+* -grid=cic5.order4.hdf -cmd=pwave1.cmd
+* -grid=cic3e.hdf -cmd=pwave1.cmd
+* -grid=cic5e.hdf -cmd=pwave1.cmd
+* -grid=shapes2.order4.hdf -cmd=pwave1.cmd
+-grid=twoCircles.order4.hdf -cmd=pwave1.cmd
+* -grid=don.hdf -cmd=pwave3.cmd
+* -grid=square128.hdf -cmd=pwave2.cmd
+* -grid=square64.order4.hdf -cmd=pwave2.cmd
+* noplot -cmd=pwave1.cmd
+
+
+
+

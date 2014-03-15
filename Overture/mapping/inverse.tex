@@ -1,0 +1,85 @@
+\section{Inverting the Mapping by Newton's Method}
+
+\subsection{The case of a square Jacobian}
+
+  When the {\tt domainDimension} equals the {\tt rangeDimension} we use a fairly standard
+Newton's method, with some damping if the corrections are too large. Special considerations
+are required if the Jacobian (The Newton matrix) is singular; this could occur at a polar
+singularity, for example.
+
+\subsection{The case of a non-square Jacobian}
+
+When the {\tt domainDimension} is not equal to the {\tt rangeDimension}, such a a curve
+or surface, then we must define what is meant by inverting the Mapping. This amounts 
+to finding some 'closest' point of the Mapping.
+
+Denote the transformation defining the Mapping by
+\[
+     \xv = \Sv(r_1,r_2)
+\]
+where, to be specific, we consider the case of a surface in 3D.
+
+\subsubsection{Method 1 : Least Squares}
+
+Given a point $\xv$ not on the surface, the equation $\xv=\Sv(\rv)$
+will have no solution. We need to define a best guess for the solution.
+By Taylor series
+\[
+   \xv=\Sv(\rv^{n-1}) + \grad_\rv \Sv (\rv^n-\rv^{n-1}) + ...
+\]
+Linearizing the equation (Netwon's method) gives the over-determined
+system
+\begin{align*}
+    \grad_\rv \Sv (\rv^n-\rv^{n-1}) & = \xv-\Sv(\rv^{n-1}) \\
+  \mbox{or~~~}  A \Delta \rv & =  \Delta \xv 
+\end{align*}
+of 3 equations for the two unknowns in $\Delta \rv$.
+We can `solve' this over-determined system by least squares
+\[
+    A^T A \Delta \rv = A^T \Delta \xv
+\]
+or equivalently using the QR algorithm
+\[
+    R \rv = Q^T \Delta \xv
+\]
+to obtain the new guess $\rv^{n}$.
+On convergence the residual $\Delta\xv$ will be orthogonal to the tangent vectors
+on the surface, $A^T\Delta\xv=0$, and thus the residual will be in the direction 
+of the surface normal.
+
+{\bf Aside:} In the hyperbolic grid generation context there is another way to define
+the inverse. The problem is to find a point $\xv$ that is a given distance, $d$,
+from a point $\xv^0$ and lying on some plane $\nv\cdot(\xv-\xv^0)=0$. In this case
+we have a system of three equations for three unknowns,
+\begin{align*}
+    \xv &= \Sv(\rv) \\
+    \xv &= \xv^0 + d ( \tv_1 \cos(\theta) + \tv_2 \sin(\theta) )
+\end{align*}
+Here $\tv_m$ are unit orthgonal tangent vectors on the plane and $\theta$ is the extra unknown.
+This system may be faster to solve than the least squares approach (?)
+
+\subsubsection{Old way: minimize $l_2$ distance}
+
+Minimize the $l_2$ distance (squared) between the point and the surface,
+\[
+     \min_\rv g(\rv) \mbox{~~~~where~~}
+     g =  \| \xv -\Sv(\rv) \|^2 = (\xv-\Sv)^T(\xv-\Sv)
+\]
+To do this we solve $\grad_\rv g = 0$ (which could also find the maximum distance),
+\[
+    \hv(\rv) = \grad_\rv g = -2 \grad_\rv \Sv ^T (\xv-\Sv) = 0
+\]
+i.e.
+\[
+     \sum_k \partial_{r_i} S_k (x_k-S_k) = 0 \mbox{~~~~for~~} i=0,1
+\]
+This equation $\hv(\rv)=0$ is solved by Newton's method,
+\begin{align*}
+    \grad_\rv \hv (\rv^n-\rv^{n-1}) & = - \hv(\rv^{n-1}) \\
+    \grad_\rv \hv &= H (\xv-\Sv) - \| \grad_\rv \Sv \|^2
+\end{align*}
+\[
+   H_{ij} = \sum_k \partial_{r_i} \partial_{r_j} S_k (x_k-S_k) - (\partial_i S_k)^2 
+\]
+One disadvantage of this approach is that it requires the second derivative of
+the Mapping.

@@ -1,0 +1,23 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set otherStuff = $ovDir/otherStuff
+
+cp {xCogToOverture.C,hdf_stuff.h,c_array.h,real.h,stupid_compiler.h} $otherStuff
+# turn these into C++ :
+cp c_array.c                                        $otherStuff/c_array.C
+cp hdf_stuff.c                                      $otherStuff/hdf_stuff.C
+
+echo "done"
+
+

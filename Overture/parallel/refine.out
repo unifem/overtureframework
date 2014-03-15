@@ -1,0 +1,112 @@
+
+
+new: 
+
+transferInterpDataForAMR: time=6.70e-02(s)
+canInterpolate: np=2 total=time=3.33e-02(s), time-for-local-canInterpolate=2.49e-02(s) (74.68%)
+ogen.updateRefinement: step=0 cpu=1.71e-01
+
+transferInterpDataForAMR: time=5.85e-02(s)
+canInterpolate: np=4 total=time=3.07e-02(s), time-for-local-canInterpolate=2.02e-02(s) (65.79%)
+ogen.updateRefinement: step=0 cpu=1.47e-01
+
+
+old: (copy mask, copy interp)
+
+np=2 : ogen.updateRefinement: step=0 cpu=1.60e-01
+np=4: ogen.updateRefinement: step=0 cpu=1.44e-01
+
+bugp9.cmd:
+
+============== np=8
+
+ ** max error on grid 0 = 1.622059e-05
+ ** max error on grid 1 = 2.220446e-16
+ ** max error on grid 2 = 5.717748e-06
+ ** max error on grid 3 = 2.376531e-06
+ ** max error on grid 4 = 7.296803e-06
+ ** max error on grid 5 = 2.220446e-16
+ ** max error on grid 6 = 3.498521e-04
+ ** max error on grid 7 = 2.268560e-07
+ ** max error on grid 8 = 5.068892e-07
+ ** max error on grid 9 = 9.372606e-07
+ ** max error on grid 10 = 1.658496e-06
+ ** max error on grid 11 = 5.247298e-05
+
+ >>>Maximum error for Interpolant = 3.498521e-04 (degree=1,np=8)
+
+
+============= np=6 ***TROUBLE***
+
+ ** max error on grid 0 = 1.622059e-05
+ ** max error on grid 1 = 2.220446e-16
+ ** max error on grid 2 = 5.717748e-06
+ ** max error on grid 3 = 2.376531e-06
+ ** max error on grid 4 = 7.296803e-06
+ ** max error on grid 5 = 2.220446e-16
+ ** max error on grid 6 = 5.060664e-02
+ ** max error on grid 7 = 2.268560e-07
+ ** max error on grid 8 = 5.068892e-07
+ ** max error on grid 9 = 9.372606e-07
+ ** max error on grid 10 = 1.658496e-06
+ ** max error on grid 11 = 5.247298e-05
+
+ >>>Maximum error for Interpolant = 5.060664e-02 (degree=1,np=6)
+
+
+============= np=4
+
+ ** max error on grid 0 = 1.622059e-05
+ ** max error on grid 1 = 2.220446e-16
+ ** max error on grid 2 = 5.717748e-06
+ ** max error on grid 3 = 2.376531e-06
+ ** max error on grid 4 = 7.296803e-06
+ ** max error on grid 5 = 2.220446e-16
+ ** max error on grid 6 = 3.498521e-04
+ ** max error on grid 7 = 2.268560e-07
+ ** max error on grid 8 = 5.068892e-07
+ ** max error on grid 9 = 9.372606e-07
+ ** max error on grid 10 = 1.658496e-06
+ ** max error on grid 11 = 5.247298e-05
+
+ >>>Maximum error for Interpolant = 3.498521e-04 (degree=1,np=4)
+
+
+
+============ np=1
+
+ ** max error on grid 0 = 1.622059e-05
+ ** max error on grid 1 = 2.220446e-16
+ ** max error on grid 2 = 5.717748e-06
+ ** max error on grid 3 = 2.376531e-06
+ ** max error on grid 4 = 7.296803e-06
+ ** max error on grid 5 = 2.220446e-16
+ ** max error on grid 6 = 3.498521e-04
+ ** max error on grid 7 = 2.268560e-07
+ ** max error on grid 8 = 5.068892e-07
+ ** max error on grid 9 = 9.372606e-07
+ ** max error on grid 10 = 1.658496e-06
+ ** max error on grid 11 = 5.247298e-05
+
+ >>>Maximum error for Interpolant = 3.498521e-04 (degree=1,np=1)
+
+
+
+
+
+
+ >>>>>>>>> POGI:Time for setup =8.36e-04 (excluding read from file) <<<<<<<
+ ---- grid=  0 : maximum error = 4.09e-04 (np=2, grid=square, cice) ---------
+ ---- grid=  1 : maximum error = 1.78e-15 (np=2, grid=Annulus, cice) ---------
+ ---- grid=  2 : maximum error = 2.22e-15 (np=2, grid=reparameterized-Annulus, cice) ---------
+ ---- grid=  3 : maximum error = 5.34e-05 (np=2, grid=reparameterized-square, cice) ---------
+ ============    maximum error = 4.09e-04 (np=2, 1 components, 4 grids, dw=3, cice)===============
+
+
+
+ >>>>>>>>> POGI:Time for setup =4.82e-04 (excluding read from file) <<<<<<<
+ ---- grid=  0 : maximum error = 4.09e-04 (np=1, grid=square, cice) ---------
+ ---- grid=  1 : maximum error = 1.78e-15 (np=1, grid=Annulus, cice) ---------
+ ---- grid=  2 : maximum error = 2.22e-15 (np=1, grid=reparameterized-Annulus, cice) ---------
+ ---- grid=  3 : maximum error = 5.34e-05 (np=1, grid=reparameterized-square, cice) ---------
+ ============    maximum error = 4.09e-04 (np=1, 1 components, 4 grids, dw=3, cice)===============

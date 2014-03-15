@@ -1,0 +1,462 @@
+#include "Overture.h"
+#include "CompositeGridOperators.h"
+#include "CompositeGridFiniteVolumeOperators.h"
+#include "OGTrigFunction.h"  // Trigonometric function
+#include "OGPolyFunction.h"  // polynomial function
+#include "GridFunctionParameters.h"
+#include "display.h"
+#include "Checker.h"
+
+#ifdef PURIFY
+#include "purify.h"
+#endif
+
+#beginMacro testDerivatives(operator,operatorName)    
+time=getCPU();
+v=u.operator(I1,I2,I3);
+time=getCPU()-time;
+
+error = max(fabs(v(I1,I2,I3)-exact.operator(mg,I1,I2,I3,n)))/max(1.+fabs(exact.operator(mg,I1,I2,I3,n)));
+gridError=max(gridError,error);
+
+// cout << "u.xx       : Maximum relative error (order=" << order << ") = " << error << endl;
+checker.printMessage("u.operator",error,time);
+
+v=-123456.;
+time=getCPU();
+op.derivative(MappedGridOperators::operatorName,u,v,I1,I2,I3);
+time=getCPU()-time;
+
+error = max(fabs(v(I1,I2,I3)-exact.operator(mg,I1,I2,I3,n)))/max(1.+fabs(exact.operator(mg,I1,I2,I3,n)));
+gridError=max(gridError,error);
+checker.printMessage("u.operator (opt)",error,time);
+#endMacro
+
+void 
+passByValue( realMappedGridFunction u, realCompositeGridFunction u0 )
+{
+  display(u,"passByValue: u:","%4.1f ");
+  u0.display("passByValue u0:","%4.1f ");
+  display(u.x(),"PassByValue: u.x()","%4.1f ");
+  u0.x().display("PassByValue: u0.x()","%4.1f ");
+  
+}  
+
+
+//================================================================================
+//  Check the div(tensor grad) operators
+//================================================================================
+int 
+main(int argc, char **argv)
+{
+  Diagnostic_Manager::setSmartReleaseOfInternalMemory( On );
+
+  Overture::start(argc,argv);  // initialize Overture
+
+  aString checkFileName;
+  if( REAL_EPSILON == DBL_EPSILON )
+    checkFileName="tderivatives.dp.check.new";  // double precision
+  else  
+    checkFileName="tderivatives.sp.check.new";
+
+  Checker checker(checkFileName);  // for saving a check file.
+
+  const int maxNumberOfGridsToTest=3;
+  int numberOfGridsToTest=maxNumberOfGridsToTest;
+  aString gridName[maxNumberOfGridsToTest] =   { "square20", "cic", "sib" };
+  aString buff;
+    
+  int tz=1;
+  int degreeSpace = 6;   // For polynomial TZ
+  int degreeTime = 1;
+
+  bool useSinglePrecisionTolerance=false;
+  if( argc > 1 )
+  { 
+    int len=0;
+    for( int i=1; i<argc; i++ )
+    {
+      aString line;
+      line=argv[i];
+      if( line.matches("tz=trig") || line.matches("-tz=trig") )
+	tz=1;
+      else if( line.matches("tz=poly") || line.matches("-tz=poly")  )
+	tz=0;
+      else if( line.matches("-sp") )
+	useSinglePrecisionTolerance=true;
+      else if( len=line.matches("-degree=") )
+      {
+        sScanF(line(len,line.length()-1),"%i",&degreeSpace);
+	printf("Setting degreeSpace=%i for polynomial TZ\n",degreeSpace);
+      }
+      else
+      {
+	numberOfGridsToTest=1;
+        gridName[0]=argv[i];
+      }
+    }
+  }
+  else
+  {
+    cout << "Usage: `tdtg [<gridName>] [-tz=trig][-tz=poly][-sp][-degree=<value>]' \n";
+    cout << "       -sp : use single precision tol even in double precision code\n";
+    
+  }
+  
+  int debug=0;
+/* --
+  int debug=7;
+  cout << "Enter debug \n";
+  cin >> debug;  
+--- */
+
+  real cutOff = REAL_EPSILON == (DBL_EPSILON && !useSinglePrecisionTolerance ) ? 5.e-12 : 2.e-3;  // *wdh* 030112
+
+  printf(" **** setting cutOff tolerance = %8.2e\n",cutOff);
+  
+  checker.setCutOff(cutOff);
+
+  real worstError=0;
+  for( int it=0; it<numberOfGridsToTest; it++ )
+  {
+    aString nameOfOGFile=gridName[it];
+    
+    CompositeGrid cg;
+    int found = getFromADataBase(cg,nameOfOGFile)==0;
+    if( !found ) return 1;
+      
+    cg.update();
+
+    cout << "\n *****************************************************************\n";
+    cout << " ******** Checking grid: " << nameOfOGFile << " ************ \n";
+    cout << " *****************************************************************\n\n";
+//    fprintf(checkFile,"\n ************** Checking grid: %s ***********************\n\n",(const char*)nameOfOGFile);
+    
+    checker.setLabel(nameOfOGFile,0);
+
+//  cout << " cg[0].center().mappedGrid = " << cg[0].center().mappedGrid << endl;
+//  cout << " cg[0].center().grid       = " << cg[0].center().grid << endl;
+
+    int grid;
+
+    Index I1,I2,I3,N;
+    Range all;
+    realMappedGridFunction u,v;   // define some component grid functions
+
+    MappedGridOperators op;                     // define some differential operators
+//    MappedGridFiniteVolumeOperators op;                     // define some differential operators
+    u.setOperators(op);                         // Tell u which operators to use
+
+
+
+//  OGTrigFunction trigTrue(1.,1.,1.);  // create an exact solution (Twilight-Zone solution)
+    const int numberOfComponents=5;
+
+    RealArray fx(numberOfComponents), fy(numberOfComponents), fz(numberOfComponents), ft(numberOfComponents);
+    fx=1.;   fx(0)=.5; fx(1)=1.5;
+    fy=.1;   fy(0)=.4; fy(1)= .5;
+    if( cg.numberOfDimensions()==3 )
+    {
+      fz=1.;   fz(0)=.3; fz(1)=-.3;
+    }
+    else
+    {
+      fz=0;
+    }
+  
+    ft=1.;   ft(0)=.6; ft(1)=.35;
+  
+    OGTrigFunction trigTrue(fx, fy, fz, ft);        //  defines cos(pi*x)*cos(pi*y)*cos(pi*z)*cos(pi*t)
+
+    RealArray gx(numberOfComponents), gy(numberOfComponents), gz(numberOfComponents), gt(numberOfComponents);
+    gx=.5;   gx(0)=.5; gx(1)=.25;
+    gy=.1;   gy(0)=.4; gy(1)= .5;
+    if( cg.numberOfDimensions()==3 )
+    {
+      gz=.25;   gz(0)=.3; gz(1)=-.3;
+    }
+    else
+    {
+      gz=0.;
+    }
+    gt=1.;   gt(0)=.6; gt(1)=.35;
+    trigTrue.setShifts(gx,gy,gz,gt);
+  
+    RealArray amp(numberOfComponents);
+    amp=.5;
+    amp(0)=.25;
+    trigTrue.setAmplitudes(amp);
+
+    RealArray cc(numberOfComponents);
+    cc=1.;
+    cc(0)=-.5;
+    trigTrue.setConstants(cc);
+
+
+    OGPolyFunction polyTrue(degreeSpace,cg.numberOfDimensions(),numberOfComponents,degreeTime);
+
+    RealArray spatialCoefficientsForTZ(7,7,7,numberOfComponents);  
+    spatialCoefficientsForTZ=0.;
+    RealArray timeCoefficientsForTZ(7,numberOfComponents);      
+    timeCoefficientsForTZ=0.;
+
+    for( int m1=0; m1<=degreeSpace; m1++ )
+      for( int m2=0; m2<=degreeSpace; m2++ )
+	for( int m3=0; m3<=degreeSpace; m3++ )
+	  for( int n=0; n<numberOfComponents; n++ )
+	  {
+            if( (m1+m2+m3) <= degreeSpace )
+	      spatialCoefficientsForTZ(m1,m2,m3,n)= 1./( m1*m1 + 2.*m2*m2 + 3.*m3*m3 + n+1.);
+	  }
+   int n;
+//     for( n=0; n<numberOfComponents; n++ )
+//     {
+//       real ni =1./(n+1);
+//       spatialCoefficientsForTZ(0,0,0,n)=1.;      
+//       if( degreeSpace>0 )
+//       {
+// 	spatialCoefficientsForTZ(1,0,0,n)=1.*ni;
+// 	spatialCoefficientsForTZ(0,1,0,n)=.5*ni;
+// 	spatialCoefficientsForTZ(0,0,1,n)= cg.numberOfDimensions()==3 ? .25*ni : 0.;
+//       }
+//       if( degreeSpace>1 )
+//       {
+// 	spatialCoefficientsForTZ(2,0,0,n)=.5*ni;
+// 	spatialCoefficientsForTZ(0,2,0,n)=.25*ni;
+// 	spatialCoefficientsForTZ(0,0,2,n)= cg.numberOfDimensions()==3 ? .125*ni : 0.;
+//       }
+//     }
+    for( n=0; n<numberOfComponents; n++ )
+    {
+      for( int i=0; i<=4; i++ )
+	timeCoefficientsForTZ(i,n)= i<=degreeTime ? 1./(i+1) : 0. ;
+    }
+    polyTrue.setCoefficients( spatialCoefficientsForTZ,timeCoefficientsForTZ ); 
+
+
+    OGFunction & exact = tz==0 ? (OGFunction&)polyTrue : (OGFunction&)trigTrue;
+
+    GridFunctionParameters gfp;
+    realCompositeGridFunction uu(cg,gfp);
+    uu.updateToMatchGrid(cg,gfp);
+    uu.updateToMatchGrid(cg,gfp.outputType);
+  
+
+    real error,time;
+    n=0;      // only test first component
+
+    for(grid=0; grid<cg.numberOfGrids(); grid++ )
+    {
+      MappedGrid & mg = cg[grid];
+      checker.setLabel(mg.getName(),1);
+
+      const realArray & center = mg.center();
+
+      u.updateToMatchGrid(mg,all,all,all,Range(0,0));
+      v.updateToMatchGrid(mg,all,all,all,Range(0,0));
+    
+      op.updateToMatchGrid(mg);
+    
+      getIndex(mg.dimension(),I1,I2,I3);                                             // assign I1,I2,I3
+      u(I1,I2,I3)=exact(mg,I1,I2,I3,n,0.);
+
+      realMappedGridFunction w(mg,all,all,all,mg.numberOfDimensions());  // for divergence and vorticity
+      w.setOperators(op);
+      for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	w(I1,I2,I3,axis)=exact(mg,I1,I2,I3,axis,0.);
+    
+      realMappedGridFunction scalar(mg,all,all,all);  // for divScalarGrad
+      scalar.setOperators(op);
+
+      // for harmonic averaging we do not want a negative scalar
+      // **      scalar(I1,I2,I3)=1.+exact(mg,I1,I2,I3,1,0.);
+      realArray xy; 
+      xy = 1.+center(I1,I2,I3,0)+2.*center(I1,I2,I3,1)+.25*center(I1,I2,I3,0)*center(I1,I2,I3,1);
+      // xy = 1.+center(I1,I2,I3,0);
+      real xyMax=max(fabs(xy));
+      scalar=1.+xy*(.5/xyMax);
+
+      // scalar=2.; // *********************************
+
+      Range D=mg.numberOfDimensions();
+      realMappedGridFunction tensor(mg,all,all,all,D,D);  // for testing derivatives of tensors
+      tensor.setOperators(op);
+      tensor=0.;
+//    tensor(I1,I2,I3,0,0)=1.;
+//    tensor.display("tensor after tensor(I1,I2,I3,0,0)=1.");
+//    tensor(I1,I2,I3,0,1)=3.;
+//    tensor.display("tensor after tensor(I1,I2,I3,0,1)=3.");
+      tensor(I1,I2,I3,0,0)=exact(mg,I1,I2,I3,0,0.);
+      tensor(I1,I2,I3,1,0)=exact(mg,I1,I2,I3,1,0.);
+//    tensor(I1,I2,I3,1,0)=3.;
+//    display(evaluate(tensor(I1,I2,I3,1,0)-3.),"tensor(I1,I2,I3,1,0)-3.");
+//    tensor(I1,I2,I3,0,1)=1.;
+//    display(evaluate(tensor(I1,I2,I3,0,1)-1.),"tensor(I1,I2,I3,0,1)-1.");
+      tensor(I1,I2,I3,0,1)=exact(mg,I1,I2,I3,2,0.);
+//    display(evaluate(tensor(I1,I2,I3,0,1)-exact(mg,I1,I2,I3,2,0.)),"tensor(I1,I2,I3,0,1)-exact(mg,I1,I2,I3,2,0.)");
+      tensor(I1,I2,I3,1,1)=exact(mg,I1,I2,I3,3,0.);
+
+
+      // here is the tensor coefficient for divTensorGrad:
+      const int ndSq=SQR(mg.numberOfDimensions());
+      realMappedGridFunction cTensor(mg,all,all,all,ndSq);
+      cTensor.setOperators(op);
+      for( int m1=0; m1<mg.numberOfDimensions(); m1++ )
+      for( int m2=0; m2<mg.numberOfDimensions(); m2++ )  
+      {
+        int nn=m1+m2*(mg.numberOfDimensions());
+        if( false )
+	{
+	  if( true || m1==m2 )
+	    cTensor(I1,I2,I3,nn)=m1+m2+1.;      // make symmetric for now
+	  else
+	    cTensor(I1,I2,I3,nn)=0.; 
+	}
+	else
+	{
+	  // make tensor coefficients variable in space
+          int mm = m1+m2;   // make symmetric
+          mm = mm % numberOfComponents;
+          cTensor(I1,I2,I3,nn)=exact(mg,I1,I2,I3,mm,0.);
+	}  
+      }
+      
+
+      Range R1,R2,R3;
+      R1=Range(I1.getBase(),I1.getBound());
+      R2=Range(I2.getBase(),I2.getBound());
+      R3=Range(I3.getBase(),I3.getBound());
+
+
+      // ---- compute all derivatives for orders of accuracy 2,4,6,8 ----
+      const int maxOrder=8;
+      for( int order=2; order<=maxOrder; order+=2 )
+//      for( int order=4; order<=8; order+=2 )
+      {
+        checker.setLabel(sPrintF(buff,"order=%i",order),2);
+        checker.setLabel("std",3);
+
+        real gridError=0.;
+	u.operators->setOrderOfAccuracy(order);
+
+	getIndex(mg.dimension(),I1,I2,I3,-(order/2));  // reduce size for 2nd or 4th order
+
+        if( order==4 || order==6 || order==8 )
+	{
+	  // ==== So Far there are only a few 4th order conservative approximations =====
+	  op.useConservativeApproximations(true);
+	  checker.setLabel("cons",3);
+	  time=getCPU();
+	  op.derivative(MappedGridOperators::laplacianOperator,u,v,I1,I2,I3);
+	  time=getCPU()-time;
+
+	  error = max(fabs(v(I1,I2,I3)-(exact.laplacian(mg,I1,I2,I3,n))))/max(fabs(exact.laplacian(mg,I1,I2,I3,n)));
+	  gridError=max(gridError,error);
+	  // cout << "u.laplacian: Maximum relative error (order=" << order << ") = " << error << endl;
+	  checker.printMessage("laplacian (opt)",error,time);
+
+	  v=-123456.;
+	  time=getCPU();
+	  op.derivative(MappedGridOperators::divergenceScalarGradient,u,scalar,v,I1,I2,I3);
+	  time=getCPU()-time;
+
+	  op.useConservativeApproximations(false);  // ************* reset for derivatives of scalar below
+
+	  if( mg.numberOfDimensions()==2 )
+	  {
+	    error = max(fabs(v(I1,I2,I3)
+			     -( exact.laplacian(mg,I1,I2,I3,0)*scalar(I1,I2,I3)
+				+scalar.x(I1,I2,I3)(I1,I2,I3)*exact.x(mg,I1,I2,I3,0)
+				+scalar.y(I1,I2,I3)(I1,I2,I3)*exact.y(mg,I1,I2,I3,0) )))/
+	      (max(fabs(exact.laplacian(mg,I1,I2,I3,0)))+1.);
+	  }
+	  else
+	  {
+	    error = max(fabs(v(I1,I2,I3)
+			     -( exact.laplacian(mg,I1,I2,I3,0)*scalar(I1,I2,I3)
+				+scalar.x(I1,I2,I3)(I1,I2,I3)*exact.x(mg,I1,I2,I3,0)
+				+scalar.y(I1,I2,I3)(I1,I2,I3)*exact.y(mg,I1,I2,I3,0)
+				+scalar.z(I1,I2,I3)(I1,I2,I3)*exact.z(mg,I1,I2,I3,0) )))/
+	      (max(fabs(exact.laplacian(mg,I1,I2,I3,0)))+1.);
+	  }
+	  
+	  gridError=max(gridError,error);
+	  checker.printMessage("divSGrad (opt)",error,time);
+
+          checker.setLabel("std",3);
+	}
+	
+	// ============ Check divergenceTensorGradient ================
+        for( int c=0; c<=1; c++ )
+	{
+	  bool conservative= c==0;
+	  op.useConservativeApproximations(conservative);
+	  if( conservative )
+	    checker.setLabel("cons",3);
+	  else
+	    checker.setLabel("std",3);
+
+	  v=-123456.;
+	  time=getCPU();
+	  op.derivative(MappedGridOperators::divergenceTensorGradient,u,cTensor,v,I1,I2,I3);
+	  time=getCPU()-time;
+
+	  op.useConservativeApproximations(false);  // ************* reset for derivatives below
+
+	  if( mg.numberOfDimensions()==2 )
+	  {
+	    error = max(fabs(v(I1,I2,I3)
+	       -( exact.xx(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,0)+cTensor.x(I1,I2,I3,0)(I1,I2,I3,0)*exact.x(mg,I1,I2,I3,0)+
+                  exact.xy(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,1)+cTensor.y(I1,I2,I3,1)(I1,I2,I3,1)*exact.x(mg,I1,I2,I3,0)+
+                  exact.xy(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,2)+cTensor.x(I1,I2,I3,2)(I1,I2,I3,2)*exact.y(mg,I1,I2,I3,0)+
+                  exact.yy(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,3)+cTensor.y(I1,I2,I3,3)(I1,I2,I3,3)*exact.y(mg,I1,I2,I3,0))))/
+	      (max(fabs(exact.laplacian(mg,I1,I2,I3,0)))+1.);
+	  }
+	  else
+	  {
+	    error = max(fabs(v(I1,I2,I3)
+	       -( exact.xx(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,0)+cTensor.x(I1,I2,I3,0)(I1,I2,I3,0)*exact.x(mg,I1,I2,I3,0)+
+                  exact.xy(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,1)+cTensor.y(I1,I2,I3,1)(I1,I2,I3,1)*exact.x(mg,I1,I2,I3,0)+
+                  exact.xz(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,2)+cTensor.z(I1,I2,I3,2)(I1,I2,I3,2)*exact.x(mg,I1,I2,I3,0)+
+                  exact.xy(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,3)+cTensor.x(I1,I2,I3,3)(I1,I2,I3,3)*exact.y(mg,I1,I2,I3,0)+
+                  exact.yy(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,4)+cTensor.y(I1,I2,I3,4)(I1,I2,I3,4)*exact.y(mg,I1,I2,I3,0)+
+                  exact.yz(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,5)+cTensor.z(I1,I2,I3,5)(I1,I2,I3,5)*exact.y(mg,I1,I2,I3,0)+
+                  exact.xz(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,6)+cTensor.x(I1,I2,I3,6)(I1,I2,I3,6)*exact.z(mg,I1,I2,I3,0)+
+                  exact.yz(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,7)+cTensor.y(I1,I2,I3,7)(I1,I2,I3,7)*exact.z(mg,I1,I2,I3,0)+
+                  exact.zz(mg,I1,I2,I3,0)*cTensor(I1,I2,I3,8)+cTensor.z(I1,I2,I3,8)(I1,I2,I3,8)*exact.z(mg,I1,I2,I3,0))))/
+	      (max(fabs(exact.laplacian(mg,I1,I2,I3,0)))+1.);
+	  }
+	  
+	  gridError=max(gridError,error);
+	  checker.printMessage("divTGrad (opt)",error,time);
+
+          checker.setLabel("std",3);
+
+	} // end divTensorGrad
+
+	
+	
+        printf("\n");
+	
+// 	printf("+++++++++++ Worst relative error is %e for order of accuracy %i on grid %s ++++++++++++++\n\n",
+// 	       gridError,order,(const char*)mg.mapping().getName(Mapping::mappingName));
+	worstError=max(worstError,gridError);
+      } // end for order
+    }  
+
+// exit(1);
+
+  }  // end loop over grids
+  
+//   printf("\n\n ************************************************************************************************\n");
+//   if( worstError > .025 )
+//     printf(" ************** Warning, there is a large error somewhere, worst error =%e ******************\n",
+// 	   worstError);
+//   else
+//     printf(" ************** Test apparently successful, worst error =%e ******************\n",worstError);
+//   printf(" **************************************************************************************************\n\n");
+
+  Overture::finish();          
+  cout << "Program Terminated Normally! \n";
+  return 0;
+}

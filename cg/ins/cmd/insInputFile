@@ -1,0 +1,38 @@
+* This file contains the command line arguments for cgins when running in parallel
+*
+* mpirun -np 1 -all-local ../bin/cgins
+* mpirun -np 2 -all-local ../bin/cgins
+* mpirun -np 2 -all-local -gdb ../bin/cgins
+* 
+* mpirun -np 1 -all-local --dbg=valgrindebug tobp
+* mpirun -np 2 -all-local -dbg=valgrindebug tobp
+* mpirun -np 2 -machinefile machinefile tobp
+*
+* mpirun -tv -np 2 -all-local tobp
+* mpirun -tv -np 2 -all-local tobp
+* mpirun -np 1 -all-local tobp
+* mcr:
+* mpirun-wdh -np 1 ../bin/cgins
+* mpirun-wdh -np 2 ../bin/cgins
+* mcr:
+*   totalview srun -a -N1 -n1 -ppdebug ../bin/cgins
+*
+* mpirun-wdh -np 2 -ppdebug tob
+*
+* ============= incompressible ==================
+*
+* noplot ins/p.cmd
+*  p.cmd
+*
+* tz.cmd
+cicp.cmd
+* noplot ins/tcilc.order4.cmd
+*
+* ins/sibp.cmd
+*
+* noplot ins/sq2.order4.cmd
+* ins/sq2.order4.cmd
+*
+* noplot ins/box.tz.order4.cmd
+*
+* cylinderInAChannel.cmd

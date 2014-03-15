@@ -1,0 +1,118 @@
+\section{Parallel AMR Accuracy Results}\label{sec:parallelAccuracy}
+
+
+In this section we present some parallel AMR results from the amrh program.
+
+We will run a series of tests on a variety of geometries to verify the accuracy 
+of the parallel AMR implementation. Performance and scaling results appear
+in section~\ref{sec:parallelPerformance}
+
+
+The {\em poly-pulse} test case for amrh has a polynomial exact solution
+but uses a generalized-Gaussian pulse function for the error estimator. 
+The pulse function causes refinement grids to be generated to follow the
+pulse as it translates across the domain. Since the exact solution is a
+polynomial (of degree 2) it should be exactly computed on Cartesian grids.
+
+
+We will make use of the {\em randomAssignment} load-balancing option
+that will randomly assign processors to each refinement grid (the number of
+processors and processor range is chosen at random). Thus each refinement grid
+$g$ will be partitioned over a range of
+processors $(P^0_g,P^1_g)$,  chosen at random. This load-balancing option is not 
+meant to be well-balanced but rather is a diabolical test of the AMR transfers
+between grids.
+
+
+% \subsection{Square}
+
+
+% Variables: 
+%    grid       levels   ratio  NP  loadBalance  steps regrids max-error
+%    square40     3        2     2    random      200    50     1.e-14 
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|} \hline 
+ \multicolumn{9}{|c|}{amrh, poly-pulse} \\\hline
+  grid      & levels & ratio &  NP  &  loadBalance &  steps & regrids & grids(min,ave,max) & max-error \\ \hline
+square40      &    2   &  2   &  1  & random        & 179  & 44     & (1,8,9) & 7.99e-15 \\
+square40      &    3   &  2   &  2  & random        & 358  & 91     & (1,8,9) & 2.31e-14 \\
+square40      &    3   &  2   &  4  & random        & 358  & 91    & (1,8,9) & 2.49e-14 \\
+square40      &    3   &  4   &  2  & random        & 3652  & 458   & (?,?,?) & 3.63e-13 \\
+\hline
+\end{tabular}		
+\end{center}		
+\caption{Parallel AMR accuracy tests for a square.}
+ \label{tab:parallelAccuracySquare} 
+\end{table}
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|} \hline 
+ \multicolumn{9}{|c|}{amrh, poly-pulse} \\\hline
+  grid      & levels & ratio &  NP  &  loadBalance &  steps & regrids & grids(min,ave,max)& max-error \\ \hline
+box20      &    3   &  2   &  2  & random        & 116  & 29    & (?,?,?)& 2.13e-14 \\
+\hline
+box40      &    3   &  2   &  4  & random        & 436  & 110    & (1,58,73) & 5.15e-14 \\
+\hline
+bib2e      &    2   &  2   &  2  & random        & 77  & 20    & (?,?,?)& 1.42e-14 \\
+\hline
+\end{tabular}		
+\end{center}		
+\caption{Parallel AMR accuracy tests for a box and box-in-a-box (bib).}
+ \label{tab:parallelAccuracyBox} 
+\end{table}
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|} \hline 
+ \multicolumn{9}{|c|}{amrh, poly-pulse} \\\hline
+  grid      & levels & ratio &  NP  &  loadBalance &  steps & regrids & grids(min,ave,max)& max-error \\ \hline
+sis3e       &    3   &  2   &  2  & random        & 168  & 43    & (?,?,?) & 1.51e-14 \\
+\hline
+rsis2e      &    3   &  2   &  2  & random        & 234  & 60    & (?,?,?) & 4.42e-06 \\
+\hline
+\end{tabular}		
+\end{center}		
+\caption{Parallel AMR accuracy tests for a square-in-a-square (sis) and rotated-square-in-a-square (rsis).}
+ \label{tab:parallelAccuracySquare} 
+\end{table}
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|} \hline 
+ \multicolumn{9}{|c|}{amrh, poly-pulse} \\\hline
+  grid    & levels & ratio &  NP  &  loadBalance &  steps & regrids & grids(min,ave,max) & max-error \\ \hline
+cice      &    3   &  2   &  2  & random        & 119  & 31    & (2,4,7) & 5.38e-02 \\
+cice      &    3   &  2   &  4  & random        & 119  & 31    & (2,4,7) & 5.38e-02 \\
+cice      &    3   &  2   &  4  & KernighanLin  & 119  & 31    & (2,4,7) & 5.38e-02 \\
+\hline
+cic3e     &    3   &  4   &  2  & random        & 2120  & 266    & (2,6,12) & 1.30e-02 \\
+cic3e     &    3   &  4   &  4  & random        & 2120  & 266    & (2,6,13) & 1.40e-02 \\
+cic3e     &    3   &  4   &  4  & KernighanLin  & 2120  & 266    & (2,6,12) & 1.04e-02 \\
+\hline
+\end{tabular}		
+\end{center}		
+\caption{Parallel AMR accuracy tests for a circle-in-a-channel (cic).}
+ \label{tab:parallelAccuracySquare} 
+\end{table}
+
+
+\input amrhFig.tex
+
+% \subsection{Circle in a channel}
+
+
+% \subsection{Sphere in a box}
+
+
+% ===========================================================================
+\clearpage
+\section{Parallel AMR Performance and Scaling Results}\label{sec:parallelPerformance}
+
+
+
+% scaling results 
+
+%    grid 

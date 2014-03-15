@@ -1,0 +1,22 @@
+This simulation is based on the article
+
+"Shock wave impacts on deforming panel, an application of fluid-structure interaction",
+by J. Giordano, G. Jourdan, Y. Burtschell, M. Medale, D.e., Zeitoun, and L. Houas,
+Shock Waves, 2005.
+
+The article consists of a flexible beam being hit by a Mach 1.21 shock.  
+In this simulation, we ignore the flexibility of the panel, assuming
+that it is fixed.
+
+Generate the grid, e.g.,
+  ogen -noplot beam_in_channel_static_step_grid -interp=e -factor=2
+  ogen -noplot beam_in_channel_static_step_grid -interp=e -factor=4
+
+Perform the run, e.g.,
+
+  cgcns beam_in_channel_static_run.cmd -g="beam_in_channel_static_stepe2.hdf" -tf=1. -tp=1.e-5
+  cgcns beam_in_channel_static_run.cmd -g="beam_in_channel_static_stepe4.hdf" -tf=1. -tp=1.e-5
+
+Note that this simulation uses a supersonic inflow/outflow pair as boundary conditions,
+whereas based on the paper it is better to use an outflow at the inlet (!) and 
+a wall at the end of the tube.

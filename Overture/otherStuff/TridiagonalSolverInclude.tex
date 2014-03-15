@@ -1,0 +1,161 @@
+\subsection{constructor}
+ 
+\newlength{\TridiagonalSolverIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\TridiagonalSolverIncludeArgIndent}{TridiagonalSolver(}% 
+TridiagonalSolver() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Use this class to solve a tridiagonal system or a pentadiagonal system. 
+  The system may be block tridiagonal. There may
+  be multiple independent tridiagonal (pentadiagonal) systems to be solved.
+  The basic tridiagonal system is ({\tt type=normal})
+ \begin{verbatim}
+            | b[0] c[0]                     |
+            | a[1] b[1] c[1]                |
+        A = |      a[2] b[2] c[2]           |
+            |            .    .    .        |
+            |                a[.] b[.] c[.] |
+            |                     a[n] b[n] |
+
+ \end{verbatim}
+ We can also solve the {\tt type=periodic}
+ \begin{verbatim}
+            | b[0] c[0]                a[0] |
+            | a[1] b[1] c[1]                |
+        A = |      a[2] b[2] c[2]           |
+            |            .    .    .        |
+            |                a[.] b[.] c[.] |
+            | c[n]                a[n] b[n] |
+
+ \end{verbatim}
+ and the {\tt type=extended}
+ \begin{verbatim}
+            | b[0] c[0] a[0]                |
+            | a[1] b[1] c[1]                |
+        A = |      a[2] b[2] c[2]           |
+            |            .    .    .        |
+            |                a[.] b[.] c[.] |
+            |                c[n] a[n] b[n] |
+
+ \end{verbatim}
+ which may occur with certain boundary conditions.
+
+ This class expects the matrices a,b,c to be passed separately and to be of the 
+ form
+ \begin{itemize}
+  \item a(I1,I2,I3), b(I1,I2,I3), c(I1,I2,I3) : if the block size is 1.
+  \item a(b,b,I1,I2) : if the block size is b$>1$.
+ \end{itemize}
+  The `{\tt axis}' argument to the member functions indicates which of I1,I2 or I3
+  represents the axis along which the tridiagonal matrix extends. The other axes
+  can be used to hold independent tridiagonal systems. Thus if {\tt axis=0} then
+  {\tt a(i1,i2,i3) i1=0,1,2,...,n} are the entries in the tridiagonal matrix for
+  each fixed i2 and i3. If {\tt axis=1} then {\tt a(i1,i2,i3) i2=0,1,2,...,n} 
+ are the entries in the tridiagonal matrix for fixed i1 and i3.
+\end{description}
+\subsection{factor}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TridiagonalSolverIncludeArgIndent}{factor(}%
+factor(RealArray \& a\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}RealArray \& b\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}RealArray \& c\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const SystemType \& type\_  =normal,\\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const int \& axis\_  =0,\\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const int \& block  =1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Factor the tri-diagonal (block) matrix defined by (a,b,c).
+   NOTE: This routine keeps a reference to (a,b,c) and factors in place. 
+\item[{\bf a,b,c (input/output) :}]  on input the 3 diagonals, on output the LU factorization
+\item[{\bf type (input) :}]  One of {\tt normal}, {\tt periodic} or {\tt extended}.
+\item[{\bf axis (input) :}]  0, 1, or 2. See the comments below.
+\item[{\bf block (input) :}]  block size. If block=2 or 3 then the matrix is block tridiagonal.
+\item[{\bf Notes:}] 
+ This class expects the matrices a,b,c to be of the form
+ \begin{itemize}
+  \item a(I1,I2,I3), b(I1,I2,I3), c(I1,I2,I3) : if the block size is 1.
+  \item a(b,b,I1,I2), b(b,b,I1,I2), c(b,b,I1,I2) : if the block size is b$>1$.
+ \end{itemize}
+  The `{\tt axis}' argument to the member functions indicates which of I1,I2 or I3
+  represents the axis along which the tridiagonal matrix extends. The other axes
+  can be used to hold independent tridiagonal systems. Thus if {\tt axis=0} then
+  {\tt a(i1,i2,i3) i1=0,1,2,...,n} are the entries in the tridiagonal matrix for
+  each fixed i2 and i3. If {\tt axis=1} then {\tt a(i1,i2,i3) i2=0,1,2,...,n} 
+ are the entries in the tridiagonal matrix for fixed i1 and i3.
+\end{description}
+\subsection{factor}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TridiagonalSolverIncludeArgIndent}{factor(}%
+factor(RealArray \& a\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}RealArray \& b\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}RealArray \& c\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}RealArray \& d\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}RealArray \& e\_, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const SystemType \& type\_  =normal,\\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const int \& axis\_  =0,\\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const int \& block  =1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Factor the penta-diagonal (block) matrix defined by (a,b,c,d,e).
+   NOTE: This routine keeps a reference to (a,b,c,d,e) and factors in place. 
+\item[{\bf a,b,c,d,e (input/output) :}]  on input the 5 diagonals, on output the LU factorization
+\item[{\bf type (input) :}]  One of {\tt normal}, {\tt periodic} or {\tt extended}.
+\item[{\bf axis (input) :}]  0, 1, or 2. See the comments below.
+\item[{\bf block (input) :}]  block size. If block=2 or 3 then the matrix is block tridiagonal.
+\item[{\bf Notes:}] 
+ This class expects the matrices a,b,c to be of the form
+ \begin{itemize}
+  \item a(I1,I2,I3), b(I1,I2,I3), c(I1,I2,I3), d(I1,I2,I3), e(I1,I2,I3) : if the block size is 1.
+  \item a(b,b,I1,I2), b(b,b,I1,I2), c(b,b,I1,I2) d(b,b,I1,I2), e(b,b,I1,I2) : if the block size is b$>1$.
+ \end{itemize}
+  The `{\tt axis}' argument to the member functions indicates which of I1,I2 or I3
+  represents the axis along which the tridiagonal matrix extends. The other axes
+  can be used to hold independent tridiagonal systems. Thus if {\tt axis=0} then
+  {\tt a(i1,i2,i3) i1=0,1,2,...,n} are the entries in the tridiagonal matrix for
+  each fixed i2 and i3. If {\tt axis=1} then {\tt a(i1,i2,i3) i2=0,1,2,...,n} 
+ are the entries in the tridiagonal matrix for fixed i1 and i3.
+\end{description}
+\subsection{solve}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\TridiagonalSolverIncludeArgIndent}{sizeOf(}%
+sizeOf( FILE *file  =NULL) const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return number of bytes allocated by Oges; optionally print detailed info to a file
+
+\item[{\bf file (input) :}]  optinally supply a file to write detailed info to. Choose file=stdout to
+ write to standard output.
+\item[{\bf Return value:}]  the number of bytes.
+\end{description}
+\subsection{solve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TridiagonalSolverIncludeArgIndent}{solve(}%
+solve(const RealArray \& r\_ this is not really const,\\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const Range \& R1  =nullRange, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const Range \& R2  =nullRange, \\ 
+\hspace{\TridiagonalSolverIncludeArgIndent}const Range \& R3  =nullRange)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Solve a set of tri-diagonal systems (or penta-diagonal systems). 
+\item[{\bf r\_ (input/output) :}]  rhs vector on input, solution on output. This is declared const to avoid compiler
+    warnings.
+\item[{\bf R1,R2,R3:}]  Specifies which systems to solve. By default all the systems are solved.
+  These Ranges must be a subset of the collection of
+  systems that are found in the matrices passed to the {\tt factor} function.
+  One of these is arguments is ignored, the one corresponding to the axis along which the
+  tridiagonal system extends. 
+\end{description}

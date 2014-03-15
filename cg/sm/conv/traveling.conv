@@ -1,0 +1,54 @@
+#
+# To run the convergence tests type: 
+#      conv.p traveling.conv -pv=nc        -ng=5
+#      conv.p traveling.conv -pv=nc -en=l1
+#      conv.p traveling.conv -pv=c
+#      conv.p traveling.conv -pv=c -en=l1
+#      conv.p traveling.conv -pv=g
+#      conv.p traveling.conv -pv=g -en=l1
+# -- For paper 
+#      conv.p traveling.conv -pv=nc -en=l1
+#      conv.p traveling.conv -pv=c -en=l1
+#      conv.p traveling.conv -pv=g -en=l1
+#
+$check="sm.check";
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+# 
+# Set default parameters: 
+$pv = "nc";  $en="max"; $ng=4; 
+#
+GetOptions( "pv=s"=>\$pv,"en=s"=>\$en,"ng=i"=>\$ng,"alwaysCompute=i"=>\$alwaysCompute );
+#
+if( $pv eq "nc" || $pv eq "c" ){ $numberOfComponents = 2; }
+if( $pv eq "g" ){ $numberOfComponents = 8; }
+$caseName="traveling.$pv.$en"; 
+$name="traveling.$pv.$en"; 
+# define the table heading and caption
+if( $numberOfComponents eq 2 ){ $title ="grid  \& N \&  \$u_1\$ \& \$u_2\$  "; }
+if( $numberOfComponents eq 8 ){ $title= "grid  \& N  \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$"; }
+$tFinal=.2;  $tPlot=.2; $diss=10.;
+$caption= "\\caption\{SM, $name, pv=$pv, \$t=$tFinal\$, diss=$diss, norm=$en, traveling-wave, $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# -- add component name: 
+if( $numberOfComponents eq 2 ){ @componentName = ( "u0", "u1" ); }
+if( $numberOfComponents eq 8 ){ @componentName = ( "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" ); }
+if( $numberOfComponents eq 11 ){ @componentName = ( "x0", "x1", "v0", "v1" , "s11", "s12", "s22", "p", "q", "u0", "u1" ); }
+# 
+# 
+$options = "-pv=$pv -diss=$diss -tf=$tFinal -tp=$tPlot -ic=special -bc=dirichlet -en=$en -go=go"; 
+$gName1 = "square32";
+$gName2 = "square64";
+$gName3 = "square128";
+$gName4 = "square256";
+$gName5 = "square512";
+$grid="sq32";  $res=1;  $cmd="../bin/cgsm noplot ../cmd/traveling -g=$gName1 $options";
+$grid="sq64";  $res=2;  $cmd="../bin/cgsm noplot ../cmd/traveling -g=$gName2 $options";
+if( $ng > 2 ){ $grid="sq128"; $res=4;  $cmd="../bin/cgsm noplot ../cmd/traveling -g=$gName3 $options";}
+if( $ng > 3 ){ $grid="sq256"; $res=8;  $cmd="../bin/cgsm noplot ../cmd/traveling -g=$gName4 $options";}
+if( $ng > 4 ){ $grid="sq512"; $res=16; $cmd="../bin/cgsm noplot ../cmd/traveling -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

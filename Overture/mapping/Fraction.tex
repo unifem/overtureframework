@@ -1,0 +1,90 @@
+\section{Class Fraction}
+
+This class is used to define ``fractions'', the ratio of two integers.
+Fractions can represent infinity and -infinity with a
+zero numerator and nonzero denominator. Thus $1/0$ is infinity
+and $-1/0$ is -infinity. We define $2/0$ be be greater than $1/0$.
+
+% \subsection{Constructors}
+% 
+% 
+% \begin{tabbing}
+% {\ff Fraction( int n, int d )12345 } \=  \kill
+% {\ff Fraction( int n, int d=1 ) } 
+% \> define a fraction, {\ff n} = numerator, {\ff d} = denominator \\
+% \end{tabbing}
+% 
+\noindent
+Note that we do not know how to construct a fraction from a real number.
+% 
+% \subsection{Member Functions}
+
+The relational operators $\le$, $<$, $\ge$, $>$ and $==$ are defined for
+the comparison of two fractions or a fraction and a real number.
+In addition, the arithmetic operators $+$, $-$, $*$ and $/$ are defined for
+two objects of type Fraction (or a Fraction and a real or int). 
+
+\noindent
+NOTE: By definition
+the result of the operators $+$, $-$, $*$, or $/$ between a Fraction and
+a real results in a real. 
+
+% \noindent 
+% Here are the member functions that can be used to access the numerator
+% and denominator
+% \begin{tabbing}
+% {\ff xxxxxxxxxxxxxxxxxxx12345} \= \kill
+% {\ff int setNumerator() } \> set the numerator \\
+% {\ff int setDenominator() } \> set the denominator \\
+% {\ff int getNumerator() } \> get the numerator \\
+% {\ff int getDenominator() } \> get the denominator \\
+% \end{tabbing}
+
+
+
+\section{Class Bound}
+
+A bound is defined as a real number, a fraction or null. The bound
+class implements the bound and supplies functions for comparing
+bounds. Bounds allow rational numbers to be specified precisely.
+Bounds can represent infinity and -infinity by fractions with a
+zero numerator and nonzero denominator. Thus $1/0$ is infinity
+and $-1/0$ is -infinity. We define $2/0$ be be greater than $1/0$.
+
+
+% \subsection{enum types}
+% 
+% {\footnotesize
+% \begin{verbatim}
+% 
+% enum boundType{ realNumber, fraction, null };
+% 
+% \end{verbatim}
+% }
+% 
+% \subsection{Constructors}
+% \begin{tabbing}
+% {\ff Bound( Fraction f0 ) } \= \kill
+% {\ff Bound() } \> default constructor, boundType=null \\
+% {\ff Bound( real x0 ) } \> define a bound from a real number \\
+% {\ff Bound( int i ) } \> define a bound from a int \\
+% {\ff Bound( Fraction f0 ) } \> define a bound from a fraction \\
+% \end{tabbing}
+% 
+% 
+% \subsection{Member Functions}
+% 
+The relational operators $\le$, $<$, $\ge$, $>$ and $==$ are defined for
+the comparison of two bounds or a bound and a real number,
+or a bound and a fraction.
+In addition the arithmetic operators $+$, $-$, $*$ and $/$ are defined for
+two objects of type Bound.
+% There are also member functions to assign and retrieve values
+% \begin{tabbing}
+% {\ff void get( boundType bt, real x, Fraction f ) }xxxxx \= \kill
+% {\ff void set( real value ) }  \> assign a real value to the bound  \\
+% {\ff void set( int value ) }  \> assign an integer value to the bound  \\
+% {\ff void set( int n, int d ) }  \> assign a numerator and denominator  \\
+% {\ff void get( boundType bt, real x, Fraction f ) }  \> get boundType and value  \\
+% \end{tabbing}
+% 

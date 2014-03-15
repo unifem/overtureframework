@@ -1,0 +1,12 @@
+*
+* input file for tos.C
+*
+*  mpirun -np 1 -all-local tos -ksp_monitor -log_summary
+*  mpirun -np 2 -all-local tos -ksp_monitor -log_summary
+* 
+*  mpirun-wdh -np 1 tos -ksp_monitor -log_summary
+* 
+* totalview srun -a -N2 -n2 -ppdebug tos
+* 
+* ---- command file name:
+tos1.cmd

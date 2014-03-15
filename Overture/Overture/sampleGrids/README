@@ -1,0 +1,50 @@
+Overlapping grids
+-----------------
+  Type "make" in this directory to build a collection of sample grids.
+  This will run the the perl script generate.p. and check to see that
+  the grids are correctly made by comparing the results to previously
+  generated single or double precision results.
+
+  Most of the files named *.cmd are command files that cam be used to create overlapping grids
+  using the grid generator, ogen, found in Overture/bin 
+
+  The file GridDescriptions gives a short description of some of the command files
+  found in this directory. 
+
+  See the documentation of ogen for a description of how to build overlapping grids
+  like the ones that can be created here.
+
+  If you start ogen you can read in the command file by choosing the menu item
+  "read command file" found in the "file" menu (upper right corner of the window).
+  You can type "ogen file.cmd" to directly read the command file.
+  You can also type "ogen noplot file.cmd" to run without graphics and to have
+  ogen read the command file "file.cmd" and generate the grid.
+
+
+Unstructured (Hybrid Grids)
+---------------------------
+ 
+  You can build unstructured (hybrid) grids using "ogen". Ogen will call the "ugen"
+grid generator to take an overlapping grid and turn it into an unstructured grid.
+There are a number of sample .hyb.cmd files in this directory to build hybrid grids.
+See for example, inletOutlet.hyb.cmd or valve.hyb.cmd. To build one of these examples
+type
+      ../bin/ogen inletOutlet.hyb.cmd
+
+
+Grids From CAD
+--------------
+  The script gridsFromCad.p will build some grids from CAD geometries. 
+
+  The files named asmo*.cmd can be used to build a grid on the "asmo" automobile. The
+  asmo geometry is defined as a CAD surface saved in an IGES file (asmo.igs).
+  The basic steps are
+          1. ../bin/rap asmoNoWheels.cmd
+          2. ../bin/mbuilder asmoBody.cmd
+          3. ../bin/mbuilder asmoFrontWheel.cmd
+          4. ../bin/mbuilder asmoBackWheel.cmd
+          5. ../bin/ogen asmo.cmd
+  Most of these command files will pause so you can see what is going on.
+  See the documentation for the hyperbolic mapping for more detailed 
+  instructions on building the asmo grid.
+

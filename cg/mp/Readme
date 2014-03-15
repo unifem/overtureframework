@@ -1,0 +1,13 @@
+The mp directory holds the files for the multi-physics solver, cgmp
+
+Makefile  : type "make" to build the solver bin/cgmp
+
+bin       : executable files
+check     : type "make" to run the regression tests
+cmd       : command files for running examples
+doc       : documentation
+lib       : holds the library
+obj       : .o files
+src       : source files 
+runs      : sample runs from the documentation or from papers.
+

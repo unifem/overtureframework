@@ -1,0 +1,142 @@
+\subsubsection{constructor}
+ 
+\newlength{\ExactLocalInverseIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\ExactLocalInverseIncludeArgIndent}{ExactLocalInverse(}% 
+ExactLocalInverse( Mapping \& map0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Build an ExactLocalInverse from a Mapping.
+\end{description}
+\subsubsection{getParameter}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{getParameter(}%
+getParameter( const  realParameter \& param ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the value of a parameter.
+\item[{\bf param (input) :}]  one of {\tt THEnonConvergenceValue}, {\tt THEnewtonToleranceFactor},
+     or {\tt THEnewtonDivergenceValue} or {\tt newtonL2Factor} from the enum {\tt MappingParameters}.
+ 
+\end{description}
+\subsubsection{setParameter}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{setParameter(}%
+setParameter( const  realParameter \& param, const real \& value ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the vaule of a parameter.
+\item[{\bf param (input) :}]  one of {\tt THEnonConvergenceValue}, {\tt THEnewtonToleranceFactor},
+     or {\tt THEnewtonDivergenceValue} or {\tt THEnewtonL2Factor}  from the enum {\tt MappingParameters}.
+\item[{\bf value (input) :}]  value to assign.
+ 
+\end{description}
+\subsubsection{sizeOf}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{sizeOf(}%
+sizeOf(FILE *file  = NULL) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return size of this object  
+\end{description}
+\subsubsection{reinitialize}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{reinitialize(}%
+reinitialize()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   This will mark ExactLocalInverse as being in need of initialization.
+   The actual call to initialize will occur when the inverse is actually used.
+\end{description}
+\subsubsection{get}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{get(}%
+get( const GenericDataBase \& dir, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get this object from a sub-directory called "name"
+\end{description}
+\subsubsection{put}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{put(}%
+put( GenericDataBase \& dir, const aString \& name) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ save this object to a sub-directory called "name"
+\end{description}
+\subsubsection{initialize}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{initialize(}%
+initialize()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Initialize.
+\end{description}
+\subsubsection{compressConvergedPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{compressConvergedPoints(}%
+compressConvergedPoints(Index \& I,\\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& x, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& r, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& ry, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& det, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}IntegerArray \& status,\\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}const RealArray \& x1, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& r1, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& rx1, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}MappingWorkSpace \& workSpace,\\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}const int computeGlobalInverse )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Remove points that have converged or diverged so that we will only iterate
+  on the smaller number of points that haven't converged,
+\end{description}
+\subsubsection{inverse}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ExactLocalInverseIncludeArgIndent}{inverse(}%
+inverse(const RealArray \& x1, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& r1, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}RealArray \& rx1, \\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}MappingWorkSpace \& workSpace,\\ 
+\hspace{\ExactLocalInverseIncludeArgIndent}const int computeGlobalInverse )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Compute the inverse of the mapping using Newton's method.
+   The initial guess must be good enough for Newton to converge
+
+\item[{\bf x1,r1,rx1 (input/output) :}]  
+\item[{\bf workSpace (input) :}] 
+\item[{\bf computeGlobalInverse (input):}]  
+     true means that the approximateGlobal inverse routine was called previous
+     to this call. In this case we look for information in the workSpace.
+     false means that the approximateGlobalInverse was not called before this
+     call.
+\end{description}

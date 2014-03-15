@@ -1,0 +1,46 @@
+=== 2012/10/25
+
+
+Finer grid, higher tol -- .05 may be a little too big
+nohup $cns/bin/cgcns -noplot multiCylRandomMove -g=multiCylRandom4.order2.hdf -l=2 -r=2 -tol=.05 -tf=4. -tp=.05 -show="multiCylRandom4.show" -go=go >! multiCylRandom4.out &
+
+plotStuff plotMultiCylRandom -show=multiCylRandom2a.show
+#
+
+RESTART - OK
+nohup $cns/bin/cgcns -noplot multiCylRandomMove -g=multiCylRandom2.order2.hdf -tf=3. -tp=.05 -restart="multiCylRandom2.show" -show="multiCylRandom2a.show" -go=go >! multiCylRandom2a.out &
+
+OK:
+nohup $cns/bin/cgcns -noplot multiCylRandomMove -g=multiCylRandom2.order2.hdf -tf=1. -tp=.05 -show="multiCylRandom2.show" -go=go >! multiCylRandom2.out &
+
+
+PROBLEM FOUND: "detect collisions" missing the toggle switch "1" !!
+
+
+-- Restart:
+ cgcns -noplot multiCylRandomMove -g=multiCylRandom2.order2.hdf -tf=1. -tp=.01 -restart="multiCylRandom2.show" -go=og
+
+=== 2012/10/24
+
+  run for a demo in CginsRef 
+
+ogen .. read gridFailed ... trouble
+
+TROUBLE: ... PROBLEM FOUND: "detect collisions" missing the toggle switch "1" !!
+cgcns -noplot multiCylRandomMove -g=multiCylRandom2.order2.hdf -tf=1. -tp=.01 -show="multiCylRandom2.show" -go=og
+
+
+==== 2012/07/19 
+
+rerun: 
+
+nohup $cns/bin/cgcns -noplot multiCylRandomMove.cmd >! multiCylRandomMove2012.out &
+
+==== 070709:
+
+   rerun movie for Tom O'Donnell
+
+
+/home/henshaw.0/Overture.v21n.d/bin/ogen noplot $ogen/multiCylRandom.cmd
+
+nohup /home/henshaw.0/cg.v21n.d/cns/bin/cgcns noplot multiCylRandomMove.cmd >! multiCylRandomMove.out &

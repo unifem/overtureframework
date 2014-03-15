@@ -1,0 +1,148 @@
+# 
+# ---- Convergence rates for computing eigenfunctions of an annulus ---
+# -mode : 0=steady, 1=time-harmonic
+#
+# To run the convergence tests type: 
+# Non-conservative:
+#      conv.p annulusEigen.conv -pv=nc -mode=1 -bcn=d -filter=1 -alwaysCompute=1
+#      conv.p annulusEigen.conv -pv=nc -mode=1 -bcn=sf -filter=1 -alwaysCompute=1
+# Conservative:
+#      conv.p annulusEigen.conv -pv=c  -mode=1 -bcn=d -filter=1 -ng=5 -alwaysCompute=1
+#      conv.p annulusEigen.conv -pv=c  -mode=1 -bcn=d -filter=1 -lambda=100 -ng=5 -alwaysCompute=1
+#      conv.p annulusEigen.conv -pv=c -mode=1 -bcn=sf -filter=1 -ng=5 -alwaysCompute=1
+#      conv.p annulusEigen.conv -pv=c -mode=1 -bcn=sf -filter=0 -alwaysCompute=1
+#      conv.p annulusEigen.conv -pv=c -mode=1 -bcn=sf -filter=1 -lambda=100 -ng=5 -alwaysCompute=1
+# Godunov:
+#      conv.p annulusEigen.conv -pv=g  -mode=1 -bcn=d -ng=5 -tf=1. -alwaysCompute=1  [rates are too good]
+#      conv.p annulusEigen.conv -pv=g  -mode=1 -bcn=d -ng=5  -ad=.1 -alwaysCompute=1
+#      conv.p annulusEigen.conv -pv=g  -mode=1 -bcn=d -lambda=100 -ng=5 -ad=1. -alwaysCompute=1   [Here we need ad]
+#      conv.p annulusEigen.conv -pv=g  -mode=1 -bcn=d -lambda=100 -ng=5 -alwaysCompute=1  [try no ad..
+#      conv.p annulusEigen.conv -pv=g  -mode=1 -bcn=sf  -ng=5 -alwaysCompute=1
+#      conv.p annulusEigen.conv -pv=g  -mode=1 -bcn=sf -lambda=100 -ng=5 -alwaysCompute=1
+# Hemp:  -- note: need to run with "Q" turned off or else first order
+#      conv.p annulusEigen.conv -pv=h -ts=ie -mode=1 -bcn=d  -c0=0. -cl=0.
+#      conv.p annulusEigen.conv -pv=h -ts=ie -mode=1 -bcn=sf -c0=0. -cl=0.
+#
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#   -mode : mode number 
+#   -bcn : d=dirichlet, sf=stress-free
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+# 
+# Set default parameters: 
+$pv = "nc";  $en="max"; $ng=5; $diss=0.; $ts="me"; $alwaysCompute=0; $lambda=1.; $cfl=.9; $ad=0.; 
+$tf=.5;  $tPlot=.1; $degreeX=2; $degreeT=2; 
+$filter=0; $filterOrder=6; $filterStages=2; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+$mode=1; 
+$bcn = "d"; # displacement BC
+# $bcn = "sf"; # traction
+#
+GetOptions("pv=s"=>\$pv,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"diss=f"=>\$diss,\
+           "alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,"filter=i"=>\$filter,\
+           "filterOrder=i"=>\$filterOrder,"filterStages=i"=>\$filterStages,"showAllComponents=i"=>\$showAllComponents,\
+           "cfl=f"=>\$cfl,"ad=f"=>\$ad,"tf=f"=>\$tf );
+#
+$check="sm.check";
+# if( $pv eq "nc" || $pv eq "c" ){ $numberOfComponents = 2; }
+# if( $pv eq "g" ){ $numberOfComponents = 8; }
+if( $pv eq "h" ){ $numberOfComponents = 11; }
+if( $ts eq "me" ){ $ts = "modifiedEquationTimeStepping"; }
+if( $ts eq "fe" ){ $ts = "forwardEuler"; }
+if( $ts eq "ie" ){ $ts = "improvedEuler"; }
+if( $ts eq "ab" ){ $ts = "adamsBashforth2"; }
+# 
+$caseName="annulusEigen.$pv.$bcn.mode$mode"; 
+$name=$caseName;
+if( $lambda ne "1" ){ $name = $name . ".Lambda$lambda"; $caseName=$caseName . ".Lambda$lambda"; }
+#
+#
+# --- define the table heading and caption --
+# 
+#  --- SOS NC or C : include |u| in table by default
+if( $pv eq "nc" || $pv eq "c" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    $numberOfComponents=$nd+1;  \
+  }\
+  else\
+  { \
+    $numberOfComponents=1; $ignoreComponent[1]=1; \
+  }\
+  if( $numberOfComponents eq 1 )\
+  { \
+     $title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
+     @componentName = ( "u" ); \
+  }\
+  elsif( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \& \$u\$ \&  \$u_1\$ \& \$u_2\$  ";\
+     @componentName = ( "u", "u0", "u1" );\
+  }\
+  else{\
+    $title ="grid  \& N \&  \$u\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$  ";\
+    @componentName = ( "u", "u0", "u1", "u2" );\
+  }\
+}
+#  --- Godunov : include |u|, |v|, |sigma| in table by default
+if( $pv eq "g" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    if( $nd eq 2 ){ $numberOfComponents=11; }else{ $numberOfComponents=18; }  \
+  }\
+  else\
+  { \
+    $numberOfComponents=3;  \
+  }\
+  if( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v\$  \&  \$\\sigma\$   "; \
+     @componentName = ( "u", "v", "s" ); \
+  }\
+  elsif( $numberOfComponents eq 11 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$ ";\
+     @componentName = ( "u", "v", "s", "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" );\
+  }\
+  else{\
+         $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{13}\$ \& \$s_{21}\$ \& \$s_{22}\$ \& \$s_{23}\$ \& \$s_{31}\$ \& \$s_{32}\$ \& \$s_{33}\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$ ";\
+         @componentName = ( "u", "v", "s", "v0", "v1", "v2" , "s11", "s12", "s13", "s21", "s22", "s23", "s31", "s32", "s33", "u0", "u1", "u2");\
+  }\
+}
+# 
+# if( $numberOfComponents eq 2 ){ $title ="grid  \& N \&  \$u_1\$ \& \$u_2\$  "; }
+# if( $numberOfComponents eq 8 ){ $title= "grid  \& N  \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$"; }
+# For Hemp we ignore some components and exclude them from the table
+# if( $numberOfComponents eq 11 ){ $title= "grid  \& N  \& \$x\$ \& \$y\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{22}\$ \& \$p\$ \& \$q\$ \&  \$u_1\$ \& \$u_2\$"; }
+if( $pv eq "h" ){ $ignoreComponent[0]=1; $ignoreComponent[1]=1; $ignoreComponent[7]=1; $ignoreComponent[8]=1;  }
+# if( $numberOfComponents eq 11 ){ $title= "grid  \& N  \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{22}\$ \& \$u_1\$ \& \$u_2\$"; }
+# -- add component name: 
+# if( $numberOfComponents eq 2 ){ @componentName = ( "u0", "u1" ); }
+# if( $numberOfComponents eq 8 ){ @componentName = ( "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" ); }
+if( $numberOfComponents eq 11 ){ @componentName = ( "x0", "x1", "v0", "v1" , "s11", "s12", "s22", "p", "q", "u0", "u1" ); }
+# 
+if( $pv eq "g" ){ $clabel="ad=$ad"; }else{ $clabel = "diss=$diss, filter=$filter, filterOrder=$filterOrder"; }
+$caption= "\\caption\{SM, $name, pv=$pv, bcn=$bcn, mode=$mode, \$\\lambda=$lambda\$, \$t=$tf\$, cfl=$cfl, $tz TZ, $clabel, $en-norm, $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-pv=$pv -ts=$ts -diss=$diss -tf=$tf -tp=$tPlot -cfl=$cfl -filter=$filter -filterOrder=$filterOrder -filterStages=$filterStages -p0=1. -p1=2. -lambda=$lambda -modem=$mode -bcn=$bcn -en=$en -ad=$ad -go=go"; 
+$gName1 = "annulus1.order2";
+$gName2 = "annulus2.order2";
+$gName3 = "annulus4.order2";
+$gName4 = "annulus8.order2";
+$gName5 = "annulus16.order2";
+$grid="an1"; $res=1; $cmd="../bin/cgsm noplot ../cmd/annulusEigen -g=$gName1 $options";
+$grid="an2"; $res=2; $cmd="../bin/cgsm noplot ../cmd/annulusEigen -g=$gName2 $options";
+if( $ng > 2 ){$grid="an4"; $res=4; $cmd="../bin/cgsm noplot ../cmd/annulusEigen -g=$gName3 $options";}
+if( $ng > 3 ){$grid="an8"; $res=8; $cmd="../bin/cgsm noplot ../cmd/annulusEigen -g=$gName4 $options";}
+if( $ng > 4 ){$grid="an16"; $res=16; $cmd="../bin/cgsm noplot ../cmd/annulusEigen -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+
+
+

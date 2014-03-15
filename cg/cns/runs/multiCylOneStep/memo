@@ -1,0 +1,34 @@
+==== 2012/10/28
+RERUN at CFL=.8
+nohup $cns/bin/cgcns -noplot multiCylOneStep -g=multiCylIG4Big -cfl=.8 -amr=1 -ratio=4 -tf=1. -tp=.05 -show=multiCylOneStep4l2r4b.show -go=go >! multiCylOneStep4l2r4b.out &
+
+
+==== 2012/10/26 --
+
+RESTART -- WORKS if we set tp=.01 --> Maybe CFL is slightly too big ??
+
+
+
+RESTART -- set orderOfExtrap=2 
+nohup $cns/bin/cgcns -noplot multiCylOneStep -g=multiCylIG4Big -amr=1 -ratio=4 -tf=1. -tp=.01 -restart=multiCylOneStep4l2r4.show -show=multiCylOneStep4l2r4a.show -go=go >! multiCylOneStep4l2r4a.out &
+
+Finer .. FAILED orderOfExtrap??
+nohup $cns/bin/cgcns -noplot multiCylOneStep -g=multiCylIG4Big -amr=1 -ratio=4 -tf=1. -tp=.05 -show=multiCylOneStep4l2r4.show -go=go >! multiCylOneStep4l2r4.out &
+
+plotStuff plotMultiCylOneStep.cmd -show=multiCylOneStep2.show
+
+==== 2012/10/25 -- 
+
+nohup $cns/bin/cgcns -noplot multiCylOneStep -g=multiCylIG2Big -amr=1 -tf=1. -tp=.01 -show=multiCylOneStep2.show -go=go >! multiCylOneStep2.out &
+
+cgcns -noplot multiCylOneStep -g=multiCylIG2Big -amr=1 -tp=.005 -go=og
+
+
+
+==== OLD:
+
+
+* save high resolution image as eps with 24 bit colour
+
+
+convert multiCylOneStepColourSchlieren1p0Blue.ps multiCylOneStepColourSchlieren1p0Blue.png

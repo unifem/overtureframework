@@ -1,0 +1,554 @@
+\subsection{default constructor}
+ 
+\newlength{\OgesIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\OgesIncludeArgIndent}{Oges(}% 
+Oges()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Default constructor.
+\end{description}
+\subsection{setGridsToUse}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{setGridsToUse(}%
+setGridsToUse( const IntegerArray \& gridsToUse )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Only solve the equations on some grids, these are called the active grids. 
+ If an active grid interpolates from an in-active grid, the corresponding 
+ interpolation equation will be replaced by a Dirichlet condition (i.e. the identity equation)
+ and the solution at that point will left unchanged. (Note that RHS will be altered at
+ this interpolation point and set equal to the solution value at that point.)
+
+\item[{\bf gridsToUse (input) :}]  a list of grids to use when solving. 
+             If this array is empty (i.e. a NULL array) then ALL grids will be used.
+              
+
+\end{description}
+\subsection{activeGrid}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgesIncludeArgIndent}{activeGrid(}%
+activeGrid( int grid ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return true if this grid is used.
+
+\item[{\bf grid (input) :}]  grid to check
+\item[{\bf Return value (output):}]  true if this grid is active (used)
+
+\end{description}
+\subsection{getUseThisGrid}
+ 
+\begin{flushleft} \textbf{%
+const IntegerArray \&  \\ 
+\settowidth{\OgesIncludeArgIndent}{getUseThisGrid(}%
+getUseThisGrid() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the array that indicates which grids are active, useThisGrid(grid)=true if the grid is active
+
+\item[{\bf Return value (output):}]  a reference to useThisGrid.
+
+\end{description}
+\subsection{getMaximumResidual}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OgesIncludeArgIndent}{getMaximumResidual(}%
+getMaximumResidual() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the maximum resdiual from the last solve.
+\end{description}
+\subsection{get}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{get(}%
+get( const GenericDataBase \& dir, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Get a copy of Oges from a database file
+\item[{\bf dir (input):}]  get from this directory of the database.
+\item[{\bf name (input):}]  the name of Oges on the database.
+\end{description}
+\subsection{put}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{put(}%
+put( GenericDataBase \& dir, const aString \& name) const   
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output an image of Oges to a data base. 
+\item[{\bf dir (input):}]  put onto this directory of the database.
+\item[{\bf name (input):}]  the name of Oges on the database.
+\end{description}
+\subsection{setExtraEquationValues}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{setExtraEquationValues(}%
+setExtraEquationValues( realCompositeGridFunction \& f, real *value )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Assign values to the right-hand-side for the extra equations
+
+\item[{\bf f (input/output) :}]  fill in rhs values here
+\item[{\bf value[i] (input) :}]  values for each extra equation, i=0,1,2,...,
+ 
+\item[{\bf Return values:}]  0=success
+\item[{\bf Author:}]  wdh
+\end{description}
+\subsection{setExtraEquationValues}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{getExtraEquationValues(}%
+getExtraEquationValues( const realCompositeGridFunction \& u, real *value )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return solution values from the extra equations
+
+\item[{\bf u(input) :}]  grid function holding the solution.
+\item[{\bf value[i] (output) :}]  values for each extra equation, i=0,1,2,...,
+ 
+\item[{\bf Return values:}]  0=success
+\item[{\bf Author:}]  wdh
+\end{description}
+\subsection{evaluateExtraEquation}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{evaluateExtraEquation(}%
+evaluateExtraEquation( const realCompositeGridFunction \& u, real \& value, int extraEquation  =0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Evaluate the dot product of the coefficients of an extra equation times u 
+
+\item[{\bf u (input) :}]  grid function to dot with the extra equation
+\item[{\bf value (output) :}]  the dot product
+\item[{\bf extraEquation (input) :}]  the number of the extra equation (0,1,...,numberOfExtraEquations-1)
+ 
+\item[{\bf Return values:}]  0=success
+\item[{\bf Author:}]  wdh
+\end{description}
+\subsection{evaluateExtraEquation}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{evaluateExtraEquation(}%
+evaluateExtraEquation( const realCompositeGridFunction \& u, real \& value, real \& sumOfExtraEquationCoefficients,\\ 
+\hspace{\OgesIncludeArgIndent}int extraEquation  =0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Evaluate the dot product of the coefficients of an extra equation times u 
+  Also return the sum of the coefficients of the extra equation (i.e. the dot product with the "1" vector)
+
+\item[{\bf u (input) :}]  grid function to dot with the extra equation
+\item[{\bf value (output) :}]  the dot product
+\item[{\bf sumOfExtraEquationCoefficients (output) :}]  sum of the coefficients of the extra equation
+\item[{\bf extraEquation (input) :}]  the number of the extra equation (0,1,...,numberOfExtraEquations-1)
+ 
+\item[{\bf Return values:}]  0=success
+\item[{\bf Author:}]  wdh
+\end{description}
+\subsection{writeMatrixToFile}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{writeMatrixToFile(}%
+writeMatrixToFile( aString filename )
+}\end{flushleft}
+\begin{description}
+\item[{\bf   Description:}]   
+  //   Write the current solver matrix (using indicies with base 1) to the file <fileName>.
+  //   The file consists of triplets $i$, $j$, $A(i,j)$ (without commas) 
+  //   for each non-zero element of the matrix. 
+  //   (Here $i$=row, $j$=column, and 
+  //    $A(i,j)=A_{ij}$ element of the matrix.) 
+\item[{\bf   Author:}]    pf, wdh
+\end{description}
+\subsection{outputSparseMatrix}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{outputSparseMatrix(}%
+outputSparseMatrix( const aString \& fileName )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output the matrix in compressed row format OR uncompressed format (with indices starting at 0). 
+ See the format below
+\item[{\bf fileName (input) :}]  save the results to this file
+\end{description}
+\subsection{writeMatrixGridInformationToFile}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{writeMatrixGridInformationToFile(}%
+writeMatrixGridInformationToFile( aString filename )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Write the grid information about the current solver matrix 
+   to the file <fileName>.
+   
+ \begin{verbatim}
+   For each equation in the matrix, a line
+   is saved in the file with the following format:
+
+   ieq   grid    simpleClassify    fullClassify
+
+ where:
+
+ ieq=               equation number in the linear system
+ grid=              grid number for this point
+
+ (In the classify flags,  any non-negative value indicates a used 
+  point. Negative values are equations with zero for the rhs )
+
+ simpleClassify=  
+                    -1=connecting grids (=interpolation, 
+                             extrapolation, or periodic bdry)
+                     0=hole point (unused)
+                     1=interior (=discretization) point
+                     2=boundary point 
+                        (=boundary, ghostline, periodic)
+
+ fullClassify=      
+                     interior=       1,
+                     boundary=       2,
+                     ghost1=         3,
+                     ghost2=         4,
+                     ghost3=         5,
+                     ghost4=         6,
+                     interpolation= -1,
+                     periodic=-      2,
+                     extrapolation= -3,
+                     unused=         0
+ \end{verbatim}
+
+\item[{\bf Author:}]  pf
+\end{description}
+\subsection{writePetscMatrixToFile}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{writePetscMatrixToFile(}%
+writePetscMatrixToFile( aString filename,\\ 
+\hspace{\OgesIncludeArgIndent}realCompositeGridFunction \& u,\\ 
+\hspace{\OgesIncludeArgIndent}realCompositeGridFunction \& f)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Only available when linked with PETSc (-DOVERTURE\_USE\_PETSC)
+
+     Write the current solver matrix to the file <fileName>.
+     Uses the PETSc binary format. Supply u,f as to 'solver',
+     the RHS corresponding to f is also saved in the matrix file.
+
+\item[{\bf Author:}]  pf
+\end{description}
+\subsection{canSolveInPlace}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgesIncludeArgIndent}{canSolveInPlace(}%
+canSolveInPlace() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return true if the rhs and sol vectors can be the same.
+\end{description}
+\subsection{setCoefficientArray}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{setCoefficientArray(}%
+setCoefficientArray( realCompositeGridFunction \& coeff0,\\ 
+const IntegerArray \& boundaryConditions  =Overture::nullIntArray(),\\ 
+const RealArray \& bcData  =Overture::nullRealArray())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Supply a coefficient grid function to be used to discretize the equations.
+\item[{\bf coeff0 (input):}]  Here are the coefficients. Oges will keep a reference to this
+  grid function. 
+\item[{\bf boundaryConditions(0:}] 1,0:2,numberOfComponentGrids) (input) : optionally supply boundary conditions.
+  These are needed by the multigrid solver.
+\item[{\bf bcData :}]  data for the boundary conditions.
+\end{description}
+\subsection{setCoefficientArray}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{setCoefficientArray(}%
+setCoefficientArray( realMappedGridFunction \& coeff0,\\ 
+const IntegerArray \& boundaryConditions  =Overture::nullIntArray(),\\ 
+const RealArray \& bcData  =Overture::nullRealArray())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Supply a coefficient grid function (single grid only)
+  to be used to discretize the equations.
+\item[{\bf coeff0 (input):}]  Here are the coefficients. Oges will keep a reference to this
+  grid function.
+\item[{\bf boundaryConditions(side,axis,grid) :}]  optionally supply boundary conditions. These are needed
+   by the multigrid solver.
+\item[{\bf bcData :}]  data for the boundary conditions.
+\end{description}
+\subsection{setEvaluateJacobian}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgesIncludeArgIndent}{setEvaluateJacobian(}%
+setEvaluateJacobian( const int evaluateJacobian0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  ?
+\end{description}
+\subsection{setGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgesIncludeArgIndent}{setGrid(}%
+setGrid( CompositeGrid \& cg0, bool outOfDate  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+ Supply a CompositeGrid to Oges. Use this routine, for example,
+ if an Oges object was created with the default constructor.
+ Call this routine before calling initialize.
+\item[{\bf cg0 (input):}]  Oges will keep a reference to this grid.
+\item[{\bf outOfDate :}]  set to true if the grid is out of date. This is normally true except in the case
+    of using the multigrid solver in which case the multigrid hierachy only needs to be built once
+    so multiple instances of Oges need only mark the grid as out of date once. The multigrid hierarchy
+   may also be marked out of date if you mark the MultigridCompositeGrid that was optionally supplied to Oges.
+  You you do this then you can call setGrid with outOfDate=false in all cases.
+\end{description}
+\subsection{setGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgesIncludeArgIndent}{setGrid(}%
+setGrid( MappedGrid \& mg, bool outOfDate  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+ Supply a MappedGrid to Oges. Use this routine, for example,
+ if an Oges object was created with the default constructor.
+ Call this routine before calling initialize.
+\item[{\bf mg (input):}]  Oges will keep a reference to this grid.
+\end{description}
+\subsection{set(OptionEnum,int)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{set(}%
+set(  OptionEnum option, int value  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set an option from the {\tt OgesParameters::OptionEnum} enumerator.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\item[{\bf option (input) :}]  choose an option
+\item[{\bf value (input) :}]  value to assign (for options requiring a value).
+\end{description}
+\subsection{set(OptionEnum,float)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{set(}%
+set(  OptionEnum option, float value )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set an option from the {\tt OgesParameters::OptionEnum} enumerator.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\item[{\bf option (input) :}]  choose an option
+\item[{\bf value (input) :}]  value to assign (for options requiring a value).
+\end{description}
+\subsection{set(OptionEnum,double)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{set(}%
+set(  OptionEnum option, double value )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set an option from the {\tt OgesParameters::OptionEnum} enumerator.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\item[{\bf option (input) :}]  choose an option
+\item[{\bf value (input) :}]  value to assign (for options requiring a value).
+\end{description}
+\subsection{set(SolverEnum)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{set(}%
+set(  SolverEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Select a solver from the {\tt OgesParameters::SolverEnum} enumerator.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\item[{\bf option (input) :}]  option selected.
+\end{description}
+\subsection{set(SolverMethodEnum)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{set(}%
+set(  SolverMethodEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Select a solver method from the {\tt OgesParameters::SolverMethodEnum} enumerator.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\item[{\bf option (input) :}]  option selected.
+\end{description}
+\subsection{set(PreconditionerEnum)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{set(}%
+set(  PreconditionerEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Select a preconditioner from the {\tt OgesParameters::PreconditionerEnum} enumerator.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\item[{\bf option (input) :}]  option selected.
+\end{description}
+\subsection{set(MatrixOrderingEnum)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{set(}%
+set(  MatrixOrderingEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Select a matrix ordering from the {\tt OgesParameters::MatrixOrderingEnum} enumerator.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\item[{\bf option (input) :}]  option selected.
+\end{description}
+\subsection{get(OptionEnum,int\&)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{get(}%
+get(  OptionEnum option, int \& value ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return the current value of an option (this version appropriate for options that have
+  a value of type `int'.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\end{description}
+\subsection{get(OptionEnum,real\&)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{get(}%
+get(  OptionEnum option, real \& value ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return the current value of an option (this version appropriate for options that have
+  a value of type `real'.
+  See section (\ref{sec:OgesParameters}) for a full description of the options available.
+\end{description}
+\subsection{setOgesParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{setOgesParameters(}%
+setOgesParameters( const OgesParameters \& par )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Assign the values from an OgesParameters object to an Oges object.
+\end{description}
+\subsection{sizeOf}
+ 
+\begin{flushleft} \textbf{%
+real   \\ 
+\settowidth{\OgesIncludeArgIndent}{sizeOf(}%
+sizeOf( FILE *file  =NULL) const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return number of bytes allocated by Oges; optionally print detailed info to a file
+
+\item[{\bf file (input) :}]  optinally supply a file to write detailed info to. Choose file=stdout to
+ write to standard output.
+\item[{\bf Return value:}]  the number of bytes.
+\end{description}
+\subsection{printStatistics}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{printStatistics(}%
+printStatistics(FILE *file  = stdout) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output any relevant statistics
+\end{description}
+\subsection{updateToMatchGrid}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{updateToMatchGrid(}%
+updateToMatchGrid( CompositeGrid \& cg0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Give Oges a new matrix to use. Use this routine, for example, when a grid has
+    moved. 
+    This routine will cause the matrix to be refactored the next time solve is called.
+
+\item[{\bf cg0 (input):}]  use this CompositeGrid
+\end{description}
+\subsection{updateToMatchGrid}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{updateToMatchGrid(}%
+updateToMatchGrid( MappedGrid \& mg )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+    Use this version when you are solving a problem on a MappedGrid.
+\item[{\bf mg (input):}]  use this MappedGrid
+\end{description}
+\subsection{getMatrix}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesIncludeArgIndent}{getMatrix(}%
+getMatrix( IntegerArray \& ia\_, IntegerArray \& ja\_, RealArray \& a\_, \\ 
+\hspace{\OgesIncludeArgIndent}SparseStorageFormatEnum format  =compressedRow)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the matrix in a given format.
+\item[{\bf ia\_,ja\_,a\_ (output) :}]  reference to the matrix in sparse form.
+\item[{\bf format (input):}]  sparse format
+\end{description}

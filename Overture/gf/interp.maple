@@ -1,0 +1,467 @@
+# generate formulae for higher order interpolation
+#
+# To use: read "interp.maple";
+#
+restart;
+
+maxNumberOfContinuationLines:=95;
+maxNumberOfCharsPerLine:=62;
+maxChars:=maxNumberOfContinuationLines*maxNumberOfCharsPerLine;
+
+
+
+f := fopen( "higherOrderInterp.h",WRITE );
+
+maxOrder:=9;
+
+# First output some statement functions so that we can make the formulae shorter
+#   -- these are not used : it takes longer to compile ---
+fprintf(f,"\n\#beginMacro interpStatementFunctions()\n");
+for n from 2 to maxOrder do
+
+    # These are for 3d
+    fprintf(f,"tpi%d(m2,m3)=",n);
+    for i from 0 to n-1 do
+     fprintf(f,"c(i,%d,0,0)*ui(i1+%d,i2+m2,i3+m3,c3)",i,i);
+     if i<>(n-1) then
+       fprintf(f,"+");
+     else
+       fprintf(f,"\n");
+     fi;
+    od;
+
+   fprintf(f,"spi%d(m2,m3)=",n);
+    for i from 0 to n-1 do
+     fprintf(f,"cr%d*ui(i1+%d,i2+m2,i3+m3,c3)",i,i);
+     if i<>(n-1) then
+       fprintf(f,"+");
+     else
+       fprintf(f,"\n");
+     fi;
+    od;
+
+od;
+fprintf(f,"\#endMacro\n");
+
+for n from 2 to maxOrder do
+
+  fprintf(f,"\nc =====2D : order %d ====\n\n",n);
+  
+    
+  fprintf(f,"\#beginMacro interp%d%d(lhs)\n",n,n);
+  fprintf(f,"i1=il(i,1)\n");
+  fprintf(f,"i2=il(i,2)\n");
+  fprintf(f,"lhs = \\\n");
+  for j from 0 to n-1 do
+  for i from 0 to n-1 do
+
+   if i<>0 and j<>0 then
+     fprintf(f,"   c(i,%d,%d,0)*ui(i1+%d,i2+%d,c2,c3)",i,j,i,j);
+   elif i<>0 then
+     fprintf(f,"   c(i,%d,%d,0)*ui(i1+%d,i2  ,c2,c3)",i,j,i);
+   elif j<>0  then
+     fprintf(f,"   c(i,%d,%d,0)*ui(i1  ,i2+%d,c2,c3)",i,j,j);
+   else
+     fprintf(f,"   c(i,%d,%d,0)*ui(i1  ,i2  ,c2,c3)",i,j);
+   fi;
+   # fprintf(f,"   c(i,%d,%d,0)*ui(il(i,1)+%d,il(i,2)+%d,c2,c3)",i,j,i,j);
+   if (i<>(n-1)) or (j<>(n-1)) then
+     fprintf(f,"+\\\n");
+   else
+     fprintf(f,"\n");
+   fi;
+  od;
+  od;
+  fprintf(f,"\#endMacro\n");
+
+  # === Here is the formula we use  when we only store the coefficients in the tensor product ===
+
+  c:=0; # counts chars we have output in a single line
+  fprintf(f,"\n\#beginMacro interpTensorProduct%d%d(lhs)\n",n,n);
+  fprintf(f,"i1=il(i,1)\n");
+  fprintf(f,"i2=il(i,2)\n");
+  fprintf(f,"lhs = \\\n  ");
+  for j from 0 to n-1 do
+   fprintf(f,"c(i,%d,1,0)*(",j); 
+    
+   for i from 0 to n-1 do
+    if i<>0 and j<>0 then
+      fprintf(f,"c(i,%d,0,0)*ui(i1+%d,i2+%d,c2,c3)",i,i,j);
+    elif i<>0 then
+      fprintf(f,"c(i,%d,0,0)*ui(i1+%d,i2  ,c2,c3)",i,i);
+    elif j<>0  then
+      fprintf(f,"c(i,%d,0,0)*ui(i1  ,i2+%d,c2,c3)",i,j);
+    else
+      fprintf(f,"c(i,%d,0,0)*ui(i1  ,i2  ,c2,c3)",i);
+    fi;
+
+    if i<>(n-1) then
+      fprintf(f,"+");
+    else
+      fprintf(f,")\\\n");
+    fi;
+   od;
+   if j<>(n-1) then
+     fprintf(f," +");
+   else
+     fprintf(f,"\n");
+   fi;
+  od;
+  fprintf(f,"\#endMacro\n");
+
+
+  # === Here is the formula we use  when we only store the coefficients in sparse storage mode ===
+  fprintf(f,"\n\#beginMacro interpSparseStorage%d%d(lhs)\n",n,n);
+  fprintf(f,"i1=il(i,1)\n");
+  fprintf(f,"i2=il(i,2)\n");
+
+  for i from 0 to n-1 do
+    fprintf(f,"  cr%d = q%d%d(c(i,0,0,0))\n",i,n,i);
+    fprintf(f,"  cs%d = q%d%d(c(i,1,0,0))\n",i,n,i);
+  od;
+
+  fprintf(f,"lhs = \\\n  ");
+  for j from 0 to n-1 do
+   fprintf(f,"cs%d*(",j);
+    
+   for i from 0 to n-1 do
+    if i<>0 and j<>0 then
+      fprintf(f,"cr%d*ui(i1+%d,i2+%d,c2,c3)",i,i,j);
+    elif i<>0 then
+      fprintf(f,"cr%d*ui(i1+%d,i2  ,c2,c3)",i,i);
+    elif j<>0  then
+      fprintf(f,"cr%d*ui(i1  ,i2+%d,c2,c3)",i,j);
+    else
+      fprintf(f,"cr%d*ui(i1  ,i2  ,c2,c3)",i);
+    fi;
+
+    if i<>(n-1) then
+      fprintf(f,"+");
+    else
+      fprintf(f,")\\\n");
+    fi;
+   od;
+   if j<>(n-1) then
+     fprintf(f," +");
+   else
+     fprintf(f,"\n");
+   fi;
+  od;
+  fprintf(f,"\#endMacro\n");
+
+
+  fprintf(f,"\nc =====3D : order %d ====\n\n",n);
+
+  fprintf(f,"\#beginMacro interp%d%d%d(lhs)\n",n,n,n);
+
+  fprintf(f,"i1=il(i,1)\n");
+  fprintf(f,"i2=il(i,2)\n");
+  fprintf(f,"i3=il(i,3)\n");
+  fprintf(f,"lhs = \\\n");
+  c:=0;
+  for k from 0 to n-1 do
+  for j from 0 to n-1 do
+  for i from 0 to n-1 do
+
+   if i<>0 and j<>0 and k<>0 then
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1+%d,i2+%d,i3+%d,c3)",i,j,k,i,j,k);
+   elif i<>0 and j<>0 then
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1+%d,i2+%d,i3,c3)",i,j,k,i,j);
+   elif i<>0 and k<>0 then
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1+%d,i2,i3+%d,c3)",i,j,k,i,k);
+   elif j<>0 and k<> 0 then
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1,i2+%d,i3+%d,c3)",i,j,k,j,k);
+   elif i<>0 then
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1+%d,i2,i3,c3)",i,j,k,i);
+   elif j<>0 then
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1,i2+%d,i3,c3)",i,j,k,j);
+   elif k<>0 then
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1,i2,i3+%d,c3)",i,j,k,k);
+   else
+     fprintf(f,"   c(i,%d,%d,%d)*ui(i1,i2,i3,c3)",i,j,k);
+   fi;
+#   fprintf(f,"   c(i,%d,%d,%d)*ui(il(i,1)+%d,il(i,2)+%d,il(i,3)+%d,c3)",i,j,k,i,j,k);
+
+   c:=c+32;
+
+   if i<>(n-1) or j<>(n-1) or k<>(n-1) then
+     if c+32  > maxChars then  # start a new line to avoid having too many continuation lines
+       c:=0;
+       fprintf(f,"\nlhs = lhs\\\n");
+     fi;
+     fprintf(f,"+\\\n");
+   else
+     fprintf(f,"\n");
+   fi;
+
+  od;
+  od;
+  od;
+  fprintf(f,"\#endMacro\n");
+
+
+
+  # To use: read "interp.maple";
+  # === Here is the formula we use  when we only store the coefficients in the tensor product ===
+  fprintf(f,"\n\#beginMacro interpTensorProduct%d%d%d(lhs)\n",n,n,n);
+  fprintf(f,"i1=il(i,1)\n");
+  fprintf(f,"i2=il(i,2)\n");
+  fprintf(f,"i3=il(i,3)\n");
+  fprintf(f,"lhs = \\\n ");
+
+  c:=0;
+  for k from 0 to n-1 do
+   fprintf(f,"c(i,%d,2,0)*(\\\n  ",k);
+   for j from 0 to n-1 do
+    fprintf(f,"c(i,%d,1,0)*(",j);
+    
+    for i from 0 to n-1 do
+     if i<>0 and j<>0 then
+       fprintf(f,"c(i,%d,0,0)*ui(i1+%d,i2+%d,i3+%d,c3)",i,i,j,k);
+     elif i<>0 then
+       fprintf(f,"c(i,%d,0,0)*ui(i1+%d,i2,i3+%d,c3)",i,i,k);
+     elif j<>0  then
+       fprintf(f,"c(i,%d,0,0)*ui(i1,i2+%d,i3+%d,c3)",i,j,k);
+     else
+       fprintf(f,"c(i,%d,0,0)*ui(i1,i2,i3+%d,c3)",i,k);
+     fi;   
+
+     if i<>(n-1) then
+       fprintf(f,"+");
+     else
+       fprintf(f,")\\\n");
+     fi;
+    od;
+    if j<>(n-1) then
+      fprintf(f," +");
+    else
+      fprintf(f,"           )\\\n");
+    fi;
+   od;
+   c:=c+1;
+   if k<>(n-1) then
+     if (c+1)*n*n*35 > maxChars then  # there are about 35 chars per output statement above
+       c:=0;
+       fprintf(f,"\nlhs = lhs");  # split the statement to avoid too many continuation lines
+     fi;
+     fprintf(f,"+");
+   else
+     fprintf(f,"\n");
+   fi;
+ od;
+ fprintf(f,"\#endMacro\n");
+
+
+
+
+  # To use: read "interp.maple";
+  # === Here is the formula we use  when we only store the coefficients in sparse storage form ===
+  fprintf(f,"\n\#beginMacro interpSparseStorage%d%d%d(lhs)\n",n,n,n);
+  fprintf(f,"i1=il(i,1)\n");
+  fprintf(f,"i2=il(i,2)\n");
+  fprintf(f,"i3=il(i,3)\n");
+
+  for i from 0 to n-1 do
+    fprintf(f,"  cr%d = q%d%d(c(i,0,0,0))\n",i,n,i);
+    fprintf(f,"  cs%d = q%d%d(c(i,1,0,0))\n",i,n,i);
+    fprintf(f,"  ct%d = q%d%d(c(i,2,0,0))\n",i,n,i);
+  od;
+
+  fprintf(f,"lhs = \\\n ");
+
+  c:=0;
+  for k from 0 to n-1 do
+   fprintf(f,"ct%d*(\\\n  ",k);
+   for j from 0 to n-1 do
+    fprintf(f,"cs%d*(",j);
+    
+    for i from 0 to n-1 do
+     if i<>0 and j<>0 then
+       fprintf(f,"cr%d*ui(i1+%d,i2+%d,i3+%d,c3)",i,i,j,k);
+     elif i<>0 then
+       fprintf(f,"cr%d*ui(i1+%d,i2,i3+%d,c3)",i,i,k);
+     elif j<>0  then
+       fprintf(f,"cr%d*ui(i1,i2+%d,i3+%d,c3)",i,j,k);
+     else
+       fprintf(f,"cr%d*ui(i1,i2,i3+%d,c3)",i,k);
+     fi;   
+
+     if i<>(n-1) then
+       fprintf(f,"+");
+     else
+       fprintf(f,")\\\n");
+     fi;
+    od;
+    if j<>(n-1) then
+      fprintf(f," +");
+    else
+      fprintf(f,"           )\\\n");
+    fi;
+   od;
+   c:=c+1;
+   if k<>(n-1) then
+     if (c+1)*n*n*27 > maxChars then  # there are about 27 chars per output statement above
+       c:=0;
+       fprintf(f,"\nlhs = lhs");  # split the statement to avoid too many continuation lines
+     fi;
+     fprintf(f,"+");
+   else
+     fprintf(f,"\n");
+   fi;
+ od;
+ fprintf(f,"\#endMacro\n");
+
+
+od;
+
+
+fclose(f);
+
+
+# Generate statement functions for lagrange polynomials
+with(codegen,C):
+with(codegen,fortran):
+
+unassign('i','j','k','f');
+
+ff := fopen( "lagrangePolynomials.h",WRITE );
+
+
+maxOrder:=9;
+Digits:=20;
+
+# first declare all statement functions
+fprintf(ff,"      real ");
+for m from 1 to maxOrder do
+  for i from 0 to m-1 do
+    fprintf(ff,"q%d%d",m,i);
+    if( m<>maxOrder or i<>(m-1) )then
+      fprintf(ff,",");
+    fi;
+  od;  
+od;
+fprintf(ff,"\n");
+
+for m from 1 to maxOrder do
+  n:=m-1;
+
+  # Build lagrange polynomials
+  for i from 0 to n do
+   xa[i]:=i;
+  od;
+
+  for i from 0 to n do
+    l:=simplify(product((x-xa[j])/(xa[i]-xa[j]),j=0..i-1)*product((x-xa[k])/(xa[i]-xa[k]),k=i+1..n));
+    sc:=((n-i)!) * (i!);
+    if sc<>1 then
+      fprintf(ff,"      q%d%d(x)=%s/%d.\n",m,i,convert(sc*l,string),sc);
+    else
+      fprintf(ff,"      q%d%d(x)=%s\n",m,i,convert(l,string));
+    fi;
+  od;
+
+  
+
+od;
+
+fclose(ff);
+
+# To use: read "interp.maple";
+
+# ***********************************************************************
+# ******************* Output macros for each width **********************
+# ***********************************************************************
+ff := fopen( "initExplicitInterpMacros.h",WRITE );
+
+for m from 1 to maxOrder do
+  n:=m-1;
+  fprintf(ff,"c Determine the coefficients for interpolation width %d\n",m);
+  fprintf(ff,"#beginMacro computeCoeff%d(DIMENSION)\n",m);
+  fprintf(ff," if( storageOption.eq.precomputeAllCoefficients )then\n\n");
+
+  fprintf(ff,"  do i=ia,ib\n");
+  for i from 0 to n do
+    fprintf(ff,"    qr(%d)=q%d%d(pr(i))\n",i,m,i);
+  od;
+ 
+  fprintf(ff,"   \#If \#DIMENSION == \"2\" || \#DIMENSION == \"3\"\n");
+  for i from 0 to n do
+    fprintf(ff,"    qs(%d)=q%d%d(ps(i))\n",i,m,i);
+  od;
+  fprintf(ff,"   \#End\n\n");
+  fprintf(ff,"   \#If \#DIMENSION == \"3\"\n");
+  for i from 0 to n do
+    fprintf(ff,"    qt(%d)=q%d%d(pt(i))\n",i,m,i);
+  od;
+  fprintf(ff,"   \#End\n\n");
+
+  # fprintf(ff,"   computeFullWeights(DIMENSION)\n\n");
+  # 
+  # It was faster to explicitly write out the assigments for coeff(i,m1,m2,m3) rather than loop over m1,m2,m3
+  fprintf(ff,"   \#If \#DIMENSION == \"1\"\n");
+  for i from 0 to n do
+    fprintf(ff,"    coeff(i,%d,0,0)=qr(%d)\n",i,i);
+  od;
+  fprintf(ff,"   \#End\n");
+
+  fprintf(ff,"   \#If \#DIMENSION == \"2\"\n");
+  for j from 0 to n do
+  for i from 0 to n do
+    fprintf(ff,"    coeff(i,%d,%d,0)=qr(%d)*qs(%d)\n",i,j,i,j);
+  od;
+  od;
+  fprintf(ff,"   \#End\n");
+  fprintf(ff,"   \#If \#DIMENSION == \"3\"\n");
+  for k from 0 to n do
+  for j from 0 to n do
+  for i from 0 to n do
+    fprintf(ff,"    coeff(i,%d,%d,%d)=qr(%d)*qs(%d)*qt(%d)\n",i,j,k,i,j,k);
+  od;
+  od;
+  od;
+  fprintf(ff,"   \#End\n");
+
+
+
+  fprintf(ff,"  end do\n\n");
+
+  fprintf(ff," else if( storageOption.eq.precomputeSomeCoefficients )then\n\n");
+
+  fprintf(ff,"  do i=ia,ib\n");
+  for i from 0 to n do
+    fprintf(ff,"   coeff(i,%d,0,0)=q%d%d(pr(i)) \n",i,m,i);
+  od;
+  fprintf(ff,"\#If \#DIMENSION == \"2\" || \#DIMENSION == \"3\"\n");
+  for i from 0 to n do
+    fprintf(ff,"   coeff(i,%d,1,0)=q%d%d(ps(i)) \n",i,m,i);
+  od;
+  fprintf(ff,"\#End\n");
+  fprintf(ff,"\#If \#DIMENSION == \"3\"\n");
+  for i from 0 to n do
+    fprintf(ff,"   coeff(i,%d,2,0)=q%d%d(pt(i)) \n",i,m,i);
+  od;
+  fprintf(ff,"\#End\n");
+
+  fprintf(ff,"  end do\n\n");
+
+  fprintf(ff,"else\n\n");
+
+  fprintf(ff,"  do i=ia,ib\n");
+  fprintf(ff,"   coeff(i,0,0,0)=pr(i)\n");
+  fprintf(ff,"   \#If \#DIMENSION == \"2\" || \#DIMENSION == \"3\"\n");
+  fprintf(ff,"     coeff(i,1,0,0)=ps(i)\n");
+  fprintf(ff,"   \#End\n");
+  fprintf(ff,"   \#If \#DIMENSION == \"3\"\n");
+  fprintf(ff,"     coeff(i,2,0,0)=pt(i)\n");
+  fprintf(ff,"   \#End\n");
+  fprintf(ff,"  end do\n\n");
+
+ fprintf(ff,"end if\n");
+
+ fprintf(ff,"#endMacro\n\n");
+
+od;
+
+fclose(ff);
+
+# To use: read "interp.maple";

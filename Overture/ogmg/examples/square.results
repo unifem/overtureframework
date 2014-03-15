@@ -1,0 +1,519 @@
+ +++ sq10 +++ 
+-------------------------------------------------------
+        Square for CGMG                           
+-------------------------------------------------------
+>>>Enter option: 
+ sq10[F]  : Poisson, Dirichlet BCs [F=fourth order]
+ sq10n[F] : Poisson, Neumann BCs [F=Fourth order]
+ sq10m[F] : Poisson, Mixed BCs, Neumann and Dirichlet [F=Fourth order]
+                                                       
+-------------------------------------------------------
+itest=0 : Laplace, Dirichlet BC
+iord=2  : Second Order
+eps     : Convergence tolerance
+zratio  : for allocating storage for A
+fratio  : fillin ratio for allocating storage for LU
+-------------------------------------------------------
+ CGMGT>>Enter name of the Composite Grid File
+ CGINCS: Mounting CG file ../../cguser/square10.dat
+ CGINCS: Copy onto mgdir...
+ CGINCS: dismount composite grid file...
+ CGMGT: mg,ng,nd =    2    1    2
+            Multigrid on Composite Meshes
+            =============================
+                                                Default
+  itest : True solution option                     0
+       =0 Dirichlet, 1=Neuman, 17=mixed             
+    fx,fy,fz: frequencies for true solution =  1.0  1.0  1.0
+  CGES parameters: flags=Y iord = 2 intbc = 0
+  idcges (debug for CGES) = 1 icg,ipc =  1  1
+   zratio,fratio,epsz,tol,=  15.00  15.00   .1000E-07   .1000E-02
+  ipcm  =1 to precondition matrix at boundaries, ipcm= 0
+  bc0(kd,ks,k) : change values in bc array       
+  iplot : Printing option (sum of any of:)         0
+    =2**1                =2**2                          
+    =2**3 Print errors all grids =2**4                  
+  mgopt= 0  Use default MG parameters            1
+       = 1  Specify some of the following :     
+       Convergence tolerance................eps =   .10E-03
+       Maximum number of iterations........itmax = 5
+       Number of multigrid levels(<=).......mxl =2
+       Type of smooth.................smth(k,l) =   0 
+        0=Default 1=Red-Black 2=Gauss-Seidel 3=Jacobi 
+       Convergence parameters eta = .600 delta = .010
+       info/debug..........................info =    1
+        0=silent,1=conv. rates,2=smoothing rates        
+        4=smooth 8=defect 16=correct 32= 64=plot defect
+   mcall : =1 => call cgmg a second time  = 0
+  >>>Enter changes to namelist inp 
+ CGMG: Initialization...
+ CGMGIE2: l,iord=  1  2
+ SPSOR: Initialzation
+ SPSOR: unable to achieve tol...
+ CGMGIE2: l,iord=  2  2
+               Multigrid on Composite Meshes
+               -----------------------------
+     level grid   nra nrb nsa nsb nta ntb  smoother  nu
+        1    1     1  11   1  11   0   0     GS      1
+        2    1     1   6   1   6   0   0   Direct    1
+ level1 it=  1 resmx= .12E+01res(k)=.11E+02 WU=  5.5 CR=  .05 ECR= .589
+ level1 it=  2 resmx= .11E+00res(k)=.59E+00 WU= 10.0 CR=  .09 ECR= .585
+ level1 it=  3 resmx= .61E-02res(k)=.49E-01 WU= 15.5 CR=  .06 ECR= .595
+ Time for CGMG = 0.3399999738     
+ CGMGT>>CGMG: successful return                                                         
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .14844E-02    3,  3
+   CGMG: Timimg statistics: 
+   ==== iterations(total)=   3 number of gridpts  =      240 ====
+   Timings:               seconds    sec/step   sec/step/pt      %   
+  total.................   .14E+00     .47E-01     .19E-03   100.000
+  smooth................   .10E-01     .33E-02     .14E-04     7.143
+  correct.(cf)..........   .00E+00     .00E+00     .00E+00      .000
+  defect..(fc)..........   .20E-01     .67E-02     .28E-04    14.286
+  direct solve.(nf).....   .00E+00     .00E+00     .00E+00      .000
+  direct solve factor...   .11E+00     .37E-01     .15E-03    78.571
+  interpolation..(nf)...   .00E+00     .00E+00     .00E+00      .000
+  interpolation..factor.   .20E-01     .67E-02     .28E-04    14.286
+  printing..............   .00E+00     .00E+00     .00E+00      .000
+  cgmg(level 1).........   .14E+00     .47E-01     .19E-03   100.000
+  cgmg(level 2).........   .11E+00     .37E-01     .15E-03    78.571
+ +++ sq10F +++ 
+-------------------------------------------------------
+        Square for CGMG                           
+-------------------------------------------------------
+>>>Enter option: 
+ sq10[F]  : Poisson, Dirichlet BCs [F=fourth order]
+ sq10n[F] : Poisson, Neumann BCs [F=Fourth order]
+ sq10m[F] : Poisson, Mixed BCs, Neumann and Dirichlet [F=Fourth order]
+                                                       
+-------------------------------------------------------
+itest=0 : Laplace, Dirichlet BC
+iord=4  : Fourth Order
+eps     : Convergence tolerance
+zratio  : for allocating storage for A
+fratio  : fillin ratio for allocating storage for LU
+-------------------------------------------------------
+ CGMGT>>Enter name of the Composite Grid File
+ CGINCS: Mounting CG file ../../cguser/square10.dat
+ CGINCS: Copy onto mgdir...
+ CGINCS: dismount composite grid file...
+ CGMGT: mg,ng,nd =    2    1    2
+            Multigrid on Composite Meshes
+            =============================
+                                                Default
+  itest : True solution option                     0
+       =0 Dirichlet, 1=Neuman, 17=mixed             
+    fx,fy,fz: frequencies for true solution =  1.0  1.0  1.0
+  CGES parameters: flags=Y iord = 2 intbc = 0
+  idcges (debug for CGES) = 1 icg,ipc =  1  1
+   zratio,fratio,epsz,tol,=  15.00  15.00   .1000E-07   .1000E-02
+  ipcm  =1 to precondition matrix at boundaries, ipcm= 0
+  bc0(kd,ks,k) : change values in bc array       
+  iplot : Printing option (sum of any of:)         0
+    =2**1                =2**2                          
+    =2**3 Print errors all grids =2**4                  
+  mgopt= 0  Use default MG parameters            1
+       = 1  Specify some of the following :     
+       Convergence tolerance................eps =   .10E-03
+       Maximum number of iterations........itmax = 5
+       Number of multigrid levels(<=).......mxl =2
+       Type of smooth.................smth(k,l) =   0 
+        0=Default 1=Red-Black 2=Gauss-Seidel 3=Jacobi 
+       Convergence parameters eta = .600 delta = .010
+       info/debug..........................info =    1
+        0=silent,1=conv. rates,2=smoothing rates        
+        4=smooth 8=defect 16=correct 32= 64=plot defect
+   mcall : =1 => call cgmg a second time  = 0
+  >>>Enter changes to namelist inp 
+ CGMG: Initialization...
+ CGMGIE2: l,iord=  1  4
+ SPSOR: Initialzation
+ SPSOR: unable to achieve tol...
+ CGMGIE2: l,iord=  2  4
+               Multigrid on Composite Meshes
+               -----------------------------
+     level grid   nra nrb nsa nsb nta ntb  smoother  nu
+        1    1     1  11   1  11   0   0     GS      1
+        2    1     1   6   1   6   0   0   Direct    1
+ level1 it=  1 resmx= .29E+01res(k)=.16E+02 WU=  4.5 CR=  .09 ECR= .591
+ level1 it=  2 resmx= .19E+00res(k)=.13E+01 WU=  9.0 CR=  .07 ECR= .549
+ level1 it=  3 resmx= .19E-01res(k)=.99E-01 WU= 13.5 CR=  .10 ECR= .597
+ level1 it=  4 resmx= .13E-02res(k)=.90E-02 WU= 19.0 CR=  .07 ECR= .612
+ Time for CGMG = 0.4200000167     
+ CGMGT>>CGMG: successful return                                                         
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .27776E-04    3,  3
+   CGMG: Timimg statistics: 
+   ==== iterations(total)=   4 number of gridpts  =      240 ====
+   Timings:               seconds    sec/step   sec/step/pt      %   
+  total.................   .17E+00     .43E-01     .18E-03   100.000
+  smooth................   .10E-01     .25E-02     .10E-04     5.882
+  correct.(cf)..........   .10E-01     .25E-02     .10E-04     5.882
+  defect..(fc)..........   .20E-01     .50E-02     .21E-04    11.765
+  direct solve.(nf).....   .00E+00     .00E+00     .00E+00      .000
+  direct solve factor...   .12E+00     .30E-01     .13E-03    70.588
+  interpolation..(nf)...   .00E+00     .00E+00     .00E+00      .000
+  interpolation..factor.   .30E-01     .75E-02     .31E-04    17.647
+  printing..............   .00E+00     .00E+00     .00E+00      .000
+  cgmg(level 1).........   .17E+00     .43E-01     .18E-03   100.000
+  cgmg(level 2).........   .12E+00     .30E-01     .13E-03    70.588
+ +++ sq10n +++ 
+-------------------------------------------------------
+        Square for CGMG                           
+-------------------------------------------------------
+>>>Enter option: 
+ sq10[F]  : Poisson, Dirichlet BCs [F=fourth order]
+ sq10n[F] : Poisson, Neumann BCs [F=Fourth order]
+ sq10m[F] : Poisson, Mixed BCs, Neumann and Dirichlet [F=Fourth order]
+----------------------------------------------------
+itest=1  : Laplace, Neuman BC                        
+intbc=1  : apply eqn on boundary, BC on line -1
+ipcm=1   : Precondition equations at boundary  
+zratio   : for allocating storage for A
+fratio   : fillin ratio for allocating storage for LU
+----------------------------------------------------
+ CGMGT>>Enter name of the Composite Grid File
+ CGINCS: Mounting CG file ../../cguser/square10.dat
+ CGINCS: Copy onto mgdir...
+ CGINCS: dismount composite grid file...
+ CGMGT: mg,ng,nd =    2    1    2
+            Multigrid on Composite Meshes
+            =============================
+                                                Default
+  itest : True solution option                     0
+       =0 Dirichlet, 1=Neuman, 17=mixed             
+    fx,fy,fz: frequencies for true solution =  1.0  1.0  1.0
+  CGES parameters: flags=Y iord = 2 intbc = 0
+  idcges (debug for CGES) = 1 icg,ipc =  1  1
+   zratio,fratio,epsz,tol,=  15.00  15.00   .1000E-07   .1000E-02
+  ipcm  =1 to precondition matrix at boundaries, ipcm= 0
+  bc0(kd,ks,k) : change values in bc array       
+  iplot : Printing option (sum of any of:)         0
+    =2**1                =2**2                          
+    =2**3 Print errors all grids =2**4                  
+  mgopt= 0  Use default MG parameters            1
+       = 1  Specify some of the following :     
+       Convergence tolerance................eps =   .10E-03
+       Maximum number of iterations........itmax = 5
+       Number of multigrid levels(<=).......mxl =2
+       Type of smooth.................smth(k,l) =   0 
+        0=Default 1=Red-Black 2=Gauss-Seidel 3=Jacobi 
+       Convergence parameters eta = .600 delta = .010
+       info/debug..........................info =    1
+        0=silent,1=conv. rates,2=smoothing rates        
+        4=smooth 8=defect 16=correct 32= 64=plot defect
+   mcall : =1 => call cgmg a second time  = 0
+  >>>Enter changes to namelist inp 
+ CGMG: Initialization...
+ CGMGIE2: l,iord=  1  2
+ CGMGIE2: solving a singular problem, icf=       1
+ SPSOR: Initialzation
+ SPSOR: unable to achieve tol...
+ CGMGIE2: l,iord=  2  2
+ CGMGIE2: solving a singular problem, icf=       1
+               Multigrid on Composite Meshes
+               -----------------------------
+     level grid   nra nrb nsa nsb nta ntb  smoother  nu
+        1    1     1  11   1  11   0   0     GS      1
+        2    1     1   6   1   6   0   0   Direct    1
+ CGMG: Calling CGMGRF...
+ CGMG:CGMGRF: Unable to find left null vector
+              Will not project the rhs
+              Convergence rates may be wrong
+ level1 it=  1 resmx= .12E+02res(k)=.10E+02 WU=  3.5 CR=  .55 ECR= .843
+ level1 it=  2 resmx= .57E+01res(k)=.53E+01 WU=  7.0 CR=  .48 ECR= .811
+ level1 it=  3 resmx= .26E+01res(k)=.26E+01 WU= 10.5 CR=  .46 ECR= .803
+ level1 it=  4 resmx= .12E+01res(k)=.13E+01 WU= 14.0 CR=  .45 ECR= .798
+ level1 it=  5 resmx= .59E+00res(k)=.62E+00 WU= 17.5 CR=  .49 ECR= .815
+ Time for CGMG = 0.4699999988     
+ CGMGT>>Warning: No convergence after   5 iterations, resmx = .5869E+00                 
+ CGMGT: Singular case: 
+      : Errors BEFORE projecting solution
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .60565E-02   10, 10
+ CGMGT: Singular case, project solution...
+ ****CGESPR: uv,uev,fact =  -.2486E+00   .7749E-06   .1507E-02
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .45500E-02   10, 10
+   CGMG: Timimg statistics: 
+   ==== iterations(total)=   5 number of gridpts  =      240 ====
+   Timings:               seconds    sec/step   sec/step/pt      %   
+  total.................   .19E+00     .38E-01     .16E-03   100.000
+  smooth................   .10E-01     .20E-02     .83E-05     5.263
+  correct.(cf)..........   .00E+00     .00E+00     .00E+00      .000
+  defect..(fc)..........   .20E-01     .40E-02     .17E-04    10.526
+  direct solve.(nf).....   .10E-01     .20E-02     .83E-05     5.263
+  direct solve factor...   .13E+00     .26E-01     .11E-03    68.421
+  interpolation..(nf)...   .00E+00     .00E+00     .00E+00      .000
+  interpolation..factor.   .20E-01     .40E-02     .17E-04    10.526
+  printing..............   .00E+00     .00E+00     .00E+00      .000
+  cgmg(level 1).........   .19E+00     .38E-01     .16E-03   100.000
+  cgmg(level 2).........   .14E+00     .28E-01     .12E-03    73.684
+ +++ sq10nF +++ 
+-------------------------------------------------------
+        Square for CGMG                           
+-------------------------------------------------------
+>>>Enter option: 
+ sq10[F]  : Poisson, Dirichlet BCs [F=fourth order]
+ sq10n[F] : Poisson, Neumann BCs [F=Fourth order]
+ sq10m[F] : Poisson, Mixed BCs, Neumann and Dirichlet [F=Fourth order]
+----------------------------------------------------
+itest=1  : Laplace, Neuman BC                        
+intbc=1  : apply eqn on boundary, BC on line -1
+ipcm=1   : Precondition equations at boundary  
+zratio   : for allocating storage for A
+fratio   : fillin ratio for allocating storage for LU
+----------------------------------------------------
+ CGMGT>>Enter name of the Composite Grid File
+ CGINCS: Mounting CG file ../../cguser/square10.dat
+ CGINCS: Copy onto mgdir...
+ CGINCS: dismount composite grid file...
+ CGMGT: mg,ng,nd =    2    1    2
+            Multigrid on Composite Meshes
+            =============================
+                                                Default
+  itest : True solution option                     0
+       =0 Dirichlet, 1=Neuman, 17=mixed             
+    fx,fy,fz: frequencies for true solution =  1.0  1.0  1.0
+  CGES parameters: flags=Y iord = 2 intbc = 0
+  idcges (debug for CGES) = 1 icg,ipc =  1  1
+   zratio,fratio,epsz,tol,=  15.00  15.00   .1000E-07   .1000E-02
+  ipcm  =1 to precondition matrix at boundaries, ipcm= 0
+  bc0(kd,ks,k) : change values in bc array       
+  iplot : Printing option (sum of any of:)         0
+    =2**1                =2**2                          
+    =2**3 Print errors all grids =2**4                  
+  mgopt= 0  Use default MG parameters            1
+       = 1  Specify some of the following :     
+       Convergence tolerance................eps =   .10E-03
+       Maximum number of iterations........itmax = 5
+       Number of multigrid levels(<=).......mxl =2
+       Type of smooth.................smth(k,l) =   0 
+        0=Default 1=Red-Black 2=Gauss-Seidel 3=Jacobi 
+       Convergence parameters eta = .600 delta = .010
+       info/debug..........................info =    1
+        0=silent,1=conv. rates,2=smoothing rates        
+        4=smooth 8=defect 16=correct 32= 64=plot defect
+   mcall : =1 => call cgmg a second time  = 0
+  >>>Enter changes to namelist inp 
+ CGMG: Initialization...
+ CGMGIE2: l,iord=  1  4
+ CGMGIE2: solving a singular problem, icf=       1
+ SPSOR: Initialzation
+ SPSOR: unable to achieve tol...
+ CGMGIE2: l,iord=  2  4
+ CGMGIE2: solving a singular problem, icf=       1
+               Multigrid on Composite Meshes
+               -----------------------------
+     level grid   nra nrb nsa nsb nta ntb  smoother  nu
+        1    1     1  11   1  11   0   0     GS      1
+        2    1     1   6   1   6   0   0   Direct    1
+ CGMG: Calling CGMGRF...
+ CGMG:CGMGRF: Unable to find left null vector
+              Will not project the rhs
+              Convergence rates may be wrong
+ level1 it=  1 resmx= .11E+02res(k)=.12E+02 WU=  3.5 CR=  .48 ECR= .809
+ level1 it=  2 resmx= .52E+01res(k)=.45E+01 WU=  7.0 CR=  .48 ECR= .812
+ level1 it=  3 resmx= .25E+01res(k)=.20E+01 WU= 10.5 CR=  .47 ECR= .806
+ level1 it=  4 resmx= .11E+01res(k)=.91E+00 WU= 14.0 CR=  .46 ECR= .802
+ level1 it=  5 resmx= .52E+00res(k)=.41E+00 WU= 17.5 CR=  .46 ECR= .800
+ level1 it=  6 resmx= .24E+00res(k)=.18E+00 WU= 21.0 CR=  .45 ECR= .798
+ level1 it=  7 resmx= .11E+00res(k)=.81E-01 WU= 24.5 CR=  .45 ECR= .797
+ level1 it=  8 resmx= .48E-01res(k)=.36E-01 WU= 28.0 CR=  .45 ECR= .797
+ Time for CGMG = 0.5599999428     
+ CGMGT>>Warning: No convergence after   8 iterations, resmx = .4834E-01                 
+ CGMGT: Singular case: 
+      : Errors BEFORE projecting solution
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .38524E-02    1,  1
+ CGMGT: Singular case, project solution...
+ ****CGESPR: uv,uev,fact =  -.4060E+00   .7749E-06   .2461E-02
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .13916E-02    1,  1
+   CGMG: Timimg statistics: 
+   ==== iterations(total)=   8 number of gridpts  =      240 ====
+   Timings:               seconds    sec/step   sec/step/pt      %   
+  total.................   .25E+00     .31E-01     .13E-03   100.000
+  smooth................   .10E-01     .12E-02     .52E-05     4.000
+  correct.(cf)..........   .20E-01     .25E-02     .10E-04     8.000
+  defect..(fc)..........   .40E-01     .50E-02     .21E-04    16.000
+  direct solve.(nf).....   .00E+00     .00E+00     .00E+00      .000
+  direct solve factor...   .16E+00     .20E-01     .83E-04    64.000
+  interpolation..(nf)...   .20E-01     .25E-02     .10E-04     8.000
+  interpolation..factor.   .20E-01     .25E-02     .10E-04     8.000
+  printing..............   .00E+00     .00E+00     .00E+00      .000
+  cgmg(level 1).........   .25E+00     .31E-01     .13E-03   100.000
+  cgmg(level 2).........   .16E+00     .20E-01     .83E-04    64.000
+ +++ sq10m +++ 
+-------------------------------------------------------
+        Square for CGMG                           
+-------------------------------------------------------
+>>>Enter option: 
+ sq10[F]  : Poisson, Dirichlet BCs [F=fourth order]
+ sq10n[F] : Poisson, Neumann BCs [F=Fourth order]
+ sq10m[F] : Poisson, Mixed BCs, Neumann and Dirichlet [F=Fourth order]
+----------------------------------------------------
+itest=17 : Mixed BCs - bc=4 : Neumann, Dirichlet otherwise 
+intbc=1  : apply eqn on boundary, BC on line -1
+ipcm=1   : Precondition equations at boundary  
+bc0      : specify BCs on each side of the grid
+zratio   : for allocating storage for A
+fratio   : fillin ratio for allocating storage for LU
+----------------------------------------------------
+ CGMGT>>Enter name of the Composite Grid File
+ CGINCS: Mounting CG file ../../cguser/square10.dat
+ CGINCS: Copy onto mgdir...
+ CGINCS: dismount composite grid file...
+ CGMGT: mg,ng,nd =    2    1    2
+            Multigrid on Composite Meshes
+            =============================
+                                                Default
+  itest : True solution option                     0
+       =0 Dirichlet, 1=Neuman, 17=mixed             
+    fx,fy,fz: frequencies for true solution =  1.0  1.0  1.0
+  CGES parameters: flags=Y iord = 2 intbc = 0
+  idcges (debug for CGES) = 1 icg,ipc =  1  1
+   zratio,fratio,epsz,tol,=  15.00  15.00   .1000E-07   .1000E-02
+  ipcm  =1 to precondition matrix at boundaries, ipcm= 0
+  bc0(kd,ks,k) : change values in bc array       
+  iplot : Printing option (sum of any of:)         0
+    =2**1                =2**2                          
+    =2**3 Print errors all grids =2**4                  
+  mgopt= 0  Use default MG parameters            1
+       = 1  Specify some of the following :     
+       Convergence tolerance................eps =   .10E-03
+       Maximum number of iterations........itmax = 5
+       Number of multigrid levels(<=).......mxl =2
+       Type of smooth.................smth(k,l) =   0 
+        0=Default 1=Red-Black 2=Gauss-Seidel 3=Jacobi 
+       Convergence parameters eta = .600 delta = .010
+       info/debug..........................info =    1
+        0=silent,1=conv. rates,2=smoothing rates        
+        4=smooth 8=defect 16=correct 32= 64=plot defect
+   mcall : =1 => call cgmg a second time  = 0
+  >>>Enter changes to namelist inp 
+ CGMG: Initialization...
+ CGMGIE2: l,iord=  1  2
+ SPSOR: Initialzation
+ SPSOR: unable to achieve tol...
+ CGMGIE2: l,iord=  2  2
+               Multigrid on Composite Meshes
+               -----------------------------
+     level grid   nra nrb nsa nsb nta ntb  smoother  nu
+        1    1     1  11   1  11   0   0     GS      1
+        2    1     1   6   1   6   0   0   Direct    1
+ level1 it=  1 resmx= .10E+02res(k)=.10E+02 WU=  3.5 CR=  .50 ECR= .820
+ level1 it=  2 resmx= .51E+01res(k)=.52E+01 WU=  7.0 CR=  .49 ECR= .815
+ level1 it=  3 resmx= .24E+01res(k)=.26E+01 WU= 10.5 CR=  .48 ECR= .809
+ level1 it=  4 resmx= .12E+01res(k)=.13E+01 WU= 14.0 CR=  .49 ECR= .815
+ level1 it=  5 resmx= .58E+00res(k)=.61E+00 WU= 17.5 CR=  .49 ECR= .815
+ Time for CGMG = 0.4499999881     
+ CGMGT>>Warning: No convergence after   5 iterations, resmx = .5784E+00                 
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .76309E-02   10, 10
+   CGMG: Timimg statistics: 
+   ==== iterations(total)=   5 number of gridpts  =      240 ====
+   Timings:               seconds    sec/step   sec/step/pt      %   
+  total.................   .19E+00     .38E-01     .16E-03   100.000
+  smooth................   .10E-01     .20E-02     .83E-05     5.263
+  correct.(cf)..........   .00E+00     .00E+00     .00E+00      .000
+  defect..(fc)..........   .20E-01     .40E-02     .17E-04    10.526
+  direct solve.(nf).....   .10E-01     .20E-02     .83E-05     5.263
+  direct solve factor...   .14E+00     .28E-01     .12E-03    73.684
+  interpolation..(nf)...   .00E+00     .00E+00     .00E+00      .000
+  interpolation..factor.   .10E-01     .20E-02     .83E-05     5.263
+  printing..............   .00E+00     .00E+00     .00E+00      .000
+  cgmg(level 1).........   .19E+00     .38E-01     .16E-03   100.000
+  cgmg(level 2).........   .15E+00     .30E-01     .12E-03    78.947
+ +++ sq10mF +++ 
+-------------------------------------------------------
+        Square for CGMG                           
+-------------------------------------------------------
+>>>Enter option: 
+ sq10[F]  : Poisson, Dirichlet BCs [F=fourth order]
+ sq10n[F] : Poisson, Neumann BCs [F=Fourth order]
+ sq10m[F] : Poisson, Mixed BCs, Neumann and Dirichlet [F=Fourth order]
+----------------------------------------------------
+itest=17 : Mixed BCs - bc=4 : Neumann, Dirichlet otherwise 
+intbc=1  : apply eqn on boundary, BC on line -1
+ipcm=1   : Precondition equations at boundary  
+bc0      : specify BCs on each side of the grid
+zratio   : for allocating storage for A
+fratio   : fillin ratio for allocating storage for LU
+----------------------------------------------------
+ CGMGT>>Enter name of the Composite Grid File
+ CGINCS: Mounting CG file ../../cguser/square10.dat
+ CGINCS: Copy onto mgdir...
+ CGINCS: dismount composite grid file...
+ CGMGT: mg,ng,nd =    2    1    2
+            Multigrid on Composite Meshes
+            =============================
+                                                Default
+  itest : True solution option                     0
+       =0 Dirichlet, 1=Neuman, 17=mixed             
+    fx,fy,fz: frequencies for true solution =  1.0  1.0  1.0
+  CGES parameters: flags=Y iord = 2 intbc = 0
+  idcges (debug for CGES) = 1 icg,ipc =  1  1
+   zratio,fratio,epsz,tol,=  15.00  15.00   .1000E-07   .1000E-02
+  ipcm  =1 to precondition matrix at boundaries, ipcm= 0
+  bc0(kd,ks,k) : change values in bc array       
+  iplot : Printing option (sum of any of:)         0
+    =2**1                =2**2                          
+    =2**3 Print errors all grids =2**4                  
+  mgopt= 0  Use default MG parameters            1
+       = 1  Specify some of the following :     
+       Convergence tolerance................eps =   .10E-03
+       Maximum number of iterations........itmax = 5
+       Number of multigrid levels(<=).......mxl =2
+       Type of smooth.................smth(k,l) =   0 
+        0=Default 1=Red-Black 2=Gauss-Seidel 3=Jacobi 
+       Convergence parameters eta = .600 delta = .010
+       info/debug..........................info =    1
+        0=silent,1=conv. rates,2=smoothing rates        
+        4=smooth 8=defect 16=correct 32= 64=plot defect
+   mcall : =1 => call cgmg a second time  = 0
+  >>>Enter changes to namelist inp 
+ CGMG: Initialization...
+ CGMGIE2: l,iord=  1  4
+ SPSOR: Initialzation
+ SPSOR: unable to achieve tol...
+ CGMGIE2: l,iord=  2  4
+               Multigrid on Composite Meshes
+               -----------------------------
+     level grid   nra nrb nsa nsb nta ntb  smoother  nu
+        1    1     1  11   1  11   0   0     GS      1
+        2    1     1   6   1   6   0   0   Direct    1
+ level1 it=  1 resmx= .98E+01res(k)=.12E+02 WU=  3.5 CR=  .36 ECR= .748
+ level1 it=  2 resmx= .44E+01res(k)=.45E+01 WU=  7.0 CR=  .44 ECR= .793
+ level1 it=  3 resmx= .19E+01res(k)=.19E+01 WU= 10.5 CR=  .44 ECR= .792
+ level1 it=  4 resmx= .85E+00res(k)=.82E+00 WU= 14.0 CR=  .44 ECR= .791
+ level1 it=  5 resmx= .37E+00res(k)=.36E+00 WU= 17.5 CR=  .44 ECR= .790
+ level1 it=  6 resmx= .16E+00res(k)=.15E+00 WU= 21.0 CR=  .44 ECR= .790
+ level1 it=  7 resmx= .72E-01res(k)=.67E-01 WU= 24.5 CR=  .44 ECR= .790
+ level1 it=  8 resmx= .31E-01res(k)=.29E-01 WU= 28.0 CR=  .44 ECR= .790
+ Time for CGMG = 0.5300000310     
+ CGMGT>>Warning: No convergence after   8 iterations, resmx = .3136E-01                 
+ CGMGT: ng,nv,nd =   1   1   2
+  n  Grid  Maximum error    i,j
+  1    1     .10025E-02   11,  1
+   CGMG: Timimg statistics: 
+   ==== iterations(total)=   8 number of gridpts  =      240 ====
+   Timings:               seconds    sec/step   sec/step/pt      %   
+  total.................   .23E+00     .29E-01     .12E-03   100.000
+  smooth................   .20E-01     .25E-02     .10E-04     8.696
+  correct.(cf)..........   .00E+00     .00E+00     .00E+00      .000
+  defect..(fc)..........   .20E-01     .25E-02     .10E-04     8.696
+  direct solve.(nf).....   .20E-01     .25E-02     .10E-04     8.696
+  direct solve factor...   .16E+00     .20E-01     .83E-04    69.565
+  interpolation..(nf)...   .00E+00     .00E+00     .00E+00      .000
+  interpolation..factor.   .20E-01     .25E-02     .10E-04     8.696
+  printing..............   .00E+00     .00E+00     .00E+00      .000
+  cgmg(level 1).........   .23E+00     .29E-01     .12E-03   100.000
+  cgmg(level 2).........   .18E+00     .23E-01     .94E-04    78.261

@@ -1,0 +1,151 @@
+A++ Internal_Index bounds checking: ON 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/square5 ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=square5
++++++++Checking component grid = 0 (square) +++++++
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+**Using conservative approximations:
+Maximum error in laplacian                         = 1.907349e-05, cpu=0.000000e+00 
+***divScalarGradFDerivative22R
+Maximum error in divScalarGrad                     = 5.531311e-05, cpu=0.000000e+00 
+**Using standard approximations:
+Maximum error in laplacian                         = 1.907349e-05, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 6.103516e-05, cpu=0.000000e+00 
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalMixedDerivative            = 0.000000e+00, cpu=0.000000e+00 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum error in normalComponent                   = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in normalDerivativeOf[Normal/Tangent]= 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in evenSymmetry                      = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in extrapolate[Normal/Tangential]    = 0.000000e+00, cpu=0.000000e+00 
+
+ *********** This grid is apparently ok, worst error =6.103516e-05 ***************
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/cic ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
++++++++Checking component grid = 0 (square) +++++++
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+**Using conservative approximations:
+Maximum error in laplacian                         = 1.409054e-04, cpu=0.000000e+00 
+***divScalarGradFDerivative22R
+Maximum error in divScalarGrad                     = 9.860992e-04, cpu=0.000000e+00 
+**Using standard approximations:
+Maximum error in laplacian                         = 1.409054e-04, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 6.408691e-04, cpu=0.000000e+00 
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalMixedDerivative            = 0.000000e+00, cpu=0.000000e+00 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum error in normalComponent                   = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in normalDerivativeOf[Normal/Tangent]= 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in evenSymmetry                      = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in extrapolate[Normal/Tangential]    = 0.000000e+00, cpu=0.000000e+00 
++++++++Checking component grid = 1 (Annulus) +++++++
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+**Using conservative approximations:
+>>> evaluate the conservative form of laplacian
+Maximum error in laplacian                         = 1.194477e-04, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 2.913475e-04, cpu=0.000000e+00 
+**Using standard approximations:
+Maximum error in laplacian                         = 7.987022e-05, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 2.870560e-04, cpu=0.000000e+00 
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalMixedDerivative            = 0.000000e+00, cpu=0.000000e+00 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum error in normalComponent                   = 1.192093e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent               = 5.960464e-08, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in normalDerivativeOf[Normal/Tangent]= 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in evenSymmetry                      = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in extrapolate[Normal/Tangential]    = 0.000000e+00, cpu=0.000000e+00 
+
+ *********** This grid is apparently ok, worst error =9.860992e-04 ***************
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/sib ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=sib
++++++++Checking component grid = 0 (box) +++++++
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+**Using conservative approximations:
+Maximum error in laplacian                         = 1.451969e-04, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 9.593964e-04, cpu=0.000000e+00 
+**Using standard approximations:
+Maximum error in laplacian                         = 1.451969e-04, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 1.350403e-03, cpu=0.000000e+00 
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalMixedDerivative            = 0.000000e+00, cpu=0.000000e+00 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum error in normalComponent                   = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in normalDerivativeOf[Normal/Tangent]= 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in evenSymmetry                      = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in extrapolate[Normal/Tangential]    = 0.000000e+00, cpu=0.000000e+00 
++++++++Checking component grid = 1 (north-pole) +++++++
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+**Using conservative approximations:
+>>> evaluate the conservative form of laplacian
+Maximum error in laplacian                         = 1.329184e-04, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 1.764297e-04, cpu=0.000000e+00 
+**Using standard approximations:
+Maximum error in laplacian                         = 8.893013e-05, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 1.797676e-04, cpu=0.000000e+00 
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalMixedDerivative            = 0.000000e+00, cpu=0.000000e+00 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum error in normalComponent                   = 1.788139e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent               = 1.192093e-07, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in normalDerivativeOf[Normal/Tangent]= 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in evenSymmetry                      = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in extrapolate[Normal/Tangential]    = 0.000000e+00, cpu=0.000000e+00 
++++++++Checking component grid = 2 (south-pole) +++++++
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+**Using conservative approximations:
+>>> evaluate the conservative form of laplacian
+Maximum error in laplacian                         = 4.000664e-04, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 1.041889e-03, cpu=0.000000e+00 
+**Using standard approximations:
+Maximum error in laplacian                         = 2.567768e-04, cpu=0.000000e+00 
+Maximum error in divScalarGrad                     = 6.246567e-04, cpu=0.000000e+00 
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in generalMixedDerivative            = 0.000000e+00, cpu=0.000000e+00 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum error in normalComponent                   = 1.788139e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent               = 1.788139e-07, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in normalDerivativeOf[Normal/Tangent]= 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in evenSymmetry                      = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in extrapolate[Normal/Tangential]    = 0.000000e+00, cpu=0.000000e+00 
+
+ *********** This grid is apparently ok, worst error =1.350403e-03 ***************
+
+
+ **************************************************************************************************
+ *********** Test apparently successful, overall worst error =1.350403e-03 ***************
+ **************************************************************************************************
+
+Program Terminated Normally! 

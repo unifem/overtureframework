@@ -1,0 +1,872 @@
+#include "DomainSolver.h"
+#include "CompositeGridOperators.h"
+#include "GridCollectionOperators.h"
+#include "interpPoints.h"
+#include "SparseRep.h"
+#include "ExposedPoints.h"
+#include "Ogen.h"
+#include "App.h"
+#include "ParallelUtility.h"
+#include "Oges.h"
+#include "OgesParameters.h"
+#include "AdamsPCData.h"
+#include "gridFunctionNorms.h"
+
+//==================================================================
+//            Implicit Multi-step Method
+//            --------------------------
+//
+//==================================================================
+
+static bool useNewExposedPoints=true;
+
+// here are some bpp macros that are used for the explicit and implicit predictor-corrector methods
+#Include pcMacros.h
+
+// This next declaration also appears in advance.bC
+#define updateOpt EXTERN_C_NAME(updateopt)
+extern "C"
+{
+   void updateOpt(const int &nd1a,const int &nd1b,const int &nd2a,const int &nd2b,
+                  const int &nd3a,const int &nd3b,const int &nd4a,const int &nd4b, \
+		  const int &mask,real &u1, const real&u2,  
+                  const real&ut1, const real&ut2, const real&ut3, const real&ut4, 
+                  const int &ipar, const real& rpar, int & ierr );
+}
+
+
+#define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) \
+                                 for( side=0; side<=1; side++ )
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{buildImplicitSolvers}} 
+void DomainSolver::
+buildImplicitSolvers(CompositeGrid & cg)
+// ==========================================================================================
+// /Description:
+//     Determine the number and type of implicit solvers needed. Depending on the boundary
+//
+//  1) If the equations are decoupled and the boundary conditions for all components are 
+//     the same then we can form one scalar implicit system.
+//  2) If the equations are decoupled and the boundary conditions are not the same but 
+//     decoupled then we can solve separate scalar implicit systems.
+//  3) If the boundary conditions or equations are coupled then we solve a implicit system.  
+//
+//\end{CompositeGridSolverInclude.tex}  
+// ==========================================================================================
+{
+  printF("DomainSolver::buildImplicitSolvers:ERROR: base class function called! This function should\n"
+         "              be re-written by a derived class!\n");
+  Overture::abort("error");
+
+}
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{implicitSolve}} 
+void DomainSolver::
+implicitSolve(const real & dt0,
+	      GridFunction & cgf1,
+              GridFunction & cgf0)
+// ==========================================================================================
+// /Description:
+//    The implicit method can be optionally used on only some grids. To implement this
+//   approach we simply create a sparse matrix that is just the identity matrix on grids that
+// are advanced explicitly but equal to the standard implicit matrix on grids that are advance
+// implicitly:
+// \begin{verbatim}
+//         I - \nu \alpha \dt \Delta      on implicit grids
+//         I                              on explicit grids
+// \end{verbatim}
+// If the form of the boundary conditions for the different components of $\uv$ are the same
+// then we can build a single scalar matrix that can be used to advance each component, one after
+// the other. If the boundary conditions are not of the same form then we build a matrix for
+// a system of equations for the velocity components $(u,v,w)$.
+//
+// /dt0 (input) : time step used to build the implicit matrix.
+// /cgf1 (input/output) : On input holds the right-hand-side for the implicit equations; on output
+//    holds the solution.
+// /cgf0 (input) : current best approximation to the solution. Used as initial guess for iterative
+//   solvers and used for linearization.
+//\end{CompositeGridSolverInclude.tex}  
+// ==========================================================================================
+{
+  
+  printF("DomainSolver::implicitSolve:ERROR: base class function called! This function should\n"
+         "              be re-written by a derived class!\n");
+  Overture::abort("error");
+
+}
+
+// ===========================================================================================
+//      *** Time-step update macro ***
+// 
+//         u1 <- u0 + AB1*UA0 + AB2*UB0 [ + DTI*UTIMPLICIT ]  (add last terms for implicit grids)
+// ===========================================================================================
+#beginMacro timeStepUpdateMacro( AB1,AB2,DTI, UA0,UB0,UTIMPLICIT )
+
+#ifdef USE_PPP
+  RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
+  RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
+  RealArray ua0; getLocalArrayWithGhostBoundaries(ua[grid],ua0);
+  RealArray ub0; getLocalArrayWithGhostBoundaries(ub[grid],ub0);
+  RealArray utImplicit; getLocalArrayWithGhostBoundaries(uti[grid],utImplicit);
+  const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
+#else
+  RealDistributedArray & u1 = gf[mNew].u[grid];
+  RealDistributedArray & u0 = gf[mCur].u[grid];
+  RealDistributedArray & ua0 = ua[grid];
+  RealDistributedArray & ub0 = ub[grid];
+  RealDistributedArray & utImplicit = uti[grid];
+  const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
+#endif
+
+  getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
+
+  int n1a,n1b,n2a,n2b,n3a,n3b;
+  bool ok = ParallelUtility::getLocalArrayBounds(gf[mCur].u[grid],u0,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b);
+  if( !ok ) continue;
+	  
+  // const intArray & mask1 = gf[mNew].cg[grid].mask();
+
+  int ierr=0;
+  const int maskOption=0; // assign pts where mask>0
+  int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
+  real rpar[5]={0.,0.,0.,0.,0.};
+  real *ut1p, *ut2p, *ut3p, *ut4p;
+	  
+  if( parameters.getGridIsImplicit(grid) )
+    ipar[0]=3;  // add three extra "ut" terms if grid is advanced implicitly
+  else    
+    ipar[0]=2;  // add two extra "ut" terms
+
+  rpar[0]=AB1; rpar[1]=AB2; rpar[2]=DTI;
+  ut1p=UA0.getDataPointer();
+  ut2p=UB0.getDataPointer();
+  ut3p=UTIMPLICIT.getDataPointer();
+  ut4p=ut3p;
+
+  updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+	    u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+	    *mask1.getDataPointer(),  
+	    *u0.getDataPointer(),*u1.getDataPointer(), 
+	    *ut1p, *ut2p, *ut3p, *ut4p, 
+	    ipar[0], rpar[0], ierr );
+
+#endMacro
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{advanceImplicitMultiStep}} 
+void DomainSolver::
+advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & init, int initialStep  )
+// ======================================================================================
+//  /Description:
+//     Time step using an implicit method on the viscous terms and and a multi-step
+//    method on the rest.
+//
+//  This approach should be efficient for moving grids since a larger time step is taken
+// and the grid need to be regenerated fewer times. The grid needs only be moved on the
+// predictor step. Then one or more corrections can be applied.
+//
+//
+//  Method:
+//   Suppose we are solving a PDE:
+//           u_t = f(u,x,t)  + F(x,t)
+//   That we have split into an explicit part, fe(u),  and implicit part, A*u:
+//           u_t = fe(u) + A u  + F(x,t)
+//
+//   Predictor (2nd-order): (implicit part involves u(p) )
+//
+//      (u(p)-u(n))/dt = 1.5*( fe(u(n)) + g(n) ) - .5*( fe(u(n-1))+g(n-1) )
+//                       + A(  u(p)+u(n) )/2   + G(n)
+//   where for TZ flow with exact soluton, ue, the forcing functions g and G are 
+//             g(n) = ue_t - fe(ue)
+//             G(n) = -[ A( ue(n+1)+ue(n) )/2 ]
+// 
+//   Corrector:
+//      (u(c)-u(n))/dt = 5*( fe(u(p)) + g(p) ) + .5*( fe(u(n))+g(n) )  
+//                            + A( u(c)+u(n) )/2   + G(n)
+//   
+//  Note: 
+//           utImplicit = A*u(n)/2  + G(n) 
+//  which is computed (once per step) by getUt when implicitOption=computeImplicitTermsSeparately
+// 
+//\end{CompositeGridSolverInclude.tex}  
+// ==========================================================================================
+{
+  FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+  if( debug() & 4 )
+    printF(" $$$$$$ DomainSolver::advanceImplicitMultiStep $$$$$$$$\n");
+
+  assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicit );
+
+  assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
+
+//  bool init=false;
+  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") )
+  {
+    // this must be the initial call to this routine
+//    init=true;
+    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsImplicitData");
+  }
+//  if( init!=init_ )
+//  {
+//    printF("**** advanceImplicitMultiStep;WARNING: init!=init_ !! *************\n");
+//    init=init_;  // do this for now
+//  }
+  
+
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  
+  real & dtb=adamsData.dtb;
+  int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+  int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+  int &ndt0=adamsData.ndt0;
+  real *dtp = adamsData.dtp;
+
+  int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
+  if( predictorOrder==0 )
+    predictorOrder=2; // default
+  if( predictorOrder<0 || predictorOrder>2 )
+  {
+    if( init )
+      printF("advanceImplicitMultiStep: ERROR: predictorOrder=%i!",predictorOrder);
+    predictorOrder=2; // default
+    if( init )
+      printF("Will use default=%i\n",predictorOrder);
+  }
+  if( init && debug() & 1 )
+  {
+    printF("advanceImplicitMultiStep:INFO: predictorOrder=%i ( =0 -> use default, order=2)\n",predictorOrder);
+  }
+  
+  int numberOfCorrections;
+  if( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::adamsBashforth2 )
+    numberOfCorrections=0; //kkc 060301 given the assertion above, this should never happen, right?
+  else
+    numberOfCorrections=parameters.dbase.get<int>("numberOfPCcorrections"); 
+
+  // If we check a convergence tolerance when correcting (e.g. for moving grids) then this is
+  // the minimum number of corrector steps we must take:
+  const int minimumNumberOfPCcorrections = parameters.dbase.get<int>("minimumNumberOfPCcorrections");
+  
+   
+  if( debug() & 2 )
+    fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e *** \n",t0,dt0);
+ 
+  
+  // For moving grids we keep gf[mab0], gf[mab1] and gf[mab2]
+  // For non-moving grids we keep gf[mab0], gf[mab1] and we set mab2==mab1
+
+  const int numberOfGridFunctions =  movingGridProblem() ? 3 : 2; 
+
+  mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+  // 
+  int mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
+  int mCur = mab0;    // current : gf[mCur] : holds u(t) 
+  int mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+  
+
+  Parameters::ImplicitOption & implicitOption = parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+  
+  implicitOption=Parameters::doNotComputeImplicitTerms; // no need to compute during initialization
+  parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
+  int iparam[10];
+  real rparam[10];
+
+  RealCompositeGridFunction & uti = fn[2];   // ****
+  
+  if( debug() & 2 )
+  {
+    fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e *** \n",t0,dt0);
+  }
+ 
+  
+  int grid;
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2]; 
+  Range N = parameters.dbase.get<Range >("Rt");   // time dependent variables
+  RealArray error(numberOfComponents()+3); 
+  
+  // real time0=getCPU();
+
+  int numberOfExtraPressureTimeLevels=0;
+  
+  if( init )
+  {
+    // Form the matrix for implicit time stepping (optionally save the solution used for linearization)
+    // NOTE: the matrix will only be generated the first time through or if parameters.dbase.get<int >("globalStepNumber") % refactorFrequency == 0 
+    // We want to factor the matrix here since it may be needed for computing the RHS
+    formMatrixForImplicitSolve(dt,gf[mNew], gf[mCur] );
+
+    // **** To initialize the method we need to compute du/dt at times t and t-dt *****
+
+    // this is a macro (pcMacros.h):
+    initializePredictorCorrector(implicitPC,uti);
+
+  }
+  else
+  {
+    if( dtb!=dt0 )
+    {
+      if( debug() & 2 ) printF("advanceImplicitMultiStep dtb!=dt0 : re-initialize\n");
+      parameters.dbase.get<int >("initializeImplicitTimeStepping")=true;
+    }
+    else
+    {
+      if( debug() & 2 )
+        printF("advanceImplicitMultiStep dtb==dt0 : do not re-initialize\n");
+    }
+  }
+
+  // * ----
+//   GridFunction gfl(&parameters);  // **** to hold current guess for nonlinear problems
+//   gfl.updateToMatchGrid(gf[mCur].cg);
+//   gfl.u= gf[mCur].u;
+  // * ----
+
+  for( int mst=1; mst<=numberOfSubSteps; mst++ )
+  {
+    parameters.dbase.get<int >("globalStepNumber")++;
+    
+    realCompositeGridFunction & ua = fn[nab0];   // pointer to du/dt
+    realCompositeGridFunction & ub = fn[nab1];   // pointer to du(t-dt)/dt or du/dt(t+dt)
+    
+    real ab1,ab2;
+    if( predictorOrder==1 )
+    { // first order predictor
+      ab1=dt0;
+      ab2=0.;
+    }
+    else 
+    { // 2nd -order predictor
+      ab1= dt0*(1.+dt0/(2.*dtb));  // for AB predictor
+      ab2= -dt0*dt0/(2.*dtb);
+    }
+
+
+    dtp[ndt0]=dt0;
+    real dt1=dtp[(ndt0+1)%5];
+    real dt2=dtp[(ndt0+2)%5];
+    real dt3=dtp[(ndt0+3)%5];
+    real dt4=dtp[(ndt0+4)%5];
+
+    const real am1=.5*dt0;                  // for AM corrector
+    const real am2=.5*dt0;
+
+    // coefficients for 2nd order extrap:
+    const real cex2a=1.+dt0/dtb;       // -> 2.
+    const real cex2b=-dt0/dtb;         // -> -1.
+
+    // coefficients for third order extrapolation (from ab.maple)
+    //   These reduce to 3, -3, 1 for dt=constant
+    const real cex30= (dt0+dt1+dt2)*(dt0+dt1)/(dt1+dt2)/dt1;
+    const real cex31= -(dt0+dt1+dt2)/dt2*dt0/dt1;
+    const real cex32= (dt0+dt1)*dt0/dt2/(dt1+dt2);
+
+    for( int correction=0; correction<=numberOfCorrections; correction++ )
+    {
+      if( correction>1  && debug() & 4 )
+        printF("ims: correction=%i\n",correction);
+
+      parameters.dbase.get<int>("totalNumberOfPCcorrections")++;  // count the total number of corrections.
+      
+      // Predictor-Corrector. First time predict, subsequent times correct.
+      //
+      //  correction==0 :
+      //       ---Adams-Bashforth Predictor
+      //           u(*) <- u(t) + ab1*du/dt +ab2*du(t-dtb)/dt
+      //  i.e.     gf[1]<- gf[mCur]+ ab1*ua    +ab2*ub
+      //      
+      //            The constants ab1 and ab2 are
+      //                 ab1 = dt*( 1.+dt/(2*dtb) )   = (3/2)*dt if dtb=dt
+      //                 ab2 = -dt*(  dt/(2*dtb) )    =-(1/2)*dt if dtb=dt
+      //            Determined by extrapolation to time t+dt/2 from the
+      //            times of ua and ub
+      //
+      // correction>0 :
+      //       ---Adams Moulton Corrector
+      //          u(t+dt) <- u(t) + dt* ( (1/2) du(*)/dt + (1/2) du(t)/dt )
+      //          gf[mNew]  gf[mCur]              ub               ua
+
+      // We only need to compute the "explicit" part of the implicit terms once for correction==0: 
+      // These values are stored in utImplicit 
+      implicitOption =correction==0 ? Parameters::computeImplicitTermsSeparately : 
+                                      Parameters::doNotComputeImplicitTerms;
+
+      if( correction==0 )
+      {
+	// ------------------------------------------------------
+	// ----------------- Moving Grids -----------------------
+	// ------------------------------------------------------
+
+	bool useNew=false;
+	bool gridWasAdapted=false;
+
+	// moveTheGridsMacro(adamsPC,uti); // *wdh* 090804 
+
+        real tb=gf[mCur].t-dtb, tc=tb-dtb, td=tc-dtb; // tc,td not used
+        assert( predictorOrder<=2 );
+        moveTheGridsMacro(adamsPC,uti, predictorOrder,tb,ub,tc,ub,td,ub);
+
+	// we need to rebuild the implicit time stepping matrix.
+ 	if( movingGridProblem() )
+          parameters.dbase.get<int >("initializeImplicitTimeStepping")=true;
+
+
+      }
+
+      // Optionally refactor the matrix : if parameters.dbase.get<int >("globalStepNumber") % refactorFrequency == 0 
+      // (We need to do this after the grids have moved but before dudt is evaluated (for nonlinear problems)
+      if( correction==0 && (parameters.dbase.get<int >("initializeImplicitTimeStepping") || parameters.dbase.get<int >("globalStepNumber")>0) )
+	formMatrixForImplicitSolve(dt0,gf[mNew], gf[mCur] );
+
+      const int maba = correction==0 ? mCur : mNew;
+      const int naba = correction==0 ? nab0 : nab1;
+
+      // --- Compute: fn[nab0] <- du/dt(t0)  or fn[nab1] <- du/dt(t+dt0) ---
+
+      // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
+      const real tForce = gf[maba].t; // evaluate the body force at this time  ***CHECK ME**
+      computeBodyForcing( gf[maba], tForce );
+
+      for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+      {
+	rparam[0]=gf[maba].t;
+	rparam[1]=gf[maba].t;     // tforce
+	rparam[2]=gf[maba].t+dt0; // tImplicit
+	iparam[0]=grid;
+	iparam[1]=gf[maba].cg.refinementLevelNumber(grid);
+	iparam[2]=numberOfStepsTaken;
+
+	getUt(gf[maba].u[grid],gf[maba].getGridVelocity(grid),
+	      fn[naba][grid],iparam,rparam,uti[grid],&gf[mNew].cg[grid]);
+      }
+
+      addArtificialDissipation(gf[maba].u,dt0);	// add "implicit" dissipation to u 
+
+      if( debug() & 16 || debug() & 64 )
+      {
+	for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+	{
+	  display(ua[grid],"\n ****ua: du/dt(t)",debugFile);
+	  display(ub[grid],"\n ****ub: du/dt(t-dt)",debugFile);
+	}
+      }
+      if( debug() & 16 )
+      {
+	aString label = sPrintF(" ImplicitMS: errors in ut (ua) at t=%e, correction=%i \n",t0,correction);
+	determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,label );
+        real tub = correction==0 ? t0-dtb : t0+dt0;
+	label = sPrintF(" ImplicitMS: errors in ut (ub) at t=%e, correction=%i \n",tub,correction);
+	determineErrors( ub,gf[mNew].gridVelocity, tub, 1, error,label );
+      }
+
+      //  --------------------------------------------------------
+      //  --- Assign the explicit or implicit time-step update ---
+      //  --------------------------------------------------------
+      for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+      {
+        // const real dti = dt0; 
+        const real dti = (1.-parameters.dbase.get<real >("implicitFactor"))*dt0;
+
+	if( correction==0 )
+	{ // u1 <- u0 + ab1*ua0 + ab2*ub0 [ + dti*utImplicit ]  (add last terms for implicit grids)
+	  timeStepUpdateMacro( ab1,ab2,dti, ua0,ub0,utImplicit );
+	}
+	else
+	{ // u1 <- u0 + am1*ub0 + am2*ua0 [ + dti*utImplicit ] (add last terms for implicit grids)
+	  timeStepUpdateMacro( am1,am2,dti, ub0,ua0,utImplicit );
+	}
+      }
+
+      if( correction==0 )
+      {
+        // printF(" +++ ims: gf[mNew].t=%9.3e --> change to t0+dt0=%9.3e +++\n",gf[mNew].t,t0+dt0);
+        gf[mNew].t=t0+dt0;  // gf[mNew] now lives at this time
+      }
+      
+
+      // *** assign boundary conditions for the implicit method 
+      applyBoundaryConditionsForImplicitTimeStepping( gf[mNew] ); // ***** gf[mNew].gridVelocity must be correct here
+    
+      if( debug() & 4 )
+      {
+	aString label = sPrintF(" ***ImplicitMS: RHS Before implicitSolve t=%e, correction=%i\n",gf[mNew].t,correction);
+	if( twilightZoneFlow() )
+	{
+	  gf[mNew].u.display(label,debugFile,"%8.5f ");
+	}
+        label = sPrintF(" ***ImplicitMS: Errors in rhs gf before implicitSolve t=%e, correction=%i\n",gf[mNew].t,correction);
+	determineErrors( gf[mNew],label );
+      }
+
+      // **** fix this *** we could refactor for each correction here !
+//       if( mst>1 || correction>0 )
+//       {
+//         // Optionally refactor the matrix : if parameters.dbase.get<int >("globalStepNumber") % refactorFrequency == 0 
+// 	formMatrixForImplicitSolve(dt0,gf[mNew], gf[mCur] );
+//       }
+      
+
+      // ------------------------------------
+      // --- Solve the implicit equations ---
+      // ------------------------------------
+ 
+      implicitSolve( dt0,gf[mNew], gf[mCur] );  // gf[mNew]=RHS  gf[mCur]=used for initial guess and linearization
+
+      // * ---
+//       implicitSolve( dt0,gf[mNew], gfl );  // gf[mNew]=RHS  gf[mCur]=used for initial guess and linearization
+//       gfl.u=gf[mNew].u;
+
+
+      if( false )
+      {
+        realCompositeGridFunction diff;
+	diff=gf[mNew].u-gf[mCur].u;
+        Range & Rt = parameters.dbase.get<Range >("Rt");
+	printF(" After implicit solve: max-diff(u-uGuess) =");
+	for( int n=Rt.getBase(); n<=Rt.getBound(); n++ )
+	{
+          int maskOption=0, extra=1;
+	  real maxDiff = maxNorm(diff, n, maskOption, extra );
+          real mxd = 0;
+	  for( int grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+	    mxd = max( mxd, max(fabs(gf[mNew].u[grid]-gf[mCur].u[grid])));
+	  printF(" n=%i : %8.2e (all=%8.2e), ",n,maxDiff,mxd);
+	}
+	printF("\n");
+      }
+
+      if( debug() & 4 )
+      {
+	if( twilightZoneFlow() )
+	{
+	  gf[mNew].u.display(sPrintF("ImplicitMS: gf[mNew].u after implicitSolve but BEFORE BC's (t=%8.2e)",
+				     gf[mNew].t),debugFile,"%8.5f ");
+	}
+	aString label = sPrintF(" ***ImplicitMS: after implicitSolve but BEFORE BC's, t=%e, correction=%i\n",gf[mNew].t,correction);
+	determineErrors( gf[mNew],label );
+      }
+
+      if( true && correction==0 )
+      {
+        // *wdh* for fourth-order we may need to extrapolate p in time at ghost points
+	const int orderOfExtrapolation = 3;
+	boundaryConditionPredictor( predictPressure,adamsData,orderOfExtrapolation, mNew,mCur,mOld,&ua,&ub );
+      }
+      
+      if( debug() & 64 ) 
+      {
+	if( twilightZoneFlow() )
+	{
+	  gf[mNew].u.display(sPrintF("ImplicitMS: gf[mNew].u after implicitSolve and boundaryConditionPredictor but BEFORE BC's (t=%8.2e)",
+				     gf[mNew].t),debugFile,"%8.5f ");
+	}
+      }
+
+      // apply explicit BC's  --- > really only have to apply to implicit grids I think?
+      applyBoundaryConditions(gf[mNew]);   // ***** gf[mNew].gridVelocity must be correct here!
+
+
+      updateStateVariables( gf[mNew],1 );  
+
+      if( debug() & 4 )
+      {
+	if( twilightZoneFlow() )
+	{
+	  gf[mNew].u.display(sPrintF("ImplicitMS: gf[mNew].u after implicitSolve and BC's (t=%8.2e)",
+				     gf[mNew].t),debugFile,"%8.5f ");
+	}
+	aString label = sPrintF(" ***ImplicitMS: after implicitSolve and BC's, t=%e, correction=%i\n",gf[mNew].t,correction);
+	determineErrors( gf[mNew],label );
+      }
+
+      // extrapolate p in time as an initial guess for iterative solvers
+      bool timeExtrapolatePressureForIterative = ( parameters.dbase.has_key("extrapolatePoissonSolveInTime") && 
+				                   poisson->isSolverIterative() );
+
+      // Extrap. p for the 'light-body' mixed pressure BC *testing*
+      const int & movingBodyPressureBC = parameters.dbase.get<int>("movingBodyPressureBC");
+      bool timeExtrapolatePressureForMoving = movingBodyPressureBC!=0;
+      if( false )
+	printF("+++++++++++++ ims: movingBodyPressureBC=%i\n",movingBodyPressureBC);
+      
+      if( correction==0 && ( timeExtrapolatePressureForIterative || timeExtrapolatePressureForMoving ) )
+      {
+	const int & pc = parameters.dbase.get<int >("pc");
+	assert( pc>= 0 );
+	for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+	{
+	  if( timeExtrapolatePressureForIterative || 
+              ( (parameters.gridIsMoving(grid) && (bool)movingBodyPressureBC) || movingBodyPressureBC==2 ) )
+	  {
+	    if( debug() & 4 )
+	      printF("ims: extrapolate p in time to t=%8.2e (correction=%i) extrap-coeffs=(%8.2e,%8.2e)\n",
+		     gf[mNew].t,correction,cex2a,cex2b);
+	    
+	    // *wdh* 050424 getIndex(gf[mCur].cg[grid].gridIndexRange(),I1,I2,I3);  // **** why not include ghost pts??
+	    getIndex(gf[mCur].cg[grid].dimension(),I1,I2,I3);  // **** why not include ghost pts??
+	    // note that initially gf[mNew](.,.,.,pc) = p(t-dt)
+#ifdef USE_PPP
+	    realSerialArray uNew; getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],uNew);
+	    realSerialArray uCur; getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],uCur);
+	    realSerialArray uOld; getLocalArrayWithGhostBoundaries(gf[mOld].u[grid],uOld);
+            bool ok = ParallelUtility::getLocalArrayBounds(gf[mNew].u[grid],uNew,I1,I2,I3); 
+            if( !ok ) continue;
+#else
+            const realSerialArray & uNew=gf[mNew].u[grid];
+            const realSerialArray & uCur=gf[mCur].u[grid];
+            const realSerialArray & uOld=gf[mOld].u[grid];
+#endif	    
+	  
+            // *wdh* fixed extrap in time for p to p(t+dt) (instead of p(t+dt/2)) 100912
+            uNew(I1,I2,I3,pc)=cex2a*uCur(I1,I2,I3,pc)+cex2b*uOld(I1,I2,I3,pc);
+            // uNew(I1,I2,I3,pc)=(ab1/dt0)*uCur(I1,I2,I3,pc)+(ab2/dt0)*uOld(I1,I2,I3,pc);
+	  }
+	  
+	}
+      }
+      // e.g. for variable density, update p eqn here     
+      bool updateSolutionDependentEquations = correction==0;  
+      solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
+
+      if( debug() & 8 )
+      {
+	aString label =sPrintF(" ImplicitMS: Errors after pressure solve, t0+dt0: t0=%e, dt0=%e  \n",t0,dt0);
+	determineErrors( gf[mNew],label );
+      }
+
+      // correct for forces on moving bodies  *wdh* 040913
+      if( movingGridProblem() )  // may only need to do this for correction<numberOfCorrections
+      {
+	correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+
+        // Check if the correction step has converged
+        bool isConverged = getMovingGridCorrectionHasConverged();
+        real delta = getMovingGridMaximumRelativeCorrection();
+	if( debug() & 2 )
+	{
+          printF("ims: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+                 delta,correction,(int)isConverged);
+	}
+	if( isConverged && correction>=minimumNumberOfPCcorrections )
+	  break;  // we have converged -- break from correction steps
+      }
+      
+
+      // * ----
+
+//       if( correction>=2 )
+//       {
+// 	parameters.dbase.get<int >("globalStepNumber")++;
+//       }
+
+//       if( parameters.dbase.get<int >("globalStepNumber") % 10 == 0 )
+//       {
+// 	if( parameters.dbase.get<int>("useNewImplicitMethod")==1 )
+// 	{
+// 	  realCompositeGridFunction & residual = uti;  // save residual here -- check this 
+// 	  getResidual( t0+dt0 ,dt0,gf[mNew],residual );
+// 	  saveSequenceInfo(t0+dt0,residual);
+// 	}
+      
+//       }
+
+
+    } // end corrections
+    
+    // permute (mab0,mab1,mab2) 
+    mab0 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+    mab1 = (mab1-1 + numberOfGridFunctions) % numberOfGridFunctions;
+    // mab2 is always 1 "ahead" of mab0 
+    mab2 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+    // XXX     ^ should that be a 2 ?? kkc 060301  -- this is ok *wdh* 071121
+    mNew=mab2;
+    mCur=mab0;
+    mOld=mab1;
+
+    if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+    {
+      nab0 = (nab0+1) % 2;
+      nab1 = (nab1+1) % 2;
+    }
+    else
+    {
+      nab0 = (nab0-1 +4) % 4;
+      nab1 = (nab1-1 +4) % 4;
+      nab2 = (nab2-1 +4) % 4;
+      nab3 = (nab3-1 +4) % 4;
+    }
+
+    ndt0=(ndt0-1 +5)%5;  // for dtp[]
+//      // switch mab0 <-> mab1
+//      mab0 = (mab0+1) % 2;
+//      mab1 = (mab1+1) % 2;
+      
+    dtb=dt0;
+    t0+=dt0;
+
+    if( parameters.dbase.get<int >("globalStepNumber") % 10 == 0 )
+    {
+      // residual = u.t = fn[nab0]+uti
+      // saveSequenceInfo(t0,evaluate(fn[nab0]+uti));   // 070704 *wdh* turn this off for now -- this is not correct in general 
+
+      // new way:
+      if( parameters.dbase.get<int>("useNewImplicitMethod")==1 )
+      {
+	realCompositeGridFunction & residual = uti;  // save residual here -- check this 
+        getResidual( t0,dt0,gf[mab0],residual );
+	saveSequenceInfo(t0,residual);
+      }
+      
+    }
+    
+    output( gf[mab0],parameters.dbase.get<int >("globalStepNumber")+1 ); // output to files, user defined output
+
+    const int zeroUnusedPointsAfterThisManySteps=20;
+    if( (mst==numberOfSubSteps || (mst % zeroUnusedPointsAfterThisManySteps)==0) &&  // mst starts at 1
+	parameters.dbase.get<int >("extrapolateInterpolationNeighbours")==0 )
+    {
+      // *note* we cannot fixup unused if we extrapolate interp. neighbours since these values will be zeroed out!
+      // (esp. important for viscoPlastic model -- linearized solution becomes corrupted)
+
+      if( debug() & 2 ) printF(" ************** ims.bC fixupUnusedPoints ************\n");
+      
+      // zero out unused points to keep them from getting too big ** is this needed?? ****
+      for( int m=0; m<=1; m++ )
+      {
+	// ** gf[m].u.zeroUnusedPoints(coeff);
+	fixupUnusedPoints(gf[m].u);
+      }
+    }
+    
+  } // end  substeps
+
+  // update the current solution:  
+  current = mab0;
+  
+  // tm(2)+=getCPU()-time0;
+}
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{applyBoundaryConditionsForImplicitTimeStepping}} 
+int DomainSolver::
+applyBoundaryConditionsForImplicitTimeStepping(GridFunction & cgf )
+// ======================================================================================
+//  /Description:
+//     On implicit grids, apply boundary conditions to the rhs side grid function used in the implicit solve;
+//  on explicit grids apply the normal explicit boundary conditions. 
+// /cgf (input) : use this grid function as the right-hand-side. cgf.t should be the time corresponding to the
+//      next time step.
+//\end{CompositeGridSolverInclude.tex}  
+// ==========================================================================================
+{
+  int grid;
+
+  for( grid=0; grid<cgf.cg.numberOfComponentGrids(); grid++ )
+  {
+    // clean this up 
+    if( parameters.getGridIsImplicit(grid) )
+    {
+      applyBoundaryConditionsForImplicitTimeStepping(cgf.u[grid],
+						     gf[current].u[grid],  // -- fix this -- should be uL
+						     cgf.getGridVelocity(grid),
+						     cgf.t,
+						     parameters.dbase.get<int >("scalarSystemForImplicitTimeStepping"),grid );
+    }
+    else
+    { // apply explicit BC's **** could be trouble if these require interpolation points ??   **********
+      applyBoundaryConditions(cgf.t,cgf.u[grid],cgf.getGridVelocity(grid),grid);
+    }
+
+
+  }
+  
+  return 0;
+}
+
+
+#include "Integrate.h"
+
+
+bool DomainSolver::
+isImplicitMatrixSingular( realCompositeGridFunction &uL )
+{
+  return false;
+}
+
+int  DomainSolver::
+addConstraintEquation( Parameters &parameters, Oges& solver, 
+		       realCompositeGridFunction &coeff, 
+		       realCompositeGridFunction &ucur, 
+		       realCompositeGridFunction &rhs, const int &numberOfComponents) 
+{
+  printF("DomainSolver::addConstraintEquation should never be called!");
+  Overture::abort("error");
+  return 0;
+}
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{implicitSolve}} 
+void DomainSolver::
+formMatrixForImplicitSolve(const real & dt0,
+			   GridFunction & cgf1,
+			   GridFunction & cgf0 )
+// ==========================================================================================
+// /Description: This function was once part of implicitSolve.  It was
+// broken out to allow the construction of the matrix independently of
+// the actual solve.  Basically all the work is done to initialize the
+// implicit time stepping.  The implicit method can be optionally used
+// on only some grids. To implement this approach we simply create a
+// sparse matrix that is just the identity matrix on grids that are
+// advanced explicitly but equal to the standard implicit matrix on
+// grids that are advance implicitly: 
+//  \begin{verbatim} 
+//  I - \nu \alpha \dt \Delta on implicit grids 
+//  I on explicit grids 
+//  \end{verbatim} 
+// If the form of the boundary conditions for the different components of
+// $\uv$ are the same then we can build a single scalar matrix that
+// can be used to advance each component, one after the other. If the
+// boundary conditions are not of the same form then we build a matrix
+// for a system of equations for the velocity components $(u,v,w)$.
+//
+// Note that originally cgf1 from implicitSolve was used to get the time,
+// grid, and operators.  We are now using whatever is passed in as "u" to
+// this function.  The operators should be the same (?) and the time is
+// used in the debug output.  What about the grid though? It can change 
+// due to AMR (used with implicit?) as well as from the grid velocity.
+// /dt0 (input) : time step used to build the implicit matrix.
+// /cgf1 (input) : holds the RHS 
+// /cgf0 (input) : holds the current state of the solution (used for linearization)
+//\end{CompositeGridSolverInclude.tex}  
+// ==========================================================================================
+{
+  printf("DomainSolver::formMatrixForImplicitSolve:ERROR: base class function called. This function should be over-ridden\n");
+  Overture::abort("error");
+}
+
+int
+DomainSolver::
+setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions, RealArray &boundaryConditionData,
+                           const int imp )
+// ===================================================================================================================
+// /Description:
+//   Assign the boundaryCondition data for passing to Oges (predfined equations) when it builds the implicit system.
+//
+// This function is called by DomainSolver::formMatrixForImplicitSolve
+// 
+//  /cgf (input) : A grid function holding the current grid.
+//  /boundaryConditions (output) : boundary conditions for Oges
+//  /boundaryConditionData (output) : boundary condition data for Oges 
+//  /imp (input) : the number of the implicit system being solved
+// 
+// ====================================================================================================================
+{
+  CompositeGrid & cg = cgf.cg;
+
+  printf("DomainSolver::setOgesBoundaryConditions:ERROR: base class function called. This function should be over-ridden\n");
+  Overture::abort("error");
+
+  return 0;
+}

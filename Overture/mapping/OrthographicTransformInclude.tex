@@ -1,0 +1,57 @@
+\subsection{Default Constructor}
+ 
+\newlength{\OrthographicTransformIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\OrthographicTransformIncludeArgIndent}{OrthographicTransform(}% 
+OrthographicTransform( const real sa\_    = 1., \\ 
+\hspace{\OrthographicTransformIncludeArgIndent}const real sb\_    = 1., \\ 
+\hspace{\OrthographicTransformIncludeArgIndent}const Pole pole\_  = northPole)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    The {\tt OrthographicTransform} is used by the {\tt ReparameterizationTransform}
+    to remove a polar singularity.
+\item[{\bf sa\_, sb\_ (input) :}]  parameters that specify the dimensions of the plane that is projected
+   onto the sphere in the orthographic transform.
+\item[{\bf pole (input) :}]  reparameterize the {\tt northPole} or the {\tt southPole}. 
+\end{description}
+\subsection{setAngularAxis}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OrthographicTransformIncludeArgIndent}{setAngularAxis(}%
+setAngularAxis( const int \& tAxis\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Specify which axis (axis1 or axis2) corresponds to the angular ($\theta$) direction
+   of the mapping that will have an orthographic patch on it. The $\phi$ direction will
+   be axis1 if tAxis=axis2 or axis2 if tAxis=axis1.
+\item[{\bf tAxis\_ (input) :}]  axis1 (0) or axis2 (1).
+\end{description}
+\subsection{setPole}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OrthographicTransformIncludeArgIndent}{setPole(}%
+setPole( const Pole \& pole\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Specify which pole to reparameterize.
+\item[{\bf pole (input) :}]  reparameterize the {\tt northPole} or the {\tt southPole}. 
+\end{description}
+\subsection{setSize}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OrthographicTransformIncludeArgIndent}{setSize(}%
+setSize( const real \& sa\_, \\ 
+\hspace{\OrthographicTransformIncludeArgIndent}const real \& sb\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Specify the size of the orthographic patch.
+\item[{\bf sa\_, sb\_ (input) :}]  parameters that specify the dimensions of the plane that is projected
+   onto the sphere in the orthographic transform.
+\end{description}

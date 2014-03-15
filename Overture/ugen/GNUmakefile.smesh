@@ -1,0 +1,9 @@
+OS := ${shell uname -s}
+
+configdir := /home/chand/res/config
+
+include ${configdir}/make.${OS}
+include ${configdir}/make.rules
+
+include make.smesh
+

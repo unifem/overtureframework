@@ -1,0 +1,39 @@
+#!/bin/tcsh
+rm icnsrates.m
+set strick = "0"
+set av4 = "1e-0"
+#foreach m ( icns icns_axi icns_axi_swirl )
+#foreach m ( ncns )
+foreach m ( icns  )
+#foreach m ( icns_axi_swirl )
+  echo "***** " $m "*******"
+  foreach tz ( trig )
+#  foreach tz ( pulse  )
+#  foreach tz ( pulse trig )
+#  foreach tz ( poly pulse )
+#  foreach g ( shifted_square cic_shifted )
+#  foreach g ( cic_shifted )
+  foreach g ( shifted_square  )
+#  foreach g ( square cic )
+#  foreach g ( square annulus sisi cici )
+#  foreach g ( cic_shifted shifted_square )
+#  foreach g ( cic_shifted )
+  foreach r ( 1 2 3 4 )
+#    $CGBUILDPREFIX/cns/bin/cgcns twilight.cmd nopause noplot --pde=$m --grid=$g --resolution=$r --tmax=.1 --cfl=1 --av4=0 --strick=$strick --implicit_factor=.5 --space_degree=5 --time_degree=5 --tztype=$tz --f_x=1 --f_y=1 --bc=dirichletBoundaryCondition
+    $CGBUILDPREFIX/cns/bin/cgcns twilight.cmd nopause noplot --pde=$m --grid=$g --resolution=$r --tmax=.01 --cfl=1 --av4=$av4 --strick=$strick --implicit_factor=.5 --space_degree=5 --time_degree=5 --tztype=$tz --f_x=1 --f_y=1 --bc=dirichletBoundaryCondition
+#    $CGBUILDPREFIX/cns/bin/cgcns twilight.cmd nopause noplot --pde=$m --grid=$g --resolution=$r --tmax=.01 --cfl=1 --av4=1 --implicit-factor=.5 --space_degree=0 --time_degree=4 --tztype=$tz --f_t=1 --f_x=0 --f_y=0
+#    $CGBUILDPREFIX/cns/bin/cgcns twilight.cmd nopause noplot --pde=$m --grid=$g --resolution=$r --tmax=.1 --cfl=1 --av4=1 --implicit-factor=.5 --space_degree=4 --time_degree=4 --tztype=$tz --f_t=1 --f_x=4 --f_y=4
+#    $CGBUILDPREFIX/cns/bin/cgcns twilight.cmd nopause noplot --pde=$m --grid=$g --resolution=$r --tmax=.1 --cfl=5 --av4=1 --implicit-factor=1 --space_degree=6 --time_degree=1 --tztype=$tz
+#    tob twilight.cmd nopause noplot --pde=$m --grid=$g --resolution=$r --tmax=.01 --cfl=1 --av4=1 --implicit-factor=.5 --space_degree=4 --time_degree=4 --tztype=$tz
+    mv cns.check $m.$tz.$r.$g.check
+    mv cns.log $m.$tz.$r.$g.log
+  end
+  grep "^ 1." $m.$tz.*.$g.check | awk '{for (i=5; i<NF; i+=3) printf "%e ",$i; printf "\n"}' > $m.$tz.$g.dat
+  grep "total number of grid points" $m.$tz.*.$g.log | sed 's/[a-z():,]//g' | awk -F= '{print $3,"  ",$4,"  ",$5}' | sed 's/-/e-/g' > $m.$tz.$g.h.dat
+  echo "${m}_${tz}_${g} = load('$m.$tz.$g.dat');" >> icnsrates.m
+  echo "${m}_${tz}_${g}_h = load('$m.$tz.$g.h.dat');" >> icnsrates.m
+  echo "disp('%%% method=$m grid=$g tz=$tz');">>icnsrates.m
+  echo "for d=1:size(${m}_${tz}_$g,2), [p,s]=polyfit(log(${m}_${tz}_${g}_h(:,3)),log(${m}_${tz}_$g(:,d)),1);disp(strcat(strcat(num2str(d),' & '),num2str(p(1))));end">>icnsrates.m
+  end
+  end
+end

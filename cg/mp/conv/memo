@@ -1,0 +1,848 @@
+# ----- 2014/01/31 START ADDING tables to flunsi
+
+--- SCF=.01 : Lighter fluid: -adCns=10. (cfl=.5 needed for coarse grid)
+conv.p rotatingDisk.conv -case="rate1.p4.tfp5.pi1.adCns10.scf0p01" -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=.1 -scf=.01 -adCns=10. -cfl=.5 -ng=3
+
+--- SCF=.1 : Light fluid: -adCns=10. -NG=4  (adCNS=5 not enough for finest grid)
+conv.p rotatingDisk.conv -case="rate1.p4.tfp5.pi1.adCns10.scf0p1" -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=.1 -scf=.1 -adCns=10. -cfl=.75 -ng=4
+
+
+SCF=1
+conv.p rotatingDisk.conv -case="rate1.p4.tfp5.pi1.scf1" -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=1. -ng=3
+
+SCF=10
+conv.p rotatingDisk.conv -case="rate1.p4.tfp5.pi1.scf10" -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+
+SCF=10 -pi=0
+conv.p rotatingDisk.conv -case="rate1.p4.tfp5.pi0.scf10" -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+
+  ++++ PISTON:
+SVK NONLINEAR + + PROJECT + set ghost from domain solver BC routines
+
+-scf=0.1
+conv.p elasticPiston.conv -case="trig.pi1.pig3.tp1.scf0p1" -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=3 -pi=1 -bcOption=4 -scf=.1 -ng=3
+
+-scf=1
+conv.p elasticPiston.conv -case="trig.pi1.pig3.tp1.scf1" -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=3 -pi=1 -bcOption=4 -scf=1. -ng=3
+
+
+
+
+# ----- 2014/01/26 
+
+--- SCF=.01 : Lighter fluid: -adCns=10. -cfl=.5 (needed for for coarse grids)
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=.1 -scf=.01 -cfl=.5 -adCns=10. -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 4.52e-04 &      & 3.06e-06 &      & 3.12e-06 &      & 1.49e-06 &      & 1.66e-04 &      & 1.56e-03 &      & 1.35e-03 &      
+                 dd4 &     2 & 2.09e-04 &  2.2 & 1.45e-06 &  2.1 & 1.46e-06 &  2.1 & 4.26e-07 &  3.5 & 2.53e-05 &  6.6 & 3.86e-04 &  4.0 & 1.91e-04 &  7.1 
+                 dd8 &     4 & 7.07e-05 &  3.0 & 4.96e-07 &  2.9 & 4.97e-07 &  2.9 & 1.44e-07 &  3.0 & 4.37e-06 &  5.8 & 8.92e-05 &  4.3 & 4.22e-05 &  4.5 
+Convergence rates: c0=1.34 c1=1.31 c2=1.33 c3=1.69 c4=2.62 c5=2.06 c6=2.50 
+
+
+--- SCF=.1 : Light fluid: -adCns=10. -NG=4  (adCNS=5 not enough for finest grid)
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=.1 -scf=.1 -adCns=10. -cfl=.75 -ng=4
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 4.01e-04 &      & 2.72e-05 &      & 2.76e-05 &      & 1.89e-05 &      & 1.47e-04 &      & 1.25e-03 &      & 1.24e-03 &      
+                 dd4 &     2 & 1.84e-04 &  2.2 & 1.28e-05 &  2.1 & 1.29e-05 &  2.1 & 3.76e-06 &  5.0 & 2.12e-05 &  6.9 & 2.85e-04 &  4.4 & 1.75e-04 &  7.1 
+                 dd8 &     4 & 6.27e-05 &  2.9 & 4.39e-06 &  2.9 & 4.40e-06 &  2.9 & 1.28e-06 &  2.9 & 3.91e-06 &  5.4 & 6.33e-05 &  4.5 & 3.70e-05 &  4.7 
+                dd16 &     8 & 1.75e-05 &  3.6 & 1.23e-06 &  3.6 & 1.23e-06 &  3.6 & 3.58e-07 &  3.6 & 1.18e-06 &  3.3 & 1.42e-05 &  4.5 & 8.56e-06 &  4.3 
+Convergence rates: c0=1.51 c1=1.49 c2=1.50 c3=1.87 c4=2.33 c5=2.16 c6=2.38 
+
+
+--- SCF=.1 : Light fluid: -adCns=5. OK
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=.1 -scf=.1 -adCns=5. -ng=3
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.86e-04 &      & 1.93e-05 &      & 2.03e-05 &      & 5.83e-06 &      & 1.37e-04 &      & 1.08e-03 &      & 1.18e-03 &      
+                 dd4 &     2 & 1.12e-04 &  2.6 & 7.74e-06 &  2.5 & 7.76e-06 &  2.6 & 2.29e-06 &  2.5 & 1.88e-05 &  7.3 & 2.29e-04 &  4.7 & 1.69e-04 &  7.0 
+                 dd8 &     4 & 3.37e-05 &  3.3 & 2.35e-06 &  3.3 & 2.35e-06 &  3.3 & 6.88e-07 &  3.3 & 3.66e-06 &  5.1 & 4.85e-05 &  4.7 & 3.45e-05 &  4.9 
+Convergence rates: c0=1.54 c1=1.52 c2=1.56 c3=1.54 c4=2.61 c5=2.24 c6=2.55 
+
+
+
+-rotationRate=.5, rho=1.4 (cfl=.9) -- OK
+/share/mss/henshaw/cg/mp/bin/cgmp /share/mss/henshaw/cg/mp/cmd/rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=0.9 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0 -bcOption=4 -rotationRate=.5 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=1.4 -pOffset=1 -lambdaSolid=1. -muSolid=1. -diss=1. multiDomainAlgorithm=1 -adCns=1.
+
+OK: -rotationRate=.1 , rho=1.4 (cfl=.5)
+/share/mss/henshaw/cg/mp/bin/cgmp /share/mss/henshaw/cg/mp/cmd/rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=0.5 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0 -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=1.4 -pOffset=1 -lambdaSolid=1. -muSolid=1. -diss=1. multiDomainAlgorithm=1 -adCns=1.
+
+
+--- Light fluid: TROUBLE: 
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=.1 -scf=.1 -ng=3
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=.1 -ng=3
+*** -pi=1: TROUBLE:
+
+--- Medium fluid:
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=1. -ng=3
+*** -pi=1: 
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 6.68e-03 &      & 4.73e-03 &      & 4.71e-03 &      & 1.39e-03 &      & 1.14e-03 &      & 7.89e-03 &      & 1.80e-02 &      
+                 dd4 &     2 & 1.36e-03 &  4.9 & 9.53e-04 &  5.0 & 9.76e-04 &  4.8 & 2.82e-04 &  4.9 & 1.68e-04 &  6.8 & 1.88e-03 &  4.2 & 3.33e-03 &  5.4 
+                 dd8 &     4 & 2.89e-04 &  4.7 & 1.87e-04 &  5.1 & 2.00e-04 &  4.9 & 5.92e-05 &  4.8 & 4.37e-05 &  3.8 & 4.47e-04 &  4.2 & 6.37e-04 &  5.2 
+Convergence rates: c0=2.27 c1=2.33 c2=2.28 c3=2.28 c4=2.35 c5=2.07 c6=2.41 
+
+*** -pi=0: --> blows up 
+
+
+
+-- LIGHTER fluid: (NOTE: -scf scales the fluid density and pressureOffset, NOT the solid)
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=100. -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 9.55e-05 &      & 7.31e-03 &      & 7.65e-03 &      & 2.01e-03 &      & 1.14e-03 &      & 9.37e-03 &      & 1.80e-02 &      
+                 dd4 &     2 & 2.34e-05 &  4.1 & 1.63e-03 &  4.5 & 1.64e-03 &  4.7 & 4.95e-04 &  4.1 & 1.68e-04 &  6.8 & 2.53e-03 &  3.7 & 3.34e-03 &  5.4 
+                 dd8 &     4 & 6.51e-06 &  3.6 & 4.76e-04 &  3.4 & 4.78e-04 &  3.4 & 1.37e-04 &  3.6 & 4.80e-05 &  3.5 & 6.05e-04 &  4.2 & 6.37e-04 &  5.2 
+Convergence rates: c0=1.94 c1=1.97 c2=2.00 c3=1.94 c4=2.28 c5=1.98 c6=2.41 
+
+# ----- 2014/01/25 
+
+GO BACK TO  radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**4
+
+
+***** -pi=1: 
+--> -tf=1.  **BUT NOTE: errors focus in solid at origin at around t=.9, t=1.
+                        errors in rho, u,v,  are in a thin ring at r=1.5 (?)
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.56e-03 &      & 1.79e-02 &      & 1.85e-02 &      & 5.34e-03 &      & 2.80e-03 &      & 2.44e-02 &      & 1.00e-01 &      
+                 dd4 &     2 & 1.01e-03 &  2.5 & 7.21e-03 &  2.5 & 7.33e-03 &  2.5 & 2.11e-03 &  2.5 & 7.85e-04 &  3.6 & 1.26e-02 &  1.9 & 2.35e-02 &  4.3 
+                 dd8 &     4 & 3.33e-04 &  3.0 & 2.43e-03 &  3.0 & 2.44e-03 &  3.0 & 6.92e-04 &  3.0 & 1.36e-04 &  5.8 & 3.36e-03 &  3.8 & 4.33e-03 &  5.4 
+Convergence rates: c0=1.47 c1=1.44 c2=1.46 c3=1.47 c4=2.18 c5=1.43 c6=2.26 
+
+--> -tf=.7
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.48e-03 &      & 1.08e-02 &      & 1.05e-02 &      & 3.10e-03 &      & 1.32e-03 &      & 1.33e-02 &      & 2.16e-02 &      
+                 dd4 &     2 & 4.49e-04 &  3.3 & 3.09e-03 &  3.5 & 3.15e-03 &  3.3 & 9.41e-04 &  3.3 & 2.36e-04 &  5.6 & 4.21e-03 &  3.2 & 5.49e-03 &  3.9 
+                 dd8 &     4 & 1.27e-04 &  3.5 & 8.83e-04 &  3.5 & 9.06e-04 &  3.5 & 2.65e-04 &  3.6 & 4.76e-05 &  5.0 & 1.20e-03 &  3.5 & 1.32e-03 &  4.2 
+Convergence rates: c0=1.77 c1=1.81 c2=1.77 c3=1.77 c4=2.40 c5=1.74 c6=2.02 
+
+--> -tf=.5
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 9.25e-04 &      & 6.95e-03 &      & 7.30e-03 &      & 1.94e-03 &      & 1.14e-03 &      & 9.08e-03 &      & 1.80e-02 &      
+                 dd4 &     2 & 2.13e-04 &  4.3 & 1.47e-03 &  4.7 & 1.48e-03 &  4.9 & 4.50e-04 &  4.3 & 1.68e-04 &  6.8 & 2.43e-03 &  3.7 & 3.34e-03 &  5.4 
+                 dd8 &     4 & 5.79e-05 &  3.7 & 4.22e-04 &  3.5 & 4.24e-04 &  3.5 & 1.22e-04 &  3.7 & 4.73e-05 &  3.6 & 5.76e-04 &  4.2 & 6.37e-04 &  5.2 
+Convergence rates: c0=2.00 c1=2.02 c2=2.05 c3=2.00 c4=2.30 c5=1.99 c6=2.41 
+
+**** -pi=0:
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 8.65e-04 &      & 6.48e-03 &      & 6.80e-03 &      & 1.82e-03 &      & 1.14e-03 &      & 9.13e-03 &      & 1.80e-02 &      
+                 dd4 &     2 & 2.11e-04 &  4.1 & 1.46e-03 &  4.4 & 1.47e-03 &  4.6 & 4.46e-04 &  4.1 & 1.68e-04 &  6.8 & 2.44e-03 &  3.7 & 3.34e-03 &  5.4 
+                 dd8 &     4 & 5.85e-05 &  3.6 & 4.27e-04 &  3.4 & 4.28e-04 &  3.4 & 1.23e-04 &  3.6 & 4.72e-05 &  3.6 & 5.80e-04 &  4.2 & 6.37e-04 &  5.2 
+Convergence rates: c0=1.94 c1=1.96 c2=1.99 c3=1.94 c4=2.30 c5=1.99 c6=2.41 
+
+
+# ----- 2014/01/25 
+BUG found -> bcOption not set properly
+
+-----------------
+TRY  radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**6
+
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=.1: 
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 3.43e-03 &      & 2.40e-02 &      & 2.44e-02 &      & 7.16e-03 &      & 2.51e-03 &      & 5.55e-02 &      & 7.16e-02 &      
+                 dd4 &     2 & 1.55e-03 &  2.2 & 1.11e-02 &  2.2 & 1.13e-02 &  2.2 & 3.25e-03 &  2.2 & 4.55e-04 &  5.5 & 1.73e-02 &  3.2 & 1.95e-02 &  3.7 
+                 dd8 &     4 & 5.10e-04 &  3.0 & 3.75e-03 &  3.0 & 3.75e-03 &  3.0 & 1.06e-03 &  3.1 & 1.05e-04 &  4.3 & 3.57e-03 &  4.8 & 4.28e-03 &  4.6 
+Convergence rates: c0=1.37 c1=1.34 c2=1.35 c3=1.38 c4=2.29 c5=1.98 c6=2.03 
+
+***********************
+*** -pi=1:     
+-tf=.7: 
+            grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.09e-03 &      & 1.40e-02 &      & 1.50e-02 &      & 4.41e-03 &      & 1.64e-03 &      & 1.62e-02 &      & 2.52e-02 &      
+                 dd4 &     2 & 5.80e-04 &  3.6 & 4.09e-03 &  3.4 & 4.20e-03 &  3.6 & 1.22e-03 &  3.6 & 2.51e-04 &  6.5 & 6.42e-03 &  2.5 & 6.23e-03 &  4.0 
+                 dd8 &     4 & 1.59e-04 &  3.6 & 1.13e-03 &  3.6 & 1.15e-03 &  3.7 & 3.35e-04 &  3.6 & 4.76e-05 &  5.3 & 1.81e-03 &  3.5 & 1.46e-03 &  4.3 
+Convergence rates: c0=1.86 c1=1.82 c2=1.85 c3=1.86 c4=2.55 c5=1.58 c6=2.05 
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=.5
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 9.99e-04 &      & 7.36e-03 &      & 7.36e-03 &      & 2.12e-03 &      & 1.74e-03 &      & 1.31e-02 &      & 1.98e-02 &      
+                 dd4 &     2 & 2.62e-04 &  3.8 & 1.95e-03 &  3.8 & 1.96e-03 &  3.8 & 5.58e-04 &  3.8 & 2.55e-04 &  6.8 & 3.10e-03 &  4.2 & 4.38e-03 &  4.5 
+                 dd8 &     4 & 7.19e-05 &  3.6 & 5.34e-04 &  3.7 & 5.34e-04 &  3.7 & 1.52e-04 &  3.7 & 4.64e-05 &  5.5 & 7.42e-04 &  4.2 & 8.98e-04 &  4.9 
+Convergence rates: c0=1.90 c1=1.89 c2=1.89 c3=1.90 c4=2.61 c5=2.07 c6=2.23 
+**********
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+t=.5:
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 8.90e-04 &      & 6.56e-03 &      & 6.55e-03 &      & 1.90e-03 &      & 1.74e-03 &      & 1.32e-02 &      & 1.98e-02 &      
+                 dd4 &     2 & 2.52e-04 &  3.5 & 1.88e-03 &  3.5 & 1.88e-03 &  3.5 & 5.37e-04 &  3.5 & 2.55e-04 &  6.8 & 3.12e-03 &  4.2 & 4.38e-03 &  4.5 
+                 dd8 &     4 & 7.22e-05 &  3.5 & 5.37e-04 &  3.5 & 5.37e-04 &  3.5 & 1.53e-04 &  3.5 & 4.63e-05 &  5.5 & 7.48e-04 &  4.2 & 8.98e-04 &  4.9 
+Convergence rates: c0=1.81 c1=1.81 c2=1.80 c3=1.82 c4=2.62 c5=2.07 c6=2.23 
+
+--------------------
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+*** bcOption=4:
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 8.65e-04 &      & 6.48e-03 &      & 6.80e-03 &      & 1.82e-03 &      & 1.14e-03 &      & 9.13e-03 &      & 1.80e-02 &      
+                 dd4 &     2 & 2.11e-04 &  4.1 & 1.46e-03 &  4.4 & 1.47e-03 &  4.6 & 4.46e-04 &  4.1 & 1.68e-04 &  6.8 & 2.44e-03 &  3.7 & 3.34e-03 &  5.4 
+                 dd8 &     4 & 5.85e-05 &  3.6 & 4.27e-04 &  3.4 & 4.28e-04 &  3.4 & 1.23e-04 &  3.6 & 4.72e-05 &  3.6 & 5.80e-04 &  4.2 & 6.37e-04 &  5.2 
+Convergence rates: c0=1.94 c1=1.96 c2=1.99 c3=1.94 c4=2.30 c5=1.99 c6=2.41 
+
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+*** bcOption=0:
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.17e-03 &      & 8.57e-03 &      & 9.00e-03 &      & 2.45e-03 &      & 1.14e-03 &      & 9.38e-03 &      & 1.80e-02 &      
+                 dd4 &     2 & 3.06e-04 &  3.8 & 2.28e-03 &  3.8 & 2.31e-03 &  3.9 & 6.42e-04 &  3.8 & 1.68e-04 &  6.8 & 2.50e-03 &  3.8 & 3.34e-03 &  5.4 
+                 dd8 &     4 & 1.22e-04 &  2.5 & 5.14e-04 &  4.4 & 5.15e-04 &  4.5 & 2.32e-04 &  2.8 & 4.74e-05 &  3.5 & 6.73e-04 &  3.7 & 9.78e-04 &  3.4 
+Convergence rates: c0=1.63 c1=2.03 c2=2.06 c3=1.70 c4=2.29 c5=1.90 c6=2.10 
+
+
+# ----- 2014/01/18 -- Run on Don's machine: mss
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=.5
+
+--> matches below
+
+# ----- 2014/01/12 -- rotating SVK disk
+
+*** Smoother double-bump: QUARTIC: radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**4 
+
+--> Increase maxWidthExtrapInterpNeighbours=4
+
+fluid:Cgcns::interfaceRHS:WARNING: there are no previous history values to compute tractionRate.
+  The only history value is at time tp=0.000e+00, but gf[gfIndex=0].t=0.000e+00
+
+GridEvolution::getVelocity:WARNING: t=9.091e-03 : only computing the velocity to 1st order accuracy
+ since there are only 2 time levels available, requested accuracy=2
+
+
+conv.p rotatingDisk.conv -tf=.7 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=.7
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.51e-03 &      & 1.13e-02 &      & 1.10e-02 &      & 3.16e-03 &      & 1.26e-03 &      & 1.39e-02 &      & 2.00e-02 &      
+                 dd4 &     2 & 4.28e-04 &  3.5 & 3.21e-03 &  3.5 & 3.09e-03 &  3.6 & 9.00e-04 &  3.5 & 2.29e-04 &  5.5 & 3.99e-03 &  3.5 & 5.38e-03 &  3.7 
+                 dd8 &     4 & 1.91e-04 &  2.2 & 6.70e-04 &  4.8 & 6.83e-04 &  4.5 & 3.68e-04 &  2.4 & 5.68e-05 &  4.0 & 1.13e-03 &  3.5 & 1.34e-03 &  4.0 
+Convergence rates: c0=1.49 c1=2.04 c2=2.00 c3=1.55 c4=2.24 c5=1.81 c6=1.95 
+
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=.5 
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.17e-03 &      & 8.57e-03 &      & 9.00e-03 &      & 2.45e-03 &      & 1.14e-03 &      & 9.38e-03 &      & 1.80e-02 &      
+                 dd4 &     2 & 3.06e-04 &  3.8 & 2.28e-03 &  3.8 & 2.31e-03 &  3.9 & 6.42e-04 &  3.8 & 1.68e-04 &  6.8 & 2.50e-03 &  3.8 & 3.34e-03 &  5.4 
+                 dd8 &     4 & 1.22e-04 &  2.5 & 5.14e-04 &  4.4 & 5.15e-04 &  4.5 & 2.32e-04 &  2.8 & 4.74e-05 &  3.5 & 6.73e-04 &  3.7 & 9.78e-04 &  3.4 
+Convergence rates: c0=1.63 c1=2.03 c2=2.06 c3=1.70 c4=2.29 c5=1.90 c6=2.10
+
+
+--> Set initial velocity and acceleration:
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.35e-03 &      & 1.02e-02 &      & 1.04e-02 &      & 2.84e-03 &      & 1.54e-03 &      & 1.13e-02 &      & 1.91e-02 &      
+                 dd4 &     2 & 4.13e-04 &  3.3 & 3.04e-03 &  3.4 & 2.95e-03 &  3.5 & 8.67e-04 &  3.3 & 3.81e-04 &  4.0 & 3.33e-03 &  3.4 & 4.45e-03 &  4.3 
+                 dd8 &     4 & 1.10e-04 &  3.8 & 7.81e-04 &  3.9 & 8.17e-04 &  3.6 & 2.25e-04 &  3.9 & 9.17e-05 &  4.2 & 9.14e-04 &  3.6 & 1.37e-03 &  3.2 
+Convergence rates: c0=1.81 c1=1.85 c2=1.84 c3=1.83 c4=2.03 c5=1.81 c6=1.90 
+
+Baseline:
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=2
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.40e-03 &      & 1.06e-02 &      & 1.08e-02 &      & 2.94e-03 &      & 1.54e-03 &      & 1.13e-02 &      & 1.91e-02 &      
+                 dd4 &     2 & 4.70e-04 &  3.0 & 3.44e-03 &  3.1 & 3.34e-03 &  3.2 & 9.88e-04 &  3.0 & 3.80e-04 &  4.1 & 3.33e-03 &  3.4 & 4.40e-03 &  4.3 
+Convergence rates: c0=1.57 c1=1.62 c2=1.69 c3=1.57 c4=2.02 c5=1.76 c6=2.12 
+
+
+
+# ----- 2014/01/09-10 -- revisit rotating SVK disk
+
+
+*** Try projection: -pi=1,   QUARTIC: radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**4
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 3.50e-03 &      & 2.50e-02 &      & 2.52e-02 &      & 7.25e-03 &      & 2.86e-03 &      & 2.00e-02 &      & 1.20e-01 &      
+                 dd4 &     2 & 1.87e-03 &  1.9 & 1.35e-02 &  1.9 & 1.34e-02 &  1.9 & 3.86e-03 &  1.9 & 8.84e-04 &  3.2 & 1.15e-02 &  1.7 & 2.94e-02 &  4.1 
+                 dd8 &     4 & 8.34e-04 &  2.2 & 6.02e-03 &  2.2 & 5.97e-03 &  2.2 & 1.72e-03 &  2.2 & 1.69e-04 &  5.2 & 2.79e-03 &  4.1 & 6.20e-03 &  4.7 
+Convergence rates: c0=1.03 c1=1.03 c2=1.04 c3=1.04 c4=2.04 c5=1.42 c6=2.14 
+
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -scf=10. -ng=2
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.64e-03 &      & 1.18e-02 &      & 1.18e-02 &      & 3.43e-03 &      & 1.54e-03 &      & 1.17e-02 &      & 1.96e-02 &      
+                 dd4 &     2 & 8.27e-04 &  2.0 & 5.92e-03 &  2.0 & 5.94e-03 &  2.0 & 1.72e-03 &  2.0 & 3.84e-04 &  4.0 & 3.42e-03 &  3.4 & 4.82e-03 &  4.1 
+Convergence rates: c0=0.99 c1=1.00 c2=0.99 c3=1.00 c4=2.00 c5=1.77 c6=2.02 
+
+
+******* 
+*** Smoother double-bump: QUARTIC: radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**4  --> NEARLY 2nd-order
+conv.p rotatingDisk.conv -tf=1.2 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=1.: GOOD
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.51e-03 &      & 1.81e-02 &      & 1.80e-02 &      & 5.21e-03 &      & 2.76e-03 &      & 2.43e-02 &      & 1.21e-01 &      
+                 dd4 &     2 & 1.01e-03 &  2.5 & 7.46e-03 &  2.4 & 7.30e-03 &  2.5 & 2.10e-03 &  2.5 & 7.98e-04 &  3.5 & 1.57e-02 &  1.5 & 3.07e-02 &  3.9 
+                 dd8 &     4 & 2.65e-04 &  3.8 & 1.96e-03 &  3.8 & 1.88e-03 &  3.9 & 5.51e-04 &  3.8 & 1.41e-04 &  5.7 & 5.05e-03 &  3.1 & 6.71e-03 &  4.6 
+Convergence rates: c0=1.62 c1=1.60 c2=1.63 c3=1.62 c4=2.15 c5=1.13 c6=2.09 
+
+--- tf=1. gridRatio=8 (instead of 5)
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.53e-03 &      & 1.82e-02 &      & 1.82e-02 &      & 5.26e-03 &      & 2.77e-03 &      & 2.32e-02 &      & 1.22e-01 &      
+                 dd4 &     2 & 1.00e-03 &  2.5 & 7.41e-03 &  2.5 & 7.26e-03 &  2.5 & 2.09e-03 &  2.5 & 7.96e-04 &  3.5 & 1.53e-02 &  1.5 & 3.09e-02 &  3.9 
+                 dd8 &     4 & 2.69e-04 &  3.7 & 1.88e-03 &  3.9 & 1.84e-03 &  3.9 & 5.42e-04 &  3.9 & 1.41e-04 &  5.6 & 4.97e-03 &  3.1 & 6.82e-03 &  4.5 
+Convergence rates: c0=1.62 c1=1.64 c2=1.65 c3=1.64 c4=2.15 c5=1.11 c6=2.08 
+
+
+--- tf=1. gridRatio=2 (instead of 5)
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.46e-03 &      & 1.80e-02 &      & 1.75e-02 &      & 5.09e-03 &      & 2.69e-03 &      & 3.44e-02 &      & 1.12e-01 &      
+                 dd4 &     2 & 1.19e-03 &  2.1 & 8.70e-03 &  2.1 & 8.58e-03 &  2.0 & 2.47e-03 &  2.1 & 8.22e-04 &  3.3 & 1.86e-02 &  1.8 & 2.77e-02 &  4.0 
+                 dd8 &     4 & 3.62e-04 &  3.3 & 2.65e-03 &  3.3 & 2.58e-03 &  3.3 & 7.50e-04 &  3.3 & 1.46e-04 &  5.6 & 5.77e-03 &  3.2 & 5.69e-03 &  4.9 
+Convergence rates: c0=1.38 c1=1.38 c2=1.38 c3=1.38 c4=2.10 c5=1.29 c6=2.15 
+
+
+--- -tf=1.5: --> poor
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 7.57e-03 &      & 2.34e-02 &      & 2.32e-02 &      & 1.74e-02 &      & 2.99e-03 &      & 2.96e-02 &      & 5.61e-02 &      
+                 dd4 &     2 & 3.17e-03 &  2.4 & 2.07e-02 &  1.1 & 2.05e-02 &  1.1 & 6.18e-03 &  2.8 & 8.32e-04 &  3.6 & 7.58e-03 &  3.9 & 2.47e-02 &  2.3 
+                 dd8 &     4 & 1.60e-03 &  2.0 & 1.16e-02 &  1.8 & 1.16e-02 &  1.8 & 3.35e-03 &  1.8 & 2.41e-04 &  3.5 & 3.85e-03 &  2.0 & 1.11e-02 &  2.2 
+Convergence rates: c0=1.12 c1=0.51 c2=0.50 c3=1.19 c4=1.82 c5=1.47 c6=1.17 
+
+--- tf=1.2 gridRatio=10 (instead of 5)
+
+--- tf=1.2 gridRatio=8 (instead of 5)
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.95e-03 &      & 2.14e-02 &      & 2.13e-02 &      & 6.12e-03 &      & 2.34e-03 &      & 4.39e-02 &      & 3.73e-02 &      
+                 dd4 &     2 & 1.41e-03 &  2.1 & 1.03e-02 &  2.1 & 1.02e-02 &  2.1 & 2.94e-03 &  2.1 & 5.69e-04 &  4.1 & 1.34e-02 &  3.3 & 1.15e-02 &  3.2 
+                 dd8 &     4 & 4.70e-04 &  3.0 & 3.44e-03 &  3.0 & 3.37e-03 &  3.0 & 9.76e-04 &  3.0 & 1.40e-04 &  4.1 & 3.28e-03 &  4.1 & 3.45e-03 &  3.3 
+Convergence rates: c0=1.32 c1=1.32 c2=1.33 c3=1.32 c4=2.03 c5=1.87 c6=1.72 
+
+--- -tf=1.2: 
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.89e-03 &      & 2.09e-02 &      & 2.09e-02 &      & 5.98e-03 &      & 2.31e-03 &      & 4.43e-02 &      & 3.75e-02 &      
+                 dd4 &     2 & 1.42e-03 &  2.0 & 1.04e-02 &  2.0 & 1.03e-02 &  2.0 & 2.96e-03 &  2.0 & 5.65e-04 &  4.1 & 1.36e-02 &  3.3 & 1.15e-02 &  3.3 
+                 dd8 &     4 & 4.86e-04 &  2.9 & 3.55e-03 &  2.9 & 3.49e-03 &  3.0 & 1.01e-03 &  2.9 & 1.40e-04 &  4.0 & 3.31e-03 &  4.1 & 3.46e-03 &  3.3 
+Convergence rates: c0=1.29 c1=1.28 c2=1.29 c3=1.28 c4=2.02 c5=1.87 c6=1.72 
+
+
+
+-tf=.5:
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.37e-03 &      & 1.03e-02 &      & 1.05e-02 &      & 2.87e-03 &      & 1.52e-03 &      & 1.15e-02 &      & 1.96e-02 &      
+                 dd4 &     2 & 4.57e-04 &  3.0 & 3.36e-03 &  3.1 & 3.26e-03 &  3.2 & 9.59e-04 &  3.0 & 3.76e-04 &  4.0 & 3.39e-03 &  3.4 & 4.40e-03 &  4.5 
+                 dd8 &     4 & 1.74e-04 &  2.6 & 1.17e-03 &  2.9 & 1.17e-03 &  2.8 & 3.51e-04 &  2.7 & 9.00e-05 &  4.2 & 9.43e-04 &  3.6 & 1.36e-03 &  3.2 
+Convergence rates: c0=1.49 c1=1.57 c2=1.58 c3=1.52 c4=2.04 c5=1.80 c6=1.92 
+
+
+
+Smoother double-bump: CUBED: radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**3
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=.5:
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.35e-03 &      & 9.66e-03 &      & 9.60e-03 &      & 2.82e-03 &      & 1.89e-03 &      & 1.01e-02 &      & 2.46e-02 &      
+                 dd4 &     2 & 4.19e-04 &  3.2 & 2.97e-03 &  3.3 & 3.03e-03 &  3.2 & 8.76e-04 &  3.2 & 4.91e-04 &  3.8 & 2.54e-03 &  4.0 & 4.75e-03 &  5.2 
+                 dd8 &     4 & 1.77e-04 &  2.4 & 1.02e-03 &  2.9 & 1.01e-03 &  3.0 & 3.60e-04 &  2.4 & 1.19e-04 &  4.1 & 8.09e-04 &  3.1 & 1.32e-03 &  3.6 
+Convergence rates: c0=1.47 c1=1.62 c2=1.62 c3=1.48 c4=1.99 c5=1.82 c6=2.11 
+
+
+
+SMOOTHER radial: radialVariation=(1.-r/r1)**4  ! wdh - more derivatives zero at r=1
+
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=1.;
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 7.11e-05 &      & 5.16e-04 &      & 5.31e-04 &      & 1.45e-04 &      & 4.98e-04 &      & 1.53e-03 &      & 4.53e-03 &      
+                 dd4 &     2 & 3.82e-05 &  1.9 & 2.13e-04 &  2.4 & 2.13e-04 &  2.5 & 7.84e-05 &  1.8 & 1.36e-04 &  3.7 & 5.62e-04 &  2.7 & 1.50e-03 &  3.0 
+                 dd8 &     4 & 1.94e-05 &  2.0 & 6.87e-05 &  3.1 & 6.81e-05 &  3.1 & 3.97e-05 &  2.0 & 3.54e-05 &  3.8 & 1.74e-04 &  3.2 & 4.86e-04 &  3.1 
+Convergence rates: c0=0.94 c1=1.45 c2=1.48 c3=0.93 c4=1.91 c5=1.57 c6=1.61 
+
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+-tf=.5: 
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 2.26e-05 &      & 1.22e-04 &      & 1.22e-04 &      & 3.80e-05 &      & 1.49e-04 &      & 1.86e-03 &      & 1.92e-03 &      
+                 dd4 &     2 & 7.70e-06 &  2.9 & 5.32e-05 &  2.3 & 5.23e-05 &  2.3 & 1.43e-05 &  2.7 & 3.50e-05 &  4.3 & 6.90e-04 &  2.7 & 6.95e-04 &  2.8 
+                 dd8 &     4 & 3.06e-06 &  2.5 & 2.17e-05 &  2.5 & 2.14e-05 &  2.4 & 6.01e-06 &  2.4 & 8.04e-06 &  4.4 & 2.39e-04 &  2.9 & 2.39e-04 &  2.9 
+Convergence rates: c0=1.44 c1=1.25 c2=1.26 c3=1.33 c4=2.11 c5=1.48 c6=1.50 
+
+
+
+*** -tf=.5, turn on stress-relaxation, quadratic interp,  increase  order-of-extrap for cgcns:
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=3
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.03e-03 &      & 7.34e-03 &      & 7.37e-03 &      & 2.14e-03 &      & 1.60e-03 &      & 1.25e-02 &      & 1.90e-02 &      
+                 dd4 &     2 & 3.95e-04 &  2.6 & 2.30e-03 &  3.2 & 2.27e-03 &  3.2 & 8.25e-04 &  2.6 & 3.23e-04 &  5.0 & 3.41e-03 &  3.7 & 3.77e-03 &  5.0 
+                 dd8 &     4 & 2.34e-04 &  1.7 & 8.49e-04 &  2.7 & 8.47e-04 &  2.7 & 4.67e-04 &  1.8 & 6.05e-05 &  5.3 & 8.73e-04 &  3.9 & 1.12e-03 &  3.4 
+Convergence rates: c0=1.07 c1=1.56 c2=1.56 c3=1.10 c4=2.36 c5=1.92 c6=2.04 
+
+
+
+*** -tf=.5, QUADRATIC INTERP increase  order-of-extrap for cgcns:
+
+*** -tf=.5, increase  order-of-extrap for cgcns:
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.03e-03 &      & 7.31e-03 &      & 7.34e-03 &      & 2.13e-03 &      & 1.61e-03 &      & 1.26e-02 &      & 1.91e-02 &      
+                 dd4 &     2 & 3.95e-04 &  2.6 & 2.29e-03 &  3.2 & 2.27e-03 &  3.2 & 8.26e-04 &  2.6 & 3.27e-04 &  4.9 & 3.43e-03 &  3.7 & 3.76e-03 &  5.1 
+                 dd8 &     4 & 2.34e-04 &  1.7 & 8.46e-04 &  2.7 & 8.45e-04 &  2.7 & 4.66e-04 &  1.8 & 5.91e-05 &  5.5 & 8.75e-04 &  3.9 & 1.12e-03 &  3.4 
+Convergence rates: c0=1.07 c1=1.56 c2=1.56 c3=1.10 c4=2.38 c5=1.92 c6=2.05 
+
+
+
+
+
+
+*** Lighter fluid:
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=10. -ng=2
+
+-tf=1.:
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.97e-03 &      & 1.43e-02 &      & 1.41e-02 &      & 4.06e-03 &      & 4.17e-03 &      & 4.31e-02 &      & 1.09e-01 &      
+                 dd4 &     2 & 7.96e-04 &  2.5 & 5.76e-03 &  2.5 & 5.38e-03 &  2.6 & 1.64e-03 &  2.5 & 1.31e-03 &  3.2 & 1.22e-02 &  3.5 & 4.19e-02 &  2.6 
+                 dd8 &     4 & 2.90e-04 &  2.7 & 2.09e-03 &  2.8 & 1.98e-03 &  2.7 & 5.97e-04 &  2.7 & 2.76e-04 &  4.7 & 2.73e-03 &  4.5 & 1.29e-02 &  3.2 
+Convergence rates: c0=1.38 c1=1.39 c2=1.42 c3=1.38 c4=1.96 c5=1.99 c6=1.54 
+
+
+-tf=.5: 
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.12e-03 &      & 8.23e-03 &      & 8.14e-03 &      & 2.33e-03 &      & 1.61e-03 &      & 1.26e-02 &      & 1.91e-02 &      
+                 dd4 &     2 & 3.96e-04 &  2.8 & 2.88e-03 &  2.9 & 3.01e-03 &  2.7 & 8.26e-04 &  2.8 & 3.27e-04 &  4.9 & 3.43e-03 &  3.7 & 3.76e-03 &  5.1 
+                 dd8 &     4 & 2.34e-04 &  1.7 & 1.10e-03 &  2.6 & 1.16e-03 &  2.6 & 4.67e-04 &  1.8 & 5.91e-05 &  5.5 & 8.75e-04 &  3.9 & 1.12e-03 &  3.4 
+Convergence rates: c0=1.13 c1=1.45 c2=1.41 c3=1.16 c4=2.38 c5=1.92 c6=2.05 
+
+
+*** even Lighter fluid:
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -scf=100. -ng=2
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.16e-04 &      & 8.60e-03 &      & 8.55e-03 &      & 2.42e-03 &      & 1.62e-03 &      & 1.24e-02 &      & 1.91e-02 &      
+                 dd4 &     2 & 4.42e-05 &  2.6 & 2.95e-03 &  2.9 & 3.09e-03 &  2.8 & 9.18e-04 &  2.6 & 3.28e-04 &  4.9 & 3.34e-03 &  3.7 & 3.52e-03 &  5.4 
+Convergence rates: c0=1.39 c1=1.54 c2=1.47 c3=1.40 c4=2.30 c5=1.89 c6=2.44 
+
+
+
+*** QUADRATIC INTERP + ***radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**2 -- no difference
+
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -ng=2
+
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.25e-02 &      & 9.05e-03 &      & 8.84e-03 &      & 2.57e-03 &      & 3.92e-03 &      & 4.19e-02 &      & 9.48e-02 &      
+                 dd4 &     2 & 4.90e-03 &  2.6 & 3.51e-03 &  2.6 & 3.27e-03 &  2.7 & 1.00e-03 &  2.6 & 1.26e-03 &  3.1 & 8.27e-03 &  5.1 & 4.21e-02 &  2.3 
+Convergence rates: c0=1.35 c1=1.37 c2=1.43 c3=1.36 c4=1.64 c5=2.34 c6=1.17 
+
+
+*** LINEAR INTERP:  ***radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**2
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -ng=2
+/Users/henshaw/res/cg/mp/bin/cgmp -noplot /Users/henshaw/res/cg/mp/cmd/rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=0.9 -tp=.1 -tf=1. -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=0 -en=max -adCns=0 -bcOption=4 -rotationRate=1. -piGhostOption=3 -godunovType=2 -scf=1 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=1.4 -pOffset=1 -lambdaSolid=1. -muSolid=1. -diss=1. multiDomainAlgorithm=1
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.25e-02 &      & 9.02e-03 &      & 8.80e-03 &      & 2.56e-03 &      & 3.93e-03 &      & 4.18e-02 &      & 9.48e-02 &      
+                 dd4 &     2 & 4.90e-03 &  2.6 & 3.51e-03 &  2.6 & 3.27e-03 &  2.7 & 1.01e-03 &  2.5 & 1.27e-03 &  3.1 & 8.28e-03 &  5.0 & 4.22e-02 &  2.2 
+Convergence rates: c0=1.35 c1=1.36 c2=1.43 c3=1.34 c4=1.63 c5=2.34 c6=1.17 
+
+
+ *** USED FIXED GRIDS 
+-- go back to r^2 variation 
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -ng=2
+
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 6.01e-04 &      & 4.85e-04 &      & 4.54e-04 &      & 1.37e-04 &      & 2.72e-04 &      & 1.67e-03 &      & 2.19e-03 &      
+                 dd4 &     2 & 2.92e-04 &  2.1 & 1.63e-04 &  3.0 & 1.53e-04 &  3.0 & 6.31e-05 &  2.2 & 5.70e-05 &  4.8 & 5.30e-04 &  3.2 & 6.24e-04 &  3.5 
+Convergence rates: c0=1.04 c1=1.57 c2=1.57 c3=1.12 c4=2.25 c5=1.66 c6=1.81 
+
+
+-- Don's initial variation for omega:
+-pi=1: 
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=1 -bcOption=4 -rotationRate=1. -ng=2
+
+
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.25e-02 &      & 9.03e-03 &      & 8.53e-03 &      & 2.57e-03 &      & 3.88e-03 &      & 4.63e-02 &      & 9.47e-02 &      
+                 dd4 &     2 & 5.78e-03 &  2.2 & 4.15e-03 &  2.2 & 3.91e-03 &  2.2 & 1.18e-03 &  2.2 & 1.36e-03 &  2.9 & 1.07e-02 &  4.3 & 4.05e-02 &  2.3 
+Convergence rates: c0=1.11 c1=1.12 c2=1.13 c3=1.12 c4=1.51 c5=2.11 c6=1.23 
+
+-- -pi=0
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=1. -ng=2
+
+
+convRate: numberOfComponents=7 (from header)
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.15e-02 &      & 8.29e-03 &      & 7.82e-03 &      & 2.36e-03 &      & 3.75e-03 &      & 4.37e-02 &      & 9.28e-02 &      
+                 dd4 &     2 & 4.80e-03 &  2.4 & 3.45e-03 &  2.4 & 3.22e-03 &  2.4 & 9.84e-04 &  2.4 & 1.25e-03 &  3.0 & 8.67e-03 &  5.0 & 3.99e-02 &  2.3 
+Convergence rates: c0=1.26 c1=1.26 c2=1.28 c3=1.26 c4=1.58 c5=2.33 c6=1.22 
+
+
+
+
+
+
+
+
+# -----------2014/01/02 : rotating SVK disk:
+
+--- tf=1. turn OFF slope limter
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.08e-02 &      & 7.83e-03 &      & 7.42e-03 &      & 2.23e-03 &      & 1.55e-03 &      & 1.94e-02 &      & 2.05e-02 &      
+                 dd4 &     2 & 5.84e-03 &  1.8 & 4.16e-03 &  1.9 & 3.88e-03 &  1.9 & 1.20e-03 &  1.9 & 3.22e-04 &  4.8 & 7.48e-03 &  2.6 & 5.84e-03 &  3.5 
+Convergence rates: c0=0.89 c1=0.91 c2=0.94 c3=0.89 c4=2.27 c5=1.37 c6=1.81 
+
+
+--- -tf=1. : smoother IC's:   r^4 , larger rotation rate
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -rotationRate=5. -ng=2
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                 dd2 &     1 & 1.18e-02 &      & 8.56e-03 &      & 8.01e-03 &      & 2.44e-03 &      & 1.55e-03 &      & 1.94e-02 &      & 2.01e-02 &      
+                 dd4 &     2 & 6.54e-03 &  1.8 & 4.70e-03 &  1.8 & 4.24e-03 &  1.9 & 1.35e-03 &  1.8 & 3.60e-04 &  4.3 & 7.42e-03 &  2.6 & 6.19e-03 &  3.2 
+Convergence rates: c0=0.85 c1=0.86 c2=0.92 c3=0.85 c4=2.11 c5=1.39 c6=1.70 
+
+
+********************
+
+
+conv.p rotatingDisk.conv -tf=1. -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -ng=2
+
+conv.p rotatingDisk.conv -tf=.5 -tp=.1 -cg=dd -godunovType=2 -pi=0 -bcOption=4 -ng=2
+
+
+--- tf=1. NO projection:
+  grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+   dd2 &     1 & 7.03e-04 &      & 5.24e-04 &      & 4.85e-04 &      & 1.43e-04 &      & 2.22e-04 &      & 1.45e-03 &      & 2.20e-03 &      
+   dd4 &     2 & 3.58e-04 &  2.0 & 2.66e-04 &  2.0 & 2.43e-04 &  2.0 & 7.30e-05 &  2.0 & 9.67e-05 &  2.3 & 4.60e-04 &  3.2 & 7.71e-04 &  2.9 
+Convergence rates: c0=0.97 c1=0.98 c2=1.00 c3=0.97 c4=1.20 c5=1.66 c6=1.51 
+
+
+--- tf=.5 NO projection:
+           grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+            dd2 &     1 & 2.46e-04 &      & 1.85e-04 &      & 1.60e-04 &      & 5.31e-05 &      & 1.43e-04 &      & 1.58e-03 &      & 1.23e-03 &      
+            dd4 &     2 & 1.34e-04 &  1.8 & 1.03e-04 &  1.8 & 1.03e-04 &  1.6 & 2.74e-05 &  1.9 & 7.67e-05 &  1.9 & 4.42e-04 &  3.6 & 4.31e-04 &  2.9 
+Convergence rates: c0=0.88 c1=0.84 c2=0.64 c3=0.95 c4=0.90 c5=1.84 c6=1.51 
+
+
+
+conv: 
+cgmp -noplot rotatingDisk -method=cns -cnsVariation=godunov -smVariation=g -godunovType=2 -rotationRate=1. -scf=1. -tp=.1 -tf=.1 -d1="outerDomain" -d2="innerDomain" -fic=shock -pOffset=1. -lambdaSolid=1. -muSolid=1. -diss=1. -debug=1 -flushFrequency=50 -pi=0 -multiDomainAlgorithm=1 -bcOption=4 -go=halt -g=diskDeformBig2e -stressRelaxation=1 -adCns=0
+
+cgmp -noplot rotatingDisk -method=cns -cnsVariation=godunov -smVariation=g -godunovType=2 -method=cns -cfl=0.9 -scf=1. -tp=.1 -tf=.1 -d1=outerDomain -d2=innerDomain -fic=shock -pOffset=1. -lambdaSolid=1. -muSolid=1. -diss=1. -debug=1 -flushFrequency=50 -pi=0 -multiDomainAlgorithm=1 -bcOption=4 -go=halt -g=diskDeformBig2e -stressRelaxation=1 -adCns=0 -piGhostOption=3  -cnsGodunovOrder=2 -en=max -angle=0 
+
+direct:
+/Users/henshaw/res/cg/mp/bin/cgmp -noplot /Users/henshaw/res/cg/mp/cmd/rotatingDisk.cmd -g=diskDeformBig2e -method=cns -cfl=0.9 -tp=.1 -tf=.1 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=0 -en=max -adCns=0 -bcOption=4 -angle=0 -piGhostOption=3 -godunovType=2 -scf=1 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -pOffset=1. -lambdaSolid=1. -muSolid=1. -diss=1. -multiDomainAlgorithm=1 
+
+# --------------- 2013/11/26-29 : SVK + elastic-piston + Don's NEW interface projection --
+
+
+MORE TESTS:
+
+TRIG + SVK + PROJECTION + SCF=.1
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=3 -pi=1 -bcOption=4 -ng=3 -scf=.1
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 3.86e-04 &      & 6.98e-03 &      & 8.35e-04 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 7.67e-05 &  5.0 & 1.51e-03 &  4.6 & 1.87e-04 &  4.5
+                epg8 &     4 & 6.32e-04 &  3.6 & 1.74e-03 &  4.2 & 7.59e-04 &  3.9 & 4.11e-04 &  4.0 & 1.74e-05 &  4.4 & 3.60e-04 &  4.2 & 4.48e-05 &  4.2
+Convergence rates: c0=1.91 c1=2.05 c2=1.90 c3=2.01 c4=2.24 c5=2.14 c6=2.11
+
+
+>>>> RECEDING PISTON SVK - USE DomainSolver BC's: 
+conv.p elasticPiston.conv -tp=.5 -tf=.5 -cg=epg -bcOption=4 -pi=1 -godunovType=2  -piGhostOption=3 -ng=2
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 2.16e-05 &      & 2.16e-04 &      & 0.00e+00 &      & 6.18e-05 &      & 3.84e-05 &      & 1.54e-05 &      & 2.01e-05 &
+                epg8 &     2 & 5.86e-06 &  3.7 & 5.86e-05 &  3.7 & 0.00e+00 &  0.0 & 1.67e-05 &  3.7 & 1.09e-05 &  3.5 & 3.55e-06 &  4.3 & 4.54e-06 &  4.4
+Convergence rates: c0=1.88 c1=1.88 c2= nan c3=1.89 c4=1.82 c5=2.12 c6=2.15
+
+
+
+>>>> RECEDING PISTON - USE DomainSolver BC's: 
+conv.p elasticPiston.conv -tp=.5 -tf=.5 -cg=epg -bcOption=4 -pi=1 -piGhostOption=3 -ng=2
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 2.16e-05 &      & 2.16e-04 &      & 0.00e+00 &      & 6.18e-05 &      & 3.84e-05 &      & 1.54e-05 &      & 2.01e-05 &
+                epg8 &     2 & 5.86e-06 &  3.7 & 5.86e-05 &  3.7 & 0.00e+00 &  0.0 & 1.67e-05 &  3.7 & 1.09e-05 &  3.5 & 3.55e-06 &  4.3 & 4.54e-06 &  4.4
+Convergence rates: c0=1.88 c1=1.88 c2= nan c3=1.89 c4=1.82 c5=2.12 c6=2.15
+
+
+>>>> RECEDING PISTON - compatibility BC's
+conv.p elasticPiston.conv -tp=.5 -tf=.5 -cg=epg -pi=1 -bcOption=4 -ng=2
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 2.16e-05 &      & 2.16e-04 &      & 0.00e+00 &      & 6.16e-05 &      & 3.84e-05 &      & 1.59e-05 &      & 2.06e-05 &
+                epg8 &     2 & 5.85e-06 &  3.7 & 5.85e-05 &  3.7 & 0.00e+00 &  0.0 & 1.67e-05 &  3.7 & 1.09e-05 &  3.5 & 3.70e-06 &  4.3 & 4.68e-06 &  4.4
+Convergence rates: c0=1.88 c1=1.88 c2= nan c3=1.88 c4=1.82 c5=2.10 c6=2.14
+
+
+>>>> RECEDING PISTON - traditional: 
+conv.p elasticPiston.conv -tp=.5 -tf=.5 -cg=epg -bcOption=4 -ng=2
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 3.10e-05 &      & 2.55e-04 &      & 0.00e+00 &      & 1.23e-04 &      & 3.84e-05 &      & 2.15e-05 &      & 3.28e-05 &
+                epg8 &     2 & 6.02e-06 &  5.1 & 6.18e-05 &  4.1 & 0.00e+00 &  0.0 & 2.53e-05 &  4.9 & 1.09e-05 &  3.5 & 4.91e-06 &  4.4 & 6.56e-06 &  5.0
+Convergence rates: c0=2.36 c1=2.04 c2= nan c3=2.28 c4=1.82 c5=2.13 c6=2.32
+
+
+
+
+
+
+SVK NONLINEAR + + PROJECT + set ghost from domain solver BC routines
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=3 -pi=1 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 2.37e-04 &      & 4.26e-03 &      & 5.23e-03 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 4.74e-05 &  5.0 & 9.15e-04 &  4.7 & 1.15e-03 &  4.5
+                epg8 &     4 & 6.32e-04 &  3.6 & 1.74e-03 &  4.2 & 7.59e-04 &  3.9 & 4.11e-04 &  4.0 & 1.06e-05 &  4.5 & 2.12e-04 &  4.3 & 2.67e-04 &  4.3
+Convergence rates: c0=1.91 c1=2.05 c2=1.90 c3=2.01 c4=2.24 c5=2.16 c6=2.15
+
+
+
+*NEW* piGhostOption=3 - set ghost from domain solver BC routines
+linear elasticity, PROJECT, set ghost from BC routines
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=0 -piGhostOption=3 -pi=1 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 4.51e-04 &      & 7.64e-03 &      & 1.00e-01 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 9.75e-05 &  4.6 & 1.54e-03 &  5.0 & 2.32e-02 &  4.3
+                epg8 &     4 & 6.28e-04 &  3.6 & 1.70e-03 &  4.3 & 7.59e-04 &  3.9 & 4.10e-04 &  4.0 & 2.44e-05 &  4.0 & 3.93e-04 &  3.9 & 5.52e-03 &  4.2
+Convergence rates: c0=1.92 c1=2.07 c2=1.90 c3=2.01 c4=2.10 c5=2.14 c6=2.09
+
+
+
+
+
+*NEW* piGhostOption=2 : give EXACT ghost values on interface
+
+SVK NONLINEAR + + PROJECT + EXACT-GHOST
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=2 -pi=1 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 2.93e-04 &      & 5.33e-03 &      & 5.41e-03 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 6.71e-05 &  4.4 & 1.17e-03 &  4.6 & 1.31e-03 &  4.1
+                epg8 &     4 & 6.32e-04 &  3.6 & 1.74e-03 &  4.2 & 7.59e-04 &  3.9 & 4.11e-04 &  4.0 & 1.58e-05 &  4.2 & 2.70e-04 &  4.3 & 3.09e-04 &  4.2
+Convergence rates: c0=1.91 c1=2.05 c2=1.90 c3=2.01 c4=2.11 c5=2.15 c6=2.06
+
+
+"LINEAR" SVK + PROJECT + EXACT-GHOST -- --> USE LINEAR_PROJECT
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=1 -piGhostOption=2 -pi=1 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 4.93e-04 &      & 6.50e-03 &      & 1.00e-01 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 9.53e-05 &  5.2 & 1.51e-03 &  4.3 & 2.32e-02 &  4.3
+                epg8 &     4 & 6.32e-04 &  3.6 & 1.74e-03 &  4.2 & 7.60e-04 &  3.9 & 4.11e-04 &  4.0 & 2.34e-05 &  4.1 & 3.96e-04 &  3.8 & 5.52e-03 &  4.2
+Convergence rates: c0=1.91 c1=2.05 c2=1.89 c3=2.01 c4=2.20 c5=2.02 c6=2.09
+
+
+
+
+linear elasticity, PROJECT, set ghost=EXACT
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=0 -piGhostOption=2 -pi=1 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 3.87e-04 &      & 6.45e-03 &      & 1.00e-01 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 9.48e-05 &  4.1 & 1.50e-03 &  4.3 & 2.32e-02 &  4.3
+                epg8 &     4 & 6.28e-04 &  3.6 & 1.70e-03 &  4.3 & 7.59e-04 &  3.9 & 4.10e-04 &  4.0 & 2.34e-05 &  4.1 & 3.97e-04 &  3.8 & 5.52e-03 &  4.2
+Convergence rates: c0=1.92 c1=2.07 c2=1.90 c3=2.01 c4=2.02 c5=2.01 c6=2.09
+
+
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++ LINEAR ELASTICITY ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+--- COMPARE: 
+
+LINEAR: PROJECTION: COMPATIBILITY: -- BROKEN: 
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=0 -pi=1 -bcOption=4 -ng=3
+
+
+
+LINEAR: PROJECTION: EXTRAP-GHOST
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=0 -piGhostOption=0 -pi=1 -bcOption=4 -ng=3
+
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 6.13e-04 &      & 1.23e-02 &      & 1.00e-01 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 8.60e-03 &  1.2 & 2.31e-03 &  2.9 & 1.41e-04 &  4.3 & 2.97e-03 &  4.1 & 2.32e-02 &  4.3
+                epg8 &     4 & 1.13e-03 &  2.0 & 2.10e-03 &  3.5 & 7.32e-03 &  1.2 & 1.91e-03 &  1.2 & 4.90e-05 &  2.9 & 2.10e-03 &  1.4 & 5.52e-03 &  4.2
+Convergence rates: c0=1.49 c1=1.91 c2=0.26 c3=0.90 c4=1.82 c5=1.28 c6=2.09
+
+
+--- Trig, LINEAR NO-Projection:
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=0 -piGhostOption=0 -pi=0 -bcOption=4 -ng=3 
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 4.43e-04 &      & 7.40e-03 &      & 1.00e-01 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 9.16e-05 &  4.8 & 1.50e-03 &  4.9 & 2.32e-02 &  4.3
+                epg8 &     4 & 6.28e-04 &  3.6 & 1.70e-03 &  4.3 & 7.59e-04 &  3.9 & 4.10e-04 &  4.0 & 2.29e-05 &  4.0 & 3.98e-04 &  3.8 & 5.52e-03 &  4.2
+Convergence rates: c0=1.92 c1=2.07 c2=1.90 c3=2.01 c4=2.14 c5=2.11 c6=2.09
+
+
+
+"LINEAR" SVK + No-projection
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=1 -piGhostOption=0 -pi=0 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 4.93e-04 &      & 7.41e-03 &      & 1.00e-01 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 9.30e-05 &  5.3 & 1.48e-03 &  5.0 & 2.32e-02 &  4.3
+                epg8 &     4 & 6.33e-04 &  3.6 & 1.74e-03 &  4.2 & 7.60e-04 &  3.9 & 4.11e-04 &  4.0 & 2.29e-05 &  4.1 & 3.95e-04 &  3.7 & 5.52e-03 &  4.2
+Convergence rates: c0=1.91 c1=2.05 c2=1.89 c3=2.01 c4=2.21 c5=2.11 c6=2.09
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+---- TRIG: projection
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=0 -pi=1 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 7.25e-05 &      & 5.84e-03 &      & 5.67e-03 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 8.56e-03 &  1.2 & 1.75e-03 &  3.8 & 2.29e-05 &  3.2 & 2.79e-03 &  2.1 & 2.23e-03 &  2.5
+                epg8 &     4 & 6.31e-04 &  3.6 & 1.99e-03 &  3.7 & 7.38e-03 &  1.2 & 1.32e-03 &  1.3 & 1.24e-05 &  1.8 & 1.99e-03 &  1.4 & 2.94e-03 &  0.8
+Convergence rates: c0=1.91 c1=1.95 c2=0.25 c3=1.17 c4=1.27 c5=0.78 c6=0.47
+
+
+--- Trig: NO projection:
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=0 -pi=0 -bcOption=4 -ng=3 
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg2 &     1 & 8.97e-03 &      & 2.98e-02 &      & 1.05e-02 &      & 6.69e-03 &      & 5.63e-07 &      & 8.12e-06 &      & 1.00e-04 &
+                epg4 &     2 & 2.29e-03 &  3.9 & 7.30e-03 &  4.1 & 2.96e-03 &  3.5 & 1.65e-03 &  4.1 & 9.63e-08 &  5.8 & 1.63e-06 &  5.0 & 2.32e-05 &  4.3
+                epg8 &     4 & 6.31e-04 &  3.6 & 1.74e-03 &  4.2 & 7.59e-04 &  3.9 & 4.11e-04 &  4.0 & 2.31e-08 &  4.2 & 4.00e-07 &  4.1 & 5.52e-06 &  4.2
+Convergence rates: c0=1.91 c1=2.05 c2=1.90 c3=2.01 c4=2.30 c5=2.17 c6=2.09
+
+
+
+
+----- POLY: tf=.2
+conv.p elasticPiston.conv -tf=.2 -tp=.2 -tz=poly -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=0 -pi=1 -bcOption=4 -ng=3 
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 5.70e-07 &      & 2.97e-05 &      & 2.55e-05 &      & 2.03e-05 &      & 1.60e-07 &      & 8.21e-07 &      & 2.32e-06 &
+                epg8 &     2 & 1.51e-07 &  3.8 & 7.77e-06 &  3.8 & 6.72e-06 &  3.8 & 5.18e-06 &  3.9 & 4.27e-08 &  3.7 & 2.08e-07 &  3.9 & 8.51e-07 &  2.7
+               epg16 &     4 & 4.16e-08 &  3.6 & 2.09e-06 &  3.7 & 1.75e-06 &  3.8 & 1.30e-06 &  4.0 & 1.09e-08 &  3.9 & 5.19e-08 &  4.0 & 3.60e-07 &  2.4
+Convergence rates: c0=1.89 c1=1.91 c2=1.93 c3=1.98 c4=1.94 c5=1.99 c6=1.34
+
+
+----- POLY: 
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=poly -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=0 -pi=1 -bcOption=4 -ng=3 
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 3.84e-07 &      & 2.65e-05 &      & 1.95e-05 &      & 9.63e-06 &      & 8.08e-08 &      & 3.94e-07 &      & 8.30e-07 &
+                epg8 &     2 & 9.97e-08 &  3.9 & 6.96e-06 &  3.8 & 5.53e-06 &  3.5 & 2.43e-06 &  4.0 & 2.09e-08 &  3.9 & 9.85e-08 &  4.0 & 2.77e-07 &  3.0
+               epg16 &     4 & 2.64e-08 &  3.8 & 1.84e-06 &  3.8 & 1.43e-06 &  3.9 & 6.17e-07 &  3.9 & 5.49e-09 &  3.8 & 2.49e-08 &  4.0 & 1.00e-07 &  2.8
+Convergence rates: c0=1.93 c1=1.92 c2=1.88 c3=1.98 c4=1.94 c5=1.99 c6=1.53
+
+
+
+
+
+
+
+# ---------- 2013/11/04 : SVK+elasticPiston + PROJECTION
+
+cgmp elasticPiston.cmd -g=elasticPistonGridfx8fy8 -method=cns -cfl=0.9 -tp=.01 -tf=.1 -tz=trig -problem=0 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0 -bcOption=4 -angle=0 -piGhostOption=0 -godunovType=2 -go=halt
+
+TRIG + PROJECTION + no-compat
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -bcOption=4 -pi=1 -piGhostOption=0 -ng=2
+
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 4.16e-03 &      & 7.30e-03 &      & 8.46e-03 &      & 3.69e-03 &      & 6.42e-05 &      & 2.29e-03 &      & 3.95e-03 &
+                epg8 &     2 & 3.37e-03 &  1.2 & 2.08e-03 &  3.5 & 7.25e-03 &  1.2 & 3.65e-03 &  1.0 & 4.22e-05 &  1.5 & 2.08e-03 &  1.1 & 6.39e-03 &  0.6
+Convergence rates: c0=0.30 c1=1.81 c2=0.22 c3=0.02 c4=0.61 c5=0.14 c6=-0.69
+
+TRIG + NO-projection + no-compat
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -bcOption=4 -piGhostOption=0 -ng=2
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+                epg4 &     1 & 2.29e-03 &      & 7.30e-03 &      & 2.96e-03 &      & 1.65e-03 &      & 1.01e-07 &      & 1.67e-06 &      & 3.14e-06 &
+                epg8 &     2 & 6.31e-04 &  3.6 & 1.74e-03 &  4.2 & 7.59e-04 &  3.9 & 4.11e-04 &  4.0 & 2.38e-08 &  4.2 & 4.30e-07 &  3.9 & 7.93e-07 &  4.0
+Convergence rates: c0=1.86 c1=2.07 c2=1.96 c3=2.01 c4=2.09 c5=1.96 c6=1.99
+
+
+
+# ---------- 2013/11/02  TEST SVK + elasticPiston
+
+/Users/henshaw/res/cg/mp/bin/cgmp /Users/henshaw/res/cg/mp/cmd/elasticPiston.cmd -g=elasticPistonGridfx16fy16 -method=cns -cfl=0.9 -tp=.01 -tf=.1 -tz=poly -problem=0 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=0 -en=max -adCns=0 -bcOption=4 -angle=0 -piGhostOption=1 -godunovType=2 -go=halt
+
+/Users/henshaw/res/cg/mp/bin/cgmp /Users/henshaw/res/cg/mp/cmd/elasticPiston.cmd -g=elasticPistonGridfx16fy16 -method=cns -cfl=0.9 -tp=.01 -tf=.1 -tz=trig -problem=0 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=0 -en=max -adCns=0 -bcOption=4 -angle=0 -piGhostOption=1 -godunovType=2 -go=halt
+
+# -- SVK piston + TZ 
+
+POLY: 
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=poly -problem=0 -cg=epgxy -godunovType=2 -bcOption=4 -ng=3
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                epg4 &     1 & 7.63e-05 &      & 1.21e-04 &      & 8.99e-05 &      & 1.14e-04 &      & 3.01e-10 &      & 9.24e-09 &      & 9.77e-09 &      
+                epg8 &     2 & 2.02e-05 &  3.8 & 3.17e-05 &  3.8 & 2.40e-05 &  3.7 & 2.91e-05 &  3.9 & 7.72e-11 &  3.9 & 2.31e-09 &  4.0 & 2.58e-09 &  3.8 
+               epg16 &     4 & 5.09e-06 &  4.0 & 8.11e-06 &  3.9 & 6.16e-06 &  3.9 & 7.43e-06 &  3.9 & 1.94e-11 &  4.0 & 5.74e-10 &  4.0 & 1.07e-09 &  2.4 
+Convergence rates: c0=1.95 c1=1.95 c2=1.93 c3=1.97 c4=1.98 c5=2.00 c6=1.60 
+
+
+
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                epg4 &     1 & 7.63e-05 &      & 1.21e-04 &      & 8.99e-05 &      & 1.14e-04 &      & 3.01e-10 &      & 9.24e-09 &      & 9.77e-09 &      
+                epg8 &     2 & 2.02e-05 &  3.8 & 3.17e-05 &  3.8 & 2.40e-05 &  3.7 & 2.91e-05 &  3.9 & 7.72e-11 &  3.9 & 2.31e-09 &  4.0 & 2.58e-09 &  3.8 
+Convergence rates: c0=1.92 c1=1.93 c2=1.91 c3=1.97 c4=1.96 c5=2.00 c6=1.92 
+
+
+
+TRIG: 
+conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -bcOption=4 -ng=2
+
+convRate : output written to ./elasticPiston.epgxy.g.g.ConvTable.tex
+convRate : open file ./results
+convRate: header=[grid  & N &  $\rho$  & $v_1$  & $v_2$  & $T$ & $\vert u\vert$  &  $\vert v\vert$  &  $\vert\sigma\vert$  ]
+convRate: numberOfComponents=7 (from header)
+                grid  & N &  $\rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r 
+                epg4 &     1 & 2.29e-03 &      & 7.30e-03 &      & 2.96e-03 &      & 1.65e-03 &      & 1.01e-07 &      & 1.67e-06 &      & 3.14e-06 &      
+                epg8 &     2 & 6.31e-04 &  3.6 & 1.74e-03 &  4.2 & 7.59e-04 &  3.9 & 4.11e-04 &  4.0 & 2.38e-08 &  4.2 & 4.30e-07 &  3.9 & 7.93e-07 &  4.0 
+               epg16 &     4 & 1.83e-04 &  3.4 & 4.18e-04 &  4.2 & 1.92e-04 &  4.0 & 1.07e-04 &  3.8 & 6.22e-09 &  3.8 & 1.11e-07 &  3.9 & 1.99e-07 &  4.0 
+Convergence rates: c0=1.82 c1=2.06 c2=1.97 c3=1.97 c4=2.01 c5=1.96 c6=1.99 
+
+
+
+
+
+
+
+****** 101029 
+
+-------------------- elastic piston with cgsm-Godunov: GridEvolution returns extact gt, gtt ------------------------
+
+grid  & N &  $rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+ pi4 &     1 &    4.660e-04   &       &    4.920e-03   &       &    1.390e-04   &       &    1.420e-03   &       &    1.790e-05   &       &    3.670e-05   &       &    4.370e-05   &
+ pi8 &     2 &    3.390e-04   &   1.4 &    3.470e-03   &   1.4 &    3.330e-04   &   0.4 &    1.020e-03   &   1.4 &    6.570e-06   &   2.7 &    6.840e-06   &   5.4 &    2.030e-05   &   2.2
+pi16 &     4 &    2.360e-04   &   1.4 &    2.610e-03   &   1.3 &    5.280e-04   &   0.6 &    7.340e-04   &   1.4 &    1.950e-06   &   3.4 &    9.950e-06   &   0.7 &    2.410e-05   &   0.8
+Convergence rates: c0=0.49 c1=0.46 c2=-0.96 c3=0.48 c4=1.60 c5=0.94 c6=0.43
+
+
+
+
+-------------------- elastic piston with cgsm-Godunov: ------------------------
+
+
+ grid  & N &  $rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+pi4  &     1 &    8.550e-04   &       &    8.980e-03   &       &    3.580e-04   &       &    2.560e-03   &       &    6.370e-05   &       &    3.990e-04   &       &    6.260e-04   &
+pi8  &     2 &    4.250e-04   &   2.0 &    4.370e-03   &   2.1 &    1.020e-03   &   0.4 &    1.280e-03   &   2.0 &    3.530e-05   &   1.8 &    2.200e-04   &   1.8 &    3.640e-04   &   1.7
+pi16 &     4 &    3.330e-04   &   1.3 &    3.610e-03   &   1.2 &    5.300e-04   &   1.9 &    1.010e-03   &   1.3 &    1.940e-05   &   1.8 &    1.160e-04   &   1.9 &    1.970e-04   &   1.8
+Convergence rates: c0=0.68 c1=0.66 c2=-0.28 c3=0.67 c4=0.86 c5=0.89 c6=0.83
+
+
+
+-------------------- elastic piston with cgsm-NC: GridEvolution returns extact gt, gtt ------------------------
+
+grid  & N &  $rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+ pi4 &     1 &    4.750e-04   &       &    5.010e-03   &       &    1.680e-04   &       &    1.430e-03   &       &    8.990e-06   &       &    8.990e-06   &       &    4.260e-08   &
+ pi8 &     2 &    3.450e-04   &   1.4 &    4.320e-03   &   1.2 &    9.630e-04   &   0.2 &    1.100e-03   &   1.3 &    1.380e-06   &   6.5 &    1.380e-06   &   6.5 &    2.810e-08   &   1.5
+pi16 &     4 &    2.590e-04   &   1.3 &    3.020e-03   &   1.4 &    5.000e-04   &   1.9 &    8.210e-04   &   1.3 &    2.900e-07   &   4.8 &    2.900e-07   &   4.8 &    7.520e-08   &   0.4
+Convergence rates: c0=0.44 c1=0.37 c2=-0.79 c3=0.40 c4=2.48 c5=2.48 c6=-0.41
+
+
+
+-------------------- elastic piston with cgsm-NC: ------------------------
+
+conv.p elasticPiston.conv -tp=.5 -tf=.5 -cg=pinp -bcOption=4 -smVariation=nc -ng=3 -alwaysCompute=1
+
+
+grid  & N &  $rho$  & r & $v_1$  & r & $v_2$  & r & $T$ & r & $\vert u\vert$  & r &  $\vert v\vert$  & r &  $\vert\sigma\vert$  & r
+pi4  &     1 &    9.500e-04   &       &    9.920e-03   &       &    5.160e-04   &       &    2.820e-03   &       &    9.130e-05   &       &    9.130e-05   &       &    3.850e-08   &
+pi8  &     2 &    7.290e-04   &   1.3 &    7.610e-03   &   1.3 &    7.460e-04   &   0.7 &    2.130e-03   &   1.3 &    4.290e-05   &   2.1 &    4.290e-05   &   2.1 &    2.660e-08   &   1.4
+pi16 &     4 &    3.540e-04   &   2.1 &    3.580e-03   &   2.1 &    5.560e-04   &   1.3 &    1.080e-03   &   2.0 &    2.140e-05   &   2.0 &    2.140e-05   &   2.0 &    5.560e-08   &   0.5
+Convergence rates: c0=0.71 c1=0.74 c2=-0.05 c3=0.69 c4=1.05 c5=1.05 c6=-0.27

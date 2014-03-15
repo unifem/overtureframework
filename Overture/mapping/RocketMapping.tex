@@ -1,0 +1,117 @@
+\section{RocketMapping: create rocket geometry curves} \label{sec:RocketMapping}
+\index{Rocket mapping}\index{Mapping!RocketMapping}
+
+  The {\tt RocketMapping} defines a variety of curves related to rockets. The curves defined
+in this class were originally written by Nathan Crane (as three separate Mapping's), and 
+then subsequently reorganized into a single class by WDH. There are currently 3 cross-section
+shapes supported, the {\bf slot}, {\bf star} and {\bf circular} shapes. The slot and star 
+shapes are illustrated in the next figure.
+
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/slot_mapping_pic}\\
+   % \epsfig{file=\figures/slot_mapping_pic.ps,width=.95\linewidth}  \\
+  {The slot shape.}
+  \end{center}
+\end{minipage}
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/star_mapping_pic}\\
+   % \epsfig{file=\figures/star_mapping_pic.ps,width=.95\linewidth}  \\
+  {The star cross-section.}
+  \end{center}
+\end{minipage}
+
+
+\subsection{Slot}
+
+{\bf Overview} : The slot option creates by default a sloted grain  shaped spline in the z=0 plane.
+           The mapping should be usable in every way as a standard spline.  The slot spline mapping
+           will always be periodic, the number and location of the spline knot points are
+           generated automatically according to the slotted grain input parameters.  A graphical
+           description of the various parameters can found in the above figure.
+
+Options:
+\begin{description}
+  \item[set range dimension] : Toggle between a 2D and 3D spline (spline will always lie in a plane,
+   but in 3D that plane can be rotated or shifted to a arbitrary positon.)
+  \item[shape preserving (toggle)] : toggle between shape preserving and tension spline (see standard
+   spline mapping documentation for more info)
+  \item[set bounding radii] : Set the inner and outer bounding radii for the slot grain.
+   slots will just touch a circle of radius outer bounding radius.  The slots will intersect a circle
+   of radius inner bounding radius.
+  \item[set slot width] : Set the width of each slot.  The slots wil be rounded on the ends by a
+    circle of diameter slot width.
+  \item[set z value] : by default the spline lies in the z=0 plane.  Changing the z value moves the
+   spline to some other constant z value plane.  This command is a shortcut for the shift operator.
+   This command cannot be used with a 2D sloted grain mapping.
+  \item[set element size] : Set the size of the elements along the spline.  The total length of the
+   spline is computed, and the number of lines of grid points is taken as total\_length/el\_size. the
+   number of spline knot points is taken as the same as the number of lines.  Element size and
+   number of lines are mutally exclusive commands.
+  \item[set number of vertex] : Set the number of vertices (number of slots) of the mapping valid
+     values are 2 vertices and up.
+\end{description}
+
+% \begin{figure}[H]
+%   \begin{center}
+%    \epsfig{file=\figures/slot_mapping_pic.ps,width=.4\linewidth} % .7
+%   \caption{The slot cross-section}  \label{fig:slot}
+%   \end{center}
+% \end{figure}
+
+\subsection{Star}
+
+{\bf Overview}: The star option creates by default a star shaped spline in the z=0 plane.  The
+           mapping should be usable in every way as a standard spline.  The star spline mapping will
+           always be periodic, the the number and location of the spline knot points are generated 
+           automatically according to the star input parameters.  A graphical description of the
+           various parameters can found in the above figure.
+
+Options:
+\begin{description}
+  \item[set range dimension] : Toggle between a 2D and 3D spline (spline will always lie in a plane,
+    but in 3D that plane can be rotated or shifted to a arbitrary positon.)
+  \item[shape preserving (toggle)] : toggle between shape preserving and tension spline (see standard
+    spline mapping documentation for more info)
+  \item[set bounding radii] : set the inner and outer bounding radii for the star.  The inside points
+    the star will be circimscribed between the inner and outer radi.  The outer points of the star will
+    just touch a circle of radius outer bounding radius.  The inner points of the star will just touch
+    a circle of radius inner bounding radius.
+  \item[set fillet radii] : set the inner and outer fillet radii for the star.  The fillet radi
+    determine the sharpness of the points of the star.  Large fillet radii create a more blun star, while
+    smaller fillet radi create a sharper star.  Note that when createing in 3D volume, a sharper pointed
+    star will require a thiner boundry mesh, and thus more elements to mesh than a blunted star.
+  \item[set z value] : by default the star lies in the z=0 plane.  Changing the z value moves the  
+    star to some other constant z value plane.  This command is a shortcut for the shift operator.  This
+    command cannot be used with a 2D star.
+  \item[set element size] : Set the size of the elements along the star.  The total length of the
+    star spline is computed, and the number of lines of grid points is taken as total\_length/el\_size.
+    the number of spline knot points is taken as the same as the number of lines.  Element size and
+    number of lines are mutally exclusive commands.
+ \item[set number of vertex] : Set the number of vertices (number of arms) of the star valid values
+   are 2 vertices and up.  For instance a space shuttle fuel grain is described by a 11 vertex star.
+ \item[set number of points] : explicitly sets the number of knot points for the spline.  This
+  command overrides the set element size command.
+\end{description}
+
+% \begin{figure}[H]
+%   \begin{center}
+%    \epsfig{file=\figures/star_mapping_pic.ps,width=.4\linewidth} % .7
+%   \caption{The star cross-section}  \label{fig:star}
+%   \end{center}
+% \end{figure}
+
+
+\subsection{circle}
+
+{\bf Overview} : The CircSplineMapping creates by default a circular spline in the z=0 plane.  The
+           mapping should be usable in every way as a standard spline.  The circular spline mapping
+           will always be periodic, the the number and location of the spline knot points are
+           generated automatically according to the circle parameters.  The circualr spline mapping
+           is need when creating rocket cross sections to correctly parameterize the star, anular,
+           and sloted grain portions in a compatible way.
+
+%% \subsection{Member functions}
+%% \input RocketMappingInclude.tex
+

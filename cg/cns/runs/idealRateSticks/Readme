@@ -1,0 +1,24 @@
+Detonation propagating through a "rate stick".
+
+These examples appear in the paper:
+"A Study of Detonation Propagation and Diffraction with Compliant Confinement",
+by J.W. Banks,  W. D. Henshaw, D.W. Schwendeman and A.K. Kapila,
+Combustion Theory and Modeling, 12, no. 4, pp. 769--808, 2008.
+
+
+Generate the grid:
+  ogen -noplot stickGrid.cmd
+
+Strong confinement case: (this fine grid computation takes about 12 hours to run)
+
+   1. Run:
+      cgcns -noplot runStrongStick.cmd >! strongShock.out 
+   2. Plot results:
+      plotStuff strongStick320.show
+
+Weak confinement case: (this fine grid computation takes about 12 hours to run)
+
+   1. Run:
+     cgcns -noplot runWeakStick.cmd >! runWeakStick.out
+   2. Plot results:
+     plotStuff weakStick320.show

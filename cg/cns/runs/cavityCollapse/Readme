@@ -1,0 +1,32 @@
+These examples come from the paper 
+
+http://www.overtureframework.org/publications/OzlemSchwedemanKapilaHenshawShockInducedCavityCollapse2012.pdf
+
+
+@article {OzlemSchwendemanKapilaHenshaw2012,
+   author = {Ozlem, M. and Schwendeman, D. and Kapila, A. and Henshaw, W.},
+   title = {A numerical study of shock-induced cavity collapse},
+   journal = {Shock Waves},
+   publisher = {Springer Berlin / Heidelberg},
+   issn = {0938-1287},
+   keyword = {Physics and Astronomy},
+   pages = {89--117},
+   volume = {22},
+   issue = {2},
+   url = {http://dx.doi.org/10.1007/s00193-011-0352-9},
+   year = {2012}
+
+
+(1) Shock tube example from Section 4.2
+    Grid:
+      ogen -noplot multifluidChannelGrid.cmd
+    Run:
+      cgcns multifluidChannel.cmd
+
+
+(2) Sphere cavity collapse from Section 5.1 
+
+    Grid:
+      ogen -noplot sphericalCavityGrid.cmd
+    Run:
+      cgcns sphericalCavity.cmd

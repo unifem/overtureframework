@@ -1,0 +1,127 @@
+current = ${shell pwd}
+mapping = ${current}/../mapping
+ogshow = ${current}/../ogshow
+
+VPATH = $(mapping):$(ogshow)
+
+OvertureInclude=  $(Overture)/include
+OvertureLib=      $(Overture)/lib
+A++ =             $(APlusPlus)
+A+++ =             $(APlusPlus)
+LIBAPP =          $(A++)/libA++.a
+libApp =  -L$(A++) -lApp -lApp_static
+
+Include =     -I. $(STL) -I$(A++) -I$(A++)/include -I$(OvertureInclude) -I$(HDF)/include
+Include2 =     -I. -I$(A++) -I$(A++)/include -I$(OvertureInclude) -I$(HDF)/include
+
+# These are for GLUT and OpenGL
+# OpenGL        = /n/c3servet/henshaw/OpenGL/Mesa
+# glut          = /n/c3servet/henshaw/OpenGL/Mesa/GLUT
+#
+# .. if you link with MESA, need to add -DUSE_MESA
+glut = " "
+OpenGLInclude = -I$(OpenGL)/include -DUSE_MESA
+glutInclude   = -I$(glut)
+
+# **pf**  FOR POWERWALL, need to use native OpenGL = uncomment the following:
+OpenGLInclude = -I$(OpenGL)/include
+
+cc=         cc
+#CC=         CC 
+CC=        g++ -fpermissive
+CCFLAGS=    -g $(Include)  -I../motif \
+            $(OpenGLInclude) -I/usr/openwin/include -I$(MOTIF)/include 
+
+CCFLAGS=    -g $(Include) $(OpenGLInclude) -I/usr/openwin/include -I$(MOTIF)/include
+
+##CCFLAGS_PLAIN = -g -I. -I../motif -I/usr/openwin/include -I$(MOTIF)/include
+
+ccFLAGS=  -g  $(Include2) $(OpenGLInclude) -I/usr/openwin/include -I$(MOTIF)/include 
+
+FC=         f77
+FFLAGS=     -g $(OvertureFortranPrecision)
+CLIBS=      -L$(OvertureLib) -lOverture -lOverture_static $(libApp)  \
+            -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz  
+
+# for purify:
+# CLIBS=      -L$(OvertureLib) -Bstatic -lOverture -L$(A++) -lA++ -lA++_static -Bdynamic \
+#             -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz  
+
+#FLIBS=      -lF77 -lM77 -lV77 -lsunmath
+FLIBS = -lnsl -lg2c
+
+GGLIBS=  -L/usr/X11R5/lib $(glut)/lib/glut/libglut.a $(OpenGL)/lib/libGLU.a \
+         $(OpenGL)/lib/libGL.a -lXmu -lXi -lXext -lX11 -lm -lc
+
+GLIBS=   -L$(OpenGL)/lib $(GL_LIBS) -L$(OpenGLMesa)/lib $(GL_LIBS_MESA) \
+         -L$(MOTIF)/lib -lXm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11 -lm -lc
+
+PFLAGS  = -first-only=yes -leaks-at-exit=yes -inuse-at-exit=yes -always-use-cache-dir=yes -recursion-depth-limit=20000 -best-effort
+PDIR    = `purify -print-home-dir`
+PURIFY  = 
+# PURIFY  = purify $(PFLAGS)
+#PSTUBS  = $(PDIR)/purify_stubs.a
+#PURIFY_OPTIONS = -I$(PDIR) -g 
+
+.SUFFIXES:
+.SUFFIXES:.f .o .C .o .c .o
+.C.o :
+	$(PURIFY) $(CC) $(CCFLAGS) $(PURIFY_OPTIONS) -o $@ -c $<
+.f.o :
+	$(PURIFY) $(FC) $(FFLAGS) $(PURIFY_OPTIONS) -o $@ -c $<
+.c.o :
+	$(PURIFY) $(cc) $(ccFLAGS) $(PURIFY_OPTIONS) -o $@ -c $<
+#.C: $*.o
+#	$(PURIFY) $(CC) $(CCFLAGS) $(PURIFY_OPTIONS) -o $@  $< $(CLIBS) $(FLIBS)  $(GLIBS)
+
+all: rap
+
+rapO = rap.o TrimmedMapping.o nurbsEvaluation.o QuadTree.o readMappings.o IgesReader.o
+
+rap: $(rapO) 
+	$(PURIFY) $(CC) $(CCFLAGS) -o $@ $(rapO) \
+        $(CLIBS) $(FLIBS) $(GLIBS)   
+
+rapt:
+	@echo $(ogshow) $(mapping)
+
+# PowerWall versions
+VDL_FLAGS  = -I$(VDLHOME)/include -DUSE_POWERWALL
+VDL_LIB    = -L$(VDLHOME)/lib -lvdl -lptutil
+PW_MOGL_O  = vdl_mogl.o
+##PW_MOGL_O  = mogl_special_vdl.o
+#PW_MOGL_O = mogl_special_vdl.o  ##A hacked&slashed version
+#MOGL_C     = smogl.C
+MOGL_C     = mogl.C
+
+
+
+clean:
+	rm -f *.o rap
+
+
+# here are things we make dependencies for:
+SRC = rap.C
+
+# to remake the dependencies:  make dep
+dep: 
+	$(Overture)/config/makeDepend -fdepend -Y -- $(CCFLAGS) -- $(SRC)
+
+GL_GraphicsInterface.o: $(ogshow)/GL_GraphicsInterface.C
+GenericGraphicsInterface.o: $(ogshow)/GenericGraphicsInterface.C
+textGetMenu.o: $(ogshow)/textGetMenu.C
+PlotStuff.o: $(ogshow)/PlotStuff.C
+mogl.o: $(ogshow)/mogl.C
+getAnswer.o: $(ogshow)/getAnswer.C
+GUIState.o: $(ogshow)/GUIState.C
+DialogData.o: $(ogshow)/DialogData.C
+CompositeSurface.o: $(mapping)/CompositeSurface.C
+NurbsMapping.o: $(mapping)/NurbsMapping.C
+TrimmedMapping.o: $(mapping)/TrimmedMapping.C
+
+# include the dependencies here
+include depend
+include ../mapping/depend
+include ../ogshow/depend
+
+.PRECIOUS:

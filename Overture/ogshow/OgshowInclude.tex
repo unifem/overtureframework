@@ -1,0 +1,451 @@
+\subsubsection{constructors}
+ 
+\newlength{\OgshowIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\OgshowIncludeArgIndent}{Ogshow(}% 
+Ogshow()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  default constructor
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\OgshowIncludeArgIndent}{Ogshow(}% 
+Ogshow(const aString \& nameOfShowFile, \\ 
+\hspace{\OgshowIncludeArgIndent}const aString \& nameOfDirectory  = ".",\\ 
+\hspace{\OgshowIncludeArgIndent}int useStreamMode  =false,\\ 
+\hspace{\OgshowIncludeArgIndent}ShowFileOpenOption openOption = openNewFileForWriting )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  construct a show file
+\item[{\bf nameOfShowFile (input) :}]  name of the new show file to create
+\item[{\bf nameOfDirectory (input) :}]  directory in the Overlapping grid data base file to use
+\item[{\bf useStreamMode (input):}]  if true, save file in streaming mode (compressed)
+\item[{\bf openOption (input) :}]  specifies whether to open a new file for writing (openNewFileForWriting) or
+    (openOldFileForWriting) open an old file to append to. 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{close}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{close(}%
+close()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Close a show file.
+\end{description}
+\subsubsection{cleanup}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{cleanup(}%
+cleanup()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  protected
+\item[{\bf Description:}] 
+     Close and cleanup the show file.
+\end{description}
+\subsubsection{open}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{open(}%
+open(const aString \& nameOfShowFile, \\ 
+\hspace{\OgshowIncludeArgIndent}const aString \& nameOfDirectory  = ".",\\ 
+\hspace{\OgshowIncludeArgIndent}int useStreamMode  =false,\\ 
+\hspace{\OgshowIncludeArgIndent}ShowFileOpenOption openOption = openNewFileForWriting )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Open a show file (close any currently open file).
+\item[{\bf nameOfShowFile (input) :}]  name of the new show file to create
+\item[{\bf nameOfDirectory (input) :}]  directory in the Overlapping grid data base file to use
+\item[{\bf useStreamMode (input):}]  if true, save file in streaming mode (compressed)
+\item[{\bf openOption (input) :}]  specifies whether to open a new file for writing (openNewFileForWriting) or
+    (openOldFileForWriting) open an old file to append to. 
+\end{description}
+\subsubsection{getFrame}
+ 
+\begin{flushleft} \textbf{%
+HDF\_DataBase*  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getFrame(}%
+getFrame(const  FrameSeriesID /*= 0*/)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return a pointer to the data base directory holding the current frame.
+     You could use this pointer to save additional data in the frame. In the following example
+     some extra data in the form of a realArray is saved in the frame. 
+    \begin{verbatim}
+       Ogshow show(...);
+       ...
+       show.startFrame();
+       realArray myData(10); 
+       myData(0)=1.; myData(1)=2.; ...
+       show.getFrame()->put(myData,"my data");
+       ...
+    \end{verbatim}
+    This data can be retrieved using the ShowFileReader.
+\item[{\bf Return value:}]  Return a pointer to the data base directory holding the current frame, possibly NULL.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{setFlushFrequency}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\OgshowIncludeArgIndent}{setFlushFrequency(}%
+setFlushFrequency( const int flushFrequency    = 5)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Flush the file every time "flushFrequency" frames have been added.
+   In the current implementation "flushing the file" consists of closing the file
+   and opening a new file to save new frames in. 
+
+\item[{\bf flushFrequency (input):}]  If positive then the file is "flushed" when every time
+    this many new frames have been added.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{getFlushFrequency}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\OgshowIncludeArgIndent}{getFlushFrequency(}%
+getFlushFrequency() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return the flush frequency.
+\end{description}
+\subsubsection{isFirstFrameInSubFile}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgshowIncludeArgIndent}{isFirstFrameInSubFile(}%
+isFirstFrameInSubFile() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return true if the current frame is the first frame in the current subFile ( subfile's are
+ named fileName.show, fileName.show1, fileName.show2, ...)
+   frame will go into a new sub-file. 
+\end{description}
+\subsubsection{isLastFrameInSubFile}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgshowIncludeArgIndent}{isLastFrameInSubFile(}%
+isLastFrameInSubFile() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return true if the current frame is the last frame in the current subFile ( subfile's are
+ named fileName.show, fileName.show1, fileName.show2, ...)
+   frame will go into a new sub-file. 
+\end{description}
+\subsubsection{setMovingGridProblem}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getIsMovingGridProblem(}%
+getIsMovingGridProblem() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return true if this is a moving grid problem.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{setMovingGridProblem}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgshowIncludeArgIndent}{setIsMovingGridProblem(}%
+setIsMovingGridProblem( const bool trueOrFalse )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Indicate if this is a moving grid problem so that the grid is saved in every frame
+\item[{\bf trueOrFalse (input):}]  TRUE is this is a moving grid problem
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{getNumberOfFrames}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getTotalNumberOfFrames(}%
+getTotalNumberOfFrames() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return the number of frames that exist in the show file.
+\item[{\bf Author:}]  KKC
+\end{description}
+\subsubsection{getNumberOfFrames}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getNumberOfFrames(}%
+getNumberOfFrames() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return the number of frames that exist in a particular frame series
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{getShowFileName}
+ 
+\begin{flushleft} \textbf{%
+const aString \&  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getShowFileName(}%
+getShowFileName() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return the name of the show file.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{startFrame}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{startFrame(}%
+startFrame( const int frameNo  = newFrame)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   start a new frame or write to an existing one
+\item[{\bf frameNo (input):}]  by default start a new frame, otherwise open a frame with
+   the given value.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{endFrame}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{endFrame(}%
+endFrame()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   End the currently open frame (if any). The main purpose of calling
+ this routine is to close a sub-file if this was the last frame in the sub-file.
+ This will allow the sub-file to be read programs such as plotStuff.
+ WARNING: once a sub-file is closed you can no longer write to a frame in that sub-file.
+  This needs to be fixed.
+ 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{saveGeneralComment}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{saveGeneralComment(}%
+saveGeneralComment( const aString \& comment0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save a general comment (this comment is associated with the entire show file).
+   Multiple comments can be saved by repeatedly calling this function.
+\item[{\bf comment0 (input):}]  comment to save.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{saveComment}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{saveComment(}%
+saveComment( const int commentNumber, const aString \& comment0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save a comment to go in the current frame.
+\item[{\bf commentNumber (input):}]  An integer, 0,1,2,.. that numbers the comment
+\item[{\bf comment0 (input):}]  comment to save.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{saveGeneralParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{saveGeneralParameters(}%
+saveGeneralParameters( ListOfShowFileParameters \& params, const PlaceToSaveGeneralParameters placeToSave )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save parameters that apply to the whole file.
+\item[{\bf params (input):}]  A list of parameters to save
+\item[{\bf placeToSave (input) :}]  save in the root directory (THEShowFileRoot) or in the current frame (THECurrentFrameSeries).
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{saveGeneralParameters}
+ 
+\begin{flushleft} \textbf{%
+  // Save a named set of parameters\\int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{saveParameters(}%
+saveParameters(const aString \& nameOfDirectory, ListOfShowFileParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save a named set of parameters in the current frame.
+\item[{\bf nameOfDirectory (input) :}]  the name of the (new) directory where to save the parameters
+\item[{\bf params (input):}]  A list of parameters to save
+ 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{saveSolution}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{saveSolution(}%
+saveSolution(realMappedGridFunction \& u, \\ 
+\hspace{\OgshowIncludeArgIndent}const aString \& name  = "u",\\ 
+\hspace{\OgshowIncludeArgIndent}int frameForGrid  = useDefaultLocation)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save a mappedGridFunction in the current frame.
+   (for now save a CompositeGridFunction)
+\item[{\bf u (input) :}]  grid function to save
+\item[{\bf name (input):}]  save in the frame under this name. (Currently if you change this name
+   from the default then plotStuff will not find the solution).
+\item[{\bf frameForGrid :}]  indicates where in the show file the grid for this solution can be found.
+    This grid will saved in this frame if it does not already exist.
+     useDefaultLocation : use default location (frame 1), useCurrentFrame : current frame, 
+      $>0$ : specify a frame number.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{saveSolution}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{saveSolution(}%
+saveSolution(realGridCollectionFunction \& u\_, \\ 
+\hspace{\OgshowIncludeArgIndent}const aString \& name  = "u",\\ 
+\hspace{\OgshowIncludeArgIndent}int frameForGrid  = useDefaultLocation)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save a realGridCollectionFunction or realCompositeGridFunction in the current frame.
+\item[{\bf u (input) :}]  grid function to save
+\item[{\bf name (input):}]  save in the frame under this name. (Currently if you change this name
+   from the default then plotStuff will not find the solution).
+\item[{\bf frameForGrid :}]  indicates where in the show file the grid for this solution can be found.
+    This grid will saved in this frame if it does not already exist.
+     useDefaultLocation : use default location (frame 1), useCurrentFrame : current frame, 
+      $>0$ : specify a frame number. 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{newFrameSeries}
+ 
+\begin{flushleft} \textbf{%
+FrameSeriesID  \\ 
+\settowidth{\OgshowIncludeArgIndent}{newFrameSeries(}%
+newFrameSeries(const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Create a new frame series with the given name.
+ 
+\item[{\bf name (input) :}]  name of a new frame series
+ 
+\item[{\bf Return value:}]  the frameSeriesID
+\end{description}
+\subsubsection{setCurrentFrameSeries}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getNumberOfFrameSeries(}%
+getNumberOfFrameSeries() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the number of frame series in this show file.
+\end{description}
+\subsubsection{getFrameSeriesID}
+ 
+\begin{flushleft} \textbf{%
+FrameSeriesID  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getFrameSeriesID(}%
+getFrameSeriesID(const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the FrameSeriesID corresponding to a given name.
+\item[{\bf name (input) :}]  name of an existing frame series
+\item[{\bf Return value:}]  -1 if the name was not found.
+\end{description}
+\subsubsection{getFrameSeriesName}
+ 
+\begin{flushleft} \textbf{%
+const aString\&  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getFrameSeriesName(}%
+getFrameSeriesName(const FrameSeriesID frameSeries)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the name of a frame series in this show file.
+ 
+\item[{\bf frameSeries (input) :}]  a frame series ID.
+\item[{\bf Return value:}]  A nullString if the frameSeries was not found.
+ 
+\end{description}
+\subsubsection{setFrameSeriesName}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{setFrameSeriesName(}%
+setFrameSeriesName(const FrameSeriesID frameSeries, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Assign a new name to an existing frame series.
+ 
+\item[{\bf frameSeries (input) :}]  a frame series ID.
+\item[{\bf name (input) :}]  name for the frame series
+\item[{\bf Return value:}]  0=success, 1=failure.
+ 
+\end{description}
+\subsubsection{getCurrentFrameSeries}
+ 
+\begin{flushleft} \textbf{%
+FrameSeriesID  \\ 
+\settowidth{\OgshowIncludeArgIndent}{getCurrentFrameSeries(}%
+getCurrentFrameSeries() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the number of current frame series in this show file.
+\end{description}
+\subsubsection{setCurrentFrameSeries}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgshowIncludeArgIndent}{setCurrentFrameSeries(}%
+setCurrentFrameSeries(const FrameSeriesID frameSeries)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the current frame series to the given ID.
+\item[{\bf frameSeries (input) :}]  a frame series ID.
+\item[{\bf Return value:}]  1 if the frameSeries is not valid.
+\end{description}
+\subsubsection{setCurrentFrameSeries}
+ 
+\begin{flushleft} \textbf{%
+FrameSeriesID  \\ 
+\settowidth{\OgshowIncludeArgIndent}{setCurrentFrameSeries(}%
+setCurrentFrameSeries(const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the current frame series to be "name". Create a new frame series with this
+  name if it does not already exist.
+ 
+\end{description}

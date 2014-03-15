@@ -1,0 +1,765 @@
+// ==========================================================================================
+//   This file contains functions that implement separate steps in an advance routine
+//   These separate steps can be combined to form a time stepping algorithm such as 
+//   a predictor corrector method.
+//
+// These functions should probably be virtual members of an Advance class so they can be 
+// over-loaded? They now implement a PC method. 
+// 
+//      initializeTimeStepping( t,dt,init );
+//      startTimeStep( t0,dt0,advanceOptions );
+//      takeTimeStep( t0,dt0,correction,advanceOptions );
+//      endTimeStep( t0,dt0,advanceOptions );
+// 
+// Here is the anticipated usage: 
+//
+//   initializeTimeStepping( t,dt,init )
+//   for( int subStep=0; subStep<numberOfSubSteps; subStep++ )
+//   {
+//     startTimeStep( t0,dt0,advanceOptions );
+//     for( int correction=0; correction<numberOfCorrections; correction++ )  // these could also be stages of a RK 
+//     {    
+//       takeTimeStep( t0,dt0,correction,advanceOptions );
+//     }
+//     endTimeStep( t0,dt0,advanceOptions );
+// 
+//   } // end  substeps
+//
+//
+// ==========================================================================================
+
+
+#include "DomainSolver.h"
+#include "CompositeGridOperators.h"
+#include "GridCollectionOperators.h"
+#include "interpPoints.h"
+#include "SparseRep.h"
+#include "ExposedPoints.h"
+#include "Ogen.h"
+#include "App.h"
+#include "ParallelUtility.h"
+#include "Oges.h"
+#include "OgesParameters.h"
+#include "AdamsPCData.h"
+#include "gridFunctionNorms.h"
+#include "updateOpt.h"
+#include "AdvanceOptions.h"
+
+static bool useNewExposedPoints=true;
+
+// here are some bpp macros that are used for the explicit and implicit predictor-corrector methods
+#Include pcMacros.h
+
+#define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) \
+                                 for( side=0; side<=1; side++ )
+
+
+// ===========================================================================================
+//      *** Time-step update macro ***
+// 
+//         u1 <- u0 + AB1*UA0 + AB2*UB0 [ + DTI*UTIMPLICIT ]  (add last terms for implicit grids)
+// ===========================================================================================
+#beginMacro timeStepUpdateMacro( AB1,AB2,DTI, UA0,UB0,UTIMPLICIT )
+
+#ifdef USE_PPP
+  RealArray u1;  getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],u1);
+  RealArray u0;  getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],u0);
+  RealArray ua0; getLocalArrayWithGhostBoundaries(ua[grid],ua0);
+  RealArray ub0; getLocalArrayWithGhostBoundaries(ub[grid],ub0);
+  RealArray utImplicit; getLocalArrayWithGhostBoundaries(uti[grid],utImplicit);
+  const intSerialArray & mask1 = gf[mNew].cg[grid].mask().getLocalArray();
+#else
+  RealDistributedArray & u1 = gf[mNew].u[grid];
+  RealDistributedArray & u0 = gf[mCur].u[grid];
+  RealDistributedArray & ua0 = ua[grid];
+  RealDistributedArray & ub0 = ub[grid];
+  RealDistributedArray & utImplicit = uti[grid];
+  const intSerialArray & mask1 = gf[mNew].cg[grid].mask(); 
+#endif
+
+  getIndex(gf[mNew].cg[grid].extendedIndexRange(),I1,I2,I3);
+
+  int n1a,n1b,n2a,n2b,n3a,n3b;
+  bool ok = ParallelUtility::getLocalArrayBounds(gf[mCur].u[grid],u0,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b);
+  if( !ok ) continue;
+	  
+  // const intArray & mask1 = gf[mNew].cg[grid].mask();
+
+  int ierr=0;
+  const int maskOption=0; // assign pts where mask>0
+  int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
+  real rpar[5]={0.,0.,0.,0.,0.};
+  real *ut1p, *ut2p, *ut3p, *ut4p;
+	  
+  if( parameters.getGridIsImplicit(grid) )
+    ipar[0]=3;  // add three extra "ut" terms if grid is advanced implicitly
+  else    
+    ipar[0]=2;  // add two extra "ut" terms
+
+  rpar[0]=AB1; rpar[1]=AB2; rpar[2]=DTI;
+  ut1p=UA0.getDataPointer();
+  ut2p=UB0.getDataPointer();
+  ut3p=UTIMPLICIT.getDataPointer();
+  ut4p=ut3p;
+
+  updateOpt(u0.getBase(0),u0.getBound(0),u0.getBase(1),u0.getBound(1),
+	    u0.getBase(2),u0.getBound(2),u0.getBase(3),u0.getBound(3),
+	    *mask1.getDataPointer(),  
+	    *u0.getDataPointer(),*u1.getDataPointer(), 
+	    *ut1p, *ut2p, *ut3p, *ut4p, 
+	    ipar[0], rpar[0], ierr );
+
+#endMacro
+
+// ===================================================================================================================
+/// \brief Initialize the time stepping (a time sub-step function). 
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+///
+// ===================================================================================================================
+int DomainSolver::
+initializeTimeSteppingIM( real & t0, real & dt0 )
+{
+  int init=true;
+
+  FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+  if( debug() & 4 )
+    printF(" ====== DomainSolver::initializeTimeSteppingIM ======\n");
+  if( debug() & 2 )
+    fprintf(debugFile," *** DomainSolver::initializeTimeSteppingIM: t0=%e, dt0=%e *** \n",t0,dt0);
+ 
+
+  assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicit );
+
+  assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
+
+  if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") )
+  {
+    // this must be the initial call to this routine
+    parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsImplicitData");
+  }
+
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  
+  real & dtb=adamsData.dtb;
+  int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+  int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+  int &ndt0=adamsData.ndt0;
+  real *dtp = adamsData.dtp;
+
+  const int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
+  if( predictorOrder<0 || predictorOrder>2 )
+  {
+    printF("DomainSolver::initializeTimeSteppingIM: ERROR: predictorOrder=%i! Will use default.\n",predictorOrder);
+  }
+  if( debug() & 1 )
+  {
+    printF("DomainSolver::initializeTimeSteppingIM:INFO: predictorOrder=%i\n",predictorOrder);
+  }
+  
+//   int numberOfCorrections;
+//   if( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::adamsBashforth2 )
+//     numberOfCorrections=0; //kkc 060301 given the assertion above, this should never happen, right?
+//   else
+//     numberOfCorrections=parameters.dbase.get<int>("numberOfPCcorrections"); 
+ 
+  
+  // For moving grids we keep gf[mab0], gf[mab1] and gf[mab2]
+  // For non-moving grids we keep gf[mab0], gf[mab1] and we set mab2==mab1
+
+  const int numberOfGridFunctions =  movingGridProblem() ? 3 : 2; 
+
+  mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+  // 
+  int & mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
+  int & mCur = mab0;    // current : gf[mCur] : holds u(t) 
+  int & mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+  
+  Parameters::ImplicitOption & implicitOption = parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+  
+  implicitOption=Parameters::doNotComputeImplicitTerms; // no need to compute during initialization
+  parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
+  int iparam[10];
+  real rparam[10];
+
+  RealCompositeGridFunction & uti = fn[2];   // ****
+  
+   int grid;
+   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2]; 
+   Range N = parameters.dbase.get<Range >("Rt");   // time dependent variables
+   RealArray error(numberOfComponents()+3); 
+  
+
+  
+  // Form the matrix for implicit time stepping (optionally save the solution used for linearization)
+  // NOTE: the matrix will only be generated the first time through or if parameters.dbase.get<int >("globalStepNumber") % refactorFrequency == 0 
+  // We want to factor the matrix here since it may be needed for computing the RHS
+  formMatrixForImplicitSolve(dt,gf[mNew], gf[mCur] );
+
+  // **** To initialize the method we need to compute du/dt at times t and t-dt *****
+
+  // this is a macro (pcMacros.h):
+  int numberOfExtraPressureTimeLevels=0;
+  initializePredictorCorrector(implicitPC,uti);
+
+  return 0;
+}
+
+
+// ===================================================================================================================
+/// \brief Start an individual time step (a time sub-step function).
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+/// \param correction (input) : for predictor corrector methods this indicates the correction step number.
+/// \param currentGF (output) : points to the grid-function holding the current solution (time t0)
+/// \param nextGF (output) : points to the grid-function holding the new solution (time t0+dt0)
+/// \param advanceOptions.numberOfCorrectorSteps (output) : return the number of corrector steps that will be used.
+///
+// ===================================================================================================================
+int DomainSolver::
+startTimeStepIM( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions )
+{
+
+  if( parameters.dbase.get<int >("globalStepNumber")<0 )
+    parameters.dbase.get<int >("globalStepNumber")=0;
+  parameters.dbase.get<int >("globalStepNumber")++;
+
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+
+  currentGF=mab0;
+  nextGF=mab2;
+
+  advanceOptions.numberOfCorrectorSteps=parameters.dbase.get<int>("numberOfPCcorrections"); 
+  advanceOptions.gridChanges=AdvanceOptions::noChangeToGrid;  // fix me for AMR
+
+  return 0;
+
+}
+
+// ===================================================================================================================
+/// \brief Take a single time step (a time sub-step function).
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+/// \param correction (input) : for predictor corrector methods this indicates the correction step number.
+/// \param advanceOptions (input) : additional options that adjust the behaviour of this function.
+///       advanceOptions.takeTimeStepOption can be used to not apply or only apply the boundary conditions.
+///   advanceOptions.correctionIterationsHaveConverged (output) is set to true if the correction iterations
+///   have converged (e.g. for moving grids)
+///
+// ===================================================================================================================
+int DomainSolver::
+takeTimeStepIM( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions )
+{
+  FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+  if( debug() & 4 )
+    printP("DomainSolver::takeTimeStepIM t0=%e, dt0=%e, correction=%i ++++\n",t0,dt0,correction );
+  if( debug() & 2 )
+  {
+    fprintf(debugFile," *** DomainSolver::takeTimeStepIM (start): t0=%e, dt0=%e, correction=%i*** \n",t0,dt0,correction);
+  }
+
+  advanceOptions.correctionIterationsHaveConverged=false; // this may be set to true below
+
+  assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicit );
+  parameters.dbase.get<real >("dt")=dt0; // *wdh* 101106 this is the dt used in getUt (cns)
+
+  assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
+
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  
+  real & dtb=adamsData.dtb;
+  int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+  int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+  int &ndt0=adamsData.ndt0;
+  real *dtp = adamsData.dtp;
+
+  const int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
+  
+  int numberOfCorrections=parameters.dbase.get<int>("numberOfPCcorrections"); 
+
+  // If we check a convergence tolerance when correcting (e.g. for moving grids) then this is
+  // the minimum number of corrector steps we must take:
+  const int minimumNumberOfPCcorrections = parameters.dbase.get<int>("minimumNumberOfPCcorrections"); 
+  
+  // For moving grids we keep gf[mab0], gf[mab1] and gf[mab2]
+  // For non-moving grids we keep gf[mab0], gf[mab1] and we set mab2==mab1
+
+  const int numberOfGridFunctions =  movingGridProblem() ? 3 : 2; 
+
+// **   mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+  int & mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
+  int & mCur = mab0;    // current : gf[mCur] : holds u(t) 
+  int & mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+  
+
+  Parameters::ImplicitOption & implicitOption = parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+  
+  implicitOption=Parameters::doNotComputeImplicitTerms; // no need to compute during initialization
+  parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
+  int iparam[10];
+  real rparam[10];
+
+  RealCompositeGridFunction & uti = fn[2];   // ****
+  
+  
+  int grid;
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2]; 
+  Range N = parameters.dbase.get<Range >("Rt");   // time dependent variables
+  RealArray error(numberOfComponents()+3); 
+  
+//  int numberOfExtraPressureTimeLevels=0;
+  
+  if( correction==0 )
+  {
+    // if( dtb!=dt0 )
+    if( fabs(dtb-dt0) > dt0*REAL_EPSILON*100. )
+    {
+      if( debug() & 2 ) 
+        printP("advanceImplicitMultiStep dtb!=dt0 : re-initialize (dtb=%9.3e, dt0=%9.3e, diff=%8.2e)\n",
+               dtb,dt0,fabs(dtb-dt0));
+      parameters.dbase.get<int >("initializeImplicitTimeStepping")=true;
+    }
+    else
+    {
+      if( debug() & 2 )
+	printP("advanceImplicitMultiStep dtb==dt0 : do not re-initialize\n");
+    }
+  }
+    
+  realCompositeGridFunction & ua = fn[nab0];   // pointer to du/dt
+  realCompositeGridFunction & ub = fn[nab1];   // pointer to du(t-dt)/dt or du/dt(t+dt)
+    
+  real ab1,ab2;
+  if( predictorOrder==1 )
+  { // first order predictor
+    ab1=dt0;
+    ab2=0.;
+  }
+  else 
+  { // 2nd -order predictor
+    ab1= dt0*(1.+dt0/(2.*dtb));  // for AB predictor
+    ab2= -dt0*dt0/(2.*dtb);
+  }
+
+  const real am1=.5*dt0;                  // for AM corrector
+  const real am2=.5*dt0;
+
+
+  if( correction>1  && debug() & 2 )
+    printP("takeTimeStepIM: correction=%i\n",correction);
+      
+  if( correction >0 )
+    parameters.dbase.get<int>("totalNumberOfPCcorrections")++;  // count the total number of corrections.
+
+  // Predictor-Corrector. First time predict, subsequent times correct.
+  //
+  //  correction==0 :
+  //       ---Adams-Bashforth Predictor
+  //           u(*) <- u(t) + ab1*du/dt +ab2*du(t-dtb)/dt
+  //  i.e.     gf[1]<- gf[mCur]+ ab1*ua    +ab2*ub
+  //      
+  //            The constants ab1 and ab2 are
+  //                 ab1 = dt*( 1.+dt/(2*dtb) )   = (3/2)*dt if dtb=dt
+  //                 ab2 = -dt*(  dt/(2*dtb) )    =-(1/2)*dt if dtb=dt
+  //            Determined by extrapolation to time t+dt/2 from the
+  //            times of ua and ub
+  //
+  // correction>0 :
+  //       ---Adams Moulton Corrector
+  //          u(t+dt) <- u(t) + dt* ( (1/2) du(*)/dt + (1/2) du(t)/dt )
+  //          gf[mNew]  gf[mCur]              ub               ua
+
+  // We only need to compute the "explicit" part of the implicit terms once for correction==0: 
+  // These values are stored in utImplicit 
+  implicitOption =correction==0 ? Parameters::computeImplicitTermsSeparately : Parameters::doNotComputeImplicitTerms;
+
+  if( correction==0 )
+  {
+    // ------------------------------------------------------
+    // ----------------- Moving Grids -----------------------
+    // ------------------------------------------------------
+
+    bool gridWasAdapted=false;
+
+    // moveTheGridsMacro(adamsPC,uti); // *wdh* 090804 
+
+    real tb=gf[mCur].t-dtb, tc=tb-dtb, td=tc-dtb; // tc,td not used
+    assert( predictorOrder<=2 );
+    moveTheGridsMacro(adamsPC,uti, predictorOrder,tb,ub,tc,ub,td,ub);
+
+    // we need to rebuild the implicit time stepping matrix.
+    if( movingGridProblem() )
+      parameters.dbase.get<int >("initializeImplicitTimeStepping")=true;
+
+
+  }
+
+  // Optionally refactor the matrix : if parameters.dbase.get<int >("globalStepNumber") % refactorFrequency == 0 
+  // (We need to do this after the grids have moved but before dudt is evaluated (for nonlinear problems)
+  if( correction==0 && (parameters.dbase.get<int >("initializeImplicitTimeStepping") || parameters.dbase.get<int >("globalStepNumber")>0) )
+    formMatrixForImplicitSolve(dt0,gf[mNew], gf[mCur] );
+
+  const int maba = correction==0 ? mCur : mNew;
+  const int naba = correction==0 ? nab0 : nab1;
+
+  // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
+  const real tForce = gf[maba].t; // evaluate the body force at this time  ***CHECK ME**
+  computeBodyForcing( gf[maba], tForce );
+
+  // fn[nab0] <- du/dt(t0)  or fn[nab1] <- du/dt(t+dt0)
+  for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+  {
+    rparam[0]=gf[maba].t;
+    rparam[1]=gf[maba].t; // tforce
+    rparam[2]=gf[maba].t+dt0; // tImplicit
+    iparam[0]=grid;
+    iparam[1]=gf[maba].cg.refinementLevelNumber(grid);
+    iparam[2]=numberOfStepsTaken;
+    getUt(gf[maba].u[grid],gf[maba].getGridVelocity(grid),
+	  fn[naba][grid],iparam,rparam,uti[grid],&gf[mNew].cg[grid]);
+  }
+
+  addArtificialDissipation(gf[maba].u,dt0);	// add "implicit" dissipation to u 
+
+  if( debug() & 16 || debug() & 64 )
+  {
+    for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+    {
+      display(ua[grid],"\n ****ua: du/dt(t)",debugFile);
+      display(ub[grid],"\n ****ub: du/dt(t-dt)",debugFile);
+    }
+  }
+  if( debug() & 16 )
+  {
+    aString label = sPrintF(" ImplicitMS: errors in ut (ua) at t=%e, correction=%i \n",t0,correction);
+    determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,label );
+    real tub = correction==0 ? t0-dtb : t0+dt0;
+    label = sPrintF(" ImplicitMS: errors in ut (ub) at t=%e, correction=%i \n",tub,correction);
+    determineErrors( ub,gf[mNew].gridVelocity, tub, 1, error,label );
+  }
+
+  //  --------------------------------------------------------
+  //  --- Assign the explicit or implicit time-step update ---
+  //  --------------------------------------------------------
+  for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+  {
+    // const real dti = dt0; 
+    const real dti = (1.-parameters.dbase.get<real >("implicitFactor"))*dt0;
+
+    if( correction==0 )
+    { // u1 <- u0 + ab1*ua0 + ab2*ub0 [ + dti*utImplicit ]  (add last terms for implicit grids)
+      timeStepUpdateMacro( ab1,ab2,dti, ua0,ub0,utImplicit );
+    }
+    else
+    { // u1 <- u0 + am1*ub0 + am2*ua0 [ + dti*utImplicit ] (add last terms for implicit grids)
+      timeStepUpdateMacro( am1,am2,dti, ub0,ua0,utImplicit );
+    }
+  }
+
+  if( correction==0 )
+  {
+    // printF(" +++ ims: gf[mNew].t=%9.3e --> change to t0+dt0=%9.3e +++\n",gf[mNew].t,t0+dt0);
+    gf[mNew].t=t0+dt0;  // gf[mNew] now lives at this time
+  }
+      
+
+  // *** assign boundary conditions for the implicit method 
+  applyBoundaryConditionsForImplicitTimeStepping( gf[mNew] ); // ***** gf[mNew].gridVelocity must be correct here
+    
+  if( Parameters::checkForFloatingPointErrors!=0 )
+    checkSolution(gf[mNew].u,"advanceStepsIM: after applyBCIMP",true);
+
+
+  if( debug() & 4 )
+  {
+    aString label = sPrintF(" ***ImplicitMS: RHS Before implicitSolve t=%e, ,correction=%i\n",gf[mNew].t,correction);
+    if( twilightZoneFlow() )
+    {
+      gf[mNew].u.display(label,debugFile,"%8.5f ");
+    }
+    label = sPrintF(" ***ImplicitMS: Errors in rhs gf before implicitSolve t=%e, correction=%i\n",gf[mNew].t,correction);
+    determineErrors( gf[mNew],label );
+  }
+
+  // **** fix this *** we could refactor for each correction here !
+//       if( mst>1 || correction>0 )
+//       {
+//         // Optionally refactor the matrix : if parameters.dbase.get<int >("globalStepNumber") % refactorFrequency == 0 
+// 	formMatrixForImplicitSolve(dt0,gf[mNew], gf[mCur] );
+//       }
+      
+
+  // ------------------------------------
+  // --- Solve the implicit equations ---
+  // ------------------------------------
+ 
+  implicitSolve( dt0,gf[mNew], gf[mCur] );  // gf[mNew]=RHS  gf[mCur]=used for initial guess and linearization
+
+  if( Parameters::checkForFloatingPointErrors!=0 )
+    checkSolution(gf[mNew].u,"advanceStepsIM: after implicitSolve",true);
+
+  if( false )
+  {
+    realCompositeGridFunction diff;
+    diff=gf[mNew].u-gf[mCur].u;
+    Range & Rt = parameters.dbase.get<Range >("Rt");
+    printF(" After implicit solve: max-diff(u-uGuess) =");
+    for( int n=Rt.getBase(); n<=Rt.getBound(); n++ )
+    {
+      int maskOption=0, extra=1;
+      real maxDiff = maxNorm(diff, n, maskOption, extra );
+      real mxd = 0;
+      for( int grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+	mxd = max( mxd, max(fabs(gf[mNew].u[grid]-gf[mCur].u[grid])));
+      printF(" n=%i : %8.2e (all=%8.2e), ",n,maxDiff,mxd);
+    }
+    printF("\n");
+  }
+
+  if( debug() & 4 )
+  {
+    if( twilightZoneFlow() )
+    {
+      gf[mNew].u.display(sPrintF("ImplicitMS: gf[mNew].u after implicitSolve but BEFORE BC's (t=%8.2e), correction=%i",
+				 gf[mNew].t,correction),debugFile,"%8.5f ");
+    }
+    aString label = sPrintF(" ***ImplicitMS: after implicitSolve but BEFORE BC's, t=%e, correction=%i\n",gf[mNew].t,correction);
+    determineErrors( gf[mNew],label );
+  }
+
+  // apply explicit BC's  --- > really only have to apply to implicit grids I think?
+  applyBoundaryConditions(gf[mNew]);   // ***** gf[mNew].gridVelocity must be correct here!
+
+
+  updateStateVariables( gf[mNew],1 );  
+
+  if( debug() & 4 )
+  {
+    if( twilightZoneFlow() )
+    {
+      gf[mNew].u.display(sPrintF("ImplicitMS: gf[mNew].u after implicitSolve and BC's (t=%8.2e), correction=%i",
+				 gf[mNew].t,correction),debugFile,"%8.5f ");
+    }
+    aString label = sPrintF(" ***ImplicitMS: after implicitSolve and BC's, t=%e, correction=%i\n",gf[mNew].t,correction);
+    determineErrors( gf[mNew],label );
+  }
+
+  // extrapolate p in time as an initial guess for iterative solvers
+  if( correction==0 && 
+      ( parameters.dbase.has_key("extrapolatePoissonSolveInTime") && 
+	poisson->isSolverIterative() ) )
+  {
+    const int & pc = parameters.dbase.get<int >("pc");
+    assert( pc>= 0 );
+    for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+    {
+      // *wdh* 050424 getIndex(gf[mCur].cg[grid].gridIndexRange(),I1,I2,I3);  // **** why not include ghost pts??
+      getIndex(gf[mCur].cg[grid].dimension(),I1,I2,I3);  // **** why not include ghost pts??
+      // note that initially gf[mNew](.,.,.,pc) = p(t-dt)
+#ifdef USE_PPP
+      realSerialArray uNew; getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],uNew);
+      realSerialArray uCur; getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],uCur);
+      realSerialArray uOld; getLocalArrayWithGhostBoundaries(gf[mOld].u[grid],uOld);
+      bool ok = ParallelUtility::getLocalArrayBounds(gf[mNew].u[grid],uNew,I1,I2,I3); 
+      if( !ok ) continue;
+#else
+      const realSerialArray & uNew=gf[mNew].u[grid];
+      const realSerialArray & uCur=gf[mCur].u[grid];
+      const realSerialArray & uOld=gf[mOld].u[grid];
+#endif	    
+	  
+      uNew(I1,I2,I3,pc)=(ab1/dt0)*uCur(I1,I2,I3,pc)+(ab2/dt0)*uOld(I1,I2,I3,pc);
+      // gf[mNew].u[grid](I1,I2,I3,pc)=(ab1/dt0)*gf[mCur].u[grid](I1,I2,I3,pc)+(ab2/dt0)*gf[mOld].u[grid](I1,I2,I3,pc);
+    }
+  }
+    
+  solveForTimeIndependentVariables( gf[mNew] ); 
+
+  if( debug() & 8 )
+  {
+    aString label =sPrintF(" ImplicitMS: Errors after pressure solve, t0+dt0: t0=%e, dt0=%e  \n",t0,dt0);
+    determineErrors( gf[mNew],label );
+  }
+
+  // correct for forces on moving bodies  *wdh* 040913
+  if( movingGridProblem() )  // may only need to do this for correction<numberOfCorrections
+  {
+    correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+
+    // Check if the correction step has converged
+    bool isConverged = getMovingGridCorrectionHasConverged();
+    real delta = getMovingGridMaximumRelativeCorrection();
+    if( debug() & 1 )
+    {
+      printF("ImplicitMS: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+	     delta,correction+1,(int)isConverged);
+    }
+    if( isConverged && correction >=minimumNumberOfPCcorrections )  
+      advanceOptions.correctionIterationsHaveConverged=true;  // we have converged 
+  }
+
+  return 0;
+}
+
+// ===================================================================================================================
+/// \brief End an individual time step (a time sub-step function).
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+/// \param correction (input) : for predictor corrector methods this indicates the correction step number.
+///
+// ===================================================================================================================
+int DomainSolver::
+endTimeStepIM( real & t0, real & dt0, AdvanceOptions & advanceOptions )
+{
+  //   FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  //   FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+
+  assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicit );
+  assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 );  // for now we just have 2nd-order in time
+
+  assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsImplicitData") );
+
+  AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsImplicitData");
+  
+  real & dtb=adamsData.dtb;
+  int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+  int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+  int &ndt0=adamsData.ndt0;
+  real *dtp = adamsData.dtp;
+
+  const int numberOfGridFunctions =  movingGridProblem() ? 3 : 2; 
+
+  // permute (mab0,mab1,mab2) 
+  mab0 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+  mab1 = (mab1-1 + numberOfGridFunctions) % numberOfGridFunctions;
+  // mab2 is always 1 "ahead" of mab0 
+  mab2 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+  if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+  {
+    nab0 = (nab0+1) % 2;
+    nab1 = (nab1+1) % 2;
+  }
+  else
+  {
+    nab0 = (nab0-1 +4) % 4;
+    nab1 = (nab1-1 +4) % 4;
+    nab2 = (nab2-1 +4) % 4;
+    nab3 = (nab3-1 +4) % 4;
+  }
+
+  ndt0=(ndt0-1 +5)%5;  // for dtp[]
+      
+  dtb=dt0;
+  t0+=dt0;
+
+  if( parameters.dbase.get<int >("globalStepNumber") % 10 == 0 )
+  {
+    // new way:
+    if( parameters.dbase.get<int>("useNewImplicitMethod")==1 )
+    {
+      RealCompositeGridFunction & uti = fn[2];   // ****
+      realCompositeGridFunction & residual = uti;  // save residual here -- check this 
+      getResidual( t0,dt0,gf[mab0],residual );
+      saveSequenceInfo(t0,residual);
+    }
+      
+  }
+    
+//  output( gf[mab0],initialStep+subStep ); // output to files, user defined output
+  output( gf[mab0],parameters.dbase.get<int >("globalStepNumber") ); // output to files, user defined output
+
+  const int zeroUnusedPointsAfterThisManySteps=20;
+  if( ( ((parameters.dbase.get<int >("globalStepNumber")+1) % zeroUnusedPointsAfterThisManySteps)==0 ) &&  
+      parameters.dbase.get<int >("extrapolateInterpolationNeighbours")==0 )
+  {
+    // *note* we cannot fixup unused if we extrapolate interp. neighbours since these values will be zeroed out!
+    // (esp. important for viscoPlastic model -- linearized solution becomes corrupted)
+
+    if( debug() & 2 ) printF(" ************** DomainSolver::endTimeStep fixupUnusedPoints ************\n");
+      
+    // zero out unused points to keep them from getting too big ** is this needed?? ****
+    for( int m=0; m<=1; m++ )
+    {
+      // ** gf[m].u.zeroUnusedPoints(coeff);
+      fixupUnusedPoints(gf[m].u);
+    }
+  }
+    
+
+  // update the current solution:  
+  current = mab0;
+
+  if( debug() & 4 )
+    printP("DomainSolver::endTimeStep  t0=%e dt0=%e ----\n",t0,dt0);
+
+  return 0;
+}
+
+
+// ===================================================================================================================
+/// \brief Generic advance routine that uses the separate time sub-step functions. 
+/// \details This advance routine uses the function startTimeStep, takeTimeStep and endTimeStep
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+///
+// ===================================================================================================================
+void DomainSolver::
+advanceImplicitMultiStepNew( real & t0, real & dt0, int & numberOfSubSteps, int & init, int initialStep  )
+// ======================================================================================
+// 
+// ==========================================================================================
+{
+
+  FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+  if( true || debug() & 4 )
+    printF(" ---- DomainSolver::advanceImplicitMultiStepNew t0=%e, dt0=%e ----\n",t0,dt0);
+  if( debug() & 2 )
+    fprintf(debugFile," *** Entering advanceImplicitMultiStep: t0=%e, dt0=%e *** \n",t0,dt0);
+
+
+  if( init )
+  {
+    initializeTimeStepping( t0,dt0 );
+    init=false;
+  }
+
+  AdvanceOptions advanceOptions;
+  for( int mst=1; mst<=numberOfSubSteps; mst++ )
+  {
+    // parameters.dbase.get<int >("globalStepNumber")++;
+    int currentGF, nextGF;
+    startTimeStep( t0,dt0,currentGF,nextGF,advanceOptions );
+    
+    for( int correction=0; correction<=advanceOptions.numberOfCorrectorSteps; correction++ )
+    {
+      takeTimeStep( t0,dt0,correction,advanceOptions );
+
+      if( advanceOptions.correctionIterationsHaveConverged ) // *wdh* 100917 
+        break;
+    } // end corrections
+    
+    endTimeStep( t0,dt0,advanceOptions );
+
+  } // end  substeps
+
+
+}
+
+

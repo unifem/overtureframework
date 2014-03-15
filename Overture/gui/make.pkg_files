@@ -1,0 +1,27 @@
+PKGDIR := $(OvertureCheckout)/gui
+
+STATIC_SRC_FILES += mogl.C xColours.C
+
+SRC_FILES += $(addsuffix .C, \
+	ColourBar colourTable DialogData GenericGraphicsInterface \
+	getAnswer GL_GraphicsInterface GraphicsParameters GUIState \
+	label osRender OvertureParser plotAxes plotPoints render \
+	stroke textGetMenu tlist DialogState )
+
+L_HDRS := $(addsuffix .h,  ColourBar DialogData GenericGraphicsInterface \
+	GL_GraphicsInterface GraphicsParameters DialogState \
+	GUIInit GUIState GUITypes OvertureParser PlotStuff PlotStuffParameters xColours \
+	mogl)
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+ifneq ($(BINDIR),)
+
+dia: $(BINDIR)dia
+
+phonies += dia 
+
+endif
+
+$(BINDIR)dia: $(OV_LIB) $(OV_SLIB) $(OBJDIR)dia.o
+	$(CXX) -o $@ $(OBJDIR)dia.o $(LIBS)

@@ -1,0 +1,82 @@
+------------------------------------------------------------------------------------------
+The cns/cmd directory holds command files for running examples of cgcns
+
+Type "../bin/cgcns file.cmd" to run the command file named "file.cmd"
+
+For parallel examples set the shell variable:  set cgcnsp = ${CGBUILDPREFIX}/mp/bin/cgcns
+
+More examples can be found in cg/cns/runs. 
+
+------------------------------------------------------------------------------------------
+
+airfoil.cmd : Inviscid or viscous flow past an airfoil
+
+axisymmetricSphere.cmd : shock hitting a sphere (axisymmetric)
+
+backStepSmooth.cmd : Viscous compressible flow over a backward facing step
+
+backStep3d.cmd : 3d shock past a backward facing step
+
+blast.cmd : blast wave around obstacles.
+
+bubble.cmd : a bubble of heavy gas in a gravitational field
+
+bubble3d.cmd : a 3d bubble of heavy gas in a gravitational field
+
+cicMove.cmd :  moving cylinder in a channel (specified motion).
+
+cicShockg.cmd: Shock hitting a cylinder solved with Godunov's method
+
+cicShockMove.cmd : shock hitting a moving cylinder
+
+cicSubsonic.cmd : sub-sonic viscous compressible flow past a cylinder
+
+circleDeform.cmd : flow past a deforming circle or cylinder
+
+deform.cmd : various deforming grid examples
+
+detCell.cmd : computation of a 2d perturbed detonation that forms a cellular pattern
+
+detTube.cmd : perturbed detonation in a cylindrical tube (3d version of detCell)
+
+expansionCorner.cmd: super-sonic flow around an expanding corner, comparison to an exact solution
+
+flow.cmd : various flow examples
+
+heatedCyl.cmd : Heated cylinder in a gravitational field
+
+heatedBox.cmd : Heated box in a gravitational field
+
+mieGruneisen.cmd : steady shock using the Mie-Gruneisen EOS
+
+move.cmd : moving grid tests
+
+mpTestV.cmd : test of the compressible multi-phase equations (with a virial EOS)
+
+multiBubble.cmd : test of the multi-component solver
+
+pistonSpecifiedMotion.cmd : "1D" piston with a specified motion (moving grid example) (see also plug.cmd)
+
+obliqueShock.cmd : test an oblique shock solution versus the exact solution 
+
+plug.cmd : hydrodynamically forced piston 
+
+quarterSphere.cmd : 3d shock hitting a sphere (one quadrant only)
+
+rampedInflow.cmd : example showing ramped inflow values
+
+shockTubeg.cmd : shock in a 2d channel with AMR
+
+shockTube3d.cmd : shock in a 3d channel with AMR 
+
+sibShockg.cmd : shock hitting a sphere (3d) with AMR
+
+sibShockMove.cmd : shock htting a moving sphere
+
+stiffenedGas.cmd : steady shock using the stiffened-gas EOS
+
+twoPipes.cmd : a 3D shock moving through two intersecting pipes. 
+
+tz.cmd : test twilight-zone solution on various grids
+
+

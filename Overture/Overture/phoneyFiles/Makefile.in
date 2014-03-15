@@ -1,0 +1,35 @@
+#
+# Makefile core -- the configure script uses this to make the file "Makefile"
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o .c .o .f .o
+#kkc 100325 .C.o:; $(CC) $(CCFLAGS) -DNO_REAL  -I$(HDF)/include -c $*.C
+#kkc 100325 .c.o:; $(cc) $(CFLAGS)  -DNO_REAL  -I$(HDF)/include -c $*.c
+.C.o:; $(CC) $(CCFLAGS) -DNO_REAL  -c $*.C
+.c.o:; $(cc) $(CFLAGS)  -DNO_REAL  -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default:   depend_date phoneyFiles_date 
+
+SourceC= phoneyMappings.C 
+
+SourceF= 
+
+phoneyFiles_C_date: ${SourceC:.C=.o} ${SourceF:.f=.o}
+	  touch $@
+
+phoneyFiles_date: phoneyFiles_C_date 
+	  touch $@
+
+
+Source = $(SourceC) $(SourceF) 
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+clean:	rm *.o
+
+.PRECIOUS:phoneyFiles_date depend_date
+

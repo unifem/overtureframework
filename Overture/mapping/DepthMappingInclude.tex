@@ -1,0 +1,70 @@
+\subsection{Constructor}
+ 
+\newlength{\DepthMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\DepthMappingIncludeArgIndent}{DepthMapping(}% 
+DepthMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+  Define a 3D Mapping from 2D Mapping by extending in 
+  the z-direction by a variable amount
+
+\end{description}
+\subsection{setDepthFunction}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DepthMappingIncludeArgIndent}{setDepthFunction(}%
+setDepthFunction( Mapping \& depth\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Supply a mapping that will define the depth.
+\item[{\bf depth\_ (input) :}]  Use this mapping for the depth, $z=depth(x_0,x_1)$.
+\end{description}
+\subsection{setDepthFunction}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DepthMappingIncludeArgIndent}{setDepthFunctionParameters(}%
+setDepthFunctionParameters( real a0, real b0, real a1, real b1 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Define the scaling parameters for the depth function.
+\item[{\bf a0,b0,a1,b1\_ (input) :}]  
+\end{description}
+\subsection{setSurface}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DepthMappingIncludeArgIndent}{setSurface(}%
+setSurface( Mapping \& surface\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Supply a 2D mapping that will define the surface of the 3D domain.
+\item[{\bf surface\_ (input) :}]  2D Mapping.
+\end{description}
+\subsection{setQuadraticParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DepthMappingIncludeArgIndent}{setQuadraticParameters(}%
+setQuadraticParameters(const real \& a00\_,\\ 
+\hspace{\DepthMappingIncludeArgIndent}const real \& a10\_, \\ 
+\hspace{\DepthMappingIncludeArgIndent}const real \& a01\_, \\ 
+\hspace{\DepthMappingIncludeArgIndent}const real \& a20\_, \\ 
+\hspace{\DepthMappingIncludeArgIndent}const real \& a11\_, \\ 
+\hspace{\DepthMappingIncludeArgIndent}const real \& a02\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Specify the parameters for a quadratic depth function:
+ \[
+    z(x_0,x_1) =  a_{00} + a_{10} x_0 + a_{01} x_1 + a_{20} x_0^2 + a_{11}x_0 x_1 + a_{02} x_1^2
+ \]
+ 
+\item[{\bf a00\_, a10\_,... (input):}]  parameters in above formula.
+\end{description}

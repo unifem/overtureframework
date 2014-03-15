@@ -1,0 +1,6 @@
+
+
+myOldName::func()
+{
+}
+

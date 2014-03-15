@@ -1,0 +1,25 @@
+# Here is the executable:
+CGBUILDPREFIX/sm/bin/cgsm
+# here is the name of the check file
+sm.check
+# Here is a list of command files to run for tests
+#
+# -- SOS-NC
+tz    # TZ solution in a square
+cic   # TZ cic
+tzSibnc.check ../cmd/tz.cmd -pv=nc -g=sib -degreex=2 -degreet=2 -tf=.1 -tp=.1 -go=go
+tzSibSFnc.check ../cmd/tz.cmd -pv=nc -g=sib -degreex=2 -degreet=2 -tf=.05 -tp=.05 -bcn=sf -go=go
+# 
+# -- SOS-C : Conservative: 
+cicc  # TZ cic, conservative
+tzSibc.check ../cmd/tz.cmd -pv=c -g=sib -degreex=2 -degreet=2 -tf=.05 -tp=.05 -go=go
+tzSibSFc.check ../cmd/tz.cmd -pv=c -g=sib -degreex=2 -degreet=2 -tf=.05 -tp=.05 -bcn=sf -go=go
+# 
+# --- FOS-G : Godunov checks: N.B. name cmd file with ".cmd" at end for check.p 
+tzSqg.check ../cmd/tz.cmd -pv=g -g=sis -degreex=1 -degreet=1 -tf=.2 -tp=.1 -go=go
+cicg.check ../cmd/tz.cmd -g=cic -pv=g -tz=trig -tf=.05 -tp=.05 -go=go
+cicSFg.check ../cmd/tz.cmd -g=cic -pv=g -tz=trig -tf=.05 -tp=.05 -bcn=sf -go=go
+tzSibg.check ../cmd/tz.cmd -pv=g -g=sib -degreex=2 -degreet=2 -tf=.05 -tp=.05 -go=go
+tzSibSFg.check ../cmd/tz.cmd -pv=g -g=sib -degreex=2 -degreet=2 -tf=.05 -tp=.05 -bcn=sf -go=go
+# check boundary forcing and symmetry wall. Soln should remain exactly 1D.
+## sqBFsym.check ../cmd/boundaryForcing.cmd -g=square10.order2 -pv=g -tp=.01 -tf=.04 -force=traction -bca=symmetry -go=go

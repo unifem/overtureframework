@@ -1,0 +1,84 @@
+\subsection{plot: 1D line plots}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\PlotStuffIncludeArgIndent}{plot(}%
+plot(GenericGraphicsInterface \&gi,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& t, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& x, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const aString \& title  = nullString, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const aString \& tName  = nullString,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const aString *xName         =NULL,\\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters()) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use PlotStuff to make some 1D line plots. 
+\item[{\bf t (input) :}]  t(0:n-1) - values along the horizontal axis
+\item[{\bf x (input) :}]  x(0:n-1,0:nv-1) - values to plot, nv components
+\item[{\bf title (input):}] 
+\item[{\bf tName (input):}]  name for horizontal axis
+\item[{\bf xName[nv] (input):}]  names of components/
+\end{description}
+\subsection{plot: surface plots}\label{timeSequence}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\PlotStuffIncludeArgIndent}{plot(}%
+plot(GenericGraphicsInterface \&gi,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& x, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& t,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& u\_, \\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use PlotStuff to make a surface plot of a sequence of 1D functions
+\item[{\bf x (input) :}]  t(0:n-1) - values along the horizontal axis ("x-axis")
+\item[{\bf t (input) :}]  t(0:nv-1) - times corresponding to the different components of u ("y-axis")
+\item[{\bf u (input) :}]  u(0:n-1,0:nv-1) - values to plot, nv components  ("z-axis")
+ 
+\item[{\bf parameters:}]  Use these parameters to set the title, sub-titles and axis labels etc.
+\end{description}
+\subsection{plot: 1D line plots}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\PlotStuffIncludeArgIndent}{plot(}%
+plot(GenericGraphicsInterface \&gi,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& t, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& x, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const aString \& title  = nullString, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const aString \& tName  = nullString,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const aString *xName         =NULL,\\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters()) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use PlotStuff to make some 1D line plots. 
+\item[{\bf t (input) :}]  t(0:n-1) - values along the horizontal axis
+\item[{\bf x (input) :}]  x(0:n-1,0:nv-1) - values to plot, nv components
+\item[{\bf title (input):}] 
+\item[{\bf tName (input):}]  name for horizontal axis
+\item[{\bf xName[nv] (input):}]  names of components/
+\end{description}
+\subsection{plot: surface plots}\label{timeSequence}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\PlotStuffIncludeArgIndent}{plot(}%
+plot(GenericGraphicsInterface \&gi,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& x, \\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& t,\\ 
+\hspace{\PlotStuffIncludeArgIndent}const realArray \& u\_, \\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use PlotStuff to make a surface plot of a sequence of 1D functions
+\item[{\bf x (input) :}]  t(0:n-1) - values along the horizontal axis ("x-axis")
+\item[{\bf t (input) :}]  t(0:nv-1) - times corresponding to the different components of u ("y-axis")
+\item[{\bf u (input) :}]  u(0:n-1,0:nv-1) - values to plot, nv components  ("z-axis")
+ 
+\item[{\bf parameters:}]  Use these parameters to set the title, sub-titles and axis labels etc.
+\end{description}

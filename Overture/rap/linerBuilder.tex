@@ -1,0 +1,849 @@
+%=======================================================================================================
+%  linerBuilder Documentation
+%=======================================================================================================
+\documentclass[12pt]{article}
+
+\usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\input documentationPageSize.tex
+
+\usepackage{epsfig}
+\usepackage{graphicx}    
+\usepackage{moreverb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% \usepackage{fancybox}  % this destroys the table of contents!
+% \usepackage{subfigure}
+% \usepackage{multicol}
+
+\input wdhDefinitions
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+\newcommand{\normalss}{\sffamily}
+
+\newcommand{\cmd}[1]{``{\tt #1}''}
+
+% \newcommand{\clipfigb}[2]{\psclip{\psframe[linewidth=2pt](1.9,2.9)(16,11.75)}\includegraphics[width=#2]{#1}\endpsclip}
+\begin{document}
+% This is a test
+
+
+% \end{document}
+
+
+\newcommand{\mapping}{/home/henshaw/Overture/mapping}
+\newcommand{\figures}{/home/henshaw/Overture/docFigures}
+
+\vspace{3\baselineskip}
+\begin{flushleft}
+  {\Large 
+   Liner Builder:  \\ 
+   A Tool for Building Geometric Models of Shaped Charge Liners  \\
+  }
+\vskip 2\baselineskip
+{\large William D. Henshaw  }             \\
+\vskip 1\baselineskip
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+\vskip 1\baselineskip
+\today \\
+\vskip 1\baselineskip
+UCRL-SM-208948
+\end{flushleft}
+
+\vspace{1\baselineskip}
+
+\begin{abstract}
+
+This document describes the {\em Liner Builder}, an interactive
+graphics tool for building a geometric model of the conical liner
+that fits in the hollow cavity on the end of a shaped charge. This
+tool can also be used to load the volume of the liner with a
+distribution of spherical particles.
+\end{abstract}
+
+
+\tableofcontents
+
+\vskip5\baselineskip
+\noindent{\bf\large Acknowledgments.}
+\vskip\baselineskip
+
+Bill Bateson and Dale Slone have contributed to the design of the {\em Liner Builder}.
+Dale has also contributed directly to the development of the {\em Liner Builder}, in particular the
+loading of the liner with spheres.
+The Liner Builder is built upon components of the Overture framework
+(including Rapsodi). Many people have worked on the development of
+Overture but Kyle Chand and Anders Petersson, in particular, have made
+important contributions to the components used by the {\em Liner
+Builder}.
+
+
+
+% -----------------------------------------------------------------------------------
+\clearpage
+\section{Introduction}
+% ----------------------------- shaped charge -----------------------------------------------
+{
+\psset{xunit=1.5cm,yunit=1.5cm,runit=1.5cm}
+% figure of a shaped charge
+\begin{figure}[ht]
+\begin{center}
+\begin{pspicture}(-6,0)(4,3)%
+%
+\pspolygon[fillstyle=solid,fillcolor=turquoise](-4,0)(0,0)(2,2)(-4,2)%
+\rput(-2.5,1){\makebox(0,0)[l]{\normalss explosive}}
+%
+\pspolygon[fillstyle=solid,fillcolor=aquamarine](0,0)(.5,0)(2.5,2)(2,2)%
+\rput(2.5,1){\makebox(0,0)[l]{\normalss liner}}
+\psline[linewidth=1.pt]{->}(2.5,1.)(1.3,1)
+%
+\pspolygon[fillstyle=solid,fillcolor=red](-4,0)(-4,.5)(-4.5,.5)(-4.5,0)%
+\rput(-4.75,1){\makebox(0,0)[r]{\normalss detonator}}
+\psline[linewidth=1.pt]{->}(-5.25,.8)(-4.5,.25)
+%
+%
+\pspolygon[fillstyle=solid,fillcolor=mediumgoldenrod](-4,.5)(-4.,2)(2.5,2)(2.5,2.2)(-4.2,2.2)(-4.2,.5)%
+\rput(-3,3){\makebox(0,0)[c]{\normalss container}}
+\psline[linewidth=1.pt]{->}(-3,2.8)(-3,2.2)
+%
+\psline[linewidth=2.pt]{->}(-5,0)(3,0)
+\rput(1.,-.25){\makebox(0,0)[l]{\smallss axis of revolution}}
+%
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]%
+\end{pspicture}
+\end{center}
+\caption{Basic geometry of a shaped charge. When revolved about the axis of revolution, the liner will form
+   a conical shell.}
+\label{fig:shapedCharge}
+\end{figure}
+}
+% ---------------------------------------------------------------------------------
+
+
+This document describes the {\em Liner Builder}, an interactive
+graphics tool for building a geometric model of the conical liner
+that fits in the hollow cavity on the end of a shaped charge.
+
+Figure~\ref{fig:shapedCharge}
+illustrates the basic geometry of a shaped charge.  The shaped charge
+in this figure is assumed to be cylindrically symmetric with the axis of revolution shown.  
+The liner is the thin piece of material that is located at the end of the shaped charge
+opposite to the detonator. The liner will typcially be of the shape of a conical shell.
+When the detonator is set off, it will initiate a detonation
+that propagates through the explosive. The detonation wave will strike the
+liner material and accelerate it.  The liner will then move and focus
+toward the axis of revolution, forming a high speed jet of material. The
+tip velocity of the jet can apparently exceed Mach 25 in air, although
+the flow velocity of the material remains subsonic. The liner of a
+shaped charge can take on many shapes such as hemisphere, cone,
+ellipse, tulip, trumpet, pyramid etc.  The liner itself may consist
+of a thin layer of metal, plastic, ceramic or other similar
+material. Shaped charges have their largest use in the mining and oil
+well industries. For further details on shaped charges, see for
+example, {\em Fundamentals of Shaped Charges} by Walters and
+Zukas\cite{WaltersZukas98}.
+
+The basic steps in designing a liner with the the {\em Liner Builder} are
+\begin{enumerate}
+  \item Create a two-dimensional curve defining the cross-section of the liner. There are various options 
+    available for defining this curve such as using a piece-wise linear curve, a piece-wise
+    quadratic curve or a free-form curve.
+  \item rotate the cross-section curve to form a surface of revolution
+\end{enumerate}
+Currently the liner shapes are restricted to be surfaces of revolution although it is envisioned
+that general three-dimensional shapes could be supported.
+
+Given a liner there are additional steps that can be taken 
+to load the liner with a collection of spheres to be used in a particle simulation of the liner motion.
+The spheres represent a model of the liner material. 
+\begin{enumerate}
+  \item define the properties of the spherical particles such at the distribution of radii; the volume and
+    mass fractions in the loading, ...
+  \item {\em load} the interior of the liner with a distribution of spherical particles.
+  \item define the {\em lighting-curves} that define the initial velocity of the spheres to be used in
+     a particle simulation of the liner motion.
+\end{enumerate}
+
+The {\em Liner Builder} is part of the more general {\tt rap}
+program.  (The name rap is derived from the Rapsodi project -- the name {\tt rap}
+name will probably change in the future to something like {\tt
+modelBuilder}).  The {\tt rap} program can be used to clean up, fix and
+modify CAD geometries as well as build new geometries. 
+
+
+
+
+
+\section{Getting started}
+
+To start the {\em Liner Builder}, type {\tt rap} to bring up the startup screen for rap. 
+The {\tt rap} program is usually found in the
+{\tt Overture/bin} directory or in the Dune bin directory(?)
+Choose the button \cmd{liner...} to open up the {\em Liner Builder} dialog window.
+At this point the screen should look similar to figure~\ref{fig:linerWindows}.
+You are now ready to begin the design process.
+
+Note that as commands are entered interactively, the command file {\tt rap.cmd} is
+being saved with a text version of each command. This command file can later be given
+a new file name, edited with any text editor, and used to rerun the session. 
+
+Before designing a new liner it may be useful to first run through some examples.
+See sections~\ref{sec:exampleLinear}, \ref{sec:exampleQuadratic} and \ref{sec:exampleFreeForm} for 
+three examples. 
+
+The left mouse botton is use for selecting buttons on the windows and dialogs.
+The left mouse button is also used for picking points on the graphics window. Clicking the right
+mouse button on any window will bring up any pop-up menu.
+Appendix~\ref{app:mouseButtons} is a useful reference for understanding the behaviour of
+the buttons, mouse and view characteristics of the the graphics window.
+
+
+
+% By default an initial piecewise-linear cross-section curve will appear along with a separate
+% dialog window which allows changes to shape of the {\em linear-liner}. 
+
+
+
+
+
+
+% To build a surface of revolution, choose the {\tt revolve around axis} option.
+
+
+% ==========================================================================================================
+\clearpage
+\section{The Liner Builder Dialog}
+
+{% ----
+% .95: \newcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](1.8,2.85)(16.25,11.75)}\epsfig{#1}\endpsclip}
+\newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](2.2,3.4)(19.6,14.2)}\epsfig{#1}\endpsclip}
+\psset{xunit=1.0cm,yunit=1.0cm,runit=1.0cm}
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,0)(17,10.75)
+% \rput(7, 4.){\clipfig{file=linerWindows.ps,width=.95\linewidth}}
+\rput(7.75, 4.75){\clipfig{file=linerWindows.ps,width=1.15\linewidth}}
+% \rput(6, 5){\clipfigb{linerWindows.eps}{.95\linewidth}}
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+\rput(12,-.3){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss Liner Builder dialog}}
+\psline[linewidth=1.5pt]{->}(12,0)(12,2.5)
+\rput(6.5,-.3){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss linear liner dialog}}
+\psline[linewidth=1.5pt]{->}(6.5,0)(6.5,1.5)
+\rput(3,-.3){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss main screen}}
+\psline[linewidth=1.5pt]{->}(3,0)(3,2)
+%
+\rput(2.5,8){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner cross-section}}
+\psline[linewidth=1.5pt]{->}(3.,7.75)(4.7,7.0)
+%
+\rput(2.,7){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss lighting curve}}
+\psline[linewidth=1.5pt]{->}(2.5,6.75)(4.7,5)
+\end{pspicture}
+\end{center}
+\caption{Liner Builder windows and dialogs. The main screen plots the results. The {\em Liner Builder} dialog
+controls the generation of the shaped charge liner.}
+\label{fig:linerWindows}
+\end{figure}
+  } % ----
+
+
+The windows associated with the {\em Liner Builder} are show in figure~\ref{fig:linerWindows}.
+The main graphics window displays the liner cross-section and the lighting curve. 
+The main dialog shown controls the {\em Liner Builder}. A smaller dialog appears for inputing
+changes to the linear cross-section (since the method is currently set to \cmd{linear liner}). 
+
+Here are descriptions of the buttons on the Liner Builder dialog
+\begin{description}
+  \item[method] Choose the type of liner: \cmd{linear liner}, \cmd{quadratic liner} or \cmd{free form liner}.
+     Selecting a new method will cause a new dialog to appear, specific to the liner type,
+     from which parameters can be set.
+  \item[spheres] Choose the technique for colouring the spheres that fill the liner volume. 
+  \item[revolve around axis] After the liner cross-section has been created, choose this option
+    to build a surface of revolution. At the same time a triangulation covering the surface
+    will be created. This triangulation is used for the rapid determination of whether a 
+    point is inside or outside the surface.
+  \item[topology] this option will recompute the triangulation. Normally this option is
+     not directly used unless a poor quality triangulation is generated from the step 
+    \cmd{revolve around axis}.
+  \item[fill with spheres] After the properties of the spherical particles have been 
+    defined, choose this option to fill the liner with spheres.
+  \item[lighting curve] edit the lighting curve which determines the direction of propagation
+     of the particles, see section~\ref{sec:lighting}.
+  \item[lighting time] edit the lighting time function which determines the time delay of the
+    motion of the particles, see section~\ref{sec:lighting}.
+  \item[lighting speed] edit the lighting speed functio which determines the speed of the 
+    particles, see section~\ref{sec:lighting}.
+  \item[rotate spheres to the z-axis] rotate the spherical particles so that the axis
+    of revolution points along the z-axis. Use this option before outputting the sphere locations for
+    use with some discrete simulation codes.
+\end{description}
+
+Here are descriptions of the toggle buttons
+\begin{description}
+  \item[plot curve] turn on or off the plotting the liner cross-section curve.
+  \item[plot surface] turn on or off the plotting of the surface of revolution. 
+  \item[plot shaded surface] turn on or off the plotting the shaded surface on the surface of revolution. When the
+    shaded surface is turned off, only the grid lines on the surface will appear allowing
+    one to see inside the surface.
+  \item[plot spheres] turn on or off the plotting of the spheres (once they have been computed).
+  \item[plot spheres as points] turn on or off the plotting of the spheres as points (it is quicker to draw the
+     spheres if they are just shown as points).
+  \item[plot lighting curve] turn on or off the plotting of the lighting curve.
+  \item[plot velocity arrows] turn on or off the plotting of velocity arrows emanating from each sphere. The velocity
+    arrows indicate the initial velocity vector of the spheres.
+  \item[plot triangulation] turn on or off the plotting of the underlying triangulation that is associated with 
+    the liner surface. 
+  \item[fill with evenly spaced spheres] for testing purposes, fill the liner with 
+     evenly spaced spheres.
+\end{description}
+
+Here are descriptions of the text fields
+\begin{description}
+  \item[name] Choose the name of the liner.
+  \item[radius for spheres] Enter a list of $N$ different sphere radii, $R_1$, $R_2$, \ldots $R_N$. 
+  \item[probability for spheres] Enter the $N$ probabilities,  $P_1$, $P_2$, \ldots $P_N$,
+                for each of the radii specified in the 
+    \cmd{radius for spheres} text box.
+  \item[total volume fraction] Enter the total volume fraction (a real number between 0 and 1)
+    of the liner volume
+    that should be filled with spheres. As the volume fraction is increased it becomes
+    more difficult to fill the volume with spheres.
+  \item[RNG seed] choose a seed for the random number generator that is used when loading the
+    volume with spheres.
+\end{description}
+
+\clearpage
+\section{Example: a piecewise linear liner}\label{sec:exampleLinear}
+{% ----
+% .95: \newcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](1.8,2.85)(16.25,11.75)}\epsfig{#1}\endpsclip}
+\newcommand{\clipfiga}[1]{\psclip{\psframe[linecolor=white](.25,.2)(8.5,8.75)}\epsfig{#1}\endpsclip}
+\newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](1.,.2)(8.5,8.75)}\epsfig{#1}\endpsclip}
+\newcommand{\figWidth}{.5\linewidth}
+\psset{xunit=1.0cm,yunit=1.0cm,runit=1.0cm}
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,0)(17,16.9)
+% \rput(7, 4.){\clipfig{file=linerWindows.ps,width=.95\linewidth}}
+\rput( 4,13){\clipfiga{file=linerLinear-crossSection.ps,width=\figWidth}}
+\rput(12,13){\clipfig{file=linerLinear-surface.ps,width=\figWidth}}
+\rput( 4,4.5){\clipfig{file=linerLinear-triangulation.ps,width=\figWidth}}
+\rput(12,4.5){\clipfig{file=linerLinear-spheres.ps,width=\figWidth}}
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+\rput(2,15){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner cross section}}
+\rput(14.5,15){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner surface}}
+\rput(2,7){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss surface triangulation}}
+\rput(14.5,7){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner loaded with spheres}}
+
+\end{pspicture}
+\end{center}
+\caption{Results from running the {\tt linerLinear.cmd} command file. Upper left: the liner cross-section
+   is defined. Upper right: the surface of revolution for the liner. Lower left: the underlying triangulation
+  of the surface. Lower right: the liner volume loaded with spheres, coloured by start time and with
+direction arrows shown.}
+\label{fig:linerLinear}
+\end{figure}
+
+  } % ----
+
+In this example a linear liner is built and filled with spherical particles, see figure~\ref{fig:linerLinear}.
+The command file for generating these results is given here (file {\tt linerLinear.cmd}):
+{\footnotesize
+\listinginput[1]{1}{/home/henshaw/Overture/rap/linerLinear.cmd}
+}
+Note that comments in the command file are denoted by a leading asterisk. 
+Also note that a blank line will be treated as the end of the command file.
+Thus, adding a blank line is one way to stop the program at a particular
+point in the command file.
+
+% The command file can be used to regenerate these results. 
+This command file can be run using the command \cmd{rap linerLinear.cmd}. 
+As the example runs the program will pause at various points (indicated
+by the {\tt pause} statements in the command file). Choose {\tt continue} to proceed
+with the next commands or choose {\tt break} to break out of the command file.
+
+To run the command file in batch mode with no plotting and no pausing use \cmd{rap noplot nopause linerLinear.cmd}.
+
+% To recreate this example interactively, start up the {\tt rap} program and then
+
+
+% =======================================================================================================
+\clearpage
+\section{Example: a piecewise quadratic liner}\label{sec:exampleQuadratic}
+{% ----
+% .95: \newcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](1.8,2.85)(16.25,11.75)}\epsfig{#1}\endpsclip}
+\newcommand{\clipfiga}[1]{\psclip{\psframe[linecolor=white](.25,.2)(8.5,8.75)}\epsfig{#1}\endpsclip}
+\newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](1.,.2)(8.5,8.75)}\epsfig{#1}\endpsclip}
+\newcommand{\figWidth}{.5\linewidth}
+\psset{xunit=1.0cm,yunit=1.0cm,runit=1.0cm}
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,0)(17,16.9)
+% \rput(7, 4.){\clipfig{file=linerWindows.ps,width=.95\linewidth}}
+\rput( 4,13){\clipfiga{file=linerQuadratic-crossSection.ps,width=\figWidth}}
+\rput(12,13){\clipfig{file=linerQuadratic-surface.ps,width=\figWidth}}
+\rput( 4,4.5){\clipfig{file=linerQuadratic-triangulation.ps,width=\figWidth}}
+\rput(12,4.5){\clipfig{file=linerQuadratic-spheres.ps,width=\figWidth}}
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+\rput(2,15){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner cross section}}
+\rput(14.5,15){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner surface}}
+\rput(2,7){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss surface triangulation}}
+\rput(14.5,7){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner loaded with spheres}}
+
+\end{pspicture}
+\end{center}
+\caption{Results from running the {\tt linerQuadratic.cmd} command file. Upper left: the liner cross-section
+   is defined. Upper right: the surface of revolution for the liner. Lower left: the underlying triangulation
+  of the surface. Lower right: the liner volume loaded with spheres, coloured by start time and with
+direction arrows shown.}
+\label{fig:linerQuadratic}
+\end{figure}
+
+  } % ----
+
+In this example a piecewise quadratic liner is built and filled with spherical particles,
+see figure~\ref{fig:linerQuadratic}.
+The command file for generating these results is given here (file {\tt linerQuadratic.cmd}):
+{\footnotesize
+\listinginput[1]{1}{/home/henshaw/Overture/rap/linerQuadratic.cmd}
+}
+
+% The command file can be used to regenerate these results. 
+This command file can be run using the command \cmd{rap linerQuadratic.cmd}. 
+As the example runs the program will pause at various points (indicated
+by the {\tt pause} statements in the command file). Choose {\tt continue} to proceed
+with the next commands or choose {\tt break} to break out of the command file.
+
+To run the command file in batch mode with no plotting and no pausing use \cmd{rap noplot nopause linerQuadratic.cmd}.
+
+% =======================================================================================================
+\clearpage
+\section{Example: a free-form liner}\label{sec:exampleFreeForm}
+{% ----
+% .95: \newcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](1.8,2.85)(16.25,11.75)}\epsfig{#1}\endpsclip}
+\newcommand{\clipfiga}[1]{\psclip{\psframe[linecolor=white](.25,.2)(8.5,8.75)}\epsfig{#1}\endpsclip}
+\newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](1.,.2)(8.5,8.75)}\epsfig{#1}\endpsclip}
+\newcommand{\figWidth}{.5\linewidth}
+\psset{xunit=1.0cm,yunit=1.0cm,runit=1.0cm}
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,0)(17,16.9)
+% \rput(7, 4.){\clipfig{file=linerWindows.ps,width=.95\linewidth}}
+\rput( 4,13){\clipfiga{file=linerFreeForm-NurbsCurveEditor.ps,width=\figWidth}}
+\rput(12,13){\clipfig{file=linerFreeForm-crossSection,width=\figWidth}}
+\rput( 4,4.5){\clipfig{file=linerFreeForm-surface.ps,width=\figWidth}}
+\rput(12,4.5){\clipfig{file=linerFreeForm-spheres.ps,width=\figWidth}}
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+\rput(2,15){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss creating the free-form curve}}
+\rput(10.5,15){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner cross section}}
+\rput(2,7){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner surface}}
+\rput(14.5,7){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss liner loaded with spheres}}
+
+\end{pspicture}
+\end{center}
+\caption{Results from running the {\tt linerFreeForm.cmd} command file. Upper left: the liner cross-section
+   is created using the Nurbs curve builder. 
+Upper right: the completed liner cross-section.
+Lower left: the surface of revolution for the liner. 
+Lower right: the liner volume loaded with spheres, coloured by start time.}
+\label{fig:linerFreeForm}
+\end{figure}
+
+  } % ----
+
+In this example a free-form liner is built and filled with spherical particles, see~\ref{fig:linerFreeForm}.
+The command file for generating these results is given here (file {\tt linerFreeForm.cmd}):
+{\footnotesize
+\listinginput[1]{1}{/home/henshaw/Overture/rap/linerFreeForm.cmd}
+}
+
+% The command file can be used to regenerate these results. 
+This command file can be run using the command \cmd{rap linerFreeForm.cmd}. 
+As the example runs the program will pause at various points (indicated
+by the {\tt pause} statements in the command file). Choose {\tt continue} to proceed
+with the next commands or choose {\tt break} to break out of the command file.
+
+To run the command file with no plotting and no pausing use \cmd{rap noplot nopause linerFreeForm.cmd}.
+
+The free-form cross-section curve in this example is created using the {\em Nurbs Curve Builder},
+see section~\ref{sec:freeForm} for further details on building the free form liner and
+Appendix~\ref{app:NurbsCurveBuilder} for a description of the {\em Nurbs Curve Builder} commands.
+
+% \clearpage
+% \subsection{Defining the cross-section of the liner}
+
+
+\clearpage
+\section{Defining a piecewise-linear liner cross-section}\label{sec:linear}
+
+
+% figure here of the liner liner defined by 4 pts
+
+%  ------------------ linear liner --------------------
+\begin{figure}
+\begin{center}
+\begin{pspicture}(-1,-1)(6,5)%
+%
+\pspolygon[linewidth=2pt,fillstyle=solid,fillcolor=mediumaquamarine](0,0)(1,0)(5,4)(4,4)
+%\rput(5,2){\makebox(0,0)[l]{\smallss liner}}
+%\psline[linewidth=1.pt]{->}(5,2.)(2.6,2)
+%
+\pscircle[fillstyle=solid,fillcolor=blue](0,0){4pt}
+\rput(-.2,.3){\makebox(0,0)[r]{\smallss Point 1}}
+\pscircle[fillstyle=solid,fillcolor=blue](4,4){4pt}
+\rput(3.8,4){\makebox(0,0)[r]{\smallss Point 2}}
+\pscircle[fillstyle=solid,fillcolor=blue](5,4){4pt}
+\rput(5.2,4.0){\makebox(0,0)[l]{\smallss Point 3}}
+\pscircle[fillstyle=solid,fillcolor=blue](1,0){4pt}
+\rput(1.2,.3){\makebox(0,0)[l]{\smallss Point 4}}
+%
+%\rput(4,4){\qdisk(0,0){4pt}\makebox(0,0)[r]{\smallss Point 2}}
+%\rput(5,4){\qdisk(0,0){4pt}\makebox(0,0)[l]{\smallss Point 3}}
+%\rput(1,0){\qdisk(0,0){4pt}\makebox(0,0)[l]{\smallss Point 4}}
+%
+\psline[linewidth=2.pt]{->}(-1,0)(5,0)
+\rput(2.,-.5){\makebox(0,0)[l]{\smallss axis of revolution}}
+%
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]%
+\end{pspicture}
+\end{center}
+\caption{The cross-section of the piece-wise linear liner is defined by 4 points.}
+\label{fig:linearLiner}
+\end{figure}
+
+The linear liner is defined by four points are shown in figure~\ref{fig:linearLiner}.
+The coordinates of any of the four points can be altered. Points 1 and 4 should remain 
+on the axis of revolution, $y=0$.
+
+\clearpage
+\section{Defining a piecewise-quadratic liner cross-section}\label{sec:quadratic}
+%  ------------------ quadratic liner --------------------
+\begin{figure}
+\begin{center}
+\begin{pspicture}(-1,-1)(6,5)%
+%
+\pscustom[linewidth=2pt,fillstyle=solid,fillcolor=mediumaquamarine]{%
+  \pscurve(0,0)(2,3)(4,4)
+  \pscurve[liftpen=1](5,3.7)(2,2)(1,0)}
+% \psbezier[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(2,3)(4,4)(5,4)
+% \psbezier[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(2,3)(4,4)(4,4)(5,4)(5,4)(2,1)(1,0)%
+% \pscurve[fillstyle=solid,fillcolor=mediumaquamarine](1,0)(2,2)(5,4)
+% \pspolygon[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(2.5,3)(4,4)(5,4)(2.5,1)(1,0)
+% \pspolygon[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(1,0)(5,4)(4,4)
+%\rput(5,2){\makebox(0,0)[l]{\smallss liner}}
+%\psline[linewidth=1.pt]{->}(5,2.)(2.6,2)
+%
+\pscircle[fillstyle=solid,fillcolor=blue](0,0){4pt}
+\rput(-.2,.3){\makebox(0,0)[r]{\smallss Point 1}}
+%
+\pscircle[fillstyle=solid,fillcolor=blue](2,3){4pt}
+\rput(1.8,3.){\makebox(0,0)[r]{\smallss Point 2}}
+%
+\pscircle[fillstyle=solid,fillcolor=blue](4,4){4pt}
+\rput(3.8,4){\makebox(0,0)[r]{\smallss Point 3}}
+%
+\pscircle[fillstyle=solid,fillcolor=blue](5,3.7){4pt}
+\rput(5.2,4.0){\makebox(0,0)[l]{\smallss Point 6}}
+%
+\pscircle[fillstyle=solid,fillcolor=blue](2,2){4pt}
+\rput(2.2,2.0){\makebox(0,0)[l]{\smallss Point 5}}
+%
+\pscircle[fillstyle=solid,fillcolor=blue](1,0){4pt}
+\rput(1.2,.3){\makebox(0,0)[l]{\smallss Point 4}}
+%
+%\rput(4,4){\qdisk(0,0){4pt}\makebox(0,0)[r]{\smallss Point 2}}
+%\rput(5,4){\qdisk(0,0){4pt}\makebox(0,0)[l]{\smallss Point 3}}
+%\rput(1,0){\qdisk(0,0){4pt}\makebox(0,0)[l]{\smallss Point 4}}
+%
+\psline[linewidth=2.pt]{->}(-1,0)(5,0)
+\rput(2.,-.5){\makebox(0,0)[l]{\smallss axis of revolution}}
+%
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]%
+\end{pspicture}
+\end{center}
+\caption{The cross-section of the piece-wise quadratic liner is defined by 6 points.
+A quadratic curve is interpolated through the points 1,2,3. Another quadratic passed
+through the points 4,5,6.}
+\label{fig:quadraticLiner}
+\end{figure}
+
+The piecewise quadratic liner is defined by 6 points as shown in figure~\ref{fig:quadraticLiner}.
+A quadratic curve is interpolated through the points 1,2,3. Another quadratic passed 
+through the points 4,5,6. Points 1 and 4 should remain on the axis of revolution, $y=0$.
+
+
+\clearpage
+\section{Defining a free-form liner cross-section}\label{sec:freeForm}
+%  ------------------ free-form liner --------------------
+{%
+\begin{figure}
+\begin{center}
+\begin{pspicture}(-1,-.3)(6,5)%
+%
+\psset{xunit=1.5cm,yunit=1.5cm,runit=1.5cm}
+\pscustom[linewidth=2pt,fillstyle=solid,fillcolor=mediumaquamarine]{%
+%  \pscurve[linecolor=red](0,0)(1,2.25)(2,3)(4,3.5)
+%  \pscurve[linecolor=green,liftpen=1](4.5,2.75)(2,2)(1,0)
+  \pscurve[linecolor=red](0.1,0)(1,2.25)(2,3)(4,3.5)
+  \pscurve[linecolor=green,liftpen=1](4.5,2.75)(3.5,2.6)(2.5,2.25)
+  \pscurve[liftpen=1](2.5,2.25)(2.5,1.5)(1.5,1.25)
+  \pscurve[liftpen=1](1.5,1.25)(1.25,.75)(1.1,0)
+}
+% \psbezier[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(2,3)(4,4)(5,4)
+% \psbezier[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(2,3)(4,4)(4,4)(5,4)(5,4)(2,1)(1,0)%
+% \pscurve[fillstyle=solid,fillcolor=mediumaquamarine](1,0)(2,2)(5,4)
+% \pspolygon[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(2.5,3)(4,4)(5,4)(2.5,1)(1,0)
+% \pspolygon[fillstyle=solid,fillcolor=mediumaquamarine](0,0)(1,0)(5,4)(4,4)
+%\rput(5,2){\makebox(0,0)[l]{\smallss liner}}
+%\psline[linewidth=1.pt]{->}(5,2.)(2.6,2)
+%
+\pscircle[fillstyle=solid,fillcolor=blue](0.1,0){4pt}
+\rput(-.2,.3){\makebox(0,0)[r]{\smallss Start point}}
+%
+\pscircle[fillstyle=solid,fillcolor=blue](1.1,0){4pt}
+\rput(1.4,.3){\makebox(0,0)[l]{\smallss End point}}
+%
+%\rput(4,4){\qdisk(0,0){4pt}\makebox(0,0)[r]{\smallss Point 2}}
+%\rput(5,4){\qdisk(0,0){4pt}\makebox(0,0)[l]{\smallss Point 3}}
+%\rput(1,0){\qdisk(0,0){4pt}\makebox(0,0)[l]{\smallss Point 4}}
+%
+\psline[linewidth=2.pt]{->}(-1,0)(5,0)
+\rput(2.,-.2){\makebox(0,0)[l]{\smallss axis of revolution}}
+%
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]%
+\end{pspicture}
+\end{center}
+\caption{The free-form liner cross-section is defined by a set of sub-curves that are joined
+together to form a piecewise smooth curve.}
+\label{fig:freeFormLiner}
+\end{figure}
+}
+
+
+The free-form liner makes use of a {\em Nurbs Curve Builder} to build a free form curve.
+A NURBS is a generalized type of spline (non-uniform rational B-spline).
+The free form curve is a built from a set of smooth sub-curves that are joined together.
+The global curve is allowed to have corners where the sub-curves meet. 
+
+The basic steps in building a free form curve are (see the example in section~\ref{sec:exampleFreeForm})
+\begin{itemize}
+  \item interactively choose (or manually input) a collection of points in the two-dimensional plane
+        that will be used to form the sub-curves. If you have a lot of points to input you may want
+        to manually edit one of the example command files.
+  \item select a sub-set of the points to form a smooth sub-curve. The sub-curve will be created
+        by interpolating the chosen points. Repeat this process for each sub-curve.
+  \item Choose {\em assemble} to join the sub-curves into a single piecewise smooth curve.
+        Note: even if only one sub-curve is built it is necessary to choose {\em assemble}.
+\end{itemize}
+
+Note that any points created on the axis of revolution should be placed exactly at $y=0$. It may be
+necessary to manually enter these points or to edit and change the values in the command file
+if the point was created interactively.
+
+For further information on the {\em Nurbs Curve Builder} see the Appendix~\ref{app:NurbsCurveBuilder}.
+
+\clearpage
+\section{Building the volume of revolution from the cross-section curve}
+
+The \cmd{revolve around axis} button on the {\em Liner Builder Dialog}
+is used to build a surface of revolution from the liner cross-section
+curve.  At the same time a triangulation covering the surface will be
+created. This triangulation is used for the rapid determination of
+whether a point is inside or outside the surface.
+
+Geometric properties of the linear are computed from the triangulation.
+These properties are printed to the screen and include the enclosed
+volume, center of mass and the moments of inertia matrix (computed
+assuming a uniform density throughout the liner). 
+
+The triangulation should be automatically generated although sometimes errors may occur.
+Errors in generating the triangulation most commonly occur when the ends of the 
+cross-section curve do not exactly touch the axis of revolution.
+
+
+\section{Loading a liner with spheres}
+
+The current specification for loading the liner volume with spheres is just an initial
+attempt. A more sophisticated approach is envisioned for the future.
+
+Currently the basic steps to fill the liner volume with spheres are
+\begin{enumerate}
+  \item specify a list of $N$ values, $R_i$,  indicating the radii of the spheres. 
+  \item specify a list of $N$ values, $P_i$, indicating the probability that a sphere will radius $R_i$
+            will appear.
+  \item Specify the fraction of the volume that should be occupied by the spheres.
+\end{enumerate}
+
+Choosing the \cmd{fill liner spheres} button will cause the sphere loading algorithm to be 
+called. The current algorithm is rather primitive and can be slow even for moderate volume
+fractions. An improved algorithm is under development.
+
+
+
+\clearpage
+\section{Lighting curves - specifying the velocity of each particle}\label{sec:lighting}
+
+{
+%  ------------------ lighting curves --------------------
+\psset{xunit=1.5cm,yunit=1.5cm,runit=1.5cm}
+\begin{figure}
+\begin{center}
+\begin{pspicture}(-1.5,0)(6,5)%
+%
+\pscustom[linewidth=1.5pt,fillstyle=solid,fillcolor=lightgray]{%
+  \pscurve(0,0)(1,2.25)(2,3)(4,3.5)%
+  \pscurve[liftpen=1](4.5,2.75)(2,2)(1,0)}%
+%
+\psline[linewidth=2.5pt,linecolor=blue]{-}(.5,0)(3.5,4.5)%
+\pscircle[fillstyle=solid,fillcolor=blue](.5,0){4pt}%
+\rput(.5,-.35){\makebox(0,0)[c]{\largess {\bfss C}(0)}}%
+\pscircle[fillstyle=solid,fillcolor=blue](3.5,4.5){4pt}%
+\rput(3.5,4.85){\makebox(0,0)[c]{\largess {\bfss C}(1)}}%
+%
+\pscircle[fillstyle=solid,fillcolor=red](3.5,3){7pt}%
+% \psline[linewidth=2.pt]{-}(.5,0)(3.5,4.5)%
+%
+\psline[linewidth=1.5pt,linecolor=green]{-}(2,4)(5,2)%
+% \psline[linewidth=1pt,linecolor=black]{-}(2,4)(5,2)%
+%
+\rput(1.75,3.5){\makebox(0,0)[r]{\largess {\bfss C}(s)}}%
+\psline[linewidth=1.5pt]{->}(1.8,3.5)(2.7,3.48)%
+\pscircle[fillstyle=solid,fillcolor=black](2.79,3.48){4pt}%
+%
+\rput(4.6,2.5){\makebox(0,0)[l]{\Largess\red {\bfss v}=U(s) {\bfss n}(s)}}%
+\rput(.01,.01){\psline[linewidth=2.5pt,linecolor=red]{->}(3.5,3)(4.4,2.4)}
+%
+% mark the right angle: (2.75,3.5) --> (2.45,3.7)
+\psline[linewidth=1.5pt]{-}(2.45,3.7)(2.65,4.0)
+\psline[linewidth=1.5pt]{-}(2.65,4.0)(2.95,3.8)
+%
+\psline[linewidth=2.pt]{->}(-1,0)(5,0)
+% \rput(2.,-.5){\makebox(0,0)[l]{\smallss axis of revolution}}
+%
+\rput(2.7,.75){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\largess lighting curve}}
+\psline[linewidth=1.5pt]{->}(1.75,.75)(1,.75)
+%
+\rput(-.8,2){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\largess liner}}
+\psline[linewidth=1.5pt]{->}(-.5,2.)(1,1.5)
+%
+\rput(5.25,4){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\largess particle}}
+\psline[linewidth=1.5pt]{->}(5.2,3.8)(3.5,3)
+%
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]%
+\end{pspicture}
+\end{center}
+\caption{The lighting curve is $\xv=\Cv(s)$, $s\in[0,1]$. The lighting speed is $U(s)$.
+   Any particle which lies along the normal, $\nv(s)$  to the point $\Cv(s)$ is given a 
+speed $U(s)$ and direction equal to the normal to $\Cv(s)$.}
+\label{fig:lightingCurve}
+\end{figure}
+% -------------------- end lighting curves ----------------
+}
+
+
+Lighting curves are used to assign velocities to the particles in the liner. 
+These curves are used to model the effect of the actual detonation hitting the liner material.
+There are three lighting functions, the {\em lighting curve} $\Cv(s)$, the {\em lighting speed} $U(s)$
+and the {\em lighting time} $T(s)$. 
+
+Figure~\ref{fig:lightingCurve} shows how the lighting curves are used to assign
+a velocity to the particles in the liner volume. Let $\xv=\Cv(s)$, $s\in[0,1]$,
+denote the lighting curve. Let $U(s)$ , $s\in[0,1]$, denote the lighting speed.
+
+To determine the velocity of a particle at position $\pv$, first determine
+the value of $s$ such that the line normal to the lighting curve at the point $\Cv(s)$
+intersects the point $\pv$. 
+Denoting the normal to $\Cv(s)$ by $\nv(s)$, then the velocity
+for the particle at the point $\pv$ is $\uv=U(s)\nv(s)$. 
+
+
+An additional {\em lighting time} curve, $T(s)$, defines when each particle begins to move.
+For the particle at position $\pv$, the velocity would be zero for $t<T(s)$ and would equal
+$U(s)\nv(s)$ for $t>T(s)$.
+
+
+The lighting curves $\Cv(s)$, $U(s)$ and $T(s)$ are given default values. Each of these
+curves can be edited by choosing one of the buttons labeled \cmd{lighting curve}, \cmd{lighting speed},
+or \cmd{lighting time}. The curve editor is the 
+the {\em Nurbs Curve Builder}, the same that is used to define a free form curve (section~\ref{sec:freeForm}).
+The {\em Nurbs Curve Builder} is described in Appendix~\ref{app:NurbsCurveBuilder}.
+
+
+{\bf NOTE:} The lighting speed, $U(s)$ and the lighting curve $T(s)$
+are really scalar valued functions of the parameter s; In other words,
+ $U$ is a mapping from the unit interval onto the real numbers, $U : [0,1] \rightarrow
+\Real$. However, to make it convenient to graphically edit these
+functions, these two lighting functions are represented as
+parameterized curves.  Thus $U(s)$ becomes the curve
+$\Uv(\xi)=(x_u(\xi),y_u(\xi))$ for $\xi \in [0,1]$, while $T(s)$
+becomes $\Tv(\eta)=(x_t(\eta),y_t(\eta))$ for $\eta \in [0,1]$.  Of
+course it only makes sense that the parameterized curves $\Uv(\xi)$
+and $\Tv(\eta)$ be singled values functions of $\xi$ and $\eta$.
+Given a point $\Cv(s)$, in order to compute $U(s)$ is is necessary to relate $s$ to the
+parameter value $\xi$ of the curve $\Uv(\xi)=(x_u(\xi),y_u(\xi))$.
+This is done by finding $\xi$ such that $x_u(\xi)=s$ and then $U(s)=y_u(\xi)$. In other words,
+the ``$x$'' coordinate of the parameterized curves corresponds to $s$.
+Written compactly this
+becomes $U(s)=y_u(x_u^{-1}(s))$.
+Similarly the value of the lighting time equals $T(s) = y_t(x_t^{-1}(s))$.
+
+In summary here is the algorithm for specifying the velocity of a particle that is located at the
+point $\pv$:
+\begin{enumerate}
+ \item Find $s,\alpha$ such that $\Cv(s)+\alpha\nv(s)=\pv$. Here 
+$\Cv(s)$ should be the closest point on the curve to $\pv$ while $\nv(s)$ is the normal to
+the curve at $\Cv(s)$. 
+  \item Compute the speed $U(s) = y_u(x_u^{-1}(s))$ where $\Uv(\xi)=(x_u(\xi),y_u(\xi))$
+  is the parameterized lighting speed curve.
+  \item Compute the speed $T(s) = y_t(x_t^{-1}(s))$ where $\Tv(\eta)=(x_u(\eta),y_u(\eta))$
+  is the parameterized lighting time curve.
+\end{enumerate}
+
+
+
+% --------------- start the appendix ----------------------------------
+\appendix
+\clearpage
+\section{Appendix: The Nurbs Curve Builder}\label{app:NurbsCurveBuilder}
+\input NurbsCurveBuilder.tex
+
+
+
+
+\clearpage
+% \section{Appendix: Mouse and button commands}
+% \section{Mouse, Button and View Characteristics of the Graphics Window}
+\section{Appendix: Features of the Overture Graphical User Interface}
+\label{app:mouseButtons}
+\input mouseAndButtons.tex
+
+
+\vfill\eject
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}

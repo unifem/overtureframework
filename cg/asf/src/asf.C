@@ -1,0 +1,1981 @@
+// This file automatically generated from asf.bC with bpp.
+#include "Cgasf.h"
+#include "AsfParameters.h"
+#include "MappedGridOperators.h"
+#include "interpPoints.h"
+#include "Chemkin.h"
+#include "ParallelUtility.h"
+
+// Macros for extracting local arrays
+
+
+// ==================================
+//  All speed flow algorithm
+// ==================================
+
+
+// This macro is used to loop over the boundaries
+#define ForBoundary(side,axis)   for( axis=0; axis<c.numberOfDimensions(); axis++ ) for( side=0; side<=1; side++ )
+
+#define asfdt EXTERN_C_NAME(asfdt)
+extern "C"
+{
+  void asfdt(const int&nd,
+          	    const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,
+          	    const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+          	    const int&nd4a,const int&nd4b,
+          	    const int&mask, const real& xy, const real& rx, 
+          	    const real& u, const real& uu, real&ut, real&uti, 
+                        const real& rhoL, const real& pL,
+                        const real&gv, const real & dw, const int&bc, const int&ipar, const real&rpar, const int&ierr );
+}
+
+
+
+#define U(c)     u(I1,I2,I3,c)   
+#define UU(c)   uu(I1,I2,I3,c)
+#define UX(c)   ux(I1,I2,I3,c)
+#define UY(c)   uy(I1,I2,I3,c)
+#define UZ(c)   uz(I1,I2,I3,c)
+#define UXX(c) uxx(I1,I2,I3,c)
+#define UXY(c) uxy(I1,I2,I3,c)
+#define UXZ(c) uxz(I1,I2,I3,c)
+#define UYY(c) uyy(I1,I2,I3,c)
+#define UYZ(c) uyz(I1,I2,I3,c)
+#define UZZ(c) uzz(I1,I2,I3,c)
+
+void Cgasf::
+computeSource(const Index & I1,
+            	      const Index & I2, 
+            	      const Index & I3, 
+            	      const realArray & v, 
+                            const realArray & s1_, 
+            	      const realArray & s2_, 
+            	      const realArray & gamma_, 
+            	      const realArray & cp_, 
+            	      const realArray & r_ )
+// ===============================================================================================
+// r : R = \sum Y_i/mbar_i
+// g = gamma = cp/cv = cp/(cp-R) = 1/(1-R/cp)
+// /s1 (output) : $s1 = \sum R_i \sigma_i$
+// /s2 (output) : s2 = sum h_i*sigma_i
+// /gamma (output) : gamma = cp/cv
+// /cp (output) : cp
+// /r (output) : r = sum R_i Y_i
+// ===============================================================================================
+{
+#ifdef USE_PPP
+        Overture::abort("Error- fix this Bill");
+#else
+  // cast away const:
+    realArray & s1 = (realArray &) s1_;
+    realArray & s2 = (realArray &) s2_;
+    realArray & gamma = (realArray &) gamma_;
+    realArray & cp = (realArray &) cp_;
+    realArray & r  = (realArray &) r_;
+    
+  // const int & rc = parameters.dbase.get<int >("rc");
+  // const int & uc = parameters.dbase.get<int >("uc");
+  // const int & vc = parameters.dbase.get<int >("vc");
+  // const int & wc = parameters.dbase.get<int >("wc");
+    const int & pc = parameters.dbase.get<int >("pc");
+    const int & tc = parameters.dbase.get<int >("tc");
+    const int & sc = parameters.dbase.get<int >("sc");
+    const int & numberOfSpecies = parameters.dbase.get<int >("numberOfSpecies");
+
+    Range S0(0,numberOfSpecies-1);
+    Range S(sc,sc+numberOfSpecies-1);
+    realArray hi(I1,I2,I3,S0), cpi(I1,I2,I3,S0), sigma(I1,I2,I3,S0);
+
+    assert( parameters.dbase.get<Reactions* >("reactions")!=NULL );
+    Reactions & reactions = *(parameters.dbase.get<Reactions* >("reactions"));
+    
+//  reactions.chemicalSource(v(I1,I2,I3,rc),v(I1,I2,I3,tc), v(I1,I2,I3,S), sigma(I1,I2,I3,S0));
+//  reactions.sigmaFromScaledPTY(v(I1,I2,I3,pc),v(I1,I2,I3,tc), v(I1,I2,I3,S), sigma(I1,I2,I3,S0));
+        reactions.sigmaFromPTY(v(I1,I2,I3,pc),v(I1,I2,I3,tc), v(I1,I2,I3,S), sigma(I1,I2,I3,S0)); // 991018
+    
+    realArray teUnscaled(I1,I2,I3);
+    teUnscaled=v(I1,I2,I3,tc)*parameters.dbase.get<real >("te0"); // unscaled temperature
+    
+    reactions.cp( teUnscaled,cpi);
+    reactions.h ( teUnscaled,hi);
+    
+    MaterialProperties & mp = reactions.mp;
+    s1=0.; s2=0.;  cp=0.; r=0.; 
+    for( int s=0; s<numberOfSpecies; s++ )
+    {
+        real RuOverMbar = mp.R/reactions.mw(s);
+
+        s1(I1,I2,I3)+=RuOverMbar*sigma(I1,I2,I3,s);        // s1 = sum R_u * sigma_i/mbar_i
+        s2(I1,I2,I3)+=hi(I1,I2,I3,s)*sigma(I1,I2,I3,s);      // s2 = sum h_i*sigma_i
+        cp(I1,I2,I3)+=cpi(I1,I2,I3,s)*v(I1,I2,I3,s+sc);      // cp = sum cp_i * Y_i 
+
+        r(I1,I2,I3)+=v(I1,I2,I3,s+sc)*RuOverMbar;          // this is R:
+    }
+    gamma(I1,I2,I3)=cp(I1,I2,I3)/(cp(I1,I2,I3)-r(I1,I2,I3));  // gamma = cp/cv = cp/(cp-R)
+
+  // nondimensionalize:
+    cp*=1./(parameters.dbase.get<real >("R0"));
+    r *=1./(parameters.dbase.get<real >("R0"));
+    
+    s1*=parameters.dbase.get<real >("l0")/(parameters.dbase.get<real >("rho0")*parameters.dbase.get<real >("u0")*parameters.dbase.get<real >("R0"));
+    s2*=parameters.dbase.get<real >("l0")/(parameters.dbase.get<real >("rho0")*parameters.dbase.get<real >("u0")*parameters.dbase.get<real >("R0")*parameters.dbase.get<real >("te0"));
+
+#endif
+}
+
+
+#define AD2(kd) (  (ad21 + cd22*    ( fabs(UX(uc))+fabs(UY(uc))    +fabs(UX(vc))+fabs(UY(vc)) ) )    *(u(I1+1,I2,I3,kd)-4.*u(I1,I2,I3,kd)+u(I1-1,I2,I3,kd)    +u(I1,I2+1,I3,kd)                  +u(I1,I2-1,I3,kd))    )    
+//  ---3D:
+#define  AD23(kd)  (    (ad21 + cd22*    ( fabs(UX(uc))+fabs(UY(uc))+fabs(UZ(uc))    +fabs(UX(vc))+fabs(UY(vc))+fabs(UZ(vc))    +fabs(UX(wc))+fabs(UY(wc))+fabs(UZ(wc)) ) )    *(u(I1+1,I2,I3,kd)-6.*u(I1,I2,I3,kd)+u(I1-1,I2,I3,kd)    +u(I1,I2+1,I3,kd)                   +u(I1,I2-1,I3,kd)    +u(I1,I2,I3+1,kd)                   +u(I1,I2,I3-1,kd))    )
+                                              
+//  ---fourth-order artficial diffusion in 2D
+#define AD4(kd) (    (ad41 + cd42*    ( fabs(UX(uc))+fabs(UY(uc))    +fabs(UX(vc))+fabs(UY(vc)) ) )    *(   -u(I1+2,I2,I3,kd)-u(I1-2,I2,I3,kd)    -u(I1,I2+2,I3,kd)-u(I1,I2-2,I3,kd)    +4.*(u(I1+1,I2,I3,kd)+u(I1-1,I2,I3,kd)    +u(I1,I2+1,I3,kd)+u(I1,I2-1,I3,kd))    -12.*u(I1,I2,I3,kd) )    )
+//   ---fourth-order artficial diffusion in 3D
+#define AD43(kd) (    (ad41 + cd42*    ( fabs(UX(uc))+fabs(UY(uc))+fabs(UZ(uc))    +fabs(UX(vc))+fabs(UY(vc))+fabs(UZ(vc))    +fabs(UX(wc))+fabs(UY(wc))+fabs(UZ(wc)) ) )    *(   -u(I1+2,I2,I3,kd)-u(I1-2,I2,I3,kd)    -u(I1,I2+2,I3,kd)-u(I1,I2-2,I3,kd)    -u(I1,I2,I3+2,kd)-u(I1,I2,I3-2,kd)    +4.*(u(I1+1,I2,I3,kd)+u(I1-1,I2,I3,kd)    +u(I1,I2+1,I3,kd)+u(I1,I2-1,I3,kd)    +u(I1,I2,I3+1,kd)+u(I1,I2,I3-1,kd))    -18.*u(I1,I2,I3,kd) )    )
+
+int Cgasf::
+getUt(const realMappedGridFunction & v, 
+            const realMappedGridFunction & gridVelocity_,
+            realMappedGridFunction & dvdt, 
+            int iparam[], real rparam[],
+            realMappedGridFunction & dvdtImplicit /* = Overture::nullRealMappedGridFunction() */,
+            MappedGrid *pmg2 /* =NULL */,
+            const realMappedGridFunction *pGridVelocity2 /* = NULL */  )
+// =======================================================================================================
+// /Purpose:
+//    determine du/dt 
+// /Notes: The variable cImplicit should be set to zero for implicit timeStepping
+//
+// r_t + u*r_x + r*u_x = nuRho r_xx - nu4 *D4(r)
+// u_t + u*u_x + (1/r)p.x = nu u_xx - nu4 *D4(u)
+// p_t + u*p_x + gamma*p*u_x = - nu4 *D4(p)
+//
+// D4 = fourth-order undivided difference
+// pressure = (gamma-1)( E -.5 r*u^2 )
+// =======================================================================================================
+{ 
+    real cpu0=getCPU();
+
+    const int & explicitMethod = parameters.dbase.get<int >("explicitMethod");
+        
+
+    if( debug() & 2 && explicitMethod )
+    {
+        printF("Cgasf:getUT: explicitMethod=true\n");
+    }
+
+    const real & t=rparam[0];
+    real tForce   =rparam[1];
+    const real & tImplicit=rparam[2];
+    const int & grid = iparam[0];
+
+    AsfParameters & asfParameters = (AsfParameters &)parameters;
+    const AsfParameters::AlgorithmVariation & algorithmVariation = 
+                                    parameters.dbase.get<AsfParameters::AlgorithmVariation>("algorithmVariation");
+
+    const realArray & u = v;
+    Index I1,I2,I3;
+
+    const realArray & gridVelocity = gridVelocity_;
+    realArray & ut = dvdt;
+    realArray & uti = dvdtImplicit;
+
+    const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+    const int & rc = parameters.dbase.get<int >("rc");
+    const int & uc = parameters.dbase.get<int >("uc");
+    const int & vc = parameters.dbase.get<int >("vc");
+    const int & wc = parameters.dbase.get<int >("wc");
+    const int & pc = parameters.dbase.get<int >("pc");
+    const int & tc = parameters.dbase.get<int >("tc");
+    const int & sc = parameters.dbase.get<int >("sc");
+    const int & kc = parameters.dbase.get<int >("kc");
+    const int & computeReactions = parameters.dbase.get<bool >("computeReactions");
+  // const int & numberOfSpecies = parameters.dbase.get<int >("numberOfSpecies");
+    const bool & gridIsMoving = parameters.gridIsMoving(grid);
+
+    const Parameters::ImplicitMethod & implicitMethod = 
+                                      parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+    const Parameters::ImplicitOption & implicitOption = 
+                                      parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+    const int & linearizeImplicitMethod = parameters.dbase.get<int >("linearizeImplicitMethod");
+    
+  // const real & nu = parameters.dbase.get<real >("nu");
+    const real & mu = parameters.dbase.get<real >("mu");
+    const real & gamma = parameters.dbase.get<real >("gamma");
+    const real & kThermal = parameters.dbase.get<real >("kThermal");
+    const real & Rg = parameters.dbase.get<real >("Rg");
+  // const real & avr = parameters.dbase.get<real >("avr");
+    const real & pressureLevel = parameters.dbase.get<real >("pressureLevel");
+    const real & nuRho = parameters.dbase.get<real >("nuRho");
+    const real & anu = parameters.dbase.get<real >("anu");
+    const real & ad21 = parameters.dbase.get<real >("ad21");
+    const real & ad22 = parameters.dbase.get<real >("ad22");
+    const real & advectionCoefficient = parameters.dbase.get<real >("advectionCoefficient");  
+    const ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+    const Range & Rt = parameters.dbase.get<Range >("Rt");
+
+    const real implicitFactor = (parameters.getGridIsImplicit(grid) 
+                                                    && implicitMethod==Parameters::crankNicolson ) ? .5 : 1.;
+
+    MappedGrid & mg = *(v.getMappedGrid());
+    const int isRectangular=mg.isRectangular(); 
+
+    bool useOpt=true; // explicitMethod;
+    if( useOpt )
+    {
+        const bool & gridIsMoving = parameters.gridIsMoving(grid);
+
+        int useWhereMask=false; // **NOTE** for  moving grids we may need to evaluate at more points than just mask >0 
+
+        int *pMask;
+        if( pmg2!=NULL )
+        {
+      // only need to evaluate du/dt at mask>0 in this case -- we have the mask at the new time level
+            useWhereMask=true;
+#ifdef USE_PPP
+            pMask = pmg2->mask().getLocalArray().getDataPointer();
+#else
+            pMask = pmg2->mask().getDataPointer();
+#endif
+
+      // printf(" ***getUtINS: useWhereMask=%i \n",useWhereMask);
+        }
+        else
+        {
+#ifdef USE_PPP
+            pMask = mg.mask().getLocalArray().getDataPointer(); 
+#else
+            pMask = mg.mask().getDataPointer();
+#endif
+        }
+
+        real dx[3]={1.,1.,1.};
+        if( isRectangular )
+            mg.getDeltaX(dx);
+        else
+            mg.update(MappedGrid::THEinverseVertexDerivative);
+      
+        const int orderOfAccuracy=parameters.dbase.get<int >("orderOfAccuracy");
+        const int gridType= isRectangular ? 0 : 1;
+
+#ifdef USE_PPP
+        realSerialArray uLocal;  getLocalArrayWithGhostBoundaries(u,uLocal);
+#else
+        const realSerialArray & uLocal = u;
+#endif
+        const real *pu = u.getDataPointer();
+
+    // For now we need the center array for the axisymmetric case:
+        const realArray & xy = parameters.isAxisymmetric() ? mg.center() : u;
+        if( parameters.isAxisymmetric() ) 
+        {
+            assert( mg.center().getLength(0)>0 );
+        }
+        const realArray & rsxy = isRectangular ? u :  mg.inverseVertexDerivative();
+    // For non-moving grids u==uu, otherwise uu is a temp space to hold (u-gv)
+
+
+        const realArray & dw = parameters.dbase.get<realCompositeGridFunction* >("pDistanceToBoundary")==NULL ? u : 
+            (*parameters.dbase.get<realCompositeGridFunction* >("pDistanceToBoundary"))[grid];
+        
+
+#ifdef USE_PPP
+        const real *pxy = xy.getLocalArray().getDataPointer(); 
+        const real *prsxy = rsxy.getLocalArray().getDataPointer(); 
+        real *put = ut.getLocalArray().getDataPointer(); 
+        real *puti = uti.getLocalArray().getDataPointer(); 
+        const real *pgv = gridIsMoving ? gridVelocity.getLocalArray().getDataPointer() : pu;
+        const real *pdw = dw.getLocalArray().getDataPointer();
+
+    // prL/ppL points to the linearized rho/p (points to real rho/p if we don't linearize)
+        const real *prL = linearizeImplicitMethod ? rL()[grid].getLocalArray().getDataPointer() : 
+            &uLocal(uLocal.getBase(0),uLocal.getBase(1),uLocal.getBase(2),rc);
+        const real *ppL = linearizeImplicitMethod ? pL()[grid].getLocalArray().getDataPointer(): 
+            &uLocal(uLocal.getBase(0),uLocal.getBase(1),uLocal.getBase(2),pc);
+#else
+        const real *pxy = xy.getDataPointer(); 
+        const real *prsxy = rsxy.getDataPointer(); 
+        real *put = ut.getDataPointer(); 
+        real *puti = uti.getDataPointer(); 
+        const real *pgv = gridIsMoving ? gridVelocity.getDataPointer() : pu;
+        const real *pdw = dw.getDataPointer();
+
+        const real *prL = linearizeImplicitMethod ? rL()[grid].getDataPointer() : 
+            &uLocal(uLocal.getBase(0),uLocal.getBase(1),uLocal.getBase(2),rc);
+        const real *ppL = linearizeImplicitMethod ? pL()[grid].getDataPointer(): 
+            &uLocal(uLocal.getBase(0),uLocal.getBase(1),uLocal.getBase(2),pc);
+#endif 
+
+
+        getIndex(mg.gridIndexRange(),I1,I2,I3);  // *wdh* 030220  - evaluate du/dt here
+        
+        int includeGhost=1;
+        bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+
+        if( ok )
+        {
+
+            RealArray uw;  // this will hold u-gridVelocity in the moving grid case 
+            if( parameters.gridIsMoving(grid) )
+      	uw.redim(uLocal);
+
+            const RealArray & uuLocal = parameters.gridIsMoving(grid) ? uw : uLocal;
+            const real *puu = uuLocal.getDataPointer(); 
+
+
+            const int gridIsImplicit=parameters.getGridIsImplicit(grid);
+            const real adcPassiveScalar=1.; // coeff or linear artificial diffusion for the passive scalar ** add to params
+
+      // only apply fourth-order AD here if it is explicit
+            const bool useFourthOrderArtificialDiffusion = 
+                            parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion") &&
+             !parameters.dbase.get<bool >("useImplicitFourthArtificialDiffusion");
+
+            int viscoPlasticOption = 0; // not reall used yet
+            int ipar[] ={(int)viscoPlasticOption, // kkc 070131 XXX THIS IS WHERE THE VISCOPLASTIC OPTION WOULD BE TURNED ON!!
+                                      parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel"),
+                                      orderOfAccuracy,
+                                      rc,uc,vc,wc,tc,pc,kc,sc,
+               		   grid,
+               		   (int)parameters.gridIsMoving(grid),
+               		   useWhereMask,
+               		   (int)gridIsImplicit,
+               		   (int)parameters.dbase.get<int>("explicitMethod"),
+               		   (int)implicitMethod,
+               		   (int)implicitOption,
+               		   (int)parameters.isAxisymmetric(),
+               		   (int)parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion"),
+               		   (int)useFourthOrderArtificialDiffusion,
+               		   (int)parameters.dbase.get<bool >("advectPassiveScalar"),
+               		   gridType,
+                                      linearizeImplicitMethod }; //
+               		   
+            const real yEps=sqrt(REAL_EPSILON);  // tol for axisymmetric *** fix this ***
+            real rpar[]={mg.gridSpacing(0),mg.gridSpacing(1),mg.gridSpacing(2),
+               		   dx[0],dx[1],dx[2],
+               		   parameters.dbase.get<real >("ad21"),
+               		   parameters.dbase.get<real >("ad22"),
+               		   parameters.dbase.get<real >("ad41"),
+               		   parameters.dbase.get<real >("ad42"),
+               		   parameters.dbase.get<real >("nuPassiveScalar"),
+               		   adcPassiveScalar,
+               		   parameters.dbase.get<real >("ad21n"),
+               		   parameters.dbase.get<real >("ad22n"),
+               		   parameters.dbase.get<real >("ad41n"),
+               		   parameters.dbase.get<real >("ad42n"),
+               		   yEps,                    // 17
+               		   parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[0],
+               		   parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[1],
+               		   parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity")[2],
+               		   parameters.dbase.get<real >("mu"),
+               		   parameters.dbase.get<real >("kThermal"),
+               		   parameters.dbase.get<real >("gamma"),
+               		   parameters.dbase.get<real >("Rg"),
+               		   parameters.dbase.get<real >("nuRho"),
+                                      pressureLevel };
+
+            int ierr=0;
+
+            asfdt(mg.numberOfDimensions(),
+          	    I1.getBase(),I1.getBound(),
+          	    I2.getBase(),I2.getBound(),
+          	    I3.getBase(),I3.getBound(),
+          	    uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+          	    uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+          	    *pMask, *pxy, *prsxy,
+          	    *pu, *puu, *put, *puti,*prL,*ppL, *pgv, *pdw,
+          	    *mg.boundaryCondition().getDataPointer(), ipar[0], rpar[0], ierr );
+
+        
+        }
+    }
+    else
+    {
+    // -- old way --
+
+#ifdef USE_PPP
+        Overture::abort("Error- fix this Bill --> reactions ");
+#else
+
+        getIndex(mg.extendedIndexRange(),I1,I2,I3);
+
+        const real a43 = 4./3.;
+        const real a13 = 1./3.;
+
+    // if( debug() &1 ) printF("asf: algorithmVariation=%i, nuRho=%g\n",(int)algorithmVariation,nuRho);
+
+
+        assert( ( mu>0. && kThermal>0.) || ( mu==0. && kThermal==0.) );
+
+        Range N = parameters.dbase.get<Range >("Rt");
+
+        realArray uu(I1,I2,I3,parameters.dbase.get<Range >("Ru"));
+
+        MappedGridOperators & op = *(v.getOperators());
+
+        realArray ux(I1,I2,I3,N), uxx(I1,I2,I3,N), uy,uz;
+        op.derivative(MappedGridOperators::xDerivative ,u,ux ,I1,I2,I3,N);  
+        op.derivative(MappedGridOperators::xxDerivative,u,uxx,I1,I2,I3,N);  
+
+
+//  MappedGridOperators & operators = *(v.getOperators());
+//  operators.getDerivatives(v,I1,I2,I3,N);
+
+    // realArray & phi = get(WorkSpace::phi);
+        realArray phi(I1,I2,I3);
+
+        if( mg.numberOfDimensions()==1 )
+        {
+            if( parameters.isMovingGridProblem() )
+      	uu(I1,I2,I3,uc)=gridVelocity(I1,I2,I3,0)-advectionCoefficient*u(I1,I2,I3,uc);
+            else
+      	uu(I1,I2,I3,uc)=(-advectionCoefficient)*u(I1,I2,I3,uc);
+
+            ut(I1,I2,I3,rc)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,rc) -u(I1,I2,I3,rc)*ux(I1,I2,I3,uc) +nuRho*uxx(I1,I2,I3,rc);     
+            ut(I1,I2,I3,uc)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,uc);
+            ut(I1,I2,I3,pc)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,pc);
+            if( !parameters.dbase.get<bool >("computeReactions") )
+      	ut(I1,I2,I3,tc)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,tc)- (gamma-1.)*u(I1,I2,I3,tc)*(ux(I1,I2,I3,uc));
+            else
+      	ut(I1,I2,I3,tc)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,tc); // gamma term added later
+
+            if( mu>0. && !parameters.dbase.get<bool >("computeReactions") )
+            { // note that we assume that mu>0 iff kThermal>0
+      	ut(I1,I2,I3,uc)+=(mu/U(rc))*(a43*UXX(uc)); 
+      	phi(I1,I2,I3)=(4./3.)*mu*( SQR(ux(I1,I2,I3,uc)) );
+      	ut(I1,I2,I3,pc)+= ((gamma-1.)*kThermal*Rg)*(uxx(I1,I2,I3,tc))+  (gamma-1.)*phi(I1,I2,I3) ; 
+      	ut(I1,I2,I3,tc)+= ((gamma-1.)/u(I1,I2,I3,rc))*( kThermal*uxx(I1,I2,I3,tc)	+ (1./Rg)*phi(I1,I2,I3) );
+
+            }
+        
+            if( explicitMethod )
+            {  // explicit, add in "fast" terms
+      	ut(I1,I2,I3,uc)-=ux(I1,I2,I3,pc)/u(I1,I2,I3,rc);
+      	if( !parameters.dbase.get<bool >("computeReactions") )
+        	  ut(I1,I2,I3,pc)+=(-gamma)*(u(I1,I2,I3,pc)+pressureLevel)*ux(I1,I2,I3,uc);  // **** fix gamma for species
+            }
+            else if( linearizeImplicitMethod )
+            { // (rL,pL) contain the linearized state
+      	ut(I1,I2,I3,uc)+=ux(I1,I2,I3,pc)*(1./rL()[grid](I1,I2,I3)- 1./u(I1,I2,I3,rc)); // ***** ??? ****
+      	if( !parameters.dbase.get<bool >("computeReactions") )
+        	  ut(I1,I2,I3,pc)+=gamma*(pL()[grid](I1,I2,I3)-u(I1,I2,I3,pc))*ux(I1,I2,I3,uc);
+            }
+
+
+            if( computeReactions )
+            {
+      	assert( parameters.dbase.get<Reactions* >("reactions")!=NULL );
+      	Reactions & reactions = *(parameters.dbase.get<Reactions* >("reactions"));
+            
+	// first compute some thermodynamic quantities needed for the p and T equations
+      	realArray s1(I1,I2,I3), s2(I1,I2,I3), cp(I1,I2,I3), r(I1,I2,I3);
+      	computeSource( I1,I2,I3, u, s1,s2,gam()[grid](I1,I2,I3),cp,r );
+
+
+      	const real & R0 =parameters.dbase.get<real >("R0");
+      	const real & P0 =parameters.dbase.get<real >("pStatic")/parameters.dbase.get<real >("p0");    
+
+      	Index I1g,I2g,I3g;
+      	getIndex(mg.extendedIndexRange(),I1g,I2g,I3g,1); // include ghost points so we can compute derivatives
+
+      	const int & numberOfSpecies = parameters.dbase.get<int >("numberOfSpecies");
+      	Range S0(0,numberOfSpecies-1);
+      	Range S(sc,sc+numberOfSpecies-1);
+
+	// const realArray & x = moleFraction()(I1g,I2g,I3g,S0);    
+      	realArray x(I1g,I2g,I3g,S0);    
+
+      	Range Tn(0,numberOfSpecies+2 -1);
+	// realArray & tranCoeff = transportCoefficients();        // holds viscosity and diffusion coefficients
+      	realArray tranCoeff(I1g,I2g,I3g,Tn);
+
+      	const realArray & te = u(I1g,I2g,I3g,tc);  
+      	const realArray & pe = u(I1g,I2g,I3g,pc);
+            
+      	const int etac=0, lambdac=1;
+      	reactions.massFractionToMoleFraction(u(I1g,I2g,I3g,S),x);  
+      	reactions.viscosity(te,x,tranCoeff(I1g,I2g,I3g,etac) );  // uses mole fractions, eta is scaled
+
+      	reactions.thermalConductivity(te,x,tranCoeff(I1g,I2g,I3g,lambdac));
+
+      	reactions.diffusion(pe,te,x,tranCoeff(I1g,I2g,I3g,S0+2));
+
+	// transportCoefficients().getDerivatives(I1,I2,I3,Tn);
+      	realArray transportCoefficientsX(I1,I2,I3,Tn);
+      	op.derivative(MappedGridOperators::xDerivative ,tranCoeff,transportCoefficientsX ,I1,I2,I3,Tn); 
+
+//      realArray & transportCoefficientsX = get(WorkSpace::transportCoefficientsX);
+
+      	const RealArray & eta     = tranCoeff(I1,I2,I3,etac);
+      	const RealArray & etaX    = transportCoefficientsX(I1,I2,I3,etac);
+      	const RealArray & lambda  = tranCoeff(I1,I2,I3,lambdac);
+      	const RealArray & lambdaX = transportCoefficientsX(I1,I2,I3,lambdac);
+
+      	if( debug() & 4 )
+      	{
+        	  display(ut(I1,I2,I3,rc),"\n rho.t:",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(gam()[grid],"\ngamma:",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(x,"\nmole fractions:",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(eta,"\nviscosity eta:",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(lambda,"\nthermal conductivity, lambda:",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(lambdaX,"\nlambdaX:",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(evaluate(eta*cp/lambda),"\nPrandtl: eta/(lambda/cp) ",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(tranCoeff(I1,I2,I3,S0+2),"species diffusion coefficients:",parameters.dbase.get<FILE* >("debugFile"));
+
+        	  fprintf(parameters.dbase.get<FILE* >("debugFile")," ***** R0 =% e, P0=%e \n",R0,P0);
+        	  display(evaluate(s1*P0),"\ns1*P0 source term:",parameters.dbase.get<FILE* >("debugFile"));
+        	  display(evaluate(s2*P0),"\ns2*P0 source term:",parameters.dbase.get<FILE* >("debugFile"));
+      	}
+            
+
+
+	// *wdh* 991016 ut(I1,I2,I3,uc)+=eta*(a43*(UXX(uc)+etaX*ux(I1,I2,I3,uc)))/u(I1,I2,I3,rc);
+      	ut(I1,I2,I3,uc)+=(a43*(eta*UXX(uc)+etaX*ux(I1,I2,I3,uc)))/u(I1,I2,I3,rc);
+	// add phi term to T equation
+      	phi(I1,I2,I3)=(4./3.)*eta*( SQR(ux(I1,I2,I3,uc)) );
+      	if( reactions.getPressureIsConstant() )
+      	{
+	  // use cp version of the T equation
+        	  ut(I1,I2,I3,tc)+= (
+          	    lambda*uxx(I1,I2,I3,tc)+lambdaX*ux(I1,I2,I3,tc) //  *** + (1./P0)*phi(I1,I2,I3)  // **** more stuff here ***
+          	    )/( u(I1,I2,I3,rc)*cp(I1,I2,I3) );      
+      	}
+      	else
+      	{
+        	  ut(I1,I2,I3,tc)+= -(gam()[grid](I1,I2,I3)-1.)*u(I1,I2,I3,tc)*ux(I1,I2,I3,uc)
+          	    + (1./( (cp(I1,I2,I3)-r(I1,I2,I3))*u(I1,I2,I3,rc) ))*( 
+            	      lambda*uxx(I1,I2,I3,tc)+lambdaX*ux(I1,I2,I3,tc) + (1./P0)*phi(I1,I2,I3)   // **** more stuff here ***
+            	      );     
+      	}
+            
+
+
+      	if( FALSE && !( reactions.getPressureIsConstant()) )
+      	{
+        	  real pFactor=1.;
+        	  ut(I1,I2,I3,pc)+= P0*(
+                        pFactor*( gam()[grid](I1,I2,I3)*u(I1,I2,I3,tc)*s1(I1,I2,I3)-(gam()[grid](I1,I2,I3)-1.)*s2(I1,I2,I3) )
+	    //  + (gam()[grid](I1,I2,I3)-1.)*(lambda*uxx(I1,I2,I3,tc)+lambdaX*ux(I1,I2,I3,tc))   // more here ************
+          	    ) + (gam()[grid](I1,I2,I3)-1.)*phi(I1,I2,I3);
+      	}
+
+      	if( explicitMethod )
+      	{  // explicit, add in "fast" terms
+        	  ut(I1,I2,I3,pc)+=(-gam()[grid](I1,I2,I3))*(u(I1,I2,I3,pc)+pressureLevel)*ux(I1,I2,I3,uc);  // **** fix gamma for species
+      	}
+      	else if( linearizeImplicitMethod )
+      	{ // (rL,pL) contain the linearized state
+        	  ut(I1,I2,I3,pc)+=gam()[grid](I1,I2,I3)*(pL()[grid](I1,I2,I3)-u(I1,I2,I3,pc))*ux(I1,I2,I3,uc);
+      	}
+
+	// ***************************
+	// **** Species equations ****
+	// ***************************
+      	int s;
+      	for( s=sc; s<sc+numberOfSpecies; s++ )
+        	  ut(I1,I2,I3,s)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,s);
+
+      	
+	// diffusion (1/rho) \div ( b \grad X_s ) = a * \div\grad( X_s ) + (1\over rho) (\grad b) . (\grad X_s)
+
+      	realArray dCoeff(I1g,I2g,I3g,S0), dCoeffx(I1g,I2g,I3g,S0), molex(I1,I2,I3,S0), molexx(I1,I2,I3,S0);
+      	op.derivative(MappedGridOperators::xDerivative,dCoeff,dCoeffx ,I1,I2,I3,S0);
+      	op.derivative(MappedGridOperators::xDerivative,x,molex,I1,I2,I3,S0);
+      	op.derivative(MappedGridOperators::xxDerivative,x,molexx,I1,I2,I3,S0);
+
+      	dCoeff(I1g,I2g,I3g,S0) = u(I1g,I2g,I3g,S)*tranCoeff(I1g,I2g,I3g,S0+2)/x(I1g,I2g,I3g,S0); // Y_i D_i / X_i
+      	
+      	ut(I1,I2,I3,S)+=dCoeff(I1,I2,I3,S0)*molexx(I1,I2,I3,S0);
+
+      	for( s=0; s<numberOfSpecies; s++ )
+        	  dCoeff(I1g,I2g,I3g,s) *= u(I1g,I2g,I3g,rc);
+      	dCoeff(I1,I2,I3,S0) = dCoeffx(I1,I2,I3,S0);  // ( rho Y_i D_i / X_i ).x
+      	for( s=0; s<numberOfSpecies; s++ )
+        	  dCoeff(I1,I2,I3,s)/=u(I1,I2,I3,rc);
+      	
+      	ut(I1,I2,I3,S)+= dCoeff(I1,I2,I3,S0)*molex(I1,I2,I3,S0);
+
+//	ut(I1,I2,I3,s)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,s) 
+//	  + tranCoeff(I1,I2,I3,s-sc+2)*uxx(I1,I2,I3,s) + tranX(I1,I2,I3,s-sc+2)*ux(I1,I2,I3,s); // **** fix grad(X)
+            }
+            if( anu>0. )
+            { // add nonlinear artificial dissipation --- do these scale right??
+      	for( int n=Rt.getBase(); n<=Rt.getBound(); n++ )
+      	{
+        	  ut(I1,I2,I3,n)+= anu*(1.+fabs(ux(I1,I2,I3,n)))*(u(I1+1,I2,I3,n)+u(I1-1,I2,I3,n)-2.*u(I1,I2,I3,n));
+      	}
+            }
+
+
+        }  
+        else if( mg.numberOfDimensions()==2 )
+        {
+      // ****************************************
+      // ************* 2D ***********************
+      // ****************************************
+
+            uy.redim(I1,I2,I3,N);
+        
+            realArray uxy(I1,I2,I3,N), uyy(I1,I2,I3,N);
+            op.derivative(MappedGridOperators::yDerivative ,u,uy ,I1,I2,I3,N);  
+            op.derivative(MappedGridOperators::xyDerivative,u,uxy,I1,I2,I3,N);  
+            op.derivative(MappedGridOperators::yyDerivative,u,uyy,I1,I2,I3,N);  
+
+            const realArray & rho =  u(I1,I2,I3,rc);
+            const realArray & rhoInverse =  evaluate( 1./rho );
+            const realArray & u0  =   u(I1,I2,I3,uc);
+            const realArray & u0x =  ux(I1,I2,I3,uc);
+            const realArray & u0y =  uy(I1,I2,I3,uc);
+//  const realArray & u0xx= uxx(I1,I2,I3,uc);
+//  const realArray & u0yy= uyy(I1,I2,I3,uc);
+
+            const realArray & v0  =   u(I1,I2,I3,vc);
+            const realArray & v0x =  ux(I1,I2,I3,vc);
+            const realArray & v0y =  uy(I1,I2,I3,vc);
+
+            const realArray & te  =   u(I1,I2,I3,tc);
+            const realArray & div = evaluate( u0x+v0y );
+
+            if( gridIsMoving )
+            {
+      	uu(I1,I2,I3,uc)=gridVelocity(I1,I2,I3,0)-advectionCoefficient*u0;
+      	uu(I1,I2,I3,vc)=gridVelocity(I1,I2,I3,1)-advectionCoefficient*v0;
+            }
+            else
+            {
+      	uu(I1,I2,I3,uc)=(-advectionCoefficient)*u0;
+      	uu(I1,I2,I3,vc)=(-advectionCoefficient)*v0;
+            }
+
+            const realArray & ugv       =  uu(I1,I2,I3,uc);   // gridVelocity - u
+            const realArray & vgv       =  uu(I1,I2,I3,vc);
+
+            if( algorithmVariation==AsfParameters::defaultAlgorithm )
+            {
+      	ut(I1,I2,I3,rc)=uu(I1,I2,I3,uc)*ux(I1,I2,I3,rc)+uu(I1,I2,I3,vc)*uy(I1,I2,I3,rc)
+        	  -( u(I1,I2,I3,rc)*(ux(I1,I2,I3,uc)+uy(I1,I2,I3,vc)) );
+
+      	if( nuRho>0. )
+        	  ut(I1,I2,I3,rc)+=nuRho*(uxx(I1,I2,I3,rc)+uyy(I1,I2,I3,rc));
+            }
+            else
+            {
+      	ut(I1,I2,I3,rc)=div;  // save div **************************************************************
+            }
+        
+            ut(I1,I2,I3,uc)=ugv*u0x+vgv*u0y;
+            ut(I1,I2,I3,vc)=ugv*v0x+vgv*v0y;
+
+            ut(I1,I2,I3,pc)=ugv*ux(I1,I2,I3,pc)+vgv*uy(I1,I2,I3,pc);
+
+            ut(I1,I2,I3,tc)=ugv*ux(I1,I2,I3,tc)+vgv*uy(I1,I2,I3,tc) - (gamma-1.)*te*div;
+//    ut(I1,I2,I3,tc)=ugv*ux(I1,I2,I3,tc)+vgv*uy(I1,I2,I3,tc);
+
+        
+      // save   ut(rc) = div( \uv.t ) 
+//    ut(I1,I2,I3,rc)=ugv*(UXX(uc)+UXY(vc))+vgv*(UXY(uc)+UYY(vc))
+//        -( u0x*u0x +2.*v0x*u0y  +v0y*v0y );  // need to add div( mu ... )
+
+
+            if( mu>0. )
+            { // note that we assume that mu>0 iff kThermal>0
+      	const RealArray & muOverRho = evaluate( (implicitFactor*mu)*rhoInverse );
+      	const RealArray & phi =evaluate( (4./3.)*( SQR(u0x)-u0x*v0y +SQR(v0y) ) +SQR(v0x+u0y) );
+      	const RealArray & lapT = evaluate( (implicitFactor*(gamma-1.)*kThermal)*(uxx(I1,I2,I3,tc)+uyy(I1,I2,I3,tc)) );
+
+      	if( parameters.getGridIsImplicit(grid) && implicitOption==Parameters::computeImplicitTermsSeparately )
+      	{
+        	  uti(I1,I2,I3,uc)=muOverRho*(a43*UXX(uc)+UYY(uc)+a13*UXY(vc));
+        	  uti(I1,I2,I3,vc)=muOverRho*(UXX(vc)+a43*UYY(vc)+a13*UXY(uc)); 
+      	
+        	  uti(I1,I2,I3,tc)=rhoInverse*( lapT + ((gamma-1.)*mu/Rg)*phi );
+        	  uti(I1,I2,I3,pc)= Rg*lapT +((gamma-1.)*mu)*phi;
+      	}
+      	else
+      	{
+        	  ut(I1,I2,I3,uc)+=muOverRho*(a43*UXX(uc)+UYY(uc)+a13*UXY(vc));  // nu*(uxx(I1,I2,I3,uc)+uyy(I1,I2,I3,uc));
+        	  ut(I1,I2,I3,vc)+=muOverRho*(UXX(vc)+a43*UYY(vc)+a13*UXY(uc));  // nu*(uxx(I1,I2,I3,vc)+uyy(I1,I2,I3,vc));
+        	  ut(I1,I2,I3,tc)+=rhoInverse*( lapT + ((gamma-1.)*mu/Rg)*phi );
+        	  ut(I1,I2,I3,pc)+= Rg*lapT +((gamma-1.)*mu)*phi;
+      	}
+
+            }
+
+            if( parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion") && (ad21!=0. || ad22!=0.) )
+            { // --- add 2nd order artificial diffusion
+      	real cd22=ad22/SQR(mg.numberOfDimensions());
+      	ut(I1,I2,I3,uc)+=AD2(uc);
+      	ut(I1,I2,I3,vc)+=AD2(vc);
+            
+            }
+
+            if( anu>0. )
+            { // add nonlinear artificial dissipation --- do these scale right??
+      	for( int n=Rt.getBase(); n<=Rt.getBound(); n++ )
+      	{
+	  // skip rho except for the default algorithm
+        	  if( n==rc && algorithmVariation!=AsfParameters::defaultAlgorithm ) continue;
+        	  ut(I1,I2,I3,n)+= anu*(1.+fabs(ux(I1,I2,I3,n))+fabs(uy(I1,I2,I3,n)))
+          	    *(u(I1+1,I2,I3,n)+u(I1-1,I2,I3,n)+u(I1,I2+1,I3,n)+u(I1,I2-1,I3,n)-4.*u(I1,I2,I3,n));
+      	}
+            }
+        
+            if( explicitMethod )
+            {  // explicit, add in "fast" terms
+      	ut(I1,I2,I3,uc)-=ux(I1,I2,I3,pc)*rhoInverse;
+      	ut(I1,I2,I3,vc)-=uy(I1,I2,I3,pc)*rhoInverse;
+      	ut(I1,I2,I3,pc)+=(-gamma)*(u(I1,I2,I3,pc)+pressureLevel)*div;
+            }
+            else if( linearizeImplicitMethod )
+            {
+      	const RealArray & rhoInverseDiff = evaluate( 1./rL()[grid](I1,I2,I3)- rhoInverse );
+      	ut(I1,I2,I3,uc)+=ux(I1,I2,I3,pc)*rhoInverseDiff;
+      	ut(I1,I2,I3,vc)+=uy(I1,I2,I3,pc)*rhoInverseDiff;
+      	ut(I1,I2,I3,pc)+=gamma*(pL()[grid](I1,I2,I3)-u(I1,I2,I3,pc))*div;
+            }
+
+      // Species equations
+            if( parameters.dbase.get<int >("numberOfSpecies")>0 )
+            {
+      	int s;
+      	for( s=sc; s<sc+parameters.dbase.get<int >("numberOfSpecies"); s++ )
+      	{
+        	  ut(I1,I2,I3,s)=ugv*ux(I1,I2,I3,s)+vgv*uy(I1,I2,I3,s);
+      	}
+      	if( mu>0. )
+      	{
+	  // this is only approximate
+        	  real turbulentSchmidtNumber=.9;
+        	  const RealArray & muOverRho = evaluate( (turbulentSchmidtNumber*mu)*rhoInverse );
+        	  for( s=sc; s<sc+parameters.dbase.get<int >("numberOfSpecies"); s++ )
+        	  {
+          	    ut(I1,I2,I3,s)+=muOverRho*( UXX(sc) + UYY(sc) );
+        	  }
+            
+      	}
+            
+            }
+
+        }
+        else if( mg.numberOfDimensions()==3 )
+        {
+      // ***** 3D ******
+            uy.redim(I1,I2,I3,N);
+            uz.redim(I1,I2,I3,N);
+        
+            realArray uy(I1,I2,I3,N), uxy(I1,I2,I3,N), uyy(I1,I2,I3,N);
+            realArray uxz(I1,I2,I3,N), uyz(I1,I2,I3,N), uzz(I1,I2,I3,N);
+
+            op.derivative(MappedGridOperators::yDerivative ,u,uy ,I1,I2,I3,N);  
+            op.derivative(MappedGridOperators::xyDerivative,u,uxy,I1,I2,I3,N);  
+            op.derivative(MappedGridOperators::yyDerivative,u,uyy,I1,I2,I3,N);
+
+            op.derivative(MappedGridOperators::zDerivative ,u,uz ,I1,I2,I3,N);  
+            op.derivative(MappedGridOperators::xzDerivative,u,uxz,I1,I2,I3,N);  
+            op.derivative(MappedGridOperators::yzDerivative,u,uyz,I1,I2,I3,N); 
+            op.derivative(MappedGridOperators::zzDerivative,u,uzz,I1,I2,I3,N); 
+
+            const realArray & rho =  u(I1,I2,I3,rc);
+            const realArray & rhoInverse =  evaluate( 1./rho );
+            const realArray & u0  =  u(I1,I2,I3,uc);
+            const realArray & u0x = ux(I1,I2,I3,uc);
+            const realArray & u0y = uy(I1,I2,I3,uc);
+            const realArray & u0z = uz(I1,I2,I3,uc);
+
+            const realArray & v0  =  u(I1,I2,I3,vc);
+            const realArray & v0x = ux(I1,I2,I3,vc);
+            const realArray & v0y = uy(I1,I2,I3,vc);
+            const realArray & v0z = uz(I1,I2,I3,vc);
+
+            const realArray & w0  =  u(I1,I2,I3,wc);
+            const realArray & w0x = ux(I1,I2,I3,wc);
+            const realArray & w0y = uy(I1,I2,I3,wc);
+            const realArray & w0z = uz(I1,I2,I3,wc);
+
+            const realArray & te  =  u(I1,I2,I3,tc);
+            const realArray & t0x = ux(I1,I2,I3,tc);
+            const realArray & t0y = uy(I1,I2,I3,tc);
+            const realArray & t0z = uz(I1,I2,I3,tc);
+
+            const realArray & p0  =  u(I1,I2,I3,pc);
+            const realArray & p0x = ux(I1,I2,I3,pc);
+            const realArray & p0y = uy(I1,I2,I3,pc);
+            const realArray & p0z = uz(I1,I2,I3,pc);
+
+            const realArray & div = evaluate( u0x+v0y+w0z );
+
+            if( gridIsMoving )
+            {
+      	uu(I1,I2,I3,uc)=gridVelocity(I1,I2,I3,0)-advectionCoefficient*u0;
+      	uu(I1,I2,I3,vc)=gridVelocity(I1,I2,I3,1)-advectionCoefficient*v0;
+      	uu(I1,I2,I3,wc)=gridVelocity(I1,I2,I3,2)-advectionCoefficient*w0;
+            }
+            else
+            {
+      	uu(I1,I2,I3,uc)=(-advectionCoefficient)*u0;
+      	uu(I1,I2,I3,vc)=(-advectionCoefficient)*v0;
+      	uu(I1,I2,I3,wc)=(-advectionCoefficient)*w0;
+            }
+
+            const realArray & ugv = uu(I1,I2,I3,uc);   // gridVelocity - u
+            const realArray & vgv = uu(I1,I2,I3,vc);
+            const realArray & wgv = uu(I1,I2,I3,wc);
+
+            if( algorithmVariation==AsfParameters::defaultAlgorithm )
+            {
+      	ut(I1,I2,I3,rc)=   ugv*ux(I1,I2,I3,rc)
+                        	                  +vgv*uy(I1,I2,I3,rc)
+                        	                  +wgv*uz(I1,I2,I3,rc)
+                        	                  -u(I1,I2,I3,rc)*div; 
+      	if( nuRho>0. )
+        	  ut(I1,I2,I3,rc)+=nuRho*(uxx(I1,I2,I3,rc)+uyy(I1,I2,I3,rc)+uzz(I1,I2,I3,rc));     
+            }
+        
+            ut(I1,I2,I3,uc)=ugv*u0x+vgv*u0y+wgv*u0z;
+            ut(I1,I2,I3,vc)=ugv*v0x+vgv*v0y+wgv*v0z;
+            ut(I1,I2,I3,wc)=ugv*w0x+vgv*w0y+wgv*w0z;
+            ut(I1,I2,I3,pc)=ugv*p0x+vgv*p0y+wgv*p0z;
+            ut(I1,I2,I3,tc)=ugv*t0x+vgv*t0y+wgv*t0z  - (gamma-1.)*te*div;
+        
+            if( mu>0. )
+            { // note that we assume that mu>0 iff kThermal>0
+      	const RealArray & muOverRho = evaluate( (implicitFactor*mu)*rhoInverse );
+//	phi(I1,I2,I3)=mu*( a43*( UX(uc)*(UX(uc)-UY(vc)) + UY(vc)*(UY(vc)-UZ(wc))+SQR(UZ(wc)) )
+//			   +   2.*( UY(uc)*UX(vc)+UZ(uc)*UX(wc) + UZ(vc)*UY(wc))
+//			   + SQR(UY(uc))+SQR(UZ(uc))+SQR(UX(vc))
+//			   + SQR(UZ(vc))+SQR(UX(wc))+SQR(UY(wc)) );
+      	const RealArray & phi =evaluate( 
+        	  mu*( a43*( u0x*(u0x-v0y) + v0y*(v0y-w0z)+SQR(w0z) )
+             	       +   2.*( u0y*v0x+u0z*w0x + v0z*w0y)
+             	       + SQR(u0y)+SQR(u0z)+SQR(v0x) + SQR(v0z)+SQR(w0x)+SQR(w0y) ) );
+            
+      	const RealArray & lapT = evaluate( (implicitFactor*(gamma-1.)*kThermal)
+                                 					   *(uxx(I1,I2,I3,tc)+uyy(I1,I2,I3,tc)+uzz(I1,I2,I3,tc)) );
+
+      	if( parameters.getGridIsImplicit(grid) && implicitOption==Parameters::computeImplicitTermsSeparately )
+      	{
+        	  uti(I1,I2,I3,uc)=muOverRho*(a43*UXX(uc)+UYY(uc)+UZZ(uc)+a13*(UXY(vc)+UXZ(wc)));
+        	  uti(I1,I2,I3,vc)=muOverRho*(UXX(vc)+a43*UYY(vc)+UZZ(vc)+a13*(UXY(uc)+UYZ(wc)));
+        	  uti(I1,I2,I3,wc)=muOverRho*(UXX(wc)+UYY(wc)+a43*UZZ(wc)+a13*(UXZ(uc)+UYZ(vc)));
+        	  uti(I1,I2,I3,pc)=Rg*lapT +(gamma-1.)*phi;
+        	  uti(I1,I2,I3,tc)=rhoInverse*( lapT + ((gamma-1.)/Rg)*phi );
+      	}
+      	else
+      	{
+        	  ut(I1,I2,I3,uc)+=muOverRho*(a43*UXX(uc)+UYY(uc)+UZZ(uc)+a13*(UXY(vc)+UXZ(wc)));
+        	  ut(I1,I2,I3,vc)+=muOverRho*(UXX(vc)+a43*UYY(vc)+UZZ(vc)+a13*(UXY(uc)+UYZ(wc)));
+        	  ut(I1,I2,I3,wc)+=muOverRho*(UXX(wc)+UYY(wc)+a43*UZZ(wc)+a13*(UXZ(uc)+UYZ(vc)));
+        	  ut(I1,I2,I3,pc)+=Rg*lapT +(gamma-1.)*phi;
+        	  ut(I1,I2,I3,tc)+=rhoInverse*( lapT + ((gamma-1.)/Rg)*phi );
+      	}
+            
+            }
+
+            if( anu>0. )
+            { // add nonlinear artificial dissipation --- do these scale right??
+      	for( int n=Rt.getBase(); n<=Rt.getBound(); n++ )
+      	{
+        	  ut(I1,I2,I3,n)+= anu*(1.+fabs(ux(I1,I2,I3,n))+fabs(uy(I1,I2,I3,n))+fabs(uz(I1,I2,I3,n)))
+          	    *(u(I1+1,I2,I3,n)+u(I1-1,I2,I3,n)
+            	      +u(I1,I2+1,I3,n)+u(I1,I2-1,I3,n)
+            	      +u(I1,I2,I3+1,n)+u(I1,I2,I3-1,n) -6.*u(I1,I2,I3,n));
+      	}
+            }
+        
+            if( explicitMethod )
+            {  // explicit, add in "fast" terms
+      	ut(I1,I2,I3,uc)-=ux(I1,I2,I3,pc)*rhoInverse;
+      	ut(I1,I2,I3,vc)-=uy(I1,I2,I3,pc)*rhoInverse;
+      	ut(I1,I2,I3,wc)-=uz(I1,I2,I3,pc)*rhoInverse;
+      	ut(I1,I2,I3,pc)+=(-gamma)*(u(I1,I2,I3,pc)+pressureLevel)*div;
+            }
+            else if( linearizeImplicitMethod )
+            {
+      	const RealArray & rhoInverseDiff = evaluate( 1./rL()[grid](I1,I2,I3)- rhoInverse );
+      	ut(I1,I2,I3,uc)+=ux(I1,I2,I3,pc)*rhoInverseDiff;
+      	ut(I1,I2,I3,vc)+=uy(I1,I2,I3,pc)*rhoInverseDiff;
+      	ut(I1,I2,I3,wc)+=uz(I1,I2,I3,pc)*rhoInverseDiff;
+      	ut(I1,I2,I3,pc)+=gamma*(pL()[grid](I1,I2,I3)-u(I1,I2,I3,pc))*div;
+            }
+        }
+    
+    // add gravity if it is on.
+        int axis;
+        for( axis=0; axis<mg.numberOfDimensions(); axis++ )
+        {
+            if( gravity[axis]!=0. )
+      	ut(I1,I2,I3,uc+axis)+= gravity[axis];
+        }
+        
+
+    // add 4th order dissipation 
+        if( FALSE && parameters.dbase.get<real >("ad41")>0. )
+        {
+            real nu4=parameters.dbase.get<real >("ad41");                              // *********************************
+            for( int n=0; n<numberOfComponents; n++ )    
+      	ut(I1,I2,I3,n)+= nu4*(-6.*u(I1,I2,I3,n)+4.*(u(I1-1,I2,I3,n)+u(I1+1,I2,I3,n))
+                        			      -((u(I1-2,I2,I3,n)+u(I1+2,I2,I3,n))));
+            if( mg.numberOfDimensions()>1 )
+            {
+      	for( int n=0; n<numberOfComponents; n++ )    
+        	  ut(I1,I2,I3,n)+= nu4*(-6.*u(I1,I2,I3,n)+4.*(u(I1,I2-1,I3,n)+u(I1,I2+1,I3,n))
+                        				-((u(I1,I2-2,I3,n)+u(I1,I2+2,I3,n))));
+            }
+            if( mg.numberOfDimensions()>2 )
+            {
+      	for( int n=0; n<numberOfComponents; n++ )    
+        	  ut(I1,I2,I3,n)+= nu4*(-6.*u(I1,I2,I3,n)+4.*(u(I1,I2,I3-1,n)+u(I1,I2,I3+1,n))
+                        				-((u(I1,I2,I3-2,n)+u(I1,I2,I3+2,n))));
+            }
+        }
+
+    // ----- special boundary conditions  ------
+        mg.update(MappedGrid::THEvertexBoundaryNormal);
+    
+        for( axis=0; axis<mg.numberOfDimensions(); axis++ )
+        {
+            for( int side=0; side<=1; side++ )
+            {
+      	if( mg.boundaryCondition(side,axis)==AsfParameters::convectiveOutflow )
+      	{
+        	  printf("**** asf: apply convectiveOutflow BC ***** \n");
+      	
+        	  const realArray & normal = mg.vertexBoundaryNormal(side,axis);
+      	
+        	  real uNormal=.5;
+
+        	  getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+        	  if( mg.numberOfDimensions()==1 )
+        	  {
+          	    for( int n=0; n<numberOfComponents; n++ )  
+            	      ut(I1,I2,I3,n)=(-uNormal)*normal(I1,I2,I3,0)*ux(I1,I2,I3,n);
+        	  }
+        	  else if( mg.numberOfDimensions()==2 )
+        	  {
+          	    for( int n=0; n<numberOfComponents; n++ )  
+            	      ut(I1,I2,I3,n)=(-uNormal)*(normal(I1,I2,I3,0)*ux(I1,I2,I3,n)+normal(I1,I2,I3,1)*uy(I1,I2,I3,n));
+        	  }
+        	  else if( mg.numberOfDimensions()==3 )
+        	  {
+          	    for( int n=0; n<numberOfComponents; n++ )  
+            	      ut(I1,I2,I3,n)=(-uNormal)*(normal(I1,I2,I3,0)*ux(I1,I2,I3,n)+normal(I1,I2,I3,1)*uy(I1,I2,I3,n)+
+                               					 normal(I1,I2,I3,2)*uz(I1,I2,I3,n));
+        	  }
+      	}
+            }
+        }
+#endif    
+    }
+    
+
+    if( useOpt )  // ********* fix this ************************
+    {
+    // ----- special boundary conditions  ------
+
+        bool isRectangular=false;  // do this for now so   -- fix this below --
+          
+        mg.update(MappedGrid::THEvertexBoundaryNormal);
+        Range N = parameters.dbase.get<Range >("Rt");
+        MappedGridOperators & op = *(v.getOperators());
+    
+        #ifdef USE_PPP
+            realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        #else
+            const realSerialArray & uLocal=u;
+        #endif
+        #ifdef USE_PPP
+            realSerialArray utLocal; getLocalArrayWithGhostBoundaries(ut,utLocal);
+        #else
+            const realSerialArray & utLocal=ut;
+        #endif
+        
+        for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+        {
+            for( int side=0; side<=1; side++ )
+            {
+      	if( mg.boundaryCondition(side,axis)==AsfParameters::convectiveOutflow )
+      	{
+        	  if( debug() & 4 ) printF("**** asf: apply convectiveOutflow BC ***** \n");
+      	
+        	  getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                    int includeGhost=1;
+                    bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+        	  if( !ok ) continue;
+
+        	  #ifdef USE_PPP
+                        const realSerialArray & normal = !isRectangular ? mg.vertexBoundaryNormalArray(side,axis) : uLocal; 
+                    #else
+                        const realArray & normal  = !isRectangular ? mg.vertexBoundaryNormal(side,axis) : uLocal;
+                    #endif
+        
+        	  real uNormal=.5;
+
+
+        	  RealArray ux(I1,I2,I3,N);
+        	  if( mg.numberOfDimensions()==1 )
+        	  {
+          	    op.derivative(MappedGridOperators::xDerivative ,uLocal,ux ,I1,I2,I3,N);
+          	    for( int n=0; n<numberOfComponents; n++ )  
+            	      utLocal(I1,I2,I3,n)=(-uNormal)*normal(I1,I2,I3,0)*ux(I1,I2,I3,n);
+        	  }
+        	  else if( mg.numberOfDimensions()==2 )
+        	  {
+          	    RealArray uy(I1,I2,I3,N);
+          	    op.derivative(MappedGridOperators::xDerivative ,uLocal,ux ,I1,I2,I3,N);
+          	    op.derivative(MappedGridOperators::yDerivative ,uLocal,uy ,I1,I2,I3,N);
+          	    for( int n=0; n<numberOfComponents; n++ )  
+            	      utLocal(I1,I2,I3,n)=(-uNormal)*(normal(I1,I2,I3,0)*ux(I1,I2,I3,n)+normal(I1,I2,I3,1)*uy(I1,I2,I3,n));
+        	  }
+        	  else if( mg.numberOfDimensions()==3 )
+        	  {
+          	    RealArray uy(I1,I2,I3,N),uz(I1,I2,I3,N);
+          	    op.derivative(MappedGridOperators::xDerivative ,uLocal,ux ,I1,I2,I3,N);
+          	    op.derivative(MappedGridOperators::yDerivative ,uLocal,uy ,I1,I2,I3,N);
+          	    op.derivative(MappedGridOperators::zDerivative ,uLocal,uz ,I1,I2,I3,N);
+          	    for( int n=0; n<numberOfComponents; n++ )  
+            	      utLocal(I1,I2,I3,n)=(-uNormal)*(normal(I1,I2,I3,0)*ux(I1,I2,I3,n)+
+                                                                                            normal(I1,I2,I3,1)*uy(I1,I2,I3,n)+
+                                      		  			      normal(I1,I2,I3,2)*uz(I1,I2,I3,n));
+        	  }
+      	}
+            }
+        }
+    }
+    
+    if( debug() & 8 )
+    {
+        display(ut,sPrintF("Cgasf:getUt:done: ut for grid=%i t=%9.3e",grid,t),parameters.dbase.get<FILE* >("debugFile")) ;
+    }
+    
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForGetUt"))+=getCPU()-cpu0;
+    addForcing(dvdt,v,iparam,rparam,dvdtImplicit);
+
+    return 0;
+}
+
+#undef U   
+#undef UU  
+#undef UX  
+#undef UY  
+#undef UZ  
+#undef UXX 
+#undef UXY 
+#undef UXZ 
+#undef UYY 
+#undef UYZ 
+#undef UZZ 
+
+
+
+
+
+  
+
+real Cgasf::
+maxMachNumber( realMappedGridFunction & u )
+// determine the maximum Mach number
+{
+    const int & rc = parameters.dbase.get<int >("rc");
+    const int & uc = parameters.dbase.get<int >("uc");
+    const int & vc = parameters.dbase.get<int >("vc");
+    const int & wc = parameters.dbase.get<int >("wc");
+    const int & pc = parameters.dbase.get<int >("pc");
+    real & pressureLevel = parameters.dbase.get<real >("pressureLevel");
+    real & gamma         = parameters.dbase.get<real >("gamma");
+    
+
+    Index I1,I2,I3;
+    MappedGrid & mg = *u.getMappedGrid();
+    getIndex(mg.gridIndexRange(),I1,I2,I3);
+    
+    #ifdef USE_PPP
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+    #else
+        const realSerialArray & uLocal=u;
+    #endif
+    #ifdef USE_PPP
+        intSerialArray maskLocal; getLocalArrayWithGhostBoundaries(mg.mask(),maskLocal);
+    #else
+        const intSerialArray & maskLocal=mg.mask();
+    #endif
+
+    int includeGhost=1;
+    bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+
+    real machSq=0., minRho=REAL_MAX;
+    if( ok )
+    {
+        if( mg.numberOfDimensions()==1 )
+        {
+            where( maskLocal(I1,I2,I3)>0 )
+            {
+      	machSq=max( (SQR(uLocal(I1,I2,I3,uc)))
+                		    /(gamma*(uLocal(I1,I2,I3,pc)+pressureLevel)/uLocal(I1,I2,I3,rc)) );
+      	minRho=min(uLocal(I1,I2,I3,rc));
+            }
+        }
+        else if( mg.numberOfDimensions()==2 )
+        {
+            where( maskLocal(I1,I2,I3)>0 )
+            {
+      	machSq=max( (SQR(uLocal(I1,I2,I3,uc))+SQR(uLocal(I1,I2,I3,vc)))
+                		    /(gamma*(uLocal(I1,I2,I3,pc)+pressureLevel)/uLocal(I1,I2,I3,rc)) );
+      	minRho=min(uLocal(I1,I2,I3,rc));
+            }
+        }
+        else
+        {
+            where( maskLocal(I1,I2,I3)>0 )
+            {
+      	machSq=max( (SQR(uLocal(I1,I2,I3,uc))+SQR(uLocal(I1,I2,I3,vc))+SQR(uLocal(I1,I2,I3,wc)))
+                		    /(gamma*(uLocal(I1,I2,I3,pc)+pressureLevel)/uLocal(I1,I2,I3,rc)) );
+      	minRho=min(uLocal(I1,I2,I3,rc));
+            }
+        }
+    }
+
+    machSq=ParallelUtility::getMaxValue(machSq);
+    minRho=ParallelUtility::getMinValue(minRho);
+    
+    if( minRho<1.e-2 )
+    {
+        cout << "maxMachNumber:ERROR min(rho) is small, = " << minRho << endl;
+        u.display("Here is u");
+        throw "error";
+    }
+    if( machSq<0. )
+    {
+        cout << "maxMachNumber:ERROR mach^2 < 0. = " << machSq << endl;
+        printF(" gamma=%e, pressureLevel=%e\n",gamma,pressureLevel);
+        
+        display(u,"Here is u");
+        throw "error";
+    }
+    
+    return sqrt(machSq);
+}
+
+
+
+
+
+#undef RX
+
+// These defines are for twilight-zone flow
+#define R(t)   e   (mg,I1,I2,I3,rc,t)
+#define RT(t)  e.t (mg,I1,I2,I3,rc,t)
+#define RX(t)  e.x (mg,I1,I2,I3,rc,t)
+#define RY(t)  e.y (mg,I1,I2,I3,rc,t)
+#define RZ(t)  e.z (mg,I1,I2,I3,rc,t)
+#define RXX(t) e.xx(mg,I1,I2,I3,rc,t)
+#define RYY(t) e.yy(mg,I1,I2,I3,rc,t)
+#define RZZ(t) e.zz(mg,I1,I2,I3,rc,t)
+
+#define U(t)   e   (mg,I1,I2,I3,uc,t)
+#define UT(t)  e.t (mg,I1,I2,I3,uc,t)
+#define UX(t)  e.x (mg,I1,I2,I3,uc,t)
+#define UY(t)  e.y (mg,I1,I2,I3,uc,t)
+#define UZ(t)  e.z (mg,I1,I2,I3,uc,t)
+#define UXX(t) e.xx(mg,I1,I2,I3,uc,t)
+#define UXY(t) e.xy(mg,I1,I2,I3,uc,t)
+#define UXZ(t) e.xz(mg,I1,I2,I3,uc,t)
+#define UYY(t) e.yy(mg,I1,I2,I3,uc,t)
+#define UYZ(t) e.yz(mg,I1,I2,I3,uc,t)
+#define UZZ(t) e.zz(mg,I1,I2,I3,uc,t)
+
+#define V(t)   e   (mg,I1,I2,I3,vc,t)
+#define VT(t)  e.t (mg,I1,I2,I3,vc,t)
+#define VX(t)  e.x (mg,I1,I2,I3,vc,t)
+#define VY(t)  e.y (mg,I1,I2,I3,vc,t)
+#define VZ(t)  e.z (mg,I1,I2,I3,vc,t)
+#define VXX(t) e.xx(mg,I1,I2,I3,vc,t)
+#define VXY(t) e.xy(mg,I1,I2,I3,vc,t)
+#define VXZ(t) e.xz(mg,I1,I2,I3,vc,t)
+#define VYY(t) e.yy(mg,I1,I2,I3,vc,t)
+#define VYZ(t) e.yz(mg,I1,I2,I3,vc,t)
+#define VZZ(t) e.zz(mg,I1,I2,I3,vc,t)
+
+#define W(t)   e   (mg,I1,I2,I3,wc,t)
+#define WT(t)  e.t (mg,I1,I2,I3,wc,t)
+#define WX(t)  e.x (mg,I1,I2,I3,wc,t)
+#define WY(t)  e.y (mg,I1,I2,I3,wc,t)
+#define WZ(t)  e.z (mg,I1,I2,I3,wc,t)
+#define WXX(t) e.xx(mg,I1,I2,I3,wc,t)
+#define WXY(t) e.xy(mg,I1,I2,I3,wc,t)
+#define WXZ(t) e.xz(mg,I1,I2,I3,wc,t)
+#define WYY(t) e.yy(mg,I1,I2,I3,wc,t)
+#define WYZ(t) e.yz(mg,I1,I2,I3,wc,t)
+#define WZZ(t) e.zz(mg,I1,I2,I3,wc,t)
+
+#define P(t)   (e  (mg,I1,I2,I3,pc,t)+pressureLevel)
+#define PT(t)  e.t (mg,I1,I2,I3,pc,t)
+#define PX(t)  e.x (mg,I1,I2,I3,pc,t)
+#define PY(t)  e.y (mg,I1,I2,I3,pc,t)
+#define PZ(t)  e.z (mg,I1,I2,I3,pc,t)
+#define PXX(t) e.xx(mg,I1,I2,I3,pc,t)
+#define PXY(t) e.xy(mg,I1,I2,I3,pc,t)
+#define PXZ(t) e.xz(mg,I1,I2,I3,pc,t)
+#define PYY(t) e.yy(mg,I1,I2,I3,pc,t)
+#define PYZ(t) e.yz(mg,I1,I2,I3,pc,t)
+#define PZZ(t) e.zz(mg,I1,I2,I3,pc,t)
+
+#define T(t)   e   (mg,I1,I2,I3,tc,t)
+#define TT(t)  e.t (mg,I1,I2,I3,tc,t)
+#define TX(t)  e.x (mg,I1,I2,I3,tc,t)
+#define TY(t)  e.y (mg,I1,I2,I3,tc,t)
+#define TZ(t)  e.z (mg,I1,I2,I3,tc,t)
+#define TXX(t) e.xx(mg,I1,I2,I3,tc,t)
+#define TXY(t) e.xy(mg,I1,I2,I3,tc,t)
+#define TXZ(t) e.xz(mg,I1,I2,I3,tc,t)
+#define TYY(t) e.yy(mg,I1,I2,I3,tc,t)
+#define TYZ(t) e.yz(mg,I1,I2,I3,tc,t)
+#define TZZ(t) e.zz(mg,I1,I2,I3,tc,t)
+
+#define S(t,s)   e   (mg,I1,I2,I3,s,t)
+#define ST(t,s)  e.t (mg,I1,I2,I3,s,t)
+#define SX(t,s)  e.x (mg,I1,I2,I3,s,t)
+#define SY(t,s)  e.y (mg,I1,I2,I3,s,t)
+#define SZ(t,s)  e.z (mg,I1,I2,I3,s,t)
+#define SXX(t,s) e.xx(mg,I1,I2,I3,s,t)
+#define SXY(t,s) e.xy(mg,I1,I2,I3,s,t)
+#define SXZ(t,s) e.xz(mg,I1,I2,I3,s,t)
+#define SYY(t,s) e.yy(mg,I1,I2,I3,s,t)
+#define SYZ(t,s) e.yz(mg,I1,I2,I3,s,t)
+#define SZZ(t,s) e.zz(mg,I1,I2,I3,s,t)
+
+#define E(t)   e    (mg,I1,I2,I3,ec,t)
+#define ET(t)  e.t (mg,I1,I2,I3,ec,t)
+#define EX(t)  e.x (mg,I1,I2,I3,ec,t)
+#define EXX(t) e.xx(mg,I1,I2,I3,ec,t)
+
+void Cgasf::
+addForcing(realMappedGridFunction & dvdt, const realMappedGridFunction & u,
+         	   int iparam[], real rparam[],
+         	   realMappedGridFunction & dvdtImplicit /* = Overture::nullRealMappedGridFunction() */,
+                      realMappedGridFunction *referenceFrameVelocity /* =NULL */ )
+{
+    real time0=getCPU();
+
+  // add any user defined forcing:
+  // userDefinedForcing( dvdt, u, iparam, rparam );
+   // --- Add on any user defined forcing ---
+    if( parameters.dbase.get<bool >("turnOnBodyForcing") )
+    {
+        OV_ABORT("ERROR: finish me");
+    }
+    
+
+  // *wdh* 081207 MappedGrid & mg = *dvdt.getMappedGrid();
+    MappedGrid & mg = *u.getMappedGrid();   // use this for moving grid cases since dvdt may not have the correct grid
+
+    const int numberOfDimensions = mg.numberOfDimensions();
+  // const real & t0=rparam[0];
+    real t         =rparam[1];          // this is really tForce
+    const real & tImplicit=rparam[2];
+    const int & grid = iparam[0];
+    AsfParameters & asfParameters = (AsfParameters &)parameters;
+    const AsfParameters::AlgorithmVariation & algorithmVariation = 
+                      parameters.dbase.get<AsfParameters::AlgorithmVariation>("algorithmVariation");
+
+    const Parameters::ImplicitMethod & implicitMethod = 
+                                      parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+    const Parameters::ImplicitOption & implicitOption = 
+                                      parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+    const int & linearizeImplicitMethod = parameters.dbase.get<int >("linearizeImplicitMethod");
+    const int & explicitMethod = parameters.dbase.get<int >("explicitMethod");
+
+    if( parameters.dbase.get<bool >("twilightZoneFlow") )
+    {
+    // const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+        const int & rc = parameters.dbase.get<int >("rc");
+        const int & uc = parameters.dbase.get<int >("uc");
+        const int & vc = parameters.dbase.get<int >("vc");
+        const int & wc = parameters.dbase.get<int >("wc");
+        const int & pc = parameters.dbase.get<int >("pc");
+        const int & tc = parameters.dbase.get<int >("tc");
+        const int & sc = parameters.dbase.get<int >("sc");
+        const int & computeReactions = parameters.dbase.get<bool >("computeReactions");
+        const int & numberOfSpecies = parameters.dbase.get<int >("numberOfSpecies");
+
+        const real & mu = parameters.dbase.get<real >("mu");
+        const real & gamma = parameters.dbase.get<real >("gamma");
+        const real & kThermal = parameters.dbase.get<real >("kThermal");
+        const real & Rg = parameters.dbase.get<real >("Rg");
+    // const real & avr = parameters.dbase.get<real >("avr");
+        const real & pressureLevel = parameters.dbase.get<real >("pressureLevel");
+        const real & nuRho = parameters.dbase.get<real >("nuRho");
+    // const real & nu = parameters.dbase.get<real >("nu");
+    // const real & anu = parameters.dbase.get<real >("anu");
+    // const real & advectionCoefficient = parameters.dbase.get<real >("advectionCoefficient");
+
+        const real implicitFactor = (parameters.getGridIsImplicit(grid) 
+                         				 && implicitMethod==Parameters::crankNicolson ) ? .5 : 1.;
+
+        realArray & ut = dvdt;
+        realArray & uti = dvdtImplicit;
+      	
+        const real a43 = 4./3.;
+        const real a13 = 1./3.;
+
+
+        OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+
+
+        #ifdef USE_PPP
+            realSerialArray utLocal; getLocalArrayWithGhostBoundaries(ut,utLocal);
+        #else
+            const realSerialArray & utLocal=ut;
+        #endif
+        
+        Index I1,I2,I3;
+        getIndex(mg.extendedIndexRange(),I1,I2,I3);
+        
+        int includeGhost=1;
+        bool ok=ParallelUtility::getLocalArrayBounds(ut,utLocal,I1,I2,I3,includeGhost);
+        if( !ok ) return;
+
+        #ifdef USE_PPP
+            realSerialArray utiLocal; getLocalArrayWithGhostBoundaries(uti,utiLocal);
+        #else
+            const realSerialArray & utiLocal=uti;
+        #endif
+
+    // ut0 equal ut or uti (if implicit)
+        const RealArray & ut0 = (parameters.getGridIsImplicit(grid) 
+                   		       && implicitOption==Parameters::computeImplicitTermsSeparately) ? utiLocal : utLocal;
+
+        const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
+
+        if( !isRectangular )
+            mg.update(MappedGrid::THEcenter);
+
+        realArray & x= mg.center();
+        #ifdef USE_PPP
+            realSerialArray xLocal; 
+            if( !isRectangular ) 
+                getLocalArrayWithGhostBoundaries(x,xLocal);
+        #else
+            const realSerialArray & xLocal = x;
+        #endif
+
+        if( mg.numberOfDimensions()==1 )
+        {
+            realSerialArray r0(I1,I2,I3),r0t(I1,I2,I3),r0x(I1,I2,I3);
+            
+            realSerialArray u0(I1,I2,I3),u0t(I1,I2,I3),u0x(I1,I2,I3);
+            realSerialArray v0(I1,I2,I3),v0t(I1,I2,I3),v0x(I1,I2,I3);
+            realSerialArray t0(I1,I2,I3),t0t(I1,I2,I3),t0x(I1,I2,I3);
+            realSerialArray p0(I1,I2,I3),p0t(I1,I2,I3),p0x(I1,I2,I3);
+      	
+
+            e.gd( r0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,rc,t);
+            e.gd( r0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,rc,t);
+            e.gd( r0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,rc,t);
+
+            e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,uc,t);
+            e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t);
+            e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+
+            e.gd( v0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,vc,t);
+            e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t);
+            e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+
+            e.gd( p0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t);
+            p0+=pressureLevel;
+            e.gd( p0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,pc,t);
+            e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+
+            e.gd( t0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,tc,t);
+            e.gd( t0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,tc,t);
+            e.gd( t0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,tc,t);
+
+            RealArray r0i(I1,I2,I3); r0i=1./r0;
+
+            if( algorithmVariation==AsfParameters::defaultAlgorithm )
+            {
+                realSerialArray r0xx(I1,I2,I3);
+                e.gd( r0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,rc,t);
+                utLocal(I1,I2,I3,rc)+=r0t +u0*r0x+r0*u0x - nuRho*r0xx;
+            }
+            
+            utLocal(I1,I2,I3,uc)+=u0t +u0*u0x;
+            utLocal(I1,I2,I3,pc)+=p0t +u0*p0x;
+            utLocal(I1,I2,I3,tc)+=t0t +u0*t0x + (gamma-1.)*t0*u0x;
+            if( mu>0. )
+            { // note that we assume that mu>0 iff kThermal>0
+      	realSerialArray u0xx(I1,I2,I3);
+      	realSerialArray v0xx(I1,I2,I3);
+      	realSerialArray t0xx(I1,I2,I3);
+
+      	e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+      	e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+      	e.gd( t0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,tc,t);
+
+                utLocal(I1,I2,I3,uc)-=(implicitFactor*mu*r0i)*(a43*u0xx); 
+      	RealArray phi(I1,I2,I3); phi=(4./3.)*( SQR(u0x) );
+      	utLocal(I1,I2,I3,pc)-= (implicitFactor*(gamma-1.)*kThermal*Rg)*t0xx+  (gamma-1.)*phi;
+      	utLocal(I1,I2,I3,tc)-= ((gamma-1.)*r0i)*( implicitFactor*kThermal*t0xx+ (1./Rg)*phi );
+
+            }
+            if( explicitMethod )
+            {
+                utLocal(I1,I2,I3,uc)+=p0x*r0i;
+                utLocal(I1,I2,I3,pc)+=gamma*p0*u0x;
+            }
+            else if( linearizeImplicitMethod )
+            { // linearize the implicit method
+                #ifdef USE_PPP
+                    realSerialArray rLLocal; getLocalArrayWithGhostBoundaries(rL()[grid],rLLocal);
+                #else
+                    const realSerialArray & rLLocal=rL()[grid];
+                #endif
+                #ifdef USE_PPP
+                    realSerialArray pLLocal; getLocalArrayWithGhostBoundaries(pL()[grid],pLLocal);
+                #else
+                    const realSerialArray & pLLocal=pL()[grid];
+                #endif
+
+                RealArray rhoInverseDiff(I1,I2,I3);  rhoInverseDiff = r0i - 1./rLLocal(I1,I2,I3);
+                utLocal(I1,I2,I3,uc)+=p0x*rhoInverseDiff;
+                utLocal(I1,I2,I3,pc)+=gamma*(p0-pLLocal(I1,I2,I3)-pressureLevel)*u0x;
+
+            }
+
+            if( computeReactions )
+            {
+                realSerialArray s0(I1,I2,I3),s0t(I1,I2,I3),s0x(I1,I2,I3),s0xx(I1,I2,I3);
+      	for( int s=sc; s<sc+numberOfSpecies; s++ )
+      	{
+                
+        	  e.gd( s0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,s,t);
+        	  e.gd( s0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,s,t);
+        	  e.gd( s0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,s,t);
+        	  e.gd( s0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,s,t);
+        	  
+        	  utLocal(I1,I2,I3,s)+=s0t + u0*s0x -mu*s0xx; // ********** this should not use mu *************
+      	}
+            }
+
+
+        }
+        else if( mg.numberOfDimensions()==2 )
+        {
+            realSerialArray r0(I1,I2,I3),r0t(I1,I2,I3),r0x(I1,I2,I3),r0y(I1,I2,I3);
+            realSerialArray u0(I1,I2,I3),u0t(I1,I2,I3),u0x(I1,I2,I3),u0y(I1,I2,I3);
+            realSerialArray v0(I1,I2,I3),v0t(I1,I2,I3),v0x(I1,I2,I3),v0y(I1,I2,I3);
+            realSerialArray t0(I1,I2,I3),t0t(I1,I2,I3),t0x(I1,I2,I3),t0y(I1,I2,I3);
+            realSerialArray p0(I1,I2,I3),p0t(I1,I2,I3),p0x(I1,I2,I3),p0y(I1,I2,I3);
+      	
+
+            e.gd( r0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,rc,t);
+            e.gd( r0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,rc,t);
+            e.gd( r0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,rc,t);
+            e.gd( r0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,rc,t);
+
+            e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,uc,t);
+            e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t);
+            e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+            e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+
+            e.gd( v0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,vc,t);
+            e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t);
+            e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+            e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+
+            e.gd( p0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t); 
+            p0+=pressureLevel;
+            e.gd( p0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,pc,t);
+            e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+            e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+            e.gd( t0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,tc,t);
+            e.gd( t0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,tc,t);
+            e.gd( t0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,tc,t);
+            e.gd( t0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,tc,t);
+
+            RealArray r0i(I1,I2,I3); r0i=1./r0;
+            RealArray div(I1,I2,I3); div=u0x+v0y;
+
+            if( algorithmVariation==AsfParameters::defaultAlgorithm )
+            {
+                realSerialArray r0xx(I1,I2,I3),r0yy(I1,I2,I3);
+                e.gd( r0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,rc,t);
+                e.gd( r0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,rc,t);
+                utLocal(I1,I2,I3,rc)+=r0t +u0*r0x+v0*r0y+r0*div -nuRho*(r0xx+r0yy);
+            }
+            
+            utLocal(I1,I2,I3,uc)+=u0t +u0*u0x+v0*u0y;
+            utLocal(I1,I2,I3,vc)+=v0t +u0*v0x+v0*v0y;
+      // -- do we need only need to add forcing to p for explicit ??
+            utLocal(I1,I2,I3,pc)+=p0t +u0*p0x+v0*p0y;
+            utLocal(I1,I2,I3,tc)+=t0t +u0*t0x+v0*t0y + (gamma-1.)*t0*div;
+
+            if( mu>0. )
+            {
+      	realSerialArray u0xx(I1,I2,I3),u0xy(I1,I2,I3),u0yy(I1,I2,I3);
+      	realSerialArray v0xx(I1,I2,I3),v0xy(I1,I2,I3),v0yy(I1,I2,I3);
+      	realSerialArray t0xx(I1,I2,I3),               t0yy(I1,I2,I3);
+
+      	e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+      	e.gd( u0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,uc,t);
+      	e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+
+      	e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+      	e.gd( v0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,vc,t);
+      	e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+
+      	e.gd( t0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,tc,t);
+      	e.gd( t0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,tc,t);
+
+                RealArray muOverRho(I1,I2,I3);  muOverRho= (implicitFactor*mu)*r0i;
+                RealArray lapT(I1,I2,I3);       lapT = (implicitFactor*kThermal*(gamma-1))*(t0xx+t0yy);
+      	RealArray phi(I1,I2,I3);        phi = mu*( ( 4./3.)*( SQR(u0x)-u0x*v0y+SQR(v0y) ) +SQR(v0x+u0y) );
+
+      	ut0(I1,I2,I3,uc)-=muOverRho*(a43*u0xx+u0yy+a13*v0xy); 
+      	ut0(I1,I2,I3,vc)-=muOverRho*(v0xx+a43*v0yy+a13*u0xy); 
+      	ut0(I1,I2,I3,pc)-=Rg*lapT +(gamma-1.)*phi;
+      	ut0(I1,I2,I3,tc)-=r0i*( lapT +((gamma-1.)/Rg)*phi ); 
+
+            }
+
+            if( explicitMethod )
+            {
+                utLocal(I1,I2,I3,uc)+=p0x*r0i;
+                utLocal(I1,I2,I3,vc)+=p0y*r0i;
+                utLocal(I1,I2,I3,pc)+=gamma*p0*div;
+            }
+            else if( linearizeImplicitMethod )
+            { // linearize the implicit method
+                #ifdef USE_PPP
+                    realSerialArray rLLocal; getLocalArrayWithGhostBoundaries(rL()[grid],rLLocal);
+                #else
+                    const realSerialArray & rLLocal=rL()[grid];
+                #endif
+                #ifdef USE_PPP
+                    realSerialArray pLLocal; getLocalArrayWithGhostBoundaries(pL()[grid],pLLocal);
+                #else
+                    const realSerialArray & pLLocal=pL()[grid];
+                #endif
+
+                RealArray rhoInverseDiff(I1,I2,I3);  rhoInverseDiff = r0i - 1./rLLocal(I1,I2,I3);
+                utLocal(I1,I2,I3,uc)+=p0x*rhoInverseDiff;
+                utLocal(I1,I2,I3,vc)+=p0y*rhoInverseDiff;
+                utLocal(I1,I2,I3,pc)+=gamma*(p0-pLLocal(I1,I2,I3)-pressureLevel)*div;
+            }
+
+        }
+        else if( mg.numberOfDimensions()==3 )
+        {
+            if( false )
+            {
+#ifdef USE_PPP
+                Overture::abort("error");
+#else
+      	const RealArray & rho = R(t);
+      	const RealArray & u0  = U(t);
+      	const RealArray & u0x = UX(t);
+      	const RealArray & u0y = UY(t);
+      	const RealArray & u0z = UZ(t);
+
+      	const RealArray & v0  = V(t);
+      	const RealArray & v0x = VX(t);
+      	const RealArray & v0y = VY(t);
+      	const RealArray & v0z = VZ(t);
+
+      	const RealArray & p0  = P(t);
+      	const RealArray & p0x = PX(t);
+      	const RealArray & p0y = PY(t); 
+      	const RealArray & p0z = PZ(t); 
+          
+      	const RealArray & te  = T(t);
+      	const RealArray & t0x = TX(t);
+      	const RealArray & t0y = TY(t);
+      	const RealArray & t0z = TZ(t);
+
+      	const RealArray & w0  = W(t);
+      	const RealArray & w0x = WX(t);
+      	const RealArray & w0y = WY(t); 
+      	const RealArray & w0z = WZ(t); 
+          
+      	const RealArray & rhoInverse = evaluate(1./rho);
+      	const RealArray & div = evaluate(u0x+v0y+w0z);
+
+      	if( algorithmVariation==AsfParameters::densityFromGasLawAlgorithm )
+        	  ut(I1,I2,I3,rc)+=RT(t) +u0*RX(t)+v0*RY(t)+R(t)*(u0x+v0y) -nuRho*(RXX(t)+RYY(t));
+
+      	ut(I1,I2,I3,uc)+=UT(t) +u0*u0x +v0*u0y +w0*u0z;
+      	ut(I1,I2,I3,vc)+=VT(t) +u0*v0x +v0*v0y +w0*v0z;
+      	ut(I1,I2,I3,wc)+=WT(t) +u0*w0x +v0*w0y +w0*w0z;
+      	ut(I1,I2,I3,tc)+=TT(t) +u0*t0x +v0*t0y +w0*t0z + (gamma-1.)*te*div;
+      	ut(I1,I2,I3,pc)+=PT(t) +u0*p0x +v0*p0y +w0*p0z;
+      	if( mu>0. )
+      	{
+        	  const RealArray & muOverRho = evaluate( (implicitFactor*mu)*rhoInverse );
+      	
+        	  ut0(I1,I2,I3,uc)-=muOverRho*(a43*UXX(t)+UYY(t)+UZZ(t)+a13*(VXY(t)+WXZ(t)));
+        	  ut0(I1,I2,I3,vc)-=muOverRho*(VXX(t)+a43*VYY(t)+VZZ(t)+a13*(UXY(t)+WYZ(t)));
+        	  ut0(I1,I2,I3,wc)-=muOverRho*(WXX(t)+WYY(t)+a43*WZZ(t)+a13*(UXZ(t)+VYZ(t)));
+
+        	  const RealArray & phi= evaluate(
+          	    mu*( a43*( u0x*(u0x-v0y) + v0y*(v0y-w0z)+SQR(w0z) )
+             		 +   2.*( u0y*v0x+u0z*w0x + v0z*w0y)
+             		 + SQR(u0y)+SQR(u0z)+SQR(v0x)
+             		 + SQR(v0z)+SQR(w0x)+SQR(w0y) ) );
+      	
+        	  const RealArray & lapT = evaluate( (implicitFactor*(gamma-1.)*kThermal)*( TXX(t)+TYY(t)+TZZ(t) ) );
+
+        	  ut0(I1,I2,I3,pc)-=Rg*lapT +(gamma-1.)*phi;
+        	  ut0(I1,I2,I3,tc)-=rhoInverse*(lapT +((gamma-1.)/Rg)*phi );
+      	}
+      	if( parameters.dbase.get<int >("explicitMethod") )
+      	{
+        	  ut(I1,I2,I3,uc)+=p0x*rhoInverse;
+        	  ut(I1,I2,I3,vc)+=p0y*rhoInverse;
+        	  ut(I1,I2,I3,wc)+=p0z*rhoInverse;
+        	  ut(I1,I2,I3,pc)+=gamma*p0*div;
+      	}
+      	else if( parameters.dbase.get<int >("linearizeImplicitMethod") )
+      	{ // linearize the implicit method
+        	  const RealArray & rhoInverseDiff = evaluate( rhoInverse-1./rL()[grid](I1,I2,I3) );
+        	  ut(I1,I2,I3,uc)+=p0x*rhoInverseDiff;
+        	  ut(I1,I2,I3,vc)+=p0y*rhoInverseDiff;
+        	  ut(I1,I2,I3,wc)+=p0z*rhoInverseDiff;
+        	  ut(I1,I2,I3,pc)+=gamma*(p0-pL()[grid](I1,I2,I3)-pressureLevel)*div;
+      	}
+#endif
+            }
+            else
+            {
+      	realSerialArray r0(I1,I2,I3),r0t(I1,I2,I3),r0x(I1,I2,I3),r0y(I1,I2,I3),r0z(I1,I2,I3);
+      	realSerialArray u0(I1,I2,I3),u0t(I1,I2,I3),u0x(I1,I2,I3),u0y(I1,I2,I3),u0z(I1,I2,I3);
+      	realSerialArray v0(I1,I2,I3),v0t(I1,I2,I3),v0x(I1,I2,I3),v0y(I1,I2,I3),v0z(I1,I2,I3);
+      	realSerialArray w0(I1,I2,I3),w0t(I1,I2,I3),w0x(I1,I2,I3),w0y(I1,I2,I3),w0z(I1,I2,I3);
+      	realSerialArray t0(I1,I2,I3),t0t(I1,I2,I3),t0x(I1,I2,I3),t0y(I1,I2,I3),t0z(I1,I2,I3);
+      	realSerialArray p0(I1,I2,I3),p0t(I1,I2,I3),p0x(I1,I2,I3),p0y(I1,I2,I3),p0z(I1,I2,I3);
+      	
+
+      	e.gd( r0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,rc,t);
+      	e.gd( r0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,rc,t);
+      	e.gd( r0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,rc,t);
+      	e.gd( r0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,rc,t);
+      	e.gd( r0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,rc,t);
+
+      	e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,uc,t);
+      	e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t);
+      	e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+      	e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+      	e.gd( u0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,uc,t);
+
+      	e.gd( v0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,vc,t);
+      	e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t);
+      	e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+      	e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+      	e.gd( v0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,vc,t);
+
+      	e.gd( w0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,wc,t);
+      	e.gd( w0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,wc,t);
+      	e.gd( w0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,wc,t);
+      	e.gd( w0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,wc,t);
+      	e.gd( w0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,wc,t);
+
+      	e.gd( p0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t);
+                p0+=pressureLevel;
+      	e.gd( p0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,pc,t);
+      	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+      	e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+      	e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+      	e.gd( t0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,tc,t);
+      	e.gd( t0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,tc,t);
+      	e.gd( t0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,tc,t);
+      	e.gd( t0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,tc,t);
+      	e.gd( t0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,tc,t);
+
+      	RealArray r0i(I1,I2,I3); r0i=1./r0;
+      	RealArray div(I1,I2,I3); div=u0x+v0y+w0z;
+
+      	if( algorithmVariation==AsfParameters::defaultAlgorithm )
+      	{
+        	  realSerialArray r0xx(I1,I2,I3),r0yy(I1,I2,I3),r0zz(I1,I2,I3);
+        	  e.gd( r0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,rc,t);
+        	  e.gd( r0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,rc,t);
+        	  e.gd( r0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,rc,t);
+        	  utLocal(I1,I2,I3,rc)+=r0t +u0*r0x+v0*r0y+w0*r0z+r0*div -nuRho*(r0xx+r0yy+r0zz);
+      	}
+            
+      	utLocal(I1,I2,I3,uc)+=u0t +u0*u0x +v0*u0y +w0*u0z;
+      	utLocal(I1,I2,I3,vc)+=v0t +u0*v0x +v0*v0y +w0*v0z;
+      	utLocal(I1,I2,I3,wc)+=w0t +u0*w0x +v0*w0y +w0*w0z;
+      	utLocal(I1,I2,I3,tc)+=t0t +u0*t0x +v0*t0y +w0*t0z + (gamma-1.)*t0*div;
+      	utLocal(I1,I2,I3,pc)+=p0t +u0*p0x +v0*p0y +w0*p0z;
+      	if( mu>0. )
+      	{
+        	  realSerialArray u0xx(I1,I2,I3),u0xy(I1,I2,I3),u0yy(I1,I2,I3),u0xz(I1,I2,I3),u0yz(I1,I2,I3),u0zz(I1,I2,I3);
+        	  realSerialArray v0xx(I1,I2,I3),v0xy(I1,I2,I3),v0yy(I1,I2,I3),v0xz(I1,I2,I3),v0yz(I1,I2,I3),v0zz(I1,I2,I3);
+        	  realSerialArray w0xx(I1,I2,I3),w0xy(I1,I2,I3),w0yy(I1,I2,I3),w0xz(I1,I2,I3),w0yz(I1,I2,I3),w0zz(I1,I2,I3);
+        	  realSerialArray t0xx(I1,I2,I3),               t0yy(I1,I2,I3),               t0zz(I1,I2,I3);
+
+        	  e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+        	  e.gd( u0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,uc,t);
+        	  e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+        	  e.gd( u0xz,xLocal,numberOfDimensions,isRectangular,0,1,0,1,I1,I2,I3,uc,t);
+        	  e.gd( u0yz,xLocal,numberOfDimensions,isRectangular,0,0,1,1,I1,I2,I3,uc,t);
+        	  e.gd( u0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,uc,t);
+
+        	  e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+        	  e.gd( v0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,vc,t);
+        	  e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+        	  e.gd( v0xz,xLocal,numberOfDimensions,isRectangular,0,1,0,1,I1,I2,I3,vc,t);
+        	  e.gd( v0yz,xLocal,numberOfDimensions,isRectangular,0,0,1,1,I1,I2,I3,vc,t);
+        	  e.gd( v0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,vc,t);
+
+        	  e.gd( w0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,wc,t);
+        	  e.gd( w0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,wc,t);
+        	  e.gd( w0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,wc,t);
+        	  e.gd( w0xz,xLocal,numberOfDimensions,isRectangular,0,1,0,1,I1,I2,I3,wc,t);
+        	  e.gd( w0yz,xLocal,numberOfDimensions,isRectangular,0,0,1,1,I1,I2,I3,wc,t);
+        	  e.gd( w0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,wc,t);
+
+        	  e.gd( t0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,tc,t);
+        	  e.gd( t0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,tc,t);
+        	  e.gd( t0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,tc,t);
+
+        	  RealArray muOverRho(I1,I2,I3);  muOverRho= (implicitFactor*mu)*r0i;
+        	  RealArray lapT(I1,I2,I3);       lapT = (implicitFactor*kThermal*(gamma-1.))*(t0xx+t0yy+t0zz);
+        	  RealArray phi(I1,I2,I3);        
+        	  phi= mu*( a43*( u0x*(u0x-v0y) + v0y*(v0y-w0z)+SQR(w0z) )
+                		    +   2.*( u0y*v0x+u0z*w0x + v0z*w0y)
+                		    + SQR(u0y)+SQR(u0z)+SQR(v0x)
+                		    + SQR(v0z)+SQR(w0x)+SQR(w0y) );
+
+
+        	  ut0(I1,I2,I3,uc)-=muOverRho*(a43*u0xx+u0yy+u0zz+a13*(v0xy+w0xz));
+        	  ut0(I1,I2,I3,vc)-=muOverRho*(v0xx+a43*v0yy+v0zz+a13*(u0xy+w0yz));
+        	  ut0(I1,I2,I3,wc)-=muOverRho*(w0xx+w0yy+a43*w0zz+a13*(u0xz+v0yz));
+
+        	  ut0(I1,I2,I3,pc)-=Rg*lapT +(gamma-1.)*phi;
+        	  ut0(I1,I2,I3,tc)-=r0i*(lapT +((gamma-1.)/Rg)*phi );
+      	}
+      	if( explicitMethod )
+      	{
+        	  utLocal(I1,I2,I3,uc)+=p0x*r0i;
+        	  utLocal(I1,I2,I3,vc)+=p0y*r0i;
+        	  utLocal(I1,I2,I3,wc)+=p0z*r0i;
+        	  utLocal(I1,I2,I3,pc)+=gamma*p0*div;
+      	}
+      	else if( linearizeImplicitMethod )
+      	{ // linearize the implicit method
+                #ifdef USE_PPP
+                    realSerialArray rLLocal; getLocalArrayWithGhostBoundaries(rL()[grid],rLLocal);
+                #else
+                    const realSerialArray & rLLocal=rL()[grid];
+                #endif
+                #ifdef USE_PPP
+                    realSerialArray pLLocal; getLocalArrayWithGhostBoundaries(pL()[grid],pLLocal);
+                #else
+                    const realSerialArray & pLLocal=pL()[grid];
+                #endif
+
+        	  RealArray rhoInverseDiff(I1,I2,I3);  rhoInverseDiff = r0i - 1./rLLocal(I1,I2,I3);
+
+        	  utLocal(I1,I2,I3,uc)+=p0x*rhoInverseDiff;
+        	  utLocal(I1,I2,I3,vc)+=p0y*rhoInverseDiff;
+        	  utLocal(I1,I2,I3,wc)+=p0z*rhoInverseDiff;
+        	  utLocal(I1,I2,I3,pc)+=gamma*(p0-pLLocal(I1,I2,I3)-pressureLevel)*div;
+      	}
+            }
+
+        } // end if numberOfDimensions ==3 
+        
+    }
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForForcing"))+=getCPU()-time0;
+}
+
+void Cgasf::
+addAllSpeedImplicitForcing( realMappedGridFunction & u0, const real t, const real deltaT, int grid )
+// Add twilightzone forcing for implicit time-stepping if appropriate
+{
+    real time0=getCPU();
+
+    const int & linearizeImplicitMethod = parameters.dbase.get<int >("linearizeImplicitMethod");
+
+  // real time=getCPU();
+    if( parameters.dbase.get<bool >("twilightZoneFlow") )
+    {
+    // const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+        const int & rc = parameters.dbase.get<int >("rc");
+        const int & uc = parameters.dbase.get<int >("uc");
+        const int & vc = parameters.dbase.get<int >("vc");
+        const int & wc = parameters.dbase.get<int >("wc");
+        const int & pc = parameters.dbase.get<int >("pc");
+        const real & gamma = parameters.dbase.get<real >("gamma");
+        const real & pressureLevel = parameters.dbase.get<real >("pressureLevel");
+
+        const real & a0 = parameters.dbase.get<real >("a0");
+
+        OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+
+        MappedGrid & mg = *u0.getMappedGrid();
+        const int numberOfDimensions = mg.numberOfDimensions();
+        Index I1,I2,I3;
+        getIndex(mg.gridIndexRange(),I1,I2,I3,1);  // include ghost points
+        
+        if( true )
+        {
+            #ifdef USE_PPP
+                realSerialArray u0Local; getLocalArrayWithGhostBoundaries(u0,u0Local);
+            #else
+                const realSerialArray & u0Local=u0;
+            #endif
+            
+            int includeGhost=1;
+            bool ok=ParallelUtility::getLocalArrayBounds(u0,u0Local,I1,I2,I3,includeGhost);
+            if( !ok ) return;
+
+
+            const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
+
+            if( !isRectangular )
+      	mg.update(MappedGrid::THEcenter);
+
+            realArray & x= mg.center();
+            #ifdef USE_PPP
+                realSerialArray xLocal; 
+                if( !isRectangular ) 
+                    getLocalArrayWithGhostBoundaries(x,xLocal);
+            #else
+                const realSerialArray & xLocal = x;
+            #endif
+
+            realSerialArray r0i(I1,I2,I3),p0(I1,I2,I3);
+            
+            if( linearizeImplicitMethod )
+            { // linearize the implicit method
+            #ifdef USE_PPP
+                realSerialArray rLLocal; getLocalArrayWithGhostBoundaries(rL()[grid],rLLocal);
+            #else
+                const realSerialArray & rLLocal=rL()[grid];
+            #endif
+            #ifdef USE_PPP
+                realSerialArray pLLocal; getLocalArrayWithGhostBoundaries(pL()[grid],pLLocal);
+            #else
+                const realSerialArray & pLLocal=pL()[grid];
+            #endif
+                r0i(I1,I2,I3)=1./rLLocal(I1,I2,I3);
+                p0(I1,I2,I3)=pLLocal(I1,I2,I3)+pressureLevel;
+            }
+            else
+            { 
+      	e.gd( p0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t); 
+      	p0+=pressureLevel;
+                realSerialArray r0(I1,I2,I3);
+      	e.gd( r0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,rc,t);
+      	r0i=1./r0;
+            }
+  
+            
+            if( mg.numberOfDimensions()==1 )
+            {
+      	realSerialArray u0x(I1,I2,I3);
+      	realSerialArray p0x(I1,I2,I3);
+      	e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+      	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+
+      	u0Local(I1,I2,I3,uc)+=(deltaT*a0)*p0x*r0i;
+      	u0Local(I1,I2,I3,pc)+=(deltaT*a0*gamma)*p0*u0x; //  ** /R(t);
+            }
+            else if( mg.numberOfDimensions()==2 )
+            {
+      	realSerialArray u0x(I1,I2,I3),v0y(I1,I2,I3);
+      	realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+
+      	e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+      	e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+
+      	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+      	e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+      	u0Local(I1,I2,I3,uc)+=(deltaT*a0)*p0x*r0i;
+      	u0Local(I1,I2,I3,vc)+=(deltaT*a0)*p0y*r0i;
+      	u0Local(I1,I2,I3,pc)+=(deltaT*a0*gamma)*p0*(u0x+v0y); // *** /R(t);
+
+            }
+            else if( mg.numberOfDimensions()==3 )
+            {
+      	realSerialArray u0x(I1,I2,I3),v0y(I1,I2,I3),w0z(I1,I2,I3);
+      	realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3),p0z(I1,I2,I3);
+
+      	e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+      	e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+      	e.gd( w0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,wc,t);
+
+      	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+      	e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+      	e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+      	u0Local(I1,I2,I3,uc)+=(deltaT*a0)*p0x*r0i;
+      	u0Local(I1,I2,I3,vc)+=(deltaT*a0)*p0y*r0i;
+      	u0Local(I1,I2,I3,wc)+=(deltaT*a0)*p0z*r0i;
+      	u0Local(I1,I2,I3,pc)+=(deltaT*a0*gamma)*p0*(u0x+v0y+w0z); // *** /R(t);
+            }
+        }
+        else
+        {
+#ifdef USE_PPP      
+            Overture::abort("error");
+#else
+
+            const RealArray & rho = parameters.dbase.get<int >("linearizeImplicitMethod") ? rL()[grid](I1,I2,I3) : R(t);
+            const RealArray & rhoInverse = evaluate(1./rho);
+            const RealArray & p0 = parameters.dbase.get<int >("linearizeImplicitMethod") ? 
+      	evaluate(pL()[grid](I1,I2,I3)+pressureLevel) : P(t);   // P(t) has the pressure level in it
+    
+            if( mg.numberOfDimensions()==1 )
+            {
+      	u0(I1,I2,I3,uc)+=(deltaT*a0)*PX(t)*rhoInverse;
+      	u0(I1,I2,I3,pc)+=(deltaT*a0*gamma)*p0*UX(t); //  ** /R(t);
+            }
+            else if( mg.numberOfDimensions()==2 )
+            {
+      	u0(I1,I2,I3,uc)+=(deltaT*a0)*PX(t)*rhoInverse;
+      	u0(I1,I2,I3,vc)+=(deltaT*a0)*PY(t)*rhoInverse;
+      	u0(I1,I2,I3,pc)+=(deltaT*a0*gamma)*p0*(UX(t)+VY(t)); // *** /R(t);
+
+            }
+            else if( mg.numberOfDimensions()==3 )
+            {
+      	u0(I1,I2,I3,uc)+=(deltaT*a0)*PX(t)*rhoInverse;
+      	u0(I1,I2,I3,vc)+=(deltaT*a0)*PY(t)*rhoInverse;
+      	u0(I1,I2,I3,wc)+=(deltaT*a0)*PZ(t)*rhoInverse;
+      	u0(I1,I2,I3,pc)+=(deltaT*a0*gamma)*p0*(UX(t)+VY(t)+WZ(t)); // *** /R(t);
+            }
+#endif    
+        }
+    }
+    
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForForcing"))+=getCPU()-time0;
+}
+
+
+
+
+
+
+
+#undef R   
+#undef RT  
+#undef RX  
+#undef RXX 
+#undef U   
+#undef UT  
+#undef UX  
+#undef UXX 
+#undef E   
+#undef ET  
+#undef EX  
+#undef EXX 
+#undef P
+#undef PT
+#undef PX 
+#undef PXX

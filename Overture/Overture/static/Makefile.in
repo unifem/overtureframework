@@ -1,0 +1,43 @@
+#
+# Type "make target-machine" as for the makefile in the main directory
+#
+
+# These are for OpenGL and motif
+OpenGLInclude = $(OpenGL)/include
+# -I$(MOTIF)/include/Motif-1.2 for lesstif on red-hat
+INCLUDE=  -I$(OpenGLInclude) -I$(OpenGL)/GLUT 
+
+# motif includes should come before the xlib includes since xlib may also have motif in it
+# wdh: put OpenGL includes before motif since on the Dec MOTIF=/usr and there is a /usr/include/GL
+# *wdh* 041017 fix a problem with P++ and gcc 3.3.3 -- seg faults at completion of the code
+# *wdh* 041017 CCFLAGS2=   $(INCLUDE) -I$(MOTIF)/include -I$(MOTIF)/include/Motif-1.2  $(CCFLAGSG) 
+CCFLAGS2=   $(CCFLAGSG) $(INCLUDE) -I$(MOTIF)/include 
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o .c .o .F .o
+.C.o:; $(CC) $(CCFLAGS2) -c $*.C
+.c.o:; $(cc) $(CFLAGS) -I. -I$(MOTIF)/include -I$(OpenGLInclude) -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+.F.o:; $(FC) $(FFLAGS) -c $*.F
+
+default:  depend_date static_date 
+
+Source=  mogl.C overlay.C initOvertureGlobalVariables.C initStaticMappingVariables.C \
+         xColours.C ReferenceCounting.C OvertureInit.C RapsodiInit.C memoryUsage.C
+
+# here we may optionally build the libGLw files if they were not found when configuring.
+cSource= 
+#buildGLw cSource= GLwDrawA.c GLwMDrawA.c
+osMesaSource=
+#buildOSMesa osMesaSource= osmesa.c
+
+static_date: ${Source:.C=.o} ${cSource:.c=.o} ${osMesaSource:.c=.o}
+	  touch $@
+
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+.PRECIOUS:static_date depend_date
+

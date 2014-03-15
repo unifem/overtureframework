@@ -1,0 +1,31 @@
+#! /bin/csh -f
+#  cp files into Bill's web directory (see also buildPub)
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+set webPage = "/home/henshaw.0/webPage"
+
+echo "copy files into Bill's web directory"
+
+
+cp {overture,overtureDocumentation,overtureDownload,overtureFigures,overtureProjects}.tex    $webPage
+cp {overturePublications,overtureSoftware,install,mailingList,installedMachines,announcement,macInstall}.tex    $webPage
+
+# cp {team,collab}.html    $webPage
+
+# cp {brochure_2004-02-24.pdf} $webPage/documentation
+
+cp install.tex    $OvertureBuild/doc
+
+echo "done"
+exit
+

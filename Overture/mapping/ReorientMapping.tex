@@ -1,0 +1,22 @@
+%--------------------------------------------------------------
+\section{ReorientMapping: reorder the domain coordinates of an existing mapping}
+\index{reorder domain coordinates}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+The {\tt ReorientMapping} is used by the ReparameterizationTransform to 
+reorder the domain coordinates. For example, given a Mapping that maps the
+parameter space (domain) variables $(r_1,r_2,r_3)$ into $\xv =\gv(r_1,r_2,r_3)$ one can make a 
+new mapping $\xv = {\widetilde \gv}(r_1,r_2,r_3) = \gv(r_3,r_1,r_2)$. Thus the parameterization
+of the Mapping will be changed but the result of the Mapping will ``look the same''.
+
+
+This Mapping is defined very simply by
+\begin{align*}
+  x_n &= r_{\sigma(n)} \qquad n=1,2,3
+\end{align*}
+where $(\sigma(1),\sigma(2),\sigma(3))$ is a permutation of $(1,2,3)$.
+
+%% \input ReorientMappingInclude.tex
+

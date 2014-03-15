@@ -1,0 +1,243 @@
+#
+#
+
+
+GridFunction= ../GridFunction
+GridGenerator=../GridGenerator
+boxlib=       ../boxlib
+Mapping=      ../Mapping
+templates=    ../templates
+Oges=         ../Oges
+Ogshow=       ../Ogshow
+DataBase=     ../DataBase
+Grid=         ../Grid
+FVO=          ../FiniteVolumeOperators
+otherStuff=   ../otherStuff
+mapUtil=      ../mapUtil
+phoneyFiles=  ../phoneyFiles
+Ogmg=         ../Ogmg
+
+.SUFFIXES:
+.SUFFIXES:.C .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+
+#buildOgmg LIB_TARGETS := $(LIB_TARGETS) libOgmg_date
+
+# wdh 100124 -- do not build libRapsodi anymore, just use libOverture 
+default:    $(LIB_TARGETS) 
+# default:    $(LIB_TARGETS) libRapsodi_date libRapsodiso_date
+rapsodi: libRapsodi_date libRapsodiso_date
+
+
+# Here is the static library
+lib_date: ../static/static_date $(boxlib)/boxlib_date $(GridGenerator)/GridGenerator_date
+	  $(AR) $(ARFLAGS) libOverture_static.a ../static/*.o $(boxlib)/*.o $(TEMPLATES)
+	  $(RANLIB) libOverture_static.a
+	  touch $@
+
+DYNAMIC_LIBRARY = libOverture.so
+RAP_DYNAMIC_LIBRARY = libRapsodi.so
+#hpux DYNAMIC_LIBRARY = libOverture.sl
+#darwin DYNAMIC_LIBRARY = libOverture.dylib
+#darwin RAP_DYNAMIC_LIBRARY = libRapsodi.dylib
+
+# On Darwin we need to rebuild the dynamic library if the static lib is rebuilt since files in the static lib
+# are embedded in the dynamic lib apparently
+SO_LIB_DEPENDENCIES = 
+#darwin SO_LIB_DEPENDENCIES = lib_date
+
+# Here is the dynamic library
+libso_date: $(SO_LIB_DEPENDENCIES) $(DataBase)/DataBase_date \
+          $(GridFunction)/GridFunction_date           \
+          $(Mapping)/Mapping_date             \
+          $(Oges)/Oges_date                   \
+          $(Grid)/Grid_date           \
+          $(GridGenerator)/GridGenerator_date \
+          $(Ogshow)/Ogshow_date  \
+	  $(otherStuff)/otherStuff_date \
+          $(templates)/ListClasses_date \
+	  $(mapUtil)/mapUtil_date
+	  $(LD) -o $(DYNAMIC_LIBRARY) $(SOFLAGS) $(DataBase)/*.o $(GridFunction)/*.o $(templates)/*.o \
+             $(Grid)/*.o $(Mapping)/*.o $(Oges)/*.o  $(GridGenerator)/*.o $(Ogshow)/*.o $(mapUtil)/*.o \
+	     $(otherStuff)/*.o $(LIBLIBS)
+	  rm -rf libOverture.so.1.0
+	  ln -s $(DYNAMIC_LIBRARY) libOverture.so.1.0
+	  touch $@
+
+# Build two libraries for ibm, one lib is too large(?)
+#xlc libso_date: libso1_date libso2_date; touch $@
+
+DYNAMIC_LIBRARY1 = libOverture1.so
+libso1_date: $(DataBase)/DataBase_date \
+          $(GridFunction)/GridFunction_date           \
+          $(Mapping)/Mapping_date             \
+          $(Oges)/Oges_date                   \
+          $(Grid)/Grid_date           \
+          $(GridGenerator)/GridGenerator_date \
+          $(Ogshow)/Ogshow_date  \
+	  $(otherStuff)/otherStuff_date \
+          $(templates)/ListClasses_date \
+	  $(mapUtil)/mapUtil_date
+	  $(LD) -o $(DYNAMIC_LIBRARY1) $(SOFLAGS) $(DataBase)/*.o $(GridFunction)/*.o $(templates)/*.o \
+             $(Grid)/*.o $(Mapping)/*.o 
+	  rm -rf libOverture1.so.1.0
+	  ln -s $(DYNAMIC_LIBRARY1) libOverture1.so.1.0
+	  touch $@
+
+DYNAMIC_LIBRARY2 = libOverture2.so
+libso2_date: $(DataBase)/DataBase_date \
+          $(GridFunction)/GridFunction_date           \
+          $(Mapping)/Mapping_date             \
+          $(Oges)/Oges_date                   \
+          $(Grid)/Grid_date           \
+          $(GridGenerator)/GridGenerator_date \
+          $(Ogshow)/Ogshow_date  \
+	  $(otherStuff)/otherStuff_date \
+          $(templates)/ListClasses_date \
+	  $(mapUtil)/mapUtil_date
+	  $(LD) -o $(DYNAMIC_LIBRARY2) $(SOFLAGS) $(Oges)/*.o  $(GridGenerator)/*.o $(Ogshow)/*.o $(mapUtil)/*.o \
+	     $(otherStuff)/*.o $(LIBLIBS)
+	  rm -rf libOverture2.so.1.0
+	  ln -s $(DYNAMIC_LIBRARY2) libOverture2.so.1.0
+	  touch $@
+
+# Here is the multigrid library
+OGMG_DYNAMIC_LIBRARY = libOgmg.so
+#hpux OGMG_DYNAMIC_LIBRARY = libOgmg.sl
+#darwin OGMG_DYNAMIC_LIBRARY = libOgmg.dylib
+OGMG_EXTRA_LIBS = 
+#darwin OGMG_EXTRA_LIBS = $(LDFLAGS)$(Overture)/lib -lOverture -lOverture_static
+
+libOgmg_date: lib_date libso_date $(Ogmg)/Ogmg_date
+	  $(LD) -o $(OGMG_DYNAMIC_LIBRARY) $(SOFLAGS) $(Ogmg)/*.o $(LIBLIBS) $(OGMG_EXTRA_LIBS)
+	  rm -rf libOgmg.so.1.0
+	  ln -s $(OGMG_DYNAMIC_LIBRARY) libOgmg.so.1.0
+	  touch $@
+
+# libOgmg_date: $(Ogmg)/Ogmg_date
+# 	  $(AR) $(ARFLAGS) libOgmg.a $(Ogmg)/*.o
+# 	  $(RANLIB) libOgmg.a
+# 	  touch $@
+
+
+# Here is the dynamic library for P++ (no grid generator or FVO)
+libsoPPP_date: $(DataBase)/DataBase_date \
+          $(GridFunction)/GridFunction_date           \
+          $(Mapping)/Mapping_date             \
+          $(Oges)/Oges_date                   \
+          $(Grid)/Grid_date           \
+          $(Ogshow)/Ogshow_date  \
+          $(FVO)/FVO_date           \
+	  $(otherStuff)/otherStuff_date \
+          $(templates)/ListClasses_date
+	  $(LD) -o  $(DYNAMIC_LIBRARY) $(SOFLAGS) $(DataBase)/*.o $(GridFunction)/*.o $(templates)/*.o \
+             $(Grid)/*.o $(Mapping)/*.o $(Oges)/*.o  $(GridGenerator)/*.o $(Ogshow)/*.o $(mapUtil)/*.o $(FVO)/*.o \
+	     $(otherStuff)/*.o
+	  rm -rf libOverture.so.1.0
+	  ln -s $(DYNAMIC_LIBRARY) libOverture.so.1.0
+	  touch $@
+
+# Here we make a static library instead of the dynamic library
+liba_date: ../static/static_date $(boxlib)/boxlib_date \
+          $(DataBase)/DataBase_date \
+          $(GridFunction)/GridFunction_date           \
+          $(Mapping)/Mapping_date             \
+          $(Oges)/Oges_date                   \
+          $(Grid)/Grid_date           \
+          $(GridGenerator)/GridGenerator_date \
+          $(Ogshow)/Ogshow_date  \
+          $(FVO)/FVO_date           \
+	  $(otherStuff)/otherStuff_date \
+          $(templates)/ListClasses_date \
+          $(Ogmg)/Ogmg_date
+	  $(AR) $(ARFLAGS) libOverture.a  ../static/*.o $(boxlib)/*.o $(TEMPLATES) \
+             $(DataBase)/*.o $(GridFunction)/*.o $(templates)/*.o \
+             $(Grid)/*.o $(Mapping)/*.o $(Oges)/*.o  $(GridGenerator)/*.o \
+             $(Ogshow)/*.o $(mapUtil)/*.o $(FVO)/*.o $(otherStuff)/*.o $(Ogmg)/*.o
+	  $(RANLIB) libOverture.a
+	  touch $@
+
+# Here is the Rapsodi library with it's dependencies.
+
+RapsodiOgshowFiles = $(Ogshow)/render.o $(Ogshow)/osRender.o \
+	 $(Ogshow)/GenericGraphicsInterface.o $(Ogshow)/GraphicsParameters.o $(Ogshow)/plotMapping.o \
+         $(Ogshow)/GL_GraphicsInterface.o $(Ogshow)/plotCompositeSurface.o \
+	 $(Ogshow)/plotUnstructured.o $(Ogshow)/plotStructured.o  \
+         $(Ogshow)/GUIState.o $(Ogshow)/getAnswer.o $(Ogshow)/DialogData.o $(Ogshow)/textGetMenu.o \
+         $(Ogshow)/colourTable.o $(Ogshow)/label.o \
+         $(Ogshow)/plotAxes.o $(Ogshow)/NameList.o $(Ogshow)/stroke.o \
+         $(Ogshow)/plotPoints.o $(Ogshow)/ColourBar.o  $(Ogshow)/OvertureParser.o \
+         $(Ogshow)/cggi.o $(Ogshow)/isosurf.o $(Ogshow)/ParallelUtility.o $(Ogshow)/CopyArray.o
+
+RapsodiOtherStuffFiles = $(otherStuff)/helpOverture.o $(otherStuff)/floatDisplay.o $(otherStuff)/intDisplay.o \
+         $(otherStuff)/doubleDisplay.o $(otherStuff)/floatSerialDisplay.o $(otherStuff)/intSerialDisplay.o \
+         $(otherStuff)/doubleSerialDisplay.o $(otherStuff)/DisplayParameters.o $(otherStuff)/TridiagonalSolver.o \
+         $(otherStuff)/TridiagonalFactor.o $(otherStuff)/arrayGetIndex.o $(otherStuff)/fortranInputOutput.o \
+         $(otherStuff)/prtpeg.o $(otherStuff)/pentaDiagonal.o
+
+# AP: Everything in Mapping besides DataFormatsMG.o
+RapsodiMappingFiles = $(Mapping)/AirfoilMapping.o $(Mapping)/NormalMapping.o $(Mapping)/createMappings.o \
+         $(Mapping)/AnnulusMapping.o $(Mapping)/NurbsMapping.o $(Mapping)/cs.o $(Mapping)/Bound.o \
+         $(Mapping)/OffsetShell.o $(Mapping)/dpm.o $(Mapping)/BoundingBox.o $(Mapping)/OrthographicTransform.o \
+         $(Mapping)/dpmInverse.o $(Mapping)/BoxMapping.o $(Mapping)/PlaneMapping.o $(Mapping)/dpmScalar.o \
+         $(Mapping)/CircleMapping.o $(Mapping)/QuadTree.o $(Mapping)/ComposeMapping.o \
+         $(Mapping)/QuadraticMapping.o $(Mapping)/equi.o $(Mapping)/CompositeSurface.o $(Mapping)/ReductionMapping.o \
+         $(Mapping)/generate.o $(Mapping)/CrossSectionMapping.o $(Mapping)/ReferenceCountingList.o \
+         $(Mapping)/hyperNull.o $(Mapping)/CylinderMapping.o $(Mapping)/ReparameterizationTransform.o \
+         $(Mapping)/ingrid.o $(Mapping)/DataFormats.o $(Mapping)/RestrictionMapping.o \
+         $(Mapping)/initializeMappingList.o $(Mapping)/RevolutionMapping.o $(Mapping)/mappingUtil.o \
+         $(Mapping)/DataPointMapping.o $(Mapping)/RocketMapping.o $(Mapping)/nurbsEvaluation.o \
+         $(Mapping)/DepthMapping.o $(Mapping)/SmoothedPolygonMapping.o $(Mapping)/plot.o \
+         $(Mapping)/FilamentMapping.o $(Mapping)/SphereMapping.o $(Mapping)/plyFileInterface.o \
+         $(Mapping)/FilletMapping.o $(Mapping)/SplineMapping.o $(Mapping)/plyfile.o $(Mapping)/Fraction.o \
+         $(Mapping)/SquareMapping.o $(Mapping)/project.o $(Mapping)/HyperbolicMapping.o $(Mapping)/StretchMapping.o \
+         $(Mapping)/r1mach.o $(Mapping)/IgesReader.o $(Mapping)/StretchTransform.o $(Mapping)/r1machc.o \
+         $(Mapping)/IntersectionMapping.o $(Mapping)/StretchedSquareMapping.o $(Mapping)/readMappings.o \
+         $(Mapping)/Inverse.o $(Mapping)/SweepMapping.o $(Mapping)/sPrintF.o $(Mapping)/JoinMapping.o \
+         $(Mapping)/TFIMapping.o $(Mapping)/startCurve.o $(Mapping)/LineMapping.o $(Mapping)/TriangleClass.o \
+         $(Mapping)/stencilWalk.o $(Mapping)/Mapping.o $(Mapping)/TrimmedMapping.o $(Mapping)/strtch.o \
+         $(Mapping)/MappingBuilder.o $(Mapping)/UnstructuredMapping.o $(Mapping)/tspack.o $(Mapping)/MappingP.o \
+         $(Mapping)/UserDefinedMapping1.o $(Mapping)/unstructuredCompositeSurface.o \
+         $(Mapping)/MappingProjectionParameters.o $(Mapping)/applyBoundaryConditions.o \
+         $(Mapping)/unstructuredProject.o $(Mapping)/MappingRC.o $(Mapping)/cggpoly.o $(Mapping)/update.o \
+         $(Mapping)/MatrixMapping.o $(Mapping)/checkMapping.o $(Mapping)/util.o $(Mapping)/MatrixTransform.o \
+         $(Mapping)/compositeTopology.o $(Mapping)/viewMappings.o $(Mapping)/PolynomialMapping.o \
+         $(Mapping)/FaceInfo.o $(Mapping)/EntityTag.o $(Mapping)/entityConnectivityBuilder.o \
+         $(Mapping)/refineTriangulation.o $(Mapping)/refineCurve.o $(Mapping)/stretch.o $(Mapping)/GridSmoother.o \
+         $(Mapping)/GridStretcher.o $(Mapping)/MatchingCurve.o $(Mapping)/ellipticSmooth.o \
+         $(Mapping)/stretchUpdate.o $(Mapping)/ReorientMapping.o $(Mapping)/ULink.o $(Mapping)/MappingGeometry.o \
+	 $(Mapping)/verifyUnstructuredConnectivity.o $(Mapping)/nurbs_eval.o $(Mapping)/DistributedInverse.o \
+         $(Mapping)/inverseMap.o $(Mapping)/dpmMap.o $(Mapping)/LoftedSurfaceMapping.o
+
+RapsodiLibraryFiles = $(DataBase)/*.o \
+                      $(mapUtil)/*.o  \
+                      $(phoneyFiles)/phoneyMappings.o \
+                      $(RapsodiMappingFiles) \
+                      $(RapsodiOgshowFiles) \
+                      $(RapsodiOtherStuffFiles) 
+
+RapsodiStaticFiles= ../static/mogl.o ../static/overlay.o ../static/initOvertureGlobalVariables.o \
+             ../static/initStaticMappingVariables.o ../static/xColours.o ../static/ReferenceCounting.o \
+             ../static/RapsodiInit.o ../static/memoryUsage.o
+
+
+RapsodiStaticFilesPlus= $(RapsodiStaticFiles) 
+
+#buildGLw RapsodiStaticFilesPlus= $(RapsodiStaticFiles) ../static/GLwDrawA.o ../static/GLwMDrawA.o
+
+# Here is the static Rapsodi library
+libRapsodi_date: ../static/static_date $(boxlib)/boxlib_date 
+	  $(AR) $(ARFLAGS) libRapsodi_static.a $(RapsodiStaticFilesPlus) $(boxlib)/*.o $(RAPTEMPLATES)
+	  $(RANLIB) libRapsodi_static.a
+	  touch $@
+
+
+# Here is the dynamic Rapsodi library with it's dependencies.
+libRapsodiso_date: $(DataBase)/DataBase_date   \
+          $(Mapping)/Mapping_date       \
+          $(Ogshow)/Ogshow_rapsodi_date
+	  $(LD) -o $(RAP_DYNAMIC_LIBRARY) $(SOFLAGS) $(RapsodiLibraryFiles) $(RLIBLIBS)
+	  touch $@
+
+
+.PRECIOUS:lib_date libso_date

@@ -1,0 +1,40 @@
+* Mixture JWL EOS and IG Rate parameters
+* for LX17 Puck case
+*
+* solid phase JWL parameters
+    define real parameter omeg1     0.8938
+    define real parameter ajwl11  692.5067
+    define real parameter ajwl21    -.044776
+    define real parameter rjwl11   11.3
+    define real parameter rjwl21    1.13
+* gas phase JWL parameters
+    define real parameter omeg2     0.5
+    define real parameter ajwl12   13.181300
+    define real parameter ajwl22    0.5677291
+    define real parameter rjwl12    6.2
+    define real parameter rjwl22    2.2
+* reference quantities, Cg/Cs and heat release
+    define real parameter vs0  1.0
+    define real parameter vg0  5.0
+    define real parameter cgcs 0.40209
+    define real parameter heat 0.0614098
+* IG rate parameters
+    define real parameter ra 0.22
+    define real parameter eb 0.666667
+    define real parameter ex 7.0
+    define real parameter ec 0.666667
+    define real parameter ed 1.0
+    define real parameter ey 3.0
+    define real parameter ee 0.666667
+    define real parameter eg 0.666667
+    define real parameter ez 1.0
+* IG cut-offs, amplitudes and references
+    define real parameter al0 0.02
+    define real parameter al1 0.8
+    define real parameter al2 0.8
+    define real parameter tref 1.0e-6
+    define real parameter pref 1.1235993
+    define real parameter ai  4.0e12
+    define real parameter ag1 4500.0e6
+    define real parameter ag2 30.0e6
+

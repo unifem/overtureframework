@@ -1,0 +1,48 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set mapUtil = $ovDir/mapUtil
+
+echo "Copy Oges files into the $ovDir/Oges directory..."
+
+set OvertureOges    = $ovDir/Oges
+set OvertureInclude = $ovDir/include
+set OvertureTests   = $ovDir/tests
+
+cp {Oges.h,OgesParameters.h} $OvertureInclude
+
+cp {EquationSolver,PETScEquationSolver,PETScSolver,YaleEquationSolver,SlapEquationSolver,HarwellEquationSolver}.h $OvertureInclude
+cp {MultigridEquationSolver}.h $OvertureInclude
+
+cp {Oges,ogesFiles,OgesParameters,formMatrix,generateMatrix,buildEquationSolvers,determineErrors,obsolete}.C  $OvertureOges
+cp {EquationSolver,PETScEquationSolver,PETScSolver,YaleEquationSolver,SlapEquationSolver,HarwellEquationSolver}.C    $OvertureOges
+cp {MultigridEquationSolver,residual}.C   $OvertureOges
+
+cp {cgesl1234,slapFiles}.F                                                            $OvertureOges
+
+# cp {blas2,cgesbpc,cgesnull,cgesrd,cgessra,linpack}.f                                $OvertureOges
+cp {cgesnull,csort}.f                                                                 $OvertureOges
+
+cp {blas2,linpack}.f                                                                  $mapUtil
+cp {drmach}.F                                                                         $mapUtil
+
+cp {sbcg,scgs,sgmres,slapcg,slaputil,smset,smvops,spsor,xersla}.f                     $OvertureOges
+cp {dbcg,dcgs,dgmres,dlapcg,dlaputil,dmset,dmvops}.f                                  $OvertureOges
+
+cp {ma28a,ma28dd}.f                                                                   $OvertureOges
+cp yalesp.F                                                                           $OvertureOges
+
+# copy tests
+cp toges.C   $OvertureTests
+
+echo "done"

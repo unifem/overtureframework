@@ -1,0 +1,698 @@
+// This file automatically generated from getTimeStep.bC with bpp.
+#include "Cgsm.h"
+#include "SmParameters.h"
+#include "CompositeGridOperators.h"
+#include "display.h"
+#include "ParallelUtility.h"
+#include "GridMaterialProperties.h"
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+
+// =======================================================================================
+//  
+// =======================================================================================
+
+// ===================================================================================================================
+// \brief Determine the time step
+/// \details 
+// ===================================================================================================================
+real Cgsm::
+getTimeStep( GridFunction & gf )
+{
+    real time0=getCPU();
+
+    SmParameters::PDEModel & pdeModel = parameters.dbase.get<SmParameters::PDEModel>("pdeModel");
+    SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+    RealArray & timing = parameters.dbase.get<RealArray >("timing");
+    const int & debug = parameters.dbase.get<int >("debug");
+    real & dtSave = parameters.dbase.get<real>("dtSave");  // save the value of dt computed by this routine.
+
+  // There is no need to recompute the time step for linear-elasticity (unless we use AMR)
+    bool & recomputeDt = parameters.dbase.get<bool>("recomputeDt");
+    if( !recomputeDt && 
+      !parameters.isAdaptiveGridProblem() &&
+            pdeModel==SmParameters::linearElasticity &&
+            ( pdeVariation!=SmParameters::hemp ) )
+    {
+        assert( dtSave>0. );
+        deltaT=dtSave;
+        return deltaT;
+    }
+    
+    SmParameters::TimeSteppingMethodSm & timeSteppingMethodSm = 
+        parameters.dbase.get<SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
+
+    real & cfl = parameters.dbase.get<real>("cfl");
+    
+    recomputeDt=false;
+
+    if( pdeVariation==SmParameters::godunov ||
+            pdeVariation==SmParameters::hemp )
+    {
+    // =============================================================================
+    // ============= Time-stepping eigenvalues are provided else-where =============
+    // =============================================================================
+
+        bool & computeTimeSteppingEigenValues = parameters.dbase.get<bool>("computeTimeSteppingEigenValues");
+        real & reLambda = parameters.dbase.get<real>("realPartOfTimeSteppingEigenValue");
+        real & imLambda = parameters.dbase.get<real>("imaginaryPartOfTimeSteppingEigenValue");
+        
+        computeTimeSteppingEigenValues=true;  // this is used in advanceFOS
+
+        real dt =1.e-9;  // choose a small non-zero value 
+    // Call the next routine to compute the time stepping eigenvalue: 
+        advanceFOS( current, gf.t, dt );
+
+        computeTimeSteppingEigenValues=false;  // reset 
+
+        assert( reLambda>=0. && imLambda>=0. );
+
+
+        if( timeSteppingMethodSm==SmParameters::improvedEuler )
+        { // the stability region for the midpoint rule extends to -2 on the Re axis
+      // and about sqrt(3) along the imaginary (NOT REALLY -- it does not touch the Im axis!!)
+            deltaT =cfl/sqrt( SQR(reLambda/2.)+SQR(imLambda/sqrt(3.)) );
+        }
+        else
+        {
+            deltaT= cfl/sqrt( SQR(reLambda/2.)+SQR(imLambda/1.) );  // ***********is this ok ****
+        }
+        
+
+
+        deltaT=ParallelUtility::getMinValue(deltaT);  // min value over all processors
+        if( gf.t==0. || debug & 4 )
+            printP("==== getTimeStep: FOS: reLamba=%8.2e imLambda=%8.2e, cfl=%8.2e deltaT=%8.2e\n",
+           	     reLambda,imLambda,cfl,deltaT);
+
+        if( debug & 1 )
+            printF("==== getTimeStep: t=%8.2e, deltaT=%8.2e\n",gf.t,deltaT);
+
+        timing(parameters.dbase.get<int>("timeForComputingDeltaT"))+=getCPU()-time0;
+
+        dtSave=deltaT;  // save value
+        return deltaT;
+
+    }
+    
+
+
+    const int numberOfComponentGrids = cg.numberOfComponentGrids();
+    const int numberOfDimensions = cg.numberOfDimensions();
+    const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
+    const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+
+    deltaT=REAL_MAX;
+    
+    real & rho=parameters.dbase.get<real>("rho");
+    real & mu = parameters.dbase.get<real>("mu");
+    real & lambda = parameters.dbase.get<real>("lambda");
+    RealArray & muGrid = parameters.dbase.get<RealArray>("muGrid");
+    RealArray & lambdaGrid = parameters.dbase.get<RealArray>("lambdaGrid");
+
+
+
+  // NOTE: For now we only approximate the time step -- we need to work out
+  //       the correct formula for elasticity
+
+
+  // cMax : fastest wave speed on all grids 
+  // real cMax=max(2.*muGrid+lambdaGrid)/rho;
+    real cMax= sqrt( max(lambdaGrid + 2.*muGrid)/rho ); // *wdh* 081120 -- sqrt added 
+
+    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        MappedGrid & mg = cg[grid];
+
+        const int numberOfDimensions=mg.numberOfDimensions();
+
+    // base class DomainSolver uses: *** fix me ***
+        realPartOfEigenvalue[grid]=-1.;
+        imaginaryPartOfEigenvalue[grid]=-1.; 
+
+        real dtg; 
+        real dx[3];
+
+        if( parameters.dbase.get<int>("variableMaterialPropertiesOption")==0 )
+        {
+      // ---- constant material properties ----
+
+            lambda=lambdaGrid(grid);
+            mu=muGrid(grid);
+      // c = fastest wave speed on this grid 
+            const real c = sqrt( (lambda+2.*mu)/rho );   // *wdh* 081120 -- sqrt added
+
+            if( mg.isRectangular() )
+            {
+      	mg.getDeltaX(dx);
+
+      	if( numberOfDimensions==2 )
+        	  dtg=cfl*1./( c*sqrt( 1./(dx[0]*dx[0])+1./(dx[1]*dx[1]) ) );  
+      	else
+        	  dtg=cfl*1./( c*sqrt( 1./(dx[0]*dx[0])+1./(dx[1]*dx[1])+1./(dx[2]*dx[2]) ) ); 
+      	
+      	dxMinMax(grid,0)=numberOfDimensions==2 ? min(dx[0],dx[1]) : min(dx[0],dx[1],dx[2]);
+      	dxMinMax(grid,1)=numberOfDimensions==2 ? max(dx[0],dx[1]) : max(dx[0],dx[1],dx[2]);
+      	
+	// printF(" getTimeStep: dx=%8.2e dy=%8.2e c=%8.2e, dtg=%8.2e\n",dx[0],dx[1],c,dtg);
+            }
+            else 
+            {
+        // -- curvilinear grid --
+      	mg.update(MappedGrid::THEinverseVertexDerivative);
+      	const realArray & rx = mg.inverseVertexDerivative();
+      	const intArray & mask = mg.mask();
+      	
+            
+      	Index I1,I2,I3;
+      	getIndex( mg.indexRange(),I1,I2,I3);
+
+	// Grid spacings on unit square:
+      	real dr1 = mg.gridSpacing(axis1);
+      	real dr2 = mg.gridSpacing(axis2);
+      	real dr3 = mg.gridSpacing(axis3);
+
+	// parallel version here --- also broadcast max error in forcing.bC *************************
+#ifdef USE_PPP
+      	realSerialArray rxLocal;  getLocalArrayWithGhostBoundaries(rx,rxLocal);
+      	intSerialArray maskLocal;  getLocalArrayWithGhostBoundaries(mask,maskLocal);
+#else
+      	const realSerialArray & rxLocal = rx; 
+      	const intSerialArray & maskLocal  =  mask; 
+#endif
+
+      	real *rxp = rxLocal.Array_Descriptor.Array_View_Pointer3;
+      	const int rxDim0=rxLocal.getRawDataSize(0);
+      	const int rxDim1=rxLocal.getRawDataSize(1);
+      	const int rxDim2=rxLocal.getRawDataSize(2);
+      	const int rxDim3=mg.numberOfDimensions();   // note
+#undef RX
+#define RX(i0,i1,i2,i3,i4) rxp[i0+rxDim0*(i1+rxDim1*(i2+rxDim2*(i3+rxDim3*(i4))))]
+
+      	const int *maskp = maskLocal.Array_Descriptor.Array_View_Pointer2;
+      	const int maskDim0=maskLocal.getRawDataSize(0);
+      	const int maskDim1=maskLocal.getRawDataSize(1);
+      	const int md1=maskDim0, md2=md1*maskDim1; 
+#define MASK(i0,i1,i2) maskp[(i0)+(i1)*md1+(i2)*md2]
+
+
+	// I1 = Range(max(I1.getBase(),rxLocal.getBase(0)),min(I1.getBound(),rxLocal.getBound(0)));
+	// I2 = Range(max(I2.getBase(),rxLocal.getBase(1)),min(I2.getBound(),rxLocal.getBound(1)));
+	// I3 = Range(max(I3.getBase(),rxLocal.getBase(2)),min(I3.getBound(),rxLocal.getBound(2)));
+
+      	const int includeGhost=0;
+      	bool ok=ParallelUtility::getLocalArrayBounds(mask,maskLocal,I1,I2,I3,includeGhost);
+
+      	int i1,i2,i3;
+      	real a11Min=pow(REAL_MAX*.1,.25);
+      	real a11Max=-a11Min;
+	//  **** this is a guess **** check this.
+      	const real alpha0=1.;
+
+      	real a11,a12,a22;
+      	if( ok )
+      	{
+        	  if( numberOfDimensions==2 )
+        	  {
+          	    FOR_3D(i1,i2,i3,I1,I2,I3)
+          	    {
+            	      
+            	      if( MASK(i1,i2,i3)>0 )
+            	      {
+            		a11 = ( RX(i1,i2,i3,0,0)*RX(i1,i2,i3,0,0) + RX(i1,i2,i3,0,1)*RX(i1,i2,i3,0,1) );
+            		a12 = ( RX(i1,i2,i3,0,0)*RX(i1,i2,i3,1,0) + RX(i1,i2,i3,0,1)*RX(i1,i2,i3,1,1) )*2.;
+            		a22 = ( RX(i1,i2,i3,1,0)*RX(i1,i2,i3,1,0) + RX(i1,i2,i3,1,1)*RX(i1,i2,i3,1,1) );
+
+  
+            		a11=1./sqrt( a11 *(1./(alpha0*dr1*dr1)) 
+                       			     +abs(a12)*(.25/(alpha0*dr1*dr2))
+                       			     +a22 *(1./(alpha0*dr2*dr2)) 
+              		  );
+
+            		a11Min=min(a11Min,a11);
+            		a11Max=max(a11Max,a11);
+                    
+            	      }
+          	    }
+        	  }
+        	  else
+        	  { // ***** 3D ********
+
+#define rxDotRx(axis,dir) (RX(i1,i2,i3,axis,0)*RX(i1,i2,i3,dir,0)				   + RX(i1,i2,i3,axis,1)*RX(i1,i2,i3,dir,1)				   + RX(i1,i2,i3,axis,2)*RX(i1,i2,i3,dir,2))
+            
+	    // There would be a factor of 4 for the worst case plus/minus wave but we also
+	    // divide by a factor of 4 for the 2nd-order time stepping.
+          	    FOR_3D(i1,i2,i3,I1,I2,I3)
+          	    {
+            	      if( MASK(i1,i2,i3)>0 )
+            	      {
+            		a11=1./sqrt(  rxDotRx(0,0) *(1./(dr1*dr1)) 
+                        			      +rxDotRx(1,1) *(1./(dr2*dr2))
+                        			      +rxDotRx(2,2) *(1./(dr3*dr3))
+                        			      +abs(rxDotRx(1,0))*(.5/(dr2*dr1))  
+                        			      +abs(rxDotRx(2,0))*(.5/(dr3*dr1)) 
+                        			      +abs(rxDotRx(2,1))*(.5/(dr3*dr2)) );
+
+		// ** a11 =  pow(a11,-.5);
+            		a11Min=min(a11Min,a11);
+            		a11Max=max(a11Max,a11);
+            	      }
+          	    }
+#undef rxDotRx
+        	  }
+      	}
+      	
+      	dxMinMax(grid,0)=a11Min; 
+      	dxMinMax(grid,1)=a11Max;
+      	dtg = (cfl/c) * dxMinMax(grid,0);  // *wdh* 071029 : divide by c !
+      	
+      	
+            }  // end curvilinear grid 
+            
+        }
+        else
+        {
+      // ---- variable material properties ----
+            std::vector<GridMaterialProperties> & materialProperties = 
+      	parameters.dbase.get<std::vector<GridMaterialProperties> >("materialProperties");
+
+            GridMaterialProperties & matProp = materialProperties[grid];
+            const GridMaterialProperties::MaterialFormatEnum & materialFormat = matProp.getMaterialFormat();
+            
+            if( materialFormat==GridMaterialProperties::piecewiseConstantMaterialProperties )
+            {
+        // --- piecewise constant material parameters 
+      	IntegerArray & matIndex = matProp.getMaterialIndexArray();
+      	RealArray & matVal = matProp.getMaterialValuesArray();
+
+              int i1,i2,i3;
+              Index I1,I2,I3;
+              getIndex( mg.indexRange(),I1,I2,I3);
+              if( !mg.isRectangular() )
+              {
+                  mg.update(MappedGrid::THEinverseVertexDerivative);
+              }
+              const intArray & mask = mg.mask();
+              OV_GET_SERIAL_ARRAY_CONST(int,mask,maskLocal)
+              const int includeGhost=0;
+              bool ok=ParallelUtility::getLocalArrayBounds(mask,maskLocal,I1,I2,I3,includeGhost);
+              const int *maskp = maskLocal.Array_Descriptor.Array_View_Pointer2;
+              const int maskDim0=maskLocal.getRawDataSize(0);
+              const int maskDim1=maskLocal.getRawDataSize(1);
+              const int md1=maskDim0, md2=md1*maskDim1; 
+              #define MASK(i0,i1,i2) maskp[(i0)+(i1)*md1+(i2)*md2]
+              if( ok )
+              {
+                if( mg.isRectangular() )
+                {
+          // -- compute max( cp ) ---
+                    cMax =0.;
+                    FOR_3D(i1,i2,i3,I1,I2,I3)
+                    {
+                        if( MASK(i1,i2,i3)>0 )
+                        {
+                            cMax = max( cMax, ( (matVal(2,matIndex(i1,i2,i3)))+2.*(matVal(1,matIndex(i1,i2,i3))) )/(matVal(0,matIndex(i1,i2,i3))) );
+                        }
+                    }
+                    cMax=sqrt(cMax);
+                    mg.getDeltaX(dx);
+                    if( numberOfDimensions==2 )
+                        dtg=cfl*1./( cMax*sqrt( 1./(dx[0]*dx[0])+1./(dx[1]*dx[1]) ) );  
+                    else
+                        dtg=cfl*1./( cMax*sqrt( 1./(dx[0]*dx[0])+1./(dx[1]*dx[1])+1./(dx[2]*dx[2]) ) ); 
+                    dxMinMax(grid,0)=numberOfDimensions==2 ? min(dx[0],dx[1]) : min(dx[0],dx[1],dx[2]);
+                    dxMinMax(grid,1)=numberOfDimensions==2 ? max(dx[0],dx[1]) : max(dx[0],dx[1],dx[2]);
+          // printF(" getTimeStep: dx=%8.2e dy=%8.2e c=%8.2e, dtg=%8.2e\n",dx[0],dx[1],c,dtg);
+                }
+                else 
+                {
+          // -- curvilinear grid --
+                    const realArray & rx = mg.inverseVertexDerivative();
+          // Grid spacings on unit square:
+                    real dr1 = mg.gridSpacing(axis1);
+                    real dr2 = mg.gridSpacing(axis2);
+                    real dr3 = mg.gridSpacing(axis3);
+          // parallel version here --- also broadcast max error in forcing.bC *************************
+            #ifdef USE_PPP
+                    realSerialArray rxLocal;  getLocalArrayWithGhostBoundaries(rx,rxLocal);
+                    intSerialArray maskLocal;  getLocalArrayWithGhostBoundaries(mask,maskLocal);
+            #else
+                    const realSerialArray & rxLocal = rx; 
+                    const intSerialArray & maskLocal  =  mask; 
+            #endif
+                    real *rxp = rxLocal.Array_Descriptor.Array_View_Pointer3;
+                    const int rxDim0=rxLocal.getRawDataSize(0);
+                    const int rxDim1=rxLocal.getRawDataSize(1);
+                    const int rxDim2=rxLocal.getRawDataSize(2);
+                    const int rxDim3=mg.numberOfDimensions();   // note
+            #undef RX
+            #define RX(i0,i1,i2,i3,i4) rxp[i0+rxDim0*(i1+rxDim1*(i2+rxDim2*(i3+rxDim3*(i4))))]
+          // -------------------------------------------------------------------------------
+          // The time step condition on a curvilinear grid looks like
+          //
+          //     c^2 * ( rx^2/dr^2 + 2*(rx*sx + ry*sy)*(dr*ds) + ry^2/ds^2 )*dt^2 < (cfl)^2 
+          // --------------------------------------------------------------------------------
+                    real dxcMin=pow(REAL_MAX*.1,.25), dxcMax=-dxcMin;
+                    real dxMin=dxcMin, dxMax=-dxMin;
+                    real a11,a12,a22, dx2, dxbyc2;
+                    if( numberOfDimensions==2 )
+                    { // ***** 2D ********
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+                  	if( MASK(i1,i2,i3)>0 )
+                  	{
+                    	  a11 = ( RX(i1,i2,i3,0,0)*RX(i1,i2,i3,0,0) + RX(i1,i2,i3,0,1)*RX(i1,i2,i3,0,1) );
+                    	  a12 = ( RX(i1,i2,i3,0,0)*RX(i1,i2,i3,1,0) + RX(i1,i2,i3,0,1)*RX(i1,i2,i3,1,1) )*2.;
+                    	  a22 = ( RX(i1,i2,i3,1,0)*RX(i1,i2,i3,1,0) + RX(i1,i2,i3,1,1)*RX(i1,i2,i3,1,1) );
+                                real cSq = ( (matVal(2,matIndex(i1,i2,i3)))+2.*(matVal(1,matIndex(i1,i2,i3))) )/(matVal(0,matIndex(i1,i2,i3)));
+                    	  cMax = max( cMax, cSq) ;
+                    	  dx2=1./( a11 *(1./(dr1*dr1)) +abs(a12)*(.25/(dr1*dr2)) +a22 *(1./(dr2*dr2)) );
+                                dxMin=min(dxMin,dx2);  // this is an estimate of the local grid spacing squared (sqrt taken below)
+                                dxMax=max(dxMax,dx2);
+                                dxbyc2= dx2/cSq;            // dx^2/c^2 (sqrt taken below)
+                    	  dxcMin=min(dxcMin,dxbyc2);
+                    	  dxcMax=max(dxcMax,dxbyc2);
+                  	}
+                        }
+                        cMax=sqrt(cMax);
+                        dxMin=sqrt(dxMin);
+                        dxMax=sqrt(dxMax);
+                        dxcMin=sqrt(dxcMin);
+                        dxcMax=sqrt(dxcMax);
+                    }
+                    else
+                    { // ***** 3D ********
+            #define rxDotRx(axis,dir) (RX(i1,i2,i3,axis,0)*RX(i1,i2,i3,dir,0)				   + RX(i1,i2,i3,axis,1)*RX(i1,i2,i3,dir,1)				   + RX(i1,i2,i3,axis,2)*RX(i1,i2,i3,dir,2))
+            // There would be a factor of 4 for the worst case plus/minus wave but we also
+            // divide by a factor of 4 for the 2nd-order time stepping.
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+                  	if( MASK(i1,i2,i3)>0 )
+                  	{
+                                real cSq = ( (matVal(2,matIndex(i1,i2,i3)))+2.*(matVal(1,matIndex(i1,i2,i3))) )/(matVal(0,matIndex(i1,i2,i3)));
+                    	  cMax = max( cMax, cSq) ;
+                    	  dx2=1./(  rxDotRx(0,0) *(1./(dr1*dr1)) 
+                           		   +rxDotRx(1,1) *(1./(dr2*dr2))
+                           		   +rxDotRx(2,2) *(1./(dr3*dr3))
+                           		   +abs(rxDotRx(1,0))*(.5/(dr2*dr1))  
+                           		   +abs(rxDotRx(2,0))*(.5/(dr3*dr1)) 
+                           		   +abs(rxDotRx(2,1))*(.5/(dr3*dr2)) );
+                                dxMin=min(dxMin,dx2);  // this is an estimate of the local grid spacing
+                                dxMax=max(dxMax,dx2);
+                                dxbyc2= dx2/cSq;            // dx^2/c^2 (sqrt taken below)
+                    	  dxcMin=min(dxcMin,dxbyc2);
+                    	  dxcMax=max(dxcMax,dxbyc2);
+                  	}
+                        } 
+                        cMax=sqrt(cMax);
+                        dxMin=sqrt(dxMin);
+                        dxMax=sqrt(dxMax);
+                        dxcMin=sqrt(dxcMin);
+                        dxcMax=sqrt(dxcMax);
+            #undef rxDotRx
+                    } // end if 3d
+                    dxMinMax(grid,0)=dxMin; 
+                    dxMinMax(grid,1)=dxMax;
+                    dtg = cfl*dxcMin;       // maximum time step for this grid 
+                }  // end curvilinear grid 
+              } // end if ok 
+
+                printF("***getTimeStep: piecewise-constant material parameters: grid=%i cMax=%8.2e, dxMin=%8.2e, dxMax=%8.2e \n",
+                              grid,cMax,dxMinMax(grid,0),dxMinMax(grid,1));	
+            }
+            else
+            {
+        // --- variable material parameters ---	
+      	RealArray & matVal = matProp.getMaterialValuesArray();
+
+
+              int i1,i2,i3;
+              Index I1,I2,I3;
+              getIndex( mg.indexRange(),I1,I2,I3);
+              if( !mg.isRectangular() )
+              {
+                  mg.update(MappedGrid::THEinverseVertexDerivative);
+              }
+              const intArray & mask = mg.mask();
+              OV_GET_SERIAL_ARRAY_CONST(int,mask,maskLocal)
+              const int includeGhost=0;
+              bool ok=ParallelUtility::getLocalArrayBounds(mask,maskLocal,I1,I2,I3,includeGhost);
+              const int *maskp = maskLocal.Array_Descriptor.Array_View_Pointer2;
+              const int maskDim0=maskLocal.getRawDataSize(0);
+              const int maskDim1=maskLocal.getRawDataSize(1);
+              const int md1=maskDim0, md2=md1*maskDim1; 
+              #define MASK(i0,i1,i2) maskp[(i0)+(i1)*md1+(i2)*md2]
+              if( ok )
+              {
+                if( mg.isRectangular() )
+                {
+          // -- compute max( cp ) ---
+                    cMax =0.;
+                    FOR_3D(i1,i2,i3,I1,I2,I3)
+                    {
+                        if( MASK(i1,i2,i3)>0 )
+                        {
+                            cMax = max( cMax, ( (matVal(i1,i2,i3,2))+2.*(matVal(i1,i2,i3,1)) )/(matVal(i1,i2,i3,0)) );
+                        }
+                    }
+                    cMax=sqrt(cMax);
+                    mg.getDeltaX(dx);
+                    if( numberOfDimensions==2 )
+                        dtg=cfl*1./( cMax*sqrt( 1./(dx[0]*dx[0])+1./(dx[1]*dx[1]) ) );  
+                    else
+                        dtg=cfl*1./( cMax*sqrt( 1./(dx[0]*dx[0])+1./(dx[1]*dx[1])+1./(dx[2]*dx[2]) ) ); 
+                    dxMinMax(grid,0)=numberOfDimensions==2 ? min(dx[0],dx[1]) : min(dx[0],dx[1],dx[2]);
+                    dxMinMax(grid,1)=numberOfDimensions==2 ? max(dx[0],dx[1]) : max(dx[0],dx[1],dx[2]);
+          // printF(" getTimeStep: dx=%8.2e dy=%8.2e c=%8.2e, dtg=%8.2e\n",dx[0],dx[1],c,dtg);
+                }
+                else 
+                {
+          // -- curvilinear grid --
+                    const realArray & rx = mg.inverseVertexDerivative();
+          // Grid spacings on unit square:
+                    real dr1 = mg.gridSpacing(axis1);
+                    real dr2 = mg.gridSpacing(axis2);
+                    real dr3 = mg.gridSpacing(axis3);
+          // parallel version here --- also broadcast max error in forcing.bC *************************
+            #ifdef USE_PPP
+                    realSerialArray rxLocal;  getLocalArrayWithGhostBoundaries(rx,rxLocal);
+                    intSerialArray maskLocal;  getLocalArrayWithGhostBoundaries(mask,maskLocal);
+            #else
+                    const realSerialArray & rxLocal = rx; 
+                    const intSerialArray & maskLocal  =  mask; 
+            #endif
+                    real *rxp = rxLocal.Array_Descriptor.Array_View_Pointer3;
+                    const int rxDim0=rxLocal.getRawDataSize(0);
+                    const int rxDim1=rxLocal.getRawDataSize(1);
+                    const int rxDim2=rxLocal.getRawDataSize(2);
+                    const int rxDim3=mg.numberOfDimensions();   // note
+            #undef RX
+            #define RX(i0,i1,i2,i3,i4) rxp[i0+rxDim0*(i1+rxDim1*(i2+rxDim2*(i3+rxDim3*(i4))))]
+          // -------------------------------------------------------------------------------
+          // The time step condition on a curvilinear grid looks like
+          //
+          //     c^2 * ( rx^2/dr^2 + 2*(rx*sx + ry*sy)*(dr*ds) + ry^2/ds^2 )*dt^2 < (cfl)^2 
+          // --------------------------------------------------------------------------------
+                    real dxcMin=pow(REAL_MAX*.1,.25), dxcMax=-dxcMin;
+                    real dxMin=dxcMin, dxMax=-dxMin;
+                    real a11,a12,a22, dx2, dxbyc2;
+                    if( numberOfDimensions==2 )
+                    { // ***** 2D ********
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+                  	if( MASK(i1,i2,i3)>0 )
+                  	{
+                    	  a11 = ( RX(i1,i2,i3,0,0)*RX(i1,i2,i3,0,0) + RX(i1,i2,i3,0,1)*RX(i1,i2,i3,0,1) );
+                    	  a12 = ( RX(i1,i2,i3,0,0)*RX(i1,i2,i3,1,0) + RX(i1,i2,i3,0,1)*RX(i1,i2,i3,1,1) )*2.;
+                    	  a22 = ( RX(i1,i2,i3,1,0)*RX(i1,i2,i3,1,0) + RX(i1,i2,i3,1,1)*RX(i1,i2,i3,1,1) );
+                                real cSq = ( (matVal(i1,i2,i3,2))+2.*(matVal(i1,i2,i3,1)) )/(matVal(i1,i2,i3,0));
+                    	  cMax = max( cMax, cSq) ;
+                    	  dx2=1./( a11 *(1./(dr1*dr1)) +abs(a12)*(.25/(dr1*dr2)) +a22 *(1./(dr2*dr2)) );
+                                dxMin=min(dxMin,dx2);  // this is an estimate of the local grid spacing squared (sqrt taken below)
+                                dxMax=max(dxMax,dx2);
+                                dxbyc2= dx2/cSq;            // dx^2/c^2 (sqrt taken below)
+                    	  dxcMin=min(dxcMin,dxbyc2);
+                    	  dxcMax=max(dxcMax,dxbyc2);
+                  	}
+                        }
+                        cMax=sqrt(cMax);
+                        dxMin=sqrt(dxMin);
+                        dxMax=sqrt(dxMax);
+                        dxcMin=sqrt(dxcMin);
+                        dxcMax=sqrt(dxcMax);
+                    }
+                    else
+                    { // ***** 3D ********
+            #define rxDotRx(axis,dir) (RX(i1,i2,i3,axis,0)*RX(i1,i2,i3,dir,0)				   + RX(i1,i2,i3,axis,1)*RX(i1,i2,i3,dir,1)				   + RX(i1,i2,i3,axis,2)*RX(i1,i2,i3,dir,2))
+            // There would be a factor of 4 for the worst case plus/minus wave but we also
+            // divide by a factor of 4 for the 2nd-order time stepping.
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+                  	if( MASK(i1,i2,i3)>0 )
+                  	{
+                                real cSq = ( (matVal(i1,i2,i3,2))+2.*(matVal(i1,i2,i3,1)) )/(matVal(i1,i2,i3,0));
+                    	  cMax = max( cMax, cSq) ;
+                    	  dx2=1./(  rxDotRx(0,0) *(1./(dr1*dr1)) 
+                           		   +rxDotRx(1,1) *(1./(dr2*dr2))
+                           		   +rxDotRx(2,2) *(1./(dr3*dr3))
+                           		   +abs(rxDotRx(1,0))*(.5/(dr2*dr1))  
+                           		   +abs(rxDotRx(2,0))*(.5/(dr3*dr1)) 
+                           		   +abs(rxDotRx(2,1))*(.5/(dr3*dr2)) );
+                                dxMin=min(dxMin,dx2);  // this is an estimate of the local grid spacing
+                                dxMax=max(dxMax,dx2);
+                                dxbyc2= dx2/cSq;            // dx^2/c^2 (sqrt taken below)
+                    	  dxcMin=min(dxcMin,dxbyc2);
+                    	  dxcMax=max(dxcMax,dxbyc2);
+                  	}
+                        } 
+                        cMax=sqrt(cMax);
+                        dxMin=sqrt(dxMin);
+                        dxMax=sqrt(dxMax);
+                        dxcMin=sqrt(dxcMin);
+                        dxcMax=sqrt(dxcMax);
+            #undef rxDotRx
+                    } // end if 3d
+                    dxMinMax(grid,0)=dxMin; 
+                    dxMinMax(grid,1)=dxMax;
+                    dtg = cfl*dxcMin;       // maximum time step for this grid 
+                }  // end curvilinear grid 
+              } // end if ok 
+
+                printF("***getTimeStep: variable material parameters: grid=%i cMax=%8.2e, dxMin=%8.2e, dxMax=%8.2e \n",
+                              grid,cMax,dxMinMax(grid,0),dxMinMax(grid,1));
+
+            }
+            
+        } // end variable material properties
+        
+            
+        if( artificialDissipation>0. )
+        {
+      // Here is the correction for artificial dissipation
+      //
+      // The equation for dt looks like
+      //   dt*dt *c*c*(  1/dx^2 + 1/dy^2 ) = 1 - beta*dt
+      //
+      // dtg may be a large invalid value if there are no points on this processor so
+      // we need to do this before we compute the correction: 
+            dtg=ParallelUtility::getMinValue(dtg);  // compute min over all processors
+
+            real gamma = dtg*dtg;
+            real beta;
+      // const real adc=artificialDissipation*SQR(cMax); // scale dissipation by c^2 *wdh* 041103
+            const real adc=artificialDissipation; // do not scale *wdh* 090216
+
+            beta = .5*adc*( numberOfDimensions*pow(2.,real(orderOfArtificialDissipation)) );
+            real factor=2.;  // safety factor
+            beta *=factor;
+
+            dtg = sqrt( gamma + pow(beta*gamma*.5,2.) ) - beta*gamma*.5;
+
+            if( gf.t==0. || debug & 4 )
+      	printP(" getTimeStep: Correct for art. dissipation: new dt=%9.3e (old = %9.3e, new/old=%4.2f)\n",
+             	       dtg,sqrt(gamma),dtg/sqrt(gamma));
+      	
+        }
+            
+        if( timeSteppingMethodSm==SmParameters::modifiedEquationTimeStepping )
+        {
+            if( true || orderOfAccuracyInTime==2 || orderOfAccuracyInTime==4 )
+            {
+      	dtg*=1.; // Check this for 3D
+            }
+            else
+            {
+      	printP("getTimeStep:ERROR: modifiedEquationTimeStepping -- orderOfAccuracyInTime=%i ??\n",
+             	       orderOfAccuracyInTime);
+        	  
+      	Overture::abort("getTimeStep:ERROR: modifiedEquationTimeStepping -- orderOfAccuracyInTime?? ");
+            }
+      	
+        }
+        else if( timeSteppingMethodSm==SmParameters::forwardEuler  )
+        {
+      // what should this be ? 
+        }
+        else if( timeSteppingMethodSm==SmParameters::improvedEuler  )
+        {
+      // what should this be ? 
+        }
+        else if( timeSteppingMethodSm==SmParameters::adamsBashforth2  )
+        {
+      // what should this be ? 
+        }
+        else if( timeSteppingMethodSm==SmParameters::adamsPredictorCorrector2  )
+        {
+      // what should this be ? 
+        }
+        else if( timeSteppingMethodSm==SmParameters::adamsPredictorCorrector4  )
+        {
+      // what should this be ? 
+        }
+        else
+        {
+
+            if( orderOfAccuracyInSpace==2 )
+            {
+            }
+            else if( orderOfAccuracyInSpace==4 )
+      	dtg*=sqrt(3./4.);
+            else if( orderOfAccuracyInSpace==6 )
+      	dtg*=sqrt(.6618);
+            else if( orderOfAccuracyInSpace==8 )
+      	dtg*=sqrt(.6152);
+            else
+            {
+      	Overture::abort("getTimeStep:ERROR: modifiedEquationTimeStepping -- orderOfAccuracyInSpace?? ");
+            }
+
+            if( orderOfAccuracyInTime==4 )
+            {
+      	dtg*=1.41/2.;
+            }
+            else if( orderOfAccuracyInTime==6 )
+            {
+      	dtg*=.84/2.;
+            }
+            else if( orderOfAccuracyInTime==8 )
+            {
+      	dtg*=.46/2.;
+            }
+            else if( orderOfAccuracyInTime==3 ) // && method==dsi
+            {
+      	dtg*=(12./7.)/2.;   // ABS3
+            }
+            else if( orderOfAccuracyInTime!=2 )
+            {
+      	Overture::abort();
+            }
+        }
+            
+        dtg=ParallelUtility::getMinValue(dtg);  // compute min over all processors
+            
+        dxMinMax(grid,0)=ParallelUtility::getMinValue(dxMinMax(grid,0));
+        dxMinMax(grid,1)=ParallelUtility::getMaxValue(dxMinMax(grid,1));
+
+        if( gf.t==0 || debug & 4 )
+            printP(" getTimeStep: grid=%i cMax=%8.2e, dtg=%8.2e\n",grid,cMax,dtg);
+
+#undef RX
+        
+        deltaT=min(deltaT,dtg);
+        
+    } // end for grid
+
+    deltaT=ParallelUtility::getMinValue(deltaT);  // min value over all processors
+    if( debug & 1 )
+        printF("==== getTimeStep: t=%8.2e, deltaT=%8.2e\n",gf.t,deltaT);
+
+    timing(parameters.dbase.get<int>("timeForComputingDeltaT"))+=getCPU()-time0;
+
+
+    dtSave=deltaT; // save value
+    return deltaT;
+}
+

@@ -1,0 +1,78 @@
+\section{IntersectionMapping}\index{intersection mapping}\index{Mapping!IntersectionMapping}
+
+This mapping class can compute the intersection between two other mappings, such as the
+curve of intersection between two surfaces. See the comments with the {\tt determineIntersection}
+function for a description of the fairly robust way in which we find the intersection.
+
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.0}{.0}{.1}{.1}}
+\newcommand{\figWidtha}{6cm}
+\newcommand{\trimfiga}[2]{\trimFig{#1}{#2}{0.075}{.1}{.325}{.35}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}
+  \useasboundingbox (0,0.25) rectangle (12,12);  % set the bounding box (so we have less surrounding white space)
+% 
+  \draw (2,4.5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\figures/ss_intersect}{\figWidth}};
+  \draw (0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\figures/ss1_intersect}{\figWidtha}};
+  \draw (6, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\figures/ss2_intersect}{\figWidtha}};
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (12,12);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+ \caption{The sphere-sphere intersection curve in the range space and the domain spaces (unit squares).}
+\end{center}
+\end{figure}
+
+
+
+%% \input IntersectionMappingInclude.tex
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.0}{.0}{.1}{.1}}
+\newcommand{\figWidtha}{6cm}
+\newcommand{\trimfiga}[2]{\trimFig{#1}{#2}{0.0}{.1}{.1}{.125}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}
+  \useasboundingbox (0,0.25) rectangle (12,12);  % set the bounding box (so we have less surrounding white space)
+% 
+  \draw (2,5.5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\figures/cc_intersect}{\figWidth}};
+  \draw (0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\figures/cc1_intersect}{\figWidtha}};
+  \draw (6, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\figures/cc2_intersect}{\figWidtha}};
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (12,13);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+ \caption{The cylinder-cylinder intersection curves in the range space and the domain spaces (unit squares).
+     This is a reasonably hard case since the cylinders have the same radius and thus the surfaces
+     are tangent at two points.}
+\end{center}
+\end{figure}
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.0}{.0}{.1}{.1}}
+\newcommand{\figWidtha}{6cm}
+\newcommand{\trimfiga}[2]{\trimFig{#1}{#2}{0.075}{.1}{.325}{.35}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}
+  \useasboundingbox (0,0.25) rectangle (12,11);  % set the bounding box (so we have less surrounding white space)
+% 
+  \draw (2,4.5) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\figures/wing_body}{\figWidth}};
+  \draw (0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\figures/wing_body1}{\figWidtha}};
+  \draw (6, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfiga{\figures/wing_body2}{\figWidtha}};
+% grid:
+%   \draw[step=1cm,gray] (0,0) grid (12,12);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+ \caption{Intersection curve for a wing-body configuration. The curve was reparameterized weighting arclength
+       and curvature in order to redistribute more points to the high curvature regions.}
+\end{center}
+\end{figure}
+
+

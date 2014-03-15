@@ -1,0 +1,60 @@
+#! /bin/csh -f
+#
+#     Define environment variables for Overture
+#
+# see the install notes on the web for further explanation or Overture/doc/install.tex
+#
+# edit this file and change as appropriate for your system,
+# then type 'source defenv'
+
+# You will need to change the following: 
+setenv XLIBS /usr
+setenv MOTIF /usr
+setenv OpenGL /home/henshaw.0/software/OpenGL/Mesa-6.4.2.intel.gcc4.1.1
+setenv HDF /home/henshaw.0/software/hdf/hdf5-1.6.5-gcc4.1.1-64
+setenv APlusPlus /home/henshaw.0/A++P++/A++P++-4.1.1-64/A++/install
+setenv Overture /home/henshaw.0/Overture.v24j.d
+
+# Here are variables to set if you intend to build CG
+#   CG : location for CG (source tree)
+#   CGBUILDPREFIX : location of CG executables (compile tree). This can be the same as CG
+#                   if you only intend to build one version of CG. 
+#   LAPACK : location of the LAPACK library
+setenv CG /home/henshaw.0/cg.v24j
+setenv CGBUILDPREFIX /home/henshaw.0/cg.v24j.d
+#  In the following example LAPACK is found with the PGI compilers
+setenv LAPACK /nfs/apps/pgi/6.1-3/linux86-64/6.1/lib
+
+
+# Here are some handy alias's and variables 
+alias ogen $Overture/bin/ogen
+alias plotStuff $Overture/bin/plotStuff
+alias rap $Overture/bin/rap
+alias mbuilder $Overture/bin/mbuilder
+set primer = $Overture/primer
+set sampleGrids = $Overture/sampleGrids
+
+setenv CGE $CGBUILDPREFIX
+alias cgad  ${CGE}/ad/bin/cgad
+alias cgasf ${CGE}/asf/bin/cgasf
+alias cgcns ${CGE}/cns/bin/cgcns
+alias cgins ${CGE}/ins/bin/cgins
+alias cgmx  ${CGE}/mx/bin/cgmx 
+alias cgmp  ${CGE}/mp/bin/cgmp 
+alias cgsm  ${CGE}/sm/bin/cgsm 
+
+set ad = ${CG}/ad
+set asf = ${CG}/asf
+set cns = ${CG}/cns
+set ins = ${CG}/ins
+set mx = ${CG}/mx
+set mp = ${CG}/mp
+set sm = ${CG}/sm
+
+
+# The LD_LIBRARY_PATH indicates the places to look for dynamic libraries. This variable should 
+# not be needed in most cases since we use the 'rpath' loader option 
+setenv LD_LIBRARY_PATH  $MOTIF/lib:$XLIBS/lib:$OpenGL/lib:$HDF/lib:$Overture/lib:${APlusPlus}/lib
+# setenv LD_LIBRARY_PATH  $MOTIF/lib:$XLIBS/lib:$OpenGL/lib:$HDF/lib:$Overture/lib:${APlusPlus}/lib:${PETSC_LIB}
+
+

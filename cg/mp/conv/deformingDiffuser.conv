@@ -1,0 +1,93 @@
+#
+# Measure convergence rates for cgmp and the deforming diffuser
+#
+# -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
+# 
+# To run the convergence tests type: (NOTE: see deformingDiffuser.out)
+# 
+#   conv.p deformingDiffuser.conv -tp=.1 -tf=.1 -cg=diffuser -ng=4 -alwaysCompute=1
+#
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+# ---------------------
+# Set default parameters: 
+$cmdFile="/home/henshaw.0/runs/cgmp/deformingDiffuser/deformingDiffuser.cmd"; 
+$pv = "g"; $tz="trig"; $bcn = "d"; $ng=4; $diss=0.; $dissOrder=4; $tf=.5;  $tPlot=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; 
+$en="max";   # max, l1, l2
+$cfl=.9; $adCns=0.; $numberOfParallelGhost=2; 
+$stressRelaxation=4; $relaxAlpha=0.1; $relaxDelta=0.1; 
+$slopeLimiter=0;   # turn off slope limiter
+$reduceInterpWidth=2; # by default reduce interp-width to 2 (set to 0 to leave as is)
+$multiDomainAlgorithm=0; $pi=0;
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgmpCmd = "$CGBUILDPREFIX/mp/bin/cgmp";  # command for cgmp
+$cmdDir="$ENV{CG}/sm/cmd"; 
+$amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
+$cg = "diffuser"; $alwaysCompute=0; $ts="me"; $mu=1.; $lambda=1; $scf=10.; $filter=0; $filterOrder=6; $filterStages=2; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,\
+            "diss=f"=>\$diss,"tp=f"=>\$tPlot,"alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,\
+            "filter=i"=>\$filter,"filterOrder=i"=>\$filterOrder,"filterStages=i"=>\$filterStages,\
+            "showAllComponents=i"=>\$showAllComponents,"amr=i"=>\$amr,"tol=f"=>\$tol,"nrl=i"=>\$nrl,\
+            "nbz=i"=>\$nbz,"ratio=i"=>\$ratio,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"cfl=f"=>\$cfl,"adCns=f"=>\$adCns,\
+            "cgmpCmd=s"=>\$cgmpCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"dissOrder=i"=>\$dissOrder,\
+            "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
+            "slopeLimiter=i"=>\$slopeLimiter,"scf=f"=>\$scf,"reduceInterpWidth=i"=>\$reduceInterpWidth,\
+            "multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,"pi=i"=>\$pi );
+#
+$check="mp.check";
+#
+$numberOfDomains=2; 
+$caseName="diffuser.$cg.$pv"; 
+$name="diffuser.$cg.$pv"; 
+#
+# --- define the table heading and caption --
+# 
+#  --- Godunov solid: include |u|, |v|, |sigma| in table by default (these are the first three in the sm check file)
+#    for($i=3; $i<11; $i++ ){ $ignoreComponent[$i]=1; } 
+#    $ignoreComponent[3]=1; $ignoreComponent[4]=1;  
+if( $pv eq "g" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    if( $nd eq 2 ){ $numberOfComponents= 4 + 11;  $numPerDomain}else{ $numberOfComponents= 5 + 18; }  \
+     $title ="grid  \& N \&  \$rho\$  \& \$u\$  \& \$v\$  \& \$T\$  \&\$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$ ";\
+     @componentName = ( "r", "v0", "v1" , "T" , "u", "v", "s", "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" );\
+  }\
+  else\
+  { \
+    $numberOfComponents= 11 + 4 ; for($i=3; $i<11; $i++ ){ $ignoreComponent[$i]=1; }  \
+    $numberOfComponentsPerDomain[0]=11; $numberOfComponentsPerDomain[1]=4;  \
+    $title ="grid  \& N \& \$\\vert u\\vert\$  \&  \$\\vert v\\vert\$  \&  \$\\vert\\sigma\\vert\$ \&  \$rho\$  \& \$v_1\$  \& \$v_2\$  \& \$T\$  "; \
+    @componentName = ( "u", "v", "s" , "r", "v0", "v1" , "T" ); \
+  }\
+}
+#
+if( $pv eq "g" ){ $clabel = "diss=$diss, adCns=$adCns"; }
+$caption= "\\caption\{MP, $name, \$t=$tf\$, $clabel, stressRelax=$stressRelaxation, slopeLimiter=$slopeLimiter, IW=$reduceInterpWidth, projectInterface=$pi, cfl=$cfl, $en-norm errors $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-tp=$tPlot -tf=$tf -cfl=$cfl -nc=1 -cnsVariation=godunov -smVariation=g -pOffset=1. -scf=$scf -stressRelaxation=$stressRelaxation -adCns=$adCns -diss=$diss -slopeLimiter=$slopeLimiter -reduceInterpWidth=$reduceInterpWidth -en=$en -multiDomainAlgorithm=$multiDomainAlgorithm -pi=$pi -go=go";
+# 
+if( $cg eq "diffuser" ){\
+$grid1="diffuser2";  $gName1 = "deformingDiffuserFluidSolidFixedGrid2.order2"; \
+$grid2="diffuser4";  $gName2 = "deformingDiffuserFluidSolidFixedGrid4.order2"; \
+$grid3="diffuser8";  $gName3 = "deformingDiffuserFluidSolidFixedGrid8.order2"; \
+$grid4="diffuser16"; $gName4 = "deformingDiffuserFluidSolidFixedGrid16.order2"; \
+$grid5="diffuser32"; $gName5 = "deformingDiffuserFluidSolidFixedGrid32.order2"; \
+$grid6="diffuser64"; $gName6 = "deformingDiffuserFluidSolidFixedGrid64.order2"; }
+# 
+$grid=$grid1; $res=1; $cmd="$cgmpCmd noplot $cmdFile -g=$gName1 $options";
+$grid=$grid2; $res=2; $cmd="$cgmpCmd noplot $cmdFile -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4;  $cmd="$cgmpCmd noplot $cmdFile -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8;  $cmd="$cgmpCmd noplot $cmdFile -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgmpCmd noplot $cmdFile -g=$gName5 $options";}
+if( $ng > 5 ){ $grid=$grid6; $res=32; $cmd="$cgmpCmd noplot $cmdFile -g=$gName6 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

@@ -1,0 +1,524 @@
+eval 'exec perl -S $0 ${1+"$@"}'
+if 0;
+#!/usr/bin/perl
+# perl program to test the Overture (or OverBlown) distribution
+#
+
+# Notes:
+#   1) The order of the output from running checkOverture.p may be a bit scrambled -- 
+#      Error messages may appear well before their correct position.
+#
+
+sub checkError
+{
+  if( $rt != 0 )
+  {
+    print "ERROR for: `$target'\n";
+    exit 1;
+  }
+}
+
+sub checkStatus
+{
+  if( $rt == 0 )
+  {
+    print "success in building or spawning `$target'\n";
+  }
+  else
+  {
+    print "failure in building `$target'\n";
+  }
+}
+
+sub mySigIntCatcher
+# signal catcher for interupts
+{
+  print ">>>testDistribution: Signal Int caught. Cleaning up\n";
+  $SIG{'INT'} = 'DEFAULT'; # reset to avoid recursion
+  exit 1;
+}
+
+
+# -------------------- main -----------------------------------------------
+# assign a signal catcher ... doesn't seem to work ??
+$SIG{'INT'} = 'mySigIntCatcher';
+
+# Use this version of checkOverture.p
+$checkOverture = "/usr/casc/overture/Overture/bin/checkOverture.p";
+
+$package="Overture";
+$debug="false";
+$platform="all";
+$user = $ENV{"USER"};
+$cvs="false";
+$checkout="false";  # by default use existing checked out version (or create it if it is not there)
+$update="false";    # could update instead of a checkout
+$build="true";
+$noplot="noplot";   # do not plot by default since it is VERY annoying
+
+# default location of a checked out version of Overture (Overblown) that each user may want to test:
+$checkoutDir = "/home/$user/Overture";
+
+# --- here are the directories where we will make and compile the distributions ----
+$sunDirectory="/home/$user/Overture.check";
+$intelDirectory="/home/$user/Overture.check";
+$intelifcDirectory="/var/tmp/$user";
+$decDirectory="/var/tmp/$user";
+$sgiDirectory="/var/tmp/$user/Overture.check";
+
+# -- here are the machines we test on
+@sun = ( "bloch", "bobalek", "bloch" );
+@intel = ( "tux83", "tux83" );
+@intelifc = ( "ilx3", "ilx2" );
+@dec = ( "gps09", "gps11" );
+@sgi = ( "riptide", "riptide" );
+
+# -- make changes specific to a user ----
+if( $user eq "henshaw" )
+{
+  # **** use this version temporarily ****
+  # $checkOverture = "/usr/casc/overture/Overture/bin/checkOverture.wdh.p";  
+
+  $intel[0]="tux50";
+
+  # Here is my checked out version where I normally develop Overture:
+  $checkoutDir = "/home/henshaw/Overture"; # check this version instead of the CVS repo
+  $sunDirectory="/home/henshaw2/Overture.check";
+  # ** $intelDirectory="/home/henshaw2/Overture.check";
+  $intelDirectory="/var/tmp/$user";
+} 
+elsif ( $user eq "andersp" )
+{
+  $intel[0]="tux51";
+  $checkoutDir = "/home/andersp/src/Overture"; # check this version instead of the CVS repo
+  $sunDirectory="/home/henshaw2/andersp/Overture.check";
+}
+elsif ( $user eq "chand" )
+{
+  $intel[0]="tux48";
+  # Here is my checked out version where I normally develop Overture:
+  $checkoutDir = "/home/chand/overture/views/OvertureCVS/Overture"; # check this version instead of the CVS repo
+  $sunDirectory="/home/chand/Overture.check";
+  $intelDirectory="/home/chand/Overture.check";
+}
+elsif ( $user eq "pfast" )
+{
+  $intel[0]="tux52";
+}
+
+printf("\n");
+printf("================================================================================\n");
+printf(" testDistribution: This perl script will test an Overture (OverBlown) distribution from \n");
+printf("         the CVS repo or some other checked out version.\n");
+printf( "It will compile Overture with various compilers and various options and run some tests.\n");
+printf("  Usage: \n");
+printf("    testDistribution [options] \n");
+printf(" options are: \n");
+printf("   platform=[all][sun.d.CC][sun.s.CC][sun.d.CC.mpi] : test which platform, default=all\n");
+printf("            [intel.d.gcc][intel.s.gcc][intel.d.gcc.fort77][intel.s.gcc.g77][intel.d.gcc.ifc]\n");
+printf("            [dec.d.cxx][dec.s.cxx][dec.d.cxx.mpi][sgi.d.CC]   \n");
+printf("            [1,2,3...]        : platform=1 - test platform 1, =2 test platform 2, etc.\n");
+printf("   cvs=true/false       : if true test the cvs repo, otherwise test a local version (checkoutDir) \n");
+printf("                        : by default cvs=$cvs\n");
+printf("   checkoutDir=<name>   : use this checked out version of Overture (if option cvs=false) \n");
+printf("                        : by default checkoutDir=$checkoutDir \n");
+printf("   checkout=true/false  : For cvs=true: checkout (copy files) from the repository to \n");
+printf("                        : /usr/casc_scratch/\$\{USER\}/Overture.checkout\n");
+printf("                        : If checkout=false then the existing files in that directory will be used or\n");
+printf("                        : one will be created if it is not there. Set checkout=true to force a copy.\n");
+printf("                        : For cvs=false: Copy files from checkoutDir instead of the cvs repository.\n");
+printf("   update=true/false    : make an update from the repository to /usr/casc_scratch/\$\{USER\}/Overture.checkout\n");
+printf("                        : (for cvs=true and checkout=false)           \n");
+printf("   build=true/false     : if build=false do not build a new version, attempt to compile \n");
+printf("                        : an existing version. By default build=$build.                 \n");
+printf("                    NOTE: Build means copy the files in /usr/casc_scratch/\$\{USER\}/Overture.checkout to\n");
+printf("                        : either \$\{HOME\}/Overture.Check (for sun and linux) or /var/tmp/\$\{USER\} (compaq)\n");
+printf("   sun=<name> intel=<name> dec=<name> sgi=<name>: specify which machine to run on     \n");
+printf("   package=[Overture/OverBlown] : specify the package to test, Overture is the default.  \n");
+printf("   decDirectory= sunDirectory= intelDirectory= : specify the target directory     \n");
+printf("   debug=true/false     \n");
+printf("   noplot     : do not plot during testing. \n");
+printf("   plot       : do plot during testing. \n");
+printf("   \n");
+printf(" Examples:    \n");
+printf("  testDistribution platform=intel.d.gcc checkout=true (test user version of the repo) \n");
+printf("  testDistribution platform=intel.d.gcc   (test user version, do not recopy to scratch space) \n");
+printf("  testDistribution platform=intel.d.gcc cvs=true checkout=true (test CVS version)  \n");
+printf("  testDistribution platform=intel.d.gcc cvs=true (test CVS version, use version on scratch)  \n");
+printf("   \n");
+printf("==============================================================================\n\n");
+
+
+
+foreach $arg ( @ARGV )
+{
+    if( $arg =~ "platform=(.*)" )
+    {
+      $platform = $1;
+      print "platform=$platform\n";
+    }
+    elsif( $arg =~ "package=(.*)" )
+    {
+      $package=$1;
+      if( $package eq "OverBlown" )
+      {
+        if( $user eq "henshaw" )
+        {
+          $checkoutDir = "/home/henshaw/res/OverBlown"; # check this version instead of the CVS repo
+          $sunDirectory="/home/henshaw2/$package.check";
+          $intelDirectory="/home/henshaw2/$package.check";
+
+        }
+      }
+    }
+    elsif( $arg =~ "checkout=(.*)" )
+    {
+      $checkout=$1;
+    }
+    elsif( $arg =~ "update=(.*)" )
+    {
+      $update=$1;
+    }
+    elsif( $arg =~ "cvs=(.*)" )
+    {
+      $cvs=$1;
+      print "cvs=$cvs\n";
+    }
+    elsif( $arg =~ "sun=(.*)" )
+    {
+      $sun[0]=$1;
+      print "sun[0]=$sun[0]\n";
+    }
+    elsif( $arg =~ "intel=(.*)" )
+    {
+      $intel[0]=$1;
+      print "intel[0]=$intel[0]\n";
+    }
+    elsif( $arg =~ "dec=(.*)" )
+    {
+      $dec[0]=$1;
+      print "dec[0]=$dec[0]\n";
+    }
+    elsif( $arg =~ "sgi=(.*)" )
+    {
+      $sgi[0]=$1;
+      print "sgi[0]=$sgi[0]\n";
+    }
+    elsif( $arg =~ "debug=(.*)" )
+    {
+      $debug=$1;
+      print "debug=$debug\n";
+    }
+    elsif( $arg =~ "build=(.*)" )
+    {
+      $build=$1;
+      print "build=$build\n";
+    }
+    elsif( $arg =~ "checkoutDir=(.*)" )
+    {
+      $checkoutDir=$1;
+      print "Setting checkoutDir=$checkoutDir\n";
+    }
+    elsif( $arg =~ "decDirectory=(.*)" )
+    {
+      $decDirectory=$1;
+      print "Setting decDirectory=$decDirectory\n";
+    }
+    elsif( $arg =~ "sunDirectory=(.*)" )
+    {
+      $sunDirectory=$1;
+      print "Setting sunDirectory=$sunDirectory\n";
+    }
+    elsif( $arg =~ "intelDirectory=(.*)" )
+    {
+      $intelDirectory=$1;
+      print "Setting intelDirectory=$intelDirectory\n";
+    }
+    elsif( $arg =~ "sgiDirectory=(.*)" )
+    {
+      $sgiDirectory=$1;
+      print "Setting sgiDirectory=$sgiDirectory\n";
+    }
+    elsif( $arg =~ "noplot" )
+    {
+      $noplot="noplot";
+    }
+    elsif( $arg =~ "plot" )
+    {
+      $noplot="";
+    }
+    else
+    {
+       print "testDistribution:ERROR: unknown command line argument=[$arg]\n";
+       exit 1;
+    }
+}
+
+
+$sourceDistribution="";
+if( $cvs eq "true" )
+{
+  # build a version from the CVS repo -- checkout a version to /usr/casc_scratch
+  
+  $OvertureCheckDirectory="/usr/casc_scratch/$user/$package.checkout";
+
+  if( $package eq "Overture" )
+  {
+     $cvsRepository="/usr/casc/overture/Overture/OvertureCVS";
+  }
+  elsif( $package eq "OverBlown" )
+  {
+    $cvsRepository="/usr/casc/overture/Overture/repository";
+  }
+  else
+  {
+     printf("testDistrubution:ERROR: unknown package=$package\n");
+     exit(1);
+  }
+
+  print ">>>Set the current working directory to $OvertureCheckDirectory\n";
+  if( !(-e $OvertureCheckDirectory) )
+  {
+    print "mkdir $OvertureCheckDirectory\n";
+    $target="mkdir $OvertureCheckDirectory";
+    $rt = system("mkdir $OvertureCheckDirectory"); checkError();
+
+    $checkout="true"; # we need to checkout if the directory is not there.
+  }
+
+  if( $checkout eq "true" )
+  {
+    print ">>>First checkout a new version of $package\n";
+    print ">>>remove old checkout directory...\n";
+    $target="rm -rf $OvertureCheckDirectory/$package";
+    $rt = system("rm -rf $OvertureCheckDirectory/$package"); checkError();
+  
+    print ">>>cd $OvertureCheckDirectory\n";
+    $target="cd to $OvertureCheckDirectory";
+    $rt = chdir("$OvertureCheckDirectory"); $rt=$rt-1; checkError();
+
+    $logFile = "> checkout.log";   if( $debug eq "true"){  $logFile=""; }
+    print ">>>cvs -d$cvsRepository checkout $package $logFile...\n";
+    $target="checkout $package";
+    $rt = system("cvs -d$cvsRepository checkout $package $logFile"); checkError();
+  }
+  elsif( $update eq "true" )
+  {
+    $logFile = "> update.log";   if( $debug eq "true"){  $logFile=""; }
+    print ">>>cvs -d$cvsRepository update $OvertureCheckDirectory/$package $logFile...\n";
+    $target="update $OvertureCheckDirectory/$package";
+    $rt = system("cvs -d$cvsRepository update $OvertureCheckDirectory/$package $logFile"); checkError();
+  }   
+}
+else
+{
+    # build a distribution from a supplied version (i.e. a directory that has been checked out)
+    # we first copy this directory to a version on /usr/casc/overture/Overture so that it can
+    # be accessed from the LC machines.
+
+    $sourceDistribution = "/usr/casc_scratch/$user/$package.check";
+
+    if( $checkout eq "true" || !( -e $sourceDistribution ))
+    {
+      print ">>>cd $checkoutDir\n";
+      $target="cd to $checkoutDir";
+      $rt = chdir("$checkoutDir"); $rt=$rt-1; checkError();
+
+      print "rm -rf $sourceDistribution\n";
+      $target="rm -rf $sourceDistribution";
+      $rt=system("rm -rf $sourceDistribution"); checkError();
+
+      $logFile = "> build.log";   if( $debug eq "true"){  $logFile=""; }
+      print ">>>build a temporary distribution: build$package $sourceDistribution $logFile\n";
+      $target="build$package $sourceDistribution";
+      $rt = system("csh -f -c 'set path = \(\".\" \$path\); ./build$package $sourceDistribution $logFile'"); checkError();
+    }
+}
+
+# common args to checkOverture:
+$checkOvertureArgs = "debug=$debug sourceDistribution=$sourceDistribution build=$build package=$package make=true $noplot";
+
+$logFile = " > check.log"; if( $debug eq "true" ) { $logFile = "";}
+
+# spawn jobs and run on different machines in parallel if we are making all platforms
+if( $platform eq "all" )
+{ 
+  $spawn=""; # "&"; # this is dangerous
+}
+else{ $spawn=""; }
+
+$numberBuilt=0;
+$numberOfPlatforms=1;
+if( $platform eq "intel.d.gcc" || $platform eq $numberOfPlatforms || $platform eq "all"  )
+{
+  # Linux version
+  $dir = $intelDirectory;
+  $target="intel.d.gcc";
+  $machine = $intel[0];
+  print "build $target on $machine spawn=[$spawn]\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.CC=g++.cc=gcc\"  $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+$numberOfPlatforms++;
+
+if( $platform eq "intel.s.gcc" || $platform eq $numberOfPlatforms || $platform eq "all"  )
+{
+  # Linux version
+  $dir = $intelDirectory;
+  $target="intel.s.gcc";
+  $machine = $intel[0];
+  print "build $target on $machine spawn=[$spawn]\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.CC=g++.cc=gcc.precision=single\"  $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "intel.d.gcc.fort77" || $platform eq $numberOfPlatforms || $platform eq "all"  )
+{
+  # Linux version
+  $dir = $intelDirectory;
+  $target="intel.d.gcc.fort77";
+  $machine = $intel[0];
+  print "build $target on $machine spawn=[$spawn]\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.CC=g++.cc=gcc.FC=g77\"  $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "intel.s.gcc.g77" || $platform eq $numberOfPlatforms || $platform eq "all"  )
+{
+  # Linux version
+  $dir = $intelDirectory;
+  $target="intel.s.gcc.g77";
+  $machine = $intel[0];
+  print "build $target on $machine spawn=[$spawn]\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.CC=g++.cc=gcc.FC=g77.precision=single\"  $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "sun.d.CC" || $platform eq $numberOfPlatforms || $platform eq "all" )
+{
+  # SUN double precision, CC
+  $dir = $sunDirectory;
+  $target="sun.d.CC";
+  $machine = $sun[0]; 
+  print "build $target on $machine\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid\" $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "sun.s.CC" || $platform eq $numberOfPlatforms || $platform eq "all" )
+{
+  # SUN single precision, CC
+  $dir = $sunDirectory;
+  $target="sun.s.CC";
+  if( $platform eq "all" || $platform eq $numberOfPlatforms ){ $machine=$sun[1]; }else{ $machine=$sun[0]; }
+  print "build $target on $machine\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.precision=single\" $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+
+$numberOfPlatforms++;
+if( $platform eq "sun.d.CC.mpi" || $platform eq $numberOfPlatforms || $platform eq "all" )
+{
+  # SUN parallel version
+  $dir = $sunDirectory;
+  $target="sun.d.CC.mpi";
+  if( $platform eq "all" || $platform eq $numberOfPlatforms ){ $machine=$sun[2]; }else{ $machine=$sun[0]; }
+  print "build $target on $machine\n";
+
+  # do  not run tests for parallel version
+  $runTests="false";
+  
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine runTests=$runTests configure=\"multigrid.parallel\" $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "dec.d.cxx" || $platform eq $numberOfPlatforms || $platform eq "all" )
+{
+  # DEC double precision
+  $dir = $decDirectory;
+  $target="dec.d.cxx";
+  $machine = $dec[0];
+  print "build $target on $machine\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.precision=double\" $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "dec.s.cxx" || $platform eq $numberOfPlatforms || $platform eq "all" )
+{
+  # DEC single precision
+  $dir = $decDirectory;
+  $target="dec.s.cxx";
+  if( $platform eq "all" || $platform eq $numberOfPlatforms ){ $machine=$dec[1]; }else{ $machine=$dec[0]; }
+  print "build $target on $machine\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.precision=single\" $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "dec.d.cxx.mpi" || $platform eq $numberOfPlatforms || $platform eq "all" )
+{
+  # DEC double precision parallel
+  $dir = $decDirectory;
+  $target="dec.d.cxx.mpi";
+  $machine = $dec[0];
+
+  # do  not run tests for parallel version
+  $runTests="false";
+
+  print "build $target on $machine\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine runTests=$runTests configure=\"multigrid.precision=double.parallel\" $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+$numberOfPlatforms++;
+if( $platform eq "sgi.d.CC" || $platform eq $numberOfPlatforms || $platform eq "all" )
+{
+  # SGI double precision
+  $dir = $sgiDirectory;
+  $target="sgi.d.CC";
+  $machine = $sgi[0];
+  print "build $target on $machine\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid\" $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+
+if( $platform eq "intel.d.gcc.ifc" || $platform eq $numberOfPlatforms || $platform eq "all"  )
+{
+  # Linux version with Intel fortran compiler
+  $dir = $intelifcDirectory;
+  $target="intel.d.gcc.ifc";
+  $machine = $intelifc[0];
+  print "build $target on $machine spawn=[$spawn]\n";
+  $rt=system("ssh $machine $checkOverture $checkOvertureArgs dir=$dir module=$target machine=$machine configure=\"multigrid.CC=g++.cc=gcc.FC=ifort\"  $spawn");
+  checkStatus();
+  $numberBuilt++;
+}
+$numberOfPlatforms++;
+
+
+if(  $numberBuilt == 0  )
+{
+   print "\n *** testDistribution:ERROR: unknown platform=$platform ***\n";
+}
+
+exit;
+
+

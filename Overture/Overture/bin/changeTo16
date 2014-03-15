@@ -1,0 +1,45 @@
+#!/usr/local/bin/perl
+# perl program to change Overture programs from version 15 to 16
+#  usage: 
+#         change  fileName1 [fileName2] [ fileName3] ...
+# 
+
+@fileNames = @ARGV;
+
+foreach $fileName ( @fileNames )  # process all files
+{
+  
+  
+  printf(" change file = $fileName \n");
+  
+  open(FILE,"$fileName") || die "cannot open file $fileName!" ;
+  open(OUTFILE,">junk.X") || die "cannot open output file junk.X!" ;
+  
+  while( <FILE> )
+  {
+    $line = $_;
+    $line =~ s/GI_SET_/GI_/g;
+
+    print OUTFILE $line;
+  }
+
+  close(OUTFILE);
+  close(FILE);
+
+#  now copy over the original file
+
+  open(FILE,"junk.X") || die "cannot open file junk.X!" ;
+  open(OUTFILE,">$fileName") || die "cannot open output file $fileName!" ;
+  
+  while( <FILE> )
+  {
+    $line = $_;
+
+    print OUTFILE $line;
+  }
+
+  close(OUTFILE);
+  close(FILE);
+  unlink("junk.X");  # delete the file
+}
+

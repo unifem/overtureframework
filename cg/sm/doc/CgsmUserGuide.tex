@@ -1,0 +1,234 @@
+%
+%  User's Guide for cgsm : Solid Mechanics
+%
+\documentclass[11pt]{article} 
+
+\input documentationPageSize.tex
+% \addtolength{\oddsidemargin}{-.975in}
+% \addtolength {\textwidth} {2.0in}
+
+% \addtolength{\topmargin}{-1.0in}
+% \addtolength {\textheight} {1.5in}
+
+% \voffset=-1.25truein
+% \hoffset=-1.truein
+% \setlength{\textwidth}{6.75in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+% --------------------------------------------
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+% or use the epsfig package if you prefer to use the old commands
+\usepackage{epsfig}
+\usepackage{calc}
+\input clipFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+
+\newcommand{\mw}{W}  % molecular weight
+\newcommand{\mwBar}{\overline{W}}  % molecular weight of the mixture
+\newcommand{\Dc}{\mathcal{D}}
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+
+\begin{document}
+ 
+\title{Cgsm User's Guide : Solving the Equations of Solid Mechanics}
+
+\author{
+Bill Henshaw \\
+\  \\
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov }
+ 
+\maketitle
+
+\tableofcontents
+
+\section{Nomenclature}
+\begin{align}
+  \rho & \qquad \mbox{density} \\
+  u_i & \qquad \mbox{displacement vector} \\
+  \epsilon_{ij} & \qquad \mbox{strain tensor} \\
+%   \omega_{ij} & \qquad \mbox{rotation tensor} \\
+  \tau_{ij} & \qquad \mbox{stress tensor} \\
+  \lambda & \qquad \mbox{shear modulus, Lam\'e constant} \\
+  \mu & \qquad \mbox{Lam\'e constant}
+\end{align}
+
+\section{Introduction and Governing Equations}
+
+The equations of linear elasticity for a homogeneous isotropic material are governed by
+\begin{align}
+  \rho \partial_t^2 u_i &= \partial_{x_j} \tau_{ij} + \rho f_i \\
+  \tau_{ij} &= \lambda \partial_{x_k} u_k \delta_{ij} + 2 \mu \epsilon_{ij} \\
+  \epsilon_{ij} &= \half( \partial_{x_j} u_i + \partial_{x_i} u_j )
+\end{align}
+or
+\begin{align}
+  \rho \partial_t^2 u_i &= (\lambda+\mu) \partial_{x_i} \partial_{x_k} u_k + \mu \partial_{x_k}^2 u_i  +\rho f_i \\
+  \rho \uv_{tt} &= (\lambda+\mu) \grad(\grad\cdot\uv) + \mu \Delta \uv + \rho \fv 
+\end{align}
+If the dilatation and curl are denoted by
+\begin{align}
+  \delta &= \grad\cdot\uv , \\
+  \omegav &= \grad\times\uv
+\end{align}
+then
+\begin{align}
+  \rho \delta_{tt} &= (\lambda+2\mu) \Delta \delta +\rho\grad\cdot\fv \\
+  \rho \omega_{tt} &= \mu \Delta \omegav + \rho \grad\times\fv 
+\end{align}
+
+
+\subsection{Boundary conditions}
+
+A boundary is said to be {\em clamped} if the points on the boundary do not move
+\begin{alignat}{2}
+  \uv &= 0 &&\qquad \xv\in\partial\Omega
+\end{alignat}
+
+Stress free boundary conditions are
+\begin{alignat}{2}
+  \nv\cdot\tauv &= 0 &&\qquad \xv\in\partial\Omega
+\end{alignat}
+or
+\begin{align}
+   \lambda (\grad\cdot\uv) n_i + \mu n_j[ u_{j,i} + u_{i,j} ] &= 0
+\end{align}
+or $\nv^T\tauv=0$, 
+\begin{align}
+  \begin{bmatrix} n_1 & n_2 & n_3 \end{bmatrix}
+     \begin{bmatrix} 
+        \lambda \grad\cdot\uv +2\mu u_x  & \mu(u_y+v_x) & \mu(u_z+w_x) \\
+        \mu(u_y+v_x) &  \lambda \grad\cdot\uv +2\mu v_y  & \mu(v_z+w_y) \\
+        \mu(u_z+w_x) & \mu(v_z+w_y) & \lambda \grad\cdot\uv +2\mu w_z   
+     \end{bmatrix} =0
+\end{align}
+
+For a straight wall at $x=0$ this becomes
+\begin{align}
+   u_x &= - \alpha (v_y + w_z) \\
+   v_x &= - u_y \\
+   w_x &= -u_z \\
+  \alpha &\equiv {\lambda\over \lambda+2\mu}
+\end{align}
+For a straight wall at $y=0$, 
+\begin{align}
+   u_y &= -v_x \\
+   v_y &= - \alpha (u_x + w_z)  \\
+   w_y &= -v_z 
+\end{align}
+For a straight wall at $z=0$, 
+\begin{align}
+   u_z &= -w_x \\
+   v_z &= -w_y \\
+   w_z &= - \alpha (u_x + v_y )
+\end{align}
+
+\clearpage
+\subsection{Corner compatibility conditions}
+
+Corner compatibility conditions are used to derive discrete boundary conditions for the
+ghost points near the corners.
+
+Consider a 2D rectangular domain with a corner at $\xv=0$,
+\begin{align}
+   u_x(0,y) &= - \alpha v_y(0,y) \\
+   v_x(0,y) &= - u_y(0,y) \\
+   u_y(x,0) &= -v_x(x,0) \\
+   v_y(x,0) &= - \alpha u_x(x,0)  \\
+   u_{tt}(x,y) &= (\lambda+\mu)(u_{xx} + v_{xy}) + \mu(u_{xx} + u_{yy}) \label{eq:utt} \\
+   v_{tt}(x,y) &= (\lambda+\mu)(u_{xy} + v_{yy}) + \mu(v_{xx} + v_{yy}) \label{eq:vtt} 
+\end{align}
+
+By using the above expressions and their derivatives, it follows that at the corner
+\begin{align}
+   u_x(0,0) &= - \alpha v_y(0,0) \\
+   v_y(0,0) &= - \alpha u_x(0,0) \\
+   u_{yy}(0,0) &= - v_{xy}(0,0) = \alpha u_{xx}(0,0) \\
+   v_{xx}(0,0)&=-u_{xy}(0,0) = \alpha v_{yy}(0,0) 
+\end{align}
+which implies 
+\begin{align}
+   u_x(0,0) &=0 \\
+   v_y(0,0) &=0 \\
+   u_{yy}(0,0) &= \alpha u_{xx}(0,0) \\
+   v_{xx}(0,0) &= \alpha v_{yy}(0,0) 
+\end{align}
+
+From $u_x(0,0,t)=0$, $v_y(0,0,t)=0$, ~\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{xtt}(0,0) &= (\lambda+\mu)(u_{xxx} + v_{xxy}) + \mu(u_{xxx} + u_{xyy}) =0 \\
+   v_{ytt}(0,0) &= (\lambda+\mu)(u_{xyy} + v_{yyy}) + \mu(v_{xxy} + v_{yyy}) =0
+\end{align}
+or
+\begin{align}
+   (\lambda+2\mu)u_{xxx}(0,0) &= -(\lambda+\mu)v_{xxy} - \mu u_{xyy} \\
+                         &= \alpha(\lambda+\mu)u_{xxx} +\alpha\mu v_{yyy} \\
+   (\lambda+2\mu)v_{yyy}(0,0) &= -(\lambda+\mu)u_{xyy}+\mu v_{xxy} \\
+                         &= \alpha(\lambda+\mu)v_{yyy} + \alpha \mu u_{xxx}
+\end{align}
+which implies
+\begin{align}
+   u_{xxx}(0,0) &=0 \\
+   v_{yyy}(0,0) &=0 
+\end{align}
+
+From $u_x(0,0,t)=0$, $v_y(0,0,t)=0$, ~\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{xtt}(0,0) &= (\lambda+\mu)(u_{xxx} + v_{xxy}) + \mu(u_{xxx} + u_{xyy}) =0 \\
+   v_{ytt}(0,0) &= (\lambda+\mu)(u_{xyy} + v_{yyy}) + \mu(v_{xxy} + v_{yyy}) =0
+\end{align}
+
+
+From $u_{yy}(0,0,t)=\alpha u_{xx}(0,0)$, $v_{xx}(0,0,t) = \alpha v_{yy}(0,0,t)$,
+\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{yytt}(x,y)-\alpha u_{xx} &= (\lambda+\mu)(u_{xxyy} + v_{xyyy}) + \mu(u_{xxyy} + u_{yyyy}) \\
+               & -\alpha\Big( (\lambda+\mu)(u_{xxxx} + v_{xxxy}) + \mu(u_{xxxx} + u_{xxyy}) \Big) 
+\end{align}
+
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\end{document}

@@ -1,0 +1,186 @@
+%--------------------------------------------------------------
+\section{RevolutionMapping: create a surface or volume of revolution}
+\index{revolution mapping}\index{Mapping!RevolutionMapping}\index{body of revolution}\index{axisymmetric}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+The {\tt RevolutionMapping} revolves a two-dimensional mapping (ie. a 2D curve or 2D region)
+in the plane around a given line to create
+a three-dimension mapping in three-space. The {\tt RevolutionMapping} can also be used to revolve a 
+curve in 3D about a line to create a surface in 3D.
+
+
+\begin{figure}[ht]
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/revolution_idraw}
+  % \epsfig{file=\figures/revolution.idraw.ps,width=12cm}
+  \caption{The RevolutionMapping can be used to revolve a 2D mapping about a line 
+           through a given angle. It can also be used to revolve a 3D curve.}
+  \end{center}
+\label{fig:RevolutionMapping}
+\end{figure}
+
+The revolution mapping is defined in the following manner. (This description applies to the case
+when the mapping to be revolved is a 2D region. A similar definition applies in the other cases).
+Let
+\begin{align*}
+    \xv_0 &= {\tt lineOrigin(0:2)} = \mbox{a point on the line of revolution} \\
+    \vv   &= {\tt lineTangent(0:2)} = \mbox{unit tangent to the line of revolution} \\
+    \Pv   &:~  \mbox{The two dimensional mapping in the plane that we will rotate}
+\end{align*}
+We first evaluate the two-dimensional mapping and save in a three dimension vector, $\yv$,
+\[
+                   \rv(0:1) \rightarrow (\Pv(\rv),0) = (y(0:1),0)  \equiv \yv
+\]
+Now decompose $\yv-\xv_0$ into a component parallel             and a component
+orthogonal to the line of revolution:
+\begin{align*}
+        \yv-\xv_0 &= \av + \bv \\      
+    \av &=  (\av\cdot\vv) \vv \qquad \mbox{component parallel to $\vv$}
+\end{align*}
+Then rotate the part orthogonal to the line:
+\[
+      \xv-\xv_0 = \av + R \bv  \quad \mbox{where  $R$ is the rotation matrix}
+\]
+To compute $R$ we determine a vector $\cv$ orthogonal to $\bv$ and $\vv$,
+\[
+             \cv = \vv \times \bv
+\]
+Then
+\[
+         R \bv = \cos(\theta) \bv + \sin(\theta) \cv
+\]
+where
+\[
+          \theta = r(2,I) \delta+{\rm startAngle} ~2\pi, \quad \delta={\rm (endAngle-startAngle)} 2 \pi
+\]
+In summary the revolution mapping is defined by
+\begin{align*}
+        \xv &= \av + \cos(\theta)\bv + \sin(\theta)\cv + \xv_0 \\
+        \av &= ((\yv-\xv_0)\cdot\vv)\vv  \\
+        \bv &= \yv-\xv_0-\av \\
+        \cv &= \vv \times \bv
+\end{align*}
+The derivatives of the mapping are defined as
+\begin{align*}
+   {\partial \xv \over \partial r_i} &=  {\partial \av \over \partial r_i} + 
+                \cos(\theta) {\partial \bv \over \partial r_i} 
+              + \sin(\theta) {\partial \cv \over \partial r_i} \qquad \mbox{for $i=0,1$} \\
+         {\partial \av \over \partial r_i} &= ({\partial \yv \over \partial r_i}\cdot\vv)\vv \\
+         {\partial \bv \over \partial r_i} &= {\partial \yv \over \partial r_i} - {\partial \av \over \partial r_i} \\
+         {\partial \cv \over \partial r_i} &= \vv \times {\partial \bv \over \partial r_i} \\
+    {\partial \xv \over \partial r_2}  &= \delta*( -\sin(\theta)\bv +\cos(\theta)\cv )
+\end{align*}
+
+
+\subsection{Inverse of the mapping}
+
+  When the mapping to be revolved is in the x-y plane, 
+the {\tt RevolutionMapping} can be inverted analytically in terms of the inverse
+of the mapping that is being revolved. (When revolving a 3D curve we do not define
+a special inverse). Here is how we do the inversion.
+
+Given a value $\xv$ we need to determine the corresponding value of $\rv$.
+To do this we can first decide how to rotate the point $\xv$ (about the
+line through $\xv_0$ with tangent $\vv$) into the x-y plane. This will determine 
+$\theta$ and $\yv$. Given $\yv$ we can invert the two-dimensional mapping to
+determine ($r_0$,$r_1$).
+
+To perform the rotation back to the $x-y$ plane we decompose $\xv-\xv_0$ into
+\[
+    \xv-\xv_0 = \av + \hat{\bv}
+\]
+where $\av$ is the component parallel to $\vv$, (the same $\av$ as above),
+
+\[
+   \av = ((\xv-\xv_0)\cdot\vv) \vv
+\]
+and
+\[
+    \hat{\bv} = \xv-\xv_0-\av.
+\]
+Note that $\hat{\bv}$ is not the same as $\bv$. Letting 
+\[
+   \hat{\cv} = \pm \vv\times {\hat\bv}
+\]
+where the correct sign must be chosen, then
+we can rotate back to the $x-y$ plane with the transformation
+\begin{equation}
+  \yv = \av + \cos(-\theta) \hat{\bv} + \sin(-\theta) \hat{\cv}   \label{eq:yeqn}
+\end{equation}
+Since $y_3=0$ ($\yv=(y_1,y_2,y_3)$) it follows from the third
+component of this last equation that 
+\[
+    0 = a_3 + \cos(\theta) \hat{b}_3 - \sin(\theta) \hat{c}_3 
+\]
+Now assuming that $a_3=0$ (which assumes that the line of rotation is in
+the $x-y$ plane) then
+\[
+     \tan(\theta) = {\hat{b}_3 \over \hat{c}_3 }
+\]
+Given $\theta$ we then know the first two components of $\yv=(y_1,y_2,0)$ from (\ref{eq:yeqn}).
+We now determine the inverse of $(y_1,y_2)$ using the {\tt inverseMap} of the two-dimensional
+mapping,
+\[
+    \rv(0:1) = \Pv^{-1}(\yv(0:1))
+\]
+
+\subsection{Reparameterized to spherical-like coordinates}
+
+If the body of revolution created by this mapping has a spherical
+polar singularity at one or both ends we may wish to create a new
+mapping near the pole that does not have a singularity by using an
+orthographic mapping (created from the {\tt reparameterize} menu in
+{\tt ogen}). The orthographic transform expects the mapping to be
+parameterized like a sphere with parameters $(\phi,\theta,r)$.
+Thus we will want to change the order of the parameters in the above
+definition of the body of revolution:
+\[
+   \tilde{\xv}( r_1,r_2,r_3) = \xv(r_1,r_3,r_2) \mbox{~~~or~~~} 
+   \tilde{\xv}( r_1,r_2,r_3) = \xv(r_3,r_1,r_2) 
+\]
+so that the new variable $\tilde{\xv}$ will be parameterized like a sphere.
+
+This re-ordering is done automatically if the body of revolution is detected
+to have a spherical polar type singularity.
+
+
+\subsection{Examples}
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/revSP.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/revSP1}\\
+   % \epsfig{file=\figures/revSP1.ps,width=\linewidth}  \\
+   {A two-dimensional smoothed polygon.} \\
+   \includegraphics[width=9cm]{\figures/revSP2}\\
+   %\epsfig{file=\figures/revSP2.ps,width=\linewidth}  \\
+   {A body of revolution created by revolving a two-dimensional smoothed polygon.}
+  \end{center}
+\end{minipage} 
+
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/revCircle.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/revCircle}\\
+  % \epsfig{file=\figures/revCircle.ps,width=.8\linewidth}  \\
+   {A body of revolution for a torus is created by revolving a circle.}
+  \end{center}
+\end{minipage}  \\
+
+
+
+
+%% \input RevolutionMappingInclude.tex
+
+

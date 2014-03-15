@@ -1,0 +1,196 @@
+%--------------------------------------------------------------
+\section{SmoothedPolygon}
+\index{smoothed-polygon mapping}\index{Mapping!SmoothedPolygonMapping}
+%-------------------------------------------------------------
+
+This mapping can be used to create a grid whose one edge is
+a polgyon with smoothed corners. The grid is created by extending
+normals from the smoothed polygon.
+
+% \begin{figure} 
+%   \begin{center}
+%   \includegraphics[0in,1in][8in,5in]{poly1.ps}
+%   \caption{SmoothPolygon Grid} \label{fig:SP1}
+%   \end{center}
+% \end{figure}
+% 
+% \begin{figure} 
+%   \begin{center}
+%   \includegraphics[0in,1in][8in,5in]{poly2.ps}
+%   \caption{SmoothPolygon Grid (periodic)} \label{fig:SP2}
+%   \end{center}
+% \end{figure}
+% 
+% \begin{figure} 
+%   \begin{center}
+%   \includegraphics[0.in,1.in][8in,4in]{poly3.ps}
+%   \caption{SmoothPolygon Grid} \label{fig:SP3}
+%   \end{center}
+% \end{figure}
+
+The smoothed polygon is defined by a sequence of vertices 
+$$
+     \xv_v(i) = (x_v(i),y_v(i))), ~~~i=0,1,\ldots,n_v-1
+$$      
+The curve is parameterized by a pseudo-arclength $s$, $0\le s \le 1$
+with the value of $s$ at vertex $i$ defined by the relative distance
+along the (un-smoothed) polygon:
+$$
+     s(i)= { \sum_{j=0}^{i-2} \| \xv_v(j+1)-\xv_v(j) \| \over
+             \sum_{j=0}^{n_v-2} \| \xv_v(j+1)-\xv_v(j) \| }
+$$
+The smoothed polygon is defined using the {\it interval} functions
+$V_j(s)$ of the StretchMapping class. The interval functions can be used to 
+smoothly transition from one slope to a second slope.
+For example, the x component of the smoothed polygon is defined as
+$$
+    x(s) = \left[ s+\sum_{j=0}^{n_v}( V_j(s)-V_j(0) )\right]c_1 + c_0
+$$
+Recall that the interval function $V_j$ is dependent on the three
+parameters $d_j$, $e_j$ and $f_j$.
+The parameter $d_j$ for $V_j$ is given by
+$$
+       d_j = { x_v(j+1)-x_v(j) \over s(j+1)-s(j)}  ~~~j=0,1,\ldots,n_v-2
+$$
+while
+$$
+       f_j=s(j)
+$$
+The value of $e_j$ is specified by the user (default = 40) and determines
+the sharpness of the curve at the vertex. 
+
+A grid is defined from this smooth polygon by extending normals. The length
+of the normal can be constant or can be made to vary.
+If $r_1$ parameterizes the curve in the tangential direction and $r_2$ in the
+normal direction then the parameterization of the grid is given by
+$$
+\xv(r_1,r_2) = \xv(r_1) + r_2 N(r_1) \nv(r_1)
+$$
+The function $N(r_1)$ is itself defined in terms of stretching functions.
+
+The user has the option to stretch the grid lines in the tangential
+direction in order to concentrate grid lines near the vertices. 
+The user may also stretch the grid lines in the normal direction.
+Of course the grid lines may also be stretched by composing this
+mapping with a StretchMapping. 
+
+{\bf Note:}  Unfortunately the smoothed polygon only
+matches the corners exponentially close with respect to the {\tt sharpness} parameter.
+Moreover the higher numbered vertices will  have larger
+errors (cf. the formula above). 
+If you choose small values for the sharpness then the SmoothedPolygon
+will not match the vertices very well, nor will it be symmetric.
+
+% --------------------------------------------------------------------------
+%% \include SmoothedPolygonInclude.tex
+% --------------------------------------------------------------------------
+
+\subsection{update(MappingInformation \&)}
+
+The SmoothPolygon Mapping is defined interactively through a graphics
+interface:
+{\footnotesize
+\begin{verbatim}
+
+  GL_GraphicsInterface graphicsInterface;          // create a GL_GraphicsInterface object
+  MappingInformation mappingInfo;
+  mappingInfo.graphXInterface=&graphicsInterface;
+
+  ...
+  SmoothPolygon poly;
+  poly.interactiveConstructor( mappingInfo );      // interactively create the smoothed polygon
+
+\end{verbatim}
+}
+The user must specify the vertices of the polygon. The user may then
+optionally change various parameters from their default values.
+
+\begin{itemize}
+  \item {\bf sharpness} : Specify how sharp the corners are (exponent). 
+        Choose the value for $e_j$ in $V_j$.
+        Note that if you choose small values for the sharpness then the SmoothedPolygon
+         will not match the vertices very well, nor will it necessarily be symmetric.
+  \item {\bf t-stretch} : Specify stretching in tangent-direction. Specify
+        the values for $a_j$ and $b_j$ for the exponential layer stretching
+        at corner $j$
+  \item {\bf n-stretch} : Specify stretching in normal-direction. Specify
+        the values for $a_i$, $b_i$ and $c_i$ for the exponential layer function
+        for stretching in the normal direction and specify the number of
+        layer functions. By default there is one layer function and the grid lines
+        are concentrated near the smoothed polygon with values 
+        $a_0=1.$, $b_0=4.$ and $c_0=0.$
+  \item {\bf corners  } : Fix the grid corners to specific positions. Use this
+        option to fix the positions of the four corners of the grid. The corners
+        of the grid that lie at a normal distance from the smoothed polygon
+        may not be exactly where you want them because the normal may be
+        slightly different from the line which is perpendicular to the 
+        straight line which joins the vertices. This option applies a bi-linear
+        transformation to the entire grid in order to deform the corners to the
+        specified positions.
+  \item {\bf n-dist   } : Specify normal distance at vertex(+-epsilon)
+        Choose the normal distance for the grid to extend from the
+        polygon. Optionally the normal distance can be made to vary;
+        a separate normal distance can be given at the position just
+        before vertex $i$ and just after vertex $i$. 
+  \item {\bf curve or area (toggle)} : Change the mapping from defining an area to
+        define a curve (or vice versa). In other words toggle the domain dimension between 1 and 2.
+  \item {\bf isPeriodic}: Specify periodicity array.
+         Indicate whether the grid periodic in the tangential direction.
+         Set this value to $2$ if the grid is closed and periodic
+         or to $1$ if the grid is not closed but the derivative of the
+         curve is periodic.
+  \item {\bf help     } : Print this list
+  \item {\bf exit     } : Finished with parameters, construct grid
+\end{itemize}
+
+\subsection{Examples}
+
+Here are some sample command files that create some SmoothedPolygon mappings.
+These command files can be read, for example, by the overlapping grid
+generator {\tt ogen} from within the {\tt create mappings} menu.
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/poly1.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/poly1} \\
+   % \epsfig{file=\figures/poly1.ps,height=4.in}  \\
+  {SmoothedPolygon example 1}  \label{fig:poly1}
+  \end{center}
+\end{minipage}
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/poly2.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/poly2} \\
+   % \epsfig{file=\figures/poly2.ps,height=4.in}  \\
+  {SmoothedPolygon example 2}  \label{fig:poly2}
+  \end{center}
+\end{minipage}
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/poly3.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/poly3} \\
+   % \epsfig{file=\figures/poly3.ps,height=4.in}  \\
+  {SmoothedPolygon example 3}  \label{fig:poly3}
+  \end{center}
+\end{minipage}
+
+
+
+

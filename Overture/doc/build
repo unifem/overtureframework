@@ -1,0 +1,19 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+# here is where the Overture Grid Function files are:
+set Overture = $ovDir
+
+
+cp {help.index,openOvertureHelp.p}                                                  $Overture/doc
+

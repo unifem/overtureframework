@@ -1,0 +1,267 @@
+%-----------------------------------------------------------------------
+% Documentation for the plotStuff post-processor
+%
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+\usepackage{html} %to have conditional code for latex2html
+
+\usepackage{amsmath}
+\usepackage{verbatim}
+% \usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+% \usepackage{fancybox}
+\usepackage{supertabular}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+
+
+\begin{document}
+
+
+% -----definitions-----
+\input wdhDefinitions
+
+\vspace{\baselineskip}
+\begin{flushleft}
+{\Large
+The plotStuff Graphics Post Processor for Overture\\
+User Guide, Version 1.00 \\
+}
+\vspace{2\baselineskip}
+Bill Henshaw \\
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture \\
+\vspace{\baselineskip}
+\today \\
+\vspace{\baselineskip}
+UCRL-MA-138730 \\
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+This document explains how to use {\tt plotStuff}, a program for plotting
+results from Overture programs. {\tt plotStuff} reads data-base files created
+by Overture that contain information about the grid and solutions, a ``show file''.
+{\tt plotStuff} has features for plotting contours, cutting planes, streamlines,
+iso-surfaces and grids. It can also be used to plot various derived quantities
+such as derivatives of the solution components. This document describes the class
+{\tt DerivedFunctions} which is used to compute these derived quanties.
+\end{flushleft}
+
+\tableofcontents
+% \listoffigures
+
+\vfill\eject
+%---------- End of title Page for a Research Report
+
+\section{Introduction}\index{plotStuff}\index{graphics post processing}\index{show files}
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\figures /plotStuffScreen.ps,width=.6\linewidth}
+  \caption{plotStuff is used to display results from an Overture data-base file (`show file') such as those
+     created by the {\bf OverBlown} flow solver}  \label{fig:plotStuff}
+  \end{center}
+\end{figure}
+
+The {\tt plotStuff} program, usually found in {\tt Overture/bin/plotStuff} can be used to
+plot results found in ``show files'' or ``grid files'' created by Overture programs.
+
+A ``show file'' contains a sequence of {\bf frames}, each frame will normally contain a
+``solution'' (i.e. a grid function defined on a grid). In the moving grid case
+each frame may also contain a new grid. Each solution will consist of a number
+of {\tt components}, such as the velocity and pressure. A show file may also
+contain one or more {\bf sequence}, which is an array of values such as the maximum residual
+over time.
+
+Some of the features of {\tt plotStuff} include
+\begin{itemize}
+  \item plot contours of various flavours, plot streamlines, plot grids.
+  \item show a movie of a time sequence of frames; save hard-copies for making mpeg movies.
+  \item plot ``derived types'' from variables in the show file, 
+      such as plotting the vorticity given the velocity or plotting derivatives of
+      the variables.
+\end{itemize}
+
+The {\tt plotStuff} program is basically a front end to the features available in other classes
+such as {\tt GenericGraphicsInterface}\cite{PLOTSTUFF}, Ogshow\cite{OGSHOW}, {\tt ShowFileReader}\cite{OGSHOW}
+and the {\tt DerivedFunctions} class.  
+
+\section{Typical usage}
+
+The typical usage of {\tt plotStuff} is to start the program up by typing
+``{\tt plotStuff fileName.show}'' or just ``{\tt plotStuff fileName}'' since the ``.show'' is optional.
+Here {\tt fileName.show} is the name of a show file such as one created by {\bf OverBlown}\cite{OverBlownUserGuide}.
+Now one can choose {\tt contour} to plot contours. At this point a new menu appears, this is
+the contour plotter menu. By choosing {\tt exit} one returns to the main {\tt plotStuff}
+menu. Choosing a new solution, or typing {\tt next} or {\tt previous} will plot contours
+of a different solution. One can also plot a different component. At this point one could
+choose {\tt grid} or `{\tt stream lines}' to plot the grid or plot streamlines. Note that
+the contour plot will not be erased by default. This allows multiple things to be plotted
+at once. One can choose {\tt erase} to remove the contour plot before plotting other things.
+By choosing the `{\tt derived types}' menu item\index{derived types} on can build new components
+from existing ones. For example the vorticity or divergence can be created from a velocity vector.
+After these new derived types have been created they will appear in the {\tt plotStuff} component
+menus. 
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\figures /nlr2.ps,width=.7\linewidth}
+  \caption{plotStuff can be used to plot more than one quantity on the same figure; here streamlines
+     and a grid are plotted. This plot used an option in the grid-plotter to change the
+     height of the grid. This computation was performed by the {\bf OverBlown} solver.}
+  \end{center}
+\end{figure}
+
+\section{The plotStuff menu items}
+\input plotStuffMenuInclude
+
+\clearpage
+\section{Derived quantities}\index{plotting derived quantities}
+
+Various derived quantities can be plotted with {\tt plotStuff}.
+The class {\tt DerivedFunctions}, described in more detail in the next section,
+is used to define derived functions for plotting with {\tt plotStuff}. For example
+one can compute the vorticity given some velocity components. One can also differentiate components.
+There is also a way for users to define new derived quantities by editing the functions in the
+{\tt userDefinedDerivedFunction.C} file and re-linking this with {\tt plotStuff}.
+
+Here are some of the derived functions we can create
+\begin{description}
+  \item[x,y,z,xx,yy,zz,laplacian] : compute first and second derivatives of any components,
+     \begin{align*}
+    \mbox{x} &= \partial_x u \\
+    \mbox{y} &= \partial_{y} u \\
+    \mbox{z} &= \partial_{z} u \\
+    \mbox{xx} &= \partial_{xx} u \\
+    \mbox{yy} &= \partial_{yy} u \\
+    \mbox{zz} &= \partial_{zz} u \\
+    \mbox{laplacian} &= \Delta u = \grad\cdot\grad u = \partial^2_x u + \partial^2_y u + \partial^2_z u
+     \end{align*}
+  \item[vorticity] The same as zVorticity, see below. In 2D this is the only non-trivial component of the vorticity.
+  \item[xVorticity, yVorticity, zVorticity] Components of the curl of the velocity, $\grad\times\uv$,
+     \begin{align*}
+         \mbox{xVorticity} &= \partial_z v - \partial_y w  \\
+         \mbox{yVorticity} &= \partial_x w - \partial_z u  \\
+         \mbox{zVorticity} &= \partial_y u - \partial_x v 
+    \end{align*}
+  \item[divergence] The dilatation or divergence of the velocity, $\grad\cdot\uv$,
+    \[
+         \mbox{divergence} = \partial_x u + \partial_y v + \partial_z w
+    \]
+  \item[mach Number] The ratio of the local magnitude of velocity to the local speed of sound:
+      \begin{align*}
+        \mbox{mach Number} & = { \sqrt{ u^2 + v^2 + w^2 } \over a } \\
+         a  & = \sqrt{ \gamma R_g T } \qquad \mbox{if T is defined} \\
+         a  & = \sqrt{ \gamma p / \rho } \qquad \mbox{if p and $\rho$ are defined} \\
+      \end{align*}
+%  \item[pressure]
+  \item[temperature] The temperature as a function of the pressure, density and $\gamma$,
+     \[
+       \mbox{temperature}  = { \gamma p \over \rho }
+     \]
+  \item[speed] The magnitude of the velocity, $\sqrt{\uv\cdot\uv}$,
+    \[
+         \mbox{speed} = \sqrt{ u^2 + v^2 + w^2 }
+    \]
+  \item[schlieren] Use this quantity with the ``gray'' colour table to generate a {\it Schlieren} image.
+     For hardcopy, save the image as ``gray scale'' (from ``output format menu'' in the ``file'' pull-down menu).
+     The exponential in the formula below acts to enhance fine scale structure.
+    \begin{align*}
+         \mbox{schlieren} & = \alpha \exp( -\beta s(\xv) ) \qquad  ( \alpha = 1, ~\beta = 15) \\
+          s(\xv) & = (\tilde{s} - \min \tilde{s})/( \max \tilde{s} - \min \tilde{s} ) \qquad (s \in [0,1]) \\
+          \tilde{s}(\xv) & = \sqrt{ \rho_x^2 + \rho_y^2 + \rho_z^2 } 
+    \end{align*}
+    The quantities $\alpha$ and $\beta$ can be changed using the {\tt schlieren parameters} menu.
+  \item[minimumScale, r1MinimumScale, r2MinimumScale, r3MinimumScale] Local measures of the minimum scale.
+   Where the minimun scale is large, the flow is less well resolved. The quantities 
+  r1MinimumScale, r2MinimumScale, and r3MinimumScale are meant to measure how well the flow is
+  resolved along each coordinate direction.
+   See the discussion in the OverBlown reference guide. I think the definition of r1MinimumScale etc.
+   could be simplified to the second expression below (Anders?)
+    \begin{align*}
+  \mbox{minimumScale} & =  \| \Delta \xv \| \left[ \sum_{m,n} {\partial u_m \over \partial x_n} 
+                    ~{1 \over \nu} \right]^{1/2} \\
+  \mbox{r[i]MinimumScale} & =  
+          \Delta r_i   \left[ \sum_n {\partial x_n \over \partial r_i} \right]^{1/4}
+        \left[ \sum_{m,n} {\partial u_m \over \partial x_n}{\partial x_n \over \partial r_i} 
+              ~{1 \over \nu} \right]^{1/2}  \\
+                &=  \Delta r_i \left[ \sum_{m} {\partial u_m \over \partial r_i}  ~{1 \over \nu} \right]^{1/2} 
+    \end{align*}
+  \item[user defined] This option can be used to access any user defined derived functions; these
+    are defined in the file {\tt userDefinedDerivedFunction.C}.
+
+\end{description}
+
+\vspace{\baselineskip}
+The components $u$,$v$,$w$ etc. are determined by looking for the following variables in the show file,
+\begin{description}
+ \item[uComponent] : the component number of x-component of the velocity $u$.
+ \item[vComponent] : the component number of y-component of the velocity $v$.
+ \item[wComponent] : the component number of z-component of the velocity $w$.
+ \item[pressureComponent] : the component number of the pressure $p$.
+ \item[temperatureComponent] : the component number of the temperature $T$.
+ \item[densityComponent] : the component number of the density $\rho$.
+\end{description}
+For example, {\bf OverBlown} saves the incompressible flow components with {\tt pressureComponent=0},
+{\tt uComponent=1}, {\tt vComponent=2}, and {\tt wComponent=3}. See the {\bf OverBlown} file {\tt saveShow.C}
+for an example of saving this extra info in the show file.
+
+Other variables that may be required in the show file are
+\begin{description}
+ \item[gamma] : ration of specific heats (if constant).
+ \item[Rg] : the gas constant.
+ \item[nu] : kinematic viscosity.
+\end{description}
+
+
+\section{The DerivedFunctions class}\index{class DerivedFunctions}
+
+Here is a description of the {\tt DerivedFunctions} class.
+
+\input DerivedFunctionsInclude.tex
+
+\vfill\eject
+
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+\end{document}

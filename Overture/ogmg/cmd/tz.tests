@@ -1,0 +1,474 @@
+
+----------------------------------------------------------------------
+----------   Examples for ogmg and the tz.cmd script -----------------
+----------------------------------------------------------------------
+
+
+
+*************** EXAMPLES FOR THE PAPER: ***************************************************
+
+LFA says -opAv=0 V[2,1] should have rho=.02 (?) with omegaz=1.12 and rho=.05 with omega=1
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=10 -bsm=lz1 -omegaz=1.12 -opav=0 [CR=0.0139 ave ECR=0.557
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=10 -bsm=lz1 -omegaz=1.0  -opav=0 [CR=0.0407 ave ECR=0.632
+
+--- check over-relaxed line smooth : order=4, Galerkin, V[2,1] omega=1 is best ? 
+
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7 -bsm=lz1 -omegaz=1. [CR=0.0113 ave ECR=0.533
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7 -bsm=lz1 -omegaz=1.1
+
+-- better: iml=2 may be NB ?
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=lz3 -nsm="2 1" -ils=5 -iml=2 -ins=3  [CR=0.0484 ave ECR=0.558
+
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=rb -nsm="2 1" -ils=7 -iml=2 -ins=3  [CR=0.0467 ave ECR=0.592
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=rb -nsm="2 1" -ils=5 -iml=3 -ins=3  [CR=0.0500 ave ECR=0.608
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=rb -nsm="2 1" -ils=3 -iml=2 -ins=3  [CR=0.0513 ave ECR=0.597
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=rb -nsm="2 1" -ils=5 -iml=2 -ins=3  [CR=0.0461 ave ECR=0.595
+
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=rb  -nsm="2 1" -ils=3 [CR=0.1068 ave ECR=0.640 TR10=4.1
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=lz3 -nsm="2 1" -ils=3 [CR=0.1068 ave ECR=0.640 TR10=4.1
+
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -sm=rb -nsm="2 1" -ils=0 [
+
+ -- Good: rb on background and lz3 on boundary grids: 
+ogmgt tz -noplot -g=sphereInABoxFixede2.order4.ml2 -maxit=15 -sm=lz3 -nsm="2 1" -ils=3 [CR=0.0546 ave ECR=0.590 TR10=1.06
+ogmgt tz -noplot -g=sphereInABoxFixede2.order4.ml2 -maxit=15 -sm=lz3 -nsm="2 1" -ils=0 [CR=0.0848 ave ECR=0.634 TR10=1.06
+
+ogmgt tz -noplot -g=sphereInABoxFixede2.order4.ml2 -maxit=15 -sm=rb -nsm="2 1" -ils=3 
+
+
+
+ogmgt tz -noplot -g=sphereInABoxFixede2.order4.ml2 -maxit=15 -bsm=rb -nsm="1 1" -ils=3 [CR=0.1731 ave ECR=0.678 TR10=9.36e-01 
+ogmgt tz -noplot -g=sphereInABoxFixede2.order4.ml2 -maxit=15 -bsm=rb -nsm="2 1" -ils=3 [CR=0.0683 ECR=0.687 TR10=9.95e-01
+ogmgt tz -noplot -g=sphereInABoxFixede2.order4.ml2 -maxit=15 -bsm=rb -nsm="2 1"        [CR=0.1667 ave ECR=0.738 TR10=1.04
+
+ogmgt tz -noplot -g=sphereInABoxFixede2.order4.ml2 -maxit=15 -autoChoose=1 [CR=0.1186 ave ECR=0.698
+ogmgt tz -noplot -g=sphereInABoxFixede4.order4.ml3 -maxit=15 -autoChoose=1 [CR=0.1672 ave ECR=0.698
+
+ogmgt tz -noplot -g=sphereInABoxFixede8.order4.ml4 -maxit=15 
+
+-- CPU: compare to direct solver: 
+ 
+too big: 
+ogmgt tz -noplot -g=box256.order4 -bsm=rb -levels=1 -rtol=.5e-13  [total= MaxRes=1.28e-08
+ogmgt tz -noplot -g=box256.order4 -bsm=rb  -nsm="2 1"             [total=5.52e+01 TR10=4.24 defect=2.47e-08
+
+-- 20x faster
+ogmgt tz -noplot -g=box128.order4 -bsm=rb -levels=1 -rtol=1.4e-12 [total=123. TR10=9.59     maxDefect=1.09e-08
+ogmgt tz -noplot -g=box128.order4 -bsm=rb  -nsm="2 1"             [total=6.56 TR10=4.98e-01 maxDefect=4.21e-09
+
+
+ogmgt tz -noplot -g=square2048.order4 -debug=3 -levels=1 -rtol=.3e-10 [total=419, TR10=3.42e+01 maxDefect=6.20e-06, 3.6G
+ogmgt tz -noplot -g=square2048.order4 -bsm=rb -nsm="2 1" -maxit=7   [ total=7.96, TR10=6.39e-01, maxDefect=3.96e-06, 266Mb
+
+
+ -- 50x faster
+ogmgt tz -noplot -g=square1024.order4 -debug=3 -levels=1 -rtol=.5e-10  [ total=98.4 TR10=7.89 maxDefect=9.58e-07
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7      [ total=1.9, TR10=1.52e-01, maxDefect=9.37e-07
+
+-- Compare omega for V[1,1] and V[2,1]
+
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="1 1" -maxit=7 -omega=1.08 [CR=0.0391 ave ECR=0.456
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="1 1" -maxit=7 -omega=1.10 [CR=0.0400 ave ECR=0.458
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="1 1" -maxit=7 -omega=1.15 [CR=0.0393 ave ECR=0.456
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="1 1" -maxit=7 -omega=1.18 [CR=0.0477 ave ECR=0.478
+
+
+-- Neuman:: compare rates as we add different options: 
+ogmgt tz -noplot -g=square512.order4 -bsm=rb -nsm="2 1" -maxit=10 -bc=nmnn -bls=2 [CR=0.0539 ave ECR=0.584
+ogmgt tz -noplot -g=square512.order4 -bsm=rb -nsm="2 1" -maxit=10 -bc=nmnn        [CR=0.0684 ave ECR=0.614
+
+-- this is more like it:
+ogmgt tz -noplot -g=square256.order4 -bsm=rb -nsm="2 1" -maxit=7 -bc1=d -bc2=n -bc3=n -bc4=n [CR=0.0175 ave ECR=0.469
+ogmgt tz -noplot -g=square256.order4 -bsm=rb -nsm="2 1" -maxit=7 -bc1=n -bc2=n -bc3=d -bc4=n [CR=0.0142 ave ECR=0.451
+ogmgt tz -noplot -g=square256.order4 -bsm=rb -nsm="2 1" -maxit=7 -bc1=n -bc2=d -bc3=n -bc4=n [CR=0.0173 ave ECR=0.468
+
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=9 -bc=nmnn -cycle=W -levels=2 -rtolcg=1.e-10 -fx=3.5 -fy=3.5  [CR=0.0269 ave ECR=0.551
+
+ogmgt tz -noplot -g=nonSquare256.order4 -bsm=rb -nsm="2 1" -maxit=10 -bc1=n -bc2=d -bc3=n -bc4=n  [CR=0.0684 ave ECR=0.614
+ogmgt tz -noplot -g=square256.order4 -bsm=rb -nsm="2 1" -maxit=10 -bc1=n -bc2=d -bc3=n -bc4=n  [CR=0.0224 ave ECR=0.502
+
+-- compare rates as we add different options: 
+NOTE: from LFA we find that -opav=0 and -omega=1.25 should be good:
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7 -opav=0 -omega=1.25 [CR=0.0250 ave ECR=0.501
+
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7         [CR=0.0165 ave ECR=0.464 TR10=1.60e-01
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7 -opav=0 [CR=0.0540 ave ECR=0.579 TR10=2.18e-01
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7 -opav=1 -bcOrder4=extrap [CR=0.0198 ave ECR=0.479 TR10=1.83e-01
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7 -opav=0 -bcOrder4=extrap [CR=0.0525 ave ECR=0.576
+
+
+-- compare time to reduce residual by a factor of 10: 
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj  -nsm="2 1" [CR=0.0530 ave ECR=0.551 TR10=8.03e-01
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj             [CR=0.0729 ave ECR=0.494 TR10=6.68e-01 
+
+-- RB: 
+ogmgt tz -noplot -g=box128.order4 -bsm=rb  -nsm="2 1"          [CR=0.0342 ave ECR=0.506 TR10=4.97e-01
+Order 2: ogmgt tz -noplot -g=box128.order2 -bsm=rb -nsm="2 1"  [CR=0.0221 ave ECR=0.475 TR10=2.59e-01
+-- RBJ: 
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj  -nsm="2 1"         [CR=0.0530 ave ECR=0.551 TR10=7.22e-01
+
+ogmgt tz -noplot -g=box256.order4 -bsm=rbj -omega=1.17 [CR=0.0747 ave ECR=0.497
+
+
+
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj -omega=1.17 [CR=0.0718 ave ECR=0.492
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj  -omega=1.15 [CR=0.0729 ave ECR=0.494
+ogmgt tz -noplot -g=box64.order4 -bsm=rbj -omega=1.15  [CR=0.0580 ave ECR=0.474
+
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj -nsm="2 1" -omega=1.2 [CR=0.0506 ave ECR=0.546
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj -nsm="2 1" -omega=1.18 [CR=0.0512 ave ECR=0.547
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj -nsm="2 1" [CR=0.0530 ave ECR=0.551
+
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj -nsm="2 1" -maxit=7  [CR=0.0462 ave ECR=0.535
+
+ogmgt tz -noplot -g=box128.order4 -bsm=rbj -nsm="2 1"   [CR=0.0506 ave ECR=0.546
+
+ ogmgt tz -noplot -g=box256.order4 -bsm=rbj  [CR=0.0812 ave ECR=0.508  -- 18M pts
+ ogmgt tz -noplot -g=box128.order4 -bsm=rbj  [CR=0.0806 ave ECR=0.507
+ ogmgt tz -noplot -g=box64.order4 -bsm=rbj   [CR=0.0783 ave ECR=0.504
+ ogmgt tz -noplot -g=box32.order4 -bsm=rbj   [CR=0.0768 ave ECR=0.504
+
+
+
+-- RB: 
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7  [CR=0.0165 ave ECR=0.464 TR10=2.03e-01
+Order 2: ogmgt tz -noplot -g=square1024.order2 -bsm=rb -nsm="2 1" -maxit=7 [CR=0.0156 ave ECR=0.459 TR10=1.29e-01
+-- RBJ: 
+ogmgt tz -noplot -g=square1024.order4 -bsm=rbj -nsm="2 1" -maxit=7  [CR=0.0266 ave ECR=0.507 TR10=2.69e-01
+
+ ogmgt tz -noplot -g=square1024.order4 -bsm=rbj [CR=0.0557 ave ECR=0.493
+ ogmgt tz -noplot -g=square256.order4 -bsm=rbj  [CR=0.0547 ave ECR=0.491
+ ogmgt tz -noplot -g=square128.order4 -bsm=rbj  [CR=0.0530 ave ECR=0.488
+ ogmgt tz -noplot -g=square64.order4 -bsm=rbj   [CR=0.0478 ave ECR=0.478
+ ogmgt tz -noplot -g=square32.order4 -bsm=rbj   [CR=0.0434 ave ECR=0.476
+
+
+
+
+
+******************************************************************************************
+
+
+
+# 100714: this is a bit better now with some fixes: 
+# ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -bc1=n -bc2=n -bc3=d -bc4=n -autoChoose=0 -maxit=10 -rtolcg=1.e-6 -debug=3 -nsm="2 1" -ils=2 -bls=2 [CR=0.0852 ave ECR=0.833
+
+
+
+# BUG: fixed:  Error is large at overlap of Neumann BC (order=4)
+#  ogmgt tz -noplot -g=nonSbse1.order4 -bc3=n -levels=2 -debug=7 > ! junkn
+#  ogmgt tz -noplot -g=sbse1.order4 -bc3=n -levels=2 -debug=7 > ! junk
+#  ogmgt tz -noplot -g=sbs2.order4 -bc3=n -debug=3 [
+#  ogmgt tz -plot -g=channelWithBumpe10.order4.ml3 -autoChoose=1 -bc1=d -bc2=d -bc3=m -bc4=d -debug=3 [BAD - inflow
+#  ogmgt tz -plot -g=channelWithBumpe10.order4.ml3 -autoChoose=1 -bc1=d -bc2=d -bc3=d -bc4=m -debug=3 [BAD outflow=mixed
+#
+# BUG:  ** Trouble here with line smooths??
+#   ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz2 -sm=lz2 [SEG FALUT
+#   ogmgt tz -noplot -g=crossInSquarei2.order2.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz2 -sm=lz2
+#   ogmgt tz -noplot -g=twoSpheresInAChannele1.order2.ml1.hdf -bc1=n -sm=lz3 -maxit=10 -rtolcg=1.e-6 -debug=3 [*BAD* lz1=ok
+#   ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -bc1=n -sm=lz3 -maxit=10 -rtolcg=1.e-6 -debug=3 [*BAD*
+#    lz3: bad: (lz1, lz2 ok)
+#   ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -bc1=n -bc2=n -bc3=d -bc4=n -sm=lz3 -maxit=10 -rtolcg=1.e-6 -debug=3 
+#  ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -bc1=n -bc2=n -bc3=d -bc4=n -autoChoose=0 -maxit=10 -rtolcg=1.e-6 -debug=3 -nsm="2 1" -ils=2 -bls=2 [CR=0.1172 ave ECR=0.856 OK - but should be better
+#    --> this is good: 
+#  ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -bc1=n -bc2=n -bc3=d -bc4=n -autoChoose=0 -maxit=10 -rtolcg=1.e-6 -debug=3 -nsm="2 1" -ils=2 -bls=2 [CR=0.0403 ave ECR=0.733
+#   ogmgt tz -noplot -g=sibe2.order2.ml2 -bc7=n -sm=lz3 -maxit=10 -rtolcg=1.e-6 -debug=3 [OK 
+#
+# FINISH ME:
+#   ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nddd [ Finish Neumann BC, 3D order4
+# 
+# BUG: order=4 Neumann is not exact on coarse grids:
+#   ogmgt tz -noplot -g=square16.order4 -debug=3 -bc=nddd   
+#   ogmgt tz -noplot -g=square16.order4 sm=rbj -maxit=0 -opav=0 -ic=1 -tz=poly -degreex=3 -option=cg -levels=2 -cgSolver=yale -bc=nddd 	
+# 
+# BUG: line solver not working for order=4 + Neumann: 
+#   ogmgt tz -noplot -g=square8.order4 -predefined=1 -debug=3 -bc=nmnnn -bsm=lz1 -debug=15 > ! junkp    [OK
+#   ogmgt tz -noplot -g=square8.order4 -predefined=0 -debug=3 -bc=nmnnn -bsm=lz1 -debug=15 > ! junk     [CR degrades,  ghost 2 BC RHS value??
+#   ogmgt tz -noplot -g=square8.order4 -predefined=1 -debug=3 -bc=nmnnn -debug=3 [ECR=0.691
+#   ogmgt tz -noplot -g=square8.order4 -predefined=1 -debug=3 -bc=nmnnn -debug=3 -bcOrder4=extrap [*NO Convergence*
+# 
+# BUG: track down a bug with this case: (mapping inverse uses a coarser grid for cgins but not ogmgt!?) ... FIXED
+#  ogmgt tz -noplot -g=joukowsky2de1.order2.ml2 -debug=3 -autoChoose=1 [ECR=.741
+#  ogmgt tz -noplot -g=joukowsky2de2.order2.ml3 -debug=3 -autoChoose=1 [ECR=.622
+#  ogmgt tz -noplot -g=joukowsky2de2.order2.ml3 -debug=3 > ! junk2 (and junkOld
+#
+# Bug fixed: (line smooths in parallel):
+#  mpirun -np 2 $ogmgp tz -noplot -g=square16.order4 -bsm=lz2 -debug=3 [ECR=0.595
+#  mpirun -np 2 $ogmgp tz -noplot -g=square16.order4 -bsm=lz1 -debug=3 [ECR=0.555
+#  mpirun -np 2 $ogmgp tz -noplot -g=channelWithBumpe5.order4.ml2 -autoChoose=1  [finish me]
+#
+# -- test auto-choose parameters:
+#  ogmgt tz -noplot -g=valvee4.order2.ml4 -autoChoose=1 -debug=3 
+#  ogmgt tz -noplot -g=tcilce4.order2.ml3 -autoChoose=1 -debug=3 
+#  ogmgt tz -noplot -g=channelWithBumpe10.order2.ml3 -autoChoose=1 -debug=3 
+#  ogmgt tz -noplot -g=channelWithBumpe10.order4.ml3 -autoChoose=1 -debug=3 
+#  ogmgt tz -noplot -g=channelWithBumpe40.order4.ml4 -autoChoose=1 -maxit=10 -debug=3
+#  -- set bc by number: 
+#  ogmgt tz -noplot -g=channelWithBumpe10.order2.ml3 -autoChoose=1 -bc1=n -bc2=n -bc3=n -bc4=m -debug=3 
+#  mpirun -np 2 $ogmgp tz -noplot -g=channelWithBumpe10.order2.ml3 -autoChoose=1 -bc1=n -bc2=n -bc3=n -bc4=m -debug=3 
+#
+#  mpirun -np 1 $ogmgp tz -noplot -g=tcilce4.order2.ml3 -autoChoose=1 -debug=3 [ECR=0.595, 0.573  n=1,2
+#  mpirun -np 1 $ogmgp tz -noplot -g=tcilce32.order2.ml4  -autoChoose=1 -debug=3 [ECR=.579
+#   -- note: need to solve coarse grid equation accurately enough: (near singular problem)
+#  mpirun -np 1 $ogmgp tz -noplot -g=tcilce32.order2.ml4  -autoChoose=1 -debug=3 -bc=nmnnnn [ECR=.687
+#  srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=cice64.order2.ml5.hdf -autoChoose=1 -debug=3
+#  srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=cice128.order2.ml5.hdf -autoChoose=1 -debug=3 [ECR=.526
+# 
+# -- non-predefined: 
+#  ogmgt tz -noplot -g=square64.order2 -predefined=0 -debug=3  [ ECR=0.440
+#  mpirun -np 2 $ogmgp tz -noplot -g=square8  -debug=15 -eqn=heat 
+#  ogmgt tz -noplot -g=cic.bbmg -predefined=0 -debug=3 [ECR=0.635
+#  srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -predefined=0 -debug=3 -bc=nmnnn [ECR=0.839
+#  srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=cic.bbmg4 -predefined=0 -debug=3 -bc=nmnnn [ECR=0.721
+#  srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=cic.bbmg6 -predefined=0 -debug=3 -bc=nmnnn [ECR=0.713
+#  srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=cice2.order2.ml2 -predefined=0 -debug=3 -bc=nmnnn [ECR=0.726
+#   -- non-predefined and order=4 
+#     ogmgt tz -noplot -g=square8.order4 -predefined=0 -debug=3 -bc=nmnnn -bsm=lz1 [TROUBLE]
+#     ogmgt tz -noplot -g=square32.order4 -predefined=0 -debug=3 -bc=nmnnn  [OK 
+#     ogmgt tz -noplot -g=square32.order4 -predefined=0 -debug=3 -bc=nmnnn -bsm=lz1 [*TROUBLE*
+# 
+#     ogmgt tz -noplot -g=square32.order4 -predefined=0 -eqn=heat -debug=3 -bc=nmnnn -bsm=lz1  [*TROUBLE*
+#     ogmgt tz -noplot -g=cice2.order4.ml3 -predefined=0 -debug=3 [ ECR=0.651
+#     ogmgt tz -noplot -g=cice2.order4.ml3 -predefined=0 -eqn=heat -debug=3 [ ECR=0.656
+#     ogmgt tz -noplot -g=tcilce2.order4.ml2 -predefined=0 -eqn=heat -debug=3 -autoChoose=1 [ ECR=0.621
+#
+#  mpirun -np 1 $ogmgp tz -noplot -g=cice2.order2.ml2 -sm=rbj -debug=3
+#  valgrindebug ../ogmgt $ogmg/cmd/tz -noplot -g=cice2.order2.ml2 -sm=rbj -debug=3
+#  valgrindebug ../ogmgt tz -noplot -g=cice4.order2.ml3 -sm=rbj -debug=3
+# 
+# Parallel:  NOTE: a lot of the results below are for a W-cycle, changed to V-cycle by default on 100110
+#            NOTE: 100118 - bug fixed in 4th order operator averaging for curvilinear grids
+#   mpirun -np 1 $ogmgp tz -noplot -g=sise2.order2 -sm=rbj -debug=3 -rtolcg=1.e-10 -autoChoose=0 [Bug
+#   mpirun -np 1 $ogmgp tz -noplot -g=cic.bbmg2 -sm=rbj -debug=3 
+#   mpirun -np 1 $ogmgp tz -noplot -g=cice2.order2.ml2 -sm=rbj -debug=3 
+#   mpirun -np 1 $ogmgp tz -noplot -g=rsise4.order2.ml3 -sm=rbj -debug=3 -maxit=12 [ECR=0.597, .571, .594
+#   mpirun -np 1 $ogmgp tz -noplot -g=rsise4.order2.ml3 -sm=rbj -debug=3 -maxit=12 -ils=1 [ECR=0.526
+#   mpirun -np 1 $ogmgp tz -noplot -g=rsise4.order2.ml3 -sm=rbj -debug=3 -maxit=12 -ils=1 -predefined=0 [ECR=0.527
+#   mpirun -np 1 $ogmgp tz -noplot -g=channel2.order2.ml2 -bsm=lz2 -debug=3 -maxit=10 [ECR=0.604, .592, .545
+# 
+#  -- set bc by number: 
+#   mpirun -np 4 $ogmgp tz -noplot -g=channelWithBumpe10.order2.ml3 -autoChoose=1 [ECR=.570
+#   mpirun -np 1 $ogmgp tz -noplot -g=channelWithBumpe10.order2.ml3 -autoChoose=1 -bc1=n -bc2=n -bc3=n -bc4=m -debug=3 [.792, .782, .777 (np=4)
+#   mpirun -np 1 $ogmgp tz -noplot -g=channelWithBumpe5.order4.ml2 -autoChoose=1 [ECR=0.614
+#
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=nonSquare8.order2 -debug=7 [ECR=.409, W=0.468, n=1,2,3,
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=nonSquare16.order2 -debug=7 [ECR=.366
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=nonSquare16.order2 -predefined=0 -ssr=1 -debug=7 [OK
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square16 -predefined=0 -ssr=1 -maxit=10 -debug=7 [funny
+#   srun -N1 -n3 -ppdebug $ogmgp tz -noplot -g=square16.order2 -sm=rbj -levels=2 -ssr=1 -rtolcg=1.e-8 -debug=7 [ECR=.425 ok]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare32.order2 -sm=rbj -debug=3  [ECR=0.398, ECR=0.460, n=1,3,4,5,8,16]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square1024.order2 -sm=rbj -debug=3  [ECR=.447, W=0.482]
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square32 -sm=rbj debug=3  [ECR=0.412, W=.486]
+#   srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=square64 -debug=3  [ECR=0.418
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -debug=3  [ok, ECR=.644 (W=0.697)]
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -debug=3  [ok, ECR=0.649 (W=0.696)]
+#   srun -N1 -n3 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -debug=3  [ok, ECR=0.688 (W=.725)]
+#   srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -debug=3  [ok, ECR=.676 (W=0.704)]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -debug=3  [ok, ECR=0.696]
+#   srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -rtolcg=1.e-12 -debug=3 [ECR=0.726]
+#
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -rtolcg=1.e-12 -debug=3 [ECR=0.696(1),.699(2),.727(3),.702(4),]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg2 -debug=7 
+#   srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=cic.bbmg2 -sm=rbj -debug=3 [assertion in buildExtraLevelsNew.C:1781]
+# 
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=cic.bbmg4 -sm=rbj -debug=3 [ECR=0.564 (ECR=0.643)]
+#   srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=cic.bbmg4 -sm=rbj -debug=3 [ECR=0.563 (ECR=0.647]
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg6 -sm=rbj -debug=3 [ECR=.472 (W=.506)
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg7 -sm=rbj -debug=3 [ECR=0.445,.453 n=1,2]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg7 -sm=rbj -levels=4 -rtolcg=.1 -debug=3 [ECR=.491, W=0.450
+#   srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=cic.bbmg7 -sm=lz1 -rtolcg=.1 -debug=3 [ECR=.471
+# 
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sise2.order2 -sm=rbj -debug=3  [ECR=.573]
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=sise2.order2 -sm=rbj -debug=3  [ECR=0.576] -- could be interp, or coarse grid solve
+#   srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=sise2.order2 -sm=rbj -debug=3 [ECR=0.573]
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=valvee1.order2.ml3 -sm=rbj -debug=3  [ECR=0.810]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=valvee2.order2.ml3 -sm=rbj -debug=3  [ECR=0.669,.661 l=3 warnings: boundaryDW=3 not met?)
+#   srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=valvee2.order2.ml3 -sm=rbj -debug=3 [ECR=0.741]
+#   srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=valvee2.order2.ml3 -sm=rbj -debug=3 -ils=2 [ECR=0.691
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=valvee4.order2.ml4 -sm=rbj -debug=3  [ECR=0.579,.550, n=1,2]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=valvee4.order2.ml3 -sm=rbj -debug=3  [ECR=.555]
+#   srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=valvee4.order2.ml4 -sm=rbj -debug=3 [*FIX* IB(i,0)<0
+# 
+#  --- IBS : interpolation boundary smoothings *NOTE: new parallel IBS will have a different ordering so smoothing will be changed)
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -debug=3 -opav=1 -ils=1
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -sm=rbj -debug=3 -opav=1 -ils=4 [ECR=.620 (from .640)  New=.625
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=0 -ils=0 [ECR=0.629
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=0 -ils=4 [ECR=0.538 GSNew=.538 Jold=0.538 Jnew=0.541
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=1 -ils=0 [ECR=0.648, .654
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=1 -ils=4 [ECR=0.503  New=.515 J=.501, -n2=.605
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=1 -ils=4 -ins=4 -ibs=1 [*new* ECR=0.500 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=2 -ils=0 [ECR=0.644
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=2 -ils=4 [ECR=0.505  GSnew=.505 Jnew=.505
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order2.ml3 -sm=rbj -debug=3 -opav=1 -ils=0 [ECR=0.597, n2=.607
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order2.ml3 -sm=rbj -debug=3 -opav=1 -ils=4 [ECR=0.531  J=.528, J2=.549
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order2.ml3 -sm=rbj -debug=3 -opav=1 -ils=4 -iml=2 [ECR=0.516 New=.547 J=.526
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order2.ml3 -sm=rbj -debug=3 -opav=1 -ils=4 -ins=4 -ibs=1 [ECR=0.535
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order2.ml3 -sm=rbj -debug=3 -opav=2 -ils=4 [ECR=0.554  New=.572 J=.568 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order2.ml3 -sm=rbj -debug=3 -opav=0 -ils=4 [ECR=0.594  New=.645 J=.630 Jold=.602
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe8.order2.ml4 -sm=rbj -debug=3 -ils=0 [ECR=0.533
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe8.order2.ml4 -sm=rbj -debug=3 -ils=4 [ECR=.504, J=.502]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe8.order2.ml4 -sm=rbj -debug=3 -ils=4 -ins=4 -ibs=1 [ECR=0.504
+#
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml4 -sm=rbj -debug=3 -opav=2 -ils=4 -ins=4 ECR=.506 (jacobi)
+#  -- 3D 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=box8.order2 -sm=rbj -debug=3  [ECR=.409, n=1,2,4
+#   srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=box16.order2 -sm=rbj -debug=3 [ECR=.416, n=4,8
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonBox16.order2 -sm=rbj -debug=3 [ECR=.416, n=1,4,8
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sib.bbmg -sm=rbj -debug=3 [ECR=0.677]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cylBoxe2.order2.ml2 -sm=rbj -debug=3 [ECR=0.6,.587,.609,.607 n=1,2,4,8
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe1.order2.ml1 -sm=rbj -debug=3 [ECR=0.729]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe2.order2.ml2 -sm=rbj -debug=3 [ECR= W=0.631,0.620,0.631,.643 n=1,2,4,8]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order2.ml3 -sm=rbj -debug=3 [ECR=0.591,0.597,.595,.594 n=1,2,4,8]
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe8.order2.ml4 -sm=rbj -debug=3 [ECR=.553,.551,.651,.618 n=1,2,4,8]
+#
+# -- Order 4:
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8.order4 -sm=rbj -debug=7 [ECR=0.541
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square64.order4 -sm=rbj -debug=3 [ECR=0.461,.510,.510  n=1,2,4
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square64.order4 -sm=rbj -predefined=0 -debug=3 [ECR=0.461
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 [ECR=0.469
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -opav=0 -debug=3 [ECR=0.519
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square2048.order4 -sm=rbj -debug=3 [ECR=0.469,.469,.469 n=1,2,4
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare8.order4 -sm=rbj -debug=3 [ECR=0.572
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare64.order4 -sm=rbj -debug=3 [ECR=0.492,0.504,.508 n=1,2,4
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare1024.order4 -sm=rbj -debug=3 [ECR=0.489,.489,.489 n=1,2,4
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice2.order4.ml2 -sm=rbj -debug=3 [ECR=0.591,0.634 n=1,2
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice4.order4.ml3 -sm=rbj -debug=3 [ECR=0.579
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice16.order4.ml6 -sm=rbj -debug=3 [ECR=0.529,0.592,.595 n=1,2,4
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=box8.order4 -sm=rbj -debug=3 [ECR=.508
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=box32.order4 -sm=rbj -debug=3 [ECR=0.493
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=box32.order4 -sm=rbj -debug=3 -opav=0 [ECR=0.539
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonBox32.order4 -sm=rbj -debug=3 [ECR=0.499
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonBox32.order4 -sm=rbj -debug=3 -opav=0 [ECR=0.503
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=box128.order4 -sm=rbj -debug=3 [ECR=0.493,.493
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonBox128.order4 -sm=rbj -debug=3 [ECR=0.499
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe2.order4.ml3 -sm=rbj -debug=3 [ECR=0.725
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order4.ml4 -sm=rbj -debug=3 [ECR=0.692
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order4.ml4 -sm=rbj -ils=4 -debug=3 [ECR=.633
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order4.ml4 -sm=rbj -opav=0 -debug=3 [ECR=0.708
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order4.ml4 -sm=rbj -opav=0 -ils=4 [ECR=0.620
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order4.ml4 -sm=rbj -opav=2 -ils=4 [ECR=0.618
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe4.order4.ml4 -sm=rbj -opav=2 -ils=4 -iml=2 [ECR=0.605
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=sibe8.order4.ml4 -sm=rbj -debug=3 [ECR=0.658,0.681 n=1,4, W=.634
+# 
+# --- test operator averaging : 3D order=4
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square32.order4 -sm=rbj -debug=3 [CR=0.0396 ave ECR=0.471
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square32.order4 -sm=rbj -debug=3 -opav=0 [CR=0.0695 ave ECR=0.537
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare32.order4 -sm=rbj -debug=3 [CR=0.0519 ave ECR=0.502
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare32.order4 -sm=rbj -debug=3 -opav=0 [CR=0.0448 ave ECR=0.485
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=box32.order4 -sm=rbj -debug=3 [ECR=0.493
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=box32.order4 -sm=rbj -debug=3 -opav=0 [ECR=0.539
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonBox32.order4 -sm=rbj -debug=3 [ECR=0.499
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonBox32.order4 -sm=rbj -debug=3 -opav=0 [ECR=0.503
+# 
+#    -- line smooth:
+#   ogmgt tz -noplot -g=square64.order2 -bsm=lz1 -maxit=12 -debug=3 [ECR=0.627
+#   ogmgt tz -noplot -g=square64.order2 -bsm=lz2 -maxit=12 -debug=3 [ECR=0.627
+#   ogmgt tz -noplot -g=square64.order2 -bsm=alz -maxit=12 -debug=3 [ECR=0.553
+#   ogmgt tz -noplot -g=nonSquare64.order2 -bsm=lz1 -maxit=12 -debug=3 [ECR=0.605
+#   ogmgt tz -noplot -g=nonSquare64.order2 -bsm=lz2 -maxit=12 -debug=3 [ECR=0.606
+#   ogmgt tz -noplot -g=nonSquare64.order2 -bsm=alz -maxit=12 -debug=3 [ECR=0.526
+#   ogmgt tz -noplot -g=nonSquare64.order2 -bsm=lz1 -bc1=n -bc2=n -bc3=n -maxit=12 -debug=3 [ECR=0.553
+#   ogmgt tz -noplot -g=nonBox32.order2 -maxit=12 -bsm=lz1 -debug=3 [ECR=0.547
+#   ogmgt tz -noplot -g=nonBox32.order2 -bc1=n -bc2=n -bc3=n -bc4=n -bc5=n -maxit=12 -bsm=lz1 -debug=3 [ECR=0.554
+#   ogmgt tz -noplot -g=sibe2.order2.ml2 -maxit=15 -sm=lz1 -bsm=lz1 -debug=3 [ECR=0.677
+#   ogmgt tz -noplot -g=sibe4.order2.ml3 -maxit=15 -sm=lz1 -bsm=lz1 -debug=3 [ECR=0.670
+#   ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2 -maxit=15 -sm=alz -bsm=alz -debug=3 [ECR=0.580
+#   ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2 -maxit=15 -sm=lz3 -bsm=lz3 -debug=3 [ECR=0.697
+#   ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2 -maxit=15 -autoChoose=1 -debug=3 [ECR=0.630
+#    -- line smooth order 4
+#   ogmgt tz -noplot -g=square64.order4 -maxit=12 -debug=3 -bsm=lz1 [ECR=0.573
+#   ogmgt tz -noplot -g=square64.order4 -maxit=12 -debug=3 -bc1=n -bc2=n -bc3=n -bsm=lz1 [ECR=0.515
+#   ogmgt tz -noplot -g=box32.order4 -maxit=12 -bsm=lz1 -debug=3 [ECR=0.551
+#   ogmgt tz -noplot -g=sise2.order4.ml2 -maxit=12 -debug=3 -bsm=lz1 [ECR=0.699
+#   ogmgt tz -noplot -g=sbs2.order4 -maxit=12 -debug=3 -bsm=lz1 [ECR=0.591
+# -- Order=4 bug
+#   ogmgt tz -noplot -g=box32.order4 -maxit=12 -bc1=n -bc2=n -bc3=n -bc4=n -bc5=n -debug=3 [RB *BAD*
+#   ogmgt tz -noplot -g=box32.order4 -maxit=12 -bc1=n -debug=3 [ECR=0.549
+#   ogmgt tz -noplot -g=box32.order4 -maxit=12 -bc5=n -debug=3 [ECR=0.546
+#   ogmgt tz -noplot -g=box32.order4 -maxit=12 -bc3=n -debug=3 [ECR=0
+#
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8.order4 -bsm=lz1 -debug=7 [ECR=.633
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square64.order4 -bsm=lz1 -debug=3 [ECR=0.588,.456 n=1,2
+# 
+# -- Neumann and mixed BCs 
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square16 -sm=rbj -bc=nddd [ECR=0.467,.467 n=1,2
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square16 -sm=rbj -bc=ndnn [ECR=0.537
+#   mpirun -np 1 $ogmgp tz -noplot -g=nonSquare16.order2 -sm=rbj -bc=ndnn -opav=0 [ECR=.588
+#   mpirun -np 1 $ogmgp tz -noplot -g=nonSquare16.order2 -sm=rbj -bc=ndnn -opav=1 [ECR=.518
+#
+#   srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=square128.order2 -sm=rbj -bc=ndnn [ECR=0.486
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg4 -sm=rbj -bc=ndnnn [ECR=
+#   mpirun -np 2 $ogmgp tz -noplot -g=cice2.order2.ml2 -sm=rbj -opav=0 -bc=ndnn [ECR=0.576
+#   mpirun -np 2 $ogmgp tz -noplot -g=cice2.order2.ml2 -sm=rbj -opav=1 -bc=ndnn [ECR=0.548 
+#   mpirun -np 2 $ogmgp tz -noplot -g=cice2.order2.ml2 -sm=rbj -opav=0 -bc=nmnnn -debug=3 -nsm="2 1"
+#   $ogmgp tz -noplot -g=square64.order4 sm=rbj -bc=nddd  [ECR=0.486
+#   $ogmgp tz -noplot -g=square128.order4 sm=rbj -bc=ndnnn  [ECR=0.538
+#   $ogmgp tz -noplot -g=square256.order4 sm=rbj -bc=nmnnn  [ECR=0.754
+#   $ogmgp tz -noplot -g=cice4.order4.ml3 sm=rbj -bc=ndnnn  [ECR=0.640
+# 
+# -- *new* extrapolate BC -- for now only extrapOrder==2 works: 
+#   ogmgt tz -plot -g=square64.order2 -sm=rb -tz=poly -bc=dedd -debug=3 -levels=2 -cgSolver=yale -maxit=20 [order=2, ECR=0.569
+#   ogmgt tz -noplot -g=square64.order2 -sm=rb -tz=poly -degreex=1 -bc=dedd -debug=3 -levels=2 -cgSolver=yale -maxit=20 [ECR=0.575 *exact*
+#   ogmgt tz -noplot -g=square64.order2 -sm=rb -tz=poly -degreex=1 -bc=dedd -debug=3 -levels=3 -cgSolver=yale -maxit=20 [ECR=0.578
+#   ogmgt tz -noplot -g=square64.order2 -sm=rb -tz=poly -degreex=1 -bc=dedd -debug=3 -maxit=10 [ECR=0.546
+#   mpirun -np 2 $ogmgp  tz -noplot -g=square64.order2 -sm=rb -tz=poly -degreex=1 -bc=dedd -debug=3 -levels=2 -maxit=20
+#
+#   ogmgt tz -plot -g=square8 -sm=rb -tz=poly -bc=dedd -debug=3
+#   ogmgt tz -noplot -g=square8 -sm=rb -tz=poly -bc=dedd -debug=15 -levels=2 -cgSolver=yale
+#   ogmgt tz -noplot -g=square64.order2 -sm=rb -tz=poly -bc=dedd -debug=3
+#   ogmgt tz -plot -g=square64.order2 -sm=rb -tz=poly -bc=dedd -debug=3
+#   
+# -- test smoother:
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=sm -lb=all -debug=7 >! sq8N1.out [.679, .092
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=sm -lb=all -debug=7 >! sq8N2.out
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare8 -maxit=0 -option=sm -debug=7 >! nsq8N1.out [.702, .129
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -maxit=0 -option=sm -debug=3 >! cicN1.out
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -maxit=0 -option=sm -debug=3 >! cicN2.out
+#
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=sm -lb=all -debug=7 >! sq8N1.out
+# 
+#  Red-Black Jacobi smooth test : (results should be the same for any number of processors.)
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square16 -maxit=0 -option=sm -sm=rbj -debug=3 >! sq16rbjn1.out
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square16 -maxit=0 -option=sm -sm=rbj -debug=3 > ! sq16rbjn2.out [agrees]
+#   srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=square16 -maxit=0 -option=sm -sm=rbj -debug=3 > ! sq16rbjn8.out [agrees]
+#   srun -N1 -n5 -ppdebug $ogmgp tz -noplot -g=square16 -maxit=0 -option=sm -sm=rbj -debug=3 > ! sq16rbjn5.out [agrees]
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=nonSquare32 -maxit=0 -option=sm -sm=rbj -debug=3 > ! nsq32rbjn1.out
+#   srun -N1 -n5 -ppdebug $ogmgp tz -noplot -g=nonSquare32 -maxit=0 -option=sm -sm=rbj -debug=3 > ! nsq32rbjn5.out [ok]
+#   srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=nonSquare32 -maxit=0 -option=sm -sm=rbj -debug=3 > ! nsq32rbjn16.out [ok]
+#   ogmgt tz -noplot -g=square64.order2 -maxit=0 -option=sm -sm=rbj -bc=dedd -debug=3
+#  Jacobi smooth test: 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=sm -sm=j -debug=3 >! sq8N1j.out
+#  Line smooth test: 
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=sm -sm=lz1 -debug=3
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=sm -sm=lz2 -debug=3
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square8pn -maxit=0 -option=sm -sm=lz1 -debug=15
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=nonSquare8pn -maxit=0 -option=sm -sm=lz1 -debug=15
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=annulus1.order2.ml1 -maxit=0 -option=sm -sm=lz1 -debug=15
+#   srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square64 -maxit=0 -option=sm -sm=lz1 -lb=all -debug=3
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8.order4 -maxit=0 -option=sm -sm=lz1 -debug=3
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square16.order4 -maxit=0 -option=sm -sm=lz1 -debug=3  [rates l=0->.877, l=1->.564]
+# 
+# --- coarse to fine test
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=cf -debug=3
+# --- fine to coarse 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=fc -debug=3
+#   mpirun -np 1 $ogmgp tz -noplot -g=square64.order4 -maxit=0 -option=fc -debug=3
+# --- coarse grid solve test
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square8 -maxit=0 -option=cg -levels=2 -debug=3
+#   srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cic.bbmg -maxit=0 -option=cg -debug=3
+#   srun -N1 -n1 -ppdebug $ogmgp tz -plot -g=valvee1.order2.ml3 -maxit=0 -option=cg -debug=3 [ok
+#   srun -N1 -n1 -ppdebug $ogmgp tz -plot -g=valvee4.order2.ml3 -maxit=0 -option=cg -debug=3 [ok (extrap=2 on l>0)
+#   srun -N1 -n1 -ppdebug $ogmgp tz -plot -g=sise2.order4.ml2 -maxit=0 -option=cg -debug=3 [ok
+#   srun -N1 -n1 -ppdebug $ogmgp tz -plot -g=cice4.order4.ml3 -maxit=0 -option=cg -debug=3 [ok. bug fixed averageOpt.bf
+# 
+#   srun -N1 -n1 -ppdebug $ogmgp tz -plot -g=sibe2.order4.ml3 -maxit=0 -option=cg -debug=7 [ok
+# troubles: 
+# - leak in Interpolant -- check me (nonSquare8)

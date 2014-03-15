@@ -1,0 +1,98 @@
+\subsection{Default Constructor}
+ 
+\newlength{\RestrictionMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\RestrictionMappingIncludeArgIndent}{RestrictionMapping(}% 
+RestrictionMapping(const real ra\_   =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real rb\_   =1.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real sa\_   =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real sb\_   =1.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real ta\_   =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real tb\_   =1.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const int dimension  =2 ,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}Mapping *restrictedMapping  =NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor
+ The restriction is a Mapping from {\tt parameter} space to {\tt parameter} space
+  defined by 
+ \begin{align*}
+     x(I,axis1) &= (rb-ra) r(I,axis1)+ra \\
+     x(I,axis2) &= (sb-sa) r(I,axis2)+sa \\
+     x(I,axis3) &= (tb-ta) r(I,axis3)+ta  
+ \end{align*}
+\item[{\bf ra\_,rb\_,sa\_,sb\_,ta\_,tb\_ (input):}]  Parameters in the definition of the 
+   {\tt RestrictionMapping}.
+\item[{\bf dimension (input):}]  define the domain and range dimension (which are equal).
+\item[{\bf restrictedMapping (input) :}]  optionally pass the Mapping being restricted. 
+  This Mapping is used to set spaceIsPeriodic.
+\end{description}
+\subsection{scaleBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\RestrictionMappingIncludeArgIndent}{scaleBounds(}%
+scaleBounds(const real ra\_ =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real rb\_ =1., \\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real sa\_ =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real sb\_ =1.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real ta\_ =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real tb\_   =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Scale the current bounds. Define a sub-rectangle of the current restriction.
+  These parameters apply to the current restriction as if it were the entire unit square
+  or unit cube. For example for the "r" variable the transformation from old values of
+   (ra,rb) to new values of (ra,rb) is defined by:
+  \begin{align*}
+     rba &= rb-ra \\
+     rb &= ra+rb\_ ~rba \\
+     ra &= ra+ra\_ ~rba
+  \end{align*}
+   
+\item[{\bf ra\_,rb\_,sa\_,sb\_,ta\_,tb\_ (input):}]  These parameters define a 
+ sub-rectangle of the current restriction.
+\end{description}
+\subsection{getBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\RestrictionMappingIncludeArgIndent}{getBounds(}%
+getBounds(real \& ra\_, real \& rb\_, real \& sa\_, real \& sb\_, real \& ta\_, real \& tb\_ ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Get the bounds for a restriction mapping.
+   {\tt RestrictionMapping} for further details.
+\item[{\bf ra\_,rb\_,sa\_,sb\_,ta\_,tb\_ (output):}]  
+\end{description}
+\subsection{setBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\RestrictionMappingIncludeArgIndent}{setBounds(}%
+setBounds(const real ra\_ =0., \\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real rb\_ =1., \\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real sa\_ =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real sb\_ =1.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real ta\_ =0.,\\ 
+\hspace{\RestrictionMappingIncludeArgIndent}const real tb\_   =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+  Set absolute bounds for the restriction.
+\item[{\bf ra\_,rb\_,sa\_,sb\_,ta\_,tb\_ (input):}]  Parameters in the definition of the 
+   {\tt RestrictionMapping}.
+\end{description}
+\subsection{setSpaceIsPeriodic}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\RestrictionMappingIncludeArgIndent}{setSpaceIsPeriodic(}%
+setSpaceIsPeriodic( int axis, bool trueOrFalse  = true)
+}\end{flushleft}
+ Description:
+    Indicate whether the space being restricted is periodic. For example if you
+ restrict an AnnulusMapping then you should set periodic1=true since the Annulus
+ is periodic along axis1

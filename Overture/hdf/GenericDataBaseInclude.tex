@@ -1,0 +1,769 @@
+\subsection{Constructors}
+ 
+\newlength{\GenericDataBaseIncludeArgIndent}
+\begin{flushleft} \textbf{%
+  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{GenericDataBase(}%
+GenericDataBase()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Default constructor;
+\item[{\bf Author:}]  WDH
+
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{GenericDataBase(}%
+GenericDataBase(const GenericDataBase \& gdb)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Copy constructor.
+   Make a copy of the directory. This does not copy the data-base file.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{virtualConstructor}
+ 
+\begin{flushleft} \textbf{%
+GenericDataBase*  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{virtualConstructor(}%
+virtualConstructor() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   This function will create a data-base (of a derived class) using "new" and 
+   return a pointer to it.
+   
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{operator =}
+ 
+\begin{flushleft} \textbf{%
+GenericDataBase \&  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{ operator=(}%
+operator=(const GenericDataBase \& gdb )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Make a copy of the directory. This does not copy the data-base file.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{mount(fileName,flags)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{mount(}%
+mount(const aString \& fileName, const aString \& flags)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Mount a data-base file.
+\item[{\bf fileName (input):}]  Name of the file to open.
+\item[{\bf flags (input):}]  flags to indicate how to access the file, "I" = initialize
+   a new file, "W" = open an existing file for reading and writing,
+   "R" = open an existing file read-only.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{unmount}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{unmount(}%
+unmount()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Close the data-base file;
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{flush()}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{flush(}%
+flush()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Flush the data to the file. 
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{isNull()}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{isNull(}%
+isNull() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return TRUE if this object is NOT attached to any file, return FALSE if it is attached to a file.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{turnOnWarnings}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{turnOnWarnings(}%
+turnOnWarnings()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Turn on warnings. For example the get functions will complain if the object they
+ are looking for is not found.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{turnOffWarnings}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{turnOffWarnings(}%
+turnOffWarnings()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Turn off warnings.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{create(dataBase,name,class)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{create(}%
+create(GenericDataBase \& db, const aString \& name, const aString \& dirClassName )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Create a sub-directory with a given name and class name.
+\item[{\bf db (output):}]  This new object will be the sub-directory
+\item[{\bf name (input):}]  name of the sub-directory
+\item[{\bf dirClassName (input):}]  name of the class for the directory, default="directory"
+\item[{\bf return value:}]  is 0 is the directory was successfully created, 1 otherwise
+
+\end{description}
+\subsection{find(dataBase,name,class) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{find(}%
+find(GenericDataBase \& db, const aString \& name, const aString \& dirClassName ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Find a sub-directory with a given name and class-name (optional)
+   If name="." then the current directory will be returned.
+   This function will "crash" if the sub-directory was not found. Use
+   locate if you don't want the function to crash.
+\item[{\bf db (output):}]  This object will be the sub-directory on return
+\item[{\bf name (input):}]  name of the sub-directory
+\item[{\bf dirClassName (input):}]  name of the class for the directory, default="directory"
+\item[{\bf return value:}]  is 0 is the directory was found, 1 otherwise
+
+\end{description}
+\subsection{locate(dataBase,name,class)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{locate(}%
+locate(GenericDataBase \& db, const aString \& name, const aString \& dirClassName ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Find a sub-directory with a given name and class-name (optional)
+   If name="." then the current directory will be returned.
+   See also the find member function.
+\item[{\bf db (output):}]  This object will be the sub-directory on return
+\item[{\bf name (input):}]  name of the sub-directory
+\item[{\bf dirClassName (input):}]  name of the class for the directory, default="directory"
+\item[{\bf return value:}]  is 0 is the directory was found, 1 otherwise
+
+\end{description}
+\subsection{find(name[~],class,maxNumber,actualNumber) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{find(}%
+find(aString *name, const aString \& dirClassName, const int \& maxNumber, int \& actualNumber) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Find the names of all objects in the current directory with a given class-name
+
+\item[{\bf name (input/output):}]  array of Strings to hold the names of the directories. You must allocate at
+     least maxNumber Strings in this array.
+\item[{\bf dirClassName (input):}]  find all objects with this class name. This can be a user defined class name
+    such as "grid" as well as "int", "float", "double", "string", "intArray", "floatArray" and "doubleArray".
+\item[{\bf maxNumber (input):}]  this is the maximum number of Strings that 
+         can be stored in name[]. 
+\item[{\bf actualNumber (output):}]  This is the actual number of objects that exist.
+\item[{\bf return value:}]   The number of Strings that were saved in the name array.
+
+\item[{\bf Description:}] 
+   To first determine the number of objects with the given class-name that exist 
+    make a call with maxNumber=0. Then allocate aString name[actualNumber] and call again.
+    
+\end{description}
+\subsection{find(dataBase db[~],class,maxNumber,actualNumber) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{find(}%
+find(GenericDataBase *db, aString *name, const aString \& dirClassName, const int \& maxNumber,\\ 
+\hspace{\GenericDataBaseIncludeArgIndent}int \& actualNumber) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Find all sub-directories with a given class-name
+
+\item[{\bf db (input/output):}]  return directories found in this array. You must allocate
+     at least maxNumber directories in db, for example with if maxNumber=10 you
+     could say
+     \begin{verbatim}
+         ADataBase db[10];
+     \end{verbatim}
+\item[{\bf name :}]  array of Strings to hold the names of the directories. You must allocate at
+     least maxNumber Strings in this array.
+\item[{\bf maxNumber (input):}]  this is the maximum number of directories that 
+         can be stored in db[]. 
+\item[{\bf actualNumber (output):}]  This is the actual number of directories
+         that exist.
+\item[{\bf return value:}]   The number of directories that were saved in the db array.
+
+\item[{\bf Description:}] 
+   To first determine the number of sub-directories with the given class-name that exist 
+    make a call with maxNumber=0. Then allocate db[actualNumber] and name[actualNumber] and call again.
+    
+\end{description}
+\subsection{put([float][double][int][aString],name) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const float \& x, const aString \& name ) 
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const double \& x, const aString \& name ) 
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const int \& x, const aString \& name )
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const bool \& x, const aString \& name )
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const aString \& x, const aString \& name ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Save a float, double, int or aString in the data-base with a given name.
+
+\item[{\bf x (input):}]  The object to save.
+\item[{\bf name (input):}]  Save "x" under this name in the data-base.
+    
+\end{description}
+\subsection{get([float][double][int][aString],name) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( float \& x, const aString \& name ) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( double \& x, const aString \& name ) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( int \& x, const aString \& name ) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( bool \& x, const aString \& name ) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( aString \& x, const aString \& name ) const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  Get a float, double, int or aString from the data-base with a given name.
+
+\item[{\bf x (output):}]  The object to get.
+\item[{\bf name (input):}]  The name of "x" in the data-base.
+\item[{\bf Return value :}]  0 if found, non-zero if not found   
+\end{description}
+\subsection{get([floatSerialArray][doubleSerialArray][intSerialArray],name) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( floatSerialArray \& x, const aString \& name, Index *Iv  =NULL) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( doubleSerialArray \& x, const aString \& name, Index *Iv  =NULL) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( intSerialArray \& x, const aString \& name, Index *Iv  =NULL) const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  get an A++ SerialArray from a data-base.
+\item[{\bf x (output):}]  SerialArray to get. x will be "resized" to have the proper dimensions (base/bound)
+\item[{\bf name (input):}]  the name of tha SerialArray to get
+\item[{\bf Return value :}]  0 if found, non-zero if not found   
+    
+\end{description}
+\subsection{getDistributed([floatArray][doubleArray][intArray],name) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getDistributed(}%
+getDistributed( floatArray \& x, const aString \& name ) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getDistributed(}%
+getDistributed( doubleArray \& x, const aString \& name ) const
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getDistributed(}%
+getDistributed( intArray \& x, const aString \& name ) const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  get an A++ array from a data-base.
+\item[{\bf x (output):}]  array to get. x will be "resized" to have the proper dimensions (base/bound)
+\item[{\bf name (input):}]  the name of tha array to get
+\item[{\bf Return value :}]  0 if found, non-zero if not found   
+    
+\end{description}
+\subsection{put([floatSerialArray][doubleSerialArray][intSerialArray],name) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const floatSerialArray \& x, const aString \& name ) 
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const doubleSerialArray \& x, const aString \& name ) 
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const intSerialArray \& x, const aString \& name )
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  Save an A++ SerialArray in the data-base.
+\item[{\bf x (input):}]  SerialArray to save
+\item[{\bf name (input):}]  save the SerialArray with this name.
+\item[{\bf Iv[6] (input):}]  optionally specify the Ranges of a sub-array to get.
+ 
+\end{description}
+\subsection{putDistributed([floatArray][doubleArray][intArray],name) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{putDistributed(}%
+putDistributed( const floatArray \& x, const aString \& name ) 
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{putDistributed(}%
+putDistributed( const doubleArray \& x, const aString \& name ) 
+}\end{flushleft}
+    
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{putDistributed(}%
+putDistributed( const intArray \& x, const aString \& name )
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  Save an A++ array in the data-base.
+\item[{\bf x (input):}]  array to save
+\item[{\bf name (input):}]  save the array with this name.
+    
+\end{description}
+\subsection{put(int[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const int x[], const aString \& name, const int number ) 
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  save an array of int's to a data-base directory.
+\item[{\bf x (input):}]  array to save.
+\item[{\bf name (input):}]  save the array with this name
+\item[{\bf number (input):}]  The number of entries in the array to save.
+
+\end{description}
+\subsection{put(float[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const float x[], const aString \& name, const int number ) 
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  save an array of float's to a data-base directory.
+\item[{\bf x (input):}]  array to save.
+\item[{\bf name (input):}]  save the array with this name
+\item[{\bf numberOfStrings (input):}]  The number of entries in the array to save.
+
+\end{description}
+\subsection{put(double[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const double x[], const aString \& name, const int number ) 
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  save an array of double's to a data-base directory.
+\item[{\bf x (input):}]  array  to save.
+\item[{\bf name (input):}]  save the array with this name
+\item[{\bf numberOfStrings (input):}]  The number of entries in the array to save.
+
+\end{description}
+\subsection{put(aString[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{put(}%
+put( const aString x[], const aString \& name, const int number ) 
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  save an array of Strings to a data-base directory.
+\item[{\bf x (input):}]  array to save.
+\item[{\bf name (input):}]  save the array with this name
+\item[{\bf numberOfStrings (input):}]  The number of entries in the array to save.
+
+\end{description}
+\subsection{get(int[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( int x[], const aString \& name, const int number ) const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  get an array from a data-base directory.
+\item[{\bf x (output):}]  save the array x.
+\item[{\bf name (input):}]  name of the array.
+\item[{\bf number (input):}]  The maximum number of entries in the array to get.
+\item[{\bf return value:}]  The actual number of entries that were saved in the array x.
+
+\end{description}
+\subsection{get(float[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( float x[], const aString \& name, const int number ) const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  get an array from a data-base directory.
+\item[{\bf x (output):}]  save the array x.
+\item[{\bf name (input):}]  name of the array.
+\item[{\bf number (input):}]  The maximum number of entries in the array to get.
+\item[{\bf return value:}]  The actual number of entries that were saved in the array x.
+
+\end{description}
+\subsection{get(double[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( double x[], const aString \& name, const int number ) const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  get an array from a data-base directory.
+\item[{\bf x (output):}]  save the array x.
+\item[{\bf name (input):}]  name of the array.
+\item[{\bf number (input):}]  The maximum number of entries in the array to get.
+\item[{\bf return value:}]  The actual number of entries that were saved in the array x.
+
+\end{description}
+\subsection{get(aString[~],name,number) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{get(}%
+get( aString x[], const aString \& name, const int number ) const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  get an array from a data-base directory.
+\item[{\bf x (output):}]  save the array x.
+\item[{\bf name (input):}]  name of the array.
+\item[{\bf number (input):}]  The maximum number of entries in the array to get.
+\item[{\bf return value:}]  The actual number of entries that were saved in the array x.
+
+\end{description}
+\subsection{setMode}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{setMode(}%
+setMode(const InputOutputMode \& mode\_  =standard)
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}] 
+   Set the input-output mode for the data base. Note that any sub-directories subsequently
+  created in this data base will inherit this value for mode. Changing the mode from
+  {\tt streamInputMode} back to {\tt normalMode} will cause the
+   buffers to be saved in the data base. The buffers will also be saved when a directory 
+  is deleted provided that this directory was the one in which streaming mode was initially
+   turned on.  Currently only one set of buffers can be saved
+  in any directory which means that within a given directory the streaming mode can only
+  be turned on and off once.
+     
+\item[{\bf mode\_ (input) :}]  input-output mode, {\tt normalMode}, {\tt streamInputMode}, 
+  {\tt streamOutputMode}, or {\tt noStreamMode}. In {\tt normalMode} the data is saved in the standard
+   hierarchical manner. In {\tt streamInputMode}/{\tt streamOutputMode} mode the
+   data is input/output continuguously from/into a buffer. The name of the object is ignored and
+   the act of creating new directories is ignored. In stream mode the data must be read back 
+   in in exactly the order it was written. In {\tt noStreamMode}
+   any requests to change to  {\tt streamInputMode} or {\tt streamOutputMode} will be ignored. This can
+   be used to suggest that no streaming should be done. To overide this mode you must first set the
+   mode to {\tt normalMode} and then you can change the mode to a streaming mode.
+
+\end{description}
+\subsection{getMode}
+ 
+\begin{flushleft} \textbf{%
+InputOutputMode  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getMode(}%
+getMode() const
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}] 
+   Return the current input-output mode for the data base.
+
+\item[{\bf Return value:}]  the current input-output mode.
+\end{description}
+\subsection{printStatistics}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{printStatistics(}%
+printStatistics() const 
+}\end{flushleft}
+    
+\begin{description}
+\item[{\bf Description:}]  
+   Output statistics about the data base, such as the number of entries etc.
+
+\end{description}
+\subsection{getList}
+ 
+\begin{flushleft} \textbf{%
+ReferenceCountingList*  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getList(}%
+getList() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return a pointer to a list that holds reference counted objects that are in the data base.
+ This list can be used to keep track of items that have been saved in the data base. Each item
+ in the list has an ID and a pointer to an object. In this way one can avoid saving multiple
+ copies of objects since one can determine whether an object has already be saved. This feature
+ is used when saving Mapping's to avoid multiple copies of a Mapping being saved.
+\end{description}
+\subsection{getID}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getID(}%
+getID() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Get the identifier for this directory
+\end{description}
+\subsection{build}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{build(}%
+build(GenericDataBase \& db, int id)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Build a directory with the given ID, such as that returned by the member function {\tt getID()}.
+\end{description}
+\subsection{setParallelReadMode}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{setParallelReadMode(}%
+setParallelReadMode(ParallelIOModeEnum mode)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Set the read mode for HDF5, mode=independentIO (H5FD\_MPIO\_INDEPENDENT) or
+      mode=collectiveIO (H5FD\_MPIO\_COLLECTIVE) or mode=multipleFileIO.
+ 
+\end{description}
+\subsection{setParallelWriteMode}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{setParallelWriteMode(}%
+setParallelWriteMode(ParallelIOModeEnum mode)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Set the write mode for HDF5, mode=independentIO (H5FD\_MPIO\_INDEPENDENT) or
+      collectiveIO (H5FD\_MPIO\_COLLECTIVE) or mode=multipleFileIO.
+\end{description}
+\subsection{setParallelReadMode}
+ 
+\begin{flushleft} \textbf{%
+ParallelIOModeEnum  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getParallelReadMode(}%
+getParallelReadMode()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Set the read mode for HDF5, mode=independentIO (H5FD\_MPIO\_INDEPENDENT) or
+      mode=collectiveIO (H5FD\_MPIO\_COLLECTIVE) or mode=multipleFileIO.
+ 
+\end{description}
+\subsection{setParallelWriteMode}
+ 
+\begin{flushleft} \textbf{%
+ParallelIOModeEnum  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getParallelWriteMode(}%
+getParallelWriteMode()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Set the write mode for HDF5, mode=independentIO (H5FD\_MPIO\_INDEPENDENT) or
+      collectiveIO (H5FD\_MPIO\_COLLECTIVE) or mode=multipleFileIO.
+\end{description}
+\subsection{getNumberOfLocalFilesForReading}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getNumberOfLocalFilesForReading(}%
+getNumberOfLocalFilesForReading() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return the number of additional local files that are read for distributed data.
+ These are extra files where each processor has saved information. 
+\end{description}
+\subsection{getNumberOfLocalFilesForWriting}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{getNumberOfLocalFilesForWriting(}%
+getNumberOfLocalFilesForWriting() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return the number of additional local files that are written for distributed data.
+ These are extra files where each processor will save information. 
+\end{description}
+\subsection{setMaximumNumberOfFilesForWriting}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericDataBaseIncludeArgIndent}{setMaximumNumberOfFilesForWriting(}%
+setMaximumNumberOfFilesForWriting( int maxNumberOfFiles )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    (static function) Set the maximum number of local files that are written for distributed data.
+    These are extra files where each processor will save information. 
+ 
+\end{description}

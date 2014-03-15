@@ -1,0 +1,382 @@
+
+*****************************************
+******** Overture/ogen ******************
+*****************************************
+
+--------- Things to do: -----------
+
+0801: Finish parallel ogen, parallel moving grid generation
+
+080116: Something funny with the ogen/curvedTube.cmd grid for -factor=2 -interp=e when the core grid
+        has dsPlus=$ds: grid is "valid" by cgins/cmd/curvedTube.cmd gives funny results!
+
+080114 : hype: fix Mike Singer's problem with a 3d body of revolution in /home/henshaw.0/singer
+
+--------- Things done: ----------------
+
+
+*****************************************
+******** Overture/ogshow ****************
+*****************************************
+
+--------- Things to do: -----------
+
+0801 : fix plotting of stream line arrows for "do not keep aspect ratio"
+     : fix problem with "clear" -> "plot" : stream-lines do not appear
+
+--------- Things done: ----------------
+
+
+
+*****************************************
+******** Overture/GridFunction **********
+*****************************************
+
+--------- Things to do: -----------
+
+0802: Add option to InterpolatePoints to also extrap pts that are outside the domain
+      as the old interpolatePoints used to do. Test Interpolate points more -- esp. optimized version. 
+       --> find closest point 
+
+--------- Things done: ----------------
+
+
+*****************************************
+******** Overture/otherStuff ************
+*****************************************
+
+--------- Things to do: -----------
+
+0802: Fix Integrate: assign weights at interior points that are far from interpolation boundaries. 
+                     Currently we must have a boundary with no overlap where we set the exact weights.
+
+--------- Things done: ----------------
+
+
+
+*****************************************
+******** Overture/???? ******************
+*****************************************
+
+--------- Things to do: -----------
+
+--------- Things done: ----------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------- OLD ----------------------------------------------------------
+
+o access functions to MappedGrid:: parantChildSiblingInfo
+
+o move computation of vorticity/Mach number/min scale to plotStuff
+
+
+o remove toplogyMask from Mapping
+
+o DEC: ingrid.f has compile errors
+
+o title on popup menus,
+  "erase and exit" ---> "continue" ? 
+
+
+
+
+o mastSail3d without -dp mapping's -- errors from strt
+
+o plot3dToOverture : ?? convert plot3d grid file to overture for use by getFromADataBase.
+
+
+o test normalDotScalarGradCoefficient BC
+
+
+o fix plot3d reading -- combine with DPM reader** read 2D plot3d files such as in overflow/test/naca
+
+fix interiorBoundaryPoint for C-grids , 1 grid can have interpolation pts. fix WHERE_MASK in BC's
+
+
+
+o Fire-drill
+   o Hyperbolic:
+      o check BC's for implicit marching
+      o ** need to reduce uniform dissipation near convex corners
+      o uniform coefficient want to move points away from regions clustered for curvature -- we 
+      o airfoil grid
+      o fix draw arrows to save initial projection info ***
+      o create a curve as the intersection of a Mapping (plane) with the composite surface.
+      o allow coord lines to be merged for the initial curve.
+      o smooth surface grid points.
+
+      x determine the trailing edge direction
+      x do ghost lines as marching, instead of extrapolation.
+      x optimize DPM inverse
+      x blend nornmals with other BC types!
+      x  blend normals for matching to a mapping BC.
+      x merge arbitary edge curves
+      x fix step 1 with both directions.
+      x be able to choose sub-curves explicitly rather than showing all of them. *****
+
+   o elliptic/hyperbolic : ghost points need to be projected onto surfaces.
+   
+   o elliptic : naca0012 grid
+
+   o surface grid generation: cluster points in regions of high curvature
+   o volume hyperbolic grid generation
+   o volume elliptic grid smoothing.
+   o add re-ordering for GMRES
+
+    x optimize DPM inverse.
+    x check mastSail2d.cmd grid -- inversion of mast is funny.
+    x  plot coordinate grid planes -- define a common interface to use 
+    x  check for negative volumes.
+    x   "step" one line, "step n" - step n lines
+    x get arrows plotted on initial curve
+
+  Jeff Painter:
+   - NurbsMapping
+   - Smart pointer for reference counted objects.
+   - inverseMap for curves and surfaces that uses a "plane constraint" instead of least squares.
+
+
+o Documentation
+  x timeStep -- release as report.
+
+o Elliptic Grid Generator
+  o boundary redistribution by curvature and arclength.
+  o user defined weight function for 2d clustering of points.
+
+  o fix noSlipOrthog -- derivativePeriodic
+  o surface generation
+  o line smoother : slip BC's
+  o get work units right.
+  o full MG
+  x line1, line2, line3 smoothers
+  x fix slip normal with multigrid.
+
+o Distribution
+  o fix distribution of documentation.
+  o *** No -r8 for egcs g77 --> preprocessor + implicit real*8 ?
+  o double precision version on the SGI for Dinshaw.
+  o test double precision
+
+o A++
+  o indirect addressing of non-zero base doesn't work, r(ic)=... (dpmInverse)
+  o getDataPointer invalid for views !!!
+  o indexMap for multi-d arrays doesn't always work. (negative base in multi-d)
+  o max and min return bogus values if the arrays are null.
+  o is the floor function fixed for negatives (see Inverse.C).
+  o a "SQR" square function for A++
+  o bit operations
+  o max/min that also return the location of the max/min
+  o A++/SUNULTRA etc should have a lib directory to be standard with most unix stuff.
+  o conversion from intArray to floatArray etc.
+
+o Overture
+   o build a separate class to hold static objects like the nullRealArray etc.
+   x fix xCogToOverture -- trouble with DataPointMapping -- different number of ghostPoints
+     in each direction.
+
+o Mappings
+
+  o SweepMapping: fix for sweeping a curve, sweepCurve.cmd
+  o normal mapping from sphere - bug -  ; function call to generate NormalMapping from a surface.
+  o FilletMapping : reference count curve[i], remove curveWasNewed.
+  o SweepMapping: clean up map; support for singular tips : scale mapping from rho=sqrt(x^2+y^2).
+
+  o reuse grid from DataPointMapping so that it is not duplicated in the Mapping AND MappedGrid!!
+  o NURBS -- check derivatives near r=1. ???
+  o IntersectionMapping: be able to handle a TrimmedMapping.
+  o ProjectionMapping? : project one Mapping onto another. ex. plane onto a CompositeSurface.
+  o Cheryl: 2D interpolate for NURBS, specify surfaces function.
+  o Jeffp: why does read iges use so much memory?
+  o TrimmedMapping: JeffP : plotting abnormalities.
+  o fix JoinMapping for 2D
+  o fix createMappings "get from a data base" to read a Mapping put by a user (not a MappingRC)
+  o define a local inverse for the DataPointMapping - invert the order=2 case 
+  o HyperbolicMapping: hype2.cmd has an error -- lmax, lmax0 ??
+  o finish up NURBS, specify control points interactively in 3D, specify function for 3D.
+  o fix JoinMapping get/put so we don't have to recreate intersections.
+  o finish FilletMapping documentation, smoothing out the fillet?
+  o clean up FilletMapping -- still need to delete Mappings if they are reduction mappings.
+  o simplify DataPointMapping
+  o speed up SphereMapping.C -- lots of repeated computations
+  o add Joukowsky and M6 X-sections to CrossSectionMapping
+  o variable cylinder DepthMapping for Jerry.
+  o fix MatrixTransform boundingBox to avoid necessity to reinitialize approximate inverse --
+     just rotate the bounding boxes?
+  o scale Newton tolerance for stretched mappings, 
+  o add generic user Mapping's
+
+x optimize dpmInverse by compressing out converged points.
+  x 3d robust cell search 
+  x need to fix background mask for the TrimMapping.
+  x **remember* set periodicity for dpm in the EllipticTransform
+  x readMappings -- fix leaks when reading iges files.
+  x exponential stretching along axis=1
+  x Inverse parameters must be saved! Inverse get/put
+  x allow bounding box to be larger
+  x Make boundaryConditions and periodicity consistent for periodic.
+  x Make the newton convergence and .1 factor setable
+
+o Grids
+  o ReferenceCounting: remove "if(&x)" etc.  (prevents compiler warnings)
+  o fix "true" in tderivatives.C
+  o faceDerivative and faceJacobian -- what about scaled verions?
+  o interpolationWidth should be in the GridCollection !
+  o GridCollection: addRefinement to set mask array to IShiddenByRefinement.
+  o MappedGrid: build the box from the extendedIndexRange I think. -- or only if the box hits
+    a base grid boundary with bc=0 ??
+  o add consistency check functions.
+  o MappedGrid : isNull(), getAMRData()
+  x add getName to MappedGrid
+
+
+o Grid Functions and operators
+  o fix extrapInterpNeighbours : change to array statements.
+  o add a function to grid functions to return the component Range as a Range or Index
+  o fix multiply function when passed a link.
+  o add applyBC to an array of values on the boundary to BC's other than dirichlet.
+  o fix WHERE_MASK -- move outside component loops so mask only built once. Also do not apply BC
+     on a c-grid edges.
+  o vector gradients.
+  o add geometric averaging to divScalarGradCoefficients.
+  o clean up MappedGridFunctions: put data in envelope into the letter.
+  o return GCF's and GCF's by shallow copy. This is faster. see gf/shallow.C for timings.
+  o MGF: dis-allow redim, reshape, resize.
+  o interpolant : interpolate an adaptive grid.
+  o applyBoundaryCondition (coeff) on one side using boundary1, etc... as in non-coeff.
+  o GFOperators copy constructor and = operator.
+  o add more boundary conditions to the Coefficient matrix operators.
+  o accuracy of derivatives in stretched boundary layers. tderivatives on valve.hdf gives
+    poor results u_xx = (s_x)^2 u_ss + s_xx*u.s   -- large error in s_xx
+  o  David: It would be useful if getBoundaryIndex or getGhostIndex (as
+     appropriate) would return Index'es corresponding to ALL boundary
+     and/or ghostlines on a given (side,axis), as well as just to a single
+     line of ghost points. Perhaps if iextra1 was set to "all", then all
+     ghost lines would be returned, for example. At the moment it appears
+     that you have to explicitly look up the numberOfGhostPoints before
+     calling the function.
+
+  o extrapolate interpolation neighbours -- fix to use indirect addressing,
+      optimize findInterpolationNeighbours.
+  o variable coefficient BC's
+  o periodicUpdate( Range ) and finishBC(Range) fixBoundaryC( Range ) 
+  o generalizedDivergence --> make a Jacobi like operator for symmetry
+  o fourth-order BC's : need to collect up and solve?
+  o finish DetermineErrors class.
+  o fix multiply documentation
+  o div( s grad u) operator
+  o updateRefinements for Dan
+  o fix Interpolant for AMR GridCollections and AMR CompositeGrids
+  o fix RealArray & rxx = ... in abFDCoefficients.C
+
+  x add a consistency check function.
+  x rMGF u.x(all,all,all,N) could return a rMGF with fewer components, or rCGF u.x(N)
+  x add isNull function to grid functions.
+  x **** Add error message to =operators that don't work, Oges, Interp, operators ..
+  x fixBoundaryCorners -- don't do if both sides are interpolation --- interp points on ghost values now
+  x TZ: CompositeGridFunction x(CompositeGrid,Range,t) for Krister.
+  x min/max ... to overcome STL min/max..
+
+o Primer and test routines
+    o Demonstrate 4th order elliptic solves
+    o FVO test examples.
+
+    x put primer figures into ../figures
+
+o Ogen Grid generator: 
+    o automatically reduce interpolation stencil width -- keep an intArray of widths to support this.
+
+    o automatically build as much explicit interpolation as possible
+
+    o fix problem with one hole pt on sub grid when rudder base extends to .9 (see sub.cmd)
+    o optimize proper/improper interpolation -- do not check proper for interp. points already computed
+    o fix noHoleCutting.cmd example, also do something about un-cut points that later cause failure.
+    o automatically try to use explicit interpolation unless the user has
+      specically asked for implicit.
+    o pipes have problem if core just sticks out and hole cutter misses
+    o is PlotStuff really needed in moving grid case?
+    o multigrid, graceful failure when too many levels are requested.
+    o optimize hole cutting
+    o refinement over boundary hole
+    o thin wing problem
+    o shared stretched boundaries
+    o output plot3d
+    o moving grids
+    o AMR grids
+
+    x could save space by not building vertexDerivative array -- used in hole cutting sometimes.
+    x **this was not the problem, using incompatible boundaryEps with canInterpolate*****
+      fix boundary adjustment for mastSail2d -- opposite boundary should be computed in 
+      a better way -- should be nearly normal to the boundary -- or base on the normal
+      "distance" from the boundary
+    x failure of pipesCC -> checkForOneSided is too strict. *fixed*
+    x add full-recompute to moving grid option.
+    x change parameters: "make fourth order"
+    x fix fourth-order grids (cic.4.cmd)
+
+o Plotting:
+   o vary background/text colour
+   o move plot( array) into Generic level.
+   o provide sample command files for plotting contour planes.
+   o 2D contours of 3D grids -- fix labels and scale.
+   o contour3d - plot axes, should not have to redraw
+   o In 2D contour line plots -- plot along coordinate lines
+   o fix toggle grids <-> contours
+   o Tom Kim: if one could point with the mouse to a location on a contour plot and find out the value 
+     of the contoured function there, it would be very useful.
+   o add multple levels of command files
+   o try to fix Anders graphics problems
+
+   x fix lighting in contour3d (doesn't stay turned off - if grid plotted too?) also in streamLines3d
+   x plot grid lines on planes.
+   x write a conversion function from .ps to .ppm (or gif)
+   x plotting amr -- amrExample1, don't plot covered coarse grids
+   x fix picking: GL:getMenu(menu,answer,prompt,select) -> mogl:getMenuOrCursor(menu,answer,prompt,box)
+   x be able to plot boundaries of refinement grids in 2D? and 3D.
+   x do not plot ghost points on refinement levels, use gc.refinementLevelNumber ?
+   x too many coloured squares in grid plots with many grids
+   x too many grids in toggle menus
+   x colour block boundaries
+   x colour by refinement level
+   x allow input with "," separators
+   x PlotStuff: add extra layer of cascading menues for large number of solutions.
+
+o Oges
+   o clean up order of accuracy -- shouldn't need.
+   o ILU and refactor -- should be able to re-use
+   o fix docs for user defined matrix.
+   o fix docs for integration weights -- add to toc
+   o Fix for AMR GridCollections and AMR CompositeGrids
+
+
+
+o DataBase
+   o add a version number to the GenericDataBase.
+
+o Ogmg
+   o optimize defect for constant coefficient case.
+   o fix pure Neumann problem
+   o add fourth-order
+   o fix line smoothers
+
+To Do:
+   optimize 2nd derivatives to reuse rx.r etc.
+
+   be able to add user data to the grid file?
+   fix up a test for xcog files to show any problems

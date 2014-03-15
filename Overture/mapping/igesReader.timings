@@ -1,0 +1,30 @@
+Timings to read in some CAD geometries
+
+
+cat2.igs
+  v18.d  : readMappings: time to generate Mappings = 1.051447e+02
+  v18e.d : readMappings: time to generate Mappings = 1.443150e+01
+  v18h.d : readMappings: time to generate Mappings = 2.011459e+01  (includes checking for valid trim curves)
+  v18h.d : readMappings: time to generate Mappings = 2.000094e+01 (no checking)
+
+manifold-1-unc.prt.igs
+  v18e.d : readMappings: time to generate Mappings = 7.685083e+00
+
+
+electrode3.igs
+  v18e.d : readMappings: time to generate Mappings = 2.180538e+00
+
+
+
+
+cat2.igs
+
+ 010831: more improvements.
+ ++++readMappings: time to gen Maps = 1.46e+01 (surf=1.33e+01 Trim=4.84e+00 untrim=7.19e-01, curves=6.78e+00(build=1.74e+00,merge=4.25e+00,adjust=2.97e-01,copy=1.66e-01,other=1.07e-01) )
+
+
+  010829: use getArcLength in NurbsMapping::merge
+++++readMappings: time to gen Maps = 1.65e+01 (surf=1.52e+01 Trim=5.13e+00 untrim=7.23e-01, curves=8.40e+00(build=1.73e+00,merge=4.25e+00,adjust=1.93e+00,copy=1.69e-01,other=1.02e-01) )
+
+  010829: starting to optimize:
+ ++++readMappings: time to gen Maps = 1.71e+01 (surf=1.58e+01 Trim=5.10e+00 untrim=7.41e-01, curves=9.01e+00(build=1.76e+00,merge=5.04e+00,adjust=1.70e+00,copy=1.70e-01,other=1.19e-01) )

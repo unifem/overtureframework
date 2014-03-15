@@ -1,0 +1,117 @@
+\subsection{Constructor}
+ 
+\newlength{\ReductionMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\ReductionMappingIncludeArgIndent}{ReductionMapping(}% 
+ReductionMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ReductionMappingIncludeArgIndent}{ReductionMapping(}% 
+ReductionMapping(Mapping \& mapToReduce, \\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis1Value  =0.,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis2Value  =-1.,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis3Value  =-1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create a reduction mapping.
+
+\item[{\bf mapToReduce (input):}]  reduce the domain dimension of this mapping.
+\item[{\bf inactiveAxis1Value (input):}]  if this value is between [0,1] then the r value
+      for axis1 will be fixed to this value and axis1 will become an in-active axis;
+       otherwise axis1 will remain active.
+\item[{\bf inactiveAxis2Value (input):}]  fix an r value for axis2. See comments for inactiveAxis1Value.
+\item[{\bf inactiveAxis3Value (input):}]  fix an r value for axis3. See comments for inactiveAxis1Value.
+
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ReductionMappingIncludeArgIndent}{ReductionMapping(}% 
+ReductionMapping(Mapping \& mapToReduce, \\ 
+\hspace{\ReductionMappingIncludeArgIndent}const int \& inactiveAxis,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxisValue )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create a reduction mapping.
+
+\item[{\bf mapToReduce (input):}]  reduce the domain dimension of this mapping.
+\item[{\bf inactiveAxis (input):}]  This is the inactive axis.
+\item[{\bf inactiveAxisValue (input):}]  This is the value of the inactive axis in [0,1].
+
+\end{description}
+\subsection{set}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\ReductionMappingIncludeArgIndent}{set(}%
+set(Mapping \& mapToReduce, \\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis1Value  =0. ,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis2Value  =-1.,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis3Value  =-1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Set parameters for a reduction mapping.
+
+\item[{\bf mapToReduce (input):}]  reduce the domain dimension of this mapping.
+\item[{\bf inactiveAxis1Value (input):}]  if this value is between [0,1] then the r value
+      for axis1 will be fixed to this value and axis1 will become an in-active axis;
+       otherwise axis1 will remain active.
+\item[{\bf inactiveAxis2Value (input):}]  fix an r value for axis2. See comments for inactiveAxis1Value.
+\item[{\bf inactiveAxis3Value (input):}]  fix an r value for axis3. See comments for inactiveAxis1Value.
+
+\end{description}
+\subsection{set}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\ReductionMappingIncludeArgIndent}{set(}%
+set(Mapping \& mapToReduce,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const int \& inactiveAxis,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxisValue ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Set parameters for a reduction mapping.
+
+\item[{\bf mapToReduce (input):}]  reduce the domain dimension of this mapping.
+\item[{\bf inactiveAxis (input):}]  This is the inactive axis.
+\item[{\bf inactiveAxisValue (input):}]  This is the value of the inactive axis in [0,1].
+
+\end{description}
+\subsection{setInActiveAxes}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReductionMappingIncludeArgIndent}{setInActiveAxes(}%
+setInActiveAxes( const real \& inactiveAxis1Value  =0.,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis2Value  =-1.,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxis3Value  =-1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Specify the in-active axes.
+
+\item[{\bf inactiveAxis1Value (input):}]  if this value is between [0,1] then the r value
+      for axis1 will be fixed to this value and axis1 will become an in-active axis;
+       otherwise axis1 will remain active.
+\item[{\bf inactiveAxis2Value (input):}]  fix an r value for axis2. See comments for inactiveAxis1Value.
+\item[{\bf inactiveAxis3Value (input):}]  fix an r value for axis3. See comments for inactiveAxis1Value.
+\end{description}
+\subsection{setInActiveAxes}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReductionMappingIncludeArgIndent}{setInActiveAxes(}%
+setInActiveAxes(const int \& inactiveAxis,\\ 
+\hspace{\ReductionMappingIncludeArgIndent}const real \& inactiveAxisValue ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Set parameters for a reduction mapping.
+
+\item[{\bf inactiveAxis (input):}]  This is the inactive axis.
+\item[{\bf inactiveAxisValue (input):}]  This is the value of the inactive axis in [0,1].
+
+\end{description}

@@ -1,0 +1,76 @@
+* This file contains sample command lines for cgcns when running in parallel
+*
+* mpirun -np 2 $cgcnsp -readCollective -writeCollective p.cmd
+* mpirun-wdh -np 2 $cgcnsp -readCollective -writeCollective p.cmd
+* mpirun-wdh -np 2 $cgcnsp p.cmd
+* 
+* mpirun -np 1 $cgcnsp p.cmd
+* mpirun -np 2 $cgcnsp p.cmd
+* 
+* mpirun -np 2 -all-local -gdb $cgcnsp
+* 
+* mpirun -np 1 --dbg=valgrindebug $cgcnsp p.cmd
+* mpirun -np 2 -all-local -dbg=valgrindebug $cgcnsp p.cmd
+* mpirun -np 2 -machinefile machinefile $cgcnsp
+*
+* mpirun -tv -np 2 -all-local $cgcnsp p.cmd
+* mpirun -tv -np 2 -all-local $cgcnsp p.cmd
+* mpirun -np 1 -all-local $cgcnsp p.cmd
+* mcr:
+* mpirun-wdh -np 1 $cgcnsp p.cmd
+* mpirun-wdh -np 2 $cgcnsp p.cmd
+* mcr:
+*   totalview srun -a -N2 -n2 -ppdebug $cgcnsp p.cmd
+*
+* mpirun-wdh -np 2 -ppdebug $cgcnsp p.cmd
+* -----------------------------------------------------------
+*
+* -readCollective -writeCollective p.cmd
+* noplot p.cmd
+* 
+* cicShockg.cmd
+*
+* noplot cns/p.cmd
+* cns/p.cmd
+* cns/p2.cmd
+* noplot cns/p3.cmd
+* cns/p3.cmd
+*
+* --- multi-material, shock hitting a bubble:
+* multiBubble.cmd
+*
+* -- shock hitting a 3d bubble:
+* noplot bubble3d.cmd
+* 
+* noplot cns/sis.cmd
+* noplot cns/sis.cmd
+* 
+* -- TZ test:
+* noplot cns/sq.tz.cmd
+* 
+*  noplot cns/sq.cmd
+* cns/sis.cmd
+*  cns/cicej.cns.cmd
+*  noplot cns/cicej.cns.cmd
+*  cns/sq.cmd
+* 
+*   noplot cns/box.cmd
+*
+*   noplot cns/twoBumpg
+*
+* sub-sonic flow past a cylinder:
+*  cns/tcilc.cmd
+*  noplot cns/tcilc.cmd
+*
+* ---- sphere in a box
+* cns/sib.cmd
+*
+*  ---- shock tube with AMR
+* cns/shockTubeg
+*   cns/shockTube3d
+* 
+* noplot cns/quarterSphere.cmd
+* cns/quarterSphere.cmd
+* 
+* Don's quarter sphere in a box:
+* noplot cns/euler3d.don.cmd

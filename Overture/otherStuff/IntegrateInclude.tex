@@ -1,0 +1,270 @@
+\subsection{constructor}
+ 
+\newlength{\IntegrateIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\IntegrateIncludeArgIndent}{Integrate(}% 
+Integrate()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Default constructor.
+\end{description}
+\subsection{constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\IntegrateIncludeArgIndent}{Integrate(}% 
+Integrate(CompositeGrid \& cg\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf cg\_ (input) :}]  supply a grid on which to integrate.
+\end{description}
+\subsection{updateToMatchGrid}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{updateToMatchGrid(}%
+updateToMatchGrid( CompositeGrid \& cg\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Call this routine to supply a grid or to indicate that the grid has changed.
+\item[{\bf cg (input) :}]  supply a grid on which to integrate.
+\end{description}
+\subsection{defineSurface}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{defineSurface(}%
+defineSurface(const int \& surfaceNumber, const int \& numberOfFaces\_, IntegerArray \& boundary )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Specify the sides of grids that define a "surface". A surface represents some subset of the
+  boundary of an entire domain. For example, for the sphere-in-a-box grid a surface could
+  represent the surface of the sphere. To define a surface you must supply:
+
+\item[{\bf surfaceNumber (input) :}]  a surface identifier. This value must be bigger than or equal to zero. Normally surfaces
+  should be numbered starting from zero.
+\item[{\bf numberOfFaces (input) :}]  the number of faces that make up the surface.
+\item[{\bf boundary (input):}]  boundary(3,numberOfFaces) : (side,axis,grid)=boundary(0:2,i) i=0,1,...numberOfFaces.
+   To define a surface you must supply a list of sides of grids.
+\end{description}
+\subsection{updateForAMR}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{updateForAMR(}%
+updateForAMR(CompositeGrid \& cgu )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Call this function when AMR grids have changed. This will cause the 
+ arrays of integration weights for AMR grids to be destroyed. They will
+ be regenerated as needed.
+\end{description}
+\subsection{numberOfFacesOnASurface}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{numberOfFacesOnASurface(}%
+numberOfFacesOnASurface(const int surfaceNumber) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the number of faces that form a given surface. 
+  For AMR grids this will return of the total number of faces including AMR grids (assuming
+    useAdaptiveMeshRefinementGrids(true) has been set).
+
+\item[{\bf Return value:}]  number of faces for surface.
+\end{description}
+\subsection{getBoundaryDefinition}
+ 
+\begin{flushleft} \textbf{%
+const BodyDefinition \&  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{getBodyDefinition(}%
+getBodyDefinition() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the BodyDefinition object which defines the relationship between grids and boundaries.
+\end{description}
+\subsection{getFace}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{getFace(}%
+getFace(const int surfaceNumber, const int face, \\ 
+\hspace{\IntegrateIncludeArgIndent}int \& side, int \& axis, int \& grid) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the data for a particular face of a surface.
+
+  For AMR grids this will return of the data for AMR grids as well (assuming
+    useAdaptiveMeshRefinementGrids(true) has been set).
+
+\item[{\bf surface,face (input) :}]  return info for this surface and face.
+\item[{\bf side,axis,grid (output):}]  this face corresponds to these values.
+\item[{\bf Return value:}]  0 for success.
+\end{description}
+\subsection{getSurfaceStitcher}
+ 
+\begin{flushleft} \textbf{%
+SurfaceStitcher*  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{getSurfaceStitcher(}%
+getSurfaceStitcher() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return a pointer to the surface stitcher (if it exists)
+\end{description}
+\subsection{setInteractiveStitching}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{setInteractiveStitching(}%
+setInteractiveStitching( bool trueOrFalse )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Turn on interactive stitching (for debugging)
+\end{description}
+\subsection{integrationWeights}
+ 
+\begin{flushleft} \textbf{%
+RealCompositeGridFunction \&  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{integrationWeights(}%
+integrationWeights()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the integration weights.
+\item[{\bf Return value:}]  a grid function that holds the integration weights. 
+\end{description}
+\subsection{leftNullVector}
+ 
+\begin{flushleft} \textbf{%
+RealCompositeGridFunction \&  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{leftNullVector(}%
+leftNullVector()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the left null vector of the Neumann problem. This vector is related to the
+ integration weights.
+\item[{\bf Return value:}]  a grid function that holds the left null vector.
+\end{description}
+\subsection{surfaceIndex}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{surfaceIndex(}%
+surfaceIndex( int surfaceNumber )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access level:}]  protected.
+\item[{\bf Description:}] 
+   For a given surfaceNumber determine the surfaceIndex such that
+   surfaceIdentifier(surfaceIndex)==surfaceNumber. Return -1 if no match is found.
+\item[{\bf surfaceNumber (input) :}]  the surface ID for a user defined surface.
+\item[{\bf Return value:}]  the index into the surfaceIdentifier array, or -1 if no match exists.
+\end{description}
+\subsection{surfaceIntegral}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{surfaceIntegral(}%
+surfaceIntegral(const RealCompositeGridFunction \& u, const int \& surfaceNumber  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Compute the surface integral of u. 
+\item[{\bf u (input) :}]  function to integrate. This function must be defined at the appropriate points.
+\item[{\bf surfaceNumber (input) :}]  the surface identifier as defined through a call to {\tt defineSurface}.
+    If no   surfaceNumber is specified then the entire surface will be integrated.
+\item[{\bf Return value:}]  The integral of u.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{useAdaptiveMeshRefinementGrids}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{useAdaptiveMeshRefinementGrids(}%
+useAdaptiveMeshRefinementGrids(bool trueOrFalse  = true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Indicate whether AMR grids should be used 
+   when computing integrals on grid functions that have AMR. If false, only the base grids
+   are used in the integration.
+\item[{\bf trueOrFalse (input) :}]  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{useHybridGrids}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{useHybridGrids(}%
+useHybridGrids( bool trueOrFalse  = true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Indicate whether hybrid grids should be used to compute the weights for integrals.
+\item[{\bf trueOrFalse (input) :}]  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{surfaceIntegral}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{surfaceIntegral(}%
+surfaceIntegral(const RealCompositeGridFunction \& u, \\ 
+\hspace{\IntegrateIncludeArgIndent}const Range \& C, \\ 
+\hspace{\IntegrateIncludeArgIndent}RealArray \& integral,\\ 
+\hspace{\IntegrateIncludeArgIndent}const int \& surfaceNumber  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Compute the surface integral of u, one or more components.
+\item[{\bf u (input) :}]  function to integrate. This function must be defined at the appropriate points.
+\item[{\bf C (input) :}]  integrate these components.
+\item[{\bf integral (output):}]  array of values, {\tt integral(C)}, the integrals of the components.
+\item[{\bf surfaceNumber (input) :}]  the surface identifier as defined through a call to {\tt defineSurface}.
+    If no   surfaceNumber is specified then the entire surface will be integrated.
+
+\item[{\bf Note:}]  For AMR grids one should call updateForAMR(cg) after a AMR regridding step and before
+     calling this function.
+\item[{\bf Note:}]  Currently the surface integral for AMR grids only works in 2D and when there is a
+    single grid on the surface -- i.e. overlapping surface grids are not handled yet.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{volumeIntegral}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{volumeIntegral(}%
+volumeIntegral( const RealCompositeGridFunction \& u )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Compute the volume integral of u. 
+\item[{\bf u (input) :}]  function to integrate. This function must be defined at the appropriate points.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{computeStitchedSurfaceWeights}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntegrateIncludeArgIndent}{computeStitchedSurfaceWeights(}%
+computeStitchedSurfaceWeights(int surfaceNumber  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This is a protected routine that computes surface weights by building a hybrid grid
+  on the surface using the advacing front algorithm.
+ 
+\item[{\bf Author:}]  
+   Initial version: Kyle Chand. 
+   New version by wdh. 
+\end{description}

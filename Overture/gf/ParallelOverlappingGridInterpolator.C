@@ -1,0 +1,3641 @@
+// This file automatically generated from ParallelOverlappingGridInterpolator.bC with bpp.
+#include "ParallelOverlappingGridInterpolator.h"
+#include "ParallelUtility.h"
+#include "SparseArray.h"
+
+// static real max( real x, real y){return x>y ? x : y;}  //
+// static int min( int x, int y ){return x<y ? x : y;}
+
+int ParallelOverlappingGridInterpolator::debug=0;
+
+ParallelOverlappingGridInterpolator::
+ParallelOverlappingGridInterpolator()
+{
+
+    POGI_COMM = Overture::OV_COMM;  // use this communicator by default
+
+    debugFile=NULL;
+    
+    interpolationPoint=NULL;
+    interpoleeLocation=NULL; 
+    interpoleeGrid=NULL; 
+    variableInterpolationWidth=NULL;
+    interpolationCoordinates=NULL;
+    dimension=NULL;
+    indexRange=NULL;
+    isCellCentered=NULL;
+    
+    gridSpacing=NULL;
+    
+  // explicitInterpolationStorageOption=precomputeAllCoefficients; // precomputeNoCoefficients;
+    explicitInterpolationStorageOption=precomputeNoCoefficients;
+
+    ucg=NULL;
+    vcg=NULL;
+
+    numberOfDimensions=0;
+    numberOfComponentGrids=0;
+    numberOfBaseGrids=0;
+    maxInterpolationWidth=0;
+    coeffWidthDimension=0;
+
+    computeResidual=false;
+    maximumResidual=-1.;
+
+    allGridsHaveLocalData=false;
+    onlyAmrGridsHaveLocalData=true;
+    noGridsHaveLocalData=false;
+
+    maximumRefinementLevelToInterpolate=INT_MAX/2;
+    
+}
+
+
+// void
+// readFromFile( int & numberOfDimensions, int & numberOfComponentGrids,
+// 	      intSerialArray & ni, intSerialArray *&dimension,
+//               intSerialArray *&indexRange,
+//               intSerialArray *&isCellCentered,
+//               realSerialArray *&gridSpacing,
+//               intSerialArray & interpolationStartEndIndex,
+// 	      intSerialArray *&interpolationPoint, intSerialArray *&interpoleeLocation, 
+//               intSerialArray *&interpoleeGrid, intSerialArray *&variableInterpolationWidth,
+// 	      realSerialArray *&interpolationCoordinates )
+// {
+// #ifdef USE_PPP
+//   double time0=MPI_Wtime();
+
+//   int debug=0;
+//   const int myid = Communication_Manager::My_Process_Number;
+//   const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+    
+//   Partitioning_Type::SpecifyDefaultInternalGhostBoundaryWidths(0,0,0,0,0,0);
+
+//   Partitioning_Type partition1d;
+//   partition1d.SpecifyDecompositionAxes(1);
+//   partition1d.SpecifyDefaultInternalGhostBoundaryWidths(0,0,0,0);
+//   partition1d.SpecifyInternalGhostBoundaryWidths(0,0,0,0);
+
+//   FILE *file = fopen("interp.dat","r" ); 
+//   if( debug ) printf("*** read file [interp.dat]\n");
+
+    
+//   fscanf(file,"%i %i ",&numberOfDimensions,&numberOfComponentGrids);
+
+//   int grid,i,axis;
+
+//   ni.redim(numberOfComponentGrids);
+    
+//   for( grid=0; grid<numberOfComponentGrids; grid++ ) fscanf(file,"%i ",&ni(grid));
+    
+//   //  ni.display("ni");
+
+//   interpolationPoint=new intSerialArray [numberOfComponentGrids];
+//   interpoleeLocation=new intSerialArray [numberOfComponentGrids];
+//   interpoleeGrid=new intSerialArray [numberOfComponentGrids];
+//   variableInterpolationWidth=new intSerialArray [numberOfComponentGrids];
+//   interpolationCoordinates=new realSerialArray [numberOfComponentGrids];
+      
+//   dimension = new intSerialArray[numberOfComponentGrids];
+        
+//   // interpolationStartEndIndex(0:1,grid,gridi)
+//   indexRange=new intSerialArray [numberOfComponentGrids];
+//   isCellCentered= new intSerialArray [numberOfComponentGrids];
+//   gridSpacing=new realSerialArray [numberOfComponentGrids];
+//   interpolationStartEndIndex.redim(2,numberOfComponentGrids,numberOfComponentGrids); 
+
+//   intSerialArray & ise = interpolationStartEndIndex;
+    
+//   for( grid=0; grid<numberOfComponentGrids; grid++ )
+//   {
+//     for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+//     {
+//       fscanf(file,"%i %i ",&ise(0,grid,grid2),&ise(1,grid,grid2));
+//     }
+//   }
+
+
+//   for( grid=0; grid<numberOfComponentGrids; grid++ )
+//   {
+//     intSerialArray & ip = interpolationPoint[grid];
+//     intSerialArray & il = interpoleeLocation[grid];
+//     intSerialArray & ig = interpoleeGrid[grid];
+//     intSerialArray & iw = variableInterpolationWidth[grid];
+//     realSerialArray & ci = interpolationCoordinates[grid];
+//     intSerialArray & d = dimension[grid];
+//     intSerialArray & ir = indexRange[grid];
+//     intSerialArray & icc = isCellCentered[grid];
+//     realSerialArray & dr = gridSpacing[grid];
+        
+// // old way:
+// //     ip.partition(partition1d);
+// //     ip.redim(ni(grid),numberOfDimensions);
+// //     il.partition(partition1d);
+// //     il.redim(ni(grid),numberOfDimensions);
+// //     ig.partition(partition1d);
+// //     ig.redim(ni(grid));
+// //     iw.partition(partition1d);
+// //     iw.redim(ni(grid));
+// //     ci.partition(partition1d);
+// //     ci.redim(ni(grid),numberOfDimensions);
+
+//     // build a 1D parallel array so we know how to dimension the serial arrays
+//     intArray ia;
+//     ia.partition(partition1d);
+//     ia.redim(ni(grid));
+//     intSerialArray iaLocal;  getLocalArrayWithGhostBoundaries(ia,iaLocal); 
+        
+        
+//     Range R=iaLocal.dimension(0);
+//     ip.redim(R,numberOfDimensions);
+//     il.redim(R,numberOfDimensions);
+//     ig.redim(R);
+//     iw.redim(R);
+//     ci.redim(R,numberOfDimensions);
+
+//     d.redim(2,3);
+//     ir.redim(2,3);
+//     icc.redim(3);
+//     dr.redim(3);
+        
+// //     intSerialArray ips; getLocalArrayWithGhostBoundaries(ip,ips);  // local array
+// //     intSerialArray ils; getLocalArrayWithGhostBoundaries(il,ils);  // local array
+// //     intSerialArray igs; getLocalArrayWithGhostBoundaries(ig,igs);  // local array
+// //     intSerialArray iws; getLocalArrayWithGhostBoundaries(iw,iws);  // local array
+// //     realSerialArray cis; getLocalArrayWithGhostBoundaries(ci,cis);  // local array
+
+//     intSerialArray & ips = ip; 
+//     intSerialArray & ils = il; 
+//     intSerialArray & igs = ig; 
+//     intSerialArray & iws = iw; 
+//     realSerialArray & cis = ci; 
+
+//     if( debug )
+//     {
+//       printf("+++ il bounds [%i,%i][%i,%i] \n",il.getBase(0),il.getBound(0),
+// 			  il.getBase(1),il.getBound(1));
+//       printf("+++proc %i: ils bounds [%i,%i][%i,%i] \n",myid,ils.getBase(0),ils.getBound(0),
+// 	     ils.getBase(1),ils.getBound(1));
+//       printf("+++proc %i: ips bounds [%i,%i][%i,%i] \n",myid,ips.getBase(0),ips.getBound(0),
+// 	     ips.getBase(1),ips.getBound(1));
+//     }
+
+// #ifndef OV_USE_DOUBLE
+//     const char *format1="%e %e %e";
+//     const char *format2="%i %i %e";
+// #else
+//     const char *format1="%le %le %le";
+//     const char *format2="%i %i %le";
+// #endif
+        
+//     fscanf(file,"%i %i %i %i %i %i ",&d(0,0),&d(1,0),&d(0,1),&d(1,1),&d(0,2),&d(1,2));
+//     if( debug ) d.display("dimension");
+        
+//     fscanf(file,"%i %i %i %i %i %i ",&ir(0,0),&ir(1,0),&ir(0,1),&ir(1,1),&ir(0,2),&ir(1,2));
+//     fscanf(file,"%i %i %i ",&icc(0),&icc(1),&icc(2));
+//     fscanf(file,format1,&dr(0),&dr(1),&dr(2));
+
+//     if( debug ) dr.display("grid spacing");
+
+//     for( i=0; i<ni(grid); i++ )
+//     {
+//       int igi,iwi;
+//       fscanf(file,"%i %i",&igi,&iwi);
+// //       ig(i)=igi;
+// //       iw(i)=iwi;
+
+//       if( i>=igs.getBase(0) && i<=igs.getBound(0) ) igs(i)=igi;
+//       if( i>=iws.getBase(0) && i<=iws.getBound(0) ) iws(i)=iwi;
+//       // printf(" grid=%i i=%i ig=%i iw=%i\n",grid,i,ig(i),iw(i));
+
+            
+//       int ipi,ili;
+//       real cii;
+            
+//       for( axis=0; axis<numberOfDimensions; axis++ )
+//       {
+//         fscanf(file,format2,&ipi,&ili,&cii);
+//         if( i>=ips.getBase(0) && i<=ips.getBound(0) ) ips(i,axis)=ipi;
+//         if( i>=ils.getBase(0) && i<=ils.getBound(0) ) ils(i,axis)=ili;
+//         if( i>=cis.getBase(0) && i<=cis.getBound(0) ) cis(i,axis)=cii;
+
+// //        ip(i,axis)=ipi; il(i,axis)=ili; ci(i,axis)=cii;
+//       }
+            
+//     }
+//     if( debug ) printf(" ************ grid %i **************\n",grid);
+        
+//     if( debug ) ip.display("ip");
+//     if( debug ) ci.display("ci");
+
+//   }
+//   fclose(file);
+    
+//   double time=MPI_Wtime()-time0;
+//   if( myid==0 ) printf(" >>>>>>>>> POGI::Time to read from file=%8.2e <<<<<<<\n",time);
+// #endif
+// }
+
+// allocate a 2d c array, a[dim1][dim0]
+void
+allocate( int **&a, int dim0, int dim1 )
+{
+    a = new int * [dim1];
+    for( int i1=0; i1<dim1; i1++ )
+        a[i1] = new int [max(1,dim0)];
+}
+void
+deallocate( int **&a, int dim0, int dim1 )
+{
+    if( a==NULL ) return;
+
+    int i1;
+    for( i1=0; i1<dim1; i1++ )
+        delete [] a[i1];
+    
+    delete [] a;
+    a=NULL;
+}
+
+
+
+// allocate a 3d c array, a[dim2][dim1][dim0]
+void
+allocate( int ***&a, int dim0, int dim1, int dim2 )
+{
+    a = new int ** [dim2];
+    for( int i2=0; i2<dim2; i2++ )
+    {
+        a[i2] = new int * [dim1];
+        for( int i1=0; i1<dim1; i1++ )
+            a[i2][i1] = new int [max(1,dim0)];
+    }
+}
+void
+deallocate( int ***&a, int dim0, int dim1, int dim2 )
+{
+    int i1,i2;
+    for( i2=0; i2<dim2; i2++ )
+        for( i1=0; i1<dim1; i1++ )
+            delete [] a[i2][i1];
+    
+    for( i2=0; i2<dim2; i2++ )
+        delete [] a[i2];
+
+    delete [] a;
+    a=NULL;
+}
+
+// special allocator for 5d  a[dim4][dim3][dim2][dim1][dim0[i4][i3][i2]]
+void
+allocate( int *****&a, int ***dim0, int dim1, int dim2, int dim3, int dim4 )
+{
+    a = new int **** [dim4];
+
+    for( int i4=0; i4<dim4; i4++ )
+    {
+        a[i4] = new int *** [dim3];
+        for( int i3=0; i3<dim3; i3++ )
+        {
+            a[i4][i3] = new int ** [dim2];
+            for( int i2=0; i2<dim2; i2++ )
+            {
+      	a[i4][i3][i2] = new int * [dim1];
+      	for( int i1=0; i1<dim1; i1++ )
+        	  a[i4][i3][i2][i1] = new int [max(1,dim0[i4][i3][i2])]; // *wdh* 040327 
+            }
+        }
+    }
+}
+void
+deallocate( int *****&a, int ***dim0, int dim1, int dim2, int dim3, int dim4 )
+{
+    if( a==NULL ) return;
+
+    int i1,i2,i3,i4;
+
+    for( i4=0; i4<dim4; i4++ )
+    {
+        for( i3=0; i3<dim3; i3++ )
+        {
+            for( i2=0; i2<dim2; i2++ )
+            {
+      	for( i1=0; i1<dim1; i1++ )
+        	  delete [] a[i4][i3][i2][i1];
+                delete [] a[i4][i3][i2];
+            }
+            delete [] a[i4][i3];
+        }
+        delete [] a[i4];
+    }
+    delete [] a;
+    a=NULL;
+}
+
+// special allocator for 5d  a[dim4][dim3][dim2][dim1][dim0[i4][i3][i2]]
+void
+allocate( real*****&a, int ***dim0, int dim1, int dim2, int dim3, int dim4 )
+{
+    a = new real**** [dim4];
+
+    for( int i4=0; i4<dim4; i4++ )
+    {
+        a[i4] = new real*** [dim3];
+        for( int i3=0; i3<dim3; i3++ )
+        {
+            a[i4][i3] = new real** [dim2];
+            for( int i2=0; i2<dim2; i2++ )
+            {
+      	a[i4][i3][i2] = new real* [dim1];
+      	for( int i1=0; i1<dim1; i1++ )
+        	  a[i4][i3][i2][i1] = new real [max(1,dim0[i4][i3][i2])];
+            }
+        }
+    }
+}
+void
+deallocate( real*****&a, int ***dim0, int dim1, int dim2, int dim3, int dim4 )
+{
+    if( a==NULL ) return;
+
+    int i1,i2,i3,i4;
+
+    for( i4=0; i4<dim4; i4++ )
+    {
+        for( i3=0; i3<dim3; i3++ )
+        {
+            for( i2=0; i2<dim2; i2++ )
+            {
+      	for( i1=0; i1<dim1; i1++ )
+        	  delete [] a[i4][i3][i2][i1];
+                delete [] a[i4][i3][i2];
+            }
+            delete [] a[i4][i3];
+        }
+        delete [] a[i4];
+    }
+    delete [] a;
+    a=NULL;
+}
+
+// special allocator for 4d  a[dim3][dim2][dim1][dim0[i3][i2][i1]]
+void
+allocate( int ****&a, int ***dim0, int dim1, int dim2, int dim3 )
+{
+    a = new int *** [dim3];
+    for( int i3=0; i3<dim3; i3++ )
+    {
+        a[i3] = new int ** [dim2];
+        for( int i2=0; i2<dim2; i2++ )
+        {
+            a[i3][i2] = new int * [dim1];
+            for( int i1=0; i1<dim1; i1++ )
+      	a[i3][i2][i1] = new int [max(1,dim0[i3][i2][i1])];
+        }
+    }
+}
+void
+deallocate( int ****&a, int ***dim0, int dim1, int dim2, int dim3 )
+{
+    if( a==NULL ) return;
+    
+    int i1,i2,i3;
+
+    for( i3=0; i3<dim3; i3++ )
+    {
+        for( i2=0; i2<dim2; i2++ )
+        {
+            for( i1=0; i1<dim1; i1++ )
+      	delete [] a[i3][i2][i1];
+            delete [] a[i3][i2];
+        }
+        delete [] a[i3];
+    }
+    delete [] a;
+    a=NULL;
+}
+
+
+  // destroy all data
+int ParallelOverlappingGridInterpolator::
+destroy()
+{
+  // *wdh* 061027 if( numberOfComponentGrids>1 && maxInterpolationWidth>0 ) // this is wrong if no interp pts on myid
+    if( interpolationPoint!=NULL )  
+    {
+        delete [] interpolationPoint;         interpolationPoint=NULL;
+        delete [] interpoleeLocation;         interpoleeLocation=NULL;
+        delete [] interpoleeGrid;             interpoleeGrid=NULL;
+        delete [] variableInterpolationWidth; variableInterpolationWidth=NULL;
+        delete [] interpolationCoordinates;   interpolationCoordinates=NULL;
+        delete [] dimension;                  dimension=NULL;
+        delete [] indexRange;                 indexRange=NULL;
+        delete [] isCellCentered;             isCellCentered=NULL;
+    
+        delete [] gridSpacing;                gridSpacing=NULL;
+
+        delete [] ucg; ucg=NULL;
+        delete [] vcg; vcg=NULL;
+
+        numberOfInterpolationPoints.redim(0);
+        interpolationStartEndIndex.redim(0);
+        numberOfInterpolationPointsPerDonor.redim(0);
+        
+        const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+        bool sparseArraysAllocated = nila.size(0)>0;
+        bool coeffaAllocated = coeffa.size(0)>0;
+        if( sparseArraysAllocated )
+        {
+            for( int grid=0; grid<numberOfComponentGrids; grid++ )
+            {
+      	for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+      	{ 
+        	  for( int p=0; p<numberOfProcessors; p++ ) 
+        	  {
+          	    delete [] ila(p,grid,grid2);
+          	    delete [] ipa(p,grid,grid2);
+          	    delete [] cia(p,grid,grid2);
+          	    if( coeffaAllocated )
+            	      delete [] coeffa(p,grid,grid2);
+        	  }
+      	}
+            }
+        }
+        nila.destroy();  
+        nipa.destroy();  
+        ila.destroy();   
+        ipa.destroy();   
+        cia.destroy();   
+        coeffa.destroy();
+    }
+
+    numberOfDimensions=0;
+    numberOfComponentGrids=0;
+    numberOfBaseGrids=0;
+    maxInterpolationWidth=0;
+    coeffWidthDimension=0;
+
+    return 0;
+}
+
+
+ParallelOverlappingGridInterpolator::
+~ParallelOverlappingGridInterpolator()
+{
+    destroy();
+    
+    const int myid = Communication_Manager::My_Process_Number;
+    if( myid==0 && debugFile!=NULL )
+        fclose(debugFile);
+}
+
+//! Only interpolate grids on refinement levels that are less than or equal to a given level.
+/*! This option is used by the error estimator.
+  */
+int ParallelOverlappingGridInterpolator::
+setMaximumRefinementLevelToInterpolate(int maxLevelToInterpolate )
+{
+    maximumRefinementLevelToInterpolate=maxLevelToInterpolate;
+    return 0;
+}
+
+//! return the maximum refinement level to interpolate
+int ParallelOverlappingGridInterpolator::
+getMaximumRefinementLevelToInterpolate() const
+{
+    return maximumRefinementLevelToInterpolate;
+}
+
+
+//\begin{>>ParallelOverlappingGridInterpolatorInclude.tex}{\subsubsection{turnOnResidualComputation}}  
+void ParallelOverlappingGridInterpolator::
+turnOnResidualComputation(const bool trueOrFalse /* =true */ )
+// =======================================================================================
+// /Description:
+//    Turn on or off the computation of the residual (for implicit interpolation)
+//\end{ParallelOverlappingGridInterpolatorInclude.tex}  
+// =======================================================================================
+{
+    computeResidual=trueOrFalse;
+}
+
+//\begin{>>ParallelOverlappingGridInterpolatorInclude.tex}{\subsubsection{getMaximumResidual}}  
+real ParallelOverlappingGridInterpolator::
+getMaximumResidual() const
+// =======================================================================================
+// /Description:
+//   Return the maximum residual from the last call to interpolate. You should first call
+// turnOnResidualComputation(true) to turn on the computation of the residual.
+// 
+// /NOTE: a return value of -1. means that the residual was not computed.
+// 
+//\end{ParallelOverlappingGridInterpolatorInclude.tex}  
+// =======================================================================================
+{
+    return maximumResidual;
+}
+
+
+
+
+//\begin{>>ParallelOverlappingGridInterpolatorInclude.tex}{\subsubsection{sizeOf}}  
+real ParallelOverlappingGridInterpolator::
+sizeOf(FILE *file /* = NULL */ ) const
+// =======================================================================================
+// /Description:
+//   Return size of this object (bytes) 
+//\end{ParallelOverlappingGridInterpolatorInclude.tex}  
+// =======================================================================================
+{
+    real size=sizeof(*this);
+
+    if( interpolationPoint!=NULL )  
+    {
+    // interpolationPoint,interpoleeLocation,interpoleeGrid,variableInterpolationWidth,interpolationCoordinates
+    // dimension,indexRange,isCellCentered,gridSpacing,ucg,vcg
+        size+= 11*numberOfComponentGrids*sizeof(intSerialArray*);
+        
+        size+=(numberOfInterpolationPoints.elementCount())*sizeof(int);
+        size+=(interpolationStartEndIndex.elementCount())*sizeof(int);
+        size+=(numberOfInterpolationPointsPerDonor.elementCount())*sizeof(int);
+        
+        bool sparseArraysAllocated = nila.size(0)>0;
+        bool coeffaAllocated = coeffa.size(0)>0;
+        if( sparseArraysAllocated )
+        {
+            const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+            for( int grid=0; grid<numberOfComponentGrids; grid++ )
+            {
+      	for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+      	{ 
+        	  for( int p=0; p<numberOfProcessors; p++ ) 
+        	  {
+          	    int nil=nila(p,grid,grid2);
+          	    size+= nil*(numberOfDimensions+1)*sizeof(int);   // ila
+          	    size+= nil*(numberOfDimensions+1)*sizeof(real);  // cia
+          	    int nip=nipa(p,grid,grid2);
+          	    size+= nip*(numberOfDimensions+1)*sizeof(int);   // ipa
+          	    if( coeffaAllocated )
+                	      size+= nil*(coeffWidthDimension)*sizeof(real);   // coeffa -- assumes coeffa has been allocated
+        	  }
+      	}
+            }
+        }
+        
+        size+=nila.sparseSize()*sizeof(int);
+        size+=nipa.sparseSize()*sizeof(int);
+        size+=ila.sparseSize()*sizeof(int*);
+        size+=ipa.sparseSize()*sizeof(int*);
+        size+=cia.sparseSize()*sizeof(real*);
+        size+=coeffa.sparseSize()*sizeof(real*);
+    }
+
+    return size;
+}
+
+
+//\begin{>>ParallelOverlappingGridInterpolatorInclude.tex}{\subsubsection{updateToMatchGrid}}  
+int ParallelOverlappingGridInterpolator::
+updateToMatchGrid(CompositeGrid & cg, int refinementLevel /* =0  */ )
+//==============================================================================
+// /Description:
+//    Update the interpolator to match a new Composite grid. 
+// /cg (input): associate the interpolant with this CompositeGrid.
+// /refinementLevel : only grids on this refinement level and above have been changed. Use this
+//    option to update the interpolation information when only the refinement grids have changed
+//    and the base grids have remained the same.
+//\end{ParallelOverlappingGridInterpolatorInclude.tex}  
+//==============================================================================
+{
+
+    return 0;
+}
+
+
+//\begin{>>ParallelOverlappingGridInterpolatorInclude.tex}{\subsubsection{updateToMatchGrid}}  
+int ParallelOverlappingGridInterpolator::
+updateToMatchGrid(realCompositeGridFunction & u, int refinementLevel /* =0  */ )
+//==============================================================================
+// /Description:
+//    Update the interpolator to match a new Composite grid. 
+// /u (input): associate the interpolant with this grid function.
+// /refinementLevel : only grids on this refinement level and above have been changed. Use this
+//    option to update the interpolation information when only the refinement grids have changed
+//    and the base grids have remained the same.
+//\end{InterpolateInclude.tex}  
+//==============================================================================
+{
+
+  // do this for now:  -- rebuild interpolation info for all grids ---
+  // to-do: only build interp. data for refinement grids that have changed.
+
+    destroy();
+    setup(u);
+    
+    return 0;
+}
+
+
+
+
+int 
+ParallelOverlappingGridInterpolator::resetSolution()
+{
+    int grid;
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        ucg[grid]=real(grid+1);
+        vcg[grid]=real(grid+1);
+
+//     ucg[grid].updateGhostBoundaries();
+//     vcg[grid].updateGhostBoundaries();
+    }
+    return 0;
+}
+
+
+real
+ParallelOverlappingGridInterpolator::
+computeError()
+{
+    real err=0.;
+    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+    // do not check ghost points
+
+        realSerialArray us; getLocalArrayWithGhostBoundaries(ucg[grid],us); 
+        realSerialArray vs; getLocalArrayWithGhostBoundaries(vcg[grid],vs); 
+
+        Range R0(us.getBase(0)+1,us.getBound(0)-1);
+        Range R1(us.getBase(1)+1,us.getBound(1)-1);
+
+        err=max(err,max(fabs(us(R0,R1)-vs(R0,R1))));
+    }
+    return err;
+}
+
+//\begin{>>InterpolateInclude.tex}{\subsubsection{setExplicitInterpolationStorageOption}}
+int ParallelOverlappingGridInterpolator::
+setExplicitInterpolationStorageOption( ExplicitInterpolationStorageOptionEnum option)
+//==============================================================================
+// /Description:
+//    Define the storage option to use for explicit interpolation (or implicit iterative interpolation)
+// There is a tradeoff between storage and the number of operations required to determine
+// the interpolated values. For wider interpolation stencils one may want to use less storage.
+// For quadratic interpolation (w=3) in 3D (d=3) the storage is not bad, 27 values per interpolation
+// point. Interpolation on an eight-order grid with w=9 however requires 9*9*9=729 values per interpolation
+// point. In this case the options requiring less storage may be better to use.
+// 
+// /option (input) : one of:
+//    precomputeAllCoefficients   :  requires $w^d$ coefficients per interp pt (w=width of interp stencil)
+//    precomputeSomeCoefficients  :  requires w*d coefficients per interp pt (d=dimension, 1,2, or 3)
+//    precomputeNoCoefficients    :  requires d coefficinets per interp point
+//
+//
+//\end{InterpolateInclude.tex}  
+//==============================================================================
+{
+    explicitInterpolationStorageOption=option;
+    return 0;
+}
+
+int ParallelOverlappingGridInterpolator::
+setup( realCompositeGridFunction & u )
+// ========================================================================================
+//  /Description:
+//     Provide a Composite grid with the interpolation info to POGI
+//
+// ========================================================================================
+{
+    const int myid = Communication_Manager::My_Process_Number;
+    
+    CompositeGrid & cg = *u.getCompositeGrid();
+
+    numberOfDimensions=cg.numberOfDimensions();
+    numberOfComponentGrids=cg.numberOfComponentGrids();
+    numberOfBaseGrids=cg.numberOfBaseGrids();
+
+  //  ::display(cg.numberOfInterpolationPoints,"POGI:setup: cg.numberOfInterpolationPoints");
+
+    numberOfInterpolationPoints.redim(0);
+    numberOfInterpolationPoints=cg.numberOfInterpolationPoints;
+
+    if( cg.numberOfBaseGrids()<=1 )
+        return 0;
+
+    if( cg.numberOfComponentGrids() > cg.numberOfBaseGrids() )
+    {
+    // For refinement grids -- we sum the local number of interp points
+        for( int grid=cg.numberOfBaseGrids(); grid<cg.numberOfComponentGrids(); grid++ )
+            numberOfInterpolationPoints(grid)= ParallelUtility::getSum(cg->numberOfInterpolationPointsLocal(grid)); 
+    }
+
+  // Check that the interpolation is explicit -- implicit interp not yet allowed.  
+    bool implicitInterpolation=false;
+    for( int toGrid=0; toGrid<cg.numberOfComponentGrids() && !implicitInterpolation; toGrid++ )
+    {
+        for( int fromGrid=0; fromGrid<cg.numberOfComponentGrids(); fromGrid++ )
+        {
+            if( toGrid!=fromGrid )
+            {
+                implicitInterpolation=cg.interpolationIsImplicit(toGrid,fromGrid);
+                if( implicitInterpolation )
+        	  break;
+            }
+        }
+    }
+    if( false && implicitInterpolation )
+    {
+        printf("ParallelOverlappingGridInterpolator::ERROR:The composite grid has implicit interpolation.\n"
+                      "  Currently only explicit interpolation is allowed in parallel\n");
+        Overture::abort();
+    }
+
+
+    assert( interpolationPoint==NULL );  // for now we do not support re-initialization
+
+    interpolationPoint=new intSerialArray [numberOfComponentGrids];
+    interpoleeLocation=new intSerialArray [numberOfComponentGrids];
+    interpoleeGrid=new intSerialArray [numberOfComponentGrids];
+    variableInterpolationWidth=new intSerialArray [numberOfComponentGrids];
+    interpolationCoordinates=new realSerialArray [numberOfComponentGrids];
+      
+    dimension = new intSerialArray[numberOfComponentGrids];
+    indexRange=new intSerialArray [numberOfComponentGrids];
+    isCellCentered= new intSerialArray [numberOfComponentGrids];
+    gridSpacing=new realSerialArray [numberOfComponentGrids];
+
+  // The interpolation data is sometimes stored in local arrays. Sometimes all grids have interp data
+  // stored in local arrays and sometimes just AMR grids are stored in local arrays. *wdh* 090810
+    allGridsHaveLocalData = cg->localInterpolationDataState==CompositeGridData::localInterpolationDataForAll;
+    onlyAmrGridsHaveLocalData = cg->localInterpolationDataState==CompositeGridData::localInterpolationDataForAMR;
+    noGridsHaveLocalData = cg->localInterpolationDataState==CompositeGridData::noLocalInterpolationData;
+
+    int grid;
+    for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        if( true )
+        {
+      // Just keep a reference
+            dimension[grid].reference(cg[grid].dimension());
+            indexRange[grid].reference(cg[grid].indexRange());
+            isCellCentered[grid].reference(cg[grid].isCellCentered());
+            gridSpacing[grid].reference(cg[grid].gridSpacing());
+
+//       printF("\n &&&&&&&&&&&& POGI:setup: cg->localInterpolationDataState=%i &&&&&&&&&&&\n",
+//                (int)cg->localInterpolationDataState);
+
+      // *wdh* 090806, fixed:
+      // if( grid<cg.numberOfBaseGrids() || 
+      //     cg->localInterpolationDataState==CompositeGridData::noLocalInterpolationData )
+            if( ( grid<cg.numberOfBaseGrids() && cg->localInterpolationDataState==CompositeGridData::localInterpolationDataForAMR ) || 
+                    cg->localInterpolationDataState==CompositeGridData::noLocalInterpolationData )
+            {
+
+        // use the interpolation data in the parallel arrays
+      	interpolationPoint[grid].reference( cg.interpolationPoint[grid].getLocalArray());
+      	interpoleeLocation[grid].reference( cg.interpoleeLocation[grid].getLocalArray());
+      	interpoleeGrid[grid].reference( cg.interpoleeGrid[grid].getLocalArray());
+      	variableInterpolationWidth[grid].reference( cg.variableInterpolationWidth[grid].getLocalArray());
+      	interpolationCoordinates[grid].reference(cg.interpolationCoordinates[grid].getLocalArray());
+
+        // consistency check: *wdh* 090429
+                int numInterpolated=0;
+      	for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+      	{
+        	  if( cg.interpolationStartEndIndex(0,grid,grid2)>=0 )
+          	    numInterpolated+=cg.interpolationStartEndIndex(1,grid,grid2)-cg.interpolationStartEndIndex(0,grid,grid2)+1;
+      	}
+      	if( numInterpolated!=cg.numberOfInterpolationPoints(grid) )
+      	{
+        	  printF("ParallelOverlappingGridInterpolator::setup:ERROR: grid=%i numInterpolated=%i but "
+             		 "numberOfInterpolationPoints=%i\n"
+             		 " There is probably an error in the interpolationStartEndIndex array!\n",
+             		 grid,numInterpolated,cg.numberOfInterpolationPoints(grid) );
+        	  display(cg.interpolationStartEndIndex,"cg.interpolationStartEndIndex(0:1,grid,gridi)");
+        	  display(cg.numberOfInterpolationPoints,"cg.numberOfInterpolationPoints");
+      	
+        	  OV_ABORT("error");
+      	}
+
+            }
+            else
+            {
+	// use the interpolation data in the serial arrays (for now these are refinement grids)
+      	interpolationPoint[grid].reference( cg->interpolationPointLocal[grid]);
+      	interpoleeLocation[grid].reference( cg->interpoleeLocationLocal[grid]);
+      	interpoleeGrid[grid].reference( cg->interpoleeGridLocal[grid]);
+      	variableInterpolationWidth[grid].reference( cg->variableInterpolationWidthLocal[grid]);
+      	interpolationCoordinates[grid].reference(cg->interpolationCoordinatesLocal[grid]);
+            }
+        }
+        else
+        {
+      // make a copy
+            dimension[grid]=cg[grid].dimension();
+            indexRange[grid]=cg[grid].indexRange();
+            isCellCentered[grid]=cg[grid].isCellCentered();
+            gridSpacing[grid]=cg[grid].gridSpacing();
+
+            if( grid<cg.numberOfBaseGrids() || 
+                    cg->localInterpolationDataState==CompositeGridData::noLocalInterpolationData)
+            {
+
+	// we could probably just keep a reference here 
+      	interpolationPoint[grid]= cg.interpolationPoint[grid].getLocalArray();
+      	interpoleeLocation[grid]= cg.interpoleeLocation[grid].getLocalArray();
+      	interpoleeGrid[grid]= cg.interpoleeGrid[grid].getLocalArray();
+      	variableInterpolationWidth[grid]= cg.variableInterpolationWidth[grid].getLocalArray();
+      	interpolationCoordinates[grid]=cg.interpolationCoordinates[grid].getLocalArray();
+
+            }
+            else
+            {
+	// ** refinement grids: use new serial arrays **
+	// we could probably just keep a reference here 
+      	interpolationPoint[grid]= cg->interpolationPointLocal[grid];
+      	interpoleeLocation[grid]= cg->interpoleeLocationLocal[grid];
+      	interpoleeGrid[grid]= cg->interpoleeGridLocal[grid];
+      	variableInterpolationWidth[grid]= cg->variableInterpolationWidthLocal[grid];
+      	interpolationCoordinates[grid]=cg->interpolationCoordinatesLocal[grid];
+            }
+        }
+        
+    }
+
+    interpolationStartEndIndex=cg.interpolationStartEndIndex;
+    interpolationStartEndIndex.reshape(4,numberOfComponentGrids,numberOfComponentGrids);
+    
+    if( (debug & 2) && myid==0 )
+    {
+        for( int grid=0; grid<numberOfComponentGrids; grid++ )
+            for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+      	printf("setup: cg.interpolationStartEndIndex(0:1,grid=%i,grid2=%i)=%i %i \n",grid,grid2,
+            	      cg.interpolationStartEndIndex(0,grid,grid2),
+            	      cg.interpolationStartEndIndex(1,grid,grid2));
+    }
+    
+
+
+    ucg = new realArray [numberOfComponentGrids];
+    vcg = new realArray [numberOfComponentGrids];
+    
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        ucg[grid].reference(u[grid]);
+        vcg[grid].reference(u[grid]);
+    }
+
+  return setup();
+
+}
+
+
+
+// use this setup to get data from an actual composite grid.
+// int ParallelOverlappingGridInterpolator::
+// setup(const int & numberOfDimensions_, const int & numberOfComponentGrids_,
+//       const intSerialArray & numberOfInterpolationPoints_, intSerialArray *&dimension_,
+//       intSerialArray *&indexRange_,
+//       intSerialArray *&isCellCentered_,
+//       realSerialArray *&gridSpacing_,
+//       const intSerialArray & interpolationStartEndIndex_,
+//       intSerialArray *&interpolationPoint_, intSerialArray *&interpoleeLocation_, 
+//       intSerialArray *&interpoleeGrid_, intSerialArray *&variableInterpolationWidth_,
+//       realSerialArray *&interpolationCoordinates_,
+//       realCompositeGridFunction *ucg_, realCompositeGridFunction *vcg_ )
+// {
+    
+//   numberOfDimensions=numberOfDimensions_;
+//   numberOfComponentGrids=numberOfComponentGrids_;
+//   numberOfInterpolationPoints=numberOfInterpolationPoints_;
+//   dimension=dimension_;
+//   indexRange=indexRange_;
+//   isCellCentered=isCellCentered_;
+    
+//   gridSpacing=gridSpacing_;
+//   interpolationStartEndIndex=interpolationStartEndIndex_;
+//   interpolationStartEndIndex.reshape(4,numberOfComponentGrids,numberOfComponentGrids);
+    
+//   interpolationPoint=interpolationPoint_;
+//   interpoleeLocation=interpoleeLocation_;
+//   interpoleeGrid=interpoleeGrid_;
+//   variableInterpolationWidth=variableInterpolationWidth_;
+//   interpolationCoordinates=interpolationCoordinates_;
+    
+//   ucg = new realArray [numberOfComponentGrids];
+//   vcg = new realArray [numberOfComponentGrids];
+    
+//   int grid;
+//   for( grid=0; grid<numberOfComponentGrids; grid++ )
+//   {
+// //     ucg[grid].partition((*ucg_)[grid].getPartition());
+// //     vcg[grid].partition((*vcg_)[grid].getPartition());
+// //     ucg[grid].redim((*ucg_)[grid]);
+// //     vcg[grid].redim((*vcg_)[grid]);
+        
+        
+// //     ucg[grid]=(*ucg_)[grid];  // make a copy for  now
+// //     vcg[grid]=(*vcg_)[grid];
+//     ucg[grid].reference((*ucg_)[grid]);
+//     vcg[grid].reference((*vcg_)[grid]);
+//   }
+
+//  return setup();
+// }
+
+
+// int 
+// ParallelOverlappingGridInterpolator::
+// setupFromFile()
+// {
+//   readFromFile( numberOfDimensions,numberOfComponentGrids,numberOfInterpolationPoints,dimension,
+//                 indexRange,isCellCentered,gridSpacing,interpolationStartEndIndex,
+// 		interpolationPoint, interpoleeLocation, interpoleeGrid, variableInterpolationWidth,
+// 		interpolationCoordinates );
+
+//   numberOfBaseGrids=numberOfComponentGrids;  // assume no refinements
+    
+
+//   Partitioning_Type partition2d;                // does this need to be persistent??
+//   partition2d.SpecifyDecompositionAxes(2);
+//   partition2d.SpecifyInternalGhostBoundaryWidths(1,1);
+//   // partition2d.display("partition2d");
+
+//   ucg = new realArray [numberOfComponentGrids];
+//   vcg = new realArray [numberOfComponentGrids];
+    
+//   int i,j,p,axis,grid,grid2;
+//   for( grid=0; grid<numberOfComponentGrids; grid++ )
+//   {
+//     intSerialArray & d = dimension[grid];
+
+//     // d.display("d");
+        
+//     Range R0(d(0,0),d(1,0)), R1(d(0,1),d(1,1)), R2(d(0,2),d(1,2));
+
+//     ucg[grid].partition(partition2d);
+//     ucg[grid].redim(R0,R1,R2);
+//     ucg[grid]=real(grid+1);
+
+
+//     vcg[grid].partition(partition2d);
+//     vcg[grid].redim(R0,R1,R2);
+//     vcg[grid]=real(grid+1);
+//   }
+
+//   return setup();
+    
+// }
+
+
+
+
+
+// ==========================================================================================
+//! Setup routine for the parallel interpolator
+// This function will send the info about ip,il,ig,ci to the appropriate
+// processors. 
+// ==========================================================================================
+int ParallelOverlappingGridInterpolator::
+setup()
+{
+//   readFromFile( numberOfDimensions,numberOfComponentGrids,numberOfInterpolationPoints,dimension,
+//                 indexRange,isCellCentered,gridSpacing,interpolationStartEndIndex,
+// 		interpolationPoint, interpoleeLocation, interpoleeGrid, variableInterpolationWidth,
+// 		interpolationCoordinates );
+
+#ifdef USE_PPP
+
+// #define POGI_DEBUG
+//  debug=3;
+    
+    double time0=MPI_Wtime();
+    
+    const int myid = Communication_Manager::My_Process_Number;
+    const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+
+
+    if( debug >0 )
+    {
+//     if( myid==0 )
+//       debugFile=fopen("pogi.debug","w");
+
+//     MPI_Barrier(MPI_COMM_WORLD); 
+//     if( myid!=0 )
+//       debugFile=fopen("pogi.debug","a");
+        debugFile=fopen(sPrintF("pogin%ip%i.debug",numberOfProcessors,myid),"w"); // open a different file on each proc.
+    
+        fprintf(debugFile,"**** interpolate: numberOfComponentGrids=%i\n",numberOfComponentGrids);
+
+
+        for( int grid=0; grid<numberOfComponentGrids; grid++ )
+            for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+      	fprintf(debugFile,"interpolationStartEndIndex()=%i %i \n",
+                                interpolationStartEndIndex(0,grid,grid2),
+            		interpolationStartEndIndex(1,grid,grid2));
+    }
+
+
+    int i,j,p,axis,grid,grid2;
+
+  // ** Determine the number of interpolation points between pairs of grids,  (grid,grid2) ***
+  //    This is now needed since for refinement grids the ise array holds only local values to each processor
+
+  // ---> interpolationStartEndIndex and numberOfInterpolationPointsPerDonor could be SparseArray's
+    const intSerialArray & ise = interpolationStartEndIndex;
+    numberOfInterpolationPointsPerDonor.redim(numberOfComponentGrids,numberOfComponentGrids);
+
+  // temp space: 
+    const int ng2=numberOfComponentGrids*numberOfComponentGrids;
+    int *numPerDonorp = new int [ng2];
+    #define numPerDonor(g1,g2) numPerDonorp[(g1)+numberOfComponentGrids*(g2)]
+    int *numPerDonorSump = new int [ng2];
+    #define numPerDonorSum(g1,g2) numPerDonorSump[(g1)+numberOfComponentGrids*(g2)]
+
+  // The interpolation data is sometimes stored in local arrays. Sometimes all grids have interp data
+  // stored in local arrays and sometimes just AMR grids are stored in local arrays. *wdh* 090810
+
+  // These are set before getting here: 
+  // allGridsHaveLocalData = cg->localInterpolationDataState==CompositeGridData::localInterpolationDataForAll;
+  // onlyAmrGridsHaveLocalData = cg->localInterpolationDataState==CompositeGridData::localInterpolationDataForAMR;
+  // noGridsHaveLocalData = cg->localInterpolationDataState==CompositeGridData::noLocalInterpolationData;
+    
+  // printF("POGI: allGridsHaveLocalData=%i\n",(int)allGridsHaveLocalData);
+
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        for( grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        {
+            int num = ise(0,grid,grid2)>=0 ? ise(1,grid,grid2)-ise(0,grid,grid2)+1 : 0;
+            numPerDonor(grid,grid2)=num;
+            
+      // printf("POGI: myid=%i numPerDonor(grid=%i,grid2=%i)=%i\n",myid,grid,grid2,numPerDonor(grid,grid2));
+
+            if( noGridsHaveLocalData || grid<numberOfBaseGrids )
+            { // In this case the ise holds total values over all processors
+      	numberOfInterpolationPointsPerDonor(grid,grid2)=num; 
+            }
+            else
+            { 
+        // In this case the ise array holds local values, these are summed below.
+        // old way: numberOfInterpolationPointsPerDonor(grid,grid2)=ParallelUtility::getSum(num);
+            }
+        }
+    }
+  // *wdh* 090810 if( numberOfBaseGrids<numberOfComponentGrids )
+    if( allGridsHaveLocalData || ( onlyAmrGridsHaveLocalData && numberOfBaseGrids<numberOfComponentGrids) )
+    {
+    // sum up the number of interpolation points between (grid,grid2) for grids with local data
+
+        ParallelUtility::getSums(numPerDonorp,numPerDonorSump,ng2);
+        for( grid=0; grid<numberOfComponentGrids; grid++ )
+        {
+            for( grid2=0; grid2<numberOfComponentGrids; grid2++ )
+            {
+      	if( allGridsHaveLocalData || grid>=numberOfBaseGrids )
+      	{ 
+	  // printF("numberOfInterpolationPointsPerDonor(%i,%i)=%i (new=%i)\n",
+	  // 	 grid,grid2,numberOfInterpolationPointsPerDonor(grid,grid2),numPerDonorSum(grid,grid2));
+      	
+        	  numberOfInterpolationPointsPerDonor(grid,grid2)=numPerDonorSum(grid,grid2);
+      	}
+            }
+        }
+    }
+    
+    delete [] numPerDonorp;
+    delete [] numPerDonorSump;
+    #undef numPerDonor
+    #undef numPerDonorSum
+
+    const int one=1;
+    MPI_Request *sendRequest= new MPI_Request[numberOfProcessors];   // delete these **************
+    MPI_Request *receiveRequest= new MPI_Request[numberOfProcessors];
+    MPI_Status *receiveStatus = new MPI_Status[numberOfProcessors];
+
+  // for real's
+    MPI_Request *sendRequestr= new MPI_Request[numberOfProcessors];   // delete these **************
+    MPI_Request *receiveRequestr= new MPI_Request[numberOfProcessors];
+    MPI_Status *receiveStatusr = new MPI_Status[numberOfProcessors];
+
+
+
+  // ***********************************************************************
+  // step 1:  distribute ip, il, iw, ci to the appropriate destination grids.
+  // ***********************************************************************
+
+  // nila(p,grid,grid2) : number of donor ("il") points that will be SENT to processor p 
+  // ila(p,grid,grid2)[i,0:nd]  : donor point locations, i=0,1,...,nilLocal(p,grid,grid2)-1
+  //                                : these values are the lower left corner of the donor stencil
+
+  // nipa(p,grid,grid2) : number of target interpolation points ("ip") that will be RECEIVED from processor p
+
+
+    int **buffi = new int * [numberOfProcessors];  // source buffer for int's
+    real **buffr = new real *[numberOfProcessors];  // source buffer for real's
+
+    int **dbuffi = new int * [numberOfProcessors];  // destination buffer
+    real **dbuffr = new real *[numberOfProcessors];  // 
+
+    int *numi = new int [numberOfProcessors];
+    int *numiStart = new int [numberOfProcessors];
+
+    int *numr = new int [numberOfProcessors];
+    int index[3]={0,0,0};
+    
+
+  // **********************************************************************************************************
+  // **** We need to know how much information will be sent between processors in order to allocate buffers ***
+  // **********************************************************************************************************
+  //      Count up the number of values that this processor will send to processor p: 
+  //            numToSend(0,p) : number of interpolation points whose data sent to processor p
+  //            numToSend(1,p) : number of interpolee points whose data will be sent to processor p
+  //      Send numSend(0..1,p) to processor p as:
+  //            numToReceive(0..1,p) : number of interpolation/interpolee points to receive from processor p
+  // **********************************************************************************************************
+
+    const int numberOfIntsSentPerInterpolationPoint=numberOfDimensions+2;
+    const int numberOfRealsSentPerInterpolationPoint=0;
+
+    const int numberOfIntsSentPerInterpoleePoint=numberOfDimensions+3;
+    const int numberOfRealsSentPerInterpoleePoint=numberOfDimensions;
+
+  // for old:
+    const int numberSentPerInterpoleePoint=numberOfDimensions+3;
+    const int numberSentPerInterpolationPoint=numberOfDimensions+2;
+  
+    int *numToSendp = new int [numberOfProcessors*2];
+    int *numToReceivep= new int [numberOfProcessors*2];
+    #define numToSend(n,p) numToSendp[(n)+2*(p)]
+    #define numToReceive(n,p) numToReceivep[(n)+2*(p)]
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        numToSend(0,p)=0; numToSend(1,p)=0; 
+        numToReceive(0,p)=0; numToReceive(1,p)=0; 
+    }
+    int *pointsSent = new int[numberOfProcessors];
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        const realArray & u = ucg[grid];
+        const intSerialArray & ips = interpolationPoint[grid];
+        const intSerialArray & ils = interpoleeLocation[grid];
+        const intSerialArray & iws = variableInterpolationWidth[grid];
+
+        for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        {
+            if( numberOfInterpolationPointsPerDonor(grid,grid2)==0 ) continue;
+
+            realArray & v = ucg[grid2];
+            
+      // points are sorted by grid2 so we can choose the subset to look at:
+            const int ilStart=max(ils.getBase(0) ,interpolationStartEndIndex(0,grid,grid2));
+            const int ilEnd  =min(ils.getBound(0),interpolationStartEndIndex(1,grid,grid2));
+
+            for( int p=0; p<numberOfProcessors; p++ )
+      	pointsSent[p]=false;   // gets set to true if any data is sent to processor p
+            
+            for( i=ilStart; i<=ilEnd; i++ )
+            {
+                for( axis=0; axis<numberOfDimensions; axis++ ) index[axis]=ips(i,axis);
+      	int rp= u.Array_Descriptor.findProcNum( index );  // interp result eventually will go to this proc.
+
+        // find the location of the middle of the interpolee stencil:
+                for( axis=0; axis<numberOfDimensions; axis++ ) index[axis]=ils(i,axis)+(iws(i)-1)/2;
+      	int sp= v.Array_Descriptor.findProcNum( index );  // send to this processor where interpolee points are
+
+        // count of int's sent: 
+                numToSend(0,rp)+=numberOfIntsSentPerInterpolationPoint;   
+                numToSend(0,sp)+=numberOfIntsSentPerInterpoleePoint;
+                
+        // count of reals sent:
+      	numToSend(1,rp)+=numberOfRealsSentPerInterpolationPoint;
+      	numToSend(1,sp)+=numberOfRealsSentPerInterpoleePoint;
+      	
+      	if( !pointsSent[rp] )
+      	{ 
+        	  numToSend(0,rp)+=4; // leave space for a header of [count1 count2 grid grid2]
+        	  pointsSent[rp]=true;
+      	}
+      	if( !pointsSent[sp] )
+      	{
+        	  numToSend(0,sp)+=4; // leave space for a header of [count1 count2 grid grid2]
+        	  pointsSent[sp]=true;
+      	}
+      	
+
+            }
+        } // end for grid2 
+    } // end for grid 
+    delete [] pointsSent;
+    
+  // we could wait to receive the following data until after the next set of loops since we know
+  // how much to send. --- do this for now ---
+    int tag0=100294;  // try to make a unique tag
+    MPI_Status status;
+    for( int p=0; p<numberOfProcessors; p++ )
+    {
+        int tags=tag0+p, tagr=tag0+myid;
+        MPI_Sendrecv(&numToSend(0,p),    2, MPI_INT, p, tags, 
+                                  &numToReceive(0,p), 2, MPI_INT, p, tagr, POGI_COMM, &status ); 
+    }
+
+  // **************************************************************
+  // ************** allocate send/receive buffers *****************
+  // **************************************************************
+
+  // -- old buffer sizes:
+    int nid=0;
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+        nid+=numberOfInterpolationPoints(grid);
+    const int nb=nid*(numberSentPerInterpoleePoint+numberSentPerInterpolationPoint)+
+                                      numberOfComponentGrids*numberOfComponentGrids*2;  // for counts
+    const int nbr=nid*numberOfDimensions;  // number of real's sent (ci)
+        
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        #ifdef POGI_DEBUG
+        printf(" myid=%i p=%i numToSend=(%i,%i) numToReceive=(%i,%i) nid=%i\n",myid,p,numToSend(0,p),numToSend(1,p),
+         	   numToReceive(0,p),numToReceive(1,p),nid);
+        #endif
+
+    // number of int's to be sent to processor p:
+        int nis = numToSend(0,p);
+    // number of real's to be sent to processor p: (ci)
+        int nrs = numToSend(1,p);
+    // *wdh* 091113 numToSend(0,p)=nis;  // save these values in numToSend
+    // *wdh* 091113 numToSend(1,p)=nrs;
+
+        buffi[p] = new int [max(1,nis)];    // source buffers (send buffers) 
+        buffr[p] = new real [max(1,nrs)];
+
+    // number of int's to be received from processor p
+        int nir = numToReceive(0,p);
+    // number of real's to be be received from processor p: (ci)
+        int nrr = numToReceive(1,p);
+    // *wdh* 091113 numToReceive(0,p)=nir;  // save these values 
+    // *wdh* 091113 numToReceive(1,p)=nrr;
+        
+        #ifdef POGI_DEBUG
+        printf(" myid=%i numToSend to p=%i =(%i,%i) (old value=%i,%i), numToReceive=(%i,%i) old=(%i,%i) ncg=%i\n",
+                      myid,p, nis,nrs,nb,nbr, nir,nrr,nb,nbr, numberOfComponentGrids);
+        #endif
+
+//    dbuff[p] = new real [nid];  // destination buffers  **** is this needed ??? ************
+        dbuffi[p] = new int [max(1,nir)];   // destination buffers (receieve buffers)
+        dbuffr[p] = new real [max(1,nrr)];
+    }
+
+  // ***** Now:
+  //     numToSend(0,p) = number of ints to be sent to processor p  
+  //     numToSend(1,p) = number of reals to be sent to processor p  
+  //     numToRecieve(0,p) = number of ints to be received from processor p  
+  //     numToRecieve(1,p) = number of reals to be received from processor p  
+
+    int *numToSendInterpolee = new int[numberOfProcessors];
+    int *numToSendInterpolation = new int[numberOfProcessors];
+
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        numi[p]=0;  // total number of int's sent to proc. p
+        numr[p]=0;  // total number of real's sent to proc. p
+    }
+    
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        intSerialArray & d = dimension[grid];
+
+        const intSerialArray & ips = interpolationPoint[grid];
+        const intSerialArray & ils = interpoleeLocation[grid];
+        const intSerialArray & igs = interpoleeGrid[grid];
+        const intSerialArray & iws = variableInterpolationWidth[grid];
+        const realSerialArray & cis = interpolationCoordinates[grid];
+
+        const int ni = numberOfInterpolationPoints(grid);
+
+        if( debug & 2 )
+        {
+            fprintf(debugFile,"\n *****Setup Stage I: processor %i grid %i ni=%i  distribute ip,il,.. to destinations *****\n",
+                            myid,grid,ni);
+        }
+        
+        if( debug & 4 )
+        {
+            fprintf(debugFile,"+++Setup: proc %i: ils bounds [%i,%i][%i,%i] (values of il array initially on this proc)\n",
+                            myid,ils.getBase(0),ils.getBound(0),
+            	      ils.getBase(1),ils.getBound(1));
+        }
+        
+        if( debug & 4 )
+        {
+            for( i=ils.getBase(0); i<=ils.getBound(0); i++ )
+                fprintf(debugFile,"..processor %i: i=%i ip=(%i,%i),il=(%i,%i), ig=%i (donor) [local values on this proc]\n",myid,i,
+                                    ips(i,0),ips(i,1),ils(i,0),ils(i,1),igs(i));
+      // il.display("il");
+      // ip.display("ip");
+        }
+
+        realArray & u = ucg[grid];
+
+    // loop over the possible interpolee grids.
+        for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        {
+            
+      // Range R(cg.interpolationStartEndIndex(0,grid,gridi),cg.interpolationStartEndIndex(1,grid,gridi));
+            if( debug & 4 )
+      	fprintf(debugFile,"+++Setup: proc %i: grid=%i,  grid2=%i (donor) interpolationStartEndIndex=%i %i\n",
+            		myid,grid,grid2,interpolationStartEndIndex(0,grid,grid2),interpolationStartEndIndex(1,grid,grid2));
+
+            if( numberOfInterpolationPointsPerDonor(grid,grid2)==0 ) continue;
+      // if( interpolationStartEndIndex(0,grid,grid2) < 0 ) continue;
+      // if( grid2==grid ) continue; // we do not interpolate from the same grid  *** fix for c-grid
+
+            realArray & v = ucg[grid2];
+            
+
+            for( p=0; p<numberOfProcessors; p++ )
+            {
+      	numiStart[p]=numi[p];      // save starting index into the buffer for this pair [grid grid2]
+      	numi[p]+=4;                // leave space in buffi for: [count1 count2 grid grid2] (only used if count>0)
+
+                numToSendInterpolee[p]=0;    // first count 
+      	numToSendInterpolation[p]=0; // second count
+            }
+            
+      // *******************************************
+      // *** collect il and ip info to be sent *****
+      // *******************************************
+
+      // points are sorted by grid2 so we can choose the subset to look at:
+            const int ilStart=max(ils.getBase(0) ,interpolationStartEndIndex(0,grid,grid2));
+            const int ilEnd  =min(ils.getBound(0),interpolationStartEndIndex(1,grid,grid2));
+            const int ipStart=max(ips.getBase(0) ,interpolationStartEndIndex(0,grid,grid2));
+            const int ipEnd  =min(ips.getBound(0),interpolationStartEndIndex(1,grid,grid2));
+
+      // **** here we assume that il and ip are distributed in the same way ****
+            assert( ipStart==ilStart && ipEnd==ilEnd );
+            
+            for( i=ilStart; i<=ilEnd; i++ )
+            {
+        // if( igs(i)!=grid2 ) continue;  // skip this point, it interp's from another grid
+                if( igs(i)!=grid2 )
+      	{
+                    printf("POGI:ERROR: grid=%i grid2=%i i=%i igs(i)=%i != grid2, ils bounds=[%i,%i] ise=[%i,%i]\n",
+             		 grid,grid2,i,igs(i),ils.getBase(0),ils.getBound(0),interpolationStartEndIndex(0,grid,grid2),
+                                  interpolationStartEndIndex(1,grid,grid2));
+                    Overture::abort("Error");
+      	}
+      	
+
+                for( axis=0; axis<numberOfDimensions; axis++ ) index[axis]=ips(i,axis);
+      	int rp= u.Array_Descriptor.findProcNum( index );  // interp result eventually will go to this proc.
+
+        // find the location of the middle of the interpolee stencil:
+                for( axis=0; axis<numberOfDimensions; axis++ ) index[axis]=ils(i,axis)+(iws(i)-1)/2;
+      	int sp= v.Array_Descriptor.findProcNum( index );  // send to this processor where interpolee points are
+
+      	if( debug & 2 ) 
+                  fprintf(debugFile,"++++Setup: il: myid=%i, grid2=%i i=%i, ip=[%i,%i] ils=[%i,%i] iws=%i "
+                                  "index=[%i,%i] lives on sp=%i\n",myid,grid2,i,ips(i,0),ips(i,1),ils(i,0),ils(i,1),
+                                  iws(i),index[0],index[1],sp);
+        
+      	int & n = numi[sp];
+      	buffi[sp][n]=i;        n++;
+      	buffi[sp][n]=rp;       n++;
+      	buffi[sp][n]=iws(i);   n++;
+                if( !( i>= iws.getBase(0) && i<= iws.getBound(0) ) )
+      	{
+        	  printf(" ERROR: g=[%i,%i] p=%i, i=%i iws.getBase(0)=%i iws.getBound(0)=%i\n",grid,grid2,p,i,iws.getBase(0),
+             		 iws.getBound(0));
+      	}
+
+      	for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  buffi[sp][n]=ils(i,axis); n++;
+      	}
+
+        // copy ci(i,axis)
+                int & nr=numr[sp];
+      	for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  buffr[sp][nr]=cis(i,axis); nr++;
+      	}
+                numToSendInterpolee[sp]++;
+      	
+            }
+            
+      // **** Now save ip data: ****
+            for( i=ipStart; i<=ipEnd; i++ )
+            {
+                for( axis=0; axis<numberOfDimensions; axis++ ) index[axis]=ips(i,axis);
+      	int rp= u.Array_Descriptor.findProcNum( index );  // interp result eventually will go to this proc.
+
+        // find the location of the middle of the interpolee stencil:
+                for( axis=0; axis<numberOfDimensions; axis++ ) index[axis]=ils(i,axis)+(iws(i)-1)/2;
+      	int sp= v.Array_Descriptor.findProcNum( index );  
+
+      	if( debug & 2 ) 
+        	  fprintf(debugFile,"++++Setup: ip: myid=%i, grid2=%i i=%i, ip=[%i,%i] lives on sp=%i\n",
+                                  myid,grid2,i,ips(i,0),ips(i,1),sp);
+
+      	int & n2 = numi[rp];
+      	buffi[rp][n2]=i;        n2++;  // this is needed since i is put into a different buffer
+      	buffi[rp][n2]=sp;       n2++;  
+      	for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  buffi[rp][n2]=ips(i,axis); n2++;
+      	}
+                numToSendInterpolation[rp]++;
+            }
+
+            for( p=0; p<numberOfProcessors; p++ )
+            {
+                if( numToSendInterpolee[p]>0 || numToSendInterpolation[p]>0 )
+      	{
+          // we only send the header info if one of the counts is bigger than zero
+
+        	  assert( numi[p]<=numToSend(0,p) );  // sanity check for buffer sizes
+        	  assert( numr[p]<=numToSend(1,p) );
+
+	  // save the header values: [count1 count2 grid grid2]
+            	  buffi[p][numiStart[p]  ]=numToSendInterpolee[p];  
+            	  buffi[p][numiStart[p]+1]=numToSendInterpolation[p];  
+            	  buffi[p][numiStart[p]+2]=grid;   
+            	  buffi[p][numiStart[p]+3]=grid2; 
+
+  	  // buffi[p][numiStart[p]]=numi[p]-numiStart[p];        // save the count (plus 1)
+      	}
+                else
+      	{ // if the counts are zero then we don't need a header,
+                    numi[p]=numiStart[p];  // reset numi[p]
+      	}
+            }
+            
+        } // for grid2
+    } // for grid
+    
+    delete [] numToSendInterpolee;
+    delete [] numToSendInterpolation;
+
+  // post receives first
+    const int tag1=172934; // make a unique tag
+    const int tag2=231044; // make a unique tag
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        int tag=tag1+myid;
+        MPI_Irecv(dbuffi[p],numToReceive(0,p),MPI_INT ,p,tag,POGI_COMM,&receiveRequest[p] );
+        tag=tag2+myid;
+        MPI_Irecv(dbuffr[p],numToReceive(1,p),MPI_Real,p,tag,POGI_COMM,&receiveRequestr[p] );
+    }
+  // ***** send all info ****
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        if( debug ) 
+        {
+            fprintf(debugFile,"Setup: II: il/ip: processor %i: (nb=%i) send %i values to processor %i values=",myid,
+           	     numToSend(0,p),numi[p],p);
+            if( debug & 2  )
+                for( int j=0; j<numi[p]; j++ ) fprintf(debugFile,"%i ",buffi[p][j]); 
+            else
+                fprintf(debugFile,"not printed");
+            fprintf(debugFile,"\n");
+        }
+    // int tag=numi[p];
+        int tag=tag1+p;
+        MPI_Isend(buffi[p],numToSend(0,p),MPI_INT ,p,tag,POGI_COMM,&sendRequest[p] );
+        tag=tag2+p;
+        MPI_Isend(buffr[p],numToSend(1,p),MPI_Real,p,tag,POGI_COMM,&sendRequestr[p] );
+    }
+
+    MPI_Waitall( numberOfProcessors, receiveRequest, receiveStatus );  // wait to recieve all messages
+    MPI_Waitall( numberOfProcessors, receiveRequestr, receiveStatusr );  // wait to recieve all messages
+
+
+    if( debug )
+    {
+        for( p=0; p<numberOfProcessors; p++ )
+        {
+      // int numild=receiveStatus[p].MPI_TAG; // total received
+            int numild=numToReceive(0,p);
+            int num=0;
+            MPI_Get_count( &receiveStatus[p], MPI_INT, &num );
+            assert( numild==num );
+
+            fprintf(debugFile,"Setup: III: il/ip: processor %i: received msg from processor %i, tag=%i p=%i values=",
+            	      myid,receiveStatus[p].MPI_SOURCE,receiveStatus[p].MPI_TAG,p);
+            if( debug & 2  )
+      	for( j=0; j<numild; j++ ) fprintf(debugFile,"%i ",dbuffi[p][j]);
+            else
+                fprintf(debugFile,"not printed");
+            
+            fprintf(debugFile,"\n");
+            
+        }
+    }
+    
+
+    if( debug )
+    {
+        
+        MPI_Barrier(POGI_COMM); // wait here so we can flush info the the debug file
+        fflush(debugFile);
+    }
+    
+  // **************** put received data into local arrays ***********************
+    if( debug & 2  )
+    {
+        fprintf(debugFile,"\n *****Setup: III: processor %i put recieved data in local array *****\n",myid);
+    }
+    
+
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        numiStart[p]=0;   
+        numr[p]=0;
+    }
+    
+    
+//   const int numberSentPerPoint=(numberOfIntsSentPerInterpolationPoint +
+// 				numberOfRealsSentPerInterpolationPoint +
+// 				numberOfIntsSentPerInterpoleePoint +
+// 				numberOfRealsSentPerInterpoleePoint);
+
+//   const int numberOfIntsSentPerPoint=(numberOfIntsSentPerInterpolationPoint +
+// 				      numberOfIntsSentPerInterpoleePoint);
+
+    maxInterpolationWidth=0; // added 061129
+    
+  //  *********************************************************************
+  //  *********** Retrieve values received from each processor ************
+  //  *********************************************************************
+
+
+    nila.redim(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids );
+    nipa.redim(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids );
+
+  // *** Here is a first pass to count the number of entries we need *****
+
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+    // int numild=receiveStatus[p].MPI_TAG; // total received
+        int numild=numToReceive(0,p);
+        int numild2=0;
+        MPI_Get_count( &receiveStatus[p], MPI_INT, &numild2 );
+        assert( numild==numild2 );
+
+        int sp=receiveStatus[p].MPI_SOURCE; // source proc
+
+
+        if( numild<=1 ) continue;
+
+        while( numiStart[p]<numild-2 )
+        {
+      // k=current index into the int-buffer dbuffi
+            int & k = numiStart[p];  
+            const int numil=dbuffi[p][k];  k++;  // numil = count1: number of il data 
+            const int numip=dbuffi[p][k];  k++;  // numip = count2: number of ip data 
+            const int grid =dbuffi[p][k];  k++;
+            const int grid2=dbuffi[p][k];  k++;
+
+      // fprintf(debugFile,"receive: k=%i, numil=%i numip=%i [grid,grid2]=[%i,%i]\n",k,numil,numip,grid,grid2);
+
+
+      // kr=current index into the real-buffer dbuffr
+//      int & kr = numr[p];
+
+            assert( grid>=0 && grid<numberOfComponentGrids );
+            assert( grid2>=0 && grid2<numberOfComponentGrids );
+      // assert( numberOfInterpolationPointsPerDonor(grid,grid2)>0 );
+            if( numberOfInterpolationPointsPerDonor(grid,grid2)<=0 )
+            {
+      	printf("POGI:ERROR: myid=%i p=%i grid=%i grid2=%i numberOfInterpolationPointsPerDonor(grid,grid2)=%i\n"
+                              "  numil=%i numip=%i\n",myid,p,grid,grid2,numberOfInterpolationPointsPerDonor(grid,grid2),
+             	       numil,numip);
+      	OV_ABORT("error");
+            }
+
+            const int ni = numberOfInterpolationPoints(grid);
+
+            for( j=0; j<numil; j++ )
+            {
+      	int i=dbuffi[p][k]; k++;
+      	if( i<0 || i>=ni )
+      	{
+        	  printf("POGI:ERROR:receiving il and ci, i=%i but ni=%i, myid=%i, grid=%i grid2=%i\n"
+             		 "  msg received from source sp=%i (p=%i), count j=%i, numiStart[p]=k=%i, numil=%i\n",
+             		 i,ni,myid,grid,grid2,sp,p,j,k,numil);
+        	  Overture::abort("error");
+      	}
+        	  
+      	int rp= dbuffi[p][k]; k++;   // send result to this processor
+	// assert( rp>=0 && rp<numberOfProcessors );
+                if( rp<0 || rp>=numberOfProcessors )
+      	{
+        	  fprintf(debugFile,"receive:ERROR: rp=%i np=%i g=[%i,%i] p=%i \n",
+                                    rp,numberOfProcessors,grid,grid2,p);
+        	  printf("POGI: myid=%i: receive:ERROR: rp=%i np=%i g=[%i,%i] p=%i \n",
+                                    myid,rp,numberOfProcessors,grid,grid2,p);
+                    Overture::abort("Error");
+      	}
+      	int width=dbuffi[p][k]; k++; 
+      	for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  k++;   // il(i,axis)
+//	  kr++;  // ci(i,axis)
+      	}
+
+                nila.get(rp,grid,grid2)++;
+
+            } // end for j 
+
+      // *** get ip data ***
+            for( j=0; j<numip; j++ )
+            {
+      	int i2=dbuffi[p][k]; k++;   
+      	assert( i2>=0 && i2<ni );
+      	int sp=dbuffi[p][k]; k++;   // interpolee results will come from this source proc.
+
+      	for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  k++;  // ip(i,0)
+      	}
+                nipa.get(sp,grid,grid2)++;
+      	
+            } // end for j
+
+        } // end while
+    } // end for p
+
+
+//   if( debug & 1 )
+//   {
+//     for( grid=0; grid<numberOfComponentGrids; grid++ )
+//     {
+//       for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+//       { 
+// 	for( p=0; p<numberOfProcessors; p++ ) 
+// 	{
+// 	  printf(" allocated: [grid,grid2]=[%i,%i] p=%i niLocal=%i nila=%i nipLocal=%i nipa=%i\n",
+// 		 grid,grid2,p,nilLocalp[grid2][grid][p],nila(p,grid,grid2),
+// 		 nipLocalp[grid2][grid][p],nipa(p,grid,grid2));
+// 	}
+//       }
+//     }
+//   }
+
+  // allocate space for the il and ip data
+    ila.redim(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids );
+    ipa.redim(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids );
+    cia.redim(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids );
+
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        { 
+            for( p=0; p<numberOfProcessors; p++ ) 
+            {
+                const int nil=nila(p,grid,grid2);
+      	if( nil>0 )
+      	{
+                    ila.get(p,grid,grid2) = new int [nil*(numberOfDimensions+1)];
+                    cia.get(p,grid,grid2) = new real [nil*(numberOfDimensions)];
+      	}
+                const int nip=nipa(p,grid,grid2);
+      	if( nip>0 )
+      	{
+                    ipa.get(p,grid,grid2) = new int [nip*(numberOfDimensions+1)];
+      	}
+            }
+        }
+    }
+
+  // **** Pass II : fill in the arrays with data ***
+
+
+  // Here is a temporary array for counting values: 
+    SparseArray<int> nilb(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids);
+    SparseArray<int> nipb(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids);
+    
+
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        numiStart[p]=0;   
+        numr[p]=0;
+    }
+    int **ilap = new int * [numberOfProcessors];
+    int **ipap = new int * [numberOfProcessors];
+    real **ciap = new real * [numberOfProcessors];
+
+    int *nLocal = new int [numberOfProcessors];
+    int *nipLocal = new int [numberOfProcessors];
+
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+    // int numild=receiveStatus[p].MPI_TAG; // total received
+        int numild=numToReceive(0,p);
+        int numild2=0;
+        MPI_Get_count( &receiveStatus[p], MPI_INT, &numild2 );
+        assert( numild==numild2 );
+        int numReals;
+        MPI_Get_count( &receiveStatusr[p], MPI_Real, &numReals );
+        assert( numToReceive(1,p)==numReals );
+
+        int sp=receiveStatus[p].MPI_SOURCE; // source proc
+
+        if( numild<=1 ) continue;
+
+        while( numiStart[p]<numild-2 )
+        {
+      // k=current index into the int-buffer dbuffi
+            int & k = numiStart[p];  
+            const int numil=dbuffi[p][k];  k++;  // numil = count1: number of il data 
+            const int numip=dbuffi[p][k];  k++;  // numip = count2: number of ip data 
+            const int grid =dbuffi[p][k];  k++;
+            const int grid2=dbuffi[p][k];  k++;
+
+      // fprintf(debugFile,"receive: k=%i, numil=%i numip=%i [grid,grid2]=[%i,%i]\n",k,numil,numip,grid,grid2);
+
+
+      // kr=current index into the real-buffer dbuffr
+            int & kr = numr[p];
+
+            assert( grid>=0 && grid<numberOfComponentGrids );
+            assert( grid2>=0 && grid2<numberOfComponentGrids );
+            assert( numberOfInterpolationPointsPerDonor(grid,grid2)>0 );
+
+            const int ni = numberOfInterpolationPoints(grid);
+
+      // nLocal[p] : number of results we sent to processor p
+      // local(i,0:2,p) : results we send to processor p
+            
+            for( int p2=0; p2<numberOfProcessors; p2++ )
+            { // for efficiency, look up pointers
+      	ilap[p2] = ila(p2,grid,grid2);
+      	ipap[p2] = ipa(p2,grid,grid2);
+      	ciap[p2] = cia(p2,grid,grid2);
+
+                nLocal[p2]=nilb(p2,grid,grid2);   // save starting values in temp arrays
+                nipLocal[p2]=nipb(p2,grid,grid2); 
+            }
+            
+      // store data in a transposed form from normal:
+            #define ILA(i0,i1,p) ilap[p][(i1)+(numberOfDimensions+1)*(i0)]
+            #define IPA(i0,i1,p) ipap[p][(i1)+(numberOfDimensions+1)*(i0)]
+            #define CIA(i0,i1,p) ciap[p][(i1)+numberOfDimensions*(i0)]
+
+            for( j=0; j<numil; j++ )
+            {
+      	int i=dbuffi[p][k]; k++;
+      	if( i<0 || i>=ni )
+      	{
+        	  printf("POGI:ERROR:receiving il and ci, i=%i but ni=%i, myid=%i, grid=%i grid2=%i\n"
+             		 "  msg received from source sp=%i (p=%i), count j=%i, numiStart[p]=k=%i, numil=%i\n",
+             		 i,ni,myid,grid,grid2,sp,p,j,k,numil);
+        	  Overture::abort("error");
+      	}
+        	  
+      	int rp= dbuffi[p][k]; k++;   // send result to this processor
+	// assert( rp>=0 && rp<numberOfProcessors );
+                if( rp<0 || rp>=numberOfProcessors )
+      	{
+        	  fprintf(debugFile,"receive:ERROR: rp=%i np=%i g=[%i,%i] p=%i \n",
+                                    rp,numberOfProcessors,grid,grid2,p);
+        	  printf("POGI: myid=%i: receive:ERROR: rp=%i np=%i g=[%i,%i] p=%i \n",
+                                    myid,rp,numberOfProcessors,grid,grid2,p);
+                    Overture::abort("Error");
+      	}
+      	
+      	int & n = nLocal[rp];
+      	int width=dbuffi[p][k]; k++;  // save this in local too
+      	maxInterpolationWidth=max(maxInterpolationWidth,width);
+
+
+                ILA(n,0,rp)=width;
+
+      	for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+                    ILA(n,axis+1,rp)=dbuffi[p][k];
+                    k++;
+        	  CIA(n,axis,rp)=dbuffr[p][kr]; 
+                    kr++;
+      	}
+	// fprintf(debugFile,"receive: i=%i g=[%i,%i] p=%i rp=%i n=%i width=%i il=[%i,%i]\n",i,grid,grid2,p,rp,n,width,
+        //   ilLocal(n,axis1+1,rp),ilLocal(n,axis2+1,rp) );
+      	n++;
+
+            } // end for j 
+
+      // *** get ip data ***
+            for( j=0; j<numip; j++ )
+            {
+      	int i2=dbuffi[p][k]; k++;   
+      	assert( i2>=0 && i2<ni );
+      	int sp=dbuffi[p][k]; k++;   // interpolee results will come from this source proc.
+      	int & n2 = nipLocal[sp];
+                IPA(n2,0,sp)=i2;
+      	for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+                    IPA(n2,axis+1,sp)=dbuffi[p][k];
+                    k++;
+      	}
+	// fprintf(debugFile,"receive: i2=%i sp=%i ip=[%i,%i]\n",i2,sp,ipLocal(n2,axis1+1,sp),ipLocal(n2,axis2+1,sp));
+      	n2++;
+
+
+            } // end for j
+
+            for( int p2=0; p2<numberOfProcessors; p2++ )
+            { // copy back the sums
+        	if( nLocal[p2]>0 ) nilb.get(p2,grid,grid2)=nLocal[p2];
+        	if( nipLocal[p2]>0 ) nipb.get(p2,grid,grid2)=nipLocal[p2];
+            }
+
+        } // end while
+    } // end for p
+    
+    delete [] ilap;
+    delete [] ipap;
+    delete [] ciap;
+    nilb.clear();
+    nipb.clear();
+    
+    delete [] nLocal;
+    delete [] nipLocal;
+
+    if( debug & 2  )
+    {
+        fprintf(debugFile,"\n ====== Finished setup on processor %i ===========\n\n",myid);
+    }
+
+    if( false && debug & 1 )
+    {
+        for( grid=0; grid<numberOfComponentGrids; grid++ )
+        {
+            for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+            { 
+      	for( p=0; p<numberOfProcessors; p++ ) 
+      	{
+// 	  printf("actual: [grid,grid2]=[%i,%i] p=%i niLocal=%i nila=%i nipLocal=%i nipa=%i\n",
+// 		 grid,grid2,p,nilLocalp[grid2][grid][p],nila(p,grid,grid2),
+// 		 nipLocalp[grid2][grid][p],nipa(p,grid,grid2));
+// 	  assert( nilLocalp[grid2][grid][p] == nila(p,grid,grid2) );
+// 	  assert( nipLocalp[grid2][grid][p] == nipa(p,grid,grid2) );
+      	
+      	}
+            }
+        }
+    }
+    
+  // we must wait for the send's to complete before deleting the buffers
+    MPI_Waitall( numberOfProcessors, sendRequest, receiveStatus );  // wait to recieve all messages
+    MPI_Waitall( numberOfProcessors, sendRequestr, receiveStatusr );  // wait to recieve all messages
+
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        delete [] buffi[p];
+        delete [] buffr[p];
+        delete [] dbuffi[p];
+        delete [] dbuffr[p];
+    }
+
+    delete [] numToSendp;
+    delete [] numToReceivep;
+
+    delete [] buffi;
+    delete [] buffr;
+    delete [] dbuffi;
+    delete [] dbuffr;
+    delete [] numi;
+    delete [] numiStart;
+    delete [] numr;
+
+    delete [] sendRequest;
+    delete [] receiveRequest;
+    delete [] receiveStatus;
+
+    delete [] sendRequestr;
+    delete [] receiveRequestr;
+    delete [] receiveStatusr;
+
+
+    Overture::checkMemoryUsage("POGI: setup -- before initializeExplicitInterpolation");  
+
+    initializeExplicitInterpolation();
+    
+    Overture::checkMemoryUsage("POGI: setup -- after initializeExplicitInterpolation");  
+
+    double time=MPI_Wtime()-time0;
+    if( debug >0 )
+    {
+        printF(" >>>>>>>>> POGI:Time for setup =%8.2e (excluding read from file) <<<<<<<\n",time);
+        fflush(stdout);
+    }
+
+    Communication_Manager::Sync(); // *wdh* 030427
+    
+#endif
+    return 0;
+}
+
+
+int ParallelOverlappingGridInterpolator::
+initializeExplicitInterpolation()
+//==================================================================================
+// /Description:
+//   Pre-compute Interpolation coefficients for explicit interpolation
+//==================================================================================
+{
+    if( numberOfComponentGrids ==0 || maxInterpolationWidth==0 )
+        return 0;
+
+//   if( interpolationIsExplicit() )
+//     cout << "Interpolant: initialize explicit interpolation...\n";
+//   else
+//     cout << "Interpolant: initialize iterative implicit interpolation...\n";
+
+    const int myid = Communication_Manager::My_Process_Number;
+    const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+
+#define Q11(x) (1.-(x))
+#define Q21(x) (x)
+
+#define Q12(x) .5*((x)-1.)*((x)-2.)
+#define Q22(x) (x)*(2.-(x))
+#define Q32(x) .5*(x)*((x)-1.)
+
+
+
+    int grid,grid2,axis,i,p,m,m1,m2,m3;
+
+    
+  // --- choose the sparse option  ----
+    bool useSparseInterpolation = explicitInterpolationStorageOption==precomputeNoCoefficients &&
+                                                                maxInterpolationWidth<= 5;
+
+        
+
+    if( useSparseInterpolation )
+    {
+        coeffWidthDimension=numberOfDimensions;
+    }
+    else
+    {
+        if( explicitInterpolationStorageOption==precomputeNoCoefficients )
+        {
+            printf("POGI:WARNING: optimized sparse interpolation not available for interpolation width=%i\n",
+                            maxInterpolationWidth);
+        }
+        
+        coeffWidthDimension=1;
+        for( axis=0; axis<numberOfDimensions; axis++ )
+            coeffWidthDimension*=maxInterpolationWidth;
+    }
+    
+  // *new* way: allocate the sparse array 
+    coeffa.redim(numberOfProcessors,numberOfComponentGrids,numberOfComponentGrids);
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        { 
+            for( p=0; p<numberOfProcessors; p++ ) 
+            {
+                const int nil=nila(p,grid,grid2);
+      	if( nil>0 )
+      	{
+                    coeffa.get(p,grid,grid2) = new real [nil*coeffWidthDimension];
+      	}
+            }
+        }
+    }
+
+
+    real *qp = new real [3*maxInterpolationWidth];
+#define q(axis,m)  qp[axis+3*(m)]
+    int width[3]={1,1,1};
+    for( axis=0; axis<numberOfDimensions; axis++ )
+        width[axis]=maxInterpolationWidth;
+
+    real relativeOffset, px[3];
+    int ili;
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+
+        for( grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        {
+            if( numberOfInterpolationPointsPerDonor(grid,grid2)==0 ) continue;
+      // if( interpolationStartEndIndex(0,grid,grid2) < 0 ) continue;
+            
+
+            const real *drp = gridSpacing[grid2].getDataPointer();
+#define dr(axis) drp[axis]
+
+      // const int *irp = &indexRange[grid2](0,0);
+            const int *irp = indexRange[grid2].getDataPointer();
+#define ir(side,axis) irp[side+2*(axis)]
+
+      // const int *isCellCenteredp = &isCellCentered[grid2](0);
+            const int *isCellCenteredp = isCellCentered[grid2].getDataPointer();
+#define isCC(axis) isCellCenteredp[axis]     
+
+            for( p=0; p<numberOfProcessors; p++ )
+            {
+                const int nil=nila(p,grid,grid2);
+      	if( nil<=0 ) continue;
+      	
+        // store data in a transposed form from normal:
+                int *ilap=ila(p,grid,grid2);
+                real *ciap=cia(p,grid,grid2);
+                #undef ilLocal
+                #define ilLocal(i0,i1,p) ilap[(i1)+(numberOfDimensions+1)*(i0)]
+        // #define IPA(i0,i1) ipap[(i1)+(numberOfDimensions+1)*(i0)]
+                #undef ciLocal
+                #define ciLocal(i0,i1,p) ciap[(i1)+numberOfDimensions*(i0)]
+
+                real *coeffap = coeffa(p,grid,grid2);
+                assert( coeffap!=NULL );
+                #undef coeffg
+      	#define coeffg(i,m1,m2,m3)  coeffap[i+nil*((m1)+width[0]*((m2)+width[1]*(m3)))]
+                const real shift=isCC(axis1) ? -.5 : 0.;
+      	for( int i=0; i<nil; i++ )
+      	{
+
+                    if( useSparseInterpolation )
+        	  {
+          	    for( axis=0; axis<numberOfDimensions; axis++ )
+          	    {
+            	      ili=ilLocal(i,axis+1,p); 
+                            coeffg(i,axis,0,0)=ciLocal(i,axis,p)/dr(axis)+ir(Start,axis) -ili + shift;
+          	    }
+        	  }
+        	  else
+        	  {
+          	    for( axis=0; axis<numberOfDimensions; axis++ )
+          	    {
+            	      ili=ilLocal(i,axis+1,p); 
+
+            	      relativeOffset=ciLocal(i,axis,p)/dr(axis)+ir(Start,axis);
+
+            	      px[axis] = isCC(axis) ? relativeOffset-ili-.5 : relativeOffset-ili;
+          	    }
+          	    int interpWidth=ilLocal(i,0,p);
+//           if( interpWidth!=3 )
+//             printf(" ERROR: <><> g=[%i,%i] p=%i i=%i interpWidth=%i il=[%i,%i]\n",grid,grid2,p,i,interpWidth,
+//                   ilLocal(i,1,p),ilLocal(i,2,p));
+
+          	    switch( interpWidth )  
+          	    {
+          	    case 3:
+	      //........quadratic interpolation
+            	      for( axis=0; axis<numberOfDimensions; axis++ )
+            	      {
+            		q(axis,0)=Q12(px[axis]);
+            		q(axis,1)=Q22(px[axis]);
+            		q(axis,2)=Q32(px[axis]);
+            		for( m=3; m<maxInterpolationWidth; m++ ) q(axis,m)=0.;
+            	      }
+            	      break;
+          	    case 2:
+	      //.......linear interpolation
+            	      for( axis=0; axis<numberOfDimensions; axis++ )
+            	      {
+            		q(axis,0)=Q11(px[axis]);
+            		q(axis,1)=Q21(px[axis]);
+            		for( m=2; m<maxInterpolationWidth; m++ ) q(axis,m)=0.;
+            	      }
+            	      break;
+          	    default:
+	      // .....order >3 - compute lagrange interpolation
+            	      for( axis=0; axis<numberOfDimensions; axis++ )
+            	      {
+            		for(m1=0; m1<width[axis]; m1++ ) 
+            		{
+              		  q(axis,m1)=1.;
+              		  for( m2=0; m2<width[axis]; m2++ )
+                		    if( m1 != m2  )
+                  		      q(axis,m1)*=(px[axis]-m2)/(m1-m2);
+            		}
+            	      }
+          	    }
+          	    if( numberOfDimensions==2 )
+          	    {
+            	      for( m3=0; m3< width[axis3]; m3++ ) 
+            		for( m2=0; m2< width[axis2]; m2++ ) 
+              		  for( m1=0; m1< width[axis1]; m1++ ) 
+                		    coeffg(i,m1,m2,m3)=q(axis1,m1)*q(axis2,m2);
+          	    }
+          	    else if( numberOfDimensions==3 )
+          	    {
+            	      for( m3=0; m3< width[axis3]; m3++ ) 
+            		for( m2=0; m2< width[axis2]; m2++ ) 
+              		  for( m1=0; m1< width[axis1]; m1++ ) 
+                		    coeffg(i,m1,m2,m3)=q(axis1,m1)*q(axis2,m2)*q(axis3,m3);
+          	    }
+          	    else
+          	    {
+            	      for( m3=0; m3< width[axis3]; m3++ ) 
+            		for( m2=0; m2< width[axis2]; m2++ ) 
+              		  for( m1=0; m1< width[axis1]; m1++ ) 
+                		    coeffg(i,m1,m2,m3)=q(axis1,m1);
+          	    }
+        	  }
+      	}
+            }
+        }
+    }  // end for grid
+    
+
+
+    
+    delete [] qp;
+    return 0;
+}
+
+#undef dr
+#undef ir
+#undef isCC
+#undef coeffg
+
+
+#define q10(x) 1
+#define q20(x) -(x)+1
+#define q21(x) (x)
+#define q30(x) ((x)-1)*((x)-2)/2.
+#define q31(x) -(x)*((x)-2)
+#define q32(x) (x)*((x)-1)/2.
+#define q40(x) -((x)-1)*((x)-2)*((x)-3)/6.
+#define q41(x) (x)*((x)-2)*((x)-3)/2.
+#define q42(x) -(x)*((x)-1)*((x)-3)/2.
+#define q43(x) (x)*((x)-1)*((x)-2)/6.
+#define q50(x) ((x)-1)*((x)-2)*((x)-3)*((x)-4)/24.
+#define q51(x) -(x)*((x)-2)*((x)-3)*((x)-4)/6.
+#define q52(x) (x)*((x)-1)*((x)-3)*((x)-4)/4.
+#define q53(x) -(x)*((x)-1)*((x)-2)*((x)-4)/6.
+#define q54(x) (x)*((x)-1)*((x)-2)*((x)-3)/24.
+#define q60(x) -((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)/120.
+#define q61(x) (x)*((x)-2)*((x)-3)*((x)-4)*((x)-5)/24.
+#define q62(x) -(x)*((x)-1)*((x)-3)*((x)-4)*((x)-5)/12.
+#define q63(x) (x)*((x)-1)*((x)-2)*((x)-4)*((x)-5)/12.
+#define q64(x) -(x)*((x)-1)*((x)-2)*((x)-3)*((x)-5)/24.
+#define q65(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)/120.
+#define q70(x) ((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)/720.
+#define q71(x) -(x)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)/120.
+#define q72(x) (x)*((x)-1)*((x)-3)*((x)-4)*((x)-5)*((x)-6)/48.
+#define q73(x) -(x)*((x)-1)*((x)-2)*((x)-4)*((x)-5)*((x)-6)/36.
+#define q74(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-5)*((x)-6)/48.
+#define q75(x) -(x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-6)/120.
+#define q76(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)/720.
+#define q80(x) -((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-7)/5040.
+#define q81(x) (x)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-7)/720.
+#define q82(x) -(x)*((x)-1)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-7)/240.
+#define q83(x) (x)*((x)-1)*((x)-2)*((x)-4)*((x)-5)*((x)-6)*((x)-7)/144.
+#define q84(x) -(x)*((x)-1)*((x)-2)*((x)-3)*((x)-5)*((x)-6)*((x)-7)/144.
+#define q85(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-6)*((x)-7)/240.
+#define q86(x) -(x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-7)/720.
+#define q87(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)/5040.
+#define q90(x) ((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-7)*((x)-8)/40320.
+#define q91(x) -(x)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-7)*((x)-8)/5040.
+#define q92(x) (x)*((x)-1)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-7)*((x)-8)/1440.
+#define q93(x) -(x)*((x)-1)*((x)-2)*((x)-4)*((x)-5)*((x)-6)*((x)-7)*((x)-8)/720.
+#define q94(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-5)*((x)-6)*((x)-7)*((x)-8)/576.
+#define q95(x) -(x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-6)*((x)-7)*((x)-8)/720.
+#define q96(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-7)*((x)-8)/1440.
+#define q97(x) -(x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-8)/5040.
+#define q98(x) (x)*((x)-1)*((x)-2)*((x)-3)*((x)-4)*((x)-5)*((x)-6)*((x)-7)/40320.
+
+
+// --------------------- 2D interp macros -----------------------------
+// These formulae are from higherOrderInterp.h
+
+
+
+
+
+
+
+
+
+
+
+// -------------- 3D interp macros -----------------
+
+
+
+
+
+
+
+
+
+
+
+int ParallelOverlappingGridInterpolator::
+interpolate( int gridToInterpolate,             // only interpolate this grid.
+           	     realCompositeGridFunction & u, 
+           	     const Range & C0 /* = nullRange */,      // optionally specify components to interpolate
+           	     const Range & C1 /* = nullRange */,  
+           	     const Range & C2 /* = nullRange */ )
+{
+  // printF("POGI:WARNING: restricted interpolation not implemented -- will interpolate all grids\n");
+    IntegerArray gridsToInterpolate(u.numberOfComponentGrids());
+    gridsToInterpolate=0;
+    gridsToInterpolate(gridToInterpolate)=1;
+    return internalInterpolate(u,C0,C1,C2,&gridsToInterpolate);
+}
+
+
+int ParallelOverlappingGridInterpolator::
+interpolate( realCompositeGridFunction & u, 
+           	     const IntegerArray & gridsToInterpolate,  // specify which grids to interpolate
+           	     const Range & C0 /* = nullRange */,      // optionally specify components to interpolate
+           	     const Range & C1 /* = nullRange */,  
+           	     const Range & C2 /* = nullRange */ )
+{
+  // printF("POGI:WARNING: restricted interpolation not implemented -- will interpolate all grids\n");
+    return internalInterpolate(u,C0,C1,C2,&gridsToInterpolate);
+}
+
+
+
+
+int ParallelOverlappingGridInterpolator::
+interpolate( realArray & ui,                    // save results here
+           	     int gridToInterpolate,             // only interpolate values on this grid that
+           	     int interpoleeGrid,                // interpolate from this grid.
+           	     realCompositeGridFunction & u, 
+           	     const Range & C0 /* = nullRange */,      // optionally specify components to interpolate
+           	     const Range & C1 /* = nullRange */,  
+           	     const Range & C2 /* = nullRange */ )
+{
+    printF("POGI:ERROR: This restricted interpolation not implemented \n");
+    Overture::abort("error");
+  // return interpolate(u,C0,C1,C2,gridsToInterpolate,gridsToInterpolateFrom);
+    return 1;
+}
+
+int ParallelOverlappingGridInterpolator::
+interpolate( realCompositeGridFunction & u,
+           	     const IntegerArray & gridsToInterpolate,      // specify which grids to interpolate
+           	     const IntegerArray & gridsToInterpolateFrom,  // specify which grids to interpolate from
+           	     const Range & C0 /* = nullRange */,      // optionally specify components to interpolate
+           	     const Range & C1 /* = nullRange */,  
+           	     const Range & C2 /* = nullRange */ )
+{
+  // printF("POGI:WARNING: restricted interpolation not implemented -- will interpolate all grids\n");
+    return internalInterpolate(u,C0,C1,C2,&gridsToInterpolate,&gridsToInterpolateFrom);
+}
+
+
+// ==============================================================================================
+//! Interpolate a function. 
+/*!
+          
+  */
+// ==============================================================================================
+int ParallelOverlappingGridInterpolator::
+interpolate( realCompositeGridFunction & u, 
+           	     const Range & C0 /* = nullRange */, 
+           	     const Range & C1 /* = nullRange */,
+           	     const Range & C2 /* = nullRange */ )
+{
+    if( u.getCompositeGrid()->numberOfBaseGrids()<=1 )
+      return 0;
+
+    return internalInterpolate(u,C0,C1,C2,NULL,NULL);
+}
+
+#define INTERPOLATE_THIS_GRID(grid) ((!onlyInterpolateSomeGrids || gridsToInterpolate(grid)) && cg.refinementLevelNumber(grid)<=maximumRefinementLevelToInterpolate )
+
+#define INTERPOLATE_FROM_THIS_GRID(grid) (!onlyInterpolateFromSomeGrids || gridsToInterpolateFrom(grid))
+
+// ==============================================================================================
+//! Interpolate a function. 
+/*!
+          
+      This routine does the actual interpolation assuming the setup has already been done.
+
+    /u (input) : grid function to interpolate
+    /C0,C1,C2 (input) : components to interpolate are u[grid](all,all,all,C0,C1,C2)
+    /gridsToInterpolate\_(input) : only interpolate points on grids with *gridsToInterpolate\_(grid)!=0 (if non-NULL)
+    /gridsToInterpolateFrom\_(input) : only interpolate points FROM donor grids with *gridsToInterpolateFrom\_(grid)!=0
+                                            (if non-NULL)
+
+  */
+// ==============================================================================================
+int ParallelOverlappingGridInterpolator::
+internalInterpolate( realCompositeGridFunction & u, 
+                 		     const Range & C0, 
+                 		     const Range & C1,
+                 		     const Range & C2,
+                 		     const IntegerArray *gridsToInterpolate_ /* = NULL */,      // specify which grids to interpolate
+                 		     const IntegerArray *gridsToInterpolateFrom_ /* = NULL */ ) // specify grids to interpolate from
+{
+    if( u.getCompositeGrid()->numberOfBaseGrids()<=1 )
+      return 0;
+
+#ifdef USE_PPP
+    double time0=MPI_Wtime();
+    bool localSend=false; // if false do not use MPI to send results to the same processor
+
+    CompositeGrid & cg = *u.getCompositeGrid();
+    const bool onlyInterpolateSomeGrids=gridsToInterpolate_!=NULL && 
+                                                                            gridsToInterpolate_->getLength(0)==numberOfComponentGrids;
+    const IntegerArray & gridsToInterpolate = onlyInterpolateSomeGrids ? *gridsToInterpolate_ : 
+                                                                                                                                          numberOfInterpolationPoints;  // not used
+    const bool onlyInterpolateFromSomeGrids=gridsToInterpolateFrom_!=NULL && 
+                                                                                    gridsToInterpolateFrom_->getLength(0)==numberOfComponentGrids;
+    const IntegerArray & gridsToInterpolateFrom = onlyInterpolateFromSomeGrids ? *gridsToInterpolateFrom_ : 
+                                                                                                                                          numberOfInterpolationPoints;  // not used 
+
+//   if( onlyInterpolateSomeGrids )
+//     printF("POGI: onlyInterpolateSomeGrids...\n");
+    
+  // We assume that the grid function "u" is distributed in the same way as the GF used in the setup
+    int grid;
+    realCompositeGridFunction & ucg= u;
+    
+//   for( grid=0; grid<numberOfComponentGrids; grid++ )
+//   {
+//     ucg[grid].reference(u[grid]);
+//     vcg[grid].reference(u[grid]);
+//   }
+
+  // int c1Base=0, c1Bound=0;  // pass these in
+    int c1Base=u.getComponentBase(0), c1Bound=u.getComponentBound(0);  // *wdh* 040204 
+    const int numberOfComponents=c1Bound-c1Base+1;
+    
+  // const int debug=1;
+
+    const int myid = Communication_Manager::My_Process_Number;
+    const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+
+    if( debug & 2  )
+    {
+        fprintf(debugFile,"\n\n ====== POGI: interpolate, proc=%i ===========\n\n",myid);
+    }
+
+
+    const int one=1;
+    MPI_Request *sendRequest= new MPI_Request[numberOfProcessors];   // delete these **************
+    MPI_Request *receiveRequest= new MPI_Request[numberOfProcessors];
+    MPI_Status *receiveStatus = new MPI_Status[numberOfProcessors];
+
+    real **sum = new real * [numberOfProcessors];
+    int *niv = new int [numberOfProcessors];
+    int *numToSend = new int [numberOfProcessors];
+    int *numToReceive = new int [numberOfProcessors];
+    int *pMapr = new int [numberOfProcessors];
+    int *pMaps = new int [numberOfProcessors];
+
+    real **dbuff = new real * [numberOfProcessors];  // destination buffer
+
+    int i,j,p,axis,grid2;
+
+  // *wdh* 061215 for debugging Don's problem, increase the receive buffer size
+  // *wdh* 061215 for debugging Don's problem, increase the receive buffer size
+    bool increaseBufferSize=false;
+    int *extraBuffSize = new int[numberOfProcessors];
+
+  // Determine the size of the send and receive buffers
+    int numberOfProcessorsToReceiveFrom=0;  
+    int numberOfProcessorsToSendTo=0;       
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        numToSend[p]=0;     // number of values this processor sends to processor p
+        numToReceive[p]=0; // number of values this processor receives from processor p
+        for( grid=0; grid<numberOfComponentGrids; grid++ )
+        {
+            if( !INTERPOLATE_THIS_GRID(grid) ) continue;
+            for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+            {
+                if( !INTERPOLATE_FROM_THIS_GRID(grid2) ) continue;
+
+      	numToSend[p]+=nila(p,grid,grid2); // nilLocal(p,grid,grid2);
+      	numToReceive[p]+=nipa(p,grid,grid2); // nipLocal(p,grid,grid2);
+            }
+        }
+        
+        numToSend[p]*=numberOfComponents;
+        numToReceive[p]*=numberOfComponents;
+        if( increaseBufferSize )
+        {
+            extraBuffSize[p]=numToReceive[p]+1000*numberOfComponents;
+            numToReceive[p]+=extraBuffSize[p];
+        }
+        else
+        {
+            extraBuffSize[p]=0;
+        }
+        
+        
+        bool sendZeroLengthMessages=true; // false;
+        
+        if( sendZeroLengthMessages || numToReceive[p]>0 )
+        {
+            pMapr[numberOfProcessorsToReceiveFrom]=p;
+            numberOfProcessorsToReceiveFrom++;
+        }
+        if( sendZeroLengthMessages || numToSend[p]>0 )
+        {
+            pMaps[numberOfProcessorsToSendTo]=p;
+            numberOfProcessorsToSendTo++;
+        }
+    }
+    
+  
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        niv[p]=0;  // number of interpolated values to be sent to processor p
+        sum[p] = new real [numToSend[p]];  // [nid] ** is this dangerous to allocate 0 values in some cases? ***
+        dbuff[p] = new real [numToReceive[p]];    // [nid]  // receive values here
+    }
+
+    int width[3]={1,1,1};
+    for( axis=0; axis<numberOfDimensions; axis++ )
+        width[axis]=maxInterpolationWidth;
+    int m1,m2,m3;
+    
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        if( !INTERPOLATE_THIS_GRID(grid) ) continue;
+
+    // loop over the possible interpolee grids.
+        for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        {
+            if( numberOfInterpolationPointsPerDonor(grid,grid2)==0 ) continue;
+            if( !INTERPOLATE_FROM_THIS_GRID(grid2) ) continue;
+
+      // if( interpolationStartEndIndex(0,grid,grid2) < 0 ) continue;
+      // if( grid2==grid ) continue; // we do not interpolate from the same grid  *** fix for c-grid
+
+            realArray & v = ucg[grid2];
+            realSerialArray vs; getLocalArrayWithGhostBoundaries(v,vs);
+      // real *vsp = v.getLocalArrayWithGhostBoundariesPointer();
+
+            for( p=0; p<numberOfProcessors; p++ )
+            {
+        // interpolate the points that will be sent to processor p:
+                const int nil=nila(p,grid,grid2);
+                if( nil==0 ) continue; // no points to interpolate *wdh* 040327
+      	
+                int & k = niv[p];
+                real cr0,cr1,cr2,cr3,cr4,cr5,cr6,cr7,cr8;
+                real cs0,cs1,cs2,cs3,cs4,cs5,cs6,cs7,cs8;
+                real ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8;
+      	int i1,i2,i3,iw;
+
+        // **** redefine macros to use the new arrays
+                int *ilap=ila(p,grid,grid2);
+                real *ciap=cia(p,grid,grid2);
+                #undef ilLocal
+                #define ilLocal(i0,i1,p) ilap[(i1)+(numberOfDimensions+1)*(i0)]
+                real *coeffap = coeffa(p,grid,grid2);
+                #undef cf
+                #undef cfs
+      	#define cf(i,m1,m2)  coeffap[i+nil*((m1)+width[0]*((m2)))]
+      	#define cfs(i,m1)  coeffap[i+nil*(m1)]
+
+
+      	if( numberOfDimensions==2 )
+      	{
+                    real *&vsp = vs.Array_Descriptor.Array_View_Pointer2;
+        	  const int vsDim0=vs.getRawDataSize(0);
+        	  const int vsDim1=vs.getRawDataSize(1);
+#undef VS
+#define VS(i0,i1,i2) vsp[i0+vsDim0*(i1+vsDim1*(i2))]
+
+        	  if( debug & 2 )
+        	  {
+          	    for( j=0; j<nil; j++ )
+          	    {
+            	      int iw=ilLocal(j,0,p), il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+            	      fprintf(debugFile,"+++ [grid=%i,donor=%i] proc: %i interp pt j=%i iw=%i il=(%i,%i) ci=(%4.3f,%4.3f) \n",
+                             				     grid,grid2,myid,j,iw,il0,il1,ciLocal(j,0,p),ciLocal(j,1,p));
+
+                            int i1=il0, i2=il1, c1=c1Base;
+                            fprintf(debugFile,
+                                            " donor values: %6.4f %6.4f %6.4f \n"
+                  		      "               %6.4f %6.4f %6.4f \n"
+                  		      "               %6.4f %6.4f %6.4f \n",
+                                            VS(i1  ,i2  ,c1),VS(i1+1,i2  ,c1),VS(i1+2,i2  ,c1),
+                                            VS(i1  ,i2+1,c1),VS(i1+1,i2+1,c1),VS(i1+2,i2+1,c1),
+                                            VS(i1  ,i2+2,c1),VS(i1+1,i2+2,c1),VS(i1+2,i2+2,c1));
+
+
+          	    }
+        	  }
+
+
+        	  if( maxInterpolationWidth==3 )
+        	  {
+                        if( explicitInterpolationStorageOption==precomputeAllCoefficients )
+          	    {
+            // 	      loops2d(sum[p][k]=(cf(j,0,0)*VS(il0,il1  ,c1)+cf(j,1,0)*VS(il0+1,il1  ,c1)+cf(j,2,0)*VS(il0+2,il1  ,c1)+				 cf(j,0,1)*VS(il0,il1+1,c1)+cf(j,1,1)*VS(il0+1,il1+1,c1)+cf(j,2,1)*VS(il0+2,il1+1,c1)+				 cf(j,0,2)*VS(il0,il1+2,c1)+cf(j,1,2)*VS(il0+1,il1+2,c1)+cf(j,2,2)*VS(il0+2,il1+2,c1)););
+            //   if( false && c1Base==c1Bound )
+            //   {
+            //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+            //     for( j=0; j<nil; j++ )
+            //     {
+            //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+            //       sum[p][k]=(cf(j,0,0)*VS(il0,il1,c1)+cf(j,1,0)*VS(il0+1,il1,c1)+cf(j,2,0)*VS(il0+2,il1,c1)+				cf(j,0,1)*VS(il0,il1+1,c1)+cf(j,1,1)*VS(il0+1,il1+1,c1)+cf(j,2,1)*VS(il0+2,il1+1,c1)+				cf(j,0,2)*VS(il0,il1+2,c1)+cf(j,1,2)*VS(il0+1,il1+2,c1)+cf(j,2,2)*VS(il0+2,il1+2,c1));
+            //       k++;
+            //     }
+            //   }
+                          for( j=0; j<nil; j++ )
+                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                          {
+                              int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+                              sum[p][k]=(cf(j,0,0)*VS(il0,il1,c1)+cf(j,1,0)*VS(il0+1,il1,c1)+cf(j,2,0)*VS(il0+2,il1,c1)+				cf(j,0,1)*VS(il0,il1+1,c1)+cf(j,1,1)*VS(il0+1,il1+1,c1)+cf(j,2,1)*VS(il0+2,il1+1,c1)+				cf(j,0,2)*VS(il0,il1+2,c1)+cf(j,1,2)*VS(il0+1,il1+2,c1)+cf(j,2,2)*VS(il0+2,il1+2,c1));
+                              k++;
+                          }
+          	    }
+          	    else
+          	    {
+              // interpSparseStorage33(sum[p][k]);
+                            for( j=0; j<nil; j++ )
+                            {
+                                iw=ilLocal(j,0,p);
+                                i1=ilLocal(j,1,p);
+                                i2=ilLocal(j,2,p);
+                                if( iw==3 )
+                                {
+                  // interp33(sum[p][k]);
+                                        cr0 = q30(cfs(j,0));
+                                        cs0 = q30(cfs(j,1));
+                                        cr1 = q31(cfs(j,0));
+                                        cs1 = q31(cfs(j,1));
+                                        cr2 = q32(cfs(j,0));
+                                        cs2 = q32(cfs(j,1));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = cs0*(cr0*VS(i1  ,i2  ,c1)+cr1*VS(i1+1,i2  ,c1)+cr2*VS(i1+2,i2  ,c1))+cs1*(cr0*VS(i1  ,i2+1,c1)+cr1*VS(i1+1,i2+1,c1)+cr2*VS(i1+2,i2+1,c1))+cs2*(cr0*VS(i1  ,i2+2,c1)+cr1*VS(i1+1,i2+2,c1)+cr2*VS(i1+2,i2+2,c1));
+                                            k++;
+                                        }
+                                }
+                                else if( iw==2 )
+                                {
+                  // interp22(sum[p][k]);
+                                        cr0 = q20(cfs(j,0));
+                                        cs0 = q20(cfs(j,1));
+                                        cr1 = q21(cfs(j,0));
+                                        cs1 = q21(cfs(j,1));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = cs0*(cr0*VS(i1  ,i2  ,c1)+cr1*VS(i1+1,i2  ,c1))+cs1*(cr0*VS(i1  ,i2+1,c1)+cr1*VS(i1+1,i2+1,c1));
+                                            k++; 
+                                        }
+                                }
+                                else if( iw==1 )
+                                {
+                  // interp11(sum[p][k]);
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = VS(i1  ,i2  ,c1);
+                                            k++; 
+                                        }
+                                }
+                                else
+                                {
+                                    Overture::abort("ERROR: unexpected interp width");
+                                }
+                            }
+          	    }
+        	  }
+        	  else if( maxInterpolationWidth==2 )
+        	  {
+          	    if( explicitInterpolationStorageOption==precomputeAllCoefficients )
+          	    {
+            // 	      loops2d(sum[p][k]=(cf(j,0,0)*VS(il0,il1  ,c1)+cf(j,1,0)*VS(il0+1,il1  ,c1)+				 cf(j,0,1)*VS(il0,il1+1,c1)+cf(j,1,1)*VS(il0+1,il1+1,c1)););
+            //   if( false && c1Base==c1Bound )
+            //   {
+            //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+            //     for( j=0; j<nil; j++ )
+            //     {
+            //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+            //       sum[p][k]=(cf(j,0,0)*VS(il0,il1,c1)+cf(j,1,0)*VS(il0+1,il1,c1)+				cf(j,0,1)*VS(il0,il1+1,c1)+cf(j,1,1)*VS(il0+1,il1+1,c1));
+            //       k++;
+            //     }
+            //   }
+                          for( j=0; j<nil; j++ )
+                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                          {
+                              int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+                              sum[p][k]=(cf(j,0,0)*VS(il0,il1,c1)+cf(j,1,0)*VS(il0+1,il1,c1)+				cf(j,0,1)*VS(il0,il1+1,c1)+cf(j,1,1)*VS(il0+1,il1+1,c1));
+                              k++;
+                          }
+          	    }
+          	    else
+          	    {
+            // 	      interpSparseStorage22(sum[p][k]);
+                        for( j=0; j<nil; j++ )
+                        {
+                            iw=ilLocal(j,0,p);
+                            i1=ilLocal(j,1,p);
+                            i2=ilLocal(j,2,p);
+                            if( iw==2 )
+                            {
+                // interp22(sum[p][k]);
+                                    cr0 = q20(cfs(j,0));
+                                    cs0 = q20(cfs(j,1));
+                                    cr1 = q21(cfs(j,0));
+                                    cs1 = q21(cfs(j,1));
+                                    for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                    {
+                                        sum[p][k] = cs0*(cr0*VS(i1  ,i2  ,c1)+cr1*VS(i1+1,i2  ,c1))+cs1*(cr0*VS(i1  ,i2+1,c1)+cr1*VS(i1+1,i2+1,c1));
+                                        k++; 
+                                    }
+                            }
+                            else if( iw==1 )
+                            {
+                // interp11(sum[p][k]);
+                                    for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                    {
+                                        sum[p][k] = VS(i1  ,i2  ,c1);
+                                        k++; 
+                                    }
+                            }
+                            else
+                            {
+                                Overture::abort("ERROR: unexpected interp width");
+                            }
+                        }
+          	    }
+        	  }
+        	  else if( maxInterpolationWidth==1 )
+        	  {
+            // loops2d(sum[p][k]=VS(il0,il1,c1);)
+            //   if( false && c1Base==c1Bound )
+            //   {
+            //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+            //     for( j=0; j<nil; j++ )
+            //     {
+            //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+            //       sum[p][k]=VS(il0,il1,c1);
+            //       k++;
+            //     }
+            //   }
+                          for( j=0; j<nil; j++ )
+                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                          {
+                              int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+                              sum[p][k]=VS(il0,il1,c1);
+                              k++;
+                          }
+        	  }
+        	  else if( maxInterpolationWidth==5 ) // *wdh* 040207
+        	  {
+#define IW5(m1) (cf(j,0,m1)*VS(il0  ,il1+m1,c1)+cf(j,1,m1)*VS(il0+1,il1+m1,c1)+cf(j,2,m1)*VS(il0+2,il1+m1,c1)+cf(j,3,m1)*VS(il0+3,il1+m1,c1)+cf(j,4,m1)*VS(il0+4,il1+m1,c1))
+
+                        if( explicitInterpolationStorageOption==precomputeAllCoefficients )
+          	    {
+              // loops2d(sum[p][k]=IW5(0)+IW5(1)+IW5(2)+IW5(3)+IW5(4);)
+              //   if( false && c1Base==c1Bound )
+              //   {
+              //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+              //     for( j=0; j<nil; j++ )
+              //     {
+              //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+              //       sum[p][k]=IW5(0)+IW5(1)+IW5(2)+IW5(3)+IW5(4);
+              //       k++;
+              //     }
+              //   }
+                              for( j=0; j<nil; j++ )
+                              for( int c1=c1Base; c1<=c1Bound; c1++ )
+                              {
+                                  int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+                                  sum[p][k]=IW5(0)+IW5(1)+IW5(2)+IW5(3)+IW5(4);
+                                  k++;
+                              }
+          	    }
+          	    else
+          	    {
+              // interpSparseStorage55(sum[p][k]);
+                            for( j=0; j<nil; j++ )
+                            {
+                                iw=ilLocal(j,0,p);
+                                i1=ilLocal(j,1,p);
+                                i2=ilLocal(j,2,p);
+                                if( iw==5 )
+                                {
+                  // interp55(sum[p][k]);
+                                        cr0 = q50(cfs(j,0));
+                                        cs0 = q50(cfs(j,1));
+                                        cr1 = q51(cfs(j,0));
+                                        cs1 = q51(cfs(j,1));
+                                        cr2 = q52(cfs(j,0));
+                                        cs2 = q52(cfs(j,1));
+                                        cr3 = q53(cfs(j,0));
+                                        cs3 = q53(cfs(j,1));
+                                        cr4 = q54(cfs(j,0));
+                                        cs4 = q54(cfs(j,1));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = cs0*(cr0*VS(i1  ,i2  ,c1)+cr1*VS(i1+1,i2  ,c1)+cr2*VS(i1+2,i2  ,c1)+cr3*VS(i1+3,i2  ,c1)+cr4*VS(i1+4,i2  ,c1))+cs1*(cr0*VS(i1  ,i2+1,c1)+cr1*VS(i1+1,i2+1,c1)+cr2*VS(i1+2,i2+1,c1)+cr3*VS(i1+3,i2+1,c1)+cr4*VS(i1+4,i2+1,c1))+cs2*(cr0*VS(i1  ,i2+2,c1)+cr1*VS(i1+1,i2+2,c1)+cr2*VS(i1+2,i2+2,c1)+cr3*VS(i1+3,i2+2,c1)+cr4*VS(i1+4,i2+2,c1))+cs3*(cr0*VS(i1  ,i2+3,c1)+cr1*VS(i1+1,i2+3,c1)+cr2*VS(i1+2,i2+3,c1)+cr3*VS(i1+3,i2+3,c1)+cr4*VS(i1+4,i2+3,c1))+cs4*(cr0*VS(i1  ,i2+4,c1)+cr1*VS(i1+1,i2+4,c1)+cr2*VS(i1+2,i2+4,c1)+cr3*VS(i1+3,i2+4,c1)+cr4*VS(i1+4,i2+4,c1));
+                                            k++;
+                                        }
+                                }
+                                else if( iw==4 )
+                                {
+                  // interp44(sum[p][k]);
+                                        cr0 = q40(cfs(j,0));
+                                        cs0 = q40(cfs(j,1));
+                                        cr1 = q41(cfs(j,0));
+                                        cs1 = q41(cfs(j,1));
+                                        cr2 = q42(cfs(j,0));
+                                        cs2 = q42(cfs(j,1));
+                                        cr3 = q43(cfs(j,0));
+                                        cs3 = q43(cfs(j,1));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = cs0*(cr0*VS(i1  ,i2  ,c1)+cr1*VS(i1+1,i2  ,c1)+cr2*VS(i1+2,i2  ,c1)+cr3*VS(i1+3,i2  ,c1))+cs1*(cr0*VS(i1  ,i2+1,c1)+cr1*VS(i1+1,i2+1,c1)+cr2*VS(i1+2,i2+1,c1)+cr3*VS(i1+3,i2+1,c1))+cs2*(cr0*VS(i1  ,i2+2,c1)+cr1*VS(i1+1,i2+2,c1)+cr2*VS(i1+2,i2+2,c1)+cr3*VS(i1+3,i2+2,c1))+cs3*(cr0*VS(i1  ,i2+3,c1)+cr1*VS(i1+1,i2+3,c1)+cr2*VS(i1+2,i2+3,c1)+cr3*VS(i1+3,i2+3,c1));
+                                            k++;
+                                        }
+                                }
+                                else if( iw==3 )
+                                {
+                  // interp33(sum[p][k]);
+                                        cr0 = q30(cfs(j,0));
+                                        cs0 = q30(cfs(j,1));
+                                        cr1 = q31(cfs(j,0));
+                                        cs1 = q31(cfs(j,1));
+                                        cr2 = q32(cfs(j,0));
+                                        cs2 = q32(cfs(j,1));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = cs0*(cr0*VS(i1  ,i2  ,c1)+cr1*VS(i1+1,i2  ,c1)+cr2*VS(i1+2,i2  ,c1))+cs1*(cr0*VS(i1  ,i2+1,c1)+cr1*VS(i1+1,i2+1,c1)+cr2*VS(i1+2,i2+1,c1))+cs2*(cr0*VS(i1  ,i2+2,c1)+cr1*VS(i1+1,i2+2,c1)+cr2*VS(i1+2,i2+2,c1));
+                                            k++;
+                                        }
+                                }
+                                else if( iw==2 )
+                                {
+                  // interp22(sum[p][k]);
+                                        cr0 = q20(cfs(j,0));
+                                        cs0 = q20(cfs(j,1));
+                                        cr1 = q21(cfs(j,0));
+                                        cs1 = q21(cfs(j,1));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = cs0*(cr0*VS(i1  ,i2  ,c1)+cr1*VS(i1+1,i2  ,c1))+cs1*(cr0*VS(i1  ,i2+1,c1)+cr1*VS(i1+1,i2+1,c1));
+                                            k++; 
+                                        }
+                                }
+                                else if( iw==1 )
+                                {
+                  // interp11(sum[p][k]);
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = VS(i1  ,i2  ,c1);
+                                            k++; 
+                                        }
+                                }
+                                else
+                                {
+                                    Overture::abort("ERROR: unexpected interp width");
+                                }
+                            }
+          	    }
+#undef IW5
+        	  }
+        	  else
+        	  {
+	    // general case
+                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+          	    for( j=0; j<nil; j++ )
+          	    {
+            	      int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p);
+                            real value=0.;
+            	      for( m2=0; m2< width[axis2]; m2++ ) 
+            		for( m1=0; m1< width[axis1]; m1++ ) 
+              		  value+=cf(j,m1,m2)*VS(il0+m1,il1+m2,c1);
+
+            	      sum[p][k]=value;
+            	      k++;
+          	    }
+        	  }
+        	  
+      	}
+      	else if( numberOfDimensions==3 )
+      	{
+
+
+
+#undef c
+#define c(i,m1,m2,m3) coeffgp[m1+width[0]*(m2+width[1]*m3)][i]
+
+                    real *&vsp = vs.Array_Descriptor.Array_View_Pointer3;
+        	  const int vsDim0=vs.getRawDataSize(0);
+        	  const int vsDim1=vs.getRawDataSize(1);
+        	  const int vsDim2=vs.getRawDataSize(2);
+#undef VS
+#define VS(i0,i1,i2,i3) vsp[i0+vsDim0*(i1+vsDim1*(i2+vsDim2*(i3)))]
+
+          // *** new way
+                    #undef c
+        	  #define c(i,m1,m2,m3)  coeffap[i+nil*((m1)+width[0]*((m2)+width[1]*(m3)))]
+
+        	  if( maxInterpolationWidth==3 )
+        	  {
+                        if( explicitInterpolationStorageOption==precomputeAllCoefficients )
+          	    {
+            // loops3d(sum[p][k]=		(c(j,0,0,0)*VS(il0,il1  ,il2  ,c1)+c(j,1,0,0)*VS(il0+1,il1  ,il2  ,c1)+c(j,2,0,0)*VS(il0+2,il1  ,il2  ,c1)+		 c(j,0,1,0)*VS(il0,il1+1,il2  ,c1)+c(j,1,1,0)*VS(il0+1,il1+1,il2  ,c1)+c(j,2,1,0)*VS(il0+2,il1+1,il2  ,c1)+		 c(j,0,2,0)*VS(il0,il1+2,il2  ,c1)+c(j,1,2,0)*VS(il0+1,il1+2,il2  ,c1)+c(j,2,2,0)*VS(il0+2,il1+2,il2  ,c1)+		 c(j,0,0,1)*VS(il0,il1  ,il2+1,c1)+c(j,1,0,1)*VS(il0+1,il1  ,il2+1,c1)+c(j,2,0,1)*VS(il0+2,il1  ,il2+1,c1)+		 c(j,0,1,1)*VS(il0,il1+1,il2+1,c1)+c(j,1,1,1)*VS(il0+1,il1+1,il2+1,c1)+c(j,2,1,1)*VS(il0+2,il1+1,il2+1,c1)+		 c(j,0,2,1)*VS(il0,il1+2,il2+1,c1)+c(j,1,2,1)*VS(il0+1,il1+2,il2+1,c1)+c(j,2,2,1)*VS(il0+2,il1+2,il2+1,c1)+		 c(j,0,0,2)*VS(il0,il1  ,il2+2,c1)+c(j,1,0,2)*VS(il0+1,il1  ,il2+2,c1)+c(j,2,0,2)*VS(il0+2,il1  ,il2+2,c1)+		 c(j,0,1,2)*VS(il0,il1+1,il2+2,c1)+c(j,1,1,2)*VS(il0+1,il1+1,il2+2,c1)+c(j,2,1,2)*VS(il0+2,il1+1,il2+2,c1)+		 c(j,0,2,2)*VS(il0,il1+2,il2+2,c1)+c(j,1,2,2)*VS(il0+1,il1+2,il2+2,c1)+c(j,2,2,2)*VS(il0+2,il1+2,il2+2,c1));)
+            //   if( false && c1Base==c1Bound )
+            //   {
+            //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+            //     for( j=0; j<nil; j++ )
+            //     {
+            //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+            //       sum[p][k]=		(c(j,0,0,0)*VS(il0,il1,il2,c1)+c(j,1,0,0)*VS(il0+1,il1,il2,c1)+c(j,2,0,0)*VS(il0+2,il1,il2,c1)+		c(j,0,1,0)*VS(il0,il1+1,il2,c1)+c(j,1,1,0)*VS(il0+1,il1+1,il2,c1)+c(j,2,1,0)*VS(il0+2,il1+1,il2,c1)+		c(j,0,2,0)*VS(il0,il1+2,il2,c1)+c(j,1,2,0)*VS(il0+1,il1+2,il2,c1)+c(j,2,2,0)*VS(il0+2,il1+2,il2,c1)+		c(j,0,0,1)*VS(il0,il1,il2+1,c1)+c(j,1,0,1)*VS(il0+1,il1,il2+1,c1)+c(j,2,0,1)*VS(il0+2,il1,il2+1,c1)+		c(j,0,1,1)*VS(il0,il1+1,il2+1,c1)+c(j,1,1,1)*VS(il0+1,il1+1,il2+1,c1)+c(j,2,1,1)*VS(il0+2,il1+1,il2+1,c1)+		c(j,0,2,1)*VS(il0,il1+2,il2+1,c1)+c(j,1,2,1)*VS(il0+1,il1+2,il2+1,c1)+c(j,2,2,1)*VS(il0+2,il1+2,il2+1,c1)+		c(j,0,0,2)*VS(il0,il1,il2+2,c1)+c(j,1,0,2)*VS(il0+1,il1,il2+2,c1)+c(j,2,0,2)*VS(il0+2,il1,il2+2,c1)+		c(j,0,1,2)*VS(il0,il1+1,il2+2,c1)+c(j,1,1,2)*VS(il0+1,il1+1,il2+2,c1)+c(j,2,1,2)*VS(il0+2,il1+1,il2+2,c1)+		c(j,0,2,2)*VS(il0,il1+2,il2+2,c1)+c(j,1,2,2)*VS(il0+1,il1+2,il2+2,c1)+c(j,2,2,2)*VS(il0+2,il1+2,il2+2,c1));
+            //       k++;
+            //     }
+            //   }
+                          for( j=0; j<nil; j++ )
+                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                          {
+                              int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+                              sum[p][k]=		(c(j,0,0,0)*VS(il0,il1,il2,c1)+c(j,1,0,0)*VS(il0+1,il1,il2,c1)+c(j,2,0,0)*VS(il0+2,il1,il2,c1)+		c(j,0,1,0)*VS(il0,il1+1,il2,c1)+c(j,1,1,0)*VS(il0+1,il1+1,il2,c1)+c(j,2,1,0)*VS(il0+2,il1+1,il2,c1)+		c(j,0,2,0)*VS(il0,il1+2,il2,c1)+c(j,1,2,0)*VS(il0+1,il1+2,il2,c1)+c(j,2,2,0)*VS(il0+2,il1+2,il2,c1)+		c(j,0,0,1)*VS(il0,il1,il2+1,c1)+c(j,1,0,1)*VS(il0+1,il1,il2+1,c1)+c(j,2,0,1)*VS(il0+2,il1,il2+1,c1)+		c(j,0,1,1)*VS(il0,il1+1,il2+1,c1)+c(j,1,1,1)*VS(il0+1,il1+1,il2+1,c1)+c(j,2,1,1)*VS(il0+2,il1+1,il2+1,c1)+		c(j,0,2,1)*VS(il0,il1+2,il2+1,c1)+c(j,1,2,1)*VS(il0+1,il1+2,il2+1,c1)+c(j,2,2,1)*VS(il0+2,il1+2,il2+1,c1)+		c(j,0,0,2)*VS(il0,il1,il2+2,c1)+c(j,1,0,2)*VS(il0+1,il1,il2+2,c1)+c(j,2,0,2)*VS(il0+2,il1,il2+2,c1)+		c(j,0,1,2)*VS(il0,il1+1,il2+2,c1)+c(j,1,1,2)*VS(il0+1,il1+1,il2+2,c1)+c(j,2,1,2)*VS(il0+2,il1+1,il2+2,c1)+		c(j,0,2,2)*VS(il0,il1+2,il2+2,c1)+c(j,1,2,2)*VS(il0+1,il1+2,il2+2,c1)+c(j,2,2,2)*VS(il0+2,il1+2,il2+2,c1));
+                              k++;
+                          }
+
+          	    }
+          	    else
+          	    {
+              // interpSparseStorage333(sum[p][k]);
+                            for( j=0; j<nil; j++ )
+                            {
+                                iw=ilLocal(j,0,p); i1=ilLocal(j,1,p); i2=ilLocal(j,2,p); i3=ilLocal(j,3,p);
+                                if( iw==3 )
+                                {
+                  // interp333(sum[p][k]);
+                                        cr0 = q30(cfs(j,0));
+                                        cs0 = q30(cfs(j,1));
+                                        ct0 = q30(cfs(j,2));
+                                        cr1 = q31(cfs(j,0));
+                                        cs1 = q31(cfs(j,1));
+                                        ct1 = q31(cfs(j,2));
+                                        cr2 = q32(cfs(j,0));
+                                        cs2 = q32(cfs(j,1));
+                                        ct2 = q32(cfs(j,2));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = ct0*(	    cs0*(cr0*VS(i1,i2,i3+0,c1)+cr1*VS(i1+1,i2,i3+0,c1)+cr2*VS(i1+2,i2,i3+0,c1))	   +cs1*(cr0*VS(i1,i2+1,i3+0,c1)+cr1*VS(i1+1,i2+1,i3+0,c1)+cr2*VS(i1+2,i2+1,i3+0,c1))	   +cs2*(cr0*VS(i1,i2+2,i3+0,c1)+cr1*VS(i1+1,i2+2,i3+0,c1)+cr2*VS(i1+2,i2+2,i3+0,c1))	)+ct1*(	     cs0*(cr0*VS(i1,i2,i3+1,c1)+cr1*VS(i1+1,i2,i3+1,c1)+cr2*VS(i1+2,i2,i3+1,c1))	    +cs1*(cr0*VS(i1,i2+1,i3+1,c1)+cr1*VS(i1+1,i2+1,i3+1,c1)+cr2*VS(i1+2,i2+1,i3+1,c1))	    +cs2*(cr0*VS(i1,i2+2,i3+1,c1)+cr1*VS(i1+1,i2+2,i3+1,c1)+cr2*VS(i1+2,i2+2,i3+1,c1))	)+ct2*(	     cs0*(cr0*VS(i1,i2,i3+2,c1)+cr1*VS(i1+1,i2,i3+2,c1)+cr2*VS(i1+2,i2,i3+2,c1))	    +cs1*(cr0*VS(i1,i2+1,i3+2,c1)+cr1*VS(i1+1,i2+1,i3+2,c1)+cr2*VS(i1+2,i2+1,i3+2,c1))	    +cs2*(cr0*VS(i1,i2+2,i3+2,c1)+cr1*VS(i1+1,i2+2,i3+2,c1)+cr2*VS(i1+2,i2+2,i3+2,c1))	);
+                                            k++;
+                                        }
+                                }
+                                else if( iw==2 )
+                                {
+                  // interp222(sum[p][k]);
+                                        cr0 = q20(cfs(j,0)); 
+                                        cs0 = q20(cfs(j,1)); 
+                                        ct0 = q20(cfs(j,2)); 
+                                        cr1 = q21(cfs(j,0)); 
+                                        cs1 = q21(cfs(j,1)); 
+                                        ct1 = q21(cfs(j,2)); 
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = ct0*(	    cs0*(cr0*VS(i1,i2,i3+0,c1)+cr1*VS(i1+1,i2,i3+0,c1))	   +cs1*(cr0*VS(i1,i2+1,i3+0,c1)+cr1*VS(i1+1,i2+1,i3+0,c1))	)+ct1*(	     cs0*(cr0*VS(i1,i2,i3+1,c1)+cr1*VS(i1+1,i2,i3+1,c1))	    +cs1*(cr0*VS(i1,i2+1,i3+1,c1)+cr1*VS(i1+1,i2+1,i3+1,c1))	);
+                                            k++;
+                                        }
+                                }
+                                else if( iw==1 )
+                                {
+                  // interp111(sum[p][k]);
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = VS(i1  ,i2  ,i3,c1);
+                                            k++; 
+                                        }
+                                }
+                                else
+                                {
+                                    Overture::abort("ERROR: unexpected interp width");
+                                }
+                            }
+          	    }
+        	  }
+        	  else if( maxInterpolationWidth==2 )
+        	  {
+                        if( explicitInterpolationStorageOption==precomputeAllCoefficients )
+          	    {
+            // 	      loops3d(sum[p][k]=		      (c(j,0,0,0)*VS(il0,il1  ,il2  ,c1)+c(j,1,0,0)*VS(il0+1,il1  ,il2  ,c1)+		       c(j,0,1,0)*VS(il0,il1+1,il2  ,c1)+c(j,1,1,0)*VS(il0+1,il1+1,il2  ,c1)+		       c(j,0,0,1)*VS(il0,il1  ,il2+1,c1)+c(j,1,0,1)*VS(il0+1,il1  ,il2+1,c1)+		       c(j,0,1,1)*VS(il0,il1+1,il2+1,c1)+c(j,1,1,1)*VS(il0+1,il1+1,il2+1,c1)););
+            //   if( false && c1Base==c1Bound )
+            //   {
+            //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+            //     for( j=0; j<nil; j++ )
+            //     {
+            //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+            //       sum[p][k]=		(c(j,0,0,0)*VS(il0,il1,il2,c1)+c(j,1,0,0)*VS(il0+1,il1,il2,c1)+		c(j,0,1,0)*VS(il0,il1+1,il2,c1)+c(j,1,1,0)*VS(il0+1,il1+1,il2,c1)+		c(j,0,0,1)*VS(il0,il1,il2+1,c1)+c(j,1,0,1)*VS(il0+1,il1,il2+1,c1)+		c(j,0,1,1)*VS(il0,il1+1,il2+1,c1)+c(j,1,1,1)*VS(il0+1,il1+1,il2+1,c1));
+            //       k++;
+            //     }
+            //   }
+                          for( j=0; j<nil; j++ )
+                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                          {
+                              int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+                              sum[p][k]=		(c(j,0,0,0)*VS(il0,il1,il2,c1)+c(j,1,0,0)*VS(il0+1,il1,il2,c1)+		c(j,0,1,0)*VS(il0,il1+1,il2,c1)+c(j,1,1,0)*VS(il0+1,il1+1,il2,c1)+		c(j,0,0,1)*VS(il0,il1,il2+1,c1)+c(j,1,0,1)*VS(il0+1,il1,il2+1,c1)+		c(j,0,1,1)*VS(il0,il1+1,il2+1,c1)+c(j,1,1,1)*VS(il0+1,il1+1,il2+1,c1));
+                              k++;
+                          }
+          	    }
+          	    else
+          	    {
+               // interpSparseStorage222(sum[p][k]);
+                              for( j=0; j<nil; j++ )
+                              {
+                                  iw=ilLocal(j,0,p); i1=ilLocal(j,1,p); i2=ilLocal(j,2,p); i3=ilLocal(j,3,p);
+                                  if( iw==2 )
+                                  {
+                   // interp222(sum[p][k]);
+                                          cr0 = q20(cfs(j,0)); 
+                                          cs0 = q20(cfs(j,1)); 
+                                          ct0 = q20(cfs(j,2)); 
+                                          cr1 = q21(cfs(j,0)); 
+                                          cs1 = q21(cfs(j,1)); 
+                                          ct1 = q21(cfs(j,2)); 
+                                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                          {
+                                              sum[p][k] = ct0*(	    cs0*(cr0*VS(i1,i2,i3+0,c1)+cr1*VS(i1+1,i2,i3+0,c1))	   +cs1*(cr0*VS(i1,i2+1,i3+0,c1)+cr1*VS(i1+1,i2+1,i3+0,c1))	)+ct1*(	     cs0*(cr0*VS(i1,i2,i3+1,c1)+cr1*VS(i1+1,i2,i3+1,c1))	    +cs1*(cr0*VS(i1,i2+1,i3+1,c1)+cr1*VS(i1+1,i2+1,i3+1,c1))	);
+                                              k++;
+                                          }
+                                  }
+                                  else if( iw==1 )
+                                  {
+                   // interp111(sum[p][k]);
+                                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                          {
+                                              sum[p][k] = VS(i1  ,i2  ,i3,c1);
+                                              k++; 
+                                          }
+                                  }
+                                  else
+                                  {
+                                      Overture::abort("ERROR: unexpected interp width");
+                                  }
+                              }
+          	    }
+        	  }
+        	  else if( maxInterpolationWidth==5 ) // *wdh* 040207
+        	  {
+#define IW5A(m1,m2) (c(j,0,m1,m2)*VS(il0  ,il1+m1,il2+m2,c1)+c(j,1,m1,m2)*VS(il0+1,il1+m1,il2+m2,c1)+c(j,2,m1,m2)*VS(il0+2,il1+m1,il2+m2,c1)+c(j,3,m1,m2)*VS(il0+3,il1+m1,il2+m2,c1)+c(j,4,m1,m2)*VS(il0+4,il1+m1,il2+m2,c1))
+#define IW5(m2) (IW5A(0,m2)+IW5A(1,m2)+IW5A(2,m2)+IW5A(3,m2)+IW5A(4,m2))
+
+                        if( explicitInterpolationStorageOption==precomputeAllCoefficients )
+          	    {
+              // loops3d(sum[p][k]=IW5(0)+IW5(1)+IW5(2)+IW5(3)+IW5(4););
+              //   if( false && c1Base==c1Bound )
+              //   {
+              //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+              //     for( j=0; j<nil; j++ )
+              //     {
+              //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+              //       sum[p][k]=IW5(0)+IW5(1)+IW5(2)+IW5(3)+IW5(4);
+              //       k++;
+              //     }
+              //   }
+                              for( j=0; j<nil; j++ )
+                              for( int c1=c1Base; c1<=c1Bound; c1++ )
+                              {
+                                  int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+                                  sum[p][k]=IW5(0)+IW5(1)+IW5(2)+IW5(3)+IW5(4);
+                                  k++;
+                              }
+          	    }
+          	    else
+          	    {
+              // interpSparseStorage555(sum[p][k]);
+                            for( j=0; j<nil; j++ )
+                            {
+                                iw=ilLocal(j,0,p); i1=ilLocal(j,1,p); i2=ilLocal(j,2,p); i3=ilLocal(j,3,p);
+                                if( iw==5 )
+                                {
+                  // interp555(sum[p][k]);
+                                        cr0 = q50(cfs(j,0));
+                                        cs0 = q50(cfs(j,1));
+                                        ct0 = q50(cfs(j,2));
+                                        cr1 = q51(cfs(j,0));
+                                        cs1 = q51(cfs(j,1));
+                                        ct1 = q51(cfs(j,2));
+                                        cr2 = q52(cfs(j,0));
+                                        cs2 = q52(cfs(j,1));
+                                        ct2 = q52(cfs(j,2));
+                                        cr3 = q53(cfs(j,0));
+                                        cs3 = q53(cfs(j,1));
+                                        ct3 = q53(cfs(j,2));
+                                        cr4 = q54(cfs(j,0));
+                                        cs4 = q54(cfs(j,1));
+                                        ct4 = q54(cfs(j,2));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                    sum[p][k] = ct0*(cs0*(cr0*VS(i1,i2  ,i3+0,c1)+cr1*VS(i1+1,i2  ,i3+0,c1)+cr2*VS(i1+2,i2  ,i3+0,c1)+cr3*VS(i1+3,i2  ,i3+0,c1)+cr4*VS(i1+4,i2  ,i3+0,c1))+cs1*(cr0*VS(i1,i2+1,i3+0,c1)+cr1*VS(i1+1,i2+1,i3+0,c1)+cr2*VS(i1+2,i2+1,i3+0,c1)+cr3*VS(i1+3,i2+1,i3+0,c1)+cr4*VS(i1+4,i2+1,i3+0,c1))+cs2*(cr0*VS(i1,i2+2,i3+0,c1)+cr1*VS(i1+1,i2+2,i3+0,c1)+cr2*VS(i1+2,i2+2,i3+0,c1)+cr3*VS(i1+3,i2+2,i3+0,c1)+cr4*VS(i1+4,i2+2,i3+0,c1))+cs3*(cr0*VS(i1,i2+3,i3+0,c1)+cr1*VS(i1+1,i2+3,i3+0,c1)+cr2*VS(i1+2,i2+3,i3+0,c1)+cr3*VS(i1+3,i2+3,i3+0,c1)+cr4*VS(i1+4,i2+3,i3+0,c1))+cs4*(cr0*VS(i1,i2+4,i3+0,c1)+cr1*VS(i1+1,i2+4,i3+0,c1)+cr2*VS(i1+2,i2+4,i3+0,c1)+cr3*VS(i1+3,i2+4,i3+0,c1)+cr4*VS(i1+4,i2+4,i3+0,c1)))+ct1*(cs0*(cr0*VS(i1,i2  ,i3+1,c1)+cr1*VS(i1+1,i2  ,i3+1,c1)+cr2*VS(i1+2,i2  ,i3+1,c1)+cr3*VS(i1+3,i2  ,i3+1,c1)+cr4*VS(i1+4,i2  ,i3+1,c1))+cs1*(cr0*VS(i1,i2+1,i3+1,c1)+cr1*VS(i1+1,i2+1,i3+1,c1)+cr2*VS(i1+2,i2+1,i3+1,c1)+cr3*VS(i1+3,i2+1,i3+1,c1)+cr4*VS(i1+4,i2+1,i3+1,c1))+cs2*(cr0*VS(i1,i2+2,i3+1,c1)+cr1*VS(i1+1,i2+2,i3+1,c1)+cr2*VS(i1+2,i2+2,i3+1,c1)+cr3*VS(i1+3,i2+2,i3+1,c1)+cr4*VS(i1+4,i2+2,i3+1,c1))+cs3*(cr0*VS(i1,i2+3,i3+1,c1)+cr1*VS(i1+1,i2+3,i3+1,c1)+cr2*VS(i1+2,i2+3,i3+1,c1)+cr3*VS(i1+3,i2+3,i3+1,c1)+cr4*VS(i1+4,i2+3,i3+1,c1))+cs4*(cr0*VS(i1,i2+4,i3+1,c1)+cr1*VS(i1+1,i2+4,i3+1,c1)+cr2*VS(i1+2,i2+4,i3+1,c1)+cr3*VS(i1+3,i2+4,i3+1,c1)+cr4*VS(i1+4,i2+4,i3+1,c1)))+ct2*(cs0*(cr0*VS(i1,i2  ,i3+2,c1)+cr1*VS(i1+1,i2  ,i3+2,c1)+cr2*VS(i1+2,i2  ,i3+2,c1)+cr3*VS(i1+3,i2  ,i3+2,c1)+cr4*VS(i1+4,i2  ,i3+2,c1))+cs1*(cr0*VS(i1,i2+1,i3+2,c1)+cr1*VS(i1+1,i2+1,i3+2,c1)+cr2*VS(i1+2,i2+1,i3+2,c1)+cr3*VS(i1+3,i2+1,i3+2,c1)+cr4*VS(i1+4,i2+1,i3+2,c1))+cs2*(cr0*VS(i1,i2+2,i3+2,c1)+cr1*VS(i1+1,i2+2,i3+2,c1)+cr2*VS(i1+2,i2+2,i3+2,c1)+cr3*VS(i1+3,i2+2,i3+2,c1)+cr4*VS(i1+4,i2+2,i3+2,c1))+cs3*(cr0*VS(i1,i2+3,i3+2,c1)+cr1*VS(i1+1,i2+3,i3+2,c1)+cr2*VS(i1+2,i2+3,i3+2,c1)+cr3*VS(i1+3,i2+3,i3+2,c1)+cr4*VS(i1+4,i2+3,i3+2,c1))+cs4*(cr0*VS(i1,i2+4,i3+2,c1)+cr1*VS(i1+1,i2+4,i3+2,c1)+cr2*VS(i1+2,i2+4,i3+2,c1)+cr3*VS(i1+3,i2+4,i3+2,c1)+cr4*VS(i1+4,i2+4,i3+2,c1)))+ct3*(cs0*(cr0*VS(i1,i2  ,i3+3,c1)+cr1*VS(i1+1,i2  ,i3+3,c1)+cr2*VS(i1+2,i2  ,i3+3,c1)+cr3*VS(i1+3,i2  ,i3+3,c1)+cr4*VS(i1+4,i2  ,i3+3,c1))+cs1*(cr0*VS(i1,i2+1,i3+3,c1)+cr1*VS(i1+1,i2+1,i3+3,c1)+cr2*VS(i1+2,i2+1,i3+3,c1)+cr3*VS(i1+3,i2+1,i3+3,c1)+cr4*VS(i1+4,i2+1,i3+3,c1))+cs2*(cr0*VS(i1,i2+2,i3+3,c1)+cr1*VS(i1+1,i2+2,i3+3,c1)+cr2*VS(i1+2,i2+2,i3+3,c1)+cr3*VS(i1+3,i2+2,i3+3,c1)+cr4*VS(i1+4,i2+2,i3+3,c1))+cs3*(cr0*VS(i1,i2+3,i3+3,c1)+cr1*VS(i1+1,i2+3,i3+3,c1)+cr2*VS(i1+2,i2+3,i3+3,c1)+cr3*VS(i1+3,i2+3,i3+3,c1)+cr4*VS(i1+4,i2+3,i3+3,c1))+cs4*(cr0*VS(i1,i2+4,i3+3,c1)+cr1*VS(i1+1,i2+4,i3+3,c1)+cr2*VS(i1+2,i2+4,i3+3,c1)+cr3*VS(i1+3,i2+4,i3+3,c1)+cr4*VS(i1+4,i2+4,i3+3,c1)))+ct4*(cs0*(cr0*VS(i1,i2  ,i3+4,c1)+cr1*VS(i1+1,i2  ,i3+4,c1)+cr2*VS(i1+2,i2  ,i3+4,c1)+cr3*VS(i1+3,i2  ,i3+4,c1)+cr4*VS(i1+4,i2  ,i3+4,c1))+cs1*(cr0*VS(i1,i2+1,i3+4,c1)+cr1*VS(i1+1,i2+1,i3+4,c1)+cr2*VS(i1+2,i2+1,i3+4,c1)+cr3*VS(i1+3,i2+1,i3+4,c1)+cr4*VS(i1+4,i2+1,i3+4,c1))+cs2*(cr0*VS(i1,i2+2,i3+4,c1)+cr1*VS(i1+1,i2+2,i3+4,c1)+cr2*VS(i1+2,i2+2,i3+4,c1)+cr3*VS(i1+3,i2+2,i3+4,c1)+cr4*VS(i1+4,i2+2,i3+4,c1))+cs3*(cr0*VS(i1,i2+3,i3+4,c1)+cr1*VS(i1+1,i2+3,i3+4,c1)+cr2*VS(i1+2,i2+3,i3+4,c1)+cr3*VS(i1+3,i2+3,i3+4,c1)+cr4*VS(i1+4,i2+3,i3+4,c1))+cs4*(cr0*VS(i1,i2+4,i3+4,c1)+cr1*VS(i1+1,i2+4,i3+4,c1)+cr2*VS(i1+2,i2+4,i3+4,c1)+cr3*VS(i1+3,i2+4,i3+4,c1)+cr4*VS(i1+4,i2+4,i3+4,c1)));
+                                          k++;
+                                        } // end for c1
+                                }
+                                else if( iw==4 )
+                                {
+                  // interp444(sum[p][k]);
+                                        cr0 = q40(cfs(j,0));
+                                        cs0 = q40(cfs(j,1));
+                                        ct0 = q40(cfs(j,2));
+                                        cr1 = q41(cfs(j,0));
+                                        cs1 = q41(cfs(j,1));
+                                        ct1 = q41(cfs(j,2));
+                                        cr2 = q42(cfs(j,0));
+                                        cs2 = q42(cfs(j,1));
+                                        ct2 = q42(cfs(j,2));
+                                        cr3 = q43(cfs(j,0));
+                                        cs3 = q43(cfs(j,1));
+                                        ct3 = q43(cfs(j,2));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                    sum[p][k] = ct0*(cs0*(cr0*VS(i1,i2  ,i3+0,c1)+cr1*VS(i1+1,i2  ,i3+0,c1)+cr2*VS(i1+2,i2  ,i3+0,c1)+cr3*VS(i1+3,i2  ,i3+0,c1))+cs1*(cr0*VS(i1,i2+1,i3+0,c1)+cr1*VS(i1+1,i2+1,i3+0,c1)+cr2*VS(i1+2,i2+1,i3+0,c1)+cr3*VS(i1+3,i2+1,i3+0,c1))+cs2*(cr0*VS(i1,i2+2,i3+0,c1)+cr1*VS(i1+1,i2+2,i3+0,c1)+cr2*VS(i1+2,i2+2,i3+0,c1)+cr3*VS(i1+3,i2+2,i3+0,c1))+cs3*(cr0*VS(i1,i2+3,i3+0,c1)+cr1*VS(i1+1,i2+3,i3+0,c1)+cr2*VS(i1+2,i2+3,i3+0,c1)+cr3*VS(i1+3,i2+3,i3+0,c1))+cs4*(cr0*VS(i1,i2+4,i3+0,c1)+cr1*VS(i1+1,i2+4,i3+0,c1)+cr2*VS(i1+2,i2+4,i3+0,c1)+cr3*VS(i1+3,i2+4,i3+0,c1)))+ct1*(cs0*(cr0*VS(i1,i2  ,i3+1,c1)+cr1*VS(i1+1,i2  ,i3+1,c1)+cr2*VS(i1+2,i2  ,i3+1,c1)+cr3*VS(i1+3,i2  ,i3+1,c1))+cs1*(cr0*VS(i1,i2+1,i3+1,c1)+cr1*VS(i1+1,i2+1,i3+1,c1)+cr2*VS(i1+2,i2+1,i3+1,c1)+cr3*VS(i1+3,i2+1,i3+1,c1))+cs2*(cr0*VS(i1,i2+2,i3+1,c1)+cr1*VS(i1+1,i2+2,i3+1,c1)+cr2*VS(i1+2,i2+2,i3+1,c1)+cr3*VS(i1+3,i2+2,i3+1,c1))+cs3*(cr0*VS(i1,i2+3,i3+1,c1)+cr1*VS(i1+1,i2+3,i3+1,c1)+cr2*VS(i1+2,i2+3,i3+1,c1)+cr3*VS(i1+3,i2+3,i3+1,c1))+cs4*(cr0*VS(i1,i2+4,i3+1,c1)+cr1*VS(i1+1,i2+4,i3+1,c1)+cr2*VS(i1+2,i2+4,i3+1,c1)+cr3*VS(i1+3,i2+4,i3+1,c1)))+ct2*(cs0*(cr0*VS(i1,i2  ,i3+2,c1)+cr1*VS(i1+1,i2  ,i3+2,c1)+cr2*VS(i1+2,i2  ,i3+2,c1)+cr3*VS(i1+3,i2  ,i3+2,c1))+cs1*(cr0*VS(i1,i2+1,i3+2,c1)+cr1*VS(i1+1,i2+1,i3+2,c1)+cr2*VS(i1+2,i2+1,i3+2,c1)+cr3*VS(i1+3,i2+1,i3+2,c1))+cs2*(cr0*VS(i1,i2+2,i3+2,c1)+cr1*VS(i1+1,i2+2,i3+2,c1)+cr2*VS(i1+2,i2+2,i3+2,c1)+cr3*VS(i1+3,i2+2,i3+2,c1))+cs3*(cr0*VS(i1,i2+3,i3+2,c1)+cr1*VS(i1+1,i2+3,i3+2,c1)+cr2*VS(i1+2,i2+3,i3+2,c1)+cr3*VS(i1+3,i2+3,i3+2,c1))+cs4*(cr0*VS(i1,i2+4,i3+2,c1)+cr1*VS(i1+1,i2+4,i3+2,c1)+cr2*VS(i1+2,i2+4,i3+2,c1)+cr3*VS(i1+3,i2+4,i3+2,c1)))+ct3*(cs0*(cr0*VS(i1,i2  ,i3+3,c1)+cr1*VS(i1+1,i2  ,i3+3,c1)+cr2*VS(i1+2,i2  ,i3+3,c1)+cr3*VS(i1+3,i2  ,i3+3,c1))+cs1*(cr0*VS(i1,i2+1,i3+3,c1)+cr1*VS(i1+1,i2+1,i3+3,c1)+cr2*VS(i1+2,i2+1,i3+3,c1)+cr3*VS(i1+3,i2+1,i3+3,c1))+cs2*(cr0*VS(i1,i2+2,i3+3,c1)+cr1*VS(i1+1,i2+2,i3+3,c1)+cr2*VS(i1+2,i2+2,i3+3,c1)+cr3*VS(i1+3,i2+2,i3+3,c1))+cs3*(cr0*VS(i1,i2+3,i3+3,c1)+cr1*VS(i1+1,i2+3,i3+3,c1)+cr2*VS(i1+2,i2+3,i3+3,c1)+cr3*VS(i1+3,i2+3,i3+3,c1))+cs4*(cr0*VS(i1,i2+4,i3+3,c1)+cr1*VS(i1+1,i2+4,i3+3,c1)+cr2*VS(i1+2,i2+4,i3+3,c1)+cr3*VS(i1+3,i2+4,i3+3,c1)));
+                                          k++;
+                                        } // end for c1
+                                }
+                                else if( iw==3 )
+                                {
+                  // interp333(sum[p][k]);
+                                        cr0 = q30(cfs(j,0));
+                                        cs0 = q30(cfs(j,1));
+                                        ct0 = q30(cfs(j,2));
+                                        cr1 = q31(cfs(j,0));
+                                        cs1 = q31(cfs(j,1));
+                                        ct1 = q31(cfs(j,2));
+                                        cr2 = q32(cfs(j,0));
+                                        cs2 = q32(cfs(j,1));
+                                        ct2 = q32(cfs(j,2));
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = ct0*(	    cs0*(cr0*VS(i1,i2,i3+0,c1)+cr1*VS(i1+1,i2,i3+0,c1)+cr2*VS(i1+2,i2,i3+0,c1))	   +cs1*(cr0*VS(i1,i2+1,i3+0,c1)+cr1*VS(i1+1,i2+1,i3+0,c1)+cr2*VS(i1+2,i2+1,i3+0,c1))	   +cs2*(cr0*VS(i1,i2+2,i3+0,c1)+cr1*VS(i1+1,i2+2,i3+0,c1)+cr2*VS(i1+2,i2+2,i3+0,c1))	)+ct1*(	     cs0*(cr0*VS(i1,i2,i3+1,c1)+cr1*VS(i1+1,i2,i3+1,c1)+cr2*VS(i1+2,i2,i3+1,c1))	    +cs1*(cr0*VS(i1,i2+1,i3+1,c1)+cr1*VS(i1+1,i2+1,i3+1,c1)+cr2*VS(i1+2,i2+1,i3+1,c1))	    +cs2*(cr0*VS(i1,i2+2,i3+1,c1)+cr1*VS(i1+1,i2+2,i3+1,c1)+cr2*VS(i1+2,i2+2,i3+1,c1))	)+ct2*(	     cs0*(cr0*VS(i1,i2,i3+2,c1)+cr1*VS(i1+1,i2,i3+2,c1)+cr2*VS(i1+2,i2,i3+2,c1))	    +cs1*(cr0*VS(i1,i2+1,i3+2,c1)+cr1*VS(i1+1,i2+1,i3+2,c1)+cr2*VS(i1+2,i2+1,i3+2,c1))	    +cs2*(cr0*VS(i1,i2+2,i3+2,c1)+cr1*VS(i1+1,i2+2,i3+2,c1)+cr2*VS(i1+2,i2+2,i3+2,c1))	);
+                                            k++;
+                                        }
+                                }
+                                else if( iw==2 )
+                                {
+                  // interp222(sum[p][k]);
+                                        cr0 = q20(cfs(j,0)); 
+                                        cs0 = q20(cfs(j,1)); 
+                                        ct0 = q20(cfs(j,2)); 
+                                        cr1 = q21(cfs(j,0)); 
+                                        cs1 = q21(cfs(j,1)); 
+                                        ct1 = q21(cfs(j,2)); 
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = ct0*(	    cs0*(cr0*VS(i1,i2,i3+0,c1)+cr1*VS(i1+1,i2,i3+0,c1))	   +cs1*(cr0*VS(i1,i2+1,i3+0,c1)+cr1*VS(i1+1,i2+1,i3+0,c1))	)+ct1*(	     cs0*(cr0*VS(i1,i2,i3+1,c1)+cr1*VS(i1+1,i2,i3+1,c1))	    +cs1*(cr0*VS(i1,i2+1,i3+1,c1)+cr1*VS(i1+1,i2+1,i3+1,c1))	);
+                                            k++;
+                                        }
+                                }
+                                else if( iw==1 )
+                                {
+                  // interp111(sum[p][k]);
+                                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                        {
+                                            sum[p][k] = VS(i1  ,i2  ,i3,c1);
+                                            k++; 
+                                        }
+                                }
+                                else
+                                {
+                                    Overture::abort("ERROR: unexpected interp width");
+                                }
+                            }
+          	    }
+#undef IW5
+#undef IW55
+        	  }
+        	  else if( maxInterpolationWidth==1 )
+        	  {
+            // loops3d(sum[p][k]=VS(il0,il1,il2,c1);)
+            //   if( false && c1Base==c1Bound )
+            //   {
+            //     for( int c1=c1Base; c1<=c1Bound; c1++ )
+            //     for( j=0; j<nil; j++ )
+            //     {
+            //       int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+            //       sum[p][k]=VS(il0,il1,il2,c1);
+            //       k++;
+            //     }
+            //   }
+                          for( j=0; j<nil; j++ )
+                          for( int c1=c1Base; c1<=c1Bound; c1++ )
+                          {
+                              int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+                              sum[p][k]=VS(il0,il1,il2,c1);
+                              k++;
+                          }
+
+        	  }
+        	  else
+        	  {
+	    // general case
+                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+          	    for( j=0; j<nil; j++ )
+          	    {
+            	      int il0=ilLocal(j,1,p), il1=ilLocal(j,2,p), il2=ilLocal(j,3,p);
+                            real value=0.;
+            	      for( m3=0; m3< width[axis3]; m3++ ) 
+            		for( m2=0; m2< width[axis2]; m2++ ) 
+              		  for( m1=0; m1< width[axis1]; m1++ ) 
+                		    value+=c(j,m1,m2,m3)*VS(il0+m1,il1+m2,il2+m3,c1);
+
+            	      sum[p][k]=value;
+            	      k++;
+          	    }
+        	  }
+
+        	  
+      	}
+      	else
+      	{
+        	  printf("ParallelOverlappingGridInterpolator:interpolate:ERROR: numberOfDimensions=%i\n",numberOfDimensions);
+        	  throw "error";
+      	}
+            }
+        } // for grid 2
+    } // for grid
+    
+#undef c
+#define nipLocal(i0,i1,i2) nipLocalp[i2][i1][i0]
+
+  // post receives first  -- move this up ! ******************************
+    int pp;
+    const int tag1=250413; // make a unique tag
+    for( pp=0; pp<numberOfProcessorsToReceiveFrom; pp++ )
+    {
+        p=pMapr[pp];
+
+    // printf("processor %i: post receive from processor %i\n",myid,p);
+        if( debug )
+        {
+            fprintf(debugFile," -> receive sum: expect %i values sent from processor % i to %i \n",numToReceive[p],p,myid);
+            if( numToReceive[p]==0 ) 
+                fprintf(debugFile," **-> receive sum: expect no values sent from processor % i to %i \n",p,myid);
+        }
+        int tag=tag1+myid;
+        MPI_Irecv(dbuff[p],numToReceive[p],MPI_Real,p,tag,POGI_COMM,&receiveRequest[pp] ); // nid
+    }
+
+  // we need to send sum[p] to processor p
+    for( pp=0; pp<numberOfProcessorsToSendTo; pp++ )
+    {
+        p=pMaps[pp];
+
+        if( debug & 2 )
+        {
+            fprintf(debugFile,"-> processor %i: send %i values to processor %i values=",myid,niv[p],p );
+            for( int j=0; j<niv[p]; j++ ) fprintf(debugFile,"%8.2e ",sum[p][j]); printf("\n");
+        }
+        int nivd=niv[p];
+        if( debug )
+        {
+      // **** we should avoid sending zero length messages *****
+            fprintf(debugFile," -> send sum: send %i values to send from processor % i to %i \n",nivd,myid,p);
+            if( nivd==0 ) fprintf(debugFile," **-> send sum: no values to send from processor % i to %i \n",myid,p);
+        }
+        
+        if( !localSend && p==myid )
+        {
+            nivd=0;  // send no values to the same processor, we copy below
+        }
+        else
+        {
+            assert( nivd==numToSend[p] );
+        }
+        
+    // int tag=niv[p]; 
+        int tag=tag1+p;
+        MPI_Isend(sum[p],nivd,MPI_Real,p,tag,POGI_COMM,&sendRequest[p] );
+    }
+
+
+  // MPI_Barrier(POGI_COMM); // *******************
+
+  // *** no need to wait all -- could waitany and process results as the messages arrive
+    MPI_Waitall( numberOfProcessorsToReceiveFrom, receiveRequest, receiveStatus );  // wait to recieve all messages
+    
+    if( !localSend ) // copy instead of send/rec 
+    {
+        p=myid;
+        for( int j=0; j<niv[p]; j++ ) dbuff[p][j]=sum[p][j];  // we could make these point to the same data
+    }
+
+    if( debug )
+        fprintf(debugFile,">>>>> POGI: processor %i will receive messages from %i other processors\n",
+                          myid,numberOfProcessorsToReceiveFrom);
+    
+    if( debug & 2 )
+    {
+        for( pp=0; pp<numberOfProcessorsToReceiveFrom; pp++ )
+        {
+            p=pMapr[pp];
+
+            if( localSend || p!=myid )
+            {
+	// int nivd=receiveStatus[pp].MPI_TAG;
+                int nivd=numToReceive[p];
+                int nivd2;
+      	MPI_Get_count(&receiveStatus[pp],MPI_Real,&nivd2);
+      	assert( nivd==nivd2 );
+      	
+      	fprintf(debugFile,"<- processor %i: received msg from processor %i, tag=%i p=%i values=",myid,
+             	       receiveStatus[pp].MPI_SOURCE,receiveStatus[pp].MPI_TAG,p);
+      	for( j=0; j<nivd; j++ ) fprintf(debugFile,"%8.2e ",dbuff[p][j]);
+      	fprintf(debugFile,"\n");
+            }
+        }
+    }
+
+    int errorFound=0;
+    if( increaseBufferSize ) // *wdh* 061215
+    { // double check that the number of values received equals what we expected
+        for( pp=0; pp<numberOfProcessorsToReceiveFrom; pp++ )
+        {
+            p=pMapr[pp];
+            if( localSend || p!=myid )
+            {
+                int nivd=numToReceive[p]-extraBuffSize[p];
+                int nivd2;
+      	MPI_Get_count(&receiveStatus[pp],MPI_Real,&nivd2);
+      	if( nivd!=nivd2 )
+      	{
+        	  printf("$$$POGI:ERROR: myid=%i p=%i nivd=%i nivd2=%i\n",myid,p,nivd,nivd2);
+      	}
+
+      	if( nivd!=(numToReceive[p]-extraBuffSize[p]) )
+      	{
+        	  printf("$$$POGI:ERROR:Computed size for receive buffer was not large enough! myid=%i p=%i \n"
+                                  "     actual number received =%i, number expected =%i\n",myid,p,nivd,numToReceive[p]-extraBuffSize[p]);
+      	}
+      	
+            }
+        }
+    }
+    if( increaseBufferSize )
+    {
+        errorFound=ParallelUtility::getMaxValue(errorFound);
+        if( errorFound )
+        {
+            fflush(0);
+            Communication_Manager::Sync();
+            printF("\n @@@@POGI: An error was found in the buffer sizes: here is a summary: @@@@@\n");
+            for( pp=0; pp<numberOfProcessorsToReceiveFrom; pp++ )
+            {
+      	p=pMapr[pp];
+                int nivd;
+      	MPI_Get_count(&receiveStatus[pp],MPI_Real,&nivd);
+
+                printf(" myid=%i : Sent %i values to p=%i\n",myid,niv[p],p);
+                printf(" myid=%i : Expect to receive %i values from p=%i -- actual number received=%i\n",
+                                myid,numToReceive[p]-extraBuffSize[p],p,nivd);
+      	
+            }
+            printF("@@@@@@@@@@@@@@@@@@@@\n");
+            
+            fflush(0);
+            Communication_Manager::Sync();
+        }
+        
+    }
+    
+    for( p=0; p<numberOfProcessors; p++ )
+        niv[p]=0; 
+
+    if( computeResidual )
+        maximumResidual=0.;
+    else
+        maximumResidual=-1.;  // this means the residual was not computed
+
+    char buff[80];
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        if( !INTERPOLATE_THIS_GRID(grid) ) continue;
+
+        realArray & u = ucg[grid];
+        realSerialArray us; getLocalArrayWithGhostBoundaries(u,us); // ghost bndry's not needed?
+
+        real *&usp = numberOfDimensions==2 ? us.Array_Descriptor.Array_View_Pointer2 : 
+                                                                                  us.Array_Descriptor.Array_View_Pointer3;
+        const int usDim0=us.getRawDataSize(0);
+        const int usDim1=us.getRawDataSize(1);
+        const int usDim2=us.getRawDataSize(2);
+#undef US2
+#define US2(i0,i1,i2) usp[i0+usDim0*(i1+usDim1*(i2))]
+
+#undef US3
+#define US3(i0,i1,i2,i3) usp[i0+usDim0*(i1+usDim1*(i2+usDim2*(i3)))]
+
+        if( debug & 4 )
+        {
+            sprintf(buff,"*** u (local with ghost) on grid %i processor %i ****",grid,myid);
+            us.display(buff);
+        }
+        
+        const int ni = numberOfInterpolationPoints(grid);
+
+    // loop over the possible interpolee grids.
+        for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        {
+            if( numberOfInterpolationPointsPerDonor(grid,grid2)==0 ) continue;
+            if( !INTERPOLATE_FROM_THIS_GRID(grid2) ) continue;
+
+      // if( interpolationStartEndIndex(0,grid,grid2) < 0 ) continue;
+      // if( grid2==grid ) continue; // we do not interpolate from the same grid  *** fix for c-grid
+
+            int nivd, sp;
+            for( pp=0; pp<numberOfProcessorsToReceiveFrom; pp++ )
+            {
+      	p=pMapr[pp];
+                const int nip=nipa(p,grid,grid2);
+                if( nip==0 ) continue;  // *wdh* 040327
+
+      	sp=receiveStatus[pp].MPI_SOURCE; // source proc
+                if( sp!=p )
+      	{
+        	  printf("pogi:interpolate:ERROR pp=%i, sp=%i, p=%i nipLocal(p=%i,grid=%i,grid2=%i)=%i\n",
+                                  pp,sp,p,p,grid,grid2,nip);
+                    
+                    for( int ppp=0; ppp<numberOfProcessorsToReceiveFrom; ppp++ )
+                        printf(" pMapr[%i]=%i, ",ppp,pMapr[ppp]);
+                    printf("\n");
+        	  assert( sp==p );
+      	}
+      	
+            int * ipap = ipa(p,grid,grid2);
+            #undef ipLocal
+            #define ipLocal(i0,i1,p) ipap[(i1)+(numberOfDimensions+1)*(i0)]
+
+                int & k=niv[p];
+
+
+      	if( numberOfDimensions==2 )
+      	{
+        	  if( debug )
+        	  {
+          	    for( j=0; j<nip; j++ )
+          	    {
+            	      int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp); 
+            	      assert( ip0>= us.getBase(0) && ip0<=us.getBound(0) );
+            	      assert( ip1>= us.getBase(1) && ip1<=us.getBound(1) );
+            	      fprintf(debugFile," *** g=[%i,%i] processor %i: k+j=%i j=%i (source sp=%i) assign interp pt (%i,%i) = %11.5e\n",
+                  		      grid,grid2,myid,k+j,j,sp,ip0,ip1,dbuff[p][k+j]);
+          	    }
+        	  }
+                    if( !computeResidual )
+        	  {
+          // 	    loops2d(US2(ip0,ip1,c1)=dbuff[p][k];);
+                    if( c1Base==c1Bound )
+                    {
+                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                        {
+                            for( j=0; j<nip; j++ )
+                            {
+                                int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp); 
+                                US2(ip0,ip1,c1)=dbuff[p][k];
+                                k++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for( j=0; j<nip; j++ )
+                        {
+                            for( int c1=c1Base; c1<=c1Bound; c1++ )
+                            {
+                                int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp); 
+                                US2(ip0,ip1,c1)=dbuff[p][k];
+                                k++;
+                            }
+                        }
+                    }
+        	  }
+        	  else
+        	  {
+            // loops2d(maximumResidual=max(maximumResidual,fabs(US2(ip0,ip1,c1)-dbuff[p][k]));US2(ip0,ip1,c1)=dbuff[p][k];);
+                        if( c1Base==c1Bound )
+                        {
+                            for( int c1=c1Base; c1<=c1Bound; c1++ )
+                            {
+                                for( j=0; j<nip; j++ )
+                                {
+                                    int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp); 
+                                    maximumResidual=max(maximumResidual,fabs(US2(ip0,ip1,c1)-dbuff[p][k]));US2(ip0,ip1,c1)=dbuff[p][k];
+                                    k++;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for( j=0; j<nip; j++ )
+                            {
+                                for( int c1=c1Base; c1<=c1Bound; c1++ )
+                                {
+                                    int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp); 
+                                    maximumResidual=max(maximumResidual,fabs(US2(ip0,ip1,c1)-dbuff[p][k]));US2(ip0,ip1,c1)=dbuff[p][k];
+                                    k++;
+                                }
+                            }
+                        }
+        	  }
+      	}
+      	else
+      	{
+        	  if( debug )
+        	  {
+          	    for( j=0; j<nip; j++ )
+          	    {
+            	      int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp), ip2=ipLocal(j,3,sp); 
+            	      assert( ip0>= us.getBase(0) && ip0<=us.getBound(0) );
+            	      assert( ip1>= us.getBase(1) && ip1<=us.getBound(1) );
+            	      assert( ip2>= us.getBase(2) && ip2<=us.getBound(2) );
+            	      
+            	      fprintf(debugFile," *** g=[%i,%i] processor %i: k=%i j=%i assign interp pt (%i,%i,%i) = %8.2e\n",
+                  		      grid,grid2,myid,k,j,ip0,ip1,ip2,dbuff[p][k]);
+          	    }
+        	  }
+                    if( !computeResidual )
+        	  {
+          // 	    loops3d(US3(ip0,ip1,ip2,c1)=dbuff[p][k];);
+                    if( c1Base==c1Bound )
+                    {
+                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                        {
+                            for( j=0; j<nip; j++ )
+                            {
+                                int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp), ip2=ipLocal(j,3,sp);
+                                US3(ip0,ip1,ip2,c1)=dbuff[p][k];
+                                k++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for( j=0; j<nip; j++ )
+                        {
+                            for( int c1=c1Base; c1<=c1Bound; c1++ )
+                            {
+                                int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp), ip2=ipLocal(j,3,sp);
+                                US3(ip0,ip1,ip2,c1)=dbuff[p][k];
+                                k++;
+                            }
+                        }
+                    }
+        	  }
+        	  else
+        	  {
+          // 	    loops3d(maximumResidual=max(maximumResidual,fabs(US3(ip0,ip1,ip2,c1)-dbuff[p][k]));US3(ip0,ip1,ip2,c1)=dbuff[p][k];);
+                    if( c1Base==c1Bound )
+                    {
+                        for( int c1=c1Base; c1<=c1Bound; c1++ )
+                        {
+                            for( j=0; j<nip; j++ )
+                            {
+                                int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp), ip2=ipLocal(j,3,sp);
+                                maximumResidual=max(maximumResidual,fabs(US3(ip0,ip1,ip2,c1)-dbuff[p][k]));US3(ip0,ip1,ip2,c1)=dbuff[p][k];
+                                k++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for( j=0; j<nip; j++ )
+                        {
+                            for( int c1=c1Base; c1<=c1Bound; c1++ )
+                            {
+                                int ip0=ipLocal(j,1,sp), ip1=ipLocal(j,2,sp), ip2=ipLocal(j,3,sp);
+                                maximumResidual=max(maximumResidual,fabs(US3(ip0,ip1,ip2,c1)-dbuff[p][k]));US3(ip0,ip1,ip2,c1)=dbuff[p][k];
+                                k++;
+                            }
+                        }
+                    }
+        	  }
+        	  
+
+      	}
+            }
+
+            
+        }  // end for grid2
+
+
+    }  // end for grid
+    
+    if( computeResidual )
+    {
+        maximumResidual=ParallelUtility::getMaxValue(maximumResidual);
+    }
+
+  // wait to send messages before deleting buffers
+    MPI_Waitall( numberOfProcessorsToSendTo, sendRequest, receiveStatus );  
+
+    delete [] extraBuffSize;
+    for( p=0; p<numberOfProcessors; p++ )
+    {
+        delete [] sum[p];
+        delete [] dbuff[p];
+    }
+    delete [] niv;
+    delete [] numToSend;
+    delete [] numToReceive;
+    delete [] pMapr;
+    delete [] pMaps;
+    
+    delete [] sum;
+    delete [] dbuff;
+
+
+    delete [] sendRequest;
+    delete [] receiveRequest;
+    delete [] receiveStatus;
+
+    MPI_Barrier(POGI_COMM);
+    double time=MPI_Wtime()-time0;
+    int nid=0;
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+        nid+=numberOfInterpolationPoints(grid);
+    if( debug>0 && myid==0 ) printf(" >>>>>>>>> Time for POGI::interpolate =%8.2e  (%i interpolation pts, %i processors)<<<<<<<\n",
+              time,nid,numberOfProcessors);
+
+//  if( debug & 2 ) ucg.display("u after interpolate");
+#endif
+    return 0;
+}
+
+#undef coeffg
+#undef cf
+#undef VS
+#undef US2
+#undef US3
+
+
+// Interpolate vcg by brute force
+int ParallelOverlappingGridInterpolator::
+bruteForceInterpolate( realCompositeGridFunction & u )
+{
+#ifdef USE_PPP
+    double time0=MPI_Wtime();
+
+  // const int debug=1;
+
+    const int myid = Communication_Manager::My_Process_Number;
+    const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+
+    CompositeGrid & cg = *u.getCompositeGrid();
+
+    int i,axis,grid,grid2;
+    real oneOver27=1./27.;
+    
+    for( grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        realArray & u = vcg[grid];
+
+        intArray & ip = cg.interpolationPoint[grid];
+        intArray & il = cg.interpoleeLocation[grid];
+        intArray & ig = cg.interpoleeGrid[grid];
+        const int ni = cg.numberOfInterpolationPoints(grid);
+
+    // loop over the possible interpolee grids.
+        for( int grid2=0; grid2<numberOfComponentGrids; grid2++ )
+        {
+            realArray & v = vcg[grid2];
+
+            if( numberOfDimensions==2 )
+            {
+      	for( i=0; i<ni; i++ )
+      	{
+        	  if( ig(i)==grid2 )
+        	  {
+          	    int il0=il(i,0), il1=il(i,1);
+          	    u(ip(i,0),ip(i,1))=.25*v(il0,il1)+.25*v(il0+1,il1)+
+                                 	                       .25*v(il0,il1+1)+.25*v(il0+1,il1+1);
+        	  }
+        	  
+      	}
+            }
+            else
+            {
+      	for( i=0; i<ni; i++ )
+      	{
+        	  if( ig(i)==grid2 )
+        	  {
+          	    int il0=il(i,0), il1=il(i,1), il2=il(i,2);
+          	    u(ip(i,0),ip(i,1),ip(i,2))=
+            	      (oneOver27*v(il0,il1  ,il2  )+oneOver27*v(il0+1,il1  ,il2  )+oneOver27*v(il0+2,il1  ,il2  )+
+             	       oneOver27*v(il0,il1+1,il2  )+oneOver27*v(il0+1,il1+1,il2  )+oneOver27*v(il0+2,il1+1,il2  )+
+             	       oneOver27*v(il0,il1+2,il2  )+oneOver27*v(il0+1,il1+2,il2  )+oneOver27*v(il0+2,il1+2,il2  )+
+             	       oneOver27*v(il0,il1  ,il2+1)+oneOver27*v(il0+1,il1  ,il2+1)+oneOver27*v(il0+2,il1  ,il2+1)+
+             	       oneOver27*v(il0,il1+1,il2+1)+oneOver27*v(il0+1,il1+1,il2+1)+oneOver27*v(il0+2,il1+1,il2+1)+
+             	       oneOver27*v(il0,il1+2,il2+1)+oneOver27*v(il0+1,il1+2,il2+1)+oneOver27*v(il0+2,il1+2,il2+1)+
+             	       oneOver27*v(il0,il1  ,il2+2)+oneOver27*v(il0+1,il1  ,il2+2)+oneOver27*v(il0+2,il1  ,il2+2)+
+             	       oneOver27*v(il0,il1+1,il2+2)+oneOver27*v(il0+1,il1+1,il2+2)+oneOver27*v(il0+2,il1+1,il2+2)+
+             	       oneOver27*v(il0,il1+2,il2+2)+oneOver27*v(il0+1,il1+2,il2+2)+oneOver27*v(il0+2,il1+2,il2+2));
+        	  
+        	  }
+      	}
+      	
+            }
+        }
+    }
+    double time=MPI_Wtime()-time0;
+    if( myid==0 ) printf(" >>>>>>> Time for POGI::bruteForceInterpolate=%8.2e (%i processors)<<<<<<\n",
+                  time,numberOfProcessors);
+#endif
+    return 0;
+}
+
+

@@ -1,0 +1,169 @@
+
+
+
+
+<SCRIPT> 
+
+   var d = document;    // We use this variable to save typing!
+
+   var cc = new Array( '#FF6666', '#66FF99', '#FFFF99', "#FF66FF", "#FFCC33" );
+   var passFail = new Array( 'fail', 'pass', 'computing', 'unknown', 'n/a');
+
+   var FAIL = 0;
+   var PASS = 1;
+   var COMPUTING = 2;
+   var UNKNOWN = 3;
+   var NA = 4;
+
+   // These next variables are assigned in buildTestResults.js
+   var numberOfTests;    
+   var numberOfPlatforms;
+   var platforms = new Array();
+   var tests = new Array();
+   testStatus = new Array();
+   var compiler = new Array();
+   var comment = new Array();
+   var user;
+
+
+   var numChanges=10;
+   var i,j;
+
+   //testStatus[0] = new Array('red',   'yellow', 'green', 'red', 'green', 'green');
+
+   // this next line may be changed by checkOverture.p
+   var subTitle= 'Testing from the CVS Repository';
+   var packageName= 'Overture';
+
+</SCRIPT>
+<SCRIPT SRC="buildTestResults.js"> </SCRIPT>
+<SCRIPT>
+
+
+
+// Define the error handler. It generates an HTML form so
+// the user can report the error to the author.
+
+function report_error(msg, url, line)
+{
+
+   //var w = window.open("",                    // URL (none specified)
+
+   //                    "error"+error_count++, // Name (force it to be unique)
+
+   //                    "resizable,status,width=625,height=625"); // Features
+
+
+
+   var tod = new Date();
+
+   // Output an HTML document, including a form, into the new window.
+
+d.write('<BODY BGCOLOR="#FFFFFF">');
+
+d.write('<font FACE="Arial,Helvetica">');
+
+d.write('<table cellpad=0 cellspace=0 col=2><tr><td><IMG SRC=./casc_small_logo.gif HEIGHT=128 WIDTH=160 ALIGN=CENTER></td><td><h1>' + packageName + ' Build Tests</h1><P> <h2> ' + subTitle + '</h2></td></tr></table>');
+
+//d.write('<table cellpad=0 cellspace=0 col=2><tr><td></td><td><h2>  ' + tod.toLocaleString() + '</h2></td></tr></table>');
+
+d.write('<!--- Note explaining dashboard errors --->');
+
+d.write('<font FACE="Arial,Helvetica">');
+
+d.write('<!--- Insert Comment Here --->');
+
+// .write('Comments go here.<br>');
+
+d.write('<!--- Insert Initials and Time Here --->');
+//d.write('jvm, 8:48am<br>');
+
+d.write('</font>');
+// .write('<hr><a href="Changes.html">There were '+numChanges+' files changed</a> since the last dashboard. <a href="../Changes/changes.Feb2000">Changes for the month.</A><br>');
+d.write('<br>');
+
+var numCols = numberOfTests +3;
+d.write('<TABLE BORDER COLS=' + numCols + ' WIDTH="100%" BGCOLOR="#77BBFF" NOSAVE >');
+
+d.write('<TR NOSAVE>');
+
+d.write('<TH ALIGN=CENTER NOSAVE>Platform</TH>');
+d.write('<TH ALIGN=CENTER NOSAVE>Compiler</TH>');
+d.write('<TH ALIGN=CENTER NOSAVE>Comment</TH>');
+
+for( i=0; i<numberOfTests; i++ )
+{
+  d.write('<TH ALIGN=CENTER NOSAVE>' + tests[i] + '</TH>');
+}
+d.write('</TR>');
+
+d.write('<TR NOSAVE>');
+//...Platform info
+for( i=0; i<numberOfPlatforms; i++ )
+{
+
+  d.write('<TD BGCOLOR="#77FFFF" NOSAVE>' + platforms[i] + '</TD>');
+  d.write('<TD BGCOLOR="#77FFFF" NOSAVE><center>' + compiler[i] + '</TD>');
+  d.write('<TD BGCOLOR="#77FFFF" NOSAVE><center>' + comment[i] + '</TD>');
+  for( j=0; j<numberOfTests; j++ )
+  {
+    d.write('<TD BGCOLOR="' + cc[testStatus[i][j]] + '" NOSAVE><center>' + passFail[testStatus[i][j]] + '</TD>');
+  }
+  d.write('</TR>');
+}
+d.write('</TABLE>');
+
+
+// d.write('<br> <br>');
+// d.write('<TABLE BORDER COLS=7 WIDTH="75%" BGCOLOR="#BBBBBB" NOSAVE >');
+// d.write('<TR NOSAVE>');
+// d.write('<TH ALIGN=CENTER NOSAVE>Key:</TH>');
+// d.write('<TH ALIGN=CENTER BGCOLOR="#77BBFF" NOSAVE>Internal Test System</TH>');
+// d.write('<TH ALIGN=CENTER BGCOLOR="#77FFFF" NOSAVE>External Test System</TH>');
+// d.write('<TH ALIGN=CENTER BGCOLOR="#FF6666" NOSAVE>System or Network Error</TH>');
+// d.write('<TH ALIGN=CENTER BGCOLOR="#66FF99" NOSAVE>Build/Test Successful</TH>');
+// d.write('<TH ALIGN=CENTER BGCOLOR="#FFFF99" NOSAVE>Build/Test Error</TH>');
+// d.write('<TH ALIGN=CENTER BGCOLOR="#FFCC33" NOSAVE>Timing Change</TH>');
+// d.write('</TR>');
+// d.write('</TABLE>');
+
+
+
+//d.write('<hr><h2><a href="../vtksqa/vtkSqaProcess.html"><IMG SRC=../vtksqa/vtkprocesslogo.gif HEIGHT=128 WIDTH=160 ALIGN=CENTER>VTK Software Process</A></h2>');
+
+d.write('<br>');
+// d.write('Software testing provided by <a href="http://www.llnl.gov/casc">Center for Applied Scientific Computing, LLNL</a>');
+d.write('</font>');
+
+d.write('</HTML>');
+
+   // Remember to close the document when we're done.
+
+   d.close();
+
+
+   // Return true from this error handler, so that JavaScript does not
+   // display its own error dialog.
+   return true;
+
+}
+
+
+
+// Before the event handler can take effect, we have to register it
+// for a particular window.
+// self.onerror = report_error;
+
+</SCRIPT>
+
+
+<SCRIPT>
+
+  var myMsg="Hello there, joe!";
+  var myUrl="This is a URL!";
+  var myLine="--the line--";
+
+  report_error(myMsg, myUrl, myLine);
+
+</SCRIPT>
+

@@ -1,0 +1,658 @@
+\subsection{setExitCommand}
+ 
+\newlength{\DialogDataIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setExitCommand(}%
+setExitCommand(const aString \&exitC, const aString \&exitL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the exit command on the dialog window in the GUIState. Note that
+  the dialog window will apear after pushGUI has been called.
+
+\item[{\bf exitC(input):}]  The command hat will be issued when the exit button is pressed.
+\item[{\bf exitL(input):}]  The text label that will appear on the exit button.
+
+\item[{\bf Return values:}]  The function returns 1 on a successful completion and 0 if an error occured.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setToggleButtons}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setToggleButtons(}%
+setToggleButtons(const aString tbCommands[], const aString tbLabels[], const int initState[], \\ 
+\hspace{\DialogDataIncludeArgIndent}int numberOfColumns  = 2)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the toggle buttons of the dialog window in the GUIState. The buttons
+ will appear on the dialog window after pushGUI has been called.
+
+\item[{\bf tbCommands(input):}]  Array of strings containing the commands for the toggle buttons. 
+   The array must be terminated by an empty string ("").
+\item[{\bf tbLabels(input):}]  Array of strings containing the text labels that will be put on
+   the toggle buttons. The array must be terminated by an empty string ("").
+\item[{\bf initState(input):}]  Array that describes the initial state of each toggle button.
+\item[{\bf numberOfColumns(input):}]  Optional argument that specifies the number of columns in which the 
+   toggle buttons shall be organized in the dialog window.
+\item[{\bf Return values:}]  The function returns 1 on a successful completion and 0 if an error occured.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{deleteToggleButtons}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{deleteToggleButtons(}%
+deleteToggleButtons()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Delete the toggle buttons.
+\item[{\bf Author:}]  WDH 
+\end{description}
+\subsection{setPushButtons}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setPushButtons(}%
+setPushButtons(const aString pbCommands[], const aString pbLabels[], int numberOfRows  = 2)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the push buttons of the dialog window in the GUIState. The buttons
+ will appear on the dialog window after pushGUI has been called.
+
+\item[{\bf pbCommands(input):}]  Array of strings containing the commands for the push buttons. 
+   The array  must be terminated by an empty string ("").
+\item[{\bf pbLabels(input):}]  Array of strings containing the text labels that will be put on
+   the push buttons. The array must be terminated by an empty string ("").
+\item[{\bf numberOfRows(input):}]  Optional argument that specifies the number of rows in which the 
+   push buttons shall be organized in the dialog window.
+
+\item[{\bf Return values:}]  The function returns 1 on a successful completion and 0 if an error occured.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setTextBoxes}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setTextBoxes(}%
+setTextBoxes(const aString textCommands[], const aString textLabels[], const aString initString[])
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the text boxes of the dialog window in the GUIState. The boxes
+ will appear on the dialog window after pushGUI has been called.
+
+\item[{\bf textCommands(input):}]  Array of strings containing the commands for the text boxes. 
+   The array  must be terminated by an empty string ("").
+\item[{\bf textLabelsLabels(input):}]  Array of strings containing the text labels that will be put 
+   in front of the text boxes. The array must be terminated by an empty string ("").
+\item[{\bf initString(input):}]   Array of strings containing the initial text that will be put
+   in each text box. The array must be terminated by an empty string ("").
+
+\item[{\bf Return values:}]  The function returns 1 on a successful completion and 0 if an error occured.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{addInfoLabel}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{addInfoLabel(}%
+addInfoLabel(const aString \& textLabel)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Add a new info label to the dialog window.
+
+\item[{\bf textLabel(input):}]  The new text string.
+
+\item[{\bf Return code:}]  The number of the new info label in the GUI, or -1 if there was no
+ space left. (There is only space for MAX\_INFO\_LABELS (=10 by default) in each dialog window.)
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{addInfoLabel}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{deleteInfoLabels(}%
+deleteInfoLabels()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Delete the existing info labels.
+
+\item[{\bf Return code:}]  0 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{setTextLabel}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setTextLabel(}%
+setTextLabel(const aString \& textLabel, const aString \&buff)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the text string textlabel with label "textLabel" in the currently
+ active GUIState.
+
+\item[{\bf textLabel(input):}]  The label of the text label in the array given to setTextBoxes during setup.
+\item[{\bf buff(input):}]  The new text string.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{addOptionMenu}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{addOptionMenu(}%
+addOptionMenu(const aString \&opMainLabel, const aString opCommands[], const aString opLabels[], int initCommand)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Add an option menu to the dialog window. The option menu will appear when the
+ dialog window is displayed, i.e., after pushGUI has been called.
+
+\item[{\bf opMainLabel(input):}]  The descriptive label that will appear to the left of the option menu
+  on the dialog window.
+\item[{\bf opCommands(input):}]  An array of strings with the command that will be issued when each menu
+  item is selected. The array must be terminated by an empty string ("").
+\item[{\bf opLabels(input):}]  An array of strings with the label that will be put on each menu
+  item. The array must be terminated by an empty string ("").
+\item[{\bf initCommand(input):}]  The index of the initial selection in the opLabels array. This label will
+  appear on top of the option menu to indicate the initial setting.
+\item[{\bf Return values:}]  The function returns 1 on a successful completion and 0 if an error occured.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{deleteOptionMenus}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{deleteOptionMenus(}%
+deleteOptionMenus()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Delete all option menus.
+\item[{\bf Author:}]  WDH 
+\end{description}
+\subsection{addRadioBox}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{addRadioBox(}%
+addRadioBox(const aString \&rbMainLabel, const aString rbCommands[], const aString rbLabels[], int initCommand,\\ 
+\hspace{\DialogDataIncludeArgIndent}int columns  = 1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Add a radio box to the dialog window. The radio buttons will appear when the
+ dialog window is displayed, i.e., after pushGUI has been called.
+
+\item[{\bf rbCommands(input):}]  An array of strings with the command that will be issued when the radio 
+  button is pressed. The array must be terminated by an empty string ("").
+\item[{\bf rbLabels(input):}]  An array of strings with the label that will be put on each radio button. 
+ The array must be terminated by an empty string ("").
+\item[{\bf initCommand(input):}]  The index of the initial selection in the rbLabels array. This radio 
+  button will be marked initially.
+\item[{\bf Return values:}]  The function returns true on a successful completion and false if an error occured.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{addPulldownMenu}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{addPulldownMenu(}%
+addPulldownMenu(const aString \&pdMainLabel, const aString commands[], const aString labels[], button\_type bt, \\ 
+\hspace{\DialogDataIncludeArgIndent}int *initState  = NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Add a pulldown menu to the dialog window. The pulldown menu will appear when the
+ dialog window is displayed, i.e., after pushGUI has been called. Successive pulldown menus 
+ will be stacked from left to right on the menu bar.
+
+\item[{\bf pdMainLabel(input):}]  The label that will appear on the menu bar.
+
+\item[{\bf commands(input):}]  An array of strings with the command that will be issued when each menu
+  item is selected. The array must be terminated by an empty string ("").
+
+\item[{\bf labels(input):}]  An array of strings with the label that will be put on each menu
+  item. The array must be terminated by an empty string ("").
+
+\item[{\bf bt(input):}]  The type of buttons in the menu. Can be either GI\_PUSHBUTTON or GI\_TOGGLEBUTTON.
+
+\item[{\bf initState(input):}]  Optional argument that only is used when bt == GI\_TOGGLEBUTTON. This argument
+  is an array that specifies the initial state of each toggle buttons. If this argument is absent
+  when bt == GI\_TOGGLEBUTTON, no menu items are marked as beeing selected.
+
+\item[{\bf Return values:}]  The function returns 1 on a successful completion and 0 if an error occured.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{changeOptionMenu}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{changeOptionMenu(}%
+changeOptionMenu(const aString \& opMainLabel, const aString opCommands[], const aString opLabels[], int initCommand)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Change an option menu with a given name
+
+\item[{\bf opMainLabel( input):}]  name of the option menu
+\item[{\bf // /opCommands, opLabels (input);:}] // /opCommands, opLabels (input);
+\item[{\bf initCommand (input) :}]  
+
+\item[{\bf Return values:}]  None.
+\item[{\bf Author:}]  wdh
+\end{description}
+\subsection{setWindowTitle}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setWindowTitle(}%
+setWindowTitle(const aString \&title)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the title of the dialog window in the GUIState. The title
+ will appear on the dialog window after pushGUI has been called.
+
+\item[{\bf title(input):}]  The new title.
+
+\item[{\bf Return values:}]  None.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setOptionMenuColumns}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setOptionMenuColumns(}%
+setOptionMenuColumns(int columns)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the number of columns in which the option menus should 
+ be organized on the dialog window.
+\item[{\bf columns(input):}]  The number of columns.
+\item[{\bf Return values:}]  None.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setLastPullDownIsHelp}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setLastPullDownIsHelp(}%
+setLastPullDownIsHelp(int trueFalse)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify whether the last pulldown menu should appear in the
+ right end of the menu bar on the dialog window, where the help menu often is
+ located.
+\item[{\bf trueFalse(input):}]  1 if the last pulldown menu should be placed in the right end. 
+  Otherwise, the last pulldown menu is placed just to the right of the second last 
+  pulldown menu 
+\item[{\bf Return value:}]  None.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getPulldownMenu}
+ 
+\begin{flushleft} \textbf{%
+PullDownMenu\&  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getPulldownMenu(}%
+getPulldownMenu(int n)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    return the n'th pull-down menu, $0 \leq n < n_{pullDownMenu}$.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getPulldownMenu}
+ 
+\begin{flushleft} \textbf{%
+PullDownMenu\&  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getPulldownMenu(}%
+getPulldownMenu(const aString \& label)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Find the pulldown menu with the given main label.
+\item[{\bf label (input) :}]  the label given to the pulldown
+\item[{\bf Return values:}]  the pulldown menu with the given main label, return PulldownMenu 0
+ if the label was not found.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getOptionMenu}
+ 
+\begin{flushleft} \textbf{%
+OptionMenu\&  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getOptionMenu(}%
+getOptionMenu(int n)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    return the n'th option menu, $0 \leq n < n_{optionMenu}$.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getOptionMenu}
+ 
+\begin{flushleft} \textbf{%
+OptionMenu\&  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getOptionMenu(}%
+getOptionMenu(const aString \& opMainLabel)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Find the option menu with the given main label.
+\item[{\bf opMainLabel (input) :}]  the label given to an option menu.
+\item[{\bf Return values:}]  the OptionMenu with the given main label, return OptionMenu 0
+ if the label was not found.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getRadioBox}
+ 
+\begin{flushleft} \textbf{%
+RadioBox\&  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getRadioBox(}%
+getRadioBox(int n)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    return the n'th radio box, $0 \leq n < n_{radioBoxes}$.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getRadioBox}
+ 
+\begin{flushleft} \textbf{%
+RadioBox\&  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getRadioBox(}%
+getRadioBox(const aString \& radioLabel)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Find the radio box menu with the given main label.
+\item[{\bf radioLabell (input) :}]  the label given to an radio box
+\item[{\bf Return values:}]  the RadioBox with the given label, return RadioBox 0
+ if the label was not found.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getToggleValue}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getToggleValue(}%
+getToggleValue( const aString \& answer, const aString \& label, bool \& target )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    If `answer' requests a change in a toggle state then set `target' and adjust the
+    toggle state.
+\item[{\bf Return values:}]  true if answer requested a change in a toggle state, return false oterwise.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getTextValue(real)}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getTextValue(}%
+getTextValue( const aString \& answer, const aString \& label, const aString \& format, real \& target )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    If `answer' requests a change in a real text value with label=`label' 
+      then set `target' and adjust the
+    text label.
+\item[{\bf answer (input) :}]  check this answer
+\item[{\bf label (input):}]  check if answer is of the form "label ..."
+\item[{\bf target (output) :}]  fill in this value if answer begins with "label"
+\item[{\bf format (input) :}]  use this format to reset the text label field with a new value.
+\item[{\bf return value:}]  true if found, false otherwise
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getTextValue(int)}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getTextValue(}%
+getTextValue( const aString \& answer, const aString \& label, const aString \& format, int \& target )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    If `answer' requests a change in a int text value with label=`label' 
+      then set `target' and adjust the
+    text label.
+\item[{\bf answer (input) :}]  check this answer
+\item[{\bf label (input):}]  check if answer is of the form "label ..."
+\item[{\bf target (output) :}]  fill in this value if answer begins with "label"
+\item[{\bf format (input) :}]  use this format to reset the text label field with a new value.
+\item[{\bf return value:}]  true if found, false otherwise
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getTextValue(string)}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{getTextValue(}%
+getTextValue( const aString \& answer, const aString \& label, const aString \& format, aString \& target )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    If `answer' requests a change in a string text value with label=`label' 
+      then set `target' and adjust the
+    text label.
+\item[{\bf answer (input) :}]  check this answer
+\item[{\bf label (input):}]  check if answer is of the form "label ..."
+\item[{\bf target (output) :}]  fill in this value if answer begins with "label"
+\item[{\bf format (input) :}]  use this format to reset the text label field with a new value.
+\item[{\bf return value:}]  true if found, false otherwise
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\DialogDataIncludeArgIndent}{PullDownMenu(}% 
+PullDownMenu()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  default constructor
+\end{description}
+\subsection{setPullDownMenu}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setPullDownMenu(}%
+setPullDownMenu(const aString \&pdMainLabel, const aString commands[], const aString labels[], button\_type bt, \\ 
+\hspace{\DialogDataIncludeArgIndent}int *initState  = NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Fill in all fields of a pulldown menu object except menupane which will be set to NULL 
+   and sensitive which will be set to true.
+   This function can for example be used to setup the optionMenu argument to makeGraphicsWindow.
+
+\item[{\bf pdMainLabel(input):}]  The label that will appear on the menu bar.
+
+\item[{\bf commands(input):}]  An array of strings with the command that will be issued when each menu
+  item is selected. The array must be terminated by an empty string ("").
+
+\item[{\bf labels(input):}]  An array of strings with the label that will be put on each menu
+  item. The array must be terminated by an empty string ("").
+
+\item[{\bf bt(input):}]  The type of buttons in the menu. Can be either GI\_PUSHBUTTON or GI\_TOGGLEBUTTON.
+
+\item[{\bf initState(input):}]  Optional argument that only is used when bt == GI\_TOGGLEBUTTON. This argument
+  is an array that specifies the initial state of each toggle buttons. If this argument is absent
+  when bt == GI\_TOGGLEBUTTON, no menu items are marked as beeing selected.
+
+\item[{\bf Return values:}]  The function returns true on a successful completion and false if an error occured.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setSensitive}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setSensitive(}%
+setSensitive(int trueFalse)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the sensitivity of a DialogData object.
+\item[{\bf trueOrFalse:}]  The new state of the DialogData widget
+\item[{\bf Return valuse:}]  None
+\item[{\bf Author:}]  AP \& WDH
+\end{description}
+\subsection{setSensitive}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setSensitive(}%
+setSensitive(bool trueOrFalse, WidgetTypeEnum widgetType, int number )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the sensitivity of a widget in the DialogData
+\item[{\bf trueOrFalse (input):}]  set senstive or not
+\item[{\bf widgetType (input):}]  choose a widget type to assign. One of 
+ \begin{verbatim}
+  enum WidgetTypeEnum  
+  {
+    optionMenuWidget,
+    pushButtonWidget,
+    pullDownWidget,
+    toggleButtonWidget,
+    textBoxWidget,
+    radioBoxWidget
+ };
+ \end{verbatim}
+\item[{\bf number (input) :}]  set sensitivity for this widget. 
+\end{description}
+\subsection{setSensitive}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setSensitive(}%
+setSensitive(bool trueOrFalse, WidgetTypeEnum widgetType, const aString \& label)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the sensitivity of a widget in the DialogData
+\item[{\bf trueOrFalse (input):}]  set senstive or not
+\item[{\bf widgetType (input):}]  choose a widget type to assign. One of 
+ \begin{verbatim}
+  enum WidgetTypeEnum  
+  {
+    optionMenuWidget,
+    pushButtonWidget,
+    pullDownWidget,
+    toggleButtonWidget,
+    textBoxWidget,
+    radioBoxWidget
+ };
+ \end{verbatim}
+\item[{\bf label (input) :}]  set sensitivity for the widget with this label
+\end{description}
+\subsection{changeOptionMenu}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{changeOptionMenu(}%
+changeOptionMenu(int nOption, const aString opCommands[], const aString opLabels[], int initCommand)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Change the menu items in an option menu after it has been created (by pushGUI)
+
+\item[{\bf nOption(input):}]  Change option menu \# nOption.
+\item[{\bf opCommands(input):}]  An array of strings with the command that will be issued when each menu
+  item is selected. The array must be terminated by an empty string ("").
+\item[{\bf opLabels(input):}]  An array of strings with the label that will be put on each menu
+  item. The array must be terminated by an empty string ("").
+\item[{\bf initCommand(input):}]  The index of the initial selection in the opLabels array. This label will
+  appear on top of the option menu to indicate the initial setting.
+\item[{\bf Return values:}]  The function returns true on a successful completion and false if an error occured.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{showSibling}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{showSibling(}%
+showSibling()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Show a sibling (dialog) window that previously was allocated with 
+ getDialogSibling() and created with pushGUI().
+
+\item[{\bf Returnvalues:}]  The function returns 1 if the sibling could be shown, otherwise 0 
+ (in which case it doesn't exist or already is shown).
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{hideSibling}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{hideSibling(}%
+hideSibling() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Hide a sibling (dialog) window that previously was allocated with 
+ getDialogSibling(), created with pushGUI() and shown with showSibling().
+
+\item[{\bf Returnvalues:}]  The function returns 1 if the sibling could be hidden, otherwise 0 
+ (in which case it doesn't exist or already is hidden).
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setTextLabel}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setTextLabel(}%
+setTextLabel(int n, const aString \&buff)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the text string in textlabel \# n in the currently
+ active GUIState.
+
+\item[{\bf n(input):}]  The index of the text label in the array given to setTextBoxes during setup.
+\item[{\bf buff(input):}]  The new text string.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setInfoLabel}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setInfoLabel(}%
+setInfoLabel(int n, const aString \&buff)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the text string in info label \# n in the currently
+ active GUIState.
+
+\item[{\bf n(input):}]  The index of the text label returned by addInfoLabel during the setup.
+\item[{\bf buff(input):}]  The new text string.
+
+\item[{\bf Return code:}]  true if the label could be changed successfully, otherwise false
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setToggleState}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setToggleState(}%
+setToggleState(int n, int trueFalse)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the state of toggle button \# n in the currently
+ active GUIState.
+
+\item[{\bf n(input):}]  The index of the toggle button in the array given to setToggleButtons during setup.
+\item[{\bf trueFalse(input):}]  trueFalse==1 turns the toggle button on, all other values turn it off.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setToggleState}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DialogDataIncludeArgIndent}{setToggleState(}%
+setToggleState( const aString \& toggleButtonLabel,  int trueOrFalse)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the toggle state for the toggle button with the given label.
+
+\item[{\bf toggleButtonLabel(input):}]  The label of the toggle button to set.
+\item[{\bf trueOrFalse(input):}]  The new state.
+
+\item[{\bf Author:}]  wdh
+\end{description}

@@ -1,0 +1,34 @@
+
+# *wdh* 2012/10/21 -- these data-base files were moved to Overture
+#SRC_FILES += dbAccess.C dbFunctions.f kk_ptr.cc
+
+
+
+# ifeq ($(includeXML),yes)
+# SRC_FILES += dbase_xml.cc \
+# 	dbase_xml_parse_expat.cc 
+# endif
+# 
+# TESTS += $(BINDIR)testdb
+# 
+# $(BINDIR)testdb: $(OBJDIR)testdb.o $(OBJDIR)kk_ptr.o
+# 	$(CXX) $(CXX_FLAGS) -o $@ $+ -L$(GANTLET)/output/lib -lsynch -L$(SIDL_RUNTIME)/lib -lsidl
+
+
+#DIR := dataBase
+
+# $(DIR)/dbAcess.C : $(DIR)/dbAcess.bC
+#		 @cd $(DIR) bpp -quiet -clean dbAcess.bC
+
+#$(OBJPREFIX)dbAcess.o : dbAcess.bC
+#	$(BPP) -quiet -clean $<
+#	$(CXX) $(CXX_FLAGS) -o $@ -c $(DIR)/$<
+
+
+#TESTS += $(BINDIR)tdb
+#$(BINDIR)tdb: $(OBJDIR)tdb.o $(OBJDIR)kk_ptr.o $(OBJDIR)ut.o $(OBJDIR)dbAccess.o $(OBJDIR)dbFunctions.f
+#	$(CXX) $(CXX_FLAGS) -o $@ $+ $(FORTRAN_LIBS)
+
+
+# we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
+#dataBase/dbAccess.C : dataBase/dbAccess.bC; $(BPP) -quiet -clean $<

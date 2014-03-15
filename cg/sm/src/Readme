@@ -1,0 +1,30 @@
+Here is a brief description of files and function
+
+
+
+Cgsm.C 
+  - SolidMechanics()
+  - usingPMLBoundaryConditions()
+  - initializeRadiationBoundaryConditions()
+  - checkArrays(const aString & label) 
+  - printMemoryUsage(FILE *file /* = stdout */)
+  - printStatistics(FILE *file /* = stdout */)
+  - buildTimeSteppingDialog(DialogData & dialog )
+  - getTimeSteppingOption(const aString & answer, DialogData & dialog )
+  - buildForcingOptionsDialog(DialogData & dialog )
+  - getForcingOption(const aString & answer, DialogData & dialog )
+  - writeParameterSummary
+
+
+setup.C:
+  - setup(const real & time /* = 0. */ )
+  - updateForNewTimeStep(GridFunction & cgf, real & dt )
+  - setupGrids()
+  - setupGridFunctions()
+
+
+solve.C:
+  - computeNumberOfStepsAndAdjustTheTimeStep
+  - outputResultsAfterEachTimeStep
+  - outputResults : checkFile
+  - solve

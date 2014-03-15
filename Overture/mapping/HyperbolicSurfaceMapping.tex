@@ -1,0 +1,49 @@
+\section{HyperbolicSurfaceMapping}
+
+{\bf This mapping currently uses HYPGEN from NASA which we cannot distribute and thus
+   will not work for users outside of Los Alamos}.
+
+This mapping class can compute a grid on a 3D surface, starting from a space
+curve that is close to the surface.
+
+\input HyperbolicSurfaceMappingInclude.tex
+
+\subsection{examples}
+
+\subsubsection{Surface grid on a sphere}
+In the left column is the command file that was used to generate the grid on the right.
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping /surgrdSphere.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \epsfig{file=\figures/surgrdSphere.ps,height=4.in}  \\
+  {A surface grid (red) created on a sphere using hyperbolic grid generation. The surface grid
+    was grown starting from a circle (shown in green). The surface
+    grid nicely covers the polar singularity in the original sphere.}
+  \end{center}
+\end{minipage}
+
+% 
+% \noindent
+% \begin{minipage}{.475\linewidth}
+%   \begin{center}
+%    \epsfig{file=\mapping /hyper1.ps,width=\linewidth}  \\
+%   {Hyperbolic mapping}
+%   \end{center}
+% \end{minipage}\hfill
+% \begin{minipage}{.475\linewidth}
+%   \begin{center}
+%    \epsfig{file=\mapping /hyper2.ps,width=\linewidth}  \\
+%   {Hyperbolic mapping}
+%   \end{center}
+% \end{minipage}
+
+
+
+
+

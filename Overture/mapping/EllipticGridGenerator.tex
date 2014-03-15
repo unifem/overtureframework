@@ -1,0 +1,103 @@
+
+\section{EllipticGridGenerator}
+
+
+This class can be used to smooth and adapt an existing grid using elliptic
+grid generation. This class is NOT a mapping. It is used by the {\tt EllipticTransform}
+and {\tt HyperbolicMapping} classes.
+
+
+
+The basic elliptic grid generation equations are
+\begin{align*}
+  \Delta_{\xv} \rv & = \Qv    \\
+      Q_m  & = { g_{mm} \over g } P_m \\
+    g_{mm} & = \xv_{r_m}\cdot\xv_{r_m} \\
+    g &= | g_{mn} |
+\end{align*}
+where $\Pv$ are the control functions. These equations are transformed into
+\begin{align*}
+   \sum_{mn}  g^{mn} \xv_{r_m r_n} + \sum_m g^{mm} P_m \xv_{r_m} &= 0 
+\end{align*}
+where
+\begin{align*}
+  g^{mp} & = \rv_{x_m}\cdot\rv_{x_p} \\
+         & = {( g_{nq} g_{lr} - g_{nr} g_{lq} ) \over g}  \qquad\mbox{(mnl) and (pqr) cyclic}
+\end{align*}
+or more exlicitly in two dimensions:
+\begin{equation}
+ g_{11} (\xv_{r_1 r_1} + P_1 \xv_{r_1}) +g_{22} (\xv_{r_2 r_2} + P_2 \xv_{r_2}) + 2 g_{12} \xv_{r_1 r_2}=0
+        \label{eq:ell1}
+\end{equation}
+
+\subsection{Surface grid generation}
+
+  There are a number of ways to formulate the problem of generating an elliptic grid on a surface in 3D.
+For simplicity (and reuse of code) we treat the surface grid generation problem as a special case
+of generation a 3D volume grid, constrained to lie on the original reference surface $\Sv(\xv)=0$,
+\begin{align*}
+   \sum_{mn}  g^{mn} \xv_{r_m r_n} + \sum_m g^{mm} P_m \xv_{r_m} &= 0  \\
+    \Sv(\xv) &=0 
+\end{align*}
+
+Here are the basic steps
+\begin{enumerate}
+  \item First compute the residual to the unconstrained elliptic grid generation equations.
+  \item project the residual onto the local tangent plane by removing the component of the
+residual in the diection of the local normal to the surface, $\nv$,
+\[
+      \rv \leftarrow \rv - (\rv\cdot\nv) \nv
+\]
+   \item solve for the new positions of the grid points, $\xv^n$. These new points may no longer lie
+     on the reference surface.
+   \item  Project the points $\xv^n$ back onto the reference surface.
+\[
+         \xv^n \leftarrow \Pv( \xv^n )
+\]
+\end{enumerate}
+
+
+\subsection{Adaptation to a weight function}
+
+In an adaptive setting the user will have some criteria for measuring where
+the error is large and a smaller grid spacing needed.
+
+Given a positive weight function $w$ that is large where the grid needs to have
+a small grid spacing we choose the control function $\Pv$ by
+\[
+   \Pv = {\grad_\rv w \over w}
+\]
+
+The weight function should be strictly positive. As an example, in one dimension one could
+define $w$ to be large where the second deriavtive is large
+\[
+    w = 1 + \alpha ( { | u_{rr} | \over  \| u_{rr} \|_\infty } )
+\]
+In general we will smooth the weight function before forming $\Pv$.
+
+We motivate this choice of control function from the criteria that 
+we choose the grid point positions to satisfy a mean-value condition
+so that the position $\xv_\iv$ is a weighted average of its neighbours
+\[
+    \xv_\iv = { \sum_{\jv\ne\iv} w_\jv \xv_\jv \over \sum_\jv w_\jv }
+\]
+or
+\[
+  \sum_{\jv\ne\iv} w_\jv \xv_\jv  - (\sum_\jv w_\jv) \xv_\iv = 0
+\]
+which looks like an approximation to
+\[
+  \grad_\rv \cdot( w \xv_\rv) = 0 
+\]     
+This last formula can be re-written as
+\begin{equation}
+    \sum_m \xv_{r_m r_m}  + {w_{r_m}\over w } \xv_{r_m} = 0  \label{eq:ell2}
+\end{equation}
+Comparing this last equation to (\ref{eq:ell1}) suggests that we take $P_m = {w_{r_m} / w }$.
+
+
+\input EllipticGridGeneratorInclude.tex
+ 
+
+
+

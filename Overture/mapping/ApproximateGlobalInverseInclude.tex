@@ -1,0 +1,211 @@
+\subsubsection{constructor}
+ 
+\newlength{\ApproximateGlobalInverseIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{ApproximateGlobalInverse(}% 
+ApproximateGlobalInverse( Mapping \& map0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Build an approximate inverse to go with a given mapping.
+\end{description}
+\subsubsection{getGrid}
+ 
+\begin{flushleft} \textbf{%
+const RealArray \&  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{getGrid(}%
+getGrid() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ return the grid used for the inverse
+\end{description}
+\subsubsection{getBoundingBox}
+ 
+\begin{flushleft} \textbf{%
+const RealArray \&  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{getBoundingBox(}%
+getBoundingBox() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the bounding box for the entire mapping.
+\end{description}
+\subsubsection{getBoundingBoxTree}
+ 
+\begin{flushleft} \textbf{%
+const BoundingBox \&  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{getBoundingBoxTree(}%
+getBoundingBoxTree(int side, int axis) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the bounding box tree for a given boundary of the mapping.
+\end{description}
+\subsubsection{getParameter}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{getParameter(}%
+getParameter( const  realParameter \& param ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the value of a parameter.
+\item[{\bf param (input) :}]  One of {\tt MappingParameters::THEboundingBoxExtensionFactor}
+     or {\tt MappingParameters::THEstencilWalkBoundingBoxExtensionFactor}.
+ 
+\end{description}
+\subsubsection{getParameter}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{getParameter(}%
+getParameter( const  intParameter \& param ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the value of a parameter.
+\item[{\bf param (input) :}]  One of {\tt MappingParameters::THEfindBestGuess}
+ 
+\end{description}
+\subsubsection{setParameter}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{setParameter(}%
+setParameter( const  realParameter \& param, const real \& value ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the value of a parameter.
+\item[{\bf param (input) :}]  One of {\tt MappingParameters::THEboundingBoxExtensionFactor}
+     or {\tt MappingParameters::THEstencilWalkBoundingBoxExtensionFactor}.
+\item[{\bf value (input) :}]  value for the parameter.
+ 
+\end{description}
+\subsubsection{setParameter(int)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{setParameter(}%
+setParameter( const  intParameter \& param, const int \& value ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the value of a parameter.
+\item[{\bf param (input) :}]  One of {\tt MappingParameters::THEboundingBoxExtensionFactor}
+     or {\tt MappingParameters::THEstencilWalkBoundingBoxExtensionFactor}.
+\item[{\bf value (input) :}]  value for the parameter.
+ 
+\end{description}
+\subsubsection{useRobustInverse}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{useRobustInverse(}%
+useRobustInverse(const bool trueOrFalse  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    If true use the more robust approximate inverse that will work with highly
+ stretched grids where the closest grid point x, to a given point may be many cells
+ away from the cell containing the point x.
+\end{description}
+\subsubsection{usingRobustInverse}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{usingRobustInverse(}%
+usingRobustInverse() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return true if using the more robust approximate inverse that will work with highly
+ stretched grids where the closest grid point x, to a given point may be many cells
+ away from the cell containing the point x.
+\end{description}
+\subsubsection{sizeOf}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{sizeOf(}%
+sizeOf(FILE *file  = NULL) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return size of this object  
+\end{description}
+\subsubsection{get}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{get(}%
+get( const GenericDataBase \& dir, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get this object from a sub-directory called "name"
+\end{description}
+\subsubsection{put}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{put(}%
+put( GenericDataBase \& dir, const aString \& name) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ save this object to a sub-directory called "name"
+\end{description}
+\subsubsection{inverse}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ApproximateGlobalInverseIncludeArgIndent}{inverse(}%
+inverse(const RealArray \& x, \\ 
+\hspace{\ApproximateGlobalInverseIncludeArgIndent}RealArray \& r, \\ 
+\hspace{\ApproximateGlobalInverseIncludeArgIndent}RealArray \& rx,\\ 
+\hspace{\ApproximateGlobalInverseIncludeArgIndent}MappingWorkSpace \& workSpace, \\ 
+\hspace{\ApproximateGlobalInverseIncludeArgIndent}MappingParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+   Find an approximate inverse of the mapping; this approximate inverse
+   should be good enough so that Newton will converge
+
+\item[{\bf Method:}]  
+ \begin{enumerate}
+   \item If space is periodic (e.g. if the grids all live on a background square which has
+      one or more periodic edges) then we need to worry about values of x that are outside 
+      the basic periodic region. These points may have periodic images that lie inside the
+      periodic region. We thus add new points to the list that are the periodic images that
+      lie inside the basic square. ***NOTE*** space periodic rarley occurs and probably hasn't
+      been tested enough.
+ \begin{verbatim}
+       --------------------
+       |                  |
+       | x                |   X
+       | periodic         |   initial point to invert
+       | image            |
+       |                  |
+       |                  |
+       |                  |
+       --------------------
+ \end{verbatim}
+  \item For all points to invert, find the closest point on the reference grid that goes with
+    the mapping. This grid is usually just the grid that is used when plotting the mapping.
+     This step is performed by the function {\tt findNearestGridPoint}
+ \end{enumerate}
+
+\item[{\bf Notes:}] 
+   The results produced by this routine are saved in the object workSpace.
+\item[{\bf workSpace.x0 (output) :}]  list of points to invert with possible extra points if space is periodic.
+\item[{\bf workSpace.r0 (output) :}]  unit square coordinates of the closest point.
+\item[{\bf workSpace.I0 (output) :}]  Index object that demarks the active points in x0 and r0.
+\item[{\bf workSpace.index0 (output) :}]  indirect addressing array that points back to the original r array; used
+     when there are extra points added for periodicity in space.
+\item[{\bf workSpace.index0IsSequential (output) :}]  if true then space is periodic and the index0 indirect addressing
+     array should be used when storing results back in the user arrays r and rx.
+
+\end{description}

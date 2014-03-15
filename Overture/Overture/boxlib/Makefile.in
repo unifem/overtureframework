@@ -1,0 +1,47 @@
+#
+#
+
+# also define -DBL_USE_FLOAT or -DBL_USE_DOUBLE
+#             -DBL_Solaris
+
+BOXLIB_DEFINES = -DBL_SPACEDIM=3 -DBL_USE_FLOAT -DBL_ARCH_IEEE -DBL_FORT_USE_UNDERSCORE -DBL_BUG_DEFARG -DBL_LANG_CC
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o
+.C.o:; $(CC) -I. $(CCFLAGS) $(BOXLIB_DEFINES) -c $*.C
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default:   depend_date boxlib_date
+
+Source= AliasedDPtr.C  \
+	Box.C  \
+	BoxList.C  \
+	FabConv.C  \
+	Pointers.C  \
+        ArithFab.C  \
+	BoxArray.C  \
+	IndexType.C  \
+	OrderedFab.C  \
+	BoxAssoc.C  \
+	FArrayBox.C  \
+	IntVect.C  \
+	Orientation.C  \
+        BArena.C  \
+	BoxDomain.C  \
+	FPC.C  \
+	Utility.C  \
+	BoxLib.C  \
+	MultiFab.C  \
+	ParmParse.C  \
+	aString.C
+
+
+boxlib_date: ${Source:.C=.o}
+	  touch $@
+
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+.PRECIOUS:boxlib_date depend_date

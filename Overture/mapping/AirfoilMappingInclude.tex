@@ -1,0 +1,84 @@
+\subsubsection{Constructor}
+ 
+\newlength{\AirfoilMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\AirfoilMappingIncludeArgIndent}{AirfoilMapping(}% 
+AirfoilMapping(const AirfoilTypes \& airfoilType\_, \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real xa  = -1.5, \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real xb  = 1.5, \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real ya  = 0., \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real yb  = 2.) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Create a mapping for an airfoil.
+\item[{\bf Notes:}]  An airfoil mapping can be made from oneof the following (enum AirfoilTypes)
+  \begin{description}
+   \item[arc] : grid with a bump on the bottom that is an arc of a circle.
+   \item[sinusoid] : grid with a bump on the bottom that is an sinusoid.
+   \item[diamond] : grid with a bump on the bottom that is a diamond.
+   \item[naca] : a curve that is one of the NACA 4 digit airfoils.
+   \item[joukowsky] : a curve defining a Joukowsky airfoil.
+  \end{description}
+\item[{\bf airfoilType\_ (input):}]  an airfoil type from the above choices.
+\item[{\bf xa,xb,ya,yb (input) :}]  boundaries of the bounding box (not used for naca airfoils).
+\end{description}
+\subsubsection{setBoxBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\AirfoilMappingIncludeArgIndent}{setBoxBounds(}%
+setBoxBounds(const real xa  =-1.5, \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real xb  =1.5, \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real ya  =0., \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real yb  =2.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ set bounds on the rectangle that the airfoil sits in
+\item[{\bf xa,xb,ya,yb (input) :}]  boundaries of the bounding box (not used for naca airfoils).
+\end{description}
+\subsubsection{setParameters}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\AirfoilMappingIncludeArgIndent}{setParameters(}%
+setParameters(const AirfoilTypes \& airfoilType\_,\\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real \& chord\_  =1., \\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real \& thicknessToChordRatio\_  =.1,\\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real \& maximumCamber\_  =0.,\\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real \& positionOfMaximumCamber\_  =0.,\\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real \& trailingEdgeEpsilon\_   =.02,\\ 
+\hspace{\AirfoilMappingIncludeArgIndent}const real \& sinusoidPower\_  = 1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Create a mapping for an airfoil.
+\item[{\bf Notes:}]  An airfoil mapping can be made from oneof the following (enum AirfoilTypes)
+  \begin{description}
+   \item[arc] : grid with a bump on the bottom that is an arc of a circle.
+   \item[sinusoid] : grid with a bump on the bottom that is an sinusoid (or power of a sinusoid).
+   \item[diamond] : grid with a bump on the bottom that is a diamond.
+   \item[naca] : a curve that is one of the NACA 4 digit airfoils.
+   \item[joukowsky] : Joukowsky airfoil. The other parameters in the argument list
+      do not apply in this case. Use the {\tt setJoukowskyParameters} function instead.
+  \end{description}
+\item[{\bf airfoilType\_ (input):}]  an airfoil type from the above choices.
+\item[{\bf chord\_ (input):}]  length of the chord.
+\item[{\bf thicknessToChordRatio\_ (input):}]  thickness to chord ratio.
+\item[{\bf maximumCamber\_ (input):}]  maximum camber
+\item[{\bf positionOfMaximumCamber\_ (input):}]  position of maximum camber
+\item[{\bf trailingEdgeEpsilon\_ (input) :}]  parameter for rounding the trailing edge.
+\end{description}
+\subsubsection{setJoukowskyParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\AirfoilMappingIncludeArgIndent}{setJoukowskyParameters(}%
+setJoukowskyParameters( const real \& a, const real \& d, const real \& delta )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set parameters for the Joukowsky airfoil.
+\item[{\bf a,d,delta :}]  see the documentation for a desciption of these.
+\end{description}

@@ -1,0 +1,648 @@
+\documentclass[letterpaper,12pt]{article}
+\usepackage[bookmarks=true]{hyperref}
+
+\usepackage{epsfig}
+\usepackage{subfigure}
+
+\input{pstricks}
+%\input{pst-node}
+\input{colours}
+\usepackage{chngpage}
+\input{llnlCoverPage}
+\usepackage{calc}
+\usepackage{program}
+
+\usepackage{epsfig}
+
+%\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+%\setlength{\textheight}{9.5in}    % page height for xdvi
+
+\begin{document}
+
+
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\id     {i}
+\def\jd     {j}
+\def\kap {\sqrt{s+\omega^2}}
+
+\newcommand{\figures}{/home/chand/figures/smesh}
+
+\newcommand{\umap}{{\tt UnstructuredMapping} }
+\newcommand{\umapI}{{\tt UnstructuredMappingIterator} }
+\newcommand{\umapAI}{{\tt UnstructuredMappingAdjacencyIterator} }
+\newcommand{\forceb}{\linebreak[4]}
+\newcommand{\smesh}{{\tt smesh}~}
+\newcommand{\overt}{{\tt Overture}~}
+\newcommand{\bib}{/home/chand/papers/bib}
+
+%\makeLLNLCover{UCRL-MA-153081}{\smesh User's Guide}{K.K.~Chand}{}{}{0in}{0in}
+
+\vspace{3\baselineskip}
+\begin{flushleft}
+  {\Large 
+    \smesh User's Guide\\
+  }
+  A 2D unstructured mesh generator for \overt\\
+\vspace{2\baselineskip}
+Kyle K. Chand \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+chand1@llnl.gov \\
+http://www.llnl.gov/casc/Overture \\
+UCRL-MA-153081 \\
+\vspace{1\baselineskip}
+\today
+\vspace{\baselineskip}
+\end{flushleft}
+
+\begin{abstract}
+\smesh is a general purpose, interactive, 2D unstructured mesh
+generator based on \overt.  It supports three kinds of mesh generation
+techniques : structured patches with transfinite interpolation (TFI);
+unstructured triangles based on an advancing front technique; and a
+Cartesian cutcell/triangle hybrid method.  Meshes are generated in a
+generalized ``mulit-block'' manner where each ``block'', or region,
+can be one of the three mesh types. Geometry definitions can be
+created interactively by placing points and interpolating curves.
+Spacing information is provided by both the curve discretization
+(which can be stretched) and a user specified preferred grid spacing
+for a region.  A mesh optimization procedure is available for the
+non-TFI regions for mesh quality improvement.  Each mesh region is
+given an unique identifier and an optional string name.  Meshes are
+exported to a modified ``ingrid'' format including mesh region
+identifiers and names.  Facilities for command scripting and batch
+running are available.
+
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+\smesh can be used to generate two dimensional unstructured meshes.
+It can be used interactively, as in Figure~\ref{fig:smeshgui}, or
+without graphics in a batch mode using scripted commands.  The program
+can be invoked on the command line using:
+\begin{verbatim}
+ smesh [noplot] [nopause] [command_file]
+\end{verbatim}
+When started, \smesh will either process a command file or, if a file
+is not specified, begin an interactive session. The optional command
+file is a script of \smesh commands; this script is usually adapted
+from the log of a previous interactive session.  \smesh stores all the
+commands executed during a run (interactive or batch) in a file called
+{\tt smesh.cmd}.  This file can be given to \smesh as a command file
+to reproduce the interactive session.  {\tt noplot} starts \smesh
+without graphics; the code will then be driven by text input.  When
+{\tt nopause} is specified, ``pause'' commands in the command file are
+ignored.
+\begin{figure}[htb]
+\begin{center}
+\epsfig{file=\figures/smesh.screenshot.ps,width=10cm}
+\end{center}
+\caption{Screenshot of \smesh in action}\label{fig:smeshgui}
+\end{figure}
+
+Generating a mesh with \smesh proceeds with the following steps:
+\begin{itemize}
+\item create points and curves
+\item optionally choose point distributions on curves
+\item use a collection of curves to define and generate a region
+\item make more geometry/regions
+\item output the mesh to a text file
+\end{itemize}
+Figure~\ref{fig:maingui} shows the main interface used to perform
+these tasks.  Clicking the ``Create Curves'' button brings up the
+curve generation interface discussed in Section~\ref{sec:curve}.  A
+variety of operations can be performed using mouse clicks, including:
+deletion of curves and regions; specifying curve point density and
+stretching; specifying text names for regions; and directing the code
+to optimize a specific unstructured region.  The region creation
+buttons bring up ``wizard'' like interfaces for the generation of
+transfinite interpolation ({TFI}) or unstructured regions using a
+collection of the already defined curves.  ``Save Mesh'' allows the
+user to save the grid in the text format described in
+Section~\ref{sec:fileformat}.  Toggle buttons are used to control the
+plotting of various pieces of information. For example, ``Plot
+Reference Grids'' will plot Cartesian grids bounding each region with
+the nominal target grid spacing for each respective region.  Finally,
+a text box a the bottom of the window can be used to specify the
+default grid spacing for new regions (note this can be overridden when
+a region is created).
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,0)(14,10)
+\rput(7,5){\epsfig{file=\figures/maingui.ps,width=8cm}}
+%\psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{The main command window}\label{fig:maingui}
+\end{figure}
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,2)(14,9)
+\rput(7,5){\psclip{\psframe[linecolor=white](0,4)(14,9.5)}\epsfig{file=\figures/3mesh.ps,width=14cm}\endpsclip}
+\rput(.5,8){\makebox(0,0)[l]{cutcell hybrid mesh}}
+\rput(4.5,8){\makebox(0,0)[l]{unstructured triangles}}
+\rput(9,8){\makebox(0,0)[l]{quadrilaterals using {TFI}}}
+\psline[linewidth=1pt]{->}(2.25,7.75)(1,5)
+\psline[linewidth=1pt]{->}(6.5,7.75)(5,6)
+\psline[linewidth=1pt]{->}(11.25,7.75)(10,6)
+%\psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{The three types of unstructured mesh generation supported by \smesh}\label{fig:3mesh}
+\end{figure}
+
+Figure~\ref{fig:3mesh} illustrates the three kinds of unstructured
+mesh generation supported by \smesh.  Each one of these mesh regions
+begins with the specification of an outer bounding curve (inner curves
+are also possible for non-{TFI} regions).  The ``cutcell hybrid''
+method first covers the area bounded by the curve with a uniform
+Cartesian grid with a user defined spacing.  This Cartesian grid is
+then cut by the bounding curve; any grid outside the curve is
+discarded.  An advancing front mesh generator connects the curve to
+the Cartesian grid with triangles forming the completed mesh.  The
+unstructured triangulation in the middle of Figure~\ref{fig:3mesh}
+gives the discretized outer curve to an advancing front mesh generator
+which fills the region with triangles.  Finally, the {TFI} region
+begins with four curves that specify the outer boundary and then uses
+transfinite interpolation to compute the mesh points on the interior
+of the domain.  These methods are described in more detail in Sections~\ref{sec:tfi},
+and ~\ref{sec:unst}.
+
+\section{How To...}
+\subsection{Create geometry (points and curves)}\label{sec:curve}
+Geometry used as the bounding curves of mesh regions are created using
+the interface shown in Figure~\ref{fig:geom}.  Points can be placed
+either by interactively clicking with the mouse (after selecting the
+``Build Point'' mouse mode toggle) or by inputting the coordinates in
+the text box at the bottom.  Once at least two points are placed, a
+curve can be created by changing the mouse mode to ``Interpolate
+Curve'' and then picking a sequence of points with the mouse.  After
+the last point has been chosen, clicking ``Done'' at the bottom of the
+graphics window creates a spline curve that interpolates the selected
+points.  At this point, the curve could be edited using mouse modes
+such as ``Split Curve''; new curves can be created; or the user can
+exit the geometry creation interface.
+\begin{figure}
+\begin{center}
+\epsfig{file=\figures/points_curvesgui.ps,width=10cm}
+\end{center}
+\caption{Geometry creation interface}\label{fig:geom}
+\end{figure}
+\subsection{Specify grid points and stretching on curves}
+Once curves have been created, it is often useful to specify the
+number of points on the curve and how points should be distributed.
+The main interface (Figure~\ref{fig:maingui}) mouse mode ``specify
+number of curve points'' enables the specification of points on the
+curve using the mouse.  Clicking on a curve will bring up a small
+dialog box with on text entry specifying the number of points.
+Typically, using ``auto'' in the text box will instruct \smesh to
+automatically determine the spacing given the requested mesh size of a
+region using the curve.  Inputting a number greater than zero will
+force that number of points to be used on the curve.  Note that once a
+curve has been used by a region its point distribution cannot be
+changed.
+
+Specifying stretching occurs in a similar manner to point size; one
+selects the ``stretch curve points'' as the mouse mode and then clicks
+on the curve to alter.  Clicking on a curve will bring up \overt's
+stretching interface, described in more detail in \overt's
+documentation~\cite{ovdocs}.  
+\subsection{Create a {TFI} region}\label{sec:tfi}
+Structured regions based on {TFI} are created by selecting four curves
+that bound the region; these curve will be referred to as the
+``left'', ``right'', ``bottom'' and ``top'', naturally.  When ``Create
+{TFI} Region'' is selected, a dialog window appears that asks the user
+to select the ``left'' curve.  Adjacent curves can be concatenated to
+form longer and more complex boundaries that may be adjacent to more
+than one other region.  Selecting adjacent curves will automatically
+concatenate them and display the composite curve in bold black.  When
+the curve is complete, selecting ``done'' in the dialog window
+proceeds to the next curve.  Each curve is selected as described in
+the order specified above.  Once all four curves are selected, another
+dialog appears that allows the user to specify a text name for the
+region and adjust the requested mesh spacing.  Selecting ``Generate'' at the
+bottom of this dialog box generates the mesh and returns to the main
+interface.
+\subsection{Create an unstructured region}\label{sec:unst}
+An unstructured region is created by selecting one outer bounding
+curve and optional inner curves.  When ``Created Unstructured Region''
+is selected, a dialog window requesting the user to choose the outer
+bounding curve pops up.  Curve selection proceeds in the same manner
+as a {TFI} region; compound curves are selected by clicking on
+adjacent curves and finishing by clicking ``done'' on the popup.
+Again, the curve under construction is displayed in bold black as
+curves are selected.  Once the outer curve has been chosen, a new
+dialog will request an inner curve.  Inner curves are selected in the
+same manner as the outer curves.  When all the inner curves are
+selected, clicking ``done'' in the dialog without choosing a curve
+will present a window in which the user can specify a name, change the
+spacing or select between the Cartesian cutout hybrid and all
+triangular mesh generation techniques.  As before, pushing
+``Generate'' creates the mesh and returns to the main interface.  An
+unstructured mesh may be optimized (have vertices moved to more
+optimal locations) by selecting ``optimize unstructured'' as the mouse
+mode in the main interface.  Simply clicking on an unstructured region
+will perform one iteration of a mesh optimization procedure on the
+region.
+\subsection{Output the mesh to a file}\label{sec:fileformat}
+Clicking the ``Save Mesh'' button on the main interface will present a
+file selection dialog.  Type or choose a filename for the mesh to
+write the data to a text file.  At the end of each mesh file, a
+description of the file format is presented.  The file format is a
+modified version of the ``ingrid'' text file:
+\begin{verbatim}
+FORMAT SUMMARY ::
+element vertices specified counter-clockwise, 
+1 based index with 0 specifying a null vertex (vertex 4 of a triangle)
+line 1 : Comment Line
+line 2 : nRegions nVertices nElements maxNVertsInElement domainDimension rangeDimension
+line 3 : 0 x0 y0
+line 4 : 1 x1 y1
+...
+line nVertices+2 : nVertices-1 xNv yNv 
+line nVertices+3 : 0 reg0 e0v1 e0v2 e0v3 e0v4
+line nVertices+4 : 1 reg1 e1v1 e1v2 e1v3 
+...
+line nVertices+2+nElements : nElements-1 regNe eNv1 eNv2 eNv3 eNv4
+line nVertices+3+nElements : region0ID region0Name
+...
+line nVerties+3+nElements+nRegions : regionN regionNName
+This Summary
+\end{verbatim}
+\section{Examples}
+\subsection{A simple {TFI} region}
+A {TFI} region is built using four curves.  In this example,
+the curves are built as straight lines connecting four vertices.
+Figure~\ref{fig:buildtfi} illustrates the process of constructing
+this type of region.
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,0)(11,14.5)
+\rput(3.,12.5){\epsfig{file=\figures/maketfi_1.ps,width=5cm}}
+\rput(3,10){\makebox(0,0)[c]{\footnotesize (a) construct points}}
+\rput(8,12.5){\epsfig{file=\figures/maketfi_2.ps,width=5cm}}
+\rput(8,10){\makebox(0,0)[c]{\footnotesize (b) interpolate points forming curves}}
+\rput(3,7.5){\epsfig{file=\figures/maketfi_3.ps,width=5cm}}
+\rput(3,5.25){\makebox(0,0)[c]{\footnotesize (c) select left curve}}
+\rput(8,7.5){\epsfig{file=\figures/maketfi_4.ps,width=5cm}}
+\rput(8,5.25){\makebox(0,0)[c]{\footnotesize (d) select right curve}}
+\rput(3,2.75){\epsfig{file=\figures/maketfi_5.ps,width=5cm}}
+\rput(3,.5){\makebox(0,0)[c]{\footnotesize (e) select bottom curve}}
+\rput(8,2.75){\epsfig{file=\figures/maketfi_7.ps,width=5cm}}
+\rput(8,.5){\makebox(0,0)[c]{\footnotesize (f) select top and generate mesh}}
+%\psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{Construction of a tfi region: (a) construct points; (b) interpolate points
+to form bounding curves; (c)-(f) assemble four curves to form the grid (f).}\label{fig:buildtfi}
+\end{figure}
+\subsubsection{command file}
+\begin{verbatim}
+Create Curves
+Mouse Mode Build Point
+new point 2.055071e-01 6.812946e-01
+new point 7.907053e-01 7.342878e-01
+new point 2.698978e-01 1.025259e-01
+new point 8.664590e-01 1.029423e-01
+Mouse Mode Interpolate Curve
+point for interpolation 1
+point for interpolation 0
+stop picking
+point for interpolation 0
+point for interpolation 2
+stop picking
+point for interpolation 2
+point for interpolation 3
+stop picking
+point for interpolation 3
+point for interpolation 1
+stop picking
+exit
+Create TFI Region
+select left 1
+Done
+select right 3
+Done
+select bottom 2
+Done
+select top 0
+Done
+generate
+tb Plot Reference Grids 0
+Save Mesh
+/home/chand/overture/views/tools/2dmesh/tfi.msh
+exit
+\end{verbatim}
+\subsection{A simple unstructured region}
+Unstructured regions also begin by defining a set of curves that
+define a connected domain.  At least one curve is required to define
+the outer boundary.  Multiply connected domains may be created by
+creating one or more inner boundary curves.  There are two types of
+unstructured meshing techniques available.  One simply fills the
+domain with triangles using \overt's advancing front mesh generator.
+The second method builds a mixed triangle-quadrilateral mesh by
+cutting a Cartesian grid with the bounding curves and then connecting
+the curves to the grid with triangles.  These options are show in
+Figure~\ref{fig:ustreg}.
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,1)(17,6)
+\rput(2.5,4){\epsfig{file=\figures/unscurves.ps,width=6.5cm}}
+\rput(2.5,4.7){\makebox(0,0)[l]{\footnotesize inner curve}}
+\rput(2.5,5.75){\makebox(0,0)[l]{\footnotesize outer curve}}
+\rput(2.5,1.5){\makebox(0,0)[c]{\footnotesize (a) bounding curves}}
+\rput(8.5,4){\epsfig{file=\figures/unstri_fig.ps,width=6.5cm}}
+\rput(8.5,1.5){\makebox(0,0)[c]{\footnotesize (b) advancing front mesh}}
+\rput(14.5,4){\epsfig{file=\figures/cutcell_fig.ps,width=6.5cm}}
+\rput(14.5,1.5){\makebox(0,0)[c]{\footnotesize (c) cutcell hybrid mesh}}
+%psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{Unstructured regions are built using inner and outer bounding curves (a); they come in 
+two flavors: (b) all triangles and (c) mixed quads and triangles}\label{fig:ustreg}
+\end{figure}
+\subsubsection{command file}
+\begin{verbatim}
+Create Curves
+Mouse Mode Build Point
+new point 1.411164e-01 5.980980e-01
+new point 3.456383e-01 7.086174e-01
+new point 6.107900e-01 6.916550e-01
+new point 8.134314e-01 5.745974e-01
+new point 8.210067e-01 4.336066e-01
+new point 5.312484e-01 2.322357e-01
+new point 6.915023e-02 2.534473e-01
+Mouse Mode Interpolate Curve
+point for interpolation 0
+point for interpolation 1
+point for interpolation 2
+point for interpolation 3
+point for interpolation 4
+point for interpolation 5
+point for interpolation 6
+point for interpolation 0
+stop picking
+Mouse Mode Build Point
+new point 3.352156e-01 4.913438e-01
+new point 4.573885e-01 5.203880e-01
+new point 4.687516e-01 4.123340e-01
+new point 3.399701e-01 3.757012e-01
+Mouse Mode Interpolate Curve
+point for interpolation 7
+point for interpolation 8
+point for interpolation 9
+point for interpolation 10
+point for interpolation 7
+stop picking
+exit
+dxdy .02,.02
+Create Unstructured Region
+select outer 0
+Done
+select inner 1
+Done
+Done
+generate
+tb Plot Reference Grids 0
+pause
+mm delRegion
+delete region 0
+Create Unstructured Region
+select outer 0
+Done
+select inner 1
+Done
+Done
+use cutout 0
+generate
+mm optimize
+optimize region 1
+optimize region 1
+optimize region 1
+optimize region 1
+\end{verbatim}
+\subsection{An example with multiple regions}
+This example demonstrates the creation of a mesh with multiple
+regions.  Figure~\ref{fig:mreg} shows three regions created using
+each of the mesh generation methods available.  The {TFI} region at
+the top assembled its ``bottom'' curve from the two horizontal curves
+in the middle of the geometry.  The region is adjacent to two
+unstructured regions that utilize the middle curves as subsets of
+their outer boundaries.  Two circular arc curves form the inner
+boundary of an unstructured region at the lower left region of the
+mesh.  Information about these regions is placed in the text file
+when the mesh is saved.
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(2,0)(12,12)
+%\rput(7,9){\epsfig{file=\figures/mregfig_curves.ps,width=9cm}}
+\rput(7,9){\psclip{\psframe[linecolor=white](0,1)(9,7.5)}\epsfig{file=\figures/mregfig_curves.ps,width=9cm}\endpsclip}
+\rput(7,10.75){\makebox(0,0)[c]{\footnotesize bottom boundary}}
+\psline[linewidth=.5pt]{->}(7,10.5)(4.5,9.9)
+\psline[linewidth=.5pt]{->}(7,10.5)(8.5,9.9)
+%
+\rput(3.25,9.25){\makebox(0,0)[l]{\footnotesize outer}}
+\psline[linewidth=.5pt]{->}(3.25,9)(2.9,8)
+\psline[linewidth=.5pt]{->}(3.25,9)(3.5,6.5)
+\psline[linewidth=.5pt]{->}(3.25,9)(6.2,8.9)
+\psline[linewidth=.5pt]{->}(3.25,9)(3.25,9.9)
+%
+\rput(4.5,7){\makebox(0,0)[l]{\footnotesize inner}}
+\psline[linewidth=.5pt]{->}(4.3,7)(4.1,8)
+\psline[linewidth=.5pt]{->}(4.3,7)(4.9,8)
+%
+\rput(8.7,8){\makebox(0,0)[c]{\footnotesize outer boundary}}
+\psline[linewidth=.5pt]{->}(7.4,8)(6.2,8.9)
+\psline[linewidth=.5pt]{->}(8.7,7.8)(8.7,6.5)
+\psline[linewidth=.5pt]{->}(8.7,8.2)(8.5,9.8)
+\psline[linewidth=.5pt]{->}(10,8)(11.2,8)
+%\rput(7,3){\epsfig{file=\figures/mregfig.ps,width=9cm}}
+\rput(7,3){\psclip{\psframe[linecolor=white](0,1)(9,7.5)}\epsfig{file=\figures/mregfig.ps,width=9cm}\endpsclip}
+%\psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{A multi-region mesh consisting of regions of each type; note that composite curves
+are used to form the ``bottom'' boundary of the top, {TFI} region, and the inner boundary of
+the lower left unstructured region.}\label{fig:mreg}
+\end{figure}
+\subsubsection{command file}
+\begin{verbatim}
+Create Curves
+Mouse Mode Build Point
+new point 0 0
+new point 2 0
+new point 5 0
+new point 0 2
+new point 2 2
+new point 5 2
+new point 0 3
+new point 5 3
+new point 1 .75
+new point 1 1.25
+Mouse Mode Circular Arc
+arc segment 8 9
+radius of curvature .25
+arc segment 9 8
+radius of curvature .25
+point for interpolation 0
+point for interpolation 1
+stop picking
+point for interpolation 1
+point for interpolation 2
+stop picking
+point for interpolation 0
+point for interpolation 3
+stop picking
+point for interpolation 3
+point for interpolation 6
+stop picking
+point for interpolation 6
+point for interpolation 7
+stop picking
+point for interpolation 3
+point for interpolation 4
+stop picking
+point for interpolation 4
+point for interpolation 5
+stop picking
+point for interpolation 2
+point for interpolation 5
+stop picking
+point for interpolation 5
+point for interpolation 7
+stop picking
+point for interpolation 1
+point for interpolation 4
+stop picking
+exit
+dxdy .1,.1
+Create TFI Region
+select left 5
+Done
+select right 10
+Done
+select bottom 7
+select bottom 8
+Done
+select top 6
+Done
+generate
+tb Plot Reference Grids 0
+Create Unstructured Region
+select outer 4
+select outer 2
+select outer 11
+select outer 7
+Done
+select inner 1
+select inner 0
+Done
+Done
+generate
+Create Unstructured Region
+select outer 11
+select outer 3
+select outer 9
+select outer 8
+Done
+Done
+use cutout 0
+generate
+mm optimize
+optimize region 3
+optimize region 3
+\end{verbatim}
+\subsection{Stretched regions}
+The distribution of points along curves can be adjusted
+by specifying the number of points using the main interface
+as well as stretching the points along a curve using \overt's {\tt StretchTransform}
+interface~\cite{mappings}.  An example of both these tools is displayed
+in Figure~\ref{fig:strfig} for both unstructured and {TFI} regions.  Note,
+when a cutcell unstructured region is formed, the stretching information is not
+propagated to the interior.
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,2)(6,10)
+\rput(1.5,6){\psclip{\psframe[linecolor=white](3,1)(6,9)}\epsfig{file=\figures/str_tri.ps,width=10cm}\endpsclip}
+\rput(4.5,6){\psclip{\psframe[linecolor=white](3,1)(6,9)}\epsfig{file=\figures/str_tfi.ps,width=10cm}\endpsclip}
+%\rput(4.5,6){\epsfig{file=\figures/str_tfi.ps,width=10cm}}
+%\psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{\smesh can be used to generated graded meshes}\label{fig:strfig}
+\end{figure}
+\subsubsection{command file}
+\begin{verbatim}
+dxdy .05,.05
+Create Curves
+new point 0 0
+new point .2 0
+new point .2 1
+new point 0 1
+DISPLAY AXES:0 0
+Mouse Mode Interpolate Curve
+point for interpolation 0
+point for interpolation 1
+stop picking
+point for interpolation 1
+point for interpolation 2
+stop picking
+point for interpolation 2
+point for interpolation 3
+stop picking
+point for interpolation 3
+point for interpolation 0
+stop picking
+exit
+DISPLAY AXES:0 0
+mm nCurvePts
+points on curve 0  11
+points on curve 1  25
+points on curve 3  25
+mm strCurve
+stretch points on curve 1
+print grid statistics
+stretch grid
+Stretch r1:exp
+STP:stretch r1 exp: min dx .02
+stretch grid
+STP:stretch r1 exp: cluster at r=0
+stretch grid
+pause
+exit
+stretch points on curve 3
+Stretch r1:exp
+STP:stretch r1 exp: min dx .02
+STP:stretch r1 exp: cluster at r=1
+stretch grid
+pause
+close r1 stretching parameters
+exit
+Create Unstructured Region
+select outer 0
+select outer 1
+select outer 2
+select outer 3
+Done
+Done
+use cutout 0
+name stretched
+generate
+tb Plot Reference Grids 0
+mm optimize
+optimize region 0
+optimize region 0
+optimize region 0
+\end{verbatim}
+\bibliographystyle{unsrt} \bibliography{\bib/kkc}
+
+% \makeLLNLBackCover
+
+\end{document}

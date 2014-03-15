@@ -1,0 +1,26 @@
+* input commands for pogi
+* -grid=sise.hdf
+* -grid=rsise.hdf
+* -grid=cice.hdf
+* -grid=cic5e.hdf
+* -grid=cice3.hdf
+* -grid=sic5e.order4.hdf
+* -grid=../parallel/ciceAmr.hdf
+*
+* -grid=bib2e.hdf
+* -grid=bis2e.order4.hdf
+* -grid=bis3e.order4.hdf
+* -grid=bis2e.hdf
+* -grid=bis3e.hdf
+*
+* -grid=twoBumpe2.order2.hdf
+* -grid=qsib1a.hdf
+* === next line will use the old method:
+* -full
+*
+* -grid=rodArray2x2ye1.order2.hdf
+*
+* -grid=solidFuelAssembly1pinse1.order2.hdf
+* 
+-grid=../ogen.p/sise1.order2.hdf
+* -grid=../ogen/sise1.order2.hdf

@@ -1,0 +1,8 @@
+PKGDIR := $(OvertureCheckout)/parallel
+
+SRC_FILES += $(addsuffix .C, GridDistribution LoadBalancer CanInterpolate ) 
+
+L_HDRS := $(addsuffix .h, GridDistribution LoadBalancer CanInterpolate )
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+

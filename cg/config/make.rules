@@ -1,0 +1,160 @@
+#default leaves make commands visible
+COPTS := " [mode=verbose|concise]"
+mode := verbose
+# mode := concise
+
+# to time the compiles: 
+# TIME := time
+TIME := 
+
+ifeq ($(mode),verbose)
+
+$(DEPPREFIX)%.d : %.cxx
+	-$(MKDEP) $(MKDEP_FLAGS) $(CXX_FLAGS) $< > $@
+
+$(DEPPREFIX)%.d : %.cc
+	-$(MKDEP) $(MKDEP_FLAGS) $(CXX_FLAGS) $< > $@
+
+$(DEPPREFIX)%.d : %.C
+	-$(MKDEP) $(MKDEP_FLAGS) $(CXX_FLAGS) $< > $@
+
+$(DEPPREFIX)%.d : %.c
+	-$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@
+
+$(DEPPREFIX)%.d : %.f
+	-$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@
+
+$(DEPPREFIX)%.d : %.F
+	-$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@
+
+$(DEPPREFIX)%.d : %.f90
+	-$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@
+
+$(OBJPREFIX)%.o : %.cxx
+	$(CXX) $(CXX_FLAGS) -o $@ -c $<
+
+$(OBJPREFIX)%.o : %.cc
+	$(TIME) $(CXX) $(CXX_FLAGS) -o $@ -c $<
+
+$(OBJPREFIX)%.o : %.C
+	$(TIME) $(CXX) $(CXX_FLAGS) -o $@ -c $<
+
+
+
+$(OBJPREFIX)%.o : %.c
+	$(TIME) $(CC) $(CC_FLAGS) -o $@ -c $<
+
+$(OBJPREFIX)%.o : %.f
+		@echo "compile $<"
+	$(TIME) $(FC) $(FC_FLAGS) -o $@ -c $<
+
+$(OBJPREFIX)%.o : %.F
+	$(TIME) $(FC) $(FC_FLAGS) -o $@ -c $<
+
+$(OBJPREFIX)%.o : %.f90F
+	$(TIME) $(FC90) $(FC_FLAGS) -o $@ -c $<
+
+%.class : %.java
+	$(JC) $(JC_FLAGS) $<
+
+$(OBJPREFIX)%.o : %.F
+	$(FC) $(FC_FLAGS) -o $@ -c $<
+
+$(OBJPREFIX)%.o : %.f90
+	$(FC90) $(FC_FLAGS) -o $@ -c $<
+
+#   --- bpp ---
+# $(OBJPREFIX)%.o : %.bC
+# 	bpp -quiet -clean $<	
+# 	$(CXX) $(CXX_FLAGS) -o $@ -c $*.C
+
+# $(OBJPREFIX)%.o : %.bf
+# 	bpp -quiet -clean $<	
+# 	$(FC) $(FC_FLAGS) -o $@ -c $*.f
+
+%.C : %.bC
+	$(BPP) -quiet -clean  $<
+
+%.f : %.bf
+	$(BPP) -quiet -clean $<
+
+else
+
+$(DEPPREFIX)%.d : %.cxx
+	@echo "finding dependencies for $(<F) : "
+	-@$(MKDEP) $(MKDEP_FLAGS) $(CXX_FLAGS) $< > $@ 2> /dev/null >&2
+	@if $${status}; echo success; else echo failed; fi
+
+$(DEPPREFIX)%.d : %.cc
+	@echo -n "finding dependencies for $(<F) : "
+	-@$(MKDEP) $(MKDEP_FLAGS) $(CXX_FLAGS) $< > $@ 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+
+$(DEPPREFIX)%.d : %.C
+	@echo -n "finding dependencies for $(<F) : "
+	-@$(MKDEP) $(MKDEP_FLAGS) $(CXX_FLAGS) $< > $@ 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(DEPPREFIX)%.d : %.c
+	@echo -n "finding dependencies for $(<F) : "
+	-@$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@ 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(DEPPREFIX)%.d : %.f
+	@echo -n "finding dependencies for $(<F) : "
+	-@$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@ 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(DEPPREFIX)%.d : %.F
+	@echo -n "finding dependencies for $(<F) : "
+	-@$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@ 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(DEPPREFIX)%.d : %.f90
+	@echo -n "finding dependencies for $(<F) : "
+	-@$(MKDEP) $(MKDEP_FLAGS) $(CC_FLAGS) $< > $@ 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(OBJPREFIX)%.o : %.cxx
+	@echo -n "compiling $(<F) : "
+	@$(CXX) $(CXX_FLAGS) -o $@ -c $< 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(OBJPREFIX)%.o : %.cc
+	@echo -n "compiling $(<F) : "
+	@$(CXX) $(CXX_FLAGS) -o $@ -c $< 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(OBJPREFIX)%.o : %.C
+	@echo -n "compiling $(<F) : "
+	@$(CXX) $(CXX_FLAGS) -o $@ -c $< 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(OBJPREFIX)%.o : %.c
+	@echo -n "compiling $(<F) : "
+	@$(CC) $(CC_FLAGS) -o $@ -c $< 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(OBJPREFIX)%.o : %.f
+	@echo -n "compiling $(<F) : "
+	@$(FC) $(FC_FLAGS) -o $@ -c $< 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(OBJPREFIX)%.o : %.F
+	@$(FC) $(FC_FLAGS) -o $@ -c $< 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+$(OBJPREFIX)%.o : %.f90
+	@$(FC) $(FC_FLAGS) -o $@ -c $< 2> /dev/null >&2
+	@if $${status}; then echo success; else echo failed; fi
+
+
+
+%.C : %.bC
+	$(BPP) -quiet -clean  $<
+
+%.f : %.bf
+	$(BPP) -quiet -clean $<
+
+endif

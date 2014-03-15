@@ -1,0 +1,55 @@
+%--------------------------------------------------------------
+\section{ComposeMapping: compose two mappings}\index{compose mapping}\index{Mapping!ComposeMapping}
+%-------------------------------------------------------------
+
+This mapping can be used to create a new mapping by composing
+two existing mappings. The Mapping's {\tt MatrixTransform}, {\tt StretchTransform},
+{\tt ReparameterizationTransform}, abnd {\tt EllipticTransform} are all derived
+from the ComposeMapping.
+
+% \subsection{Constructors}
+% 
+% \begin{tabbing}
+% {\ff Mapping()xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx123456}\= \kill
+% {\ff Mapping()}    \> Default constructor\\
+% {\ff Mapping( Mapping \& mapa, Mapping \& mapb)}  \> 
+%          create a mapping, {\ff mapb} $\circ$ {\ff mapa } \\
+% \end{tabbing}
+% 
+% 
+% \subsection{Member Functions}
+% 
+% \begin{tabbing}
+% 0123456789012345678901234567689012345678901234567890123 \= \kill
+% {\ff void map( realArray \& r, realArray \& x, realArray \& xr )} 
+%                \> evaluate the mapping and derivative  \\
+% {\ff void inverseMap( realArray \& x, realArray \& r, realArray \& rx )} 
+%                \> evaluate the inverse mapping and derivative  \\
+% {\ff void get( const Dir \& dir, const String \& name)} \> get from a database file \\
+% {\ff void put( const Dir \& dir, const String \& name)} \> put to a database file \\
+% \end{tabbing}
+% 
+% \noindent
+Here is an example of the use of the {\ff ComposeMapping} class.
+The composed mapping consists of a mapping for a cube followed by
+a rotation mapping.
+{\footnotesize
+\begin{verbatim}
+#include "maputil.h"
+
+void main()
+{
+  BoxMapping box(0.,.5,0.,.5,0.,.5)  ;           // Define grid to be a cube
+
+  MatrixMapping rotation  ;                      // Define a matrix mapping 
+  rotation.rotate( zAxis, Pi/2. );               // rotate about z axis
+  
+  ComposeMapping rotatedBox( box,rotation );     // define a mapping by composition
+
+  r(axis1)=.5; r(axis2)=.5; r(axis3)=.5;
+  rotatedBox.map( r,x,xr );                      // evaluate the mapping
+}
+\end{verbatim}
+}
+\noindent
+

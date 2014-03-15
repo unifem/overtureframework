@@ -1,0 +1,49 @@
+\clearpage
+ \section{check/annulus}
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$  & res(i)     & rate(i)    &  WU(i)     & ECR(i)  \\   \hline 
+ $ 1$  & $ 4.3e-02$ & $0.031$ & $ 5.5$ & $0.53$ \\ 
+ $ 2$  & $ 6.5e-04$ & $0.015$ & $ 5.5$ & $0.46$ \\ 
+ $ 3$  & $ 1.1e-05$ & $0.017$ & $ 5.5$ & $0.48$ \\ 
+ $ 4$  & $ 3.3e-07$ & $0.029$ & $ 5.5$ & $0.53$ \\ 
+ $ 5$  & $ 3.2e-08$ & $0.097$ & $ 5.5$ & $0.65$ \\ 
+ $ 6$  & $ 4.2e-09$ & $0.130$ & $ 5.5$ & $0.69$ \\ 
+ $ 7$  & $ 5.8e-10$ & $0.139$ & $ 5.5$ & $0.70$ \\ 
+ $ 8$  & $ 8.1e-11$ & $0.139$ & $ 5.5$ & $0.70$ \\ 
+ $ 9$  & $ 1.1e-11$ & $0.139$ & $ 5.5$ & $0.70$ \\ 
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+                 Ogmg, Statistics: 
+                 -----------------     time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............1.77e+00  1.77e-01    80.11% 
+ defect.(excluding those in smooth)....1.54e-01  1.54e-02     6.96% 
+ fine to coarse........................1.01e-01  1.01e-02     4.58% 
+ coarse to fine........................3.83e-03  3.83e-04     0.17% 
+ direct solve on coarsest level........2.48e-02  2.48e-03     1.12% 
+    interpolation......................5.05e-02  5.05e-03  (  2.28%) (already counted)
+    boundary conditions................8.48e-01  8.48e-02  ( 38.39%) (already counted)
+ sum of above..........................2.05e+00  2.05e-01    92.94%  
+
+ total.................................2.21e+00  2.21e-01   100.00% 
+
+ total number of grid points = 585 
+ total number of cycles      = 10 
+ storage allocated = 4.61e-01 MBytes,   787.4 bytes/(grid point) or   98.4 reals/(grid point)
+
+ number of levels = 3 
+ interpolate defect = 1
+ number of cycles per level= 1  1  1 
+ coarse grid solver : yale, direct sparse solver, no pivoting 
+
+grid 0 : rb[3] rb[3] rb[3]  : Annulus 
+         bc=[periodic,periodic] [dirichlet,dirichlet] 
+\end{verbatim}
+} % end footnotesize

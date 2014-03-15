@@ -1,0 +1,422 @@
+\section{Cell-centred and Face-centred Grid Functions} \label{sec:cellFace}
+\index{grid function!cell centred}
+\index{grid function!face centred}
+
+  In this section we discuss cell-centred and face-centred
+grid functions -- how to create them and how to use them.
+
+In a vertex-centred grid function the solution values are defined
+at the vertices of the grid (i.e. at the positions defined by the {\tt vertex} array).
+By default a grid function defined on a vertex-centred grid will be vertex centered.
+
+In a cell-centred grid function the solution values are assumed to be defined at
+the centers of the cells. 
+By default a grid function defined on a cell-centred grid will be cell-centred.
+
+In a face-centred grid function the solution values are defined on the face of the
+cell. In 2D there are two possible types of face-centered grid functions and
+in 3D there are three possibilities. A face centered grid function is vertex centred
+in one direction and cell centred in the others.
+
+In three space dimensions a grid function could also be defined on an edge. An edge-centred
+grid function is vertex-centred in two directions and cell centred in one.
+
+\subsection{Creating face/cell/vertex centred grid functions in standard form}
+
+The easiest way to create any of the commonly used grid functions is to use
+the constructor that takes a {\tt GridFunctionType} and optional Ranges to specify components:
+{\footnotesize
+\begin{verbatim}
+MappedGridFunction(MappedGrid & mg,
+                   const GridFunctionParameters::GridFunctionType & type, 
+                   const Range & component0=nullRange,
+                   const Range & component1=nullRange,
+                   const Range & component2=nullRange,
+                   const Range & component3=nullRange,
+                   const Range & component4=nullRange )
+\end{verbatim}
+}
+This constructor is used to create a grid function of some common types 
+in {\sl standard form}. A grid function in standard form will have the first 3 index positions
+occupied by the coordinate directions. Any component indices will follow the coordinate indicies.
+In addition to the constructor there is a corresponding
+{\tt updateToMatchGrid} function that can be used to change the type and/or component dimensions
+of a grid function that has already been constructed.
+
+The standard types of grid functions are defined in the enum GridFunctionType, (this enum is found in
+the class GridFunctionParameters),
+{\footnotesize
+\begin{verbatim}
+  enum GridFunctionType
+  {
+    general,
+    vertexCentered,
+    cellCentered,
+    faceCenteredAll,
+    faceCenteredAxis1,
+    faceCenteredAxis2,
+    faceCenteredAxis3
+    };
+\end{verbatim}
+}
+
+\noindent where
+
+\begin{itemize}
+  \item \Index{vertexCentered}  : grid function is vertex centred
+  \item \Index{cellCentered}    : grid function is cell centred
+  \item \Index{faceCenteredAll} : the grid function has components that are face centred in each direction
+  \item \Index{faceCenteredAxis1} : grid function is face centred along axis1, (axis1==0)
+  \item \Index{faceCenteredAxis2} : grid function is face centred along axis2, (axis2==1)
+  \item \Index{faceCenteredAxis3} : grid function is face centred along axis3, (axis3==2)
+%  \item general : means same as vertexCentered when used in this constructor
+\end{itemize}  
+
+
+% \newcommand{\half}{{1\over2}}
+\newcommand{\BOX}{\makebox(0,0){\framebox(4,4){}}}
+
+A grid function with type {\tt faceCenteredAxis1} will be vertex centered along {\tt axis1}
+and cell-centered along the other axes. Thus in 2D the grid function will live on the
+vertical faces of the grid cells as shown in figure~\ref{fig:faceCenteredAxis1}.
+\begin{figure}[h]\begin{center}                                                    
+ \begin{picture}(300,100)(0,-20)
+ \put(100,  0){\framebox(60,60){}}
+% \put(130, 30){\makebox(0,0){${\bf u}_{i,j}$}}
+ \put(100, 30){\makebox(0,0)[r]{${\bf u}_{i-\half,j}$~~}}
+ \put(100, 30){\makebox(0,0){$\BOX$}}
+% \put(100, 30){\circle*{2}}
+ \put(160, 30){\makebox(0,0)[l]{$~~{\bf u}_{i+\half,j}$}}
+ \put(160, 30){\makebox(0,0){$\BOX$}}
+% \put(130,-10){\makebox(0,0)[t]{${\bf u}_{i,j-\half}$}}
+% \put(100,-10){\makebox(0,0)[r]{${\bf u}_{i-\half,j-\half}$}}
+% \put(130,  0){\makebox(0,0){$\odot$}}
+% \put(130, 70){\makebox(0,0)[b]{${\bf u}_{i,j+\half}$}}
+% \put(130, 60){\makebox(0,0){$\odot$}}
+% \put(100,  0){\makebox(0,0){$\Diamond$}}
+ \end{picture}                                                                  
+\caption{A grid function of type {\tt faceCenteredAxis1}} \label{fig:faceCenteredAxis1}
+\end{center}\end{figure}   
+
+\noindent
+Similiarly a grid function with type {\tt faceCenteredAxis2} will be vertex centered along {\tt axis2}
+and cell-centered along the other axes. Thus in 2D the grid function will live on the
+horizontal faces of the grid cells as shown in figure~\ref{fig:faceCenteredAxis2}.
+\begin{figure}[h]\begin{center}                                                    
+ \begin{picture}(300,100)(0,-20)
+ \put(100,  0){\framebox(60,60){}}
+% \put(130, 30){\makebox(0,0){${\bf u}_{i,j}$}}
+% \put(100, 30){\makebox(0,0)[r]{${\bf u}_{i-\half,j}$~~}}
+% \put(100, 30){\makebox(0,0){$\BOX$}}
+% \put(100, 30){\circle*{2}}
+% \put(160, 30){\makebox(0,0)[l]{$~~{\bf u}_{i+\half,j}$}}
+% \put(160, 30){\makebox(0,0){$\BOX$}}
+ \put(130,-10){\makebox(0,0)[t]{${\bf u}_{i,j-\half}$}}
+% \put(100,-10){\makebox(0,0)[r]{${\bf u}_{i-\half,j-\half}$}}
+ \put(130,  0){\makebox(0,0){$\BOX$}}
+ \put(130, 70){\makebox(0,0)[b]{${\bf u}_{i,j+\half}$}}
+ \put(130, 60){\makebox(0,0){$\BOX$}}
+% \put(100,  0){\makebox(0,0){$\Diamond$}}
+ \end{picture}                                                                  
+\caption{A grid function of type {\tt faceCenteredAxis2} } \label{fig:faceCenteredAxis2}
+\end{center}\end{figure}   
+
+\noindent
+A grid function that is defined to be {\tt faceCenteredAll}
+will have components that live on each of the faces. This is accomplished by adding an 
+extra component index to the grid function; the dimension of this extra component being
+equal to the number of space dimensions (i.e. the number of different faces).
+% will have some components that are
+% {\tt faceCenteredAxis1}, others that that are {\tt faceCenteredAxis2} and some that
+% are {\tt faceCenteredAxis3} (if it is in 3D). 
+Thus for example, one could 
+make a grid function, {\tt faceNormals}, that holds vectors that are normals to the faces of every cell.
+Some of the normals are {\tt faceCenteredAxis1}, some are {\tt faceCenteredAxis2} and
+some are {\tt faceCenteredAxis3}.
+
+
+The next code fragment
+{\footnotesize  
+\begin{verbatim} 
+  MappedGrid mg(...);    // create a grid some-how
+  realMappedGridFunction u(mg,GridFunctionParameters::cellCentered,2); 
+\end{verbatim}  
+}  
+will create a cell-centered grid function with two components. The name {\tt cellCentered} is defined
+within the Class {\tt GridFunctionParameters} (to avoid polluting the global name space) and so we must
+indicate its scope when we use it. Below we show how to do this in an easier way. 
+The above declaration would be equivalent to
+{\footnotesize  
+\begin{verbatim} 
+  MappedGrid mg(...); // cell-centered MappedGrid
+  Range all;
+  realMappedGridFunction u(mg,all,all,all,2);
+\end{verbatim}  
+}  
+assuming that the {\tt MappedGrid} were cell centered. 
+Another way to do this would be to use the {\tt updateToMatchGrid} member function
+{\footnotesize  
+\begin{verbatim} 
+  MappedGrid mg(...); 
+  realMappedGridFunction u;
+  u.updateToMatchGrid(mg,GridFunctionParameters::cellCentered,2);
+\end{verbatim}  
+}  
+
+Before presenting any further examples 
+let us first define some variables {\tt vertexCentered}, {\tt cellCentered}, etc. so that we do not
+have to indicate the scope, {\tt GridFunctionParameters::vertexCentered}, when refering to
+entries in the GridFunctionType enum,
+{\footnotesize
+\begin{verbatim}
+   const GridFunctionParameters::GridFunctionType vertexCentered    =GridFunctionParameters::vertexCentered;
+   const GridFunctionParameters::GridFunctionType cellCentered      =GridFunctionParameters::cellCentered;
+   const GridFunctionParameters::GridFunctionType faceCenteredAll   =GridFunctionParameters::faceCenteredAll;
+   const GridFunctionParameters::GridFunctionType faceCenteredAll   =GridFunctionParameters::faceCenteredAll;
+   const GridFunctionParameters::GridFunctionType faceCenteredAxis1 =GridFunctionParameters::faceCenteredAxis1;
+   const GridFunctionParameters::GridFunctionType faceCenteredAxis2 =GridFunctionParameters::faceCenteredAxis2;
+   const GridFunctionParameters::GridFunctionType faceCenteredAxis3 =GridFunctionParameters::faceCenteredAxis3;
+\end{verbatim}
+}
+Given these definitions here are some examples
+{\footnotesize  
+\begin{verbatim} 
+  realMappedGridFunction u(mg,vertexCentered,2);   // u(mg,all,all,all,0:1);
+  realMappedGridFunction u(mg,cellCentered,2,3);   // u(mg,all,all,all,0:1,0:2);
+			      
+  realMappedGridFunction u(mg,faceCenteredAxis1);  // u(mg,all,all,all);
+  realMappedGridFunction u(mg,faceCenteredAxis2,Range(2,3));  // u(mg,all,all,all,2:3);
+			      
+  realMappedGridFunction u(mg,faceCenteredAll);    // u(mg,all,all,all,0:d-1);
+  realMappedGridFunction u(mg,faceCenteredAll,2);  // u(mg,all,all,all,0:1,0:d-1);
+  realMappedGridFunction u(mg,faceCenteredAll,3,2);// u(mg,all,all,all,0:2,0:1,0:d-1);
+\end{verbatim}  
+}  
+The comment following each declaration defines the shape of the resulting grid function.
+(Here {\tt d} is the number of space dimensions).
+Note that the grid functions created always have the 3 coordinate indices first, followed by the
+component indices ({\sl standard form}).
+Also note that the grid functions with type {\tt faceCenteredAll} have an
+extra index added to the end. The value of this index determines the face centered-ness.
+Thus, in the grid function declared {\tt u(mg,faceCenteredAll)} 
+the component,{\tt u(all,all,all,i)}, will be face centered
+along axis=i, for $i=0,1,...,d-1$, as shown again below
+{\footnotesize
+\begin{verbatim}
+    realMappedGridFunction u(mg,faceCenteredAll);
+
+    u(all,all,all,0)  <---> faceCenteredAxis1
+    u(all,all,all,1)  <---> faceCenteredAxis2   (if d>1)
+    u(all,all,all,2)  <---> faceCenteredAxis3   (if d>2)
+\end{verbatim}
+}
+
+Here are some more examples where we also indicate the value returned by some of the query member
+functions
+{\footnotesize  
+\begin{verbatim} 
+  realMappedGridFunction u(mg,faceCenteredAxis2,Range(0,1),Range(1,1)); // u(mg,all,all,all,0:1,1:1)
+  u.getGridFunctionType()               == faceCenteredAxis2 
+  u.getGridFunctionTypeWithComponents() == faceCenteredAxis2With2Components
+  u.getNumberOfComponents()             == 2    // number of component indicies, 0=scalar, 1=vector, 2=matrix
+  u.getFaceCentering()                  == direction1
+
+
+  realMappedGridFunction u(mg,faceCenteredAxis1); // u(mg,all,all,all)
+  u.getGridFunctionType()               == faceCenteredAxis1
+  u.getGridFunctionTypeWithComponents() == faceCenteredAxis1With0Components
+  u.getNumberOfComponents()             == 0
+  u.getFaceCentering()                  == direction0
+
+
+  realMappedGridFunction u(mg,faceCenteredAll,3); // u(mg,all,all,all,0:2,0:d-1)
+  u.getGridFunctionType()               == faceCenteredAll
+  u.getGridFunctionTypeWithComponents() == faceCenteredAllWith1Component
+  u.getNumberOfComponents()             == 1
+  u.getFaceCentering()                  == all
+\end{verbatim}
+}
+
+If you need to determine the gridFunctionType for a subset of the components of a grid
+function then you can pass optional arguments to the {\tt getGridFunctionType} member function
+to indicate which components you want to determine the type of,
+{\footnotesize  
+\begin{verbatim} 
+  realMappedGridFunction u(mg,faceCenteredAll,Range(0,1)); // u(mg,all,all,all,0:1,0:d-1)
+
+  u.getGridFunctionType()             == faceCenteredAll
+  u.getGridFunctionType(0)            == faceCenteredAll
+  u.getGridFunctionType(Range(0,1))   == faceCenteredAll
+
+  u.getGridFunctionType(0,0)          == faceCenteredAxis1
+  u.getGridFunctionType(Range(0,1),0) == faceCenteredAxis1
+  u.getGridFunctionType(0,1)          == faceCenteredAxis2    (if d>1)
+  u.getGridFunctionType(0,2)          == faceCenteredAxis3    (if d>2)
+\end{verbatim}
+}
+\noindent In the above example we see that a grid function of type {\tt faceCenteredAll} 
+has some components that are {\tt faceCenteredAxis1}, some that are {\tt faceCenteredAxis2}
+and some that are {\tt faceCenteredAxis3}.
+
+
+
+You can change the {\tt gridFunctionType} of an existing grid function by using {\tt updateToMatchGrid}
+as shown in the next example:
+{\footnotesize  
+\begin{verbatim} 
+  realMappedGridFunction u(mg,faceCenteredAxis1,Range(0,1)); // u(mg,all,all,all,0:1)
+
+  u.updateToMatchGrid(faceCenteredAxis2);                    // u(mg,all,all,all,0:1)
+  u.updateToMatchGrid(mg,faceCenteredAxis3);                 // u(mg,all,all,all,0:1)
+
+  u.updateToMatchGrid(cellCentered,Range(1,3),Range(-1,1))    // u(mg,all,all,all,1:3,-1:1)
+\end{verbatim}
+}
+\noindent Note that the grid function retains its components if no new values are given.
+  
+
+% This type of grid function might be used if you had a vector defined on the
+% grid (such as a face-normal) 
+
+% The grid function {\tt u2} will be dimensioned {\tt u2(all,all,all)}
+% and it will be face centered along {\tt axis=axis1=0}. Simililarly for {\tt u3} and {\tt u4}.
+
+
+
+
+
+
+\subsection{Grid functions with arbitrary centredness}
+\index{grid function!arbrtray centredness}
+
+The normal user can probably ignore this section.
+
+This section describes how to make grid function with arbitrary centeredness and also
+how to make face-centered grid functions that are not in standard form.
+
+In order to represent all these types of centering a grid function has an intArray
+called {\tt isCellCentered} which indicates the centering of the grid function
+in each coordinate direction. Actually each component of a grid function can have
+its own centering but we will ignore this for now.
+Thus, for example,
+
+\vskip\baselineskip
+\begin{centering}
+\begin{tabular}{|l|c|c|c|}
+\hline
+     & \multicolumn{3}{c|}{\tt isCellCentered(axis)} \\ \hline
+\emph{type}        &  axis=0 & axis=1 & axis=2 \\ \hline
+vertex centred & FALSE & FALSE & FALSE \\
+cell centred   & TRUE  & TRUE  & TRUE  \\
+face centred along axis=0  & FALSE  & TRUE  & TRUE  \\
+face centred along axis=1  &  TRUE  & FALSE & TRUE  \\
+face centred along axis=2  & TRUE   & TRUE  & FALSE \\
+edge centred               & TRUE & FALSE & FALSE \\
+edge centred               & FALSE & TRUE  & FALSE \\
+edge centred               & FALSE & FALSE & TRUE  \\
+\hline
+\end{tabular}
+\end{centering}
+\vskip\baselineskip
+
+
+The member functions {\tt setIsCellCentered}, {\tt setIsFaceCentered} and {\tt setFaceCentering}
+can be used to create grid-functions with various centerings. The most general function
+is {\tt setIsCellCentered}. The most general function for creating face centered grid functions
+is {\tt setIsFaceCentered} while the function {\tt setFaceCentering} can be used to create
+face-centred grid functions of some standard forms.
+
+
+
+\subsubsection{Semi-general face-centred grid functions}
+
+Although the grid functions support a very general type of
+face-centering, in practice one often uses more
+specialized forms. The two common forms of face-centred
+grid functions are
+\begin{enumerate}
+  \item A grid function for which all components are face-centred
+        in the same direction (i.e. along the same axis). For example
+  {\footnotesize\begin{verbatim}
+    ...
+    const int axis1=0, axis2=1, axis3=2;
+    MappedGrid mg(...);
+    Range all;                  // a null Range is used when constructing grid functions, it indicates
+                                // the positions of the coordinate axes
+
+    realMappedGridFunction u(mg,all,all,all,Range(0,1));
+    u.setFaceCentering(axis1);               // u(I1,I2,I3,0:1) : all components face centred along direction 0
+
+    u.updateToMatchGrid(Range(0,2),all,all,all);
+    u.setFaceCentering(axis2);               // u(0:2,I1,I2,I3) : all components face centred along direction 1
+  \end{verbatim}
+  }
+  \item A grid function where each component is face centred in all space directions, for example
+  {\footnotesize\begin{verbatim}
+    ...
+    MappedGrid mg(...);
+  
+    realMappedGridFunction u(mg,all,all,all,Range(0,1),faceRange);  
+    // u(I1,I2,I3,0:1,0)  : these components are face-centred along direction 0
+    // u(I1,I2,I3,0:1,1)  : these components are face-centred along direction 1
+    // u(I1,I2,I3,0:1,2)  : these components are face-centred along direction 2 (if the grid is 3D)
+
+    u.updateToMatchGrid(mg,all,all,all,faceRange,Range(0,0),Range(0,2));
+    // u(I1,I2,I3,0,0:0,0:2)  : these components are face-centred along direction 0
+    // u(I1,I2,I3,1,0:0,0:2)  : these components are face-centred along direction 1
+    // u(I1,I2,I3,2,0:0,0:2)  : these components are face-centred along direction 2 (if the grid is 3D)
+  \end{verbatim}
+  }
+  Note that the special Range, {\ff faceRange} is used to indicate the position of the face centering 
+  component. This component will be dimensioned with a Range = Range(0,numberOfDimensions-1).
+  Note that only one occurence of {\ff faceRange} must appear in the argument list.
+\end{enumerate}
+
+To determine if a grid function is of a given type of face-centering use the function
+{\ff getFaceCentering} which returns a value from the enumerator {\ff faceCenteringType}
+(found in a MappedGridFunction):
+{\footnotesize\begin{verbatim}
+  enum faceCenteringType    // Here are some standard types of face centred grid functions
+  { 
+    none=-1,                // not face centred
+    direction0=0,           // all components are face centred along direction (i.e. axis) = 0
+    direction1=1,           // all components are face centred along direction (i.e. axis) = 1
+    direction2=2,           // all components are face centred along direction (i.e. axis) = 2
+    all=-2                  // components are face centred in all directions, positionOfFaceCentering determines
+  };                        //   the Index position that is used for the "directions"
+}
+\end{verbatim}
+}
+
+To further illustrate these ideas, consider
+the following function which determines whether a grid function is of one of the
+standard types:
+{\footnotesize\begin{verbatim}
+void determineFaceCentering( realMappedGridFunction & u )
+{
+  switch (u.getFaceCentering())
+  {
+  case GridFunctionParameters::none :
+    cout << " this is not a standard face centered variable \n";
+    break;
+  case GridFunctionParameters::all :
+    cout << "this function has components that are face centred in all space dimensions\n";
+    cout << "The value u.positionOfFaceCentering = " << u.positionOfFaceCentering << ", "
+            "gives the position of the faceRange";
+    break;
+  case GridFunctionParameters::direction0 :
+    cout << "all components are face centered along direction=0 \n";
+    break;
+  case GridFunctionParameters::direction1 :
+    cout << "all components are face centered along direction=1 \n";
+    break;
+  case GridFunctionParameters::direction2 :
+    cout << "all components are face centered along direction=2 \n";
+    break;
+  default:
+    cout << "Unknown face-centering type! This case should not occur! \n";
+  };
+\end{verbatim}
+}
+For further examples see the program {\ff \GF /cellFace.C} which tests
+various aspects of cell and face centred grid functions.

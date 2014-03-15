@@ -1,0 +1,80 @@
+\subsection{FAQ on Grids}
+
+Here are some frequently asked questions that Geoff has responded to. 
+If you ask Geoff questions please submit the responses to me.
+
+\noindent 
+{\bf Question: (95/07/13)} Geoff: What the heck is going on with the newest version
+of the grid classes ?!?.
+
+\noindent
+{\bf Answer:}
+{\footnotesize
+\begin{verbatim}
+
+Bill,
+
+I recommend that people should use the "mask"
+MappedGridFunction in the MappedGrid class, and stop using the
+"mask" GridCollectionFunction in the GridCollection class.
+Both contain the same data, but I expect the latter will
+eventually disappear.
+
+It is no longer the case that, by default, the "vertex"
+array or any other geometry array in a grid database is
+accessed when you use a MultigridCompositeGrid constructor
+that takes a grid name.  This is also true for any other
+constructor of a MultigridCompositeGrid, CompositeGrid,
+MappedGrid, etc., for that matter, except for the copy
+constructors.
+
+You should always use the "update" member function for any
+grid before using it, to specify which geometry arrays
+you want.  As a quick temporary fix, it is sufficient to
+use the "update" function for the MultigridCompositeGrid,
+and let it take its default argument values, if you want
+the "usual" geometry arrays.  For example,
+
+    String filename, gridName;
+    Dir fileDir; fileDir.mount(fileName);
+    MultigridCompositeGrid m(fileDir, gridName);
+    m.update();
+
+It is better to use the "update" function to specify explicitly
+which grid functions you will need, at the first place in
+your code where you know which grid functions will be needed.
+Different solvers have different needs.  Each solver should
+call the "update" function once when it first sees the grid.
+
+The default argument values are
+    update(what = THEusualSuspects, how = COMPUTEtheGeometryAsNeeded);
+
+Currently THEusualSuspects has the following value for each class.
+I don't guarantee that these values will always stay the same.
+
+GenericGrid::THEusualSuspects    = NOTHING
+
+GenericGridCollection::THEusualSuspects
+                                 = GenericGrid::THEusualSuspects
+
+MappedGrid::THEusualSuspects     = GenericGrid::THEusualSuspects
+                                 | THEmask
+                                 | THEvertex
+                                 | THEcenter
+                                 | THEvertexDerivative
+
+GridCollection::THEusualSuspects = GenericGridCollection::THEusualSuspects
+                                 | MappedGrid::THEusualSuspects
+                                 | THEinterpolationCoordinates
+                                 | THEinterpoleeGrid
+                                 | THEinterpoleeLocation
+                                 | THEinterpolationPoint
+                                 | THEmask
+
+MultigridCompositeGrid::THEusualSuspects
+                                 = CompositeGrid::THEusualSuspects
+
+Geoff
+
+\end{verbatim}
+}

@@ -1,0 +1,96 @@
+From : http://www.grc.nasa.gov/WWW/wind/valid/plot3d.html
+
+Plot3d File Format for Grid and Solution Files
+
+This page describes the Plot3d file format for writing CFD structured
+grids and solutions. Below are examples for reading the files using
+Fortran 77 code. The examples assumes the grid file has been opened to
+unit 7 and the solution file to unit 8. Shown are examples for 2D,
+formatted, single-block files and 3D, unformatted, multi-block
+files. Permutations of these formats are possible and should be
+evident from the examples.
+
+-------------------------------------------------------------------------------
+2D, Whole, Formatted, Single-Block Grid and Solution
+
+      parameter ( imax = 100 )
+      parameter ( jmax = 100 )
+
+      integer i
+      integer j
+      integer m
+      integer n
+      integer ni
+      integer nj
+ 
+      real mach   ! freestream Mach number
+      real alpha  ! freestream angle-of-attack
+      real reyn   ! freestream Reynolds number
+      real time   ! time
+
+      real x(imax,jmax)
+      real y(imax,jmax)
+
+      real q(imax,jmax,4)
+
+      open ( unit=7, form='formatted', file='2D.x' )
+      open ( unit=8, form='formatted', file='2D.q' )
+
+      read(7,*) ni, nj
+      read(7,*) 
+     &    (( x(i,j), i=1,ni), j=1,nj),
+     &    (( y(i,j), i=1,ni), j=1,nj)
+
+      read(8,*) ni, nj
+      read(8,*) mach, alpha, reyn, time
+      read(8,*) ((( q(i,j,n), i=1,ni), j=1,nj), n=1,4)
+
+-------------------------------------------------------------------------------
+
+
+3D, Whole, Unformatted, Multi-Block Grid and Solution
+
+      parameter ( imax  = 100 )
+      parameter ( jmax  = 100 )
+      parameter ( kmax  = 100 )
+      parameter ( nbmax =  10 )
+
+      integer i
+      integer j
+      integer m
+      integer n
+      integer nblocks
+      integer ni (nbmax)
+      integer nj (nbmax)
+      integer nk (nbmax)
+ 
+      real mach   ! freestream Mach number
+      real alpha  ! freestream angle-of-attack
+      real reyn   ! freestream Reynolds number
+      real time   ! time
+
+      real x(imax,jmax,kmax,nbmax)
+      real y(imax,jmax,kmax,nbmax)
+      real z(imax,jmax,kmax,nbmax)
+
+      real q(imax,jmax,kmax,nbmax,5)
+
+      open ( unit=7, form='unformatted', file='3D.x' )
+      open ( unit=8, form='unformatted', file='3D.q' )
+
+      read(7) nblocks
+      read(7) ( ni(m), nj(m), nk(m), m = 1, nblocks )
+      do  m = 1, nblocks
+        read(7) 
+     &    ((( x(i,j,k,m), i=1,ni(m)), j=1,nj(m)), k=1,nk(m)),
+     &    ((( y(i,j,k,m), i=1,ni(m)), j=1,nj(m)), k=1,nk(m)),
+     &    ((( z(i,j,k,m), i=1,ni(m)), j=1,nj(m)), k=1,nk(m))
+      enddo
+
+      read(8) nblocks
+      read(8) ( ni(m), nj(m), nk(m), m = 1, nblocks )
+      do  m = 1, nblocks
+        read(8) mach, alpha, reyn, time
+        read(8) 
+     &    (((( q(i,j,k,m,n), i=1,ni(m)), j=1,nj(m)), k=1,nk(m)), n=1,5)
+      enddo

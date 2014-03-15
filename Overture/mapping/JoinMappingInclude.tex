@@ -1,0 +1,89 @@
+\subsection{Constructor}
+ 
+\newlength{\JoinMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\JoinMappingIncludeArgIndent}{JoinMapping(}% 
+JoinMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+  Define a mapping that tranforms a "source-mapping" so that
+ it intersects another "clip-surface" "exactly". For example,
+ a Mapping for a wing (source-mapping)  can be joined to a fuselage (clip-surface).
+
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\JoinMappingIncludeArgIndent}{JoinMapping(}% 
+JoinMapping(Mapping \& sourceMapping, \\ 
+\hspace{\JoinMappingIncludeArgIndent}Mapping \& clipSurface)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+  Define a mapping that tranforms a "source-mapping" so that
+ it intersects another "clip-surface" "exactly". For example,
+ a Mapping for a wing (source-mapping)  can be joined to a fuselage (clip-surface).
+ 
+\item[{\bf sourceMapping (input):}]  defines the source-mapping. This is the Mapping
+  that will be changed. 
+\item[{\bf clipMapping :}]  defines the clip-surface. This Mapping will clip away a
+    portion of the sourceMapping. Use  the setEndOfJoin function to specify
+    which portion of the sourceMapping to retain. 
+\end{description}
+\subsection{setCurves}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\JoinMappingIncludeArgIndent}{setCurves(}%
+setCurves(Mapping \& sourceMapping, \\ 
+\hspace{\JoinMappingIncludeArgIndent}Mapping \& clipSurface )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Supply the source-mapping and clip-surface from which the join will be defined.
+ 
+\item[{\bf sourceMapping (input):}]  defines the source-mapping. This is the Mapping
+  that will be changed. 
+\item[{\bf clipMapping :}]  defines the clip-surface. This Mapping will clip away a
+    portion of the sourceMapping. Use  the setEndOfJoin function to specify
+    which portion of the sourceMapping to retain. 
+\end{description}
+\subsection{setEndOfJoin}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\JoinMappingIncludeArgIndent}{setEndOfJoin(}%
+setEndOfJoin( const real \& endOfJoin\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ Specify the r value for the end of the join opposite the curve
+ of intersection. Use this to specify which portion of the source-mapping to retain.
+ For example, choosing a value of $0$ or $1$ will select the portion of the
+ source-mapping that lies on one side of the clip-surface or the other side. Choosing
+ a value of $.8$, for example, will shorten the join-mapping. 
+ 
+\item[{\bf endOfJoin\_ (input) :}]  a value in [0,1].
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\JoinMappingIncludeArgIndent}{map(}%
+map( const realArray \& r, realArray \& x, realArray \& xr, MappingParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Evaluate the TFI and/or derivatives. 
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\JoinMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively create and/or change the Join mapping.
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}

@@ -1,0 +1,121 @@
+\subsection{Constructor}
+ 
+\newlength{\CylinderMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\CylinderMappingIncludeArgIndent}{CylinderMapping(}% 
+CylinderMapping(\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& startAngle\_  = 0.,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& endAngle\_  = 1.,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& startAxis\_  = -1.,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& endAxis\_  = +1.,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& innerRadius\_  = 1., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& outerRadius\_  = 1.5,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& x0\_  = 0., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& y0\_  = 0., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& z0\_  = 0., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const int \& domainDimension\_  = 3,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const int \& cylAxis1\_  = axis1,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const int \& cylAxis2\_  = axis2,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const int \& cylAxis3\_  = axis3\\ 
+\hspace{\CylinderMappingIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create a 3D cylindrical volume or surface. 
+\item[{\bf Notes:}] 
+ This mapping defines a cylinder in three-dimensions:
+ \[ \theta =  2\pi( \theta_0 + r_0( \theta_1-\theta_0) ) \]
+ \[ R(r_1) = (R_0 + r_2 (R_1-R_0))  \]
+ \[ {\mathbf x}(r_0,r_1,r_2) = ( R \cos(\theta ) + x_0 , R\sin(\theta) + y_0 , s_0 + r_1(s_1-s_0) + z_0 ) \]
+
+ The above cylinder has the z-axis as the axial direction. It is also possible to to have the
+ axial direction to point in any of the coordinate direction using the 
+ ({\tt cylAxis1}, {\tt cylAxis2}, {\tt cylAxis3}) variables (which should be a permutation of (0,1,2)):
+  Changing these variables will permute the definition of $(x_0,x_1,x_2)$: 
+ \[
+    (x_{\mathtt cylAxis1},x_{\mathtt cylAxis2},x_{\mathtt cylAxis3}) = ( R \cos(\theta ) 
+    + x_0 , R\sin(\theta) + y_0 , s_0 + r_2(s_1-s_0) + z_0 )
+ \]
+ NOTE that the parameter space coordinates are always $(\theta,\rm{axial},\rm{radial})$. 
+
+\item[{\bf startAngle (input) :}]  starting angle ($\theta_0$) NOTE: angles are 1-periodic!
+\item[{\bf endAngle (input) :}]   ending angle ($\theta_1$) NOTE: angles are 1-periodic!.
+\item[{\bf startAxis (input) :}]  axial coordinate of the start of the cylinder ($s_0$).
+\item[{\bf endAxis (input) :}]   axial coordinate of the end of the cylinder ($s_1$).
+\item[{\bf innerRadius (input) :}]  inner radius ($R_0$).
+\item[{\bf outerRadius (input) :}]  outer radius ($R_0$).
+\item[{\bf x0,y0,z0 (input) :}]  center of the cylinder ($x_0$,$y_0$,$z_0$).
+\item[{\bf domainDimension (input) :}]  3 means the cylinder is a volume, 2 means the cylinder is a surface.
+\item[{\bf cylAxis1,cylAxis2,cylAxis3 (input) :}]  change these to be a permutation of (axis1,axis2,axis3) to change
+   the orientation of the cylinder. NOTE: axis1==0, axis2==1, axis3==2.
+\end{description}
+\subsection{setAngle}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\CylinderMappingIncludeArgIndent}{setAngle(}%
+setAngle(const real \& startAngle\_  =0., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& endAngle\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the initial and final angles.
+\item[{\bf startAngle (input) :}]  
+\item[{\bf endAngle (input) :}]  
+\end{description}
+\subsection{setAxis}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\CylinderMappingIncludeArgIndent}{setAxis(}%
+setAxis(const real \& startAxis\_  =-1., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& endAxis\_  =+1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the starting and ending axial positions.
+\item[{\bf startAxis (input) :}]  axial coordinate of the start of the cylinder ($s_0$).
+\item[{\bf endAxis (input) :}]   axial coordinate of the end of the cylinder ($s_1$).
+\end{description}
+\subsection{setOrientation}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\CylinderMappingIncludeArgIndent}{setOrientation(}%
+setOrientation( const int \& cylAxis1\_  =0,  \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const int \& cylAxis2\_  =1,  \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const int \& cylAxis3\_  =2)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the orientation of the cylinder.
+\item[{\bf cylAxis1,cylAxis2,cylAxis3 (input) :}]  change these to be a permutation of (axis1,axis2,axis3) to change
+   the orientation of the cylinder. NOTE: axis1==0, axis2==1, axis3==2.
+\end{description}
+\subsection{setOrigin}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\CylinderMappingIncludeArgIndent}{setOrigin(}%
+setOrigin(const real \& x0\_  =0., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& y0\_  =0., \\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& z0\_  =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the centre of the cylinder.
+\item[{\bf x0,y0,z0 (input) :}]  center of the cylinder ($x_0$,$y_0$,$z_0$).
+\end{description}
+\subsection{setRadius}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\CylinderMappingIncludeArgIndent}{setRadius(}%
+setRadius(const real \& innerRadius\_  =1.,\\ 
+\hspace{\CylinderMappingIncludeArgIndent}const real \& outerRadius\_  =1.5)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the inner and outer radii.
+\item[{\bf innerRadius (input) :}]  inner radius ($R_0$).
+\item[{\bf outerRadius (input) :}]  outer radius ($R_0$).
+\end{description}

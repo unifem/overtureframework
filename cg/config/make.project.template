@@ -1,0 +1,69 @@
+PKGSCK := otherStuff gui \
+	hype amr boxlib contrib gf \
+	op/src op/bc op/coeff op/deriv op/fortranCoeff op/fortranDeriv \
+	op/include  \
+	grid include mapping \
+	ogen oges ogshow rap \
+	templates ugen hdf ogmg fvo
+
+fvo:=
+ogmg:=
+COPTS += "[fvo=n|y] [ogmg=n|y]"
+
+fdbg:=
+COPTS += "[fdbg=n|y]"
+
+#op/tests \
+
+PKGS := $(foreach p, $(PKGSCK), $(OvertureCheckout)/$(p))
+
+# Here is the rpath command
+OV_RPATH = -Wl,-rpath,
+
+OV_PERL_INCLUDE = /usr/apps/perl/5.8.3/lib/5.8.3/i686-linux-ld/CORE
+OV_PERL_LIB = /usr/apps/perl/5.8.3/lib/5.8.3/i686-linux-ld/CORE
+OV_PERL_LIBRARIES = $(OV_RPATH)$(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lnsl -ldl -lm -lcrypt -lutil -lc
+
+AppLibraries = -L$(APlusPlus)/lib -lApp -lApp_static
+
+INCLUDE +=  $(addprefix -I,$(PKGS)) -I$(OpenGL)/include -I$(OpenGL)/include/GL \
+	-I$(APlusPlus)/include \
+	-I$(Overture)/include $(STL) -I$(XLIBS) -DSHM -I$(HDF)/include  -I$(MOTIF)/include \
+	 -I$(OpenGL)/GLUT -I$(XLIBS)/include -I$(XLIBS)/GLw -I$(OV_PERL_INCLUDE)
+#	-I$(MOTIF)/include/Motif-1.2   \
+
+Lib =      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+
+FC_FLAGS += $(INCLUDE)
+ifeq ($(OVprecision),double)
+
+FC_FLAGS += -r8 -i4 
+
+endif
+
+BOXLIB_DEFS += -DBL_SPACEDIM=3 -DBL_USE_FLOAT -DBL_ARCH_IEEE -DBL_FORT_USE_UNDERSCORE -DBL_BUG_DEFARG -DBL_LANG_CC
+
+CC_FLAGS += $(INCLUDE) $(BOXLIB_DEFS)
+
+CXX_FLAGS += $(INCLUDE) $(BOXLIB_DEFS)
+
+
+#FC_FLAGS += $(OverturePrecision)
+
+FC := pgf77
+FORTRAN_LIBS := -Wl,-rpath,$(PGI_LIB) -L$(PGI_LIB) -lpgftnrtl -lpgmp  -lpgc -lstd
+
+LIBS = -L$(Lib) $(LibOverture) $(AppLibraries) $(FC_LIBS) \
+	-L$(OpenGL)/lib $(GL_LIBS) \
+	-L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz $(OV_PERL_LIBRARIES) \
+	-L$(MOTIF)/lib -lXm -L$(XLIBS)/lib $(FORTRAN_LIBS) -lXt -lXmu -lXi -lXext -lX11 -lm -lc
+
+OV_LIB := lib/libOverture.so
+OV_SLIB := lib/libOverture_static.a
+
+LIBSO := $(OV_LIB)
+LIBA  := $(OV_SLIB)
+
+
+

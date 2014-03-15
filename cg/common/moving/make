@@ -1,0 +1,14 @@
+include ../../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src $(INCLUDES)
+
+# FORTRAN_INCLUDES += -I$(CG)/common/src 
+
+
+SHARED_LIBRARY_LOAD_LIBS := $(LIBS) $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib -lCgCommon 
+SHARED_LIBRARY_LOAD_LIBS :=  
+ 
+# LIBS := $(LIBS)
+

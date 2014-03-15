@@ -1,0 +1,129 @@
+In table~\ref{tab:krylovSolvers} we compare the results for a variety of Krlov solvers and preconditioners.
+We consider two- and three-dimensional problems for fourth-order discretizations.
+In two-dimensions, bi-CG-stab with ILU(5) seems to give about the best results in terms of CPU time.
+
+
+\newcommand{\maxNorm}[1]{\vert\vert #1 \vert\vert_\infty}
+\newcommand{\maxRes}{\maxNorm{\mbox{res}}}
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|c|} \hline 
+ Solver             & grid     & pts     & its   & $\maxRes$   & CPU    &  setup & solve  & reals/pt\\   \hline 
+%						   	       
+ biCG-stab, ILU(0)  & cic4     & $1.0e6$ &  833  & $9.5$e-$9$  &$ 567$  &  $  $  &$ 531$  & $ 50.1$    \\
+ biCG-stab, ILU(5)  & cic4     & $1.0e6$ &   89  & $2.7$e-$8$  & $231$  &  $  $  & $180$  & $100.0$    \\
+ biCG-stab, ILU(8)  & cic4     & $1.0e6$ &   64  & $5.6$e-$8$  & $258$  &  $  $  & $179$  & $149.0$    \\
+%
+\hline 
+\end{tabular}
+\end{center}
+\caption{A comparison of various Krylov solvers and preconditioners. biCG-stab is a stabilized bi-Conjugate Gradient
+solver. gmres(20) is a generalized miniumum residual solver with a restart length of 20. ILU(k) is an
+incomplete LU preconditoner with k extra levels of fillin. The grid cic4 is a circle-in-a-channel
+grid.}
+\label{tab:krylovSolvers} 
+\end{table}
+
+
+
+In table~\ref{tab:comparison} we compare results from \Ogmg\ to those of some good Krylov solvers. 
+
+
+For the two-dimensional grid cic with about $1.1$ million grid points the solve time for 
+\Ogmg\ is about 30 times faster
+and uses about 10 times less storage than biCG-stab, ILU(5). Compared to biCG-stab, ILU(0) \Ogmg\
+is about 80 times faster and uses about 6 times less memory (for the solve step).
+
+The setup time for \Ogmg\ includes the time needed for generation of the multigrid levels and generation
+of the coarser grid operators by averaging. The setup time for the Krylov solvers includes
+the time required to copy the matrix coefficients from Overture to PETSc and the time needed
+to build the preconditoner.
+
+% NOTE: run with debug=1 for better performance
+
+% 040106: total=5.03, init=1., solve=4.03 (cic4Opt.cmd)
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|c|} \hline 
+ Solver             & grid     & pts     & its  & $\maxRes$   & CPU    &  setup & solve  & reals/pt\\   \hline 
+%
+ Ogmg V[1,1]  FMG   & cic4     & $1.0e6$ &   7  & $2.6$e-$8$  & $5.0$ & $1.0 $ & $4.0$  & $9.4$    \\
+ biCG-stab, ILU(5)  & cic4     & $1.0e6$ &  89  & $2.7$e-$8$  & $231$  & $51.$  & $180$  & $100.0$    \\
+ biCG-stab, ILU(0)  & cic4     & $1.0e6$ &  833 & $9.5$e-$9$  &$ 567$  & $36.$  &$ 531$  & $ 50.1$    \\ \hline
+%
+\hline 
+\end{tabular}
+\end{center}
+\caption{A comparison of the multigrid solver Ogmg to Krylov based solvers. In 2D the biCG-stab ILU(5) is faster than
+biCG-stab ILU(0), but requires significantly more memory. The grid cic4 is a circle-in-a-channel
+grid.}
+\label{tab:comparison} 
+\end{table}
+
+
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|} \hline 
+ Solver   & grid     & pts     & its   & $\vert\vert \mbox{res} \vert\vert_\infty$ & CPU    &  setup & solve  & reals/pt\\   \hline 
+% Ogmg     & cic      & $1.1e6$ &  9    & $2.$e-$8$   & $10.1$  & $.92$  & $9.2$  & $5.2$    \\
+ Ogmg     & cic      & $1.1e6$ &  9    & $2.$e-$8$   & $9.7$  & $.53$  & $9.2$  & $5.2$    \\
+ PETSc    & cic      & $1.1e6$ & 1268  & $2.$e-$8$   & $934$   & $43.$  & $891.$  & $26.5$    \\
+\hline
+ Ogmg     & cic4.order4 & $1.0e6$ &  8    & $1.3$e-$6$  & $11.2$  & $1.26$  & $9.9$  & $9.4$    \\
+ PETSc    & cic4.order4 & $1.0e6$ &  458  & $1.6$e-$6$  & $360.$   & $8. $  & $352.$  & $55.4$    \\
+\hline
+ Ogmg     & cic4.order4 & $1.0e6$ &  10    & $1.3$e-$8$  & $14.6$  & $1.42$  & $13.2$  & $9.4$    \\
+ PETSc    & cic4.order4 & $1.0e6$ &  666  & $1.6$e-$8$  & $405.$   & $8. $  & $397.$  & $55.4$    \\
+\hline
+%Ogmg   & ellipsoid& $7.4e5$  &  10   & $3.$e-$7$   & $21.2$  & $4.5$  & $16.7$ & $19.4$    \\
+ Ogmg   & ellipsoid& $7.4e5$  &  10   & $3.$e-$7$   & $19.6$  & $2.9$  & $16.7$ & $19.4$    \\
+ PETSc  & ellipsoid& $7.4e5$  &  50   & $3.$e-$7$   & $44.4$  & $23.7$ & $20.7$ & $55.6$    \\
+\hline
+% Ogmg   & ellipsoid& $2.0e6$  &  10   & $1.$e-$9$   &\red $87.9$  & $6.3$  & $81.6$ & $\green 25.7$    \\
+ Ogmg   & ellipsoid& $2.0e6$  &  10   & $2.$e-$10$   &\red $38.6$  & $4.5$  & $34.1$ & $\green 10.7$    \\
+ PETSc  & ellipsoid& $2.0e6$  & 154   & $1.$e-$9$   &\red $350.$  & $36.$  & $314.$ & $\green 55.2$    \\
+\hline 
+\end{tabular}
+% \begin{tabular}{|c|c|c|c|c|c|c|c|} \hline 
+%  Solver  & grid      & grid pts  & its    & res        & CPU (s) &  setup & solve  \\   \hline 
+%  Ogmg    & cic.bbmg4 & 86130     & 9      & $2.7e-09$ & $9.8$    & $ 3.4$ & $6.4 $ \\ 
+%  Iterative&           &           & 140    & $4.09e-07$ & $33.9$   & $5.7$  & $28.2$ \\ 
+%  Direct    &           &           &        &           & $17.1$   & $16.9$ & $.23$  \\ 
+% \hline 
+%  Ogmg    & ellispoid2&  737700   &  11    & $1.1e-07$ & $181.3$   & $95. $ & $86.3$ \\ 
+% % Ogmg    & ellispoid2&  737700   &  11    & $3.7e-07$ & $143.$   & $38.$ & $105.$ \\ 
+%  Iterative&           &           &  41    & $2.1e-06$ & $171.$   & $70.$  & $101.$ \\ 
+%  Direct  &           &           &        &           & $    $   & $    $ & $   $  \\ 
+% \hline 
+% \end{tabular}
+\end{center}
+\caption{A comparison of the setup and solution times for various solution algorithms. The iterative
+    solve is bi-CG-stab.}
+\label{tab:comparison} 
+\end{table}
+
+
+% 030512
+%  *****************************************************************
+%  ******** Checking grid: cic4.order4 ************
+%  *****************************************************************
+% 
+% Searching for grids in locations specified by the `OvertureGridDirectories' environment variable
+% look for /home/henshaw/Overture/ogen/cic4.order4
+%  ***** Mounting file /home/henshaw/Overture/ogen/cic4.order4.hdf****
+% getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
+% get: ERROR searching for surfaceStitchingSaved
+% TwilightZone: trigonometric polynomial, fx=1.000e+00, fy=1.000e+00, fz=1.000e+00
+% OgesParameters: relativeTolerance=1.000000e-08
+% 
+% *** max residual=1.56e-06, time for 1st solve of the Dirichlet problem = 3.60e+02 (iterations=458) ***
+% *** max residual=1.56e-06, time for 2nd solve of the Dirichlet problem = 3.52e+02 (iterations=458) ***
+% 
+% >> PETSC: 0.000000e+00 Kbytes in use.  (maximum used=0.000000e+00 Kbytes, total memory use=0.000000e+00 Kbytes)
+%   matrix=1.133773e+05 Kbytes, fragments=0.000000e+00
+% 
+% .....solver: size = 4.53e+08 (bytes), grid-pts=1022140, reals/grid-pt=55.37
+% Maximum relative error with dirichlet bc's= 3.799643e-06
+% petsc/cic4.order4///dirichlet: error                          : err = 3.80e-06, cpu=3.5e+02(s)

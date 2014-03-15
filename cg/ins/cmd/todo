@@ -1,0 +1,27 @@
+*************************************************
+**************** TO FIX: ************************
+*************************************************
+
+>>>>>>>>
+TROUBLE: inflowWithPressureAndTangentialVelocityGiven
+mpirun -np 1 -gdb $cginsp cic -g=cice2.order2.ml2 -nu=.01 -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure
+
+NOTE: tangential.C has opt version turned off -- why? something to do with check.p
+    --> this opt version seems to work with -ts=pc -- 
+        still a problem in insImpINS.f line 8140
+
+
+<<<<<<<
+
+
+TROUBLE: Do we need to limit the 4th-order BC's ?? (OK for some steps with ad4=0 
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=pc4 -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -ad41=.5 -ad42=.5 [->> nans
+TROUBLE: [OK ad41=ad42=1 -- BUT blows up at t =.119 
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=im  -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 [OK ad41=ad42=1
+
+
+OK: turn off ad4
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=pc4 -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=0 
+
+************************************************
+************************************************

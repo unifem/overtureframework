@@ -1,0 +1,115 @@
+# Measure convergence rates for scattering from a dielectric cylinder or sphere
+#
+# ******************* cylinder: ************************
+#  -- for comparison with Mike Feit: (diameter=.8 => kx=1/.8 )
+#   conv.p dielectric.conv -cyl=1 -kx=1.25 -eps1=2.25 -tf=1. -tp=1. -order=2 -diss=1. -name="innerOutere" -ng=4 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -kx=1.25 -eps1=2.25 -tf=1. -tp=1. -order=2 -diss=1. -name="innerOutere" -ng=4 -errorNorm=1 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -kx=1.25 -eps1=2.25 -tf=1. -tp=1. -order=4 -diss=1. -name="innerOutere" -ng=4 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -kx=1.25 -eps1=2.25 -tf=1. -tp=1. -order=4 -diss=1. -dissOrder=8 -name="innerOutere" -ng=4 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -kx=1.25 -eps1=2.25 -tf=1. -tp=1. -order=4 -diss=1. -dissOrder=8 -name="innerOutere" -ng=4 -errorNorm=1 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -kx=1.25 -eps1=2.25 -tf=1. -tp=1. -order=2  -method=Yee -name="square" -ng=4 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -kx=1.25 -eps1=2.25 -tf=1. -tp=1. -order=2  -method=Yee -name="square" -ng=4 -errorNorm=1 -alwaysCompute=1
+# 
+#    -- high-order diss: 
+#   conv.p dielectric.conv -cyl=1 -tf=1. -tp=1. -order=2 -diss=.2 -dissOrder=4 -name="innerOutere" -ng=4 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -tf=1. -tp=1. -order=2 -diss=.2 -dissOrder=4 -name="innerOuterFixede" -ng=4 -alwaysCompute=1
+#
+#   conv.p dielectric.conv -cyl=1 -tf=1. -tp=1. -order=4 -diss=1. -name="innerOutere" -ng=4 -alwaysCompute=1
+#   conv.p dielectric.conv -cyl=1 -tf=1. -tp=1. -order=4 -diss=1. -dissOrder=8 -name="innerOutere" -ng=4 -alwaysCompute=1
+#
+# ********************* SPHERE ******************************
+# -- Yee:
+#   conv.p dielectric.conv -method=Yee -tf=.5 -order=2 -name="bigBox" -ng=3 -errorNorm=1 -cfl=.95 -alwaysCompute=1
+#   conv.p dielectric.conv -method=Yee -tf=.5 -order=2 -name="bigBox" -ng=3 -errorNorm=2 -cfl=.95 -alwaysCompute=1
+#   conv.p dielectric.conv -method=Yee -tf=.5 -order=2 -name="bigBox" -ng=2 -errorNorm=2 -cfl=.95 -alwaysCompute=1
+# -- new:
+#   conv.p dielectric.conv -tf=.5 -order=2 -diss=.5 -name="solidSphereInABoxe" -ng=3 -alwaysCompute=1
+#   conv.p dielectric.conv -tf=.5 -order=2 -diss=.5 -name="solidSphereInABoxe" -ng=2 -alwaysCompute=1
+#   conv.p dielectric.conv -tf=.5 -order=2 -diss=.5 -name="solidSphereInABoxi" -ng=2 -alwaysCompute=1
+# -- fourth order
+#   conv.p dielectric.conv -tf=.5 -order=4 -diss=2. -name="solidSphereInABoxe" -ng=3 -alwaysCompute=1 -cfl=.9
+#   conv.p dielectric.conv -tf=.5 -order=4 -diss=.5 -name="solidSphereInABoxi" -ng=3 -alwaysCompute=1 -cfl=.9
+#   conv.p dielectric.conv -tf=.01 -order=4 -diss=.5 -name="solidSphereInABoxNewe" -ng=3 -alwaysCompute=1
+#  
+#   -- compute rates using existing check files: 
+#    conv.p dielectric.conv -tf=.5 -order=4 -diss=2. -name="solidSphereInABoxe" -ng=4 -alwaysCompute=0
+# 
+# --- olde
+#   conv.p dielectric.conv -ng=3 -name="solidSphereInABoxFixede"
+#   conv.p dielectric.conv -ng=3 -tf=.1 -name="solidSphereInABoxFixedi"
+# 
+#   conv.p dielectric.conv -tf=.01 -order=4 -diss=.5 -name="solidSphereInABoxFixedi" -ng=3
+#   conv.p dielectric.conv -tf=.1 -order=4 -diss=.5 -name="solidSphereInABoxFixedi" -ng=3
+#   conv.p dielectric.conv -tf=.5 -order=4 -diss=.5 -name="solidSphereInABoxFixedi" -ng=3
+#   conv.p dielectric.conv -tf=.5 -order=4 -diss=.5 -name="solidSphereInABoxFixedi" -ng=4
+# -- old:
+#   conv.p dielectric.conv -tf=.01 -ng=3 -order=4 -diss=1. -interp=i -fixed="Fixed"
+#   conv.p dielectric.conv -tf=.1 -ng=3 -order=4 -diss=1. -interp=e -cfl=.7 -fixed="Fixed"
+#   conv.p dielectric.conv -tf=.5 -ng=3 -order=4 -diss=5.
+#
+$check="mx.check";
+# --------options: 
+#   -order : 2 or 4 
+#   -interp = e or i if the grids were made with explicit or implicit interpolation
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -errorNorm:  set to 1 or 2 to show L1 and L2 norm errors
+# 
+# Set default parameters: 
+$name="solidSphereInABox";
+$tFinal=.5; $tp=.1; $order = "2"; $ng=3;  $kx=1.; $eps1=.25; $eps2=1.; $interp="i"; $fixed=""; $cfl=.9; 
+$diss=.5; $dissOrder=-1; $interit=3; 
+$errorNorm=0; $method="NFDTD"; 
+$cyl=0;  # 0=sphere, 1=cylinder
+#
+GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tFinal,"interp=s"=>\$interp,"diss=f"=>\$diss,\
+            "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"interit=i"=>\$interit,\
+            "errorNorm=i"=>\$errorNorm,"tp=f"=>\$tp,"cyl=i"=>\$cyl,"dissOrder=i"=>\$dissOrder,"kx=f"=>\$kx,"eps1=f"=>\$eps1 );
+# ------------------------ dielectric sphere ------------------------------------------
+$baseGridSpacing=.05; # grid spacing corresponding to factor=1
+if( $cyl eq 0 ){ $baseGridSpacing=.1; }else{ $baseGridSpacing=.05; }
+if( $cyl eq 0 ){ $caseLabel = "dielectricSphere"; }else{ $caseLabel = "dielectricCyl"; }
+$caseName="$caseLabel$method\Order$order"; 
+if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
+   elsif( $errorNorm eq 2 ){ $normName = "L2"; }else{ $normName="UnknownNorm"; }
+$caseName .= $normName . "Norm";
+$numberOfComponents=4;
+if( $dissOrder < 0 ){ $dissOrder=$order; }
+if( $method eq "Yee" && $cyl eq 0 ){ $numberOfComponents=7; }
+# define the table heading and caption
+if( $numberOfComponents eq 4 && $cyl eq 1 )\
+  { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$";\
+    @componentName = ( "Ex", "Ey" , "Hz", "divE" ); }
+if( $numberOfComponents eq 4 && $cyl eq 0  )\
+  { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$E_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$";\
+    @componentName = ( "Ex", "Ey" , "Ez", "divE" );  }
+if( $numberOfComponents eq 7 )\
+  { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$E_z\$ \&  \$H_x\$ \&  \$H_y\$ \& \$H_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$";\
+    @componentName = ( "Ex", "Ey" , "Ez", "Hx", "Hy" , "Hz", "divE" ); }
+# 
+$labelMethod=$method;
+if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }
+$caption= "\\caption\{Cgmx, $caseLabel, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tFinal\$, \$k_x=$kx\$, \$\\eps_1=$eps1\$, \$\\eps_2=$eps2\$, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, interit=\$$interit\$, $date}\\label\{table:$caseLabel" . $method . "Order$order$normName}"; 
+$outputFile=$caseLabel . $labelMethod . "Order$order" . $normName . "NormConvTable.tex"; 
+# 
+$options = "-cyl=$cyl -kx=$kx -eps1=$eps1 -eps2=$eps2 -diss=$diss -dissOrder=$dissOrder -interit=$interit -cfl=$cfl -go=go -method=$method -errorNorm=$errorNorm -tf=$tFinal -tp=$tp";
+$gName1 = $name . "1.order$order"; $grid1=$name ."1"; 
+$gName2 = $name . "2.order$order"; $grid2=$name ."2"; 
+$gName3 = $name . "4.order$order"; $grid3=$name ."4"; 
+$gName4 = $name . "8.order$order"; $grid4=$name ."8"; 
+$gName5 = $name . "16.order$order"; $grid5=$name ."16"; 
+# Note that the following grid starts at f2 since $ds0=.1 for bigSquare while ds0=.05 for io.cmd 
+if( $method eq "Yee" && $cyl eq 1 ){\
+ $grid1="square1"; $gName1 ="bigSquareSize1f2"; \
+ $grid2="square2"; $gName2 ="bigSquareSize1f4"; \
+ $grid3="square4"; $gName3 ="bigSquareSize1f8"; \
+ $grid4="square8"; $gName4 ="bigSquareSize1f16"; }
+ $grid5="square16"; $gName5 ="bigSquareSize1f32"; }
+# 
+if( $order==2 && $cyl eq 0 ){ $grid=$grid1; $res=1; $cmd="../bin/cgmx noplot ../cmd/dielectricCyl -g=$gName1 $options";  }
+if( $ng > 1 ){ $grid=$grid2; $res=2; $cmd="../bin/cgmx noplot ../cmd/dielectricCyl -g=$gName2 $options";}
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="../bin/cgmx noplot ../cmd/dielectricCyl -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="../bin/cgmx noplot ../cmd/dielectricCyl -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16;$cmd="../bin/cgmx noplot ../cmd/dielectricCyl -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

@@ -1,0 +1,369 @@
+==== 2013/12/23 -- test for Alex F.
+
+cgmx -noplot cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcEM2 -tp=1. -tf=100. -show="cylEM2.show"
+
+cgmx -noplot cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcPML -pmlWidth=21 -pmlStrength=50. -tp=1. -tf=100. -show="cylPML.show"
+
+
+=== 2013/12/06
+
+
+SOSUP: scattering from a sphere:
+
+-->t=1.0000e-01 dt=5.9e-03 maxNorm errors:[8.2482e-04,8.4287e-04,6.3667e-04,1.3039e-02,1.1660e-02,5.9554e-03,], maxNorm (u):[7.75e-01,1.17e+00,7.60e-01,1.00e+01,6.75e+00,5.90e+00,]
+>>> Cgmx:SOSUP: t=1.00e-01, dt=5.9e-03 TS=ME order(X,T)=(4,4) |div(E)|=2.92e-02, |div(E)|/|grad(E)|=3.55e-03, |grad(E)|=8.24e+00 (17 steps)
+
+=== 2013/12/03
+
+--- sosup order=4
+
+++++ scattering from a cylinder:
+
+-- sosup order=6
+cgmx cic.planeWaveBC -g=cice8.order6.ng4.hdf -method=sosup -tp=.1
+-->t=2.0000e-01 dt=8.3e-03 maxNorm errors:[1.5637e-05,2.2792e-05,1.2697e-06,8.7755e-05,1.3083e-04,1.2753e-05,], maxNorm (u):[5.97e-01,1.03e+00,1.54e+00,5.38e+00,6.80e+00,7.65e+00,]
+>>> Cgmx:SOSUP: t=2.00e-01, dt=8.3e-03 TS=ME order(X,T)=(6,6) |div(E)|=1.69e-04, |div(E)|/|grad(E)|=2.90e-05, |grad(E)|=5.82e+00 (24 steps)
+-->t=1.0000e+00 dt=8.3e-03 maxNorm errors:[1.7689e-05,2.9973e-05,1.8169e-06,2.5836e-04,2.3271e-04,1.3121e-05,], maxNorm (u):[7.93e-01,1.06e+00,1.16e+00,4.55e+00,6.63e+00,9.53e+00,]
+>>> Cgmx:SOSUP: t=1.00e+00, dt=8.3e-03 TS=ME order(X,T)=(6,6) |div(E)|=1.82e-04, |div(E)|/|grad(E)|=2.77e-05, |grad(E)|=6.59e+00 (120 steps)
+
+
+cgmx cic.planeWaveBC -g=cice4.order6.ng4.hdf -method=sosup -tp=.1
+-->t=2.0000e-01 dt=1.4e-02 maxNorm errors:[1.7597e-04,2.5397e-04,1.1286e-05,9.5589e-04,1.4368e-03,1.2131e-04,], maxNorm (u):[5.97e-01,1.03e+00,1.54e+00,5.37e+00,6.80e+00,7.65e+00,]
+>>> Cgmx:SOSUP: t=2.00e-01, dt=1.4e-02 TS=ME order(X,T)=(6,6) |div(E)|=1.86e-03, |div(E)|/|grad(E)|=3.20e-04, |grad(E)|=5.82e+00 (14 steps)
+-->t=1.0000e+00 dt=1.5e-02 maxNorm errors:[2.1251e-04,3.5388e-04,2.1404e-05,3.0778e-03,2.7531e-03,1.4801e-04,], maxNorm (u):[7.92e-01,1.06e+00,1.16e+00,4.55e+00,6.63e+00,9.53e+00,]
+>>> Cgmx:SOSUP: t=1.00e+00, dt=1.5e-02 TS=ME order(X,T)=(6,6) |div(E)|=2.06e-03, |div(E)|/|grad(E)|=3.13e-04, |grad(E)|=6.59e+00 (66 steps)
+
+
+cgmx cic.planeWaveBC -g=cice2.order6.ng4.hdf -method=sosup -tp=.1
+->t=2.0000e-01 dt=2.5e-02 maxNorm errors:[1.1199e-03,2.1307e-03,1.1336e-03,2.7801e-02,4.3424e-02,1.6094e-02,], maxNorm (u):[5.95e-01,1.03e+00,1.54e+00,5.37e+00,6.81e+00,7.60e+00,]
+>>> Cgmx:SOSUP: t=2.00e-01, dt=2.5e-02 TS=ME order(X,T)=(6,6) |div(E)|=3.95e-02, |div(E)|/|grad(E)|=6.77e-03, |grad(E)|=5.82e+00 (8 steps)
+
+
+-- sosup order=4
+cgmx cic.planeWaveBC -g=cice8.order4.ng3.hdf -method=sosup -tp=.1
+-->t=2.0000e-01 dt=5.7e-03 maxNorm errors:[6.6865e-06,9.2785e-06,2.6317e-06,1.3749e-04,8.2330e-05,1.5555e-05,], maxNorm (u):[5.97e-01,1.03e+00,1.54e+00,5.38e+00,6.80e+00,7.65e+00,]
+>>> Cgmx:SOSUP: t=2.00e-01, dt=5.7e-03 TS=ME order(X,T)=(4,4) |div(E)|=1.85e-04, |div(E)|/|grad(E)|=3.17e-05, |grad(E)|=5.82e+00 (35 steps)
+-->t=1.0000e+00 dt=5.7e-03 maxNorm errors:[7.8547e-06,1.2787e-05,3.7188e-06,1.1685e-04,1.0108e-04,2.3372e-05,], maxNorm (u):[7.93e-01,1.06e+00,1.16e+00,4.55e+00,6.63e+00,9.53e+00,]
+>>> Cgmx:SOSUP: t=1.00e+00, dt=5.7e-03 TS=ME order(X,T)=(4,4) |div(E)|=1.96e-04, |div(E)|/|grad(E)|=2.97e-05, |grad(E)|=6.59e+00 (175 steps)
+
+cgmx cic.planeWaveBC -g=cice4.order4.ng3.hdf -method=sosup -tp=.1
+-->t=2.0000e-01 dt=1.0e-02 maxNorm errors:[7.6247e-05,9.4719e-05,4.0195e-05,9.8688e-04,6.4385e-04,2.4014e-04,], maxNorm (u):[5.97e-01,1.03e+00,1.54e+00,5.38e+00,6.80e+00,7.65e+00,]
+>>> Cgmx:SOSUP: t=2.00e-01, dt=1.0e-02 TS=ME order(X,T)=(4,4) |div(E)|=2.15e-03, |div(E)|/|grad(E)|=3.70e-04, |grad(E)|=5.82e+00 (20 steps)
+-->t=1.0000e+00 dt=1.0e-02 maxNorm errors:[8.4801e-05,1.3768e-04,5.8087e-05,1.1906e-03,1.0431e-03,3.5731e-04,], maxNorm (u):[7.93e-01,1.06e+00,1.16e+00,4.55e+00,6.63e+00,9.53e+00,]
+>>> Cgmx:SOSUP: t=1.00e+00, dt=1.0e-02 TS=ME order(X,T)=(4,4) |div(E)|=2.29e-03, |div(E)|/|grad(E)|=3.48e-04, |grad(E)|=6.59e+00 (100 steps)
+
+
+cgmx cic.planeWaveBC -g=cice2.order4.ng3.hdf -method=sosup -tp=.1
+
+-->t=2.0000e-01 dt=1.7e-02 maxNorm errors:[7.5302e-04,9.4038e-04,6.8484e-04,9.4186e-03,1.3613e-02,6.0734e-03,], maxNorm (u):[5.96e-01,1.03e+00,1.54e+00,5.38e+00,6.80e+00,7.60e+00,]
+>>> Cgmx:SOSUP: t=2.00e-01, dt=1.7e-02 TS=ME order(X,T)=(4,4) |div(E)|=1.96e-02, |div(E)|/|grad(E)|=3.36e-03, |grad(E)|=5.82e+00 (12 steps)
+
+
+-- sosup order 6: fixed corners
+cgmx boxeigen -g=square40.order6.ng4 -mx=3 -my=2  -method=sosup -tp=.1 -go=halt
+
+-->t=1.0000e-01 dt=1.7e-02 maxNorm errors:[3.7794e-08,1.3394e-07,7.3079e-07,2.4320e-06,3.6462e-06,1.3040e-05,], maxNorm (u):[5.02e-01,7.53e-01,4.24e-01,2.67e+00,4.00e+00,1.03e+01,]
+>>> Cgmx:SOSUP: t=1.00e-01, dt=1.7e-02 TS=ME order(X,T)=(6,6) |div(E)|=5.22e-06, |div(E)|/|grad(E)|=7.35e-07, |grad(E)|=7.10e+00 (6 steps)
+
+
+
+=== 2012/12/16
+
+-- sosup order 6:  .. BETTER -- but trouble with Hz at corners
+cgmx boxeigen -g=square40.order6.ng4 -mx=3 -my=2  -method=sosup -tp=.01 -go=halt
+
+-->t=1.0000e-02 dt=1.0e-02 maxNorm errors:[4.9104e-10,7.3655e-10,4.5804e-09,1.0633e-07,1.5949e-07,1.1989e-06,], maxNorm (u):[6.27e-02,9.40e-02,9.94e-01,6.24e+00,9.36e+00,1.28e+00,]
+>>> Cgmx:SOSUP: t=1.00e-02, dt=1.0e-02 TS=ME order(X,T)=(6,6) |div(E)|=6.51e-07, |div(E)|/|grad(E)|=7.35e-07, |grad(E)|=8.86e-01 (1 steps)
+
+
+-- sosup order 6: -- better --
+cgmx diskeigen -g=sice4.order6.ng4.hdf -method=sosup -m=2 -n=2 -tp=.1
+-->t=2.0000e-01 dt=1.7e-02 maxNorm errors:[3.3325e-06,3.3316e-06,1.3523e-06,4.5883e-05,4.4010e-05,9.9023e-06,], maxNorm (u):[3.16e-01,3.16e-01,2.00e-01,1.42e+00,1.42e+00,4.42e+00,]
+-->t=1.0000e+00 dt=1.7e-02 maxNorm errors:[6.2639e-06,6.2638e-06,2.4508e-06,5.1306e-05,5.1310e-05,5.0821e-05,], maxNorm (u):[1.80e-01,1.80e-01,4.16e-01,2.96e+00,2.96e+00,2.51e+00,]
+
+-- sosup order 4: OK
+cgmx boxeigen -g=square32.order4.ng3 -mx=3 -my=2  -method=sosup -go=halt
+
+cgmx diskeigen -g=sice4.order4.ng3.hdf -method=sosup -m=2 -n=2 -tp=.1
+-->t=2.0000e-01 dt=1.1e-02 maxNorm errors:[2.4990e-05,2.4990e-05,5.0959e-05,3.0559e-04,3.0559e-04,1.7348e-04,], maxNorm (u):[3.16e-01,3.16e-01,1.99e-01,1.42e+00,1.42e+00,4.42e+00,]
+-->t=1.0000e+00 dt=1.1e-02 maxNorm errors:[1.4049e-04,1.4055e-04,9.6458e-05,6.4235e-04,6.4198e-04,2.2550e-03,], maxNorm (u):[1.79e-01,1.79e-01,4.16e-01,2.96e+00,2.96e+00,2.51e+00,]
+=== 2012/11/29
+
+SOSUP -- ORDER=6
+
+cgmx planeWave -g=square40.order6.ng4 -kx=2 -ky=2 -tp=.1 -tf=5. -method=sosup -diss=0. -checkErrors=1 -go=halt
+
+cgmx noplot tz -g=square40.order6.ng4 -degreex=5 -degreet=5 -method=sosup -tf=.5 -tp=.1 -bc=d -go=go 
+
+cgmx diskeigen -g=sice4.order6.ng4.hdf -method=sosup -m=2 -n=2
+
+=== 2012/11/05
+
+cgmx tz -g=box1.order4.ng3.hdf -method=sosup -degreex=3 -degreet=3 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.001
+
+
+=== 2012/11/03
+
+-- SOSUP 3D
+cgmx tz -g=box2.order4.ng3.hdf -method=sosup -tz=trig -fx=2 -fy=2 -fz=2 -ft=2 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.001
+
+cgmx tz -g=box1.order4.ng3.hdf -method=sosup -degreex=2 -degreet=0 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.001
+cgmx tz -g=box2.order4.ng3.hdf -method=sosup -degreex=4 -degreet=3 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.01
+
+=== 2012/11/01
+
+
+TRIG TZ + sosup
+cgmx tz -g=sise4.order4.ng3.hdf -method=sosup -tz=trig -fx=2 -fy=2 -ft=2 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.01
+
+cgmx tz -g=square32.order4.ng3.hdf -method=sosup -tz=trig -fx=2 -fy=2 -ft=2 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.01
+
+
+=== 2012/10/29
+
+ogen -noplot sisArg -numGhost=3 -order=4 -interp=e -factor=4
+cgmx tz -g=sise4.order4.ng3.hdf -method=sosup -degreex=4 -degreet=3 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.01
+
+
+TZ: order=4 (4,3) : EXACT 
+cgmx tz -g=square32.order4.ng3.hdf -method=sosup -degreex=4 -degreet=3 -diss=0. -tf=.5 -bcn=d -go=halt -tp=0.01
+-->t=5.0000e-02 dt=1.0e-02 maxNorm errors:[1.5556e-10,2.7778e-11,4.4445e-10,6.8322e-09,1.2200e-09,1.9520e-08,], maxNorm (u):[5.85e+00,3.00e+00,3.28e+00,3.05e+00,1.57e+00,1.71e+00,]
+
+
+
+#  ogen -noplot sicArg -order=4 -numGhost=3 -interp=e -factor=4
+#  cgmx diskeigen -g=sice4.order4.ng3 -method=sosup -m=2 -n=2 -cfl=1.
+
+
+cgmx diskeigen -g=sice4.order2.hdf -method=sosup -m=2 -n=2 -cfl=.4
+
+
+ORDER4: 
+cgmx boxeigen -g=square40.order4.ng3.hdf -mx=3 -my=2  -tp=.1 -method=sosup -cfl=1. -go=halt
+-->t=5.0000e-01 dt=1.7e-02 maxNorm errors:[1.3788e-04,2.1062e-04,1.8958e-04,1.1676e-03,1.7693e-03,2.1341e-03,], maxNorm (u):[3.22e-01,4.83e-01,8.14e-01,5.11e+00,7.67e+00,6.58e+00,]
+>>> Cgmx:SOSUP: t=5.00e-01, dt=1.7e-02 TS=ME order(X,T)=(4,4) |div(E)|=2.70e-04, |div(E)|/|grad(E)|=5.93e-05, |grad(E)|=4.56e+00 (30 steps)
+
+
+cgmx boxeigen -g=square20.order4.ng3.hdf -mx=3 -my=2  -tp=.1 -method=sosup -cfl=1. -go=halt
+-->t=5.0000e-01 dt=3.3e-02 maxNorm errors:[1.9820e-03,3.0822e-03,3.2400e-03,1.9580e-02,3.0519e-02,3.0532e-02,], maxNorm (u):[3.24e-01,4.86e-01,8.11e-01,5.10e+00,7.64e+00,6.61e+00,]
+>>> Cgmx:SOSUP: t=5.00e-01, dt=3.3e-02 TS=ME order(X,T)=(4,4) |div(E)|=4.58e-03, |div(E)|/|grad(E)|=1.00e-03, |grad(E)|=4.58e+00 (15 steps)
+
+
+=== 2012/10/28
+
+cgmx boxeigen -g=nonSquare20.order2.hdf -mx=3 -my=2  -tp=.1 -method=sosup -cfl=.4 -go=halt
+
+cgmx boxeigen -g=square80.order2.hdf -mx=3 -my=2  -tp=.1 -method=sosup -cfl=.4 -go=halt
+-->t=5.0000e-01 dt=3.4e-03 maxNorm errors:[2.9134e-03,4.3862e-03,4.2294e-03,2.5732e-02,3.8722e-02,4.6571e-02,], maxNorm (u):[3.25e-01,4.88e-01,8.10e-01,5.09e+00,7.63e+00,6.62e+00,]
+>>> Cgmx:SOSUP: t=5.00e-01, dt=3.4e-03 TS=ME order(X,T)=(2,2) |div(E)|=4.02e-03, |div(E)|/|grad(E)|=8.77e-04, |grad(E)|=4.58e+00 (145 steps)
+
+
+cgmx boxeigen -g=square40.order2.hdf -mx=3 -my=2  -tp=.1 -method=sosup -cfl=.4 -go=halt
+-->t=5.0000e-01 dt=6.7e-03 maxNorm errors:[1.0397e-02,1.5741e-02,1.8889e-02,1.1187e-01,1.6939e-01,1.6101e-01,], maxNorm (u):[3.33e-01,4.99e-01,7.95e-01,5.00e+00,7.50e+00,6.74e+00,]
+>>> Cgmx:SOSUP: t=5.00e-01, dt=6.7e-03 TS=ME order(X,T)=(2,2) |div(E)|=1.65e-02, |div(E)|/|grad(E)|=3.55e-03, |grad(E)|=4.66e+00 (75 steps)
+
+
+cgmx boxeigen -g=square20.order2.hdf -mx=3 -my=2  -tp=.1 -method=sosup -cfl=.4 -go=halt
+-->t=5.0000e-01 dt=1.3e-02 maxNorm errors:[3.0909e-02,4.6835e-02,8.8149e-02,5.0095e-01,7.7027e-01,4.2760e-01,], maxNorm (u):[3.53e-01,5.30e-01,7.28e-01,4.62e+00,6.91e+00,7.01e+00,]
+>>> Cgmx:SOSUP: t=5.00e-01, dt=1.3e-02 TS=ME order(X,T)=(2,2) |div(E)|=7.02e-02, |div(E)|/|grad(E)|=1.46e-02, |grad(E)|=4.81e+00 (40 steps)
+
+
+
+cgmx boxeigen -g=square20.order2.hdf -mx=3 -my=2  -tp=.1 -go=halt
+
+
+==== 2012/10/26 -- sosup and TZ
+
+OK: (2,1) is exact but not (2,2)
+cgmx tz -g=square32.order2.hdf -method=sosup -degreex=2 -degreet=1 -diss=0. -tf=.5 -bcn=d -go=halt -cfl=0.4 -tp=0.01
+
+OK : exact
+cgmx tz -g=square32.order2.hdf -method=sosup -degreex=1 -degreet=1 -diss=0. -tf=.5 -bcn=d -go=halt -cfl=0.4 -tp=0.01
+
+
+cgmx planeWave -g=square32p.order6 -kx=1 -ky=1 -tf=50 -tp=.5 -checkErrors=1 -go=halt 
+
+==== 2012/09/13
+
+-- TZ + dirichlet BC: 
+
+TRIG: 
+cgmx tz -g=square20.order4.ng3.hdf -method=sosup -tz=trig -fx=2. -fy=2. -diss=0. -tf=.5 -bcn=d -go=halt
+
+POLY:
+cgmx tz -g=square20.order4.ng3.hdf -method=sosup -degreex=2 -degreet=2 -diss=0. -tf=.5 -bcn=d -go=halt
+
+cgmx noplot tz -g=square20.order4.ng3.hdf -degreex=4 -degreet=4 -diss=0. -tf=.5 -go=go  
+
+
+==== 2012/09/06 
+
+
+From Jeff: 
+cgmx planeWave -g=cis2.order4 -method=sosup -kx=1 -ky=1 -tf=1 -tp=.01 -checkErrors=1 -diss=0. -go=halt
+
+
+*** 2012/08/26 -- SOSUP
+
+cgmx planeWave -g=sise4.order2 -method=sosup -kx=1 -ky=1 -tf=.05 -tp=.01 -checkErrors=1 -diss=0. -go=halt 
+
+
+*** 2012/08/25 SOSUP -- start to test
+
+valgrindebug ../bin/cgmx -noplot planeWave -g=nonSquare32p -method=sosup -kx=1 -ky=1 -tf=.05 -tp=.01 -checkErrors=1 -diss=0. -go=halt
+
+valgrindebug ../bin/cgmx -noplot planeWave -g=square32p.order2 -method=sosup -kx=1 -ky=1 -tf=.05 -tp=.01 -checkErrors=1 -diss=0. -go=halt
+
+cgmx planeWave -g=square32p.order4 -method=sosup -kx=1 -ky=1 -tf=.1 -tp=.01 -checkErrors=1 -diss=0. -go=halt
+
+cgmx planeWave -g=square32p.order2 -method=sosup -kx=1 -ky=1 -tf=.1 -tp=.01 -checkErrors=1 -diss=0. -go=halt
+cgmx planeWave -g=nonSquare32p -method=sosup -kx=1 -ky=1 -tf=.1 -tp=.01 -checkErrors=1 -diss=0. -go=halt
+
+cgmx planeWave -g=square32p.order2 -kx=1 -ky=1 -tf=50 -tp=.5 -checkErrors=1 -go=halt 
+
+cgmx planeWave -g=square32p.order4 -kx=1 -ky=1 -tf=50 -tp=.5 -checkErrors=1 -go=halt 
+
+-->t=1.0000e-02 dt=1.0e-02 maxNorm errors:[1.4242e-05,1.4242e-05,2.0141e-05,6.2584e+00,6.2584e+00,8.8507e+00,], maxNorm (u):[7.04e-01,7.04e-01,9.96e-01,0.00e+00,0.00e+00,0.00e+00,]
+>>> Cgmx:SOSUP: t=1.00e-02, dt=1.0e-02 TS=ME order(X,T)=(2,2) |div(E)|=2.84e-14, |div(E)|/|grad(E)|=6.46e-15, |grad(E)|=4.40e+00 (1 steps)
+
+
+**** 2012/02/03 -- 
+
+valgrindebug $mx/bin/cgmx -noplot userDefinedForcing -g=boxLx2Ly2Lz2Factor1.order4.hdf -rbc=abcPML -x1=-.3 -y1=-.3 -z1=0 -x2=.3 -y2=.3 -z2=0 -pmlWidth=11 -go=go
+
+TROUBLE: ez becomes nonzero: 
+cgmx userDefinedForcing -g=boxLx2Ly2Lz2Factor2.order4.hdf -rbc=abcPML -x1=-.3 -y1=-.3 -z1=0 -x2=.3 -y2=.3 -z2=0 -pmlWidth=11 -go=halt 
+OK: ez remains zero (gaussian forcing has been turned off for Ez)
+cgmx userDefinedForcing -g=boxLx2Ly2Lz2Factor2.order4.hdf -rbc=perfectElectricalConductor -x1=-.3 -y1=-.3 -z1=0 -x2=.3 -y2=.3 -z2=0 -pmlWidth=11 -go=halt 
+
+
+
+***** 2011/12/02 -- find bugs in PML
+
+*** Bugs found,  -- 
+
+
+cgmx -noplot pml -g=square128np.order4 -rbc=abcPML -pmlWidth=64 -pmlStrength=50. -pmlPower=4 -kx=-8 -xa=.75 -cfl=.5 -go=go  -tf=.001 -tp=.001
+
+cgmx -noplot pml -g=square128np.order4 -rbc=abcPML -pmlWidth=64 -pmlStrength=50. -pmlPower=4 -kx=8 -xb=.25 -cfl=.5 -go=go  -tf=.001 -tp=.001
+
+
+valgrindebug ../bin/cgmx -noplot pml -g=square128pn.order4 -rbc=abcPML -pmlWidth=64 -pmlStrength=50. -pmlPower=4 -kx=0 -ky=8 -yb=.25 -cfl=.5 -go=halt -tf=.01
+
+
+valgrindebug ../bin/cgmx -noplot pml -g=square128np.order4 -rbc=abcPML -pmlWidth=64 -pmlStrength=50. -pmlPower=4 -kx=8 -xb=.25 -cfl=.5 -go=halt -tf=.01
+
+
+
+***** 2011/07/07 - is the intensity equal to .5*c*eps*|hat{E}|^2 ??
+
+cgmx cic.planeWaveBC -g=cice2.order4.hdf -plotIntensity=1 -plotHarmonicComponents=1
+
+
+******** 2011/06/10
+
+Ex : [-.218,.218] <- ??
+cgmx planeWave -g=box64.order4 -ax=1. -ay=-1. -az=0. -kx=1 -ky=1 -kz=4 -tp=.5 -tf=5. -plotIntensity=1 -intensityOption=1 -plotHarmonicComponents=1 -show="hef.show" -go=halt 
+
+
+-- plot the harmonic components of the E field:
+
+cgmx planeWave -g=box64.order4 -kx=2 -ky=2 -tp=.5 -tf=5. -plotIntensity=1 -intensityOption=1 -plotHarmonicComponents=1 -show="hef.show" -go=halt 
+
+cgmx planeWave -g=square128.order4 -kx=4 -ky=4 -tp=.5 -tf=5. -plotIntensity=1 -intensityOption=1 -plotHarmonicComponents=1 -show="hef.show" -go=halt 
+
+cgmx planeWave -g=square128.order4 -kx=4 -ky=4 -tp=.5 -tf=5. -plotIntensity=1 -intensityOption=1 -plotHarmonicComponents=1 -go=halt 
+
+cgmx planeWave -g=square32.order4 -kx=1 -ky=0 -tp=.1 -tf=5. -plotIntensity=1 -intensityOption=1 -plotHarmonicComponents=1 -go=halt 
+
+**** 110327 - get performance and memory usage for Cartesian/Curvilinear
+
+*************************************************************************************************************
+ CPU : curvilinear/Cartesian = 594/23.9 = 24.8
+
+cgmx -noplot planeWave -g=nonBox128.order4 -kx=2 -tp=.2 -tf=.2 -go=go >! planeWaveNonBox128.out
+
+              ---------Maxwell Summary------- 
+                       Sun Mar 27 12:25:19 2011
+               Grid:   nonBox128.order4 
+  ==== numberOfStepsTaken =       52, grids=1, gridpts =2.37033e+06, interp pts=0, processors=1 ==== 
+  ==== memory per-proc: [min=678.684,ave=678.684,max=678.684](Mb), max-recorded=0 (Mb), total=678.684 (Mb)
+   Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+total time..........................  7.02e+02    1.35e+01    5.70e-06   100.000   7.021e+02   7.021e+02
+setup and initialize................  6.16e+01    1.18e+00    5.00e-07     8.773   6.160e+01   6.160e+01
+initial conditions..................  6.61e+00    1.27e-01    5.36e-08     0.941   6.607e+00   6.607e+00
+advance.............................  6.29e+02    1.21e+01    5.10e-06    89.591   6.290e+02   6.290e+02
+  advance curvilinear grids.........  5.94e+02    1.14e+01    4.82e-06    84.569   5.937e+02   5.937e+02
+   (advOpt).........................  5.75e+01    1.10e+00    4.66e-07     8.184   5.746e+01   5.746e+01
+  add dissipation...................  5.26e+01    1.01e+00    4.27e-07     7.493   5.261e+01   5.261e+01
+  boundary conditions...............  3.53e+00    6.78e-02    2.86e-08     0.502   3.526e+00   3.526e+00
+  interface bc......................  1.70e-05    3.27e-07    1.38e-13     0.000   1.700e-05   1.700e-05
+get errors..........................  1.98e+01    3.81e-01    1.61e-07     2.819   1.979e+01   1.979e+01
+compute dt..........................  1.03e-01    1.98e-03    8.35e-10     0.015   1.030e-01   1.030e-01
+plotting............................  3.74e+00    7.20e-02    3.04e-08     0.533   3.742e+00   3.742e+00
+
+
+*************************************************************************************************************
+cgmx -noplot planeWave -g=box128.order4 -kx=2 -tp=.2 -tf=.2 -go=go >! planeWaveBox128.out
+              ---------Maxwell Summary------- 
+                       Sun Mar 27 12:10:21 2011
+               Grid:   box128.order4 
+  ==== numberOfStepsTaken =       52, grids=1, gridpts =2.37033e+06, interp pts=0, processors=1 ==== 
+  ==== memory per-proc: [min=339.688,ave=339.688,max=339.688](Mb), max-recorded=0 (Mb), total=339.688 (Mb)
+   Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+total time..........................  4.93e+01    9.48e-01    4.00e-07   100.000   4.929e+01   4.929e+01
+setup and initialize................  9.66e-01    1.86e-02    7.84e-09     1.960   9.664e-01   9.664e-01
+initial conditions..................  2.49e+00    4.80e-02    2.02e-08     5.060   2.494e+00   2.494e+00
+advance.............................  2.72e+01    5.24e-01    2.21e-07    55.230   2.722e+01   2.722e+01
+  advance rectangular grids.........  2.39e+01    4.59e-01    1.94e-07    48.409   2.386e+01   2.386e+01
+   (advOpt).........................  2.39e+01    4.59e-01    1.94e-07    48.396   2.386e+01   2.386e+01
+  boundary conditions...............  3.35e+00    6.45e-02    2.72e-08     6.803   3.354e+00   3.354e+00
+  interface bc......................  1.20e-05    2.31e-07    9.74e-14     0.000   1.200e-05   1.200e-05
+get errors..........................  1.60e+01    3.09e-01    1.30e-07    32.555   1.605e+01   1.605e+01
+compute dt..........................  2.82e-04    5.42e-06    2.29e-12     0.001   2.820e-04   2.820e-04
+plotting............................  2.55e+00    4.91e-02    2.07e-08     5.178   2.553e+00   2.553e+00
+
+
+*************************************************************************************************************
+   CPU : curvilinear/Cartesian = 1250/96.4 = 13. 
+
+cgmx -noplot planeWave -g=nonSquare1024.order4 -kx=2 -tp=.5 -tf=.5 -go=go >! planeWaveNonSquare1024.out
+
+              ---------Maxwell Summary------- 
+                       Sun Mar 27 12:06:29 2011
+               Grid:   nonSquare1024.order4 
+  ==== numberOfStepsTaken =      809, grids=1, gridpts =1.05987e+06, interp pts=0, processors=1 ==== 
+  ==== memory per-proc: [min=276.668,ave=276.668,max=276.668](Mb), max-recorded=0 (Mb), total=276.668 (Mb)
+   Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+total time..........................  1.25e+03    1.54e+00    1.45e-06   100.000   1.247e+03   1.247e+03
+setup and initialize................  6.73e+00    8.32e-03    7.85e-09     0.540   6.732e+00   6.732e+00
+initial conditions..................  9.47e-01    1.17e-03    1.10e-09     0.076   9.474e-01   9.474e-01
+advance.............................  1.24e+03    1.53e+00    1.45e-06    99.400   1.239e+03   1.239e+03
+  advance curvilinear grids.........  1.13e+03    1.40e+00    1.32e-06    90.606   1.130e+03   1.130e+03
+   (advOpt).........................  2.42e+02    2.99e-01    2.82e-07    19.427   2.422e+02   2.422e+02
+  add dissipation...................  2.01e+02    2.49e-01    2.35e-07    16.162   2.015e+02   2.015e+02
+  boundary conditions...............  1.90e+00    2.34e-03    2.21e-09     0.152   1.895e+00   1.895e+00
+  interface bc......................  1.40e-05    1.73e-08    1.63e-14     0.000   1.400e-05   1.400e-05
+get errors..........................  1.51e+00    1.87e-03    1.77e-09     0.121   1.514e+00   1.514e+00
+compute dt..........................  3.85e-02    4.76e-05    4.50e-11     0.003   3.854e-02   3.854e-02
+plotting............................  2.60e-01    3.21e-04    3.03e-10     0.021   2.595e-01   2.595e-01
+
+*************************************************************************************************************
+cgmx -noplot planeWave -g=square1024.order4 -kx=2 -tp=.5 -tf=.5 -go=go >! planeWaveSquare1024.out
+              ---------Maxwell Summary------- 
+                       Sun Mar 27 11:44:41 2011
+               Grid:   square1024.order4 
+  ==== numberOfStepsTaken =      809, grids=1, gridpts =1.05987e+06, interp pts=0, processors=1 ==== 
+  ==== memory per-proc: [min=164.594,ave=164.594,max=164.594](Mb), max-recorded=0 (Mb), total=164.594 (Mb)
+   Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+total time..........................  9.64e+01    1.19e-01    1.12e-07   100.000   9.636e+01   9.636e+01
+setup and initialize................  4.87e-01    6.02e-04    5.68e-10     0.505   4.870e-01   4.870e-01
+initial conditions..................  7.54e-01    9.32e-04    8.79e-10     0.782   7.537e-01   7.537e-01
+advance.............................  9.35e+01    1.16e-01    1.09e-07    97.000   9.347e+01   9.347e+01
+  advance rectangular grids.........  9.10e+01    1.13e-01    1.06e-07    94.478   9.104e+01   9.104e+01
+   (advOpt).........................  9.10e+01    1.13e-01    1.06e-07    94.465   9.102e+01   9.102e+01
+  boundary conditions...............  2.41e+00    2.97e-03    2.81e-09     2.497   2.406e+00   2.406e+00
+  interface bc......................  1.90e-05    2.35e-08    2.22e-14     0.000   1.900e-05   1.900e-05
+get errors..........................  1.40e+00    1.73e-03    1.63e-09     1.454   1.401e+00   1.401e+00
+compute dt..........................  2.02e-04    2.50e-07    2.36e-13     0.000   2.020e-04   2.020e-04
+plotting............................  2.40e-01    2.97e-04    2.80e-10     0.249   2.399e-01   2.399e-01

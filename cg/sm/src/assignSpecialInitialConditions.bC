@@ -1,0 +1,408 @@
+#include "Cgsm.h"
+#include "SmParameters.h"
+#include "CompositeGridOperators.h"
+#include "display.h"
+#include "OGPolyFunction.h"
+#include "OGTrigFunction.h"
+#include "OGPulseFunction.h"
+#include "ParallelUtility.h"
+
+// ==================================================
+// ============= include forcing macros =============
+// ==================================================
+#Include "forcing.h"
+
+#Include "translationAndRotationSolution.h"
+
+#Include "sphereEigenmode.h"
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+// ================================================================================
+//   Assign the special solution based on macros U0, U0T, U0X, and U0Y
+// ================================================================================
+#beginMacro assignSpecial()
+ if( mg.numberOfDimensions()==2 )
+ {
+   real z0=0.;
+   FOR_3D(i1,i2,i3,I1,I2,I3)
+   {
+     real x0 = X(i1,i2,i3,0);
+     real y0 = X(i1,i2,i3,1);
+     real u1 = U0(x0,y0,z0,uc,t);
+     real u2 = U0(x0,y0,z0,vc,t);
+
+     if( evalOption==computeInitialConditions )
+     {
+       U(i1,i2,i3,uc) =u1;
+       U(i1,i2,i3,vc) =u2;
+     }
+     else
+     {
+       ERR(i1,i2,i3,uc) =U(i1,i2,i3,uc) - u1;
+       ERR(i1,i2,i3,vc) =U(i1,i2,i3,vc) - u2;
+     }
+     
+   }
+
+   printF("*** assignSpecial: assignVelocities=%i\n",assignVelocities);
+
+   if( assignVelocities )
+   {
+     FOR_3D(i1,i2,i3,I1,I2,I3) // loop over all points
+     {
+       real x0 = X(i1,i2,i3,0);
+       real y0 = X(i1,i2,i3,1);
+       real v1 = U0T(x0,y0,z0,uc,t);
+       real v2 = U0T(x0,y0,z0,vc,t);
+
+       // printF(" *** assignSpecial: v1=%e v2=%e\n",v1,v2);
+
+       if( evalOption==computeInitialConditions )
+       {
+	 U(i1,i2,i3,v1c) = v1;
+	 U(i1,i2,i3,v2c) = v2;
+       }
+       else
+       {
+	 ERR(i1,i2,i3,v1c) = U(i1,i2,i3,v1c) - v1;
+	 ERR(i1,i2,i3,v2c) = U(i1,i2,i3,v2c) - v2;
+       }
+
+     }
+   }
+   if( assignStress )
+   {
+     FOR_3D(i1,i2,i3,I1,I2,I3) // loop over all points
+     {
+       real x0 = X(i1,i2,i3,0);
+       real y0 = X(i1,i2,i3,1);
+       real div = U0X(x0,y0,z0,uc,t) + U0Y(x0,y0,z0,vc,t);
+       real s11 = lambda*div + 2.*mu*U0X(x0,y0,z0,uc,t);
+       real s12 = mu*(U0Y(x0,y0,z0,uc,t)+U0X(x0,y0,z0,vc,t));
+       real s21 = s12;
+       real s22 = lambda*div + 2.*mu*U0Y(x0,y0,z0,vc,t);
+       if( evalOption==computeInitialConditions )
+       {
+	 U(i1,i2,i3,s11c) =s11;
+	 U(i1,i2,i3,s12c) =s12;
+	 U(i1,i2,i3,s21c) =s21;
+	 U(i1,i2,i3,s22c) =s22;
+       }
+       else
+       {
+	 ERR(i1,i2,i3,s11c) =U(i1,i2,i3,s11c) -s11;
+	 ERR(i1,i2,i3,s12c) =U(i1,i2,i3,s12c) -s12;
+	 ERR(i1,i2,i3,s21c) =U(i1,i2,i3,s21c) -s21;
+	 ERR(i1,i2,i3,s22c) =U(i1,i2,i3,s22c) -s22;
+       }
+     }
+   }
+ }
+ else
+ { // ***** 3D  ****
+   Overture::abort("finish me for 3d");
+   FOR_3D(i1,i2,i3,I1,I2,I3)
+   {
+     real x0 = X(i1,i2,i3,0);
+     real y0 = X(i1,i2,i3,1);
+     real z0 = X(i1,i2,i3,2);
+     U(i1,i2,i3,uc) =U0(x0,y0,z0,uc,t);
+     U(i1,i2,i3,vc) =U0(x0,y0,z0,vc,t);
+     U(i1,i2,i3,wc) =U0(x0,y0,z0,wc,t);
+   }
+ }
+#endMacro
+
+// ===========================================================================================
+/// \brief Assign "special" initial conditions.
+/// \details This function assigns the solution at t=0. It may also initialize the solution
+///    at previous times.
+/// \param gfIndex (input) : assign gf[gfIndex].u 
+/// \param evalOption (input) : computeInitialConditions or computeErrors
+// ===========================================================================================
+int Cgsm::
+assignSpecialInitialConditions(int gfIndex, const EvaluationOptionsEnum evalOption)
+{
+
+  const real t = gf[gfIndex].t;
+
+  assert(  evalOption==computeInitialConditions  || evalOption==computeErrors );
+
+  if( evalOption==computeErrors )
+  {
+    // printF(" **** assignSpecialInitialConditions: compute the errors\n");
+  }
+  
+
+  FILE *& debugFile  =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& logFile    =parameters.dbase.get<FILE* >("logFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+  const int numberOfDimensions=cg.numberOfDimensions();
+  const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+  const int & uc =  parameters.dbase.get<int >("uc");
+  const int & vc =  parameters.dbase.get<int >("vc");
+  const int & wc =  parameters.dbase.get<int >("wc");
+  const int & rc =  parameters.dbase.get<int >("rc");
+  const int & tc =  parameters.dbase.get<int >("tc");
+
+  SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+
+  const int & u1c = parameters.dbase.get<int >("u1c");
+  const int & u2c = parameters.dbase.get<int >("u2c");
+  const int & u3c = parameters.dbase.get<int >("u3c");
+
+  const int v1c = parameters.dbase.get<int >("v1c");
+  const int v2c = parameters.dbase.get<int >("v2c");
+  const int v3c = parameters.dbase.get<int >("v3c");
+
+  bool assignVelocities= v1c>=0 ;
+  const int s11c = parameters.dbase.get<int >("s11c");
+  const int s12c = parameters.dbase.get<int >("s12c");
+  const int s13c = parameters.dbase.get<int >("s13c");
+  const int s21c = parameters.dbase.get<int >("s21c");
+  const int s22c = parameters.dbase.get<int >("s22c");
+  const int s23c = parameters.dbase.get<int >("s23c");
+  const int s31c = parameters.dbase.get<int >("s31c");
+  const int s32c = parameters.dbase.get<int >("s32c");
+  const int s33c = parameters.dbase.get<int >("s33c");
+    
+  bool assignStress = s11c >=0 ;
+
+  const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
+  const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+  SmParameters::TimeSteppingMethodSm & timeSteppingMethodSm = 
+                                   parameters.dbase.get<SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
+
+  const int numberOfComponentGrids = cg.numberOfComponentGrids();
+
+  real & rho=parameters.dbase.get<real>("rho");
+  real & mu = parameters.dbase.get<real>("mu");
+  real & lambda = parameters.dbase.get<real>("lambda");
+  RealArray & muGrid = parameters.dbase.get<RealArray>("muGrid");
+  RealArray & lambdaGrid = parameters.dbase.get<RealArray>("lambdaGrid");
+  int & debug = parameters.dbase.get<int >("debug");
+
+  Range C=numberOfComponents;
+  Index I1,I2,I3;
+  int i1,i2,i3;
+  
+  for( int grid=0; grid<numberOfComponentGrids; grid++ )
+  {
+    MappedGrid & mg = cg[grid];
+    const bool isRectangular = mg.isRectangular();
+
+    if( pdeVariation == SmParameters::hemp )
+    {
+      mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter | MappedGrid::THEcenterJacobian ); // do this for now
+    }
+    else
+    {
+      mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter ); // do this for now
+    }
+    const realArray & x = mg.center();
+    realMappedGridFunction *pstate0 = NULL;
+    if( pdeVariation == SmParameters::hemp )
+    {
+      realCompositeGridFunction *& initialState = 
+	parameters.dbase.get<realCompositeGridFunction*>("initialStateGridFunction");
+      if( initialState == NULL )
+      {
+        Range all;
+	initialState = new realCompositeGridFunction(gf[0].cg,all,all,all,3);
+	(*initialState)=1.;
+      }
+      else if( initialState->numberOfComponentGrids()!=numberOfComponentGrids )
+      {
+        // This is probably an AMR run 
+        Range all;
+	initialState->updateToMatchGrid(gf[0].cg,all,all,all,3);
+        (*initialState)=1.;
+      }
+      
+      assert( parameters.dbase.get<realCompositeGridFunction*>("initialStateGridFunction")!=NULL );
+    
+      pstate0 = &(*(parameters.dbase.get<realCompositeGridFunction*>("initialStateGridFunction")))[grid];
+    }
+    realMappedGridFunction & state0 = *pstate0;
+
+    realMappedGridFunction & u =gf[gfIndex].u[grid];
+
+#ifdef USE_PPP
+    realSerialArray uLocal;  getLocalArrayWithGhostBoundaries(u,uLocal);
+    realSerialArray xLocal;  getLocalArrayWithGhostBoundaries(x,xLocal);
+    realSerialArray det;  
+    if( pdeVariation == SmParameters::hemp ) 
+      getLocalArrayWithGhostBoundaries(mg.centerJacobian(),det);
+
+    realSerialArray state0Local;
+    if( pdeVariation == SmParameters::hemp )
+      getLocalArrayWithGhostBoundaries(state0,state0Local);
+#else
+    realSerialArray & uLocal  =  u;
+    const realSerialArray & xLocal  =  x;
+    const realSerialArray & det = mg.centerJacobian();
+    realSerialArray & state0Local = *pstate0;
+#endif
+
+    real *up = uLocal.Array_Descriptor.Array_View_Pointer3;
+    const int uDim0=uLocal.getRawDataSize(0);
+    const int uDim1=uLocal.getRawDataSize(1);
+    const int uDim2=uLocal.getRawDataSize(2);
+#undef U
+#define U(i0,i1,i2,i3) up[i0+uDim0*(i1+uDim1*(i2+uDim2*(i3)))]
+
+
+    real *xp = xLocal.Array_Descriptor.Array_View_Pointer3;
+    const int xDim0=xLocal.getRawDataSize(0);
+    const int xDim1=xLocal.getRawDataSize(1);
+    const int xDim2=xLocal.getRawDataSize(2);
+#undef X
+#define X(i0,i1,i2,i3) xp[i0+xDim0*(i1+xDim1*(i2+xDim2*(i3)))]
+
+    realMappedGridFunction & err = evalOption==computeErrors ? (*cgerrp)[grid] : u;
+
+#ifdef USE_PPP
+    realSerialArray errLocal;  getLocalArrayWithGhostBoundaries(err,errLocal);
+#else
+    const realSerialArray & errLocal=  err;
+#endif
+
+    real *errp = errLocal.Array_Descriptor.Array_View_Pointer3;
+    const int errDim0=errLocal.getRawDataSize(0);
+    const int errDim1=errLocal.getRawDataSize(1);
+    const int errDim2=errLocal.getRawDataSize(2);
+#undef ERR
+#define ERR(i0,i1,i2,i3) errp[i0+errDim0*(i1+errDim1*(i2+errDim2*(i3)))]
+
+    getIndex(mg.dimension(),I1,I2,I3);
+
+    int includeGhost=1;
+    bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+    if( !ok ) continue;
+
+    if( evalOption==computeInitialConditions )
+      uLocal=0.;
+      
+    lambda = lambdaGrid(grid);
+    mu = muGrid(grid);
+
+
+    aString & specialInitialConditionOption = parameters.dbase.get<aString>("specialInitialConditionOption");
+    if( specialInitialConditionOption == "default" ||
+        specialInitialConditionOption == "eigenmode1d" )
+    {
+      // One-dimensional eigen mode
+
+      real k =2.*Pi;
+      real omega = sqrt( (lambda+2.*mu)/rho * k*k );
+
+      real a[3]={1.,0.,0.}; 
+#define U0(x,y,z,n,t) (a[n-uc]*sin(k*(x))*cos(omega*(t)))
+#define U0T(x,y,z,n,t) (-a[n-uc]*omega*sin(k*(x))*sin(omega*(t)))
+#define U0X(x,y,z,n,t) (a[n-uc]*k*cos(k*(x))*cos(omega*(t)))
+#define U0Y(x,y,z,n,t) (0.)
+   
+      assignSpecial();
+      
+
+#undef U0
+#undef U0T
+#undef U0X
+#undef U0Y
+    }
+    else if( specialInitialConditionOption == "invariant" )
+    {
+      // Here is an invariant of the motion  (starts out as an infinitesimal rotation)
+
+      real a[3]={ 0.,-1.,0.};
+      real b[3]={ 1., 0.,0.};
+#define U0(x,y,z,n,t)  ((a[n-uc]*(x) + b[n-uc]*(y))*(t))
+#define U0T(x,y,z,n,t) ((a[n-uc]*(x) + b[n-uc]*(y))    )
+#define U0X(x,y,z,n,t) ((a[n-uc]                  )*(t))
+#define U0Y(x,y,z,n,t) ((              b[n-uc]    )*(t))
+   
+      assignSpecial();
+
+#undef U0
+#undef U0T
+#undef U0X
+#undef U0Y
+
+    }
+    else if( specialInitialConditionOption == "travelingWave" )
+    {
+      // --- traveling (shock) wave solution ---
+
+      bool evalSolution = evalOption==computeInitialConditions;
+      // macro: (NOTE: this macro is also called in the SOS and FOS BC routines)
+      getTravelingWaveSolution(evalSolution,U,ERR,X,t,I1,I2,I3);
+
+    }
+    else if( specialInitialConditionOption == "planeTravelingWave" )
+    {
+      // --- traveling (sine) wave solution ---
+
+      bool evalSolution = evalOption==computeInitialConditions;
+      // macro: (NOTE: this macro is also called in the SOS and FOS BC routines)
+      getPlaneTravelingWaveSolution(evalSolution,U,ERR,X,t,I1,I2,I3);
+
+    }
+    else if( specialInitialConditionOption == "translationAndRotation" )
+    {
+      // Here is the solution for large translation and rotation 
+
+      bool evalSolution = evalOption==computeInitialConditions;
+      // macro: (NOTE: this macro is also called in the SOS and FOS BC routines) 
+      getTranslationAndRotationSolution(evalSolution,U,ERR,X,t,I1,I2,I3);
+
+    }
+    else if( specialInitialConditionOption=="sphereEigenmode" )
+    {
+      bool evalSolution = evalOption==computeInitialConditions;
+      // macro: (NOTE: this macro is also called in the SOS and FOS BC routines) 
+      getSphereEigenmode(evalSolution,U,ERR,X,t,I1,I2,I3);
+
+    }
+    else if( specialInitialConditionOption == "RayleighWave" )
+    {
+      // --- Rayleigh wave solution ---
+      bool evalSolution = evalOption==computeInitialConditions;
+      // macro: (NOTE: this macro is also called in the SOS and FOS BC routines)
+      getRayleighWaveSolution(evalSolution,U,ERR,X,t,I1,I2,I3);
+    }
+    else if( specialInitialConditionOption == "pistonMotion" )
+    {
+      // --- piston motion (for FSI) ---
+      bool evalSolution = evalOption==computeInitialConditions;
+      // macro: (NOTE: this macro is also called in the SOS and FOS BC routines)
+      getPistonMotionSolution(evalSolution,U,ERR,X,t,I1,I2,I3);
+    }
+    else
+    {
+      printF("Cgsm:assignSpecialInitialConditions:ERROR: unknown specialInitialConditionOption=[%s]\n",
+         (const char*)specialInitialConditionOption);
+      Overture::abort("error");
+    }
+    
+
+  } // end for grid
+
+
+  return 0;
+}
+
+

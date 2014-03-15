@@ -1,0 +1,192 @@
+\subsection{getColour}
+ 
+\newlength{\UnstructuredMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{getColour(}%
+getColour( ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Get the colour of the grid.
+\item[{\bf Return value :}]  the name of the colour.
+\end{description}
+\subsection{setColour}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{setColour(}%
+setColour( const aString \& colour )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Set the colour for the grid.
+\item[{\bf colour (input) :}]  the name of the colour such as "red", "green",...
+\end{description}
+\subsection{eraseUnstructuredMapping}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{eraseUnstructuredMapping(}%
+eraseUnstructuredMapping(GenericGraphicsInterface \&gi)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   purge all display lists for the unstructured mapping
+\end{description}
+\subsection{addTag}
+ 
+\begin{flushleft} \textbf{%
+EntityTag \&  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{addTag(}%
+addTag( const  EntityTypeEnum entityType, const int entityIndex, const std::string tagName,\\ 
+\hspace{\UnstructuredMappingIncludeArgIndent}const void *tagData, const bool copyTag, const int tagSize )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    add an EntityTag to a specific entity in the mesh
+\item[{\bf entityType (input) :}]  the EntityTypeEnum of the entity
+\item[{\bf entityIndex (input):}]  the index of the entity
+\item[{\bf tagName    (input):}]  name to give the tag instance
+\item[{\bf tagData    (input):}]  data stored by the tag
+\item[{\bf copyTag    (input):}]  deep copy tagData if copyTag==true, shallow copy if false
+\item[{\bf tagSize    (input):}]  if copyTag==true, this is the size of the tagData
+\item[{\bf Returns :}]  a reference to the added EntityTag 
+\end{description}
+\subsection{deleteTag}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{deleteTag(}%
+deleteTag( const  EntityTypeEnum entityType, const int entityIndex, \\ 
+\hspace{\UnstructuredMappingIncludeArgIndent}const EntityTag \&tagToDelete )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    delete an EntityTag from the mesh
+\item[{\bf entityType (input) :}]  the EntityTypeEnum of the entity
+\item[{\bf entityIndex (input):}]  the index of the entity
+\item[{\bf tagToDelete    (input):}]  a reference to a tag specifying the deletion
+\item[{\bf Returns :}]  0 if successfull
+\end{description}
+\subsection{deleteTag}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{deleteTag(}%
+deleteTag( const  EntityTypeEnum entityType, const int entityIndex, \\ 
+\hspace{\UnstructuredMappingIncludeArgIndent}const std::string tagToDelete )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    delete an EntityTag from the mesh
+\item[{\bf entityType (input) :}]  the EntityTypeEnum of the entity
+\item[{\bf entityIndex (input):}]  the index of the entity
+\item[{\bf tagToDelete    (input):}]  a string specifying the name of the tag to delete
+\item[{\bf Returns :}]  0 if successfull
+\end{description}
+\subsection{hasTag}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{hasTag(}%
+hasTag( const  EntityTypeEnum entityType, const int entityIndex, const std::string tag )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    check to see if an entity has a particular tag
+\item[{\bf entityType (input) :}]  the EntityTypeEnum of the entity
+\item[{\bf entityIndex (input):}]  the index of the entity
+\item[{\bf tag    (input):}]  a string specifying the name of the tag in question
+\item[{\bf Returns :}]  true if the tag exists on the entity
+\end{description}
+\subsection{getTag}
+ 
+\begin{flushleft} \textbf{%
+EntityTag \& \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{getTag(}%
+getTag( const  EntityTypeEnum entityType, \\ 
+\hspace{\UnstructuredMappingIncludeArgIndent}const int entityIndex, const std::string tagName)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    obtain a reference to a tag on a specific entity
+\item[{\bf entityType (input) :}]  the EntityTypeEnum of the entity
+\item[{\bf entityIndex (input):}]  the index of the entity
+\item[{\bf tagName    (input):}]  a string specifying the name of the tag in question
+\item[{\bf Returns :}]  the tag requested
+\item[{\bf Throws :}]  TagError if the tag is not found
+\end{description}
+\subsection{getTagData}
+ 
+\begin{flushleft} \textbf{%
+void *  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{getTagData(}%
+getTagData( const  EntityTypeEnum entityType, const int entityIndex, \\ 
+\hspace{\UnstructuredMappingIncludeArgIndent}const std::string tag )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    obtain the the data in a tag
+\item[{\bf entityType (input) :}]  the EntityTypeEnum of the entity
+\item[{\bf entityIndex (input):}]  the index of the entity
+\item[{\bf tag    (input):}]  a string specifying the name of the tag in question
+\item[{\bf Returns :}]  NULL if the tag did not exist
+\end{description}
+\subsection{setTagData}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{setTagData(}%
+setTagData( const  EntityTypeEnum entityType, const int entityIndex, \\ 
+\hspace{\UnstructuredMappingIncludeArgIndent}const std::string tagName, \\ 
+\hspace{\UnstructuredMappingIncludeArgIndent}const void *data, const bool copyData, const int tagSize )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    set the data in an existing tag
+\item[{\bf entityType (input) :}]  the EntityTypeEnum of the entity
+\item[{\bf entityIndex (input):}]  the index of the entity
+\item[{\bf tagName    (input):}]  a string specifying the name of the tag in question
+\item[{\bf data    (input):}]  data stored by the tag
+\item[{\bf copyTag    (input):}]  deep copy tagData if copyTag==true, shallow copy if false
+\item[{\bf tagSize    (input):}]  if copyTag==true, this is the size of the tagData
+\item[{\bf Returns :}]  0 if successfull
+\end{description}
+\subsection{maintainTagToEntityMap}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{maintainTagToEntityMap(}%
+maintainTagToEntityMap( bool v )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    turn on/off maintainance of the mapping from tags to thier entities
+\item[{\bf v (input) :}]  if true turn on the tag to entity mapping, if false turn it off
+\item[{\bf Note:}]  If v==true, this method will build the mapping.  If false, it will destroy the mapping
+\end{description}
+\subsection{maintainsTagToEntityMap}
+ 
+\begin{flushleft} \textbf{%
+bool \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{maintainsTagToEntityMap(}%
+maintainsTagToEntityMap( ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    return true if the Mapping maintains the list of entities with a given tag
+\item[{\bf Return value :}]  true if the Mapping maintains the list of entities with a given tag.
+\end{description}
+\subsection{entitiesAreEquivalent}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\UnstructuredMappingIncludeArgIndent}{entitiesAreEquivalent(}%
+entitiesAreEquivalent(EntityTypeEnum type, int entity, ArraySimple$<$int$>$ \&vertices)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+ compare the vertices of an entity to a list of vertices, return true if the list specifies the entity
+\item[{\bf Return value :}]  return true if the list specifies the entity.
+\end{description}

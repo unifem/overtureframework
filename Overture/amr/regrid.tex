@@ -1,0 +1,192 @@
+\section{Adaptive mesh regridding algorithms} \index{AMR!regridding}
+
+
+The basic block-structured adaptive mesh refinement regridding algorithm
+can be found in the thesis of Berger\cite{BergerThesis}.
+
+The basic idea for building new refinement grids is illustrated in figure~(\ref{fig:amrRegrid}).
+The goal is to cover a set of tagged cells by a set of non-overlapping boxes. For efficiency,
+the boxes are not allowed to become too small, nor must they be too empty. Each box satisfies
+an `efficiency' condition where the ratio of tagged cells to untagged cells must be larger
+than some {\tt efficiencyFactor} $\approx .7$.
+\begin{enumerate}
+  \item Given an estimate of the error, tag cells where the error is too large. Fit a box to
+        enclose the tagged cells.
+  \item Recursively sub-divide the box. Split the box in the longest direction, at a position based on the 
+     histogram formed from the sum of the number of tagged cells per row or column. The exact formula
+     is given later.
+  \item After splitting the box, fit new bounding boxes to each half and repeat the process. Continue
+     until the efficiency of the box is larger than the {\tt efficiencyFactor}.
+\end{enumerate}
+
+\newcommand{\tekfig}[3]{
+  \leavevmode
+  \epsfxsize=#2
+  \epsfclipon
+  \fboxsep=0.5mm
+  \fboxrule=0.2mm
+% \centerline{\fbox{\epsfbox[141.7 6.4 531.7 396.4]{#1}}}
+  \fbox{{\epsfbox[#3]{#1}}}
+}
+
+\begin{figure}[hbt]
+  \begin{center}
+   \tekfig{gridWithFlaggedCellsAndInitialBox.eps}{.31\linewidth}{50. 160. 450. 675.}
+   \tekfig{gridWithFlaggedCellsAndTwoBoxes.eps}{.28\linewidth}{ 95. 165. 455. 700.} 
+   \tekfig{gridWithFlaggedCellsAndTwoCompactBoxes.eps}{.29\linewidth}{75. 160. 450. 675.} 
+  \caption{The 3 basic steps in regridding are (1) tag error cells and enclose in a box,
+             (2) split the box into 2 based on a histogram of the column or
+               row sums pf tagged cells, (3) fit new boxes to each split box and repeat if the ratio
+               of tagged to untagged cells is too small.} 
+          \label{fig:amrRegrid}
+  \end{center}
+\end{figure}
+
+
+
+\subsection{Block based aligned grids}
+
+This algorithm is based on the regridding procedure from LBL, found 
+in their HAMR package. This algorithm is based on the algorithm
+from Bell-Berger-Collela-Rigoustos-Saltzman-Welcome
+\cite{Berger3,bergerColella:1989,bergerRigoutsos:1991,bellBergerSaltzmanWelcome:1993}.
+
+The basic idea is to recursively bisect the region of tagged points
+until the resulting patches satisfy an efficiency criteria.
+
+Here is the algorithm
+\begin{algorithm}
+\begin{programbox}
+\mbox{A block AMR grid generator:}
+\bc{regrid}(l_b, l_f, G_l,e )
+l_b \mbox{ : base level, this level and below do not change}
+l_f \mbox{ : fine level, build this new level }
+e  \mbox{ : errors defined on all grids for levels $l=l_b,\ldots,l_f-1$}
+G_l \cc{Set of boxes for level } l
+\overline{G_l} \cc{complement of $G_l$ with respect to some large bounding box.}
+E_m \cc{Operator that expands each box by m cells};
+R_r \cc{Operator that refines each box by ratio r}
+n_b \cc{Number of buffer zones}
+\{\qtab
+   \mbox{Build proper nesting domains for the base level region $l_b$}
+  
+  P_{l_b} := \overline{ E_m \overline{ G_{l_b}}}  ~~\cc{ Boxes defining the properly nested region for $l_b$}
+
+  \FOR l=l_b+1,\ldots,l_f-1
+    P_l := \overline{R_r \overline{P_{l-1}}}  ~~~\cc{refined version of $P_{l_b}$}
+  \END
+   \   \\
+  \mbox{Build levels from finest level down}
+  
+  \FOR l=l_f, l_f-1,\ldots,l_b+1 
+    \mbox{Build a list of tagged cells for all grids at this level}
+    tag \cc{ List that will hold indices of tagged cells}
+    \FOR \mbox{each grid at this level}
+      tag := tag \cup ( |error| > |tol|)  \cc{add points where error is large}
+      tag := \mbox{add $n_b$ neighbours of tagged cells}
+      \IF l<l_f \qquad\cc{Enforce proper nesting of level $l+1$ grids in level $l$}
+         \mbox{add cells that lie beneath tagged cells (plus a buffer) on level l+1}
+      \END
+    \END
+    b_0 := \bc{buildBox}(tag) \cc{build a box around all tagged cells}
+    \mbox{Recursively sub-divide the box}
+    B :=0 \cc{ The set that will contain the refinement boxes}
+    \bc{split}( b_0,B ) 
+    B := \bc{merge}( B ) 
+  \END
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+\begin{programbox}
+\mbox{Recursively sub-divide a box:}
+\bc{split}(\bc{box}~b, \bc{boxSet}~B )
+\{\qtab
+  \IF b \mbox{ is efficient or too small}
+    \keyword{if}~ b \subset P_l  
+      ~~\mbox{b lies in the region of proper nesting, }  P_l
+      ~~B := B \cup b;
+    \keyword{else}
+      ~~B_0 := b \intersect P_l \cc{set of boxes for intersection}
+      ~~B := B \cup B_0  \cc{add boxes from } B_0
+    \keyword{end}
+   \untab\keyword{else}\tab
+    \mbox{divide b into 2 boxes, split along the longest side}
+    \{b_1,b_2\} := \bc{subDivide}(b)
+    \bc{split}(b_1,B)
+    \bc{split}(b_2,B)
+  \END
+\untab
+\}
+\end{programbox}
+
+\begin{programbox}
+\mbox{Sub-divide a box in a smart way:}
+\bc{subDivide}(\bc{box}~b, \alpha )
+\alpha \mbox{  : divide box along this axis}
+\{\qtab
+
+  h_i := \mbox{ number of tagged points with $i_\alpha=i$, } ~i=0,\ldots,N
+  m:= N/2
+  Z := \{ i \origbar h_i \equiv 0 \}
+  \IF Z \ne \emptyset 
+    \mbox{split at the middle most point where the $h_i=0$}
+    j := m + \min_{i\in Z} \modbar{i-m} 
+  \untab\keyword{else}\tab
+     \mbox{split at the middle most point where the 2nd derivative changes sign,}
+     \mbox{and the 3rd derivative is largest in magnitude}
+     d_i := h_{i+1}-2h_i+h_{i-1}
+
+     S := \{ i ~\origbar~  d_{i-1} d_i < 0 \mbox{ and } \modbar{d_i-d_{i-1} } \mbox{ is maximal} \}
+     \keyword{if} ~S \ne \emptyset 
+     ~~  j:= m + \min_{i\in S} \modbar{i-m}
+     \keyword{else}
+     ~~ j:=m        
+     \keyword{end}
+  \END
+  \mbox{split box $b$ at index $j$ creating boxes $b_1$ and $b_2$}
+  return \{b_1,b_2\}
+\untab
+\}
+\end{programbox}
+
+
+
+Figure~(\ref{fig:properNesting}) illustrates the proper nesting region ($P_l$ in the above algorithm) for a
+set of boxes. The proper nesting region for a set of boxes is the region  interior to the set of
+    boxes which lies a certain buffering distance from the coarse grid boundary. The proper
+     nesting region defines the region into which new refinement patches are allowed to lie.
+
+\begin{figure}[hbt]
+  \begin{center}
+   \tekfig{properNestingRegion.eps}{.4\linewidth}{100. 275. 500. 700.}
+  \caption{The proper nesting region for a set of boxes is the region  interior to the set of
+    boxes which lies a certain buffering distance from the coarse grid boundary. The proper
+     nesting region defines the region into which new refinement patches are allowed to lie.} \label{fig:properNesting}
+  \end{center}
+\end{figure}
+
+
+\begin{figure}[hbt]
+  \begin{center}
+  \epsfig{file=diag1.ps,width=.3\linewidth}
+  \epsfig{file=diag2.ps,width=.3\linewidth} 
+  \epsfig{file=diag3.ps,width=.3\linewidth} 
+  \epsfig{file=diag4.ps,width=.3\linewidth} 
+  \epsfig{file=diag5.ps,width=.3\linewidth} 
+  \epsfig{file=diag.ps,width=.3\linewidth} 
+  \caption{Steps in the AMR regridding algorithm. The grid is shown after 1,2,3,4,5 and all steps.
+     The tagged error points are marked as black dots.}
+  \end{center} \label{fig:diag}
+\end{figure}
+
+
+
+\begin{figure}[hbt]
+  \begin{center}
+  \epsfig{file=hollowCircle3levels.ps,width=.45\linewidth}
+  \epsfig{file=cicCross3Levels.ps,width=.45\linewidth} 
+  \caption{Some example amr grids made with the amrGrid test program.}
+  \end{center} \label{fig:amrExamples}
+\end{figure}

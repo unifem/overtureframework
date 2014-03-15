@@ -1,0 +1,40 @@
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{8cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (16,7.5);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{nozzleAndCavityCAD}{\figWidtha}};
+ \draw (8,0.0) node[anchor=south west] {\trimfig{nozzleAndCavityTopo}{\figWidtha}};
+%
+%\draw[step=1cm,gray] (0,0) grid (16,7);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Nozzle and Cavity. Left: CAD geometry represented as a CompositeSurface Mapping. 
+  Right: water-tight triangulation generated
+  by the Overture topology routine.}
+\label{fig:nozzleAndCavityCAD}
+\end{figure}
+}
+
+%{
+%\newcommand{\figWidth}{7.cm}
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.13}{.9}}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,0)(14,4.25)
+%  \rput(3. ,2.0){\clipfig{nozzleAndCavityCAD.ps}{\figWidth}}
+%  \rput(11.,2.0){\clipfig{nozzleAndCavityTopo.ps}{\figWidth}}
+%% \psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{Nozzle and Cavity. Left: CAD geometry represented as a CompositeSurface Mapping. 
+%  Right: water-tight triangulation generated
+%  by the Overture topology routine.}
+%\label{fig:nozzleAndCavityCAD}
+%\end{figure}
+%% 
+%}

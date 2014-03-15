@@ -1,0 +1,37 @@
+050619:
+
+
+module2 intel.s.gcc.g77 /home/henshaw2/Overture.check/Overture.intel.s.gcc.g77
+
+
+
+Here are some examples of running testDistribution
+
+** Overture, user source, tux56
+
+testDistribution platform=intel.d.gcc cvs=false checkout=true update=false build=true intel=tux56 dec=gps15 checkoutDir=/home/henshaw/Overture intelDirectory=/home/henshaw2/Overture.check decDirectory=/g/g91/henshaw package=Overture debug=false >@stdout
+
+
+** Overture, cvs, tux50, checkout  --> /home/henshaw2/Overture.check
+
+nohup testDistribution platform=intel.d.gcc cvs=true checkout=true update=true build=true intel=tux50 dec=gps15 checkoutDir=/home/henshaw/Overture intelDirectory=/home/henshaw2/Overture.check decDirectory=/g/g91/henshaw package=Overture debug=true >&! intel.d.gcc.cvs.check &
+
+
+*** Overture, cvs, gps15, checkout
+
+nohup testDistribution platform=dec.d.cxx cvs=true checkout=true update=true build=true intel=ilx3 dec=gps15 checkoutDir=/home/henshaw/Overture intelDirectory=/home/henshaw2/Overture.check decDirectory=/g/g91/henshaw package=Overture debug=true >&! dec.d.cxx.check &
+
+
+*** Overture, cvs, gps15, run tests only
+
+nohup testDistribution platform=dec.d.cxx cvs=true checkout=false update=false build=false intel=ilx3 dec=gps15 checkoutDir=/home/henshaw/Overture intelDirectory=/home/henshaw2/Overture.check decDirectory=/g/g91/henshaw package=Overture debug=true >&! dec.d.cxx.check &
+
+
+
+**** Overture, cvs, ilx3, 
+
+testDistribution platform=intel.d.gcc cvs=true checkout=true update=true build=true intel=ilx3 dec=gps15 checkoutDir=/home/henshaw/Overture intelDirectory=/var/tmp/henshaw decDirectory=/g/g91/henshaw package=Overture debug=false >@stdout
+
+**** Overture, user-source ilx3 
+
+testDistribution platform=intel.d.gcc cvs=false checkout=true update=false build=true intel=ilx3 dec=gps15 checkoutDir=/home/henshaw/Overture intelDirectory=/var/tmp/henshaw decDirectory=/g/g91/henshaw package=Overture debug=true >@stdout

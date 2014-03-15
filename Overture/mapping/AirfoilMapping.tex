@@ -1,0 +1,89 @@
+%--------------------------------------------------------------
+\section{AirfoilMapping: create some airfoil related grids or curves}\label{sec:AirfoilMapping}
+%-------------------------------------------------------------
+
+\subsection{NACA airfoils}\index{airfoil mapping}\index{Mapping!AirfoilMapping}\index{NACA}
+
+The NACA 4 digit series airfoils (such as the NACA0012) are defined by 
+\begin{alignat*}{2}
+  x_u(r) &= (r - y_t(r) \sin(\theta) ) c   &\qquad &\mbox{upper surface}\\
+  y_u(r) &= (y_c(r) + y_t(r) \cos(\theta) ) c &\qquad &\mbox{upper surface}\\
+  x_l(r) &= (r + y_t(r) \sin(\theta)  ) c   &\qquad &\mbox{lower surface}\\
+  y_l(r) &= (y_c(r) - y_t(r) \cos(\theta) ) c &\qquad &\mbox{lower surface}
+\end{alignat*}
+where $c$ is the chord length. The camber line, $y_c$, is defined by
+\begin{align*}
+   y_c(r) & = c_{\rm max} {1\over x_1^2} ( 2 x_1 r - r^2 ) \qquad\mbox{for $0\le r \le x_1$} \\
+   y_c(r) & = c_{\rm max} {1\over (1-x_1)^2} ( (1-2 x_1) + 2 x_1 r - r^2 ) \qquad\mbox{for $x_1\le r \le 1$} \\
+   x_1  &= \mbox{ position of the maximum camber}
+\end{align*}
+and the thickness is defined by
+\[
+   y_t(r) = 5 \delta( 0.29690\sqrt{r} - 0.12600 r -0.35160 r^2 + .28430 r^3 - 0.10150 r^4 )
+\]
+where
+\begin{align*}
+   \delta &= \mbox{thickness/chord}
+\end{align*}
+
+The NACA[c][p][tc] airfoil is defined by:
+\begin{description}
+ \item[c]  maximum camber/chord $\times 100$  ($c_{\rm max}\times 100$).
+ \item[p]  position of maximum camber/chord $\times 10$ ($x_1\times 10$).
+ \item[tc]  thickness/Chord $\times 100$ ($\delta\times100$).
+\end{description}
+Thus the NACA0012 has $c_{\rm max}=0$, $x_1=0$ and $\delta=.12$.
+
+\subsection{Joukowsky Airfoil}
+
+    The Joukowsky airfoil is defined by
+\begin{align*}
+   z &= x + i y = w + {1\over w} \qquad\mbox{z and w are complex numbers}\\
+   w &= a e^{i\theta} + i d e^{i\delta} \\
+   \theta = 2\pi r_0
+\end{align*}
+The parameters $a,d,\delta$ in the definition have the following approximate properties,
+\begin{description}
+  \item[a] : $<=1$, closer to 1 implies sharper trailing edge.
+  \item[d] : bigger d implies larger camber.
+  \item[$\delta$] : bigger $\delta$ implies greater asymmetry between leading and trailing edges.
+\end{description}
+ 
+
+%% \subsection{Member function descriptions}
+%% \input{AirfoilMappingInclude.tex}
+
+\subsection{Examples}
+
+\noindent
+\begin{minipage}{.475\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/airfoilArc}
+   % \epsfig{file=\figures/airfoilArc.ps,width=\linewidth}  \\
+  {Airfoil grid created with {\tt airfoilType=arc}}
+  \end{center}
+\end{minipage}\hfill
+\begin{minipage}{.475\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/airfoilDiamond}
+   % \epsfig{file=\figures/airfoilDiamond.ps,width=\linewidth}  \\
+  {Airfoil grid created with {\tt airfoilType=diamond}}
+  \end{center}
+\end{minipage}
+\noindent
+\begin{minipage}{.475\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/airfoilSinusoid}
+   % \epsfig{file=\figures/airfoilSinusoid.ps,width=\linewidth}  \\
+  {Airfoil grid created with {\tt airfoilType=sinusoid}}
+  \end{center}
+\end{minipage}\hfill
+\begin{minipage}{.475\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/airfoilNACA0012}
+   % \epsfig{file=\figures/airfoilNACA0012.ps,width=\linewidth}  \\
+  {NACA0012 airfoil created with {\tt airfoilType=naca}}
+  \end{center}
+\end{minipage}
+
+

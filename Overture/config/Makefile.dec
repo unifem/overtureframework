@@ -1,0 +1,109 @@
+# 
+# linux configuration file for the Overture CVS repo
+#   This expects the following variables to be set
+#
+#       OvertureFortranPrecision  to "-i4 -r8" for double precision
+#       GL_LIBS 
+cc = cc
+CC = cxx
+FC = f77
+
+SPARSEKIT_LIB = -L/usr/casc/overture/Overture/sparsekit/SPARSKIT2.dec -lskit
+
+A++ = $(APlusPlus)
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+AppLibraries = -rpath $(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static 
+
+usePPP = $(USE_PPP_FLAG)
+ifeq ($(strip $(usePPP)),)
+  AppLibraries = -rpath $(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static 
+else
+  AppLibraries = $(DEFINE_PPP_LIBRARIES)
+endif
+
+libApp = ${AppLibraries}
+
+Include=  -I$(Overture)/include $(PETSC_INCLUDE) 
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+BOXLIB_DEFS = -DBL_USE_DOUBLE -DBL_Solaris
+
+# these next flags are compiler dependent
+cc_FLAGS = 
+CC_FLAGS = 
+FF_FLAGS =  
+
+C_OPTIMIZATION_FLAG = -g
+CPP_OPTIMIZATION_FLAG = -g
+FORTRAN_OPTIMIZATION_FLAG = -g
+
+CFLAGS =  $(cc_FLAGS)  $(Include)  $(C_OPTIMIZATION_FLAG) -I$(XLIBS) -DSHM
+# flags for c routines we always optimize
+CFLAGSO =  -O $(cc_FLAGS)  $(Include)  -I$(XLIBS) -DSHM
+CFLAGSF =  -O $(cc_FLAGS)  $(Include)  -I$(XLIBS) -DSHM
+
+# do not include some paths, such as STL in the places searched by makedepend (takes too long)
+CC_INCLUDES_FOR_DEPEND =  $(Include) -DINTEL86  -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS)
+
+STL_INCLUDE = 
+CC_INCLUDES = $(CC_FLAGS) $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE) -ptr $(Overture)/cxx_repository $(USE_PPP_FLAG)
+
+CCFLAGS= $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG) $(EXTRA_CC_FLAGS) 
+
+# things that are always compile with optimization use this flag
+CCFLAGSO= $(CC_INCLUDES) -O $(EXTRA_CC_FLAGS) 
+CCFLAGSF= $(CC_INCLUDES) -O3 $(EXTRA_CC_FLAGS) 
+# things that need to be compiled with no optimization use the following
+CCFLAGSG= $(CC_INCLUDES)  $(EXTRA_CC_FLAGS) -g
+
+FFLAGS=    $(FF_FLAGS)   $(OvertureFortranPrecision) $(FORTRAN_OPTIMIZATION_FLAG)  $(EXTRA_FFLAGS) $(Include)
+FFLAGSG= -g $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+
+# single precision always:
+FFLAGSS=  $(FF_FLAGS)  $(FORTRAN_OPTIMIZATION_FLAG)   $(EXTRA_FFLAGS) $(Include)
+
+# things that are always compile with optimization use these flags
+FFLAGSO= -O $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+FFLAGSF= -fast $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+FFLAGSO4= -O4 $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+# single precision always:
+FFLAGSSO= -O  $(FF_FLAGS)  $(FLAGS) $(Include)
+FFLAGSSF= -fast $(FF_FLAGS)  $(FLAGS) $(Include)
+
+
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES=  
+
+# The KCC compiler should be used to build the static library (for templates)
+AR = ar
+#KCC AR = KCC
+ARFLAGS = ruv  
+#KCC ARFLAGS = -o 
+
+LD = $(CC)
+LDFLAGS = -rpath $(Overture)/lib
+RANLIB = ranlib
+SOFLAGS = -shared
+OpenGLibs =$(GL_LIBS)
+
+GLIBS=   $(OV_PERL_LIBRARIES) -rpath $(OpenGL) -L$(OpenGL)/lib $(OpenGLibs) -rpath $(HDF)/lib -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -rpath $(MOTIF)/lib -L$(MOTIF)/lib -lXm  -lXpm -lXp -rpath $(XLIBS)/lib -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11 -lm
+#
+#
+CLIBS=   $(LDFLAGS) -L$(Overture)/lib $(LibOverture) $(AppLibraries) 
+FLIBS=   $(FORTRAN_LIBS)
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o .F .o .bf .f .c .o
+.C.o:; $(CC) $(CCFLAGS) -c $<
+.c.o:; $(cc) $(CFLAGS) -c $<
+.f.o:; $(FC) $(FFLAGSO) -c $<
+.F.o:; $(FC) $(FFLAGSO) -c $<
+.bf.f:; bpp $*.bf
+.bf.o: $*.f ; 
+
+# %.o : %.C ; $(CC) $(CCFLAGS) -c $*.C
+
+# .C: $(LIB_DEPENDENCIES)
+#	 $(CC) $(CCFLAGS) -o $@ $< $(CLIBS) $(FLIBS)  $(GLIBS)

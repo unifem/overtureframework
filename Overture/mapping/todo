@@ -1,0 +1,42 @@
+Things todo in Mappings:
+------------------------
+
+o = todo, x=done
+
+o Remove small A++ arrays from Inverse.h
+  x Remove grid from Inverse.C, use one from the Mapping.
+
+o Make MappingWorkSpace a pointer in Mapping.h (Mapping WorkSpace has a number of A++ arrays in it)
+
+
+o optimise approximate global inverse and stencil walk
+
+x write a C version of DataPointMapping map 
+x write a C version of DataPointMapping basicInverse.
+
+x write a C version of determineResolution  wdh:010316
+
+o remove A++ arrays from RevolutionMapping
+
+o fix ghost-boundaries in hype grid generator
+      o default should be last line(s) generated are the ghost lines,
+              number of ghost lines == 1 or 2.
+      o make consistent with ghost line on start curve (cf. ogen/nacaRefine.cmd)
+
+o CrossSectionMapping : finish, M6 wing etc.
+
+o Make a special "Restriction-lite" Mapping for AMR grids instead of ReparameterizationTransform
+    which uses 2 Mapping's
+
+x readMappings: parametric line is created as 3D but z values are zero. Should be 2D. Fix this (2 places)
+
+o write a specialized getGrid for NurbsMapping which uses the tensor product nature of the Mapping
+
+o write an optimized inline getCPU()
+
+o write a C version of TrimmedMapping::triangulate.
+
+o clean up NurbsMapping.C, remove uMin,uMax,vMin,vMax; replace min(uKnot) -> uKnot(0) etc.
+
+o fix up elliptic grid generator and elliptic-surface grid generator so we can smooth surface grids.
+

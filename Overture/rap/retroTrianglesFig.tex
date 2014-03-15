@@ -1,0 +1,40 @@
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{8cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (16,7.5);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{retroAVS}{\figWidtha}};
+ \draw (8,0.0) node[anchor=south west] {\trimfig{retroLightSteelBlue}{\figWidtha}};
+%
+% \draw[step=1cm,gray] (0,0) grid (16,8);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Left: triangulated surface for the automobile rear view mirror read from an AVS file. Right: 
+Overlapping grids built on a triangulated surface constructed with mbuilder and the hyperbolic
+grid generator.}
+\label{fig:retroGridsAVS}
+\end{figure}
+}
+%{
+%\newcommand{\figWidtha}{12.cm}
+%\newcommand{\figWidth}{14.cm}
+%\newcommand{\clipfiga}[2]{\clipFig{#1}{#2}{.0}{1.}{.125}{.9}}
+%\newcommand{\clipfig}[2]{\clipFig{#1}{#2}{.1}{.9}{.075}{.8}}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,0)(14,18.5)
+%  \rput(7.,14.){\clipfiga{retroAVS.ps}{\figWidtha}}
+%  \rput(7.,5.25){\clipfig{retroLightSteelBlue.ps}{\figWidth}}
+%% \psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{Top: triangulated surface for the automobile rear view mirror read from an AVS file. Bottom: 
+%Overlapping grids built on a triangulated surface constructed with mbuilder and the hyperbolic
+%grid generator.}
+%\label{fig:retroGridsAVS}
+%\end{figure}
+%}

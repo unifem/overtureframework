@@ -1,0 +1,64 @@
+#
+#   conv.p tz.conv
+#
+$check="ad.check";
+#
+# ------------------------ hollow curved pipe ------------------------------------------
+$caseName="hollowCurvedPipe"; 
+$numberOfComponents=1;
+$outputFile="hollowCurvedPipeConvTable.tex"; 
+# define the table heading and caption
+$title= "grid  \& N \&  T"; 
+$tFinal=.05;  $kappa=.025; $degreeX=2; $degreeT=2; $tz="trig";
+$caption= "\\caption\{AD, hollowCurvedPipe, order=\$2\$, \$\\kappa=$kappa\$, \$t=$tFinal\$, $tz TZ, $date}\\label\{table:hollowCurvedPipe}"; 
+# 
+$options = "-kappa=$kappa -tf=$tFinal -tz=$tz -solver=best -a=0 -b=0 -c=0 -go=go"; 
+$grid="hollowCurvedPipe1"; $res=1; $cmd="../bin/cgad noplot ../cmd/tz -g=hollowCurvedPipei1 $options";
+$grid="hollowCurvedPipe2"; $res=2; $cmd="../bin/cgad noplot ../cmd/tz -g=hollowCurvedPipei2 $options";
+# $grid="hollowCurvedPipe4"; $res=4; $cmd="../bin/cgad noplot ../cmd/tz -g=hollowCurvedPipei4 $options";
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+# ------------------------ curved pipe ------------------------------------------
+$caseName="curvedPipe"; 
+$numberOfComponents=1;
+$outputFile="curvedPipeConvTable.tex"; 
+# define the table heading and caption
+$title= "grid  \& N \&  T"; 
+$tFinal=.05;  $kappa=.025; $degreeX=2; $degreeT=2; $tz="trig";
+$caption= "\\caption\{AD, curvedPipe, order=\$2\$, \$\\kappa=$kappa\$, \$t=$tFinal\$, $tz TZ, $date}\\label\{table:curvedPipe}"; 
+# 
+$options = "-kappa=$kappa -tf=$tFinal -tz=$tz -solver=best -a=0 -b=0 -c=0 -go=go"; 
+$grid="curvedPipe1"; $res=1; $cmd="../bin/cgad noplot ../cmd/tz -g=curvedPipei1.order2 $options";
+$grid="curvedPipe2"; $res=2; $cmd="../bin/cgad noplot ../cmd/tz -g=curvedPipei2.order2 $options";
+# $grid="curvedPipe4"; $res=4; $cmd="../bin/cgad noplot ../cmd/tz -g=curvedPipei4.order2 $options";
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+
+
+# ------------------------ square -----------------------------------
+# Set the name of final TeX file with errors and convergence rates: 
+$caseName="square"; 
+$numberOfComponents=1;
+$outputFile="square.trig.Table.tex"; 
+# define the table heading and caption
+$title= "grid  \& N \&  T "; 
+$tFinal=.1; $kappa=.1; $degreeX=2; $degreeT=2; $tz="trig";
+$caption= "\\caption\{AD, order=\$2\$, degreeX=\$$degreeX\$, degreeT=\$$degreeT\$, \$\\kappa=$kappa\$, \$t=$tFinal\$, square, trigonometric TZ, $date}\\label\{table:ad.square}"; 
+# 
+$options = "-degreex=$degreeX -degreet=$degreeT -kappa=$kappa -tf=$tFinal -tz=$tz -go=go"; 
+$grid="square10"; $res=10; $cmd="../bin/cgad noplot ../cmd/tz -g=square10.order2 $options";
+$grid="square20"; $res=20; $cmd="../bin/cgad noplot ../cmd/tz -g=square20.order2 $options";
+$grid="square40"; $res=40; $cmd="../bin/cgad noplot ../cmd/tz -g=square40.order2 $options";
+$closeFile="true"; 
+# --------------------------- end problem ------------------------------------------
+exit
+
+
+
+
+
+

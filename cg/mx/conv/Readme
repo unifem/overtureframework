@@ -1,0 +1,13 @@
+Here are the different convergence rate cases:
+
+conv.p dielectric.conv
+
+conv.p diskeigen.conv
+
+conv.p interface.conv
+
+
+conv.p planeWave.conv
+
+
+

@@ -1,0 +1,15 @@
+Cgins: twilight zone flow of a beam interacting with viscous incompressible flow.  See the report
+"A study of fluid-structure interaction focusing on flexible beams"
+by A. Main
+
+(1) Generate the grid, e.g.,
+  
+  ogen noplot beam_exact_grid -interp=e -factor=2
+
+(2) Perform the run, e.g.,
+
+  cgins beam_exact_run -g=beam_exact_gride2.hdf -go=halt
+
+The Linf errors in the report are at t=0.1
+
+

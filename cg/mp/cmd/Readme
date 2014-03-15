@@ -1,0 +1,46 @@
+------------------------------------------------------------------------------------------
+
+The mp/cmd directory holds command files for running examples of cgmp
+
+Type "../bin/cgmp file.cmd" to run the command file named "file.cmd"
+
+For parallel examples set the shell variable:  set cgmpp = ${CGBUILDPREFIX}/mp/bin/cgmp
+
+------------------------------------------------------------------------------------------
+
+aa.cmd : solve advection-diffusion in two domains
+
+aaMove.cmd : solve advection-diffusion in two domains with one domain moving 
+
+axisymSphere.cmd : 2d axisymmetric flow on the inside and outside of a sphere
+
+deform.cmd : some deforming grid (heat-transfer with cgad) multi-domain examples.
+
+elasticPiston.cmd : elastic piston adjacent to a compressible gas
+
+fluidElastic.cmd : testing a fluid (cgins or cgcns) next to an elastic solid (cgsm)
+
+fluidSolidInterface.cmd : a flat interface between an incompressible fluid and a solid
+
+fuelPins.cmd : heated pins in an incompressible flow
+
+heatInterface.cmd : example showing the solution of two different heat-equations in two domains
+
+ia.cmd : Two domain verification test of fluid flow and heat transfer,  (ia = cgIns + cgAd),  (TZ flow)
+
+ii.cmd : two domain example with two incompressible fluids
+
+io.cmd : INS/CNS flow around a heated cylinder (2d or 3d)
+
+multiDomain.cmd : solve for INS and AD in multiple domains
+
+pulse.cmd : solve the equations of elasticity in a single domain
+
+source.cmd : heated cylinder in an incompressible flow. 
+
+threeDomain.cmd : examples with three domains
+
+twoDomain.cmd : examples with two domains
+
+tube.cmd : flow past heated tubes
+

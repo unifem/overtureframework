@@ -1,0 +1,101 @@
+\subsection{display: display an A++ array}
+ 
+\newlength{\displayIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int \\ 
+\settowidth{\displayIncludeArgIndent}{display(}%
+display( const floatArray \& x, const char *label, const char *format\_, const Index *Iv /* =NULL*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+      Another version of display -- pass a format but no FILE
+\item[{\bf x (input) :}]  array to display. There are also versions of this routine for int and double arrays.
+\item[{\bf label (input):}]  optional header label
+\item[{\bf format (input) :}]  an optional format such as "\%6.1e " or "\%11.4e " (note blank at end) 
+  that will be used to display each element in the array. The default is "\%11.4e "
+\item[{\bf Iv[d] :}]  If Iv is not NULL then print the values x(Iv[0],Iv[1],Iv[2],...) You must supply at
+   least nd entries in the array Iv[d] where nd=x.numberOfDimensions();
+\end{description}
+\subsection{display: save an A++ array in a file}
+ 
+\begin{flushleft} \textbf{%
+int \\ 
+\settowidth{\displayIncludeArgIndent}{display(}%
+display( const floatArray \& x, \\ 
+\hspace{\displayIncludeArgIndent}const char *label    = NULL, \\ 
+\hspace{\displayIncludeArgIndent}FILE *file           = NULL, \\ 
+\hspace{\displayIncludeArgIndent}const char *format\_  = NULL, \\ 
+\hspace{\displayIncludeArgIndent}const Index *Iv /* =NULL*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Display an A++ array
+\item[{\bf x (input) :}]  array to display. There are also versions of this routine for int and double arrays.
+\item[{\bf label (input):}]  optional header label
+\item[{\bf file (input) :}]  optionally supply a file to print to.
+\item[{\bf format (input) :}]  an optional format such as "\%6.1e " or "\%11.4e " (note blank at end) 
+  that will be used to display each element in the array. The default is "\%11.4e "
+\item[{\bf Iv[d] :}]  If Iv is not NULL then print the values x(Iv[0],Iv[1],Iv[2],...)
+\end{description}
+\subsection{display an A++ array with DisplayParameters}
+ 
+\begin{flushleft} \textbf{%
+int \\ 
+\settowidth{\displayIncludeArgIndent}{display(}%
+display( const floatArray \& x, const char *label, const DisplayParameters \& displayParameters, \\ 
+\hspace{\displayIncludeArgIndent}const Index *Iv /* =NULL*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+      Another version of display -- pass a format but no FILE
+\item[{\bf x (input) :}]  array to display. There are also versions of this routine for int and double arrays.
+\item[{\bf label (input):}]  optional header label
+\item[{\bf format (input) :}]  an optional format such as "\%6.1e " or "\%11.4e " (note blank at end) 
+  that will be used to display each element in the array. The default is "\%11.4e "
+\item[{\bf displayParameters (input) :}]  provide parameters for display. 
+\item[{\bf Iv[d] :}]  If Iv is not NULL then print the values x(Iv[0],Iv[1],Iv[2],...)
+\end{description}
+\subsection{displayMask}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\displayIncludeArgIndent}{displayMask(}%
+displayMask( const intArray \& mask, \\ 
+\hspace{\displayIncludeArgIndent}const aString \& label  =nullString,\\ 
+\hspace{\displayIncludeArgIndent}FILE *file  = NULL, \\ 
+\hspace{\displayIncludeArgIndent}const Index *Iv /* =NULL*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Display the mask array in a MappedGrid in a reasonable way
+ The mask array in a MappedGrid is a bit-mapping that is difficult to look at
+ if displayed in the formal way. This routine will display the mask in a more
+ compact form (although some information is not printed) where each entry printed will mean:
+ \begin{description}
+   \item[1] : ISdiscretizationPoint
+   \item[2] : ISghostPoint
+   \item[-1] : ISinterpolationPoint
+ \end{description}   
+\end{description}
+\subsection{displayMask}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\displayIncludeArgIndent}{displayMask(}%
+displayMask( const intSerialArray \& mask, \\ 
+\hspace{\displayIncludeArgIndent}const aString \& label  =nullString,\\ 
+\hspace{\displayIncludeArgIndent}FILE *file  = NULL, \\ 
+\hspace{\displayIncludeArgIndent}const Index *Iv /* =NULL*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Display the mask array in a MappedGrid in a reasonable way
+ The mask array in a MappedGrid is a bit-mapping that is difficult to look at
+ if displayed in the formal way. This routine will display the mask in a more
+ compact form (although some information is not printed) where each entry printed will mean:
+ \begin{description}
+   \item[1] : ISdiscretizationPoint
+   \item[2] : ISghostPoint
+   \item[-1] : ISinterpolationPoint
+ \end{description}   
+\end{description}

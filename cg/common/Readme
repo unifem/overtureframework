@@ -1,0 +1,9 @@
+The common directory holds files that are common to different cg solvers
+
+  Makefile  : type "make" to build the common libraries
+
+  src       : files used by all cg solvers such as the base class DomainSolver.{h,C}
+  moving    : files for moving grids
+  chemistry : files for chemistry
+  dataBase  : files defining the data base class
+

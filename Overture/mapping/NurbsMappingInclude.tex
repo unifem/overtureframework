@@ -1,0 +1,961 @@
+\subsection{Constructor}
+ 
+\newlength{\NurbsMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\NurbsMappingIncludeArgIndent}{NurbsMapping(}% 
+NurbsMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor, make a null NURBS. 
+\item[{\bf Remarks:}] 
+    The implementation here is based on the reference, {\sl The NURBS Book}
+ by Les Piegl and Wayne Tiller, Springer, 1997. The notation here is:
+ \begin{itemize}
+   \item degree = p  (variables p1,p2 for one and 2D)
+   \item  number of control points is n+1 (variables n1,n2)
+   \item  number of knots is m+1 (m=n+p+1) (variables m1,m2)
+   \item cPoint(0:n,0:r) :  holds the control points and weights. r=rangeDimension.
+   \item uKnot(0:m) : holds knots along axis1. These are normally scaled to [0,1] (see notes below).
+   \item vKnot(0:m) : holds knots along axis2 (if domainDimension==2)  
+   \item note : Knots are scaled to [0,1]
+ \end{itemize}
+ 
+\item[{\bf NOTES:}]  for those wanting to make changes to this class
+
+   {\bf uMin,uMax,vMin,vMax} : A typical NURBS will have knots that span an arbitrary interval.
+     For example the knots may go from $[.5,1.25]$. This mapping however, is parameterized on [0,1].
+     To fix this we first save the actual min and max values for uKnot in [uMin,uMax] and similarly
+     for [vMin,vMax]. We then rescale uKnot and vKnot to lie on the interval [0,1]. Note that
+     the {\tt reparameterize} function may subsequently rescale the knots to a larger interval
+     in which case the NURBS will only represent a part of the initial surface. If we do this then
+     we also rescale uMin,uMax,vMin,vMax. The {\tt parametricCurve} function is used to indicate
+     that this NURBS is actually a parametric curve on another NURBS, nurbs2. By default the values of 
+     uMin,uMax,vMin,vMax from nurbs2 are used to scale this NURBS in order to make it compatible with
+     the rescaled nurbs2.
+     
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\NurbsMappingIncludeArgIndent}{NurbsMapping(}% 
+NurbsMapping(const int \& domainDimension\_ , const int \& rangeDimension\_ ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Constructor, make a default NURBS of the give domain dimension (1,2)
+\end{description}
+\subsection{intersect3DLines}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{intersect3DLines(}%
+intersect3DLines( const RealArray \& pt0, const RealArray \&  t0, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const RealArray \& pt1, const RealArray \& t1,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}real \& alpha0, real \& alpha1,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}RealArray \& pt2) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Intersect two lines in 3D:
+ x0(s) = pt0 + s * t0
+ x1(t) = pt1 + t * t1
+
+\item[{\bf alpha0,alpha1 :}]  values of s and t at the intersection.
+\item[{\bf pt2 :}]  point of intrsection, x0(alpha0)=pt2=x1(alpha1)
+
+\item[{\bf Return values:}]  1 if the line are parallel, 0 otherwise.
+\end{description}
+\subsection{buildCurveOnSurface}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{buildCurveOnSurface(}%
+buildCurveOnSurface(NurbsMapping \& curve,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}real r0, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}real r1  =-1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Build a new Nurbs curve  that matches a coordinate line on the surface.
+\item[{\bf curve (output) :}]  on output a curve that matches a coordinate line on the surface.
+\item[{\bf r0,r1 (input) :}]  if r1==-1 make a curve ${\mathbf c}(r) = {\mathbf s}(r0,r)$ where ${\mathbf s}(r_0,r_1)$
+   is the NURBS surface defined by this mapping. If r0==-1   
+     make the curve ${\mathbf c}(r) = {\mathbf s}(r,r1)$ 
+  the arc, measured starting from x.
+
+\end{description}
+\subsection{buildComponentCurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{buildComponentCurve(}%
+buildComponentCurve(NurbsMapping \& curve,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}int component  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Given a curve, (x(s),y(s)[,z(s)]),  in 2D or 3D, build a new curve in 1D that 
+  represents the a given component such as x(s) or y(s) or z(s).
+\item[{\bf curve (output) :}]  on output a component curve.
+\item[{\bf component (input) :}]  Choose component=0,1, or 2 to form the curve for x,y, or z
+
+\end{description}
+\subsection{circle}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{circle(}%
+circle(RealArray \& o,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}RealArray \& x, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}RealArray \& y, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}real r,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}real startAngle  =0.,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}real endAngle  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Build a circular arc. Reference the NURBS book Algorithm A7.1
+\item[{\bf o (input):}]  center of the circle.
+\item[{\bf x,y (input):}]  orthogonal unit vectors in the plane of the circle.
+\item[{\bf startAngle,endAngle :}]  normalized angles [0,1] for the start and end of
+  the arc, measured starting from x.
+
+\end{description}
+\subsection{conic(a,b,c,...)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{conic(}%
+conic( const real a, const real b, const real c, const real d, const real e, const real f, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real z, const real x1, const real y1, const real x2, const real y2 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Build a NURBS for a conic defined by an implicit formula and two end points
+ \begin{verbatim}
+      a*x^2 + b*x*y + c*y^2 + d*x + e*y + f = 0
+ \end{verbatim}
+
+\item[{\bf a,b,c,d,e,f :}]  implicit formula for a conic
+\item[{\bf z,x1,y1,x2,y2:}]  the end points of the conic are (x1,y1,z) and (x2,y2,z)
+
+\item[{\bf return values:}]  0=success, 1=error
+
+\end{description}
+\subsection{conic}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{conic(}%
+conic( const RealArray \&pt0, const RealArray \&t0, const RealArray \&pt2, const RealArray \&t2, const RealArray \&p )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Build a NURBS for a conic defined by end points, two tangents, and an additional point
+\item[{\bf pt0(0,0:}] 2),pt2(0,0:2) : end points
+\item[{\bf t0(0,0:}] 2),t2(0,0:2) : tangent directions at end points
+\item[{\bf p(0,0:}] 2) : another point on the conic
+
+\item[{\bf NOTES:}]  Construct open conic arc in 3D (c.f. makeOpenConic, NURBS book p. 317)
+
+\item[{\bf NOTE:}]  ****TODO: case of full ellipse, see page 319
+
+\item[{\bf return values:}]  0=success, 1=error
+
+\end{description}
+\subsection{generalCylinder(curve,shift)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{generalCylinder(}%
+generalCylinder( const Mapping \& curve, real d[3] )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Build a general cylinder (tabulated cylnder) by extruding a curve along a direction vector d.
+    The general cylinder is defined as
+ \begin{verbatim}
+       C(u,v) = curve(u) + v*d
+ \end{verbatim}
+
+\item[{\bf curve (input) :}]  curve to extrude. If this curve is not a NurbsMapping then it is converted into
+   a NurbsMapping by interpolating the grid points from curve. Increase the number of grid points
+      on curve if you want a more accurate result.
+\item[{\bf d[3] input :}]  extrude the curve along this direction vector 
+\end{description}
+\subsection{generalCylinder(curve1,curbe2)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{generalCylinder(}%
+generalCylinder( const Mapping \& curve1, const Mapping \& curve2 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Build a general cylinder (tabulated cylnder) by interpolating between two curves
+    The general cylinder is defined as
+ \begin{verbatim}
+       C(u,v) = (1-v)*curve1(u) + v*curve2
+ \end{verbatim}
+
+\item[{\bf curve1, curve2 (input) :}]  curves to interpolate. If either curve is not a NurbsMapping then it is converted into
+   a NurbsMapping by interpolating the grid points from curve. Increase the number of grid points
+      on curve if you want a more accurate result.
+
+\end{description}
+\subsection{plane}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{plane(}%
+plane( real pt1[3], real pt2[3], real pt3[3] )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Build a plane that passes through three points
+              
+ \begin{verbatim}
+           pt3
+            * 
+            |
+            |
+            *------* pt2
+           pt1
+ \end{verbatim}
+ 
+    The plane is defined as 
+ \begin{verbatim}
+       C(u,v) = pt1 +u*(pt2-pt1) + v*(pt3-pt1)
+ \end{verbatim}
+
+\item[{\bf pt1[3], pt2[3], pt3[3] (input) :}]  3 points on the plane
+
+\end{description}
+\subsection{getKnots}
+ 
+\begin{flushleft} \textbf{%
+const RealArray \&  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{getKnots(}%
+getKnots( int direction  =0) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  get uKnot or vKnot, the knots in the first or second direction.
+\item[{\bf direction:}]  0=return uKnot, 1= return vKnot.
+\end{description}
+\subsection{getControlPoints}
+ 
+\begin{flushleft} \textbf{%
+const RealArray \&  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{getControlPoints(}%
+getControlPoints() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Return the control points, scaled by the weight.
+\end{description}
+\subsection{insertKnot}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{insertKnot(}%
+insertKnot(const real \& uBar, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& numberOfTimesToInsert\_  =1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Insert a knot
+\item[{\bf uBar (input):}]  Insert this knot value.
+\item[{\bf numberOfTimesToInsert\_ (input):}]  insert the knot this many times. The multiplicity
+    of the knot will not be allowed to exceed p1.
+\end{description}
+\subsection{insertKnot}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{normalizeKnots(}%
+normalizeKnots() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  Protected routine.
+\item[{\bf Purpose:}]  
+    Normalize the knots, uKnot (and vKnot if domainDimension==2) to
+ lie from 0 to 1. This routine will NOT change the values of uMin,uMax, vMin,vMax since
+ these values indicate the original bounds on uKnot and vKnot.
+\end{description}
+\subsection{readFromIgesFile}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{readFromIgesFile(}%
+readFromIgesFile( IgesReader \& iges, const int \& item, bool normKnots /*=true*/  )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Read a NURBS from an IGES file. An IGES file is a data file
+ containing geometrical objects, usually generated by a CAD program.
+\item[{\bf iges (input) :}]  Use this object to read the IGES file.
+\item[{\bf item (input) :}]  read this item from the IGES file.
+\end{description}
+\subsection{parametricCurve}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{parametricCurve(}%
+parametricCurve(const NurbsMapping \& nurbs,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const bool \& scaleParameterSpace  = true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+   Indicate that this nurb is actually a parametric curve on another nurb surface.
+\item[{\bf nurbs (input) :}]  Here is the NURBS surface for which this NURBS is a parametric surface.
+\item[{\bf scaleParameterSpace (input) :}]  if true, scale the range space of this nurb
+   to be on the unit interval. This is usually required since the NurbsMapping scales
+   the knots to lie on [0,1] (normally) and so we then need to scale this Mapping to
+   be consistent.
+\end{description}
+\subsection{shift}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{shift(}%
+shift(const real \& shiftx  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& shifty  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& shiftz /* =0.*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Shift the NURBS in space.
+\end{description}
+\subsection{scale}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{scale(}%
+scale(const real \& scalex  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& scaley  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& scalez /* =0.*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Scale the NURBS in space.
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{rotate(}%
+rotate( const int \& axis, const real \& theta )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a rotation about a given axis. This rotation is applied
+   after any existing transformations. 
+\item[{\bf axis (input) :}]  axis to rotate about (0,1,2)
+\item[{\bf theta (input) :}]  angle in radians to rotate by.
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{matrixTransform(}%
+matrixTransform( const RealArray \& m )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Perform a general matrix transform using a 2x2 or 3x3 matrix.
+  Convert the NURBS to 2D or 3D if the transformation so specifies -- i.e.
+ if you transform a NURBS with rangeDimension==2 with a 3x3 matrix then the
+ result will be a NURBS with rangeDimension==3.
+\item[{\bf m (input) :}]  m(0:2,0:2) matrix to transform with
+\end{description}
+\subsection{specify knots and control points}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{specify(}%
+specify(const int \&  m,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& n,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& p,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const RealArray \& knot,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const RealArray \& controlPoint,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& rangeDimension\_  =3,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}bool normalizeTheKnots /* =true*/  )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Specify a {\bf curve} in 2D or 3D using knots and control points
+\item[{\bf m (input) :}]  The number of knots is m+1
+\item[{\bf n (input) :}]  the number of control points is n+1
+\item[{\bf p (input) :}]  order of the B-spline
+\item[{\bf controlPoint(0:}] n,0:rangeDimension) (input) : control points and weights
+\item[{\bf normalizeTheKnots (input) :}]  by default, normalize the knots to [0,1]. Set to false
+    if you do not want the knots normalized. 
+\end{description}
+\subsection{specify knots and control points}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{specify(}%
+specify(const int \& n1\_, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& n2\_,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& p1\_, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& p2\_, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const RealArray \& uKnot\_, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const RealArray \& vKnot\_,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const RealArray \& controlPoint,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& rangeDimension\_  =3,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}bool normalizeTheKnots /* =true*/  )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Specify a NURBS with domainDimension==2 using knots and control points
+\item[{\bf n1\_,n2\_ (input) :}]  the number of control points is n1+1 by n2+1
+\item[{\bf p1\_,p2\_ (input) :}]  order of the B-spline in each direction.
+\item[{\bf uKnot\_,vKnot\_ (input) :}]  knots.
+\item[{\bf controlPoint(0:}] n1,0:n2,0:rangeDimenion) (input) : control points and weights
+\item[{\bf normalizeTheKnots (input) :}]  by default, normailize the knots to [0,1]. Set to false
+    if you do not want the knots normalized. 
+\end{description}
+\subsubsection{setDomainInterval}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{setDomainInterval(}%
+setDomainInterval(const real \& r1Start  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& r1End  =1.,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& r2Start  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& r2End  =1.,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& r3Start  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& r3End  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Restrict the domain of the nurbs.
+ By default the nurbs is parameterized on the interval [0,1] (1D) or [0,1]x[0,1] in 2D etc.
+ You may choose a sub-section of the nurbs by choosing a new interval [rStart,rEnd].
+ For periodic nurbss the interval may lie in [-1,2] so the sub-section can cross the branch cut.
+ You may even choose rEnd<rStart to reverse the order of the parameterization.
+\item[{\bf rStart1,rEnd1,rStart2,rEnd2,rStart3,rEnd3 (input) :}]  define the new interval.
+\end{description}
+\subsection{initialize()}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{initialize(}%
+initialize( bool setMappingHasChanged  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Initialize the NURBS. This is a protected routine.
+ Determine if the weights are constant so
+ that we can use more efficient routines. Set bounds for the Mapping.
+
+\item[{\bf setMappingHasChanged (input) :}]  if true (by default) we call mappingHasChanged so that the grid etc. will be marked
+                  out of date. 
+\item[{\bf NOTES:}]  Normally we multiply the control points by the weights.
+     BUT,  if the weights are constant we divide everything by this constant value so
+ we can avoid dividing by the weight term when we evaluate. When the weights are
+ constant {\tt nonUniformWeights==false};
+\end{description}
+\subsection{setBounds}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{setBounds(}%
+setBounds()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  protected routine. Set the approximate bounds on the mapping, used by plotting routines etc.
+ Use the control points as an approximation
+ *** note only apply this to the normalized control-points ***
+\end{description}
+\subsection{removeKnot}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{removeKnot(}%
+removeKnot(const int \& index, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& numberOfTimesToRemove why is this int passed by reference?,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}int \&  numberRemoved, const real \& tol  ) why is tol passed by reference?\\ 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Remove a knot (if possible) so that the Nurbs remains unchanged
+\item[{\bf index (input) :}]  try to remove the knot at this index. AP: NOTE: uKnot(index) != uKnot(index+1)
+\item[{\bf numberOfTimesToRemove (input) :}]  the number of times to try and remove the knot. 
+\item[{\bf numberRemoved (output):}]   the actual number of times the knot was removed
+\end{description}
+\subsection{getParameterBounds}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{getParameterBounds(}%
+getParameterBounds( int axis, real \& rStart\_, real \& rEnd\_ ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Return current values for the parameter bounds.
+\item[{\bf axis (input) :}]  return bounds for this axis.
+\item[{\bf rStart\_, rEnd\_:}]  bounds.
+\end{description}
+\subsection{reparameterize}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{reparameterize(}%
+reparameterize(const real \& uMin\_, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& uMax\_,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& vMin\_  =0., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& vMax\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Reparameterize the nurb to only use a sub-rectangle of the parameter space.
+    This function can also be used to reverse the direction of the parameterization by choosing
+   $\mbox{uMin} > \mbox{uMax}$ and/or $\mbox{vMin} > \mbox{vMax}$.
+\item[{\bf uMin,uMax (input):}]   subrange of u values to use, normally $0 \le \mbox{uMin} \ne \mbox{uMax} \le 1$
+\item[{\bf vMin,vMax (input):}]  subrange of v values to use, normally  $0 \le \mbox{vMin} \ne \mbox{vMax} \le 1$ 
+     (for domainDimension==2)
+
+\item[{\bf Notes:}]  this routine just scales the knots to be on a larger interval than [0,1]. Thus when
+    the Mapping is evaluated on [0,1] the result will only be a portion of the original surface.
+\item[{\bf Return values:}]  0 : success,  1 : failure
+\end{description}
+\subsection{transformKnots}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{transformKnots(}%
+transformKnots(const real \& uScale, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& uShift,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& vScale  =1., \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const real \& vShift  =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Apply a scaling and shift to the to the knots: uScale*uKnots+uShift.
+ The scale factors should be positive.
+
+\item[{\bf uScale,uShift (input):}]   scaling and shift for the knots in the u direction.
+\item[{\bf vScale,vShift (input):}]  scaling and shift for the knots in the v direction.
+     (for domainDimension==2)
+
+\end{description}
+\subsection{elevateDegree}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{elevateDegree(}%
+elevateDegree(const int increment)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Elevate the degree of the nurbs.
+\item[{\bf increment (input):}]  increase the degree of the nurb by this amount >=0 
+\item[{\bf Return values:}]  0 : success, 1 : failure
+\end{description}
+\subsection{merge}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{merge(}%
+merge(NurbsMapping \& nurbs, bool keepFailed  = true, real eps /*=-1*/, bool attemptPeriodic /*=true*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Try to merge "this" nurbs with the input nurbs. This routine will merge
+  the two NURBS's into one if the endpoint of one matches the end point of the second.
+\item[{\bf nurbs (input):}]  nurbs to merge with
+\item[{\bf Return values:}]  0 : success, 1 : failure
+\end{description}
+\subsection{forcedMerge}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{forcedMerge(}%
+forcedMerge(NurbsMapping \& nurbs  )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Force a merge of "this" nurbs with the input nurbs. This routine will merge
+  the two NURBS's into one if the endpoint of one matches the end point of the second. If
+  the endpoints do not match, a straight line section is added between the closest end
+  points.
+\item[{\bf nurbs (input):}]  nurbs to merge with
+\item[{\bf Return values:}]  0 : success, 1 : failure
+\end{description}
+\subsection{forcedPeriodic}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{forcePeriodic(}%
+forcePeriodic()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  force this mapping to be periodic by making the last control points the
+ same as the first ( if the knots are "clamped", eg the knots are 0 0 0 0 ... 1 1 1 1 )
+\item[{\bf Return values:}]  0 : success, 1 : failure
+\end{description}
+\subsection{split}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{split(}%
+split(real uSplit, NurbsMapping \&c1, NurbsMapping\&c2, bool normalizePieces  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Split a nurb curve into two pieces.
+\item[{\bf uSplit (input) :}]  parameter value to split the curve at
+\item[{\bf c1 (output) :}]  curve on the "left", parameter bounds [0,uSplit]
+\item[{\bf c2 (output) :}]  curve on the "right", parameter bounds [uSplit,1]
+\item[{\bf normalizePieces (input) :}]  in true then normalize each piece
+\item[{\bf Returns :}]  0 on success, 1 on failure ( uSplit<0 or uSplit>1 )
+\end{description}
+\subsection{moveEndpoint}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{moveEndpoint(}%
+moveEndpoint( int end, const RealArray \&endPoint, real tol /*=-1*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Move either the beginning or the end of the curve to endPoint.
+\end{description}
+\subsection{numberOfSubCurves}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{numberOfSubCurves(}%
+numberOfSubCurves() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  If the Nurb is formed by merging a sequence of Nurbs then function will return that number.
+  By default the numberOfSubCurves would be 1 if no Nurbs were merged.
+\end{description}
+\subsection{numberOfSubCurvesInList}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{numberOfSubCurvesInList(}%
+numberOfSubCurvesInList() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return the number of subcurves used to build the Nurb plus the number of hidden curves
+  By default the numberOfSubCurvesInList would be 1 if no Nurbs were merged.
+\end{description}
+\subsection{subCurve}
+ 
+\begin{flushleft} \textbf{%
+NurbsMapping\&  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{subCurve(}%
+subCurve(int subCurveNumber)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  If the Nurb is formed by merging a sequence of Nurbs then function will return that Nurbs.
+ If the numberOfSubCurves is 1 then the current (full) Nurbs is returned.
+  
+\end{description}
+\subsection{subCurveFromList}
+ 
+\begin{flushleft} \textbf{%
+NurbsMapping \&  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{subCurveFromList(}%
+subCurveFromList(int subCurveNumber)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return a nurb curve directly from the list of subcurves.  This can be a curve used to generate
+ the nurb itself or one of the "hidden" curves.
+ If the numberOfSubCurves is 1 then the current (full) Nurbs is returned.
+  
+\end{description}
+\subsection{interpolate}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{interpolate(}%
+interpolate(const RealArray \& x, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}const int \& option     = 0,\\ 
+RealArray \& parameterization  =Overture::nullRealArray(),\\ 
+\hspace{\NurbsMappingIncludeArgIndent}int degree  = 3,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}ParameterizationTypeEnum parameterizationType  =parameterizeByChordLength,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}int numberOfGhostPoints  =0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Define a new NURBS curve that interpolates the points x(0:n1,0:r-1) OR
+ define a new NURBS surface that interpolates the points x(0:n1,0:n2,0:r-1) (NEW feature). 
+ An even more recent (051031) addition allows the interpolation of a volume defined
+ by the points x(0:n1,0:n2,0:n3,0:r-1);
+  By default the NURBS curve will be parameterized by a the chord length.
+ 
+\item[{\bf option (input) :}]  if option==0 then use the array parameterization.
+     if option==1 then return the parameterization used in the array parameterization.
+\item[{\bf parameterization\_(0:}] n1) (input) : optionally specify the parameterization. These values
+ should start from 0, end at 1 and be increasing. If this argument is not given then
+   the parameterization will be based on chord length. If option==1 then the 
+   actual parameterization used will be returned in this array.
+\item[{\bf degree (input) :}]  degree of approximation. Normally a value such as 1,2,3.
+\item[{\bf parameterizationType (input) :}]  the default parameterization (if not user defined) is by chord-length.
+       One can also specify to parameterizeByIndex which means use a uniform parameterization.
+\item[{\bf numberOfGhostPoints (input) :}]  The array x includes this many ghost points on all sides.
+
+\end{description}
+\subsection{interpolate}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{interpolate(}%
+interpolate(Mapping \& map, int degree  =3, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}ParameterizationTypeEnum parameterizationType  =parameterizeByChordLength,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}int numberOfGhostPoints  =0,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}int *numPointsToInterpolate  =NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Construct a NURBS by interpolating another mapping.
+\item[{\bf map (input) :}]  interpolate this Mapping.
+\item[{\bf degree (input) :}]  degree of NURBS
+\item[{\bf parameterization (input) :}]  
+\item[{\bf numberOfGhostPoints (input) :}]  include this many ghost points
+\item[{\bf numPointsToInterpolate (input) :}]  numPointsToInterpolate[dir], dir=0,1,...,domainDimension-1, 
+       optionally specify how many points to interpolate in each direction. By default use the number 
+       of grid points from the Mapping "map". 
+\end{description}
+\subsection{put(fileName)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{put(}%
+put( const aString \& fileName, const FileFormat \& fileFormat  = xxww) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   put NURBS data into an ascii readable file.
+\item[{\bf fileName (input) :}]  name of the file.
+\item[{\bf fileFormat (input) :}]  specify the file format. (see the comments with the get(const aString\&,...) function).
+\end{description}
+\subsection{put(FILE*)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{put(}%
+put( FILE *file, const FileFormat \& fileFormat  = xxww)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save the NURBS data to an ascii readable file.
+\item[{\bf fileFormat (input) :}]  specify the file format. (see the comments with the get(const aString\&,...) function).
+\end{description}
+\subsection{get(fileName)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{get(}%
+get( const aString \& fileName, const FileFormat \& fileFormat  = xxww)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   read NURBS data from an ascii readable file.
+\item[{\bf fileName (input) :}]  get from this file.
+\item[{\bf fileFormat (input) :}]  specify the file format.
+
+ \noindent Here is the file format for {\tt fileFormat=xxww} for a surface in 3D
+ \begin{verbatim}
+  domainDimension rangeDimension p1 n1 p2 n2  
+  uKnot(0) uKnot(1) ... uKnot(m1)  --- on possibly multiple lines, at most 10 values per line
+  vKnot(0) vKnot(1) ... vKnot(m2)
+  x0 x1 x2 ...            --- x coords of control pts. on multiple lines, at most 10 per line
+  y0 y1 y2 ...            --- y coords of control pts.                                  
+  z0 z1 z2 ...            --- z coords of control pts.                                  
+  w0 w1 w2 ...            --- weights of control pts.                                  
+ \end{verbatim}
+ If the domainDimension==1 then leave off p2 and n2. If the rangeDimension is 2 then leave 
+  off the z values. Here m1=n1+p1+1 and m2=n2+p2+1.
+
+ \noindent Here is the file format for {\tt fileFormat=xwxw} for a surface in 3D
+ \begin{verbatim}
+  domainDimension rangeDimension p1 n1 p2 n2
+  uKnot(0) uKnot(1) ... uKnot(m1)  --- on possibly multiple lines, at most 10 values per line
+  vKnot(0) vKnot(1) ... vKnot(m2)
+  x0 y0 z0 w0                   --- control point 0
+  x1 y1 z1 w1                   --- control point 1
+  x1 y1 z1 w1                   --- control point 2
+  ... 
+ \end{verbatim}
+ If the domainDimension==1 then leave off p2 and n2. If the rangeDimension is 2 then leave 
+  off the z values.
+\end{description}
+\subsection{put(FILE *)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{get(}%
+get( FILE *file, const FileFormat \& fileFormat  = xxww)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   read NURBS data from an ascii readable file.
+\item[{\bf file (input) :}]  get from this file.
+\item[{\bf fileFormat (input) :}]  specify the file format. (see the comments with the get(const aString\&,...) function).
+\end{description}
+\subsection{getOrder}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{getOrder(}%
+getOrder( int axis  =0) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Return the order, p.
+\end{description}
+\subsection{getNumberOfKnots}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{getNumberOfKnots(}%
+getNumberOfKnots( int axis  =0) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+  Return the number of knots, m+1.
+\end{description}
+\subsection{getNumberOfControlPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{getNumberOfControlPoints(}%
+getNumberOfControlPoints( int axis  =0) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Return the number of control points, n+1.
+\end{description}
+\subsection{buildSubCurves}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{buildSubCurves(}%
+buildSubCurves( real angle  =60.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+   Split a NURBS curve at corners into sub-curves. Currently this only applies if the
+  order of the NURBS is 1 (piece-wise linear).
+\item[{\bf angle (input) :}]  divide the curve at points where the tangent changes by more than
+    this angle (degrees)
+\end{description}
+\subsection{truncateToDomainBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{truncateToDomainBounds(}%
+truncateToDomainBounds()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  clip the knots and control polygon to the bounds set in rstart and rend
+\end{description}
+\subsection{toggleSubCurveVisibility}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{toggleSubCurveVisibility(}%
+toggleSubCurveVisibility( int sc )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Toggle a subcurve's "visibility", 
+      a visible subcurve is accessible through NurbsMapping::subCurve(..) method
+    an invisible subcurve is only accessible through NurbsMapping::subCurveFromList()
+\item[{\bf sc (input) :}]  the subcurve to toggle
+ Returns : the new subcurve number
+ NOTES : this will reorder the subcurves in the subCurves array
+\end{description}
+\subsection{isSubCurveHidden}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{isSubCurveHidden(}%
+isSubCurveHidden( int sc )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   find out if a subcurve is hidden or not, returns true if hidden, false if visible
+\item[{\bf sc (input) :}]  the subcurve to querry
+\end{description}
+\subsection{isSubCurveOriginal}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{isSubCurveOriginal(}%
+isSubCurveOriginal( int sc )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   find out if a subcurve is marked as "original"
+\item[{\bf sc (input) :}]  the subcurve to querry
+\end{description}
+\subsection{toggleSubCurveOriginal}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{toggleSubCurveOriginal(}%
+toggleSubCurveOriginal( int sc )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   toggle the "original" status on a subcurve, "original" is just a marker
+   used to distingish the original subcurves used to build this nurb from 
+   subsequent modifications.
+\item[{\bf sc (input) :}]  the subcurve to alter
+\end{description}
+\subsection{addSubCurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{addSubCurve(}%
+addSubCurve(NurbsMapping \&nurbs)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Add a subcurve to this mapping.  Note that the nurb is copied and is 
+  set to visible.  The "original" marker is set to false;
+\item[{\bf Returns :}]  the index of the new curve in the list of visible curves
+\end{description}
+\subsection{deleteSubCurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{deleteSubCurve(}%
+deleteSubCurve(int sc)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Delete a subcurve from the list of curves.  Note this shifts the subcurve list
+    making previous indices invalid
+\item[{\bf sc (input):}]  the curve to delete
+\item[{\bf Returns :}]  0 on success
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively create and/or change the nurbs mapping.
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}
+\subsection{interpolatLoftedSurface}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NurbsMappingIncludeArgIndent}{interpolateLoftedSurface(}%
+interpolateLoftedSurface(vector$<$Mapping*$>$ \&curves, int degree1 /*=3*/, \\ 
+\hspace{\NurbsMappingIncludeArgIndent}int degree2 /*=3*/ ,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}ParameterizationTypeEnum  parameterizationType  =parameterizeByChordLength,\\ 
+\hspace{\NurbsMappingIncludeArgIndent}int numberOfGhostPoints  =0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Interpolate a list of curves to make a lofted surface.  Note this actually
+    interpolates each curve evaluated at a number of points; an actual Nurbs lofted
+    surface could be created using a list of Nurbs curves but we don't do that 
+    right now.
+
+\item[{\bf curves (input) :}]  a list of mappings to interpolate
+\end{description}

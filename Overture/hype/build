@@ -1,0 +1,47 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "Copy HyperbolicMapping files into the $ovDir/Mapping directory..."
+
+# here is where the library is
+set Overture        = $ovDir
+set OvertureHype = $ovDir/Mapping/hype/
+set OvertureInclude = $ovDir/include
+
+#kkc sometimes this directory is not made and all the files get put into a file named Mapping/hype
+mkdir -p $OvertureHype
+
+# We concatenate all the HyperbolicMapping files into one file in the distribution.
+# Overall this should be quicker to compile and will save space.
+# cat {HyperbolicMapping,update,startCurve,util,generate,project,applyBoundaryConditions,plot}.C > $OvertureMapping/HyperbolicMappingFiles.C
+
+cp {HyperbolicMapping,update,startCurve,util,generate,project,applyBoundaryConditions,plot}.{C} $OvertureHype
+cp {stretch,GridSmoother,GridStretcher,MatchingCurve,implicitSolve}.{C} $OvertureHype
+cp {ellipticSmooth.f} $OvertureHype
+
+
+# copy include files
+
+cp {HyperbolicMapping,GridSmoother,GridStretcher,MatchingCurve}.{h}                 $OvertureInclude
+
+echo "copy sample .cmd files into $Overture/sampleMappings"
+cp cmd/{hypeCan,hypeLine,bump}.cmd                    $Overture/sampleMappings
+
+cp cmd/{asmoNoWheels,asmoBody,asmoFrontWheel,asmoBackWheel}.cmd $Overture/sampleGrids
+cp cmd/{gridsFromCad.p} $Overture/sampleGrids
+cp cmd/slac/{createSlac2.cmd} $Overture/sampleGrids
+# ln -fs $Overture/sampleMappings/asmo.igs $Overture/sampleGrids/asmo.igs
+cp $Overture/sampleMappings/asmo.igs $Overture/sampleGrids/asmo.igs
+
+echo "done"

@@ -1,0 +1,22 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "Copy bpp files..."
+
+# here is where the original files are:
+set Overture        = $ovDir
+set OvertureBin     = $ovDir/bin
+set OvertureTests   = $ovDir/tests
+
+cp {bpp}              $OvertureBin

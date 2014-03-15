@@ -1,0 +1,390 @@
+#
+# Measure convergence rates for cgsm with twilight-zone flow 
+#
+# -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
+# 
+# To run the convergence tests type: 
+#  Non-conservative:
+#   conv.p tz.conv -pv=nc -tz=poly -bcn=d -tf=.5 -cg=square -ng=2        [exact]
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=nc -tz=poly -bcn=d -tf=.5 -cg=square -ng=2 -alwaysCompute=1 -cgsmCmd="mpirun -np 2 $cgsmp"
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=nc -tz=poly -bcn=d -tf=.5 -cg=square -ng=2 -alwaysCompute=1 -cgsmCmd="srun -ppdebug -N1 -n2 $cgsmp"
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.5 -diss=.1 -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.5 -order=4 -ng=3
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=mixed -tf=.5 -diss=.1 -ng=2
+#  -- wiggley square --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d  -tf=1. -filter=1 -cg=wiggley -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=1. -filter=1 -cg=wiggley -ng=3 -alwaysCompute=1
+#  -- cic --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.5 -diss=.1 -cg=cic -ng=4 
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.5 -filter=1 -filterOrder=6 -filterStages=2 -cg=cic -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=.5 -diss=.1 -cg=cic -ng=4 -alwaysCompute=1
+#  -- box --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.1 -filter=1 -cg=box -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=box -ng=3 -alwaysCompute=1
+#  -- rotatedBox --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.1 -filter=1 -cg=rotatedBox -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=rotatedBox -ng=3 -alwaysCompute=1
+#  -- wiggley box --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.1 -filter=1 -cg=wiggley3d -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=wiggley3d -ng=3 -alwaysCompute=1
+#  -- sphere --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.5 -filter=1 -cg=sphere -ng=3 -alwaysCompute=1
+#  -- sib --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d -tf=.25 -filter=1 -cg=sib -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=.5 -filter=1 -cg=sib -ng=2 -alwaysCompute=1
+#  -- sibFixed --
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d  -tf=.25 -filter=1 -cg=sibFixed -fx=.5 -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=.25 -filter=1 -cg=sibFixed -fx=.5 -ng=3 -alwaysCompute=1
+#  -- sibFixedSmall -- has a smaller box: 
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d  -tf=.1 -cg=sibFixedSmall -fx=.5 -ng=2 -alwaysCompute=1 -cgsmCmd="mpirun -np 2 $cgsmp"
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=d  -tf=.1 -cg=sibFixedSmall -fx=.5 -ng=2 -alwaysCompute=1 -cgsmCmd="srun -ppdebug -N1 -n2 $cgsmp"
+#   conv.p tz.conv -pv=nc -tz=trig -bcn=sf -tf=.1 -cg=sibFixedSmall -fx=.5 -ng=2 -alwaysCompute=1
+# 
+#  Conservative:
+#   conv.p tz.conv -pv=c -tz=poly -bcn=d -tf=.5 -ng=2        [exact]
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.5 -diss=.1 
+#   conv.p tz.conv -pv=c -tz=trig -bcn=mixed -tf=.5 -diss=.1 -ng=2
+#  -- wiggley square -- 
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d  -tf=1. -filter=1 -cg=wiggley -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=1. -filter=1 -cg=wiggley -ng=3 -alwaysCompute=1
+#  -- cic --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.5 -filter=1 -filterOrder=6 -filterStages=2 -cg=cic -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.5 -filter=1 -filterOrder=6 -filterStages=2 -cg=cic -ng=4 -alwaysCompute=1
+#    -- lambda=100
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.5 -filter=1 -filterOrder=6 -filterStages=2 -lambda=100 -cg=cic -ng=3 -alwaysCompute=1
+#
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.5 -diss=.1 -cg=cic -ng=4
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.5 -filter=1 -cg=cic -ng=4
+#  -- sic --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d  -tf=1. -diss=1. -filter=1 -cg=sic -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=1. -diss=1. -filter=1 -cg=sic -ng=4 -alwaysCompute=1
+#  -- sicFixed --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d  -tf=1. -filter=1 -cg=sicFixed -ng=3
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=1. -filter=1 -cg=sicFixed -ng=3
+#  -- box --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.1 -filter=0 -cg=box -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.1 -filter=0 -cg=box -ng=3 -alwaysCompute=1
+#     -- traction on all boundaries but one: 
+#   conv.p tz.conv -pv=c -tz=trig -bcn=mixed3 -bg=box -tf=.1 -filter=0 -cg=box -ng=3 -alwaysCompute=1
+#  -- nonBox --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.1 -filter=1 -cg=nonBox -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=nonBox -ng=3 -alwaysCompute=1
+#  -- rotatedBox --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.1 -filter=1 -cg=rotatedBox -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=rotatedBox -ng=3 -alwaysCompute=1
+#  -- wiggley box --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.1 -filter=1 -cg=wiggley3d -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=wiggley3d -ng=3 -alwaysCompute=1
+#  -- sphere --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.1 -filter=1 -cg=sphere -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=sphere -ng=3 -alwaysCompute=1
+#  -- sib --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d -tf=.25 -filter=1 -cg=sib -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.25 -filter=1 -cg=sib -ng=3 -alwaysCompute=1
+#  -- sibFixed --
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d  -tf=.2 -filter=1 -cg=sibFixed -fx=.5 -ng=2 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.2 -filter=1 -cg=sibFixed -fx=.5 -ng=3 -alwaysCompute=1
+#  -- sibFixedi -- has a smaller box: 
+#   conv.p tz.conv -pv=c -tz=trig -bcn=d  -tf=.2 -filter=1 -cg=sibFixedi -fx=1. -ng=4 -alwaysCompute=1 *run*
+#   conv.p tz.conv -pv=c -tz=trig -bcn=sf -tf=.2 -filter=1 -cg=sibFixedi -fx=.5 -ng=3 -alwaysCompute=1
+#  -- sibFixedSmall -- has a smaller box: 
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=c -tz=trig -bcn=d  -tf=.1 -filter=1 -cg=sibFixedSmall -fx=.5 -ng=3 -alwaysCompute=1 -cgsmCmd="srun -ppdebug -N1 -n8 $cgsmp"
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=c -tz=trig -bcn=sf  -tf=.1 -filter=1 -cg=sibFixedSmall -fx=.5 -ng=3 -alwaysCompute=1 -cgsmCmd="srun -ppdebug -N1 -n8 $cgsmp"
+# 
+#  Godunov:
+#   conv.p tz.conv -pv=g -tz=poly -bcn=d -tf=.5 -ng=3 [  c0=[1.96]  c1=[1.93]  c2=[1.96]           
+#   conv.p tz.conv -pv=g -tz=poly -bcn=d -tf=.5 -stressRelaxation=4 -ng=3  -alwaysCompute=1 [c0=[1.89]  c1=[1.90]  c2=[1.91]
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.5 -ng=2             
+#  -- wiggley square --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d  -tf=1. -filter=0 -cg=wiggley -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=1. -filter=0 -cg=wiggley -ng=3 -alwaysCompute=1
+#  -- cic --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.5  -cg=cic -ng=4 -alwaysCompute=1 [c0=[2.18]  c1=[1.90]  c2=[1.94]
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.5  -cg=cic -ng=4 -alwaysCompute=1
+#    -- lambda=100
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.5  -cg=cic  -lambda=100 -ng=4 -ad=.1 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.5  -cg=cic  -lambda=100 -ng=4 -alwaysCompute=1
+# 
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.5  -cg=cic -ng=4
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.5  -cg=cic -ng=4
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.5  -cg=cic -ng=4 -lambda=10
+#  -- sic --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=1.  -cg=sic -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=1.  -cg=sic -ng=4 -alwaysCompute=1
+#  -- sicFixed --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=1.  -cg=sicFixed -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=1.  -cg=sicFixed -ng=4 -alwaysCompute=1
+#  -- box --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.1 -cg=box -ng=3 -alwaysCompute=1 [c0=[2.38]  c1=[3.04]  c2=[2.02]
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.1 -cg=box -ng=3 -alwaysCompute=1
+#  -- nonBox --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.1 -cg=nonBox -ng=3 -alwaysCompute=1 [c0=[2.38]  c1=[3.04]  c2=[2.02]
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.1 -cg=nonBox -ng=3 -alwaysCompute=1
+#  -- rotatedBox --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.1 -cg=rotatedBox -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.1 -cg=rotatedBox -ng=3 -alwaysCompute=1
+#  -- wiggley box --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=dirichlet -tf=.1 -filter=1 -cg=wiggley3d -ng=2 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.1 -filter=1 -cg=wiggley3d -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.1 -filter=1 -cg=wiggley3d -ng=3 -alwaysCompute=1
+#  -- sphere --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.1 -cg=sphere -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.1 -cg=sphere -ng=3 -alwaysCompute=1
+#  -- sib --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.1 -cg=sib -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.1 -cg=sib -ng=3 -alwaysCompute=1
+#  -- sibFixed --
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d  -tf=.25 -cg=sibFixed -fx=.5 -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.25 -cg=sibFixed -fx=.5 -ng=3 -alwaysCompute=1
+#  -- sibFixedi -- has a smaller box: 
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d  -tf=.1 -cg=sibFixedi -fx=.5 -ng=3 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.2 -cg=sibFixedi -fx=.5 -ng=3 -alwaysCompute=1
+#  -- sibFixedSmall -- has a smaller box: 
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=g -tz=trig -bcn=d  -tf=.1 -cg=sibFixedSmall -fx=.5 -ad=.5 -ng=3 -alwaysCompute=1 -numberOfParallelGhost=2 -cgsmCmd="srun -ppdebug -N1 -n8 $cgsmp"
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=g -tz=trig -bcn=sf  -tf=.1 -cg=sibFixedSmall -fx=.5 -ad=.5 -ng=3 -alwaysCompute=1 -numberOfParallelGhost=2 -cgsmCmd="srun -ppdebug -N1 -n8 $cgsmp"
+#
+# SVK:
+#  Godunov:
+#   conv.p tz.conv -pv=g -tz=poly -bcn=d -tf=.1 -godunovType=2 -ng=3 [c0=2.03 c1=1.69 c2=1.68
+#   conv.p tz.conv -pv=g -tz=poly -bcn=d -tf=.1 -godunovType=2 -degreeX=3 -ng=3 [c0=2.59 c1=2.32 c2=2.00
+#   conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.1 -godunovType=2 -ng=3 [ TRIG: c0=2.34 c1=2.36 c2=2.05
+#   
+#   -- traction: 
+#   conv.p tz.conv -pv=g -tz=poly -bcn=sf -tf=.3 -godunovType=2 -ng=3 [
+#   conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.3 -godunovType=2 -ng=3 
+#      ng=3 : c0=2.39 c1=1.97 c2=2.08
+#      ng=4 : 
+# 
+# === AMR
+#   conv.p tz.conv -pv=nc -amr=1 -filter=1 -tp=.1 -tf=1. -tol=.0001 -tz=pulse -x0=-.5 -y0=-.5 -bcn=dirichlet -cg=rsis -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=c -amr=1 -filter=1 -tp=.1 -tf=1. -tol=.0001 -tz=pulse -x0=-.5 -y0=-.5 -bcn=dirichlet -cg=rsis -ng=4 -alwaysCompute=1
+#   conv.p tz.conv -pv=g -amr=1 -filter=1 -tp=.1 -tf=1. -tol=.001 -tz=pulse -x0=-.5 -y0=-.5 -bcn=dirichlet -cg=rsis -ng=4 -alwaysCompute=1
+#
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#   -tz : poly or trig 
+#   -bcn : d=dirichlet, sf=traction, slip=slip, mixed=dirchlet and traction
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+# ---------------------
+# Set default parameters: 
+$pv = "nc"; $tz="trig"; $bcn = "d"; $en="max"; $ng=4; $diss=0.; $dissOrder=4; $tf=.5;  $tPlot=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; $ad=0.; $numberOfParallelGhost=2; 
+$stressRelaxation=0; $relaxAlpha=0.1; $relaxDelta=0.1; $godunovType=0;
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgsmCmd = "$CGBUILDPREFIX/sm/bin/cgsm";  # command for cgsm
+$cmdDir="$ENV{CG}/sm/cmd"; 
+$amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
+$cg = "square"; $bg="square"; $alwaysCompute=1; $ts="me"; $lambda=1; $filter=0; $filterOrder=6; $filterStages=2; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,\
+            "diss=f"=>\$diss,"tz=s"=>\$tz,"fx=f"=>\$fx,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,\
+            "filter=i"=>\$filter,"filterOrder=i"=>\$filterOrder,"filterStages=i"=>\$filterStages,\
+            "showAllComponents=i"=>\$showAllComponents,"bg=s"=>\$bg,"amr=i"=>\$amr,"tol=f"=>\$tol,"nrl=i"=>\$nrl,\
+            "nbz=i"=>\$nbz,"ratio=i"=>\$ratio,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"cfl=f"=>\$cfl,"ad=f"=>\$ad,\
+            "cgsmCmd=s"=>\$cgsmCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"dissOrder=i"=>\$dissOrder,\
+            "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
+            "godunovType=i"=>\$godunovType,"degreeX=i"=>\$degreeX,"degreeT=i"=>\$degreeT );
+#
+$check="sm.check";
+#
+if( $cg eq "sphere" ){ $nd=3; } # 3D 
+#
+if( $pv eq "nc" || $pv eq "c" ){ $numberOfComponents = $nd; }
+if( $pv eq "g" ){ $numberOfComponents = $nd + $nd + $nd*$nd; }
+if( $pv eq "h" ){ $numberOfComponents = 11; }
+if( $ts eq "me" ){ $ts = "modifiedEquationTimeStepping"; }
+if( $ts eq "fe" ){ $ts = "forwardEuler"; }
+if( $ts eq "ie" ){ $ts = "improvedEuler"; }
+if( $ts eq "ab" ){ $ts = "adamsBashforth2"; }
+# 
+$caseName="tz.$cg.$pv.$bcn"; 
+$name="tz.$cg.$pv.$bcn.$tz"; 
+if( $lambda ne "1" ){ $name = $name . ".Lambda$lambda"; $caseName=$caseName . ".Lambda$lambda"; }
+if( $amr eq 1 ){ $name .= ".AMRl$nrl" . "r$ratio"; $caseName.=".AMRl$nrl" . "r$ratio"; }
+#
+# --- define the table heading and caption --
+# 
+#  --- SOS NC or C : include |u| in table by default
+if( $pv eq "nc" || $pv eq "c" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    $numberOfComponents=$nd+1;  \
+  }\
+  else\
+  { \
+    $numberOfComponents=1; $ignoreComponent[1]=1; \
+  }\
+  if( $numberOfComponents eq 1 )\
+  { \
+     $title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
+     @componentName = ( "u" ); \
+  }\
+  elsif( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \& \$u\$ \&  \$u_1\$ \& \$u_2\$  ";\
+     @componentName = ( "u", "u0", "u1" );\
+  }\
+  else{\
+    $title ="grid  \& N \&  \$u\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$  ";\
+    @componentName = ( "u", "u0", "u1", "u2" );\
+  }\
+}
+#  --- Godunov : include |u|, |v|, |sigma| in table by default
+if( $pv eq "g" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    if( $nd eq 2 ){ $numberOfComponents=11; }else{ $numberOfComponents=18; }  \
+  }\
+  else\
+  { \
+    $numberOfComponents=3;  \
+  }\
+  if( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v\$  \&  \$\\sigma\$   "; \
+     @componentName = ( "u", "v", "s" ); \
+  }\
+  elsif( $numberOfComponents eq 11 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$ ";\
+     @componentName = ( "u", "v", "s", "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" );\
+  }\
+  else{\
+         $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{13}\$ \& \$s_{21}\$ \& \$s_{22}\$ \& \$s_{23}\$ \& \$s_{31}\$ \& \$s_{32}\$ \& \$s_{33}\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$ ";\
+         @componentName = ( "u", "v", "s", "v0", "v1", "v2" , "s11", "s12", "s13", "s21", "s22", "s23", "s31", "s32", "s33", "u0", "u1", "u2");\
+  }\
+}
+# if( $numberOfComponents eq 3 ){ $title ="grid  \& N \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$  "; }
+# if( $numberOfComponents eq 8 ){ $title= "grid  \& N  \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$"; }
+# if( $numberOfComponents eq 15 ){ $title= "grid  \& N  \& \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{13}\$ \& \$s_{21}\$ \& \$s_{22}\$ \& \$s_{23}\$ \& \$s_{31}\$ \& \$s_{32}\$ \& \$s_{33}\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$"; }
+# For Hemp we ignore some components and exclude them from the table
+# if( $numberOfComponents eq 11 ){ $title= "grid  \& N  \& \$x\$ \& \$y\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{22}\$ \& \$p\$ \& \$q\$ \&  \$u_1\$ \& \$u_2\$"; }
+if( $pv eq "h" ){ $ignoreComponent[0]=1; $ignoreComponent[1]=1; $ignoreComponent[7]=1; $ignoreComponent[8]=1;  }
+if( $numberOfComponents eq 11 ){ $title= "grid  \& N  \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{22}\$ \& \$u_1\$ \& \$u_2\$"; }
+#
+# -- add component name: 
+# if( $numberOfComponents eq $nd ){ @componentName = ( "u0", "u1", "u2" ); }
+# if( $numberOfComponents eq 8 ){ @componentName = ( "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" ); }
+# if( $numberOfComponents eq 15 ){ @componentName = ( "v0", "v1", "v2" , "s11", "s12", "s13", "s21", "s22", "s23", "s31", "s32", "s33", "u0", "u1", "u2" ); }
+if( $numberOfComponents eq 11 ){ @componentName = ( "x0", "x1", "v0", "v1" , "s11", "s12", "s22", "p", "q", "u0", "u1" ); }
+# 
+if( $tz eq "poly" ){ $tzLabel = "$tz TZ, degreeX=$degreeX, degreeT=$degreeT"; }else{ $tzLabel = "$tz TZ, fx=$fx"; }
+$amrCaption=""; 
+if( $amr eq 1 ){ $amrCaption = "amr, tol=$tol, l=$nrl, ratio=$ratio, "; }
+if( $pv eq "g" ){ $clabel="ad=$ad"; }else{ $clabel = "diss=$diss, dissOrder=$dissOrder, filter=$filter, filterOrder=$filterOrder"; }
+$caption= "\\caption\{SM, $name, bcn=$bcn, \$t=$tf\$, $tzLabel, fx=$fx, $clabel, \$\\lambda=$lambda\$, cfl=$cfl, $amrCaption godunovType=$godunovType $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-pv=$pv -ts=$ts -cfl=$cfl -degreex=$degreeX -degreet=$degreeT -tf=$tf -tp=$tPlot -tz=$tz -bcn=$bcn -en=$en -diss=$diss -dissOrder=$dissOrder -filter=$filter -filterOrder=$filterOrder -filterStages=$filterStages -fx=$fx -fy=$fx -fz=$fx -ft=$fx -lambda=$lambda -bg=$bg -amr=$amr -tol=$tol -x0=$x0 -y0=$y0 -z0=$z0 -ratio=$ratio -nrl=$nrl -nbz=$nbz -ad=$ad -numberOfParallelGhost=$numberOfParallelGhost -stressRelaxation=$stressRelaxation -relaxAlpha=relaxAlpha -relaxDelta=$relaxDelta -godunovType=$godunovType -go=go"; 
+# 
+if( $cg eq "square" ){\
+$grid1="sq20";  $gName1 = "square20.order$order";\
+$grid2="sq40";  $gName2 = "square40.order$order";\
+$grid3="sq80";  $gName3 = "square80.order$order";\
+$grid4="sq160"; $gName4 = "square160.order$order";}
+if( $cg eq "rotatedSquareAngle90" ){\
+$grid1="sq20";  $gName1 = "rotatedSquare20.angle90.order$order";\
+$grid2="sq40";  $gName2 = "rotatedSquare40.angle90.order$order";\
+$grid3="sq80";  $gName3 = "rotatedSquare80.angle90.order$order";\
+$grid4="sq160"; $gName4 = "rotatedSquare160.angle90.order$order";}
+if( $cg eq "nonSquare" ){\
+$grid1="sq20";  $gName1 = "nonSquare20.order$order";\
+$grid2="sq40";  $gName2 = "nonSquare40.order$order";\
+$grid3="sq80";  $gName3 = "nonSquare80.order$order";\
+$grid4="sq160"; $gName4 = "nonSquare160.order$order";}
+if( $cg eq "rotatedSquare" ){\
+$grid1="sq20";  $gName1 = "rotatedSquare20.order$order";\
+$grid2="sq40";  $gName2 = "rotatedSquare40.order$order";\
+$grid3="sq80";  $gName3 = "rotatedSquare80.order$order";\
+$grid4="sq160"; $gName4 = "rotatedSquare160.order$order";}
+if( $cg eq "wiggley" ){\
+$grid1="wiggley1"; $gName1 = "wiggley1.order$order";\
+$grid2="wiggley2"; $gName2 = "wiggley2.order$order";\
+$grid3="wiggley4"; $gName3 = "wiggley4.order$order";\
+$grid4="wiggley8"; $gName4 = "wiggley8.order$order";}
+if( $cg eq "cic" ){\
+$grid1="cic1"; $gName1 = "cicFixede1.order$order";\
+$grid2="cic2"; $gName2 = "cicFixede2.order$order";\
+$grid3="cic4"; $gName3 = "cicFixede4.order$order";\
+$grid4="cic8"; $gName4 = "cicFixede8.order$order";\
+$grid5="cic16"; $gName5 = "cicFixede16.order$order";}
+if( $cg eq "sic" ){\
+$grid1="sic2";  $gName1 = "sice2.order$order";\
+$grid2="sic4";  $gName2 = "sice4.order$order";\
+$grid3="sic8";  $gName3 = "sice8.order$order";\
+$grid4="sic16"; $gName4 = "sice16.order$order";}
+if( $cg eq "sicFixed" ){\
+$grid1="sicFixed2";  $gName1 = "sicFixede2.order$order";\
+$grid2="sicFixed4";  $gName2 = "sicFixede4.order$order";\
+$grid3="sicFixed8";  $gName3 = "sicFixede8.order$order";\
+$grid4="sicFixed16"; $gName4 = "sicFixede16.order$order";}
+if( $cg eq "box" ){\
+$grid1="box1"; $gName1 = "box10.order$order";\
+$grid2="box2"; $gName2 = "box20.order$order";\
+$grid3="box4"; $gName3 = "box40.order$order";\
+$grid4="box8"; $gName4 = "box80.order$order";}
+if( $cg eq "nonBox" ){\
+$grid1="nonBox1"; $gName1 = "nonBox10.order$order";\
+$grid2="nonBox2"; $gName2 = "nonBox20.order$order";\
+$grid3="nonBox4"; $gName3 = "nonBox40.order$order";\
+$grid4="nonBox8"; $gName4 = "nonBox80.order$order";}
+if( $cg eq "rotatedBox" ){\
+$grid1="rotatedBox1"; $gName1 = "rotatedBox1.order$order";\
+$grid2="rotatedBox2"; $gName2 = "rotatedBox2.order$order";\
+$grid3="rotatedBox4"; $gName3 = "rotatedBox4.order$order";\
+$grid4="rotatedBox8"; $gName4 = "rotatedBox8.order$order";}
+if( $cg eq "wiggley3d" ){\
+$grid1="wiggley3d1"; $gName1 = "wiggley3d1.order$order";\
+$grid2="wiggley3d2"; $gName2 = "wiggley3d2.order$order";\
+$grid3="wiggley3d4"; $gName3 = "wiggley3d4.order$order";\
+$grid4="wiggley3d8"; $gName4 = "wiggley3d8.order$order";}
+if( $cg eq "sib" ){\
+$grid1="sib1"; $gName1 = "sibe1.order$order";\
+$grid2="sib2"; $gName2 = "sibe2.order$order";\
+$grid3="sib4"; $gName3 = "sibe4.order$order";\
+$grid4="sib8"; $gName4 = "sibe8.order$order";}
+if( $cg eq "sibFixed" ){\
+$grid1="sibFixed1"; $gName1 = "sibFixede1.order$order";\
+$grid2="sibFixed2"; $gName2 = "sibFixede2.order$order";\
+$grid3="sibFixed4"; $gName3 = "sibFixede4.order$order";\
+$grid4="sibFixed8"; $gName4 = "sibFixede8.order$order";}
+if( $cg eq "sibFixedi" ){\
+$grid1="sibFixed1"; $gName1 = "sibFixedi1.order$order";\
+$grid2="sibFixed2"; $gName2 = "sibFixedi2.order$order";\
+$grid3="sibFixed4"; $gName3 = "sibFixedi4.order$order";\
+$grid4="sibFixed8"; $gName4 = "sibFixedi8.order$order";}
+# -- note: we start at factor=2 here: 
+if( $cg eq "sibFixedSmall" ){\
+$grid1="sibFixedSmall2"; $gName1 = "sibFixedSmalle2.order$order";\
+$grid2="sibFixedSmall4"; $gName2 = "sibFixedSmalle4.order$order";\
+$grid3="sibFixedSmall8"; $gName3 = "sibFixedSmalle8.order$order";\
+$grid4="sibFixedSmall16"; $gName4 = "sibFixedSmalle16.order$order";}
+if( $cg eq "sphere" ){\
+$grid1="sphere1"; $gName1 = "spheree1.order$order";\
+$grid2="sphere2"; $gName2 = "spheree2.order$order";\
+$grid3="sphere4"; $gName3 = "spheree4.order$order";\
+$grid4="sphere8"; $gName4 = "spheree8.order$order";}
+# 
+if( $cg eq "rsis" ){\
+$grid1="rsis1"; $gName1 = "rsise1.order$order";\
+$grid2="rsis2"; $gName2 = "rsise2.order$order";\
+$grid3="rsis4"; $gName3 = "rsise4.order$order";\
+$grid4="rsis8"; $gName4 = "rsise8.order$order";}
+# 
+$grid=$grid1; $res=1; $cmd="$cgsmCmd noplot $cmdDir/tz -g=$gName1 $options";
+$grid=$grid2; $res=2; $cmd="$cgsmCmd noplot $cmdDir/tz -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cgsmCmd noplot $cmdDir/tz -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cgsmCmd noplot $cmdDir/tz -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgsmCmd noplot $cmdDir/tz -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+
+
+

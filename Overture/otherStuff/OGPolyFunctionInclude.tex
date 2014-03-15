@@ -1,0 +1,55 @@
+\subsubsection{Constructor}
+ 
+\newlength{\OGPolyFunctionIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\OGPolyFunctionIncludeArgIndent}{OGPolyFunction(}% 
+OGPolyFunction(const int \& degreeOfSpacePolynomial  =2, \\ 
+\hspace{\OGPolyFunctionIncludeArgIndent}const int \& numberOfDimensions0      =3,\\ 
+\hspace{\OGPolyFunctionIncludeArgIndent}const int \& numberOfComponents0      =10,\\ 
+\hspace{\OGPolyFunctionIncludeArgIndent}const int \& degreeOfTimePolynomial   =1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ Create a polynomial with the given degree, number Of Space Dimensions and for
+ a maximum number of components. The polynomial created is of the form 
+  \begin{alignat*}{3}
+     U &= (1 + x + x^2 + ... + x^{n}) (1+t+...+t^{m})  &\qquad& \mbox{in 1D} \\
+     U &= (1 + x + x^2 + ... + x^{n} + y + y^2 + ... + y^{n} )(1+t+...+t^{m})  &\qquad& \mbox{in 2D} \\
+     U &= (1 + x + x^2 + ... + x^{n} + y + y^2 + ... + y^{n} +z + z^2 + ... +z^n)(1+t+...+t^{m})  &\qquad& \mbox{in 3D}
+  \end{alignat*}
+
+\item[{\bf degreeOfSpacePolynomial (input):}]  degree of the polynomial in x,y,z (n in the above formula).
+\item[{\bf numberOfDimensions (input):}]  number of space dimensions, 1,2, or 3.
+\item[{\bf numberOfComponents0 (input):}]  maximum number of components required.
+\item[{\bf degreeOfTimePolynomial (input):}]  degree of the polynomial in t (m in the above formula).
+ 
+\item[{\bf Notes:}] 
+  Only polynomials with degreeOfSpacePolynomial $<5$ and degreeOfTimePolynomial $<5$ are supported
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsubsection{setCoefficients}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGPolyFunctionIncludeArgIndent}{setCoefficients(}%
+setCoefficients( const RealArray \& c, const RealArray \& a0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Use this member function to set the coefficient matrices $c$ and $a$  
+ of a {\it general} polynomial up to order 6.
+ \[
+    U(x,y,z,n,t) = ( \sum_{i,j,k} c(i,j,k,n) x^i y^j z^k ) \sum_m a(m,n) t^m
+ \]
+  Note that the values of {\tt numberOfDimensions} and
+ {\tt numberOfComponents} given in the call to the constructor help to determine the polynomial
+ created here.
+
+\item[{\bf c (input) :}]  array of dimension $c(0:nx,0:nx,0:nx,0:{\tt numberOfComponents}-1)$ that gives the
+   coefficients of the spatial polynomial of degree nx
+   ({\tt numberOfComponents} is the value given in call to the constructor).
+   Some values in c may be ignored depending on the value for {\tt numberOfDimensions}.
+\item[{\bf a (input) :}]  array of dimension $a(0:nt,0:{\tt numberOfComponents-1})$ that gives the coefficients
+   of the time polynomial ({\tt numberOfComponents} is the value given in call to the constructor).
+
+\item[{\bf Author:}]  WDH
+\end{description}

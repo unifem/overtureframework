@@ -1,0 +1,106 @@
+# This file expects the following to be set:defaults
+#    compile:=[default/dbg/opt/optdbg]
+#    profile:=[on/off]          
+
+# look for env variables that define the compile and profile options: 
+ifneq ($(COMPILE),)
+  compile = $(COMPILE)
+endif
+ifneq ($(PROFILE),)
+  profile = $(PROFILE)
+endif
+
+
+# flags for things optimized by default
+CXX_FLAGSO = $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(INCLUDES)
+FC_FLAGSO = $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FORTRAN_INCLUDES)
+FC_FLAGSSO = $(FC_FLAGSS_REQ) $(FC_FLAGSS_OPT) $(FORTRAN_INCLUDES)
+FC_FLAGSS = $(FC_FLAGSS_REQ) $(FC_FLAGSS_OPT) $(FORTRAN_INCLUDES)
+
+ifeq ($(compile),opt)
+CXX_FLAGS = $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(INCLUDES)
+CC_FLAGS = $(CC_FLAGS_REQ) $(CC_FLAGS_OPT) $(INCLUDES) 
+FC_FLAGS = $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FORTRAN_INCLUDES)
+FC_FLAGSS = $(FC_FLAGSS_REQ) $(FC_FLAGSS_OPT) $(FORTRAN_INCLUDES)
+LD_FLAGS = $(LD_FLAGS_REQ) $(LD_FLAGS_OPT)
+AR_FLAGS = $(AR_FLAGS_REQ) $(AR_FLAGS_OPT)
+else
+ifeq ($(compile),optdbg)
+CXX_FLAGS = $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_OPT) $(INCLUDES)
+CC_FLAGS = $(CC_FLAGS_REQ) $(CC_FLAGS_DBG) $(CC_FLAGS_OPT) $(INCLUDES) 
+FC_FLAGS = $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) $(FC_FLAGS_OPT) $(FORTRAN_INCLUDES)
+FC_FLAGSS = $(FC_FLAGS_REQ) $(FC_FLAGSS_DBG) $(FC_FLAGSS_OPT) $(FORTRAN_INCLUDES)
+LD_FLAGS = $(LD_FLAGS_REQ) $(LD_FLAGS_DBG) $(LD_FLAGS_OPT)
+AR_FLAGS = $(AR_FLAGS_REQ) $(AR_FLAGS_DBG) $(AR_FLAGS_OPT)
+
+CXX_FLAGSO = $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_OPT) $(INCLUDES)
+FC_FLAGSO = $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) $(FC_FLAGS_OPT) $(FORTRAN_INCLUDES)
+FC_FLAGSSO = $(FC_FLAGSS_REQ) $(FC_FLAGSS_DBG) $(FC_FLAGSS_OPT) $(FORTRAN_INCLUDES)
+FC_FLAGSS = $(FC_FLAGSS_REQ) $(FC_FLAGSS_DBG) $(FC_FLAGSS_OPT) $(FORTRAN_INCLUDES)
+
+else
+ifeq ($(compile),dbg)
+CXX_FLAGS = $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(INCLUDES)
+CC_FLAGS = $(CC_FLAGS_REQ) $(CC_FLAGS_DBG) $(INCLUDES) 
+FC_FLAGS = $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) $(FORTRAN_INCLUDES)
+FC_FLAGSS = $(FC_FLAGSS_REQ) $(FC_FLAGSS_DBG) $(FORTRAN_INCLUDES)
+
+CXX_FLAGSO = $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(INCLUDES)
+FC_FLAGSO = $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) $(FORTRAN_INCLUDES)
+FC_FLAGSSO = $(FC_FLAGSS_REQ) $(FC_FLAGSS_DBG) $(FORTRAN_INCLUDES)
+FC_FLAGSS = $(FC_FLAGSS_REQ) $(FC_FLAGSS_DBG) $(FORTRAN_INCLUDES)
+
+LD_FLAGS = $(LD_FLAGS_REQ) $(LD_FLAGS_DBG)
+AR_FLAGS = $(AR_FLAGS_REQ) $(AR_FLAGS_DBG)
+else
+# default 
+CXX_FLAGS = $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(INCLUDES)
+CC_FLAGS = $(CC_FLAGS_REQ) $(CC_FLAGS_DBG) $(INCLUDES) 
+FC_FLAGS = $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) $(FORTRAN_INCLUDES)
+FC_FLAGSS = $(FC_FLAGSS_REQ) $(FC_FLAGSS_DBG) $(FORTRAN_INCLUDES)
+LD_FLAGS = $(LD_FLAGS_REQ) $(LD_FLAGS_DBG)
+AR_FLAGS = $(AR_FLAGS_REQ) $(AR_FLAGS_DBG)
+endif
+endif
+endif
+
+ifeq ($(profile),on)
+CXX_FLAGS += $(CXX_FLAGS_PROF)
+CXX_FLAGSO += $(CXX_FLAGS_PROF)
+CC_FLAGS += $(CC_FLAGS_PROF)
+FC_FLAGS += $(FC_FLAGS_PROF)
+FC_FLAGSO += $(FC_FLAGS_PROF)
+FC_FLAGSS += $(FC_FLAGSS_PROF)
+FC_FLAGSSO += $(FC_FLAGSS_PROF)
+LD_FLAGS += $(LD_FLAGS_PROF)
+AR_FLAGS += $(AR_FLAGS_PROF)
+endif
+
+COPTS += "[compile=default|dbg|opt|optdbg] [profile=off|on]"
+
+
+# wdh: -- this next stuff is now in Overture/make.options
+
+# list of hdf libraries (hdf4 or hdf5)
+# HDF_LIBS = -lmfhdf -ldf -ljpeg -lz
+# check for use of hdf5:
+# ifneq (,$(findstring hdf5,$(HDF)))
+#   HDF_LIBS = -lhdf5
+# endif
+
+
+# on the 64 bit intel some lib's are in the lib64 directory
+# ifeq ($(HARDWARE),x86_64)
+#  LIB64 = lib64
+# else
+#  LIB64 = lib 
+# endif
+
+#wdh:  run some perl scripts to find the location of perl and the list of perl libraries
+# wdh -- these now are found in Overture/make.options
+#PERL_DIR := $(shell $(CONFIGDIR)/getPerlLoc.p )
+#PERL_LIBS := $(shell $(CONFIGDIR)/getPerlLibs.p )
+#
+#OV_PERL_INCLUDE = $(PERL_DIR)
+#OV_PERL_LIB = $(PERL_DIR)
+#OV_PERL_LIBRARIES = $(OV_RPATH)$(OV_PERL_LIB) -L$(OV_PERL_LIB) $(PERL_LIBS)

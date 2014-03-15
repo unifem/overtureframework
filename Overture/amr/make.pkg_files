@@ -1,0 +1,96 @@
+PKGDIR := $(OvertureCheckout)/amr
+
+SRC_FILES += $(addsuffix .C, \
+	Interpolate InterpolateParameters Regrid InterpolateRefinements ErrorEstimator \
+	ChildInfo ParentChildSiblingBase ParentInfo \
+	ListOfParentChildSiblingInfo ParentChildSiblingInfo SiblingInfo \
+	ListOfRotatedBox RotatedBox )\
+	\
+	$(addsuffix .f, \
+	interpFineFromCoarse interpFineFromCoarseMask interpCoarseFromFine)
+
+L_HDRS := $(addsuffix .h, \
+	ListOfRotatedBox RotatedBox \
+	Interpolate InterpolateParameters Regrid InterpolateRefinements ErrorEstimator \
+	ChildInfo ParentChildSiblingBase ParentInfo \
+	ListOfParentChildSiblingInfo ParentChildSiblingInfo SiblingInfo)
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+
+ifeq ($(parallel),y)
+
+PPP_FILES := partitioning conform_enforce p_array array p_abstract_op p_descriptor
+SRC_FILES += $(addsuffix .C, partitioning conform_enforce p_array array p_abstract_op p_descriptor) 
+P := $(PPlusPlus)/../src/array_src
+PFLAGS := -DHAVE_CONFIG_H -I. -I$(P)/../.. -I$(P)/../../include -I$(P)/../../PARTI -I$(P)/../PARTI -I$(MPI_ROOT)/include    -I$(P)/../../PADRE/src -I$(P)/../../PADRE -I$(P)/../../PARTI -I$(P)/../../PARTI -I$(P)/../../PADRE/PGSLIB -I$(P)/../../PADRE/PGSLIB -I$(P)/../../PGSLIB -I$(P)/../PGSLIB 
+
+$(addprefix $(DEPDIR), $(addsuffix .d, $(PPP_FILES))): $(DEPDIR)%.d : %.C
+	$(MKDEP)  $(MKDEP_FLAGS) $(PFLAGS) $(CXX_FLAGS) $< > $@
+
+ifneq ($(fdbg),y)
+
+$(OBJDIR)partitioning.o : partitioning.C
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)conform_enforce.o : conform_enforce.C
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)p_array.o : p_array.C
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)array.o : array.C
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)p_abstract_op.o : p_abstract_op.C
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)p_descriptor.o : p_descriptor.C
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+else
+
+$(OBJDIR)partitioning.o : partitioning.C
+	@-echo -n "compiling $(<F) debug : "
+	 $(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< #2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)conform_enforce.o : conform_enforce.C
+	@-echo -n "compiling $(<F) debug : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< #2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)p_array.o : p_array.C
+	@-echo -n "compiling $(<F) debug : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< #2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)array.o : array.C
+	@-echo -n "compiling $(<F) debug : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< #2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)p_abstract_op.o : p_abstract_op.C
+	@-echo -n "compiling $(<F) debug : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< #2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)p_descriptor.o : p_descriptor.C
+	@-echo -n "compiling $(<F) debug : "
+	 @$(CXX) $(CXX_FLAGS_REQ) $(CXX_FLAGS_DBG) $(CXX_FLAGS_PREC) $(PFLAGS) -o $@ -c $< #2> /dev/null >&2
+	@-echo "success"
+
+endif
+endif

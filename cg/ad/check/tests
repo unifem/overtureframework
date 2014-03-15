@@ -1,0 +1,10 @@
+# Here is the executable:
+CGBUILDPREFIX/ad/bin/cgad
+# here is the name of the check file
+ad.check
+# Here is a list of command files to run for tests
+sq.tz
+cic
+imp.tz
+
+

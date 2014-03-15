@@ -1,0 +1,28 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+echo "Copy parallel files into the $ovDir directory..."
+
+set parallel = "$ovDir/GridFunction"
+set include = "$ovDir/include"
+set examples = "$ovDir/examples"
+set tests = "$ovDir/tests"
+
+
+cp {GridDistribution,LoadBalancer}.C      $parallel
+cp {CanInterpolate.C,CanInterpolate.bC}   $ovDir/GridGenerator
+cp {CanInterpolate.h}                     $include
+
+cp {GridDistribution,LoadBalancer}.h      $include
+
+cp {tlb}.{C}                              $tests

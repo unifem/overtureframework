@@ -1,0 +1,75 @@
+PKGDIR := $(OvertureCheckout)/ugen
+
+
+SRC_FILES += AdvancingFront.C Ugen.C CompositeGridHybridConnectivity.C \
+	sealHoles.C MeshQuality.C optMesh.C SurfaceStitcher.C \
+	buildUnstructuredMappingFromACompositeGrid.C \
+	Geom.C TriangleWrapper.C \
+	GeometricADT3dInt.C \
+	TriangleSource.c
+# these files are included by TriangleSource.c : predicates.c triangle.c 
+
+L_HDRS := ArraySimple.h VectorSimple.h ArraySimpleCommon.h ArraySimpleFixed.h \
+	AbstractException.h AssertException.h NTreeNode.h \
+	NTreeNodeExceptions.h Geom.h AdvancingFront.h \
+	AdvancingFrontParameters.h Face.h GeometricADT.h \
+	GeometricADTExceptions.h Ugen.h CompositeGridHybridConnectivity.h \
+	PriorityQueue.h TriangleWrapper.h triangle.h ShewchukPredicates.h \
+	MeshQuality.h optMesh.h \
+	GeometricADT.C GeometricADTTraversor.C GeometricADTIterator.C \
+	Face_inline.C Geom_inline.C  \
+	GeometricADT3dInt.h GeomADTTuple3dInt.h NTreeNode2GeomADTTuple3dInt.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+ifneq ($(fdbg),y)
+
+$(OBJDIR)TriangleSource.o: TriangleSource.c
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CC) $(CC_FLAGS_REQ) $(CC_FLAGS_OPT) $(INCLUDE) -ffloat-store -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+endif
+
+ifneq ($(BINDIR),)
+
+$(INCLUDE) += -I/home/chand/Linux/include
+
+verifymesh: $(BINDIR)verifymesh
+
+stitcher: $(BINDIR)stitcher
+
+smesh: $(BINDIR)smesh
+
+3dhot: $(BINDIR)3dhot
+
+optMesh: $(BINDIR)optMesh
+
+phonies += verifymesh smesh optMesh stitcher #3dhot
+
+endif
+
+$(BINDIR)verifymesh: $(OV_LIB) $(OV_SLIB) $(OBJDIR)verifymesh.o
+	$(CXX) -o $@ $(OBJDIR)verifymesh.o $(LIBS)
+
+$(BINDIR)stitcher: $(OV_LIB) $(OV_SLIB) $(OBJDIR)stitcher.o
+	$(CXX) -o $@ $(OBJDIR)stitcher.o $(LIBS)
+    
+$(BINDIR)smesh: $(OV_LIB) $(OV_SLIB) $(OBJDIR)smesh.o $(OBJDIR)cutcell.o $(OBJDIR)simpleMesh.o
+	$(CXX) -o $@  $(OBJDIR)smesh.o $(OBJDIR)cutcell.o $(OBJDIR)simpleMesh.o $(LIBS)
+
+$(BINDIR)optMesh: $(OV_LIB) $(OV_SLIB) $(OBJDIR)optMesh_main.o 
+	$(CXX) -o $@  $(OBJDIR)optMesh_main.o $(LIBS)
+
+$(OBJDIR)optMesh_main.o: optMesh.C
+	$(CXX) $(CXX_FLAGS) -DKKC_OPTMAIN -o $@ -c $<
+
+$(OBJDIR)stitcher.o: stitcher.C
+	$(CXX) $(CXX_FLAGS) -DSTITCHER_MAIN -o $@ -c $<
+
+ifneq ($(SILODIR),)
+$(BINDIR)3dhot: $(OV_LIB) $(OV_SLIB) $(OBJDIR)ov_hot.o
+	$(CXX) -o $@ $(OBJDIR)ov_hot.o $(LIBS) -L/home/chand/Linux/lib -lsilo 
+else
+$(BINDIR)3dhot: $(OV_LIB) $(OV_SLIB) $(OBJDIR)ov_hot.o
+	$(CXX) -o $@ $(OBJDIR)ov_hot.o $(LIBS)  
+endif

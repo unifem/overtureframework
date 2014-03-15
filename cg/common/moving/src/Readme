@@ -1,0 +1,49 @@
+Deforming body notes:
+
+
+NOTE to Bill: Each DeformingBodyMotion should have a distinct name or ID.
+
+
+To ADD:
+   DeformingBodyMotion::userDefinedSurfaceMotion( GF & gf1, GF& gf2, GF& gf3, int correct )
+     - extract par's from the dbase
+         - globalStepNumber 
+     - loop over faces on this deforming body. 
+     - where do we store state dependent data ? gf.dBase ??
+
+
+----------------------------------------------------------------------------------------
+
+Each distinct deforming body will have an instance of
+          DeformingBodyMotion (DeformingBodyMotion.{h,C})
+
+DeformingBodyMotion:
+
+
+  // Advance the deforming body: u3(t3) <- u1(t1) + (t3-t1)*d(u2(t2))/dt
+  int integrate( real t1, real t2, real t3, 
+                 GridFunction & cgf1,GridFunction & cgf2,GridFunction & cgf3,
+                 realCompositeGridFunction & stress );
+
+  // apply correction at time t using new values of the forces at time t.
+  int correct( real t1, real t2, 
+	       GridFunction & cgf1,GridFunction & cgf2 );
+
+
+  DeformingBodyType::userDefinedDeformingBodyMotion
+
+   - normally expects that the grid that deforms to be a hyperbolic grid.
+     Therefore make the initial grid in ogen as an hyperbolic grid.
+
+
+--------------------
+
+
+MovingGrids.C : main functions for moving grids
+ - moveGrids(const real & t1, const real & t2, const real & t3,const real & dt0, GridFunction & cgf1, GridFunction & cgf2, GridFunction & cgf3 )
+ - correctGrids(const real t1, const real t2, GridFunction & cgf1, GridFunction & cgf2 )
+ - getGridVelocity( GridFunction & gf0, const real & tGV )
+ - gridAccelerationBC(const int & grid, ...
+ - getBoundaryAcceleration( MappedGrid & c, realSerialArray & gtt, int grid, real t0, int option )
+ - rigidBodyMotion(const real & t1, onst real & t2, const real & t3, const real & dt0,GridFunction & cgf1,  GridFunction & cgf2,GridFunction & cgf3 )
+ - moveDeformingBodies(const real & t1, const real & t2, const real & t3, const real & dt0, GridFunction & cgf1,  GridFunction & cgf2, ... 

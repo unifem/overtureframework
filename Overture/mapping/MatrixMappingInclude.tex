@@ -1,0 +1,135 @@
+\subsection{Constructor}
+ 
+\newlength{\MatrixMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\MatrixMappingIncludeArgIndent}{MatrixMapping(}% 
+MatrixMapping(int domainDimension\_  = 3, \\ 
+\hspace{\MatrixMappingIncludeArgIndent}int rangeDimension\_  = 3)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Build a matrix mapping. This is normally used with the {\tt MatrixTransform}
+   to rotate, scale, or translate an existing mapping.
+\item[{\bf domainDimension\_, rangeDimension\_ (input) :}]  domain and range dimension.
+
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{rotate(}%
+rotate( const int axis, const real theta )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a rotation about a given axis. This rotation is applied
+   after any existing transformations. Use the reset function first if you
+   want to remove any existing transformations.
+\item[{\bf axis (input) :}]  axis to rotate about (0,1,2)
+\item[{\bf theta (input) :}]  angle in radians to rotate by.
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{rotate(}%
+rotate( const RealArray \& rotate, bool incremental  =false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a "rotation" using a $3\times3$ matrix. This does not really have to
+  be a rotation. 
+\item[{\bf rotate (input):}]  If incremental=false then the upper $3\times3$ portion of the $4\times4$ transformation
+    matrix will be replaced by the matrix {\tt rotate(0:2,0:2)}. Otherwise this rotation matrix
+    will mutliply the existing transformation.
+\item[{\bf incremental (input) :}]  if true apply this rotation to the existing transformation,
+    otherwise replace the existing rotation.
+\end{description}
+\subsection{scale}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{scale(}%
+scale( const real scalex  =1.,\\ 
+\hspace{\MatrixMappingIncludeArgIndent}const real scaley  =1., \\ 
+\hspace{\MatrixMappingIncludeArgIndent}const real scalez  =1., \\ 
+\hspace{\MatrixMappingIncludeArgIndent}bool incremental   =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a scaling 
+\item[{\bf scalex, scaley, scalez (input):}]  Scale factors along each axis.
+\item[{\bf incremental (input) :}]  if true then incrementally transform the 
+       existing mapping, other transform the original mapping.
+\end{description}
+\subsection{shift}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{shift(}%
+shift( const real shiftx  =0., \\ 
+\hspace{\MatrixMappingIncludeArgIndent}const real shifty  =0.,\\ 
+\hspace{\MatrixMappingIncludeArgIndent}const real shiftz  =0., \\ 
+\hspace{\MatrixMappingIncludeArgIndent}bool incremental   =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a shift.
+\item[{\bf shitx, shity, shitz (input):}]  shifts along each axis.
+\item[{\bf incremental (input) :}]  if true then incrementally transform the 
+       existing mapping, other transform the original mapping.
+\end{description}
+\subsection{reset}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{reset(}%
+reset()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  reset the matrix to the identity.
+\end{description}
+\subsection{matrixMatrixProduct}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{matrixMatrixProduct(}%
+matrixMatrixProduct( RealArray \& m1, const RealArray \& m2, const RealArray \& m3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Multiply two 4x4 matrices together. This is a utility routine (a static member function that
+ can be called without a MatrixMapping object using MatrixMapping::matrixMatrixProduct(...)).
+ \begin{verbatim}
+     m1 <- m2*m3
+ \end{verbatim}
+\end{description}
+\subsection{matrixVectorProduct}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{matrixVectorProduct(}%
+matrixVectorProduct( RealArray \& v1, const RealArray \& m2, const RealArray \& v3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Multiply a 4x4 matrix times a vector. This is a utility routine (a static member function).
+ \begin{verbatim}
+     v1 <- m2*v3
+ \end{verbatim}
+\end{description}
+\subsection{matrixInversion}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\MatrixMappingIncludeArgIndent}{matrixInversion(}%
+matrixInversion( RealArray \& m1Inverse, const RealArray \& m1 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Invert a 4x4 matrix. This is a utility routine (a static member function).
+   This only works for matrices used in transforming
+ 3D vectors which look like:
+ \begin{verbatim}
+      [ a00 a01 a02 a03 ]
+      [ a10 a11 a12 a13 ]
+      [ a20 a21 a22 a23 ]
+      [  0   0   0   1  ]
+ \end{verbatim}
+\item[{\bf Return value:}]  0=success, 1=matrix is not invertible
+\end{description}

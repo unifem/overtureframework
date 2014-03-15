@@ -1,0 +1,86 @@
+#
+# MakeDefs.aix : definitions for AIX
+#
+
+A++ = ${APlusPlus}
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+AppLibraries = -L$(APlusPlus)/lib -lApp -lApp_static 
+
+Include=  $(Overture)/include
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+LibRapsodi= -lRapsodi -lRapsodi_static 
+BOXLIB_DEFS = -DBL_USE_FLOAT -DBL_Solaris
+
+# What is the rpath command for xlC ??
+OV_RPATH = 
+
+# Here is where we can find the perl include files and library (CORE)
+# These will normally be changed by the configure script unless it can't find the location of the perl CORE 
+OV_PERL_INCLUDE = /usr/lib/perl5/5.6.1/i386-linux/CORE
+OV_PERL_LIB     = /usr/lib/perl5/5.6.1/i386-linux/CORE
+# Here are the perl libraries we need to link to
+OV_PERL_LIBRARIES = $(OV_RPATH) $(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lcrypt
+
+
+cc = xlc
+CC = xlC
+FC = xlf
+
+C_OPTIMIZATION_FLAG = -O
+CPP_OPTIMIZATION_FLAG = -O
+FORTRAN_OPTIMIZATION_FLAG = -O
+
+CFLAGS = $(C_OPTIMIZATION_FLAG) -I$(Include) $(OverturePrecision) -DFBIND=1
+# flags for c routines we always optimize
+CFLAGSO = -O -I$(Include) $(OverturePrecision) -DFBIND=1
+
+CC_INCLUDES_FOR_DEPEND = $(CPP_OPTIMIZATION_FLAG) -w -DFBIND=1 -DUSE_MESA $(OverturePrecision) -I../include -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS) -I$(OV_PERL_INCLUDE)
+
+STL_INCLUDE = 
+CC_INCLUDES = $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE)
+CCFLAGS=  $(CC_INCLUDES)
+
+# things that are always compile with optimization use this flag
+CCFLAGSO=   $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG)
+
+# things that are always compile with lots of optimization use this flag
+CCFLAGSF= $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG) 
+
+
+# things that need to be compiled with no optimization use the following
+CCFLAGSG=  $(CC_INCLUDES) -g 
+
+FFLAGS=  $(FORTRAN_OPTIMIZATION_FLAG) $(FortranDouble) $(OverturePrecision) -I$(Include)
+# always single precision:
+FFLAGSS= $(OverturePrecision) $(FORTRAN_OPTIMIZATION_FLAG) -I$(Include) 
+
+
+# things that are always compile with optimization use these flags
+FFLAGSO= -O $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) -I$(Include)  
+FFLAGSSO= -O $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) -I$(Include) 
+
+FORTRAN_LIBS = -lF77 -lM77 -lV77 -lnsl
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES= ../boxlib/Templates.DB/*.o ../GridGenerator/Templates.DB/*.o ../mapUtil/Templates.DB/*.o ../Mapping/Templates.DB/*.o ../Grid/Templates.DB/*.o
+RAPTEMPLATES= ../boxlib/Templates.DB/*.o ../mapUtil/Templates.DB/*.o ../Mapping/Templates.DB/*.o 
+
+# The KCC compiler should be used to build the static library (for templates)
+AR = ar
+#KCC AR = KCC
+ARFLAGS = ruv  
+#KCC ARFLAGS = -o 
+
+LD = $(CC)
+RANLIB = true
+SOFLAGS = -G
+
+OpenGLibs=
+GLIBS=  $(OV_PERL_LIBRARIES) -L$(OpenGL)/lib $(OpenGLibs) -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11 -lm 
+
+FLIBS= -Wl,-rpath,$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 
+
+
+OGMGLIB = -Wl,-rpath,$(Overture)/lib $(LDFLAGS)$(Overture)/lib -lOgmg

@@ -1,0 +1,90 @@
+\documentclass[12pt]{article}
+\usepackage{graphics}
+\usepackage{listings}
+\input epsf
+\begin{document}
+\begin{center}
+\Large \bf Sweep Mapping
+\end{center}
+\underline{\underline{Purpose}}:\\
+Given a planar surface (or curve) $\bf S(r_1,r_2)$ (or $ \bf S(r_1)$), and a 
+$3D$ curve $\bf C(r_3)$, we would like to 
+generate a $3D$ volume or surface by sweepping $\bf S$ perpendicularly
+to $\bf C$ in such a way that the center of each $\bf S_k$ ring lie on
+the curve $\bf C$. At $r_3 = 0$, it is assumed that $\bf S = S_0$ is
+orthogonal to $\bf C$ and the tangent to $\bf C$ coincide with the
+normal $\bf n $ to $\bf S$. To make sure that the center of $\bf S =
+S_0$ lies at $\bf C(0)$, We first find the center $(x_0,y_0,z_0)$ as the
+average of all the points that make up the sweep surface $\bf S$, namely
+$x_0={\sum_{i=0}^n {x_i}\over n+1}$, $y_0={\sum_{i=0}^n {y_i}\over n+1}$,
+and $z_0={\sum_{i=0}^n {z_i}\over n+1}$.
+Then a translation that maps $\bf C(0)$ to $(x_0,y_0,z_0)$ is applied 
+to $\bf C$.
+\\
+\\
+\underline{\underline{Strategy}}:\\
+With a sufficient number of grid points in each direction, 
+we incrementally compute the matrix transformation to be used the
+following way. At $k=0$ corresponding to $r_3=0$, the identity matrix is
+used since $\bf S$ and $\bf C$ satisfy the required conditions and $\bf
+S_0 = S$. For $k>0$, the ring $S_k$ is gotten from the ring $S_{k-1}$
+the following way:\\
+A translation that maps the center of $S_{k-1}$ (which is the same
+point as $C_{k-1}$) to the point $C_k$ is applied to $S_{k-1}$. A
+rotation is then applied to the resulting points is such a way that the
+unit normal to the surface $\bf S_{k-1}$ coincides with the tangent to the
+curve $\bf C$ at the point $C_k$. To implement this,
+the unit vector $\bf n_0$  of the surface $\bf S_{k-1}$ is chosen to 
+be the first vector in a new orthonormal basis. The second basis vector 
+$\bf n_1$ is given by $\bf n_1 = {n_0\times t \over \| n_0\times t\|}$
+where $\bf t = {\partial C (r_3+\Delta r_3) \over \partial r_3}$. The third 
+basis vector $\bf n_2$ is given by $\bf n_0\times n_1\over \|n_0\times n_1\|$. In the
+new coordinate system, the rotation is about $\bf n_1$ with center at
+$C_k$. Since $n_0$ is rotated to coincide with $t$, the rotation angle
+is given by $\cos \theta = n_0 \cdot t$ and $\sin \theta = t \cdot n_2$.
+The overall matrix transformation is therefore a product of three matrices; 
+first the matrix transformation from the canonic basis of the
+3D vector space to the basis $(n_0, n_1, n_2)$, the rotation of angle
+$\theta$ with center
+$(0,0,0)$ around $\bf n_1$ and finaly the matrix transformation from the
+basis $(n_0, n_1, n_2)$ to the canonic basis.\\
+For the simplification of the mapping calculations, the discrete values 
+of the global transformation $M(r_{1k},r_{2k},r_{3k})$ are considered 
+as the points for three splines. With these splines we can calculate the 
+image of any triplet 
+$(r_1,r_2,r_3)$. If $\alpha (r_3)$ is the value of the scalar we will multiply
+(also stored in a spline), the image $X(r_1,r_2,r_3)$ is given by\\
+\begin{displaymath}
+X(r_1,r_2,r_3)=\left\{M(r_1,r_2,r_3)*\left[{\bf S}(r_1,r_2) - {\bf C}(0)\right]\right\}\alpha(r_3)+{\bf C}(r_3)
+\end{displaymath}
+\\
+\\
+\underline{\underline{Remark}}\\
+At the limit ($\Delta r_3 \rightarrow 0$) corresponding to  the continuous case, the basis $(n_0, n_1, n_2)$ becomes proportional to ${\partial C(r_3)
+\over \partial r_3},\, {\partial^2 C(r_3) \over \partial r_3^2}, \,
+{\partial C(r_3) \over \partial r_3} \times {\partial^2 C(r_3) \over
+\partial r_3^2}$. In fact when $\Delta r_3$ is very small then
+\begin{eqnarray*}
+n_1 & \approx & {\partial C(r_3) \over \partial r_3} \times {\partial C(r_3 + \Delta r_3) \over \partial r_3}\\
+n_1   & \approx & {\partial C(r_3) \over \partial r_3} \times \left(
+{\partial C(r_3) \over \partial r_3} + \Delta r_3 {\partial^2 C(r_3)
+\over \partial r_3^2} + \cdots \right)\\
+    & \approx &  \Delta r_3 {\partial C(r_3) \over \partial r_3}\times
+    {\partial^2 C(r_3) \over \partial r_3^2}
+\end{eqnarray*}
+Here are the description of some functions of the class
+\include{SweepMappingInclude}
+The following command file generates the geometry for the aortic arch.
+{\ttfamily \scriptsize
+\labelstyle{\ttfamily}
+\keywordstyle{\ttfamily}
+\commentstyle{\ttfamily}
+\stringstyle{\ttfamily}
+\postlisting{\bigbreak}
+\inputlisting{fourpipes3.cmd}}
+This lead to the following plot.
+\begin{figure}
+\centerline{\epsfxsize=\textwidth \epsffile{fourpipes.eps}}
+\caption{Aortic arch}
+\end{figure}
+\end{document}

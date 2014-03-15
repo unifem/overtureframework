@@ -1,0 +1,43 @@
+PKGDIR := $(OvertureCheckout)/ogmg
+
+ifeq ($(ogmg),y)
+
+SRC_FILES += $(addsuffix .C, \
+	Ogmg smooth defect fineToCoarse coarseToFine ogmgTests ogmgUtil \
+	lineSmooth boundaryConditions OgmgParameters operatorAveraging \
+	buildExtraLevels checkGrid displayMaskLaTeX singular \
+	predefined assignBoundaryConditionCoefficients smoothBoundary ) \
+	\
+	$(addsuffix .f, defectOpt smoothOpt averageOpt bcOpt bc3dOrder4 lineSmoothOpt \
+	defect2dOrder2 defect2dOrder4 defect3dOrder2 defect3dOrder4 \
+	smoothRB2dOrder2 smoothRB2dOrder4 smoothRB3dOrder2 smoothRB3dOrder4 \
+	smoothJAC2dOrder2 smoothJAC2dOrder4 smoothJAC3dOrder2 smoothJAC3dOrder4 \
+        smOpt smRB2dOrder2  smRB2dOrder4  smRB3dOrder2  smRB3dOrder4 )
+
+L_HDRS := Ogmg.h OgmgParameters.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+#defect2dOrder2.f defect2dOrder4.f defect3dOrder2.f defect3dOrder4.f: defectOpt.bf
+#	$(BPP) $<
+
+#smoothRB2dOrder2.f smoothRB2dOrder4.f smoothRB3dOrder2.f smoothRB3dOrder4.f: smoothOpt.bf
+#	$(BPP) $<
+
+#smoothJAC2dOrder2.f smoothJAC2dOrder4.f smoothJAC3dOrder2.f smoothJAC3dOrder4.f: smoothOpt.bf
+#	$(BPP) $<
+
+
+endif
+
+
+# wdh: is this correct?
+ifneq ($(BINDIR),)
+# Test routine for Ogmg:
+ogmgt: $(BINDIR)ogmgt
+endif
+
+# wdh: Kyle: should should define $(OGMGLIB) to be something like:
+#  OGMGLIB = $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib -lOgmg
+$(BINDIR)ogmgt: $(OGMGLIB) $(OV_LIB) $(OV_SLIB) $(OBJDIR)plotStuffDriver.o $(OBJDIR)plotStuffFunction.o
+	$(CXX) -o $@ $(OBJDIR)plotStuffDriver.o $(OBJDIR)plotStuffFunction.o  $(OGMGLIB) $(LIBS)

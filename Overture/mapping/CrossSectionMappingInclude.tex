@@ -1,0 +1,63 @@
+\subsection{Constructor}
+ 
+\newlength{\CrossSectionMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\CrossSectionMappingIncludeArgIndent}{CrossSectionMapping(}% 
+CrossSectionMapping(\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real startS\_,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real endS\_,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real startAngle\_,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real endAngle\_,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real innerRadius\_ ,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real outerRadius\_,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real x0\_ ,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real y0\_ ,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real z0\_ ,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const real length\_,\\ 
+\hspace{\CrossSectionMappingIncludeArgIndent}const int domainDimension\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Default Constructor, define a mapping from cross-sections.
+
+ Build a mapping defined by cross sections. In the {\tt general} case the cross-sections
+  are defined by other Mapping's. One can also build an ellipsoid when the cross-section
+ type is {\tt ellipse} or a Joukowsky wing.
+ enum CrossSectionType:
+ \begin{itemize}
+  \item general
+  \item ellipse
+  \item joukowsky
+ \end{itemize}
+
+  enum Parameterization:
+ \begin{description}
+  \item[arcLength] : parameterize by the arc length distance between the centroids of the cross sectional curves.
+  \item[index] : parameterize by the index of the cross section.
+  \item[userDefined] : supply a parameterization.
+ \end{description}
+\end{description}
+\subsection{setCrossSectionType}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\CrossSectionMappingIncludeArgIndent}{setCrossSectionType(}%
+setCrossSectionType(CrossSectionTypes type)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Define the cross-section type.  *this is not finished yet*
+\item[{\bf type (input):}] 
+
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\CrossSectionMappingIncludeArgIndent}{initialize(}%
+initialize()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  private routine. Initialize the parameterization for the
+  cross sections.
+
+\end{description}

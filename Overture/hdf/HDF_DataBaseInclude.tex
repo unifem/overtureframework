@@ -1,0 +1,55 @@
+\subsection{Constructors}
+ 
+\newlength{\HDFDataBaseIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\HDFDataBaseIncludeArgIndent}{HDF\_DataBase(}% 
+HDF\_DataBase()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Default constructor;
+\item[{\bf Author:}]  WDH
+
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\HDFDataBaseIncludeArgIndent}{HDF\_DataBase(}% 
+HDF\_DataBase(const HDF\_DataBase \& db )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Copy constructor (shallow copy).
+   Make a copy of the directory. This does not copy the data-base file.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\HDFDataBaseIncludeArgIndent}{HDF\_DataBase(}% 
+HDF\_DataBase(const GenericDataBase \& db )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Copy constructor, this works if db is really a member of this derived class.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{mount}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\HDFDataBaseIncludeArgIndent}{mount(}%
+mount(const aString \& fileName, const aString \& flags )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Mount a data-base file.
+\item[{\bf fileName (input):}]  the name of the file.
+\item[{\bf flags (input):}]  flags to indicate how to access the file, "I" = initialize
+   a new file, "W" = open an existing file for reading and writing,
+   "R" = open an existing file read-only.
+\item[{\bf Return values:}]  0=success, -1=unable to open a file that was supposed to exist,
+     1=error in file format for an exitsing file, 2=unknown value for flags 
+\end{description}

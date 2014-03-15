@@ -1,0 +1,24 @@
+* This file contains the command line arguments for cgad when running in parallel
+*
+* mpirun -np 2 -all-local ../bin/cgad
+* 
+* 
+* mpirun -np 2 -all-local tobp
+* mpirun -np 2 -all-local -gdb tobp
+* 
+* mpirun -np 1 -all-local --dbg=valgrindebug tobp
+* mpirun -np 2 -all-local -dbg=valgrindebug tobp
+* mpirun -np 2 -machinefile machinefile tobp
+*
+* mpirun -tv -np 2 -all-local tobp
+* mpirun -tv -np 2 -all-local tobp
+* mpirun -np 1 -all-local tobp
+* mcr:
+* mpirun-wdh -np 1 tobp
+* mpirun-wdh -np 2 tobp
+* mcr:
+*   totalview srun -a -N2 -n2 -ppdebug tobp
+*
+* mpirun-wdh -np 2 -ppdebug tob
+*
+sq.tz

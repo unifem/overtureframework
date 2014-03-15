@@ -1,0 +1,84 @@
+\section{Integrate: integrate grid functions on overlapping grids} \label{Integrate}
+\index{integrate!grid functions on overlapping grids}
+\index{surface integrals}\index{volume integrals}
+
+The {\tt Integrate} class has functions that can be used to integrate a grid
+function over a domain or over the boundary (or a subset of the boundary).
+For example, one may want to compute the total mass found in a domain 
+or compute the force on a body.
+
+Integrating a function on an overlapping grid is non-trivial since care must
+be taken in the region where grids overlap.
+
+% The method used by the Integrate Class involves the computation 
+
+The most important member functions are
+\begin{description}
+  \item[volumeIntegral(u)] : compute the volume integral of a RealCompositeGridFunction u.
+  \item[surfaceIntegral(u)] : compute the surface integral of a RealCompositeGridFunction u.
+  \item[defineSurface(s,...)] : define a sub-surface `s' as a collection of sides of grids. For example,
+     for the `sphere in a box' grid you could define a sub-surface that represents the two surface
+     grids on the sphere.
+  \item[surfaceIntegral(u,s)] : compute the surface integral on the surface `s'.
+\end{description}
+
+
+To use the {\tt Integrate} class you should follow the example given below.
+(file {\ff \examples/ti.C})
+{\footnotesize
+\begin{verbatim}
+#include "Overture.h"
+#include "Integrate.h"
+#include "OGTrigFunction.h"  // Trigonometric function
+#include "OGPolyFunction.h"  // polynomial function
+#include "display.h"
+
+//================================================================================
+//  Integrate a function on an overlapping grid.
+//================================================================================
+int 
+main(int argc, char **argv)
+{
+  ios::sync_with_stdio();     // Synchronize C++ and C I/O subsystems
+  Index::setBoundsCheck(on);  //  Turn on A++ array bounds checking
+
+  aString nameOfOGFile="/home/henshaw/res/ogen/cic.hdf"
+    
+  CompositeGrid cg;
+  getFromADataBase(cg,nameOfOGFile);
+    
+  Integrate integrate(cg);
+
+  RealCompositeGridFunction u(cg);
+  u=1;
+    
+  real volume, surfaceArea;
+  volume = integrate.volumeIntegral(u);
+  surfaceArea = integrate.surfaceIntegral(u);
+  printf("Error in volume = %e \n", fabs(volume-( 4.*4.-Pi*SQR(.5) )) );
+  printf("Error in surface area = %e \n",fabs(surfaceArea-( 4.*4 + Pi)));
+    
+  // compute the integral on a part of the boundary.
+  int surfaceID=0;    // this number identifies the surface
+  int numberOfFaces=1;
+  IntegerArray boundary(3,numberOfFaces);
+  int side=0, axis=axis2, grid=1;
+  boundary(0,0)=side;
+  boundary(1,0)=axis;
+  boundary(2,0)=grid;
+  integrate.defineSurface( surfaceID,numberOfFaces,boundary ); // define the surface
+      
+  surfaceArea = integrate.surfaceIntegral(u,surfaceID);        
+
+  printf("Grid cic: surfaceArea for cylinder = %e, error=%e \n",surfaceArea,fabs(surfaceArea-Pi));
+
+  return 0;
+}
+\end{verbatim}
+}
+
+
+\subsection{Member Functions}
+
+\input IntegrateInclude.tex
+

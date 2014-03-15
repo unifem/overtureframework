@@ -1,0 +1,13 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src -I$(CG)/ins/src -I$(CG)/cns/src -I$(CG)/cns/src/godunov -I$(CG)/ad/src $(INCLUDES)
+
+CNSLIBS := $(OV_RPATH)$(CGBUILDPREFIX)cns/lib -L$(CGBUILDPREFIX)cns/lib -lCgcns \
+           $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)/common/lib -lCgCommon \
+           $(LIBS)
+
+INSLIBS := $(OV_RPATH)$(CGBUILDPREFIX)ins/lib -L$(CGBUILDPREFIX)ins/lib -lCgins \
+           $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)/common/lib -lCgCommon \
+           $(LIBS) 

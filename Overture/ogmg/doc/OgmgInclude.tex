@@ -1,0 +1,718 @@
+\subsection{constructor}
+ 
+\newlength{\OgmgIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\OgmgIncludeArgIndent}{Ogmg(}% 
+Ogmg()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Default constructor.
+\end{description}
+\subsection{constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\OgmgIncludeArgIndent}{Ogmg(}% 
+Ogmg( CompositeGrid \& mg, \\ 
+\hspace{\OgmgIncludeArgIndent}GenericGraphicsInterface *ps\_  = 0) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   
+    Build a multigrid solver.
+\item[{\bf mg (input) :}]  grid to use
+\item[{\bf ps\_ (input) :}]  supply an optional GenericGraphicsInterface object for plotting.
+\item[{\bf Notes:}]  
+    Here are some notes. See the Ogmg User Guide for further details.
+  \begin{description}
+    \item[Boundary Conditions]: Ogmg looks at the coefficient matrix to determine if the ghost line
+     values are extrapolated or not. If not it assumes there is some sort of neumann or mixed boundary
+     conditions and does a few things differently.
+    \item[Interpolants]  The multigrid solver needs to interpolate at the different levels.
+      If no Interpolant is found to be associated with a CompositeGrid at a given level
+      the {\tt updateToMatchGrid} routine will build an Interpolant the first time (and update it
+      on subsequent calls). Thus if you have built an Interpolant for any level then you are responsible
+      to update it if the grid changes.
+  \end{description}
+\end{description}
+\subsection{setPlotStuff}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{set(}%
+set( GenericGraphicsInterface *ps\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Supply a GenericGraphicsInterface object to use for plotting.
+\item[{\bf ps\_ (input) :}]  pointer to a GenericGraphicsInterface object.
+\end{description}
+\subsection{updateToMatchGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{updateToMatchGrid(}%
+updateToMatchGrid( CompositeGrid \& mg\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Update the solver to match this grid.
+\item[{\bf mg (input) :}]  grid to use
+\end{description}
+\subsection{getMaximumResidual}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OgmgIncludeArgIndent}{getMaximumResidual(}%
+getMaximumResidual() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return the maximum residual from the last solve
+\end{description}
+\subsection{getNumberOfIterations}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{getNumberOfIterations(}%
+getNumberOfIterations() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return the number of multigrid iterations (cycles).
+\item[{\bf Return value:}]  the number of iterations.
+\end{description}
+\subsection{sizeOf}
+ 
+\begin{flushleft} \textbf{%
+real   \\ 
+\settowidth{\OgmgIncludeArgIndent}{sizeOf(}%
+sizeOf( FILE *file  =NULL) const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Return number of bytes allocated by Ogmg; Optionally print detailed info to a file
+
+ An estimate of space requirements is  $20N$ (2D) or $40N$ (3D) where $N$ is the number of
+  grid points on the finest grid (assumes maximum number of levels so that $.5+.25+.125+...=1$.
+ For line smoothers there is addition space required.
+
+\item[{\bf file (input) :}]  optionally supply a file to write detailed info to. Choose file=stdout to
+ write to standard output.
+\item[{\bf Return value:}]  the number of bytes.
+\end{description}
+\subsection{setOgmgParameters}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\OgmgIncludeArgIndent}{setOgmgParameters(}%
+setOgmgParameters(OgmgParameters \& parameters\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ set parameters equal to another parameter object.
+
+\end{description}
+\subsection{fullMultiGrid}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{fullMultigrid(}%
+fullMultigrid()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Perform the first full multigrid cycle (nested iteration) in order to obtain an initial guess.
+
+
+                        X
+                       /
+                  X   X
+                 / \ /
+                X   X
+
+\end{description}
+\subsection{solve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{solve(}%
+solve( realCompositeGridFunction \& u, realCompositeGridFunction \& f)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Solve Au=f with multigrid
+
+\item[{\bf u (input/output) :}]  initial guess on input, answer on output. It is NOT necessary
+    that u be defined on all multigrid levels. u may only live on finest level.
+    It is best if u satisfies the boundary conditions on input although this is not required.
+\item[{\bf f (input) :}]  right hand side for the problem. f should be defined for the finest level.
+    As with u, f can only be defined on the finest level if desired.
+\end{description}
+\subsection{cycle}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{cycle(}%
+cycle(const int \& level, const int \& iteration, real \& maximumDefect, const int \& numberOfCycleIterations )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Perform a multigrid cycle. This routine is called recursively.
+
+\item[{\bf maximumDefect (input/output) :}]  on input (if non-negative) 
+     this is the current maximum defect, on output this is the new  maximum defect.
+
+\end{description}
+\subsection{printStatistics}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{printStatistics(}%
+printStatistics(FILE *file\_  =stdout) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Print performance statistics such as the cpu time required by various routines.
+
+\end{description}
+\subsection{setCoefficientArray}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{setCoefficientArray(}%
+setCoefficientArray( realCompositeGridFunction \& coeff,\\ 
+const IntegerArray \& bc   =Overture::nullIntArray(),\\ 
+const RealArray \& bcData  ==Overture::nullRealArray())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Supply the coefficient matrix, and optionally supply boundary conditions.
+\item[{\bf matrix (input) :}]  a coefficient matrix defined on all levels.
+
+\item[{\bf bc(0:}] 1,0:2,numberOfComponentGrids) (input): boundary conditions, Ogmg::dirichlet, neumann or mixed.
+    If this array is NOT supplied then the boundary conditions, dirichlet, neumann, mixed should be
+  given in cg[grid].boundaryCondition(side,axis)
+\item[{\bf bcData(0:}] ?,0:1,0:2,numberOfComponentGrids) (input) : data for the boundary conditions.
+    For mixed boundary conditions bcData(0:1,side,axis,grid) = (a0,a1) are the coefficients in the 
+    mixed condition: a0*u + a1*u.n = g
+
+ Ogmg::updateToMatchGrid should have already been called at this point so that
+ the the multigrid-composite grid with extra levels has already been built.
+\end{description}
+\subsection{setBoundaryConditions}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{setBoundaryConditions(}%
+setBoundaryConditions(const IntegerArray \& bc\_,\\ 
+const RealArray \& bcData  =Overture::nullRealArray())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the boundary conditions. This is a private routine.
+
+ This function assigns the internal arrays:
+
+   boundaryCondition(side,axis,grid) = extrapolate
+                                     = equation
+   bc(side,axis,grid) = dirichlet
+                      = neumann
+                      = mixed
+ 
+\end{description}
+\subsection{setOrderOfAccuracy}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{setOrderOfAccuracy(}%
+setOrderOfAccuracy(const int \& orderOfAccuracy\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set the order of accuracy (2 or 4).
+\item[{\bf orderOfAccuracy\_ (input) :}]  
+
+\end{description}
+\subsection{interpolate}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{interpolate(}%
+interpolate(realCompositeGridFunction \& u, const int \& grid  =-1 */, int level /* =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+
+ Interpolate here so we can keep track of the cpu time used.
+
+\item[{\bf grid (input) :}]  interpolate this grid only (if possible)
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{update(}%
+update( GenericGraphicsInterface \& gi )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Update parameters interactively.
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{update(}%
+update( GenericGraphicsInterface \& gi, CompositeGrid \& cg  )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Update parameters interactively. Use this update if you have not already given a
+ CompositeGrid to Ogmg (through a constructor or with the updateToMatchGrid function).
+
+\end{description}
+\subsection{computeDefectRatios}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{computeDefectRatios(}%
+computeDefectRatios( int level )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Compute the defect ratios needed for the automatic sub-smoothing algorithm
+  (We actually just compute the l2-norm of the defect here -- the ratio is computed in smooth)
+\end{description}
+\subsection{smooth}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{smooth(}%
+smooth(const int \& level, int numberOfSmoothingSteps, int cycleNumber )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     This is the "composite" smooth routine. Smooth on all grids using a possibly different
+  smoother for each grid.
+\end{description}
+\subsection{applyOgesSmoother}
+ 
+\begin{flushleft} \textbf{%
+void      \\ 
+\settowidth{\OgmgIncludeArgIndent}{applyOgesSmoother(}%
+applyOgesSmoother(const int level, const int grid)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Jacobi or Gauss-Seidel Smoother.
+
+\item[{\bf smootherChoice (input) :}]  0=jacobi, 1=gauss-seidel
+\end{description}
+\subsection{smoothJacobi}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{smoothJacobi(}%
+smoothJacobi(const int \& level, const int \& grid, int smootherChoice  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Jacobi or Gauss-Seidel Smoother.
+
+\item[{\bf smootherChoice (input) :}]  0=jacobi, 1=gauss-seidel
+\end{description}
+\subsection{smoothGaussSeidel}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{smoothGaussSeidel(}%
+smoothGaussSeidel(const int \& level, const int \& grid)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Gauss Seidel Smoother. NOT implemented yet.
+\end{description}
+\subsection{smoothRedBlack}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{smoothRedBlack(}%
+smoothRedBlack(const int \& level, const int \& grid)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Red-Black Smoother
+
+  First smooth "red" points, then black points
+
+ \begin{verbatim}
+  Two-dimensions:
+        shift1  shift2 
+          0       0
+          1       1
+          1       0
+          0       1
+  Three-dimensions:
+        shift1  shift2  shift3 
+          0       0      0
+          1       1      0
+          1       0      1
+          0       1      1
+          1       0      0
+          0       1      0
+          0       0      1
+          1       1      1
+ \end{verbatim}
+\end{description}
+\subsection{smoothLine}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{smoothLine(}%
+smoothLine(const int \& level, const int \& grid, \\ 
+\hspace{\OgmgIncludeArgIndent}const int \& direction, \\ 
+\hspace{\OgmgIncludeArgIndent}bool useZebra  =true,\\ 
+\hspace{\OgmgIncludeArgIndent}const int smoothBoundarySide  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Line Smoother. Zebra line smoothing.
+    
+\item[{\bf direction (input) :}]  smooth on lines in this direction, 0,1,2
+\item[{\bf useZebra (input) :}]  if true use alternating line zebra smoothing.
+\end{description}
+\subsection{alternatingLineSmooth}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\OgmgIncludeArgIndent}{alternatingLineSmooth(}%
+alternatingLineSmooth(const int \& level, const int \& grid, bool useZebra  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Here we do alternating line smooths; one line smooth in each direction.
+\end{description}
+\subsection{fineToCoarse(level)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{fineToCoarse(}%
+fineToCoarse(const int \& level, bool transferForcing  = false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Transfer the defect from the fine grid at 'level' to the coarse grid at 'level+1'
+\item[{\bf level (input):}] 
+\item[{\bf transferForcing (input) :}]  by default we transfer the defect. For the full multigrid algorithm we
+    transfer the forcing to coarser levels (so that we cannot assume the defect to be zero on Dirichlet
+    boundaries, for example).
+
+ *** these next comments are probably wrong ****
+ \begin{verbatim}
+         Fine to Coarse (Restriction) Transfer
+         -------------------------------------
+            f2 <- Restriction( f1 )
+ 
+  Notes:
+ 
+   (1) Full Weighting at all Interior Nodes with mask() > 0
+   (2) Boundary nodes(*) are full weighted in the boundary
+       (i.e. 1 dimension less) if mask > 0
+   (3) The first line of fictitious points(*) are full weighted
+       amongst fictitious points of the first line,
+       (i.e. 1 dimension less) if mask(boundary) > 0
+   (*) except BC corners or edges where the defect is injected
+ 
+   Philosophy:
+     Don't average together defects that come from different types
+     of equations. Boundary nodes are assumed to be distinct from
+     interior nodes and the first line of fictitious points are
+     also assumed to be of a different type. Corners in 2D
+     or BC edges in 3D are also assumed to be distinct.
+ \end{verbatim}
+
+\end{description}
+\subsection{fineToCoarse(level,grid)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{fineToCoarse(}%
+fineToCoarse(const int \& level, const int \& grid, bool transferForcing  = false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Transfer the defect from the fine grid at 'level' to the coarse grid at 'level+1'
+\item[{\bf level,grid (input):}] 
+
+\item[{\bf Notes:}] 
+   Full weighting on interior and boundary points where the equation is applied.
+  If the BC for ghost points is extrapolation (e.g. if there is a dirichlet BC) then the
+  boundary defects are averaged along the boundary. 
+
+\end{description}
+\subsection{coarseToFine(level)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{coarseToFine(}%
+coarseToFine(const int \& level) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Correction: coarse to fine transfer.
+ \[
+          u[level] += \textbf{Prolongation}[ u[level+1] ]
+ \]
+\end{description}
+\subsection{coarseToFine(level,grid)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{coarseToFine(}%
+coarseToFine(const int \& level, const int \& grid)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Correct a Component Grid
+ \[
+      u(i,j) = u(i,j) + P[ u2(i,j) ]   \qquad\textrm{( P : Prolongation )}
+ \]
+  cp21,cp22,cp23 : coeffcients for prolongation, 2nd order
+  cp41,cp41,cp43 : coeffcients for prolongation, 4th order
+
+\end{description}
+\subsection{defect(level)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{defect(}%
+defect(const int \& level)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Defect computation 
+
+   Fill in  defectMG[level] with f-Lu
+\end{description}
+\subsection{defect(level,grid)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OgmgIncludeArgIndent}{defect(}%
+defect(const int \& level, const int \& grid)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Defect computation on a component grid
+
+    Compute defectMG.multigridLevel[level][grid]
+\end{description}
+\subsection{defect(level,grid)}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OgmgIncludeArgIndent}{defectMaximumNorm(}%
+defectMaximumNorm(const int \& level, int approximationStride  =1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Compute the maximum norm of the defect 
+
+\item[{\bf WARNING:}]  Calling this routine will change defectMG.multigridLevel[level][grid]
+
+\item[{\bf approximationStride :}]  use approximately this subset of points in each direction. If a given
+    direction only has a few points then this value is reduced. If approximationStride=1 then
+    this will be the true norm.
+
+\end{description}
+\subsection{defect(level,grid)}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OgmgIncludeArgIndent}{defectNorm(}%
+defectNorm(const int \& level, const int \& grid, int option  =0 */, int approximationStride /* =8)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Compute a norm of the defect (optionally approximate, using a subset of the total points)
+
+\item[{\bf WARNING:}]  Calling this routine will change defectMG.multigridLevel[level][grid]
+
+\item[{\bf option:}]  0=get l2-norm, 1=get max-norm
+\item[{\bf approximationStride :}]  use approximately this subset of points in each direction. If a given
+    direction only has a few points then this value is reduced. If approximationStride=1 then
+    this will be the true norm.
+
+\end{description}
+\subsection{getDefect}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OgmgIncludeArgIndent}{getDefect(}%
+getDefect(const int \& level, \\ 
+\hspace{\OgmgIncludeArgIndent}const int \& grid, \\ 
+\hspace{\OgmgIncludeArgIndent}realArray \& f,     \\ 
+\hspace{\OgmgIncludeArgIndent}realArray \& u, \\ 
+\hspace{\OgmgIncludeArgIndent}const Index \& I1,\\ 
+\hspace{\OgmgIncludeArgIndent}const Index \& I2,\\ 
+\hspace{\OgmgIncludeArgIndent}const Index \& I3,\\ 
+\hspace{\OgmgIncludeArgIndent}realArray \& defect,\\ 
+\hspace{\OgmgIncludeArgIndent}const int lineSmoothOption  = -1,\\ 
+\hspace{\OgmgIncludeArgIndent}const int defectOption  = 0,\\ 
+\hspace{\OgmgIncludeArgIndent}real \& defectL2Norm, real \& defectMaxNorm )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Defect computation on a component grid
+
+   Determine the defect = f - C*u
+
+   This routine knows how to efficiently compute the defect for rectangular
+   and non-rectangular grids. It also knows how to compute the defect for
+   line smoothers
+ Input -
+   level,grid
+   f,u
+   I1,I2,I3
+   lineSmoothOption = -1 :
+                    = 0,1,2 : compute defect for line solve in direction 0,1,2
+   defectOption = 0 : compute defect
+                  1  : compute defect and l2 norm
+                  2  : compute defect and max norm
+ Output -
+   defect
+
+\item[{\bf Return Value:}]  l2-norm or max norm of the defect depending on defectOption
+
+\end{description}
+\subsection{getGhostLineBoundaryCondition}
+ 
+\begin{flushleft} \textbf{%
+FourthOrderBoundaryConditionEnum  \\ 
+\settowidth{\OgmgIncludeArgIndent}{getGhostLineBoundaryCondition(}%
+getGhostLineBoundaryCondition( int bc, int ghostLine, int grid, int level, \\ 
+\hspace{\OgmgIncludeArgIndent}int \& orderOfExtrapolation, aString *bcName  =NULL) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Get the boundary condition to use on a ghost line.
+\item[{\bf bc (input) :}]  A boundary condition
+\item[{\bf ghostLine,grid,level :}]  get BC for this grid and face
+\item[{\bf orderOfExtrapolation (output) :}]  For an extrapolation BC this is the order
+\item[{\bf bcName (output):}]  If non-NULL on input, return the name of the BC.
+\item[{\bf Ouptut:}]  The BC to use is from the enum in OgmgParameters
+ \begin{verbatim}
+  enum FourthOrderBoundaryConditionEnum
+  {
+    useSymmetry,
+    useEquationToFourthOrder,
+    useEquationToSecondOrder,
+    useExtrapolation
+  };
+ \end{verbatim}
+\end{description}
+\subsection{useEquationOnGhostLineForDirichletBC}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgmgIncludeArgIndent}{useEquationOnGhostLineForDirichletBC(}%
+useEquationOnGhostLineForDirichletBC(MappedGrid \& mg, int level)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return true if the eqn to 2nd order should be applied on the ghost line
+ of a dirichlet boundary.
+\item[{\bf mg (input) :}]  grid to use
+\end{description}
+\subsection{useEquationOnGhostLineForNeumannBC}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgmgIncludeArgIndent}{useEquationOnGhostLineForNeumannBC(}%
+useEquationOnGhostLineForNeumannBC(MappedGrid \& mg, int level)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return true if the eqn to 2nd order should be applied on the ghost line
+ of a Neumann or mixed boundary.
+\item[{\bf mg (input) :}]  grid to use
+\end{description}
+\subsection{initializeBoundaryConditions}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{initializeBoundaryConditions(}%
+initializeBoundaryConditions(realCompositeGridFunction \& coeff)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Determine the type of boundary condition that is imposed on the **GHOSTLINE**
+    for each side of each grid.
+ There are 3 possibilities:
+ \begin{enumerate}
+   \item extrapolation : ghost point is extrapolated. This requires a special formula for the defect.
+   \item equation : an equation such as a neumann or mixed boundary condition. This uses basically the
+                same formula for the defect, but shifted to be centred on the boundary
+   \item combination : a combination of the above two appears on the boundary.
+\item[{\bf Notes:}] 
+    We check the classify array to determine the type of boundary condition.
+ \end{enumerate}
+\end{description}
+\subsection{applyBoundaryConditions(level,...)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{applyBoundaryConditions(}%
+applyBoundaryConditions( const int \& level, RealCompositeGridFunction \& u, RealCompositeGridFunction \& f )
+}\end{flushleft}
+ 
+\begin{description}
+\item[{\bf Description:}] 
+    Assign boundary conditions on the **GHOSTLINE**  for each side of each grid.
+
+\end{description}
+\subsection{applyBoundaryConditions(level,grid,...)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{applyBoundaryConditions(}%
+applyBoundaryConditions(const int \& level, \\ 
+\hspace{\OgmgIncludeArgIndent}const int \& grid, \\ 
+\hspace{\OgmgIncludeArgIndent}RealMappedGridFunction \& u, \\ 
+\hspace{\OgmgIncludeArgIndent}RealMappedGridFunction \& f )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Assign boundary conditions on the **GHOSTLINE**  for each side of a grid.
+  Values on the actual boundary are assumed to be done in the smoothing step since the
+ coefficient maxtrix should hold the proper equation there (a Dirichlet BC for example).
+\item[{\bf level,grid (input) :}] 
+\item[{\bf u (input/output) :}]  apply BC's to this grid function.
+\item[{\bf f (input):}]  rhs to the equation (needed to compute the defect for non-extrapolation BC's)
+
+ There are 3 possibilities:
+ \begin{enumerate}
+   \item extrapolation : ghost point is extrapolated. This requires a special formula for the defect.
+   \item equation : an equation such as a neumann or mixed boundary condition. This uses basically the
+                same formula for the defect, but shifted to be centred on the boundary
+   \item combination : a combination of the above two appears on the boundary.
+ \end{enumerate}
+\end{description}
+\subsection{buildExtraLevels}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgmgIncludeArgIndent}{buildExtraLevels(}%
+buildExtraLevels(CompositeGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+       Build extra multigrid levels. This routine will create coarser levels automatically.
+ The tricky part is to determine how to interpolate on the new coarser levels.
+ After a grid is coarsened it may no longer have enough interpolation points. We add new interpolation
+ points to fill in the gaps. The width of the interpolation stencil is reduced, on a point by point
+ basis, if necessary.
+
+\item[{\bf mg (input/output):}]  
+\end{description}

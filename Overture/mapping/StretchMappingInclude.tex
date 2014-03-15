@@ -1,0 +1,254 @@
+\subsubsection{Constructor}
+ 
+\newlength{\StretchMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\StretchMappingIncludeArgIndent}{StretchMapping(}% 
+StretchMapping( const StretchingType \& stretchingType\_  = noStretching)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Construct a function with the given stretching type, one of
+  \begin{description}
+   \item[inverseHyperbolicTangent] : the most commonly used stretching function
+      defined in an inverse way as a combination of hyperbolic tangents and
+      logarithms of hyperbolic cosines.
+   \item[hyperbolicTangent] : hyperbolic tangent stretching.
+   \item[exponential] : exponential stretching.
+   \item[exponentialBlend] : a $C^\infty$ blending function that is exactly 0 for $r<{1\over4}$
+        and exactly 1 for $r>{3\over4}$.
+   \item[exponentialToLinear] exponential stretching that transitions to linear stretching
+  \end{description}
+\item[{\bf stretchingType\_ (input):}] 
+\end{description}
+\subsubsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\StretchMappingIncludeArgIndent}{StretchMapping(}% 
+StretchMapping( const int numberOfLayers\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const int numberOfIntervals\_  = 0) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Construct an {\tt inverseHyperbolicTangent} stretching function.
+\item[{\bf numberOfLayers\_ (input):}]  number of layers.
+\item[{\bf numberOfIntervals\_ (input):}]  number of intervals.
+\end{description}
+\subsubsection{setStretchingType}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setStretchingType(}%
+setStretchingType(  const StretchingType \& stretchingType\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Set the stretching type, one of
+  \begin{description}
+   \item[inverseHyperbolicTangent] : the most commonly used stretching function
+      defined in an inverse way as a combination of hyperbolic tangents and
+      logarithms of hyperbolic cosines.
+   \item[hyperbolicTangent] : hyperbolic tangent stretching.
+   \item[exponential] : exponential stretching.
+   \item[exponentialBlend] : a $C^\infty$ blending function that is exactly 0 for $r<{1\over4}$
+        and exactly 1 for $r>{3\over4}$.
+   \item[exponentialToLinear] exponential stretching that transitions to linear stretching
+  \end{description}
+\item[{\bf stretchingType\_ (input):}] 
+\end{description}
+\subsubsection{setNumberOfLayers}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setNumberOfLayers(}%
+setNumberOfLayers( const int numberOfLayers\_ ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the number of layer (tanh) functions in the {\tt inverseHyperbolicTangent} stretching
+   function.
+\item[{\bf numberOfLayers\_ (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setNumberOIntervals}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setNumberOfIntervals(}%
+setNumberOfIntervals( const int numberOfIntervals\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the number of interval (log(cosh)) functions in the {\tt inverseHyperbolicTangent} stretching
+   function.
+\item[{\bf numberOfIntervals\_ (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setNumberOfSplinePoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setNumberOfSplinePoints(}%
+setNumberOfSplinePoints( const int numberOfSplinePoints0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the number of interval (log(cosh)) functions in the {\tt inverseHyperbolicTangent} stretching
+   function.
+\item[{\bf numberOfIntervals\_ (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setLayerParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setLayerParameters(}%
+setLayerParameters( const int index, const real a, const real b, const real c )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set parameters for the interval (log(cosh)) function numbered {\tt index}.
+\item[{\bf a,b,c (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setIntervalParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setIntervalParameters(}%
+setIntervalParameters( const int index, const real d, const real e,  const real f )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set parameters for the interval (log(cosh)) function numbered {\tt index}.
+\item[{\bf d,e,f (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setEndPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setEndPoints(}%
+setEndPoints( const real rmin, const real rmax )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the end points for the {\tt inverseHyperbolicTangent} stretching function.
+\item[{\bf rmin,rmax (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setIsNormalized}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setIsNormalized(}%
+setIsNormalized( const bool \& trueOrFalse  =TRUE)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Indicate whether the stretching function should be normalized to go from 0 to 1.
+\item[{\bf trueOrFalse (input):}]  if TRUE the function is normalized.
+\end{description}
+\subsubsection{setScaleParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setScaleParameters(}%
+setScaleParameters( const real origin\_, const real scale\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the origin and scale parameters for the {\tt inverseHyperbolicTangent} stretching
+   function.
+\item[{\bf origin\_, scale\_ (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setIsPeriodic}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setIsPeriodic(}%
+setIsPeriodic( const int trueOrFalse )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Define the periodicity of the function, only applies to the {\tt inverseHyperbolicTangent} stretching
+   function.
+\item[{\bf trueOrFalse (input):}]  TRUE or FALSE.
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt inverseHyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setHyperbolicTangentParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setHyperbolicTangentParameters(}%
+setHyperbolicTangentParameters(const real \& a0\_,\\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& ar\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& a1\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& b1\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& c1\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the parameters for the {\tt hyperbolicTangent} stretching
+   function.
+\item[{\bf a0\_,ar\_,a1\_,b1\_,c1\_, (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt hyperbolicTangent}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setExponentialParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setExponentialParameters(}%
+setExponentialParameters(const real \& a0\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& ar\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& a1\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& b1\_, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& c1\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the parameters for the {\tt exponential} stretching
+   function.
+\item[{\bf a0\_,a1\_,b1\_,c1\_, (input):}] 
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt exponential}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setLinearSpacingParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setLinearSpacingParameters(}%
+setLinearSpacingParameters(const real \& a0\_, const real \& a1\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the parameters for the {\tt linear spacing} stretching
+   function. 
+    The grid spacing for this stretching will exponentially increase from a0 to a1. (wdh)
+\item[{\bf a0, a1 (input):}]  specify the grid spacings at r=0 and r=1
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt linearSpacing}
+   in which case no changes are made.  
+\end{description}
+\subsubsection{setExponentialToLinearParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\StretchMappingIncludeArgIndent}{setExponentialToLinearParameters(}%
+setExponentialToLinearParameters(const real \& a, \\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& b,\\ 
+\hspace{\StretchMappingIncludeArgIndent}const real \& c )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Set the parameters for the {\tt exponentialToLinear} stretching
+   function.
+\item[{\bf a,b,c (input):}]  see documentation for the formula.
+\item[{\bf Return value:}]  0 on success, 1 if the stretching type has not been set to {\tt exponential}
+   in which case no changes are made.  
+\end{description}

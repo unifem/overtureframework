@@ -1,0 +1,21 @@
+ ********************************************* 
+ ************** Ogen check file ************** 
+ ********************************************* 
+
+ This grid data is used to make sure the grid generator is giving 
+ the same answer after changes are made. Compare this file to a the 
+ check file from previous version. 
+
+grid   0 points: discretization=    1416, interpolation=   1119, all=    2601, unused=      66, name=BigSquare
+grid   1 points: discretization=     260, interpolation=     74, all=     341, unused=       7, name=leftObstacle
+grid   2 points: discretization=     298, interpolation=     42, all=     341, unused=       1, name=rightObstacle
+grid   3 points: discretization=    1701, interpolation=    162, all=    1863, unused=       0, name=SurfaceRect
+total    points: discretization=    3675, interpolation=   1397, all=    5146, unused=      74
+*************************************
+************ugen check file**********
+*************************************
+generated with advancing front
+number of Vertexs : 851
+number of Edges : 1715
+number of Faces : 864
+number of Regions : 0

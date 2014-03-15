@@ -1,0 +1,961 @@
+% --- explain how the MappedGridOperators can be used to apply
+% boundary conditions
+\section{Boundary Conditions}\index{boundary conditions}
+
+The boundary condition operators define a ``library'' of elementary boundary
+condition operations that can be used to implement application specific
+boundary conditions. Examples of elementary boundary conditions include
+Dirichlet, Neumann and mixed conditions, extrapolation, setting the normal
+component of a vector and so on. 
+
+
+
+
+% To use the boundary conditions one must first
+% specify, for each side of each grid, the number and type of each boundary condition.
+% Inhomogeneous values for the boundary conditions can be supplied and then the
+% {\ff applyBoundaryConditions} function is called to apply each boundary condition
+% in the order they were specified. 
+
+Here are the elementary boundary conditions that are supported 
+\[
+\begin{array}{ll}
+    u = g &  \mbox{dirichlet} \\
+    \partial_n u  = g &  \mbox{neumann} \\
+    a_0 u + a_1 \partial_n u = g & \mbox{mixed} \\
+    (D_+)^p u = 0 &  \mbox{extrapolation (to $p^{th}$ order)}  \\
+    (D_+)^p \nv\cdot \uv = 0 &  \mbox{extrapolate normal component (to $p^{th}$ order)}  \\
+    (D_+)^p \tv_m\cdot \uv = 0 &  \mbox{extrapolate tangential component, m=0,1}  \\
+    \nv\cdot \uv = g & \mbox{normalComponent} \\
+    \av\cdot\uv = g &  \mbox{aDotU}  \\
+    a_0 \partial_x u_1 + a_1 \partial_y u_2 +a_2 \partial_z u_3 = g &  \mbox{generalizedDivergence}    \\
+    a_0 u + a_1 u_x + a_2 u_y + a_3 u_z = g & \mbox{generalMixedDerivative}  \\
+    u(-m) = u(+m) & \mbox{evenSymmetry} \\
+    \nv\cdot\uv(-m)=\nv\cdot(2\uv(0)-\uv(+m)),  & \mbox{vectorSymmetry} \\
+          \qquad\quad  \tv\cdot\uv(-m)=\tv\cdot\uv(+m) &                       \\
+    \uv \leftarrow (\nv\cdot\uv)\nv + \gv & \mbox{tangentialComponent} \\
+    \tv_m\cdot\uv = g &  \mbox{tangentialComponent\{m\}, m=0,1} \\
+    \nv\cdot \partial_n \uv = g &  \mbox{normalDerivativeOfNormalComponent} \\
+    \tv_m\cdot \partial_n \uv = g &  \mbox{normalDerivativeOfTangentialComponent\{m\}, m=0,1} \\
+    \nv\cdot{ a \grad u} = g & \mbox{normalDerivativeScalarGrad} 
+\end{array}
+\]      
+Here are possible future ones (let me know if you need something)
+\[
+\begin{array}{ll}
+    (\av\cdot\grad) u = g & \mbox{aDotGradU} \\
+    \partial_n (\av\cdot\uv) = g &  \mbox{normalDerivativeOfADotU} \\
+\end{array}
+\]      
+The notation $u(-m) = u(+m)$ means that the value of the solution on ghost line $m$
+is set equal to the value on the $m^{th}$ line inside the domain.
+Here $\nv$ is the unit OUTWARD normal and $\partial_n$ is the normal derivative, $\partial_n=\nv\cdot\grad$,
+and $\tv_m$ represents the tangent vector(s). 
+
+There is also a {\ff extrapolateInterpolationNeighbours} boundary condition described below.
+
+% In the most general case one may supply a matrix of coefficients that define the boundary
+% condition:
+% \[
+%      \sum_m coeff(m,I1,I2,I3) * u(I1+offset(0,m),I2+offset(1,m),I3+offset(2,m),stencilComponent(m)) = g
+% \]
+
+
+% Here the basic steps in order to apply boundary conditions.
+% In the initialization phase you should
+% \begin{itemize}
+% \item Define the number of boundary conditions for each face of each grid.
+% \item Define the type of boundary condition (dirichlet, neumann,... ) for each
+%       boundary condition on each face.
+% \item Supply any data values for the boundary conditions (such as the value
+% of the dirichlet boundary condition) that do not vary with time.
+% \end{itemize}
+% When you want to evaluate the boundary conditions you should
+% \begin{itemize}
+% \item Supply any data values for the boundary conditions (such as the value
+% of the dirichlet boundary condition) that vary with time.
+% \item Use the member function {\ff applyBoundaryConditions} to apply 
+% the boundary conditions. This function assumes that the values of
+% the grid function have been assigned at all interior points, AND
+% for some implementations and some boundary conditions (such as neumann) 
+% values must also be defined on the boundary.
+% \end{itemize}
+
+% \noindent {\bf Notes:}
+% \begin{itemize}
+% \item A given set of boundary conditions is associated with each side of the grid
+% \item On each face given by the two integer (side,axis) there are
+%             index=0,1,2,...,numberOfBoundaryConditions(side,axis)
+%         BC's. The term index will be used to number the BC's on a given side
+% \item A given boundary condition (index=fixed) will define a relationship
+%         between components of the grid function. The components used on
+%         face (side,axis) for a given index are
+%             component\-For\-Boundary\-Condition(\-side,\-axis,\-index,\-numberOfComponents)       
+%         For example, the BC that sets the normal component of a vector grid function
+%         to zero will need to know which components in the grid function correspond
+%         to the vector whose normal component will be set to zero.
+% \end{itemize}
+
+
+
+
+There are two common approaches to implementing boundary conditions\index{boundary conditions!general approach}
+\begin{itemize}
+ \item Use ghost points
+ \item Do not use ghost points; instead use one sided differences.
+\end{itemize}
+
+On curvilinear grids my experience is that the first approach 
+is easier. Moreover, using one sided differences is equivalent 
+to using a centred difference on the boundary and extrapolating
+the ghost point(s). Thus we will only discuss how to assign 
+boundary conditions assuming that we are using ghost points.
+
+Consider first the case of a second order accurate method. 
+Suppose that all variables have Dirichlet boundary conditions.
+In this case the ghost points are probably not used; if they
+are it is usually good enough just to extrapolate the ghost points.
+\[
+  \mbox{Dirichlet:} 
+  \left\{ \begin{array}{l}
+        \mbox{1. extrapolate ghost points} \\
+        \mbox{2. apply Dirichlet boundary conditions}
+          \end{array}
+  \right.
+\]
+
+Now suppose that all variables have a Neumann boundary condition.
+In this case the equation can be applied up to and including 
+the boundary. The Neumann boundary condition can be thought of
+as giving the value at the fictitious points.
+\[
+  \mbox{Neumann:} 
+  \left\{ \begin{array}{l}
+        \mbox{1. apply interior equation on the boundary} \\
+        \mbox{2. apply Neumann boundary conditions}
+          \end{array}
+  \right.
+\]
+
+
+When a boundary condition consists of some variables being
+given Dirichlet and some given Neumann boundary conditions
+it is often appropriate to 
+\[
+  \mbox{Neumann/Dirichlet:} 
+  \left\{ \begin{array}{l}
+        \mbox{1. apply interior equation on the boundary} \\
+        \mbox{2. apply the Dirichlet Boundary conditions} \\
+        \mbox{3. extrapolate variables with Dirichlet boundary conditions} \\
+        \mbox{4. apply Neumann boundary conditions}
+          \end{array}
+  \right.
+\]
+Note that the order of applying the conditions is important. For example,
+the Neumann condition may use values of the Dirichlet variables on the
+boundary or on the ghost points. In this case the Neumann condition should
+be applied last.
+
+
+
+Now let us see some examples of how we can actually
+implement the above procedures...
+
+\subsection{Example: apply boundary conditions to a MappedGridFunction} \label{bcExamples}
+\index{boundary conditions!examples}
+
+The {\ff applyBoundaryCondition} member function of the {\ff \MGO} or
+a {\ff MappedGridFunction} will assign an elementary boundary
+condition, such as {\ff dirichlet}, to all sides of a {\ff MappedGrid mg}
+where the values of {\ff mg.boundary\-Condition(side,axis)} are equal
+to a specified positive integer. Usually a solver will define integer
+values for non-elementary boundary conditions such as 
+{\footnotesize
+\begin{verbatim}
+  const int inflow=1,
+            outflow=2,
+            wall=3;
+\end{verbatim}
+}
+\noindent The values of 
+{\ff mg.boundaryCondition(side,axis)} will then be assigned with the
+appropriate values such as 
+{\footnotesize
+\begin{verbatim}
+  mg.boundaryCondition(Start,axis1)=inflow;
+  mg.boundaryCondition(End  ,axis1)=outflow;
+  mg.boundaryCondition(Start,axis2)=wall;
+  etc.
+\end{verbatim}
+}
+\noindent A function call of the form
+{\footnotesize
+\begin{verbatim}
+  realMappedGridFunction u(...)
+  ...
+  int component=0;
+  u.applyBoundaryCondition(component,dirichlet,inflow,1.);
+\end{verbatim}
+}
+\noindent will assign a Dirichlet boundary condition, $u=1$, to $component=0$ of $u$, on all sides of the
+grid where {\ff mg.boundaryCondition(side,axis)}{\ff =inflow}.
+
+When the {\ff  MappedGridOperators} {\ff applyBoundaryCondition} function is
+called it loops through all the boundaries in the following fashion:
+{\footnotesize
+\begin{verbatim}
+  ...
+  ForBoundary(side,axis) // loop over all faces
+  {
+    if( c.boundaryCondition(side,axis)==bc  
+        || ( bc==allBoundaries && c.boundaryCondition(side,axis) > 0) )
+    {
+      switch ( bcType )
+      {
+      case dirichlet: 
+        // assign dirichlet BC on this side
+        break;
+      case neumann:
+        // assign dirichlet BC on this side
+        break;
+      ...
+      }     
+    }    
+  }      
+...
+\end{verbatim}
+}
+The enumator {\ff allBoundaries} is a default argument. 
+
+The {\ff finishBoundaryConditions}\index{boundary conditions!finishBoundaryConditions} function should be called when
+all boundary conditions have been applied. This routine will
+assign values in corners and update periodic boundaries.
+
+
+
+% The first step is to tell the {\ff \MGO} on each component grid what
+% the boundary conditions are. For each boundary of a component grid 
+% it is necessary to indicate how many boundary conditions there are.
+% For each boundary condition one must indicate what is the 
+% {\ff boundaryConditionType} (i.e. dirichlet, neumann, etc) and to
+% indicate which component(s) the boundary condition is to apply to.
+
+In this example code we show how to assign and evaluate boundary 
+conditions. Applying boundary conditions to a {\ff realCompositeGridFunction}
+works in the same way.
+(file {\ff \examples /bcgf.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/bcgf.C}
+}
+
+
+
+
+\subsection{Boundary Condition Descriptions}
+\index{boundary conditions!detail description}
+
+In this section we describe in some detail how each elementary boundary 
+condition is applied.
+
+
+Define the following values which are functions of the input parameters
+to {\ff applyBoundaryCondition}:
+\begin{verbatim}
+void MappedGridOperators::
+applyBoundaryCondition(realMappedGridFunction & u, 
+		       const Index & Components,
+		       const BCTypes::BCNames & bcType,  /* = BCTypes::dirichlet */
+		       const int & bc,                   /* = allBoundaries */
+		       const real & forcing,             /* =0. */
+		       const real & time,                /* =0. */
+		       const BoundaryConditionParameters & 
+                              bcParameters /* = defaultBoundaryConditionParameters */,
+                       const int & grid /* =0 */ )
+
+  MappedGrid & mg = *u.getMappedGrid();
+  Range C = Components;
+  int nc = Components.getLength();  // number of components
+  int nd = number of space dimensions
+  intArray & components = bcParameters.components;
+  bool componentsSpecified = components.getLength(0) > 0;
+  int lineToAssign = bcParameters.lineToAssign;    
+  Index I1,I2,I3;
+  int side,axis; // defines the face of the grid we are on
+  int grid;      // defines the grid number if from a gridCollectionFunction
+  getBoundaryIndex(mg.gridIndexRange,side,axis,I1,I2,I3,lineToAssign);
+  Range C1 = C-C.getBase()+forcing.getBase();
+  OGFunction e = twilight zone function (if specified)
+\end{verbatim}
+
+There are also versions of {\tt applyBoundaryCondition} where {\tt forcing} is a {\tt realArray}, 
+or a {\tt real\-Mapped\-Grid\-Function} or and array of {\tt realArray}'s.
+
+\noindent {\bf Note:} For boundary conditions that normally assign the value on the boundary
+(such as {\tt dirichlet} or {\tt normalComponent} a value can be assigned on a line other than the boundary by setting
+{\ff bcParameters.lineToAssign} -- a value of zero is the boundary, 1 the first
+ghost line and -1 the first interior line etc.
+
+
+\newcommand{\true}{e.}
+
+
+
+\subsubsection{dirichlet}\index{boundary conditions!dirichlet}
+
+By default the dirichlet boundary condition assigns values on the boundary according to the
+following
+\[
+u(I1,I2,I3,uC) = 
+  \left\{ \begin{array}{ll}
+        \true u(mg,I1,I2,I3,fC,t)    & \mbox{if twightZoneFlow==TRUE} \\
+        forcing              & \mbox{if forcing is a real      } \\
+        forcing(fC)           & \mbox{if forcing  is a realArray with 1 array dimension } \\
+        forcing(I1,I2,I3,fC)  & \mbox{if forcing is a realArray that is big enough} \\
+%         forcing[side][axis](I1,I2,I3,fC)  & \mbox{if forcing is a realArray that is big enough} \\
+        forcing(fC,side,axis,grid) & \mbox{if forcing is a realArray that is big enough} \\
+        forcing(I1,I2,I3,fC)  & \mbox{if forcing is a gridFunction} \\
+          \end{array}
+  \right.
+\]
+Here {\tt uC} and {\tt fC} are intArrays and
+\[
+u(I1,I2,I3,uC) =  \true u(mg,I1,I2,I3,fC,t)
+\]
+means
+\[
+u(I1,I2,I3,uC(i)) =  \true u(mg,I1,I2,I3,fC(i),t) \quad \mbox{for} \quad i=uC.getBase(0),\ldots,uC.getBound(0) 
+\]
+The values found in the intArrays {\tt uC} and {\tt fC} depend on the arguments to {\tt apply\-Boundary\-Conditions}.
+By default
+\begin{align*}
+    uC(i) &= i \quad\text{for}\quad i=C.getBase(),\ldots,C.getBound() \\
+    fC(i) &= i \quad\text{for}\quad i=C.getBase(),\ldots,C.getBound()
+\end{align*}
+However, if the argument {\tt forcing} is a grid function then fC is defined so that it's base is the same
+as the base of the grid function {\tt forcing}:
+\[
+    fC(i) = i-C.getBase()+forcing.getBase() \quad\text{for}\quad i=C.getBase(),\ldots,C.getBound()
+\]
+For arbitrary control of which components to use one can dimension and set one or both of the intArrays
+{\tt bc\-Para\-meters.uComp\-onents} and {\tt bc\-Para\-meters.fComp\-onents}. When either of these intArrays is given
+the argument $C$ is ignored. The following statements define how {\tt uC} and {\tt fC} are
+determined in all cases (with 
+{\tt uComponents}:={\tt bc\-Para\-meters.uComp\-onents} and 
+{\tt fComponents}:={\tt bc\-Para\-meters.fComp\-onents} )
+
+% If the intArray {\tt bcParameters.uComponents} is specified
+% with a positive length,
+% \[
+% {\tt bcParameters.uComponents.getLength(0) > 0 }
+% \]
+% then 
+% \[
+%     uC = bcParameters.uComponents
+% \]
+% Similarly if {\tt bcParameters.fComponents} is specified then
+% \[
+%     fC = bcParameters.fComponents
+% \]
+% If  {\tt bcParameters.uComponents} is specified but  {\tt bcParameters.fComponents} is NOT specified
+% then {\tt fC} will choose the first elements in the forcing argument. 
+
+
+\[
+ uC = \begin{cases}
+           C & \text{if neither uComponents nor fComponents is specified} \\
+           {\tt uComponents} &  \text{if {\tt uComponents} is given } \\
+    b,b+1,... & \text{if {\tt fComponents} is specified but not {\tt uComponents}, b=u.getComponentBase(0)}
+      \end{cases}
+\]
+and
+\[
+ fC = \begin{cases}
+           C & \text{if neither {\tt uComponents} nor {\tt fComponents} is specified} \\
+           b,b+1,... & \text{if as above case but with grid function forcing, b=forcing.getComponentBase(0)} \\
+           {\tt fComponents} &  \text{if {\tt fComponents} is given } \\
+    b,b+1,... & \text{if {\tt uComponents} is specified but not {\tt fComponents}, b=forcing.getComponentBase(0)}
+      \end{cases}
+\]
+
+A value can be assigned on a line other than the boundary by setting
+{\ff bcParameters.lineToAssign} -- a value of zero is the boundary, 1 the first
+ghost line and -1 the first interior line etc.
+
+Sometimes a given boundary condition such as {\tt dirichlet} will need to use different
+forcing values on different sides of different grids. Maybe the dirichlet value
+on one face is $1$ while on another face it is $2$. These different values
+can be passed with a {\tt realArray} forcing (they can also be passed more generally with 
+a grid function).
+If the forcing function {\tt force} is a {\tt realArray} with dimensions that are large enough
+then the forcing for a given face {\tt (side,axis)} belonging to a given {\tt grid} will
+be taken as {\tt force(fC,side,axis,grid)}. If the {\tt force} array is not dimensioned large
+enough for the given index values of {\tt (side,axis,grid)} then {\tt force(fC)} will
+be used.
+
+\subsubsection{neumann}\index{boundary conditions!neumann}
+
+For second-order accuracy the neumann boundary condition will assign the value
+on the first ghost line from $\nv\cdot\grad u = g$. Recall that $\nv$ is the
+outward normal.
+
+Define
+\begin{verbatim}
+  Index Ig1,Ig2,Ig3;
+  getGhostIndex(mg.gridIndexRange,side,axis,Ig1,Ig2,Ig3);    // first ghost line
+  Index Ip1,Ip2,Ip3;
+  getGhostIndex(mg.gridIndexRange,side,axis,Ip1,Ip2,Ip3,-1);  // first line in
+\end{verbatim}
+
+On a rectangular grid the neumann condition is computed as
+\[
+u(Ig1,Ig2,Ig3,uC) = u(Ip1,Ip2,Ip3,uC) \pm 2 \Delta x_{\rm axis} ~g ~,
+\]
+where $\Delta x_{\rm axis}$ is the grid spacing in the direction normal to the
+boundary and
+\[
+g=  \left\{ \begin{array}{ll}
+        \nv \cdot (\true uGrad(mg,I1,I2,I3,fC,t))    & \mbox{if twightZoneFlow==TRUE} \\
+        forcing              & \mbox{if forcing is a real      } \\
+        forcing(fC)           & \mbox{if forcing  is a realArray with 1 array dimension } \\
+        forcing(I1,I2,I3,fC)  & \mbox{if forcing is a realArray that is big enough} \\
+        forcing(fC,side,axis,grid) & \mbox{if forcing is a realArray that is big enough} \\
+        forcing(I1,I2,I3,fC)  & \mbox{if forcing is a gridFunction} \\
+          \end{array}
+  \right.
+\]
+and 
+\[
+\true uGrad(mg,I1,I2,I3,fC,t)=(\true ux(mg,I1,I2,I3,fC,t),\true uy(mg,I1,I2,I3,fC,t),\true uz(mg,I1,I2,I3,fC,t))
+\]
+The definition of the intArray's {\tt uC} and {\tt fC} are given in the comments for Dirichlet boundary conditions.
+
+On a curvlinear grid $u(Ig1,Ig2,Ig3,uC)$ is determined by imposing the
+condition $\nv\cdot\grad u=g$ (on the boundary).
+This is done by forming the matrix
+coefficients for $\nv\cdot\grad$ (on the boundary)
+\[
+   c(M,I1,I2,I3) =  \nv \cdot (op.xCoefficients(),op.yCoefficientsI(),op.zCoefficients())
+\]
+(M represents the stencil, 9 points or 27 points).
+Then we have an equation of the form
+\[
+    c(m_0,I1,I2,I3) u(Ig1,Ig2,Ig3,C) = \sum_{m\ne m_0} c(m,I1,I2,I3) u(I1(m),I2(m),I3(m),C) 
+     + \mbox{forcing}
+\]
+that determines $u(Ig1,Ig2,Ig3,uC)$ ($m_0$ is the stencil index corresponding to the
+ghost line value). (The coefficients are only computed once for efficiency).
+
+
+\subsubsection{mixed}
+
+For second-order accuracy the mixed boundary condition will assign the
+value on the first ghost line from the discretization of
+\[
+a_0 u + a_1 (\nv\cdot\grad) u = g
+\]
+where $\nv$ is the outward normal. It is assumed that $a_1\ne 0$.
+The values of $a_0$ and $a_1$ are
+found in {\ff bcParameters.a}. If {\tt bcParameters.a}
+is dimensioned to be at least as large as {\tt bcParameters.a(2,2,numberOfDimensions,numberOfGrids)}
+then the values for $a_0$ and $a_1$ will be {\tt $(a_0,a_1)$=bcParameters.a(0:1,side,axis,grid)} where 
+{\tt side,axis,grid} denote the particular boundary we are on. In this way different values can be 
+used on different sides of different grids.
+Otherwise $a_0$ and $a_1$ will be {\tt $(a_0,a_1)$=bcParameters.a(0:1)} and the same values will
+be used on all boundaries.
+
+Since 
+for non-rectangular grids
+the
+matrix representing the boundary operator is saved (for efficiency )
+it is currently assumed that the
+values $a(0:1)$ do not change from one call to the next .
+
+The mixed boundary condition is applied in basically the same way as the
+{\ff neumann} boundary condition (see above for more details).
+
+\subsubsection{extrapolate}
+
+Extrapolation determines a value on a ghostline by extrapolating along the
+coordinate direction normal to the boundary. By default the value on the
+first ghostline is determined using second order extrapolation:
+\[
+u(Ig1,Ig2,Ig3,uC) = 2 u(I1,I2,I3,uC) - u(Ip1,Ip2,Ip3,uC) + g ~,
+\]
+or more generally using $p^{th}$-order extrapolation (p=1,...,10)
+\[
+u(Ig1,Ig2,Ig3,uC) = D_{\pm}^p(u(I1,I2,I3,uC)) + g ~,
+\]
+Here the extrapolation operator is either $D_-^p$ or $D_+^p$, chosen so we extrapolate into the
+interior of the grid, and
+\[
+g= \left\{ \begin{array}{ll}
+        \true u(mg,Ig1,Ig2,Ig3,fC,t) - D_{\pm}^p(\true u(mg,I1,I2,I3,fC,t)) & \mbox{if twightZoneFlow==TRUE} \\
+    forcing              & \mbox{if forcing is a real      } \\
+    forcing(fC)           & \mbox{if forcing  is a realArray with 1 array dimension } \\
+    forcing(I1,I2,I3,fC)  & \mbox{if forcing is a realArray that is big enough} \\
+    forcing(fC,side,axis,grid) & \mbox{if forcing is a realArray that is big enough} \\
+    forcing(I1,I2,I3,fC)  & \mbox{if forcing is a gridFunction} \\
+          \end{array}
+  \right.
+\]
+The definition of the intArray's {\tt uC} and {\tt fC} are given in the comments for Dirichlet boundary conditions.
+
+To extrapolate a different line change {\ff bcParameters.ghostLineToAssign}
+(default=1). To change the order of extrapolation set
+{\ff bcParameters.orderOfExtrapolation} (default=2).
+
+
+
+
+\subsubsection{normalComponent}
+
+The {\ff normalComponent} boundary condition changes the values 
+of $u$ on the boundary (or some other line)
+to satisfy $\nv\cdot\uv = g $. 
+This can be done by the projection
+\[
+        \uv(I1,I2,I3,uC) \leftarrow \uv(I1,I2,I3,uC) + [g-(\nv\cdot\uv(I1,I2,I3,uC))] \nv
+\]
+% If $C$ specifies more values than the number of space dimensions then the extra values are
+% ignored. 
+The forcing for this boundary condition is determined from
+\[
+ g(I1,I2,I3) =  \left\{ \begin{array}{ll}
+        \nv\cdot \true u(mg,I1,I2,I3,fC,t) & \mbox{if twightZoneFlow==TRUE} \\
+        forcing              & \mbox{if forcing is a real      } \\
+    \nv\cdot forcing(fC)           & \mbox{if forcing  is a realArray with 1 array dimension } \\
+    \nv\cdot forcing(fC,side,axis,grid) & \mbox{if forcing is a realArray that is big enough} \\
+        forcing(I1,I2,I3)  & \mbox{if forcing is a scalar gridFunction} \\
+        \nv\cdot forcing(I1,I2,I3,fC)  & \mbox{if forcing is a vector gridFunction} \\
+          \end{array}
+  \right.
+\]
+The definition of the intArray's {\tt uC} and {\tt fC} are given in the comments for Dirichlet boundary conditions.
+
+\subsubsection{tangentialComponent0, tangentialComponent1}  \label{sec:tangentialComponent}
+
+  The {\tt tangentialComponent0} and {\tt tangentialComponent1} boundary conditions change the
+value of $\uv$ on the boundary (or some other line) to satisfy $\tv_m \cdot\uv = g $ for $m=0$ or $m=1$.
+
+There are two (or one in 2D) tangent vectors on a given boundary. Label the boundary with 
+the two integerers $(axis,side)$ where $(axis=0,1,2,side=0,1)$ for the 6 faces. 
+The two tangent vectors are the derivatives with respect
+to the two tangential unit square coordinates, $r_k$, where the values for $k$ are obtained as a cyclic permutation starting
+from the value of $axis+1$,
+\[
+  k=axis+m+1 \mod {\tt numberOfDimensions},
+\]
+The tangent vectors are normalized to be unit length
+\[
+    \tv_m = { {\partial \xv / \partial r_k } \over || {\partial \xv / \partial r_k }|| } , \qquad m=0,1, \quad
+    k=1,2~(axis=0)\mbox{~or~} k=2,0~(axis=1)\mbox{~or~} k=0,1~(axis=2)
+\]
+and are accessible in a {\tt MappedGrid} as the {\tt centerBoundaryTangent[axis][side](I1,I2,I3,0:nd-1,m)} (where 
+{\tt nd=numberOfSpaceDimensions}).
+
+These boundary conditions are applied in the same manner as the {\tt normalComponent} boundary condition,
+see the comments there for further details.
+
+
+\subsubsection{normalDerivativeOfTangentialComponent[0,1]}
+
+The {\ff normalDerivativeOfTangentialComponent0} (or {\ff normalDerivativeOfTangentialComponent1})
+boundary condition changes the values of $u$ on the ghost line to satisfy 
+\[
+ \tv_m \cdot ({\partial \over\partial n} \uv) = g .
+\]
+where $\tv_m$, $m=0$ (or $m=1$) is the tangent vector as defined in section (\ref{sec:tangentialComponent})
+This is not really the normal derivative of the tangential component:
+\[
+   {\partial \over\partial n} (\tv_m\cdot \uv) = g  \qquad \mbox{(not this!)}
+\]
+unless the tangent vector is constant, but it is close and probably good enough for most purposes (?).
+
+The forcing functions for this boundary condition can be of one of the following forms
+\[
+ g(I1,I2,I3) =  \left\{ \begin{array}{ll}
+        \tv_m \cdot( \nv\cdot\grad( \true u(mg,I1,I2,I3,fC,t) ) & \mbox{if twightZoneFlow==TRUE} \\
+        forcing              & \mbox{if forcing is a real      } \\
+    \tv\cdot forcing(fC)           & \mbox{if forcing  is a realArray with 1 array dimension } \\
+    \tv\cdot forcing(fC,side,axis,grid) & \mbox{if forcing is a realArray that is big enough} \\
+        forcing(I1,I2,I3)  & \mbox{if forcing is a scalar gridFunction} \\
+        \tv_m \cdot forcing(I1,I2,I3,fC)  & \mbox{if forcing is a vector gridFunction} \\
+          \end{array}
+  \right.
+\]
+The definition of the intArray's {\tt uC} and {\tt fC} are given in the comments for Dirichlet boundary conditions.
+
+\subsubsection{extrapolateNormalComponent, extrapolateTangentialComponent[0,1]}
+
+The {\ff extrapolateNormalComponent} boundary condition changes the value 
+of the normal component of $\uv$ on a ghost line by extrapolation from interior values.
+This can be done by the projection
+\[
+        \uv(Ig1,Ig2,Ig3,uC) \leftarrow \uv(Ig1,Ig2,Ig3,uC) + [g-(\nv\cdot\uv(Ig1,Ig2,Ig3,uC))] \nv
+\]
+where $((Ig1,Ig2,Ig3)$ are the indices of the ghost line and
+$g$ is the extrapolated value from interior points, for example,
+\[
+    g = 2 \nv\cdot\uv(I1g+1,I2g,I3g,uC) - \nv\cdot\uv(I1g+1,I2g,I3g,uC) .
+\]
+The definition of the intArray's {\tt uC} and {\tt fC} are given in the comments for Dirichlet boundary conditions.
+
+To extrapolate a different line change {\ff bcParameters.ghostLineToAssign}
+(default=1). To change the order of extrapolation set
+{\ff bcParameters.orderOfExtrapolation} (default=2).
+
+The {\ff extrapolateTangentialComponent0} and {\ff extrapolateTangentialComponent1} are the same as{\ff extrapolateNormalComponent}
+except that the normal vector is replaced by the tangent vector $\tv_m$ for $m=0$ or $m=1$.
+
+\subsubsection{extrapolateTangentialComponent0, extrapolateTangentialComponent0, }
+
+The tangential components of a vector grid function can also be extrapolated in a similar fashion
+to the {\tt extrapolateNormalComponent} boundary condition. 
+
+
+
+\subsubsection{tangentialComponent}
+
+The {\ff tangentialComponent} boundary condition sets the 
+value of the tangential component(s).
+
+\noindent {\bf WARNING:} You cannot in general use this condition on two adjacent sides of a grid and
+expect that the value at the corner is correct since there are two equations defining the corner
+value and only the last one applied will be satisfied (in general).
+
+It changes the value
+of $\uv$ on the boundary to satisfy $\uv-(\nv\cdot\uv)\nv = g $. 
+This is done (without having to know tangential vectors) by setting
+\[
+        \uv(I1,I2,I3,uC) \leftarrow [\nv\cdot\uv(I1,I2,I3,uC)]\nv + g
+\]
+If $uC$ specifies more values than the number of space dimensions then the extra values are
+ignored. The forcing for this boundary condition is determined from
+
+********************* finish this *************************
+
+\[
+ g(I1,I2,I3) =  \left\{ \begin{array}{ll}
+        \nv\cdot \true u(mg,I1,I2,I3,fC,t) & \mbox{if twightZoneFlow==TRUE} \\
+        forcing              & \mbox{if forcing is a real      } \\
+        \nv\cdot forcing(fC)           & \mbox{if forcing  is a realArray      } \\
+        forcing(I1,I2,I3)  & \mbox{if forcing is a scalar gridFunction} \\
+        \nv\cdot forcing(I1,I2,I3,fC)  & \mbox{if forcing is a vector gridFunction} \\
+          \end{array}
+  \right.
+\]
+
+
+
+\subsubsection{evenSymmetry}
+The evenSymmetry boundary condition determines the values on the $n^{th}$
+ghostline by setting them equal to the values on the $n^{th}$ line in:
+\[
+u(Ig1,Ig2,Ig3,uC) = u(Ip1,Ip2,Ip3,uC) + g 
+\]
+where
+\[
+g =
+     \true u(mg,Ig1,Ig2,Ig3,fC,t) - \true u(mg,Ip1,Ip2,Ip3,fC,t) ~~ \mbox{if twightZoneFlow==TRUE} 
+\]
+By default the first ghostline is assigned. To assign a different ghostline
+set {\ff bcParameters.ghostLineToAssign} (default=1).
+
+
+\subsubsection{vectorSymmetry}
+
+Apply a symmetry condition to a vector $\uv=(u1,u2,u3)$ by making $\nv\cdot\uv$ an odd 
+function with respect to the boundary and 
+$\tv\cdot\uv$ an even function:
+\begin{eqnarray*}
+    \tv\cdot\uv(-m) &=& \tv\cdot\uv(+m)  \\
+   \nv\cdot\uv(-m) &=& \nv\cdot(2\uv(0)-\uv(+m))  
+\end{eqnarray*}
+This condition can be used, for example, in a fluids computation 
+as a boundary condition for the velocity at a symmetry wall - the velocity normal
+to the wall is odd will the velocities tangential to the walls are even.
+
+The components of $u$ that are changed are given by $u(I1,I2,I3,uC)$.
+If $uC$ specifies more values than the number of space dimensions then the extra values are
+ignored. 
+
+To implement the boundary condition we first set all components on the ghost line:
+\[
+u(Ig1,Ig2,Ig3,uC) = u(Ip1,Ip2,Ip3,uC)   ~.
+\]
+This will make all components even. We then change the normal component on the 
+ghostline to make the normal component odd:
+\[
+ \nv\cdot u(Ig1,Ig2,Ig3,uC) = \nv\cdot (2u(I1,I2,I3,uC) - u(Ip1,Ip2,Ip3,uC)) + g 
+\]
+where
+\begin{align*}
+ g =  \nv\cdot ( &\true u(mg,Ig1,Ig2,Ig3,fC(0),t) -2 \true u(mg,I1,I2,I3,fC(1),t) \\
+                 +& \true u(mg,Ip1,Ip2,Ip3,fC(2),t))
+                     \qquad \mbox{if twightZoneFlow==TRUE} 
+\end{align*}
+This can be done by the projection
+\begin{align*}
+        \uv(Ig1,Ig2,Ig3,uC) \leftarrow \uv(Ig1,Ig2,Ig3,uC) 
+             + (g-(\nv\cdot( &\uv(Ig1,Ig2,Ig3,uC)-(2\uv(I1,I2,I3,uC) \\
+                           - &\uv(Ip1,Ip2,Ip3,uC))))) \nv
+\end{align*}
+
+
+
+\subsubsection{aDotU}
+
+The {\ff aDotU} boundary condition changes the values 
+of $u$ on the boundary
+to satisfy $\av\cdot\uv = g $. This can be done by the projection
+\[
+        \uv(I1,I2,I3,uC) \leftarrow \uv(I1,I2,I3,uC) + [g-(\av\cdot\uv(I1,I2,I3,uC))] {\av \over ||\av||^2 }
+\]
+The values of the vector $\av$ are found in the array {\ff bcParameters.a(0:)}.
+If $uC$ specifies more values than the number of space dimensions then the extra values are
+ignored. The forcing for this boundary condition is determined from
+\[
+ g(I1,I2,I3) =  \left\{ \begin{array}{ll}
+        \av\cdot \true u(mg,I1,I2,I3,fC,t) & \mbox{if twightZoneFlow==TRUE} \\
+        forcing              & \mbox{if forcing is a real      } \\
+    \av\cdot forcing(fC)           & \mbox{if forcing  is a realArray with 1 array dimension } \\
+    \av\cdot forcing(fC,side,axis,grid) & \mbox{if forcing is a realArray that is big enough} \\
+        forcing(I1,I2,I3)  & \mbox{if forcing is a scalar gridFunction} \\
+        \av\cdot forcing(I1,I2,I3,fC)  & \mbox{if forcing is a vector gridFunction} \\
+          \end{array}
+  \right.
+\]
+
+
+\subsubsection{generalMixedDerivative}
+
+The general mixed derivative boundary condition is
+$$
+ a(0) u + a(1) u_x + a(2) u_y + a(3) u_z = g  ~.
+$$
+For a second-order accurate discretization this condition
+will determine the value of $u$ on the first ghostline.
+The values of the vector $\av$ are found in the array {\ff bcParameters.a(0:)}.
+(To be well defined this means that $\av\cdot\nv \ne 0$)
+
+The right-hand side is given by
+\[
+g = \left\{ \begin{array}{ll}
+          a(0) \true u(mg,Ig1,Ig2,Ig3,fC,t)  & \\ 
+             ~~~+ a(1:3)\cdot \true uGrad(I1,I2,I3,fC,t)  & \mbox{if twightZoneFlow==TRUE} \\
+    forcing              & \mbox{if forcing is a real      } \\
+    forcing(fC)           & \mbox{if forcing  is a realArray with 1 array dimension } \\
+    forcing(fC,side,axis,grid) & \mbox{if forcing is a realArray that is big enough} \\
+    forcing(I1,I2,I3,fC)  & \mbox{if forcing is a gridFunction} \\
+          \end{array}
+  \right.
+\]
+
+
+To impose this condition the matrix of coefficients for 
+$$
+   a(0) I + \av(1:3)\cdot\grad
+$$
+is formed...
+
+\subsubsection{generalizedDivergence}
+This boundary condition can be used to set the divergence, $\grad\cdot\uv=g$, of vector grid function, 
+or more generally to set
+\[
+    a(0) u(0)_x + a(1) u(1)_y + a(2) u(2)_z = g
+\]
+Note that this is a single condition imposed on a vector.
+The values of the vector $\av$ are found in the array {\ff bcParameters.a(0:)}.  If {\ff
+bcParameters.a} is not dimensioned then by default $\av=(1,1,1)$
+(in which case this condition sets the divergence : $\grad\cdot\uv=g$).
+
+If $uC$ specifies more values than the number of space dimensions then the extra values are
+ignored. The forcing for this boundary condition is determined from
+\[
+ g =  \left\{ \begin{array}{ll}
+        a(0:2) \cdot \true uGrad(mg,I1,I2,I3,fC(0),t) & \mbox{if twightZoneFlow==TRUE} \\
+        forcing              & \mbox{if forcing is a real      } \\
+        \av\cdot forcing(fC)           & \mbox{if forcing  is a realArray      } \\
+        forcing(I1,I2,I3)  & \mbox{if forcing is a scalar gridFunction} \\
+        \av\cdot forcing(I1,I2,I3,fC)  & \mbox{if forcing is a vector gridFunction} \\
+          \end{array}
+  \right.
+\]
+
+\noindent {\bf NOTE:}
+This boundary condition uses some values on the ghostlines of adjacent boundaries when applying
+this equation at corners. Thus you {\bf must make sure that ghostline values on adjacent boundaries
+have been assigned} before applying this boundary condition. 
+
+\noindent {\bf Method:}
+  In the case of a rectangular grid this condition is rather easy to apply. For example,
+for the boundary with $x=$constant and a second-order difference approximation we would solve
+\[
+   a(0) D_{0x} u(0) \equiv a(0) { (u(0)_{i+1} - u(0)_{i-1}) \over 2 \Delta x } = - a(1) D_{0,y} u(1) - a(2) D_{0z} u(2) + g
+\]
+for the value on the ghost line, $u(0)_{i-1}$ (left edge) or $u(0)_{i+1}$ (right edge). Here 
+$D_{0x}$, $D_{0y}$ and $D_{0z}$ are the
+centered difference operators in the $x,y,z-$directions.
+
+
+For a general curvilinear grid we must project the values of $\uv$ on the ghost line so the condition is satisfied. 
+To do this we form the discrete approximation to 
+\[ 
+     a(0) u(0)_x + a(1) u(1)_y + a(2) u(2)_z = g
+\]
+on the boundary. This gives a stencil operator at each boundary point $\iv=(i_1,i_2,i_3)$ 
+of the form
+\[
+      \sum_{\mv}  \cv_\mv \cdot \uv_{\iv+\mv} = g_{\iv} \qquad,~ \mv=(m_1,m_2,m_3)
+\]
+where for a 27 point stencil (or 9 point in 2D) each component of $\mv$ ranges over $-1\le m_\mu \le +1$. (Note that
+the corner points in the stencil $\cv_\mv$ are actually zero since only first derivatives appear
+in this boundarry condition so the stencil is really 7 point (or 5 point).)
+If we solve this equation for the unknown value of $\cv_\mv \cdot \uv_{\iv+\mv}$ 
+on the ghost point, say, $\cv_{(-1,0,0)} \cdot \uv_{\iv+(-1,0,0)}$,
+in terms of the known values of $\uv$ on the boundary and the interior then we are led to 
+the equation
+\begin{equation}
+\cv_{(-1,0,0)} \cdot \uv_{\iv+(-1,0,0)} 
+    = g_{\iv} - \sum_{\mv\ne(-1,0,0)}  \cv_\mv \cdot \uv_{\iv+\mv}  \label{genDiv}
+\end{equation}
+that must be satisfied. This equation looks just like our $\av\cdot\uv=g$ boundary condition so we
+can apply the same formula
+\[ 
+ \uv_g \leftarrow \uv_g - (\tilde{\gv} - \av \cdot \uv_g ) {\av \over \| \av \|^2  } 
+\]
+where $\av=\cv_{(-1,0,0)}$ and $\tilde{\gv}$ is the right hand side of (\ref{genDiv}).
+Note that we are able to change the appropriate component of $\uv_{(-1,0,0)}$ without
+having to decompose the operator into tangential and normal components.
+
+% \input BoundaryInclude.tex
+
+% \subsubsection{aDotGradU}
+% 
+% This boundary condition is like the neumann boundary condition but instead
+% of giving $\nv\cdot \grad u=g$ we give $\av\cdot\grad u=g$. This condition 
+% will determine the value of $u$ on the first ghostline. It must be true
+% that $\av\cdot\nv \ne 0$.
+% 
+
+\subsection{extrapolateInterpolationNeighbours}
+ Extrapolate the unused points that lie next to interpolation points. This
+boundary condition is useful if one has a second order method with
+fourth-order artificial viscosity. This routine will fill in values
+needed by the larger stencil of the fourth-order artificial viscosity. This
+is often a good enough solution, rather than creating an overlapping grid
+with two lines of interpolation (discretization width = 5).
+
+Note: the "corners" next to interpolation points are not assigned, only
+the neighbours that lie along one of the coordinate directions. So the
+points marked "e" below are assigned
+\begin{verbatim}
+               e e e
+             e I I I       e=extrapolate
+           e I I X X       I= interpolation pt
+           e I X X X       X= discretaization pt
+           e I X X X
+\end{verbatim}
+
+
+\subsection{Boundary conditions at corners (and edges in 3D)}
+
+The corners of a grid are assigned by {\tt finishBoundaryConditions}.
+ By default the corners are extrapolated but there
+are other options for assigning the corners given by the following enum found in the
+{\tt BoundaryConditionParameters} class
+\begin{verbatim}
+  enum CornerBoundaryConditionEnum
+  {
+    extrapolateCorner=0,
+    symmetryCorner,  // name deprecated, use evenSymmetryCorner
+    taylor2ndOrder,  // name deprecated, use taylor2ndOrderEvenCorner
+    evenSymmetryCorner,
+    oddSymmetryCorner,
+    taylor2ndOrderEvenCorner,
+    taylor4thOrderEvenCorner
+  };
+\end{verbatim}
+To set the conditions used on a particular corner first set the property in a
+BoundaryConditionParameters object and then use this object when assigning boundary conditions:
+\begin{verbatim}
+  bcParams.setCornerBoundaryCondition(cornerBC,side1,side2,side3);
+\end{verbatim}
+Here {\tt side1},{\tt side2},{\tt side3} equal one of $ = -1, 0, 1$. 
+If all three values are from $0,1$ then this defines a corner.
+If one of the values is $-1$ then this defines an edge along that axis. 
+
+The {\tt evenSymmetry} boundary condition sets 
+\[
+  u(i1-m1,i2-m2,i3-m3)=u(i1+m1,i2+m2,i3+m3)
+\]
+where $u(i1,i2,i3)$ is a point on the boundary.
+The {\tt oddSymmetry} boundary condition sets 
+\[
+  u(i1-m1,i2-m2,i3-m3)=2 u(i1,i2,i3)- u(i1+m1,i2+m2,i3+m3)
+\]
+The {\tt taylor2ndOrderEvenCorner} boundary condition uses (in 2D)
+\begin{eqnarray*}
+  u(+1,+1) &=& u(0,0) +{\Delta r} u_r + {\Delta s} u_s + {\Delta r}^2/2 u_{rr} + {\Delta r} {\Delta s} u_{rs} + {\Delta s}^2/2 u_{ss} + \ldots \\
+  u(-1,-1) &=& u(0,0) -{\Delta r} u_r - {\Delta s} u_s + {\Delta r}^2/2 u_{rr} + {\Delta r} {\Delta s} u_{rs} + {\Delta s}^2/2 u_{ss} + \ldots \\
+  u(-1,-1) &=& u(1,1) -2 {\Delta r} u_r -2 {\Delta s} u_s + O({\Delta r}^3+ \ldots) \\
+  u_r &=& (u(1,0)-u(-1,0))/(2 {\Delta r}) + O({\Delta r}^2)
+\end{eqnarray*}
+to give the approximation
+\[
+   u(-1,-1) = u(1,1) -( u(1,0)-u(-1,0) ) - (u(0,1)-u(0,-1))
+\]
+The {\tt taylor2ndOrderEvenCorner} boundary condition will reduce to an even symmetry boundary condition
+if the neighbouring points also satisfy the symmetry condition (i.e. if the function is even about the boundary).
+
+The {\tt taylor4thOrderEvenCorner} boundary condition is a fourth-order accurate boundary condition
+for the ghost points that reduces to an an even symmetry boundary condition
+if the neighbouring points also satisfy the symmetry condition.
+See the ogmg documentation for a further details on the {\tt taylor2ndOrderEvenCorner}
+and {\tt taylor4thOrderEvenCorner} boundary conditions.
+
+\subsection{BoundaryConditionParameters : passing optional parameters for boundary conditions}
+
+Use this class to pass optional parameters to the boundary condition
+routines. See section (\ref{bcExamples}) for an example code that demonstrates the use
+of this class.
+
+\subsubsection{Applying a boundary condition to a portion of a boundary}
+     \index{boundary condition!applying to a portion of the boundary}
+
+  Normally a boundary condition is applied to the whole side (or face). To apply a given 
+boundary condition to only some part of a side one can use the {\tt mask} array that
+lives in the BoundaryConditionParameters object. 
+
+\input BoundaryConditionParametersInclude.tex
+
+
+\subsection{How to write your own boundary conditions}
+
+If you need to assign a boundary condition that is not of
+the form of one of the implemented elementary boundary conditions
+then you can write a loop something like the following
+
+{\footnotesize
+\begin{verbatim}
+    Index Ib1,Ib2,Ib3, I1g,I2g,I3g, I1p,I2p,I3p;
+    int myBoundaryCondition = ...;
+
+    // apply Boundary conditions
+    for( int axis=0; axis<mg.numberOfDimensions; axis++ )
+      for( int side=Start; side<=End; side++ )
+      { // apply a BC :
+        if( mg.boundaryCondition(side,axis) == myBoundaryCondition )
+        { // Index's for boundary values:
+          getBoundaryIndex(mg.gridIndexRange,side,axis,Ib1,Ib2,Ib3);
+          // Index's for first ghost line
+          getGhostIndex(mg.gridIndexRange,side,axis,Ig1,Ig2,Ig3,1);
+          // Index's for first interior line
+          getGhostIndex(mg.gridIndexRange,side,axis,Ip1,Ip2,Ip3,-1);
+
+          u(Ib1,Ib2,Ib3)=...;             // set boundary values
+          u(Ig1,Ig2,Ig3)=u(Ip1,Ip2,Ip3);  // set ghost values to first line in
+        }
+      }
+\end{verbatim}
+}

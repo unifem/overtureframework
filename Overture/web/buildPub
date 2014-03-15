@@ -1,0 +1,45 @@
+#! /bin/csh -f
+#  cp files into Bill's web directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+set webPage = "/home/henshaw/webPage"
+
+echo "copy files into Bill's web directory"
+
+
+cp publications/{OvertureDemoIntro.pdf,OvertureDemo.pdf,OversetFCT.pdf,OvertureShortCourse.pdf,EliassonHenshawAppelo2008.pdf} $webPage/publications
+
+echo "Copy publications to $webPage/publications"
+cp publications/{henshawChandCHT2008.pdf,astronum08.pdf,DetSymp06Rev2.pdf,mfRXN.pdf,diffraction5sch.pdf,mfJWL.pdf} $webPage/publications
+
+cp publications/{henshawAMROG,mog2005,henshawMaxwell2006,henshawSchwendemanPOG2008}.pdf $webPage/publications
+
+cp publications/{NeumannWave.pdf,SIAM_CSE_2003.pdf,Rap2002.pdf,KPYWave2002.pdf} $webPage/publications
+
+cp publications/{HenshawKreissYstrom.pdf,henshawIMR10.pdf,henshawPetersson2001.pdf,autoGrid.pdf,cgicns.pdf,bcns.pdf,insdiv.pdf} $webPage/publications
+
+cp publications/{aiaa02Henshaw.pdf,nggcfs2002Henshaw.pdf,reactamr.pdf,automg.pdf,henshawNggcfs05.pdf} $webPage/publications
+
+cp publications/{BCMIIJCP.pdf,UCRL-JC-144037DBrown.pdf,underIIJCP.pdf,SPP97.pdf} $webPage/publications 
+cp publications/{HPC98.pdf,godunov.pdf} $webPage/publications 
+
+cp publications/{PeterssonAlgorithm.pdf,PeterssonChandIMR10.pdf,PeterssonGridOpt.pdf} $webPage/publications 
+cp publications/{PeterssonHoleCutting.pdf,PeterssonNSBC.pdf,DirichletWave.pdf} $webPage/publications 
+
+cp publications/{hybrid_mesh,using_mappings}.pdf $webPage/publications
+cp publications/{chandCSE05,kchand.overset04,K.Chand.Optimization}.pdf $webPage/publications
+cp publications/{TSTT_ACTS_Sept_02,ACTS_Sept_02,TSTT-hawaii}.pdf $webPage/publications
+
+echo "done"
+exit
+

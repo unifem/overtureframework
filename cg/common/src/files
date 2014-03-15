@@ -1,0 +1,69 @@
+SRC_FILES += Controller.C userDefinedMaterialProperties.C
+SRC_FILES += GridMaterialProperties.C bodyForcing.C defineVariableBoundaryValues.C FluidPiston.C 
+SRC_FILES += boundaryConditionPredictor.C Parameters.C readFromAShowFile.C ProbeInfo.C Moving.C getBounds.C LineSolve.C
+SRC_FILES += ProjectVelocity.C ogf.C boundaryDistance.C SurfaceEquation.C initialConditionsFromAProfile.C 
+SRC_FILES += memory.C chemistryPhoneyFiles.C applyFilter.C ExternalBoundaryData.C outputProbes.C
+
+SRC_FILES += FlowSolutions.C 
+
+#new files 
+SRC_FILES += setup.C initialConditions.C setBoundaryConditions.C solve.C setupPde.C timeSteppingDialog.C
+
+SRC_FILES +=  userDefinedInitialConditions.C  \
+              restart.C variableTimeStep.C saveShow.C move.C \
+             advanceSOS.C updateStateVariables.C turbulenceParameters.C tracking.C \
+             addGrids.C addArtificialDissipation.C \
+             project.C EquationDomain.C userDefinedOutput.C  \
+             userDefinedErrorEstimator.C userDefinedGrid.C userDefinedKnownSolution.C \
+             checkSolution.C setupGridFunctions.C update.C computeSteps.C getAugmentedSolution.C \
+             plot.C errors.C printTimeStepInfo.C edsUtil.C userDefinedForcing.C \
+             advanceSteps.C advanceStepsFE.C advanceStepsIM.C advanceStepsPC.C advanceFactored.C
+
+SRC_FILES += advanceEuler.C advancePC.C advance.C applyBoundaryConditions.C \
+             bcForcing.C userDefinedBoundaryValues.C ims.C advanceTrapezoidal.C \
+             advanceNewton.C timeStep.C steadyState.C Interface.C interfaceBoundaryConditions.C \
+             InterfaceTransfer.C AdvanceOptions.C
+
+SRC_FILES += DomainSolver.C AdamsPCData.C BoundaryData.C GridFunction.C 
+
+SRC_FILES += readOrBuildTheGrid.C ogenFunction.C GridFunctionFilter.C
+
+# fortran files the we always compile optimized
+FSRCO += updateOpt.f dfmin.f dfmin2.f zeroin.f getDivAndNorms.f setupArtDissLineSolve.f interfaceConditions.f cgFilter.f
+# fortran files the we always compile optimized and single precision
+FSRCSO += rotatingDiskSVK.f rotatingDiskInFluid.f
+
+COMMON_SRC := src
+
+# This next line causes trouble when compiling a distribution:
+# $(COMMON_SRC)/setupArtDissLineSolve.bf : $(COMMON_SRC)/defineDiffOrder2f.h $(COMMON_SRC)/defineDiffOrder4f.h
+# 				        touch $(COMMON_SRC)/setupArtDissLineSolve.bf
+
+# we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
+src/getDivAndNorms.f : src/getDivAndNorms.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/interfaceConditions.f : src/interfaceConditions.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/setupArtDissLineSolve.f : src/setupArtDissLineSolve.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/updateOpt.f : src/updateOpt.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/cgFilter.f : src/cgFilter.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/addGrids.C : src/addGrids.bC; $(BPP) -quiet -clean $<
+src/advance.C : src/advance.bC; $(BPP) -quiet -clean $<
+src/advanceEuler.C : src/advanceEuler.bC; $(BPP) -quiet -clean $<
+src/advancePC.C : src/advancePC.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
+src/advanceSOS.C : src/advanceSOS.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
+src/FlowSolutions.C : src/FlowSolutions.bC; $(BPP) -quiet -clean $<
+src/ims.C : src/ims.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean -I$(COMMON_SRC) $<
+src/saveShow.C : src/saveShow.bC; $(BPP) -quiet -clean $<
+src/advanceSteps.C : src/advanceSteps.bC; $(BPP) -quiet -clean $<
+src/advanceStepsFE.C : src/advanceStepsFE.bC; $(BPP) -quiet -clean $<
+src/advanceStepsIM.C : src/advanceStepsIM.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
+src/advanceStepsPC.C : src/advanceStepsPC.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
+src/advanceFactored.C : src/advanceFactored.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
+
+src/boundaryConditionPredictor.C : src/boundaryConditionPredictor.bC; $(BPP) -quiet -clean $<
+
+src/defineVariableBoundaryValues.C : src/defineVariableBoundaryValues.bC $(COMMON_SRC)/bodyForcingMacros.h; $(BPP) -quiet -clean $<
+
+src/bodyForcing.C : src/bodyForcing.bC $(COMMON_SRC)/bodyForcingMacros.h; $(BPP) -quiet -clean $<
+
+src/outputProbes.C : src/outputProbes.bC; $(BPP) -quiet -clean $<

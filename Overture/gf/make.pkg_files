@@ -1,0 +1,248 @@
+PKGDIR := $(OvertureCheckout)/gf
+
+STATIC_SRC_FILES += initOvertureGlobalVariables.C OvertureInit.C RapsodiInit.C memoryUsage.C
+
+SRC_FILES += getCPU.C conversion.C \
+	interpPoints.C InterpolatePointsOnAGrid.C \
+	GridFunctionParameters.C \
+	$(foreach p, double float int, $(addprefix $p, $(addsuffix Function.C,  GenericGridCollection MappedGrid GridCollection CompositeGrid)) ) \
+	Interpolant.C interpOpt.f interpOptFull.f interpOptTP.f interpOptSP.f initExplicitInterp.f \
+	InterpolatePoints.C  interpRefinements.C \
+	interpolateExposedPoints.C \
+	normOpt.f \
+	ExposedPoints.C gridFunctionNorms.C ArrayUtil.C \
+	second3.c App.C ParallelOverlappingGridInterpolator.C \
+        pogip.C findNearestValidGridPoint.C transferSolution.C
+
+#	second.f second1.f second2.f second3.c \
+
+L_HDRS := GridFunctionParameters.h \
+	$(foreach p, double float int Real Integer, $(addprefix $p, $(addsuffix Function.h, GenericGrid \
+		GenericGridCollection MappedGrid GridCollection \
+		GenericGrid GenericGridCollection MappedGrid GridCollection \
+		Grid CompositeGrid \
+		CompositeGrid)) ) \
+	$(addsuffix .h, Interpolant InterpolatePoints ExposedPoints \
+		conversion derivativeDefinitions gridFunctionNorms ) \
+	$(addsuffix Function.h, Grid CompositeGrid GenericGrid GenericGridCollection MappedGrid GridCollection) \
+	IndexArg.h \
+	interpPoints.h ArrayUtil.h \
+	OvertureInit.h App.h ParallelOverlappingGridInterpolator.h InterpolatePointsOnAGrid.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+#ExposedPoints.C: ExposedPoints.bC
+#	$(BPP) $<
+
+#interpOpt%.f: interpOpt.bf
+#	$(BPP) $<
+
+ifneq ($(fdbg),y)
+
+# these files are not found in this directory but compilation is specified in $Overture/GridFuncion/Makefile
+$(OBJDIR)coeff.o : coeff.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xFDeriv.o : xFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)yFDeriv.o : yFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)zFDeriv.o : zFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xxFDeriv.o : xxFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xyFDeriv.o : xyFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xzFDeriv.o : xzFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)yyFDeriv.o : yyFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)yzFDeriv.o : yzFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)zzFDeriv.o : zzFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)laplacianFDeriv.o  : laplacianFDeriv.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)initExplicitInterp.o : initExplicitInterp.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)interpOpt.o : interpOpt.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)interpOptFull.o : interpOptFull.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)interpOptTP.o : interpOptTP.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)interpOptSP.o : interpOptSP.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)dsg.o : dsg.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)dsg2.o : dsg2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)dsg3.o : dsg3.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)dsgr.o : dsgr.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)dsgc4.o : dsgc4.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)dsgc6.o : dsgc6.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)laplaceNC.o : laplaceNC.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)divScalarGradNC.o : divScalarGradNC.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xCoeff2.o : xCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)yCoeff2.o : yCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)zCoeff2.o : zCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xxCoeff2.o : xxCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xyCoeff2.o : xyCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)xzCoeff2.o : xzCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)yyCoeff2.o : yyCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)yzCoeff2.o : yzCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)zzCoeff2.o : zzCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)laplacianCoeff2.o  : laplacianCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)identityCoeff2.o : identityCoeff2.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)opcoeff.o : opcoeff.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)assignBoundaryConditions.o : assignBoundaryConditions.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)findInterpolationNeighbours.o : findInterpolationNeighbours.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)standardDerivative.o : standardDerivative.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $? 2> /dev/null >&2
+	@-echo "success"
+
+
+endif
+
+ifneq ($(BINDIR),)
+comp: $(BINDIR)comp
+phonies += comp
+endif
+
+$(BINDIR)comp: $(OV_LIB) $(OV_SLIB) $(OBJDIR)comp.o 
+	$(CXX) -o $@ $(OBJDIR)comp.o $(LIBS)
+

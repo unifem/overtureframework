@@ -1,0 +1,1301 @@
+// This file automatically generated from lastChance.bC with bpp.
+#include "Ogen.h"
+#include "Overture.h"
+#include "display.h"
+#include "conversion.h"
+#include "ParallelUtility.h"
+#include "CanInterpolate.h"
+
+static int numberOfLastChanceParallelWarnings=0;
+
+static const int ISneededPoint = CompositeGrid::ISreservedBit2;  // from Cgsh.h
+
+// Define a macro to index an A++ array with 3 dimensions *NOTE* a legal macro  --> #define MASK
+// #define DEF_ARRAY_MACRO_3D(int,mask,MASK) //   int * mask ## p = mask.Array_Descriptor.Array_View_Pointer2;//   const int mask ## Dim0=mask.getRawDataSize(0);//   const int mask ## Dim1=mask.getRawDataSize(1);// #define MASK(i0,i1,i2) mask ## p[i0+mask ## Dim0*(i1+mask ## Dim1*(i2))]
+
+// Macro to extract a local array with ghost boundaries
+//  type = int/float/double/real
+//  xd = distributed array
+//  xs = serial array 
+#ifdef USE_PPP
+  #define GET_LOCAL(type,xd,xs)type ## SerialArray xs; getLocalArrayWithGhostBoundaries(xd,xs)
+  #define GET_LOCAL_CONST(type,xd,xs)type ## SerialArray xs; getLocalArrayWithGhostBoundaries(xd,xs)
+#else
+  #define GET_LOCAL(type,xd,xs)type ## SerialArray & xs = xd
+  #define GET_LOCAL_CONST(type,xd,xs)const type ## SerialArray & xs = xd
+#endif
+
+#define  FOR_3(i1,i2,i3,I1,I2,I3)I1Base=I1.getBase(); I2Base=I2.getBase(); I3Base=I3.getBase();I1Bound=I1.getBound(); I2Bound=I2.getBound(); I3Bound=I3.getBound();for( i3=I3Base; i3<=I3Bound; i3++ )  for( i2=I2Base; i2<=I2Bound; i2++ )  for( i1=I1Base; i1<=I1Bound; i1++ )
+
+#define  FOR_3D(i1,i2,i3,I1,I2,I3)int I1Base,I2Base,I3Base;int I1Bound,I2Bound,I3Bound;I1Base=I1.getBase(); I2Base=I2.getBase(); I3Base=I3.getBase();I1Bound=I1.getBound(); I2Bound=I2.getBound(); I3Bound=I3.getBound();for( i3=I3Base; i3<=I3Bound; i3++ )  for( i2=I2Base; i2<=I2Bound; i2++ )  for( i1=I1Base; i1<=I1Bound; i1++ )
+
+#define FOR_3IJD(i1,i2,i3,I1,I2,I3,j1,j2,j3,J1,J2,J3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); int J1Base =J1.getBase(),   J2Base =J2.getBase(),  J3Base =J3.getBase();  for(i3=I3Base,j3=J3Base; i3<=I3Bound; i3++,j3++) for(i2=I2Base,j2=J2Base; i2<=I2Bound; i2++,j2++) for(i1=I1Base,j1=J1Base; i1<=I1Bound; i1++,j1++)
+
+
+
+// ===============================================================================================
+// Macro to check to see if points are needed: 
+// 
+// --- check to see whether this interpolation point is surrounded by only interpolation
+// points and exterior points. In this case we just don't use this point
+// ===============================================================================================
+
+
+// ======================================================================================================
+//
+/// \brief This routine is called for points that could not be interpolated when perhaps they
+///    should be able to.
+/// \details This routine will make several attempts to fix the situation including
+///   turning the point into a discretization point, reducing the width of interpolation
+///   or changing explicit interpolation into implicit interpolation.
+/// 
+/// \param grid (input) : interpolation points lie on this grid
+/// \param ia(i,0:nd-1) : a list of points to be checked. In parallel, each processor will have a different list.
+/// \param ok(i) (output) : ??
+/// \param interpolates(i) (output) : return true for points that could be fixed. 
+/// \param numberOfInvalidPoints (output) : number of points that could not be fixed.
+/// \param invalidPoint(i,0:nd-1) (output) : coordinates of the invalid points (for plotting?)
+/// \param printDiagnosticMessages (input) : bit flag for diagnostic output.
+/// \param lastChanceOption (input) : 0=default, -1: do not remove un-needed points at the start
+// 
+// Notes:
+// This point could not be interpolated. Let's go back and try again. The problem could be
+// one of the following:
+//   1. A point that can no longer interpolate but that can be used as a discretization point
+//   2. An interior point of a grid that is deemed inside the grid by the hole-cutting alogirhtm
+//      but outside the grid by the inverseMap -- in this case declare the point to be inside.
+// 
+// ???? 3. A boundary point at the intersection of a non-conforming grid -- in this case declare
+//      the point to be a boundary point (no longer interpolated).
+//
+//  This routine will attempt to interpolate by changing the interpolation parameters:
+//   A) For explicit interpolation:
+//     1) reduce the width of the interpolation stencil by 1
+//     2) change from explicit to implicit interp. if explicit interpolation has been requested.
+//     
+//   B) For implicit interpolation:
+//     2) reduce the minimum overlap 
+//
+// /iv (input) : the index of the point
+// /printDiagnosticMessages (input) : if outputOption=1 then it is assumed that the overlap algorithm has failed
+//    and we are simply printing diagnostic messages.
+//
+// ======================================================================================================
+int Ogen::
+lastChanceInterpolation(CompositeGrid & cg, 
+                                                CompositeGrid& cg0,
+                  			const int & grid,
+                  			const IntegerArray & ia,
+                                                const IntegerArray & ok,
+                                                intSerialArray & interpolates,
+                                                int & numberOfInvalidPoints,
+                                                realSerialArray & invalidPoint,
+                                                const int & printDiagnosticMessages, /* = false */
+                                                const bool & tryBackupRules /* = false */,
+                                                const bool saveInvalidPoints /* = true */,
+                  			int lastChanceOption /* = 0 */  )
+{
+
+    MappedGrid & c = cg[grid];
+    const int numberOfBaseGrids=cg.numberOfBaseGrids();
+    const int & numberOfDimensions = c.numberOfDimensions();
+
+    Mapping & map = c.mapping().getMapping();
+  // const realArray & center = c.center();
+    intArray & inverseGridd = cg.inverseGrid[grid];
+    realArray & rId = cg.inverseCoordinates[grid];
+    intArray & maskd = c.mask();
+    const bool isRectangular = c.isRectangular();
+
+    GET_LOCAL(int,maskd,mask);
+    GET_LOCAL(int,inverseGridd,inverseGrid);
+    GET_LOCAL(real,rId,rI);
+
+    #ifdef USE_PPP
+        realSerialArray center; if( !isRectangular ) getLocalArrayWithGhostBoundaries(c.center(),center);
+    #else
+        const realSerialArray & center = c.center();
+    #endif
+
+    
+    real dvx[3]={1.,1.,1.}, xab[2][3]={{0.,0.,0.},{0.,0.,0.}};
+    int iv0[3]={0,0,0}; //
+    if( isRectangular )
+    {
+        c.getRectangularGridParameters( dvx, xab );
+        for( int dir=0; dir<numberOfDimensions; dir++ )
+        {
+            iv0[dir]=c.gridIndexRange(0,dir);
+            if( c.isAllCellCentered() )
+      	xab[0][dir]+=.5*dvx[dir];  // offset for cell centered
+        }
+            		
+    }
+    #define XC0(i1,i2,i3) (xab[0][0]+dvx[0]*(i1-iv0[0]))
+    #define XC1(i1,i2,i3) (xab[0][1]+dvx[1]*(i2-iv0[1]))
+    #define XC2(i1,i2,i3) (xab[0][2]+dvx[2]*(i3-iv0[2]))
+    #define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+
+    #define XVC(i,dir) (xab[0][dir]+dvx[dir]*(i-iv0[dir]))
+
+    int numberToCheck = ia.getLength(0);
+    int iv[3] = {0,0,0}; 
+//   for( int dir=0; dir<numberOfDimensions; dir++ )
+//   {
+//     iv[dir]=ia(0,dir);
+//   }
+    
+
+
+    if( debug & 2 || printDiagnosticMessages )
+    {
+        for( int i=0; i<numberToCheck; i++ )
+        {
+            fprintf(plogFile,"lastChance:INFO: trying to fix: unable to interpolate point i=%i (i1,i2,i3)=(%i,%i,%i) "
+                            "on grid=%i [%s]\n",i,ia(i,0),ia(i,1),ia(i,2),grid,(const char *)c.mapping().getName(Mapping::mappingName));
+        }
+    }
+    
+
+//   if( grid==10 && iv[0]==0 && iv[1]==18 && iv[2]==11 )
+//   {
+//     aString ans;
+//     cout << "Inside lastChance\n";
+//     cin >> ans;
+//   }
+    
+
+
+    int numLeftToCheck = numberToCheck;
+    int totalNumLeftToCheck;
+    
+    if( lastChanceOption != -1 )
+    {
+        
+    // *********************************************************************
+    // ********Check to see if the point is really needed  *****************
+    // *********************************************************************
+    // -- 2011/07/12 : this check was moved here from below (required since we now check many points at once)
+        int numNotNeeded=0;
+    // checkIfNeededMacro(ia,numNotNeeded);
+        numLeftToCheck = numberToCheck -numNotNeeded;
+
+
+    // *********************************************************************************
+    // ********Check to see if the point can be a discretization point *****************
+    // *********************************************************************************
+        int numCanDiscretize=0;
+        for( int i=0; i<numberToCheck; i++ )
+        {
+            if( !interpolates(i) )
+            {
+      	iv[0]=ia(i,0); iv[1]=ia(i,1); iv[2]=ia(i,2); 
+        
+      	if( canDiscretize(c, iv) )
+      	{
+        	  if( debug & 2 )
+          	    fprintf(plogFile,"    point %i iv=(%i,%i,%i) on grid=%i can be discretized. \n",i,iv[0],iv[1],iv[2],grid);
+        	  mask(iv[0],iv[1],iv[2])=MappedGrid::ISdiscretizationPoint;
+
+        	  inverseGrid(iv[0],iv[1],iv[2]) = -1;   
+        	  interpolates(i)=true;
+        	  numCanDiscretize++;
+      	}
+            }
+        }
+    
+        numLeftToCheck= numLeftToCheck - numCanDiscretize;
+        totalNumLeftToCheck=ParallelUtility::getSum(numLeftToCheck);
+    
+        if( totalNumLeftToCheck==0 ) 
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        totalNumLeftToCheck=ParallelUtility::getSum(numLeftToCheck);
+    }
+    
+
+  // *wdh* 110620 -- we do better here now
+// #ifdef USE_PPP
+//   if( true )  // put this here until we finish the rest for parallel
+//   {
+//     if( numberOfLastChanceParallelWarnings<5 )
+//     {
+//       numberOfLastChanceParallelWarnings++;
+//       printF("lastChanceInterpolation::Not fully implemented yet for parallel. Skip canInterpolate portion...\n");
+//     }
+        
+//     return 0;
+//   }
+// #endif  
+
+    
+  // -- make a list of the points that cannot interpolate ----
+  //  ib(j,0:2) = sub-set of ia(i,0:2) of pts that cannot interpolate
+  //  ja(j) : index back to the original ib list: ia(ja(j),0:2) ==  ib(j,0:2)
+    IntegerArray ib, ja;
+    if( numLeftToCheck>0 ) 
+    {
+        ib.redim(numLeftToCheck,3);
+        ja.redim(numLeftToCheck);
+    }
+    
+    int j=0;
+    for( int i=0; i<numberToCheck; i++ )
+    {
+        if( !interpolates(i) )
+        {
+            ja(j)=i; // index back into the original list of points :  ia(ja(j),0:2) ==  ib(j,0:2) 
+            ib(j,0)=ia(i,0); ib(j,1)=ia(i,1); ib(j,2)=ia(i,2);
+            j++;
+        }
+    }
+    assert( j==numLeftToCheck );
+
+    numberToCheck=numLeftToCheck;  // update this value
+    int totalNumberToCheck=totalNumLeftToCheck;  // for all processors in parallel
+
+  // x(j,0:2) : physical coordinates of the point j
+  // r(j,0:2) : inverse coordinates on a given donor grid
+  // rr(j,0:2) : projected r values (perhaps projected onto a boundary)
+    RealArray x, r, rr;
+    IntegerArray useBackupRules, cgInterpolates;
+    if( numberToCheck>0 )
+    {
+        x.redim(numberToCheck,3);
+        r.redim(numberToCheck,3);
+        rr.redim(numberToCheck,3); // projected value 
+        useBackupRules.redim(numberToCheck);
+        cgInterpolates.redim(numberToCheck);
+        
+        r=-1.;  rr=-1.; x=0.;
+        useBackupRules=tryBackupRules;
+    }
+    
+    Range Rx(0,numberOfDimensions-1);
+    if( printDiagnosticMessages )
+    {
+    // **** is this next section needed ?? ****
+        if( !isRectangular )
+        {
+          #ifndef USE_PPP
+            for( int i=0; i<numberToCheck; i++ )
+            {
+        	for( int axis=0; axis<numberOfDimensions; axis++ )
+                  x(i,axis)=center(ib(i,0),ib(i,1),ib(i,2),axis);
+            }
+          #else
+      // In Parallel - evaluate the mapping
+            for( int i=0; i<numberToCheck; i++ )
+            {
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  r(i,axis) = (ib(i,axis)-c.gridIndexRange(0,axis))*c.gridSpacing(axis);
+      	}
+            }
+            map.mapS(r,x);
+          #endif
+        }
+        else
+        {
+            for( int i=0; i<numberToCheck; i++ )
+            {
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+        	  x(i,axis)=XVC(ib(i,axis),axis);
+            }
+        }
+        for( int i=0; i<numberToCheck; i++ )
+        {
+            fprintf(plogFile,"\nlastChanceInterp:ERROR: unable to interpolate a point on grid=%s, i=%i (i1,i2,i3)=(%i,%i,%i), "
+            	      " x=(%10.3e,%10.3e,%10.3e) \n",
+            	      (const char *)c.mapping().getName(Mapping::mappingName),i,ib(i,0),ib(i,1),ib(i,2),x(i,0),x(i,1),x(i,2));
+        }
+    }
+
+
+  // *************************************************
+  // **** Try to interpolate from any other grid  ****
+  // *************************************************
+
+    for( int g=1; g<numberOfBaseGrids; g++ )
+    {
+    // check highest priority grids first:
+        int grid2 = numberOfBaseGrids-g;
+        if( grid2<=grid )
+            grid2--;
+        	  
+        if( !cg0.mayInterpolate(grid,grid2,0) ) continue;
+
+        MappedGrid & g2 = cg[grid2];
+        Mapping & map2 = g2.mapping().getMapping();
+        if( debug & 2 )
+            fprintf(plogFile,"lastChanceInterp:try to interpolate from grid2=%s \n",
+                            (const char*)map2.getName(Mapping::mappingName));
+
+        if( map.intersects(map2,-1,-1,-1,-1,.1) )
+        {
+      // try to interpolate from grid2...
+
+            Range R;
+            if( numberToCheck>0 )
+            {
+      	R=numberToCheck;
+      	if( numberToCheck!=x.getLength(0) )
+      	{
+        	  R=numberToCheck;
+        	  x.redim(numberToCheck,3);
+        	  r.redim(numberToCheck,3);
+        	  rr.redim(numberToCheck,3); // projected value 
+        	  useBackupRules.redim(numberToCheck);
+        	  cgInterpolates.redim(numberToCheck);
+          // r=-1.;  rr=-1.; x=0.;
+                    rr=-1.; x=0.;
+                    useBackupRules=tryBackupRules;
+      	}
+
+            }
+            else if( x.getLength(0)>0 )
+            {
+      	x.redim(0); r.redim(0); rr.redim(0); useBackupRules.redim(0); cgInterpolates.redim(0);
+            }
+            
+
+      // --- evaluate the x-coordinates of the remaining points to check ---
+            if( !isRectangular )
+            {
+              #ifndef USE_PPP
+      	for( int i=0; i<numberToCheck; i++ )
+      	{
+        	  for( int axis=0; axis<numberOfDimensions; axis++ )
+          	    x(i,axis)=center(ib(i,0),ib(i,1),ib(i,2),axis);
+      	}
+              #else
+        // In Parallel - evaluate the mapping -- we should maybe do this once at the top!
+                for( int i=0; i<numberToCheck; i++ )
+                {
+            	  for( int axis=0; axis<numberOfDimensions; axis++ )
+        	  {
+          	    r(i,axis) = (ib(i,axis)-c.gridIndexRange(0,axis))*c.gridSpacing(axis);
+        	  }
+                }
+                map.mapS(r,x);
+              #endif
+            }
+            else
+            {
+      	for( int i=0; i<numberToCheck; i++ )
+      	{
+        	  for( int axis=0; axis<numberOfDimensions; axis++ )
+          	    x(i,axis)=XVC(ib(i,axis),axis);
+      	}
+            }
+
+      // -- invert the points ---
+            if( totalNumberToCheck>0 )
+            {
+                if( ib.getLength(0)!=numberToCheck )
+      	{ // adjustBoundary looks at ib for the number of points to check -- we could pass numberToCheck?
+        	  if( numberToCheck>0 )
+                        ib.resize(numberToCheck,3);
+                    else
+                        ib.redim(0);
+      	}
+      	
+
+                if( useBoundaryAdjustment )
+            	  adjustBoundary(cg,grid,grid2,ib,x ); 
+
+                r=-1.; // 2012/04/19 -- r=-1. => no initial guess
+                #ifdef USE_PPP
+                    map2.inverseMapS(x,r);  
+                #else
+                    map2.inverseMap(x,r);
+                #endif
+            }
+            
+      // -- compute projected r values 
+      // If the r values are outside [0,1] but within [-eps1,1+eps2] where eps1 and eps2 
+      // are determined by the shared boundary tolerance then project r back into [0,1]
+            const RealArray & shareTol = g2.sharedBoundaryTolerance();
+            for( int i=0; i<numberToCheck; i++ )
+            {
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  rr(i,axis)=r(i,axis);
+        	  if( rr(i,axis)<0. && rr(i,axis)>= -shareTol(Start,axis)*g2.gridSpacing()(axis) )
+          	    rr(i,axis)=0.;
+        	  else if( rr(i,axis)>1. && rr(i,axis)<= 1.+shareTol(End,axis)*g2.gridSpacing()(axis) )
+          	    rr(i,axis)=1.; 
+      	}
+      	cgInterpolates(i)=true; // this tells canInterpolate to check this point
+            }
+
+            const int k1=cg.gridNumber(grid), k2=cg.gridNumber(grid2);
+      // ** reduce interpolationWidth(.,k1,k2,l) and interpolationOverlap(.,k1,k2,l)
+      //    ** if this works we need to somehow remember what we did ****
+            const int width=cg0.interpolationWidth(0,k1,k2,0);
+            const real ov = cg0.interpolationOverlap(0,k1,k2,0);
+            
+            const int l =0;  // *** multigrid level **** fix this
+            if( !cg0.interpolationIsImplicit(k1,k2,l) )
+            {
+        // if explicit interpolation first try to reduce the width by 1
+        	cg0.interpolationWidth(Rx,k1,k2,0)=width-1;
+      	cg0.interpolationOverlap(Rx,k1,k2,0)-=.5;  
+            }
+            else
+            {
+        // if implicit interpolation, reduce the minimum overlap, 
+      	cg0.interpolationOverlap(Rx,k1,k2,0)=max(.25,cg0.interpolationOverlap(Rx,k1,k2,0)-.25);
+        	cg0.interpolationWidth(Rx,k1,k2,0)=width-1; // also reduce interp width *wdh* 000829
+            }
+
+      // -- determine if the point x with inverse coordinates rr can interpolate from this donor grid --
+            #ifdef USE_PPP
+              checkCanInterpolate(cg0, k1,k2, numberToCheck, rr, cgInterpolates, useBackupRules);
+            #else
+              cg0.rcData->canInterpolate(k1,k2, rr, cgInterpolates, useBackupRules, checkForOneSided );
+            #endif
+
+
+            for( int i=0; i<numberToCheck; i++ )
+            {
+                iv[0]=ib(i,0); iv[1]=ib(i,1); iv[2]=ib(i,2);
+      	interpolates(ja(i))=cgInterpolates(i);
+
+      	if( cgInterpolates(i) )
+      	{
+        	  if( cg0.interpolationWidth(0,k1,k2,0) < width )
+        	  {
+                        if( debug & 2 )
+          	    {
+            	      printf("lastChanceInterp: myid=%i: grid=%i (%s) pt (%i,%i,%i) reduced interp width to %i from grid2=%i (%s)\n",
+                 		     myid,grid,(const char*)c.getName(),iv[0],iv[1],iv[2],width-1,grid2,(const char*)g2.getName());
+            	      fprintf(plogFile,
+                  		      "lastChanceInterp: grid=%i (%s) pt (%i,%i,%i) reduced interp width to %i from grid2=%i (%s)\n",
+                  		      grid,(const char*)c.getName(),iv[0],iv[1],iv[2],width-1,grid2,(const char*)g2.getName());
+            	      fprintf(plogFile,"     : r=(%8.2e,%e.2e,%8.2e)\n",rr(i,0),rr(i,1),rr(i,2));
+          	    }
+          	    
+        	  }
+        	  else
+        	  {
+          	    if( debug & 2 )
+          	    {
+            	      fprintf(plogFile,"lastChanceInterpolation: myid=%i: grid=%i, pt (%i,%i,%i) reduced "
+                  		      "overlap to %6.2f from grid2=%i\n",
+                  		      myid,grid,iv[0],iv[1],iv[2],cg0.interpolationOverlap(0,k1,k2,0),grid2);
+          	    }
+          	    
+        	  }
+      	
+        	  mask(iv[0],iv[1],iv[2]) |= MappedGrid::USESbackupRules;  // this means we used backup rules.
+
+        	  if( !backupValuesUsed(grid) )
+        	  {
+          	    backupValuesUsed(grid)=1;
+          	    backupValues[grid].redim(mask); backupValues[grid]=0;
+        	  }
+        	  backupValues[grid](iv[0],iv[1],iv[2])=cg.interpolationWidth(axis1,grid,grid2,0);  // mg level ****
+
+          // *wdh* 110620 - put this here 
+        	  inverseGrid(iv[0],iv[1],iv[2]) = grid2;   
+        	  for( int axis=0; axis<numberOfDimensions; axis++ )
+          	    rI(iv[0],iv[1],iv[2],axis)=rr(i,axis);    // *wdh* 2012/00/19 rr(0,axis) wrong
+
+      	}
+      	else
+      	{
+        	  fprintf(plogFile,
+              		  "lastChanceInterp: grid=%i (%s) i=%i pt (%i,%i,%i) COULD NOT interp with reduced interp width %i"
+              		  " from grid2=%i (%s)\n",
+              		  grid,(const char*)c.getName(),ja(i),iv[0],iv[1],iv[2],width-1,grid2,(const char*)g2.getName());
+        	  fprintf(plogFile,"     : r=(%8.2e,%e.2e,%8.2e)\n",rr(i,0),rr(i,1),rr(i,2));
+      	}
+      	
+            }
+
+      // make a compressed list of points still to check
+            int j=0;
+            for( int i=0; i<numberToCheck; i++ )
+            {
+      	if( !cgInterpolates(i) )
+        	{
+          	  if( i!=j )
+          	  {
+            	    ib(j,0)=ib(i,0); ib(j,1)=ib(i,1); ib(j,2)=ib(i,2);
+          	    ja(j)=ja(i);
+                        for( int axis=0; axis<3; axis++ )
+          	    {
+                            r(j,axis)=r(i,axis);
+                            rr(j,axis)=rr(i,axis);
+                            x(j,axis)=x(i,axis);
+            	    }
+          	  }
+                    cgInterpolates(j)=true;  // this tells canInterpolate to check this point
+          	  j++;
+        	}
+            }
+            numberToCheck=j;  // new number to check 
+            totalNumberToCheck=ParallelUtility::getSum(numberToCheck);
+
+      // reset:
+            cg0.interpolationWidth(Rx,k1,k2,0)=width; 
+            cg0.interpolationOverlap(Rx,k1,k2,0)=ov;
+
+            if( totalNumberToCheck==0 ) // note: in parallel we must only stop if all processors are done
+                break;  // we are done
+
+
+       // --- this section below does not look correct for multiple points! -- we need to re-assign rr and consider
+       //     all points that still need to be checked!!  *wdh* 110620
+
+//       #ifdef USE_PPP 
+//        if( numberOfLastChanceParallelWarnings<5 )
+//        {
+//          numberOfLastChanceParallelWarnings++;
+//          printF("lastChanceInterpolation::Not fully implemented yet for parallel. Skip check implicit portion...\n");
+//        }
+//        continue; // ***********
+              
+//       #endif
+
+
+            if( totalNumberToCheck>0 )
+            {
+	// --- try again.. make interpolation implicit ---
+
+      	if( !cg0.interpolationIsImplicit(k1,k2,l) ) // AAAAAAAAAAAAAAAAAAAAAAA
+      	{
+        	  cg0.interpolationWidth(Rx,k1,k2,0)=width; // reset
+        	  cg0.interpolationOverlap(Rx,k1,k2,0)=ov;
+
+        	  const int l=0;  // **** multigrid level ****
+        	  for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+        	  {
+          	    int m21 = g2.extendedIndexRange(1,axis) - g2.extendedIndexRange(0,axis) + 1;
+          	    cg.interpolationWidth(axis,grid,grid2,l) = min(cg.interpolationWidth(axis,grid,grid2,l), m21);
+
+	    // if the user has specified a new min overlap, it is saved in cg.backupInterpolationConditionLimit
+          	    cg.interpolationOverlap(axis,grid,grid2,l)=.5;  // default min overlap
+
+          	    int widthImplicit = max(cg.interpolationWidth(axis,grid,grid2,l),g2.discretizationWidth(axis)) - 2;
+          	    
+          	    cg.interpolationOverlap(axis,grid,grid2,l) =
+            	      min(  max(cg.interpolationOverlap(axis,grid,grid2,l), .5*widthImplicit ), .5*(m21 - 2));
+        	  }
+      	
+	  // cg0.interpolationWidth(Rx,k1,k2,0)=widthImplicit;
+	  // cg0.interpolationOverlap(Rx,k1,k2,0)=widthImplicit*.5;
+            
+	  //  printf("lastChanceInterpolation: try implicit for grid=%i, grid2=%i (k1=%i,k2=%i) ov=%e\n",
+	  //     grid,grid2,k1,k2,cg.interpolationOverlap(axis1,grid,grid2,l));
+
+        	  Range R, R3=3;
+        	  if( numberToCheck>0 )
+        	  {
+          	    R=numberToCheck;
+        	  }
+        	  
+	  // cgInterpolates(R)=true;
+                    #ifdef USE_PPP
+                      checkCanInterpolate(cg0, k1,k2, numberToCheck, rr, cgInterpolates, useBackupRules );
+                    #else
+         	   cg0.rcData->canInterpolate(k1,k2, rr(R,R3), cgInterpolates(R), useBackupRules(R), checkForOneSided );
+                    #endif
+
+          // --- check which points can now interpolate ---
+                    j=0;
+        	  for( int i=0; i<numberToCheck; i++ )
+        	  {
+          	    iv[0]=ib(i,0); iv[1]=ib(i,1); iv[2]=ib(i,2);
+          	    if( cgInterpolates(i) )
+          	    {
+            	      if( debug & 1 )
+            	      {
+            		printf("lastChanceInterpolation: grid=%i, i=%i pt (%i,%i,%i) changed to implicit, width=%i, grid2=%i\n",
+                   		       grid,ja(i),iv[0],iv[1],iv[2],cg.interpolationWidth(axis1,grid,grid2,l),grid2);
+            		fprintf(plogFile,"lastChanceInterpolation: grid=%i, i=%i pt (%i,%i,%i) changed to "
+                  			"implicit, width=%i, grid2=%i\n",grid,ja(i),iv[0],iv[1],iv[2],
+                  			cg.interpolationWidth(axis1,grid,grid2,l),grid2);
+            	      }
+            	      
+            	      mask(iv[0],iv[1],iv[2]) |= MappedGrid::USESbackupRules;  // this means we used a width of one less.
+            	      if( !backupValuesUsed(grid) )
+            	      {
+            		backupValues[grid].redim(mask); backupValues[grid]=0;
+            	      }
+            	      backupValuesUsed(grid)=-1;   // -1 means implicit interpolation used.
+            	      backupValues[grid](iv[0],iv[1],iv[2])=-cg.interpolationWidth(axis1,grid,grid2,l);
+
+            	      inverseGrid(iv[0],iv[1],iv[2]) = grid2;   
+            	      for( int axis=0; axis<numberOfDimensions; axis++ )
+            		rI(iv[0],iv[1],iv[2],axis)=rr(i,axis);  
+
+                            interpolates(ja(i))=true;
+            	      
+          	    }
+          	    else
+          	    {
+            	      if( debug & 1 )
+            	      {
+            		printf("lastChanceInterpolation: grid=%i, i=%i pt (%i,%i,%i) NOT changed to implicit, width=%i, grid2=%i\n",
+                   		       grid,ja(i),iv[0],iv[1],iv[2],cg.interpolationWidth(axis1,grid,grid2,l),grid2);
+            		fprintf(plogFile,"lastChanceInterpolation: grid=%i, i=%i pt (%i,%i,%i) NOT changed to "
+                  			"implicit, width=%i, grid2=%i\n",grid,ja(i),iv[0],iv[1],iv[2],
+                  			cg.interpolationWidth(axis1,grid,grid2,l),grid2);
+            	      }
+
+              // make a compressed list
+            	      if( i!=j )
+            	      {
+            		ib(j,0)=ib(i,0); ib(j,1)=ib(i,1); ib(j,2)=ib(i,2);
+            		ja(j)=ja(i);
+            		for( int axis=0; axis<3; axis++ )
+            		{
+              		  r(j,axis)=r(i,axis);
+              		  rr(j,axis)=rr(i,axis);
+              		  x(j,axis)=x(i,axis);
+            		}
+            		cgInterpolates(j)=true;  // this tells canInterpolate to check this point
+            	      }
+            	      j++;
+
+          	    }
+          	    
+        	  } // end for i 
+        	  
+        	  numberToCheck=j;  // new number to check 
+        	  totalNumberToCheck=ParallelUtility::getSum(numberToCheck);
+
+      	} // end if AAAA
+            
+            } // end if( totalNumberToCheck>0 )
+            
+        	  
+            cg0.interpolationWidth(Rx,k1,k2,0)=width; // reset
+            cg0.interpolationOverlap(Rx,k1,k2,0)=ov;
+
+      // this next was moved above
+//       if( interpolates(0) )
+//       {
+// 	inverseGrid(iv[0],iv[1],iv[2]) = grid2;   
+// 	for( int axis=0; axis<numberOfDimensions; axis++ )
+// 	  rI(iv[0],iv[1],iv[2],axis)=rr(0,axis);  
+
+//         break;  // *******************
+//       }
+            
+            
+            if( totalNumberToCheck==0 )
+            {
+                break;
+            }
+            
+
+            if( debug & 2 && !printDiagnosticMessages)
+            {
+      	for( int i=0; i<numberToCheck; i++ ) // *wdh* 110625 - these loops added -- check me 
+      	{
+        	  fprintf(plogFile,"Try to interpolate from grid=%s, interpolate=%i, r=(%6.2e,%6.2e,%6.2e)",
+              		  (const char*)map2.getName(Mapping::mappingName),interpolates(0),r(i,0),r(i,1),r(i,2));
+        	  if( max(fabs(r(i,Rx)-rr(i,Rx)))>REAL_EPSILON )
+          	    fprintf(plogFile,", r[projected]=(%6.2e,%6.2e,%6.2e)\n",rr(i,0),rr(i,1),rr(i,2));
+        	  else
+          	    fprintf(plogFile,"\n");
+      	}
+      	
+            }
+            
+            if( false ) // ** 2011/06/25 -- TURN THIS OFF -- This needs to be fixed anyway -- compress the list
+            {
+      	for( int i=0; i<numberToCheck; i++ ) // *wdh* 110625 - these loops added -- check me 
+      	{
+        	  iv[0]=ib(i,0); iv[1]=ib(i,1); iv[2]=ib(i,2);
+        	  if( !printDiagnosticMessages && !cgInterpolates(i) && tryBackupRules )
+        	  {
+	    // **note** if the point is outside all grids then why wasn't it removed by hole cutting? A: Maybe
+	    // the hole cutting was turned off.
+                
+	    // ***** really should find the best grid to interpolate from!
+          	    if(  !cg.mayCutHoles(grid2,grid) &&  max(fabs(rr(i,Rx)-.5)) > .5001 && max(fabs(rr(i,Rx)-.5)) < 1. )
+          	    {
+            	      fprintf(plogFile,"\nERROR: unable to interpolate a point on grid=%s, (i1,i2,i3)=(%i,%i,%i), "
+                  		      " x=(%10.3e,%10.3e,%10.3e) \n",
+                  		      (const char *)c.mapping().getName(Mapping::mappingName),iv[0],iv[1],iv[2],x(i,0),x(i,1),x(i,2));
+            	      fprintf(plogFile," from grid %s...failed because the point is outside the grid. "
+                  		      "*NOTE* this grid does not cut holes\n",(const char*)map2.getName(Mapping::mappingName)); 
+
+            	      for( int axis=0; axis<numberOfDimensions; axis++ )
+            		rr(i,axis)=max(0.,min(1.,rr(i,axis)));  // project onto the boundary
+            	      cgInterpolates(i)=true;
+                    
+	      //  cg0.rcData->canInterpolate(cg.gridNumber(grid),cg.gridNumber(grid2), rr, interpolates, useBackupRules, 
+	      //                       checkForOneSided );
+
+            	      if( cgInterpolates(i) )
+            	      {
+            		interpolates(ja(i))=true;
+            		inverseGrid(iv[0],iv[1],iv[2]) = grid2;   
+            		for( int axis=0; axis<numberOfDimensions; axis++ )
+              		  rI(iv[0],iv[1],iv[2],axis)=rr(i,axis);  
+            		fprintf(plogFile,
+                  			"The interpolation failed but the point is near a boundary of a grid that does not cut holes.\n"
+                  			"You may have turned off hole cutting when you shouldn't have. "
+                  			"As a last resort I am going to allow interpolation (i.e. extrapolation).\n");
+            	      }
+          	    }
+        	  }
+      	} // end if for( i ...
+            }
+            
+
+//       if( totalNumberToCheck>1 )
+//       {
+// 	printF("lastChance:ERROR: FINISH this section for multiple LAST chance points totalNumberToCheck=%i ---\n",
+//                     totalNumberToCheck);
+// 	OV_ABORT("error");
+//       }
+
+      // printDiagnosticsMacro();
+       // =======================================
+       // ====== Start printing diagnostics =====
+       // =======================================
+              if( printDiagnosticMessages )
+              {
+                  real xvc[3]={0.,0.,0.}; //
+                  for( int i=0; i<numberToCheck; i++ )
+                  {
+                      if( !isRectangular )
+                      {
+                          for( int dir=0; dir<numberOfDimensions; dir++ )
+                   	 xvc[dir]=center(ib(i,0),ib(i,1),ib(i,2),dir);
+                      }
+                      else
+                      {
+                          for( int dir=0; dir<numberOfDimensions; dir++ )
+                   	 xvc[dir]=XVC(ib(i,dir),dir);
+                      }
+                      fprintf(plogFile,"Try to interp from grid=%s, r=(%6.2e,%6.2e,%6.2e) x=(%e,%e,%e) xp=(%e,%e,%e) "
+                                      "ba=(%8.2e,%8.2e,%8.2e)\n",
+                       	     (const char*)map2.getName(Mapping::mappingName),
+                       	     r(i,0),r(i,1),r(i,2),
+                       	     xvc[0],xvc[1],xvc[2],
+                       	     x(i,0),x(i,1),x(i,2), 
+                       	     xvc[0]-x(0,0),
+                       	     xvc[1]-x(0,1),
+                       	     xvc[2]-x(0,2));
+                      if( max(fabs(r(i,Rx)-rr(i,Rx)))>REAL_EPSILON )
+                          fprintf(plogFile,", r[projected]=(%6.2e,%6.2e,%6.2e)\n",rr(i,0),rr(i,1),rr(i,2));
+                      else
+                          fprintf(plogFile,"\n");
+                      if( max(fabs(rr(i,Rx)-.5)) > .5001 )
+                      {
+                          fprintf(plogFile," ...failed because the point is outside the grid \n");
+                      }
+                      else
+                      {
+             // get interpolation stencil and check mask points
+                          real ri[3]; ri[0]=rr(i,0); ri[1]=rr(i,1); ri[2]=rr(i,2);
+                          int stencil[3][2];
+                          computeInterpolationStencil(cg,grid,grid2,ri,stencil);
+                          const intArray & mask2 = g2.mask();
+                          int reasonForFailure=0;
+                          const int l=0; // multigrid level
+                          bool interpolationIsExplicit = !cg.interpolationIsImplicit(grid,grid2,l);
+                          fprintf(plogFile," mask =");
+                          const real cellCenterederedOffset=g2.isAllCellCentered()? .5 : 0.;
+                          int sv[3], &s1=sv[0], &s2=sv[1], &s3=sv[2];
+                          const real minimumOverlap=.5000001;  // *********************************************** fix this ******
+                          real actualOverlap=minimumOverlap*2.;
+                          if( stencil[0][0]<mask2.getBase(0) || stencil[0][1]>mask2.getBound(0) ||
+                                  stencil[1][0]<mask2.getBase(1) || stencil[1][1]>mask2.getBound(1) ||
+                                  stencil[2][0]<mask2.getBase(2) || stencil[2][1]>mask2.getBound(2) )
+                          {
+                              printF("lastChance:ERROR: stencil found on grid2=%i is invalid! ri=(%e,%e,%e). Maybe nan's ??\n",grid2,ri[0],ri[1],ri[2]);
+                              fprintf(plogFile,"lastChance:ERROR: stencil found on grid2=%i is invalid! ri=(%e,%e,%e). Maybe nan's ??\n",grid2,ri[0],ri[1],ri[2]);
+                          }
+                          else
+                          {
+                   	 for( s3=stencil[2][0]; s3<=stencil[2][1]; s3++ )
+                     	   for( s2=stencil[1][0]; s2<=stencil[1][1]; s2++ )
+                       	     for( s1=stencil[0][0]; s1<=stencil[0][1]; s1++ )
+                       	     {
+                         	       fprintf(plogFile,"[%i]", mask2(s1,s2,s3)==0 ? 0 :  
+                               		       (mask2(s1,s2,s3)& MappedGrid::ISinterpolationPoint ? -1 : 1));
+                         	       if( mask2(s1,s2,s3)==0 )
+                         	       {
+                         		 reasonForFailure|=1;
+      		 // break;
+                         	       }
+                         	       else if( interpolationIsExplicit && (mask2(s1,s2,s3) & MappedGrid::ISinterpolationPoint) )
+                         	       {
+                         		 reasonForFailure|=2;
+                         	       }
+                         	       else if( mask2(s1,s2,s3) & MappedGrid::ISinterpolationPoint )
+                         	       {
+      		 // check for too close to an interpolation boundary
+                         		 real rDist=0.;
+                         		 for( int dir=0; dir<numberOfDimensions; dir++ )
+                           		   rDist=max(rDist,fabs( ri[dir]/g2.gridSpacing(dir)
+                                           					 -(sv[dir]+cellCenterederedOffset-g2.indexRange(Start,dir))));
+                         		 actualOverlap=min(actualOverlap,rDist);
+                         		 if( rDist <= minimumOverlap )
+                         		 {
+                           		   reasonForFailure|=4;
+                         		 }
+                         	       }
+                       	     }
+                   	 fprintf(plogFile," : 0=hole, -1=interp., 1=discret.\n");
+                   	 if( reasonForFailure & 1 )
+                     	   fprintf(plogFile," ...point is inside but failed because of a hole point in the interpolation stencil\n");
+                   	 else if( reasonForFailure & 2 )
+                     	   fprintf(plogFile," ...point is inside but explicit interpolation failed because stencil has"
+                           		   " an interpolation point in it.\n");
+                   	 else if( reasonForFailure & 4 )
+                     	   fprintf(plogFile," ...point is inside but interpolation failed because point is too"
+                           		   " close to an interpolation point \n"
+                           		   " ...actual overlap (mesh widths) to nearest interpolation point=%e, minimum required=%e\n",
+                           		   actualOverlap,minimumOverlap);
+                   	 else
+                   	 {
+                     	   fprintf(plogFile," ...point is inside but failed for some undetermined reason ??\n"
+                           		   " ...estimated actual overlap = %e\n",actualOverlap);
+                     	   printf("Let's keep going and assume this point is ok. canInterpolate has some problems\n");
+                     	   interpolates(0)=true;
+                     	   if( debug & 8 )
+                     	   {
+                       	     aString ans;
+                       	     cout << "enter a character to continue\n";
+                       	     cin >> ans;
+                       	     interpolates=true;
+            #ifdef USE_PPP
+                       	     checkCanInterpolate(cg0, cg.gridNumber(grid),cg.gridNumber(grid2), rr, interpolates, useBackupRules);
+            #else
+                       	     cg0.rcData->canInterpolate(cg.gridNumber(grid),cg.gridNumber(grid2), rr, interpolates, 
+                                          					useBackupRules, checkForOneSided );
+            #endif
+                     	   }
+                     	   break;
+                   	 }
+                          }
+                      }
+                  } // end for i
+              }  // end if printDiagonsitics
+
+
+      // if( TRUE )
+      //  printf(" r=(%6.2e,%6.2e,%6.2e), rr=(%6.2e,%6.2e,%6.2e), interpolates=%i \n",
+      //       r(0,0),r(0,1),r(0,2),rr(0,0),rr(0,1),rr(0,2),interpolates(0));
+            		
+
+      // *wdh* 011013 Remove this -- it is wrong below anyway since we must also check the
+      // values of rr in the tangential directions to see if we can interpolate
+
+      //      if( !interpolates(0) )  // ++ wdh ++ 980109 ***** is this needed anymore ??????
+//       if( false )
+//       {
+// 	// check for interpolation from a shared side
+// 	int side, dir;
+// 	for( dir=0; dir<numberOfDimensions; dir++ )  // check that the interp. pt is on a boundary
+// 	{
+// 	  side = iv[dir]==c.extendedIndexRange()(Start,dir) ? Start : iv[dir]==c.extendedIndexRange()(End,dir) ? End : -1;
+// 	  if( side>=0 )
+// 	  {
+// 	    axis=dir;
+// 	    break;
+// 	  }
+// 	}
+// 	if( side>=0 && c.boundaryCondition()(side,axis) > 0 )
+// 	{
+// 	  // Check to see if we are close to a physical boundary of another grid.
+
+// 	  for( dir=0; dir<numberOfDimensions; dir++ )
+// 	  {
+// 	    if( g2.boundaryCondition()(Start,dir)>0 && 
+// 		( fabs(rr(0,dir)) < boundaryEps ||    // is this check needed??
+// 		  ( c.sharedBoundaryFlag()(side,axis)!=0 && 
+// 		    c.sharedBoundaryFlag()(side,axis)==g2.sharedBoundaryFlag()(Start,dir) &&
+// 		    fabs(rr(0,dir)) < g2.sharedBoundaryTolerance()(Start,dir)*g2.gridSpacing()(dir) )
+// 		  ) )
+// 	    {
+// 	      interpolates(0)=TRUE; 
+// 	      break;
+// 	    }
+// 	    if( g2.boundaryCondition()(End,dir)>0 && 
+// 		( fabs(rr(0,dir)-1.) < boundaryEps || 
+// 		  ( c.sharedBoundaryFlag()(side,axis)!=0 && 
+// 		    c.sharedBoundaryFlag()(side,axis)==g2.sharedBoundaryFlag()(End,dir) &&
+// 		    fabs(rr(0,dir)-1.) < g2.sharedBoundaryTolerance()(End,dir)*g2.gridSpacing()(dir) )
+// 		  ) )
+// 	    {
+// 	      interpolates(0)=TRUE; 
+// 	      break;
+// 	    }
+// 	  }
+// 	}
+//       }
+
+            if( false ) // *wdh* 11/06/25 -- TURN THIS OFF - done above I think
+            {
+	// make a compressed list
+      	j=0;
+      	for( int i=0; i<numberToCheck; i++ ) // *wdh* 110625 - these loops added -- check me 
+      	{
+        	  iv[0]=ib(i,0); iv[1]=ib(i,1); iv[2]=ib(i,2);
+        	  if( cgInterpolates(i) )
+        	  {
+	    // *wdh* 110625: do we still need to do this??
+          	    if( debug & 2 )
+            	      printf("point now interpolates from grid2=%i after shifting point to the boundary, shift in r=%e \n",
+                 		     grid2,max(fabs(r(i,Rx)-rr(i,Rx))));
+          	    inverseGrid(iv[0],iv[1],iv[2]) = grid2;   
+          	    for( int axis=0; axis<numberOfDimensions; axis++ )
+            	      rI(iv[0],iv[1],iv[2],axis)=r(i,axis);   
+	    // break;
+        	  }
+        	  else
+        	  {
+          	    ib(j,0)=ib(i,0); ib(j,1)=ib(i,1); ib(j,2)=ib(i,2);
+          	    ja(j)=ja(i);
+          	    cgInterpolates(j)=cgInterpolates(i);
+        	  
+          	    j++;
+        	  }
+      	}
+      	numberToCheck=j;  // new number to check 
+      	totalNumberToCheck=ParallelUtility::getSum(numberToCheck);
+      	
+            }
+            
+            if( totalNumberToCheck==0 )
+      	break;
+
+            
+        } // if map.intersects(...)
+    }  // for( int g=1; g
+
+    if( totalNumberToCheck==0 )
+        return 0;
+
+  // === This next check for whether a point is needed was moved to the start -- does it make any sense
+  //     to repeat it here??
+
+  // --- As a another test, check to see whether this interpolation point is surrounded by only interpolation
+  // points and exterior points. In this case we just don't use this point
+    if( true )
+    {
+        j=0;
+        for( int i=0; i<numberToCheck; i++ )
+        {
+            iv[0]=ib(i,0); iv[1]=ib(i,1); iv[2]=ib(i,2);
+
+      // printF("lastChance: Check point grid=%i (%i,%i,%i) if needed\n",grid,iv[0],iv[1],iv[2]);
+        
+            const IntegerArray & ex = extendedGridIndexRange(c);
+            IntegerArray dw(3); dw= c.discretizationWidth()/2;  // dw = half the discretization width
+            bool pointIsNotNeeded=true; 
+            int numberOfUnusedNeighbours=0;
+            int numberOfValidNeighbours=0;
+            for( int s3=max(iv[2]-dw(axis3),ex(Start,axis3)); s3<=min(iv[2]+dw(axis3),ex(End,axis3)) && pointIsNotNeeded; s3++ )
+            {
+      	for( int s2=max(iv[1]-dw(axis2),ex(Start,axis2)); s2<=min(iv[1]+dw(axis2),ex(End,axis2)) && pointIsNotNeeded; s2++ )
+      	{
+        	  for( int s1=max(iv[0]-dw(axis1),ex(Start,axis1)); s1<=min(iv[0]+dw(axis1),ex(End,axis1)); s1++ )
+        	  {
+	    // if( mask(s1,s2,s3) & MappedGrid::ISdiscretizationPoint )
+	    // printF("     (s1,s2,s3)=(%i,%i,%i) mask=%i\n,s1,s2,s3,mask(s1,s2,s3)\n",s1,s2,s3,mask(s1,s2,s3));
+
+          	    if( mask(s1,s2,s3) > 0 )
+          	    {
+            	      numberOfValidNeighbours++;
+            	      if( numberOfUnusedNeighbours>0 )
+            	      {
+            		pointIsNotNeeded=false;  // this point is needed since it is next to unused and used points
+            		break;
+            	      }
+          	    }
+          	    else if( mask(s1,s2,s3)==0 )
+          	    {
+            	      numberOfUnusedNeighbours++;
+            	      if(numberOfValidNeighbours>0 )
+            	      {
+            		pointIsNotNeeded=false;  // this point is needed since it is next to unused and used points
+            		break;
+            	      }
+          	    }
+        	  }
+      	}
+            }
+
+      // *wdh* 070828 
+            if( pointIsNotNeeded )
+            {
+	// check special case:  if we are near an interpolation boundary then the neighbours
+	// implicitly have mask==0 
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  if( (iv[axis]-dw(axis)<ex(0,axis) && c.boundaryCondition(0,axis)==0) ||
+            	      (iv[axis]+dw(axis)>ex(1,axis) && c.boundaryCondition(1,axis)==0) )
+        	  {
+          	    numberOfUnusedNeighbours++;
+          	    if(numberOfValidNeighbours>0 )
+          	    {
+            	      pointIsNotNeeded=false;  // this point is needed since it is next to unused and used points
+            	      break;
+          	    }
+        	  }
+      	}
+            }
+
+            if( pointIsNotNeeded )
+            {
+      	if( numberOfUnusedNeighbours>0 )
+      	{
+        	  if( debug & 1 )
+        	  {
+          	    printf("lastChance:INFO: unable to interpolate (i1,i2,i3)=(%i,%i,%i) on grid=%s "
+               		   "BUT the point appears to be not needed for anything. Point removed.\n",
+               		   iv[0],iv[1],iv[2],(const char *)c.mapping().getName(Mapping::mappingName));
+          	    fprintf(plogFile,"lastChance:INFO: unable to interpolate (i1,i2,i3)=(%i,%i,%i) on grid=%s "
+                		    "BUT the point appears to be not needed for anything. Point removed.\n",
+                		    iv[0],iv[1],iv[2],(const char *)c.mapping().getName(Mapping::mappingName));
+        	  }
+            
+        	  mask(iv[0],iv[1],iv[2])=0;
+      	}
+      	else
+      	{
+	  // this point can be used as a discretization point
+        	  if( debug & 1 )
+        	  {
+          	    printf("lastChance:INFO: unable to interpolate (i1,i2,i3)=(%i,%i,%i) on grid=%s "
+               		   "BUT the point can be made into a discretization point.\n",
+               		   iv[0],iv[1],iv[2],(const char *)c.mapping().getName(Mapping::mappingName));
+          	    fprintf(plogFile,"lastChance:INFO: unable to interpolate (i1,i2,i3)=(%i,%i,%i) on grid=%s "
+                		    "BUT the point can be made into a discretization point.\n",
+                		    iv[0],iv[1],iv[2],(const char *)c.mapping().getName(Mapping::mappingName));
+        	  }
+            
+        	  mask(iv[0],iv[1],iv[2])=MappedGrid::ISdiscretizationPoint;
+      	}
+            
+      	inverseGrid(iv[0],iv[1],iv[2]) = -1;   
+      	cgInterpolates(i)=true;
+      	interpolates(ja(i))=true;
+            }
+            else
+            {  // this point still not valid
+
+        // compress the list of invalid points
+      	ib(j,0)=ib(i,0); ib(j,1)=ib(i,1); ib(j,2)=ib(i,2);
+      	ja(j)=ja(i);
+        // Note: cgInterpolates(i)==true here, probably, in preparation to call canInterpolation
+	// cgInterpolates(j)=cgInterpolates(i);  
+      	interpolates(ja(i))=false;
+      	
+      	j++;
+            }
+        
+        } // end for( i )
+
+    // Do better here: compress pts again?
+        numLeftToCheck=j;
+        totalNumberToCheck=ParallelUtility::getSum(numLeftToCheck);
+        
+    }
+    
+    if( totalNumberToCheck==0 )
+    {
+        return 0;
+    }
+    
+
+//   if( !allowBackupRules )
+//   {
+//     return 0;
+//   }
+//   else if( totalNumberToCheck>0 )
+//   {
+//     printF("lastChance:ERROR: FINISH this section for multiple LAST chance points totalNumberToCheck=%i "
+//            " allowBackupRules=%i ---\n",totalNumberToCheck,(int)allowBackupRules);
+//     // printF("lastChance:INFO: for now I will skip this section in the hopes that the problem resolves itself later\n");
+
+//     OV_ABORT("error");
+//   }
+
+  // ******* NOTE: interpolates -> cgInterpolates
+
+    if( allowBackupRules && 
+      !tryBackupRules  )   // prevents recursion more than once
+    {
+    // --- As a final test try to use the backup rules ----
+
+      printF("lastChance:ERROR: FINISH this section for multiple LAST chance points totalNumberToCheck=%i "
+                      " allowBackupRules=%i ---\n",totalNumberToCheck,(int)allowBackupRules);
+        OV_ABORT("lastChange:ERROR:finish me");
+
+        const int numberOfTries=1;  //  =2; *wdh* 020710
+        for( int tryAndTryAgain=0; tryAndTryAgain<numberOfTries; tryAndTryAgain++ )
+        {
+            lastChanceInterpolation(cg,cg0,grid,iv,ok,interpolates,numberOfInvalidPoints,invalidPoint,
+                        			      printDiagnosticMessages,true);
+            if( interpolates(0) )
+            {
+      	printf("lastChance:INFO:backup rules were used for point (i1,i2,i3)=(%i,%i,%i) on grid=%s \n",
+             	       iv[0],iv[1],iv[2],(const char *)c.mapping().getName(Mapping::mappingName));
+	// **** interpolation should now be implicit **** mark the point that uses backup rules.
+                if( mask(iv[0],iv[1],iv[2]) & MappedGrid::ISinterpolationPoint )
+      	{
+        	  mask(iv[0],iv[1],iv[2]) |= MappedGrid::USESbackupRules;
+        	  const int grid2=inverseGrid(iv[0],iv[1],iv[2]);
+        	  assert( grid2>=0 && grid2<numberOfBaseGrids );
+//	  cg.mayBackupInterpolate(grid,grid2,0)=TRUE;  // *** use this to indicate we have used backup rules.
+//	  cg.mayBackupInterpolate(grid2,grid,0)=TRUE;  // *** use this to indicate we have used backup rules.
+      	}
+                else
+      	{
+        	  printf("*** something is wrong here? mask=%i where backup rules are applied.\n", mask(iv[0],iv[1],iv[2]));
+        	  mask(iv[0],iv[1],iv[2]) = MappedGrid::ISinterpolationPoint | MappedGrid::USESbackupRules;
+        	  const int grid2=inverseGrid(iv[0],iv[1],iv[2]);
+        	  assert( grid2>=0 && grid2<numberOfBaseGrids );
+//	  cg.mayBackupInterpolate(grid,grid2,0)=TRUE;  // *** use this to indicate we have used backup rules.
+//	  cg.mayBackupInterpolate(grid2,grid,0)=TRUE;  // *** use this to indicate we have used backup rules.
+        	  
+      	}
+                break;
+            }
+            else if( tryAndTryAgain==0 && FALSE ) // *wdh* turned off for now.
+            {
+      	printf("lastChance:INFO:backup rules FAILED for point (i1,i2,i3)=(%i,%i,%i) on grid=%s \n",
+             	       iv[0],iv[1],iv[2],(const char *)c.mapping().getName(Mapping::mappingName));
+                printf("I will now try to uncut some hole points and make them active again\n");
+	// Try to un-cut a hole
+                int jv[3], &j1=jv[0], &j2=jv[1], &j3=jv[2];
+      	const int j3Min=numberOfDimensions>2 ? max(c.dimension(0,2),iv[2]-1) : iv[2]; 
+      	const int j3Max=numberOfDimensions>2 ? min(c.dimension(1,2),iv[2]+1) : iv[2];
+      	const int j2Min=max(c.dimension(0,1),iv[1]-1);
+                const int j2Max=min(c.dimension(1,1),iv[1]+1);
+      	const int j1Min=max(c.dimension(0,0),iv[0]-1);
+                const int j1Max=min(c.dimension(1,0),iv[0]+1);
+      	for( j3=j3Min; j3<=j3Max; j3++ )
+      	{
+        	  for( j2=j2Min; j2<=j2Max; j2++ )
+        	  {
+          	    for( j1=j1Min; j1<=j1Max; j1++ )
+          	    {
+            	      if( mask(j1,j2,j3)==0 )
+            	      {
+                                printf("lastChance:INFO: UNCUT hole point (j1,j2,j3)=(%i,%i,%i) on grid=%s \n",
+                   		       j1,j2,j3,(const char *)c.mapping().getName(Mapping::mappingName));
+                // mark as ISinteriorBoundaryPoint so classifyRedundant does not turn it into a discr. pt.
+		// mask(j1,j2,j3)=MappedGrid::ISinterpolationPoint | ISneededPoint; //  & MappedGrid::ISinteriorBoundaryPoint;
+            		mask(j1,j2,j3)=MappedGrid::ISinterpolationPoint | 
+                                                              MappedGrid::ISinteriorBoundaryPoint | 
+                                                              MappedGrid::USESbackupRules;
+                                int grid2 = inverseGrid(iv[0],iv[1],iv[2]);
+            		if( grid2>=0 && grid2<numberOfBaseGrids ) //  && grid2!=grid )
+            		{
+		  // try to "interpolate" from the closest point on grid2
+                                    if( !isRectangular )
+              		  {
+                		    for( int axis=0; axis<numberOfDimensions; axis++ )
+                  		      x(0,axis)=center(j1,j2,j3,axis);
+              		  }
+              		  else
+              		  {
+                		    for( int axis=0; axis<numberOfDimensions; axis++ )
+                  		      x(0,axis)=XC(jv,axis);
+              		  }
+              		  
+              		  Mapping & map2 = cg[grid2].mapping().getMapping();
+              		  if( debug & 2 )
+                		    printf("try to interpolate UNCUT point from grid2=%s \n",
+                                                (const char*)map2.getName(Mapping::mappingName));
+
+                                    #ifdef USE_PPP
+                		    map2.inverseMapS(x(0,Rx),r);
+                                    #else
+                		    map2.inverseMap(x(0,Rx),r);
+                                    #endif
+                                    if( r(0,0) > 9. )
+              		  {
+                    // fix this		    
+                                        r=0.;
+                		    printf("lastChance:INFO: failed to interpolate UNCUT point! (1) Fix this \n");
+              		  }
+                                    for( int axis=0; axis<numberOfDimensions; axis++ )
+                  	  	    r(0,axis)=max(0.,min(1.,r(0,axis)));   // project onto the boundary
+            		}
+            		else
+            		{
+                                    grid2 = (grid+1) % numberOfBaseGrids;
+                                    r=0;
+              		  printf("lastChance:INFO: failed to interpolate UNCUT point! (2) Fix this \n");
+            		}
+            		inverseGrid(j1,j2,j3)=grid2;
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+              		  rI(j1,j2,j3,axis)=r(0,axis);
+
+                                printf("lastChance:INFO: interpolate UNCUT point from grid2=%i, r=(%6.2e,%6.2e,%6.2e)\n",grid2,
+                                              r(0,0),r(0,1),r(0,2));
+                // need to check that we can interpolate
+
+//		cg.mayBackupInterpolate(grid,grid2,0)=TRUE; 
+//		cg.mayBackupInterpolate(grid2,grid,0)=TRUE; 
+
+            	      }
+          	    }
+        	  }
+      	}
+                ok(0)=TRUE;
+                numberOfInvalidPoints--;
+            }
+        }
+        return 0;
+    }
+    
+  // ----------------------------------------------------------------------
+  // --- Output error messages and save the orphan points for plotting ----
+  // ----------------------------------------------------------------------
+    if( saveInvalidPoints )
+    {
+        for( int i=0; i<numLeftToCheck; i++ )
+        {
+            iv[0]=ib(i,0); iv[1]=ib(i,1); iv[2]=ib(i,2);
+
+
+            printf("lastChanceInterpolation:ERROR: unable to get proper interpolation for pt on grid=%i (%s),"
+           	     " (i1,i2,i3)=(%i,%i,%i) \n",
+           	     grid,(const char *)c.mapping().getName(Mapping::mappingName),iv[0],iv[1],iv[2]);
+      // ok(0)=FALSE;
+            assert( interpolates(ja(i))==false );  // sanity check
+
+            if( invalidPoint.getLength(0) <= numberOfInvalidPoints )
+            {
+      	invalidPoint.resize(invalidPoint.getLength(0)*2+100,numberOfDimensions+1);
+            }
+            if( !isRectangular )
+            {
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+        	  invalidPoint(numberOfInvalidPoints,axis)=center(iv[0],iv[1],iv[2],axis);
+            }
+            else
+            {
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+        	  invalidPoint(numberOfInvalidPoints,axis)=XC(iv,axis);
+            }
+        
+            invalidPoint(numberOfInvalidPoints,numberOfDimensions)=grid;
+            numberOfInvalidPoints++;
+
+        }  // end for( i )
+        
+    }
+
+    return 0;
+}
+

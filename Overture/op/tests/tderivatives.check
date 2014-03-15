@@ -1,0 +1,417 @@
+Usage: `tderivatives [<gridName>] [tz=trig]' 
+A++ Internal_Index bounds checking: ON 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/square5 ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=square5
+------------------- Grid 0-----------------------
+u.x        : Maximum relative error (order=2) = 4.33488e-07
+u.y        : Maximum relative error (order=2) = 5.14767e-07
+u.xx       : Maximum relative error (order=2) = 7.51019e-06
+u.xy       : Maximum relative error (order=2) = 1.49012e-06
+u.yy       : Maximum relative error (order=2) = 4.45048e-06
+u.vorticity: Maximum relative error (order=2) = 4.558e-07
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=2) = 8.5036e-06
+u.div :      Maximum relative error (order=2) = 3.90139e-07
+u.divSGrad : Maximum relative error (order=2) = 0.00251312
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=2) = 8.5036e-06
+u.div :      Maximum relative error (order=2) = 3.90139e-07
+u.divSGrad : Maximum relative error (order=2) = 1.31607e-05
+w.x(all,0) : Maximum relative error (order=2) = 4.33488e-07
+w.x(all,1) : Maximum relative error (order=2) = 3.25116e-07
+T(0,0).x   : Maximum relative error (order=2) = 4.33488e-07
+T(1,0).x   : Maximum relative error (order=2) = 3.25116e-07
+T(0,1).x   : Maximum relative error (order=2) = 7.31512e-07
+T(1,1).x   : Maximum relative error (order=2) = 9.21163e-07
++++++++++++ Worst relative error is 2.513123e-03 for order of accuracy 2 on grid square ++++++++++++++
+
+u.x        : Maximum relative error (order=4) = 5.96046e-07
+u.y        : Maximum relative error (order=4) = 8.04663e-07
+u.xx       : Maximum relative error (order=4) = 1.65701e-05
+u.xy       : Maximum relative error (order=4) = 2.6284e-06
+u.yy       : Maximum relative error (order=4) = 1.63317e-05
+u.vorticity: Maximum relative error (order=4) = 5.96046e-07
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=4) = 2.25703e-05
+u.div :      Maximum relative error (order=4) = 5.24521e-07
+u.divSGrad : Maximum relative error (order=4) = 3.52859e-05
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=4) = 2.25703e-05
+u.div :      Maximum relative error (order=4) = 5.24521e-07
+u.divSGrad : Maximum relative error (order=4) = 3.52859e-05
+w.x(all,0) : Maximum relative error (order=4) = 5.96046e-07
+w.x(all,1) : Maximum relative error (order=4) = 4.17233e-07
+T(0,0).x   : Maximum relative error (order=4) = 5.96046e-07
+T(1,0).x   : Maximum relative error (order=4) = 4.17233e-07
+T(0,1).x   : Maximum relative error (order=4) = 4.91738e-07
+T(1,1).x   : Maximum relative error (order=4) = 1.2517e-06
++++++++++++ Worst relative error is 3.528595e-05 for order of accuracy 4 on grid square ++++++++++++++
+
+ 
+ ***** Now test CompositeGridFunction Derivatives ***** 
+q.x        : Maximum relative error (order=2) = 4.33488e-07
+q.y        : Maximum relative error (order=2) = 5.14767e-07
+q.xx       : Maximum relative error (order=2) = 7.51019e-06
+q.xy       : Maximum relative error (order=2) = 1.49012e-06
+q.yy       : Maximum relative error (order=2) = 4.45048e-06
+**Using conservative approximations:
+u.divSGrad : Maximum relative error (order=2) = 9.72748e-06
+u.scalarGrad:Maximum relative error (order=2) = 0.00117933
+**Using standard approximations:
+u.divSGrad : Maximum relative error (order=2) = 1.01089e-05
+u.scalarGrad:Maximum relative error (order=2) = 2.51496e-07
+q.grad     : Maximum relative error (order=2) = 5.14767e-07
+q.x        : Maximum relative error (order=4) = 5.96046e-07
+q.y        : Maximum relative error (order=4) = 8.04663e-07
+q.xx       : Maximum relative error (order=4) = 1.65701e-05
+q.xy       : Maximum relative error (order=4) = 2.6284e-06
+q.yy       : Maximum relative error (order=4) = 1.63317e-05
+**Using conservative approximations:
+u.divSGrad : Maximum relative error (order=4) = 3.01361e-05
+u.scalarGrad:Maximum relative error (order=4) = 4.17233e-07
+**Using standard approximations:
+u.divSGrad : Maximum relative error (order=4) = 3.01361e-05
+u.scalarGrad:Maximum relative error (order=4) = 4.17233e-07
+q.grad     : Maximum relative error (order=4) = 8.04663e-07
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/cic ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
+------------------- Grid 0-----------------------
+u.x        : Maximum relative error (order=2) = 2.59065e-06
+u.y        : Maximum relative error (order=2) = 2.28587e-06
+u.xx       : Maximum relative error (order=2) = 9.23872e-05
+u.xy       : Maximum relative error (order=2) = 7.15999e-06
+u.yy       : Maximum relative error (order=2) = 4.03523e-05
+u.vorticity: Maximum relative error (order=2) = 1.37152e-06
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=2) = 0.000101964
+u.div :      Maximum relative error (order=2) = 2.43826e-06
+u.divSGrad : Maximum relative error (order=2) = 0.00121651
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=2) = 0.000101964
+u.div :      Maximum relative error (order=2) = 2.43826e-06
+u.divSGrad : Maximum relative error (order=2) = 0.000270081
+w.x(all,0) : Maximum relative error (order=2) = 2.59065e-06
+w.x(all,1) : Maximum relative error (order=2) = 2.59065e-06
+T(0,0).x   : Maximum relative error (order=2) = 2.59065e-06
+T(1,0).x   : Maximum relative error (order=2) = 2.59065e-06
+T(0,1).x   : Maximum relative error (order=2) = 2.62875e-06
+T(1,1).x   : Maximum relative error (order=2) = 2.59065e-06
++++++++++++ Worst relative error is 1.216507e-03 for order of accuracy 2 on grid square ++++++++++++++
+
+u.x        : Maximum relative error (order=4) = 1.90735e-06
+u.y        : Maximum relative error (order=4) = 2.9405e-06
+u.xx       : Maximum relative error (order=4) = 0.000116289
+u.xy       : Maximum relative error (order=4) = 1.45189e-05
+u.yy       : Maximum relative error (order=4) = 7.85391e-05
+u.vorticity: Maximum relative error (order=4) = 1.58946e-06
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=4) = 0.000117938
+u.div :      Maximum relative error (order=4) = 1.84377e-06
+u.divSGrad : Maximum relative error (order=4) = 0.00031662
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=4) = 0.000117938
+u.div :      Maximum relative error (order=4) = 1.84377e-06
+u.divSGrad : Maximum relative error (order=4) = 0.00031662
+w.x(all,0) : Maximum relative error (order=4) = 1.90735e-06
+w.x(all,1) : Maximum relative error (order=4) = 2.14577e-06
+T(0,0).x   : Maximum relative error (order=4) = 1.90735e-06
+T(1,0).x   : Maximum relative error (order=4) = 2.14577e-06
+T(0,1).x   : Maximum relative error (order=4) = 2.98023e-06
+T(1,1).x   : Maximum relative error (order=4) = 2.22524e-06
++++++++++++ Worst relative error is 3.166199e-04 for order of accuracy 4 on grid square ++++++++++++++
+
+------------------- Grid 1-----------------------
+u.x        : Maximum relative error (order=2) = 0.00538599
+u.y        : Maximum relative error (order=2) = 0.010068
+u.xx       : Maximum relative error (order=2) = 0.0590245
+u.xy       : Maximum relative error (order=2) = 0.085493
+u.yy       : Maximum relative error (order=2) = 0.0343177
+u.vorticity: Maximum relative error (order=2) = 0.005511
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=2) = 0.00947897
+u.div :      Maximum relative error (order=2) = 0.0274927
+u.divSGrad : Maximum relative error (order=2) = 0.0211294
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=2) = 0.00981307
+u.div :      Maximum relative error (order=2) = 0.00632894
+u.divSGrad : Maximum relative error (order=2) = 0.0140099
+w.x(all,0) : Maximum relative error (order=2) = 0.00538599
+w.x(all,1) : Maximum relative error (order=2) = 0.00538559
+T(0,0).x   : Maximum relative error (order=2) = 0.00538599
+T(1,0).x   : Maximum relative error (order=2) = 0.00538559
+T(0,1).x   : Maximum relative error (order=2) = 0.00538527
+T(1,1).x   : Maximum relative error (order=2) = 0.00538593
++++++++++++ Worst relative error is 8.549303e-02 for order of accuracy 2 on grid Annulus ++++++++++++++
+
+u.x        : Maximum relative error (order=4) = 9.69768e-05
+u.y        : Maximum relative error (order=4) = 0.000190169
+u.xx       : Maximum relative error (order=4) = 0.00403285
+u.xy       : Maximum relative error (order=4) = 0.00556678
+u.yy       : Maximum relative error (order=4) = 0.00278799
+u.vorticity: Maximum relative error (order=4) = 0.000131038
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=4) = 0.000141859
+u.div :      Maximum relative error (order=4) = 0.000115153
+u.divSGrad : Maximum relative error (order=4) = 0.000234032
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=4) = 0.000141859
+u.div :      Maximum relative error (order=4) = 0.000115153
+u.divSGrad : Maximum relative error (order=4) = 0.000234032
+w.x(all,0) : Maximum relative error (order=4) = 9.69768e-05
+w.x(all,1) : Maximum relative error (order=4) = 9.74536e-05
+T(0,0).x   : Maximum relative error (order=4) = 9.69768e-05
+T(1,0).x   : Maximum relative error (order=4) = 9.74536e-05
+T(0,1).x   : Maximum relative error (order=4) = 9.68277e-05
+T(1,1).x   : Maximum relative error (order=4) = 9.67979e-05
++++++++++++ Worst relative error is 5.566776e-03 for order of accuracy 4 on grid Annulus ++++++++++++++
+
+ 
+ ***** Now test CompositeGridFunction Derivatives ***** 
+q.x        : Maximum relative error (order=2) = 0.00538599
+q.y        : Maximum relative error (order=2) = 0.010068
+q.xx       : Maximum relative error (order=2) = 0.0590245
+q.xy       : Maximum relative error (order=2) = 0.085493
+q.yy       : Maximum relative error (order=2) = 0.0343177
+**Using conservative approximations:
+u.divSGrad : Maximum relative error (order=2) = 0.0187683
+u.scalarGrad:Maximum relative error (order=2) = 0.0153704
+**Using standard approximations:
+u.divSGrad : Maximum relative error (order=2) = 0.0128248
+u.scalarGrad:Maximum relative error (order=2) = 0.00480934
+q.grad     : Maximum relative error (order=2) = 0.010068
+q.x        : Maximum relative error (order=4) = 9.69768e-05
+q.y        : Maximum relative error (order=4) = 0.000190169
+q.xx       : Maximum relative error (order=4) = 0.00403285
+q.xy       : Maximum relative error (order=4) = 0.00556678
+q.yy       : Maximum relative error (order=4) = 0.00278799
+**Using conservative approximations:
+u.divSGrad : Maximum relative error (order=4) = 0.000222969
+u.scalarGrad:Maximum relative error (order=4) = 0.000113885
+**Using standard approximations:
+u.divSGrad : Maximum relative error (order=4) = 0.000222969
+u.scalarGrad:Maximum relative error (order=4) = 0.000113885
+q.grad     : Maximum relative error (order=4) = 0.000190169
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/sib ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=sib
+------------------- Grid 0-----------------------
+u.x        : Maximum relative error (order=2) = 2.08616e-06
+u.y        : Maximum relative error (order=2) = 2.45869e-06
+u.xx       : Maximum relative error (order=2) = 8.73208e-05
+u.xy       : Maximum relative error (order=2) = 8.94067e-06
+u.yy       : Maximum relative error (order=2) = 3.05176e-05
+u.z      : Maximum relative error (order=2) = 1.55634e-06
+u.xz     : Maximum relative error (order=2) = 5.96045e-06
+u.yz     : Maximum relative error (order=2) = 5.96045e-06
+u.zz     : Maximum relative error (order=2) = 3.41535e-05
+u.vorticity0:Maximum relative error (order=2) = 6.23986e-07
+u.vorticity1:Maximum relative error (order=2) = 1.04308e-06
+u.vorticity2:Maximum relative error (order=2) = 1.49012e-06
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=2) = 8.22204e-05
+u.div      : Maximum relative error (order=2) = 2.01166e-06
+u.divSGrad : Maximum relative error (order=2) = 0.00250348
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=2) = 8.22204e-05
+u.div      : Maximum relative error (order=2) = 2.01166e-06
+u.divSGrad : Maximum relative error (order=2) = 0.000302401
+w.x(all,0) : Maximum relative error (order=2) = 2.08616e-06
+w.x(all,1) : Maximum relative error (order=2) = 2.45869e-06
+w.x(all,2) : Maximum relative error (order=2) = 2.62633e-06
+T(0,0).x   : Maximum relative error (order=2) = 2.08616e-06
+T(1,0).x   : Maximum relative error (order=2) = 2.45869e-06
+T(0,1).x   : Maximum relative error (order=2) = 2.62633e-06
+T(1,1).x   : Maximum relative error (order=2) = 2.08616e-06
++++++++++++ Worst relative error is 2.503482e-03 for order of accuracy 2 on grid box ++++++++++++++
+
+u.x        : Maximum relative error (order=4) = 2.6226e-06
+u.y        : Maximum relative error (order=4) = 2.6226e-06
+u.xx       : Maximum relative error (order=4) = 6.77109e-05
+u.xy       : Maximum relative error (order=4) = 1.20037e-05
+u.yy       : Maximum relative error (order=4) = 4.10279e-05
+u.z      : Maximum relative error (order=4) = 1.19209e-06
+u.xz     : Maximum relative error (order=4) = 1.05136e-05
+u.yz     : Maximum relative error (order=4) = 6.62272e-06
+u.zz     : Maximum relative error (order=4) = 3.09706e-05
+u.vorticity0:Maximum relative error (order=4) = 6.55651e-07
+u.vorticity1:Maximum relative error (order=4) = 1.27157e-06
+u.vorticity2:Maximum relative error (order=4) = 1.43051e-06
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=4) = 8.10623e-05
+u.div      : Maximum relative error (order=4) = 2.563e-06
+u.divSGrad : Maximum relative error (order=4) = 0.000208074
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=4) = 8.10623e-05
+u.div      : Maximum relative error (order=4) = 2.563e-06
+u.divSGrad : Maximum relative error (order=4) = 0.000208074
+w.x(all,0) : Maximum relative error (order=4) = 2.6226e-06
+w.x(all,1) : Maximum relative error (order=4) = 2.14577e-06
+w.x(all,2) : Maximum relative error (order=4) = 3.21865e-06
+T(0,0).x   : Maximum relative error (order=4) = 2.6226e-06
+T(1,0).x   : Maximum relative error (order=4) = 2.14577e-06
+T(0,1).x   : Maximum relative error (order=4) = 3.21865e-06
+T(1,1).x   : Maximum relative error (order=4) = 2.6226e-06
++++++++++++ Worst relative error is 2.080744e-04 for order of accuracy 4 on grid box ++++++++++++++
+
+------------------- Grid 1-----------------------
+u.x        : Maximum relative error (order=2) = 0.0211421
+u.y        : Maximum relative error (order=2) = 0.0179324
+u.xx       : Maximum relative error (order=2) = 0.245744
+u.xy       : Maximum relative error (order=2) = 0.261648
+u.yy       : Maximum relative error (order=2) = 0.13799
+u.z      : Maximum relative error (order=2) = 0.020539
+u.xz     : Maximum relative error (order=2) = 0.232931
+u.yz     : Maximum relative error (order=2) = 0.17333
+u.zz     : Maximum relative error (order=2) = 0.113714
+u.vorticity0:Maximum relative error (order=2) = 0.00872593
+u.vorticity1:Maximum relative error (order=2) = 0.0178354
+u.vorticity2:Maximum relative error (order=2) = 0.0137439
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=2) = 0.102978
+u.div      : Maximum relative error (order=2) = 0.292085
+u.divSGrad : Maximum relative error (order=2) = 0.20152
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=2) = 0.0581417
+u.div      : Maximum relative error (order=2) = 0.0190327
+u.divSGrad : Maximum relative error (order=2) = 0.0807013
+w.x(all,0) : Maximum relative error (order=2) = 0.0211421
+w.x(all,1) : Maximum relative error (order=2) = 0.0211421
+w.x(all,2) : Maximum relative error (order=2) = 0.0211424
+T(0,0).x   : Maximum relative error (order=2) = 0.0211421
+T(1,0).x   : Maximum relative error (order=2) = 0.0211421
+T(0,1).x   : Maximum relative error (order=2) = 0.0211424
+T(1,1).x   : Maximum relative error (order=2) = 0.0211417
++++++++++++ Worst relative error is 2.920845e-01 for order of accuracy 2 on grid north-pole ++++++++++++++
+
+u.x        : Maximum relative error (order=4) = 0.00304691
+u.y        : Maximum relative error (order=4) = 0.00186623
+u.xx       : Maximum relative error (order=4) = 0.0299768
+u.xy       : Maximum relative error (order=4) = 0.0347417
+u.yy       : Maximum relative error (order=4) = 0.0167845
+u.z      : Maximum relative error (order=4) = 0.00248522
+u.xz     : Maximum relative error (order=4) = 0.0247311
+u.yz     : Maximum relative error (order=4) = 0.0216326
+u.zz     : Maximum relative error (order=4) = 0.01788
+u.vorticity0:Maximum relative error (order=4) = 0.0010086
+u.vorticity1:Maximum relative error (order=4) = 0.00250347
+u.vorticity2:Maximum relative error (order=4) = 0.00183422
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=4) = 0.00670297
+u.div      : Maximum relative error (order=4) = 0.00260417
+u.divSGrad : Maximum relative error (order=4) = 0.0101226
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=4) = 0.00670297
+u.div      : Maximum relative error (order=4) = 0.00260417
+u.divSGrad : Maximum relative error (order=4) = 0.0101226
+w.x(all,0) : Maximum relative error (order=4) = 0.00304691
+w.x(all,1) : Maximum relative error (order=4) = 0.00304691
+w.x(all,2) : Maximum relative error (order=4) = 0.00304676
+T(0,0).x   : Maximum relative error (order=4) = 0.00304691
+T(1,0).x   : Maximum relative error (order=4) = 0.00304691
+T(0,1).x   : Maximum relative error (order=4) = 0.00304676
+T(1,1).x   : Maximum relative error (order=4) = 0.00304667
++++++++++++ Worst relative error is 3.474170e-02 for order of accuracy 4 on grid north-pole ++++++++++++++
+
+------------------- Grid 2-----------------------
+u.x        : Maximum relative error (order=2) = 0.0253098
+u.y        : Maximum relative error (order=2) = 0.0234933
+u.xx       : Maximum relative error (order=2) = 0.204383
+u.xy       : Maximum relative error (order=2) = 0.270895
+u.yy       : Maximum relative error (order=2) = 0.144461
+u.z      : Maximum relative error (order=2) = 0.0205389
+u.xz     : Maximum relative error (order=2) = 0.200892
+u.yz     : Maximum relative error (order=2) = 0.166039
+u.zz     : Maximum relative error (order=2) = 0.177891
+u.vorticity0:Maximum relative error (order=2) = 0.0098033
+u.vorticity1:Maximum relative error (order=2) = 0.0172561
+u.vorticity2:Maximum relative error (order=2) = 0.0161385
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=2) = 0.0993969
+u.div      : Maximum relative error (order=2) = 0.230737
+u.divSGrad : Maximum relative error (order=2) = 0.181591
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=2) = 0.0527108
+u.div      : Maximum relative error (order=2) = 0.0272016
+u.divSGrad : Maximum relative error (order=2) = 0.0731702
+w.x(all,0) : Maximum relative error (order=2) = 0.0253098
+w.x(all,1) : Maximum relative error (order=2) = 0.0253098
+w.x(all,2) : Maximum relative error (order=2) = 0.0253098
+T(0,0).x   : Maximum relative error (order=2) = 0.0253098
+T(1,0).x   : Maximum relative error (order=2) = 0.0253098
+T(0,1).x   : Maximum relative error (order=2) = 0.0253098
+T(1,1).x   : Maximum relative error (order=2) = 0.0253096
++++++++++++ Worst relative error is 2.708949e-01 for order of accuracy 2 on grid south-pole ++++++++++++++
+
+u.x        : Maximum relative error (order=4) = 0.00370865
+u.y        : Maximum relative error (order=4) = 0.00318948
+u.xx       : Maximum relative error (order=4) = 0.0318598
+u.xy       : Maximum relative error (order=4) = 0.0341144
+u.yy       : Maximum relative error (order=4) = 0.0164791
+u.z      : Maximum relative error (order=4) = 0.00285634
+u.xz     : Maximum relative error (order=4) = 0.0318597
+u.yz     : Maximum relative error (order=4) = 0.0219619
+u.zz     : Maximum relative error (order=4) = 0.0155721
+u.vorticity0:Maximum relative error (order=4) = 0.00130687
+u.vorticity1:Maximum relative error (order=4) = 0.00282193
+u.vorticity2:Maximum relative error (order=4) = 0.00270609
+**Using conservative approximations:
+u.laplacian: Maximum relative error (order=4) = 0.00670733
+u.div      : Maximum relative error (order=4) = 0.00386752
+u.divSGrad : Maximum relative error (order=4) = 0.00911193
+**Using standard approximations:
+u.laplacian: Maximum relative error (order=4) = 0.00670733
+u.div      : Maximum relative error (order=4) = 0.00386752
+u.divSGrad : Maximum relative error (order=4) = 0.00911193
+w.x(all,0) : Maximum relative error (order=4) = 0.00370865
+w.x(all,1) : Maximum relative error (order=4) = 0.00370895
+w.x(all,2) : Maximum relative error (order=4) = 0.00370845
+T(0,0).x   : Maximum relative error (order=4) = 0.00370865
+T(1,0).x   : Maximum relative error (order=4) = 0.00370895
+T(0,1).x   : Maximum relative error (order=4) = 0.00370845
+T(1,1).x   : Maximum relative error (order=4) = 0.00370871
++++++++++++ Worst relative error is 3.411442e-02 for order of accuracy 4 on grid south-pole ++++++++++++++
+
+ 
+ ***** Now test CompositeGridFunction Derivatives ***** 
+q.x        : Maximum relative error (order=2) = 0.0253098
+q.y        : Maximum relative error (order=2) = 0.0234933
+q.xx       : Maximum relative error (order=2) = 0.245744
+q.xy       : Maximum relative error (order=2) = 0.270895
+q.yy       : Maximum relative error (order=2) = 0.144461
+**Using conservative approximations:
+u.divSGrad : Maximum relative error (order=2) = 0.177119
+u.scalarGrad:Maximum relative error (order=2) = 0.0274877
+**Using standard approximations:
+u.divSGrad : Maximum relative error (order=2) = 0.0505078
+u.scalarGrad:Maximum relative error (order=2) = 0.014109
+q.grad     : Maximum relative error (order=2) = 0.0693763
+q.x        : Maximum relative error (order=4) = 0.00370865
+q.y        : Maximum relative error (order=4) = 0.00318948
+q.xx       : Maximum relative error (order=4) = 0.0318598
+q.xy       : Maximum relative error (order=4) = 0.0347417
+q.yy       : Maximum relative error (order=4) = 0.0167845
+**Using conservative approximations:
+u.divSGrad : Maximum relative error (order=4) = 0.00625732
+u.scalarGrad:Maximum relative error (order=4) = 0.0019999
+**Using standard approximations:
+u.divSGrad : Maximum relative error (order=4) = 0.00625732
+u.scalarGrad:Maximum relative error (order=4) = 0.0019999
+q.grad     : Maximum relative error (order=4) = 0.0103971
+
+
+ ************************************************************************************************
+ ************** Warning, there is a large error somewhere, worst error =2.920845e-01 ******************
+ **************************************************************************************************
+
+Program Terminated Normally! 

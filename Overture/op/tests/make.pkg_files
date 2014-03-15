@@ -1,0 +1,21 @@
+PKGDIR := $(OvertureCheckout)/op/tests
+
+$(BINDIR)tbc: $(OV_LIB) $(OV_SLIB) $(OBJDIR)tbc.o $(OBJDIR)Checker.o
+	$(CXX) -o $@ $(OBJDIR)tbc.o $(OBJDIR)Checker.o $(LIBS)
+
+ifneq ($(BINDIR),)
+testUOPS: $(BINDIR)testUOPS
+tcm3: $(BINDIR)tcm3
+tcm4: $(BINDIR)tcm4
+phonies += tcm3 tcm4 testUOPS
+
+endif
+
+$(BINDIR)testUOPS: $(OV_LIB) $(OV_SLIB) $(OBJDIR)testUOPS.o
+	$(CXX) -o $@  $(OBJDIR)testUOPS.o  $(LIBS)
+
+$(BINDIR)tcm3: $(OV_LIB) $(OV_SLIB) $(OBJDIR)tcm3.o $(OBJDIR)Checker.o
+	$(CXX) -o $@ $(OBJDIR)tcm3.o $(OBJDIR)Checker.o $(LIBS)
+
+$(BINDIR)tcm4: $(OV_LIB) $(OV_SLIB) $(OBJDIR)tcm4.o $(OBJDIR)Checker.o
+	$(CXX) -o $@ $(OBJDIR)tcm4.o $(OBJDIR)Checker.o $(LIBS)

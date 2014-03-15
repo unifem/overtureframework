@@ -1,0 +1,38 @@
+The sm/cmd directory holds command files for running examples of cgsm
+Type "../bin/cgsm file.cmd" to run the command file named "file.cmd"
+
+
+amr.cmd : example showing use of AMR
+
+annulusEigen.cmd : eigenfunctions of an annulus, compare to some exact solutions
+
+beam.cmd: A deforming rectangular beam 
+
+bodyForcing.cmd : example showing the application of a user defined body force
+
+boundaryForcing.cmd :  example showing the application of forcing functions on the boundary
+
+diffract.cmd : diffraction of a traveling wave around a cylinder
+
+pulse.cmd: a deforming body
+
+rayleigh.cmd : compute Rayleigh surface waves
+
+rotatingDisk.cmd : test the SVK model for a rotating disk or annulus
+
+sphereEigen.cmd : compute eigenfunctions of a sphere
+
+traveling : traveling wave solutions
+
+translationRotation : large translation rotation test
+
+tz.cmd : test the twilightzone
+
+varMat.cmd : variable material properties
+
+
+Parallel examples:
+
+mpirun -np 2 $cgsmp p.cmd
+
+

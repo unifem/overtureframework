@@ -1,0 +1,23 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src $(INCLUDES)
+
+FORTRAN_INCLUDES += -I$(CG)/sm/src
+
+ifeq ($(OS),Darwin)
+  SHARED_LIBRARY_LOAD_LIBS += -L$(CGBUILDPREFIX)common/lib -lCgCommon
+endif
+ 
+# if buildStaticLib is on then all out of date object files are added to the static library
+
+ifneq ($(OV_RPATH),)
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)sm/lib -L$(CGBUILDPREFIX)sm/lib -lCgsm \
+        $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+else
+LIBS := -L$(CGBUILDPREFIX)sm/lib -lCgsm \
+        -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+endif

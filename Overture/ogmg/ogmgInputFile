@@ -1,0 +1,9 @@
+*
+* Input file for running ogmgt in parallel
+*
+* mpirun -np 2 -all-local ogmgt 
+*
+* -levels=2 p.cmd
+* for square64:
+* -levels=5  p.cmd
+-levels=8  p.cmd

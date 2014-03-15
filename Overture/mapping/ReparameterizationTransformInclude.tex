@@ -1,0 +1,184 @@
+\subsection{Default Constructor}
+ 
+\newlength{\ReparameterizationTransformIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{ReparameterizationTransform(}% 
+ReparameterizationTransform() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor
+    The {\tt ReparameterizationTransform} can reparameterize a given Mapping
+ in one of the following ways:
+   \begin{description}
+      \item[orthographic:] Remove a polar singularity by using a orthographic projection
+         to define a new patch over the singularity.
+      \item[restriction:] restrict the parameter space to a sub-rectangle of the
+          original parameter space. Use this, for example, to define a refined patch in an
+          adaptive grid.
+      \item[equidistribution:] reparameterize a curve in 2D or 3D so as to equi-distribute
+         a weighted sum of arclength and curvature.   
+   \end{description}   
+\end{description}
+\subsection{Constructor(Mapping,ReparameterizationTypes)}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{ReparameterizationTransform(}% 
+ReparameterizationTransform(Mapping \& map, \\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const ReparameterizationTypes type  = defaultReparameterization) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Constructor for a Reparameterization. 
+\item[{\bf map (input) :}]  mapping to reparameterize.
+\item[{\bf type (input) :}]  
+\end{description}
+\subsection{Constructor(MappingRC,ReparameterizationTypes)}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{ReparameterizationTransform(}% 
+ReparameterizationTransform(MappingRC \& mapRC, \\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const ReparameterizationTypes type  = defaultReparameterization) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Constructor for a Reparameterization. 
+    See the comments in the constructor member function
+\end{description}
+\subsection{constructor(MappingRC,ReparameterizationTypes)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{constructor(}%
+constructor(Mapping \& map, const ReparameterizationTypes type)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  This is a protected routine, used internally.
+    Constructor for a Reparameterization. This constructor will
+   check to see if you are trying to reparameterize a Mapping that is already
+   the same type of reparameterization of another mapping. For example you may
+   be making a sub-mapping (restriction) of a sub-mapping. In this case this
+   constructor will eliminate the multiple restriction operations and replace
+   it by a single restriction. You should then use the scaleBounds member function
+   to define a new restriction. This function will scale the bounds found in map.
+\end{description}
+\subsection{constructorForMultipleReparams}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{constructorForMultipleReparams(}%
+constructorForMultipleReparams(ReparameterizationTransform \& rtMap )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  **This is a protected routine**
+   If you want to reparameterize a mapping that is already Reparameterized then use this
+   constructor.  It will replace multiple reparams of the same type with just one reparam
+\item[{\bf Notes:}] 
+   
+\end{description}
+\subsection{scaleBound}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{scaleBounds(}%
+scaleBounds(const real ra =0.,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real rb =1., \\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real sa =0.,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real sb =1.,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real ta =0.,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real tb   =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Scale the current bounds for a restriction Mapping. See the documentation for the
+   {\tt RestrictionMapping} for further details.
+\item[{\bf ra,rb,sa,sb,ta,tb (input):}]  
+\end{description}
+\subsection{getBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{getBounds(}%
+getBounds(real \& ra, real \& rb, real \& sa, real \& sb, real \& ta, real \& tb ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Get the bounds for a restriction mapping.
+   {\tt RestrictionMapping} for further details.
+\item[{\bf ra,rb,sa,sb,ta,tb (output):}]  
+\end{description}
+\subsection{setBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{setBounds(}%
+setBounds(const real ra =0., \\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real rb =1., \\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real sa =0.,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real sb =1.,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real ta =0.,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real tb   =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Set absolute bounds. See the documentation for the
+   {\tt RestrictionMapping} for further details.
+\item[{\bf ra,rb,sa,sb,ta,tb (input):}]  
+\end{description}
+\subsubsection{getBoundsForMulitpleReparameterizations}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{getBoundsForMultipleReparameterizations(}%
+getBoundsForMultipleReparameterizations( real mrBounds[6] ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Get the bounds for multiple reparameterizations. This routine will usually only be
+ called by the Grid class.
+\item[{\bf mrBounds (output):}]  
+\end{description}
+\subsubsection{setBoundsForMulitpleReparameterizations}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{setBoundsForMultipleReparameterizations(}%
+setBoundsForMultipleReparameterizations( real mrBounds[6] )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Set the bounds for multiple reparameterizations. This routine will usually only be
+ called by the Grid class.
+\item[{\bf mrBounds (input):}]  
+\end{description}
+\subsubsection{setEquidistributionParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ReparameterizationTransformIncludeArgIndent}{setEquidistributionParameters(}%
+setEquidistributionParameters(const real \& arcLengthWeight\_ /* =1.*/, \\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const real \& curvatureWeight\_ /* =0.*/,\\ 
+\hspace{\ReparameterizationTransformIncludeArgIndent}const int \& numberOfSmooths  = 3)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the `arclength' parameterization parameters. The parameterization is chosen to
+ redistribute the points to resolve the arclength and/or the curvature of the curve.
+ By default the curve is parameterized by arclength only. To resolve regions of high
+ curvature choose the recommended values of {\tt arcLengthWeight\_=1.} and
+  {\tt curvatureWeight\_=1.}.
+
+  To determine the parameterization we equidistribute the weight function 
+  \[
+     w(r) =      {\rm arcLengthWeight} {s(r)\over |s|_\infty}  
+               + {\rm curvatureWeight} {c(r)\over |c|_\infty}
+  \]
+  where $s(r)$ is the local arclength and $c(r)$ is the curvature. Note that we normalize
+ $s$ and $c$ by their maximum values.
+  
+ \[
+      c = |x_{ss}| = { | x_{rr} | \over  |x_r|^2 }
+ \]
+ 
+\item[{\bf arcLengthWeight\_ (input):}]  A weight for arclength. A negative value may give undefined results.
+\item[{\bf curvatureWeight\_ (input):}]  A weight for curvature. A negative value may give undefined results.
+\item[{\bf numberOfSmooths (input):}]  Number of times to smooth the equidistribution weight function.
+
+\end{description}

@@ -1,0 +1,945 @@
+<<square20/square/order=2/std/u.x>>                                                             : err = 0.0e+00
+<<square20/square/order=2/std/u.x (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=2/std/u.y>>                                                             : err = 0.0e+00
+<<square20/square/order=2/std/u.y (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=2/std/u.xx>>                                                            : err = 0.0e+00
+<<square20/square/order=2/std/u.xx (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=2/std/u.xx (get)>>                                                      : err = 0.0e+00
+<<square20/square/order=2/std/u.xy>>                                                            : err = 0.0e+00
+<<square20/square/order=2/std/u.xy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=2/std/u.yy>>                                                            : err = 0.0e+00
+<<square20/square/order=2/std/u.yy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).x arith>>                                                : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).x arith (opt)>>                                          : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).y arith>>                                                : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).y arith (opt)>>                                          : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).x arith>>                                                : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).x arith (opt)>>                                          : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).y arith>>                                                : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).y arith (opt)>>                                          : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).x harmonic>>                                             : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).x harmonic (opt)>>                                       : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).y harmonic>>                                             : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.x).y harmonic (opt)>>                                       : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).x harmonic>>                                             : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).x harmonic (opt)>>                                       : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).y harmonic>>                                             : err = 0.0e+00
+<<square20/square/order=2/cons/(s u.y).y harmonic (opt)>>                                       : err = 0.0e+00
+<<square20/square/order=2/std/(s u.x).x>>                                                       : err = 0.0e+00
+<<square20/square/order=2/std/(s u.x).x (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=2/std/(s u.x).y>>                                                       : err = 0.0e+00
+<<square20/square/order=2/std/(s u.x).y (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=2/std/(s u.y).x>>                                                       : err = 0.0e+00
+<<square20/square/order=2/std/(s u.y).x (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=2/std/(s u.y).y>>                                                       : err = 0.0e+00
+<<square20/square/order=2/std/(s u.y).y (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=2/cons/divTGrad (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=2/std/divTGrad (opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=2/std/u.vorticity>>                                                     : err = 6.3e-03
+<<square20/square/order=2/std/u.grad>>                                                          : err = 0.0e+00
+<<square20/square/order=2/std/w.grad>>                                                          : err = 3.3e-03
+<<square20/square/order=2/cons/u.div (opt)>>                                                    : err = 0.0e+00
+<<square20/square/order=2/cons/laplacian arith>>                                                : err = 0.0e+00
+<<square20/square/order=2/cons/divSGrad arith>>                                                 : err = 0.0e+00
+<<square20/square/order=2/cons/divSGrad (opt) arith>>                                           : err = 0.0e+00
+<<square20/square/order=2/cons/laplacian harmonic>>                                             : err = 0.0e+00
+<<square20/square/order=2/cons/divSGrad harmonic>>                                              : err = 0.0e+00
+<<square20/square/order=2/cons/divSGrad (opt) harmonic>>                                        : err = 0.0e+00
+<<square20/square/order=2/std/u.div (opt)>>                                                     : err = 0.0e+00
+<<square20/square/order=2/std/laplacian >>                                                      : err = 0.0e+00
+<<square20/square/order=2/std/laplacian(opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=2/std/divSGrad >>                                                       : err = 0.0e+00
+<<square20/square/order=2/std/divSGrad (opt) >>                                                 : err = 0.0e+00
+<<square20/square/order=4/std/u.x>>                                                             : err = 0.0e+00
+<<square20/square/order=4/std/u.x (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=4/std/u.y>>                                                             : err = 0.0e+00
+<<square20/square/order=4/std/u.y (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=4/std/u.xx>>                                                            : err = 0.0e+00
+<<square20/square/order=4/std/u.xx (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=4/std/u.xx (get)>>                                                      : err = 0.0e+00
+<<square20/square/order=4/std/u.xy>>                                                            : err = 0.0e+00
+<<square20/square/order=4/std/u.xy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=4/std/u.yy>>                                                            : err = 0.0e+00
+<<square20/square/order=4/std/u.yy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=4/cons/laplacian (opt)>>                                                : err = 0.0e+00
+<<square20/square/order=4/cons/divSGrad (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=4/cons/divTGrad (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=4/std/divTGrad (opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=4/std/u.vorticity>>                                                     : err = 0.0e+00
+<<square20/square/order=4/std/u.grad>>                                                          : err = 0.0e+00
+<<square20/square/order=4/std/w.grad>>                                                          : err = 0.0e+00
+<<square20/square/order=4/cons/u.div (opt)>>                                                    : err = 0.0e+00
+<<square20/square/order=4/std/u.div (opt)>>                                                     : err = 0.0e+00
+<<square20/square/order=4/std/laplacian >>                                                      : err = 0.0e+00
+<<square20/square/order=4/std/laplacian(opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=4/std/divSGrad >>                                                       : err = 0.0e+00
+<<square20/square/order=4/std/divSGrad (opt) >>                                                 : err = 0.0e+00
+<<square20/square/order=6/std/u.x>>                                                             : err = 0.0e+00
+<<square20/square/order=6/std/u.x (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=6/std/u.y>>                                                             : err = 0.0e+00
+<<square20/square/order=6/std/u.y (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=6/std/u.xx>>                                                            : err = 0.0e+00
+<<square20/square/order=6/std/u.xx (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=6/std/u.xx (get)>>                                                      : err = 0.0e+00
+<<square20/square/order=6/std/u.xy>>                                                            : err = 0.0e+00
+<<square20/square/order=6/std/u.xy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=6/std/u.yy>>                                                            : err = 0.0e+00
+<<square20/square/order=6/std/u.yy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=6/cons/laplacian (opt)>>                                                : err = 0.0e+00
+<<square20/square/order=6/cons/divSGrad (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=6/cons/divTGrad (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=6/std/divTGrad (opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=6/std/u.vorticity>>                                                     : err = 0.0e+00
+<<square20/square/order=6/std/u.grad>>                                                          : err = 0.0e+00
+<<square20/square/order=6/std/w.grad>>                                                          : err = 0.0e+00
+<<square20/square/order=6/cons/u.div (opt)>>                                                    : err = 0.0e+00
+<<square20/square/order=6/std/u.div (opt)>>                                                     : err = 0.0e+00
+<<square20/square/order=6/std/laplacian >>                                                      : err = 0.0e+00
+<<square20/square/order=6/std/laplacian(opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=6/std/divSGrad >>                                                       : err = 0.0e+00
+<<square20/square/order=6/std/divSGrad (opt) >>                                                 : err = 0.0e+00
+<<square20/square/order=8/std/u.x>>                                                             : err = 0.0e+00
+<<square20/square/order=8/std/u.x (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=8/std/u.y>>                                                             : err = 0.0e+00
+<<square20/square/order=8/std/u.y (opt)>>                                                       : err = 0.0e+00
+<<square20/square/order=8/std/u.xx>>                                                            : err = 0.0e+00
+<<square20/square/order=8/std/u.xx (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=8/std/u.xx (get)>>                                                      : err = 0.0e+00
+<<square20/square/order=8/std/u.xy>>                                                            : err = 0.0e+00
+<<square20/square/order=8/std/u.xy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=8/std/u.yy>>                                                            : err = 0.0e+00
+<<square20/square/order=8/std/u.yy (opt)>>                                                      : err = 0.0e+00
+<<square20/square/order=8/cons/laplacian (opt)>>                                                : err = 0.0e+00
+<<square20/square/order=8/cons/divSGrad (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=8/cons/divTGrad (opt)>>                                                 : err = 0.0e+00
+<<square20/square/order=8/std/divTGrad (opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=8/std/u.vorticity>>                                                     : err = 0.0e+00
+<<square20/square/order=8/std/u.grad>>                                                          : err = 0.0e+00
+<<square20/square/order=8/std/w.grad>>                                                          : err = 0.0e+00
+<<square20/square/order=8/cons/u.div (opt)>>                                                    : err = 0.0e+00
+<<square20/square/order=8/std/u.div (opt)>>                                                     : err = 0.0e+00
+<<square20/square/order=8/std/laplacian >>                                                      : err = 0.0e+00
+<<square20/square/order=8/std/laplacian(opt)>>                                                  : err = 0.0e+00
+<<square20/square/order=8/std/divSGrad >>                                                       : err = 0.0e+00
+<<square20/square/order=8/std/divSGrad (opt) >>                                                 : err = 0.0e+00
+<<cic/square/order=2/std/u.x>>                                                                  : err = 0.0e+00
+<<cic/square/order=2/std/u.x (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=2/std/u.y>>                                                                  : err = 0.0e+00
+<<cic/square/order=2/std/u.y (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=2/std/u.xx>>                                                                 : err = 0.0e+00
+<<cic/square/order=2/std/u.xx (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=2/std/u.xx (get)>>                                                           : err = 0.0e+00
+<<cic/square/order=2/std/u.xy>>                                                                 : err = 0.0e+00
+<<cic/square/order=2/std/u.xy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=2/std/u.yy>>                                                                 : err = 0.0e+00
+<<cic/square/order=2/std/u.yy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.x).x arith>>                                                     : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.x).x arith (opt)>>                                               : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.x).y arith>>                                                     : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.x).y arith (opt)>>                                               : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.y).x arith>>                                                     : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.y).x arith (opt)>>                                               : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.y).y arith>>                                                     : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.y).y arith (opt)>>                                               : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.x).x harmonic>>                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.x).x harmonic (opt)>>                                            : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.x).y harmonic>>                                                  : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.x).y harmonic (opt)>>                                            : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.y).x harmonic>>                                                  : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.y).x harmonic (opt)>>                                            : err = 2.5e-03
+<<cic/square/order=2/cons/(s u.y).y harmonic>>                                                  : err = 0.0e+00
+<<cic/square/order=2/cons/(s u.y).y harmonic (opt)>>                                            : err = 0.0e+00
+<<cic/square/order=2/std/(s u.x).x>>                                                            : err = 0.0e+00
+<<cic/square/order=2/std/(s u.x).x (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=2/std/(s u.x).y>>                                                            : err = 2.5e-03
+<<cic/square/order=2/std/(s u.x).y (opt)>>                                                      : err = 2.5e-03
+<<cic/square/order=2/std/(s u.y).x>>                                                            : err = 2.5e-03
+<<cic/square/order=2/std/(s u.y).x (opt)>>                                                      : err = 2.5e-03
+<<cic/square/order=2/std/(s u.y).y>>                                                            : err = 0.0e+00
+<<cic/square/order=2/std/(s u.y).y (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=2/cons/divTGrad (opt)>>                                                      : err = 1.5e-02
+<<cic/square/order=2/std/divTGrad (opt)>>                                                       : err = 4.4e-03
+<<cic/square/order=2/std/u.vorticity>>                                                          : err = 4.1e-02
+<<cic/square/order=2/std/u.grad>>                                                               : err = 0.0e+00
+<<cic/square/order=2/std/w.grad>>                                                               : err = 2.1e-02
+<<cic/square/order=2/cons/u.div (opt)>>                                                         : err = 3.0e-03
+<<cic/square/order=2/cons/laplacian arith>>                                                     : err = 3.0e-03
+<<cic/square/order=2/cons/divSGrad arith>>                                                      : err = 0.0e+00
+<<cic/square/order=2/cons/divSGrad (opt) arith>>                                                : err = 0.0e+00
+<<cic/square/order=2/cons/laplacian harmonic>>                                                  : err = 3.0e-03
+<<cic/square/order=2/cons/divSGrad harmonic>>                                                   : err = 0.0e+00
+<<cic/square/order=2/cons/divSGrad (opt) harmonic>>                                             : err = 0.0e+00
+<<cic/square/order=2/std/u.div (opt)>>                                                          : err = 3.0e-03
+<<cic/square/order=2/std/laplacian >>                                                           : err = 3.0e-03
+<<cic/square/order=2/std/laplacian(opt)>>                                                       : err = 3.0e-03
+<<cic/square/order=2/std/divSGrad >>                                                            : err = 0.0e+00
+<<cic/square/order=2/std/divSGrad (opt) >>                                                      : err = 0.0e+00
+<<cic/square/order=4/std/u.x>>                                                                  : err = 0.0e+00
+<<cic/square/order=4/std/u.x (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=4/std/u.y>>                                                                  : err = 0.0e+00
+<<cic/square/order=4/std/u.y (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=4/std/u.xx>>                                                                 : err = 0.0e+00
+<<cic/square/order=4/std/u.xx (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=4/std/u.xx (get)>>                                                           : err = 0.0e+00
+<<cic/square/order=4/std/u.xy>>                                                                 : err = 0.0e+00
+<<cic/square/order=4/std/u.xy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=4/std/u.yy>>                                                                 : err = 0.0e+00
+<<cic/square/order=4/std/u.yy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=4/cons/laplacian (opt)>>                                                     : err = 0.0e+00
+<<cic/square/order=4/cons/divSGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=4/cons/divTGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=4/std/divTGrad (opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=4/std/u.vorticity>>                                                          : err = 2.9e-03
+<<cic/square/order=4/std/u.grad>>                                                               : err = 0.0e+00
+<<cic/square/order=4/std/w.grad>>                                                               : err = 0.0e+00
+<<cic/square/order=4/cons/u.div (opt)>>                                                         : err = 0.0e+00
+<<cic/square/order=4/std/u.div (opt)>>                                                          : err = 0.0e+00
+<<cic/square/order=4/std/laplacian >>                                                           : err = 0.0e+00
+<<cic/square/order=4/std/laplacian(opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=4/std/divSGrad >>                                                            : err = 0.0e+00
+<<cic/square/order=4/std/divSGrad (opt) >>                                                      : err = 0.0e+00
+<<cic/square/order=6/std/u.x>>                                                                  : err = 0.0e+00
+<<cic/square/order=6/std/u.x (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=6/std/u.y>>                                                                  : err = 0.0e+00
+<<cic/square/order=6/std/u.y (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=6/std/u.xx>>                                                                 : err = 0.0e+00
+<<cic/square/order=6/std/u.xx (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=6/std/u.xx (get)>>                                                           : err = 0.0e+00
+<<cic/square/order=6/std/u.xy>>                                                                 : err = 0.0e+00
+<<cic/square/order=6/std/u.xy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=6/std/u.yy>>                                                                 : err = 0.0e+00
+<<cic/square/order=6/std/u.yy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=6/cons/laplacian (opt)>>                                                     : err = 0.0e+00
+<<cic/square/order=6/cons/divSGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=6/cons/divTGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=6/std/divTGrad (opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=6/std/u.vorticity>>                                                          : err = 0.0e+00
+<<cic/square/order=6/std/u.grad>>                                                               : err = 0.0e+00
+<<cic/square/order=6/std/w.grad>>                                                               : err = 0.0e+00
+<<cic/square/order=6/cons/u.div (opt)>>                                                         : err = 0.0e+00
+<<cic/square/order=6/std/u.div (opt)>>                                                          : err = 0.0e+00
+<<cic/square/order=6/std/laplacian >>                                                           : err = 0.0e+00
+<<cic/square/order=6/std/laplacian(opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=6/std/divSGrad >>                                                            : err = 0.0e+00
+<<cic/square/order=6/std/divSGrad (opt) >>                                                      : err = 0.0e+00
+<<cic/square/order=8/std/u.x>>                                                                  : err = 0.0e+00
+<<cic/square/order=8/std/u.x (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=8/std/u.y>>                                                                  : err = 0.0e+00
+<<cic/square/order=8/std/u.y (opt)>>                                                            : err = 0.0e+00
+<<cic/square/order=8/std/u.xx>>                                                                 : err = 0.0e+00
+<<cic/square/order=8/std/u.xx (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=8/std/u.xx (get)>>                                                           : err = 0.0e+00
+<<cic/square/order=8/std/u.xy>>                                                                 : err = 0.0e+00
+<<cic/square/order=8/std/u.xy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=8/std/u.yy>>                                                                 : err = 0.0e+00
+<<cic/square/order=8/std/u.yy (opt)>>                                                           : err = 0.0e+00
+<<cic/square/order=8/cons/laplacian (opt)>>                                                     : err = 0.0e+00
+<<cic/square/order=8/cons/divSGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=8/cons/divTGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/square/order=8/std/divTGrad (opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=8/std/u.vorticity>>                                                          : err = 0.0e+00
+<<cic/square/order=8/std/u.grad>>                                                               : err = 0.0e+00
+<<cic/square/order=8/std/w.grad>>                                                               : err = 0.0e+00
+<<cic/square/order=8/cons/u.div (opt)>>                                                         : err = 0.0e+00
+<<cic/square/order=8/std/u.div (opt)>>                                                          : err = 0.0e+00
+<<cic/square/order=8/std/laplacian >>                                                           : err = 0.0e+00
+<<cic/square/order=8/std/laplacian(opt)>>                                                       : err = 0.0e+00
+<<cic/square/order=8/std/divSGrad >>                                                            : err = 0.0e+00
+<<cic/square/order=8/std/divSGrad (opt) >>                                                      : err = 0.0e+00
+<<cic/Annulus/order=2/std/u.x>>                                                                 : err = 4.3e-03
+<<cic/Annulus/order=2/std/u.x (opt)>>                                                           : err = 4.3e-03
+<<cic/Annulus/order=2/std/u.y>>                                                                 : err = 3.6e-03
+<<cic/Annulus/order=2/std/u.y (opt)>>                                                           : err = 3.6e-03
+<<cic/Annulus/order=2/std/u.xx>>                                                                : err = 7.1e-03
+<<cic/Annulus/order=2/std/u.xx (opt)>>                                                          : err = 7.1e-03
+<<cic/Annulus/order=2/std/u.xx (get)>>                                                          : err = 7.1e-03
+<<cic/Annulus/order=2/std/u.xy>>                                                                : err = 1.2e-02
+<<cic/Annulus/order=2/std/u.xy (opt)>>                                                          : err = 1.2e-02
+<<cic/Annulus/order=2/std/u.yy>>                                                                : err = 6.5e-03
+<<cic/Annulus/order=2/std/u.yy (opt)>>                                                          : err = 6.5e-03
+<<cic/Annulus/order=2/cons/(s u.x).x arith>>                                                    : err = 6.2e-03
+<<cic/Annulus/order=2/cons/(s u.x).x arith (opt)>>                                              : err = 6.2e-03
+<<cic/Annulus/order=2/cons/(s u.x).y arith>>                                                    : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.x).y arith (opt)>>                                              : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.y).x arith>>                                                    : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.y).x arith (opt)>>                                              : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.y).y arith>>                                                    : err = 5.8e-03
+<<cic/Annulus/order=2/cons/(s u.y).y arith (opt)>>                                              : err = 5.8e-03
+<<cic/Annulus/order=2/cons/(s u.x).x harmonic>>                                                 : err = 6.4e-03
+<<cic/Annulus/order=2/cons/(s u.x).x harmonic (opt)>>                                           : err = 6.4e-03
+<<cic/Annulus/order=2/cons/(s u.x).y harmonic>>                                                 : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.x).y harmonic (opt)>>                                           : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.y).x harmonic>>                                                 : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.y).x harmonic (opt)>>                                           : err = 1.1e-02
+<<cic/Annulus/order=2/cons/(s u.y).y harmonic>>                                                 : err = 5.6e-03
+<<cic/Annulus/order=2/cons/(s u.y).y harmonic (opt)>>                                           : err = 5.6e-03
+<<cic/Annulus/order=2/std/(s u.x).x>>                                                           : err = 7.8e-03
+<<cic/Annulus/order=2/std/(s u.x).x (opt)>>                                                     : err = 7.8e-03
+<<cic/Annulus/order=2/std/(s u.x).y>>                                                           : err = 1.4e-02
+<<cic/Annulus/order=2/std/(s u.x).y (opt)>>                                                     : err = 1.4e-02
+<<cic/Annulus/order=2/std/(s u.y).x>>                                                           : err = 1.5e-02
+<<cic/Annulus/order=2/std/(s u.y).x (opt)>>                                                     : err = 1.5e-02
+<<cic/Annulus/order=2/std/(s u.y).y>>                                                           : err = 6.9e-03
+<<cic/Annulus/order=2/std/(s u.y).y (opt)>>                                                     : err = 6.9e-03
+<<cic/Annulus/order=2/cons/divTGrad (opt)>>                                                     : err = 2.1e-02
+<<cic/Annulus/order=2/std/divTGrad (opt)>>                                                      : err = 2.3e-02
+<<cic/Annulus/order=2/std/u.vorticity>>                                                         : err = 9.3e-02
+<<cic/Annulus/order=2/std/u.grad>>                                                              : err = 4.3e-03
+<<cic/Annulus/order=2/std/w.grad>>                                                              : err = 4.8e-02
+<<cic/Annulus/order=2/cons/u.div (opt)>>                                                        : err = 8.7e-02
+<<cic/Annulus/order=2/cons/laplacian arith>>                                                    : err = 1.8e-02
+<<cic/Annulus/order=2/cons/divSGrad arith>>                                                     : err = 5.3e-03
+<<cic/Annulus/order=2/cons/divSGrad (opt) arith>>                                               : err = 5.3e-03
+<<cic/Annulus/order=2/cons/laplacian harmonic>>                                                 : err = 1.8e-02
+<<cic/Annulus/order=2/cons/divSGrad harmonic>>                                                  : err = 5.3e-03
+<<cic/Annulus/order=2/cons/divSGrad (opt) harmonic>>                                            : err = 5.3e-03
+<<cic/Annulus/order=2/std/u.div (opt)>>                                                         : err = 7.1e-02
+<<cic/Annulus/order=2/std/laplacian >>                                                          : err = 1.6e-02
+<<cic/Annulus/order=2/std/laplacian(opt)>>                                                      : err = 1.6e-02
+<<cic/Annulus/order=2/std/divSGrad >>                                                           : err = 5.5e-03
+<<cic/Annulus/order=2/std/divSGrad (opt) >>                                                     : err = 5.5e-03
+<<cic/Annulus/order=4/std/u.x>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.x (opt)>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.y>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.y (opt)>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.xx>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.xx (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.xx (get)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.xy>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.xy (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.yy>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.yy (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=4/cons/laplacian (opt)>>                                                    : err = 0.0e+00
+<<cic/Annulus/order=4/cons/divSGrad (opt)>>                                                     : err = 0.0e+00
+<<cic/Annulus/order=4/cons/divTGrad (opt)>>                                                     : err = 1.2e-02
+<<cic/Annulus/order=4/std/divTGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=4/std/u.vorticity>>                                                         : err = 1.9e-02
+<<cic/Annulus/order=4/std/u.grad>>                                                              : err = 0.0e+00
+<<cic/Annulus/order=4/std/w.grad>>                                                              : err = 9.8e-03
+<<cic/Annulus/order=4/cons/u.div (opt)>>                                                        : err = 2.7e-02
+<<cic/Annulus/order=4/std/u.div (opt)>>                                                         : err = 1.4e-02
+<<cic/Annulus/order=4/std/laplacian >>                                                          : err = 0.0e+00
+<<cic/Annulus/order=4/std/laplacian(opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=4/std/divSGrad >>                                                           : err = 0.0e+00
+<<cic/Annulus/order=4/std/divSGrad (opt) >>                                                     : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.x>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.x (opt)>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.y>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.y (opt)>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.xx>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.xx (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.xx (get)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.xy>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.xy (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.yy>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.yy (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=6/cons/laplacian (opt)>>                                                    : err = 0.0e+00
+<<cic/Annulus/order=6/cons/divSGrad (opt)>>                                                     : err = 0.0e+00
+<<cic/Annulus/order=6/cons/divTGrad (opt)>>                                                     : err = 4.8e-03
+<<cic/Annulus/order=6/std/divTGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=6/std/u.vorticity>>                                                         : err = 4.1e-03
+<<cic/Annulus/order=6/std/u.grad>>                                                              : err = 0.0e+00
+<<cic/Annulus/order=6/std/w.grad>>                                                              : err = 2.1e-03
+<<cic/Annulus/order=6/cons/u.div (opt)>>                                                        : err = 7.9e-03
+<<cic/Annulus/order=6/std/u.div (opt)>>                                                         : err = 2.8e-03
+<<cic/Annulus/order=6/std/laplacian >>                                                          : err = 0.0e+00
+<<cic/Annulus/order=6/std/laplacian(opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=6/std/divSGrad >>                                                           : err = 0.0e+00
+<<cic/Annulus/order=6/std/divSGrad (opt) >>                                                     : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.x>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.x (opt)>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.y>>                                                                 : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.y (opt)>>                                                           : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.xx>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.xx (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.xx (get)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.xy>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.xy (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.yy>>                                                                : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.yy (opt)>>                                                          : err = 0.0e+00
+<<cic/Annulus/order=8/cons/laplacian (opt)>>                                                    : err = 0.0e+00
+<<cic/Annulus/order=8/cons/divSGrad (opt)>>                                                     : err = 0.0e+00
+<<cic/Annulus/order=8/cons/divTGrad (opt)>>                                                     : err = 2.0e-03
+<<cic/Annulus/order=8/std/divTGrad (opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.vorticity>>                                                         : err = 0.0e+00
+<<cic/Annulus/order=8/std/u.grad>>                                                              : err = 0.0e+00
+<<cic/Annulus/order=8/std/w.grad>>                                                              : err = 0.0e+00
+<<cic/Annulus/order=8/cons/u.div (opt)>>                                                        : err = 2.2e-03
+<<cic/Annulus/order=8/std/u.div (opt)>>                                                         : err = 0.0e+00
+<<cic/Annulus/order=8/std/laplacian >>                                                          : err = 0.0e+00
+<<cic/Annulus/order=8/std/laplacian(opt)>>                                                      : err = 0.0e+00
+<<cic/Annulus/order=8/std/divSGrad >>                                                           : err = 0.0e+00
+<<cic/Annulus/order=8/std/divSGrad (opt) >>                                                     : err = 0.0e+00
+<<sib/box/order=2/std/u.x>>                                                                     : err = 2.3e-03
+<<sib/box/order=2/std/u.x (opt)>>                                                               : err = 2.3e-03
+<<sib/box/order=2/std/u.y>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/std/u.y (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=2/std/u.xx>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/u.xx (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/u.xx (get)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/u.xy>>                                                                    : err = 4.6e-03
+<<sib/box/order=2/std/u.xy (opt)>>                                                              : err = 4.6e-03
+<<sib/box/order=2/std/u.yy>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/u.yy (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.x).x arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.x).x arith (opt)>>                                                  : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.x).y arith>>                                                        : err = 5.8e-03
+<<sib/box/order=2/cons/(s u.x).y arith (opt)>>                                                  : err = 5.8e-03
+<<sib/box/order=2/cons/(s u.x).z arith>>                                                        : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.x).z arith (opt)>>                                                  : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.y).x arith>>                                                        : err = 5.9e-03
+<<sib/box/order=2/cons/(s u.y).x arith (opt)>>                                                  : err = 5.9e-03
+<<sib/box/order=2/cons/(s u.y).y arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.y).y arith (opt)>>                                                  : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.y).z arith>>                                                        : err = 2.3e-03
+<<sib/box/order=2/cons/(s u.y).z arith (opt)>>                                                  : err = 2.3e-03
+<<sib/box/order=2/cons/(s u.z).x arith>>                                                        : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.z).x arith (opt)>>                                                  : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.z).y arith>>                                                        : err = 2.2e-03
+<<sib/box/order=2/cons/(s u.z).y arith (opt)>>                                                  : err = 2.2e-03
+<<sib/box/order=2/cons/(s u.z).z arith>>                                                        : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.z).z arith (opt)>>                                                  : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.x).x harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.x).x harmonic (opt)>>                                               : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.x).y harmonic>>                                                     : err = 5.8e-03
+<<sib/box/order=2/cons/(s u.x).y harmonic (opt)>>                                               : err = 5.8e-03
+<<sib/box/order=2/cons/(s u.x).z harmonic>>                                                     : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.x).z harmonic (opt)>>                                               : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.y).x harmonic>>                                                     : err = 5.9e-03
+<<sib/box/order=2/cons/(s u.y).x harmonic (opt)>>                                               : err = 5.9e-03
+<<sib/box/order=2/cons/(s u.y).y harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.y).y harmonic (opt)>>                                               : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.y).z harmonic>>                                                     : err = 2.3e-03
+<<sib/box/order=2/cons/(s u.y).z harmonic (opt)>>                                               : err = 2.3e-03
+<<sib/box/order=2/cons/(s u.z).x harmonic>>                                                     : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.z).x harmonic (opt)>>                                               : err = 3.5e-03
+<<sib/box/order=2/cons/(s u.z).y harmonic>>                                                     : err = 2.2e-03
+<<sib/box/order=2/cons/(s u.z).y harmonic (opt)>>                                               : err = 2.2e-03
+<<sib/box/order=2/cons/(s u.z).z harmonic>>                                                     : err = 0.0e+00
+<<sib/box/order=2/cons/(s u.z).z harmonic (opt)>>                                               : err = 0.0e+00
+<<sib/box/order=2/std/(s u.x).x>>                                                               : err = 0.0e+00
+<<sib/box/order=2/std/(s u.x).x (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=2/std/(s u.x).y>>                                                               : err = 5.8e-03
+<<sib/box/order=2/std/(s u.x).y (opt)>>                                                         : err = 5.8e-03
+<<sib/box/order=2/std/(s u.x).z>>                                                               : err = 3.5e-03
+<<sib/box/order=2/std/(s u.x).z (opt)>>                                                         : err = 3.5e-03
+<<sib/box/order=2/std/(s u.y).x>>                                                               : err = 5.8e-03
+<<sib/box/order=2/std/(s u.y).x (opt)>>                                                         : err = 5.8e-03
+<<sib/box/order=2/std/(s u.y).y>>                                                               : err = 0.0e+00
+<<sib/box/order=2/std/(s u.y).y (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=2/std/(s u.y).z>>                                                               : err = 2.2e-03
+<<sib/box/order=2/std/(s u.y).z (opt)>>                                                         : err = 2.2e-03
+<<sib/box/order=2/std/(s u.z).x>>                                                               : err = 3.5e-03
+<<sib/box/order=2/std/(s u.z).x (opt)>>                                                         : err = 3.5e-03
+<<sib/box/order=2/std/(s u.z).y>>                                                               : err = 2.2e-03
+<<sib/box/order=2/std/(s u.z).y (opt)>>                                                         : err = 2.2e-03
+<<sib/box/order=2/std/(s u.z).z>>                                                               : err = 0.0e+00
+<<sib/box/order=2/std/(s u.z).z (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=2/cons/divTGrad (opt)>>                                                         : err = 3.1e-02
+<<sib/box/order=2/std/divTGrad (opt)>>                                                          : err = 1.0e-02
+<<sib/box/order=2/std/u.z>>                                                                     : err = 0.0e+00
+<<sib/box/order=2/std/u.z (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=2/std/u.xz>>                                                                    : err = 3.0e-03
+<<sib/box/order=2/std/u.xz (opt)>>                                                              : err = 3.0e-03
+<<sib/box/order=2/std/u.yz>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/u.yz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/u.zz>>                                                                    : err = 0.0e+00
+<<sib/box/order=2/std/u.zz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/vorticity0>>                                                              : err = 0.0e+00
+<<sib/box/order=2/std/vorticity1>>                                                              : err = 1.8e-02
+<<sib/box/order=2/std/vorticity2>>                                                              : err = 4.9e-02
+<<sib/box/order=2/std/grad>>                                                                    : err = 2.3e-03
+<<sib/box/order=2/std/w.grad>>                                                                  : err = 7.3e-02
+<<sib/box/order=2/cons/u.div (opt)>>                                                            : err = 2.5e-02
+<<sib/box/order=2/cons/laplacian>>                                                              : err = 6.3e-03
+<<sib/box/order=2/cons/divSGrad>>                                                               : err = 2.4e-03
+<<sib/box/order=2/cons/divSGrad (opt)>>                                                         : err = 2.4e-03
+<<sib/box/order=2/std/u.div (opt)>>                                                             : err = 2.5e-02
+<<sib/box/order=2/std/laplacian>>                                                               : err = 6.3e-03
+<<sib/box/order=2/std/laplacian (opt)>>                                                         : err = 6.3e-03
+<<sib/box/order=2/std/divSGrad>>                                                                : err = 2.4e-03
+<<sib/box/order=2/std/divSGrad (opt)>>                                                          : err = 2.4e-03
+<<sib/box/order=4/std/u.x>>                                                                     : err = 0.0e+00
+<<sib/box/order=4/std/u.x (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=4/std/u.y>>                                                                     : err = 0.0e+00
+<<sib/box/order=4/std/u.y (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=4/std/u.xx>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/u.xx (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/u.xx (get)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/u.xy>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/u.xy (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/u.yy>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/u.yy (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/cons/laplacian (opt)>>                                                        : err = 0.0e+00
+<<sib/box/order=4/cons/divSGrad (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=4/cons/divTGrad (opt)>>                                                         : err = 6.9e-03
+<<sib/box/order=4/std/divTGrad (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=4/std/u.z>>                                                                     : err = 0.0e+00
+<<sib/box/order=4/std/u.z (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=4/std/u.xz>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/u.xz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/u.yz>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/u.yz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/u.zz>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/u.zz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/vorticity0>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/vorticity1>>                                                              : err = 0.0e+00
+<<sib/box/order=4/std/vorticity2>>                                                              : err = 8.1e-03
+<<sib/box/order=4/std/grad>>                                                                    : err = 0.0e+00
+<<sib/box/order=4/std/w.grad>>                                                                  : err = 1.2e-02
+<<sib/box/order=4/cons/u.div (opt)>>                                                            : err = 0.0e+00
+<<sib/box/order=4/std/u.div (opt)>>                                                             : err = 0.0e+00
+<<sib/box/order=4/std/laplacian>>                                                               : err = 0.0e+00
+<<sib/box/order=4/std/laplacian (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=4/std/divSGrad>>                                                                : err = 0.0e+00
+<<sib/box/order=4/std/divSGrad (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=6/std/u.x>>                                                                     : err = 0.0e+00
+<<sib/box/order=6/std/u.x (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=6/std/u.y>>                                                                     : err = 0.0e+00
+<<sib/box/order=6/std/u.y (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=6/std/u.xx>>                                                                    : err = 0.0e+00
+<<sib/box/order=6/std/u.xx (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/u.xx (get)>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/u.xy>>                                                                    : err = 0.0e+00
+<<sib/box/order=6/std/u.xy (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/u.yy>>                                                                    : err = 0.0e+00
+<<sib/box/order=6/std/u.yy (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=6/cons/laplacian (opt)>>                                                        : err = 0.0e+00
+<<sib/box/order=6/cons/divSGrad (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=6/cons/divTGrad (opt)>>                                                         : err = 2.0e-03
+<<sib/box/order=6/std/divTGrad (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=6/std/u.z>>                                                                     : err = 0.0e+00
+<<sib/box/order=6/std/u.z (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=6/std/u.xz>>                                                                    : err = 0.0e+00
+<<sib/box/order=6/std/u.xz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/u.yz>>                                                                    : err = 0.0e+00
+<<sib/box/order=6/std/u.yz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/u.zz>>                                                                    : err = 0.0e+00
+<<sib/box/order=6/std/u.zz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/vorticity0>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/vorticity1>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/vorticity2>>                                                              : err = 0.0e+00
+<<sib/box/order=6/std/grad>>                                                                    : err = 0.0e+00
+<<sib/box/order=6/std/w.grad>>                                                                  : err = 2.2e-03
+<<sib/box/order=6/cons/u.div (opt)>>                                                            : err = 0.0e+00
+<<sib/box/order=6/std/u.div (opt)>>                                                             : err = 0.0e+00
+<<sib/box/order=6/std/laplacian>>                                                               : err = 0.0e+00
+<<sib/box/order=6/std/laplacian (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=6/std/divSGrad>>                                                                : err = 0.0e+00
+<<sib/box/order=6/std/divSGrad (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=8/std/u.x>>                                                                     : err = 0.0e+00
+<<sib/box/order=8/std/u.x (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=8/std/u.y>>                                                                     : err = 0.0e+00
+<<sib/box/order=8/std/u.y (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=8/std/u.xx>>                                                                    : err = 0.0e+00
+<<sib/box/order=8/std/u.xx (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/u.xx (get)>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/u.xy>>                                                                    : err = 0.0e+00
+<<sib/box/order=8/std/u.xy (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/u.yy>>                                                                    : err = 0.0e+00
+<<sib/box/order=8/std/u.yy (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=8/cons/laplacian (opt)>>                                                        : err = 0.0e+00
+<<sib/box/order=8/cons/divSGrad (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=8/cons/divTGrad (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=8/std/divTGrad (opt)>>                                                          : err = 0.0e+00
+<<sib/box/order=8/std/u.z>>                                                                     : err = 0.0e+00
+<<sib/box/order=8/std/u.z (opt)>>                                                               : err = 0.0e+00
+<<sib/box/order=8/std/u.xz>>                                                                    : err = 0.0e+00
+<<sib/box/order=8/std/u.xz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/u.yz>>                                                                    : err = 0.0e+00
+<<sib/box/order=8/std/u.yz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/u.zz>>                                                                    : err = 0.0e+00
+<<sib/box/order=8/std/u.zz (opt)>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/vorticity0>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/vorticity1>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/vorticity2>>                                                              : err = 0.0e+00
+<<sib/box/order=8/std/grad>>                                                                    : err = 0.0e+00
+<<sib/box/order=8/std/w.grad>>                                                                  : err = 0.0e+00
+<<sib/box/order=8/cons/u.div (opt)>>                                                            : err = 0.0e+00
+<<sib/box/order=8/std/u.div (opt)>>                                                             : err = 0.0e+00
+<<sib/box/order=8/std/laplacian>>                                                               : err = 0.0e+00
+<<sib/box/order=8/std/laplacian (opt)>>                                                         : err = 0.0e+00
+<<sib/box/order=8/std/divSGrad>>                                                                : err = 0.0e+00
+<<sib/box/order=8/std/divSGrad (opt)>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=2/std/u.x>>                                                              : err = 5.5e-03
+<<sib/north-pole/order=2/std/u.x (opt)>>                                                        : err = 5.5e-03
+<<sib/north-pole/order=2/std/u.y>>                                                              : err = 4.9e-03
+<<sib/north-pole/order=2/std/u.y (opt)>>                                                        : err = 4.9e-03
+<<sib/north-pole/order=2/std/u.xx>>                                                             : err = 2.0e-02
+<<sib/north-pole/order=2/std/u.xx (opt)>>                                                       : err = 2.0e-02
+<<sib/north-pole/order=2/std/u.xx (get)>>                                                       : err = 2.0e-02
+<<sib/north-pole/order=2/std/u.xy>>                                                             : err = 2.2e-02
+<<sib/north-pole/order=2/std/u.xy (opt)>>                                                       : err = 2.2e-02
+<<sib/north-pole/order=2/std/u.yy>>                                                             : err = 1.9e-02
+<<sib/north-pole/order=2/std/u.yy (opt)>>                                                       : err = 1.9e-02
+<<sib/north-pole/order=2/cons/(s u.x).x arith>>                                                 : err = 3.4e-02
+<<sib/north-pole/order=2/cons/(s u.x).x arith (opt)>>                                           : err = 3.4e-02
+<<sib/north-pole/order=2/cons/(s u.x).y arith>>                                                 : err = 2.1e-02
+<<sib/north-pole/order=2/cons/(s u.x).y arith (opt)>>                                           : err = 2.1e-02
+<<sib/north-pole/order=2/cons/(s u.x).z arith>>                                                 : err = 2.6e-02
+<<sib/north-pole/order=2/cons/(s u.x).z arith (opt)>>                                           : err = 2.6e-02
+<<sib/north-pole/order=2/cons/(s u.y).x arith>>                                                 : err = 2.7e-02
+<<sib/north-pole/order=2/cons/(s u.y).x arith (opt)>>                                           : err = 2.7e-02
+<<sib/north-pole/order=2/cons/(s u.y).y arith>>                                                 : err = 2.1e-02
+<<sib/north-pole/order=2/cons/(s u.y).y arith (opt)>>                                           : err = 2.1e-02
+<<sib/north-pole/order=2/cons/(s u.y).z arith>>                                                 : err = 1.4e-02
+<<sib/north-pole/order=2/cons/(s u.y).z arith (opt)>>                                           : err = 1.4e-02
+<<sib/north-pole/order=2/cons/(s u.z).x arith>>                                                 : err = 3.4e-02
+<<sib/north-pole/order=2/cons/(s u.z).x arith (opt)>>                                           : err = 3.4e-02
+<<sib/north-pole/order=2/cons/(s u.z).y arith>>                                                 : err = 1.9e-02
+<<sib/north-pole/order=2/cons/(s u.z).y arith (opt)>>                                           : err = 1.9e-02
+<<sib/north-pole/order=2/cons/(s u.z).z arith>>                                                 : err = 2.7e-02
+<<sib/north-pole/order=2/cons/(s u.z).z arith (opt)>>                                           : err = 2.7e-02
+<<sib/north-pole/order=2/cons/(s u.x).x harmonic>>                                              : err = 3.5e-02
+<<sib/north-pole/order=2/cons/(s u.x).x harmonic (opt)>>                                        : err = 3.5e-02
+<<sib/north-pole/order=2/cons/(s u.x).y harmonic>>                                              : err = 2.1e-02
+<<sib/north-pole/order=2/cons/(s u.x).y harmonic (opt)>>                                        : err = 2.1e-02
+<<sib/north-pole/order=2/cons/(s u.x).z harmonic>>                                              : err = 2.5e-02
+<<sib/north-pole/order=2/cons/(s u.x).z harmonic (opt)>>                                        : err = 2.5e-02
+<<sib/north-pole/order=2/cons/(s u.y).x harmonic>>                                              : err = 2.7e-02
+<<sib/north-pole/order=2/cons/(s u.y).x harmonic (opt)>>                                        : err = 2.7e-02
+<<sib/north-pole/order=2/cons/(s u.y).y harmonic>>                                              : err = 2.2e-02
+<<sib/north-pole/order=2/cons/(s u.y).y harmonic (opt)>>                                        : err = 2.2e-02
+<<sib/north-pole/order=2/cons/(s u.y).z harmonic>>                                              : err = 1.4e-02
+<<sib/north-pole/order=2/cons/(s u.y).z harmonic (opt)>>                                        : err = 1.4e-02
+<<sib/north-pole/order=2/cons/(s u.z).x harmonic>>                                              : err = 3.4e-02
+<<sib/north-pole/order=2/cons/(s u.z).x harmonic (opt)>>                                        : err = 3.4e-02
+<<sib/north-pole/order=2/cons/(s u.z).y harmonic>>                                              : err = 1.9e-02
+<<sib/north-pole/order=2/cons/(s u.z).y harmonic (opt)>>                                        : err = 1.9e-02
+<<sib/north-pole/order=2/cons/(s u.z).z harmonic>>                                              : err = 2.7e-02
+<<sib/north-pole/order=2/cons/(s u.z).z harmonic (opt)>>                                        : err = 2.7e-02
+<<sib/north-pole/order=2/std/(s u.x).x>>                                                        : err = 2.1e-02
+<<sib/north-pole/order=2/std/(s u.x).x (opt)>>                                                  : err = 2.1e-02
+<<sib/north-pole/order=2/std/(s u.x).y>>                                                        : err = 2.6e-02
+<<sib/north-pole/order=2/std/(s u.x).y (opt)>>                                                  : err = 4.4e-02
+<<sib/north-pole/order=2/std/(s u.x).z>>                                                        : err = 1.8e-02
+<<sib/north-pole/order=2/std/(s u.x).z (opt)>>                                                  : err = 4.2e-02
+<<sib/north-pole/order=2/std/(s u.y).x>>                                                        : err = 2.6e-02
+<<sib/north-pole/order=2/std/(s u.y).x (opt)>>                                                  : err = 4.5e-02
+<<sib/north-pole/order=2/std/(s u.y).y>>                                                        : err = 2.1e-02
+<<sib/north-pole/order=2/std/(s u.y).y (opt)>>                                                  : err = 2.1e-02
+<<sib/north-pole/order=2/std/(s u.y).z>>                                                        : err = 1.7e-02
+<<sib/north-pole/order=2/std/(s u.y).z (opt)>>                                                  : err = 2.6e-02
+<<sib/north-pole/order=2/std/(s u.z).x>>                                                        : err = 1.7e-02
+<<sib/north-pole/order=2/std/(s u.z).x (opt)>>                                                  : err = 4.1e-02
+<<sib/north-pole/order=2/std/(s u.z).y>>                                                        : err = 1.7e-02
+<<sib/north-pole/order=2/std/(s u.z).y (opt)>>                                                  : err = 2.5e-02
+<<sib/north-pole/order=2/std/(s u.z).z>>                                                        : err = 2.1e-02
+<<sib/north-pole/order=2/std/(s u.z).z (opt)>>                                                  : err = 2.1e-02
+<<sib/north-pole/order=2/cons/divTGrad (opt)>>                                                  : err = 6.1e-02
+<<sib/north-pole/order=2/std/divTGrad (opt)>>                                                   : err = 1.2e-01
+<<sib/north-pole/order=2/std/u.z>>                                                              : err = 4.5e-03
+<<sib/north-pole/order=2/std/u.z (opt)>>                                                        : err = 4.5e-03
+<<sib/north-pole/order=2/std/u.xz>>                                                             : err = 1.6e-02
+<<sib/north-pole/order=2/std/u.xz (opt)>>                                                       : err = 1.6e-02
+<<sib/north-pole/order=2/std/u.yz>>                                                             : err = 1.4e-02
+<<sib/north-pole/order=2/std/u.yz (opt)>>                                                       : err = 1.4e-02
+<<sib/north-pole/order=2/std/u.zz>>                                                             : err = 2.0e-02
+<<sib/north-pole/order=2/std/u.zz (opt)>>                                                       : err = 2.0e-02
+<<sib/north-pole/order=2/std/vorticity0>>                                                       : err = 3.5e-02
+<<sib/north-pole/order=2/std/vorticity1>>                                                       : err = 8.9e-02
+<<sib/north-pole/order=2/std/vorticity2>>                                                       : err = 5.2e-02
+<<sib/north-pole/order=2/std/grad>>                                                             : err = 5.5e-03
+<<sib/north-pole/order=2/std/w.grad>>                                                           : err = 7.8e-02
+<<sib/north-pole/order=2/cons/u.div (opt)>>                                                     : err = 1.0e-01
+<<sib/north-pole/order=2/cons/laplacian>>                                                       : err = 3.7e-02
+<<sib/north-pole/order=2/cons/divSGrad>>                                                        : err = 1.6e-02
+<<sib/north-pole/order=2/cons/divSGrad (opt)>>                                                  : err = 1.6e-02
+<<sib/north-pole/order=2/std/u.div (opt)>>                                                      : err = 6.1e-02
+<<sib/north-pole/order=2/std/laplacian>>                                                        : err = 3.2e-02
+<<sib/north-pole/order=2/std/laplacian (opt)>>                                                  : err = 3.2e-02
+<<sib/north-pole/order=2/std/divSGrad>>                                                         : err = 1.2e-02
+<<sib/north-pole/order=2/std/divSGrad (opt)>>                                                   : err = 1.2e-02
+<<sib/north-pole/order=4/std/u.x>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.x (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.y>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.y (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.xx>>                                                             : err = 2.8e-03
+<<sib/north-pole/order=4/std/u.xx (opt)>>                                                       : err = 2.8e-03
+<<sib/north-pole/order=4/std/u.xx (get)>>                                                       : err = 2.8e-03
+<<sib/north-pole/order=4/std/u.xy>>                                                             : err = 2.9e-03
+<<sib/north-pole/order=4/std/u.xy (opt)>>                                                       : err = 2.9e-03
+<<sib/north-pole/order=4/std/u.yy>>                                                             : err = 2.1e-03
+<<sib/north-pole/order=4/std/u.yy (opt)>>                                                       : err = 2.1e-03
+<<sib/north-pole/order=4/cons/laplacian (opt)>>                                                 : err = 4.4e-03
+<<sib/north-pole/order=4/cons/divSGrad (opt)>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=4/cons/divTGrad (opt)>>                                                  : err = 2.8e-02
+<<sib/north-pole/order=4/std/divTGrad (opt)>>                                                   : err = 1.2e-02
+<<sib/north-pole/order=4/std/u.z>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.z (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.xz>>                                                             : err = 2.7e-03
+<<sib/north-pole/order=4/std/u.xz (opt)>>                                                       : err = 2.7e-03
+<<sib/north-pole/order=4/std/u.yz>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.yz (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=4/std/u.zz>>                                                             : err = 2.5e-03
+<<sib/north-pole/order=4/std/u.zz (opt)>>                                                       : err = 2.5e-03
+<<sib/north-pole/order=4/std/vorticity0>>                                                       : err = 1.1e-02
+<<sib/north-pole/order=4/std/vorticity1>>                                                       : err = 3.7e-02
+<<sib/north-pole/order=4/std/vorticity2>>                                                       : err = 1.8e-02
+<<sib/north-pole/order=4/std/grad>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=4/std/w.grad>>                                                           : err = 2.7e-02
+<<sib/north-pole/order=4/cons/u.div (opt)>>                                                     : err = 4.0e-02
+<<sib/north-pole/order=4/std/u.div (opt)>>                                                      : err = 2.1e-02
+<<sib/north-pole/order=4/std/laplacian>>                                                        : err = 4.2e-03
+<<sib/north-pole/order=4/std/laplacian (opt)>>                                                  : err = 4.2e-03
+<<sib/north-pole/order=4/std/divSGrad>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=4/std/divSGrad (opt)>>                                                   : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.x>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.x (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.y>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.y (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.xx>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.xx (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.xx (get)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.xy>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.xy (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.yy>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.yy (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=6/cons/laplacian (opt)>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=6/cons/divSGrad (opt)>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=6/cons/divTGrad (opt)>>                                                  : err = 1.4e-02
+<<sib/north-pole/order=6/std/divTGrad (opt)>>                                                   : err = 3.3e-03
+<<sib/north-pole/order=6/std/u.z>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.z (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.xz>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.xz (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.yz>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.yz (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.zz>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=6/std/u.zz (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=6/std/vorticity0>>                                                       : err = 4.9e-03
+<<sib/north-pole/order=6/std/vorticity1>>                                                       : err = 1.7e-02
+<<sib/north-pole/order=6/std/vorticity2>>                                                       : err = 7.5e-03
+<<sib/north-pole/order=6/std/grad>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=6/std/w.grad>>                                                           : err = 1.1e-02
+<<sib/north-pole/order=6/cons/u.div (opt)>>                                                     : err = 2.0e-02
+<<sib/north-pole/order=6/std/u.div (opt)>>                                                      : err = 9.7e-03
+<<sib/north-pole/order=6/std/laplacian>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=6/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=6/std/divSGrad>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=6/std/divSGrad (opt)>>                                                   : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.x>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.x (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.y>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.y (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.xx>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.xx (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.xx (get)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.xy>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.xy (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.yy>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.yy (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=8/cons/laplacian (opt)>>                                                 : err = 0.0e+00
+<<sib/north-pole/order=8/cons/divSGrad (opt)>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=8/cons/divTGrad (opt)>>                                                  : err = 8.4e-03
+<<sib/north-pole/order=8/std/divTGrad (opt)>>                                                   : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.z>>                                                              : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.z (opt)>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.xz>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.xz (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.yz>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.yz (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.zz>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=8/std/u.zz (opt)>>                                                       : err = 0.0e+00
+<<sib/north-pole/order=8/std/vorticity0>>                                                       : err = 2.1e-03
+<<sib/north-pole/order=8/std/vorticity1>>                                                       : err = 7.4e-03
+<<sib/north-pole/order=8/std/vorticity2>>                                                       : err = 3.3e-03
+<<sib/north-pole/order=8/std/grad>>                                                             : err = 0.0e+00
+<<sib/north-pole/order=8/std/w.grad>>                                                           : err = 4.8e-03
+<<sib/north-pole/order=8/cons/u.div (opt)>>                                                     : err = 1.1e-02
+<<sib/north-pole/order=8/std/u.div (opt)>>                                                      : err = 4.1e-03
+<<sib/north-pole/order=8/std/laplacian>>                                                        : err = 0.0e+00
+<<sib/north-pole/order=8/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<sib/north-pole/order=8/std/divSGrad>>                                                         : err = 0.0e+00
+<<sib/north-pole/order=8/std/divSGrad (opt)>>                                                   : err = 0.0e+00
+<<sib/south-pole/order=2/std/u.x>>                                                              : err = 3.8e-03
+<<sib/south-pole/order=2/std/u.x (opt)>>                                                        : err = 3.8e-03
+<<sib/south-pole/order=2/std/u.y>>                                                              : err = 3.2e-03
+<<sib/south-pole/order=2/std/u.y (opt)>>                                                        : err = 3.2e-03
+<<sib/south-pole/order=2/std/u.xx>>                                                             : err = 2.2e-02
+<<sib/south-pole/order=2/std/u.xx (opt)>>                                                       : err = 2.2e-02
+<<sib/south-pole/order=2/std/u.xx (get)>>                                                       : err = 2.2e-02
+<<sib/south-pole/order=2/std/u.xy>>                                                             : err = 2.4e-02
+<<sib/south-pole/order=2/std/u.xy (opt)>>                                                       : err = 2.4e-02
+<<sib/south-pole/order=2/std/u.yy>>                                                             : err = 1.9e-02
+<<sib/south-pole/order=2/std/u.yy (opt)>>                                                       : err = 1.9e-02
+<<sib/south-pole/order=2/cons/(s u.x).x arith>>                                                 : err = 2.7e-02
+<<sib/south-pole/order=2/cons/(s u.x).x arith (opt)>>                                           : err = 2.7e-02
+<<sib/south-pole/order=2/cons/(s u.x).y arith>>                                                 : err = 1.5e-02
+<<sib/south-pole/order=2/cons/(s u.x).y arith (opt)>>                                           : err = 1.5e-02
+<<sib/south-pole/order=2/cons/(s u.x).z arith>>                                                 : err = 2.5e-02
+<<sib/south-pole/order=2/cons/(s u.x).z arith (opt)>>                                           : err = 2.5e-02
+<<sib/south-pole/order=2/cons/(s u.y).x arith>>                                                 : err = 2.0e-02
+<<sib/south-pole/order=2/cons/(s u.y).x arith (opt)>>                                           : err = 2.0e-02
+<<sib/south-pole/order=2/cons/(s u.y).y arith>>                                                 : err = 1.9e-02
+<<sib/south-pole/order=2/cons/(s u.y).y arith (opt)>>                                           : err = 1.9e-02
+<<sib/south-pole/order=2/cons/(s u.y).z arith>>                                                 : err = 1.9e-02
+<<sib/south-pole/order=2/cons/(s u.y).z arith (opt)>>                                           : err = 1.9e-02
+<<sib/south-pole/order=2/cons/(s u.z).x arith>>                                                 : err = 3.1e-02
+<<sib/south-pole/order=2/cons/(s u.z).x arith (opt)>>                                           : err = 3.1e-02
+<<sib/south-pole/order=2/cons/(s u.z).y arith>>                                                 : err = 2.2e-02
+<<sib/south-pole/order=2/cons/(s u.z).y arith (opt)>>                                           : err = 2.2e-02
+<<sib/south-pole/order=2/cons/(s u.z).z arith>>                                                 : err = 2.7e-02
+<<sib/south-pole/order=2/cons/(s u.z).z arith (opt)>>                                           : err = 2.7e-02
+<<sib/south-pole/order=2/cons/(s u.x).x harmonic>>                                              : err = 2.7e-02
+<<sib/south-pole/order=2/cons/(s u.x).x harmonic (opt)>>                                        : err = 2.7e-02
+<<sib/south-pole/order=2/cons/(s u.x).y harmonic>>                                              : err = 1.6e-02
+<<sib/south-pole/order=2/cons/(s u.x).y harmonic (opt)>>                                        : err = 1.6e-02
+<<sib/south-pole/order=2/cons/(s u.x).z harmonic>>                                              : err = 2.4e-02
+<<sib/south-pole/order=2/cons/(s u.x).z harmonic (opt)>>                                        : err = 2.4e-02
+<<sib/south-pole/order=2/cons/(s u.y).x harmonic>>                                              : err = 2.0e-02
+<<sib/south-pole/order=2/cons/(s u.y).x harmonic (opt)>>                                        : err = 2.0e-02
+<<sib/south-pole/order=2/cons/(s u.y).y harmonic>>                                              : err = 2.0e-02
+<<sib/south-pole/order=2/cons/(s u.y).y harmonic (opt)>>                                        : err = 2.0e-02
+<<sib/south-pole/order=2/cons/(s u.y).z harmonic>>                                              : err = 1.9e-02
+<<sib/south-pole/order=2/cons/(s u.y).z harmonic (opt)>>                                        : err = 1.9e-02
+<<sib/south-pole/order=2/cons/(s u.z).x harmonic>>                                              : err = 3.1e-02
+<<sib/south-pole/order=2/cons/(s u.z).x harmonic (opt)>>                                        : err = 3.1e-02
+<<sib/south-pole/order=2/cons/(s u.z).y harmonic>>                                              : err = 2.2e-02
+<<sib/south-pole/order=2/cons/(s u.z).y harmonic (opt)>>                                        : err = 2.2e-02
+<<sib/south-pole/order=2/cons/(s u.z).z harmonic>>                                              : err = 2.7e-02
+<<sib/south-pole/order=2/cons/(s u.z).z harmonic (opt)>>                                        : err = 2.7e-02
+<<sib/south-pole/order=2/std/(s u.x).x>>                                                        : err = 2.4e-02
+<<sib/south-pole/order=2/std/(s u.x).x (opt)>>                                                  : err = 2.4e-02
+<<sib/south-pole/order=2/std/(s u.x).y>>                                                        : err = 2.7e-02
+<<sib/south-pole/order=2/std/(s u.x).y (opt)>>                                                  : err = 4.5e-02
+<<sib/south-pole/order=2/std/(s u.x).z>>                                                        : err = 2.0e-02
+<<sib/south-pole/order=2/std/(s u.x).z (opt)>>                                                  : err = 2.6e-02
+<<sib/south-pole/order=2/std/(s u.y).x>>                                                        : err = 2.7e-02
+<<sib/south-pole/order=2/std/(s u.y).x (opt)>>                                                  : err = 4.5e-02
+<<sib/south-pole/order=2/std/(s u.y).y>>                                                        : err = 2.1e-02
+<<sib/south-pole/order=2/std/(s u.y).y (opt)>>                                                  : err = 2.1e-02
+<<sib/south-pole/order=2/std/(s u.y).z>>                                                        : err = 1.5e-02
+<<sib/south-pole/order=2/std/(s u.y).z (opt)>>                                                  : err = 1.5e-02
+<<sib/south-pole/order=2/std/(s u.z).x>>                                                        : err = 2.0e-02
+<<sib/south-pole/order=2/std/(s u.z).x (opt)>>                                                  : err = 2.6e-02
+<<sib/south-pole/order=2/std/(s u.z).y>>                                                        : err = 1.5e-02
+<<sib/south-pole/order=2/std/(s u.z).y (opt)>>                                                  : err = 1.5e-02
+<<sib/south-pole/order=2/std/(s u.z).z>>                                                        : err = 1.7e-02
+<<sib/south-pole/order=2/std/(s u.z).z (opt)>>                                                  : err = 1.7e-02
+<<sib/south-pole/order=2/cons/divTGrad (opt)>>                                                  : err = 7.8e-02
+<<sib/south-pole/order=2/std/divTGrad (opt)>>                                                   : err = 1.0e-01
+<<sib/south-pole/order=2/std/u.z>>                                                              : err = 3.3e-03
+<<sib/south-pole/order=2/std/u.z (opt)>>                                                        : err = 3.3e-03
+<<sib/south-pole/order=2/std/u.xz>>                                                             : err = 1.8e-02
+<<sib/south-pole/order=2/std/u.xz (opt)>>                                                       : err = 1.8e-02
+<<sib/south-pole/order=2/std/u.yz>>                                                             : err = 1.2e-02
+<<sib/south-pole/order=2/std/u.yz (opt)>>                                                       : err = 1.2e-02
+<<sib/south-pole/order=2/std/u.zz>>                                                             : err = 1.3e-02
+<<sib/south-pole/order=2/std/u.zz (opt)>>                                                       : err = 1.3e-02
+<<sib/south-pole/order=2/std/vorticity0>>                                                       : err = 7.4e-02
+<<sib/south-pole/order=2/std/vorticity1>>                                                       : err = 5.5e-02
+<<sib/south-pole/order=2/std/vorticity2>>                                                       : err = 1.1e-01
+<<sib/south-pole/order=2/std/grad>>                                                             : err = 3.8e-03
+<<sib/south-pole/order=2/std/w.grad>>                                                           : err = 1.6e-01
+<<sib/south-pole/order=2/cons/u.div (opt)>>                                                     : err = 1.7e-01
+<<sib/south-pole/order=2/cons/laplacian>>                                                       : err = 3.0e-02
+<<sib/south-pole/order=2/cons/divSGrad>>                                                        : err = 1.2e-02
+<<sib/south-pole/order=2/cons/divSGrad (opt)>>                                                  : err = 1.2e-02
+<<sib/south-pole/order=2/std/u.div (opt)>>                                                      : err = 5.5e-02
+<<sib/south-pole/order=2/std/laplacian>>                                                        : err = 2.9e-02
+<<sib/south-pole/order=2/std/laplacian (opt)>>                                                  : err = 2.9e-02
+<<sib/south-pole/order=2/std/divSGrad>>                                                         : err = 1.3e-02
+<<sib/south-pole/order=2/std/divSGrad (opt)>>                                                   : err = 1.3e-02
+<<sib/south-pole/order=4/std/u.x>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=4/std/u.x (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=4/std/u.y>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=4/std/u.y (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=4/std/u.xx>>                                                             : err = 3.2e-03
+<<sib/south-pole/order=4/std/u.xx (opt)>>                                                       : err = 3.2e-03
+<<sib/south-pole/order=4/std/u.xx (get)>>                                                       : err = 3.2e-03
+<<sib/south-pole/order=4/std/u.xy>>                                                             : err = 2.7e-03
+<<sib/south-pole/order=4/std/u.xy (opt)>>                                                       : err = 2.7e-03
+<<sib/south-pole/order=4/std/u.yy>>                                                             : err = 2.0e-03
+<<sib/south-pole/order=4/std/u.yy (opt)>>                                                       : err = 2.0e-03
+<<sib/south-pole/order=4/cons/laplacian (opt)>>                                                 : err = 7.8e-03
+<<sib/south-pole/order=4/cons/divSGrad (opt)>>                                                  : err = 2.8e-03
+<<sib/south-pole/order=4/cons/divTGrad (opt)>>                                                  : err = 2.9e-02
+<<sib/south-pole/order=4/std/divTGrad (opt)>>                                                   : err = 1.3e-02
+<<sib/south-pole/order=4/std/u.z>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=4/std/u.z (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=4/std/u.xz>>                                                             : err = 4.2e-03
+<<sib/south-pole/order=4/std/u.xz (opt)>>                                                       : err = 4.2e-03
+<<sib/south-pole/order=4/std/u.yz>>                                                             : err = 3.0e-03
+<<sib/south-pole/order=4/std/u.yz (opt)>>                                                       : err = 3.0e-03
+<<sib/south-pole/order=4/std/u.zz>>                                                             : err = 4.5e-03
+<<sib/south-pole/order=4/std/u.zz (opt)>>                                                       : err = 4.5e-03
+<<sib/south-pole/order=4/std/vorticity0>>                                                       : err = 3.1e-02
+<<sib/south-pole/order=4/std/vorticity1>>                                                       : err = 1.6e-02
+<<sib/south-pole/order=4/std/vorticity2>>                                                       : err = 4.8e-02
+<<sib/south-pole/order=4/std/grad>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=4/std/w.grad>>                                                           : err = 7.1e-02
+<<sib/south-pole/order=4/cons/u.div (opt)>>                                                     : err = 4.1e-02
+<<sib/south-pole/order=4/std/u.div (opt)>>                                                      : err = 1.6e-02
+<<sib/south-pole/order=4/std/laplacian>>                                                        : err = 7.1e-03
+<<sib/south-pole/order=4/std/laplacian (opt)>>                                                  : err = 7.1e-03
+<<sib/south-pole/order=4/std/divSGrad>>                                                         : err = 2.5e-03
+<<sib/south-pole/order=4/std/divSGrad (opt)>>                                                   : err = 2.5e-03
+<<sib/south-pole/order=6/std/u.x>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.x (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.y>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.y (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.xx>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.xx (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.xx (get)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.xy>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.xy (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.yy>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.yy (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=6/cons/laplacian (opt)>>                                                 : err = 2.8e-03
+<<sib/south-pole/order=6/cons/divSGrad (opt)>>                                                  : err = 0.0e+00
+<<sib/south-pole/order=6/cons/divTGrad (opt)>>                                                  : err = 1.6e-02
+<<sib/south-pole/order=6/std/divTGrad (opt)>>                                                   : err = 5.3e-03
+<<sib/south-pole/order=6/std/u.z>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.z (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.xz>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.xz (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.yz>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.yz (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=6/std/u.zz>>                                                             : err = 2.0e-03
+<<sib/south-pole/order=6/std/u.zz (opt)>>                                                       : err = 2.0e-03
+<<sib/south-pole/order=6/std/vorticity0>>                                                       : err = 1.2e-02
+<<sib/south-pole/order=6/std/vorticity1>>                                                       : err = 6.3e-03
+<<sib/south-pole/order=6/std/vorticity2>>                                                       : err = 2.1e-02
+<<sib/south-pole/order=6/std/grad>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=6/std/w.grad>>                                                           : err = 3.2e-02
+<<sib/south-pole/order=6/cons/u.div (opt)>>                                                     : err = 2.0e-02
+<<sib/south-pole/order=6/std/u.div (opt)>>                                                      : err = 6.4e-03
+<<sib/south-pole/order=6/std/laplacian>>                                                        : err = 2.6e-03
+<<sib/south-pole/order=6/std/laplacian (opt)>>                                                  : err = 2.6e-03
+<<sib/south-pole/order=6/std/divSGrad>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=6/std/divSGrad (opt)>>                                                   : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.x>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.x (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.y>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.y (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.xx>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.xx (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.xx (get)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.xy>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.xy (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.yy>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.yy (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=8/cons/laplacian (opt)>>                                                 : err = 0.0e+00
+<<sib/south-pole/order=8/cons/divSGrad (opt)>>                                                  : err = 0.0e+00
+<<sib/south-pole/order=8/cons/divTGrad (opt)>>                                                  : err = 1.0e-02
+<<sib/south-pole/order=8/std/divTGrad (opt)>>                                                   : err = 2.3e-03
+<<sib/south-pole/order=8/std/u.z>>                                                              : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.z (opt)>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.xz>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.xz (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.yz>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.yz (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.zz>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=8/std/u.zz (opt)>>                                                       : err = 0.0e+00
+<<sib/south-pole/order=8/std/vorticity0>>                                                       : err = 4.7e-03
+<<sib/south-pole/order=8/std/vorticity1>>                                                       : err = 2.3e-03
+<<sib/south-pole/order=8/std/vorticity2>>                                                       : err = 9.4e-03
+<<sib/south-pole/order=8/std/grad>>                                                             : err = 0.0e+00
+<<sib/south-pole/order=8/std/w.grad>>                                                           : err = 1.4e-02
+<<sib/south-pole/order=8/cons/u.div (opt)>>                                                     : err = 1.1e-02
+<<sib/south-pole/order=8/std/u.div (opt)>>                                                      : err = 2.8e-03
+<<sib/south-pole/order=8/std/laplacian>>                                                        : err = 0.0e+00
+<<sib/south-pole/order=8/std/laplacian (opt)>>                                                  : err = 0.0e+00
+<<sib/south-pole/order=8/std/divSGrad>>                                                         : err = 0.0e+00
+<<sib/south-pole/order=8/std/divSGrad (opt)>>                                                   : err = 0.0e+00

@@ -1,0 +1,154 @@
+\section{Installing Overture on Mac OS/X}  \label{sec:installMac}
+
+Overture and cg have been build on Mac OS/X. Thanks to Kyle for working this out.
+The installation process is very similar to the process for Linux after some
+initial steps to install the appropriate compilers etc.. 
+
+\vskip\baselineskip
+\noindent{\bf Stage I:}
+\begin{enumerate}
+  \item Install and update the Apple developer tools (an extra DVD that came with the mac).
+  \item Install macports, see, http://www.macports.org/
+  \item Using macports, install hdf, mesa, glw, petsc, etc using:
+  \begin{enumerate}
+    \item port install gcc4.3 hdf5 petsc mesa glw motif
+  \end{enumerate}   
+  Here we have installed version 4.3 of gcc. 
+%
+ \item It is convenient to make soft links for the 4.3 compilers that macports installs.  Go to the
+    MacPorts bin directory and make links like
+   \begin{enumerate}
+     \item {\tt ln -s gcc-mp-4.3 gcc}
+   \end{enumerate}
+   Do this for gcc, g++ and gfortran.
+\end{enumerate}
+
+\noindent{\bf Stage II: Install A++P++:}
+\begin{enumerate}
+  \item Download A++P++, Overture and cg from the Overture web site.
+  \begin{enumerate}
+    \item Unpack A++: {\tt tar xzf AP-nnn.tar.gz}
+    \item Rename A++ directory if desired: {\tt mv A++P++-nnn  A++P++-nnn-gcc4.3}
+    \item {\tt setenv CC gcc; setenv CXX g++; setenv FC gfortran}
+
+    \item {\tt ./configure --with-CC="\$CC -I/usr/include/malloc -mlongcall" --with-CXX="\$CXX -I/usr/include/malloc -mlongcall" --disable-SHARED\_LIBS  --prefix=`pwd`}
+    \item {\tt make MAKE=make install}
+    \item {\tt setenv APlusPlus `pwd`/A++/install; setenv PPlusPlus \$APlusPlus}
+  \end{enumerate}
+\end{enumerate}
+
+\noindent{\bf Stage III:} Install Overture and CG: follow the instructions in Sections~\ref{sec:installingOverture} and~\ref{sec:installingCG}
+for installing Overture and CG. 
+
+Notes:
+\begin{enumerate}
+    \item You should add the Overture/lib directory to your dynamic library path:
+       {\tt setenv DYLD\_LIBRARY\_PATH \${DYLD\_LIBRARY\_PATH}:\${Overture}/lib}
+\end{enumerate}
+
+
+% \begin{enumerate}
+%   \item Unpack Overture
+%   \item Assign Overture environmental variables (see Section~\ref{sec:installingOverture} of these instructions).
+%   \item configure Overture and make.
+% \end{enumerate}
+%- 
+%- 5) configure and install Overture
+%- 
+%- I recently purchased a new macbook pro and installed Overture and cg on it. This time
+%- I used MacPorts instead of fink to install the supporting libraries and tools.  Here
+%- is how I did it:
+%- 
+%- 1) Install macports, see
+%- http://www.macports.org/
+%- 
+%- 2) Using macports, install hdf, mesa, glw, petsc, etc using :
+%- 
+%- % port install gcc4.3 hdf5 petsc mesa glw motif
+%- 
+%- 2.1) it is convenient to make soft links for the 4.3 compilers that macports installs.  Go to the
+%- MacPorts bin directory and make links like
+%- % ln -s gcc-mp-4.3 gcc
+%- do this for gcc, g++ and gfortran
+%- 
+%- 3) download A++P++, Overture and cg
+%- 
+%- 4) Install A++P++
+%- 4.1) unpack A++P++ somewhere and configure it using
+%- % configure --prefix=`pwd`/gcc4.3
+%- ./configure --with-CC="/Users/chand1/MacPorts/bin/gcc -I/usr/include/malloc" --with-CXX="/Users/chand1/MacPorts/bin/g++ -I/usr/include/malloc" --prefix=/Users/chand1/Overture/A++P++/A++P++-0.7.9d/gcc4.3.3
+%- 
+%- 
+%- 5) configure and install Overture
+%- 
+%- mailto: chand1@llnl.gov
+%- phoneto: (925) 422 7740 
+%- 
+%- 
+%- ===============================
+%- 
+%- 
+%- Here are some instructions for building Overture.v22 and cg.v22 on a mac.  
+%- You will need to have fink installed (and fink Commander if you wish).   Note that
+%- there are two tar files attached: 
+%- ov22_osx_build_patch.tar - should be untared in the Overture.v22 directory
+%- cgv22_osx_build_patch.tar - should be intared in the cg.v22 directory
+%- 
+%- good luck!
+%- Kyle
+%- 
+%- Overture and cg installation instructions for Mac OS X
+%- 
+%- system info:
+%- Mac OS X 10.4.10 (PPC G4)
+%- Fink 0.8.1.rsync powerpc
+%- FinkCommander 0.5.4 (.release)
+%- 
+%- steps:
+%- 0. install and update the Apple developer tools (an extra DVD that came with the mac)
+%- 1. download A++P++-0.7.9d.wdh061229.tar.gz, Overture v22 and cg.v22
+%- 2. install hdf5 and openmotif using fink or fink commander (and X11 if you did not get it with the developer tools)
+%- 3. install gcc42 and gcc42-shlibs using fink (NOTE: I had to do a Source->selfupdate-rsync to get gcc42 to appear in fink commander).  The compilers will be /sw/bin/g++-4 and /sw/bin/gfortran.
+%-    3.1 to make Overture's configure work:
+%-         % cd /sw/bin; 
+%-         % sudo ln -s gcc-4 gcc; 
+%-         % sudo ln -s g++-4 g++
+%-         % set path = ( /sw/bin $path ) ; rehash
+%-         - you need to make "g++" default to g++-4, 
+%-           ie `which g++` should return something that points to /sw/bin/g++-4
+%- 4. unpack and install A++P++
+%-    4.1 untar/gz A++P++
+%-    4.2 % cd A++P++-0.7.9d
+%-    4.3 % setenv CC /sw/bin/gcc-4; setenv CXX /sw/bin/g++-4; setenv FC gfortran
+%-    4.4 % configure --with-CC="$CC -I/usr/include/malloc -mlongcall" --with-CXX="$CXX -I/usr/include/malloc -mlongcall" --disable-SHARED_LIBS  --prefix=`pwd`/gcc-4.2
+%-    4.5 % make MAKE=make install
+%-    4.6 % setenv APlusPlus `pwd`/gcc-4.2/A++/install; setenv PPlusPlus $APlusPlus
+%- 5. unpack and install Overture
+%-    5.1 untar/gz Overture.v22.tar.gz
+%-    5.2 % cd Overture.v22
+%-    5.3 % setenv HDF /sw; setenv MOTIF /sw; setenv XLIBS /usr/X11R6; setenv OpenGL $XLIBS; setenv Overture `pwd`
+%-    5.4 untar ov22_osx_build_patch.tar in the $Overture directory
+%-    5.5 % configure darwin precision=double CC=g++ cc=gcc FC=gfortran useHDF5
+%-    5.6 % make
+%-    5.7 % setenv DYLD_LIBRARY_PATH ${DYLD_LIBRARY_PATH}:${Overture}/lib
+%-    5.8 to generate some grids: % cd sampleGrids; perl generate.p 
+%- 6. unpack and install cg
+%-    6.1 untar/gz 
+%-    6.2 % cd cg.v22
+%-    6.3 untar cgv22_osx_build_patch.tar in  the cg.v22 directory
+%-    6.3 % setenv OV_OPENGL_HEADERS "-I$XLIBS/include"
+%-    6.4 % make mode=concise OS=Darwin
+%-    6.5 % setenv DYLD_LIBRARY_PATH ${DYLD_LIBRARY_PATH}:`pwd`/common/lib:`pwd`/cns/lib:`pwd`/ins/lib:`pwd`/asf/lib:`pwd`/ad/lib:`pwd`/mp/lib
+%-    6.6 % make OS=Darwin check 
+%- 
+%- Notes: 
+%- - % indicates the following text is a shell (csh) command. You can
+%-     copy and paste the text following % into your shell to execute 
+%-     the command.
+%- - The instructions assume the csh shell.  To set variables in sh, replace
+%-   setenv VARIABLE VALUE
+%-   with
+%-   export VARIABLE=VALUE
+%- - On my G4 machine it took all day to build gcc42, so be patient...
+%- 
+%- -- Kyle K. Chand mailto:chand1@llnl.gov phoneto: (925) 422 7740 

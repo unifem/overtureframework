@@ -1,0 +1,25 @@
+#
+# Makefile for irix64 (to be combined with .cshrc.sgi64)
+# assumes the existence of the file mappedGridExample1.C (which can be copied from $Overture/primer)
+#
+
+INCLUDE = -I. -I$(Overture)/include  -I$(A++)/include 
+LIBAPP=         -L$(A++) -lA++ -lA++_static -lA++
+CLIBS= -L$(Overture)/lib -lOverture_static -lOverture -lOverture_static -L$(A++) -lA++ -lA++_static -lA++
+GLIBS= -L$(OpenGL)/lib64 -lGLw -lGL -lGLU  -lGLw -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib64 -lXm -L$(XLIBS)/lib64 -lXt -lX11 -lXext -lftn -lm 
+
+cc= cc
+CC=       CC
+FC=       f77
+FFLAGS =   -g
+CCFLAGS=  -64 -mips4 -woff 1188,1047,1681,1021,1110 -Wl,-woff,85 $(INCLUDE) 
+
+.SUFFIXES:
+.SUFFIXES:.f .o .C .o .c .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.c.o:; $(cc) $(ccFLAGS) -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+mappedGridExample1 = mappedGridExample1.o 
+mappedGridExample1: $(mappedGridExample1)
+        $(CC) $(CCFLAGS) -o mappedGridExample1 mappedGridExample1.o $(CLIBS) $(GLIBS) -lm 

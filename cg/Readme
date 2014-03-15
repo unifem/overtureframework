@@ -1,0 +1,80 @@
+This is the main directory for the cg solvers. 
+
+
+  common : files common to different solvers
+  ins    : incompressible flow solver
+  cns    : compressible flow solver
+  ad     : advection-diffusion (and heat equation) solver
+  mp     : multiphysics solver (which uses the other solvers)
+  mx     : solver for Maxwell's equations
+  local  : make a locally altered version of one of the above solvers
+
+To build the incompressible flow solver, for example, goto the ins directory and type make.
+
+
+
+Build System
+------------
+
+  The build system for cg uses configuration information from Overture. You will need to set
+the environmental variables as required for Overture. In addition you should specify the
+following environment variables:
+
+    CG : location of the cg files, e.g.
+         setenv CG /home/henshaw/cg
+    LAPACK : location of the Lapack libraries, e.g.
+         setenv LAPACK /usr/local/lib
+
+
+To compile all cg modules type:
+    make
+To only compile a single module, e.g. cgcns, go to that directory and type make:
+   cd cgcns
+   make
+
+
+Compiling multiple versions from a single source tree
+-----------------------------------------------------
+
+Suppose the source files for cg are in /home/henshaw/cg. By default, typing
+make in this directory will compile the files and build the executables
+within this same directory. Now suppose you want to build a second version
+(say the parallel version). Rather than copying all the source files to
+a new directory one can instead set the  environment variable CGBUILDPREFIX as in
+
+       setenv CGBUILDPREFIX /home/henshaw/cgp 
+
+to specify the top level directory for the cg object files and executables.  In
+this way you can have a single source tree (e.g. /home/henshaw/cg) with multiple
+build trees. Now if you type "make" in the source tree, /home/henshaw/cg, the
+object files and executables will be built in the CGBUILDPREFIX directory.
+
+
+Compiling with PETSc
+--------------------
+
+You may optionally use PETSc to solve linear systems. In this case you should install PETSc and
+set the PETSc enviromental variables (following the PETSc instructions): 
+    PETSC_DIR
+    PETSC_ARCH
+
+You then need to edit the appropriate cg Makefile such as ins/Makefile and set the usePETSc variable to on: 
+    usePETSc   := on
+
+
+Build organization:
+-------------------
+
+Here is an example of one of the Makefile's :
+
+    ins/Makefile :
+       -> includes ../config/make.$(OS) : defines compiler flags (CXX_FLAGS_DBG)
+          -> includes $(Overture)/make.options  : define compilers (CXX,FC), libraries (HDF,Motif), etc. 
+       -> includes ../config/make.rules : defines implicit rules, .C -> .o etc.
+       -> includes ../config/make.options : defines flags for compile=opt/debug
+       -> includes make: adds to INCLUDES, LIBS (defined in ../common/make)
+          -> includes ../common/make  : defines common include paths (INCLUDES), libraries (LIBS,FLIBS)
+       -> includes src/files : the list of ins src files to compile
+
+
+ 

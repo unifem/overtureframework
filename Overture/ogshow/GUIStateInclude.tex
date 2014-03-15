@@ -1,0 +1,138 @@
+\subsection{Constructor}
+ 
+\newlength{\GUIStateIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\GUIStateIncludeArgIndent}{GUIState(}% 
+GUIState()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Default constructor.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setUserMenu}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GUIStateIncludeArgIndent}{setUserMenu(}%
+setUserMenu(const aString menu[], const aString \& menuTitle)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Sets up a user defined pulldown menu in the graphics windows. The menu will
+    appear after the routine pushGUI() has been called.
+\item[{\bf menu (input):}] 
+    The {\ff menu} is
+    an array of aStrings (the menu choices) with an empty aString
+    indicating the end of the menu choices. If menu == NULL, any existing user defined 
+    menu will be removed.
+\item[{\bf menuTitle (input):}]  A aString with the menu title that will appear on the menu bar. Note 
+    that a menuTitle must be provided even when menu == NULL.
+\item[{\bf Return value:}]  none.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setUserButtons}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GUIStateIncludeArgIndent}{setUserButtons(}%
+setUserButtons(const aString buttons[][2])
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This function builds user defined push buttons in the graphics windows. The buttons will
+    appear after the routine pushGUI() has been called.
+\item[{\bf buttons (input):}]  A two-dimensional array of Strings, terminated by an empty aString.
+    For example,
+    \begin{verbatim}
+    aString buttons[][2] = {{"plot shaded surfaces", "Shade"}, 
+                           {"erase",                "Erase"},
+                           {"exit",                 "Exit"},
+                           {"",                     ""}};
+    \end{verbatim}
+ The first entry in each row is the aString that will be passed as a command when the 
+ button is pressed. The second aString in each row is the name of the button that will
+ appear on the graphics window. There can be at most MAX\_BUTTONS buttons, where 
+ MAX\_BUTTONS is defined in mogl.h, currently to 15.
+
+ If buttons == NULL, any existing buttons will be removed 
+ from the current window.
+  
+
+\item[{\bf Return value:}]  none.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{buildPopup}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GUIStateIncludeArgIndent}{buildPopup(}%
+buildPopup(const aString menu[])
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Sets up a user defined popup menu in all graphics windows and in the command window. 
+    The menu will appear after the routine pushGUI() has been called.
+\item[{\bf menu (input):}]  
+    The {\ff menu} is
+    an array of Strings (the menu choices) with an empty aString
+    indicating the end of the menu choices. Optionally, a title can be put on top of the menu by 
+    starting the first aString with an `!'. For example,
+    \begin{verbatim}
+       PlotStuff ps;
+       aString menu[] = { "!MenuTitle",
+                         "plot",
+                         "erase",
+                         "exit",
+                         "" };
+       aString menuItem;
+       int i=ps.getMenuItem(menu,menuItem);
+    \end{verbatim}
+
+  To create a cascading menu, begin the string with an '$>$'.
+  To end the cascade begin the string with an '$<$'.
+  To end a cascade and start a new cascade, begin the string with '$<$' followed by '$>$'.
+  Here is an example:
+    \begin{verbatim}
+        char *menu1[] = {  "!my title",
+                           "plot",
+                           ">component",
+                                        "u",
+                                        "v",
+                                        "w",
+                           "<erase",
+                           ">stuff",
+                                    "s1",
+                                    ">more stuff", 
+                                                  "more1",
+                                                  "more2", 
+                                    "<s2", 
+                          "<>apples", 
+                                    "apple1", 
+                          "<exit",
+                          NULL };  
+    \end{verbatim}
+
+\item[{\bf Return value:}]  none.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getDialogSibling}
+ 
+\begin{flushleft} \textbf{%
+DialogData \&  \\ 
+\settowidth{\GUIStateIncludeArgIndent}{getDialogSibling(}%
+getDialogSibling(int number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  If number==-1 (default), allocate a sibling (dialog) window, otherwise return
+   sibling \# 'number'. Note that the sibling window
+ will appear on the screen after pushGUI() has been called for this (GUIState) object 
+ and showSibling() has been called for the DialogData object returned from this function.
+ See the DialogData function description for an example.
+
+\item[{\bf number (input):}]  by default return a new sibling (if number==-1), otherwise return the
+    sibling specified by number.
+\item[{\bf Returnvalues:}]  The function returns an alias to the DialogData object. There 
+  is currently space for 10 siblings (0,...,9) for each GUIState object.
+
+\item[{\bf Author:}]  AP
+\end{description}

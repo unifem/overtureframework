@@ -1,0 +1,73 @@
+\subsection{Constructor}
+ 
+\newlength{\AnnulusMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\AnnulusMappingIncludeArgIndent}{AnnulusMapping(}% 
+AnnulusMapping(const real innerRadius\_  =.5, \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real outerRadius\_  =1., \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real x0\_           =0., \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real y0\_           =0., \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real startAngle\_   =0.,\\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real endAngle\_     =1.,\\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real aOverB\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create an annulus with a circular or elliptical boundary.
+ 
+ The annulus is defined by 
+ \begin{align*}  
+        x(r,s) &= x0 + {\rm aOverB}~ R(s)\cos(\theta(r)) \cr
+        y(r,s) &= y0 +        R(s)\sin(\theta(r))    \cr   
+        R(s) &= {\rm innerRadius} + s ({\rm outerRadius}-{\rm innerRadius})  \cr
+        \theta(r) &= 2 \pi [{\rm startAngle} + r ({\rm endAngle}-{\rm startEngle})] 
+ \end{align*} 
+\item[{\bf innerRadius,outerRadius (input):}]   inner and outer radii.
+\item[{\bf x0,y0 (input):}]  centre for the annulus.
+\item[{\bf startAngle, endAngle (input):}]  The initial and final "angle" (in the range [0,1]).
+\item[{\bf aOverB (input):}]  The ratio of the length of the horizontal-radius ("a") to the vertical-radius ("b")
+  for an elliptical boundary. A value of aOverB=1 defines a circular boundary. 
+ 
+\end{description}
+\subsection{setRadii}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\AnnulusMappingIncludeArgIndent}{setRadii(}%
+setRadii(const real \& innerRadius\_  =.5, \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real \& outerRadius\_  =1.,\\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real aOverB\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Define the radii of the annulus.
+\item[{\bf innerRadius,outerRadius (input):}]  inner and outer radii of the annulus.
+    There is NO restriction that ${\tt innerRadius} < {\tt outerRadius}$.
+\item[{\bf aOverB (input):}]  The ratio of the length of the horizontal-radius ("a") to the vertical-radius ("b")
+  for an elliptical boundary. A value of aOverB=1 defines a circular boundary. 
+\end{description}
+\subsection{setOrigin}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\AnnulusMappingIncludeArgIndent}{setOrigin(}%
+setOrigin(const real \& x0\_  =0., \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real \& y0\_  =0., \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real \& z0\_  =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Set the centre of the annulus. Choosing a non-zero value for
+  {\tt z0} will cause the {\tt rangeDimension} of the Mapping to become 3.
+  
+\item[{\bf x0,y0,z0 (input):}]  centre of the annulus.
+\end{description}
+\subsection{setAngleBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\AnnulusMappingIncludeArgIndent}{setAngleBounds(}%
+setAngleBounds(const real \& startAngle\_  =0., \\ 
+\hspace{\AnnulusMappingIncludeArgIndent}const real \& endAngle\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Set the angular bounds on the annulus.
+\item[{\bf startAngle, endAngle (input):}]  The initial and final "angle" (in the range [0,1]).
+\end{description}

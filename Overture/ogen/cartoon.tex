@@ -1,0 +1,95 @@
+%-----------------------------------------------------------------------
+%   A Description of ogen - Overlapping Grid Generator
+%
+%-----------------------------------------------------------------------
+\documentclass[xcolor=rgb,svgnames,dvipsnames]{article}
+% \usepackage[bookmarks=true]{hyperref}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+% \input pstricks
+% \input pst-node
+
+\usepackage{amsmath}
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{multicol}
+\usepackage{color}
+
+% \usepackage{program}  % trouble with pdflatex
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+% \usepackage[rgb,x11names]{xcolor}
+\usepackage{tikz}
+\input trimFig.tex
+
+% \usepackage{float}
+
+% \input colours.tex
+
+% ---- we have lemmas and theorems in this paper ----
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\input wdhDefinitions
+
+\newcommand{\MGF}{Mapped\-Grid\-Function}
+\newcommand{\GCF}{Grid\-Collection\-Function}
+\newcommand{\CGF}{Composite\-Grid\-Function}
+
+\newcommand{\MGO}{Mapped\-Grid\-Operators}
+\newcommand{\GCO}{Grid\-Collection\-Operators}
+\newcommand{\CGO}{Composite\-Grid\-Operators}
+
+\newcommand{\primer}{Overture/primer}
+\newcommand{\sampleGrids}{Overture/sampleGrids}
+% \newcommand{\gf}{/home/henshaw/res/gf}
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+\newcommand{\mapping}{\homeHenshaw/Overture/mapping}
+\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
+\newcommand{\ogen}{\homeHenshaw/Overture/ogen}
+\newcommand{\cguser}{\homeHenshaw/cgap/cguser}
+
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+
+% ========================================================================================================================
+% ========================================================================================================================
+% ========================================================================================================================
+\begin{document}
+
+\input overlappingGridCartoon
+
+
+
+\end{document}

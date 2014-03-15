@@ -1,0 +1,219 @@
+
+SRC_FILES += Cgins.C project.C InsParameters.C ins.C insp.C pressureEquation.C determineErrors.C addForcing.C \
+             getTimeSteppingEigenvalue.C insBC.C boundaryConditions.C turbulenceModels.C \
+             insBC4.C implicit.C setUserDefinedParameters.C setSolverParameters.C \
+             advanceLineSolve.C advanceLineSolveOld.C printTimeStepInfo.C setupPde.C timeSteppingDialog.C \
+             setupGridFunctions.C insAugmentedSolution.C viscoPlastic.C updateStateVariables.C \
+             turbulenceModelVariables.C getModelVariables.C twoPhaseFlow.C interface.C  \
+             PenaltySlipWallBC.C PenaltyWallFunction.C dbAccessCgins.C userDefinedInitialConditions.C \
+             userDefinedKnownSolution.C
+
+# C++ files to be always compiled optimized
+CSRCO += insFactors.C
+
+# temporary replacement files
+# SRC_FILES += ins.temp.C insBC.temp.C insp.temp.C  consPrim.temp.f
+# setUserDefinedParameters.temp.C
+
+# fortran sources files (compiled with auto-double)
+SRC_FILES += inscr4.f getIntCgins.f
+
+# files from insdt.bf and insdts.bf: 
+SRC_FILES += insdtINS2dOrder2.f insdtINS3dOrder2.f  insdtINS2dOrder4.f insdtINS3dOrder4.f
+SRC_FILES += insdts.f insdtsINS.f 
+SRC_FILES += inspf.f inspINS43.f 
+
+# files from ins_factors.bf
+# *wdh* 2012/04/08 -- compile these optimized by default:
+# SRC_FILES += ins_factors.f ins_merged_factors.f ins_merged_factors_opt.f90
+FSRCO += ins_factors.f ins_merged_factors.f 
+FNSRCO += ins_merged_factors_opt.f90
+
+
+# --- fortran files that we always compile optimized ---
+
+FSRCO += insad2dr.f insad2dc.f insad3dr.f insad3dc.f 
+
+FSRCO += insdt.f lineSolveINS.f inspINS22.f inspINS23.f inspINS42.f insbcOpt4.f insLineSolve.f insLineSolveNew.f
+
+FSRCO += bcOptTemperature.f
+
+FSRCO += lineSolveNewINS.f lineSolveResidualINS.f
+
+FSRCO += insLineSolveBC.f lineSolveBcINS.f lineSolveBcINSVP.f
+# SRC_FILES += insLineSolveBC.f lineSolveBcINS.f lineSolveBcINSVP.f
+
+FSRCO += insimp.f insImpINS.f insImpVP.f insImpTP.f 
+
+# Baldwin-Lomax turbulence model:
+# Note: BL now uses inspINSVP22.f inspINSVP23.f
+ifeq ($(BaldwinLomax),on)
+  SRC_FILES += insdtsBL.f
+  SRC_FILES += lineSolveINSBL.f getBaldwinLomaxViscosity.f insImpBL.f 
+else
+  SRC_FILES += insdtsBLNull.f 
+  SRC_FILES += lineSolveINSBLNull.f getBaldwinLomaxViscosity.f insImpBL.f 
+endif
+
+# Spalart-Almaras turbulence model:
+ifeq ($(SpalartAlmaras),on)
+  SRC_FILES += insdtSPAL2dOrder2.f insdtSPAL3dOrder2.f 
+  # ignore 4th-order accurate versions for now
+  # SRC_FILES += insdtSPAL2dOrder4.f insdtSPAL3dOrder4.f 
+  SRC_FILES += insdtSPAL2dOrder4Null.f insdtSPAL3dOrder4Null.f
+  SRC_FILES += insdtsSPAL.f inspINSSPAL22.f inspINSSPAL23.f
+  SRC_FILES += lineSolveINSSPAL.f
+else
+  SRC_FILES += insdtSPAL2dOrder2Null.f insdtSPAL3dOrder2Null.f 
+  SRC_FILES += insdtSPAL2dOrder4Null.f insdtSPAL3dOrder4Null.f
+  SRC_FILES += insdtsSPALNull.f inspINSSPAL22Null.f inspINSSPAL23Null.f
+  SRC_FILES += lineSolveINSSPALNull.f
+endif
+
+# k-epsilon turbulence model:
+SRC_FILES += insImpKE.f 
+ifeq ($(kEpsilon),on)
+  SRC_FILES += insdtKE2dOrder2.f insdtKE3dOrder2.f 
+  # ignore 4th-order accurate versions for now
+  # SRC_FILES += insdtKE2dOrder4.f insdtKE3dOrder4.f
+  SRC_FILES += insdtKE2dOrder4Null.f insdtKE3dOrder4Null.f 
+#  SRC_FILES += insdtsKE.f inspINSKE22.f inspINSKE23.f
+  SRC_FILES += insdtsKE.f 
+else
+  SRC_FILES += insdtKE2dOrder2Null.f insdtKE3dOrder2Null.f 
+  SRC_FILES += insdtKE2dOrder4Null.f insdtKE3dOrder4Null.f 
+#  SRC_FILES += insdtsKENull.f inspINSKE22Null.f inspINSKE23Null.f
+  SRC_FILES += insdtsKENull.f 
+endif
+
+
+# Visco-plastic model
+ifeq ($(viscoPlastic),on)
+  SRC_FILES += insdtVP2dOrder2.f insdtVP3dOrder2.f insdtsVP.f inspINSVP22.f inspINSVP23.f \
+               lineSolveResidualVP.f lineSolveNewINSVP.f
+  SRC_FILES += insdtVP2dOrder4.f insdtVP3dOrder4.f  inspINSVP42.f inspINSVP43.f
+else
+  SRC_FILES += insdtVP2dOrder2Null.f insdtVP3dOrder2Null.f insdtsVPNull.f inspINSVP22Null.f inspINSVP23Null.f \
+               lineSolveResidualVPNull.f lineSolveNewINSVPNull.f
+  SRC_FILES += insdtVP2dOrder4Null.f insdtVP3dOrder4Null.f  inspINSVP42Null.f inspINSVP43Null.f
+endif
+
+# Two-phase flow model
+ifeq ($(twoPhase),on)
+  SRC_FILES += insdtsTP.f  inspINSTP22.f inspINSTP23.f 
+else
+  SRC_FILES += insdtsTPNull.f inspINSTP22Null.f inspINSTP23Null.f
+endif
+
+# LES turbulence model
+SRC_FILES += getLargeEddySimulationViscosity.f
+
+src/insBC.C : src/insBC.bC setTemperatureBC.h; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/insBC4.C : src/insBC4.bC boundaryMacros.h; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/interface.C : src/interface.bC ../common/src/interfaceMacros.h; $(BPP) -quiet -clean -I../common/src $<
+
+src/pressureEquation.C : src/pressureEquation.bC; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+# we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
+src/insbcOpt4.f : src/insbcOpt4.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/inscr4.f : src/inscr4.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/bcOptTemperature.f : src//bcOptTemperature.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/insdt.f : src/insdt.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/insdtINS2dOrder2.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS2dOrder4.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS3dOrder2.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+src/insdtINS3dOrder4.f : src/insdtINS.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtINS.bf
+
+src/insdtKE2dOrder2.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf
+src/insdtKE2dOrder4.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf
+src/insdtKE3dOrder2.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf
+src/insdtKE3dOrder4.f : src/insdtKE.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtKE.bf
+
+src/insdtSPAL2dOrder2.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+src/insdtSPAL2dOrder4.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+src/insdtSPAL3dOrder2.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+src/insdtSPAL3dOrder4.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+
+src/insdtSPAL2dOrder2Null.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+src/insdtSPAL2dOrder4Null.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+src/insdtSPAL3dOrder2Null.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+src/insdtSPAL3dOrder4Null.f : src/insdtSPAL.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtSPAL.bf
+
+src/insdtVP2dOrder2.f : src/insdtVP.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtVP.bf
+src/insdtVP3dOrder2.f : src/insdtVP.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtVP.bf
+src/insdtVP2dOrder4.f : src/insdtVP.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtVP.bf
+src/insdtVP3dOrder4.f : src/insdtVP.bf src/insdt.h; $(BPP) -quiet -clean -I$(Overture)/include src/insdtVP.bf
+
+# files to compute the time step:
+src/insdts.f : src/insdts.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/insdtsINS.f : src/insdts.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insdts.bf
+src/insdtsSPAL.f : src/insdts.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insdts.bf
+src/insdtsBL.f : src/insdts.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insdts.bf
+src/insdtsKE.f : src/insdts.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insdts.bf
+src/insdtsVP.f : src/insdts.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insdts.bf
+src/insdtsTP.f : src/insdts.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insdts.bf
+
+src/insLineSolve.f : src/insLineSolve.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/lineSolveINS.f : src/insLineSolve.f
+src/lineSolveINSNull.f : src/insLineSolve.f
+src/lineSolveINSSPALNull.f : src/insLineSolve.f
+src/lineSolveINSSPAL.f : src/insLineSolve.f
+src/lineSolveINSBL.f : src/insLineSolve.f
+src/lineSolveINSBLNull.f : src/insLineSolve.f
+
+src/insLineSolveNew.f : src/insLineSolveNew.bf src/lineSolveINS.h src/lineSolveVP.h src/consCoeff.h src/lineSolveBL.h src/lineSolveSA.h ; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/lineSolveNewINS.f : src/insLineSolveNew.f
+src/lineSolveResidualINS.f : src/insLineSolveNew.f
+src/lineSolveResidualVP.f : src/insLineSolveNew.f
+src/lineSolveNewINSVP.f : src/insLineSolveNew.f src/lineSolveVP.h
+# src/insLineSolve.f : src/insLineSolve.bf; $(BPP) -I$(Overture)/include $<
+
+src/inspf.f : src/inspf.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/inspINS22.f : src/inspf.f
+src/inspINS23.f : src/inspf.f
+src/inspINS42.f : src/inspf.f
+src/inspINS43.f : src/inspf.f
+src/inspINSVP22.f : src/inspf.f
+src/inspINSVP23.f : src/inspf.f
+src/inspINSVP42.f : src/inspf.f
+src/inspINSVP43.f : src/inspf.f
+src/inspINSSPAL22.f : src/inspf.f
+src/inspINSSPAL23.f : src/inspf.f
+
+src/insLineSolveBC.f   : src/insLineSolveBC.bf; $(BPP) -quiet -clean -I$(Overture)/include $< 
+src/lineSolveBcINS.f   : src/insLineSolveBC.f
+src/lineSolveBcINSVP.f : src/insLineSolveBC.f 
+
+src/insimp.f : src/insimp.bf; $(BPP) -quiet -clean src/insimp.bf
+src/insImpINS.f : src/insImpINS.bf src/insImp.h; $(BPP) -quiet -clean -I$(Overture)/include src/insImpINS.bf
+
+src/insImpTP.f : src/insImpTP.bf src/consCoeff.h src/insImp.h; $(BPP) -quiet -clean -I$(Overture)/include src/insImpTP.bf
+src/insImpVP.f : src/insImpVP.bf src/consCoeff.h src/insImp.h; $(BPP) -quiet -clean -I$(Overture)/include src/insImpVP.bf
+
+src/insImpBL.f : src/insImpBL.bf src/consCoeff.h src/insImp.h; $(BPP) -quiet -clean -I$(Overture)/include src/insImpBL.bf
+
+src/insImpKE.f : src/insImpKE.bf src/consCoeff.h src/insImp.h; $(BPP) -quiet -clean -I$(Overture)/include src/insImpKE.bf
+
+# src/getViscosity.f : src/getViscosity.bf; $(BPP) -quiet -clean -I$(Overture)/include src/getViscosity.bf
+
+src/getBaldwinLomaxViscosity.f : src/getBaldwinLomaxViscosity.bf src/lineSolveBL.h; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/getLargeEddySimulationViscosity.f : src/getLargeEddySimulationViscosity.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+# Kyle's AFS fortran routines: 
+
+src/ins_factors.f : src/ins_factors.bf src/ins_factors.bh; $(BPP) -quiet -clean -I$(Overture)/include src/ins_factors.bf
+src/ins_merged_factors.f : src/ins_merged_factors.bf src/ins_factors.bh; $(BPP) -quiet -clean -I$(Overture)/include src/ins_merged_factors.bf
+src/ins_merged_factors_opt.f90 : src/ins_merged_factors_opt.bf90 src/ins_factors.bh; $(BPP) -quiet -clean -I$(Overture)/include src/ins_merged_factors_opt.bf90
+
+# artificial dissipation routines:
+src/insad2dr.f : src/insad.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insad.bf
+src/insad2dc.f : src/insad.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insad.bf
+src/insad3dr.f : src/insad.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insad.bf
+src/insad3dc.f : src/insad.bf; $(BPP) -quiet -clean -I$(Overture)/include src/insad.bf
+
+

@@ -1,0 +1,76 @@
+\subsection{Constructor}
+ 
+\newlength{\SphereMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\SphereMappingIncludeArgIndent}{SphereMapping(}% 
+SphereMapping(const real \& innerRadius\_  .5, \\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& outerRadius\_  1., \\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& x0\_  .0, \\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& y0\_  .0, \\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& z0\_  .0,\\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& startTheta\_  .0,\\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& endTheta\_  1.,\\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& startPhi\_  .0,\\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& endPhi\_  1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+     Define a spherical shell or spherical surface.
+\item[{\bf innerRadius\_,outerRadius\_ (input):}]  bounds on the radius.
+\item[{\bf x0\_,y0\_,z0\_ (input) :}]  center.
+\item[{\bf startTheta\_,endTheta\_ (input) :}]  bounds on normalized $\theta$, in the range $[0,1]$.
+\item[{\bf startPhi\_,endPhi\_ (input):}]  bounds on the normalized $\phi$, in the range $[0,1]$.
+\end{description}
+\subsection{setOrigin}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SphereMappingIncludeArgIndent}{setOrigin(}%
+setOrigin(const real \& x0\_  =.0, \\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& y0\_  =.0, \\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& z0\_  =.0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Specify parameters for the sphere.
+\item[{\bf x0\_,y0\_,z0\_ (input) :}]  center.
+\end{description}
+\subsection{setPhi}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SphereMappingIncludeArgIndent}{setPhi(}%
+setPhi(const real \& startPhi\_  =.0,\\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& endPhi\_    =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Specify parameters for the sphere.
+\item[{\bf startPhi\_,endPhi\_ (input):}]  bounds on the normalized $\phi$, in the range $[0,1]$.
+\end{description}
+\subsection{setRadii}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SphereMappingIncludeArgIndent}{setRadii(}%
+setRadii(const real \& innerRadius\_  =.5, \\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& outerRadius\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Specify parameters for the sphere.
+\item[{\bf innerRadius\_,outerRadius\_ (input):}]  bounds on the radius.
+\end{description}
+\subsection{setTheta}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SphereMappingIncludeArgIndent}{setTheta(}%
+setTheta( const real \& startTheta\_  =.0,\\ 
+\hspace{\SphereMappingIncludeArgIndent}const real \& endTheta\_    =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+    Specify parameters for the sphere.
+\item[{\bf startTheta\_,endTheta\_ (input) :}]  bounds on normalized $\theta$, in the range $[0,1]$.
+\end{description}

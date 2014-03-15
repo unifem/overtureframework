@@ -1,0 +1,329 @@
+\section{Integrate: integrate grid functions on overlapping grids} \label{Integrate}
+\index{integrate!grid functions on overlapping grids}
+\index{surface integrals}\index{volume integrals}
+
+The {\tt Integrate} class has functions that can be used to integrate a grid
+function over a domain or over the boundary (or a subset of the boundary).
+For example, one may want to compute the total mass found in a domain 
+or compute the force on a body.
+
+Integrating a function on an overlapping grid is non-trivial since care must
+be taken in the region where grids overlap.
+
+% The method used by the Integrate Class involves the computation 
+
+The most important member functions are
+\begin{description}
+  \item[volumeIntegral(u)] : compute the volume integral of a RealCompositeGridFunction u.
+  \item[surfaceIntegral(u)] : compute the surface integral of a RealCompositeGridFunction u.
+  \item[defineSurface(s,...)] : define a sub-surface `s' as a collection of sides of grids. For example,
+     for the `sphere in a box' grid you could define a sub-surface that represents the two surface
+     grids on the sphere.
+  \item[surfaceIntegral(u,s)] : compute the surface integral on the surface `s'.
+\end{description}
+
+
+The integral of a function $f$ over a domain $\Omega$ in $\Real^d$ is
+\[
+  \mathcal{I} = \int_\Omega f(\xv) ~d\xv
+\]
+If the domain is parameterized by $\xv=\xv(\rv)$ for $\rv\in [0,1]^d$ then
+\begin{align*}
+  \mathcal{I} &= \int_{[0,1]^d}  f(\xv(\rv)) \left\vert {\partial \xv \over \partial \rv}\right\vert ~d\rv \\
+              &= \int_{[0,1]^d}  f(\xv(\rv)) J(\rv) ~d\rv \\
+              &= \int_{[0,1]^d}  F(\rv)~d\rv
+\end{align*}
+Thus the integral on a curvilinear grid can be converted to an integral on a uniform grid
+by integrating the function $F(\rv) = f(\xv(\rv)) J(\rv)$.
+
+
+Consider the one-dimensional case
+\[
+    \mathcal{I} = \int_0^1 F(r) dr
+\]
+This integral can, for example, be approximated to second-order accuracy by the trapezoidal rule
+\begin{align*}
+    \int_0^1 F(r) dr &= \sum_{i=0}^{N-1}  {1\over 2}( F_{i+1} + F_i ) \Delta r + O(\Delta r^2) \\
+                     &= {1\over 2} F_0\Delta r + \sum_{i=1}^{N-1} F_i \Delta r + {1\over 2} F_N\Delta r+ O(\Delta r^2)
+\end{align*}
+where $r_i=i\Delta r$, $i=0,1,2,\ldots,N$ and $\Delta r = 1/N$ and $F_i=F(r_i)$.
+
+
+
+
+If the region $\Omega$ is covered by an overlapping grid, the situation is more complicated.
+One cannot simply add contributions from each component grid independently since where the grids
+overlap some contributions will be added multiple times.
+
+The Integrate class provides two approaches for integration in the case of an overlapping grid
+\begin{description}
+  \item[Laplace approximation] : the integral is approximated using the left null vector
+     of a discretization to the Laplace equation with Neumann boundary conditions. The left null vector,
+    appropriately scaled, provides integration weights for each grid point. In this case there is no need
+    to eliminate the region of overlap.
+  \item[Hybrid approximation] : in this method the overlap is removed, leaving a gap, and an unstructured grid
+     is generated to fill the gap. An integration formula is defined on the hybrid grid. This formula
+     is transformed into weights applied to the points on the original overlapping grids. NOTE: Currently this
+    option is only available for surface grids in 3D.
+\end{description}
+
+
+% ------------------------------------------------------------------------
+\newcommand{\Sc}{\mathcal{S}}
+\subsection{Surface Integrals}
+
+Assume that we are given a mapping for a volume, $\xv=\Gv(\rv)$, with $\rv=(r,s,t)$ being the 
+unit cube coordinates.
+
+We want to integrate a function $f(\xv)$ on a surface, $\Sc$
+\begin{align*}
+  \int_\Sc f(\xv) d\xv  &= \int_\Sc f(\xv) (\xv_r\times\xv_s)\cdot \nv ~d\rv 
+         \equiv \int_\Sc f(\xv(\rv)) \gamma(\rv) ~d\rv
+\end{align*}
+where $\gamma\equiv(\xv_r\times\xv_s)\cdot \nv$.
+Assume we a given a tesselation for $\Sc = \bigcup_{k=1}^N \sigma_k$  
+for the surface consisting of triangles and quadrilaterals ($\sigma_k$ represents either a triangle
+or quadrilateral on the surface).
+Then
+\begin{align*}
+  \int_\Sc f(\xv) d\xv  &= \sum_k \int_{\sigma_k} f(\xv) \gamma(\rv) ~d\rv \\
+\end{align*}
+We must now define approximations to surface integrals over triangles or quaridlaterals. 
+
+For triangles we can define the approximation
+\begin{align}
+\int_{\sigma_k} f(\xv) \gamma(\rv) ~d\rv 
+         \approx I_1 \equiv {1\over M}\left\{\sum_{i=1}^M f(\xv_i) \gamma(\xv_i)\right\} ~\Delta_\rv(\sigma_k)
+\end{align}
+where $\{ \xv_i \}_{i=1}^M$ are the $M=3$ vertices of $\sigma_k$ and 
+where $\Delta_\rv(\sigma_k)$ is the area of $\sigma_k$ in the $(r,s)$ plane. 
+Some other possible approximations are
+\begin{align}
+\int_{\sigma_k} f(\xv) \gamma(\rv) ~d\rv 
+        & \approx I_2 \equiv f(\xv_b) \gamma(\xv_b)~\Delta_\rv(\sigma_k)  \\
+        &  \approx I_3 \equiv {1\over M}\left\{ \sum_{i=1}^M f(\xv_i) \right\} ~\Delta_\xv(\sigma_k) \\
+        &  \approx I_4 \equiv f(\xv_b)~\Delta_\xv(\sigma_k)
+\end{align}
+where $\xv_b$ is the barycenter (centroid) and $\Delta_\xv(\sigma_k)$ is the area $\sigma_k$ in the $\xv$ plane. .
+Apparently all the approximations $I_m$ lead to globaly second-order accurate approximations
+to the surface integral~\cite{GeorgTausch93}. Note that $I_3$ and $I_4$ do not require the mapping derivatives. 
+
+
+\subsubsection{Higher-order approximations to integrals}
+
+  High-order approximations to integrals can be defined by first introducing additional nodes
+on each element $\sigma$. A polynomial interpolant, $I_{\sigma}(f)$, can be defined in terms of these new
+degrees of freedom. One can define an interpolant for the metric term as well, $\gamma\approx I_{\sigma}(\gamma)$. The
+approximation to the integral on $\sigma$ can then be defined as the exact integral of the
+interpolants,
+\begin{align}
+  \int_{\sigma} f(\xv) \gamma(\rv) ~d\rv  \approx \int_{\sigma} I_{\sigma}(f) I_{\sigma}(\gamma) ~d\rv~.
+\end{align}
+
+Suppose that we are initially only given the values of $f(\xv)$ on some set of
+points (e.g. the nodes of the elements).  The values of $f$ can be obtained at the additional 
+nodes introduced above by defining another interpolant that spans multiple elements. Alternatively, if we know the
+derivatives of $f$ at points on the element then an Hermite interpolant $I_{\sigma}(f)$ can be defined.
+
+
+
+\subsubsection{Relating the surface area element to the volume element}
+
+We can related the volume Jacobian $J$ to the surface area function, 
+$\gamma=(\xv_r\times\xv_s)\cdot \nv$, 
+as follows. 
+% 
+The volume Jacobian is $J=\vert \partial \xv/\partial \rv \vert$,
+or $J=(\xv_r\times\xv_s)\cdot\xv_t$ (assuming a righ-handed coordinate system). 
+Consider a surface $t=0$ with normal $\nv=\grad_\xv t/\vert \grad_\xv t\vert$.
+The surface area function is 
+\begin{align*}
+    \gamma &= (\xv_r\times\xv_s)\cdot \nv 
+           = (\xv_r\times\xv_s)\cdot \grad_\xv t/\vert \grad_\xv t \vert
+\end{align*}         
+But $\xv_t = \alpha \nv + \beta \xv_r + \gamma \xv_s$ where 
+\begin{align*}
+  \alpha&=\xv_t\cdot\nv =\xv_t\cdot\grad_\xv t/\vert \grad_\xv\vert =1/\vert \grad_\xv t\vert~.
+\end{align*} 
+We have used $\xv_t\cdot\grad_\xv t =1$ (since $\partial t(\xv)/\partial t=1$). 
+Thus
+\begin{align*}
+   J & =(\xv_r\times\xv_s)\cdot\xv_t 
+     = (\xv_r\times\xv_s)\cdot(\alpha \nv + \beta \xv_r + \gamma \xv_s) \\
+     &= \alpha (\xv_r\times\xv_s)\cdot\nv \\
+     &= \alpha \gamma
+\end{align*}
+Therefore $\gamma = J \vert \grad_\xv t\vert$.
+
+
+\subsubsection{Integration weights for an overlapping surface grid from a stitched hybrid grid}
+
+In order to compute integrals on an overlapping surface mesh we can first build a hybrid mesh that
+fills a gap between the surface grids with an unstructured grid. The function {\tt SurfaceStitcher}
+will perform this operation. 
+
+Given a hybrid mesh for the surface we can define a numerical formula (quadrature)
+of the form 
+\begin{align}
+  \int_\Sc f(\xv) d\xv  &\approx  \sum_j f(\xv_j) w_j \label{eq:quadrature}
+\end{align}
+where the function is evaluated at some points $\xv_j$ (e.g. cell centroids or cell nodes) 
+and where $w_j$ are some weights. 
+
+From this formula, we can define another quadrature that only uses values of $f$ on the
+grid points of the original overlapping (structured) grid, denoted by $f_\iv^k$ for a point $\iv$ 
+on grid $k$. 
+To do this we determine how to interpolate $f(\xv_j)$ from valid points on the overlapping
+surface grid, 
+\begin{align}
+  f(\xv_j) \approx \sum_{\jv\in J_j} \alpha_{\jv}^j f_{\jv}^k  ~. \label{eq:interp}
+\end{align}
+For example if $\xv_j$ is the centroid of a quadrilateral on the original structured grid then
+$f(\xv_j)$ could be the average of the 4 neighbours. 
+Substituting the interpolation formula~\eqref{eq:interp}
+for $f(\xv_j)$ into the quadrature formula~\eqref{eq:quadrature}
+results in a new quadrature formula for the overlapping grid:
+\begin{align*}
+  \int_\Sc f(\xv) d\xv  &\approx  \sum_{\jv} f_{\jv}^k \hat{w}_{\jv}
+\end{align*}
+
+
+
+
+\clearpage
+% -----------------------------------------------------------------------------
+\subsection{Results}
+
+Table~\ref{tab:cic} shows some results for the circle-in-a-channel grid which
+is a circle of radius ${1\over2}$ embedded in an square $[-2,2]^2$.
+Note that the surface area of the embedded circle is computed very accurately since 
+the trapezoidal rule is exponentially accurate on a periodic region.
+
+Table~\ref{tab:cic} also shows results for a sphere-in-a-box grid.
+
+
+% ************ sib1 ***********
+% 
+% volume = 6.362080e+01
+% surfaceArea = 9.893653e+01
+% Error in volume = 1.444027e-01
+% Error in surface area = 2.050587e-01
+% 
+% *********** sib2 **********
+% 
+% volume = 6.350912e+01
+% surfaceArea = 9.908690e+01
+% Error in volume = 3.272155e-02
+% Error in surface area = 5.469631e-02
+% 
+% *********** sib2x2 ***********
+% 
+% volume = 6.348473e+01
+% surfaceArea = 9.912758e+01
+% Error in volume = 8.332455e-03
+% Error in surface area = 1.401757e-02
+
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|} \hline 
+  grid  &  $h_0/h$   & err-vol       & err-surf    \\   \hline\hline 
+ cic2   &    1       &  $6.71e-2$    & $3.6e-15$     \\ 
+ cic3   &    2       &  $1.59e-2$    & $1.1e-14$  \\ 
+ cic4   &    4       &  $4.24e-3$    & $1.8e-14$     \\ \hline 
+\end{tabular}	
+\qquad
+\begin{tabular}{|c|c|c|c|} \hline 
+  grid  &  $h_0/h$   & err-vol       & err-surf    \\   \hline\hline 
+ sib1   &    1       &  $1.44e-1$    & $2.05e-1$     \\ 
+ sib2   &    2       &  $3.27e-2$    & $5.47e-2$  \\ 
+ sib2x2 &    4       &  $8.33e-3$    & $1.40e-2$     \\ \hline 
+\end{tabular}	
+\qquad
+
+\end{center}		
+\caption{Left: Errors in computing the volume and surface-area of a circle-in-a-channel grid which
+is a circle of radius ${1\over2}$ embedded in a square $[-2,2]^2$. The 
+volume is $16-\pi/4\approx 15.2146$ while the surface-area is $16+\pi\approx 19.14159$.
+Right: Errors in computing the volume and surface area for a sphere-in-a-box grid which
+consists of a sphere of radius ${1\over2}$ embedded in a box $[-2,2]^2$. These results
+were computed with the left-null vector approach.       }
+ \label{tab:cic} 
+\end{table}
+
+% Grid sibe2.order2.hdf: surfaceArea for sphere = 3.131655e+00, (true=3.14159) error=9.9e-03
+%  Integral(x0)   =  2.8384e-03, true= 0.0000e+00, err=2.8e-03
+%  Integral(x0^2) =  2.6222e-01, true= 2.6180e-01, err=4.2e-04
+%  Integral(x1)   = -1.0083e-03, true= 0.0000e+00, err=1.0e-03
+%  Integral(x1^2) =  2.6192e-01, true= 2.6180e-01, err=1.3e-04
+%  Integral(x2)   = -1.3129e-02, true= 0.0000e+00, err=1.3e-02
+%  Integral(x2^2) =  2.5877e-01, true= 2.6180e-01, err=3.0e-03
+% 
+% Grid sibe4.order2.hdf: surfaceArea for sphere = 3.139267e+00, (true=3.14159) error=2.3e-03
+%  Integral(x0)   =  5.4249e-04, true= 0.0000e+00, err=5.4e-04
+%  Integral(x0^2) =  2.6176e-01, true= 2.6180e-01, err=4.3e-05
+%  Integral(x1)   = -4.2214e-04, true= 0.0000e+00, err=4.2e-04
+%  Integral(x1^2) =  2.6181e-01, true= 2.6180e-01, err=8.5e-06
+%  Integral(x2)   = -3.5119e-03, true= 0.0000e+00, err=3.5e-03
+%  Integral(x2^2) =  2.6125e-01, true= 2.6180e-01, err=5.5e-04
+% 
+% Grid sibe8.order2.hdf: surfaceArea for sphere = 3.140966e+00, (true=3.14159) error=6.3e-04
+%  Integral(x0)   =  2.5992e-04, true= 0.0000e+00, err=2.6e-04
+%  Integral(x0^2) =  2.6181e-01, true= 2.6180e-01, err=8.5e-06
+%  Integral(x1)   = -1.4777e-04, true= 0.0000e+00, err=1.5e-04
+%  Integral(x1^2) =  2.6182e-01, true= 2.6180e-01, err=2.5e-05
+%  Integral(x2)   = -1.2296e-03, true= 0.0000e+00, err=1.2e-03
+%  Integral(x2^2) =  2.6161e-01, true= 2.6180e-01, err=1.9e-04
+
+% ** trouble generating the hybrid grid for this next case: (FOUND A HANGING FACE)
+% Grid sibe16.order2.hdf: surfaceArea for sphere = 3.139531e+00, (true=3.14159) error=2.1e-03
+%  Integral(x0)   =  5.8189e-05, true= 0.0000e+00, err=5.8e-05
+%  Integral(x0^2) =  2.6169e-01, true= 2.6180e-01, err=1.1e-04
+%  Integral(x1)   = -8.6810e-04, true= 0.0000e+00, err=8.7e-04
+%  Integral(x1^2) =  2.6144e-01, true= 2.6180e-01, err=3.6e-04
+%  Integral(x2)   = -3.7687e-04, true= 0.0000e+00, err=3.8e-04
+%  Integral(x2^2) =  2.6176e-01, true= 2.6180e-01, err=4.2e-05
+
+% -- increased angle to 89, reduced tol by 10
+% Grid sibe16.order2.hdf: surfaceArea for sphere = 3.141421e+00, (true=3.14159) error=1.7e-04
+%  Integral(x0)   =  8.6202e-05, true= 0.0000e+00, err=8.6e-05
+%  Integral(x0^2) =  2.6179e-01, true= 2.6180e-01, err=1.3e-05
+%  Integral(x1)   = -4.4121e-05, true= 0.0000e+00, err=4.4e-05
+%  Integral(x1^2) =  2.6180e-01, true= 2.6180e-01, err=1.8e-07
+%  Integral(x2)   = -2.5876e-04, true= 0.0000e+00, err=2.6e-04
+%  Integral(x2^2) =  2.6177e-01, true= 2.6180e-01, err=3.0e-05
+
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|} \hline 
+  grid  &  $h_0/h$ &    1      &   $x$ & $y$ & $z$  &   $x^2$ & $y^2$ & $z^2$      \\   \hline\hline 
+ sibe2  &    1     & $9.9e-03$ & $2.8e-03$&$1.0e-03$&$1.3e-02$ & $4.2e-04$&$1.3e-04$&$3.0e-03$    \\ 
+ sibe4  &    2     & $2.3e-03$ & $5.4e-04$&$4.2e-04$&$3.5e-03$ & $4.3e-05$&$8.5e-06$&$5.5e-04$    \\ 
+ sibe8  &    4     & $6.3e-04$ & $2.6e-04$&$1.5e-04$&$1.2e-03$ & $8.5e-06$&$2.5e-05$&$1.9e-04$    \\ \hline 
+ sibe16 &    4     & $1.7e-04$ & $8.6e-05$&$4.4e-05$&$2.6e-04$ & $1.3e-05$&$1.8e-07$&$3.0e-05$    \\ \hline 
+\end{tabular}	
+\qquad
+\end{center}		
+\caption{Left: Errors in the numerical integration of the functions $1,x,y,z,x^2,y^2,z^2$
+on the surface of a sphere.
+These results where computed with the hybrid-grid approach.}
+ \label{tab:sib-hyb} 
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+\clearpage
+\subsection{Sample usage}
+
+To use the {\tt Integrate} class you should follow the example given below.
+(file {\ff \examples/ti.C})
+{\footnotesize
+\listinginput[1]{1}{\otherStuff/ti.C}
+}
+
+
+\subsection{Member Functions}
+
+\input IntegrateInclude.tex
+

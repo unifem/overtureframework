@@ -1,0 +1,219 @@
+%-----------------------------------------------------------------------
+%   Overture Documentation
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+% \setlength{\textwidth}{9in}      % page width
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% \usepackage{fancybox}
+
+\usepackage{html}
+
+\newcommand{\documentation}{../documentation}
+\newcommand{\publications}{../publications}
+
+\begin{document}
+
+\begin{center}
+{\Large Overture Documentation} \\
+~~ \\
+LLNL Overlapping Grid Project \\
+\htmladdnormallink{Centre for Applied Scientific Computing}{http://www.llnl.gov/casc} \\
+\htmladdnormallink{Lawrence Livermore National Laboratory}{http://www.llnl.gov}  \\
+\htmladdnormallink{Overture}{http://www.llnl.gov/CASC/Overture} 
+\end{center}
+
+
+\input announcement.tex
+
+\input mailingList.tex
+
+% \input bugList.tex
+
+{\bf Overture.v24} is now released. Here are the \htmladdnormallink{installation instructions}{../install/index.html}.
+
+
+{\bf cg.v24} is now available. These are a suite of Overture based Composite-Grid PDE solvers.
+Includes {\bf cgcns} : compressible Navier-Stokes and
+reactive-Euler equations, {\bf cgins} : incompressible Navier-Stokes with heat transfer, {\bf cgasf} : all-speed compressible
+Navier-Stokes, {\bf cgmx} time-domain Maxwell's equations, {\bf cgad} advection-diffusion, 
+{\bf cgsm} : elastic wave equation (solid mechanics),
+{\bf cgmp} : a multi-physics solver.
+
+
+% \htmladdnormallink{OvertureDoc.ps.v17.tar.gz}{\documentation/OvertureDoc.v17.ps.tar.gz} (8.7M) 
+% contains {\bf all} the Overture documentation in postscript form.
+% \htmladdnormallink{OvertureDoc.v17.tar.gz}{\documentation/OvertureDoc.v17.tar.gz} (12.3M) 
+% contains {\bf all} the Overture documentation in TeX dvi form (plus all figures in postscript form)
+% so that you can view the documentation with {\tt xdvi} or print it with {\tt dvips}.
+
+Here are some demo and short course documents for Overture,
+\begin{itemize}
+  \item Overture Demo Introduction, \htmladdnormallink{OvertureDemoIntro.pdf}{\publications/OvertureDemoIntro.pdf}, K. Chand and W. Henshaw.
+  \item Hands-on Demo of Overture and the CG Solvers, \htmladdnormallink{OvertureDemo.pdf}{\publications/OvertureDemo.pdf}, K. Chand and W. Henshaw.
+  \item Short Course: Solving PDE's on Overlapping Grids with the Overture Framework,
+          \htmladdnormallink{OvertureShortCourse.pdf}{\publications/OvertureShortCourse.pdf}, W. Henshaw (updated May 2011).
+\end{itemize}
+
+
+Here are the separate documents related to the Overture C++ classes for solving PDEs. A good place to start
+is with the {\bf primer} documentation.
+
+Here are some documents that give one an idea of the capabilities of Overture
+\begin{itemize}
+  \item A Primer for Overture, 
+        \htmladdnormallink{primer.pdf}{\documentation/primer.pdf}, 
+        % \htmladdnormallink{html version}{\documentation/primerHTML/primerHTML.html}, 
+        by W. Henshaw. This document presents
+        a series of C++ programs that use the classes in Overture to solve PDEs. {\bf This is a good place to start}.
+  \item An overlapping grid generator, {\bf ogen}, 
+        \htmladdnormallink{ogen.pdf}{\documentation/ogen.pdf},
+        % \htmladdnormallink{html version}{\documentation/ogenHTML/ogenHTML.html},
+        by W. Henshaw. Includes extensive
+        capabilities for generating component grids together with an automatic algorithm for computing
+        the overlap.
+  \item An unstructured (hybrid) grid generator, {\bf ugen}, 
+        \htmladdnormallink{unstructured.pdf}{\documentation/unstructured.pdf},
+        % \htmladdnormallink{html version}{\documentation/unstructuredHTML/unstructuredHTML.html},
+        by Kyle Chand. Also by Kyle, a 2D unstructured grid generator, {\bf smesh}, 
+        \htmladdnormallink{smesh.pdf}{\documentation/smesh.pdf}.
+ \item {\bf cg}, a suite of Composite-Grid PDE solvers (replacing OverBlown). Documentation is under development. 
+    \begin{itemize}
+       \item Cgins: (Incompressible Navier-Stokes), 
+               User Guide~\htmladdnormallink{CginsUserGuide.pdf}{\documentation/CginsUserGuide.pdf},
+               and Reference manual~\htmladdnormallink{CginsRef.pdf}{\documentation/CginsRef.pdf}.
+       \item Cgcns: See the OverBlown documentation for the time being. 
+    \end{itemize}
+ \item {\bf OverBlown}, ({\bf now replaced by cg}) a flow solver for the Navier-Stokes equations, including algorithms for incompressible,
+        compressible and slightly compressible flows. User Guide~\htmladdnormallink{ob.pdf}{\documentation/ob.pdf}, 
+        and Reference Manual~\htmladdnormallink{obRef.pdf}{\documentation/obRef.pdf}.
+\end{itemize}
+
+Here are documents describing A++ and P++, the serial and parallel array classes
+\begin{itemize}
+  \item A++/P++ Manual,\htmladdnormallink{manual.ps.gz}{\documentation/App/manual.ps.gz},
+        \htmladdnormallink{html version}{\documentation/App/manual/manual.html}
+  \item A++/P++ Quick Reference Manual, 
+     \htmladdnormallink{Quick\_Reference\_Manual.ps.gz}{\documentation/App/Quick\_Reference\_Manual.ps.gz}
+     \htmladdnormallink{html version}{\documentation/App/Quick\_Reference\_Manual/Quick_Reference_Manual.html},
+  \item A++/P++ Tutorial Guide, 
+       \htmladdnormallink{Tutorial\_Guide.ps.gz}{\documentation/App/Tutorial_Guide.ps.gz},
+       \htmladdnormallink{html version}{\documentation/App/Tutorial_Guide/Tutorial_Guide.html}
+  \item A++/P++ Reference Examples, 
+          \htmladdnormallink{Reference\_Examples.ps.gz}{\documentation/App/Reference_Examples.ps.gz},
+          \htmladdnormallink{html version}{\documentation/App/Reference\_Examples/Reference\_Examples.html}
+\end{itemize}
+
+Here are more detailed documents needed when developing software within the Overture framework
+\begin{itemize}
+  \item The Overture developers guide 
+    \htmladdnormallink{developersGuide.pdf}{\documentation/developersGuide.pdf},
+     % \htmladdnormallink{html version}{\documentation/developersGuideHTML/developersGuideHTML.html},
+    by W. Henshaw gives some useful info for those writing software with Overture. This is mainly intended
+    for developers on the Overture team.
+  \item Here is a master index for the Overture documentation 
+     \htmladdnormallink{masterIndex.pdf}{\documentation/masterIndex.pdf},
+     % \htmladdnormallink{html version}{\documentation/masterIndex/masterIndex.html}.
+      This is version is far from complete, just a first try.
+  \item The Mapping classes for describing geometry, including spheres, cylinders, splines, NURBS,
+         bodies of revolution, elliptic and hyperbolic grid generation etc.
+        \htmladdnormallink{mapping.pdf}{\documentation/mapping.pdf},
+        % \htmladdnormallink{html version}{\documentation/mappingHTML/mappingHTML.html},
+        \htmladdnormallink{hyperbolic.pdf}{\documentation/hyperbolic.pdf}, 
+        % \htmladdnormallink{html version}{\documentation/hyperbolicHTML/hyperbolicHTML.html},
+        by W. Henshaw. You will want
+        to read this if you are generating grids with {\bf ogen}.
+ \item The Grid Classes, user guide
+        \htmladdnormallink{gridGuide.pdf}{\documentation/gridGuide.pdf},
+        % \htmladdnormallink{html version}{\documentation/gridGuideHTML/gridGuideHTML.html} 
+        and reference manual \htmladdnormallink{grid.pdf}{\documentation/grid.pdf}, 
+        % \htmladdnormallink{html version}{\documentation/gridHTML/gridHTML.html} and 
+         by G. Chesshire and W. Henshaw.
+  \item Grids Functions,
+        \htmladdnormallink{gf.pdf}{\documentation/gf.pdf}, 
+        % \htmladdnormallink{html version}{\documentation/gfHTML/gfHTML.html},
+         by W. Henshaw. Grid functions are used
+         in Overture to represent field variables such as density, velocity, pressure.
+  \item Other Stuff: utility functions for Overture,
+        \htmladdnormallink{otherStuff.pdf}{\documentation/otherStuff.pdf},
+        % \htmladdnormallink{html version}{\documentation/otherStuffHTML/otherStuffHTML.html},
+         by W. Henshaw. Useful
+         support stuff when writing Overture codes.
+  \item Difference Operators and Boundary Conditions,
+        \htmladdnormallink{op.pdf}{\documentation/op.pdf},
+        % \htmladdnormallink{html version}{\documentation/opHTML/opHTML.html},
+       by W. Henshaw. Second and fourth order,
+       conservative and non-conservative, difference approximations to differential operators and a
+       large collection of elementary boundary conditions.
+%    \item Finite volume Operators for Overture
+%    \htmladdnormallink{MGFVO.ps.gz}{\documentation/MGFVO.ps.gz}, UCRL-MA-133649, by D. Brown.
+%          {\bf NOTE:} These finite volume operators will probably disappear in a future release. Use
+%          the conservative finite difference operators instead.
+  \item Overture Sparse System Solver,
+        \htmladdnormallink{oges.pdf}{\documentation/oges.pdf}, 
+        % \htmladdnormallink{html version}{\documentation/ogesHTML/ogesHTML.html},
+        by P. Fast and W. Henshaw. This class acts as an
+         interface from Overture coefficient matrices to various solvers for sparse matrices.
+  \item Plotting Overture objects with OpenGL,
+        \htmladdnormallink{GraphicsDoc.pdf}{\documentation/GraphicsDoc.pdf},
+        % \htmladdnormallink{html version}{\documentation/GraphicsDocHTML/GraphicsDocHTML.html},
+        by W. Henshaw and A. Petersson.
+%  \item Plotting Overture objects with OpenGL,
+%        \htmladdnormallink{PlotStuff.pdf}{\documentation/PlotStuff.pdf}, 
+%        \htmladdnormallink{PlotStuff.pdf}{\documentation/PlotStuff.pdf},
+%        \htmladdnormallink{html version}{\documentation/PlotStuffHTML/PlotStuffHTML.html},
+%        by W. Henshaw and A. Petersson.
+  \item The plotStuff graphics post-processor for Overture, used to plot results saved in show files,
+        \htmladdnormallink{plotStuff.pdf}{\documentation/plotStuff.pdf},
+        % \htmladdnormallink{html version}{\documentation/plotStuffHTML/plotStuffHTML.html},
+         by W. Henshaw.
+  \item Saving results from a PDE solver to be plotted later,
+        \htmladdnormallink{ogshow.pdf}{\documentation/ogshow.pdf}, 
+        % \htmladdnormallink{html version}{\documentation/ogshowHTML/ogshowHTML.html},
+        by W. Henshaw.
+  \item An interface to scientific data-bases and an implementation based on HDF,
+        \htmladdnormallink{db.pdf}{\documentation/db.pdf}, 
+        % \htmladdnormallink{html version}{\documentation/dbHTML/dbHTML.html},
+        by W. Henshaw. This is the generic interface
+        used by Overture in order to interact with a data-base file.
+  \item Ogmg: a multigrid solver for overlapping grids, 
+         \htmladdnormallink{ogmg.pdf}{\documentation/ogmg.pdf},
+        % \htmladdnormallink{html version}{\documentation/ogmgHTML/ogmgHTML.html},
+          by W. Henshaw.  
+  \item Adaptive Mesh Refinement Routines for Overture, \htmladdnormallink{amr.pdf}{\documentation/amr.pdf},
+        % \htmladdnormallink{html version}{\documentation/amrHTML/amrHTML.html},
+          by D. Brown and W. Henshaw.
+  \item Liner Builder: A Tool for Building Geometric Models of Shaped Charge Liners, 
+         \htmladdnormallink{linerBuilder.pdf}{\documentation/linerBuilder.pdf},
+          by W. Henshaw.
+%  \item A Stencil class that can be used to generate arbitrary stencil operations for grid functions,
+%        \htmladdnormallink{Stencil.ps}{\documentation/Stencil.ps}, by Krister \AA hlander.
+\end{itemize}
+
+Here are other related documents
+\begin{itemize}
+  \item {\em Time Step Determination for PDEs with Applications to Programs Written with Overture} 
+   \htmladdnormallink{timeStep.pdf}{\documentation/timeStep.pdf}. Shows one how to compute the time
+    step for a PDE discretized on a curvilinear grid with Overture operators.
+% \item AMR++ design document \htmladdnormallink{AMR++}{\documentation/AMR++.ps.gz}, by D. Quinlan. Describes
+%    the adapative mesh refinement classes used by Overture.
+\end{itemize}
+
+% Here is documentation on projects that use Overture 
+% \begin{itemize}
+%  \item The Cogito/Overhere problem solving enviroment by Krister \AA hlander, 
+%    \htmladdnormallink{Overhere.ps}{http://www.c3.lanl.gov/\%7Ekrister/Overhere/Overhere.ps}.
+% \end{itemize}
+
+
+
+% \bibliography{/users/henshaw/papers/henshaw}
+% \bibliographystyle{siam}
+\end{document}

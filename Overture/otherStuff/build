@@ -1,0 +1,47 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+# echo "...otherStuff/build..."
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set otherStuff = "$ovDir/otherStuff"
+set include = "$ovDir/include"
+set examples = "$ovDir/examples"
+set tests = "$ovDir/tests"
+
+echo "Copy otherStuff files into the $ovDir directory..."
+
+
+
+
+cp {OGgetIndex,OGFunction,OGTrigFunction,OGPolyFunction,Integrate}.C                      $otherStuff
+cp {arrayGetIndex,TridiagonalSolver,TridiagonalFactor}.C                                  $otherStuff
+cp {getFromADataBase,displayMask,OGPulseFunction,helpOverture}.C                          $otherStuff
+cp {floatDisplay.C,intDisplay.C,doubleDisplay.C,displayMask.C,DisplayParameters.C}        $otherStuff
+cp {floatSerialDisplay.C,intSerialDisplay.C,doubleSerialDisplay.C,printArray.C}           $otherStuff
+cp {FortranIO.C,fortranInputOutput.f}                                                     $otherStuff
+cp {Stencil.C,BodyDefinition.C,displayCoeff.C}                                            $otherStuff
+cp {polyEvaluate1D,polyEvaluate2D,polyEvaluate3D}.F                                       $otherStuff
+cp {polyFunction,polyFunction1D,polyFunction2D,polyFunction2D5,polyFunction2D6}.f         $otherStuff
+cp {polyFunction3D,polyFunction3D4,polyFunction3D5,polyFunction3D6}.f                     $otherStuff
+cp {pentaDiagonal,prtpeg}.f                                                               $otherStuff
+cp {polyFunction,pentaDiagonal,triDiagonal}.bf                                            $otherStuff
+cp {OGPolyFunction}.bC                                                                    $otherStuff
+cp {BodyForce.C,BodyForce.bC}                                                             $otherStuff
+
+cp {OGgetIndex,OGFunction,OGTrigFunction,OGPolyFunction,Integrate,TridiagonalSolver}.h    $include
+cp {display,DisplayParameters,DataBaseAccessFunctions,FortranIO,OGPulseFunction}.h        $include
+cp {arrayGetIndex,Stencil,BodyDefinition,SparseArray,BodyForce}.h                         $include
+
+cp {tz}.{C,check}     $tests
+cp {testIntegrate,trid}.{C}         $tests
+
+cp {ReferenceCountedClass}.{h,C} $examples

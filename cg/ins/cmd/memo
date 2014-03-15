@@ -1,0 +1,3020 @@
+********** 2013/12/01 -- check pressure profile for outflow
+
+cgins cicPressureOutflow -g=cice2.order2 -wall=slip
+
+
+
+********** 2013/11/07 -- check AFS scheme : form of banded systems:
+
+
+cgins exact -g=square8p.order4 -option=tg -ts=afs -nu=.01 -tf=1. -tp=.001 -cfl=1. -dtMax=1.e-3 -psolver=yale -go=halt
+
+
+
+********* 2013/10/11 -- Taylor-Green in 3D too
+
+Taylor-Green vortex
+
+
+
++++ 3D : (w,u)
+cgins exact -g=box2p.order4 -option=tg -ts=afs -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -dtMax=5.e-3 -psolver=best -axialAxis=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 5.18e-04 2.45e-16 0.00e+00 2.45e-16 1.07e-14  1.00e+00 5.00e-03 2.30e-02
+   0.100 1.86e-04 1.96e-04 4.01e-07 2.06e-04 2.96e-03  9.24e-01 5.00e-03 3.08e+01
+   0.100 1.86e-04 1.96e-04 6.66e-14 2.06e-04 2.95e-03  9.24e-01 5.00e-03 7.60e+00 [rtolp=1.e-12
+
++++ 3D : (v,w)
+cgins exact -g=box2p.order4 -option=tg -ts=afs -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -dtMax=5.e-3 -psolver=best -axialAxis=0 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 5.18e-04 0.00e+00 2.45e-16 2.45e-16 1.07e-14  1.00e+00 5.00e-03 1.86e-02
+   0.100 1.86e-04 3.37e-07 1.96e-04 2.06e-04 2.96e-03  9.24e-01 5.00e-03 3.37e+01
+
++++ 3D : (u,v)
+cgins exact -g=box2p.order4 -option=tg -ts=afs -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -dtMax=5.e-3 -psolver=best -axialAxis=2 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 5.19e-04 2.45e-16 2.45e-16 0.00e+00 1.07e-14  1.00e+00 5.00e-03 2.22e-02
+   0.100 1.86e-04 1.96e-04 2.06e-04 4.29e-07 2.96e-03  9.24e-01 5.00e-03 8.32e+01
+   0.100 1.75e-04 1.92e-04 1.95e-04 1.10e-07 2.99e-03  9.24e-01 2.50e-03 6.31e+00
+
+  FINER: 
+cgins exact -g=box4p.order4 -option=tg -ts=afs -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -dtMax=5.e-3 -psolver=best -axialAxis=2 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+  0.000 3.41e-05 2.45e-16 2.45e-16 0.00e+00 3.91e-14  1.00e+00 5.00e-03 5.83e-02
+  0.100 2.25e-05 2.69e-05 2.79e-05 4.03e-15 1.06e-04  9.24e-01 5.00e-03 4.95e+01
+  0.100 9.97e-06 8.72e-06 1.17e-05 1.13e-13 1.02e-04  9.24e-01 2.50e-03 7.17e+01
+  0.100 7.07e-06 8.06e-06 8.73e-06 1.88e-13 1.08e-04  9.24e-01 1.25e-03 1.76e+02
+
+
+++++++++ ORDER=4 : AFS
+cgins exact -g=square16p.order4 -option=tg -ts=afs -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -dtMax=5.e-3 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.000 1.23e-03 2.45e-16 2.45e-16 1.15e-14  1.00e+00 5.00e-03 2.62e-03
+   0.100 5.04e-04 4.95e-04 5.04e-04 8.16e-03  9.24e-01 5.00e-03 3.63e+00
+
+cgins exact -g=square64p.order4 -option=tg -ts=afs -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -dtMax=5.e-3 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.000 5.14e-06 2.45e-16 2.45e-16 4.26e-14  1.00e+00 5.00e-03 6.38e-03
+   0.100 1.92e-05 2.71e-05 2.31e-05 6.56e-05  9.24e-01 5.00e-03 4.56e+00
+
+
+OLD: 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 2.23e-05 2.94e-05 2.48e-05 6.52e-05  9.24e-01 5.00e-03 4.91e+00
+   0.100 1.45e-06 1.18e-06 1.65e-06 9.95e-06  9.24e-01 1.00e-03 5.88e+00
+
+
+
+******* 2013/10/05-06 -- 3D rotating Couette: test moving grid : splitCylinderGrid
+
+3D - AFS
+
+
+AFS24- Y-AXIAL
+cgins exact -g=splitCylinderGridye2.order4p -option=rotating -move=rotate -axialAxis=1 -nd=3 -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.01 -dtMax=5.e-3 -rtolp=1.e-8 -atolp=1.e-8 -go=halt
+   0.000 4.15e-05 6.83e-09 0.00e+00 6.70e-09 7.87e-08  1.00e+00 5.00e-03 1.40e-02
+   0.050 1.12e-05 1.31e-05 1.33e-10 1.31e-05 1.10e-04  1.00e+00 5.00e-03 7.63e+02
+   0.100 7.17e-06 1.62e-05 7.17e-11 1.62e-05 1.25e-04  1.00e+00 5.00e-03 1.51e+03
+
+
+AFS24- X-AXIAL
+cgins exact -g=splitCylinderGridxe2.order4p -option=rotating -move=rotate -axialAxis=0 -nd=3 -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.01 -dtMax=5.e-3 -rtolp=1.e-8 -atolp=1.e-8 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 4.15e-05 0.00e+00 6.70e-09 6.83e-09 7.87e-08  1.00e+00 5.00e-03 1.52e-02
+   0.010 3.34e-05 2.06e-10 5.77e-06 5.76e-06 4.32e-05  1.00e+00 5.00e-03 1.49e+02
+   0.020 2.62e-05 6.77e-11 8.78e-06 8.77e-06 6.97e-05  1.00e+00 5.00e-03 3.15e+02
+   0.030 1.98e-05 4.94e-11 1.07e-05 1.07e-05 8.83e-05  1.00e+00 5.00e-03 4.63e+02
+   0.040 1.49e-05 1.35e-10 1.19e-05 1.19e-05 1.01e-04  1.00e+00 5.00e-03 6.10e+02
+   0.050 1.12e-05 1.75e-10 1.31e-05 1.31e-05 1.10e-04  1.00e+00 5.00e-03 7.57e+02
+   0.100 7.18e-06 7.47e-11 1.62e-05 1.62e-05 1.25e-04  1.00e+00 5.00e-03 1.44e+03
+
+
+cgins exact -g=splitCylinderGride2.order4p -option=rotating -move=rotate -nd=3 -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.01 -dtMax=5.e-3 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 4.15e-05 6.70e-09 6.83e-09 0.00e+00 7.87e-08  1.00e+00 5.00e-03 1.40e-02
+
+AFS24- initial errors in u from interpolation
+cgins exact -g=splitCylinderGride2.order4p -option=rotating -move=rotate -nd=3 -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.01 -dtMax=5.e-3 -rtolp=1.e-8 -atolp=1.e-8 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 4.15e-05 6.70e-09 6.83e-09 0.00e+00 7.87e-08  1.00e+00 5.00e-03 1.39e-02
+   0.010 3.34e-05 5.77e-06 5.76e-06 2.06e-10 4.32e-05  1.00e+00 5.00e-03 1.44e+02
+   0.020 2.62e-05 8.78e-06 8.77e-06 6.77e-11 6.97e-05  1.00e+00 5.00e-03 3.28e+02
+
+
+2D - AFS24
+cgins exact -g=splitAnnulusGride2.order4 -option=rotating -move=rotate -ts=afs -nu=.1 -tf=1.5 -tp=.1 -dtMax=5.e-3 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.000 2.59e-05 3.27e-07 3.27e-07 9.40e-08  1.00e+00 5.00e-03 2.93e-03
+   0.010 2.07e-05 3.48e-06 3.47e-06 3.15e-05  1.00e+00 5.00e-03 3.72e+00
+
+   0.100 4.05e-06 9.30e-06 9.30e-06 8.23e-05  1.00e+00 5.00e-03 1.70e+01
+
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 4.05e-06 9.30e-06 9.30e-06 8.23e-05  1.00e+00 5.00e-03 6.96e+00
+   0.100 4.00e-06 8.94e-06 8.94e-06 7.73e-05  1.00e+00 2.50e-03 9.31e+00
+
+
+
+*bug found* grid acceleration wrong in 3D about z-axis --> was using y
+
+-- PC24 Moving  -- NOT periodic
+cgins exact -g=splitCylinderGride2.order4 -option=rotating -move=rotate -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.001 -rtolp=1.e-8 -atolp=1.e-8 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 9.39e-03 6.70e-09 6.83e-09 0.00e+00 3.92e-03  1.00e+00 1.00e-03 1.35e-02
+   0.001 9.94e-03 9.16e-04 9.16e-04 8.03e-05 7.76e-03  1.00e+00 1.00e-03 3.07e+02
+
+
+-- PC24 Moving  -- y-axial-periodic
+cgins exact -g=splitCylinderGridye2.order4p -option=rotating -move=rotate -axialAxis=1 -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.001 -rtolp=1.e-8 -atolp=1.e-8 -go=halt
+    t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 4.15e-05 6.83e-09 0.00e+00 6.70e-09 7.87e-08  1.00e+00 1.00e-03 1.71e-02
+   0.001 8.06e-05 1.27e-05 1.12e-11 1.27e-05 1.49e-04  1.00e+00 1.00e-03 9.94e+01
+
+-- PC24 Moving  -- x-axial-periodic
+cgins exact -g=splitCylinderGridxe2.order4p -option=rotating -move=rotate -axialAxis=0 -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.001 -rtolp=1.e-8 -atolp=1.e-8 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 4.15e-05 0.00e+00 6.70e-09 6.83e-09 7.87e-08  1.00e+00 1.00e-03 1.75e-02
+   0.001 8.06e-05 1.29e-11 1.27e-05 1.27e-05 1.49e-04  1.00e+00 1.00e-03 2.32e+02
+	
+-- PC24 Moving  -- axial-periodic
+cgins exact -g=splitCylinderGride2.order4p -option=rotating -move=rotate -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.001 -rtolp=1.e-8 -atolp=1.e-8 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 4.15e-05 6.70e-09 6.83e-09 0.00e+00 7.87e-08  1.00e+00 1.00e-03 1.49e-02
+   0.001 8.06e-05 1.27e-05 1.27e-05 1.29e-11 1.49e-04  1.00e+00 1.00e-03 1.64e+02
+
+
+-- PC24 NON moving 
+cgins exact -g=splitCylinderGride2.order4p -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.01 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.010 3.34e-05 4.90e-06 4.90e-06 4.23e-13 3.93e-05  1.00e+00 1.67e-03 3.30e+01
+
+
+-- PC22 MOVING 
+cgins exact -g=splitCylinderGride1.order2p -option=rotating -move=rotate -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.01 -rtolp=1.e-8 -atolp=1.e-8 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 2.61e-03 2.11e-15 2.11e-15 0.00e+00 6.04e-04  1.00e+00 9.38e-03 8.56e-03
+   0.010 2.56e-03 1.10e-04 1.10e-04 1.01e-11 8.03e-04  1.00e+00 5.00e-03 2.47e+01
+
+-- PC22 NON moving 
+cgins exact -g=splitCylinderGride1.order2p -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.01 -rtolp=1.e-8 -atolp=1.e-8 -debug=1 -go=halt
+    t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 2.90e-03 3.33e-16 3.33e-16 0.00e+00 6.04e-04  1.00e+00 9.38e-03 7.72e-03
+   0.010 2.85e-03 8.16e-05 8.14e-05 2.01e-11 7.02e-04  1.00e+00 5.00e-03 7.78e+00
+
+******* 2013/10/05 -- 3D rotating Couette: test different axial directions
+
+-------------- AFS -----------------
+
+
+AFS24: z-axis (default)
+cgins exact -g=cylinder1.order4p.hdf -option=rotating -nd=3 -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -dtMax=1.e-2 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 3.80e-04 1.21e-04 1.21e-04 3.28e-13 4.29e-04  1.00e+00 2.00e-02 4.99e+00
+   0.020 3.90e-04 1.15e-04 1.15e-04 3.35e-13 3.70e-04  1.00e+00 1.00e-02 4.50e+00
+
+-------------- PC -----------------
+y-axis: 
+cgins exact -g=cylindery1.order4p.hdf -axialAxis=1 -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 3.92e-04 9.55e-05 4.52e-13 9.55e-05 3.22e-04  1.00e+00 6.67e-03 5.93e+01
+
+x-axis: 
+cgins exact -g=cylinderx1.order4p.hdf -axialAxis=0 -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 3.92e-04 2.84e-13 9.55e-05 9.55e-05 3.22e-04  1.00e+00 6.67e-03 3.14e+01
+
+z-axis (default)
+cgins exact -g=cylinder1.order4p.hdf -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 3.92e-04 9.55e-05 9.55e-05 2.84e-13 3.22e-04  1.00e+00 6.67e-03 4.00e+00
+
+
+
+*****  2013/10/04
+
+-- why is Taylor-Green converging too fast?
+
+
+*****  2013/10/03
+
+******************** 3D PIPE - VARIOUS ORIENTATIONS *******************
+
+AFS22: axial=z:
+cgins exact -g=pipezFixede2.order2 -option=pipe -pipeAxis=2 -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12 -aftol=1.e-8 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 1.31e-14 0.00e+00 0.00e+00 6.32e-05 5.55e-16  1.25e+00 1.00e-02 7.11e-02
+   0.010 5.93e-05 6.29e-16 6.02e-16 5.16e-04 1.22e-04  1.25e+00 1.00e-02 1.74e+01
+   0.020 1.10e-05 4.56e-06 4.56e-06 8.13e-04 1.04e-04  1.25e+00 1.00e-02 6.46e+01
+
+   0.010 2.58e-06 9.71e-07 9.70e-07 4.93e-04 2.77e-05  1.25e+00 5.00e-03 5.15e+00 *note* dt
+   0.010 6.44e-07 1.11e-07 1.11e-07 4.91e-04 4.42e-06  1.25e+00 2.50e-03 8.07e+00
+   0.010 1.47e-07 2.53e-08 2.53e-08 4.91e-04 1.03e-06  1.25e+00 1.25e-03 1.34e+01
+
+AFS22: axial=y:
+cgins exact -g=pipeyFixede2.order2 -option=pipe -pipeAxis=1 -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12  -aftol=1.e-8 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 1.30e-14 0.00e+00 6.32e-05 0.00e+00 5.55e-16  1.25e+00 1.00e-02 4.91e-02
+   0.010 5.91e-05 6.04e-16 5.16e-04 6.03e-16 6.11e-04  1.25e+00 1.00e-02 2.61e+01
+   0.020 1.86e-05 4.56e-06 8.13e-04 4.56e-06 7.16e-04  1.25e+00 1.00e-02 1.00e+02
+
+AFS22 : axial=x: NOTE: pressure errors decrease as dt^2 
+cgins exact -g=pipeFixede2.order2 -option=pipe -pipeAxis=0 -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12 -aftol=1.e-8 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 1.55e-14 6.32e-05 0.00e+00 0.00e+00 1.11e-15  1.25e+00 1.00e-02 6.28e-02
+   0.010 1.99e-04 5.16e-04 4.85e-16 5.48e-16 7.50e-04  1.25e+00 1.00e-02 7.62e+00
+   0.020 2.40e-05 8.14e-04 1.73e-05 1.73e-05 7.25e-04  1.25e+00 1.00e-02 2.33e+01
+
+   0.010 7.43e-06 4.93e-04 4.51e-06 4.51e-06 1.46e-04  1.25e+00 5.00e-03 8.49e+00
+
+   0.010 1.01e-06 4.91e-04 2.14e-07 2.14e-07 2.34e-05  1.25e+00 2.00e-03 1.59e+01
+   0.010 2.38e-07 4.91e-04 4.97e-08 4.97e-08 5.85e-06  1.25e+00 1.00e-03 3.04e+01
+
+PC22 : axial=z:
+cgins exact -g=pipezFixede2.order2 -option=pipe -pipeAxis=2 -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=pc -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 1.31e-14 0.00e+00 0.00e+00 6.32e-05 5.55e-16  1.25e+00 1.72e-03 7.61e-02
+   0.010 2.45e-14 3.26e-16 3.34e-16 7.53e-05 6.96e-15  1.25e+00 1.67e-03 1.42e+01
+
+PC22 : axial=y:
+cgins exact -g=pipeyFixede2.order2 -option=pipe -pipeAxis=1 -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=pc -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 1.30e-14 0.00e+00 6.32e-05 0.00e+00 5.55e-16  1.25e+00 1.72e-03 4.90e-02
+   0.010 2.48e-14 3.32e-16 7.53e-05 3.27e-16 5.80e-15  1.25e+00 1.67e-03 1.29e+01
+
+PC22 : axial=x:
+cgins exact -g=pipeFixede2.order2 -option=pipe -pipeAxis=0 -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=pc -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 1.55e-14 6.32e-05 0.00e+00 0.00e+00 1.11e-15  1.25e+00 1.51e-03 9.61e-02
+   0.010 3.41e-14 7.53e-05 2.38e-16 3.02e-16 7.56e-15  1.25e+00 1.43e-03 2.35e+01
+   0.020 1.84e-14 1.23e-04 3.86e-16 4.68e-16 8.28e-15  1.25e+00 1.43e-03 4.31e+01
+
+****** 2013/10/02
+
+2D Pipe flow: add Couette flow component (shear)
+
+************** SPLIT-CHANNEL *****************************************
+
+
+SPLIT-CHANNEL - MOVING
+
+MOVING PATCH -- 
+
+AFS24: -- looks 2nd order in time 
+cgins exact -g=splitChannelGride2.order4 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1 -move=shift -psolver=yale -dtMax=8e-3 -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 4.33e-06 6.25e-07 1.03e-06 8.34e-06  3.03e+00 7.69e-03 3.91e+00
+   0.100 3.98e-07 6.64e-08 9.85e-08 3.84e-07  3.03e+00 4.00e-03 2.50e+00
+   0.100 9.56e-08 1.69e-08 2.37e-08 8.98e-08  3.03e+00 2.00e-03 4.26e+00
+   0.100 2.33e-08 4.26e-09 5.86e-09 2.17e-08  3.03e+00 1.00e-03 7.12e+00
+
+AFS24: 
+cgins exact -g=splitChannelGride1.order4 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1 -move=shift -psolver=yale -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 5.98e-06 9.40e-06 9.76e-06 6.83e-05  3.03e+00 1.43e-02 2.10e+00
+
+
+AFS22: Not exact: 
+cgins exact -g=splitChannelGride8.order2 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1 -move=shift -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 2.83e-09 1.10e-09 1.87e-08 2.45e-07  3.03e+00 3.33e-03 9.79e+00
+
+
+AFS22: EXACT: 
+cgins exact -g=splitChannelGride4.order2 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1 -move=shift -psolver=yale -go=halt
+
+AFS22: EXACT: 
+cgins exact -g=splitChannelGride2.order2 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1 -move=shift -psolver=yale -go=halt
+
+AFS22: Not exact: 
+cgins exact -g=splitChannelGride1.order2 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1 -move=shift -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.010 4.00e-05 1.13e-04 4.94e-17 5.63e-04  3.03e+00 1.00e-02 3.16e+00
+   0.010 3.37e-07 1.01e-06 2.74e-08 4.76e-06  3.03e+00 1.00e-03 1.76e+00
+
+   0.100 2.21e-08 2.20e-08 3.62e-09 1.61e-07  3.03e+00 5.00e-04 5.24e+00
+   0.100 5.55e-09 5.50e-09 9.04e-10 4.02e-08  3.03e+00 2.50e-04 8.55e+00
+
+   0.010 3.32e-09 9.96e-09 2.82e-10 4.69e-08  3.03e+00 1.00e-04 3.73e+00
+
+   0.500 1.19e-06 6.08e-06 1.51e-06 3.06e-06  3.02e+00 2.00e-02 1.85e+01
+
+PC22- MOVING PATCH -- EXACT 
+cgins exact -g=splitChannelGride1.order2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1 -move=shift -psolver=yale -go=halt
+
+----------------------
+
+AFS24: EXACT 
+cgins exact -g=splitChannelGride1.order4 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt
+
+AFS22: exact
+cgins exact -g=splitChannelGride1.order2 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt
+
+PC24: NOT EXACT! -- blips on inflow 
+cgins exact -g=splitChannelGride1.order4 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt
+
+PC22: Exact (no-stretching)
+cgins exact -g=splitChannelGride1.order2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt
+
+
+
+
+2nd-order: 
+cgins exact -g=channel2.order2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt
+   0.100 5.33e-15 5.36e-05 3.66e-16 1.06e-14  3.03e+00 2.70e-04 9.38e+00
+
+cgins exact -g=channel1.order2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.61e-15 2.01e-04 3.38e-16 6.10e-15  3.02e+00 1.00e-03 9.73e+00
+
+
+
+****** 2013/10/01
+
++++++++++++++++++ SPLIT ANNULUS MOVING +++++++++++++
+
+--- ORDER=4:
+
+AFS24
+
+cgins exact -g=splitAnnulusGride4.order4 -option=rotating -move=rotate -ts=afs -nu=.1 -tf=1.5 -tp=.1 -dtMax=.5e-3 -aftol=1.e-9 -psolver=yale -go=halt
+
+cgins exact -g=splitAnnulusGride4.order4 -option=rotating -move=rotate -ts=afs -nu=.1 -tf=1.5 -tp=.1 -dtMax=1.e-3 -aftol=1.e-8 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.07e-07 7.91e-07 7.89e-07 5.87e-06  1.00e+00 2.00e-03 2.82e+01
+   0.100 3.10e-07 3.23e-07 3.23e-07 4.35e-06  1.00e+00 1.00e-03 5.78e+01  [ dt=1.e-3, aftol=1.e-8 
+   0.100 3.15e-07 3.23e-07 3.23e-07 4.35e-06  1.00e+00 5.00e-04 1.08e+02  [dt=.5e-3, aftol=1.e-8 
+
+AFS24
+cgins exact -g=splitAnnulusGride2.order4 -option=rotating -move=rotate -ts=afs -nu=.1 -tf=1.5 -tp=.1 -dtMax=5.e-3 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 4.05e-06 9.30e-06 9.30e-06 8.23e-05  1.00e+00 5.00e-03 6.96e+00
+   0.100 4.00e-06 8.94e-06 8.94e-06 7.73e-05  1.00e+00 2.50e-03 9.31e+00
+
+
+OLD:
+   0.100 9.82e-04 2.21e-03 2.21e-03 1.78e-02  1.00e+00 5.00e-03 8.89e+00
+   0.100 3.97e-04 8.84e-04 8.84e-04 7.13e-03  1.00e+00 2.00e-03 8.38e+00
+   0.100 1.98e-04 4.42e-04 4.42e-04 3.56e-03  1.00e+00 1.00e-03 1.65e+01
+   0.100 9.89e-05 2.22e-04 2.22e-04 1.77e-03  1.00e+00 5.00e-04 2.47e+01
+
+PC: 
+cgins exact -g=splitAnnulusGride4.order4 -option=rotating -move=rotate -ts=pc -nu=.1 -tf=1.5 -tp=.1  -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 9.47e-07 2.51e-07 2.51e-07 4.75e-06  1.00e+00 6.06e-04 7.39e+01
+
+cgins exact -g=splitAnnulusGride2.order4 -option=rotating -move=rotate -ts=pc -nu=.1 -tf=1.5 -tp=.1  -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.14e-05 8.09e-06 8.09e-06 8.58e-05  1.00e+00 2.17e-03 6.83e+00
+
+--- ORDER=2:
+
+AFS:
+cgins exact -g=splitAnnulusGride4.order2 -option=rotating -move=rotate -ts=afs -nu=.1 -tf=1.5 -tp=.1 -dtMax=1e-3 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.23e-04 3.49e-05 3.56e-05 5.77e-05  1.00e+00 1.00e-03 3.37e+01
+
+OLD: 
+   0.100 3.84e-04 3.36e-04 3.36e-04 4.53e-03  1.00e+00 1.00e-03 2.96e+01
+
+AFS22 -- first-order in time? .. BUG fixed by Kyle
+cgins exact -g=splitAnnulusGride2.order2 -option=rotating -move=rotate -ts=afs -nu=.1 -tf=1.5 -tp=.1 -dtMax=5e-3 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+  0.100 4.03e-04 1.17e-04 1.24e-04 4.88e-04  1.00e+00 5.00e-03 7.87e+00
+  0.100 4.00e-04 1.17e-04 1.24e-04 4.63e-04  1.00e+00 2.50e-03 5.63e+00
+
+
+OLD: 
+   0.100 7.77e-04 1.33e-03 1.33e-03 9.18e-03  1.00e+00 4.00e-03 3.70e+00
+   0.100 4.50e-04 6.69e-04 6.69e-04 4.55e-03  1.00e+00 2.00e-03 4.81e+00
+   0.100 4.25e-04 3.38e-04 3.38e-04 2.37e-03  1.00e+00 1.00e-03 8.42e+00
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 9.53e-04 1.67e-03 1.67e-03 1.15e-02  1.00e+00 5.00e-03 1.29e+01 ******
+   0.100 4.25e-04 3.38e-04 3.38e-04 2.37e-03  1.00e+00 1.00e-03 7.68e+00
+
+PC: 
+cgins exact -g=splitAnnulusGride4.order2 -option=rotating -move=rotate -ts=pc -nu=.1 -tf=1.5 -tp=.1  -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.30e-04 2.10e-05 2.03e-05 5.59e-05  1.00e+00 8.06e-04 3.12e+01
+
+cgins exact -g=splitAnnulusGride2.order2 -option=rotating -move=rotate -ts=pc -nu=.1 -tf=1.5 -tp=.1  -psolver=yale -go=halt
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.000 6.67e-04 2.11e-15 2.11e-15 1.79e-04  1.00e+00 2.98e-03 2.17e-03
+   0.100 4.22e-04 8.71e-05 8.23e-05 4.65e-04  1.00e+00 2.94e-03 2.15e+01
+
+
+
++++++++++++++++++ SPLIT ANNULUS +++++++++++++
+
+
+
+---- 2D ORDER=4
+
+cgins exact -g=splitAnnulusGride4.order4 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+
+cgins exact -g=splitAnnulusGride2.order4 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 1.14e-05 2.42e-05 2.43e-05 1.68e-04  1.00e+00 2.00e-02 4.80e+00
+   1.500 6.91e-06 1.89e-05 1.90e-05 1.21e-04  1.00e+00 1.00e-02 6.90e+00
+
+Unsplit:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 1.34e-05 2.32e-05 2.32e-05 1.84e-04  1.00e+00 2.00e-02 2.55e+01
+   1.500 8.48e-06 1.79e-05 1.79e-05 1.33e-04  1.00e+00 1.00e-02 2.99e+01
+   1.500 4.66e-06 1.35e-05 1.36e-05 8.45e-05  1.00e+00 1.00e-03 4.86e+01
+
+---- 2D ORDER=2
+
+cgins exact -g=splitAnnulusGride4.order2 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 1.39e-04 7.49e-05 8.08e-05 3.91e-04  1.00e+00 2.00e-02 6.23e+00
+
+Unsplit: 
+   1.500 1.54e-04 8.19e-05 8.83e-05 4.37e-04  1.00e+00 2.00e-02 2.07e+01
+
+cgins exact -g=splitAnnulusGride2.order2 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 4.88e-04 2.53e-04 2.74e-04 1.28e-03  1.00e+00 2.00e-02 8.06e+00
+
+Unsplit: 
+   1.500 5.81e-04 2.99e-04 3.25e-04 1.54e-03  1.00e+00 2.00e-02 7.58e+01
+
++++++++++++++++++++++++++++++++++++++++++ PIPE +++++++++++++++++++++++++++++++=
+
+cgins exact -g=pipeFixede4.order4 -option=pipe -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=.5e-3 -nd=3 -debug=1 -go=halt
+
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.010 7.29e-07 1.36e-06 2.36e-08 1.57e-08 2.15e-05  1.25e+00 5.00e-04 5.74e+02
+  0.020 7.44e-07 1.69e-06 3.31e-08 1.70e-08 2.17e-05  1.25e+00 5.00e-04 1.33e+03
+ 
+cgins exact -g=pipeFixede2.order4 -option=pipe -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=1.e-3 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.010 3.09e-07 2.44e-05 1.19e-08 9.22e-09 9.91e-06  1.25e+00 1.00e-03 4.00e+01
+   0.020 3.72e-07 3.59e-05 1.98e-08 1.42e-08 1.13e-05  1.25e+00 1.00e-03 9.15e+01
+   0.030 3.92e-07 4.28e-05 2.31e-08 1.63e-08 1.16e-05  1.25e+00 1.00e-03 1.23e+02
+
+cgins exact -g=pipeFixede2.order4 -option=pipe -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.010 2.22e-05 8.70e-05 3.03e-16 2.83e-16 1.12e-03  1.25e+00 1.00e-02 1.36e+01
+   0.020 2.36e-05 9.76e-05 1.71e-06 1.23e-06 1.13e-03  1.25e+00 1.00e-02 5.05e+01
+  0.030 2.75e-05 1.13e-04 1.58e-06 1.05e-06 1.26e-03  1.25e+00 1.00e-02 5.42e+01
+
++++++++++++++++++++++++++++++++++
+2D Pipe flow: ADD CORE GRID TO TEST AFS
+
+
+
+AFS: 2nd-order: 
+cgins exact -g=channelWithCore2.order2 -option=pipe -ts=afs -nu=.1 -ad2=0 -tf=20. -tp=.1 -dtMax=1.e-3 -psolver=best -debug=1 -go=halt 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.28e-06 7.55e-04 1.02e-06 1.35e-05  2.50e+00 1.43e-02 5.21e+00
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 7.43e-09 7.51e-04 4.06e-09 5.87e-08  2.50e+00 1.00e-03 8.33e+00
+
+PC: 2nd-order: 
+
+cgins exact -g=channelWithCore2.order2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1 -psolver=best -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.33e-15 4.47e-05 6.08e-16 1.51e-14  2.50e+00 2.70e-04 1.03e+01
+
+
+++++++++++++++++++++++++++++
+
+ts=PC: 
+determineErrors: t=1.000e-02, maxNorm errors: [rho,u,v,T]=[2.07e-14,2.11e-05,8.97e-16,8.86e-16]
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.010 2.07e-14 2.11e-05 8.97e-16 8.86e-16 1.63e-14  1.25e+00 4.00e-04 6.24e+01
+
+
+cgins exact -g=pipeFixede4.order2 -option=pipe -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+
+BLIPS at inflow at interp points: 
+aftol=1.e-2: OR aftol=1.e-5 -- similiar
+determineErrors: t=1.000e-02, maxNorm errors: [rho,u,v,T]=[3.90e-05,3.28e-04,9.39e-16,9.18e-16]
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 2.04e-14 7.03e-06 0.00e+00 0.00e+00 2.22e-15  1.25e+00 1.00e-03 6.40e-01
+   0.010 2.23e-06 1.43e-04 7.08e-08 4.89e-08 5.54e-05  1.25e+00 1.00e-03 2.23e+02 [ NO BLIPS -dtMax=1.e-3 
+   0.020 2.31e-06 2.16e-04 1.06e-07 6.27e-08 5.58e-05  1.25e+00 1.00e-03 5.18e+02
+
+   0.010 3.90e-05 3.28e-04 9.39e-16 9.18e-16 5.57e-03  1.25e+00 1.00e-02 4.31e+01
+
+recompute dt: dt(old)=1.000e-02, dtNew = 1.000e-02, (explicit dt=4.324e-04, ratio=2.312e+01)
+ ****** time step is being changed for the implicit method, dt/dtNew=1.00e+00 (cflMin= 0.81, cfl= 0.90, cflMax= 0.95)*****
+ ---- DomainSolver::advanceImplicitMultiStepNew t0=1.000000e-02, dt0=1.000000e-02 ----
+advanceFactored:INFO: maxInterpGhostCorrection=8.15e-05 in 1 steps (interp. pt and parallel ghost)
+determineErrors: t=2.000e-02, maxNorm errors: [rho,u,v,T]=[5.00e-05,3.97e-04,2.68e-06,1.12e-06]
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 5.00e-05 3.97e-04 2.68e-06 1.12e-06 6.30e-03  1.25e+00 1.00e-02 1.34e+02
+
++++++
+cgins exact -g=pipeFixede2.order2 -option=pipe -model=ins -nu=.1 -tf=.1 -tp=.01 -cfl=0.9 -ts=afs -psolver=best -rtolp=1e-12 -atolp=1e-12 -dtMax=1.e-2 -nd=3 -debug=1 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.010 1.86e-05 5.16e-04 3.76e-16 4.17e-16 7.50e-04  1.25e+00 1.00e-02 7.02e+00
+   0.020 1.78e-05 8.12e-04 2.06e-06 2.06e-06 7.16e-04  1.25e+00 1.00e-02 1.10e+01
+
+
+
+
+
+********* 2013/09/30
+
+Revisit pipe flow
+
+3D pipe: FIXED-WIDTH much better
+
+--- ORDER=4
+cgins exact -g=pipeFixede4.order4.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+   0.020 3.39e-13 9.18e-07 6.63e-15 5.58e-15 3.51e-13  1.25e+00 2.90e-04 5.06e+02
+
+cgins exact -g=pipeFixede2.order4.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 1.26e-14 2.19e-05 1.79e-15 2.20e-15 3.33e-14  1.25e+00 1.11e-03 2.85e+01
+
+cgins exact -g=pipeFixede1.order4.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+    t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 4.40e-01 8.18e-02 3.54e-02 3.54e-02 5.23e-01  1.25e+00 3.33e-03 6.76e+00
+
+
+--- Order=2
+cgins exact -g=pipeFixede4.order2.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 1.71e-14 1.16e-04 1.72e-15 1.73e-15 3.63e-14  1.25e+00 3.77e-04 1.06e+02
+
+cgins exact -g=pipeFixede2.order2.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 2.00e-14 4.59e-04 9.31e-16 9.22e-16 1.01e-14  1.25e+00 1.43e-03 7.49e+00
+
+cgins exact -g=pipeFixede1.order2.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+    t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 8.44e-15 1.93e-03 3.26e-16 3.22e-16 3.07e-15  1.25e+00 4.00e-03 2.14e+00
+
+
+
+cgins exact -g=pipee4.order2.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+   0.020 1.99e-14 3.23e-04 1.50e-15 1.52e-15 3.58e-14  1.25e+00 3.57e-04 1.17e+02
+
+cgins exact -g=pipee2.order2.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 1.40e-14 2.58e-04 6.24e-16 6.31e-16 8.79e-15  1.25e+00 1.43e-03 1.10e+01
+
+  cgins exact -g=pipee1.order2.hdf -option=pipe -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 5.22e-15 4.73e-04 2.16e-16 1.82e-16 2.80e-15  1.25e+00 5.00e-03 2.14e+00
+
+
+
+2D Pipe flow:
+
+2nd-order: 
+cgins exact -g=channel1.order2.ml2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt 
+
+
+
+Revisit Couette - cylinder
+
+ORDER=4:
+
+PERIODIC - AXIAL
+cgins exact -g=cylinder2.order4p.hdf -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 2.40e-05 7.71e-06 7.71e-06 3.60e-13 6.88e-05  1.00e+00 1.67e-03 1.36e+01
+
+cgins exact -g=cylinder1.order4p.hdf -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 3.92e-04 9.55e-05 9.55e-05 2.84e-13 3.22e-04  1.00e+00 6.67e-03 4.00e+00
+
+
+
+TROUBLE NEAR CORNERS -- dirchletBC and noSLip
+cgins exact -g=cylinder2.order4.hdf -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 4.55e-04 1.92e-03 1.92e-03 7.63e-06 5.23e-04  1.00e+00 1.67e-03 2.04e+01
+
+cgins exact -g=cylinder1.order4.hdf -option=rotating -nd=3 -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+    t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 1.51e-03 1.17e-03 1.17e-03 6.00e-05 1.20e-03  1.00e+00 6.67e-03 1.90e+01
+
+
+********* 2013/09/29
+
+Taylor-Green vortex
+
+++++++++ ORDER=4 : AFS
+cgins exact -g=square64p.order4 -option=tg -ts=afs -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -dtMax=5.e-3 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 2.23e-05 2.94e-05 2.48e-05 6.52e-05  9.24e-01 5.00e-03 4.91e+00
+   0.100 1.45e-06 1.18e-06 1.65e-06 9.95e-06  9.24e-01 1.00e-03 5.88e+00
+
+++++++++ ORDER=4 : PC
+
+cgins exact -g=square64p.order4 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.88e-05 2.22e-06 2.22e-06 3.78e-05  9.24e-01 3.33e-03 4.38e+01
+
+cgins exact -g=square32p.order4 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 2.58e-04 8.12e-05 8.12e-05 1.54e-03  9.24e-01 1.11e-02 1.30e+01
+
+
+++++++++ ORDER=2 : ts=PC
+cgins exact -g=square128p.order2 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 5.14e-04 2.98e-05 2.98e-05 4.96e-04  9.24e-01 1.20e-03 9.03e+00
+   0.500 2.84e-04 3.73e-05 3.73e-05 2.64e-04  6.74e-01 1.20e-03 5.53e+01
+
+
+cgins exact -g=square64p.order2 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 1.97e-03 3.12e-04 3.12e-04 5.80e-03  9.24e-01 4.55e-03 4.76e+00
+   0.500 9.43e-04 3.32e-04 3.32e-04 3.10e-03  6.74e-01 4.55e-03 2.55e+01
+
+
+cgins exact -g=square32p.order2 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 5.94e-03 3.15e-03 3.15e-03 6.19e-02  9.24e-01 1.43e-02 1.61e+01
+   0.500 1.91e-03 4.96e-03 4.96e-03 4.08e-02  6.72e-01 1.67e-02 3.44e+01
+
+********* 2013/09/28
+
+Taylor-Couette flow between rotating pipes
+
+**** noSlipWall's
+
+
+=============== ts=AFS =============
+
+---- 3D ORDER=2
+
+cgins exact -g=cylinder1.order2 -option=rotating -nd=3 -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.500 7.46e-03 1.41e-03 1.47e-03 8.56e-04 8.59e-03  1.00e+00 2.00e-02 5.76e+01
+
+	
+ts=PC
+cgins exact -g=cylinder1.order2 -option=rotating -nd=3 -ts=pc -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+
+
+---- 2D ORDER=4
+
+
+cgins exact -g=annulus4.order4 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -dtMax=.001 -psolver=yale -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 2.85e-07 5.18e-07 5.19e-07 4.50e-06  1.00e+00 1.00e-03 1.04e+02
+
+cgins exact -g=annulus2.order4 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 1.34e-05 2.32e-05 2.32e-05 1.84e-04  1.00e+00 2.00e-02 2.55e+01
+   1.500 8.48e-06 1.79e-05 1.79e-05 1.33e-04  1.00e+00 1.00e-02 2.99e+01
+   1.500 4.66e-06 1.35e-05 1.36e-05 8.45e-05  1.00e+00 1.00e-03 4.86e+01
+
+---- 2D ORDER=2
+
+cgins exact -g=annulus8.order2 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 3.77e-05 2.18e-05 2.33e-05 9.67e-05  1.00e+00 1.43e-02 3.72e+01
+
+cgins exact -g=annulus4.order2 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 1.54e-04 8.19e-05 8.83e-05 4.37e-04  1.00e+00 2.00e-02 2.07e+01
+   1.500 1.37e-04 8.57e-05 9.01e-05 2.88e-04  1.00e+00 1.00e-02 2.50e+01  *dtMax=.01
+
+cgins exact -g=annulus2.order2 -option=rotating -ts=afs -nu=.1 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 5.81e-04 2.99e-04 3.25e-04 1.54e-03  1.00e+00 2.00e-02 7.58e+01
+
+=========================== ts=PC ==============
+p-ratio=14 
+cgins exact -g=annulus16.order4 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=1. -tp=.1 -psolver=yale -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 7.24e-09 4.22e-10 4.21e-10 7.47e-09  1.00e+00 3.31e-05 4.42e+02
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.200 7.27e-09 5.60e-10 5.60e-10 7.47e-09  1.00e+00 3.31e-05 1.11e+03
+
+
+p-ratio=11, u-ratio=26 
+cgins exact -g=annulus8.order4 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=1. -tp=.1 -psolver=yale -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.700 9.79e-08 1.09e-08 1.09e-08 2.03e-07  1.00e+00 1.31e-04 2.12e+02
+
+p-ratio=8 , u-ratio=33 ?
+cgins exact -g=annulus4.order4 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 1.09e-06 2.68e-07 2.68e-07 4.82e-06  1.00e+00 5.18e-04 5.34e+01
+
+cgins exact -g=annulus2.order4 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 8.09e-06 8.94e-06 8.93e-06 8.96e-05  1.00e+00 2.00e-03 2.34e+01
+
+--- ORDER=2
+
+cgins exact -g=annulus4.order2 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 1.46e-04 4.93e-05 4.82e-05 5.65e-05  1.00e+00 6.71e-04 4.89e+01
+cgins exact -g=annulus2.order2 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=1.5 -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.500 5.91e-04 2.17e-04 2.04e-04 5.84e-04  1.00e+00 2.56e-03 4.15e+01
+
+
+********* 2013/09/27
+
+Taylor-Couette flow between rotating pipes
+
+cgins exact -g=cylinder1.order2.hdf -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+
+2D:
+cgins exact -g=annulus8.order2 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.100 3.28e-05 5.98e-06 5.98e-06 1.90e-04  1.00e+00 1.70e-04 2.89e+01
+   0.300 3.46e-05 8.29e-06 8.29e-06 1.97e-04  1.00e+00 1.70e-04 8.41e+01
+
+cgins exact -g=annulus4.order2 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.300 9.66e-05 3.83e-05 3.83e-05 7.44e-04  1.00e+00 6.71e-04 2.70e+01
+
+
+cgins exact -g=annulus2.order2 -option=rotating -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1 -psolver=yale -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.300 1.97e-04 2.09e-04 2.09e-04 2.52e-03  1.00e+00 2.56e-03 4.14e+01
+
+
+
+3d pipe flow:
+
+  -- p-err large near corners *CHECK*
+
+  cgins exact -g=pipee2.order4.hdf -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 9.99e-06 1.65e-05 0.00e+00 0.00e+00 2.17e-05  1.25e+00 4.01e-04 1.85e-02
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 1.06e-05 4.06e-05 5.06e-07 5.05e-07 2.58e-05  1.25e+00 4.00e-04 9.59e+01
+
+  cgins exact -g=pipee1.order4.hdf -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-10 -atolp=1.e-10 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 8.28e-06 3.03e-05 0.00e+00 0.00e+00 1.72e-05  1.25e+00 1.63e-03 2.02e-02
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.020 4.75e-05 3.82e-05 1.02e-05 1.02e-05 2.14e-04  1.25e+00 1.54e-03 1.39e+01
+
+  --- 2nd order:
+  cgins exact -g=pipee4.order2.hdf -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 2.80e-14 1.72e-04 0.00e+00 0.00e+00 5.55e-16  1.25e+00 1.29e-04 1.16e+00
+
+  cgins exact -g=pipee2.order2.hdf -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 1.47e-14 3.51e-04 0.00e+00 0.00e+00 5.55e-16  1.25e+00 5.18e-04 5.26e-02
+   0.020 3.29e-14 7.15e-04 3.49e-16 4.06e-16 7.12e-15  1.25e+00 5.13e-04 4.60e+01
+
+  cgins exact -g=pipee1.order2.hdf -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.02 -rtolp=1.e-12 -atolp=1.e-12 -go=halt
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.000 8.66e-15 3.29e-04 0.00e+00 0.00e+00 5.55e-16  1.25e+00 2.10e-03 1.82e-02
+   0.020 1.17e-14 4.71e-04 1.31e-16 1.35e-16 2.56e-15  1.25e+00 2.00e-03 2.86e+00
+
+
+
+2D Pipe flow:
+
+4th-order:
+cgins exact -g=channel2.order4.ml2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1 -psolver=yale -go=halt  
+cgins exact -g=channel1.order4.ml2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1 -psolver=yale -go=halt  
+
+2nd-order: 
+cgins exact -g=channel1.order2.ml2 -option=pipe -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1  -psolver=yale -go=halt  [exact 
+
+
+
+
+
+==== Check for negative volumes:
+
+
+cgins stir -g=stire2.order4.s1.5.hdf -nu=.05 -tf=1. -tp=.025 -go=halt
+
+====2013/09/05 -- test save/read MG grids
+
+*fixed load-balance --
+
+Something funny with load-balance on leve=
+mpirun -np 2 $cginsp cic.mg -g=cice2.order2.ml2.hdf -ts=pc -nu=.01 -ogmgReadGrid=cice2.order2.ml2.mg.hdf
+
+After REFERENCING to MASTER: mgcg.numberOfMultigridLevels=3
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (np=2)============
+ numberOfGrids=6, gridDistributionList.size()=6
+  grid=0: procs=2 [0,1], proc-decomp=[2]x[1]x[1], pts=7225=[85]x[85]x[1], pts/proc=3570=[42]x[85]x[1], ratio=85/42=  2, ghost=[2,2,0]
+  grid=1: procs=2 [0,1], proc-decomp=[2]x[1]x[1], pts=2541=[121]x[21]x[1], pts/proc=1260=[60]x[21]x[1], ratio=60/21=  3, ghost=[2,2,0]
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (level 0) (np=2)============
+ numberOfGrids=2, gridDistributionList.size()=2
+  grid=0: procs=2 [0,1], proc-decomp=[2]x[1]x[1], pts=7225=[85]x[85]x[1], pts/proc=3570=[42]x[85]x[1], ratio=85/42=  2, ghost=[2,2,0]
+  grid=1: procs=2 [0,1], proc-decomp=[2]x[1]x[1], pts=2541=[121]x[21]x[1], pts/proc=1260=[60]x[21]x[1], ratio=60/21=  3, ghost=[2,2,0]
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (level 1) (np=2)============
+ numberOfGrids=2, gridDistributionList.size()=2
+  grid=0: procs=1 [1,1], proc-decomp=[1]x[1]x[1], pts=2025=[45]x[45]x[1], pts/proc=2025=[45]x[45]x[1], ratio=45/45=  1, ghost=[2,2,0]
+  grid=1: procs=1 [1,1], proc-decomp=[1]x[1]x[1], pts=819=[63]x[13]x[1], pts/proc=819=[63]x[13]x[1], ratio=63/13=  5, ghost=[2,2,0]
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (level 2) (np=2)============
+ numberOfGrids=2, gridDistributionList.size()=2
+  grid=0: procs=1 [0,0], proc-decomp=[1]x[1]x[1], pts=625=[25]x[25]x[1], pts/proc=625=[25]x[25]x[1], ratio=25/25=  1, ghost=[2,2,0]
+  grid=1: procs=1 [1,1], proc-decomp=[1]x[1]x[1], pts=306=[34]x[9]x[1], pts/proc=306=[34]x[9]x[1], ratio=34/9=  4, ghost=[2,2,0]
+
+After REFERENCING to MASTER: mgcg.numberOfMultigridLevels=3
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (np=4)============
+ numberOfGrids=6, gridDistributionList.size()=6
+  grid=0: procs=4 [0,3], proc-decomp=[2]x[2]x[1], pts=7225=[85]x[85]x[1], pts/proc=1764=[42]x[42]x[1], ratio=42/42=  1, ghost=[2,2,0]
+  grid=1: procs=4 [0,3], proc-decomp=[4]x[1]x[1], pts=2541=[121]x[21]x[1], pts/proc=630=[30]x[21]x[1], ratio=30/21=  1, ghost=[2,2,0]
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (level 0) (np=4)============
+ numberOfGrids=2, gridDistributionList.size()=2
+  grid=0: procs=4 [0,3], proc-decomp=[2]x[2]x[1], pts=7225=[85]x[85]x[1], pts/proc=1764=[42]x[42]x[1], ratio=42/42=  1, ghost=[2,2,0]
+  grid=1: procs=4 [0,3], proc-decomp=[4]x[1]x[1], pts=2541=[121]x[21]x[1], pts/proc=630=[30]x[21]x[1], ratio=30/21=  1, ghost=[2,2,0]
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (level 1) (np=4)============
+ numberOfGrids=2, gridDistributionList.size()=2
+  grid=0: procs=2 [2,3], proc-decomp=[2]x[1]x[1], pts=2025=[45]x[45]x[1], pts/proc=990=[22]x[45]x[1], ratio=45/22=  2, ghost=[2,2,0]
+  grid=1: procs=1 [0,0], proc-decomp=[1]x[1]x[1], pts=819=[63]x[13]x[1], pts/proc=819=[63]x[13]x[1], ratio=63/13=  5, ghost=[2,2,0]
+ ======== Parallel Distribution for Ogmg: read MG with levels: mgcg (level 2) (np=4)============
+ numberOfGrids=2, gridDistributionList.size()=2
+  grid=0: procs=1 [1,1], proc-decomp=[1]x[1]x[1], pts=625=[25]x[25]x[1], pts/proc=625=[25]x[25]x[1], ratio=25/25=  1, ghost=[2,2,0]
+  grid=1: procs=1 [3,3], proc-decomp=[1]x[1]x[1], pts=306=[34]x[9]x[1], pts/proc=306=[34]x[9]x[1], ratio=34/9=  4, ghost=[2,2,0]
+
+
+mpirun -np 1 $cginsp cic.mg -g=cice2.order2.ml2.hdf -ts=pc -nu=.01 -ogmgReadGrid=cice2.order2.ml2.mg.hdf
+mpirun -np 1 $cginsp cic.mg -g=cice2.order2.ml2.hdf -ts=pc -nu=.01 -ogmgSaveGrid=cice2.order2.ml2.mg.hdf
+
+
+OK: 
+cgins cic.mg -g=cice2.order2.ml2.hdf -ts=pc -nu=.01 -ogmgReadGrid=cice2.order2.ml2.mg.hdf
+
+cgins cic.mg -g=cice2.order2.ml2.hdf -ts=pc -nu=.01 -ogmgSaveGrid=cice2.order2.ml2.mg.hdf
+
+
+
+====2013/08/27-29
+
+cgins cic.mg -g=cice2.order2.ml2.hdf -ts=pc -nu=.01 -ogmgReadGrid=cice2.order2.ml2.mg.hdf
+
+cgins cic.mg -g=cice2.order2.ml2.hdf -ts=pc -nu=.01 -ogmgSaveGrid=cice2.order2.ml2.mg.hdf
+
+
+mpirun -tv -np 1 $cginsp probe.cmd
+
+mpirun -np 2 $cginsp -noplot probe.cmd
+
+cgins -noplot probe.cmd
+
+
+
+
+==== 2013/08/02 
+
+Test PERIODIC shell
+
+cgins deform -g=deformingShellGrid8.order2p.hdf -bg=fluidBackGround -dg=fluidInterface -dt="user defined deforming surface" -nu=.02 -tf=1. -tp=.01 -model=ins -go=halt
+
+cgins deform -g=deformingShellGrid4.order2p.hdf -bg=fluidBackGround -dg=fluidInterface -dt="user defined deforming surface" -nu=.05 -tf=1. -tp=.02 -model=ins -go=halt
+
+
+
+
+
+
+==== 2013/05/08 -- moving restart -- changeing motion
+
+cgins -noplot cicMove -g=cice2.order2 -move=oscillate -tf=.5 -restart=cicMove1.show -show=cicMove2.show -go=og
+
+cgins cicMove -g=cice2.order2 -move=shift -tf=.2 -show=cicMove1.show -go=halt
+
+
+
+
+=== 2012/11/25: freeSurface BC & implicit? .. OK
+
+cgins freeSurface2d -g=freeSurfaceGrid2de16.order2.ml3 -dg="share=100" -nu=.005 -tf=2. -tp=.04 -dtMax=.02  -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1 -ts=im 
+
+cgins freeSurface2d -g=freeSurfaceGrid2de8.order2.ml2 -dg="share=100" -nu=.01 -tf=2. -tp=.05 -dtMax=.01  -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1 -ts=im 
+
+cgins freeSurface2d -g=freeSurfaceGrid2de4.order2.ml1 -dg="share=100" -nu=.01 -tf=2. -tp=.05 -dtMax=.01  -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1 -ts=im 
+
+
+=== 2012/11/25: turn on gravity:
+
+cgins freeSurface2d -g=freeSurfaceGrid2de8.order2.ml2 -dg="share=100" -nu=.01  -tf=2. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1
+
+cgins freeSurface2d -g=freeSurfaceGrid2de4.order2.ml1 -dg="share=100" -nu=.01  -tf=2. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1
+
+cgins freeSurface2d -g=freeSurfaceGrid2de4.order2.ml1 -dg="share=100" -nu=.01  -tf=2. -tp=.01 -model=ins -go=halt -surfaceTension=.001 -pGrad=-5. -ad2=1
+
+
+=== 2012/11/24 -- test initial version of free surface BC
+
+ cgins freeSurface2d -g=freeSurfaceGrid2de2.order2.ml1 -dg="share=100" -nu=.05 -tf=2. -tp=.01 -model=ins -go=halt 
+ cgins freeSurface2d -g=freeSurfaceGrid2de4.order2.ml1 -dg="share=100" -nu=.05 -tf=2. -tp=.01 -model=ins -go=halt 
+
+
+OK: 
+cgins -noplot tz.cmd -g=square20.order2 -bc4=freeSurface -ts=pc -degreex=1 -degreet=1 -tp=.1 -tf=.1 -go=go 
+
+cgins -noplot tz.cmd -g=square5.order2 -bc4=freeSurface -ts=pc -degreex=1 -degreet=0 -tp=.001 -tf=.002 -debug=15  -useNewImp=0 -checkErrOnGhost=1 -go=go
+
+
+
+
+=== 2012/10/24 -- re-org of plot body force regions
+
+cgins bodyForcing3d -g=box20.order2 -model=boussinesq -nu=1.e-2 -tp=.01 -show=a.show -go=halt
+$ogshow/plotStuff a.show
+
+cgins -noplot bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -show=b.show -go=og
+$ogshow/plotStuff b.show
+
+=== 2012/10/13
+
+mpirun -np 2 $cginsp -noplot bodyForcing3d -g=box20.order2 -model=boussinesq -nu=1.e-2 -tp=.01 -solver=best -psolver=best -go=og
+
+mpirun -np 2 $cginsp -noplot bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -solver=best -psolver=best -go=og
+
+=== 2012/10/12
+
+-- fix plotting of body force regions in 3D 
+
+cgins bodyForcing3d -g=box20.order2 -model=boussinesq -nu=1.e-2 -tp=.01 -go=halt
+
+
+==== 2012/10/08 -- Probes : add full volume average 
+
+cgins -noplot bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -go=og
+
+==== 2012/10/07 -- body forcing
+
+plotRegionProbes probeBoxWithDrag.dat 4 probePlot
+
+==== 2012/10/07 -- body forcing
+
+plotRegionProbes probeBoxWithDrag.dat 3 probePlot
+
+
+cgins -noplot bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -go=og
+
+==== 2012/10/06 -- body forcing
+
+cgins -noplot bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -go=halt
+
+
+==== 2012/09/14 : pressure-inflow order 4
+
+cgins cic -g=square5.order4 -nu=.1 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=15 -inflow=pressure -project=0
+
+# -- 
+cgins cylinder -g=cilce2.order4 -tf=50. -tp=.1 -nu=.01
+allocateWorkSpace: numberOfEquations=25087, nsp = 7974936, fillinRatio= 36, numberOfNonzeros = 221526
+ projectVelocity>>> iteration=0, (new div)/(old div)= 0.046, divergence after projection= 1.29e+00
+ projectVelocity>>> iteration=1, (new div)/(old div)= 0.108, divergence after projection= 1.39e-01
+ projectVelocity>>> iteration=2, (new div)/(old div)= 0.740, divergence after projection= 1.03e-01
+ projectVelocity>>> iteration=3, (new div)/(old div)= 0.915, divergence after projection= 9.40e-02
+ projectVelocity>>> iteration=4, (new div)/(old div)= 0.950, divergence after projection= 8.93e-02
+ projectVelocity>>> iteration=5, (new div)/(old div)= 0.964, divergence after projection= 8.61e-02
+
+
+p-inflow + ts=im (no projection)
+cgins cic -g=cice2.order4.ml2 -nu=.01 -ts=im -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -ad4=1 -ad2=0 -project=0 
+
+NOTE: turn OFF ad2
+P-INFLOW: PROJECTION
+cgins cic -g=cice4.order4.ml3 -nu=.005 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -ad4=1 -ad2=0 
+cgins cic -g=cice2.order4.ml2 -nu=.01 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -ad4=1 -ad2=0 
+
+PARABOLIC: PROJECTION
+cgins cic -g=cice4.order4.ml3 -nu=.005 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=parabolic -ad4=1 -ad2=0 
+cgins cic -g=cice2.order4.ml2 -nu=.01 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=parabolic -ad4=1 -ad2=0 
+
+NO PROJECTION
+cgins cic -g=cice4.order4.ml3 -nu=.005 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -ad4=1 -ad2=0 -project=0
+cgins cic -g=cice2.order4.ml2 -nu=.01 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -ad4=1 -ad2=0 -project=0
+
+pressure inflow: (order=4) 
+cgins -noplot tz -g=square10.order4 -bc1=pinflow -degreex=4 -degreet=2 -ts=pc -useNewImp=0 -bcn=d -tp=.05 -tf=.1 -go=go
+ [exact
+pressure inflow: (order=2)
+cgins -noplot tz -g=square10.order2 -bc1=pinflow -degreex=2 -degreet=2 -ts=pc -useNewImp=0 -bcn=d -tp=.05 -tf=.1 -go=go [exact
+
+
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=pc -useNewImp=0 -bcn=d -tp=.05 -tf=.1 -go=go [exact
+
+cgins -noplot tz -g=square10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=d -tp=.05 -tf=.1 -go=go [exact
+
+
+
+
+==== 2012/08/29 : Look at pressure-inflow : 
+
+-- PARALLEL: TEST pressure-inflow in parallel
+
+-ts=im : scalar systems FINISH ME
+mpirun -np 1 $cginsp cic -g=cice2.order2.ml2 -nu=.01 -ts=im -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure
+
+-ts=im: do not use scalar systems: OK: 
+mpirun -np 1 $cginsp cic -g=cice2.order2.ml2 -nu=.01 -ts=im -fullImplicitSystem=1 -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure
+
+-ts=pc: OK
+mpirun -np 2 $cginsp cic -g=cice2.order2.ml2 -nu=.01 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure
+
+-- SERIAL
+
+
+-ts=pc: order=4 ***FINISH ME***
+cgins cic -g=cice2.order4.ml2 -nu=.01 -ts=pc -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure
+
+ insbc4:ERROR: unknown boundary condition=           3
+
+
+=== 2012/07/24
+
+
+AFS SLIP MG4: TROUBLE AT INFLOW,  (BLIP AT OUTFLOW AFTER PROJECTION)
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=afs -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -wall=slip -debug=3
+
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=afs -psolver=best -recomputeDt=200 -ad2=0 -ad4=1 -wall=slip -debug=3
+
+
+AFS NOSLIP: OK but blip in pressure ghost where parabolic inflow ends
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=afs -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+AFS NOSLIP: OK but blip in pressure ghost where parabolic inflow ends
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=afs -psolver=best -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+
+BAD: NOSLIP ts=IM -- OUTFLOW CORNERS  MG=BAD, PETSC=OK
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=im -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=im -psolver=best -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+
+BAD: NOSLIP ts=PC MG -- OUTFLOW CORNERS, MG=BAD PETSC=BAD
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=pc -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=pc -psolver=best -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+
+
+
+
+cgins cic -g=cice2.order4 -tp=.1 -ad2=0 -ad4=1 -nu=.01 -wall=slip -ts=pc -psolver=mg
+
+
+OK ts=pc, O4, NOSLIP, MG
+cgins cic -g=cice2.order4 -tp=.1 -ad2=0 -nu=.01 -inflow=parabolic -ts=pc -psolver=mg
+
+OK ts=pc, O4, NOSLIP
+cgins cic -g=cice2.order4 -tp=.1 -ad2=0 -nu=.01 -inflow=parabolic -ts=pc
+
+
+OK ts=IM ORDER4 SLIP
+cgins cic -g=cice2.order4 -wall=slip -tp=.1 -ad2=0 -nu=.01 
+
+OK ts=IM ODRER4 NOSLIP
+cgins cic -g=cice2.order4 -tp=.1 -ad2=0 -nu=.01 -inflow=parabolic -ts=im
+
+
+
+=== 2012/07/23 TEST KYLE'S BUG 
+
+AFS NOSLIP: OK but blip in pressure ghost where parabolic inflow ends
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=afs -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+
+AFS SLIP:
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=afs -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -wall=slip -debug=3
+
+
+NOSLIP: TROUBLE WITH PC: -- blows up
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=pc -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -inflow=parabolic -debug=3
+
+SLIP:
+cgins cic -g=channel2.order4.ml2.hdf -nu=.01 -ts=pc -psolver=mg -recomputeDt=200 -ad2=0 -ad4=1 -wall=slip -debug=3
+
+
+
+===== 2012/07/22
+
+FOURTH-ORDER
+cgins cic -g=cice2.order4 -nu=.01 -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -ts=pc
+ insbc4:ERROR: unknown boundary condition=           3
+    6
+
+
+SERIAL: IMPLICIT IV=FULL OK:
+cgins cic -g=cice2.order2.ml2 -nu=.01 -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -iv=full
+
+cgins cic -g=cice2.order2.ml2 -nu=.01 -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure 
+
+ fillCoefficientsScalarSystem=   1
+ insImpINS: bc0.eq.inflowWithPandTV not           finished for scalar systems
+ 8140
+
+
+FIXED : inflowWithPressureAndTangentialVelocityGiven BC for PARALLEL AND EXPLICT TIME-STEPPING
+mpirun -np 2 $cginsp cic -g=cice2.order2.ml2 -nu=.01 -solver=best -psolver=best -recomputeDt=200 -debug=3 -inflow=pressure -ts=pc
+
+===== 2012/06/05
+
+# -- Test slow start:
+#  cgins cic -g=cice4.order2.ml3 -inflow=parabolic -solver=mg -psolver=mg -ts=afs -cfl=5. -slowStartCFL=1. -slowStartSteps=100 -slowStartRecomputeDt=10 -tp=.5 -tf=5.
+
+
+==== 2012/05/04 CHECK ABR in fixup
+
+memcheckview cgins.1095910.0.mc
+
+memcheckview cgins.1095907.0.mc
+
+srun -N1 -n8 -ppdebug memcheck_all $cginsp -noplot cic -g=cicFixede8.order4.ml3 -nu=.001 -recomputeDt=200 -ts=afs -psolver=mg -tp=.01 -tf=.01 -ad2=0 -ad4=1 -debug=3  -numberOfParallelGhost=6 -go=go
+
+memcheckview cgins.1095905.0.mc
+
+srun -N1 -n16 -ppdebug memcheck_all $cginsp -noplot cic -g=cice16.order2.ml4 -nu=.01 -recomputeDt=200 -ts=afs -psolver=mg -tp=.01 -tf=.01 -debug=3 -go=go
+
+srun -N1 -n8 -ppdebug memcheck_all $cginsp -noplot cic -g=cice2.order2.ml2 -nu=.01 -recomputeDt=200 -ts=afs -psolver=mg -tp=.01 -tf=.01 -debug=3 -go=go
+
+
+
+==== 2012/04/30
+
+
+CHECK RESTART PROBLEM
+
+OK
+mpirun -np 4 $cginsp cic -g=cice4.order4.ml3 -inflow=parabolic -solver=mg -psolver=mg -ts=afs -restart=cic.show -tp=.01 -tf=.1 -numberOfParallelGhost=6 -go=halt
+
+mpirun -np 2 $cginsp cic -g=cice4.order4.ml3 -inflow=parabolic -solver=mg -psolver=mg -ts=afs -show=cic.show -tp=.02 -tf=.02 -numberOfParallelGhost=6 -go=go
+
+
+
+
+
+
+
+=======
+
+
+*** 2012/03/09 -- test KE for Yongsheng
+
+cgins flatPlate -g=flatPlate1.order2.dy.01.hdf -tm=ke -nu=1.e-3 -debug=1 -tp=.01 -tf=10. -ts=imp -imp=1. -dtMax=1.e-4 -rf=10 -go=halt
+
+
+
+*** 2012/03/04 -- test body forcing mask option
+
+cgins bodyMaskForcing -g=square80.order2 -nu=1.e-2 -tp=.01 -go=halt
+
+
+***** 2012/02/29
+
+TEST parallel AFS -- number of parallel ghost
+
+mpirun -np 1 $cginsp tz.cmd -g=nonSquare20.order2 -tz=trig -ts=afs  -tp=.1 -tf=.5 -go=halt  -dtMax=.05 -numberOfParallelGhost=2
+
+TROUBLE
+mpirun -np 2 $cginsp tz.cmd -g=square20.order2 -tz=trig -ts=afs  -tp=.1 -tf=.5 -go=halt  -dtMax=.05 -numberOfParallelGhost=2
+
+cgins tz.cmd -g=square20.order2 -tz=trig -ts=afs  -tp=.1 -tf=.5 -go=halt -dtMax=.05 -numberOfParallelGhost=2
+
+
+
+**** 2012/02/22 -- parallel moving fourth order?
+
+TS=PC : OK  (BUG FIXED - share value was set on stir grids in stirArg.cmd  !! 
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=pc -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -ad41=1. -ad42=1. 
+
+
+OK: 
+mpirun -np 2 $cginsp cicMove -g=cice2.order4 -ts=pc -ad2=0 -ad4=1 -numberOfParallelGhost=4 -freqFullUpdate=1
+
+OK: 
+cgins cicMove -g=cice2.order4 -ts=pc -ad2=0 -ad4=1
+
+
+
+
+*** 2011/12/13 -- Kyle has fixed some problems with AFS and TZ
+
+-- try PC with newts
+cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tf=10. -inflowVelocity=.01 -ts=pc -newts=1 -forceLimit=40. -solver=mg -psolver=mg -go=halt -tp=.01 -project=1 
+
+Mass=2 -- looks ok
+cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tp=.05 -tf=10. -inflowVelocity=.01 -ts=afs -forceLimit=40. -solver=mg -psolver=mg -go=halt -mass=2. -project=1
+
+
+Mass=1 : Better: but still not correct
+cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tp=.05 -tf=10. -inflowVelocity=.01 -ts=afs -forceLimit=40. -solver=mg -psolver=mg -go=halt -mass=1. -project=1
+
+Light drop has trouble:
+cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tf=10. -inflowVelocity=.01 -ts=afs -forceLimit=40. -solver=mg -psolver=mg -go=halt -tp=.001 -project=1 -show=drops.show
+
+
+--- AFS second order now:
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.05
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.025
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.0125
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.00625
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.003125
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.500 4.68e-03 1.04e-03 3.86e-03 1.70e-02  4.68e-03 5.00e-02 1.66e-01
+   0.500 9.28e-04 1.70e-04 3.98e-04 2.54e-03  9.28e-04 2.50e-02 2.71e-01
+   0.500 1.73e-04 2.27e-05 6.75e-05 4.69e-04  1.73e-04 1.25e-02 4.89e-01
+   0.500 3.50e-05 5.41e-06 1.40e-05 8.51e-05  3.50e-05 6.25e-03 9.50e-01
+   0.500 9.17e-06 1.19e-06 3.41e-06 2.00e-05  9.17e-06 3.13e-03 1.80e+00
+
+*** 2011/12/07 -- trouble with AFS and drops:
+
+#   cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tp=.01 -tf=10. -inflowVelocity=.01 -ts=im -forceLimit=40. -solver=mg -psolver=mg -go=halt
+#   cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tp=.01 -tf=10. -inflowVelocity=.01 -ts=afs -forceLimit=40. -solver=mg -psolver=mg -go=halt [TROUBLE
+
+-- larger mass is OK: 
+cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tp=.05 -tf=10. -inflowVelocity=.01 -ts=afs -forceLimit=40. -solver=mg -psolver=mg -go=halt -mass=2. [OK
+cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tp=.05 -tf=10. -inflowVelocity=.01 -ts=afs -forceLimit=40. -solver=mg -psolver=mg -go=halt -mass=1. [OK
+
+cgins drops -g=drops1i2.order2 -numDrops=1 -nu=.01 -tp=.05 -tf=10. -inflowVelocity=.01 -ts=afs -forceLimit=40. -solver=mg -psolver=mg -go=halt [TROUBLE AFS 
+
+
+
+*** 2011/12/06 -- AFS accuracy in time:
+
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.05
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.025
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.0125
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.00625
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.003125
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.0015625
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.00078125
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -bcn=noSlip -tp=.1 -tf=.5 -go=go  -dtMax=.000390625
+   0.500 1.05e-02 2.08e-03 3.87e-03 4.16e-02  1.05e-02 5.00e-02 1.48e-01
+   0.500 2.42e-03 4.77e-04 9.59e-04 1.30e-02  2.42e-03 2.50e-02 2.82e-01
+   0.500 4.57e-04 1.29e-04 4.75e-04 4.35e-03  4.75e-04 1.25e-02 4.91e-01
+   0.500 1.60e-04 9.43e-05 2.26e-04 1.62e-03  2.26e-04 6.25e-03 8.05e-01
+   0.500 7.42e-05 4.83e-05 1.13e-04 7.54e-04  1.13e-04 3.13e-03 1.69e+00
+   0.500 3.60e-05 2.46e-05 5.67e-05 3.68e-04  5.67e-05 1.56e-03 2.99e+00
+   0.500 1.80e-05 1.25e-05 2.84e-05 1.83e-04  2.84e-05 7.81e-04 5.94e+00
+   0.500 9.27e-06 6.35e-06 1.42e-05 9.16e-05  1.42e-05 3.91e-04 1.23e+01
+
+
+cgins tz.cmd -g=square20.order4 -ts=afs -tf=.5 -tp=.1 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=trig -bcn=noSlip -dtMax=.05
+cgins tz.cmd -g=square20.order4 -ts=afs -tf=.5 -tp=.1 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=trig -bcn=noSlip -dtMax=.025
+   0.500 5.35e-03 5.39e-03 3.80e-03 4.74e-02  5.39e-03 5.00e-02 1.57e-01
+   0.500 1.06e-03 8.54e-04 9.64e-04 9.24e-03  1.06e-03 2.50e-02 2.83e-01
+
+cgins tz.cmd -g=square20.order4 -ts=afs -tf=.5 -tp=.1 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=trig -dtMax=.05
+cgins tz.cmd -g=square20.order4 -ts=afs -tf=.5 -tp=.1 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=trig -dtMax=.025
+   0.500 2.52e-03 5.56e-03 8.38e-03 1.11e-01  8.38e-03 5.00e-02 1.46e-01
+   0.500 7.49e-04 1.03e-03 1.90e-03 2.45e-02  1.90e-03 2.50e-02 2.44e-01
+
+
+cgins tz.cmd -g=square20 -ts=afs -tf=.5 -tp=.1 -order=2 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=trig -dtMax=.05
+cgins tz.cmd -g=square20 -ts=afs -tf=.5 -tp=.1 -order=2 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=trig -dtMax=.025
+   0.500 1.73e-03 6.25e-03 4.57e-03 7.40e-02  6.25e-03 5.00e-02 1.29e-01
+   0.500 3.25e-04 1.59e-03 9.00e-04 1.69e-02  1.59e-03 2.50e-02 2.08e-01
+
+
+OK:
+cgins tz.cmd -g=square20 -ts=afs -tp=1e-1 -order=2 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=poly -degreex=0 -degreet=4 -dtMax=.1
+cgins tz.cmd -g=square20 -ts=afs -tp=1e-1 -order=2 noplot nopause -go=run -nu=1e-2 -debug=2 -tz=poly -degreex=0 -degreet=4 -dtMax=.05
+  1.000 4.77e-05 3.45e-04 3.45e-04 6.40e-03  2.28e+00 1.00e-01 1.71e-01
+  1.000 1.82e-05 8.59e-05 8.59e-05 1.53e-03  2.28e+00 5.00e-02 2.19e-01
+
+*** 2011/12/05 -- limit BC4 ?
+
+OK now with limiter:
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=im -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -ad42=1
+
+---- OK: with NO limiter, insBC4: stabilize 4th-order BC - use second-order dissipation.
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=im -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -ad42=1
+cgins stirFlow -g=stir1e2.order4.s4.hdf -nu=1.e-2 -tp=.001 -ts=im -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -ad42=1 -numStir=1 -move=0
+
+
+
+TROUBLE: NOT moving:
+cgins stirFlow -g=stir1e2.order4.s4.hdf -nu=1.e-2 -tp=.001 -ts=im -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -ad42=1 -numStir=1 -move=0
+
+
+-- One stick: -- this seems OK
+cgins stirFlow -g=stir1e2.order4.s4.hdf -nu=1.e-2 -tp=.001 -ts=pc4 -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -numStir=1
+
+TROUBLE: 
+cgins stirFlow -g=stir1e2.order4.s4.hdf -nu=1.e-2 -tp=.001 -ts=im -freqFullUpdate=1 -psolver=mg -solver=mg -ad2=0 -ad4=1 -numStir=1
+
+cgins stirFlow -g=stire -nu=1.e-2 -tp=.001 -ts=pc4 -freqFullUpdate=1 -ad2=0 -ad4=1
+
+
+
+**** 2011/12/05 -- test Kyle's fixes to AFS  noslip
+
+++++++++++++++++++++++++++++++ MOVING ++++++++++++++++++++++++++++++++
+cgins -noplot tz.cmd -g=square40.order4 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -move=shift -bcn=noSlip -tp=.1 -tf=.2 -go=go -dtMax=.002
+   0.200 2.11e-04 5.53e-05 7.73e-05 7.84e-04  8.09e-01 2.00e-03 9.42e+00
+   0.200 8.61e-05 2.84e-05 3.74e-05 3.97e-04  8.09e-01 1.00e-03 1.84e+01
+   0.200 4.16e-05 1.61e-05 1.87e-05 2.25e-04  8.09e-01 5.00e-04 3.86e+01
+
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -move=shift -bcn=noSlip -tp=.1 -tf=.2 -dtMax=.004 -go=go
+   0.200 9.45e-04 2.17e-04 8.79e-05 1.32e-03  8.09e-01 4.00e-03 1.42e+00  *note* dt 
+   0.200 4.62e-04 1.12e-04 4.34e-05 6.99e-04  8.09e-01 2.00e-03 2.80e+00
+   0.200 2.32e-04 6.13e-05 2.17e-05 3.89e-04  8.09e-01 1.00e-03 5.54e+00
+
+cgins -noplot tz.cmd -g=square10.order4 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -move=shift -bcn=noSlip -tp=.1 -tf=.2 -dtMax=.02 -go=go [OK 
+  0.200 6.83e-03 1.50e-03 1.82e-03 8.20e-03  8.08e-01 2.00e-02 1.96e-01
+
+
+++++++++++++++++++++++++++++++ NON MOVING ++++++++++++++++++++++++++++++++++
+@@@@@@@@@ ts=afs @@@@@@@@@
+
+cgins -noplot tz.cmd -g=square40.order4 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.1 -dtMax=.0001 -tf=.2 -go=go 
+   0.200 4.82e-06 2.31e-06 4.04e-07 2.64e-05  8.09e-01 1.00e-04 3.56e+01
+   0.200 4.93e-05 2.29e-05 3.95e-06 2.55e-04  8.09e-01 1.00e-03 3.73e+00
+
+*** looks first-order in time for noslip
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.1 -tf=.2 -go=go  -dtMax=.002
+   0.200 5.30e-05 1.47e-05 4.58e-05 3.13e-04  8.09e-01 2.00e-03 9.77e-01
+   0.200 2.69e-05 7.65e-06 2.33e-05 1.71e-04  8.09e-01 1.00e-03 1.93e+00
+
+cgins -noplot tz.cmd -g=square20.order2 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.1 -tf=.2 -go=go  -dtMax=.002
+cgins -noplot tz.cmd -g=square20.order2 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.1 -tf=.2 -go=go  -dtMax=.001
+   0.200 4.50e-03 3.44e-04 2.05e-04 2.47e-03  8.13e-01 2.00e-03 9.09e-01
+   0.200 4.52e-03 3.45e-04 2.05e-04 2.48e-03  8.13e-01 1.00e-03 1.77e+00
+
+
+** dirichlet: *** looks first-order in time
+cgins -noplot tz.cmd -g=square20.order4 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=d -tp=.1 -tf=.2 -go=go  -dtMax=.002
+   0.200 2.96e-05 7.95e-06 3.57e-05 4.38e-04  8.09e-01 2.00e-03 9.55e-01
+   0.200 1.59e-05 4.69e-06 1.81e-05 2.21e-04  8.09e-01 1.00e-03 1.86e+00
+
+
+cgins -noplot tz.cmd -g=square10.order4 -tz=trig -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.1 -dtMax=.02  -tf=.2 -go=go 
+  0.200 1.02e-03 6.04e-04 3.74e-04 2.80e-03  8.08e-01 2.00e-02 9.46e-02
+
+
+degree=(2,0) exact 
+cgins -noplot tz.cmd -g=square10.order4 -degreex=2 -degreet=0 -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.2 -go=go [exact
+
+
+cgins -noplot tz.cmd -g=square10.order4 -degreex=1 -degreet=1 -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.05 -go=go [not exact 
+
+cgins -noplot tz.cmd -g=square10.order4 -degreex=1 -degreet=0 -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.05 -go=go [exact
+
+
+
+***** 2011/12/01 -- more (parallel) testing 
+
+OK:
+mpirun -np 2 $cginsp sphereMove -g=sphereInABoxe1.order4.ml1 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -ts=afs -solver=mg -psolver=mg -ad2=0 -ad4=1 -numberOfParallelGhost=4 -debug=1
+
+OK: 
+mpirun -np 2 $cginsp sphereMove -g=sphereInABoxe1.order4.ml1 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=1 -numberOfParallelGhost=4
+
+  cgins sphereMove -g=sphereInABoxe1.order4.ml1 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=1 [im, OK
+  cgins sphereMove -g=sphereInABoxe1.order4.ml1 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -ts=pc -solver=mg -psolver=mg -ad2=0 -ad4=1 [pc, OK
+  cgins sphereMove -g=sphereInABoxe1.order4.ml1 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -ts=pc4 -solver=mg -psolver=mg -ad2=0 -ad4=1 [pc4, OK
+  cgins sphereMove -g=sphereInABoxe1.order4.ml1 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -ts=afs -solver=mg -psolver=mg -ad2=0 -ad4=1 [afs, OK
+
+OK: 
+mpirun -np 2 $cginsp stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.05 -freq=1. -ts=afs -ad2=0 -ad4=1 -freqFullUpdate=1 -psolver=mg -solver=mg -debug=1 -show="stir4afs.show" -tf=1. -cfl=2. -numberOfParallelGhost=4
+
+OK: 
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.05 -freq=1. -ts=afs -ad2=0 -ad4=1 -freqFullUpdate=1 -psolver=mg -solver=mg -debug=1 -show="stir4afs.show" -tf=1. -cfl=2.
+
+-- AFS: order=4 OK BUT note warnings from IPOG (exposed points?)
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.01 -freq=1. -ts=afs -ad2=0 -ad4=1 -freqFullUpdate=1 -psolver=mg -solver=mg -debug=1 
+IPOG:INFO: some points not assigned by interpolation. These are likely outside the domain. numberOfPointsToInterpolate=527, totalNotAssigned=7
+IPOG:INFO: some points not assigned by interpolation. These are likely outside the domain. numberOfPointsToInterpolate=537, totalNotAssigned=8
+
+
+-- AFS:
+OK: -order=2
+cgins stirFlow -g=stire4.order2.s4.ml1 -nu=1.e-2 -tp=.01 -freq=1. -ts=afs -freqFullUpdate=1 -psolver=mg -solver=mg -debug=3 -ogesDebug=3 [OK
+cgins stirFlow -g=stire4.order2.s4 -nu=1.e-2 -tp=.01 -ts=afs [OK
+
+
+-- order=4: -ts=im TROUBLE: 
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=im -ad2=0 -ad4=1 -freqFullUpdate=1 -psolver=mg -solver=mg 
+-- order=4: -ts=pc4 TROUBLE: 
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=pc4 -ad2=0 -ad4=1 -freqFullUpdate=1 -psolver=mg -solver=mg 
+-- pc OK
+cgins stirFlow -g=stire4.order4.s4.ml1 -nu=1.e-2 -tp=.001 -ts=pc -ad2=0 -ad4=1 -freqFullUpdate=1 -psolver=mg -solver=mg 
+
+cgins stirFlow -g=stire4.order2.s4 -nu=1.e-2 -tp=.01 -ts=im [OK
+
+
+
+-- AFS: 
+mpirun -np 2 $cginsp cicMove -g=cice2.order4 -ts=afs -ad2=0 -ad4=1 -nu=.05 -tp=.05 -solver=best -psolver=best -freqFullUpdate=1 -numberOfParallelGhost=4 -debug=1 -go=halt
+
+
+-- IM
+mpirun -np 2 $cginsp cicMove -g=cice2.order4 -ts=im -iv=oldViscous -useNewImp=0 -ad2=0 -ad4=1 -nu=.05 -tp=.05 -solver=best -psolver=best -freqFullUpdate=1 -numberOfParallelGhost=4 -debug=1 -go=halt
+
+
+**** 2011/11/30  **FIXED** set numParallelGhost = (IW+DW-2)/2 = 4 for 4th order
+
+OK
+mpirun -np 2 $cginsp cicMove -g=cice2.order4 -ts=pc -ad2=1 -ad4=0 -nu=.05 -tp=.05 -solver=best -psolver=best -freqFullUpdate=1 -numberOfParallelGhost=4 -go=halt
+
+--- simulate motion:
+
+OK:
+mpirun -tv -np 2 $cginsp cicMove -g=cice2.order4 -ts=pc -ad2=1 -ad4=0 -tp=.1 -solver=best -psolver=best -freqFullUpdate=1 -simulateMotion=1 -numberOfParallelGhost=4 -go=halt
+
+-- OK: 
+mpirun -np 2 $cginsp -noplot cicMove -g=cice2.order2 -ts=pc -ad2=1 -ad4=0 -tp=.1 -solver=best -psolver=best -freqFullUpdate=1 -simulateMotion=1
+
+**** 2011/11/29 **FIXED**
+
+TROUBLE: -- init past times breaks with ts=pc
+cgins -noplot tz -g=square10.order4 -degreex=2 -degreet=1 -ts=pc -useNewImp=0 -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+
+
+**** 2011/11/29  FIXED -- added option to use ad2 instead of ad4 in insbcOpt4.bf 
+
+TROUBLE: pc4 + ad4
+cgins cicMove -g=cice1.order4 -ts=pc4 -ad2=0 -ad4=1 -tp=.001 -move=0 -debug=3 [ BAD - pc4
+cgins cicMove -g=cice1.order4 -ts=pc  -ad2=1 -ad4=0 -tp=.01 -move=0  [ OK - pc
+
+OK: exact:
+cgins noplot tz.cmd -g=square5.order4 -degreex=2 -degreet=2 -ts=pc4 -useNewImp=0 -bcn=noSlip -tp=.01 -tf=.02 -ad4=1 -go=go
+
+
+*** 2011/11/28 -- test AFS and moving
+
+****************************** PARALLEL ***********************************
+
+
+@@@@@@@@@@@@@@ ts=pc @@@@@@@@@@@
+
+TROUBLE: Ogen: (-np=1 OK)
+mpirun -np 2 $cginsp cicMove -g=cice2.order4 -ts=pc4 -ad2=1 -ad4=0 -tp=.01 -solver=best -psolver=best -freqFullUpdate=1 -numberOfParallelGhost=2
+
+OK: order=2: 
+mpirun -np 2 $cginsp cicMove -g=cice2.order2 -ts=pc -ad2=1 -ad4=0 -solver=best -psolver=best -freqFullUpdate=1 
+
+
+
+move order=4 -- OK
+mpirun -np 2 $cginsp -noplot tz -g=square10.order4 -degreex=2 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -xshift=1. -yshift=1. -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3 -solver=best -psolver=best -freqFullUpdate=1
+
+
+
+***TROUBLE with -ts=pc: (serial)
+cgins -noplot tz -g=square10.order4 -degreex=2 -degreet=1 -ts=pc -useNewImp=0 -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+
+non-moving, order=4 - OK 
+mpirun -np 1 $cginsp -noplot tz -g=square10.order4 -degreex=2 -degreet=1 -ts=pc4 -useNewImp=0 -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3 -solver=best -psolver=best -freqFullUpdate=1
+
+OK: move, order=2
+mpirun -np 2 $cginsp -noplot tz -g=square10.order2 -degreex=1 -degreet=1 -ts=pc -useNewImp=0 -move=shift -xshift=1. -yshift=1. -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3 -solver=best -psolver=best -freqFullUpdate=1
+
+OK: non-moving, order=2
+mpirun -np 2 $cginsp -noplot tz -g=square10.order2 -degreex=2 -degreet=1 -ts=pc -useNewImp=0 -xshift=1. -yshift=1. -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3 -solver=best -psolver=best
+
+
+
+
+
+
+*****************************************************************************
+
+
+
+
+
+=== does 4th order implicit viscous + full system work ?? --> NO
+
+TROUBLE: 
+cgins -noplot tz -g=nonSquare5.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -useNewImp=0 -bc1=noSlip -bc2=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go -debug=3
+
+OK with Cartesian: --> 2 scalar systems
+cgins -noplot tz -g=square5.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -useNewImp=0 -bc1=noSlip -bc2=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go -debug=3
+
+
+********************* 3D ***********************************
+
+-- AFS
+cgins sibMove -g=sibe2.order4 -nu=.02 -tf=5. -tp=.05 -ts=afs -move=shift -freqFullUpdate=1 [OK
+cgins sibMove -g=sibi1.order4 -nu=.05 -tf=5. -tp=.05 -ts=afs -move=shift -freqFullUpdate=1 [OK
+
+cgins sibMove -g=sibe1.order2 -nu=.05 -tf=5. -tp=.05 -ts=afs -move=shift [OK
+
+cgins sibMove -g=sibi1.order4 -nu=.05 -tf=5. -tp=.01 -ts=pc4 -move=shift  [ trouble
+cgins sibMove -g=sibi1.order4 -nu=.05 -tf=5. -tp=.05 -ts=im -move=shift  [trouble
+cgins sibMove -g=sibi1.order4 -nu=.05 -tf=5. -tp=.01 -ts=pc -move=shift   [OK
+
+cgins sibMove -g=sibe1.order2 -nu=.1 -tf=5. -tp=.05 -ts=im -move=shift  [OK
+cgins sibMove -g=sibe1.order2 -nu=.1 -tf=5. -tp=.01 -ts=pc -move=shift  [OK
+
+*************************************************************
+
+********************* 2D ***********************************
+OK: AFS + move + order=4
+cgins cicMove -g=cice2.order4 -ts=afs -ad2=0 -ad4=1 -bcTop=noSlipWall -tp=.05 -debug=2
+
+OK: AFS move, order=2
+cgins cicMove -g=cice2.order2 -ts=afs  -ad2=1 -bcTop=noSlipWall -tp=.05 -debug=2
+
+OK: AFS, no move
+cgins cicMove -g=cice2.order2 -ts=afs  -ad2=1 -bcTop=noSlipWall -move=0 -tp=.01 -debug=2
+
+OK: 
+cgins cic -g=cice2.order2.ml2 -inflow=parabolic -solver=mg -psolver=mg -ts=afs
+
+*** 2011/11/27  +++ TEST 4th ORDER ++++
+
+******* TROUBLE: test moving IM plus slip wall: FIX ME:  --> trouble without moving too.
+cgins -noplot tz -g=nonSquare5.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -useNewImp=0 -move=shift -xshift=1. -yshift=1. -bc1=noSlip -bc2=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go -debug=3
+
+*************************************************************
+
+++++++++++++++++++++++++++++++ MOVING ++++++++++++++++++++++++++++++++
+
+@@@@@ ts=pc4 :@@@@@@@@@
+** move=(1,1)  : exact:
+cgins -noplot tz -g=nonBox10.order4 -degreex=2 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -gridToMove=box -xshift=1. -yshift=1. -zshift=1. -bcn=noSlip -tp=.01 -tf=.02 -go=go -debug=3
+
+cgins -noplot tz -g=box10.order4 -degreex=2 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -gridToMove=box -xshift=1. -yshift=1. -zshift=1. -bcn=noSlip -tp=.01 -tf=.02 -go=go -debug=3
+
+cgins -noplot tz -g=nonSquare10.order4 -degreex=2 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -xshift=1. -yshift=1. -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+cgins -noplot tz -g=square10.order4 -degreex=2 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -xshift=1. -yshift=1. -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+@@@@@ ts=im @@@@@@@@@
+(2,0) and (1,1) exact: 
+
+cgins -noplot tz -g=nonBox10.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -useNewImp=0 -move=shift -gridToMove=box -xshift=1. -yshift=1. -zshift=1. -bcn=noSlip -tp=.01 -tf=.02 -go=go -debug=3
+
+cgins -noplot tz -g=box10.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -useNewImp=0 -move=shift -gridToMove=box -xshift=1. -yshift=1. -zshift=1. -bcn=noSlip -tp=.01 -tf=.02 -go=go -debug=3
+
+cgins -noplot tz -g=nonSquare10.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -useNewImp=0 -move=shift -xshift=1. -yshift=1. -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+cgins -noplot tz -g=square10.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -useNewImp=0 -move=shift -xshift=1. -yshift=1. -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+++++++++++++++++++++++++++++++ NON MOVING ++++++++++++++++++++++++++++++++++
+@@@@@@@@@ ts=afs @@@@@@@@@
+
+NOTE: use noSlip on all walls
+
+NOT EXACT (?)
+cgins noplot tz.cmd -g=square10.order4 -degreex=1 -degreet=0 -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.05 -go=go
+
+-bcn=d  : Exact (2,0)
+cgins noplot tz.cmd -g=square10.order4 -degreex=2 -degreet=0 -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=d -tp=.05 -tf=.05 -go=go
+
+cgins noplot tz.cmd -g=square10.order2 -degreex=1 -degreet=0 -ts=afs  -newts=1 -iv=oldViscous -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.05 -go=go
+
+@@@@@@@@@ ts=pc4 @@@@@@@@@
+: EXACT: (non-moving)
+cgins noplot tz.cmd -g=nonBox10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.01 -tf=.02 -go=go
+
+cgins noplot tz.cmd -g=box10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.01 -tf=.02 -go=go
+
+
+cgins noplot tz.cmd -g=nonSquare10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+
+cgins noplot tz.cmd -g=square10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+
+
+@@@@@@@@@ ts=im, @@@@@@@@@
+EXACT: (non-moving) IMPLICIT
+cgins noplot tz.cmd -g=nonBox10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+cgins noplot tz.cmd -g=box10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+cgins noplot tz.cmd -g=nonSquare10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+cgins noplot tz.cmd -g=square10.order4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -bc1=inflow -bc2=outflow -tp=.05 -tf=.05 -go=go
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+*** 2011/11/26
+
+Move: exact: [2,1] [3,0] [1,2], [0,3]  NOT: [2,2] [3,1] [1,3]
+cgins -noplot tz -g=square5.order4 -degreex=2 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+No-move: Exact [4,3] but not [4,4]
+cgins -noplot tz -g=square5.order4 -degreex=3 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -tp=.01 -tf=.05 -go=go -debug=3
+
+
+
+**** 2011/11/23-24 -- look at 4th order BC's and moving 
+
+MOVE:
+cgins -noplot tz -g=square5.order4 -degreex=1 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -bcn=noSlip -tp=.01 -tf=.01 -go=go -debug=15
+
+No-MOVE: cp ins.debug ins.nomove.debug
+cgins -noplot tz -g=square5.order4 -degreex=1 -degreet=1 -ts=pc4 -useNewImp=0 -bcn=noSlip -tp=.001 -tf=.001 -go=go -debug=15
+
+cgins -noplot tz -g=square16.order4 -degreex=1 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -bcn=noSlip -tp=.05 -tf=.1 -go=og
+
+works but not exact -- check tz  (dirichlet BC exact)
+cgins -noplot tz -g=square16.order4 -degreex=1 -degreet=1 -ts=pc4 -useNewImp=0 -move=shift -bcn=noSlip -tp=.05 -tf=.1 -go=go [
+
+
+cgins tz -g=square16.order2 -degreex=1 -degreet=1 -move=shift [exact 
+
+
+exact: (non-moving)
+cgins -noplot tz -g=square10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.1 -go=go
+
+*** 2011/11/06 -- 
+
+Fix parabolic inflow and k-eps (use wall values for k and eps)
+
+-- slow start but then increase dtMax=.01 -rf=100
+cgins -noplot flatPlate -g=flatPlate1.order2.dy.01.hdf -tm=ke -nu=1.e-3 -debug=1 -tp=.01 -tf=10. -ts=imp -imp=1. -dtMax=1.e-4 -rf=10 -go=og [OK - converges
+
+
+
+*** 2011/10/30
+
+OK: 
+cgins kEpsilon -g=square5.hdf -degreex=1 -ic=tz -ts=imp -dtMax=.02 -tp=.02 -tf=.04 -iv=full -debug=1 -go=halt 
+
+
+
+*** 2011/10/27--29 -- variable material properties : IMPLICIT
+
+-- self-adjoint div(K grad) is NOT exact for degreex=2 
+
+
+=========== Full Implicit ==========
+
+cgins -noplot tz -g=box10.order2 -tz=trig -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.05 -go=go
+cgins -noplot tz -g=box20.order2 -tz=trig -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.025 -go=go
+     t    err(p)   err(u)   err(v)   err(w)   err(T)    div       uMax     dt       cpu
+   0.200 2.22e-03 3.19e-03 3.17e-03 3.18e-03 1.14e-03 2.77e-02  8.09e-01 5.00e-02 8.65e-01
+   0.200 6.90e-04 8.03e-04 7.53e-04 7.55e-04 3.02e-04 8.49e-03  8.09e-01 2.50e-02 4.29e+01
+
+
+EXACT:
+cgins -noplot tz -g=nonBox10.order2 -degreex=1 -degreet=1 -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.05 -go=go
+
+
+EXACT: 
+cgins -noplot tz -g=box10.order2 -degreex=1 -degreet=1 -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.05 -go=go
+
+
+cgins -noplot tz -g=nonSquare10.order2 -tz=trig -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.05 -go=go
+   0.200 4.78e-03 5.42e-03 3.10e-03 1.46e-03 3.56e-02  8.09e-01 5.00e-02 5.69e-02
+
+
+**OK: 
+cgins -noplot tz -g=square10.order2 -tz=trig -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.05 -go=go
+cgins -noplot tz -g=square20.order2 -tz=trig -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.025 -go=go
+cgins -noplot tz -g=square40.order2 -tz=trig -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -dtMax=.0125 -go=go
+     t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+   0.200 4.78e-03 5.42e-03 3.10e-03 1.46e-03 3.56e-02  8.09e-01 5.00e-02 5.85e-02
+   0.200 1.47e-03 1.24e-03 7.03e-04 3.72e-04 1.19e-02  8.09e-01 2.50e-02 1.41e-01
+   0.200 4.59e-04 2.89e-04 1.50e-04 9.44e-05 3.93e-03  8.09e-01 1.25e-02 5.16e-01
+
+
+Exact:
+cgins -noplot tz -g=square10.order2 -degreex=1 -degreet=1 -ts=im -iv=full -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go [exact
+
+=============== Implicit Viscous ===========================
+
+cgins -noplot tz -g=nonBox10.order2 -tz=trig -ts=im -iv=viscous -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go
+  0.200 2.23e-03 3.17e-03 3.16e-03 3.17e-03 1.15e-03 2.78e-02  8.09e-01 5.00e-02 4.38e-01
+
+cgins -noplot tz -g=box10.order2 -tz=trig -ts=im -iv=viscous -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go
+     t    err(p)   err(u)   err(v)   err(w)   err(T)    div       uMax     dt       cpu
+   0.200 2.23e-03 3.17e-03 3.16e-03 3.17e-03 1.15e-03 2.78e-02  8.09e-01 5.00e-02 4.43e-01
+   0.200 6.27e-04 8.29e-04 7.88e-04 7.90e-04 3.12e-04 8.91e-03  8.09e-01 3.33e-02 4.97e+00  -- box20
+   0.200 1.93e-04 2.12e-04 1.92e-04 1.93e-04 8.08e-05 2.89e-03  8.09e-01 2.00e-02 3.24e+02  -- box40
+
+cgins -noplot tz -g=nonSquare10.order2 -tz=trig -ts=im -iv=viscous -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go
+   0.200 3.89e-03 5.94e-03 3.54e-03 1.14e-03 3.67e-02  8.09e-01 1.00e-01 3.96e-02
+
+
+cgins -noplot tz -g=square10.order2 -tz=trig -ts=im -iv=viscous -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go
+TRIG:
+     t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+   0.200 3.89e-03 5.94e-03 3.54e-03 1.14e-03 3.67e-02  8.09e-01 1.00e-01 4.62e-02    -- square10
+   0.200 1.17e-03 1.34e-03 8.39e-04 4.12e-04 1.18e-02  8.09e-01 5.00e-02 8.45e-02       square20
+   0.200 3.28e-04 3.22e-04 2.14e-04 1.14e-04 3.75e-03  8.09e-01 3.33e-02 2.21e-01       square40
+   0.200 9.67e-05 7.95e-05 5.32e-05 3.07e-05 1.16e-03  8.09e-01 2.00e-02 1.01e+00       square80
+
+
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=im -iv=viscous -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go
+               t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+square10:   0.200 8.38e-08 7.63e-08 5.60e-08 6.78e-06 4.27e-07  4.45e+00 1.25e-02 9.50e-02
+square20:   0.200 2.88e-08 1.16e-08 1.23e-08 1.71e-06 1.01e-07  4.45e+00 6.25e-03 2.11e-01
+square40:   0.200 8.05e-09 2.04e-09 2.87e-09 4.30e-07 3.41e-08  4.45e+00 3.33e-03 5.66e-01
+
+
+-- Implicit viscous
+cgins -noplot tz -g=square10.order2 -degreex=1 -degreet=1 -ts=im -iv=viscous -model=boussinesq -varMat=1 -tp=.1 -tf=.1 -go=go [exact
+
+
+*** 2011/10/27 -- variable material properties -- start implementation for solvers
+
+cgins -noplot tz -g=nonSquare10.order2 -degreex=2 -degreet=2 -ts=pc -useNewImp=0 -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go [exact
+
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=pc -useNewImp=0 -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go [exact
+
+cgins -noplot tz -g=square10.order2 -degreex=1 -degreet=1 -ts=pc -useNewImp=0 -model=boussinesq -varMat=1 -tp=.1 -tf=.2 -go=go [exact
+
+
+
+
+**** 2011/10/12
+
+-- Variable material properties:
+
+cgins bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -go=halt
+
+
+
+
+**** Kyle: trouble using afs with grids that have ghost points that are not all equal
+
+BAD:
+mpirun -np 4 $cginsp -numberOfParallelGhost=3 cic -g=square64.order2 -inflow=parabolic -ad21=2. -ad22. -solver=mg -psolver=mg -ts=afs -debug=2
+
+OK: 
+mpirun -np 2 $cginsp -numberOfParallelGhost=3 cic -g=square64.order2 -inflow=parabolic -solver=mg -psolver=mg -ts=afs -debug=2
+
+
+OK: -np 2, 4 , 16 
+mpirun -np 2 $cginsp -numberOfParallelGhost=3 cic -g=square32.order4 -inflow=parabolic -solver=mg -psolver=mg -ts=afs -debug=2
+
+BAD: 
+mpirun -np 4 $cginsp -numberOfParallelGhost=3 cic -g=square32.order2 -inflow=parabolic -solver=mg -psolver=mg -ts=afs -debug=2
+
+OK: 
+mpirun -np 2 $cginsp -numberOfParallelGhost=3 cic -g=square32.order2 -inflow=parabolic -solver=mg -psolver=mg -ts=afs -debug=2
+
+
+
+
+*** 2011/09/23
+
+-- test restart - Joel says pressure has a jump
+
+cgins cic -g=cice2.order2 -inflow=parabolic -wall=noSlip -ad2=1 -tp=1. -tf=100 -restart=cic.show
+
+cgins cic -g=cice2.order2 -inflow=parabolic -wall=noSlip -ad2=1 -show=cic.show -tf=10. -tp=1.
+
+
+**** 2011/09/06
+
+--- TEST AFS scheme:
+
+cgins cic -g=cice4.order4.ml3 -inflow=parabolic -solver=mg -psolver=mg -ts=afs [OK
+
+cgins cic -g=cice2.order2.ml2 -inflow=parabolic -solver=mg -psolver=mg -ts=afs [OK
+
+
+Implicit:
+cgins cic -g=cice2.order2.ml2 -inflow=parabolic  -solver=mg -psolver=mg
+
+
+
+*** 2011/09/04:
+
+--- TEST AFS scheme: 
+
+OK:cgins tz --boxorder=2 -grid_order=2 -order=2 -g=square10.order2 --N=21 --nx=N -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc= -bcn=\# -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.5 -go= -tp=.1 -do=compact
+
+
+OK: 
+cgins tz --boxorder=4 -grid_order=4 -order=4 -g=ogen -gf=$ovg/sampleGrids/square.cmd --N=21 --nx=N -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc= -bcn=\# -fx=2 -fy=2 -fz=2 -ft=2 -advectionCoefficient=1 -nu=0.1 -tf=.5 -go= -tp=.1 -do=compact
+
+
+*** 2011/08/29
+
+cgins bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -go=halt
+
+cgins bodyForcing -g=square256.order2 -model=boussinesq -nu=1.e-3 -tp=.1 -go=halt -solver=mg -psolver=mg
+
+**** 2011//08/28
+
+mpirun -np 2 $cginsp cic -g=inletChannele2.order2 -inflow=parabolic -model=boussinesq -solver=best -psolver=best
+
+
+++++ parabolic inflow is broken: **FIXED: bcForcing, allocating bd array
+
+BAD: 
+cgins cic -g=inletChannele2.order2 -inflow=parabolic -model=boussinesq
+
+OK: 
+cgins cic -g=inletChannele2.order2 -inflow=parabolic -model=ins
+
+
+
+***** 2011/008/23
+
+OK: 
+mpirun -np 2 $cginsp cic -g=flatPlateWingGride2.order2.hype.ml1.hdf -inflow=parabolic -wall=noSlip -ad2=1 -solver=mg -psolver=mg
+
+This works now (after Ogmg fix)
+mpirun -np 1 $cginsp cic -g=square20-dpm -inflow=parabolic -wall=noSlip -ad2=1 -solver=mg -psolver=mg
+
+
+
+*******************************
+
+mpirun -np 2 $cginsp cic -g=flatPlateWingGride2.order2.hype.ml1.hdf -inflow=parabolic -wall=noSlip -ad2=1 -solver=best -psolver=best
+
+
+mpirun -np 6 $cginsp cic -g=cicHype -inflow=parabolic -wall=noSlip -ad2=1 -solver=best -psolver=best
+
+
+
+*** 2011/08/21
+
+
+
+-- who is building the center on curvilinear grids? -- getGridSpacing !
+mpirun -gdb -np 1 $cginsp -noplot cic -g=cicHype -inflow=parabolic -wall=noSlip -ad2=1 -solver=best -psolver=best 
+
+mpirun -np 2 $cginsp cicMove -g=cice2.order2 -ts=pc -freqFullUpdate=1 -tp=.01
+
+
+**BUGS fixed in MappedGrid.C : allocating vertexBoundaryNormal etc. in update2() ***
+
+mpirun -np 6 $cginsp -noplot cic -g=cicHype -inflow=parabolic -wall=noSlip -ad2=1 -solver=best -psolver=best >! junk
+
+-- this hangs: -- must be in evaluating DPM 
+mpirun -tv -np 6 $cginsp -noplot cic -g=cicHype -inflow=parabolic -wall=noSlip -ad2=1 -solver=best -psolver=best
+
+
+
+**** 2011/08/20 -- test parallel DPM
+
+TROUBLE " DPM partition not the same as hype grid !!
+mpirun -np 8 $cginsp cic -g=cicHype -inflow=parabolic -wall=noSlip -ad2=1 -solver=best -psolver=best 
+
+mpirun -np 1 $cginsp cic -g=square1024-dpm -inflow=parabolic -wall=noSlip -ad2=1 -solver=mg -psolver=mg
+
+mpirun -np 1 $cginsp cic -g=square20-dpm -inflow=parabolic -wall=noSlip -ad2=1 -solver=mg -psolver=mg
+
+
+OK:
+mpirun -np 2 $cginsp cic -g=cicHype -inflow=parabolic -wall=noSlip -ad2=1 -solver=best -psolver=best 
+
+cgins cic -g=cicHype -inflow=parabolic -wall=noSlip -ad2=1  [OK
+
+
+
+**** 2011/08/16  
+  -- renamed userDefinedForcing -> bodyForcing
+
+=== Boussinesq 
+   cgins bodyForcing -g=square64.order2 -model=boussinesq -nu=1.e-2 -tp=.1 -go=halt
+
+
+ cgins bodyForcing -g=square64.order2 -nu=1.e-2 -tp=.1 -go=halt
+
+
+
+**** 2011/08/15
+
+-- body forcing:
+ cgins userDefinedForcing -g=square256.order2 -nu=1.e-3 -tp=.1 -go=halt 
+
+ cgins userDefinedForcing -g=square64.order2 -nu=1.e-2 -tp=.1 -go=halt
+
+
+--- variable BC:
+
+-- variable heat flux: 
+cgins heatedCyl -g=cice2.order2 -nu=.05 -tf=10. -tp=1. -ts=implicit -go=halt
+
+
+
+
+
+**** 2011/08/10 -- add new body forcing routines
+
+ cgins userDefinedForcing -g=square32.order2 -nu=1.e-2 -tp=.01 -ts=pc -go=halt
+
+ cgins userDefinedForcing -g=square32.order2 -nu=1.e-2 -tp=.01 -go=halt
+
+
+
+
+**** 2011/08/06 
+
+cgins cicMove -g=sise2.order2 -gridToMove="inner-square" -move=matrix -ts=im -nu=.1 -tp=.05 -tf=1. -go=halt
+
+
+**** 2011/08/04 -- fix up user defined forcing
+
+cgins userDefinedForcing -g=square32.order2 -nu=1.e-2 -tp=.01 -go=halt
+cgins userDefinedForcing -g=channel5.order2.hdf -nu=1.e-2 -tp=.01 -go=halt
+
+
+
+*** 2011/08/03 -- add new user defined Temperature BC's
+
+cgins heatedCyl -g=cice2.order2 -nu=.04 -tf=10. -tp=1. -ts=implicit
+cgins heatedCyl -g=cice4.order2 -nu=.01 -tf=10. -tp=1. -ts=implicit
+
+
+
+*** 2011/07/01
+
+mpirun -np 2 $cginsp sphereMove -g=sphereInABoxe1.order2.ml1 -nu=1.e-2 -tp=1.e-3 -freqFullUpdate=1 -psolver=mg -solver=mg
+
+*** 2011/06/30 -
+
+Finer grid: OK:
+mpirun -np 2 $cginsp prop2d -g=prop2de8.order2.s4.ml2.hdf -nu=1.e-3 -tp=.01 -freq=1. -psolver=mg -solver=mg -debug=3 -ogesDebug=3 -freqFullUpdate=1 
+
+OK: ** looks like a slow leak here: RES=78M at t=.72
+mpirun -np 2 $cginsp prop2d -g=prop2de4.order2.s4.ml1.hdf -nu=5.e-3 -tp=.01 -freq=1. -psolver=mg -solver=mg -debug=3 -ogesDebug=3 -freqFullUpdate=1 
+
+OK:
+mpirun -np 2 $cginsp prop2d -g=prop2de4.order2.s4 -nu=5.e-3 -tp=.01 -freqFullUpdate=1 
+
+
+OK: 3 blades
+mpirun -np 2 $cginsp prop2d -g=prop2de4.order2.s4 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -moveOnly=1
+
+
+Why is a grid being built for the background? .. fixed
+
+cgins prop2d -g=prop2de4.order2.s4 -nu=1.e-2 -tp=.01 -freqFullUpdate=1
+
+
+3 blades:  OK
+cgins prop2d -g=prop2de4.order2.s4.ml1.hdf -nu=5.e-3 -tp=.01 -freq=1. -psolver=mg -solver=mg -debug=3 -ogesDebug=3
+
+
+
+- one blade, no binarySearchOverBoundary for bogus, --> OK, 
+mpirun -np 2 $cginsp prop2d -g=prop2de4.order2.s4 -nu=1.e-2 -tp=.01 -freqFullUpdate=1
+
+
+mpirun -np 1 $cginsp prop2d -g=prop2de2.order2.s4 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -moveOnly=1
+
+
+mpirun -np 1 $cginsp prop2d -g=prop2de4.order2.s4 -nu=1.e-2 -tp=.01 -freqFullUpdate=1 -moveOnly=1
+
+
+**** 2011/06/28 - test parallel moving grids 
+
+mpirun -np 2 $cginsp cicMove -g=cicNurbse4.order2 -ts=pc -freqFullUpdate=1 -tp=.1 -move=shift -simulateMotion=1 -go=og
+
+OK
+mpirun -np 2 $cginsp cicMove -g=cice2.order2 -ts=pc -freqFullUpdate=1 -tp=.1 -move=shift -simulateMotion=1 -go=og
+
+
+
+**** Yongsheng says the parallel moving grid has a memory leak
+
+-- array id's leak
+mpirun -np 1 $cginsp cicMove -g=cice4.order2 -ts=pc -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=shift -debug=1 -memoryCheck=1 -go=halt
+
+
+*** This is OK: no array leaks
+mpirun -np 1 $cginsp cicMove -g=cice4.order2 -ts=pc -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -memoryCheck=1 -go=halt -simulateMotion=1
+
+
+
+***** In parallel we leak array ID's but not memory?? *******
+mpirun -np 1 $cginsp cicMove -g=cice4.order2 -ts=pc -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -memoryCheck=1 -go=halt
+
+ interpolateAndApplyBoundaryConditions (start) steps=7 t=0.08: number of array ID's has increased to 983
+ interpolateAndApplyBoundaryConditions (start) steps=8 t=0.09: number of array ID's has increased to 987
+ interpolateAndApplyBoundaryConditions (start) steps=9 t=0.1: number of array ID's has increased to 991
+
+
+
+
+
+OK NOW: (TURN OFF 'do not scale row norms' <- this caused a leak)
+cgins cicMove -g=cice4.order2 -ts=pc -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -memoryCheck=1 -go=halt -odesDebug=3
+
+
+
+valgrindleak ../bin/cgins -noplot cicMove -g=cice2.order2 -ts=pc -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=1 -move=oscillate -debug=1 -memoryCheck=1 -go=go >&! cicMove.out
+
+-- explicit time-stepping :LEAK  (-psolver=yale is OK)
+cgins cicMove -g=cice4.order2 -ts=pc -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -memoryCheck=1 -go=halt
+
+
+-- add some memory checking:
+LEAK here:
+cgins cicMove -g=cice4.order2 -ts=im -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -memoryCheck=1 -go=halt
+
+cgins cicMove -g=cice4.order2 -ts=im -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -solver=yale -psolver=yale -memoryCheck=1 -go=halt
+
+
+-solver=yale -psolver=yale --> Might be OK
+
+Yale : RES=116 --> 129 (t=.2?) --> 129 (t=1) --> 129 t=1.5
+cgins cicMove -g=cice4.order2 -ts=im -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -solver=yale -psolver=yale -go=halt 
+
+
+RES=100  --> RES=202 t=1:
+cgins cicMove -g=cice4.order2 -ts=im -freqFullUpdate=1 -nu=.005 -tp=.1 -tf=50 -move=oscillate -debug=1 -go=halt 
+
+
+-move=0 : small leak 
+  VIRT=438 RES=188  --> VIRT=467 RES=216  t=1. steps=210
+
+
+-simulateMotion=1 : no leak or very small leak.
+
+LEAK HERE:
+Try this (PETSc)
+Start: VIRT=535 RES=280
+ ---> VIRT=744 RES=488 steps=42
+      VIRT=980 RES=744 steps=89
+cgins cicMove -g=cice8.order2 -ts=im -freqFullUpdate=1 -nu=.001 -tp=.1 -tf=50 -move=oscillate -debug=1 -go=halt 
+
+
+
+
+
+***** 2011/05/29
+
+
+# -- reduce sib to just the sphere grids: (bc=1 :inner, bc=2 : outer)
+BAD:  (bc1=outflow looks ok) (-psolver=best : OK)
+cgins tz -g=sphereTwoPatche2.order4.ml2 -tz=trig -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-5 -psolver=mg -go=halt -ogesDebug=3 -debug=3
+
+MG not converging:
+cgins tz -g=sphereTwoPatche1.order4.ml1 -degreex=1 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-7 -psolver=mg -go=halt -ogesDebug=3
+
+Trouble: p errors at inner sphere corners
+cgins tz -g=sphereTwoPatche1.order4.ml1 -degreex=1 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-5 -psolver=mg -go=halt -ogesDebug=3
+
+Trouble: p errors at inner sphere corners
+cgins tz -g=sphereTwoPatche1.order4.ml2 -degreex=1 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-5 -psolver=mg -go=halt -ogesDebug=3
+
+
+***** 11/05/24 -- Revisit the sphere-corner bug:
+
+>>> try: orthoSphereRefined2.order4.ml2 --> looks OK
+
+cgins tz -g=orthoSphereRefined2.order4.ml2 -tz=trig -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-5 -psolver=mg -go=halt -ogesDebug=3
+
+OK:
+cgins tz -g=orthoSphereRefined2.order4.ml2 -degreex=2 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-5 -psolver=mg -go=halt -ogesDebug=3
+
+# TRIG seems OK too for many steps
+cgins tz -g=refinedNonBox20.order4 -tz=trig -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-4 -psolver=mg -go=halt -ogesDebug=3
+
+
+## EXACT:
+cgins tz -g=refinedNonBox20.order4 -degreex=2 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-4 -psolver=mg -go=halt -ogesDebug=3
+
+cgins tz -g=sibi1.order4.ml1 -degreex=2 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-4 -psolver=mg -go=halt -ogesDebug=3
+
+-- ml=1 : This goes bad after some steps:
+cgins tz -g=sibe2.order4.ml1 -degreex=2 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-4 -psolver=mg -go=halt -ogesDebug=3
+
+******assignBoundaryConditionCoefficients: WARNING: not using eqn on 2nd ghost for neumann BC at level =0 (use even symmetry)******
+
+
+
+
+*** This goes bad after some steps:
+cgins tz -g=sibe2.order4.ml2 -degreex=2 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-3 -psolver=mg -go=halt -ogesDebug=3
+
+
+
+
+
+***** 11/05/23  -- Revisit the sphere-corner bug:
+
+cgins -noplot tz -g=sibi1.order4.ml2 -degreex=1 -degreet=1 -useNewImp=0 -bcn=noSlip -tp=.001 -tf=.001 -psolver=mg  -debug=7 -go=go 
+
+NO valgrind error
+valgrindebug ../bin/cgins -noplot ./tz -g=sibi1.order4.ml2 -degreex=1 -degreet=1 -useNewImp=0 -bcn=noSlip -tp=.001 -tf=1. -psolver=mg -go=halt
+
+TROUBLE:
+cgins tz -g=sibi1.order4.ml2 -degreex=1 -degreet=1 -useNewImp=0 -bcn=noSlip -tp=.001 -tf=1. -psolver=mg -go=halt
+
+TROUBLE: 
+cgins tz -g=sibi1.order4.ml2 -degreex=4 -degreet=3 -useNewImp=0 -bcn=noSlip -tp=.01 -tf=1. -psolver=mg -go=halt
+PETScEquationSolver:ERROR: Solution diverged! reason=-3:
+     KSP_DIVERGED_NULL                = -2,
+     KSP_DIVERGED_ITS                 = -3,
+
+
+cgins tz -g=sibe2.order4.ml2 -degreex=1 -degreet=1 -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.001 -tf=1. -rtolp=1.e-3 -psolver=mg -ogesDebug=3 -go=halt
+
+
+
+TROUBLE: near surface corners on the sphere grid:
+cgins sib -g=sibi1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.001 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+
+
+****** 11/04/22
+
+== two-spheres:
+
+OK: 
+cgins sib -g=twoSpheresInAChannele2.order4.ml2 -ts=im -nu=2.e-2 -ad4=1 -tf=20. -tp=.01 -solver=mg -psolver=mg -debug=3
+
+OK:
+cgins sib -g=twoSpheresInAChannele1.order2.ml1 -ts=im -nu=.05 -ad2=1 -tf=20. -tp=.1 -solver=mg -psolver=mg
+
+
+
+cgins sib -g=sibe2.order4.ml3 -ts=im -nu=1.e-2 -ad4=1 -tf=20. -tp=.01 -solver=mg -psolver=mg -debug=3
+
+cgins sib -g=sibe2.order2.ml2 -ts=im -nu=1.e-2 -ad4=1 -tf=20. -tp=.1 -solver=mg -psolver=mg 
+
+cgins sib -g=sibe2.order2.ml2 -ts=im -nu=1.e-2 -ad4=1 -tf=20. -tp=.1 -solver=mg -psolver=mg
+
+
+
+***** 11/04/21
+
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe5.order4.ml2 -order=4 -nu=1.e-3 -ts=im -tf=20. -tp=.01 -debug=1 -project=0 -psolver=mg -solver=mg -rtolp=1.e-4 -ogesDebug=3  -go=halt
+
+OK: 
+cgins surfaceFlow -g=channelWithBumpe5.order4.ml2 -order=4 -nu=1.e-3 -ts=im -tf=20. -tp=.01 -debug=1 -project=0 -psolver=mg -solver=mg -rtolp=1.e-4 -ogesDebug=3  -go=halt
+
+TROUBLE: near surface corners on the sphere grid:
+cgins sib -g=sibi1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.001 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+TROUBLE: near surface corners on the sphere grid:
+cgins sib -g=sibe2.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.001 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+OK: 
+cgins sib -g=sphereInABoxe2.order4.ml2 -bg=backGround -ts=im -nu=.01 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+OK: 
+mpirun -np 2 $cginsp sib -g=sphereInABoxe1.order4.ml2 -bg=backGround -ts=im -nu=.05 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+OK: 
+cgins sib -g=sphereInABoxe1.order4.ml2 -bg=backGround -ts=im -nu=.05 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+
+OK: 
+cgins sib -g=sphereInABoxe1.order4.ml2 -bg=backGround -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.0001 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+TROUBLE near surface corners on the sphere grid -- but backup interp pts 
+cgins sib -g=sibe1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.0001 -psolver=mg -solver=mg -useNewImp=0 -go=halt -debug=3
+
+cgins cic -g=cicSplite4.order4.ml3 -wall=slip -tp=.1 -ad2=0 -nu=.005 -psolver=mg -solver=mg [OK
+
+cgins cic -g=cicSplite2.order4.ml2 -wall=slip -tp=.1 -ad2=0 -nu=.01 -psolver=mg -solver=mg [OK
+
+cgins cic -g=cicSplite2.order4.ml2 -wall=slip -tp=.1 -ad2=0 -nu=.01 [OK
+
+cgins cic -g=cicSplite2.order4.ml2 -wall=slip -tp=.1 -ad2=0 -nu=.01 ts=pc [OK
+
+
+-----------------
+Trouble : order=4 + ad2
+cgins cic -g=cice2.order4.ml2 -tp=.1 -ad4=0 -nu=.01 ts=pc  [ TROUBLE
+cgins cic -g=cicSplite2.order4.ml2 -wall=slip -tp=.1 -ad4=0 -nu=.01 [TROUBLE
+
+Oges:generateMatrix:ERROR matrix has a row with all zero coefficients
+The offending equation is (i1,i2,i3,n,grid)=(0,-2,0,0,0)
+...classify(i1,i2,i3,n)=-3
+Oges:ERROR
+
+-------------------
+
+valgrindebug cgins -noplot sib -g=sibe1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0 -go=go
+
+*************** 2011/04/20  -- need to add INS+MG examples to check dir.
+
+
+Boussinesq:
+
+mpirun -np 2 $cginsp heatedCyl -g=cice2.order4.ml2 -nu=.05 -tf=10. -tp=1. -ts=implicit -bc=inflowOutflow -solver=mg -psolver=mg -useNewImp=0
+
+cgins heatedCyl -g=cice2.order4.ml2 -nu=.05 -tf=10. -tp=1. -ts=implicit -bc=inflowOutflow -solver=mg -psolver=mg -useNewImp=0 [OK
+
+cgins heatedCyl -g=cice2.order4 -nu=.01 -tf=10. -tp=1. -ts=implicit -useNewImp=0 -bc=inflowOutflow [OK
+
+cgins heatedCyl -g=cice2.order4 -nu=.01 -tf=10. -tp=1. -ts=implicit -useNewImp=0 -go=halt [OK
+
+
+
+P+MG2: OK
+mpirun -np 2 $cginsp sib -g=sibe1.order2.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0
+
+
+MG2: OK
+cgins sib -g=sibe1.order2.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0
+
+
+MG4: TROUBLE: Blows up or nan's at step 10
+cgins sib -g=sibe1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0
+
+OK: petsc: 
+cgins sib -g=sibe1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.01 -psolver=best -useNewImp=0
+
+
+OK:
+cgins cylinderInAChannel -g=cylinderInAChannele1.order4p.ml2 -nu=.05 -ad4=1 -tf=10. -tp=.1 -ts=im -psolver=mg -solver=mg -useNewImp=0 -debug=3
+mpirun -np 4 $cginsp cylinderInAChannel -g=cylinderInAChannele1.order4p.ml2 -nu=.05 -ad4=1 -tf=10. -tp=.1 -ts=im -psolver=mg -solver=mg -useNewImp=0 -debug=3
+
+
+OK: 
+cgins flowPastABox -g=loftedHalfBoxe2.order2.ml2 -ts=im -nu=1.e-2 -ad2=1 -tf=20. -tp=.1  -solver=mg -psolver=mg
+mpirun -np 4 $cginsp flowPastABox -g=loftedHalfBoxe2.order2.ml2 -ts=im -nu=1.e-2 -ad2=1 -tf=20. -tp=.1  -solver=mg -psolver=mg
+
+OK:
+cgins tcilc -g=tcilce2.order4.ml2 -nu=.01 -tp=.1 -tf=20 -solver=mg -psolver=mg 
+mpirun -np 4 $cginsp tcilc -g=tcilce2.order4.ml2 -nu=.01 -tp=.1 -tf=20 -solver=mg -psolver=mg -debug=3
+
+
+OK:
+cgins tcilc -g=tcilce2.order2.ml2 -nu=.01 -tp=.1 -tf=20 -solver=mg -psolver=mg 
+mpirun -np 4 $cginsp tcilc -g=tcilce2.order2.ml2 -nu=.01 -tp=.1 -tf=20 -solver=mg -psolver=mg 
+
+
+
+***************************************************************************************************
+***************************************************************************************************
+*** test parallel + order=4
+
+
+mpirun -np 2 $cginsp sib -g=sibe2.order4.ml2 -ts=pc -nu=.05 -ad4=0 -tf=20. -tp=.01 -psolver=mg -useNewImp=0  
+
+
+*** 110321 - fixed bug in Ogmg 
+
+cgins sib -g=sibe1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0 [TROUBLE
+
+cgins sib -g=sibe1.order4.ml2 -ts=im -nu=.1 -ad4=0 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0 [TROUBLE
+
+-- is there some problem with ad4=1 ? 
+
+
+TROUBLE: div grows near overlapping sphere grids? 
+cgins sib -g=sibe1.order4.ml2 -ts=im -nu=.1 -ad4=1 -tf=20. -tp=.01 -psolver=mg -solver=mg -useNewImp=0 [TROUBLE
+cgins sib -g=sibe1.order4.ml2 -ts=im -nu=.1 -ad4=1 -tf=20. -tp=.01  -useNewImp=0 [TROUBLE
+
+cgins sib -g=sibe1.order4.ml2 -ts=pc -nu=.1 -ad4=1 -tf=20. -tp=.01  -useNewImp=0 [TROUBLE
+
+OK: ad4=0 
+cgins sib -g=sibe1.order4.ml2 -ts=pc -nu=.1 -ad4=0 -tf=20. -tp=.01  -useNewImp=0 [OK 
+
+
+**** 110320
+
+trouble: order=4 + petsc , or mg -> nan's 
+cgins sib -g=sibe2.order4.ml2 -ts=im -nu=1.e-2 -ad4=1 -tf=20. -tp=.01  [TROUBLE
+
+mpirun -np 2 $cginsp cylinderInAChannel -g=cylinderInAChannele1.order4p.ml2 -nu=.05 -ad4=1 -tf=10. -tp=.1 -ts=im -psolver=mg -solver=mg -useNewImp=0 [OK
+
+
+
+**** 110319
+
+cgins cylinderInAChannel -g=cylinderInAChannele1.order4p.ml2 -nu=.05 -ad4=1 -tf=10. -tp=.1 -ts=im -psolver=mg -solver=mg -useNewImp=0 [OK
+
+
+
+TROUBLE: order=4 + MG 
+cgins flowPastABox -g=loftedHalfBoxe2.order4.ml2 -ts=im -nu=1.e-2 -ad4=1 -tf=20. -tp=.01  -solver=mg -psolver=mg
+
+OK: order=2 + MG
+cgins flowPastABox -g=loftedHalfBoxe2.order2.ml2 -ts=im -nu=1.e-2 -ad2=1 -tf=20. -tp=.1  -solver=mg -psolver=mg [OK
+
+
+
+
+******** 110318 
+
+cgins cylinderInAChannel -g=box32.order4 -nu=.05 -tf=10. -tp=.01 -ts=pc4 -psolver=mg -p0=1. -debug=3
+
+cgins cylinderInAChannel -g=box16.order4 -nu=.05 -tf=10. -tp=.01 -ts=pc4 -psolver=mg -p0=1.
+
+
+-- fixed PETSc -- check reason for divergence *****
+
+# TROUBLE: PETSc does not solve initial problem correctly
+#   cgins cylinderInAChannel -g=box16.order4 -nu=.05 -tf=10. -tp=.01 -ts=pc4 -psolver=best -debug=3 -p0=1.
+
+
+***** Fix: parallel + 3D + order=4 + periodic boundaries
+     --> insBC4.bC : line 1743 -> insbc4 -> inscr4 
+     --> inscr : 3383
+
+
+mpirun -np 1 $cginsp -noplot tz -g=cylinder1.order4  -ts=pc4 -tp=.01 -tf=.05 -psolver=best -bc1=noSlip -bc2=noSlip -bc3=noSlip -go=go
+
+
+mpirun -np 2 $cginsp -noplot tz -g=cylinder1.order4  -ts=pc4 -tp=.01 -tf=.05 -psolver=best -go=go
+ ----> t=4.500e-02, dt=5.00e-03: step=8 |u.t|[max,l2]: all=[1.1e+00, 3.9e-01] u=[9.92e-01, 3.94e-01] v=[1.14e+00, 3.85e-01] w=[4.27e-01, 2.56e-01]
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.050 1.34e-04 2.32e-05 2.47e-05 1.54e-05 6.63e-04  2.90e+00 5.00e-03 1.28e+00
+
+
+mpirun -np 1 $cginsp -noplot tz -g=cylinder1.order4  -ts=pc4 -tp=.01 -tf=.05 -psolver=best -go=go
+     t    err(p)   err(u)   err(v)   err(w)    div       uMax     dt       cpu
+   0.050 1.34e-04 2.32e-05 2.47e-05 1.54e-05 6.63e-04  2.90e+00 5.00e-03 1.46e+00
+
+
+***** 110314
+
+-- test parabolic inflow:
+
+cgins hr -g=square16.order4 -nu=.1 -tf=10. -tp=.1 -ts=im
+
+
+
+cgins tz -g=boxBesideBoxe1.order4 -degreex=4 -degreet=3  -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=halt  [EXACT
+
+
+
+cgins tz -g=sbs2.order4 -degreex=4 -degreet=3 -ts=pc4  -model=boussinesq -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=halt  -cfl=.5  [EXACT
+
+cgins tz -g=sbs2.order4 -degreex=4 -degreet=3 -ts=pc4  -model=boussinesq -bc1=noSlip -tp=.01 -tf=.05 -go=halt  -cfl=.5  [EXACT
+
+cgins tz -g=sbs2.order4 -degreex=4 -degreet=1 -ts=pc  -model=boussinesq -useNewImp=0 -bc1=noSlip -tp=.01 -tf=.05 -go=halt -cfl=.5 [EXACT
+cgins tz -g=sbs2.order4 -degreex=4 -degreet=3 -ts=pc4  -model=boussinesq -bc1=noSlip -tp=.01 -tf=.05 -go=halt -cfl=.5 [EXACT
+
+
+cgins -noplot tz -g=sbs2.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -tp=.01 -tf=.05 -go=go [exact
+cgins -noplot tz -g=sbs2.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc3=noSlip -tp=.01 -tf=.05 -go=go [exact
+
+cgins -noplot tz -g=square16.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -tp=.01 -tf=.05 -go=go [exact
+
+cgins -noplot tz -g=sbs2.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go [EXACT
+
+
+***** 110313 -- 
+
+To do: 
+
+cgins heatedCyl -g=cice2.order4 -nu=.05 -tf=10. -tp=1. -ts=pc
+
+
+
+NOTE: (for explicit 4th order do NOT use the new implicit method to compute the RHS)
+
+--- Implicit: 
+
+Exact: 
+cgins -noplot tz -g=square16.order4 -degreex=4 -degreet=1 -model=boussinesq -ts=im -iv=oldViscous -useNewImp=0 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go [EXACT
+
+--- Explicit : 
+
+cgins -noplot tz -g=rotatedBox16.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go [EXACT
+
+cgins -noplot tz -g=rotatedSquare16.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go [EXACT
+
+cgins -noplot tz -g=nonBox8.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -bc6=noSlip -tp=.01 -tf=.05 -go=go [EXACT
+
+cgins -noplot tz -g=box8.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -bc6=noSlip -tp=.01 -tf=.05 -go=go [EXACT
+
+cgins -noplot tz -g=nonSquare16.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go [EXACT
+
+cgins -noplot tz -g=square16.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go [EXACT
+
+EXACT: Bouss + noSlip + slip
+cgins -noplot tz -g=square5.order4 -degreex=4 -degreet=3 -model=boussinesq -ts=pc4 -bc1=noSlip -bc3=slip -bc4=slip -tp=.01 -tf=.05 -go=go
+
+
+
+EXACT: (no-bouss)
+cgins -noplot tz -g=square16.order4 -degreex=4 -degreet=3 -bc1=noSlip -ts=pc4 -useNewImp=0  -tp=.01 -tf=.05 -go=go
+
+
+cgins -noplot tz -g=square16.order4 -degreex=3 -degreet=1 -model=boussinesq -bc1=noSlip -tp=.01 -tf=.05 -go=go
+
+
+cgins -noplot tz -g=box8.order4 -degreex=2 -degreet=1 -model=boussinesq -bc1=noSlip -tp=.01 -tf=.05 -go=go
+
+cgins -noplot tz -g=nonSquare16.order4 -degreex=2 -degreet=1 -model=boussinesq -bc1=noSlip -tp=.01 -tf=.05 -go=go
+
+cgins -noplot tz -g=square16.order4 -degreex=2 -degreet=1 -model=boussinesq -bc1=noSlip -tp=.01 -tf=.05 -go=go
+
+**** 110311 -- fix Boussinesq order=4
+
+FIX ME: order=4 + Bouss: 
+
+cgins tz -g=square16.order4 -degreex=2 -degreet=1 -model=boussinesq -bc1=noSlip
+
+cgins tz -g=square16 -degreex=2 -degreet=1 -ts=implicit -iv=viscous -model=boussinesq
+
+
+cgins heatedCyl -g=cice2.order2 -nu=.05 -tf=10. -tp=1. -ts=implicit
+
+
+**** 110222
+
+-ts=pc : OK , -ts=im : fix Ogmg for heat-solve or general + Neumann + order=4
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe10.order4.ml3 -order=4 -nu=1.e-3 -ad4=0 -tf=20. -tp=.05 -psolver=mg -ts=pc -solver=mg -go=halt
+
+OK,  -np=4 ok
+mpirun -np 2 $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -debug=1
+
+
+**** 110221 - some fixes made to Ogmg for line smooths and Neumann/mixed BC's
+            - Bug fixed insBC4.bC -- updateGhost
+
+
+NEW:
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc5=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 2.22e-04 2.23e-05 2.50e-05 1.85e-04  6.06e+00 2.50e-03 7.26e+00
+SERIAL:
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 1.81e-04 1.82e-05 2.01e-05 1.58e-04  6.06e+00 2.50e-03 1.17e+00
+
+
+
+*********** Bug fixed insBC4.bC -- updateGhost
+
+
+
+OK: BUT errors are large:
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc3=slip -bc4=slip -bc5=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 5.68e-02 3.81e-04 3.81e-04 1.48e-02  6.06e+00 2.50e-03 1.70e+01
+
+OK: -ts=pc
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc3=slip -bc4=slip -bc5=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 2.09e-04 1.50e-06 1.48e-06 7.99e-06  6.06e+00 1.25e-03 3.88e+00
+
+============ -ts=IM ===================================
+
+>>>>>>>>>>>>>>>>  
+
++++ simple test that goes bad: +++++++++++++++++++++++++++
+
+mpirun -np 2 $cginsp -noplot tz -g=square8.order4 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=best -solver=best -debug=3 -tp=.005 -tf=.005 -rtol=1.e-16 -rtolp=1.e-16 -bc1=inflow -bc3=noSlip -bc4=noSlip -go=go -debug=7
+
+mpirun -np 2 $cginsp -noplot tz -g=square8.order4 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.005 -rtol=1.e-16 -rtolp=1.e-16 -bc1=inflow -bc3=noSlip -bc4=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.005 8.80e-05 2.23e-06 6.04e-06 1.42e-05  3.01e+00 5.00e-03 6.52e-01
+
+OK: 
+mpirun -np 1 $cginsp -noplot tz -g=square8.order4 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.005 -rtol=1.e-16 -rtolp=1.e-16 -bc1=inflow -bc3=noSlip -bc4=noSlip -go=go
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.005 4.44e-15 6.66e-16 1.33e-15 7.11e-15  3.01e+00 5.00e-03 1.02e-01
++++++++++++++++++++++++++++++++++++++++++++
+
+
+BAD : -> big errors at parallel boundaries  (-np=1 errors big at outflow corners -> remove outflow for now)
+mpirun -np 4 $cginsp tz -g=square32.order4 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.02 -rtol=1.e-10 -rtolp=1.e-10 -bc1=inflow -bc3=noSlip -bc4=noSlip -go=halt
+
+BAD: 
+mpirun -np 2 $cginsp -noplot tz -g=square32.order4 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.02 -rtol=1.e-10 -rtolp=1.e-10 -bc1=inflow -bc3=noSlip -bc4=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 5.27e-05 4.45e-06 2.58e-06 9.39e-05  3.03e+00 2.50e-03 3.48e+00
+
+
+GOOD: 
+mpirun -np 1 $cginsp -noplot tz -g=square32.order4 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.02 -rtol=1.e-10 -rtolp=1.e-10 -bc1=inflow -bc3=noSlip -bc4=noSlip -go=go
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.005 3.22e-07 1.05e-08 1.03e-08 1.44e-07  3.01e+00 2.50e-03 3.02e+00
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+ERRORS are big: (same for -cfl=.25)
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc5=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 2.01e-03 1.19e-04 1.04e-04 2.24e-03  6.06e+00 2.50e-03 8.93e+00
+
+** BAD: large err's with -psolver=mg  *** -np=1 = GOOD = serial
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc5=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 1.85e-03 1.20e-04 1.01e-04 2.22e-03  6.06e+00 2.50e-03 6.15e+00
+
+** BAD: -psolver=best -solver=best, errors smaller with -cfl=.5
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=best -solver=best -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc5=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 1.25e-04 7.92e-06 8.35e-06 3.53e-04  6.06e+00 2.50e-03 1.54e+00
+
+
+SERIAL: GOOD: 
+cgins -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc5=noSlip -go=go
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 3.49e-05 1.23e-06 1.39e-06 7.25e-06  6.06e+00 2.50e-03 1.22e+00
+======================================================
+
+OK:  -ts=pc
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.005 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -bc1=inflow -bc2=outflow -bc5=noSlip -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.020 3.38e-05 1.26e-06 1.43e-06 7.91e-06  6.06e+00 1.25e-03 2.80e+00
+
+OK:
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.005 -tf=.01 -rtol=1.e-8 -rtolp=1.e-8 -bc5=noSlip -go=go
+
+
+OK: But -np=2 bad
+mpirun -np 1 $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.05 -debug=1
+
+=================================
+
+run some tz tests:
+
+**BUG FIXED: pressureEquation.C -> f.periodicUpdate();
+
+NOW OK: 
+mpirun -np 1 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+
+***Trouble at periodic boundary ******
+
+** New viscous is a bit better:
+cgins -noplot tz -g=annulus4.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 2.04e-03 6.29e-05 9.25e-05 8.12e-03  3.42e+00 3.33e-04 4.89e-01
+
+
+BAD: serial: periodic boundary near inner wall: 
+cgins -noplot tz -g=annulus4.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 6.27e+00 1.92e-01 3.20e-02 6.07e+00  6.77e+00 3.33e-04 5.00e-01
+
+GOOD: -psolver=best: 
+cgins -noplot tz -g=annulus4.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=best -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 2.37e-07 3.31e-09 3.34e-09 1.65e-07  3.42e+00 3.33e-04 3.97e-01
+
+BAD:
+mpirun -np 2 $cginsp -noplot tz -g=annulus4.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 6.27e+00 1.92e-01 3.20e-02 6.07e+00  6.77e+00 3.33e-04 9.77e-01
+
+OK: 
+mpirun -np 2 $cginsp -noplot tz -g=square32np.order4 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go -tz=trig -fx=2. -fy=2.     
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 4.90e-03 1.64e-04 4.28e-05 3.33e-03  1.00e+00 1.00e-03 3.59e-01
+
+OK: 
+mpirun -np 1 $cginsp -noplot tz -g=square16np.order4 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go -tz=trig -fx=2. -fy=2.     
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 1.57e-02 4.49e-04 1.51e-04 4.59e-03  1.00e+00 1.00e-03 1.64e-01
+
+
+cgins tz -g=square32np.order4 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=halt -tz=trig -fx=2. -fy=2. 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 4.90e-03 1.64e-04 4.28e-05 3.33e-03  1.00e+00 1.00e-03 2.18e+01
+
+
+cgins -noplot tz -g=square16np.order4 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go -tz=trig -fx=2. -fy=2.     
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.002 1.57e-02 4.49e-04 1.51e-04 4.59e-03  1.00e+00 1.00e-03 1.77e-01
+
+
+mpirun -np 1 $cginsp -noplot tz -g=square16np.order4 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+BAD: -psolver=mg -solver=best 
+mpirun -np 1 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.001 2.40e-02 1.43e-03 2.07e-04 1.89e-02  6.00e+00 1.00e-03 2.54e-01
+
+-psolver=best -solver=mg
+mpirun -np 1 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=best -solver=mg -debug=3 -tp=.001 -tf=.002 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.001 1.76e-06 1.19e-08 1.02e-08 4.54e-07  6.00e+00 1.00e-03 3.75e-01
+
+OK:
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=best -solver=best -debug=3 -tp=.001 -tf=.01 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.001 1.58e-06 1.18e-08 1.01e-08 4.49e-07  6.00e+00 1.00e-03 2.42e-01
+
+
+
+
+OK: -ts=im, -psolver=best -solver=best
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=best -solver=best -debug=3 -tf=.05 -rtol=1.e-8 -rtolp=1.e-8 -go=go 
+
+BAD: -psolver=mg -solver=best
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=best -debug=3 -tf=.05 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+BAD:  -ts=pc
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.05 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+BAD:cice4.order4.ml3
+mpirun -np 1 $cginsp -noplot tz -g=cice4.order4.ml3 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.02 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+BAD: 
+mpirun -np 2 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.05 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+BAD: -np 1: 
+mpirun -np 1 $cginsp -noplot tz -g=cice2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.05 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+
+OK: 
+mpirun -np 2 $cginsp -noplot tz -g=rsise4.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.05 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+
+OK: ["exact" if tol chosen small]
+mpirun -np 2 $cginsp -noplot tz -g=sise2.order4.ml2 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.1 -rtol=1.e-8 -rtolp=1.e-8 -go=go
+
+
+OK: [exact]
+mpirun -np 2 $cginsp -noplot tz -g=square16.order4 -degreex=1 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.1 -go=go
+
+OK: [exact]
+mpirun -np 2 $cginsp -noplot tz -g=square16.order4 -degreex=1 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.1 -go=go
+
+OK: -degreex=2 : exact 
+cgins -noplot tz -g=square16.order4 -degreex=2 -degreet=1 -ts=im -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.2 -go=go
+   t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   0.200 2.03e-03 1.80e-04 2.22e-04 3.00e-03  4.40e+00 5.00e-03 2.70e+00
+
+OK:
+cgins -noplot tz -g=square16.order4 -degreex=2 -degreet=1 -ts=pc -iv=viscous -iv=oldViscous -ad2=0 -psolver=mg -solver=mg -debug=3 -tf=.2 -go=go
+
+
+OK:
+mpirun -np 2 $cginsp -noplot tz -g=square16 -degreex=1 -degreet=1 -ts=implicit -iv=viscous -ad2=0 -psolver=mg -solver=mg -rtol=1.e-10 -rtolp=1.e-10 -debug=3 -tf=.2 -go=go
+
+
+
+
+---------------------------------------
+
+OK: -psolver=best -solver=mg
+mpirun -np 4 $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.05 -debug=1 -psolver=best
+
+-ts=pc : OK 
+mpirun -np 2 $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=pc -nu=.01 -tp=.1 -debug=1  
+
+BAD: blows up after some time t=.2
+mpirun -np 2 $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.05 -debug=1  
+
+OK: 
+mpirun -np 1 $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.05 -debug=1  
+
+Serial: OK 
+cgins cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.05 -debug=1
+
+
+- ad2=1 - OK
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe10.order2.ml3 -nu=1.e-3 -ad2=1 -tf=20. -tp=.05 -psolver=mg -ts=im -solver=mg -go=halt
+
+OK now: np=4: ok
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe10.order2.ml3 -nu=1.e-3 -ad2=0 -tf=20. -tp=.05 -psolver=mg -ts=im -solver=mg -go=halt
+
+
+
+**** 110217 -> Trouble with line smooth in parallel!
+
+BAD on zeus too:
+srun -N1 -n2 -ppdebug $cginsp surfaceFlow -g=channelWithBumpe10.order2.ml3 -nu=1.e-3 -ad2=0 -tf=20. -tp=.05 -psolver=mg -ts=im -solver=mg -go=halt
+
+OK: turn off line smooth. 
+TROUBLE: turn off variable omega for line smooth
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe10.order4.ml3 -order=4 -nu=1.e-3 -ad2=1 -tf=20. -tp=.05 -psolver=mg -ts=im -solver=mg -go=halt
+
+OK: serial
+cgins surfaceFlow -g=channelWithBumpe10.order2.ml3 -nu=1.e-3 -ad2=0 -tf=20. -tp=.05 -psolver=mg -ts=im -solver=mg -go=halt
+
+
+
+**** 110216 
+
+
+
+TROUBLE: ogmg neumann BC order 4:
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe10.order4.ml3 -order=4 -nu=1.e-3 -ad2=1 -tf=20. -tp=.05 -psolver=mg -ts=im -solver=mg -go=halt
+
+TROUBLE: initial projection bad!
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe10.order2.ml3 -nu=1.e-3 -ad2=0 -tf=20. -tp=.05 -psolver=mg -ts=im -solver=mg -go=halt
+
+OK:
+mpirun -np 2 $cginsp surfaceFlow -g=channelWithBumpe10.order4.ml3 -order=4 -nu=1.e-3 -ad2=1 -tf=20. -tp=.05 -psolver=mg -rtolp=1.e-6 -go=halt
+
+OK: 
+mpirun -np 2 $cginsp $ins/cmd/flowPastABox -g=sibe1.order2.ml2 -ts=im -nu=1.e-2 -ad2=1 -tf=20. -tp=.1 -solver=mg -psolver=mg 
+
+OK
+mpirun -np 2 $cginsp cic.mg -g="cice2.order2.ml2.hdf" -ts=im -nu=.01 -tp=.1 -debug=1  
+
+TROUBLE: order 4 
+mpirun -np 2 $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.1 -debug=1  
+
+
+**** 110215
+
+$cginsp -noplot $ins/cmd/flowPastABox -g=sibe1.order2.ml2 -ts=im -nu=1.e-2 -ad2=1 -tf=20. -tp=.001 -solver=mg -psolver=mg -project=0 -ogesDebug=7 -go=go >! junk
+
+
+
+valgrindebug $cginsp -noplot $ins/cmd/flowPastABox -g=sibe1.order2.ml2 -ts=im -nu=1.e-2 -ad2=1 -tf=20. -tp=.001 -solver=mg -psolver=mg -project=0 -ogesDebug=3
+
+
+
+**** 110213
+
+OK: psolver=best
+srun -N1 -n2 -ppdebug $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.1 -debug=3 -rtolp=1.e-6 -psolver=best 
+
+BAD: 
+srun -N1 -n2 -ppdebug $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.1 -debug=3
+
+BAD: 
+srun -N1 -n2 -ppdebug $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.1 -debug=1 
+
+** TRY ml2: OK: 
+srun -N1 -n1 -ppdebug $cginsp cic.mg -g="cice2.order4.ml2.hdf" -ts=im -nu=.01 -tp=.1 -debug=1 
+
+OK: 
+srun -N1 -n1 -ppdebug $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -tp=.1 -debug=1 -psolver=best
+
+OK: 
+srun -N1 -n1 -ppdebug $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -tp=.1 -debug=1 -solver=best -psolver=best
+BAD: 
+srun -N1 -n1 -ppdebug $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -tp=.1 -debug=1 -solver=best
+
+** BAD around t=.2 
+memcheckview cgins.1307732.0.mc
+srun -N1 -n1 -ppdebug memcheck_all $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -tp=.1 -debug=1 
+
+*BAD: 
+srun -N1 -n1 -ppdebug $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -tp=.1 -debug=1 
+
+OK:
+srun -N1 -n1 -ppdebug $cginsp cic.mg -g="cice4.order4.ml3.hdf" -ts=im -nu=.01 -debug=1 
+
+*BAD* around t=2.5 
+mpirun -np 2 $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -debug=1  [ *BAD* t=2.5 
+
+mpirun -np 1 $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -debug=1  [ OK
+
+
+--- Implicit TS + order 4: -> fixed ogmg
+cgins cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01 -debug=1  [OK
+
+
+TROUBLE: ad4=1 *FIX ME*
+mpirun -np 4 $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=pc -nu=.01 -ad2=0 -ad4=1
+
+OK: ad4=0 
+mpirun -np 4 $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=pc -nu=.01 -ad2=0 -ad4=0
+
+cice128.order4.ml6.hdf  cice16.order4.ml4.hdf  cice2.order4.ml2.hdf  cice32.order4.ml4.hdf  cice4.order4.ml3.hdf  cice64.order4.ml5.hdf  cice8.order4.ml3.hdf
+
+OK: 
+srun -N4 -n32 -ppdebug $cginsp ./cic.mg -g="cice16.order4.ml4.hdf" -ts=pc -nu=.001 -debug=1
+
+srun -N2 -n16 -ppdebug $cginsp ./cic.mg -g="cice4.order4.ml3.hdf" -ts=pc -nu=.01 -debug=1 [OK
+
+
+totalview srun -a -N1 -n2 -ppdebug $cginsp ./cic.mg -g="cice4.order4.ml3.hdf" -ts=pc -nu=.01
+
+alias totalview /usr/apps/totalview/r/toolworks/totalview.8.8.0-1/linux-x86-64/bin/totalview
+
+totalview
+/home/henshaw/mpi/mpich-1.2.7p1.pgf77-64/bin/mpirun
+-np 2 /home/henshaw.0/cgp/ins/bin/cgins /home/henshaw.0/cg/ins/cmd/cic.mg -g="cice2.order4.ml3.hdf" -ts=pc -nu=.01
+
+
+
+
+mpirun -np 4 $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=pc -nu=.01 
+
+mpirun -np 2 $cginsp cic.mg -g="cice2.order4.ml3.hdf" -ts=pc -nu=.01 [OK 
+
+cgins cic.mg -g="cice2.order4.ml3.hdf" -ts=pc -nu=.01 [OK
+
+cgins cic.mg -g="cice2.order4.ml3.hdf" -ts=im -nu=.01  [ NO  - ogmg has trouble with ts=im and order 4 Neumann BC
+
+OK:
+cgins cic.mg -g="cice2.order2.ml2.hdf" -ts=im -nu=.01
+
+cgins cic -g=cice2.order4 -wall=slip -tp=.1 -ad2=0 -nu=.01
+
+
+**** 110204
+
+valgrindebug $cginsp -noplot $ins/cmd/cic.mg -g=cice2.order2.ml2 -ts=pc -nu=.01 -tf=.2 -go=go
+
+mpirun -np 2 $cginsp cic.mg -g=cice2.order2.ml2 -ts=pc -nu=.01
+
+
+**** 110202
+
+cgins -noplot heatedRoom -g=room2de8.order2 -nu=.005 -tf=100. -tp=1. -ts=im -show=heatedRoom.show -go=go >! heatedRoom.out
+
+
+
+***** 101103
+
+cgins tz -g=plugDeform1 -gridToMove="plug" -degreex=1 -degreet=0 -ts=pc -move=deform -tp=.01 -tf=1. -go=halt [exact
+
+-- move to the right: OK 
+cgins -noplot tz -g=plugDeform1 -gridToMove="plug" -degreex=1 -degreet=0 -ts=pc -move=deform -tp=.01 -tf=1. -go=og
+
+*** trouble in IPOG? (exposed points):
+cgins -noplot tz -g=plugDeform1 -gridToMove="plug" -degreex=1 -degreet=0 -ts=pc -move=deform -tp=.01 -tf=1. -go=og 
+
+*** also warnings from IPOG -- but answers are ok 
+cgins -noplot tz -g=plugDeform1 -gridToMove="plug" -degreex=1 -degreet=0 -ts=pc -move=shift -tp=.01 -tf=1. -go=og 
+
+cgins -noplot tz -g=plugDeform2 -gridToMove="plug" -degreex=1 -degreet=0 -ts=pc -move=deform -tp=.02 -tf=1. -go=og 
+
+
+*** the next has small errors near the interp boundary: 
+cgins -noplot tz -g=plugDeform4 -gridToMove="plug" -degreex=1 -degreet=0 -ts=pc -move=deform -tp=.02 -tf=1. -go=og 
+
+cgins -noplot tz -g=plugDeform4 -gridToMove="plug" -degreex=1 -degreet=0 -ts=pc -move=shift -tp=.02 -tf=1. -go=og [exact
+--- 100914
+
+* -- dropping stick:  note: volume=.0485, I = (M/12)( w^2 + d^2) = (M/12)*( .5^2 + .1^2 ) = (M/12)*( .26 ) = rho*.05*.26/12. rho*.00108333
+
+cgins oneDrop -g=dropSticki1.order2 -tf=2. -tp=.01 -bodyDensity=1.1 -nc=10 -relaxRigidBody=1 -alpha=.1 [note: volume=.0485
+
+cgins oneDrop -g=dropSticki1.order2 -tf=2. -tp=.01 -bodyDensity=2. -nc=10 -relaxRigidBody=1 -inertia=.00216667 -alpha=.3 
+
+
+cgins oneDrop -g=oneDrop1.hdf -tf=20. -tp=.01 -bodyDensity=0.5 -nc=10 -relaxRigidBody=1 -alpha=.25 
+
+
+--- 100912 : light-body: fixed bug in ims.bC : extrap p to t+dt !
+
+-- under-relax rigid-body force: 
+cgins -noplot oneDrop -g=oneDrop1.hdf -tf=.05 -tp=.01 -bodyDensity=0.1 -nc=10 -go=go >! junk [OK, alpha=.1
+
+cgins -noplot oneDrop -g=oneDrop1.hdf -tf=.05 -tp=.01 -bodyDensity=0.2 -nc=10 -go=go >! junk [OK, alpha=.2
+cgins -noplot oneDrop -g=oneDrop1.hdf -tf=.05 -tp=.01 -bodyDensity=0.5 -nc=10 -go=go >! junk [OK, alpha=.2
+
+-- examine behaviour of the force as we iterate:
+
+cgins oneDrop -g=oneDrop1.hdf -tf=20. -tp=.01 -bodyDensity=0.5 -nc=10 -relaxRigidBody=1
+
+RB: integrate: t0=0.000000e+00, t=1.000000e-02, current=0 x(next)=(-1.71e-17,-6.00e-05,0.00e+00), force=(-4.12e-18,-1.18e-01,0.00e+00)
+
++++++++++++++ ims: movingBodyPressureBC=0
+RB: correct: t=1.000000e-02, current=0 x(next)=(-1.72e-17,8.12e-05,0.00e+00), force=(-1.29e-16,4.37e-01,0.00e+00)
++++++++++++++ ims: movingBodyPressureBC=0
+RB: correct: t=1.000000e-02, current=0 x(next)=(-1.69e-17,-2.32e-04,0.00e+00), force=(7.00e-16,-7.91e-01,0.00e+00)
+ims: correction=2
++++++++++++++ ims: movingBodyPressureBC=0
+RB: correct: t=1.000000e-02, current=0 x(next)=(-1.77e-17,4.61e-04,0.00e+00), force=(-2.19e-15,1.93e+00,0.00e+00)
+ims: correction=3
++++++++++++++ ims: movingBodyPressureBC=0
+RB: correct: t=1.000000e-02, current=0 x(next)=(-1.52e-17,-1.07e-03,0.00e+00), force=(7.68e-15,-4.09e+00,0.00e+00)
+ims: correction=4
++++++++++++++ ims: movingBodyPressureBC=0
+RB: correct: t=1.000000e-02, current=0 x(next)=(-2.23e-17,2.32e-03,0.00e+00), force=(-2.05e-14,9.23e+00,0.00e+00)
+ims: correction=5
++++++++++++++ ims: movingBodyPressureBC=0
+RB: correct: t=1.000000e-02, current=0 x(next)=(-3.04e-18,-5.17e-03,0.00e+00), force=(5.53e-14,-2.02e+01,0.00e+00)
+ims: correction=6
++++++++++++++ ims: movingBodyPressureBC=0
+RB: correct: t=1.000000e-02, current=0 x(next)=(-5.26e-17,1.15e-02,0.00e+00), force=(-1.39e-13,4.51e+01,0.00e+00)
+
+
+
+*******************************
+
+cgins oneDrop -g=oneDrop1.hdf -tf=20. -tp=.2 -bodyDensity=0.1 -mbpbc=1 -mbpbcc=20. -nc=5 [OK, settles down after a while, nc=3 BAD
+
+cgins oneDrop -g=oneDrop1.hdf -tf=20. -tp=.2 -bodyDensity=0.1 -mbpbc=1 -mbpbcc=20. -nc=5  [OK, settles down after a while, note inflow at bot
+
+cgins oneDrop -g=oneDrop1.hdf -tf=20. -tp=.2 -bodyDensity=0.5 -mbpbc=1 -mbpbcc=20. -nc=5  [OK, settles down after a while, note inflow at bot
+
+
+
+cgins oneDrop -g=oneDrop1.hdf -tf=2. -tp=.05 -bodyDensity=0.9 -mbpbc=1 -mbpbcc=1. -nc=5 [OK, drop rises slowly
+
+cgins oneDrop -g=oneDrop1.hdf -tf=2. -tp=.05 -bodyDensity=1.1 -mbpbc=1 -mbpbcc=1. -nc=3 [OK drop falls slowly
+cgins oneDrop -g=oneDrop1.hdf -tf=2. -tp=.05 -bodyDensity=1.1 -mbpbc=1 -mbpbcc=1. -nc=5 [OK drop falls slowly
+
+cgins oneDrop -g=oneDrop1.hdf -tf=2. -tp=.05 -bodyDensity=1.1 -nc=5  [TROUBLE, pressure explodes by t=.25
+
+
+
+-- test mixed BC on p on all walls: 
+cgins noplot tz -g=square10.order2 -degreex=2 -degreet=1 -bc1=noSlip -mbpbc=2 -mbpbcc=1. -ts=im -iv=viscous -tf=.01 -tp=.005 -go=go > ! junk  [*EXACT*
+
+
+
+---- 100907 : test light rigid bodies:
+
+-- test mixed BC on p on all walls: 
+cgins noplot tz -g=square10.order2 -degreex=2 -degreet=1 -bc1=noSlip -mbpbc=2 -mbpbcc=1. -ts=im -iv=viscous -tf=.01 -tp=.005 -go=go > ! junk
+
+cgins noplot tz -g=square10.order2 -degreex=2 -degreet=1 -bc1=noSlip -mbpbc=2 -mbpbcc=1. -tf=.01 -tp=.005  -go=go > ! junk
+
+cgins noplot tz -g=square10 -degreex=2 -degreet=2  -bcn=noSlip -mbpbc=2 -mbpbcc=1. -go=go
+
+cgins oneDrop -g=oneDrop1.hdf -tf=2. -tp=.01 -bodyDensity=.1 
+
+
+---- 100824:
+
+  -- inflow/outflowTZ: 
+
+-- errors are large in p at the left corners: 
+cgins tz -g=square40.order2 -tz=trig -ts=pc -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.05 -tf=.1 -fx=1.6 -fy=1.6 -go=halt [*BAD*
+
+cgins tz -g=square40.order2 -tz=trig -ts=pc -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.05 -tf=.1 -fx=2 -fy=2 -go=halt [*BAD*
+
+cgins -noplot tz -g=square10.order2 -degreex=2 -degreet=2 -ts=pc -useNewImp=0 -bcn=noSlip -bc2=outflow -tp=.05 -tf=.1 -go=go [exact
+
+
+--- 100822: ims.bC : added boundaryConditionPredictor -- exact for linear
+
+-- EXP: 
+cgins -noplot tz -g=square10.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.1 -go=go [exact
+cgins -noplot tz -g=square10.order4 -degreex=4 -degreet=2 -ts=pc  -useNewImp=0 -bcn=noSlip -tp=.05 -tf=.1 -go=go [exact
+
+-- IMP: 
+cgins -noplot tz -g=square5.order4 -degreex=2 -degreet=2 -ts=im -useNewImp=0 -iv=viscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go[ *NOT exact
+cgins -noplot tz -g=square5.order4 -degreex=4 -degreet=1 -ts=im -useNewImp=0 -iv=viscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go [exact
+
+--- 100820 
+
+cgins -noplot tz -g=square5.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go -debug=7 
+
+cgins -noplot tz -g=square10.order4 -degreex=1 -degreet=1 -ts=im -iv=oldViscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go [*NOT exact 
+
+
+--- 100818
+
+cgins -noplot tz -g=box5.order4 -order=4 -degreex=2 -degreet=1 -ts=im -iv=viscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go  [*NOT* exact 
+
+cgins -noplot tz -g=box5.order4 -order=4 -degreex=2 -degreet=1 -ts=im -iv=oldViscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go  [*NOT* exact 
+
+cgins -noplot tz -g=box5.order4 -order=4 -degreex=4 -degreet=0 -ts=im -iv=oldViscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go  [exact
+
+cgins -noplot tz -g=box10.order4 -order=4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=noSlip -tp=.05 -tf=.1 -go=go [*NOT* exact  -- why?
+
+cgins -noplot tz -g=square10.order4 -order=4 -degreex=4 -degreet=1 -ts=im -iv=viscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go
+cgins -noplot tz -g=square10.order4 -order=4 -degreex=4 -degreet=1 -ts=im -iv=oldViscous -bcn=d -bc1=noSlip -tp=.01 -tf=.02 -go=go [NOT ???
+
+---- 100817
+
+cgins cic -g=cice2.order4 -order=4 -wall=slip -tp=.01 -ad2=0 -ad4=1 -ad42=2. -nu=1.e-5 -project=1 -ts=pc
+
+
+----- 100816:
+
+ -- test project + order=4
+cgins noplot cic -g=square8.order4 -order=4 -tp=.01 -ad2=0 -inflow=parabolic -wall=noSlip -nu=1.e-5 -project=1 -ts=pc -go=og -debug=7
+
+cgins noplot cic -g=nonSquare8.order4 -order=4 -tp=.01 -ad2=0 -inflow=parabolic -wall=noSlip -nu=1.e-5 -project=1 -ts=pc -go=og -debug=7
+
+cgins noplot cic -g=square16.order4 -order=4 -tp=.01 -ad2=0 -inflow=parabolic -wall=noSlip -nu=1.e-5 -project=1 -ts=pc -go=og
+
+cgins noplot cic -g=cice2.order4 -order=4 -tp=.01 -ad2=0 -inflow=parabolic -wall=noSlip -nu=.01 -project=1 -ts=pc -go=og
+
+--- ad4 + order=4 
+
+cgins cic -g=cice2.order4 -order=4 -wall=slip -tp=.01 -ad2=0 -ad4=1 -nu=1.e-5 -ad42=2. -project=0 -ts=pc [*BAD*
+
+
+-- ad4 + order=2 : 
+
+
+cgins cic -g=cice2.order2 -order=2 -wall=slip -tp=.01 -nu=1.e-5 -ad2=0 -ad4=1 -ad42=2. -project=0 -ts=pc [OK
+cgins cic -g=cice4.order2 -order=2 -wall=slip -tp=.01 -nu=1.e-5 -ad2=0 -ad4=1 -ad42=2. -project=0 -ts=pc [OK
+
+
+ -- ad2 seems to work ok even when nu goes to zero
+
+
+cgins cic -g=cice2.order2 -order=2 -wall=slip -tp=.01 -nu=1.e-6 -ad2=1 -ad22=2. -project=0 -ts=pc [OK
+cgins cic -g=cice4.order2 -order=2 -wall=slip -tp=.01 -nu=1.e-6 -ad2=1 -ad22=2. -project=0 -ts=pc [OK
+cgins cic -g=cice8.order2 -order=2 -wall=slip -tp=.01 -nu=1.e-6 -ad2=1 -ad22=2. -project=0 -ts=pc [OK
+
+
+
+
+
+
+
+
+
+
+-----------------
+
+Only T is not exact here: 
+cgins -noplot tz -g=square5.order4 -order=4 -degreex=2 -degreet=2 -model=boussinesq -ts=pc -useNewImp=0 -gravity="0 0. 0." -tp=.1 -tf=.2 -go=go 
+
+
+cgins -noplot tz -g=square5.order4 -order=4 -degreex=2 -degreet=2 -model=boussinesq -ts=pc4 -useNewImp=0 -gravity="0 0. 0." -tp=.1 -tf=.2 -go=go [Not exact for T ***
+
+
+----- 100614 : OK: bug fixed 
+
+
+cgins -noplot tz -g=square5.order4 -order=4 -degreex=4 -degreet=3 -tm=les -ts=pc4 -iv=oldViscous -bcn=noSlip -tp=.01 -tf=.02 -go=go -debug=3 [exact
+
+
+
+**** Test LES plus order4:
+
+LES: 
+cgins -noplot tz -g=square5.order4 -order=4 -degreex=4 -degreet=0 -tm=les -ts=pc4 -iv=oldViscous -bcn=noSlip -tp=.01 -tf=.02 -go=go -debug=7 >! junkLES  [ *NO*
+
+INS: 
+cgins -noplot tz -g=square5.order4 -order=4 -degreex=4 -degreet=0 -ts=pc4 -iv=oldViscous -bcn=noSlip -tp=.01 -tf=.02 -go=go -debug=7 >! junkINS
+
+cgins -noplot tz -g=square5.order4 -order=4 -degreex=2 -degreet=2 -tm=les -ts=pc4 -iv=oldViscous -bcn=noSlip -tp=.05 -tf=.1 -go=go  [ OK
+
+# This should be exact: 
+cgins -noplot tz -g=square5.order4 -order=4 -degreex=4 -degreet=3 -tm=les -ts=pc4 -iv=oldViscous -bcn=noSlip -tp=.05 -tf=.1 -go=go  [ *NO*
+
+
+***** test MG solver with periodic channel (singular)
+
+-- works but seg fault at the end
+
+valgrindebug ../bin/cgins -noplot channel -g=channel2.order2.ml2.hdf -nu=1.e-2 -tf=.01 -tp=.01 -u2=.1 -axp=2. -ay=2. -psolver=mg -rtolp=1.e-5 -debug=3 -debugmg=0 -nullVector=channel2.order2NullVector.hdf -go=go
+
+cgins channel -g=channel2.order2.ml2.hdf -nu=1.e-2 -tf=20. -tp=.1 -u2=.1 -axp=2. -ay=2. -psolver=mg -rtolp=1.e-5 -debug=3 -debugmg=0 -nullVector=channel2.order2NullVector.hdf -go=halt
+
+
+********** 100327 : test new MG 
+
+cgins cic.mg -g="cic.bbmg2.hdf" -nu=.01
+

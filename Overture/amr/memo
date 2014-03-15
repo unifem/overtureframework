@@ -1,0 +1,113 @@
+********************** June 29 2007 ****************************
+
+*** NOTE: I think using sibe2 as the base grid is just too coarse (?) Can we run sibe16 as the fine level ? 
+
+
+-----------
+todo: psub: sibe4.pulse.l2r4.N2n16.out
+srun -N2 -n16 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe4.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=4 -tz=pulse -ee=noTop
+
+-----------
+psub: sibe4.pulse.l3r2.N2n16.out
+srun -N1 -n8 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe4.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=3 -r=2 -tz=pulse -ee=noTop
+
+-----------
+psub: sibe8.pulse.l2r2.N1n8.out
+srun -N1 -n8 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe8.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=2 -tz=pulse -ee=noTop 
+
+-----------
+psub: sibe8.pulse.l2r2.N2n16.out -- 2 hours not enough (t=.46) 
+srun -N2 -n16 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe8.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=2 -tz=pulse -ee=noTop 
+
+-----------
+psub: 
+srun -N4 -n32 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe16.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=1 -r=2 -tz=pulse -ee=noTop >! sibe16.pulse.l1r2.N4n32.out &
+
+grid         levels   ratio   NP  loadBalance  steps  regrids  grids(min,ave,max)    grid-pts(ave,max)  max-error
+sibe16.order2      &    1   &  2   &  32  & KernighanLin        & 1014  & 1    & (3,0,0) & (3.5e+07,3.5e+07) & 1.22e-03 \\
+
+------------
+
+srun -N4 -n32 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe8.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=1 -r=2 -tz=pulse -ee=noTop >! sibe8.pulse.l1r2.N4n32.out &
+
+srun -N1 -n8 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe2.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=4 -tz=pulse -ee=noTop -tol=.001  >! sibe2.pulse.l2r4.N1n8.out &
+
+
+*************************** June 03 2007  ********************************
+
+srun -N4 -n32 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe16.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=1 -r=2 -tz=pulse -ee=noTop >! sibe16.pulse.l1r2.N4n32.out &
+
+
+  ok to t=.1 (cpu limit)
+
+------------
+
+srun -N2 -n16 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe8.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=1 -r=2 -tz=pulse -ee=noTop >! sibe8.pulse.l1r2.N2n16.out &
+
+grid         levels   ratio   NP  loadBalance  steps  regrids  grids(min,ave,max)    grid-pts(ave,max)  max-error
+sibe8.order2      &    1   &  2   &  16  & KernighanLin        & 310  & 1    & (3,0,0) & (4.6e+06,4.6e+06) & 6.72e-03 \\
+
+------------
+
+srun -N1 -n4 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe2.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=3 -r=2 -tz=pulse -ee=noTop >! sibe2.pulse.l3r2.N1n4.out &
+
+grid         levels   ratio   NP  loadBalance  steps  regrids  grids(min,ave,max)    grid-pts(ave,max)  max-error
+sibe2.order2      &    3   &  2   &  4  & KernighanLin        & 537  & 136    & (7,48,77) & (1.2e+06,1.4e+06) & 6.72e-02 \\
+
+-----------------
+srun -N1 -n8 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe4.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=2 -tz=pulse -ee=noTop >! sibe4.pulse.l2r2.N1n8.out &
+
+grid         levels   ratio   NP  loadBalance  steps  regrids  grids(min,ave,max)    grid-pts(ave,max)  max-error
+sibe4.order2      &    2   &  2   &  8  & KernighanLin        & 390  & 98    & (3,37,64) & (1.4e+06,1.5e+06) & 7.67e-03 
+------------
+
+srun -N1 -n8 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe2.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=4 -tz=pulse -ee=noTop >! sibe2.pulse.l2r4.N1n8.out &
+
+
+sibe2.order2      &    2   &  4   &  8  & KernighanLin        & 615  & 77    & (3,17,30) & (1.3e+06,1.5e+06) & 5.12e-02 \\
+
+
+------------
+srun -N1 -n2 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe1.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=2 -tz="use pulse function" -ee="do not use top hat for error estimator" > ! sibe1.pulse.l2r2.N1n2.out &
+
+grid         levels   ratio   NP  loadBalance  steps  regrids  grids(min,ave,max)    grid-pts(ave,max)  max-error
+sibe1.order2      &    2   &  2   &  2  & KernighanLin        & 115  & 29    & (3,9,13) & (9.8e+04,1.2e+05) & 1.54e-01 \\
+
+--------------
+srun -N1 -n4 -ppdebug memcheck_all amrh -noplot -cmd=amrhtz -g=sibe1.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=2 -tz=pulse -ee=noTop > ! sibe1.pulse.l2r2.N1n4.out &
+
+sibe1.order2      &    2   &  2   &  4  & KernighanLin        & 115  & 29    & (3,9,13) & (9.8e+04,1.2e+05) & 1.54e-01 \\
+
+-------------
+srun -N1 -n1 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe1.order2.hdf -rad=.35 -xc=-1. -yc=-1. -zc=-1. -tf=.5 -l=2 -r=2 -tz="use pulse function" -ee="do not use top hat for error estimator" >! sibe1.pulse.l1r2.N1n1.out &
+
+>>>>>>>>  check errors egid versus gid
+
+>>> step=3, t=2.22e-02, dt=5.55e-03, grids=8, cpu=6.90e+01, timeForSolve=9.13e-01, timeForRegrid=0.00e+00 max-mem=55.2891 (Mb)
+>>> step=3:  maximum error at t=2.22e-02 is (egid)=8.757e-02 (grid 0) or gid=2.307e-01 (grid 0)
+
+
+-------------
+srun -N1 -n1 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe1.order2.hdf -xc=-.65 -yc=-.65 -zc=-.65 -tf=.5 -l=2 -r=2 -tz="use pulse function" -ee="do not use top hat for error estimator" >! sibe1.pulse.l2r2.N1n1.out &
+
+grid         levels   ratio   NP  loadBalance  steps  regrids  grids(min,ave,max)    grid-pts(ave,max)  max-error
+sibe1.order2      &    2   &  2   &  1  & KernighanLin        & 117  & 30    & (3,9,19) & (9.5e+04,1.4e+05) & 9.73e-01 \\
+
+-------------
+srun -N1 -n8 -ppdebug amrh -noplot -cmd=amrhtz -g=sibe1.order2.hdf -xc=-.65 -yc=-.65 -zc=-.65 -tf=.5 -l=2 -r=2 -tz="use pulse function" -ee="do not use top hat for error estimator" >! sibe1.pulse.l2r2.N1n8.out &
+
+grid         levels   ratio   NP  loadBalance  steps  regrids  grids(min,ave,max)    grid-pts(ave,max)  max-error
+sibe1.order2      &    2   &  2   &  8  & KernighanLin        & 117  & 30    & (3,9,19) & (9.5e+04,1.4e+05) & 9.73e-01 \\
+
+
+
+-------------
+srun -N1 -n4 -ppdebug amrh -noplot -cmd=amrhtz -g=rbibe2.order2.hdf -xc=-.25 -yc=-.25 -zc=-.25 -tf=.5 -l=2 -r=4 -tz="use pulse function" -ee="do not use top hat for error estimator" > ! rbib2e.pulse.l2r4.N1n4.out &
+   max-err = 3.22e-03
+
+
+
+
+-------------
+srun -N1 -n8 -ppdebug amrh -noplot -cmd=amrhtz -g=rbibe2.order2.hdf -xc=-.25 -yc=-.25 -zc=-.25 -tf=.5 -l=2 -r=4 -tz="use pulse function" -ee="do not use top hat for error estimator" >! rbib2e.pulse.l2r4.N1n8.out &
+    max-err = 3.22e-03 

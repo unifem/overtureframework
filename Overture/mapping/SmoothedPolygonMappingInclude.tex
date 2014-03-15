@@ -1,0 +1,30 @@
+\subsection{setPolygon}
+ 
+\newlength{\SmoothedPolygonMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SmoothedPolygonMappingIncludeArgIndent}{setPolygon(}%
+setPolygon( const RealArray \& xv,\\ 
+const RealArray \& sharpness  = Overture::nullRealArray(),\\ 
+\hspace{\SmoothedPolygonMappingIncludeArgIndent}const real normalDist  = 0.,\\ 
+const RealArray \& variableNormalDist  = Overture::nullRealArray(),\\ 
+const RealArray \& tStretch  = Overture::nullRealArray(),\\ 
+const RealArray \& rStretch  = Overture::nullRealArray(),\\ 
+\hspace{\SmoothedPolygonMappingIncludeArgIndent}const bool correctForCorners  = false)
+}\end{flushleft}
+ 
+\begin{description}
+\item[{\bf Description:}] 
+     Set the verticies for the smooth polygon and optionally set other properties.
+ 
+   **finish me for setting other parameters***  
+ 
+\item[{\bf xv (input) :}]  array of vertices, xv(0:numberOfVertices-1,0:1)
+\item[{\bf sharpness (input) :}]  sharpness(0:numberOfVertices-1), if specified, provide the sharpness of each corner.
+\item[{\bf normalDist (input) :}]  if non-zero then use this as the fixed normal distance (sign is important).
+\item[{\bf variableNormalDist (input) :}]  variableNormalDistance(0:2,0:numberOfVertices-1) if provided this is
+     the variable normal distance and transition exponent.
+\item[{\bf tStretch (input) :}]  tStretch(0:1,0:numberOfVertices-1) tangential stretching weight and exponent
+\item[{\bf rStretch (input) :}]  rStretch(0:2) radial stretching weight, exponent and location.
+
+\end{description}

@@ -1,0 +1,8 @@
+  The files named asmo*.cmd can be used to build a grid on the "asmo" automobile. The
+  asmo geometry is defined as a CAD surface saved in an IGES file (asmo.igs).
+  The basic steps are
+          1. ../bin/rap asmoNoWheels.cmd
+          2. ../bin/mbuilder asmoBody.cmd
+          3. ../bin/mbuilder asmoFrontWheel.cmd
+          4. ../bin/mbuilder asmoBackWheel.cmd
+          5. ../bin/ogen asmo.cmd

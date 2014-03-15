@@ -1,0 +1,554 @@
+# =================================================================================
+# 
+# Compute the coefficients of selected points (e.g. the ghost point) for higher derivatives in 
+# curvilinear coordinates for different orders of accuracy
+# 
+# -- this file is based on derivNew.maple
+# 
+# =================================================================================
+#
+# restart; read "derivCoeff.maple";
+clear;
+
+# Here is the maximum number of derivatives we compute
+maxDerivative:=4:   # ****************
+numberOfDimensions:=3:
+
+fileName:="derivCoeff.h":  # save coefficients here 
+
+with(CodeGeneration,Fortran):
+with(codegen,optimize):
+with(codegen,cost):
+
+with(StringTools):
+
+# -----------
+substituteStringsOld :=proc( uu )
+ local m,vv:
+ vv := convert(uu,string):
+ for m from 1 to 9 do 
+   vv := SubstituteAll(vv,cat(rxName[m],"^"),cat("[",rxName[m],"]**")):
+ end do:
+ for m from 1 to 9 do 
+   vv := SubstituteAll(vv,rxName[m],cat("$",rxName[m])):
+ end do:
+ vv := SubstituteAll(vv,"u","$u"):
+
+ vv := SubstituteAll(vv,"^","**"):
+
+RETURN(vv):
+end:
+# -------------
+
+# -----------
+substituteStrings :=proc( uu )
+ local m,vv:
+ vv := convert(uu,string):
+ for m from 1 to 9 do 
+   vv := SubstituteAll(vv,cat(rxName[m],"^"),cat(rxName[m],"**")):
+ end do:
+ vv := SubstituteAll(vv,"^","**"):
+ for m from 2 to 24 do
+  vv := SubstituteAll(vv,cat("/",m),cat("/",m,".")):
+ end do:
+RETURN(vv):
+end:
+# -------------
+
+# -----------
+substituteStrings2 :=proc( uu )
+ local m,vv:
+ vv := convert(uu,string):
+ for m from 1 to 9 do 
+   vv := SubstituteAll(vv,cat(rxName[m],"^"),cat(rxName[m],"**")):
+ end do:
+ vv := SubstituteAll(vv,"^","**"):
+ for m from 2 to 24 do
+  vv := SubstituteAll(vv,cat("/",m),cat("/",m,".")):
+ end do:
+
+ # replace, rx,sx,rxy,... by arrays
+ #    a0=axis, a1=axisp1, a2=axisp2
+ #
+ #    rx -> rx1(a1,0), sy->rx1(a2,1) ...
+ #
+ # NOTE: first replace rxxxx etc. before changing rxxx and before changing rxx. .. or else the string replacements are wrong
+ for m1 from 1 to 3 do 
+ for m2 from 1 to 3 do  
+ for m3 from 1 to 3 do 
+ for m4 from 1 to 3 do 
+ for m5 from 1 to 3 do 
+   vv := SubstituteAll(vv,cat(rName[m1],xName[m2],xName[m3],xName[m4],xName[m5]),cat( "RXXXX(a" ,m1-1, "," ,m2-1, "," ,m3-1, "," ,m4-1, "," ,m5-1, ")")):
+ end do:
+ end do;
+ end do;
+ end do;
+ end do;
+ for m1 from 1 to 3 do 
+ for m2 from 1 to 3 do  
+ for m3 from 1 to 3 do 
+ for m4 from 1 to 3 do 
+   vv := SubstituteAll(vv,cat(rName[m1],xName[m2],xName[m3],xName[m4]),cat( "RXXX(a" ,m1-1, "," ,m2-1, "," ,m3-1, "," ,m4-1, ")")):
+ end do:
+ end do;
+ end do;
+ end do;
+ for m1 from 1 to 3 do 
+ for m2 from 1 to 3 do  
+ for m3 from 1 to 3 do 
+   vv := SubstituteAll(vv,cat(rName[m1],xName[m2],xName[m3]),cat( "RXX(a" ,m1-1, "," ,m2-1, "," ,m3-1, ")")):
+ end do:
+ end do:
+ end do:
+ for m1 from 1 to 3 do 
+ for m2 from 1 to 3 do  
+   vv := SubstituteAll(vv,cat(rName[m1],xName[m2]),cat( "RX(a" ,m1-1, "," ,m2-1, ")")):
+ end do:
+ end do:
+
+
+RETURN(vv):
+end:
+# -------------
+
+# -----------
+# derivative : substitute partials for this derivative
+substitutePartials :=proc( uu,derivative )
+ local vv,rxn,x1n,x2n,x3n,rxxn,m,i1,i2,i3,i4,i5,i6,i7,i8,urn,r1n,r2n,r3n,r4n,r5n,r6n,r7n,r8n,rxvn,urvn,ib:
+ vv := uu:
+
+ # substitute for rx.r, rx.s, ry.rr, ...
+
+ for m from 1 to 9 do
+  rxn := rxName[m]:
+  rxvn := cat(rxName[m],"(x,y,z)"):  # form the name rx(z,y,z) from rx
+  for i1 from 1 to 3 do
+   x1n := xName[i1]:
+   for i2 from i1 to 3 do
+    x2n := xName[i2]:
+    for i3 from i2 to 3 do
+      x3n := xName[i3]:
+      vv := subs(diff(rxvName[m],x1n,x2n,x3n)=cat(rxn,x1n,x2n,x3n),vv):
+    od:
+    vv := subs(diff(rxvName[m],x1n,x2n)=cat(rxn,x1n,x2n),vv):
+#   printf(" vv=%s\n",convert(vv,string));
+   od:
+   # printf("Before vv=%s, rxvn=%s x1n=%s \n",convert(vv,string),rxvn,x1n);
+   vv := subs(diff(rxvName[m],x1n)=cat(rxn,x1n),vv):
+   # printf("After subs: vv=%s \n",convert(vv,string));
+  od:
+ od:
+
+ # restart; read "derivNew.maple";
+
+ if maxDerivative>8 then
+   printf("substitutePartials:ERROR: maxDerivative=%d not implemented\n",maxDerivative):
+   exit;
+ end if:
+
+ ib := array(1..8):
+ for m from 1 to 8 do 
+   if m<= derivative then ib[m]:=3: else ib[m]:=0: end if:
+ end do:
+  
+
+ # substitute for u.r, u.s, u.rr, ...
+ for m from 1 to 1 do
+  urn := urName[m]:
+  # urvn := cat(urName[m],"(r,s)"):
+  for i1 from 1 to 3 do
+   r1n := rName[i1]:
+   for i2 from i1 to ib[2] do
+    r2n := rName[i2]:
+    for i3 from i2 to ib[3] do
+      r3n := rName[i3]:
+      for i4 from i3 to ib[4] do
+       r4n := rName[i4]:
+       for i5 from i4 to ib[5] do
+         r5n := rName[i5]:
+         for i6 from i5 to ib[6] do
+           r6n := rName[i6]:
+           for i7 from i6 to ib[7] do
+             r7n := rName[i7]:
+             for i8 from i7 to ib[8] do
+               r8n := rName[i8]:
+               vv := subs(diff(urvName[m],r1n,r2n,r3n,r4n,r5n,r6n,r7n,r8n)=cat(urn,r1n,r2n,r3n,r4n,r5n,r6n,r7n,r8n),vv):
+             end do:
+             vv := subs(diff(urvName[m],r1n,r2n,r3n,r4n,r5n,r6n,r7n)=cat(urn,r1n,r2n,r3n,r4n,r5n,r6n,r7n),vv):
+           end do:
+           vv := subs(diff(urvName[m],r1n,r2n,r3n,r4n,r5n,r6n)=cat(urn,r1n,r2n,r3n,r4n,r5n,r6n),vv):
+         end do:
+         vv := subs(diff(urvName[m],r1n,r2n,r3n,r4n,r5n)=cat(urn,r1n,r2n,r3n,r4n,r5n),vv):
+       end do:
+       vv := subs(diff(urvName[m],r1n,r2n,r3n,r4n)=cat(urn,r1n,r2n,r3n,r4n),vv):
+      od:
+      vv := subs(diff(urvName[m],r1n,r2n,r3n)=cat(urn,r1n,r2n,r3n),vv):
+    od:
+    vv := subs(diff(urvName[m],r1n,r2n)=cat(urn,r1n,r2n),vv):
+#    vv := subs(diff(urvn,r1n,r2n)=cat(urn,r1n,r2n),vv):
+   od:
+   vv := subs(diff(urvName[m],r1n)=cat(urn,r1n),vv):
+  od:
+ od:
+
+# do last
+ vv := subs(rx(x,y,z)=rx,sx(x,y,z)=sx,tx(x,y,z)=tx,ry(x,y,z)=ry,sy(x,y,z)=sy,ty(x,y,z)=ty,vv);
+ vv := subs(rz(x,y,z)=rz,sz(x,y,z)=sz,tz(x,y,z)=tz,vv);
+ RETURN(vv):
+end:
+# -------------
+
+
+# ***************** now find the coefficients of the ghost points ******************
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+
+
+
+
+
+
+
+# ==================== Open the file ==============================
+file := fopen( fileName,WRITE ):
+
+fprintf(file,"# This file was generated by op/src/derivCoeff.maple \n"):
+fprintf(file,"# It defines the coefficients of selected points in a stencil from an approximation to\n"):
+fprintf(file,"# a derivative on a curvilinear grid. \n\n"):
+
+
+rxvName:= [ rx(x,y,z), ry(x,y,z), rz(x,y,z), sx(x,y,z), sy(x,y,z), sz(x,y,z), tx(x,y,z), ty(x,y,z), tz(x,y,z) ]:
+rxName:= [ rx, ry, rz, sx, sy, sz, tx, ty, tz ]:
+xName := [ x, y, z ]:
+
+urvName:= [ u(r,s,t) ]:
+urName:= [ u ]:
+rName := [ r, s, t ]:
+
+# -- make a list of names ur, urr, urs, etc. : these are used for sorting
+# names := [urrrr,urrrs,urrss,ursss,ussss, urrr,urrs,urss,usss, urr,urs,uss, ur,us]:
+maxNames:=(maxDerivative+1)^3: # this is too many
+names := array(1..maxNames):
+for n from 1 to maxNames do names[n]:=u: end do:
+n:=0:
+for k from maxDerivative by -1 to 0 do
+for nt from 0 to k do:
+for ns from 0 to k do:
+for nr from 0 to k do:
+if nr+ns+nt=k then
+  urn := u;
+  for i from 1 to nr do urn:=cat(urn,rName[1]): end do:
+  for i from 1 to ns do urn:=cat(urn,rName[2]): end do:
+  for i from 1 to nt do urn:=cat(urn,rName[3]): end do:
+  n:=n+1:
+  names[n]:=urn:
+end if:
+end do:
+end do:
+end do:
+end do:
+names := convert(names,list):
+
+
+# Think of Dx as a function of (x,y) and (r,s):
+# Dx := rx(x,y)*ur(r,s) + sx(x,y)*us(r,s):
+# Dy := ry(x,y)*ur(r,s) + sy(x,y)*us(r,s): 
+
+
+ndx:=maxDerivative:  # highest x derivative
+ndy:=maxDerivative:  # highest y derivative
+ndz:=maxDerivative:  # highest z derivative
+
+DuDx := array(0..ndx,0..ndy,0..ndx,2..3):
+LapPow := array(0..ndx,2..3);  # holds Lap, Lap^2, Lap^3, 
+
+# ======================= start dim loop ==============================================
+for dim from 2 to numberOfDimensions do # 2D or 3D
+
+ # **** form the name rxx..yyy..zzz 
+
+ if dim=2 then maxDeriv3:=0: else maxDeriv3:=maxDerivative: end if:
+
+ for k from 1 to maxDerivative do
+
+  printf("  *** dim %d, derivative %d ...\n",dim,k):
+
+  # fprintf(file,"# ------- Derivative %d ---------\n",k):
+
+  # +++++++++++ Form the expression for a derivative in curvilinear coordinates +++++++++++++++
+  #   e.g.
+  #       DuDx[1,0,0,dim=2] = du/dx = rx*du/dr + sx*du/ds + d(rx)/dx*u + d(sx)/dx*u 
+  # 
+  if dim>1 then mdy := ndy: else mdy:=0: end if:
+  if dim>2 then mdz := ndz: else mdz:=0: end if:
+  for idz from 0 to mdz do
+  for idy from 0 to mdy do
+  for idx from 0 to ndx do
+  if idx+idy+idz = k then
+
+   dd:= u(r,s,t):
+   dn:= "":
+   for i from 1 to idx do 
+     dd := rx(x,y,z)*diff(dd,r) + sx(x,y,z)*diff(dd,s)+ tx(x,y,z)*diff(dd,t) +diff(dd,x):
+     dn := cat(dn,"x"):  
+   end do:
+   for i from 1 to idy do 
+     dd := ry(x,y,z)*diff(dd,r) + sy(x,y,z)*diff(dd,s)+ ty(x,y,z)*diff(dd,t) +diff(dd,y):
+     dn := cat(dn,"y"):
+   end do:
+   for i from 1 to idz do 
+     dd := rz(x,y,z)*diff(dd,r) + sz(x,y,z)*diff(dd,s)+ tz(x,y,z)*diff(dd,t) +diff(dd,z):
+     dn := cat(dn,"z"):
+   end do:
+
+   # dd := dxv[m]:
+
+   if dim=2 then
+     dd := subs(rz=0,sz=0,tx=0,ty=0,tz=0,dd):
+   end if:
+
+   dd := substitutePartials(dd,k):
+   dd := collect(dd,names):
+   dd:= sort(dd,names):
+
+   DuDx[idx,idy,idz,dim]:=dd:  # save for later
+   # fprintf(file,"# DuDx[%d,%d,%d,%d]:=%s:\n",idx,idy,idz,dim,convert(dd,string)):
+
+  end if;
+  end do;
+  end do;
+  end do;
+
+  dd:=0:
+  if k=2 then
+  # form the laplacian
+    dd := DuDx[2,0,0,dim]:
+    if dim>1 then dd := dd + DuDx[0,2,0,dim]: end if:
+    if dim>2 then dd := dd + DuDx[0,0,2,dim]: end if:
+  elif k=4 then
+    # x^4+2*x^2*y^2+2*x^2*z^2+y^4+2*y^2*z^2+z^4
+    dd := DuDx[4,0,0,dim]:
+    if dim>1 then dd := dd + DuDx[0,4,0,dim] + 2*DuDx[2,2,0,dim]: end if:
+    if dim>2 then dd := dd + DuDx[0,0,4,dim] + 2*DuDx[2,0,2,dim] + 2*DuDx[0,2,2,dim]: end if:
+  elif k=6 then
+    # x^6+3*x^4*y^2+3*x^4*z^2+3*x^2*y^4+6*x^2*y^2*z^2+3*x^2*z^4+y^6+3*y^4*z^2+3*y^2*z^4+z^6
+    dd := DuDx[6,0,0,dim]:
+    if dim>1 then dd := dd + DuDx[0,6,0,dim] + 3*DuDx[4,2,0,dim]+ 3*DuDx[2,4,0,dim]: end if:
+    if dim>2 then dd := dd + DuDx[0,0,6,dim] + 3*DuDx[4,0,2,dim]+ 3*DuDx[2,0,4,dim] 
+                                           + 3*DuDx[0,4,2,dim]+ 3*DuDx[0,2,4,dim]: end if:
+  elif k=8 then
+    # x^8 +4*x^6*y^2 +6*x^4*y^4 +4*x^2*y^6 +y^8
+    # 12*x^2*y^2*z^4  +12*x^2*y^4*z^2  +12*x^4*y^2*z^2  +4*x^6*y^2  +4*x^6*z^2  +6*x^4*y^4  +6*x^4*z^4  +4*x^2*y^6  +4*x^
+    #    2*z^6  +4*y^6*z^2  +6*y^4*z^4  +4*y^2*z^6  +x^8  +y^8  +z^8
+
+    dd := DuDx[8,0,0,dim]:
+    if dim>1 then dd := dd + DuDx[0,8,0,dim] + 4*(DuDx[2,6,0,dim]+DuDx[6,2,0,dim]) + 6*DuDx[4,4,0,dim] : end if:
+    if dim>2 then dd := dd + DuDx[0,0,8,dim] + 4*(DuDx[6,0,2,dim]+ DuDx[2,0,6,dim]+DuDx[0,6,2,dim]+DuDx[0,2,6,dim])
+                           + 6*(DuDx[4,0,4,dim]+DuDx[0,4,4,dim]) 
+                           +12*(DuDx[4,2,2,dim]+DuDx[2,4,2,dim]+DuDx[2,2,4,dim]): end if:
+  end if:
+
+  if dd<>0 then
+    # Save the power of the laplacian
+    dd := collect(dd,names):
+    dd:= sort(dd,names):
+
+    LapPow[k/2,dim] :=dd:
+
+    # dd := substituteStrings(dd):
+  end if:
+
+ end do;  # end for k 
+
+end do: # for dim
+
+
+
+# -----------
+outputCoeff :=proc( dd0,orderOfAccuracy,numGhost,name )
+ local m,c1,c2,dd:
+
+ if orderOfAccuracy = 2 then
+   # for now only replace terms that will contribute to a ghost point (-m,0,0) in the i1 direction.
+   # e.g. urr does but not urs (with centered differences)
+   dd := subs(ur=ur2,urr=urr2,urrr=urrr2,urss=urss2,urtt=urtt2,dd0):
+   dd := subs(urrrr=urrrr2,urrss=urrss2,urrtt=urrtt2,ursst=ursst2,urstt=urstt2,dd):
+ else
+   dd := subs(ur=ur4,urr=urr4,dd0):
+ end if:
+
+ for m from 1 to numGhost do 
+  c1 := coeff(dd,u(i1-m,i2,i3)):
+  c1:=substituteStrings(c1):
+  fprintf(file,"#defineMacro %sCoeff%dDOrder%s%s(is,dr,ds) ( %s )\n\n",convert(name,string),dim,convert(orderOfAccuracy,string),convert(ghostName[m],string),convert(c1,string));
+
+  # here is a second version with rx -> rx1(a0,0), sy->rx1(a1,1) ...
+  c1 := coeff(dd,u(i1-m,i2,i3)):
+  c1:=substituteStrings2(c1):
+  fprintf(file,"#defineMacro %sCoeff%dDOrder%s%s(is,dr,ds,dt,a0,a1,a2,RX,RXX,RXXX,RXXXX) ( %s )\n\n",convert(name,string),dim,convert(orderOfAccuracy,string),convert(ghostName[m],string),convert(c1,string));
+
+ end do:
+
+ RETURN(dd):
+
+end:
+# -------------
+
+
+ghostName := [ a, b, c, d, e, f ]:  # name ghost lines a,b,c,...
+
+# ======================= start dim loop ==============================================
+for dim from 2 to numberOfDimensions do # 2D or 3D
+
+ fprintf(file,"\n\n# ****** Dimension %d ******\n",dim):
+
+
+ # =============== Now output selected coefficients:
+
+ # Here are 2nd order accurate approximations: 
+ #  (include the parameter "is" in odd derivatives so we can flip sign to get the opposite ghost pt)
+ ur2    :=is*Dzr(u)(i1,i2,i3)/(dr):
+ us2    :=   Dzs(u)(i1,i2,i3)/(ds):
+ ut2    :=   Dzt(u)(i1,i2,i3)/(dt):
+
+ urr2   :=   Dpr(Dmr(u))(i1,i2,i3)/(dr*dr):
+ uss2   :=   Dps(Dms(u))(i1,i2,i3)/(ds*ds):
+ utt2   :=   Dpt(Dmt(u))(i1,i2,i3)/(dt*dt):
+
+ urs2   :=is*Dzr(Dzs(u))(i1,i2,i3)/(dr*ds):
+ urt2   :=is*Dzr(Dzt(u))(i1,i2,i3)/(dr*dt):
+ ust2   :=   Dzs(Dzt(u))(i1,i2,i3)/(ds*dt):
+
+ urrr2  :=is*Dzr(Dpr(Dmr(u)))(i1,i2,i3)/(dr^3):
+ usss2  :=   Dzs(Dps(Dms(u)))(i1,i2,i3)/(ds^3):
+ uttt2  :=   Dzt(Dpt(Dmt(u)))(i1,i2,i3)/(dt^3):
+
+ urrs2  :=   Dpr(Dmr(Dzs(u)))(i1,i2,i3)/(dr^2*ds):
+ urrt2  :=   Dpr(Dmr(Dzt(u)))(i1,i2,i3)/(dr^2*dt):
+
+ urss2  :=is*Dps(Dms(Dzr(u)))(i1,i2,i3)/(dr*ds^2):
+ urst2  :=is*Dzt(Dzs(Dzr(u)))(i1,i2,i3)/(dr*ds*dt):
+ urtt2  :=is*Dpt(Dmt(Dzr(u)))(i1,i2,i3)/(dr*dt^2):
+
+ usst2  :=   Dzt(Dps(Dms(u)))(i1,i2,i3)/(ds^2*dt):
+
+ urrrr2 :=   Dpr(Dpr(Dmr(Dmr(u))))(i1,i2,i3)/(dr^4):
+
+ urrrs2 :=is*Dzr(Dpr(Dmr(Dzs(u))))(i1,i2,i3)/(dr^3*ds):
+ urrrt2 :=is*Dzr(Dpr(Dmr(Dzt(u))))(i1,i2,i3)/(dr^3*dt):
+
+ urrss2 :=   Dpr(Dmr(Dps(Dms(u))))(i1,i2,i3)/(dr^2*ds^2):
+ urrtt2 :=   Dpr(Dmr(Dpt(Dmt(u))))(i1,i2,i3)/(dr^2*dt^2):
+ urrst2 :=   Dzs(Dzt(Dpr(Dmr(u))))(i1,i2,i3)/(dr^2*ds*dt):
+
+ ursss2 :=is*Dzr(Dps(Dms(Dzs(u))))(i1,i2,i3)/(dr*ds^3):
+ ursst2 :=is*Dzr(Dps(Dms(Dzt(u))))(i1,i2,i3)/(dr*ds^2*dt):
+ urstt2 :=is*Dzr(Dzs(Dpt(Dmt(u))))(i1,i2,i3)/(dr*ds*dt^2):
+ urttt2 :=is*Dzr(Dpt(Dmt(Dzt(u))))(i1,i2,i3)/(dr*ds^3):
+
+ # Here are 4-th order accurate approximations: 
+ ur4  := is*( Dzr(u)(i1,i2,i3) -(1/6)*Dzr(Dpr(Dmr(u)))(i1,i2,i3) )/(dr):
+ urr4 := ( Dpr(Dmr(u))(i1,i2,i3) -(1/12)*Dpr(Dpr(Dmr(Dmr(u))))(i1,i2,i3) )/(dr*dr):
+
+ # finish me .. not needed for now: 
+ # urs4 := 
+
+ # c1 := coeff(dd,u(i1-1,i2,i3)):
+ # c1:=substituteStrings(c1):
+ # fprintf(file,"#defineMacro xCoeff4a(is,dr,ds) ( %s )\n\n",convert(c1,string));
+
+ # c2 := coeff(dd,u(i1-2,i2,i3)):
+ # c2:=substituteStrings(c2):
+ # fprintf(file,"#defineMacro xCoeff4b(is,dr,ds) ( %s )\n\n",convert(c2,string));
+
+ orderOfAccuracy:=4; 
+ numGhost:=2;
+ # dd := subs(ur=ur4,urr=urr4,dd):
+ dd := DuDx[1,0,0,dim]: # Du/Dx 
+ outputCoeff(dd,orderOfAccuracy,numGhost,x);
+
+ 
+ outputCoeff(DuDx[2,0,0,dim],orderOfAccuracy,numGhost,xx);
+
+ # fprintf(file,"# lap2%d:=%s:\n",dim,convert(LapPow[1,dim],string)):
+ outputCoeff(LapPow[1,dim],orderOfAccuracy,numGhost,lap);
+
+
+ orderOfAccuracy:=2; 
+ dd:=outputCoeff(LapPow[2,dim],orderOfAccuracy,numGhost,lapSq);
+ # fprintf(file,"# lapSq after subs: :=%s:\n",convert(dd,string)):
+
+
+ # xLap := xxx + xyy + xzz;
+ dd := DuDx[3,0,0,dim] + DuDx[1,2,0,dim]:
+ if dim=3 then dd := dd + DuDx[1,0,2,dim] end if:
+ dd:=outputCoeff(dd,orderOfAccuracy,numGhost,xLap);
+ # fprintf(file,"# xLap after subs: :=%s:\n",convert(dd,string)):
+
+ # yLap := xxy + yyy + yzz;
+ dd := DuDx[2,1,0,dim] + DuDx[0,3,0,dim]:
+ if dim=3 then dd := dd + DuDx[0,1,2,dim] end if:
+ dd:=outputCoeff(dd,orderOfAccuracy,numGhost,yLap);
+
+ if dim=3 then
+  # zLap := xxz + yyz + zzz;
+  dd := DuDx[2,0,1,dim] + DuDx[0,2,1,dim]:
+  if dim=3 then dd := dd + DuDx[0,0,3,dim] end if:
+  dd:=outputCoeff(dd,orderOfAccuracy,numGhost,zLap);
+ end if:
+
+end do: # for dim
+
+fprintf(file,"# ======== end \n"):  
+
+
+fclose(file):
+
+printf(" **** coefficients written to file [%s] ******\n",fileName);
+
+# restart; read "derivCoeff.maple";

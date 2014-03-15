@@ -1,0 +1,6 @@
+SRC_FILES += buildReactions.C Reactions.C solveImplicit.C OneStepReaction.C BranchingReaction.C 
+SRC_FILES += MaterialProperties.C
+
+SRC_FILES += ckutil.f
+
+

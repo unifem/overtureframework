@@ -1,0 +1,79 @@
+#
+# This file is included in the package Makefile (e.g. cg/ins/Makefile)
+# and defines how the list of files are compiled:
+#
+#  SRC_FILES : list of C++, C, and fortran files that are to be compiled in the default way.
+#  CSRCO : list of C++ files that are to be compiled optimized by default
+#  FSCRO : list of Fortran files that are to be compiled optimized by default
+#  FSRC   : list of Fortran files that are to be compiled without auto-dbl
+#  FSCRSO : list of Fortran files that are to be compiled optimized and without auto-dbl
+#  F90SCRO : list of Fortran 90 files that are to be compiled optimized 
+
+QSRC := $(SRC_FILES)
+
+OBJ := $(patsubst %.cc, %.o, $(QSRC))
+OBJ := $(patsubst %.c, %.o, $(OBJ))
+OBJ := $(patsubst %.C, %.o, $(OBJ))
+COBJ := $(OBJ)  # list of c and C++ objects
+OBJ := $(patsubst %.f, %.o, $(OBJ)) 
+OBJ := $(patsubst %.F, %.o, $(OBJ)) 
+OBJ := $(patsubst %.f90, %.o, $(OBJ)) 
+
+# C++ files that are compiled optimized by default:
+OBJCO :=$(patsubst %.C, %.o, $(CSRCO))
+
+# fortran files that are compiled without auto-double by default:
+OBJN :=$(patsubst %.f, %.o, $(FSRC))
+OBJN :=$(patsubst %.F, %.o, $(OBJN))
+ 
+# fortran files that are compiled optimized by default
+OBJO :=$(patsubst %.f, %.o, $(FSRCO))
+OBJO :=$(patsubst %.F, %.o, $(OBJO))
+
+# fortran90 files that are compiled optimized by default
+FNOBJO := $(patsubst %.f90, %.o, $(FNSRCO))
+
+# fortran files that are compiled optimized and single precision by default
+OBJSO :=$(patsubst %.f, %.o, $(FSRCSO))
+OBJSO :=$(patsubst %.F, %.o, $(OBJSO))
+
+# extract C and C++ files by removing .f and .F files 
+CSRC := $(filter-out %.f, $(QSRC))
+CSRC := $(filter-out %.F, $(CSRC))
+# Dependency files for C and C++ files
+DEP := $(patsubst %.cc, %.d, $(CSRC))
+DEP := $(patsubst %.C, %.d, $(DEP))
+DEP := $(patsubst %.c, %.d, $(DEP))
+
+OBJ := $(addprefix $(OBJPREFIX),$(OBJ))
+OBJCO := $(addprefix $(OBJPREFIX),$(OBJCO))
+OBJN := $(addprefix $(OBJPREFIX),$(OBJN))
+OBJO := $(addprefix $(OBJPREFIX),$(OBJO))
+FNOBJO := $(addprefix $(OBJPREFIX),$(FNOBJO))
+OBJSO:= $(addprefix $(OBJPREFIX),$(OBJSO))
+DEP := $(addprefix $(DEPPREFIX),$(DEP)) 
+
+
+COBJ := $(patsubst %.f, , $(COBJ))
+COBJ := $(patsubst %.F, , $(COBJ))
+COBJ := $(addprefix $(OBJPREFIX),$(COBJ))
+
+# Here is a list of all object files: 
+OBJALL = $(OBJ) $(OBJCO) $(OBJN) $(OBJO) $(OBJSO) $(FNOBJO)
+
+
+# compile some C++ files optimized by default:
+$(OBJCO) : $(OBJPREFIX)%.o : %.C
+	$(CXX) $(CXX_FLAGSO) -o $@ -c $<
+
+# compile some fortran files optimized by default:
+$(OBJO) : $(OBJPREFIX)%.o : %.f
+	$(FC) $(FC_FLAGSO) -o $@ -c $<
+
+$(FNOBJO) : $(OBJPREFIX)%.o : %.f90
+	$(FC90) $(FC_FLAGSO) -o $@ -c $<
+
+# compile some fortran files optimized and single precision by default:
+$(OBJSO) : $(OBJPREFIX)%.o : %.f
+	$(FC) $(FC_FLAGSSO) -o $@ -c $<
+

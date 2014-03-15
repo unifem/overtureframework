@@ -1,0 +1,784 @@
+==== 2014/01/09 -- test *NEW* rotating disk exact solution (FSI exact solution)
+
+*** QUADRATIC INTERPOLATION *** --> close to 2nd-order
+cgsm rotatingDiskInFluid -g=sicFixede8.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=0. -go=halt
+-->t=2.0000e-01 dt=2.6e-03 maxNorm errors:[2.6793e-04,2.6820e-04,3.9263e-04,2.8383e-04,2.8387e-04,3.9264e-04,1.8265e-05,1.8261e-05,], maxNorm(u):[3.42e-01,3.42e-01,4.24e-01,3.51e-01,3.51e-01,4.24e-01,9.43e-02,9.43e-02,]
+
+cgsm rotatingDiskInFluid -g=sicFixede4.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=0. -go=halt
+-->t=2.0000e-01 dt=5.0e-03 maxNorm errors:[9.4709e-04,9.4760e-04,1.6416e-03,1.1735e-03,1.1776e-03,1.6470e-03,7.6515e-05,7.6463e-05,], maxNorm(u):[3.42e-01,3.42e-01,4.24e-01,3.50e-01,3.50e-01,4.24e-01,9.43e-02,9.43e-02,]
+
+cgsm rotatingDiskInFluid -g=sicFixede2.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=
+0. -go=halt
+-->t=2.0000e-01 dt=1.0e-02 maxNorm errors:[3.9858e-03,3.6554e-03,7.8161e-03,5.5745e-03,5.1843e-03,7.6993e-03,2.8462e-04,2.9390e-04,], maxNorm(u):[3.40e-01,3.40e-01,4.22e-01,3.48e-01,3.49e-01,4.22e-01,9.39e-02,9.39e-02,]
+
+
+***radialVariation= (4.d0*(r-r0)*(r1-r)/(r0+r1)**2)**2
+
+cgsm rotatingDiskInFluid -g=sicFixede8.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=0. -go=halt
+-->t=2.0000e-01 dt=2.6e-03 maxNorm errors:[5.3122e-04,5.3149e-04,6.8994e-04,5.2263e-04,5.2292e-04,6.8969e-04,3.2314e-05,3.2318e-05,], maxNorm(u):[3.42e-01,3.42e-01,4.24e-01,3.51e-01,3.51e-01,4.24e-01,9.43e-02,9.43e-02,]
+
+cgsm rotatingDiskInFluid -g=sicFixede4.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=0. -go=halt
+
+-->t=2.0000e-01 dt=5.0e-03 maxNorm errors:[1.8194e-03,1.8198e-03,2.6273e-03,1.8923e-03,1.8999e-03,2.6330e-03,1.2750e-04,1.2753e-04,], maxNorm(u):[3.42e-01,3.42e-01,4.24e-01,3.49e-01,3.49e-01,4.24e-01,9.43e-02,9.43e-02,]
+
+cgsm rotatingDiskInFluid -g=sicFixede2.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=
+0. -go=halt
+-->t=2.0000e-01 dt=1.0e-02 maxNorm errors:[6.8005e-03,6.5186e-03,1.0513e-02,7.6797e-03,7.2359e-03,1.0394e-02,4.9512e-04,4.9433e-04,], maxNorm(u):[3.40e-01,3.40e-01,4.19e-01,3.46e-01,3.47e-01,4.19e-01,9.39e-02,9.38e-02,]
+
+
+*** radialVariation=(1.-r/r1)**4  ! wdh - more derivatives zero at r=1
+cgsm rotatingDiskInFluid -g=sicFixede8.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=0. -go=halt
+
+-->t=2.0000e-01 dt=2.6e-03 maxNorm errors:[8.5831e-05,8.5831e-05,6.6061e-05,9.6017e-05,9.6017e-05,6.6061e-05,2.8928e-06,2.8928e-06,], maxNorm(u):[9.07e-02,9.07e-02,9.20e-02,8.50e-02,8.50e-02,9.20e-02,2.54e-02,2.54e-02,]
+
+cgsm rotatingDiskInFluid -g=sicFixede4.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=0. -go=halt
+
+-->t=2.0000e-01 dt=5.0e-03 maxNorm errors:[2.4978e-04,2.4978e-04,2.4087e-04,3.0353e-04,3.0353e-04,2.4087e-04,1.2504e-05,1.2504e-05,], maxNorm(u):[9.07e-02,9.07e-02,9.20e-02,8.50e-02,8.50e-02,9.20e-02,2.54e-02,2.54e-02,]
+
+
+cgsm rotatingDiskInFluid -g=sicFixede2.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=1. -ra=.0 -rb=1. -bc=dirichlet -cfl=.8 -relaxAlpha=
+0. -go=halt
+
+-->t=2.0000e-01 dt=1.0e-02 maxNorm errors:[8.1880e-04,8.1885e-04,8.8347e-04,1.1551e-03,1.1552e-03,8.8334e-04,4.9516e-05,4.9516e-05,], maxNorm(u):[9.04e-02,9.04e-02,9.17e-02,8.49e-02,8.49e-02,9.17e-02,2.54e-02,2.54e-02,]
+
+
+
+
+==== 2014/01/09 -- test rotating disk convergence -- looks 2nd-order
+
+cgsm rotatingDisk -g=sicFixede8.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=.5 -ra=.0 -rb=1. -bc=sf -cfl=.8 -relaxAlpha=0. -go=halt
+
+-->t=2.0000e-01 dt=2.6e-03 maxNorm errors:[1.5135e-04,1.5156e-04,1.9234e-04,1.5711e-04,1.5677e-04,1.9185e-04,1.8440e-05,1.8440e-05,], maxNorm(u):[1.73e-01,1.73e-01,1.95e-01,1.76e-01,1.76e-01,1.95e-01,4.73e-02,4.73e-02,]
+
+-----
+cgsm rotatingDisk -g=sicFixede4.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=.5 -ra=.0 -rb=1. -bc=sf -cfl=.8 -relaxAlpha=0. -go=halt
+
+
+-->t=2.0000e-01 dt=5.0e-03 maxNorm errors:[5.8509e-04,5.8619e-04,8.2226e-04,6.8304e-04,6.7926e-04,8.2551e-04,1.0151e-04,1.0151e-04,], maxNorm(u):[1.73e-01,1.73e-01,1.95e-01,1.75e-01,1.75e-01,1.95e-01,4.73e-02,4.73e-02,]
+
+--------
+cgsm rotatingDisk -g=sicFixede2.order2 -tp=.1 -tf=.5 -pv=g -godunovType=2 -omega=.5 -ra=.0 -rb=1. -bc=sf -cfl=.8 -relaxAlpha=0. -go=halt
+
+-->t=2.0000e-01 dt=1.0e-02 maxNorm errors:[2.7244e-03,2.7229e-03,3.8814e-03,3.5201e-03,3.3024e-03,3.8895e-03,5.6130e-04,5.6106e-04,], maxNorm(u):[1.72e-01,1.72e-01,1.94e-01,1.74e-01,1.74e-01,1.94e-01,4.71e-02,4.71e-02,]
+
+
+
+
+==== 2013/11/01 - test SVK + TZ
+
+SVK: 
+
+
+cgsm tz -g=square20.hdf -degreex=3 -degreet=2 -tf=1. -pv=g -godunovType=2 -tz=trig -go=halt  
+
+cgsm tz -g=square20.hdf -degreex=3 -degreet=2 -tf=1. -pv=g -godunovType=2 -go=halt  [OK
+
+cgsm tz -g=square20.hdf -degreex=1 -degreet=1 -tf=1. -pv=g -godunovType=2 -go=halt  
+
+
+
+
+
+Godunov, linear-elasticity
+cgsm -noplot tz -g=square20.hdf -degreex=1 -degreet=1 -tf=1. -pv=g -go=halt  [exact
+
+
+
+==== 2013/01/31
+
+cgsm tz -g=box20.order2.hdf -pv=g -degreex=2 -degreet=2 -tf=.5 -tp=.01 -go=halt -checkGhostErr=2 -bcn=dirichlet -bg=box -tangentialStressDissipation=1. -godunovType=1 -godunovOrder=1
+
+
+==== 2013/01/28 - test restart
+
+cgsm traveling -g=square128.order2 -tp=.05 -tf=10. -ic=special -bc=dirichlet -pv=g -restart=a.show
+
+cgsm traveling -g=square128.order2 -tp=.05 -tf=10. -ic=special -bc=dirichlet -pv=g -show=a.show
+
+-->t=5.0000e-02 dt=2.0e-03 maxNorm errors:[2.0823e-01,2.3815e-01,2.6747e-01,1.9150e-01,1.9150e-01,3.9719e-01,7.0333e-04,5.7080e-04,], maxNorm(u):[3.01e-01,5.21e-01,5.03e-01,2.92e-01,2.92e-01,8.81e-01,5.32e-02,1.95e-01,]
+>>> Cgsm: GD: t=5.00e-02, steps=25, dt=2.0e-03 |div(U)|=3.66e-01, |curl(U)|=2.76e-01, |div(U)|/|grad(U)|=1.14e+00 |grad(U)|=3.20e-01, cpu=3.58e+00(s)
+-->t=1.0000e-01 dt=2.0e-03 maxNorm errors:[2.0720e-01,2.3345e-01,2.5696e-01,1.9521e-01,1.9521e-01,3.8982e-01,6.7693e-04,6.6770e-04,], maxNorm(u):[3.00e-01,5.24e-01,5.13e-01,2.91e-01,2.91e-01,8.85e-01,5.04e-02,2.20e-01,]
+>>> Cgsm: GD: t=1.00e-01, steps=50, dt=2.0e-03 |div(U)|=3.68e-01, |curl(U)|=2.75e-01, |div(U)|/|grad(U)|=1.13e+00 |grad(U)|=3.25e-01, cpu=7.27e+00(s)
+-->t=1.5000e-01 dt=2.0e-03 maxNorm errors:[2.2548e-01,2.3895e-01,2.5862e-01,2.0996e-01,2.0996e-01,4.0294e-01,8.4931e-04,7.6630e-04,], maxNorm(u):[3.00e-01,5.19e-01,4.97e-01,2.92e-01,2.92e-01,8.76e-01,4.75e-02,2.44e-01,]
+>>> Cgsm: GD: t=1.50e-01, steps=75, dt=2.0e-03 |div(U)|=3.68e-01, |curl(U)|=2.78e-01, |div(U)|/|grad(U)|=1.14e+00 |grad(U)|=3.22e-01, cpu=9.28e+00(s)
+
+
+
+RESTART: OK
+cgsm diffract -g=cice2.order2 -pv=g -tp=.1  -tol=.001 -ic=special -bc=d -x0=-1.25 -amr=1 -restart=a.show
+
+RUN:
+cgsm diffract -g=cice2.order2 -pv=g -tp=.1  -tol=.001 -ic=special -bc=d -x0=-1.25 -amr=1 -show=a.show
+
+
+RESTART: .. OK after fixes
+cgsm diffract -g=cice2.order2 -pv=nc -tp=.1  -tol=.001 -ic=special -bc=d -x0=-1.25 -amr=1 -restart=a.show
+
+RUN:
+cgsm diffract -g=cice2.order2 -pv=nc -tp=.1  -tol=.001 -ic=special -bc=d -x0=-1.25 -amr=1 -show=a.show
+
+=== 2012/09/05 
+
+**** SEE runs/cgsm/rotatedLinear/memo ****
+
+
+ROTATED LINEAR
+
+USE nonSquare with gdb (fix me)
+
+BAD ??
+cgsm -noplot boundaryForcing -g=nonSquare5.order2 -pv=g -tp=.01 -tf=.01 -force=traction -bca=symmetry -godunovType=3 -go=halt -traction=-.675 >! junk4
+
+OK: 
+cgsm -noplot boundaryForcing -g=nonSquare5.order2 -pv=g -tp=.01 -tf=.01 -force=traction -bca=symmetry -godunovType=3 -go=halt -traction=-.65 >! junk3
+
+cgsm boundaryForcing -g=square5.order2 -pv=g -tp=.01 -tf=.01 -force=traction -bca=symmetry -godunovType=3 -go=halt -traction=-.75
+
+REDUCE traction: OK 
+cgsm boundaryForcing -g=square5.order2 -pv=g -tp=.01 -tf=.01 -force=traction -bca=symmetry -godunovType=3 -go=halt -traction=-.5
+
+
+=== 2012/09/04 -- look at problem at symmetry corners (from FSI-SVK examples)
+
+
+ROTATED LINEAR
+cgsm -noplot boundaryForcing -g=square5.order2 -pv=g -tp=.01 -tf=1. -force=traction -bca=symmetry -godunovType=3 -go=halt
+
+
+*** SLIPWALL -- should this remain 1D ???
+cgsm boundaryForcing -g=square5.order2 -pv=g -tp=.01 -tf=1. -force=traction -bca=slipWall -go=halt
+
+
+
+THIS WORKS NOW: remains 1D
+cgsm boundaryForcing -g=square5.order2 -pv=g -tp=.01 -tf=1. -force=traction -bca=symmetry -go=halt
+
+=== 2012/09/03 -- look at problem at symmetry corners (from FSI-SVK examples)
+
+-- traction/symmetry corners : trouble 
+cgsm boundaryForcing -g=square5.order2 -pv=g -tp=.1 -tf=10. -force=traction -bca=symmetry
+cgsm boundaryForcing -g=square20.order2 -pv=g -tp=.1 -tf=10. -force=traction -bca=symmetry
+
+-- tractionBC + slipWall's --> some issues near corners
+cgsm boundaryForcing -g=square20 -pv=g -tp=.1 -tf=10. -force=traction
+
+ -- NOT periodic in y: symmetry BC at top and bottom: looks ok
+cgsm piston -g=pistonSolidGridfa16 -pv=g -tp=.1 -tf=10. -ic=special -pp=4 -bc=dirichlet 
+
+
+
+==== 2012/04/24
+
+Piston problem with SVK:
+cgsm piston -g=pistonSolidGridf16 -pv=g -godunovType=2 -tp=.1 -tf=10. -ic=special -bc=dirichlet 
+
+errors with LINEAR solution:
+-->t=1.0000e-01 dt=1.6e-03 maxNorm errors:[2.4123e-03,0.0000e+00,7.6802e-03,0.0000e+00,0.0000e+00,9.3378e-04,4.6334e-05,0.0000e+00,], maxNorm(u):[3.48e-01,0.00e+00,1.60e-01,0.00e+00,0.00e+00,5.20e-02,1.34e-02,0.00e+00,]
+
+
+Linear-elasticity:
+cgsm piston -g=pistonSolidGridf16 -pv=g -tp=.1 -tf=10. -ic=special -bc=dirichlet 
+
+-->t=1.0000e-01 dt=1.6e-03 maxNorm errors:[1.5424e-09,0.0000e+00,1.5906e-09,0.0000e+00,0.0000e+00,5.3021e-10,8.6693e-08,0.0000e+00,], maxNorm(u):[3.48e-01,0.00e+00,1.56e-01,0.00e+00,0.00e+00,5.20e-02,1.34e-02,0.00e+00,]
+
+
+
+=== 2012/02/20 *check bug from Stefan
+
+cgsm boundaryForcing -g=square40.order2 -cons=1 -tp=.05 -tf=10. -x0=.5 -y0=.5 -force=pressure 
+cgsm boundaryForcing -g=square40.order2 -cons=1 -tp=.05 -tf=10. -x0=.5 -y0=.5 -force=pressure -rho=1.e10
+
+cgsm boundaryForcing -g=square40.order2 -pv=g -tp=.05 -tf=10. -x0=.5 -y0=.5 -force=pressure 
+cgsm boundaryForcing -g=square40.order2 -pv=g -tp=.05 -tf=10. -x0=.5 -y0=.5 -force=pressure -rho=1.e10
+cgsm boundaryForcing -g=square40.order2 -pv=g -tp=.05 -tf=10. -x0=.5 -y0=.5 -force=pressure -rho=10.
+
+
+==== 2012/02/08 - SVK tests
+
+cgsm rotation -g=annulus4.order2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=1. -plotStress=1 -go=halt
+
+==== 2012/02/07 - SVK tests
+
+
+cgsm rotation -g=annulus4.order2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=1. -go=halt
+
+
+==== 2011/11/16
+
+***** Redo PPW computation:
+
+c = sqrt(3) = 1.732
+solution : -cos( 4*pi*( x - c*t ) )
+Period = P = 1/(2c) = .2886 
+
+PPW = K * sqrt(T/eps) =>  K = PPW*sqrt(eps/T)
+
+********* FOS ***********
+sqrt( 2*(1-.447)*(1-2*.447) )*pi*sqrt(pi/3) = 1.1
+
+
+square128: K = 64*sqrt(4.2429e-04) = 1.32 
+square256: K = 128*sqrt(8.0487e-05) = 1.148
+square512: K = 256*sqrt(1.8039e-05) = 1.0873
+
+cgsm planeWave -g=square512p.order2 -pv=g -diss=0. -tp=.2886 -tf=2.886 -ic=special -freq=2. -cfl=.9
+deltaT=5.07e-04
+-->t=2.8860e-01 dt=5.1e-04 maxNorm errors:[3.9321e-04,0.0000e+00,6.8106e-04,0.0000e+00,0.0000e+00,2.2702e-04,1.8039e-05,0.0000e+00,]
+
+cgsm planeWave -g=square256p.order2 -pv=g -diss=0. -tp=.2886 -tf=2.886 -ic=special -freq=2. -cfl=.9
+deltaT=1.01e-03 : cfl = sqrt(3)*1.01e-03/3.91e-03 = .4474
+-->t=2.8860e-01 dt=1.0e-03 maxNorm errors:[1.7537e-03,0.0000e+00,3.0376e-03,0.0000e+00,0.0000e+00,1.0125e-03,8.0487e-05,0.0000e+00,],
+
+cgsm planeWave -g=square128p.order2 -pv=g -diss=0. -tp=.2886 -tf=2.886 -ic=special -freq=2. -cfl=.9
+deltaT=2.03e-03 : cfl = sqrt(3)*2.03e-03/(2*3.91e-03) = .449
+-->t=2.8860e-01 dt=2.0e-03 maxNorm errors:[9.2371e-03,0.0000e+00,1.5999e-02,0.0000e+00,0.0000e+00,5.3330e-03,4.2429e-04,0.0000e+00,], maxNorm(u):[2.18e+01,0.00e+00,3.77e+01,0.00e+00,0.00e+00,1.26e+01,1.00e+00,0.00e+00,]
+
+
+************ SOS **********
+
+sqrt(1-.6336^2)*pi*sqrt(pi/3) = 2.487
+
+square128: K =  64*sqrt(1.5115e-03) = 2.48 
+square256: K = 128*sqrt(3.7771e-04) = 2.487
+square512: K = 256*sqrt(9.4104e-05) = 2.483
+
+cgsm planeWave -g=square512p.order2 -pv=c -diss=0. -tp=.2886 -tf=2.886 -ic=special -freq=2. -cfl=.9
+dt=7.161e-04 
+-->t=2.8860e-01 dt=7.2e-04 maxNorm errors:[9.4104e-05,0.0000e+00,], maxNorm(u):[1.00e+00,0.00e+00,]
+
+cgsm planeWave -g=square256p.order2 -pv=c -diss=0. -tp=.2886 -tf=2.886 -ic=special -freq=2. -cfl=.9
+dt=1.429e-03  CFL = sqrt(3)*1.429e-03/3.91e-03 = .633
+-->t=2.8860e-01 dt=1.4e-03 maxNorm errors:[3.7771e-04,0.0000e+00,], maxNorm(u):[1.00e+00,0.00e+00,]
+
+cgsm planeWave -g=square128p.order2 -pv=c -diss=0. -tp=.2886 -tf=2.886 -ic=special -freq=2. -cfl=.9
+dt=2.857e-03 : CFL= sqrt(3)*2.857e-03/7.81e-03 = .6336
+-->t=2.8860e-01 dt=2.9e-03 maxNorm errors:[1.5115e-03,0.0000e+00,], maxNorm(u):[1.00e+00,0.00e+00,]
+
+
+************************************************************************
+--- NOTE: 1D scheme is third order if c*dt/h = .5 
+
+2.9099e-04/3.5982e-05 = 8 
+
+cgsm planeWave -g=square256p.order2 -pv=g -diss=0. -tp=.3 -tf=.9 -ic=special -freq=2. -cfl=1.01
+
+-->t=3.0000e-01 dt=1.1e-03 maxNorm errors:[7.8932e-04,0.0000e+00,1.3671e-03,0.0000e+00,0.0000e+00,4.5572e-04,3.5982e-05,0.0000e+00,], maxNorm(u):[2.18e+01,0.00e+00,3.77e+01,0.00e+00,0.00e+00,1.26e+01,1.00e+00,0.00e+00,]
+
+CFL=.99 : 
+NOTE: 1D cfl = c*dt/h = sqrt(3)*2.28e-3/7.8e-3 = 1.73*2/7.8 = .50
+
+cgsm planeWave -g=square128p.order2 -pv=g -diss=0. -tp=.3 -tf=.9 -ic=special -freq=2. -cfl=1.01
+-->t=3.0000e-01 dt=2.2e-03 maxNorm errors:[6.4451e-03,0.0000e+00,1.1163e-02,0.0000e+00,0.0000e+00,3.7211e-03,2.9099e-04,0.0000e+00,], maxNorm(u):[2.17e+01,0.00e+00,3.76e+01,0.00e+00,0.00e+00,1.25e+01,9.99e-01,0.00e+00,]
+
+
+
+==== 2011/11/13 
+
+++++++++++ planeWave:
+
+
+FOS/SOS = 1.4/2.5 = .56 (1D) 
+
+FOS/SOS = .52/1.1 = .47 (diagonal)
+
++++++++++++++++++++++++++++++++++
++++++++++++++++ FOS +++++++++++++
++++++++++++++++++++++++++++++++++
+
+eps = 2.0520e-03
+
+----------- Diagonal P-wave 
+
+PPW = .52*sqrt(T/eps) 
+
+actual PPW =   64/sqrt(2)/4 = 11.4   h = sqrt(2)/64 
+
+eps=2.e-3 : 1/sqrt(eps)  = 22
+
+NOTE: 1D cfl = c*dt/h = sqrt(3)*2e-3/7.8e-3 = 1.73*2/7.8 = .44
+cgsm planeWave -g=square64p.order2 -pv=g -diss=0. -tp=.05 -tf=.7 -ic=special -freq=2.
+-->t=2.0000e-01 dt=3.8e-03 maxNorm errors:[5.5422e-02,5.5422e-02,9.3565e-02,4.8153e-02,4.8153e-02,9.3565e-02,2.0520e-03,2.0520e-03,], 
+-->t=4.0000e-01 dt=3.8e-03 maxNorm errors:[1.1093e-01,1.1093e-01,1.8711e-01,9.6206e-02,9.6206e-02,1.8711e-01,4.0823e-03,4.0823e-03,]
+
+----------------
+PPW = 1.4*sqrt(T/eps)
+
+actual PPW= 64 
+eps=4.8889e-04  1./sqrt(eps) = 45 
+
+ NOTE: 1D cfl = c*dt/h = sqrt(3)*2e-3/7.8e-3 = 1.73*2/7.8 = .44
+cgsm planeWave -g=square128p.order2 -pv=g -diss=0. -tp=.05 -tf=.7 -ic=special -freq=2.
+
+
+
+-->t=3.0000e-01 dt=2.0e-03 maxNorm errors:[1.0026e-02,0.0000e+00,1.7365e-02,0.0000e+00,0.0000e+00,5.7884e-03,4.8889e-04,0.0000e+00,],
+-->t=6.0000e-01 dt=2.0e-03 maxNorm errors:[2.0066e-02,0.0000e+00,3.4756e-02,0.0000e+00,0.0000e+00,1.1585e-02,9.6073e-04,0.0000e+00,], 
+
++++++++++++++++++++++++++++++++++
++++++++++++++ SOS +++++++++++++++
++++++++++++++++++++++++++++++++++
+
+----------- Diagonal P-wave 
+
+PPW = 1.1 sqrt(T/eps) 
+
+
+actual PPW =   64/sqrt(2)/4 = 11.4   h = sqrt(2)/64 
+
+
+eps =8.8632e-03,  1./sqrt(eps) = 10.6 
+
+freq= 2 * sqrt(2)    T = 1./( 2*sqrt(2)*1.73 ) = .20 
+k1=1, k2=1 (normalized)
+
+cgsm planeWave -g=square64p.order2 -pv=c -diss=0. -tp=.05 -tf=.7 -ic=special -bc=dirichlet
+-->t=2.0000e-01 dt=5.6e-03 maxNorm errors:[8.8632e-03,8.8632e-03,], maxNorm(u):[7.06e-01,7.06e-01,]
+-->t=4.0000e-01 dt=5.6e-03 maxNorm errors:[1.7715e-02,1.7715e-02,], maxNorm(u):[7.05e-01,7.05e-01,]
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+PPW = 2.5 *sqrt(T/eps) 
+
+PPW (actual)=32
+
+eps=6.2852e-03  1/sqrt(eps) = 12.6 
+
+freq=4: 
+cgsm planeWave -g=square128p.order2 -pv=c -diss=0. -tp=.05 -tf=.7 -ic=special -freq=4.
+-->t=1.5000e-01 dt=2.8e-03 maxNorm errors:[6.2852e-03,0.0000e+00,], maxNorm(u):[9.99e-01,0.00e+00,]
+-->t=3.0000e-01 dt=2.8e-03 maxNorm errors:[1.2618e-02,0.0000e+00,], maxNorm(u):[9.96e-01,0.00e+00,]
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+PPW = 2.5*sqrt(T/eps) 
+
+PPW=64 
+eps=1.5696e-03  1/sqrt(eps) = 25
+cgsm planeWave -g=square128p.order2 -pv=c -diss=0. -tp=.05 -tf=.7 -ic=special -bc=dirichlet
+-->t=3.0000e-01 dt=2.8e-03 maxNorm errors:[1.5696e-03,0.0000e+00,], maxNorm(u):[9.99e-01,0.00e+00,]
+
+
+PPW (actual) = 32   = 2.5*sqrt(T/eps) 
+
+eps=7.5e-3 : sqrt(1/eps) =  12.6
+
+p-wave: freq=2  T=.3 ??  cp=1.73   T = 1/( freq*c ) = 1/(2*1.73) = .28 
+
+cgsm planeWave -g=square64p.order2 -pv=c -diss=0. -tp=.05 -tf=.7 -ic=special -bc=dirichlet
+-->t=3.0000e-01 dt=5.6e-03 maxNorm errors:[6.2852e-03,0.0000e+00,], maxNorm(u):[9.99e-01,0.00e+00,]
+-->t=6.0000e-01 dt=5.6e-03 maxNorm errors:[1.2618e-02,0.0000e+00,], maxNorm(u):[9.96e-01,0.00e+00,]
+
+ --> can we estimate the PPW needed??
+
+This gives PPW = 3*sqrt(T/eps) for SOS
+
+
+ 1./sqrt( 3.3069e-03 ) = 17 
+
+cgsm tz -g=square128.order2 -tz=trig -fx=4 -fy=4 -fz=4 -ft=4 -pv=c -diss=0. -tp=.1 -tf=1. -go=halt
+-->t=1.0000e+00 dt=2.9e-03 maxNorm errors:[3.3069e-03,3.3628e-03,], maxNorm(u):[5.01e-01,5.00e-01,]
+
+
+err=7.e-4   PPW = 128     estimated =   sqrt( C2 * (T/eps) ) 
+sqrt( T/eps ) 1./sqrt( 7.e-4 ) =  37 
+              1/sqrt( 4e-4 ) = 50 
+
+Region is 1 wavelength, amplitude=.5
+cgsm tz -g=square128.order2 -tz=trig -fx=2 -fy=2 -fz=2 -ft=2 -pv=c -diss=0. -tp=.1 -tf=1. -go=halt
+-->t=1.0000e+00 dt=2.9e-03 maxNorm errors:[7.2699e-04,4.7241e-04,], maxNorm(u):[5.00e-01,5.00e-01,]
+
+
+
+=== 2011/10/24 
+
+++++ 3D +++  3D NEEDS to be implemented
+
+cgsm -noplot tz -g=box8.order2 -degreex=1 -degreet=1 -diss=0. -tf=.5 -pv=c -varMat=1 -go=halt 
+
+****** BUG FOUND -- OGPoly -- needs higher time derivatives for array interface derivatives.
+
+
+cgsm -noplot tz -g=square8.order2 -degreex=1 -degreet=2 -diss=0. -tf=.5 -pv=c -varMat=1 -go=halt [EXACT
+
+
+
+cgsm -noplot tz -g=square8.order2 -degreex=0 -degreet=2 -diss=0. -tf=.1 -pv=c -varMat=1 -go=halt -rho=1. -mu=1. -lambda=1.
+
+
+EXACT:
+cgsm -noplot tz -g=square16.order2 -degreex=0 -degreet=2 -diss=0. -tf=1. -pv=c -varMat=1 -go=halt -rho=1. -mu=1. -lambda=1.
+
+EXACT:
+cgsm -noplot tz -g=square16.order2 -degreex=0 -degreet=1 -diss=0. -tf=1. -pv=c -varMat=1 -go=halt -rho=1. -mu=1. -lambda=1.
+
+
+EXACT: const-mat-prop:
+cgsm tz -g=square16.order2 -degreex=2 -degreet=2 -diss=0. -tf=1. -pv=c -varMat=0 -go=halt -rho=1. -mu=1. -lambda=1.
+
+
+
+*** OK now: Check convergence rate; TRIG - ORDER=2 
+cgsm -noplot tz -g=cice4.order2 -tz=trig -diss=0. -tf=1. -pv=c -varMat=1 -go=go
+-->t=1.0000e+00 dt=5.9e-03 maxNorm errors:[1.1303e-03,8.6838e-04,], maxNorm(u):[5.00e-01,5.00e-01,]
+
+cgsm -noplot tz -g=cice2.order2 -tz=trig -diss=0. -tf=1. -pv=c -varMat=1 -go=go
+-->t=1.0000e+00 dt=1.1e-02 maxNorm errors:[4.7064e-03,3.3258e-03,], maxNorm(u):[5.01e-01,5.01e-01,]
+
+
+======== BUG FOUND
+
+*** Check convergence rate; TRIG *BAD*
+
+cgsm -noplot tz -g=rsise8.order2 -tz=trig -diss=0. -tf=1. -pv=c -varMat=1 -go=go
+-->t=1.0000e+00 dt=3.2e-03 maxNorm errors:[5.6279e-02,1.7441e-01,], maxNorm(u):[5.29e-01,6.72e-01,]
+
+*** Check convergence rate; TRIG *BAD*
+cgsm -noplot tz -g=rsise4.order2 -tz=trig -diss=0. -tf=1. -pv=c -varMat=1 -go=go
+-->t=1.0000e+00 dt=6.3e-03 maxNorm errors:[5.6645e-02,1.7470e-01,], maxNorm(u):[5.29e-01,6.72e-01,]
+
+cgsm -noplot tz -g=rsise2.order2 -tz=trig -diss=0. -tf=1. -pv=c -varMat=1 -go=go
+-->t=1.0000e+00 dt=1.3e-02 maxNorm errors:[5.8255e-02,1.7633e-01,], maxNorm(u):[5.29e-01,6.73e-01,]
+
+*** Check convergence rate; POLY
+cgsm -noplot tz -g=rsise4.order2 -degreex=2 -degreet=2 -diss=0. -tf=1. -pv=c -varMat=1 -go=go
+-->t=1.0000e+00 dt=6.7e-03 maxNorm errors:[3.0464e-02,1.1993e-02,], maxNorm(u):[7.33e+00,3.67e+00,]
+
+cgsm -noplot tz -g=rsise2.order2 -degreex=2 -degreet=2 -diss=0. -tf=1. -pv=c -varMat=1 -go=go
+-->t=1.0000e+00 dt=1.3e-02 maxNorm errors:[2.9455e-02,1.2108e-02,], maxNorm(u):[7.33e+00,3.67e+00,]
+
+=== 2011/10/23 -- TZ variable materials
+
+
+cgsm -noplot tz -g=cice2.order2 -degreex=1 -degreet=1 -diss=0. -tf=2. -pv=c -varMat=1 -go=go 
+
+
+cgsm -noplot tz -g=rsise2.order2 -degreex=1 -degreet=1 -diss=0. -tf=2. -pv=c -varMat=1 -go=go [exact
+
+cgsm -noplot tz -g=rsise1.order2 -degreex=1 -degreet=1 -diss=0. -tf=2. -pv=c -varMat=1 -go=go [exact
+
+cgsm -noplot tz -g=sise1.order2 -degreex=1 -degreet=1 -diss=0. -tf=2. -pv=c -varMat=1 -go=go [exact
+
+cgsm -noplot tz -g=nonSquare8 -degreex=1 -degreet=1 -diss=0. -tf=2. -pv=c -varMat=1 -go=go [exact
+
+cgsm -noplot tz -g=square10.hdf -degreex=2 -degreet=2 -diss=0. -tf=2. -pv=c -varMat=1 -go=go [not exact
+cgsm -noplot tz -g=square10.hdf -degreex=1 -degreet=1 -diss=0. -tf=2. -pv=c -varMat=1 -go=go [exact
+cgsm -noplot tz -g=square10.hdf -degreex=0 -degreet=0 -diss=0. -tf=2. -pv=c -varMat=1 -go=go [exact
+
+
+=== 2011/10/13-15 -- variable material properties
+
+SOSC: 2d, curvilinear:
+
+cgsm varMat -g=square1024.order2 -pv=c  -tp=.01 
+
+-- compare numbers: -x0=.4
+cgsm -noplot varMat -g=nonSquare8.order2 -pv=c  -tp=.01 -tf=.02 -x0=.4 -go=go
+cgsm -noplot varMat -g=square8.order2 -pv=c  -tp=.01 -tf=.02 -x0=.4 -go=go
+
+compare: *Bug found, ... agree
+cgsm varMat -g=nonSquare64.order2 -pv=c  -tp=.01 
+cgsm varMat -g=square64.order2 -pv=c  -tp=.01 
+
+OK: 
+cgsm -noplot tz -g=nonSquare16.order2 -degreex=2 -degreet=2 -diss=0. -tf=.5 -tp=.1 -pv=c -go=halt
+
+
+
+cgsm varMat -g=square32.order2 -pv=c  -tp=.01 
+
+
+
+cgsm varMat -g=square32.order2 -pv=g  -tp=.01 
+
+
+-- tests for cons:
+
+cgsm -noplot tz -g=nonBox10.order2 -degreex=2 -degreet=2 -diss=0. -tf=.5 -tp=.1 -pv=c -go=halt [exact
+cgsm -noplot tz -g=nonSquare16.order2 -degreex=2 -degreet=2 -diss=0. -tf=.5 -tp=.1 -pv=c -go=halt [exact
+
+cgsm -noplot tz -g=box10 -degreex=2 -degreet=2 -diss=0. -tf=.5 -tf=.1 -pv=c -go=halt [exact
+cgsm -noplot tz -g=square10 -degreex=2 -degreet=2 -diss=0. -tf=.5 -tf=.1 -pv=c -go=halt [exact
+
+
+
+
+
+=== 2011/07/08 - look at issues with cgmp and TZ
+
+
+Traction + sym BAD s22 esp. ... FIXED : add TZ forcing to symmetry BC
+cgsm tz -g=square10.order2.hdf -pv=g -degreex=1 -degreet=1 -tf=.5 -tp=.01 -bc1=t -bc2=t -bc3=sym -bc4=sym -go=halt 
+
+traction + slip OK:
+cgsm tz -g=square10.order2.hdf -pv=g -degreex=1 -degreet=1 -tf=.5 -tp=.01 -bc1=t -bc2=t -bc3=s -bc4=s -go=halt [exact
+
+
+cgsm tz -g=square10.order2.hdf -pv=g -degreex=1 -degreet=1 -tf=.5 -tp=.01 -go=halt [exact
+
+
+
+
+== 2011/07/07 : Add option to pin corners
+
+cgsm deformingDiffuser -g=deformingDiffuserSolidGrid8.order2 -pv=g -stressRelaxation=4 -ad=1. -tp=.1 
+
+cgsm deformingDiffuser -g=deformingDiffuserSolidGrid4.order2 -pv=g -stressRelaxation=4 -ad=0. -tp=.1 
+
+
+
+======== 100930 -- timing comparison: Cartesinan versus Curvilinear
+
+             ** need to make sure all files are optimized ***
+             ** get full timing and add filter 
+
+*** godunov: (check Don's email's)
+cgsm pulse -g=box40.hdf -pv=g -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2 
+  advance rectangular grids......... 2.409e+00   1.048e-01   1.520e-06    58.012   2.409e+00   2.409e+00
+
+cgsm -noplot pulse -g=nonBox40.order2.hdf -pv=g -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2 -go=go
+  advance curvilinear grids......... 8.158e+00   3.547e-01   5.147e-06    79.275   8.158e+00   8.158e+00
+
+cgsm -noplot pulse -g=rotatedBox40.order2 -pv=g -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2 -go=go
+ advance curvilinear grids......... 7.810e+00   3.396e-01   4.927e-06    81.089   7.810e+00   7.810e+00
+
+
+*** 
+
+cgsm -noplot pulse -g=box40.hdf -pv=c  -filter=1 -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2  -go=go
+ advance rectangular grids......... 1.144e-01   8.797e-03   1.276e-07    23.568   1.144e-01   1.144e-01
+
+cgsm -noplot pulse -g=nonBox40.order2 -pv=c  -filter=1 -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2  -go=go
+  advance curvilinear grids......... 1.219e+00   9.378e-02   1.361e-06    47.118   1.219e+00   1.219e+00
+
+cgsm -noplot pulse -g=box80.order2.hdf -pv=c  -filter=1 -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2  -go=go
+  advance rectangular grids......... 1.926e+00   7.407e-02   1.394e-07    38.633   1.926e+00   1.926e+00
+
+cgsm -noplot pulse -g=nonBox80.order2.hdf -pv=c  -filter=1 -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2  -go=go
+  advance curvilinear grids......... 1.670e+01   6.424e-01   1.209e-06    58.742   1.670e+01   1.670e+01
+
+** rotated box:
+
+cgsm -noplot pulse -g=rotatedBox80.order2.hdf -pv=c  -filter=1 -tp=.1 -tf=.1 -x0=.5 -y0=.5 -z0=.5 -bc=sf -dsf=.2  -go=go
+  advance curvilinear grids......... 1.749e+01   6.725e-01   1.266e-06    58.115   1.749e+01   1.749e+01
+
+
+============== 090910 -- test sphere ----
+
+-- godunov: (tz is being applied at some boundaries
+cgsm tz -g=spheree2.order2 -pv=g -tz=trig -diss=0. -tf=1. -tp=.1 -go=halt
+-->t=1.0000e-01 dt=6.3e-03 maxNorm errors:[2.4118e-03,2.7514e-03,2.4784e-03,9.9668e-03,5.9356e-03,8.2239e-03,5.9356e-03,1.2545e-02,5.5237e-03,8.2239e-03,5.5237e-03,1.0830e-02,4.3429e-04,3.6829e-04,4.1965e-04,], maxNorm(u):[7.06e-01,2.35e-01,4.74e-01,4.80e-01,3.77e-01,5.65e-01,3.77e-01,6.65e-01,6.17e-01,5.65e-01,6.17e-01,1.89e-01,9.51e-01,4.71e-01,7.07e-01,]
+
+
+== fixed ogen/sphere.cmd -- make grid spacing more uniform
+
+cgsm tz -g=spheree2.order2 -tz=trig -diss=0. -filter=1 -filterOrder=6 -filterStages=2 -tf=1. -tp=.1 -go=halt
+filter6: 
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[2.7387e-03,2.2957e-03,1.6951e-03,], maxNorm(u):[9.51e-01,4.72e-01,7.08e-01,]
+diss=0:
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[2.7186e-03,2.3308e-03,1.7289e-03,], maxNorm(u):[9.51e-01,4.72e-01,7.08e-01,]
+filter6 spheree4: 
+-->t=1.0000e-01 dt=6.3e-03 maxNorm errors:[6.9453e-04,5.5436e-04,4.5193e-04,], maxNorm(u):[9.51e-01,4.75e-01,7.12e-01,]
+ dis==0 sphere4: 
+-->t=1.0000e-01 dt=6.3e-03 maxNorm errors:[6.9554e-04,5.5434e-04,4.5319e-04,], maxNorm(u):[9.51e-01,4.75e-01,7.12e-01,]
+
+filter4: 
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[5.7676e-03,2.2499e-03,3.2861e-03,], maxNorm(u):[9.51e-01,4.71e-01,7.06e-01,]
+
+cgsm tz -g=spheree4.order2 -tz=trig -diss=0.5 -tf=1. -tp=.1 -go=halt
+grid     name         gridIndexRange(0:1,0:2)           gridPoints   hmx      hmn
+   0:       box   ([ 0:   71],[ 0:   71],[ 0:   71])     203563   2.50e-02 2.50e-02
+   1:    sphere   ([ 0:   64],[ 0:  176],[ 0:    6])      91676   3.57e-02 1.78e-02
+   2: southPole   ([ 0:   42],[ 0:   42],[ 0:    6])      16200   3.21e-02 2.23e-02
+   3: northPole   ([ 0:   42],[ 0:   42],[ 0:    6])      16200   3.21e-02 2.23e-02
+
+-->t=1.0000e-01 dt=6.3e-03 maxNorm errors:[6.9661e-04,5.6096e-04,4.6198e-04,], maxNorm(u):[9.51e-01,4.75e-01,7.12e-01,]
+
+
+cgsm tz -g=spheree2.order2 -tz=trig -diss=0.5 -tf=1. -tp=.1 -go=halt
+grid     name         gridIndexRange(0:1,0:2)           gridPoints   hmx      hmn
+   0:       box   ([ 0:   31],[ 0:   31],[ 0:   31])      18832   5.00e-02 5.00e-02
+   1:    sphere   ([ 0:   32],[ 0:   88],[ 0:    6])      24294   7.14e-02 2.94e-02
+   2: southPole   ([ 0:   22],[ 0:   22],[ 0:    6])       5000   6.36e-02 3.61e-02
+   3: northPole   ([ 0:   22],[ 0:   22],[ 0:    6])       5000   6.36e-02 3.61e-02
+ total number of grid points =53126 (egir), min(hmn)=2.94e-02, max(hmn)=5.00e-02, max(hmx)=7.14e-02,
+
+-->t=1.0000e-01 dt=1.0e-02 maxNorm errors:[2.7044e-03,2.3244e-03,1.7422e-03,], maxNorm(u):[9.51e-01,4.72e-01,7.08e-01,]
+
+***********
+
+
+cgsm tz -g=spheree4.order2 -tz=trig -diss=0.5 -tf=1. -tp=.1 -go=halt
+grid     name         gridIndexRange(0:1,0:2)           gridPoints   hmx      hmn
+   0:       box   ([ 0:   71],[ 0:   71],[ 0:   71])     201328   2.50e-02 2.50e-02
+   1:    sphere   ([ 0:   47],[ 0:  126],[ 0:    6])      46688   5.01e-02 1.62e-02
+   2: southPole   ([ 0:   25],[ 0:   25],[ 0:    6])       6272   4.60e-02 2.50e-02
+   3: northPole   ([ 0:   25],[ 0:   25],[ 0:    6])       6272   4.60e-02 2.50e-02
+-->t=1.0000e-01 dt=6.3e-03 maxNorm errors:[1.3564e-03,1.2210e-03,1.1039e-03,], maxNorm(u):[9.49e-01,4.75e-01,7.12e-01,]
+
+
+cgsm tz -g=spheree2.order2 -tz=trig -diss=0.5 -tf=1. -tp=.1 -go=halt
+grid     name         gridIndexRange(0:1,0:2)           gridPoints   hmx      hmn
+   0:       box   ([ 0:   31],[ 0:   31],[ 0:   31])      18662   5.00e-02 5.00e-02
+   1:    sphere   ([ 0:   23],[ 0:   63],[ 0:    6])      12456   1.02e-01 2.67e-02
+   2: southPole   ([ 0:   13],[ 0:   13],[ 0:    6])       2048   9.22e-02 5.00e-02
+   3: northPole   ([ 0:   13],[ 0:   13],[ 0:    6])       2048   9.22e-02 5.00e-02
+
+-->t=1.0000e-01 dt=1.1e-02 maxNorm errors:[5.8987e-03,5.0188e-03,4.4393e-03,], maxNorm(u):[9.43e-01,4.72e-01,7.08e-01,]
+
+
+
+
+
+
+=========== 090903 -- test filter accuracy
+
+
+cgsm noplot tz -g=cice4.order2 -pv=nc -tf=.1 -tp=0.1 -tz=trig -bcn=d -en=max -diss=.0 -filter=1 -lambda=1 -go=go
+
+=========== 090829 
+  trouble here: not exact 
+
+cgsm noplot amr -g=sise1.order2 -pv=nc -diss=0. -tz=poly -degreex=2 -degreet=0 -xTopHat=-.5 -yTopHat=-.5 -useTopHat=1 -bc=d -tp=.01 -tf=.01 -debug=7 -go=go
+
+
+= 090825 : test stability of isolated interface
+
+-- SIC with a fixed annulus radius : bc=traction
+
+cgsm pulse -g=sici4fixed.order2 -pv=c -diss=10. -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10. [OK t=50]
+cgsm pulse -g=sici8fixed.order2 -pv=c -diss=10. -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10. [OK t=25]
+
+-- SIC with a fixed annulus radius : bc=displacement
+cgsm pulse -g=sici4fixed.order2 -pv=c -diss=10. -tp=1. -tf=100. -x0=0. -y0=0. -lambda=10. [OK t=50]
+cgsm pulse -g=sici8fixed.order2 -pv=c -diss=10. -tp=1. -tf=100. -x0=0. -y0=0. -lambda=10. [OK t=40]
+cgsm pulse -g=sici16fixed.order2 -pv=c -diss=10. -tp=2. -tf=100. -x0=0. -y0=0. -lambda=10. [OK, t=38
+
+cgsm pulse -g=sici8fixed.order2 -pv=c -diss=1. -tp=1. -tf=100. -x0=0. -y0=0. -lambda=10. [bad, t=7]
+
+-- sic :  should be able to stabilize with fixed diss *but only if raduius of annulus is fixed*
+cgsm pulse -g=sice4.order2.hdf -pv=c -diss=10. -tp=1. -tf=100. -x0=0. -y0=0. -lambda=10. [bad]
+cgsm pulse -g=sice2.order2.hdf -pv=c -diss=20. -tp=1. -tf=100. -x0=0. -y0=0. -lambda=10. [OK but damped to zero]
+cgsm pulse -g=sice2.order2.hdf -pv=c -diss=10. -tp=1. -tf=100. -x0=0. -y0=0. -lambda=10. [bad]
+cgsm pulse -g=sice3.order2.hdf -pv=c -diss=1. -tp=1. -tf=100. -x0=0. -y0=0. -lambda=10. [bad]
+
+
+** unable to make twoSquares go unstable, changed overlap, grid spacing on right
+cgsm pulse -g=twoSquaresi4.order2 -pv=nc -diss=0. -filter=0 -tp=1. -tf=100. -x0=.0 -y0=0. -lambda=10 [OK]
+
+
+=== 090824: BUG FIXED extrapInterp and extrap-ghost in assignBCSOS -- do after other BCs!
+
+ -- SIC: 
+  cgsm pulse -g=sice3.order2.hdf -pv=g -diss=0. -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10. [OK but wiggles, interp?]
+  cgsm pulse -g=sice3.order2.hdf -pv=nc -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10. [BAD]
+  cgsm pulse -g=sice3.order2.hdf -pv=c -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10. [OK]
+  cgsm pulse -g=sice3.order2.hdf -pv=c -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=100. [OK]
+  cgsm pulse -g=sice3.order2.hdf -pv=c -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=1000. [OK]
+  cgsm pulse -g=sice8.order2.hdf -pv=c -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=1000. [OK]
+
+ -- C + filter SIC : OK (NC = ok)
+  cgsm pulse -g=sice3.order2.hdf -pv=c -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=1.
+
+ -- NC + filter: OK (extraOrder=3)
+  cgsm pulse -g=cice4.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m
+  cgsm pulse -g=cice8.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m
+
+-- Godunov: NOTE: v looks fine at the interface, u is not smooth
+  cgsm pulse -g=cice4.order2.hdf -pv=g -diss=0. -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m [TROUBLE : interp]
+  cgsm pulse -g=cice4.order2.hdf -pv=g -diss=0. -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m -lambda=100 [BAD - interface]
+
+ -- Cons + filter : this seems stable: 
+cgsm pulse -g=cice4.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m
+cgsm pulse -g=cice4.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m -lambda=10 [OK]
+cgsm pulse -g=cice4.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m -lambda=100 [OK]
+cgsm pulse -g=cice4.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m -lambda=1000 [OK]
+cgsm pulse -g=cice8.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m -lambda=100 [OK]
+
+
+
+=== 090824 -- test pulse with large lambda
+
+ -- blows up: lambda=100
+ cgsm pulse -g=cice4.order2.hdf -pv=c -diss=10. -filter=0 -tp=1. -tf=100. -x0=1. -y0=0. -bc=m -lambda=100
+
+-- Godunov: lambda=100 -- trouble
+cgsm pulse -g=cice4.order2.hdf -pv=g -diss=0. -filter=0 -tp=.01 -tf=100. -x0=1. -y0=0. -bc=m -lambda=100
+
+-- Godunov: wiggles form but doesn't blow up : do we need linear interpolation?
+cgsm pulse -g=cice4.order2.hdf -pv=g -diss=0. -filter=0 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m 
+
+-- diss: --> eventually wiggles on the boundary
+cgsm pulse -g=cice4.order2.hdf -pv=c -diss=10. -filter=0 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m 
+
+ -- filter: extrapOrder=3 : stable but energy grows??
+  cgsm pulse -g=cice4.order2.hdf -pv=c -diss=0. -filter=1 -tp=.1 -tf=100. -x0=1. -y0=0. -bc=m
+ -- diss : OK: 
+  cgsm pulse -g=cice4.order2.hdf -pv=c -diss=10. -filter=0 -tp=1. -tf=100. -x0=1. -y0=0. -bc=m
+
+--- try filter: the body shifts to the right!  trouble at late times
+ cgsm pulse -g=sice3.order2.hdf -pv=c -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10.
+
+ cgsm pulse -g=cice4.order2.hdf -pv=c -diss=0. -filter=1 -tp=1. -tf=100. -x0=0. -y0=0. -bc=m
+
+
+
+-- cons: goes bad too:
+ cgsm pulse -g=sice3.order2.hdf -pv=c -diss=1. -dissOrder=4 -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10.
+
+
+-- godunov looks ok:
+  cgsm pulse -g=sice3.order2.hdf -pv=g -diss=0. -tp=1. -tf=100. -x0=0. -y0=0. -bc=sf -lambda=10. 
+
+ -- NC: unstable: around t=5: 
+   cgsm pulse -g=sice3.order2.hdf -pv=nc -diss=1. -dissOrder=4 -tp=1. -tf=10. -x0=0. -y0=0. -bc=sf -lambda=10.
+
+
+
+=== 090823 -- test new filter
+
+ -- try godunov - no dissipation : ok to t=10
+  cgsm tz -g=rsise4.order2.hdf -pv=g -tz=trig -diss=0. -tf=10. -tp=1. -filter=0 -go=halt
+  -->t=1.0000e+00 dt=6.5e-03 maxNorm errors:[3.1232e-03,2.8867e-03,1.3672e-02,2.8648e-02,2.8648e-02,1.0868e-02,2.9956e-04,4.4055e-04,], maxNorm(u):[7.50e-01,2.50e-01,5.09e-01,4.01e-01,4.01e-01,6.00e-01,5.00e-01,5.00e-01,]
+
+
+l -- try explicit 4th-order filter : better
+ cgsm tz -g=rsise4.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -go=halt
+  -->t=1.0000e+00 dt=9.2e-03 maxNorm errors:[7.4856e-03,7.7647e-03,], maxNorm(u):[5.00e-01,5.00e-01,]
+ cgsm tz -g=rsise8.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -go=halt
+  -->t=1.0000e+00 dt=4.6e-03 maxNorm errors:[1.9133e-03,1.9989e-03,]
+
+-- check the square:
+
+-- filter: looks ok, 2nd-order
+ cgsm tz -g=square40.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -go=halt
+  -->t=1.0000e+00 dt=9.2e-03 maxNorm errors:[1.0842e-02,4.3059e-03,], maxNorm(u):[5.00e-01,5.00e-01,]
+ cgsm tz -g=square80.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -go=halt
+  -->t=1.0000e+00 dt=4.6e-03 maxNorm errors:[2.7295e-03,1.0905e-03,], maxNorm(u):[5.00e-01,5.00e-01,]
+
+-- no filter: 
+ cgsm tz -g=square40.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -go=halt
+   -->t=1.0000e+00 dt=9.2e-03 maxNorm errors:[7.4750e-03,4.8210e-03,], maxNorm(u):[5.00e-01,5.02e-01,]
+ cgsm tz -g=square80.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -go=halt
+  -->t=1.0000e+00 dt=4.6e-03 maxNorm errors:[1.8616e-03,1.2091e-03,], maxNorm(u):[5.00e-01,5.00e-01,]
+
+
+
+-- filter + traction-bc : works but not 2nd-order
+ cgsm tz -g=rsise4.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -bcn=sf -go=halt
+  -->t=1.0000e+00 dt=9.2e-03 maxNorm errors:[2.1853e-02,2.6460e-02,], maxNorm(u):[4.97e-01,4.93e-01,]
+ cgsm tz -g=rsise8.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -bcn=sf -go=halt
+  -->t=1.0000e+00 dt=4.6e-03 maxNorm errors:[8.7192e-03,1.0496e-02,], maxNorm(u):[4.98e-01,4.98e-01,]
+  -->t=2.0000e+00 dt=4.6e-03 maxNorm errors:[1.2323e-02,1.4543e-02,], maxNorm(u):[5.03e-01,5.07e-01,]
+
+
+--- add filter: errors remain very smooth
+ cgsm tz -g=rsise4.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -go=halt
+  -->t=1.0000e+00 dt=9.2e-03 maxNorm errors:[2.0856e-02,1.4796e-02,], maxNorm(u):[5.00e-01,5.00e-01,]
+ cgsm tz -g=rsise8.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -filter=1 -go=halt
+  -->t=1.0000e+00 dt=4.6e-03 maxNorm errors:[8.8195e-03,5.7449e-03,], maxNorm(u):[5.00e-01,5.00e-01,]
+
+-- no diss: weakly unstable around time t=5
+ cgsm tz -g=rsise4.order2.hdf -tz=trig -diss=0. -tf=10. -tp=1. -go=halt
+  -->t=1.0000e+00 dt=9.2e-03 maxNorm errors:[8.5105e-03,7.1666e-03,], maxNorm(u):[5.04e-01,5.03e-01,]
+
+----------------------
+
+cgsm sphereEigen -g=spheree1.order2 -diss=0.5 -tp=.05 -vClass=1 -nMode=2 -mMode=0 -go=halt -dsf=.5 -tf=1. -show="se.show"

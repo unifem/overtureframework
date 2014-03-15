@@ -1,0 +1,153 @@
+
+# Default compile time flags: (these are uses in make.option to define compile flags)
+#    compile:=[default/dbg/opt/optdbg]
+#    profile:=[on/off]      
+
+# you can setenv COMPILE [dbg/opt/optdbg] to over-ride this (see make.options)
+# you can setenv PROFILE [on/off] to over-ride this (see make.options)
+compile:=default
+profile:=off
+
+# this next file will define CXX, CC and FC as well as the other 
+# libraries required by Overture
+# (the same that were used in building Overture)
+-include $(Overture)/make.options
+
+# -- over-ride values here ---
+# CXX = g++
+# CC  = gcc
+# FC  = g77
+# OV_RPATH = -Wl,-rpath,
+# OV_AUTO_DOUBLE_FLAGS = -r8 -i4
+# OV_CXX_FLAGS = -fPIC
+# OV_CC_FLAGS = -fPIC
+# OV_FORTRAN_FLAGS = -fPIC
+# OV_SHARED_LIB_FLAGS = -shared
+# libraries:
+# OVERTURE_LIBRARIES =
+# OV_OPENGL_LIBRARIES =
+# APP_LIBRARIES =
+# OV_COMPILER_LIBS
+# OV_HDF_LIBRARIES =
+# OV_FORTRAN_LIBRARIES = 
+# OV_MOTIF_LIBRARIES =
+# OV_X_LIBRARIES =
+# OV_PERL_LIBRARIES =
+# OV_PARALLEL_INCLUDE = 
+# -- end over-ride --
+
+# *wdh* 100115 -- fudge for f90:
+FC90 = $(FC)
+ifeq ($(FC),pgf77)
+ FC90 = pgf90
+ # Use pgf90 -dryrun -o a a.o to see libs
+ OV_FORTRAN_LIBRARIES += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lc -lnspgc -lpgc -lm -lgcc -lc
+endif
+
+# -- fix this:
+LAPACK_LIBRARIES = $(OV_RPATH)$(LAPACK) -L$(LAPACK) -llapack -lblas
+
+# This is not always needed:
+CHEMKIN_LIBRARIES=  $(CHEMKIN)/cklib.o $(CHEMKIN)/tranlib.o
+
+## ## C++ Compiler options
+# CXX_FLAGS_REQ = -fpic -fpermissive
+CXX_FLAGS_REQ = $(OV_CXX_FLAGS)
+
+ifeq ($(mode),concise)
+CXX_FLAGS_DBG = -g -w
+else
+# CXX_FLAGS_DBG = -g -Wall
+CXX_FLAGS_DBG = -g -w
+endif
+
+CXX_FLAGS_OPT = -w -O 
+CXX_FLAGS_PROF = -pg
+
+## ## C Compiler options
+CC_FLAGS_REQ = $(OV_CC_FLAGS)
+
+ifeq ($(mode),concise)
+CC_FLAGS_DBG = -g -w
+else
+# CC_FLAGS_DBG = -g -Wall
+CC_FLAGS_DBG = -g -w
+endif
+
+CC_FLAGS_OPT = -w -O
+CC_FLAGS_PROF = -pg
+CC_FLAGS_FIXFP = -ffloat-store -mno-sse -mno-sse2
+
+## ## Fortran Compiler options
+
+FC_FLAGS_REQ = $(OV_FORTRAN_FLAGS) $(OV_AUTO_DOUBLE_FLAGS) 
+# FC_FLAGS_DBG = -g -fbounds-check 
+ifneq ($(FC),fort77)
+  FC_FLAGS_DBG = -g 
+else
+  FC_FLAGS_DBG =
+endif
+FC_FLAGS_OPT = -O3 
+FC_FLAGS_PROF = -pg 
+
+## ## Fortran Compiler options (compiled without auto double)
+
+FC_FLAGSS_REQ = $(OV_FORTRAN_FLAGS) 
+ifneq ($(FC),fort77)
+  FC_FLAGSS_DBG = -g 
+else
+  FC_FLAGSS_DBG =
+endif
+FC_FLAGSS_OPT = -O 
+FC_FLAGSS_PROF = -pg 
+
+
+## ## dependency generation
+MKDEP = gcc 
+#MKDEP_FLAGS = -MMD -E
+MKDEP_FLAGS = -MM -MT '$(OBJPREFIX)$(*F).o'
+# xlc: ** NOTE: we can use gcc to build dependencies even for xlc ***
+# MKDEP_FLAGS = -M 
+
+## ## linker options
+
+LD = $(CXX)
+# LD_FLAGS_REQ = -fpic -shared
+LD_FLAGS_REQ = $(OV_SHARED_LIB_FLAGS)
+LD_FLAGS_DBG = 
+LD_FLAGS_OPT =
+LD_FLAGS_PROF = -pg
+
+JC = javac
+JC_FLAGS =
+
+## ## archive options
+
+AR = ar
+AR_FLAGS_REQ = ruvs
+AR_FLAGS_DBG = 
+AR_FLAGS_OPT =
+AR_FLAGS_PROF = 
+
+## ## Shared library options
+
+# command to build the shared library:
+SHARED_LIBRARY_COMMAND = $(CXX)
+# flags to use when building the shared library: 
+SHARED_LIBRARY_FLAGS = $(OV_SHARED_LIB_FLAGS)
+# extension for shared libs:
+SHARED_LIBRARY_EXT = .so
+# addtional libraries to link to when building the shared library:
+SHARED_LIBRARY_LOAD_LIBS = 
+
+## ## bpp options
+
+BPP = $(Overture)/bin/bpp
+
+## ## GANTLET options
+
+GANTLET_RUN = python $(GANTLET)/commandline.py
+
+
+
+

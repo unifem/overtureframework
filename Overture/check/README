@@ -1,0 +1,57 @@
+Notes for testing the Overture distribution.
+-------------------------------------------
+
+The MASTER source for these files resides in the Overture CVS repo 
+under the Overture/check directory. 
+
+
+1) The main workhorse is the perl script
+     checkOverture.p 
+   
+    It will optionally 
+      (1) test the version in the CVS repo or test a version that has 
+          been checked out and modified by a user.
+      (2) buildOverture
+      (3) compile Overture
+      (4) run tests
+
+   checkOverture.p should appear in /usr/casc/overture/Overture/bin/ so that it is accessible
+   from all machines.
+
+2) The script
+      testDistribution
+   will call checkOverture.p for different machines. Currently the recommended way to compile 
+   simultaneously on multiple platforms is:
+      (1) open multiple xterms, one for each platform (but the xterms are all open on your sun, say)
+      (2) in xterm 1 type
+             testDistribution platform=1 [cvs=true]
+          This will start up the test for platform 1 (which happens to be platform=intel.d.gcc)
+      (3) in xterm 2 type
+             testDistribution platform=2 [cvs=true]
+      (4) repeat for the for the other xterms for platform=3,4,5,6.
+    In this way you can kill any of the jobs if something appears to be wrong.
+     
+3) The files 
+        displayBuildTestResults.html
+        buildTestResults.js
+
+   define the web page where the results are displayed. These files are changed by checkOverture.p.
+   These files should be found in /usr/casc/overture/Overture/testResults
+
+4) The shell-script "module" is used to define the environment for the different machines. It is called
+   by checkOverture.p. module is located in /usr/casc/overture/Overture/bin/
+
+
+5) To add a new platform to be tested: (this list may be incomplete (?))
+
+      o edit the module script and add the option for the new platform.
+      o edit buildTestResults.js and add a new platform for the web page. Just copy and
+        edit the lines corresponding to an existing platform.
+      o edit testDistribution and add the new platform. It should be similiar to one of the
+        existing platforms. 
+      o run the 'build' script in this directory to copy the files to /usr/casc/overture/Overture/
+
+
+
+      
+

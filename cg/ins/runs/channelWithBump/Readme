@@ -1,0 +1,36 @@
+Cgins: flow past a bump in a channel (2D and 3D)
+
+
+
+================== 2D Bump =======================
+
+
+(1) generate the grid (channelWithBump2dGrid.cmd found in Overture/sampleGrids)
+
+  Long domain:
+
+   ogen -noplot channelWithBump2dGrid -interp=e -order=4 -factor=8  -ml=2 -xa=-20. -xb=10. -yb=6. -name=channelWithBump2dGridFetch20e8.order4.ml2.hdf
+
+(2) Run: (fourth-order AFS solver, MG pressure solver)
+
+srun -N1 -n16 -ppdebug $cginsp surfaceFlow -g=channelWithBump2dGridFetch20e8.order4.ml2  -ts=afs -nu=1.e-3 -ad4=1 -ad41=.5 -ad42=.5 -tf=50. -tp=.1 -psolver=mg  -numberOfParallelGhost=4 -cfl=2.5 -slowStartCFL=1 -slowStartSteps=50 -slowStartRecomputeDt=10 -recomputeDt=50 -debug=3 -apn=10. -rtolp=1.e-6 -atolp=1.e-6 -go=halt -show="cwbb.show" -aftol=1.e-4
+
+
+
+
+
+=================== 3D Bump ====================
+
+
+--- 2nd-order: 
+
+ogen -noplot channelWithBump3dGrid -interp=e -order=2 -factor=2
+
+cgins channelWithBump3d -g=channelWithBump3dGride2.order2 -ts=pc -nu=1.e-3 -ad2=1 -tf=50. -tp=.01 -debug=3 -apn=2. -rtolp=1.e-6 -atolp=1.e-6 -go=halt -aftol=1.e-4
+
+
+
+ogen -noplot channelWithBump3dGrid -interp=e -order=4 -factor=4 -ml=2
+
+
+cgins surfaceFlow -g=channelWithBump3dGride4.order4.ml2  -ts=afs -nu=1.e-3 -ad4=1 -ad41=.5 -ad42=.5 -tf=50. -tp=.1 -psolver=mg  -numberOfParallelGhost=4 -cfl=2.5 -slowStartCFL=1 -slowStartSteps=50 -slowStartRecomputeDt=10 -recomputeDt=50 -debug=3 -apn=10. -rtolp=1.e-6 -atolp=1.e-6 -go=halt -aftol=1.e-4

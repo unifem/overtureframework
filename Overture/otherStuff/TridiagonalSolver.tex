@@ -1,0 +1,103 @@
+\section{TridiagonalSolver: Solve sets of tridiagonal (or pentadiagonal) systems or block tridiagonal systems}
+\index{tridiagonal solver}\index{block tridiagonal solver}\index{pentadiagonal solver}
+
+The {\tt TridiagonalSolver} class can be used to solve tridiagonal (or pentadiagonal) systems and 
+block tridiagonal systems. Sets of tridiagonal (pentadiagonal) systems can be solved such as those
+that are formed when line smoothing is performed on a 2 or 3 dimensional grid or
+an ADI type method is used to solve a PDE. Currently only blocks or size 2 or 3 are
+implemented. 
+
+The two basic steps to solve a tridiagonal (pentadiagonal) system are to first factor the system
+by calling the {\tt factor} member function and then solve the system using {\tt solve}.
+
+There are three types of boundary conditions supported, {\tt normal}, {\tt extended} and
+{\tt periodic}. 
+A {\tt normal} matrix tridiagonal is of the form
+\[
+  {\rm normal } = 
+        \begin{bmatrix}
+               b_0 & c_0 &      &        &        &     \\
+               a_1 & b_1 & c_1  &        &        &     \\
+                   & a_2 & b_2  & c_2    &        &     \\
+                   &     &\ddots&\ddots  & \ddots &      \\ 
+                   &     &      & a_{n-1}& b_{n-1} & c_{n-1} \\
+                   &     &      &        & a_n     & b_n 
+        \end{bmatrix}
+\]
+The extended matrix allows extra entries on the first and last rows (required
+by some PDE boundary conditions)
+\[
+  {\rm extended} = 
+        \begin{bmatrix}
+               b_0 & c_0 & a_0  &        &        &     \\
+               a_1 & b_1 & c_1  &        &        &     \\
+                   & a_2 & b_2  & c_2    &        &     \\
+                   &     &\ddots&\ddots  & \ddots &      \\ 
+                   &     &      & a_{n-1}& b_{n-1} & c_{n-1} \\
+                   &     &      & c_n    & a_n     & b_n 
+        \end{bmatrix}
+\]
+The periodic case is
+\[
+  {\rm periodic } = 
+        \begin{bmatrix}
+               b_0 & c_0 &      &        &        & a_0 \\
+               a_1 & b_1 & c_1  &        &        &     \\
+                   & a_2 & b_2  & c_2    &        &     \\
+                   &     &\ddots&\ddots  & \ddots &      \\ 
+                   &     &      & a_{n-1}& b_{n-1} & c_{n-1} \\
+              c_n  &     &      &        & a_n     & b_n 
+        \end{bmatrix}
+\]
+A {\tt normal} pentadiagonal matrix is of the form
+\[
+  {\rm normal } = 
+        \begin{bmatrix}
+               c_0 & d_0 & e_0  &       &        &        &        &     \\
+               b_1 & c_1 & d_1  & e_1   &        &        &        &     \\
+               a_2 & b_2 & c_2  & d_2   &  e_2   &        &        &     \\
+                   & a_3 & b_3  & c_3   &  d_3   &  e_3   &        &     \\
+                   &     &\ddots&\ddots & \ddots & \ddots & \ddots &          \\ 
+                   &     &      &a_{n-2}& b_{n-2}& c_{n-2}& d_{n-2}& e_{n-2}   \\
+                   &     &      &       &a_{n-1} & b_{n-1}& c_{n-1}& d_{n-1}   \\
+                   &     &      &       &        &a_{n  } & b_{n  }& c_{n  }   \\
+        \end{bmatrix}
+\]
+The {\tt extended} pentadigonal matrix allows extra equations in the first two and last two rows,
+\[
+  {\rm extended} = 
+        \begin{bmatrix}
+               c_0 & d_0 & e_0  & a_0   &  b_0   &        &        &     \\
+               b_1 & c_1 & d_1  & e_1   &  a_1   &        &        &     \\
+               a_2 & b_2 & c_2  & d_2   &  e_2   &        &        &     \\
+                   & a_3 & b_3  & c_3   &  d_3   &  e_3   &        &     \\
+                   &     &\ddots&\ddots & \ddots & \ddots & \ddots &          \\ 
+                   &     &      &a_{n-2}& b_{n-2}& c_{n-2}& d_{n-2}& e_{n-2}   \\
+                   &     &      &e_{n-1}&a_{n-1} & b_{n-1}& c_{n-1}& d_{n-1}   \\
+                   &     &      & d_n   &e_{n  } &a_{n  } & b_{n  }& c_{n  }   \\
+        \end{bmatrix}
+\]
+The periodic pentadigonal case is
+\[
+  {\rm periodic } = 
+        \begin{bmatrix}
+               c_0 & d_0 & e_0  &       &        &        & a_0    & b_0 \\
+               b_1 & c_1 & d_1  & e_1   &        &        &        & a_1 \\
+               a_2 & b_2 & c_2  & d_2   &  e_2   &        &        &     \\
+                   & a_3 & b_3  & c_3   &  d_3   &  e_3   &        &     \\
+                   &     &\ddots&\ddots & \ddots & \ddots & \ddots &          \\ 
+                   &     &      &a_{n-2}& b_{n-2}& c_{n-2}& d_{n-2}& e_{n-2}   \\
+           e_{n-1} &     &      &       &a_{n-1} & b_{n-1}& c_{n-1}& d_{n-1}   \\
+             d_n   & e_n &      &       &        &a_{n  } & b_{n  }& c_{n  }   \\
+        \end{bmatrix}
+\]
+Here is an example code that shows how to use the TridiagonalSolver
+(file {\tt Overture/tests/trid.C})
+{\footnotesize
+\listinginput[1]{1}{\otherStuff/trid.C}
+}
+
+\subsection{Member Functions}
+
+\input TridiagonalSolverInclude.tex
+

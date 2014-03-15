@@ -1,0 +1,108 @@
+#! /bin/csh -f
+#  cp files into the Overture directory 
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+# here is where the Overture Grid Function files are:
+set Overture = $ovDir
+
+set mapUtil = "$Overture/mapUtil"
+set gff = "$Overture/GridFunction"
+set gfi = "$Overture/include"
+set primer = "../primer"
+set examples = "$Overture/examples"
+set tests = "$Overture/tests"
+set ovstatic = "$Overture/static"
+
+echo "Copy operator files into the $ovDir grid function directory: $gff ..."
+
+
+cp src/{ncarfft.f}                                                                     $gff
+cp src/{BoundaryConditionParameters,AssignInterpNeighbours}.C                          $gff
+
+cp src/{MappedGridOperators,MGOC,MGOD,spectralDerivatives,FourierOperators}.C          $gff
+cp src/{BoundaryOperators,applyBCC,SparseRep,finishBoundaryConditions}.C               $gff
+cp src/{Generic}{MappedGrid,GridCollection,CompositeGrid}Operators.C                   $gff
+cp src/{fixBoundaryCorners,GridCollectionOperators,CompositeGridOperators}.C           $gff
+cp src/{UnstructuredOperators,UnstructuredBoundaryOperators}.C                         $gff
+cp src/{finishBoundaryConditions}.bC                                                   $gff
+
+cp include/{defineFDerivatives.h}                                                      $gff
+
+
+cp fortranDeriv/{xFDeriv,yFDeriv,zFDeriv,xxFDeriv,xyFDeriv,xzFDeriv,yyFDeriv,yzFDeriv,zzFDeriv}.f    $gff
+cp fortranDeriv/{laplacianFDeriv,assignBoundaryConditions,findInterpolationNeighbours}.f             $gff
+cp fortranDeriv/{assignOptNeumann,assignOptGenDiv,assignOptNormalDer,assignOptNormalComponent}.f     $gff
+cp fortranDeriv/{assignOptADotGradU,assignOptTangentialComponent}.f                    $gff
+cp fortranDeriv/{dsg,dsg2,dsg3,dsgr,dsgc4,laplaceNC,divScalarGradNC,derivativeScalarDerivativeNC}.f  $gff
+cp fortranDeriv/{standardDerivative,dsgc6,div,findInterpNeighbours}.f                                $gff
+cp fortranDeriv/{assignBoundaryConditions,findInterpolationNeighbours,dsg,standardDerivative}.bf     $gff
+cp fortranDeriv/{extrapolateOpt,assignCornersOpt}.{f,bf}                               $gff
+cp fortranDeriv/{fixBCOptEdge1,fixBCOptEdge2,fixBCOptEdge3,fixBCOptVerticies}.f        $gff
+
+cp fortranCoeff/{coeff,opcoeff}.f                                                      $gff
+cp fortranCoeff/{x,y,z,xx,xy,xz,yy,yz,zz,laplacian,divScalarGrad,identity}Coeff2.f     $gff
+cp fortranCoeff/{x,y,z,xx,xy,xz,yy,yz,zz,laplacian,divScalarGrad,identity}Coeff4.f     $gff
+cp fortranCoeff/{r,s,t,rr,rs,rt,ss,st,tt}Coeff2.f                                      $gff
+cp fortranCoeff/{r,s,t,rr,rs,rt,ss,st,tt}Coeff4.f                                      $gff
+cp fortranCoeff/{opcoeff}.bf                                                           $gff
+
+cp deriv/{x,y,z,xx,xy,xz,yy,yz,zz,div,grad,identity,laplace,vorticity}FDerivative.C    $gff
+cp deriv/{divScalarGrad,scalarGrad,derivativeScalarDerivative,divVectorScalar}FDerivative.C   $gff
+cp deriv/{r,s,t,rr,rs,rt,ss,st,tt}Derivative.C                                         $gff
+cp coeff/{x,y,z,xx,xy,xz,yy,yz,zz,div,grad,identity,laplacian}FDCoefficients.C         $gff
+cp coeff/{divScalarGrad,scalarGrad,derivativeScalarDerivative,divVectorScalar}FDCoefficients.C           $gff
+cp coeff/{r,s,t,rr,rs,rt,ss,st,tt}DerivCoefficients.C                                  $gff
+cp bc/{aDotU,dirichlet,u_dirichlet,extrapolate,generalizedDivergence,generalMixed,aDotGradU}.C $gff
+cp bc/{neumann,normalComponent,normalDerivative,symmetry,tangential,normalDotScalarGrad}.C $gff
+cp bc/{assignBoundaryConditions.h}                                                     $gff
+
+echo "now copy the include files to $gfi"
+
+cp include/{xD.h,rD.h,xDC.h}                                                             $gfi
+cp src/{SparseRep,BoundaryConditionParameters,BCTypes,AssignInterpNeighbours}.h          $gfi
+cp src/{MappedGridOperators.h,MappedGridOperatorsInclude.h,FourierOperators.h}           $gfi
+cp src/{Generic}{MappedGrid,GridCollection,CompositeGrid}Operators.h                     $gfi
+cp src/{GenericCollectionOperators,GridCollectionOperators,CompositeGridOperators}.h     $gfi
+cp src/{UnstructuredOperators.h}                                                         $gfi
+
+cp src/defineDiffOrder{2,4,6,8}f.h                                                       $gfi
+cp src/declareDiffOrder{2,4,6,8}f.h                                                      $gfi
+
+cp src/defineDiffNewerOrder{2,4,6,8}f.h                                                  $gfi
+
+cp src/{derivMacroDefinitions,defineParametricDerivMacros,derivStencilCoeff}.h           $gfi
+cp src/{opStencilCoeff,opStencilCoeffOrder2,opStencilCoeffOrder4}.h                      $gfi
+cp src/{opStencilCoeffOrder6,opStencilCoeffOrder8,conservativeCoefficientMacros}.h       $gfi
+cp doc/{conservativeCoefficientMatrixMacros}.h                                           $gfi
+
+cp include/{cgux2a,cgux4a,cgux2af,cgux4af,cgux2afNoWarnings,cgux4afNoWarnings}.h         $gfi
+
+cp tests/{lins}.C                                                                       $Overture/primer
+
+cp tests/{Checker}.C   $Overture/mapUtil
+cp tests/{Checker}.h   $Overture/include
+
+# copy routines to the tests and examples directory
+
+cp tests/{smartDiff.p,checkop.p}                                                $tests
+cp tests/{tderivatives,tbc,tbcc,tcm,tcm2,tcm3,tcm4,tcmge}.C                     $tests
+cp tests/{tderivatives.bC,tbcc.bC}                                              $tests
+cp tests/{tmgo,tcgo,tcmOrder4,testSpectral,testExtrapInterpNeighbours}.C        $tests
+
+# check files
+cp tests/{tderivatives,tbcc,tbc,tcm3,tcm4}.{sp,dp}.check                        $tests
+
+
+# cp {tmgo,tcgo,ps}.C   $examples
+cp {src/bcgf,tests/ps}.C                                                               $examples
+
+echo "done op files."

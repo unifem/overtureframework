@@ -1,0 +1,5 @@
+all = generate
+
+
+generate:; perl generate.p
+

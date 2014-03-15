@@ -1,0 +1,54 @@
+\subsubsection{Constructor}
+ 
+\newlength{\EllipticTransformIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\EllipticTransformIncludeArgIndent}{EllipticTransform(}% 
+EllipticTransform() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Create a mapping that can be used to generate an elliptic grid
+   from an existing grid. This can be useful to smooth out an existing Mapping.
+ 
+\end{description}
+\subsubsection{get}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticTransformIncludeArgIndent}{get(}%
+get( const GenericDataBase \& dir, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get a mapping from the database.
+\item[{\bf dir (input):}]  get the Mapping from a sub-directory of this directory.
+\item[{\bf name (input) :}]  name of the sub-directory to look for the Mapping in.
+\end{description}
+\subsubsection{put}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticTransformIncludeArgIndent}{put(}%
+put( GenericDataBase \& dir, const aString \& name) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Save a mapping into a database.
+\item[{\bf dir (input):}]  put the Mapping into a sub-directory of this directory.
+\item[{\bf name (input) :}]  name of the sub-directory to save the Mapping in.
+\end{description}
+\subsubsection{generateGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\EllipticTransformIncludeArgIndent}{generateGrid(}%
+generateGrid(GenericGraphicsInterface *gi  = NULL, \\ 
+GraphicsParameters \& parameters  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This function performs the iterations to solve the elliptic grid equations.
+\item[{\bf gi (input) :}]  supply a graphics interface if you want to see the grid as it
+    is being computed.
+\item[{\bf parameters (input) :}]  optional parameters used by the graphics interface.
+\end{description}

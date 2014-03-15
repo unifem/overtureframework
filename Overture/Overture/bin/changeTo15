@@ -1,0 +1,114 @@
+#!/usr/local/bin/perl
+# perl program to change files from Overture.v12,v14 to Overture.v15
+#  usage: 
+#         change  fileName1 [fileName2] [ fileName3] ...
+# 
+
+@fileNames = @ARGV;
+# $fileName          = $ARGV[0];
+
+@geometryArray = (
+            "mask",
+            "inverseVertexDerivative",
+            "inverseVertexDerivative2D",
+            "inverseVertexDerivative1D",
+            "inverseCenterDerivative",
+            "inverseCenterDerivative2D",
+            "inverseCenterDerivative1D",
+            "vertex",
+            "vertex2D",
+            "vertex1D",
+            "center",
+            "center2D",
+            "center1D",
+            "corner",
+            "corner2D",
+            "corner1D",
+            "vertexDerivative",
+            "vertexDerivative2D",
+            "vertexDerivative1D",
+            "centerDerivative",
+            "centerDerivative2D",
+            "centerDerivative1D",
+            "vertexJacobian",
+            "centerJacobian",
+            "cellVolume",
+            "centerNormal",
+            "centerNormal2D",
+            "centerNormal1D",
+            "centerArea",
+            "centerArea2D",
+            "centerArea1D",
+            "faceNormal",
+            "faceNormal2D",
+            "faceNormal1D",
+            "faceArea",
+            "faceArea2D",
+            "faceArea1D",
+            "indexRange",
+            "gridIndexRange",
+            "dimension",
+            "numberOfGhostPoints",
+            "isPeriodic",
+            "boundaryCondition",
+            "isCellCentered",
+            "isAllCellCentered",
+            "isAllVertexCentered",
+            "gridSpacing",
+            "sharedBoundaryFlag",
+            "sharedBoundaryTolerance",
+            "discretizationWidth",
+            "mapping"
+                );
+
+
+foreach $fileName ( @fileNames )  # process all files
+{
+  
+  
+  printf(" change file = $fileName \n");
+  
+  open(FILE,"$fileName") || die "cannot open file $fileName!" ;
+  open(OUTFILE,">junk.X") || die "cannot open output file junk.X!" ;
+  
+  while( <FILE> )
+  {
+    $line = $_;
+
+    foreach $name ( @geometryArray )
+    {
+      $line =~ s/(\.$name)\b/\1()/g;
+      # in case we change a file twice, remove duplicate "()"
+      $line =~ s/(\.$name)\(\)\(\)/\1()/g;
+    }
+    $line =~ s/(\.vertexBoundaryNormal)\[(.*)\]\[(.*)\]/\1(\3,\2)/g;
+    $line =~ s/(\.centerBoundaryNormal)\[(.*)\]\[(.*)\]/\1(\3,\2)/g;
+    $line =~ s/(\.centerBoundaryTangent)\[(.*)\]\[(.*)\]/\1(\3,\2)/g;
+
+    # undo a change to the A++ .dimension(.)
+    $line =~ s/(\.dimension)\(\)(\(.\))/\1\2/g;
+
+
+    print OUTFILE $line;
+  }
+
+  close(OUTFILE);
+  close(FILE);
+
+#  now copy over the original file
+
+  open(FILE,"junk.X") || die "cannot open file junk.X!" ;
+  open(OUTFILE,">$fileName") || die "cannot open output file $fileName!" ;
+  
+  while( <FILE> )
+  {
+    $line = $_;
+
+    print OUTFILE $line;
+  }
+
+  close(OUTFILE);
+  close(FILE);
+  unlink("junk.X");  # delete the file
+}
+

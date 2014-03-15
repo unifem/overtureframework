@@ -1,0 +1,22 @@
+To add a new publication to the Overture web page:
+
+(1) Edit the file overturePublications.tex and add your publication. Newest publications
+    should appear first in the list. 
+
+(2) Copy your publication (.pdf) to the Overture/web/publications (CVS) directory and
+    add to CVS:
+      cvs add myPublication.pdf
+      
+(3) Edit the "build" script and add your publication to the list of files that are
+    copied to Bill's main webPage directory.
+
+(4) To see what the web page might look like type "make pub". This run latex2html and
+    puts the results in the overturePublications directory under Overture/web. You
+    can view the html file in overturePublications/overturePublications.html
+
+      file:/home/henshaw/Overture/web/overturePublications/overturePublications.html
+
+(5) Commit the changes
+      cvs commit -m"my message"
+
+(6) Let Bill know that you have added a new publication so he can update the web page.

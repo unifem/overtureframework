@@ -1,0 +1,157 @@
+%--------------------------------------------------------------
+\section{DataPointMapping: create a mapping from an array of grid points}
+\index{data-point mapping}\index{Mapping!DataPointMapping}\index{Mapping!discrete mapping}\index{Mapping!external}
+\index{Mapping!plot3d}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+The {\ff DataPointMapping} can be used to create a mapping from
+a set of grid points.  The grid points may be in a file (such as Plot3D
+format) or can be in an A++ array.
+
+
+\newcommand{\rh}{\hat{r}}
+\newcommand{\rvh}{\hat{\rv}}
+
+The {\ff DataPointMapping} defines a Mapping transformation by interpolating
+the grid points. 
+
+For {\tt orderOfInterpolation=2} the transformation is
+defined as a linear interpolation (i.e. 2 points in each direction). In 2D this would
+be
+\[
+   \xv(\rv) = (1-\rh_2) [ (1-\rh_1)\xv_{00} + \rh_1\xv_{10} ]
+            +    \rh_2  [ (1-\rh_1)\xv_{01} + \rh_1\xv_{11} ]
+\]
+where $\xv_{mn}$ are the grid points that define the cell and $\rh_m$
+are the relative distances of the point $\rv$ from the r-coordinates
+of the corner point $\xv_{00}$
+\[
+        \rh_1 = { (r_1-r_{00}) \over \Delta r_1 } ~~~~,~~~~
+        \rh_2 = { (r_2-r_{00}) \over \Delta r_2 }
+\]
+The derivatives returned by the Mapping are just the derivatives of the
+above expression. 
+
+
+For {\tt orderOfInterpolation=4} the transformation is
+defined as a cubic interpolation (i.e. 4 points in each direction).
+In 2D this would be defined as
+\begin{align}
+   \xv(\rv) & =  \sum_{m=0}^3 q_m(\rh_2) \sum_{n=0}^3 q_n(\rh_1) \xv_{nm}  \\
+   q_m(s) & = \prod_{n\ne m} (s-n)/(m-n) \qquad \mbox{Lagrange polynomials,} \quad q_m(n)=\delta_{mn}
+\end{align}
+The derivatives returned by the Mapping are just the derivatives of the
+above expression. 
+
+
+Figure \ref{fig:usa} shows a grid for part of the coast of the USA, created by
+Lotta Olsson. The grid was created with the help of the HYPGEN hyperbolic grid
+generator and saved in Plot3D format.
+\begin{figure}[h]
+  \begin{center}
+  \includegraphics[width=10cm]{\figures/usa}
+  % \epsfig{file=\figures/usa.ps}
+  \caption{A DataPointMapping created from a Plot3D file.}
+  \end{center}
+\label{fig:usa}
+\end{figure}
+
+\subsection{Fast Approximate Inverse}
+
+ Since the DataPointMapping is extensively used, a specialized fast approximate
+inverse has been defined for both the second order (bi-linear/tri-linear) and
+fourth order representations..
+
+The inverse consists of the steps:
+\begin{enumerate}
+  \item Find the closest vertex on the grid to the point, $\xv$, to be inverted.
+  \item Find the hexahedral that $\xv$ is in.
+  \item Invert the local interpolant with Newton's method.
+\end{enumerate}
+
+
+The linear interpolant within a given cell is
+\[
+   \xv(\rv) = (1-\rh_0) [ (1-\rh_1)\xv_{00} + \rh_1\xv_{01} ]
+            +    \rh_0  [ (1-\rh_1)\xv_{10} + \rh_1\xv_{11} ]
+\]
+in 2D or
+\begin{align*}
+   \xv(\rv) = (1-\rh_0) &[ (1-\rh_1)((1-\rh_2)\xv_{000}+\rh_2\xv_{001}) + \rh_1((1-\rh_2)\xv_{010}+\rh_2\xv_{011}) ] \\
+             +    \rh_0  &[ (1-\rh_1)((1-\rh_2)\xv_{100}+\rh_2\xv_{101}) + \rh_1((1-\rh_2)\xv_{110}+\rh_2\xv_{111}) ]
+\end{align*}
+in 3D where $\xv_{lmn}$ are the grid points that define the cell and $\rh_m$ are the scaled unit square coordinates,
+$\rh_m \in [0,1]$ for points within the cell.
+
+
+A Newton iteration to invert the mapping would look like
+\[
+  \xv(\rv_0+\delta\rv) = \xv(\rv_0) + {\partial \xv \over \partial \rv }(\rv_0) \delta \rv.
+\]
+where
+\[
+  \left[ \partial \xv \over \partial \rv \right] =
+   \begin{bmatrix}
+      \av_0 & \av_1 & \av_2
+   \end{bmatrix}
+\]
+where
+\begin{align*}
+  \av_0 & = (1-\rh_1)((1-\rh_2)(\xv_{100}-\xv_{000})+\rh_2(\xv_{101}-\xv_{001})) 
+        + \rh_1((1-\rh_2)(\xv_{110}-\xv_{010})+\rh_2(\xv_{111}-\xv_{011}))      \\
+  \av_1 &=(1-\rh_0)((1-\rh_2)(\xv_{010}-\xv_{000})+\rh_2(\xv_{011}-\xv_{001})) 
+       + \rh_1((1-\rh_2)(\xv_{110}-\xv_{100})+\rh_2(\xv_{111}-\xv_{101}))       \\
+  \av_2 &=  (1-\rh_0)((1-\rh_1)(\xv_{001}-\xv_{000})+\rh_2(\xv_{101}-\xv_{100})) 
+       + \rh_1((1-\rh_2)(\xv_{011}-\xv_{010})+\rh_2(\xv_{111}-\xv_{110})) 
+\end{align*}
+
+In the special case when the cell is a regular 'diamond' shape the linear interpolant simplifies to
+\[
+   \xv(\rv)-\xv_{000} = \rh_0 ( \xv_{100}-\xv_{000} ) + \rh_1 ( \xv_{010}-\xv_{000} )+ \rh_2 ( \xv_{001}-\xv_{000} )
+\]
+or
+\[
+   \xv(\rv) = \rh_0 \xv_{100} + \rh_1 \xv_{010} + \rh_2 \xv_{001}
+\]
+where the 'inverse' is computed by solving a $d\times d$ matrix
+\[
+   \begin{bmatrix} \xv_{100} & \xv_{010} & \xv_{001} \end{bmatrix}
+   \begin{bmatrix} \rh_0 \\ \rh_1 \\ \rh_2  \end{bmatrix} =
+   \begin{bmatrix} \xv   \end{bmatrix}
+\]
+** The newton step will do this case exactly**
+
+
+% If the cell is not regular we can compute an approximate inverse by first computing coordinates
+% $\rvh^{lmn}$ for each vertex, assuming a regular diamond shape at the vertex $\xv_{lmn}$ formed
+% from the points that connect to the vertex.
+
+
+\subsection{Examples}
+
+
+Grid points saved in plot3d format can be read in to form a DataPointMapping.
+To illustrate this we first build a plot3d file by creating a mapping and
+saving it in plot3d format. This is accomplished by the following
+command file ({\tt Overture/sampleMappings/createCylinderPlot3d.cmd})
+{\footnotesize
+\listinginput[1]{1}{\mapping/createCylinderPlot3d.cmd}
+}
+There are a variety of options for defining the contents of the plot3d file. For example
+it can be a binary file or ascii file, it can contain the {\em iblank} array (i.e. mask array) or not.
+These options are available from the {\tt save plot3d file} menu.
+
+
+A plot3d file can be either read from the DataPointMapping menu or the
+{\tt create mappings} menu. Here is a command file to read the plot3d file 
+created in the previous step, ({\tt Overture/sampleMappings/readCylinderPlot3d.cmd})
+{\footnotesize
+\listinginput[1]{1}{\mapping/readCylinderPlot3d.cmd}
+}
+
+%% \input DataPointMappingInclude.tex
+
+
+

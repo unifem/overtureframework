@@ -1,0 +1,51 @@
+\clearpage
+ \section{check/box20}
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$  & res(i)     & rate(i)    &  WU(i)     & ECR(i)  \\   \hline 
+ $ 1$  & $ 6.3e-01$ & $0.073$ & $ 4.8$ & $0.58$ \\ 
+ $ 2$  & $ 4.8e-02$ & $0.076$ & $ 4.8$ & $0.58$ \\ 
+ $ 3$  & $ 3.7e-03$ & $0.077$ & $ 4.8$ & $0.58$ \\ 
+ $ 4$  & $ 2.9e-04$ & $0.077$ & $ 4.8$ & $0.58$ \\ 
+ $ 5$  & $ 2.2e-05$ & $0.077$ & $ 4.8$ & $0.58$ \\ 
+ $ 6$  & $ 1.7e-06$ & $0.077$ & $ 4.8$ & $0.58$ \\ 
+ $ 7$  & $ 1.3e-07$ & $0.079$ & $ 4.8$ & $0.59$ \\ 
+ $ 8$  & $ 1.1e-08$ & $0.079$ & $ 4.8$ & $0.59$ \\ 
+ $ 9$  & $ 8.4e-10$ & $0.079$ & $ 4.8$ & $0.59$ \\ 
+ $10$  & $ 6.6e-11$ & $0.079$ & $ 4.8$ & $0.59$ \\ 
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+                 Ogmg, Statistics: 
+                 -----------------     time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............4.44e+01  4.04e+00    88.40% 
+ defect.(excluding those in smooth)....3.80e+00  3.45e-01     7.55% 
+ fine to coarse........................5.39e-01  4.90e-02     1.07% 
+ coarse to fine........................5.56e-02  5.06e-03     0.11% 
+ direct solve on coarsest level........2.45e-01  2.22e-02     0.49% 
+    interpolation......................1.44e-02  1.31e-03  (  0.03%) (already counted)
+    boundary conditions................3.16e+01  2.87e+00  ( 62.86%) (already counted)
+ sum of above..........................4.91e+01  4.46e+00    97.62%  
+
+ total.................................5.03e+01  4.57e+00   100.00% 
+
+ total number of grid points = 15625 
+ total number of cycles      = 11 
+ storage allocated = 4.29e+00 MBytes,   274.6 bytes/(grid point) or   34.3 reals/(grid point)
+
+ number of levels = 3 
+ interpolate defect = 1
+ number of cycles per level= 1  1  1 
+ coarse grid solver : PETSc, bi-conjugate gradient stabilized, incomplete LU preconditioner
+                      (1 levels), reverse Cuthill-McKee ordering
+
+grid 0 : rb[3] rb[3] rb[3]  : box 
+         bc=[dirichlet,dirichlet] [dirichlet,dirichlet] [dirichlet,dirichlet] 
+\end{verbatim}
+} % end footnotesize

@@ -1,0 +1,11 @@
+ ********************************************* 
+ ************** Ogen check file ************** 
+ ********************************************* 
+
+ This grid data is used to make sure the grid generator is giving 
+ the same answer after changes are made. Compare this file to a the 
+ check file from previous version. 
+
+grid   0 points: discretization=    1206, interpolation=     98, all=    1331, unused=      27, name=outer-box
+grid   1 points: discretization=     343, interpolation=    386, all=     729, unused=       0, name=inner-box
+total    points: discretization=    1549, interpolation=    484, all=    2060, unused=      27

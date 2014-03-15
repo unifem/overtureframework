@@ -1,0 +1,28 @@
+
+New difference macros:
+
+   weights.maple : creates r,s,t derivatives --> defineParametricDeriv.pl
+   derivNew.maple : creates x,y,z derivatives --> derivNew.pl
+
+    makeDifferenceMacros.p : creates include files
+
+
+  stencil.maple : extract the coefficients of ghost points 
+            --> derivStencilCoeff.h : macros for coefficients
+
+  makeDerivMacros.maple : make derivative macros for uxx2, ...
+           -> derivMacroDefinitions.h
+
+
+  testMacros.bf : test the new bpp macro derivative definitions
+
+
+  stencilCoeff.maple : build bpp macros to fill in coefficient matrices for operators
+                       x,y,z,xx,yy,zz, ....
+
+
+  dsg.maple : determine high-order interp. coefficients for a(i+1/2) in terms of a(j)
+
+  dsg2.maple : div(s grad) : determine the approximation to orders 4,6,8 (non-mixed derivative terms)  
+
+  dsg3.maple : div(s grad) : determine the approximation to orders 4,6,8 (non-mixed derivative terms)

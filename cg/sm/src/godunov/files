@@ -1,0 +1,7 @@
+# fortran files the we always compile optimized 
+FSRCO += solidMechanicsGodunov.f
+FSRCO += smcent2d.f smg3d.f smg3d-NL.f
+
+# fortran files the we always compile optimized and single precision
+FSRCSO += smg2d.f smg2d-SVK.f smgvc2d.f
+

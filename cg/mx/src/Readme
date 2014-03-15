@@ -1,0 +1,47 @@
+A short summary of files in this directory
+
+assignBoundaryConditions.bC:
+  - getLocalBoundsAndBoundaryConditions
+  - getBoundsForPML
+  - adjustBoundsForPML
+  - assignBoundaryConditions
+
+advanceStructured.C:
+ - advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
+ - computeDissipation( int current, real t, real dt )
+ - addFilter( int current, real t, real dt )
+
+Maxwell.C:
+ - Maxwell()
+ - initializeRadiationBoundaryConditions()
+ - printMemoryUsage(FILE *file /* = stdout */)
+ - printStatistics(FILE *file /* = stdout */)
+ - buildTimeSteppingOptionsDialog(DialogData & dialog )
+ - buildForcingOptionsDialog(DialogData & dialog )
+ - buildPlotOptionsDialog(DialogData & dialog )
+ - buildInputOutputOptionsDialog(DialogData & dialog )
+ - buildPdeParametersDialog(DialogData & dialog )
+ - interactiveUpdate(GL_GraphicsInterface &gi )
+ - setBoundaryCondition( aString & answer, GL_GraphicsInterface & gi, IntegerArray & originalBoundaryCondition )
+
+setup.C
+ - computeTimeStep()
+ - setupGrids()
+ - setupGridFunctions()
+ - 
+
+solve.C:
+ - displayBoundaryConditions(FILE *file /* = stdout */)
+ - computeNumberOfStepsAndAdjustTheTimeStep(const real & t, ... )
+ - outputResultsAfterEachTimeStep( int current, real t, real dt, int stepNumber )
+ - outputResults( int current, real t, real dt )
+ - solve(GL_GraphicsInterface &gi )
+
+
+userDefinedForcing.C:
+ - userDefinedForcing 
+ - setupUserDefinedForcing
+
+userDefinedInitialConditions.C:
+ - userDefinedInitialConditions
+ - setupUserDefinedInitialConditions

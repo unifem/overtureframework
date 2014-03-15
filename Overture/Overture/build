@@ -1,0 +1,45 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+echo "Copy Overture skeleton files into the $ovDir directory..."
+
+
+cp {BLURB,CHANGES,FAQ,INSTALL_NOTES,Makefile.in,NOTICE,README,configure,defenv} $ovDir
+
+cp -f DataBase/*               $ovDir/DataBase
+cp -f FiniteVolumeOperators/*  $ovDir/FiniteVolumeOperators
+cp -f Grid/*                   $ovDir/Grid
+cp -f GridFunction/*           $ovDir/GridFunction
+cp -f GridGenerator/*          $ovDir/GridGenerator
+cp -f Mapping/*                $ovDir/Mapping
+cp -f Oges/*                   $ovDir/Oges
+cp -f Ogmg/*                   $ovDir/Ogmg
+cp -f Ogshow/*                 $ovDir/Ogshow
+cp -f bin/*                    $ovDir/bin
+cp -f boxlib/*                 $ovDir/boxlib
+cp -f config/*                 $ovDir/config
+cp -f contrib/*                $ovDir/contrib
+cp -f examples/*               $ovDir/examples
+cp -f include/*                $ovDir/include
+cp -f lib/*                    $ovDir/lib
+cp -f otherStuff/*             $ovDir/otherStuff
+cp -f primer/*                 $ovDir/primer
+cp -f sampleGrids/*            $ovDir/sampleGrids
+cp -f sampleMappings/*         $ovDir/sampleMappings
+cp -f static/*                 $ovDir/static
+cp -f templates/*              $ovDir/templates
+cp -f tests/*                  $ovDir/tests
+cp -f doc/*                    $ovDir/doc
+
+
+

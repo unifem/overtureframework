@@ -1,0 +1,152 @@
+\subsection{Constructor}
+ 
+\newlength{\SweepMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\SweepMappingIncludeArgIndent}{SweepMapping(}% 
+SweepMapping(Mapping *sweepmap  = NULL,\\ 
+\hspace{\SweepMappingIncludeArgIndent}Mapping *dirsweepmap  = NULL,\\ 
+\hspace{\SweepMappingIncludeArgIndent}Mapping *scale  = NULL,\\ 
+\hspace{\SweepMappingIncludeArgIndent}const int domainDimension0  =3)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Define a sweep mapping or an extruded mapping.
+
+ Build a mapping defined by a sweep surface or curve
+ (a mapping with domainDimension=2 rangeDimension=3 or 
+ domainDimension=1, rangeDimension=3) and a sweep
+ curve or line (domainDimension=1, rangeDimension=3).
+
+\item[{\bf sweepmap (input) :}]  is the mapping for the sweep surface or curve; default: an
+            annulus with inner radius=0 and outer radius=1
+\item[{\bf dirsweepmap (input) :}]  The mapping for the sweep curve; default: a half circle
+              of radius=4.
+\item[{\bf scale (input) :}]  to scale up $(>1)$ or down $(0<s<1)$; default $1$.
+ 
+\item[{\bf Author:}]  Thomas Rutaganira. 
+\item[{\bf Changes:}]  WDH + AP
+\end{description}
+\subsection{SetSweepSurface}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setSweepSurface(}%
+setSweepSurface(Mapping *sweepmap)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the mapping to use as the sweepMap,
+               a 3D surface or a 3D curve. If it is a 3D
+               surface, the resulting SweepMapping will be a
+               3D volume and if it is a 3D curve, the SweepMapping
+               will be a 3D surface.
+\end{description}
+\subsection{setCentering}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setCentering(}%
+setCentering( CenteringOptionsEnum centering )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the centering.
+\item[{\bf centering (input) :}]  Specify the manner in which the reference surface should be centered.
+   One of {\bf useCenterOfSweepSurface}, {\bf useCenterOfSweepCurve} or {\bf specifiedCenter}.
+   See the documentation for further details.
+\end{description}
+\subsection{setOrientation}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setOrientation(}%
+setOrientation( real orientation\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the orientation of the sweepmapping, +1 or -1.
+   When the sweep surface is rotated to align with the sweep curve it may
+ face in a forward or reverse direction depending on the orientation. Thus if a
+ swept surface appears `inside-out' one should change the orientation.
+\end{description}
+\subsection{setExtrudeBounds}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setExtrudeBounds(}%
+setExtrudeBounds(real za\_  =0., \\ 
+\hspace{\SweepMappingIncludeArgIndent}real zb\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the bounds on an extruded mapping.
+\item[{\bf za\_,zb\_ (input) :}]  
+\end{description}
+\subsection{setStraightLine}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setStraightLine(}%
+setStraightLine(real lx  =0. */, real ly /* =0. */, real lz /* =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the straight line of a tabulated cylinder mapping
+\item[{\bf lx,ly,lz (input) :}]  
+\end{description}
+\subsection{SetSweepCurve}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setSweepCurve(}%
+setSweepCurve(Mapping *dirsweepmap)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the mapping to use as the curve to
+               sweep along (a  3D curve).
+\end{description}
+\subsection{SetScaleSpline}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setScale(}%
+setScale(Mapping *scale)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the mapping to use as the curve to
+               sweep along (a  3D curve).
+\end{description}
+\subsection{setMappingProperties}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{setMappingProperties(}%
+setMappingProperties()
+}\end{flushleft}
+ Access: protected.
+\begin{description}
+\item[{\bf Description:}]  Initialize the parameters of the
+  sweep mapping. 
+
+\end{description}
+\subsection{FindRowSplines}
+ 
+\begin{flushleft} \textbf{%
+void SweepMapping  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{findRowSplines(}%
+findRowSplines(void)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ This function initializes the splines rowSpline0, 1, 2 that will
+ gives the matrix transformation as well as its derivatives for
+ the mapping calculations. A point of the spline gives
+ a row for the matrix transformation. 
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\SweepMappingIncludeArgIndent}{mapS(}%
+mapS(const RealArray \& r, RealArray \& x, RealArray \& xr, MappingParameters \& params)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Use the transformations defined by rowSpline0, 
+ rowSpline1, and rowSpline2 and the additional scaling mapping 
+ to compute the image(s) and/or the derivatives for the parameter
+ point(s) defined by $r$.
+\end{description}

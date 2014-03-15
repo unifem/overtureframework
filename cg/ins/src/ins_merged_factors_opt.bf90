@@ -1,0 +1,691 @@
+#Include "ins_factors.bh"
+
+#defineMacro A_IK(IO) ab_ik(idir+(IO-off),1)
+#defineMacro B_IK(IO) ab_ik(idir+(IO-off),2)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! subroutine ins_mfactor_opt
+INS_FACTOR_SUBROUTINE(ins_mfactor_opt)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      double precision, allocatable :: ab_ik(:,:) !! this holds the variable pde coefficients at adjacent grid points
+      double precision, allocatable :: ull(:)
+
+      double precision :: fd1,fd2
+      integer io !! loop variable for looping over adjacent grid points in the stencil (i.e. from -half_width to half_width)
+      integer idir !! index counter in the direction of the implicit solve
+      integer dir_a, dir_b, isdir
+      integer dirt1,dirt2 !! tangential directions
+      integer ii(0:2),iid1,iid2 !! loop counters
+      integer width
+!!      logical allocatable :: near_interp(:)
+      logical near_interp, near_parallel_bc, use_self_adjoint_ad
+      logical use_ad2_near_bc
+
+      double precision rownorm(0:3)
+      double precision fdop_p(-half_width:half_width) ! this one is silly, but it is here to be consistent with the others
+      double precision fdop_dx(-half_width:half_width)
+      double precision fdop_dxx(-half_width:half_width)
+
+      double precision mop_p(-half_width:half_width)
+      double precision mop_dx(-half_width:half_width)
+      double precision mop_dxx(-half_width:half_width)
+
+      double precision bop_p(-half_width:half_width,0:1)
+      double precision bop_dx(-half_width:half_width,0:1)
+      double precision bop_dxx(-half_width:half_width,0:1)
+      
+      double precision ad_coeff(-half_width:half_width)
+
+      double precision pxc,dxc,dxxc
+      pxc(io) = px_coeff(io)
+      dxc(io) = dx_coeff(io)
+      dxxc(io)= dxx_coeff(io)
+      
+      INS_FACTOR_EXTRACT_PARAM()
+      rhs_only = ipar(55).ne.0
+
+      use_ad2_near_bc = ipar(53).ne.0
+      use_self_adjoint_ad = .false.
+      is_penta = (order.gt.2 .and. disc_approx.eq.compact)
+      have_ghost_points = .false.
+      width = 2*half_width
+      
+      PRINT_DEBUG_INFO(ins_mfactor_opt)
+
+      do io=-half_width,half_width
+         fdop_p(io) = 0
+         fdop_dx(io) = 0d0
+         fdop_dxx(io) = 0d0
+         mop_p(io) = 0d0
+         mop_dx(io) = 0d0
+         mop_dxx(io) = 0d0
+         
+         bop_p(io,0) = 0d0
+         bop_dx(io,0) = 0d0
+         bop_dxx(io,0) = 0d0
+         bop_p(io,1) = 0d0
+         bop_dx(io,1) = 0d0
+         bop_dxx(io,1) = 0d0
+      enddo
+
+      call get_op_coeffs(half_width,1,min(order,4),finite_difference,fdop_p,fdop_dx)
+      call get_op_coeffs(half_width,2,min(order,4),finite_difference,fdop_p,fdop_dxx)
+      
+      call get_mop_coeffs(half_width,1,order,disc_approx,mop_p,mop_dx)
+      call get_mop_coeffs(half_width,2,order,disc_approx,mop_p,mop_dxx)
+
+      call get_bos_mop_coeffs(half_width,1,0,order,disc_approx,bop_p(-half_width,0),bop_dx(-half_width,0))
+      call get_bos_mop_coeffs(half_width,2,0,order,disc_approx,bop_p(-half_width,0),bop_dxx(-half_width,0))
+
+      call get_bos_mop_coeffs(half_width,1,1,order,disc_approx,bop_p(-half_width,1),bop_dx(-half_width,1))
+      call get_bos_mop_coeffs(half_width,2,1,order,disc_approx,bop_p(-half_width,1),bop_dxx(-half_width,1))
+
+      dirt1 = mod(dir+1,3)
+      dirt2 = mod(dir+2,3)
+
+      INIT_STENCIL_SHIFT()
+
+      if ( dir.eq.0 ) then
+         dir_a = nd1a
+         dir_b = nd1b
+      elseif (dir.eq.1) then
+         dir_a = nd2a
+         dir_b = nd2b
+      else
+         dir_a = nd3a
+         dir_b = nd3b
+      endif
+
+      dir_a = index_range(0,dir)
+      dir_b = index_range(1,dir) 
+
+      allocate(ab_ik(dims(0,dir):dims(1,dir),3))
+      allocate(ull(dims(0,dir):dims(1,dir)))
+
+!!      allocate(near_interp(dir_a:dir_b))
+
+      ! reset dir_a and dir_b to use as loop bounds, adjusted for interpolation boundaries
+!!X      dir_a = index_range(0,dir)-half_width
+!!X      dir_b = index_range(1,dir)+half_width
+!!X      if ( bc(0,dir).eq.0 ) dir_a = index_range(0,dir)
+!!X      if ( bc(1,dir).eq.0 ) dir_b = index_range(1,dir)
+
+      do iid1=index_range(0,dirt1),index_range(1,dirt1)
+      do iid2=index_range(0,dirt2),index_range(1,dirt2)
+
+      ii(dirt1) = iid1
+      ii(dirt2) = iid2
+      !! first compute the PDE coefficients we need for the entire line
+       if (mode.ne.get_explicit) then
+
+      do idir=dims(0,dir),dims(1,dir) !!dir_a,dir_b
+
+         off = 0
+         ii(dir) = idir
+         i1l = ii(0)
+         i2l = ii(1)
+         i3l = ii(2)
+         
+!!         SET_STENCIL_IDX()
+         use_os_rxr = .true.
+         EVALUATE_JACOBIAN_DERIVATIVES(0)
+
+         io = 0
+         ab_ik(idir,1) = 0d0
+         ab_ik(idir,2) = 0d0
+
+!!         GET_SHIFTED_IDX(i1o,i2o,i3o, (io-off)*is1, (io-off)*is2, (io-off)*is3)
+!!         i1o = i1
+!!         i2o = i2
+!!         i3o = i3
+         ull(idir) = ul(i1l,i2l,i3l,cc)
+!!         do id=0,nd-1
+!!            ab_ik(idir,2) = ab_ik(idir,2) + rx(0,dir,id)*rx(0,dir,id)
+!!            ab_ik(idir,1) = ab_ik(idir,1) + u(i1l,i2l,i3l,uc+id)*rx(0,dir,id)*advection_coefficient - nu_eq*rxx(0,dir,id) + nu_eq*4d0*rxr(0,dir,id)*rx(0,dir,id)
+!!         enddo
+         ab_ik(idir,2) = ab_ik(idir,2) + rx(0,dir,0)*rx(0,dir,0)
+         ab_ik(idir,1) = ab_ik(idir,1) + u(i1l,i2l,i3l,uc)*rx(0,dir,0)*advection_coefficient - nu_eq*rxx(0,dir,0) + nu_eq*4d0*rxr(0,dir,0)*rx(0,dir,0)
+         ab_ik(idir,2) = ab_ik(idir,2) + rx(0,dir,1)*rx(0,dir,1)
+         ab_ik(idir,1) = ab_ik(idir,1) + u(i1l,i2l,i3l,vc)*rx(0,dir,1)*advection_coefficient - nu_eq*rxx(0,dir,1) + nu_eq*4d0*rxr(0,dir,1)*rx(0,dir,1)
+         if ( nd.eq.3 ) then
+            ab_ik(idir,2) = ab_ik(idir,2) + rx(0,dir,2)*rx(0,dir,2)
+            ab_ik(idir,1) = ab_ik(idir,1) + u(i1l,i2l,i3l,wc)*rx(0,dir,2)*advection_coefficient - nu_eq*rxx(0,dir,2) + nu_eq*4d0*rxr(0,dir,2)*rx(0,dir,2)
+         endif
+         ab_ik(idir,2) = -ab_ik(idir,2)*nu_eq
+
+         if (is_moving) then
+            ab_ik(idir,1) = ab_ik(idir,1) - gv(i1l,i2l,i3l,0)*rx(0,dir,0)
+            ab_ik(idir,1) = ab_ik(idir,1) - gv(i1l,i2l,i3l,1)*rx(0,dir,1)
+            if ( nd.eq.3 ) then
+               ab_ik(idir,1) = ab_ik(idir,1) - gv(i1l,i2l,i3l,2)*rx(0,dir,2)
+            endif
+         endif
+
+         uxnorm = 0d0
+         rownorm(0) = 0d0
+         rownorm(1) = 0d0
+         rownorm(2) = 0d0
+         if ( (use_ad4 .or. use_ad2) .and. idir.ge.(gir(0,dir)) .and. idir.le.(gir(1,dir)) ) then
+            if ( .not. (cc.eq.tc .and. pde_model.eq.BoussinesqModel )) then
+               if ( .not. is_rect ) then
+                  fd1 = 0d0
+!                  do ic=uc,uc+nd-1
+                  do ic=0,nd-1
+                     do id=0,nd-1
+                        if ( .false. ) then
+                           fd1 = fd1+rsxy(i1l,i2l,i3l,0,id)*dri(0)*(u(i1l+1,i2l,i3l,ic)-u(i1l-1,i2l,i3l,ic))
+                           fd1 = fd1+rsxy(i1l,i2l,i3l,1,id)*dri(1)*(u(i1l,i2l+1,i3l,ic)-u(i1l,i2l-1,i3l,ic))
+                           if ( nd.eq.3 ) fd1 = fd1+ rsxy(i1l,i2l,i3l,2,id)*dri(2)*(u(i1l,i2l,i3l+1,ic)-u(i1l,i2l,i3l-1,ic))
+                           uxnorm = uxnorm + dabs(fd1)
+                           fd1 = 0d0
+                           uxnorm = 0.5d0*uxnorm
+                        else
+                           fd1=0d0
+                           fd1 = fd1+rsxy(i1l,i2l,i3l,0,id)*dri(0)*(u(i1l+1,i2l,i3l,uc+ic)-u(i1l-1,i2l,i3l,uc+ic))
+                           fd1 = fd1+rsxy(i1l,i2l,i3l,1,id)*dri(1)*(u(i1l,i2l+1,i3l,uc+ic)-u(i1l,i2l-1,i3l,uc+ic))
+                           if ( nd.eq.3 ) fd1 = fd1+ rsxy(i1l,i2l,i3l,2,id)*dri(2)*(u(i1l,i2l,i3l+1,uc+ic)-u(i1l,i2l,i3l-1,uc+ic))
+                           fd1 = fd1+rsxy(i1l,i2l,i3l,0,ic)*dri(0)*(u(i1l+1,i2l,i3l,uc+id)-u(i1l-1,i2l,i3l,uc+id))
+                           fd1 = fd1+rsxy(i1l,i2l,i3l,1,ic)*dri(1)*(u(i1l,i2l+1,i3l,uc+id)-u(i1l,i2l-1,i3l,uc+id))
+                           if ( nd.eq.3 ) fd1 = fd1+ rsxy(i1l,i2l,i3l,2,ic)*dri(2)*(u(i1l,i2l,i3l+1,uc+id)-u(i1l,i2l,i3l-1,uc+id))
+                           rownorm(ic) = rownorm(ic)+dabs(fd1)*0.5d0
+                        endif
+
+                     enddo
+                  enddo
+               else
+                  fd1 = 0d0
+!                  do ic=uc,uc+nd-1
+                     if ( .false. ) then
+                        do ic=0,nd-1
+                           fd1 = dabs(u(i1l+1,i2l,i3l,uc+ic)-u(i1l-1,i2l,i3l,uc+ic))*dxi(0) + dabs(u(i1l,i2l+1,i3l,uc+ic)-u(i1l,i2l-1,i3l,uc+ic))*dxi(1)
+                           if ( nd.eq.3 ) then
+                              fd1 = fd1+dabs(u(i1l,i2l,i3l+1,uc+ic)-u(i1l,i2l,i3l-1,uc+ic))*dxi(2)
+                           endif
+                           uxnorm = uxnorm + dabs(fd1)
+                           fd1 = 0d0
+                        enddo
+                        uxnorm = 0.5d0*uxnorm
+                     else
+                        fd1=0d0
+                        rownorm(0) = dabs(u(i1l+1,i2l,i3l,uc)-u(i1l-1,i2l,i3l,uc))*dxi(0) + 0.5d0*dabs((u(i1l+1,i2l,i3l,vc)-u(i1l-1,i2l,i3l,vc))*dxi(0) + (u(i1l,i2l+1,i3l,uc)-u(i1l,i2l-1,i3l,uc))*dxi(1))
+                        rownorm(1) = 0.5d0*dabs((u(i1l+1,i2l,i3l,vc)-u(i1l-1,i2l,i3l,vc))*dxi(0) + (u(i1l,i2l+1,i3l,uc)-u(i1l,i2l-1,i3l,uc))*dxi(1))  + dabs(u(i1l,i2l+1,i3l,vc)-u(i1l,i2l-1,i3l,vc))*dxi(1)
+
+                        if ( nd.eq.3 ) then
+                           rownorm(0) = rownorm(0) + 0.5d0*dabs((u(i1l+1,i2l,i3l,wc)-u(i1l-1,i2l,i3l,wc))*dxi(0)+(u(i1l,i2l,i3l+1,uc)-u(i1l,i2l,i3l-1,uc))*dxi(2))
+                           rownorm(1) = rownorm(1) + 0.5d0*dabs((u(i1l,i2l,i3l+1,vc)-u(i1l,i2l,i3l-1,vc))*dxi(2)+(u(i1l,i2l+1,i3l,wc)-u(i1l,i2l-1,i3l,wc))*dxi(1))
+                           rownorm(2) = dabs(u(i1l,i2l,i3l+1,wc)-u(i1l,i2l,i3l-1,wc))*dxi(2)+0.5d0*dabs((u(i1l,i2l,i3l+1,vc)-u(i1l,i2l,i3l-1,vc))*dxi(2)+(u(i1l,i2l+1,i3l,wc)-u(i1l,i2l-1,i3l,wc))*dxi(1)) + 0.5d0*dabs((u(i1l+1,i2l,i3l,wc)-u(i1l-1,i2l,i3l,wc))*dxi(0)+(u(i1l,i2l,i3l+1,uc)-u(i1l,i2l,i3l-1,uc))*dxi(2))
+                        endif
+                     endif
+               endif            ! not rectangular
+            endif               ! not boussinesq
+         endif                  ! use ad
+
+         if ( .false. ) then
+            uxnorm = uxnorm/(nd*nd)
+         else
+            uxnorm = max(rownorm(0),rownorm(1),rownorm(2))
+         endif
+ !!        if ( dir.eq.1 ) uxnorm = 0
+         ab_ik(idir,3) = uxnorm
+!!         if ( dir.eq.1 .and. idir.eq.gir(1,dir) ) print *,"insf : ",i1l,i2l,uxnorm
+      enddo                     ! ii
+
+!!      do ic=1,3
+      ic = 3
+      ab_ik(dims(0,dir),ic) = dabs(2d0*ab_ik(dims(0,dir)+1,ic) - ab_ik(dims(0,dir)+2,ic))
+      ab_ik(dims(1,dir),ic) = dabs(2d0*ab_ik(dims(1,dir)-1,ic) - ab_ik(dims(1,dir)-2,ic))
+!!      enddo
+
+      endif                     ! mode .ne. get_explicit
+
+      !! now actually compute the matrix coefficients
+
+      !! set the ghost points to the identity
+      do idir=dir_a,gir(0,dir)-1
+         ii(dir) = idir
+         i1l = ii(0)
+         i2l = ii(1)
+         i3l = ii(2)
+
+         SET_STENCIL_IDX()
+         if ( .not. rhs_only) then
+         dl1(i1,i2,i3)=0d0
+         d(i1,i2,i3) = 1d0
+         du1(i1,i2,i3)=0d0
+         if ( is_penta ) then
+            dl2(i1,i2,i3) = 0d0
+            du2(i1,i2,i3) = 0d0
+         endif
+         endif !! not rhs_only
+         if ( mode.eq.solve_rhs .or. mode.eq.solve_lhs ) then
+            rhs(i1,i2,i3) = ul(i1,i2,i3,cc)
+         else
+            rhs(i1,i2,i3) = 0d0
+         endif
+      enddo
+
+      do idir=gir(1,dir)+1,dir_b
+         ii(dir) = idir
+         i1l = ii(0)
+         i2l = ii(1)
+         i3l = ii(2)
+         
+         SET_STENCIL_IDX()
+         if ( .not. rhs_only ) then
+         dl1(i1,i2,i3)=0d0
+         d(i1,i2,i3) = 1d0
+         du1(i1,i2,i3)=0d0
+         if ( is_penta ) then
+            dl2(i1,i2,i3) = 0d0
+            du2(i1,i2,i3) = 0d0
+         endif
+         endif 
+         if ( mode.eq.solve_rhs .or. mode.eq.solve_lhs ) then
+            rhs(i1,i2,i3) = ul(i1,i2,i3,cc)
+         else
+            rhs(i1,i2,i3) = 0d0
+         endif
+      enddo
+      
+
+!!      do idir=index_range(0,dir),index_range(1,dir)
+      do idir=gir(0,dir),gir(1,dir)
+
+         ii(dir) = idir
+         i1l = ii(0)
+         i2l = ii(1)
+         i3l = ii(2)
+
+      SET_STENCIL_IDX()
+      isdir = isn(dir)
+
+      if ( mask(i1,i2,i3).gt.0 ) then
+
+         near_interp = mask(i1m,i2m,i3m).lt.0 .or. mask(i1p,i2p,i3p).lt.0 
+         if ( (.not.near_interp) .and. (order.gt.2 )) then
+            near_interp = near_interp .or. mask(i1mm,i2mm,i3mm).lt.0 .or. mask(i1pp,i2pp,i3pp).lt.0
+         endif
+!!         if ( order.eq.2 ) then
+!!            near_interp = mask(i1m,i2m,i3m).lt.0 .or. mask(i1p,i2p,i3p).lt.0 
+!!         else
+!!            near_interp = mask(i1m,i2m,i3m).lt.0 .or. mask(i1mm,i2mm,i3mm).lt.0 .or. mask(i1p,i2p,i3p).lt.0 .or. mask(i1pp,i2pp,i3pp).lt.0  
+!!         endif
+
+
+         do io=-half_width,half_width
+            px_coeff(io) = mop_p(io)
+            dx_coeff(io) = mop_dx(io)
+            dxx_coeff(io) = mop_dxx(io)
+         enddo
+
+         if ( use_self_adjoint_ad ) then
+            uxnorm = ab_ik(idir-1,3)
+            ad_coeff(-2) = (ad41 + uxnorm*ad42)
+            uxnorm = 2d0*(ab_ik(idir-1,3) + ab_ik(idir,3))
+            ad_coeff(-1) =-(ad41*4d0 + uxnorm*ad42)
+            uxnorm = ab_ik(idir-1,3) + 4d0*ab_ik(idir,3)+ ab_ik(idir+1,3)
+            ad_coeff( 0) = (ad41*6d0 + uxnorm*ad42)
+            uxnorm = 2d0*(ab_ik(idir+1,3) + ab_ik(idir,3))
+            ad_coeff( 1) =-(ad41*4d0 + uxnorm*ad42)
+            uxnorm = ab_ik(idir+1,3)
+            ad_coeff( 2) = (ad41 + uxnorm*ad42)
+         else
+            uxnorm = ab_ik(idir,3)
+            !!uxnorm = 0.25d0*(ab_ik(idir-1,3) + 2d0*ab_ik(idir,3) +ab_ik(idir+1,3))
+            ad_coeff(-2) = (ad41 + uxnorm*ad42)
+            ad_coeff(-1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+            ad_coeff( 0) = (ad41 + uxnorm*ad42)*6d0 + (ad21 + uxnorm*ad22)*2d0
+            ad_coeff( 1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+            ad_coeff( 2) = (ad41 + uxnorm*ad42)
+         endif
+         
+         if ( order.eq.4 ) then
+            do io=-half_width,half_width
+               ad_coeff(io) = (3d0/2d0)*ad_coeff(io) !! adjust coefficient for the P matrix
+            enddo
+         endif
+
+         off =  0
+         
+         if ( near_interp ) then
+!     !            call get_op_coeffs(half_width,1,min(order,4),finite_difference,px_coeff,dx_coeff)
+!!            call get_op_coeffs(half_width,2,min(order,4),finite_difference,pxx_coeff,dxx_coeff)
+            uxnorm = ab_ik(idir,3)
+            ad_coeff(-2) = (ad41 + uxnorm*ad42)
+            ad_coeff(-1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+            ad_coeff( 0) = (ad41 + uxnorm*ad42)*6d0 + (ad21 + uxnorm*ad22)*2d0
+            ad_coeff( 1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+            ad_coeff( 2) = (ad41 + uxnorm*ad42)
+
+            do io=-half_width,half_width
+               px_coeff(io) = fdop_p(io)
+               dx_coeff(io) = fdop_dx(io)
+               dxx_coeff(io) = fdop_dxx(io)
+               if ( order.eq.4 ) ad_coeff(io) = ad_coeff(io)*2d0/3d0
+            enddo
+            off = 0
+
+
+!!         elseif ( is_periodic .or. (idir.gt.(index_range(0,dir)+1) .and. idir.lt.(index_range(1,dir)-1))) then
+!!            call get_mop_coeffs(half_width,1,order,disc_approx,px_coeff,dx_coeff)
+!!            call get_mop_coeffs(half_width,2,order,disc_approx,pxx_coeff,dxx_coeff)
+!!            do io=-half_width,half_width
+!!               px_coeff(io) = mop_p(io)
+!!               dx_coeff(io) = mop_dx(io)
+!!               dxx_coeff(io) = mop_dxx(io)
+!!            enddo
+!!            off =  0
+         elseif ( .not. is_periodic ) then
+!!            if ( idir.le.(index_range(0,dir)+1) ) then
+            if ( idir.le.(gir(0,dir)+2) ) then
+!!            call get_bos_mop_coeffs(half_width,1,0,order,disc_approx,px_coeff,dx_coeff)
+!!            call get_bos_mop_coeffs(half_width,2,0,order,disc_approx,pxx_coeff,dxx_coeff)
+
+
+             
+               if ( .false. ) then
+                  uxnorm = 0d0
+                  if  ( .false. ) then
+                     uxnorm = ab_ik(idir,3)
+                     ad_coeff( -2) = 0d0
+                     ad_coeff(-1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                     ad_coeff( 0) = (ad41+uxnorm*ad42)*2d0 + (ad21 + uxnorm*ad22)*2d0
+                     ad_coeff( 1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                     ad_coeff( 2)  = 0d0
+                  elseif ( .true. ) then
+                     uxnorm = ab_ik(idir,3)
+                     ad_coeff(-2) = (ad41 + uxnorm*ad42)
+                     ad_coeff(-1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     ad_coeff( 0) = (ad41 + uxnorm*ad42)*6d0 + (ad21 + uxnorm*ad22)*2d0
+                     ad_coeff( 1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     ad_coeff( 2) = (ad41 + uxnorm*ad42)
+                  else
+                     uxnorm = ab_ik(idir-1,3)
+                     ad_coeff(-2) = (ad41 + uxnorm*ad42)
+                     uxnorm = ab_ik(idir,3)
+                     ad_coeff(-1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     uxnorm = ab_ik(idir+1,3)
+                     ad_coeff( 0) = (ad41 + uxnorm*ad42)*6d0 + (ad21 + uxnorm*ad22)*2d0
+                     uxnorm = ab_ik(idir+2,3)
+                     ad_coeff( 1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     uxnorm = ab_ik(idir+3,3)
+                     ad_coeff( 2) = (ad41 + uxnorm*ad42)
+                  endif
+
+               elseif ( .false. ) then
+                  uxnorm = ab_ik(idir,3)
+                  ad_coeff(-2) = (ad41 + uxnorm*ad42)
+                  uxnorm = 2d0*(ab_ik(idir+1,3) + ab_ik(idir,3))
+                  ad_coeff(-1) =-(ad41*4d0 + uxnorm*ad42)
+                  uxnorm = ab_ik(idir,3) + 4d0*ab_ik(idir+1,3)+ ab_ik(idir+2,3)
+                  ad_coeff( 0) = (ad41*6d0 + uxnorm*ad42)
+                  uxnorm = 2d0*(ab_ik(idir+2,3) + ab_ik(idir+1,3))
+                  ad_coeff( 1) =-(ad41*4d0 + uxnorm*ad42)
+                  uxnorm = ab_ik(idir+2,3)
+                  ad_coeff( 2) = (ad41 + uxnorm*ad42)
+               elseif (.false.) then
+                  do io=-half_width,half_width
+                     ad_coeff(io) = 0d0
+                  enddo
+               endif
+
+
+               if ( .false. ) then
+                  do io=-half_width,half_width
+                     px_coeff(io) = bop_p(io,0)
+                     dx_coeff(io) = bop_dx(io,0)
+                     dxx_coeff(io) = bop_dxx(io,0)
+                     if ( order.eq.4 ) ad_coeff(io) = ad_coeff(io)*(24d0/15d0)
+                  enddo
+                  off = -1
+               else
+                  do io=-half_width,half_width
+                     px_coeff(io) = fdop_p(io)
+                     dx_coeff(io) = fdop_dx(io)
+                     dxx_coeff(io) = fdop_dxx(io)
+                     if ( order.eq.4 ) ad_coeff(io) = ad_coeff(io)*2d0/3d0
+                  enddo
+                  off = 0    
+               endif              
+
+               if ( use_ad2_near_bc .and. bc(0,dir).gt.0 ) then
+                  uxnorm = ab_ik(idir,3)
+!!                  uxnorm = max(ab_ik(idir+2,3),ab_ik(idir+1,3))
+!!                  uxnorm = 0d0
+                  ad_coeff( -2) = 0d0
+                  ad_coeff(-1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                  ad_coeff( 0) = (ad41+uxnorm*ad42)*2d0 + (ad21 + uxnorm*ad22)*2d0
+                  ad_coeff( 1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                  ad_coeff( 2) = 0d0
+               endif     
+               
+            else if ( idir.ge.(gir(1,dir)-2) ) then
+               !!            call get_bos_mop_coeffs(half_width,1,1,order,disc_approx,px_coeff,dx_coeff)
+               !!            call get_bos_mop_coeffs(half_width,2,1,order,disc_approx,pxx_coeff,dxx_coeff)
+               if ( .false. ) then
+                  uxnorm = 0d0
+                  if ( .false. ) then
+                     uxnorm = ab_ik(idir,3)
+                     ad_coeff(-2) = 0d0
+                     ad_coeff(-1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                     ad_coeff( 0) = (ad41+uxnorm*ad42)*2d0 + (ad21 + uxnorm*ad22)*2d0
+                     ad_coeff( 1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                     ad_coeff( 2) = 0d0 
+                  elseif (.true.) then
+                     uxnorm = ab_ik(idir,3)
+                     ad_coeff(-2) = (ad41 + uxnorm*ad42)
+                     ad_coeff(-1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     ad_coeff( 0) = (ad41 + uxnorm*ad42)*6d0 + (ad21 + uxnorm*ad22)*2d0
+                     ad_coeff( 1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     ad_coeff( 2) = (ad41 + uxnorm*ad42)
+                  else
+                     uxnorm = ab_ik(idir-3,3)
+                     ad_coeff(-2) = (ad41 + uxnorm*ad42)
+                     uxnorm = ab_ik(idir-2,3)
+                     ad_coeff(-1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     uxnorm = ab_ik(idir-1,3)
+                     ad_coeff( 0) = (ad41 + uxnorm*ad42)*6d0 + (ad21 + uxnorm*ad22)*2d0
+                     uxnorm = ab_ik(idir,3)
+                     ad_coeff( 1) =-(ad41 + uxnorm*ad42)*4d0 - (ad21 + uxnorm*ad22)
+                     uxnorm = ab_ik(idir+1,3)
+                     ad_coeff( 2) = (ad41 + uxnorm*ad42)
+                  endif
+
+               else if ( .false. ) then
+                  uxnorm = ab_ik(idir-2,3)
+                  ad_coeff(-2) = (ad41 + uxnorm*ad42)
+                  uxnorm = 2d0*(ab_ik(idir-2,3) + ab_ik(idir-1,3))
+                  ad_coeff(-1) =-(ad41*4d0 + uxnorm*ad42)
+                  uxnorm = ab_ik(idir-2,3) + 4d0*ab_ik(idir-1,3)+ ab_ik(idir,3)
+                  ad_coeff( 0) = (ad41*6d0 + uxnorm*ad42)
+                  uxnorm = 2d0*(ab_ik(idir,3) + ab_ik(idir-1,3))
+                  ad_coeff( 1) =-(ad41*4d0 + uxnorm*ad42)
+                  uxnorm = ab_ik(idir,3)
+                  ad_coeff( 2) = (ad41 + uxnorm*ad42)
+               elseif ( .false.) then
+                  do io=-half_width,half_width
+                     ad_coeff(io) = 0d0
+                  enddo
+               endif
+
+               if ( .false. ) then
+                  do io=-half_width,half_width
+                     px_coeff(io) = bop_p(io,1)
+                     dx_coeff(io) = bop_dx(io,1)
+                     dxx_coeff(io) = bop_dxx(io,1)
+                     if ( order.eq.4 ) ad_coeff(io) = ad_coeff(io)*(24d0/15d0)
+                  enddo
+                  off =  1
+               else
+                  do io=-half_width,half_width
+                     px_coeff(io) = fdop_p(io)
+                     dx_coeff(io) = fdop_dx(io)
+                     dxx_coeff(io) = fdop_dxx(io)
+                     if ( order.eq.4 ) ad_coeff(io) = ad_coeff(io)*2d0/3d0
+                  enddo
+                  off = 0    
+               endif              
+
+               if ( use_ad2_near_bc .and. bc(1,dir).gt.0 ) then
+!                  print *,ab_ik(idir-2,3),ab_ik(idir-1,3)
+                  uxnorm = ab_ik(idir,3)!!max(ab_ik(idir-2,3),ab_ik(idir-1,3))
+!!                  uxnorm = 0d0
+                  ad_coeff( -2) = 0d0
+                  ad_coeff(-1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                  ad_coeff( 0) = (ad41+uxnorm*ad42)*2d0 + (ad21 + uxnorm*ad22)*2d0
+                  ad_coeff( 1) =-((ad41+uxnorm*ad42) + (ad21 + uxnorm*ad22))
+                  ad_coeff( 2) = 0d0
+               endif     
+
+            endif
+         endif                  ! near interp or not periodic
+
+         !!! here we assume there is always space for the first upper and lower diagonals
+         !!! also, we assume that this is a "merged" coefficient routine so that px_coeff == pxx_coeff 
+         if (.not. rhs_only) then
+            d(i1,i2,i3)   = pxc(off+0)
+            
+            dl1(i1,i2,i3) = pxc(off-1)
+            du1(i1,i2,i3) = pxc(off+1)
+            if ( is_penta ) then
+               if (off.ne.-1) then
+                  dl2(i1,i2,i3) = pxc(off-2)
+               else
+                  dl2(i1,i2,i3) = pxc(off+3)
+               endif
+               
+               if (off.ne.1) then
+                  du2(i1,i2,i3) = pxc(off+2)
+               else
+                  du2(i1,i2,i3) = pxc(off-3)
+               endif
+            endif
+         endif !! not rhs_only
+
+         if ( mode.eq.solve_rhs ) then
+            rhs(i1,i2,i3) = 0d0
+            do io=-half_width,half_width !!!x this loop may need to be changed if the grid does not have ghost points with sufficient width
+               !!!                                 (P  - (dt/2) D_r A_IK - (dt/2) D_rr B_IK) U^* 
+!!               GET_SHIFTED_IDX(i1o,i2o,i3o, (io-off)*is1, (io-off)*is2, (io-off)*is3)
+!!               rhs(i1,i2,i3) = rhs(i1,i2,i3) + (pxc(io) - dto2*drid*dxc(io)*A_IK(io) - dto2*drid*drid*dxxc(io)*B_IK(io))*ul(i1o,i2o,i3o,cc)
+               rhs(i1,i2,i3) = rhs(i1,i2,i3) + (pxc(io) - dto2*drid*dxc(io)*A_IK(io) - dto2*drid*drid*dxxc(io)*B_IK(io) - dto2*ad_coeff(io))*ull(idir+isdir*(io-off))
+!!!               rhs(i1,i2,i3) = rhs(i1,i2,i3) + (pxc(io) - dto2*drid*dxc(io)*A_IK(io) - dto2*drid*drid*dxxc(io)*B_IK(io) - dto2*ad_coeff(io))*ull(idir+(io-off))
+!!            if ( grid.eq.0 .and. i1.eq.27 .and. i2.eq.15) print *, "DBG : ",rhs(i1,i2,i3),io,A_IK(io),B_IK(io),ad_coeff(io),ull(idir+(io-off))
+            enddo
+         else if ( mode.eq.solve_lhs ) then
+            rhs(i1,i2,i3) = 0d0
+            do io=-half_width,half_width !!!x this loop may need to be changed if the grid does not have ghost points with sufficient width
+               !!!                                 P U^{*}
+!!               GET_SHIFTED_IDX(i1o,i2o,i3o, (io-off)*is1, (io-off)*is2, (io-off)*is3)
+!!               rhs(i1,i2,i3) = rhs(i1,i2,i3) + pxc(io)*ul(i1o,i2o,i3o,cc)
+               rhs(i1,i2,i3) = rhs(i1,i2,i3) + pxc(io)*ull(idir+isdir*(io-off))
+!!!               rhs(i1,i2,i3) = rhs(i1,i2,i3) + pxc(io)*ull(idir+(io-off))
+            enddo
+               !!!                                 (P + (dt/2) D_r A_IK + (dt/2) D_rr B_IK) U^{**}_i
+
+            if ( .not. rhs_only ) then
+               io = 0 +off
+               d(i1,i2,i3)      = d(i1,i2,i3)   + dto2*drid*dxc(io)*ab_ik(idir,1) + dto2*drid*drid*dxxc(io)*ab_ik(idir,2) + dto2*ad_coeff(io)
+               io = -1 +off
+               dl1(i1,i2,i3)    = dl1(i1,i2,i3) + dto2*drid*dxc(io)*ab_ik(idir-1,1) + dto2*drid*drid*dxxc(io)*ab_ik(idir-1,2) + dto2*ad_coeff(io)
+               io = 1 +off
+               du1(i1,i2,i3)    = du1(i1,i2,i3) + dto2*drid*dxc(io)*ab_ik(idir+1,1) + dto2*drid*drid*dxxc(io)*ab_ik(idir+1,2) + dto2*ad_coeff(io)
+               if ( is_penta ) then
+                  io = -2  +off
+                  if (off.ne.-1) then
+                     dl2(i1,i2,i3) = dl2(i1,i2,i3) + dto2*drid*dxc(io)*A_IK(io) + dto2*drid*drid*dxxc(io)*B_IK(io) + dto2*ad_coeff(io)
+                  else
+                     io = 2
+                     dl2(i1,i2,i3) = dl2(i1,i2,i3) + dto2*drid*dxc(io)*A_IK(io) + dto2*drid*drid*dxxc(io)*B_IK(io) + dto2*ad_coeff(io)
+                  endif
+                  io =  2 +off
+                  if (off.ne.1) then
+                     du2(i1,i2,i3) = du2(i1,i2,i3) + dto2*drid*dxc(io)*A_IK(io) + dto2*drid*drid*dxxc(io)*B_IK(io) + dto2*ad_coeff(io)
+                  else
+                     io = -2
+                     du2(i1,i2,i3) = du2(i1,i2,i3) + dto2*drid*dxc(io)*A_IK(io) + dto2*drid*drid*dxxc(io)*B_IK(io) + dto2*ad_coeff(io)
+                  endif
+               endif
+            endif !! not rhs_only 
+         else ! mode .eq. get_explicit
+            ! this is a compact scheme for the pressure, the contribution will be scaled and added to the appropriate equation
+            !   outside this subroutine
+            !! dp/dx_i = sum_{j=0}^{ndim-1} dr_j/dx_i dp/dr_j
+            !! dr_j/dx_i dp/dr_j = dr_j/dx_i P^{-1} D p
+            ! note we filled in the diagonals above and the bcs are taken care of below...
+            rhs(i1,i2,i3) = 0d0
+
+            do io=-half_width,half_width !!!x this loop may need to be changed if the grid does not have ghost points with sufficient width
+               GET_SHIFTED_IDX(i1o,i2o,i3o, (io-off)*is1, (io-off)*is2, (io-off)*is3)
+               rhs(i1,i2,i3) = rhs(i1,i2,i3) +dxc(io)*u(i1o,i2o,i3o,pc)*drid
+!!               if (dir.eq.1 .and. processid.eq.1 ) print *,"DBG : ",i1o,i2o,u(i1o,i2o,i3o,pc)
+            enddo
+
+         endif                  ! if mode .eq. solve_rhs or solve_lhs
+
+      elseif ( mask(i1,i2,i3).ne.0 .and. mode.eq.get_explicit) then
+         ! fill in interpolation points with a standard (4th order only) finite difference operator
+!!!         call get_op_coeffs(half_width,1,min(order,4),finite_difference,px_coeff,dx_coeff)
+         do io=-half_width,half_width
+            px_coeff(io) = fdop_p(io)
+            dx_coeff(io) = fdop_dx(io)
+            dxx_coeff(io) = fdop_dxx(io)
+         enddo
+         off = 0
+         if ( .not.rhs_only) then
+            dl1(i1,i2,i3) = 0d0
+            d(i1,i2,i3)   = 1d0
+            du1(i1,i2,i3) = 0d0
+            if ( is_penta ) then
+               dl2(i1,i2,i3) = 0d0
+               du2(i1,i2,i3) = 0d0
+            endif
+         endif ! not rhs_only
+         rhs(i1,i2,i3) = 0d0
+         do io=-half_width,half_width !!!x this loop may need to be changed if the grid does not have ghost points with sufficient width
+            GET_SHIFTED_IDX(i1o,i2o,i3o, (io-off)*is1, (io-off)*is2, (io-off)*is3)
+            rhs(i1,i2,i3) = rhs(i1,i2,i3) +dxc(io)*u(i1o,i2o,i3o,pc)*drid
+         enddo
+
+      else 
+
+      !  fill in unused points with the identity
+         if ( .not. rhs_only) then
+            dl1(i1,i2,i3) = 0d0
+            d(i1,i2,i3)   = 1d0
+            du1(i1,i2,i3) = 0d0
+            if ( is_penta ) then
+               dl2(i1,i2,i3) = 0d0
+               du2(i1,i2,i3) = 0d0
+            endif
+         endif                  !rhs_only
+         if ( mode.eq.solve_rhs .or. mode.eq.solve_lhs ) then
+            rhs(i1,i2,i3) = ul(i1,i2,i3,cc)
+         else
+            rhs(i1,i2,i3) = 0d0
+         endif
+
+         if ( mask(i1,i2,i3).eq.0) rhs(i1,i2,i3) = 0d0
+
+      endif ! if mask gt 0
+
+      enddo ! i1l
+      enddo ! i2l
+      enddo ! i3l
+
+      if (mode.eq.get_explicit ) then
+         if ( disc_approx.eq.compact .and. .not.is_periodic) then
+         bc_range(0,0,dir) = index_range(0,dir)
+         bc_range(0,1,dir) = gir(0,dir)-1
+         bc_range(1,0,dir) = gir(1,dir)+1
+         bc_range(1,1,dir) = index_range(1,dir)
+            ONE_SIDED_BDY(pc)
+         endif
+      else
+         APPLY_BOUNDARY_CONDITIONS()
+!!         IDENTITY_GHOST()
+      endif
+
+      end ! subroutine ins_mfactor
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

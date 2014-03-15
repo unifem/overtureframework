@@ -1,0 +1,71 @@
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{8cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (8,7);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{retroCad}{\figWidtha}};
+%
+% \draw[step=1cm,gray] (0,0) grid (8,7);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{A CAD model for an automobile rear view mirror.}
+\label{fig:retroCAD}
+\end{figure}
+}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{8cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (16,14);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,3) node[anchor=south west] {\trimfig{retroTopo}{\figWidtha}};
+ \draw (8,7.0) node[anchor=south west] {\trimfig{retroTri}{\figWidtha}};
+ \draw (8,0.0) node[anchor=south west] {\trimfig{retroWithSurfaceGrid}{\figWidtha}};
+%
+% \draw[step=1cm,gray] (0,0) grid (16,14);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{The topology (merged edge-curves, left), water-tight triangulation (top-right)  and a surface grid generated
+  on the CAD surface (bottom-right).}
+\label{fig:retroTopo}
+\end{figure}
+}
+
+%{
+%\newcommand{\figWidth}{14.cm}
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.2}{.9}}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,0)(14,9.5)
+%  \rput(7.,4.){\clipfig{retroCad.ps}{\figWidth}}
+%% \psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{The topology, water-tight triangulation and a surface grid.}
+%\label{fig:retroTopo}
+%\end{figure}
+%}
+%{
+%\newcommand{\figWidth}{11.cm}
+%\newcommand{\clipfiga}[2]{\clipFigb{#1}{#2}{.2}{.85}{.0}{1.}}
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.1}{.9}}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,-.75)(18,16.)
+%  \rput[l](-2.5,9){\clipfiga{retroTopo.ps}{\figWidth}}
+%  \rput[r](18.5,12){\clipfig{retroTri.ps}{\figWidth}}
+%  \rput[r](18.5,3.){\clipfig{retroWithSurfaceGrid.ps}{\figWidth}}
+% %\psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{The topology, water-tight triangulation and a surface grid.}
+%\label{fig:retroTopo}
+%\end{figure}
+%}

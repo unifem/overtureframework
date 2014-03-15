@@ -1,0 +1,25 @@
+#
+# Makefile for a sun (to be combined with .cshrc.sun)
+# assumes the existence of the file mappedGridExample1.C (which can be copied from $Overture/primer)
+#
+INCLUDE = -I. -I$(Overture)/include  -I$(A++)/include -I$(OpenGL)/include
+CLIBS= -L$(Overture)/lib -lOverture_static -lOverture -lOverture_static -L$(A++) -lA++ -lA++_static -lA++
+GLIBS= -L$(OpenGL)/lib -lMesaaux -lMesatk -lMesaGLU -lMesaGL -lGLw -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm \
+       -L$(XLIBS)/lib -lXt -lX11 -lXext -lF77 -lM77 -lV77 -lsunmath -lm 
+
+cc= cc
+CC=       CC
+FC=       f77
+FFLAGS =   -g
+CCFLAGS=  -O  $(INCLUDE) 
+
+.SUFFIXES:
+.SUFFIXES:.f .o .C .o .c .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.c.o:; $(cc) $(ccFLAGS) -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+mappedGridExample1 = mappedGridExample1.o 
+mappedGridExample1: $(mappedGridExample1)
+	$(CC) $(CCFLAGS) -o mappedGridExample1 $(mappedGridExample1) $(CLIBS) $(GLIBS) -lm 
+  

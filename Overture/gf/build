@@ -1,0 +1,91 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+# here is where the Overture Grid Function files are:
+set Overture = $ovDir
+
+set mapUtil = "$Overture/mapUtil"
+set gff = "$Overture/GridFunction"
+set gfi = "$Overture/include"
+set primer = "$Overture/primer"
+set examples = "$Overture/examples"
+set tests = "$Overture/tests"
+set ovstatic = "$Overture/static"
+
+echo "Copy grid function files into the $ovDir grid function directory: $gff ..."
+
+
+cp initOvertureGlobalVariables.C                                                   $Overture/static
+
+cp {OvertureInit,RapsodiInit,memoryUsage}.C                                        $ovstatic
+
+cp {getCPU.C,second.f,conversion.C}                                                $mapUtil
+cp {second1.f,second2.f,second3.c}                                                 $mapUtil
+cp interpPoints.C                                                                  $gff
+cp GridFunctionParameters.C                                                        $gff
+cp {double,float,int}{GenericGridCollection,MappedGrid,GridCollection}Function.C   $gff
+cp {double,float,int}{CompositeGrid}Function.C                                     $gff
+cp {Interpolant.C,interpOpt.f,interpOptFull.f,interpOptTP.f,interpOptSP.f,initExplicitInterp.f}  $gff
+cp {gridFunctionNorms.C,normOpt.f,normOpt.bf}                                      $gff
+cp {derivativeDefinitions,InterpolatePoints}.C                                     $gff
+cp {interpRefinements.C,ArrayUtil.C}                                               $gff
+cp {interpOpt,initExplicitInterp}.bf                                               $gff
+cp {ParallelOverlappingGridInterpolator.C,ParallelOverlappingGridInterpolator.bC,App.C}   $gff
+cp {InterpolatePointsOnAGrid.C,InterpolatePointsOnAGrid.bC,pogip.C,findNearestValidGridPoint.C}  $gff
+
+# program to compare solutions in show files and compute convergence rates  
+cp {comp.C}   $Overture/bin
+
+# program to transfer solutions between different overlapping grids:
+cp {transferSolution.C}   $Overture/bin
+
+# this next file will go away:
+cp {interpolateExposedPoints}.C $gff
+cp {ExposedPoints.C,ExposedPoints.bC} $gff 
+
+echo "now copy the include files to $gfi"
+
+
+cp GridFunctionParameters.h                                                            $gfi
+cp {double,float,int}GenericGridFunction.h                                             $gfi
+cp {double,float,int}{GenericGridCollection,MappedGrid,GridCollection}Function.{h}     $gfi
+cp {double,float,int}{CompositeGrid}Function.{h}                                       $gfi
+
+cp {GenericGrid,GenericGridCollection,MappedGrid,GridCollection}Function.h             $gfi
+cp {Grid,CompositeGrid}Function.h                                                      $gfi
+
+cp {Interpolant,InterpolatePoints,ExposedPoints,InterpolatePointsOnAGrid}.h            $gfi
+
+cp {conversion,derivativeDefinitions,gridFunctionNorms,ArrayUtil}.h                    $gfi
+
+cp IndexArg.h                                                                          $gfi
+
+cp {ParallelOverlappingGridInterpolator.h,App.h}                                       $gfi
+
+cp interpPoints.h                                                                 $gfi
+cp OvertureInit.h                                                                 $gfi
+
+# copy test routines to the examples directory
+
+cp testGridFunctions.p                                                    $tests
+cp {tgf,cellFace}.{C,check}                                               $tests
+cp {testInterpolant,testip}.C                                             $tests
+cp {edge}.C                                                               $examples
+
+cp {OvertureInit,OvertureMappingInit}.C                                   $Overture/phoneyFiles
+
+
+cp {testpogi.C}                               $primer
+cp {testDistribute.C}                         $primer
+
+echo "done gf files."

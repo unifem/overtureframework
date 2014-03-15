@@ -1,0 +1,99 @@
+# SGI with IRIX 64 bit  : Note: set LD_LIBRARY64_PATH !
+# SGI_FIX : rubber band did not seem to work (-> X error)
+# Thanks to Petri Fast for fixing some things here.
+
+# these next values for compilers will be used unless overridden with an argument to configure
+cc = cc
+CC = CC 
+FC = f77
+
+
+A++ = $(APlusPlus)
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+AppLibraries = -L$(APlusPlus)/lib -lApp -lApp_static 
+
+Include=  $(Overture)/include
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static -lOverture 
+LibRapsodi= -lRapsodi -lRapsodi_static  -lRapsodi
+BOXLIB_DEFS = -DBL_USE_FLOAT
+
+# Here is the rpath command  -- waht should this be ?
+OV_RPATH = 
+
+# Here is where we can find the perl include files and library (CORE)
+# These will normally be changed by the configure script unless it can't find the location of the perl CORE 
+OV_PERL_INCLUDE = /usr/lib/perl5/5.6.1/i386-linux/CORE
+OV_PERL_LIB     = /usr/lib/perl5/5.6.1/i386-linux/CORE
+# Here are the perl libraries we need to link to
+OV_PERL_LIBRARIES = $(OV_RPATH) $(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lcrypt
+
+LDFLAGS = -L
+
+# these next values will may be changed by the configure script
+C_OPTIMIZATION_FLAG = -O2 -G 0 -multigot -Wl,-nltgot,312 -OPT:Olimit=3000
+CPP_OPTIMIZATION_FLAG = -O2 -G 0 -multigot -Wl,-nltgot,312 -OPT:Olimit=3000
+FORTRAN_OPTIMIZATION_FLAG = -O2 -G 0 -multigot -Wl,-nltgot,312
+
+CFLAGS = $(C_OPTIMIZATION_FLAG)  -I$(Include) $(OverturePrecision) -64 -mips4 -woff 1188,1047 -I$(APlusPlus)/include -I$(OpenGL)/include
+# flags for c routines we always optimize
+CFLAGSO =  -O2 -G 0 -multigot -Wl,-nltgot,312 -OPT:Olimit=3000 -I$(Include) $(OverturePrecision) -64 -mips4 -woff 1188,1047 -I$(APlusPlus)/include -I$(OpenGL)/include
+
+
+#CCFLAGS= $(CPP_OPTIMIZATION_FLAG) $(OverturePrecision) -ptused -64 -mips4 -woff 1188,1047,1681,1021,1110,1401,1116,1174,3322,1440,1401,1174  -DSGI_FIX  -DUSE_MESA -I$(Overture)/include -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS)
+### things that need to be compiled with no optimization use the following
+#CCFLAGSG= -G 0 -multigot -Wl,-nltgot,312 $(OverturePrecision) -g -ptused -64 -mips4 -woff 1188,1047,1681,1021,1110 -Wl,-woff,85 -DSGI_FIX  -DUSE_MESA -I$(Overture)/include -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS)
+
+
+# CC_INCLUDES_FOR_DEPEND =   $(OverturePrecision) -ptused -64 -mips4 -woff all  -DSGI_FIX  -DUSE_MESA -I$(Overture)/include -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS)
+
+CC_INCLUDES_FOR_DEPEND =   $(OverturePrecision) -64 -mips4 -woff 1047 -DSGI_FIX  -DUSE_MESA  -I$(Include) -I$(Overture)/include -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS) -LANG:std -I$(OV_PERL_INCLUDE)
+
+STL_INCLUDE = 
+CC_INCLUDES = $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE)
+CCFLAGS=  $(CC_INCLUDES) -LANG:ansi-for-init-scope=on -no_prelink -ptused
+
+## OPTIMIZED flags
+CCFLAGS= $(CC_INCLUDES_FOR_DEPEND) $(CPP_OPTIMIZATION_FLAG) -LANG:ansi-for-init-scope=on -no_prelink -ptused
+
+## NON-Optimized flags?!? --- try using optimized
+CCFLAGSG = $(CC_INCLUDES_FOR_DEPEND) -g -LANG:ansi-for-init-scope=on -no_prelink -ptused
+
+# things that are always compile with optimization use this flag
+CCFLAGSO= $(CC_INCLUDES_FOR_DEPEND) -O -LANG:ansi-for-init-scope=on -no_prelink -ptused
+
+# things that are always compile with lots of optimization use this flag
+CCFLAGSF= $(CC_INCLUDES) -O -LANG:ansi-for-init-scope=on -no_prelink -ptused
+
+FFLAGS=   $(FORTRAN_OPTIMIZATION_FLAG)  $(FortranDouble) $(OverturePrecision) -64 -I$(Include)
+# single precision always:
+FFLAGSS=  $(OverturePrecision) $(FORTRAN_OPTIMIZATION_FLAG)  -64 -I$(Include)
+
+# things that are always compile with optimization use these flags
+FFLAGSO= -O $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) -64 -I$(Include)  
+FFLAGSSO= -O $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) -64 -I$(Include) 
+
+
+FORTRAN_LIBS =  -lftn
+
+# The KCC compiler should be used to build the static library (for templates)
+AR = ar
+#KCC AR = KCC
+#irix AR = CC
+ARFLAGS = ruv  
+#KCC ARFLAGS = -o 
+#irix ARFLAGS = -ar -no_prelink -ptused -o 
+
+LD = $(CC) -G 0 -multigot -Wl,-nltgot,312
+RANLIB = true
+SOFLAGS = -shared -64 -no_prelink -ptused
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES= 
+RAPTEMPLATES= 
+
+OpenGLibs=
+GLIBS= $(OV_PERL_LIBRARIES) -L$(OpenGL)/lib64 $(OpenGLibs) -L$(HDF)/lib -lmfhdf -ldf -lz -ljpeg -L$(MOTIF)/lib64 -lXm -L$(XLIBS)/lib64  -lXt -lX11 -lXext -lm 
+
+FLIBS= -Wl,-rpath,$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 

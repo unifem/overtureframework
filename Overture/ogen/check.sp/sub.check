@@ -1,0 +1,27 @@
+ ********************************************* 
+ ************** Ogen check file ************** 
+ ********************************************* 
+
+ This grid data is used to make sure the grid generator is giving 
+ the same answer after changes are made. Compare this file to a the 
+ check file from previous version. 
+
+grid   0 points: discretization=   97982, interpolation=   7944, all=  129024, unused=   23098, name=backGround
+grid   1 points: discretization=   13527, interpolation=   4074, all=   24180, unused=    6579, name=hull
+grid   2 points: discretization=    1331, interpolation=    697, all=    2028, unused=       0, name=hull-bow-cap
+grid   3 points: discretization=    1331, interpolation=    697, all=    2028, unused=       0, name=hull-stern-cap
+grid   4 points: discretization=    1877, interpolation=    672, all=    2976, unused=     427, name=saildp
+grid   5 points: discretization=    2025, interpolation=    865, all=    2890, unused=       0, name=sail-capdp
+grid   6 points: discretization=    1736, interpolation=    561, all=    2976, unused=     679, name=front-stabilizer1-dp
+grid   7 points: discretization=    2025, interpolation=    865, all=    2890, unused=       0, name=front-stabilizer1-cap-dp
+grid   8 points: discretization=    1737, interpolation=    563, all=    2976, unused=     676, name=front-stabilizer2-dp
+grid   9 points: discretization=    2025, interpolation=    865, all=    2890, unused=       0, name=front-stabilizer2-cap-dp
+grid  10 points: discretization=    2092, interpolation=    592, all=    2976, unused=     292, name=back-stabilizer1-dp
+grid  11 points: discretization=    2025, interpolation=    865, all=    2890, unused=       0, name=back-stabilizer1-cap-dp
+grid  12 points: discretization=    2082, interpolation=    614, all=    2976, unused=     280, name=back-stabilizer2-dp
+grid  13 points: discretization=    2025, interpolation=    865, all=    2890, unused=       0, name=back-stabilizer2-cap-dp
+grid  14 points: discretization=    2094, interpolation=    608, all=    2976, unused=     274, name=back-stabilizer3-dp
+grid  15 points: discretization=    2025, interpolation=    865, all=    2890, unused=       0, name=back-stabilizer3-cap-dp
+grid  16 points: discretization=    2090, interpolation=    608, all=    2976, unused=     278, name=back-stabilizer4-dp
+grid  17 points: discretization=    2025, interpolation=    865, all=    2890, unused=       0, name=back-stabilizer4-cap-dp
+total    points: discretization=  142054, interpolation=  23685, all=  198322, unused=   32583

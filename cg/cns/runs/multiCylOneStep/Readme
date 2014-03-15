@@ -1,0 +1,14 @@
+This simulation can be run with 
+
+ ogen -noplot multiCylIG -xa=-.5 -factor=2 -name=multiCylIG2Big.hdf
+ ogen -noplot multiCylIG -xa=-.5 -factor=4 -name=multiCylIG4Big.hdf
+
+cgcns -noplot multiCylOneStep -g=multiCylIG2Big -amr=1 -tf=1. -tp=.01 -show=multiCylOneStep2.show -go=go
+
+
+Results can be plotted with
+  plotStuff plotMultiCylOneStep.cmd -show=multiCylOneStep2
+
+
+See the comments at the top of multiCylOneStep.cmd and the "memo" file
+for more details and examples.

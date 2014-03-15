@@ -1,0 +1,27 @@
+Test routines for Overture
+
+Type checkop.p to run some tests and compare the results to some reference results:
+    tderivatives    : tests derivatives in the operators.         
+    tbcc            : tests boundary conditions for coefficient matrices.  
+    tbc             : tests explicit boundary conditions.                   
+    tcm3            : tests coefficient matrix solver on a CompositeGrid 
+
+
+You can also run the tests separately.
+
+Other test routines here are 
+
+  tcm.C, tcm2.C ... : examples to test coefficient matrices
+
+  testInterpolate.C : test interpolation
+  
+  testIntegrate.C   : test integration on overlapping grids
+
+  tz.C : test twilight-zone functions
+
+  giMain: test routine for the graphics interface
+
+  paperplane: test routine for motif and OpenGL (if giMain fails, tehn maek sure
+       this routine works)
+
+  thdf1.C, dbex1.C dbex2.C dbex2a.C : tests for the HDF data-base. 

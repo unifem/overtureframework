@@ -1,0 +1,55 @@
+\clearpage
+ \section{check/cicm}
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$  & res(i)     & rate(i)    &  WU(i)     & ECR(i)  \\   \hline 
+ $ 1$  & $ 4.3e-02$ & $0.042$ & $ 6.6$ & $0.62$ \\ 
+ $ 2$  & $ 4.6e-03$ & $0.106$ & $ 7.3$ & $0.74$ \\ 
+ $ 3$  & $ 5.3e-04$ & $0.117$ & $ 7.9$ & $0.76$ \\ 
+ $ 4$  & $ 5.7e-05$ & $0.106$ & $ 7.9$ & $0.75$ \\ 
+ $ 5$  & $ 6.1e-06$ & $0.108$ & $ 7.9$ & $0.75$ \\ 
+ $ 6$  & $ 6.6e-07$ & $0.108$ & $ 7.9$ & $0.75$ \\ 
+ $ 7$  & $ 7.2e-08$ & $0.108$ & $ 7.9$ & $0.75$ \\ 
+ $ 8$  & $ 7.8e-09$ & $0.108$ & $ 7.9$ & $0.75$ \\ 
+ $ 9$  & $ 8.4e-10$ & $0.108$ & $ 7.9$ & $0.75$ \\ 
+ $10$  & $ 9.1e-11$ & $0.108$ & $ 7.9$ & $0.75$ \\ 
+ $11$  & $ 9.9e-12$ & $0.109$ & $ 7.6$ & $0.75$ \\ 
+ $12$  & $ 1.3e-12$ & $0.129$ & $ 7.3$ & $0.76$ \\ 
+ $13$  & $ 3.4e-13$ & $0.267$ & $ 6.8$ & $0.82$ \\ 
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+                 Ogmg, Statistics: 
+                 -----------------     time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............1.99e+01  1.42e+00    90.36% 
+ defect.(excluding those in smooth)....2.13e+00  1.52e-01     9.70% 
+ fine to coarse........................3.40e-01  2.43e-02     1.54% 
+ coarse to fine........................1.56e-02  1.12e-03     0.07% 
+ direct solve on coarsest level........1.16e-01  8.28e-03     0.53% 
+    interpolation......................1.51e+00  1.08e-01  (  6.85%) (already counted)
+    boundary conditions................1.13e+01  8.04e-01  ( 51.14%) (already counted)
+ sum of above..........................2.25e+01  1.61e+00   102.20%  
+
+ total.................................2.20e+01  1.57e+00   100.00% 
+
+ total number of grid points = 1850 
+ total number of cycles      = 14 
+ storage allocated = 7.69e-01 MBytes,   415.8 bytes/(grid point) or   52.0 reals/(grid point)
+
+ number of levels = 3 
+ interpolate defect = 1
+ number of cycles per level= 1  2  1 
+ coarse grid solver : yale, direct sparse solver, no pivoting 
+
+grid 0 : rb[3] rb[3] rb[3]  : square 
+         bc=[neumann,neumann] [neumann,neumann] 
+grid 1 : rb[3] rb[3] rb[3]  : Annulus 
+         bc=[periodic,periodic] [neumann,interp] 
+\end{verbatim}
+} % end footnotesize

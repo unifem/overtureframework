@@ -1,0 +1,12 @@
+This directory contains Overture operators.
+
+Here are summaries of the sub-directories
+
+  bc :  boundary conditions
+  coeff : C++ coefficient operators
+  deriv : C++ derivative operators
+  fortranCoeff : fortran coefficient operators
+  fortranDeriv : fortran derivative operators
+  include : include file needed in multiple sub-directories
+  src : definitions of operators classes 
+  tests : test routines

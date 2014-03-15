@@ -1,0 +1,140 @@
+%--------------------------------------------------------------
+\section{OrthographicTransform : define an orthographic transform}
+\index{orthographic mapping}\index{Mapping!OrthographicTransformMapping}
+%-------------------------------------------------------------
+
+This mapping is used to create an orthographic patch to remove
+a spherical-polar singularity or a cylindrical polar singularity (i.e.
+a singular may occur at the end of a mapping defined in cylindrical
+coordinates when the cross-sections converge to a point).
+Normally one would use the {\ff ReparamertizationTransform}
+mapping to construct the Orthographic patch.
+
+\subsection{Description}
+
+The orthographic transformation is a mapping from parameter
+space to parameter space. There are two forms to this mapping, the first
+can be used to reparameterize a mapping with a spherical polar singularity
+and the second can be used for a cylindrical mapping with a polar singularity.
+
+\def\half {{1\over2}}
+\subsubsection{Orthographic transform to reparameterize a spherical-polar singularity}
+
+\def\ss {\sigma}
+This form of the  orthographic mapping transforms into spherical polar coordinates
+\[
+      (r_1,r_2) \rightarrow (t_1,t_2) = ({\phi\over\pi},{\theta\over 2\pi})
+\]
+and is defined by
+\[
+      s_1 = (r_1-{1\over2}) s_a, \quad s_2 = ( r_2 - {1\over2} ) s_b, 
+    \quad \ss^2=s_1^2 + s_2^2
+\]
+\[
+ \cos\phi=\pm{1-\ss^2\over1+\ss^2},\quad
+ \sin\phi={2\ss\over 1+\ss^2},\quad
+ \cos\theta={s_1\over\ss},\quad
+ \sin\theta=\pm{s_2\over\ss}.
+\]
+\[
+   (t_1,t_2) = ({\phi\over\pi},{\theta\over 2\pi})
+\]
+The upper sign ($+$) is used for a reparametrization  covering the north
+pole and the lower sign ($-$) for the south pole.  
+
+The derivatives are returned as
+\begin{eqnarray}
+{\partial t_1 \over \partial r_1 } &=& {s_1 \over (1+\ss^2) \ss } {\pm 2 s_a \over \pi}  \\
+{\partial t_1 \over \partial r_2 } &=& {s_2 \over (1+\ss^2) \ss } {\pm 2 s_b \over \pi}  \\
+\sin(\phi){\partial t_2 \over \partial r_1 } &=& -{s_2 \over (1+\ss^2) \ss} {\pm 2 s_a \over \pi}  \\
+\sin(\phi){\partial t_2 \over \partial r_2 } &=& +{s_1 \over (1+\ss^2) \ss} {\pm 2 s_b \over \pi}  
+\end{eqnarray}
+so that when this mapping is composed with a mapping in spherical-polar form the
+$\sin(\phi)$ terms will cancel nicely to remove the removable singularity.
+
+
+The inverse of the mapping $(t_1,t_2)\rightarrow (r_1,r_2)$ is defined by
+\[
+ \phi = \pi t_1, \quad \theta = 2\pi t_2, \quad
+ s_1={\sin\phi\over1\pm\cos\phi}\cos\theta,\quad
+ s_2=\pm{\sin\phi\over1\pm\cos\phi}\sin\theta.
+\]
+\[
+ r_1={s_1\over s_a}+\half , \quad  r_2={s_2\over s_b}+\half
+\]
+The derivatives are returned as
+\begin{eqnarray*}
+{\partial r_1 \over \partial t_1 } &=& {\cos(\theta) \over (1\pm\cos(\phi))} {\pm \pi \over s_a}  \\
+{\partial r_2 \over \partial t_1 } &=& {\sin(\theta) \over (1\pm\cos(\phi))} {\pi \over s_b}  \\
+{1\over\sin(\phi)}{\partial r_1\over\partial t_2} &=& {\sin(\theta)\over(1\pm\cos(\phi)} {-2\pi\over s_a}  \\
+{1\over\sin(\phi)}{\partial r_2\over \partial t_2}&=&{\cos(\theta) \over (1\pm\cos(\phi)}{\pm 2\pi \over s_b}  
+\end{eqnarray*}
+
+\subsubsection{Orthographic transform to reparameterize a cylindrical polar singularity}
+
+This form of the orthographic mapping transforms into cylindrical coordinates
+\[
+      (r_1,r_2) \rightarrow (t_1,t_2) = (s,{\theta\over 2\pi})
+\]
+and is defined by
+\[
+      s_1 = (r_1-{1\over2}) s_a, \quad s_2 = ( r_2 - {1\over2} ) s_b
+    \quad \ss^2=s_1^2 + s_2^2
+\]
+\[
+ t_1 = \pm\half ~{1-\ss^2\over 1+\ss^2}+\half,\quad
+ \tan(2\pi t_2) = \pm s_2/s_1, \quad  r = {2 \ss\over 1+\ss^2}  
+\]
+
+The derivatives are returned as
+\begin{eqnarray*}
+-{1\over r} {\partial t_1 \over \partial r_1 } &=& {s_1 \over (1+\ss^2) \ss } {\pm s_a }  \\
+-{1\over r} {\partial t_1 \over \partial r_2 } &=& {s_2 \over (1+\ss^2) \ss } {\pm s_b }  \\
+r {\partial t_2 \over \partial r_1 } &=& -{s_2 \over (1+\ss^2) \ss } {\pm s_a\over \pi}  \\
+r {\partial t_2 \over \partial r_2 } &=& +{s_1 \over (1+\ss^2) \ss } {\pm s_b\over \pi}  
+\end{eqnarray*}
+so that when this mapping is composed with a mapping in cylindrical coordinates form the
+terms will cancel nicely to remove the removable singularity.
+
+The inverse of the mapping $(t_1,t_2)\rightarrow (r_1,r_2)$ is defined by
+\[
+ \zeta=2t_1-1, \quad r=\sqrt{1-\zeta^2}\quad \tan(\theta)={\pm s_2 \over s_1}, \quad
+ s_1={r\over1\pm\zeta}\cos\theta,\quad
+ s_2=\pm{r\over 1\pm\zeta}\sin\theta.
+\]
+\[
+ r_1={s_1\over s_a}+\half , \quad  r_2={s_2\over s_b}+\half
+\]
+The derivatives are returned as
+\begin{eqnarray*}
+-r {\partial r_1 \over \partial t_1 } &=& {\cos(\theta) \over (1\pm\zeta)} {\pm2  \over s_a}  \\
+-r {\partial r_2 \over \partial t_1 } &=& {\sin(\theta) \over (1\pm\zeta)} {2 \over s_b}  \\
+{1\over r}{\partial r_1 \over \partial t_2 } &=& {\sin(\theta) \over (1\pm\zeta)} {-2\pi \over s_a}  \\
+{1\over r}{\partial r_2 \over \partial t_2 } &=& {\cos(\theta) \over (1\pm\zeta)} {\pm 2\pi \over s_b}  
+\end{eqnarray*}
+
+%%\section{Member functions}
+%%\input OrthographicTransformInclude.tex
+% 
+% \subsection{Constructors}
+% 
+% 
+% \begin{tabbing}
+% {\ff OrthographicTransform()xxxx}\= \kill
+% {\ff OrthographicTransform()}    \> Default constructor\\
+% {\ff  OrthographicTransform( const real sa=1., const real sb=1., const int pole=+1 )} \> \\
+% \end{tabbing}
+% 
+% 
+% \subsection{Data Members}
+% 
+% \subsection{Member Functions}
+% 
+% \begin{tabbing}
+% 0123456789012345678901234567689012345678901234567890123 \= \kill
+% {\ff void map( ... ) }     \> evaluate the mapping and derivative  \\
+% {\ff void inverseMap( ... ) }  \> evaluate the inverse mapping and derivative  \\
+% {\ff void get( const Dir \& dir, const String \& name)} \> get from a database file \\
+% {\ff void put( const Dir \& dir, const String \& name)} \> put to a database file \\
+% \end{tabbing}
+

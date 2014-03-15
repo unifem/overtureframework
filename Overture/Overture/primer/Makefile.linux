@@ -1,0 +1,23 @@
+#
+# Makefile for a linux pentium box
+#
+INCLUDE = -I. -I$(Overture)/include  -I$(A++)/include -I$(OpenGL)/include
+CLIBS= -L$(Overture)/lib -lOverture_static -lOverture -lOverture_static -L$(A++) -lA++ -lA++_static -lA++
+GLIBS= -L$(OpenGL)/lib -lMesaaux -lMesatk -lMesaGLU -lMesaGL -lGLw -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm \
+       -L$(XLIBS)/lib -lXt -lX11 -lXext -lXpm -L/usr/lib -lf2c -lgcc -lc -lm 
+
+cc= gcc
+CC=       g++
+FC=       g77
+FFLAGS =   -g
+CCFLAGS=  -O  $(INCLUDE) 
+
+.SUFFIXES:
+.SUFFIXES:.f .o .C .o .c .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.c.o:; $(cc) $(ccFLAGS) -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+mappedGridExample1 = mappedGridExample1.o 
+mappedGridExample1: $(mappedGridExample1)
+	$(CC) $(CCFLAGS) -o mappedGridExample1 $(mappedGridExample1) $(CLIBS) $(GLIBS) -lm

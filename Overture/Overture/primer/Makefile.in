@@ -1,0 +1,87 @@
+#
+#
+# Primer examples:
+#    type `make programName' to make the example called `programName', see the
+#       possible program names below
+#    type `make' to make all examples
+#
+
+
+Source=mappedGridExample1.C mappedGridExample2.C mappedGridExample3.C mappedGridExample3CC.C mappedGridExample4.C \
+           mappedGridExample5.C mappedGridExample6.C \
+	   example1.C example2.C example3.C example4.C example5.C example6.C example7.C example8.C example9.C \
+           move1.C amrExample1.C mgExample1.C mgExample2.C lins.C wave.C ChannelMapping.C getDt.C \
+           amrh.C rk.C util.C callingFortran.C gridGenExample.C deform.C
+
+# Here are the things we can make
+PROGRAMS = mappedGridExample1 mappedGridExample2 mappedGridExample3 mappedGridExample4 \
+           mappedGridExample5 mappedGridExample6 \
+	   example1 example2 example3 example4 example5 example6 example7 example8 example9  \
+           move1 amrExample1 mgExample1 mgExample2 lins wave amrh callingFortran gridGenExample deform
+
+all:  depend_date $(PROGRAMS)
+
+.SUFFIXES:
+.SUFFIXES: .C .C .o .f 
+
+.C.o :;	$(CC) $(CCFLAGS) -c $*.C
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+.C: $(LIB_DEPENDENCIES)
+	 $(CC) $(CCFLAGS) -o $@ $< $(CLIBS) $(FLIBS)  $(GLIBS)
+
+mappedGridExample4 = mappedGridExample4.o ChannelMapping.o
+mappedGridExample4: $(mappedGridExample4) 
+	$(CC) $(CCFLAGS) -o mappedGridExample4 $(mappedGridExample4) $(CLIBS) $(FLIBS) $(GLIBS) 
+
+mappedGridExample6 = mappedGridExample6.o getDt.o
+mappedGridExample6: $(mappedGridExample6) 
+	$(CC) $(CCFLAGS) -o mappedGridExample6 $(mappedGridExample6) $(CLIBS) $(FLIBS) $(GLIBS) 
+
+# 2d wave equation
+wave = wave.o getDt.o
+wave: $(wave) 
+	$(CC) $(CCFLAGS) -o wave $(wave) $(CLIBS) $(FLIBS) $(GLIBS) 
+
+# 2d wave equation -- parallel version --
+pwave = pwave.o getDt.o 
+pwave: $(pwave) 
+	$(CC) $(CCFLAGS) -o pwave $(pwave) $(CLIBS) $(FLIBS) $(GLIBS) 
+
+testpogi = testpogi.o
+testpogi: $(testpogi) 
+	$(CC) $(CCFLAGS) -o testpogi $(testpogi) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# test the redistrubution to one processor
+testDistribute = testDistribute.o 
+testDistribute: $(testDistribute) 
+	$(CC) $(CCFLAGS) -o testDistribute $(testDistribute) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# hyperbolic amr example
+amrh= amrh.o getDt.o util.o rk.o
+amrh: $(amrh) 
+	$(CC) $(CCFLAGS) -o amrh $(amrh) $(CLIBS) $(FLIBS) $(GLIBS)
+
+callingFortran = callingFortran.o mySolver.o
+callingFortran: $(callingFortran) 
+	$(CC) $(CCFLAGS) -o callingFortran $(callingFortran) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# simplified interface for compiling user programs
+getFlags: $(Overture)/bin/makeGetFlags
+	/bin/rm -f  getFlags
+	$(Overture)/bin/makeGetFlags \
+	   --cflags '$(CFLAGS)' --ccflags '$(CCFLAGS)'  \
+	   --fflags '$(FFLAGS)' --clibs '$(CLIBS)'        \
+	   --flibs '$(FLIBS)' --glibs '$(GLIBS)'          \
+	   --libs  '$(CLIBS) $(FLIBS) $(GLIBS)' > getFlags
+	chmod u+x getFlags
+
+clean:  
+	rm -f $(PROGRAMS) *.o 
+
+depend_date: depend; perl $(Overture)/config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+.PRECIOUS: depend_date
+

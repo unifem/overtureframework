@@ -1,0 +1,445 @@
+\subsection{operator=}
+ 
+\newlength{\OgesParametersIncludeArgIndent}
+\begin{flushleft} \textbf{%
+OgesParameters\&   \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{operator=(}%
+operator=(const OgesParameters\& x)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   deep copy of data.
+
+\end{description}
+\subsection{getSolverName}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getSolverName(}%
+getSolverName() const                   
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return the name of the solver, a composite of the solver type, method and preconditioner.
+\end{description}
+\subsection{getSolverTypeName}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getSolverTypeName(}%
+getSolverTypeName(SolverEnum solverType  = defaultSolver) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the name of the solverType such as "yale", "harwell", "SLAP", ...
+ By default return the name of the currently chosen solver.
+\item[{\bf solverType (input) :}]  return the name of this solver type.
+    By default return the name of the currently chosen solver.
+\end{description}
+\subsection{getSolverMethodName}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getSolverMethodName(}%
+getSolverMethodName(SolverMethodEnum solverMethodType  = defaultSolverMethod) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the name of the solver method such as "gmres".
+ By default return the name of the currently chosen method.
+\item[{\bf solverMethodType (input):}] 
+\end{description}
+\subsection{getPreconditionerName}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getPreconditionerName(}%
+getPreconditionerName(PreconditionerEnum preconditionerType   = defaultPreconditioner) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the name of the preconditioner. By default return the name of the currently
+ chosen preconditioner.
+\item[{\bf preconditionerType (input):}] 
+\end{description}
+\subsection{getMatrixOrderingName}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getMatrixOrderingName(}%
+getMatrixOrderingName(MatrixOrderingEnum matrixOrderingType  = defaultMatrixOrdering) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the name of the matrix ordering. By default return the name of the
+ currently chosen matrix ordering.
+\item[{\bf matrixOrderingType (input) :}] 
+\end{description}
+\subsection{set( OptionEnum , int )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{set(}%
+set( OptionEnum option, int value  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set an int option from the {\tt OptionEnum}.
+ \begin{verbatim}
+   enum OptionEnum
+   {
+     THEabsoluteTolerance,
+     THEisAxisymmetric,       // for predefined equations
+     THEbestIterativeSolver,  // choose the 'best' iterative solver and options.
+     THEbestDirectSolver,     // choose the 'best' direct solver and options.
+     THEcompatibilityConstraint,
+     THEfillinRatio,
+     THEfillinRatio2,
+     THEfixupRightHandSide,
+     THEgmresRestartLength,
+     THEharwellPivotingTolerance,
+     THEincompleteLUExpectedFill,
+     THEiterativeImprovement,
+     THEkeepCoefficientGridFunction, // keep a reference to the user's coeff grid function
+     THEkeepSparseMatrix,            // keep ia,ja,a sparse matrix even it not needed by the solver
+     THEmatrixCutoff,
+     THEmatrixOrdering,
+     THEmaximumInterpolationWidth,
+     THEmaximumNumberOfIterations,
+     THEminimumNumberOfIterations,
+     THEnullVectorScaling,
+     THEnumberOfIncompleteLULevels,
+     THEsolveForTranspose,
+     THEpreconditioner,
+     THEparallelPreconditioner,
+     THEexternalSolver,
+     THEparallelExternalSolver,
+     THEremoveSolutionAndRHSVector,      // de-allocate sol and rhs vector after every solve
+     THEremoveSparseMatrixFactorization, // de-allocate any factorization info after every solve.
+     THErelativeTolerance,
+     THErescaleRowNorms,
+     THEsolverType,
+     THEsolverMethod,
+     THEparallelSolverMethod,
+     THEtolerance,
+     THEuserSuppliedCompatibilityConstraint,
+     THEzeroRatio
+   };
+ \end{verbatim}
+\end{description}
+\subsection{set( OptionEnum , float )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{set(}%
+set( OptionEnum option, float value )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set a real valued option from the {\tt OptionEnum}.
+ \begin{verbatim}
+ \end{verbatim}
+\end{description}
+\subsection{set( OptionEnum , double )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{set(}%
+set( OptionEnum option, double value )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Set a real valued option from the {\tt OptionEnum}.
+ \begin{verbatim}
+ \end{verbatim}
+\end{description}
+\subsection{set( SolverEnum )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{set(}%
+set( SolverEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the solver, a value from the {\tt SolverEnum}.
+ \begin{verbatim}
+   enum SolverEnum
+   {
+     defaultSolver,
+     sor,
+     yale,
+     harwell,
+     SLAP,
+     PETSc,
+     multigrid,
+     PETScNew,
+     userSolver1, // these are reserved for new user defined solvers.
+     userSolver2,
+     userSolver3,
+     userSolver4,
+     userSolver5
+  };
+ \end{verbatim}
+\end{description}
+\subsection{set( SolverMethodEnum  )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{set(}%
+set( SolverMethodEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the solver method, a value from the {\tt SolverMethodEnum}.
+ \begin{verbatim}
+   enum SolverMethodEnum
+   {
+     richardson,
+     chebychev,
+     conjugateGradient,
+       cg=conjugateGradient,           // cg= short PETSc name
+     biConjugateGradient,
+       bicg=biConjugateGradient,
+     conjugateGradientSquared,
+       cgs=conjugateGradientSquared,
+     biConjugateGradientSquared,    
+     biConjugateGradientStabilized,    
+       bcgs=biConjugateGradientStabilized,
+     generalizedMinimalResidual,
+       gmres=generalizedMinimalResidual,
+     transposeFreeQuasiMinimalResidual, 
+       tfqmr=transposeFreeQuasiMinimalResidual,
+     transposeFreeQuasiMinimalResidual2,         // tcqmr Tony Chan's version
+       tcqmr=transposeFreeQuasiMinimalResidual,
+     conjugateResidual,
+       cr=conjugateResidual,
+     leastSquares,
+       lsqr=leastSquares,
+     preonly,
+   };
+ \end{verbatim}
+\end{description}
+\subsection{set( PreconditionerEnum )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{set(}%
+set( PreconditionerEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the preconditioner, a value from the {\tt PreconditionerEnum}.
+ \begin{verbatim}
+   enum PreconditionerEnum
+   {
+     noPreconditioner,
+     jacobiPreconditioner,
+     sorPreconditioner,
+     luPreconditioner,
+     shellPreconditioner,
+     blockJacobiPreconditioner,
+     multigridPreconditioner,
+     eisenstatPreconditioner,
+     incompleteCholeskyPreconditioner,
+     incompleteLUPreconditioner,
+     additiveSchwarzPreconditioner,
+     kspPreconditioner,
+     compositePreconditioner,
+     redundantPreconditioner,
+     diagonalPreconditioner,
+     ssorPreconditioner
+   };
+ \end{verbatim}
+\end{description}
+\subsection{set( MatrixOrderingEnum )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{set(}%
+set( MatrixOrderingEnum option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the matrix ordering, a value from the {\tt MatrixOrderingEnum}.
+ \begin{verbatim}
+   enum MatrixOrderingEnum
+   {
+     naturalOrdering,
+     nestedDisectionOrdering,
+     oneWayDisectionOrdering,
+     reverseCuthillMcKeeOrdering,
+     quotientMinimumDegreeOrdering,
+     rowlengthOrdering
+    };
+ \end{verbatim}
+\end{description}
+\subsection{setPetscOption}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{setPetscOption(}%
+setPetscOption( const aString \& name, const aString \& value )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set a PETSc option: example: name="-ksp\_type" value="bcgs"
+\item[{\bf name (input) :}]  the name of a Petsc option, e.g. name="-ksp\_type"
+\item[{\bf value (input) :}]  the value (as a string) of the petsc option, e.g. value="bcgs" or value="1.0" 
+\end{description}
+\subsection{setPetscOption}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getPetscOption(}%
+getPetscOption( const aString \& name, aString \& value ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Get a PETSc option (if it exists): example: name="-ksp\_type" value="bcgs"
+\item[{\bf name (input) :}]  the name of a Petsc option, e.g. name="-ksp\_type"
+\item[{\bf value (output) :}] the value (as a string) of the petsc option, e.g. value="bcgs" or value="1.0" 
+\item[{\bf // /return value; true if found, false if not found:}] // /return value; true if found, false if not found
+\end{description}
+\subsection{getSolverType}
+ 
+\begin{flushleft} \textbf{%
+SolverEnum  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getSolverType(}%
+getSolverType() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the solverType.
+\end{description}
+\subsection{get( OptionEnum , int \& )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{get(}%
+get( OptionEnum option, int \& value ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Get the value of an `int' valued option.
+\end{description}
+\subsection{get( OptionEnum , real \&  )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{get(}%
+get( OptionEnum option, real \& value ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Get the value of an `real' valued option.
+\end{description}
+\subsection{getOgmgParameters}
+ 
+\begin{flushleft} \textbf{%
+OgmgParameters*  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{getOgmgParameters(}%
+getOgmgParameters() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return a pointer to the OgmgParameters object. This pointer may be NULL.
+\end{description}
+\subsection{buildOgmgParameters}
+ 
+\begin{flushleft} \textbf{%
+OgmgParameters\&  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{buildOgmgParameters(}%
+buildOgmgParameters()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Create the OgmgParameters object if it is not there; return a reference to the object.
+\end{description}
+\subsection{get from a data base}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{get(}%
+get( const GenericDataBase \& dir, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Get a copy of the OgesParameters from a database file
+\item[{\bf dir (input):}]  get from this directory of the database.
+\item[{\bf name (input):}]  the name of Oges on the database.
+\end{description}
+\subsection{put to a data base}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{put(}%
+put( GenericDataBase \& dir, const aString \& name) const   
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output an image of OgesParameters to a data base. 
+\item[{\bf dir (input):}]  put onto this directory of the database.
+\item[{\bf name (input):}]  the name of Oges on the database.
+\end{description}
+\subsection{display}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{display(}%
+display(FILE *file  = stdout)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Print out current values of parameters
+\item[{\bf file (input) :}]  print to this file (standard output by default).
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{update(}%
+update( GenericGraphicsInterface \& gi, CompositeGrid \& cGrid )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Update parameters interactively.
+\item[{\bf gi:}]  use this graphics interface.
+\item[{\bf cg:}]  parameters will apply to this grid.
+\end{description}
+\subsection{isAvailable(SolverEnum) }
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{isAvailable(}%
+isAvailable( SolverEnum solverType )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return TRUE if a given solver (esp. PETSc) is available.
+\end{description}
+\subsection{isSolverIterative}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{isSolverIterative(}%
+isSolverIterative() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return TRUE if the solver chosen is an iterative method
+\end{description}
+\subsection{buildEquationSolvers}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OgesParametersIncludeArgIndent}{buildEquationSolvers(}%
+buildEquationSolvers( SolverEnum solver)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This function will build an equation solver of a particular type.
+  This function is found in the {\tt Oges/buildEquationSolvers.C} file. It is this
+ file that you may have to copy and edit in order to turn on the availability solvers
+ that are not distributed with Overture (such as PETSc).
+\end{description}

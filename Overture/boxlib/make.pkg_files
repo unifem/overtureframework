@@ -1,0 +1,53 @@
+PKGDIR := $(OvertureCheckout)/boxlib
+
+STATIC_SRC_FILES += aString.C BArena.C BoxArray.C \
+	BoxAssoc.C Box.C BoxDomain.C BoxLib.C BoxList.C FabConv.C \
+	FArrayBox.C FPC.C IndexType.C IntVect.C MultiFab.C \
+	Orientation.C ParmParse.C Utility.C \
+
+L_HDRS := AliasedDPtr.H  \
+	Arena.H  \
+	ArithFab.H  \
+	Array.H  \
+	ArrayLim.H  \
+	BL_Assert.H \
+	aString.H \
+	BArena.H \
+	BaseFab.H \
+	BLVERSION.H \
+	Boolean.H \
+	BoxArray.H \
+	BoxAssoc.H \
+	BoxDomain.H \
+	Box.H \
+	BoxLib.H \
+	BoxList.H \
+	CONSTANTS.H \
+	DPtr.H \
+	FabArray.H \
+	FabConv.H \
+	FArrayBox.H \
+	FPC.H \
+	IndexType.H \
+	IntVect.H \
+	BL_List.H \
+	Looping.H \
+	Misc.H \
+	MultiFab.H \
+	NormedFab.H \
+	OrderedFab.H \
+	Orientation.H \
+	OvertureBL.h \
+	ParmParse.H \
+	PArray.H \
+	Pointers.H \
+	REAL.H \
+	SimpleDPtr.H \
+	SPACE_F.H \
+	SPACE.H \
+	Tuple.H \
+	UseCount.H \
+	Utility.H \
+	$(addsuffix .C, AliasedDPtr ArithFab Array BaseFab DPtr FabArray BL_List NormedFab OrderedFab PArray Pointers SimpleDPtr Tuple)
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))

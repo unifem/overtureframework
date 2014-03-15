@@ -1,0 +1,90 @@
+\section{SplineMapping: create a spline curve} \label{sec:SplineMapping}
+\index{spline mapping}\index{Mapping!SplineMapping}\index{spline!curve}\index{spline!tension}
+\index{spline!shape preserving}
+
+ Define a cubic spline curve in 1, 2, or 3 space dimensions.
+The spline curve is chosen to pass through a set of user defined points.
+Options include
+\begin{description}
+  \item[tension] : create a spline under tension to remove wiggles, specify a
+     constant tension.
+  \item[shape preservation] : automatic determination of tension factors that
+     vary along the spline so as to create a shape preserving (``monotone'')
+     spline.
+  \item[end conditions] : A variety of end conditions for the spline are available:
+    \begin{description}
+      \item[periodic] : The spline can be periodic (choose the periodicity option `function periodic').
+      \item[derivative periodic] : The derivative of the spline can be periodic
+                (choose the periodicity option `derivative periodic').
+      \item[monontone parabolic fit] : default BC for the shape preserving spline.
+      \item[first derivative] : user specified first derivatives.
+      \item[second derivative] : user specified second derivatives.
+    \end{description}
+  \item[parameterize] : by arclength or by weighting the arclength and curvature in order
+     to concentrate grid points near regions with large curvature.
+\end{description}
+
+A 2D or 3D spline is parameterized by arclength. A 1D spline is parameterized
+by the index value of the point.
+For a spline which is periodic in space, the Mapping will automatically
+add an extra point if the first point is not equal to the last point.
+
+The SplineMapping uses ``{\bf TSPACK}: Tension Spline Curve Fitting Package''\index{TSPACK}
+by Robert J. Renka; available from Netlib. See the TSPACK documentation
+and the reference 
+\begin{description}
+   \item[RENKA, R.J.] Interpolatory tension splines with automatic selection
+   of tension factors. SIAM J. Sci. Stat. Comput. {\bf 8}, (1987), pp. 393-415.
+\end{description}
+
+
+
+%% \subsection{Member functions}
+%% \input SplineMappingInclude.tex
+
+\subsection{Examples}
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/spline1.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/spline1} \\
+   % \epsfig{file=\figures/spline1.ps,width=.95\linewidth}  \\
+  {A spline curve in 2D. No Tension.}
+  \end{center}
+\end{minipage}
+
+
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/spline1_sp} \\
+   % \epsfig{file=\figures/spline1.sp.ps,width=.95\linewidth}  \\
+  {Spline curve with shape preserving option.}
+  \end{center}
+\end{minipage}
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/spline1_t10} \\
+   % \epsfig{file=\figures/spline1.t10.ps,width=.95\linewidth}  \\
+  {Spline curve with tension=20.}
+  \end{center}
+\end{minipage}
+
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/spline4} \\
+   % \epsfig{file=\figures/spline4.ps,width=.95\linewidth}  \\
+  {Spline curve with default arclength parameterization.}
+  \end{center}
+\end{minipage}
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/spline4_c1} \\
+   % \epsfig{file=\figures/spline4.c1.ps,width=.95\linewidth}  \\
+  {Spline curve with {\tt curvatureWeight=1} so that more points are put where the curvature is large.}
+  \end{center}
+\end{minipage}

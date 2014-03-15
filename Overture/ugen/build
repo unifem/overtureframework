@@ -1,0 +1,57 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "Copy unstructured mesh files into the $ovDir/Grid..."
+
+# here is where the original files are:
+set Overture        = $ovDir
+set OvertureOgshow  = $ovDir/Ogshow
+set OvertureBin     = $ovDir/bin
+set OvertureInclude = $ovDir/include
+set OverturePrimer  = $ovDir/primer
+set sampleGrids     = $ovDir/sampleGrids
+set OvertureTests   = $ovDir/tests
+set mapUtil         = $ovDir/mapUtil
+
+
+cp {AdvancingFront,Ugen,CompositeGridHybridConnectivity,sealHoles,MeshQuality,optMesh}.C $Overture/GridGenerator
+cp {SurfaceStitcher}.C                            $Overture/GridGenerator
+
+cp {buildUnstructuredMappingFromACompositeGrid}.C $Overture/GridGenerator
+cp {smesh,cutcell}.cc $Overture/GridGenerator
+cp {simpleMesh,ov_hot}.C $OvertureBin
+
+cp {ArraySimple,VectorSimple,ArraySimpleCommon,ArraySimpleFixed,AbstractException,AssertException,NTreeNode,NTreeNodeExceptions,Geom,AdvancingFront,AdvancingFrontParameters,Face,GeometricADT,GeometricADTExceptions,Ugen,CompositeGridHybridConnectivity,PriorityQueue,TriangleWrapper,triangle,ShewchukPredicates,MeshQuality,optMesh,SurfaceStitcher}.h  $OvertureInclude
+cp {cutcell,smesh}.hh $OvertureInclude
+
+# copy inlined impelementation files to the include directory
+cp {GeometricADT,GeometricADTTraversor,GeometricADTIterator}.C $OvertureInclude
+cp {Face_inline,Geom_inline}.C   $OvertureInclude
+
+cp {Geom,TriangleWrapper}.C               $mapUtil
+cp {predicates,triangle,TriangleSource}.c $mapUtil
+
+cp {inletOutlet,obstacle,mastSail2d,valve,twoBump,sib}.hyb.cmd $sampleGrids
+cp {obstacle,valve}.tri.hyb.cmd $sampleGrids
+
+# copy de-templified versions of the GeometricADT2
+cp {GeometricADT3dInt}.C                                                        $mapUtil
+cp {GeometricADT3dInt,GeomADTTuple3dInt,NTreeNode2GeomADTTuple3dInt}.h          $OvertureInclude
+
+# echo "**** remember to copy the check files if they have changed ******"
+
+
+
+echo "done"
+

@@ -1,0 +1,97 @@
+# C++ source files:
+SRC_FILES += Cgsm.C setup.C plot.C solve.C advance.C forcing.C getErrors.C  \
+             assignInitialConditions.C assignBoundaryConditions.C divergence.C \
+             saveShow.C variableDissipation.C getEnergy.C InterfaceInfo.C SmParameters.C \
+             setupPde.C getTimeStep.C getInitialConditions.C userDefinedBoundaryValues.C \
+             advanceSteps.C assignGaussianPulseInitialConditions.C \
+             assignTwilightZoneInitialConditions.C assignParabolicInitialConditions.C \
+             assignSpecialInitialConditions.C assignHempInitialConditions.C \
+             advanceSOS.C advanceFOS.C assignBoundaryConditionsSOS.C assignBoundaryConditionsFOS.C \
+             assignAnnulusEigenfunction.C advanceMethodOfLines.C interface.C printTimeStepInfo.C \
+             userDefinedForcing.C getRayleighSpeed.C userDefinedInitialConditions.C dbAccessCgsm.C \
+             userDefinedKnownSolution.C
+
+# compile 6th and 8th order approximations
+ifeq ($(buildHigherOrder),on)
+#  SRC_FILES += advMx2dOrder6r.f advMx2dOrder6c.f advMx3dOrder6r.f advMx3dOrder6c.f 
+else
+#  SRC_FILES += bcOptMaxwell2dOrder6Null.f bcOptMaxwell2dOrder8Null.f 
+endif
+
+SRC_FILES += getIntCgsm.f
+
+# ************ add these temporarily for testing ***************
+# FSRC += extrapolateOpt.f findInterpolationNeighbours.f
+
+# *** fortran files the we always compile optimized ***
+FSRCO += abc.f pml.f
+# advOptSm files:
+FSRCO +=advOptSm.f \
+            advSm2dOrder2r.f advSm2dOrder2c.f advSm3dOrder2r.f advSm3dOrder2c.f \
+            advSm2dOrder4r.f advSm2dOrder4c.f advSm3dOrder4r.f advSm3dOrder4c.f
+# bc files
+FSRCO += bcOptSm.f bcOptSmFOS.f bcSmFOS2d.f bcSmFOS3d.f
+# conservative approximations from Daniel
+FSRCO += advSmCons2dOrder2r.f advSmCons2dOrder2c.f advSmCons3dOrder2r.f advSmCons3dOrder2c.f bcOptSmCons.f
+
+# we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
+# we need to do it this way so that all the files created with bpp are put in the src directory: 
+
+src/advance.C : src/advance.bC amrMacros.h; $(BPP) -quiet -clean $<
+src/advanceMethodOfLines.C : src/advanceMethodOfLines.bC amrMacros.h; $(BPP) -quiet -clean $<
+
+src/advanceSteps.C : src/advanceSteps.bC; $(BPP) -quiet -clean $<
+src/advanceSOS.C : src/advanceSOS.bC boundaryMacros.h; $(BPP) -quiet -clean $<
+src/advanceFOS.C : src/advanceFOS.bC boundaryMacros.h; $(BPP) -quiet -clean $<
+
+src/assignInitialConditions.C : src/assignInitialConditions.bC; $(BPP) -quiet -clean $<
+src/getTimeStep.C : src/getTimeStep.bC; $(BPP) -quiet -clean $<
+
+src/assignGaussianPulseInitialConditions.C : src/assignGaussianPulseInitialConditions.bC; $(BPP) -quiet -clean $<
+src/assignTwilightZoneInitialConditions.C : src/assignTwilightZoneInitialConditions.bC; $(BPP) -quiet -clean $<
+src/assignParabolicInitialConditions.C : src/assignParabolicInitialConditions.bC; $(BPP) -quiet -clean $<
+src/assignSpecialInitialConditions.C : src/assignSpecialInitialConditions.bC forcing.h translationAndRotationSolution.h sphereEigenmode.h; $(BPP) -quiet -clean $<
+src/assignHempInitialConditions.C : src/assignHempInitialConditions.bC; $(BPP) -quiet -clean $<
+
+src/assignBoundaryConditions.C : src/assignBoundaryConditions.bC; $(BPP) -quiet -clean $<
+src/assignBoundaryConditionsSOS.C : src/assignBoundaryConditionsSOS.bC boundaryMacros.h forcing.h translationAndRotationSolution.h; $(BPP) -quiet -clean $<
+src/assignBoundaryConditionsFOS.C : src/assignBoundaryConditionsFOS.bC boundaryMacros.h forcing.h translationAndRotationSolution.h; $(BPP) -quiet -clean $<
+
+src/assignAnnulusEigenfunction.C : src/assignAnnulusEigenfunction.bC; $(BPP) -quiet -clean $<
+
+src/divergence.C : src/divergence.bC; $(BPP) -quiet -clean $<
+src/forcing.C : src/forcing.bC; $(BPP) -quiet -clean $<
+src/interface.C : src/interface.bC ../common/src/interfaceMacros.h; $(BPP) -quiet -clean  -I../common/src $<
+
+src/plot.C : src/plot.bC; $(BPP) -quiet -clean $<
+
+src/advOptSm.f: src/advOptSm.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/advSm2dOrder2r.f : src/advOptSm.f
+src/advSm3dOrder2r.f : src/advOptSm.f
+src/advSm2dOrder2c.f : src/advOptSm.f
+src/advSm3dOrder2c.f : src/advOptSm.f
+src/advSm2dOrder4r.f : src/advOptSm.f
+src/advSm3dOrder4r.f : src/advOptSm.f
+src/advSm2dOrder4c.f : src/advOptSm.f
+src/advSm3dOrder4c.f : src/advOptSm.f
+
+src/bcOptSm.f: src/bcOptSm.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+src/abc.f: src/abc.bf src/bcDefineFortranInclude.h; $(BPP) -clean -quiet -I$(Overture)/include $<
+
+src/pml.f: src/pml.bf src/pml.h src/bcDefineFortranInclude.h; $(BPP) -clean -quiet -I$(Overture)/include $<
+
+src/forcingOpt.f: src/forcingOpt.bf; $(BPP) -clean -quiet -I$(Overture)/include $<
+
+
+src/advSmCons2dOrder2c.f : src/advSmCons2dOrder2c.bf; $(BPP) -clean -quiet -I$(Overture)/include $<
+src/advSmCons2dOrder2r.f : src/advSmCons2dOrder2r.bf; $(BPP) -clean -quiet -I$(Overture)/include $<
+src/advSmCons3dOrder2c.f : src/advSmCons3dOrder2c.bf; $(BPP) -clean -quiet -I$(Overture)/include $<
+src/advSmCons3dOrder2r.f : src/advSmCons3dOrder2r.bf; $(BPP) -clean -quiet -I$(Overture)/include $<
+src/bcOptSmCons.f : src/bcOptSmCons.bf; $(BPP) -clean -quiet -I$(Overture)/include $<
+
+src/bcOptSmFOS.f : src/bcOptSmFOS.bf src/bcOptSmFOS3D.h src/bcOptSmFOS3DEdge.h; $(BPP) -clean -quiet -I$(Overture)/include $<
+
+src/bcSmFOS2d.f : src/bcOptSmFOS.f
+src/bcSmFOS3d.f : src/bcOptSmFOS.f

@@ -1,0 +1,82 @@
+eval 'exec perl -S $0 ${1+"$@"}'
+if 0;
+#!/usr/bin/perl
+#
+# perl program to expand perl commands in Overture cmd files.
+#  usage: 
+#         perlcmd outputFile inputFile [args]
+# 
+# Example:
+#  To remove perl from the ogen script cicArg.cmd use:
+#     perlcmd cicNoPerl.cmd cicArg.cmd -order=2 -factor=1
+#  Now ogen can be run without using the perl parser:
+#     ogen -noplot cicNoPerl.cmd
+#
+
+if( $#ARGV <1 )
+{
+  printf("perlcmd: WARNING: expecting at least two command lines arguments.\n");
+  printf("perlcmd: Expand and remove perl from Overture command (.cmd) files.\n");
+  printf("  Usage: perlcmd outFile inFile [args]\n");
+  printf("  Example:: perlcmd  cicNoPerl.cmd cicArg.cmd -order=2 -factor=4\n");
+  exit;
+}
+
+use Getopt::Long; 
+use Getopt::Std;
+
+# @fileNames = @ARGV;
+$outputFile          = $ARGV[0];
+$inputFile          = $ARGV[1];
+
+printf("perlcmd: expand perl commands in the Overture command file=[$inputFile].\n");
+
+open(FILE,"$inputFile") || die "cannot open file $inputFile!" ;
+open(OUTFILE,">$outputFile") || die "cannot open output file $outputFile!" ;
+
+while( <FILE> )
+{
+  $line = $_;
+  #  printf("line = [$line]\n");
+  chop($line);
+
+  # Concatentate continuation lines
+  while( $line =~ "\\\\\$" )
+  {
+    # printf("+++ continuation line found..\n");
+    chop($line);
+    $line .= <FILE>;
+    chop($line);
+    # printf(">> line = [$line]\n");
+  }
+  
+
+  # print "line=" . $line . "\n";
+
+  if( $line =~ ';' )
+  {
+    # print "Line contains a ';' \n";
+    # if( $line =~ "GetOpt" )
+    # {
+    #   print "Line contains GetOpt\n";
+    # }
+    eval( $line );
+    # printf("factor=$factor\n");
+    next;
+  }      
+  elsif( $line =~ '\$' )
+  {
+    # print "Line contains a '\$' \n";
+    $line = eval('"' . $line . '";');
+    # print "after eval: " . $line . "\n";
+  }
+
+
+  print OUTFILE $line . "\n";
+}
+
+close(OUTFILE);
+close(FILE);
+
+printf("perlcmd: output written to file [$outputFile].\n");
+

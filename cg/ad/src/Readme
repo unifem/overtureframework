@@ -1,0 +1,39 @@
+Here is a brief list of files and functions 
+
+addForcing.C
+  - addForcing(realMappedGridFunction & dvdt, const realMappedGridFunction & u, ... )
+
+AdParameters.C
+  - setParameters(const int & numberOfDimensions0 /* =2 */,const aString & reactionName )
+  - setTwilightZoneFunction(const TwilightZoneChoice & choice_, ... )
+  - setPdeParameters(const aString & command, DialogData *interface )
+
+Cgad.C:
+  - Cgad(CompositeGrid & cg_, .. )
+  - updateToMatchGrid(CompositeGrid & cg)
+  - updateGeometryArrays(GridFunction & cgf)
+  - saveShowFileComments( Ogshow &show )
+
+getTimeSteppingEigenvalue.C:
+  - getTimeSteppingEigenvalue(MappedGrid & mg, realMappedGridFunction & u0, ... )
+
+getUt.C: 
+  - getUt(const realMappedGridFunction & v, const realMappedGridFunction & gridVelocity, ... )
+
+initialize.C: 
+  - initialize()
+
+implicit.C:
+  - buildImplicitSolvers(CompositeGrid & cg)
+  - formMatrixForImplicitSolve(const real & dt0, GridFunction & cgf1,GridFunction & cgf0 )
+  - implicitSolve(const real & dt0, GridFunction & cgf1, GridFunction & cgf0)
+  - setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions, ... )
+
+setupPde.C:
+  - setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBoundaryCondition)
+  - setPlotTitle(const real &t, const real &dt)
+
+
+timeSteppingDialog.C
+  - buildTimeSteppingDialog(DialogData & dialog )
+  - getTimeSteppingOption(const aString & answer, DialogData & dialog )  

@@ -1,0 +1,16 @@
+* ----------------------------------------------------------------------
+*
+* Initial input to the program amrh (for parallel runs)
+*
+*   mpirun -np 1 -all-local amrh amrhtz.cmd
+*   mpirun -np 2 -all-local amrh amrhtz.cmd
+*   mpirun-wdh -np 1 amrh amrhtz.cmd
+*   mpirun -np 2 -all-local -dbg=valgrindebug amrh
+* 
+*   totalview srun -a -N2 -n2 -ppdebug amrh
+* ----------------------------------------------------------------------
+*
+amrhtz.cmd
+* -noplot amrhtz.cmd
+* 
+* cice.cmd

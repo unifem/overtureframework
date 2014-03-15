@@ -1,0 +1,46 @@
+--------------------------------------------------------------------------------------------
+1. The cgmx/cmd directory holds command files for running examples of cgmx
+
+2. Type "../bin/cgmx file.cmd" to run the command file named "file.cmd"
+
+3. Look in the cgmx/cmd/Makefile for how to make (some of) the grids used by the examples. 
+
+4. For parallel examples set the shell variable:  set cgmmxp = ${CGBUILDPREFIX}/mp/bin/cgmx
+
+--------------------------------------------------------------------------------------------
+
+abc.cmd : test the absorbing/non-reflecting/radiation boundary conditions.
+
+boxeigen.cmd : compute eigenfunctions of a square or 3d box (check errors).
+
+bump3d.cmd : scattering from 3d curved interface between glass and a vacuum.
+
+cic.planeWaveBC.cmd : scattering of a plane wave by a 2d cylinder (check errors).
+
+cyleigen.cmd : compute eigenfunctions of a 3d cylinder (check errors).
+
+dielectricCyl.cmd : scattering from a 2d dielectric cylinder or 3d sphere (and compare to the exact solution).
+
+diskeigen.cmd : compute eigenfunctions of a 2d disk. 
+
+interface.cmd : test for material interfaces.
+
+knifeEdge : plane wave past a knife edge slit.
+
+lattice.cmd : plane wave hitting a lattice of 2d dielectric cylinders.
+
+pml.cmd : test the perfectly matched layer boundary condition.
+
+planeWave.cmd : plane wave moving through a domain.
+
+rbc.cmd : more tests of the absorbing/non-reflecting/radiation boundary conditions.
+
+scat.cmd : scattering of a plane wave from different bodies.
+
+sib.planeWaveBC.cmd : scattering of a plane wave by a 3d sphere (check errors).
+
+tz.cmd : test the twilight-zone.
+
+userDefinedForcing.cmd : example showing the use of user defined forcing.
+
+userDefinedInitialConditions.cmd : example showing the use of user defined initial conditions.

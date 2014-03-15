@@ -1,0 +1,138 @@
+# 
+# ---- Convergence rates for computing eigenfunctions of a sphere ---
+#
+# To run the convergence tests type: 
+# Non-conservative:
+#      conv.p sphereEigen.conv -pv=nc -vClass=1 -nMode=1 -mMode=1
+#      conv.p sphereEigen.conv -pv=nc -vClass=1 -nMode=2 -mMode=1
+#   -- class II
+#      conv.p sphereEigen.conv -pv=nc -vClass=2 -nMode=2 -mMode=1 
+#      conv.p sphereEigen.conv -pv=nc -vClass=2 -nMode=2 -mMode=1 
+#      conv.p sphereEigen.conv -pv=nc -vClass=2 -nMode=2 -mMode=1 -ng=3 -alwaysCompute=1 
+#        -- fixed width sphere
+#      conv.p sphereEigen.conv -pv=nc -cg=sphereFixed -vClass=2 -nMode=2 -mMode=1 -ng=4 -alwaysCompute=1 
+# Conservative:
+#      conv.p sphereEigen.conv -pv=c -vClass=1 -nMode=1 -mMode=1 
+#      conv.p sphereEigen.conv -pv=c -vClass=1 -nMode=2 -mMode=1 
+#      conv.p sphereEigen.conv -pv=c -vClass=2 -nMode=2 -mMode=2 -ng=3 -alwaysCompute=1 
+#        -- fixed width sphere
+#      conv.p sphereEigen.conv -pv=c -cg=sphereFixed -vClass=2 -nMode=2 -mMode=1 -ng=4 -alwaysCompute=1 
+# Godunov: 
+#      conv.p sphereEigen.conv -pv=g -vClass=1 -nMode=1 -mMode=1 
+#      conv.p sphereEigen.conv -pv=g -vClass=1 -nMode=2 -mMode=1 
+#      conv.p sphereEigen.conv -pv=g -vClass=2 -nMode=2 -mMode=1 -ng=3 -cfl=.8 -alwaysCompute=1 
+#        -- fixed width sphere
+#      conv.p sphereEigen.conv -pv=g -cg=sphereFixed -vClass=2 -nMode=2 -mMode=1 -ng=4 -alwaysCompute=1 
+# 
+# Hemp: *to finish*   -- note: need to run with "Q" turned off or else first order
+#      conv.p sphereEigen.conv -pv=h -ts=ie -c0=0. -cl=0.
+#
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#  -vClass : 1 or 2 specifies the class of vibration (see docs)
+#  -nMode, -mNode : define the vibration mode. 
+#   -bcn : d=dirichlet, sf=stress-free
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+# 
+# Set default parameters: 
+$tFinal=.5;  $tPlot=.1; $alwaysCompute=0; $nd=3; $cfl=.9; $cg = "sphere";
+$vClass=1; $nMode=1; $mMode=0;
+$pv = "nc";  $en="max"; $ng=3; $diss=.0; $filter=1; $filterOrder=6; $filterStages=2; $filterFrequency=1; $ts="me"; 
+$mode=1; 
+$bcn = "sf"; # traction
+$showAllComponents=0;  # set to 1 to include all components in the table.
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"vClass=i"=>\$vClass,"nMode=i"=>\$nMode,"mMode=i"=>\$mMode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"diss=f"=>\$diss,"cfl=f"=>\$cfl,"tf=f"=>\$tFinal,"filter=i"=>\$filter,"filterOrder=i"=>\$filterOrder,"filterStages=i"=>\$filterStages,"filterFrequency=i"=>\$filterFrequency,"alwaysCompute=i"=>\$alwaysCompute,"showAllComponents=i"=>\$showAllComponents );
+#
+$check="sm.check";
+if( $ts eq "me" ){ $ts = "modifiedEquationTimeStepping"; }
+if( $ts eq "fe" ){ $ts = "forwardEuler"; }
+if( $ts eq "ie" ){ $ts = "improvedEuler"; }
+if( $ts eq "ab" ){ $ts = "adamsBashforth2"; }
+# 
+$caseName=$cg . "Eigen.$pv.$bcn.class$vClass.n$nMode.m$mMode"; 
+$name=$caseName;
+#
+# --- define the table heading and caption --
+# 
+#  --- SOS NC or C : include |u| in table by default
+if( $pv eq "nc" || $pv eq "c" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    $numberOfComponents=$nd+1;  \
+  }\
+  else\
+  { \
+    $numberOfComponents=1; $ignoreComponent[1]=1; \
+  }\
+  if( $numberOfComponents eq 1 )\
+  { \
+     $title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
+     @componentName = ( "u" ); \
+  }\
+  elsif( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \& \$u\$ \&  \$u_1\$ \& \$u_2\$  ";\
+     @componentName = ( "u", "u0", "u1" );\
+  }\
+  else{\
+    $title ="grid  \& N \&  \$u\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$  ";\
+    @componentName = ( "u", "u0", "u1", "u2" );\
+  }\
+}
+#  --- Godunov : include |u|, |v|, |sigma| in table by default
+if( $pv eq "g" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    if( $nd eq 2 ){ $numberOfComponents=11; }else{ $numberOfComponents=18; }  \
+  }\
+  else\
+  { \
+    $numberOfComponents=3;  \
+  }\
+  if( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v\$  \&  \$\\sigma\$   "; \
+     @componentName = ( "u", "v", "s" ); \
+  }\
+  elsif( $numberOfComponents eq 11 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$ ";\
+     @componentName = ( "u", "v", "s", "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" );\
+  }\
+  else{\
+         $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{13}\$ \& \$s_{21}\$ \& \$s_{22}\$ \& \$s_{23}\$ \& \$s_{31}\$ \& \$s_{32}\$ \& \$s_{33}\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$ ";\
+         @componentName = ( "u", "v", "s", "v0", "v1", "v2" , "s11", "s12", "s13", "s21", "s22", "s23", "s31", "s32", "s33", "u0", "u1", "u2");\
+  }\
+}
+# 
+$caption= "\\caption\{SM, $name, pv=$pv, bcn=$bcn, class=$vClass, n=$nMode, m=$mMode, diss=$diss, filter=$filter, filterOrder=$filterOrder, filterFrequency=$filterFrequency, \$t=$tFinal\$, cfl=$cfl, $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+#
+# 
+$options = "-pv=$pv -ts=$ts -diss=$diss -filter=$filter  -filterOrder=$filterOrder -filterStages=$filterStages -filterFrequency=$filterFrequency -tf=$tFinal -tp=$tPlot -cfl=$cfl -p0=1. -p1=2. -vClass=$vClass -nMode=$nMode -mMode=$mMode -bcn=$bcn -go=go"; 
+if( $cg eq "sphere" ){\
+$grid1="sphere1"; $gName1 = "spheree1.order2";\
+$grid2="sphere2"; $gName2 = "spheree2.order2";\
+$grid3="sphere3"; $gName3 = "spheree4.order2";\
+$grid4="sphere4"; $gName4 = "spheree8.order2";}
+if( $cg eq "sphereFixed" ){\
+$grid1="sphereFixed1"; $gName1 = "sphereFixede1.order2";\
+$grid2="sphereFixed2"; $gName2 = "sphereFixede2.order2";\
+$grid3="sphereFixed3"; $gName3 = "sphereFixede4.order2";\
+$grid4="sphereFixed4"; $gName4 = "sphereFixede8.order2";}
+# 
+$grid=$grid1; $res=1; $cmd="../bin/cgsm noplot ../cmd/sphereEigen -g=$gName1 $options";
+$grid=$grid2; $res=2; $cmd="../bin/cgsm noplot ../cmd/sphereEigen -g=$gName2 $options";
+if( $ng > 2 ){$grid=$grid3; $res=4; $cmd="../bin/cgsm noplot ../cmd/sphereEigen -g=$gName3 $options";}
+if( $ng > 3 ){$grid=$grid4; $res=8; $cmd="../bin/cgsm noplot ../cmd/sphereEigen -g=$gName4 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+
+
+

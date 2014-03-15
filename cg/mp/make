@@ -1,0 +1,26 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src -I$(CG)/ad/src -I$(CG)/asf/src -I$(CG)/cns/src -I$(CG)/ins/src -I$(CG)/sm/src $(INCLUDES)
+ifeq ($(OS),Darwin)
+SHARED_LIBRARY_LOAD_LIBS += -L$(CGBUILDPREFIX)common/lib -lCgCommon
+endif
+
+ifneq ($(OV_RPATH),)
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)cns/lib -L$(CGBUILDPREFIX)cns/lib $(CgcnsStaticLib) -lCgcns \
+        $(OV_RPATH)$(CGBUILDPREFIX)ins/lib -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
+        $(OV_RPATH)$(CGBUILDPREFIX)ad/lib -L$(CGBUILDPREFIX)ad/lib $(CgadStaticLib) -lCgad \
+        $(OV_RPATH)$(CGBUILDPREFIX)asf/lib -L$(CGBUILDPREFIX)asf/lib $(CgasfStaticLib) -lCgasf \
+        $(OV_RPATH)$(CGBUILDPREFIX)sm/lib -L$(CGBUILDPREFIX)sm/lib -lCgsm \
+        $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib  $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+else
+LIBS :=  -L$(CGBUILDPREFIX)cns/lib $(CgcnsStaticLib) -lCgcns \
+         -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
+         -L$(CGBUILDPREFIX)ad/lib $(CgadStaticLib) -lCgad \
+         -L$(CGBUILDPREFIX)asf/lib $(CgasfStaticLib) -lCgasf \
+         -L$(CGBUILDPREFIX)sm/lib -lCgsm \
+         -L$(CGBUILDPREFIX)common/lib  $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+endif

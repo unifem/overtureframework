@@ -1,0 +1,95 @@
+Short description of command files:
+----------------------------------
+
+afm.cmd : build a 2d grid with a wavy interface (multi-domain problem for cgmx)
+
+boxsbs.cmd :  box side-by-side with a box (a simple test case of an overlapping grid in 3d)
+
+cylArray:  A lattice of 3D hollow cylinders (see also rodArray.cmd and latticeCyl.cmd)
+
+cylBoxArg.cmd   : cylinder in a box
+
+cylinderBed.cmd : a collection of circles in a channel (for percolation problem)
+
+cylShell.cmd    : A annular shell in a box (3 domains)
+
+cyShockTube.cmd : grid for axis-symmetric shock tube problem (for Veronica's cylindrical shock)
+
+cylDeform.cmd   : a circular body with a section that can be deformed (for deforming body example)
+
+cylinderInAChannel.cmd : 3D cylinder in a channel (for flow past a cylinder)
+
+convOct.cmd     : eight circles in a disk (for converging shock problem)
+
+diskArray.cmd   : A lattice of disks with grids inside and outside -- for flow past heated cylinders
+
+divot.cmd : build a 2d grid with an interface bump (multi-domain problem for cgmx)
+
+doubleAnnulusArg.cmd : Two co-centric annulii for a two-domain example (e.g. for thermal-hydraulics)
+
+filter.cmd : A 3d grid for a body with legs (like a spider)
+
+fuelAssembly.cmd : A 2D lattice of cylinders in an hexgonal assembly (see also rodArray, wireWrap).
+
+fuelAssembly3d.cmd : A 3D lattice of cylinders in an hexgonal assembly (see also rodArray, wireWrap).
+
+lattice.cmd : A lattice of cylinders used for a photonic band gap simulation (see also diskArray.cmd)
+latticeCyl.cmd : A lattice of 3D cylinders (see also cylArray.cmd)
+
+lgridArg.cmd : grid for an L-shaped region 
+
+multiBuildings.cmd : multiple 3d buildings in a box
+
+multiCylArray.cmd  : A collection of circles in a square
+
+multiCylRandom.cmd : A collection of randomly located circles in a channel (for shock hitting moving bodies)
+
+pillBox.cmd : 3D pill box for Maxwell's
+
+pipe.cmd : grid for a cylindrical pipe
+
+pipes.cmd : grid for two intersecting pipes (using poor man's intersection, see also twoPipes.cmd)
+
+quarterCyl.cmd : grid for a quarter cylinder
+
+rectangleArg.cmd : build a rectangle (with optional arguments to set the size and resolution)
+
+rodArray.cmd : A lattice of 3D solid cylinders (inside and outside) (see also cylArray.cmd, latticeCyl.cmd, wireWrap, solidFuelAssembly)
+
+sibArg.cmd : sphere in a box
+
+sibArgdp: sphere in a box using DataPointMappings
+
+sisArg.cmd : square in a square (a simple overlapping grid used for tesing)
+
+solidFuelAssembly.cmd : An lattice of solid cylinders in an hexgonal assembly (see also rodArray, wireWrap).
+
+sphereInATube.cmd : sphere in a tube
+sphereInALongTube.cmd : sphere in a long tube
+
+squareArg.cmd :  make a square with various resolutions
+
+squareObject.cmd : grid for a square shaped object with corners
+
+superseismicGrid.cmd : Grid for the superseismic FSI example (cgmp)
+
+tubeArg.cmd : 3D cylindrical tube 
+
+tse.cmd : simple two-stroke engine
+
+twoBumpArg.cmd: Two half cylinders in a channel (taking arguments)
+
+twoPipes.cmd : grid for the interior region of two intersecting pipes using a accurate fillet grid to join. 
+
+wireWrap.cmd : A lattice of cylinders and wire wraps in an hexgonal assembly (see also rodArray, solidFuelAssembly).
+
+
+
+-------------------------
+
+Sample parallel command lines for different machines:
+
+
+srun -N1 -n2 -ppdebug ogen noplot fuelAssembly3d -npins=11 -zb=.05
+ 
+totalview srun -a -N4 -n8 -ppdebug ogen noplot sibp -factor=48

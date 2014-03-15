@@ -1,0 +1,70 @@
+# Measure convergence rates eigenfunctions of a 2D disk 
+#
+# -- second order
+#   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=2 -dissOrder=2 -diss=1. -ng=3
+#
+# -- fourth order
+#   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=4 -diss=1. -ng=3
+#
+# -- sosup second order
+#   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=2 -method=sosup -ng=3
+# -- sosup fourth-order
+#   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=4 -method=sosup -ng=4
+#   convergence rates: c0=4.55 c1=4.55 c2=5.06 c3=4.93 c4=4.93 c5=5.34 c6=5.48
+# -- sosup sixth-order
+#   conv.p diskeigen.conv -tf=.5 -tp=.5 -order=6 -method=sosup -ng=4
+#
+$check="mx.check";
+# --------options: 
+#   -order : 2 or 4 
+#   -interp = e or i if the grids were made with explicit or implicit interpolation
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -errorNorm:  set to 1 or 2 to show L1 and L2 norm errors
+# 
+# Set default parameters: 
+$name="diskeigen";
+$tf=.5; $tp=.1; $order = "2"; $ng=3; $m=2; $n=2; $interp="i"; $cfl=.9; 
+$diss=.0; $dissOrder=-1; 
+$errorNorm=0; $method="NFDTD"; 
+$alwaysCompute=1;
+#
+GetOptions( "name=s"=>\$name,"order=s"=>\$order,"ng=i"=>\$ng,"tf=f"=>\$tf,"interp=s"=>\$interp,"diss=f"=>\$diss,\
+            "fixed=s"=>\$fixed,"cfl=f"=>\$cfl,"alwaysCompute=i"=>\$alwaysCompute,"method=s"=>\$method,"tp=f"=>\$tp,\
+            "errorNorm=i"=>\$errorNorm,"m=f"=>\$m,"n=f"=>\$n,"dissOrder=i"=>\$dissOrder );
+# ------------------------ planeWave ------------------------------------------
+$caseName="$name$method\Order$order"; 
+if( $errorNorm eq 0 ){ $normName = "max"; }elsif( $errorNorm eq 1 ){ $normName = "L1";}\
+   elsif( $errorNorm eq 2 ){ $normName = "L2"; }else{ $normName="UnknownNorm"; }
+$caseName .= $normName . "Norm";
+$numberOfComponents=4;
+if( $method eq "sosup" ){ $numberOfComponents=7; }
+# define the table heading and caption
+if( $numberOfComponents eq 4 )\
+  { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+if( $numberOfComponents eq 7 )\
+  { $title= "grid  \& N \&  \$E_x\$ \&  \$E_y\$ \& \$H_z\$ \&  \$Ex_t\$ \&  \$Ey_t\$ \& \$Hz_t\$ \& \$\\grad\\cdot\\Ev\/\\grad\\Ev\$"; }
+# 
+$labelMethod=$method;
+if( $method eq "NFDTD" ){ $labelMethod="CGFD$order"; }
+$caption= "\\caption\{Cgmx, $name, method=$labelMethod, $normName norm, order=\$$order\$, \$t=$tf\$, m=$m,  n=$n, cfl=\$$cfl\$, diss=\$$diss\$, dissOrder=\$$dissOrder\$, $date}\\label\{table:$name" . $method . "Order$order$normName}"; 
+$outputFile="$name$method" . "Order$order" . $normName . "NormConvTable.tex"; 
+# 
+$options = "-m=$m -n=$n -diss=$diss  -dissOrder=$dissOrder -cfl=$cfl -method=$method -errorNorm=$errorNorm -tf=$tf -tp=$tp -go=go";
+#
+$suffix="";
+if( ($method eq "sosup") && ($order eq 4) ){ $suffix=".ng3"; }
+if( ($method eq "sosup") && ($order eq 6) ){ $suffix=".ng4"; }
+$grid1="sic2";   $gName1 = "sice2.order$order$suffix"; 
+$grid2="sic4";   $gName2 = "sice4.order$order$suffix"; 
+$grid3="sic8";   $gName3 = "sice8.order$order$suffix"; 
+$grid4="sic16";  $gName4 = "sice16.order$order$suffix"; 
+$grid5="sic32";  $gName5 = "sice32.order$order$suffix"; 
+# 
+if( $ng > 0 ){ $grid=$grid1; $res=1; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName1 $options";  }
+if( $ng > 1 ){ $grid=$grid2; $res=2; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName2 $options";}
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="../bin/cgmx noplot ../cmd/diskeigen -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

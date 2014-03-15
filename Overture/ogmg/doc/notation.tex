@@ -1,0 +1,30 @@
+\def\res {{\rm res}}
+\noindent Notation:
+\begin{eqnarray*}
+ \mbox{WU(i)} &=& \mbox{number of work units for iteration i} \\
+ \mbox{res(i)} &=& \mbox{residual for iteration i} \\
+ \mbox{rate(i)} &=& \mbox{convergence rate, res(i)/res(i-1)} \\
+ \mbox{ECR(i)} &=& \mbox{effective convergence rate} \\
+            &=& \left({\res(i+1)\over \res(i)}\right)^{1/WU(i)} \\
+ \mbox{err(i)} &=& \mbox{maximum error in the solution for iteration i} \\
+ \mbox{$n_s$} &=& \mbox{number of smooths per level}
+\end{eqnarray*}
+A work unit is defined to be the amount of work
+(number of multiplications) required for a single 
+Jacobi iteration. The work units reported
+here are only reasonable approximations. 
+
+The effective convergence rate (ECR) is a normalized convergence rate
+that takes into account the amount of work required for each multigrid
+iteration. The ECR is the convergence rate that a Jacobi iteration
+would have to achieve per iteration in order to be as good as the
+multigrid algorithm. Recall that the Jacobi iteration has a
+convergence rate for standard elliptic problems that quickly
+approaches 1, $ECR= 1-O(h^2)$ as the mesh size $h$ goes to zero.
+Optimal SOR is better with $ECR= 1-O(h)$. Multigrid effective convergence rates
+are generally in the range $.5$ to $.8$, independent of the mesh
+size. (The convergence rate for a full cycle is usually about $.1$).
+Since the convergence rate does not depend on $h$ the method has
+optimal complexity -- the work required to compute the solution to a given
+accuracy requires a fixed number of iterations, independent of $h$, and
+is thus proportional to the number of unknowns.

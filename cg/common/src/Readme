@@ -1,0 +1,91 @@
+This directory contains useful files that go into libCommon
+
+
+Notes:
+
+
+advanceSteps.C:
+  initializeTimeStepping( real & t0, real & dt0 )
+  startTimeStep( real & t0, real & dt0, int & currentGF, int & nextGF )
+  takeTimeStep( real & t0, real & dt0, int correction )
+  endTimeStep( real & t0, real & dt0 )
+
+applyBoundaryConditions.C:
+  applyBoundaryConditions(GridFunction & cgf, ... )
+  getTimeDerivativeOfBoundaryValues(const real & t, ... )
+  getTimeDependentBoundaryConditions( MappedGrid & mg, ... )
+
+advance.bC : interpolateAndApplyBoundaryConditions
+
+DomainSolver.C: prints header info, writeParameterSummary
+  outputHeader() -  output initial header banner
+  getResidualInfo(..)
+  setup(..)  - setup routine called after setting parameters interactively
+    -> calls initialize()
+             initializeSolution()
+
+
+edsUtil.C : interpolate
+
+errors.C : 
+ - determineErrors(realCompositeGridFunction & u,realMappedGridFunction **gridVelocity,	const real & t, const int options,RealArray & err,const aString & label )
+ - output( GridFunction & gf0, int stepNumber )
+
+FlowSolution.bC
+  - getFlowSolution( const KnownSolutionsEnum knownSolution, ...)
+  - getObliqueShockFlow( const KnownSolutionsEnum knownSolution, ...)
+  - getPistonFlow( const KnownSolutionsEnum knownSolution, ...)
+  - getSupersonicExpandingFlow( ...)
+
+initialConditions.C :
+ - cleanupInitialConditions()
+ - assignInitialConditions()
+ - getInitialConditions(const aString & command , DialogData *interface, GUIState *guiState)
+
+
+Parameters.C:
+  - getKnownSolution( CompositeGrid & cg, real t )
+  - getKnownSolution(real t, int grid, const Index & I1, const Index &I2, const Index &I3, bool initialCall)
+  - updateKnownSolutionToMatchGrid(CompositeGrid & cg )
+  - updateShowFile : builds show file dialog.
+
+plot.C : for interactive plotting
+  buildRunTimeDialog
+  setPlotTitle(t,dt);
+
+printTimeStepInfo.C
+  - printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
+
+saveShow.bC : save solutions to a show file. 
+  saveSequenceInfo(t,residual)
+
+setBoundaryConditions.C
+  setBoundaryConditionsInteractively(const aString & answer,
+				   const IntegerArray & originalBoundaryCondition )
+
+setup.C:
+  - displayParameters(FILE *file /* = stdout */ )
+  - getOriginalBoundaryConditions(CompositeGrid & cg, IntegerArray & originalBoundaryCondition )
+  - setParametersInteractively(bool runSetupOnExit/*=true*/)
+
+setupGridFunctions.C:
+  setupGridFunctions()
+  initializeSolution()  -- interpolateAndApplyBoundaryConditions(gf[current]);
+                           project(gf[current]);
+                           dt= getTimeStep( gf[current] ); 
+solve.C : 
+   solve()
+   takeOneStep
+   printStatistics - prints final summary
+
+timeStep.C : compute the time step dt
+   getTimeStep( GridFunction & gf0 )
+   getTimeStep(MappedGrid & mg, realMappedGridFunction & u0, realMappedGridFunction & gridVelocity, ...
+   getTimeSteppingEigenvalue(MappedGrid & mg, ... )
+
+timeSteppingDialog.C : assigns some parameters
+
+
+userDefinedKnownSolution
+  - getUserDefinedKnownSolution(real t, CompositeGrid & cg, .. )
+  - updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)

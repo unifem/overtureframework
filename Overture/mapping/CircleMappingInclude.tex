@@ -1,0 +1,62 @@
+\subsection{Constructor(2D)}
+ 
+\newlength{\CircleMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+  \\ 
+\settowidth{\CircleMappingIncludeArgIndent}{CircleMapping(}%
+CircleMapping(const real \& x\_  =0., \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& y\_  =0., \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& a\_  =1., \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& b\_  =a\_,\\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& startTheta\_  =0., \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& endTheta\_  =1.) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Define a circle or ellipse (or an arc there-of) in 2D, 
+   semi-axes a, and b, angle from startTheta*twoPi to endTheta*twoPi
+
+ \begin{verbatim}
+    x(I,axis1)=a*cos(thetaFactor*(r(I,axis1)-startTheta))+xa; 
+    x(I,axis2)=b*sin(thetaFactor*(r(I,axis1)-startTheta))+ya;
+ \end{verbatim}
+
+\item[{\bf x\_ (input) :}]  x coordinate of center
+\item[{\bf y\_ (input) :}]  y coordinate of center
+\item[{\bf a\_ (input) :}]  length of semi axis along x (radius for a circle)
+\item[{\bf b\_ (input) :}]  length of semi axis along y (radius for a circle)
+\item[{\bf startTheta\_ (input):}]  starting angle (in units of radians/(2 pi))
+\item[{\bf endTheta\_ (input):}]  ending angle (in units of radians/(2 pi))
+\end{description}
+\subsection{Constructor(3D)}
+ 
+\begin{flushleft} \textbf{%
+  \\ 
+\settowidth{\CircleMappingIncludeArgIndent}{CircleMapping(}%
+CircleMapping(const real \& x\_, \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& y\_, \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& z\_, \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& a\_, \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& b\_, \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& startTheta\_, \\ 
+\hspace{\CircleMappingIncludeArgIndent}const real \& endTheta\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Define a circle or ellipse (or an arc there-of) in 3D (constant z), 
+   semi-axes a, and b, angle from startTheta*twoPi to endTheta*twoPi
+
+ \begin{verbatim}
+    x(I,axis1)=a*cos(thetaFactor*(r(I,axis1)-startTheta))+xa; 
+    x(I,axis2)=b*sin(thetaFactor*(r(I,axis1)-startTheta))+ya;
+    x(I,axis3)=za;
+ \end{verbatim}
+
+\item[{\bf x\_ (input) :}]  x coordinate of center
+\item[{\bf y\_ (input) :}]  y coordinate of center
+\item[{\bf z\_ (input) :}]  z coordinate of center
+\item[{\bf a\_ (input) :}]  length of semi axis along x (radius for a circle)
+\item[{\bf b\_ (input) :}]  length of semi axis along y (radius for a circle)
+\item[{\bf startTheta\_ (input):}]  starting angle (in units of radians/(2 pi))
+\item[{\bf endTheta\_ (input):}]  ending angle (in units of radians/(2 pi))
+\end{description}

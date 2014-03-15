@@ -1,0 +1,353 @@
+\section{Class \MGO}\index{MappedGridOperators}
+
+
+\subsection{Public member function and member data descriptions}
+
+\input MappedGridOperatorsInclude.tex
+
+
+
+
+
+\vfill\eject
+\subsection{Example 1: Differentiation of a {\ff realMappedGridFunction}} \label{sec:mgoex}
+\index{MappedGridOperators!examples}
+
+In this first example we show to evaluate derivatives of a \MGF
+in a few different ways. The recommended efficient method of evaluation is
+demonstrated near the end of the example code.
+(file {\ff \examples /tmgo.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/tmgo.C}
+}
+In this example we create a {\ff \MGO} object and associate
+it with a grid function. We compute the x-derivative of
+a {\ff realMappedGridFunction}.
+The member
+function ``x'' in the grid function returns the
+x derivative of the grid function as a new grid function. 
+It uses the derivative
+defined in the {\ff \MGO} object. 
+Note that by default the derivative of a {\ff realMappedGridFunction} 
+is only computed at interior and boundary points (indexRange). Thus to
+access (make a view) of the derivative values of the grid function {\ff u.x()} 
+at the Index's {\ff (I1,I2,I3)}
+it is necessary to say {\ff u.x()(I1,I2,I3)}. On the other hand the statement
+{\ff u.x(I1,I2,I3)} will evaluate the derivatives on the points
+defined by {\ff (I1,I2,I3)}, but will return a grid function that is dimensioned
+for the entire grid. Thus in general on could say {\ff u.x(I1,I2,I3)(J1,J2,J3)}
+to evaluate the derivatives at points {\ff (I1,I2,I3)} but to use (take a view)
+of the grid function at the Index's {\ff (J1,J2,J3)}. 
+
+The example code also shows how to compute the derivatives of just some components
+of a grid function. The grid function {\tt w} has 2 components.
+The expression {\tt w.x(all,all,all,0)} computes the derivative
+of component `0' of {\tt w} and returns the result as a grid function with 1 component.
+
+The efficient method for computing derivatives is shown at the bottom
+of this example.\index{differentiation!efficient method} First one must indicate how many derivatives
+will be evaluated, {\ff setNumberOfDerivativesToEvaluate},
+and which derivatives should be
+evaluated, {\ff setDerivativeType}, 
+and also supply A++ arrays to hold the results in ({\ff ux,uy}).
+ These
+arrays will automatically be made large enough to hold the results
+if they are not already large enough.
+The call to
+{\ff getDerivatives} will evaluate all the derivatives all at once (thus
+saving computations) and place the results in the user supplied arrays
+(thus saving memory allocation overhead). 
+
+See also section (\ref{sec:cgoex}) for a similar example that uses
+{\tt CompositeGridFunction}'s.
+
+
+\subsection{Derivatives Defined Using Finite Differences}\index{differentiation!difference approximations}
+
+The class {\ff \MGO} defines derivatives using finite differences
+and the ``mapping method''. Simply put, each derivative
+is written, using the chain use, in terms of derivatives on
+the unit square (or cube). The derivatives on the unit
+square are discretized using standard central finite
+differences. 
+
+\newcommand{\uvr}{{\partial \uv \over \partial r}}
+\newcommand{\uvs}{{\partial \uv \over \partial s}}
+\newcommand{\uvx}{{\partial \uv \over \partial x}}
+\newcommand{\uvy}{{\partial \uv \over \partial y}}
+\newcommand{\rx}{{\partial r \over \partial x}}
+\newcommand{\ry}{{\partial r \over \partial y}}
+\newcommand{\sx}{{\partial s \over \partial x}}
+\newcommand{\sy}{{\partial s \over \partial y}}
+
+Each {\ff MappedGrid}, $\Mv$, consists of a set of grid points,
+\def\nak {\nv_{a,k}}
+\def\nbk {\nv_{b,k}}
+$$
+\Mv  =  \{ {\ff vertex}_{i} ~|~ i=(i_1,i_2,i_3)~~~
+           {\ff dimension(Start,m)} \le i_m \le {\ff dimension(End,m)} ~,~ m=0,1,2 \}    ~.
+$$
+One or
+two extra lines of fictitious points are added for convenience
+in discretizing to second or  fourth-order.
+Boundaries of the computational domain will coincide
+with the boundaries of the unit cubes, $i_m={\ff gridIndexRange(Start,m)}$ or
+$i_m={\ff gridIndexRange(End,m)}$.
+
+The derivatives are discretized with second or
+fourth-order accurate central differences applied to the
+equations written in the unit cube coordinates, as will now be outlined.
+Define the shift operator in the coordinate direction $m$ by
+\begin{equation}
+    E_{+m}\uvd_{i} = \left\{ \begin{array}{ll}
+                 \uvd_{i_1+1,i_2,i_3} & \mbox{ if $m=0$} \\
+                 \uvd_{i_1,i_2+1,i_3} & \mbox{ if $m=1$} \\
+                 \uvd_{i_1,i_2,i_3+1} & \mbox{ if $m=2$}
+                     \end{array}\right. \comma
+\end{equation}
+and the difference operators
+\begin{eqnarray*}
+     D_{+ r_m} &=& {E - 1 \over \Delta r_m}  \\
+     D_{- r_m} &=& {1 - E^{-1} \over \Delta r_m}  \\
+     D_{0 r_m} &=& {E-E^{-1} \over 2 \Delta r_m}  \\
+     D_{+m} &=& E_{+m} -1  \\
+     D_{+m_1,m_2} &=& {E_{+m_1} E_{+m_2} -1 \over \Delta r_m}  ~.
+\end{eqnarray*}
+Let $D_{2r_m}$, $D_{2r_m r_n}$, $D_{2x_m}$ and $D_{2x_m x_n}$
+denote
+second-order accurate derivatives with respect to $\rv$ and $\xv$.
+The derivatives with respect to $\rv$ are the standard
+centred difference approximations. For example
+\begin{eqnarray*}
+  {\partial \uv \over \partial r_m} \approx D_{2r_m}\uvd_i &:=&
+     { (E_{+m} - E_{+m}^{-1}) \uvd_i
+                                   \over 2(\Delta r_m) } \\
+  {\partial^2 \uv \over \partial r_m^2} \approx D_{2 r_m r_m}\uvd_i &:=&
+     { (E_{+m} -2 + E_{+m}^{-1}) \uvd_i
+                                   \over (\Delta r_m)^2 }
+\end{eqnarray*}
+Let $D_{4r_m}$, $D_{4r_m r_n}$, $D_{4x_m}$ and $D_{4x_m x_n}$
+denote
+fourth order accurate derivatives with respect to $\rv$ and $\xv$.
+The derivatives with respect to $\rv$ are the standard fourth-order
+centred difference approximations. For example
+\begin{eqnarray*}
+  {\partial \uv \over \partial r_m} \approx D_{4r_m}\uvd_i &:=&
+     { (-E_{+m}^2+ 8 E_{+m} - 8 E_{+m}^{-1} + E_{+m}^{-2} ) \uvd_i
+                                   \over 12(\Delta r_m) } \\
+  {\partial^2 \uv \over \partial r_m^2} \approx D_{4 r_m r_m}\uvd_i &:=&
+     { (-E_{+m}^2+16 E_{+m} -30 +16 E_{+m}^{-1} -E_{+m}^{-2} ) \uvd_i
+                                   \over 24(\Delta r_m)^2 }
+\end{eqnarray*}
+where $\Delta r_m = 1/(n_{m,b}-n_{m,a})$.
+
+The derivatives with respect to $\xv$ are defined by the chain rule.
+For the fourth-order approximations, for example, 
+\begin{eqnarray*}
+   {\partial \uv \over \partial x_m } &=&
+        \sum_n {\partial r_n \over \partial x_m}
+               {\partial \uv \over \partial r_n}
+    ~~~ \approx  D_{4x_m} \uvd_i :=
+        \sum_n {\partial r_n \over \partial x_m}
+               D_{4r_n} \uvd_i                  \\
+   {\partial^2 \uv \over \partial x_m^2 } &=&
+      \sum_{n,l} {\partial r_n \over \partial x_m}
+                 {\partial r_l \over \partial x_m}
+                 {\partial^2 \uv \over \partial r_n r_l}
+       +\sum_n   {\partial^2 r_n \over \partial x_m^2}
+                 {\partial  \uv \over \partial r_n    }  \\
+       &\approx& D_{4 x_m x_m}\uvd_i :=
+      \sum_{n,l} {\partial r_n \over \partial x_m}
+                 {\partial r_l \over \partial x_m}
+                 D_{4 r_n r_l } \uvd_i
+       +\sum_n  \Big( D_{4 x_m} {\partial r_n \over \partial x_m}\Big)
+                 D_{4 r_n} \uvd_i
+\end{eqnarray*}
+The entries in the Jacobian matrix, ${\partial r_m / \partial x_n}$,
+are assumed to be known at the vertices of the grid;
+these values are obtained from the {\tt MappedGrid}
+in the array {\ff inverse\-Vertex\-Derivatives}. 
+
+
+
+\subsection{Conservative Difference Approximations}\index{differentiation!conservative approximations}
+
+   The {\tt MappedGridOperators} also supply some conservative 
+difference approximations.  *** this is new ***
+
+
+Define $J$ to be the determinant of the Jacobian matrix of the transformation derivatives
+\[
+    J = {\rm det}\left[ {\partial \xv \over \partial \rv} \right]
+\]
+Note that $J d\rv$ is a measure of the local volume element.
+
+The divergence operator is
+\begin{align*}
+ \grad_\xv \cdot \uv 
+     &= \sum_i {\partial u_i \over \partial x_i } \\
+     &= \sum_j \sum_i{\partial r_j \over \partial x_i } {\partial u_i \over \partial r_j } 
+\end{align*}
+The divergence operator can be written in {\bf conservation form} for the computational variables $\rv$
+\begin{align*}
+ \grad_\xv \cdot \uv 
+     & = {1\over J} \sum_j 
+            {\partial\over\partial r_j}\left[ \sum_i J{\partial r_j \over \partial x_i } u_i \right] \\
+    &= {1\over J} \grad_\rv \cdot \Uv \\
+  \mbox{where}~ U_i &= J \sum_k {\partial r_i \over \partial x_k } u_k 
+\end{align*}
+This is called conservation form for the variables $\rv$ since integrals over $d\rv$ space can be expressed
+in a simple form from which the divergence theorem can be applied:
+\begin{align*}
+  \int \grad_\xv \cdot \uv ~d\xv &= \int \grad_\xv \cdot \uv ~J d\rv \\ 
+     &= \int \grad_\rv \cdot \Uv ~d\rv 
+\end{align*}
+
+The laplacian operator in divergence form now follows easily,
+\begin{align*}
+   \Delta \phi &= {1\over J} \sum_j 
+             {\partial\over\partial r_j}\left[ \sum_i J{\partial r_j \over \partial x_i } 
+                   {\partial \phi \over \partial x_i} \right] \\
+  &= {1\over J}  \sum_j 
+            {\partial\over\partial r_j}\left[ \sum_i J{\partial r_j \over \partial x_i } 
+                   \sum_k {\partial r_k \over \partial x_i }{\partial \phi \over \partial r_k} \right]
+\end{align*}
+
+
+The {\bf conservative difference approximations} to the divergence and laplacian are obtained by
+discretizing the above expressions.
+
+
+Similarly the operator $\grad\cdot( a(\xv) \grad \phi)$ is
+
+\[
+   \grad\cdot( a \grad \phi) 
+  = {1\over J}  \sum_j 
+            {\partial\over\partial r_j}\left[ \sum_i J{\partial r_j \over \partial x_i } 
+                   a \sum_k {\partial r_k \over \partial x_i }{\partial \phi \over \partial r_k} \right] 
+\]
+
+A general second-order derivative, $\partial_{x_m}( a \partial_{x_n} \phi)$,
+can be written from the expression for the divergence of a vector whose $m^{th}$ component is
+$a \partial_{x_n} \phi$ (and other components zero),
+\begin{align*}
+{\partial\over\partial x_m}\left[ a  {\partial\phi\over\partial x_n} \right]
+     & = {1\over J} \sum_j 
+            {\partial\over\partial r_j}\left[  J{\partial r_j \over \partial x_m }
+                  a  {\partial\phi\over\partial x_n}  \right] \\
+     & = {1\over J} \sum_j 
+            {\partial\over\partial r_j}\left[  J{\partial r_j \over \partial x_m }
+                  a  \sum_i {\partial r_i \over\partial x_n}{\partial\phi\over\partial r_i} \right]
+\end{align*}
+
+
+In two dimensions we write the expression for $\grad\cdot( a \grad \phi)$ in more detail
+\begin{align*}
+\grad\cdot( a \grad \phi) = {1\over J} \Big\lbrace  
+      & {\partial\over\partial r_1}\left( 
+         a J\left[ {\partial r_1 \over \partial x_1 }^2 + {\partial r_1 \over \partial x_2 }^2 \right]
+                    {\partial \phi \over\partial r_1} \right) +
+        {\partial\over\partial r_2}\left( 
+         a J\left[ {\partial r_2 \over \partial x_1 }^2 + {\partial r_2 \over \partial x_2 }^2 \right]
+                    {\partial \phi \over\partial r_2} \right) + \\
+      & {\partial\over\partial r_1}\left( 
+         a J\left[ {\partial r_1\over\partial x_1}{\partial r_2\over\partial x_1} 
+                 + {\partial r_1\over\partial x_2}{\partial r_2\over\partial x_2 } \right]
+                    {\partial \phi \over\partial r_2} \right) + 
+        {\partial\over\partial r_2}\left( 
+         a J\left[ {\partial r_1\over\partial x_1}{\partial r_2\over\partial x_1} 
+                 + {\partial r_1\over\partial x_2}{\partial r_2\over\partial x_2 } \right]
+                    {\partial \phi \over\partial r_1} \right) \Big\rbrace \\
+\end{align*}
+This expression can be written in the simplified form
+\[
+\grad\cdot( a \grad \phi) = {1\over J} \Big\lbrace  
+        {\partial\over\partial r_1}\left( A^{11} {\partial \phi \over\partial r_1} \right) +
+        {\partial\over\partial r_2}\left( A^{22} {\partial \phi \over\partial r_2} \right) + 
+        {\partial\over\partial r_1}\left( A^{12} {\partial \phi \over\partial r_2} \right) + 
+        {\partial\over\partial r_2}\left( A^{21} {\partial \phi \over\partial r_1} \right) \Big\rbrace 
+\]
+where $A^{12}=A^{21}$.
+A {\bf second-order accurate} compact discretization to this expression is
+\[
+  \grad\cdot( a \grad \phi) \approx {1\over J} \Big\lbrace
+        D_{+ r_1}\left( A^{11}_{i_1-\half}D_{- r_1}\phi \right) +
+        D_{+ r_2}\left( A^{22}_{i_2-\half}D_{- r_2}\phi \right) + 
+        D_{0 r_1}\left( A^{12}            D_{0 r_2}\phi \right) + 
+        D_{0 r_2}\left( A^{21}            D_{0 r_1}\phi \right) \Big\rbrace 
+\]
+where we can define the cell average values for $A^{mn}$ by
+\begin{align*}
+   A^{11}_{i_1-\half} &\approx \half( A^{11}_{i_1}+A^{11}_{i_1-1} ) \\
+   A^{22}_{i_2-\half} &\approx \half( A^{22}_{i_2}+A^{22}_{i_2-1} )
+\end{align*}
+We may also want to use the {\bf harmonic} average
+\[
+   A^{11}_{i_1-\half} \approx { 2 A^{11}_{i_1} A^{11}_{i_1-1} \over A^{11}_{i_1}+A^{11}_{i_1-1} } 
+\]
+which is appropriate if the coefficients vary rapidly.
+
+
+A {\bf fourth-order accurate} approximation can be derived as follows. A fourth-order
+accurate discretization to the second derivative is
+\[
+   {\partial^2 u \over \partial r^2} = D_+D_- ( 1 - {h^2\over 12} D_+D_- ) u_i ~+O(h^4) 
+\]
+which can be approximately factored into the product
+\[
+  {\partial^2 u \over \partial r^2} 
+     = \left[ D_+ (1 - {h^2\over 24} D_+D_-) \right] \left[ D_- ( 1 - {h^2\over 24} D_+D_- )\right]u_i  ~+O(h^4)
+\]
+where
+\[
+    D_+ (1 - {h^2\over 24} D_+D_- )u_i = {\partial u \over \partial r}(x_{i+\half})~+O(h^4) 
+\]
+is a fourth order accurate approximation to the first derivative at $x_{i+\half}$.
+Thus 
+\[
+  {\partial\over\partial r}\left( A {\partial u \over \partial r}\right)
+   = \left[ D_+ (1 - {h^2\over 24} D_+D_-) \right] 
+      \left[ A_{i-\half}D_- ( 1 - {h^2\over 24} D_+D_- )\right]u_i ~+O(h^4) 
+\]
+is a fourth-order accurate conservative approximation. We can make this a compact 5 point scheme
+by dropping the highest order differences (which are $O(h^4)$ anyway) to give
+\[
+  {\partial\over\partial r}\left( A {\partial u \over \partial r}\right)
+   =  \left[ D_+ (1 - {h^2\over 24} D_+D_-) \right]\left[ A_{i-\half}  D_- \right]u_i
+     -\left[ D_+\right] \left[ A_{i-\half}D_- {h^2\over 24} D_+D_- \right]u_i  ~+O(h^4)
+\]
+or 
+\[
+  {\partial\over\partial r}\left( A {\partial u \over \partial r}\right)
+   =  \left[D_+\left( A_{i-\half} - ({h^2\over 24} D_+D_-)\tilde{A}_{i-\half}  
+                     - \tilde{A}_{i-\half} {h^2\over 24} D_+D_- \right) D_- \right] u_i  ~+O(h^4)
+\]
+We approximate
+\begin{align*}
+   A_{i-\half} & = {9\over 16}(A_i + A_{i-1})-{1\over 16}(A_{i+1} + A_{i-2}) ~+O(h^4)  \qquad **check this** \\
+   \tilde{A}_{i-\half} & = {1\over2} (A_i + A_{i-1}) ~+O(h^2)
+\end{align*}
+
+
+A consistent approximation to the boundary condition $\nv_m\cdot(a\grad \phi)$, where $\nv_m$ is
+the normal to the boundary with  $r_m=constant$, can be obtained from the expressions
+\begin{align*}
+   \nv_m &= {\grad_\xv r_m \over \|\grad_\xv r_m \|} \\
+   \nv_m\cdot(a\grad \phi) &= a {\grad_\xv r_m \over \|\grad_\xv r_m \|} 
+        \left( \grad_\xv r_1 \phi_{r_1} + \grad_\xv r_2 \phi_{r_2} \right) \\
+         &\equiv B^1 \phi_{r_1} + B^2 \phi_{r_2} 
+\end{align*}
+where we note that the operator $\grad\cdot( a \grad\phi) $ contains this expression:
+\[
+  \grad\cdot( a \grad\phi) = {1\over J} \sum_m \left(
+         {\partial\over\partial r_m} J \|\grad_\xv r_m \| \left[ \nv_m\cdot(a\grad \phi) \right] \right)
+\]
+(consistent with the divergence theorem).
+Thus we should approximate the normal derivative at the boundary point $i$ as an average
+of the approximations to $\nv_m\cdot(a\grad \phi)$ at the points $i-\half$ and $i+\half$
+\[
+\nv_m\cdot(a\grad \phi)_i = \half\left( B^1_{i+\half} D_{+ r_1}\phi_i + B^1_{i-\half} D_{+ r_1}\phi_{i-1}\right) 
+     + \half\left( B^2_{j+\half} D_{+ r_2}\phi_j + B^1_{j-\half} D_{+ r_2}\phi_{j-1}\right)
+\]
+These approximations implicitly appear in the discretization of the operator $\grad\cdot( a \grad\phi)$.
+If we choose the same approximations in the boundary condition then terms will cancel appropriately.

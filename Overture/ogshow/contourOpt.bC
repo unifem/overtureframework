@@ -1,0 +1,1210 @@
+#include "Overture.h"
+#include "GL_GraphicsInterface.h"
+#include "ParallelUtility.h"
+#include "DataPointMapping.h"
+#include "interpPoints.h"
+#include "conversion.h"
+#include "UnstructuredMapping.h"
+#include "display.h"
+#include "CompositeGrid.h"
+#include "PlotIt.h"
+
+#include <float.h>
+    
+// local version so that we can change it: 
+static int isHiddenByRefinement=MappedGrid::IShiddenByRefinement;
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+  i1Bound=I1.getBound(); i2Bound=I2.getBound(); i3Bound=I3.getBound(); \
+  for( i3=I3.getBase(); i3<=i3Bound; i3++ )  \
+  for( i2=I2.getBase(); i2<=i2Bound; i2++ )  \
+  for( i1=I1.getBase(); i1<=i1Bound; i1++ )  \
+
+#define FOR_3WithStride(i1,i2,i3,m1,m2,m3,I1,I2,I3) \
+  i1Bound=I1.getBound(); i2Bound=I2.getBound(); i3Bound=I3.getBound(); \
+  for( i3=I3.getBase(); i3<=i3Bound; i3+=m3 )  \
+  for( i2=I2.getBase(); i2<=i2Bound; i2+=m2 )  \
+  for( i1=I1.getBase(); i1<=i1Bound; i1+=m1 )  \
+
+
+extern int colourTable[256][3];
+
+//-----------------------------------------------------------------------------------------------
+// Get Bounds on u -- treat the general case when the component can be in any Index position of u
+//
+// Input 
+//  u :
+//  parameters (input) : holds numberOfGhostLinesToPlot
+//  R0,R1,...,R4 : optional Ranges to say which components to check
+// Return
+//   uMin,Umax
+//-----------------------------------------------------------------------------------------------
+void PlotIt::
+getBounds(const realGridCollectionFunction & u,
+          real & uMin, 
+          real & uMax,
+          GraphicsParameters & parameters,   
+          const Range & R0,      // check these entries of component 0
+          const Range & R1,      // check these entries of component 1
+          const Range & R2,
+          const Range & R3,
+          const Range & R4)
+{
+  const GridCollection & gc = *(u.gridCollection);
+  const int numberOfGrids =  gc.numberOfComponentGrids();
+
+  isHiddenByRefinement = parameters.plotHiddenRefinementPoints ? 0 : MappedGrid::IShiddenByRefinement;
+
+  Index I[8] = {Range(0,0),Range(0,0),Range(0,0),Range(0,0),Range(0,0),Range(0,0),Range(0,0),Range(0,0)};
+  Range R[] = { R0,R1,R2,R3,R4 };
+
+  for( int component=0; component<5; component++ )
+    I[u.positionOfComponent(component)]= R[component].length()>0 ? R[component]
+                   : Range(u.getComponentBase(component),u.getComponentBase(component));
+
+  uMin=REAL_MAX;
+  uMax=-uMin;
+  for( int grid=0; grid<numberOfGrids; grid++ )
+  {
+    Index I1,I2,I3;
+    // *wdh* new mask    getIndex(gc[grid].gridIndexRange(),I1,I2,I3,parameters.numberOfGhostLinesToPlot);
+    if( gc[grid].getGridType()==MappedGrid::structuredGrid )
+    {
+      getIndex(gc[grid].indexRange(),I1,I2,I3,parameters.numberOfGhostLinesToPlot);
+      I[u.positionOfCoordinate(0)]=I1;
+      I[u.positionOfCoordinate(1)]=I2;
+      I[u.positionOfCoordinate(2)]=I3;
+    
+      // check if conformable:
+      if( u.positionOfComponent(0)> u.positionOfCoordinate(gc.numberOfDimensions()-1) )
+      {
+        #ifdef USE_PPP
+	  const RealArray & v = u[grid].getLocalArray();   // no parallel ghost 
+	  const IntegerArray & mask = gc[grid].mask().getLocalArray();
+	  const int n1a=max(v.getBase(0),I1.getBase()), n1b=min(v.getBound(0),I1.getBound());  
+	  const int n2a=max(v.getBase(1),I2.getBase()), n2b=min(v.getBound(1),I2.getBound());
+	  const int n3a=max(v.getBase(2),I3.getBase()), n3b=min(v.getBound(2),I3.getBound());
+	  if( n1a>n1b || n2a>n2b || n3a>n3b )
+	    continue;
+	  I1=Range(n1a,n1b);
+	  I2=Range(n2a,n2b);
+	  I3=Range(n3a,n3b);
+	  I[u.positionOfCoordinate(0)]=I1;
+	  I[u.positionOfCoordinate(1)]=I2;
+	  I[u.positionOfCoordinate(2)]=I3;
+
+        #else
+    	  const RealArray & v = u[grid]; 
+	  const IntegerArray & mask = gc[grid].mask(); 
+        #endif
+	where( mask(I1,I2,I3) != 0 && !(mask(I1,I2,I3) & isHiddenByRefinement) )
+	{ // ** fix for more components ****
+	  uMin= grid==0 ? min(v(I[0],I[1],I[2],I[3])) : min(min(v(I[0],I[1],I[2],I[3])),uMin);
+	  uMax= grid==0 ? max(v(I[0],I[1],I[2],I[3])) : max(max(v(I[0],I[1],I[2],I[3])),uMax);
+	}
+      }
+      else  // ***** this will not be needed when A++ is fixed ******
+      {
+	int i1,i2,i3,i1Bound,i2Bound,i3Bound;
+        const intArray & mask = gc[grid].mask();
+	FOR_3(i1,i2,i3,I1,I2,I3)
+	{
+	  if( mask(i1,i2,i3) != 0 && !(mask(i1,i2,i3) & isHiddenByRefinement))
+	  {
+	    for( int c0=I[u.positionOfComponent(0)].getBase(); c0<=I[u.positionOfComponent(0)].getBase(); c0++ )
+	    {
+	      uMin= min(u[grid].sa(i1,i2,i3,c0),uMin);
+	      uMax= max(u[grid].sa(i1,i2,i3,c0),uMax);
+	    }
+	  }
+	}
+      }
+    }
+    else
+    {
+      // unstructured grid 
+      Range C0 = R0.getLength()>0 ? R0 : Range(u.getComponentBase(0),u.getComponentBase(0));
+      const realArray & v = u[grid];
+      // uMin=min(v(I1,C0));  // *wdh* 020515
+      // uMax=max(v(I1,C0));
+      Range all;
+      uMin=min(v(all,all,all,C0));
+      uMax=max(v(all,all,all,C0));
+    }
+  } // end for grid
+
+  if( PlotIt::parallelPlottingOption==1 )
+  {
+    uMin=ParallelUtility::getMinValue(uMin);
+    uMax=ParallelUtility::getMaxValue(uMax);
+  }
+  
+}
+
+
+#define ForBoundary(side,axis)   for( axis=0; axis<gc.numberOfDimensions(); axis++ ) \
+                                 for( side=0; side<=1; side++ )
+
+#define COLOUR_INDEX(uVal) min(max(int((uVal-uMin)*delta255+.5),0),255)
+
+// shade a quadrilaterl with corners (i1,i2,i3) to (i1+m1,i2+m2,i3) using the rainbow colour table
+#beginMacro shadeQuadRainbow(i1,i2,m1,m2)
+{
+ u00=U(i1   ,i2   ,i3,component); 
+ u10=U(i1+m1,i2   ,i3,component); 
+ u01=U(i1   ,i2+m2,i3,component); 
+ u11=U(i1+m1,i2+m2,i3,component);
+
+ glBegin(GL_POLYGON);  // draw shaded filled polygons
+ if( !flatShading )
+ {
+   index2 = min(max(int((u00-uMin)*delta255+.5),0),255);
+   if( index2!=index )
+   {
+     index=index2;
+     glColor3f(colourTable[index][0]/255.,colourTable[index][1]/255.,colourTable[index][2]/255.);
+   }
+   glVertex3(COORD0(i1,i2,i3),COORD1(i1,i2,i3), (u00-uAverage)*uScaleFactor );
+
+   index2 = min(max(int((u10-uMin)*delta255+.5),0),255);
+   if( index2!=index )
+   {
+     index=index2;
+     glColor3f(colourTable[index][0]/255.,colourTable[index][1]/255.,colourTable[index][2]/255.);
+   }
+   glVertex3(COORD0(i1+m1,i2,i3),COORD1(i1+m1,i2,i3), (u10-uAverage)*uScaleFactor );
+
+   index2 = min(max(int((u11-uMin)*delta255+.5),0),255);
+   if( index2!=index )
+   {
+     index=index2;
+     glColor3f(colourTable[index][0]/255.,colourTable[index][1]/255.,colourTable[index][2]/255.);
+   }
+   glVertex3(COORD0(i1+m1,i2+m2,i3),COORD1(i1+m1,i2+m2,i3), (u11-uAverage)*uScaleFactor );
+
+   index2 = min(max(int((u01-uMin)*delta255+.5),0),255);
+   if( index2!=index )
+   {
+     index=index2;
+     glColor3f(colourTable[index][0]/255.,colourTable[index][1]/255.,colourTable[index][2]/255.);
+   }
+   glVertex3(COORD0(i1  ,i2+m2,i3),COORD1(i1  ,i2+m2,i3), (u01-uAverage)*uScaleFactor );
+ }
+ else
+ {
+   // flat shaded polygon using average value of verticies 
+   index2 = min(max(int((.25*(u00+u10+u01+u11)-uMin)*delta255+.5),0),255);
+   if( index2!=index )
+   {
+     index=index2;
+     glColor3f(colourTable[index][0]/255.,colourTable[index][1]/255.,colourTable[index][2]/255.);
+   }
+
+   glVertex3(COORD0(i1,i2,i3),COORD1(i1,i2,i3), (u00-uAverage)*uScaleFactor );
+   glVertex3(COORD0(i1+m1,i2,i3),COORD1(i1+m1,i2,i3), (u10-uAverage)*uScaleFactor );
+   glVertex3(COORD0(i1+m1,i2+m2,i3),COORD1(i1+m1,i2+m2,i3), (u11-uAverage)*uScaleFactor );
+   glVertex3(COORD0(i1  ,i2+m2,i3),COORD1(i1  ,i2+m2,i3), (u01-uAverage)*uScaleFactor );
+ }
+ 
+ glEnd();   
+}
+#endMacro
+
+// shade a quadrilaterl with corners (i1,i2,i3) to (i1+m1,i2+m2,i3) using the current colour table
+#beginMacro shadeQuadFromColourTable(i1,i2,m1,m2)
+{
+ u00=U(i1   ,i2   ,i3,component); 
+ u10=U(i1+m1,i2   ,i3,component); 
+ u01=U(i1   ,i2+m2,i3,component); 
+ u11=U(i1+m1,i2+m2,i3,component);
+
+ glBegin(GL_POLYGON);  // draw shaded filled polygons
+ if( !flatShading )
+ {
+   gi.setColourFromTable( (u00-uMin)*deltaUInverse,psp );
+   glVertex3(COORD0(i1  ,i2  ,i3),COORD1(i1  ,i2  ,i3), (u00-uAverage)*uScaleFactor );
+   gi.setColourFromTable( (u10-uMin)*deltaUInverse,psp );
+   glVertex3(COORD0(i1+m1,i2  ,i3),COORD1(i1+m1,i2  ,i3), (u10-uAverage)*uScaleFactor );
+   gi.setColourFromTable( (u11-uMin)*deltaUInverse,psp );
+   glVertex3(COORD0(i1+m1,i2+m2,i3),COORD1(i1+m1,i2+m2,i3), (u11-uAverage)*uScaleFactor );
+   gi.setColourFromTable( (u01-uMin)*deltaUInverse,psp );
+   glVertex3(COORD0(i1  ,i2+m2,i3),COORD1(i1  ,i2+m2,i3), (u01-uAverage)*uScaleFactor );
+ }
+ else
+ {
+   gi.setColourFromTable( (.25*(u00+u10+u01+u11)-uMin)*deltaUInverse,psp );
+   glVertex3(COORD0(i1  ,i2  ,i3),COORD1(i1  ,i2  ,i3), (u00-uAverage)*uScaleFactor );
+   glVertex3(COORD0(i1+m1,i2  ,i3),COORD1(i1+m1,i2  ,i3), (u10-uAverage)*uScaleFactor );
+   glVertex3(COORD0(i1+m1,i2+m2,i3),COORD1(i1+m1,i2+m2,i3), (u11-uAverage)*uScaleFactor );
+   glVertex3(COORD0(i1  ,i2+m2,i3),COORD1(i1  ,i2+m2,i3), (u01-uAverage)*uScaleFactor );
+ }
+ 
+ glEnd();   
+}
+
+#endMacro
+
+
+
+void PlotIt::
+contourOpt2d(GenericGraphicsInterface &gi, 
+             const realGridCollectionFunction & uGCF, 
+             GraphicsParameters & psp,
+             real & uMin, real & uMax, real & uRaise,
+             bool & recomputeVelocityMinMax,
+	     bool & contourLevelsSpecified,
+             RealArray & xBound )
+// ============================================================================================================
+// Optimized version of the 2d contour plotter
+// =============================================================================================================
+{
+
+  const bool showTimings=false;
+  real time0=getCPU();
+
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+  const int np= max(1,Communication_Manager::numberOfProcessors());
+  const int graphicsProcessor = gi.getProcessorForGraphics();
+  const bool plotOnThisProcessor = Communication_Manager::localProcessNumber()==gi.getProcessorForGraphics();
+
+#ifdef USE_PPP
+  if( false && PlotIt::parallelPlottingOption==1 )
+  {
+    printf("*** contourOpt2d: START myid=%i ***\n",myid);
+    fflush(0);
+    MPI_Barrier(Overture::OV_COMM);
+  }
+#endif
+
+
+  const GridCollection & gc = *(uGCF.gridCollection);
+  const int numberOfGrids =  gc.numberOfComponentGrids();
+  const int numberOfDimensions =  gc.numberOfDimensions();
+
+  bool & plotWireFrame        = psp.plotWireFrame;
+  bool & plotShadedSurface    = psp.plotShadedSurface;
+  int  & component            = psp.componentForContours;
+  bool & plotContourLines     = psp.plotContourLines;
+  bool & plotGridBoundariesOnContourPlots = psp.plotGridBoundariesOnContourPlots;
+
+  bool & flatShading = psp.flatShading;
+
+  IntegerArray & gridsToPlot      = psp.gridsToPlot;
+  int  & numberOfContourLevels= psp.numberOfContourLevels;
+  real & minimumContourSpacing = psp.minimumContourSpacing;
+  const IntegerArray & minAndMaxContourLevelsSpecified  = psp.minAndMaxContourLevelsSpecified;
+  RealArray & minAndMaxContourLevels = psp.minAndMaxContourLevels;
+  real & contourSurfaceVerticalScaleFactor=psp.contourSurfaceVerticalScaleFactor; 
+  int & numberOfGhostLinesToPlot = psp.numberOfGhostLinesToPlot;
+  RealArray & contourLevels    = psp.contourLevels;
+
+  bool unsPlotGhost = psp.numberOfGhostLinesToPlot;
+
+  isHiddenByRefinement = psp.plotHiddenRefinementPoints ? 0 : MappedGrid::IShiddenByRefinement;
+
+//   if( true )
+//   {
+//     printf(" In contourOpt2d at start\n");
+//     for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
+//       gc[grid].displayComputedGeometry();
+//   }
+
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+
+  gi.setGlobalBound(xBound);
+      
+  // Get Bounds on u -- treat the general case when the component can be in any Index position of u
+  if( !minAndMaxContourLevelsSpecified(component) )
+  {
+    if( recomputeVelocityMinMax )
+    {
+      recomputeVelocityMinMax=false;
+      getBounds(uGCF,uMin,uMax,psp,Range(component,component));
+    }
+  }
+  else
+  {
+    uMin=minAndMaxContourLevels(0,component);
+    uMax=minAndMaxContourLevels(1,component);
+  }
+
+  real deltaU = uMax-uMin;
+  if( deltaU==0. )
+  {
+    uMax+=.5;
+    uMin-=.5;
+  }
+  else if( deltaU < minimumContourSpacing*numberOfContourLevels )
+  {
+    uMax+=minimumContourSpacing*numberOfContourLevels;
+    uMin-=minimumContourSpacing*numberOfContourLevels;
+    deltaU = uMax-uMin;
+  }
+      
+  real uAverage=.5*(uMax+uMin);
+  real deltaUInverse =  deltaU==0. ? 1. : 1./deltaU;
+
+  // scale height of surface by this contourSurfaceVerticalScaleFactor
+  // the maximum distance in the x or y direction
+  real spatialBound = psp.contourSurfaceSpatialBound;
+  if( spatialBound<=0 ) spatialBound=max(xBound(End,Range(0,1))-xBound(Start,Range(0,1)));
+
+  real uScaleFactor=contourSurfaceVerticalScaleFactor*deltaUInverse*spatialBound;
+
+  bool lineStipple=FALSE;   // true if line stipple (dashed lines) turned on)
+
+  real time1=getCPU();
+  if( showTimings ) printf("contour2d:time for setup=%8.2e\n",time1-time0);
+
+  if( plotOnThisProcessor )
+  {
+    glPushName(uGCF.getGlobalID()); // assign a name for picking
+      
+    if( !plotWireFrame )
+    {
+      glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+      glShadeModel(GL_SMOOTH);     // interpolate colours between vertices
+    }
+	
+    glPolygonOffset(4.0,3.0*OFFSET_FACTOR);  // for contour lines on the polygons we need a big offset
+    glEnable(GL_POLYGON_OFFSET_FILL);
+  }
+  
+  bool adaptForColour = gi.gridCoarseningFactor<0; // plot at finer resolution where the colour changes
+  const int maxPlotablePoints=500000; // maximum number of points we plot at the highest resolution
+  const int maxAdaptiveColourPoints=maxPlotablePoints*2; // turn off adaptive colouring if this many cells plotted
+  int numberOfCellsPlotted=0;
+
+  #ifdef USE_PPP
+  // define a partition for a distributed array that only lives on the graphicsProcessor
+  Partitioning_Type partition; 
+  partition.SpecifyProcessorRange(Range(graphicsProcessor,graphicsProcessor)); 
+  for( int axis=0; axis<4; axis++ )
+  {
+    int ghost=0; // uPartition.getGhostBoundaryWidth(axis);
+    if( ghost>0 )
+      partition.partitionAlongAxis(axis, true , ghost);
+    else
+      partition.partitionAlongAxis(axis, false, 0);
+  }
+  #endif
+
+  for( int grid=0; grid<numberOfGrids; grid++ )
+  {
+    if( !(gridsToPlot(grid)&GraphicsParameters::toggleContours) )
+      continue;
+    // RealArray & u = uGCF[grid];
+    realMappedGridFunction & u = uGCF[grid];
+
+    // -- use the vertex array if we are plotting with an adjustment for the "displacement"
+    // const bool isRectangular=gc[grid].isRectangular();
+    const bool isRectangular=gc[grid].isRectangular() && !psp.adjustGridForDisplacement && 
+                             !(gc[grid]->computedGeometry & MappedGrid::THEvertex);
+
+    if( !isRectangular )
+    { // *wdh* 090522 -- make sure the center is there as well since we us it below
+      MappedGrid & mg = (MappedGrid&)(gc[grid]);
+      mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+    }
+    
+
+    if( gc[grid].getGridType()==MappedGrid::structuredGrid )
+    {
+      bool cellVertex = (bool) gc[grid].isAllVertexCentered();
+      // The position array is the vertex or center array, these are the coordinates
+      // corresponding to the solution values
+
+      // *************** Loop over processors ******************
+      for( int p=0; p<np; p++ )
+      {
+
+#ifdef USE_PPP
+	if( false && PlotIt::parallelPlottingOption==1 )
+	{
+	  printf("*** contourOpt2d: myid=%i : plot data on processor p=%i ***\n",myid,p);
+	  fflush(0);
+	  MPI_Barrier(Overture::OV_COMM);
+	}
+  
+#endif
+
+	// --- Determine I1,I2,I3 for plotting ----
+	I3=gc[grid].dimension(Start,axis3);
+	for( int axis=0; axis<2; axis++ )
+	{
+	  int ia=max(gc[grid].extendedIndexRange(Start,axis)-numberOfGhostLinesToPlot,
+		     gc[grid].dimension(Start,axis));
+	  int ib=min(gc[grid].extendedIndexRange(End,axis)+numberOfGhostLinesToPlot,
+		     gc[grid].dimension(End,axis));
+
+	  if( !gc[grid].isPeriodic(axis) )
+	    ib--;
+
+	  // Sometimes we do want to see ghost points on interpolation boundaries.
+	  // There fore do NOT do the following.
+	  // if( gc[grid].boundaryCondition(Start,axis)==0 )
+	  //   ia=max(gc[grid].extendedIndexRange(Start,axis),ia);
+	  // if( gc[grid].boundaryCondition(End,axis)==0 )
+	  //   ib=min(gc[grid].extendedIndexRange(End,axis)-1,ib);
+	      
+	  Iv[axis]=Range(ia,ib);
+	}
+
+
+        #ifndef USE_PPP
+
+         const realSerialArray & uu = u;
+         const realSerialArray & coord = isRectangular ? uu : cellVertex ? gc[grid].vertex() : gc[grid].center();
+         const intSerialArray & mask = gc[grid].mask();
+
+        #else
+
+
+         realSerialArray uu; 
+         realSerialArray coord;
+         intSerialArray mask;  
+
+	 // for now: create distributed arrays that just live of the graphics processor -- then copy
+         // data from processor p -- we could write special MPI calls instead ---
+         realArray ud, coordd;
+	 intArray maskd;
+	 
+	 if( p==graphicsProcessor )
+	 {
+	   getLocalArrayWithGhostBoundaries(u,uu);
+	   if( !isRectangular )
+	     getLocalArrayWithGhostBoundaries(gc[grid].center(),coord);   
+
+	   getLocalArrayWithGhostBoundaries(gc[grid].mask(),mask); 
+	 }
+ 	 else
+	 {
+           // finish this 
+
+           IndexBox pBox;
+           const int nd=4;
+           Index Jv[nd];
+
+           // if( myid==graphicsProcessor )
+	   // CopyArray::getLocalArrayBoxWithGhost( p, u, pBox ); // get local bounds of the array on processor p 
+	   CopyArray::getLocalArrayBox( p, u, pBox ); // get local bounds of the array on processor p 
+
+	   if( false )
+	   {
+	     printf("contourOpt2d: myid=%i, copy data [%i,%i][%i,%i] from processor p=%i to graphicsProcessor=%i\n",
+		    myid,pBox.base(0),pBox.bound(0),pBox.base(1),pBox.bound(1),p,graphicsProcessor);
+	     fflush(0);
+	     MPI_Barrier(Overture::OV_COMM);
+	   }
+	   
+           if( pBox.isEmpty() ) continue;
+	   
+	   for( int d=0; d<3; d++ )	     
+	   {
+	     int ja=pBox.base(d), jb=pBox.bound(d);
+	     // copy an extra line on internal ghost boundaries to avoid a gap
+	     // if( ja>gridIndexRange(0,d) ) ja--;
+	     if( jb<gc[grid].gridIndexRange(1,d) ) jb++;
+	     Jv[d]=Range(ja,jb);
+	   }
+
+           // trouble here: 
+	   Jv[3]=Range(component,component); // only copy the component we are plotting 
+	   // Jv[3]=u.dimension(3); // works
+	   // Jv[3]=Range(0,component); // try this --> works 
+	   // Jv[3]=Range(max(0,component-1),component); // try this 
+
+
+           ud.partition(partition);
+	   ud.redim(Jv[0],Jv[1],Jv[2],Jv[3]);
+           ParallelUtility::copy(ud,Jv,u,Jv,nd); // copy data from processor p to graphics processor
+	   getLocalArrayWithGhostBoundaries(ud,uu);
+           
+	   // ::display(uu,sPrintF(" uu from processor p=%i",p));
+           
+	   if( !isRectangular )
+	   {
+	     Jv[3]=Range(0,gc.numberOfDimensions()-1);
+	     coordd.partition(partition);
+	     coordd.redim(Jv[0],Jv[1],Jv[2],Jv[3]);
+             const realArray & x = gc[grid].center();
+	     ParallelUtility::copy(coordd,Jv,x,Jv,nd); // copy data from processor p to graphics processor
+	     getLocalArrayWithGhostBoundaries(coordd,coord);
+	   }
+           
+	   Jv[3]=Range(0,0);
+	   maskd.partition(partition);
+	   maskd.redim(Jv[0],Jv[1],Jv[2],Jv[3]);
+	   ParallelUtility::copy(maskd,Jv,gc[grid].mask(),Jv,nd); // copy data from processor p to graphics processor
+	   getLocalArrayWithGhostBoundaries(maskd,mask);
+	 }
+        #endif
+	
+	if( !plotOnThisProcessor ) continue;  // remaing parts of this loop are only done on the graphics processor
+
+
+	// ****** parallelPlottingOption *****
+
+	// With distributed plotting we copy the data from processor p to the graphics-processor
+
+        #ifdef USE_PPP
+// 	int includeGhost=1;
+// 	bool ok = ParallelUtility::getLocalArrayBounds(u,uu,I1,I2,I3,includeGhost);
+// 	if( !ok ) continue;
+
+        bool ok=true;
+	for( int d=0; d<numberOfDimensions; d++ )
+	{
+	  int ia=max(mask.getBase(d),Iv[d].getBase()), ib=min(mask.getBound(d)-1,Iv[d].getBound());
+	  if( ia<=ib )
+	  {
+            Iv[d]=Range(ia,ib);
+	  }
+	  else
+	  {
+	    ok=false;
+	    break;
+	  }
+	}
+        if( !ok ) continue;
+        #endif
+
+	real uc[4], xc[4*2];  // for line contours.
+	real u00,u10,u01,u11;
+
+	    
+	real timea=getCPU();
+	int i1,i2,i3,i1Bound,i2Bound,i3Bound;
+
+	const bool plotRefinements = gc.numberOfRefinementLevels()>1;
+
+
+	const int *maskp = mask.Array_Descriptor.Array_View_Pointer2;
+	const int maskDim0=mask.getRawDataSize(0);
+	const int maskDim1=mask.getRawDataSize(1);
+#define MASK(i0,i1,i2) maskp[i0+maskDim0*(i1+maskDim1*(i2))]
+
+	// on refinement grids do not plot cells with ANY corner hidden by refinement
+#define CMASK(i1,i2,i3) (MASK(i1,i2,i3)!=0 && MASK(i1+1,i2,i3)!=0 && \
+	  MASK(i1,i2+1,i3)!=0 && MASK(i1+1,i2+1,i3)!=0 && (!plotRefinements || \
+          (!(MASK(i1  ,i2  ,i3) & isHiddenByRefinement) && \
+   	   !(MASK(i1+1,i2  ,i3) & isHiddenByRefinement) && \
+  	   !(MASK(i1  ,i2+1,i3) & isHiddenByRefinement) && \
+	   !(MASK(i1+1,i2+1,i3) & isHiddenByRefinement) )))
+
+	if(plotShadedSurface &&  plotWireFrame )
+	  glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);  // plot lines on surface for a wireframe
+
+
+
+	const real *up = uu.Array_Descriptor.Array_View_Pointer3;
+	const int uDim0=uu.getRawDataSize(0);
+	const int uDim1=uu.getRawDataSize(1);
+	const int uDim2=uu.getRawDataSize(2);
+#define U(i0,i1,i2,c) up[(i0)*d0+(i1)*d1+(i2)*d2+(c)*dc]
+	int d0,d1,d2,dc;
+	if( u.positionOfComponent(0)==3 )
+	{
+	  d0=1; d1=uDim0; d2=d1*uDim1; dc=d2*uDim2;
+	}
+	else if( u.positionOfComponent(0)==0 )
+	{
+	  dc=1; d0=uDim0; d1=d0*uDim1; d2=d1*uDim2; 
+	}
+	else
+	{
+	  printf("contour:ERROR: not implemented for u.positionOfComponent(0)=%i\n",u.positionOfComponent(0));
+	  throw "error";
+	}
+	    
+// GRIDTYPE: curvilinear or rectangular. The rectangular version does not need the vertex array.
+#beginMacro CONTOUR2D(GRIDTYPE)
+#If #GRIDTYPE == "rectangular"
+	real dx[3],xab[2][3];
+	gc[grid].getRectangularGridParameters( dx, xab );
+
+	const int i0a=gc[grid].gridIndexRange(0,0);
+	const int i1a=gc[grid].gridIndexRange(0,1);
+	const int i2a=gc[grid].gridIndexRange(0,2);
+
+        const real xa=xab[0][0], dx0=dx[0];
+        const real ya=xab[0][1], dy0=dx[1];
+        const real za=xab[0][2], dz0=dx[2];
+	
+#define XSCALE(x) (psp.xScaleFactor*(x))
+#define YSCALE(y) (psp.yScaleFactor*(y))
+#define ZSCALE(z) (psp.zScaleFactor*(z))
+
+#define COORD0(i0,i1,i2) XSCALE((xa+dx0*(i0-i0a)))
+#define COORD1(i0,i1,i2) YSCALE((ya+dy0*(i1-i1a)))
+#define COORD2(i0,i1,i2) ZSCALE((za+dz0*(i2-i2a)))
+
+#Else
+	const real *coordp = coord.Array_Descriptor.Array_View_Pointer3;
+	const int coordDim0=coord.getRawDataSize(0);
+	const int coordDim1=coord.getRawDataSize(1);
+	const int coordDim2=coord.getRawDataSize(2);
+#define COORD(i0,i1,i2,i3) coordp[i0+coordDim0*(i1+coordDim1*(i2+coordDim2*(i3)))]
+#define COORD0(i0,i1,i2) XSCALE(coordp[i0+coordDim0*(i1+coordDim1*(i2+coordDim2*(0)))])
+#define COORD1(i0,i1,i2) YSCALE(coordp[i0+coordDim0*(i1+coordDim1*(i2+coordDim2*(1)))])
+#define COORD2(i0,i1,i2) ZSCALE(coordp[i0+coordDim0*(i1+coordDim1*(i2+coordDim2*(2)))])
+#End
+	glPushName(gc[grid].getGlobalID()); // assign a name for picking
+
+	if( plotShadedSurface )
+	{
+	  const real delta255 = deltaUInverse*255;
+	  int index=-2, index2=-1;
+	  if( psp.colourTable==GraphicsParameters::rainbow )
+	  {
+
+	    if( false && gi.gridCoarseningFactor==2 )
+	    {
+	      const int m1=2,m2=2,m3=1;
+	      FOR_3WithStride(i1,i2,i3,m1,m2,m3,I1,I2,I3) 
+	      {
+		// ** watch out for ends
+		if( CMASK(i1,i2,i3) && CMASK(i1+1,i2,i3) && CMASK(i1,i2+1,i3) && CMASK(i1+1,i2+1,i3) &&
+		    i1<i1Bound && i2<i2Bound )
+		{
+		  shadeQuadRainbow(i1,i2,m1,m2);
+		}
+		else
+		{
+		  if( CMASK(i1,i2,i3) )
+		    shadeQuadRainbow(i1,i2,1,1);
+		  if( CMASK(i1+1,i2,i3) && i1<i1Bound )
+		    shadeQuadRainbow(i1+1,i2,1,1);
+		  if( CMASK(i1,i2+1,i3) && i2<i2Bound )
+		    shadeQuadRainbow(i1,i2+1,1,1);
+		  if( CMASK(i1+1,i2+1,i3) && i1<i1Bound && i2<i2Bound )
+		    shadeQuadRainbow(i1+1,i2+1,1,1);
+		}
+	      
+	      }
+	    }
+	    else if( abs(gi.gridCoarseningFactor)>1 )
+	    {
+	      const int m1=abs(gi.gridCoarseningFactor),m2=abs(gi.gridCoarseningFactor),m3=1;
+	    
+	      FOR_3WithStride(i1,i2,i3,m1,m2,m3,I1,I2,I3) 
+	      {
+		// ** watch out for ends
+		bool ok=true && (i1+m1-1)<=i1Bound && (i2+m2-1)<=i2Bound;
+	      
+		int j1,j2,j3=i3;
+		const int colourIndex=adaptForColour ? COLOUR_INDEX(U(i1,i2,i3,component)) : 0;
+		for( j2=i2; j2<i2+m2 && ok ; j2++ )
+		  for( j1=i1; j1<i1+m1; j1++ )
+		  {
+		    if( !CMASK(j1,j2,j3) || 
+			(adaptForColour && COLOUR_INDEX(U(j1,j2,j3,component))!=colourIndex) )
+		    { // we can NOT plot the cell with lower left corner (j1,j2)
+		      ok=false;
+		      break;
+		    }
+		  }
+		if( ok )
+		{
+		  // plot large cell
+		  shadeQuadRainbow(i1,i2,m1,m2);
+		  numberOfCellsPlotted++;
+		}
+		else
+		{
+		  // plot individual cells
+		  const int i2b = min(i2+m2-1,i2Bound);
+		  const int i1b = min(i1+m1-1,i1Bound);
+		
+		  for( j2=i2; j2<=i2b; j2++ )
+		    for( j1=i1; j1<=i1b; j1++ )
+		    {
+		      if( CMASK(j1,j2,j3) )
+		      {
+			shadeQuadRainbow(j1,j2,1,1);
+			numberOfCellsPlotted++;
+		      }
+		    }
+		}
+		if( adaptForColour && numberOfCellsPlotted >maxAdaptiveColourPoints )
+		{
+		  adaptForColour=false;
+		  printF(" contour:INFO:turning off adaptive grid for colour since too many cells are being plotted\n");
+		}
+	      
+	      }
+	      if( false )
+		printF(" contour:INFO: grid=%i, gridCoarseningFactor=%i,  total number of cells plotted=%i\n",
+		       grid,gi.gridCoarseningFactor,numberOfCellsPlotted);
+	    
+	    }
+	    else
+	    {
+	      FOR_3(i1,i2,i3,I1,I2,I3)
+	      {
+		if( CMASK(i1,i2,i3) )
+		{
+		  shadeQuadRainbow(i1,i2,1,1);
+		}
+	      }
+	    }
+	  
+	  }
+	  else // colour table is not a rainbow
+	  {
+	    FOR_3(i1,i2,i3,I1,I2,I3)
+	    {
+	      if( CMASK(i1,i2,i3) )
+	      {
+		shadeQuadFromColourTable(i1,i2,1,1);
+	      
+	      }
+	    }
+	  }
+	}
+	  
+	real time2a=getCPU();
+	if( showTimings ) printf("contour2d:time for shaded=%8.2e\n",time2a-time1);
+	    
+	if( plotContourLines && deltaU>0.)
+	{
+
+	  glLineWidth(psp.size(GraphicsParameters::majorContourWidth)*psp.size(GraphicsParameters::lineWidth)*
+		      gi.getLineWidthScaleFactor());  
+	  if( !psp.colourLineContours )
+	    gi.setColour(GenericGraphicsInterface::textColour);
+	  FOR_3(i1,i2,i3,I1,I2,I3)
+	  {
+	    if( CMASK(i1,i2,i3) )
+	    {
+	      real u00=U(i1  ,i2  ,i3,component); 
+	      real u10=U(i1+1,i2  ,i3,component); 
+	      real u01=U(i1  ,i2+1,i3,component); 
+	      real u11=U(i1+1,i2+1,i3,component);
+#define XC(i,j) xc[i+2*(j)]
+
+	      uc[0]=u00; XC(0,0)=COORD0(i1  ,i2  ,i3); XC(1,0)=COORD1(i1  ,i2  ,i3); 
+	      uc[1]=u10; XC(0,1)=COORD0(i1+1,i2  ,i3); XC(1,1)=COORD1(i1+1,i2  ,i3);
+	      uc[2]=u11; XC(0,2)=COORD0(i1+1,i2+1,i3); XC(1,2)=COORD1(i1+1,i2+1,i3);
+	      uc[3]=u01; XC(0,3)=COORD0(i1  ,i2+1,i3); XC(1,3)=COORD1(i1  ,i2+1,i3);
+
+	      // note: edges are done in a different order that before.
+	      drawContourLinesOnAnElement(gi,uc,xc,4,deltaU,deltaUInverse,uMin,uMax,uAverage,uScaleFactor,
+					  uRaise,contourLevels,lineStipple,contourLevelsSpecified,psp );
+	    }
+	  }
+	  glLineWidth(psp.size(GraphicsParameters::lineWidth)*gi.getLineWidthScaleFactor()); // reset
+	}
+	real time2b=getCPU();
+	if( showTimings ) printf("contour2d:time for lines=%8.2e\n",time2b-time2a);
+	  
+	if( plotWireFrame ) // to get hidden lines plot a white surface
+	{
+	  glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+	  glShadeModel(GL_SMOOTH);     // interpolate colours between vertices
+	  gi.setColour(GenericGraphicsInterface::backGroundColour); // glColor3(1.,1.,1.);
+	  FOR_3(i1,i2,i3,I1,I2,I3)
+	  {
+	    if( CMASK(i1,i2,i3) )
+	    {
+	      real u00=U(i1  ,i2  ,i3,component);  // the .sa function permutes the indices
+	      real u10=U(i1+1,i2  ,i3,component);  // so that i1,i2,i3,component are in the correct
+	      real u01=U(i1  ,i2+1,i3,component);  // positions for a general grid function
+	      real u11=U(i1+1,i2+1,i3,component);
+	    
+
+	      glBegin(GL_POLYGON); 
+	      glVertex3(COORD0(i1  ,i2  ,i3),COORD1(i1  ,i2  ,i3), (u00-uAverage)*uScaleFactor );
+	      glVertex3(COORD0(i1+1,i2  ,i3),COORD1(i1+1,i2  ,i3), (u10-uAverage)*uScaleFactor );
+	      glVertex3(COORD0(i1+1,i2+1,i3),COORD1(i1+1,i2+1,i3), (u11-uAverage)*uScaleFactor );
+	      glVertex3(COORD0(i1  ,i2+1,i3),COORD1(i1  ,i2+1,i3), (u01-uAverage)*uScaleFactor );
+	      glEnd();   
+	    }
+	  }
+	}
+
+	glPopName();
+
+	real time2c=getCPU();
+	if( showTimings ) printf("contour2d:time for wire frame=%8.2e\n",time2c-time2b);
+
+	real time2=getCPU();
+	if( showTimings ) printf("contour2d:time for shaded, lines, wireframe =%8.2e\n",time2-time1);
+#undef COORD
+#undef COORD0
+#undef COORD1
+#undef COORD2
+#endMacro
+
+
+	if( isRectangular )
+	{
+	  CONTOUR2D(rectangular);
+	}
+	else
+	{
+	  CONTOUR2D(curvlinear);
+	}
+
+
+#undef U
+      
+
+      } // end for p ---------------
+
+    }
+    else
+    {
+      // === unstructured grid ====
+      UnstructuredMapping & map = (UnstructuredMapping &) gc[grid].mapping().getMapping();
+	    
+      const realArray & x = map.getNodes();
+      const int numberOfNodes = map.getNumberOfNodes();
+      const int numberOfElements = map.getNumberOfElements();
+      const intArray & element = map.getElements();
+
+      realArray uu;
+      uu.reference(u);
+      glPushName(gc[grid].getGlobalID()); // assign a name for picking
+
+      if( u.getGridFunctionType(component)==GridFunctionParameters::cellCentered )
+      {
+        // *** this computation should be done once in the calling function ****  fix this ****
+
+        printf(" **** contour plot unstructured: cell centred grid function found! ****\n");
+	
+        // grid function is cell centered!
+        // For now make a node centered values for plotting by averaging.
+        uu.redim(numberOfNodes,u.getComponentDimension(0));   // this could be declared above!!
+        uu=0.;
+	
+        IntegerArray numElementPerNode(numberOfNodes);
+        numElementPerNode=0;
+	
+        int e;
+	for( e=0; e<numberOfElements; e++ )
+	{
+	  int numNodes = map.numberOfVertices( UnstructuredMapping::EntityTypeEnum(map.getDomainDimension()),e);//map.getNumberOfNodesThisElement(e);
+	  for( int n=0; n<numNodes; n++ )
+	  {
+	    int nn=element(e,n);
+	    uu(nn,component)+=u(e,0,0,component);
+	    numElementPerNode(nn)+=1;
+	  }
+	}
+        for( int n=0; n<numberOfNodes; n++ )
+	{
+	  uu(n,component)/=numElementPerNode(n);
+	}
+      }
+      else if( u.getGridFunctionType(component)==GridFunctionParameters::faceCentered )
+      {
+        printf(" **** contour plot unstructured: FACE centred grid function found! ****\n");
+	
+        // grid function is cell centered!
+        // For now make a node centered values for plotting by averaging.
+        uu.redim(numberOfNodes,u.getComponentDimension(0));   // this could be declared above!!
+        uu=0.;
+	
+        IntegerArray numFacePerNode(numberOfNodes);
+        numFacePerNode=0;
+	
+        const int numberOfFaces=map.getNumberOfFaces();
+	const intArray & faces = map.getFaces();
+	
+        int f;
+	for( f=0; f<numberOfFaces; f++ )
+	{
+	  int numNodes = map.numberOfVertices( UnstructuredMapping::Edge,f);//map.getNumberOfNodesThisFace(f); // this should be 2 
+          assert( numNodes==2 );
+	  for( int n=0; n<numNodes; n++ )
+	  {
+	    int nn=faces(f,n);
+	    uu(nn,component)+=u(f,0,0,component);
+	    numFacePerNode(nn)+=1;
+	  }
+	}
+        for( int n=0; n<numberOfNodes; n++ )
+	{
+	  uu(n,component)/=numFacePerNode(n);
+	}
+      }
+      else
+      {
+	uu.reference(u);
+      }
+      
+      const real *xp = x.Array_Descriptor.Array_View_Pointer1;
+      const int xDim0=x.getRawDataSize(0);
+#define X(i0,i1) xp[i0+xDim0*(i1)]
+      const real *up = uu.Array_Descriptor.Array_View_Pointer1;
+      const int uDim0=uu.getRawDataSize(0);
+#define U(i0,i1) up[i0+uDim0*(i1)]
+      const int *elementp = element.Array_Descriptor.Array_View_Pointer1;
+      const int elementDim0=element.getRawDataSize(0);
+#define ELEMENT(i0,i1) elementp[i0+elementDim0*(i1)]
+
+
+      // int numberOfNodesPerElement=map.getNumberOfNodesPerElement();
+      int i;
+      if( plotShadedSurface )
+      { 
+	if( plotWireFrame )
+	  glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);  // plot lines on surface for a wireframe
+
+	// for( i=0; i<numberOfElements; i++ )
+        UnstructuredMappingIterator iter;
+        for( iter=map.begin(UnstructuredMapping::Face,!unsPlotGhost); iter!=map.end(UnstructuredMapping::Face,!unsPlotGhost); iter++ )
+	{
+          i=*iter;
+	  glBegin(GL_POLYGON);  // draw shaded filled polygons
+          const int numNodes=map.numberOfVertices( UnstructuredMapping::EntityTypeEnum(map.getDomainDimension()),i);//mmap.getNumberOfNodesThisElement(i);
+	  for( int n=0; n<numNodes; n++ )
+	  {
+	    int m=ELEMENT(i,n);
+	    real u00=U(m,component);
+	    gi.setColourFromTable( (u00-uMin)*deltaUInverse,psp );
+	    glVertex3(X(m,0),X(m,1),(u00-uAverage)*uScaleFactor );
+		
+	  }
+	  glEnd();   
+	}
+
+	if( plotWireFrame ) // to get hidden lines plot a white surface
+	{
+	  glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+	  glShadeModel(GL_SMOOTH);     // interpolate colours between vertices
+	  gi.setColour(GenericGraphicsInterface::backGroundColour); // glColor3(1.,1.,1.);
+	  // for( i=0; i<numberOfElements; i++ )
+	  UnstructuredMappingIterator iter;
+          for( iter=map.begin(UnstructuredMapping::Face,!unsPlotGhost); iter!=map.end(UnstructuredMapping::Face,!unsPlotGhost); iter++ )
+	  {
+	    i=*iter;
+
+	    glBegin(GL_POLYGON); 
+	    const int numNodes=map.numberOfVertices( UnstructuredMapping::EntityTypeEnum(map.getDomainDimension()),i);//mmap.getNumberOfNodesThisElement(i);
+	    for( int n=0; n<numNodes; n++ )
+	    {
+	      int m=ELEMENT(i,n);
+	      real u00=U(m,component);
+	      glVertex3(X(m,0),X(m,1),(u00-uAverage)*uScaleFactor );
+	    }
+	    glEnd();   
+	  }
+
+	}
+	      
+      } // end if( plotShadedSurface )
+      if( plotContourLines && deltaU>0.)
+      {
+	real *uc= new real [map.getMaxNumberOfNodesPerElement()];
+	real *xc= new real [map.getMaxNumberOfNodesPerElement()*2]; 
+	      
+	glLineWidth(psp.size(GraphicsParameters::majorContourWidth)*psp.size(GraphicsParameters::lineWidth)*
+		    gi.getLineWidthScaleFactor());  
+	if( !psp.colourLineContours )
+	  gi.setColour(GenericGraphicsInterface::textColour);
+
+
+	// for( i=0; i<numberOfElements; i++ )
+	UnstructuredMappingIterator iter;
+        for( iter=map.begin(UnstructuredMapping::Face,!unsPlotGhost); 
+	     iter!=map.end(UnstructuredMapping::Face,!unsPlotGhost); iter++ )
+	{
+	  i=*iter;
+	  const int numNodes=map.numberOfVertices( UnstructuredMapping::EntityTypeEnum(map.getDomainDimension()),i);//mmap.getNumberOfNodesThisElement(i);
+	  for( int n=0; n<numNodes; n++ )
+	  {
+	    int m=ELEMENT(i,n);
+	    uc[n]=U(m,component);
+	    XC(0,n)=X(m,0);
+	    XC(1,n)=X(m,1);
+	  }
+
+	  drawContourLinesOnAnElement(gi,uc,xc,numNodes,
+				      deltaU,deltaUInverse,uMin,uMax,uAverage,uScaleFactor,uRaise,
+				      contourLevels,lineStipple,contourLevelsSpecified,psp );
+		  
+	}
+
+	glLineWidth(psp.size(GraphicsParameters::lineWidth)*gi.getLineWidthScaleFactor()); // reset
+	delete [] uc;
+	delete [] xc;
+      }
+      glPopName();
+
+    }
+    
+
+
+  } // end for grid
+
+  if( plotOnThisProcessor )
+  {
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0,0.5*OFFSET_FACTOR);  // reset to default
+  }
+  
+#ifdef USE_PPP
+  if( false && PlotIt::parallelPlottingOption==1 )
+  {
+    printf("*** contourOpt2d: END myid=%i ***\n",myid);
+    fflush(0);
+    MPI_Barrier(Overture::OV_COMM);
+  }
+#endif
+
+#undef X
+#undef U
+#undef ELEMENT
+
+
+}
+
+
+int PlotIt::
+drawContourLinesOnAnElement(GenericGraphicsInterface &gi,  
+                             real *u,
+                             real *xc,
+                             const int numberOfVerticies,
+                             const real deltaU,
+                             const real deltaUInverse,
+                             const real uMin, 
+                             const real uMax,
+                             const real uAverage,
+                             const real uScaleFactor,
+                             const real uRaise,
+                             const RealArray & contourLevels,
+                             bool & lineStipple,
+                             bool contourLevelsSpecified,
+                             GraphicsParameters & psp )
+// ============================================================================================
+// /Description:
+//   Draw all contour lines that cross an element.
+// /xc (input): x(i,0:1) -- vertices of the element in a cyclic order. The last vertex is assumed to
+//   be connected to the first (not duplicated).
+// /u (input): u(i) -- function values on the vertices.
+// ============================================================================================
+{
+  
+
+  real contourLineSpacing=deltaU/max(1,(psp.numberOfContourLevels-1));
+  // draw contour lines on the surface, at intervals of contourLineSpacing
+
+//   Range R=numberOfVerticies;  // *wdh* 001025
+//   real u0 = min(u(R));
+//   real u1 = max(u(R));
+
+  real u0=u[0];
+  real u1=u0;
+  int i;
+  for( i=1; i<numberOfVerticies; i++ )
+  {
+    if( u[i]<u0 )
+    {
+      u0=u[i];
+    }
+    else if( u[i]>u1 )
+    {
+      u1=u[i];
+    }
+  }
+  
+
+  int iStart=0,iEnd=-1;
+  if( !contourLevelsSpecified )
+  { // contour values are evenly spaced
+    iStart=(int)ceil(max(u0-uMin,0.)/contourLineSpacing);  // smallest int not less than (arg)
+    iEnd  =(int)floor(min(u1-uMin,uMax-uMin)/contourLineSpacing);
+  }
+  else
+  { // this assumes that the values in contourLevels are increasing
+    for( i=0; i<psp.numberOfContourLevels; i++ )
+    {
+      if( contourLevels(i) <u0 )
+	iStart=i;
+      if( contourLevels(i) <= u1 )
+	iEnd=i;
+    }
+  }
+	      
+  if( u0>=u1 ) iStart++;   // don't draw lines on a flat "surface"
+  if( iStart>iEnd ) return 0;
+  
+  if( iEnd-iStart > psp.numberOfContourLevels )
+  {
+    printf("drawContourLinesOnAnElement:ERROR: [uMin,uMax]=[%8.3e,%8.3e] [u0,u1]=[%8.3e,%8.3e] [iStart,iEnd]=[%i,%i]\n",
+	   uMin,uMax,u0,u1,iStart,iEnd );
+    iStart=0;
+    iEnd=psp.numberOfContourLevels-1;
+  }
+  
+
+//   // **** fix this -- 
+//   glLineWidth(psp.size(GraphicsParameters::majorContourWidth)*psp.size(GraphicsParameters::lineWidth)*
+// 	      gi.getLineWidthScaleFactor());  
+
+//   if( !psp.colourLineContours )
+//     gi.setColour(GenericGraphicsInterface::textColour); // glColor3(0.,0.,0.); // setColour(textColour);
+
+  // loop over the possible contour levels than can pass through this square	
+  for( i =iStart; i<=iEnd; i++ )
+  {
+    // check this contour level 
+    real uv = contourLevelsSpecified? contourLevels(i) : i*contourLineSpacing+uMin; 
+    if( psp.plotDashedLinesForNegativeContours && uv<0. )
+    {
+      if( !lineStipple )
+      {
+	lineStipple=true;
+	glEnable(GL_LINE_STIPPLE);
+	// glLineStipple(2,0xAAAA);  // dash pattern - - - - - - -
+	glLineStipple(1,0x00FF);  // dash pattern --   --   --  --
+      }
+    }
+    else if( lineStipple )
+    {
+      lineStipple=false;
+      glDisable(GL_LINE_STIPPLE);
+    }
+
+    glBegin(GL_LINE_STRIP);  // draw line contours
+    for( int i=0; i<numberOfVerticies; i++ )
+    {
+      int ip1=(i+1) % numberOfVerticies;
+      
+      real ua=u[i];
+      real ub=u[ip1];
+
+      if( (uv-ua)*(uv-ub)<=0. )  
+      { // contour level crosses this side
+	real denom = ub-ua;
+	denom = (denom==0.) ? 1 : denom;
+	real alpha = (uv-ua)/denom; 
+	alpha=max(0.,min(1.,alpha));
+	real uValue=ua*(1.-alpha)+ub*alpha;
+	if( psp.colourLineContours )
+	  gi.setColourFromTable( (uValue-uMin)*deltaUInverse,psp );
+	glVertex3(XC(axis1,i)*(1.-alpha)+XC(axis1,ip1)*alpha,
+		  XC(axis2,i)*(1.-alpha)+XC(axis2,ip1)*alpha,
+		  (uValue-uAverage)*uScaleFactor+uRaise);  // raise the contour line above the surface!
+      }
+    }
+    glEnd();
+//    glLineWidth(psp.size(GraphicsParameters::lineWidth)*gi.getLineWidthScaleFactor()); // reset
+  }
+  if( lineStipple )
+  {
+    lineStipple=FALSE;
+    glDisable(GL_LINE_STIPPLE);
+  }
+
+  return 0;
+}
+#undef XC
+
+
+
+#undef FOR_3
+
+

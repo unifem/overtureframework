@@ -1,0 +1,59 @@
+Define the Ranges 
+{\footnotesize
+\begin{verbatim}
+    const int Start=0, End=1, axis1=0, axis2=1, axis3=2;
+    CompositeGrid cg;
+    MappedGrid & mg = cg[grid];
+    Range R1(mg.dimension(Start,axis1),mg.dimension(End,axis1));
+    Range R2(mg.dimension(Start,axis2),mg.dimension(End,axis2));
+    Range R3(mg.dimension(Start,axis3),mg.dimension(End,axis3));
+    Range ND(0,cg.numberOfDimensions());
+    Range NG(0,cg.numberOfComponentGrids());
+    Range MG(0,cg.numberOfMultigridLevels());
+
+    Range NI(0,cg.numberOfInterpolationPoints(grid));
+\end{verbatim}
+}
+
+\begin{itemize}
+\item {\bf IntR numberOfComponentGrids}  Number of component grids (MappedGrid's).
+\item {\bf IntR numberOfDimensions}  Number of space dimensions.
+\item {\bf IntArray numberOfInterpolationPoints(NG)}
+      The number of interpolation points on each component grid.           
+\item {\bf LogicalR interpolationIsAllExplicit}
+\item {\bf LogicalArray interpolationIsImplicit(NG,NG)}
+\item {\bf IntArray interpolationWidth(3,NG,NG)}
+       The width of the interpolation stencil (direction, toGrid, fromGrid). 
+\item {\bf realArray interpolationOverlap(3,NG,NG)}
+       The minimum overlap for interpolation (direction, toGrid, fromGrid).     
+\item {\bf ListOfReferenceCountedObjects$<$realArray$>$ interpolationCoordinates[NG](NI,ND)} 
+       Coordinates of interpolation point on component grid ``grid'' are
+       {\ff interpolationCoordinates[grid](n,axis)} for $0\le n $ $\le$ 
+       {\ff number\-Of\-Interpolation\-Points(grid)}.
+\item {\bf ListOfReferenceCountedObjects$<$IntArray$>$ interpoleeGrid[NG](NI)}
+       Index of the ``interpolee grid'', i.e. this is the index of the grid from
+       which we interpolate.
+\item {\bf ListOfReferenceCountedObjects$<$IntArray$>$   interpoleeLocation[NG](NI,ND)}
+       Location of interpolation stencil on the interpolee grid, this is the
+       index of the lower left corner of the stencil.
+\item {\bf ListOfReferenceCountedObjects$<$IntArray$>$   interpolationPoint[NG](NI,ND)}
+       Indices of interpolation point.                                  
+\item {\bf ListOfReferenceCountedObjects$<$realArray$>$ interpolationCondition[NG](NI)}
+       Interpolation condition number.                       
+\item {\bf IntGridCollectionFunction mask[NG](R1,R2,R3)}
+       Flag array, positive for discretization point, negative for interpolation point,
+       zero for unused point.
+\item {\bf ListOfReferenceCountedObjects$<$MappedGrid$>$ grid[NG]}
+       Here is the list of MappedGrid's.
+\end{itemize}
+
+Here are variables related to multigrid levels
+\begin{itemize}
+\item {\bf IntR numberOfMultigridLevels} 
+\item {\bf IntArray coarseToFineWidth(0:2,NG,MG)}  Prolongation stencil width
+\item {\bf IntArray coarseToFineIsImplicit(NG,MG)} Prolongation is always implicit.
+\item {\bf IntArray fineToCoarseWidth(0:2,NG,MG)}  Restriction stencil width
+\item {\bf IntArray fineToCoarseIsImplicit(NG,MG)} Restriction is always implicit.
+\item {\bf IntArray fineToCoarseFactor(0:2,NG,MG)}  Ratio of this to coarser level
+\item {\bf ListOfReferenceCountedObjects$<$CompositeGrid$>$ compositeGrid}
+\end{itemize}

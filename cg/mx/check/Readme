@@ -1,0 +1,10 @@
+Type "make check" to run the regression tests
+
+tests : this file contains the list of regression tests
+
+To run just one of the regression tests type:
+   check.p curvedInterface
+
+
+To replace all check files
+  check.p replace

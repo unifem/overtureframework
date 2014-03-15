@@ -1,0 +1,1243 @@
+! -*- mode: fortran -*- !
+#Include "defineParametricDerivMacros.h"
+#Include "derivMacroDefinitions.h"
+
+! defineParametricDerivativeMacros(u,dr,dx,DIM,ORDER,COMPONENTS,MAXDERIV)
+      defineParametricDerivativeMacros(rsxy,dr,dx,2,2,2,2)
+      defineParametricDerivativeMacros(rsxy,dr,dx,2,4,2,2)
+      defineParametricDerivativeMacros(rsxy,dr,dx,2,6,2,2)
+      defineParametricDerivativeMacros(rsxy,dr,dx,2,8,2,2)
+
+      defineParametricDerivativeMacros(rsxy,dr,dx,3,2,2,2)
+      defineParametricDerivativeMacros(rsxy,dr,dx,3,4,2,2)
+      defineParametricDerivativeMacros(rsxy,dr,dx,3,6,2,2)
+      defineParametricDerivativeMacros(rsxy,dr,dx,3,8,2,2)
+
+#beginMacro PRINT_DEBUG_INFO(NAME)
+
+      ! *wdh* 2012/04/06 if ( debug.ge.3 .and. processid.eq.0 ) then
+      if ( debug.ge.4 .and. processid.le.0 ) then
+         print '(a20)',"INSIDE NAME"
+         print '("         nd : ",i3)',nd
+         print '("  nd1a,nd1b : ",i4,2x,i4)',nd1a,nd1b
+         print '("  nd2a,nd2b : ",i4,2x,i4)',nd2a,nd2b
+         print '("  nd3a,nd3b : ",i4,2x,i4)',nd3a,nd3b
+         print '("  nd4a,nd4b : ",i4,2x,i4)',nd4a,nd4b
+         print '("    i1s,i1e : ",i4,2x,i4)',i1s,i1e
+         print '("    i2s,i2e : ",i4,2x,i4)',i2s,i2e
+         print '("    i3s,i3e : ",i4,2x,i4)',i3s,i3e
+         print '("index_range0: ",i4,2x,i4)',index_range(0,0),index_range(1,0)
+         print '("index_range1: ",i4,2x,i4)',index_range(0,1),index_range(1,1)
+         print '("index_range2: ",i4,2x,i4)',index_range(0,2),index_range(1,2)
+         print '("dims0: ",i4,2x,i4)',dims(0,0),dims(1,0)
+         print '("dims1: ",i4,2x,i4)',dims(0,1),dims(1,1)
+         print '("dims2: ",i4,2x,i4)',dims(0,2),dims(1,2)
+         print '("gir0: ",i4,2x,i4)',gir(0,0),gir(1,0)
+         print '("gir1: ",i4,2x,i4)',gir(0,1),gir(1,1)
+         print '("gir2: ",i4,2x,i4)',gir(0,2),gir(1,2)
+         print '("       dx(0): ",f10.7)',dx(0)
+         print '("       dx(1): ",f10.7)',dx(1)
+         print '("       dx(2): ",f10.7)',dx(2)
+         print '("       dr(0): ",f10.7)',dr(0)
+         print '("       dr(1): ",f10.7)',dr(1)
+         print '("       dr(2): ",f10.7)',dr(2)
+         print '("          dt: ",f10.7)',dt
+         print '("       grid : ",i5)',grid
+         print '("      order : ",i2)',order
+         print '("      approx: ",i2)',disc_approx
+         print '("  is_moving : ",l)',is_moving
+         print '("    is_rect : ",l)',is_rect
+         print '(" is_periodic: ",l)',is_periodic
+         print '("    is_penta: ",l)',is_penta
+         print '(" is_parallel: ",l)',is_parallel
+         print '("       mode : ",i5)',mode
+         print '("        dir : ",i5)',dir
+         print '("         cc : ",i5)',cc
+         print '("       nu_eq: ",f10.7)',nu_eq
+
+
+      endif ! debug.gt.0
+
+#endMacro
+
+#beginMacro DECLARE_INS_AF_TEMPORARY_VARIABLES()
+!  declareParametricDerivativeVariables(v,DIM)
+!      declareJacobianDerivativeVariables(aj_m2_,3)
+!      declareJacobianDerivativeVariables(aj_m1_,3)
+      declareJacobianDerivativeVariables(aj_,3)
+!      declareJacobianDerivativeVariables(aj_p1_,3)
+!      declareJacobianDerivativeVariables(aj_p2_,3)
+
+      double precision t1,t14,t6
+#endMacro
+
+#beginMacro DEFINE_PARAMETERS()
+      integer compact,finite_difference
+      parameter(finite_difference=0,compact=1)
+      integer solve_rhs,solve_lhs,get_explicit
+      parameter(solve_rhs=0,solve_lhs=1,get_explicit=2)
+      integer max_width,half_width
+      parameter(max_width=5,half_width=2)
+      integer max_dim
+      parameter(max_dim=3)
+      integer pdeModel,standardModel,BoussinesqModel,viscoPlasticModel,twoPhaseFlowModel
+      parameter( standardModel=0,BoussinesqModel=1,viscoPlasticModel=2,twoPhaseFlowModel=3 )
+
+      integer noSlipWall, \
+           inflowWithVelocityGiven, \
+           slipWall, \
+           outflow, \
+           convectiveOutflow, \
+           tractionFree, \
+           inflowWithPandTV, \
+           dirichletBoundaryCondition, \
+           symmetry, \
+           axisymmetric, \
+           interfaceBoundaryCondition,\
+           neumannBoundaryCondition, \
+           parallelbc, periodicbc
+      parameter( noSlipWall=1,inflowWithVelocityGiven=2,slipWall=4, \
+       outflow=5,convectiveOutflow=14,tractionFree=15, \
+       inflowWithPandTV=3, \
+        dirichletBoundaryCondition=12, \
+        symmetry=11,axisymmetric=13,interfaceBoundaryCondition=17,neumannBoundaryCondition=18,parallelbc=-31415,periodicbc=-1 )
+
+#endMacro
+
+#beginMacro INS_FACTOR_SUBROUTINE(NAME)
+      subroutine NAME(nd,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b,\
+                      mask, rsxy, u, ul, gv, \
+                      bc, boundaryCondition, \
+                      ndbcd1a,ndbcd1b,ndbcd2a,ndbcd2b,ndbcd3a,ndbcd3b,ndbcd4a,ndbcd4b,bcData, \
+                      ipar, rpar, pdb, \
+                      mode, dir, cc,\
+                      dl2,dl1,d,du1,du2, rhs, ierr )
+
+!     Incompressible Navier Stokes factor for an approximate factorization scheme
+!     
+!     INPUT::
+!     nd : number of dimensions
+!     mask : mask array
+!     rsxy : mapping jacobian matrix
+!     u : current solution
+!     ul : solution to be used for the rhs
+!     gv : grid velocity
+!     mode : 0 means solve for the rhs temporary af variable, 1 means solve for the lhs, 2 add any explicit contribution
+!     dir  : grid direction for the line sweep
+!     cc : component to solve for
+!
+!     OUTPUT::
+!     dl2,dl1,d,du1,du2 : arrays for the tri(penta)-diagonal blocks 
+!                 note that dl1, d, and dl2 are used for tri-systems and dl2,dl1,d,du1,du2 for pentas
+!                 name naming goes DLO or DUO meaning Diagonal Lower/Upper Offset so that dl2 is the lower diagonal with offset 2
+!                 d is the diagonal
+!     rhs : right hand side vector for the solve
+!     ierr : error flag
+!
+!
+      implicit none                      
+      DEFINE_PARAMETERS()
+
+      integer ipar(0:*)
+      real rpar(0:*)
+
+      integer nd, n1a,n1b,n2a,n2b,n3a,n3b,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,nd4a,nd4b
+      integer nde,nr1a,nr1b,nr2a,nr2b,nr3a,nr3b
+
+      real u(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
+      real ul(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,nd4a:nd4b)
+
+      real dl2(ipar(38):ipar(39),ipar(40):ipar(41),ipar(42):ipar(43))
+      real dl1(ipar(38):ipar(39),ipar(40):ipar(41),ipar(42):ipar(43))
+      real   d(ipar(38):ipar(39),ipar(40):ipar(41),ipar(42):ipar(43))
+      real du1(ipar(38):ipar(39),ipar(40):ipar(41),ipar(42):ipar(43))
+      real du2(ipar(38):ipar(39),ipar(40):ipar(41),ipar(42):ipar(43))
+      real rhs(ipar(38):ipar(39),ipar(40):ipar(41),ipar(42):ipar(43))
+
+      real gv(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1)
+!      real gvl(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1)
+!      real dw(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b)
+!      real xy(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1)
+      real rsxy(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:nd-1,0:nd-1)
+!      real radiusInverse(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b)
+
+      integer mask(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b)
+      integer bc(0:1,0:2),boundaryCondition(0:1,0:2),indexRange(0:1,0:2),ierr
+
+      integer ndbcd1a,ndbcd1b,ndbcd2a,ndbcd2b,ndbcd3a,ndbcd3b,ndbcd4a,ndbcd4b
+      real bcData(ndbcd1a:ndbcd1b,ndbcd2a:ndbcd2b,ndbcd3a:ndbcd3b,ndbcd4a:ndbcd4b)
+
+      integer mode,dir,cc
+      double precision pdb  ! pointer to data base
+
+      DECLARE_INS_AF_TEMPORARY_VARIABLES()
+      INS_FACTOR_DECLARE_PARAM_LOCALS()
+      INS_FACTOR_DECLARE_COMMON_LOCALS()
+
+      double precision px_coeff(-half_width:half_width)
+      double precision pxx_coeff(-half_width:half_width)
+      double precision dx_coeff(-half_width:half_width)
+      double precision dxx_coeff(-half_width:half_width)
+      double precision rx(-half_width:half_width,0:max_dim-1,0:max_dim-1) ! dr_i/dx_j
+      double precision rxx(-half_width:half_width,0:max_dim-1,0:max_dim-1)! d^2r_i/dx^2_j
+      double precision rxr(-half_width:half_width,0:max_dim-1,0:max_dim-1)! d^2r_i/dr_idx_j
+      double precision rxs(0:max_dim-1,0:max_dim-1,0:max_dim-1)! d^2r_i/dr_jdx_k
+
+#endMacro
+
+#beginMacro INS_FACTOR_DECLARE_PARAM_LOCALS()
+      integer i1s,i1e,i2s,i2e,i3s,i3e
+      integer pc,uc,vc,wc,kc,sc,tc
+      integer order,disc_approx
+      logical is_periodic, is_dirichlet_bc, is_neumann_bc,is_outflow_bc
+      logical is_parallel,is_moving
+      logical use_ad2,use_ad4
+      integer index_range(0:1,0:2),dims(0:1,0:2),gir(0:1,0:2)
+      integer debug,grid
+      integer pde_model
+      integer npghost
+      integer processid
+
+      double precision dr(0:max_dim-1),dx(0:max_dim-1)
+      double precision dt
+      double precision nu,kthermal
+      double precision gravity(0:max_dim-1)
+      double precision thermal_expansivity
+      double precision advection_coefficient
+      double precision ad21,ad22,ad41,ad42
+      double precision adcBoussinesq
+      logical is_rect, use_os_rxr,rhs_only
+#endMacro
+
+#beginMacro INS_FACTOR_DECLARE_COMMON_LOCALS()
+
+      logical is_penta, have_ghost_points, extrap_all_1
+      integer isn(0:max_dim-1),is1,is2,is3
+      integer ilo(0:max_dim-1),ilo1,ilo2,ilo3
+      integer bc_range(0:1,0:1,0:2),side,bc_trange(0:1,0:1,0:2)
+      integer i1,i2,i3,i1l,i2l,i3l,i1o,i2o,i3o
+      integer i1p,i2p,i3p,i1m,i2m,i3m
+      integer i1pp,i2pp,i3pp,i1mm,i2mm,i3mm
+      integer id,id2,ic  !! loop variable over physical/parameter space dimension
+      integer off
+
+      double precision nu_eq,dri(0:max_dim-1),dxi(0:max_dim-1),dto2,drid,dxid
+      double precision uxnorm
+
+#endMacro
+
+#beginMacro INIT_STENCIL_SHIFT()
+      isn(0) = 0
+      isn(1) = 0
+      isn(2) = 0
+      ilo(0) = 0
+      ilo(1) = 0
+      ilo(2) = 0
+      isn(dir) = 1
+      is1 = isn(0)
+      is2 = isn(1)
+      is3 = isn(2)
+!      if (.not.is_periodic) ilo(dir) = isn(dir)
+      ilo1 = ilo(0)
+      ilo2 = ilo(1)
+      ilo3 = ilo(2)
+#endMacro
+
+#beginMacro SET_STENCIL_IDX()
+      i1mm = i1l-2*is1
+      i2mm = i2l-2*is2
+      i3mm = i3l-2*is3
+      i1m = i1l-is1
+      i2m = i2l-is2
+      i3m = i3l-is3
+      i1  = i1l
+      i2  = i2l
+      i3  = i3l
+      i1p = i1l+is1
+      i2p = i2l+is2
+      i3p = i3l+is3
+      i1pp = i1l+2*is1
+      i2pp = i2l+2*is2
+      i3pp = i3l+2*is3
+#endMacro
+
+#beginMacro GET_SHIFTED_IDX(I1,I2,I3,S1,S2,S3)
+      I1 = i1l + S1
+      I2 = i2l + S2
+      I3 = i3l + S3
+#endMacro
+
+#beginMacro INS_FACTOR_EXTRACT_PARAM()
+!!!!!!!! extract parameters from ipar and rpar
+      i1s = ipar(0)
+      i1e = ipar(1)
+      i2s = ipar(2)
+      i2e = ipar(3)
+      i3s = ipar(4)
+      i3e = ipar(5)
+
+      gir(0,0) = i1s
+      gir(1,0) = i1e
+      gir(0,1) = i2s
+      gir(1,1) = i2e
+      gir(0,2) = i3s
+      gir(1,2) = i3e
+
+      pc = ipar(6)
+      uc = ipar(7)
+      vc = ipar(8)
+      wc = ipar(9)
+      kc = ipar(10)
+      sc = ipar(11)
+      tc = ipar(12)
+
+      grid = ipar(13)
+      order = ipar(14)
+      is_moving = ipar(15).ne.0
+      disc_approx = ipar(16)
+      is_rect = ipar(26).eq.1
+      is_periodic = ipar(27).ne.0
+
+      index_range(0,0) = ipar(38)
+      index_range(1,0) = ipar(39)
+      index_range(0,1) = ipar(40)
+      index_range(1,1) = ipar(41)
+      index_range(0,2) = ipar(42)
+      index_range(1,2) = ipar(43)
+      dims(0,0) = nd1a
+      dims(1,0) = nd1b
+      dims(0,1) = nd2a
+      dims(1,1) = nd2b
+      dims(0,2) = nd3a
+      dims(1,2) = nd3b
+
+      do side=0,1
+         bc_range(side,0,0) = i1s
+         bc_range(side,1,0) = i1e
+         bc_range(side,0,1) = i2s
+         bc_range(side,1,1) = i2e
+         bc_range(side,0,2) = i3s
+         bc_range(side,1,2) = i3e
+         do id=0,max_dim-1
+            bc_trange(side,0,id) = bc_range(side,0,id)
+            bc_trange(side,0,id) = bc_range(side,1,id)
+         enddo
+      enddo
+
+!     here are the loop bounds for the boundary conditions
+      bc_range(0,0,dir) = bc_range(0,0,dir)
+      bc_range(0,1,dir) = bc_range(0,0,dir)
+      bc_range(1,0,dir) = bc_range(1,1,dir)
+      bc_range(1,1,dir) = bc_range(1,1,dir)
+
+      debug = ipar(48)
+
+      pde_model = ipar(49)
+
+      use_ad2 = ipar(50).ne.0
+      use_ad4 = ipar(51).ne.0
+      is_parallel = ipar(52).eq.1
+      npghost = ipar(54)
+      rhs_only = ipar(55).ne.0
+      processid = ipar(56)
+
+      dr(0) = rpar(0)
+      dr(1) = rpar(1)
+      dr(2) = rpar(2)
+      dx(0) = rpar(3)
+      dx(1) = rpar(4)
+      dx(2) = rpar(5)
+
+      dt = rpar(6)
+
+      nu = rpar(8)
+      kthermal = rpar(9)
+
+      gravity(0) = rpar(20)
+      gravity(1) = rpar(21)
+      gravity(2) = rpar(22)
+
+      thermal_expansivity = rpar(23)
+      advection_coefficient = rpar(24)
+
+! *wdh* 2013/09/24      if ( .false. ) then
+      if ( .true. ) then ! *wdh* 2013/09/24 try this
+
+!! effectively use backward euler for the artificial dissipation
+      ad21 = 2d0*rpar(25)
+      ad22 = 2d0*rpar(26)
+      ad41 = 2d0*rpar(27)
+      ad42 = 2d0*rpar(28)
+
+      if ( .not.use_ad2 .or. mode.eq.solve_rhs ) then
+         ad21 = 0d0
+         ad22 = 0d0
+      endif
+      if ( .not. use_ad4 .or. mode.eq.solve_rhs ) then
+         ad41 = 0d0
+         ad42 = 0d0
+      endif
+      if ( mode.eq.solve_rhs) then
+         use_ad4 = .false.
+         use_ad2 = .false.
+      endif
+
+      else
+         ad21 = rpar(25)
+         ad22 = rpar(26)
+         ad41 = rpar(27)
+         ad42 = rpar(28)
+         if ( .not.use_ad2 ) then
+            ad21 = 0d0
+            ad22 = 0d0
+         endif
+         if ( .not. use_ad4 )then 
+            ad41 = 0d0
+            ad42 = 0d0
+         endif
+
+      endif
+!!!!!!!! setup additional local variables based on the data in ipar and rpar
+!! old way      is_penta = (order.eq.4 .and. disc_approx.eq.finite_difference).or.(order.gt.4 .and. disc_approx.eq.compact)
+      is_penta = (order.gt.2 .and. disc_approx.eq.compact)
+
+      if ( cc.eq.tc .and. pde_model.eq.BoussinesqModel ) then
+         nu_eq = kthermal
+         ! Set dissipation for the T equation *wdh* 2013/02/02
+         adcBoussinesq = rpar(29)
+         ! write(*,'("ins_factors: adcBoussinesq=",e12.2)') adcBoussinesq
+         ad21=0.
+         ad22=0.
+         ad41=0.
+         ad42=0.
+         if ( use_ad2 ) then
+           ad21=adcBoussinesq
+         end if
+         if( use_ad4 )then
+           ad41=adcBoussinesq
+         end if
+      else
+         nu_eq = nu
+      endif
+
+      dto2 = dt/2d0
+
+      do id=0,max_dim-1
+         dxi(id) = 1d0/dx(id)
+         dri(id) = 1d0/dr(id)
+         do io=-half_width,half_width
+            do id2=0,max_dim-1
+               rx(io,id,id2) = 0d0
+               rxx(io,id,id2) = 0d0
+               rxr(io,id,id2) = 0d0
+            enddo
+         enddo
+         do ic=0,max_dim-1
+         do id2=0,max_dim-1
+            rxs(id,ic,id2) = 0d0
+         enddo
+         enddo
+      enddo
+      drid = dri(dir)
+      dxid = dxi(dir)
+
+      !!! initialize the metrics to the rectangular case
+      aj_rx    = dr(0)/dx(0)
+      aj_ry    = 0d0
+      aj_sx    = 0d0
+      aj_sy    = dr(1)/dx(1)
+      if ( nd.eq.3 ) then
+         aj_rz = 0d0
+         aj_sz = 0d0
+         aj_tx = 0d0
+         aj_ty = 0d0
+         aj_tz = dr(2)/dx(2)
+      endif
+      aj_rxx    = 0d0
+      aj_sxx    = 0d0
+      aj_txx    = 0d0
+      aj_rxr    = 0d0
+      aj_sxs    = 0d0
+      aj_txt    = 0d0
+      aj_ryy    = 0d0
+      aj_syy    = 0d0
+      aj_tyy    = 0d0
+      aj_ryr    = 0d0
+      aj_sys    = 0d0
+      aj_tyt    = 0d0
+      aj_rzz    = 0d0
+      aj_szz    = 0d0
+      aj_tzz    = 0d0
+      aj_rzr    = 0d0
+      aj_szs    = 0d0
+      aj_tzt    = 0d0
+
+      do io=-half_width,half_width
+      rx( io,0,0) = aj_rx
+      rxx(io,0,0) = aj_rxx
+      rxr(io,0,0) = aj_rxr
+      rx( io,1,0) = aj_sx
+      rxx(io,1,0) = aj_sxx
+      rxr(io,1,0) = aj_sxs
+      rx( io,0,1) = aj_ry
+      rxx(io,0,1) = aj_ryy
+      rxr(io,0,1) = aj_ryr
+      rx( io,1,1) = aj_sy
+      rxx(io,1,1) = aj_syy
+      rxr(io,1,1) = aj_sys
+      if (nd.eq.3) then
+         rx( io,0,2) = aj_rz
+         rxx(io,0,2) = aj_rzz
+         rxr(io,0,2) = aj_rzr
+         rx( io,1,2) = aj_sz
+         rxx(io,1,2) = aj_szz
+         rxr(io,1,2) = aj_szs
+         rx( io,2,0) = aj_tx
+         rxx(io,2,0) = aj_txx
+         rxr(io,2,0) = aj_txt
+         rx( io,2,1) = aj_ty
+         rxx(io,2,1) = aj_tyy
+         rxr(io,2,1) = aj_tyt
+         rx( io,2,2) = aj_tz
+         rxx(io,2,2) = aj_tzz
+         rxr(io,2,2) = aj_tzt
+      endif            
+      enddo
+	
+      ! set the stencil offset to zero
+      off = 0
+      have_ghost_points = .true.
+      extrap_all_1 = .true.
+      use_os_rxr = .false.
+
+!! adjust dims for parallel ghost ghost boundaries
+      if ( is_parallel ) then
+         do side=0,1
+            do id=0,nd-1
+               if ( bc(side,id).ne.parallelBC ) then
+                    dims(side,id) = dims(side,id) + npghost*(1-2*side)
+               endif
+            enddo
+         enddo
+      endif                     ! is_parallel
+      
+#endMacro
+
+!! second order accurate, first derivative, forward difference
+#beginMacro OS_FD_2P(I1,I2,I3,DIR,RC,XC,RX,DRI,RESULT) 
+#If #DIR == "0"
+RESULT = DRI*( (-3D0/2D0)*RX(I1,I2,I3,RC,XC) + (2D0)*RX(I1+1,I2,I3,RC,XC) + (-1D0/2D0)*RX(I1+2,I2,I3,RC,XC) )
+#Elif #DIR == "1"
+RESULT = DRI*( (-3D0/2D0)*RX(I1,I2,I3,RC,XC) + (2D0)*RX(I1,I2+1,I3,RC,XC) + (-1D0/2D0)*RX(I1,I2+2,I3,RC,XC) )
+#Elif #DIR == "2"
+RESULT = DRI*( (-3D0/2D0)*RX(I1,I2,I3,RC,XC) + (2D0)*RX(I1,I2,I3+1,RC,XC) + (-1D0/2D0)*RX(I1,I2,I3+2,RC,XC) )
+#Else
+OS_FD_2P: #DIR IS NOT CORRECT
+#End
+
+#endMacro
+
+!! second order accurate, first derivative, centered difference
+#beginMacro C_FD_2(I1,I2,I3,DIR,RC,XC,RX,DRI,RESULT) 
+#If #DIR == "0"
+RESULT = DRI*( (-1D0/2D0)*RX(I1-1,I2,I3,RC,XC) +  (1D0/2D0)*RX(I1+1,I2,I3,RC,XC) )
+#Elif #DIR == "1"
+RESULT = DRI*( (-1D0/2D0)*RX(I1,I2-1,I3,RC,XC) +  (1D0/2D0)*RX(I1,I2+1,I3,RC,XC) )
+#Elif #DIR == "2"
+RESULT = DRI*( (-1D0/2D0)*RX(I1,I2,I3-1,RC,XC) +  (1D0/2D0)*RX(I1,I2,I3+1,RC,XC) )
+#Else
+xC_FD_2: #DIR IS NOT CORRECT
+#End
+
+#endMacro
+
+!! second order accurate, first derivative, backward difference
+#beginMacro OS_FD_2M(I1,I2,I3,DIR,RC,XC,RX,DRI,RESULT) 
+#If #DIR == "0"
+RESULT = DRI*( (3D0/2D0)*RX(I1,I2,I3,RC,XC) + (-2D0)*RX(I1-1,I2,I3,RC,XC) + (1D0/2D0)*RX(I1-2,I2,I3,RC,XC) )
+#Elif #DIR == "1"
+RESULT = DRI*( (3D0/2D0)*RX(I1,I2,I3,RC,XC) + (-2D0)*RX(I1,I2-1,I3,RC,XC) + (1D0/2D0)*RX(I1,I2-2,I3,RC,XC) )
+#Elif #DIR == "2"
+RESULT = DRI*( (3D0/2D0)*RX(I1,I2,I3,RC,XC) + (-2D0)*RX(I1,I2,I3-1,RC,XC) + (1D0/2D0)*RX(I1,I2,I3-2,RC,XC) )
+#Else
+OS_FD_2M: #DIR IS NOT CORRECT
+#End
+
+#endMacro
+
+!! fourth order accurate first derivative, forward difference at 1
+!! 1----2----3----4----5
+#defineMacro OS_FD_4P_CF1() ( -25D0/12D0)
+#defineMacro OS_FD_4P_CF2() (  4D0     )
+#defineMacro OS_FD_4P_CF3() ( -3D0     )
+#defineMacro OS_FD_4P_CF4() (  4D0/3D0 )
+#defineMacro OS_FD_4P_CF5() ( -1D0/4D0 )
+#beginMacro OS_FD_4P(I1,I2,I3,DIR,RC,XC,RX,DRI,RESULT) 
+
+#If #DIR == "0"
+
+RESULT = DRI*(OS_FD_4P_CF1() * RX(I1,I2,I3,RC,XC) + OS_FD_4P_CF2() * RX(I1+1,I2,I3,RC,XC) + OS_FD_4P_CF3() * RX(I1+2,I2,I3,RC,XC) + OS_FD_4P_CF4() * RX(I1+3,I2,I3,RC,XC) + OS_FD_4P_CF5() * RX(I1+4,I2,I3,RC,XC))
+
+#Elif #DIR == "1"
+
+RESULT = DRI*(OS_FD_4P_CF1() * RX(I1,I2,I3,RC,XC) + OS_FD_4P_CF2() * RX(I1,I2+1,I3,RC,XC) + OS_FD_4P_CF3() * RX(I1,I2+2,I3,RC,XC) + OS_FD_4P_CF4() * RX(I1,I2+3,I3,RC,XC) + OS_FD_4P_CF5() * RX(I1,I2+4,I3,RC,XC))
+
+#Elif #DIR == "2"
+
+RESULT = DRI*(OS_FD_4P_CF1() * RX(I1,I2,I3,RC,XC) + OS_FD_4P_CF2() * RX(I1,I2,I3+1,RC,XC) + OS_FD_4P_CF3() * RX(I1,I2,I3+2,RC,XC) + OS_FD_4P_CF4() * RX(I1,I2,I3+3,RC,XC) + OS_FD_4P_CF5() * RX(I1,I2,I3+4,RC,XC))
+
+#Else
+OS_FD_4P: #DIR IS NOT CORRECT
+#End
+
+#endMacro
+
+!! fourth order accurate, first derivative, centered difference
+#beginMacro C_FD_4(I1,I2,I3,DIR,RC,XC,RX,DRI,RESULT) 
+#If #DIR == "0"
+RESULT = DRI*( (1D0/12D0)*RX(I1-2,I2,I3,RC,XC) + (-2D0/3D0)*RX(I1-1,I2,I3,RC,XC) +  (2D0/3D0)*RX(I1+1,I2,I3,RC,XC)-(1D0/12D0)*RX(I1+2,I2,I3,RC,XC)  )
+#Elif #DIR == "1"
+RESULT = DRI*( (1D0/12D0)*RX(I1,I2-2,I3,RC,XC) + (-2D0/3D0)*RX(I1,I2-1,I3,RC,XC) +  (2D0/3D0)*RX(I1,I2+1,I3,RC,XC)-(1D0/12D0)*RX(I1,I2+2,I3,RC,XC)  )
+#Elif #DIR == "2"
+RESULT = DRI*( (1D0/12D0)*RX(I1,I2,I3-2,RC,XC) + (-2D0/3D0)*RX(I1,I2,I3-1,RC,XC) +  (2D0/3D0)*RX(I1,I2,I3+1,RC,XC)-(1D0/12D0)*RX(I1,I2,I3+2,RC,XC)  )
+#Else
+xC_FD_4: #DIR IS NOT CORRECT
+#End
+
+#endMacro
+
+!! fourth order accurate first derivative, backward difference at 1
+!! 5----4----3----2----1
+#defineMacro OS_FD_4M_CF1() ( 25D0/12D0)
+#defineMacro OS_FD_4M_CF2() ( -4D0     )
+#defineMacro OS_FD_4M_CF3() (  3D0     )
+#defineMacro OS_FD_4M_CF4() ( -4D0/3D0 )
+#defineMacro OS_FD_4M_CF5() (  1D0/4D0 )
+#beginMacro OS_FD_4M(I1,I2,I3,DIR,RC,XC,RX,DRI,RESULT) 
+
+#If #DIR == "0"
+
+RESULT = DRI*(OS_FD_4M_CF1() * RX(I1,I2,I3,RC,XC) + OS_FD_4M_CF2() * RX(I1-1,I2,I3,RC,XC) + OS_FD_4M_CF3() * RX(I1-2,I2,I3,RC,XC) + OS_FD_4M_CF4() * RX(I1-3,I2,I3,RC,XC) + OS_FD_4M_CF5() * RX(I1-4,I2,I3,RC,XC))
+
+#Elif #DIR == "1"
+
+RESULT = DRI*(OS_FD_4M_CF1() * RX(I1,I2,I3,RC,XC) + OS_FD_4M_CF2() * RX(I1,I2-1,I3,RC,XC) + OS_FD_4M_CF3() * RX(I1,I2-2,I3,RC,XC) + OS_FD_4M_CF4() * RX(I1,I2-3,I3,RC,XC) + OS_FD_4M_CF5() * RX(I1,I2-4,I3,RC,XC))
+
+#Elif #DIR == "2"
+
+RESULT = DRI*(OS_FD_4M_CF1() * RX(I1,I2,I3,RC,XC) + OS_FD_4M_CF2() * RX(I1,I2,I3-1,RC,XC) + OS_FD_4M_CF3() * RX(I1,I2,I3-2,RC,XC) + OS_FD_4M_CF4() * RX(I1,I2,I3-3,RC,XC) + OS_FD_4M_CF5() * RX(I1,I2,I3-4,RC,XC))
+
+#Else
+OS_FD_4M: #DIR IS NOT CORRECT
+#End
+
+#endMacro
+
+#defineMacro NOT_PERIODIC(SIDE,AXIS) (bc(SIDE,AXIS).ne.periodicbc)
+#beginMacro EVALUATE_JACOBIAN_DERIVATIVES(HALFWIDTH)
+      !!!! -- evaluate the jacobian derivatives we need to the order we require
+      !!!! -- place the derivatives at each adjacent node into the arrays 
+      !!!!    rx,rxr and rxx for later use in loops over the difference stencils
+      !!!! -- we assume the grid is at least 2D
+      !!!! -- currently we need only up to the second derivative in the mapping
+
+      if ( .not. is_rect ) then
+
+      #perl $MAXDER = 2
+      do io=-HALFWIDTH,HALFWIDTH ! loop over the stencil and fill the small arrays of metrics at adjacent grid points
+         GET_SHIFTED_IDX(i1o,i2o,i3o, (io-off)*is1, (io-off)*is2, (io-off)*is3)
+
+         if ( .not. use_os_rxr ) then
+         if ( nd.eq.2 ) then
+         #perl $DIM = 2
+            if ( order.eq.2 ) then
+            #perl $ORDER = 2
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            else if (order.eq.4) then
+            #perl $ORDER = 4
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            else if (order.eq.6) then
+            #perl $ORDER = 6
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            else if (order.eq.8) then
+            #perl $ORDER = 8
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            endif ! order of accuracy
+         else if ( nd.eq.3) then
+         #perl $DIM = 3
+            if ( order.eq.2 ) then
+            #perl $ORDER = 2
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            else if (order.eq.4 ) then
+            #perl $ORDER = 4
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            else if (order.eq.6) then
+            #perl $ORDER = 6
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            else if (order.eq.8) then
+            #perl $ORDER = 8
+               #peval evalJacobianDerivatives(rsxy,i1o,i2o,i3o,aj_,$DIM,$ORDER,$MAXDER)
+            endif ! order of accuracy
+         endif  ! number of dimensions
+
+         rx( io,0,0) = aj_rx
+         rxx(io,0,0) = aj_rxx
+         rxr(io,0,0) = aj_rxr
+         rx( io,1,0) = aj_sx
+         rxx(io,1,0) = aj_sxx
+         rxr(io,1,0) = aj_sxs
+         rx( io,0,1) = aj_ry
+         rxx(io,0,1) = aj_ryy
+         rxr(io,0,1) = aj_ryr
+         rx( io,1,1) = aj_sy
+         rxx(io,1,1) = aj_syy
+         rxr(io,1,1) = aj_sys
+         if (nd.eq.3) then
+            rx( io,0,2) = aj_rz
+            rxx(io,0,2) = aj_rzz
+            rxr(io,0,2) = aj_rzr
+            rx( io,1,2) = aj_sz
+            rxx(io,1,2) = aj_szz
+            rxr(io,1,2) = aj_szs
+            rx( io,2,0) = aj_tx
+            rxx(io,2,0) = aj_txx
+            rxr(io,2,0) = aj_txt
+            rx( io,2,1) = aj_ty
+            rxx(io,2,1) = aj_tyy
+            rxr(io,2,1) = aj_tyt
+            rx( io,2,2) = aj_tz
+            rxx(io,2,2) = aj_tzz
+            rxr(io,2,2) = aj_tzt
+         endif            
+
+
+         else                               ! use one-sided derivatives near boundaries
+
+            do id=0,nd-1
+            do ic=0,nd-1
+               rx(io,id,ic) = rsxy(i1o,i2o,i3o,id,ic)
+            enddo
+            enddo
+
+            if ( order.ge.4 .or. .true.) then
+               do ic=0,nd-1
+               do id=0,nd-1
+                  !! d( dr(id)/dx(ic) )/dr(id2)
+               id2 = 0 !! rxr, ryr, rzr, sxr, syr, szr, txr, tyr, tzr
+               if ( (i1o.le.(dims(0,id2)+1)) ) then
+                  OS_FD_4P(i1o,i2o,i3o,0,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else if ( (i1o.ge.dims(1,id2)-1) ) then
+                  OS_FD_4M(i1o,i2o,i3o,0,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else
+                  C_FD_4(i1o,i2o,i3o,0,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               endif
+
+               id2 = 1 !! rxs, rys, rzs, sxs, sys, szs, txs, tys, tzs
+               if ( (i2o.le.(dims(0,id2)+1)) ) then
+                  OS_FD_4P(i1o,i2o,i3o,1,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else if ( (i2o.ge.dims(1,id2)-1) ) then
+                  OS_FD_4M(i1o,i2o,i3o,1,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else
+                  C_FD_4(i1o,i2o,i3o,1,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               endif
+
+               if ( nd.eq.3 ) then
+                  id2 = 2 !!rxt, ryt, rzt, sxt, syt, szt, txt, tyt, tzt
+                  if ( (i3o.le.(dims(0,id2)+1)) ) then
+                     OS_FD_4P(i1o,i2o,i3o,2,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+                  else if ( (i3o.ge.dims(1,id2)-1) ) then
+                     OS_FD_4M(i1o,i2o,i3o,2,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+                  else
+                     C_FD_4(i1o,i2o,i3o,2,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+                  endif
+               endif
+
+               enddo
+               enddo
+
+
+            else ! 2nd order accurate
+               do ic=0,nd-1
+               do id=0,nd-1
+                  !! d( dr(id)/dx(ic) )/dr(id2)
+               id2 = 0 !! rxr, ryr, rzr, sxr, syr, szr, txr, tyr, tzr
+               if ( (i1o.le.dims(0,id2)) ) then
+                  OS_FD_2P(i1o,i2o,i3o,0,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else if ( (i1o.ge.dims(1,id2)) ) then
+                  OS_FD_2M(i1o,i2o,i3o,0,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else
+                  C_FD_2(i1o,i2o,i3o,0,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               endif
+
+               id2 = 1 !! rxs, rys, rzs, sxs, sys, szs, txs, tys, tzs
+               if ( (i2o.le.(dims(0,id2))) ) then
+                  OS_FD_2P(i1o,i2o,i3o,1,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else if ( (i2o.ge.dims(1,id2)) ) then
+                  OS_FD_2M(i1o,i2o,i3o,1,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               else
+                  C_FD_2(i1o,i2o,i3o,1,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+               endif
+
+               if ( nd.eq.3 ) then
+                  id2 = 2 !!rxt, ryt, rzt, sxt, syt, szt, txt, tyt, tzt
+                  if ( (i3o.le.dims(0,id2) )) then
+                     OS_FD_2P(i1o,i2o,i3o,2,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+                  else if ( i3o.ge.dims(1,id2) ) then
+                     OS_FD_2M(i1o,i2o,i3o,2,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+                  else
+                     C_FD_2(i1o,i2o,i3o,2,id,ic,rsxy,dri(id2),rxs(id,ic,id2))
+                  endif
+               endif
+
+               enddo
+               enddo
+            endif ! order of accuracy
+
+            do id=0,nd-1
+            do ic=0,nd-1
+               rxr(io,id,ic) = rxs(id,ic,id)
+               rxx(io,id,ic) = rx(io,0,ic)*rxs(id,ic,0) + rx(io,1,ic)*rxs(id,ic,1) + rx(io,2,ic)*rxs(id,ic,2)
+            enddo
+            enddo
+
+         endif
+
+      enddo ! do loop (io) over stencil
+      endif                     ! if not rectangular
+
+#endMacro
+
+#beginMacro IDENTITY_GHOST()
+      do side=0,1
+      do i3l=bc_range(side,0,2),bc_range(side,1,2)
+      do i2l=bc_range(side,0,1),bc_range(side,1,1)
+      do i1l=bc_range(side,0,0),bc_range(side,1,0)
+         SET_STENCIL_IDX()
+
+         dl1(i1l,i2l,i3l) = 0d0
+         d(i1l,i2l,i3l) = 1d0
+         du1(i1l,i2l,i3l) = 0d0
+         if ( mode.ne.get_explicit ) then
+            rhs(i1l,i2l,i3l) = ul(i1l,i2l,i3l,cc)
+         else
+            rhs(i1l,i2l,i3l) = 0d0
+         endif
+         if ( is_penta ) then
+            dl2(i1l,i2l,i3l) = 0d0
+            du2(i1l,i2l,i3l) = 0d0
+         endif
+      enddo
+      enddo
+      enddo
+      enddo
+#endMacro
+
+
+#beginMacro EXTRAPOLATE_GHOST()
+      do side=0,1
+      if ( bc(side,dir).ge.0 .or. bc(side,dir).eq.parallelBC .or. (bc(side,dir).lt.0 .and. bc(mod(side+1,2),dir).eq.parallelBC)) then
+      do i3l=bc_range(side,0,2),bc_range(side,1,2)
+      do i2l=bc_range(side,0,1),bc_range(side,1,1)
+      do i1l=bc_range(side,0,0),bc_range(side,1,0)
+         SET_STENCIL_IDX()
+
+         d(i1l,i2l,i3l) = 1d0
+         rhs(i1l,i2l,i3l) = 0d0
+         if ( .not. is_penta ) then
+            if ( side.eq.0 ) then
+               dl1(i1l,i2l,i3l) =  1d0
+               du1(i1l,i2l,i3l) = -2d0
+            else
+               du1(i1l,i2l,i3l) =  1d0
+               dl1(i1l,i2l,i3l) = -2d0
+            endif
+         else
+            if ( side.eq.0 ) then
+               du1(i1l,i2l,i3l) = -4d0
+               du2(i1l,i2l,i3l) =  6d0
+               dl2(i1l,i2l,i3l) = -4d0
+               dl1(i1l,i2l,i3l) =  1d0
+            else
+               dl1(i1l,i2l,i3l) = -4d0
+               dl2(i1l,i2l,i3l) =  6d0
+               du2(i1l,i2l,i3l) = -4d0
+               du1(i1l,i2l,i3l) =  1d0
+            endif
+         endif
+
+      enddo
+      enddo
+      enddo
+      endif !non-interpolation boundary
+      enddo
+#endMacro
+
+#beginMacro IDENTITY_PLANES(DIR,SIDE,LD1,LD2)
+            #If #SIDE == "s"
+              i ## DIR ## l = index_range(0,DIR-1)
+            #Else
+              i ## DIR ## l = index_range(1,DIR-1)
+            #End
+            do i ## LD1 ## l=i ## LD1 ## s,i ## LD1 ## e
+            do i ## LD2 ## l=i ## LD2 ## s,i ## LD2 ## e
+               if ( .not. rhs_only ) then
+               dl1(i1l,i2l,i3l) = 0d0
+               d(i1l,i2l,i3l) = 1d0
+               du1(i1l,i2l,i3l) = 0d0
+               if ( is_penta ) then
+                  dl2(i1l,i2l,i3l) = 0d0
+                  du2(i1l,i2l,i3l) = 0d0
+               endif
+               endif ! not rhs_only
+               if ( mode .ne. get_explicit ) then
+                  rhs(i1l,i2l,i3l) = ul(i1l,i2l,i3l,cc)
+               else
+                  rhs(i1l,i2l,i3l) = 0d0
+               endif
+            enddo
+            enddo
+#endMacro
+
+! *wdh* 2012/04/29 if tc=-1 then invalid read can occur in bcData(...)
+#defineMacro IS_DIRICHLET(SIDE,AXIS) ((bc(SIDE,AXIS).eq.dirichletBoundaryCondition).or.(bc(SIDE,AXIS).eq.inflowWithVelocityGiven).or.(bc(SIDE,AXIS).eq.noSlipWall)).or.(bc(SIDE,AXIS).eq.slipWall .and. AXIS.eq.(cc-uc)).and.(bc(SIDE,AXIS).eq.noSlipWall .and.(.not.(cc.eq.tc .and. bcData(max(0,tc+tc*2),SIDE,AXIS,grid).ne.0d0)))
+#defineMacro IS_NEUMANN(SIDE,AXIS) ((bc(SIDE,AXIS).eq.neumannBoundaryCondition))
+!c#defineMacro IS_NEUMANN(SIDE,AXIS) (bc(SIDE,AXIS).eq.neumannBoundaryCondition).or.(bc(SIDE,AXIS).eq.outflow).or.(bc(SIDE,AXIS).eq.slipWall .and. AXIS.ne.(cc-uc))
+
+#defineMacro IDENTITY_BOUNDARY(SIDE,AXIS) (IS_DIRICHLET(SIDE,AXIS))
+!! .or. bc(SIDE,AXIS).eq.outflow)
+
+#beginMacro APPLY_BOUNDARY_CONDITIONS()
+      if ( .not. is_periodic ) then
+! fixup the matrix and rhs at the ends of each line
+      do side=0,1
+         is_dirichlet_bc = IS_DIRICHLET(side,dir)
+         is_neumann_bc = IS_NEUMANN(side,dir)
+         is_outflow_bc = bc(side,dir).eq.outflow
+         if ( is_dirichlet_bc ) then
+!cc            print *,"dbg: ","dirichlet : ",dir,side,cc-uc,mode
+            do i3l=bc_range(side,0,2),bc_range(side,1,2)
+            do i2l=bc_range(side,0,1),bc_range(side,1,1)
+            do i1l=bc_range(side,0,0),bc_range(side,1,0)
+
+               SET_STENCIL_IDX()
+               if ( mask(i1,i2,i3).gt.0 ) then
+
+               if ( have_ghost_points ) then
+                  io = 1-2*side
+                  GET_SHIFTED_IDX(i1o,i2o,i3o, io*is1, io*is2, io*is3)
+                  if ( .false. ) then
+                                ! the ghost point equation is interior equation at the boundary point
+                     if ( .not. is_penta ) then
+                        if ( side.eq.0) then
+                           d(i1,i2,i3)    = dl1(i1o,i2o,i3o)
+                           du1(i1,i2,i3)  = d(i1o,i2o,i3o)
+                           dl1(i1,i2,i3)  = du1(i1o,i2o,i3o)
+                        else
+                           d(i1,i2,i3)    = du1(i1o,i2o,i3o)
+                           dl1(i1,i2,i3)  = d(i1o,i2o,i3o)
+                           du1(i1,i2,i3)  = dl1(i1o,i2o,i3o)
+                        endif
+                     else
+                        stop 99400
+                     endif
+!     if ( dir.eq.0 ) print *,"bc at ",i1,i2,i3
+                     rhs(i1,i2,i3) = rhs(i1o,i2o,i3o)
+                  else
+                  ! extrapolate the ghost point
+                     rhs(i1l,i2l,i3l) = 0d0
+                     if ( .not. rhs_only ) then
+                        d(i1l,i2l,i3l) = 1d0
+                        if ( .not. is_penta ) then
+                           if ( side.eq.0 ) then
+                              dl1(i1l,i2l,i3l) =  1d0
+                              du1(i1l,i2l,i3l) = -2d0
+                           else
+                              du1(i1l,i2l,i3l) =  1d0
+                              dl1(i1l,i2l,i3l) = -2d0
+                           endif
+                        else
+                           if ( side.eq.0 ) then
+                              du1(i1l,i2l,i3l) = -4d0
+                              du2(i1l,i2l,i3l) =  6d0
+                              dl1(i1l,i2l,i3l) = -4d0
+                              dl2(i1l,i2l,i3l) =  1d0
+                           else
+                              dl1(i1l,i2l,i3l) = -4d0
+                              dl2(i1l,i2l,i3l) =  6d0
+                              du2(i1l,i2l,i3l) = -4d0
+                              du1(i1l,i2l,i3l) =  1d0
+                           endif
+                        endif
+                     endif
+                  endif
+               else
+                  
+                  io = 0
+                  GET_SHIFTED_IDX(i1o,i2o,i3o, io*is1, io*is2, io*is3)
+
+               endif ! have ghost points
+
+!c dirichlet everywhere               d(i1,i2,i3) = 1d0
+               if ( mode.ne.get_explicit ) then
+!                  if ( dir.eq.0 ) print *,i1,i2,ul(i1o,i2o,i3o,cc)
+                  rhs(i1o,i2o,i3o) = ul(i1o,i2o,i3o,cc) 
+!c dirichlet everywhere                  rhs(i1,i2,i3) = ul(i1,i2,i3,cc)
+               else
+   ! the explicit contribution should add the difference of the old and new time level bc values
+                  rhs(i1o,i2o,i3o) = 0d0
+!c dirichlet everywhere                  rhs(i1,i2,i3) = 0d0
+               endif
+               if ( .not. rhs_only ) then
+                  d(i1o,i2o,i3o) = 1d0
+                  dl1(i1o,i2o,i3o) = 0d0
+                  du1(i1o,i2o,i3o) = 0d0
+!     c dirichlet everywhere               dl1(i1,i2,i3) = 0d0
+!     c dirichlet everywhere               du1(i1,i2,i3) = 0d0
+                  if ( is_penta ) then
+                     dl2(i1o,i2o,i3o) = 0d0
+                     du2(i1o,i2o,i3o) = 0d0
+!     c dirichlet everywhere                  dl2(i1,i2,i3) = 0d0
+!     c dirichlet everywhere                  du2(i1,i2,i3) = 0d0
+                  endif
+               endif !not rhs_only
+
+               endif ! mask
+            enddo ! i1l
+            enddo ! i2l 
+            enddo ! i3l
+
+         elseif (is_neumann_bc ) then !!.or. is_outflow_bc) then
+!cc            print *,"dbg: ","neumann : ",dir,side,cc-uc,mode
+            call get_os_mop_coeffs(half_width,1,side,order,compact,px_coeff,dx_coeff)
+
+            do i3l=bc_range(side,0,2),bc_range(side,1,2)
+            do i2l=bc_range(side,0,1),bc_range(side,1,1)
+            do i1l=bc_range(side,0,0),bc_range(side,1,0)
+
+               SET_STENCIL_IDX()
+               if ( mode.eq.solve_lhs ) then
+                  if ( side.eq.0 ) then
+                     d(i1,i2,i3) = dx_coeff(-half_width+0)*dxid
+                     du1(i1,i2,i3) = dx_coeff(-half_width+1)*dxid
+                     if ( .not. is_penta ) then
+                        dl1(i1,i2,i3) = dx_coeff(-half_width+2)*dxid
+                     else
+                        du2(i1,i2,i3) = dx_coeff(-half_width+2)*dxid
+                        dl2(i1,i2,i3) = dx_coeff(-half_width+3)*dxid
+                        dl1(i1,i2,i3) = dx_coeff(-half_width+4)*dxid
+                     endif
+                  else
+                     d(i1,i2,i3) = dx_coeff(half_width)*dxid
+                     dl1(i1,i2,i3) = dx_coeff(half_width-1)*dxid
+                     if ( .not. is_penta ) then
+                        du1(i1,i2,i3) = dx_coeff(half_width-2)*dxid
+                     else
+                        dl2(i1,i2,i3) = dx_coeff(half_width-2)*dxid
+                        du2(i1,i2,i3) = dx_coeff(half_width-3)*dxid
+                        du1(i1,i2,i3) = dx_coeff(half_width-4)*dxid
+                     endif
+                  endif
+               else if ( mode.eq.solve_rhs ) then
+                  d(i1,i2,i3) = 1d0
+                  du1(i1,i2,i3) = 0d0
+                  dl1(i1,i2,i3) = 0d0
+                  if ( is_penta ) then
+                     du2(i1,i2,i3) = 0d0
+                     dl2(i1,i2,i3) = 0d0
+                  endif                  
+                  
+                  rhs(i1,i2,i3) = 0d0
+                  do io=0,2*half_width
+                     GET_SHIFTED_IDX(i1o,i2o,i3o, (1-2*side)*io*is1, (1-2*side)*io*is2, (1-2*side)*io*is3)
+                     rhs(i1,i2,i3) = rhs(i1,i2,i3) + ul(i1o,i2o,i3o,cc)*dx_coeff(-half_width + side*2*half_width + (1-2*side)*io)*dxid
+                  enddo
+               endif            ! mode
+            enddo !i1l
+            enddo !i2l
+            enddo !i3l
+
+         elseif (.true..and.is_outflow_bc) then
+            if ( .true. ) then
+            do i3l=bc_range(side,0,2),bc_range(side,1,2)
+            do i2l=bc_range(side,0,1),bc_range(side,1,1)
+            do i1l=bc_range(side,0,0),bc_range(side,1,0)
+               SET_STENCIL_IDX()
+               if ( mask(i1,i2,i3).gt.0 ) then
+               rhs(i1l,i2l,i3l) = 0d0
+               if ( .true. .or. mode.eq.solve_lhs ) then
+                  if ( .not. rhs_only ) then
+                  d(i1l,i2l,i3l) = 1d0
+                  if ( extrap_all_1 .or. .not. is_penta ) then
+                     if ( side.eq.0 ) then
+                        dl1(i1l,i2l,i3l) = 0d0 !1d0
+                        du1(i1l,i2l,i3l) = -1d0 !-2d0
+                     else
+                        du1(i1l,i2l,i3l) = 0d0 ! 1d0
+                        dl1(i1l,i2l,i3l) = -1d0 !-2d0
+                     endif
+
+                     if ( is_penta ) then
+                        du2(i1l,i2l,i3l) = 0d0
+                        dl2(i1l,i2l,i3l) = 0d0
+                     endif
+                  elseif ( is_penta ) then
+                     if ( side.eq.0 ) then
+                        du1(i1l,i2l,i3l) = -4d0
+                        du2(i1l,i2l,i3l) =  6d0
+                        dl2(i1l,i2l,i3l) = -4d0
+                        dl1(i1l,i2l,i3l) =  1d0
+                     else
+                        dl1(i1l,i2l,i3l) = -4d0
+                        dl2(i1l,i2l,i3l) =  6d0
+                        du2(i1l,i2l,i3l) = -4d0
+                        du1(i1l,i2l,i3l) =  1d0
+                     endif
+                  endif
+                  endif !not rhs_only
+               else if ( mode.eq.solve_rhs) then
+                  if ( .not. rhs_only)  then
+                  d(i1l,i2l,i3l) = 1d0
+                  du1(i1l,i2l,i3l) = 0d0
+                  dl1(i1l,i2l,i3l) = 0d0
+                  
+                  if ( is_penta ) then
+                     du2(i1l,i2l,i3l) = 0d0
+                     dl2(i1l,i2l,i3l) = 0d0
+                  endif
+                  endif !not rhs_only
+
+                  if ( extrap_all_1 .or. .not. is_penta ) then
+                     io = 1-2*side
+                     GET_SHIFTED_IDX(i1o,i2o,i3o, io*is1, io*is2, io*is3)
+                     rhs(i1l,i2l,i3l) = (ul(i1o,i2o,i3o,cc))
+                  elseif (is_penta) then
+                     io = 1-2*side
+                     GET_SHIFTED_IDX(i1o,i2o,i3o, io*is1, io*is2, io*is3)
+                     rhs(i1l,i2l,i3l) = 4d0*ul(i1o,i2o,i3o,cc)
+                     io = 2*(1-2*side)
+                     GET_SHIFTED_IDX(i1o,i2o,i3o, io*is1, io*is2, io*is3)
+                     rhs(i1l,i2l,i3l) = rhs(i1l,i2l,i3l)-6d0*ul(i1o,i2o,i3o,cc)
+                     io = 3*(1-2*side)
+                     GET_SHIFTED_IDX(i1o,i2o,i3o, io*is1, io*is2, io*is3)
+                     rhs(i1l,i2l,i3l) = rhs(i1l,i2l,i3l)+4d0*ul(i1o,i2o,i3o,cc)
+                     io = 4*(1-2*side)
+                     GET_SHIFTED_IDX(i1o,i2o,i3o, io*is1, io*is2, io*is3)
+                     rhs(i1l,i2l,i3l) = rhs(i1l,i2l,i3l)-1d0*ul(i1o,i2o,i3o,cc)
+                     rhs(i1l,i2l,i3l) = rhs(i1l,i2l,i3l)
+!!                     rhs(i1l,i2l,i3l) = (1-2*side)*rhs(i1l,i2l,i3l)
+                  endif
+               endif
+                  
+               endif !mask
+            enddo
+            enddo
+            enddo
+            endif
+         elseif(.not.(cc.eq.tc .and. bcData(tc+tc*2,SIDE,dir,grid).ne.0d0)) then
+         elseif (bc(side,dir).gt.0 .and. .not.is_outflow_bc .and. bc(side,dir).ne.slipwall ) then
+            print *,"ins_factors: APPLY_BOUNDARY_CONDITIONS macro: unknown bc : ",bc(side,dir)
+!"
+            stop 99999
+         endif ! type of boundary condition
+      enddo ! side
+
+      endif ! not periodic
+
+! now fixup entire lines that sit on boundaries
+if ( .true. ) then
+      if ( dir.eq.0 ) then
+         if ( IDENTITY_BOUNDARY(0,1) ) then
+            IDENTITY_PLANES(2,s,3,1)
+         endif
+         if ( IDENTITY_BOUNDARY(1,1) ) then
+            IDENTITY_PLANES(2,e,3,1)
+         endif
+         if ( nd.gt.2 ) then
+            if ( IDENTITY_BOUNDARY(0,2) ) then
+               IDENTITY_PLANES(3,s,2,1)
+            endif
+            if ( IDENTITY_BOUNDARY(1,2) ) then
+               IDENTITY_PLANES(3,e,2,1)
+            endif
+         endif
+      else if ( dir.eq.1 ) then
+         if ( IDENTITY_BOUNDARY(0,0) ) then
+            IDENTITY_PLANES(1,s,3,2)
+         endif
+         if ( IDENTITY_BOUNDARY(1,0) ) then
+            IDENTITY_PLANES(1,e,3,2)
+         endif
+         if ( nd.gt.2 ) then
+            if ( IDENTITY_BOUNDARY(0,2) ) then
+               IDENTITY_PLANES(3,s,1,2)
+            endif
+            if ( IDENTITY_BOUNDARY(1,2) ) then
+               IDENTITY_PLANES(3,e,1,2)
+            endif
+         endif
+      else if ( dir.eq.2) then
+         if ( IDENTITY_BOUNDARY(0,0) ) then
+               IDENTITY_PLANES(1,s,3,2)
+         endif
+         if ( IDENTITY_BOUNDARY(1,0) ) then
+               IDENTITY_PLANES(1,e,3,2)
+         endif
+         if ( IDENTITY_BOUNDARY(0,1) ) then
+               IDENTITY_PLANES(2,s,3,1)
+         endif
+         if ( IDENTITY_BOUNDARY(1,1) ) then
+               IDENTITY_PLANES(2,e,3,1)
+         endif
+      endif
+endif
+#endMacro
+
+#beginMacro ONE_SIDED_BDY(CC)
+      do side=0,1
+      if ( bc(side,dir).gt.0 ) then
+      do i3l=bc_range(side,0,2),bc_range(side,1,2)
+      do i2l=bc_range(side,0,1),bc_range(side,1,1)
+      do i1l=bc_range(side,0,0),bc_range(side,1,0)
+
+      ! get the "usual" one sided compact coefficients
+!      call get_os_op_coeffs(half_width,1,side,order,disc_approx,px_coeff,dx_coeff)
+      call get_os_op_coeffs(half_width,1,side,order,compact,px_coeff,dx_coeff)
+
+      SET_STENCIL_IDX()
+
+      if ( .not. rhs_only ) then
+         if ( side.eq.0 ) then
+            d(i1,i2,i3) = px_coeff(-half_width+0)
+            du1(i1,i2,i3) = px_coeff(-half_width+1)
+            if ( .not. is_penta ) then
+               dl1(i1,i2,i3) = px_coeff(-half_width+2)
+            else
+               du2(i1,i2,i3) = px_coeff(-half_width+2)
+               dl2(i1,i2,i3) = px_coeff(-half_width+3)
+               dl1(i1,i2,i3) = px_coeff(-half_width+4)
+            endif
+         else
+            d(i1,i2,i3) = px_coeff(half_width)
+            dl1(i1,i2,i3) = px_coeff(half_width-1)
+            if ( .not. is_penta ) then
+               du1(i1,i2,i3) = px_coeff(half_width-2)
+            else
+               dl2(i1,i2,i3) = px_coeff(half_width-2)
+               du2(i1,i2,i3) = px_coeff(half_width-3)
+               du1(i1,i2,i3) = px_coeff(half_width)
+            endif
+         endif
+      endif ! rhs_only
+      rhs(i1,i2,i3) = 0d0
+      do io=0,2*half_width
+         GET_SHIFTED_IDX(i1o,i2o,i3o, (1-2*side)*io*is1, (1-2*side)*io*is2, (1-2*side)*io*is3)
+         rhs(i1,i2,i3) = rhs(i1,i2,i3) + u(i1o,i2o,i3o,CC)*dx_coeff(-half_width + side*2*half_width + (1-2*side)*io)*drid
+      enddo
+
+      enddo 
+      enddo
+      enddo
+      endif ! end if non-interpolation bc
+      enddo
+#endMacro
+

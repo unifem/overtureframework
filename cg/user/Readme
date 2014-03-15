@@ -1,0 +1,21 @@
+This directory can be used for building a user altered version of cgcns, or
+cgins, ... . You can, for example, make changes to some of the files and put the
+changes in this user directory so the originials are not altered.
+
+
+Steps:
+
+   (1) Copy the file you want to change to the user/src directory
+      e.g.  cp cg/common/src/userDefinedInitialConditions.C cg/user/src/userDefinedInitialConditions.C
+   (2) Edit the file user/src/files and add userDefinedInitialConditions.C to the appropriate
+       list. 
+   (3) Edit and make changes to cg/user/src/userDefinedInitialConditions.C 
+   (4) Type "make cgcns" to build cgcns with the new version of userDefinedInitialConditions.C
+
+   You make want to make an alias such as :
+      alias mycgcns "/home/dilbert/cg/user/bin/cgcns" 
+
+
+NOTES:
+   (1) If you want to make a change to a main program such as cgcns.C, then copy this file
+       to the cg/user/src directory. There is no need to add this file-name to cg/user/src/files.

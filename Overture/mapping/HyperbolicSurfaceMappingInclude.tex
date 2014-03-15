@@ -1,0 +1,96 @@
+\subsection{Constructor}
+ 
+\newlength{\HyperbolicSurfaceMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\HyperbolicSurfaceMappingIncludeArgIndent}{HyperbolicSurfaceMapping(}% 
+HyperbolicSurfaceMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Create a mapping that can be used to generate a hyperbolic volume grid.
+ 
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\HyperbolicSurfaceMappingIncludeArgIndent}{HyperbolicSurfaceMapping(}% 
+HyperbolicSurfaceMapping(Mapping \& surface\_, Mapping \& startingCurve) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Create a mapping that can be used to generate a hyperbolic surface grid.
+\item[{\bf surface\_ (input):}]  Generate the grid on this reference surface.
+\item[{\bf startingCurve (input):}]  Grow the surface grid starting from this curve on the
+    surface (the curve is defined in physical space, not in the parameter space).
+ surface (3D)
+\end{description}
+\subsection{generate}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\HyperbolicSurfaceMappingIncludeArgIndent}{generate(}%
+generate( )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Generate the surface grid.
+\end{description}
+\subsection{setSurfaceAndCurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\HyperbolicSurfaceMappingIncludeArgIndent}{setSurfaceAndCurve(}%
+setSurfaceAndCurve(Mapping \& surface\_, Mapping \& startingCurve)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Supply the curve/surface from which the grid will be generated.
+\item[{\bf surface\_ (input):}]  Generate the grid starting from this curve (2D) or
+ surface (3D)
+\end{description}
+\subsection{setParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\HyperbolicSurfaceMappingIncludeArgIndent}{setParameters(}%
+setParameters(const HyperbolicParameter \& par, \\ 
+const IntegerArray \& ipar  = Overture::nullIntArray(), \\ 
+const RealArray \& rpar  = Overture::nullRealArray(),\\ 
+\hspace{\HyperbolicSurfaceMappingIncludeArgIndent}const Direction \& direction  = bothDirections)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Define a parameter for the hyperbolic grid generator.
+\item[{\bf par (input):}]  The possible value come from the enum {\tt  HyperbolicParameter}:
+  \begin{description}
+   \item[linesInTheNormalDirecion] : specify the number of lines to use in the normal direction.
+   \item[boundaryConditions] : ipar(0) = ibcja, ipar(1)=ibcjb
+   \item[dissipation] : rpar(0) = explicit smoothing (smu), rpar(1)=implicit smoothing (tim)
+   \item[distanceToMarch] : rpar(0) = distance
+   \item[spacing] : rpar(0) = deta, rpar(1)=dfar
+   \item[volumeParameters] : ipar(0) = itsvol
+   \item[growInTheReverseDirection] : grow the grid in the reverse direction (this will
+      result in a left handed coordinate system.
+   \item[growInBothDirections] : grow the grid in both directions.
+  \end{description}
+\item[{\bf value (input):}] 
+\item[{\bf direction (input) :}]  The hyperbolic surface can be grown in two possible directions
+  (or both directions). {\tt direction} indicates which direction the new parameter 
+   values should apply to: (enum Direction)
+  \begin{description}
+    \item[direction=bothDirections]  : parameters apply to both the forward and reverse directions.
+    \item[direction=forwardDirection] : parameters apply to the forward direction.
+    \item[direction=reverseDirection] : parameters apply to the reverse direction.
+  \end{description}
+\end{description}
+\subsection{surfaceGridGenerator}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\HyperbolicSurfaceMappingIncludeArgIndent}{surfaceGridGenerator(}%
+surfaceGridGenerator()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Generate the surface grid.
+\end{description}

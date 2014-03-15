@@ -1,0 +1,55 @@
+PKGDIR := $(OvertureCheckout)/ogshow
+
+STATIC_SRC_FILES += overlay.c 
+
+# These files may be used if the user hasn't built the GLw library -- these files don't seem to change
+#cp {GLwDrawA.c,GLwDrawA.h,GLwDrawAP.h,GLwMDrawA.c,GLwMDrawA.h,GLwMDrawAP.h}.backup $OvertureStatic
+
+SRC_FILES += $(addsuffix .C, \
+	Ogshow ShowFileReader NameList  ParallelUtility ParallelGridUtility \
+	plotMapping   xInterpolate plotAdvancingFront \
+	plotCompositeSurface plotUnstructured plotStructured \
+	grid3d grid gridOpt contour contourOpt contour3dOpt ShowFileParameter \
+	contour3d DerivedFunctions ContourSurface \
+	FileOutput  streamLines streamLinesOpt streamLines3d \
+	GridStatistics  plotGridQuality userDefinedDerivedFunction plot3dToOverture) \
+	cggi.f isosurf.f PlotStuff.C userDefinedOutput.C ShowFilePlotter.C CopyArray.C showFileFromDataFile.C
+
+L_HDRS := $(addsuffix .h, \
+	PlotIt  broadCast ContourSurface \
+	Ogshow ShowFileReader NameList \
+	ParallelUtility ParallelGridUtility DerivedFunctions FileOutput    \
+	GridStatistics  ShowFileParameter ShowFilePlotter InterpolationData)
+
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+# Here is the plotStuff program for displaying show files
+#cp {plotStuffDriver,plotStuff}.C                                                   $OvertureBin
+
+#cp {ps2ppm,decompress}.C                                                           $OvertureBin
+
+ifneq ($(BINDIR),)
+plotStuff: $(BINDIR)plotStuff
+
+ps2ppm: $(BINDIR)ps2ppm
+
+decompress: $(BINDIR)decompress
+
+#tsf: $(BINDIR)tsf
+
+phonies += plotStuff ps2ppm decompress 
+
+endif
+
+$(BINDIR)plotStuff: $(OV_LIB) $(OV_SLIB) $(OBJDIR)plotStuffDriver.o $(OBJDIR)plotStuffFunction.o
+	$(CXX) -o $@ $(OBJDIR)plotStuffDriver.o $(OBJDIR)plotStuffFunction.o  $(LIBS)
+
+$(BINDIR)ps2ppm: $(OV_LIB) $(OV_SLIB) $(OBJDIR)ps2ppm.o
+	$(CXX) -o $@ $+ $(LIBS)
+
+$(BINDIR)decompress: $(OV_LIB) $(OV_SLIB) $(OBJDIR)decompress.o
+	$(CXX) -o $@ $+ $(LIBS)
+
+$(BINDIR)tsf: $(OV_LIB) $(OV_SLIB) $(OBJDIR)tsf.o
+	$(CXX) -o $@ $+ $(LIBS)

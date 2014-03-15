@@ -1,0 +1,2563 @@
+#include "ExposedPoints.h"
+#include "OGFunction.h"
+#include "InterpolatePoints.h"
+#include "display.h"
+#include "HDF_DataBase.h"
+#include "ParallelUtility.h"
+#include "InterpolatePointsOnAGrid.h"
+
+int ExposedPoints::debug=0;
+int ExposedPoints::info=0;
+
+// extern IntegerArray Overture::nullIntArray();
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_2D(i1,i2,I1,I2) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(); \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define XY(i1,i2,i3) center(i1,i2,i3,axis1),center(i1,i2,i3,axis2)
+#define XYZ(i1,i2,i3) center(i1,i2,i3,axis1),center(i1,i2,i3,axis2),center(i1,i2,i3,axis3)
+
+
+static const aString qualityName[]=
+{
+  "Q1","Q2","Q3","EX","bad","veryBad","NOT"," "
+};
+
+FILE *ExposedPoints::debugFile=NULL;
+
+//\begin{>ExposedPointsInclude.tex}{constructor}
+ExposedPoints::
+ExposedPoints()
+//===========================================================================
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  exposedPointType=exposedPointIsNeededForDiscretization;
+  
+  isInitialized=false;
+  ipogIsInitialized=false;
+  
+  interpolationWidth=3;
+  numberOfValidGhostPoints=1; 
+
+  numDonor=NULL;
+  ib=NULL;
+  assumeInterpolationNeighboursAreAssigned=true; // for stencilWidth=5
+  ipog=NULL;
+
+  useIPOG=0;
+
+  useIPOG=true;  // *wdh* 100319 
+  #ifdef USE_PPP
+  useIPOG=true;  // in parallel we must use the new IPOG option
+  #endif
+
+  fillExposedInterpolationPoints = false;
+
+}
+//\begin{>>ExposedPointsInclude.tex}{destructor}
+ExposedPoints::
+~ExposedPoints()
+//===========================================================================
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  delete [] numDonor;
+  delete [] ib;
+
+  delete ipog;
+}
+
+//\begin{>>ExposedPointsInclude.tex}{getNumberOfExposedPoints}
+void ExposedPoints::
+setFillExposedInterpolationPoints(bool trueOrFalse)
+//===========================================================================
+// /Description:
+//   if the input is true then exposed interpolation points will be 
+//     interpolated from donor grids just like exposed discretization points.
+//
+// /trueOrFalse (input) : if true then interpolate exposed interpolation points
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  fillExposedInterpolationPoints = trueOrFalse;
+}
+
+//\begin{>>ExposedPointsInclude.tex}{getNumberOfExposedPoints}
+int ExposedPoints::
+getNumberOfExposedPoints(const int grid /* =-1 */ ) const
+//===========================================================================
+// /Description:
+//   Return the total number of exposed points (if grid=-1), 
+//     otherwise return the number of exposed points on a grid
+//
+// /grid (input) : if grid==-1 : return the total number of exposed points; otherwise return
+//     the number of exposed points on this component grid.
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  if( grid==-1 )
+  {
+    return numberOfExposedPoints;
+  }
+  else if( grid>=numberPerGrid.getBase(0) && grid<=numberPerGrid.getBound(0) )
+  {
+    return numberPerGrid(grid);
+  }
+  else
+  {
+    printF("ExposedPoints::getNumberOfExposedPoints:ERROR: grid=%i is invalid\n",grid);
+    Overture::abort("error");
+  }
+  return 0;
+}
+
+
+// ==================================================================================
+/// \brief: Choose the interpolation option
+/// \param option (input) : 1=use new IPOG interpolant (InterpolatePointsOnAGrid)
+///                        (this option must be used in parallel). 
+// ==================================================================================
+int ExposedPoints::
+setInterpolationOption( int option )
+{
+  #ifndef USE_PPP
+  useIPOG=option;
+  #endif
+
+  return 0;
+}
+
+
+// ==================================================================================
+/// \brief: Set the width the interpolation stencil.
+// ==================================================================================
+int ExposedPoints::
+setInterpolationWidth( int width )
+{
+  interpolationWidth=width;
+  return 0;
+}
+
+
+// ===================================================================================================
+/// \brief: Set the number of valid ghost points that can be used when interpolating from a grid function
+///
+// ==================================================================================================
+int ExposedPoints::
+setNumberOfValidGhostPoints( int numValidGhost /* =defaultNumberOfValidGhostPoints */ )
+{
+  numberOfValidGhostPoints=numValidGhost;
+  return 0;
+}
+
+//\begin{>>ExposedPointsInclude.tex}{setExposedPointType}
+void ExposedPoints::
+setExposedPointType( const ExposedPointTypeEnum type )
+//===========================================================================
+// /Description:
+// choose the type of exposed points that are wanted (do this before calling initialize)
+//
+// /type (input) : if type==exposedPointIsNeededForDiscretization then find points that will
+//    be needed for discretization (the stencil width of the discretization is specified in the call
+//    to initialize). If type==exposedDiscretization, find exposed points that are discretization points.
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  exposedPointType=type; 
+}
+
+
+//\begin{>>ExposedPointsInclude.tex}{setAssumeInterpolationNeighboursAreAssigned}
+void ExposedPoints::
+setAssumeInterpolationNeighboursAreAssigned( const bool trueOrFalse /* =true */ )
+//===========================================================================
+// /Description:
+//    If true, then for a stencilWidth=5, 
+// assume that the first layer of unused points next to interpolation points
+//  are assigned somehow and thus only the second layer needs to be set if required.
+//
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  assumeInterpolationNeighboursAreAssigned=trueOrFalse;
+}
+
+
+int ExposedPoints::
+getInterpolationStencil(CompositeGrid & cg1,
+                        const int grid2,
+                        const int numToCheck, IntegerArray & ia, IntegerArray & ibg, RealArray & r2, 
+                        IntegerArray & interpolationQuality,
+                        IntegerArray & interpoleeGrid,
+                        IntegerArray & interpoleeLocation,
+                        IntegerArray & interpolationPoint,
+                        IntegerArray & variableInterpolationWidth,
+                        RealArray & interpolationCoordinates )
+{
+// =============================================================================
+//   /Description:
+//      Determine an interpolation stencil that can be used for interpolation point i.
+//  The stencil width will be reduced to try to obtain a valid set of points to interpolate
+// from. The smallest width is 1. A non-zero return value indicates that no stencil could be found.
+//
+// If a better quality interpolation is found, replace the interpolation data in the arrays interpolationQuality,
+// interpoleeGrid,interpoleeLocation, etc.
+// 
+// /interpoleeLocation, variableInterpolationWidth (output):
+// /Return value:
+//   One of the InterpolationQualityEnum values.
+// =============================================================================
+  
+  if( debug>0 )
+  {
+    assert( debugFile!=NULL );
+  }
+  
+  InterpolationQualityEnum status=canNotInterpolate;
+  
+  const int numberOfDimensions=cg1.numberOfDimensions();
+  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+  int jv[3], &j1=jv[0], &j2=jv[1], &j3=jv[2];      
+  int kv[3], &k1=kv[0], &k2=kv[1], &k3=kv[2];      
+
+  assert( grid2>=0 && grid2<cg1.numberOfComponentGrids() );
+
+  Range Rx=numberOfDimensions;
+
+
+//   const IntegerArray & interpolationWidth = mgcg.interpolationWidth(Rx,grid,grid2,l); 
+
+  int interpolationWidth=max(cg1.interpolationWidth(Rx,0,1,0)); // do this for now
+
+//   interpolationWidth=2;  // ***************** do this for now ***
+
+  // if( true ) printf("getInterpolationStencil : interpolationWidth = %i \n",interpolationWidth);
+  
+
+  MappedGrid & g2 = cg1[grid2];
+
+  const int * indexRangep = g2.indexRange().Array_Descriptor.Array_View_Pointer1;
+  const int indexRangeDim0=g2.indexRange().getRawDataSize(0);
+#define indexRange(i0,i1) indexRangep[i0+indexRangeDim0*(i1)]
+  const int * extendedIndexRangep = g2.extendedIndexRange().Array_Descriptor.Array_View_Pointer1;
+  const int extendedIndexRangeDim0=g2.extendedIndexRange().getRawDataSize(0);
+#define extendedIndexRange(i0,i1) extendedIndexRangep[i0+extendedIndexRangeDim0*(i1)]
+  const int * boundaryConditionp = g2.boundaryCondition().Array_Descriptor.Array_View_Pointer1;
+  const int boundaryConditionDim0=g2.boundaryCondition().getRawDataSize(0);
+#define boundaryCondition(i0,i1) boundaryConditionp[i0+boundaryConditionDim0*(i1)]
+
+  const intArray & mask2 = g2.mask();
+  const int * mask2p = mask2.Array_Descriptor.Array_View_Pointer2;
+  const int mask2Dim0=mask2.getRawDataSize(0);
+  const int mask2Dim1=mask2.getRawDataSize(1);
+#define MASK2(i0,i1,i2) mask2p[i0+mask2Dim0*(i1+mask2Dim1*(i2))]	
+
+  const real * gridSpacingp = g2.gridSpacing().Array_Descriptor.Array_View_Pointer0;
+#define gridSpacing(i0) gridSpacingp[i0]
+
+  int axis;
+  j3=indexRange(Start,axis3);
+  i3=j3;
+  
+  real rI[3]={0.,0.,0.};
+  for( int j=0; j<numToCheck; j++ )
+  {
+    status=canNotInterpolate;
+    const int i=ibg(j);
+
+//      printf(" point i=%4i: try to interp from grid2=%i, x2=(%9.2e,%9.2e) r2=(%9.2e,%9.2e)\n",
+//  	   i,grid2,x2(j,0),x2(j,1),r2(j,0),r2(j,1));
+
+    bool ok=true;
+    for( axis=0; axis<numberOfDimensions; axis++ )
+    {
+      iv[axis]=ia(i,axis);   // only used for debug output?
+
+      rI[axis]=r2(j,axis);
+      if( g2.isPeriodic(axis) )
+      {
+        rI[axis] = fmod(rI[axis]+10.,1.);  // map to [0,1], add 10 to make positive
+      }
+      else if( fabs(rI[axis]-.5)>5. ) 
+      {
+	ok=false;
+	break;
+      }
+//        interpolationPoint(i,axis)=ia(i,axis); 
+//        interpolationCoordinates(i,axis)=rI[axis];
+//        interpoleeGrid(i)=grid2;
+//        variableInterpolationWidth(i)=interpolationWidth;
+      
+      // closest point on grid2:
+      jv[axis]=int( rI[axis]/gridSpacing(axis) + indexRange(0,axis) );
+
+    }
+    if( !ok )
+      continue;
+    
+    k3=j3;
+    int width=interpolationWidth;
+
+//  int width=min(3,interpolationWidth(axis1)); 
+
+
+    // check for a valid interpolation stencil. If the stencil is invalid, reduce the interpolation
+    // width and try again.
+    const InterpolationQualityEnum existingQuality=(InterpolationQualityEnum)interpolationQuality(i);
+    
+    bool notDone=TRUE;
+    while( notDone && width>0 )
+    {
+      // if we suceed at interpolating this will be the new quality:
+      InterpolationQualityEnum newQuality = InterpolationQualityEnum(canInterpolateQuality1+interpolationWidth-width);
+
+      if( newQuality>=existingQuality )
+      { // no point in looking further if we could only get worse quality interpolation
+	notDone=false;
+	break;
+      }
+      
+
+      bool extrapolate=false;
+      for( axis=0; axis<numberOfDimensions; axis++ )
+      {
+	// Get the lower-left corner of the interpolation cube.
+	int intLoc=int(floor(rI[axis]/gridSpacing(axis) + indexRange(0,axis) -
+			     .5 * width + (g2.isCellCentered(axis) ? .5 : 1.)));
+	if (!g2.isPeriodic(axis)) 
+	{
+	  //  Check for points close to a BC side.  One-sided interpolation used.
+	  if( intLoc < extendedIndexRange(0,axis) )
+	  {
+	    intLoc = extendedIndexRange(0,axis);
+	    if( boundaryCondition(Start,axis)>0 && rI[axis]>=-.1*gridSpacing(axis) )
+	    {
+	    }
+	    else
+	    {
+	      extrapolate=true;
+	    }
+	  }
+      
+	  if( intLoc + width- 1 > extendedIndexRange(1,axis) ) 
+	  {
+	    intLoc = extendedIndexRange(1,axis) - width + 1;
+	    if( boundaryCondition(End,axis)>0 && rI[axis]<=1.+.1*gridSpacing(axis) )
+	    {
+	    }
+	    else
+	    {
+	      extrapolate=true;
+	    }
+	  }
+	} 
+	kv[axis]=intLoc;
+
+      } 
+        
+#define MASK2D(k1,k2,k3) (MASK2(k1,k2,k3)>0 ? 1 : MASK2(k1,k2,k3)==0 ? 0 : -1) 
+      if( debug & 4 )
+	fprintf(debugFile,"getInterp: i=%i grid2=%i i=(%i,%i,%i) interpolee=(%i,%i) width=%i r=(%4.2f,%4.2f,%4.2f) : \n",
+                i,grid2,i1,i2,i3,k1,k2, width, rI[0],rI[1],rI[2] );
+
+      if( width==3 )
+      {
+	if( numberOfDimensions==2 )
+	{
+	  if( MASK2(k1  ,k2  ,k3)!=0 && MASK2(k1+1,k2  ,k3)!=0 && MASK2(k1+2,k2  ,k3)!=0 && 
+	      MASK2(k1  ,k2+1,k3)!=0 && MASK2(k1+1,k2+1,k3)!=0 && MASK2(k1+2,k2+1,k3)!=0 && 
+	      MASK2(k1  ,k2+2,k3)!=0 && MASK2(k1+1,k2+2,k3)!=0 && MASK2(k1+2,k2+2,k3)!=0 )
+	  {
+	    notDone=false;
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality;
+	  }
+	  if( debug & 4 )
+	    fprintf(debugFile,"mask =[%i,%i,%i]x[%i,%i,%i]x[%i,%i,%i]\n",
+		    MASK2D(k1,k2  ,k3),MASK2D(k1+1,k2  ,k3),MASK2D(k1+2,k2  ,k3),
+		    MASK2D(k1,k2+1,k3),MASK2D(k1+1,k2+1,k3),MASK2D(k1+2,k2+1,k3),
+		    MASK2D(k1,k2+2,k3),MASK2D(k1+1,k2+2,k3),MASK2D(k1+2,k2+2,k3));
+	}
+	else
+	{
+	  if( MASK2(k1  ,k2  ,k3  )!=0 && MASK2(k1+1,k2  ,k3  )!=0 && MASK2(k1+2,k2  ,k3  )!=0 && 
+	      MASK2(k1  ,k2+1,k3  )!=0 && MASK2(k1+1,k2+1,k3  )!=0 && MASK2(k1+2,k2+1,k3  )!=0 && 
+	      MASK2(k1  ,k2+2,k3  )!=0 && MASK2(k1+1,k2+2,k3  )!=0 && MASK2(k1+2,k2+2,k3  )!=0 &&
+	      MASK2(k1  ,k2  ,k3+1)!=0 && MASK2(k1+1,k2  ,k3+1)!=0 && MASK2(k1+2,k2  ,k3+1)!=0 && 
+	      MASK2(k1  ,k2+1,k3+1)!=0 && MASK2(k1+1,k2+1,k3+1)!=0 && MASK2(k1+2,k2+1,k3+1)!=0 && 
+	      MASK2(k1  ,k2+2,k3+1)!=0 && MASK2(k1+1,k2+2,k3+1)!=0 && MASK2(k1+2,k2+2,k3+1)!=0 &&
+	      MASK2(k1  ,k2  ,k3+2)!=0 && MASK2(k1+1,k2  ,k3+2)!=0 && MASK2(k1+2,k2  ,k3+2)!=0 && 
+	      MASK2(k1  ,k2+1,k3+2)!=0 && MASK2(k1+1,k2+1,k3+2)!=0 && MASK2(k1+2,k2+1,k3+2)!=0 && 
+	      MASK2(k1  ,k2+2,k3+2)!=0 && MASK2(k1+1,k2+2,k3+2)!=0 && MASK2(k1+2,k2+2,k3+2)!=0   
+	    )
+	  {
+	    notDone=false;
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality;
+	  }
+	}
+      
+      }
+      else if( width==2 )
+      {
+	if( numberOfDimensions==2 )
+	{
+	  if( MASK2(k1  ,k2  ,k3)!=0 && MASK2(k1+1,k2  ,k3)!=0 && 
+	      MASK2(k1  ,k2+1,k3)!=0 && MASK2(k1+1,k2+1,k3)!=0 )
+	  {
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality;
+	    notDone=FALSE;
+	  }
+	  if( debug & 4 )
+	    fprintf(debugFile,"mask =[%i,%i]x[%i,%i]\n",
+		    MASK2D(k1,k2  ,k3),MASK2D(k1+1,k2  ,k3),
+		    MASK2D(k1,k2+1,k3),MASK2D(k1+1,k2+1,k3));
+	}
+	else
+	{
+	  if( MASK2(k1  ,k2  ,k3  )!=0 && MASK2(k1+1,k2  ,k3  )!=0 && 
+	      MASK2(k1  ,k2+1,k3  )!=0 && MASK2(k1+1,k2+1,k3  )!=0 && 
+	      MASK2(k1  ,k2  ,k3+1)!=0 && MASK2(k1+1,k2  ,k3+1)!=0 && 
+	      MASK2(k1  ,k2+1,k3+1)!=0 && MASK2(k1+1,k2+1,k3+1)!=0 )
+	  {
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality;
+	    notDone=FALSE;
+	  }
+	}
+      
+      }
+      else if( width==1 )
+      {
+	if( debug & 4 )
+	  fprintf(debugFile, "mask =[%i]\n",MASK2D(k1,k2,k3));
+
+	if( MASK2(k1  ,k2  ,k3)!=0 )
+	{
+	  if( MASK2(k1  ,k2  ,k3)>0 )
+	  {
+	    if( !extrapolate )
+	      status=newQuality;
+	    else
+	      status=canInterpolateWithExtrapolation;
+
+	    printf("INFO: one point interpolation, pt=(%i,(from a discretization pt\n");
+	    printf("    : i=%i : grid2=%i interp:i=(%i,%i,%i) interpolee:kv=(%i,%i,%i)\n",
+		   i,grid2,i1,i2,i3,k1,k2,k3,MASK2D(k1,k2,k3));
+	    if( debug & 2 )
+	    {
+	      fprintf(debugFile,"INFO: one point interpolation, pt=(%i,(from a discretization pt\n");
+	      fprintf(debugFile,"    : i=%i : grid2=%i interp:i=(%i,%i,%i) interpolee:kv=(%i,%i,%i)\n"
+		      "    : mask2 = %i %i %i %i\n",
+		      i,grid2,i1,i2,i3,k1,k2,k3,MASK2D(k1,k2,k3),MASK2D(k1+1,k2,k3),MASK2D(k1,k2+1,k3),
+		      MASK2D(k1+1,k2+1,k3));
+	    }
+	  
+	  }
+	  else
+	  {
+	    status=canInterpolateQualityBad;
+
+	    if( debug & 4 )
+	      fprintf(debugFile,"exposed:WARNING: i=%i : grid2=%i i=(%i,%i,%i) kv=(%i,%i) "
+		      "one pt interp. from interp pt, mask =[%i]\n",
+		      i,grid2,i1,i2,i3,k1,k2,MASK2D(k1,k2,k3));
+
+	  }
+	  notDone=FALSE;
+	}
+	else
+	{
+	  // closest point could not be used for interpolation,
+	  // find a nearby point.                      **** do better here ****
+	  if( debug & 4 )
+	  {
+	    fprintf(debugFile,"  ... unable to interpolate from nearest point! Now look for a valid neigbour\n");
+	    printf("  ... unable to interpolate from nearest point! Now look for a valid neigbour\n");
+	  }
+	
+	  const int m3Start=numberOfDimensions<3 ? 0 : -1;
+	  const int m3End  =numberOfDimensions<3 ? 0 : +1;
+	  for( int m3=m3Start; m3<=m3End && notDone; m3++ )
+	  {
+	    for( int m2=-1; m2<=1 && notDone ; m2++ )
+	    {
+	      for( int m1=-1; m1<=1 && notDone ; m1++ )
+	      {
+		if( MASK2(k1+m1,k2+m2,k3+m3)!=0 )
+		{
+		  k1+=m1;
+		  k2+=m2;
+		  k3+=m3;
+                  if( debug & 4 )
+		    fprintf(debugFile,"  ... can interpolate badly from a nearby point. Try to fix..\n");
+		  status=canInterpolateQualityBad;
+		  notDone=FALSE;
+		  break;
+		}
+	      }
+	    }
+	  }
+	  if( notDone )
+	  {
+	    if( debug & 4 )
+	    {
+	      fprintf(debugFile,"  ... unable to interpolate from nearest point and there is no valid neighbour\n");
+	      printf("  ... unable to interpolate from nearest point and there is no valid neighbour\n");
+	    }
+	  
+	    status=canNotInterpolate;
+
+	    return status;
+	  
+	  }
+	}
+      }
+      else if( width==5 )
+      {
+#define MASK2_W5A(k1,k2,k3)\
+  MASK2(k1,k2,k3)!=0 && MASK2(k1+1,k2,k3)!=0 && MASK2(k1+2,k2,k3)!=0 && MASK2(k1+3,k2,k3)!=0 && MASK2(k1+4,k2,k3)!=0
+
+#define MASK2_W5B(k1,k2,k3)\
+  MASK2_W5A(k1,k2,k3) && MASK2_W5A(k1,k2+1,k3) && MASK2_W5A(k1,k2+2,k3) && \
+  MASK2_W5A(k1,k2+3,k3) && MASK2_W5A(k1,k2+4,k3)  
+
+#define MASK2_W5C(k1,k2,k3)\
+  MASK2_W5B(k1,k2,k3) && MASK2_W5B(k1,k2,k3+1) && MASK2_W5B(k1,k2,k3+2) && \
+  MASK2_W5B(k1,k2,k3+3) && MASK2_W5B(k1,k2,k3+4)  
+
+	if( numberOfDimensions==2 )
+	{
+	  if( MASK2_W5B(k1,k2,k3) )
+	  {
+	    notDone=FALSE;
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality;
+	  }
+	  if( debug & 4 )
+	    fprintf(debugFile,"mask =[%i,%i,%i]x[%i,%i,%i]x[%i,%i,%i]\n",
+		    MASK2D(k1,k2  ,k3),MASK2D(k1+1,k2  ,k3),MASK2D(k1+2,k2  ,k3),
+		    MASK2D(k1,k2+1,k3),MASK2D(k1+1,k2+1,k3),MASK2D(k1+2,k2+1,k3),
+		    MASK2D(k1,k2+2,k3),MASK2D(k1+1,k2+2,k3),MASK2D(k1+2,k2+2,k3));
+	}
+	else
+	{
+	  if( MASK2_W5C(k1,k2,k3) )
+	  {
+	    notDone=FALSE;
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality;
+	  }
+	}
+      
+      }
+      else if( width==4 )
+      {
+#define MASK2_W4A(k1,k2,k3)\
+  MASK2(k1,k2,k3)!=0 && MASK2(k1+1,k2,k3)!=0 && MASK2(k1+2,k2,k3)!=0 && MASK2(k1+3,k2,k3)!=0
+
+#define MASK2_W4B(k1,k2,k3)\
+  MASK2_W4A(k1,k2,k3) && MASK2_W4A(k1,k2+1,k3) && MASK2_W4A(k1,k2+2,k3) && MASK2_W4A(k1,k2+3,k3) 
+
+#define MASK2_W4C(k1,k2,k3)\
+  MASK2_W4B(k1,k2,k3) && MASK2_W4B(k1,k2,k3+1) && MASK2_W4B(k1,k2,k3+2) && MASK2_W4B(k1,k2,k3+3) 
+
+	if( numberOfDimensions==2 )
+	{
+	  if( MASK2_W4B(k1,k2,k3) )
+	  {
+	    notDone=FALSE;
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality; 
+	  }
+	  if( debug & 4 )
+	    fprintf(debugFile,"mask =[%i,%i,%i]x[%i,%i,%i]x[%i,%i,%i]\n",
+		    MASK2D(k1,k2  ,k3),MASK2D(k1+1,k2  ,k3),MASK2D(k1+2,k2  ,k3),
+		    MASK2D(k1,k2+1,k3),MASK2D(k1+1,k2+1,k3),MASK2D(k1+2,k2+1,k3),
+		    MASK2D(k1,k2+2,k3),MASK2D(k1+1,k2+2,k3),MASK2D(k1+2,k2+2,k3));
+	}
+	else
+	{
+	  if( MASK2_W4C(k1,k2,k3) )
+	  {
+	    notDone=FALSE;
+	    status=extrapolate ? canInterpolateWithExtrapolation : newQuality; 
+	  }
+	}
+      
+      }
+      else
+      {
+	printf("exposed:getInterpolationStencil:ERROR: unexpected width of interpolation = %i\n",width);
+	Overture::abort();
+      }
+    
+      width--;
+
+    }  // end while notDone and width>0
+  
+
+//      real rDist=0.;
+//      for( axis=0; axis<numberOfDimensions; axis++ )
+//      {
+//        real dr=rI[axis]/gridSpacing(axis) + indexRange(0,axis) -jv[axis];
+//        rDist+=SQR(dr);
+//        // ** interpoleeLocation(i,axis) = kv[axis];
+//      }
+//      rDist=sqrt(rDist);
+//      if( (MASK2(j1,j2,j3) & MappedGrid::ISinterpolationPoint) && rDist < .05 )
+//      {
+//        if( debug & 4 )
+//  	fprintf(debugFile,"buildExtraLevels:INFO: interpolation stencil is too implicit: rDist=%6.2e\n",rDist);
+
+//        status=canNotInterpolate;
+//      }
+
+    if( status<interpolationQuality(i) )
+    {
+      // Fill in interpolation-data if this is a better quality interpolation
+
+      interpoleeGrid(i)=grid2;
+      variableInterpolationWidth(i)=width+1;
+      for( axis=0; axis<numberOfDimensions; axis++ )
+      {
+	interpolationPoint(i,axis)=ia(i,axis); 
+	interpolationCoordinates(i,axis)=rI[axis];
+	interpoleeLocation(i,axis) = kv[axis];
+      }
+
+      interpolationQuality(i)=status;
+    }
+    
+
+  } // end for j
+  
+  return 0;
+}
+
+#undef indexRange
+#undef extendedIndexRange
+#undef boundaryCondition
+#undef gridSpacing
+
+
+//! Check to see if a point x can interpolate from gridI with a better quality interpolation
+/*!
+ /param gridI (input): try interpolating from this grid. 
+ /param interpolationQuality (input/output) : on input the current quality, on output the new quality
+ /param inverseGrid, inverseCoordinates (input/output) :
+*/
+int ExposedPoints::
+checkForBetterQualityInterpolation( CompositeGrid & cg1, const int gridI, const int numToCheck, 
+                                    IntegerArray & ia, IntegerArray & ic, 
+                                    const RealArray & x, 
+				    IntegerArray & interpolationQuality,
+				    IntegerArray & interpoleeGrid,
+				    IntegerArray & interpoleeLocation,
+				    IntegerArray & interpolationPoint,
+				    IntegerArray & variableInterpolationWidth,
+				    RealArray & interpolationCoordinates )
+{
+  assert( gridI>=0 && gridI<cg1.numberOfComponentGrids());
+		
+  // invert mapping to get coordinates of the new interpolation pt. 
+  MappedGrid & gI = cg1[gridI];
+  const int numberOfDimensions=cg1.numberOfDimensions();
+
+  Range R=numToCheck, Rx=numberOfDimensions;
+  RealArray r(numToCheck,numberOfDimensions);
+  r=-1.;
+  Mapping & mapI = gI.mapping().getMapping();
+  mapI.useRobustInverse(true);
+  #ifdef USE_PPP
+    mapI.inverseMapS(x(R,Rx),r);
+  #else
+    mapI.inverseMap(x(R,Rx),r);
+  #endif
+
+  if( debug & 4 )
+    display(r," r from checkForBetterQuality","%5.2f ");
+
+  // If the inverse failed we could look for the nearest grid point *****
+
+  getInterpolationStencil(cg1,gridI,numToCheck,ia,ic,r,
+			  interpolationQuality,
+			  interpoleeGrid,
+			  interpoleeLocation,
+			  interpolationPoint,
+			  variableInterpolationWidth,
+			  interpolationCoordinates );
+
+  return 0;
+}
+
+
+
+
+
+
+int ExposedPoints::
+interpolatePoints(const realCompositeGridFunction & u,
+		  RealArray & uInterpolated_, 
+		  int *numDonor, const IntegerArray & ia_, const IntegerArray *ib, 
+		  const IntegerArray & interpoleeGrid_,
+		  const IntegerArray & interpoleeLocation_,
+		  const IntegerArray & interpolationPoint_,
+		  const IntegerArray & variableInterpolationWidth_,
+		  const RealArray & interpolationCoordinates_,
+		  const Range & R0 /* =nullRange */,           
+		  const Range & R1 /* =nullRange */,
+		  const Range & R2 /* =nullRange */,
+		  const Range & R3 /* =nullRange */,
+		  const Range & R4 /* =nullRange */ )
+//=======================================================================================================
+//  /Description:
+//    Given some points in space, determine the values of a grid function u. If interpolation
+//    is not possible then extrapolate from the nearest grid point. The extrapolation is zero-order
+//    so that the value is just set equal to the value from the boundary.
+//  /u (input): interpolate values from this grid function
+//  /uInterpolated (output): uInterpolated(0:numberOfPointsToInterpolate-1,R0,R1,R2,R3,R4) : interpolated
+//      values
+//  /R0,R1,...,R4 (input): interpolate these components of the grid function. R0 is the range of values for
+//     the first component of u, R1 the values for the second component, etc. By default all components
+//      of u are interpolated.
+// ==========================================================================================================
+{
+  // ***************************************************
+  // ****** Interpolate points given the stencil *******
+  // ***************************************************
+  CompositeGrid & cg = *u.getCompositeGrid();
+
+  const int numberOfDimensions = cg.numberOfDimensions();
+  const int numberOfComponentGrids = cg.numberOfComponentGrids();
+
+  // determine component ranges to use:
+  Range Ra[5] = {R0,R1,R2,R3,R4};  
+  int i;
+  for( i=0; i<5; i++ )
+  {
+    if( Ra[i].length()<=0 ) //     if( Ra[i]==nullRange )
+      Ra[i] = Range(u.getComponentBase(i),u.getComponentBound(i));  
+    else if( Ra[i].getBase()<u.getComponentBase(i) || Ra[i].getBound()>u.getComponentBound(i) )
+    {
+      cout << "interpolatePoints:ERROR: the component Range R" << i << " is out of range! \n";
+      printf("R%i =(%i,%i) but the dimensions for component %i of u are (%i,%i) \n",i,
+	     Ra[i].getBase(),Ra[i].getBound(),i,u.getComponentBase(i),u.getComponentBound(i));
+      Overture::abort("error");
+    }
+    else if( i<3 && (Ra[i].getBase()<uInterpolated_.getBase(i+1) || Ra[i].getBound()>uInterpolated_.getBound(i+1)) )
+    {
+      cout << "interpolatePoints:ERROR: the component Range R" << i << " is out of range! \n";
+      printf("R%i =(%i,%i) but the dimensions for index %i of uInterpolated_ are (%i,%i) \n",i,
+	     Ra[i].getBase(),Ra[i].getBound(),i+1,uInterpolated_.getBase(i+1),uInterpolated_.getBound(i+1));
+      Overture::abort("error");
+    }
+  }
+
+  const int c0Base=Ra[0].getBase(), c0Bound=Ra[0].getBound();
+  
+
+  for( int grid=0; grid<numberOfComponentGrids; grid++ )
+  {
+    // interpolate from this grid.
+
+    const int num=numDonor[grid]; 
+    if( num>0 )
+    {
+      // printf("----interpolatePointsNew: interp %i points from grid %i\n",num,grid);
+
+      MappedGrid & mg = cg[grid];
+      const int *gid_ = mg.gridIndexRange().Array_Descriptor.Array_View_Pointer1;
+#define gid(side,axis) gid_[(side)+2*(axis)]      
+      
+      const realArray & ug = u[grid];
+      const real dr[3]={mg.gridSpacing(0),mg.gridSpacing(1),mg.gridSpacing(2)}; //
+
+
+      const int *iap = ia_.Array_Descriptor.Array_View_Pointer0;
+#define ia(i0) iap[i0]
+
+      const int *ipp = interpolationPoint_.Array_Descriptor.Array_View_Pointer1;
+      const int ipDim0=interpolationPoint_.getRawDataSize(0);
+#define ip(i0,i1) ipp[i0+ipDim0*(i1)]
+
+      const int *interpoleeLocationp = interpoleeLocation_.Array_Descriptor.Array_View_Pointer1;
+      const int interpoleeLocationDim0=interpoleeLocation_.getRawDataSize(0);
+#define interpoleeLocation(i0,i1) interpoleeLocationp[i0+interpoleeLocationDim0*(i1)]
+
+      const int *variableInterpolationWidthp = variableInterpolationWidth_.Array_Descriptor.Array_View_Pointer0;
+#define variableInterpolationWidth(i0) variableInterpolationWidthp[i0]
+
+      const int *interpoleeGridp = interpoleeGrid_.Array_Descriptor.Array_View_Pointer1;
+      const int interpoleeGridDim0=interpoleeGrid_.getRawDataSize(0);
+#define interpoleeGrid(i0,i1) interpoleeGridp[i0+interpoleeGridDim0*(i1)]
+
+      real *interpolationCoordinatesp = interpolationCoordinates_.Array_Descriptor.Array_View_Pointer1;
+      const int interpolationCoordinatesDim0=interpolationCoordinates_.getRawDataSize(0);
+#define interpolationCoordinates(i0,i1) interpolationCoordinatesp[i0+interpolationCoordinatesDim0*(i1)]
+
+      real *uInterpolatedp = uInterpolated_.Array_Descriptor.Array_View_Pointer1;
+      const int uInterpolatedDim0=uInterpolated_.getRawDataSize(0);
+#define uInterpolated(i0,i1) uInterpolatedp[i0+uInterpolatedDim0*(i1)]
+
+
+      if( numberOfDimensions==2 )
+      {
+	const real *ugp = ug.Array_Descriptor.Array_View_Pointer2;
+	const int ugDim0=ug.getRawDataSize(0);
+	const int ugDim1=ug.getRawDataSize(1);
+#define UG(i0,i1,i2) ugp[i0+ugDim0*(i1+ugDim1*(i2))]
+
+        const IntegerArray & ibg = ib[grid];
+
+	for( int j=0; j<numDonor[grid]; j++ )
+	{
+	  const int i=ibg(j);
+
+          const int i1=interpoleeLocation(i,0);
+	  const int i2=interpoleeLocation(i,1);
+
+          const real dr0 = interpolationCoordinates(i,0)/dr[0]+ gid(0,0) -i1 ;
+          const real dr1 = interpolationCoordinates(i,1)/dr[1]+ gid(0,1) -i2;
+	  
+
+          int width=variableInterpolationWidth(i);
+	  
+          switch (width)
+	  {
+	  case 2:
+	  {
+	    for( int c0=c0Base; c0<=c0Bound; c0++ ) 
+	    {
+	      uInterpolated(i,c0)= 
+		(1.-dr1)*( (1.-dr0)*UG(i1  ,i2  ,c0) +dr0 *UG(i1+1,i2  ,c0))
+		+ dr1   *( (1.-dr0)*UG(i1  ,i2+1,c0) +dr0 *UG(i1+1,i2+1,c0));
+	    }
+            break;
+	  }
+	  case 3:
+	  {
+            // *** bi-quadratic interpolation ***
+            // printf(" bi-quadratic: i=%3i dr0=%9.3e dr1=%9.3e\n",i,dr0,dr1);
+	    
+
+#define Q31(i1,i2,i3) ( .5*(1.-dr0)*(2.-dr0)*UG(i1  ,i2,c0)+\
+                               dr0 *(2.-dr0)*UG(i1+1,i2,c0)\
+                       -.5*(1.-dr0)*    dr0 *UG(i1+2,i2,c0) )
+
+#define Q32(i1,i2,i3) (.5*(1.-dr1)*(2.-dr1)*Q31(i1,i2  ,i3) \
+		         +    dr1 *(2.-dr1)*Q31(i1,i2+1,i3) \
+		      -.5*(1.-dr1)*    dr1 *Q31(i1,i2+2,i3))
+
+#define Q33(i1,i2,i3) (.5*(1.-dr2)*(2.-dr2)*Q32(i1,i2,i3  ) \
+		         +    dr2 *(2.-dr2)*Q32(i1,i2,i3+1) \
+		      -.5*(1.-dr2)*    dr2 *Q32(i1,i2,i3+2))
+
+	    for( int c0=c0Base; c0<=c0Bound; c0++ ) 
+	    {
+	      uInterpolated(i,c0)=Q32(i1,i2,i3);
+	    }
+
+	    break;
+	  }
+          case 1:
+	  {
+	    for( int c0=c0Base; c0<=c0Bound; c0++ ) 
+	    {
+	      uInterpolated(i,c0)=UG(i1,i2,c0); 
+	    }
+            break;
+	  }
+          default:
+            printf("ExposedPoints:ERROR: interpolationWidth=%i not implemented!\n",width);
+	    Overture::abort("error");
+	    break;
+	  }
+	}
+      }
+      else // 3D
+      {
+	const real *ugp = ug.Array_Descriptor.Array_View_Pointer3;
+	const int ugDim0=ug.getRawDataSize(0);
+	const int ugDim1=ug.getRawDataSize(1);
+	const int ugDim2=ug.getRawDataSize(2);
+#undef UG
+#define UG(i0,i1,i2,i3) ugp[i0+ugDim0*(i1+ugDim1*(i2+ugDim2*(i3)))]
+#undef Q31
+#define Q31(i1,i2,i3) ( .5*(1.-dr0)*(2.-dr0)*UG(i1  ,i2,i3,c0)+\
+                                dr0*(2.-dr0)*UG(i1+1,i2,i3,c0)\
+                       -.5*(1.-dr0)*    dr0 *UG(i1+2,i2,i3,c0) )
+
+        const IntegerArray & ibg = ib[grid];
+	for( int j=0; j<numDonor[grid]; j++ )
+	{
+	  const int i=ibg(j);
+
+          int i1=interpoleeLocation(i,0);
+	  int i2=interpoleeLocation(i,1);
+	  int i3=interpoleeLocation(i,2);
+
+          const real dr0 = interpolationCoordinates(i,0)/dr[0]+ gid(0,0) -i1 ;
+          const real dr1 = interpolationCoordinates(i,1)/dr[1]+ gid(0,1) -i2;
+          const real dr2 = interpolationCoordinates(i,2)/dr[2]+ gid(0,2) -i3;
+
+          int width=variableInterpolationWidth(i);
+	  
+          switch (width)
+	  {
+	  case 2:
+	  {
+	    for( int c0=c0Base; c0<=c0Bound; c0++ ) 
+	    {
+	      uInterpolated(i,c0)= 
+                (1.-dr2)*( (1.-dr1)*((1.-dr0)*UG(i1  ,i2  ,i3  ,c0) +dr0 *UG(i1+1,i2  ,i3  ,c0))
+	                     + dr1 *((1.-dr0)*UG(i1  ,i2+1,i3  ,c0) +dr0 *UG(i1+1,i2+1,i3  ,c0)) )
+                + dr2*(    (1.-dr1)*((1.-dr0)*UG(i1  ,i2  ,i3+1,c0) +dr0 *UG(i1+1,i2  ,i3+1,c0))
+	                     + dr1 *((1.-dr0)*UG(i1  ,i2+1,i3+1,c0) +dr0 *UG(i1+1,i2+1,i3+1,c0)) );
+	    }
+	    break;
+	  }
+	  case 3:
+	  {
+	    for( int c0=c0Base; c0<=c0Bound; c0++ ) 
+	    {
+	      uInterpolated(i,c0)=Q33(i1,i2,i3);
+	    }
+	    break;
+	  }
+          case 1:
+	  {
+	    for( int c0=c0Base; c0<=c0Bound; c0++ ) 
+	    {
+	      uInterpolated(i,c0)=UG(i1,i2,i3,c0); 
+	    }
+	    break;
+	  }
+          default:
+            printf("ExposedPoints:ERROR: interpolationWidth=%i not implemented!\n",width);
+	    Overture::abort("error");
+	    break;
+	  }
+	}
+ 
+      } // end 3D
+    } // end if num>0
+  } // end for grid
+  
+  return 0;
+  
+}
+
+
+#undef IP
+#undef uInterpolated
+#undef interpoleeGrid
+#undef interpoleeLocation
+#undef interpolationCoordinates
+#undef variableInterpolationWidth
+#undef ia
+#undef gid
+
+
+// Save the two grids when an error occurs
+#beginMacro saveGrids()
+
+  printf(" I am going to save the two CompositeGrid's so they can be used with the ExposedPoints test routine\n");
+  
+  for( int m=0; m<2; m++ )
+  {
+    CompositeGrid & cg = m==0 ? cg1 : cg2;
+    
+    aString gridFileName = m==0 ? "cg1Exposed.hdf" : "cg2Exposed.hdf";
+    printf("Saving the CompositeGrid %i in file %s\n",m+1,(const char*)gridFileName);
+
+    HDF_DataBase dataFile;
+    dataFile.mount(gridFileName,"I");
+
+    int streamMode=1; // save in compressed form.
+    dataFile.put(streamMode,"streamMode");
+    if( !streamMode )
+      dataFile.setMode(GenericDataBase::noStreamMode); // this is now the default
+    else
+    {
+      dataFile.setMode(GenericDataBase::normalMode); // need to reset if in noStreamMode
+    }
+          
+    const aString gridName="movingGrid";
+    cg.put(dataFile,gridName);
+   
+    dataFile.unmount();
+  }
+#endMacro
+
+
+
+
+
+// find a nearby interpolation point so we can guess a donor grid for interpolation
+#beginMacro findInterp(j1a,j1b,j2a,j2b,j3a,j3b)
+
+if( !useIPOG )
+{
+  // -- ipog does not currently use a guess for the donor ---
+
+ interpPoint=-1;
+ for( j3=j3a; j3<=j3b && interpPoint<0 ; j3++)
+ for( j2=j2a; j2<=j2b && interpPoint<0 ; j2++)
+ for( j1=j1a; j1<=j1b; j1++)
+ {
+   if( mask1(j1,j2,j3)<0 )  // note: use mask1 here (only mask1 is marked with interp pt's)
+   {
+     interpPoint=-mask1(j1,j2,j3)-1;
+     // make sure we have found an interp point that was marked.
+     if( interpPoint>=0 && interpPoint<numberOfInterpolationPoints )
+       break;  
+     else
+       interpPoint=-1;
+   }
+ }
+ if( interpPoint<0 )
+ {
+   // look in a wider stencil -- there must be an interp point somewhere nearby an exposed point!
+   // *wdh* 050708 For AMR grids We may have to look many points away to find a neighbour due to the hole
+   // marking scheme for amr grids
+   // const int maxExtraWidth=5;  *wdh* 050708
+
+   const int maxExtraWidth=max(n1b-n1a,n2b-n2a,n3b-n3a)+1;
+
+   for( int k=1; k<maxExtraWidth; k++ )
+   { // increase original box by k lines and look for an interp. pt.
+     int k3a=max(n3a,j3a-k), k3b=min(n3b,j3b+k);
+     int k2a=max(n2a,j2a-k), k2b=min(n2b,j2b+k);
+     int k1a=max(n1a,j1a-k), k1b=min(n1b,j1b+k);
+     for( int k3=k3a; k3<=k3b && interpPoint<0 ; k3++)
+     for( int k2=k2a; k2<=k2b && interpPoint<0 ; k2++)
+     for( int k1=k1a; k1<=k1b; k1++)
+     {
+       if( mask1(k1,k2,k3)<0 )  // note: use mask1 here (only mask1 is marked with interp pt's)
+       {
+         interpPoint=-mask1(k1,k2,k3)-1;
+         // make sure we have found an interp point that was marked.
+         if( interpPoint>=0 && interpPoint<numberOfInterpolationPoints )
+           break;  
+         else
+           interpPoint=-1;
+       }
+     }
+   }
+ }
+ if( interpPoint<0 )
+ {
+   printf("Exposed:findInterp:ERROR: unable to find a neighbouring interp pt!\n"
+          " grid=%i, i1,i2,i3=%i,%i,%i check box=[%i,%i][%i,%i][%i,%i]\n",grid,i1,i2,i3,j1a,j1b,j2a,j2b,j3a,j3b);
+
+   printf(" refinement level number=%i \n",cg1.refinementLevelNumber(grid));
+   printf(" grid bounds: [n1a,n1b][n2a,n2b][n3a,n3b]=[%i,%i][%i,%i][%i,%i]\n",n1a,n1b,n2a,n2b,n3a,n3b);
+   
+   
+   for( j3=j3a; j3<=j3b && interpPoint<0 ; j3++)
+   for( j2=j2a; j2<=j2b && interpPoint<0 ; j2++)
+   for( j1=j1a; j1<=j1b; j1++)
+   {
+     printf(" ...j=%i,%i,%i, mask1=%i interPoint=%i ? (mask2=%i)\n",j1,j2,j3,mask1(j1,j2,j3),-mask1(j1,j2,j3)-1,
+       mask2(j1,j2,j3));
+   }
+
+   displayMask(mask1_,"Here is mask1");
+   displayMask(mask2_,"Here is mask2");
+   
+
+   saveGrids();
+
+   Overture::abort("ERROR: This shouldn't happen.");
+   
+
+ }
+
+ ia(numberOfExposedPoints,3)=interpPoint; 
+ if( interpPoint>=0 && interpPoint<numberOfInterpolationPoints ) 
+   numDonor[interpoleeGrid(interpPoint)]++;
+ else
+   numDonor[numberOfComponentGrids]++;
+ 
+}
+else
+{
+  // ipog case
+  numDonor[numberOfComponentGrids]++;  // is this needed?
+}
+
+#endMacro
+
+#beginMacro FIND_EXPOSED_POINT( BOOLEAN_OP )
+
+        if( exposedPointType==exposedPointIsNeededForDiscretization )
+	{
+          // **************************************************************************
+	  // ****** Find exposed points on cg1 that are needed for discretization *****
+          // **************************************************************************
+	  if( numberOfDimensions==2 )
+	  {
+	    j3=i3;
+	    if( widthOfTheBorder==1 )
+	    {
+	      FOR_2D(i1,i2,I1,I2)
+	      {
+		if( mask1(i1,i2,i3)==0 )
+		{
+		  // avoid looking at neighbours that are outside the array dimensions:
+		  i1m1=minmax1(i1-1); i1p1=minmax1(i1+1); i1z=minmax1(i1);
+		  i2m1=minmax2(i2-1); i2p1=minmax2(i2+1); i2z=minmax2(i2);
+		
+		  if( mask2(i1m1,i2m1,i3z) BOOLEAN_OP 0 || mask2(i1z ,i2m1,i3z) BOOLEAN_OP 0 || mask2(i1p1,i2m1,i3z) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2z ,i3z) BOOLEAN_OP 0 || mask2(i1z ,i2z ,i3z) BOOLEAN_OP 0 || mask2(i1p1,i2z ,i3z) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2p1,i3z) BOOLEAN_OP 0 || mask2(i1z ,i2p1,i3z) BOOLEAN_OP 0 || mask2(i1p1,i2p1,i3z) BOOLEAN_OP 0 )
+		  {
+		    ia(numberOfExposedPoints,0)=i1;
+		    ia(numberOfExposedPoints,1)=i2;
+		    ia(numberOfExposedPoints,2)=i3;
+		    // find a nearby interpolation point so we can guess a donor grid for interpolation
+		    findInterp(i1m1,i1p1,i2m1,i2p1,i3z,i3z);
+		  
+		    ia(numberOfExposedPoints,4)=grid;
+		    numberOfExposedPoints++;
+		    numPerGrid++;
+		  }
+		}
+	      }
+	    }
+	    else if( widthOfTheBorder==2 && assumeInterpolationNeighboursAreAssigned )
+	    {
+	      // In this case we assume the first layer of unused points is assigned and we 
+	      // only need to assign the second line
+	      //
+	      //             X-X-X-X-X
+	      //             X-N-N-N-X
+	      //             X-N-P-N-X    N = potential interpolation neighbours that are aasigned
+	      //             X-N-N-N-X    X = check for these points only
+	      //             X-X-X-X-X
+	      //
+	      //   
+	      FOR_2D(i1,i2,I1,I2)
+	      {
+              
+		if( mask1(i1,i2,i3)==0 )
+		{
+		  // avoid looking at neighbours that are outside the array dimensions:
+		  i1m1=minmax1(i1-1); i1m2=minmax1(i1-2); i2m1=minmax2(i2-1); i2m2=minmax2(i2-2); 
+		  i1p1=minmax1(i1+1); i1p2=minmax1(i1+2); i2p1=minmax2(i2+1); i2p2=minmax2(i2+2);
+                  i1z=minmax1(i1); i2z=minmax2(i2);
+
+#define MASK5(i2z)  mask2(i1m2,i2z,i3z) BOOLEAN_OP 0 || mask2(i1m1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1z,i2z,i3z) BOOLEAN_OP 0 || \
+                    mask2(i1p1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1p2,i2z,i3z) BOOLEAN_OP 0
+
+#define MASKIN() (mask1(i1m1,i2m1,i3)<0 || mask1(i1  ,i2m1,i3)<0 || mask1(i1p1,i2m1,i3)<0 || \
+		  mask1(i1m1,i2  ,i3)<0 ||                          mask1(i1p1,i2  ,i3)<0 || \
+		  mask1(i1m1,i2p1,i3)<0 || mask1(i1  ,i2p1,i3)<0 || mask1(i1p1,i2p1,i3)<0)
+
+		  if( (MASK5(i2m2) || MASK5(i2m1) || MASK5(i2z) || MASK5(i2p1) || MASK5(i2p2)) &&
+		      ! MASKIN()  ) // if maskin is true then (i1,i2,i3) must be an Interp Neighbour on g1
+		  {
+//                     if( debug & 2 )
+// 		    {
+// 		      printf("Exposed point %i found, i=(%i,%i,%i) box=[%i,%i][%i,%i][%i,%i] i1z,i2z=%i,%i\n",
+// 			     numberOfExposedPoints,i1,i2,i3,i1m2,i1p2,i2m2,i2p2,i3m2,i3p2,i1z,i2z);
+//                       if( MASK5(i2m2) ) printf("  MASK5(i2m2) true\n");
+//                       if( MASK5(i2m1) ) printf("  MASK5(i2m1) true\n");
+//                       if( MASK5(i2z ) ) printf("  MASK5(i2z ) true\n");
+//                       if( MASK5(i2p1) ) printf("  MASK5(i2p1) true\n");
+//                       if( MASK5(i2p2) ) printf("  MASK5(i2p2) true\n");
+		      
+
+// 		    }
+
+		    ia(numberOfExposedPoints,0)=i1;
+		    ia(numberOfExposedPoints,1)=i2;
+		    ia(numberOfExposedPoints,2)=i3;
+		    // find a nearby interpolation point so we can guess a donor grid for interpolation
+		    findInterp(i1m2,i1p2,i2m2,i2p2,i3z,i3z);
+
+		    ia(numberOfExposedPoints,4)=grid;
+		    numberOfExposedPoints++;
+		    numPerGrid++;
+		  }
+		}
+	      }
+#undef MASK5
+#undef MASKIN
+	    }
+	    else if( widthOfTheBorder==2 )
+	    {
+	    
+	      FOR_2D(i1,i2,I1,I2)
+	      {
+              
+		if( mask1(i1,i2,i3)==0 )
+		{
+		  // avoid looking at neighbours that are outside the array dimensions:
+		  i1m1=minmax1(i1-1); i1m2=minmax1(i1-2); i2m1=minmax2(i2-1); i2m2=minmax2(i2-2);
+		  i1p1=minmax1(i1+1); i1p2=minmax1(i1+2); i2p1=minmax2(i2+1); i2p2=minmax2(i2+2);
+                  i1z=minmax1(i1); i2z=minmax2(i2);
+
+#define MASK5(i2z) mask2(i1m2,i2z,i3z) BOOLEAN_OP 0 || mask2(i1m1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1z,i2z,i3z) BOOLEAN_OP 0 || \
+                   mask2(i1p1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1p2,i2z,i3z) BOOLEAN_OP 0
+
+		  if( MASK5(i2m2) || MASK5(i2m1) || MASK5(i2z) || MASK5(i2p1) || MASK5(i2p2) )
+		  {
+		    ia(numberOfExposedPoints,0)=i1;
+		    ia(numberOfExposedPoints,1)=i2;
+		    ia(numberOfExposedPoints,2)=i3;
+		    // find a nearby interpolation point so we can guess a donor grid for interpolation
+		    findInterp(i1m2,i1p2,i2m2,i2p2,i3z,i3z);
+
+		    ia(numberOfExposedPoints,4)=grid;
+		    numberOfExposedPoints++;
+		    numPerGrid++;
+		  }
+		}
+	      }
+#undef MASK5
+	    }
+	    else
+	    {
+	      printf("ExposedPoints::ERROR: widthOfTheBorder=%i : not implemented\n",widthOfTheBorder);
+	      Overture::abort("error");
+	    }
+	  
+	  }
+	  else // 3D
+	  {
+	    if( widthOfTheBorder==1 )
+	    {
+	      FOR_2D(i1,i2,I1,I2)
+	      {
+		if( mask1(i1,i2,i3)==0 )
+		{
+		  // avoid looking at neighbours that are outside the array dimensions:
+		  i1m1=minmax1(i1-1); i1p1=minmax1(i1+1); 
+		  i2m1=minmax2(i2-1); i2p1=minmax2(i2+1); 
+                  i1z =minmax1(i1);   i2z =minmax2(i2);
+
+		  if( mask2(i1m1,i2m1,i3m1) BOOLEAN_OP 0 || mask2(i1z ,i2m1,i3m1) BOOLEAN_OP 0 || mask2(i1p1,i2m1,i3m1) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2z ,i3m1) BOOLEAN_OP 0 || mask2(i1z ,i2z ,i3m1) BOOLEAN_OP 0 || mask2(i1p1,i2z ,i3m1) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2p1,i3m1) BOOLEAN_OP 0 || mask2(i1z ,i2p1,i3m1) BOOLEAN_OP 0 || mask2(i1p1,i2p1,i3m1) BOOLEAN_OP 0 ||
+		      mask2(i1m1,i2m1,i3z ) BOOLEAN_OP 0 || mask2(i1z ,i2m1,i3z ) BOOLEAN_OP 0 || mask2(i1p1,i2m1,i3z ) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2z ,i3z ) BOOLEAN_OP 0 || mask2(i1z ,i2z ,i3z ) BOOLEAN_OP 0 || mask2(i1p1,i2z ,i3z ) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2p1,i3z ) BOOLEAN_OP 0 || mask2(i1z ,i2p1,i3z ) BOOLEAN_OP 0 || mask2(i1p1,i2p1,i3z ) BOOLEAN_OP 0 ||
+		      mask2(i1m1,i2m1,i3p1) BOOLEAN_OP 0 || mask2(i1z ,i2m1,i3p1) BOOLEAN_OP 0 || mask2(i1p1,i2m1,i3p1) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2z ,i3p1) BOOLEAN_OP 0 || mask2(i1z ,i2z ,i3p1) BOOLEAN_OP 0 || mask2(i1p1,i2z ,i3p1) BOOLEAN_OP 0 || 
+		      mask2(i1m1,i2p1,i3p1) BOOLEAN_OP 0 || mask2(i1z ,i2p1,i3p1) BOOLEAN_OP 0 || mask2(i1p1,i2p1,i3p1) BOOLEAN_OP 0 ) 
+		  {
+		    ia(numberOfExposedPoints,0)=i1;
+		    ia(numberOfExposedPoints,1)=i2;
+		    ia(numberOfExposedPoints,2)=i3;
+		    // find a nearby interpolation point so we can guess a donor grid for interpolation
+		    findInterp(i1m1,i1p1,i2m1,i2p1,i3m1,i3p1);
+
+		    ia(numberOfExposedPoints,4)=grid;
+		    numberOfExposedPoints++;
+		    numPerGrid++;
+		  }
+		}
+	      }
+	    }
+	    else if( widthOfTheBorder==2 && assumeInterpolationNeighboursAreAssigned )
+	    {
+	      // In this case we assume the first layer of unused points is assigned and we 
+	      // only need to assign the second line
+	      //
+	      //             X-X-X-X-X
+	      //             X-N-N-N-X
+	      //             X-N-P-N-X    N = potential interpolation neighbours that are aasigned
+	      //             X-N-N-N-X    X = check for these points only
+	      //             X-X-X-X-X
+	      //
+#define MASK5(i2z,i3z) mask2(i1m2,i2z,i3z) BOOLEAN_OP 0 || mask2(i1m1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1z,i2z,i3z) BOOLEAN_OP 0 || \
+                       mask2(i1p1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1p2,i2z,i3z) BOOLEAN_OP 0
+
+#define MASK55(i3z)  MASK5(i2m2,i3z) || MASK5(i2m1,i3z)  || MASK5(i2z,i3z)  || MASK5(i2p1,i3z)  || MASK5(i2p2,i3z)
+
+#define MASKIN() (  mask1(i1m1,i2m1,i3m1)<0 || mask1(i1  ,i2m1,i3m1)<0 || mask1(i1p1,i2m1,i3m1)<0 || \
+		    mask1(i1m1,i2  ,i3m1)<0 || mask1(i1  ,i2  ,i3m1)<0 || mask1(i1p1,i2  ,i3m1)<0 || \
+		    mask1(i1m1,i2p1,i3m1)<0 || mask1(i1  ,i2p1,i3m1)<0 || mask1(i1p1,i2p1,i3m1)<0 || \
+		    mask1(i1m1,i2m1,i3  )<0 || mask1(i1  ,i2m1,i3  )<0 || mask1(i1p1,i2m1,i3  )<0 || \
+		    mask1(i1m1,i2  ,i3  )<0 ||                            mask1(i1p1,i2  ,i3  )<0 || \
+		    mask1(i1m1,i2p1,i3  )<0 || mask1(i1  ,i2p1,i3  )<0 || mask1(i1p1,i2p1,i3  )<0 || \
+		    mask1(i1m1,i2m1,i3p1)<0 || mask1(i1  ,i2m1,i3p1)<0 || mask1(i1p1,i2m1,i3p1)<0 || \
+		    mask1(i1m1,i2  ,i3p1)<0 || mask1(i1  ,i2  ,i3p1)<0 || mask1(i1p1,i2  ,i3p1)<0 || \
+		    mask1(i1m1,i2p1,i3p1)<0 || mask1(i1  ,i2p1,i3p1)<0 || mask1(i1p1,i2p1,i3p1)<0 )
+
+
+	      FOR_2D(i1,i2,I1,I2)
+	      {
+		if( mask1(i1,i2,i3)==0 )
+		{
+		  i1m1=minmax1(i1-1); i1m2=minmax1(i1-2); i2m1=minmax2(i2-1); i2m2=minmax2(i2-2);
+		  i1p1=minmax1(i1+1); i1p2=minmax1(i1+2); i2p1=minmax2(i2+1); i2p2=minmax2(i2+2);
+                  i1z=minmax1(i1); i2z=minmax2(i2);
+
+		  if( (MASK55(i3m2) || MASK55(i3m1) || MASK55(i3z) || MASK55(i3p1) || MASK55(i3p2)) && 
+		      ! MASKIN() )
+		  {
+		    ia(numberOfExposedPoints,0)=i1;
+		    ia(numberOfExposedPoints,1)=i2;
+		    ia(numberOfExposedPoints,2)=i3;
+		    // find a nearby interpolation point so we can guess a donor grid for interpolation
+		    findInterp(i1m2,i1p2,i2m2,i2p2,i3m2,i3p2);
+
+		    ia(numberOfExposedPoints,4)=grid;
+		    numberOfExposedPoints++;
+		    numPerGrid++;
+		  }
+		}
+	      }
+#undef MASK5
+#undef MASK55
+#undef MASKIN
+	    }
+	    else if( widthOfTheBorder==2 )
+	    {
+#define MASK5(i2z,i3z) mask2(i1m2,i2z,i3z) BOOLEAN_OP 0 || mask2(i1m1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1z,i2z,i3z) BOOLEAN_OP 0 || \
+                       mask2(i1p1,i2z,i3z) BOOLEAN_OP 0 || mask2(i1p2,i2z,i3z) BOOLEAN_OP 0
+
+#define MASK55(i3z) MASK5(i2m2,i3z) || MASK5(i2m1,i3z) || MASK5(i2z,i3z) || MASK5(i2p1,i3z) || MASK5(i2p2,i3z)
+
+	      FOR_2D(i1,i2,I1,I2)
+	      {
+		if( mask1(i1,i2,i3)==0 )
+		{
+		  i1m1=minmax1(i1-1); i1m2=minmax1(i1-2); i2m1=minmax2(i2-1); i2m2=minmax2(i2-2);
+		  i1p1=minmax1(i1+1); i1p2=minmax1(i1+2); i2p1=minmax2(i2+1); i2p2=minmax2(i2+2);
+                  i1z=minmax1(i1); i2z=minmax2(i2);
+
+		  if( MASK55(i3m2) || MASK55(i3m1) || MASK55(i3z) || MASK55(i3p1) || MASK55(i3p2) )
+		  {
+		    ia(numberOfExposedPoints,0)=i1;
+		    ia(numberOfExposedPoints,1)=i2;
+		    ia(numberOfExposedPoints,2)=i3;
+		    // find a nearby interpolation point so we can guess a donor grid for interpolation
+		    findInterp(i1m2,i1p2,i2m2,i2p2,i3m2,i3p2);
+		    numberOfExposedPoints++;
+		    numPerGrid++;
+		  }
+		}
+	      }
+#undef MASK5
+#undef MASK55
+
+	    }
+	    else
+	    {
+	      printf("ERROR: widthOfTheBorder=%i : not implemented\n",widthOfTheBorder);
+	      Overture::abort("error");
+	    }
+
+	  }
+	}
+	else if( exposedPointType==exposedDiscretization )
+	{
+          // *****************************************************************************
+	  // ****** Find exposed points on cg1 that are discretization points of cg2 *****
+          // *****************************************************************************
+	  FOR_2D(i1,i2,I1,I2)
+	  {
+	    if( mask1(i1,i2,i3)==0 )
+	    {
+	      if( mask2(i1,i2,i3) BOOLEAN_OP 0 )
+	      {
+		ia(numberOfExposedPoints,0)=i1;
+		ia(numberOfExposedPoints,1)=i2;
+		ia(numberOfExposedPoints,2)=i3;
+
+		// find a nearby interpolation point so we can guess a donor grid for interpolation
+		i1m2=max(n1a,i1-2); i2m2=max(n2a,i2-2);
+		i1p2=min(n1b,i1+2); i2p2=min(n2b,i2+2);
+		findInterp(i1m2,i1p2,i2m2,i2p2,i3m2,i3p2);
+
+		ia(numberOfExposedPoints,4)=grid;
+		numberOfExposedPoints++;
+		numPerGrid++;
+	      }
+	    }
+	  }
+	}
+	else
+	{
+	  printF("ExposedPoints::initialize:ERROR: unexpected value for exposedPointType=%i\n",exposedPointType);
+	  OV_ABORT("error");
+	}
+
+#endMacro
+
+//\begin{>>ExposedPointsInclude.tex}{interpolate}
+int ExposedPoints::
+initialize(CompositeGrid & cg1,  
+	   CompositeGrid & cg2,
+           int stencilWidth /* = -1 */ )
+//===========================================================================
+// /Purpose:
+//   Initialization routine for assign values to exposed points in a moving grid.
+//   Find the exposed points and determine their interpolation stencils.
+//
+//  /cg1 (input): grid and grid function at old time
+//  /cg2 (input): grid at new time
+//  /stencilWidth (input): interpolate enough points to support a discrete stencil of this width.
+//       A second-order centered approximation, for example,  would use stencilWidth=3.
+//       By default stencilWith equals the discretization width defined by the grid.
+//
+//  /Remarks:
+//   Here is a picture of a 1D moving overlapping grid that illustrates the exposed
+//   point on the old grid that requires a value so the solution can be advanced
+//   to the new grid.
+//   \begin{verbatim} 
+//
+//        +---+---+---+---I                       Old grid, point * is unused
+//                 *---I---+---+---+---+          Points marked I are interpolation
+//                 1   2   3   4   5
+//
+//        +---+---+---+---I
+//         move-->   I---+---+---+---+---+        New grid, requires a value on the OLD grid
+//                   1   2   3   4                at point * to compute a derivative at point 2
+//   \end{verbatim} 
+//
+//  /NOTE:
+//    This routine assumes (and checks) that the number of grid points has NOT changed!
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  
+  int returnValue=0;
+
+  isInitialized=true;
+  ipogIsInitialized=false;  // this means we must initialize the ipog object
+  
+  // ** debug=7;
+
+
+// #ifdef USE_PPP
+//   printF(" ****** SKIPPING interpolateExposedPoints initialize -- fix me for parallel ****\n");
+//   return returnValue;
+// #endif
+
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+  const int np=Communication_Manager::numberOfProcessors();
+
+  if( debug>0 && debugFile==NULL )
+  {
+    aString fileName=sPrintF("exposedNP%ip%i.debug",np,myid);
+    debugFile=fopen((const char*)fileName,"w"); // open a different file on each proc.
+    printF("ExposedPoints::initialize: output written to debug file %s\n",(const char*)fileName);
+  }
+
+  if( debug & 1 ) 
+    fprintf(debugFile,"\n =================== interpolateExposedPoints np=%i ====================\n",np);
+  
+  const int numberOfDimensions = cg1.numberOfDimensions();
+  const int numberOfComponentGrids = cg1.numberOfComponentGrids();
+  
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+  int jv[3], &j1=jv[0], &j2=jv[1], &j3=jv[2];      
+  int kv[3], &k1=kv[0], &k2=kv[1], &k3=kv[2];     
+
+  i1=i2=i3=0;
+  j1=j2=j3=0;
+  k1=k2=k3=0;
+
+  numberPerGrid.redim(cg1.numberOfComponentGrids());
+  numberPerGrid=0;
+  
+  ia_.redim(1000,5);
+  int *iap = ia_.Array_Descriptor.Array_View_Pointer1;
+  int iaDim0=ia_.getRawDataSize(0);
+#define ia(i0,i1) iap[i0+iaDim0*(i1)]
+
+  real maxError=0.;
+  
+  numberOfExposedPoints=0;
+  int numberNotFound=0;
+  int grid;
+
+  // counts number of exposed points that interpolate from a given donor grid
+  // numDonor[numberOfComponentGrids] = no donor grid was found
+  delete [] numDonor;
+  numDonor = new int [numberOfComponentGrids+1];
+  for( int grid=0; grid<cg1.numberOfComponentGrids()+1; grid++ )
+  {
+    numDonor[grid]=0;
+  }
+  // arrays to hold mask values at interpolation points:
+  IntegerArray *pSaveMask = new IntegerArray[numberOfComponentGrids];
+  
+  for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+  {
+    MappedGrid & c = cg1[grid];
+    int numPerGrid=0;
+    // *wdh* 2011/07/13 - fixed a bug that occured with a moving grid AMR computation -- a grid with
+    // no valid points after an AMR step becomes active after the grid movies -- we need to check 
+    // whether there are interp. points on the new grid!
+    // if( cg1.numberOfInterpolationPoints(grid)>0 )
+    if( cg1.numberOfInterpolationPoints(grid)>0 || cg2.numberOfInterpolationPoints(grid)>0 )
+    {
+      #ifdef USE_PPP
+        intSerialArray mask1_;  getLocalArrayWithGhostBoundaries(cg1[grid].mask(),mask1_);
+        intSerialArray mask2_;  getLocalArrayWithGhostBoundaries(cg2[grid].mask(),mask2_);
+      #else
+        intArray & mask1_ = cg1[grid].mask();
+        const intArray & mask2_ = cg2[grid].mask();
+      #endif
+  
+      int * mask1p = mask1_.Array_Descriptor.Array_View_Pointer2;
+      int mask1Dim0=mask1_.getRawDataSize(0);
+      int mask1Dim1=mask1_.getRawDataSize(1);
+      #define mask1(i0,i1,i2) mask1p[i0+mask1Dim0*(i1+mask1Dim1*(i2))]
+      const int * mask2p = mask2_.Array_Descriptor.Array_View_Pointer2;
+      const int mask2Dim0=mask2_.getRawDataSize(0);
+      const int mask2Dim1=mask2_.getRawDataSize(1);
+      #define mask2(i0,i1,i2) mask2p[i0+mask2Dim0*(i1+mask2Dim1*(i2))]
+
+      intArray & interpoleeGrid_ = cg1.interpoleeGrid[grid];
+      int *interpoleeGridp = interpoleeGrid_.Array_Descriptor.Array_View_Pointer0;
+      #define interpoleeGrid(i0) interpoleeGridp[i0]
+
+      if( max(abs(cg1[grid].dimension()-cg2[grid].dimension()))!=0 )
+      {
+	printF("interpolateExposedPoints:ERROR: component grids must have the same number of points!\n");
+        char buff[40];
+        cg1[grid].dimension().display(sPrintF(buff,"Here is cg1[%i].dimension()",grid));
+        cg1[grid].indexRange().display(sPrintF(buff,"Here is cg1[%i].indexRange()",grid));
+        cg1[grid].numberOfGhostPoints().display(sPrintF(buff,"Here is cg1[%i].numberOfGhostPoints()",grid));
+        cg2[grid].dimension().display(sPrintF(buff,"Here is cg2[%i].dimension()",grid));
+        cg2[grid].indexRange().display(sPrintF(buff,"Here is cg2[%i].indexRange()",grid));
+        cg2[grid].numberOfGhostPoints().display(sPrintF(buff,"Here is cg2[%i].numberOfGhostPoints()",grid));
+	return 1;
+      }
+
+      // ** put the interpolationPoint values into the mask so that we get an initial guess for the donor grid
+
+      const int numberOfInterpolationPoints= cg1.numberOfInterpolationPoints(grid);
+      intArray & ip_ = cg1.interpolationPoint[grid];
+      int *ipp = ip_.Array_Descriptor.Array_View_Pointer1;
+      int ipDim0=ip_.getRawDataSize(0);
+      #define ip(i0,i1) ipp[i0+ipDim0*(i1)]
+
+      if( !useIPOG )
+      {
+        pSaveMask[grid].redim(numberOfInterpolationPoints);
+
+        int *saveMaskp = pSaveMask[grid].Array_Descriptor.Array_View_Pointer0;
+        #define saveMask(i0) saveMaskp[i0]
+
+	// for now we don't do this in parallel -- we could do this if the ip array was local
+	if( numberOfDimensions==2 )
+	{
+	  const int i3=cg1[grid].indexRange(0,2);
+	  for( int i=0; i<numberOfInterpolationPoints; i++ )
+	  {
+	    int & maski = mask1(ip(i,0),ip(i,1),i3);
+	    saveMask(i)=maski;  // save the mask value so we can reset it 
+	    maski=-(i+1);
+	  }
+	}
+	else    
+	{
+	  for( int i=0; i<numberOfInterpolationPoints; i++ )
+	  {
+	    int & maski = mask1(ip(i,0),ip(i,1),ip(i,2));
+	    saveMask(i)=maski;
+	    maski=-(i+1);
+	  }
+	}
+      }
+      
+      
+      int widthOfTheBorder=stencilWidth/2;
+      if( stencilWidth<= 0 )
+      {
+	widthOfTheBorder = max(c.discretizationWidth())/2;
+      }
+      assert( widthOfTheBorder>=1 && widthOfTheBorder<=10 );
+
+      if( debug & 2 ) fprintf(debugFile," **** interpExposed: widthOfTheBorder=%i ****\n",widthOfTheBorder );
+
+      // --- choose the places to look for exposed points ---
+      getIndex( c.gridIndexRange(),I1,I2,I3,widthOfTheBorder); 
+
+      for( int axis=0; axis<numberOfDimensions; axis++ )
+      {
+        int ia=Iv[axis].getBase(), ib=Iv[axis].getBound();
+	if( true )
+	{
+          // *wdh* 2011/07/18 We should include ghost points on interpolation boundaries I think. c.f. Jeff's bug for 2 sticks
+	  // Do not include ghosts on periodic boundaries -- why??
+	  if( c.boundaryCondition(Start,axis)<0 )  
+	    ia=c.indexRange(Start,axis);
+	  if( c.boundaryCondition(End,axis)<0 )
+	    ib=c.indexRange(End,axis);
+	}
+	else
+	{ // OLD
+          // -- do not check ghost points outside of interpolation boundaries
+	  // do not include ghosts on interp OR periodic 
+
+	  // ** this means we should do a periodic update after interpolating exposed ***
+	  if( c.boundaryCondition(Start,axis)<=0 )  
+	    ia=c.indexRange(Start,axis);
+	  if( c.boundaryCondition(End,axis)<=0 )
+	    ib=c.indexRange(End,axis);
+	}
+	
+	Iv[axis]=Range(ia,ib);
+      }
+
+      int includeGhost=0; // what should this be ?
+      bool ok = ParallelUtility::getLocalArrayBounds(cg1[grid].mask(),mask1_,I1,I2,I3,includeGhost);
+
+      if( !ok ) continue;  // no points in this processor. .. make sure there is no communication below
+
+
+      int i1m1,i2m1,i3m1, i1p1,i2p1,i3p1, i1m2,i2m2,i3m2, i1p2,i2p2,i3p2;
+      int i1z,i2z,i3z;
+
+      const IntegerArray & dimension = c.dimension();
+      const int nd1a=dimension(0,0), nd1b=dimension(1,0);
+      const int nd2a=dimension(0,1), nd2b=dimension(1,1);
+      const int nd3a=dimension(0,2), nd3b=dimension(1,2);
+      
+      // *wdh* 050506 -- when looking for discretization points at the new time level that need values
+      // at the old level, only consider interior and boundary points [n1a,n1b]x[n2a,n2b]x[n3a,n3b] (previously
+      // I checked ghost points too)
+      // --> include interp boundaries too since we check for nearby interp points too
+      const IntegerArray & egid = extendedGridIndexRange(c);   
+      int n1a=egid(0,0), n1b=egid(1,0);
+      int n2a=egid(0,1), n2b=egid(1,1);
+      int n3a=egid(0,2), n3b=egid(1,2);
+      
+      // limit n1a,n1b,... to local array bounds
+      n1a = max(n1a,mask1_.getBase(0)); n1b=min(n1b,mask1_.getBound(0));
+      n2a = max(n2a,mask1_.getBase(1)); n2b=min(n2b,mask1_.getBound(1));
+      n3a = max(n3a,mask1_.getBase(2)); n3b=min(n3b,mask1_.getBound(2));
+      
+
+      if( debug & 4 ) 
+	fprintf(debugFile,"***Exposed: grid=%i : [n1a,n1b]... = [%i,%i][%i,%i][%i,%i] ****\n",
+                grid,n1a,n1b,n2a,n2b,n3a,n3b);
+      
+#define minmax1(i1) max(n1a,min(n1b,i1))
+#define minmax2(i2) max(n2a,min(n2b,i2))
+#define minmax3(i3) max(n3a,min(n3b,i3))
+
+      const int I3Base =I3.getBase(), I3Bound=I3.getBound(); 
+      for( i3=I3Base; i3<=I3Bound; i3++ )
+      {
+        // avoid looking at neighbours that are outside the array dimensions:
+	i3m1=minmax3(i3-1); i3m2=minmax3(i3-2);
+	i3p1=minmax3(i3+1); i3p2=minmax3(i3+2);
+	i3z=minmax3(i3);
+	
+	// allocate space for the ia array
+	if( numberOfExposedPoints+I1.length()*I2.length() > ia_.getLength(0) )
+	{
+	  ia_.resize(numberOfExposedPoints+I1.length()*I2.length()*numberOfDimensions ,ia_.getLength(1));
+	  iap = ia_.Array_Descriptor.Array_View_Pointer1;
+	  iaDim0=ia_.getRawDataSize(0);
+	}
+	
+        int interpPoint; 
+	if( fillExposedInterpolationPoints )
+	{
+	  FIND_EXPOSED_POINT(!=);
+	}
+	else
+	{
+	  FIND_EXPOSED_POINT(>);
+	}
+
+      }  // end for i3
+    }  // if( cg.numberOfInterpolationPoints
+    numberPerGrid(grid)=numPerGrid;
+  } // end for grid
+  
+  if( debug & 4  )
+  {
+    fprintf(debugFile," ---Exposed: assumeInterpolationNeighboursAreAssigned=%i---\n",
+            assumeInterpolationNeighboursAreAssigned);
+    
+    int i=0;
+    for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+      fprintf(debugFile," ** number of exposed points that may interpolate from grid %i is numDonor=%i\n",
+              grid,numDonor[grid]);
+    for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+    {
+      for( int j=0; j<numberPerGrid(grid); j++,i++ )
+      {
+	fprintf(debugFile," grid=%i: exposed pt %3i: (%3i,%3i,%3i) is near interp point %3i\n",
+            grid,i,ia(i,0),ia(i,1),ia(i,2),ia(i,3));
+      }
+    }
+  }
+
+  // printf(" @@@@@@@@@@@@@ numberOfExposedPoints=%i @@@@@@@@@@@@@@@@@\n",numberOfExposedPoints);
+  
+  if( numberOfExposedPoints>0 )
+  {
+    // **********************************
+    // **** Exposed points were found ***
+    // **********************************
+
+    Range R=numberOfExposedPoints;
+
+    x_.redim(numberOfExposedPoints,numberOfDimensions);
+    real *xp = x_.Array_Descriptor.Array_View_Pointer1;
+    const int xDim0=x_.getRawDataSize(0);
+#define x(i0,i1) xp[i0+xDim0*(i1)]
+
+
+    // **** Make a list of the x-coordinates of the exposed points ****
+
+    int start=0;
+    for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+    {
+      if( numberPerGrid(grid)>0 )
+      {
+        int end=start+numberPerGrid(grid);
+        MappedGrid & mg1 = cg1[grid];
+	if( mg1.isRectangular() )
+	{
+	  real dx[3],xab[2][3];
+	  mg1.getRectangularGridParameters( dx, xab );
+
+	  const int i0a=mg1.gridIndexRange(0,0);
+	  const int i1a=mg1.gridIndexRange(0,1);
+	  const int i2a=mg1.gridIndexRange(0,2);
+
+	  const real xa=xab[0][0], dx0=dx[0];
+	  const real ya=xab[0][1], dy0=dx[1];
+	  const real za=xab[0][2], dz0=dx[2];
+	
+#define COORD0(i0,i1,i2) (xa+dx0*(i0-i0a))
+#define COORD1(i0,i1,i2) (ya+dy0*(i1-i1a))
+#define COORD2(i0,i1,i2) (za+dz0*(i2-i2a))
+	  if( numberOfDimensions==2 )
+	  {
+	    for( int i=start; i<end; i++ )
+	    {
+	      x(i,0)=COORD0(ia(i,0),ia(i,1),ia(i,2));     
+	      x(i,1)=COORD1(ia(i,0),ia(i,1),ia(i,2));     
+	    }
+	  }
+	  else
+	  {
+	    for( int i=start; i<end; i++ )
+	    {
+	      x(i,0)=COORD0(ia(i,0),ia(i,1),ia(i,2));     
+	      x(i,1)=COORD1(ia(i,0),ia(i,1),ia(i,2));     
+	      x(i,2)=COORD2(ia(i,0),ia(i,1),ia(i,2));     
+	    }
+	  }
+	  
+	}
+	else
+	{
+	  mg1.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+          #ifdef USE_PPP
+	    realSerialArray center_; getLocalArrayWithGhostBoundaries(mg1.center(),center_);
+          #else
+	    const realArray & center_ = mg1.center();
+          #endif
+
+	  const real *centerp = center_.Array_Descriptor.Array_View_Pointer3;
+	  const int centerDim0=center_.getRawDataSize(0);
+	  const int centerDim1=center_.getRawDataSize(1);
+	  const int centerDim2=center_.getRawDataSize(2);
+#define center(i0,i1,i2,i3) centerp[i0+centerDim0*(i1+centerDim1*(i2+centerDim2*(i3)))]
+	
+	  if( numberOfDimensions==2 )
+	  {
+	    for( int i=start; i<end; i++ )
+	    {
+	      x(i,0)=center(ia(i,0),ia(i,1),ia(i,2),0);     
+	      x(i,1)=center(ia(i,0),ia(i,1),ia(i,2),1);     
+	    }
+	  }
+	  else
+	  {
+	    for( int i=start; i<end; i++ )
+	    {
+	      x(i,0)=center(ia(i,0),ia(i,1),ia(i,2),0);     
+	      x(i,1)=center(ia(i,0),ia(i,1),ia(i,2),1);     
+	      x(i,2)=center(ia(i,0),ia(i,1),ia(i,2),2);     
+	    }
+	  }
+	  // if( axis==0 ) printf(" i=%i ia=%i %i %i \n",i,ia(i,0),ia(i,1),ia(i,2));
+	}
+#undef center	
+	start=end;
+      }
+    } // end for grid 
+    
+
+
+    if( !useIPOG )
+    {
+      // --- old way ---
+
+      // **********************************************************************
+      // **** find the donor interpolation stencils for all exposed points ****
+      // **********************************************************************
+
+      exposedInterpolationQuality.redim(numberOfExposedPoints);
+      exposedInterpoleeGrid.redim(numberOfExposedPoints);
+      exposedInterpoleeLocation.redim(numberOfExposedPoints,numberOfDimensions);
+      exposedInterpolationPoint.redim(numberOfExposedPoints,numberOfDimensions);
+      exposedVariableInterpolationWidth.redim(numberOfExposedPoints);
+      exposedInterpolationCoordinates.redim(numberOfExposedPoints,numberOfDimensions);
+
+      exposedInterpolationQuality=canNotInterpolate;
+
+      int *ig = new int [numberOfComponentGrids+1];
+
+      delete [] ib;
+      ib = new IntegerArray [numberOfComponentGrids+1];
+      for( int grid=0; grid<numberOfComponentGrids+1; grid++ )
+      {
+	ig[grid]=0;
+	// if( numDonor[grid]>0 ) ib[grid].redim(numDonor[grid]);
+	ib[grid].redim(numberOfExposedPoints);  // for now leave extra space
+      }
+    
+      int interpPoint,donorGrid;
+      int i=0;
+      for( int grid=0; grid<numberOfComponentGrids; grid++ )
+      {
+	intArray & interpoleeGrid_ = cg1.interpoleeGrid[grid];
+	int *interpoleeGridp = interpoleeGrid_.Array_Descriptor.Array_View_Pointer0;
+#define interpoleeGrid(i0) interpoleeGridp[i0]
+
+	for( int j=0; j<numberPerGrid(grid); j++,i++ )
+	{
+	  interpPoint = ia(i,3);
+	  if( interpPoint>=0 )
+	    donorGrid = interpoleeGrid(interpPoint);
+	  else
+	    donorGrid=numberOfComponentGrids;  // unknown donor grid
+	
+	  ib[donorGrid](ig[donorGrid])=i;
+	  ig[donorGrid]++;
+	}
+      }
+      for( int grid=0; grid<=numberOfComponentGrids; grid++ )
+      {
+	assert( ig[grid]==numDonor[grid] );
+      }
+    
+      delete [] ig;
+    
+      for( int grid2=0; grid2<cg1.numberOfComponentGrids(); grid2++ )
+      {
+	if( numDonor[grid2]>0 )
+	{
+
+	  // make a list of all exposed points that may interpolate from grid2
+	  // set ia(i,3)=-2 if we have found the donor for point i
+	  IntegerArray & ibg = ib[grid2];
+
+	  RealArray x2(numDonor[grid2],numberOfDimensions);
+	  RealArray r2(numDonor[grid2],numberOfDimensions); 
+	  r2=-1.;  // could do better here
+
+	  if( numberOfDimensions==2 )
+	  {
+	    for( int j=0; j<numDonor[grid2]; j++ )
+	    {
+	      i=ibg(j);
+	      x2(j,0)=x(i,0); x2(j,1)=x(i,1);  // 3D: x2(j,2)=x(i,2);
+	    }
+	  }
+	  else
+	  {
+	    for( int j=0; j<numDonor[grid2]; j++ )
+	    {
+	      i=ibg(j);
+	      x2(j,0)=x(i,0); x2(j,1)=x(i,1); x2(j,2)=x(i,2);
+	    }
+	  }
+
+	  MappingRC & map2 = cg1[grid2].mapping();
+	  map2.useRobustInverse(true);
+#ifdef USE_PPP
+          map2.inverseMapS(x2,r2);
+#else
+          map2.inverseMap(x2,r2);
+#endif
+	
+	  if( debug & 2 )
+	  {
+	    for( int j=0; j<numDonor[grid2]; j++ )
+	    {
+	      i=ib[grid2](j);
+	      fprintf(debugFile," point i=%4i: try to interp from grid2=%i, x2=(%9.2e,%9.2e) r2=(%9.2e,%9.2e)\n",
+                      i,grid2,x2(j,0),x2(j,1),r2(j,0),r2(j,1));
+	    }
+	  }
+	
+	  // check if we can interpolate:
+
+	  getInterpolationStencil(cg1,grid2,numDonor[grid2],ia_,ib[grid2],r2,
+				  exposedInterpolationQuality,
+				  exposedInterpoleeGrid,
+				  exposedInterpoleeLocation,
+				  exposedInterpolationPoint,
+				  exposedVariableInterpolationWidth,
+				  exposedInterpolationCoordinates );
+
+	  if( debug & 4 )
+	  {
+	    for( int j=0; j<numDonor[grid2]; j++ )
+	    {
+	      i=ib[grid2](j);
+	      fprintf(debugFile," point i=%4i: quality=%i ig=%i il=(%i,%i) ip=(%i,%i), vWidth=%i\n",
+		      i,exposedInterpolationQuality(i),exposedInterpoleeGrid(i),
+		      exposedInterpoleeLocation(i,0),exposedInterpoleeLocation(i,1),
+		      exposedInterpolationPoint(i,0),exposedInterpolationPoint(i,1),
+		      exposedVariableInterpolationWidth(i));
+	    }
+	  }
+	}
+      }
+
+      // Now check the remaining points that do not yet have a donor grid
+      IntegerArray & ibb = ib[numberOfComponentGrids];
+      int j;
+      for( i=0,j=0; i<numberOfExposedPoints; i++ )
+      {
+	if( exposedInterpolationQuality(i)>canInterpolateQuality1 )
+	{ // this point did not interpolate to the default interpolation width -- try to do better
+	  ibb(j)=i;
+	  j++;
+	}
+      }
+      numDonor[numberOfComponentGrids]=j;
+  
+      if( numDonor[numberOfComponentGrids]>0 )
+      {
+	if( debug & 1 )
+	  fprintf(debugFile,"*** There were %i exposed points that could not interpolate or had poor interpolation\n",
+		  numDonor[numberOfComponentGrids]);
+
+      
+	IntegerArray ic(numDonor[numberOfComponentGrids]);
+	RealArray x2(numDonor[numberOfComponentGrids],numberOfDimensions);
+
+	real bbp[6]; // bounding box
+#define bb(side,axis) bbp[side+2*(axis)]
+
+	// check highest priority grids first
+	for( int grid=cg1.numberOfComponentGrids()-1; grid>=0; grid-- )
+	{
+	  intArray & interpoleeGrid_ = cg1.interpoleeGrid[grid];
+	  int *interpoleeGridp = interpoleeGrid_.Array_Descriptor.Array_View_Pointer0;
+#define interpoleeGrid(i0) interpoleeGridp[i0]
+
+	  // check to see if we can interpolate from grid g
+	  // Here is the bounding box
+	  const RealArray & boundingBox = cg1[grid].boundingBox();
+	  // boundingBox.display("Here is the boundingBox");
+
+	  // increase the size of the bounding box a bit 
+	  real scale=0.;
+	  for( int axis=0; axis<numberOfDimensions; axis++ )
+	    scale=max(scale,boundingBox(1,axis)-boundingBox(0,axis));
+
+	  const real delta=scale*.1;
+	  for( int axis=0; axis<numberOfDimensions; axis++ )
+	  {
+	    bb(0,axis)=boundingBox(0,axis)-delta;
+	    bb(1,axis)=boundingBox(1,axis)+delta;
+	  }
+   
+	  // make a list of points to check 
+	  int k=0;
+	  int numLeftToCheck=0;
+	  for( int j=0; j<numDonor[numberOfComponentGrids]; j++ )
+	  {
+	    i=ibb(j);
+	    if( exposedInterpolationQuality(i)>canInterpolateQuality1 )
+	    {
+	      numLeftToCheck++;
+	    
+	      // There is no need to check interpolation from "grid" if the point lies on the
+	      // same grid or if we have already tried to interpolate from this grid.
+	      int gridia = ia(i,4);
+	      assert( gridia>=0 && gridia<numberOfComponentGrids );
+	    
+	      if( grid==gridia ) continue;
+	    
+	      int donorGrid=numberOfComponentGrids;  // unknown donor grid
+	      interpPoint = ia(i,3);
+	      if( interpPoint>=0 )
+	      {
+		assert( interpPoint<cg1.numberOfInterpolationPoints(gridia) );
+		donorGrid = cg1.interpoleeGrid[gridia](interpPoint);
+	      }
+	    
+	      if( grid==donorGrid ) continue;
+	    
+	      bool inside=true;
+	      inside = inside && x(i,0)>=bb(0,0) && x(i,0)<=bb(1,0) 
+		&& x(i,1)>=bb(0,1) && x(i,1)<=bb(1,1) ;
+	      if( numberOfDimensions>2 ) inside = inside && x(i,2)>=bb(0,2) && x(i,2)<=bb(1,2); 
+
+	      if( !inside ) continue;
+
+	      ic(k)=ibb(j);
+	      x2(k,0)=x(i,0); x2(k,1)=x(i,1);
+	      if( numberOfDimensions>2 ) x2(k,2)=x(i,2);
+	      k++;
+
+	    }
+	  }
+	  if( numLeftToCheck==0 )
+	    break;
+
+	  int numToCheck=k;
+	  if( numToCheck==0 )
+	    continue;
+	
+	  int gridI=grid;
+
+	  if( debug & 1 )
+	    fprintf(debugFile," ***check for better quality interpolation for %i points from grid %i\n",
+		    numToCheck,gridI);
+	
+	  checkForBetterQualityInterpolation( cg1, gridI, numToCheck, ia_, ic, x2, 
+					      exposedInterpolationQuality,
+					      exposedInterpoleeGrid,
+					      exposedInterpoleeLocation,
+					      exposedInterpolationPoint,
+					      exposedVariableInterpolationWidth,
+					      exposedInterpolationCoordinates );
+	
+	} // end for grid
+
+	// *************************************************************
+	// ** Rebuild the donorGrid arrays numDonor[] and ib[grid](i) **
+	// *************************************************************
+      
+	// NOTE: do not reset numDonor[numberOfComponentGrids] as it is used below
+	for( int grid=0; grid<numberOfComponentGrids; grid++ )  
+	  numDonor[grid]=0;  // reset these for a re-count
+	
+	i3=0;  // *wdh* 050717
+	for( i=0; i<numberOfExposedPoints; i++ )
+	{
+	  if( exposedInterpolationQuality(i)==canNotInterpolate )
+	  {
+	    // this point could not interpolate -- as a last resort find a nearby point on the same
+	    // grid and use the value there.
+
+	    int grid=ia(i,4);
+	    const IntegerArray & gid = cg1[grid].gridIndexRange();
+	    const IntegerArray & bc  = cg1[grid].boundaryCondition();
+	  
+	    const intArray & mask1_ = cg1[grid].mask();
+	    int * mask1p = mask1_.Array_Descriptor.Array_View_Pointer2;
+	    int mask1Dim0=mask1_.getRawDataSize(0);
+	    int mask1Dim1=mask1_.getRawDataSize(1);
+#undef mask1
+#define mask1(i0,i1,i2) mask1p[i0+mask1Dim0*(i1+mask1Dim1*(i2))]
+
+	    int extrav[2][3]={0,0,0,0,0,0}; // include ghost points since we can use interpolation points
+	    for(int axis=0; axis<numberOfDimensions; axis++ )
+	    {
+	      iv[axis]=ia(i,axis);
+	      for( int side=0; side<=1; side++ )
+		if( bc(side,axis)<0 ) extrav[side][axis]=1;
+	    
+	    }
+          
+	  
+	    bool found=false;
+	    // Search a box of points with a given width -- expand the width until we find a point
+	    //  -- this could be done more efficiently
+	    // ** const int maxWidth=20;
+	    const int maxWidth=max(gid(1,0)-gid(0,0),gid(1,1)-gid(0,1),gid(1,2)-gid(0,2))+1;
+	    for( int width=1; width<maxWidth && !found; width++ )  
+	    {
+	      int width3=numberOfDimensions>2 ? width : 0;
+	      int j3a=max(gid(0,2)-extrav[0][2],i3-width3);
+	      int j3b=min(gid(1,2)+extrav[1][2],i3+width3);
+
+	      int j2a=max(gid(0,1)-extrav[0][1],i2-width);
+	      int j2b=min(gid(1,1)+extrav[1][1],i2+width);
+
+	      int j1a=max(gid(0,0)-extrav[0][0],i1-width);
+	      int j1b=min(gid(1,0)+extrav[1][0],i1+width);
+	  
+	      for( j3=j3a; j3<=j3b && !found ; j3++)
+		for( j2=j2a; j2<=j2b && !found ; j2++)
+		  for( j1=j1a; j1<=j1b; j1++)
+		  {
+		    if( mask1(j1,j2,j3)!=0 ) 
+		    {
+		      found=true;
+		      break;
+		    }
+		  }
+	    }
+	    if( !found )
+	    {
+	      printf("ExposedPoints: **fatal error - there is no nearby point on the same grid to use\n"
+		     "    for a backup value! i=(%i,%i,%i) grid=%i maxWidth=%i\n",i1,i2,i3,grid,maxWidth);
+
+	      displayMask(cg1[grid].mask(),"Here is cg1[grid].mask() (from grid at old time)");
+	      displayMask(cg2[grid].mask(),"Here is cg2[grid].mask() (from grid at new time)");
+	    
+	      if( cg1.numberOfComponentGrids()>1 && grid==0 )
+		displayMask(cg1[1].mask(),"Here is cg1[grid=1].mask() (from grid at old time)");
+
+	      saveGrids();
+	      Overture::abort("ExposedPoints: **fatal error**");
+	    }
+	  
+	    exposedInterpoleeGrid(i)=grid;
+	    for(int axis=0; axis<numberOfDimensions; axis++ )
+	    {
+	      exposedInterpoleeLocation(i,axis)=jv[axis];
+	      exposedInterpolationCoordinates(i,axis)=0.;  // these do not matter for 1pt interp.
+	    }
+	    exposedVariableInterpolationWidth(i)=1;
+
+	  }
+	  int donorGrid=exposedInterpoleeGrid(i);
+	  if( donorGrid>=0 && donorGrid<numberOfComponentGrids )
+	  {
+	    ib[donorGrid](numDonor[donorGrid])=i;
+	    numDonor[donorGrid]++;
+	  }
+	  else
+	  {
+	    printf("ExposedPoints::ERROR: unexpected value for donorGrid=%i, i=%i numberOfComponentGrids=%i\n",
+		   donorGrid,i,numberOfComponentGrids);
+	    Overture::abort("ExposedPoints::ERROR");
+	  }
+	
+	} // end for i
+
+      
+	if( debug & 2 )
+	{
+	  for( int j=0; j<numDonor[numberOfComponentGrids]; j++ )
+	  {
+	    i=ibb(j);
+	  
+	    fprintf(debugFile,
+		    " BACKUP: point i=%4i: quality=%i ig=%i il=(%i,%i) ip=(%i,%i), vWidth=%i, ci=(%5.2f,%5.2f)\n",
+		    i,exposedInterpolationQuality(i),exposedInterpoleeGrid(i),
+		    exposedInterpoleeLocation(i,0),exposedInterpoleeLocation(i,1),
+		    exposedInterpolationPoint(i,0),exposedInterpolationPoint(i,1),
+		    exposedVariableInterpolationWidth(i),
+		    exposedInterpolationCoordinates(i,0),exposedInterpolationCoordinates(i,1));
+	  
+	  }
+	}
+      
+
+	int numQuality[numberOfInterpolationQualityTypes]; 
+	for( int j=0; j<numberOfInterpolationQualityTypes; j++ ) numQuality[j]=0;
+
+	for( i=0; i<numberOfExposedPoints; i++ )
+	{
+	  numQuality[(int)exposedInterpolationQuality(i)]++;
+	}
+	if( info & 1 )
+	{
+	  printf("**interpolateExposed: SUMMARY: ");
+	  for( int j=0; j<numberOfInterpolationQualityTypes; j++ )
+	  {
+	    if( numQuality[j]>0 )
+	      printf(" %s=%i ",(const char*)qualityName[j],numQuality[j]);
+	  }
+	  printf(" (SW=%i)\n",stencilWidth);
+	}
+      }
+      else
+      {
+	if( info & 1 )
+	  fprintf(debugFile,"*** All %i exposed points could be interpolated (SW=%i,EI=%i))***\n", 
+		  numberOfExposedPoints,stencilWidth,assumeInterpolationNeighboursAreAssigned);
+      }
+
+    } // end if !useIPOG
+    
+  }
+  else
+  {
+    x_.redim(0);
+    if( info & 1 )
+      fprintf(debugFile,"*** No exposed points were found (SW=%i,EI=%i))***\n", 
+	     stencilWidth,assumeInterpolationNeighboursAreAssigned);
+  }
+  
+  if( !useIPOG) 
+  {
+    // **** Now reset the mask *****
+
+    for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+    {
+      if( cg1.numberOfInterpolationPoints(grid)>0 )
+      {
+	MappedGrid & c = cg1[grid];
+	intArray & mask1_ = c.mask();
+    
+	int * mask1p = mask1_.Array_Descriptor.Array_View_Pointer2;
+	int mask1Dim0=mask1_.getRawDataSize(0);
+	int mask1Dim1=mask1_.getRawDataSize(1);
+#undef mask1
+#define mask1(i0,i1,i2) mask1p[i0+mask1Dim0*(i1+mask1Dim1*(i2))]
+
+	const int numberOfInterpolationPoints= cg1.numberOfInterpolationPoints(grid);
+	intArray & ip_ = cg1.interpolationPoint[grid];
+	int *ipp = ip_.Array_Descriptor.Array_View_Pointer1;
+	int ipDim0=ip_.getRawDataSize(0);
+#define ip(i0,i1) ipp[i0+ipDim0*(i1)]
+	int *saveMaskp = pSaveMask[grid].Array_Descriptor.Array_View_Pointer0;
+#define saveMask(i0) saveMaskp[i0]
+
+	if( numberOfDimensions==2 )
+	{
+	  const int i3=cg1[grid].indexRange(0,2);
+	  for( int i=0; i<numberOfInterpolationPoints; i++ )
+	  {
+	    mask1(ip(i,0),ip(i,1),i3)=saveMask(i);
+	  }
+	}
+	else    
+	{
+	  for( int i=0; i<numberOfInterpolationPoints; i++ )
+	    mask1(ip(i,0),ip(i,1),ip(i,2))=saveMask(i);
+	}
+      }
+    
+    } // end for grid
+  }
+
+  delete [] pSaveMask;
+  
+  return 0;
+}
+#undef bb
+
+
+//\begin{>>ExposedPointsInclude.tex}{interpolate}
+int ExposedPoints::
+interpolate(realCompositeGridFunction & u1,
+	    OGFunction *TZFlow /* =NULL */,
+	    real t /* =0. */ )
+//===========================================================================
+// /Purpose:
+//   Assign values to exposed points in a moving grid
+//
+//  /u1: A grid function on grid cg1. On output, exposed points are interpolated
+//  /TZFlow: If specified and non-NULL this pointer to a twilight-zone function
+//           will be used to compute the error in the interpolation. This is used
+//          for debugging.
+//  /t: Evaluate the twilight-zone function at this time (the time corresponding to cg1). 
+//
+//  /Remarks:
+//   Here is a picture of a 1D moving overlapping grid that illustrates the exposed
+//   point on the old grid that requires a value so the solution can be advanced
+//   to the new grid.
+//   \begin{verbatim} 
+//
+//        +---+---+---+---I                       Old grid, point * is unused
+//                 *---I---+---+---+---+          Points marked I are interpolation
+//                 1   2   3   4   5
+//
+//        +---+---+---+---I
+//         move-->   I---+---+---+---+---+        New grid, requires a value on the OLD grid
+//                   1   2   3   4                at point * to compute a derivative at point 2
+//   \end{verbatim} 
+//
+//\end{ExposedPointsInclude.tex}
+//===========================================================================
+{
+  if( debug & 1 ) 
+  {
+    printF("\n =================== interpolateExposedPoints ====================\n");
+  }
+  
+  if( !isInitialized )
+  {
+    printF("ExposedPoints::interpolate:ERROR: you should call initialize first\n");
+    OV_ABORT("error");
+  }
+  
+
+  int returnValue=0;
+  CompositeGrid & cg1 = *u1.getCompositeGrid();
+  const int numberOfDimensions = cg1.numberOfDimensions();
+  const int numberOfComponentGrids = cg1.numberOfComponentGrids();
+  Range N(u1.getComponentBase(0),u1.getComponentBound(0));
+
+  const int NBase=N.getBase();
+  const int NBound=N.getBound();
+
+  int *iap = ia_.Array_Descriptor.Array_View_Pointer1;
+  int iaDim0=ia_.getRawDataSize(0);
+#define ia(i0,i1) iap[i0+iaDim0*(i1)]
+
+  real maxError=0.;
+
+  RealArray ui;
+
+  if( useIPOG )
+  {
+
+    if( ipog==NULL )
+      ipog = new InterpolatePointsOnAGrid;
+
+    int infoLevel=0; // 1;  // add to class?
+    
+    InterpolatePointsOnAGrid & interpolator = *ipog;
+
+    interpolator.setInfoLevel( infoLevel );
+
+    if( !ipogIsInitialized )
+    {
+      // Initialize the ipog object 
+      ipogIsInitialized=true;
+      interpolator.setInterpolationWidth(interpolationWidth);
+      // Set the number of valid ghost points that can be used when interpolating from a grid function: 
+      interpolator.setNumberOfValidGhostPoints( numberOfValidGhostPoints );
+      
+      // Assign all points, extrapolate pts if necessary:
+      interpolator.setAssignAllPoints(true);
+    
+      int rt=interpolator.buildInterpolationInfo(x_,cg1);  // no need to call if already initialized 
+
+      if( rt!=0 )
+      {
+	// Unable to assign some points
+        const int num=abs(rt);
+        const IntegerArray & status = interpolator.getStatus();
+	printf("ExposedPoints:Error return from interpolator.buildInterpolationInfo: unable to interpolate %i points\n",
+               num);
+        printf("Here are the points that could not be interpolated:\n");
+	int start=0;
+	for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+	{
+	  if( numberPerGrid(grid)>0 )
+	  {
+	    int end=start+numberPerGrid(grid);
+	    for( int i=start; i<end; i++ )
+	    {
+	      if( status(i)==InterpolatePointsOnAGrid::notInterpolated )
+	      {
+		printf("interpExposed: i=%4i iv=(%i,%i,%i) grid=%i x=(%8.2e,%8.2e) status=%i\n",
+		       i,ia(i,0),ia(i,1),ia(i,2),grid,x_(i,0),x_(i,1),status(i));
+	      }
+	    }
+	  }
+	}
+        OV_ABORT("error");
+      }
+      
+      // We should set: numberPerGrid(grid) (used below for periodic grids )
+      periodicUpdateNeeded.redim(numberOfComponentGrids);
+      periodicUpdateNeeded=0;
+      for( int grid=0; grid<numberOfComponentGrids; grid++ )
+      {
+        MappedGrid & mg = cg1[grid];
+        const IntegerArray & bc = mg.boundaryCondition();
+	if( min(bc(Range(0,1),Range(numberOfDimensions))) <0 )
+	{ // this grid has a periodic boundary
+         
+          periodicUpdateNeeded(grid)=interpolator.getTotalNumberOfPointsAssigned(grid)>0;
+	}
+      }
+      
+
+    }
+  
+    if( numberOfExposedPoints>0 )
+    {
+      Range R=numberOfExposedPoints;
+      ui.redim(R,N);
+    }
+    
+    interpolator.interpolatePoints(u1,ui);
+  }
+  
+
+  if( TZFlow )
+  { // update the center array for TZ
+    for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+      cg1[grid].update(MappedGrid::THEvertex | MappedGrid::THEcenter );  
+  }
+  
+  
+
+  if( numberOfExposedPoints>0 )
+  {
+
+    if( !useIPOG )
+    {
+      // --- old way  ---
+      Range R=numberOfExposedPoints;
+      ui.redim(R,N);
+      interpolatePoints(u1,ui,
+			numDonor,ia_,ib,
+			exposedInterpoleeGrid,
+			exposedInterpoleeLocation,
+			exposedInterpolationPoint,
+			exposedVariableInterpolationWidth,
+			exposedInterpolationCoordinates);
+    }
+    
+    real *uip = ui.Array_Descriptor.Array_View_Pointer1;
+    const int uiDim0=ui.getRawDataSize(0);
+#define UI(i0,i1) uip[i0+uiDim0*(i1)]
+
+    real *xp = x_.Array_Descriptor.Array_View_Pointer1;
+    const int xDim0=x_.getRawDataSize(0);
+#define x(i0,i1) xp[i0+xDim0*(i1)]
+
+
+    int start=0;
+    for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+    {
+      if( numberPerGrid(grid)>0 )
+      {
+        #ifdef USE_PPP
+	  realSerialArray u1g_; getLocalArrayWithGhostBoundaries(u1[grid],u1g_);
+        #else
+	  const realArray & u1g_= u1[grid];
+        #endif
+
+	real *u1gp = u1g_.Array_Descriptor.Array_View_Pointer3;
+	const int u1gDim0=u1g_.getRawDataSize(0);
+	const int u1gDim1=u1g_.getRawDataSize(1);
+	const int u1gDim2=u1g_.getRawDataSize(2);
+#define u1g(i0,i1,i2,i3) u1gp[i0+u1gDim0*(i1+u1gDim1*(i2+u1gDim2*(i3)))]
+
+	int end=start+numberPerGrid(grid);
+	for( int n=NBase; n<=NBound; n++)
+	{
+	  for( int i=start; i<end; i++ )
+	  {
+	    u1g(ia(i,0),ia(i,1),ia(i,2),n)=UI(i,n);
+	  }
+	}
+        if( debug & 1 && !TZFlow )
+	{
+	  for( int i=start; i<end; i++ )
+	  {
+	    fprintf(debugFile,"interpExposed:grid=%3i ig=%3i i=%4i iv=(%i,%i,%i) x=(%8.2e,%8.2e) interp: u=(",grid,
+                   exposedInterpoleeGrid(i),i,ia(i,0),ia(i,1),ia(i,2),x(i,0),x(i,1));
+	    for( int n=NBase; n<=NBound; n++)
+	    {
+              fprintf(debugFile,"%9.3e,",u1g(ia(i,0),ia(i,1),ia(i,2),n));
+	    }
+            fprintf(debugFile,")\n");
+	  }
+	}
+	
+	if( TZFlow )
+	{ 
+          // --- compute errors ---
+          #ifdef USE_PPP
+	    realSerialArray center; getLocalArrayWithGhostBoundaries(cg1[grid].center(),center);
+          #else
+	    const realArray & center = cg1[grid].center();
+          #endif
+
+	  real err;
+	  if( numberOfDimensions==2 )
+	  {
+	    for( int i=start; i<end; i++ )
+	    {
+	      int i1=ia(i,0);
+	      int i2=ia(i,1);
+	      int i3=ia(i,2);
+	      for( int n=NBase; n<=NBound; n++)
+	      {
+                
+		err=fabs(u1g(i1,i2,i3,n)-(*TZFlow)(XY(i1,i2,i3),0.,n,t));
+		maxError=max(maxError,err);
+                if( debug & 2 )
+		{
+		   fprintf(debugFile,"interpolateExposedPoints: grid=%i i=%3i (i1,i2,i3,n)=(%i,%i,%i,%i), "
+                         "error=%8.2e, u1=%9.3e, true=%9.3e\n",
+			  grid,i,i1,i2,i3,n,err,u1g(i1,i2,i3,n),(*TZFlow)(XY(i1,i2,i3),0.,n,t));
+		   //   (const char *)cg1[grid].mapping().getName(Mapping::mappingName),
+		}
+	      }
+	    }
+	  }
+	  else
+	  {
+	    for( int i=start; i<end; i++ )
+	    {
+	      int i1=ia(i,0);
+	      int i2=ia(i,1);
+	      int i3=ia(i,2);
+	      for (int n=NBase; n<=NBound; n++)
+	      {
+		maxError=max(maxError,fabs(u1g(i1,i2,i3,n)-(*TZFlow)(XYZ(i1,i2,i3),n,t)));
+		// printf("interpolateExposedPoints: at (%i,%i,%i,n) error =%e \n",i1,i2,i3,n,error);
+	      }
+	    }
+	  }
+	} // end if TZFlow
+	start=end;
+	
+      } // end if numPerGrid>0
+    } // end for grid
+
+  } // end if numberOfExposedPoints>0
+  
+  for( int grid=0; grid<cg1.numberOfComponentGrids(); grid++ )
+  {
+    // If there are any exposed points on this grid then we must perform a periodic update
+    if( useIPOG )
+    {
+      if( periodicUpdateNeeded(grid) )
+        u1[grid].periodicUpdate();  
+    }
+    else
+    {
+      if( numberPerGrid(grid)>0 )
+	u1[grid].periodicUpdate();  // *wdh* 040802  -- communication required here ---
+    }
+  }
+  
+
+  if( (debug & 1) && TZFlow )
+  {
+    maxError=ParallelUtility::getMaxValue(maxError);
+    int numExposed=ParallelUtility::getSum(numberOfExposedPoints);
+    printF("interpolateExposedPoints: %i exposed pts interpolated max error =%8.2e \n",numExposed,maxError);
+  }
+  
+  return returnValue;
+}
+
+
+#undef XY
+#undef XYZ
+
+    
+#undef MASK1
+#undef MASK2

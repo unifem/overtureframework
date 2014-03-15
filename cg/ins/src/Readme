@@ -1,0 +1,112 @@
+This directory contains a brief description of the source files for cgins
+
+
+Notes:
+
+
+addForcing.C:
+  - addForcing(realMappedGridFunction & dvdt, ... )
+
+Cgins.C : 
+  - Cgins(CompositeGrid & cg_, ... )
+  - updateToMatchGrid(CompositeGrid & cg)
+  - updateForMovingGrids(GridFunction & cgf)
+  - updateForNewTimeStep(GridFunction & cgf)
+  - updateGeometryArrays(GridFunction & cgf)
+  - updateTimeIndependentVariables( CompositeGrid & cg0, GridFunction & cgf )
+  - saveShowFileComments( Ogshow &show ) : Set the titles and labels that go on the show file output 
+  - writeParameterSummary( FILE * file ) : writes header comments
+
+getModelVariables.C:
+  - getModelVariables( const aString & name, const GridFunction & cgf, realCompositeGridFunction & r, ...)
+  - getModelVariables( const aString & name, const realMappedGridFunction & u, realMappedGridFunction & v, ... )
+
+getTimeSteppingEigenvalue.C:
+  - getTimeSteppingEigenvalue(MappedGrid & mg, .. )
+  -
+
+InsParameters.C : 
+  - InsParameters(const int & numberOfDimensions0)
+  - saveLinearizedSolution()
+  - setParameters(const int & numberOfDimensions0 .. )
+  - setTwilightZoneFunction(const TwilightZoneChoice & choice_, ... )
+  - setPdeParameters(const aString & command /* = nullString */,  DialogData *interface /* =NULL */ )
+  - displayPdeParameters(FILE *file /* = stdout */ )
+    setDefaultDataForABoundaryCondition
+
+
+implicit.C:
+  - buildImplicitSolvers(CompositeGrid & cg)
+  - formMatrixForImplicitSolve(const real & dt0, GridFunction & cgf1, GridFunction & cgf0 )
+  - implicitSolve(const real & dt0,GridFunction & cgf1,GridFunction & cgf0)
+  - getResidual( real t, real dt, GridFunction & cgf, realCompositeGridFunction & residual)
+  - insImplicitMatrix(InsParameters::InsImplicitMatrixOptionsEnum option,realMappedGridFunction & coeff,...)
+  - formImplicitTimeSteppingMatrix(realMappedGridFunction & coeff, ... )
+  - applyBoundaryConditionsForImplicitTimeStepping(realMappedGridFunction & u, ... )
+  - setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions, ... )
+
+
+ins.C:
+  - getUt(const realMappedGridFunction & v, ... ) 
+
+insp.C
+  - updatePressureEquation(CompositeGrid & cg0, CompositeGridOperators & cgop)
+  - updateDivergenceDamping( CompositeGrid & cg0, const int & geometryHasChanged )
+  - 
+
+insAugmentedSolution.C : 
+    getAugmentedSolution : computes residuals for plotting
+
+InsParameters.C
+  InsParameters(const int & numberOfDimensions0)
+  setPdeParameters(const aString & command /* = nullString */, DialogData *interface /* =NULL */ )
+  displayPdeParameters(FILE *file /* = stdout */ )
+  saveParametersToShowFile()
+  getDerivedFunction( const aString & name, const realMappedGridFunction & uIn,
+                    realMappedGridFunction & vIn, 
+                    const int grid, const int component, Parameters & parameters)
+  getNormalForce( realCompositeGridFunction & u, realArray & normalForce, int *ipar, real *rpar )
+
+printTimeStepInfo.C:
+  - printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
+  -
+
+pressureEquation.C
+  - solveForTimeIndependentVariables( GridFunction & cgf )
+  - assignPressureRHS( GridFunction & gf0, realCompositeGridFunction & f )
+  - computeAxisymmetricDivergence(realArray & divergence, ... )
+  - assignPressureRHS(const int & grid,  MappedGrid & c, ... )
+  - addForcingToPressureEquation( const int & grid, MappedGrid & c,  ... )
+
+setupGridFunctions.C
+  setupGridFunctions()
+  initialize()
+  initializeSolution()
+
+setupPDE.C:
+  setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBoundaryCondition)
+  setPlotTitle(const real &t, const real &dt) : sets the interactive plot titles.
+
+
+setSolverParameters.C:
+  setSolverParameters(const aString & command, DialogData *interface ) : prompt for changes in linear-solver pars
+
+timeSteppingDialog.C
+  buildTimeSteppingDialog(DialogData & dialog )
+  getTimeSteppingOption(const aString & answer,DialogData & dialog )  
+
+-----------Implicit line solver: ---------------------
+
+advanceLineSolve.bC  : for line solver
+
+insLineSolveNew.bf : Main routine for steady-state line-solver fortran routines for the 
+                     incompressible NS plus some turbulence models
+
+insLineSolveBC.bf : line solver boundary condition function
+                    creates lineSolveBcINS.f, lineSolveBcINSVP.f 
+
+lineSolveINS.h : macros that define the INS approximation
+
+lineSolveVP.h  : macros that define the INS-visco-plastic approximation
+
+lineSolveBL    : macros that define the INS-Baldwin-Lomax approximation

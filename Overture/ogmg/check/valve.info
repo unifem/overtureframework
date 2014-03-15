@@ -1,0 +1,116 @@
+\clearpage
+ \section{./valve}
+% trigonometric TZ, fx=1.000e+00, fy=1.000e+00, fz=1.000e+00
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$   & $\vert\vert\mbox{res}\vert\vert_\infty$  &  CR     &  WU    & ECR  \\   \hline 
+ $ 1$  & $ 2.4e+01$ & $0.00039$ & $ 8.7$ & $0.41$ \\ 
+ $ 2$  & $ 1.3e+00$ & $0.053$ & $ 6.0$ & $0.61$ \\ 
+ $ 3$  & $ 3.3e-02$ & $0.026$ & $ 6.9$ & $0.59$ \\ 
+ $ 4$  & $ 5.7e-04$ & $0.017$ & $ 8.6$ & $0.62$ \\ 
+ $ 5$  & $ 1.5e-05$ & $0.026$ & $ 7.7$ & $0.63$ \\ 
+ $ 6$  & $ 5.2e-07$ & $0.034$ & $ 8.8$ & $0.68$ \\ 
+ $ 7$  & $ 4.1e-08$ & $0.078$ & $ 8.7$ & $0.75$ \\ 
+\hline 
+\multicolumn{5}{|c|}{Grid: valvee.hdf. 10/03/27}  \\
+\multicolumn{5}{|c|}{BC: DDDD+DDDI+DDDI.}  \\
+\multicolumn{5}{|c|}{Second-order accurate.}  \\
+\multicolumn{5}{|c|}{Trigonometric solution.}  \\
+\multicolumn{5}{|c|}{V[2,1]: rb $\omega=1.05$, lj2 $\omega=0.80$}  \\
+\multicolumn{5}{|c|}{6.12e+03 grid-points. 3 levels. np=1.}  \\
+\multicolumn{5}{|c|}{Average CR=$0.018$, ECR=$0.60$.}  \\
+\multicolumn{5}{|c|}{time/cycle = 7.46e-03 s.}  \\
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+
+ ========================Ogmg Summary=========================
+
+                       Grid = valvee.hdf 
+ Ogmg::sizeOf: uMG=   0.0 M, fMG=   0.0 M, cMG=   0.3 M, defectMG=   0.1 M, uOld=   0.0 M, mgcg=   0.4 M, 
+                    operators=   0.0 M, interpolant=   0.0 M, trid=   0.0 M, direct=   0.2 M, IBS=   0.0 M
+                 ** total =    1.4 M 
+ storage allocated = 1.43e+00 MBytes,   233.7 bytes/(grid point) or   29.2 reals/(grid point)
+
+ order of accuracy = 2
+ number of levels = 3 
+ interpolate defect = 1
+ number of cycles per level= 1  1  1 
+ number of smooths (global) per level= [2,1]  [2,1]  [2,1] 
+ grid ordering in smooth is alternating.
+ auto sub-smooth determination is on.
+ number of iterations for implicit interpolation is -1
+ coarse to fine interpolation width=2.
+ fine to coarse transfer is full weighting.
+ Coarse Grid:
+   coarse grid solver : yale, direct sparse solver, no pivoting (parallel),
+                        direct sparse solver, no pivoting
+   average number of iterations per coarse grid solve =   0.0/cycle
+   coarse grid has 708 grid points (1.2e+01 % of fine grid)
+   coarse grid averaging option: Galerkin averaging
+
+grid 0 : rb[2,1] rb[2,1] rb[2,1]  : backGround 
+         bc=[dirichlet,dirichlet] [dirichlet,dirichlet] 
+         ave no. of subSmooths: l0= 1.0, l1= 1.0, l2= 0.0, 
+         gid=[0,60][0,60][0,0], gridPoints=4225 ( 69.00%).
+grid 1 : lj2[2,1] lj2[2,1] lj2[2,1]  : stopper 
+         bc=[dirichlet,dirichlet] [dirichlet,interp] 
+         ave no. of subSmooths: l0= 2.1, l1= 2.1, l2= 0.0, 
+         gid=[0,64][0,8][0,0], gridPoints=897 ( 14.65%).
+grid 2 : lj2[2,1] lj2[2,1] lj2[2,1]  : valve 
+         bc=[dirichlet,dirichlet] [dirichlet,interp] 
+         ave no. of subSmooths: l0= 2.3, l1= 1.3, l2= 0.0, 
+         gid=[0,72][0,8][0,0], gridPoints=1001 ( 16.35%).
+
+ Corner BC: l=0 : taylor2  , l>0 taylor2  
+
+    Ogmg, Statistics  valvee.hdf, grids=3, cycles=7, gridPoints=    6123, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............3.69e-02  5.28e-03    70.78% 
+ defect.(excluding those in smooth)....2.18e-03  3.11e-04     4.17% 
+ fine to coarse........................2.31e-03  3.30e-04     4.43% 
+ coarse to fine........................4.71e-03  6.73e-04     9.02% 
+ direct solve on coarsest level........2.64e-03  3.77e-04     5.05% 
+ miscellaneous.........................1.08e-03  1.54e-04     2.06% 
+ sum of above..........................4.99e-02  7.12e-03    95.52%  
+ Details:
+    defect called from smooth..........1.96e-03  2.80e-04  (  3.76%) (already counted)
+    relaxation part of smooth..........7.07e-03  1.01e-03  ( 13.55%) (already counted)
+    extra boundary smoothing...........0.00e+00  0.00e+00  (  0.00%) (already counted)
+    extra interpolation smoothing......0.00e+00  0.00e+00  (  0.00%) (already counted)
+    tridiagonal factor part of smooth..2.39e-04  3.41e-05  (  0.46%) (already counted)
+    tridiagonal solve part of smooth...1.38e-03  1.97e-04  (  2.64%) (already counted)
+    interpolation......................8.46e-03  1.21e-03  ( 16.20%) (already counted)
+    boundary conditions................1.74e-02  2.49e-03  ( 33.40%) (already counted)
+      (bcOpt=0.00e+00 extrap=0.00e+00 setup=-3.48e+01 geom=-2.34e+01 finish=3.48e+01 total=1.74e-02)
+    initial guess with FMG.............0.00e+00  0.00e+00  (  0.00%) (already counted)
+    fine to coarse BC's................2.23e-04  3.19e-05  (  0.43%) (already counted)
+    compute norms of defect............1.54e-03  2.20e-04  (  2.95%) (already counted)
+    ghost boundary update..............0.00e+00  0.00e+00  (  0.00%) (already counted)
+
+ total.................................5.22e-02  7.46e-03   100.00% 
+
+ initialize............................5.24e-02  7.48e-03   100.34%  (not counted above)
+    build extra levels.................3.32e-02  4.75e-03    63.71%  (already counted)
+    operator averaging.................4.24e-03  6.05e-04     8.12%  (already counted)
+    build predefined equations.........0.00e+00  0.00e+00     0.00%  (already counted)
+    oges smoother init.................0.00e+00  0.00e+00     0.00%  (already counted)
+
+ TOTAL (solve+initialize)..............1.05e-01  1.49e-02
+ total number of grid points = 6123 
+ total number of cycles      = 7 
+==== memory per-proc: [min=17.8867,ave=17.8867,max=17.8867](Mb), max-recorded=0 (Mb), total=17.8867 (Mb)
+*** timeForNeumannBC=0.00e+00 timeForBC=1.74e-02  timeForFinishBC=3.48e+01 timeForBCFinal=0.00e+00
+   timeForGeneralNeumannBC=0.00e+00 timeForExtrapolationBC=0.00e+00 
+      timeForSetupBC=-3.48e+01, timeForBCWhere=0.00e+00, timeForBCOpt=0.00e+00 timeForBC4Extrap=0.00e+00
+
+Iteration=1..7 : Total WU=5.54e+01, total res reduction=6.54e-13, ave CR=0.0182 ave ECR=0.603
+
+\end{verbatim}
+} % end footnotesize

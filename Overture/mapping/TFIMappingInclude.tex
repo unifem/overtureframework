@@ -1,0 +1,61 @@
+\subsection{setSides}
+ 
+\newlength{\TFIMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TFIMappingIncludeArgIndent}{setSides(}%
+setSides(Mapping *left    =NULL, \\ 
+\hspace{\TFIMappingIncludeArgIndent}Mapping *right   =NULL,\\ 
+\hspace{\TFIMappingIncludeArgIndent}Mapping *bottom  =NULL,\\ 
+\hspace{\TFIMappingIncludeArgIndent}Mapping *top     =NULL,\\ 
+\hspace{\TFIMappingIncludeArgIndent}Mapping *front   =NULL,\\ 
+\hspace{\TFIMappingIncludeArgIndent}Mapping *back    =NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+     Build a TFIMapping and supply curves that define the boundaries.
+  Specify 0, 2, 4 or 6 curves.
+ The Trans-Finite-Interpolation (TFI) Mapping (also known as a Coon's patch)
+ will interpolate between the boundary
+ curves to define a mapping in the space between. See the documentation for further
+ details.
+\item[{\bf left, right (input):}]  curves for $r_1=0$ and $r_1=1$.
+\item[{\bf bottom, top (input):}]  curves for $r_2=0$ and $r_2=1$.
+\item[{\bf front, back (input):}]  curves for $r_3=0$ and $r_3=1$ (3D only).
+ 
+\end{description}
+\subsection{flipper}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TFIMappingIncludeArgIndent}{flipper(}%
+flipper()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+  Try to flip the curve parameterizations to make the mapping non-singular.
+\item[{\bf Notes:}] 
+   Fix up a TFIMapping that turns inside out because the bounding curves
+ are not parameterized in compatible ways.
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TFIMappingIncludeArgIndent}{map(}%
+map( const realArray \& r\_, realArray \& x\_, realArray \& xr\_, MappingParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Evaluate the TFI and/or derivatives. 
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TFIMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively create and/or change the TFI mapping.
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}

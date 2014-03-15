@@ -1,0 +1,3 @@
+setenv VDLHOME    /usr/casc/overture/VDL/vdl_sun5
+setenv VDLSOURCE  /usr/casc/overture/VDL/src_vdl
+

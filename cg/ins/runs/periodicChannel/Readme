@@ -1,0 +1,41 @@
+Turbulent flow in a 2D or 3D periodic channel with square cross-section
+
+
+======================== Version 2: pChannel.cmd (uses new stretching) ==================================
+
+Generate grids: 
+ogen -noplot channelArg -order=4 -factor=2 -ml=2
+ogen -noplot channelArg -order=4 -factor=4 -ml=3
+ogen -noplot channelArg -order=4 -factor=8 -ml=4
+
+(1) Coarse grid run: 
+     cgins -noplot pChannel.cmd -g=channel2.order4.ml2.hdf -nu=1e-5 -order=4 -cfl=2 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel2ml2_NullVector.hdf -show=pChannel2da.show -tp=1 -tf=200 -debug=3 -nopause >! pChannela.out &
+
+(1a) Plot results: 
+      plotStuff plotChannel -show="pChannel2da.show" -vorMin=-5. -vorMax=5.
+
+(2) Finer grid (restart from coarse grid)
+cgins -noplot pChannel.cmd -g=channel4.order4.ml3.hdf -nu=1e-5 -order=4 -cfl=2 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel4ml3_NullVector.hdf -restart=pChannel2da.show -show=pChannel2db.show -tp=1 -tf=300 -debug=3 -nopause >! pChannelb.out &
+
+(2a) Plot results:
+      plotStuff plotChannel -show="pChannel2db.show" -vorMin=-10. -vorMax=10.
+
+
+======================== Version 1: periodicChannel.cmd ===================================
+
+Note 1: The cgins cmd file periodicChannel.cmd is used for 2D or 3D 
+
+Note 2: Grid is generated automatically when running cgins.
+
+Note 3: Since the pressure equation is singular for this case, the multigrid solver needs a left-nullvector of
+  the pressure equations -- this null vector is computed once and then saved for future runs.
+
+(1) 2D serial: goes turbulent around t=170
+    cgins periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=1 -bc=noSlipWall -Nz=41 -solver=mg -nullVector=pChannel_81_101_NullVector.hdf -show=pChannel.2d.ns.show -tp=1 -tf=1000 
+
+(2) 2D serial: use penalty wall BC (also no-slip)
+    cgins periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=1 -wallModelNoSlip=1 -wallModel=slipWall -Nz=41 -solver=mg -show=pChannel.2d.ns.show -tp=1 -tf=1000 
+
+
+(3) 3D parallel: 
+## mpirun -np 8 cgins -numberOfParallelGhost=4 periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=1 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=1 -bc=noSlipWall -za=0 -zb=1 -Nz=41 -solver=mg -show=pChannel.3d.ns.show noplot nopause -tp=1 -tf=1000

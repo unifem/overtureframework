@@ -1,0 +1,30 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set include = $ovDir/include
+
+echo "cp misc. include files to $include"
+
+cp {Overture,wdhdefs,OvertureTypes,mathutil,GCMath}.h $include
+
+# Add the Overture version number to OvertureDefine.h.in 
+# You should set the env variable OvertureRelease to be the current version number as in
+#    setenv OvertureRelease "v23"
+if (! $?OvertureRelease) then
+  set OvertureRelease = snapshot
+endif
+sed s/OVERTURE_VERSION_CHANGEME/\"Overture.$OvertureRelease\"/ < OvertureDefine.h.in >! OvertureDefine.h.in.new
+
+cp OvertureDefine.h.in.new $include/OvertureDefine.h.in
+
+echo "done"

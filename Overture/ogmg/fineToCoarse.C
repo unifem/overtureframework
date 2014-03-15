@@ -1,0 +1,659 @@
+// This file automatically generated from fineToCoarse.bC with bpp.
+#include "Ogmg.h"
+#include "gridFunctionNorms.h"
+#include "App.h"
+#include "ParallelUtility.h"
+
+#define fineToCoarseBoundaryConditions EXTERN_C_NAME(finetocoarseboundaryconditions)
+
+extern "C"
+{
+    void fineToCoarseBoundaryConditions( 
+                const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b, 
+                const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b, 
+                const int&maskFine, const real&fFine, real&fCoarse, const int&boundaryConditions, 
+                const int&bc, const int&ipar );
+}
+
+
+
+
+
+#undef ForBoundary
+#define ForBoundary(side,axis)   for( axis=0; axis<numberOfDimensions; axis++ ) for( side=0; side<=1; side++ )
+
+
+//\begin{>>OgmgInclude.tex}{\subsection{fineToCoarse(level)}}
+void Ogmg::
+fineToCoarse(const int & level, bool transferForcing /* = false */ )
+// =====================================================================================
+// /Description:
+//     Transfer the defect from the fine grid at 'level' to the coarse grid at 'level+1'
+// /level (input):
+// /transferForcing (input) : by default we transfer the defect. For the full multigrid algorithm we
+//    transfer the forcing to coarser levels (so that we cannot assume the defect to be zero on Dirichlet
+//    boundaries, for example).
+//
+// *** these next comments are probably wrong ****
+// \begin{verbatim}
+//         Fine to Coarse (Restriction) Transfer
+//         -------------------------------------
+//            f2 <- Restriction( f1 )
+// 
+//  Notes:
+// 
+//   (1) Full Weighting at all Interior Nodes with mask() > 0
+//   (2) Boundary nodes(*) are full weighted in the boundary
+//       (i.e. 1 dimension less) if mask > 0
+//   (3) The first line of fictitious points(*) are full weighted
+//       amongst fictitious points of the first line,
+//       (i.e. 1 dimension less) if mask(boundary) > 0
+//   (*) except BC corners or edges where the defect is injected
+// 
+//   Philosophy:
+//     Don't average together defects that come from different types
+//     of equations. Boundary nodes are assumed to be distinct from
+//     interior nodes and the first line of fictitious points are
+//     also assumed to be of a different type. Corners in 2D
+//     or BC edges in 3D are also assumed to be distinct.
+// \end{verbatim}
+//
+//\end{OgmgInclude.tex} 
+//==================================================================================
+{
+    real time=getCPU();
+    if( debug & 16 )
+        printf("%*.1s Ogmg::fineToCoarse:level = %i \n",level*2,"  ",level);
+
+  // ***** NOTE: fine to coarse using defect values at interpolation points ******
+  // we should interpolate these values or set them to some other appropriate value.
+
+    CompositeGrid & mgcg = multigridCompositeGrid();
+
+    if( parameters.interpolateTheDefect )
+    {
+        if( debug & 8 )
+            printF("    *** Interpolate the defect level=%i **** \n",level);
+        
+        interpolate( defectMG.multigridLevel[level] );
+    }
+    else
+    {
+    // extrapolateDefectInterpolationPoints();
+                if( debug & 8 )
+                    cout << "    *** Set defect at interpolation points **** \n";
+                Index I1,I2,I3;
+                for( int grid=0; grid<mgcg.multigridLevel[level].numberOfComponentGrids(); grid++ )
+                {
+                    MappedGrid & mg = mgcg.multigridLevel[level][grid];
+                    intArray & mask = mg.mask();
+                    realArray & df = defectMG.multigridLevel[level][grid];
+          // getIndex(mg.dimension(),I1,I2,I3);
+          //      where( mask(I1,I2,I3)==0 )
+          //      {
+          //	df(I1,I2,I3)=123456789.;  // fill in bogus values for debugging
+          //      }
+          // ***** this is not correct -- interp points on boundaries should only be averaged
+          //         from other boundary defects.
+                    getIndex(extendedGridIndexRange(mg),I1,I2,I3);
+                    for( int i3=I3.getBase(); i3<=I3.getBound(); i3++ )  // ****************** fix this *****
+                    {
+              	for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
+              	{
+                	  for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+                	  {
+                  	    if( mask(i1,i2,i3)<0 )
+                  	    {
+                                    int num=0;
+                    	      df(i1,i2,i3)=0.;
+                    	      int j1,j2,j3;
+                                    if( TRUE )
+                    	      {
+                    // Set the defect at an interpolation point to be the average
+                    // of the nearby interior point defects.
+                                        int j3Start = mg.numberOfDimensions()==2 ? i3 : i3-1;
+                                        int j3End   = mg.numberOfDimensions()==2 ? i3 : i3+1;
+                    		for( j3=j3Start; j3<=j3End; j3++ )
+                    		{
+                      		  for( j2=i2-1; j2<=i2+1; j2++ )
+                      		  {
+                        		    for( j1=i1-1; j1<=i1+1; j1++ )
+                        		    {
+                          		      if( mask(j1,j2,j3)>0 && mask(2*j1-i1,2*j2-i2,2*j3-i3)>0 )
+                          		      {
+                          			df(i1,i2,i3)+=2.*df(j1,j2,j3)-df(2*j1-i1,2*j2-i2,2*j3-i3);
+                          			num++;
+                          		      }
+                        		    }
+                      		  }
+                    		}
+                                        if( num>1 ) 
+                          	    	  df(i1,i2,i3)/=num;
+                    	      }
+                    	      else
+                    	      {
+                    		j3=i3;
+                    		j2=i2;
+                    		for( j1=i1-1; j1<=i1+1; j1+=2 )
+                    		{
+                      		  if( mask(j1,j2,j3)>0 && mask(2*j1-i1,i2,i3)>0 )
+                      		  {
+                        		    df(i1,i2,i3)=2.*df(j1,j2,j3)-df(2*j1-i1,i2,i3);
+                        		    break;
+                      		  }
+                    		}
+                    		j1=i1;
+                    		for( j2=i2-1; j2<=i2+1; j2+=2 )
+                    		{
+                      		  if( mask(j1,j2,j3)>0 && mask(i1,2*j2-i2,i3)>0 )
+                      		  {
+                        		    df(i1,i2,i3)=2.*df(j1,j2,j3)-df(i1,2*j2-i2,i3);
+                        		    break;
+                      		  }
+                    		}
+                    		if( mg.numberOfDimensions()==3 )
+                    		{
+                      		  j2=i2;
+                      		  for( j3=i3-1; j3<=i3+1; j3+=2 )
+                      		  {
+                        		    if( mask(j1,j2,j3)>0 && mask(i1,i2,2*j3-i3)>0 )
+                        		    {
+                          		      df(i1,i2,i3)=2.*df(j1,j2,j3)-df(i1,i2,2*j3-i3);
+                          		      break;
+                        		    }
+                      		  }
+                    		}
+                    	      }
+                  	    }
+                	  }
+              	}
+                    }
+                }
+    }
+    
+    if( ps!=0 && (debug & 4) && ps->isGraphicsWindowOpen() )
+    {
+        psp.set(GI_TOP_LABEL,sPrintF(buff,"fineToCoarse: cycle=%i level=%i, defect before fineToCoarse",
+                                numberOfCycles,level)); 
+        ps->erase();
+        PlotIt::contour(*ps,defectMG.multigridLevel[level],psp);
+    }
+
+    int grid;
+    for( grid=0; grid<mgcg.multigridLevel[level].numberOfComponentGrids(); grid++ )
+        fineToCoarse(level,grid,transferForcing);
+
+
+    fMG.multigridLevel[level+1].periodicUpdate();  // *** is this needed?
+
+    #ifdef USE_PPP
+        real time0=getCPU();
+        for( grid=0; grid<mgcg.multigridLevel[level+1].numberOfComponentGrids(); grid++ )
+            fMG.multigridLevel[level+1][grid].updateGhostBoundaries();
+
+        tm[timeForGhostBoundaryUpdate]+=getCPU()-time0;
+    #endif
+
+    if( Ogmg::debug & 8 ) // ********* TEMP 
+    {
+        defectMG.multigridLevel[level].display(sPrintF(buff,"fineToCoarse: Here is the defect on the fine grid, cycle=%i",
+                            numberOfCycles),debugFile,"%10.2e");
+        fMG.multigridLevel[level+1].display(sPrintF(buff,"fineToCoarse: Here is f on coarse grid (restriction of the "
+              "defect), cycle=%i",numberOfCycles),debugFile,"%10.2e");
+    }
+
+    if( ps!=0 && (debug & 4) && ps->isGraphicsWindowOpen() )
+    {
+        psp.set(GI_TOP_LABEL,sPrintF(buff,"fineToCoarse: cycle=%i level=%i, RHS for coarse grid",
+                                numberOfCycles,level)); 
+        ps->erase();
+        PlotIt::contour(*ps,fMG.multigridLevel[level+1],psp);
+    }
+
+    tm[timeForFineToCoarse]+=getCPU()-time;
+}
+
+
+#define FULL_WEIGHTING_1D(i1,i2,i3,Rx) (  cr(-1,cf1)*defectFine(i1-1,i2,i3,Rx)           +cr( 0,cf1)*defectFine(i1  ,i2,i3,Rx)           +cr(+1,cf1)*defectFine(i1+1,i2,i3,Rx)           )
+
+#define FULL_WEIGHTING_1D1(i1,i2,i3) (  cr(-1,cf1)*defectFine(i1-1,i2,i3)           +cr( 0,cf1)*defectFine(i1  ,i2,i3)           +cr(+1,cf1)*defectFine(i1+1,i2,i3)           )
+
+#define FULL_WEIGHTING_1D_001(i1,i2,i3,Rx) (  cr(-1,cf3)*defectFine(i1,i2,i3-1,Rx)           +cr( 0,cf3)*defectFine(i1,i2,i3  ,Rx)           +cr(+1,cf3)*defectFine(i1,i2,i3+1,Rx)           )
+
+#define FULL_WEIGHTING_2D(i1,i2,i3,Rx) (  cr(-1,cf2)*FULL_WEIGHTING_1D(i1,i2-1,i3,Rx)  +cr( 0,cf2)*FULL_WEIGHTING_1D(i1,i2  ,i3,Rx)  +cr(+1,cf2)*FULL_WEIGHTING_1D(i1,i2+1,i3,Rx)  )
+
+#define FULL_WEIGHTING_3D(i1,i2,i3,Rx) (  cr(-1,cf3)*FULL_WEIGHTING_2D(i1,i2,i3-1,Rx)  +cr( 0,cf3)*FULL_WEIGHTING_2D(i1,i2,i3  ,Rx)  +cr(+1,cf3)*FULL_WEIGHTING_2D(i1,i2,i3+1,Rx)  )
+
+// The boundary defect in 2D should be called in one of two ways
+//    (s1,s2)=(1,0) : for a boundary normal to direction 1
+//    (s1,s2)=(0,1) : for a boundary normal to direction 2
+#define BOUNDARY_DEFECT_2D(s1,s2,i1,i2,i3)                           ( .5*defectFine(i1,i2,i3)+.25*(defectFine(i1+s2,i2+s1,i3)+defectFine(i1-s2,i2-s1,i3)) )
+
+// The boundary defect in 3D should be called in one of three ways
+//    (s1,s2,s3)=(1,0,0) : for a boundary normal to direction 1
+//    (s1,s2,s3)=(0,1,0) : for a boundary normal to direction 2
+//    (s1,s2,s3)=(0,0,1) : for a boundary normal to direction 3
+#define BOUNDARY_DEFECT_3D(s1,s2,s3,i1,i2,i3) (                                      .25*(defectFine(i1        ,i2        ,i3    )                                         +.5*(defectFine(i1+s2+s3,i2+s1   ,i3     )  + defectFine(i1-s2-s3,i2-s1   ,i3      )          +defectFine(i1      ,i2+s3   ,i3+s2+s1) + defectFine(i1      ,i2-s3   ,i3-s2-s1)          +.5*(defectFine(i1+s2+s3,i2-s3+s1,i3-s2-s1) + defectFine(i1+s2+s3,i2+s1+s3,i3+s2+s1)          +defectFine(i1-s2-s3,i2-s3-s1,i3-s2-s1) + defectFine(i1-s2-s3,i2-s1+s3,i3+s2+s1)  )))     )
+#define BOUNDARY_DEFECT_PLANE_110(i1,i2,i3,Rx) (  cr(-1,cf2)*FULL_WEIGHTING_1D(i1,i2-1,i3,Rx)  +cr( 0,cf2)*FULL_WEIGHTING_1D(i1,i2  ,i3,Rx)  +cr(+1,cf2)*FULL_WEIGHTING_1D(i1,i2+1,i3,Rx)  )
+#define BOUNDARY_DEFECT_PLANE_101(i1,i2,i3,Rx) (  cr(-1,cf3)*FULL_WEIGHTING_1D(i1,i2,i3-1,Rx)  +cr( 0,cf3)*FULL_WEIGHTING_1D(i1,i2,i3  ,Rx)  +cr(+1,cf3)*FULL_WEIGHTING_1D(i1,i2,i3+1,Rx)  )
+#define BOUNDARY_DEFECT_PLANE_011(i1,i2,i3,Rx) (  cr(-1,cf2)*FULL_WEIGHTING_1D_001(i1,i2-1,i3,Rx)  +cr( 0,cf2)*FULL_WEIGHTING_1D_001(i1,i2  ,i3,Rx)  +cr(+1,cf2)*FULL_WEIGHTING_1D_001(i1,i2+1,i3,Rx)  )
+
+// The boundary defect in 2D should be called in one of two ways
+#define BOUNDARY_DEFECT_LINE(is1,is2,is3,i1,i2,i3,Rx)                           ( .5*defectFine(i1,i2,i3,Rx)+.25*(defectFine(i1+is1,i2+is2,i3+is3,Rx)+defectFine(i1-is1,i2-is2,i3+is3,Rx)) )
+
+
+//\begin{>>OgmgInclude.tex}{\subsection{fineToCoarse(level,grid)}}
+void Ogmg::
+fineToCoarse(const int & level, const int & grid, bool transferForcing /* = false */)
+// =====================================================================================
+// /Description:
+//     Transfer the defect from the fine grid at 'level' to the coarse grid at 'level+1'
+// /level,grid (input):
+//
+// /Notes:
+//   Full weighting on interior and boundary points where the equation is applied.
+//  If the BC for ghost points is extrapolation (e.g. if there is a dirichlet BC) then the
+//  boundary defects are averaged along the boundary. 
+//
+//\end{OgmgInclude.tex} 
+//==================================================================================
+{
+
+  // Compute the restriction of the defect
+
+    RealArray cr(Range(-1,1),Range(1,2));   // coefficients for restriction
+    cr(-1,1)=0.;  cr(0,1)=1.; cr(+1,1)=0.;  // coarsening factor of 1
+    cr(-1,2)=.25; cr(0,2)=.5; cr(+1,2)=.25; // coarsening factor of 2
+    
+    CompositeGrid & mgcg = multigridCompositeGrid();
+    MappedGrid & mgFine      = mgcg.multigridLevel[level][grid];  
+    MappedGrid & mgCoarse    = mgcg.multigridLevel[level+1][grid];  
+    realArray & defectFine   = defectMG.multigridLevel[level][grid];
+    realArray & fCoarse      = fMG.multigridLevel[level+1][grid];
+    const int & numberOfDimensions = mgFine.numberOfDimensions();
+
+    #ifdef USE_PPP
+        realSerialArray defectFineLocal; getLocalArrayWithGhostBoundaries(defectFine,defectFineLocal);
+    #else
+        const realSerialArray & defectFineLocal = defectFine;
+    #endif
+
+
+    int cf1,cf2,cf3,cf[3];
+    cf1=cf[0]=mgcg.multigridCoarseningRatio(axis1,grid,level+1);  // coarsening factor
+    cf2=cf[1]=mgcg.multigridCoarseningRatio(axis2,grid,level+1);
+    cf3=cf[2]=mgcg.multigridCoarseningRatio(axis3,grid,level+1);  
+
+    assert(cf[0]==2 && (cf[1]==2 || numberOfDimensions<2) && (cf[2]==2 || numberOfDimensions<3));
+
+  // fCoarse=0.;   // **** could do better ***
+    assign(fCoarse,0.);
+
+    bool newWay = false; // orderOfAccuracy==4;
+
+  // int numberOfFictitiousPoints = orderOfAccuracy/2;
+    Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+    Index Jv[3], &J1=Jv[0], &J2=Jv[1], &J3=Jv[2];
+
+  //  For non-Dirichlet BC's : Apply BC's to the defect, before restriction ===
+  //  This will give a better value when the defect is averaged
+    int is[3]={0,0,0};
+    int side,axis;
+    Index all;
+    ForBoundary(side,axis)
+    { 
+    // --- Apply a reflection BC at Neumann, mixed and "bc=extrapolate" boundaries ---
+
+        if( boundaryCondition(side,axis,grid)>0 && boundaryCondition(side,axis,grid)!=OgmgParameters::extrapolate )
+        {
+            #ifdef USE_PPP
+      // finish for parallel:
+      //  -- check "assign" statments below
+      //  -- fineToCoarseBoundaryConditions will not work for Neumann:
+      //     defectFineLocal will not match fCoarseLocal
+      //printF("fineToCoarse: finish me for parallel\n");
+      //OV_ABORT("ERROR");
+            #endif
+
+
+            int is1= axis==axis1 ? 1-2*side : 0;
+            int is2= axis==axis2 ? 1-2*side : 0;
+            int is3= axis==axis3 ? 1-2*side : 0;
+            int extra=1;
+            if( !newWay )
+            {
+      	getGhostIndex(mgFine.gridIndexRange(),side,axis,I1,I2,I3,1,extra);  // ghost line, include corners ??
+                const int includeGhost=1;
+                bool ok = ParallelUtility::getLocalArrayBounds(defectFine,defectFineLocal,I1,I2,I3,includeGhost);
+      	if( !ok ) continue;
+      	
+        // old  assign(defectFine,I1,I2,I3,all, defectFine,I1+2*is1,I2+2*is2,I3+2*is3,all ); // *wdh* 100412
+
+        	if( bc(side,axis,grid)==OgesParameters::neumann || bc(side,axis,grid)==OgesParameters::mixed )
+      	{
+                      defectFineLocal(I1,I2,I3)=defectFineLocal(I1+2*is1,I2+2*is2,I3+2*is3); 
+      	}
+                else if( bc(side,axis,grid)==OgesParameters::extrapolate )
+      	{
+                    const int orderOfExtrapolation=int( boundaryConditionData(0,side,axis,grid) +.5 );
+
+	  // printF("fineToCoarseBC: extrapolation BC: extrap defectFine...\n");
+        	  if( orderOfExtrapolation==2 )
+        	  {
+              	    defectFineLocal(I1,I2,I3)=2.*defectFineLocal(I1+  is1,I2+  is2,I3+  is3)
+                                				        -defectFineLocal(I1+2*is1,I2+2*is2,I3+2*is3);
+        	  }
+                    else if( orderOfExtrapolation==3 )
+        	  {  // does this work?? 
+              	    defectFineLocal(I1,I2,I3)=3.*defectFineLocal(I1+  is1,I2+  is2,I3+  is3)
+                                                                          -3.*defectFineLocal(I1+2*is1,I2+2*is2,I3+2*is3)
+                                                                                +defectFineLocal(I1+3*is1,I2+3*is2,I3+3*is3);
+        	  }
+                    else
+        	  {
+          	    printF("fineToCoarseBC: ERROR: orderOfExtrapolation=%i not implemented\n",orderOfExtrapolation);
+          	    OV_ABORT("ERROR");
+        	  }
+        	  
+      	}
+      	else
+      	{
+        	  OV_ABORT("fineToCoarseBC: ERROR unknown bc");
+      	}
+                
+            }
+            else 
+            {
+        // extra=0;
+      	getGhostIndex(mgFine.gridIndexRange(),side,axis,I1,I2,I3,1,extra);  // ghost line, include corners ??
+        // defectFine(I1,I2,I3)=defectFine(I1+2*is1,I2+2*is2,I3+2*is3);
+
+	// defectFine(I1,I2,I3)=0.;
+                assign(defectFine,0., I1,I2,I3,all);
+      	getGhostIndex(mgFine.gridIndexRange(),side,axis,I1,I2,I3,2,extra);  // ghost line, include corners ??
+        // defectFine(I1,I2,I3)=0.;
+            }
+        }
+    }
+
+  // This next operation should be done in getDefect !
+    defectMG.multigridLevel[level][grid].periodicUpdate();  // update periodicity of the defect  *********** needed??
+    #ifdef USE_PPP
+        real time0=getCPU();
+        defectFine.updateGhostBoundaries();
+        tm[timeForGhostBoundaryUpdate]+=getCPU()-time0;
+    #endif
+
+  // indexRange is OK
+    getIndex(mgFine.indexRange(),I1,I2,I3);                    // Index's for fine grid
+
+    Range Rx(0,0);
+
+    if( true )
+    {
+    // *** optimised way ***
+
+        Range all;
+        const IntegerArray & ratio = mgcg.multigridCoarseningRatio(all,grid,level+1);
+        getIndex(mgCoarse.indexRange(),J1,J2,J3); 
+
+    // 100118 : Use : parameters.fineToCoarseTransferWidth = 1=injection, 3=full-weighting
+        Interpolate::InterpolateOptionEnum interpOption;
+        if( parameters.fineToCoarseTransferWidth==1 )
+            interpOption=Interpolate::injection;
+        else
+            interpOption  =  numberOfDimensions==1 ? Interpolate::fullWeighting100 :
+      	numberOfDimensions==2 ? Interpolate::fullWeighting110 : Interpolate::fullWeighting111;
+
+        int update=0; 
+
+    // first check whether the parallel distributions on the fine and coarse grids align:
+//     #ifdef USE_PPP
+//       // for now we use injection in parallel -- fix me --
+//       printF("fineToCoarse: WARNING: using injection in parallel -- fix me \n");
+//       interpOption=Interpolate::injection;
+//     #endif
+
+    //  printF("fineToCoarse: WARNING: using injection in parallel -- fix me \n");
+    //  interpOption=Interpolate::injection;
+        real timeStart=getCPU();
+
+    // This next routine expects parallel ghost points to be set:
+        interp.interpolateCoarseFromFine(fCoarse,Jv,defectFine,ratio,interpOption,update);
+
+        tm[timeForInterpolateCoarseFromFine]+=getCPU()-timeStart;
+
+    }
+    else
+    {
+        I1=IndexBB(I1,cf[0]);  I2=IndexBB(I2,cf[1]);  I3=IndexBB(I3,cf[2]);  // set stride
+    
+        getIndex(mgCoarse.indexRange(),J1,J2,J3);                  // Index's for coarse grid
+
+  // Average interior points using the full weighting operator
+        if( numberOfDimensions==1 )
+            fCoarse(J1,J2,J3)=FULL_WEIGHTING_1D(I1,I2,I3,Rx);      
+        if( numberOfDimensions==2 )
+            fCoarse(J1,J2,J3)=FULL_WEIGHTING_2D(I1,I2,I3,Rx);          
+        else
+            fCoarse(J1,J2,J3)=FULL_WEIGHTING_3D(I1,I2,I3,Rx);    
+        
+    }
+
+    real time=getCPU();
+        
+    if( parameters.useNewFineToCoarseBC ) // && !transferForcing )
+    {
+        const intArray & mask = mgFine.mask();
+
+        #ifdef USE_PPP
+            realSerialArray fCoarseLocal; getLocalArrayWithGhostBoundaries(fCoarse,fCoarseLocal);
+            intSerialArray maskLocal; getLocalArrayWithGhostBoundaries(mask,maskLocal);
+            
+            IntegerArray gidFine(2,3), gidCoarse(2,3), bcLocal(2,3);
+            for( int axis=0; axis<3; axis++ )
+            {
+      	gidFine(0,axis)=max(mgFine.gridIndexRange(0,axis),defectFineLocal.getBase(axis)  +defectFine.getGhostBoundaryWidth(axis));
+      	gidFine(1,axis)=min(mgFine.gridIndexRange(1,axis),defectFineLocal.getBound(axis) -defectFine.getGhostBoundaryWidth(axis));
+      	gidCoarse(0,axis)=max(mgCoarse.gridIndexRange(0,axis),fCoarseLocal.getBase(axis)  +fCoarse.getGhostBoundaryWidth(axis));
+      	gidCoarse(1,axis)=min(mgCoarse.gridIndexRange(1,axis),fCoarseLocal.getBound(axis) -fCoarse.getGhostBoundaryWidth(axis));
+        // *wdh* 091231 -- base bcLocal on coarse grid
+                for( int side=0; side<=1; side++ )
+      	{
+        	  if( gidCoarse(side,axis)==mgCoarse.gridIndexRange(side,axis) )
+                        bcLocal(side,axis)=boundaryCondition(side,axis,grid);
+                    else
+                        bcLocal(side,axis)=0;  // this side is not on this processor
+      	}
+            }
+            const int *bcLocalp = &bcLocal(0,0);
+        #else
+            const realSerialArray & fCoarseLocal = fCoarse;
+            const intSerialArray & maskLocal = mask;
+            
+            const IntegerArray & gidFine = mgFine.gridIndexRange();
+            const IntegerArray & gidCoarse = mgCoarse.gridIndexRange();
+
+            const int *bcLocalp = &boundaryCondition(0,0,grid);
+        #endif
+
+
+    // new optimised way
+        int ipar[]={mgFine.numberOfDimensions(),
+                                gidFine(0,0),
+                                gidFine(1,0),
+                                gidFine(0,1),
+                                gidFine(1,1),
+                                gidFine(0,2),
+                                gidFine(1,2),
+                                gidCoarse(0,0),
+                                gidCoarse(1,0),
+                                gidCoarse(0,1),
+                                gidCoarse(1,1),
+                                gidCoarse(0,2),
+                                gidCoarse(1,2),
+                                (int)equationToSolve,
+                                cf1,cf2,cf3,
+                                (int)transferForcing,
+                                (int)bcSupplied }; //
+        
+    // This next routine will not work for userDefined equations with no specified BC's ! *wdh* 100411
+    // Since it uses the fine and coarse solution and masks may not have the same distribution.
+    // For dirichlet BC's we are ok. 
+        #ifdef USE_PPP
+        if( equationToSolve==OgesParameters::userDefined && !bcSupplied )
+        {
+            printF("Ogmg:fineToCoarseBoundaryConditions:ERROR: finish me for parallel:\n"
+                          " The equations are useDefined and there are no explicit boundary conditions.\n");
+            OV_ABORT("error");
+        }
+        #endif
+        
+        fineToCoarseBoundaryConditions( defectFineLocal.getBase(0),defectFineLocal.getBound(0),
+                                                                        defectFineLocal.getBase(1),defectFineLocal.getBound(1),
+                                                                        defectFineLocal.getBase(2),defectFineLocal.getBound(2),
+                                                                        fCoarseLocal.getBase(0),fCoarseLocal.getBound(0),
+                                                                        fCoarseLocal.getBase(1),fCoarseLocal.getBound(1),
+                                                                        fCoarseLocal.getBase(2),fCoarseLocal.getBound(2),
+                                                                        *maskLocal.getDataPointer(),
+                                                                        *defectFineLocal.getDataPointer(),
+                                                                        *fCoarseLocal.getDataPointer(),*bcLocalp,bc(0,0,grid),ipar[0] );
+    }
+    else
+    {
+    // *** un-optimized way ***
+
+  //   === Boundaries ===
+  // Ib,Jb : boundary, Ig,Jg : first ghost line
+        Index Ib[3],Ig[3], Jb[3],Jg[3];
+        int dir,tangent;
+        ForBoundary(side,axis)
+        {
+      // if( mgFine.boundaryCondition(side,axis)>0 && mgFine.boundaryCondition(side,axis)!=neumann )
+            if( boundaryCondition(side,axis,grid)>0 && boundaryCondition(side,axis,grid)==OgmgParameters::equation )
+            {
+      	if( false && newWay )
+      	{
+        	  getBoundaryIndex(mgCoarse.gridIndexRange(),side,axis,Ib[0],Ib[1],Ib[2]);  
+        	  fCoarse(Ib[0],Ib[1],Ib[2])=0.;
+      	}
+            }
+            else if( boundaryCondition(side,axis,grid)>0 && boundaryCondition(side,axis,grid)==OgmgParameters::extrapolate )
+            {  
+	// ****************************************************************
+	// ******************Dirichlet boundaries**************************
+	// ****************************************************************
+
+        // No need to change Neumann boundaries since these are already correct from above
+
+      	is[0]=is[1]=is[2]=0; 	is[axis]=1;   // shift(dir)=delta(dir-axis)
+
+      	getBoundaryIndex(mgFine.gridIndexRange(),side,axis,Ib[0],Ib[1],Ib[2],-2);  // bndry pts, no corners
+      	for( dir=0; dir<3; dir++ )
+        	  Ib[dir]=IndexBB(Ib[dir],2);                                        // set stride to 2
+      	Ig[0]=Ib[0]; Ig[1]=Ib[1]; Ig[2]=Ib[2];      // ghost points
+      	Ig[axis]+= (side==Start) ? -1 : +1;         // note that this should be 1 and not 2
+
+      	getBoundaryIndex(mgCoarse.gridIndexRange(),side,axis,Jb[0],Jb[1],Jb[2],-1); // no corners
+      	Jg[0]=Jb[0]; Jg[1]=Jb[1]; Jg[2]=Jb[2];      // ghost points
+      	Jg[axis]+= (side==Start) ? -1 : +1;    
+
+      	if( numberOfDimensions==1 )
+      	{
+        	  fCoarse(Jb[0])=defectFine(Ib[0]);    // inject boundary defects in 1D
+      	}
+      	else if( numberOfDimensions==2 )
+      	{
+        	  fCoarse(Jb[0],Jb[1],Jb[2])=BOUNDARY_DEFECT_2D(is[0],is[1],Ib[0],Ib[1],Ib[2]);  // average
+        	  fCoarse(Jg[0],Jg[1],Jg[2])=BOUNDARY_DEFECT_2D(is[0],is[1],Ig[0],Ig[1],Ig[2]); 
+
+	  // ----fix up interpolation points and their neighbours, inject the defect----
+        	  where( mgcg.multigridLevel[level][grid].mask()(Ib[0],Ib[1],Ib[2])<0 )
+        	  {
+          	    fCoarse(Jb[0],Jb[1])=defectFine(Ib[0],Ib[1]);
+          	    fCoarse(Jb[0]+is[1],Jb[1]+is[0])=defectFine(Ib[0]+2*is[1],Ib[1]+2*is[0]);
+          	    fCoarse(Jb[0]-is[1],Jb[1]-is[0])=defectFine(Ib[0]-2*is[1],Ib[1]-2*is[0]);
+
+          	    fCoarse(Jg[0],Jg[1])=defectFine(Ig[0],Ig[1]);
+          	    fCoarse(Jg[0]+is[1],Jg[1]+is[0])=defectFine(Ig[0]+2*is[1],Ig[1]+2*is[0]);
+          	    fCoarse(Jg[0]-is[1],Jg[1]-is[0])=defectFine(Ig[0]-2*is[1],Ig[1]-2*is[0]);
+        	  }
+
+                    real diffb=max(fabs(fCoarse(Jb[0],Jb[1],Jb[2])));
+                    real diffg=max(fabs(fCoarse(Jg[0],Jg[1],Jg[2])));
+        	  if( diffb >0. || diffg>0. )
+        	  {
+          	    printf("@@@@ fineToCoarseBC: WARNING diffb=%9.2e diffg=%9.2e, level=%i grid=%i \n",diffb,diffg,level,grid);
+        	  }
+        	  
+      	}
+      	else
+      	{
+        	  fCoarse(Jb[0],Jb[1],Jb[2])=
+          	    BOUNDARY_DEFECT_3D(is[0],is[1],is[2],Ib[0],Ib[1],Ib[2]); // average along boundary
+	  // ----fix up interpolation points and their neighbours, inject the defect----
+        	  where( mgcg.multigridLevel[level][grid].mask()(Ib[0],Ib[1],Ib[2])<0 )
+        	  {
+          	    for( int is2=-(is[0]+is[1]); is2<=(is[0]+is[1]); is2++ )
+            	      for( int is1=-(is[2]+is[0]); is1<=(is[2]+is[0]); is1++ )
+            		for( int is0=-(is[1]+is[2]); is0<=(is[1]+is[2]); is0++ )
+            		{
+              		  fCoarse(Jb[0]+is0,Jb[1]+is1,Jb[2]+is2)=defectFine(Ib[0]+2*is0,Ib[1]+2*is1,Ib[2]+2*is2);
+              		  fCoarse(Jg[0]+is0,Jg[1]+is1,Jg[2]+is2)=defectFine(Ig[0]+2*is0,Ig[1]+2*is1,Ig[2]+2*is2);
+            		}
+        	  }
+      	}
+            
+	// Inject values at corners in 2D or edges in 3D (some points are done twice but who cares...)
+            
+      	Index Ic[3], Jc[3];
+      	int dirt;
+      	for( dirt=0; dirt<numberOfDimensions-1; dirt++ )  // loop over tangential directions
+      	{
+        	  tangent= (axis+dirt+1) % numberOfDimensions;
+        	  Ib[tangent]=IndexBB(Ib[tangent].getBase()-2,Ib[tangent].getBound()+2,2);  // increase side to include
+        	  Jb[tangent]=IndexBB(Jb[tangent].getBase()-1,Jb[tangent].getBound()+1);    // corners and edges
+
+        	  Ig[tangent]=IndexBB(Ig[tangent].getBase()-2,Ig[tangent].getBound()+2,2);  // increase side to include
+        	  Jg[tangent]=IndexBB(Jg[tangent].getBase()-1,Jg[tangent].getBound()+1);    // corners and edges
+      	}
+      	for( dir=Start; dir<=End; dir++ )                // loop over left and right side
+      	{
+        	  for( dirt=0; dirt<numberOfDimensions-1; dirt++ )   // (top and bottom in 3D)
+        	  {
+          	    Ic[0]=Ib[0]; Ic[1]=Ib[1]; Ic[2]=Ib[2];
+          	    tangent= (axis+dirt+1) % numberOfDimensions;
+          	    Ic[tangent]= dir==Start ? Ib[tangent].getBase()    // restrict one tangential direction to be the end
+            	      : Ib[tangent].getBound();
+          	    Jc[0]=Jb[0]; Jc[1]=Jb[1]; Jc[2]=Jb[2];
+          	    Jc[tangent] = dir==Start ? Jb[tangent].getBase()
+            	      : Jb[tangent].getBound();
+
+          	    fCoarse(Jc[0],Jc[1],Jc[2])=defectFine(Ic[0],Ic[1],Ic[2]);     
+
+          	    Ic[0]=Ig[0]; Ic[1]=Ig[1]; Ic[2]=Ig[2];
+          	    tangent= (axis+dirt+1) % numberOfDimensions;
+          	    Ic[tangent]= dir==Start ? Ig[tangent].getBase()    // restrict one tangential direction to be the end
+            	      : Ig[tangent].getBound();
+          	    Jc[0]=Jg[0]; Jc[1]=Jg[1]; Jc[2]=Jg[2];
+          	    Jc[tangent] = dir==Start ? Jg[tangent].getBase()
+            	      : Jg[tangent].getBound();
+
+          	    fCoarse(Jc[0],Jc[1],Jc[2])=defectFine(Ic[0],Ic[1],Ic[2]);     
+        	  }
+      	}
+            }
+        }
+    }
+    
+
+    tm[timeForFineToCoarseBC]+=getCPU()-time;
+}
+
+#undef ForBoundary
+#undef FULL_WEIGHTING_1D
+#undef FULL_WEIGHTING_2D
+#undef FULL_WEIGHTING_3D
+#undef BOUNDARY_DEFECT_2D
+#undef BOUNDARY_DEFECT_3D
+

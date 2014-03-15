@@ -1,0 +1,162 @@
+\section{FilletMapping}\index{fillet mapping}\index{Mapping!FilletMapping}
+
+This mapping can be used to create a fillet grid or a collar grid in order to join
+together two intersecting surfaces. A fillet grid smooths out the intersection while
+the collar grid does not.
+
+This mapping will automatically compute the fillet given two intersecting surfaces. 
+Various parameters control the resulting surface:
+\begin{description}
+  \item[orientation:] There are 4 possible quadrants in which to place the fillet.
+  \item[width:] This distance defines the width over which the fillet blends between
+     the two surfaces and thus determines how rounded the fillet is. A width of zero
+     will result in a collar grid which has a corner in it.
+  \item[overlapWidth:] Determines the distance to which the fillet extends onto each
+  surface once it has touched the surface.
+\end{description}
+
+
+\subsection{Description of Approach}
+
+Here are the basic steps that are used to create a fillet or collar grid:
+\begin{description}
+ \item[intersect surfaces:] Given two intersecting surfaces we first compute the
+   curves(s) of intersection using the {\tt IntersectionMapping}. (For a 2D fillet grid
+   the intersection curves are just the points of intersection.
+ \item[generate surface grids:] The next step is to generate a hyperbolic surface grid
+    on each of the two surfaces, using the curve of intersection as a starting curve (not necessary
+    to do in 2D). The surface grid is grown in both directions from the starting curve. The 
+    {\tt HyperbolicSurfaceMapping} is used to generate these grids.
+ \item[blend surface grids:] The fillet grid is defined as a blending of the two surface grids. 
+    The precise description of this blending is given below.
+\end{description}
+
+
+\subsection{Fillet for two intersecting surfaces}
+
+To define a fillet to join two intersecting surfaces, $\Sv_1$, $\Sv_2$  we use 
+\begin{align*}
+   \cv_I(r_1) & = \mbox{Curve of intersection} \\
+    \cv_1(r_1,r_2) &= \mbox{Grid on surface 1, with $\cv_1(r_1,.5) = \cv_I(r_1)$} \\
+    \cv_2(r_1,r_2) &= \mbox{Grid on surface 2, with $\cv_2(r_1,.5) = \cv_I(r_1)$}
+\end{align*}
+If the parameter $r_1$ is tangential to the intersection and $r_2$ varies in the direction
+normal to the intersection then the fillet is defined by blending the two surface grids:
+\begin{align*}
+   \xv & = b(s) \cv_1(r_1,s_1(r_2)) + (1-b(s)) \cv(r_1,s_2(r_2))   \\
+   b &= {1\over2} ( 1+\tanh( \beta(r_2-.5) ) )
+\end{align*}
+where the parameter variables $s_i(r_2)$ are chosen to be quadratic polynomials in $r_2$,
+\[
+   s_i = a_{i0}(r_1) + r_2 ( a_{i1}(r_1) + r_2 a_{i2}(r_1) )
+\]
+where
+\begin{alignat*}{2}
+   c_{i,0} &=.5                                   && \mbox{intersection point} \\
+   c_{i,1} &=c_{i,0}-pm[i]*.5*filletWidth/crNorm  && \mbox{distance from intersection point for c1} \\
+   c_{i,2} &=c_{i,0}-pm[i]*(.5*filletWidth+filletOverlap)/crNorm && \mbox{distance from intersection point for c2} \\
+   c_{i,3} &=c_{i,0}+pm[i]*shift*.5*filletWidth/crNorm   && \\
+   a_{i0} &= c_{i,2+i}  && \\
+   a_{i1} &= c_{i,3-i}-c_{i,2+i}+(16./3.)*(c_{i,1}-.75*c_{i,2}-.25*c_{i,3}) &&  \\
+   a_{i2} &= -((16./3.)*(c_{i,1}-.75*c_{i,2}-.25*c_{i,3})) &&  \\
+\end{alignat*}
+
+%% \input FilletMappingInclude.tex
+
+\subsection{examples}
+
+\subsubsection{2D Fillet joining two lines}
+
+This is a 2D example showing a fillet that joins two line segments.
+These figures show the four possible fillets that can be generated between intersecting curves 
+(or surfaces).
+
+
+\noindent
+\begin{minipage}{.45\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/filletLine1} \\
+   % \epsfig{file=\figures/filletLine1.ps,height=3.in}  \\
+  {A fillet grid joining two lines. The orientation is {\tt curve 1- to curve 2-}.}
+  \end{center}
+\end{minipage}\hfill
+\begin{minipage}{.45\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/filletLine2} \\
+%   \epsfig{file=\figures/filletLine2.ps,height=3.in}  \\
+  {A fillet grid joining two lines. The orientation is {\tt curve 1+ to curve 2-}.}
+  \end{center}
+\end{minipage}
+
+\noindent
+\begin{minipage}{.45\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/filletLine3} \\
+%   \epsfig{file=\figures/filletLine3.ps,height=3.in}  \\
+  {A fillet grid joining two lines. The orientation is {\tt curve 1- to curve 2+}.}
+  \end{center}
+\end{minipage}\hfill
+\begin{minipage}{.45\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/filletLine4} \\
+%   \epsfig{file=\figures/filletLine4.ps,height=3.in}  \\
+  {A fillet grid joining two lines. The orientation is {\tt curve 1+ to curve 2+}.}
+  \end{center}
+\end{minipage}
+
+
+
+\subsubsection{Fillet to join two cylinders}
+In the left column is the command file that was used to generate the grid on the right.
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/filletTwoCyl.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/filletTwoCyl} \\
+   % \epsfig{file=\figures/filletTwoCyl.ps,height=4.in}  \\
+  {A fillet grid joining two cylinders. The fillet is created with the aid of hyperbolic grid generation.}
+  \end{center}
+\end{minipage}
+
+\subsubsection{Fillet to join two spheres}
+In the left column is the command file that was used to generate the grid on the right.
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/filletTwoSphere.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/filletTwoSphere} \\
+   % \epsfig{file=\figures/filletTwoSphere.ps,height=4.in}  \\
+  {A fillet grid (green) joining two spheres.}
+  \end{center}
+\end{minipage}
+
+
+% 
+% \noindent
+% \begin{minipage}{.475\linewidth}
+%   \begin{center}
+%    \epsfig{file=\figures/hyper1.ps,width=\linewidth}  \\
+%   {Hyperbolic mapping}
+%   \end{center}
+% \end{minipage}\hfill
+% \begin{minipage}{.475\linewidth}
+%   \begin{center}
+%    \epsfig{file=\figures/hyper2.ps,width=\linewidth}  \\
+%   {Hyperbolic mapping}
+%   \end{center}
+% \end{minipage}
+
+
+
+
+

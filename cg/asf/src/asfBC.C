@@ -1,0 +1,633 @@
+// This file automatically generated from asfBC.bC with bpp.
+#include "Cgasf.h"
+#include "AsfParameters.h"
+
+// ============================================================================
+//  Apply the BC on the Temperature for a noSlipWall
+//
+//  STAGE: stageI  -- assign dirichlet conditions 
+//         stageII -- assign neumann/mixed or extrapolation conditions
+// ============================================================================
+
+//    Mixed-derivative BC for component i: 
+//          mixedCoeff(i)*u(i) + mixedNormalCoeff(i)*u_n(i) = mixedRHS(i)
+#define mixedRHS(component,side,axis,grid)         bcData(component+numberOfComponents*(0),side,axis,grid)
+#define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
+#define mixedNormalCoeff(component,side,axis,grid) bcData(component+numberOfComponents*(2),side,axis,grid)
+
+int Cgasf::
+applyBoundaryConditions(const real & t, realMappedGridFunction & u, 
+                  			realMappedGridFunction & gridVelocity,
+                  			const int & grid,
+                  			const int & option /* =-1 */,
+                  			realMappedGridFunction *puOld /* =NULL */, 
+                  			realMappedGridFunction *pGridVelocityOld /* =NULL */, 
+                  			const real & dt /* =-1. */)
+// =========================================================================================
+// =========================================================================================
+{
+    real time0=getCPU();
+
+    MappedGrid & mg = *u.getMappedGrid();
+    const IntegerArray & boundaryCondition = mg.boundaryCondition();
+    
+    const bool gridIsMoving = parameters.gridIsMoving(grid);
+
+    const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+    const int & rc = parameters.dbase.get<int >("rc");
+    const int & uc = parameters.dbase.get<int >("uc");
+  // const int & vc = parameters.dbase.get<int >("vc");
+  // const int & wc = parameters.dbase.get<int >("wc");
+    const int & pc = parameters.dbase.get<int >("pc");
+    const int & tc = parameters.dbase.get<int >("tc");
+    const int & numberOfDimensions=mg.numberOfDimensions();
+
+    const AsfParameters::AlgorithmVariation & algorithmVariation = 
+        parameters.dbase.get<AsfParameters::AlgorithmVariation>("algorithmVariation");
+    FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
+    
+  // const real & mu = parameters.dbase.get<real >("mu");
+  // const real & gamma = parameters.dbase.get<real >("gamma");
+  // const real & kThermal = parameters.dbase.get<real >("kThermal");
+  // const real & Rg = parameters.dbase.get<real >("Rg");
+  // const real & avr = parameters.dbase.get<real >("avr");
+  // const real & pressureLevel = parameters.dbase.get<real >("pressureLevel");
+  // const real & nuRho = parameters.dbase.get<real >("nuRho");
+  // const real & nu = parameters.dbase.get<real >("nu");
+  // const real & anu = parameters.dbase.get<real >("anu");
+
+    const RealArray & bcData = parameters.dbase.get<RealArray >("bcData");
+    BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid);
+    
+    typedef int BoundaryCondition;
+    const BoundaryCondition & noSlipWall              = Parameters::noSlipWall;
+    const BoundaryCondition & slipWall                = Parameters::slipWall;
+  //  const BoundaryCondition & inflowWithVelocityGiven = Parameters::inflowWithVelocityGiven;
+  //  const BoundaryCondition & outflow                 = Parameters::outflow;
+    const BoundaryCondition & subSonicInflow          = AsfParameters::subSonicInflow;
+    const BoundaryCondition & subSonicOutflow         = AsfParameters::subSonicOutflow;
+    const BoundaryCondition & convectiveOutflow       = AsfParameters::convectiveOutflow;
+    const BoundaryCondition & symmetry                = Parameters::symmetry;
+  //  const BoundaryCondition & inflowWithPressureAndTangentialVelocityGiven 
+  //                              = Parameters::inflowWithPressureAndTangentialVelocityGiven;
+    const BoundaryCondition & tractionFree = AsfParameters::tractionFree;
+    const BoundaryCondition & dirichletBoundaryCondition= Parameters::dirichletBoundaryCondition;
+    const BoundaryCondition & neumannBoundaryCondition  = Parameters::neumannBoundaryCondition;
+    const BoundaryCondition & axisymmetric              = Parameters::axisymmetric;
+  //  const BoundaryCondition & farField                  = Parameters::farField;
+    
+  // make some shorter names for readability
+    BCTypes::BCNames 
+        dirichlet       = BCTypes::dirichlet,
+        neumann         = BCTypes::neumann,
+        mixed           = BCTypes::mixed,
+        extrapolate     = BCTypes::extrapolate,
+        normalComponent = BCTypes::normalComponent,
+        vectorSymmetry  = BCTypes::vectorSymmetry, 
+        generalizedDivergence = BCTypes::generalizedDivergence;
+    
+  // First determine which boundary conditions we have
+    bool assignAxisymmetric=false;
+    bool assignDirichletBoundaryCondition=false;
+    bool assignNeumannBoundaryCondition=false;
+    bool assignSubSonicInflow=false;
+    bool assignSubSonicOutflow=false;
+    bool assignSlipWall=false;
+    bool assignNoSlipWall=false;
+    bool assignSymmetry=false;
+    bool assignOutflow=false;
+  //  bool assignFarField=false;
+    bool assignConvectiveOutflow=false;
+    
+    int side,axis;
+    for( axis=0; axis<mg.numberOfDimensions(); axis++ )
+    {
+        for( side=0; side<=1; side++ )
+        {
+            int bc=boundaryCondition(side,axis);
+            switch (bc)
+            {
+            case 0 : break;
+            case -1: break;
+            case Parameters::slipWall:           assignSlipWall=true; break;
+            case Parameters::noSlipWall :        assignNoSlipWall=true; break;
+            case AsfParameters::subSonicInflow:     assignSubSonicInflow=true; break;
+            case AsfParameters::subSonicOutflow:    assignSubSonicOutflow=true; break;
+            case Parameters::symmetry :          assignSymmetry=true; break;
+            case Parameters::axisymmetric:       assignAxisymmetric=true; break;
+            case Parameters::dirichletBoundaryCondition:  assignDirichletBoundaryCondition=true; break;
+            case Parameters::neumannBoundaryCondition:  assignNeumannBoundaryCondition=true; break;
+	//      case Parameters::outflow:             assignOutflow=true; break;
+	//      case Parameters::farField:            assignFarField=true; break;
+            case AsfParameters::convectiveOutflow:   assignConvectiveOutflow=true; break;
+            default: 
+                printf("asfBC:ERROR: unknown boundary condition =%i on grid %i, side=%i, axis=%i\n",bc,grid,side,axis);
+                throw "error";
+            break;
+            }
+        }
+    }
+
+
+  //   aDotU           = BCTypes::aDotU,
+  //   aDotGradU       = BCTypes::aDotGradU,
+  //   allBoundaries   = BCTypes::allBoundaries; 
+
+  // for mixed boundary conditions
+    BoundaryConditionParameters bcParams;
+    bcParams.a.redim(3);
+    bcParams.a=0.;
+    bcParams.a(0)=1.;
+    bcParams.a(1)=1.;
+    bcParams.a(2)=1.;
+
+    bool adiabaticNoSlipWall=false;  // set to true if there is at least one adiabatic noSlipWall
+    const  int nc=parameters.dbase.get<int >("numberOfComponents");
+    if( assignNoSlipWall )
+    {
+        for( int side=0; side<=1; side++ )
+        {
+            for( int axis=0; axis<numberOfDimensions; axis++ )
+            {
+// 	printf(" nc=%i (side,axis,grid)=(%i,%i,%i) bcData(%i:%i)=%5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f \n",
+// 	       nc,grid,side,axis, 
+// 	       bcData.getBase(0),bcData.getBound(0),
+// 	       bcData(0,side,axis,grid),
+// 	       bcData(1,side,axis,grid),
+// 	       bcData(2,side,axis,grid),
+// 	       bcData(3,side,axis,grid),
+// 	       bcData(4,side,axis,grid),
+// 	       bcData(5,side,axis,grid),
+// 	       bcData(6,side,axis,grid));
+
+      	if( mg.boundaryCondition(side,axis)==noSlipWall && bcData(nc+1,side,axis,grid)!=0. )
+      	{
+        	  adiabaticNoSlipWall=true;
+                    if( debug() & 2 )
+          	    printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
+                                      "Mixed BC found for T: %3.2f*T+%3.2f*T.n=\n",
+               		   grid,side,axis,mixedCoeff(tc,side,axis,grid),mixedNormalCoeff(tc,side,axis,grid));
+      	}
+            }
+        }
+    }
+    
+  // **************************************************************************
+  //  apply boundary conditions in order of increasing priority (so corners
+  //    take the values from the bc that is applied last)
+  // **************************************************************************
+
+
+
+
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // %%%%%%%%%%%%%%%% NOTE : We need to re-organise this to move extrapolation conditions last
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+    if( option==tc )
+    {
+    // only apply BC to the temperature
+    // printf("ASFBC: apply BC to the temperature \n");
+        
+    // ** u.applyBoundaryCondition(tc,dirichlet,subSonicInflow,bcData,t,Overture::defaultBoundaryConditionParameters(),grid);
+    //    u.applyBoundaryCondition(tc,neumann,subSonicInflow,0.,t);
+        u.applyBoundaryCondition(tc,mixed,subSonicInflow,bcData,t,bcParams,grid);
+        u.applyBoundaryCondition(tc,mixed,subSonicOutflow,bcData,t,bcParams,grid);
+
+    // u.applyBoundaryCondition(tc,dirichlet,noSlipWall,bcData,t,Overture::defaultBoundaryConditionParameters(),grid);
+    // u.applyBoundaryCondition(tc,extrapolate, noSlipWall,0.,t);
+
+        if( !adiabaticNoSlipWall )
+        {
+            u.applyBoundaryCondition(tc,dirichlet,noSlipWall,bcData,t,Overture::defaultBoundaryConditionParameters(),grid);
+        }
+        else
+        {
+      // Some noSlipWall are adiabatic: A Neumann or Mixed BC on T
+            bcParams.a.redim(3);
+            bcParams.a=0.;
+            for( int side=0; side<=1; side++ )
+            {
+                for( int axis=0; axis<numberOfDimensions; axis++ )
+                {
+                    if( mg.boundaryCondition(side,axis)==noSlipWall )
+                    {
+              	if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+              	{
+    	  // Dirichlet BC on T -- extrap the ghost points:
+                	  if( debug() & 8 )
+                  	    printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : apply stageI\n",
+                       		   grid,side,axis);
+                                u.applyBoundaryCondition(tc,dirichlet,BCTypes::boundary(side,axis),bcData,t,
+                                                                                  Overture::defaultBoundaryConditionParameters(),grid);
+              	}
+              	else
+              	{
+              	}
+                    }
+                }
+            }
+        }
+        if( !adiabaticNoSlipWall )
+        {
+            u.applyBoundaryCondition(tc,extrapolate,noSlipWall,0.,t);
+        }
+        else
+        {
+      // Some noSlipWall are adiabatic: A Neumann or Mixed BC on T
+            bcParams.a.redim(3);
+            bcParams.a=0.;
+            for( int side=0; side<=1; side++ )
+            {
+                for( int axis=0; axis<numberOfDimensions; axis++ )
+                {
+                    if( mg.boundaryCondition(side,axis)==noSlipWall )
+                    {
+              	if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+              	{
+    	  // Dirichlet BC on T -- extrap the ghost points:
+                	  if( debug() & 8 )
+                  	    printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : apply stageI\n",
+                       		   grid,side,axis);
+                      	    u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
+              	}
+              	else
+              	{
+    	  // Mixed BC or Neumann
+                	  real a0=mixedCoeff(tc,side,axis,grid);
+                	  real a1=mixedNormalCoeff(tc,side,axis,grid);
+                            real a2=mixedRHS(tc,side,axis,grid);
+                	  if( a0==0. && a1==1. )
+                	  {
+                  	    if( debug() & 8 )
+                    	      printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : apply neumannBC\n",
+                         		     grid,side,axis);
+    	    // u.applyBoundaryCondition(tc,neumann,BCTypes::boundary(side,axis),0.,t);
+                        	      u.applyBoundaryCondition(tc,neumann,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
+                                     				     Overture::defaultBoundaryConditionParameters(),grid);
+                	  }
+                	  else
+                	  {
+                  	    if( debug() & 8 )
+                    	      printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
+                         		     "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f\n",
+                         		     grid,side,axis,a0,a1,a2);
+                  	    bcParams.a(0)=a0;
+                  	    bcParams.a(1)=a1;
+                  	    bcParams.a(2)=a2;
+                  	    u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
+                                     				     bcParams,grid);
+                	  }
+              	}
+                    }
+                }
+            }
+        }
+
+        u.applyBoundaryCondition(tc,neumann,slipWall,0.,t);  // do after above extrapolation
+
+        u.applyBoundaryCondition(tc,extrapolate, convectiveOutflow,0.,t);
+
+        u.finishBoundaryConditions(Overture::defaultBoundaryConditionParameters(),Range(tc,tc));
+        return 0;
+    }
+    
+    Range V = Index(uc,numberOfDimensions);  // velocity components
+    Range C(0,numberOfComponents-1); 
+//  Range C = V;
+    
+
+    if( assignDirichletBoundaryCondition )
+    {
+        Range C(0,numberOfComponents-1); 
+        bcParams.extraInTangentialDirections=2;  // assign extended boundary
+        for( int line=0; line<=2; line++ )
+        {
+            bcParams.lineToAssign=line;
+            u.applyBoundaryCondition(C,dirichlet,dirichletBoundaryCondition,0.,t,bcParams);
+        }
+        bcParams.lineToAssign=0; // reset
+        bcParams.extraInTangentialDirections=0;
+
+        u.applyBoundaryCondition(C,extrapolate,dirichletBoundaryCondition,0.,t);
+    }
+
+  // slipWall:
+  // (1) set n.(u,v[,w])=
+  // (2) vector symmetry on (u,v[,w])  ( n.u is even, t.u is odd)
+  // (3) set rho.n=0, p.n=0
+  // (4) extrapolate all components on 2nd ghost line
+
+
+  // slipWall:
+  // (1) set n.(rho,u,v[,w])=, T.n=0
+  // (2) extrapolate all components 
+  // old**  u.applyBoundaryCondition(V,normalComponent,slipWall,0.,t);
+    if( gridIsMoving )
+        u.applyBoundaryCondition(V,normalComponent,slipWall,gridVelocity,t);
+    else
+        u.applyBoundaryCondition(V,normalComponent,slipWall,0.,t);
+
+    if( false )
+        u.applyBoundaryCondition(V,vectorSymmetry, slipWall,0.,t);   
+    else
+    { // use this 981130
+        u.applyBoundaryCondition(V,extrapolate,    slipWall,0.,t);
+        u.applyBoundaryCondition(V,BCTypes::normalDerivativeOfTangentialComponent0, slipWall,0.,t);
+        if( numberOfDimensions==3 )
+            u.applyBoundaryCondition(V,BCTypes::normalDerivativeOfTangentialComponent1, slipWall,0.,t);
+    }
+    
+    if( parameters.dbase.get<int >("explicitMethod") )
+          u.applyBoundaryCondition(pc,neumann,     slipWall,0.,t);   // ****** fix this : p.n = n*( u.grad(u) )
+
+    if( debug() & 16 )
+    {
+        fprintf(debugFile,"\nallSpeedBC: after slip wall (1) at t=%e \n",t);
+    // determineErrors( cg,gf[m1],gf.gridVelocity, t+dt, 0, error );   // *********
+        ::display(u,"u",debugFile,"%5.2f ");
+    }
+
+
+    BoundaryConditionParameters extrapParams;
+    extrapParams.ghostLineToAssign=2;
+    extrapParams.orderOfExtrapolation=3;
+//  u.applyBoundaryCondition(C,extrapolate,    slipWall,0.,t,extrapParams);
+
+// oo  u.applyBoundaryCondition(tc,neumann,slipWall,0.,t);  // do after above extrapolation
+
+/* ----
+    if( testProblem==6 )
+    {
+        real finalMach=.75;
+        real rampTime=1.;
+    // scale up to finalMach in rampTime seconds
+        scaleInflowVelocity=1.+min((t-initialTime)/rampTime,1.)*(finalMach/machNumber-1.); 
+    // printf(" machNumber=%e, finalMach=%e, scaleInflowVelocity=%e\n",machNumber,finalMach,scaleInflowVelocity);
+    }
+---- */
+    
+// **  realArray newData(subSonicInflowData);
+// **   newData(V)=subSonicInflowData(V)*scaleInflowVelocity;
+// **   u.applyBoundaryCondition(V,dirichlet,subSonicInflow,newData(V),t,Overture::defaultBoundaryConditionParameters(),grid);
+
+    u.applyBoundaryCondition(V,dirichlet,subSonicInflow,bcData,pBoundaryData,t,
+                Overture::defaultBoundaryConditionParameters(),grid);
+  //  u.applyBoundaryCondition(V,dirichlet,subSonicInflow,bcData,t,Overture::defaultBoundaryConditionParameters(),grid);
+
+//  u.applyBoundaryCondition(rc,extrapolate,         subSonicInflow,0.,t);
+    u.applyBoundaryCondition(V,extrapolate,          subSonicInflow,0.,t);
+    u.applyBoundaryCondition(V,generalizedDivergence,subSonicInflow,0.,t);
+
+    if( parameters.dbase.get<int >("explicitMethod") ) 
+        u.applyBoundaryCondition(pc,neumann,           subSonicInflow,0.,t);
+    u.applyBoundaryCondition(C,extrapolate,          subSonicInflow,0.,t,extrapParams);
+
+    if( debug() & 16 )
+    {
+        fprintf(debugFile,"\nallSpeedBC: after subSonicInflow (2) at t=%e \n",t);
+    // determineErrors( cg,gf[m1],gf.gridVelocity, t+dt, 0, error );   // *********
+        ::display(u,"u",debugFile,"%5.2f ");
+    }
+
+  // For the jet BC we should use the mask in the BoundaryConditionParameters to specify
+  // where to apply the jet BC
+  //  bcParams.setUseMask(true);
+  //  bcParams.mask() --> dimension and fill in this mask array.
+
+
+
+
+  // noSlipWall
+  // (1) set rho.n=, p.n = and (u,v,w)=
+  // (2) extrapolate (u,v,w) on first ghost line
+  // (2) extrapolate all components on second ghost line
+
+    if( parameters.dbase.get<int >("explicitMethod") )
+    {
+    // no need to apply BC to rho and p for implicit methods  -- check this ---
+        u.applyBoundaryCondition(rc,neumann,   noSlipWall,0.,t);
+        u.applyBoundaryCondition(pc,neumann,   noSlipWall,0.,t);  // **** fix this ****
+    }
+    if( algorithmVariation!=AsfParameters::densityFromGasLawAlgorithm )
+    {
+    // u.applyBoundaryCondition(tc,dirichlet,noSlipWall,bcData,t,Overture::defaultBoundaryConditionParameters(),grid);
+    // u.applyBoundaryCondition(tc,extrapolate, noSlipWall,0.,t);
+        if( !adiabaticNoSlipWall )
+        {
+            u.applyBoundaryCondition(tc,dirichlet,noSlipWall,bcData,t,Overture::defaultBoundaryConditionParameters(),grid);
+        }
+        else
+        {
+      // Some noSlipWall are adiabatic: A Neumann or Mixed BC on T
+            bcParams.a.redim(3);
+            bcParams.a=0.;
+            for( int side=0; side<=1; side++ )
+            {
+                for( int axis=0; axis<numberOfDimensions; axis++ )
+                {
+                    if( mg.boundaryCondition(side,axis)==noSlipWall )
+                    {
+              	if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+              	{
+    	  // Dirichlet BC on T -- extrap the ghost points:
+                	  if( debug() & 8 )
+                  	    printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : apply stageI\n",
+                       		   grid,side,axis);
+                                u.applyBoundaryCondition(tc,dirichlet,BCTypes::boundary(side,axis),bcData,t,
+                                                                                  Overture::defaultBoundaryConditionParameters(),grid);
+              	}
+              	else
+              	{
+              	}
+                    }
+                }
+            }
+        }
+        if( !adiabaticNoSlipWall )
+        {
+            u.applyBoundaryCondition(tc,extrapolate,noSlipWall,0.,t);
+        }
+        else
+        {
+      // Some noSlipWall are adiabatic: A Neumann or Mixed BC on T
+            bcParams.a.redim(3);
+            bcParams.a=0.;
+            for( int side=0; side<=1; side++ )
+            {
+                for( int axis=0; axis<numberOfDimensions; axis++ )
+                {
+                    if( mg.boundaryCondition(side,axis)==noSlipWall )
+                    {
+              	if( mixedNormalCoeff(tc,side,axis,grid)==0. ) // coeff of T.n 
+              	{
+    	  // Dirichlet BC on T -- extrap the ghost points:
+                	  if( debug() & 8 )
+                  	    printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : apply stageI\n",
+                       		   grid,side,axis);
+                      	    u.applyBoundaryCondition(tc,extrapolate,BCTypes::boundary(side,axis),0.,t);
+              	}
+              	else
+              	{
+    	  // Mixed BC or Neumann
+                	  real a0=mixedCoeff(tc,side,axis,grid);
+                	  real a1=mixedNormalCoeff(tc,side,axis,grid);
+                            real a2=mixedRHS(tc,side,axis,grid);
+                	  if( a0==0. && a1==1. )
+                	  {
+                  	    if( debug() & 8 )
+                    	      printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : apply neumannBC\n",
+                         		     grid,side,axis);
+    	    // u.applyBoundaryCondition(tc,neumann,BCTypes::boundary(side,axis),0.,t);
+                        	      u.applyBoundaryCondition(tc,neumann,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
+                                     				     Overture::defaultBoundaryConditionParameters(),grid);
+                	  }
+                	  else
+                	  {
+                  	    if( debug() & 8 )
+                    	      printF("++++asfBC:noSlipWall:adiabaticWall: (grid,side,axis)=(%i,%i,%i) : "
+                         		     "Mixed BC for T: %3.2f*T+%3.2f*T.n=%3.2f\n",
+                         		     grid,side,axis,a0,a1,a2);
+                  	    bcParams.a(0)=a0;
+                  	    bcParams.a(1)=a1;
+                  	    bcParams.a(2)=a2;
+                  	    u.applyBoundaryCondition(tc,mixed,BCTypes::boundary(side,axis),bcData,pBoundaryData,t,
+                                     				     bcParams,grid);
+                	  }
+              	}
+                    }
+                }
+            }
+        }
+        
+    }
+    
+  // **old  u.applyBoundaryCondition(V,dirichlet,  noSlipWall,0.,t);
+    if( gridIsMoving )
+        u.applyBoundaryCondition(V,dirichlet,noSlipWall,gridVelocity,t);
+    else
+        u.applyBoundaryCondition(V,dirichlet,noSlipWall,bcData,t,Overture::defaultBoundaryConditionParameters(),grid);
+    u.applyBoundaryCondition(V,extrapolate,noSlipWall,0.,t);
+
+
+// *wdh* 980502  u.applyBoundaryCondition(C,extrapolate,noSlipWall,0.,t,extrapParams); // ghost line 2   ****** why? ******
+
+  // symmetry BC: **check this**
+    u.applyBoundaryCondition(pc,neumann,      symmetry,0.,t);
+    u.applyBoundaryCondition(tc,neumann,      symmetry,0.,t);
+    u.applyBoundaryCondition(V,vectorSymmetry,symmetry,0.,t);   
+
+
+  //  Apply the BC:   div(u)= f = ( f_2 - p(n+1) )/( a0*dt*gamma*p(n+1) )
+  // f is computed in implicitExplicitTimeStep
+  // f is not known for the projection ------\/
+
+  // *wdh* 070101 -- turn this off for now  +++++++++++++++++++++++
+    if( parameters.dbase.get<bool>("useDivergenceBoundaryCondition") && 
+            (gridMachNumber[grid]<.1 && 
+              parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::implicitAllSpeed ) 
+            || (!parameters.dbase.get<int >("explicitMethod") && parameters.dbase.get<bool >("twilightZoneFlow")) )
+    //       && !parameters.dbase.get<int >("initializeImplicitMethod") )  // *** removed 970822
+    { 
+    // cout << " ****** apply divergence BC: not implemented yet... \n";
+    // throw "error";
+    // *** need f == pressureRightHandSide here    
+
+
+        if( parameters.dbase.get<int >("initializeImplicitMethod") )
+        {
+            if( debug() & 2  )
+                cout << " ASF ****** apply divergence BC (initializeImplicitMethod) ***** \n";
+
+      // this is done for the initial projection    
+            u.applyBoundaryCondition(V,generalizedDivergence,noSlipWall,0.,t);
+            u.applyBoundaryCondition(V,generalizedDivergence,  slipWall,0.,t);
+        }
+        else
+        {
+
+//      cout << " ASF ****** apply divergence BC ***** \n";
+//      u.applyBoundaryCondition(V,generalizedDivergence,noSlipWall,
+//        compositeGridSolver->pressureRightHandSide[gridNumber],t);
+//      u.applyBoundaryCondition(V,generalizedDivergence,slipWall,  
+//        compositeGridSolver->pressureRightHandSide[gridNumber],t);
+
+      // cout << " ASF ****** apply divergence BC, div(u)=(-1/r)[ r.t+u.grad(rho) ] ***** \n";
+// **      u.applyBoundaryCondition(V,generalizedDivergence,noSlipWall,
+// **        compositeGridSolver->pressureRightHandSide[gridNumber],t);
+
+            if( debug() & 2  )
+                cout << " ASF ****** apply divergence BC, div(u)=0 ] ***** \n";
+            u.applyBoundaryCondition(V,generalizedDivergence,noSlipWall,0.,t);
+
+            u.applyBoundaryCondition(V,generalizedDivergence,slipWall,  
+                                                                    pressureRightHandSide[grid],t);
+        }
+    }
+    
+  // subSonicOutflow:
+  // (1) extrapolate (r,u,v,[w,]), p
+  // (2) set alpha p + beta p.n =  
+  // (3) extrapolate all components on 2nd ghost line
+  // ** 010714 u.applyBoundaryCondition(C,extrapolate,subSonicOutflow,0.,t);
+    u.applyBoundaryCondition(C,neumann,subSonicOutflow,0.,t);
+    u.applyBoundaryCondition(C,extrapolate,subSonicOutflow,0.,t,extrapParams);
+
+  // convective outflow  -- do this for now --
+    u.applyBoundaryCondition(C,neumann,convectiveOutflow,0.,t);
+    u.applyBoundaryCondition(C,extrapolate,convectiveOutflow,0.,t,extrapParams);
+
+  // traction free -- do this for now --
+    u.applyBoundaryCondition(C,neumann,tractionFree,0.,t);
+    u.applyBoundaryCondition(C,extrapolate,tractionFree,0.,t,extrapParams);
+
+    if( debug() & 16 )
+    {
+        fprintf(debugFile,"\nallSpeedBC: after subSonicOutflow at t=%e \n",t);
+    // determineErrors( cg,gf[m1],gf.gridVelocity, t+dt, 0, error );   // *********
+        ::display(u,"u",debugFile,"%5.2f ");
+    }
+
+
+    u.finishBoundaryConditions();
+
+
+
+/* ----
+    if( debug() & 128 )
+    {
+        Index I1,I2,I3;
+        for( int n=0; n<numberOfComponents; n++)
+        {
+            fprintf(parameters.dbase.get<FILE* >("debugFile"),"applyBoundaryConditionsASF: errors in component=%i at t=%e \n",n,t);
+            getIndex(c.extendedIndexRange(),I1,I2,I3,1);
+            display(evaluate(u(I1,I2,I3,n)-TZFlow->u(c,I1,I2,I3,n,t)),"errors including 1 ghost line",
+                      parameters.dbase.get<FILE* >("debugFile"));
+        }
+    }
+
+  // extrapolate the neighbours of interpolation points -- these values are used         ******************** fix this *******
+  // by the fourth-order artificial viscosity and and the godunov method
+    if( parameters.dbase.get< >("nu4")!=0. || parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==explicitGodunov )
+        u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours);
+----- */
+
+//  tm(11)+=getCPU()-time;
+
+
+  // *** NOTE *** boundary equations for species equations are done in 
+  //   applyBoundaryConditions (file boundaryConditions.C)
+//   if( parameters.dbase.get<int >("numberOfSpecies")>0 )
+//   {
+//     // species equations.
+//     const int sc = parameters.dbase.get<int >("sc");
+//     Range S(sc,sc+parameters.dbase.get<int >("numberOfSpecies")-1);
+        
+//   }
+
+//   u.finishBoundaryConditions();
+
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForBoundaryConditions"))+=getCPU()-time0;
+    return 0;
+}

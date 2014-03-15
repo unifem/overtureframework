@@ -1,0 +1,407 @@
+\section{Implicit operators and Coefficient Matrices}
+
+
+The {\ff MappedGridOperator} functions such as {\ff laplacianCoefficient}, {\ff xCoefficient}
+etc. generate a ``coefficient-matrix'' (sparse matrix representation) for the indicated operator.
+In this section we describe how coefficient-matrices can be created to define a system 
+of equations for a PDE boundary-value problem.
+
+To create a coefficient matrix you should create a grid function in the following way
+\begin{verbatim}
+    MappedGrid mg; // from somewhere
+    int stencilSize=9;       // number of points in the stencil, 9 points assuming 2D
+    realMappedGridFunction coeff(mg,stencilSize,all,all,all);
+    coeff.setIsACoefficientMatrix(TRUE,stencilSize);
+\end{verbatim}
+
+From this declaration we see the the elements of the stencil are stored as
+\begin{verbatim}
+    coeff(m,I1,I2,I3)  m=0,1,...,stencilSize-1
+  where
+    Index I1,I2,I3   : Index's for the grid function coordinate dimensions
+\end{verbatim}
+Thus all the coefficients of the stencil are stored in the first component.
+For example, a nine point approximation to the Laplace operator might be stored as
+\begin{verbatim}
+    coeff(6,I1,I2,I3)=0    coeff(7,I1,I2,I3)=1    coeff(8,I1,I2,I3)=0
+    coeff(3,I1,I2,I3)=1    coeff(4,I1,I2,I3)=-4   coeff(5,I1,I2,I3)=1
+    coeff(0,I1,I2,I3)=0    coeff(1,I1,I2,I3)=1    coeff(2,I1,I2,I3)=0
+\end{verbatim}
+The typical user will not need to know exactly how the coefficients are
+stored (indeed, there is more than one storage format). 
+This {\it representation} of the sparse matrix should really 
+be hidden. It is useful, however, to have an idea of the format of the
+matrix coefficient array. The actual representation is stored in an object of
+type {\ff SparseRep}. See section \ref{SparseRep} for more details.
+
+Once a coefficient-matrix grid-function has been declared, the sparse matrix
+representing a PDE boundary value problem can be formed as follows
+{\footnotesize
+\begin{verbatim}
+  MappedGridOperators op(mg);                            // create some differential operators
+  op.setStencilSize(stencilSize);
+  coeff.setOperators(op);
+  
+  coeff=op.laplacianCoefficients();                      // get the coefficients for the Laplace operator
+  // fill in the coefficients for the boundary conditions
+  coeff.applyBoundaryConditionCoefficients(0,0,dirichlet,allBoundaries);     // equations on boundary
+  coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries);   // equations on the ghost line
+  coeff.finishBoundaryConditions();
+\end{verbatim}
+}
+In this example we form the Laplace operator with Dirichlet boundary conditions.
+By default one ghost-line is used so we must supply equations there. (See the description
+of the {\ff MappedGridFunction} member function {\ff setIsACoefficientMatrix} for details
+on how to change the number of ghostlines that are used.)
+The {\tt coeff} grid function can be give to a sparse matrix solver, such as
+{\tt Oges}. See the examples for more details.
+
+
+Let us consider, in a bit more detail, what happens in the above example. Let us suppose
+that the we are dealing with a simple one-dimensional grid corresponding to a line on the
+unit interval and that we have one ghost line value.
+After the line {\tt coeff=op.laplacianCoefficients();} is executed the sparse matrix will be
+filled in (at all interior points and boundary points) with a discrete approximation to the 
+Laplacian, resulting in a (sparse) representation for the following matrix
+\newcommand{\dxa}{{1\over h^2}}
+\newcommand{\dxb}{-{2\over h^2}}
+\newcommand{\dxc}{{1\over 2h}}
+\begin{equation*}
+   \left[\begin{array}{ccccccc}
+         0    & 0    & 0    &\ldots&      &      &    \\
+         \dxa & \dxb & \dxa & 0    &\ldots&      &   \\
+         0    & \dxa & \dxb & \dxa &  0   &\ldots&   \\
+         0    &  0   & \dxa & \dxb & \dxa &  0   &   \\
+        \vdots&\vdots&      &\ddots&\ddots&\ddots&    \\
+              &      &      &  0   & \dxa & \dxb & \dxa \\
+              &      &      &\ldots&  0   &   0  &  0   
+    \end{array} \right]
+  \qquad
+   \begin{array}{l}
+    i=-1~~~~{\rm (ghost line)}\\i=0\\i=1\\i=2\\ \vdots \\ i=N\\ i=N+1~~~~{\rm (ghost line)}
+   \end{array}
+\end{equation*}
+So far no equation is applied at the ghost lines (first and last rows).
+Internally this matrix is stored in a sparse fashion with only 3 values stored per row (actually we need 4 values
+per row in 1D since the extrapolation equations below use 4 points by default).
+After the dirichlet boundary condition is applied with {\tt coeff.apply\-Boundary\-Condition\-Coefficients(0,0,dirichlet,allBoundaries);} the equation on the boundary will be replaced with the identity operator. The resulting
+matrix is
+\begin{equation*}
+   \left[\begin{array}{ccccccc}
+         0    & 0    & 0    &\ldots&      &      &    \\
+           0  &  1   &  0   & 0    &\ldots&      &   \\
+         0    & \dxa & \dxb & \dxa &  0   &\ldots&   \\
+         0    &  0   & \dxa & \dxb & \dxa &  0   &   \\
+        \vdots&\vdots&      &\ddots&\ddots&\ddots&    \\
+              &      &      &  0   &  0   &  1   &  0   \\
+              &      &      &\ldots&  0   &   0  &  0   
+    \end{array} \right]
+  \qquad
+   \begin{array}{l}
+    i=-1~~~~{\rm (ghost line)}\\i=0\\i=1\\i=2\\ \vdots \\ i=N\\ i=N+1~~~~{\rm (ghost line)}
+   \end{array}
+\end{equation*}
+
+Finally the values at the ghost points are assigned using extrapolation,
+\begin{equation*}
+   \left[\begin{array}{ccccccc}
+         1    & -3   &  3   & -1   &      &      &    \\
+           0  &  1   &  0   & 0    &\ldots&      &   \\
+         0    & \dxa & \dxb & \dxa &  0   &\ldots&   \\
+         0    &  0   & \dxa & \dxb & \dxa &  0   &   \\
+        \vdots&\vdots&      &\ddots&\ddots&\ddots&    \\
+              &      &  0   &  0   &  0   &  1   &  0   \\
+              &      &  0   & -1   &  3   & -3   &  1   
+    \end{array} \right]
+  \qquad
+   \begin{array}{l}
+    i=-1~~~~{\rm (ghost line)}\\i=0\\i=1\\i=2\\ \vdots \\ i=N\\ i=N+1~~~~{\rm (ghost line)}
+   \end{array}
+\end{equation*}
+
+
+If we wanted to apply a Neumann boundary condition we could have said
+{\footnotesize
+\begin{verbatim}
+  coeff=op.laplacianCoefficients();                      // get the coefficients for the Laplace operator
+  coeff.applyBoundaryConditionCoefficients(0,0,neumann,allBoundaries);   // equations on the ghost line
+  coeff.finishBoundaryConditions();
+\end{verbatim}
+}
+which would result in the following matrix:
+\begin{equation*}
+   \left[\begin{array}{ccccccc}
+         \dxc & 0    &-\dxc &  0   &\ldots&      &    \\
+         \dxa & \dxb & \dxa & 0    &\ldots&      &   \\
+         0    & \dxa & \dxb & \dxa &  0   &\ldots&   \\
+         0    &  0   & \dxa & \dxb & \dxa &  0   &   \\
+        \vdots&\vdots&      &\ddots&\ddots&\ddots&    \\
+              &      &      &  0   & \dxa & \dxb & \dxa \\
+              &      &\ldots&  0   &-\dxc &   0  &\dxc  
+    \end{array} \right]
+  \qquad
+   \begin{array}{l}
+    i=-1~~~~{\rm (ghost line)}\\i=0\\i=1\\i=2\\ \vdots \\ i=N\\ i=N+1~~~~{\rm (ghost line)}
+   \end{array}
+\end{equation*}
+Note that the equation is applied on the boundary and the Neumann condition is the equation that sits
+a the ghost line.
+
+
+Given one of the above matrices it is now apparent how we must fill-in the right-hand-side function
+when we are going to solve a problem. In the dirichlet boundary condition case we should give the RHS for
+the Laplace operator, $u_{xx}=f(x)$ at all interior points and the 
+dirichlet BC values, $u = g(x)$, on the boundary
+(by default the Oges solver will fill in zero values at all extrapolation
+equations, otherwise we would have to set the ghost line values to zero). 
+\begin{equation*}
+   \left[\begin{array}{ccccccc}
+         1    & -3   &  3   & -1   &      &      &    \\
+           0  &  1   &  0   & 0    &\ldots&      &   \\
+         0    & \dxa & \dxb & \dxa &  0   &\ldots&   \\
+         0    &  0   & \dxa & \dxb & \dxa &  0   &   \\
+        \vdots&\vdots&      &\ddots&\ddots&\ddots&    \\
+              &      &  0   &  0   &  0   &  1   &  0   \\
+              &      &  0   & -1   &  3   & -3   &  1   
+    \end{array} \right]
+   \left[\begin{array}{l}
+    u_{-1} \\ u_0 \\ u_1 \\ u_2 \\ \vdots \\ u_N \\ u_{N+1}
+   \end{array}\right]
+   = 
+   \left[\begin{array}{l}
+    0 \\ g(x_0) \\ f(x_1) \\ f(x_2) \\ \vdots \\ g(x_N) \\ 0
+   \end{array}\right]
+\end{equation*}
+In the neumann case we should
+give the RHS for the Laplace operator at the interior {\bf and} the boundary and we should give the RHS
+for the neumann condition,  $\partial u / \partial n = k(x)$,
+at the ghost line. In this case the RHS vector would look like
+\begin{equation*}
+   \left[\begin{array}{ccccccc}
+         \dxc &  0   & -\dxc&  0   &      &      &    \\
+           0  &  1   &  0   & 0    &\ldots&      &   \\
+         0    & \dxa & \dxb & \dxa &  0   &\ldots&   \\
+         0    &  0   & \dxa & \dxb & \dxa &  0   &   \\
+        \vdots&\vdots&      &\ddots&\ddots&\ddots&    \\
+              &      &  0   &  0   &  0   &  1   &  0   \\
+              &      &  0   &  0   & -\dxc&  0   & \dxc   
+    \end{array} \right]
+   \left[\begin{array}{l}
+    u_{-1} \\ u_0 \\ u_1 \\ u_2 \\ \vdots \\ u_N \\ u_{N+1}
+   \end{array}\right]
+   = 
+   \left[\begin{array}{l}
+    k(x_0) \\ f(x_0) \\ f(x_1) \\ f(x_2) \\ \vdots \\ f(x_N) \\ k(x_N)
+   \end{array} \right]
+\end{equation*}
+
+
+
+
+For a system of equations the situation is a bit more complicated but as
+for a single equation all coefficients of the stencil appear in the first
+component.
+{\footnotesize
+\begin{verbatim}
+  MappedGridOperators op(mg);                            // create some operators
+  op.setStencilSize(stencilSize);
+  op.setNumberOfComponentsForCoefficients(numberOfComponentsForCoefficients);
+  coeff.setOperators(op);
+
+  // Form a system of equations for (u,v)
+  //     a1(  u_xx + u_yy ) + a2*v_x = f_0
+  //     a3(  v_xx + v_yy ) + a4*u_y = f_1
+  //  BC's:   u=given   on all boundaries
+  //          v=given   on inflow
+  //          v.n=given on walls
+  const int a1=1., a2=2., a3=3., a4=4.;
+  //  const int a1=1., a2=0., a3=1., a4=0.;
+
+  coeff=a1*op.laplacianCoefficients(all,all,all,0,0)+a2*op.xCoefficients(all,all,all,0,1)
+       +a3*op.laplacianCoefficients(all,all,all,1,1)+a4*op.yCoefficients(all,all,all,1,0);
+
+  coeff.applyBoundaryConditionCoefficients(0,0,dirichlet,  allBoundaries);  
+  coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries);  
+  // coeff.display("Here is coeff after dirichlet/extrapolate BC's for (0) ");
+
+  coeff.applyBoundaryConditionCoefficients(1,1,dirichlet,  inflow);
+  coeff.applyBoundaryConditionCoefficients(1,1,extrapolate,inflow);
+  coeff.applyBoundaryConditionCoefficients(1,1,neumann,     wall);
+  // coeff.display("Here is coeff with dirichlet (0) and neumann BC's on wall (1)");
+
+  coeff.finishBoundaryConditions();
+\end{verbatim}
+}
+See example 2 for more details.
+
+
+
+\subsection{Poisson's equation on a MappedGrid}
+
+In this example we solve Poisson's equation on a MappedGrid
+(file {\ff \examples/tcm.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/tcm.C}
+}
+
+
+
+\subsection{Systems of Equations on a MappedGrid}
+  In the general case one can define a matrix for a boundary-value problem
+for a system of equations....
+
+
+
+
+In this example we generate the matrix corresponding to the following
+system of equations
+\begin{eqnarray*}
+ a_1 \Delta u + a_2 v_x - u &=& g_0 \\
+ a_3\Delta v + a_4 u_y &=& g_1 \\
+   u=g_0 &,& v_n=g_1 ~~~\mbox{on the boundary}
+\end{eqnarray*}
+Note the use of the {\tt identityCoefficents} operator.
+
+
+(file {\ff \examples/tcm2.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/tcm2.C}
+}
+
+
+\subsection{Poisson's equation on a CompositeGrid}
+
+In this example we solve Poisson's eqution on a CompositeGrid
+(file {\ff \examples/tcm3.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/tcm3.C}
+}
+
+\subsection{Systems of equations on a CompositeGrid}
+
+(file {\ff \examples/tcm4.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/tcm4.C}
+}
+
+
+\subsection{Solving Poisson's equation to fourth-order accuracy}
+
+The file {\ff \examples/tcmOrder4.C} shows how to solve an elliptic problem to fourth-order
+accuracy. In this case we use two ghost lines (really only needed for Neumann
+boundary conditions). We need to tell the operators to use fourth order and we need to build
+the coefficient matrix using 2 ghost lines. In order to extrapolate the second ghost line
+we use a {\tt BoundaryConditionParameters} object. The order of extrapolation will be set
+to the order of accuracy plus one, by default. This example will only work with version 15 or later.
+
+\subsection{Multiplying a grid function or array times a coefficient matrix}
+
+Suppose one wants to form the variable coefficient operator such as
+\[
+     L = x {\partial \over \partial x} + y {\partial \over \partial y}
+\]
+In order to multiply a grid function (or array of the correct shape) 
+times a coefficient matrix one can
+use the {\tt multiply} function as illustrated in the next example
+\begin{verbatim}
+  MappedGrid mg(...);
+  Range all;
+  MappedGridOperators op(mg);
+  realMappedGridFunction coeff(mg,9,all,all,all);
+  ...
+  
+  Index I1,I2,I3;
+  getIndex(mg.dimension,I1,I2,I3);   // define Index's for the entire grid
+  // form the operator  x d/dx + y d/dy
+
+  RealArray x,y;
+  x=mg.vertex(I1,I2,I3,0);  // make a copy since we cannot pass a view to multiply
+  y=mg.vertex(I1,I2,I3,1);
+  coeff= multiply(x,op.xCoefficients()) + multiply(y,op.yCoefficents());
+
+\end{verbatim}
+One cannot use the normal multiplication operator, $\star$, because the array operations would not be conformable.
+Since the {\tt multiply} reshapes it's first argument in order to multiply it times the second argument
+{\bf one cannot pass a view of an array as the first argument of the multiply function}. Passing a view will
+result in an A++ errror.
+
+A {\tt multiply} function is also defined for multiplying a scalar {\tt realCompositeGridFunction} times
+a {\tt realCompositeGridFunction} coefficient matrix.
+
+
+
+\subsection{SparseRep: Define a Storage Format for a Sparse Matrix} \label{SparseRep}
+
+This section is primarily for the use of people who are writing new Operator classes.
+Normal beings may not want to read this.
+
+
+The class {\ff SparseRepForMGF} defines the sparse representation for coefficient-matrix
+MappedGridFunction. 
+A coefficient matrix contains a pointer to a {\ff SparseRepForMGF}. This 
+object holds all the information that defines how the stencil is stored
+in the first component. For example this object will know that the
+value {\tt coeff(m,i1,i2,i3)} is the coefficient that multiples the
+grid function value at the point {\tt (i1',i2',i3')}. 
+To save this information in a compact form, each point on the grid is given
+an equation number, (stored in the {\tt intMappedGridFunction equationNumber}),
+ so that instead of saving the three numbers {\tt (i1',i2',i3')} 
+only a single equationNumber need be saved. 
+
+The {\ff SparseRepForMGF} object also contains an {\tt intMappedGridFunction classify}.
+The {\tt classify} array holds a value for each point on the grid to indicate the
+kind of equation ({\tt interior}, {\tt boundary}, {\tt extrapolation}, {\tt interpolation}...)
+that is being applied at that point. This information can be used by a sparse solver
+(such as {\tt Oges}) to automatically zero out the right-hand-side for certain equations,
+such as extrapolation.
+
+Here is how {\tt SparseRep} is used by the grid function classes.
+
+If we have a {\tt realMappedGridFunction coeff} or a {\tt realCompositeGridFunction coeff}
+then the statement
+\begin{verbatim}
+  coeff.setIsACoefficientMatrix(TRUE);
+\end{verbatim}
+will cause a {\tt SparseRep} object to be created (and coeff will keep a pointer to it).
+The {\tt SparseRep} object will be initialized with a call to {\tt SparseRep::updateToMatchGrid}.
+This will give initial values to the {\tt classify} and {\tt equationNumber} arrays assuming
+a standard stencil.
+
+When {\tt coeff} is filled in with values for the interior with a statement like
+\begin{verbatim}
+  coeff=op.laplacianCoefficients();
+\end{verbatim}
+then normally the default values for the {\tt classify} and {\tt equationNumber} arrays
+will be correct.
+
+However, when the boundary conditions are filled in with a statment like
+\begin{verbatim}
+  coeff.applyBoundaryConditionCoefficinets(0,neumann,...);
+\end{verbatim}
+then the default values for the {\tt classify} and {\tt equationNumber} arrays will
+have to be changed. (On a vertex grid the neumann boundary condition is the equation for the ghost-line
+but it is centred on the boundary and thus the default equation numbers are wrong.)
+For some examples look at the implementation of the
+{\tt applyBoundaryConditionCoefficients} in the file {\tt BoundaryOperators.C}.
+
+
+If {\tt coeff} is a {\tt realMappedGridFunction} then the statement
+\begin{verbatim}
+  coeff.finishBoundaryConditions();
+\end{verbatim}
+will add extrapolation equations at corners and insert equations for periodic
+boundary conditions.
+
+If {\tt coeff} is a {\tt realCompositeGridFunction} then the statement
+\begin{verbatim}
+  coeff.finishBoundaryConditions();
+\end{verbatim}
+will call {\tt coeff[grid].finishBoundaryConditions()} for each component grid function
+and in addition it will add in the interpolation equations to {\tt coeff}.
+
+
+
+
+
+\input SparseRepInclude.tex
+

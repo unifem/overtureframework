@@ -1,0 +1,73 @@
+% \documentclass{article}
+% 
+% \voffset=-1.25truein
+% \hoffset=-1.truein
+% \setlength{\textwidth}{7in}      % page width
+% % \setlength{\textheight}{9.5in}    % page height
+% \setlength{\textheight}{7.5in}    % page height for xdvi so whole page fits
+% % \renewcommand{\baselinestretch}{1.5}    % "double" spaced
+% 
+% \usepackage{calc}
+% \usepackage{ifthen}
+% 
+% \begin{document}
+% 
+% %------------------------------------------------------------
+% % List Structures taken from page 64 in the LaTeX companion
+% %------------------------------------------------------------
+% 
+ \newcommand{\entrylabel}[1]{\mbox{\textsf{#1:}}\hfil}
+ \newenvironment{entry}
+   {\begin{list}{}%
+          {\renewcommand{\makelabel}{\entrylabel}%
+            \setlength{\labelwidth}{35pt}%
+            \setlength{\leftmargin}{\labelwidth+\labelsep}%
+          }%
+   }%
+  {\end{list}}
+
+
+\newlength{\Mylen}
+\newcommand{\Lentrylabel}[1]{%
+  \settowidth{\Mylen}{\textsf{#1:}}%
+  \ifthenelse{\lengthtest{\Mylen > \labelwidth}}%
+      {\parbox[b]{\labelwidth}%          term > labelwidth
+         {\makebox[0pt][l]{\textsf{#1:}}\\}}%
+      {\textsf{#1:}}%                    term < labelwidth
+  \hfil\relax}
+\newenvironment{Lentry}
+  {\renewcommand{\entrylabel}{\Lentrylabel}%
+   \begin{entry}}
+  {\end{entry}}
+
+
+
+\newcommand{\Mentrylabel}[1]%
+   {\raisebox{0pt}[1ex][0pt]{\makebox[\labelwidth][l]%
+       {\parbox[t]{\labelwidth}{\hspace{0pt}\textsf{#1:}}}}}
+
+\newenvironment{Mentry}%
+   {\renewcommand{\entrylabel}{\Mentrylabel}%
+    \begin{\entry}}%
+   {\end{entry}}
+
+% 
+% 
+% 
+% \begin{flushleft} \textbf{\large
+% void update(const Grid \& grid,   \\
+% ~~~~~~~~~~~~~~~~const Index \& I0, \\
+% ~~~~~~~~~~~~~~~~const Index \& I1, \\
+% ~~~~~~~~~~~~~~~~const Index \& I2, \\
+% ~~~~~~~~~~~~~~~~const Index \& I3)
+% }\end{flushleft}
+% \begin{Lentry}
+% \item[Description]
+%   blah,   blah,   blah,   blah,   blah,   blah,   blah,   blah,   blah,   blah, 
+%   blah,   blah,   blah,   blah,   blah,   blah,   blah,   blah,   blah,   blah, 
+% \item[Errors]  None.
+% \item[Return Values] some, some, some, some, some, some, some,
+% \end{Lentry}
+% 
+% \end{document}
+% 

@@ -1,0 +1,52 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+# here is where the original files are:
+set OvertureOgshow  =  $ovDir/Ogshow
+set OvertureInclude =  $ovDir/include
+set OvertureBin     =  $ovDir/bin
+set OvertureStatic  =  $ovDir/static
+set OvertureExamples = $ovDir/examples
+set OvertureTests    = $ovDir/tests
+set OvertureCad      = $ovDir/Cad
+set OvertureSM       = $ovDir/sampleMappings
+set localTest        = $HOME/cad
+
+echo "rap/build: copy rap files into $ovDir..."
+
+
+# copy these into the bin directory
+cp {rap}.C $OvertureBin
+# copy these into the Cad directory
+cp {Edge,Point,rapEditModel,rapNewModel,rapSurfaceGrids,rapVolumeGrids,rapUtil,rapSimpleGeometry}.C $OvertureCad
+cp {nurbsCurveEditor,linerGeometry,ModelBuilder,SphereLoading,RandomSampling,fillVolumeWithSpheres}.C $OvertureCad
+
+# copy these into the include directory
+cp {rap,Edge,Point,nurbsCurveEditor,ModelBuilder,SphereLoading,RandomSampling}.h $OvertureInclude
+
+# copy some tests into sampleMappings
+cp {ship-5415,ship-5415-fix,ship-kcs,ship-kvlcc,ship-5-parts,asmo,nozzleTest}.cmd $OvertureSM
+cp {ship_5415,ship_kcs,ship_kvlcc2,ship_part1,ship_part2,ship_part3,ship_part4,ship_part5,asmo}.igs $OvertureSM
+cp {check,heal}.p $OvertureSM
+
+# copy the remaining tests into $localTest 
+#
+# NOTE: WE ARE NOT ALLOWED TO DISTRIBUTE THE IGES FILES FOR THESE ON THE WEB!!!
+#
+# First make the files group readable, so others are allowed to overwrite them!
+chmod g+w {truck-trailer,manifold,ring,plate,electrode,cat,volvo}.cmd 
+cp {truck-trailer,manifold,ring,plate,electrode,cat,volvo}.cmd $localTest
+
+chmod g+w {plate-fix,electrode-fix,cat-fix,volvo-fix}.cmd 
+cp {plate-fix,electrode-fix,cat-fix,volvo-fix}.cmd $localTest
+echo "done"

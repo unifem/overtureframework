@@ -1,0 +1,319 @@
+%-----------------------------------------------------------------------
+%   Grids and Grid Functions
+%
+%-----------------------------------------------------------------------
+
+\documentclass{article}
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+
+%-----------------------------------------------------------------------
+% Grid Function Classes
+%-----------------------------------------------------------------------
+%123456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{calc}
+\usepackage{ifthen}
+% \usepackage{fancybox}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\OvertureHomePage}{http://www.llnl.gov/casc/Overture}
+
+\newcommand{\primer}{\homeHenshaw/Overture/primer}
+\newcommand{\GF}{Overture/tests}
+\newcommand{\examples}{Overture/examples}
+\newcommand{\gf}{\homeHenshaw/Overture/gf}
+\newcommand{\mapping}{\homeHenshaw/Overture/mapping}
+\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
+\newcommand{\oges}{\homeHenshaw/Overture/oges}
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+
+\newcommand{\OVERTUREOVERTURE}{/n/\-c3servet/\-henshaw/\-Overture/\-Overture}
+\newcommand{\OvertureOverture}{\homeHenshaw/Overture/Overture}
+
+\newcommand{\RA}{realArray}
+\newcommand{\MGF}{MappedGridFunction}
+\newcommand{\RMGF}{realMappedGridFunction}
+\newcommand{\RCGF}{realCompositeGridFunction}
+
+\newcommand{\DABO}{Differential\-And\-Boundary\-Operators}
+
+\newcommand{\MG}{Mapped\-Grid}
+\newcommand{\GC}{Grid\-Collection}
+\newcommand{\CG}{Composite\-Grid}
+\newcommand{\MGCG}{Multigrid\-Composite\-Grid}
+
+\newcommand{\MGO}{MappedGridOperators}
+\newcommand{\GCO}{Grid\-Collection\-Operators}
+\newcommand{\CGO}{Composite\-Grid\-Operators}
+\newcommand{\MGCGO}{Multigrid\-Composite\-Grid\-Operators}
+
+\begin{document}
+
+% \input list.tex    %  defines Lentry enviroment for documenting functions
+
+% -----definitions-----
+\input wdhDefinitions
+\def\comma  {~~~,~~}
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+
+\vspace{5\baselineskip}
+\index{grid functions}
+\begin{flushleft}
+{\Large
+Grid Functions for Overture\\
+User Guide, Version 1.00000000000000000000000000000000003 \\
+}
+\vspace{2\baselineskip}
+Bill Henshaw
+\footnote{
+        This work was partially
+        supported by grant N00014-95-F-0067 from the Office of Naval
+        Research
+        } 
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture 
+\vspace{\baselineskip}
+\today
+\vspace{\baselineskip}
+UCRL-MA-132231
+% LA-UR-96-3464
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+We describe the grids and grid functions that can be used with
+Overture. The grid functions are based on the 
+fabulous A++ array class library.
+\end{flushleft}
+
+\tableofcontents
+\listoffigures
+
+\vfill\eject
+%---------- End of title Page for a Research Report
+
+\section{Introduction}
+
+
+
+Figure \ref{fig:system} gives an overview of the classes that make
+up Overture. In this document we will discuss grids and grid functions.
+
+\input \primer/otherDocs.tex
+
+\begin{figure} \label{fig:system}
+  \begin{center}
+  \includegraphics{\figures /system.idraw.ps}
+  \caption{An overview of the Overture classes}
+  \end{center}
+\end{figure}
+
+
+\section{Grids}
+
+
+Grids and collections of grids are the fundamental objects that
+PDE solvers have to deal with.
+The grid classes that are described here are designed so that they
+can be used by a a wide variety of PDE solvers including
+\begin{itemize}
+  \item solvers written for a single rectangular grid
+  \item solvers written with AMR++ to perform adaptive computations
+  \item solvers written with Overture for overlapping grids 
+  \item solvers that combine AMR++ and Overture
+\end{itemize}
+
+
+\noindent
+Here is a list of the various grid classes. The Generic grids are
+not really used for anything except to derive from.
+\begin{itemize}
+  \item {\bf \Index{GenericGrid}} - Derive all grids from this class. This
+   can be the base class for both structured and unstructured grids.
+  \item {\bf \Index{MappedGrid} : GenericGrid} - Logically rectangular grid
+   with a mapping. This class supports the creation of a variety of 
+  geometry arrays such as the {\ff vertexCoord}, {\ff vertexDerivatives}
+  and also holds boundary condition information etc.
+  \item {\bf \Index{GenericGridGridCollection}} - A collection of GenericGrid's.
+   Base class for all collections of grids.
+  \item {\bf \Index{GridCollection} : GenericGridCollection} - A collection
+  of MappedGrid's. Also contains connection (interpolation) information
+  and {\ff mask} arrays and parent/child/sibling information for
+  adaptive grids. May be a valid ``overlapping'' grid (grids
+  cover the entire domain) or may just
+  be a subset of the grids contained in a valid ``overlapping'' grid.
+  \item {\bf \Index{CompositeGrid} : GridCollection} - This is a valid
+   ``overlapping'' grid, grids cover the entire computational domain.
+\end{itemize}
+
+
+\begin{figure} \label{fig:grids}
+  \begin{center}
+  \includegraphics{\figures /grids.idraw.ps}
+  \caption{Class diagram for grid classes}
+  \end{center}
+\end{figure}
+
+
+% \subsection{Geoff's documentation on Grids}
+% 
+% This is file is in {\ff /home/geoff/src/c++/Overture/doc}.
+% 
+% {\footnotesize
+% \listinginput[1]{1}{/home/geoff/src/c++/Overture/doc}
+% }
+
+\subsection{MappedGrid}\index{MappedGrid}
+
+{\bf ***  This documentation is out of date *** }
+
+  The mapped grid is a logically rectangular grid with a mapping
+function. 
+
+\begin{figure} \label{fig:mappedGrid}
+  \begin{center}
+  \includegraphics{\figures /mappedGrid.idraw.ps}
+  \caption{Class diagram for a MappedGrid}
+  \end{center}
+\end{figure}
+
+%====================================================================================
+\input MappedGrid.tex
+% {\footnotesize
+% \listinginput[1]{1}{/home/geoff/src/Overture/Overture/MappedGrid.h}
+% }
+%====================================================================================
+
+\subsection{GridCollection}\index{GridCollection}
+
+See the description of a CompositeGrid.
+
+% Here is the header file:
+% {\footnotesize
+% \listinginput[1]{1}{/home/geoff/src/Overture/Overture/GridCollection.h}
+% }
+
+\subsection{CompositeGrid}\index{CompositeGrid}
+
+{\bf ***  This documentation is out of date *** }
+
+A CompositeGrid is a collection of MappedGrid's along with the information needed
+for interpolating between component grids.
+ 
+%====================================================================================
+\input CompositeGrid.tex
+% Here is the header file:
+% {\footnotesize
+% \listinginput[1]{1}{/home/geoff/src/Overture/Overture/CompositeGrid.h}
+% }
+%====================================================================================
+
+
+\vfill\eject
+\section{GridFunctions}\index{grid function}
+
+Almost all applications that use grids will also need to use grid functions.
+For example, a PDE solver will need to store the values of the solution
+(velocity, pressure, density, ...). These values are defined at each
+point on the grid. A grid function will thus hold one or more values
+for each point on the grid. The grid function will be associated with 
+a grid and thus will know how to dimension itself. Grid functions
+also come with a collection of operations. These operations include the standard
+arithmetic operators as well as more sophisticated operations such as
+differentiation and interpolation.
+
+
+Here is a list of the available grid functions. Basically each type of
+grid has a grid function associated with it.
+The keyword ``{\ff type}''
+can be any of {\ff double}, {\ff float} or {\ff int}.
+\begin{itemize}
+  \item {\bf typeMappedGridFunction : typeArray} - this grid function
+    is associated with a {\ff MappedGrid} and is derived from an 
+    A++ array.
+  \item {\bf typeGridCollectionFunction} - this grid function is 
+     a collection of {\ff typeMappedGridFunction}'s and is associated
+     with a {\ff GridCollection}.
+  \item {\bf typeCompositeFunction} - this grid function is 
+     a collection of {\ff typeMappedGridFunction}'s and is associated
+     with a {\ff CompositeGrid}.
+\end{itemize}
+
+\begin{figure} \label{fig:GridFunctions}
+  \begin{center}
+  \includegraphics{\figures /gf.idraw.ps}
+  \caption{Class diagram for grid function classes}
+  \end{center}
+\end{figure}
+
+
+%=============================================================================
+\vfill\eject
+\input MappedGridFunction.tex
+%=============================================================================
+
+
+%=============================================================================
+\vfill\eject
+\input GridCollectionFunction.tex
+%=============================================================================
+
+
+%==============================================================================
+\vfill\eject
+\input cellAndFace.tex
+%==============================================================================
+
+
+%==============================================================================
+\vfill\eject
+\input interpolant.tex
+%==============================================================================
+
+
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}
+
+

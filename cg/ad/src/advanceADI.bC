@@ -1,0 +1,412 @@
+#include "Cgad.h"
+#include "CompositeGridOperators.h"
+#include "PlotStuff.h"
+#include "App.h"
+#include "ParallelUtility.h"
+#include "TridiagonalSolver.h"
+#include "AdamsPCData.h"
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{advanceADI}} 
+void Cgad::
+advanceADI( real & t, real & dt, int & numberOfSubSteps, int & init, int initialStep  )
+//=====================================================================================================
+// /Description:
+//   Advance some time steps - Alternating-Direction-Implicit Method
+//
+// /t,dt (input) : current time and time step.
+// /numberOfSubSteps (input) : take this many steps
+// /init (input) : if true this is the first time step in which case this routine will initialize itself.
+//
+// /Notes:
+//
+//  At the start of each subStep in this function: 
+//             gf[mab0]  ==  u(t)
+//
+// By the end of each subStep
+//             gf[mab0]  ==  u(t+dt) 
+//
+//   
+//\end{CompositeGridSolverInclude.tex}  
+//================================================================================================
+{
+//    if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
+//      parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsPCData");
+//    AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
+  
+//    real & dtb=adamsData.dtb;
+//    int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+//    int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+//    int &ndt0=adamsData.ndt0;
+//    real *dtp = adamsData.dtp;
+
+  FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+  RealArray & timing = parameters.dbase.get<RealArray>("timing");
+
+
+  aString method="adi",label;
+  assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::adi );
+  
+  const real implicitFactor = parameters.dbase.get<real >("implicitFactor");
+  // implicitFactor=.5 : Crank-Nicolson, implicitFactor=1 : Backward Euler
+  real alpha=implicitFactor*dt, beta=(1.-implicitFactor)*dt; // ***********
+
+
+  if( debug() & 2 )
+    fPrintF(debugFile,"\n *** Entering advanceADI: t=%e, dt=%e, implicitFactor=%5.2f (.5=CN, 1=BE)*** \n",t,dt,
+           implicitFactor);
+  if( debug() & 4 )
+    printF("\n *** Entering advanceADI: t=%e, dt=%e, implicitFactor=%5.2f (.5=CN, 1=BE)*** \n",t,dt,implicitFactor);
+ 
+  int mCur=0, mab0=0;  // we only need one grid function I think 
+
+//   int mInitial=mab0;  // save initial value
+  
+//   // For moving grids we keep gf[mab0], gf[mab1] and gf[mab2]
+//   // For non-moving grids we keep gf[mab0], gf[mab1] and we set mab2==mab1
+
+//   const int numberOfGridFunctions =  movingGridProblem() ? 3 : 2; 
+
+//   mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+//   // 
+//   int mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
+//   int mCur = mab0;    // current : gf[mCur] : holds u(t) 
+//   int mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+  
+//   int nNew = nab1;    // new :    ut(t+dt)
+//   int nCur = nab0;    // current: ut(t)
+//   int nOld = nab1;    // old :    ut(t-dt)
+
+
+  int grid;
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];  
+  Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Iv[2];  
+  Range all;
+  
+  const int numberOfComponents = (parameters.dbase.get<int >("numberOfComponents")-
+				  parameters.dbase.get<int >("numberOfExtraVariables"));
+
+  Range N = numberOfComponents;
+
+  
+  if( init )
+  {
+    
+  }
+  else
+  {
+    // this is not an initialization step
+
+  }
+  
+
+  if( debug() & 16 )
+  {
+    if( twilightZoneFlow() )
+    {
+      determineErrors( gf[mCur],sPrintF("\n ---> ADI: Errors at start t=%e  \n",gf[mCur].t) );
+    }
+    else
+    {
+      outputSolution( gf[mCur].u,gf[mCur].t,sPrintF(" ADI: Solution at start t=%e  \n",gf[mCur].t) );
+    }
+  }
+  const int numberOfDimensions = gf[mCur].cg.numberOfDimensions();
+  
+  for( int mst=1; mst<=numberOfSubSteps; mst++ )
+  {
+    //       ---ADI ---
+    //
+    //      [ I - alpha*dt*A ] [ I - alpha*dt*B ] u(n+1) = [ I + beta*dt*A ] [ I + beta*dt*B ] u(n) + f(n+1/2)
+
+
+    parameters.dbase.get<int >("globalStepNumber")++;
+    
+
+    //  ********** Step 1 : solve  [ I - alpha*A ] v = r **********************
+
+//     realCompositeGridFunction & r = fn[nab0];   // holds RHS
+//     realCompositeGridFunction & v = fn[nab1];     // holds intermediate solution v 
+
+
+    // Form rhs = [ I - beta*A ] [ I - beta*B ] u(n) + f(n+1/2)
+    for( int grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+    {
+
+      realMappedGridFunction & u = gf[mCur].u[grid];
+      MappedGrid & mg = *(u.getMappedGrid());
+      MappedGridOperators & op = *(u.getOperators());
+
+      const bool & gridIsMoving = parameters.gridIsMoving(grid);
+      const Parameters::ReferenceFrameEnum referenceFrame = parameters.getReferenceFrame();
+      const bool adjustForMovingGrids = gridIsMoving && referenceFrame==Parameters::fixedReferenceFrame;
+
+      const int isRectangular=op.isRectangular(); 
+
+  
+#ifdef USE_PPP
+      realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+//       realSerialArray rLocal; getLocalArrayWithGhostBoundaries(r,rLocal);
+//       realSerialArray vLocal; getLocalArrayWithGhostBoundaries(v,vLocal);
+#else
+      const realSerialArray & uLocal = u;
+//       const realSerialArray & rLocal = r;
+//       const realSerialArray & vLocal = v;
+#endif 
+
+
+      // ---- for TZ ---------
+      const bool twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+      realArray & x= mg.center();
+#ifdef USE_PPP
+      realSerialArray xLocal; 
+      if( !isRectangular ) 
+        getLocalArrayWithGhostBoundaries(x,xLocal);
+#else
+      const realSerialArray & xLocal = x;
+#endif
+
+
+      getIndex(mg.extendedIndexRange(),I1,I2,I3);
+      bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
+      if( ok ) 
+      {
+        realSerialArray r(I1,I2,I3,numberOfComponents); // holds RHS and intermediate solutions
+
+	ListOfShowFileParameters & pdeParameters=parameters.dbase.get<ListOfShowFileParameters >("pdeParameters");
+
+	real dx[3]={1.,1.,1.};
+	if( isRectangular )
+	  mg.getDeltaX(dx);
+	else
+	  mg.update(MappedGrid::THEinverseVertexDerivative);
+
+	std::vector<real> & kappa = parameters.dbase.get<std::vector<real> >("kappa");
+	std::vector<real> & a = parameters.dbase.get<std::vector<real> >("a");
+	std::vector<real> & b = parameters.dbase.get<std::vector<real> >("b");
+	std::vector<real> & c = parameters.dbase.get<std::vector<real> >("c");    
+
+	bool firstDerivNeeded=adjustForMovingGrids; // false;
+	for( int m=0; m<numberOfComponents && !firstDerivNeeded; m++ )
+	{
+	  firstDerivNeeded= firstDerivNeeded || a[m]!=0. || b[m]!=0. || c[m]!=0.;
+	}
+
+	realSerialArray ux,uy,uz;
+	realSerialArray uxx(I1,I2,I3), uyy(I1,I2,I3);
+
+	for( int m=0; m<numberOfComponents; m++ )
+	{
+	  if( firstDerivNeeded )
+	  {
+	    ux.redim(I1,I2,I3); uy.redim(I1,I2,I3); 
+	    op.derivative(MappedGridOperators::xDerivative,uLocal,ux  ,I1,I2,I3,m);
+	    op.derivative(MappedGridOperators::yDerivative,uLocal,uy  ,I1,I2,I3,m);
+	  }
+					   
+    
+	  op.derivative(MappedGridOperators::xxDerivative,uLocal,uxx,I1,I2,I3,m);
+	  op.derivative(MappedGridOperators::yyDerivative,uLocal,uyy,I1,I2,I3,m);
+
+	  if( firstDerivNeeded )
+	  {
+	    r(I1,I2,I3,m)=(uLocal(I1,I2,I3,m) + 
+                           beta*((-a[m])*ux(I1,I2,I3) + (-b[m])*uy(I1,I2,I3) + 
+				 kappa[m]*( uxx(I1,I2,I3)+ uyy(I1,I2,I3)) ) );
+	  }
+	  else
+	  {
+	    r(I1,I2,I3,m)=uLocal(I1,I2,I3) + beta*( kappa[m]*(uxx(I1,I2,I3) + uyy(I1,I2,I3)) );
+	  }
+          // ** todo ** add on uxy, uxyy, uxxy, uxxyy etc. terms ***
+	  
+	}
+	
+	// --- add forcing to the RHS ----
+        if( twilightZoneFlow )
+	{
+	  OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+	  
+          real tForce= t + .5*dt; // forcing is centered at the mid-point 
+
+	  realSerialArray uet(I1,I2,I3), uex(I1,I2,I3),uey(I1,I2,I3),uez;
+	  realSerialArray uexx(I1,I2,I3),ueyy(I1,I2,I3),uezz;
+
+	  for( int m=0; m<numberOfComponents; m++ )
+	  {
+	    e.gd( uet ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,m,tForce);
+	    e.gd( uex ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,m,tForce);
+	    e.gd( uey ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,m,tForce);
+
+	    e.gd( uexx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,m,tForce);
+	    e.gd( ueyy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,m,tForce);
+	    
+	    r(I1,I2,I3,m)+= dt*( uet(I1,I2,I3) + 
+                                      a[m]*uex(I1,I2,I3)  + b[m]*uey(I1,I2,I3) 
+				      - kappa[m]*( uexx(I1,I2,I3) + ueyy(I1,I2,I3) ) );
+	  }
+
+
+	}
+	
+
+        // *************************************************************
+        // ************* Loop over ADI directions **********************
+        // *************************************************************
+	for( int direction=0; direction<numberOfDimensions; direction++ )
+	{
+	  TridiagonalSolver tridiagonalSolver;
+
+	  // NOTE: no need to solve on dirichlet boundaries
+
+	  // Form block-tridiagonal systems
+	  //        [ I - alpha*A ]
+	  RealArray am(I1,I2,I3),bm(I1,I2,I3),cm(I1,I2,I3);
+
+	  for( int m=0; m<numberOfComponents; m++ )  // components are treated independently
+	  {
+	    real aa = direction==0 ? a[m] : direction==1 ? b[m] : c[m];
+	    am(I1,I2,I3) =    + alpha*( -aa/(2.*dx[direction])  - kappa[m]/(dx[direction]*dx[direction]) );
+	    bm(I1,I2,I3) = 1. + alpha*(                        2.*kappa[m]/(dx[direction]*dx[direction]) );
+	    cm(I1,I2,I3) =    + alpha*(  aa/(2.*dx[direction])  - kappa[m]/(dx[direction]*dx[direction]) );
+
+	    for( int side=0; side<=1; side++ )
+	    {
+	      getBoundaryIndex(mg.gridIndexRange(),side,direction,Ib1,Ib2,Ib3);
+	      // assume Dirichlet BC's for now
+	      am(Ib1,Ib2,Ib3)=0.;
+	      bm(Ib1,Ib2,Ib3)=1.;
+	      cm(Ib1,Ib2,Ib3)=0.;
+	    }
+	
+
+	    TridiagonalSolver::SystemType type = TridiagonalSolver::normal;
+//  	TridiagonalSolver::SystemType type = (isPeriodic[direction] ? TridiagonalSolver::periodic :
+//  					      (extra(0,0)>0 || extra(1,0)>0) ? TridiagonalSolver::extended :
+//  					      TridiagonalSolver::normal);
+
+	    if( debug() & 4 )
+	      fprintf(pDebugFile," Tridiangonal system type=%i (normal=%i,extended=%i,periodic=%i)\n",
+		      (int)type,(int)TridiagonalSolver::normal,(int)TridiagonalSolver::extended,
+		      (int) TridiagonalSolver::periodic);
+
+
+	    tridiagonalSolver.factor(am,bm,cm,type,direction);
+
+
+	    // --- fill in BC's for the RHS: ----
+	    //     direction==0 : exact-solution : [ I - alpha*B ] u(n+1)
+	    //     direction==1 : exact-solution : u(n+1)
+	    for( int side=0; side<=1; side++ )
+	    {
+	      getBoundaryIndex(mg.gridIndexRange(),side,direction,Ib1,Ib2,Ib3);
+	      // assume Dirichlet BC's for now
+	      r(Ib1,Ib2,Ib3,m)=0.;
+
+	      if( twilightZoneFlow )
+	      {
+		OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+
+		realSerialArray ue(I1,I2,I3);
+		e.gd( ue ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,Ib1,Ib2,Ib3,m,t+dt);
+		r(Ib1,Ib2,Ib3,m)=ue(Ib1,Ib2,Ib3,m);
+		if( direction==0 )
+		{
+		  // The true solution for this intermediate step is [ I - alpha*B ] u(n+1)
+		  realSerialArray ueyy=ue;
+                  realSerialArray uey(I1,I2,I3);
+		  e.gd( uey ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,Ib1,Ib2,Ib3,m,t+dt);
+		  e.gd( ueyy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,Ib1,Ib2,Ib3,m,t+dt);
+		  r(Ib1,Ib2,Ib3,m)+= (-alpha)*( (-b[m])*uey(Ib1,Ib2,Ib3,m) + kappa[m]*ueyy(Ib1,Ib2,Ib3,m) );
+		}
+	      }
+	    }
+
+	    if( debug() & 8 )
+	    {
+	      ::display(r(all,all,all,m),sPrintF("ADI: rhs for direction=%i",direction),pDebugFile);
+	    }
+
+	    // Solve tridiagonal systems  [ I - alpha*dt*A ] v = r
+	    Index K1=I1, K2=I2, K3=I3;
+	    tridiagonalSolver.solve(r(all,all,all,m),K1,K2,K3);
+
+	    if( debug() & 8 )
+	    {
+	      ::display(r(all,all,all,m),sPrintF("ADI: solution after solve for direction=%i",direction),pDebugFile);
+	    }
+    
+	    if( direction==(numberOfDimensions-1) )
+	      uLocal(K1,K2,K3,m)=r(K1,K2,K3,m);
+	    
+	  } // end for m 
+	  
+
+	} // end for direction
+
+      } // end if ok 
+      
+
+    } // end for grid 
+    
+    t+=dt;
+
+    int mNew=mCur;
+    gf[mNew].t=t;
+    interpolateAndApplyBoundaryConditions( gf[mNew],&gf[mCur],dt );
+
+
+    if( debug() & 8 )
+    {
+      label=sPrintF(" ***ADI: After ADI updates, t=%e\n",gf[mNew].t);
+      if( twilightZoneFlow() )
+	determineErrors( gf[mNew],label );
+      else
+	outputSolution( gf[mNew].u,gf[mNew].t,label );
+    }
+    
+    
+//     // permute (mab0,mab1,mab2) 
+//     mab0 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+//     mab1 = (mab1-1 + numberOfGridFunctions) % numberOfGridFunctions;
+//     mab2 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+//     mNew=mab2;
+//     mCur=mab0;
+//     mOld=mab1;
+
+//     if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 ) 
+//     {
+//       nab0 = (nab0+1) % 2;
+//       nab1 = (nab1+1) % 2;
+//     }
+//     else
+//     {
+//       nab0 = (nab0-1 +4) % 4;
+//       nab1 = (nab1-1 +4) % 4;
+//       nab2 = (nab2-1 +4) % 4;
+//       nab3 = (nab3-1 +4) % 4;
+//     }
+
+//     ndt0=(ndt0-1 +5)%5;  // for dtp[]
+    
+//     dtb=dt0;
+
+
+//     if( (mst-1) % parameters.dbase.get<int >("frequencyToSaveSequenceInfo") == 0 )
+//       saveSequenceInfo(t0,fn[nab1]);
+
+    output( gf[mab0],initialStep+mst-1 ); // output to files, user defined output
+
+  }
+
+//   if( parameters.useConservativeVariables() )
+//     gf[mab0].conservativeToPrimitive();
+  
+  // update the current solution:  
+  current = mab0;
+  
+}
+

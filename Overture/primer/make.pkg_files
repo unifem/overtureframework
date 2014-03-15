@@ -1,0 +1,26 @@
+PKGDIR := $(OvertureCheckout)/primer
+
+ifneq ($(BINDIR),)
+
+example6: $(BINDIR)example6
+
+pwave: $(BINDIR)pwave
+
+pppWave: $(BINDIR)pppWave
+
+endif
+
+$(BINDIR)example6: $(OV_LIB) $(OV_SLIB) $(OBJDIR)example6.o
+	$(CXX) -o $@  $(OBJDIR)example6.o $(LIBS)
+$(BINDIR)example4: $(OV_LIB) $(OV_SLIB) $(OBJDIR)example4.o
+	$(CXX) -o $@  $(OBJDIR)example4.o $(LIBS)
+
+ifeq ($(parallel),y)
+
+$(BINDIR)pwave: $(OV_LIB) $(OV_SLIB) $(OBJDIR)pwave.o $(OBJDIR)getDt.o
+	$(CXX) -o $@  $(OBJDIR)pwave.o $(OBJDIR)getDt.o $(LIBS)
+
+$(BINDIR)pppWave: $(OV_LIB) $(OV_SLIB) $(OBJDIR)pppWave.o
+	$(CXX) -o $@  $(OBJDIR)pppWave.o $(LIBS)
+
+endif	

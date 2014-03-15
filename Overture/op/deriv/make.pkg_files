@@ -1,0 +1,10 @@
+PKGDIR := $(OvertureCheckout)/op/deriv
+
+L_SRC := $(addsuffix FDerivative.C, x y z xx xy xz yy yz zz div grad identity laplace vorticity) \
+	$(addsuffix FDerivative.C, divScalarGrad scalarGrad derivativeScalarDerivative divVectorScalar) \
+	$(addsuffix Derivative.C, r s t rr rs rt ss st tt)
+
+SRC_FILES += $(L_SRC)
+
+
+

@@ -1,0 +1,49 @@
+\clearpage
+ \section{check/sis}
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$  & res(i)     & rate(i)    &  WU(i)     & ECR(i)  \\   \hline 
+ $ 1$  & $ 6.5e-03$ & $0.011$ & $ 5.9$ & $0.46$ \\ 
+ $ 2$  & $ 1.7e-04$ & $0.026$ & $ 5.1$ & $0.49$ \\ 
+ $ 3$  & $ 2.2e-06$ & $0.013$ & $ 6.9$ & $0.53$ \\ 
+ $ 4$  & $ 6.2e-08$ & $0.029$ & $ 5.1$ & $0.50$ \\ 
+ $ 5$  & $ 1.1e-09$ & $0.018$ & $ 6.9$ & $0.56$ \\ 
+ $ 6$  & $ 3.2e-11$ & $0.029$ & $ 5.1$ & $0.50$ \\ 
+ $ 7$  & $ 8.8e-13$ & $0.028$ & $ 5.1$ & $0.50$ \\ 
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+                 Ogmg, Statistics: 
+                 -----------------     time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............2.04e+00  2.55e-01    81.23% 
+ defect.(excluding those in smooth)....2.86e-01  3.57e-02    11.39% 
+ fine to coarse........................7.83e-02  9.79e-03     3.12% 
+ coarse to fine........................1.20e-02  1.50e-03     0.48% 
+ direct solve on coarsest level........8.33e-02  1.04e-02     3.32% 
+    interpolation......................7.55e-02  9.44e-03  (  3.01%) (already counted)
+    boundary conditions................1.23e+00  1.54e-01  ( 49.15%) (already counted)
+ sum of above..........................2.50e+00  3.12e-01    99.54%  
+
+ total.................................2.51e+00  3.13e-01   100.00% 
+
+ total number of grid points = 850 
+ total number of cycles      = 8 
+ storage allocated = 4.93e-01 MBytes,   580.1 bytes/(grid point) or   72.5 reals/(grid point)
+
+ number of levels = 2 
+ interpolate defect = 1
+ number of cycles per level= 1  1 
+ coarse grid solver : yale, direct sparse solver, no pivoting 
+
+grid 0 : rb[3] rb[3]  : outer-square 
+         bc=[dirichlet,dirichlet] [dirichlet,dirichlet] 
+grid 1 : rb[3] rb[3]  : inner-square 
+         bc=[interp,interp] [interp,interp] 
+\end{verbatim}
+} % end footnotesize

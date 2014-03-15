@@ -1,0 +1,195 @@
+#
+# Measure convergence rates for Ogmg with twilight-zone flow 
+#
+# 
+# To run the convergence tests type one of: 
+#
+#  -- Laplace: 
+#   conv.p tz.conv -cg=square -ng=4                                         [rate=1.95
+#   conv.p tz.conv -cg=square -bc1=n -bc2=m -bc3=n -bc4=n -ng=4             [rate=2.00
+#   conv.p tz.conv -cg=square -order=4 -ng=4                                [rate=3.85
+#   conv.p tz.conv -cg=square -bc1=n -bc2=m -bc3=n -bc4=n -order=4 -ng=4    [rate=4.45
+#
+#   conv.p tz.conv -cg=cic -ng=4                                            [rate=2.09
+#   conv.p tz.conv -cg=cic -order=4 -ng=4                                   [rate=4.00
+#   conv.p tz.conv -cg=cic -order=4 -bc1=n -bc2=m -bc3=d -bc4=d -bc5=n -ng=4 
+#
+#  -- cic with fixed radial distance
+#   conv.p tz.conv -cg=cicFixed -order=4 -maxit=15 -ng=5                               [rate=3.99
+#   conv.p tz.conv -cg=cicFixed -order=4 -bc1=n -bc2=m -bc3=n -bc5=n -maxit=15 -ng=5   [rate=4.13
+#  -- stretched cic: 
+#   conv.p tz.conv -cg=cics -order=4 -ng=4 
+#   conv.p tz.conv -cg=cics -order=4 -bc1=n -bc2=m -bc3=d -bc4=d -bc5=n -ng=4  [ 
+#
+#   conv.p tz.conv -cg=box -ng=4                                            [rate=1.89
+#   conv.p tz.conv -cg=box -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n -ng=4  [rate=2.00
+#   conv.p tz.conv -cg=box -order=4 -ng=4                                   [rate=3.79
+#   conv.p tz.conv -cg=box -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n -ng=4 -order=4 -ng=4  [rate=4.58 (fixed **Trouble 3D corner**)
+# 
+#   conv.p tz.conv -cg=sphereInABox -ng=3                                   [rate=2.52
+#     -- add more lines for stretching and/or used a "fixed" radius 
+#   conv.p tz.conv -cg=sphereInABox -order=4 -ng=3 -maxit=15                [rate= ***trouble with finest grid***
+#
+#  -- fixed radial distance, no stretching:
+#   conv.p tz.conv -cg=sphereInABoxFixed -order=4 -maxit=15 -ng=3           [rate=4.5 
+#   conv.p tz.conv -cg=sphereInABoxFixed -order=4 -maxit=15 -ng=4           [rate=4.35
+#   conv.p tz.conv -cg=sphereInABoxFixed -order=4 -maxit=15 -bc1=n -bc2=n -bc3=n -bc4=n -bc5=n -ng=3  [rate=4.28
+#   conv.p tz.conv -cg=sphereInABoxFixed -order=4 -maxit=15 -bc1=n -bc2=n -bc3=n -bc4=n -bc5=n -ng=4  [
+#
+#   conv.p tz.conv -cg=sphereThreePatch -order=4 -ng=3 -maxit=15    [rate=3.94
+#   conv.p tz.conv -cg=sphereThreePatch -order=4 -ng=3 -maxit=15    [rate=3.29 (stretching=7)
+#   conv.p tz.conv -cg=sphereThreePatch -order=4 -ng=3 -maxit=15  -autoChoose=0   [rate=3.29 (stretching=7)
+#   conv.p tz.conv -cg=sphereThreePatch -order=4 -ng=4 -maxit=15  -autoChoose=0   [rate= (stretching=7)
+# 
+#   conv.p tz.conv -cg=rhombus -order=4 -ng=4 -maxit=20           [rate=3.98
+#   conv.p tz.conv -cg=rhombus -order=4 -ng=4 -maxit=20 -bc1=n    [rate=4.3
+#
+#   conv.p tz.conv -cg=rhomboid -order=4 -ng=3 -maxit=20          [rate=3.98
+#   conv.p tz.conv -cg=rhomboid -order=4 -ng=4 -maxit=20 -bc1=n   [rate=4.22
+#   conv.p tz.conv -cg=rhomboid -order=4 -ng=3 -maxit=20          [rate=3.98
+#
+#   conv.p tz.conv -cg=rotatedBox -order=4 -ng=4 -maxit=20          [rate=3.88
+#   conv.p tz.conv -cg=rotatedBox -order=4 -ng=4 -maxit=20 -bc1=n   [rate=3.96
+#
+#   conv.p tz.conv -cg=orthoSphere -order=4 -ng=3 -maxit=20       [rate=3.95
+#   conv.p tz.conv -cg=orthoSphere -order=4 -ng=4 -maxit=20 -bc1=n -autoChoose=0 [rate=3.95
+#   conv.p tz.conv -cg=orthoSphere -order=4 -ng=4 -maxit=20 -bc1=n               [rate=3.97
+#
+# -- Heat Equation:
+#
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=nc -tz=poly -bcn=d -tf=.5 -cg=square -ng=2 -alwaysCompute=1 -cgsmCmd="mpirun -np 2 $cgsmp"
+#   conv.p -conv=$cg/sm/conv tz.conv -pv=nc -tz=poly -bcn=d -tf=.5 -cg=square -ng=2 -alwaysCompute=1 -cgsmCmd="srun -ppdebug -N1 -n2 $cgsmp"
+#
+# --------options: 
+#   -eqn=[lap|dsg|heat] 
+#   -predefined=[0|1] 
+#   -tz : poly or trig 
+#   -bc : BC flag (see tz.cmd)
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+#   -conv= conv directory (and directory for output). .. So you can run the script outside 
+#          the conv dir, e.g. for parallel
+# ---------------------
+# Set default parameters: 
+$eqn="lap"; $predefined=1; $autoChoose=1; 
+$tz="trig"; $bc = "d"; $en="max"; $ng=4; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $numberOfParallelGhost=2; 
+$bc1=d; $bc2=d; $bc3=d; $bc4=d; $bc5=d; $bc6=d; 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$ogmgtCmd = "../ogmgt";  # command for cgsm
+$cmdDir="../cmd"; 
+$cg = "square"; $bg="square"; $alwaysCompute=1; $tol=.01; $maxit=10; $rtol=1.e-16; 
+$numberOfComponents=1;
+$showAllComponents=0;  # set to 1 to include all components in the table.
+#
+GetOptions( "cg=s"=>\$cg,"eqn=s"=>\$eqn,"en=s"=>\$en,"ng=i"=>\$ng,"bc=s"=>\$bc,"order=i"=>\$order,"autoChoose=i"=>\$autoChoose,\
+            "alwaysCompute=i"=>\$alwaysCompute,"bg=s"=>\$bg,"tol=f"=>\$tol,"rtol=f"=>\$rtol,"ogmgtCmd=s"=>\$ogmgtCmd,\
+            "predefined=i"=>\$predefined,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"maxit=i"=>\$maxit,\
+            "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6  );
+#
+$check="ogmg.check";
+#
+if( $cg eq "box" ){ $nd=3; } # 3D 
+#
+$caseName="tz.$cg.$eqn$predefined.order$order.$bc1$bc2$bc3$bc4$bc5$bc6";
+$name="tz.$cg.$eqn$predefined.order$order.$bc1$bc2$bc3$bc4$bc5$bc6.$tz"; 
+#if( $lambda ne "1" ){ $name = $name . ".Lambda$lambda"; $caseName=$caseName . ".Lambda$lambda"; }
+#if( $amr eq 1 ){ $name .= ".AMRl$nrl" . "r$ratio"; $caseName.=".AMRl$nrl" . "r$ratio"; }
+#
+# --- define the table heading and caption --
+# 
+$title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
+@componentName = ( "u" ); \
+if( $tz eq "poly" ){ $tzLabel = "$tz TZ, degreeX=$degreeX, degreeT=$degreeT"; }else{ $tzLabel = "$tz TZ, fx=$fx"; }
+$amrCaption=""; 
+$caption= "\\caption\{Ogmg, $name, bc=$bc, $tzLabel, fx=$fx, $clabel $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-eqn=$eqn -predefined=$predefined -autoChoose=$autoChoose -rtol=$rtol -maxit=$maxit -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -bc5=$bc5 -bc6=$bc6 "; 
+# 
+if( $cg eq "square" ){\
+$grid1="sq8";   $gName1 = "square8.order$order";\
+$grid2="sq16";  $gName2 = "square16.order$order";\
+$grid3="sq32";  $gName3 = "square32.order$order";\
+$grid4="sq64";  $gName4 = "square64.order$order";\
+$grid5="sq128"; $gName5 = "square128.order$order";}
+if( $cg eq "cic" ){\
+$grid1="cic2";  $gName1 = "cice2.order$order.ml2";\
+$grid2="cic4";  $gName2 = "cice4.order$order.ml3";\
+$grid3="cic8";  $gName3 = "cice8.order$order.ml3";\
+$grid4="cic16"; $gName4 = "cice16.order$order.ml4";\
+$grid5="cic32"; $gName5 = "cice32.order$order.ml4";}
+if( $cg eq "cicFixed" ){\
+$grid1="cicFixed2";  $gName1 = "cicFixede2.order$order.ml1";\
+$grid2="cicFixed4";  $gName2 = "cicFixede4.order$order.ml2";\
+$grid3="cicFixed8";  $gName3 = "cicFixede8.order$order.ml3";\
+$grid4="cicFixed16"; $gName4 = "cicFixede16.order$order.ml4";\
+$grid5="cicFixed32"; $gName5 = "cicFixede32.order$order.ml5";}
+#  -- stretched cic : 
+if( $cg eq "cics" ){\
+$grid1="cics2";  $gName1 = "cice2.order$order.s2.ml2";\
+$grid2="cics4";  $gName2 = "cice4.order$order.s2.ml3";\
+$grid3="cics8";  $gName3 = "cice8.order$order.s2.ml3";\
+$grid4="cics16"; $gName4 = "cice16.order$order.s2.ml4";\
+$grid5="cics32"; $gName5 = "cice32.order$order.s2.ml4";}
+# 
+if( $cg eq "box" ){\
+$grid1="box8";  $gName1 = "box8.order$order";\
+$grid2="box16"; $gName2 = "box16.order$order";\
+$grid3="box32"; $gName3 = "box32.order$order";\
+$grid4="box64"; $gName4 = "box64.order$order";}
+#
+if( $cg eq "rotatedBox" ){\
+$grid1="rotatedBox8";  $gName1 = "rotatedBox8.order$order";\
+$grid2="rotatedBox16"; $gName2 = "rotatedBox16.order$order";\
+$grid3="rotatedBox32"; $gName3 = "rotatedBox32.order$order";\
+$grid4="rotatedBox64"; $gName4 = "rotatedBox64.order$order";}
+#
+if( $cg eq "rhombus" ){\
+$grid1="rhombus1"; $gName1 = "rhombus1.order$order.ml1";\
+$grid2="rhombus2"; $gName2 = "rhombus2.order$order.ml2";\
+$grid3="rhombus4"; $gName3 = "rhombus4.order$order.ml3";\
+$grid4="rhombus8"; $gName4 = "rhombus8.order$order.ml4";}
+#
+if( $cg eq "rhomboid" ){\
+$grid1="rhomboid1"; $gName1 = "rhomboid1.order$order.ml1";\
+$grid2="rhomboid2"; $gName2 = "rhomboid2.order$order.ml2";\
+$grid3="rhomboid4"; $gName3 = "rhomboid4.order$order.ml3";\
+$grid4="rhomboid8"; $gName4 = "rhomboid8.order$order.ml4";}
+#
+if( $cg eq "orthoSphere" ){\
+$grid1="orthoSphere1"; $gName1 = "orthoSphere1.order$order.ml1";\
+$grid2="orthoSphere2"; $gName2 = "orthoSphere2.order$order.ml2";\
+$grid3="orthoSphere4"; $gName3 = "orthoSphere4.order$order.ml3";\
+$grid4="orthoSphere8"; $gName4 = "orthoSphere8.order$order.ml4";}
+#
+if( $cg eq "sphereInABox" ){\
+$grid1="sphereInABox1";  $gName1 = "sphereInABoxe1.order$order.ml1";\
+$grid2="sphereInABox2";  $gName2 = "sphereInABoxe2.order$order.ml2";\
+$grid3="sphereInABox4";  $gName3 = "sphereInABoxe4.order$order.ml3";}
+#
+if( $cg eq "sphereInABoxFixed" ){\
+$grid1="sphereInABoxFixed1";  $gName1 = "sphereInABoxFixede1.order$order.ml1";\
+$grid2="sphereInABoxFixed2";  $gName2 = "sphereInABoxFixede2.order$order.ml2";\
+$grid3="sphereInABoxFixed4";  $gName3 = "sphereInABoxFixede4.order$order.ml3";\
+$grid4="sphereInABoxFixed8";  $gName4 = "sphereInABoxFixede8.order$order.ml4";}
+# 
+if( $cg eq "sphereThreePatch" ){\
+$grid1="sphereThreePatch1";  $gName1 = "sphereThreePatche1.order$order.ml1";\
+$grid2="sphereThreePatch2";  $gName2 = "sphereThreePatche2.order$order.ml2";\
+$grid3="sphereThreePatch4";  $gName3 = "sphereThreePatche4.order$order.ml3";\
+$grid4="sphereThreePatch8";  $gName4 = "sphereThreePatche8.order$order.ml4";}
+# 
+$grid=$grid1; $res=1; $cmd="$ogmgtCmd -noplot $cmdDir/tz -g=$gName1 $options";
+$grid=$grid2; $res=2; $cmd="$ogmgtCmd -noplot $cmdDir/tz -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$ogmgtCmd -noplot $cmdDir/tz -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$ogmgtCmd -noplot $cmdDir/tz -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$ogmgtCmd -noplot $cmdDir/tz -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+
+
+

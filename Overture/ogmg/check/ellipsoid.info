@@ -1,0 +1,117 @@
+\clearpage
+ \section{./ellipsoid}
+% trigonometric TZ, fx=1.000e+00, fy=1.000e+00, fz=1.000e+00
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$   & $\vert\vert\mbox{res}\vert\vert_\infty$  &  CR     &  WU    & ECR  \\   \hline 
+ $ 1$  & $ 5.4e+00$ & $0.009$ & $ 5.6$ & $0.43$ \\ 
+ $ 2$  & $ 2.4e-01$ & $0.045$ & $ 4.8$ & $0.52$ \\ 
+ $ 3$  & $ 1.1e-02$ & $0.045$ & $ 5.1$ & $0.55$ \\ 
+\hline 
+\multicolumn{5}{|c|}{Grid: ellipsoid.bbmg. 10/03/27}  \\
+\multicolumn{5}{|c|}{BC: DDDDDD+PPIIDI+IIIIDI+....}  \\
+\multicolumn{5}{|c|}{Second-order accurate.}  \\
+\multicolumn{5}{|c|}{Trigonometric solution.}  \\
+\multicolumn{5}{|c|}{V[1,1]: rb $\omega=1.12$}  \\
+\multicolumn{5}{|c|}{1.02e+05 grid-points. 2 levels. np=1.}  \\
+\multicolumn{5}{|c|}{Average CR=$0.027$, ECR=$0.50$.}  \\
+\multicolumn{5}{|c|}{time/cycle = 4.64e-01 s.}  \\
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+
+ ========================Ogmg Summary=========================
+
+                       Grid = ellipsoid.bbmg 
+ Ogmg::sizeOf: uMG=   0.1 M, fMG=   0.1 M, cMG=   6.3 M, defectMG=   0.9 M, uOld=   0.8 M, mgcg=   3.4 M, 
+                    operators=   0.0 M, interpolant=   0.0 M, trid=   0.0 M, direct=   6.6 M, IBS=   0.3 M
+                 ** total =   18.9 M 
+ storage allocated = 1.99e+01 MBytes,   194.1 bytes/(grid point) or   24.3 reals/(grid point)
+
+ order of accuracy = 2
+ number of levels = 2 
+ interpolate defect = 1
+ number of cycles per level= 1  1 
+ number of smooths (global) per level= [1,1]  [1,1] 
+ grid ordering in smooth is alternating.
+ auto sub-smooth determination is on.
+ number of iterations for implicit interpolation is -1
+ coarse to fine interpolation width=2.
+ fine to coarse transfer is full weighting.
+ Coarse Grid:
+   coarse grid solver : PETSc, generalized minimal residual iteration (parallel),
+                        bi-conjugate gradient stabilized, ILU(1), reverse Cuthill-McKee ordering
+   average number of iterations per coarse grid solve =   2.7/cycle
+   coarse grid has 19377 grid points (1.9e+01 % of fine grid)
+   coarse grid averaging option: Galerkin averaging
+
+grid 0 : rb[1,1] rb[1,1]  : box 
+         bc=[dirichlet,dirichlet] [dirichlet,dirichlet] [dirichlet,dirichlet] 
+         ave no. of subSmooths: l0= 1.0, l1= 0.0, 
+         gid=[0,56][0,32][0,32], gridPoints=83509 ( 81.64%).
+grid 1 : rb[1,1] rb[1,1]  : ellipsoid 
+         bc=[periodic,periodic] [interp,interp] [dirichlet,interp] 
+         ave no. of subSmooths: l0= 4.0, l1= 0.0, 
+         gid=[0,32][0,32][0,6], gridPoints=15059 ( 14.72%).
+grid 2 : rb[1,1] rb[1,1]  : north-pole 
+         bc=[interp,interp] [interp,interp] [dirichlet,interp] 
+         ave no. of subSmooths: l0= 1.1, l1= 0.0, 
+         gid=[0,8][0,8][0,6], gridPoints=1859 (  1.82%).
+grid 3 : rb[1,1] rb[1,1]  : south-pole 
+         bc=[interp,interp] [interp,interp] [dirichlet,interp] 
+         ave no. of subSmooths: l0= 1.1, l1= 0.0, 
+         gid=[0,8][0,8][0,6], gridPoints=1859 (  1.82%).
+
+ IBS: interp. bndry smoothing: global its=2, local its=2, layers=4 for 1 levels, apply separately from smooths.
+ Corner BC: l=0 : taylor2  , l>0 taylor2  
+
+    Ogmg, Statistics  ellipsoid.bbmg, grids=4, cycles=3, gridPoints=  102286, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............5.77e-01  1.92e-01    41.43% 
+ defect.(excluding those in smooth)....6.76e-02  2.25e-02     4.86% 
+ fine to coarse........................2.80e-02  9.35e-03     2.01% 
+ coarse to fine........................3.80e-02  1.27e-02     2.73% 
+ direct solve on coarsest level........6.71e-01  2.24e-01    48.22% 
+ miscellaneous.........................6.74e-03  2.25e-03     0.48% 
+ sum of above..........................1.39e+00  4.63e-01    99.73%  
+ Details:
+    defect called from smooth..........0.00e+00  0.00e+00  (  0.00%) (already counted)
+    relaxation part of smooth..........1.27e-01  4.22e-02  (  9.10%) (already counted)
+    extra boundary smoothing...........0.00e+00  0.00e+00  (  0.00%) (already counted)
+    extra interpolation smoothing......2.38e-01  7.95e-02  ( 17.12%) (already counted)
+    tridiagonal factor part of smooth..0.00e+00  0.00e+00  (  0.00%) (already counted)
+    tridiagonal solve part of smooth...0.00e+00  0.00e+00  (  0.00%) (already counted)
+    interpolation......................2.27e-01  7.58e-02  ( 16.34%) (already counted)
+    boundary conditions................3.29e-02  1.10e-02  (  2.36%) (already counted)
+      (bcOpt=0.00e+00 extrap=0.00e+00 setup=-2.42e+02 geom=-2.07e+02 finish=2.42e+02 total=3.29e-02)
+    initial guess with FMG.............0.00e+00  0.00e+00  (  0.00%) (already counted)
+    fine to coarse BC's................7.85e-04  2.62e-04  (  0.06%) (already counted)
+    compute norms of defect............2.86e-03  9.54e-04  (  0.21%) (already counted)
+    ghost boundary update..............0.00e+00  0.00e+00  (  0.00%) (already counted)
+
+ total.................................1.39e+00  4.64e-01   100.00% 
+
+ initialize............................6.47e-01  2.16e-01    46.46%  (not counted above)
+    build extra levels.................9.89e-02  3.30e-02     7.10%  (already counted)
+    operator averaging.................1.90e-01  6.32e-02    13.62%  (already counted)
+    build predefined equations.........0.00e+00  0.00e+00     0.00%  (already counted)
+    oges smoother init.................0.00e+00  0.00e+00     0.00%  (already counted)
+
+ TOTAL (solve+initialize)..............2.04e+00  6.80e-01
+ total number of grid points = 102286 
+ total number of cycles      = 3 
+==== memory per-proc: [min=79.9453,ave=79.9453,max=79.9453](Mb), max-recorded=0 (Mb), total=79.9453 (Mb)
+*** timeForNeumannBC=0.00e+00 timeForBC=3.29e-02  timeForFinishBC=2.42e+02 timeForBCFinal=0.00e+00
+   timeForGeneralNeumannBC=0.00e+00 timeForExtrapolationBC=0.00e+00 
+      timeForSetupBC=-2.42e+02, timeForBCWhere=0.00e+00, timeForBCOpt=0.00e+00 timeForBC4Extrap=0.00e+00
+
+Iteration=1..3 : Total WU=1.55e+01, total res reduction=1.87e-05, ave CR=0.0265 ave ECR=0.495
+
+\end{verbatim}
+} % end footnotesize

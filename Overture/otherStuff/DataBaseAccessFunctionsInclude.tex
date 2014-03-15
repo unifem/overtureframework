@@ -1,0 +1,17 @@
+\subsection{getFromADataBase(CompositeGrid \& cg,...,loadBalance,...)}
+ 
+\newlength{\DataBaseAccessFunctionsIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataBaseAccessFunctionsIncludeArgIndent}{getFromADataBase(}%
+getFromADataBase(CompositeGrid \& cg, \\ 
+\hspace{\DataBaseAccessFunctionsIncludeArgIndent}const aString \& fileName, \\ 
+\hspace{\DataBaseAccessFunctionsIncludeArgIndent}bool loadBalance, \\ 
+\hspace{\DataBaseAccessFunctionsIncludeArgIndent}const aString \& gridName  =nullString,\\ 
+\hspace{\DataBaseAccessFunctionsIncludeArgIndent}const bool \& checkTheGrid  =FALSE,\\ 
+\hspace{\DataBaseAccessFunctionsIncludeArgIndent}int printInfo  =1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Read in a CompositeGrid from a data-base file and load-balance with the default LoadBalancer
+\end{description}

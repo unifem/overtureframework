@@ -1,0 +1,50 @@
+#
+#   conv.p twoDomain.conv
+#
+$check="mp.check";
+# ------------------------ solid sphere in a box EXPLICIT -----------------------------------
+# Set the name of final TeX file with errors and convergence rates: 
+$caseName="solidSphereInABox"; 
+$numberOfComponents=2;
+$numberOfDomains=2; 
+$outputFile="solidSphereInABox.table.tex"; 
+# define the table heading and caption
+$title= "grid  \& N \&  \$T_1\$ \&  \$T_2\$"; 
+$tFinal=1.; $fx1=.5; $fx2=.25; $degreeX=2; $degreeT=2; $tz="trig";
+$caption= "\\caption\{Cgmp, two solids, \$t=$tFinal\$, solidSphereInABox, $tz, $date}\\label\{table:cgmp.solidSphereInABox.twoSolids}"; 
+# 
+$options = "-kappa1=.1 -ktc1=.1 -kappa2=.05 -ktc2=.05 -tf=$tFinal -tp=$tFinal -tz=$tz -domain1=innerDomain -domain2=outerDomain -fx1=$fx1 -fy1=$fx1 -fz1=$fx1 -ft1=$fx1 -fx2=$fx2 -fy2=$fx2 -fz2=$fx2 -ft2=$fx2 -go=go";
+$grid="solidSphereInABox1"; $res=20; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi1.order2 $options";
+$grid="solidSphereInABox2"; $res=40; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi2.order2 $options";
+# $grid="solidSphereInABox3"; $res=60; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi3.order2 $options";
+# $grid="solidSphereInABox4"; $res=80; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi4.order2 $options";
+$closeFile="true"; 
+# --------------------------- end problem ------------------------------------------
+exit
+
+
+# ------------------------ solid sphere in a box IMPLICIT -----------------------------------
+# Set the name of final TeX file with errors and convergence rates: 
+$caseName="solidSphereInABoxImp"; 
+$numberOfComponents=2;
+$numberOfDomains=2; 
+$outputFile="solidSphereInABox.imp.table.tex"; 
+# define the table heading and caption
+$title= "grid  \& N \&  \$T_1\$ \&  \$T_2\$"; 
+$tFinal=1.;  $fx1=.5; $fx2=.25; $degreeX=2; $degreeT=2; $tz="trig"
+$dtMax1=.025;
+$dtMax2=.025/2.;
+$dtMax3=.025/3.;
+$dtMax4=.025/4.;
+$caption= "\\caption\{Cgmp, solidSphereInABox, two solids, implicit \$t=$tFinal\$,  $tz, $date}\\label\{table:cgmp.solidSphereInABox.twoSolids.imp}"; 
+# 
+$options = "-kappa1=.1 -ktc1=.1 -kappa2=.05 -ktc2=.05 -tf=$tFinal -tp=$tFinal -tz=$tz -domain1=innerDomain -domain2=outerDomain -fx1=$fx1 -fy1=$fx1 -fz1=$fx1 -ft1=$fx1 -fx2=$fx2 -fy2=$fx2 -fz2=$fx2 -ft2=$fx2 -ts=im -solver=best -nc=10 -coupled=0 -go=go";
+$grid="solidSphereInABox1"; $res=20; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi1.order2 -dtMax=$dtMax1 $options";
+$grid="solidSphereInABox2"; $res=40; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi2.order2 -dtMax=$dtMax2 $options";
+# $grid="solidSphereInABox3"; $res=60; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi3.order2 -dtMax=$dtMax3 $options";
+# $grid="solidSphereInABox4"; $res=80; $cmd="../bin/cgmp noplot ../cmd/twoDomain -g=solidSphereInABoxi4.order2 -dtMax=$dtMax4 $options";
+$closeFile="true"; 
+# --------------------------- end problem ------------------------------------------
+exit
+
+

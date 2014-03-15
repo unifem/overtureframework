@@ -1,0 +1,113 @@
+\clearpage
+\section{Grids for a car rear view mirror (from an IGES file)}\label{sec:retro}
+
+\input retroFig
+
+Figure~\ref{fig:retroCAD} shows a CAD geometry for the rear view mirror of an
+automobile. We will use this example to illustrate CAD fixup and grid generation.
+
+The CAD geometry for the rear view mirror has been provided courtesy of PSA Peugeot Citroen.
+Also thanks to Mr. Mehdi Bordji who generated some of the grids shown in this section.
+
+\noindent {\bf Getting started:} The first step is to read in the IGES file and look at all the
+surfaces:
+\begin{verbatim}
+ # the next command is needed by ogen but optional for mbuilder
+ create mappings
+   read iges file
+     myFile.igs
+   continue
+   choose all
+\end{verbatim}
+Here we assume you are running ogen or mbuilder.
+
+\noindent {\bf Choosing a set of surfaces to work on:} 
+It can often be helpful to only look at a sub-set of the surfaces when getting
+started or when building a grid for one part of a large geometry. To choose
+a subset of surfaces one can
+\begin{enumerate}
+  \item read in all surfaces (as above), 
+  \item hide surfaces that are not wanted (using the mouse to pick individual or collections of surfaces),
+  \item delete hidden surfaces, (it is safer to hide first and then delete rather than delete to begin with),
+  \item "print parameters" will give a list of the remaining surfaces that can be 
+        read in as a list as shown below
+\end{enumerate}
+
+\noindent {\bf Reading in a list of surfaces:} A list of surfaces can be read as follows,
+\begin{verbatim}
+ create mappings
+   read iges file
+     myFile.igs
+   continue
+choose a list
+  6 7 8 20 22 70
+done
+\end{verbatim}
+
+\noindent {\bf Fixing broken surfaces:}
+The command {\tt show broken surfaces} will print a list of any broken surfaces.
+To fix a broken surface, such as surface 5, type {\tt examine a sub-surface 5}.
+See section~\ref{sec:fixingTrimCurves} for examples of fixing trimming curves. 
+
+% 
+% create mappings
+%   read iges file
+%     /home/henshaw.0/people/lafon/mehdi/retro_and_vein.igs
+%     continue
+% #
+% # STEP I: choose a subset of surfaces to work on (these commands are commented out below)
+% #         1. hide surfaces that are not wanted
+% #         2. delete hidden surfaces 
+% #         3. "print parameters" will give a list of the remaining surfaces that can be 
+% #           read in as a list as shown below
+
+
+
+\clearpage
+\section{Building grids on triangulated surfaces}\label{sec:retroTriangles}
+
+\input retroTrianglesFig
+
+mBuilder can also be used to build grids directly on a triangulated surface. The triangulated
+surface can be defined in a number of ways such as an AVS or STL file.
+Figure~\ref{fig:retroGridsAVS} shows a triangulated surface read from an AVS file and
+represented as an UnstructuredMapping, 
+\begin{verbatim}
+create mappings
+  unstructured 
+    read avs file 
+    myFile.avs 
+  exit
+\end{verbatim}
+Given a surface defined by a triangulation,
+the next step is to build structured surface grids on the surface. The hyperbolic
+grid generator is one way to build such grids. 
+Figure~\ref{fig:retroGridsAVS} shows overlapping grids that were built on a surface.
+\begin{verbatim}
+  builder 
+    create surface grid...
+\end{verbatim}
+To define a surface grid one must create a starting curve. This can be done by
+using the mouse to pick a set of points on the surface to define a curve.
+After interactively choosing points, the commands in the command file will look like
+{\footnotesize
+\begin{verbatim}
+ initial curve:points on surface
+   choose point on surface 0 2.277030e+01 -7.074806e+01 1.534555e+02 9.171783e-02 1.666090e-01
+   choose point on surface 0 1.400569e+01 -6.563512e+01 1.329498e+02 6.320195e-01 3.748991e-02
+   choose point on surface 0 5.563543e+00 -6.254250e+01 1.132309e+02 4.987929e-02 7.274973e-01
+     ...
+ done
+\end{verbatim}
+}
+The first three numbers are the $x,y,z$ coordinates of the point. The last two numbers are
+related to the parameter space coordinates of the point.
+After creating the initial curve one can optionally edit the Mapping that
+defines the curve. In the next example we indicate that the initial curve is
+periodic:
+\begin{verbatim}
+ edit initial curve
+   periodicity
+   2
+ exit
+\end{verbatim}

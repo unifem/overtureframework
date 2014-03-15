@@ -1,0 +1,14 @@
+#
+# a sample .cshrc to use with Overture on a sun
+#   NOTE: If you are making Overture (as opposed to just using it) you must explicitly 
+#   define the locations of OpenGL, HDF and APlusPlus (rather than using the relative path below)
+#
+setenv XLIBS      /usr/openwin
+setenv MOTIF      /usr/dt
+setenv Overture   /n/c19s3/Overture/Overture.v12
+# use full path name for next three variables if you are installing Overture
+setenv OpenGL     $Overture/OpenGL
+setenv HDF        $Overture/HDF
+setenv APlusPlus  $Overture/A++
+# this next variable tells the run time loader where to find dynamic (.so) libraries
+setenv LD_LIBRARY_PATH  ${MOTIF}/lib:${XLIBS}/lib:${HDF}/lib:${OpenGL}/lib:$Overture/lib:${APlusPlus}

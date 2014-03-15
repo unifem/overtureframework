@@ -1,0 +1,60 @@
+LOCAL_FILES := simpleMesh.C smesh.cc cutcell.cc
+
+INCPATH = -I${Overture}/include -I${APlusPlus}/include -I$(MOTIF)/include -I$(XLIBS)/include -I$(HDF)/include
+
+LOC_LIBS = ${Overture}/Cad/rap.a -L${Overture}/lib -lOverture -lOverture_static -L$(APlusPlus)/lib -lApp -lApp_static 
+SYS_LIBS = -L/usr/local/lib -L$(OpenGL)/lib -lGL -lGLU -lOSMesa -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm  -lXpm -lXp -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11  -L/usr/apps/pgi/3.3/linux86/lib -lpgftnrtl -lpgmp  -lpgc -lstd  -lm
+
+LIBS = ${LOC_LIBS} ${SYS_LIBS}
+
+CXX_FLAGS += $(CXX_FLAGS_REQ) -fpermissive $(INCPATH)
+LD_FLAGS += $(LD_FLAGS_REQ) 
+
+#CXX_FLAGS += -pg
+ifeq (${compile},opt)
+CXX_FLAGS += $(CXX_FLAGS_OPT) 
+LD_FLAGS += $(LD_FLAGS_OPT) 
+else
+CXX_FLAGS += $(CXX_FLAGS_DBG) -DKK_DEBUG
+LD_FLAGS += $(LD_FLAGS_DBG) 
+endif
+
+OFILES := ${subst .C,.o,${LOCAL_FILES}}
+OFILES := ${subst .cc,.o,${OFILES}}
+DFILES := ${subst .o,.d,${OFILES}}
+
+.PHONY: all smesh clean testnc
+
+all: smesh
+
+smesh: ${OFILES}
+	${CXX} ${CXX_FLAGS} -o $@ $(OFILES) -lstdc++ ${LIBS} 
+
+testnc: testnc1 testnc2 testnc3 testnc4
+
+testnc1: 
+	${CXX} ${CXX_FLAGS} -DEX1 -c testnc.cc
+	${CXX} ${CXX_FLAGS}  -o $@ testnc.o -lstdc++ ${LIBS} #-ldmallocxx -ldmalloc
+
+testnc2: 
+	${CXX} ${CXX_FLAGS} -DEX2 -c testnc.cc
+	${CXX} ${CXX_FLAGS} -o $@ testnc.o -lstdc++ ${LIBS} #-ldmallocxx -ldmalloc
+
+testnc3: 
+	${CXX} ${CXX_FLAGS} -DEX3 -c testnc.cc
+	${CXX} ${CXX_FLAGS}  -o $@ testnc.o -lstdc++ ${LIBS} #-ldmallocxx -ldmalloc
+
+testnc4: 
+	${CXX} ${CXX_FLAGS} -DEX4 -c testnc.cc
+	${CXX} ${CXX_FLAGS}  -o $@ testnc.o -lstdc++ ${LIBS} #-ldmallocxx -ldmalloc
+
+testnc5: 
+	${CXX} ${CXX_FLAGS} -DEX5 -c testnc.cc
+	${CXX} ${CXX_FLAGS}  -o $@ testnc.o -lstdc++ ${LIBS} #-ldmallocxx -ldmalloc
+
+mperf: mperf.o
+	${CXX} ${CXX_FLAGS} -o $@ $< -lstdc++ ${LIBS} 
+clean:
+	rm smesh *.o
+
+-include ${DFILES}

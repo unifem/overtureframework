@@ -1,0 +1,192 @@
+\subsection{sPrintF}
+ 
+\newlength{\otherStuffIncludeArgIndent}
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\otherStuffIncludeArgIndent}{sPrintF(}%
+sPrintF(const char *format, ...)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Implementation of an "sprintf" like function that returns the formatted 
+  string NOT the number of chars assigned.\index{sPrintF}
+  
+\item[{\bf NOTE:}]  this function assumes a maximum of 300 chars in the format string.
+
+\item[{\bf format (input) :}]  use this printf style format.
+\item[{\bf argument `$\ldots$' (input):}]  variable length argument list.
+\item[{\bf Return value:}]  formatted string
+ 
+\item[{\bf author:}]  wdh
+\end{description}
+\subsection{sScanF}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\otherStuffIncludeArgIndent}{sScanF(}%
+sScanF(const aString \& s, const char *format, \\ 
+\hspace{\otherStuffIncludeArgIndent}void *p0,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p1  =NULL, \\ 
+\hspace{\otherStuffIncludeArgIndent}void *p2  =NULL, \\ 
+\hspace{\otherStuffIncludeArgIndent}void *p3  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p4  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p5  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p6  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p7  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p8  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p9  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p10  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p11  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p12  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p13  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p14  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p15  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p16  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p17  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p18  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p19  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p20  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p21  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p22  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p23  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p24  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p25  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p26  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p27  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p28  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p29  =NULL\\ 
+\hspace{\otherStuffIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   A special version of sscanf that strips out any ',' characters
+ and replaces them with ' ' and converts the format string with ftor so that
+ \%e and \%f formats are converted properly for double precision.\index{sScanF}
+\item[{\bf p0,p1,... (input) :}]  supply addresses of variables to save the results in.
+\end{description}
+\subsection{sScanF}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\otherStuffIncludeArgIndent}{fScanF(}%
+fScanF(FILE *file, const char *format, \\ 
+\hspace{\otherStuffIncludeArgIndent}void *p0,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p1  =NULL, \\ 
+\hspace{\otherStuffIncludeArgIndent}void *p2  =NULL, \\ 
+\hspace{\otherStuffIncludeArgIndent}void *p3  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p4  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p5  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p6  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p7  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p8  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p9  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p10  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p11  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p12  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p13  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p14  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p15  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p16  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p17  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p18  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p19  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p20  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p21  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p22  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p23  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p24  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p25  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p26  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p27  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p28  =NULL,\\ 
+\hspace{\otherStuffIncludeArgIndent}void *p29  =NULL\\ 
+\hspace{\otherStuffIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   A special version of fscanf that strips out any ',' characters
+ and replaces them with ' ' and converts the format string with ftor so that
+ \%e and \%f formats are converted properly for double precision. \index{fScanF}
+\item[{\bf file (input) :}]  scan this file.
+\item[{\bf format (input) :}]  use this printf style format.
+\item[{\bf p0,p1,... (input) :}]  supply addresses of variables to save the results in.
+\end{description}
+\subsection{getLine}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\otherStuffIncludeArgIndent}{getLine(}%
+getLine( char s[], int lim)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Read a line from standard input. \index{getLine}
+\item[{\bf s (input) :}]  char array in which to store the line
+\item[{\bf lim (input) :}]  maximum number of chars that can be saved in s
+\end{description}
+\subsection{getLine}
+ 
+\begin{flushleft} \textbf{%
+int \\ 
+\settowidth{\otherStuffIncludeArgIndent}{getLine(}%
+getLine( aString \&answer )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Read a line from standard input.\index{getLine}
+\item[{\bf s (input) :}]  char array in which to store the line
+\item[{\bf lim (input) :}]  maximum number of chars that can be saved in s
+\end{description}
+\subsection{ftor}
+ 
+\begin{flushleft} \textbf{%
+aString \\ 
+\settowidth{\otherStuffIncludeArgIndent}{ftor(}%
+ftor(const char *ss)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ "float to real aString conversion" \index{ftor}
+ This function is used to convert arguments to sscanf and fscanf so they work
+ when OV\_USE\_DOUBLE is or is not defined. It will convert \%e to \%le and \%f to \%lf 
+ when OV\_USE\_DOUBLE is defined.
+  Usually one should use sScanF and fScanF
+   to have this done automatically so
+ there is no need to call ftor directly.
+\item[{\bf ss (input) :}]  convert this string.
+\item[{\bf author:}]  wdh
+\end{description}
+\subsection{printF}
+ 
+\begin{flushleft} \textbf{%
+void \\ 
+\settowidth{\otherStuffIncludeArgIndent}{printF(}%
+printF(const char *format, ...)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Implementation of an "printf" like function that only prints on processor 0
+ 
+\item[{\bf s (input) :}]  fill in this string.
+\item[{\bf format (input) :}]  use this printf style format.
+\item[{\bf argument `$\ldots$' (input):}]  variable length argument list.
+ 
+\item[{\bf author:}]  wdh
+\end{description}
+\subsection{fPrintF}
+ 
+\begin{flushleft} \textbf{%
+void \\ 
+\settowidth{\otherStuffIncludeArgIndent}{fPrintF(}%
+fPrintF(FILE *file, const char *format, ...)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Implementation of an "fprintf" like function that only prints on processor 0
+ 
+\item[{\bf s (input) :}]  fill in this string.
+\item[{\bf format (input) :}]  use this printf style format.
+\item[{\bf argument `$\ldots$' (input):}]  variable length argument list.
+ 
+\item[{\bf author:}]  wdh
+\end{description}

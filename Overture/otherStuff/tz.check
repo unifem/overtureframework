@@ -1,0 +1,250 @@
+A++ Internal_Index bounds checking: ON 
+Usage: `tz [<gridName>][degreeX=%i]' 
+
+ *****************************************************************
+ ******** Checking grid: cic ************ 
+ *****************************************************************
+
+Searching for grids in locations specified by the `OvertureGridDirectories' environment variable
+look for /home/henshaw/Overture/ogen/cic 
+ ***** Mounting file /home/henshaw/Overture/ogen/cic.hdf****
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
+ ++++++++++++++++++ testing OGPolyFunction +++++++++++++++++++
+h=0.00040652
+h2=0.0014936
+h3=0.00378369
+h4=0.0075976
+----------------------------------------------------------------
+Error in e.t(0)= 8.45011e-15
+Error in e.x(0)= 3.05852e-14
+Error in e.y(0)= 9.45036e-14
+Error in e.xx(0)= 1.90135e-09
+Error in e.yy(0)= 1.76876e-09
+Error in e.xy(0)= 1.22953e-10
+Error in e.xxx(0)= 1.71951e-09, e.xxx=2.15689, diff aprox = 2.15689
+Error in e.xxxx(0)= 2.29858e-08, e.xxxx=3.11918, diff aprox = 3.11918
+Error in (.x) e.gd(0,nxd=1,0,0,n=0)= 3.08073e-14, e.gd=1.03266, e.x=1.03266
+Error in (.y) e.gd(0,0,nyd=1,0,n=0)= 9.45036e-14
+Error in (.z) e.gd(0,0,0,nzd=1,n=0)= 0 e.gd=0
+Error in (.t) e.gd(ntd=1,0,0,0,n=0)= 5.11558e-13
+Error in (.xy) e.gd(0,nxd=1,nyd=1,0,n=0)= 1.22953e-10
+Error in (.tx) e.gd(ntd=1,nxd=1,0,0,n=0)= 1.18851e-10, e.gd=0.344219, diff=0.344219
+----------------------------------------------------------------
+Error in e.t(1)= 3.71882e-14
+Error in e.x(1)= 6.07908e-14
+Error in e.y(1)= 5.76931e-16
+Error in e.xx(1)= 3.76864e-10
+Error in e.yy(1)= 6.69708e-10
+Error in e.xy(1)= 1.03538e-10
+Error in e.xxx(1)= 3.79731e-10, e.xxx=1.0093, diff aprox = 1.0093
+Error in e.xxxx(1)= 1.20645e-07, e.xxxx=1.48478, diff aprox = 1.48478
+Error in (.x) e.gd(0,nxd=1,0,0,n=1)= 6.07353e-14, e.gd=0.395525, e.x=0.395525
+Error in (.y) e.gd(0,0,nyd=1,0,n=1)= 6.32442e-16
+Error in (.z) e.gd(0,0,0,nzd=1,n=1)= 0 e.gd=0
+Error in (.t) e.gd(ntd=1,0,0,0,n=1)= 3.32118e-14
+Error in (.xy) e.gd(0,nxd=1,nyd=1,0,n=1)= 1.03538e-10
+Error in (.tx) e.gd(ntd=1,nxd=1,0,0,n=1)= 5.65676e-11, e.gd=0.197762, diff=0.197762
+----------------------------------------------------------------
+Error in e.t(2)= 8.69045e-15
+Error in e.x(2)= 5.09614e-14
+Error in e.y(2)= 2.2446e-14
+Error in e.xx(2)= 1.73702e-10
+Error in e.yy(2)= 8.27578e-11
+Error in e.xy(2)= 2.06912e-11
+Error in e.xxx(2)= 3.94155e-10, e.xxx=0.632866, diff aprox = 0.632865
+Error in e.xxxx(2)= 2.67496e-08, e.xxxx=0.944729, diff aprox = 0.944729
+Error in (.x) e.gd(0,nxd=1,0,0,n=2)= 5.09891e-14, e.gd=0.217865, e.x=0.217865
+Error in (.y) e.gd(0,0,nyd=1,0,n=2)= 2.23904e-14
+Error in (.z) e.gd(0,0,0,nzd=1,n=2)= 0 e.gd=0
+Error in (.t) e.gd(ntd=1,0,0,0,n=2)= 2.71588e-14
+Error in (.xy) e.gd(0,nxd=1,nyd=1,0,n=2)= 2.06912e-11
+Error in (.tx) e.gd(ntd=1,nxd=1,0,0,n=2)= 6.86959e-11, e.gd=0.130719, diff=0.130719
+ ==========================================
+  Test derivatives on a MappedGrid        
+ ==========================================
+----------------------------------------------------------------
+Error in e(0)= 0
+Error in e.t(0)= 1.77636e-15
+Error in e.x(0)= 1.42109e-14
+Error in e.y(0)= 7.10543e-15
+Error in e.gd(0,1,0,0,n=0)= 1.42109e-14
+Error in e.gd(0,0,1,0,n=0)= 1.06581e-14
+Error in e.gd(0,1,1,0,n=0)= 2.13163e-14
+Error in e.gd(1,1,1,0,n=0)= 5.32907e-15
+----------------------------------------------------------------
+Error in e(1)= 0
+Error in e.t(1)= 1.77636e-15
+Error in e.x(1)= 5.32907e-15
+Error in e.y(1)= 3.55271e-15
+Error in e.gd(0,1,0,0,n=1)= 7.10543e-15
+Error in e.gd(0,0,1,0,n=1)= 3.55271e-15
+Error in e.gd(0,1,1,0,n=1)= 7.10543e-15
+Error in e.gd(1,1,1,0,n=1)= 5.32907e-15
+----------------------------------------------------------------
+Error in e(2)= 0
+Error in e.t(2)= 8.88178e-16
+Error in e.x(2)= 3.55271e-15
+Error in e.y(2)= 1.77636e-15
+Error in e.gd(0,1,0,0,n=2)= 4.44089e-15
+Error in e.gd(0,0,1,0,n=2)= 3.55271e-15
+Error in e.gd(0,1,1,0,n=2)= 3.55271e-15
+Error in e.gd(1,1,1,0,n=2)= 3.55271e-15
+----------------------------------------------------------------
+Error in e(0)= 0
+Error in e.t(0)= 3.33067e-16
+Error in e.x(0)= 6.66134e-16
+Error in e.y(0)= 6.66134e-16
+Error in e.gd(0,1,0,0,n=0)= 4.44089e-16
+Error in e.gd(0,0,1,0,n=0)= 4.44089e-16
+Error in e.gd(0,1,1,0,n=0)= 4.44089e-16
+Error in e.gd(1,1,1,0,n=0)= 1.11022e-16
+----------------------------------------------------------------
+Error in e(1)= 0
+Error in e.t(1)= 2.77556e-16
+Error in e.x(1)= 3.33067e-16
+Error in e.y(1)= 2.22045e-16
+Error in e.gd(0,1,0,0,n=1)= 1.11022e-16
+Error in e.gd(0,0,1,0,n=1)= 1.38778e-16
+Error in e.gd(0,1,1,0,n=1)= 1.66533e-16
+Error in e.gd(1,1,1,0,n=1)= 1.11022e-16
+----------------------------------------------------------------
+Error in e(2)= 0
+Error in e.t(2)= 8.32667e-17
+Error in e.x(2)= 1.66533e-16
+Error in e.y(2)= 5.55112e-17
+Error in e.gd(0,1,0,0,n=2)= 1.11022e-16
+Error in e.gd(0,0,1,0,n=2)= 5.55112e-17
+Error in e.gd(0,1,1,0,n=2)= 1.11022e-16
+Error in e.gd(1,1,1,0,n=2)= 5.55112e-17
+Error in CompositeGridFunction=TZ(cg) = 0
+Error in assignGridFunction(v) = 0
+Error in w=polyTZ(cg,N,t) = 0
+
+ *****************************************************************
+ ******** Checking grid: cicCC ************ 
+ *****************************************************************
+
+Searching for grids in locations specified by the `OvertureGridDirectories' environment variable
+look for /home/henshaw/Overture/ogen/cicCC 
+ ***** Mounting file /home/henshaw/Overture/ogen/cicCC.hdf****
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cicCC
+ ++++++++++++++++++ testing OGPolyFunction +++++++++++++++++++
+h=0.00040652
+h2=0.0014936
+h3=0.00378369
+h4=0.0075976
+----------------------------------------------------------------
+Error in e.t(0)= 8.45011e-15
+Error in e.x(0)= 3.05852e-14
+Error in e.y(0)= 9.45036e-14
+Error in e.xx(0)= 1.90135e-09
+Error in e.yy(0)= 1.76876e-09
+Error in e.xy(0)= 1.22953e-10
+Error in e.xxx(0)= 1.71951e-09, e.xxx=2.15689, diff aprox = 2.15689
+Error in e.xxxx(0)= 2.29858e-08, e.xxxx=3.11918, diff aprox = 3.11918
+Error in (.x) e.gd(0,nxd=1,0,0,n=0)= 3.08073e-14, e.gd=1.03266, e.x=1.03266
+Error in (.y) e.gd(0,0,nyd=1,0,n=0)= 9.45036e-14
+Error in (.z) e.gd(0,0,0,nzd=1,n=0)= 0 e.gd=0
+Error in (.t) e.gd(ntd=1,0,0,0,n=0)= 5.11558e-13
+Error in (.xy) e.gd(0,nxd=1,nyd=1,0,n=0)= 1.22953e-10
+Error in (.tx) e.gd(ntd=1,nxd=1,0,0,n=0)= 1.18851e-10, e.gd=0.344219, diff=0.344219
+----------------------------------------------------------------
+Error in e.t(1)= 3.71882e-14
+Error in e.x(1)= 6.07908e-14
+Error in e.y(1)= 5.76931e-16
+Error in e.xx(1)= 3.76864e-10
+Error in e.yy(1)= 6.69708e-10
+Error in e.xy(1)= 1.03538e-10
+Error in e.xxx(1)= 3.79731e-10, e.xxx=1.0093, diff aprox = 1.0093
+Error in e.xxxx(1)= 1.20645e-07, e.xxxx=1.48478, diff aprox = 1.48478
+Error in (.x) e.gd(0,nxd=1,0,0,n=1)= 6.07353e-14, e.gd=0.395525, e.x=0.395525
+Error in (.y) e.gd(0,0,nyd=1,0,n=1)= 6.32442e-16
+Error in (.z) e.gd(0,0,0,nzd=1,n=1)= 0 e.gd=0
+Error in (.t) e.gd(ntd=1,0,0,0,n=1)= 3.32118e-14
+Error in (.xy) e.gd(0,nxd=1,nyd=1,0,n=1)= 1.03538e-10
+Error in (.tx) e.gd(ntd=1,nxd=1,0,0,n=1)= 5.65676e-11, e.gd=0.197762, diff=0.197762
+----------------------------------------------------------------
+Error in e.t(2)= 8.69045e-15
+Error in e.x(2)= 5.09614e-14
+Error in e.y(2)= 2.2446e-14
+Error in e.xx(2)= 1.73702e-10
+Error in e.yy(2)= 8.27578e-11
+Error in e.xy(2)= 2.06912e-11
+Error in e.xxx(2)= 3.94155e-10, e.xxx=0.632866, diff aprox = 0.632865
+Error in e.xxxx(2)= 2.67496e-08, e.xxxx=0.944729, diff aprox = 0.944729
+Error in (.x) e.gd(0,nxd=1,0,0,n=2)= 5.09891e-14, e.gd=0.217865, e.x=0.217865
+Error in (.y) e.gd(0,0,nyd=1,0,n=2)= 2.23904e-14
+Error in (.z) e.gd(0,0,0,nzd=1,n=2)= 0 e.gd=0
+Error in (.t) e.gd(ntd=1,0,0,0,n=2)= 2.71588e-14
+Error in (.xy) e.gd(0,nxd=1,nyd=1,0,n=2)= 2.06912e-11
+Error in (.tx) e.gd(ntd=1,nxd=1,0,0,n=2)= 6.86959e-11, e.gd=0.130719, diff=0.130719
+ ==========================================
+  Test derivatives on a MappedGrid        
+ ==========================================
+----------------------------------------------------------------
+Error in e(0)= 0
+Error in e.t(0)= 1.77636e-15
+Error in e.x(0)= 7.10543e-15
+Error in e.y(0)= 7.10543e-15
+Error in e.gd(0,1,0,0,n=0)= 1.42109e-14
+Error in e.gd(0,0,1,0,n=0)= 1.42109e-14
+Error in e.gd(0,1,1,0,n=0)= 2.13163e-14
+Error in e.gd(1,1,1,0,n=0)= 5.32907e-15
+----------------------------------------------------------------
+Error in e(1)= 0
+Error in e.t(1)= 1.77636e-15
+Error in e.x(1)= 7.10543e-15
+Error in e.y(1)= 3.55271e-15
+Error in e.gd(0,1,0,0,n=1)= 7.10543e-15
+Error in e.gd(0,0,1,0,n=1)= 3.55271e-15
+Error in e.gd(0,1,1,0,n=1)= 1.06581e-14
+Error in e.gd(1,1,1,0,n=1)= 5.32907e-15
+----------------------------------------------------------------
+Error in e(2)= 0
+Error in e.t(2)= 1.77636e-15
+Error in e.x(2)= 3.55271e-15
+Error in e.y(2)= 1.77636e-15
+Error in e.gd(0,1,0,0,n=2)= 3.55271e-15
+Error in e.gd(0,0,1,0,n=2)= 3.55271e-15
+Error in e.gd(0,1,1,0,n=2)= 5.32907e-15
+Error in e.gd(1,1,1,0,n=2)= 2.66454e-15
+----------------------------------------------------------------
+Error in e(0)= 0
+Error in e.t(0)= 3.88578e-16
+Error in e.x(0)= 4.44089e-16
+Error in e.y(0)= 6.66134e-16
+Error in e.gd(0,1,0,0,n=0)= 4.44089e-16
+Error in e.gd(0,0,1,0,n=0)= 2.22045e-16
+Error in e.gd(0,1,1,0,n=0)= 4.44089e-16
+Error in e.gd(1,1,1,0,n=0)= 1.66533e-16
+----------------------------------------------------------------
+Error in e(1)= 0
+Error in e.t(1)= 1.66533e-16
+Error in e.x(1)= 3.33067e-16
+Error in e.y(1)= 1.66533e-16
+Error in e.gd(0,1,0,0,n=1)= 2.22045e-16
+Error in e.gd(0,0,1,0,n=1)= 1.11022e-16
+Error in e.gd(0,1,1,0,n=1)= 2.22045e-16
+Error in e.gd(1,1,1,0,n=1)= 1.11022e-16
+----------------------------------------------------------------
+Error in e(2)= 0
+Error in e.t(2)= 8.32667e-17
+Error in e.x(2)= 2.22045e-16
+Error in e.y(2)= 1.11022e-16
+Error in e.gd(0,1,0,0,n=2)= 1.11022e-16
+Error in e.gd(0,0,1,0,n=2)= 5.55112e-17
+Error in e.gd(0,1,1,0,n=2)= 2.22045e-16
+Error in e.gd(1,1,1,0,n=2)= 1.38778e-16
+Error in CompositeGridFunction=TZ(cg) = 0
+Error in assignGridFunction(v) = 0
+Error in w=polyTZ(cg,N,t) = 0
+ ****************************************************************
+ **************** Maximum ERROR = 4.855372e-08 *******************
+ ***************************************************************
+
+
+ *********************************************************************** 
+ ************ The test is apparently successful ************************ 
+ *********************************************************************** 
+ Overture::end, counter=1 
+ delete StaticVariables 

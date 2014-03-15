@@ -1,0 +1,127 @@
+#
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o .c .o .f .o .F .o
+.c.o:; $(cc) $(CFLAGS) -c $*.c
+.C.o:; $(CC) $(CCFLAGS) $(CC_SUN5_TEMPLATEFLAG) -c $*.C
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+.F.o:; $(FC) $(FFLAGS) -c $*.F
+
+default: depend_date Mapping_date 
+
+Source1 = Bound.C BoundingBox.C Fraction.C Mapping.C MappingRC.C MappingP.C \
+          BoxMapping.C SphereMapping.C SquareMapping.C checkMapping.C ComposeMapping.C \
+          MatrixMapping.C PlaneMapping.C IntersectionMapping.C TriangleClass.C \
+          LineMapping.C SmoothedPolygonMapping.C JoinMapping.C  \
+          StretchedSquareMapping.C StretchTransform.C MatrixTransform.C CircleMapping.C \
+          NormalMapping.C CylinderMapping.C RevolutionMapping.C ReductionMapping.C \
+          CrossSectionMapping.C OrthographicTransform.C ReparameterizationTransform.C \
+          RestrictionMapping.C SplineMapping.C TFIMapping.C initializeMappingList.C \
+          createMappings.C viewMappings.C AirfoilMapping.C DepthMapping.C \
+	  hyperNull.C IgesReader.C readMappings.C CompositeSurface.C FilletMapping.C  \
+          DataPointMapping.C MappingProjectionParameters.C \
+          SweepMapping.C QuadTree.C DataFormats.C DataFormatsMG.C UnstructuredMapping.C \
+	  PolynomialMapping.C QuadraticMapping.C RocketMapping.C equi.C sPrintF.C  \
+	  FilamentMapping.C ReferenceCountingList.C MappingBuilder.C OffsetShell.C \
+	  unstructuredCompositeSurface.C plyFileInterface.C UserDefinedMapping1.C \
+          strtch.f cs.f  tspack.f cggpoly.f dpm.f ingrid.f r1mach.f FaceInfo.C EntityTag.C \
+	  refineTriangulation.C refineCurve.C entityConnectivityBuilder.C verifyUnstructuredConnectivity.C \
+          stretchUpdate.C ReorientMapping.C ULink.C MappingGeometry.C DistributedInverse.C inverseMap.C \
+          LoftedSurfaceMapping.C TrimmedMappingBuilder.C 
+
+# We make a separate list of files in hype since the Makefile dependencies are braindead
+HypeFiles =  hype/HyperbolicMapping.C hype/update.C hype/startCurve.C hype/util.C hype/implicitSolve.C \
+             hype/generate.C hype/project.C hype/applyBoundaryConditions.C hype/plot.C  \
+             hype/stretch.C hype/GridSmoother.C hype/MatchingCurve.C hype/ellipticSmooth.f
+
+HypeObjectFiles=HyperbolicMapping.o update.o startCurve.o util.o implicitSolve.o \
+                generate.o project.o applyBoundaryConditions.o plot.o stretch.o GridSmoother.o \
+                GridStretcher.o MatchingCurve.o ellipticSmooth.o
+
+HyperbolicMapping.o       : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+update.o                  : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+startCurve.o              : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+implicitSolve.o           : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+util.o                    : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+generate.o                : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+project.o                 : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+applyBoundaryConditions.o : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+plot.o                    : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+stretch.o                 : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+GridSmoother.o            : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+GridStretcher.o           : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+MatchingCurve.o           : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+
+# ellipticSmooth.o :hype/ellipticSmooth.f; $(FC) $(FFLAGS) -c $?
+# fort77 had trouble with the above line so we do the following
+ellipticSmooth.o : hype/ellipticSmooth.f
+	cp hype/ellipticSmooth.f .
+	$(FC) $(FFLAGS) -c ellipticSmooth.f
+
+# Compile this optimized (note extra macro definition)
+nurbs_eval.o : ${@:.o=.F}; $(FC) $(FFLAGSO) -DKK_NRB_BLOCKED -c ${@:.o=.F}
+#xlc nurbs_eval.o : ${@:.o=.F}; $(FC) $(FFLAGSO) -WF,-DKK_NRB_BLOCKED -c ${@:.o=.F}
+
+Mapping1= ${Source1:.C=.o} 
+Mapping= ${Mapping1:.f=.o} $(HypeObjectFiles) nurbs_eval.o
+
+# On some machines we need to compile some files with no optimization since the compiler dies.
+# NOTE: actually if you can get DataPointMapping.C dpmScalar.C to compile optimized then it makes
+#       a big difference.
+files1 = DataPointMapping.C
+# on the sun we do not really need any files here -- put sPrintF here just to avoid a null list
+#sun5 files1 = sPrintF.C
+#  -- gcc: OrthographicTransform generates seg faults when compiled with -O
+#g++ files1 = DataPointMapping.C OrthographicTransform.C
+
+Mapping1_date: $(files1)
+	 $(CC) $(CCFLAGSG) -c $?
+	  touch $@
+
+# Here are the files that Bill always likes to optimize -- 
+CCFLAGSOPT = $(CCFLAGSF)
+#sun5opt CCFLAGSOPT = $(CCFLAGS)
+filesOpt = stencilWalk.C Inverse.C NurbsMapping.C TrimmedMapping.C nurbsEvaluation.C \
+           dpmInverse.C dpmScalar.C dpmMap.C mappingUtil.C AnnulusMapping.C \
+           unstructuredProject.C compositeTopology.C findNearestGridPoint.C \
+           StretchMapping.C
+Mapping_Opt_date: ${filesOpt:.C=.o}
+	  touch $@
+stencilWalk.o          : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+Inverse.o              : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+NurbsMapping.o         : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+TrimmedMapping.o       : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+nurbsEvaluation.o      : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+dpmInverse.o           : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+dpmScalar.o            : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+dpmMap.o               : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+mappingUtil.o          : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+AnnulusMapping.o       : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+unstructuredProject.o  : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+compositeTopology.o    : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+findNearestGridPoint.o : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+StretchMapping.o       : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+
+
+
+NoOpt: $(filesOpt)
+	 $(CC) $(CCFLAGS) $(CC_SUN5_TEMPLATEFLAG) -c $?
+
+files2 = r1machc.c  plyfile.c
+Mapping2_date: ${files2:.c=.o}
+	  touch $@
+
+Mapping_date:Mapping1_date Mapping_Opt_date Mapping2_date $(Mapping)
+	  touch $@
+
+Source = $(Source1) $(files1) $(filesOpt) $(files2) $(HypeFiles)
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+
+# include the dependencies here
+include depend
+
+
+.PRECIOUS:Mapping_date depend_date
+

@@ -1,0 +1,25 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+# echo "...otherStuff/build..."
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set include = "$ovDir/include"
+set examples = "$ovDir/examples"
+set tests = "$ovDir/tests"
+
+echo "Copy perl files into the $ovDir directory..."
+
+
+
+
+cp {OvertureUtility,LineOut,Mapping,CylinderMapping,BoxMapping,SquareMapping,SmoothedPolygonMapping,AnnulusMapping,ReparameterizationTransform,StretchTransform,StandardBoundaryConditions}.pm    $include
+

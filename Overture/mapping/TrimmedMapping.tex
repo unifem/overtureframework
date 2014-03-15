@@ -1,0 +1,56 @@
+%--------------------------------------------------------------
+\section{TrimmedMapping: define a trimmed surface in 3D }
+\index{trimmed mapping}\index{Mapping!TrimmedMapping}\index{Nurbs!trimmed}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+  A trimmed surface consists of a standard (i.e. logically rectangular) mapping ("surface") 
+which has regions removed from it. The portions removed are defined by curves in the
+parameter space of the mapping. The IN-ACTIVE part of the trimmed surface is any point
+that is outside the outer boundary or inside any of the inner curves. Thus one inner
+curve cannot be inside another inner curve. None of the trimming curves are allowed
+to intersect each other.
+  
+Here is how you should evaluate a trimmed mapping (accessing the mask array to indicate
+whether the point is inside or outside):
+{\footnotesize
+\begin{verbatim}
+ TrimmedMapping trim;
+ ... assign the TrimmedMapping somehow ...
+ RealArray r(10,2), x(10,3), xr(10,3,2);
+ ... assign r ....
+ MappingParameters params;   // we need to pass this option argument to "map"         
+ trim.map(r,x,xr,params);
+ IntegerArray & mask = params.mask;  //  mask(i) = 0 if point is outside, =1 if inside
+ for( int i=0; i<9; i++; )
+ {
+   if( mask(i)==0 )
+     // point is outside, x(i,0:2) are the coordinates of the untrimmed surface at r(i,0:1)
+   else
+     // point is inside, x(i,0:2) are the coordinates of the trimmed surface at r(i,0:1)
+ }
+\end{verbatim}
+}
+
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=9cm]{\figures/trim1}
+    % \epsfig{file=\figures/trim1.ps,width=4in}
+  \caption{A trimmed mapping with an outer trimming curve and 2 inner trimming curves.
+     To plot the mapping we project points which are just outside the trimmed region onto the boundary}
+  \end{center}
+\label{fig:TrimmedMapping1}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=9cm]{\figures/trim2}
+    % \epsfig{file=\figures/trim2.ps,width=4in}
+  \caption{A trimmed mapping with an outer trimming curve and 1 inner trimming curve}
+  \end{center}
+\label{fig:TrimmedMapping2}
+\end{figure}
+
+%% \input TrimmedMappingInclude.tex

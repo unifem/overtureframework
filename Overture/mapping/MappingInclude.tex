@@ -1,0 +1,1429 @@
+\subsubsection{constructor}
+ 
+\newlength{\MappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\MappingIncludeArgIndent}{Mapping(}% 
+Mapping(int domainDimension\_  =3, \\ 
+\hspace{\MappingIncludeArgIndent}int rangeDimension\_  =3, \\ 
+\hspace{\MappingIncludeArgIndent}mappingSpace domainSpace\_  =parameterSpace,\\ 
+\hspace{\MappingIncludeArgIndent}mappingSpace rangeSpace\_  =cartesianSpace,\\ 
+\hspace{\MappingIncludeArgIndent}coordinateSystem domainCoordinateSystem\_  =cartesian,\\ 
+\hspace{\MappingIncludeArgIndent}coordinateSystem rangeCoordinateSystem\_  =cartesian)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Default Constructor.
+ 
+\item[{\bf domainDimension\_ (input):}]  
+\item[{\bf rangeDimension\_ (input):}] 
+\item[{\bf domainSpace\_ (input):}] 
+\item[{\bf rangeSpace\_ (input):}] 
+\item[{\bf domainCoordinateSystem\_ (input):}] 
+\item[{\bf rangeCoordinateSystem\_ (input):}] 
+\end{description}
+\subsubsection{openDebugFiles}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{openDebugFiles(}%
+openDebugFiles()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Open the Mapping debug files.
+\end{description}
+\subsubsection{closeDebugFiles}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{closeDebugFiles(}%
+closeDebugFiles()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Close the Mapping debug files.
+\end{description}
+\subsubsection{basicInverse}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{basicInverse(}%
+basicInverse(const realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& rx  =nullDistributedArray, \\ 
+MappingParameters \& params  =Overture::nullMappingParameters()) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    A derived class may optionally define this function it the class knows how
+  to rapidly compute the inverse of the mapping (by an analytic formula for example).
+\end{description}
+\subsubsection{epsilon}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\MappingIncludeArgIndent}{epsilon(}%
+epsilon()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the tolerance used by the Mappings.
+\end{description}
+\subsubsection{secondOrderDerivative}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{secondOrderDerivative(}%
+secondOrderDerivative(const Index \& I, \\ 
+\hspace{\MappingIncludeArgIndent}const realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& xrr, \\ 
+\hspace{\MappingIncludeArgIndent}const int axis,\\ 
+\hspace{\MappingIncludeArgIndent}const int \& rAxis )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  compute second derivatives of the mapping by finite differences
+\item[{\bf I (input) :}]  
+\item[{\bf r (input) :}]  evaulate at these points, r(I,0:domainDimension-1).
+\item[{\bf xrr (output):}] 
+\item[{\bf axis (input):}]  compute the derivative of x(axis,I)
+\item[{\bf rAxis (input):}]  compute the second derivative along the direction rAxis.
+\end{description}
+\subsubsection{display}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{display(}%
+display( const aString \& label ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Write the values of the Mapping parameters to standard output.
+ 
+\end{description}
+\subsubsection{getIndex}
+ 
+\begin{flushleft} \textbf{%
+Index  \\ 
+\settowidth{\MappingIncludeArgIndent}{getIndex(}%
+getIndex(const realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}const realArray \&xr,\\ 
+\hspace{\MappingIncludeArgIndent}int \& base0, \\ 
+\hspace{\MappingIncludeArgIndent}int \& bound0, \\ 
+\hspace{\MappingIncludeArgIndent}int \& computeMap0, \\ 
+\hspace{\MappingIncludeArgIndent}int \& computeMapDerivative0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return an Index operator for loops in the map and inverseMap functions
+  Also compute the members:
+\item[{\bf computeMapping :}]  TRUE or FALSE
+\item[{\bf computeMappingDerivative :}]  TRUE or FALSE
+\item[{\bf base :}]  base for Index
+\item[{\bf bound :}]  bound for the Index
+
+\item[{\bf NOTE:}]  do note make x "const" so we check that this routine is called
+       correctly from map and inverseMap
+\end{description}
+\subsubsection{get}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{get(}%
+get( const GenericDataBase \& dir, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get this object from a sub-directory called "name"
+\end{description}
+\subsubsection{getID}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getID(}%
+getID() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Get the current value for the Mapping identifier, a unique number to use when
+  saving the Mapping in a database file. This value is used to avoid having
+ multiple copies of a Mapping saved in a data base file.  
+\end{description}
+\subsubsection{setID}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setID(}%
+setID() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set a new value for the Mapping identifier, a unique number to use when
+  saving the Mapping in a database file. This value is used to avoid having
+ multiple copies of a Mapping saved in a data base file.  
+\end{description}
+\subsubsection{getBasicInverseOption}
+ 
+\begin{flushleft} \textbf{%
+basicInverseOptions  \\ 
+\settowidth{\MappingIncludeArgIndent}{getBasicInverseOption(}%
+getBasicInverseOption() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getBoundaryCondition}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getBoundaryCondition(}%
+getBoundaryCondition( const int side, const int axis ) const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the boundary condition code for a side of the mapping.
+   A positive value denotes a physical boundary, 0 an interpolation boundary
+   and a negative value a periodic direction.
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getBoundingBox}
+ 
+\begin{flushleft} \textbf{%
+RealArray  \\ 
+\settowidth{\MappingIncludeArgIndent}{getBoundingBox(}%
+getBoundingBox(const int \& side  = -1, \\ 
+\hspace{\MappingIncludeArgIndent}const int \& axis  = -1) const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the bounding box for the Mapping (if side<0 and axis<0) or the bounding
+   box for a particular side.
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getBoundingBox(indexRange,xBounds)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getBoundingBox(}%
+getBoundingBox( const IntegerArray \& indexRange, const IntegerArray \& gridIndexRange\_,\\ 
+\hspace{\MappingIncludeArgIndent}RealArray \& xBounds, bool local  = false) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the bounding box, xBounds, for the set of grid points spanned by 
+   indexRange. 
+
+\item[{\bf indexRange(0:}] 1,0:2) (input) : range of indicies, i\_m=indexRange(0,m),...,indexRange(1,m)
+\item[{\bf gridIndexRange\_(0:}] 1,0:2) (input) : Normally these should match the gridIndexRange of the Mapping.
+    This argument is used to double check that this is true.
+\item[{\bf xBounds(0:}] 1,0:2) : bounds
+\item[{\bf local (input) :}]  if local=true then only compute the min and max over points on this processor, otherwise
+                  compute the min and max over all points on all processors
+
+\item[{\bf Return values:}]  0=success, 1=indexRange values are invalid, 2=cannot compute bounds with local=true since
+   the indexRange values do not lie within the local array.
+\end{description}
+\subsubsection{getBoundingBox}
+ 
+\begin{flushleft} \textbf{%
+const BoundingBox \&     \\ 
+\settowidth{\MappingIncludeArgIndent}{getBoundingBoxTree(}%
+getBoundingBoxTree( const int \& side, \\ 
+\hspace{\MappingIncludeArgIndent}const int \& axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the BoundingBox (tree) for a side of a Mapping.
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getCoordinateEvaluationType}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getCoordinateEvaluationType(}%
+getCoordinateEvaluationType( const coordinateSystem type ) const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getDomainBound}
+ 
+\begin{flushleft} \textbf{%
+Bound  \\ 
+\settowidth{\MappingIncludeArgIndent}{getDomainBound(}%
+getDomainBound( const int side, const int axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getDomainCoordinateSystem}
+ 
+\begin{flushleft} \textbf{%
+coordinateSystem  \\ 
+\settowidth{\MappingIncludeArgIndent}{getDomainCoordinateSystem(}%
+getDomainCoordinateSystem() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getDomainCoordinateSystemBound}
+ 
+\begin{flushleft} \textbf{%
+Bound  \\ 
+\settowidth{\MappingIncludeArgIndent}{getDomainCoordinateSystemBound(}%
+getDomainCoordinateSystemBound( const int side, const int axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getDomainDimension}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getDomainDimension(}%
+getDomainDimension() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getDomainSpace}
+ 
+\begin{flushleft} \textbf{%
+mappingSpace  \\ 
+\settowidth{\MappingIncludeArgIndent}{getDomainSpace(}%
+getDomainSpace() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getGridDimensions}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getGridDimensions(}%
+getGridDimensions( const int axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf axis (input):}]  axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getGrid}
+ 
+\begin{flushleft} \textbf{%
+const realArray\&  \\ 
+\settowidth{\MappingIncludeArgIndent}{getGrid(}%
+getGrid(MappingParameters \& params  = nullMappingParameters(),\\ 
+\hspace{\MappingIncludeArgIndent}bool includeGhost  =false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return an array that holds the values of this Mapping evaluated on
+  an array of equally spaced points. Note that this array may or may not
+  contain ghost points. If $x$ denotes the array that is returned, then
+  the values that are guaranteed to be there are
+    \[
+         x(0:n_0,0:n_1,0:n_2,0:rangeDimension-1) 
+    \]
+   where $n_i = getGridDimensions(i)-1$. Thus the valid values will always start
+   with base 0 in the array. The array x may have ghost points in which case the
+   base will be less than $0$ and the bound greater than $n_i$.
+\item[{\bf Return value:}]  An array x 
+\item[{\bf Note:}]  For efficiency the array is returned by reference. Thus {\bf you should not
+    alter the array that is returned by this routine}.
+\end{description}
+\subsubsection{getGrid}
+ 
+\begin{flushleft} \textbf{%
+const RealArray\&  \\ 
+\settowidth{\MappingIncludeArgIndent}{getGridSerial(}%
+getGridSerial(MappingParameters \& params  = nullMappingParameters(),\\ 
+\hspace{\MappingIncludeArgIndent}bool includeGhost  =false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return an array that holds the values of this Mapping evaluated on
+  an array of equally spaced points. Note that this array may or may not
+  contain ghost points. If $x$ denotes the array that is returned, then
+  the values that are guaranteed to be there are
+    \[
+         x(0:n_0,0:n_1,0:n_2,0:rangeDimension-1) 
+    \]
+   where $n_i = getGridDimensions(i)-1$. Thus the valid values will always start
+   with base 0 in the array. The array x may have ghost points in which case the
+   base will be less than $0$ and the bound greater than $n_i$.
+\item[{\bf Return value:}]  An array x 
+\item[{\bf Note:}]  gridSerial is used for the parallel inverse. If the inverse is distributed then
+   gridSerial will equal the local-array-with-ghost-boundaries of grid. Otherwise grid-serial
+   will hold the entire grid on each processor. In a serial computation, gridSerial is the same as grid.
+\item[{\bf Note:}]  For efficiency the array is returned by reference. Thus {\bf you should not
+    alter the array that is returned by this routine}.
+\end{description}
+\subsubsection{setMinimumNumberOfDistributedGhostLines}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setMinimumNumberOfDistributedGhostLines(}%
+setMinimumNumberOfDistributedGhostLines( int numGhost )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ On Parallel machines always add at least this many parallel ghost lines on the grid array.
+\end{description}
+\subsection{setNumberOfGhostLines}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{setNumberOfGhostLines(}%
+setNumberOfGhostLines( IndexRangeType \& numberOfGhostLinesNew )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Specify the number of ghost lines.
+\item[{\bf numberOfGhostLinesNew(side,axis) :}]  specify the number of ghostlines.
+\end{description}
+\subsubsection{setNumberOfDistributedGhostLines}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setNumberOfDistributedGhostLines(}%
+setNumberOfDistributedGhostLines( int numGhost )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Specify the number of parallel ghost lines to use for this mapping (on the "grid" array)
+\end{description}
+\subsubsection{setGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setGrid(}%
+setGrid(realArray \& grid\_, IntegerArray \& gridIndexRange\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Provide the grid to be used for plotting and the inverse. The MappedGrid, for example,
+  can provide the vertex array to use and thus this array can be shared (to save space). 
+ 
+\item[{\bf grid\_ (input) :}]  grid points with optional ghost points.
+\item[{\bf gridIndexRange\_(0:}] 1,0:2) : grid index range -- this array indicates the index values
+   in the array grid that corresponding to the domai boundaries. Values outside of these
+ index bounds are this ghost points. For now gridIndexRange\_(0,0:2) should always be zero.
+ 
+\end{description}
+\subsubsection{getInvertible}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getInvertible(}%
+getInvertible() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getIsPeriodic}
+ 
+\begin{flushleft} \textbf{%
+periodicType  \\ 
+\settowidth{\MappingIncludeArgIndent}{getIsPeriodic(}%
+getIsPeriodic( const int axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf axis (input):}]  axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getMappingCoordinateSystem}
+ 
+\begin{flushleft} \textbf{%
+mappingCoordinateSystem  \\ 
+\settowidth{\MappingIncludeArgIndent}{getMappingCoordinateSystem(}%
+getMappingCoordinateSystem() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getName}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\MappingIncludeArgIndent}{getName(}%
+getName( const mappingItemName item ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return a name from enum mappingItemName:
+  \begin{description}
+    \item[mappingName] : mapping name
+    \item[domainName] : domain name
+    \item[rangeName] :
+    \item[domainAxis1Name] : names for coordinate axes in domain
+    \item[domainAxis2Name] : 
+    \item[domainAxis3Name] : 
+    \item[rangeAxis1Name] : names for coordinate axes in range
+    \item[rangeAxis2Name] : 
+    \item[rangeAxis3Name] :
+  \end{description}
+\item[{\bf item (input):}]  return the name of this item.
+\end{description}
+\subsubsection{getParameter}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\MappingIncludeArgIndent}{getParameter(}%
+getParameter( const  realParameter \& param ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the value of a parameter used by the Mapping or the ApproximateGlobalInverse or the ExactLocalInverse.
+ 
+ \begin{description}
+  \item[THEnonConvergenceValue] : value given to "r" value of the inverse when there is no convergence. This is
+              currently equal to 10. and cannot be changed.
+  \item[THEnewtonToleranceFactor] : convergence tolerance is this times the machine epsilon. Default=100. ?
+  \item[THEnewtonDivergenceValue] : newton is deemed to have diverged if the r value is this much outside [0,1].
+      The default value is .1 and so Newton is deemed to have diverged when the r value is outside the range 
+      [-.1,1.1]
+  \item[THEnewtonL2Factor] : extra factor for finding the closest point to a curve or surface, default=.1.
+          This factor allows a less strict convergence factor if the target point is far from the mapping.
+          Decrease this value if you want a more accurate answer. You may also have to decrease this value
+          for mappings that have poor parameterizations. 
+  \item[THEboundingBoxExtensionFactor] : relative amount to increase the bounding box each direction. The bounding
+     box can be increased in size to allow the inverse function to still converge for nearby points. The default
+     value is $.01$. ***Actually*** only the bounding boxes for the highest leaves in the bounding box tree
+     are extended by this factor. The bounding boxes for all other nodes (and the root) are just computed
+     from the size of the bounding boxes of the two leaves of the node.
+  \item[THEstencilWalkBoundingBoxExtensionFactor] : The stencil walk routine that finds the closest point
+     before inversion by Newton's method will only find the closest point if the point lies in a box
+     that is equal to the bounding box extended by this factor in each direction. Default =.2
+ \end{description}
+
+\end{description}
+\subsubsection{getParameter(int)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getParameter(}%
+getParameter( const  intParameter \& param ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the value of a parameter used by the Mapping or the ApproximateGlobalInverse or the ExactLocalInverse.
+ 
+ \begin{description}
+  \item[THEfindBestGuess] : if true, always find the closest point, even if the point to be inverted
+    is outside the bounding box. Default value is false.
+ \end{description}
+
+ 
+\end{description}
+\subsubsection{getPeriodVector}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\MappingIncludeArgIndent}{getPeriodVector(}%
+getPeriodVector(const int axis, const int direction ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  For a mapping with getIsPeriodic(direction)==derivativePeriodic this routine returns
+ the vector that determines the shift from the `left' edge to the `right' edge.
+\item[{\bf axis (input):}]  axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<rangeDimension$, 
+     are the components of the vector.
+\item[{\bf direction (input) :}]  direction =0,1,...,domainDimension
+\end{description}
+\subsubsection{getRangeBound}
+ 
+\begin{flushleft} \textbf{%
+Bound  \\ 
+\settowidth{\MappingIncludeArgIndent}{getRangeBound(}%
+getRangeBound( const int side, const int axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getRangeCoordinateSystem}
+ 
+\begin{flushleft} \textbf{%
+coordinateSystem  \\ 
+\settowidth{\MappingIncludeArgIndent}{getRangeCoordinateSystem(}%
+getRangeCoordinateSystem() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getRangeCoordinateSystemBound}
+ 
+\begin{flushleft} \textbf{%
+Bound  \\ 
+\settowidth{\MappingIncludeArgIndent}{getRangeCoordinateSystemBound(}%
+getRangeCoordinateSystemBound( const int side, const int axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getRangeDimension}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getRangeDimension(}%
+getRangeDimension() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getRangeSpace}
+ 
+\begin{flushleft} \textbf{%
+mappingSpace  \\ 
+\settowidth{\MappingIncludeArgIndent}{getRangeSpace(}%
+getRangeSpace() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{getShare}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getShare(}%
+getShare( const int side, const int axis ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getShare}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\MappingIncludeArgIndent}{getSignForJacobian(}%
+getSignForJacobian() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the sign of the jacobian, 1 (right handed coordinate system) or -1 (left handed).
+  This may only make sense for some mappings.
+\end{description}
+\subsubsection{getTypeOfCoordinateSingularity}
+ 
+\begin{flushleft} \textbf{%
+coordinateSingularity  \\ 
+\settowidth{\MappingIncludeArgIndent}{getTypeOfCoordinateSingularity(}%
+getTypeOfCoordinateSingularity( const int side, const int axis  ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{hasACoordinateSingularity}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{hasACoordinateSingularity(}%
+hasACoordinateSingularity() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  return true if the Mapping has a coordinate singularity
+\end{description}
+\subsubsection{intersects}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{intersects(}%
+intersects(Mapping \& map2, \\ 
+\hspace{\MappingIncludeArgIndent}const int \& side1  =-1, \\ 
+\hspace{\MappingIncludeArgIndent}const int \& axis1  =-1,\\ 
+\hspace{\MappingIncludeArgIndent}const int \& side2  =-1, \\ 
+\hspace{\MappingIncludeArgIndent}const int \& axis2  =-1,\\ 
+\hspace{\MappingIncludeArgIndent}const real \& tol  = 0.) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Determine one mapping (or a face of the mapping) intersects another mapping (or the face of another
+     mapping.
+
+\item[{\bf map2 (input):}]   check intersect with this Mapping.
+\item[{\bf side1,axis1 (input):}]  Check this face of this mapping (by default check all faces).
+\item[{\bf side2,axis2 (input):}]  Check this face of map2 (by default check all faces).
+\item[{\bf tol (input) :}]  increase the the size of the bounding boxes by tol*(box size) when determining 
+   whether the mappings intersect. Thus choosing a value of $.1$ will cause the Mappings
+    to intersect provided they are close to each other while a value of -.1 will cause the
+    mappings to intersect only if they overlap sufficiently.
+ Return value : TRUE if the face (side,axis) of map intersects this mapping.
+\end{description}
+\subsubsection{inverseMap}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{inverseMap(}%
+inverseMap(const realArray \& x\_, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& r\_, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& rx\_  =nullDistributedArray,\\ 
+MappingParameters \& params   =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  --- Here is the generic inverse ----
+
+\item[{\bf x (input) :}]  invert these points. The dimensions of this array will determine which
+     points are inverted.
+\item[{\bf r (input/output) :}]  On input this is an initial guess. If you know a reasonable initial
+   guess then supply it, If you don't know an initial guess
+    then set r=-1. for those points that you do not know a guess. If you do not know a guess
+     then do NOT specify some valid value like .5 since this will probably be slower than allowing
+     the value to be automatically generated.
+\item[{\bf rx (output):}]  the derivatives of the inverse mapping.
+\item[{\bf params (input) :}] 
+   \begin{description}
+     \item[params.computeGlobalInverse] : TRUE means compute a full global inverse,
+       FALSE means only compute a local inverse using the initial guess supplied in r
+     \item[params.periodicityOfSpace] : 
+     \item[params.periodVector] : 
+   \end{description}
+\end{description}
+\subsubsection{inverseMapC}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{inverseMapC(}%
+inverseMapC(const realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}const realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}const realArray \& rx  =nullDistributedArray, \\ 
+MappingParameters \& params  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   This version of inverseMap defines x and xr to be const (even though they really aren't).
+  It can be used for some compilers (IBM:xlC) that don't like passing
+   views of arrays to non-const references, as in mapping.inverseMapC(r(I),x(I),xr(I))
+\end{description}
+\subsubsection{inverseMapGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{inverseMapGrid(}%
+inverseMapGrid(const realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& rx  =nullDistributedArray,\\ 
+MappingParameters \& params  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  inverseMap a grid of points.
+ 
+ This version of inverseMap assumes that the input array is of the form of a grid of points:
+ \begin{verbatim}
+   if rangeDimension==1 then x can be of the form
+        x(a1:a2,0:d-1)             
+        x(a1:a2,0:0,0:d-1)        
+        x(a1:a2,0:0,0:0,0:d-1)   
+   if rangeDimension==2 then x can be of the form
+        x(a1:a2,b1:b2,0:d-1)             
+        x(a1:a2,b1:b2,0:0,0:d-1)      
+   if rangeDimension==3 then x can be of the form
+        x(a1:a2,b1:b2,c1:c2,0:d-1)      
+
+ \end{verbatim}
+ The output is in a similar form
+
+\item[{\bf x (input) :}]  evaluate the inverse mapping at these points, where
+\item[{\bf r  (input/output) :}]  if r has enough space, then compute the inverse mapping. You must supply an initial guess.
+       Choose r=-1. if you don't know a good guess. 
+\item[{\bf rx (output) :}]  if rx has enough space, then  compute the derivatives of the inverse mapping.
+\item[{\bf params (input/output) :}]  holds parameters for the mapping.
+\end{description}
+\subsubsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{map(}%
+map(const realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& xr  =nullDistributedArray,\\ 
+MappingParameters \& params  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Here is the transformation that defines the mapping.
+
+\item[{\bf r (input):}]  r(base:bound,0:d) - evaluate the mapping at these points, where
+       d=domainDimension-1
+\item[{\bf x (output) :}]  - if x has enough space, x(base:bound,0:r), then compute
+       the mapping. Here r=rangeDimension-1. Do not compute the mapping 
+       if x is not large enough
+\item[{\bf xr (output) :}]  - if xr has enough space, xr(base:bound,0:r,0:d), then
+       compute the derivatives of the mapping.
+\item[{\bf params (input):}]  - holds parameters for the mapping.
+\end{description}
+\subsubsection{mapC}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{mapC(}%
+mapC(const realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}const realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}const realArray \&xr  =nullDistributedArray, \\ 
+MappingParameters \& params  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   This version of map defines x and xr to be const (even though they really aren't).
+  It can be used for some compilers (IBM:xlC) that don't like passing
+   views of arrays to non-const references, as in mapping.mapC(r(I),x(I),xr(I))
+\end{description}
+\subsubsection{mapGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{mapGrid(}%
+mapGrid(const realArray \& r, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}realArray \& xr  =nullDistributedArray,\\ 
+MappingParameters \& params  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Map a grid of points.
+ 
+ This version of map assumes that the input array is of the form of a grid of points:
+ \begin{verbatim}
+   if domainDimension==1 then r can be of the form
+        r(a1:a2,0:d-1)             
+        r(a1:a2,0:0,0:d-1)        
+        r(a1:a2,0:0,0:0,0:d-1)   
+   if domainDimension==2 then r can be of the form
+        r(a1:a2,b1:b2,0:d-1)             
+        r(a1:a2,b1:b2,0:0,0:d-1)      
+   if domainDimension==3 then r can be of the form
+        r(a1:a2,b1:b2,c1:c2,0:d-1)      
+
+ \end{verbatim}
+ The output is in a similar form
+
+\item[{\bf r (input) :}]  evaluate the mapping at these points, where
+\item[{\bf x  (output) :}]  if x has enough space, then compute the mapping. 
+\item[{\bf xr (output) :}]  if xr has enough space, then  compute the derivatives of the mapping.
+\item[{\bf params (input/output) :}]  holds parameters for the mapping.
+\end{description}
+\subsubsection{mappingHasChanged}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{mappingHasChanged(}%
+mappingHasChanged()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  protected
+\item[{\bf Description:}] 
+    Call this function when the mapping has changed 
+\end{description}
+\subsubsection{gridIsValid}
+ 
+\begin{flushleft} \textbf{%
+bool   \\ 
+\settowidth{\MappingIncludeArgIndent}{gridIsValid(}%
+gridIsValid() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return true if remakeGrid=false
+\end{description}
+\subsubsection{setGridIsValid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setGridIsValid(}%
+setGridIsValid() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Indicate that the grid is valid.
+\end{description}
+\subsubsection{periodicShift}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{periodicShift(}%
+periodicShift( realArray \& r, const Index \& I )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Shift r into the interval [0.,1] if the mapping is periodic (derivative or function)
+\end{description}
+\subsection{project}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\MappingIncludeArgIndent}{project(}%
+project( realArray \& x, \\ 
+\hspace{\MappingIncludeArgIndent}MappingProjectionParameters \& mpParams )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Project the points x(i,0:2) onto the Mapping. This is normally used
+ to project points onto a curve in 2D or surface in 3D (i.e. domainDimension=rangeDimension-1,
+    aka a hyperspace of co-dimension 1).
+
+\item[{\bf x (input) :}]  project these points.
+\item[{\bf mpParams (input) :}]  This class holds parameters used by the projection algorithm.
+    
+\item[{\bf Notes:}] 
+ The inverse unit square coordinates will be held in the array mpParams.getRealArray(r). If you 
+  have a good guess for these values then you should supply this array.
+
+ If you want the derivatives you should dimension mpParams.getRealArray(xr) to be big enough
+ and then they will be computed.
+
+\item[{\bf Note:}]  If you want the normal (or tangent to a curve) you should dimension mpParams.getRealArray(normal) 
+ to be big enough. For curves (domainDimension==1) the normal is actually the tangent to the curve.
+ Otherwise the normal will only make sense if the Mapping is a curve in 2D or a surface in 3D, i.e.
+ domainDimension=rangeDimension-1.
+\end{description}
+\subsubsection{put}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\MappingIncludeArgIndent}{put(}%
+put( GenericDataBase \& dir, const aString \& name) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ save this object to a sub-directory called "name"
+\end{description}
+\subsubsection{getGridIndexRange}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getGridIndexRange(}%
+getGridIndexRange(int side, int axis )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Get the number of getGridIndexRange
+\end{description}
+\subsubsection{setGridIndexRange}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setGridIndexRange(}%
+setGridIndexRange(int side, int axis, int num )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Set the getGridIndexRange
+\end{description}
+\subsubsection{getNumberOfGhostPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{getNumberOfGhostPoints(}%
+getNumberOfGhostPoints(int side, int axis )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Get the number of ghost points to use on the grid associated with the mapping.
+\end{description}
+\subsubsection{setNumberOfGhostPoints}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setNumberOfGhostPoints(}%
+setNumberOfGhostPoints(int side, int axis, int numGhost )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Set the number of ghost points to use on the grid associated with the mapping.
+\end{description}
+\subsubsection{reinitialize}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{reinitialize(}%
+reinitialize()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Re-initialize a mapping that has changed (this will re-initialize the inverse)
+\end{description}
+\subsubsection{setName}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setName(}%
+setName( const mappingItemName item, const aString \& itemName )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Assign a name from enum mappingItemName:
+  \begin{description}
+    \item[mappingName] : mapping name
+    \item[domainName] : domain name
+    \item[rangeName] :
+    \item[domainAxis1Name] : names for coordinate axes in domain
+    \item[domainAxis2Name] : 
+    \item[domainAxis3Name] : 
+    \item[rangeAxis1Name] : names for coordinate axes in range
+    \item[rangeAxis2Name] : 
+    \item[rangeAxis3Name] :
+  \end{description}
+\item[{\bf item (input):}]  assign this item.
+\item[{\bf itemName (input) :}]  name to give the item.
+\end{description}
+\subsubsection{setCoordinateEvaluationType}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setCoordinateEvaluationType(}%
+setCoordinateEvaluationType( const coordinateSystem type, const int trueOrFalse )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setTypeOfCoordinateSingularity}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setTypeOfCoordinateSingularity(}%
+setTypeOfCoordinateSingularity( const int side, const int axis, \\ 
+\hspace{\MappingIncludeArgIndent}const coordinateSingularity type )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{topologyMask}
+ 
+\begin{flushleft} \textbf{%
+intArray \&  \\ 
+\settowidth{\MappingIncludeArgIndent}{topologyMask(}%
+topologyMask()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return the mask that represents a partial periodicity, such as a C-grid.
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getTopology}
+ 
+\begin{flushleft} \textbf{%
+topologyEnum  \\ 
+\settowidth{\MappingIncludeArgIndent}{getTopology(}%
+getTopology( const int side, const int axis) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return the topology. This is primarily used to represent C-grids.
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{setTopology}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setTopology(}%
+setTopology( const int side, const int axis, const topologyEnum topo )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Specify the topology. This is primarily used to represent C-grids.
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{setDomainDimension}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setDomainDimension(}%
+setDomainDimension( const int domainDimension0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setRangeDimension}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setRangeDimension(}%
+setRangeDimension( const int rangeDimension0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setBasicInverseOption}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setBasicInverseOption(}%
+setBasicInverseOption( const basicInverseOptions option )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setBoundaryCondition}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setBoundaryCondition(}%
+setBoundaryCondition( const int side, const int axis, const int bc0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{setShare}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setShare(}%
+setShare( const int side, const int axis, const int share0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{getShare}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setSignForJacobian(}%
+setSignForJacobian( const real signForJac )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the sign of the jacobian, 1 (right handed coordinate system) or -1 (left handed).
+  This may only make sense for some mappings.
+\item[{\bf signForJac (input) :}]  should be 1. or -1.
+\end{description}
+\subsubsection{setMappingCoordinateSystem}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setMappingCoordinateSystem(}%
+setMappingCoordinateSystem( const mappingCoordinateSystem mappingCoordinateSystem1 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setIsPeriodic}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setIsPeriodic(}%
+setIsPeriodic( const int axis, const periodicType isPeriodic0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf axis (input):}]  axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\item[{\bf Notes:}] 
+    This routine has some side effects. It will change the boundaryConditions to be consistent
+  with the periodicity (if necessary).
+\end{description}
+\subsubsection{setGridDimensions}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setGridDimensions(}%
+setGridDimensions( const int axis, const int dim )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf axis (input):}]  axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{setInvertible}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setInvertible(}%
+setInvertible( const int invertible0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setParameter(real)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setParameter(}%
+setParameter( const  realParameter \& param, const real \& value ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the value of a parameter used by the Mapping or the ApproximateGlobalInverse or the ExactLocalInverse.
+ 
+ \begin{description}
+  \item[THEnonConvergenceValue] : value given to "r" value of the inverse when there is no convergence. This is
+              currently equal to 10. and cannot be changed.
+  \item[THEnewtonToleranceFactor] : convergence tolerance is this times the machine epsilon. Default=100. ?
+  \item[THEnewtonDivergenceValue] : newton is deemed to have diverged if the r value is this much outside [0,1].
+      The default value is .1 and so Newton is deemed to have diverged when the r value is outside the range 
+      [-.1,1.1]
+  \item[THEnewtonL2Factor] : extra factor for finding the closest point to a curve or surface, default=.1.
+          This factor allows a less strict convergence factor if the target point is far from the mapping.
+          Decrease this value if you want a more accurate answer. You may also have to decrease this value
+          for mappings that have poor parameterizations. 
+  \item[THEboundingBoxExtensionFactor] : relative amount to increase the bounding box each direction. The bounding
+     box can be increased in size to allow the inverse function to still converge for nearby points. The default
+     value is $.01$. ***Actually*** only the bounding boxes for the highest leaves in the bounding box tree
+     are extended by this factor. The bounding boxes for all other nodes (and the root) are just computed
+     from the size of the bounding boxes of the two leaves of the node.
+  \item[THEstencilWalkBoundingBoxExtensionFactor] : The stencil walk routine that finds the closest point
+     before inversion by Newton's method will only find the closest point if the point lies in a box
+     that is equal to the bounding box extended by this factor in each direction. Default =.2
+ \end{description}
+
+ 
+\end{description}
+\subsubsection{setParameter(int)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setParameter(}%
+setParameter( const  intParameter \& param, const int \& value ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the value of a parameter used by the Mapping or the ApproximateGlobalInverse or the ExactLocalInverse.
+ 
+ \begin{description}
+  \item[THEfindBestGuess] : if true, always find the closest point, even if the point to be inverted
+    is outside the bounding box. Default value is false.
+ \end{description}
+
+ 
+\end{description}
+\subsubsection{setPeriodVector}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setPeriodVector(}%
+setPeriodVector( const int axis, const int direction, const real periodVectorComponent  )
+}\end{flushleft}
+  For a mapping with getIsPeriodic(direction)==derivativePeriodic this routine sets
+ the vector that determines the shift from the `left' edge to the `right' edge.
+\begin{description}
+\item[{\bf axis (input):}]  axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<rangeDimension$
+      are the components of the vector 
+\item[{\bf direction (input) :}]  direction =0,1,...,domainDimension
+\end{description}
+\subsubsection{setParition}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setPartition(}%
+setPartition( Partitioning\_Type \& partition\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Supply a parallel partition to use when building the "grid" array
+\end{description}
+\subsubsection{setDomainSpace}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setDomainSpace(}%
+setDomainSpace( const mappingSpace domainSpace0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setRangeSpace}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setRangeSpace(}%
+setRangeSpace( const mappingSpace rangeSpace0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setDomainCoordinateSystem}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setDomainCoordinateSystem(}%
+setDomainCoordinateSystem( const coordinateSystem domainCoordinateSystem0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setRangeCoordinateSystem}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setRangeCoordinateSystem(}%
+setRangeCoordinateSystem( const coordinateSystem rangeCoordinateSystem0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsubsection{setDomainBound}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setDomainBound(}%
+setDomainBound( const int side, const int axis, const Bound domainBound0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{setRangeBound}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setRangeBound(}%
+setRangeBound( const int side, const int axis, const Bound rangeBound0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{setDomainCoordinateSystemBound}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setDomainCoordinateSystemBound(}%
+setDomainCoordinateSystemBound(const int side, \\ 
+\hspace{\MappingIncludeArgIndent}const int axis, \\ 
+\hspace{\MappingIncludeArgIndent}const Bound domainCoordinateSystemBound0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{setRangeCoordinateSystemBound}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{setRangeCoordinateSystemBound(}%
+setRangeCoordinateSystemBound(const int side, \\ 
+\hspace{\MappingIncludeArgIndent}const int axis, \\ 
+\hspace{\MappingIncludeArgIndent}const Bound rangeCoordinateSystemBound0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf side, axis (input):}]  indicates the side of the mapping, side=(0,1) (or side=(Start,End)) 
+     and axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\end{description}
+\subsubsection{useRobustInverse}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MappingIncludeArgIndent}{useRobustInverse(}%
+useRobustInverse(const bool trueOrFalse  =TRUE)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use the robust form of the inverse.
+\end{description}
+\subsubsection{usesDistributedInverse}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\MappingIncludeArgIndent}{usesDistributedInverse(}%
+usesDistributedInverse() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Indicate whether in parallel this Mapping uses the distributed array, grid, for the inverse
+  or whether the Mapping uses the serial array, gridSerial, (duplicated across all processors) for the inverse.
+  If true, then the inverseMap function is a distributed (i.e. collective) parallel operation.
+ 
+  Normally only Mapping's with a small amount of data would duplicate the grid across all processors. 
+ 
+\item[{\bf Return value:}] 
+   If true, then the inverseMap function is a distributed (collective) operation.
+   The Mapping uses the distributed parallel array, grid, for the inverse.
+   In this case, the array gridSerial points to the local array with ghost boundaries of grid.
+ 
+
+   If false then the inverseMap function is a serial (non-collective) operation with no communication. 
+   The Mapping uses the serial array, gridSerial, for the inverse and this
+   grid is duplicated across all processors. In this case the array, grid, will remain empty.
+ 
+\end{description}
+\subsubsection{usesDistributedMap}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\MappingIncludeArgIndent}{usesDistributedMap(}%
+usesDistributedMap() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Indicate whether in parallel the map function is a distributed (i.e. collective)
+   parallel operation.
+ 
+  Most Mapping's the map function is NOT distributed. The DataPointMapping, however, will normally
+ use a distributed map function since the data-points that define the mapping are usually stored
+ in a distributed array.
+ 
+\item[{\bf Return value:}] 
+   If true, then the map function is a distributed (collective) operation.
+   If false, then the map function can be evaluated with no communication. 
+ 
+\end{description}
+\subsubsection{sizeOf}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\MappingIncludeArgIndent}{sizeOf(}%
+sizeOf(FILE *file  = NULL) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return size of this object  
+\end{description}
+\subsubsection{update}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\MappingIncludeArgIndent}{updateWithCommand(}%
+updateWithCommand(MappingInformation \&mapInfo, const aString \& command) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Update one of the parameters common to all Mappings. This function is usually called by the update
+ function for the derived class. 
+\item[{\bf returns :}]  true if the command was understood, false otherwise
+\end{description}
+\subsubsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Update parameters common to all Mappings. This function is usually called by the update
+ function for the derived class. 
+\end{description}
+\subsubsection{interactiveUpdate}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\MappingIncludeArgIndent}{interactiveUpdate(}%
+interactiveUpdate( GenericGraphicsInterface \& gi )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Update Mapping parameters. This virtual function will call the update function for the
+ derived Mapping. Use this function if you don't need to pass other Mapping information.
+\item[{\bf gi (input) :}]  use this graphics interface.
+\end{description}

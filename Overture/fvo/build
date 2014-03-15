@@ -1,0 +1,41 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set fvo = $ovDir/FiniteVolumeOperators
+set include = $ovDir/include
+
+
+cp {Display}.C $ovDir/otherStuff
+
+cp {CompositeGridFiniteVolumeOperators,GridCollectionFiniteVolumeOperators}.C        $fvo
+cp {MappedGridFiniteVolumeOperators,Projection,setEllipticSolverParameter}.C $fvo
+cp {makeDebugPlots,testUtils,TwilightZoneWizard,getDefaultIndex,createGeometry}.C    $fvo
+cp {average,differences,contravariantVelocity,cellsToFaces,divergence,gradient}.C    $fvo
+cp {convectiveDerivative,vorticity,laplacianCoeff,laplacian,inputErrorHandling,boundaryConditions}.C $fvo
+cp {boundaryConditionCoefficients,derivatives,derivativeCoefficients,inputErrorHandling}.C $fvo
+cp {defaultMappedGridFunctions}.C   $fvo
+
+cp {project,applyVelocityBoundaryConditions,formLaplacianCoefficients,applyRightHandSideBoundaryConditions}.C $fvo
+cp {associateCMPGRDBC,oldBoundaryConditions}.C $fvo
+
+cp {GenericGridMotion,MatrixTransformGridMotion,GenericGridMotionParameters}.C $fvo
+cp {DynamicMovingGrids,MatrixTransformMotionFunction,MatrixTransformGridMotionParameters}.C $fvo
+
+cp {GridCollectionFiniteVolumeOperators,MappedGridFiniteVolumeOperators,laplacian}.h $include
+cp {Projection,Display,DynamicMovingGrids,CompositeGridFiniteVolumeOperators}.h      $include
+cp {MatrixTransformMotionFunction,MatrixTransformGridMotionParameters}.h $include
+cp {GenericGridMotionParameters,GenericGridMotion,MatrixTransformGridMotion}.h       $include
+cp {MatrixTransformGridMotionParameters,billsMergeMacro,TwilightZoneWizard,makeDebugPlots}.h    $include
+cp {davidsReal,axisDefs,loops,OgesEnums,testUtils}.h                                 $include
+
+echo "done"

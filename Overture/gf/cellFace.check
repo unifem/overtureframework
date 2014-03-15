@@ -1,0 +1,277 @@
+A++ Internal_Index bounds checking: ON 
+Usage: `cellFace [<gridName>]' 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/square5CC ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=square5CC
+
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+realMappedGridFunction ua(mg,realCompositeGridFunction::faceCenteredAxis2,0:1,1:1);
+indexRange
+    (   0) (   1) 
+(0)      0      4 
+(1)      0      4 
+(2)      0      0 
+gridIndexRange
+    (   0) (   1) 
+(0)      0      5 
+(1)      0      5 
+(2)      0      0 
+ua.isCellCentered
+    (   0) (   1) (   2) 
+(0)      1      0      0 
+(1)      1      0      0 
+getBoundaryIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,5) 
+getGhostIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,5) 
+getBoundaryIndex: (side,axis)=(1,0) I1=(4,4), I2=(0,5) 
+getGhostIndex: (side,axis)=(1,0) I1=(4,4), I2=(0,5) 
+getBoundaryIndex: (side,axis)=(0,1) I1=(0,4), I2=(0,0) 
+getGhostIndex: (side,axis)=(0,1) I1=(0,4), I2=(0,0) 
+getBoundaryIndex: (side,axis)=(1,1) I1=(0,4), I2=(5,5) 
+getGhostIndex: (side,axis)=(1,1) I1=(0,4), I2=(5,5) 
+ub=ua;
+realMappedGridFunction uc; uc.updateToMatchGrid(mg,GridFunctionParameters::faceCenteredAxis1) 
+realMappedGridFunction u(mg,all,all,all,Range(0,1)); 
+u.setFaceCentering(axis1); 
+u.isCellCentered
+    (   0) (   1) (   2) 
+(0)      0      1      0 
+(1)      0      1      0 
+getBoundaryIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,4) 
+getGhostIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,4) 
+getBoundaryIndex: (side,axis)=(1,0) I1=(5,5), I2=(0,4) 
+getGhostIndex: (side,axis)=(1,0) I1=(5,5), I2=(0,4) 
+getBoundaryIndex: (side,axis)=(0,1) I1=(0,5), I2=(0,0) 
+getGhostIndex: (side,axis)=(0,1) I1=(0,5), I2=(0,0) 
+getBoundaryIndex: (side,axis)=(1,1) I1=(0,5), I2=(4,4) 
+getGhostIndex: (side,axis)=(1,1) I1=(0,5), I2=(4,4) 
+u.updateToMatchGrid(Range(0,2),all,all,all); 
+u.setFaceCentering(axis2); 
+Here is u.isCellCentered
+    (   0) (   1) (   2) 
+(0)      1      0      0 
+(1)      1      0      0 
+(2)      1      0      0 
+realMappedGridFunction u2(mg,all,all,all,Range(0,1),faceRange); 
+faceCenteredAll: getIndex(u,0,...) I1=(0,5), I2=(0,4), I3=(0,0) 
+faceCenteredAll: getIndex(u,1,...) I1=(0,4), I2=(0,5), I3=(0,0) 
+Face centering for u3=u2: 
+u2.updateToMatchGrid(mg,all,all,all,faceRange,Range(0,0),Range(0,2)); 
+
+========= test CompositeGridFunctions ========== 
+realCompositeGridFunction v(og,all,all,all,Range(0,1)); 
+v.setFaceCentering(axis1); 
+v.updateToMatchGrid(Range(0,2),all,all,all); 
+v.setFaceCentering(axis2); 
+realCompositeGridFunction v2(og,all,all,all,Range(0,1),faceRange); 
+v2.updateToMatchGrid(og,all,all,all,faceRange,Range(0,0),Range(0,2)); 
+*** Here is face centering for v3=v2
+
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+realCompositeGridFunction u5(og,GridFunctionParameters::faceCenteredAll,2);
+here is isCellCentered
+-------------------axis 2 = 0------------------------ 
+    (   0) (   1) (   2) 
+(0)      0      1      0 
+(1)      0      1      0 
+-------------------axis 2 = 1------------------------ 
+    (   0) (   1) (   2) 
+(0)      1      0      0 
+(1)      1      0      0 
+u5Link.link(u5,Range(0,0));
+realCompositeGridFunction u6(og,GridFunctionParameters::faceCenteredAxis2,1,2); 
+realCompositeGridFunction u7(og,cellCentered,Range(0,0)); 
+u7.updateToMatchGrid(og,GridFunctionParameters::faceCenteredAll); 
+realCompositeGridFunction u8(og,3) 
+realCompositeGridFunction u9 = u8; 
+realCompositeGridFunction u14.updateToMatchGrid(og,all,all,all); 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/cicCC ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cicCC
+
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+realMappedGridFunction ua(mg,realCompositeGridFunction::faceCenteredAxis2,0:1,1:1);
+indexRange
+    (   0) (   1) 
+(0)      0     30 
+(1)      0     30 
+(2)      0      0 
+gridIndexRange
+    (   0) (   1) 
+(0)      0     31 
+(1)      0     31 
+(2)      0      0 
+ua.isCellCentered
+    (   0) (   1) (   2) 
+(0)      1      0      0 
+(1)      1      0      0 
+getBoundaryIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,31) 
+getGhostIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,31) 
+getBoundaryIndex: (side,axis)=(1,0) I1=(30,30), I2=(0,31) 
+getGhostIndex: (side,axis)=(1,0) I1=(30,30), I2=(0,31) 
+getBoundaryIndex: (side,axis)=(0,1) I1=(0,30), I2=(0,0) 
+getGhostIndex: (side,axis)=(0,1) I1=(0,30), I2=(0,0) 
+getBoundaryIndex: (side,axis)=(1,1) I1=(0,30), I2=(31,31) 
+getGhostIndex: (side,axis)=(1,1) I1=(0,30), I2=(31,31) 
+ub=ua;
+realMappedGridFunction uc; uc.updateToMatchGrid(mg,GridFunctionParameters::faceCenteredAxis1) 
+realMappedGridFunction u(mg,all,all,all,Range(0,1)); 
+u.setFaceCentering(axis1); 
+u.isCellCentered
+    (   0) (   1) (   2) 
+(0)      0      1      0 
+(1)      0      1      0 
+getBoundaryIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,30) 
+getGhostIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,30) 
+getBoundaryIndex: (side,axis)=(1,0) I1=(31,31), I2=(0,30) 
+getGhostIndex: (side,axis)=(1,0) I1=(31,31), I2=(0,30) 
+getBoundaryIndex: (side,axis)=(0,1) I1=(0,31), I2=(0,0) 
+getGhostIndex: (side,axis)=(0,1) I1=(0,31), I2=(0,0) 
+getBoundaryIndex: (side,axis)=(1,1) I1=(0,31), I2=(30,30) 
+getGhostIndex: (side,axis)=(1,1) I1=(0,31), I2=(30,30) 
+u.updateToMatchGrid(Range(0,2),all,all,all); 
+u.setFaceCentering(axis2); 
+Here is u.isCellCentered
+    (   0) (   1) (   2) 
+(0)      1      0      0 
+(1)      1      0      0 
+(2)      1      0      0 
+realMappedGridFunction u2(mg,all,all,all,Range(0,1),faceRange); 
+faceCenteredAll: getIndex(u,0,...) I1=(0,31), I2=(0,30), I3=(0,0) 
+faceCenteredAll: getIndex(u,1,...) I1=(0,30), I2=(0,31), I3=(0,0) 
+Face centering for u3=u2: 
+u2.updateToMatchGrid(mg,all,all,all,faceRange,Range(0,0),Range(0,2)); 
+
+========= test CompositeGridFunctions ========== 
+realCompositeGridFunction v(og,all,all,all,Range(0,1)); 
+v.setFaceCentering(axis1); 
+v.updateToMatchGrid(Range(0,2),all,all,all); 
+v.setFaceCentering(axis2); 
+realCompositeGridFunction v2(og,all,all,all,Range(0,1),faceRange); 
+v2.updateToMatchGrid(og,all,all,all,faceRange,Range(0,0),Range(0,2)); 
+*** Here is face centering for v3=v2
+
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+realCompositeGridFunction u5(og,GridFunctionParameters::faceCenteredAll,2);
+here is isCellCentered
+-------------------axis 2 = 0------------------------ 
+    (   0) (   1) (   2) 
+(0)      0      1      0 
+(1)      0      1      0 
+-------------------axis 2 = 1------------------------ 
+    (   0) (   1) (   2) 
+(0)      1      0      0 
+(1)      1      0      0 
+u5Link.link(u5,Range(0,0));
+realCompositeGridFunction u6(og,GridFunctionParameters::faceCenteredAxis2,1,2); 
+realCompositeGridFunction u7(og,cellCentered,Range(0,0)); 
+u7.updateToMatchGrid(og,GridFunctionParameters::faceCenteredAll); 
+realCompositeGridFunction u8(og,3) 
+realCompositeGridFunction u9 = u8; 
+realCompositeGridFunction u14.updateToMatchGrid(og,all,all,all); 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/sibCC ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=sib
+
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+realMappedGridFunction ua(mg,realCompositeGridFunction::faceCenteredAxis2,0:1,1:1);
+indexRange
+    (   0) (   1) 
+(0)      0     19 
+(1)      0     19 
+(2)      0     19 
+gridIndexRange
+    (   0) (   1) 
+(0)      0     20 
+(1)      0     20 
+(2)      0     20 
+ua.isCellCentered
+    (   0) (   1) (   2) 
+(0)      1      0      1 
+(1)      1      0      1 
+getBoundaryIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,20) 
+getGhostIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,20) 
+getBoundaryIndex: (side,axis)=(1,0) I1=(19,19), I2=(0,20) 
+getGhostIndex: (side,axis)=(1,0) I1=(19,19), I2=(0,20) 
+getBoundaryIndex: (side,axis)=(0,1) I1=(0,19), I2=(0,0) 
+getGhostIndex: (side,axis)=(0,1) I1=(0,19), I2=(0,0) 
+getBoundaryIndex: (side,axis)=(1,1) I1=(0,19), I2=(20,20) 
+getGhostIndex: (side,axis)=(1,1) I1=(0,19), I2=(20,20) 
+getBoundaryIndex: (side,axis)=(0,2) I1=(0,19), I2=(0,20) 
+getGhostIndex: (side,axis)=(0,2) I1=(0,19), I2=(0,20) 
+getBoundaryIndex: (side,axis)=(1,2) I1=(0,19), I2=(0,20) 
+getGhostIndex: (side,axis)=(1,2) I1=(0,19), I2=(0,20) 
+ub=ua;
+realMappedGridFunction uc; uc.updateToMatchGrid(mg,GridFunctionParameters::faceCenteredAxis1) 
+realMappedGridFunction u(mg,all,all,all,Range(0,1)); 
+u.setFaceCentering(axis1); 
+u.isCellCentered
+    (   0) (   1) (   2) 
+(0)      0      1      1 
+(1)      0      1      1 
+getBoundaryIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,19) 
+getGhostIndex: (side,axis)=(0,0) I1=(0,0), I2=(0,19) 
+getBoundaryIndex: (side,axis)=(1,0) I1=(20,20), I2=(0,19) 
+getGhostIndex: (side,axis)=(1,0) I1=(20,20), I2=(0,19) 
+getBoundaryIndex: (side,axis)=(0,1) I1=(0,20), I2=(0,0) 
+getGhostIndex: (side,axis)=(0,1) I1=(0,20), I2=(0,0) 
+getBoundaryIndex: (side,axis)=(1,1) I1=(0,20), I2=(19,19) 
+getGhostIndex: (side,axis)=(1,1) I1=(0,20), I2=(19,19) 
+getBoundaryIndex: (side,axis)=(0,2) I1=(0,20), I2=(0,19) 
+getGhostIndex: (side,axis)=(0,2) I1=(0,20), I2=(0,19) 
+getBoundaryIndex: (side,axis)=(1,2) I1=(0,20), I2=(0,19) 
+getGhostIndex: (side,axis)=(1,2) I1=(0,20), I2=(0,19) 
+u.updateToMatchGrid(Range(0,2),all,all,all); 
+u.setFaceCentering(axis2); 
+Here is u.isCellCentered
+    (   0) (   1) (   2) 
+(0)      1      0      1 
+(1)      1      0      1 
+(2)      1      0      1 
+realMappedGridFunction u2(mg,all,all,all,Range(0,1),faceRange); 
+faceCenteredAll: getIndex(u,0,...) I1=(0,20), I2=(0,19), I3=(0,19) 
+faceCenteredAll: getIndex(u,1,...) I1=(0,19), I2=(0,20), I3=(0,19) 
+faceCenteredAll: getIndex(u,2,...) I1=(0,19), I2=(0,19), I3=(0,20) 
+Face centering for u3=u2: 
+u2.updateToMatchGrid(mg,all,all,all,faceRange,Range(0,0),Range(0,2)); 
+
+========= test CompositeGridFunctions ========== 
+realCompositeGridFunction v(og,all,all,all,Range(0,1)); 
+v.setFaceCentering(axis1); 
+v.updateToMatchGrid(Range(0,2),all,all,all); 
+v.setFaceCentering(axis2); 
+realCompositeGridFunction v2(og,all,all,all,Range(0,1),faceRange); 
+v2.updateToMatchGrid(og,all,all,all,faceRange,Range(0,0),Range(0,2)); 
+*** Here is face centering for v3=v2
+
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+realCompositeGridFunction u5(og,GridFunctionParameters::faceCenteredAll,2);
+here is isCellCentered
+-------------------axis 2 = 0------------------------ 
+    (   0) (   1) (   2) 
+(0)      0      1      1 
+(1)      0      1      1 
+-------------------axis 2 = 1------------------------ 
+    (   0) (   1) (   2) 
+(0)      1      0      1 
+(1)      1      0      1 
+-------------------axis 2 = 2------------------------ 
+    (   0) (   1) (   2) 
+(0)      1      1      0 
+(1)      1      1      0 
+u5Link.link(u5,Range(0,0));
+realCompositeGridFunction u6(og,GridFunctionParameters::faceCenteredAxis2,1,2); 
+realCompositeGridFunction u7(og,cellCentered,Range(0,0)); 
+u7.updateToMatchGrid(og,GridFunctionParameters::faceCenteredAll); 
+realCompositeGridFunction u8(og,3) 
+realCompositeGridFunction u9 = u8; 
+realCompositeGridFunction u14.updateToMatchGrid(og,all,all,all); 
+$$$$$$$ Test successfully completed $$$$$$$

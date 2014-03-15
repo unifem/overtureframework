@@ -1,0 +1,283 @@
+%-----------------------------------------------------------------------
+% Ogshow: Overlapping Grid Show file class
+%-----------------------------------------------------------------------
+%123456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+
+\documentclass{article}
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+
+\begin{document}
+
+\input wdhDefinitions.tex
+%
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+Ogshow: Overlapping Grid Show File Class \\
+Saving Solutions to be Displayed with plotStuff \\
+ShowFileReader: A Class for Reading Solutions from a Show File \\
+\vspace{\baselineskip}
+User Guide, Version 1.00  \\
+}
+\vskip2\baselineskip
+Bill Henshaw \\
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+%\footnote{
+%        This work was partially
+%        supported by grant N00014-93-C-0200 from the Office of Naval
+%        Research}
+
+\vspace{\baselineskip}
+\today
+\vspace{\baselineskip}
+UCRL-MA-132235
+% LA-UR-96-3465
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+We describe the class Ogshow for creating show files with Overture.
+This class can be used in solvers in order to save solution and comments
+into a data base file (``show file'') that can be later read by plotStuff.
+``plotStuff'' can be used graphically display the results found in the
+show file.
+
+We also describe the class \Index{ShowFileReader} which can be used to read grids
+and solutions from a show file. The ShowFileReader can be used by PDE solvers
+to read in initial conditions from soluitions that have previously been
+saved in a show file.
+\end{flushleft}
+
+\tableofcontents
+
+\vfill\eject
+%---------- End of title Page for a Research Report
+
+\section{Introduction}\index{show file}
+
+This class can be used in solvers in order to save solution and comments
+into a data base file (``show file'') that can be later read by plotStuff.
+``plotStuff'' can be used graphically display the results found in the
+show file. The executable plotStuff is found in Overture/bin/plotStuff.
+
+A showfile consists of a sequence of ``frames''. A frame will hold
+``items'' that are related.  In a typical case, there will be one
+frame for each time when the solution is saved. Each frame will hold
+one or more grid functions. Grid functions appearing in different
+frames but having the same name will be recognized by plotStuff. This
+sequence of grid functions can be used to make a ``movie''.
+
+Comments can also be saved in the showfile.  There are two types of
+comments. General comments are associated with the whole showfile and
+are printed out when plotStuff first reads the showfile.  There are
+also comments that are associated with each solution in the
+showfile. These comments are displayed when plotStuff plots the
+solution.
+
+Other things can be saved in the showfile, such as a time sequence
+of some values. Currently plotStuff only knows how to plot
+realCompositeGridFunction's although one can write a subroutine
+to tell plotStuff how to plot other things.
+
+
+% define a boxed item
+\newcommand{\boxitem}[1]{\begin{picture}(50,25)     % root in a box
+  \put(-25,5){\framebox(50,20){#1}}
+ \end{picture}}
+
+%---------------------------------------------------------------
+\begin{figure}
+\begin{center}
+ \begin{picture}(180,220)
+ \put(10,+80){
+  \put( 80,110){\boxitem{show file}}
+  \put(-40, 45){\boxitem{comments}}
+  \put( 20, 45){\boxitem{frame1}}
+  \put( 80, 45){\boxitem{frame2}}
+  \put(140, 45){\boxitem{frame3}}
+
+  \put( 20,  5){\boxitem{comments}}
+  \put( 80,  5){\boxitem{comments}}
+  \put(140,  5){\boxitem{comments}}
+
+  \put(-40, 70){\line(0,1){20}}
+  \put( 20, 70){\line(0,1){20}}
+  \put( 80, 70){\line(0,1){45}}
+  \put(140, 70){\line(0,1){20}}
+
+  \put(-40,90){\line(1,0){260}}    % long horizonal line
+
+  \put( 20, 30){\line(0,1){20}}
+  \put( 80, 30){\line(0,1){20}}
+  \put(140, 30){\line(0,1){20}}
+
+  \put( 20,-35){\boxitem{u}}
+  \put( 80,-35){\boxitem{u}}
+  \put(140,-35){\boxitem{u}}
+
+  \put( 20,-10){\line(0,1){20}}
+  \put( 80,-10){\line(0,1){20}}
+  \put(140,-10){\line(0,1){20}}
+
+  \put( 20,-75){\boxitem{Grid}}
+  \put( 80,-75){\boxitem{(Grid)}}
+  \put(140,-75){\boxitem{(Grid)}}
+
+  \put( 20,-50){\line(0,1){20}}
+  \put( 80,-50){\line(0,1){20}}
+  \put(140,-50){\line(0,1){20}}
+
+  } % end put
+ \end{picture}
+
+ \caption{A show file with multiple frames, frames hold solutions at different times. For moving grids,
+          a grid is found in each frame, otherwise the grid is only in frame 1}
+ \label{figa}
+\end{center} 
+\end{figure}
+%---------------------------------------------------------------
+
+\section{Class Ogshow}
+
+
+\subsection{Interface}
+
+\input OgshowInclude.tex 
+
+% \subsection{Constructors}
+% 
+% \begin{tabbing}
+% {\ff Ogshow( String \& nameOfOGFile, String \& nameOfDirectory, }\={\ff xxxxxxxxxx}\= \kill
+% {\ff Ogshow()} \> Default constructor \\
+% {\ff Ogshow( String \& nameOfOGFile, String \& nameOfDirectory,  }\>  create a show file from \\
+% {\ff \phantom{Ogshow(} String \& nameOfShowFile )  }\> a composite grid data file  \\
+% \end{tabbing}
+% 
+% \subsection{Member Functions and Member Data}
+% 
+% \noindent
+% \begin{tabbing}
+% {\ff xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 0123456789} \= 
+%     xxxxxxxxxxxxx \= \kill
+% {\ff int createShowFile( String \& nameOfOGFile, String \& nameOfDirectory,} \> 
+%                  create a show file \\
+% {\ff \phantom{ int createShowFile(} String \& nameOfShowFile )} \> \\
+% {\ff MultigridCompositeGrid multigridCompositeGrid} \> Here is the grid from the data base file\\
+% {\ff CompositeGrid compositeGrid} \> Here is the grid from the data base file (level 0) \\
+% {\ff int saveGeneralComment( String \& comment )} \> Save a general comment \\
+% {\ff int saveComment( int commentNumber, String \& comment )} \> Save a comment \\
+% {\ff int startFrame() } \>  Start a new frame \\
+% {\ff int saveSolution( realCompositeGridFunction \& u )} \> save a solution \\
+% \end{tabbing}
+% 
+% The {\ff createShowFile} function would be used if the Ogshow object
+% were created with the default constructor.
+
+
+\subsection{Typical Usage}
+
+Consider an example where a solver is computing some velocity 
+field $(u,v)$. The user would like to save $u$, $v$ and the
+``Mach number'' $u^2+v^2$ in the show file. Here is how this
+might be done: (file ``togshow.C'')
+
+{\footnotesize
+\listinginput[1]{1}{\ogshow/togshow.C}
+}
+
+In this example we also save some additional information into the data base (the time ``t''). 
+The function {\tt getFrame} returns
+a pointer to the {\tt HDF\_DataBase} directory in which the current frame is being saved.
+The data base function {\tt put} is then used to save a real number. It is also possible
+to save arrays and Strings in this way. See the data base documentation for further details.
+
+\subsection{Moving grids}
+
+The only difference with moving grids is that one should say {\tt show.setMovingGridProblem(TRUE)}.
+In this case each frame will hold a new grid as well as the solution.
+
+See the moving grid example in the primer documentation for an example of saving a moving grid
+in a show file.
+% For reasons of efficiency it is important
+% that the CompositeGrid associated with the 
+% grid function $q$ is initially referenced to
+% the CompositeGrid that appears in the show file.
+% When the CompositeGridGenerator makes a new
+% CompositeGrid it will only break references on
+% that arrays that have changed.
+% By doing this, arrays in the CompositeGrid that
+% have not changed will only be saved once in
+% the showfile. 
+% {\footnotesize
+% \listinginput[1]{1}{/users/henshaw/res/ogshow/tmg.C}
+% }
+
+\section{ShowFileReader}
+
+The ShowFileReader class can be used to read in grids and solutions
+from a show file. This class can be used, for example,
+to read in initial conditions for a solver.
+
+\subsection{Interface}
+\input ShowFileReaderInclude.tex
+
+\vfill\eject
+\subsection{Example: Using ShowFileReader to Read in Initial Conditions to a PDE Solver}
+\index{initial conditions!from a show file}
+\index{restart!from a show file}
+
+In this example we show how to mount a show file and read a grid and solution from
+the show file. We also show how to interpolate a solution on one CompositeGrid
+to a solution on another CompositeGrid using the {\tt interpolateAllPoints} function.
+The {\tt interpolateAllPoints} function is described in more detail in the GridFunction
+documentation.
+
+This example shows how one could read initial conditions for a PDE solver from a show file.
+The CompositeGrid used by the PDE solver does not have to be the same as the CompositeGrid
+in the showFile. For example, the grid may be refined or a new component grid added
+(file {\tt Overture/examples/readShowFile.C}).
+{\footnotesize
+\listinginput[1]{1}{\ogshow/readShowFile.C}
+}
+
+\printindex
+
+\end{document}

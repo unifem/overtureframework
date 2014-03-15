@@ -1,0 +1,12 @@
+# Here are new files to add
+# e.g. SRC_FILES += userDefinedInitialConditions.C consPrim.f 
+SRC_FILES += 
+
+# fortran files compiled without auto-double:
+FSRC += 
+
+# we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
+
+src/consPrim.f : src/consPrim.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+
+

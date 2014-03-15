@@ -1,0 +1,278 @@
+#
+# Makefile core -- the configure script uses this to make the file "Makefile"
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o .c .o .f .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.c.o:; $(cc) $(CFLAGS) -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default:  depend_date  GridFunction_date 
+
+# Here are files from P++ that include some fixes -- these fixes will eventually move to the P++ source
+#  These files are only compiled with the 'parallel' option
+#parallel pppFiles = partitioning.C conform_enforce.C p_array.C array.C p_abstract_op.C p_descriptor.C
+#parallel pppObject= partitioning.o conform_enforce.o p_array.o array.o p_abstract_op.o p_descriptor.o
+
+Source1= \
+          BoundaryOperators.C    applyBCC.C                    \
+          aDotU.C dirichlet.C extrapolate.C generalizedDivergence.C generalMixed.C neumann.C aDotGradU.C \
+          normalComponent.C normalDerivative.C symmetry.C tangential.C fixBoundaryCorners.C normalDotScalarGrad.C \
+	  finishBoundaryConditions.C             \
+	  spectralDerivatives.C                  \
+	  FourierOperators.C                     \
+          GridFunctionParameters.C               \
+          SparseRep.C                            \
+          BoundaryConditionParameters.C          \
+          intMappedGridFunction.C                \
+          floatMappedGridFunction.C              \
+          doubleMappedGridFunction.C             \
+          intGenericGridCollectionFunction.C     \
+          floatGenericGridCollectionFunction.C   \
+          doubleGenericGridCollectionFunction.C  \
+          intGridCollectionFunction.C            \
+          floatGridCollectionFunction.C          \
+          doubleGridCollectionFunction.C         \
+          intCompositeGridFunction.C             \
+          floatCompositeGridFunction.C           \
+          doubleCompositeGridFunction.C          \
+          interpRefinements.C                    \
+          GenericMappedGridOperators.C           \
+          GenericGridCollectionOperators.C       \
+          GenericCompositeGridOperators.C        \
+          MappedGridOperators.C                  \
+          GridCollectionOperators.C              \
+          CompositeGridOperators.C               \
+          interpPoints.C                         \
+          gridFunctionNorms.C                    \
+	  ArrayUtil.C                            \
+          App.C                                  \
+	  GridDistribution.C                     \
+          LoadBalancer.C
+
+Source2= \
+          MGOD.C                                \
+  xFDerivative.C  yFDerivative.C  zFDerivative.C xxFDerivative.C xyFDerivative.C xzFDerivative.C \
+ yyFDerivative.C yzFDerivative.C zzFDerivative.C  rDerivative.C  sDerivative.C  tDerivative.C \
+ rrDerivative.C rsDerivative.C rtDerivative.C ssDerivative.C stDerivative.C ttDerivative.C \
+ divFDerivative.C divScalarGradFDerivative.C scalarGradFDerivative.C gradFDerivative.C identityFDerivative.C \
+ laplaceFDerivative.C  vorticityFDerivative.C derivativeScalarDerivativeFDerivative.C divVectorScalarFDerivative.C \
+          MGOC.C                                       \
+ UnstructuredOperators.C UnstructuredBoundaryOperators.C u_dirichlet.C \
+  xFDCoefficients.C  yFDCoefficients.C  zFDCoefficients.C xxFDCoefficients.C \
+ xyFDCoefficients.C xzFDCoefficients.C \
+ yyFDCoefficients.C yzFDCoefficients.C zzFDCoefficients.C  laplacianFDCoefficients.C \
+ divFDCoefficients.C divScalarGradFDCoefficients.C scalarGradFDCoefficients.C gradFDCoefficients.C \
+ identityFDCoefficients.C derivativeScalarDerivativeFDCoefficients.C divVectorScalarFDCoefficients.C \
+  rDerivCoefficients.C  sDerivCoefficients.C  tDerivCoefficients.C \
+ rrDerivCoefficients.C rsDerivCoefficients.C rtDerivCoefficients.C ssDerivCoefficients.C \
+ stDerivCoefficients.C ttDerivCoefficients.C 
+
+GridFunction1 = ${pppObject} ${Source1:.C=.o} 
+GridFunction1_date:  $(GridFunction1) $(SECOND)
+	  touch $@
+
+GridFunction2 = ${Source2:.C=.o}
+GridFunction2_date: $(GridFunction2)
+	  touch $@
+
+# Here are the files that Bill always likes to optimize 
+filesOpt = Interpolant.C interpolateExposedPoints.C InterpolatePoints.C ExposedPoints.C \
+           ParallelOverlappingGridInterpolator.C AssignInterpNeighbours.C InterpolatePointsOnAGrid.C pogip.C \
+           findNearestValidGridPoint.C
+Interpolant.o :                         ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+interpolateExposedPoints.o :            ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+InterpolatePoints.o :                   ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+ExposedPoints.o :                       ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+ParallelOverlappingGridInterpolator.o : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+AssignInterpNeighbours.o :              ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+InterpolatePointsOnAGrid.o :            ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+pogip.o :                               ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+findNearestValidGridPoint.o :           ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+GridFunction_Opt_date: ${filesOpt:.C=.o}
+	  touch $@
+
+
+# Compile these next files with -g because the compiler dies 
+# files = GenericMappedGridOperators.C           \
+#         GenericGridCollectionOperators.C       \
+#         GenericCompositeGridOperators.C
+# files = 
+# GridFunction3_date: $(files)
+# 	$(CC) $(CCFLAGSG) -c $?
+# 	  touch $@
+
+# Here are files from P++ that include some fixes -- these fixes will eventually move to the P++ source
+
+# Here is how we would compile datamove.c -- but for now it is not needed since it is the same as in P++
+PFLAGSC = -DHAVE_CONFIG_H -I. -I$(P)/../.. -I$(P)/../../include -I$(P)/../../PARTI -I$(P)/../PARTI -I$(MPI_ROOT)/include    -I$(P)/../../PADRE/src -I$(P)/../../PADRE -I$(P)/../../PARTI -I$(P)/../../PARTI -I$(P)/../../PADRE/PGSLIB -I$(P)/../../PADRE/PGSLIB -I$(P)/../../PGSLIB -I$(P)/../PGSLIB $(STD_OPT_FLAG) -fPIC -Wstrict-prototypes
+datamove.o: datamove.c
+	 $(cc) $(PFLAGSC) -c datamove.c
+
+# ----------- here is how we compile P++ files  --------------------------
+P = $(PPlusPlus)/../src/array_src
+PFLAGS = -DHAVE_CONFIG_H -I. -I$(P)/../.. -I$(P)/../../include -I$(P)/../../PARTI -I$(P)/../PARTI -I$(MPI_ROOT)/include    -I$(P)/../../PADRE/src -I$(P)/../../PADRE -I$(P)/../../PARTI -I$(P)/../../PARTI -I$(P)/../../PADRE/PGSLIB -I$(P)/../../PADRE/PGSLIB -I$(P)/../../PGSLIB -I$(P)/../PGSLIB $(STD_OPT_FLAG) -fPIC -Wno-deprecated
+
+partitioning.o: partitioning.C
+	$(CC) $(PFLAGS) -c partitioning.C
+conform_enforce.o: conform_enforce.C
+	$(CC) $(PFLAGS) -c conform_enforce.C
+p_array.o: p_array.C
+	$(CC) $(PFLAGS) -c p_array.C
+array.o: array.C
+	$(CC) $(PFLAGS) -c array.C
+p_abstract_op.o: p_abstract_op.C
+	$(CC) $(PFLAGS) -c p_abstract_op.C
+p_descriptor.o: p_descriptor.C
+	$(CC) $(PFLAGS) -c p_descriptor.C
+
+
+FFLAGSGO = $(FFLAGSO)
+# FFLAGSGO = $(FFLAGSG)
+# turn off optimization when using fort77 -- requires too much memory
+#fort77 FFLAGSGO = $(FFLAGSG)
+# turn off optimization when using g77 -- takes too long to compile
+#g77 FFLAGSGO = $(FFLAGSG)
+# Always compile these next files optimized
+fortran_files = coeff.f xFDeriv.f yFDeriv.f zFDeriv.f xxFDeriv.f xyFDeriv.f xzFDeriv.f yyFDeriv.f \
+                yzFDeriv.f zzFDeriv.f laplacianFDeriv.f  initExplicitInterp.f \
+                interpOpt.f interpOptFull.f interpOptTP.f interpOptSP.f \
+                dsg.f dsg2.f dsg3.f dsgr.f dsgc4.f dsgc6.f laplaceNC.f divScalarGradNC.f \
+                xCoeff2.f yCoeff2.f zCoeff2.f xxCoeff2.f xyCoeff2.f xzCoeff2.f yyCoeff2.f yzCoeff2.f zzCoeff2.f \
+                laplacianCoeff2.f  identityCoeff2.f opcoeff.f assignBoundaryConditions.f \
+                assignOptNeumann.f assignOptGenDiv.f assignOptNormalDer.f assignOptNormalComponent.f assignOptADotGradU.f \
+                findInterpolationNeighbours.f findInterpNeighbours.f standardDerivative.f normOpt.f ncarfft.f \
+                extrapolateOpt.f assignCornersOpt.f fixBCOptEdge1.f fixBCOptEdge2.f fixBCOptEdge3.f \
+                fixBCOptVerticies.f div.f assignOptTangentialComponent.f
+
+coeff.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xFDeriv.o :            ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yFDeriv.o :            ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zFDeriv.o :            ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xxFDeriv.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xyFDeriv.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xzFDeriv.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yyFDeriv.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yzFDeriv.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zzFDeriv.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+laplacianFDeriv.o :    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+initExplicitInterp.o : ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+interpOpt.o :          ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+
+# The 32 bit intel compiler dies on interpOptFull.f with -g
+# The 64 bit intel compiler dies on interpOptFull.f with -O
+interpOptFull.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+#ifort64 interpOptFull.o :      ${@:.o=.f}; $(FC) $(FFLAGSG2) -c ${@:.o=.f}
+
+interpOptTP.o :                 ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+interpOptSP.o :                 ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+normOpt.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+ncarfft.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+
+dsg.o :                         ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+dsg2.o :                        ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+dsg3.o :                        ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+dsgr.o :                        ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+dsgc4.o :                       ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+dsgc6.o :                       ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+laplaceNC.o :                   ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+divScalarGradNC.o :             ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xxCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xyCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+xzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yyCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+yzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+zzCoeff2.o :                    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+laplacianCoeff2.o :             ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+identityCoeff2.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+opcoeff.o :                     ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+assignBoundaryConditions.o :    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+assignOptNeumann.o :            ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+assignOptGenDiv.o :             ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+assignOptNormalDer.o :          ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+assignOptNormalComponent.o :    ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+extrapolateOpt.o :              ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+assignCornersOpt.o :            ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+fixBCOptEdge1.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+fixBCOptEdge2.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+fixBCOptEdge3.o :               ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+fixBCOptVerticies.o :           ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+findInterpolationNeighbours.o : ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+standardDerivative.o :          ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+div.o :                         ${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+assignOptTangentialComponent.o :${@:.o=.f}; $(FC) $(FFLAGSGO) -c ${@:.o=.f}
+
+GridFunction4_date: ${fortran_files:.f=.o}
+	  touch $@
+
+# These files are not always compiled optimized to save time when compiling.
+#  note: divScalarGradCoeff2.f and derivativeScalarDerivativeNC.f take a long time to compile optimised
+fortran_files2 = divScalarGradCoeff2.f \
+                xCoeff4.f yCoeff4.f zCoeff4.f xxCoeff4.f xyCoeff4.f xzCoeff4.f yyCoeff4.f yzCoeff4.f zzCoeff4.f \
+                laplacianCoeff4.f divScalarGradCoeff4.f identityCoeff4.f derivativeScalarDerivativeNC.f \
+                rCoeff2.f sCoeff2.f tCoeff2.f rrCoeff2.f rsCoeff2.f rtCoeff2.f ssCoeff2.f stCoeff2.f ttCoeff2.f \
+                rCoeff4.f sCoeff4.f tCoeff4.f rrCoeff4.f rsCoeff4.f rtCoeff4.f ssCoeff4.f stCoeff4.f ttCoeff4.f
+# make separate targest since some compilers have trouble doing all files at once
+
+# ** The intel compiler takes forever to compile with -g but -O is fast !! (cf. laplaceCoeff4.f)
+# The pgf compiler has trouble with derivativeScalarDerivativeNC.f and -O
+#ifort FFLAGS = $(FFLAGSGO)
+
+xCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+divScalarGradCoeff2.o :          ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+yCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+zCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+xxCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+xyCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+xzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+yyCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+yzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+zzCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+laplacianCoeff4.o :              ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+divScalarGradCoeff4.o :          ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+identityCoeff4.o :               ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+derivativeScalarDerivativeNC.o : ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rCoeff2.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+sCoeff2.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+tCoeff2.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rrCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rsCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rtCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+ssCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+stCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+ttCoeff2.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+sCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+tCoeff4.o :                      ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rrCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rsCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+rtCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+ssCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+stCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+ttCoeff4.o :                     ${@:.o=.f}; $(FC) $(FFLAGS) -c ${@:.o=.f}
+
+                        
+# GridFunction5_date: $(fortran_files2)
+# 	$(FC) $(FFLAGS) -c $?
+#	  touch $@
+
+GridFunction5_date: $(fortran_files2:.f=.o)
+	  touch $@
+
+GridFunction_date:GridFunction4_date GridFunction5_date GridFunction1_date GridFunction2_date GridFunction_Opt_date
+	touch $@
+
+Source = $(Source1) $(Source2) $(filesOpt) $(files) ${pppFiles}
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+clean:	rm *.o
+
+.PRECIOUS:GridFunction_date GridFunction1_date GridFunction2_date GridFunction_Opt_date depend_date
+

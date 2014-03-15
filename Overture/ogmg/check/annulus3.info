@@ -1,0 +1,49 @@
+\clearpage
+ \section{check/annulus3}
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$  & res(i)     & rate(i)    &  WU(i)     & ECR(i)  \\   \hline 
+ $ 1$  & $ 2.5e-01$ & $0.058$ & $ 6.8$ & $0.66$ \\ 
+ $ 2$  & $ 1.1e-02$ & $0.043$ & $ 6.8$ & $0.63$ \\ 
+ $ 3$  & $ 4.4e-04$ & $0.041$ & $ 6.8$ & $0.62$ \\ 
+ $ 4$  & $ 1.9e-05$ & $0.042$ & $ 6.8$ & $0.63$ \\ 
+ $ 5$  & $ 8.0e-07$ & $0.043$ & $ 6.8$ & $0.63$ \\ 
+ $ 6$  & $ 3.5e-08$ & $0.044$ & $ 6.8$ & $0.63$ \\ 
+ $ 7$  & $ 1.5e-09$ & $0.044$ & $ 6.8$ & $0.63$ \\ 
+ $ 8$  & $ 7.8e-11$ & $0.051$ & $ 6.8$ & $0.64$ \\ 
+ $ 9$  & $ 9.2e-12$ & $0.119$ & $ 6.8$ & $0.73$ \\ 
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+                 Ogmg, Statistics: 
+                 -----------------     time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............8.01e+00  8.01e-01    84.44% 
+ defect.(excluding those in smooth)....6.54e-01  6.54e-02     6.89% 
+ fine to coarse........................3.61e-01  3.61e-02     3.81% 
+ coarse to fine........................4.60e-03  4.60e-04     0.05% 
+ direct solve on coarsest level........6.00e-02  6.00e-03     0.63% 
+    interpolation......................2.04e-01  2.04e-02  (  2.15%) (already counted)
+    boundary conditions................3.56e+00  3.56e-01  ( 37.55%) (already counted)
+ sum of above..........................9.09e+00  9.09e-01    95.81%  
+
+ total.................................9.49e+00  9.49e-01   100.00% 
+
+ total number of grid points = 1785 
+ total number of cycles      = 10 
+ storage allocated = 7.28e-01 MBytes,   407.7 bytes/(grid point) or   51.0 reals/(grid point)
+
+ number of levels = 4 
+ interpolate defect = 1
+ number of cycles per level= 1  2  2  1 
+ coarse grid solver : yale, direct sparse solver, no pivoting 
+
+grid 0 : rb[3] rb[4] rb[4] rb[4]  : Annulus 
+         bc=[periodic,periodic] [dirichlet,dirichlet] 
+\end{verbatim}
+} % end footnotesize

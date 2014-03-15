@@ -1,0 +1,259 @@
+
+Files for doxygen:
+
+******************* OGSHOW *********************************
+
+
+
+
+******************* GRID FUNCTIONS *********************************
+
+    $(OV_DOXYGEN)/gf/initOvertureGlobalVariables.C $(OV_DOXYGEN)/gf/RapsodiInit.C $(OV_DOXYGEN)/gf/memoryUsage.C \
+    $(OV_DOXYGEN)/gf/getCPU.C $(OV_DOXYGEN)/gf/.C \
+    $(OV_DOXYGEN)/gf/OvertureInit.h $(OV_DOXYGEN)/gf/OvertureInit.C \
+    $(OV_DOXYGEN)/gf/conversion.h $(OV_DOXYGEN)/gf/conversion.C \
+    $(OV_DOXYGEN)/gf/interpPoints.h $(OV_DOXYGEN)/gf/interpPoints.C \
+    $(OV_DOXYGEN)/gf/GridFunctionParameters.h $(OV_DOXYGEN)/gf/GridFunctionParameters.C \
+    $(OV_DOXYGEN)/gf/doubleGenericGridCollectionFunction.h $(OV_DOXYGEN)/gf/doubleGenericGridCollectionFunction.C \
+    $(OV_DOXYGEN)/gf/doubleMappedGridFunction.h $(OV_DOXYGEN)/gf/doubleMappedGridFunction.C \
+    $(OV_DOXYGEN)/gf/doubleGridCollectionFunction.h $(OV_DOXYGEN)/gf/doubleGridCollectionFunction.C \
+    $(OV_DOXYGEN)/gf/doubleCompositeGridFunction.h $(OV_DOXYGEN)/gf/doubleCompositeGridFunction.C \
+    $(OV_DOXYGEN)/gf/GenericGridFunction.h $(OV_DOXYGEN)/gf/GenericGridCollectionFunction.h  $(OV_DOXYGEN)/gf/MappedGridFunction.h \
+    $(OV_DOXYGEN)/gf/GridCollectionFunction.h $(OV_DOXYGEN)/gf/GridFunction.h  $(OV_DOXYGEN)/gf/CompositeGridFunction.h  \
+    $(OV_DOXYGEN)/gf/Interpolant.h $(OV_DOXYGEN)/gf/Interpolant.C \
+    $(OV_DOXYGEN)/gf/InterpolatePoints.h $(OV_DOXYGEN)/gf/InterpolatePoints.C \
+    $(OV_DOXYGEN)/gf/gridFunctionNorms.h $(OV_DOXYGEN)/gf/gridFunctionNorms.C \
+    $(OV_DOXYGEN)/gf/InterpolatePointsOnAGrid.h $(OV_DOXYGEN)/gf/InterpolatePointsOnAGrid.C \
+    $(OV_DOXYGEN)/gf/ParallelOverlappingGridInterpolator.h $(OV_DOXYGEN)/gf/ParallelOverlappingGridInterpolator.C $(OV_DOXYGEN)/gf/pogip.C \
+    $(OV_DOXYGEN)/gf/ExposedPoints.h $(OV_DOXYGEN)/gf/ExposedPoints.C \
+    $(OV_DOXYGEN)/gf/ArrayUtil.h $(OV_DOXYGEN)/gf/ArrayUtil.C \
+    $(OV_DOXYGEN)/gf/derivativeDefinitions.h $(OV_DOXYGEN)/gf/derivativeDefinitions.C \
+    $(OV_DOXYGEN)/gf/App.h $(OV_DOXYGEN)/gf/App.C \
+    $(OV_DOXYGEN)/gf/IndexArg.h $(OV_DOXYGEN)/gf/interpRefinements.C $(OV_DOXYGEN)/gf/findNearestValidGridPoint.C \
+    $(OV_DOXYGEN)/gf/transferSolution.C 
+
+
+
+
+******************* GRIDS *********************************
+
+    $(OV_DOXYGEN)/grid/GenericGrid.h $(OV_DOXYGEN)/grid/GenericGrid.C \
+    $(OV_DOXYGEN)/grid/MappedGrid.h $(OV_DOXYGEN)/grid/MappedGrid.C \
+    $(OV_DOXYGEN)/grid/GenericGridCollection.h $(OV_DOXYGEN)/grid/GenericGridCollection.C \
+    $(OV_DOXYGEN)/grid/GridCollection.h $(OV_DOXYGEN)/grid/GridCollection.C \
+    $(OV_DOXYGEN)/grid/CompositeGrid.h $(OV_DOXYGEN)/grid/CompositeGrid.C \
+    $(OV_DOXYGEN)/grid/ReferenceCounting.h $(OV_DOXYGEN)/grid/ReferenceCounting.C \
+    $(OV_DOXYGEN)/grid/TrivialArray.h  \
+    $(OV_DOXYGEN)/grid/BoundaryAdjustment.h $(OV_DOXYGEN)/grid/BoundaryAdjustment.C \
+    $(OV_DOXYGEN)/grid/UnstructuredGeometry.h $(OV_DOXYGEN)/grid/UnstructuredGridGeometry.C \
+    $(OV_DOXYGEN)/grid/MappedGridGeometry1.C $(OV_DOXYGEN)/grid/MappedGridGeometry2.C $(OV_DOXYGEN)/grid/CompositeGridGeometry.C 
+
+cp {GenericGrid,MappedGrid,MappedGridGeometry1,MappedGridGeometry2}.C                    $grid
+cp {GenericGridCollection,GridCollection,UnstructuredGridGeometry}.C                     $grid
+cp {CompositeGrid,CompositeGridGeometry,BoundaryAdjustment,MultigridCompositeGrid}.C     $grid
+cp {ReferenceCounting}.C                                                                 $static
+
+
+cp {GenericGrid,MappedGrid,GenericGridCollection,GridCollection,CompositeGrid}.h         $include
+cp {ReferenceCounting,TrivialArray,BoundaryAdjustment,MultigridCompositeGrid}.h          $include
+cp {UnstructuredGeometry}.h                                 $include
+
+
+
+
+*************** MAPPINGS ****************************
+
+INPUT                  = titlePage \
+    $(OV_DOXYGEN)/mapping/Mapping.h  $(OV_DOXYGEN)/mapping/Mapping.C $(OV_DOXYGEN)/mapping/initializeMappingList.C \
+    $(OV_DOXYGEN)/mapping/AnnulusMapping.h $(OV_DOXYGEN)/mapping/AnnulusMapping.C \
+    $(OV_DOXYGEN)/mapping/BoxMapping.h $(OV_DOXYGEN)/mapping/BoxMapping.C \
+    $(OV_DOXYGEN)/mapping/NurbsMapping.h $(OV_DOXYGEN)/mapping/NurbsMapping.C  $(OV_DOXYGEN)/mapping/nurbsEvaluation.C \
+    $(OV_DOXYGEN)/mapping/SquareMapping.h $(OV_DOXYGEN)/mapping/SquareMapping.C \
+    $(OV_DOXYGEN)/mapping/CompositeTopology.h $(OV_DOXYGEN)/mapping/compositeTopology.C \
+    $(OV_DOXYGEN)/mapping/ComposeMapping.h $(OV_DOXYGEN)/mapping/ComposeMapping.C \
+    $(OV_DOXYGEN)/mapping/MatrixMapping.h $(OV_DOXYGEN)/mapping/MatrixMapping.C \
+    $(OV_DOXYGEN)/mapping/StretchMapping.h $(OV_DOXYGEN)/mapping/StretchMapping.C \
+    $(OV_DOXYGEN)/mapping/Inverse.h $(OV_DOXYGEN)/mapping/Inverse.C \
+    $(OV_DOXYGEN)/mapping/DistributedInverse.h $(OV_DOXYGEN)/mapping/DistributedInverse.C \
+    $(OV_DOXYGEN)/mapping/stencilWalk.C $(OV_DOXYGEN)/mapping/inverseMap.C \
+    $(OV_DOXYGEN)/mapping/Fraction.h $(OV_DOXYGEN)/mapping/Fraction.C \
+    $(OV_DOXYGEN)/mapping/Bound.h $(OV_DOXYGEN)/mapping/Bound.C \
+    $(OV_DOXYGEN)/mapping/checkMapping.C $(OV_DOXYGEN)/mapping/initStaticMappingVariables.C \
+    $(OV_DOXYGEN)/mapping/StretchedSquare.h $(OV_DOXYGEN)/mapping/StretchedSquareMapping.C \
+    $(OV_DOXYGEN)/mapping/BoundingBox.h $(OV_DOXYGEN)/mapping/BoundingBox.C \
+    $(OV_DOXYGEN)/mapping/SphereMapping.h $(OV_DOXYGEN)/mapping/SphereMapping.C \
+    $(OV_DOXYGEN)/mapping/SmoothedPolygon.h $(OV_DOXYGEN)/mapping/SmoothedPolygonMapping.C \
+    $(OV_DOXYGEN)/mapping/MappingRC.h $(OV_DOXYGEN)/mapping/MappingRC.C \
+    $(OV_DOXYGEN)/mapping/DataPointMapping.h $(OV_DOXYGEN)/mapping/DataPointMapping.C $(OV_DOXYGEN)/mapping/dpmScalar.C $(OV_DOXYGEN)/mapping/dpmInverse.C $(OV_DOXYGEN)/mapping/dpmMap.C \
+    $(OV_DOXYGEN)/mapping/CircleMapping.h $(OV_DOXYGEN)/mapping/CircleMapping.C \
+    $(OV_DOXYGEN)/mapping/NormalMapping.h $(OV_DOXYGEN)/mapping/NormalMapping.C \
+    $(OV_DOXYGEN)/mapping/ReductionMapping.h $(OV_DOXYGEN)/mapping/ReductionMapping.C \
+    $(OV_DOXYGEN)/mapping/FilletMapping.h $(OV_DOXYGEN)/mapping/FilletMapping.C \
+    $(OV_DOXYGEN)/mapping/MappingP.h $(OV_DOXYGEN)/mapping/MappingP.C \
+    $(OV_DOXYGEN)/mapping/MappingBuilder.h $(OV_DOXYGEN)/mapping/MappingBuilder.C \
+    $(OV_DOXYGEN)/mapping/UserDefinedMapping1.h $(OV_DOXYGEN)/mapping/UserDefinedMapping1.C \
+    $(OV_DOXYGEN)/mapping/CylinderMapping.h $(OV_DOXYGEN)/mapping/CylinderMapping.C \
+    $(OV_DOXYGEN)/mapping/PlaneMapping.h $(OV_DOXYGEN)/mapping/PlaneMapping.C \
+    $(OV_DOXYGEN)/mapping/PolynomialMapping.h $(OV_DOXYGEN)/mapping/PolynomialMapping.C \
+    $(OV_DOXYGEN)/mapping/IntersectionMapping.h $(OV_DOXYGEN)/mapping/IntersectionMapping.C \
+    $(OV_DOXYGEN)/mapping/TriangleClass.h $(OV_DOXYGEN)/mapping/TriangleClass.C \
+    $(OV_DOXYGEN)/mapping/RevolutionMapping.h $(OV_DOXYGEN)/mapping/RevolutionMapping.C \
+    $(OV_DOXYGEN)/mapping/OrthographicTransform.h $(OV_DOXYGEN)/mapping/OrthographicTransform.C \
+    $(OV_DOXYGEN)/mapping/ReparameterizationTransform.h $(OV_DOXYGEN)/mapping/ReparameterizationTransform.C \
+    $(OV_DOXYGEN)/mapping/CrossSectionMapping.h $(OV_DOXYGEN)/mapping/CrossSectionMapping.C \
+    $(OV_DOXYGEN)/mapping/RestrictionMapping.h $(OV_DOXYGEN)/mapping/RestrictionMapping.C \
+    $(OV_DOXYGEN)/mapping/SplineMapping.h $(OV_DOXYGEN)/mapping/SplineMapping.C \
+    $(OV_DOXYGEN)/mapping/TFIMapping.h $(OV_DOXYGEN)/mapping/TFIMapping.C \
+    $(OV_DOXYGEN)/mapping/ReorientMapping.h $(OV_DOXYGEN)/mapping/ReorientMapping.C \
+    $(OV_DOXYGEN)/mapping/LineMapping.h $(OV_DOXYGEN)/mapping/LineMapping.C \
+    $(OV_DOXYGEN)/mapping/MatrixTransform.h $(OV_DOXYGEN)/mapping/MatrixTransform.C \
+    $(OV_DOXYGEN)/mapping/StretchTransform.h $(OV_DOXYGEN)/mapping/StretchTransform.C $(OV_DOXYGEN)/mapping/stretchUpdate.C \
+    $(OV_DOXYGEN)/mapping/QuadraticMapping.h $(OV_DOXYGEN)/mapping/QuadraticMapping.C \
+    $(OV_DOXYGEN)/mapping/createMappings.C $(OV_DOXYGEN)/mapping/viewMappings.C \
+    $(OV_DOXYGEN)/mapping/TrimmedMappingBuilder.h $(OV_DOXYGEN)/mapping/TrimmedMappingBuilder.C \
+    $(OV_DOXYGEN)/mapping/AirfoilMapping.h $(OV_DOXYGEN)/mapping/AirfoilMapping.C \
+    $(OV_DOXYGEN)/mapping/DepthMapping.h $(OV_DOXYGEN)/mapping/DepthMapping.C \
+    $(OV_DOXYGEN)/mapping/JoinMapping.h $(OV_DOXYGEN)/mapping/JoinMapping.C \
+    $(OV_DOXYGEN)/mapping/SweepMapping.h $(OV_DOXYGEN)/mapping/SweepMapping.C \
+    $(OV_DOXYGEN)/mapping/UnstructuredMapping.h $(OV_DOXYGEN)/mapping/UnstructuredMapping.C \
+    $(OV_DOXYGEN)/mapping/unstructuredProject.C $(OV_DOXYGEN)/mapping/unstructuredCompositeSurface.C $(OV_DOXYGEN)/mapping/findNearestGridPoint.C \
+    $(OV_DOXYGEN)/mapping/OffsetShell.h $(OV_DOXYGEN)/mapping/OffsetShell.C \
+    $(OV_DOXYGEN)/mapping/MappingGeometry.h $(OV_DOXYGEN)/mapping/MappingGeometry.C \
+    $(OV_DOXYGEN)/mapping/LoftedSurfaceMapping.h $(OV_DOXYGEN)/mapping/LoftedSurfaceMapping.C \
+    $(OV_DOXYGEN)/mapping/IgesReader.h $(OV_DOXYGEN)/mapping/IgesReader.C \
+    $(OV_DOXYGEN)/mapping/TrimmedMapping.h $(OV_DOXYGEN)/mapping/TrimmedMapping.C \
+    $(OV_DOXYGEN)/mapping/CompositeSurface.h $(OV_DOXYGEN)/mapping/CompositeSurface.C  $(OV_DOXYGEN)/mapping/compositeTopology.C \
+    $(OV_DOXYGEN)/mapping/MappingProjectionParameters.h $(OV_DOXYGEN)/mapping/MappingProjectionParameters.C \
+    $(OV_DOXYGEN)/mapping/mappingUtil.C $(OV_DOXYGEN)/mapping/refineTriangulation.C $(OV_DOXYGEN)/mapping/equi.C $(OV_DOXYGEN)/mapping/refineCurve.C $(OV_DOXYGEN)/mapping/readMappings.C \
+    $(OV_DOXYGEN)/mapping/FaceInfo.h $(OV_DOXYGEN)/mapping/FaceInfo.C \
+    $(OV_DOXYGEN)/mapping/DataFormats.h $(OV_DOXYGEN)/mapping/DataFormats.C $(OV_DOXYGEN)/mapping/DataFormatsMG.C \
+    $(OV_DOXYGEN)/mapping/QuadTree.h $(OV_DOXYGEN)/mapping/QuadTree.C \
+    $(OV_DOXYGEN)/mapping/RocketMapping.h $(OV_DOXYGEN)/mapping/RocketMapping.C \
+    $(OV_DOXYGEN)/mapping/ReferenceCountingList.h $(OV_DOXYGEN)/mapping/ReferenceCountingList.C \
+    $(OV_DOXYGEN)/mapping/entityConnectivityBuilder.h $(OV_DOXYGEN)/mapping/entityConnectivityBuilder.C \
+    $(OV_DOXYGEN)/mapping/verifyUnstructuredConnectivity.C $(OV_DOXYGEN)/mapping/readMappingsFromAnOverlappingGridFile.C $(OV_DOXYGEN)/mapping/sPrintF.C \
+    $(OV_DOXYGEN)/mapping/EllipticGridGenerator.h $(OV_DOXYGEN)/mapping/EllipticGridGenerator.C \
+    $(OV_DOXYGEN)/mapping/Elliptic.C \
+    $(OV_DOXYGEN)/mapping/EllipticTransform.h $(OV_DOXYGEN)/mapping/EllipticTransform.C \
+    $(OV_DOXYGEN)/mapping/FilamentMapping.h $(OV_DOXYGEN)/mapping/FilamentMapping.C \
+    $(OV_DOXYGEN)/mapping/EntityTag.h $(OV_DOXYGEN)/mapping/EntityTag.C \
+    $(OV_DOXYGEN)/mapping/ULink.h $(OV_DOXYGEN)/mapping/ULink.C \
+    $(OV_DOXYGEN)/mapping/MappingEnums.h $(OV_DOXYGEN)/mapping/MappingWS.h  $(OV_DOXYGEN)/mapping/MappingInformation.h \
+    $(OV_DOXYGEN)/mapping/MappingsFromCAD.h $(OV_DOXYGEN)/mapping/uns_templates.h \
+    $(OV_DOXYGEN)/hype/HyperbolicMapping.h $(OV_DOXYGEN)/hype/HyperbolicMapping.C \
+    $(OV_DOXYGEN)/hype/update.C $(OV_DOXYGEN)/hype/startCurve.C  \
+    $(OV_DOXYGEN)/hype/util.C $(OV_DOXYGEN)/hype/generate.C  \
+    $(OV_DOXYGEN)/hype/project.C $(OV_DOXYGEN)/hype/applyBoundaryConditions.C \
+    $(OV_DOXYGEN)/hype/plot.C $(OV_DOXYGEN)/hype/stretch.C \
+    $(OV_DOXYGEN)/hype/GridSmoother.h $(OV_DOXYGEN)/hype/GridSmoother.C \
+    $(OV_DOXYGEN)/hype/GridStretcher.h $(OV_DOXYGEN)/hype/GridStretcher.C \
+    $(OV_DOXYGEN)/hype/MatchingCurve.h $(OV_DOXYGEN)/hype/MatchingCurve.C 
+
+doxy.p Mapping.C AnnulusMapping.C BoxMapping.C NurbsMapping.C SquareMapping.C compositeTopology.C
+
+doxy.p ComposeMapping.C MatrixMapping.C StretchMapping.C Inverse.C stencilWalk.C DistributedInverse.C inverseMap.C
+
+doxy.p Fraction.C Bound.C checkMapping.C StretchedSquareMapping.C BoundingBox.C SphereMapping.C SmoothedPolygonMapping.C MappingRC.C
+
+doxy.p initStaticMappingVariables.C DataPointMapping.C dpmScalar.C dpmInverse.C dpmMap.C CircleMapping.C NormalMapping.C ReductionMapping.C FilletMapping.C
+
+doxy.p MappingP.C MappingBuilder.C UserDefinedMapping1.C CylinderMapping.C PlaneMapping.C PolynomialMapping.C IntersectionMapping.C TriangleClass.C RevolutionMapping.C  OrthographicTransform.C ReparameterizationTransform.C CrossSectionMapping.C 
+
+doxy.p RestrictionMapping.C SplineMapping.C TFIMapping.C ReorientMapping.C LineMapping.C MatrixTransform.C StretchTransform.C stretchUpdate.C QuadraticMapping.C initializeMappingList.C createMappings.C viewMappings.C TrimmedMappingBuilder.C  
+
+doxy.p AirfoilMapping.C DepthMapping.C JoinMapping.C SweepMapping.C UnstructuredMapping.C unstructuredProject.C unstructuredCompositeSurface.C OffsetShell.C MappingGeometry.C LoftedSurfaceMapping.C findNearestGridPoint.C IgesReader.C TrimmedMapping.C CompositeSurface.C MappingProjectionParameters.C  
+
+doxy.p compositeTopology.C nurbsEvaluation.C mappingUtil.C FaceInfo.C refineTriangulation.C equi.C refineCurve.C readMappings.C DataFormats.C DataFormatsMG.C QuadTree.C RocketMapping.C ReferenceCountingList.C entityConnectivityBuilder.C verifyUnstructuredConnectivity.C EllipticGridGenerator.C Elliptic.C EllipticTransform.C readMappingsFromAnOverlappingGridFile.C  sPrintF.C FilamentMapping.C EntityTag.C ULink.C  
+
+
+doxy.p HyperbolicMapping.C update.C startCurve.C util.C generate.C project.C applyBoundaryConditions.C plot.C  stretch.C GridSmoother.C GridStretcher.C MatchingCurve.C
+
+
+cp {ellipticSmooth.f} $OvertureHype
+
+# copy include files
+cp {HyperbolicMapping,GridSmoother,GridStretcher,MatchingCurve}.{h}                 $OvertureInclude
+
+
+                                                                    
+cp plyfile.c plyFileInterface.C                                                           
+
+# copy include files
+cp mbuilder.C 
+
+
+*********************************************************************************************************************8
+
+
+
+Figures for David:
+
+Look in ~henshaw/Overture/mapping
+
+cat.triangulation.coarse.gif
+caption: Global triangulation for a diesel engine geometry. 
+
+
+
+electrode.inner.grid.gif
+Caption: The hyperbolic surface grid generator uses the fast projection algorithm to grow surface grids.
+
+
+
+Demo for Dan Hitchock:
+
+   pm catValveDemo
+   pm catRightPortDemo
+   pm triShip3Demo
+
+
+   ogen shapesDemo
+
+   ogen valvePortDemo
+
+OverBlown/ins
+
+    tob mastSail2d 
+
+    tob cylinder
+    tob pitot ?
+
+OverBlown/cns
+    plotStuff ob : demo show files
+
+
+
+movies
+
+
+1.   mpeg_play -dither color twoDrop.mpg
+
+
+   mpeg_play -dither color amrShock1.mpg  : small, lines, variable colour table
+2.   mpeg_play -dither color amrShock2.mpg  : big, no-lines, fixed colour table
+   mpeg_play -dither color amrShock3.mpg  : small, lines, fixed colour table
+   mpeg_play -dither color amrShock4.mpg  * big, no lines, variable CT
+
+3.   mpeg_play -dither color amrShockGrid.mpg : big
+
+   mpeg_play -dither color amrShockGrid1.mpg * small
+
+
+   mpeg_play -dither color pib.mpg
+
+
+   mpeg_play -dither color rocketiso.mpg
+   mpeg_play -dither color temp_countour.mpg
+
+OverBlown/ins:
+
+   mpeg_play -dither color longVortexStreet.mpg
+
+
+
+Extra:
+
+
+   OvertureFigures
+
+   mpeg_play -dither color filamentGridMovie.mpg

@@ -1,0 +1,48 @@
+*
+* Input file for refine.C
+*
+* sq.refine.cmd
+* annulus.refine.cmd
+*
+* sis.refine.cmd
+* -noplot sis.refine.cmd
+* 
+* cic.refine.cmd
+* -noplot cic.refine.cmd
+*
+* -noplot rbib.refine.cmd
+* -noplot bib.refine.cmd
+* bugp.cmd
+* bugp2.cmd
+*
+* from tobp:
+* -noplot bugp3.cmd
+* bugp5a.cmd
+* bugp5.cmd
+*
+* null array:
+* bugp6.cmd
+*
+* bugp7.cmd
+* bugp8.cmd
+*
+* bugp9.cmd
+* bugp10.cmd
+*
+* bugp11.cmd
+* -- twoBump:
+* -noplot bugp12.cmd
+* +++ for bug with extrap interp neighbours:
+** bugp12.cmd
+*
+* from amrh with load-balancing:
+* bugp13.cmd
+*
+* bug from cgcns -np 8 
+* twoBumpAmrDebug.cmd
+*
+* bug from amrh on mcr -np 6
+* amrhDebug6.cmd
+*
+* amrhDebug4.cmd
+

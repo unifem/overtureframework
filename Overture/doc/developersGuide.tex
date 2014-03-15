@@ -1,0 +1,277 @@
+%-----------------------------------------------------------------------
+%   OtherStuff :
+%      Here we describe other Overture stuff
+%
+%-----------------------------------------------------------------------
+
+\documentclass{article}
+\usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\input documentationPageSize.tex
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{calc}
+\usepackage{ifthen}
+% \usepackage{fancybox}
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\primer}{/users/henshaw/res/primer}
+\newcommand{\GF}{/n/\-c3servet/\-henshaw/\-res/\-gf}
+\newcommand{\examples}{Overture/examples}
+\newcommand{\gf}{/users/henshaw/res/gf}
+\newcommand{\mapping}{/users/henshaw/res/mapping}
+\newcommand{\ogshow}{/users/henshaw/res/ogshow}
+\newcommand{\oges}{/users/henshaw/res/oges}
+\newcommand{\cguser}{/users/henshaw/cgap/cguser}
+\newcommand{\figures}{../docFigures}
+
+\newcommand{\OVERTUREOVERTURE}{/n/\-c3servet/\-henshaw/\-Overture/\-Overture}
+\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
+
+\newcommand{\RA}{realArray}
+\newcommand{\MGF}{MappedGridFunction}
+\newcommand{\RMGF}{realMappedGridFunction}
+\newcommand{\RCGF}{realCompositeGridFunction}
+
+\newcommand{\DABO}{Differential\-And\-Boundary\-Operators}
+
+\newcommand{\MG}{Mapped\-Grid}
+\newcommand{\GC}{Grid\-Collection}
+\newcommand{\CG}{Composite\-Grid}
+\newcommand{\MGCG}{Multigrid\-Composite\-Grid}
+
+\newcommand{\MGO}{MappedGridOperators}
+\newcommand{\GCO}{Grid\-Collection\-Operators}
+\newcommand{\CGO}{Composite\-Grid\-Operators}
+\newcommand{\MGCGO}{Multigrid\-Composite\-Grid\-Operators}
+
+\begin{document}
+
+% \input list.tex    %  defines Lentry enviroment for documenting functions
+
+% -----definitions-----
+\def\R      {{\bf R}}
+\def\Dv     {{\bf D}}
+\def\bv     {{\bf b}}
+\def\fv     {{\bf f}}
+\def\Fv     {{\bf F}}
+\def\gv     {{\bf g}}
+\def\iv     {{\bf i}}
+\def\jv     {{\bf j}}
+\def\kv     {{\bf k}}
+\def\nv     {{\bf n}}
+\def\rv     {{\bf r}}
+\def\tv     {{\bf t}}
+\def\uv     {{\bf u}}
+\def\Uv     {{\bf U}}
+\def\vv     {{\bf v}}
+\def\Vv     {{\bf V}}
+\def\xv     {{\bf x}}
+\def\yv     {{\bf y}}
+\def\zv     {{\bf z}}
+\def\lt     {{<}}
+\def\grad    {\nabla}
+\def\comma  {~~~,~~}
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\def\nv {{\ff nv }}
+\def\ng {{\ff ng }}
+\def\bc {{\ff bc}}
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+Overture Developers Guide \\
+Version 1.0
+}
+\vspace{2\baselineskip}
+William D. Henshaw
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+\vspace{\baselineskip}
+\today
+\vspace{\baselineskip}
+UCRL-MA-134300
+% LA-UR-98-1967
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+This document provides information for developers of Overture software.
+\end{flushleft}
+
+\tableofcontents
+% \listoffigures
+
+
+\vfill\eject
+\section{Naming Conventions}
+
+
+\begin{description}
+  \item[general identifiers]: are written without underscores, using embedded captials to 
+   denote the beginning of new words. Examples {\bf numberOfDimensions}, {\bf getClassName}, 
+    {\bf inverseVertexDerivative}. All identifiers other than class names are {\bf not} capitalized.
+  \item[class names] : begin with an initial capital, examples: {\bf SquareMapping}, {\bf MappedGridOperators},
+   {\bf GridCollection}.
+  \item[publically visible identifiers] : such as class names and public member function names should avoid introducing
+    short forms. For example, we prefer {\bf numberOfComponentGrids()} to {\bf numGrids()} and
+    {\bf realMappedGridFunction} to {\bf realMGF}.
+  \item[macro names] : should be in all capitals with words separated by underscores.
+  \item[enumerators] : The name of the enumerator should be capitalized (?) while the actual enumerators
+    should follow the rules for general identifiers.
+\end{description}
+
+
+\section{Overture Types}
+
+\subsection{Type names}
+The following are the suggested type names to use, found in 
+{\bf Overture/include/OvertureTypes.h}
+
+\begin{description}
+  \item[bool] :  is always defined even on machines that do not yet support the standard.
+  \item[Real, real] : is either a float or double, depending on whether Overture is compiled in 
+           single precision or double precision. Normally you should never declare a {\bf float}
+           or {\bf double}, use {\bf Real} instead so that your code is precision independent.
+  \item[IntegerArray] : is a serial (non-distributed array), equal to {\bf intSerialArray} 
+       in P++ (the type {\bf intSerialArray} does not exist in A++ ?).
+  \item[IntegerDistributedArray, intArray] : is a distributed array.
+  \item[RealArray] : is a serial (non-distributed array), equal to {\bf floatSerialArray} or
+        {\bf doubleSerialArray}.     
+  \item[RealDistributedArray, realArray] : is a distributed array.
+\end{description}
+
+
+
+\subsection{Enums and constants}
+Here are some useful enum's and constants some of which are found in {\bf Overture/include/wdhdefs.h}
+\begin{description}
+  \item[REAL\_EPSILON] : use instead of {\bf FLT\_EPSILON} or {\bf DBL\_EPSILON} to have precision
+     independent code. The other machine constants, such as {\bf REAL\_RADIX}, {\bf REAL\_ROUNDS},
+     {\bf REAL\_MANT\_DIG}, {\bf REAL\_MAX}, {\bf REAL\_MIN  }, and {\bf REAL\_MIN\_EXP }, 
+      are defined in a similar way
+  \item[axis1, axis2, axis3] : are just equal to 0,1,2 and can be used to name the coordinates axes.
+  \item[Start, End] are just equal to 0,1 and can be used to name the start and end of a coordinate axis.
+  \item[Pi, twoPi] : {\bf Pi}$=\pi$ and {\bf twoPi}$=2\pi$.
+  \item[getCPU()] : returns the current cpu count in seconds.
+  \item[char* sPrintF(char *s, const char *format, ...)] : like {\bf sprintf} but returns the 
+       character string.
+  \item[int sScanF(const String \& s, const char *format, ...)] like {\bf sscanf} but removes commas
+      from the input String `s' (so that the `format' string can assume there are no commas separating
+      input fields )and converts `%e' formats when Overture is compiled in double precision.
+  \item
+\end{description}
+
+\subsection{Global objects}
+Here are some useful global variables some of which are found in {\bf Overture/include/wdhdefs.h}
+These can be used as a default arguments, for example.
+\begin{description}
+  \item[Index nullIndex] : a null Index.
+  \item[Range nullRange]  : a null Range.
+  \item[String nullString] 
+  \item[String blankString] 
+  \item[IntegerArray nullIntArray] 
+  \item[RealArray nullRealArray] 
+  \item[MappingParameters nullMappingParameters]
+  \item[GraphicsParameters defaultGraphicsParameters]
+  \item[PlotStuffParameters defaultPlotStuffParameters]
+  \item[BoundaryConditionParameters defaultBoundaryConditionParameters]
+\end{description}
+
+
+
+\section{Common pitfalls and useful tricks}
+
+
+\begin{description}
+  \item[avoid scalar indexing of arrays]  where possible. In particular avoid scalar indexing of
+    distributed arrays as this will be slow in the parallel environment. 
+   Be aware of the {\bf seqAdd}, {\bf where} and {\bf sum} A++ operations.
+  \item[evaluate dangling A++ expressions] since an expression is a temporary until it hits
+    an equals operator, copy constructor or is evaluated.
+    \begin{verbatim}
+         floatArray a,b;
+         ....
+         myFunction( a(I1,I2)+b(I1,I2) );             // ***** WRONG WAY ******
+         myFunction( evaluate(a(I1,I2)+b(I1,I2)) );   // the right way
+         realArray & c = evaluate(a(I1,I2)+b(I1,I2));
+         realArray d = a(I1,I2)+b(I1,I2);             // this is ok since the copy constructor is called
+    \end{verbatim}
+  \item[watch out for referencing a view] In the example below the array {\bf c} will be a reference
+    to the view {\bf a(I)}. It will {\bf NOT} be a copy.
+    \begin{verbatim}
+         floatArray a;
+         ....
+         realArray c = a(I);     // *AVOID* This is a reference to a view on most compilers.
+         realArray c(a(I));      // This is a reference to a view
+         realArray & d = a(I);   // This is a reference to a view
+         realArray d; d = a(I);  // This is a copy
+    \end{verbatim}
+  \item[cast MappedGridFunctions to arrays] : when writing long expressions that use array indexing, so
+    the compiler can avoid an extra level of function calls in the parenthesis operator ().
+    \begin{verbatim}
+        realMappedGridFunction velocity(...);
+        ...
+        realArray & u = velocity;
+        ...
+        u(I1,I2,I3,0)=u(I1+1,I2,I3,0)*u(I1+1,I2,I3,1)+...;
+    \end{verbatim}
+  \item[Reference views for readability] : when a view appears many times in expressions.
+    \begin{verbatim}
+       const realArray & a1 = b(I1+1,I2,I3);      
+       const realArray & a2 = b(I1+1,I2+1,I3);      
+       const realArray & a3 = b(I1+1,I2+1,I3+1);      
+
+       c = a1*a2+a3;
+       d = a2+a3*a1;
+    \end{verbatim}
+  \item[Reuse a where mask for efficiency]: 
+    An A++ logical expression just builds an intArray holding ones and zeros. Instead of computing the
+    expression twice as in
+    \begin{verbatim}
+       where( a(I)>0. && a(I-1)>7. )
+         b(I)=c(I)+3;
+       ...
+       where( a(I)>0. && a(I-1)>7. )
+         c(I)=7;
+    \end{verbatim}
+    you can just build the expression first and then reuse it as in
+    \begin{verbatim}
+       intArray mask = a(I)>0. && a(I-1)>7.;
+       where( mask )
+        b(I)=C(I)+3;
+       ...
+       where( mask )
+        c(I)=7.;      
+    \end{verbatim}
+  \item[Avoid derivation from most Overture Classes] : avoid the temptation to derive a new class from
+    most Overture classes such as A++ array's, MappedGridFunction's, MappedGrid's, GridCollections's etc. 
+    Derived classes are usually hard to support and experience shows that many levels of derivation is
+    evil. Of course some classes such as Mapping's or the ReferenceCounting class 
+    are explicitly meant to be derived from; this is clear from the documentation.
+\end{description}
+
+\section{Parallel}
+
+  When compiling with P++, one cannot mix serial and distributed
+array operations. The basic rule of thumb is that small arrays are serial and big
+arrays (e.g. those that live on a MappedGrid) are distributed.
+
+\end{document}

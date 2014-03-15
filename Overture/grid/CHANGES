@@ -1,0 +1,8 @@
+Here are my changes
+
+CompositeGrid.C
+  canInterpolate: more accurate test for interpolation near interiorBoundaryPoints
+  canInterpolate,getInterpolationStencil(2) : fix a<r<b
+
+MappedGridGeometry{1,2}.C
+  boundingBox : included extendedIndexRange

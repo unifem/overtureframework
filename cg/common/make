@@ -1,0 +1,123 @@
+KKSRC:=/home/chand/res/common
+ifeq ($(CG),)
+CG := ..
+endif
+
+# ==============================================================
+# ===================  Options for PETSc =======================
+# To use PETSc define the env variables PETSC_DIR and PETSC_ARCH
+# (To also use Hypre define the Hypre libraries with HYPRE_LIBS)
+# ==============================================================
+
+ifeq ($(usePETSc),on)
+  # use PETSc
+  ifeq ($(PETSC_DIR),) 
+    $(error ERROR: usePETSc requires PETSC_DIR (and PETSC_ARCH) to be defined.)
+  endif
+  ifeq ($(PETSC_ARCH),) 
+    $(error ERROR: usePETSc requires PETSC_ARCH to be defined.)
+  endif
+
+  ifneq ($(OV_USE_PETSC_3),)
+  PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/$(PETSC_ARCH)/include -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
+  ifneq ($(OV_RPATH),)
+  PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetsc
+  else
+  PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetsc
+  endif
+  else
+  PETSC_INCLUDE := -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -DOVERTURE_USE_PETSC -I$(PETSC_LIB)/include
+  ifneq ($(OV_RPATH),)
+  PETSC_LIBS := $(OV_RPATH)$(PETSC_LIB) -L$(PETSC_LIB) $(OV_RPATH)$(PETSC_LIB)/lib -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
+  else
+  PETSC_LIBS := -L$(PETSC_LIB) -L$(PETSC_LIB)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
+  endif
+  endif
+
+  PETSC_FILES := buildEquationSolvers.o \
+                 PETScEquationSolver.o \
+	         MultigridEquationSolver.o
+  ifeq ($(OV_PARALLEL),parallel)
+    # parallel version
+     PETSC_FILES += PETScSolver.o
+     PETSC_LIBS += $(HYPRE_LIBS)
+  else
+    # serial version
+    PETSC_INCLUDE += -I$(PETSC_DIR)/include/mpiuni
+ifeq ($(OV_USE_PETSC_3),)
+    PETSC_LIBS += -lmpiuni 
+endif
+  endif
+  ifeq ($(useSuperLU),on)
+    PETSC_LIBS += /home/henshaw/software/SuperLU_DIST_2.0/superlulinux.a
+  endif
+endif
+# ==============================================================
+
+# ===================  Options for linking to Ogmg =======================
+ifeq ($(useOgmg),on)
+  ifeq ($(usePETSc),on)
+    OGMG_FILES :=  
+  else
+    OGMG_FILES :=  buildEquationSolvers.o \
+   	           MultigridEquationSolver.o
+  endif 
+  OGMG_LIB = Ogmg
+  OGMG_LIBS = -Wl,-rpath,$(Overture)/lib -L$(Overture)/lib -l$(OGMG_LIB)
+  ifneq ($(OV_RPATH),)
+  OGMG_LIBS = $(OV_RPATH)$(Overture)/lib -L$(Overture)/lib -l$(OGMG_LIB)
+  else
+  OGMG_LIBS =  -L$(Overture)/lib -l$(OGMG_LIB)
+  endif
+endif
+
+# Force the loader to include all files from the static lib's
+ifeq ($(OS),Linux)
+USE_WHOLE_ARCHIVE := -Wl,-whole-archive
+END_USE_WHOLE_ARCHIVE := -Wl,-no-whole-archive
+endif
+
+
+# if buildStaticLib is on then all out of date object files are added to the static library
+ifeq ($(buildStaticLib),on) 
+  CgCommonStaticLib := $(USE_WHOLE_ARCHIVE) -lCgCommonStatic $(END_USE_WHOLE_ARCHIVE)
+  CgCommonBuildLibrary :=  $(LIBDIR)libCgCommonStatic.a
+else
+  CgCommonStaticLib := 
+  CgCommonBuildLibrary :=  $(LIBDIR)libCgCommon 
+endif 
+
+
+INCLUDES += -I$(CG)/common/src -I$(CG)/common/shared -I$(CG)/common/moving/src -I$(CG)/common/multiComponent/src -I$(CG)/common/chemistry -I$(CG)/common/dataBase -I$(CG)/src -I$(Overture)/include -I$(APlusPlus)/include $(OV_PARALLEL_INCLUDE) -I$(HDF)/include $(PETSC_INCLUDE) -I$(OV_OPENGL)/include $(OV_OPENGL_HEADERS) 
+
+FORTRAN_INCLUDES += -I$(CG)/common/src
+
+FLIBS= $(CHEMKIN_LIBS) $(LAPACK_LIBRARIES) $(OV_FORTRAN_LIBRARIES)
+
+# 081231: put OpenGl libs after A++ libs to avoid conflict between PARTI function perm and one in OpenGL.
+LIBS += $(OGMG_LIBS) \
+	$(OVERTURE_LIBRARIES) \
+        $(OV_COMPILER_LIBS) \
+        $(OV_HDF_LIBRARIES) \
+        $(PETSC_LIBS) \
+        $(APP_LIBRARIES) \
+        $(FLIBS) \
+        $(OV_OPENGL_LIBRARIES) \
+        $(OV_MOTIF_LIBRARIES) \
+        $(OV_X_LIBRARIES) \
+        $(OV_PERL_LIBRARIES) 
+
+#LIBS += $(OV_RPATH)$(Overture)/lib -L$(Overture)/lib -lOverture -lOverture_static \
+#        $(OV_RPATH)$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(GL_LIBS) \
+#        $(OV_RPATH)$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static \
+#        $(OV_RPATH)$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS) -L$(MOTIF)/$(LIB64)  $(FLIBS) \
+#        -L$(XLIBS)/$(LIB64)  -lXm -lXt $(OV_PERL_LIBRARIES) 
+
+
+
+# ifneq ($(PETSC_LIB),)
+# MPI_INCLUDE = -I$(PETSC_DIR)/include/mpiuni
+# PETSC_INCLUDE = -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) $(MPI_INCLUDE)
+# CXX_FLAGS := -DOVERTURE_USE_PETSC $(PETSC_INCLUDE) $(CXX_FLAGS)
+# LIBS += -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni /home/henshaw/software/SuperLU_DIST# _2.0/superlulinux.a
+# endif

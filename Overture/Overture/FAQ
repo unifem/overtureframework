@@ -1,0 +1,184 @@
+This file contains answers to frequently asked questions. 
+
+
+Q: I am running CDE on a Sun workstation and my screen flashes when a PlotStuff window pops up.
+   What can I do?
+A: Go to the Overture/static/Makefile and change mogl.o to mogl2.o ; this version of the
+   motif/OpenGL interface should not flash. The only problem is that mogl2.o will not work
+   if you have a program running on a Sun and want to display on an SGI.
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+Q: What the heck are all these warning messages? (F. Olsson-Hector)
+
+WARNING: Inside of Array_Descriptor_Type::Pop_Array_ID  Number (1000000) of outstanding array object in excess of 1000000 
+
+A: It looks like you have a memory leak. Someone is allocating arrays and not deleting them.
+There is an A++ function you can call to get the number of arrays it has allocated as in:
+
+  int totalNumberOfArrays=0;
+  ....
+
+
+  if(Array_Descriptor_Type::getMaxNumberOfArrays() > totalNumberOfArrays ) 
+  {
+    totalNumberOfArrays=Array_Descriptor_Type::getMaxNumberOfArrays();
+    printf("\n**** Number of A++ arrays = %i \n\n",Array_Descriptor_Type::getMaxNumberOfArrays());
+  }
+
+
+  A++ allocates arrays like 300 at a time so the above function is a bit "coarse" but it should
+  help to track down who is allocating so many arrays. 
+
+  Possible sources for leaks:
+    (1) Passing an A++ expression to a function:
+           floatArray a,b;
+           ...
+           myFunction( a+b );    // this generates a leak
+           myFunction( evaluate(a+b) );   // no leak
+
+    (2) Dangling expression - this is basically the same problem as above. If an expression
+        does not have an "=" then one should use the evaluate function. 
+           floatArray a,b;
+           ...
+           (a+b).display("Here is a+b");   // generates a leak
+           evaluate(a+b).display("no leak here");
+           
+    (3) Dangling expression for CompositeGridFunction of GridCollectionFunction - these functions
+        have the same problem as A++ arrays. In a future version of Overture I have added
+        an evaluate function for CompositeGridFunction's of GridCollectionFunction's
+
+Q: I am having some problems with a moving grid computation. 
+A:      If the grid moves significantly then some points on the old
+        grid get exposed and need values in them -- use interpolateExposedPoints
+        to fill in these values (see the GridFunction doc's, around page 75)
+
+
+
+----------------------------------------------------------------------------------------------------
+
+
+
+1) Does it all work in parallel now? This is important because
+ASCII has a way of putting one on very narrow timeframes.
+On how many processors has it been tried on say a T3E/Origin
+and what levels of parallelism can it achieve?
+
+A: Most of Overture "works" in parallel although a lot more work is
+required to bench mark it. I have only tested on Sun ultras. By most I
+mean things needed by AMR++ and graphics. Overlapping grids don't work
+yet as we need to finish the parallel indirect addressing for doing
+interpolation.
+
+2) A question I get asked often is : How do the Overture grid
+generation capabilities differ from that of a standard package
+like "GridGen"? What sorts of mesh generation are anticipated
+to come on line? Are all of them parallel?
+
+A: the main difference is of course that GridGen builds block
+structured grids and the overlapping grid generator "ogen", creates
+overlapping grids. They are similar in that they both need methods to
+build "component" grids. Ogen is slowly gaining grid generation
+capabilities including support for elliptic and hyperbolic grid
+generation and the ability to make grids from geometries created with
+CAD packages such as pro/ENGINEER (see "future work" on the Overture
+home page).  Eventually I expect it to have most of the component grid
+generation capabilities of GridGen plus other capabilities specific to
+overlapping grids that GridGen does not support. For now one can also
+build component grids in GridGen and import then into Overture as
+Plot3d files. You can also use the grid generators from Anders
+Petersson, Xcog and Chalmesh, to make overlapping grid
+(http://www.na.chalmers.se/~andersp/index.html)
+
+
+3) Usually in a fluid solver it is useful to be able to get such
+quantities as normal to zone boundary computed in the range space
+where the range is Cartesian. Similarly for Jacobians etc. One would
+also want volume of a cell and areas of its faces. Does Overture spit
+out such info.? Which functions would make it do that? I understand
+though that you could alternatively give the user the cell vertices
+and ask him to make the rest up himself.
+
+A: Yes, see the grid documentation.
+
+
+4) Do the intergrid transfers operate in parallel? Can one interpolate 
+solutions from any grid to any other?
+
+A: This doesn't work in parallel yet, but it should be working in 6 months or so.
+
+5) In our applications we have flow variables that are 
+zone-centered, other flow variables that are face-centered and 
+others that are vertex-centered. How would that be specified to
+the MappedGridFunction class? If a zone centered variable in 2d has
+index (i,j) would the x face centered variables be labelled (i+1,j)
+and (i,j) or would they be labelled (i,j) and (i-1,j)? simialr questions
+for the labelling of vertices.
+
+A: This is all supported, see the grid function docs.
+
+
+6) For certian solvers and their boundary conditions we would like
+to have explicit control of the boundary conditions. We currently
+do that by expanding the grid in all directions by about 3 or 4 
+zones. How would one retain that capability in Overture?
+
+A: This can easily be done, grids can be constructed with an arbitrary
+number of "ghost points".
+
+
+------------------------
+
+Question: I can't seem to read the Overture data base directly from fortran
+using hdf routines?
+
+Answer:
+
+Overture was designed to be used with C++.  The Overture data base
+files are not designed to be read in the way that you are trying to do
+it. For example, some grids do not even have the grid points saved in
+the file, they are regenerated when the grid is read in using C++
+classes in the Overture library.
+
+I would suggest that you write a C++ main program to read the data
+base file (something like primer/example1) and then pass the
+appropriate data to the fortran routines that you would like to use.
+This is not hard to do. There are a number of examples in Overture
+showing how to call fortran from C++ -- see
+Overture/GridFunction/FourierOperators.C, for example.
+
+
+An even better solution is to write most of your code in C++, this is 
+the whole point of Overture. Otherwise you will be unable to
+use all the great features such as graphics, operators, boundary
+conditions etc. etc.
+
+
+-------------------
+Question:
+  I get an error when I try to read a show file. WHat is going on?
+
+>>       ShowFileReader::ERROR: unable to open an old file = nisse.show (or
+>>       nisse.show.hdf ),  (or nisse.show.show )
+>>       Run-time exception error; current exception: char *
+>>        No handler for exception.
+
+Answer:
+
+You could run primer/example6.C to see if you can read the
+show file created by it.
+
+The show file will not be closed properly if your program aborts
+before finishing. You could set
+
+       show.setFlushFrequency(n); // save n solutions per sub-file 
+
+as in primer/example6.C so that the files are closed after every n
+solutions are saved (take n a small number if you only save a few
+solutions). Actually since hdf has no way to flush a file, a new
+sub-file is created each time the file is flushed. These different 
+files (named <file>.show, <file>.show1, <file>.show2,... ) are automatically
+read by plotStuff. In this case if the program aborts then you will
+still be able to see the solutions that
+

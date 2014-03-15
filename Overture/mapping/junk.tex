@@ -1,0 +1,135 @@
+%=======================================================================================================
+% Mapping Documentation
+%=======================================================================================================
+\documentclass{article}
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height for xdvi
+
+ \usepackage{epsfig}
+ \usepackage{graphics}    
+ \usepackage{moreverb}
+ \usepackage{amsmath}
+
+% \usepackage{fancybox}
+ \usepackage{subfigure}
+ \usepackage{multicol}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\begin{document}
+
+
+\input wdhDefinitions
+
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\id     {i}
+\def\jd     {j}
+\def\kap {\sqrt{s+\omega^2}}
+
+\newcommand{\mapping}{/home/henshaw/Overture/mapping}
+\newcommand{\figures}{../docFigures}
+
+\vspace{3\baselineskip}
+\begin{flushleft}
+  {\Large 
+   Mappings for Overture  \\ 
+   A Description of the Mapping Class  \\
+   and Documentation for Many Useful Mappings \\
+  }
+\vspace{2\baselineskip}
+William D. Henshaw               
+\footnote{
+        This work was partially
+        supported by grant N00014-95-F-0067 from the Office of Naval
+        Research
+        }   \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+\vspace{1\baselineskip}
+\today
+\vspace{\baselineskip}
+UCRL-MA-132239
+% LA-UR-96-3469
+
+\end{flushleft}
+
+\vspace{1\baselineskip}
+
+\begin{abstract}
+This document describes the class {\ff Mapping}. The Mapping class is
+used to define transformations. These transformations are used within
+Overture to define grids and stretching functions and rotations etc.
+The base class is called {\ff Mapping}. Particular mappings such as
+a sphere or an annulus are defined by deriving a class from the
+base class and defining the particular transformation. 
+A number of derived Mappings have been written including
+\begin{itemize}
+ \item  Various Analytical mappings: LineMapping, SquareMapping, CircleMapping, 
+        AnnulusMapping, BoxMapping, CylinderMapping, PlaneMapping, QuadraticMapping, SphereMapping
+ \item  AirfoilMapping : for creating airfoil related grids and curves (including some NACA airfoils).
+ \item  ComposeMapping : for composing two mappings  
+ \item  CompositeSurface : a mapping that represents a collection of sub-surfaces.
+ \item  CrossSectionMapping : define a surface by cross-sections
+ \item  DataPointMapping : mappings defined by data points  
+ \item  DepthMapping : create a 3D grid from a 2D grid by adding a variable depth.
+ \item  EllipticTransform: smooth a mapping with an elliptic transform (thanks to Eugene Sy)
+ \item  FilletMapping: create a fillet or collar grid to join two intersecting surfaces.
+ \item  HyperbolicMapping: create volume grids using hyperbolic grid generation (described else-where).
+ \item  IntersectionMapping: a mapping that is the intersection between two other mappings, such as
+        the curve of intersection between two surfaces.        
+ \item  JoinMapping: create a mapping that can join two intersecting mappings.
+ \item  MatrixMapping : define a matrix transformation by rotations, scaling, shifts etc.  
+ \item  MatrixTransform : apply a matrix transformation to another mapping
+ \item  NormalMapping : define a new mapping by extending normals
+ \item  NurbsMapping : define a mapping by a NURBS, non-uniform rational b-spline.
+ \item  OrthographicTransform : define an orthographic transform
+ \item  ReductionMapping : make a new Mapping from the face or edge of another mapping.
+ \item  ReparameterizationTransform : reparameterize a mapping (e.g. remove singularities)
+ \item  RestrictionMapping : define a restriction to a sub-rectangle.
+ \item  RevolutionMapping : create a surface or volume of revolution
+ \item  RocketMapping : create curves related to rocket geometries.
+ \item  SmoothedPolygon : for polygons with smoothed corners  
+ \item  StretchMapping : one-dimensional stretching transformations  
+ \item  StretchedSquare : stretch grid lines on the unit interval.
+ \item  StretchTransform : stretch grid lines along the coordinate directions 
+ \item  SweepMapping : Sweep a 2D Mapping along a curve in 3D.
+ \item  SplineMapping: define a cubic spline curve.
+ \item  TFIMapping : define a grid from given boundary curves by transfinite-interpolation (Coon's patch).
+ \item  TrimmedMapping : define a trimmed surface in 3D, the surface has portions removed
+        from it (``trimmed'').
+ \item  UnstructuredMapping : create an unstructured representation for an existing mapping or 
+	read in an manipulate and unstructured mesh.
+\end{itemize}
+All these classes are described in this document.
+\end{abstract}
+
+
+
+\tableofcontents
+
+\vspace{3\baselineskip}
+
+\section{Introduction}
+
+The C++ class ``Mapping'' can be used to define the ``mappings'' (transformations)
+and their properties. For example,
+each component grid in an overlapping grid will contain a member
+function that defines the mapping from the unit square (or unit cube)
+onto the domain covered by the grid. This mapping may in turn be
+defined in terms of the curves (or surfaces) that form its boundaries.
+Stretching functions as well as rotations and scalings are all
+defined by mappings.
+
+
+\end{document}

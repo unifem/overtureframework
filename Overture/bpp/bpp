@@ -1,0 +1,1405 @@
+eval 'exec perl -S $0 ${1+"$@"}'
+if 0;
+#!/usr/bin/perl
+#!/usr/local/bin/perl
+# BPP: Bill's PreProcessor
+#    perl program that preprocesses a file with CPP like statements
+#
+
+# kkc 050127 added for adjustments to bpp header spec
+use File::Basename;
+
+sub help
+{
+  print '  usage: ' . "\n";
+  print '         bpp [flags] fileName1 [fileName2] [ fileName3] ...' . "\n";
+  print ' ' . "\n";
+  print ' flags: ' . "\n";
+  print '   -help : print help' . "\n";
+  print '   -debug : turn on debug output.' . "\n";
+  print '   -quiet : run in quiet mode (do not output macros found to the screen).' . "\n";
+  print '   -clean : output a clean file, no extra comments or blank lines.' . "\n";
+  print '   -I<dir> : look for include files in directory <dir>.' . "\n";
+  print 'Commands:' . "\n";
+  print '' . "\n";
+  print ' #beginMacro name(arg1,arg2,...)' .   "\n";
+  print '     ...macro lines here  ... ' .     "\n";
+  print ' #endMacro '.  "\n"; 
+  print '' . "\n";
+  print ' #If constant-expression' .   "\n";
+  print '     ...   ' .  "\n";
+  print ' #Elif constant-expression ' .  "\n";
+  print '     ...   ' .  "\n";
+  print ' #Else ' .  "\n";
+  print '     ...   ' .  "\n";
+  print ' #End '.  "\n";
+  print '' . "\n";
+  print ' Define an inline macro: ' . "\n";
+  print ' #defineMacro name(arg1,arg2,...) inline-macro-definition' . "\n";
+  print '' . "\n";
+  print 'Direct output to a new file:' . "\n";
+  print ' #beginFile filename' .   "\n";
+  print '     ...   ' .  "\n";
+  print ' #endFile ' .  "\n";
+  print 'Append results to an existing file:' . "\n";
+  print ' #appendFile filename' .   "\n";
+  print '     ...   ' .  "\n";
+  print ' #endFile ' .  "\n";
+  print ' Evaluate perl commands:' . "\n";
+  print '  #perl perl-commands' . "\n";
+  print ' Evaluate a line with embedded perl expressions, and use the result.' . "\n";
+  print '  #peval line with embedded perl expressions' . "\n";
+  print ' NOTES:' . "\n";
+  print '   (1) To use one macro as the argument of a second, prefix the argument with a \$ as in' . "\n";
+  print '              macroOne($macroTwo(arg))' . "\n";
+  print '   (2) #perl and #peval statements in macros are evaluated when the macro is used' . "\n";
+  print ' examples:' . "\n";
+  print '' . "\n";
+
+}
+
+
+# ------------- define global variables here ---------------------------------------------
+
+$debug = 0;
+$fortran = 0;  # set to 1 if we are processing fortran
+$fortranFreeForm=0;  # set to 1 if we are processing fortran free format
+$appendToOutputFile=0;  # if =1 we append to an output file
+
+$quiet = 0;
+$clean = 0;
+
+$indent="";    # a string of blanks used for indentation 
+
+$pushOnInputStack=0;
+@inputStack = (); # stack of lines created from macros to read first before reading from the file
+
+$numberOfMacros=0;  # number of macros we have defined
+%macroNameToIndex = (); # associative array of macroName to index into macroDefinition
+
+@macroDefinitions = (); # list of macro definitions
+@macroNames = ();
+@macroArgs = ();
+
+# --------------- arrays for inline macros ------------------------
+$numberOfInlineMacros=0;  # number of macros we have defined
+%inlineMacroNameToIndex = (); # associative array of macroName to index into macroDefinition
+
+@inlineMacroDefinitions = (); # list of macro definitions
+@inlineMacroNames = ();
+@inlineMacroArgs = ();
+# ----------------------------------------------------------------
+
+# --- for error checking  ---
+$ifLineNumber=-1;  # line number of current #If statement
+# ------------------
+
+# --------------- For include directories --------------
+$numberOfIncludeDirs=0;
+@includeDirs = ();
+
+
+sub readFile #
+{
+  if( $#inputStack >=0 )  # remember $#array gives the last index value -- not the length
+  {
+    $_ = pop(@inputStack);
+  }
+  else
+  {
+    $_ = <FILE>;
+
+    while( /\\$/ )
+    {
+      # printf("***** readFile: continuation line found\n");
+      $cc = <FILE>;
+      $cc =~ s/^[ ]*//; # remove leading blanks
+      chop($_); chop($_);
+      $_ = $_ . $cc;
+    }
+  }
+  $_;
+}
+
+sub printout # ($a,$b,...)
+# output a line to the file
+# add indentation
+{
+  print OUTFILE @_;
+}
+
+sub printouti # ($a,$b,...)
+# output a line to the file with indentation
+# add indentation
+{
+  if( $fortran ==0 )
+  {
+
+    print OUTFILE $indent, @_;
+  }
+  else
+  {
+    splitfor(@_);
+  }
+}
+
+# Add a macro definition to the list of macros.
+sub addMacroDefinition
+{
+  my @macro = ();
+
+  if( $line =~ /^[ \t]*#beginMacro[ ]*([^\(]*)[ ]*\(/ )
+  {
+    $macroName=$1;
+  }
+  else
+  {
+    printf("ERROR: unable to find the macro name in line=$line");
+    exit(1);
+  }
+  if( $quiet==0 ){ printf("macroName=[$macroName]\n"); }
+
+  my $indexOfNewMacro=-1;  # new macro goes at end of list by default
+  my $ii;
+  for( $ii=0; $ii<=$#macroNames; $ii++ )
+  {
+     if( $macroName eq $macroNames[$ii] )
+     {
+       if( $quiet==0 ){ printf("****redefining macro $macroName\n"); }
+       $indexOfNewMacro=$ii;
+       last;
+     }
+  }
+  $args = $line;
+  chop($args);
+  $args =~ s/^[ \t]*#beginMacro[ ]*[^\(]*[ ]*\(([^\)]*)\)/\1/;    # \#define[ ]*\w*\(([^\)]*)\).*/\1/;
+
+  $args =~ s/ //g;  # remove blanks
+
+#  push(@macroArgs,$args);
+
+  if( $indexOfNewMacro==-1 )
+  {
+    push(@macroNames,$macroName);
+    push(@macroArgs,$args);
+    $macroNameToIndex{$macroName}=$numberOfMacros;
+    $numberOfMacros++;
+  }
+  else
+  {
+    if( $quiet==0 ){ printf("***Redefine $macroName, indexOfNewMacro=$indexOfNewMacro\n"); }
+    $macroNames[$indexOfNewMacro]=$macroName;
+    $macroArgs[$indexOfNewMacro]=$args;
+    $macroNameToIndex{$macroName}=$indexOfNewMacro;
+  }
+
+  &readFile;
+  $line = $_;
+  while( !( $line =~ /^[ \t]*#endMacro/) )
+  {
+    if( $line =~ /^[ \t]*#beginMacro/ )
+    {
+      print "bpp:addMacroDefinition:ERROR: at line $. while defining macro=[$macroName] -- \#beginMacro found!\n";
+      print " Perhaps you forgot an \#endMacro statement or spelled it wrong\n";
+      exit(1);
+    }
+    if( $line =~ /^[ \t]*$/ ){}  # do not push blank lines
+    else{
+      # print "push macrolline: $line";
+      push(@macro,$line);   
+    }
+    &readFile;
+    $line = $_;
+  }          
+  if( $quiet==0 ){ printf("#endMacro found: $line"); }
+
+  if( $indexOfNewMacro==-1 )
+  {
+    push(@macroDefinitions, [@macro] );  
+  }
+  else
+  {
+    $macroDefinitions[$indexOfNewMacro]=[@macro]; # does this work?
+  }
+}
+
+# ***************************************************************
+# Add an inline macro definition to the list of macros.
+# ***************************************************************
+sub addInlineMacroDefinition
+{
+  my @macro = ();
+
+  if( $line =~ /^[ \t]*#defineMacro[ ]*([^\(]*)[ ]*\(/ )
+  {
+    $macroName=$1;
+  }
+  else
+  {
+    printf("ERROR: unable to find the inline macro name in line=$line");
+    exit(1);
+  }
+  if( $debug>-1 ) { if( $quiet==0 ) {printf("inlineMacroName=[$macroName]\n");}}
+
+  my $indexOfNewMacro=-1;  # new macro goes at end of list by default
+  my $ii;
+  for( $ii=0; $ii<=$#inlineMacroNames; $ii++ )
+  {
+     if( $macroName eq $inlineMacroNames[$ii] )
+     {
+       if( $quiet==0 ){ printf("****redefining inline macro $macroName\n"); }
+       $indexOfNewMacro=$ii;
+       last;
+     }
+  }
+  $args = $line;
+  chop($args);
+  $args =~ s/^[ \t]*#defineMacro[ ]*[^\(]*[ ]*\(([^\)]*)\)(.*)/\1/;   
+  $rest = $2;
+
+  $args =~ s/ //g;  # remove blanks
+
+#  push(@macroArgs,$args);
+
+  if( $indexOfNewMacro==-1 )
+  {
+    push(@inlineMacroNames,$macroName);
+    push(@inlineMacroArgs,$args);
+    $inlineMacroNameToIndex{$macroName}=$numberOfInlineMacros;
+    $numberOfInlineMacros++;
+  }
+  else
+  {
+    if( $quiet==0 ){ printf("***Redefine inline macro $macroName, indexOfNewMacro=$indexOfNewMacro\n"); }
+    $inlineMacroNames[$indexOfNewMacro]=$macroName;
+    $inlineMacroArgs[$indexOfNewMacro]=$args;
+    $inlineMacroNameToIndex{$macroName}=$indexOfNewMacro;
+  }
+
+  # kkc 090226 added the if test around the removal of blanks to preserve the peval syntax
+  if ( !($rest =~ /#peval/) ) { $rest =~ s/ //g;  } # remove blanks
+  if( $debug>1 ) { printf(" *** inline macro definition: [$rest] \n"); }
+  push(@macro,$rest);   
+
+  if( $indexOfNewMacro==-1 )
+  {
+    push(@inlineMacroDefinitions, [@macro] );  
+  }
+  else
+  {
+    $inlineMacroDefinitions[$indexOfNewMacro]=[@macro]; 
+  }
+}
+
+
+
+
+sub outputMacroDefinitions {
+
+    my $ii;
+    my $line;
+    my @macro;
+
+    for( $ii=0;  $ii< $numberOfMacros; $ii++ )
+    {
+	print( "****** MACRO $ii ($macroNames[$ii]) (args=$macroArgs[$ii]) ***** \n");
+	@macro = @{@macroDefinitions[$ii]};
+
+	foreach $line ( @macro ) 
+        {
+	  print $line;
+	}
+    }
+}
+
+sub getArguments # ($s,$a)
+# ========================================================================================
+#   look for an expression of the form $a(a,b,c..) in the string $s
+#   and return the arguments a,b,c,... as a list.
+# /$match (output) : the matched string $a(a,b,...)
+# ========================================================================================
+{
+
+
+  local($s,$a,$n,@ag,$l,$n,$c,$found,$r,$i);
+
+  $s = $_[0]; chop($s);
+  $a = $_[1];
+
+  if( $debug > 1 ){ printf("getArguments for [$s] with name=$a\n");}
+
+  @ag=();
+  $n=-1;
+  $r="";
+  if( $s =~ s/.*?\b$a\b// )  # look for $a...
+  {
+    if( $s =~ s/^\(// )
+    {
+      # found a reference of the form $a\(...
+      $r = "$a(";
+      $l=0;  # level of paren's
+      $n=0;  # count of arguments
+      # printf("start of expr found: s=[$s]  r=[$r]\n");
+      while( $s ne "" )
+      {
+        $s =~ s/^(.)//;  # get first character
+        $c = $1;
+        $r .= $1;
+        # printf("s=[$s], c=[$c]\n");
+        if( $c eq '(' )
+        {
+	  $l++; 
+        }
+	elsif( $c eq ')' )
+	{
+	  if( $l == 0 ){ last; }
+	  $l--;
+	}
+	if( $l==0 && $c eq ',' )
+	{
+	  $n++; 
+	}
+	else
+	{
+	  $ag[$n] .= $1;
+	}
+      }
+      # printf("expr = [$r]\n");
+    }
+    else
+    {
+      $r = "$a";
+      $n = -1;
+    }
+  }
+  else
+  {
+     # not found
+  }
+  for( $i=0; $i<=$n; $i++ )
+  {
+    $ag[$i] =~ s/ //g; # remove blanks
+    $ag[$i] =~ s/^\$//; # remove leading $
+  }
+
+  $match=$r;
+  @ag;  # return values
+}
+
+sub replaceArgument # ($s,$a,$replace)
+# ========================================================================================
+#   Replace the expression $a(a,b,c..) with the string $r
+#   and return the new string
+# ========================================================================================
+{
+
+
+  local($input,$s,$a,$n,$l,$n,$c,$found,$r,$i);
+
+  $input = $_[0];
+
+  $s = $_[0]; 
+  $a = $_[1];
+  $replace = $_[2];
+
+  if( $debug > 1 ){ printf("replaceArgument: string=[$s] macro-name=[$a] replacement=[$replace]\n");}
+
+  @ag=();
+  $n=-1;
+  $r="";
+  if( $s =~ s/.*?\b$a\(// )  # look for $a...
+  {
+    # found a reference of the form $a\(...
+    $r = "$a(";
+    $l=0;  # level of paren's
+    $n=0;  # count of arguments
+    # printf("start of expr found: s=[$s]  r=[$r]\n");
+    while( $s ne "" )
+    {
+      $s =~ s/^(.)//;  # get first character
+      $c = $1;
+      $r .= $1;
+      # printf("s=[$s], c=[$c]\n");
+      if( $c eq '(' )
+      {
+	$l++; 
+      }
+      elsif( $c eq ')' )
+      {
+	if( $l == 0 ){ last; }
+	$l--;
+      }
+      if( $l==0 && $c eq ',' )
+      {
+	$n++; 
+      }
+      else
+      {
+	# $ag[$n] .= $1;
+      }
+    }
+    # printf("expr = [$r]\n");
+
+    $input =~ s/\Q$r/$replace/;
+    if( $debug > 1 ){ printf("*** replaceArgument: AFTER: string=[$input]\n");}
+  }
+  else
+  {
+    printf("bpp: ERROR: replaceArgument: macro name not found!\n");
+    printf("replaceArgument: string=[$s] macro-name=[$a] replacement=[$replace]\n");
+    exit 1;
+  }
+
+  $input; # return value
+}
+
+sub splitfor # ($_)
+# ========================================================================================
+#   split a line for output to a fortran file.
+# ========================================================================================
+{
+
+  local($s,$c,$i,$j,$len);
+
+  $s = $_[0];
+  $s =~ s/[ ]*$//g;  # remove trailing blanks
+  $s =~ s/^([ ]*)\t/\1      /g; # change blanks and a tab into 8 blanks -- *wdh* 070101
+  $s =~ s/\t/ /g; # change other tabs to a blank -- *wdh* 070101
+
+  if( $s =~ /^[ ]*\!/ || $s =~ /^[cC]/ )
+  { # line is a comment -- no need to split
+     printout($s);
+     return
+  }
+  $len=length($s);
+  if( $s =~ /\!/ )
+  {
+     # line ends in a comment, do not include in the length
+    $c=$s;
+    $c =~ s/.*\!/\!/;
+    $lenc=length($c);
+    $len=$len-$lenc;
+  }
+
+  my $maxNum=72; # 73; # 62; # 71;
+
+  chop($s); # remove newline
+  $len--;
+
+  if( $len <$maxNum ) 
+  {
+    printout("$s\n");
+  }
+  else
+  {
+
+    $num=0; # number of continuation lines
+
+
+    # remove leading blanks and a leading continuation character
+    $s =~ s/^[ \t]{5,5}([^ \t])//;  # remove a continuation char
+
+    $s =~ s/\t//g;  # remove tabs
+
+    if( $1 ne "" )
+    { 
+      $num=1; 
+      $maxNum=$maxNum-8;
+      # print "continuation char = [$1]\n";
+      $s =~ s/^[ \t]*//; # removing leading blanks
+    }
+    $len=length($s);
+
+    # print "splitfor: s=[$s]\n";
+    # print "splitfor: len=$len\n";
+
+    $j=-1;
+    for( $i=0; $i<$len; $i++ )
+    {
+      $c = substr($s,$i,1); # get i th character
+      if( $c =~/[,\(\)\+\-\* ]/ ) # split at these characters
+      {
+	$j=$i+1;  # remember this position
+      }
+      
+      if( $i >$maxNum-3 )
+      {
+	# split the string at $j
+	if( $j==-1 )
+	{
+	  printf("splitfor:ERROR: unable to split the string: s=[$s]\n ...perhaps you can add a blank to the line.\n");
+	  exit 1;
+	}
+        # print "splitfor: split at j=$j, i=$i\n";
+	# kkc 100928 added fortran free format continuations
+	if ( $fortranFreeForm==0 ) 
+	{
+	    if( $num==0 )
+	    {
+		printout(substr($s,0,$j)."\n");
+		$maxNum=$maxNum-8;  #  we allow fewer on subsequent lines since we add "    & "
+	    }
+	    else
+	    {
+		printout("     & ".substr($s,0,$j)."\n");
+	    }
+	} else 
+	{
+	    if( $num==0 )
+	    {
+		printout(substr($s,0,$j));
+		$maxNum=$maxNum-8;  #  we allow fewer on subsequent lines since we add "    & "
+	    }
+	    else
+	    {
+		printout("     &\n".substr($s,0,$j));
+	    }
+	}
+
+        $num++;
+	$s=substr($s,$j);  # get the rest of the string
+	$i=0;
+	$j=-1;
+	$len=length($s);
+      }
+      if( $len>0 && $len < $maxNum )
+      { # print final part of line now that it is short enough
+        if( $num==0 )
+        {
+	  printout("      ".$s."\n");
+        }
+        else
+        {
+	    # kkc 100928 added fortran free format continuations
+	    if ( $fortranFreeForm==0 ) 
+	    {
+		printout("     & ".$s."\n");
+	    } else {
+		printout("     &\n".$s."\n");
+	    }
+        }
+        $len=-1;
+      }
+    }
+  }
+  
+}
+
+
+sub substituteInlineMacros
+# ===================================================================================
+#    Substitute any INLINE macros found in $line
+# ===================================================================================
+{
+  local($name,$s,$i,$arg,$first,$ii,$jj);
+
+
+  if( $debug > 1 ){printf("substituteInlineMacros: line =[$line]\n");}
+
+  $numberReplaced=0;
+  $notDone=1;
+  $numFound=0;
+  while( $notDone == 1 )
+  {
+    $notDone=0;
+    $first=1;
+    $numFound=$numFound+1;
+    if( $numFound>200 ){ print "substituteMacros:ERROR: too many recursive inline macros found. Something is wrong\n";
+                         print " Maybe there is an inline macro as argument of a macro that is not defined\n";
+                         print "line = $line";
+                         exit (1);
+                       }
+
+  $inputLine = $line;  # save
+  for( $i=$#inlineMacroNames; $i>=0; $i-- )  # go through all macro names in reverse order
+  {
+    $name=$inlineMacroNames[$i]; 
+    # printf("substituteInlineMacros: check for macro macroNames[$i]=$name\n");
+    if( $line =~ /\b$name\b/ )
+    {
+      $notDone=1;
+      if( $debug > 1 ) {print "substituteMacros: inline MACRO found, name[$i]=$name\n";}
+      if( $line =~ /\$$name\b/ )
+      { 
+        # we do not expand the macro here, the $ will be stripped off since it must be an arg of another macro
+        # print "*** macro starts with \$ ****\n"; 
+        next; 
+      }
+
+
+      $marg = $inlineMacroArgs[$i];
+      @margs =  split(/,/,$marg);   # dummy arguments in macro defintion
+      # extract arguments from macro usage. 
+      @ag = &getArguments($line,$name);
+      if( $debug > 1 ) {print "substituteMacros: actual args:  ag= ", join(',',@ag), "\n";}
+      if( $debug > 1 ) {print "substituteMacros: dummy args:margs= ", join(',',@margs), "\n";}
+
+      # there is a potential problem when the actual arg equals a later dummy arg!
+      for( $ii=0; $ii<=$#ag; $ii++ )
+      {  
+        for( $jj=$ii+1; $jj<=$#margs; $jj++ )
+        {
+	  if( $ag[$ii] eq $margs[$jj] )
+          {
+            printf("bpp:substituteMacros:ERROR: at line $. :macro=[$name] actual args conflict with dummy args\n");
+            printf(" The actual arg $ag[$ii] equals a later dummy arg, $margs[$jj]\n");
+            printf(" This case not handled yet -- you should change the name of the dummy arg for now\n");
+            print "substituteMacros: actual args:  ag= ", join(',',@ag), "\n";
+            print "substituteMacros: dummy args:margs= ", join(',',@margs), "\n";
+            exit(1);
+          }
+        }
+      }
+
+      if( $#ag >= 0 && $#margs>=0 && $#ag ne $#margs )
+      {
+        printf("bpp:substituteMacros:ERROR: at line $. :incorrect number of args to macro $name\n");
+        printf("  actual number=$#ag+1, expecting $#margs+1.\n");
+        print "    substituteMacros: actual args:  ag= <", join('>,<',@ag), ">\n";
+        print "    substituteMacros: dummy args:margs= <", join('>,<',@margs), ">\n";
+        print "Last line: $line";
+        exit(1);
+      }
+      if( $numberReplaced==0 )
+      {
+        $first=0;
+        $line =~ s/^[ ]*//; # remove initial blanks
+        if( $fortran eq "1" )
+        {
+         # printouti("! $line");   # output the original line as a comment
+        }
+        else 
+        {
+         # printouti("// $line");   # output the original line as a comment
+        }
+      }
+      $numberReplaced++;
+
+      @macro = @{@inlineMacroDefinitions[$inlineMacroNameToIndex{$name}]};
+
+      # print "inline macro: name=<$name> inlineMacroNameToIndex=$inlineMacroNameToIndex{$name}\n";
+      # print "inline macro= <@macro>\n";
+
+      @newMacro=();
+
+      foreach $line ( @macro ) 
+      {
+        if( $debug > 1 ) {print "Inline macro line : $line";}
+
+        # look for a macro argument to replace
+        $ii=0;
+        foreach $arg (@margs)
+        {
+          if( $debug > 1 ) {print "looking for arg=$arg with $ag[$ii]\n";}
+
+          if( $line =~ /\b$arg$b/ )
+          {
+            if( $debug > 1 ) {printf(" arg=$arg found, replace with $ag[$ii]\n");}
+            # *wdh* 071012 do NOT replace ## here since this can be wrong, depending on the order off the args replaced
+            # $line =~ s/[ \t]\#\#[ \t]*\Q$arg\E\b/$ag[$ii]/g;   # replace Stuff ## arg by Stuffarg
+            # $line =~ s/\Q$arg\E\b[ \t]\#\#[ \t]/$ag[$ii]/g;   # replace arg ## stuff argStuff
+
+
+            $line =~ s/\#\Q$arg\E\b/\"$ag[$ii]\"/g;   # replace #arg by "arg"  "
+            $line =~ s/\b\Q$arg\E\b/$ag[$ii]/g;
+          
+          }
+          $ii++;
+ 	}
+        # wdh 041121 $line =~ s/[ \t]\#\#[ \t]*//g;   # replace Stuff ## stuff by Stuffstuff
+        $line =~ s/[ \t]?\#\#[ \t]?//g;   # replace Stuff ## stuff by Stuffstuff
+
+        if( $debug > 1 ){printf("inline: After replacing args: line=[$line]\n");}
+
+ 	if( $line =~ /^[ \t]*\#peval / )
+ 	{   # kkc 090225 if the line begins with peval evaluate the perl first
+ 	    # evaluate any embedded perl expressions and then continue processing the line
+
+ 	    $line =~ s/\#peval //;  # note: leave blanks for indentation
+ 	    # chop($line);
+ 	    # printf(" bpp: ORDER=$ORDER\n");
+ 	    if( $debug>1 ){ printf("peval: evaluate the line : [$line]\n"); }
+    
+ 	    $line = eval('"' . $line . '";');
+ 	    # $_ =~ s/^[ \t]*\#peval//; # for indentation
+ 	    if( $debug>1 ){ printf("peval: result: $line"); }
+ 	}
+
+        # printouti($line);    # should really push this onto the inputStack
+
+	# splitfor($line);
+        # printout($line);
+        # if( $fortran==1 && $line =~ /^[cC]/ )
+        # {
+          push(@newMacro,$line);  # do not indent comments
+	# } 
+        # else
+        # {
+          push(@newMacro,$indent.$line);  # should we bother indenting the line?
+	# }
+      }    
+
+      # put this new macro onto the input stack -- push lines in reverse order since this is a FIFO queue
+#       for( $ii=$#newMacro; $ii>=0; $ii-- )
+#       {
+#         push(@inputStack,$newMacro[$ii]);
+#       }
+
+      # replace macro in line with its definition
+# *wdh* 030804      $inputLine =~ s/\Q$name\E[ ]*\([^\)]*\)/$newMacro[0]/;
+
+      # *wdh* this next line doesn't work if args contain "(..)"
+      # 071007 $inputLine =~ s/\b\Q$name\E[ ]*\([^\)]*\)/$newMacro[0]/;
+
+      $inputLine=replaceArgument($inputLine,$name,$newMacro[0]);
+
+      # $inputLine = $indent . $inputLine; # 070720 -- indent here ??
+
+      if( $debug > 1 ){printf("inline: After substituting: inputLine=[$inputLine]\n");}
+
+    }
+
+  }
+ 
+ $line = $inputLine;
+
+  if( $numberReplaced > 2000 )
+  {
+    printf("bpp:ERROR in replacing inline macros. Too many replacements! Maybe there is an infinite recursion(?)\n");
+    printf(" current line = $line\n");
+    exit (1);
+  }
+
+
+  } # end while notDone
+
+#  if( $first ==1 ) # no macros found 
+#   {
+#   }
+#   else
+#   {
+#     printouti($inputLine);
+#   }
+}
+
+
+
+
+
+sub substituteMacros
+# ===================================================================================
+#    Substitute any macros found in $line
+# ===================================================================================
+{
+  local($name,$s,$i,$arg,$first,$ii,$jj);
+
+  &substituteInlineMacros;
+
+  $first=1;
+  for( $i=$#macroNames; $i>=0; $i-- )  # go through all macro names in reverse order
+  {
+    $name=$macroNames[$i]; 
+    # printf("substituteMacros: check for macro macroNames[$i]=$name\n");
+    if( $line =~ /\b$name\(/ )
+#    if( $line =~ /\b$name\b/ )
+    {
+      if( $debug > 1 ) {print "substituteMacros: MACRO found, name[$i]=$name\n";}
+      if( $line =~ /\$$name\b/ )
+      { 
+        # we do not expand the macro here, the $ will be stripped off since it must be an arg of another macro
+        # print "*** macro starts with \$ ****\n"; 
+        next; 
+      }
+
+
+      $marg = $macroArgs[$i];
+      @margs =  split(/,/,$marg);   # dummy arguments in macro defintion
+      # extract arguments from macro usage. 
+      @ag = &getArguments($line,$name);
+      if( $debug > 1 ) {print "substituteMacros: actual args:  ag= ", join(',',@ag), "\n";}
+      if( $debug > 1 ) {print "substituteMacros: dummy args:margs= ", join(',',@margs), "\n";}
+
+      # there is a potential problem when the actual arg equals a later dummy arg!
+      for( $ii=0; $ii<=$#ag; $ii++ )
+      {  
+        for( $jj=$ii+1; $jj<=$#margs; $jj++ )
+        {
+	  if( $ag[$ii] eq $margs[$jj] )
+          {
+            printf("bpp:substituteMacros:ERROR: at line $. :macro=[$name] actual args conflict with dummy args\n");
+            printf(" The actual arg $ag[$ii] equals a later dummy arg, $margs[$jj]\n");
+            printf(" This case not handled yet -- you should change the name of the dummy arg for now\n");
+            print "substituteMacros: actual args:  ag= ", join(',',@ag), "\n";
+            print "substituteMacros: dummy args:margs= ", join(',',@margs), "\n";
+            exit(1);
+          }
+        }
+      }
+
+      if( $#ag >= 0 && $#margs>=0 && $#ag ne $#margs )
+      {
+        printf("bpp:substituteMacros:ERROR: at line $. :incorrect number of args to macro $name\n");
+        printf("  actual number=$#ag+1, expecting $#margs+1.\n");
+        print "    substituteMacros: actual args:  ag= <", join('>,<',@ag), ">\n";
+        print "    substituteMacros: dummy args:margs= <", join('>,<',@margs), ">\n";
+        print "Last line: $line";
+        exit(1);
+      }
+      if( $first==1 )
+      {
+        $first=0;
+        $line =~ s/^[ ]*//; # remove initial blanks
+        if( $fortran eq "1" )
+        {
+          if( $clean==0 ){ printouti("! $line");}   # output the original line as a comment
+        }
+        else 
+        {
+         if( $clean==0 ){ printouti("// $line");}   # output the original line as a comment
+        }
+      }
+
+
+      @macro = @{@macroDefinitions[$macroNameToIndex{$name}]};
+
+      @newMacro=();
+
+      foreach $line ( @macro ) 
+      {
+        if( $debug > 1 ) {print "Macro line : $line";}
+
+        # look for a macro argument to replace
+        $ii=0;
+        foreach $arg (@margs)
+        {
+          if( $debug > 1 ) {print "looking for arg=$arg with $ag[$ii]\n";}
+
+          if( $line =~ /\b$arg$b/ )
+          {
+            if( $debug > 1 ) {printf(" arg=$arg found, replace with $ag[$ii]\n");}
+            # *wdh* 071012 do NOT replace ## here since this can be wrong, depending on the order off the args replaced
+            # $line =~ s/[ \t]\#\#[ \t]*\Q$arg\E\b/$ag[$ii]/g;   # replace Stuff ## arg by Stuffarg
+            # $line =~ s/\Q$arg\E\b[ \t]\#\#[ \t]/$ag[$ii]/g;   # replace arg ## stuff argStuff
+
+
+            $line =~ s/\#\Q$arg\E\b/\"$ag[$ii]\"/g;   # replace #arg by "arg"  "
+            $line =~ s/\b\Q$arg\E\b/$ag[$ii]/g;
+          
+          }
+          $ii++;
+ 	}
+        $line =~ s/[ \t]\#\#[ \t]*//g;   # replace Stuff ## stuff by Stuffstuff
+
+        # printf("After line=[$line]\n");
+
+        # printouti($line);    # should really push this onto the inputStack: 
+
+	# splitfor($line);
+        # printout($line);
+        if( $fortran==1 && ( $line =~ /^[cC]/ || $line =~/^[ \t]*\#/ ) )
+        {
+          if( $line =~ /^[ \t]*\#perl/ || $line =~ /^[ \t]*\#peval/ )
+          {
+            push(@newMacro,$indent.$line);  # should we bother indenting the line?
+          }
+          else
+          {
+            push(@newMacro,$line);  # do not indent comments or lines beginning with #  (preprocessor directives)
+          }
+	} 
+        else
+        {
+          push(@newMacro,$indent.$line);  # should we bother indenting the line?
+	}
+      }    
+
+      # put this new macro onto the input stack -- push lines in reverse order since this is a FIFO queue
+      for( $ii=$#newMacro; $ii>=0; $ii-- )
+      {
+        push(@inputStack,$newMacro[$ii]);
+      }
+
+
+    }
+  }
+  if( $first ==1 ) # no macros found -- print line to file
+  {
+    printouti($line);
+    # printouti($indent . $line); # 070720 -- indent ??
+  }
+}
+
+# Process an #If statement -- this routine is also called recursively to process #Elif and #Else
+sub processIfStatement()
+{
+  my $ii, $level;
+
+  if( $fortran==1 )
+  {
+    if( $clean==0 ){ printouti("! $line");}   # output the original line as a comment
+  }
+  else
+  {
+    if( $clean==0 ){ printouti("// $line");}   # output the original line as a comment
+  }
+  $expression = $line;
+  chop($expression);
+  if( $expression =~ /^[ \t]*#Else[ \t]*/ ){ $elseFound=1; }else{ $elseFound=0;}
+
+  $expression =~ s/^[ \t]*#If[ \t]*//;
+  $expression =~ s/^[ \t]*#Else[ \t]*//;
+  $expression =~ s/^[ \t]*#Elif[ \t]*//;
+
+  $expression =~ s/==/eq/g;
+
+  if( $debug>1 ) {printf("If expression: [$expression] (line=[$line])\n");}
+
+  $rt = $elseFound==1 || eval($expression);
+  
+
+  if( $debug>1 ) {printf(" eval($expression)==[$rt] \n");}
+
+  if( $rt eq "1" )
+  {
+    # expression evaluates to true -- process this block
+     # if is true -- first SAVE lines until matching End, Else or Elif  is found
+    &readFile;
+    $line = $_;
+    @block =();
+    $level=0;
+    while( 1 )
+    {
+      $conditionalFound=$line =~ /^[ \t]*#End\b/ || $line =~ /^[ \t]*#Else\b/ || $line =~ /^[ \t]*#Elif\b/;
+      if( $conditionalFound && $level==0 ){ last; }
+
+      # printout($line);  # do this for now
+      if( $line =~ /^[ \t]*#If\b/ ){ $level++; } # nested #IF, increase level
+      if( $line =~ /^[ \t]*#End\b/ )
+      { 
+  	if( $level==0 ){ if( $clean==0 ){ printouti("! $line");} last;}  # End found
+        $level--; 
+      }
+
+      if( $debug>1 ){ printf("..if: level=$level, push $line"); }
+      push(@block,$line);
+      &readFile;
+      $line = $_;
+
+      if( eof(FILE) && $#inputStack <0 )
+      {
+        print "\nbpp:ERROR: end-of-file reached while inside an \#If statement. Perhaps you forgot an \#End\n";
+        print "bpp: The \#If statement at line number $ifLineNumber was being processed. (this may be a macro call),\n";
+        print "bpp: Run bpp with the -debug flag to see more details.\n";
+        exit(1);
+      }
+
+    }          
+    # now skip until matching End is found
+    while( 1 )
+    {
+      if( $line =~ /^[ \t]*#If\b/ ){ $level++; } # nested #IF, increase level
+      if( $line =~ /^[ \t]*#End\b/ )
+      {
+        if( $level==0 ){ last; }else{ $level--; }
+      }
+      if( $debug>1 ){ printf("..if: level=$level, skip $line"); }
+
+      &readFile;
+      $line = $_;
+    }
+    # now push onto the input stack in reverse order
+    for( $ii=$#block; $ii>=0; $ii-- )  
+    {
+      # printf("****push [$block[$ii]]");
+      push(@inputStack,$block[$ii]);
+    }
+  }
+  else
+  {
+    # If the expression is false search for the matching Else of End or Elif
+    # skip lines until matching End, Else or Elif
+    &readFile;
+    $line = $_;
+    $level=0;
+    while( 1 ) 
+    {
+      $conditionalFound=$line =~ /^[ \t]*#End\b/ || $line =~ /^[ \t]*#Else\b/ || $line =~ /^[ \t]*#Elif\b/;
+      if( $conditionalFound && $level==0 ){ last; }
+
+      if( $line =~ /^[ \t]*#If\b/ ){ $level++; } # nested #IF, increase level
+      if( $line =~ /^[ \t]*#End\b/ )
+      { 
+	if( $level==0 ){ if( $clean==0 ){ printouti("! $line");} last;}  # End found
+        $level--; 
+      }
+
+      if( $debug>1 ){ printf("..if: level=$level, skip $line"); }
+      &readFile;
+      $line = $_;
+    }          
+    if( ($line =~ /^[ \t]*#Else\b/) || ($line =~ /^[ \t]*#Elif\b/) )
+    {
+      &processIfStatement();
+    }
+
+  }  
+
+}
+
+@outputFiles=();
+
+# open a new output file. Push the existing output file onto a stack.
+sub openOutputFile
+{
+  my $outfile;
+  $outfile=@_[0];
+
+  printf("openOutputFile: $outfile\n");
+
+   # we put a header on the top of the output file 
+  (my $name, my $path, my $suffix) = fileparse($fileName);
+#  $header="This file automatically generated from $fileName with bpp.";
+  $header="This file automatically generated from $name$suffix with bpp.";
+  if( $appendToOutputFile eq "0" )
+  {
+    if( -e "$outfile" )
+    {
+      open(OUTFILE,"$outfile") || die "cannot open output file $outfile!" ;
+      $_ = <OUTFILE>;
+      # printf(" first line =$_");
+      if( !( $_ =~ /$header/) )
+      {
+	printf("ERROR:output file=[$outfile]  already exists but has not been generated by bpp!\n");
+	printf("  I will not over-write it.\n");
+	printf(" first line =[$_]");
+	exit (1);
+      }
+      close(OUTFILE);
+    }
+    open(OUTFILE,">$outfile") || die "cannot open output file $outfile!" ;
+
+    if( $fortran==1 )
+    {
+      printout("! $header\n");
+    }
+    else
+    {
+      printout("// $header\n"); 
+    }
+
+  }
+  else
+  {
+    printf("****openOutputFile: append to output file=[$outfile]\n");
+    open(OUTFILE,">>$outfile") || die "cannot open output file $outfile!" ;
+  }
+  push(@outputFiles,$outfile);
+
+
+}
+
+# close the current output file. Pop any old output file from the stack
+sub closeOutputFile
+{
+  my $outfile, $oldFile;
+  close(OUTFILE);
+  $oldFile=pop(@outputFiles);
+  if( $#outputFiles>=0 )
+  {
+    $outfile=$outputFiles[$#outputFiles];
+    if( $quiet==0 ){ printf("****closeOutputFile: close [$oldFile], reopen outfile=[$outfile]\n");}
+    open(OUTFILE,">>$outfile") || die "cannot open output file $outfile!" ;
+  }
+}
+# ---------------------------------------------------------------
+#    Start of main program
+#    Read files and insert optimized code 
+# ----------------------------------------------------------------
+
+
+if( $#ARGV < 0 )
+{
+  &help();
+  exit;
+}
+
+
+# ----- read flags ---------------
+$i=0;
+foreach $arg ( @ARGV )
+{ 
+  if( $arg =~ /^-/ )
+  {
+    printf("flag = $arg\n");
+    if( $arg eq "-help" )
+    {
+      &help();
+      exit;
+    }
+    elsif( $arg eq "-debug" )
+    {
+      $debug=3;
+    }
+    elsif( $arg eq "-quiet" )
+    {
+      $quiet=1;
+    }
+    elsif( $arg eq "-clean" )
+    {
+      $clean=1;
+    }
+    elsif( $arg =~ /^-I/ )
+    {
+      $arg =~ s/^-I//;
+      if( $quiet==0 ){ printf(" Will look for include files in dir=[$arg]\n"); }
+      $includeDirs[$numberOfIncludeDirs] = $arg; 
+      $numberOfIncludeDirs++;      
+    }
+    else 
+    {
+      printf("bpp: ERROR: unknown flag: [$arg]\n");
+      exit;
+    }
+  }
+  else
+  {
+    last;
+  }
+  $i++;
+}
+
+@fileNames =@ARGV[$i .. $#ARGV];  # remaining args are assumed to be filenames
+
+foreach $fileName ( @fileNames )  # process all files
+{
+  #kkc 050127 changed search paths for include files to work better with makefiles
+  (my $name, my $path, my $suffix) = fileparse($fileName);
+
+  $outfile = $fileName;
+  # kkc 100928 added f90 to the following if-switch section
+  if( $outfile =~ /\.bf$/ )
+  { 
+    $fortran=1;
+    $outfile =~ s/.bf$//;
+    $outfile = "$outfile.f";
+  }
+  elsif( $outfile =~ /\.bf90$/ )
+  {
+    $fortran=1;
+    $fortranFreeForm=1;
+    $outfile =~ s/.bf90$//;
+    $outfile = "$outfile.f90";
+  }
+  elsif( $outfile =~ /\.bC$/ )
+  {
+    $fortran=0;
+    $outfile =~ s/.bC$//;
+    $outfile = "$outfile.C";
+  }
+  elsif( $outfile =~ /\.f$/ )
+  {
+    # $outfile =">-";   # open OUTFILE as stdout
+    $fortran=1;
+    $outfile =~ s/.f$/.bpp.f/;
+  }
+  elsif( $outfile =~ /\.f90$/ )
+  {
+    # $outfile =">-";   # open OUTFILE as stdout
+    $fortran=1;
+    $fortranFreeForm=1;
+    $outfile =~ s/.f$/.bpp.f90/;
+  }
+  elsif( $outfile =~ /\.C$/ )
+  {
+    $fortran=0;
+    # $outfile =">-";   # open OUTFILE as stdout
+    $outfile =~ s/.C$/.bpp.C/;
+  }
+  else
+  {
+    print "ERROR: unknown file extension to fileName=[$fileName]. Expecting .bf or .bC\n";
+    exit (1);
+  }
+
+  printf(" change file = $fileName into $outfile \n");
+  
+  open(FILE,"$fileName") || die "cannot open file $fileName!" ;
+
+  &openOutputFile($outfile);
+
+  while( !eof(FILE) || $#inputStack >=0 )
+  {
+    &readFile;
+    $line = $_;
+
+    if( $debug > 1 ) {printf(" input line: $line");}
+
+    if( $line =~ /^[ \t]*\#peval / )
+    {
+      # evaluate any embedded perl expressions and then continue processing the line
+
+      $line =~ s/\#peval //;  # note: leave blanks for indentation
+      # chop($line);
+      # printf(" bpp: ORDER=$ORDER\n");
+      if( $debug>1 ){ printf("peval: evaluate the line : [$line]\n"); }
+
+      $line = eval('"' . $line . '";');
+      # $_ =~ s/^[ \t]*\#peval//; # for indentation
+      if( $debug>1 ){ printf("peval: result: $line"); }
+    }
+
+    if( $line =~ /^[ \t]*#beginMacro/ )
+    {
+      # preprocess a MACRO definition
+#      $line =~ s/\@PM//g;
+
+      if( $debug > 1 ) { printf("#beginMacro found: $line");}
+      &addMacroDefinition;
+
+    }
+    elsif( $line =~ /^[ \t]*#If/ )
+    {
+      $ifLineNumber = $.;
+
+      if( $debug > 1 ) { printf("#If found: $line");}
+      &processIfStatement();
+    }
+    elsif( $line =~ /^[ \t]*#defineMacro/ )
+    {
+      if( $debug > 1 ) { printf("#defineMacro found: $line");}
+      &addInlineMacroDefinition;
+    }
+    elsif( $line =~ /^[ \t]*#beginFile/ )
+    {
+      if( $quiet==0 ){ printf("*** beginFile found\n"); }
+      $outfile=$line;
+      chop($outfile);
+      $outfile =~ s/^[ \t]*#beginFile[ \t]*(.*)/\1/;
+      $outfile =~ s/[\"\']//g;  # remove quotes "
+      # open a new output file
+      &openOutputFile($outfile);
+    }
+    elsif( $line =~ /^[ \t]*#appendFile/ )
+    {
+      if( $quiet==0 ){ printf("*** append found\n"); }
+      $outfile=$line;
+      chop($outfile);
+      $outfile =~ s/^[ \t]*#appendFile[ \t]*(.*)/\1/;
+      $outfile =~ s/[\"\']//g;  # remove quotes "
+      # append to an existing output file
+      $appendToOutputFile=1;
+      &openOutputFile($outfile);
+      $appendToOutputFile=0;
+    }
+    elsif( $line =~ /^[ \t]*#endFile/ )
+    {
+      # close current output file
+      &closeOutputFile;
+    }
+    elsif( ($fortran eq "1" && $line =~ /^c/) || 
+           $line =~ /^[ \t]*\!/ || $line=~ /^[ \t]*\/\// )
+    { # comment
+      printout($line);
+    }
+    elsif( $line =~ /^[ \t]*#perl/ )
+    {
+      # evaluate a perl command
+      $command = $line;
+      $command =~ s/^[ \t]*#perl//;
+      chop($command);
+      if( $debug>1 ){ printf(" evaluate the perl commands : [$command]\n");}
+      eval($command);
+    }
+    elsif( $line =~ /^[ \t]*#Include/ )
+    {
+      if( $quiet==0 ){ printf("*** Include found\n"); }
+      if( $fortran==1 )
+      {
+        if( $clean==0 ){ printouti("! $line"); }  # output the original line as a comment
+      }
+      else
+      {
+        if( $clean==0 ){ printouti("// $line"); }  # output the original line as a comment
+      }
+      $includeFile=$line;
+      chop($includeFile);
+      $includeFile =~ s/^[ \t]*#Include[ \t]*(.*)/\1/;
+      $includeFile =~ s/[\"\']//g;  # remove quotes "
+      $includeFile =~ s/[ \t]*$//; # remove trailing blanks
+      
+      if( -e "$path$includeFile" )
+      {
+        $includeFile="$path$includeFile";
+        if( $quiet==0 ){ printf("include file found [$includeFile]\n"); }
+      }
+      else
+      { # search include directories
+        for( $j=0; $j<$numberOfIncludeDirs; $j++ )
+        {
+          $includeFileNew="$includeDirs[$j]/$includeFile";
+          if( $quiet==0 ){ printf("Look for include file [$includeFileNew]\n"); }
+          if( -e $includeFileNew )
+          {
+            $includeFile=$includeFileNew;
+            if( $quiet==0 ){ printf("Include file found in [$includeFile]\n"); }
+            last;
+          }
+        }
+      }
+
+
+      open(INCLUDE,"$includeFile") || die "cannot open include file $includeFile!" ;
+
+      @block =();
+      while( <INCLUDE> )
+      {
+           
+	while( /\\$/ )
+	{ # concatentate continuation lines
+	  $cc = <INCLUDE>;
+	  $cc =~ s/^[ ]*//; # remove leading blanks
+	  chop($_); chop($_);
+	  $_ = $_ . $cc;
+	}
+
+        push(@block,$_);
+      }          
+      # now push onto the input stack in reverse order
+      for( $ii=$#block; $ii>=0; $ii-- )  
+      {
+        # printf("****push [$block[$ii]]");
+       push(@inputStack,$block[$ii]);
+      }
+      close(INCLUDE);
+    }
+    else
+    {
+      # determine current indentation for outputing later
+      $indent=$_;
+      chop($indent);
+      $indent =~ s/\t/      /g;
+      $indent  =~ s/(^[ ]*).*/\1/;  # get leading blanks
+      # printf("indent=<$indent>\n");
+
+      &substituteMacros;
+
+#      printout($line);
+    }
+
+  }
+    if( $debug > 0 ){ &outputMacroDefinitions; }
+
+  &closeOutputFile;
+  close(FILE);
+}
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,273 @@
+#include "OvertureDefine.h"
+
+#include "DataBaseBuffer.h"
+#include "ParallelUtility.h"
+
+namespace {
+  aString array_dir_name = "streamed_arrays";
+}
+
+extern aString &
+sPrintF(aString & s, const char *format, ...);
+
+DataBaseBuffer::  
+DataBaseBuffer()
+  : 
+#ifdef OV_USE_HDF5
+array_db(0),
+#endif
+intMagicNumber(123456), floatMagicNumber(1234567.), doubleMagicNumber(12345678.)
+{
+  streamIs=notOpen;
+  OvertureVersion=OVERTURE_VERSION; // this is changed when the buffer is opened.
+}
+
+DataBaseBuffer::
+~DataBaseBuffer()
+{
+}
+
+
+bool DataBaseBuffer::
+isOpen() const
+//  return true if the buffer is open
+{ 
+  return !(streamIs==notOpen); 
+}
+
+void DataBaseBuffer::
+openBuffer(GenericDataBase & db, const GenericDataBase::InputOutputMode & mode)
+{
+  OvertureVersion=db.OvertureVersion;
+  
+  streamIs= mode==GenericDataBase::streamInputMode ? openForReading : openForWriting;
+  fp=ip=dp=0;   // current number of elements saved in each buffer
+
+
+  floatBufferSize=1000;
+  intBufferSize=1000;
+  doubleBufferSize=1000;  
+  floatBufferSizeIncrement=1000;
+  intBufferSizeIncrement=1000;
+  doubleBufferSizeIncrement=1000;
+  
+#ifdef OV_USE_HDF5
+  numberOfArrays=0;
+  array_db = db.virtualConstructor();
+#endif
+
+  if( db.getMode()!=GenericDataBase::bufferMode )
+  {
+    cout << "DataBaseBuffer::openBuffer:ERROR: mode==streamInputMode but db.getMode!=bufferMode! \n";
+    throw "error";
+  }
+  if( mode==GenericDataBase::streamOutputMode )
+  {
+    floatBuffer.redim(floatBufferSize);
+    intBuffer.redim(intBufferSize);
+    doubleBuffer.redim(doubleBufferSize);
+
+#ifdef OV_USE_HDF5
+    db.create(*array_db,array_dir_name,"directory");
+    array_db->setMode(GenericDataBase::noStreamMode);
+#endif
+
+  }
+  else if( mode==GenericDataBase::streamInputMode )
+  {
+    db.get(floatBuffer,"floatBuffer");
+    db.get(intBuffer,"intBuffer");
+    db.get(doubleBuffer,"doubleBuffer");
+#ifdef OV_USE_HDF5
+    db.find(*array_db,array_dir_name,"directory");
+    array_db->setMode(GenericDataBase::noStreamMode);
+#endif
+  }
+  else
+  {
+    cout << "DataBaseBuffer::openBuffer:ERROR: invalid value for mode! \n";
+    throw "error";
+  }
+}
+
+void  DataBaseBuffer::
+closeBuffer(GenericDataBase & db )
+{
+  if( streamIs==openForWriting )
+  {
+    if( db.getMode()!=GenericDataBase::bufferMode )
+    {
+      cout << "DataBaseBuffer::closeBuffer:ERROR: mode==streamOutputMode but db.getMode!=bufferMode! \n";
+      throw "error";
+    }
+    floatBuffer.resize(fp);
+    db.put(floatBuffer,"floatBuffer");
+    intBuffer.resize(ip);
+    db.put(intBuffer,"intBuffer");
+    doubleBuffer.resize(dp);
+    db.put(doubleBuffer,"doubleBuffer");
+  }
+  streamIs=notOpen;
+#ifdef OV_USE_HDF5
+  if ( array_db ) delete array_db;
+#endif
+
+}
+
+#undef PUT
+#define PUT(pt,type,atype) \
+int DataBaseBuffer:: \
+putToBuffer( const int & size, const atype *data ) \
+{ \
+  if( pt+size+1 > type ## BufferSize ) \
+  { \
+    if( size > type ## BufferSizeIncrement ) \
+      type ## BufferSizeIncrement= size; \
+    if( type ## BufferSize > type ## BufferSizeIncrement ) \
+      type ## BufferSizeIncrement= type ## BufferSize; \
+     \
+    type ## BufferSize+= type ## BufferSizeIncrement; \
+    type ## Buffer.resize(type ## BufferSize); \
+    /*   printf("DataBaseBuffer::Increase " #type " buffer size to %i \n",type ## BufferSize); */ \
+  } \
+  type *buffer = type ## Buffer.getDataPointer(); \
+  for( int i=0; i<size; i++ ) \
+  { \
+    buffer[pt++]=data[i]; \
+    /* type temp = data[i]*2; */ /* make umr show up? */\
+  }  \
+ \
+  buffer[pt++]=type ## MagicNumber; \
+  return 0; \
+}
+
+PUT(fp,float,float)
+PUT(ip,int,int)
+PUT(dp,double,double)
+PUT(ip,int,char)
+#ifdef OV_BOOL_DEFINED
+PUT(ip,int,bool)
+#endif
+#undef PUT
+
+
+/* ---
+int DataBaseBuffer::
+putToBuffer( const int & size, const int *data )
+{
+  if( ip+size+1 > intBufferSize )
+  {
+    if( size > intBufferSizeIncrement )
+      intBufferSizeIncrement= size;
+    
+    intBuffer.resize(intBufferSize+intBufferSizeIncrement);
+    intBufferSize+= intBufferSizeIncrement;
+  }
+  int *buffer = intBuffer.getDataPointer();
+  for( int i=0; i<size; i++ )
+    buffer[ip++]=data[i];
+
+  buffer[ip++]=intMagicNumber;
+  return 0;
+}
+---- */
+
+#undef GET
+#define GET(pt,type,atype) \
+int DataBaseBuffer::  \
+getFromBuffer( const int & size, atype *data )  \
+{  \
+  type *buffer = type ## Buffer.getDataPointer();  \
+  for( int i=0; i<size; i++ )  \
+    data[i]=buffer[pt++];  \
+  \
+  type magic = buffer[pt++];  \
+  if( magic!=type ## MagicNumber )  \
+  {  \
+    printF("DataBaseBuffer::getFromBuffer:ERROR magic number does not match, this is fatal \n"  \
+           "The data base is being read in streaming mode, the data base is not being read \n"  \
+           "in exactly the same order that it was written.                                 \n"  \
+           "If you are reading an overlapping grid you may have to regenerate the grid.    \n"  \
+           "This file was created with %s (current version is %s)\n",\
+           (const char*)OvertureVersion,OVERTURE_VERSION);\
+    throw "error";  \
+  }  \
+  return 0;  \
+}
+
+GET(fp,float,float)
+GET(ip,int,int)
+GET(dp,double,double)
+GET(ip,int,char)
+#ifdef OV_BOOL_DEFINED
+GET(ip,int,bool)
+#endif
+#undef GET
+
+
+/*  ----
+ int DataBaseBuffer::
+ getFromBuffer( const int & size, int *data )
+ {
+   int *buffer = intBuffer.getDataPointer();
+   for( int i=0; i<size; i++ )
+     data[i]=buffer[ip++];
+
+   int magic = buffer[ip++];
+   if( magic!=intMagicNumber )
+   {
+     cout << "DataBaseBuffer::getFromBuffer:ERROR magic number does not match, this is fatal \n";
+     throw "error";
+   }
+   return 0;
+ }
+
+---- */
+
+#ifdef OV_USE_HDF5
+
+#beginMacro dbbPutArrayMacro(type,putToBufferName,putName)
+int 
+DataBaseBuffer::
+putToBufferName( const type &a )
+{
+  aString name;
+  sPrintF(name,"%-u",numberOfArrays);
+  numberOfArrays++;
+
+  array_db->putName( a, name );
+  return 0;
+}
+#endMacro
+
+#beginMacro dbbGetArrayMacro(type,getFromBufferName,getName)
+int 
+DataBaseBuffer::
+getFromBufferName( type &a )
+{
+  aString name;
+  sPrintF(name,"%-u",numberOfArrays);
+  numberOfArrays++;
+
+  array_db->getName( a, name );
+  return 0;
+}
+#endMacro
+
+dbbPutArrayMacro(intSerialArray,putToBuffer,put);
+dbbPutArrayMacro(floatSerialArray,putToBuffer,put);
+dbbPutArrayMacro(doubleSerialArray,putToBuffer,put);
+
+dbbGetArrayMacro(intSerialArray,getFromBuffer,get);
+dbbGetArrayMacro(floatSerialArray,getFromBuffer,get);
+dbbGetArrayMacro(doubleSerialArray,getFromBuffer,get);
+
+dbbPutArrayMacro(intArray,putDistributedToBuffer,putDistributed);
+dbbPutArrayMacro(floatArray,putDistributedToBuffer,putDistributed);
+dbbPutArrayMacro(doubleArray,putDistributedToBuffer,putDistributed);
+
+dbbGetArrayMacro(intArray,getDistributedFromBuffer,getDistributed);
+dbbGetArrayMacro(floatArray,getDistributedFromBuffer,getDistributed);
+dbbGetArrayMacro(doubleArray,getDistributedFromBuffer,getDistributed);
+
+#endif

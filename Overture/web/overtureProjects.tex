@@ -1,0 +1,168 @@
+%-----------------------------------------------------------------------
+%   Overture figures and movies
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+% \setlength{\textwidth}{9in}      % page width
+
+\usepackage{verbatim}
+% \usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+%\usepackage{calc}
+%\usepackage{ifthen}
+\usepackage{float}
+%\usepackage{fancybox}
+
+\usepackage{html}
+
+\newcommand{\documentation}{../documentation}
+\newcommand{\figures}{../figures}
+\newcommand{\projects}{../PROJECTS}
+
+
+\begin{document}
+
+\begin{center}
+{\Large Projects within Overture} \\
+~~ \\
+LLNL Overlapping Grid Project \\
+\htmladdnormallink{Centre for Applied Scientific Computing}{http://www.llnl.gov/casc} \\
+\htmladdnormallink{Lawrence Livermore National Laboratory}{http://www.llnl.gov}  \\
+\htmladdnormallink{Overture}{http://www.llnl.gov/CASC/Overture} 
+\end{center}
+
+
+   The Overture Framework is a large effort and is organized into numerous projects.
+Some of these projects are summarized here.
+
+
+\section {A++/P++ Array Class Library}
+% Use this web page location eventually
+% \htmladdnormallink{A++P++}{http://www.llnl.gov/casc/\%7EAxxPxx/axxpxx.html}
+% \htmladdnormallink{A++P++}{http:/home/dquinlan/public_html/A++P++/axxpxx.html}
+  \htmladdnormallink{A++P++}{\projects/AxxPxx/AppPpp/AppPpp.html}
+is a serial/parallel array class library used within Overture and made
+available separately.
+
+% \section {AMR++ Adaptive Mesh Refinement Class Library}
+% % Use this web page location eventually
+% % \htmladdnormallink{AMR++}{http://www.llnl.gov/casc/\%7EAMRxx/amrxx.html}
+% % \htmladdnormallink{AMR++}{http:/home/dquinlan/public_html/AMR++/amrxx.html}
+%   \htmladdnormallink{AMR++}{\projects/AMRxx/AMRxx/AMRxx.html}
+% is a part of the Overture framework and is a library which provides abstractions for
+% adaptive mesh refinement (AMR).  It requires the Overture library which handles
+% the details of overlapping grids, AMR++ provides the additional capability of providing
+% adaptive mesh refinement on these overlapping grids.  AMR++ is still in development.
+
+% \section {ROSE Preprocessor Generator}
+% % Use this web page location eventually
+% % \htmladdnormallink{ROSE}{http://www.llnl.gov/casc/\%7EROSE/rose.html}
+% % \htmladdnormallink{ROSE}{http:/home/dquinlan/public_html/ROSE/rose.html}
+%   \htmladdnormallink{ROSE}{\projects/ROSE/ROSE/ROSE.html}
+% /home/henshaw/webPage/PROJECTS/ROSE/ROSE/ROSE.html
+% is a tool for building C++ optimizing preprocessors for object-oriented class 
+% library optimization.
+
+% \section {PADRE Library}
+% % Use this web page location eventually
+% % \htmladdnormallink{PADRE}{http://www.llnl.gov/casc/\%7EPADRE/padre.html}
+% % \htmladdnormallink{PADRE}{http:/home/dquinlan/public_html/PADRE/PADRE/PADRE.html}
+%   \htmladdnormallink{PADRE}{\projects/PADRE/PADRE/PADRE.html}
+% is a library for the distribution of data in a parallel environment and the 
+% handling the communication that is required in using the distributed data.
+% 
+% \section {MLB: Multi-Level Load Balancing Library}
+% % Use this web page location eventually
+% % \htmladdnormallink{PADRE}{http://www.llnl.gov/casc/MLB/MLB.html}
+% % \htmladdnormallink{PADRE}{http:/home/dquinlan/public_html/MLB/MLB/MLB.html}
+%   \htmladdnormallink{MLB (Multi-Level Load Balancing)}{\projects/MLB/MLB/MLB.html}
+% is a library for the load balancing of structure grids. Since it's interface is relatively abstract
+% it is well suited to the load balancing of many grids such as occur in adaptive mesh refinement or
+% overlapping grid computations. This work is specialized for structured grids an as such it uses
+% methods that take advantage of the geometry.  This is in contrast to graph based
+% mechanism which are well suited to the load balancing of unstructured grids.
+% MLB addresses the requirement os large number of processors by providing output in the form of
+% optimized communication schedules for the redistribution of the load.  MLB is a parallel
+% algorithm well suited for dynamic problems and the re-load-balancing of collections
+% of grids.  MLB is used within our research on parallel adaptive mesh refinement.
+% 
+% \section {Benchmark Library}
+% % Use this web page location eventually
+%   \htmladdnormallink{Benchmark Library}{\projects/Benchmark/Benchmark/Benchmark.html}
+% is a library for evaluating the performance of serial and parallel applications and 
+% program fragments.  In particular it automates many complex tests that report
+% information significant to the evaluation and debugging of performance problems.
+% The Benchmark Library provides simple mechanism for testing performance
+% both of parallel codes and different versions of a code written in different
+% languages (C, FORTRAN, C++, A++, P++).  The tests are not specific to A++/P++
+% or any parts of the Overture framework.
+% 
+% \section {Software Quality Project}
+% % Use this web page location eventually
+%   \htmladdnormallink{Software Quality Mechanisms}{\projects/SoftwareQuality/SoftwareQuality/SoftwareQuality.html}
+% are used in the development of many of the projects within the Overture Framework.
+% This work shows how we use commonly available tools, {\bf GNU Autoconf}, {\bf GNU Automake}, and {\bf EXPECT}
+% to automate the testing of software across numerous platforms with a multitude of options.  The
+% tests are a part of the development and since they can quickly and automatically report portability problems
+% they form an effective defense against the infiltration of bugs in our software.
+
+\section{cg: CompositeGrid PDE solvers}
+
+A set of PDE solvers for solving various equations. 
+
+% Includes cgcns, cgins, cgasf, cgmx, cgad, cgmp.
+
+% \htmladdnormallink{OverBlown}{\documentation/obHTML/obHTML.html} is a Navier-Stokes flow solver
+% for overlapping grids.
+
+\section{Ogmg: Overlapping Grid Multigrid Solver}
+
+\htmladdnormallink{Ogmg}{\documentation/ogmgHTML/ogmgHTML.html} is a multigrid solver for
+overlapping grids.
+
+\section{Mappings}
+
+The \htmladdnormallink{Mapping}{\documentation/mappingHTML/mappingHTML.html} classes define
+CAD and grid generation capabilities in Overture.
+
+\section{Hyperbolic Grid Generator}
+
+The \htmladdnormallink{Hyperbolic Grid Generator}{\documentation/hyperbolicHTML/hyperbolicHTML.html} is
+a very useful routine for building surface grids and volume grids.
+
+\section{Elliptic Grid Generator}
+
+The elliptic grid generator described in the \htmladdnormallink{Mapping}{\documentation/mappingHTML/mappingHTML.html}
+defines elliptic grid generation algorithms for building smooth grids.
+
+
+\section{Cartesian Embedded Boundary Grid Generation}
+  
+Based upon the tools from the Rapsodi project (a sub-project of Overture)
+the {\bf rap} program can be used together with CART3D to build 
+\htmladdnormallink{embedded boundary grids}{\documentation/../APDEC_review_plan/index.html}.
+
+\section{Operators}
+
+The \htmladdnormallink{Operators}{\documentation/opHTML/opHTML.html} classes in Overture define
+various flavours of difference approximations and also define a library of boundary conditions.
+
+
+\section{Ogen: Overlapping Grid Generator}
+
+The  \htmladdnormallink{Overture grid generator}{\documentation/ogenHTML/ogenHTML.html}, ogen,
+can be used to construct overlapping grids and unstructured (hybrid) grids.
+
+\section{Oges: Sparse system solver}
+
+The \htmladdnormallink{Overlapping Grid Equation Solver}{\documentation/ogesHTML/ogesHTML.html}
+is a class that acts as a front end to a variety of linear equation.
+
+\section{PlotStuff: Overture Plotting Functions}
+
+The \htmladdnormallink{graphical user interface}{\documentation/GraphicsDocHTML/GraphicsDocHTML.html}
+for Overture implements routines for plotting grids and
+grid functions and building GUI's.
+
+\end{document}

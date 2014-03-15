@@ -1,0 +1,194 @@
+
+%-------------------------------------------------------------------------------------
+%------------------------------GridCollectionFunction---------------------------------
+%-------------------------------------------------------------------------------------
+
+\subsection{GridCollectionFunction and CompositeGridFunction}
+
+GridCollectionFunction's and the CompositeGridFunction's
+are very similar. The only difference is that a GridCollectionFunction
+is associated with a GridCollection while a CompositeGridFunction
+is associated with a CompositeGrid.
+
+Here we describe the GridCollectionFunction. These remarks all apply
+to the CompositeGridFunction if ``GridCollection'' is replaced
+by ``CompositeGrid''.
+
+This class contains a list of MappedGridFunction's
+and a GridCollection.
+A GridCollectionFunction knows how to dimension its member
+MappedGridFunction's and how to update itself when the
+GridCollection changes (for example, when a refinement patch
+is added or a grid is moved).
+
+This is a reference counted class so that there is no need
+to keep a pointer to a grid function. Use the reference
+member function to make one grid function reference another.
+
+
+
+\input GridCollectionFunctionInclude.tex
+
+
+
+% \newcommand{\GCF}{GridCollectionFunction}
+% \begin{tabbing}
+% {\ff xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx} 012345678901 \= xxxxxxxxxxxxx \= \kill
+% {\ff void breakReference() } \> break reference \\
+% {\ff int destroy()} \> de-allocate space \\
+% {\ff GridCollection *gridCollection}  \> pointer to the GridCollection (CompositeGrid) \\
+% {\ff void get( const Dir \& dir, const String \& name)} \> get from a database file \\
+% {\ff int getComponentBase(int component)} \> get the base for the given component \\
+% {\ff int getComponentBound(int component)} \> get the bound for the given component \\
+% {\ff int getComponentDimension(int component)} \> get the dimension for the given component \\
+% {\ff int getCoordinateBase(int coordinate)} \> get the base for the given coordinate \\
+% {\ff int getCoordinateBound(int coordinate)} \> get the bound for the given coordinate \\
+% {\ff int getCoordinateDimension(int coordinate)} \> get the dimension for the given coordinate \\
+% {\ff bool getIsCellCentered(int \& axis=forAll, } \>  inquire cell centredness (for all grids) \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component0=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component1=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...)} \>  \\
+% {\ff bool getIsFaceCentered(int \& axis, } \>  inquire face centredness, (all grids) \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component0=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component1=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...)} \>  \\
+% {\ff String getName(int component0=defaultValue,} \> get name of grid function or component \\
+% {\ff ~~~~~~~~~~~~~~~int component1=defaultValue,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~...)} \> \\
+% {\ff int interpolate() }  \> interpolate using default interpolant  \\
+% {\ff int interpolate( Interpolant  \& ) }  \> interpolate using given Interpolant \\
+% {\ff void link(GridCollectionFunction \& gcf, }  \>  link this grid function to another  \\
+% {\ff ~~~~~~~~~~Range \& R0=nullRange,} \> specify optional changes to components indicies \\
+% {\ff ~~~~~~~~~~Range \& R1=nullRange,} \> \\
+% {\ff ~~~~~~~~~~Range \& R2=nullRange,} \> \\
+% {\ff ~~~~~~~~~~Range \& R3=nullRange,} \> \\
+% {\ff ~~~~~~~~~~Range \& R4=nullRange)} \> \\
+% {\ff void link(GridCollectionFunction \& gcf, }  \>  link this grid function to another  \\
+% {\ff ~~~~~~~~~~int componentToLinkTo,}      \>    \\
+% {\ff ~~~~~~~~~~int numberOfComponents)}      \>    \\
+% {\ff intR numberOfComponentGrids} \> number of component grids (reference counted integer) \\
+% {\ff intR positionOfComponent} \> postion of the component (reference counted integer) \\
+% {\ff void periodicUpdate()}  \>  update periodic edges  \\
+% {\ff void put( const Dir \& dir, const String \& name)} \> put to a database file \\
+% {\ff void reference( typeGridcollectionFunction \& gcf)} \> reference \\
+% {\ff void setIsCellCentered(bool trueOrFalse,}  \> change cell centredness (all grids)\\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int axis=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component0=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component1=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...)} \>  \\
+% {\ff void setIsFaceCentered(int \& axis=forAll,}           \> set to face centred (all grids)\\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component0=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int component1=forAll,} \>  \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...)} \>  \\
+% {\ff void setName(String \& name,} \> set name of grid function or component \\
+% {\ff ~~~~~~~~~~~~~int component0=defaultValue,} \> \\
+% {\ff ~~~~~~~~~~~~~int component1=defaultValue,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~...)} \> \\
+% {\ff void updateToMatchGrid(GridCollection \& gc,} \>specify a new GridCollection and update function,\\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R0,} \> specify optional changes to components \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R1=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R2=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~       ...            } \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R7=nullRange)} \> \\
+% {\ff void updateToMatchGrid(GridCollection \& gc,} \>specify a new GridCollection and update function\\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int numberOfComponents=default, } \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int positionOfComponent=default )} \>  \\
+% {\ff void updateToMatchGrid(int numberOfComponents,} \>  update to match the current grid, \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~int positionOfComponent=default )} \> and change components \\
+% {\ff void updateToMatchGridFunction(const GridCollectionFunction \&,} \>~~~~~~~~~~like = without data copy\\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R0=nullRange,} \> specify optional changes to indicies \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R1=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R2=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R3=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R4=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R5=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R6=nullRange,} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Range \& R7=nullRange)} \> \\
+% {\ff void updateToMatchGridFunction(const GridCollectionFunction \& gcf} \> \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~int numberOfComponents=default,}   \\
+% {\ff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~int positionOfComponent=default )}   \\
+% \end{tabbing}
+% Here are the member functions for computing derivatives and boundary conditions
+% \begin{tabbing}
+% {\ff xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx} 012345678901 \= xxxxxxxxxxxxx \= \kill
+% {\ff void setOperators(GridCollectionOperators \& op)} \>   supply an operator to use  \\
+% {\ff ~~~~~~ }                                      \>  for derivatives and BC's\\
+% {\ff \GCF~ x() } \> x derivative \\
+% {\ff \GCF~ y() } \> y derivative \\
+% {\ff \GCF~ z() } \>  \\
+% {\ff \GCF~xx() } \>   \\
+% {\ff \GCF~xy() } \>   \\
+% {\ff \GCF~xz() } \>   \\
+% {\ff \GCF~yy() } \>   \\
+% {\ff \GCF~yz() } \>   \\
+% {\ff \GCF~zz() } \>   \\
+% {\ff \GCF~laplacian() } \> \\
+% {\ff \GCF~grad() } \> gradient \\
+% {\ff \GCF~div() } \> divergence\\
+% {\ff void applyBoundaryConditions( real \& time = 0. )} \> \\
+% \end{tabbing}
+% Here are the member functions for determining the coefficients of
+% differential opertaors
+% \begin{tabbing}
+% {\ff xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx} 012345678901 \= xxxxxxxxxxxxx \= \kill
+% {\ff \GCF~ X() } \> coefficients of the x derivative \\
+% {\ff \GCF~ Y() } \> coefficients of the y derivative \\
+% {\ff \GCF~ Z() } \>  \\
+% {\ff \GCF~XX() } \>   \\
+% {\ff \GCF~XY() } \>   \\
+% {\ff \GCF~XZ() } \>   \\
+% {\ff \GCF~YY() } \>   \\
+% {\ff \GCF~YZ() } \>   \\
+% {\ff \GCF~ZZ() } \>   \\
+% {\ff \GCF~Laplacian() } \> \\
+% {\ff \GCF~I() } \>  coefficients of the Indentity \\
+% {\ff \GCF~Div() } \>  coefficients of the divergence operator\\
+% \end{tabbing}
+% By default the {\ff updateToMatchGrid} functions use the same value for
+% {\ff numberOfComponents} as the grid function was constructed with. 
+% The member functions for differentation ({\ff x,y,z,xx,...}),
+% and boundary conditions are
+% described later in the section on the class {\ff \DABO}.
+% 
+% The interpolate function is passed an {\ff Interpolant}. The Interpolant should
+% be constructed using the same CompositeGrid that was used to make the grid function.
+% See section \ref{Interpolant} for more details.
+% 
+% \subsubsection{reference, breakReference and link}
+% See the description in {\ff MappedGridFunction}.
+% 
+% \subsubsection{isCellCentered, isFaceCentered}
+% See the description in the section on {\ff \MGF}'s.
+
+\subsubsection{Examples}
+
+In this example we make a GridCollectionFunction from a GridCollection.
+We assign the component grid functions (accessed using [~]) in 
+A++ style. We show how to use the {\ff reference} and 
+{\ff breakReference} functions.
+
+{\footnotesize\begin{verbatim}
+  ...
+
+   GridCollection gc(...);  // here is a GridCollection or CompositeGrid
+   doubleGridCollectionFunction u(gc),v;
+   u[0]=5.;                // mapped grid function for grid 0
+   Index I(0,10);
+   u[1](I,I)=3.;           // mapped grid function for grid 1
+   v.reference(u);         // v is referenced to u
+   v[1]=7.;                // changes u as well
+   v.breakReference();     // v is no longer referenced to u
+
+   // Here is how to dimension a grid function after it has been declared:
+   floatGridCollectionFunction w;
+   w.updateToMatchGrid( gc,all,all,all,Range(0,1) );  
+   ...
+   // give names to the grid function and components
+   w.setName("w");      // name grid function
+   w.setName("w.0",0);  // name component 0
+   w.setName("w.1",1);  // name component 1
+   cout << w.getName() << "," << w.getName(0) << "," << w.getName(1) << endl;
+}
+\end{verbatim}
+}
+

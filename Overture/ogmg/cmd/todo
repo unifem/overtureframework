@@ -1,0 +1,27 @@
+***********************************************************************************************************
+***********************************************************************************************************
+TROUBLES:
+
+----------------------------------------------------------------------------------------------------------
+FAILS generating coarse grid:
+ogmgt tz -noplot -g=windFarm1Towersi1.order2.ml2.hdf -autoChoose=1 -levels=1 -debug=3
+
+
+----------------------------------------------------------------------------------------------------------
+line smooth troubles: defect jumps: 
+ogmgt tz -noplot -g=sphereTwoPatche1.order4.ml1 -autoChoose=1 -bc1=n -bc2=m -debug=3 -ssr=1 
+     Ogmg::cycle:level=1, it=1, WU= 5.00, defect=3.29e-06, defect/defectOld= 0.001,  ECR1=   0.246
+  Ogmg:smooth, level = 0, iteration=0, defect: (0=1.923e-03),(1=1.207e-04),max= 1.92e-03, [rate = 0.7089],
+  Ogmg:smooth, level = 0, iteration=1, defect: (0=1.105e-03),(1=1.035e-04),max= 1.10e-03, [rate = 0.5746],
+  Ogmg:smooth, level = 0, iteration=2, defect: (0=6.216e-04),(1=1.141e-04),max= 6.22e-04, [rate = 0.5627],
+  Ogmg::cycle:level=0, it=8, WU= 9.88, defect=6.22e-04, defect/defectOld= 0.169,  ECR0=   0.835 ***
+   ->solve: (level=0) it=8, l2NormResidual=6.22e-04 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(9.8e+00) + 1.0e-10
+     Ogmg::cycle:level=1, it=1, WU= 5.00, defect=1.57e-07, defect/defectOld= 0.000,  ECR1=   0.191
+  Ogmg:smooth, level = 0, iteration=0, defect: (0=8.949e-02),(1=2.032e-01),max= 2.03e-01, [rate = 10.0000],
+  Ogmg:smooth, level = 0, iteration=1, defect: (0=8.184e-02),(1=1.230e-01),max= 1.23e-01, [rate = 0.6052],
+  Ogmg:smooth, level = 0, iteration=2, defect: (0=8.161e-02),(1=1.278e-01),max= 1.28e-01, [rate = 1.0394],
+  Ogmg::cycle:level=0, it=9, WU= 8.32, defect=1.28e-01, defect/defectOld=205.658,  ECR0=   1.896 ***
+
+
+***********************************************************************************************************
+***********************************************************************************************************

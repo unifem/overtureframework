@@ -1,0 +1,112 @@
+------------------------------------------------------------------------------------------
+
+1. The ins/cmd directory holds command files for running examples of cgins
+
+2. Type "../bin/cgins file.cmd" to run the command file named "file.cmd"
+
+3. See the Makefile for the commands to build grids for the different cases.
+
+4. For parallel examples set the shell variable:  set cginsp = ${CGBUILDPREFIX}/mp/bin/cgins
+
+------------------------------------------------------------------------------------------
+
+backStep.cmd : flow over a backward facing step.
+
+backStepSmooth.cmd : flow over a backward facing step with a rounded corner.
+
+benard.cmd : 2D Rayleigh Benard problem (Boussinesq flow)
+
+benard3d.cmd : 3D Rayleigh Benard problem (Boussinesq flow)
+
+boxInAChannel.cmd : flow past a (moving) box in a channel
+
+bubble.cmd : two-phase flow example: light or heavy bubble in a gravitation field
+
+cgrid.cmd: compute flow past a C-grid
+
+channel.cmd : turbulent flow in a periodic channel.
+
+cic.cmd : flow past a cylinder in a short domain
+
+cic.mg.cmd : flow past one or more cylinders using the multigrid solver
+
+cic.passive.cmd : flow past a cylinder with a passive scalar source on a boundary
+
+cic.restart.cmd : example showing how to restart from the solution in a show file.
+
+cic.ss.cmd : flow past a cylinder using the "steady state" line-solver
+
+cicMove.cmd : moving cylinder-in-a-channel example
+
+cylDrop.cmd : A dropping cylinder -- compare to the results from Glowinski, Pan, et.al.dropping cylinders
+
+cylinder.cmd : flow past a 2d cylinder
+
+cyl3d.cmd : flow past a moving 3d cylinder in a channel
+
+deform.cmd : test deforming grids (flow past a deforming disk)
+
+drop3d.cmd : a falling sphere in a rectangular channel
+
+dropFlow.cmd : three falling cylinders in an upward flow 
+
+exact.cmd : test different exact solutions (Poiseuille, Couette, Taylor-Green)
+
+flatPlateWing.cmd : flow past a moving flate plate wing
+
+fuelRods.cmd : flow past some 3d fuel rods with wire wraps
+
+axisym.cmd : test axisymmetric flow (including flow past a half annulus, ie. flow past a sphere)
+
+heatedBox.cmd : Boussinesq flow in a box with a temperature gradient
+
+heatedCyl.cmd : Heated cylinder in a gravitational field (Boussinesq flow)
+
+hgrid.cmd : compute flow past an H-grid
+
+multiBuildings.cmd : flow past some 3d buildings (uses steady-state line-solver)
+
+naca.cmd : flow past a naca0012 airfoil
+
+p.cmd : some parallel examples
+
+pillInABox.cmd : flow past a rotating "pill" (3D disk) in a box.
+
+pipe.cmd : flow in a cylindrical pipe
+
+pipes.cmd : flow through two pipes that join (see also twoPipes.cmd)
+
+pump2d.cmd : flow in a 2d centrifugal pump
+
+roundedBlade.cmd : flow past a 3D rounded blade
+
+sib.cmd : flow past a sphere in a box
+
+sib.ss.cmd : flow past a sphere in a box using the "steady state" line-solver
+
+sibMove.cmd : flow past a moving sphere in a box
+
+sphereMove.cmd : flow past a moving sphere in a channel (using MatrixMotion option)
+
+ss.cmd : test the steady state solver with twilight-zone flow
+
+stir.cmd : stirring stick example (rotating stick)
+
+tcilc.cmd : flow past two cylinders in a channel
+
+threeValve.cmd : three moving valves
+
+tube.cmd : flow along an array of tubes in a box (Boussinesq)
+
+turbineAndTower.cmd : flow past a wind turbine tower and 3 blades 
+
+twoDrop.cmd : two falling cylinders in a rectangular domain (coarse grid example)
+
+twoPipes.cmd : flow through two pipes that join with a smooth fillet
+
+tz.cmd : test twilight-zone solution on various grids
+
+viscoPlasticModel.cmd : test the VP model in the twilight-zone
+
+vp.cmd : run some test cases for the visco-plastic model : flow past a cylinder. Uses vpCylGrid.cmd for grids. 
+

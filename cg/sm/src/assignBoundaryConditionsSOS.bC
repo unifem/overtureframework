@@ -1,0 +1,1198 @@
+#include "Cgsm.h"
+#include "SmParameters.h"
+#include "CompositeGridOperators.h"
+#include "display.h"
+#include "UnstructuredMapping.h"
+#include "OGPolyFunction.h"
+#include "OGTrigFunction.h"
+#include "OGPulseFunction.h"
+#include "RadiationBoundaryCondition.h"
+#include "ParallelUtility.h"
+#include "GridMaterialProperties.h"
+
+#define bcOptSM EXTERN_C_NAME(bcoptsm)
+#define bcOptSmCons EXTERN_C_NAME(bcoptsmcons)
+#define abcSolidMechanics EXTERN_C_NAME(abcsolidmechanics)
+#define exmax EXTERN_C_NAME(exmax)
+
+// ==================================================
+// ============= include forcing macros =============
+// ==================================================
+#Include "forcing.h"
+#Include "translationAndRotationSolution.h"
+#Include "boundaryMacros.h"
+
+extern "C"
+{
+  void bcOptSM(const int&nd,
+	       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+	       const int& gridIndexRange,real& u, const int&mask,const real&rsxy, const real&xy, 
+               const int & ndMatProp, const int& matIndex, const real& matValpc, const real& matVal,
+	       const int&boundaryCondition, const int&addBoundaryForcing, 
+               const int& interfaceType, const int&dim,
+               const real & bcf00, const real & bcf10, 
+               const real & bcf01, const real & bcf11, 
+               const real & bcf02, const real & bcf12, 
+               const real & bcf0, const int64_t & bcfOffset,
+               const int&ipar, const real&rpar, const int&ierr );
+  void bcOptSmCons(const int&nd,
+	       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+	       const int& gridIndexRange,real& u, const int&mask,const real&rsxy, const real&xy, 
+               const int & ndMatProp, const int& matIndex, const real& matValpc, const real& matVal,
+	       const int&boundaryCondition, const int&addBoundaryForcing, 
+               const int& interfaceType, const int&dim,
+               const real & bcf00, const real & bcf10, 
+               const real & bcf01, const real & bcf11, 
+               const real & bcf02, const real & bcf12,
+               const real & bcf0, const int64_t & bcfOffset,
+               const int&ipar, const real&rpar, const int&ierr );
+}
+
+extern "C"
+{
+  void abcSolidMechanics(const int&nd,
+		       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+		       const int&ndf1a,const int&ndf1b,const int&ndf2a,const int&ndf2b,const int&ndf3a,const int&ndf3b,
+		       const int & gid,
+		       const real&u, const real&un, const real&f, const int&mask, const real&rsxy, const real&xy,
+		       const int&bc, const int&boundaryCondition, const int&ipar, const real&rpar, int&ierr );
+
+//   void exmax(double&Ez,double&Bx,double&By,const int &nsources,const double&xs,const double&ys,
+//            const double&tau,const double&var,const double&amp, const double&a,
+//            const double&x,const double&y,const double&time);
+}
+
+#define pmlSolidMechanics EXTERN_C_NAME(pmlsolidmechanics)
+
+extern "C"
+{
+ void pmlSolidMechanics(const int&nd,
+      const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+      const int&ndf1a,const int&ndf1b,const int&ndf2a,const int&ndf2b,const int&ndf3a,const int&ndf3b,
+      const int & gid,
+      const real&um, const real&u, const real&un, 
+      const int&ndra1a,const int&ndra1b,const int&ndra2a,const int&ndra2b,const int&ndra3a,const int&ndra3b,
+      const real&vram, const real&vra, const real&vran, const real&wram, const real&wra, const real&wran, 
+      const int&ndrb1a,const int&ndrb1b,const int&ndrb2a,const int&ndrb2b,const int&ndrb3a,const int&ndrb3b,
+      const real&vrbm, const real&vrb, const real&vrbn, const real&wrbm, const real&wrb, const real&wrbn, 
+      const int&ndsa1a,const int&ndsa1b,const int&ndsa2a,const int&ndsa2b,const int&ndsa3a,const int&ndsa3b,
+      const real&vsam, const real&vsa, const real&vsan, const real&wsam, const real&wsa, const real&wsan, 
+      const int&ndsb1a,const int&ndsb1b,const int&ndsb2a,const int&ndsb2b,const int&ndsb3a,const int&ndsb3b,
+      const real&vsbm, const real&vsb, const real&vsbn, const real&wsbm, const real&wsb, const real&wsbn, 
+      const int&ndta1a,const int&ndta1b,const int&ndta2a,const int&ndta2b,const int&ndta3a,const int&ndta3b,
+      const real&vtam, const real&vta, const real&vtan, const real&wtam, const real&wta, const real&wtan, 
+      const int&ndtb1a,const int&ndtb1b,const int&ndtb2a,const int&ndtb2b,const int&ndtb3a,const int&ndtb3b,
+      const real&vtbm, const real&vtb, const real&vtbn, const real&wtbm, const real&wtb, const real&wtbn, 
+      const real&f, const int&mask, const real&rsxy, const real&xy,
+      const int&bc, const int&boundaryCondition, const int&ipar, const real&rpar, int&ierr );
+}
+
+#define interfaceSolidMechanics EXTERN_C_NAME(interfacemaxwell)
+#define newInterfaceSolidMechanics EXTERN_C_NAME(newinterfacemaxwell)
+extern "C"
+{
+void interfaceSolidMechanics( const int&nd, 
+                       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+		       const int&gridIndexRange1, real&u1, const int&mask1,const real&rsxy1, const real&xy1, 
+                       const int&boundaryCondition1, 
+		       const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b,
+		       const int&gridIndexRange2, real&u2, const int&mask2,const real&rsxy2, const real&xy2, 
+                       const int&boundaryCondition2,
+		       const int&ipar, const real&rpar, 
+                       real&aa2, real&aa4, real&aa8, 
+                       int&ipvt2, int&ipvt4, int&ipvt8,
+                       int&ierr );
+void newInterfaceSolidMechanics( const int&nd, 
+                       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+		       const int&gridIndexRange1, real&u1, const int&mask1,const real&rsxy1, const real&xy1, 
+                       const int&boundaryCondition1, 
+		       const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b,
+		       const int&gridIndexRange2, real&u2, const int&mask2,const real&rsxy2, const real&xy2, 
+                       const int&boundaryCondition2,
+		       const int&ipar, const real&rpar, int&ierr );
+}
+
+
+static FILE *localDebugFile=NULL;
+
+extern "C"
+{
+
+/* This function is used to update ghost boundaries of a P++ array from fortran  */
+void
+updateghostboundaries_(realArray *&pu )
+{
+  // cfprintf(localDebugFile,"**** updateGhostBoundaries called from fortran pu=%i...\n",pu);
+  // realSerialArray uu;  getLocalArrayWithGhostBoundaries((*pu),uu);
+  // ::display(uu,"u before (fortran) update ghost boundaries -- after stage 1",localDebugFile,"%9.5f ");
+
+  (*pu).updateGhostBoundaries();
+
+  // Communication_Manager::Sync();
+  // ::display(uu,"u after (fortran) update ghost boundaries -- after stage 1",localDebugFile,"%9.5f ");
+  // Communication_Manager::Sync();
+}
+
+void
+updateghostandperiodic_(realMappedGridFunction *&pu )
+{
+  // cfprintf(localDebugFile,"**** updateGhostBoundaries called from fortran pu=%i...\n",pu);
+  // realSerialArray uu;  getLocalArrayWithGhostBoundaries((*pu),uu);
+  // ::display(uu,"u before (fortran) update ghost boundaries -- after stage 1",localDebugFile,"%9.5f ");
+
+  (*pu).periodicUpdate();
+  (*pu).updateGhostBoundaries();
+
+  // Communication_Manager::Sync();
+  // ::display(uu,"u after (fortran) update ghost boundaries -- after stage 1",localDebugFile,"%9.5f ");
+  // Communication_Manager::Sync();
+} 
+}
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+
+
+// =============================================================================================================
+// /Description:
+//    Compute a new gridIndexRange, dimension
+//             and boundaryCondition array that will be valid for the local grid on a processor.
+// 
+//    Set the gid to match the ends of the local array.
+//    Set the bc(side,axis) to -1 (periodic) for internal boundaries between processors
+//
+// NOTES: In parallel we cannot assume the rsxy array is defined on all ghost points -- it will not
+// be set on the extra ghost points put at the far ends of the array. -- i.e. internal boundary ghost 
+// points will be set but not external
+// =============================================================================================================
+void Cgsm::
+getLocalBoundsAndBoundaryConditions( const realMappedGridFunction & a, 
+                                     IntegerArray & gidLocal, 
+                                     IntegerArray & dimensionLocal, 
+                                     IntegerArray & bcLocal )
+{
+
+  MappedGrid & mg = *a.getMappedGrid();
+  
+  const IntegerArray & dimension = mg.dimension();
+  const IntegerArray & gid = mg.gridIndexRange();
+  const IntegerArray & bc = mg.boundaryCondition();
+  
+  gidLocal = gid;
+  bcLocal = bc;
+  dimensionLocal=dimension;
+  
+  for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+  {
+//      printF(" axis=%i gidLocal(0,axis)=%i a.getLocalBase(axis)=%i  dimension(0,axis)=%i\n",axis,gidLocal(0,axis),
+//                        a.getLocalBase(axis),dimension(0,axis));
+//      printF(" axis=%i gidLocal(1,axis)=%i a.getLocalBound(axis)=%i dimension(0,axis)=%i\n",axis,gidLocal(1,axis),
+//                        a.getLocalBound(axis),dimension(1,axis));
+    if( a.getLocalBase(axis) == a.getBase(axis) ) 
+    {
+      assert( dimension(0,axis)==a.getLocalBase(axis) );
+      gidLocal(0,axis) = gid(0,axis); 
+      dimensionLocal(0,axis) = dimension(0,axis); 
+    }
+    else
+    {
+      gidLocal(0,axis) = a.getLocalBase(axis)+a.getGhostBoundaryWidth(axis);
+      dimensionLocal(0,axis) = a.getLocalBase(axis); 
+      // for internal ghost mark as periodic since these behave in the same was as periodic
+      // ** we cannot mark as "0" since the mask may be non-zero at these points and assignBC will 
+      // access points out of bounds
+      bcLocal(0,axis) = -1; // bc(0,axis)>=0 ? 0 : -1;
+    }
+    
+    if( a.getLocalBound(axis) == a.getBound(axis) ) 
+    {
+      assert( dimension(1,axis) == a.getLocalBound(axis) );
+      
+      gidLocal(1,axis) = gid(1,axis); 
+      dimensionLocal(1,axis) = dimension(1,axis); 
+    }
+    else
+    {
+      gidLocal(1,axis) = a.getLocalBound(axis)-a.getGhostBoundaryWidth(axis);
+      dimensionLocal(1,axis) = a.getLocalBound(axis);
+      // for internal ghost mark as periodic since these behave in the same was as periodic
+      bcLocal(1,axis) = -1; // bc(1,axis)>=0 ? 0 : -1;
+    }
+    
+  }
+}
+
+
+// ================================================================================================
+//   Get the bounds of valid interior points when there are boundaries with the PML BC
+//
+// /extra : an additional offset (e.g. to check errors use extra=pmlErrorOffset)
+// /Return value: true if this is a PML grid and the Index Iv was changed.
+// ================================================================================================
+bool Cgsm::
+getBoundsForPML( MappedGrid & mg, Index Iv[3], int extra /* =0 */ )
+{
+  // Do this for now -- assumes all sides are PML
+  bool usePML = (mg.boundaryCondition(0,0)==SmParameters::abcPML || mg.boundaryCondition(1,0)==SmParameters::abcPML ||
+		 mg.boundaryCondition(0,1)==SmParameters::abcPML || mg.boundaryCondition(1,1)==SmParameters::abcPML ||
+		 mg.boundaryCondition(0,2)==SmParameters::abcPML || mg.boundaryCondition(1,2)==SmParameters::abcPML);
+  
+  if( !usePML ) return false;
+  
+  // Here is the box where we apply the interior equations when there is a PML
+  Iv[2]=Range(mg.gridIndexRange(0,2),mg.gridIndexRange(1,2));
+  for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+  {
+    int na=mg.gridIndexRange(0,axis);
+    if( mg.boundaryCondition(0,axis)==SmParameters::abcPML )
+      na+=numberLinesForPML+extra;
+    int nb=mg.gridIndexRange(1,axis);
+    if( mg.boundaryCondition(1,axis)==SmParameters::abcPML )
+      nb-=numberLinesForPML+extra;
+    Iv[axis]=Range(na,nb);
+  }
+
+  return usePML;
+}
+
+
+// =============================================================
+// Macro to apply optimized versions of BC's
+// =============================================================
+#beginMacro optimizedBoundaryConditionsMacro()
+
+getIndex(mg.gridIndexRange(),I1,I2,I3);
+int includeGhost=1;
+bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+if( ok && useOpt )
+{
+
+  // use optimised boundary conditions
+  int ipar[30];
+  real rpar[20];
+
+  int gridType = isRectangular ? 0 : 1;
+  int orderOfExtrapolation=orderOfAccuracyInSpace+1;  // not used
+  int useForcing = forcingOption==twilightZoneForcing;
+  int useWhereMask=false;
+
+  realArray f;  // not currently used
+
+  IntegerArray & pinBoundaryCondition = parameters.dbase.get<IntegerArray>("pinBoundaryCondition");
+  int numberToPin=pinBoundaryCondition.getLength(1);
+  if( numberToPin>0 )
+  {
+    printF("Cgsm:assignBoundaryConditionsSOS: ERROR: pinning of edges or corners not implemented yet. FIX ME Bill!\n");
+    OV_ABORT("error");
+  }
+
+
+
+  // fprintf(pDebugFile,"**** pu= %i, %i...\n",&u,pu);
+
+  const bool centerNeeded=useForcing || (forcingOption==planeWaveBoundaryForcing); // **************** fix this 
+
+#ifdef USE_PPP 
+
+  realSerialArray uu;    getLocalArrayWithGhostBoundaries(u,uu);
+  realSerialArray uuOld; getLocalArrayWithGhostBoundaries(uOld,uuOld);
+  intSerialArray  mask;  getLocalArrayWithGhostBoundaries(mg.mask(),mask);
+  realSerialArray rx;    if( !isRectangular ) getLocalArrayWithGhostBoundaries(mg.inverseVertexDerivative(),rx);
+  realSerialArray xy;    if( centerNeeded ) getLocalArrayWithGhostBoundaries(mg.center(),xy);
+  realSerialArray ff;    getLocalArrayWithGhostBoundaries(f,ff); 
+
+  if( debug & 16 )
+  {
+    fprintf(pDebugFile,"\n **** grid=%i p=%i assignBC: gid=[%i,%i][%i,%i][%i,%i] bc=[%i,%i][%i,%i][%i,%i]"
+	    " bcg=[%i,%i][%i,%i][%i,%i]******\n\n",grid,myid,
+	    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+	    bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2),
+	    bcg(0,0),bcg(1,0),bcg(0,1),bcg(1,1),bcg(0,2),bcg(1,2));
+	  
+	  
+    fprintf(pDebugFile,"\n **** uu=[%i,%i] xy=[%i,%i] rsxy=[%i,%i]\n",
+	    uu.getBase(0),uu.getBound(0),xy.getBase(0),xy.getBound(0),rx.getBase(0),rx.getBound(0));
+	  
+  }
+	
+        
+#else
+  const realSerialArray & uu    = u;
+  const realSerialArray & uuOld = uOld;
+  const realSerialArray & ff    = f;
+  const intSerialArray  & mask  = mg.mask();
+
+  const realSerialArray & rx = !isRectangular? mg.inverseVertexDerivative() : uu;
+  const realSerialArray & xy = centerNeeded ? mg.center() : uu;
+  const IntegerArray & gid = mg.gridIndexRange();
+  const IntegerArray & dim = mg.dimension();
+  const IntegerArray & bc = mg.boundaryCondition();
+	
+  if( debug & 64 )
+  {
+    const IntegerArray & bcg = mg.boundaryCondition();
+    fprintf(pDebugFile,"\n **** grid=%i p=%i assignBC: gid=[%i,%i][%i,%i][%i,%i] bc=[%i,%i][%i,%i][%i,%i]"
+	    " bcg=[%i,%i][%i,%i][%i,%i]******\n\n",grid,myid,
+	    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+	    bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2),
+	    bcg(0,0),bcg(1,0),bcg(0,1),bcg(1,1),bcg(0,2),bcg(1,2));
+  }
+	
+#endif
+        
+
+  real *uptr   = uu.getDataPointer();
+  real *fptr   = ff.getDataPointer();
+  int *maskptr = mask.getDataPointer();
+  real *rxptr  = rx.getDataPointer();
+  real *xyptr  = centerNeeded ? xy.getDataPointer() : uptr;
+  assert( xyptr!=NULL );
+
+
+  if( !isRectangular )
+  {
+    // display(mg.inverseVertexDerivative(),"inverseVertexDerivative","%7.4f ");
+    // displayMask(mg.mask());
+	
+  }
+
+
+  // Do this for now -- assumes all sides are PML
+  bool usePML = (bc(0,0)==SmParameters::abcPML || bc(1,0)==SmParameters::abcPML ||
+		 bc(0,1)==SmParameters::abcPML || bc(1,1)==SmParameters::abcPML ||
+		 bc(0,2)==SmParameters::abcPML || bc(1,2)==SmParameters::abcPML);
+      
+
+  // *** need to fix gridIndex Range and bc ***********************
+
+  if( debug & 16 )
+  {
+    ::display(uu,sPrintF("uu before bcOptSm, t=%e",t),pDebugFile,"%8.1e ");
+  }
+      
+  if( !isRectangular && debug & 16  ) 
+    ::display(rx,sPrintF("rx before bcOptSm, t=%e",t),debugFile,"%9.2e ");
+
+  // The next macro is in boundaryMacros.h
+  extractBoundaryDataArrays();
+
+  // Macro to extract the pointers to the variable material property arrays
+  getVariableMaterialPropertyPointers(maskptr,uptr);
+  
+  ipar[0]=numberOfDimensions;
+  ipar[1] = grid;
+  ipar[2] = uc;
+  ipar[3] = vc;
+  ipar[4] = wc;
+  ipar[5] = gridType;
+  ipar[6] = orderOfAccuracyInSpace;
+  ipar[7] = orderOfExtrapolation;
+  ipar[8] = int(forcingOption==twilightZoneForcing);  // twilightZone *wdh* 090813
+  ipar[9] = useWhereMask;
+  ipar[10]= debug; 
+
+  ipar[15]=(int)materialFormat;
+
+  rpar[ 0]=dx[0];
+  rpar[ 1]=dx[1];
+  rpar[ 2]=dx[2];
+  rpar[ 3]=mg.gridSpacing(0);
+  rpar[ 4]=mg.gridSpacing(1);
+  rpar[ 5]=mg.gridSpacing(2);
+  rpar[ 6]=t;
+  OGFunction *& tz = parameters.dbase.get<OGFunction* >("exactSolution");
+  rpar[ 7]=(real &)tz;  // twilight zone pointer, ep
+  rpar[ 8]=dt;
+  rpar[ 9]=rho;
+  rpar[10]=mu;
+  rpar[11]=lambda;
+  rpar[12]=c1;
+  rpar[13]=c2;
+
+
+// // ******** for testing ********
+//   for( int axis=0; axis<=2; axis++ )
+//   {
+//     for( int side=0; side<=1; side++ )
+//     {
+//       addBoundaryForcing(side,axis)=false;
+//     }
+//   }
+  
+
+  int ierr=0;
+  const int bc0=-1;  // do all boundaries.
+  if( !usePML ) // *** fix this ***
+  {
+//     bcOptSolidMechanics( mg.numberOfDimensions(), 
+// 		  uu.getBase(0),uu.getBound(0),
+// 		  uu.getBase(1),uu.getBound(1),
+// 		  uu.getBase(2),uu.getBound(2),
+// 		  ff.getBase(0),ff.getBound(0),
+// 		  ff.getBase(1),ff.getBound(1),
+// 		  ff.getBase(2),ff.getBound(2),
+// 		  *gid.getDataPointer(),*dim.getDataPointer(),
+// 		  *uptr,*fptr,*maskptr,*rxptr, *xyptr,
+// 		  bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+
+    if( useConservative )
+    {
+      bcOptSmCons( numberOfDimensions, 
+		   uu.getBase(0),uu.getBound(0),
+		   uu.getBase(1),uu.getBound(1),
+		   uu.getBase(2),uu.getBound(2),
+		   gid(0,0), *uptr, *maskptr, *rxptr, *xyptr, 
+                   ndMatProp,*matIndexPtr,*matValPtr,*matValPtr, 
+                   *bc.getDataPointer(),
+                   *pAddBoundaryForcing,*interfaceType.getDataPointer(),*pdbc, 
+                   *pbcf[0][0],*pbcf[1][0], *pbcf[0][1],*pbcf[1][1], *pbcf[0][2],*pbcf[1][2],
+                   *pbcf[0][0],pbcfOffset[0],
+		   ipar[0], rpar[0], ierr );
+    }
+    else
+    {
+      bcOptSM( numberOfDimensions, 
+	       uu.getBase(0),uu.getBound(0),
+	       uu.getBase(1),uu.getBound(1),
+	       uu.getBase(2),uu.getBound(2),
+	       gid(0,0), *uptr, *maskptr, *rxptr, *xyptr, 
+               ndMatProp,*matIndexPtr,*matValPtr,*matValPtr, 
+               *bc.getDataPointer(),
+               *pAddBoundaryForcing,*interfaceType.getDataPointer(),*pdbc, 
+               *pbcf[0][0],*pbcf[1][0], *pbcf[0][1],*pbcf[1][1], *pbcf[0][2],*pbcf[1][2],
+               *pbcf[0][0],pbcfOffset[0],
+	       ipar[0], rpar[0], ierr );
+    }
+    
+  }
+  
+ 
+  if( debug & 16  ) ::display(uu,sPrintF("uu after bcOptSM, t=%e",t),pDebugFile,"%8.1e ");
+
+  real *uOldptr = uuOld.getDataPointer();
+      
+  // Absorbing boundary conditions
+//   if( !usePML  ) // *** fix this ***
+//     abcSolidMechanics( mg.numberOfDimensions(), 
+// 		uu.getBase(0),uu.getBound(0),
+// 		uu.getBase(1),uu.getBound(1),
+// 		uu.getBase(2),uu.getBound(2),
+// 		ff.getBase(0),ff.getBound(0),
+// 		ff.getBase(1),ff.getBound(1),
+// 		ff.getBase(2),ff.getBound(2),
+// 		*gid.getDataPointer(),
+// 		*uOldptr, *uptr, *fptr,*maskptr,*rxptr, *xyptr,
+// 		bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+ 
+
+  if( usePML )
+  {
+    // *************************************************************
+    // ************* PML boundary conditions ***********************
+    // *************************************************************
+
+    realMappedGridFunction & un = u;    // u[next];
+    // realMappedGridFunction & uu = uOld; // u[current];
+    
+    const int prev= (current-1+numberOfTimeLevels) % numberOfTimeLevels;
+    const int next = (current+1) % numberOfTimeLevels;
+	
+    realMappedGridFunction & um =gf[prev].u[grid];
+
+    Range all;
+    // ::display(um(all,all,all,hz),"um before pml BC's","%9.2e ");
+    // ::display(u(all,all,all,hz) ,"u  before pml BC's","%9.2e ");
+    // ::display(un(all,all,all,hz),"un before pml BC's","%9.2e ");
+
+    // vra,vrb  vsa,vsb, vsa, vsb
+
+    // *********** In parallel it may be easiest to allocate arrays for the whole grid ******
+
+    // vpml(m,side,axis,grid) m=0 : v , m=1 : w 
+    const int numberOfPMLFunctions=2*numberOfTimeLevels; //  v and w, two levels
+#define VPML(m,side,axis,grid) vpml[(m)+numberOfPMLFunctions*(side+2*(axis+3*(grid)))]
+#define WPML(m,side,axis,grid) vpml[(m+numberOfTimeLevels)+numberOfPMLFunctions*(side+2*(axis+3*(grid)))]
+    if( vpml==NULL )
+    {
+      vpml= new realArray [cg.numberOfComponentGrids()*3*2*numberOfPMLFunctions];
+
+      printF(" ****** assignBC: allocate vpml arrays ***** \n");
+
+      for( int side=0; side<=1; side++ )
+      {
+	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	{
+	  if( mg.boundaryCondition(side,axis)==SmParameters::abcPML )
+	  {
+	    for( int m=0; m<numberOfPMLFunctions; m++ )
+	    {
+		  
+	      realArray & vw = VPML(m,side,axis,grid);
+	      int ndr[2][3];
+	      for( int dir=0; dir<3; dir++ )
+	      {
+		ndr[0][dir]=mg.dimension(0,dir);
+		ndr[1][dir]=mg.dimension(1,dir);
+	      }
+		  
+	      if( side==0 )
+	      {
+		ndr[0][axis]=mg.dimension(side,axis);
+		ndr[1][axis]=mg.gridIndexRange(side,axis)+numberLinesForPML-1;
+	      }
+	      else
+	      {
+		ndr[0][axis]=mg.gridIndexRange(side,axis)-numberLinesForPML+1;
+		ndr[1][axis]=mg.dimension(side,axis);
+	      }
+		  
+
+	      realArray a;
+	      a.redim(Range(-2,10),Range(0,0));
+		  
+	      vw .redim(Range(ndr[0][0],ndr[1][0]),
+			Range(ndr[0][1],ndr[1][1]),
+			Range(ndr[0][2],ndr[1][2]),numberOfPMLFunctions);
+
+	      vw=0.;
+	    }
+	  }
+	}
+      }
+    }
+	
+#ifdef USE_PPP
+    realSerialArray uum; getLocalArrayWithGhostBoundaries(um,uum);
+    realSerialArray uu;  getLocalArrayWithGhostBoundaries(uOld,uu);
+    realSerialArray uun; getLocalArrayWithGhostBoundaries(un,uun);
+
+    realSerialArray vram; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,0,grid),vram); 
+    realSerialArray vrbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,0,grid),vrbm); 
+    realSerialArray vsam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,1,grid),vsam); 
+    realSerialArray vsbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,1,grid),vsbm); 
+    realSerialArray vtam; getLocalArrayWithGhostBoundaries(VPML(prev   ,0,2,grid),vtam); 
+    realSerialArray vtbm; getLocalArrayWithGhostBoundaries(VPML(prev   ,1,2,grid),vtbm); 
+										  			
+    realSerialArray vra ; getLocalArrayWithGhostBoundaries(VPML(current,0,0,grid),vra ); 
+    realSerialArray vrb ; getLocalArrayWithGhostBoundaries(VPML(current,1,0,grid),vrb ); 
+    realSerialArray vsa ; getLocalArrayWithGhostBoundaries(VPML(current,0,1,grid),vsa ); 
+    realSerialArray vsb ; getLocalArrayWithGhostBoundaries(VPML(current,1,1,grid),vsb ); 
+    realSerialArray vta ; getLocalArrayWithGhostBoundaries(VPML(current,0,2,grid),vta ); 
+    realSerialArray vtb ; getLocalArrayWithGhostBoundaries(VPML(current,1,2,grid),vtb ); 
+    		    			   					  	
+    realSerialArray vran; getLocalArrayWithGhostBoundaries(VPML(next   ,0,0,grid),vran); 
+    realSerialArray vrbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,0,grid),vrbn); 
+    realSerialArray vsan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,1,grid),vsan); 
+    realSerialArray vsbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,1,grid),vsbn); 
+    realSerialArray vtan; getLocalArrayWithGhostBoundaries(VPML(next   ,0,2,grid),vtan); 
+    realSerialArray vtbn; getLocalArrayWithGhostBoundaries(VPML(next   ,1,2,grid),vtbn); 
+										  			
+										  			
+    realSerialArray wram; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,0,grid),wram); 
+    realSerialArray wrbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,0,grid),wrbm); 
+    realSerialArray wsam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,1,grid),wsam); 
+    realSerialArray wsbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,1,grid),wsbm); 
+    realSerialArray wtam; getLocalArrayWithGhostBoundaries(WPML(prev   ,0,2,grid),wtam); 
+    realSerialArray wtbm; getLocalArrayWithGhostBoundaries(WPML(prev   ,1,2,grid),wtbm); 
+										  			
+    realSerialArray wra ; getLocalArrayWithGhostBoundaries(WPML(current,0,0,grid),wra ); 
+    realSerialArray wrb ; getLocalArrayWithGhostBoundaries(WPML(current,1,0,grid),wrb ); 
+    realSerialArray wsa ; getLocalArrayWithGhostBoundaries(WPML(current,0,1,grid),wsa ); 
+    realSerialArray wsb ; getLocalArrayWithGhostBoundaries(WPML(current,1,1,grid),wsb ); 
+    realSerialArray wta ; getLocalArrayWithGhostBoundaries(WPML(current,0,2,grid),wta ); 
+    realSerialArray wtb ; getLocalArrayWithGhostBoundaries(WPML(current,1,2,grid),wtb ); 
+    		    			   					  	
+    realSerialArray wran; getLocalArrayWithGhostBoundaries(WPML(next   ,0,0,grid),wran); 
+    realSerialArray wrbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,0,grid),wrbn); 
+    realSerialArray wsan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,1,grid),wsan); 
+    realSerialArray wsbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,1,grid),wsbn); 
+    realSerialArray wtan; getLocalArrayWithGhostBoundaries(WPML(next   ,0,2,grid),wtan); 
+    realSerialArray wtbn; getLocalArrayWithGhostBoundaries(WPML(next   ,1,2,grid),wtbn); 
+
+#else
+    const realSerialArray & uum = um;
+    const realSerialArray & uu  = uOld;
+    const realSerialArray & uun = un;
+
+    const realSerialArray & vram = VPML(prev   ,0,0,grid); 
+    const realSerialArray & vrbm = VPML(prev   ,1,0,grid); 
+    const realSerialArray & vsam = VPML(prev   ,0,1,grid); 
+    const realSerialArray & vsbm = VPML(prev   ,1,1,grid); 
+    const realSerialArray & vtam = VPML(prev   ,0,2,grid); 
+    const realSerialArray & vtbm = VPML(prev   ,1,2,grid); 
+
+    const realSerialArray & vra  = VPML(current,0,0,grid); 
+    const realSerialArray & vrb  = VPML(current,1,0,grid); 
+    const realSerialArray & vsa  = VPML(current,0,1,grid); 
+    const realSerialArray & vsb  = VPML(current,1,1,grid); 
+    const realSerialArray & vta  = VPML(current,0,2,grid); 
+    const realSerialArray & vtb  = VPML(current,1,2,grid); 
+						   
+    const realSerialArray & vran = VPML(next   ,0,0,grid); 
+    const realSerialArray & vrbn = VPML(next   ,1,0,grid); 
+    const realSerialArray & vsan = VPML(next   ,0,1,grid); 
+    const realSerialArray & vsbn = VPML(next   ,1,1,grid); 
+    const realSerialArray & vtan = VPML(next   ,0,2,grid); 
+    const realSerialArray & vtbn = VPML(next   ,1,2,grid); 
+
+
+    const realSerialArray & wram = WPML(prev   ,0,0,grid); 
+    const realSerialArray & wrbm = WPML(prev   ,1,0,grid); 
+    const realSerialArray & wsam = WPML(prev   ,0,1,grid); 
+    const realSerialArray & wsbm = WPML(prev   ,1,1,grid); 
+    const realSerialArray & wtam = WPML(prev   ,0,2,grid); 
+    const realSerialArray & wtbm = WPML(prev   ,1,2,grid); 
+
+    const realSerialArray & wra  = WPML(current,0,0,grid); 
+    const realSerialArray & wrb  = WPML(current,1,0,grid); 
+    const realSerialArray & wsa  = WPML(current,0,1,grid); 
+    const realSerialArray & wsb  = WPML(current,1,1,grid); 
+    const realSerialArray & wta  = WPML(current,0,2,grid); 
+    const realSerialArray & wtb  = WPML(current,1,2,grid); 
+						   
+    const realSerialArray & wran = WPML(next   ,0,0,grid); 
+    const realSerialArray & wrbn = WPML(next   ,1,0,grid); 
+    const realSerialArray & wsan = WPML(next   ,0,1,grid); 
+    const realSerialArray & wsbn = WPML(next   ,1,1,grid); 
+    const realSerialArray & wtan = WPML(next   ,0,2,grid); 
+    const realSerialArray & wtbn = WPML(next   ,1,2,grid); 
+
+#endif
+
+    real *umptr, *uuptr, *unptr;   
+    umptr=uum.getDataPointer();
+    uuptr= uu.getDataPointer();  
+    unptr=uun.getDataPointer();
+
+    // Here is the box outside of which the PML equations are applied.
+
+    getBoundsForPML(mg,Iv);
+
+    int includeGhost=0;
+    bool ok = ParallelUtility::getLocalArrayBounds(uOld,uu,I1,I2,I3,includeGhost);
+    if( ok )
+    {
+
+      ipar[2] =I1.getBase();
+      ipar[3] =I1.getBound();
+      ipar[4] =I2.getBase();
+      ipar[5] =I2.getBound();
+      ipar[6] =I3.getBase();
+      ipar[7] =I3.getBound();
+
+      assert( dx[0]>0. );
+	
+      int bc0=-1;  // not used
+      // ** for( int m=0; m<3; m++ )
+      for( int m=0; m<3; m++ )
+      {
+	ipar[12]=uc+m; // assign this component
+	pmlSolidMechanics( mg.numberOfDimensions(), 
+			   uu.getBase(0),uu.getBound(0),
+			   uu.getBase(1),uu.getBound(1),
+			   uu.getBase(2),uu.getBound(2),
+			   ff.getBase(0),ff.getBound(0),
+			   ff.getBase(1),ff.getBound(1),
+			   ff.getBase(2),ff.getBound(2),
+			   *gid.getDataPointer(),
+			   *umptr, *uuptr, *unptr, 
+			   // vra (left)
+			   vra.getBase(0),vra.getBound(0),vra.getBase(1),vra.getBound(1),vra.getBase(2),vra.getBound(2),
+			   *vram.getDataPointer(),*vra.getDataPointer(),*vran.getDataPointer(),
+			   *wram.getDataPointer(),*wra.getDataPointer(),*wran.getDataPointer(),
+			   // vrb (right)
+			   vrb.getBase(0),vrb.getBound(0),vrb.getBase(1),vrb.getBound(1),vrb.getBase(2),vrb.getBound(2),
+			   *vrbm.getDataPointer(),*vrb.getDataPointer(),*vrbn.getDataPointer(),
+			   *wrbm.getDataPointer(),*wrb.getDataPointer(),*wrbn.getDataPointer(),
+			   // vsa (bottom)
+			   vsa.getBase(0),vsa.getBound(0),vsa.getBase(1),vsa.getBound(1),vsa.getBase(2),vsa.getBound(2),
+			   *vsam.getDataPointer(),*vsa.getDataPointer(),*vsan.getDataPointer(),
+			   *wsam.getDataPointer(),*wsa.getDataPointer(),*wsan.getDataPointer(),
+			   // vsb 
+			   vsb.getBase(0),vsb.getBound(0),vsb.getBase(1),vsb.getBound(1),vsb.getBase(2),vsb.getBound(2),
+			   *vsbm.getDataPointer(),*vsb.getDataPointer(),*vsbn.getDataPointer(),
+			   *wsbm.getDataPointer(),*wsb.getDataPointer(),*wsbn.getDataPointer(),
+			   // vta
+			   vta.getBase(0),vta.getBound(0),vta.getBase(1),vta.getBound(1),vta.getBase(2),vta.getBound(2),
+			   *vtam.getDataPointer(),*vta.getDataPointer(),*vtan.getDataPointer(),
+			   *wtam.getDataPointer(),*wta.getDataPointer(),*wtan.getDataPointer(),
+			   // vtb 
+			   vtb.getBase(0),vtb.getBound(0),vtb.getBase(1),vtb.getBound(1),vtb.getBase(2),vtb.getBound(2),
+			   *vtbm.getDataPointer(),*vtb.getDataPointer(),*vtbn.getDataPointer(),
+			   *wtbm.getDataPointer(),*wtb.getDataPointer(),*wtbn.getDataPointer(),
+			   *fptr,*maskptr,*rxptr, *xyptr,
+			   bc0, *bc.getDataPointer(), ipar[0], rpar[0], ierr );
+	  
+      }  // end m
+      ipar[12]=uc; // reset
+      
+    }
+    
+      // ::display(um(all,all,all,hz),"um after pml BC's","%9.2e ");
+    // ::display(u(all,all,all,hz) ,"u  after pml BC's","%9.2e ");
+    // ::display(un(all,all,all,hz),"un after pml BC's","%9.2e ");
+
+  }
+
+  // ::display(u,"u after pml BC's","%9.2e ");
+      
+} // end use opt
+#endMacro    
+
+
+
+// =========================================================================================================
+/// \brief Apply boundary conditions for the second-order-system .
+///
+///  \param option: 
+///
+///
+// =========================================================================================================
+void Cgsm::
+assignBoundaryConditionsSOS( int option, int grid, real t, real dt, realMappedGridFunction & u, 
+			     realMappedGridFunction & uOld, int current )
+// Note: uOld = u[current]
+{
+
+  FILE *& debugFile  =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& logFile    =parameters.dbase.get<FILE* >("logFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+  localDebugFile=pDebugFile;
+  
+  const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
+  const int next = (current+1) % numberOfTimeLevels;
+
+  SmParameters::PDEModel & pdeModel = parameters.dbase.get<SmParameters::PDEModel>("pdeModel");
+
+  const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+  const int & uc =  parameters.dbase.get<int >("uc");
+  const int & vc =  parameters.dbase.get<int >("vc");
+  const int & wc =  parameters.dbase.get<int >("wc");
+  const int & rc =  parameters.dbase.get<int >("rc");
+  const int & tc =  parameters.dbase.get<int >("tc");
+
+  SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+
+  const int & u1c = parameters.dbase.get<int >("u1c");
+  const int & u2c = parameters.dbase.get<int >("u2c");
+  const int & u3c = parameters.dbase.get<int >("u3c");
+
+  const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
+  const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+
+  real & rho=parameters.dbase.get<real>("rho");
+  real & mu = parameters.dbase.get<real>("mu");
+  real & lambda = parameters.dbase.get<real>("lambda");
+  RealArray & muGrid = parameters.dbase.get<RealArray>("muGrid");
+  RealArray & lambdaGrid = parameters.dbase.get<RealArray>("lambdaGrid");
+  // bool & gridHasMaterialInterfaces = parameters.dbase.get<bool>("gridHasMaterialInterfaces");
+  int & debug = parameters.dbase.get<int >("debug");
+
+  lambda = lambdaGrid(grid);
+  mu = muGrid(grid);
+  c1=(mu+lambda)/rho, c2= mu/rho;
+
+//   const real cc= c*sqrt( kx*kx+ky*ky );
+
+  MappedGrid & mg = *u.getMappedGrid();
+  MappedGridOperators & mgop = (*cgop)[grid];
+  
+  const int numberOfDimensions = mg.numberOfDimensions();
+  
+  // The RHS for BC's are saved in these next two objects:
+  const RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
+  BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid);
+
+  // The interfaceType(side,axis,grid) defines which faces are interfaces.
+  const IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
+
+  const bool & applyFilter = parameters.dbase.get<bool >("applyFilter");
+
+  Range all;
+  BoundaryConditionParameters bcParams;            
+  BoundaryConditionParameters extrapParams;
+
+  Range C=numberOfComponents;
+
+
+  // *wdh* 081009
+  u.periodicUpdate();
+
+  if( forcingOption==twilightZoneForcing )
+  {
+    // assign exact values on dirichletBoundaryCondition boundaries for TZ
+    // printF(" assignBoundaryConditionsFOS: set exact BC's on dirichletBoundaryCondition's and ghost pts...\n");
+    
+    // assign the boundary and 2 ghost with the exact solution
+    int numGhost=max(orderOfAccuracyInSpace/2,2);
+    extrapParams.extraInTangentialDirections=numGhost;
+    
+    for( int g=0; g<=numGhost; g++ )
+    {
+      extrapParams.lineToAssign=g;
+      u.applyBoundaryCondition(C,BCTypes::dirichlet,SmParameters::dirichletBoundaryCondition,0.,t,extrapParams);
+    }
+    // reset 
+    extrapParams.extraInTangentialDirections=0;
+    extrapParams.lineToAssign=1;
+  }
+
+
+  if( true )
+  {
+    //  ** new way ** 
+
+    // *wdh* 091012 -- also set interp points with a dirichlet BC: (fixes splitAnnulus, annulusEigen.cmd problem)
+    bcParams.extraInTangentialDirections=1;
+    u.applyBoundaryCondition(C,BCTypes::dirichlet,SmParameters::displacementBC,bcData,pBoundaryData,t,
+			     bcParams,grid);
+    bcParams.extraInTangentialDirections=0;
+    
+
+    if( false )
+    {
+      for( int axis=axis1; axis<mg.numberOfDimensions(); axis++ )
+      {
+	for( int side=Start; side<=End; side++ )
+	{
+          if( mg.boundaryCondition(side,axis)==SmParameters::displacementBC )
+	  {
+            Index Ib1,Ib2,Ib3;
+	    getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	    ::display(u(Ib1,Ib2,Ib3,C)," u after displacementBC","%9.3e ");
+	  }
+	}
+      }
+    }
+
+    u.applyBoundaryCondition(C,BCTypes::extrapolate,SmParameters::displacementBC,0.,t);
+
+           
+    u.applyBoundaryCondition(C,BCTypes::evenSymmetry,SmParameters::symmetry,0.,t);
+
+    if( orderOfAccuracyInSpace==4 )
+    {
+      extrapParams.ghostLineToAssign=2;
+      u.applyBoundaryCondition(C,BCTypes::extrapolate,SmParameters::displacementBC,0.,t,extrapParams);
+
+      u.applyBoundaryCondition(C,BCTypes::evenSymmetry,SmParameters::symmetry,0.,t,extrapParams);
+    }
+
+  }
+
+
+  if( false )  // --- *wdh* 090824 -- moved to below ---
+  {  
+    
+    // if( orderOfAccuracyInSpace==2 && (orderOfAccuracyInSpace < orderOfArtificialDissipation) )
+    if( parameters.dbase.get<int >("extrapolateInterpolationNeighbours") ) // *wdh* 090823
+    {
+      // extrapolate the 2nd ghost line and interpolation neighbours for higher-order dissipation
+      // -- is this the right place to do this ? 
+      extrapParams.ghostLineToAssign=2;
+      extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;
+      if( applyFilter )
+	extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1; // *wdh* 090824 -- try this with the 4th order filter
+      u.applyBoundaryCondition(C,BCTypes::extrapolate,BCTypes::allBoundaries,0.,t,extrapParams);
+
+      if( debug & 8  )
+	printF(" extrapolateInterpolationNeighbours at t=%g\n",t);
+
+      extrapParams.orderOfExtrapolation=parameters.dbase.get<int >("orderOfExtrapolationForInterpolationNeighbours");
+      u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t,
+                               extrapParams,grid);
+    }
+  }
+  
+
+
+  bool isRectangular = mg.isRectangular();
+
+  if( false && isRectangular && useConservative ) // ***********************
+  {
+    // for testing : pretend the grid is NOT rectangular 
+    if( t < 2.*dt )
+      printF("\n *******assignBC: treat rectangular grid as Cartesian for bug in Cons BC ********** \n");
+    isRectangular=false; 
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter | MappedGrid::THEinverseVertexDerivative );
+  }
+
+  const real dtb2=dt*.5;
+
+  const aString & specialInitialConditionOption = parameters.dbase.get<aString>("specialInitialConditionOption");
+  const bool applySpecialSolutionBoundaryConditions = specialInitialConditionOption != "default";
+
+  bool centerNeeded = applySpecialSolutionBoundaryConditions;
+  if( centerNeeded )
+  {
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+  }
+
+  // Hemp: here is where we store the initial state (mass,density,energy)
+  realMappedGridFunction *pstate0 = NULL;
+  if( pdeVariation == SmParameters::hemp )
+  {
+    assert( parameters.dbase.get<realCompositeGridFunction*>("initialStateGridFunction")!=NULL );
+    pstate0 = &(*(parameters.dbase.get<realCompositeGridFunction*>("initialStateGridFunction")))[grid];
+  }
+  realMappedGridFunction & state0 = *pstate0;
+
+  const realArray & x = mg.center();
+
+  real dx[3]={0.,0.,0.}; //
+
+   
+
+  if( isRectangular )
+    mg.getDeltaX(dx);
+    
+  #ifdef USE_PPP
+   realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+   realSerialArray det;  
+   if( pdeVariation == SmParameters::hemp ) 
+     getLocalArrayWithGhostBoundaries(mg.centerJacobian(),det);
+   realSerialArray xLocal; if( centerNeeded ) getLocalArrayWithGhostBoundaries(x,xLocal);
+   realSerialArray state0Local;
+   if( pdeVariation == SmParameters::hemp )
+     getLocalArrayWithGhostBoundaries(state0,state0Local);
+
+  #else
+   const realSerialArray & uLocal = u;
+   const realSerialArray & xLocal = x;
+   const realSerialArray & det = mg.centerJacobian();
+   realSerialArray & state0Local = *pstate0;
+  #endif
+  
+   const IntegerArray & bcg = mg.boundaryCondition();
+   IntegerArray gid, dim, bc;
+   getLocalBoundsAndBoundaryConditions( u, gid, dim, bc );
+
+
+   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+   Index Igv[3], &Ig1=Igv[0], &Ig2=Igv[1], &Ig3=Igv[2];
+
+   bool useOpt=true; 
+   int side,axis;
+
+
+   // *wdh* 090204 -- new dirichlet boundary condition : assign the exact solution for testing ---
+   if( applySpecialSolutionBoundaryConditions )
+   {
+     for( int axis=axis1; axis<mg.numberOfDimensions(); axis++ )
+     {
+       for( int side=Start; side<=End; side++ )
+       {
+	 if( mg.boundaryCondition(side,axis)==SmParameters::dirichletBoundaryCondition )
+	 {
+	   int numberOfGhostLines = max(2,orderOfAccuracyInSpace/2);  // assign at least 2 ghost (for filter)
+	   int extra=numberOfGhostLines;
+	   getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3,extra);
+
+	   // for now assign dirichlet at ghost lines too.
+	   Iv[axis] = side==0 ? Range(Iv[axis].getBase()-numberOfGhostLines,Iv[axis].getBound()) : 
+	     Range(Iv[axis].getBase(),Iv[axis].getBound()+numberOfGhostLines);
+	      
+	   if( mg.boundaryCondition(side,axis)==SmParameters::interfaceBoundaryCondition )
+	   { // do not include the boundary
+	     Iv[axis] = side==0 ? Range(Iv[axis].getBase(),Iv[axis].getBound()-1) : 
+	       Range(Iv[axis].getBase()+1,Iv[axis].getBound());
+	   }
+
+	   const int includeGhost=1;
+	   bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,includeGhost);
+	   if( !ok ) continue;
+
+	   real *up = uLocal.Array_Descriptor.Array_View_Pointer3;
+	   const int uDim0=uLocal.getRawDataSize(0);
+	   const int uDim1=uLocal.getRawDataSize(1);
+	   const int uDim2=uLocal.getRawDataSize(2);
+#undef U
+#define U(i0,i1,i2,i3) up[i0+uDim0*(i1+uDim1*(i2+uDim2*(i3)))]
+	   real *xp = xLocal.Array_Descriptor.Array_View_Pointer3;
+	   const int xDim0=xLocal.getRawDataSize(0);
+	   const int xDim1=xLocal.getRawDataSize(1);
+	   const int xDim2=xLocal.getRawDataSize(2);
+#undef X
+#define X(i0,i1,i2,i3) xp[i0+xDim0*(i1+xDim1*(i2+xDim2*(i3)))]
+
+	   if( specialInitialConditionOption == "travelingWave" )
+	   {
+	     // --- traveling (shock) wave solution ---
+	     bool evalSolution = true;
+	     // macro: 
+	     getTravelingWaveSolution(evalSolution,U,U,X,t,I1,I2,I3);
+	   }
+	   else if( specialInitialConditionOption == "planeTravelingWave" )
+	   {
+	     // --- traveling sine wave solution ---
+	     bool evalSolution = true;
+	     // macro: 
+	     getPlaneTravelingWaveSolution(evalSolution,U,U,X,t,I1,I2,I3);
+	   }
+	   else if( specialInitialConditionOption == "translationAndRotation" )
+	   {
+	     // Here is the solution for large translation and rotation 
+	     bool evalSolution = true;
+	     // macro: 
+	     getTranslationAndRotationSolution(evalSolution,U,U,X,t,I1,I2,I3);
+	   }
+	   else if( specialInitialConditionOption == "RayleighWave" )
+	   {
+	     // --- Rayleigh wave solution ---
+	     bool evalSolution = true;
+	     // macro: 
+	     getRayleighWaveSolution(evalSolution,U,U,X,t,I1,I2,I3);
+	   }
+	   else if( specialInitialConditionOption == "pistonMotion" )
+	   {
+	     // --- piston motion (for FSI) ---
+	     bool evalSolution = true;
+	     getPistonMotionSolution(evalSolution,U,U,X,t,I1,I2,I3);
+	   }
+	   else
+	   {
+	     printF("assignBoundaryConditionsSOS:ERROR: unknown specialInitialConditionOption=%s\n",
+		    (const char*)specialInitialConditionOption);
+	     OV_ABORT("error");
+	   }
+	 
+
+	 }
+       }
+     }
+   }
+   
+
+
+
+   // *wdh* 041127 -- apply opt BC's after above dirichlet BC's ----
+   optimizedBoundaryConditionsMacro();
+    
+
+   // *wdh* 090824 -- moved from above 
+   if( parameters.dbase.get<int >("extrapolateInterpolationNeighbours") &&
+       parameters.dbase.get<int>("useNewExtrapInterpNeighbours") )
+   {
+     // *new way* 091123 -- MappedGridOperators uses new AssignInterpNeighbours class
+
+     // -- See op/tests/testExtrapInterpNeighbours for proper way to apply --
+     if( debug & 2 )
+       printF("assignBC-SOS: Use new extrapolateInterpolationNeighbours at t=%g\n",t);
+
+     extrapParams.orderOfExtrapolation=parameters.dbase.get<int >("orderOfExtrapolationForInterpolationNeighbours");
+     u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t,extrapParams);
+
+     // extrap 2nd ghost line extended
+     extrapParams.ghostLineToAssign=2;
+     extrapParams.extraInTangentialDirections=2;
+
+     u.applyBoundaryCondition(C,BCTypes::extrapolate,BCTypes::allBoundaries,0.,t,extrapParams);
+
+     // reset 
+     extrapParams.ghostLineToAssign=1;
+     extrapParams.extraInTangentialDirections=0;
+
+     // NOTE: We must also call finishBoundaryConditions to fix corners and update ghosts -- done below --
+
+   }
+   else  if( parameters.dbase.get<int >("extrapolateInterpolationNeighbours") ) // *wdh* 090823
+   {
+     // *** OLD WAY ***
+
+     // extrapolate the 2nd ghost line and interpolation neighbours for higher-order dissipation
+     // -- is this the right place to do this ? 
+     extrapParams.ghostLineToAssign=2;
+     extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;
+     if( applyFilter )
+       extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1; // *wdh* 090824 -- try this with the 4th order filter
+     u.applyBoundaryCondition(C,BCTypes::extrapolate,BCTypes::allBoundaries,0.,t,extrapParams);
+     extrapParams.ghostLineToAssign=1;
+     
+     if( debug & 8  )
+       printF(" extrapolateInterpolationNeighbours at t=%g\n",t);
+
+     // if( grid==0 ) printF(" u(19,13)=%9.2e before extrapolateInterpolationNeighbours\n",u(19,13,0,0));
+     // if( grid==0 ) printF(" u(10,8)=%9.2e before extrapolateInterpolationNeighbours\n",u(10,8,0,0));
+
+     if( debug & 2 && grid==0 )
+     {
+       ::display(uLocal,sPrintF("uLocal before extrapolateInterpolationNeighbours, t=%e",t),pDebugFile,"%4.2f ");
+     }
+     
+
+     // extrapParams.orderOfExtrapolation=2;
+     u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t);
+     //extrapParams.orderOfExtrapolation=parameters.dbase.get<int >("orderOfExtrapolationForInterpolationNeighbours");
+     //u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t,extrapParams);
+
+     if( debug & 2 && grid==0 )
+     {
+       // u.updateGhostBoundaries();
+       fflush(0);
+       Communication_Manager::Sync();
+       ::display(uLocal,sPrintF("uLocal after extrapolateInterpolationNeighbours, t=%e",t),pDebugFile,"%4.2f ");
+     }
+
+     // BoundaryConditionParameters ep;
+     // ep.orderOfExtrapolation=3;
+     // u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t,ep);
+
+     // extrapParams.orderOfExtrapolation=parameters.dbase.get<int >("orderOfExtrapolationForInterpolationNeighbours");
+     // u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,t,
+     //                          extrapParams,grid);
+
+     // if( grid==0 ) printF(" u(19,13)=%9.2e after extrapolateInterpolationNeighbours\n",u(19,13,0,0));
+     // if( grid==0 ) printF(" u(10,8)=%9.2e after extrapolateInterpolationNeighbours\n",u(10,8,0,0));
+
+   }
+
+//     // assign any radiation BC's
+//     for( int i=0; i<2; i++ )
+//     {
+//       if( radbcGrid[i]==grid )
+//       {
+//         RadiationBoundaryCondition::debug=debug;
+// 	radiationBoundaryCondition[i].tz=tz; // fix this 
+// 	radiationBoundaryCondition[i].assignBoundaryConditions( u,t,dt,uOld );
+//       }
+      
+//     }
+    
+
+   if( !useConservative || 
+       (parameters.dbase.get<int>("useNewExtrapInterpNeighbours") && parameters.dbase.get<int >("extrapolateInterpolationNeighbours") ) ) 
+   {
+     // *wdh* 090911 -- do NOT change SOS-C values!
+
+     // *wdh* 091123 -- for now apply finishBC to SOS-C TOO !
+
+     u.finishBoundaryConditions();  // do this for now -- corners needed --
+   }
+   else
+   {
+     // for SOS-C we need to fixup the 2nd-ghost at corners if we extrap interp neighbours  ************ FIX ME ****
+
+     u.updateGhostBoundaries();  // *wdh* 091123 
+   }
+   
+   
+  if( debug & 64 )
+  {
+    ::display(u,sPrintF("u at end of assignBC, grid=%i t=%e",grid,t),debugFile,"%8.1e ");
+  }
+
+}
+

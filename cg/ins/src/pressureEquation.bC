@@ -1,0 +1,2963 @@
+#include "Cgins.h"
+
+#include "Parameters.h"
+#include "MappedGridOperators.h"
+#include "Ogmg.h"
+#include "ParallelUtility.h"
+#include "ParallelGridUtility.h"
+#include "SparseRep.h"
+#include "HDF_DataBase.h"
+
+#include "App.h"
+
+#include "turbulenceParameters.h"
+
+#include "EquationDomain.h"
+
+// note: bpp Include: 
+#Include "boundaryMacros.h"
+
+#define POW2(x) pow((x),2)
+
+#define ForBoundary(side,axis)   for( int axis=0; axis<c.numberOfDimensions(); axis++ ) \
+                                 for( int side=0; side<=1; side++ )
+
+static int 
+outputCompositeGrid( CompositeGrid & cg, 
+		     const aString & gridFileName )
+// =======================================================================================
+// /Description:
+//   This function will save a CompositeGrid to a file for debugging 
+// /cg(input) : the grid.
+// /gridFileName (input) : grid file name, such as "cic.hdf".
+// ========================================================================================
+{
+
+  if( Communication_Manager::My_Process_Number<=0 )
+    printf("Saving the CompositeGrid in %s\n",(const char*)gridFileName);
+
+  HDF_DataBase dataFile;
+  dataFile.mount(gridFileName,"I");
+
+  int streamMode=1; // save in compressed form.
+  dataFile.put(streamMode,"streamMode");
+  if( !streamMode )
+    dataFile.setMode(GenericDataBase::noStreamMode); // this is now the default
+  else
+  {
+    dataFile.setMode(GenericDataBase::normalMode); // need to reset if in noStreamMode
+  }
+           
+  if( cg.numberOfGrids() > 1 || cg.numberOfInterpolationPoints(0)>0 )
+    cg.destroy(MappedGrid::EVERYTHING & ~MappedGrid::THEmask );
+  else
+    cg.destroy(CompositeGrid::EVERYTHING);
+      
+
+  const aString gridName="bugGrid";
+  cg.put(dataFile,gridName);
+  dataFile.unmount();
+
+
+
+  return 0;
+}
+
+
+//=========================================================================================
+/// \brief: Solve for the pressure given the velocity.
+/// \param updateSolutionDependentEquations (input) : update the equations as needed if they depend
+///        on the current solution. 
+//=========================================================================================
+void Cgins::
+solveForTimeIndependentVariables( GridFunction & cgf, bool updateSolutionDependentEquations )
+{
+  if( parameters.dbase.get<int>("simulateGridMotion")>0 ) return;
+
+  if( false )
+  {
+    printF("**** Cgins::solveForTimeIndependentVariables START\n");
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      cg[grid].displayComputedGeometry();
+  }
+
+  real cpu0,cpu1;
+  cpu0 = getCPU();
+  
+  InsParameters::PDEModel pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
+
+  // *new* way : delay updating the pressure equation until here 
+  int & updateTimeIndependentVariables = parameters.dbase.get<int>("updateTimeIndependentVariables");
+  if( updateSolutionDependentEquations && pdeModel==InsParameters::twoPhaseFlowModel )
+  { // Note:  -- for moving grids we need to avoid directly calling updatePressureEquation and
+    // instead set updateTimeIndependentVariables  ** TODO **
+    updateTimeIndependentVariables=true;
+  }
+  if( updateTimeIndependentVariables==true )
+  {
+    updatePressureEquation(cgf.cg, cgf );
+  }
+
+  if( debug() & 8 )
+    printf("solveForTimeIndependentVariablesINS, t=%9.3e...\n",cgf.t);
+  // real time=getCPU();  // keep track of the cpu time spent in this routine
+
+  // this next also checks the memory usage if turned on
+  checkArrayIDs("Cgins::solveForTimeIndependentVariablesINS: start");
+
+  real & t = cgf.t;
+  realCompositeGridFunction & u = cgf.u;
+  
+  const int & myid = parameters.dbase.get<int >("myid");
+  const int & pc = parameters.dbase.get<int >("pc");
+  FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
+  FILE *&pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
+  
+  CompositeGrid & cg = cgf.cg;
+  Index I1,I2,I3;
+  
+  #ifndef USE_PPP
+    p().link(u,Range(pc,pc));   // can we avoid this link?? (although is doesn't take much time).
+  #else
+    // Parallel : trouble with the above link and ogmg. Make a copy instead
+    assert( pp!=NULL );
+    Index all;
+
+    p().updateToMatchGrid(cgf.cg);  // **** 100415 -- for moving grids 
+    
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      assign(p()[grid],all,all,all,0, u[grid],all,all,all,pc );
+    }
+    
+  #endif
+
+  if( debug() & 32 )
+    printf("solveForTimeIndependentVariablesINS: time to link = %e \n",getCPU()-cpu0);
+
+  if( debug() & 32 )
+  {
+    u.display("Before assignPressureRHS: u",debugFile,"%8.5f ");
+  }
+
+  if( false )
+  {
+    printF(" --- Initialize pressureRightHandSide=0 at t=%9.3e\n",cgf.t);
+    assign(pressureRightHandSide,0.);
+  }
+  
+
+  cpu1=getCPU();
+  assignPressureRHS( cgf,pressureRightHandSide );
+  parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAssignPressureRHS"))+=getCPU()-cpu1;
+
+  if( debug() & 8 )
+    printf("after assignPressureRHS: total time = %e \n",getCPU()-cpu0);
+  if( debug() & 4 || debug() & 8 ) // ABC 
+  {
+    aString buff;
+    u.display(sPrintF(buff,"Before pressure solve: u at t=%8.2e",t),debugFile,"%8.5f ");
+
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      if( true )
+      {
+	::display(pressureRightHandSide[grid],sPrintF("Before solve: pressure rhs at t=%8.2e, grid=%i",t,grid),
+		  debugFile,"%8.5f ");
+      }
+      else
+      {
+	::display(pressureRightHandSide[grid],sPrintF("Before solve: pressure rhs at t=%8.2e, grid=%i",t,grid),
+		  debugFile,"%8.1e ");
+      }
+      
+    }
+    
+  }
+
+  cpu1=getCPU();
+  // printf("solve for the pressure...\n");
+
+  checkArrays(" solveForTimeIndependentVariablesINS: before poisson->solve");
+
+  // **************************************************************
+  // *****************Pressure Solve*******************************
+  // **************************************************************
+  if( false )
+  {
+    printF(" --- Initialize p=0 at t=%9.3e\n",cgf.t);
+    assign(p(),0.);
+  }
+  
+
+  bool done=false;
+  while( !done )
+  {
+    if( Parameters::checkForFloatingPointErrors )
+    {
+      checkSolution(cgf.u,"Before pressure solve, cgf.u");
+      checkSolution(pressureRightHandSide,"Before pressure solve: pressureRightHandSide");
+    }
+    
+    Overture::checkMemoryUsage("Cgins::solveForTimeIndependentVariablesINS: before poisson->solve");
+
+    poisson->solve( p(),pressureRightHandSide );
+
+    Overture::checkMemoryUsage("Cgins::solveForTimeIndependentVariablesINS: after poisson->solve");
+
+    if( debug() & 8 )
+      p().display("After pressure solve p()",debugFile,"%6.2f "); // "%8.1e ");
+ 
+    // if( myid==0 ) printf("****After pressure solve *****\n");
+    
+
+    if( (parameters.dbase.get<int >("globalStepNumber") % 2)==0 && poisson->isSolverIterative() )
+    { // This is needed for MG 
+      RealArray value(1);
+      value=1.;
+      const int numberOfGhostLines=2;
+      p().fixupUnusedPoints(value,numberOfGhostLines);
+    }
+
+    // if( myid==0 ) printf("****After pressure solve and fixupUnusedPoints *****\n");
+
+    if( Parameters::checkForFloatingPointErrors )
+      checkSolution(cgf.u,"After pressure solve and fixup");
+  
+    done=true;
+
+    checkArrays(" solveForTimeIndependentVariablesINS: after poisson->solve");
+
+    parameters.dbase.get<int >("numberOfIterationsForConstraints")+=poisson->getNumberOfIterations();
+//     if( myid==0 ) 
+//         printf(" ** iter's to solve p eqn = %i\n",poisson->getNumberOfIterations());
+    
+    parameters.dbase.get<int >("numberOfSolvesForConstraints")++;
+    if( poisson->isSolverIterative() )
+    {
+      // if( myid==0 ) printf(" ** after pressure solve 1a\n"); 
+
+      real absoluteTolerance,relativeTolerance;
+      poisson->get(OgesParameters::THEabsoluteTolerance,absoluteTolerance);
+      poisson->get(OgesParameters::THErelativeTolerance,relativeTolerance);
+
+      // compute the max-residual if needed
+      real maxResidual=-1.;
+      if( parameters.dbase.get<int >("enforceAbsoluteToleranceForIterativeSolvers") || debug() & 2 )
+	maxResidual = poisson->getMaximumResidual();
+    
+      if( debug() & 2 )
+      {
+        printF(" ** iter's to solve p eqn = %i (t=%9.3e, dt=%8.1e, step=%i, max res=%8.2e "
+	       "rel-tol=%7.1e, abs-tol=%7.1e)\n",
+	       poisson->getNumberOfIterations(),t,dt,parameters.dbase.get<int >("globalStepNumber"),maxResidual,relativeTolerance,absoluteTolerance);
+      }
+      
+      if( parameters.dbase.get<int >("enforceAbsoluteToleranceForIterativeSolvers") )
+      {
+	if( maxResidual>absoluteTolerance*1.1 )
+	{
+	  // resolve the poisson equation with a smaller tolerance
+          done=false;
+      
+	  relativeTolerance *= min(.9,absoluteTolerance/maxResidual);
+	  poisson->set(OgesParameters::THErelativeTolerance,relativeTolerance);
+	  printf(" ...absolute-tol not met, resolve with a new rel-tol of %8.2e\n",relativeTolerance);
+	  
+	}
+	else if( maxResidual<absoluteTolerance*10. )
+	{ // slowly increase the relative tolerance if we have are solving too accurately
+	  relativeTolerance *= min(1.1,absoluteTolerance/maxResidual); // increase slowly
+	  poisson->set(OgesParameters::THErelativeTolerance,relativeTolerance);
+	  printf(" ...absolute-tol met too well, increase rel-tol to %8.2e\n",relativeTolerance);
+   
+	}
+      }
+
+      // printf(" poisson->parameters.getSolverTypeName()=[%s]\n",(const char*)poisson->parameters.getSolverTypeName());
+      
+      if( poisson->getNumberOfIterations()>45 && poisson->parameters.getSolverTypeName()=="multigrid" )
+      {
+        printf(" *****ERROR solving the pressure equation -- I am going to output the grid for debugging ****\n");
+        outputCompositeGrid(cgf.cg,"multigridBug.hdf"); 
+        Overture::abort("error");
+      }
+      
+
+
+    }
+  }
+  // if( myid==0 ) printf(" ** after pressure solve 2a\n"); 
+    
+  if( Parameters::checkForFloatingPointErrors || debug() & 4 )
+  {
+    #ifndef USE_PPP
+    // max(p()) hung with P++
+    printF(" -->> After pressure solve: max(p)=%9.2e min(p)=%9.2e \n",max(p()),min(p()));
+    #endif
+  }
+
+//     parameters.dbase.get<GenericGraphicsInterface* >("ps")->erase();
+//     parameters.dbase.get<GraphicsParameters >("psp").set(GI_TOP_LABEL,"solve for p");
+//     parameters.dbase.get<GenericGraphicsInterface* >("ps")->contour(p,parameters.dbase.get<GraphicsParameters >("psp"));
+
+
+  // if( myid==0 ) printf(" ** after pressure solve 2b\n"); 
+
+  if( debug() & 4 )
+  {
+    fPrintF(debugFile," After pressure solve: compatibilityConstraint=%i, numberOfExtraEquations = %i\n",
+	    poisson->getCompatibilityConstraint(),poisson->numberOfExtraEquations);
+    if( poisson->getCompatibilityConstraint() )
+    {
+      real value=0.;
+      poisson->getExtraEquationValues( p(),&value );
+
+//       int ne,i1e,i2e,i3e,gride;
+//       poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
+//       if( myid==0 )
+//         fprintf(debugFile," After pressure solve: value of constraint = %e\n",p()[gride](i1e,i2e,i3e));
+      fPrintF(debugFile," After pressure solve: value of constraint = %e\n",value);
+
+
+    }
+  }
+
+  // if( myid==0 ) printf(" ** after pressure solve 3\n"); 
+
+  if( poisson->getCompatibilityConstraint() )
+  {
+    // The solver may have trouble satisfying the compatability constraint (true for yale and ins/annulus.tz)
+    // so we explicitly enforce it here by just shifting the solution by a constant 
+    // *** note that we over-write the value of the constraint, p[gride](i1e,i2e,i3e)
+    if( true )
+    {
+      real nullVectorDotP=0., sumOfNullVector=0.;
+      poisson->evaluateExtraEquation(p(),nullVectorDotP,sumOfNullVector);    
+      //   "   ***not enforcing compatibility constraint for parallel *** FIX THIS *** \n",nullVectorDotP);
+
+      real constraintValue;
+      poisson->getExtraEquationValues(pressureRightHandSide, &constraintValue );
+
+      if( debug() & 4 )
+      {
+	printF("solveForTimeIndepVarsINS INFO: nullVectorDotP=%14.9g, "
+	       "constraintValue=%g, diff=%g,  sumOfNullVector=%g \n",
+	       nullVectorDotP,constraintValue,fabs(nullVectorDotP-constraintValue),sumOfNullVector);
+      }
+      
+      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      {
+	getIndex(cg[grid].dimension(),I1,I2,I3);
+	realSerialArray pLocal; getLocalArrayWithGhostBoundaries(p()[grid],pLocal);
+	bool ok = ParallelUtility::getLocalArrayBounds(p()[grid],pLocal,I1,I2,I3);
+	if( !ok ) continue;
+      
+	pLocal+=(constraintValue-nullVectorDotP)/(max(1.,sumOfNullVector));
+      }
+    }
+    else
+    {
+      // old way
+      real nullVectorDotP=0., sumOfNullVector=0.;
+      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      {
+	getIndex(cg[grid].dimension(),I1,I2,I3);
+	nullVectorDotP+=sum(poisson->rightNullVector[grid](I1,I2,I3)*p()[grid](I1,I2,I3));
+	sumOfNullVector+=sum(poisson->rightNullVector[grid](I1,I2,I3));
+      }
+      int ne,i1e,i2e,i3e,gride;
+      poisson->equationToIndex( poisson->extraEquationNumber(0),ne,i1e,i2e,i3e,gride);
+
+      if( debug() & 2 )
+      {
+	real diff=nullVectorDotP-pressureRightHandSide[gride](i1e,i2e,i3e);
+	if( myid==0 )
+	  fprintf(debugFile,"After solve: compatibility sum(null*p)= %14.10e,  nullVectorDotP-rhs=%e \n",
+		  nullVectorDotP,diff);
+      }
+    
+      p()+=(pressureRightHandSide[gride](i1e,i2e,i3e)-nullVectorDotP)/(max(1.,sumOfNullVector));
+    }
+
+  }
+  if( debug() & 8 )
+    p().display("After solve: here is the pressure",debugFile,"%10.7f "); // "%8.1e ");
+  if( debug() & 4 )
+  {
+    // *wdh* 110221 ABC 
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      p()[grid].updateGhostBoundaries();
+    }
+     #ifdef USE_PPP
+    // copy p back into u  
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+      assign(u[grid],all,all,all,pc, p()[grid],all,all,all,0 );
+    }
+    #endif
+
+    determineErrors( cgf,sPrintF(" After pressure solve: errors at t=%e \n",t) ) ;
+
+  }
+
+  parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForPressureSolve"))+=getCPU()-cpu1;
+
+  if( debug() & 8 && myid==0 )
+    printf("after solve: total time = %e \n",getCPU()-cpu0);
+
+
+  if( debug() & 4 )
+  {
+    #ifndef USE_PPP
+      real pMax= max(fabs(p())); 
+      real rhsMax= max(fabs(pressureRightHandSide));
+      fPrintF(debugFile,"******** max(|pressure|)=%e, max(|pressureRightHandSide|) = %e \n",pMax,rhsMax); 
+    #endif
+    // p.display("pressure",debugFile);
+    // pressureRightHandSide.display("pressure rhs",debugFile);
+  }
+  
+  if( debug() & 64 )
+  {
+    fPrintF(debugFile,"\n\n\n ==================================================== \n");
+// ******
+    real mean = sum(p()[0]);
+    printF(" After pressure solve sum(p) = %e \n",mean);
+// *****
+  }
+
+ #ifdef USE_PPP
+  // copy p back into u  
+  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    assign(u[grid],all,all,all,pc, p()[grid],all,all,all,0 );
+  }
+ #endif
+  
+  if( debug() & 8 )
+    printF("solveForTimeIndependentVariablesINS: total time = %e \n",getCPU()-cpu0);
+
+  // add this *wdh* 2011/12/05
+  parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForTimeIndependentVariables"))+=getCPU()-cpu0;
+  Overture::checkMemoryUsage("Cgins::solveForTimeIndependentVariablesINS: end");
+
+}
+
+
+//\begin{>>MappedGridSolverInclude.tex}{\subsection{assignPressureRHS}} 
+void Cgins::
+assignPressureRHS( GridFunction & gf0, realCompositeGridFunction & f )
+//======================================================================
+// /Description:
+//
+//\end{MappedGridSolverInclude.tex}  
+//======================================================================
+{
+  if( debug() & 8 )
+    printf("OB_CompositeGridSolver:assignPressureRHS...\n");
+//  real time0=getCPU();
+  
+// ******
+  if( FALSE )
+    f=0.;
+  
+  const bool twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+  
+  FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
+  FILE *&pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
+
+  real t0 = gf0.t;
+  CompositeGrid & cg = gf0.cg;
+
+  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    assignPressureRHS( grid, gf0,f );
+  }
+
+  if( poisson->getCompatibilityConstraint() )
+  { 
+     // ---- Set the value of the compatibility equation for the pressure ---
+
+    if( debug() & 4 ) 
+       printF("))) assignPressureRHS: set compatibility constraint for singular problem solver=%s (((\n",
+                (const char*)getName() );
+
+    const int & pc = parameters.dbase.get<int >("pc");
+
+    real value=0.; // default value
+
+    const Parameters::KnownSolutionsEnum & knownSolution = 
+      parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+
+
+    if( twilightZoneFlow ||
+        knownSolution!=InsParameters::noKnownSolution )
+    {
+      // For TZ: the RHS for the constraint equation is the dot product of the constraint equation
+      //         with the exact solution
+      Range all;
+      realCompositeGridFunction ue(gf0.cg,all,all,all,Range(pc,pc));
+
+      if( twilightZoneFlow )
+      {
+        // --- evaluate the TZ solution for the pressure ---
+	parameters.dbase.get<OGFunction* >("exactSolution")->assignGridFunction(ue,t0);
+      }
+      else if( knownSolution!=InsParameters::noKnownSolution )
+      {
+        // --- evaluate the known solution so we can set the pressure constraint --- *wdh* 2013/09/28 
+        realCompositeGridFunction & uKnown = parameters.getKnownSolution(cg,t0);
+	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+	{
+          OV_GET_SERIAL_ARRAY(real,ue[grid],ueLocal);
+          OV_GET_SERIAL_ARRAY_CONST(real,uKnown[grid],uKnownLocal);
+	  
+	  ueLocal(all,all,all,pc)=uKnownLocal(all,all,all,pc);
+	}
+      }
+      else
+      {
+	OV_ABORT("Unknown option");
+      }
+      
+      // real value2;
+      poisson->evaluateExtraEquation(ue,value);
+      // printF("assignPressureRHS: compatibility constraint: value=%g value2=%g diff=%g\n",value,value2,fabs(value-value2));
+      if( debug() & 4 ) printF("assignPressureRHS: compatibility constraint: exact value=%14.9g \n",value);
+    }
+    
+    poisson->setExtraEquationValues(f,&value );  // new way
+
+    //     if( debug() & 4 )
+    //       fprintf(debugFile,"compatibility rhs f[%i](%i,%i,%i)= %14.10e \n",
+    //            gride,i1e,i2e,i3e,f[gride](i1e,i2e,i3e));
+
+  }
+
+
+  //    if( debug() & 32 )
+  //      f.display("assignPressureRHS and solve : here is the rhs for the pressure equation",
+  //  				  debugFile,"%8.1e "); // "%8.1e ");
+
+}
+
+int Cgins::
+computeAxisymmetricDivergence(realArray & divergence, 
+                              Index & I1, Index & I2, Index & I3, MappedGrid & c,
+			      const realArray & u0,
+			      const realArray & u0x, 
+			      const realArray & v0y )
+// =============================================================================================
+//  /Desctription:
+//    Add corrections to the standard formual for divergence for axisymmetric flows.
+//   The correction is $v/y$ which turns into $v_y$ at $y=0$.
+// =============================================================================================
+{
+  const int vc = parameters.dbase.get<int >("vc");
+  const realArray & vertex = c.vertex();
+  
+  realArray radiusInverse = 1./max(REAL_MIN,vertex(I1,I2,I3,axis2));
+  Index Ib1,Ib2,Ib3;
+  for( int axis=0; axis<c.numberOfDimensions(); axis++ )
+  {
+    for( int side=0; side<=1; side++ )
+    {
+      if( c.boundaryCondition(side,axis)==Parameters::axisymmetric )
+      {
+	getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	radiusInverse(Ib1,Ib2,Ib3)=0.;
+	divergence(Ib1,Ib2,Ib3)+=v0y(Ib1,Ib2,Ib3);
+      }
+    }
+  }
+  divergence(I1,I2,I3)+=u0(I1,I2,I3,vc)*radiusInverse;
+  return 0;
+}
+
+
+
+#define assignPressureRHSOpt EXTERN_C_NAME(assignpressurerhsopt)
+extern "C"
+{
+void assignPressureRHSOpt(const int&nd,
+		       const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,
+		       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,
+                       const int&nd3a,const int&nd3b,const int&nd4a,const int&nd4b,
+		       const int&mask,  const real&xy, const real&rx, const real&radiusInverse, 
+                       const real&u, const real&uu, real&f,const real&gv,const real&divDamping, 
+                       const real & userDefinedForce,
+                       const int&bc, const int&indexRange, const int&ndp, const real&pressureValue, 
+                       const int&nr1a,const int&nr1b,const int&nr2a,const int&nr2b,const int&nr3a,const int&nr3b,
+                       const real&normal00,const real&normal10,
+                       const real&normal01,const real&normal11,
+                       const real&normal02,const real&normal12,
+		       const int&dim, const real & bcf0, const int64_t & bcfOffset, const int &addBoundaryForcing,
+		       const int&ipar, const real&rpar, const int&ierr );
+}
+
+#define U(c)     u(I1,I2,I3,c)   
+#define UU(c)   uu(I1,I2,I3,c)
+#define UX(c)   ux(I1,I2,I3,c)
+#define UY(c)   uy(I1,I2,I3,c)
+#define UZ(c)   uz(I1,I2,I3,c)
+#define UXX(c) uxx(I1,I2,I3,c)
+#define UXY(c) uxy(I1,I2,I3,c)
+#define UXZ(c) uxz(I1,I2,I3,c)
+#define UYY(c) uyy(I1,I2,I3,c)
+#define UYZ(c) uyz(I1,I2,I3,c)
+#define UZZ(c) uzz(I1,I2,I3,c)
+
+//     normal derivative of p (outward normal)
+#define PN1(I1,I2,I3)  ( (2*side-1)*(  nu*uxx(I1,I2,I3,uc) \
+                         + advectionCoefficient*uu(I1,I2,I3,uc)*ux(I1,I2,I3,uc) ) )
+
+#define PXB2(I1,I2,I3) ( nu*(uxx(I1,I2,I3,uc)+uyy(I1,I2,I3,uc)) \
+                         +advectionCoefficient*( uu(I1,I2,I3,uc)*ux(I1,I2,I3,uc) + uu(I1,I2,I3,vc)*uy(I1,I2,I3,uc)) )
+
+#define PYB2(I1,I2,I3) ( nu*(uxx(I1,I2,I3,vc)+uyy(I1,I2,I3,vc))   \
+                         +advectionCoefficient*( uu(I1,I2,I3,uc)*ux(I1,I2,I3,vc) + uu(I1,I2,I3,vc)*uy(I1,I2,I3,vc)) )
+
+//     normal derivative of p (outward normal)
+#define PN2(I1,I2,I3)  ( normal(I1,I2,I3,0)*PXB2(I1,I2,I3)  \
+                        +normal(I1,I2,I3,1)*PYB2(I1,I2,I3) )
+
+
+
+//  ...momentum eqn's in 3d without grad p term
+#define DELTAU(I1,I2,I3,dir) (uxx(I1,I2,I3,dir)+uyy(I1,I2,I3,dir)+uzz(I1,I2,I3,dir))
+
+#define P3B(I1,I2,I3,dir) ( nu*DELTAU(I1,I2,I3,dir) \
+                          +advectionCoefficient*( uu(I1,I2,I3,uc)*ux(I1,I2,I3,dir) \
+                                                + uu(I1,I2,I3,vc)*uy(I1,I2,I3,dir) \
+                                                + uu(I1,I2,I3,wc)*uz(I1,I2,I3,dir)) )
+
+//    ...normal derivative of p in 3d (outward normal)
+#define PN3(I1,I2,I3) ( normal(I1,I2,I3,0)*P3B(I1,I2,I3,uc)  \
+                       +normal(I1,I2,I3,1)*P3B(I1,I2,I3,vc)  \
+                       +normal(I1,I2,I3,2)*P3B(I1,I2,I3,wc) )
+
+// --------- define the artificial diffusions ------------
+//
+//       [ad21+ad22* |grad\uv|] ( D+rD-r(u) dr**2 + D+sD-s(u) ds**2 )
+//           cd22=ad22/nd**2
+//    ---2D:
+
+#define AD2(kd) (  \
+        (ad21 + cd22*    \
+         ( fabs(UX(uc))+fabs(UY(uc))    \
+          +fabs(UX(vc))+fabs(UY(vc)) ) )    \
+         *(u(I1+1,I2,I3,kd)-4.*u(I1,I2,I3,kd)+u(I1-1,I2,I3,kd)    \
+          +u(I1,I2+1,I3,kd)                  +u(I1,I2-1,I3,kd))    \
+                         )   
+     
+
+//    Mixed-derivative BC for component i: 
+//          mixedCoeff(i)*u(i) + mixedNormalCoeff(i)*u_n(i) = mixedRHS(i)
+#define mixedRHS(component,side,axis,grid)         bcData(component+numberOfComponents*(0),side,axis,grid)
+#define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
+#define mixedNormalCoeff(component,side,axis,grid) bcData(component+numberOfComponents*(2),side,axis,grid)
+
+
+//\begin{>>MappedGridSolverInclude.tex}{\subsection{assignPressureRHS}} 
+void Cgins::
+assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction & f0 )
+// void Cgins::
+// assignPressureRHS(const int & grid, 
+// 		  MappedGrid & c,
+// 		  realMappedGridFunction & u0, 
+// 		  realMappedGridFunction & f,
+// 		  realMappedGridFunction & gridVelocity, 
+// 		  const real & t0 ) 
+//======================================================================
+// /Description:
+//  Assign the right hand side for the pressure equation
+// Notes
+//   o The momentum equations are used here
+//
+//\end{MappedGridSolverInclude.tex}  
+//======================================================================
+{
+
+  MappedGrid & c = gf0.cg[grid];
+  realMappedGridFunction & u0 = gf0.u[grid];
+  realMappedGridFunction & f = f0[grid];
+  realMappedGridFunction & gridVelocity = gf0.getGridVelocity(grid);
+  const real & t0 = gf0.t;
+
+  FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
+  FILE *&pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
+
+  if( debug() & 32 )
+    cout << "***Entering assignPressureRHS *** \n";
+  if( debug() & 64 )
+    display(u0,"u at start of assignPressureRHS",debugFile,"%8.5f ");
+
+  if( !parameters.dbase.get<DataBase >("modelData").has_key("countPressureSolves") )
+    parameters.dbase.get<DataBase >("modelData").put<int>("countPressureSolves",0);
+  int & countPressureSolves=parameters.dbase.get<DataBase >("modelData").get<int>("countPressureSolves");
+
+  if( grid==0 )
+    countPressureSolves++;
+
+  Parameters *pde = &parameters;
+  if( parameters.dbase.get<ListOfEquationDomains* >("pEquationDomainList")!=NULL )
+  {
+    ListOfEquationDomains & equationDomainList = *(parameters.dbase.get<ListOfEquationDomains* >("pEquationDomainList"));  
+    const int numberOfEquationDomains=equationDomainList.size();
+    const int equationDomainNumber=equationDomainList.gridDomainNumberList[grid];
+    assert( equationDomainNumber>=0 && equationDomainNumber<numberOfEquationDomains );
+    EquationDomain & equationDomain = equationDomainList[equationDomainNumber];
+
+    pde = equationDomain.getPDE();
+  }
+
+  InsParameters::PDEModel pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
+
+  realArray & u = u0;
+  realArray & divergenceDamping = divDampingWeight[grid];
+  const int & uc = parameters.dbase.get<int >("uc");
+  const int & vc = parameters.dbase.get<int >("vc");
+  const int & wc = parameters.dbase.get<int >("wc");
+  const int & pc = parameters.dbase.get<int >("pc");
+  const int & tc = parameters.dbase.get<int >("tc");
+
+  const real & ad21 = parameters.dbase.get<real >("ad21");
+  const real & ad22 = parameters.dbase.get<real >("ad22");
+  const real & ad41 = parameters.dbase.get<real >("ad41");
+  const real & ad42 = parameters.dbase.get<real >("ad42");
+
+  const int numberOfDimensions = c.numberOfDimensions();
+  const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+  
+  // The RHS for BC's are saved in these next two objects:
+  const RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
+  BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid);  
+  // for boundaryMacros.h
+  MappedGrid & mg = c; 
+  real *fptr;
+
+  Index I1,I2,I3;
+  getIndex( extendedGridIndexRange(c),I1,I2,I3 ); // use this large region so ux,uy,uz are big enough for BC's
+
+  const int isRectangular=u0.getOperators()->isRectangular();
+  const bool gridIsMoving = parameters.gridIsMoving(grid);
+
+  #ifdef USE_PPP
+    realSerialArray uLocal;  getLocalArrayWithGhostBoundaries(u,uLocal);
+  #else
+    realSerialArray & uLocal = u;
+  #endif
+  const real *pu = u.getDataPointer();
+
+  real *punc = (real*)pu;
+  real *pNormal[2][3]={punc,punc,punc,punc,punc,punc}; // 
+  if( !isRectangular )
+  {
+    ForBoundary(side,axis)
+    {
+      #ifdef USE_PPP
+        realSerialArray *pn =c.rcData->pVertexBoundaryNormal[axis][side];
+        assert( pn!=NULL );
+	pNormal[side][axis] =pn->getDataPointer();
+      #else
+        pNormal[side][axis] =c.vertexBoundaryNormal(side,axis).getDataPointer();
+      #endif
+      if( pNormal[side][axis]==NULL )
+      { // the boundary may not exist on this processor -- could double check this 
+        pNormal[side][axis]=(real*)pu;
+      }
+    }
+  }
+
+
+  real adcBoussinesq=0.; // coefficient of artificial diffusion for Boussinesq T equation 
+  real thermalExpansivity=1.;
+  parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
+  parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("adcBoussinesq",adcBoussinesq);
+  const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  //  const real *gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  
+  
+  real surfaceTension=0.;
+  parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("surfaceTension",surfaceTension);
+  real pAtmosphere=0.;  // atmosphere pressure for free surface
+  parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("pAtmosphere",pAtmosphere);
+
+  int useWhereMask=!gridIsMoving; // **NOTE** for  moving grids we may need to evaluate at more points than just mask >0 
+  real dx[3];
+  c.getDeltaX(dx);
+   
+
+
+  //kkc 100216 fix to test with compact operators  const int orderOfAccuracy=parameters.dbase.get<int >("orderOfAccuracy");
+  const int orderOfAccuracy=min(4,parameters.dbase.get<int >("orderOfAccuracy"));
+
+  const bool vertexNeeded = parameters.isAxisymmetric();  // we need the vertex array in this case
+  if( vertexNeeded )
+  {
+    c.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+  }
+    
+
+  const realArray & xy = vertexNeeded ? c.center() : u ;
+  const realArray & rsxy = isRectangular ? u :  c.inverseVertexDerivative();
+
+#ifdef USE_PPP
+  RealArray xLocal; getLocalArrayWithGhostBoundaries(xy,xLocal);
+  real *pf = f.getLocalArray().getDataPointer(); 
+  const real *pxy = xy.getLocalArray().getDataPointer(); 
+  const real *prsxy = rsxy.getLocalArray().getDataPointer(); 
+  const real *pgv = gridIsMoving ? gridVelocity.getLocalArray().getDataPointer() : pu;
+  const real *pdd = divergenceDamping.getLocalArray().getDataPointer();
+  const int *pmask = c.mask().getLocalArray().getDataPointer();
+#else
+  const RealArray & xLocal = xy;
+  real *pf = f.getDataPointer(); 
+  const real *pxy = xy.getDataPointer(); 
+  const real *prsxy = rsxy.getDataPointer(); 
+  const real *pgv = gridIsMoving ? gridVelocity.getDataPointer() : pu;
+  const real *pdd = divergenceDamping.getDataPointer();
+  const int *pmask = c.mask().getDataPointer();
+#endif
+
+  // Old: 
+//   real *pUserDefinedForce=pf; // if not needed just point to f array
+//   // --- user defined forcing ---
+//   if( parameters.dbase.get<bool >("turnOnUserDefinedForcing") )
+//   {
+//     assert( parameters.dbase.get<realCompositeGridFunction* >("userDefinedForce")!=NULL );
+//     realCompositeGridFunction & userDefinedForce = *(parameters.dbase.get<realCompositeGridFunction* >("userDefinedForce"));
+//     pUserDefinedForce = userDefinedForce[grid].getLocalArray().getDataPointer(); 
+//   }
+
+  // --- Look for any body forcing --- *wdh* 11/11/05
+  real *pBodyForce=pf; // if not needed just point to f array
+  if( parameters.dbase.get<bool >("turnOnBodyForcing") )
+  {
+    // Here is where we save the body forcing:
+    assert( parameters.dbase.get<realCompositeGridFunction* >("bodyForce")!=NULL );
+    realCompositeGridFunction & bodyForce = *parameters.dbase.get<realCompositeGridFunction* >("bodyForce");
+    pBodyForce = bodyForce[grid].getLocalArray().getDataPointer(); 
+  }
+  
+
+  // const realArray *rxp = isRectangular ? &u :  &c.inverseVertexDerivative();
+
+      
+
+  if( debug() & 4 || debug() & 8 )
+  {
+    display(u,sPrintF("assignPressureRHS: sol u  grid=%i, before assignOPT",grid),debugFile,"%12.9f ");
+    display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, before assignOPT",grid),debugFile,"%8.5f ");
+  }
+
+  const IntegerArray & gid = c.gridIndexRange();
+  getIndex(gid,I1,I2,I3);
+  int n1a,n1b,n2a,n2b,n3a,n3b;
+  bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b); 
+
+  if( ok )
+  {
+
+    // For non-moving grids u==uu, otherwise uu is a temp space to hold (u-gv)
+    real *puu =  (real*)pu;
+
+    realSerialArray uu;
+    if( gridIsMoving )
+    {
+      uu.redim(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2),uLocal.dimension(3));
+      puu= uu.getDataPointer();
+    }
+
+    // When we are projecting the initial conditions the advectionCoefficient=0 **fix this**
+    const int includeADinPressure=parameters.dbase.get<bool >("includeArtificialDiffusionInPressureEquation") &&
+      parameters.dbase.get<real >("advectionCoefficient")!=0.;
+
+
+    // This next variable is set in project()
+    const int initialConditionsAreBeingProjected = parameters.dbase.get<int>("initialConditionsAreBeingProjected");
+    if( initialConditionsAreBeingProjected )
+    {
+      // if the initial conditions are being projected, then we just want to solve Delta(p) = div(u)
+      if( debug() & 4 )
+	printF("*** assignPressureRHS: initial conditions are being projected ***\n");
+	
+      pdeModel = InsParameters::standardModel;  // temporarily set the pdeModel to be vanilla INS.
+
+    }
+      
+
+    // The next macro is in boundaryMacros.h
+    extractBoundaryDataArrays()
+
+    int ipar[] ={parameters.dbase.get<int >("pc"),
+		 parameters.dbase.get<int >("uc"),
+		 parameters.dbase.get<int >("vc"),
+		 parameters.dbase.get<int >("wc"),
+		 parameters.dbase.get<int >("tc"),
+		 parameters.dbase.get<int >("kc"),  // for a turbulence model
+		 grid,
+		 orderOfAccuracy,
+		 (int)parameters.gridIsMoving(grid),
+		 useWhereMask,
+		 (int)parameters.isAxisymmetric(),  // ipar[10]
+		 (int)parameters.dbase.get<int >("pressureBoundaryCondition"),
+		 parameters.dbase.get<int >("numberOfComponents"),
+		 (isRectangular? 0 : 1),
+		 parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel"),  
+		 (int)parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion"),  // ipar[15]
+		 (int)parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion"),
+		 (int)parameters.dbase.get<bool >("useImplicitFourthArtificialDiffusion"),
+		 includeADinPressure,
+		 pdeModel,                                                               // ipar[19]
+		 parameters.dbase.get<int >("vsc"),
+		 (int)parameters.dbase.get<bool >("twilightZoneFlow"),
+                 parameters.dbase.get<int >("rc"),
+                 parameters.dbase.get<int>("initialConditionsAreBeingProjected"),
+                 (int)parameters.dbase.get<bool >("turnOnBodyForcing"),
+                 debug()
+    }; //
+
+    real rpar[]={c.gridSpacing(0),c.gridSpacing(1),c.gridSpacing(2),
+		 dx[0],dx[1],dx[2],
+		 parameters.dbase.get<real >("nu"),
+		 parameters.dbase.get<real >("advectionCoefficient"),
+		 parameters.dbase.get<real >("inflowPressure"),
+		 parameters.dbase.get<real >("ad21"),
+		 parameters.dbase.get<real >("ad22"),
+		 parameters.dbase.get<real >("ad41"),
+		 parameters.dbase.get<real >("ad42") ,
+		 gravity[0],
+		 gravity[1],
+		 gravity[2],          // 15
+		 thermalExpansivity,  // 16 
+		 adcBoussinesq,       // 17
+                 surfaceTension,      // 18
+                 pAtmosphere          // 19
+    };
+
+    int ierr=0;
+    
+    real pressureValue;
+
+    IntegerArray gidLocal,dimensionLocal,bcLocal;
+    ParallelGridUtility::getLocalIndexBoundsAndBoundaryConditions( u0,gidLocal,dimensionLocal,bcLocal );
+
+    // this is a fudge to treat the interface BC:
+    ForBoundary(side,axis)
+    {
+      if( bcLocal(side,axis)==Parameters::interfaceBoundaryCondition //||
+	  /*bcLocal(side,axis)==Parameters::penaltyBoundaryCondition*/ )
+      {
+	bcLocal(side,axis)==Parameters::dirichletBoundaryCondition;
+      }
+      else if ( bcLocal(side,axis)==Parameters::penaltyBoundaryCondition )
+      {
+	bcLocal(side,axis)==Parameters::slipWall;
+      }
+    }
+      
+
+    // For axisymmetric problems define:
+    //    radiusInverse(i1,i2,i3) = 1/y  : off the axis of symmetry
+    //                            = 0    : on the axis of symmetry
+    RealArray radiusInverse;
+    if( parameters.isAxisymmetric() )
+    {
+      radiusInverse.redim(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2));
+      radiusInverse(I1,I2,I3) = 1./max(REAL_MIN,xLocal(I1,I2,I3,axis2));
+      Index Ib1,Ib2,Ib3;
+      for( int axis=0; axis<c.numberOfDimensions(); axis++ )
+      {
+	for( int side=0; side<=1; side++ )
+	{
+	  if( c.boundaryCondition(side,axis)==Parameters::axisymmetric )
+	  {
+	    getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+            int includeGhost=1;
+            bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	    radiusInverse(Ib1,Ib2,Ib3)=0.;
+	  }
+	}
+      }
+      if( debug() & 8 )
+      {
+	display(radiusInverse,sPrintF("assignPressureRHS: radiusInverse, grid=%i, before assignOPT",grid),pDebugFile,"%8.5f ");
+      }
+    }
+
+
+    assignPressureRHSOpt(c.numberOfDimensions(),
+			 I1.getBase(),I1.getBound(),
+			 I2.getBase(),I2.getBound(),
+			 I3.getBase(),I3.getBound(),
+			 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+			 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+			 *pmask,*pxy, *prsxy, *radiusInverse.getDataPointer(),
+			 *pu,*puu,  *pf, *pgv, *pdd, *pBodyForce,
+			 // c.boundaryCondition(0,0), c.extendedIndexRange(0,0), 
+			 bcLocal(0,0), gidLocal(0,0), 
+			 bcData.getLength(0),bcData(0,0,0,grid), 
+			 n1a,n1b,n2a,n2b,n3a,n3b, 
+			 *pNormal[0][0],*pNormal[1][0],*pNormal[0][1],*pNormal[1][1],*pNormal[0][2],*pNormal[1][2],
+                         *pdbc,*pbcf[0][0],pbcfOffset[0],pAddBoundaryForcing[0],
+			 ipar[0], rpar[0], ierr );
+
+      
+
+
+  } // end if ok 
+    
+  if( debug() & 4 || debug() & 8 )
+  {
+    display(u,sPrintF("assignPressureRHS: sol u  grid=%i, after assignOPT",grid),debugFile,"%12.9f ");
+    display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, after assignOPT",grid),debugFile,"%12.9f ");
+  }
+   
+  if( parameters.gridIsMoving(grid) &&
+      !parameters.dbase.get<bool >("twilightZoneFlow")  )  // *wdh* 040914 
+  {
+    // add grid acceleration 
+    // *wdh* 040914 -- for TZ no sense adding this on since we would have to subtract it off later  -- it
+    // is just another external forcing 
+    int side,axis;
+    Index I1g,I2g,I3g;
+    ForBoundary(side,axis)
+    {
+      if( c.boundaryCondition(side,axis)>0 )
+      {
+	switch (c.boundaryCondition(side,axis))
+	{
+	case InsParameters::outflow:
+	case InsParameters::convectiveOutflow:
+	case InsParameters::tractionFree:
+	case InsParameters::inflowWithPressureAndTangentialVelocityGiven:
+	case Parameters::dirichletBoundaryCondition:
+	case Parameters::symmetry:
+	case Parameters::axisymmetric:
+	case Parameters::freeSurfaceBoundaryCondition:
+	  break;
+	default:
+	{
+	  // add n.( -u.t) for moving grids or time dependent BC's
+          // #ifdef USE_PPP
+          //  realSerialArray & normal = c.vertexBoundaryNormalArray(side,axis);
+          // #else
+          //  realSerialArray & normal = c.vertexBoundaryNormal(side,axis);
+          // #endif  
+	  // gridAccelerationBC(grid, t0, c, u0, f, gridVelocity,normal,
+	  //		     I1,I2,I3, I1g,I2g,I3g,side,axis  );
+
+	  gridAccelerationBC( grid, t0, gf0, f0, side,axis );
+	}
+	
+	}
+      }
+    } // end forBoundary
+  }
+    
+  if( (parameters.gridIsMoving(grid) && (bool)parameters.dbase.get<int>("movingBodyPressureBC")) ||
+      parameters.dbase.get<int>("movingBodyPressureBC")==2 )
+  {
+    // *wdh* 100907 -- try this fix for 'light' moving bodies
+    int side,axis;
+    Index I1g,I2g,I3g;
+    ForBoundary(side,axis)
+    {
+      if( c.boundaryCondition(side,axis)>0 )
+      {
+	switch (c.boundaryCondition(side,axis) )
+	{
+	case Parameters::noSlipWall:
+	case Parameters::slipWall:
+	{
+	  const real & a0 = parameters.dbase.get<real>("movingBodyPressureCoefficient");
+	  if( a0>0. )
+	  {
+	    if( true )
+	      printF("assignPressureRHS: t=%8.2e, a0=%8.2e, add correction for light body pressure wall BC\n",t0,a0);
+	    
+	    getGhostIndex( c.gridIndexRange(),side,axis,I1 ,I2 ,I3 ,0);     // boundary line
+	    getGhostIndex( c.gridIndexRange(),side,axis,I1g,I2g,I3g,1);  // first ghost line
+
+	    f(I1g,I2g,I3g) += a0*u(I1,I2,I3,pc );
+	  }
+	  
+	}
+	break;
+	default:
+	  break;
+	}
+      }
+    }
+  }
+  
+
+  const Parameters::KnownSolutionsEnum & knownSolution = 
+            parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+  
+  bool assignDirichletBoundaryConditions=false;
+  ForBoundary(side,axis)
+  {
+    if( c.boundaryCondition(side,axis)==Parameters::dirichletBoundaryCondition )
+    {
+      assignDirichletBoundaryConditions=true;
+      break;
+    }
+  }
+
+
+  if( assignDirichletBoundaryConditions && knownSolution!=InsParameters::noKnownSolution )
+  {
+    // -- Assign any dirichletBoundaryConditions with the known solution ---- *wdh* 2013/09/27
+
+    int extra=2;
+    Index I1,I2,I3;
+    getIndex(c.gridIndexRange(),I1,I2,I3,extra);  // **************** fix this -- only evaluate near boundaries --
+
+    realArray *uKnownPointer = &parameters.getKnownSolution( t0,grid,I1,I2,I3 );
+    realArray & uKnown = uKnownPointer!=NULL ? *uKnownPointer : u;
+    OV_GET_SERIAL_ARRAY_CONST(real,uKnown,uKnownLocal);
+    OV_GET_SERIAL_ARRAY(real,f,fLocal);
+    
+    Index Ib1,Ib2,Ib3;
+    ForBoundary(side,axis)
+    {
+      if( c.boundaryCondition(side,axis)==Parameters::dirichletBoundaryCondition )
+      {
+	// printF("*** assign p RHS for KnownSolution : grid=%i (side,axis)=(%i,%i) t=%9.3e\n",grid,side,axis,t0);
+	
+	getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	int includeGhost=1;
+	bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( ok )
+	{
+	  fLocal(Ib1,Ib2,Ib3)=uKnownLocal(Ib1,Ib2,Ib3,pc);
+	}
+
+      }
+    }
+
+  }
+  
+
+  if( parameters.dbase.get<bool >("twilightZoneFlow") )
+  {
+    // In the TZ case we subtract off n.u_t -- but then we add it back on later -- could just skip both 
+
+    // ***** add forcing for twilightZoneFlow *******
+    OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+
+    #ifdef USE_PPP
+      realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
+    #else
+      const realSerialArray & fLocal = f;
+    #endif  
+    realArray & x= c.center();
+    #ifdef USE_PPP
+      realSerialArray xLocal; 
+      if( true || !isRectangular ) 
+        getLocalArrayWithGhostBoundaries(x,xLocal);
+    #else
+      const realSerialArray & xLocal = x;
+    #endif
+
+    int side,axis;
+    Index I1g,I2g,I3g;
+    ForBoundary(side,axis)
+    {
+      if( c.boundaryCondition(side,axis)>0 )
+      {
+	switch (c.boundaryCondition(side,axis))
+	{
+	case InsParameters::outflow:
+	case InsParameters::convectiveOutflow:
+	case InsParameters::tractionFree:
+	{
+	  break;
+	}
+	case InsParameters::inflowWithPressureAndTangentialVelocityGiven:
+	case Parameters::dirichletBoundaryCondition:
+	case InsParameters::freeSurfaceBoundaryCondition:
+	{
+	  break;	
+	}
+	case Parameters::symmetry:
+	case Parameters::axisymmetric:
+	  break;
+	default:
+	  if( parameters.dbase.get<int >("pressureBoundaryCondition")==2 )
+	  {
+	    break;
+	  }
+
+	  getGhostIndex( c.extendedIndexRange(),side,axis,I1g,I2g,I3g,1);  // first ghost line
+	  getGhostIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3 ,0);     // boundary line
+
+
+          #ifdef USE_PPP
+	   realSerialArray & normalLocal = *(c.rcData->pVertexBoundaryNormal[axis][side]); 
+          #else
+    	   realArray & normalLocal = c.vertexBoundaryNormal(side,axis);
+          #endif
+
+          bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3);
+          if( !ok ) continue;
+          ParallelUtility::getLocalArrayBounds(f,fLocal,I1g,I2g,I3g); // is this right?
+
+	  if( c.numberOfDimensions()==1 )
+	  {
+	    realSerialArray u0t(I1,I2,I3); 
+	    e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t0);
+	    fLocal(I1g,I2g,I3g)-=(2*side-1)*u0t(I1,I2,I3);
+	  }
+	  else if( c.numberOfDimensions()==2 )
+	  {
+	    realSerialArray u0t(I1,I2,I3),v0t(I1,I2,I3);
+	    e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t0);
+	    e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t0);
+
+	    fLocal(I1g,I2g,I3g)-=normalLocal(I1,I2,I3,0)*u0t(I1,I2,I3)
+		                +normalLocal(I1,I2,I3,1)*v0t(I1,I2,I3);
+	  }
+	  else
+	  {
+	    // 3D
+	    realSerialArray u0t(I1,I2,I3),v0t(I1,I2,I3),w0t(I1,I2,I3);
+	    e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t0);
+	    e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t0);
+	    e.gd( w0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,wc,t0);
+
+	    fLocal(I1g,I2g,I3g)-=normalLocal(I1,I2,I3,0)*u0t(I1,I2,I3)
+		                +normalLocal(I1,I2,I3,1)*v0t(I1,I2,I3)
+		                +normalLocal(I1,I2,I3,2)*w0t(I1,I2,I3);
+
+	  }
+	}
+      }
+    }
+  
+    addForcingToPressureEquation( grid,c,f,gridVelocity,t0 );  // add forcing to rhs for twilight-zone flow
+    
+  }
+  
+  if( orderOfAccuracy>2 ) // *wdh* 110221
+  { 
+    // f.updateGhostBoundaries();    // Is this needed? ABC
+    f.periodicUpdate();           // this is need for fourth-order
+  }
+  
+}
+
+  
+#define P0(c,I1,I2,I3,t)  e(c,I1,I2,I3,pc,t)
+
+#define P02N(c,I1,I2,I3,t) ( normal(I1,I2,I3,0)*p0x(I1,I2,I3) \
+			     +normal(I1,I2,I3,1)*p0y(I1,I2,I3) )
+
+#define P03N(c,I1,I2,I3,t) ( normal(I1,I2,I3,0)*p0x(I1,I2,I3) \
+			    +normal(I1,I2,I3,1)*p0y(I1,I2,I3) \
+			    +normal(I1,I2,I3,2)*p0z(I1,I2,I3) )
+
+//   ---Here is the pressure equation in 2D
+#define PF2(c,I1,I2,I3,t)  (  \
+advectionCoefficient*( u0x*u0x+2.*u0y*v0x+v0y*v0y ) + p0xx + p0yy )
+
+//    ---Here is the pressure equation in 3D
+#define PF3(c,I1,I2,I3,t)  (  \
+           advectionCoefficient*( u0x*u0x+v0y*v0y+w0z*w0z+2.*(u0y*v0x+u0z*w0x+v0z*w0y) )+p0xx+p0yy+p0zz \
+                           )
+
+//     ---Here are the momentum equations in 2D
+#define FB21(c,I1,I2,I3,t) (  \
+         u0t(I1,I2,I3)                            \
+        +uuLocal(I1,I2,I3,uc)*u0x(I1,I2,I3) \
+        +uuLocal(I1,I2,I3,vc)*u0y(I1,I2,I3)    \
+        +p0x(I1,I2,I3)                                            \
+        -nu*(u0xx+u0yy)        \
+                   )
+#define FB22(c,I1,I2,I3,t)  (   \
+        v0t(I1,I2,I3)             \
+       +uuLocal(I1,I2,I3,uc)*v0x(I1,I2,I3)     \
+       +uuLocal(I1,I2,I3,vc)*v0y(I1,I2,I3)     \
+       +p0y(I1,I2,I3) \
+       -nu*(v0xx+v0yy)        \
+                           )  
+//     ...normal component of the momentum equations
+#define FB2N(c,I1,I2,I3,t) ( normal(I1,I2,I3,0)*FB21(c,I1,I2,I3,t)   \
+                            +normal(I1,I2,I3,1)*FB22(c,I1,I2,I3,t) )
+
+//    ---Here are the momentum equations in 3D
+#define FB31(c,I1,I2,I3,t) (  \
+         u0t(I1,I2,I3)                          \
+        +uuLocal(I1,I2,I3,uc)*u0x(I1,I2,I3)     \
+        +uuLocal(I1,I2,I3,vc)*u0y(I1,I2,I3)     \
+        +uuLocal(I1,I2,I3,wc)*u0z(I1,I2,I3)     \
+        +p0x(I1,I2,I3)                                            \
+        -nu*(u0xx+u0yy+u0zz)        \
+                   )
+#define FB32(c,I1,I2,I3,t)  (   \
+         v0t(I1,I2,I3)            \
+        +uuLocal(I1,I2,I3,uc)*v0x(I1,I2,I3)     \
+        +uuLocal(I1,I2,I3,vc)*v0y(I1,I2,I3)     \
+        +uuLocal(I1,I2,I3,wc)*v0z(I1,I2,I3)     \
+        +p0y(I1,I2,I3) \
+        -nu*(v0xx+v0yy+v0zz)        \
+                           )  
+#define FB33(c,I1,I2,I3,t)  (   \
+         w0t(I1,I2,I3)                        \
+        +uuLocal(I1,I2,I3,uc)*w0x(I1,I2,I3)    \
+        +uuLocal(I1,I2,I3,vc)*w0y(I1,I2,I3)     \
+        +uuLocal(I1,I2,I3,wc)*w0z(I1,I2,I3)     \
+        +p0z(I1,I2,I3) \
+        -nu*(w0xx+w0yy+w0zz)        \
+                           )  
+//     ...normal component of the momentum equations
+#define FB3N(c,I1,I2,I3,t) ( normal(I1,I2,I3,0)*FB31(c,I1,I2,I3,t)   \
+                            +normal(I1,I2,I3,1)*FB32(c,I1,I2,I3,t)   \
+                            +normal(I1,I2,I3,2)*FB33(c,I1,I2,I3,t) )
+
+//======================================================================
+//   Add the forcing to the pressure equation for
+//        Twilightzone flow for modeltb=0
+//
+// NOTE
+//  o  momentum equations are used here for the pressure BC
+//
+//  Input -
+//    f  : rhs for pressure equation before forcing is added
+//  Output -
+//    f  : rhs for pressure equation after forcing is added
+//======================================================================
+
+void Cgins::
+addForcingToPressureEquation( const int & grid,
+			      MappedGrid & c, 
+			      realMappedGridFunction & f,  
+			      realMappedGridFunction & gridVelocity, 
+			      const real & t )
+{
+
+  if( !parameters.dbase.get<bool >("twilightZoneFlow") )
+    return;
+
+  MappedGrid & mg =c;
+
+  const int & myid = parameters.dbase.get<int >("myid");
+  FILE *&debugFile = parameters.dbase.get<FILE* >("debugFile");
+  FILE *&pDebugFile = parameters.dbase.get<FILE* >("pDebugFile");
+
+  const int & uc = parameters.dbase.get<int >("uc");
+  const int & vc = parameters.dbase.get<int >("vc");
+  const int & wc = parameters.dbase.get<int >("wc");
+  const int & pc = parameters.dbase.get<int >("pc");
+  const int & tc = parameters.dbase.get<int >("tc");
+  const int nc=parameters.dbase.get<int >("kc");
+  const int kc=parameters.dbase.get<int >("kc");
+  const int rc=parameters.dbase.get<int >("rc");
+  const int ec=kc+1;
+  const int numberOfDimensions = c.numberOfDimensions();
+  
+  const real & nu  = parameters.dbase.get<real >("nu");
+  const real & advectionCoefficient = parameters.dbase.get<real >("advectionCoefficient");
+  const RealArray & bcData = parameters.dbase.get<RealArray >("bcData");
+  const bool gridIsMoving = parameters.gridIsMoving(grid);
+  
+  const InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
+  const Parameters::TurbulenceModel & turbulenceModel = parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel");
+  
+  DataBase & pdeParameters = parameters.dbase.get<DataBase>("PdeParameters");
+
+  OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+
+  if( debug() & 32 )
+    cout << " ***Entering addForcingToPressureEquation *** \n";
+
+  if( debug() & 8 )
+  {
+    display(f,sPrintF("addForcingToPressureEquation: rhs f, grid=%i, before adding TZ",grid),
+             debugFile,"%8.5f ");
+  }
+
+
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+  Index Ib1,Ib2,Ib3;
+  Index I1g,I2g,I3g;
+  Range R[3];
+
+  //     ..assign all interior points
+ 
+  int side,axis;
+  realSerialArray radiusInverse;
+
+  real thermalExpansivity=1.;
+  parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
+  //  const real *gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+  const ArraySimpleFixed<real,3,1,1,1> &gravity=parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+  const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
+
+  #ifdef USE_PPP
+    realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
+    // intSerialArray mask; getLocalArrayWithGhostBoundaries(mg.mask(),mask);
+  #else
+    realSerialArray & fLocal = f;
+    // const intSerialArray & mask = mg.mask();
+  #endif  
+  realArray & x= c.center();
+  #ifdef USE_PPP
+    realSerialArray xLocal; 
+    if( !isRectangular ) 
+      getLocalArrayWithGhostBoundaries(x,xLocal);
+  #else
+    const realSerialArray & xLocal = x;
+  #endif
+
+
+  if( grid >= tzTimeVector1.size() ) 
+  {
+    tzTimeVector1.resize(grid+1,REAL_MAX);
+    tzTimeVector2.resize(grid+1,REAL_MAX);
+    tzForcingVector.resize(grid+1,NULL);
+  }
+  real & tzTimeStart2=tzTimeVector2[grid];
+  realSerialArray *&tzForcing = tzForcingVector[grid];
+
+  bool evaluateTZ=tzTimeStart2==REAL_MAX;  // set to true if we need to evaluate the TZ functions
+
+  // ****NOTE: the tzForcing arrays arrays are shared with addForcingINS
+  const int numberOfTZArrays=c.numberOfDimensions()==1 ? 1 : c.numberOfDimensions()==2 ? 10 : 14;
+  if( tzForcing==NULL )
+  {
+    evaluateTZ=true;
+    
+    tzForcing = new realSerialArray [numberOfTZArrays];
+    int extra=1;
+    getIndex(extendedGridIndexRange(c),I1,I2,I3,extra); // allocate space to hold  BC forcing in ghost points
+    bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3); 
+    if( ok )
+    {
+      tzForcing[0].redim(I1,I2,I3);
+      tzForcing[1].redim(I1,I2,I3);
+      tzForcing[2].redim(I1,I2,I3);
+    }
+  }
+  // we cannot use the opt evaluation for moving grids since the grid points change
+  if( gridIsMoving )
+    evaluateTZ=true;  // we are forced to re-evaluate the TZ functions every time step
+
+  real scaleFactor=1., scaleFactorT=1.;
+  if( evaluateTZ )
+  {
+    tzTimeStart2=t;  // save the time at which the TZ functions were evaluated
+  }
+  else 
+  {
+    // This is not the first time through -- compute scale factors for stored TZ values
+
+    // Here we assume that the TZ function is a tensor product of a spatial function
+    // times a function of time. In this case we just need to scale the TZ function
+    // by the new value of the time function
+    real xa=.123,ya=.456,za= c.numberOfDimensions()==2 ? .789 : 0.;
+    real ta=tzTimeStart2;
+	
+    real pa = e(xa,ya,za,pc,ta), sfta=e.t(xa,ya,za,uc,ta);
+
+    if( fabs(pa) > 1.e-3 && fabs(sfta)>REAL_EPSILON*100. )
+    {
+      scaleFactor = e(xa,ya,za,pc,t)/e(xa,ya,za,pc,ta); // we assume all time functions are the same
+      scaleFactorT=e.t(xa,ya,za,uc,t)/sfta;
+    }
+    else  // we cannot scale with this value ...
+    {
+      evaluateTZ=true;
+      tzTimeStart2=t;  // save the time at which the TZ functions were evaluated
+    }
+    
+//      if( turbulenceModel==Parameters::kEpsilon )
+//      {
+//        real scaleFactorU = e(xa,ya,za,uc,t)/e(xa,ya,za,uc,ta);
+//        real scaleFactorK = e(xa,ya,za,kc,t)/e(xa,ya,za,kc,ta);
+//        real scaleFactorE = e(xa,ya,za,ec,t)/e(xa,ya,za,ec,ta);
+//        printf(" t=%8.2e, scaleFactor=%12.10f, scaleFactorU/sf=%12.10f, scaleFactorK/sf=%12.10f, scaleFactorE/sf=%12.10f\n",
+//  	     t,scaleFactor,scaleFactorU/scaleFactor,scaleFactorK/scaleFactor,scaleFactorE/scaleFactor);
+//      }
+    
+  }
+  assert( fabs(scaleFactor)<1.e10 &&  fabs(scaleFactorT)<1.e10 );
+
+  real cb1, cb2, cv1, sigma, sigmai, kappa, cw1, cw2, cw3, cw3e6, cv1e3, cd0, cr0;
+  real cMu,cEps1,cEps2,sigmaEpsI,sigmaKI;
+
+  const bool useGenericViscosity = (pdeModel==InsParameters::viscoPlasticModel ||
+                                    pdeModel==InsParameters::twoPhaseFlowModel ||
+                                    turbulenceModel==InsParameters::LargeEddySimulation ||
+				    turbulenceModel==InsParameters::BaldwinLomax ||
+				    turbulenceModel==InsParameters::kEpsilon );
+
+  realMappedGridFunction *pnuT=NULL, *pue=NULL;
+  if( useGenericViscosity )
+  {
+    // evaluate the coeff of viscosity using the exact solution
+    Range all;
+    Range N=parameters.dbase.get<int >("numberOfComponents");
+    pue = new realMappedGridFunction(mg,all,all,all,N);
+    realMappedGridFunction & ue = *pue;
+
+    // assert( f.getOperators()!=NULL );
+    assert( gf[0].u[grid].getOperators()!=NULL );
+    ue.setOperators(*gf[0].u[grid].getOperators());
+
+    getIndex(c.dimension(),I1,I2,I3);
+
+    e.gd(ue,0,0,0,0,I1,I2,I3,N,t);
+    
+    pnuT = new realMappedGridFunction(c,all,all,all);
+    pnuT->setOperators(*gf[0].u[grid].getOperators());
+
+    ((InsParameters&)parameters).getModelVariables("viscosity", ue, *pnuT,grid, 0, t);
+
+    if( pdeModel==InsParameters::twoPhaseFlowModel )
+    { // save the density in ue(.,.,.,rc) 
+      assert( rc>=0 );
+      ((InsParameters&)parameters).getModelVariables("density", ue, ue,grid, rc, t);
+    }
+  }
+  
+
+
+  #ifdef USE_PPP
+    bool useOpt=true;
+  #else
+    bool useOpt=false || pdeModel==InsParameters::BoussinesqModel || useGenericViscosity;
+  #endif
+  if( useOpt ) // new version for parallel -- needs to be finished for other cases
+  {
+    MappedGrid & mg = c;
+    
+    getIndex(extendedGridIndexRange(c),I1,I2,I3);
+
+
+    if( !isRectangular )
+      mg.update(MappedGrid::THEcenter);
+
+    // loop bounds for this boundary:
+    bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3);  
+
+    if( ok )
+    {
+
+      if( c.numberOfDimensions()==2 )
+      {
+        // ***************************************************
+        // **************** Two-Dimensions *******************
+        // ***************************************************
+	realSerialArray u0x(I1,I2,I3),u0y(I1,I2,I3);
+	realSerialArray v0x(I1,I2,I3),v0y(I1,I2,I3);
+	realSerialArray p0xx(I1,I2,I3),p0yy(I1,I2,I3);
+	
+	e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+	e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+
+	e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+	e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+
+	e.gd( p0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,pc,t);
+	e.gd( p0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,pc,t);
+
+	if( pdeModel!=InsParameters::twoPhaseFlowModel )
+	{
+	  fLocal(I1,I2,I3)+=advectionCoefficient*( u0x*u0x+2.*u0y*v0x+v0y*v0y ) + p0xx + p0yy;
+	}
+	else
+	{ // add div( (1/rho) grad)p below 
+	  fLocal(I1,I2,I3)+=advectionCoefficient*( u0x*u0x+2.*u0y*v0x+v0y*v0y ); 
+	}
+	
+	if( parameters.isAxisymmetric() )
+	{
+          // add axisymmetric corrections *wdh* 080128
+	  radiusInverse=1./max(REAL_MIN,xLocal(I1,I2,I3,axis2)); 
+	  ForBoundary(side,axis)
+	  {
+	    if( c.boundaryCondition(side,axis)==Parameters::axisymmetric )
+	    {
+	      getGhostIndex( c.extendedIndexRange(),side,axis,Ib1,Ib2,Ib3,0);     // boundary line
+	      bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,Ib1,Ib2,Ib3);
+	      if( ok )
+	      {
+		fLocal(Ib1,Ib2,Ib3)+=p0yy(Ib1,Ib2,Ib3);   // p.y/y = p.yy on y==0
+		radiusInverse(Ib1,Ib2,Ib3)=0.;      // this will zero out p.y/y term on axis boundary in statement below
+	      }
+	    
+	    }
+	  }
+
+	  // add p.y/y term (except on the axis where radiusInverse has been set to zero)
+	  realSerialArray p0y(I1,I2,I3); 
+	  e.gd( p0y,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+	  fLocal(I1,I2,I3)+=p0y*radiusInverse(I1,I2,I3);
+	  
+	}
+	
+	if( useGenericViscosity )
+	{
+	  // generic turbulence model or visco-plastic model
+          assert( pnuT!=NULL );
+          #ifdef USE_PPP
+            realSerialArray nuT; getLocalArrayWithGhostBoundaries(*pnuT,nuT);
+          #else
+            realSerialArray & nuT = *pnuT;
+          #endif
+
+	  realSerialArray nuTx(I1,I2,I3),nuTy(I1,I2,I3),nuTxx(I1,I2,I3),nuTxy(I1,I2,I3),nuTyy(I1,I2,I3);
+
+          // We just compute the derivatives of the exact nuT using differences. 
+          assert( gf[0].u[grid].getOperators()!=NULL );
+	  MappedGridOperators & op = *(gf[0].u[grid].getOperators()); // --------- fix this 
+          op.derivative(MappedGridOperators::xDerivative ,nuT,nuTx,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::yDerivative ,nuT,nuTy,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::xxDerivative,nuT,nuTxx,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::xyDerivative,nuT,nuTxy,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::yyDerivative,nuT,nuTyy,I1,I2,I3,0);
+
+	  realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3);
+	  realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3);
+
+ 	  e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+ 	  e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+
+ 	  e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+ 	  e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+
+	  if( pdeModel!=InsParameters::twoPhaseFlowModel )
+	  {
+	    fLocal(I1,I2,I3)-=2.*( nuTx*(u0xx+u0yy)+nuTxx*u0x+nuTxy*u0y+ nuTy*(v0xx+v0yy)+nuTxy*v0x+nuTyy*v0y);
+	  }
+	  else
+	  {
+	    // twoPhaseFlowModel : div( (1/rho)* div( tau ) ) = 
+            // realMappedGridFunction & ue = *pue;
+            #ifdef USE_PPP
+	     realSerialArray ue; getLocalArrayWithGhostBoundaries(*pue,ue);
+            #else	    
+	     realSerialArray & ue = *pue;
+	    #endif
+            realSerialArray p0x(I1,I2,I3), p0y(I1,I2,I3);
+	    e.gd( p0x,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	    e.gd( p0y,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+            realSerialArray r0x(I1,I2,I3), r0y(I1,I2,I3);
+            op.derivative(MappedGridOperators::xDerivative ,ue,r0x,I1,I2,I3,rc);
+            op.derivative(MappedGridOperators::yDerivative ,ue,r0y,I1,I2,I3,rc);
+
+            fLocal(I1,I2,I3)-=2.*( nuTx*(u0xx+u0yy)+nuTxx*u0x+nuTxy*u0y+ nuTy*(v0xx+v0yy)+
+				   nuTxy*v0x+nuTyy*v0y)/ue(I1,I2,I3,rc) ;
+
+	    //  printF("@@@ addForcingToPressureEquation max(rho)=%g at t=%g\n",max(ue(I1,I2,I3,rc)),t);
+
+            // add div( (1/rho) grad) p 
+            // subtract off (-1/rho^2)*( rho_x*( ) + rho_y*() )
+            fLocal(I1,I2,I3)+= (p0xx+p0yy)/ue(I1,I2,I3,rc) +
+	      (
+               r0x*( nuT(I1,I2,I3)*(u0xx+u0yy)+2.*nuTx*u0x+nuTy*(u0y+v0x) -p0x ) + 
+	       r0y*( nuT(I1,I2,I3)*(v0yy+v0xx)+2.*nuTy*v0y+nuTx*(v0x+u0y) -p0y )
+		)/SQR(ue(I1,I2,I3,rc));
+	  }
+	  
+	}
+	
+        // *** this must be done last since we over-write u0x, ... ***
+        if( pdeModel==InsParameters::BoussinesqModel || 
+            pdeModel==InsParameters::viscoPlasticModel )
+	{ // add terms for Boussinesq approximation
+          // Evaluate T_x, T_y and save in u0x, u0y
+	  e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,tc,t);
+	  e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,tc,t);
+          fLocal(I1,I2,I3)+=thermalExpansivity*(gravity[0]*u0x+gravity[1]*u0y);
+	}
+	
+	if( false && pdeModel==InsParameters::viscoPlasticModel )
+	{ // for testing, set the RHS to the exact value
+	  printF(" Set RHS for p eqn to exact\n");
+	  fLocal(I1,I2,I3)=p0xx + p0yy;
+	}
+	
+
+      }
+      else if( c.numberOfDimensions()==3 )
+      {
+
+	realSerialArray u0x(I1,I2,I3),u0y(I1,I2,I3),u0z(I1,I2,I3);
+	realSerialArray v0x(I1,I2,I3),v0y(I1,I2,I3),v0z(I1,I2,I3);
+	realSerialArray w0x(I1,I2,I3),w0y(I1,I2,I3),w0z(I1,I2,I3);
+	realSerialArray p0xx(I1,I2,I3),p0yy(I1,I2,I3),p0zz(I1,I2,I3);
+	
+	e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+	e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+	e.gd( u0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,uc,t);
+
+	e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+	e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+	e.gd( v0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,vc,t);
+
+	e.gd( w0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,wc,t);
+	e.gd( w0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,wc,t);
+	e.gd( w0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,wc,t);
+
+	e.gd( p0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,pc,t);
+	e.gd( p0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,pc,t);
+	e.gd( p0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,pc,t);
+
+	if( pdeModel!=InsParameters::twoPhaseFlowModel )
+	{
+	  fLocal(I1,I2,I3)+=advectionCoefficient*
+	    ( u0x*u0x+v0y*v0y+w0z*w0z+2.*(u0y*v0x+u0z*w0x+v0z*w0y) )  +p0xx+p0yy+p0zz;
+	}
+	else
+	{ // add div((1/rho)grad) p below 
+	  fLocal(I1,I2,I3)+=advectionCoefficient*
+	    ( u0x*u0x+v0y*v0y+w0z*w0z+2.*(u0y*v0x+u0z*w0x+v0z*w0y) );
+	}
+	
+	if( useGenericViscosity )
+	{
+	  // visco-plastic model
+          assert( pnuT!=NULL );
+          #ifdef USE_PPP
+            realSerialArray nuT; getLocalArrayWithGhostBoundaries(*pnuT,nuT);
+          #else
+            realSerialArray & nuT = *pnuT;
+          #endif
+
+	  realSerialArray nuTx(I1,I2,I3),nuTy(I1,I2,I3),nuTxx(I1,I2,I3),nuTxy(I1,I2,I3),nuTyy(I1,I2,I3);
+	  realSerialArray nuTz(I1,I2,I3),nuTxz(I1,I2,I3),nuTyz(I1,I2,I3),nuTzz(I1,I2,I3);
+
+          // We just compute the derivatives of the exact nuT using differences. 
+          assert( gf[0].u[grid].getOperators()!=NULL );
+	  MappedGridOperators & op = *(gf[0].u[grid].getOperators()); // --------- fix this 
+          op.derivative(MappedGridOperators::xDerivative ,nuT,nuTx,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::yDerivative ,nuT,nuTy,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::zDerivative ,nuT,nuTz,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::xxDerivative,nuT,nuTxx,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::xyDerivative,nuT,nuTxy,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::xzDerivative,nuT,nuTxz,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::yyDerivative,nuT,nuTyy,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::yzDerivative,nuT,nuTyz,I1,I2,I3,0);
+          op.derivative(MappedGridOperators::zzDerivative,nuT,nuTzz,I1,I2,I3,0);
+
+	  realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3),u0zz(I1,I2,I3);
+	  realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3),v0zz(I1,I2,I3);
+	  realSerialArray w0xx(I1,I2,I3),w0yy(I1,I2,I3),w0zz(I1,I2,I3);
+ 	  e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+ 	  e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+ 	  e.gd( u0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,uc,t);
+
+ 	  e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+ 	  e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+ 	  e.gd( v0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,vc,t);
+
+ 	  e.gd( w0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,wc,t);
+ 	  e.gd( w0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,wc,t);
+ 	  e.gd( w0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,wc,t);
+
+
+          // Lu = nuT*(u0xx+u0yy+u0zz)+nuTx*(u0x+u0x)+nuTy*(u0y+v0x)+nuTz*(u0z+w0x);
+          // Lv = nuT*(v0xx+v0yy+v0zz)+nuTx*(u0y+v0x)+nuTy*(v0y+v0y)+nuTz*(v0z+w0y);
+          // Lw = nuT*(w0xx+w0yy+w0zz)+nuTx*(u0z+w0x)+nuTy*(v0z+w0y)+nuTz*(w0z+w0z);
+          // pressure RHS = div.(Lu,Lv,Lw)
+
+
+	  if( pdeModel!=InsParameters::twoPhaseFlowModel )
+	  {
+	    fLocal(I1,I2,I3)-=2.*( nuTx*(u0xx+u0yy+u0zz)+nuTxx*u0x+nuTxy*u0y+nuTxz*u0z+ 
+				   nuTy*(v0xx+v0yy+v0yy)+nuTxy*v0x+nuTyy*v0y+nuTyz*v0z+ 
+				   nuTz*(w0xx+w0yy+w0yy)+nuTxz*w0x+nuTyz*w0y+nuTzz*w0z );
+	  }
+	  else
+	  {
+	    // twoPhaseFlowModel : div( (1/rho)* div( tau ) ) = 
+            #ifdef USE_PPP
+	     realSerialArray ue; getLocalArrayWithGhostBoundaries(*pue,ue);
+            #else	    
+	     realSerialArray & ue = *pue;
+	    #endif
+            realSerialArray p0x(I1,I2,I3), p0y(I1,I2,I3), p0z(I1,I2,I3);
+	    e.gd( p0x,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	    e.gd( p0y,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+	    e.gd( p0z,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+            realSerialArray r0x(I1,I2,I3), r0y(I1,I2,I3), r0z(I1,I2,I3);
+            op.derivative(MappedGridOperators::xDerivative ,ue,r0x,I1,I2,I3,rc);
+            op.derivative(MappedGridOperators::yDerivative ,ue,r0y,I1,I2,I3,rc);
+            op.derivative(MappedGridOperators::zDerivative ,ue,r0z,I1,I2,I3,rc);
+
+	    fLocal(I1,I2,I3)-=2.*( nuTx*(u0xx+u0yy+u0zz)+nuTxx*u0x+nuTxy*u0y+nuTxz*u0z+ 
+				   nuTy*(v0xx+v0yy+v0yy)+nuTxy*v0x+nuTyy*v0y+nuTyz*v0z+ 
+				   nuTz*(w0xx+w0yy+w0yy)+nuTxz*w0x+nuTyz*w0y+nuTzz*w0z )/ue(I1,I2,I3,rc);
+
+
+            // add div( (1/rho) grad) p 
+            // subtract off (-1/rho^2)*( rho_x*( ) + rho_y*() + rho_z*() )
+            fLocal(I1,I2,I3)+= (p0xx+p0yy+p0zz)/ue(I1,I2,I3,rc) + 
+	      (r0x*( nuT(I1,I2,I3)*(u0xx+u0yy+u0zz)+2.*nuTx*u0x+nuTy*(u0y+v0x)+nuTz*(u0z+w0x) -p0x) + 
+	       r0y*( nuT(I1,I2,I3)*(v0yy+v0xx+v0zz)+2.*nuTy*v0y+nuTx*(v0x+u0y)+nuTz*(v0z+w0y) -p0y) + 
+	       r0z*( nuT(I1,I2,I3)*(w0yy+w0xx+w0zz)+2.*nuTz*w0z+nuTx*(w0x+u0z)+nuTy*(v0z+w0y) -p0z)
+		)/SQR(ue(I1,I2,I3,rc));
+	  }
+	}
+
+
+        // *** this must be done last since we over-write u0x, ... ***
+        if( pdeModel==InsParameters::BoussinesqModel || 
+            pdeModel==InsParameters::viscoPlasticModel )
+	{ // add terms for Boussinesq approximation
+          // Evaluate T_x, T_y, T_z and save in u0x, u0y and u0z
+	  e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,tc,t);
+	  e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,tc,t);
+  	  e.gd( u0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,tc,t);
+          fLocal(I1,I2,I3)+=thermalExpansivity*(gravity[0]*u0x+gravity[1]*u0y+gravity[2]*u0z);
+	}
+
+
+      }	
+      else
+      {
+	Overture::abort("error");
+      }
+    }
+  }  
+  else // if( useOpt )
+  {
+  
+    getIndex(extendedGridIndexRange(c),I1,I2,I3);
+    if( !isRectangular )
+      mg.update(MappedGrid::THEcenter);
+
+    // loop bounds for this boundary:
+    bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3);  
+
+    if( ok && evaluateTZ )
+    {
+      realSerialArray u0x(I1,I2,I3),u0y(I1,I2,I3);
+      realSerialArray v0x(I1,I2,I3),v0y(I1,I2,I3);
+      realSerialArray p0xx(I1,I2,I3),p0yy(I1,I2,I3);
+	
+      e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+      e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+
+      e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+      e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+
+      e.gd( p0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,pc,t);
+      e.gd( p0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,pc,t);
+
+
+      if( c.numberOfDimensions()==2 )
+      {
+	tzForcing[8] = advectionCoefficient*( u0x*u0x+2.*u0y*v0x+v0y*v0y );
+	tzForcing[9] = p0xx+p0yy;
+      }
+      else
+      {
+	realSerialArray u0z(I1,I2,I3),v0z(I1,I2,I3),w0x(I1,I2,I3),w0y(I1,I2,I3),w0z(I1,I2,I3),p0zz(I1,I2,I3);
+	e.gd( u0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,uc,t);
+	e.gd( v0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,vc,t);
+
+	e.gd( w0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,wc,t);
+	e.gd( w0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,wc,t);
+	e.gd( w0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,wc,t);
+
+	e.gd( p0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,pc,t);
+
+	tzForcing[12] =advectionCoefficient*( u0x*u0x+v0y*v0y+w0z*w0z+2.*(u0y*v0x+u0z*w0x+v0z*w0y) );
+	tzForcing[13] =p0xx+p0yy+p0zz;
+
+      }
+    
+    }
+
+
+    if( turbulenceModel==Parameters::SpalartAllmaras )
+    {
+#ifndef USE_PPP
+      getSpalartAllmarasParameters(cb1, cb2, cv1, sigma, sigmai, kappa, cw1, cw2, cw3, cw3e6, cv1e3, cd0, cr0);
+
+      assert( parameters.dbase.get<realCompositeGridFunction* >("pDistanceToBoundary")!=NULL );
+      const realArray & d = (*parameters.dbase.get<realCompositeGridFunction* >("pDistanceToBoundary"))[grid];
+	
+      const realArray & u0  = e   (c,I1,I2,I3,uc,t);
+      const realArray & u0x = e.x (c,I1,I2,I3,uc,t);
+      const realArray & u0y = e.y (c,I1,I2,I3,uc,t);
+      const realArray & u0Lap= e.laplacian(c,I1,I2,I3,uc,t);
+
+      const realArray & v0  = e   (c,I1,I2,I3,vc,t);
+      const realArray & v0x = e.x (c,I1,I2,I3,vc,t);
+      const realArray & v0y = e.y (c,I1,I2,I3,vc,t);
+      const realArray & v0Lap= e.laplacian(c,I1,I2,I3,vc,t);
+
+      const realArray & n0   = e  (c,I1,I2,I3,nc,t);
+      const realArray & n0x  = e.x(c,I1,I2,I3,nc,t);
+      const realArray & n0y  = e.y(c,I1,I2,I3,nc,t);
+      const realArray & n0xx = e.xx(c,I1,I2,I3,nc,t);
+      const realArray & n0xy = e.xy(c,I1,I2,I3,nc,t);
+      const realArray & n0yy = e.yy(c,I1,I2,I3,nc,t);
+        
+
+      realArray nuT,chi,chi3,nuTx,nuTy,nuTxx,nuTxy,nuTd,nuTyy,nuTdd;
+      chi=n0/nu;
+      chi3 = pow(chi,3.);
+
+      nuT = nu+n0*(chi3/(chi3+cv1e3)); // *** this is a funny scaling *** 
+      nuTd=chi3*(chi3+4.*cv1e3)/pow(chi3+cv1e3,2.);
+      nuTx= n0x*nuTd;// ******************
+      nuTy= n0y*nuTd;// ******************
+
+      nuTdd= (6./nu)*chi*chi*cv1e3*(-chi3+2.*cv1e3)/pow(chi3+cv1e3,3.); // this is really nuTdd/nu : from spal.maple
+
+      nuTxx=n0xx*nuTd+n0x*n0x*nuTdd;
+      nuTxy=n0xy*nuTd+n0x*n0y*nuTdd;
+      nuTyy=n0yy*nuTd+n0y*n0y*nuTdd;
+    
+      if( c.numberOfDimensions()==2 )
+      {
+	// [8]=quadratic part, [9]=linear
+	f(I1,I2,I3)-=2.*( nuTx*u0Lap+nuTxx*u0x+nuTxy*u0y+ nuTy*v0Lap+nuTxy*v0x+nuTyy*v0y);
+	// These do not scale in an easy way
+	// tzForcing[9]-= 2.*( nuTx*u0Lap+nuTxx*u0x+nuTxy*u0y+ nuTy*v0Lap+nuTxy*v0x+nuTyy*v0y);
+      }
+      else
+      {
+
+	const realArray & u0z = e.z (c,I1,I2,I3,uc,t);
+	const realArray & v0z = e.z (c,I1,I2,I3,vc,t);
+
+	const realArray & w0  = e   (c,I1,I2,I3,wc,t);
+	const realArray & w0x = e.x (c,I1,I2,I3,wc,t);
+	const realArray & w0y = e.y (c,I1,I2,I3,wc,t);
+	const realArray & w0z = e.z (c,I1,I2,I3,wc,t);
+	const realArray & w0Lap= e.laplacian(c,I1,I2,I3,wc,t);
+
+	const realArray & n0z  = e.z (c,I1,I2,I3,nc,t);
+	const realArray & n0xz = e.xz(c,I1,I2,I3,nc,t);
+	const realArray & n0yz = e.yz(c,I1,I2,I3,nc,t);
+	const realArray & n0zz = e.zz(c,I1,I2,I3,nc,t);
+
+	realArray nuTz,nuTxz,nuTyz,nuTzz;
+      
+	nuTz=n0z*nuTd;
+	nuTxz=n0xz*nuTd+n0x*n0z*nuTdd;
+	nuTyz=n0yz*nuTd+n0y*n0z*nuTdd;
+	nuTzz=n0zz*nuTd+n0z*n0z*nuTdd;
+      
+	f(I1,I2,I3)-=2.*( nuTx*u0Lap+nuTxx*u0x+nuTxy*u0y+nuTxz*u0z+
+			  nuTy*v0Lap+nuTxy*v0x+nuTyy*v0y+nuTyz*v0z+
+			  nuTz*w0Lap+nuTxz*w0x+nuTyz*w0y+nuTzz*w0z );
+      }
+    
+#endif
+    }
+    else if( turbulenceModel!=Parameters::noTurbulenceModel )
+    {
+      Overture::abort("insp: turbulence model not implemented");
+    }
+
+  
+    // ******************************************************
+    // ***** add in the contributions times a scale factor **
+    // ******************************************************
+    if( ok )
+    {
+      if( c.numberOfDimensions()==2 )
+      {
+	// f(I1,I2,I3)+=advectionCoefficient*( u0x*u0x+2.*u0y*v0x+v0y*v0y ) + p0xx + p0yy;
+	fLocal(I1,I2,I3)+=tzForcing[8]*SQR(scaleFactor)+tzForcing[9]*scaleFactor;
+
+	if( parameters.isAxisymmetric() )
+	  radiusInverse=1./max(REAL_MIN,xLocal(I1,I2,I3,axis2)); // this is used in fixup below 
+      }
+      else
+      {
+
+	// f(I1,I2,I3)+=advectionCoefficient*( u0x*u0x+v0y*v0y+w0z*w0z+2.*(u0y*v0x+u0z*w0x+v0z*w0y) )+p0xx+p0yy+p0zz;
+	fLocal(I1,I2,I3)+=tzForcing[12]*SQR(scaleFactor)+tzForcing[13]*scaleFactor;
+    
+      }
+    
+      //  ---- Fixup axisymmetric ---
+      if( c.numberOfDimensions()==2 && parameters.isAxisymmetric() )
+      {
+	// Make this fix first so it doesn't interfere with any adjacent dirichlet conditions
+	ForBoundary(side,axis)
+	{
+	  if( c.boundaryCondition(side,axis)==Parameters::axisymmetric )
+	  {
+	    getGhostIndex( c.extendedIndexRange(),side,axis,I1,I2,I3,0);     // boundary line
+	    bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3);
+	    if( ok )
+	    {
+	      realSerialArray p0yy(I1,I2,I3);
+	      e.gd( p0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,pc,t);
+	    
+	      fLocal(I1,I2,I3)+=p0yy;   // p.y/y = p.yy on y==0
+	      radiusInverse(I1,I2,I3)=0.;      // this will zero out p.y/y term on axis boundary in statement below
+	    }
+	    
+	  }
+	}
+
+	// add p.y/y term (except on the axis where radiusInverse has been set to zero)
+	getIndex(extendedGridIndexRange(c),I1,I2,I3);
+	bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3);
+	if( ok )
+	{
+	  realSerialArray p0y(I1,I2,I3); 
+	  e.gd( p0y,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+	  fLocal(I1,I2,I3)+=p0y*radiusInverse(I1,I2,I3);
+	}
+	
+      }
+    }
+    
+  }
+
+
+
+  //     ------------------------------------
+  //     ----apply the boundary conditions---
+  //     ------------------------------------
+
+  if( debug() & 8 )
+  {
+    display(f,"addForcingToPressureEquation: pressure RHS before BC",debugFile,"%9.2e");
+    #ifndef USE_PPP
+      display(f(I1,I2,I3)-e.laplacian(c,I1,I2,I3,pc,t),"pressure RHS - p.laplacian",debugFile,"%9.2e");
+    #endif
+  }
+    
+
+  #ifndef USE_PPP
+    c.update(MappedGrid::THEvertexBoundaryNormal); // *wdh* 040824
+  #endif
+  
+  // -- for moving grids  uuLocal = u - gridVelocity
+  realSerialArray uuLocal;
+  if( gridIsMoving )
+  {
+    getIndex(c.dimension(),I1,I2,I3);
+    bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3);
+    uuLocal.redim(I1,I2,I3,Range(uc,uc+numberOfDimensions-1));
+  }
+  
+  #ifdef USE_PPP
+    realSerialArray gridVelocityLocal;
+    if( gridIsMoving )
+      getLocalArrayWithGhostBoundaries(gridVelocity,gridVelocityLocal);
+    // -- in parallel we need the "local" boundary conditions for this processor -- *wdh* 111128
+    IntegerArray boundaryCondition(2,3);
+    ParallelGridUtility::getLocalBoundaryConditions( f,boundaryCondition );
+  #else
+    realSerialArray & gridVelocityLocal = gridVelocity;
+    const IntegerArray & boundaryCondition = c.boundaryCondition();
+  #endif    
+
+
+//     if( true )
+//     {
+//       printf("myid=%i: local boundaryCondition =[%i,%i][%i,%i], global bc=[%i,%i][%i,%i]\n",myid,
+// 	     boundaryCondition(0,0),boundaryCondition(1,0),boundaryCondition(0,1),boundaryCondition(1,1),
+// 	     c.boundaryCondition(0,0),c.boundaryCondition(1,0),c.boundaryCondition(0,1),c.boundaryCondition(1,1));
+//       fflush(0);
+//     }
+    
+
+  ForBoundary(side,axis)
+  {
+    if( boundaryCondition(side,axis) > 0 )
+    {
+      getGhostIndex( c.extendedIndexRange(),side,axis,I1g,I2g,I3g,1);  // first ghost line
+      getGhostIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3 ,0);     // boundary line
+
+      // getGhostIndex( extendedGridIndexRange(c),side,axis,I1g,I2g,I3g,1);  // first ghost line
+      // getGhostIndex( extendedGridIndexRange(c),side,axis,I1 ,I2 ,I3 ,0);     // boundary line
+
+
+      bool ok = ParallelUtility::getLocalArrayBounds(f,fLocal,I1,I2,I3);
+      if( !ok ) continue;
+      ParallelUtility::getLocalArrayBounds(f,fLocal,I1g,I2g,I3g); // is this right?
+
+      #ifdef USE_PPP
+       realSerialArray & normal = *(c.rcData->pVertexBoundaryNormal[axis][side]); 
+      #else
+       realArray & normal = c.vertexBoundaryNormal(side,axis);
+      #endif
+
+      switch( boundaryCondition(side,axis) )
+      {
+      case InsParameters::outflow:
+      case InsParameters::convectiveOutflow:
+      case InsParameters::tractionFree:
+      {
+	realSerialArray p0(I1,I2,I3),p0x(I1,I2,I3),p0y(I1,I2,I3);
+	e.gd( p0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t);
+	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+        bool applyNeumannBC = bcData(pc+parameters.dbase.get<int >("numberOfComponents")*2,side,axis,grid)!=0.;
+
+        const real a0=bcData(pc+parameters.dbase.get<int >("numberOfComponents")*1,side,axis,grid);
+	const real a1=bcData(pc+parameters.dbase.get<int >("numberOfComponents")*2,side,axis,grid);
+
+	if( c.numberOfDimensions()==2 )
+	{
+	  if( applyNeumannBC )
+	  {
+	    fLocal(I1g,I2g,I3g)=a0*p0(I1,I2,I3)+a1*P02N(c,I1,I2,I3,t);
+	  }
+	  else
+	  {
+	    fLocal(I1,I2,I3)=a0*p0(I1,I2,I3);
+            fLocal(I1g,I2g,I3g)=0.;  // for extrapolation
+	  }
+	}
+        else
+	{
+          if( applyNeumannBC )
+	  {
+	    realSerialArray p0z(I1,I2,I3);
+	    e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+	    fLocal(I1g,I2g,I3g)=a0*p0(I1,I2,I3)+a1*P03N(c,I1,I2,I3,t);
+	  }
+	  else
+	  {
+	    fLocal(I1,I2,I3)=a0*p0(I1,I2,I3);
+            fLocal(I1g,I2g,I3g)=0.;  // for extrapolation
+	  }
+	}
+
+        break;
+      }
+      case InsParameters::inflowWithPressureAndTangentialVelocityGiven:
+      case Parameters::dirichletBoundaryCondition:
+      case Parameters::freeSurfaceBoundaryCondition:
+      {
+	// const realArray & p0  = e   (c,I1,I2,I3,pc,t);
+        
+	// f(I1,I2,I3)=e(c,I1,I2,I3,pc,t);
+        e.gd( fLocal,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t);
+        break;
+      }
+      case Parameters::axisymmetric:
+      {
+	realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+        fLocal(I1g,I2g,I3g)=P02N(c,I1,I2,I3,t);    // for p.n BC
+        break;
+      }
+      case Parameters::symmetry:
+      {
+	realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+	e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+        if( c.numberOfDimensions()==2 )
+  	  fLocal(I1g,I2g,I3g)=P02N(c,I1,I2,I3,t);  // give normal component pressure
+        else if( c.numberOfDimensions()==3 )
+	{
+	  realSerialArray p0z(I1,I2,I3);
+	  e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+  	  fLocal(I1g,I2g,I3g)=P03N(c,I1,I2,I3,t);  // give normal component pressure
+	}
+        break;
+      }
+      default:
+      {
+
+	if( parameters.dbase.get<int >("pressureBoundaryCondition")==2 )
+	{ // give  give p.n=P.n
+          // printf("give p.n=P.n \n");
+	  
+	  realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+	  e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	  e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+	  if( c.numberOfDimensions()==2 )
+	  {
+	    fLocal(I1g,I2g,I3g)=(normal(I1,I2,I3,0)*p0x(I1,I2,I3)+
+				 normal(I1,I2,I3,1)*p0y(I1,I2,I3));
+	  }
+	  else
+	  {
+	    realSerialArray p0z(I1,I2,I3);
+	    e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+	    fLocal(I1g,I2g,I3g)=(normal(I1,I2,I3,0)*p0x(I1,I2,I3)+
+				 normal(I1,I2,I3,1)*p0y(I1,I2,I3)+
+				 normal(I1,I2,I3,2)*p0z(I1,I2,I3));
+	  }
+	}
+	else
+	{
+          // ******************************************
+          // *************p.n = n.( NS )***************
+          // ******************************************
+        
+
+	  if( c.numberOfDimensions()==2 )
+	  {
+	    if( parameters.gridIsMoving(grid) )
+	    {
+              // ******************************************
+              // *******Moving Grid************************
+              // ******************************************
+
+              assert( turbulenceModel==Parameters::noTurbulenceModel );
+	      
+	      realSerialArray u0(I1,I2,I3),u0t(I1,I2,I3),u0x(I1,I2,I3),u0y(I1,I2,I3);
+	      realSerialArray v0(I1,I2,I3),v0t(I1,I2,I3),v0x(I1,I2,I3),v0y(I1,I2,I3);
+	      realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+	
+	      realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3);
+	      realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3);
+
+	      e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+	      e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+
+	      e.gd( v0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+	      e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+
+	      e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	      e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+
+	      uuLocal(I1,I2,I3,uc)=advectionCoefficient*u0(I1,I2,I3) -gridVelocityLocal(I1,I2,I3,0);
+	      uuLocal(I1,I2,I3,vc)=advectionCoefficient*v0(I1,I2,I3) -gridVelocityLocal(I1,I2,I3,1);
+
+
+              if( turbulenceModel==Parameters::noTurbulenceModel )
+	      {
+	        fLocal(I1g,I2g,I3g)+=FB2N(c,I1,I2,I3,t);  // give normal component of momentum equations
+              }
+	      if( turbulenceModel!=Parameters::noTurbulenceModel ||
+                  pdeModel!=InsParameters::standardModel )
+	      {
+                Overture::abort("error: pressure-TZ-rhs: moving grid case not implemented");
+	      }
+  
+	    }
+	    else
+	    {
+//  	      uu(I1,I2,I3,uc)=advectionCoefficient*u0(I1,I2,I3);
+//  	      uu(I1,I2,I3,vc)=advectionCoefficient*v0(I1,I2,I3);
+
+	      if( evaluateTZ )
+	      {
+                // Save forcing at the start time
+		realSerialArray u0(I1,I2,I3),u0t(I1,I2,I3),u0x(I1,I2,I3),u0y(I1,I2,I3);
+		realSerialArray v0(I1,I2,I3),v0t(I1,I2,I3),v0x(I1,I2,I3),v0y(I1,I2,I3);
+		realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+	
+		realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3);
+		realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3),v0xy(I1,I2,I3);
+
+		e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,uc,t);
+		e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t);
+		e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+		e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+		e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+		e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+
+		e.gd( v0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,vc,t);
+		e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t);
+		e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+		e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+		e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+		e.gd( v0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,vc,t);
+		e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+
+		e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+		e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+
+                // Save boundary forcing in the ghost points of the forcing arrays:
+                // t-part goes in [0], quadratic part in [1]
+
+		tzForcing[0](I1g,I2g,I3g) = normal(I1,I2,I3,0)*u0t(I1,I2,I3)+
+		                            normal(I1,I2,I3,1)*v0t(I1,I2,I3);
+		tzForcing[1](I1g,I2g,I3g) = advectionCoefficient*(
+                                            normal(I1,I2,I3,0)*(u0*u0x+v0*u0y)+
+		                            normal(I1,I2,I3,1)*(u0*v0x+v0*v0y));
+
+		if( turbulenceModel==Parameters::noTurbulenceModel &&
+                    (pdeModel==InsParameters::standardModel ||
+                     pdeModel==InsParameters::BoussinesqModel) )
+		{
+		  tzForcing[2](I1g,I2g,I3g) = normal(I1,I2,I3,0)*(p0x-nu*(u0xx+u0yy))+
+		                              normal(I1,I2,I3,1)*(p0y-nu*(v0xx+v0yy));
+
+		  if( parameters.isAxisymmetric() )  // *wdh* 040228
+		  {
+		    if( true )
+		    {
+		      // "curl-curl" form of the axisymmetric correction (see CginsDoc)
+		      where( radiusInverse(I1,I2,I3)!=0. )
+		      {
+			tzForcing[2](I1g,I2g,I3g)+=
+			  -nu*normal(I1,I2,I3,0)*( (u0y-v0x)*radiusInverse(I1,I2,I3) );
+		      }
+		      otherwise()
+		      {
+			tzForcing[2](I1g,I2g,I3g)+= -nu*normal(I1,I2,I3,0)*( u0yy(I1,I2,I3)-v0xy(I1,I2,I3) );
+		      }
+		    }
+		    else
+		    {
+		      where( radiusInverse(I1,I2,I3)!=0. )
+		      {
+			tzForcing[2](I1g,I2g,I3g)+=
+			  normal(I1,I2,I3,0)*(-nu*u0y*radiusInverse(I1,I2,I3))+
+			  normal(I1,I2,I3,1)*(-nu*radiusInverse(I1,I2,I3)*(
+						v0y(I1,I2,I3)-v0(I1,I2,I3)*radiusInverse(I1,I2,I3)));
+		      }
+		      otherwise()
+		      {
+			// v.y/y -> v.yy   and -v/y^2 -> -(1/2)*v.yy
+			// v.y/y - v/y^2 -> .5*vyy(0)
+			tzForcing[2](I1g,I2g,I3g)+= (normal(I1,I2,I3,0)*( (-nu)*   u0yy(I1,I2,I3) )+
+						     normal(I1,I2,I3,1)*( (-.5*nu)*v0yy(I1,I2,I3) ) );
+		      }
+		    }
+		  }
+		  
+		}
+                else
+		  tzForcing[2](I1g,I2g,I3g)=0.;
+	      }
+              if( useGenericViscosity )
+	      {
+                // visco-plastic, LargeEddySimulation, Baldwin-Lomax, K-epsilon 
+
+                assert( pnuT!=NULL );
+                #ifdef USE_PPP
+                  realSerialArray nuT; getLocalArrayWithGhostBoundaries(*pnuT,nuT);
+                #else
+                  realSerialArray & nuT = *pnuT;
+                #endif
+
+		realSerialArray nuTx(I1,I2,I3),nuTy(I1,I2,I3);
+		// realSerialArray eDotNorm(I1,I2,I3), exp0(I1,I2,I3); 
+
+		realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+
+		realSerialArray u0x(I1,I2,I3),u0y(I1,I2,I3);
+		realSerialArray v0x(I1,I2,I3),v0y(I1,I2,I3);
+		realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3);
+		realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3);
+		realSerialArray u0xy(I1,I2,I3),v0xy(I1,I2,I3); 
+
+		e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+		e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+		e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+		e.gd( u0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,uc,t);
+		e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+
+		e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+		e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+		e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+		e.gd( v0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,vc,t);
+		e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+
+		e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+		e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+		// printf(" %%%%%% insp:bc:addForcing to VP pressure BC %%%%%\n");
+
+		assert( gf[0].u[grid].getOperators()!=NULL );
+		MappedGridOperators & op = *(gf[0].u[grid].getOperators()); // --------- fix this 
+		op.derivative(MappedGridOperators::xDerivative ,nuT,nuTx,I1,I2,I3,0);
+		op.derivative(MappedGridOperators::yDerivative ,nuT,nuTy,I1,I2,I3,0);
+
+
+                if( false )
+		{
+		  fLocal(I1g,I2g,I3g)+=
+		    normal(I1,I2,I3,0)*(p0x-
+					(nuT(I1,I2,I3)*(u0xx+u0yy)-2.*nuTx*v0y+nuTy*(u0y+v0x)) ) +
+		    normal(I1,I2,I3,1)*(p0y-
+					(nuT(I1,I2,I3)*(v0xx+v0yy)-2.*nuTy*u0x+nuTx*(v0x+u0y)) );
+		}
+		else if( true )
+		{ // curl-curl form 
+		  fLocal(I1g,I2g,I3g)+=
+		    normal(I1,I2,I3,0)*(p0x-
+					(nuT(I1,I2,I3)*(-v0xy+u0yy)-2.*nuTx*v0y+nuTy*(u0y+v0x)) ) +
+		    normal(I1,I2,I3,1)*(p0y-
+					(nuT(I1,I2,I3)*(v0xx-u0xy)-2.*nuTy*u0x+nuTx*(v0x+u0y)) );
+		}
+		else 
+		{
+		  fLocal(I1g,I2g,I3g)+=
+		    normal(I1,I2,I3,0)*(p0x-
+					(nuT(I1,I2,I3)*(u0xx+u0yy)+2.*nuTx*u0x+nuTy*(u0y+v0x)) ) +
+		    normal(I1,I2,I3,1)*(p0y-
+					(nuT(I1,I2,I3)*(v0xx+v0yy)+2.*nuTy*v0y+nuTx*(v0x+u0y)) );
+		}
+		 
+
+		
+
+	      }
+	      else if( turbulenceModel==Parameters::noTurbulenceModel )
+	      { // do nothing in this case
+	      }
+#ifndef USE_PPP
+	      else if( turbulenceModel==Parameters::SpalartAllmaras )
+	      {
+		const realArray & p0x = e.x (c,I1,I2,I3,pc,t);
+		const realArray & p0y = e.y (c,I1,I2,I3,pc,t);
+	
+		const realArray & u0x = e.x (c,I1,I2,I3,uc,t);
+		const realArray & u0y = e.y (c,I1,I2,I3,uc,t);
+		const realArray & v0x = e.x (c,I1,I2,I3,vc,t);
+		const realArray & v0y = e.y (c,I1,I2,I3,vc,t);
+
+		const realArray & n0   = e  (c,I1,I2,I3,nc,t);
+		const realArray & n0x  = e.x(c,I1,I2,I3,nc,t);
+		const realArray & n0y  = e.y(c,I1,I2,I3,nc,t);
+
+		realArray nuT,chi,chi3,nuTx,nuTy,nuTd;
+		chi=n0/nu;
+		chi3 = pow(chi,3.);
+
+		nuT = nu+n0*(chi3/(chi3+cv1e3)); 
+		nuTd=chi3*(chi3+4.*cv1e3)/pow(chi3+cv1e3,2.);
+		nuTx= n0x*nuTd;
+		nuTy= n0y*nuTd;
+
+		// linear part goes in [2], quadratic part in [1]
+//  		tzForcing[2](I1g,I2g,I3g)=normal(I1,I2,I3,0)*(p0x)+normal(I1,I2,I3,1)*(p0y);
+//  		tzForcing[1](I1g,I2g,I3g)-=normal(I1,I2,I3,0)*(
+//  		  (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*v0y+nuTy*(u0y+v0x)) ) +
+//  		  normal(I1,I2,I3,1)*(
+//  		    (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*u0x+nuTx*(v0x+u0y)) );
+
+		f(I1g,I2g,I3g)+=
+		  normal(I1,I2,I3,0)*(p0x-
+				      (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*v0y+nuTy*(u0y+v0x)) ) +
+		  normal(I1,I2,I3,1)*(p0y-
+				      (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*u0x+nuTx*(v0x+u0y)) );
+
+	      }
+// 	      else if( turbulenceModel==Parameters::kEpsilon )
+// 	      {
+
+// 		const realArray & p0x = e.x (c,I1,I2,I3,pc,t);
+// 		const realArray & p0y = e.y (c,I1,I2,I3,pc,t);
+	
+// 		const realArray & u0x = e.x (c,I1,I2,I3,uc,t);
+// 		const realArray & u0y = e.y (c,I1,I2,I3,uc,t);
+// 		const realArray & v0x = e.x (c,I1,I2,I3,vc,t);
+// 		const realArray & v0y = e.y (c,I1,I2,I3,vc,t);
+
+// 		const realArray & k0   = e  (c,I1,I2,I3,kc,t);
+// 		const realArray & k0x  = e.x(c,I1,I2,I3,kc,t);
+// 		const realArray & k0y  = e.y(c,I1,I2,I3,kc,t);
+
+// 		const realArray & e0   = e  (c,I1,I2,I3,ec,t);
+// 		const realArray & e0x  = e.x(c,I1,I2,I3,ec,t);
+// 		const realArray & e0y  = e.y(c,I1,I2,I3,ec,t);
+
+// 		realArray nuT,nuTx,nuTy;
+		  
+// 		nuT = nu+ cMu*k0*k0/e0;
+// 		nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/(e0*e0);
+// 		nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/(e0*e0);
+
+// 		// linear part goes in [2], quadratic part in [1]
+// //  		tzForcing[2](I1g,I2g,I3g)=normal(I1,I2,I3,0)*(p0x)+normal(I1,I2,I3,1)*(p0y);
+// //  		tzForcing[1](I1g,I2g,I3g)-=normal(I1,I2,I3,0)*(
+// //  		  (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*v0y+nuTy*(u0y+v0x)) ) +
+// //  		  normal(I1,I2,I3,1)*(
+// //  		    (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*u0x+nuTx*(v0x+u0y)) );
+
+// 		f(I1g,I2g,I3g)+=
+// 		  normal(I1,I2,I3,0)*(p0x-
+// 				      (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*v0y+nuTy*(u0y+v0x)) ) +
+// 		  normal(I1,I2,I3,1)*(p0y-
+// 				      (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*u0x+nuTx*(v0x+u0y)) );
+
+
+// 	      }
+#endif
+	      else
+	      {
+		Overture::abort("insp:error: case not implemented"); 
+	      }
+		
+
+	      // f(I1g,I2g,I3g)+=FB2N(c,I1,I2,I3,t);  // give normal component of momentum equations
+
+              // ************************************************************************
+              // ********** Now add on the common terms *********************************
+              // ************************************************************************
+
+
+	      fLocal(I1g,I2g,I3g)+=scaleFactorT*tzForcing[0](I1g,I2g,I3g)+
+		  (SQR(scaleFactor))*tzForcing[1](I1g,I2g,I3g)+ scaleFactor*tzForcing[2](I1g,I2g,I3g);
+
+              if( false ) // *** for testing the pressure BC ********************
+	      {
+		realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3);
+		
+		e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+		e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+
+		real diff = max(fabs(fLocal(I1g,I2g,I3g)-( normal(I1,I2,I3,0)*(p0x)+normal(I1,I2,I3,1)*(p0y) )));
+		printf("addForcingToPressureEquation: Error in p.n BC = %8.2e\n",diff);
+		::display(fLocal(I1g,I2g,I3g),"f on boundary","%5.2f ");
+		::display(( normal(I1,I2,I3,0)*(p0x)+normal(I1,I2,I3,1)*(p0y) ),"pn on boundary","%5.2f ");
+		  
+		printf("addForcingToPressureEquation: set p bc to p.n (exact)\n");
+		fLocal(I1g,I2g,I3g)=normal(I1,I2,I3,0)*(p0x)+normal(I1,I2,I3,1)*(p0y);
+
+	      }
+	      
+
+
+	    }
+	    if( pdeModel==InsParameters::BoussinesqModel || 
+                pdeModel==InsParameters::viscoPlasticModel)
+	    { // add terms for Boussinesq approximation
+              
+              realSerialArray te0(I1,I2,I3);
+              e.gd( te0 ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,tc,t);
+
+              // printf("TZ: add Boussinesq term to p rhs...gravity=[%e,%e]\n",gravity[0],gravity[1]);
+
+              fLocal(I1g,I2g,I3g)+=thermalExpansivity*te0*(
+		gravity[0]*normal(I1,I2,I3,0)+gravity[1]*normal(I1,I2,I3,1));
+
+              // f(I1g,I2g,I3g)+=thermalExpansivity*e(c,I1,I2,I3,tc,t)*(
+	      //  gravity[0]*normal(I1,I2,I3,0)+gravity[1]*normal(I1,I2,I3,1));
+	    }
+	  }
+	  else  // ***** 3D *****
+	  {
+	    if( parameters.gridIsMoving(grid) )
+	    {
+              // ******************************************
+              // *******Moving Grid************************
+              // ******************************************
+	      realSerialArray u0(I1,I2,I3),u0t(I1,I2,I3),u0x(I1,I2,I3),u0y(I1,I2,I3),u0z(I1,I2,I3);
+	      realSerialArray v0(I1,I2,I3),v0t(I1,I2,I3),v0x(I1,I2,I3),v0y(I1,I2,I3),v0z(I1,I2,I3);
+	      realSerialArray w0(I1,I2,I3),w0t(I1,I2,I3),w0x(I1,I2,I3),w0y(I1,I2,I3),w0z(I1,I2,I3);
+	      realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3),p0z(I1,I2,I3);
+	
+	      realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3),u0zz(I1,I2,I3);
+	      realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3),v0zz(I1,I2,I3);
+	      realSerialArray w0xx(I1,I2,I3),w0yy(I1,I2,I3),w0zz(I1,I2,I3);
+
+	      e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+	      e.gd( u0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,uc,t);
+	      e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+	      e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+	      e.gd( u0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,uc,t);
+
+	      e.gd( v0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+	      e.gd( v0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,vc,t);
+	      e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+	      e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+	      e.gd( v0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,vc,t);
+
+	      e.gd( w0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,wc,t);
+	      e.gd( w0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,wc,t);
+	      e.gd( w0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,wc,t);
+	      e.gd( w0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,wc,t);
+	      e.gd( w0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,wc,t);
+	      e.gd( w0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,wc,t);
+	      e.gd( w0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,wc,t);
+	      e.gd( w0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,wc,t);
+
+
+	      e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+	      e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+	      e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+
+	      uuLocal(I1,I2,I3,uc)=advectionCoefficient*u0(I1,I2,I3)-gridVelocityLocal(I1,I2,I3,0);
+	      uuLocal(I1,I2,I3,vc)=advectionCoefficient*v0(I1,I2,I3)-gridVelocityLocal(I1,I2,I3,1);
+	      uuLocal(I1,I2,I3,wc)=advectionCoefficient*w0(I1,I2,I3)-gridVelocityLocal(I1,I2,I3,2);
+
+
+	      if( turbulenceModel==Parameters::noTurbulenceModel )
+	      {
+		fLocal(I1g,I2g,I3g)+=FB3N(c,I1,I2,I3,t);  // give normal component of momentum equations
+              }
+	      if( turbulenceModel!=Parameters::noTurbulenceModel ||
+                  pdeModel!=InsParameters::standardModel )
+	      {
+                Overture::abort("error: pressure-TZ-rhs: moving grid case not implemented");
+	      }
+
+	    }
+            else
+            {
+
+	      if( evaluateTZ )
+	      {
+                // Save forcing at the start time
+
+		realSerialArray u0(I1,I2,I3),u0t(I1,I2,I3),u0x(I1,I2,I3),u0y(I1,I2,I3),u0z(I1,I2,I3);
+		realSerialArray v0(I1,I2,I3),v0t(I1,I2,I3),v0x(I1,I2,I3),v0y(I1,I2,I3),v0z(I1,I2,I3);
+		realSerialArray w0(I1,I2,I3),w0t(I1,I2,I3),w0x(I1,I2,I3),w0y(I1,I2,I3),w0z(I1,I2,I3);
+		realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3),p0z(I1,I2,I3);
+	
+		realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3),u0zz(I1,I2,I3);
+		realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3),v0zz(I1,I2,I3);
+		realSerialArray w0xx(I1,I2,I3),w0yy(I1,I2,I3),w0zz(I1,I2,I3);
+
+		e.gd( u0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,uc,t);
+		e.gd( u0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,uc,t);
+		e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+		e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+		e.gd( u0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,uc,t);
+		e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+		e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+		e.gd( u0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,uc,t);
+
+		e.gd( v0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,vc,t);
+		e.gd( v0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,vc,t);
+		e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+		e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+		e.gd( v0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,vc,t);
+		e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+		e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+		e.gd( v0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,vc,t);
+
+		e.gd( w0  ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,wc,t);
+		e.gd( w0t ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,wc,t);
+		e.gd( w0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,wc,t);
+		e.gd( w0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,wc,t);
+		e.gd( w0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,wc,t);
+		e.gd( w0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,wc,t);
+		e.gd( w0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,wc,t);
+		e.gd( w0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,wc,t);
+
+
+		e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+		e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+		e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+				  
+                // Save boundary forcing in the ghost points of the forcing arrays:
+		tzForcing[0](I1g,I2g,I3g) = normal(I1,I2,I3,0)*u0t+
+		                            normal(I1,I2,I3,1)*v0t+
+		                            normal(I1,I2,I3,2)*w0t; 
+		tzForcing[1](I1g,I2g,I3g) = advectionCoefficient*(
+                                            normal(I1,I2,I3,0)*(u0*u0x+v0*u0y+w0*u0z)+
+		                            normal(I1,I2,I3,1)*(u0*v0x+v0*v0y+w0*v0z)+
+		                            normal(I1,I2,I3,2)*(u0*w0x+v0*w0y+w0*w0z));
+
+
+
+		if( turbulenceModel==Parameters::noTurbulenceModel &&
+                    (pdeModel==InsParameters::standardModel ||
+                     pdeModel==InsParameters::BoussinesqModel) )
+		{
+		  tzForcing[2](I1g,I2g,I3g) = (normal(I1,I2,I3,0)*(p0x-nu*(u0xx+u0yy+u0zz))+
+					       normal(I1,I2,I3,1)*(p0y-nu*(v0xx+v0yy+v0zz))+
+					       normal(I1,I2,I3,2)*(p0z-nu*(w0xx+w0yy+w0zz)) );
+		}
+                else
+		{
+                  tzForcing[2](I1g,I2g,I3g) =0.;
+		}
+	      }
+
+              if( useGenericViscosity )
+	      {
+                // viscoPlasticModel, LargeEddySimulation, BaldwinLomax, kEpsilon 
+
+                assert( pnuT!=NULL );
+                #ifdef USE_PPP
+                  realSerialArray nuT; getLocalArrayWithGhostBoundaries(*pnuT,nuT);
+                #else
+                  realSerialArray & nuT = *pnuT;
+                #endif
+
+		  // ********* finish me : see addForcing ********
+		realSerialArray nuTx(I1,I2,I3),nuTy(I1,I2,I3),nuTz(I1,I2,I3);
+
+		realSerialArray u0x(I1,I2,I3),u0y(I1,I2,I3),u0z(I1,I2,I3);
+		realSerialArray v0x(I1,I2,I3),v0y(I1,I2,I3),v0z(I1,I2,I3);
+		realSerialArray w0x(I1,I2,I3),w0y(I1,I2,I3),w0z(I1,I2,I3);
+		realSerialArray p0x(I1,I2,I3),p0y(I1,I2,I3),p0z(I1,I2,I3);
+	
+		realSerialArray u0xx(I1,I2,I3),u0yy(I1,I2,I3),u0zz(I1,I2,I3);
+		realSerialArray v0xx(I1,I2,I3),v0yy(I1,I2,I3),v0zz(I1,I2,I3);
+		realSerialArray w0xx(I1,I2,I3),w0yy(I1,I2,I3),w0zz(I1,I2,I3);
+
+		e.gd( u0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,uc,t);
+		e.gd( u0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,uc,t);
+		e.gd( u0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,uc,t);
+		e.gd( u0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,uc,t);
+		e.gd( u0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,uc,t);
+		e.gd( u0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,uc,t);
+
+		e.gd( v0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,vc,t);
+		e.gd( v0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,vc,t);
+		e.gd( v0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,vc,t);
+		e.gd( v0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,vc,t);
+		e.gd( v0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,vc,t);
+		e.gd( v0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,vc,t);
+
+		e.gd( w0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,wc,t);
+		e.gd( w0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,wc,t);
+		e.gd( w0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,wc,t);
+		e.gd( w0xx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,wc,t);
+		e.gd( w0yy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,wc,t);
+		e.gd( w0zz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,wc,t);
+
+
+		e.gd( p0x ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,pc,t);
+		e.gd( p0y ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,pc,t);
+		e.gd( p0z ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,pc,t);
+
+
+		realSerialArray u0xy(I1,I2,I3),u0xz(I1,I2,I3),v0xy(I1,I2,I3),v0yz(I1,I2,I3),w0xz(I1,I2,I3),w0yz(I1,I2,I3); 
+
+		e.gd( u0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,uc,t);
+		e.gd( u0xz,xLocal,numberOfDimensions,isRectangular,0,1,0,1,I1,I2,I3,uc,t);
+
+		e.gd( v0xy,xLocal,numberOfDimensions,isRectangular,0,1,1,0,I1,I2,I3,vc,t);
+		e.gd( v0yz,xLocal,numberOfDimensions,isRectangular,0,0,1,1,I1,I2,I3,vc,t);
+
+		e.gd( w0xz,xLocal,numberOfDimensions,isRectangular,0,1,0,1,I1,I2,I3,wc,t);
+		e.gd( w0yz,xLocal,numberOfDimensions,isRectangular,0,0,1,1,I1,I2,I3,wc,t);
+
+
+		// printf(" %%%%%% insp:bc:addForcing to VP pressure BC %%%%%\n");
+
+		assert( gf[0].u[grid].getOperators()!=NULL );
+		MappedGridOperators & op = *(gf[0].u[grid].getOperators()); // --------- fix this 
+		op.derivative(MappedGridOperators::xDerivative ,nuT,nuTx,I1,I2,I3,0);
+		op.derivative(MappedGridOperators::yDerivative ,nuT,nuTy,I1,I2,I3,0);
+		op.derivative(MappedGridOperators::zDerivative ,nuT,nuTz,I1,I2,I3,0);
+
+                if( false )
+		{ // normal form of BC 
+  		 fLocal(I1g,I2g,I3g) +=
+  		      normal(I1,I2,I3,0)*(p0x-
+  			     (nuT(I1,I2,I3)*(u0xx+u0yy+u0zz)+2.*nuTx*(u0x)+nuTy*(u0y+v0x)+nuTz*(u0z+w0x)) ) +
+  		      normal(I1,I2,I3,1)*(p0y-
+  			     (nuT(I1,I2,I3)*(v0xx+v0yy+v0zz)+2.*nuTy*(v0y)+nuTz*(v0z+w0y)+nuTx*(v0x+u0y)) ) +
+  		      normal(I1,I2,I3,2)*(p0z-
+  			     (nuT(I1,I2,I3)*(w0xx+w0yy+w0zz)+2.*nuTz*(w0z)+nuTx*(w0x+u0z)+nuTy*(w0y+v0z)) );
+		}
+		else 
+		{ // curl-curl form 
+  		 fLocal(I1g,I2g,I3g) +=
+  		      normal(I1,I2,I3,0)*(p0x-
+  			     (nuT(I1,I2,I3)*(u0yy+u0zz -v0xy-w0xz)-2.*nuTx*(v0y+w0z)+nuTy*(u0y+v0x)+nuTz*(u0z+w0x)) ) +
+  		      normal(I1,I2,I3,1)*(p0y-
+  			     (nuT(I1,I2,I3)*(v0xx+v0zz -u0xy-w0yz)-2.*nuTy*(w0z+u0x)+nuTz*(v0z+w0y)+nuTx*(v0x+u0y)) ) +
+  		      normal(I1,I2,I3,2)*(p0z-
+  			     (nuT(I1,I2,I3)*(w0xx+w0yy -u0xz-v0yz)-2.*nuTz*(u0x+v0y)+nuTx*(w0x+u0z)+nuTy*(w0y+v0z)) );
+		}
+	      } // end viscoPlastic
+              else if( turbulenceModel==Parameters::noTurbulenceModel )
+	      {
+	      }
+#ifndef USE_PPP
+	      else if( turbulenceModel==Parameters::SpalartAllmaras )
+	      {
+		const realArray & p0x = e.x (c,I1,I2,I3,pc,t);
+		const realArray & p0y = e.y (c,I1,I2,I3,pc,t);
+		const realArray & p0z = e.z (c,I1,I2,I3,pc,t);
+	
+		const realArray & u0x = e.x (c,I1,I2,I3,uc,t);
+		const realArray & u0y = e.y (c,I1,I2,I3,uc,t);
+		const realArray & v0x = e.x (c,I1,I2,I3,vc,t);
+		const realArray & v0y = e.y (c,I1,I2,I3,vc,t);
+		const realArray & u0z = e.z(c,I1,I2,I3,uc,t);
+		const realArray & v0z = e.z(c,I1,I2,I3,vc,t);
+		const realArray & w0x = e.x(c,I1,I2,I3,wc,t);
+		const realArray & w0y = e.y(c,I1,I2,I3,wc,t);
+		const realArray & w0z = e.z (c,I1,I2,I3,wc,t);
+
+		const realArray & n0   = e  (c,I1,I2,I3,nc,t);
+		const realArray & n0x  = e.x(c,I1,I2,I3,nc,t);
+		const realArray & n0y  = e.y(c,I1,I2,I3,nc,t);
+		const realArray & n0z  = e.z(c,I1,I2,I3,nc,t);
+
+		realArray nuT,chi,chi3,nuTx,nuTy,nuTz,nuTd;
+		chi=n0/nu;
+		chi3 = pow(chi,3.);
+
+		nuT = nu+n0*(chi3/(chi3+cv1e3)); 
+		nuTd=chi3*(chi3+4.*cv1e3)/pow(chi3+cv1e3,2.);
+		nuTx= n0x*nuTd;
+		nuTy= n0y*nuTd;
+		nuTz= n0z*nuTd;
+
+		// linear part goes in [2], quadratic part in [1]
+//  		tzForcing[2](I1g,I2g,I3g) = (normal(I1,I2,I3,0)*(p0x)+
+//  					     normal(I1,I2,I3,1)*(p0y)+
+//  					     normal(I1,I2,I3,2)*(p0z));
+//  		tzForcing[1](I1g,I2g,I3g) -=
+//  		  normal(I1,I2,I3,0)*(
+//  		    (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*(v0y+w0z)+nuTy*(u0y+v0x)+nuTz*(u0z+w0x)) ) +
+//  		  normal(I1,I2,I3,1)*(
+//  		    (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*(w0z+u0x)+nuTz*(v0z+w0y)+nuTx*(v0x+u0y)) ) +
+//  		  normal(I1,I2,I3,2)*(
+//  		    (nuT*e.laplacian(c,I1,I2,I3,wc,t)-2.*nuTz*(u0x+v0y)+nuTx*(w0x+u0z)+nuTy*(w0y+v0z)) );
+
+  		 fLocal(I1g,I2g,I3g) +=
+  		      normal(I1,I2,I3,0)*(p0x-
+  			     (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*(v0y+w0z)+nuTy*(u0y+v0x)+nuTz*(u0z+w0x)) ) +
+  		      normal(I1,I2,I3,1)*(p0y-
+  			     (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*(w0z+u0x)+nuTz*(v0z+w0y)+nuTx*(v0x+u0y)) ) +
+  		      normal(I1,I2,I3,2)*(p0z-
+  			     (nuT*e.laplacian(c,I1,I2,I3,wc,t)-2.*nuTz*(u0x+v0y)+nuTx*(w0x+u0z)+nuTy*(w0y+v0z)) );
+
+	      }
+// 	      else if( turbulenceModel==Parameters::kEpsilon )
+// 	      {
+
+// 		const realArray & p0x = e.x (c,I1,I2,I3,pc,t);
+// 		const realArray & p0y = e.y (c,I1,I2,I3,pc,t);
+// 		const realArray & p0z = e.z (c,I1,I2,I3,pc,t);
+	
+// 		const realArray & u0x = e.x (c,I1,I2,I3,uc,t);
+// 		const realArray & u0y = e.y (c,I1,I2,I3,uc,t);
+// 		const realArray & v0x = e.x (c,I1,I2,I3,vc,t);
+// 		const realArray & v0y = e.y (c,I1,I2,I3,vc,t);
+// 		const realArray & u0z = e.z(c,I1,I2,I3,uc,t);
+// 		const realArray & v0z = e.z(c,I1,I2,I3,vc,t);
+// 		const realArray & w0x = e.x(c,I1,I2,I3,wc,t);
+// 		const realArray & w0y = e.y(c,I1,I2,I3,wc,t);
+// 		const realArray & w0z = e.z (c,I1,I2,I3,wc,t);
+
+// 		const realArray & k0   = e  (c,I1,I2,I3,kc,t);
+// 		const realArray & k0x  = e.x(c,I1,I2,I3,kc,t);
+// 		const realArray & k0y  = e.y(c,I1,I2,I3,kc,t);
+// 		const realArray & k0z  = e.z(c,I1,I2,I3,kc,t);
+
+// 		const realArray & e0   = e  (c,I1,I2,I3,ec,t);
+// 		const realArray & e0x  = e.x(c,I1,I2,I3,ec,t);
+// 		const realArray & e0y  = e.y(c,I1,I2,I3,ec,t);
+// 		const realArray & e0z  = e.z(c,I1,I2,I3,ec,t);
+
+// 		realArray nuT,nuTx,nuTy,nuTz;
+		  
+// 		nuT = nu+ cMu*k0*k0/e0;
+// 		nuTx=cMu*k0*( 2.*k0x*e0 - k0*e0x )/(e0*e0);
+// 		nuTy=cMu*k0*( 2.*k0y*e0 - k0*e0y )/(e0*e0);
+// 		nuTz=cMu*k0*( 2.*k0z*e0 - k0*e0z )/(e0*e0);
+
+// 		// linear part goes in [2], quadratic part in [1]
+// //  		tzForcing[2](I1g,I2g,I3g) = (normal(I1,I2,I3,0)*(p0x)+
+// //  					     normal(I1,I2,I3,1)*(p0y)+
+// //  					     normal(I1,I2,I3,2)*(p0z));
+// //  		tzForcing[1](I1g,I2g,I3g) -=
+// //  		  normal(I1,I2,I3,0)*(
+// //  		    (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*(v0y+w0z)+nuTy*(u0y+v0x)+nuTz*(u0z+w0x)) ) +
+// //  		  normal(I1,I2,I3,1)*(
+// //  		    (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*(w0z+u0x)+nuTz*(v0z+w0y)+nuTx*(v0x+u0y)) ) +
+// //  		  normal(I1,I2,I3,2)*(
+// //  		    (nuT*e.laplacian(c,I1,I2,I3,wc,t)-2.*nuTz*(u0x+v0y)+nuTx*(w0x+u0z)+nuTy*(w0y+v0z)) );
+
+//   		 f(I1g,I2g,I3g) +=
+//   		      normal(I1,I2,I3,0)*(p0x-
+//   			     (nuT*e.laplacian(c,I1,I2,I3,uc,t)-2.*nuTx*(v0y+w0z)+nuTy*(u0y+v0x)+nuTz*(u0z+w0x)) ) +
+//   		      normal(I1,I2,I3,1)*(p0y-
+//   			     (nuT*e.laplacian(c,I1,I2,I3,vc,t)-2.*nuTy*(w0z+u0x)+nuTz*(v0z+w0y)+nuTx*(v0x+u0y)) ) +
+//   		      normal(I1,I2,I3,2)*(p0z-
+//   			     (nuT*e.laplacian(c,I1,I2,I3,wc,t)-2.*nuTz*(u0x+v0y)+nuTx*(w0x+u0z)+nuTy*(w0y+v0z)) );
+
+
+// 	      }
+#endif
+	      else
+	      {
+		Overture::abort("error: case not implemented"); 
+	      }
+
+	      fLocal(I1g,I2g,I3g)+=scaleFactorT*tzForcing[0](I1g,I2g,I3g)+
+		(SQR(scaleFactor))*tzForcing[1](I1g,I2g,I3g)+scaleFactor*tzForcing[2](I1g,I2g,I3g);
+
+
+
+
+	    }
+
+	    // f(I1g,I2g,I3g)=P03N(c,I1,I2,I3,t);  // give normal component of momentum equations
+	    if( pdeModel==InsParameters::BoussinesqModel ||
+                pdeModel==InsParameters::viscoPlasticModel)
+	    { // add terms for Boussinesq approximation
+              realSerialArray te0(I1,I2,I3);
+              e.gd( te0 ,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,tc,t);
+
+              fLocal(I1g,I2g,I3g)+=thermalExpansivity*te0*(
+		gravity[0]*normal(I1,I2,I3,0)+gravity[1]*normal(I1,I2,I3,1)+gravity[2]*normal(I1,I2,I3,2));
+	    }
+	    
+	  }
+	  
+	} // else
+      } // default:
+      } // switch
+    }
+  } // ForBoundary
+  
+
+  if( debug() & 8 )
+  {
+    getIndex(c.gridIndexRange(),I1,I2,I3);
+
+    display(f,"addForcingToPressureEquation: pressure RHS AFTER BC",debugFile,"%9.2e");
+
+    if( c.numberOfDimensions()==2 && parameters.isAxisymmetric() )
+    {
+      realArray err(I1,I2,I3);
+      const realArray & y = c.vertex()(I1,I2,I3,axis2);
+        
+      const real yEps=sqrt(REAL_EPSILON);  // tol for axisymmetric *** fix this ***
+      where( fabs(y)>yEps )
+      {
+        err=f(I1,I2,I3)-e.laplacian(c,I1,I2,I3,pc,t)-e.y(c,I1,I2,I3,pc,t)/y;
+      }
+      otherwise()
+      {
+        err=f(I1,I2,I3)-e.laplacian(c,I1,I2,I3,pc,t)-e.yy(c,I1,I2,I3,pc,t);
+      }
+      display(err,"pressure RHS - p.laplacian AXISYMMETRIC",debugFile,"%9.2e");
+    }
+    
+  }
+
+  delete pue;
+  delete pnuT;
+
+}			
+			

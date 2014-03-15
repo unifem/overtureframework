@@ -1,0 +1,30 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src $(INCLUDES)
+#SHARED_LIBRARY_LOAD_LIBS := $(LIBS) $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib -lCgCommon  
+#SHARED_LIBRARY_LOAD_LIBS :=   
+ifeq ($(OS),Darwin)
+SHARED_LIBRARY_LOAD_LIBS += -L$(CGBUILDPREFIX)common/lib -lCgCommon
+endif
+ 
+# if buildStaticLib is on then all out of date object files are added to the static library
+ifeq ($(buildStaticLib),on) 
+  CginsStaticLib := $(USE_WHOLE_ARCHIVE) -lCginsStatic $(END_USE_WHOLE_ARCHIVE)
+  CginsBuildLibrary :=  $(LIBDIR)libCginsStatic.a
+else
+  CginsStaticLib := 
+  CginsBuildLibrary :=  $(LIBDIR)libCgins 
+endif 
+
+
+ifneq ($(OV_RPATH),)
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)ins/lib -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
+        $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+else
+LIBS := -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
+        -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+endif

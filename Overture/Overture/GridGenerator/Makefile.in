@@ -1,0 +1,75 @@
+#
+# Type "make target-machine" as for the makefile in the main directory
+#
+
+.SUFFIXES:
+.SUFFIXES:.f .o .C .o .cc
+.C.o:; $(CC) $(CCFLAGS) $(CC_SUN5_TEMPLATEFLAG) -c $*.C
+.cc.o:; $(CC) $(CCFLAGS) $(CC_SUN5_TEMPLATEFLAG) -c $*.cc
+
+default:   depend_date   GridGenerator_date 
+
+GridGenerator_date: GridGeneratorFortran_date GridGenerator1_date  GridGenerator2_date 
+	touch $@
+
+Source = Ogen.C  check.C changeParameters.C  buildCutout.C improveQuality.C   \
+	AdvancingFront.C Ugen.C \
+	CompositeGridHybridConnectivity.C  \
+        RotatedBox.C ListOfRotatedBox.C Interpolate.C InterpolateParameters.C \
+        InterpolateRefinements.C sealHoles.C \
+        EllipticTransform.C EllipticGridGenerator.C Elliptic.C  \
+        readMappingsFromAnOverlappingGridFile.C \
+        buildUnstructuredMappingFromACompositeGrid.C MeshQuality.C optMesh.C SurfaceStitcher.C \
+        updateRefinementNew.C updateRefinementNewer.C updateRefineFillInterp.C  \
+        updateRefineFillInterpNew.C getHoleWidth.C movingUpdateNew.C  ExplicitHoleCutter.o \
+	cutcell.cc smesh.cc 
+
+ObjectsC = ${Source:.C=.o} 
+Objects = ${ObjectsC:.cc=.o}
+
+GridGenerator1_date: $(Objects)
+	  touch $@
+
+# Always compile these files optimised
+filesOpt = boundaryAdjustment.C Regrid.C ErrorEstimator.C classify.C cutHoles.C updateRefinement.C \
+           cutHolesNew.C markPointsNeeded.C CanInterpolate.C computeOverlap.C checkOverlap.C movingUpdate.C \
+           lastChance.C  adjustBoundary.C interpolatePoints.C cutHolesNewer.C explicitHoleCutting.C 
+
+GridGenerator2_date: $(filesOpt:.C=.o)
+	  touch $@
+
+# Define targets for compiling optimized by default:
+boundaryAdjustment.o : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+Regrid.o             : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+ErrorEstimator.o     : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+classify.o           : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+cutHoles.o           : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+cutHolesNew.o        : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+cutHolesNewer.o      : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+updateRefinement.o   : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+markPointsNeeded.o   : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+CanInterpolate.o     : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+computeOverlap.o     : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+checkOverlap.o       : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+movingUpdate.o       : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+lastChance.o         : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+adjustBoundary.o     : ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+explicitHoleCutting.o: ${@:.o=.C}; $(CC) $(CCFLAGSO) -c ${@:.o=.C}
+
+# Always compile these next files optimized
+fortran_files = interpFineFromCoarse.f interpCoarseFromFine.f
+GridGeneratorFortran_date: $(fortran_files)
+	$(FC) $(FFLAGSO) -c $?
+	  touch $@
+
+
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source) $(filesOpt)
+	touch $@
+
+
+# include the dependencies here
+include depend
+
+
+.PRECIOUS:GridGenerator_date GridGenerator1_date GridGenerator2_date GridGeneratorFortran_date depend_date
+

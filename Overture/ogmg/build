@@ -1,0 +1,42 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set OvertureOgmg    = $ovDir/Ogmg
+set OvertureInclude = $ovDir/include
+
+cp {Ogmg,smooth,defect,fineToCoarse,coarseToFine,ogmgTests,ogmgUtil}.C $OvertureOgmg
+cp {lineSmooth,boundaryConditions,OgmgParameters,operatorAveraging}.C  $OvertureOgmg
+cp {buildExtraLevels,checkGrid,displayMaskLaTeX,singular}.C            $OvertureOgmg
+cp {predefined,assignBoundaryConditionCoefficients,smoothBoundary}.C   $OvertureOgmg
+cp {defectOpt,smoothOpt,averageOpt,bcOpt,lineSmoothOpt,bc3dOrder4}.f   $OvertureOgmg
+cp {boundaryConditions,lineSmooth,smooth,fineToCoarse}.bC              $OvertureOgmg
+cp {buildExtraLevelsNew.C}                                             $OvertureOgmg
+
+cp {defect2dOrder2,defect2dOrder4,defect3dOrder2,defect3dOrder4}.f               $OvertureOgmg
+cp {smoothRB2dOrder2,smoothRB2dOrder4,smoothRB3dOrder2,smoothRB3dOrder4}.f       $OvertureOgmg
+cp {smoothJAC2dOrder2,smoothJAC2dOrder4,smoothJAC3dOrder2,smoothJAC3dOrder4}.f   $OvertureOgmg
+cp {smOpt,smRB2dOrder2,smRB2dOrder4,smRB3dOrder2,smRB3dOrder4}.f                 $OvertureOgmg 
+
+# copy .bf and include files in case needed by users
+cp {defectOpt,bcOpt,smoothOpt,averageOpt,lineSmoothOpt,assignBoundaryConditions}.bf $OvertureOgmg
+cp {smOpt.bf,bc3dOrder4.bf}     $OvertureOgmg
+cp {neumannEquationBC.h,neumannEquationBC.new.h,neumannEquationForcing.h,neumannEquationBC3d.h}  $OvertureOgmg
+
+cp {Ogmg,OgmgParameters}.h                                             $OvertureInclude
+
+# ogmg test routine: 
+cp ogmgt.C                                                             $ovDir/bin
+cp cmd/tz.cmd                                                          $OvertureOgmg
+
+# copy the null version to the Oges directory in case we don't build Ogmg
+cp {nullOgmg.C,OgmgParameters.C} $ovDir/Oges

@@ -1,0 +1,335 @@
+%-----------------------------------------------------------------------
+% Differential Operators and Boundary Conditions
+%-----------------------------------------------------------------------
+\documentclass[12pt]{article}
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{calc}
+\usepackage{ifthen}
+% \usepackage{fancybox} % *****WARNING****** inclusion of this causes the TOC to disappear!
+
+\usepackage{amsmath}
+
+
+\usepackage{array}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\primer}{\homeHenshaw/Overture/primer}
+\newcommand{\gf}{\homeHenshaw/Overture/gf}
+\newcommand{\op}{\homeHenshaw/Overture/op}
+\newcommand{\examples}{Overture/examples}
+\newcommand{\mapping}{\homeHenshaw/Overture/mapping}
+\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
+\newcommand{\oges}{\homeHenshaw/Overture/oges}
+\newcommand{\figures}{../docFigures}
+% \newcommand{\primer}{\homeHenshaw/res/primer}
+
+\newcommand{\OvertureOverture}{\homeHenshaw/Overture/Overture}
+
+\newcommand{\RA}{realArray}
+\newcommand{\MGF}{MappedGridFunction}
+\newcommand{\RMGF}{realMappedGridFunction}
+\newcommand{\RCGF}{realCompositeGridFunction}
+
+\newcommand{\DABO}{Differential\-And\-Boundary\-Operators}
+
+\newcommand{\MG}{Mapped\-Grid}
+\newcommand{\GC}{Grid\-Collection}
+\newcommand{\CG}{Composite\-Grid}
+\newcommand{\MGCG}{Multigrid\-Composite\-Grid}
+
+\newcommand{\MGO}{MappedGridOperators}
+\newcommand{\GCO}{Grid\-Collection\-Operators}
+\newcommand{\CGO}{Composite\-Grid\-Operators}
+\newcommand{\MGCGO}{Multigrid\-Composite\-Grid\-Operators}
+\newcommand{\GCF}{GridCollectionFunction}
+
+
+\begin{document}
+
+% \input list.tex    % defines Lentry enviroment for documenting functions
+
+% -----definitions-----
+\input wdhDefinitions
+% 
+% \def\R      {{\bf R}}
+% \def\Dv     {{\bf D}}
+% \def\av     {{\bf a}}
+% \def\bv     {{\bf b}}
+% \def\cv     {{\bf c}}
+% \def\fv     {{\bf f}}
+% \def\Fv     {{\bf F}}
+% \def\gv     {{\bf g}}
+% \def\iv     {{\bf i}}
+% \def\jv     {{\bf j}}
+% \def\kv     {{\bf k}}
+% \def\nv     {{\bf n}}
+% \def\mv     {{\bf m}}
+% \def\rv     {{\bf r}}
+% \def\tv     {{\bf t}}
+% \def\uv     {{\bf u}}
+% \def\Uv     {{\bf U}}
+% \def\vv     {{\bf v}}
+% \def\Vv     {{\bf V}}
+% \def\xv     {{\bf x}}
+% \def\yv     {{\bf y}}
+% \def\zv     {{\bf z}}
+% \def\lt     {{<}}
+% \def\grad    {\nabla}
+\def\comma  {~~~,~~}
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\def\ff {\tt} % font for fortran variables
+
+\vspace{5\baselineskip}
+\index{operators}
+\begin{flushleft}
+{\Large
+Finite Difference Operators and Boundary Conditions for Overture \\
+User Guide, Version 1.00 \\
+}
+\vspace{2\baselineskip}
+Bill Henshaw \\
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture  \\
+\vspace{\baselineskip}
+\today \\
+\vspace{\baselineskip}
+UCRL-MA-132232
+% LA-UR-96-3467
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+We describe some finite difference operators and boundary conditions for
+use with the Overture grid functions. Second and fourth order accurate
+approximations are available for general curvilinear grids. For rectangular
+periodic domains the pseudo-spectral approximations are also available.
+\end{flushleft}
+
+\tableofcontents
+% \listoffigures
+
+\vfill\eject
+%---------- End of title Page for a Research Report
+
+\section{Introduction}
+
+We describe some finite difference operators and boundary conditions for
+use with the Overture grid functions. 
+The derivative operators allow one to take first and second order derivatives
+($\partial_x$, $\partial_y$, $\partial_z$, $\partial_{xx}$, $\partial_{xy}$ etc.)
+with second order, fourth order or spectral accuracy.  (Spectral accuracy is
+for rectangular periodic domains only). 
+The derivative operators can also be used
+to generate the matrix (9 point stencil, for example) 
+corresponding to a derivative operator. These ``coefficient'' operators can be used
+to generate a sparse matrix.
+
+The boundary condition operators define a ``library'' of elementary boundary
+condition operations that can be used to implement application specific
+boundary conditions. Examples of elementary boundary conditions include
+Dirichlet, Neumann and mixed conditions, extrapolation, setting the normal
+component of a vector and so on. A solver can apply one or more elementary
+boundary conditions to the different sides of a grid.
+
+% To use the boundary conditions one must first
+% specify, for each side of each grid, the number and type of each boundary condition.
+% Inhomogeneous values for the boundary conditions can be supplied and then the
+% {\ff applyBoundaryConditions} function is called to apply each boundary condition
+% in the order they were specified. 
+
+
+The class {\ff \MGO} defines operators
+for differentiating MappedGridFunction's and operators for applying
+boundary conditions to MappedGridFunction's.
+
+The classes {\ff \GCO}, {\ff \CGO} and {\ff \MGCGO} use the
+operators in the class {\ff \MGO} (or a class derived there-of)
+to define differential
+and boundary condition operators for {\ff \GC}'s, 
+{\ff \CG}'s and {\ff \MGCG}'s.
+
+The {\ff \MGO} class can be used to compute spatial derivatives of a
+{\ff realMappedGridFunction} including all first and 
+second order derivatives
+with respect to $x$, $y$ and $z$.
+
+This class can also be used to define boundary conditions
+and to evaluate the boundary conditions.
+
+There may be one or more ``flavour'' of this class. One flavour
+will define derivatives in the ``standard'' finite difference
+manner using the ``mapping method''. Another flavour will define
+derivatives using a finite volume approach. Yet other flavours
+can be defined (by derivation from this class).
+
+The grid function classes {\ff realMappedGridFunction} and
+{\ff realCompositeGridFunction} 
+have member functions for differentiation
+and applying boundary conditions. 
+A {\ff \MGF} has a pointer
+to an object of the {\ff \MGO} class.
+It uses this object to perform the differentiation or to
+apply boundary conditions. To use a different ``flavour'' of
+differentiation one must tell the grid function using the
+{\ff set\MGO} member function. Similarly a {\ff \GCF}
+has a pointer to a {\ff \GCO} and a {\ff CGF} has a 
+pointer to a {\ff \CGO}.
+
+\input \primer/otherDocs.tex
+
+% This class defines various spatial derivatives of grid functions including
+% all first and second order derivatives. For vertex-centred grids the derivatives
+% are defined using finite differences and the ``mapping method''.
+% Both second and fourth-order difference approximations are available.
+% For cell-centred grids the derivatives are defined in a finite volume
+% formulation.
+% 
+% 
+% The classes {\ff typeDifferentiableCompositeGridFunction} and
+% {\ff typeDifferentiableMappedGridFunction} ({\ff type=float} or {\ff type=double})
+% are grid functions that know how to compute partial derivatives in space
+% and how to apply boundary conditions. These classes are useful for writing
+% PDE solvers. 
+% 
+% 
+% The Differentiable classes are derived from the corresponding
+% non-differentiable grid functions.
+
+\subsection{Differentiation}\index{differentiation}
+
+A number of different approximations are provided for a variety of differential operators. 
+Given a vector-valued grid-function $u$, one may evaluate the 
+% \setlength{\extrarowheight}{12pt}
+% \begin{tabular}{|l|c|c|c|c|}\hline
+%    Derivative                    & 2nd-order & 4th-order & 2c & 4c \\ \hline
+% $\dfrac{\partial}{\partial x}$ & X & X &    &    \\ \hline
+%  $\partial^2 / \partial x\partial y$ & X & X &    &    \\ \hline
+% \end{tabular}
+first derivatives:
+\[
+{\partial u \over \partial x}~,~~ {\partial u \over \partial y}~,~~{\partial u\over \partial z}
+\]
+second-derivatives:
+\[
+{\partial^2 u\over \partial x^2}~,~~
+{\partial^2 u\over \partial y^2}~,~~
+{\partial^2 u\over \partial z^2}~,~~
+{\partial^2 u\over \partial x \partial y}~,~~
+{\partial^2 u\over \partial x \partial z}~,~~
+{\partial^2 u\over \partial y \partial z}
+\]
+as well as other second-order operators:
+\[
+   \Delta u = {\partial^2 u\over \partial x^2} + {\partial^2 u\over \partial y^2} + {\partial^2 u\over \partial z^2}
+\]
+\[
+   \grad\cdot( s(\xv) \grad)= {\partial\over \partial x}( s(\xv){\partial u\over \partial x} ) +
+                              {\partial\over \partial y}( s(\xv){\partial u\over \partial y} )+
+                              {\partial\over \partial z}( s(\xv){\partial u\over \partial z} )
+\]
+\[
+  {\partial\over \partial x}( s(\xv) {\partial u\over \partial x})~,~~
+  {\partial\over \partial x}( s(\xv) {\partial u\over \partial y})~,~~
+  {\partial\over \partial z}( s(\xv) {\partial u\over \partial x})~,~~
+  {\partial\over \partial y}( s(\xv) {\partial u\over \partial x})~,~~
+   \ldots
+\]
+
+There are second-order, fourth-order, sixth-order and eight-order accurate approximations. 
+For many operators there are conservative (finite-volume) and non-conservative approximations.
+
+
+\vskip\baselineskip
+
+There are a number of different ways to evaluate derivatives of a grid function.
+\begin{itemize}
+\item Use the member function found in the {\ff \MGO}
+  object.
+\item Use the member function found in the {\ff realMappedGridFunction}
+\item Use the member function found in the {\ff realCompositeGridFunction}
+\item Use the member function {\ff getDerivatives} found in 
+the {\ff \MGO} class to evaluate a set
+of derivatives all at once. This is more efficient than the previous approaches.
+\item Use the function {\ff derivative} to directly compute the derivative. This is
+more efficient than the previous approaches. 
+\end{itemize}
+Currently the most natural way is not the most efficient because 
+it involves extra computation and extra data movement.
+All of these approaches are illustrated in the examples that follow.
+
+
+%=========================================================================================
+\vfill\eject
+\input MappedGridOperators.tex
+%=========================================================================================
+
+
+%=========================================================================================
+\vfill\eject
+\input CompositeGridOperators.tex
+%=========================================================================================
+
+%=========================================================================================
+%  Describe Boundary conditions
+\vfill\eject
+\input boundary.tex
+%=========================================================================================
+
+%=========================================================================================
+%  Describe Coefficient matrices for sparse matrix systems
+\vfill\eject
+\input coefficients.tex
+%=========================================================================================
+
+
+%=========================================================================================
+%  Describe the Fourier operators
+\vfill\eject
+\input fourier.tex
+%=========================================================================================
+
+
+
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}
+
+

@@ -1,0 +1,125 @@
+************** 101003 -- strong scaling study 
+
+--> Scale using 1M pts per core
+
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -debug=3
+cp  ogmgNP1.info $ogmg/results/square1024.order4.np1.info
+total.................................1.88e+00  1.88e-01   100.00%
+
+srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=square2048.order4 -debug=3
+cp ogmgNP4.info $ogmg/results/square2048.order4.np4.info
+total.................................2.09e+00  2.09e-01   100.00%
+
+srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=square4096.order4 -debug=3
+cp ogmgNP16.info $ogmg/results/square4096.order4.np16.info
+ total.................................2.60e+00  2.60e-01   100.00%
+
+srun -N8 -n64 -ppdebug $ogmgp tz -noplot -g=square8192.order4 -debug=3   (67M)
+cp ogmgNP64.info $ogmg/results/square8192.order4.np64.info
+total.................................3.46e+00  3.46e-01   100.00%
+
+srun -N8 -n64 -ppdebug $ogmgp tz -noplot -g=square8192.order4 -debug=3  -levels=5
+ total.................................4.54e+00  4.54e-01   100.00%
+
+# square16384.order4 = 268M pts 
+submit.p -jobName="ogmg" -bank=windpowr -out="ogmg256.out" -walltime=0:02 -submit=0 -cmd='srun -N32 -n256 -ppbatch $ogmgp tz -noplot -g=square16384.order4 -debug=3'
+cp ogmgNP256.info $ogmg/results/square16384.order4.np256.info
+ total.................................9.11e+00  9.11e-01   100.00% 
+
+
+
+
+*************  100929 -- test line solve verus Np --
+
+Note: CR const from Np=1->8, jumps up at 16, const 16->32 
+
+
+mpirun -np 1 $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1 
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=7.29e-14, ave CR=0.0486 ave ECR=0.562
+
+mpirun -np 2 $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=7.29e-14, ave CR=0.0486 ave ECR=0.562
+
+mpirun -np 4 $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=7.28e-14, ave CR=0.0486 ave ECR=0.562
+
+mpirun -np 8 $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=7.28e-14, ave CR=0.0486 ave ECR=0.562
+
+srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=7.28e-14, ave CR=0.0486 ave ECR=0.562
+
+srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=1.02e-11, ave CR=0.0796 ave ECR=0.617
+
+srun -N3 -n24 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=1.02e-11, ave CR=0.0796 ave ECR=0.617
+
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -bsm=lz1 -debug=3 -matlab=1
+Iteration=1..10 : Total WU=5.24e+01, total res reduction=1.02e-11, ave CR=0.0796 ave ECR=0.617
+
+************ 100926 -- compare convergence rates versus number of processors for a square ---
+
+=============== square1024.order4  ================================
+
+-- debug difference between Np=1 and Np=8 
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -ssr=1 >! square1024.order4.np1.out
+cp square1024.order4.np1.out $ogmg/results/
+
+srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -ssr=1 >! square1024.order4.np8.out
+cp square1024.order4.np8.out $ogmg/results/
+
+**** rates deteriorate as Np increase ! --> FIXED
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP1.info $ogmg/results/square1024.order4.NP1.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=2.90e-13, ave CR=0.0558 ave ECR=0.493
+
+srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP2.info $ogmg/results/square1024.order4.NP2.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.51e-12, ave CR=0.0658 ave ECR=0.514
+
+srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP4.info $ogmg/results/square1024.order4.NP4.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.51e-12, ave CR=0.0658 ave ECR=0.514
+
+srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP8.info $ogmg/results/square1024.order4.NP8.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=3.69e-10, ave CR=0.1140 ave ECR=0.588
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=2.79e-13, ave CR=0.0555 ave ECR=0.493 (*fixed*)
+
+srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -matlab=1
+cp ogmgNP16.info $ogmg/results/square1024.order4.NP16.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.34e-09, ave CR=0.1296 ave ECR=0.606 (OLD)
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=2.79e-13, ave CR=0.0555 ave ECR=0.493 (*fixed*
+
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=square1024.order4 -sm=rbj -debug=3 -matlab=1
+
+=============== square1024.order2  ================================
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square1024.order2 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP1.info $ogmg/results/square1024.order2.NP1.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.27e-13, ave CR=0.0513 ave ECR=0.483
+
+
+srun -N1 -n2 -ppdebug $ogmgp tz -noplot -g=square1024.order2 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP2.info $ogmg/results/square1024.order2.NP2.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.27e-13, ave CR=0.0513 ave ECR=0.483
+
+srun -N1 -n4 -ppdebug $ogmgp tz -noplot -g=square1024.order2 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP4.info $ogmg/results/square1024.order2.NP4.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.27e-13, ave CR=0.0513 ave ECR=0.483
+
+srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=square1024.order2 -sm=rbj -debug=3 -matlab=1 
+cp ogmgNP8.info $ogmg/results/square1024.order2.NP8.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.27e-13, ave CR=0.0513 ave ECR=0.483
+
+srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=square1024.order2 -sm=rbj -debug=3 -matlab=1
+cp ogmgNP16.info $ogmg/results/square1024.order2.NP16.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.27e-13, ave CR=0.0513 ave ECR=0.483
+
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=square1024.order2 -sm=rbj -debug=3 -matlab=1
+cp ogmgNP32.info $ogmg/results/square1024.order2.NP32.info
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=1.27e-13, ave CR=0.0513 ave ECR=0.483

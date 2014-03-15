@@ -1,0 +1,5 @@
+In TrimmedMapping.C: The memory management of the quad tree is suspicious. The memory never gets 
+returned and it is questionable if the quad tree gets copied correctly in the TrimmedMapping
+assignment operation.
+
+Checkmapping fails for the jacobian of the inverse mapping. No values of rx are filled in!

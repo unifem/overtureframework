@@ -1,0 +1,34 @@
+------------------------------------------------------------------------------------------
+The ad/cmd directory holds command files for running examples of cgad
+
+Type "../bin/cgad file.cmd" to run the command file named "file.cmd"
+
+For parallel examples set the shell variable:  set cgadp = ${CGBUILDPREFIX}/ad/bin/cgad
+
+------------------------------------------------------------------------------------------
+
+axisym.cmd : axisymmetric advection-diffusion
+
+cic.cmd : advection-diffusion around a body
+
+heatFlux.cmd : test heat flux boundary conditions
+
+heatSource.cmd : advection-diffusion with a source term
+
+pulse.cmd : advecting and diffusing pulse (demonstrating user defined initial conditions)
+
+stir.cmd : a moving grid stirring stick
+
+tz.cmd : test twilight-zone solution on various grids
+
+tzMove.cmd : test twilight-zone solution with moving grids
+
+
+Parallel examples:
+------------------
+
+First set the shell variable:
+  set cgadp  = ${CGBUILDPREFIX}/ad/bin/cgad
+
+
+mpirun-wdh -np 4 $cgadp heatSource.cmd

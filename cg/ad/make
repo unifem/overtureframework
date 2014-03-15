@@ -1,0 +1,20 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src $(INCLUDES)
+
+ifneq ($(OV_RPATH),)
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)ad/lib -L$(CGBUILDPREFIX)ad/lib -lCgad \
+        $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib -lCgCommon \
+        $(LIBS) 
+else
+LIBS := -L$(CGBUILDPREFIX)ad/lib -lCgad \
+        -L$(CGBUILDPREFIX)common/lib -lCgCommon \
+        $(LIBS) 
+endif
+
+
+ifeq ($(OS),Darwin)
+SHARED_LIBRARY_LOAD_LIBS += -L$(CGBUILDPREFIX)common/lib -lCgCommon
+endif

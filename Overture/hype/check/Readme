@@ -1,0 +1,15 @@
+This directory holds regressions tests 
+(The full list of tests is found in the file "tests")
+
+Type "make" to run the regression tests.
+
+The file "tests" holds the list of tests to run.
+
+To run one check:
+  check.p bumpp
+
+To replace one check file:
+  check.p replace bumpp
+
+To replace all check files
+  check.p replace

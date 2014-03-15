@@ -1,0 +1,35 @@
+#
+#
+
+.SUFFIXES:
+.SUFFIXES:.u .f .c .C .o .cc .o
+.C.o:;    $(CC) $(CCFLAGS) -I$(HDF)/include -DH5_USE_16_API  -c $*.C
+.cc.o:;    $(CC) $(CCFLAGS) -c $*.cc
+.c.o:;    $(cc) $(CFLAGS) -c $*.c
+.f.o:;    $(FC) $(FFLAGS) -c $*.f
+
+default:  depend_date  DataBase_date DataBase2_date
+
+HDF_DataBase.o: HDF_DataBase.C HDF5_DataBase.C
+
+# Here is the source for HDF4
+Source=      GenericDataBase.C HDF_DataBase.C DataBaseBuffer.C  ListOfHDF_DataBaseRCData.C \
+             dbAccess.C kk_ptr.cc
+# Here is the source for HDF5:
+#hdf5 Source=      GenericDataBase.C HDF_DataBase.C DataBaseBuffer.C dbAccess.C dbFunctions.f kk_ptr.cc
+DataBase_date: $(Source)
+	  $(CC) $(CCFLAGS) -DH5_USE_16_API -I$(HDF)/include -c $?
+	  touch $@
+
+# Fortran files:
+Fsource = dbFunctions.f
+DataBase2_date: ${Fsource}
+	$(FC) $(FFLAGS) -c $? 
+	touch $@
+
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+.PRECIOUS:DataBase_date DataBase2_date depend_date

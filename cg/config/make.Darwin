@@ -1,0 +1,136 @@
+# Default compile time flags: (these are uses in make.option to define compile flags)
+#    compile:=[default/dbg/opt/optdbg]
+#    profile:=[on/off]      
+
+compile:=default
+profile:=off
+
+# this next file will define CXX, CC and FC as well as the other 
+# libraries required by Overture
+# (the same that were used in building Overture)
+-include $(Overture)/make.options
+
+
+# -- over-ride values here ---
+# CXX = g++
+# CC  = gcc
+# FC  = g77
+# OV_RPATH = -Wl,-rpath,
+# libraries:
+# OVERTURE_LIBRARIES =
+# OV_OPENGL_LIBRARIES =
+# APP_LIBRARIES =
+# OV_HDF_LIBRARIES =
+# OV_FORTRAN_LIBRARIES = 
+# OV_MOTIF_LIBRARIES =
+# OV_X_LIBRARIES =
+# OV_PERL_LIBRARIES =
+# OV_PARALLEL_INCLUDE = 
+# -- end over-ride --
+
+# *wdh* 110424
+FC90 = $(FC)
+
+# -- fix this:
+LAPACK_LIBRARIES =  -llapack -lblas -Wl-framework,Accelerate 
+
+# This is not always needed:
+CHEMKIN_LIBRARIES=  $(CHEMKIN)/cklib.o $(CHEMKIN)/tranlib.o
+
+## ## C++ Compiler options
+CXX_FLAGS_REQ = -fpic -fno-common -I/usr/include/c++/4.0.0/backward
+
+ifeq ($(mode),concise)
+CXX_FLAGS_DBG = -g -w
+else
+# CXX_FLAGS_DBG = -g -Wall
+CXX_FLAGS_DBG = -g -w
+endif
+
+CXX_FLAGS_OPT = -w -O 
+CXX_FLAGS_PROF = -pg
+
+## ## C Compiler options
+CC_FLAGS_REQ = -fpic -fno-common 
+
+ifeq ($(mode),concise)
+CC_FLAGS_DBG = -g -w
+else
+# CC_FLAGS_DBG = -g -Wall
+CC_FLAGS_DBG = -g -w
+endif
+
+CC_FLAGS_OPT = -w -O
+CC_FLAGS_PROF = -pg
+CC_FLAGS_FIXFP = -ffloat-store -mno-sse -mno-sse2
+
+## ## Fortran Compiler options
+
+FC_FLAGS_REQ = -fpic $(OV_AUTO_DOUBLE_FLAGS) $(OV_FORTRAN_FLAGS) -fno-common  -fdefault-double-8
+# FC_FLAGS_DBG = -g -fbounds-check 
+ifneq ($(FC),fort77)
+  FC_FLAGS_DBG = -g 
+else
+  FC_FLAGS_DBG =
+endif
+FC_FLAGS_OPT = -O 
+FC_FLAGS_PROF = -pg 
+
+## ## Fortran Compiler options (compiled without auto double)
+
+FC_FLAGSS_REQ = -fpic $(OV_FORTRAN_FLAGS) -fno-common 
+ifneq ($(FC),fort77)
+  FC_FLAGSS_DBG = -g 
+else
+  FC_FLAGSS_DBG =
+endif
+FC_FLAGSS_OPT = -O 
+FC_FLAGSS_PROF = -pg 
+
+
+## ## dependency generation
+MKDEP = gcc 
+#MKDEP_FLAGS = -MMD -E
+MKDEP_FLAGS = -MM -MT '$(OBJPREFIX)$(*F).o'
+
+## ## linker options
+
+LD = $(CXX)
+LD_FLAGS_REQ = -fpic -shared
+LD_FLAGS_DBG = 
+LD_FLAGS_OPT =
+LD_FLAGS_PROF = -pg
+
+JC = javac
+JC_FLAGS =
+
+## ## archive options
+
+AR = ar
+AR_FLAGS_REQ = ruvs
+AR_FLAGS_DBG = 
+AR_FLAGS_OPT =
+AR_FLAGS_PROF = 
+
+## ## Shared library options
+
+# command to build the shared library:
+SHARED_LIBRARY_COMMAND = $(CXX)
+# flags to use when building the shared library: 
+SHARED_LIBRARY_FLAGS = -dynamiclib -single_module -Wl-bind_at_load 
+# extension for shared libs:
+SHARED_LIBRARY_EXT = .dylib
+# addtional libraries to link to when building the shared library:
+SHARED_LIBRARY_LOAD_LIBS = -L$(Overture)/lib -lOverture -lOverture_static $(OV_FORTRAN_LIBRARIES) $(LAPACK_LIBRARIES)
+
+## ## bpp options
+
+BPP = $(Overture)/bin/bpp
+
+## ## GANTLET options
+
+GANTLET_RUN = python $(GANTLET)/commandline.py
+
+
+
+

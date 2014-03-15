@@ -1,0 +1,28 @@
+# Here is the executable:
+CGBUILDPREFIX/cns/bin/cgcns
+# here is the name of the check file
+cns.check
+# 
+# Here is a list of command files or commands to run for tests
+#
+tzSquare.check ../cmd/tz.cmd -g=square10 -tf=.1 -tp=.1 -go=go   # TZ square
+tzCic.check ../cmd/tz.cmd -g=cic -tf=.1 -tp=.1 -go=go       # TZ cic
+tzBox.check ../cmd/tz.cmd -g=box10 -tf=.05 -tp=.05 -go=go       # TZ cic
+# test TZ + godunov + second-order slip wall BC's (slipWallDerivative):
+tzSicg.check ../cmd/tz.cmd -g=sicFixede2.order2 -tf=.05 -tp=.05 -tz=trig -bc1=slip -bcOption=4 -go=go
+square.cns
+cicSubsonic              # lower Mach number, Jameson
+shockTubeg               # simple shock tube
+cic.godunov.dp           # real amr run -- only runs in double precision (since dudr is only dp)
+detonationOneStepIdeal   # detonation in an ideal gas, oneStep reaction with AMR
+cicShockMove             # moving grids and AMR
+detonationMieGruneisen   # MieG eos, CJ profile
+multi                    # mutlicomponent Euler
+ignitionAndGrowth        # IG model, JWL eos, AMR
+eulerAxisymmetric        # Euler, axisymmetric flow past a the "two bump"
+sqStrat_implicit         # implicit CNS, subsonic, gravitational field
+sqStrat_newton           # steady state with Newton solver
+#wdh: this test is too sensitive, remove: square.mp                # compressible multiphase
+mpTestV                  # compressible multiphase
+fourComp                 # four component flow with ACM for species
+multifluidChannel.check ../runs/cavityCollapse/multifluidChannel.cmd -tp=.002 -tf=.004 -go=go   # multi-fluid 

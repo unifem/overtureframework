@@ -1,0 +1,81 @@
+%-----------------------------------------------------------------------
+%   Overture Software
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+% \setlength{\textwidth}{9in}      % page width
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% \usepackage{fancybox}
+
+\usepackage{html}
+
+\newcommand{\documentation}{../documentation}
+
+
+\begin{document}
+
+\begin{center}
+{\Large Downloading Software} \\
+~~ \\
+LLNL Overlapping Grid Project \\
+\htmladdnormallink{Centre for Applied Scientific Computing}{http://www.llnl.gov/casc} \\
+\htmladdnormallink{Lawrence Livermore National Laboratory}{http://www.llnl.gov}  \\
+\htmladdnormallink{Overture}{http://www.llnl.gov/CASC/Overture} 
+\end{center}
+
+The latest release is Overture.v24 and cg.v24. 
+
+% The latest release is Overture.v21 and OverBlown.v21.
+
+
+Overture is a {\bf large} software package. 
+% Together with A++ is is on the order of a million lines ?? of code. 
+We are working on making it easier to install but it is not trivial to install. 
+% Overture has mainly been developed on Sun workstations with the 4.2 compiler.
+Our main development platform is Linux Intel (64 bit) with gcc and pgf77 or gfortran.
+Overture can also built built on a MAC with OS/X.
+
+{\bf Read some of the 
+\htmladdnormallink{documentation}
+{http://www.llnl.gov/casc/Overture/henshaw/overtureDocumentation/overtureDocumentation.html}
+ first}, such as the primer, to get an idea of
+what Overture does before spending the time to install the software.
+
+%  Some users have been able to build Overture under Windows with Cygwin.
+%  (see \htmladdnormallink{http://slyi.ath.cx/projects/overture}{http://slyi.ath.cx/projects/overture}).
+
+% , you need a Unix or Linux machine since the
+% graphics interface requires Motif (or OpenMotif) and X Windows. The array class A++/P++ should run under Windows.
+
+Here is where you can 
+% \htmladdnormallink{register}{http://www.llnl.gov/CASC/Overture/download/overture_agree.html}
+\htmladdnormallink{register}{../../download/overture_agree.html}
+to obtain a copy of the software. Please register and let us know what you will be using Overture
+for and what machines you intend to run on.
+
+Here are \htmladdnormallink{installation instructions}{../install/index.html}.
+
+{\bf You cannot build Overture directly on Windows} since the
+graphics interface requires Motif (or OpenMotif) and X Windows.
+Here are instructions for installing Overture on a Windows machine and Ubuntu using
+VirtualBox \htmladdnormallink{Installing\_Overture\_on\_Ubuntu\_10\_04\_LTS.pdf}{\documentation/Installing\_Overture\_on\_Ubuntu\_10\_04\_LTS.pdf}.
+
+% Here is where you can 
+% \htmladdnormallink{download}{http://www.llnl.gov/casc/Overture/henshaw/overtureDownload/overtureDownload.html}
+% Overture and A++/P++. Please let us know what you will be using Overture
+% for and what machines you intend to run on. Send mail to {\tt henshaw@llnl.gov}.
+
+\input mailingList.tex
+
+% \input bugList.tex
+
+\input announcement.tex
+
+\end{document}

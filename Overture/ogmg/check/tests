@@ -1,0 +1,55 @@
+#
+# This file contains a list of regression tests run by check.p
+#
+# Type 
+#   check.p -replace          : to replace all check files with new ones
+#   check.p -test=cic4.check  : only run this check
+#
+# Here is the executable:
+../ogmgt
+# /home/henshaw.0/Overture.g/bin/ogmgt
+# here is the name of the check file
+ogmg.check
+sq
+sqp
+cic
+cicp
+valve
+valvep
+box
+boxp
+sib
+sibp
+ellipsoid
+#
+# Here are more tests where we run scripts from the ogmg/cmd dir: 
+#
+# Test Neumann and mixed BC's : 
+cicNM.check ../cmd/tz.cmd -noplot -maxit=6 -g=cice2.order2.ml2 -sm=rbj -opav=0 -bc=nmnnn
+#
+# 2d, order=4: 
+cic4.check ../cmd/tz.cmd -noplot -maxit=6 -g=cice4.order4.ml3 -sm=rbj 
+#
+# 3d, order=4: 
+sib4.check ../cmd/tz.cmd -noplot -maxit=6 -g=sibe2.order4.ml3 -sm=rbj 
+#
+# -- test line smooth and Neumann BC's
+rhombus2.check ../cmd/tz.cmd -noplot -maxit=6 -g=rhombus2.order2.ml2 -tz=poly -debug=3 -bc1=n -bc2=n -bsm=lz1
+rhomboid2.check ../cmd/tz.cmd -noplot -maxit=6 -g=rhomboid2.order2.ml2 -tz=poly -debug=3 -bc3=n -bc4=n -bsm=lz2
+#
+# -- test line smooths + order=4 + heat-eqn solve
+rhombus4.check ../cmd/tz.cmd -noplot -g=rhombus2.order4.ml2 -bsm=lz1 -maxit=6 -bc1=n -bc2=m -eqn=heat
+rhomboid4.check ../cmd/tz.cmd -noplot -g=rhomboid2.order4.ml2 -bsm=lz2 -maxit=6 -bc3=n -bc4=m -eqn=heat
+#
+# -- test singular problems:
+# -- fully periodic: (singular)
+square32p2.check ../cmd/singular.cmd -noplot -g=square32p.order2.hdf -nullVector=square32p.order2NullVector.hdf -predefined=0 
+square32p4.check ../cmd/singular.cmd -noplot -g=square32p.order4.hdf -nullVector=square32p.order4NullVector.hdf -predefined=0 
+# -- Neumann + periodic: (singular)
+square32np2.check ../cmd/singular.cmd -noplot -g=square32np.order2.hdf -nullVector=square32np.order2NullVector.hdf -predefined=0 
+square32np4.check ../cmd/singular.cmd -noplot -g=square32np.order4.hdf -nullVector=square32np.order4NullVector.hdf -predefined=0 
+# -- Neumann: (singular)
+square32nn2.check ../cmd/singular.cmd -noplot -g=square32.order2.hdf -nullVector=square32nn.order2NullVector.hdf -predefined=0 
+square32nn4.check ../cmd/singular.cmd -noplot -g=square32.order4.ng3.hdf -nullVector=square32nn.order4NullVector.hdf -predefined=0 
+#
+exit

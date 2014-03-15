@@ -1,0 +1,112 @@
+#
+#
+# Regression tests for Overture.
+#
+
+# Here are the things we can make
+PROGRAMS = paperplane tgf tbc tbcc tderivatives testIntegrate tcm tcm2 tcm3 tcm4 \
+           moveAndSolve tz ti tifc toges
+
+
+all:  $(PROGRAMS)
+
+.SUFFIXES:
+.SUFFIXES: .C .C .o .c .o
+
+.C.o :;	$(CC) $(CCFLAGS) -c $*.C
+.c.o :;	$(cc) $(CFLAGS) -I$(OpenGL)/include -I$(XLIBS)/include -DnoGLwidget -c $*.c
+.C: $(LIB_DEPENDENCIES)
+	 $(CC) $(CCFLAGS) -o $@ $< $(CLIBS) $(FLIBS)  $(GLIBS)
+
+giMain = giMain.o ../static/mogl.o ../static/overlay.o 
+giMain : $(giMain)
+	 $(CC) $(CCFLAGS) -o giMain $(giMain) $(FLIBS) $(GLIBS)
+
+PPDEFS = 
+paperplane = paperplane.o
+#PPDEFS = -DOV_USE_LOCAL_GLW
+#paperplane = paperplane.o ../static/GLwMDrawA.o ../static/GLwDrawA.o
+
+
+paperplane.o: paperplane.C
+	$(CC) $(CCFLAGS) $(PPDEFS) -c $<
+
+paperplane : $(paperplane)
+	 $(CC) $(CCFLAGS) -o paperplane $(paperplane)  $(GLIBS)
+
+# Here we show how to use PETSc and Overture
+# This example assumes that the PETSC_DIR environmental variable is defined and that
+# PETSc was compiled with it's own implementation of mpi (mpiuni)
+
+# for version 2.3.2
+PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni
+usePPP = $(USE_PPP_FLAG)
+ifneq ($(strip $(usePPP)),)
+  # serial version
+  PETSC =  buildEquationSolvers.o PETScEquationSolver.o
+  PETSC_LIBS = -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
+#else
+ # P++ version
+ PETSC =  buildEquationSolvers.o PETScEquationSolver.o PETScSolver.o
+ PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
+ # Here are links to the Hypre solver -- you will need to edit the paths
+ # HYPRE_LIBS = -Wl,-rpath,/home/henshaw.0/petsc/petsc-2.3.2-mpi/externalpackages/hypre-1.11.1b/linux-gnu-opt/lib -L/home/henshaw.0/petsc/petsc-2.3.2-mpi/externalpackages/hypre-1.11.1b/linux-gnu-opt/lib -lHYPRE_DistributedMatrix -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_Euclid -lHYPRE_IJ_mv -lHYPRE_LSI -lHYPRE_MatrixMatrix -lHYPRE_ParaSails -lHYPRE_krylov -lHYPRE_parcsr_ls -lHYPRE_parcsr_mv -lHYPRE_seq_mv -lHYPRE_sstruct_ls -lHYPRE_sstruct_mv -lHYPRE_struct_ls -lHYPRE_struct_mv
+ # LAPACK = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
+ PETSC_LIBS = -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc $(HYPRE_LIBS) -L$(LAPACK) -llapack -lblas
+endif
+
+CCFLAGSP = $(CCFLAGS) $(PETSC_INCLUDE)
+
+# The next two files from the Overture/Oges directory must be compiled and linked in.
+Oges = $(Overture)/Oges
+buildEquationSolvers.o : $(Oges)/buildEquationSolvers.C
+	$(CC) $(CCFLAGSP) -DOVERTURE_USE_PETSC -c $(Oges)/buildEquationSolvers.C
+PETScEquationSolver.o : $(Oges)/PETScEquationSolver.C
+	$(CC) $(CCFLAGSP) -DOVERTURE_USE_PETSC -c $(Oges)/PETScEquationSolver.C
+PETScSolver.o : $(Oges)/PETScSolver.C
+	$(CC) $(CCFLAGSP) -DOVERTURE_USE_PETSC -c $(Oges)/PETScSolver.C
+
+
+# Parallel tcm3 example: 
+# mpirun -np 2 tcm3 square20.hdf -solver=petsc -dirichlet
+# mpirun -np 2 tcm3 cice2.order4.hdf -order=4 -solver=petsc -dirichlet
+#    
+tcm3p = tcm3.o $(PETSC) 
+tcm3p: $(tcm3p)
+	$(CC) $(CCFLAGS) -o tcm3p $(tcm3p) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+
+# test David's Interpolate class
+ti=   testInterpolate.o TestParameters.o InterpolateHelpfulFunctions.o testUtils.o
+ti:     $(ti); $(CC) $(CCFLAGS) -o $@ $(ti) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# test David's Interpolate class
+tifc=   testInterpolateFineToCoarse.o InterpolateHelpfulFunctions.o testUtils.o
+tifc:     $(tifc); $(CC) $(CCFLAGS) -o $@ $(tifc) $(CLIBS) $(FLIBS) $(GLIBS)
+
+tderivatives = tderivatives.o 
+tderivatives: $(tderivatives)
+	$(CC) $(CCFLAGS) -o tderivatives $(tderivatives) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+tbc = tbc.o 
+tbc: $(tbc)
+	$(CC) $(CCFLAGS) -o tbc $(tbc) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+tbcc = tbcc.o 
+tbcc: $(tbcc)
+	$(CC) $(CCFLAGS) -o tbcc $(tbcc) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+tcm3 = tcm3.o 
+tcm3: $(tcm3)
+	$(CC) $(CCFLAGS) -o tcm3 $(tcm3) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+tcm4 = tcm4.o 
+tcm4: $(tcm4)
+	$(CC) $(CCFLAGS) -o tcm4 $(tcm4) $(CLIBS) $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+
+
+clean:  
+	rm -f $(PROGRAMS) *.o  
+
+.PRECIOUS: 
+

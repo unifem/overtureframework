@@ -1,0 +1,112 @@
+\clearpage
+ \section{./cic}
+% trigonometric TZ, fx=1.000e+00, fy=1.000e+00, fz=1.000e+00
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$   & $\vert\vert\mbox{res}\vert\vert_\infty$  &  CR     &  WU    & ECR  \\   \hline 
+ $ 1$  & $ 1.5e+01$ & $0.028$ & $ 7.3$ & $0.61$ \\ 
+ $ 2$  & $ 3.9e-01$ & $0.027$ & $ 5.5$ & $0.52$ \\ 
+ $ 3$  & $ 3.3e-02$ & $0.083$ & $ 6.0$ & $0.66$ \\ 
+ $ 4$  & $ 9.9e-04$ & $0.031$ & $ 6.0$ & $0.56$ \\ 
+ $ 5$  & $ 1.3e-04$ & $0.128$ & $ 5.5$ & $0.69$ \\ 
+ $ 6$  & $ 9.3e-06$ & $0.073$ & $ 5.5$ & $0.62$ \\ 
+ $ 7$  & $ 1.6e-06$ & $0.169$ & $ 5.5$ & $0.72$ \\ 
+\hline 
+\multicolumn{5}{|c|}{Grid: cic.bbmg2.hdf. 10/03/27}  \\
+\multicolumn{5}{|c|}{BC: DDDD+PPDI.}  \\
+\multicolumn{5}{|c|}{Second-order accurate.}  \\
+\multicolumn{5}{|c|}{Trigonometric solution.}  \\
+\multicolumn{5}{|c|}{V[2,1]: rb $\omega=1.35$}  \\
+\multicolumn{5}{|c|}{6.21e+03 grid-points. 4 levels. np=1.}  \\
+\multicolumn{5}{|c|}{Average CR=$0.061$, ECR=$0.62$.}  \\
+\multicolumn{5}{|c|}{time/cycle = 1.74e-02 s.}  \\
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+
+ ========================Ogmg Summary=========================
+
+                       Grid = cic.bbmg2.hdf 
+ Ogmg::sizeOf: uMG=   0.0 M, fMG=   0.0 M, cMG=   0.3 M, defectMG=   0.1 M, uOld=   0.0 M, mgcg=   0.5 M, 
+                    operators=   0.1 M, interpolant=   0.0 M, trid=   0.0 M, direct=   0.1 M, IBS=   0.0 M
+                 ** total =    1.3 M 
+ storage allocated = 1.37e+00 MBytes,   220.8 bytes/(grid point) or   27.6 reals/(grid point)
+
+ order of accuracy = 2
+ number of levels = 4 
+ interpolate defect = 1
+ number of cycles per level= 1  1  1  1 
+ number of smooths (global) per level= [2,1]  [2,1]  [2,1]  [2,1] 
+ grid ordering in smooth is alternating.
+ auto sub-smooth determination is on.
+ number of iterations for implicit interpolation is -1
+ coarse to fine interpolation width=2.
+ fine to coarse transfer is full weighting.
+ Coarse Grid:
+   coarse grid solver : yale, direct sparse solver, no pivoting (parallel),
+                        direct sparse solver, no pivoting
+   average number of iterations per coarse grid solve =   0.0/cycle
+   coarse grid has 260 grid points (4.2e+00 % of fine grid)
+   coarse grid averaging option: Galerkin averaging
+
+grid 0 : rb[2,1] rb[2,1] rb[2,1] rb[2,1]  : square 
+         bc=[dirichlet,dirichlet] [dirichlet,dirichlet] 
+         ave no. of subSmooths: l0= 1.0, l1= 1.0, l2= 1.0, l3= 0.0, 
+         gid=[0,64][0,64][0,0], gridPoints=4761 ( 76.67%).
+grid 1 : rb[2,1] rb[2,1] rb[2,1] rb[2,1]  : Annulus 
+         bc=[periodic,periodic] [dirichlet,interp] 
+         ave no. of subSmooths: l0= 1.4, l1= 1.0, l2= 1.1, l3= 0.0, 
+         gid=[0,64][0,16][0,0], gridPoints=1449 ( 23.33%).
+
+ Corner BC: l=0 : taylor2  , l>0 taylor2  
+
+    Ogmg, Statistics  cic.bbmg2.hdf, grids=2, cycles=7, gridPoints=    6210, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............8.70e-02  1.24e-02    71.42% 
+ defect.(excluding those in smooth)....5.02e-03  7.17e-04     4.12% 
+ fine to coarse........................8.55e-03  1.22e-03     7.01% 
+ coarse to fine........................1.30e-02  1.85e-03    10.64% 
+ direct solve on coarsest level........2.41e-03  3.45e-04     1.98% 
+ miscellaneous.........................1.88e-03  2.69e-04     1.55% 
+ sum of above..........................1.18e-01  1.68e-02    96.73%  
+ Details:
+    defect called from smooth..........0.00e+00  0.00e+00  (  0.00%) (already counted)
+    relaxation part of smooth..........2.20e-02  3.14e-03  ( 18.03%) (already counted)
+    extra boundary smoothing...........0.00e+00  0.00e+00  (  0.00%) (already counted)
+    extra interpolation smoothing......0.00e+00  0.00e+00  (  0.00%) (already counted)
+    tridiagonal factor part of smooth..0.00e+00  0.00e+00  (  0.00%) (already counted)
+    tridiagonal solve part of smooth...0.00e+00  0.00e+00  (  0.00%) (already counted)
+    interpolation......................3.77e-02  5.39e-03  ( 30.97%) (already counted)
+    boundary conditions................3.73e-02  5.33e-03  ( 30.59%) (already counted)
+      (bcOpt=0.00e+00 extrap=0.00e+00 setup=-9.37e+01 geom=-5.03e+01 finish=9.37e+01 total=3.73e-02)
+    initial guess with FMG.............0.00e+00  0.00e+00  (  0.00%) (already counted)
+    fine to coarse BC's................3.53e-04  5.04e-05  (  0.29%) (already counted)
+    compute norms of defect............2.83e-03  4.05e-04  (  2.32%) (already counted)
+    ghost boundary update..............0.00e+00  0.00e+00  (  0.00%) (already counted)
+
+ total.................................1.22e-01  1.74e-02   100.00% 
+
+ initialize............................6.94e-02  9.92e-03    56.96%  (not counted above)
+    build extra levels.................3.53e-02  5.04e-03    28.95%  (already counted)
+    operator averaging.................9.12e-03  1.30e-03     7.48%  (already counted)
+    build predefined equations.........0.00e+00  0.00e+00     0.00%  (already counted)
+    oges smoother init.................0.00e+00  0.00e+00     0.00%  (already counted)
+
+ TOTAL (solve+initialize)..............1.91e-01  2.73e-02
+ total number of grid points = 6210 
+ total number of cycles      = 7 
+==== memory per-proc: [min=19.1094,ave=19.1094,max=19.1094](Mb), max-recorded=0 (Mb), total=19.1094 (Mb)
+*** timeForNeumannBC=0.00e+00 timeForBC=3.73e-02  timeForFinishBC=9.37e+01 timeForBCFinal=0.00e+00
+   timeForGeneralNeumannBC=0.00e+00 timeForExtrapolationBC=0.00e+00 
+      timeForSetupBC=-9.37e+01, timeForBCWhere=0.00e+00, timeForBCOpt=0.00e+00 timeForBC4Extrap=0.00e+00
+
+Iteration=1..7 : Total WU=4.11e+01, total res reduction=3.01e-09, ave CR=0.0606 ave ECR=0.621
+
+\end{verbatim}
+} % end footnotesize

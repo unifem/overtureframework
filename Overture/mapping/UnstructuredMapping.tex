@@ -1,0 +1,212 @@
+\section{UnstructuredMapping}
+
+% \newcommand{\figures}{.}
+
+The {\tt UnstructuredMapping} class encapsulates the connectivity for an 
+unstructured mesh.  Currently the class supports the ``Finite Element Zoo'' 
+collection of element types.  This zoo consists of quadrilaterals and triangles
+in surface meshes and hexahedra, triangle prisms, pyramids and tetrahedra in 
+volume meshes.  
+
+\subsection{Connectivity Iterator Interface}
+\input newConnectivity.tex
+
+
+\subsection{Implementation Details}
+Since the supported element types are limited to the zoo, a canonical
+ordering of the vertices, faces, edges, sides, etc., in each element
+type can be constructed.  Currently implemented three dimensional
+orderings are illustrated by Figure~\ref{fig:elementOrderings}. In two
+dimensions the vertices and faces are simply ordered counter-clockwise
+starting from 0.
+
+\begin{figure} [htb] 
+\centering
+    \includegraphics[width=6cm]{\figures/hex}
+    \includegraphics[width=6cm]{\figures/triprism}
+    \includegraphics[width=6cm]{\figures/pyramid}
+    \includegraphics[width=6cm]{\figures/tet}
+%  \mbox{
+%        \subfigure[]{\epsfig{file=\figures/hex.eps,width=.35\textwidth}}
+%        \hspace{.25in}
+%        \subfigure[]{\epsfig{file=\figures/triprism.eps,width=.35\textwidth}}}
+%  \mbox{
+%        \subfigure[]{\epsfig{file=\figures/pyramid.eps,width=.35\textwidth}}
+%        \hspace{.25in}
+%        \subfigure[]{\epsfig{file=\figures/tet.eps,width=.35\textwidth}}}
+ \caption{Canonical orderings for the 3D finite element zoo: (a) hexahedra; (b) triangle prisms; (c) pyramids; (d) tetrahedra. Black indicates vertex numbers, green indicates face indices. Smple corners are drawn in red and sides are in blue.} \label{fig:elementOrderings} 
+\end{figure}
+
+\subsection{Iterations using the old connectivity interface}
+Iterating through the connectivity using the old interface consists of using a few inlinable functions
+which abstract away the underlying representation, including the canonical 
+orderings of the elements.  Normally, a user will never even know the
+orderings exist (at least they should beware of depending upon them!). Iterations
+are also independent of the dimension of the mesh since the connectivity for
+all dimensions share the same nomenclature ( eg. an edge in 2D is the same as 
+an edge in 3D ).  The following subsections provide examples of how to 
+navigate and use the limited set of iterations available in an {\tt UnstructuredMapping}.
+\subsubsection{Element iteration}
+{\footnotesize
+\begin{verbatim}
+  // assuming an UnstructuredMapping named um exists...
+  const IntegerArray &elements = um.getElements();
+  for ( int e=0; e<um.getNumberOfElements(); e++ ) {
+      // ... do stuff with the element index
+      elementScalar(e) = whatever;
+  }
+\end{verbatim}
+}
+\subsubsection{Vertex iteration}
+{\footnotesize
+\begin{verbatim}
+  // assuming an UnstructuredMapping named um exists...
+  const IntegerArray &vertices = um.getVertices();
+  for ( int v=0; v<um.getNumberOfVertices(); v++ ) {
+      // ... do stuff with the vertex index
+      vertexScalar(v) = whatever;
+  }
+\end{verbatim}
+}
+\subsubsection{Iteration through the vertices in an element}
+{\footnotesize
+\begin{verbatim}
+  for ( int e=0; e<um.getNumberOfElements(); e++ ) {
+     for ( int v=0; v<um.getNumberOfVerticesThisElement(e); v++ ) {
+        vGlobalIndex = um.elementGlobalVertex(e,v);
+        // ... do stuff with global vertex index
+        vertexScalar(vGlobalIndex) = whatever;
+     }
+  }
+\end{verbatim}
+}
+\subsubsection{Iteration through the faces}
+{\footnotesize
+\begin{verbatim}
+  const IntegerArray &elements = um.getElements();
+  const IntegerArray &faceElements = um.getFaceElements();
+  for ( int f=0; f<um.getNumberOfFaces(); f++ ) {
+     // get the elements on either side of the face
+     int element0 = faceElements(f, 0);
+     int element1 = faceElemetns(f, 1);
+     // ... do stuff with the face and element indices
+     faceScalar(f) = whatever;
+     elementScalar(element0) += -face;
+     elementScalar(element1) +=  face;
+  }
+\end{verbatim}
+}
+\subsubsection{Iteration through the vertices in a face}
+{\footnotesize
+\begin{verbatim}
+  const IntegerArray &elements = um.getElements();
+  for ( int f=0; f<um.getNumberOfFaces(); f++ ) {
+     const IntegerArray &faceVertices = um.getFaceVertices(f);
+     for ( int v=0; v<um.getNumberOfVerticesThisFace(f); v++ )
+        vGlobalIndex = um.faceGlobalVertex(f,v);
+        // ... do stuff with global vertex index
+        vertexScalar(vGlobalIndex) = whatever;
+     }
+\end{verbatim}
+}
+
+\subsection{Enum Types}
+{\tt ElementType} enumerates the supported unstructured entity types.
+{\footnotesize
+\begin{verbatim}
+enum ElementType 
+  {
+    triangle,
+    quadrilateral,
+    tetrahedron,
+    pyramid,
+    triPrism,
+    septahedron,  // pray we never need...
+    hexahedron,
+    other,
+    boundary
+  };
+\end{verbatim}
+}
+{\tt EntityTypeEnum} is used to determine the topological dimension of a given
+entity.  
+{\footnotesize
+\begin{verbatim}
+enum EntityTypeEnum
+  {
+    Invalid=-1,
+    Vertex=0,
+    Edge,
+    Face,
+    Region,
+    Mesh, // kkc put this here to enable "Mesh" tagging...
+    NumberOfEntityTypes
+  }
+\end{verbatim}
+}
+
+\noindent
+In 2D, only triangles and quadrilaterals are supported.  More types are supported
+in 3D, but in general these consist of the ``finite element zoo''.  These elements are
+hexahedra or degenerate hexahedra.  Currently the septahedron is not supported as this 
+shape is rather unusual and rarely (?) encountered (7 nodes, 6 faces). {\tt other} 
+implies any shape not described by the previous enums and at this point could
+include arbitrary polyhedra (although the connectivity to support arbitrary 
+polyhedra is not implemented).  {\tt boundary} elements are typically placeholders.
+{\tt boundaries} will not have a specific geometry associated with them and
+may only consist of a limited set of connectivity.
+
+\subsection{File Formats}
+{\tt UnstructuredMapping}'s can be written to two different kinds of files using the
+member functions {\tt get} and {\tt put}. Using {\tt get} or {\tt put} with an Overture
+{\tt GenericDatabase} class as the first argument performs io directly to an 
+Overture database file.  During a {\tt put}, the instance's arrays {\tt node} and {\tt element}
+are written to the database file.  A {\tt get} retrieves these arrays and reconstructs the 
+connectivity.  {\tt UnstructuredMapping}'s can also be read/written to ASCII files using a simplified 
+version of a format commonly called ``ingrid'', or ``DYNA''.  This io method can be invoked 
+by calling {\tt get} and {\tt put} with a string, the filename, as the first argument.  
+The resulting file looks like :
+{\footnotesize
+\begin{verbatim}
+A text header line (optional)
+number of meshes, number of nodes, number of elements, domain dimension(optional), range dimension(optional)
+node0 ID, x0, y0, z0
+node1 ID, x1, y1, z1
+.
+.
+.
+nodeN ID, xN, yN,zN
+element0 ID, tag0, n1,n2,n3,n4,n5,n6,n7,n8
+element1 ID, tagN, node ID list
+.
+.
+.
+elementN ID, tagN, node ID list
+\end{verbatim}
+}
+\noindent
+Typically, Overture writes ``OVERTUREUMapping'' in the comment line and uses the optional
+spaces for the domain dimension and range dimension.  These details, however, are not 
+required and meshes from a variety of mesh generation tools have been read in.  The node ID
+lists in the element lines are lists of global node ID's (listed in the node section),
+that are in each element.  The ordering of the nodes in the list follows the canonical ordering
+described in Figure~\ref{fig:elementOrderings}.  Currently the code requires that the nodes
+be listed in ascending order of thier node ID's and that the node IDs be contiguous.  By the way,
+the number of meshes in the file is ignored, only one mesh per file is supported at the moment.
+
+\subsection{Relationship to Normal Overture Mappings}
+While {\tt UnstructuredMapping} inherits from class {\tt Mapping}, 
+there are a few caveats.  By its very nature, the inverse does not exist for 
+an {\tt UnstructuredMapping}.  Any use of an {\tt UnstructuredMapping} in the context of 
+mapping inverses should be prevented; all member functions dealing with inverses now throw exceptions.
+However, a domainDimension and rangeDimension are both still used in the mapping to
+help donote the difference between 2D meshes, 3D surface meshes and 3D volume meshes.
+With these exceptions, {\tt UnstructuredMapping}s should play nicely with conventional
+sturctured ones.  In particular, a structured mapping can be converted into an unstructured
+one by using the member function {\tt buildFromAMapping}. 
+
+%% \subsection{New Connectivity Interface}
+% \input newConnectivity.tex
+%% \subsection{Member Function Descriptions}
+%% \input UnstructuredMappingImp.tex
+%% \input UnstructuredMappingInclude.tex

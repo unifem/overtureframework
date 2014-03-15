@@ -1,0 +1,16 @@
+# Type "make check" to run the regression tests
+# NOTE: The file tests contains the list of test cases
+
+common = ../../common
+check:
+	ln -sf $(common)/src/check.p .
+	check.p -solver=cgad
+
+check-quiet:
+	ln -sf $(common)/src/check.p .
+	check.p -solver=cgad -verbose=0
+
+cgad:
+	@cd ..;      $(MAKE) -$(MAKEFLAGS) cgad
+
+

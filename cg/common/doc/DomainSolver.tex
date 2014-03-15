@@ -1,0 +1,122 @@
+%-----------------------------------------------------------------------
+% DomainSolver documentation.
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+\usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\input documentationPageSize.tex
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\Overture}{{\bf Over\-ture\ }}
+\newcommand{\ogenDir}{/home/henshaw/Overture/ogen}
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+\def\comma  {~~~,~~}
+\newcommand{\uvd}{\mathbf{U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+% \newcommand{\omegav}{\mathbf{\omega}}
+% \newcommand{\Omegav}{\mathbf{\Omega}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\cm}{{\rm cm}}
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+{\bf DomainSolver}: The CG Base Class PDE Solver \\
+}
+\vspace{2\baselineskip}
+Kyle K. Chand  \\
+William D. Henshaw  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+% UCRL-MA-134289
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This document describes the {\bf DomainSolver} class.
+\end{flushleft}
+
+\clearpage
+\tableofcontents
+% \listoffigures
+
+\vfill\eject
+
+
+\section{Introduction}
+
+Here is a description of the class DomainSolver. This class is the base class for PDE solvers such 
+as Cgins, Cgcns, Cgad and Cgasf. This document is currently under development. 
+
+
+\input DomainSolverInclude.tex
+
+
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\printindex
+
+
+\end{document}

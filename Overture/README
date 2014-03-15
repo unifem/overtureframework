@@ -1,0 +1,35 @@
+This is the Overture from the CVS repository
+
+To build a distribution of Overture:
+
+  (1) Define the environmental variable $OvertureBuild to be
+      the directory where you want to build distribution.
+      For example,
+         setenv OvertureBuild /home/henshaw/Overture.v18
+
+  (2) type 
+         buildOverture
+
+      This will create the $OvertureBuild directory and copy files into it.
+      The buildOverture script will call a 'build' script in each sub-directory
+      (for example mapping/build or grid/build) to copy files from that subdirectory into 
+       the $OvertureBuild directory.
+
+  (3) Go to the $OvertureBuild directory and run configure and make.
+
+
+To make changes to Overture source files:
+
+  (1) Go to the appropriate sub-directory in this directory, such as mapping
+     or grid or gf ...
+
+  (2) Make changes to a file such as mapping/SplineMapping.C
+      Test the changes using the appropriate test routine such as mapping/pm.C
+      (You may have to edit the mapping/Makefile to compile pm.C with SplineMapping.o)
+      
+      If you change a header file, such as mapping/Mapping.h you may have to rebuild 
+      the Overture distribution, $OvertureBuild. You can type 'build' from
+      the mapping directory which will copy all appropriate files from mapping
+      into $OvertureBuild. You can then go to $OvertureBuild and type make. You may
+      first have to type 'make clean' or 'make cleano' to clean out all .o files.
+      

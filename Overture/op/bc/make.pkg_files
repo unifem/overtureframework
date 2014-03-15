@@ -1,0 +1,12 @@
+PKGDIR := $(OvertureCheckout)/op/bc
+
+L_SRC := $(addsuffix .C, aDotU dirichlet u_dirichlet extrapolate generalizedDivergence generalMixed) \
+	$(addsuffix .C, aDotGradU neumann normalComponent normalDerivative symmetry tangential normalDotScalarGrad) 
+
+SRC_FILES += $(L_SRC)
+
+L_HDRS := bc/assignBoundaryConditions.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+

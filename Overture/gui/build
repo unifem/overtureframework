@@ -1,0 +1,36 @@
+#!/bin/csh -f
+
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "Copy GUI files into the $ovDir/Ogshow directory..."
+
+# here is where the library is
+set Overture        = $ovDir
+set OvertureOgshow = $ovDir/Ogshow
+set OvertureStatic = $ovDir/static
+set OvertureInclude = $ovDir/include
+
+cp {ColourBar,colourTable,DialogData,GenericGraphicsInterface}.C $OvertureOgshow
+cp {getAnswer,GL_GraphicsInterface,GraphicsParameters,GUIState,helpOverture}.C $OvertureOgshow
+cp {label,osRender,OvertureParser,plotAxes,plotPoints,render}.C $OvertureOgshow
+cp {stroke,textGetMenu,tlist,xColours,DialogState}.C $OvertureOgshow
+# use mogl.C.backup with X11, mogNull.C without X11: 
+cp mogl.C $OvertureStatic/mogl.C.backup
+cp moglNull.C $OvertureStatic/moglNull.C
+
+cp {ColourBar,DialogData,GenericGraphicsInterface,GL_GraphicsInterface,GraphicsParameters}.h $OvertureInclude
+
+# wdh: mathutil.h and wdhdefs.h were moved to ../include
+cp {GUIInit,GUIState,GUITypes,OvertureParser,PlotStuff,PlotStuffParameters,xColours,DialogState}.h $OvertureInclude
+cp {mogl}.h $OvertureInclude

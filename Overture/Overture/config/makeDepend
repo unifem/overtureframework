@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+# perl program to run makedepend and redirect the warning messages.
+# there must be an easier way!
+
+
+printf("run makedepend ...\n");
+
+open(STDERR,">makeDepend.tempFile" ) || die "unable to open makeDepend.tempFile";
+
+system(" (makedepend @ARGV ) > makeDepend.tempFile");
+
+close(STDERR);
+unlink( "makeDepend.tempFile" );
+
+printf("...done\n");
+
+exit
+

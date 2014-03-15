@@ -1,0 +1,39 @@
+\subsection{Constructor}
+ 
+\newlength{\SquareMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\SquareMappingIncludeArgIndent}{SquareMapping(}% 
+SquareMapping( const real xa\_, const real xb\_, const real ya\_, const real yb\_ ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Build a mapping for a square with given bounds.
+\item[{\bf xa\_, xb\_, ya\_, yb\_ (input) :}]  The square is [xa\_,xb\_]$\times$[ya\_,yb\_].
+\end{description}
+\subsection{getVertices}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\SquareMappingIncludeArgIndent}{getVertices(}%
+getVertices(real \& xa\_ , real \& xb\_ , real \& ya\_ , real \& yb\_  ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  return the vertices of the square.
+\item[{\bf xa\_, xb\_, ya\_, yb\_ (output) :}]  The square is [xa\_,xb\_]$\times$[ya\_,yb\_].
+\item[{\bf Return value:}]  is the z-level 
+\end{description}
+\subsection{setVertices}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\SquareMappingIncludeArgIndent}{setVertices(}%
+setVertices(const real xa\_  =0., \\ 
+\hspace{\SquareMappingIncludeArgIndent}const real xb\_  =1., \\ 
+\hspace{\SquareMappingIncludeArgIndent}const real ya\_  =0.,\\ 
+\hspace{\SquareMappingIncludeArgIndent}const real yb\_  =1.,\\ 
+\hspace{\SquareMappingIncludeArgIndent}const real z\_   =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Build a mapping for a square with given corners.
+\item[{\bf xa\_, xb\_, ya\_, yb\_ (input) :}]  The square is [xa\_,xb\_]$\times$[ya\_,yb\_].
+\item[{\bf z\_ :}]  z level if the rangeDimension is 3.
+\end{description}

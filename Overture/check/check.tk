@@ -1,0 +1,215 @@
+#!/usr/bin/wish -f
+
+# --- here is the person running this script:
+set user $env(USER)
+
+# --- .baseOptions is a frame that holds options for the base class -----
+frame .baseOptions
+
+# ------ Here is where we get the source  ------
+
+frame .sourceFrame
+label .sourceLabel -text "Source of Package" -pady 1m -padx 10m -background turquoise
+pack .sourceLabel -in .sourceFrame
+set sourceName "user source"
+foreach file { "cvs repository" "user source"  } {
+ radiobutton .$file -text "$file" -variable sourceName -value $file -anchor w
+ pack .$file -in .sourceFrame -side top -fill x
+}
+
+# ------ Here is the package (Overture or OverBlown)  ------
+
+set packageButton(1) {overture}
+set packageButton(2) {overBlown}
+
+set package(1) {Overture}
+set package(2) {OverBlown}
+
+frame .packageFrame
+label .packageLabel -text "Package" -pady 1m -padx 10m -background mediumturquoise
+pack .packageLabel -in .packageFrame
+set packageName "Overture"
+foreach i {1 2} {
+ radiobutton .$packageButton($i) -text "$package($i)" -variable packageName -value $package($i) -anchor w
+ pack .$packageButton($i) -in .packageFrame -side top -fill x
+}
+
+
+
+# ---- frame .optionsCVS holds options chen checking out of CVS--------
+frame .optionsCVS
+label .optionsCVSLabel -text "CVS Options" -pady 1m -background powderBlue
+
+
+set copyCVS 1
+checkbutton .checkoutCVS -text "checkout CVS to dest" -variable copyCVS -anchor w
+
+set updatefromCVS 1
+checkbutton .updatefromCVS -text "update CVS to dest" -variable updatefromCVS -anchor w
+
+set buildCVS 1
+checkbutton .buildCVS -text "buildOverture from dest" -variable buildCVS -anchor w
+
+# set makeCVS 1
+# checkbutton .makeCVS -text "run make" -variable makeCVS -anchor w
+
+pack .optionsCVSLabel .checkoutCVS .updatefromCVS .buildCVS -in .optionsCVS -side top -fill x -padx 1m
+
+
+# ---- frame .optionsUSER holds options chen checking out of USER--------
+frame .optionsUSER
+label .optionsUSERLabel -text "User Source Options" -pady 1m -background cyan
+
+set copyUSER 1
+checkbutton .copyUSER -text "copy user source to dest" -variable copyUSER -anchor w
+
+set updateUSER 0
+
+set buildUSER 1
+checkbutton .buildUSER -text "buildOverture from dest" -variable buildUSER -anchor w
+
+# set makeUSER 1
+# checkbutton .makeUSER -text "run make" -variable makeUSER -anchor w
+
+pack .optionsUSERLabel .copyUSER .buildUSER -in .optionsUSER -side top -fill x -padx 1m
+
+
+# --- Here is the frame where we enter numerical values into entry widgets ----
+frame .entryFrame
+
+# ----  machine ----
+label .machineLabel -text "Machine to Use" -pady 1m -background aquamarine
+
+frame .intelMachineNameFrame
+# set intelMachineName tux83
+set intelMachineName ilx3
+label .intelNameLabel -text "intel:"
+entry .intelMachineNameEntry -width 5 -relief sunken -bd 2 -textvariable intelMachineName
+pack .intelNameLabel .intelMachineNameEntry -in .intelMachineNameFrame -side left -padx 1m -pady 1m 
+
+frame .decMachineNameFrame
+# interactive nodes with more memory are gps15 and gps16
+set decMachineName gps15  
+label .decNameLabel -text "dec:"
+entry .decMachineNameEntry -width 5 -relief sunken -bd 2 -textvariable decMachineName
+pack .decNameLabel .decMachineNameEntry -in .decMachineNameFrame -side left -padx 1m -pady 1m 
+
+
+pack .machineLabel .intelMachineNameFrame .decMachineNameFrame -in .entryFrame  -anchor e -side top -fill x -padx 1m
+
+# ------ Here are the possible platforms that we can use ------
+frame .platformFrame
+
+label .fileNamesLabel -text "platform" -pady 1m -background PaleGreen -padx 5m
+pack .fileNamesLabel -in .platformFrame
+
+set platformName(1) {intel.d.gcc}
+set platformName(2) {intel.s.gcc}
+set platformName(3) {dec.d.cxx}
+set platformName(4) {dec.d.cxx.mpi}
+set platformName(5) {intel.d.gcc.ifc}
+set platformName(6) {intel.d.gcc.fort77}
+set platformName(7) {intel.s.gcc.g77}
+
+set buttonName(1) {intel dp gcc}
+set buttonName(2) {intel sp gcc}
+set buttonName(3) {dec dp cxx}
+set buttonName(4) {dec dp cxx mpi}
+set buttonName(5) {intel dp gcc ifc}
+set buttonName(6) {intel dp gcc fort77}
+set buttonName(7) {intel sp gcc g77}
+
+
+set platform {intel.d.gcc}
+
+foreach i {1 2 3 4 5 6 7 } {
+ radiobutton .$buttonName($i) -text "$platformName($i)" -variable platform -value $platformName($i) -anchor w
+ pack .$buttonName($i) -in .platformFrame -side top -fill x
+}
+
+pack .platformFrame .optionsCVS .optionsUSER .entryFrame -side left -anchor n -in .baseOptions -fill x -padx 1m
+
+
+frame .sourceDirectoryFrame
+if { $user == "henshaw" } { set sourceDirectory "/home/henshaw/Overture" }
+if { $user == "chand"   } { set sourceDirectory "/home/chand/overture/views/OvertureCVS/Overture" }
+if { $user == "andersp" } { set sourceDirectory "/home/andersp/src/Overture" }
+label .sourceNameLabel -text "user source:"
+entry .sourceNameEntry -width 50 -relief sunken -bd 2 -textvariable sourceDirectory
+pack .sourceNameLabel .sourceNameEntry -in .sourceDirectoryFrame -side left -padx 1m -pady 1m 
+
+frame .intelDestDirectoryFrame
+# ** set intelDestDirectory "/home/henshaw2/Overture.check"
+set intelDestDirectory "/var/tmp/$user"
+if { $user == "henshaw"   } { set intelDestDirectory "/home/henshaw2/Overture.check" }
+if { $user == "chand"   } { set intelDestDirectory "/home/chand/scratch.64/Overture.check" }
+if { $user == "andersp" } { set intelDestDirectory "/home/andersp/Overture.check" }
+
+label .intelDestNameLabel -text "intel dest:"
+entry .intelDestNameEntry -width 50 -relief sunken -bd 2 -textvariable intelDestDirectory
+pack .intelDestNameLabel .intelDestNameEntry -in .intelDestDirectoryFrame -side left -padx 1m -pady 1m 
+
+
+frame .decDestDirectoryFrame
+set decDestDirectory "/var/tmp/$user"
+if { $user == "henshaw" } { set decDestDirectory "/g/g91/$user" }
+if { $user == "chand"   } { set decDestDirectory "/g/g17/$user" }
+if { $user == "andersp" } { set decDestDirectory "/var/tmp/$user" }
+label .decDestNameLabel -text "dec dest:"
+entry .decDestNameEntry -width 50 -relief sunken -bd 2 -textvariable decDestDirectory
+pack .decDestNameLabel .decDestNameEntry -in .decDestDirectoryFrame -side left -padx 1m -pady 1m 
+
+# ----------------------------------------------------------------------------------
+set debug 0
+checkbutton .debug -text "debug" -variable debug -anchor w
+# ----------------------------------------------------------------------------------
+
+button .start -text "Run check" -background yellow -foreground blue -pady 1m \
+   -activebackground green -activeforeground blue  \
+   -command { 
+
+.start configure -text "Running" -background green -foreground blue
+
+# Here are defaults:
+puts "Start testDistribution..." ; 
+
+set checkCVS "true"
+set checkout "true"
+set update "true"
+set build "true"
+
+if { $sourceName == "user source" } {
+  set checkCVS "false"
+} else {
+  set checkCVS "true";
+}
+if { $copyUSER == 1 } { set userCheckout "true" } else { set userCheckout "false" }
+if { $updateUSER == 1 } { set userUpdate "true" } else { set userUpdate "false" }
+if { $buildUSER == 1 } { set userBuild "true" } else { set userBuild "false" }
+
+if { $copyCVS == 1 } { set cvsCheckout "true" } else { set cvsCheckout "false" }
+if { $updatefromCVS == 1 } { set cvsUpdate "true" } else { set cvsUpdate "false" }
+if { $buildCVS == 1 } { set cvsBuild "true" } else { set cvsBuild "false" }
+
+if { $sourceName == "user source"  } { set checkout $userCheckout } else { set checkout $cvsCheckout }
+if { $sourceName == "user source"  } { set update $userUpdate } else { set update $cvsUpdate }
+if { $sourceName == "user source"  } { set build $userBuild } else { set build $cvsBuild }
+
+if { $debug == 1 } { set debugValue "true" } else { set debugValue "false" }
+
+puts "testDistribution platform=$platform cvs=$checkCVS checkout=$checkout update=$update build=$build intel=$intelMachineName dec=$decMachineName checkoutDir=$sourceDirectory intelDirectory=$intelDestDirectory decDirectory=$decDestDirectory package=$packageName debug=$debugValue >@stdout"
+
+# set pid 0
+
+# this is how to run in the background -- but how do we know when we are done?
+# set pid [exec testDistribution platform=$platform cvs=$checkCVS checkout=$checkout update=$update build=$build intel=$intelMachineName dec=$decMachineName checkoutDir=$sourceDirectory intelDirectory=$intelDestDirectory decDirectory=$decDestDirectory debug=$debugValue >@stdout <@stdin &]
+
+exec testDistribution platform=$platform cvs=$checkCVS checkout=$checkout update=$update build=$build intel=$intelMachineName dec=$decMachineName checkoutDir=$sourceDirectory intelDirectory=$intelDestDirectory decDirectory=$decDestDirectory package=$packageName debug=$debugValue >@stdout <@stdin 
+
+# puts "pid = $pid"
+
+}
+
+button .done -text "exit" -command exit
+
+pack .start .done .sourceFrame .packageFrame .baseOptions .debug .sourceDirectoryFrame .intelDestDirectoryFrame .decDestDirectoryFrame -side top -pady 2m

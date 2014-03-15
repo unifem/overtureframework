@@ -1,0 +1,488 @@
+#
+#  Generate bpp macros that evaluate the coefficient matrix for a Differential Operator such
+#   as the Laplacian or D/Dx, D/Dy, ...
+#
+#
+# restart: read "stencilCoeff.maple";
+with(StringTools):
+
+# read in the DuDx array of derivative definitions:
+read "derivativesByChainRule.maple":
+
+rName := [ r, s, t ]:
+rxName:= [ rx, ry, rz, sx, sy, sz, tx, ty, tz ]:
+
+nMax:=11:     # max stencil size
+nd:=nMax-1:
+md:=nd:
+
+# ------------   difference weights from a routine by Bengt Fornberg: ------
+read "differenceWeights.maple";
+# compute difference weights for derivatives to various orders of accuracy, return results in c
+computeDifferenceWeights(nd,md,c):
+
+
+getStencilCoefficient :=proc( dudx,i1,i2,i3, maxPartial, orderOfAccuracy,dim,dividedDifference )
+# *******************************************************************************
+# dudx (input) : symbolic representation of the operator such as
+#                   dudx := rx^2*urr + ...:
+# i1,i2,i3 (input) : stencil position, eg. (i1,i2,i3)=(-1,0,0)
+# maxPartial (input) : the largest partial derivative to be expected
+# orderOfAccuracy (input) : order of accuracy (2,4,6,..)
+# dim : number of space dimensions
+# dividedDifference : 1 for divided differences, 0 for un-divided
+# *******************************************************************************
+
+local nr,ns,nt,urn,u,i,cw,idz,cd,rName,dr,ds,dt:
+
+rName := [ r, s, t ]:
+cd := dudx:
+
+if dim=2 then idz:=0: else idz:=maxPartial: end if:
+
+# for each parametric derivative ur, us, urr, ...
+for nt from 0 to idz do:
+for ns from 0 to maxPartial do:
+for nr from 0 to maxPartial do:
+if nr+ns+nt > 0 then
+
+  # form the name of this parametric derivative, such as ur or urs etc.
+  urn := u;
+  for i from 1 to nr do urn:=cat(urn,rName[1]): end do:
+  for i from 1 to ns do urn:=cat(urn,rName[2]): end do:
+  for i from 1 to nt do urn:=cat(urn,rName[3]): end do:
+
+  # Note for nr=0 : the operator is the identity: 1 for i1=0, 0 otherwise
+  cw := 1:
+  if dividedDifference=1 then
+    cw := cw*getWeight(i1,nr,orderOfAccuracy)/dr^nr:
+    cw := cw*getWeight(i2,ns,orderOfAccuracy)/ds^ns: 
+    if dim=3 then cw := cw*getWeight(i3,nt,orderOfAccuracy)/dt^nt: end if:
+  else
+    cw := cw*getWeight(i1,nr,orderOfAccuracy):
+    cw := cw*getWeight(i2,ns,orderOfAccuracy): 
+    if dim=3 then cw := cw*getWeight(i3,nt,orderOfAccuracy): end if:
+  end if:
+
+  if 0=1 then 
+    printf("getStencilCoeff: nr=%d ns=%d : coeff of %s(%d,%d,%d) = %s\n",nr,ns,convert(urn,string),
+           i1,i2,i3,convert(cw,string)):
+  end if:
+
+  # Now replace ur, urr, urs in the derivative expression by the difference-stencil weight:
+  cd := subs(urn=cw,cd):
+
+end if:
+end do:
+end do:
+end do:
+
+RETURN(cd):
+end:
+
+# restart: read "stencilCoeff.maple";
+
+# --------------------------------------------------------------------------------
+  # -----------
+  substituteStrings :=proc( cd )
+   local m,cds,rxs:
+    cds := convert(cd,string):
+    cds := SubstituteAll(cds,"^","**"):
+
+    # to avoid division by integers in fortran, convert numbers for reals
+    cds := SubstituteAll(cds,"0*","0.*"):
+    cds := SubstituteAll(cds,"1*","1.*"):
+    cds := SubstituteAll(cds,"2*","2.*"):
+    cds := SubstituteAll(cds,"3*","3.*"):
+    cds := SubstituteAll(cds,"4*","4.*"):
+    cds := SubstituteAll(cds,"5*","5.*"):
+    cds := SubstituteAll(cds,"6*","6.*"):
+    cds := SubstituteAll(cds,"7*","7.*"):
+    cds := SubstituteAll(cds,"8*","8.*"):
+    cds := SubstituteAll(cds,"9*","9.*"):
+
+    cds := SubstituteAll(cds,"0/","0./"):
+    cds := SubstituteAll(cds,"1/","1./"):
+    cds := SubstituteAll(cds,"2/","2./"):
+    cds := SubstituteAll(cds,"3/","3./"):
+    cds := SubstituteAll(cds,"4/","4./"):
+    cds := SubstituteAll(cds,"5/","5./"):
+    cds := SubstituteAll(cds,"6/","6./"):
+    cds := SubstituteAll(cds,"7/","7./"):
+    cds := SubstituteAll(cds,"8/","8./"):
+    cds := SubstituteAll(cds,"9/","9./"):
+
+    cds := SubstituteAll(cds,"dr","dr(0)"):
+    cds := SubstituteAll(cds,"ds","dr(1)"):
+    cds := SubstituteAll(cds,"dt","dr(2)"):
+
+    cds := SubstituteAll(cds,"/dr(0)/dr(1)","/(dr(0)*dr(1))"):
+    cds := SubstituteAll(cds,"/dr(0)/dr(2)","/(dr(0)*dr(2))"):
+    cds := SubstituteAll(cds,"/dr(1)/dr(2)","/(dr(1)*dr(2))"):
+
+    for m from 1 to 9 do
+      rxs := convert(rxName[m],string):
+      cds := SubstituteAll(cds,rxs,cat("aj ## ",rxs)):
+    end do:
+
+  RETURN(cds):
+  end:
+  # -------------
+
+
+
+orderStart:=2:    # start at this order of accuracy 
+maxOrder:=8:      # max order of accuracy 
+maxPartial:=4:    # max partial derivative 
+
+#maxOrder:=2:      # max order of accuracy 
+#maxPartial:=2:    # max partial derivative 
+
+
+# ------------------------- ORDER OF ACCURACY -----------------------------------------
+for orderOfAccuracy from orderStart by 2 to maxOrder do
+
+
+# ---- bpp macros are saved in this ned file: ------
+fileName:=cat("opStencilCoeffOrder",cat(convert(orderOfAccuracy,string),".h")):
+printf("\n\n ==== START FILE %s ====\n\n",convert(fileName,string)):
+file := fopen( fileName,WRITE ):
+
+fprintf(file,"! This file, %s,  was generated by Overture/op/src/stencilCoeff.maple\n\n",convert(fileName,string)):
+fprintf(file,"! ****************************************************************************** \n"):
+fprintf(file,"! **** This file contains bpp macros to evaluate the coefficient matrix for **** \n"):
+fprintf(file,"! **** derivatives such as x,y,z,xx,yy,zz,laplacian,rr,ss,tt,rrrr,ssss      **** \n"):
+fprintf(file,"! ****************************************************************************** \n"):
+fprintf(file,"\n"):
+
+
+# ==================Start loop over dimension ==============================================
+for dim from 2 to 3 do: # 2D or 3D
+
+  fprintf(file,"\n! *** dim=%d, orderOfAccuracy = %d *** \n\n",dim,orderOfAccuracy):
+
+ndd:=20:  # MAX number of derivatives that we get coefficients for 
+dudxa := array(1..ndd):
+dNamea := array(1..ndd):
+ordera := array(1..ndd):
+numDeriv := array(1..ndd):
+
+# ------------ make a list of derivatives that we define coefficient macros for -------------
+m:=1:
+dNamea[m]:="x": dudxa[m]:=DuDx[1,0,0,dim]: ordera[m]:=maxOrder: numDeriv[m]:=1: m:=m+1:
+dNamea[m]:="y": dudxa[m]:=DuDx[0,1,0,dim]: ordera[m]:=maxOrder:  numDeriv[m]:=1: m:=m+1:
+if dim=3 then dNamea[m]:="z": dudxa[m]:=DuDx[0,0,1,dim]: ordera[m]:=maxOrder:  numDeriv[m]:=1: m:=m+1: end if:
+
+dNamea[m]:="laplacian": dudxa[m]:=DuDx[2,0,0,dim]+ DuDx[0,2,0,dim]: ordera[m]:=maxOrder: numDeriv[m]:=2: 
+if dim=3 then dudxa[m]:= dudxa[m] + DuDx[0,0,2,dim]: end if: m:=m+1:
+
+dNamea[m]:="xx": dudxa[m]:=DuDx[2,0,0,dim]: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="xy": dudxa[m]:=DuDx[1,1,0,dim]: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="yy": dudxa[m]:=DuDx[0,2,0,dim]: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+
+if dim=3 then 
+  dNamea[m]:="xz": dudxa[m]:=DuDx[1,0,1,dim]: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+  dNamea[m]:="yz": dudxa[m]:=DuDx[0,1,1,dim]: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+  dNamea[m]:="zz": dudxa[m]:=DuDx[0,0,2,dim]: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+end if:
+
+dNamea[m]:="rr": dudxa[m]:=urr: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="ss": dudxa[m]:=uss: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+
+
+dNamea[m]:="rrrr": dudxa[m]:=urrrr: ordera[m]:=maxOrder: numDeriv[m]:=4: m:=m+1:
+dNamea[m]:="ssss": dudxa[m]:=ussss: ordera[m]:=maxOrder: numDeriv[m]:=4: m:=m+1:
+
+if dim=2 then 
+
+  dNamea[m]:="r2Dissipation": dudxa[m]:=urr+uss: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+  dNamea[m]:="r4Dissipation": dudxa[m]:=urrrr+ussss: ordera[m]:=maxOrder: numDeriv[m]:=4: m:=m+1:
+  
+else
+
+  dNamea[m]:="r2Dissipation": dudxa[m]:=urr+uss+utt: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+  dNamea[m]:="r4Dissipation": dudxa[m]:=urrrr+ussss+utttt: ordera[m]:=maxOrder: numDeriv[m]:=4: m:=m+1:
+
+  dNamea[m]:="tt": dudxa[m]:=utt: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+  dNamea[m]:="tttt": dudxa[m]:=utttt: ordera[m]:=maxOrder: numDeriv[m]:=4: m:=m+1:
+
+end if:
+
+# dNamea[m]:="xLap": dudxa[m]:=DuDx[3,0,0,dim]+ DuDx[1,2,0,dim]: ordera[m]:=maxOrder-2: numDeriv[m]:=3: m:=m+1:
+# dNamea[m]:="yLap": dudxa[m]:=DuDx[2,1,0,dim]+ DuDx[0,3,0,dim]: ordera[m]:=maxOrder-2: numDeriv[m]:=3: m:=m+1:
+# dNamea[m]:="lapSq": dudxa[m]:=DuDx[4,0,0,dim]+ 2*DuDx[2,2,0,dim]+ DuDx[0,4,0,dim]: 
+#                    ordera[m]:=maxOrder-2: numDeriv[m]:=4: m:=m+1:
+# dNamea[m]:="xLapSq": dudxa[m]:=DuDx[5,0,0,dim]+ 2*DuDx[3,2,0,dim]+ DuDx[1,4,0,dim]: 
+#                     ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+# dNamea[m]:="yLapSq": dudxa[m]:=DuDx[4,1,0,dim]+ 2*DuDx[2,3,0,dim]+ DuDx[0,5,0,dim]: 
+#                     ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+# dNamea[m]:="lapCubed": dudxa[m]:=DuDx[6,0,0,dim]+ 3*(DuDx[4,2,0,dim]+DuDx[2,4,0,dim])+ DuDx[0,6,0,dim]: 
+#                       ordera[m]:=maxOrder-4: numDeriv[m]:=6: m:=m+1:
+# dNamea[m]:="xxx": dudxa[m]:=DuDx[3,0,0,dim]: ordera[m]:=maxOrder-2: numDeriv[m]:=3: m:=m+1:
+# dNamea[m]:="xxy": dudxa[m]:=DuDx[2,1,0,dim]: ordera[m]:=maxOrder-2: numDeriv[m]:=3: m:=m+1:
+# dNamea[m]:="xyy": dudxa[m]:=DuDx[1,2,0,dim]: ordera[m]:=maxOrder-2: numDeriv[m]:=3: m:=m+1:
+# dNamea[m]:="yyy": dudxa[m]:=DuDx[0,3,0,dim]: ordera[m]:=maxOrder-2: numDeriv[m]:=3: m:=m+1:
+# 
+# dNamea[m]:="xxxxx": dudxa[m]:=DuDx[5,0,0,dim]: ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+# dNamea[m]:="xxxxy": dudxa[m]:=DuDx[4,1,0,dim]: ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+# dNamea[m]:="xxxyy": dudxa[m]:=DuDx[3,2,0,dim]: ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+# dNamea[m]:="xxyyy": dudxa[m]:=DuDx[2,3,0,dim]: ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+# dNamea[m]:="xyyyy": dudxa[m]:=DuDx[1,4,0,dim]: ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+# dNamea[m]:="yyyyy": dudxa[m]:=DuDx[0,5,0,dim]: ordera[m]:=maxOrder-4: numDeriv[m]:=5: m:=m+1:
+
+
+numberOfDerivatives := m-1:
+
+# numberOfDerivatives := 1: # ************************
+
+derivStart:=1; derivEnd:=numberOfDerivatives; 
+
+# for testing: 
+# maxOrder := 2:
+# derivStart:=3: derivEnd:=3:
+
+
+
+
+for ii from derivStart to derivEnd do
+if orderOfAccuracy<=ordera[ii] then
+
+  dudx:=dudxa[ii]:
+  dName:=dNamea[ii]:
+
+  # A couple of operators use un-divided differences: 
+  dividedDifference:=1;
+  if dName="r2Dissipation" or dName="r4Dissipation" then
+   dividedDifference:=0:
+  end if:
+
+  halfWidth:=floor( (orderOfAccuracy+(numDeriv[ii]-1))/2 ): 
+
+  printf("..ii=%d, derivative %s, order=%d, dim=%d numDeriv=%d halfWidth=%d dividedDifference=%d\n",ii,convert(dName,string),
+         orderOfAccuracy,dim,numDeriv[ii],halfWidth,dividedDifference):
+  # printf("\n Derivative DuDx=%s\n",convert(dudx,string)):
+  
+  # names are uxxCoeffOrder%iGhostr1s0t0 : 
+  fprintf(file,"\#beginMacro %sCoeffOrder%dDim%d(coeff,aj)\n",convert(dName,string),orderOfAccuracy,dim);
+  fprintf(file,"! Operator %s = %s\n",convert(dName,string),convert(dudx,string));
+
+  # assign temporary variables to be the coefficients of ur, us, urr, urs, uss,....
+  rName := [ r, s, t ]:
+
+  dudr := 0;  # holds version of dudx with temp names cur, cus, curr, ... 
+  # for each parametric derivative ur, us, urr, ...
+  if dim=2 then idz:=0: else idz:=numDeriv[ii]: end if:
+  for nt from 0 to idz do:
+  for ns from 0 to numDeriv[ii] do:
+  for nr from 0 to numDeriv[ii] do:
+  if nr+ns+nt > 0 then
+
+    # form the name of this parametric derivative, such as ur or urs etc.
+    urn := u;
+    for i from 1 to nr do urn:=cat(urn,rName[1]): end do:
+    for i from 1 to ns do urn:=cat(urn,rName[2]): end do:
+    for i from 1 to nt do urn:=cat(urn,rName[3]): end do:
+
+    rcoeff := coeff(dudx,urn):
+    if rcoeff <> 0 then
+      rcs:=substituteStrings(rcoeff):
+      if rcoeff <> 1 then
+        fprintf(file," c%s = %s\n",convert(urn,string),convert(rcs,string)):
+        dudr := dudr + cat('c',urn)*urn:
+      else
+        dudr := dudr + urn:
+      end if:
+    end if:
+
+
+  end if:
+  end do:
+  end do:
+  end do:
+
+
+  #  ... this is a bit in-efficient to do one stencil point at a time, but good enough for now ....
+  if dim=2 then halfWidth3:=0: else halfWidth3:=halfWidth: end if:
+  for i3 from -halfWidth3 by 1 to halfWidth3 do
+  for i2 from -halfWidth by 1 to halfWidth do
+  for i1 from -halfWidth by 1 to halfWidth do
+
+    # Find the coefficient of point u(i1,i2,i3) : 
+
+    cd := getStencilCoefficient( dudr,i1,i2,i3, numDeriv[ii], orderOfAccuracy,dim,dividedDifference ):
+    # ** cd:=collect(simplify(cd),{dr,ds,dt}):
+    # dn:=denom(cd):
+    cds:=substituteStrings(cd):
+  
+    fprintf(file," coeff(ma%d(%2d,%2d,%2d)) = %s \n",dim,i1,i2,i3,convert(cds,string)):
+  
+    # if dim=2 then
+    #   fprintf(file,"#defineMacro %sCoeff%ddOrder%dGhost%d%d(aj,dr,ds) ( %s )\n\n",convert(dName,string),
+    #           dim,orderOfAccuracy,-i1,-i2,convert(cds,string)):
+    # else
+    #   fprintf(file,"#defineMacro %sCoeff%ddOrder%dGhost%d%d%d(aj,dr,ds,dt) ( %s )\n\n",convert(dName,string),
+    #           dim,orderOfAccuracy,-i1,-i2,-i3,convert(cds,string)):
+    # end if:
+
+    #  printf(" Derivative: coeff(%d,%d,%d) = %s (denom=%s)\n",i1,i2,i3,convert(cds,string),convert(dn,string)):
+    #                     convert(denom(cd),string),):
+  end do:
+  end do:
+  end do:
+
+  fprintf(file,"\#endMacro\n\n");
+
+end if:
+end do: # end ii
+
+
+# ***********************************************************
+# ************ Cartesian Grid Versions **********************
+# ***********************************************************
+
+# ************* pretend the operators are parameter derivatives, then change r -> x etc. **********
+
+printf(" ********** CARTESIAN GRID VERSIONS dim=%d *****\n",dim):
+
+
+m:=1:
+
+dNamea[m]:="x": dudxa[m]:=ur: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="y": dudxa[m]:=us: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+
+dNamea[m]:="xx": dudxa[m]:=urr: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="xy": dudxa[m]:=urs: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="yy": dudxa[m]:=uss: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+
+
+if dim=2 then 
+
+dNamea[m]:="laplacian": dudxa[m]:=urr+uss: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+  
+else
+
+dNamea[m]:="z": dudxa[m]:=ut: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+
+dNamea[m]:="xz": dudxa[m]:=urt: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="yz": dudxa[m]:=ust: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+dNamea[m]:="zz": dudxa[m]:=utt: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+
+dNamea[m]:="laplacian": dudxa[m]:=urr+uss+utt: ordera[m]:=maxOrder: numDeriv[m]:=2: m:=m+1:
+
+end if:
+
+
+numberOfDerivatives := m-1:
+
+derivStart:=1; derivEnd:=numberOfDerivatives; 
+
+
+for ii from derivStart to derivEnd do
+
+# printf(" ********** ii=%d, ordera=%d, orderOfAccuracy=%d *****\n",ii,ordera[ii],orderOfAccuracy):
+
+if orderOfAccuracy<=ordera[ii] then
+
+  dudx:=dudxa[ii]:
+  dName:=dNamea[ii]:
+  dividedDifference:=1;
+
+
+  halfWidth:=floor( (orderOfAccuracy+(numDeriv[ii]-1))/2 ): 
+
+  printf("..rectangular: ii=%d, derivative %s, order=%d, dim=%d numDeriv=%d halfWidth=%d\n",ii,convert(dName,string),
+         orderOfAccuracy,dim,numDeriv[ii],halfWidth):
+  # printf("\n Derivative DuDx=%s\n",convert(dudx,string)):
+  
+  # Easier: to get opposite ghost value just set dr -> -dr 
+
+  fprintf(file,"\#beginMacro %sCoeffOrder%dDim%dRectangular(coeff,aj)\n",convert(dName,string),orderOfAccuracy,dim);
+  dudxName := convert(dudx,string); 
+  dudxName := SubstituteAll(dudxName,"r","x"):
+  dudxName := SubstituteAll(dudxName,"s","y"):
+  dudxName := SubstituteAll(dudxName,"t","z"):
+ 
+  fprintf(file,"! Operator %s = %s\n",convert(dName,string),convert(dudxName,string));
+
+
+  #  ... this is a bit in-efficient to do one stencil point at a time, but good enough for now ....
+  if dim=2 then halfWidth3:=0: else halfWidth3:=halfWidth: end if:
+  for i3 from -halfWidth3 by 1 to halfWidth3 do
+  for i2 from -halfWidth by 1 to halfWidth do
+  for i1 from -halfWidth by 1 to halfWidth do
+
+    # Find the coefficient of point u(i1,i2,i3) : 
+
+    cd := getStencilCoefficient( dudx,i1,i2,i3, numDeriv[ii], orderOfAccuracy,dim,dividedDifference ):
+    cds:=substituteStrings(cd):
+    cds := SubstituteAll(cds,"dr","dx"):
+
+    fprintf(file," coeff(ma%d(%2d,%2d,%2d)) = %s \n",dim,i1,i2,i3,convert(cds,string)):
+  
+  end do:
+  end do:
+  end do:
+
+  fprintf(file,"\#endMacro\n\n");
+
+end if:
+end do: # end ii
+
+
+# ***********************************************************
+# ************ Output the Identity Operators ****************
+# ***********************************************************
+
+
+  dudx:=1; 
+  dName:=identity:
+  
+  halfWidth:=floor( orderOfAccuracy/2 ): 
+
+  printf("..rectangular: ii=%d, derivative %s, order=%d, dim=%d numDeriv=%d halfWidth=%d\n",ii,convert(dName,string),
+         orderOfAccuracy,dim,numDeriv[ii],halfWidth):
+  # printf("\n Derivative DuDx=%s\n",convert(dudx,string)):
+  
+  # Easier: to get opposite ghost value just set dr -> -dr 
+
+  fprintf(file,"\#beginMacro %sCoeffOrder%dDim%d(coeff,aj)\n",convert(dName,string),orderOfAccuracy,dim);
+  dudxName = dudx; 
+  dudxName := SubstituteAll(dudxName,"r","x"):
+  dudxName := SubstituteAll(dudxName,"s","y"):
+  dudxName := SubstituteAll(dudxName,"t","z"):
+ 
+  fprintf(file,"! Operator %s \n",convert(dName,string));
+
+
+  if dim=2 then halfWidth3:=0: else halfWidth3:=halfWidth: end if:
+  for i3 from -halfWidth3 by 1 to halfWidth3 do
+  for i2 from -halfWidth by 1 to halfWidth do
+  for i1 from -halfWidth by 1 to halfWidth do
+
+    cd := 0;
+    if i1=0 and i2=0 and i3=0 then
+      cd := 1.;
+    end if:
+    fprintf(file," coeff(ma%d(%2d,%2d,%2d)) = %s \n",dim,i1,i2,i3,convert(cd,string)):
+  
+  end do:
+  end do:
+  end do:
+
+  fprintf(file,"\#endMacro\n\n");
+
+
+
+
+end do: # =======End loop over dimension ==============================================
+
+
+fclose(file):
+
+printf(" **** output written to file [%s] ******\n",fileName);
+
+end do: # --------------- orderOfAccuracy -------------------
+
+
+
+# restart; read "stencilCoeff.maple";

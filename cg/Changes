@@ -1,0 +1,51 @@
+cg.v25
+
+ o 2011/06/19 - added simulate grid motion to cgcns.
+ o 2011/08/18 - the calling sequence to userDefinedBoundary values has been changed.
+ o 2011/08/18 - new body forcing options ... finish me ...
+ o 2011/10/29 - some new variable material properties capabilities have been added:
+             cgsm : variable rho, mu and lambda (so far for 2D SOSC scheme)
+             cgins: variable rho, Cp, and thermalConductivity for incompressible Boussinesq.
+ o 2011/11/07 - fixed the CPU timings that are output when running Cgmp. 
+ o 2011/11/09 - added a userDefinedInitialCondition.C file to cg/sm/src for use with cgsm.
+ o 2011/12/18 - it is now possible to change the properties of moving bodies (rigid bodies and
+                matrix motion bodies) from the run time menu button "moving grid options...". 
+                This can be used, for e.g. to change the motion of a body after a moving grid
+                solution has been read from a restart file, or at any time during a simulation.
+ o 2012/03/01 - the normal component of the velocity can now be specified at inflow using the
+                userDefinedBoundaryData option "normal component of velocity" (see e.g. in cg/ins/cmd/cic.cmd)
+ o 2012/07/22 - the BC inflowWithPressureAndTangentialVelocityGiven now works in parallel for
+                second-order accuracy.
+
+===============================================================================================
+cg.v24 - released May 2011. 
+
+Changes:
+
+   o a new "matrix motion" option has been added for moving grids which can be used to compose together
+     different rotations and translations to form more complex motions. See the new document matrixMotion.pdf
+     for more details. The test routine cg/user/bin/motion can be used to test different matrix motions. 
+
+   o it is now possible to solve for the motion of "light" rigid bodies moving in a fluid (cgins). The
+     default time-stepping algorithm is unstable when the bodies are too light. The new algorithm requires
+     extra correction steps. See the ?? documentation for further details and examples.
+
+
+
+
+
+
+==============================================================================================
+cg.v23 -- released March 13, 2009
+
+Changes:
+
+  
+   o userDefinedMotion.C : the object params has been renamed to parameters. 
+   o userDefinedBoundaryValues.C : the getBoundaryData(..) functions are now in parameters.getBoundaryData(...)
+   o There is now an option to save solution values over time at specified points using "probes". This information
+     is written to a text file that can be plotted with the matlab script plotProbes.m 
+   o There have been many changes to cgmp. There now many examples of conjugate heat transfer problems that
+     couple fluid flows and heat transfer.
+   o The solid mechanics solver cgsm is starting to acquire some capabilities.
+

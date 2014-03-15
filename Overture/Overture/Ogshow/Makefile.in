@@ -1,0 +1,93 @@
+#
+# Makefile.in : used by the configure script
+#
+
+
+# NO_REAL is for Ander's files
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o .c .o
+# Note may have to add -DHAS_MODFL_PROTO to the next line to get around an error in perl
+# regarding long double modfl in math.h and perl.h: 
+.C.o:; $(CC) $(CCFLAGS)  -DNO_REAL  -I$(HDF)/include -c $*.C
+.c.o:; $(cc) $(CFLAGS)  -DNO_REAL -I. -I$(HDF)/include -c $*.c
+.f.o:; $(FC) $(FFLAGSO) -c $*.f
+
+default: depend_date Ogshow_date Ogshow_rapsodi_date
+rapsodi: depend_date Ogshow_rapsodi_date
+
+SourceC = render.C osRender.C ShowFileReader.C GenericGraphicsInterface.C GraphicsParameters.C  \
+         GL_GraphicsInterface.o plotCompositeSurface.C  plotStructured.C PlotStuff.C \
+         GUIState.C getAnswer.C DialogData.C textGetMenu.C \
+         grid.C colourTable.C label.C contour.C \
+         streamLines.C streamLines3d.C plotAxes.C xInterpolate.C contour3d.C NameList.C stroke.C \
+         Ogshow.C checkOverlappingGrid.C plotPoints.C DerivedFunctions.C FileOutput.C \
+         plotAdvancingFront.C ColourBar.C OvertureParser.C plotGridQuality.C ShowFileParameter.C \
+         userDefinedDerivedFunction.C plot3dToOverture.C userDefinedOutput.C ShowFilePlotter.C \
+         DialogState.C showFileFromDataFile.C ContourSurface.C
+
+Ogshow_C_date:  ${SourceC:.C=.o}
+	  touch $@
+
+SourceC_rapsodi = render.C osRender.C GenericGraphicsInterface.C GraphicsParameters.C  \
+         GL_GraphicsInterface.o plotCompositeSurface.C  plotStructured.C \
+         GUIState.C getAnswer.C DialogData.C textGetMenu.C \
+         colourTable.C label.C \
+         plotAxes.C NameList.C stroke.C \
+         plotPoints.C ColourBar.C OvertureParser.C ParallelUtility.C CopyArray.C
+
+Ogshow_C_rapsodi_date:  ${SourceC_rapsodi:.C=.o}
+	  touch $@
+
+# Here is how we compile osRender.C for Mesa 6.2.1 
+#  It includes context.h which then includes other header files in the Mesa directory
+osRender.o: osRender.C
+	$(CC) $(CCFLAGS) -I$(OpenGL)/src/mesa/main -I$(OpenGL)/src/mesa/glapi -I$(OpenGL)/src/mesa -c osRender.C
+
+# These are compiled optimized 
+SourceF = cggi.f isosurf.f
+Ogshow_f_date: ${SourceF:.f=.o}
+	  touch $@
+
+# Here are the files that Bill always likes to optimize -- 
+filesOpt = grid3d.C contourOpt.C plotMapping.C gridOpt.C contour3dOpt.C streamLinesOpt.C plotUnstructured.C \
+           GridStatistics.C ParallelUtility.C CopyArray.C ParallelGridUtility.C getLocalInterpolationData.C
+Ogshow_Opt_date: ${filesOpt:.C=.o}
+	  touch $@
+
+grid3d.o :                    ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+contourOpt.o :                ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+plotMapping.o :               ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+gridOpt.o :                   ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+contour3dOpt.o :              ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+streamLinesOpt.o :            ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+plotUnstructured.o :          ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+GridStatistics.o :            ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+ParallelUtility.o :           ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+CopyArray.o :                 ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+ParallelGridUtility.o :       ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+getLocalInterpolationData.o : ${@:.o=.C}; $(CC) $(CCFLAGSF) -c ${@:.o=.C}
+
+
+
+files_rapsodi_Opt = plotMapping.C plotUnstructured.C
+Ogshow_Opt_rapsodi_date: $(files_rapsodi_Opt)
+	 $(CC) $(CCFLAGSF) -c $?
+	  touch $@
+
+Ogshow_date=Ogshow_C_date Ogshow_f_date Ogshow_Opt_date
+Ogshow_date:$(Ogshow_date); touch $@
+
+Ogshow_rapsodi_date=Ogshow_C_rapsodi_date Ogshow_f_date Ogshow_Opt_rapsodi_date
+Ogshow_rapsodi_date:$(Ogshow_rapsodi_date); touch $@
+
+Source = $(SourceC) $(SourceF) $(filesOpt)
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+
+# include the dependencies here
+include depend
+
+
+
+.PRECIOUS:$(Ogshow_date) Ogshow_date depend_date
+

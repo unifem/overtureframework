@@ -1,0 +1,58 @@
+#
+#
+
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default: depend  FVO_date 
+
+Source1=  \
+ CompositeGridFiniteVolumeOperators.C \
+ GridCollectionFiniteVolumeOperators.C \
+ MappedGridFiniteVolumeOperators.C \
+ Projection.C \
+ setEllipticSolverParameter.C \
+ makeDebugPlots.C \
+ testUtils.C \
+ TwilightZoneWizard.C \
+ getDefaultIndex.C \
+ createGeometry.C \
+ average.C \
+ differences.C \
+ contravariantVelocity.C \
+ cellsToFaces.C \
+ divergence.C \
+ gradient.C \
+ convectiveDerivative.C \
+ vorticity.C \
+ laplacianCoeff.C \
+ laplacian.C \
+ inputErrorHandling.C \
+ boundaryConditions.C \
+ boundaryConditionCoefficients.C \
+ derivatives.C \
+ derivativeCoefficients.C \
+ inputErrorHandling.C \
+ defaultMappedGridFunctions.C 
+
+Source2=        GenericGridMotion.C MatrixTransformGridMotion.C \
+		GenericGridMotionParameters.C MatrixTransformGridMotionParameters.C \
+		DynamicMovingGrids.C MatrixTransformMotionFunction.C
+
+FVO_date:  ${Source1:.C=.o} ${Source2:.C=.o}
+	  touch $@
+
+Source = $(Source1) $(Source2)
+depend: ../depend.date; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+
+.PRECIOUS:$(FVO_date) FVO_date depend
+
+
+

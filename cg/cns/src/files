@@ -1,0 +1,44 @@
+SRC_FILES += Cgcns.C CnsParameters.C cns.C cnsBC.C implicit.C setUserDefinedParameters.C \
+             updateStateVariables.C assignTestProblem.C conservativeToPrimitive.C printTimeStepInfo.C \
+             setupPde.C timeSteppingDialog.C setupGridFunctions.C cnsAugmentedSolution.C inflowOutflowCoeff.f\
+             interface.C userDefinedEOS.C dbAccessCgcns.C userDefinedInitialConditions.C userDefinedKnownSolution.C
+
+SRC_FILES +=  getIntCgcns.f
+
+ifeq ($(Chemkin),on)
+  SRC_FILES += Chemkin.C
+else
+  SRC_FILES += ChemkinNull.C
+endif
+
+# fortran files the we always compile optimized
+FSRCO += consPrim.f sseos.f
+FSRCO += cnsSlipWallBC.f cnsdts.f cnsdtsCNS.f cnsSlipWallBC2.f cnsFarFieldBC.f cnsNoSlipBC.f
+FSRCO += cnsNoSlipWallBC.f 
+
+# fortran files compiled without auto-double:
+FSRC += icnscf.f icnsWallBCCoeff.f
+
+
+CNS_SRC := `pwd`
+
+# cnsBC.bC uses an include file from cg/ins/src: 
+src/cnsBC.C : src/cnsBC.bC ../ins/src/setTemperatureBC.h ; $(BPP) -quiet -clean -I../ins/src $<
+src/interface.C : src/interface.bC ../common/src/interfaceMacros.h; $(BPP) -quiet -clean -I../common/src $<
+
+$(CNS_SRC)/cnsdtsCNS.f : $(CNS_SRC)/cnsdts.bf; bpp -quiet -clean $(CNS_SRC)/cnsdts.bf
+
+# we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
+
+src/cnsbcOpt.f : src/cnsbcOpt.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/cnsdts.f : src/cnsdts.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/cnsFarFieldBC.f : src/cnsFarFieldBC.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/cnsSlipWallBC2.f : src/cnsSlipWallBC2.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/cnsSlipWallBC.f : src/cnsSlipWallBC.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/cnsNoSlipBC.f : src/cnsNoSlipBC.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/consPrim.f : src/consPrim.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/icnscf.f : src/icnscf.bf; $(BPP) -quiet -clean -I$(Overture)/include $<
+src/cnsNoSlipWallBC.f : src/cnsNoSlipWallBC.bf; $(BPP) -quiet -clean $<
+src/inflowOutflowCoeff.f: src/inflowOutflowCoeff.bf; $(BPP) -quiet -clean $<
+src/icnsWallBCCoeff.f: src/icnsWallBCCoeff.bf icnscfMacros.h; $(BPP) -quiet -clean $<
+

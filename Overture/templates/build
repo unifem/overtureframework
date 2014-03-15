@@ -1,0 +1,50 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+# here is where the Overture Grid Function files are:
+set gff = $ovDir/templates
+set gfi = $ovDir/include
+
+set mapUtil = $ovDir/mapUtil
+
+echo "Copy template files $ovDir directory: $gff ..."
+
+
+cp ListOf{Float,Int,Double}{Array,SerialArray,DistributedArray,GenericGridFunction,MappedGridFunction}.C  $gff
+cp ListOf{Float,Int,Double}{GridCollectionFunction,CompositeGridFunction}.C                               $gff
+cp ListOfListOf{Float,Int,Double}{Array}.C                                                                $gff
+cp ListOf{GenericGrid,MappedGrid,GenericGridCollection,GridCollection,CompositeGrid}.C                    $gff
+cp ListOf{MappingRC,BoundingBox}.C                                                                        $mapUtil
+cp ListOf{MappedGridOperators,CompositeGridOperators}.C                                                   $gff
+cp ListOf{GenericMappedGridOperators,GenericGridCollectionOperators,GenericCompositeGridOperators}.C      $gff
+
+echo "now copy the include files to $gfi"
+
+
+cp ListOfReferenceCountedObjects.{h,C}                                                                    $gfi
+cp tlist.{h,C}                                                                                            $gfi
+cp ListOf{Float,Int,Double}{Array,SerialArray,DistributedArray,GenericGridFunction,MappedGridFunction}.h  $gfi
+cp ListOf{Float,Int,Double}{GridCollectionFunction,CompositeGridFunction}.{h}                             $gfi
+cp ListOfListOf{Float,Int,Double}{Array}.h                                                                $gfi
+cp ListOfListOf{Real}{Array}.h                                                                            $gfi
+cp ListOf{GenericGrid,MappedGrid,GenericGridCollection,GridCollection,CompositeGrid}.h                    $gfi
+cp ListOf{MappingRC}.h                                                                                    $gfi
+cp ListOf{BoundingBox,MappedGridOperators,CompositeGridOperators,MappingRC}.h                             $gfi
+cp ListOf{GenericMappedGridOperators,GenericGridCollectionOperators,GenericCompositeGridOperators}.h      $gfi
+
+
+
+# these are special
+cp {ListOfIntegerArray,ListOfRealArray}.h $gfi
+
+echo "done"

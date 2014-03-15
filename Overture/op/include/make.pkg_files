@@ -1,0 +1,11 @@
+PKGDIR := $(OvertureCheckout)/op/include
+
+L_HDRS := defineFDerivatives.h cgux2af.h cgux4af.h
+
+L_HDRS += xD.h rD.h xDC.h
+
+L_HDRS += 	$(addsuffix .h,cgux2a cgux4a cgux2af cgux4af cgux2afNoWarnings cgux4afNoWarnings)
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+

@@ -1,0 +1,2271 @@
+// This file automatically generated from Interpolate.bC with bpp.
+#include "Interpolate.h"
+#include "display.h"
+#include "ParallelUtility.h"
+
+// include for debugging:
+#include "InterpolateRefinements.h"
+
+static inline int floordiv (int numer, int denom)
+{
+    if (numer>0)
+        return (numer/denom);
+    else
+        return (numer-denom+1)/denom;
+}
+
+
+
+//\begin{>Interpolate.tex}{\subsection{ Interpolate default constructor}}
+Interpolate::
+Interpolate()
+//
+// /Purpose: default constructor for the Interpolate class;
+//           initialize the class and set default values
+// /Author:  DLB 123
+//
+//\end{Interpolate.tex}
+{
+
+}
+
+
+//\begin{>>Interpolate.tex}{\subsection{ Interpolate constructor}}
+Interpolate::
+Interpolate(const InterpolateParameters& interpParams_, 
+          	    const bool timing_ //=LogicalFalse
+    )
+
+//
+// /Purpose: constructor for the Interpolate class;
+//           initialize the class and set parameter values.
+// /arguments: see the {\tt initialize} member function for a description
+//           of the arguments to the constructor
+//
+//
+// /Author:  DLB
+//\end{Interpolate.tex}
+{
+    initialize (interpParams_, timing_);
+}
+
+//\begin{>>Interpolate.tex}{\subsection{initialize}}
+int Interpolate::
+initialize( const InterpolateParameters& interpParams_, 
+          	    const bool timing_ //=LogicalFalse
+    )
+// /Purpose: initialization function for the Interpolate class;
+//           initialize the class and set parameter values.
+//
+//  /interpParams\_: the interpolation parameters are set using the values
+//           stored in this object
+//
+// /timing\_: if this is set to {\tt LogicalTrue}, timings will be printed
+//            out for the initialization step and for each interpolation
+//            function.
+//            
+//
+//           The following parameters must be set in the InterpolateParameters
+//           object interpParams\_:
+// /numberOfDimensions:       number of space dimensions 
+// /interpolateOrder:         the order of interpolation that will be used
+// /interpolateType:          see InterpolateParameters for choices
+//
+// /amrRefinementRatio(3): can be set through interpParams\_, but can also
+//                         be passed into the interpolate functions; the
+//                         refinementRatio can be different in each direction;
+//                         it must be a power of 2 (including 2**0)
+//
+//
+// /Author:  DLB
+//\end{Interpolate.tex}
+{
+        
+    timing = timing_;
+    useGeneralInterpolationFormula = interpParams_.useGeneralInterpolationFormula();
+    
+    int i;
+    real executionTime;
+    if (timing) executionTime = getCPU();
+
+    debug =                 interpParams_.debug;
+    interpolateOrder =      interpParams_.interpolateOrder();
+    numberOfDimensions =    interpParams_.numberOfDimensions();
+
+    amrRefinementRatio.resize(3);
+    for (i=0; i<3; i++) amrRefinementRatio(i) = interpParams_.amrRefinementRatio(i);
+
+    gridCentering       = interpParams_.gridCentering();
+    interpolateType     = interpParams_.interpolateType();
+
+    if (interpolateOrder < 1)
+    {
+        cout << "Interpolate::constructor: interpolateOrder = " << interpolateOrder << " is invalid" << endl;
+        cout << "                          interpolateOrder reset to default value = " << InterpolateParameters::defaultInterpolateOrder << endl;
+        interpolateOrder = InterpolateParameters::defaultInterpolateOrder;
+    }
+
+    if (timing) 
+    {
+        executionTime = getCPU() - executionTime;
+        cout << "Interpolate::initialization execution time: " << executionTime << endl;
+    }
+    return 0;
+    
+}
+    
+
+
+
+
+Interpolate::
+~Interpolate()
+// /Purpose: Interpolate class destructor
+
+{
+  // cout << "Interpolate:: destructor called" << endl;
+}
+
+
+
+int Interpolate::
+initializeCoefficients (const int maxRefinementRatio_, 
+                  			const int interpolateOrder_, 
+                  			const int numberOfDimensions_,
+                  			const int* interpolateOffset_)
+//
+// /Purpose: initialize the Interpolate coefficients
+//           This routine is called by interpolateCoarseToFine
+// /Author:  DLB
+//
+
+{
+    real executionTime = getCPU();
+    
+    if (debug) cout << "Interpolate::initialize() called" <<endl;
+    
+    int R = maxRefinementRatio_, M = interpolateOrder_;
+
+    Index Rc(0,R,1), Mc(0,M,1);
+
+//RealArray coeff1D(M,R);
+
+    coeff.resize (Mc,Rc,numberOfDimensions_);
+    coeff = 0.;
+    
+  //...make the interpolation coefficient matrix
+
+    int i,k,l,axis;
+    int A[3];
+    for (i=0;i<numberOfDimensions_;i++) A[i] = interpolateOffset_[i];
+    int Aadjust;
+
+    int numerator, denominator;
+
+    switch (gridCentering)
+    {
+    case GridFunctionParameters::vertexCentered:
+
+        for (axis=0; axis<numberOfDimensions_; axis++)
+        {
+            
+        for (i=0; i<M; i++)
+            for (l=0; l<R; l++)
+            {
+	//...000721 if odd order and l<R/2, use next interpolation stencil to the right
+      	Aadjust = (M%2==1 && l<R/2) ? 1 : 0;
+      	coeff(i,l,axis) = 1;
+      	numerator = 1;
+      	denominator = 1;
+
+      	for (k=0; k<M; k++)
+      	{
+        	  if (k != i) numerator   *= (A[axis]+Aadjust-k)*R +l;
+        	  if (k != i) denominator *= (i-k)*R;
+      	}
+      	coeff(i,l,axis) = ((real) numerator)/denominator;
+            }
+        }
+
+        break; //gridCentering
+            
+    default: //gridCentering
+        cout << "Interpolate::initialize: gridCentering type " << gridCentering << " not supported by Interpolate" << endl;
+        return -1;
+        
+    }
+    
+    if (timing) 
+    {
+        executionTime = getCPU() - executionTime;
+        cout << "Interpolate::initializeCoefficients execution time: " << executionTime << endl;
+    }
+
+// *wdh* ppp  if (debug) display.display (coeff, "Here is the coeff array after initialization");
+
+    return 0;
+    
+}
+
+//\begin{>>Interpolate.tex}{\subsection{ interpolateFineToCoarse }}
+int Interpolate:: 
+interpolateFineToCoarse (realArray&                   coarseGridArray,
+                   			 const Index                  Iv[3],
+                   			 const realArray&             fineGridArray,
+                   			 const IntegerArray&          amrRefinementRatio_ // = nullArray
+    )
+//
+// /Purpose: interpolate from a fine grid function to a coarse grid function
+//           It is assumed that the origin of the {\tt fineGridArray}
+//           and {\tt coarseGridArray} are at (0,0,0). Since this is
+//           used to compute the location of the interpolee points,
+//           the routine will not compute correct values if this is not the case.
+//           Note that for vertexCentered grids, polynomial interpolation is pure
+//           injection.
+// 
+// /coarseGridArray: array to interpolate to (``interpolation'' points); stride 1 required
+//                   note that a \realMappedGridFunction can be passed in here since
+//                   it is a derived class from \realArray
+// /Iv[3]: defines the target interpolation points. They are 
+//         given by fineGridArray(Iv[0],Iv[1],Iv[2])
+// /fineGridArray: array to interpolate from (``interpolee'' points); stride 1 required
+//                   note that a \realMappedGridFunction can be passed in here since
+//                   it is a derived class from \realArray
+// /amrRefinementRatio(3): IntegerArray containing refinementRatio in each of the
+//                         three dimensions; if nullArray is passed in, amrRefinementRatio
+//                         defaults to the values set upon instantiation of the class
+// 
+// /Author:  DLB
+//\end{Interpolate.tex}
+{
+    if (interpolateType != InterpolateParameters::polynomial ||
+            interpolateType != InterpolateParameters::injection )
+    {
+        cout << "Interpolate:interpolateFineToCoarse: interpolateType = " << interpolateType << " not supported" << endl;
+        Overture::abort("error");
+    }
+    
+    int i;
+    real executionTime;
+    if (timing) executionTime = getCPU();
+
+    const realArray& uf = fineGridArray;
+    realArray& uc       = coarseGridArray;
+
+  //...check that the arrays have unit stride
+    for (i=0; i<3; i++)
+    {
+        if (uf.getStride(i) != 1 || uc.getStride(i) !=1)
+        {
+            cout << "Interpolate::interpolateFineToCoarse: non-unit strides not supported" << endl;
+            Overture::abort("error");
+        }
+    }
+
+  //...check that Iv is compatible with the size of coarseGridArray
+
+    for (i=0; i<3; i++)
+        if (Iv[i].getBase()  < uc.getBase(i) ||
+      	Iv[i].getBound() > uc.getBound(i) )
+        {
+            cout << "Interpolate::interpolateFineToCoarse: attempting to interpolate to a box that is " << endl;
+            cout << "   not contained inside the coarse grid " << endl;
+            cout << "In the " << i << " direction, you need to interpolate to ("
+         	   << Iv[i].getBase() << "," << Iv[i].getBound() << ")" << endl;
+            cout << " but coarseGridFunction has size ("
+         	   << uc.getBase(i) << "," << uc.getBound(i) << ")" << endl;
+            Overture::abort("error");
+        }
+    
+  // const int firstOrder  = 1;
+  // const int secondOrder = 2;
+  // const int thirdOrder  = 3;
+  // const int fourthOrder = 4;
+    
+    int r[3];
+
+    if (amrRefinementRatio_.isNullArray())
+    {
+        r[0] = amrRefinementRatio(0);
+        r[1] = amrRefinementRatio(1);
+        r[2] = amrRefinementRatio(2);
+    }
+    else
+    {
+        r[0] = amrRefinementRatio_(0);
+        r[1] = amrRefinementRatio_(1);
+        r[2] = amrRefinementRatio_(2);
+    }
+
+//  const Index  &I1 =Iv[0], &I2 =Iv[1], &I3 =Iv[2];
+    Index Ic[3], &Ic1=Ic[0], &Ic2=Ic[1], &Ic3=Ic[2];
+    Index If[3], &If1=If[0], &If2=If[1], &If3=If[2];
+
+  //...compute Ranges for injection
+
+    for (i=0; i<3; i++) Ic[i] = Iv[i];
+
+  //...for unused dimensions, If=Ic
+    for (i=numberOfDimensions; i<3; i++) If[i] = Ic[i];
+
+  //...otherwise skip every r[i] points
+    for (i=0; i<numberOfDimensions; i++)
+        If[i] = Range (Ic[i].getBase()*r[i], Ic[i].getBound()*r[i], r[i]);
+    
+  //...check that that If is really contained in uf
+
+    for (i=0; i<3; i++)
+        if (If[i].getBase() < uf.getBase(i) || If[i].getBound() > uf.getBound(i))
+        {
+            cout << "Interpolate::interpolateFineToCoarse: attempting to interpolate from a box that is " << endl;
+            cout << "   not contained inside the fine grid " << endl;
+            cout << "In the " << i << " direction, you need to interpolate from ("
+         	   << If[i].getBase() << "," << If[i].getBound() << ")" << endl;
+            cout << " but fineGridFunction has size ("
+         	   << uf.getBase(i) << "," << uf.getBound(i) << ")" << endl;
+
+            Overture::abort("error");
+        }
+
+    uc(Ic1,Ic2,Ic3) = uf(If1,If2,If3);
+
+    if (timing) 
+    {
+        executionTime = getCPU() - executionTime;
+        cout << "Interpolate::interpolateFineToCoarse execution time: " << executionTime << endl;
+    }
+
+
+    return 0;
+    
+}
+
+//\begin{>>Interpolate.tex}{\subsection{ interpolateCoarseToFine }}
+int Interpolate:: 
+interpolateCoarseToFine (realArray&                                               fineGridArray,
+                   			 const Index                                              Iv[3],
+                   			 const realArray&                                         coarseGridArray,
+                   			 const IntegerArray&                                      amrRefinementRatio_ // = nullArray
+    )
+//
+// /Purpose: interpolate from a coarse grid function to a fine grid function
+//           It is assumed that the origin of the {\tt fineGridArray}
+//           and {\tt coarseGridArray} are at (0,0,0). Since this is
+//           used to compute the location of the interpolee points,
+//           the routine will not compute correct values if this is not the case.
+// /Algorithm: This routine uses the standard Lagrange interpolant formula.  
+//             Since the interpolation occurs at regularly-spaced points, the 
+//             computation of the interpolation coefficients can be done mostly
+//             with integer arithmetic. The routine is optimized so that the
+//             general interpolation formula is not used when, e.g. the 
+//             interpolation points lie on coarse grid lines or at coarse
+//             grid points. Instead, only the non-zero coefficients are 
+//             explicitly used in the computations.
+// 
+// /fineGridArray: array to interpolate to (``interpolation'' points); stride 1 required
+// /Iv[3]: defines the target interpolation points. They are 
+//         given by coarseGridArray(Iv[0],Iv[1],Iv[2])
+// /coarseGridArray: array to interpolate from (``interpolee'' points); stride 1 required
+// /amrRefinementRatio(3): IntegerArray containing refinementRatio in each of the
+//                         three dimensions; if nullArray is passed in, amrRefinementRatio
+//                         defaults to the values set upon instantiation of the class.
+//                         amrRefinementRatio(i) must be a power of 2
+//                            
+// /Author:  DLB
+//\end{Interpolate.tex}
+{
+
+    if (interpolateType != InterpolateParameters::polynomial)
+    {
+        cout << "Interpolate:interpolateCoarseToFine: interpolateType = " << interpolateType << " not supported" << endl;
+
+        Overture::abort("error");
+    }
+
+    real executionTime;
+    if (timing) executionTime = getCPU();
+
+    int i, axis;
+    InterpolateParameters::InterpolateOffsetDirection iod[3];
+
+  //...this is in here for historical reasons; you can't change this and have the interpolation still work
+  //...and anyway, as Bill points out, "left" is really "right", but this is a matter of your frame of reference
+//for (i=0; i<3; i++) iod[i] = InterpolateParameters::defaultInterpolateOffsetDirection;
+    for (i=0; i<3; i++) iod[i] = InterpolateParameters::offsetInterpolateToLeft;
+
+    realArray& uf = fineGridArray;
+    const realArray& uc = coarseGridArray;
+
+  //...check that the arrays have unit stride
+    for (i=0; i<3; i++)
+    {
+        if (uf.getStride(i) != 1 || uc.getStride(i) !=1)
+        {
+            cout << "Interpolate::interpolateCoarseToFine: non-unit strides not supported" << endl;
+            Overture::abort("error");
+        }
+    }
+
+  //...check that Iv is compatible with the size of fineGridArray
+
+    for (i=0; i<3; i++)
+        if (Iv[i].getBase()  < uf.getBase(i) ||
+      	Iv[i].getBound() > uf.getBound(i) )
+        {
+            cout << "Interpolate::interpolateCoarseToFine: attempting to interpolate to a box that is " << endl;
+            cout << "   not contained inside the fine grid " << endl;
+            cout << "In the " << i << " direction, you need to interpolate to ("
+         	   << Iv[i].getBase() << "," << Iv[i].getBound() << ")" << endl;
+            cout << " but fineGridFunction has size ("
+         	   << uf.getBase(i) << "," << uf.getBound(i) << ")" << endl;
+
+            Overture::abort("error");
+        }
+    
+
+    const int firstOrder  = 1;
+    const int secondOrder = 2;
+    const int thirdOrder  = 3;
+    const int fourthOrder = 4;
+    const int useGeneralFormula = -1;
+    
+    int r[3];
+
+    if (amrRefinementRatio_.isNullArray())
+    {
+        r[0] = amrRefinementRatio(0);
+        r[1] = amrRefinementRatio(1);
+        r[2] = amrRefinementRatio(2);
+    }
+    else
+    {
+        r[0] = amrRefinementRatio_(0);
+        r[1] = amrRefinementRatio_(1);
+        r[2] = amrRefinementRatio_(2);
+    }
+
+    int R = max(r[0],r[1],r[2]);
+    int maxRefinementRatio = R;
+
+    real power;
+    for (i=0; i<3; i++)
+    {
+        power = log(double(r[i]))/log(double(2.));
+        if (power - int(power+InterpolateParameters::coeffEps) > InterpolateParameters::coeffEps) 
+        {
+            cout << endl << "============" << endl;
+            cout << "Interpolate::interpolateCoarseToFine: r["<<i<<"] must be a power of 2 " << endl;
+            cout << "Currently set to " << r[i] ;
+            cout << endl << "============" << endl;
+            Overture::abort("a fit");
+        }
+    }
+    
+  // ... "M" is the dimension of the interpolation stencil. Note that if interpolateOrder=1 we really do 2nd
+  //     order interpolation
+    int actualInterpolateOrder = max(2,interpolateOrder);
+    int M = actualInterpolateOrder;
+    
+  //...depending on the order of the method, the centering of the interpolation stencil
+  //   may be offset.  For odd order interpolation, offset direction is determined by the array iod
+  //   the array A contains the offset in each direction
+
+    int A[3], interpolateOffset[3];
+    int &A1=A[0], &A2=A[1], &A3=A[2];
+
+//  bool anyOffset[3];
+
+    for (axis=0; axis<3; axis++)
+//    A[axis] = iod[axis] == InterpolateParameters::offsetInterpolateToLeft ? (M-2)/2 : (M-1)/2 ;
+        A[axis] = (M-2)/2;
+    
+    for (axis=0; axis<3; axis++)
+        interpolateOffset[axis] = A[axis];
+//  for (axis=0; axis<3; axis++)
+//    anyOffset[axis] = A[axis] == 0 ? LogicalFalse : LogicalTrue;
+
+  //...compute the interpolation coefficients now
+
+    int result = initializeCoefficients (maxRefinementRatio, actualInterpolateOrder, numberOfDimensions, interpolateOffset);
+    if (result != 0)
+    {
+        cout << "Interpolate::interpolateCoarseToFine: unable to initialize interpolation coefficients" << endl;
+        Overture::abort("error");
+    }
+
+    Index Rc = Range(coeff.getBase(0), coeff.getBound(0), coeff.getStride(0));
+    Index Mc = Range(coeff.getBase(1), coeff.getBound(1), coeff.getStride(1));
+    
+    int stride[3];
+    
+    for (i=0; i<3; i++) stride[i] = R/r[i];
+
+  //  const Index  &I1 =Iv[0], &I2 =Iv[1], &I3 =Iv[2];
+    Index If[3]; // , &If1=If[0], &If2=If[1], &If3=If[2];
+
+    Index Jf[3], &Jf1=Jf[0], &Jf2=Jf[1], &Jf3=Jf[2];
+    Index Jc[3], &Jc1=Jc[0], &Jc2=Jc[1], &Jc3=Jc[2];
+
+    int offset[3] , extra[3];
+    for (i=0; i<3; i++) offset[i] = 0;
+    for (i=0; i<3; i++) extra[i] = 0;
+
+  //...initialize unused dimensions of If, Jf, Jc
+    for (i=0; i<3; i++)
+    {
+        If[i] = Iv[i];
+        Jf[i] = If[i];
+        Jc[i] = (Iv[i] == nullRange) ? nullRange : Range (uc.getBase(i), uc.getBound(i), uc.getStride(i));
+    }
+    
+    //...set used dimensions of If, extra, offset to correct values
+    for (i=0; i<numberOfDimensions; i++)
+    {
+    //..."extra" counts the number of interpolation points more than a multiple of the refinement ratio
+        extra[i]  = (Iv[i].getBound()-Iv[i].getBase()+1)%r[i];
+
+    //..."If" allows us to loop over the fine points, doing all interpolations that use
+    //   the same coefficients at the same time.  If assumes that the number of fine
+    //   points is exactly a factor of r[i] times the number of coarse points; we will adjust
+    //   this using Jf below.
+        If[i]     = Range (Iv[i].getBase(), Iv[i].getBound() - extra[i] -r[i] + 1,   r[i]);
+
+    //..."offset" counts how many points to the right the first fine point is offset from a coarse point
+        offset[i] = ((abs(If[i].getBase())/r[i] +1)*r[i] + If[i].getBase())%r[i];
+        
+    }
+
+  //...interpolate
+  //...000616 for now, don't worry about the efficiency of pure injection
+
+  //... lr,mr,nr index the actual interpolation points in each coarse cell
+  //... l, m, r  index the coefficient arrray, which is defined for the max number
+  //        of interpolation points in a coarse cell (corresponding to maxRefinementRatio)
+
+    int j,k;
+    int jcOffset1, jcOffset2, jcOffset3;
+    
+  //... lm and lmr are handy 3D vectors to keep track of loop indices
+    int lm[3],  &l  = lm[0],  &m  = lm[1],  &n = lm[2];
+    int lmr[3], &lr = lmr[0], &mr = lmr[1], &nr = lmr[2];
+
+    for (i=0; i<3; i++) lm[i] = 0;
+    for (i=0; i<3; i++) lmr[i] = 0;
+
+    int localIntOrder = useGeneralInterpolationFormula ? useGeneralFormula : interpolateOrder;
+
+    int axisA = axis1;
+    int axisB = min(axis2,numberOfDimensions-1);
+    int axisC = min(axis3,numberOfDimensions-1);
+    const RealArray &C = coeff(Rc,Mc,axisA);
+    const RealArray &D = coeff(Rc,Mc,axisB);
+    const RealArray &E = coeff(Rc,Mc,axisC);
+
+
+    if (numberOfDimensions==1)
+    {
+        switch (localIntOrder)
+        {
+        case firstOrder:
+        case secondOrder:
+
+            for (lr=0; lr<r[axis1]; lr++)
+            {
+      	computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+      	if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+      	if (l==0)
+        	  uf(Jf1,Jf2,Jf3) = uc(Jc1,Jc2,Jc3);
+
+      	else
+      	uf(Jf1,Jf2,Jf3) = 
+        	  C(0,l) * uc(Jc1,  Jc2,Jc3) +
+        	  C(1,l) * uc(Jc1+1,Jc2,Jc3);
+
+            }
+            break;
+            
+        case thirdOrder:
+
+            for (lr=0; lr<r[axis1]; lr++)
+            {
+      	computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+      	if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+      	jcOffset1 = r[0] == 1 ? 0 : A[0]+1;
+
+      	if (l==0)
+          	    uf(Jf1,Jf2,Jf3) = uc(Jc1+jcOffset1,Jc2,Jc3);
+      	else
+
+        	  uf(Jf1,Jf2,Jf3) = 
+          	    C(0,l) * uc(Jc1,  Jc2,Jc3) +
+          	    C(1,l) * uc(Jc1+1,Jc2,Jc3) +
+          	    C(2,l) * uc(Jc1+2,Jc2,Jc3) ;
+      	
+            }
+            break;
+            
+        case fourthOrder:
+
+            for (lr=0; lr<r[axis1]; lr++)
+            {
+      	computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+      	if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+      	if (l==0)
+        	  uf(Jf1,Jf2,Jf3) = uc(Jc1+A[0],Jc2,Jc3);
+      	
+      	else
+      	uf(Jf1,Jf2,Jf3) = 
+        	  C(0,l) * uc(Jc1,  Jc2,Jc3) +
+        	  C(1,l) * uc(Jc1+1,Jc2,Jc3) +
+        	  C(2,l) * uc(Jc1+2,Jc2,Jc3) +
+        	  C(3,l) * uc(Jc1+3,Jc2,Jc3) ;
+      	
+            }
+            break;
+            
+        case useGeneralFormula:
+        default:
+            if( debug & 1 ) cout << "Interpolate::interpolateCoarseToFind: using the General Formula " << endl;
+
+            for (lr=0; lr<r[axis1]; lr++)
+            {
+      	computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+
+      	if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+      	uf(Jf1,Jf2,Jf3) = (real)0.;
+
+      	for (i=0; i<M; i++)
+        	  if (fabs(C(i,l)) > InterpolateParameters::coeffEps)
+        	  {
+          	    uf(Jf1,Jf2,Jf3) += C(i,l) * uc(Jc1+i,Jc2,Jc3);
+        	  }
+            }
+            break;
+        }
+    }
+    
+    if (numberOfDimensions == 2)
+    {
+        
+        switch (localIntOrder)
+        {
+        case firstOrder:
+        case secondOrder:
+
+      //...lmr[i] is the loop index for the fine grid interpolation points
+            for (lr=0; lr<r[axis1]; lr++)
+      	for (mr=0; mr<r[axis2]; mr++)
+      	{
+        	  computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+        	  if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+        	  if (l==0 && m==0) //...injection
+          	    uf(Jf1,Jf2,Jf3) = uc(Jc1,Jc2,Jc3);
+
+        	  else if (m==0)
+          	    uf(Jf1,Jf2,Jf3) =
+            	      C(0,l) * uc(Jc1,  Jc2,  Jc3) +
+            	      C(1,l) * uc(Jc1+1,Jc2,  Jc3) ;
+
+        	  else if (l==0)
+          	    uf(Jf1,Jf2,Jf3) = 
+            	      D(0,m) * uc(Jc1,  Jc2,   Jc3) + 
+            	      D(1,m) * uc(Jc1,  Jc2+1, Jc3);
+
+        	  else
+          	    uf(Jf1,Jf2,Jf3) = 
+            	      C(0,l)*D(0,m) * uc(Jc1,  Jc2,  Jc3) + C(0,l)*D(1,m) * uc(Jc1,  Jc2+1, Jc3) +
+            	      C(1,l)*D(0,m) * uc(Jc1+1,Jc2,  Jc3) + C(1,l)*D(1,m) * uc(Jc1+1,Jc2+1, Jc3) ;
+
+	  // if (debug) display.display (uf, sPrintF (buf, "uf partial result lr=%1d mr=%1d ",lr,mr));
+      	}
+          	    
+            break;
+            
+        case thirdOrder:
+
+            
+            for (lr=0; lr<r[axis1]; lr++)
+      	for (mr=0; mr<r[axis2]; mr++)
+      	{
+        	  computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+        	  if ( debug ) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+	  //...this is to account for the fact that with r=1, we don't want to offset the injection points
+	  //   and otherwise, the middle point of the interpolation stencil is used for the injection case
+        	  jcOffset1 = r[0] == 1 ? 0 : A[0]+1;
+        	  jcOffset2 = r[1] == 1 ? 0 : A[1]+1;
+
+        	  if (l==0 && m==0) //...injection
+          	    uf(Jf1,Jf2,Jf3) = uc(Jc1+jcOffset1,Jc2+jcOffset2,Jc3);
+
+        	  else if (m==0) //...along horizontal coarse lines
+          	    uf(Jf1,Jf2,Jf3) = 
+            	      C(0,l) * uc(Jc1,  Jc2+jcOffset2,  Jc3) +
+            	      C(1,l) * uc(Jc1+1,Jc2+jcOffset2,  Jc3) +
+            	      C(2,l) * uc(Jc1+2,Jc2+jcOffset2,  Jc3) ;
+
+        	  else if (l==0) //...along vertical coarse lines
+          	    uf(Jf1,Jf2,Jf3) = 
+            	      D(0,m) * uc(Jc1+jcOffset1,  Jc2 ,  Jc3) + 
+            	      D(1,m) * uc(Jc1+jcOffset1,  Jc2+1, Jc3) + 
+            	      D(2,m) * uc(Jc1+jcOffset1,  Jc2+2, Jc3);
+
+        	  else //...default case
+          	    uf(Jf1,Jf2,Jf3) = 
+            	      C(0,l)*D(0,m) * uc(Jc1,  Jc2,  Jc3) + C(0,l)*D(1,m) * uc(Jc1,  Jc2+1, Jc3) + C(0,l)*D(2,m) * uc(Jc1,  Jc2+2, Jc3) +
+            	      C(1,l)*D(0,m) * uc(Jc1+1,Jc2,  Jc3) + C(1,l)*D(1,m) * uc(Jc1+1,Jc2+1, Jc3) + C(1,l)*D(2,m) * uc(Jc1+1,Jc2+2, Jc3) +
+            	      C(2,l)*D(0,m) * uc(Jc1+2,Jc2,  Jc3) + C(2,l)*D(1,m) * uc(Jc1+2,Jc2+1, Jc3) + C(2,l)*D(2,m) * uc(Jc1+2,Jc2+2, Jc3) ;
+
+	  // if (debug) display.display (uf, sPrintF (buf, "uf partial result lr=%1d mr=%1d ",lr,mr));
+      	}
+            break;
+
+    case fourthOrder:
+
+            
+        for (lr=0; lr<r[axis1]; lr++)
+            for (mr=0; mr<r[axis2]; mr++)
+            {
+      	computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+      	if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+      	if (l==0 && m==0)
+        	  uf(Jf1,Jf2,Jf3) = uc(Jc1+A[0],Jc2+A[1],Jc3);
+      	else if (m==0)
+
+        	  uf(Jf1,Jf2,Jf3) = 
+          	    C(0,l) * uc(Jc1,  Jc2+A[1],   Jc3) + 
+          	    C(1,l) * uc(Jc1+1,Jc2+A[1],   Jc3) + 
+          	    C(2,l) * uc(Jc1+2,Jc2+A[1],   Jc3) + 
+          	    C(3,l) * uc(Jc1+3,Jc2+A[1],   Jc3) ;
+          	    
+      	else if (l==0)
+        	  uf(Jf1,Jf2,Jf3) = 
+          	    D(0,m) * uc(Jc1+A[0],  Jc2,   Jc3) + D(1,m) * uc(Jc1+A[0],  Jc2+1, Jc3) + 
+          	    D(2,m) * uc(Jc1+A[0],  Jc2+2, Jc3) + D(3,m) * uc(Jc1+A[0],  Jc2+3, Jc3) ;
+          	    
+      	else
+        	  uf(Jf1,Jf2,Jf3) = 
+          	    C(0,l)*D(0,m) * uc(Jc1,  Jc2,   Jc3) + C(0,l)*D(1,m) * uc(Jc1,  Jc2+1, Jc3) + 
+          	    C(0,l)*D(2,m) * uc(Jc1,  Jc2+2, Jc3) + C(0,l)*D(3,m) * uc(Jc1,  Jc2+3, Jc3) +
+
+          	    C(1,l)*D(0,m) * uc(Jc1+1,Jc2,   Jc3) + C(1,l)*D(1,m) * uc(Jc1+1,Jc2+1, Jc3) + 
+          	    C(1,l)*D(2,m) * uc(Jc1+1,Jc2+2, Jc3) + C(1,l)*D(3,m) * uc(Jc1+1,Jc2+3, Jc3) +
+
+          	    C(2,l)*D(0,m) * uc(Jc1+2,Jc2,   Jc3) + C(2,l)*D(1,m) * uc(Jc1+2,Jc2+1, Jc3) + 
+          	    C(2,l)*D(2,m) * uc(Jc1+2,Jc2+2, Jc3) + C(2,l)*D(3,m) * uc(Jc1+2,Jc2+3, Jc3) +
+
+          	    C(3,l)*D(0,m) * uc(Jc1+3,Jc2,   Jc3) + C(3,l)*D(1,m) * uc(Jc1+3,Jc2+1, Jc3) + 
+          	    C(3,l)*D(2,m) * uc(Jc1+3,Jc2+2, Jc3) + C(3,l)*D(3,m) * uc(Jc1+3,Jc2+3, Jc3) ;
+
+	// if (debug) display.display (uf, sPrintF (buf, "uf partial result lr=%1d mr=%1d ",lr,mr));
+            }
+        
+                
+        break;
+
+        case useGeneralFormula:
+        default:
+
+            if( debug & 1 ) cout << "Interpolate::interpolateCoarseToFind: using the General Formula " << endl;
+
+      	for (lr=0; lr<r[axis1]; lr++)
+        	  for (mr=0; mr<r[axis2]; mr++)
+        	  {
+          	    computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+
+          	    if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+          	    uf(Jf1,Jf2,Jf3) = (real) 0.;
+        	  
+          	    for (i=0; i<M; i++)
+            	      for (j=0; j<M; j++)
+            		if (fabs(C(i,l)*D(j,m)) > InterpolateParameters::coeffEps)
+            		{
+              		  uf(Jf1,Jf2,Jf3) += C(i,l)*D(j,m) * uc(Jc1+i,Jc2+j,Jc3);
+            		}
+        	  }
+
+        
+        break;
+
+        }
+    }
+    
+    if (numberOfDimensions == 3)
+    {
+
+        switch (localIntOrder)
+        {
+        case firstOrder:
+        case secondOrder:
+
+            for (lr=0; lr<r[axis1]; lr++)
+      	for (mr=0; mr<r[axis2]; mr++)
+        	  for (nr=0; nr<r[axis3]; nr++)
+        	  {
+          	    computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+          	    if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+          	    if (l==0 && m==0 && n==0)
+            	      uf(Jf1,Jf2,Jf3) = uc(Jc1,Jc2,Jc3);
+            		
+          	    else if (m==0 && n==0)
+            	      uf(Jf1,Jf2,Jf3) = 
+            		C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2,  Jc3  ) + 
+            		C(1,l)*D(0,m)*E(0,n) * uc(Jc1+1,Jc2,  Jc3  ) ;
+
+          	    else if (l==0 && n==0) // (0,g,0) along planes l=const, n=const, C(A,m), E(A,n) != 0
+            	      uf(Jf1,Jf2,Jf3) = 
+            		C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2  , Jc3  ) + 
+            		C(0,l)*D(1,m)*E(0,n) * uc(Jc1,  Jc2+1, Jc3  ) ;
+              		  
+          	    else if (n==0) // l (g,g,0) along lines n=const, E(A,n) != 0
+            	      uf(Jf1,Jf2,Jf3) = 
+            		C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2,  Jc3  ) + C(0,l)*D(1,m)*E(0,n) * uc(Jc1,  Jc2+1, Jc3  ) +
+            		C(1,l)*D(0,m)*E(0,n) * uc(Jc1+1,Jc2,  Jc3  ) + C(1,l)*D(1,m)*E(0,n) * uc(Jc1+1,Jc2+1, Jc3  ) ;
+
+          	    else if (l==0 && m==0) // (0,0,g) along planes l=const, m=const, C(A,l), D(1,m) != 0
+            	      uf(Jf1,Jf2,Jf3) = 
+            		C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2,  Jc3  ) + 
+            		C(0,l)*D(0,m)*E(1,n) * uc(Jc1,  Jc2,  Jc3+1) ;
+
+          	    else if (m==0) // (g,0,g) along lines m=const, D(A,m) != 0
+            	      uf(Jf1,Jf2,Jf3) = 
+            		C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2,  Jc3  ) + 
+            		C(1,l)*D(0,m)*E(0,n) * uc(Jc1+1,Jc2,  Jc3  ) + 
+            		C(0,l)*D(0,m)*E(1,n) * uc(Jc1,  Jc2,  Jc3+1) + 
+            		C(1,l)*D(0,m)*E(1,n) * uc(Jc1+1,Jc2,  Jc3+1) ;
+
+          	    else if (l==0) // (0,g,g) along lines l=const, C(A,l) != 0
+            	      uf(Jf1,Jf2,Jf3) = 
+            		C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2,  Jc3  ) + C(0,l)*D(1,m)*E(0,n) * uc(Jc1,  Jc2+1, Jc3  ) +
+            		C(0,l)*D(0,m)*E(1,n) * uc(Jc1,  Jc2,  Jc3+1) + C(0,l)*D(1,m)*E(1,n) * uc(Jc1,  Jc2+1, Jc3+1) ;
+
+          	    else  // l (g,g,g) general formula
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2,  Jc3  ) + C(0,l)*D(1,m)*E(0,n) * uc(Jc1,  Jc2+1, Jc3  ) +
+                		    C(1,l)*D(0,m)*E(0,n) * uc(Jc1+1,Jc2,  Jc3  ) + C(1,l)*D(1,m)*E(0,n) * uc(Jc1+1,Jc2+1, Jc3  ) +
+                		    
+                		    C(0,l)*D(0,m)*E(1,n) * uc(Jc1,  Jc2,  Jc3+1) + C(0,l)*D(1,m)*E(1,n) * uc(Jc1,  Jc2+1, Jc3+1) +
+                		    C(1,l)*D(0,m)*E(1,n) * uc(Jc1+1,Jc2,  Jc3+1) + C(1,l)*D(1,m)*E(1,n) * uc(Jc1+1,Jc2+1, Jc3+1) ;
+        	  }
+
+            break;
+
+        case thirdOrder:
+            for (lr=0; lr<r[axis1]; lr++)
+      	for (mr=0; mr<r[axis2]; mr++)
+        	  for (nr=0; nr<r[axis3]; nr++)
+        	  {
+          	    computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+          	    if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+	    //...this is to account for the fact that with r=1, we don't want to offset the injection points
+	    //   and otherwise, the middle point of the interpolation stencil is used for the injection case
+          	    jcOffset1 = r[0] == 1 ? 0 : A[0]+1;
+          	    jcOffset2 = r[1] == 1 ? 0 : A[1]+1;
+          	    jcOffset3 = r[2] == 1 ? 0 : A[2]+1;
+
+          	    if (l==0 && m==0 && n==0)  // (0,0,0) injection
+              		  uf(Jf1,Jf2,Jf3) = uc(Jc1+jcOffset1,Jc2+jcOffset2,Jc3+jcOffset3);
+              		  
+          	    else if (m==0 && n==0) // l (g,0,0) along planes m=const, n=const, D(A,m), E(A,n) != 0
+            	      uf(Jf1,Jf2,Jf3) = 
+            		C(0,l) * uc(Jc1,  Jc2+jcOffset2,  Jc3+jcOffset3) + 
+            		C(1,l) * uc(Jc1+1,Jc2+jcOffset2,  Jc3+jcOffset3) + 
+            		C(2,l) * uc(Jc1+2,Jc2+jcOffset2,  Jc3+jcOffset3) ;
+
+          	    else if (l==0 && n==0) // (0,g,0) along planes l=const, n=const, C(A,m), E(A,n) != 0
+            	      uf(Jf1,Jf2,Jf3) = 
+            		D(0,m) * uc(Jc1+jcOffset1,  Jc2,  Jc3+jcOffset3) + D(1,m) * uc(Jc1+jcOffset1,  Jc2+1, Jc3+jcOffset3) + 
+            		D(2,m) * uc(Jc1+jcOffset1,  Jc2+2,Jc3+jcOffset3) ;
+              		  
+          	    else if (n==0) // l (g,g,0) along lines n=const, E(A,n) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l)*D(0,m) *uc(Jc1,  Jc2,  Jc3+jcOffset3) + C(0,l)*D(1,m) *uc(Jc1,  Jc2+1, Jc3+jcOffset3) + 
+                		    C(0,l)*D(2,m) *uc(Jc1,  Jc2+2,Jc3+jcOffset3) +
+                		    C(1,l)*D(0,m) *uc(Jc1+1,Jc2,  Jc3+jcOffset3) + C(1,l)*D(1,m) *uc(Jc1+1,Jc2+1, Jc3+jcOffset3) + 
+                		    C(1,l)*D(2,m) *uc(Jc1+1,Jc2+2,Jc3+jcOffset3) +
+                		    C(2,l)*D(0,m) *uc(Jc1+2,Jc2,  Jc3+jcOffset3) + C(2,l)*D(1,m) *uc(Jc1+2,Jc2+1, Jc3+jcOffset3) + 
+                		    C(2,l)*D(2,m) *uc(Jc1+2,Jc2+2,Jc3+jcOffset3) ;
+              		  
+          	    else if (l==0 && m==0) // (0,0,g) along planes l=const, m=const, C(A,l), D(A,m) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    E(0,n) *uc(Jc1+jcOffset1,Jc2+jcOffset2,  Jc3  ) +
+                		    E(1,n) *uc(Jc1+jcOffset1,Jc2+jcOffset2,  Jc3+1) + 
+                		    E(2,n) *uc(Jc1+jcOffset1,Jc2+jcOffset2,  Jc3+2) ;
+              		  
+          	    else if (m==0) // (g,0,g) along lines m=const, D(A,m) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l)*E(0,n) *uc(Jc1,  Jc2+jcOffset2,  Jc3  ) + 
+                		    C(1,l)*E(0,n) *uc(Jc1+1,Jc2+jcOffset2,  Jc3  ) + 
+                		    C(2,l)*E(0,n) *uc(Jc1+2,Jc2+jcOffset2,  Jc3  ) + 
+                		    C(0,l)*E(1,n) *uc(Jc1,  Jc2+jcOffset2,  Jc3+1) + 
+                		    C(1,l)*E(1,n) *uc(Jc1+1,Jc2+jcOffset2,  Jc3+1) + 
+                		    C(2,l)*E(1,n) *uc(Jc1+2,Jc2+jcOffset2,  Jc3+1) + 
+                		    C(0,l)*E(2,n) *uc(Jc1,  Jc2+jcOffset2,  Jc3+2) + 
+                		    C(1,l)*E(2,n) *uc(Jc1+1,Jc2+jcOffset2,  Jc3+2) + 
+                		    C(2,l)*E(2,n) *uc(Jc1+2,Jc2+jcOffset2,  Jc3+2) ;
+              		  
+          	    else if (l==0) // (0,g,g) along lines l=const, C(A,l) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    D(0,m)*E(0,n) *uc(Jc1+jcOffset1,  Jc2,  Jc3  ) + D(1,m)*E(0,n) *uc(Jc1+jcOffset1,  Jc2+1, Jc3  ) + 
+                		    D(2,m)*E(0,n) *uc(Jc1+jcOffset1,  Jc2+2,Jc3  ) +
+                		    D(0,m)*E(1,n) *uc(Jc1+jcOffset1,  Jc2,  Jc3+1) + D(1,m)*E(1,n) *uc(Jc1+jcOffset1,  Jc2+1, Jc3+1) + 
+                		    D(2,m)*E(1,n) *uc(Jc1+jcOffset1,  Jc2+2,Jc3+1) +
+                		    D(0,m)*E(2,n) *uc(Jc1+jcOffset1,  Jc2,  Jc3+2) + D(1,m)*E(2,n) *uc(Jc1+jcOffset1,  Jc2+1, Jc3+2) + 
+                		    D(2,m)*E(2,n) *uc(Jc1+jcOffset1,  Jc2+2,Jc3+2) ;
+
+          	    else  // l (g,g,g) general formula
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l)*D(0,m)*E(0,n) *uc(Jc1,  Jc2,  Jc3  ) + C(0,l)*D(1,m)*E(0,n) *uc(Jc1,  Jc2+1, Jc3  ) + 
+                		    C(0,l)*D(2,m)*E(0,n) *uc(Jc1,  Jc2+2,Jc3  ) +
+                		    C(1,l)*D(0,m)*E(0,n) *uc(Jc1+1,Jc2,  Jc3  ) + C(1,l)*D(1,m)*E(0,n) *uc(Jc1+1,Jc2+1, Jc3  ) + 
+                		    C(1,l)*D(2,m)*E(0,n) *uc(Jc1+1,Jc2+2,Jc3  ) +
+                		    C(2,l)*D(0,m)*E(0,n) *uc(Jc1+2,Jc2,  Jc3  ) + C(2,l)*D(1,m)*E(0,n) *uc(Jc1+2,Jc2+1, Jc3  ) + 
+                		    C(2,l)*D(2,m)*E(0,n) *uc(Jc1+2,Jc2+2,Jc3  ) +
+
+                		    C(0,l)*D(0,m)*E(1,n) *uc(Jc1,  Jc2,  Jc3+1) + C(0,l)*D(1,m)*E(1,n) *uc(Jc1,  Jc2+1, Jc3+1) + 
+                		    C(0,l)*D(2,m)*E(1,n) *uc(Jc1,  Jc2+2,Jc3+1) +
+                		    C(1,l)*D(0,m)*E(1,n) *uc(Jc1+1,Jc2,  Jc3+1) + C(1,l)*D(1,m)*E(1,n) *uc(Jc1+1,Jc2+1, Jc3+1) + 
+                		    C(1,l)*D(2,m)*E(1,n) *uc(Jc1+1,Jc2+2,Jc3+1) +
+                		    C(2,l)*D(0,m)*E(1,n) *uc(Jc1+2,Jc2,  Jc3+1) + C(2,l)*D(1,m)*E(1,n) *uc(Jc1+2,Jc2+1, Jc3+1) + 
+                		    C(2,l)*D(2,m)*E(1,n) *uc(Jc1+2,Jc2+2,Jc3+1) +
+
+                		    C(0,l)*D(0,m)*E(2,n) *uc(Jc1,  Jc2,  Jc3+2) + C(0,l)*D(1,m)*E(2,n) *uc(Jc1,  Jc2+1, Jc3+2) + 
+                		    C(0,l)*D(2,m)*E(2,n) *uc(Jc1,  Jc2+2,Jc3+2) +
+                		    C(1,l)*D(0,m)*E(2,n) *uc(Jc1+1,Jc2,  Jc3+2) + C(1,l)*D(1,m)*E(2,n) *uc(Jc1+1,Jc2+1, Jc3+2) + 
+                		    C(1,l)*D(2,m)*E(2,n) *uc(Jc1+1,Jc2+2,Jc3+2) +
+                		    C(2,l)*D(0,m)*E(2,n) *uc(Jc1+2,Jc2,  Jc3+2) + C(2,l)*D(1,m)*E(2,n) *uc(Jc1+2,Jc2+1, Jc3+2) + 
+                		    C(2,l)*D(2,m)*E(2,n) *uc(Jc1+2,Jc2+2,Jc3+2) ;
+          	    
+        	  }
+            
+            break;
+            
+            
+        case fourthOrder: 
+
+            for (lr=0; lr<r[axis1]; lr++)
+      	for (mr=0; mr<r[axis2]; mr++)
+        	  for (nr=0; nr<r[axis3]; nr++)
+        	  {
+
+          	    computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+          	    if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+          	    if (l==0 && m==0 && n==0) // (0,0,0) injection
+              		  uf(Jf1,Jf2,Jf3) = uc(Jc1+A1,Jc2+A2,Jc3+A3);
+
+          	    else if (m==0 && n==0) // l (g,0,0) along planes m=const, n=const, D(A,m), E(A,n) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l) * uc(Jc1,  Jc2+A2,Jc3+A3) +
+                		    C(1,l) * uc(Jc1+1,Jc2+A2,Jc3+A3) +
+                		    C(2,l) * uc(Jc1+2,Jc2+A2,Jc3+A3) +
+                		    C(3,l) * uc(Jc1+3,Jc2+A2,Jc3+A3) ;
+        	  
+          	    else if (l==0 && n==0) // (0,g,0) along planes l=const, n=const, C(A,m), E(A,n) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    D(0,m) * uc(Jc1+A1,  Jc2,   Jc3+A3) + D(1,m) * uc(Jc1+A1,  Jc2+1, Jc3+A3) + 
+                		    D(2,m) * uc(Jc1+A1,  Jc2+2, Jc3+A3) + D(3,m) * uc(Jc1+A1,  Jc2+3, Jc3+A3) ;
+
+          	    else if (n==0) // l (g,g,0) along lines n=const, E(A,n) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l)*D(0,m) * uc(Jc1,  Jc2,  Jc3+A3) + C(0,l)*D(1,m) * uc(Jc1,  Jc2+1,Jc3+A3) + 
+                		    C(0,l)*D(2,m) * uc(Jc1,  Jc2+2,Jc3+A3) + C(0,l)*D(3,m) * uc(Jc1,  Jc2+3,Jc3+A3) +
+
+                		    C(1,l)*D(0,m) * uc(Jc1+1,Jc2,  Jc3+A3) + C(1,l)*D(1,m) * uc(Jc1+1,Jc2+1,Jc3+A3) + 
+                		    C(1,l)*D(2,m) * uc(Jc1+1,Jc2+2,Jc3+A3) + C(1,l)*D(3,m) * uc(Jc1+1,Jc2+3,Jc3+A3) +
+
+                		    C(2,l)*D(0,m) * uc(Jc1+2,Jc2,  Jc3+A3) + C(2,l)*D(1,m) * uc(Jc1+2,Jc2+1,Jc3+A3) + 
+                		    C(2,l)*D(2,m) * uc(Jc1+2,Jc2+2,Jc3+A3) + C(2,l)*D(3,m) * uc(Jc1+2,Jc2+3,Jc3+A3) +
+
+                		    C(3,l)*D(0,m) * uc(Jc1+3,Jc2,  Jc3+A3) + C(3,l)*D(1,m) * uc(Jc1+3,Jc2+1,Jc3+A3) + 
+                		    C(3,l)*D(2,m) * uc(Jc1+3,Jc2+2,Jc3+A3) + C(3,l)*D(3,m) * uc(Jc1+3,Jc2+3,Jc3+A3) ;
+              		  
+          	    else if (l==0 && m==0) // (0,0,g) along planes l=const, m=const, C(A,l), D(A,m) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    E(0,n) * uc(Jc1+A1,Jc2+A2,Jc3  ) + 
+                		    E(1,n) * uc(Jc1+A1,Jc2+A2,Jc3+1) + 
+                		    E(2,n) * uc(Jc1+A1,Jc2+A2,Jc3+2) + 
+                		    E(3,n) * uc(Jc1+A1,Jc2+A2,Jc3+3) ;
+              		  
+          	    else if (m==0) // (g,0,g) along lines m=const, D(A,m) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l)*E(0,n) * uc(Jc1,  Jc2+A2, Jc3  ) + 
+                		    C(1,l)*E(0,n) * uc(Jc1+1,Jc2+A2, Jc3  ) + 
+                		    C(2,l)*E(0,n) * uc(Jc1+2,Jc2+A2, Jc3  ) + 
+                		    C(3,l)*E(0,n) * uc(Jc1+3,Jc2+A2, Jc3  ) + 
+        	  
+                		    C(0,l)*E(1,n) * uc(Jc1,  Jc2+A2, Jc3+1) + 
+                		    C(1,l)*E(1,n) * uc(Jc1+1,Jc2+A2, Jc3+1) + 
+                		    C(2,l)*E(1,n) * uc(Jc1+2,Jc2+A2, Jc3+1) + 
+                		    C(3,l)*E(1,n) * uc(Jc1+3,Jc2+A2, Jc3+1) + 
+        	  
+                		    C(0,l)*E(2,n) * uc(Jc1,  Jc2+A2, Jc3+2) + 
+                		    C(1,l)*E(2,n) * uc(Jc1+1,Jc2+A2, Jc3+2) + 
+                		    C(2,l)*E(2,n) * uc(Jc1+2,Jc2+A2, Jc3+2) + 
+                		    C(3,l)*E(2,n) * uc(Jc1+3,Jc2+A2, Jc3+2) + 
+          	    
+                		    C(0,l)*E(3,n) * uc(Jc1,  Jc2+A2, Jc3+3) + 
+                		    C(1,l)*E(3,n) * uc(Jc1+1,Jc2+A2, Jc3+3) + 
+                		    C(2,l)*E(3,n) * uc(Jc1+2,Jc2+A2, Jc3+3) + 
+                		    C(3,l)*E(3,n) * uc(Jc1+3,Jc2+A2, Jc3+3) ;
+              		  
+          	    else if (l==0) // (0,g,g) along lines l=const, C(A,l) != 0
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    D(0,m)*E(0,n) * uc(Jc1+A1,Jc2,   Jc3  ) + D(1,m)*E(0,n) * uc(Jc1+A1,Jc2+1, Jc3  ) + 
+                		    D(2,m)*E(0,n) * uc(Jc1+A1,Jc2+2, Jc3  ) + D(3,m)*E(0,n) * uc(Jc1+A1,Jc2+3, Jc3  ) +
+                		    D(0,m)*E(1,n) * uc(Jc1+A1,Jc2,   Jc3+1) + D(1,m)*E(1,n) * uc(Jc1+A1,Jc2+1, Jc3+1) + 
+                		    D(2,m)*E(1,n) * uc(Jc1+A1,Jc2+2, Jc3+1) + D(3,m)*E(1,n) * uc(Jc1+A1,Jc2+3, Jc3+1) +
+                		    D(0,m)*E(2,n) * uc(Jc1+A1,Jc2,   Jc3+2) + D(1,m)*E(2,n) * uc(Jc1+A1,Jc2+1, Jc3+2) + 
+                		    D(2,m)*E(2,n) * uc(Jc1+A1,Jc2+2, Jc3+2) + D(3,m)*E(2,n) * uc(Jc1+A1,Jc2+3, Jc3+2) +
+                		    D(0,m)*E(3,n) * uc(Jc1+A1,Jc2,   Jc3+3) + D(1,m)*E(3,n) * uc(Jc1+A1,Jc2+1, Jc3+3) + 
+                		    D(2,m)*E(3,n) * uc(Jc1+A1,Jc2+2, Jc3+3) + D(3,m)*E(3,n) * uc(Jc1+A1,Jc2+3, Jc3+3) ;
+              		  
+          	    else // default case
+              		  uf(Jf1,Jf2,Jf3) = 
+                		    C(0,l)*D(0,m)*E(0,n) * uc(Jc1,  Jc2,   Jc3  ) + C(0,l)*D(1,m)*E(0,n) * uc(Jc1,  Jc2+1, Jc3  ) + 
+                		    C(0,l)*D(2,m)*E(0,n) * uc(Jc1,  Jc2+2, Jc3  ) + C(0,l)*D(3,m)*E(0,n) * uc(Jc1,  Jc2+3, Jc3  ) +
+                		    C(1,l)*D(0,m)*E(0,n) * uc(Jc1+1,Jc2,   Jc3  ) + C(1,l)*D(1,m)*E(0,n) * uc(Jc1+1,Jc2+1, Jc3  ) + 
+                		    C(1,l)*D(2,m)*E(0,n) * uc(Jc1+1,Jc2+2, Jc3  ) + C(1,l)*D(3,m)*E(0,n) * uc(Jc1+1,Jc2+3, Jc3  ) +
+                		    C(2,l)*D(0,m)*E(0,n) * uc(Jc1+2,Jc2,   Jc3  ) + C(2,l)*D(1,m)*E(0,n) * uc(Jc1+2,Jc2+1, Jc3  ) + 
+                		    C(2,l)*D(2,m)*E(0,n) * uc(Jc1+2,Jc2+2, Jc3  ) + C(2,l)*D(3,m)*E(0,n) * uc(Jc1+2,Jc2+3, Jc3  ) +
+                		    C(3,l)*D(0,m)*E(0,n) * uc(Jc1+3,Jc2,   Jc3  ) + C(3,l)*D(1,m)*E(0,n) * uc(Jc1+3,Jc2+1, Jc3  ) + 
+                		    C(3,l)*D(2,m)*E(0,n) * uc(Jc1+3,Jc2+2, Jc3  ) + C(3,l)*D(3,m)*E(0,n) * uc(Jc1+3,Jc2+3, Jc3  ) +
+        	  
+                		    C(0,l)*D(0,m)*E(1,n) * uc(Jc1,  Jc2,   Jc3+1) + C(0,l)*D(1,m)*E(1,n) * uc(Jc1,  Jc2+1, Jc3+1) + 
+                		    C(0,l)*D(2,m)*E(1,n) * uc(Jc1,  Jc2+2, Jc3+1) + C(0,l)*D(3,m)*E(1,n) * uc(Jc1,  Jc2+3, Jc3+1) +
+                		    C(1,l)*D(0,m)*E(1,n) * uc(Jc1+1,Jc2,   Jc3+1) + C(1,l)*D(1,m)*E(1,n) * uc(Jc1+1,Jc2+1, Jc3+1) + 
+                		    C(1,l)*D(2,m)*E(1,n) * uc(Jc1+1,Jc2+2, Jc3+1) + C(1,l)*D(3,m)*E(1,n) * uc(Jc1+1,Jc2+3, Jc3+1) +
+                		    C(2,l)*D(0,m)*E(1,n) * uc(Jc1+2,Jc2,   Jc3+1) + C(2,l)*D(1,m)*E(1,n) * uc(Jc1+2,Jc2+1, Jc3+1) + 
+                		    C(2,l)*D(2,m)*E(1,n) * uc(Jc1+2,Jc2+2, Jc3+1) + C(2,l)*D(3,m)*E(1,n) * uc(Jc1+2,Jc2+3, Jc3+1) +
+                		    C(3,l)*D(0,m)*E(1,n) * uc(Jc1+3,Jc2,   Jc3+1) + C(3,l)*D(1,m)*E(1,n) * uc(Jc1+3,Jc2+1, Jc3+1) + 
+                		    C(3,l)*D(2,m)*E(1,n) * uc(Jc1+3,Jc2+2, Jc3+1) + C(3,l)*D(3,m)*E(1,n) * uc(Jc1+3,Jc2+3, Jc3+1) +
+        	  
+                		    C(0,l)*D(0,m)*E(2,n) * uc(Jc1,  Jc2,   Jc3+2) + C(0,l)*D(1,m)*E(2,n) * uc(Jc1,  Jc2+1, Jc3+2) + 
+                		    C(0,l)*D(2,m)*E(2,n) * uc(Jc1,  Jc2+2, Jc3+2) + C(0,l)*D(3,m)*E(2,n) * uc(Jc1,  Jc2+3, Jc3+2) +
+                		    C(1,l)*D(0,m)*E(2,n) * uc(Jc1+1,Jc2,   Jc3+2) + C(1,l)*D(1,m)*E(2,n) * uc(Jc1+1,Jc2+1, Jc3+2) + 
+                		    C(1,l)*D(2,m)*E(2,n) * uc(Jc1+1,Jc2+2, Jc3+2) + C(1,l)*D(3,m)*E(2,n) * uc(Jc1+1,Jc2+3, Jc3+2) +
+                		    C(2,l)*D(0,m)*E(2,n) * uc(Jc1+2,Jc2,   Jc3+2) + C(2,l)*D(1,m)*E(2,n) * uc(Jc1+2,Jc2+1, Jc3+2) + 
+                		    C(2,l)*D(2,m)*E(2,n) * uc(Jc1+2,Jc2+2, Jc3+2) + C(2,l)*D(3,m)*E(2,n) * uc(Jc1+2,Jc2+3, Jc3+2) +
+                		    C(3,l)*D(0,m)*E(2,n) * uc(Jc1+3,Jc2,   Jc3+2) + C(3,l)*D(1,m)*E(2,n) * uc(Jc1+3,Jc2+1, Jc3+2) + 
+                		    C(3,l)*D(2,m)*E(2,n) * uc(Jc1+3,Jc2+2, Jc3+2) + C(3,l)*D(3,m)*E(2,n) * uc(Jc1+3,Jc2+3, Jc3+2) +
+          	    
+                		    C(0,l)*D(0,m)*E(3,n) * uc(Jc1,  Jc2,   Jc3+3) + C(0,l)*D(1,m)*E(3,n) * uc(Jc1,  Jc2+1, Jc3+3) + 
+                		    C(0,l)*D(2,m)*E(3,n) * uc(Jc1,  Jc2+2, Jc3+3) + C(0,l)*D(3,m)*E(3,n) * uc(Jc1,  Jc2+3, Jc3+3) +
+                		    C(1,l)*D(0,m)*E(3,n) * uc(Jc1+1,Jc2,   Jc3+3) + C(1,l)*D(1,m)*E(3,n) * uc(Jc1+1,Jc2+1, Jc3+3) + 
+                		    C(1,l)*D(2,m)*E(3,n) * uc(Jc1+1,Jc2+2, Jc3+3) + C(1,l)*D(3,m)*E(3,n) * uc(Jc1+1,Jc2+3, Jc3+3) +
+                		    C(2,l)*D(0,m)*E(3,n) * uc(Jc1+2,Jc2,   Jc3+3) + C(2,l)*D(1,m)*E(3,n) * uc(Jc1+2,Jc2+1, Jc3+3) + 
+                		    C(2,l)*D(2,m)*E(3,n) * uc(Jc1+2,Jc2+2, Jc3+3) + C(2,l)*D(3,m)*E(3,n) * uc(Jc1+2,Jc2+3, Jc3+3) +
+                		    C(3,l)*D(0,m)*E(3,n) * uc(Jc1+3,Jc2,   Jc3+3) + C(3,l)*D(1,m)*E(3,n) * uc(Jc1+3,Jc2+1, Jc3+3) + 
+                		    C(3,l)*D(2,m)*E(3,n) * uc(Jc1+3,Jc2+2, Jc3+3) + C(3,l)*D(3,m)*E(3,n) * uc(Jc1+3,Jc2+3, Jc3+3) ;
+
+        	  }
+            
+            break;
+            
+        case useGeneralFormula:
+        default:
+            if( debug & 1 ) cout << "Interpolate::interpolateCoarseToFine: using the General Formula " << endl;
+      	
+            for (lr=0; lr<r[axis1]; lr++)
+      	for (mr=0; mr<r[axis2]; mr++)
+        	  for (nr=0; nr<r[axis3]; nr++)
+        	  {
+          	    computeIndexes (uc, lm, Jf, Jc, If, lmr, R, A, r, stride, extra, offset, iod);
+
+          	    if ( debug) displayEverything (r, extra, offset, lm, lmr, Iv, If, Jf, Jc);
+
+          	    uf(Jf1,Jf2,Jf3) = (real) 0.;
+        	  
+          	    for (i=0; i<M; i++)
+            	      for (j=0; j<M; j++)
+            		for (k=0; k<M; k++)
+              		  if (fabs(C(i,l)*D(j,m)*E(k,n)) > InterpolateParameters::coeffEps)
+                		    uf(Jf1,Jf2,Jf3) += C(i,l)*D(j,m)*E(k,n) * uc(Jc1+i,Jc2+j,Jc3+k);
+        	  }
+
+            
+            break;
+        }
+        
+    }
+    
+    if (timing) 
+    {
+        executionTime = getCPU() - executionTime;
+        cout << "Interpolate::interpolateCoarseToFine execution time: " << executionTime << endl;
+    }
+
+
+    
+    return 0;
+}
+
+
+#define interpFineFromCoarse EXTERN_C_NAME(interpfinefromcoarse)
+#define interpCoarseFromFine EXTERN_C_NAME(interpcoarsefromfine)
+
+extern "C"
+{
+  void interpFineFromCoarse(
+              const int &ndfra,const int &ndfrb,const int &ndfsa,const int &ndfsb,const int &ndfta,const int &ndftb,
+              real & uf,
+              const int &ndcra,const int &ndcrb,const int &ndcsa,const int &ndcsb,const int &ndcta,const int &ndctb,
+              const real & uc,
+              const int &nd,const int &nra,const int &nrb,const int &nsa,const int &nsb,const int &nta,const int &ntb, 
+              const int &width,const int &ratios, const int &ndca,const int &ca,const int &cb,
+              const int &ishift, const int &centerings, const int & update, const int &mask,
+              const int & ipar );
+
+  void interpCoarseFromFine(
+              const int &ndfra,const int &ndfrb,const int &ndfsa,const int &ndfsb,const int &ndfta,const int &ndftb,
+              real & uf,
+              const int &ndcra,const int &ndcrb,const int &ndcsa,const int &ndcsb,const int &ndcta,const int &ndctb,
+              const real & uc,
+              const int &nd,const int &nra,const int &nrb,const int &nsa,const int &nsb,const int &nta,const int &ntb, 
+              const int &width,const int &ratios, const int &ndca,const int &ca,const int &cb,
+              const int &ishift, const int &centerings, const int & option, const int & update, const int &mask, 
+              const int & ipar );
+}
+
+
+static  FILE *pDebugFile = NULL;
+
+// ===========================================================================
+//  Macro defining the interpolate fine from coarse function
+// 
+//    ---- New algorithm that is more efficient ----
+// 
+//  USE_MASK : noMask or mask
+// ===========================================================================
+
+
+
+
+
+
+//! Interpolate fine from coarse
+/*!
+    \param Iv[3] : fine grid points to interpolate
+    \param update : 0= set uf=interpolant(uc)
+                                    1= set uf=uf+interpolant(uc)
+    \param transferWidth : by default use the current value of interpolateOrder, otherwise use this width.
+                                            The default is transferWidth==2 corresponding to linear interpolation.
+    Author WDH.
+  */
+int Interpolate::
+interpolateFineFromCoarse(realArray&                   uf,
+                   			 const Index                  Iv[3],
+                   			 const realArray&             uc,
+                   			 const IntegerArray&          amrRefinementRatio_,
+                   			 const int update /* = 0 */,
+                   			 const int transferWidth /* =useDefaultTransferWidth */)
+{
+    MaskOptionEnum maskOption=doNotUseMask;
+        real executionTime;
+        if (timing) executionTime = getCPU();
+        FILE *debugFile=NULL; 
+    // FILE *debugFile=InterpolateRefinements::debugFile; // set this to turn on debug output ************
+        const int myid=max(Communication_Manager::My_Process_Number,0);
+    // for debugging:
+  //  if( pDebugFile==NULL ) pDebugFile = fopen(sPrintF("interpFineFromCoarse%i.debug",myid),"w" );
+        int shift[3]={0,0,0};  // set to 1 to prefer a "left" stencil
+        int ratios[3];
+        if (amrRefinementRatio_.isNullArray())
+        {
+            ratios[0] = amrRefinementRatio(0);
+            ratios[1] = amrRefinementRatio(1);
+            ratios[2] = amrRefinementRatio(2);
+        }
+        else
+        {
+            ratios[0] = amrRefinementRatio_(0);
+            ratios[1] = amrRefinementRatio_(1);
+            ratios[2] = amrRefinementRatio_(2);
+        }
+  // printf("Interpolate:fineFromC: ratios=%i,%i,%i\n",ratios[0],ratios[1],ratios[2]); // **wdh* 060120 -- debug
+        int centering=0; // 1=cell centered
+        int centerings[3]={centering,centering,centering}; //
+        int width=transferWidth==useDefaultTransferWidth ? interpolateOrder : transferWidth;
+      bool ok=true;
+      #ifdef USE_PPP
+        Range R4=uf.dimension(3);
+    // refinement ratios
+        int ratio1=ratios[0];
+        int ratio2=numberOfDimensions>1 ? ratios[1] : 1;
+        int ratio3=numberOfDimensions>2 ? ratios[2] : 1;
+        if( ratio1==1 && ratio2==1 && ratio3==1 )
+        {
+      // special case -- just copy
+            if( true )
+            {
+  	// uf(Iv[0],Iv[1],Iv[2],R4)=1.;
+        // uf(Iv[0],Iv[1],Iv[2],R4)=uc(Iv[0],Iv[1],Iv[2],R4);
+          	const int numDims=4;
+          	Index Jv[4];
+          	Jv[0]=Iv[0]; Jv[1]=Iv[1]; Jv[2]=Iv[2]; Jv[3]=R4;
+          	ParallelUtility::copy( uf, Jv, uc, Jv, numDims);
+            }
+            else
+            {
+                uf(Iv[0],Iv[1],Iv[2],R4)=uc(Iv[0],Iv[1],Iv[2],R4);
+            }
+            return 0;
+        }
+    // *************************************************************
+    //    Here is the algorithm for the general case in parallel
+    // *************************************************************
+        const int halfWidth1=width/2;
+        const int halfWidth2=numberOfDimensions>1 ? halfWidth1 : 0;
+        const int halfWidth3=numberOfDimensions>2 ? halfWidth1 : 0;
+    // bounds to interpolate from the fine grid:
+        int nf1a = Iv[0].getBase();
+        int nf1b = Iv[0].getBound();
+        int nf2a = Iv[1].getBase();
+        int nf2b = Iv[1].getBound();
+        int nf3a = Iv[2].getBase();
+        int nf3b = Iv[2].getBound();
+    // global coarse grid bounds needed:
+  //   int mc1a = floordiv(nf1a-(ratio1-1),ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+  //   int mc2a = floordiv(nf2a-(ratio2-1),ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+  //   int mc3a = floordiv(nf3a-(ratio3-1),ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+        int mc1a = floordiv(nf1a,ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+        int mc2a = floordiv(nf2a,ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+        int mc3a = floordiv(nf3a,ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+        Index Ivc[4];   // save global coarse grid bounds
+        Ivc[0]=Range(mc1a,mc1b);
+        Ivc[1]=Range(mc2a,mc2b);
+        Ivc[2]=Range(mc3a,mc3b);
+        Ivc[3]=R4;
+        realSerialArray ufLocal; getLocalArrayWithGhostBoundaries(uf,ufLocal);
+        realSerialArray ucLocal; getLocalArrayWithGhostBoundaries(uc,ucLocal);
+    // Here are the points to interpolate from the local fine grid
+        nf1a = max(nf1a, ufLocal.getBase(0)+uf.getGhostBoundaryWidth(0));
+        nf1b = min(nf1b,ufLocal.getBound(0)-uf.getGhostBoundaryWidth(0));
+        nf2a = max(nf2a, ufLocal.getBase(1)+uf.getGhostBoundaryWidth(1));
+        nf2b = min(nf2b,ufLocal.getBound(1)-uf.getGhostBoundaryWidth(1));
+        nf3a = max(nf3a, ufLocal.getBase(2)+uf.getGhostBoundaryWidth(2));
+        nf3b = min(nf3b,ufLocal.getBound(2)-uf.getGhostBoundaryWidth(2));
+        ok = nf1a<=nf1b && nf2a<=nf2b && nf3a<=nf3b;  // ok==true --> there are pts to interp on this proc.
+    // Here are the (local) coarse grid points that we will use in interpolating to the fine grid:
+    // *note* that we include enough ghost points so that we can use the full interpolation stencil,
+        if( ok )
+        {
+            mc1a = floordiv(nf1a,ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+            mc2a = floordiv(nf2a,ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+            mc3a = floordiv(nf3a,ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+        }
+        else
+        {
+            nf1a=nf2a=nf3a=0;  nf1b=nf2b=nf3b=-1;
+            mc1a=mc2a=mc3a=0;  mc1b=mc2b=mc3b=-1;
+        }
+  //   mc1a = floordiv(nf1a-(ratio1-1),ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+  //   mc2a = floordiv(nf2a-(ratio2-1),ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+  //   mc3a = floordiv(nf3a-(ratio3-1),ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+  //   mc1a=max(mc1a,ucLocal.getBase(0)); mc1b=min(mc1b,ucLocal.getBound(0));
+  //   mc2a=max(mc2a,ucLocal.getBase(1)); mc2b=min(mc2b,ucLocal.getBound(1));
+  //   mc3a=max(mc3a,ucLocal.getBase(2)); mc3b=min(mc3b,ucLocal.getBound(2));
+    // uc2: space to hold the coarse grid points
+    //      We will copy these from other processors as needed
+    // ***NOTE: we could avoid this copy if np==1, just use ucLocal ***
+        realSerialArray uc2;
+        if( nf1a<=nf1b && nf2a<=nf2b && nf3a<=nf3b )
+        {
+            Range R1(mc1a,mc1b),R2(mc2a,mc2b),R3(mc3a,mc3b);
+            uc2.redim(R1,R2,R3,R4);  
+        }
+    // For the parallel copy we need to know the sizes of the local "uc2" arrays on all processors
+        const int np=max(1,Communication_Manager::Number_Of_Processors);
+        IndexBox *uc2BoxArray = new IndexBox[np]; 
+        for( int p=0; p<np; p++ )
+        {
+            IndexBox fBox;  // box for coarse and fine grid bounds on processor p 
+            CopyArray::getLocalArrayBoxWithGhost( p, uf, fBox );
+      // Here are the fine grid points on processor p that will be assigned:
+            int n1a = max(Iv[0].getBase(),  fBox.base(0) +uf.getGhostBoundaryWidth(0));
+            int n1b = min(Iv[0].getBound(), fBox.bound(0)-uf.getGhostBoundaryWidth(0));
+            int n2a = max(Iv[1].getBase(), fBox.base(1) +uf.getGhostBoundaryWidth(1));
+            int n2b = min(Iv[1].getBound(),fBox.bound(1)-uf.getGhostBoundaryWidth(1));
+            int n3a = max(Iv[2].getBase(), fBox.base(2) +uf.getGhostBoundaryWidth(2));
+            int n3b = min(Iv[2].getBound(),fBox.bound(2)-uf.getGhostBoundaryWidth(2));
+      // Here are the coarse grid points on processor p that we need in order to interpolate:
+            int m1a,m1b,m2a,m2b,m3a,m3b;
+            if( n1a<=n1b && n2a<=n2b && n3a<=n3b )
+            {
+                m1a = floordiv(n1a,ratio1)-halfWidth1, m1b = floordiv(n1b+(ratio1-1),ratio1)+halfWidth1;   
+                m2a = floordiv(n2a,ratio2)-halfWidth2, m2b = floordiv(n2b+(ratio2-1),ratio2)+halfWidth2;
+                m3a = floordiv(n3a,ratio3)-halfWidth3, m3b = floordiv(n3b+(ratio3-1),ratio3)+halfWidth3;
+            }
+            else
+            {
+                m1a=m2a=m3a=0;  m1b=m2b=m3b=-1;
+            }
+  //     int m1a = floordiv(n1a-(ratio1-1),ratio1)-halfWidth1, m1b = floordiv(n1b+(ratio1-1),ratio1)+halfWidth1;   
+  //     int m2a = floordiv(n2a-(ratio2-1),ratio2)-halfWidth2, m2b = floordiv(n2b+(ratio2-1),ratio2)+halfWidth2;
+  //     int m3a = floordiv(n3a-(ratio3-1),ratio3)-halfWidth3, m3b = floordiv(n3b+(ratio3-1),ratio3)+halfWidth3;
+  //     m1a=max(m1a,cBox.base(0)); m1b=min(m1b,cBox.bound(0));
+  //     m2a=max(m2a,cBox.base(1)); m2b=min(m2b,cBox.bound(1));
+  //     m3a=max(m3a,cBox.base(2)); m3b=min(m3b,cBox.bound(2));
+            if( myid==p )
+            {
+                if( !( m1a==mc1a && m1b==mc1b && m2a==mc2a && m2b==mc2b && m2a==mc2a && m2b==mc2b ) )
+                {
+                    printf("ERROR: myid=%i: m1a,m1b,...  =[%i,%i][%i,%i][%i,%i]\n"
+                                  "               mc1a,mc1b,...=[%i,%i][%i,%i][%i,%i]\n"
+                                  "               n1a,n1b,...  =[%i,%i][%i,%i][%i,%i]\n"
+                                  "               nf1a,nf1b,...=[%i,%i][%i,%i][%i,%i]\n"
+                                  "               fBox         =[%i,%i][%i,%i][%i,%i]\n"
+                                  "               ufLocal      =[%i,%i][%i,%i][%i,%i]\n"
+                                  ,myid,
+                 	       m1a,m1b,m2a,m2b,m3a,m3b, mc1a,mc1b,mc2a,mc2b,mc3a,mc3b, 
+                 	       n1a,n1b,n2a,n2b,n3a,n3b, nf1a,nf1b,nf2a,nf2b,nf3a,nf3b,
+                                  fBox.base(0),fBox.bound(0),fBox.base(1),fBox.bound(1),fBox.base(2),fBox.bound(2),
+                                  ufLocal.getBase(0),ufLocal.getBound(0),
+                                  ufLocal.getBase(1),ufLocal.getBound(1),
+                 	       ufLocal.getBase(2),ufLocal.getBound(2));
+          	Overture:abort();
+                }
+            }
+            uc2BoxArray[p].setBounds(m1a,m1b, m2a,m2b, m3a,m3b, R4.getBase(), R4.getBound() );
+        }
+        if( pDebugFile!=NULL )
+        {
+            fprintf(pDebugFile,
+                                                "*** fineFromCoarse: Interpolate fine points Iv=[%i,%i][%i,%i][%i,%i]\n"
+                                                "        Interpolate local fine pts:  nf1a,nf1b=[%i,%i][%i,%i][%i,%i]\n"
+                                                "                 fine grid bounds :            [%i,%i][%i,%i][%i,%i]\n"
+                                                "               coarse grid bounds :            [%i,%i][%i,%i][%i,%i]\n"
+                                                " uc2: special local coarse grid bounds:        [%i,%i][%i,%i][%i,%i]\n"
+                                                " ratios=[%i,%i,%i], width=%i, halfWidth=%i,%i,%i\n"
+                            ,Iv[0].getBase(),Iv[0].getBound(),Iv[1].getBase(),Iv[1].getBound(),
+                              Iv[2].getBase(),Iv[2].getBound(),
+                            nf1a,nf1b,nf2a,nf2b,nf3a,nf3b, 
+                            uf.getBase(0),uf.getBound(0),uf.getBase(1),uf.getBound(1),uf.getBase(2),uf.getBound(2),
+                            uc.getBase(0),uc.getBound(0),uc.getBase(1),uc.getBound(1),uc.getBase(2),uc.getBound(2),
+                            uc2.getBase(0),uc2.getBound(0),uc2.getBase(1),uc2.getBound(1),uc2.getBase(2),uc2.getBound(2),
+                            ratios[0],ratios[1],ratios[2],width,halfWidth1,halfWidth2,halfWidth3);
+            fflush( pDebugFile );
+        }
+    // CopyArray::debug=1;
+    // Now fill in the local uc2 arrays from the distributed uc array:
+        CopyArray::copyArray(uc,Ivc,uc2BoxArray,uc2); 
+        delete [] uc2BoxArray;
+        if( debugFile!=NULL )
+        {
+            ::display(uc ," uc : the coarse grid values      ",debugFile," %3.1f ");
+            ::display(uf ," uf : BEFORE interpFineFromCoarse ",debugFile," %3.1f ");
+        }
+        if( pDebugFile!=NULL )
+        { // NOTE: do not display a distributed array to the pDebugFile since this points to different
+      // files on different processors
+            ::display(uc2," uc2: the coarse grid copied the the local processor",pDebugFile," %3.1f ");
+            fflush( pDebugFile );
+        }
+        #else
+            const realSerialArray & ufLocal = uf;
+            const realSerialArray & uc2 = uc;
+      // fine grid points to interpolate:
+            int nf1a = Iv[0].getBase();
+            int nf1b = Iv[0].getBound();
+            int nf2a = Iv[1].getBase();
+            int nf2b = Iv[1].getBound();
+            int nf3a = Iv[2].getBase();
+            int nf3b = Iv[2].getBound();
+        #endif
+        int ipar[1]={(int)maskOption};  //
+            assert( maskOption==doNotUseMask );
+            const int *pmask=ipar;
+        if( ok )
+        {
+            if( debug )
+            {
+                printf("interpFineFromCoarse: uf=[%i,%i][%i,%i][%i,%i] uc2=[%i,%i][%i,%i][%i,%i] nf=[%i,%i][%i,%i][%i,%i]\n",
+                          ufLocal.getBase(0),ufLocal.getBound(0),
+                       			 ufLocal.getBase(1),ufLocal.getBound(1),
+                       			 ufLocal.getBase(2),ufLocal.getBound(2),uc2.getBase(0),uc2.getBound(0),
+                       			 uc2.getBase(1),uc2.getBound(1),
+               	     uc2.getBase(2),uc2.getBound(2),nf1a,nf1b,nf2a,nf2b,nf3a,nf3b);
+                printf(" ... width=%i ratios[0]=%i update=%i\n",width,ratios[0],update);
+            }
+            interpFineFromCoarse(ufLocal.getBase(0),ufLocal.getBound(0),
+                       			 ufLocal.getBase(1),ufLocal.getBound(1),
+                       			 ufLocal.getBase(2),ufLocal.getBound(2),
+                       			 *getDataPointer(ufLocal),
+                       			 uc2.getBase(0),uc2.getBound(0),
+                       			 uc2.getBase(1),uc2.getBound(1),
+                       			 uc2.getBase(2),uc2.getBound(2),
+                       			 *getDataPointer(uc2),
+                       			 numberOfDimensions,
+                       			 nf1a,nf1b,nf2a,nf2b,nf3a,nf3b,
+                       			 width,ratios[0],
+                       			 ufLocal.getBase(3),
+                       			 ufLocal.getBase(3),ufLocal.getBound(3), shift[0], centerings[0], update,
+                       			 *pmask,ipar[0] );
+        }
+        if( debugFile!=NULL )
+        {
+                ::display(uf ," uf : after interpFineFromCoarse ",debugFile," %4.1f");
+        }
+        if( pDebugFile!=NULL )
+        {
+            ::display(ufLocal ," ufLocal : after interpFineFromCoarse ",pDebugFile," %4.1f");
+            fflush( pDebugFile );
+        }
+  // if( debug )
+  // {
+  //  display(uc2,"interpFineFromCoarse: uc2","%6.3f ");
+  //  display(ufLocal,"interpFineFromCoarse: ufLocal","%6.3f ");
+  // }
+        if (timing) 
+        {
+            executionTime = getCPU() - executionTime;
+            cout << "Interpolate::interpolateFineFromCoarse execution time: " << executionTime << endl;
+        }
+        return 0;
+}
+
+
+//! Interpolate coarse to fine with a mask
+/*!
+    \param Iv[3] : fine grid points to interpolate
+    \param update : 0= set uf=interpolant(uc)
+                                    1= set uf=uf+interpolant(uc)
+    \param transferWidth : by default use the current value of interpolateOrder, otherwise use this width.
+                                            The default is transferWidth==2 corresponding to linear interpolation.
+  */
+int Interpolate::
+interpolateFineFromCoarse(realArray&                  uf,
+                   			 const intSerialArray&        mask,
+                   			 const Index                  Iv[3],
+                   			 const realArray&             uc,
+                   			 const IntegerArray&          amrRefinementRatio_,
+                                                  const int update /* = 0 */,
+                   			 const int transferWidth /* =useDefaultTransferWidth */,
+                                                  const MaskOptionEnum maskOption /* =maskGreaterThanZero */)
+{
+
+  // interpolateFineFromCoarseMacroOld(mask)
+        real executionTime;
+        if (timing) executionTime = getCPU();
+        FILE *debugFile=NULL; 
+    // FILE *debugFile=InterpolateRefinements::debugFile; // set this to turn on debug output ************
+        const int myid=max(Communication_Manager::My_Process_Number,0);
+    // for debugging:
+  //  if( pDebugFile==NULL ) pDebugFile = fopen(sPrintF("interpFineFromCoarse%i.debug",myid),"w" );
+        int shift[3]={0,0,0};  // set to 1 to prefer a "left" stencil
+        int ratios[3];
+        if (amrRefinementRatio_.isNullArray())
+        {
+            ratios[0] = amrRefinementRatio(0);
+            ratios[1] = amrRefinementRatio(1);
+            ratios[2] = amrRefinementRatio(2);
+        }
+        else
+        {
+            ratios[0] = amrRefinementRatio_(0);
+            ratios[1] = amrRefinementRatio_(1);
+            ratios[2] = amrRefinementRatio_(2);
+        }
+  // printf("Interpolate:fineFromC: ratios=%i,%i,%i\n",ratios[0],ratios[1],ratios[2]); // **wdh* 060120 -- debug
+        int centering=0; // 1=cell centered
+        int centerings[3]={centering,centering,centering}; //
+        int width=transferWidth==useDefaultTransferWidth ? interpolateOrder : transferWidth;
+      bool ok=true;
+      #ifdef USE_PPP
+        Range R4=uf.dimension(3);
+    // refinement ratios
+        int ratio1=ratios[0];
+        int ratio2=numberOfDimensions>1 ? ratios[1] : 1;
+        int ratio3=numberOfDimensions>2 ? ratios[2] : 1;
+        if( ratio1==1 && ratio2==1 && ratio3==1 )
+        {
+      // special case -- just copy
+            if( true )
+            {
+  	// uf(Iv[0],Iv[1],Iv[2],R4)=1.;
+        // uf(Iv[0],Iv[1],Iv[2],R4)=uc(Iv[0],Iv[1],Iv[2],R4);
+          	const int numDims=4;
+          	Index Jv[4];
+          	Jv[0]=Iv[0]; Jv[1]=Iv[1]; Jv[2]=Iv[2]; Jv[3]=R4;
+          	ParallelUtility::copy( uf, Jv, uc, Jv, numDims);
+            }
+            else
+            {
+                uf(Iv[0],Iv[1],Iv[2],R4)=uc(Iv[0],Iv[1],Iv[2],R4);
+            }
+            return 0;
+        }
+    // *************************************************************
+    //    Here is the algorithm for the general case in parallel
+    // *************************************************************
+        const int halfWidth1=width/2;
+        const int halfWidth2=numberOfDimensions>1 ? halfWidth1 : 0;
+        const int halfWidth3=numberOfDimensions>2 ? halfWidth1 : 0;
+    // bounds to interpolate from the fine grid:
+        int nf1a = Iv[0].getBase();
+        int nf1b = Iv[0].getBound();
+        int nf2a = Iv[1].getBase();
+        int nf2b = Iv[1].getBound();
+        int nf3a = Iv[2].getBase();
+        int nf3b = Iv[2].getBound();
+    // global coarse grid bounds needed:
+  //   int mc1a = floordiv(nf1a-(ratio1-1),ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+  //   int mc2a = floordiv(nf2a-(ratio2-1),ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+  //   int mc3a = floordiv(nf3a-(ratio3-1),ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+        int mc1a = floordiv(nf1a,ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+        int mc2a = floordiv(nf2a,ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+        int mc3a = floordiv(nf3a,ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+        Index Ivc[4];   // save global coarse grid bounds
+        Ivc[0]=Range(mc1a,mc1b);
+        Ivc[1]=Range(mc2a,mc2b);
+        Ivc[2]=Range(mc3a,mc3b);
+        Ivc[3]=R4;
+        realSerialArray ufLocal; getLocalArrayWithGhostBoundaries(uf,ufLocal);
+        realSerialArray ucLocal; getLocalArrayWithGhostBoundaries(uc,ucLocal);
+    // Here are the points to interpolate from the local fine grid
+        nf1a = max(nf1a, ufLocal.getBase(0)+uf.getGhostBoundaryWidth(0));
+        nf1b = min(nf1b,ufLocal.getBound(0)-uf.getGhostBoundaryWidth(0));
+        nf2a = max(nf2a, ufLocal.getBase(1)+uf.getGhostBoundaryWidth(1));
+        nf2b = min(nf2b,ufLocal.getBound(1)-uf.getGhostBoundaryWidth(1));
+        nf3a = max(nf3a, ufLocal.getBase(2)+uf.getGhostBoundaryWidth(2));
+        nf3b = min(nf3b,ufLocal.getBound(2)-uf.getGhostBoundaryWidth(2));
+        ok = nf1a<=nf1b && nf2a<=nf2b && nf3a<=nf3b;  // ok==true --> there are pts to interp on this proc.
+    // Here are the (local) coarse grid points that we will use in interpolating to the fine grid:
+    // *note* that we include enough ghost points so that we can use the full interpolation stencil,
+        if( ok )
+        {
+            mc1a = floordiv(nf1a,ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+            mc2a = floordiv(nf2a,ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+            mc3a = floordiv(nf3a,ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+        }
+        else
+        {
+            nf1a=nf2a=nf3a=0;  nf1b=nf2b=nf3b=-1;
+            mc1a=mc2a=mc3a=0;  mc1b=mc2b=mc3b=-1;
+        }
+  //   mc1a = floordiv(nf1a-(ratio1-1),ratio1)-halfWidth1, mc1b = floordiv(nf1b+(ratio1-1),ratio1)+halfWidth1;   
+  //   mc2a = floordiv(nf2a-(ratio2-1),ratio2)-halfWidth2, mc2b = floordiv(nf2b+(ratio2-1),ratio2)+halfWidth2;
+  //   mc3a = floordiv(nf3a-(ratio3-1),ratio3)-halfWidth3, mc3b = floordiv(nf3b+(ratio3-1),ratio3)+halfWidth3;
+  //   mc1a=max(mc1a,ucLocal.getBase(0)); mc1b=min(mc1b,ucLocal.getBound(0));
+  //   mc2a=max(mc2a,ucLocal.getBase(1)); mc2b=min(mc2b,ucLocal.getBound(1));
+  //   mc3a=max(mc3a,ucLocal.getBase(2)); mc3b=min(mc3b,ucLocal.getBound(2));
+    // uc2: space to hold the coarse grid points
+    //      We will copy these from other processors as needed
+    // ***NOTE: we could avoid this copy if np==1, just use ucLocal ***
+        realSerialArray uc2;
+        if( nf1a<=nf1b && nf2a<=nf2b && nf3a<=nf3b )
+        {
+            Range R1(mc1a,mc1b),R2(mc2a,mc2b),R3(mc3a,mc3b);
+            uc2.redim(R1,R2,R3,R4);  
+        }
+    // For the parallel copy we need to know the sizes of the local "uc2" arrays on all processors
+        const int np=max(1,Communication_Manager::Number_Of_Processors);
+        IndexBox *uc2BoxArray = new IndexBox[np]; 
+        for( int p=0; p<np; p++ )
+        {
+            IndexBox fBox;  // box for coarse and fine grid bounds on processor p 
+            CopyArray::getLocalArrayBoxWithGhost( p, uf, fBox );
+      // Here are the fine grid points on processor p that will be assigned:
+            int n1a = max(Iv[0].getBase(),  fBox.base(0) +uf.getGhostBoundaryWidth(0));
+            int n1b = min(Iv[0].getBound(), fBox.bound(0)-uf.getGhostBoundaryWidth(0));
+            int n2a = max(Iv[1].getBase(), fBox.base(1) +uf.getGhostBoundaryWidth(1));
+            int n2b = min(Iv[1].getBound(),fBox.bound(1)-uf.getGhostBoundaryWidth(1));
+            int n3a = max(Iv[2].getBase(), fBox.base(2) +uf.getGhostBoundaryWidth(2));
+            int n3b = min(Iv[2].getBound(),fBox.bound(2)-uf.getGhostBoundaryWidth(2));
+      // Here are the coarse grid points on processor p that we need in order to interpolate:
+            int m1a,m1b,m2a,m2b,m3a,m3b;
+            if( n1a<=n1b && n2a<=n2b && n3a<=n3b )
+            {
+                m1a = floordiv(n1a,ratio1)-halfWidth1, m1b = floordiv(n1b+(ratio1-1),ratio1)+halfWidth1;   
+                m2a = floordiv(n2a,ratio2)-halfWidth2, m2b = floordiv(n2b+(ratio2-1),ratio2)+halfWidth2;
+                m3a = floordiv(n3a,ratio3)-halfWidth3, m3b = floordiv(n3b+(ratio3-1),ratio3)+halfWidth3;
+            }
+            else
+            {
+                m1a=m2a=m3a=0;  m1b=m2b=m3b=-1;
+            }
+  //     int m1a = floordiv(n1a-(ratio1-1),ratio1)-halfWidth1, m1b = floordiv(n1b+(ratio1-1),ratio1)+halfWidth1;   
+  //     int m2a = floordiv(n2a-(ratio2-1),ratio2)-halfWidth2, m2b = floordiv(n2b+(ratio2-1),ratio2)+halfWidth2;
+  //     int m3a = floordiv(n3a-(ratio3-1),ratio3)-halfWidth3, m3b = floordiv(n3b+(ratio3-1),ratio3)+halfWidth3;
+  //     m1a=max(m1a,cBox.base(0)); m1b=min(m1b,cBox.bound(0));
+  //     m2a=max(m2a,cBox.base(1)); m2b=min(m2b,cBox.bound(1));
+  //     m3a=max(m3a,cBox.base(2)); m3b=min(m3b,cBox.bound(2));
+            if( myid==p )
+            {
+                if( !( m1a==mc1a && m1b==mc1b && m2a==mc2a && m2b==mc2b && m2a==mc2a && m2b==mc2b ) )
+                {
+                    printf("ERROR: myid=%i: m1a,m1b,...  =[%i,%i][%i,%i][%i,%i]\n"
+                                  "               mc1a,mc1b,...=[%i,%i][%i,%i][%i,%i]\n"
+                                  "               n1a,n1b,...  =[%i,%i][%i,%i][%i,%i]\n"
+                                  "               nf1a,nf1b,...=[%i,%i][%i,%i][%i,%i]\n"
+                                  "               fBox         =[%i,%i][%i,%i][%i,%i]\n"
+                                  "               ufLocal      =[%i,%i][%i,%i][%i,%i]\n"
+                                  ,myid,
+                 	       m1a,m1b,m2a,m2b,m3a,m3b, mc1a,mc1b,mc2a,mc2b,mc3a,mc3b, 
+                 	       n1a,n1b,n2a,n2b,n3a,n3b, nf1a,nf1b,nf2a,nf2b,nf3a,nf3b,
+                                  fBox.base(0),fBox.bound(0),fBox.base(1),fBox.bound(1),fBox.base(2),fBox.bound(2),
+                                  ufLocal.getBase(0),ufLocal.getBound(0),
+                                  ufLocal.getBase(1),ufLocal.getBound(1),
+                 	       ufLocal.getBase(2),ufLocal.getBound(2));
+          	Overture:abort();
+                }
+            }
+            uc2BoxArray[p].setBounds(m1a,m1b, m2a,m2b, m3a,m3b, R4.getBase(), R4.getBound() );
+        }
+        if( pDebugFile!=NULL )
+        {
+            fprintf(pDebugFile,
+                                                "*** fineFromCoarse: Interpolate fine points Iv=[%i,%i][%i,%i][%i,%i]\n"
+                                                "        Interpolate local fine pts:  nf1a,nf1b=[%i,%i][%i,%i][%i,%i]\n"
+                                                "                 fine grid bounds :            [%i,%i][%i,%i][%i,%i]\n"
+                                                "               coarse grid bounds :            [%i,%i][%i,%i][%i,%i]\n"
+                                                " uc2: special local coarse grid bounds:        [%i,%i][%i,%i][%i,%i]\n"
+                                                " ratios=[%i,%i,%i], width=%i, halfWidth=%i,%i,%i\n"
+                            ,Iv[0].getBase(),Iv[0].getBound(),Iv[1].getBase(),Iv[1].getBound(),
+                              Iv[2].getBase(),Iv[2].getBound(),
+                            nf1a,nf1b,nf2a,nf2b,nf3a,nf3b, 
+                            uf.getBase(0),uf.getBound(0),uf.getBase(1),uf.getBound(1),uf.getBase(2),uf.getBound(2),
+                            uc.getBase(0),uc.getBound(0),uc.getBase(1),uc.getBound(1),uc.getBase(2),uc.getBound(2),
+                            uc2.getBase(0),uc2.getBound(0),uc2.getBase(1),uc2.getBound(1),uc2.getBase(2),uc2.getBound(2),
+                            ratios[0],ratios[1],ratios[2],width,halfWidth1,halfWidth2,halfWidth3);
+            fflush( pDebugFile );
+        }
+    // CopyArray::debug=1;
+    // Now fill in the local uc2 arrays from the distributed uc array:
+        CopyArray::copyArray(uc,Ivc,uc2BoxArray,uc2); 
+        delete [] uc2BoxArray;
+        if( debugFile!=NULL )
+        {
+            ::display(uc ," uc : the coarse grid values      ",debugFile," %3.1f ");
+            ::display(uf ," uf : BEFORE interpFineFromCoarse ",debugFile," %3.1f ");
+        }
+        if( pDebugFile!=NULL )
+        { // NOTE: do not display a distributed array to the pDebugFile since this points to different
+      // files on different processors
+            ::display(uc2," uc2: the coarse grid copied the the local processor",pDebugFile," %3.1f ");
+            fflush( pDebugFile );
+        }
+        #else
+            const realSerialArray & ufLocal = uf;
+            const realSerialArray & uc2 = uc;
+      // fine grid points to interpolate:
+            int nf1a = Iv[0].getBase();
+            int nf1b = Iv[0].getBound();
+            int nf2a = Iv[1].getBase();
+            int nf2b = Iv[1].getBound();
+            int nf3a = Iv[2].getBase();
+            int nf3b = Iv[2].getBound();
+        #endif
+        int ipar[1]={(int)maskOption};  //
+            const int *pmask=getDataPointer(mask);
+            if( ok && pmask==NULL )
+            {
+                printf("interpolateFineFromCoarse:ERROR: myid=%i pmask==NULL\n",myid);
+                printf(" ufLocal: [%i,%i][%i,%i]\n",ufLocal.getBase(0),ufLocal.getBound(0),
+                                                                                        ufLocal.getBase(1),ufLocal.getBound(1));
+                Overture::abort("error");
+            }
+            if( ok )
+            {
+                if( mask.getBase(0)!=ufLocal.getBase(0) || mask.getBound(0)!=ufLocal.getBound(0) ||
+                        mask.getBase(1)!=ufLocal.getBase(1) || mask.getBound(1)!=ufLocal.getBound(1) ||
+                        mask.getBase(2)!=ufLocal.getBase(2) || mask.getBound(2)!=ufLocal.getBound(2) )
+                {
+          	printf("Interpolate:interpolateFineFromCoarse:ERROR: mask bounds do not match fine grid bounds!\n");
+                    printf("myid=%i, mask=[%i,%i][%i,%i][%i,%i], ufLocal=[%i,%i][%i,%i][%i,%i]\n",
+                 	       myid,
+                                  mask.getBase(0),mask.getBound(0),mask.getBase(1),mask.getBound(1),mask.getBase(2),mask.getBound(2),
+                                  ufLocal.getBase(0),ufLocal.getBound(0),ufLocal.getBase(1),ufLocal.getBound(1),
+                                  ufLocal.getBase(2),ufLocal.getBound(2));
+          	Overture::abort("error");
+                }
+            }
+        if( ok )
+        {
+            if( debug )
+            {
+                printf("interpFineFromCoarse: uf=[%i,%i][%i,%i][%i,%i] uc2=[%i,%i][%i,%i][%i,%i] nf=[%i,%i][%i,%i][%i,%i]\n",
+                          ufLocal.getBase(0),ufLocal.getBound(0),
+                       			 ufLocal.getBase(1),ufLocal.getBound(1),
+                       			 ufLocal.getBase(2),ufLocal.getBound(2),uc2.getBase(0),uc2.getBound(0),
+                       			 uc2.getBase(1),uc2.getBound(1),
+               	     uc2.getBase(2),uc2.getBound(2),nf1a,nf1b,nf2a,nf2b,nf3a,nf3b);
+                printf(" ... width=%i ratios[0]=%i update=%i\n",width,ratios[0],update);
+            }
+            interpFineFromCoarse(ufLocal.getBase(0),ufLocal.getBound(0),
+                       			 ufLocal.getBase(1),ufLocal.getBound(1),
+                       			 ufLocal.getBase(2),ufLocal.getBound(2),
+                       			 *getDataPointer(ufLocal),
+                       			 uc2.getBase(0),uc2.getBound(0),
+                       			 uc2.getBase(1),uc2.getBound(1),
+                       			 uc2.getBase(2),uc2.getBound(2),
+                       			 *getDataPointer(uc2),
+                       			 numberOfDimensions,
+                       			 nf1a,nf1b,nf2a,nf2b,nf3a,nf3b,
+                       			 width,ratios[0],
+                       			 ufLocal.getBase(3),
+                       			 ufLocal.getBase(3),ufLocal.getBound(3), shift[0], centerings[0], update,
+                       			 *pmask,ipar[0] );
+        }
+        if( debugFile!=NULL )
+        {
+                ::display(uf ," uf : after interpFineFromCoarse ",debugFile," %4.1f");
+        }
+        if( pDebugFile!=NULL )
+        {
+            ::display(ufLocal ," ufLocal : after interpFineFromCoarse ",pDebugFile," %4.1f");
+            fflush( pDebugFile );
+        }
+  // if( debug )
+  // {
+  //  display(uc2,"interpFineFromCoarse: uc2","%6.3f ");
+  //  display(ufLocal,"interpFineFromCoarse: ufLocal","%6.3f ");
+  // }
+        if (timing) 
+        {
+            executionTime = getCPU() - executionTime;
+            cout << "Interpolate::interpolateFineFromCoarse execution time: " << executionTime << endl;
+        }
+        return 0;
+
+}
+
+// ===========================================================================
+//  Macro defining the interpolate coarse from fine function
+// 
+//  USE_MASK : noMask or mask
+// ===========================================================================
+
+//! Interpolate coarse from fine
+/*!
+    \param Iv[3] : coarse grid points to interpolate
+    \param update : 0= set uf=interpolant(uc)
+                                    1= set uf=uf+interpolant(uc)
+    \param transferWidth : by default use the current value of interpolateOrder+1, otherwise use this width.
+                                  This value is only used with the fullWeighting options. The default full weighting width
+                                  is 3.
+    Author WDH.
+  */
+int Interpolate::
+interpolateCoarseFromFine(realArray&                  uc,
+                   			 const Index                  Iv[3],
+                   			 const realArray&             uf,
+                   			 const IntegerArray&          amrRefinementRatio_,
+                                                  const InterpolateOptionEnum  interpOption /* =injection */,
+                                                  const int update /* = 0 */,
+                   			 const int transferWidth /* =useDefaultTransferWidth */ )
+{
+    MaskOptionEnum maskOption=doNotUseMask;
+        real executionTime;
+        if (timing) executionTime = getCPU();
+        int shift[3]={0,0,0};  // set to 1 to prefer a "left" stencil
+        int ratios[3];
+        if (amrRefinementRatio_.isNullArray())
+        {
+            ratios[0] = amrRefinementRatio(0);
+            ratios[1] = amrRefinementRatio(1);
+            ratios[2] = amrRefinementRatio(2);
+        }
+        else
+        {
+            ratios[0] = amrRefinementRatio_(0);
+            ratios[1] = amrRefinementRatio_(1);
+            ratios[2] = amrRefinementRatio_(2);
+        }
+        assert( !uc.isView() && !uf.isView() );
+        int centering=0; // 1=cell centered
+        int centerings[3]={centering,centering,centering}; //
+        int width=transferWidth==useDefaultTransferWidth ? interpolateOrder+1 : transferWidth;
+        #ifdef USE_PPP
+            if( interpOption==injection )
+            {
+                int ratio1=ratios[0];
+                int ratio2=numberOfDimensions>1 ? ratios[1] : 1;
+                int ratio3=numberOfDimensions>2 ? ratios[2] : 1;
+                Range R0(Iv[0].getBase()*ratio1,Iv[0].getBound()*ratio1,ratio1);
+                Range R1(Iv[1].getBase()*ratio2,Iv[1].getBound()*ratio2,ratio2);
+                Range R2(Iv[2].getBase()*ratio3,Iv[2].getBound()*ratio3,ratio3);
+                Range R3=uc.dimension(3);
+                    if( false )
+                      uc(Iv[0],Iv[1],Iv[2],R3)=uf(R0,R1,R2,R3);  // *wdh* 091214 
+                    else
+          	{
+  	  // *new* way -- check me 
+            	  Index Iva[4];
+            	  Iva[0]=Iv[0]; Iva[1]=Iv[1]; Iva[2]=Iv[2]; Iva[3]=R3;
+            	  Index Jva[4];
+            	  Jva[0]=R0; Jva[1]=R1; Jva[2]=R2; Jva[3]=R3;
+            	  CopyArray::copyArray( uc,Iva, uf,Jva, 4 );
+          	}
+                return 0;
+            }
+            realSerialArray ufLocal; getLocalArrayWithGhostBoundaries(uf,ufLocal);
+            realSerialArray ucLocal; getLocalArrayWithGhostBoundaries(uc,ucLocal);
+      // coarse grid bounds:
+            int nc1a = max(Iv[0].getBase(), ucLocal.getBase(0)  +uc.getGhostBoundaryWidth(0));
+            int nc1b = min(Iv[0].getBound(),ucLocal.getBound(0) -uc.getGhostBoundaryWidth(0));
+            int nc2a = max(Iv[1].getBase() ,ucLocal.getBase(1)  +uc.getGhostBoundaryWidth(1));
+            int nc2b = min(Iv[1].getBound(),ucLocal.getBound(1) -uc.getGhostBoundaryWidth(1));
+            int nc3a = max(Iv[2].getBase(), ucLocal.getBase(2)  +uc.getGhostBoundaryWidth(2));
+            int nc3b = min(Iv[2].getBound(),ucLocal.getBound(2) -uc.getGhostBoundaryWidth(2));
+      // fine grid bounds:
+            int nf1a = ufLocal.getBase(0)  +uf.getGhostBoundaryWidth(0);
+            int nf1b = ufLocal.getBound(0) -uf.getGhostBoundaryWidth(0);
+            int nf2a = ufLocal.getBase(1)  +uf.getGhostBoundaryWidth(1);
+            int nf2b = ufLocal.getBound(1) -uf.getGhostBoundaryWidth(1);
+            int nf3a = ufLocal.getBase(2)  +uf.getGhostBoundaryWidth(2);
+            int nf3b = ufLocal.getBound(2) -uf.getGhostBoundaryWidth(2);
+      // check that fine grid points are available:
+            int ratio1=ratios[0];
+            int ratio2=numberOfDimensions>1 ? ratios[1] : 1;
+            int ratio3=numberOfDimensions>2 ? ratios[2] : 1;
+            bool coarseCopyNeeded=false; // set to true if the coarse and fine grids do not match on this processor
+            if( nc1a*ratio1 < nf1a || nc1b*ratio1 > nf1b ||
+                    nc2a*ratio2 < nf2a || nc2b*ratio2 > nf2b ||
+                    nc3a*ratio3 < nf3a || nc3b*ratio3 > nf3b ) 
+            {
+                coarseCopyNeeded=true;
+                if( false )
+                {
+          	const int myid=max(Communication_Manager::My_Process_Number,0);
+          	printf("Interpolate::ERROR:interpolateCoarseFromFine: The fine grid points needed for interpolation are"
+                 	       " not available on this processor\n");
+          	printf(" myid=%i fine grid bounds =[%i,%i][%i,%i][%i,%i] coarse grid=[%i,%i][%i,%i][%i,%i]\n"
+                 	       "        coarse grid*ratio=[%i,%i][%i,%i][%i,%i]\n",
+                 	       myid,nf1a,nf1b,nf2a,nf2b,nf3a,nf3b, nc1a,nc1b,nc2a,nc2b,nc3a,nc3b,
+                 	       nc1a*ratio1,nc1b*ratio1,nc2a*ratio2,nc2b*ratio2,nc3a*ratio3,nc3b*ratio3);
+          	Overture::abort("error");
+                }
+            }
+            coarseCopyNeeded=true;  // do this for now -- need to fix copyArray below 
+            if( false )
+            {
+                const int myid=max(Communication_Manager::My_Process_Number,0);
+                printf("Interpolate::interpolateCoarseFromFine:INFO: myid=%i coarseCopyNeeded=%i\n",myid,(int)coarseCopyNeeded);
+            }
+            realSerialArray uc2;
+            Index Icv[4];  // holds dimensions of uc2
+            if( coarseCopyNeeded )
+            {
+        // build a local copy of the coarse grid u that can be interpolated from ufLocal
+                int ratio[3]={ratio1,ratio2,ratio3};  // 
+                bool ok=true;
+                for( int axis=0; axis<3; axis++ )
+                {
+          	int na = max(Iv[axis].getBase() ,(ufLocal.getBase(axis) +uf.getGhostBoundaryWidth(axis))/ratio[axis] );
+          	int nb = min(Iv[axis].getBound(),(ufLocal.getBound(axis)-uf.getGhostBoundaryWidth(axis))/ratio[axis] );
+          	if( na<=nb )
+          	{
+                        Icv[axis]=Range(na,nb);
+          	}
+          	else
+          	{
+                        ok=false;
+          	}
+                }
+                Icv[3]=uc.dimension(3);
+                if( ok )
+          	uc2.redim(Icv[0],Icv[1],Icv[2],Icv[3]);
+                nc1a=Icv[0].getBase(); nc1b=Icv[0].getBound();
+                nc2a=Icv[1].getBase(); nc2b=Icv[1].getBound();
+                nc3a=Icv[2].getBase(); nc3b=Icv[2].getBound();
+            }
+            realSerialArray & ucl = coarseCopyNeeded ? uc2 : ucLocal;
+        #else
+            const realSerialArray & ufLocal = uf;
+            const realSerialArray & ucLocal = uc;
+            const realSerialArray & ucl = ucLocal;
+      // coarse grid bounds:
+            int nc1a = Iv[0].getBase();
+            int nc1b = Iv[0].getBound();
+            int nc2a = Iv[1].getBase();
+            int nc2b = Iv[1].getBound();
+            int nc3a = Iv[2].getBase();
+            int nc3b = Iv[2].getBound();
+        #endif
+        int ipar[1]={(int)maskOption};  //
+            assert( maskOption==doNotUseMask );
+            const int *pmask=ipar;  // the mask not used in this case
+        interpCoarseFromFine( ufLocal.getBase(0),ufLocal.getBound(0),
+                      			ufLocal.getBase(1),ufLocal.getBound(1),
+                      			ufLocal.getBase(2),ufLocal.getBound(2),
+                      			*getDataPointer(ufLocal),
+                      			ucl.getBase(0),ucl.getBound(0),
+                      			ucl.getBase(1),ucl.getBound(1),
+                      			ucl.getBase(2),ucl.getBound(2),
+                      			*getDataPointer(ucl),
+                      			numberOfDimensions,
+                      			nc1a,nc1b,nc2a,nc2b,nc3a,nc3b,
+                      			width,ratios[0],
+                      			ufLocal.getBase(3),
+                      			ufLocal.getBase(3),ufLocal.getBound(3), shift[0], 
+                      			centerings[0], (int)interpOption, update,
+                      			*pmask,ipar[0] );
+        #ifdef USE_PPP
+      // copy any local coarse solutions (uc2) into the actual coarse solution (uc)
+      // Note: the uc2 arrays live on the same processor set as uf: 
+            const intSerialArray & uc2ProcessorSet = uf.getPartition().getProcessorSet();
+            Index Jv[4]={ Iv[0],Iv[1],Iv[2],uc.dimension(3)}; // 
+            CopyArray::copyArray( uc2,Icv, uc2ProcessorSet, uc, Jv );
+      // *wdh* 091214 -- this next line is currently needed as the above call does not assign parallel ghost --- fix me 
+            uc.updateGhostBoundaries();  
+        #endif
+        if (timing) 
+        {
+            executionTime = getCPU() - executionTime;
+            printF("Interpolate::interpolateFineFromCoarse execution time =%8.2e(s)\n",executionTime);
+        }
+        return 0;
+
+}
+
+
+//! Interpolate coarse to fine with a mask
+/*!
+    \param Iv[3] : coarse grid points to interpolate
+    \param update : 0= set uf=interpolant(uc)
+                                    1= set uf=uf+interpolant(uc)
+    \param transferWidth : by default use the current value of interpolateOrder+1, otherwise use this width.
+                                  This value is only used with the fullWeighting options. The default full weighting width
+                                  is 3.
+  */
+int Interpolate::
+interpolateCoarseFromFine(realArray&                  uc,
+                   			 const intSerialArray&        mask,
+                   			 const Index                  Iv[3],
+                   			 const realArray&             uf,
+                   			 const IntegerArray&          amrRefinementRatio_,
+                                                  const InterpolateOptionEnum  interpOption /* =injection */,
+                                                  const int update /* = 0 */,
+                   			 const int transferWidth /* =useDefaultTransferWidth */,
+                                                  const MaskOptionEnum maskOption /* =maskGreaterThanZero */)
+{
+
+        real executionTime;
+        if (timing) executionTime = getCPU();
+        int shift[3]={0,0,0};  // set to 1 to prefer a "left" stencil
+        int ratios[3];
+        if (amrRefinementRatio_.isNullArray())
+        {
+            ratios[0] = amrRefinementRatio(0);
+            ratios[1] = amrRefinementRatio(1);
+            ratios[2] = amrRefinementRatio(2);
+        }
+        else
+        {
+            ratios[0] = amrRefinementRatio_(0);
+            ratios[1] = amrRefinementRatio_(1);
+            ratios[2] = amrRefinementRatio_(2);
+        }
+        assert( !uc.isView() && !uf.isView() );
+        int centering=0; // 1=cell centered
+        int centerings[3]={centering,centering,centering}; //
+        int width=transferWidth==useDefaultTransferWidth ? interpolateOrder+1 : transferWidth;
+        #ifdef USE_PPP
+            if( interpOption==injection )
+            {
+                int ratio1=ratios[0];
+                int ratio2=numberOfDimensions>1 ? ratios[1] : 1;
+                int ratio3=numberOfDimensions>2 ? ratios[2] : 1;
+                Range R0(Iv[0].getBase()*ratio1,Iv[0].getBound()*ratio1,ratio1);
+                Range R1(Iv[1].getBase()*ratio2,Iv[1].getBound()*ratio2,ratio2);
+                Range R2(Iv[2].getBase()*ratio3,Iv[2].getBound()*ratio3,ratio3);
+                Range R3=uc.dimension(3);
+          // Trouble here:
+          // where( mask(Iv[0],Iv[1],Iv[2])>0 )
+          // {
+  	//   for( int c=R3.getBase(); c<=R3.getBound(); c++ )
+          //     uc(Iv[0],Iv[1],Iv[2],c)=uf(R0,R1,R2,c);
+          // }
+          // There is trouble with parallel where statements -- instead keep a copy of the values
+          // and reset with a serial where statement
+                    realSerialArray ucLocal; getLocalArrayWithGhostBoundaries(uc,ucLocal);
+                    realSerialArray ucSave;  
+                    ucSave=ucLocal;   // save values here
+  	// v(Iv[0],Iv[1],Iv[2],R3)=uf(R0,R1,R2,R3);  // ** communication here ***
+                    Index Jv[4];
+          	Jv[0]=R0; Jv[1]=R1; Jv[2]=R2; Jv[3]=R3;
+                    Index Iva[4];
+                    Iva[0]=Iv[0]; Iva[1]=Iv[1]; Iva[2]=Iv[2]; Iva[3]=R3;
+          // *note* if we used copyArray then we could copy parallel ghost points too -- then we could
+          //  avoid a call to updateGhostBoundaries on uc ****
+   	// ParallelUtility::copy(uc,Iva,uf,Jv,4);  // *wdh* 070521 -- there was a bug exposed here in PARTI I think (oneBump)
+          // MPI_Barrier(Overture::OV_COMM); // ***************** add this for testing **************
+          	CopyArray::copyArray(uc,Iva,uf,Jv,4);  // ********************** new way *********
+                    Index J1=Iv[0], J2=Iv[1], J3=Iv[2];
+          	bool ok = ParallelUtility::getLocalArrayBounds(uc,ucLocal,J1,J2,J3);
+          	if( ok )
+          	{
+  	  // where( maskLocal(J1,J2,J3)>0 )
+            	  where( mask(J1,J2,J3)<=0 )  // restore values 
+            	  {
+              	    for( int c=R3.getBase(); c<=R3.getBound(); c++ )
+                	      ucLocal(J1,J2,J3,c)=ucSave(J1,J2,J3,c);
+            	  }
+          	}
+                return 0;
+            }
+            realSerialArray ufLocal; getLocalArrayWithGhostBoundaries(uf,ufLocal);
+            realSerialArray ucLocal; getLocalArrayWithGhostBoundaries(uc,ucLocal);
+      // coarse grid bounds:
+            int nc1a = max(Iv[0].getBase(), ucLocal.getBase(0)  +uc.getGhostBoundaryWidth(0));
+            int nc1b = min(Iv[0].getBound(),ucLocal.getBound(0) -uc.getGhostBoundaryWidth(0));
+            int nc2a = max(Iv[1].getBase() ,ucLocal.getBase(1)  +uc.getGhostBoundaryWidth(1));
+            int nc2b = min(Iv[1].getBound(),ucLocal.getBound(1) -uc.getGhostBoundaryWidth(1));
+            int nc3a = max(Iv[2].getBase(), ucLocal.getBase(2)  +uc.getGhostBoundaryWidth(2));
+            int nc3b = min(Iv[2].getBound(),ucLocal.getBound(2) -uc.getGhostBoundaryWidth(2));
+      // fine grid bounds:
+            int nf1a = ufLocal.getBase(0)  +uf.getGhostBoundaryWidth(0);
+            int nf1b = ufLocal.getBound(0) -uf.getGhostBoundaryWidth(0);
+            int nf2a = ufLocal.getBase(1)  +uf.getGhostBoundaryWidth(1);
+            int nf2b = ufLocal.getBound(1) -uf.getGhostBoundaryWidth(1);
+            int nf3a = ufLocal.getBase(2)  +uf.getGhostBoundaryWidth(2);
+            int nf3b = ufLocal.getBound(2) -uf.getGhostBoundaryWidth(2);
+      // check that fine grid points are available:
+            int ratio1=ratios[0];
+            int ratio2=numberOfDimensions>1 ? ratios[1] : 1;
+            int ratio3=numberOfDimensions>2 ? ratios[2] : 1;
+            bool coarseCopyNeeded=false; // set to true if the coarse and fine grids do not match on this processor
+            if( nc1a*ratio1 < nf1a || nc1b*ratio1 > nf1b ||
+                    nc2a*ratio2 < nf2a || nc2b*ratio2 > nf2b ||
+                    nc3a*ratio3 < nf3a || nc3b*ratio3 > nf3b ) 
+            {
+                coarseCopyNeeded=true;
+                if( false )
+                {
+          	const int myid=max(Communication_Manager::My_Process_Number,0);
+          	printf("Interpolate::ERROR:interpolateCoarseFromFine: The fine grid points needed for interpolation are"
+                 	       " not available on this processor\n");
+          	printf(" myid=%i fine grid bounds =[%i,%i][%i,%i][%i,%i] coarse grid=[%i,%i][%i,%i][%i,%i]\n"
+                 	       "        coarse grid*ratio=[%i,%i][%i,%i][%i,%i]\n",
+                 	       myid,nf1a,nf1b,nf2a,nf2b,nf3a,nf3b, nc1a,nc1b,nc2a,nc2b,nc3a,nc3b,
+                 	       nc1a*ratio1,nc1b*ratio1,nc2a*ratio2,nc2b*ratio2,nc3a*ratio3,nc3b*ratio3);
+          	Overture::abort("error");
+                }
+            }
+            coarseCopyNeeded=true;  // do this for now -- need to fix copyArray below 
+            if( false )
+            {
+                const int myid=max(Communication_Manager::My_Process_Number,0);
+                printf("Interpolate::interpolateCoarseFromFine:INFO: myid=%i coarseCopyNeeded=%i\n",myid,(int)coarseCopyNeeded);
+            }
+            realSerialArray uc2;
+            Index Icv[4];  // holds dimensions of uc2
+            if( coarseCopyNeeded )
+            {
+        // build a local copy of the coarse grid u that can be interpolated from ufLocal
+                int ratio[3]={ratio1,ratio2,ratio3};  // 
+                bool ok=true;
+                for( int axis=0; axis<3; axis++ )
+                {
+          	int na = max(Iv[axis].getBase() ,(ufLocal.getBase(axis) +uf.getGhostBoundaryWidth(axis))/ratio[axis] );
+          	int nb = min(Iv[axis].getBound(),(ufLocal.getBound(axis)-uf.getGhostBoundaryWidth(axis))/ratio[axis] );
+          	if( na<=nb )
+          	{
+                        Icv[axis]=Range(na,nb);
+          	}
+          	else
+          	{
+                        ok=false;
+          	}
+                }
+                Icv[3]=uc.dimension(3);
+                if( ok )
+          	uc2.redim(Icv[0],Icv[1],Icv[2],Icv[3]);
+                nc1a=Icv[0].getBase(); nc1b=Icv[0].getBound();
+                nc2a=Icv[1].getBase(); nc2b=Icv[1].getBound();
+                nc3a=Icv[2].getBase(); nc3b=Icv[2].getBound();
+            }
+            realSerialArray & ucl = coarseCopyNeeded ? uc2 : ucLocal;
+        #else
+            const realSerialArray & ufLocal = uf;
+            const realSerialArray & ucLocal = uc;
+            const realSerialArray & ucl = ucLocal;
+      // coarse grid bounds:
+            int nc1a = Iv[0].getBase();
+            int nc1b = Iv[0].getBound();
+            int nc2a = Iv[1].getBase();
+            int nc2b = Iv[1].getBound();
+            int nc3a = Iv[2].getBase();
+            int nc3b = Iv[2].getBound();
+        #endif
+        int ipar[1]={(int)maskOption};  //
+            const int *pmask=getDataPointer(mask);
+        interpCoarseFromFine( ufLocal.getBase(0),ufLocal.getBound(0),
+                      			ufLocal.getBase(1),ufLocal.getBound(1),
+                      			ufLocal.getBase(2),ufLocal.getBound(2),
+                      			*getDataPointer(ufLocal),
+                      			ucl.getBase(0),ucl.getBound(0),
+                      			ucl.getBase(1),ucl.getBound(1),
+                      			ucl.getBase(2),ucl.getBound(2),
+                      			*getDataPointer(ucl),
+                      			numberOfDimensions,
+                      			nc1a,nc1b,nc2a,nc2b,nc3a,nc3b,
+                      			width,ratios[0],
+                      			ufLocal.getBase(3),
+                      			ufLocal.getBase(3),ufLocal.getBound(3), shift[0], 
+                      			centerings[0], (int)interpOption, update,
+                      			*pmask,ipar[0] );
+        #ifdef USE_PPP
+      // copy any local coarse solutions (uc2) into the actual coarse solution (uc)
+      // Note: the uc2 arrays live on the same processor set as uf: 
+            const intSerialArray & uc2ProcessorSet = uf.getPartition().getProcessorSet();
+            Index Jv[4]={ Iv[0],Iv[1],Iv[2],uc.dimension(3)}; // 
+            CopyArray::copyArray( uc2,Icv, uc2ProcessorSet, uc, Jv );
+      // *wdh* 091214 -- this next line is currently needed as the above call does not assign parallel ghost --- fix me 
+            uc.updateGhostBoundaries();  
+        #endif
+        if (timing) 
+        {
+            executionTime = getCPU() - executionTime;
+            printF("Interpolate::interpolateFineFromCoarse execution time =%8.2e(s)\n",executionTime);
+        }
+        return 0;
+}
+
+
+
+
+
+int Interpolate::
+computeIndexes (const realArray& uc,
+            		int* lm, Index* Jf, Index* Jc, const Index* If,
+            		const int* lmr, const int R, const int* A, 
+            		const int* r, const int* stride, const int* extra, const int* offset, 
+            		InterpolateParameters::InterpolateOffsetDirection* iod)
+//
+// /uc:  uc is passed in sothat we can check to make sure it is big enough to interpolate from
+// /lm:  these variables index the interpolation stencil array at the max refinement ration
+// /Jf:  Index for the target (fine) array
+// /Jc:  Index for the interpolation stencil on the coarse array
+// /If:  input proposal for the Jf array; this is adjusted depending on how many
+//       extra points need to be interpolated
+// /lmr: index for the actual fine grid points; this always starts with 0
+// /R:   max refinement ratio
+// /A[3]:   interpolation stencil offset in each direction; this is used to compute left corner of stencil
+// /r[3]:   refinement factor in each direction
+// /stride[3]: ratio of R to r, this is the stride through the precomputed coeff array
+// /extra[3]:  number of interpolation points more than an integer multiple of the refinement factor
+// /offset[3]: the start of the fine interpolation point array is offset by this amount
+//             from the nearest coarse grid point to its left
+// /iod[3]:    interpolation offset direction
+
+{
+    int axis, i; // , adjustBase, adjustBound;
+    int M = max(2,interpolateOrder);
+
+  //...if M odd, adjust stencil to use to the left 1/2 a coarse interval
+    int centerAdjust[3];
+    for (i=0; i<3; i++)
+    {
+        centerAdjust[i] = r[i]/2 + ((iod[i]==InterpolateParameters::offsetInterpolateToLeft) ? 0 : 1 );
+        if (M%2==0) centerAdjust[i] = 0;
+    }
+        
+    for (axis=0; axis<numberOfDimensions; axis++)
+    {
+    //...lm[axis] counts the entries in the coefficient array that will actually be used
+    //   in interpolation (recall that C precomputes coefficients for the max refinement ratio)
+    //   lm = 0 correspondes to a finegrid point coincident with a coarse grid point
+        lm[axis] = (lmr[axis] + offset[axis])*stride[axis] % R;
+
+    //..."Jf" adjusts the bound of "If" upward to include the "extra" interpolation points
+        Jf[axis] = Range (If[axis].getBase(), If[axis].getBound() + (lmr[axis]<extra[axis] ? r[axis] : 0), r[axis]);
+        Jf[axis] += lmr[axis];
+
+    //..."Jc" indexes the coarse stencil points; "A" adjust the centering of the stencil
+
+//     Jc[axis] = Range (floordiv(Jf[axis].getBase(), r[axis]) - A[axis],
+// 		      floordiv(Jf[axis].getBound(),r[axis]) - A[axis], 1);
+//  000719: adjust upwards to center the stencil better
+          Jc[axis] = Range (floordiv(Jf[axis].getBase()- centerAdjust[axis], r[axis]) - A[axis],
+                   		       floordiv(Jf[axis].getBound()-centerAdjust[axis], r[axis]) - A[axis], 1);
+
+    //...check that coarseGridFuncion has enough points to interpolate from
+        if (uc.getBase(axis) > Jc[axis].getBase() || uc.getBound(axis) < Jc[axis].getBound())
+        {
+            cout << "Interpolate::interpolateCoarseToFine: coarse grid function doesn't have enough " << endl;
+            cout << "   ghost cells to interpolate from " << endl;
+            cout << "In the " << axis << " direction, you need to interpolate from ("
+         	   << Jc[axis].getBase() << "," << Jc[axis].getBound() << ")" << endl;
+            cout << " but coarseGridFunction has size ("
+         	   << uc.getBase(axis) << "," << uc.getBound(axis) << ")" << endl;
+            Overture::abort("error");
+        }
+        
+    }
+    
+    return 0;
+}
+        	  
+int Interpolate::
+displayEverything (const int* r, const int* extra, const int* offset, const int* lm, const int* lmr,
+               		   const Index* Iv, const Index* If, const Index* Jf, const Index* Jc)
+{
+    int M = max(2,interpolateOrder);
+    int i;
+
+        cout << endl << "r = ";
+        for (i=0; i<3; i++) cout << r[i] << ",";
+        cout << endl << "extra = ";
+        for (i=0; i<3; i++) cout << extra[i] << ",";
+        cout << endl << "offset = ";
+        for (i=0; i<3; i++) cout << offset[i] << ",";
+        cout << endl << "lm = ";
+        for (i=0; i<3; i++) cout << lm[i] << ",";
+        cout << endl << "lmr = ";
+        for (i=0; i<3; i++) cout << lmr[i] << ",";
+        cout << endl;
+/*
+        cout << endl << "ii = ";
+        for (i=0; i<M; i++) cout << ii[i] << ",";
+        cout << endl;
+        cout << endl << "jj = ";
+        for (i=0; i<M; i++) cout << jj[i] << ",";
+        cout << endl;
+        cout << endl << "kk = ";
+        for (i=0; i<M; i++) cout << kk[i] << ",";
+        */
+        cout << endl;
+        for (i=0; i<3; i++) cout << "Iv["<<i<<"]: " 
+                       			     << Iv[i].getBase()  << " " 
+                       			     << Iv[i].getBound() << " "
+                       			     << Iv[i].getStride() <<"; ";
+        cout << endl;
+        for (i=0; i<3; i++) cout << "If["<<i<<"]: " 
+                       			     << If[i].getBase() << " " 
+                       			     << If[i].getBound() << " "
+                       			     << If[i].getStride() << "; ";
+        cout << endl;
+        for (i=0; i<3; i++) cout << "Jf["<<i<<"]: " 
+                       			     << Jf[i].getBase() << " " 
+                       			     << Jf[i].getBound() << " "
+                       			     << Jf[i].getStride() << "; ";
+        cout << endl;
+        for (i=0; i<3; i++) cout << "Jc["<<i<<"]: " 
+                       			     << Jc[i].getBase() << " " 
+                       			     << Jc[i].getBound()<< " "
+                       			     << Jc[i].getStride() << "; ";
+        cout << endl;
+
+    return 0;
+}
+        	  
+
+    
+
+    
+    
+        
+    
+    
+

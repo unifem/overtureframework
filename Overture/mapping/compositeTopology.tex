@@ -1,0 +1,770 @@
+%=======================================================================================================
+%  Documentation for compositeTopology
+%=======================================================================================================
+\documentclass[11pt]{article}
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height for xdvi
+
+\usepackage{program}
+\newtheorem{algorithm}{Algorithm}[section] 
+
+\usepackage{epsfig}
+\usepackage{graphics}    
+\usepackage{moreverb}
+\usepackage{amsmath}
+% \usepackage{fancybox}
+% \usepackage{subfigure}
+
+\usepackage{float}
+
+% bc = boldCommand
+\newcommand{\bc}[1]{\mbox{\bf#1}}   % bold name
+\newcommand{\cc}[1]{\mbox{  : #1}}  % comment
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+\begin{document}
+
+
+\input  wdhDefinitions
+
+% \newcommand{\primer}{/home/henshaw/res/primer}
+% \newcommand{\gf}{/home/henshaw/res/gf}
+\newcommand{\mapping}{/home/henshaw/Overture/mapping}
+% \newcommand{\ogshow}{/home/henshaw/res/ogshow}
+% \newcommand{\oges}{/home/henshaw/res/oges}
+\newcommand{\figures}{./}
+
+\vspace{3\baselineskip}
+\begin{center}
+  {\Large 
+%   Determining the Connectivity of Patched CAD Models and  \\
+%   Fast Projection Algorithms \\
+   An Algorithm for Projecting Points onto a Patched CAD Model \\
+  }
+\vspace{ 2\baselineskip}
+William D. Henshaw  \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+\vspace{1\baselineskip}
+\today \\
+\vspace{\baselineskip}
+% UCRL-MA-134240
+
+\end{center}
+
+\vspace{1\baselineskip}
+
+\begin{abstract}
+  We are interested in building structured overlapping grids for
+geometries defined by computer-aided-design (CAD) packages.  Geometric
+information defining the boundary surfaces of a computation domain is
+often provided in the form of a collection of possibly hundreds of
+trimmed patches. The first step in building an overlapping volume grid
+on such a geometry is to build overlapping surface grids. A surface
+grid is typically built using hyperbolic grid generation; starting
+from a curve on the surface, a grid is grown by marching over the
+surface. A given hyperbolic grid will typically cover many of the
+underlying CAD surface patches. The fundamental operation needed for
+building surface grids is that of projecting a point in space
+onto the closest point on the CAD surface. We describe an fast
+algorithm for performing this projection, it will make use of a fairly
+coarse global triangulation of the CAD geometry. We describe how to
+build this global triangulation by first determining the connectivity
+of the CAD surface patches.  This step is necessary since it often the
+case that the CAD description will contain no information specifying
+how a given patch connects to other neighbouring patches. Determining
+the connectivity is difficult since the surface patches may contain
+mistakes such as gaps or overlaps between neighbouring patches.
+
+% In order to build In this paper we describe an algorithm for determining the
+% connectivity of a patched surface and an algorithm for building a
+% global triangulation of the surface.  The global triangulation can
+% serve as a basis for a fast projection algorithm for projecting points
+% onto the patched surface. This projection algorithm can be used, for
+% example, by a hyperbolic surface grid generator to grow new structured grids on the
+% surface for use with the overlaping grid approach. 
+\end{abstract}
+
+
+% \vfill\eject
+% \tableofcontents
+
+\clearpage
+\section{Introduction}
+
+   We are motivated by the problem of of grid generation on
+geometrical configurations defined by computer aided design (CAD)
+packages. The description of the geometry is often in the form
+of a collection of trimmed patches, see figure~(\ref{patchedSurface}).
+The output from a CAD program will often be saved in a standard file
+format such as IGES or the newer STEP specification. The description
+defines a boundary-representation (B-REP) of the geometry, as opposed
+to say a solid-model representation. Unfortunately the still widely
+used IGES format does not include any connectivity information. There
+is no information specifying how a given patch connects to other
+neighbouring patches. As a first step in the grid generation process
+this connectivity information must be determined. To further
+complicate matters the trimmed patches will often be inaccurate, or
+contain mistakes, making it difficult to determine where two
+neighbouring patches should be joined.
+
+\begin{figure}[hbt]
+  \begin{center}
+   \epsfig{file=\figures/topology.cat.ps,width=.65\linewidth}
+  \end{center}
+\caption{A CAD geometry represented as a collection of trimmed surface patches.} \label{patchedSurface}
+\end{figure}
+
+In this paper we describe an algorithm for determining the
+connectivity of a patched surface and an algorithm for building a
+global triangulation of the surface. 
+The approach we take to determine the connectivity of patched CAD model
+is based on the ``Edge-Curve'' approach described by Steinbrenner, Wyman and Chawner~\cite{Steinbrenner00}.
+In this technique we first build
+curves (edge-curves) on the boundaries of all trimmed-patches and then
+attempt to identify where an edge-curve from one patch matches to the
+edge curve of a neighbouring patch. It is usually necessary to split
+the edge curves at appropriate locations in order to perform the
+matching. When two edge-curves are identified to be the same we say
+the edges have been merged and choose one edge-curve to define the
+boundary segment for both patches. The details of algorithm described
+here differ in a variety of ways from that of 
+Steinbrenner et.al.~\cite{Steinbrenner00}. Since the details are important
+we attempt to carefully describe our approach.
+
+
+Once the edge curves have been matched we then can form a global
+triangulation for the patchd surface. The first step in forming this
+global triangulation is to build triangulations on each trimmed patch.
+The triangulation of each patch is performed in the two-dimensional
+parameter space, permitting the use of fast triangulation algorithms.
+The triangulation on each patch will have boundary nodes that are
+defined by the merged edge-curves.  This means that the separate
+surface triangulations can be connected together since they will share
+boundary nodes with a neighbouring patch.
+
+
+The global triangulation can serve as a basis for a fast projection
+algorithm for projecting points onto the patched surface. This
+projection algorithm can be used, for example, by a hyperbolic surface
+grid generator to grow new structured grids on the surface for use
+with the overlaping grid approach. To project a point onto the patched
+surface we first project the point onto the global
+triangulation. Finding the closest triangle is performed by a
+walking-algorithm if an initial guess is known or by a global search
+using an ADT tree. Since each triangle belongs to just one sub-patch
+we can then project the point onto the sub-patch using Newton's
+method.
+
+ The algorithm for determining the connectivity by merging edge curves
+was motivated by the approach described by~\cite{gridGen}. We also
+tried another technique where we first triangulated each trimmed-patch
+and then attempted to stitch together neighbouring patches by adding
+boundary nodes of one patch-triangulation to a nearby
+patch-triangulation. This latter method worked reasonably well in many
+cases but ran into difficulties when the trimmed patches did not match
+very well (overlapping patches were especially troublesome) and for
+patches containing very thin regions. In constrast, the edge-curve
+merging approach works well since it assumes the boundaries of the
+trimmed-patches consist of piecewise smooth segments that should
+either match to a smooth segment of a neighbouring patch or be on the
+boundary of the surface. This assumption is correct for the CAD
+surfaces that we deal with.
+
+The algorithms we describe here have been implemented within the
+Overture object oriented framework\cite{??} and will be made available
+with the Overture software which can be obtained from {\tt
+http://\-www.llnl.gov/\-casc/\-Overture}.
+
+
+
+\begin{figure}[hbt]
+  \begin{center}
+   \epsfig{file=\figures/topology.trim3d.2.ps,width=.31\linewidth}  
+   \epsfig{file=\figures/topology.untrimmed.2.ps,width=.31\linewidth}
+   \epsfig{file=\figures/topology.trim2d.2.ps,width=.31\linewidth}
+  \end{center}
+\caption{The trimmed patch (left) is formed from an untrimmed surface (middle) and a set of one or
+more trimming curves (right). The untrimmed surface is a mapping from two-dimensional parameter space
+into three-dimensional cartesian space. The trimming curves are defined in parameter space.} \label{trimmedPatched}
+\end{figure}
+
+
+\section{Determning the Connectivity of a Patched Surface}
+
+
+A patched-surface consists of a set of sub-surfaces. There are often
+hundreds of sub-surfaces.  A sub-surface may defined in a variety of
+ways such as with a spline, B-spline or non-uniform-rational-bspline
+(NURBS).  In general the sub-surface will be trimmed, in which case
+only a portion of the surface will be used, the valid region is
+defined by trimming curves, see figure~(\ref{trimmingCurves}).
+
+It is often the case that the CAD file contains no topology
+information, that is there is no information to say which sub-surface
+connects to which other sub-surfaces. The purpose of the connectivity
+algorithm is to determine how the sub-surfaces are connected. Once the
+connection information is computed a triangulation for the whole
+surface can be found. 
+
+A useful feature of the connectivity algorithm is that it will aid in
+the discovery of errors in the trimmed surfaces.  Gross errors in the
+trimming curves are detected when the geometry is first read from the
+database file. Errors detected at this time include trim curves that
+lie outside the unit square in parameter space, trim curves that don't
+close on themselves (i.e. they should be periodic), and trim curves
+that self-intersect. These gross errors should be fixed before
+proceeding to the connectivity stage. In Overture we have the ability
+to edit the trim curves to fix these types of errors.  Errors detected
+at the connectivity stage would include large gaps between patches or
+multiple definition of patches (sometimes the exact same trimmed patch
+may appear more than once in the CAD file!). These errors are usually
+easily found by visually inspecting the set of merged and unmerged
+curves.  There should only be unmerged curves on the boundary of the
+surface.
+
+There are two main steps in determining how sub-surfaces are connected.
+\begin{description}
+   \item[build edge curves] : build curve-segments that lie on the boundary of each sub-surface. 
+      A sub-surface defined by a NURBS, for example, will have 4 boundary curve segments.  A sub-surface
+      defined by a trimmed-mapping will have boundary segements corresponding to each trimming curve.
+      A single trimming curve may be split into multiple boundary-segments (if the trimming curve
+      was originally represented this way in the CAD file).
+   \item[merge edge curves] : We examine the curve-segments to look for matching segments. If two segments
+     agree (to some tolerance) we declare that the segments {\it are the same} (i.e. that they both
+      represent the {\it true} boundary curve). Where two segments are the same, we also declare that
+      their respective sub-surfaces are joined. It may be necessary to {\bf split} a curve-segment
+      into two or more pieces so that the pieces can be joined to other segments. After merging all possible
+      curve-segments we should have matched all sub-surfaces where they join other sub-surfaces, thus
+      determing the topology of the surface.
+\end{description}
+
+
+\begin{algorithm}
+\begin{programbox}
+\bc{determineConnectivity}(\Cv )
+\bc{Purpose} \cc{Determine the connectivity of a patched surface and build a global triangulation for the surface}
+\Cv \cc{CompositeSurface}
+\{\qtab
+
+   \bc{buildEdgeCurves}
+
+   \bc{mergeEdgeCurves}
+
+   \bc{buildGlobalTriangulation}
+
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+
+\begin{figure}[hbt]
+  \begin{center}
+   \epsfig{file=\figures/topology.threePlanes.edges.ps,width=.31\linewidth}
+   \epsfig{file=\figures/topology.threePlanes.merged.ps,width=.31\linewidth}
+   \epsfig{file=\figures/topology.threePlanes.triangulation.ps,width=.31\linewidth}
+   \end{center}
+\caption{Figure showing the three stages of determining the connectivity. Edge curves are built
+   on each side of each patch (left). The edge curves are merged and then split and merged (middle). Green curves
+  have been merged, blue and red curves have not been merged. A red curve is an original curve that has been 
+split.
+Triangulations are built separately for each patch and then stitched together at the common boundary points (right).}
+\label{connectivity}
+\end{figure}
+
+
+Trimming curves are usually defined in the two-dimensional parameter
+space of the patch.  In order to compare edge-curves from different
+patches we must build three-dimensional representations for the edge
+curves. In some cases we can build an exact representation of the edge
+curve. For example, if the edge curve is a parameter line on a NURBS
+then the edge curve is itself a NURBS. In other cases it would be too
+difficult to build an exact representation of the curve so instead we
+sample the curve at some appropriate number of points and then fit a
+curve to these points. The two-dimensional arclength and curvature of
+the curve are used to determine how many points to use. Usually we
+parameterize the edge-curve using the parameterization of the trimming
+curve unless the parameterization is poor and then we parameterize by
+the three-dimensional arclength. Usually a trimming curve will be
+represented in the CAD file as a collection of sub-curves with each
+sub-curve being smooth. These sub-curves will usually correspond to
+the curve of intersection between two surface patches and thus be
+exactly the edge-curves that we wish to merge. When a trimming curve
+is created from a CAD file the sub-curves are merged into a single
+composite curve; however, we also keep the the sub-curves.  In some
+cases a trimming curve will not be smooth; a piece-wise linear NURBS
+can have sharp corners, and even higher-order NURBS can represent
+corners using multiple knots. Such trimming curves are split into
+smooth sub-curves by looking for multiple knots and detecting corners
+where the tangent changes rapidly.
+
+
+Here is the algorithm for building the edge curves.
+\begin{algorithm}
+\begin{programbox}
+\bc{buildEdgeCurves}(\Cv, \Ev )
+\bc{Purpose} \cc{Build edge curves for all sub-surfaces of $\Cv$}
+\Cv \cc{CompositeSurface}
+\Ev \cc{List of edge curves}
+\{\qtab
+
+  e:=0 \cc{counts edge curves}
+  \FOR s=0,1,\ldots,n_s
+
+    \mbox{Build edge curves for sub-surface $s$}
+
+    \cv := \Cv[s]
+
+    \IF \mbox{$\cv$ is not trimmed}
+      \FOR b=1,2,3,4
+         \mbox{Build a curve for boundary edge $b$}
+
+         \IF \mbox{$\cv$ is a NURBS we can build an exact representation of the edge}
+            \Ev[e] = \cv.\bc{buildCurveOnSurface}
+         \ELSE
+ 
+          \mbox{Build a curve that interpolates the physical space trim curve}
+         
+           \Ev[e] = \bc{buildInterpolantEdgeCurve}(\xv_i)
+
+           \IF \mbox{arclength of $\Ev[e] \ge$ mergeTolerance }         
+             e=e+1
+           \ELSE
+              \mbox{throw this short segment away}
+           \END
+         \END
+      \END
+    \ELSIF
+      \FOR c=0,1,\ldots,\mbox{number of trimming curves}
+
+        \tv := \mbox{trimming curve $c$}
+        \FOR \mbox{each sub-curve of the trimming curve}
+
+          \mbox{Build a curve that interpolates the physical space trim curve}
+
+          \Ev[e] = \bc{buildInterpolantEdgeCurve}(\xv_i)
+          \IF \mbox{arclength of $\Ev[e] \ge$ mergeTolerance}       
+            e=e+1
+          \ELSE
+             \mbox{throw this short segement away}
+          \END
+
+        \END
+
+      \END
+
+    \END  
+
+  \END
+
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+
+After the edge curves have been built we then attempt to merge the
+edge curves.  The merging step consists of two phases. In the first
+phase we examine all the original edge curves and look for matching
+curves. We use an ADT to search for possible matching edge-curves. If
+two edges agree then we define the edges to be merged.  In the second
+phase we consider all curves that were not merged in the first
+phase. We attempt to split these curves into sub-curves which may then
+be merged. An edge curve can be split where it touches the end-point
+of another edge curve.  For each un-merged edge we look for the
+endpoints of nearby edge-curves that will cause a split.  A split is
+not allowed if it lies too close to the start or end of the un-merged
+edge.
+
+
+\begin{algorithm}
+\begin{programbox}
+\bc{mergeEdgeCurves}(\Cv, \Ev )
+\bc{Purpose} \cc{Merge edge curves}
+\Cv \cc{CompositeSurface}
+\Ev \cc{List of edge curves}
+\{\qtab
+
+  \mbox{Merge edge curves}
+  \FOR e=1,\ldots,numberOfEdgeCurves
+    \IF edgeCurveStatus[e]==edgeCurveIsNotMerged 
+      \mbox{Attempt to merge edge curve e with other edge curves}
+      \bc{merge}(e)
+    \END
+  \END
+
+  \mbox{Split and merge edge curves}
+   \FOR e=1,\ldots,numberOfEdgeCurves
+     \IF edgeCurveStatus[e]==edgeCurveIsNotMerged
+       \mbox{attempt to split this edge curve}
+
+       e2 : = \mbox{ edge curve to split with, choosen with an ADT tree}
+       \IF \mbox{e2 is from a different sub-surface and edgeCurveStatus[e2]!=edgeCurveIsRemoved}
+          \mbox{Check the endpoints of e2}
+          x = \mbox{closest point on e to the endpoint of e2}
+          dist = \mbox{distance from endpoint of e2 to edge curve e}
+          dista = \mbox{shortest distance of x to the end point of e}
+
+          splitTolerance = splitToleranceFactor * mergeTolerance
+          \IF \mbox{$dist<mergeTolerance$ and $dista>splitTolerance$}
+
+            \mbox{split this edge curve into two pieces}
+
+            \mbox{attempt to merge the two new pieces with other edge curves}
+
+          \END
+        \END
+     \END
+   \END
+
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+Here is the algorithm that decides if two edge-curves can be merged.
+In practice we have only found it necessary to compare the edge-curves at the end points and 
+the midpoint.  
+
+\begin{algorithm}
+\begin{programbox}
+\bc{merge}(e, \Ev )
+\bc{Purpose} \cc{Attempt to merge edge curve e with other edge curves}
+\Ev \cc{List of edge curves}
+\{\qtab
+
+
+  \FOR \mbox{check edge curve e2 chosen from an ADT search tree}
+
+    \IF \mbox{end points of e and e2 match, $\| \xv_1 - \xv_2\|_1 < mergeTolerance$}
+     
+      \mbox{check distance at midpoint of e}
+      \xv_m = \Ev[e].map(.5)  \cc{check the midpoint of e}
+      \rv = \Ev[e2].inverseMap(\xv_m)
+      \xv = \Ev[e2].map(\rv)
+      \IF \| \xv - \xv_m \|_1 < mergeTolerance 
+        \mbox{merge these curves}
+
+	edgeCurveStatus[e]=edgeCurveIsMerged;
+	edgeCurveStatus[e2]=edgeCurveIsRemoved;
+        edgeCurveInfo(e,edgeCurveMatchingEdge)=e2;
+	edgeCurveInfo(e2,edgeCurveMatchingEdge)=e;
+
+      \END
+    \END
+  \END
+
+
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+\begin{alignat*}{3}
+   \text{edgeCurveInfo}(.,&0) &&\mbox{: surface number} \\
+                   &1  &&\mbox{: trim curve number} \\
+                   &2  &&\mbox{: index of next segment in the trim curve} \\
+                   &3  &&\mbox{: matching edge} \\ 
+                   &4  &&\mbox{: orientation relative to the matching edge.}
+\end{alignat*}
+
+
+\begin{description}
+ \item[edgeCurvePriority(e,0)==e2]  : the first point on edge curve e should really be defined as
+                                the start or end (side2) of edge curve e2
+ \item[edgeCurvePriority(e,2)==side2]
+ \item[edgeCurvePriority(e,1)==e3]   : the last point on edge curve e should really be defined as
+                               the start or end (side3) of edge curve ee
+ \item[edgeCurvePriority(e,3)==side3]
+\end{description}  
+
+
+
+\section{Building a Global Triangulation}
+
+
+A global triangulation can be built once the connectivity information has been determined by
+the merging of edge curves. The global triangulation is formed by first triangulating each
+surface patch. The nodes on the boundary of the patch are defined by nodes on the merged edge curves. This ensures
+that the boundary nodes will match to neighbouring patches. The surface patches are triangulated
+in the parameter space of the patch. This allows us to use fast two-dimensional triangulation
+algorithms. We use the ``triangle'' program from Jonathon Shewchuck\cite{Shewchuck} to compute a
+constrained Delaunay triangulation. We add additional nodes to the interior of the triangulation
+but we prevent new nodes from being added to the boundary. Since the merged edge-curve is defined
+in three-dimensional space we must determine the corresponding parameter space coordinates. In some cases
+the parameter space coordinates are known from the time when the edge-curve was generated. In other
+cases we must project the 3D points onto the surface patch. In addition to being more expensive this
+projection step can also be error prone if the surface-patch is defined by a poor parameterization.
+For example, it it not uncommon that the surface has a coordinate singularity where one face is
+collapsed to a point. We double check the result of the projection step by comparing the projected
+3D point to the original point being projected. If these points are not close we instead project the
+point onto the boundary edge of the surface.
+
+
+
+
+
+For each boundary node on a triangulation we identify the corresponding point on the fundamental edge curve.
+\begin{align*}
+   \text{boundaryNodeInfo}(i,0) &\mbox{: index into fundamental edge curve} \\
+   \text{boundaryNodeInfo}(i,1) &\mbox{: edge curve number} \\
+\end{align*}
+
+
+\begin{algorithm}
+\begin{programbox}
+\bc{buildGlobalTriangulation}(\Ev )
+\bc{Purpose} \cc{Build a global triangulation for the composite surface}
+\Ev \cc{List of edge curves}
+\{\qtab
+
+  \FOR s=0,1,\ldots,\mbox{numberOfSubSurfaces}
+    \mbox{Determine which edges should be used for this sub-surface}
+
+     trimCurve(j,i) = \mbox{edge curve to use for trim curve i, sub-curve j of i.}
+
+     \mbox{define a priority for the end points of edge curves}
+     edgeCurvePriority(e,0..3) 
+                                  
+
+     \mbox{Build a triangulation in the parameter space of this sub-surface}
+     \FOR i=1,2,\ldots,\mbox{numberOfTrimCurves}
+        \mbox{Make a list of parameter space coordinates on all the trim sub-curves}
+     \END
+
+     \mbox{Build a triangulation in parameter space}
+
+     \mbox{Map parameter space coordinates to physical space}
+
+  \END
+
+  \mbox{Build the global triangulation}
+  \FOR s=0,1,\ldots,\mbox{numberOfSubSurfaces}
+
+    \mbox{First add boundary nodes from sub-surface s}
+
+    \FOR i=0,\ldots,\mbox{numberOfBoundaryNodes}
+      j= boundaryNodeInfo(i,0);
+      e = boundaryNodeInfo(i,1);
+
+      \IF edgeNodeInfop[e](j)==-1 
+        \mbox{first time we see an edge node we give it a global number}
+	edgeNodeInfop[e](j)=globalNumber
+        nodes(globalNumber,R3)=sNodes(i,R3);
+	globalNumber++;
+      \ELSE
+	nodeIsNew(i)=false; // this node is already there.
+      nodeTranslation(i)=edgeNodeInfop[e](j);
+    \END
+
+    \mbox{Now add interior nodes}
+    \FOR i=0,\ldots,\mbox{numberOfInteriorNodes}
+      nodeTranslation(i)=globalNumber
+      nodes(globalNumber,R3)=sNodes(i,R3)
+      globalNumber++
+    \END
+
+    \bc{connectivity}
+    \mbox{Assign elements that come from sub-surface s}
+
+    \mbox{Assign new faces}
+
+
+  \END
+
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+
+Figure~(\ref{catTriangles}) shows a global triangulation computed for a CAD description of a
+diesel engine. This example shows that a relatively coarse triangulation can be computed, if requested.
+For this example it took $7.0$ seconds to build $1130$ edge curves, $4.0$ seconds to merge the curves and
+$13.7$ seconds to build the global triangulation (Sun Ultra 430?? Mhz).
+
+\begin{figure}[hbt]
+  \begin{center}
+   \epsfig{file=\figures/cat.triangulation.coarse.ps,width=.65\linewidth}
+  \end{center}
+\caption{Global triangulation for the diesel engine geometry.} \label{catTriangulation}
+\end{figure}
+
+\begin{figure}[hbt]
+  \begin{center}
+   \epsfig{file=\figures/kcs.stern.cad.ps,width=.475\linewidth}
+   \epsfig{file=\figures/kcs.stern.triangulation.ps,width=.475\linewidth}
+  \end{center}
+\caption{Global triangulation for a tanker.} \label{catTriangulation}
+\end{figure}
+
+\begin{figure}[hbt]
+  \begin{center}
+   \epsfig{file=\figures/asmo.cad.ps,width=.475\linewidth}
+   \epsfig{file=\figures/asmo.triangulation.ps,width=.475\linewidth}
+  \end{center}
+\caption{Global triangulation for the ``asmo'' model car. This model looks deceptively simple
+      but contains 249 surfaces, many with very bad or singular parameterizations.} \label{amsoTriangulation}
+\end{figure}
+
+
+% \begin{figure}[hbt]
+%   \begin{center}
+%    \epsfig{file=\figures/asmo.triangulation.ps,width=.65\linewidth}
+%   \end{center}
+% \end{figure}
+
+
+\section{Projecting Points onto the Patched Surface}
+
+
+  The global triangulation for a patched surface can be used to define a
+fast projection algorithm.  Given a target point, $\pv_t$, in space near the surface we
+wish project the point onto the surface, i.e. we want to find the
+closest point on the surface to a given point, defined in some norm. This projection algorithm
+is used by the hyperbolic surface grid generator in Overture in order to
+build structured grids on the surface. The projection algorithm consist of two steps.
+First find the closest point on the triangulation. Secondly, uses the closest triangle to
+determine the closest surface patch and project onto the surface patch.
+
+Given a good initial guess as to the closest triangle to $\pv_t$, we 
+find the closest point on the global triangulation we use a walking method\cite{}.
+The walking method starts at a given triangle and marches to a neighbouring triangle that is
+closer to the target point. 
+This marching continues until it reaches the boundary of the 
+triangulation or else reaches an extremal triangle. An extremal triangle will be one
+where the line passing through the target point in the direction normal to the triangle
+face intersects the triangle.
+An extremal triangle could be a local
+maximum, a local minimum or a saddle point in the distance from the target point to the surface.
+We rely on the initial guess being good enough and the triangulation to be sufficiently fine
+for this walking method to give a reasonable answer.
+
+
+\newcommand{\com}[1]{\{\mbox{\it #1}\}}
+
+\begin{algorithm}
+\begin{programbox}
+\bc{getTriangleCoordinates( $e, \xv, \xv_e, r,s, inside$ )}
+\bc{Purpose} \cc{Compute the barycentric? triangle coordinates}
+e \cc{element number for the triangle}
+\xv \cc{find the coordinates of this point}
+\xv_e \cc{output: closest point on the triangle to $\xv$}
+r,s \cc{output: barycentric coordinates}
+\{\qtab
+  \com{Element $e$ has vertices $\xv_0$, $\xv_1$, and $\xv_2$}
+
+  \av = \xv_1 - \xv_0
+  \bv = \xv_2 - \xv_0
+
+  \com{Compute $r,s$ such that}
+  \xv-\xv_0 = r \av + s \bv
+   
+   inside = 
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+
+
+\begin{algorithm}
+\begin{programbox}
+\bc{projectOntoTriangulation($\xv,e_0$)}
+\bc{Purpose} \cc{Project a point $\xv$ onto a triangulated surface}
+\xv \cc{point to project}
+e_0 \cc{initial guess for the closest element, $e_0=-1$ if no guess is known}
+\{\qtab
+   \IF e_0 \ge 0 
+     \com{Perform an incremental search}
+     e := e_0
+     done := false
+     s=0
+     \WHILE \mbox{ $!$done and $s<\rm{maxNumberOfSteps}$}
+       s=s+1
+       getTriangleCoordinates( e, \xv, \xv_e, r,s, inside )
+       \IF inside 
+         done:=true
+       \ELSE
+         e_1 := \mbox{element adjacent to e in the direction of $\xv$}
+
+         \IF \mbox{$e_1$ is not on the boundary}
+           e := e_1
+         \ELSE
+           \IF \mbox{near a corner on the boundary}
+             e:=-1 \com{force a global search}
+             done:=true
+         \END
+
+         \IF \mbox{$e = e_{\rm old}$ or $e = e_{\rm older}$}
+           \com{check for cycles}
+           done = true;
+         \ELSIF e_0 \ge 0 
+           \com{Check for corners on the surface}
+           \theta = \mbox{angle between the normals to $e$ and $e_{\rm old}$}
+           \IF \theta > \theta_0 
+              \com{Adjust the position of $\xv$ to account for the corner}
+           \END
+         \END
+       \END
+     \END
+   \END
+
+   \IF e<0 
+     \bc{globalSearch($\xv$)}
+   \END 
+   
+\untab
+\}
+\end{programbox}
+\end{algorithm}
+
+
+If we do not have an initial guess we use a global search to find the closest point on the trianglulation.
+The global search uses an alternating-digital-tree (ADT) tree 
+in which we save the bounding boxes for all triangles
+on the global mesh. An ADT tree is a special type of binary search tree. 
+We look for the intersection of a box around the target point
+with the triangle bounding boxes; this will determine potential triangles to check. The ADT tree 
+is a fast way to answer his query. Given a list of potetntial triangles we check each one
+to determine the closest point. The only parameter in this search is the size of the bounding
+box around the target point. It should not be too large nor too small. We usually start with a
+safe value and then increase or decrease the box size for subsequent searches depeneding on the
+number of intersections found.
+
+
+Each triangle on the global triangulation lies on exactly one surface-patch. 
+Once the closest triangle has been found we then suppose that the closest
+point on the surface will lie on the patch pointed to by the triangle. This assumes
+that the surface triangulation resolves the surface to a reasonable degree. 
+If the target point lies very near the boundary between two patches it could be that
+the true projected point is on the neighbouring patch. For now we have ignored this possibility,
+although it would be possible to deal with this case. For our purposes so far it doesn't
+seem to be an issue.
+
+\begin{figure}[hbt]
+  \begin{center}
+   \epsfig{file=\figures/electrode.inner.grid.ps,width=.675\linewidth}
+  \end{center}
+\caption{The hyprbolic surface grid generator uses the fast projection algorithm to grow surface grids.}
+\end{figure}
+
+
+
+\vfill\eject
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+% \printindex
+
+\end{document}

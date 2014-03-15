@@ -1,0 +1,94 @@
+#
+# Measure convergence rates for cgmp and the superseismic shock
+#
+# -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
+# 
+# To run the convergence tests type: 
+# 
+#   conv.p superseismic.conv -tp=.01 -tf=.01 -cg=ssgIII -ng=2 -alwaysCompute=1
+#   conv.p superseismic.conv -tp=.01 -tf=.01 -cg=ssgIII -ng=3 -alwaysCompute=1
+#   conv.p superseismic.conv -tp=.01 -tf=.01 -cg=ssgIII -ng=4 -alwaysCompute=1
+# -- longer
+#   conv.p superseismic.conv -tp=.1 -tf=.1 -cg=ssgIII -ng=4 -alwaysCompute=1
+#   conv.p superseismic.conv -tp=.5 -tf=.5 -cg=ssgIII -ng=4 -alwaysCompute=1 
+#
+# From runs/cgmp/superseismic/memo: 
+# cgmp -noplot superseismic2.cmd -method=cns -g="superseismicGridI16.order2" -dg="innerInterface" -tp=.02 -tf=1. -nc=1 -cnsVariation=godunov -pOffset=2.e-02 -cnsGodunovOrder=2 -smVariation=g -diss=2. -past=superseismicGridI16tmp01.hdf -past2=superseismicGridI16tmp02.hdf 
+#
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+# ---------------------
+# Set default parameters: 
+$cmdFile="/home/henshaw.0/runs/cgmp/superseismic/superseismic2.cmd"; 
+$pv = "g"; $tz="trig"; $bcn = "d"; $en="l1"; $ng=4; $diss=0.; $dissOrder=4; $tf=.5;  $tPlot=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; $ad=0.; $numberOfParallelGhost=2; $bcOption=0;
+$stressRelaxation=0; $relaxAlpha=0.1; $relaxDelta=0.1; 
+$multiDomainAlgorithm=0; $pi=0;
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgsmCmd = "$CGBUILDPREFIX/mp/bin/cgmp";  # command for cgmp
+$cmdDir="$ENV{CG}/sm/cmd"; 
+$amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
+$cg = "square"; $bg="square"; $alwaysCompute=0; $ts="me"; $lambda=1; $filter=0; $filterOrder=6; $filterStages=2; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,\
+            "diss=f"=>\$diss,"tp=f"=>\$tPlot,"alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,\
+            "filter=i"=>\$filter,"filterOrder=i"=>\$filterOrder,"filterStages=i"=>\$filterStages,\
+            "showAllComponents=i"=>\$showAllComponents,"bg=s"=>\$bg,"amr=i"=>\$amr,"tol=f"=>\$tol,"nrl=i"=>\$nrl,\
+            "nbz=i"=>\$nbz,"ratio=i"=>\$ratio,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"cfl=f"=>\$cfl,"ad=f"=>\$ad,\
+            "cgsmCmd=s"=>\$cgsmCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"dissOrder=i"=>\$dissOrder,\
+            "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
+            "bcOption=i"=>\$bcOption,"multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,"pi=i"=>\$pi );
+#
+$check="mp.check";
+#
+$numberOfDomains=2; 
+$caseName="sss.$cg.$pv"; 
+$name="sss.$cg.$pv"; 
+#
+# --- define the table heading and caption --
+# 
+#  --- Godunov solid: include |u|, |v|, |sigma| in table by default (these are the first three in the sm check file)
+#    for($i=3; $i<11; $i++ ){ $ignoreComponent[$i]=1; } 
+#    $ignoreComponent[3]=1; $ignoreComponent[4]=1;  
+if( $pv eq "g" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    if( $nd eq 2 ){ $numberOfComponents= 4 + 11;  $numPerDomain}else{ $numberOfComponents= 5 + 18; }  \
+     $title ="grid  \& N \&  \$rho\$  \& \$u\$  \& \$v\$  \& \$T\$  \&\$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$ ";\
+     @componentName = ( "r", "v0", "v1" , "T" , "u", "v", "s", "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" );\
+  }\
+  else\
+  { \
+    $numberOfComponents= 11 + 4 ; for($i=3; $i<11; $i++ ){ $ignoreComponent[$i]=1; }  \
+    $numberOfComponentsPerDomain[0]=11; $numberOfComponentsPerDomain[1]=4;  \
+    $title ="grid  \& N \& \$\\vert u\\vert\$  \&  \$\\vert v\\vert\$  \&  \$\\vert\\sigma\\vert\$ \&  \$rho\$  \& \$v_1\$  \& \$v_2\$  \& \$T\$  "; \
+    @componentName = ( "u", "v", "s" , "r", "v0", "v1" , "T" ); \
+  }\
+}
+#
+if( $pv eq "g" ){ $clabel = "diss=$diss"; }
+$caption= "\\caption\{MP, $name, \$t=$tf\$, $clabel, \$\\lambda=$lambda\$, bcOption=$bcOption, projectInterface=$pi, cfl=$cfl $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-method=cns -tp=$tPlot -tf=$tf -nc=1 -cnsVariation=godunov -pOffset=2.e-02 -cnsGodunovOrder=2 -smVariation=g -diss=2. -bcOption=$bcOption -multiDomainAlgorithm=$multiDomainAlgorithm -pi=$pi";
+# 
+if( $cg eq "ssgIII" ){\
+$grid1="sss4"; $gn="superseismicGridIII4";  $gName1 = "$gn.order$order"; $past11 = $gn."tmp01"; $past12=$gn."tmp02";\
+$grid2="sss8"; $gn="superseismicGridIII8";  $gName2 = "$gn.order$order"; $past21 = $gn."tmp01"; $past22=$gn."tmp02";\
+$grid3="sss16"; $gn="superseismicGridIII16"; $gName3 = "$gn.order$order"; $past31 = $gn."tmp01"; $past32=$gn."tmp02";\
+$grid4="sss32"; $gn="superseismicGridIII32"; $gName4 = "$gn.order$order"; $past41 = $gn."tmp01"; $past42=$gn."tmp02";\
+$grid5="sss64"; $gn="superseismicGridIII64"; $gName5 = "$gn.order$order"; $past51 = $gn."tmp01"; $past52=$gn."tmp02";}
+# 
+$grid=$grid1; $res=1; $cmd="$cgsmCmd noplot $cmdFile -g=$gName1 -past=$past11 -past2=$past12 $options";
+$grid=$grid2; $res=2; $cmd="$cgsmCmd noplot $cmdFile -g=$gName2 -past=$past21 -past2=$past22 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cgsmCmd noplot $cmdFile -g=$gName3 -past=$past31 -past2=$past32 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cgsmCmd noplot $cmdFile -g=$gName4 -past=$past41 -past2=$past42 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgsmCmd noplot $cmdFile -g=$gName5 -past=$past51 -past2=$past52 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

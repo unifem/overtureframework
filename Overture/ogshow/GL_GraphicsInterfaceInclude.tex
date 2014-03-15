@@ -1,0 +1,1600 @@
+\subsection{createWindow}
+ 
+\newlength{\GLGraphicsInterfaceIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{createWindow(}%
+createWindow(const aString \& windowTitle  = nullString,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int argc  =0, \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}char *argv[]  = NULL) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   On the first call (usually made by the constructor), open a command and a graphics window.
+   On subsequent calls, open another graphics window.
+\item[{\bf windowTitle (input):}]  Title to appear on the graphics window
+\item[{\bf argc (input/output):}]  The argument count to main.
+\item[{\bf argv (input/output):}]  The arguments to main.
+
+\item[{\bf Return Value:}]  The number of the graphics window that was created. The graphics windows are 
+    numbered 0,1,2,... This number needs to be passed to {\ff setCurrentWindow}, for example. The 
+    window number is also used when typing viewing commands on the command line, such as {\bf x+r:0}.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setCurrentWindow}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setCurrentWindow(}%
+setCurrentWindow(const int \& w)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Set the active graphics window to `w'. Subsequent plots will appear in this window.
+
+\item[{\bf w (input) :}]  the number of the window to activate
+
+\item[{\bf Return value:}]  none.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getCurrentWindow}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getCurrentWindow(}%
+getCurrentWindow()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Return the number of the active graphics window.
+
+\item[{\bf Return value:}]  The number of the active graphics window.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{displayHelp}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{displayHelp(}%
+displayHelp( const aString \& topic )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ display help on a topic that appears in the "help" pulldown menu
+\item[{\bf topic (input) :}]  the topic that help is requested for.
+\item[{\bf Return value:}]  TRUE if help was found for the topic, false if no help found
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{destroyWindow}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{destroyWindow(}%
+destroyWindow(int win\_number)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Destroy one graphics window.
+\item[{\bf Note:}] 
+      NOT implemented yet.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{generateNewDisplayList}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{generateNewDisplayList(}%
+generateNewDisplayList(bool lit  = false */, bool plotIt /* = true */, bool hideable /* = false,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}bool interactive  = true) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Use this function to allocate an available display list to use in the currentWindow.
+   The display lists allocated here will be rotated and scaled when buttons like x+r, "bigger", etc.
+   are chosen.
+
+\item[{\bf lit (input):}] 
+    The lighting is turned OFF if lit == 0 and ON if lit != 0. This setting can be changed by calling 
+    the function setLighting after the list is allocated.
+
+\item[{\bf Return Value:}]  The number of the new display list.
+
+\item[{\bf Remark:}] 
+   Lighting is OFF by default.
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{getNewLabelList}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getNewLabelList(}%
+getNewLabelList(int win  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Use this function to get an unused list for labels (non-rotatable).
+
+\item[{\bf Return Value:}]  The number of the new display list.
+
+\item[{\bf Author:}]  WDH 
+\end{description}
+\subsection{deleteList}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{deleteList(}%
+deleteList(int dList)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Delete one display list in the current window
+
+\item[{\bf Return Value:}]  None.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getGlobalBound}
+ 
+\begin{flushleft} \textbf{%
+RealArray   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getGlobalBound(}%
+getGlobalBound() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return a copy of the global bounds in the current graphics window.
+\item[{\bf return value:}]  globalBound(0:1,0:2): current global bounds.
+
+\item[{\bf author:}]  WDH
+\end{description}
+\subsection{hardCopy (save a Postscript File)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{hardCopy(}%
+hardCopy(const aString \& fileName =nullString,\\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This routine saves the contents of one graphics window in hard-copy form.
+    If off-screen rendering is available (MESA) then use it, unless the hardCopyType is
+    set to GraphicsParameters::postScriptRaster.
+\item[{\bf fileName (input):}]  Optional name for the file to save the plot in. If no name is given then
+     the user is prompted for a name.
+\item[{\bf hardCopyType (input):}]  GraphicsParameters::postScriptRaster, or GraphicsParameters::postScript.
+\item[{\bf win\_number (input):}]  The number of the window to save. If that argument is omitted, the 
+  contents of the current window is saved .
+\item[{\bf Return Values:}]  1: unable to open the file.
+
+\item[{\bf Author:}]  WDH \& AP
+
+\end{description}
+\subsection{outputString}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{outputString(}%
+outputString(const aString \& message, int messageLevel  =2)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output a string in the prompt sub-window in the command window.
+   If the echo file is open, also output the string in that file.
+\item[{\bf message (input):}]  the string to be output.
+\item[{\bf messageLevel (input) :}]  output the string if messageLevel is less than or equal
+    to the current value for infoLevel. Values for infoLevel are 0=expert, 1=intermediate, 2=novice.
+
+\item[{\bf Return Value:}]  none.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{erase}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{erase(}%
+erase()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Erase the current graphics window. Shorthand for erase(getCurrentWindow(), false);
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{erase (win\_number)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{erase(}%
+erase(const int win\_number, bool forceDelete  = false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Erase the contents in one graphics window.
+ win\_number(input): window number
+ forceDelete(input): If true, delete all display lists associated with this window. If false,
+ delete the display lists that are not hidable and don't plot the hidable lists.
+
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{erase (IntegerArray)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{erase(}%
+erase(const IntegerArray \& displayList)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Erase some display lists in the current graphics window.
+
+\item[{\bf displayList (input) :}]  an array of display lists to delete, all values should be non-negative.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{inputFileName}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{inputFileName(}%
+inputFileName(aString \& fileName, const aString \& prompt, const aString \&extension  =nullString)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Open a Motif file selection dialog window and prompt for a file name. 
+\item[{\bf fileName (output):}]  an aString with the selected file name.
+\item[{\bf prompt (input):}]  an aString with the prompt that will be displayed in the text 
+    sub-window of the command window.
+\item[{\bf extension (input):}]  an aString with the extension of the files that will be displayed when 
+    the file selection dialog is opened.
+
+\item[{\bf Return Value:}]  none.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{inputString}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{inputString(}%
+inputString(aString \& answer, const aString \& prompt)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output a prompt and wait for an answer.
+\item[{\bf answer (output):}]  a aString with the answer.
+\item[{\bf prompt (input):}]  a aString with the prompt that will be displayed in the text 
+    sub-window of the command window (if the GUI is active).
+
+\item[{\bf Return Value:}]  none.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{redraw}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{redraw(}%
+redraw(bool immediate)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Redraw all graphics display lists in the current window.
+\item[{\bf immediate(input):}]  If true, force an immediate redraw. Otherwise, post a redraw event, in which
+ case the window will be redrawn next time the application asks for a user input.
+\end{description}
+\subsection{resetGlobalBound}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{resetGlobalBound(}%
+resetGlobalBound(const int win\_number)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Reset the global bounds to represent no bounds at all.
+
+\end{description}
+\subsection{setGlobalBound}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setGlobalBound(}%
+setGlobalBound(const RealArray \& xBound)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the global bounds for plotting. These values will only increase the 
+ size of the current bounds.
+\item[{\bf xBound(0:}] 1,0:2) (input) : global bounds should be at least this large.
+
+\end{description}
+\subsection{setKeepAspectRatio}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setKeepAspectRatio(}%
+setKeepAspectRatio( bool trueOrFalse  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     If "true", keep the aspect ratio of plots.
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{getWindowShape}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getWindowShape(}%
+getWindowShape( int window, real \& leftSide\_ , real \& rightSide\_ , real \& top\_ , real \& bottom\_) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the shape of the window.
+\end{description}
+\subsection{getLineWidthScaleFactor}
+ 
+\begin{flushleft} \textbf{%
+real   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getLineWidthScaleFactor(}%
+getLineWidthScaleFactor(int window  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the scale factor for line widths.
+\end{description}
+\subsection{displayColourBar}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{displayColourBar(}%
+displayColourBar(const int \& numberOfContourLevels,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}RealArray \& contourLevels,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real uMin,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real uMax,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}GraphicsParameters \& parameters)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Display the colour bar.
+\end{description}
+\subsection{updateColourBar}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{updateColourBar(}%
+updateColourBar(GraphicsParameters \& parameters, int window  =0)
+}\end{flushleft}
+ update the colour bar.
+\subsection{setLighting}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setLighting(}%
+setLighting(int list, bool lit)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use this function to turn on or off lighting in a display list in the currentWindow. Note that
+    each display list can only be completely lit or unlit. If you need to display both lit and unlit
+    objects, you need to split the plotting into two display lists.
+
+\item[{\bf list (input):}] 
+    The number of the existing display list. 1 $<=$ list $<$ getMaxNOfDL(currentWindow). 
+    This number is for example returned by the function generateNewDisplayList.
+\item[{\bf lit (input):}] 
+    The lighting is turned OFF if lit == 0 and ON if lit $!=$ 0.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setPlotDL}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setPlotDL(}%
+setPlotDL(int list, bool plot)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use this function to turn on or off plotting of a display list in the currentWindow.
+
+\item[{\bf list (input):}] 
+    The number of the existing display list. getFirstUserRotableDL(currentWindow) $<=$ list $<$ 
+    getMaxNOfDL(currentWindow). The number of the display list is for example returned by the function
+    generateNewDisplayList.
+\item[{\bf plot (input):}] 
+    The plotting of the display list is turned OFF if plot == false and ON if plot $==$ true .
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setInteractiveDL}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setInteractiveDL(}%
+setInteractiveDL(int list, bool interactive)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Use this function to turn on or off interactive plotting of this display list during rotations 
+    in the currentWindow.
+
+\item[{\bf list (input):}] 
+    The number of the existing display list. getFirstUserRotableDL(currentWindow) $<=$ list $<$ 
+    getMaxNOfDL(currentWindow). The number of the display list is for example returned by the function
+    generateNewDisplayList.
+\item[{\bf interactive (input):}] 
+    Interactive plotting of the display list is turned OFF if plot == false and ON if plot $==$ true .
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{initView}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{initView(}%
+initView(int win\_number/*=-1*/)
+}\end{flushleft}
+ Initialize the view and rotation point to default values
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{resetView}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{resetView(}%
+resetView(int win\_number /*=-1*/)
+}\end{flushleft}
+ Reset the view point (but not the rotation point)
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{chooseAColour}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{chooseAColour(}%
+chooseAColour()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Choose a colour from a menu.
+\item[{\bf Return value:}]  The name of the colour.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setColour}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setColour(}%
+setColour( const aString \& nameIn )
+}\end{flushleft}
+  set the colour for subsequent objects that are plotted
+\begin{description}
+\item[{\bf Return value:}]  0 means success, 1 means failure
+\end{description}
+\subsection{setColour}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setColour(}%
+setColour( ItemColourEnum item )  
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set colour to default for a given type of item
+\end{description}
+\subsection{getColour}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getColour(}%
+getColour( ItemColourEnum item )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]   
+   Get the name of the colour for backGroundColour, textColour, ...
+\end{description}
+\subsection{setColourName}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setColourName(}%
+setColourName( int i, aString newColourName ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]   
+     Assign the name of colour i in the list of colours. 
+\end{description}
+\subsection{getColourName}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getColourName(}%
+getColourName( int i ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]   
+     Return the name of colour i in the list of colours. 
+\end{description}
+\subsection{setAxesLabels}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setAxesLabels(}%
+setAxesLabels( const aString \& xAxisLabel\_  = blankString,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const aString \& yAxisLabel\_  = blankString,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const aString \& zAxisLabel\_  = blankString)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set labels on the coordinate axes. The labels will be plotted in the currentWindow 
+   next time the screen is updated.
+\item[{\bf xAxisLabel\_:}]  The label on the x-axis.
+\item[{\bf yAxisLabel\_:}]  The label on the y-axis.
+\item[{\bf zAxisLabel\_:}]  The label on the z-axis.
+\item[{\bf Return values:}]  none.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{setLineWidthScaleFactor}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setLineWidthScaleFactor(}%
+setLineWidthScaleFactor(const real \& scaleFactor  =1. */, int win\_number /* = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Set scale factor for line widths (this can be used to increase the line widths for
+ high-res off screen rendering.
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{normalizedToWorldCoordinates}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{normalizedToWorldCoordinates(}%
+normalizedToWorldCoordinates(const RealArray \& r, RealArray \& x ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Convert normalized coordinates [-1,+1] to world coordinates
+\item[{\bf r(i,0:}] 2) (input) : points to convert.
+\item[{\bf x(i,0:}] 2) (output) : converted points. (x and r can be the same array).
+
+\end{description}
+\subsection{worldToNormalizedCoordinates}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{worldToNormalizedCoordinates(}%
+worldToNormalizedCoordinates(const RealArray \& x, RealArray \& r ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Convert world coordinate to normalized coordinates [-1,+1] 
+\item[{\bf x(i,0:}] 2) (input) : points to convert.
+\item[{\bf r(i,0:}] 1) (output) : converted points. (x and r can be the same array).
+
+\end{description}
+\subsection{setView}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setView(}%
+setView(const ViewParameters \& viewParameter, const real \& value)
+}\end{flushleft}
+
+\begin{description}
+\item[{\bf Description:}]  set some view parameters. The change will take effect
+   the next time the view is updated (with a call to redraw for example).
+
+\item[{\bf viewParmeter (input):}]  indicate which parameter to change:
+   \begin{verbatim}
+  enum ViewParameters
+    {
+      xAxisAngle,      // angle to rotate about x-axis (absolute value, not incremental)
+      yAxisAngle,
+      zAxisAngle,
+      xTranslation,
+      yTranslation,
+      zTranslation,
+      magnification
+    }
+   \end{verbatim}
+\item[{\bf value (input) :}]  change the parameter to this value.
+\item[{\bf Note:}]  setting one of the angle parameters (xAxisAngle, yAxisAngle or zAxisAngle)
+   will cause the current rotation matrix to be reset to the identity. One or more
+   angle parameters can be changed and the changes will take effect the next time the
+   view is updated.
+\item[{\bf Author:}]  WDH \& AP
+
+\end{description}
+\subsection{pollEvents}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{pollEvents(}%
+pollEvents()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Process all current events. Exit when there are no more events. Note that this function
+ is very similar to the internal event loop in mogl.C, except that this function is non-blocking.
+ Note that this routine can be called from anywhere in an application code to update the
+ windows, parse any pending commands, etc. This might for instance be useful during 
+ a long computation.
+
+\item[{\bf Return values:}]  none.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setUserButtonSensitive}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setUserButtonSensitive(}%
+setUserButtonSensitive( int btn, int trueOrFalse )
+}\end{flushleft}
+ Set the sensitivity (on/off) of push button number "btn" on the bottom of the graphics window.
+\begin{description}
+\item[{\bf btn(input):}]  Set the sensitivity of this button
+\item[{\bf trueOrFalse(input):}]  Turn the button on or off (grayed out).
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{pushGUI}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{pushGUI(}%
+pushGUI( GUIState \&newState )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Push newState onto the top of the internal GUIState stack and change the menus, buttons 
+ and dialog window according to newState.
+
+\item[{\bf newState(input):}]  The description of the context and layout of the new menus, buttons 
+ and dialog window. See the GUIState function descriptions for an explaination of how to
+ set the context of a GUIState object.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{popGUI}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{popGUI(}%
+popGUI()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Pop the internal GUIState stack and restore menus, buttons 
+ and the dialog window according to the previous state.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{createMessageDialog}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{createMessageDialog(}%
+createMessageDialog(aString msg, MessageTypeEnum type)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Open a dialog window with a message and a close button. The dialog window only appears
+ if the graphical user interface is opened and commands are NOT beeing read from a command file.
+
+\item[{\bf msg(input):}]  The text string with the message. Newline characters `$\backslash$n' indicate line
+ breaks.
+\item[{\bf type(input):}]  The type of dialog window to open. The type determines the symbol and the title
+ of the dialog window. Can have the following values:
+   \begin{verbatim}
+  enum MessageTypeEnum 
+  {
+    errorDialog,
+    warningDialog,
+    informationDialog,
+    messageDialog // No symbol
+  };
+   \end{verbatim}
+
+\item[{\bf Return values:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{appendCommandHistory}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{appendCommandHistory(}%
+appendCommandHistory(const aString \&answer)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Write a string in the command history window.
+\item[{\bf answer(input):}]  String to be written.
+\item[{\bf Return values:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{beginRecordDisplayLists}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{beginRecordDisplayLists(}%
+beginRecordDisplayLists( IntegerArray \& displayLists)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Record the display list numbers that are allocated from now until
+ a call to endRecordDisplayLists. This list could be used, for example, to selectively
+ delete items that were drawn.
+
+\item[{\bf displayLists (input) :}]  save display list numbers in this array. The array will
+  be automatically redimensioned to hold the numbers.
+\end{description}
+\subsection{endRecordDisplayLists}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{endRecordDisplayLists(}%
+endRecordDisplayLists( IntegerArray \& displayLists)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Stop recording the display list numbers. 
+ 
+\item[{\bf displayLists (output) :}]  The same array passed when calling beginRecordDisplayLists.
+ On output this array will hold the display list numbers, it will be exactly the correct size.
+ 
+\end{description}
+\subsection{pause}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{pause(}%
+pause()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Pause and wait for a response: "continue" or "break"
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{drawColouredSquares}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{drawColouredSquares(}%
+drawColouredSquares(const IntegerArray \& numberList AP changed to a reference,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}GraphicsParameters \& parameters,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const int \& numberOfColourNames\_  = -1,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}aString *colourNames\_  = NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Draw a coloured square with the number inside it for each of the colours
+ shown on the plot 
+
+ Input -
+   numberList : a list of numbers that should be labeled. The numbers
+                may appear more than once in the list and they need not
+                be ordered
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{label: plot a aString in normalized coordinates}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{label(}%
+label(const aString \& string,     \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real xPosition, \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real yPosition,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real size =.1,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int centering =0 , \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real angle =0.,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}GraphicsParameters \& parameters   =Overture::defaultGraphicsParameters,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const aString \& colour   =nullString,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real zOffset  =.99)
+}\end{flushleft}
+
+\begin{description}
+\item[{\bf Description:}] 
+    This routine plots a label in the normalized coordinate system where the screen
+    has dimensions [-1,1]x[-1,1]. This label does NOT rotate or scale with the plot.
+\item[{\bf string (input):}]  aString to draw.
+\item[{\bf xPosition (input):}]  x coordinate of the string in normalized coordinates, [-1,1]. (See the
+    centering argument).
+\item[{\bf yPosition (input):}]  y coordinate of the string in normalized coordinates, [-1,1]. (See the
+    centering argument).
+\item[{\bf size (input):}]  Size of the characters in normalized coordinates (size=2.0 would fill the whole view).
+\item[{\bf centering (input):}]  {\ff centering=0} means put the centre of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=-1} means put the left end of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=+1} means put the right end of the string at {\ff (xPosition,yPosition)}.
+\item[{\bf angle (input):}]  Angle in degrees to rotate the string.
+\item[{\bf colour (input):}]  optionally specify a colour for the text. 
+\item[{\bf zOffset (input):}]  by default raise the label so that it is not covered by the plot 
+                (NOTE: the front clip plane is at z=1)
+\item[{\bf Errors:}]  none (Ha).
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{xlabel: plot a aString in 2D world coordinates}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{xLabel(}%
+xLabel(const aString \& string,     \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real xPosition, \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real yPosition,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real size =.1,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const int centering =0 , \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real angle =0.,\\ 
+GraphicsParameters \& parameters   =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This routine plots a label with position and size in World coordinates, 
+    This label DOES rotate and scale with the plot. This version of xLabel plots
+    the label in the $z=0$ plane.
+\item[{\bf string (input):}]  aString to draw.
+\item[{\bf xPosition (input):}]  x coordinate of the string in world coordinates. (See the
+    centering argument).
+\item[{\bf yPosition (input):}]  y coordinate of the string in world coordinates. (See the
+     centering argument).
+\item[{\bf size (input):}]  Size of the characters in NORMALIZED coordinates.
+\item[{\bf centering (input):}]  {\ff centering=0} means put the centre of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=-1} means put the left end of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=+1} means put the right end of the string at {\ff (xPosition,yPosition)}.
+\item[{\bf angle (input):}]  Angle in degrees to rotate the string.
+\item[{\bf Errors:}]  none.
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{xlabel: plot a aString in 3D world coordinates}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{xLabel(}%
+xLabel(const aString \& string,     \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real x[3], \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real size =.1,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const int centering =0 , \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real angle =0.,\\ 
+GraphicsParameters \& parameters   =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This routine plots a label with position and size in World coordinates, 
+    This label DOES rotate and scale with the plot. This version of xLabel plots
+    the label in the $z=0$ plane.
+\item[{\bf string (input):}]  aString to draw.
+\item[{\bf x (input):}]  x(0:2) 3D coordinates of the string in world coordinates. (See the
+    centering argument).
+\item[{\bf size (input):}]  Size of the characters in NORMALIZED coordinates.
+\item[{\bf centering (input):}]  {\ff centering=0} means put the centre of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=-1} means put the left end of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=+1} means put the right end of the string at {\ff (xPosition,yPosition)}.
+\item[{\bf angle (input):}]  Angle in degrees to rotate the string.
+\item[{\bf Errors:}]  none.
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{xlabel: plot a aString in 3D world coordinates}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{xLabel(}%
+xLabel(const aString \& string,     \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const RealArray \& x, \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real size =.1,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const int centering =0 , \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real angle =0.,\\ 
+GraphicsParameters \& parameters   =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This routine plots a label with position and size in World coordinates, 
+    This label DOES rotate and scale with the plot. This version of xLabel plots
+    the label in the $z=0$ plane.
+\item[{\bf string (input):}]  aString to draw.
+\item[{\bf x (input):}]  x(0:2) 3D coordinates of the string in world coordinates. (See the
+    centering argument).
+\item[{\bf size (input):}]  Size of the characters in NORMALIZED coordinates.
+\item[{\bf centering (input):}]  {\ff centering=0} means put the centre of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=-1} means put the left end of the string at {\ff (xPosition,yPosition)}.
+    {\ff centering=+1} means put the right end of the string at {\ff (xPosition,yPosition)}.
+\item[{\bf angle (input):}]  Angle in degrees to rotate the string.
+\item[{\bf Errors:}]  none.
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{xlabel: plot a aString in 3D world coordinates}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{xLabel(}%
+xLabel(const aString \& string,     \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const RealArray \& x,  \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real size,      \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const int centering,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const RealArray \& rightVector,  \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const RealArray \& upVector,\\ 
+GraphicsParameters \& parameters   =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This routine plots a label with position and size in World coordinates, 
+    This label DOES rotate and scale with the plot. This version of xLabel 
+    plots the string in the plane formed by the vectors {\ff rightVector}
+    and {\ff upVector}.
+\item[{\bf string (input):}]  aString to draw.
+\item[{\bf x(0:}] 2) (input): x,y,z coordinates of the string in world coordinates.
+    (see the centering entering argument).
+\item[{\bf size (input):}]  Size of the characters in NORMALIZED coordinates.
+\item[{\bf centering (input):}]  {\ff centering=0} means put the centre of the string at {\ff x},
+    {\ff centering=-1} means put the left end of the string at {\ff x}.
+    {\ff centering=+1} means put the right end of the string at {\ff x}.
+\item[{\bf rightVector(0:}] 2) (input): The string is drawn to lie parallel to this vector.
+\item[{\bf upVector(0:}] 2) (input): This vector defines the ``up'' direction for the characters. The
+     characters are drawn in the plane defined by the rightVector and the upVector.
+\item[{\bf Errors:}]  none.
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{xlabel: plot a aString in 3D world coordinates}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{xLabel(}%
+xLabel(const aString \& string,     \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real x[3],  \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real size,      \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const int centering,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real rightVector[3],  \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real upVector[3],\\ 
+GraphicsParameters \& parameters   =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This routine plots a label with position and size in World coordinates, 
+    This label DOES rotate and scale with the plot. This version of xLabel 
+    plots the string in the plane formed by the vectors {\ff rightVector}
+    and {\ff upVector}.
+\item[{\bf string (input):}]  aString to draw.
+\item[{\bf x(0:}] 2) (input): x,y,z coordinates of the string in world coordinates.
+    (see the centering entering argument).
+\item[{\bf size (input):}]  Size of the characters in NORMALIZED coordinates.
+\item[{\bf centering (input):}]  {\ff centering=0} means put the centre of the string at {\ff x},
+    {\ff centering=-1} means put the left end of the string at {\ff x}.
+    {\ff centering=+1} means put the right end of the string at {\ff x}.
+\item[{\bf rightVector(0:}] 2) (input): The string is drawn to lie parallel to this vector.
+\item[{\bf upVector(0:}] 2) (input): This vector defines the ``up'' direction for the characters. The
+     characters are drawn in the plane defined by the rightVector and the upVector.
+\item[{\bf Errors:}]  none.
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{plotLabels}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{plotLabels(}%
+plotLabels(GraphicsParameters \& parameters,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real \& labelSize  =-1.,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real \& topLabelHeight  =.925,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const real \& bottomLabelHeight  =-.925,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Plot labels.
+\item[{\bf labelSize (input) :}]  if <= 0 use default in parameters
+ Utility routine used to plot labels from a GraphicParameters 
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{eraseLabels}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{eraseLabels(}%
+eraseLabels(GraphicsParameters \& parameters, int win\_number /* = -1*/)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Erase the labels.
+    Utility routine used to erase title labels.
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{plotAxes}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{plotAxes(}%
+plotAxes(const RealArray \& xBound\_, \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const int numberOfDimensions,\\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    This routines generates the display list for plotting axes along the specified bounds, 
+    for the given number of space dimensions. The actual plotting is done by the display
+    call-back function, which is activated by calling the function redraw().
+\item[{\bf xBound(0:}] 1,0:2) (input): Bounds to use for the axes. {\ff xBound(Start,axis1)},
+  {\ff xBound(End,axis1)}, ...
+\item[{\bf numberOfDimensions (input):}]  Number of space dimensions. This determines how many
+    axes to draw.
+\item[{\bf parameters (input):}]  Specification of the graphics parameters (line width, etc.)
+\item[{\bf win\_number (input):}]  The number of the window where the axes should be plotted. If win\_number==-1,
+                       or it is omitted, the axes will be plotted in the currentWindow.
+\item[{\bf Return Values:}]  none.
+  
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{eraseAxes}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{eraseAxes(}%
+eraseAxes(int win\_number)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Erase the display lists holding the axes in window `win\_number'.
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{setCurrentWindow}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setColourFromTable(}%
+setColourFromTable( const real value, GraphicsParameters \& parameters)
+}\end{flushleft}
+  Set the colour from a table defined in the GraphicsParameters.
+\begin{description}
+\item[{\bf value (input) :}]  real value in the range [0,1]
+\item[{\bf parameters (input) :}]  holds the colour table to use
+\item[{\bf Return value:}]  none.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{psToRaster}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{psToRaster(}%
+psToRaster(const aString \& fileName,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const aString \& ppmFileName )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Convert a RLE compressed .ps file from PlotStuff into a ppm raster 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{plotPoints}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{plotPoints(}%
+plotPoints(const realArray \& points, GraphicsParameters \& parameters  = defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int dList  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Plot points. Plot an array of points in 2D or 3D. 
+ 
+\item[{\bf points (input) :}]  an array of the form: points(0:n-1,0:r-1) where n is the number
+    of points and r is the range dimension. 
+
+\item[{\bf parameters (input/output):}]  supply optional parameters to change
+    plotting characteristics.
+\item[{\bf Errors:}]   There are no known bugs...
+\item[{\bf Return Values:}]  none.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{plot points or spheres with individual colours (or radii)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{plotPoints(}%
+plotPoints(const realArray \& points\_, \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}const realArray \& value,\\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int dList  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Plot points (or spheres) and colour each point a different colour based on the value array. 
+ 
+\item[{\bf points (input) :}]  an array of the form: points(0:n-1,0:r-1) where n is the number
+    of points and r is the range dimension. 
+\item[{\bf value (input) :}]  an array of values, value(0:n-1,0), that will determine the colour 
+    (and optionally the sphere radius)
+    for each point (or sphere). The colour will be taken from a colour table with the colour table
+    value for point i based on the scaled quantity v(i) = (value(i,0)-min(value))/(max(value)-min(value)).
+
+    If the value array is dimensioned value(0:n-1,0:1) then value(i,1) will denote the radius of the sphere
+    that should be plotted with center given by the points array.
+ 
+\item[{\bf parameters (input/output):}]  supply optional parameters to change
+    plotting characteristics.
+\item[{\bf Errors:}]   Some...
+\item[{\bf Return Values:}]  none.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{plotLines}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{plotLines(}%
+plotLines(const realArray \& arrows, \\ 
+GraphicsParameters \& parameters  =Overture::defaultGraphicsParameters(),\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int dList /*= 0*/)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Plot line segments
+\item[{\bf arrows(input):}]  array holding the coordinates of the start and end points for each line segment. 
+ It should be dimensioned array(0:Npoints-1, 0:rangeDimension-1, 0:1), where the last index is
+ 0 for the start point and 1 for the end point.
+\item[{\bf parameters(input):}]  Graphics parameters controlling the plot.
+\item[{\bf dList(optional input):}]  If provided, put the drawing command in this display list.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{eraseColourBar}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{eraseColourBar(}%
+eraseColourBar()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+       Erase the colour bar.
+\end{description}
+\subsection{drawColourBar}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{drawColourBar(}%
+drawColourBar(const int \& numberOfContourLevels,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}RealArray \& contourLevels,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real uMin,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real uMax,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}GraphicsParameters \& parameters,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real xLeft    =.775.8,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real xRight   =.825.85,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real yBottom  =-.75,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}real yTop     =.75 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+       Draw the colour Bar *** this is the old version ***
+\item[{\bf numberOfContourLevels (input):}]  put this many labels on the colour bar 
+\item[{\bf contourLevels (input) :}]  if not null, this array species the contour levels
+  uMin,uMax : these values determine the labels
+\item[{\bf xLeft, xRight, xBotton, xTop (input):}]  position of colour bar in normalized coordinates, [-1,1]
+\end{description}
+\subsection{getKeepAspectRatio}
+ 
+\begin{flushleft} \textbf{%
+virtual bool \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getKeepAspectRatio(}%
+getKeepAspectRatio(){return keepAspectRatio[currentWindow];};\\ 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Return true if the aspect ratio is preserved in the current window, otherwise return false.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getAnswer}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getAnswer(}%
+getAnswer(aString \& answer, const aString \& prompt)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Wait for an answer to be issued by the user. If the program is reading commands from 
+  the GUI, this routine will return after the user has issued a command from the popup 
+  menu, the pulldown menu or the push buttons on the graphics window, or from any of 
+  the buttons or menus in the dialog window. If the program is reading commands from a
+  file, the next line of the file not starting with '*' or a '\#' is returned.
+
+  See the routines pushGUI and popGUI as well as the functions in the GUIState class
+  for instructions on how to setup the graphical user interface (GUI).
+
+\item[{\bf answer(output):}]  The string issued by the GUI or read from the command file.
+\item[{\bf prompt(input):}]  A prompt used by the GUI.
+\item[{\bf Return Values:}]  On return, "answer" is set equal to the 
+    menu item chosen. The function return value is set equal to
+    the number of the item chosen, starting from zero. The items are the union of the
+    popup menus, pulldown menus, buttons on graphics windows, and all items on the 
+    current dialog window.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getAnswer with selection}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getAnswer(}%
+getAnswer(aString \& answer, const aString \& prompt, SelectionInfo \&selection)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  In addition to the functionality in the basic getAnswer() function,
+  this routine can also return a selection that is made by the user, or read from the
+  command file. 
+
+  The SelectionInfo object contains the following information:
+ \begin{verbatim}
+  class SelectionInfo
+  {
+  public:
+  IntegerArray selection;
+  int nSelect;
+  int active; 
+  real r[4]; 
+  real zbMin;
+  real x[3];  
+  int globalID;
+  int winNumber;
+  };
+ \end{verbatim}
+ If the user picks a point or a region anywhere in a graphics window (with the left mouse
+ button while holding down the CONTROL key), {\tt active} will be set to 1 and the window 
+ coordinates will be saved in {\tt r[4]} according to r[0]: rMin (horizontal window coordinate),
+ r[1]: rMax, r[2]: sMin (vertical window coordinate), r[3]: sMax.
+
+ If the pick was made on one or several objects, the closest z-buffer value is stored in
+ {\tt zbMin} and the corresponding 3--D coordinates are saved in {\tt x[3]}. The global 
+ ID number of the closest object is saved in {\tt globalID} and the window number where the 
+ picking occured is saved in {\tt winNumber}.
+
+ Furthermore, {\tt nSelect} contains
+ the number of objects that were selected and the array selection(nSelect,3) will contain 
+ information about what was selected: 
+
+\item[{\bf selection(i,0):}]  globalID of object \# i, 
+\item[{\bf selection(i,1):}]  front z-buffer value of object \# i,
+\item[{\bf selection(i,2):}]  back z-buffer value of object \# i.
+
+ Note that {\tt active} will be 1 and {\tt nSelect}=0 if the user picks outside all objects
+ in the graphics window.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getAnswerNoBlock}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getAnswerNoBlock(}%
+getAnswerNoBlock(aString \& answer, const aString \& prompt)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  This is a non-blocking version of getAnswer(), i.e., if no events are pending, it will return
+  without any answer. Note that if a command file is open, this routine works in the same way
+  as the standard (blocking) getAnswer(), except when the file ends. In that case this routine
+  will only return an answer if an event was pending before the file ended.
+
+  See the routines pushGUI and popGUI as well as the functions in the GUIState class
+  for instructions on how to setup the graphical user interface (GUI).
+
+\item[{\bf answer(output):}]  The string issued by the GUI or read from the command file.
+\item[{\bf prompt(input):}]  A prompt used by the GUI.
+\item[{\bf Return Values:}]  If no button, menu, popup, etc., was chosen
+  since last time a getAnswer routines was called, {\bf answer} will be set to "" and the 
+  return value will be 0. Otherwise, "answer" is set equal to the 
+  return string assigned by the callback function. The function return value is set equal to
+    the number of the item chosen, starting from zero. The items are the union of the
+    popup menus, pulldown menus, buttons on graphics windows, and all items on the 
+    current dialog window.
+
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{pickPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{pickPoints(}%
+pickPoints( RealArray \& x, \\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}bool plotPoints  = TRUE,\\ 
+\hspace{\GLGraphicsInterfaceIncludeArgIndent}int win\_number  = -1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Pick points in 2D or 3D by clicking the mouse.
+    In 3D one should click on an object.
+    If multiple objects are 'hits' then the closest one is chosen.
+\item[{\bf x (input/output) :}]  On input x should be dimensioned x(a:b,0:1) for 2D picks
+   or x(a:b.,0:2) for 3d picks. At most (b-a+1) points will be chosen. The actual number
+ chosen is the return value.
+\item[{\bf plotPoints (input):}]  Specifies whether the picked points should be plotted on the screen.
+\item[{\bf win\_number (input):}]  The window number in which the picking should occur. If omitted, the 
+                       currentWindow is used.
+\item[{\bf Return value:}]  the number of points chosen.
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{setPlotTheAxes}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setPlotTheAxes(}%
+setPlotTheAxes(bool newState, int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Toggle plotting of coordinate axes on or off.
+\item[{\bf newState(input):}]  Toggle on (true) or off (false).
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getPlotTheAxes}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getPlotTheAxes(}%
+getPlotTheAxes(int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  true if axes are plotted, otherwise false.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setAxesDimension}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setAxesDimension(}%
+setAxesDimension(int dim, int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Set the dimensionality of the plotted coordinate axes.
+\item[{\bf dim(input):}]  The dimensionality (1-3).
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setPlotTheLabels}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setPlotTheLabels(}%
+setPlotTheLabels(bool newState, int win\_number  = -1) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Toggle plotting of the label on the graphics window.
+\item[{\bf newState(input):}]  Toggle on (true) or off (false).
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getPlotTheLabels}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getPlotTheLabels(}%
+getPlotTheLabels(int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  true if labels are plotted, otherwise false.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setPlotTheRotationPoint}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setPlotTheRotationPoint(}%
+setPlotTheRotationPoint(bool newState, int win\_number  = -1) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Toggle plotting of the rotation point in the graphics window.
+\item[{\bf newState(input):}]  Toggle on (true) or off (false).
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getPlotTheRotationPoint}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getPlotTheRotationPoint(}%
+getPlotTheRotationPoint(int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  true if the rotation point is plotted, otherwise false.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setPlotTheColourBar}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setPlotTheColourBar(}%
+setPlotTheColourBar(bool newState, int win\_number  = -1) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Toggle plotting of the colour bar in the graphics window.
+\item[{\bf newState(input):}]  Toggle on (true) or off (false).
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getPlotTheColourBar}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getPlotTheColourBar(}%
+getPlotTheColourBar(int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  true if the colour bar is plotted, otherwise false.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setPlotTheColouredSquares}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setPlotTheColouredSquares(}%
+setPlotTheColouredSquares(bool newState, int win\_number  = -1) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Toggle plotting of the coloured squares (grid labels) in the graphics window.
+\item[{\bf newState(input):}]  Toggle on (true) or off (false).
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getPlotTheColouredSquares}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getPlotTheColouredSquares(}%
+getPlotTheColouredSquares(int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  true if the coloured squares (grid labels) are plotted, otherwise false.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setPlotTheBackgroundGrid}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{setPlotTheBackgroundGrid(}%
+setPlotTheBackgroundGrid(bool newState, int win\_number  = -1) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Toggle plotting of the background grid in the graphics window. Currently only implemented for
+ one and two dimensional plots.
+\item[{\bf newState(input):}]  Toggle on (true) or off (false).
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  None
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getPlotTheBackgroundGrid}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getPlotTheBackgroundGrid(}%
+getPlotTheBackgroundGrid(int win\_number  =-1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf win\_number(optional input):}]  window number. If absent, use the current window.
+
+\item[{\bf Return value:}]  true if the background grid is plotted, otherwise false.
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{getMenuItem}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GLGraphicsInterfaceIncludeArgIndent}{getMenuItem(}%
+getMenuItem(const aString *menu, aString \& answer, const aString \& prompt /*=nullString*/)
+}\end{flushleft}
+
+
+ OBSOLETE function used before all old calls to getMenuItem have been replaced by getAnswer()
+ OBSOLETE function used before all old calls to getMenuItem have been replaced by getAnswer()
+ OBSOLETE function used before all old calls to getMenuItem have been replaced by getAnswer()
+
+
+\begin{description}
+\item[{\bf Description:}] 
+  Setup a popup menu and wait for a reply.
+\item[{\bf menu (input):}] 
+    The {\ff menu} is
+    an array of Strings (the menu choices) with an empty aString
+    indicating the end of the menu choices. Optionally, a title can be put on top of the menu by 
+    starting the first aString with an `!'. For example,
+    \begin{verbatim}
+       GL_GraphicsInterface ps;
+       aString menu[] = { "!MenuTitle",
+                         "plot",
+                         "erase",
+                         "exit",
+                         "" };
+       aString menuItem;
+       int i=ps.getMenuItem(menu,menuItem);
+    \end{verbatim}
+
+  To create a cascading menu, begin the string with an '$>$'.
+  To end the cascade begin the string with an '$<$'.
+  To end a cascade and start a new cascade, begin the string with '$<$' followed by '$>$'.
+  Here is an example:
+    \begin{verbatim}
+        char *menu1[] = {  "!my title",
+                           "plot",
+                           ">component",
+                                        "u",
+                                        "v",
+                                        "w",
+                           "<erase",
+                           ">stuff",
+                                    "s1",
+                                    ">more stuff", 
+                                                  "more1",
+                                                  "more2", 
+                                    "<s2", 
+                          "<>apples", 
+                                    "apple1", 
+                          "<exit",
+                          NULL };  
+    \end{verbatim}
+
+\item[{\bf answer (output):}]  Return the chosen item.
+
+\item[{\bf prompt (input):}]  display the optional prompt message
+\item[{\bf Return Values:}]  On return "answer" is set equal to the 
+    menu item chosen. The function return value is set equal to
+    the number of the item chosen, starting from zero.
+    Thus, for example, in the above menu if the user picked "erase"
+    the return value would be 2, if the user picked "plot" the
+    return value would be 1, since the title also counts.
+\item[{\bf Author:}]  AP
+
+\end{description}

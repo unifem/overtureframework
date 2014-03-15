@@ -1,0 +1,12 @@
+Cgins: Falling drops (cylinders) in a channel
+
+Generate grids using 
+ogen -noplot ${Overture}/sampleGrids/dropsGrid -interp=e -order=2 -factor=4 -ml=2 -saveWeights=0
+ogen -noplot ${Overture}/sampleGrids/dropsGrid -interp=e -order=2 -factor=8 -ml=3 -saveWeights=0
+
+Run cgins using: 
+
+cgins -noplot drops -g=dropsGride4.order2.hdf -nu=.01 -tp=.1 -tf=10. -inflowVelocity=.75 -forceLimit=40. -solver=mg -psolver=mg -show=drops4.show -go=go >! drops4.out 
+
+Plot results with 
+  plotStuff plotDrops -show=drops4.show

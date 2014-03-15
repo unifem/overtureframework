@@ -1,0 +1,314 @@
+
+\subsection{MappedGridFunction}\index{MappedGridFunction}
+
+This is a grid function that can be used with a MappedGrid.
+The main purpose of the {\ff MappedGridFunction} is to act
+like a ``smart'' A++ array. (Not that A++ arrays are not already
+pretty smart).
+This class is derived from an A++ array so all A++ operations
+are defined.
+Since it is associated (has a pointer to) a {\ff MappedGrid},
+this grid function knows how to dimension itself and how
+to update periodic edges when the grid is periodic.
+It also knows how to update itself when the MappedGrid is
+changed (perhaps the number of points on the grid is increased).
+Here the update only involves redimensioning; not assigning
+values to the new grid function.
+
+The types of MappedGridFunctions are 
+{\ff floatMappedGridFunction},
+{\ff doubleMappedGridFunction},
+ and {\ff int\-Mapped\-Grid\-Function}.
+
+This is a reference counted class so that there is no need
+to keep a pointer to a grid function. Use the {\ff reference}
+member function to make one grid function reference another.
+
+
+\begin{figure} \label{fig:MappedGridFunction}
+  \begin{center}
+  \includegraphics{\figures /mappedGridFunction.idraw.ps}
+  \caption{Class diagram for a MappedGridFunction}
+  \end{center}
+\end{figure}
+
+A grid function takes some of it's dimensions from the MappedGrid that
+it is associated with. The index positions in a MappedGridFunction
+corresponding to the dimensions
+of the grid are called the {\bf coordinate} positions. A grid function 
+can also have one or more {\bf component} positions which indicate
+how many values are stored at each grid point.
+Consider an example of a MappedGrid in 2D with dimensions {\ff(-1:11,-1:11)}
+(these values are stored in the MappedGrid in the {\ff dimension} array).
+A MappedGridFunction defined on this MappedGrid could have dimensions
+{\ff u(-1:11,-1:11,0:2)}. This grid function {\ff u} has 3 components {\ff (0:2)},
+and 
+{\ff u.positionOfCoordinate(0)=0}, {\ff u.positionOfCoordinate(1)=1} and
+{\ff u.positionOfComponent(0)=2}. 
+A MappedGridFunction could also be created as {\ff u(0:1,-1:11,-1:11)} in
+which case
+{\ff u.positionOfCoordinate(0)=1}, {\ff u.positionOfCoordinate(1)=2} and
+{\ff u.positionOfComponent(0)=0}.
+
+% ===========================================================================
+In the description of the member functions that follow, {\ff MappedGridFunction}
+will stand for one of {\ff floatMappedGridFunction}, {\ff doubleMappedGridFunction},
+or {\ff intMappedGridFunction}. In addition, any references to {\ff double} will change to
+{\ff float} or {\ff int}.
+
+\input MappedGridFunctionInclude.tex
+
+
+
+In the following, ``{\ff type}'' will mean one of {\ff float}, {\ff double} or {\ff int}.
+The most commonly used constructor takes a {\ff MappedGrid} and an optional 
+sequence of Range's (or int's).
+The optional {\ff Range} arguments indicate the positions of the 
+coordinates and the positions and dimensions of any components.
+\begin{tabbing}
+{\ff typeMappedGridFunction(}\={\ff int m=3,xxxxxxxxxxxxxxxxxxxxxxxxxxx}\= \kill
+{\ff typeMappedGridFunction()}\>\> default constructor \\
+{\ff typeMappedGridFunction(MappedGrid \& mappedGrid, }\> \\
+{\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R0=nullRange,}\> \>this arg can be an int, or Range \\
+{\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R1=nullRange,}\> \\
+{\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R2=nullRange,}\> \\
+{\ff ~~~~~~~~~~~~~~~~~~~~~~~  ...         }\> \\
+{\ff ~~~~~~~~~~~~~~~~~~~~~~~Range \& R7=nullRange, )  }\> \\
+{\ff typeMappedGridFunction(MappedGrid \& mappedGrid, }\> \> Old style declaration, THIS WILL GO AWAY\\
+{\ff ~~~~~~~~~~~~~~~~~~~~~~~int numberOfComponents=1,  }\> \\
+{\ff ~~~~~~~~~~~~~~~~~~~~~~~int positionOfComponent=default )  }\> \\
+\end{tabbing}
+Each grid function is dimensioned\index{grid function!dimension} according to the dimensions found
+with the {\ff MappedGrid}, using the {\ff dimension} values.
+Grid functions can have up to 8 dimensions, the index positions
+not used by the coordinate dimensions can be used to store
+different components. For example, a {\em vector} grid
+functions would use 1 index position for components while a {\em matrix} grid functions would
+use two index positions for components. 
+Here are some examples
+{\footnotesize\begin{verbatim}
+
+        //  R1 = range of first dimension of the grid array
+        //  R2 = range of second dimension of the grid array
+        //  R3 = range of third dimension of the grid array 
+
+        MappedGrid mg(...);
+
+        Range R1(mg.dimension(Start,axis1),mg.dimension(End,axis1));
+        Range R2(mg.dimension(Start,axis2),mg.dimension(End,axis2));
+        Range R3(mg.dimension(Start,axis3),mg.dimension(End,axis3));
+
+        Range all;    // null Range is used to specify where the coordinates are
+
+        MappedGridFunction u(mg);                           //  --> u(R1,R2,R3);
+
+        MappedGridFunction u(mg,all,all,all,1);             //  --> u(n,R1,R2,R3,0:1);
+        MappedGridFunction u(mg,all,all,Range(1,1));        //  --> u(n,R1,R2,1:1,R3);
+
+        MappedGridFunction u(mg,2,all);                     //  --> u(n,0:2,R1,R2,R3);
+        MappedGridFunction u(mg,Range(0,2),all,all,all);    //  --> u(n,0:2,R1,R2,R3);
+        MappedGridFunction u(mg,all,Range(3,3),all,all);    //  --> u(n,R1,3:3,R2,R3);
+
+\end{verbatim}
+}
+
+
+\subsection{Examples}\index{MappedGridFunction!examples}
+
+In this example we show how to define a grid function using
+a {\ff MappedGrid}, how to assign the grid function with
+A++ operations, how to reference one grid function to
+another and how to set and get names for the grid function
+and its components.
+{\footnotesize\begin{verbatim}
+  ...
+   MappedGrid cg(...);  // here is a mapped grid
+   floatMappedGridFunction u(cg),v;
+   u=5.;
+   Index I(0,10);
+   u(I,I)=3.;
+   v.reference(u);   // v is referenced to u
+   v=7.;             // changes u as well
+   v.breakReference();  // v is no longer referenced to u
+   v=10.;            // v changed but not u
+
+   // Here is how to dimension a grid function after it has been declared:
+   floatMappedGridFunction w;
+   Range all;
+   int numberOfComponents=2;
+   w.updateToMatchGrid( cg,all,all,all,numberOfComponents );  
+   ...
+   // give names to the grid function and components
+   w.setName("w");      // name grid function
+   w.setName("w.0",0);  // name component 0
+   w.setName("w.1",1);  // name component 1
+   cout << w.getName() << "," << w.getName(0) << "," << w.getName(1) << endl;
+}
+\end{verbatim}
+}
+
+
+
+
+
+\subsection{Grid functions defined on boundaries}\index{grid function!defined on boundaries}
+
+Grid functions can be created so that they are defined on the boundary of a grid, or on 
+the boundary and some number of neighbouring grid lines. 
+For example, you may want to store the normal vectors on a given boundary of a grid.
+
+To specify which boundary a grid function lives on one must create or update the grid
+function with a Range object that was created in a special way. This special Range 
+object is used in place of an ``all'' Range object.
+Grid functions defined in this way can be correctly updated when the number of 
+points on the grid changes -- they will still live on the appropriate boundary.
+
+Here are some examples
+(file {\ff \gf/edge.C})
+{\footnotesize
+\listinginput[1]{1}{\gf/edge.C}
+}
+
+
+
+\subsection{Grid Functions that hold coefficient matrices}\index{grid function!coefficient matrix}
+
+
+
+A MappedGridFunction can be used to hold the coefficients for a sparse matrix.
+
+{\bf ********** NOTE: This section is purely hypothetical. I am recording
+some possible ways to interface to the coefficient matrices *****************}
+
+Here is a standard way to store the coefficients:
+
+{\footnotesize
+\begin{verbatim}
+
+   ****** this does not work yet *****
+
+   MappedGrid mg(...);
+   numberOfStencilCoefficients=pow(3,mg.numberOfDimensions);   // 9 or 27 points
+   realMappedGridFunction coeff(numberOfStencilCoefficients,all,all,all);
+
+   coeff.setIsACoefficientMatrix(standardStencil);             // 
+
+   ... fill in coeff matrix here ....
+
+   Index I1,I2,I3;
+   getIndex(mg.gridIndexRange,I1,I2,I3);
+   realMappedGridFunction u(mg),residual(mg);
+
+   intArray & so = coeff.stencilOffset;    // these values indicate the offsets
+   // 
+   // Here is how the residual can be computed
+   //
+   //     residual(I1,I2,I3) = SUM coeff(m,I1,I2,I3) * u(I1+so(0,m),I2+so(1,m),I3+so(2,m))
+   //                          m=0 
+   //
+   residual(I1,I2,I3) = coeff(0,I1,I2,I3)*u(I1+so(0,0),I2+so(1,0),I3+so(2,0))
+                       +coeff(1,I1,I2,I3)*u(I1+so(0,1),I2+so(1,1),I3+so(2,1))
+                       +coeff(2,I1,I2,I3)*u(I1+so(0,2),I2+so(1,2),I3+so(2,2))
+                       +coeff(3,I1,I2,I3)*u(I1+so(0,3),I2+so(1,3),I3+so(2,3))
+                       +coeff(4,I1,I2,I3)*u(I1+so(0,4),I2+so(1,4),I3+so(2,4))
+                       +coeff(5,I1,I2,I3)*u(I1+so(0,5),I2+so(1,5),I3+so(2,5))
+                           .... etc ....
+
+
+    // 
+    //  Here is another way which assumes it is a standard 3x3x3 stencil
+    //
+    intArray value(Range(-1,1),Range(-1,1),Range(-1,1));
+    for( int m3=-1; m3<=1; m3++ )
+    for( int m2=-1; m2<=1; m2++ )
+    for( int m1=-1; m1<=1; m1++ )
+    {
+      value(m1,m2,m3)=coeff.coefficientPosition(m1,m2,m3);
+      assert( value(m1,m2,m3)>=0 );   // check for any errors in computing the coefficient position
+      
+    }
+
+    residual(I1,I2,I3) = coeff(value(-1,-1,-1),I1,I2,I3)*u(I1-1,I2-1,I3-1)
+                        +coeff(value( 0,-1,-1),I1,I2,I3)*u(I1  ,I2-1,I3-1)
+                        +coeff(value(+1,-1,-1),I1,I2,I3)*u(I1+1,I2-1,I3-1)
+                        +coeff(value(-1, 0,-1),I1,I2,I3)*u(I1-1,I2  ,I3-1)
+                        +coeff(value( 0, 0,-1),I1,I2,I3)*u(I1  ,I2  ,I3-1)
+                        +coeff(value(+1, 0,-1),I1,I2,I3)*u(I1+1,I2  ,I3-1)
+                             ... etc ...
+
+\end{verbatim}
+}
+Here is how we handle systems of equations
+{\footnotesize
+\begin{verbatim}
+
+
+   ****** this does not work yet *****
+
+   MappedGrid mg(...);
+   numberOfComponents=2;
+   numberOfStencilCoefficients=pow(3,mg.numberOfDimensions);   // 9 or 27 points
+
+   realMappedGridFunction coeff(numberOfComponents*numberOfStencilCoefficients,all,all,all);
+
+   coeff.setIsACoefficientMatrix(standardStencil,numberOfComponents);             // 
+
+   ... fill in coeff matrix here ....
+
+   Index I1,I2,I3;
+   getIndex(mg.gridIndexRange,I1,I2,I3);
+   realMappedGridFunction u(mg,all,all,all,2),residual(mg,all,all,all,2);
+
+   intArray & so = coeff.stencilOffset;    // these values indicate the offsets
+   intArray & c  = coeff.stencilComponent; // these values indicate the component
+   // 
+   // Here is how the residual can be computed
+   //
+   //     residual(I1,I2,I3) = SUM coeff(m,I1,I2,I3) * u(I1+so(0,m),I2+so(1,m),I3+so(2,m))
+   //                          m=0 
+   //
+   residual(I1,I2,I3) = coeff(0,I1,I2,I3)*u(I1+so(0,0),I2+so(1,0),I3+so(2,0),c(0))
+                       +coeff(1,I1,I2,I3)*u(I1+so(0,1),I2+so(1,1),I3+so(2,1),c(1))
+                       +coeff(2,I1,I2,I3)*u(I1+so(0,2),I2+so(1,2),I3+so(2,2),c(2))
+                       +coeff(3,I1,I2,I3)*u(I1+so(0,3),I2+so(1,3),I3+so(2,3),c(3))
+                       +coeff(4,I1,I2,I3)*u(I1+so(0,4),I2+so(1,4),I3+so(2,4),c(4))
+                       +coeff(5,I1,I2,I3)*u(I1+so(0,5),I2+so(1,5),I3+so(2,5),c(5))
+                           .... etc ....
+    // 
+    //  Here is another way which assumes it is a standard 3x3x3 stencil
+    //
+    intArray value(Range(-1,1),Range(-1,1),Range(-1,1),numberOfComponents);
+    for( int n=0; n<numberOfComponents; n++)
+    for( int m3=-1; m3<=1; m3++ )
+    for( int m2=-1; m2<=1; m2++ )
+    for( int m1=-1; m1<=1; m1++ )
+    {
+      value(m1,m2,m3,n)=coeff.coefficientPosition(m1,m2,m3,n);
+      assert( value(m1,m2,m3,n)>=0 );   // check for any errors in computing the coefficient position
+      
+    }
+    residual(I1,I2,I3) = coeff(value(-1,-1,-1,0),I1,I2,I3)*u(I1-1,I2-1,I3-1,0)  // coeff's for component 0
+                        +coeff(value( 0,-1,-1,0),I1,I2,I3)*u(I1  ,I2-1,I3-1,0)
+                        +coeff(value(+1,-1,-1,0),I1,I2,I3)*u(I1+1,I2-1,I3-1,0)
+                             ... etc ...
+                        +coeff(value(-1,-1,-1,1),I1,I2,I3)*u(I1-1,I2-1,I3-1,1)  // coeff's for component 1
+                        +coeff(value( 0,-1,-1,1),I1,I2,I3)*u(I1  ,I2-1,I3-1,1)
+                        +coeff(value(+1,-1,-1,1),I1,I2,I3)*u(I1+1,I2-1,I3-1,1)
+
+\end{verbatim}
+}
+
+Other possible ways to store the coefficients
+{\footnotesize
+\begin{verbatim}
+
+
+   ****** this does not work yet *****
+
+   coeff.setIsACoefficientMatrix(fiveOrSevenPointStencil);   // 5 point star in 2d, 7 point star in 3D
+   
+  
+   coeff.setIsACoefficientMatrix(generalStencil);   // user defined stencil
+
+\end{verbatim}
+}

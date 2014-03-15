@@ -1,0 +1,286 @@
+%=======================================================================================================
+% Ogmg Multigrid solver : Convergence results
+%=======================================================================================================
+\documentclass{article}
+% \usepackage[bookmarks=true]{hyperref} 
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \documentclass[xcolor=rgb,svgnames,dvipsnames,11pt]{article}
+% \usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+
+\input homeHenshaw
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+% \usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+% \input{pstricks}\input{pst-node}
+\usepackage{tikz}
+\input trimFig.tex
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\newcommand{\red}{\color{red}}
+\newcommand{\green}{\color{green}}
+
+
+% ============================================================================================================================
+% ============================================================================================================================
+\begin{document}
+
+% -----definitions-----
+
+\newcommand{\ogen}{\homeHenshaw/res/ogen}
+\newcommand{\figures}{\homeHenshaw/Overture/docFigures}
+\newcommand{\automg}{\homeHenshaw/papers/automg}
+% \newcommand{\automg}{../automg}
+\newcommand{\ogmgDir}{\homeHenshaw/Overture/ogmg/doc}
+\newcommand{\ogmgDocDir}{\homeHenshaw/Overture/ogmg/doc}
+% \newcommand{\ogmgDir}{.}
+
+\newcommand{\Ogen}{{Ogen}}
+\newcommand{\Overture}{{Overture}}
+\newcommand{\Ogmg}{{Ogmg}}
+
+% \newcommand{\figWidth}{.495\linewidth}
+\newcommand{\tablefontsize}{\footnotesize}
+\newcommand{\clipfig}{}
+
+\input wdhDefinitions.tex
+
+
+%---------- Title Page for a Research Report----------------------------
+\vglue 5\baselineskip
+\begin{flushleft}
+{\Large
+ Convergence Results for Ogmg: A Multigrid Solver for Overlapping Grids \\
+}
+\vspace{3\baselineskip}
+William D. Henshaw   \\                    
+\vspace{2\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{2\baselineskip}
+\today\\
+\vspace{\baselineskip}
+UCRL-MA-???????
+
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+This document contains convergence and performance results for~\Ogmg for a variety
+of different grids.
+
+\end{flushleft}
+
+\clearpage
+\tableofcontents
+% \listoffigures
+
+%---------- End of title Page for a Research Report
+
+
+\clearpage
+\section{Introduction}\index{multigrid}
+
+\Ogmg~ is a multigrid solver for use with \Overture~\cite{overset96},\cite{OGES}.
+\Ogmg~ can solve scalar elliptic problems
+on overlapping grids. This document contains convergence and performance results for~\Ogmg for a variety
+of different grids.
+
+
+\input numericalResults
+
+
+
+\clearpage
+\section{References}
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+% \clearpage
+% \section{Ogmg Function Descriptions}
+
+% \input OgmgInclude
+
+
+
+\printindex
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% ****************************** OLD *******************************************************************************
+% ****************************** OLD *******************************************************************************
+% ****************************** OLD *******************************************************************************
+% ****************************** OLD *******************************************************************************
+% ****************************** OLD *******************************************************************************
+% ****************************** OLD *******************************************************************************
+
+
+%=======================================================================================================
+% Ogmg results
+%=======================================================================================================
+\documentclass{article}
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height
+% \setlength{\textheight}{7.5in}    % page height for xdvi
+% \renewcommand{\baselinestretch}{1.5}    % "double" spaced
+
+% Ogmg: Multigrid solver
+\usepackage{amsmath}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+\usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+\begin{document}
+
+% -----definitions-----
+
+\newcommand{\ogen}{/home/henshaw/res/ogen}
+\newcommand{\automg}{/home/henshaw/papers/automg}
+\newcommand{\figures}{../docFigures}
+
+\input wdhDefinitions.tex
+
+
+%---------- Title Page for a Research Report----------------------------
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+Ogmg: A Multigrid Solver for Overture \\
+Results as of \today \\
+}
+\vspace{3\baselineskip}
+William D. Henshaw                       
+\vspace{2\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+\vspace{2\baselineskip}
+\today
+\vspace{\baselineskip}
+UCRL-MA-134446
+
+
+\vspace{4\baselineskip}
+
+This file contains regression tests for Ogmg. 
+\end{flushleft}
+
+\vfill\eject
+\tableofcontents
+% \listoffigures
+
+
+  
+
+\input check/sq20.info
+\input check/sq20m.info
+\input check/sq128.info
+
+\input check/annulus.info
+\input check/annulus3.info
+
+\input check/sis.info
+
+\input check/cic.info
+\input check/cicm.info
+
+\input check/valve.info
+\begin{figure}
+  \begin{center}
+   \epsfig{file=\automg/valve0.bw.ps,width=.45\linewidth} 
+   \epsfig{file=\automg/valve1.bw.ps,width=.45\linewidth} \\
+   \epsfig{file=\automg/valve2.bw.ps,width=.45\linewidth}
+  \caption{Multigrid levels for valve}  \label{fig:valve}
+  \end{center}
+\end{figure}
+
+\input check/naca0012.info
+\begin{figure}
+  \begin{center}
+   \epsfig{file=\automg/naca0.bw.ps,width=.45\linewidth}
+   \epsfig{file=\automg/naca1.bw.ps,width=.45\linewidth} \\
+   \epsfig{file=\automg/naca2.bw.ps,width=.45\linewidth}
+   \epsfig{file=\automg/naca3.bw.ps,width=.45\linewidth}
+  \caption{Multigrid levels for naca0012}  \label{fig:naca0012}
+  \end{center}
+\end{figure}
+  
+
+\input check/box20.info
+
+\input check/sib.info
+\input check/ellipsoid.info
+
+\end{document}

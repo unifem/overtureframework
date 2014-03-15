@@ -1,0 +1,1201 @@
+// This file automatically generated from dpmInverse.bC with bpp.
+#include "DataPointMapping.h"
+#include "MappingInformation.h"
+#include "arrayGetIndex.h"
+#include <string.h>
+#include "conversion.h"
+#include "display.h"
+#include "Inverse.h"
+#include "ParallelUtility.h"
+
+// *************************************
+//  tri-linear interpolant: 
+//    INT_2D means the domain dimension is 2
+// *************************************
+#define INT_1D_ORDER_2(dr,x111,x211)  ( (1.-dr)*(x111)+dr*(x211) )
+
+#define INT_1D_ORDER_2_R(dr,x111,x211)  ( delta[0]*( (x211)-(x111) ) )
+
+#define INT_2D_ORDER_2(dr,ds,x111,x211,x121,x221)  ( (1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221)) )
+
+#define INT_2D_ORDER_2_R(dr,ds,x111,x211,x121,x221)  ( ((1.-ds)*( (x211)-(x111) ) +ds*( (x221)-(x121) ))*delta[0] )
+
+#define INT_2D_ORDER_2_S(dr,ds,x111,x211,x121,x221)  ( ((1.-dr)*( (x121)-(x111) ) +dr*( (x221)-(x211) ))*delta[1] )
+
+#define INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  (                                                    (1.-dt)*((1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221))) +   dt *((1.-ds)*((1.-dr)*(x112)+dr*(x212))+ds*((1.-dr)*(x122)+dr*(x222))) )
+
+#define INT_3D_ORDER_2_R(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  (                                                    ( (1.-dt)*((1.-ds)*((x211)-(x111))+ds*((x221)-(x121))) +       dt *((1.-ds)*((x212)-(x112))+ds*((x222)-(x122))) )*delta[0])
+
+#define INT_3D_ORDER_2_S(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  (  ( (1.-dt)*((1.-dr)*((x121)-(x111))+dr*((x221)-(x211))) +       dt *((1.-dr)*((x122)-(x112))+dr*((x222)-(x212))) )*delta[1] )
+
+#define INT_3D_ORDER_2_T(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  (                                                    ( (1.-dr)*((1.-ds)*((x112)-(x111))+ds*((x122)-(x121))) +        dr *((1.-ds)*((x212)-(x211))+ds*((x222)-(x221))) )*delta[2] )
+
+
+// ******************
+// cubic interpolant:
+// ******************
+#define q03(z)  (-oneSixth  *((z)-1.)*((z)-2.)*((z)-3.))
+#define q13(z)  ( .5*(z)       *((z)-2.)*((z)-3.))
+#define q23(z)  (-.5*(z)*((z)-1.)       *((z)-3.))
+#define q33(z)  ( oneSixth*(z)*((z)-1.)*((z)-2.))
+#define q03d(z) ( -oneSixth*(11.+(z)*(-12.+3.*(z))))
+#define q13d(z) ( 3.+(z)*(-5.+1.5*(z)))
+#define q23d(z) ( -1.5+(z)*(4.-1.5*(z)))
+#define q33d(z) (oneSixth*(2.+(z)*(-6.+3.*(z))))
+
+#define q1x(i1,i2,i3,axis)  (  a0* XY(i1  ,i2  ,i3  ,axis) +a1* XY(i1+1,i2  ,i3  ,axis) +a2* XY(i1+2,i2  ,i3  ,axis) +a3* XY(i1+3,i2  ,i3  ,axis) )
+#define q2x(i1,i2,i3,axis)  (  b0*q1x(i1  ,i2  ,i3  ,axis) +b1*q1x(i1  ,i2+1,i3  ,axis) +b2*q1x(i1  ,i2+2,i3  ,axis) +b3*q1x(i1  ,i2+3,i3  ,axis) )
+#define q3x(i1,i2,i3,axis)  (  c0*q2x(i1  ,i2  ,i3  ,axis) +c1*q2x(i1  ,i2  ,i3+1,axis) +c2*q2x(i1  ,i2  ,i3+2,axis) +c3*q2x(i1  ,i2  ,i3+3,axis) )
+#define q1xr(i1,i2,i3,axis)   (    a0r*XY(i1  ,i2  ,i3  ,axis)   +a1r*XY(i1+1,i2  ,i3  ,axis)   +a2r*XY(i1+2,i2  ,i3  ,axis)   +a3r*XY(i1+3,i2  ,i3  ,axis) )
+#define q2xr(i1,i2,i3,axis)   (   b0*q1xr(i1  ,i2  ,i3  ,axis)   +b1*q1xr(i1  ,i2+1,i3  ,axis)   +b2*q1xr(i1  ,i2+2,i3  ,axis)   +b3*q1xr(i1  ,i2+3,i3  ,axis) )
+#define q3xr(i1,i2,i3,axis)   (  c0*q2xr(i1  ,i2  ,i3  ,axis)   +c1*q2xr(i1  ,i2  ,i3+1,axis)   +c2*q2xr(i1  ,i2  ,i3+2,axis)   +c3*q2xr(i1  ,i2  ,i3+3,axis)  ) 
+
+#define q1xs(i1,i2,i3,axis)   (    a0*  XY(i1  ,i2  ,i3  ,axis)   +a1*  XY(i1+1,i2  ,i3  ,axis)   +a2*  XY(i1+2,i2  ,i3  ,axis)   +a3*  XY(i1+3,i2  ,i3  ,axis)  ) 
+#define q2xs(i1,i2,i3,axis)   (  b0r*q1xs(i1  ,i2  ,i3  ,axis)   +b1r*q1xs(i1  ,i2+1,i3  ,axis)   +b2r*q1xs(i1  ,i2+2,i3  ,axis)   +b3r*q1xs(i1  ,i2+3,i3  ,axis))   
+#define q3xs(i1,i2,i3,axis)   (  c0*q2xs(i1  ,i2  ,i3  ,axis)   +c1*q2xs(i1  ,i2  ,i3+1,axis)   +c2*q2xs(i1  ,i2  ,i3+2,axis)   +c3*q2xs(i1  ,i2  ,i3+3,axis) )  
+
+#define q1xt(i1,i2,i3,axis)   (  a0*  XY(i1  ,i2  ,i3  ,axis)   +a1*  XY(i1+1,i2  ,i3  ,axis)   +a2*  XY(i1+2,i2  ,i3  ,axis)   +a3*  XY(i1+3,i2  ,i3  ,axis) )  
+#define q2xt(i1,i2,i3,axis)   (   b0*q1xt(i1  ,i2  ,i3  ,axis)   +b1*q1xt(i1  ,i2+1,i3  ,axis)   +b2*q1xt(i1  ,i2+2,i3  ,axis)   +b3*q1xt(i1  ,i2+3,i3  ,axis) )  
+#define q3xt(i1,i2,i3,axis)   (  c0r*q2xt(i1  ,i2  ,i3  ,axis)   +c1r*q2xt(i1  ,i2  ,i3+1,axis)   +c2r*q2xt(i1  ,i2  ,i3+2,axis)   +c3r*q2xt(i1  ,i2  ,i3+3,axis) )  
+
+
+
+// ===================================================================
+//  ORDER : 2,4 : order of interpolation
+// ===================================================================
+
+
+
+
+
+
+
+
+
+
+static real totalTime=0.;
+
+
+void DataPointMapping::
+basicInverseS( const RealArray & x, RealArray & r, RealArray & rx, MappingParameters & params )
+// ============================================================================================
+// /Description:
+//    Define a fast inverse **** optimized C version ****
+//
+// Notes:
+//   delta[axis]=1/dr[axis]
+//   ia[axis] : index  coordinates of the lower left corner of the stencil 
+//   rr[axis] : coordinates of the lower left corner of the stencil 
+//   drr[axis] : this actually holds the current guess at the solution,
+//              rc = rr + drr/delta
+// ===========================================================================================
+{
+
+    real time0=getCPU();
+
+    if( false )
+    {
+        printF("Entering DataPointMapping::basicInverseS\n");
+    }
+
+#ifndef USE_PPP
+  // *new way* -- the initial guess was already computed in inverseMapS and this function is being called
+  //  from the ExactLocalInverse::inverse
+
+// old way: 
+  // first get the initial guess 
+//   MappingWorkSpace workSpace; 
+//   setBasicInverseOption(canDoNothing);
+//   approximateGlobalInverse->inverse( x,r,rx,workSpace,params ); // *watch out* this calls map->getIndex
+//   setBasicInverseOption(canInvert);
+//   RealArray & r0 = workSpace.r0;
+
+      RealArray & r0 = r;
+
+#else
+  // in parallel the initial guess was already computed in inverseMapS
+    RealArray & r0 = r;
+#endif
+
+//  Mapping::debug=3;
+    
+    if( Mapping::debug >0 )
+        openDebugFiles();
+
+    Index I = getIndex( x,r,rx,base,bound,computeMap,computeMapDerivative );
+
+    real time1=getCPU();
+
+    Range R(0,rangeDimension-1), D(0,domainDimension-1);
+
+    real rr[3],xx[3],dr[3],drr[3],dx[3],rc[3]={0.,0.,0.};
+    int ia[3],iap[3];
+    real x111[3],x211[3],x121[3], x221[3], x112[3], x212[3], x122[3], x222[3];
+    real xr[3][3];
+    real det;
+
+    const real oneSixth=1./6.;
+
+    int axis;
+    const int i3=xy.getBase(2);
+    
+    const real convergenceTolerance=.1*SQRT(REAL_EPSILON*100.); // ***************
+  // const real convergenceTolerance=100.*REAL_EPSILON;   // ***************
+    real maximumCorrection=1.e9;
+
+#ifdef USE_PPP
+    realSerialArray xyLocal; getLocalArrayWithGhostBoundaries(xy,xyLocal);
+#else
+    realSerialArray & xyLocal=xy;
+#endif
+
+    real *&xyp = xyLocal.Array_Descriptor.Array_View_Pointer3;
+    const int xyDim0=xyLocal.getRawDataSize(0);
+    const int xyDim1=xyLocal.getRawDataSize(1);
+    const int xyDim2=xyLocal.getRawDataSize(2);
+#define XY(i0,i1,i2,i3) xyp[i0+xyDim0*(i1+xyDim1*(i2+xyDim2*(i3)))]
+
+    real *&rp = r.Array_Descriptor.Array_View_Pointer1;
+    const int rDim0=r.getRawDataSize(0);
+#define R(i0,i1) rp[i0+rDim0*(i1)]
+
+    real *&r0p = r0.Array_Descriptor.Array_View_Pointer1;
+    const int r0Dim0=r0.getRawDataSize(0);
+#define R0(i0,i1) r0p[i0+r0Dim0*(i1)]
+
+    const real *xp = x.Array_Descriptor.Array_View_Pointer1;
+    const int xDim0=x.getRawDataSize(0);
+#define X(i0,i1) xp[i0+xDim0*(i1)]
+
+    real *&rxp = rx.Array_Descriptor.Array_View_Pointer2;
+    const int rxDim0=rx.getRawDataSize(0);
+    const int rxDim1=rx.getRawDataSize(1);
+#define RX(i0,i1,i2) rxp[i0+rxDim0*(i1+rxDim1*(i2))]
+
+    int *&gridIndexRangep = gridIndexRange.Array_Descriptor.Array_View_Pointer1;
+    const int gridIndexRangeDim0=gridIndexRange.getRawDataSize(0);
+#define GRIDINDEXRANGE(i0,i1) gridIndexRangep[i0+gridIndexRangeDim0*(i1)]
+
+    bool periodic[3]={false,false,false}; //  true if periodic 
+    int pdim[6]={0,0,0,0,0,0}; // 
+    #define dim(side,axis) pdim[(side)+2*(axis)]
+    for( axis=0; axis<domainDimension; axis++ )
+    {
+        
+
+        dim(0,axis)=max(xyLocal.getBase(axis),dimension(0,axis));  // we don't want parallel ghost points on "ends" 
+        dim(1,axis)=min(xyLocal.getBound(axis),dimension(1,axis));
+    // periodic -- in parallel : only true if local array is the full extent  
+    // *wdh* 2013/08/02 -- periodic wrap for BOTH function and derivative periodic --
+        #ifdef USE_PPP
+            periodic[axis] = isPeriodic[axis]!=notPeriodic && 
+                                              (xyLocal.getBase(axis)+xy.getGhostBoundaryWidth(axis))==xy.getBase(axis) && 
+                                              (xyLocal.getBound(axis)-xy.getGhostBoundaryWidth(axis))==xy.getBound(axis);
+        #else
+            periodic[axis] = isPeriodic[axis]!=notPeriodic;
+        #endif 
+    // printF("dpmInverse:basicInverseS... periodic[%i]=%i\n",axis,periodic[axis]);
+
+//     #ifdef USE_PPP
+//       periodic[axis] = isPeriodic[axis]==functionPeriodic && 
+//                        (xyLocal.getBase(axis)+xy.getGhostBoundaryWidth(axis))==xy.getBase(axis) && 
+//                        (xyLocal.getBound(axis)-xy.getGhostBoundaryWidth(axis))==xy.getBound(axis);
+//     #else
+//       periodic[axis] = isPeriodic[axis]==functionPeriodic;
+//     #endif 
+//     printF("DPM:inverseMap: xy.getGhostBoundaryWidth(%i)=%i periodic=%i dim=[%i,%i]\n",
+//           axis,xy.getGhostBoundaryWidth(axis),(int)periodic[axis],dim(0,axis),dim(1,axis));
+    }
+
+//   int dim[6]={0,0,0,0,0,0};
+// #define DIMENSION(side,axis) dim[(side)+2*(axis)] 
+
+    bool isSingular=false;
+    bool singularp[6]={0,0,0,0,0,0};
+#define singular(side,axis) singularp[(side)+2*(axis)]
+  // restrict the valid cells on singular sides so that we do not
+  // hit the singular cells.
+    for( axis=0; axis<domainDimension; axis++ )
+    {
+        for( int side=0; side<=1; side++ )
+        {
+            isSingular = getTypeOfCoordinateSingularity(side,axis)==Mapping::polarSingularity;
+            #ifdef USE_PPP
+            if( side==0 ) 
+                isSingular = isSingular && (xyLocal.getBase(axis)+xy.getGhostBoundaryWidth(axis))==xy.getBase(axis);
+            else
+                isSingular = isSingular && (xyLocal.getBound(axis)-xy.getGhostBoundaryWidth(axis))==xy.getBound(axis);
+            #endif
+
+            if( isSingular )
+            {
+                singular(side,axis)=true;
+                dim(side,axis)=GRIDINDEXRANGE(side,axis)+1-2*side;
+            }
+            else    
+            {
+                singular(side,axis)=false;
+            }
+        }
+    }
+    
+
+    const bool useRobustInverse=approximateGlobalInverse->usingRobustInverse();
+
+    const int settledDownIteration= !useRobustInverse ? 3 : 20;
+    const int maximumNumberOfIterations=!useRobustInverse ? 8 : 25; // 990707 =4;
+    const int iterationToStartDamping=5;
+    
+    const real eps=REAL_EPSILON*100.;  // relative error to 1.
+    const real detMin = 1000.*REAL_MIN;
+    
+  // only worry about the convergence of points on the interval [-.2,1.2]
+    const real divBound=.9; // .2; //  .9; // .2
+    const real divergence=.5+divBound; // .5+.4;
+    real drMax,damping;
+    
+    if( orderOfInterpolation==2 )
+    {
+    // invertPoints(2);
+            for( int i=base; i<=bound; i++ )
+            {
+                for( axis=0; axis<domainDimension; axis++ )
+                    rr[axis]=R0(i,axis);
+                if( rr[0]==bogus )
+                {
+                    if( computeMap )
+                        for( int d=0; d<domainDimension; d++ )
+                        	  R(i,d)=bogus;
+                    if(  computeMapDerivative )
+              	for( int r=0; r<rangeDimension; r++ )
+                	  for( int d=0; d<domainDimension; d++ )
+                  	    RX(i,d,r)=bogus;
+                    continue;
+                }
+                for( axis=0; axis<rangeDimension; axis++ )
+                    xx[axis]=X(i,axis);   
+        // first ia=closest cell centre (or closest point less than)
+        // 4th-order:
+        //                    ia
+        //            ---+----+-X--+----+---
+        //               0    1    2    3
+                for( axis=0; axis<domainDimension; axis++ )
+                {
+                    ia[axis]=int( floor(delta[axis]*rr[axis]+GRIDINDEXRANGE(Start,axis)) );
+          //           #If "2" == "2" 
+                        ia[axis]=max(dim(Start,axis),min(dim(End,axis)-1,ia[axis])); 
+                }
+                if( debug & 2 ) 
+                    fprintf(pDebugFile,"dpmInverse: i=%i initial guess is r=(%8.2e,%8.2e,%8.2e) \n",i,rr[0],rr[1],rr[2]);
+        // rr : holds the r coordinates of the lower left corner of the cell we are in
+                for( axis=0; axis<domainDimension; axis++ )
+                {
+                    rr[axis]=(ia[axis]-GRIDINDEXRANGE(Start,axis))/delta[axis];
+                }
+        // drr : normalized position in the cell : drr(.,axis) is in [0,1] for points in the cell.
+                for( axis=0; axis<domainDimension; axis++ )
+                {
+                    drr[axis]=(GRIDINDEXRANGE(Start,axis)-ia[axis])+rr[axis]*delta[axis];
+                }
+                if( debug & 2 ) 
+                    fprintf(pDebugFile,"dpmInverse: i=%i init: ia=(%i,%i,%i) drr=(%8.2e,%8.2e,%8.2e) rc=(%8.2e,%8.2e,%8.2e) \n",
+                    	      i,ia[0],ia[1],ia[2],drr[0],drr[1],drr[2],
+                    	      rr[0]+drr[0]/delta[0],rr[1]+drr[1]/delta[1],rr[2]+drr[2]/delta[2]);
+                //         #If "2" == "2" 
+                    for( axis=0; axis<domainDimension; axis++ )
+                        iap[axis]=ia[axis]+1;
+                    if( domainDimension==2 )
+                    {
+              	for( axis=0; axis<rangeDimension; axis++ )
+              	{
+                	  x111[axis] = XY( ia[0], ia[1],i3,axis);   
+                	  x211[axis] = XY(iap[0], ia[1],i3,axis); 
+                	  x121[axis] = XY( ia[0],iap[1],i3,axis);
+                	  x221[axis] = XY(iap[0],iap[1],i3,axis);
+              	}
+                    }
+                    else if( domainDimension==3 )
+                    {
+              	for( axis=0; axis<rangeDimension; axis++ )
+              	{
+                	  x111[axis] = XY( ia[0], ia[1], ia[2],axis);
+                	  x211[axis] = XY(iap[0], ia[1], ia[2],axis); 
+                	  x121[axis] = XY( ia[0],iap[1], ia[2],axis);
+                	  x221[axis] = XY(iap[0],iap[1], ia[2],axis);
+                	  x112[axis] = XY( ia[0], ia[1],iap[2],axis);
+                	  x212[axis] = XY(iap[0], ia[1],iap[2],axis); 
+                	  x122[axis] = XY( ia[0],iap[1],iap[2],axis);
+                	  x222[axis] = XY(iap[0],iap[1],iap[2],axis);
+              	}
+                    }
+        // Newton iteration: to solve x(r) = X
+        //    x(r+dr) = x(r) + x_r dr + ..
+        //  x_r dr = X - x(r)
+                bool status=true;  // true means we are reasonable close to the unit interval
+                for( int iteration=0; iteration<maximumNumberOfIterations; iteration++ )
+                {
+          // solve xr * dr = dx
+          // ExactLocalInverse::numberOfNewtonSteps+=J.getLength();
+                    if( domainDimension==2 )
+                    {
+          //             #If "2" == "2" 
+                	  for( axis=0; axis<rangeDimension; axis++ )
+                	  {
+                  	    xr[axis][axis1]=INT_2D_ORDER_2_R(drr[axis1],drr[axis2],
+                                           					     x111[axis],x211[axis],x121[axis],x221[axis]);
+                  	    xr[axis][axis2]=INT_2D_ORDER_2_S(drr[axis1],drr[axis2],
+                                           					     x111[axis],x211[axis],x121[axis],x221[axis]);
+                	  }
+                	  for( axis=0; axis<rangeDimension; axis++ )
+                	  {
+                  	    dx[axis]=xx[axis]- 
+                    	      INT_2D_ORDER_2(drr[axis1],drr[axis2],x111[axis],x211[axis],x121[axis],x221[axis]);
+                	  }
+            // *wdh* 110904 -- limit det by detMin to avoid nan's
+                        det = xr[axis1][axis1]*xr[axis2][axis2]-xr[axis1][axis2]*xr[axis2][axis1];
+              	if( fabs(det)<detMin )
+              	{
+                            det = detMin*signForJacobian;  // keep the sign of det.
+              	}
+                        det=1./det;
+              	dr[axis1]=(xr[axis2][axis2]*dx[axis1]-xr[axis1][axis2]*dx[axis2])*det;   
+              	dr[axis2]=(xr[axis1][axis1]*dx[axis2]-xr[axis2][axis1]*dx[axis1])*det;   
+                        if( useRobustInverse )
+              	{
+              // restrict the correction to be at most .5 of a cell width
+                            drMax=max(fabs(dr[0]*delta[0]),fabs(dr[1]*delta[1]));
+                	  if( drMax>.5 )
+                	  {
+                                damping=.5/drMax;
+    	    // dr[0]*=damping;
+    	    // dr[1]*=damping;
+                // this worked much better than above
+                  	    if( fabs(dr[0]*delta[0])>.5 ) dr[0]*=.5/fabs(dr[0]*delta[0]);
+                  	    if( fabs(dr[1]*delta[1])>.5 ) dr[1]*=.5/fabs(dr[1]*delta[1]);
+                	  }
+                            else if( drMax>.01 && iteration>iterationToStartDamping )
+                	  { // this seemed to be especially helpful (cf. bjet: fuselage and pylon).
+                // Not sure about what value to use for drmax>value value=.01 seems ok
+                                damping=.75;
+                  	    dr[0]*=damping;
+                  	    dr[1]*=damping;
+                	  }
+              	}
+              	for( axis=0; axis<domainDimension; axis++ )
+                	  drr[axis]+=dr[axis]*delta[axis];                   
+                    }
+                    else
+                    {
+            // ************ domain dimnension 3 *************
+            // INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222) 
+          //             #If "2" == "2" 
+                	  for( axis=0; axis<rangeDimension; axis++ )
+                	  {
+                  	    xr[axis][axis1]=INT_3D_ORDER_2_R(drr[axis1],drr[axis2],drr[axis3],x111[axis],x211[axis],x121[axis],
+                                           					     x221[axis],x112[axis],x212[axis],x122[axis],x222[axis]);
+                  	    xr[axis][axis2]=INT_3D_ORDER_2_S(drr[axis1],drr[axis2],drr[axis3],x111[axis],x211[axis],x121[axis],
+                                           					     x221[axis],x112[axis],x212[axis],x122[axis],x222[axis]);
+                  	    xr[axis][axis3]=INT_3D_ORDER_2_T(drr[axis1],drr[axis2],drr[axis3],x111[axis],x211[axis],x121[axis],
+                                           					     x221[axis],x112[axis],x212[axis],x122[axis],x222[axis]);
+                	  }
+            // *wdh* 110904 -- limit det by detMin to avoid nan's
+              	det = ( (xr[axis1][axis2]*xr[axis2][axis3]-xr[axis2][axis2]*xr[axis1][axis3])*xr[axis3][axis1]+
+                    		(xr[axis1][axis3]*xr[axis2][axis1]-xr[axis2][axis3]*xr[axis1][axis1])*xr[axis3][axis2]+
+                    		(xr[axis1][axis1]*xr[axis2][axis2]-xr[axis2][axis1]*xr[axis1][axis2])*xr[axis3][axis3] );
+                        if( fabs(det)<detMin )
+                        {
+                	  det = detMin*signForJacobian;    // keep the sign of det.
+                        }
+                        det=1./det;
+              	real rx11=xr[axis2][axis2]*xr[axis3][axis3]-xr[axis2][axis3]*xr[axis3][axis2];
+              	real rx21=xr[axis2][axis3]*xr[axis3][axis1]-xr[axis2][axis1]*xr[axis3][axis3];
+              	real rx31=xr[axis2][axis1]*xr[axis3][axis2]-xr[axis2][axis2]*xr[axis3][axis1];
+              	real rx12=xr[axis3][axis2]*xr[axis1][axis3]-xr[axis3][axis3]*xr[axis1][axis2];
+              	real rx22=xr[axis3][axis3]*xr[axis1][axis1]-xr[axis3][axis1]*xr[axis1][axis3];
+              	real rx32=xr[axis3][axis1]*xr[axis1][axis2]-xr[axis3][axis2]*xr[axis1][axis1];
+              	real rx13=xr[axis1][axis2]*xr[axis2][axis3]-xr[axis1][axis3]*xr[axis2][axis2];
+              	real rx23=xr[axis1][axis3]*xr[axis2][axis1]-xr[axis1][axis1]*xr[axis2][axis3];
+              	real rx33=xr[axis1][axis1]*xr[axis2][axis2]-xr[axis1][axis2]*xr[axis2][axis1];
+          // we could do multiple solves here for the same Jacobian
+          //             #If "2" == "2" 
+                	  for( axis=0; axis<rangeDimension; axis++ )
+                  	    dx[axis]=xx[axis]-
+                                    INT_3D_ORDER_2(drr[axis1],drr[axis2],drr[axis3],x111[axis],
+                                                                  x211[axis],x121[axis],x221[axis],x112[axis],x212[axis],x122[axis],x222[axis]);
+              	dr[axis1]=(rx11*dx[axis1]+rx12*dx[axis2]+rx13*dx[axis3])*det;
+              	dr[axis2]=(rx21*dx[axis1]+rx22*dx[axis2]+rx23*dx[axis3])*det;
+              	dr[axis3]=(rx31*dx[axis1]+rx32*dx[axis2]+rx33*dx[axis3])*det;
+                        if( useRobustInverse )
+              	{
+              // restrict the correction to be at most .5 of a cell width
+                            drMax=max(max(fabs(dr[0]*delta[0]),fabs(dr[1]*delta[1])),fabs(dr[2]*delta[2]));
+                	  if( drMax>.5 )
+                	  {
+                                damping=.5/drMax;
+                                if( debug & 2 )
+                                    fprintf(pDebugFile,"dpmInverse:INFO: Newton damped by a factor %8.2e, drMax=%8.2e\n",damping,drMax);
+    // 	    dr[0]*=damping;
+    // 	    dr[1]*=damping;
+    // 	    dr[2]*=damping;
+                // this worked much better than above
+                  	    if( fabs(dr[0]*delta[0])>.5 ) dr[0]*=.5/fabs(dr[0]*delta[0]);
+                  	    if( fabs(dr[1]*delta[1])>.5 ) dr[1]*=.5/fabs(dr[1]*delta[1]);
+                  	    if( fabs(dr[2]*delta[2])>.5 ) dr[2]*=.5/fabs(dr[2]*delta[2]);
+                	  }
+                            else if( drMax>.01 && iteration>iterationToStartDamping )
+                	  { // this seemed to be especially helpful (cf. bjet: fuselage and pylon).
+                // Not sure about what value to use for drmax>value value=.01 seems ok
+                                damping=.75;
+                  	    dr[0]*=damping;
+                  	    dr[1]*=damping;
+                  	    dr[2]*=damping;
+                	  }
+              	}
+              	for( axis=0; axis<domainDimension; axis++ )
+              	{
+                	  drr[axis]+=dr[axis]*delta[axis];
+              	}
+                    }
+          // measure the convergence -- exclude points outside the domain
+          // for this we need the current estimate of the solution
+                    for( axis=0; axis<domainDimension; axis++ )
+              	rc[axis] = rr[axis]+drr[axis]/delta[axis];   
+                    if( isSingular )
+                    {
+            // polar singularity:
+              	for( axis=0; axis<domainDimension; axis++ )
+                        {
+              // don't get too close to the singular points
+                            const real polarEps=1.e-4; // REAL_EPSILON*1000.; //  1.e-6; // 1.e-4;
+                	  if( singular(0,axis) )
+                	  {
+                  	    if( rc[axis]<polarEps )
+                  	    {
+                    	      rc[axis] = polarEps;
+                    	      drr[axis]=(rc[axis]-rr[axis])*delta[axis];  // adjust to match
+                    	      dr[axis]=0.;
+                    	      if( axis==0 )
+                    	      { // this is a fudge -- we assume the theta direction is axis==1
+    		// theta becomes un-determined so just fix it!
+                    		drr[1]=0.;
+                    		dr[1]=0.;
+                    		ia[1]=0; iap[1]=1;
+                    		rc[1]=0.;
+                    	      }
+                  	    }
+                                if( iteration>3 && axis==0 )
+                  	    {
+                                    if( rc[axis]<1.e-2 )
+                    	      {
+                      	        dr[1]*=fabs(rc[0]);  // measure convergence by r*d(theta)
+                                        if( fabs(dr[1])<1.e-4 )
+                    		{ // this is another fudge
+                      		  drr[1]=0.;
+                      		  dr[1]=0.;
+                      		  ia[1]=0; iap[1]=1;
+                      		  rc[1]=0.;
+                    		}
+                    	      }
+                  	    }
+                	  }
+                	  else if( singular(1,axis) )
+                	  {
+                  	    if( rc[axis]>1.-polarEps )
+                  	    {
+                    	      rc[axis] = 1.-polarEps;
+                    	      drr[axis]=(rc[axis]-rr[axis])*delta[axis];  
+                    	      dr[axis]=0.;
+                    	      if( axis==0 )
+                    	      {
+                    		drr[1]=0.;
+                    		dr[1]=0.;
+                    		ia[1]=0; iap[1]=1;
+                    		rc[1]=0.;
+                    	      }
+                  	    }
+                                if( iteration>3 && axis==0 )
+                  	    {
+                                    if( rc[axis]>1.-1.e-2 )
+                    	      { // this is another fudge
+                      	        dr[1]*=fabs(1.-rc[0]); // measure convergence by (1-r)*d(theta)
+                                        if( fabs(dr[1])<1.e-4 )
+                    		{
+                      		  drr[1]=0.;
+                      		  dr[1]=0.;
+                      		  ia[1]=0; iap[1]=1;
+                      		  rc[1]=0.;
+                    		}
+                    	      }
+                  	    }
+                	  }
+              	}
+                    }
+                    if( rc[0]!=rc[0] || rc[1]!=rc[1] || rc[2]!=rc[2] )
+                    {
+              	printF("dpmInverse:ERROR: nan's found : rc=[%e,%e,%e], inverse diverged.\n",rc[0],rc[1],rc[2]);
+            // force the iteration to diverge
+                        rc[0]=100.;  rc[1]=100.;  rc[2]=100.;
+                        drr[0]=100.; drr[1]=100.; drr[2]=100.;
+              	status=false;  // point has diverged
+              	break;
+                    }
+                    if( domainDimension==2 )
+              	status = fabs(rc[0]-.5) <divergence  && fabs(rc[1]-.5) <divergence; 
+                    else  
+              	status = fabs(rc[0]-.5) <divergence  && fabs(rc[1]-.5) <divergence  && fabs(rc[2]-.5) <divergence;
+                    if( iteration>settledDownIteration && !status )
+                    {
+            // We assume that the iteration should have settled down by this time 
+    	// do not include points that are outside the cell  -- these must be outside the grid.
+              	const real outDist=.6;
+              	if( domainDimension==2 )
+                	  status = status && fabs(drr[0]-.5)<outDist && fabs(drr[1]-.5)<outDist;  
+              	else
+                	  status = status && fabs(drr[0]-.5)<outDist && fabs(drr[1]-.5)<outDist && fabs(drr[2]-.5)<outDist;
+              	if( !status && debug & 2 )
+              	{
+                	  fprintf(pDebugFile," i=%i, it=%i, diverged since it>%i && drr=%8.2e,%8.2e%8.2e |drr-.5|>=%3.1f\n",
+                       	  	 i,iteration,settledDownIteration,drr[0],drr[1],drr[2],.6);
+              	}
+                    }
+          // *wdh* 011013
+                    if( !status )
+                    {
+                        if( debug & 2 )
+                	  fprintf(pDebugFile,"i=%i, it=%i, diverged since r=(%8.2e,%8.2e%8.2e) and |r-.5|>%4.2f\n",
+                     		 i,iteration,rc[0],rc[1],rc[2],divergence);
+    	// point has diverged
+              	break;
+                    }
+                    if( domainDimension==2 )
+                    {
+              	maximumCorrection=max( fabs(dr[0]),fabs(dr[1]) ); 
+                    }
+                    else
+                    {
+              	maximumCorrection=max( fabs(dr[0]),fabs(dr[1]),fabs(dr[2]) );
+                    }
+                    if( fabs(maximumCorrection)>1.e5 )
+                    {
+              	maximumCorrection=0.;
+    	//  printf(" dpmInverse:WARNING: maximum correction = %e \n",maximumCorrection);      
+                    }
+                    if( debug & 2 )
+                    {
+              	fprintf(pDebugFile," i=%i, it=%i, r=(%9.3e,%9.3e,%9.3e) dr=(%7.1e,%7.1e,%7.1e) dr*delta=(%7.1e,%7.1e,%7.1e)"
+                                      " drr=(%7.1e,%7.1e,%7.1e) ia=[%i,%i,%i]\n",i,iteration,
+                     	       rc[0],rc[1],rc[2], dr[0],dr[1],dr[2], dr[0]*delta[0],dr[1]*delta[1],dr[2]*delta[2],
+                     	       drr[0],drr[1],drr[2],ia[0],ia[1],ia[2]);
+                    }
+                    if( maximumCorrection<convergenceTolerance )
+              	break;
+                    if( iteration < maximumNumberOfIterations-1 )
+                    {
+    	// Find the new cell that we should be in 
+              	bool hasChangedCells=false;
+              	for( axis=0; axis<rangeDimension; axis++ )
+              	{
+          //               #If "2" == "2"
+                      	    bool mask1=drr[axis]<-eps     && (ia[axis]>dim(Start,axis));
+                            	    bool mask2=drr[axis]>(1.+eps) && (ia[axis]<(dim(End,axis)-1));
+                	  hasChangedCells=hasChangedCells || mask1 || mask2;
+                	  if( mask1 )
+                	  {
+                  	    ia[axis]--; 
+              //                 #If "2" == "2"
+                                    iap[axis]--;
+                  	    drr[axis]+=1.;
+                  	    rr[axis]-=1./delta[axis];
+                	  }
+                	  else if( mask2 )
+                	  {
+                  	    ia[axis]++; 
+              //                 #If "2" == "2"
+                                    iap[axis]++;
+                  	    drr[axis]-=1.;
+                  	    rr[axis]+=1./delta[axis];
+                	  }
+              	}
+    	// recompute the cell corners for points that have moved.
+          //             #If "2" == "2"
+                	  if( hasChangedCells )
+                	  {
+                  	    if( domainDimension==2 )
+                  	    {
+                    	      for( axis=0; axis<rangeDimension; axis++ )
+                    	      {
+                    		x111[axis] = XY( ia[0], ia[1],i3,axis);
+                    		x211[axis] = XY(iap[0], ia[1],i3,axis); 
+                    		x121[axis] = XY( ia[0],iap[1],i3,axis);
+                    		x221[axis] = XY(iap[0],iap[1],i3,axis);
+                    	      }
+                  	    }
+                  	    else if( domainDimension==3 )
+                  	    {
+                    	      for( axis=0; axis<rangeDimension; axis++ )
+                    	      {
+                    		x111[axis] = XY( ia[0], ia[1], ia[2],axis);
+                    		x211[axis] = XY(iap[0], ia[1], ia[2],axis); 
+                    		x121[axis] = XY( ia[0],iap[1], ia[2],axis);
+                    		x221[axis] = XY(iap[0],iap[1], ia[2],axis);
+                    		x112[axis] = XY( ia[0], ia[1],iap[2],axis);
+                    		x212[axis] = XY(iap[0], ia[1],iap[2],axis); 
+                    		x122[axis] = XY( ia[0],iap[1],iap[2],axis);
+                    		x222[axis] = XY(iap[0],iap[1],iap[2],axis);
+                    	      }
+                  	    }
+                	  }
+                    }
+                } // for( iteration....
+                if( false )
+                {
+                    printF("%i : x=(%9.2e,%9.2e,%9.2e) r=(%8.1e,%8.1e,%8.1e) dr=(%8.1e,%8.1e,%8.1e) drr=(%8.1e,%8.1e,%8.1e) \n",
+                    	      i,x(i,0),x(i,1),x(i,2),rc[0],rc[1],rc[2],dr[0],dr[1],dr[2], drr[0],drr[1],drr[2]);
+                }
+                if( !status )
+                {
+                    for( axis=0; axis<domainDimension; axis++ )
+                        R(i,axis)=Mapping::bogus;
+                    if( debug & 2 )
+                        fprintf(pDebugFile,"Skipping point i=%i, x=(%9.2e,%9.2e,%9.2e). No convergence\n",i,x(i,0),
+                              (rangeDimension>1 ? x(i,1) : 0.),(rangeDimension>2 ? x(i,2) : 0.));
+                    continue;
+                }
+                if( status && maximumCorrection > convergenceTolerance*100. )
+                {
+                    if( debug >0 )
+                    {
+              	fprintf(pDebugFile,"***WARNING:dpmInverse maximumCorrection=%9.2e > convergenceTolerance*100.=%9.2e, name=%s\n",
+                                      maximumCorrection,convergenceTolerance*100.,(const char*)getName(mappingName));
+              	if( domainDimension==3 )
+              	{
+                	  fprintf(pDebugFile,"%i : x=(%9.2e,%9.2e,%9.2e) r=(%8.1e,%8.1e,%8.1e) dr=(%8.1e,%8.1e,%8.1e) drr=(%8.1e,%8.1e,%8.1e) \n",
+                     		 i,x(i,0),x(i,1),x(i,2),rc[0],rc[1],rc[2],dr[0],dr[1],dr[2], drr[0],drr[1],drr[2]);
+              	}
+                    }
+                }
+                if( computeMap )
+                {
+                    for( axis=0; axis<domainDimension; axis++ )
+                    {
+              	if( periodic[axis] )
+              	{  // map periodic directions to [0,1]
+                	  R(i,axis)=fmod(rc[axis]+1.,1.);         
+              	}
+                        else
+              	{
+                            R(i,axis)=rc[axis];
+              	}
+                    }
+                }
+                if( computeMapDerivative )
+                {
+                    if( domainDimension==2 )
+                    {
+              	RX(i,axis1,axis1)= xr[axis2][axis2]*det; 
+              	RX(i,axis1,axis2)=-xr[axis1][axis2]*det; 
+              	RX(i,axis2,axis1)=-xr[axis2][axis1]*det; 
+              	RX(i,axis2,axis2)= xr[axis1][axis1]*det; 
+                    }
+                    else if( domainDimension==3 )
+                    {
+              	RX(i,axis1,axis1)=(xr[axis2][axis2]*xr[axis3][axis3]-xr[axis2][axis3]*xr[axis3][axis2])*det;
+              	RX(i,axis2,axis1)=(xr[axis2][axis3]*xr[axis3][axis1]-xr[axis2][axis1]*xr[axis3][axis3])*det;
+              	RX(i,axis3,axis1)=(xr[axis2][axis1]*xr[axis3][axis2]-xr[axis2][axis2]*xr[axis3][axis1])*det;
+              	RX(i,axis1,axis2)=(xr[axis3][axis2]*xr[axis1][axis3]-xr[axis3][axis3]*xr[axis1][axis2])*det;
+              	RX(i,axis2,axis2)=(xr[axis3][axis3]*xr[axis1][axis1]-xr[axis3][axis1]*xr[axis1][axis3])*det;
+              	RX(i,axis3,axis2)=(xr[axis3][axis1]*xr[axis1][axis2]-xr[axis3][axis2]*xr[axis1][axis1])*det;
+              	RX(i,axis1,axis3)=(xr[axis1][axis2]*xr[axis2][axis3]-xr[axis1][axis3]*xr[axis2][axis2])*det;
+              	RX(i,axis2,axis3)=(xr[axis1][axis3]*xr[axis2][axis1]-xr[axis1][axis1]*xr[axis2][axis3])*det;
+              	RX(i,axis3,axis3)=(xr[axis1][axis1]*xr[axis2][axis2]-xr[axis1][axis2]*xr[axis2][axis1])*det;
+                    }
+                }
+            }  // end for( i )
+    }
+    else if( orderOfInterpolation==4 )
+    {
+        int i11,i21,i31,i30=dim(Start,axis3);
+        real a0,a0r,a1,a1r,a2,a2r,a3,a3r;
+        real b0,b0r,b1,b1r,b2,b2r,b3,b3r;
+        real c0,c0r,c1,c1r,c2,c2r,c3,c3r;
+        real dr0,dr1,dr2;
+
+    // invertPoints(4);
+            for( int i=base; i<=bound; i++ )
+            {
+                for( axis=0; axis<domainDimension; axis++ )
+                    rr[axis]=R0(i,axis);
+                if( rr[0]==bogus )
+                {
+                    if( computeMap )
+                        for( int d=0; d<domainDimension; d++ )
+                        	  R(i,d)=bogus;
+                    if(  computeMapDerivative )
+              	for( int r=0; r<rangeDimension; r++ )
+                	  for( int d=0; d<domainDimension; d++ )
+                  	    RX(i,d,r)=bogus;
+                    continue;
+                }
+                for( axis=0; axis<rangeDimension; axis++ )
+                    xx[axis]=X(i,axis);   
+        // first ia=closest cell centre (or closest point less than)
+        // 4th-order:
+        //                    ia
+        //            ---+----+-X--+----+---
+        //               0    1    2    3
+                for( axis=0; axis<domainDimension; axis++ )
+                {
+                    ia[axis]=int( floor(delta[axis]*rr[axis]+GRIDINDEXRANGE(Start,axis)) );
+          //           #If "4" == "2" 
+          //           #Else
+                        ia[axis]=max(dim(Start,axis)+1,min(dim(End,axis)-2,ia[axis])); 
+                }
+                if( debug & 2 ) 
+                    fprintf(pDebugFile,"dpmInverse: i=%i initial guess is r=(%8.2e,%8.2e,%8.2e) \n",i,rr[0],rr[1],rr[2]);
+        // rr : holds the r coordinates of the lower left corner of the cell we are in
+                for( axis=0; axis<domainDimension; axis++ )
+                {
+                    rr[axis]=(ia[axis]-GRIDINDEXRANGE(Start,axis))/delta[axis];
+                }
+        // drr : normalized position in the cell : drr(.,axis) is in [0,1] for points in the cell.
+                for( axis=0; axis<domainDimension; axis++ )
+                {
+                    drr[axis]=(GRIDINDEXRANGE(Start,axis)-ia[axis])+rr[axis]*delta[axis];
+                }
+                if( debug & 2 ) 
+                    fprintf(pDebugFile,"dpmInverse: i=%i init: ia=(%i,%i,%i) drr=(%8.2e,%8.2e,%8.2e) rc=(%8.2e,%8.2e,%8.2e) \n",
+                    	      i,ia[0],ia[1],ia[2],drr[0],drr[1],drr[2],
+                    	      rr[0]+drr[0]/delta[0],rr[1]+drr[1]/delta[1],rr[2]+drr[2]/delta[2]);
+                //         #If "4" == "2" 
+        // Newton iteration: to solve x(r) = X
+        //    x(r+dr) = x(r) + x_r dr + ..
+        //  x_r dr = X - x(r)
+                bool status=true;  // true means we are reasonable close to the unit interval
+                for( int iteration=0; iteration<maximumNumberOfIterations; iteration++ )
+                {
+          // solve xr * dr = dx
+          // ExactLocalInverse::numberOfNewtonSteps+=J.getLength();
+                    if( domainDimension==2 )
+                    {
+          //             #If "4" == "2" 
+          //             #Else
+                            dr0=drr[0]+1.; // shift to left edge
+                	  dr1=drr[1]+1.;
+                            a0=q03(dr0);
+                            a1=q13(dr0);
+                	  a2=q23(dr0);
+                	  a3=q33(dr0);
+                	  a0r=q03d(dr0);
+                	  a1r=q13d(dr0);
+                	  a2r=q23d(dr0);
+                	  a3r=q33d(dr0);
+                	  b0=q03(dr1);
+                	  b1=q13(dr1);
+                	  b2=q23(dr1);
+                	  b3=q33(dr1);
+                	  b0r=q03d(dr1);
+                	  b1r=q13d(dr1);
+                	  b2r=q23d(dr1);
+                	  b3r=q33d(dr1);
+                            i11=ia[0]-1; // shift to first point in the stencil
+                	  i21=ia[1]-1;
+                            for( axis=0; axis<rangeDimension; axis++ )
+                	  {
+                  	    dx[axis]=xx[axis]-q2x(i11,i21,i30,axis);
+                  	    xr[axis][axis1]= q2xr(i11,i21,i30,axis)*delta[axis1];
+                  	    xr[axis][axis2]= q2xs(i11,i21,i30,axis)*delta[axis2];
+                	  }
+                        if( debug & 2 ) 
+                            fprintf(pDebugFile,"dpmInverse: i=%i xx=(%8.2e,%8.2e) x(drr)=(%8.2e,%8.2e) xr=(%8.2e,%8.2e,%8.2e,%8.2e) \n",
+                      		  i,xx[0],xx[1],q2x(i11,i21,i30,0),q2x(i11,i21,i30,1),
+                      		  xr[0][0],xr[1][0],xr[0][1],xr[1][1]);
+            // *wdh* 110904 -- limit det by detMin to avoid nan's
+                        det = xr[axis1][axis1]*xr[axis2][axis2]-xr[axis1][axis2]*xr[axis2][axis1];
+              	if( fabs(det)<detMin )
+              	{
+                            det = detMin*signForJacobian;  // keep the sign of det.
+              	}
+                        det=1./det;
+              	dr[axis1]=(xr[axis2][axis2]*dx[axis1]-xr[axis1][axis2]*dx[axis2])*det;   
+              	dr[axis2]=(xr[axis1][axis1]*dx[axis2]-xr[axis2][axis1]*dx[axis1])*det;   
+                        if( useRobustInverse )
+              	{
+              // restrict the correction to be at most .5 of a cell width
+                            drMax=max(fabs(dr[0]*delta[0]),fabs(dr[1]*delta[1]));
+                	  if( drMax>.5 )
+                	  {
+                                damping=.5/drMax;
+    	    // dr[0]*=damping;
+    	    // dr[1]*=damping;
+                // this worked much better than above
+                  	    if( fabs(dr[0]*delta[0])>.5 ) dr[0]*=.5/fabs(dr[0]*delta[0]);
+                  	    if( fabs(dr[1]*delta[1])>.5 ) dr[1]*=.5/fabs(dr[1]*delta[1]);
+                	  }
+                            else if( drMax>.01 && iteration>iterationToStartDamping )
+                	  { // this seemed to be especially helpful (cf. bjet: fuselage and pylon).
+                // Not sure about what value to use for drmax>value value=.01 seems ok
+                                damping=.75;
+                  	    dr[0]*=damping;
+                  	    dr[1]*=damping;
+                	  }
+              	}
+              	for( axis=0; axis<domainDimension; axis++ )
+                	  drr[axis]+=dr[axis]*delta[axis];                   
+                    }
+                    else
+                    {
+            // ************ domain dimnension 3 *************
+            // INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222) 
+          //             #If "4" == "2" 
+          //             #Else
+                            dr0=drr[0]+1.; // shift to left edge
+                	  dr1=drr[1]+1.;
+                	  dr2=drr[2]+1.;
+                            a0=q03(dr0);
+                            a1=q13(dr0);
+                	  a2=q23(dr0);
+                	  a3=q33(dr0);
+                	  a0r=q03d(dr0);
+                	  a1r=q13d(dr0);
+                	  a2r=q23d(dr0);
+                	  a3r=q33d(dr0);
+                	  b0=q03(dr1);
+                	  b1=q13(dr1);
+                	  b2=q23(dr1);
+                	  b3=q33(dr1);
+                	  b0r=q03d(dr1);
+                	  b1r=q13d(dr1);
+                	  b2r=q23d(dr1);
+                	  b3r=q33d(dr1);
+                	  c0=q03(dr2);
+                	  c1=q13(dr2);
+                	  c2=q23(dr2);
+                	  c3=q33(dr2);
+                	  c0r=q03d(dr2);
+                	  c1r=q13d(dr2);
+                	  c2r=q23d(dr2);
+                	  c3r=q33d(dr2);
+                            i11=ia[0]-1;
+                	  i21=ia[1]-1;
+                	  i31=ia[2]-1;
+                            for( axis=0; axis<rangeDimension; axis++ )
+                	  {
+                  	    dx[axis]=xx[axis]-q3x(i11,i21,i31,axis);
+                  	    xr[axis][axis1]= q3xr(i11,i21,i31,axis)*delta[axis1];
+                  	    xr[axis][axis2]= q3xs(i11,i21,i31,axis)*delta[axis2];
+                  	    xr[axis][axis3]= q3xt(i11,i21,i31,axis)*delta[axis3];
+                	  }
+            // *wdh* 110904 -- limit det by detMin to avoid nan's
+              	det = ( (xr[axis1][axis2]*xr[axis2][axis3]-xr[axis2][axis2]*xr[axis1][axis3])*xr[axis3][axis1]+
+                    		(xr[axis1][axis3]*xr[axis2][axis1]-xr[axis2][axis3]*xr[axis1][axis1])*xr[axis3][axis2]+
+                    		(xr[axis1][axis1]*xr[axis2][axis2]-xr[axis2][axis1]*xr[axis1][axis2])*xr[axis3][axis3] );
+                        if( fabs(det)<detMin )
+                        {
+                	  det = detMin*signForJacobian;    // keep the sign of det.
+                        }
+                        det=1./det;
+              	real rx11=xr[axis2][axis2]*xr[axis3][axis3]-xr[axis2][axis3]*xr[axis3][axis2];
+              	real rx21=xr[axis2][axis3]*xr[axis3][axis1]-xr[axis2][axis1]*xr[axis3][axis3];
+              	real rx31=xr[axis2][axis1]*xr[axis3][axis2]-xr[axis2][axis2]*xr[axis3][axis1];
+              	real rx12=xr[axis3][axis2]*xr[axis1][axis3]-xr[axis3][axis3]*xr[axis1][axis2];
+              	real rx22=xr[axis3][axis3]*xr[axis1][axis1]-xr[axis3][axis1]*xr[axis1][axis3];
+              	real rx32=xr[axis3][axis1]*xr[axis1][axis2]-xr[axis3][axis2]*xr[axis1][axis1];
+              	real rx13=xr[axis1][axis2]*xr[axis2][axis3]-xr[axis1][axis3]*xr[axis2][axis2];
+              	real rx23=xr[axis1][axis3]*xr[axis2][axis1]-xr[axis1][axis1]*xr[axis2][axis3];
+              	real rx33=xr[axis1][axis1]*xr[axis2][axis2]-xr[axis1][axis2]*xr[axis2][axis1];
+          // we could do multiple solves here for the same Jacobian
+          //             #If "4" == "2" 
+              	dr[axis1]=(rx11*dx[axis1]+rx12*dx[axis2]+rx13*dx[axis3])*det;
+              	dr[axis2]=(rx21*dx[axis1]+rx22*dx[axis2]+rx23*dx[axis3])*det;
+              	dr[axis3]=(rx31*dx[axis1]+rx32*dx[axis2]+rx33*dx[axis3])*det;
+                        if( useRobustInverse )
+              	{
+              // restrict the correction to be at most .5 of a cell width
+                            drMax=max(max(fabs(dr[0]*delta[0]),fabs(dr[1]*delta[1])),fabs(dr[2]*delta[2]));
+                	  if( drMax>.5 )
+                	  {
+                                damping=.5/drMax;
+                                if( debug & 2 )
+                                    fprintf(pDebugFile,"dpmInverse:INFO: Newton damped by a factor %8.2e, drMax=%8.2e\n",damping,drMax);
+    // 	    dr[0]*=damping;
+    // 	    dr[1]*=damping;
+    // 	    dr[2]*=damping;
+                // this worked much better than above
+                  	    if( fabs(dr[0]*delta[0])>.5 ) dr[0]*=.5/fabs(dr[0]*delta[0]);
+                  	    if( fabs(dr[1]*delta[1])>.5 ) dr[1]*=.5/fabs(dr[1]*delta[1]);
+                  	    if( fabs(dr[2]*delta[2])>.5 ) dr[2]*=.5/fabs(dr[2]*delta[2]);
+                	  }
+                            else if( drMax>.01 && iteration>iterationToStartDamping )
+                	  { // this seemed to be especially helpful (cf. bjet: fuselage and pylon).
+                // Not sure about what value to use for drmax>value value=.01 seems ok
+                                damping=.75;
+                  	    dr[0]*=damping;
+                  	    dr[1]*=damping;
+                  	    dr[2]*=damping;
+                	  }
+              	}
+              	for( axis=0; axis<domainDimension; axis++ )
+              	{
+                	  drr[axis]+=dr[axis]*delta[axis];
+              	}
+                    }
+          // measure the convergence -- exclude points outside the domain
+          // for this we need the current estimate of the solution
+                    for( axis=0; axis<domainDimension; axis++ )
+              	rc[axis] = rr[axis]+drr[axis]/delta[axis];   
+                    if( isSingular )
+                    {
+            // polar singularity:
+              	for( axis=0; axis<domainDimension; axis++ )
+                        {
+              // don't get too close to the singular points
+                            const real polarEps=1.e-4; // REAL_EPSILON*1000.; //  1.e-6; // 1.e-4;
+                	  if( singular(0,axis) )
+                	  {
+                  	    if( rc[axis]<polarEps )
+                  	    {
+                    	      rc[axis] = polarEps;
+                    	      drr[axis]=(rc[axis]-rr[axis])*delta[axis];  // adjust to match
+                    	      dr[axis]=0.;
+                    	      if( axis==0 )
+                    	      { // this is a fudge -- we assume the theta direction is axis==1
+    		// theta becomes un-determined so just fix it!
+                    		drr[1]=0.;
+                    		dr[1]=0.;
+                    		ia[1]=0; iap[1]=1;
+                    		rc[1]=0.;
+                    	      }
+                  	    }
+                                if( iteration>3 && axis==0 )
+                  	    {
+                                    if( rc[axis]<1.e-2 )
+                    	      {
+                      	        dr[1]*=fabs(rc[0]);  // measure convergence by r*d(theta)
+                                        if( fabs(dr[1])<1.e-4 )
+                    		{ // this is another fudge
+                      		  drr[1]=0.;
+                      		  dr[1]=0.;
+                      		  ia[1]=0; iap[1]=1;
+                      		  rc[1]=0.;
+                    		}
+                    	      }
+                  	    }
+                	  }
+                	  else if( singular(1,axis) )
+                	  {
+                  	    if( rc[axis]>1.-polarEps )
+                  	    {
+                    	      rc[axis] = 1.-polarEps;
+                    	      drr[axis]=(rc[axis]-rr[axis])*delta[axis];  
+                    	      dr[axis]=0.;
+                    	      if( axis==0 )
+                    	      {
+                    		drr[1]=0.;
+                    		dr[1]=0.;
+                    		ia[1]=0; iap[1]=1;
+                    		rc[1]=0.;
+                    	      }
+                  	    }
+                                if( iteration>3 && axis==0 )
+                  	    {
+                                    if( rc[axis]>1.-1.e-2 )
+                    	      { // this is another fudge
+                      	        dr[1]*=fabs(1.-rc[0]); // measure convergence by (1-r)*d(theta)
+                                        if( fabs(dr[1])<1.e-4 )
+                    		{
+                      		  drr[1]=0.;
+                      		  dr[1]=0.;
+                      		  ia[1]=0; iap[1]=1;
+                      		  rc[1]=0.;
+                    		}
+                    	      }
+                  	    }
+                	  }
+              	}
+                    }
+                    if( rc[0]!=rc[0] || rc[1]!=rc[1] || rc[2]!=rc[2] )
+                    {
+              	printF("dpmInverse:ERROR: nan's found : rc=[%e,%e,%e], inverse diverged.\n",rc[0],rc[1],rc[2]);
+            // force the iteration to diverge
+                        rc[0]=100.;  rc[1]=100.;  rc[2]=100.;
+                        drr[0]=100.; drr[1]=100.; drr[2]=100.;
+              	status=false;  // point has diverged
+              	break;
+                    }
+                    if( domainDimension==2 )
+              	status = fabs(rc[0]-.5) <divergence  && fabs(rc[1]-.5) <divergence; 
+                    else  
+              	status = fabs(rc[0]-.5) <divergence  && fabs(rc[1]-.5) <divergence  && fabs(rc[2]-.5) <divergence;
+                    if( iteration>settledDownIteration && !status )
+                    {
+            // We assume that the iteration should have settled down by this time 
+    	// do not include points that are outside the cell  -- these must be outside the grid.
+              	const real outDist=.6;
+              	if( domainDimension==2 )
+                	  status = status && fabs(drr[0]-.5)<outDist && fabs(drr[1]-.5)<outDist;  
+              	else
+                	  status = status && fabs(drr[0]-.5)<outDist && fabs(drr[1]-.5)<outDist && fabs(drr[2]-.5)<outDist;
+              	if( !status && debug & 2 )
+              	{
+                	  fprintf(pDebugFile," i=%i, it=%i, diverged since it>%i && drr=%8.2e,%8.2e%8.2e |drr-.5|>=%3.1f\n",
+                       	  	 i,iteration,settledDownIteration,drr[0],drr[1],drr[2],.6);
+              	}
+                    }
+          // *wdh* 011013
+                    if( !status )
+                    {
+                        if( debug & 2 )
+                	  fprintf(pDebugFile,"i=%i, it=%i, diverged since r=(%8.2e,%8.2e%8.2e) and |r-.5|>%4.2f\n",
+                     		 i,iteration,rc[0],rc[1],rc[2],divergence);
+    	// point has diverged
+              	break;
+                    }
+                    if( domainDimension==2 )
+                    {
+              	maximumCorrection=max( fabs(dr[0]),fabs(dr[1]) ); 
+                    }
+                    else
+                    {
+              	maximumCorrection=max( fabs(dr[0]),fabs(dr[1]),fabs(dr[2]) );
+                    }
+                    if( fabs(maximumCorrection)>1.e5 )
+                    {
+              	maximumCorrection=0.;
+    	//  printf(" dpmInverse:WARNING: maximum correction = %e \n",maximumCorrection);      
+                    }
+                    if( debug & 2 )
+                    {
+              	fprintf(pDebugFile," i=%i, it=%i, r=(%9.3e,%9.3e,%9.3e) dr=(%7.1e,%7.1e,%7.1e) dr*delta=(%7.1e,%7.1e,%7.1e)"
+                                      " drr=(%7.1e,%7.1e,%7.1e) ia=[%i,%i,%i]\n",i,iteration,
+                     	       rc[0],rc[1],rc[2], dr[0],dr[1],dr[2], dr[0]*delta[0],dr[1]*delta[1],dr[2]*delta[2],
+                     	       drr[0],drr[1],drr[2],ia[0],ia[1],ia[2]);
+                    }
+                    if( maximumCorrection<convergenceTolerance )
+              	break;
+                    if( iteration < maximumNumberOfIterations-1 )
+                    {
+    	// Find the new cell that we should be in 
+              	bool hasChangedCells=false;
+              	for( axis=0; axis<rangeDimension; axis++ )
+              	{
+          //               #If "4" == "2"
+          //               #Else
+                      	    bool mask1=drr[axis]<-eps     && (ia[axis]>(dim(Start,axis)+1));
+                            	    bool mask2=drr[axis]>(1.+eps) && (ia[axis]<(dim(End  ,axis)-2));
+                	  hasChangedCells=hasChangedCells || mask1 || mask2;
+                	  if( mask1 )
+                	  {
+                  	    ia[axis]--; 
+              //                 #If "4" == "2"
+                  	    drr[axis]+=1.;
+                  	    rr[axis]-=1./delta[axis];
+                	  }
+                	  else if( mask2 )
+                	  {
+                  	    ia[axis]++; 
+              //                 #If "4" == "2"
+                  	    drr[axis]-=1.;
+                  	    rr[axis]+=1./delta[axis];
+                	  }
+              	}
+    	// recompute the cell corners for points that have moved.
+          //             #If "4" == "2"
+                    }
+                } // for( iteration....
+                if( false )
+                {
+                    printF("%i : x=(%9.2e,%9.2e,%9.2e) r=(%8.1e,%8.1e,%8.1e) dr=(%8.1e,%8.1e,%8.1e) drr=(%8.1e,%8.1e,%8.1e) \n",
+                    	      i,x(i,0),x(i,1),x(i,2),rc[0],rc[1],rc[2],dr[0],dr[1],dr[2], drr[0],drr[1],drr[2]);
+                }
+                if( !status )
+                {
+                    for( axis=0; axis<domainDimension; axis++ )
+                        R(i,axis)=Mapping::bogus;
+                    if( debug & 2 )
+                        fprintf(pDebugFile,"Skipping point i=%i, x=(%9.2e,%9.2e,%9.2e). No convergence\n",i,x(i,0),
+                              (rangeDimension>1 ? x(i,1) : 0.),(rangeDimension>2 ? x(i,2) : 0.));
+                    continue;
+                }
+                if( status && maximumCorrection > convergenceTolerance*100. )
+                {
+                    if( debug >0 )
+                    {
+              	fprintf(pDebugFile,"***WARNING:dpmInverse maximumCorrection=%9.2e > convergenceTolerance*100.=%9.2e, name=%s\n",
+                                      maximumCorrection,convergenceTolerance*100.,(const char*)getName(mappingName));
+              	if( domainDimension==3 )
+              	{
+                	  fprintf(pDebugFile,"%i : x=(%9.2e,%9.2e,%9.2e) r=(%8.1e,%8.1e,%8.1e) dr=(%8.1e,%8.1e,%8.1e) drr=(%8.1e,%8.1e,%8.1e) \n",
+                     		 i,x(i,0),x(i,1),x(i,2),rc[0],rc[1],rc[2],dr[0],dr[1],dr[2], drr[0],drr[1],drr[2]);
+              	}
+                    }
+                }
+                if( computeMap )
+                {
+                    for( axis=0; axis<domainDimension; axis++ )
+                    {
+              	if( periodic[axis] )
+              	{  // map periodic directions to [0,1]
+                	  R(i,axis)=fmod(rc[axis]+1.,1.);         
+              	}
+                        else
+              	{
+                            R(i,axis)=rc[axis];
+              	}
+                    }
+                }
+                if( computeMapDerivative )
+                {
+                    if( domainDimension==2 )
+                    {
+              	RX(i,axis1,axis1)= xr[axis2][axis2]*det; 
+              	RX(i,axis1,axis2)=-xr[axis1][axis2]*det; 
+              	RX(i,axis2,axis1)=-xr[axis2][axis1]*det; 
+              	RX(i,axis2,axis2)= xr[axis1][axis1]*det; 
+                    }
+                    else if( domainDimension==3 )
+                    {
+              	RX(i,axis1,axis1)=(xr[axis2][axis2]*xr[axis3][axis3]-xr[axis2][axis3]*xr[axis3][axis2])*det;
+              	RX(i,axis2,axis1)=(xr[axis2][axis3]*xr[axis3][axis1]-xr[axis2][axis1]*xr[axis3][axis3])*det;
+              	RX(i,axis3,axis1)=(xr[axis2][axis1]*xr[axis3][axis2]-xr[axis2][axis2]*xr[axis3][axis1])*det;
+              	RX(i,axis1,axis2)=(xr[axis3][axis2]*xr[axis1][axis3]-xr[axis3][axis3]*xr[axis1][axis2])*det;
+              	RX(i,axis2,axis2)=(xr[axis3][axis3]*xr[axis1][axis1]-xr[axis3][axis1]*xr[axis1][axis3])*det;
+              	RX(i,axis3,axis2)=(xr[axis3][axis1]*xr[axis1][axis2]-xr[axis3][axis2]*xr[axis1][axis1])*det;
+              	RX(i,axis1,axis3)=(xr[axis1][axis2]*xr[axis2][axis3]-xr[axis1][axis3]*xr[axis2][axis2])*det;
+              	RX(i,axis2,axis3)=(xr[axis1][axis3]*xr[axis2][axis1]-xr[axis1][axis1]*xr[axis2][axis3])*det;
+              	RX(i,axis3,axis3)=(xr[axis1][axis1]*xr[axis2][axis2]-xr[axis1][axis2]*xr[axis2][axis1])*det;
+                    }
+                }
+            }  // end for( i )
+    }
+    else
+    {
+        Overture::abort("dpmInverse:ERROR: invalid value for orderOfInterpolation");
+    }
+    
+    
+    ExactLocalInverse::timeForExactInverse+=getCPU()-time1;
+
+    real time=getCPU();
+    real newtonTime=time-time1;
+    totalTime+=time-time0;
+  //printf("dpmInverse: time=%8.2e, newton=%8.2e, (approx inverse=%8.2e) cummulative totalTime=%8.2e\n",
+  //     time,newtonTime,time-newtonTime,totalTime);
+    
+}
+
+
+
+void DataPointMapping::
+basicInverse( const realArray & x, realArray & r, realArray & rx, MappingParameters & params )
+{
+#ifndef USE_PPP
+    basicInverseS(x,r,rx,params);
+#else
+    realSerialArray xLocal; getLocalArrayWithGhostBoundaries(x,xLocal);
+    realSerialArray rLocal; getLocalArrayWithGhostBoundaries(r,rLocal);
+    realSerialArray rxLocal; getLocalArrayWithGhostBoundaries(rx,rxLocal);
+    
+    basicInverseS(xLocal,rLocal,rxLocal,params);
+#endif
+
+}

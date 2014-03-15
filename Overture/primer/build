@@ -1,0 +1,38 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+echo "Copy primer files into the $ovDir/primer..."
+
+set primer  = $ovDir/primer
+
+# note: amrh.C comes from the amr directory
+
+# note: example10 is no longer
+
+cp {example}{1,2,3,4,5,6,7,8,9,10}.C             $primer
+cp {mappedGridExample}{1,2,3,3CC,4,5,6}.C        $primer
+cp {mgExample}{1,2}.C                            $primer
+cp {callingFortran.C,mySolver.f,gridPrint.C}     $primer
+cp ChannelMapping.{h,C}                          $primer
+cp {move1,getDt,wave,gridQuery,amrExample1}.C    $primer
+cp {gridGenExample,pwave,pppWave,deform}.C       $primer
+cp {pwaveInputFile,pwave1.cmd,pwave2.cmd}        $primer
+
+# cp plot.s                                      $primer
+# cp {lins}.C                                    $primer
+# cp cshrc.{sun,sgi64}                           $primer
+# cp Makefile.{sun,sgi64,linux}                  $primer
+
+
+
+

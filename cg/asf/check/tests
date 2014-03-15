@@ -1,0 +1,7 @@
+# Here is the executable:
+CGBUILDPREFIX/asf/bin/cgasf
+# here is the name of the check file
+asf.check
+# Here is a list of command files to run for tests
+sinfoil
+sqtz

@@ -1,0 +1,493 @@
+\subsection{Constructor}
+ 
+\newlength{\TrimmedMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\TrimmedMappingIncludeArgIndent}{TrimmedMapping(}% 
+TrimmedMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\TrimmedMappingIncludeArgIndent}{TrimmedMapping(}% 
+TrimmedMapping(Mapping \& surface\_, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}Mapping *outerCurve\_  =NULL, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}const int \& numberOfInnerCurves\_  =0, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}Mapping **innerCurve\_  =NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create a trimmed surface
+\item[{\bf surface (input) :}]  surface to be trimmed
+\item[{\bf outerCurve (input) :}]  curve defining the outer boundary, if NULL then the 
+   outer boundary is the boundary of surface
+\item[{\bf numberOfInnerCurves (input) :}]  number of closed curves in the interior that trim
+    the surface
+\item[{\bf General Notes:}] 
+    In order to evaluate a trimmed mapping we need to decide whether we are inside or outside.
+  To make this determination faster, we divide the domain space (r) with a quadtree mesh:
+ the domain is broken into 4 squares, each of which is subdivided into 4 again, recursively
+ as needed.  Each square is marked whether it lies inside the domain, outside, or partly in
+ and partly out.  It is quick to traverse the quadtree to find which square a given point is
+ in.  If the square is inside or outside we are done.  If it is mixed, we usually have to
+ check the point against only one curve to determine insideness.
+
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\TrimmedMappingIncludeArgIndent}{TrimmedMapping(}% 
+TrimmedMapping(Mapping \& surface\_, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}const int \& numberOfTrimCurves\_  =0, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}Mapping **trimCurves\_  =NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create a trimmed surface
+\item[{\bf surface (input) :}]  surface to be trimmed
+\item[{\bf numberOfTrimCurves\_ (input) :}]  number of closed curves that trim the surface
+\item[{\bf trimCurves\_ (input) :}]  the trimming curves 
+\item[{\bf General Notes:}] 
+    In order to evaluate a trimmed mapping we need to decide whether we are inside or outside.
+  To make this determination faster, we divide the domain space (r) with a quadtree mesh:
+ the domain is broken into 4 squares, each of which is subdivided into 4 again, recursively
+ as needed.  Each square is marked whether it lies inside the domain, outside, or partly in
+ and partly out.  It is quick to traverse the quadtree to find which square a given point is
+ in.  If the square is inside or outside we are done.  If it is mixed, we usually have to
+ check the point against only one curve to determine insideness.
+
+\end{description}
+\subsection{getTriangulationParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{getTriangulationParameters(}%
+getTriangulationParameters( real \& area, real \& minAngle, real \& elementDensity ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Return the values of parameters that control the triangulation.
+\end{description}
+\subsection{setMaxAreaForTriangulation}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{setMaxAreaForTriangulation(}%
+setMaxAreaForTriangulation( real area  =.1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Set the maxmimum area (approximately) for triangles.
+\item[{\bf area (input) :}]  max area for triangles (approx). 0=use default
+\end{description}
+\subsection{setMinAngleForTriangulation}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{setMinAngleForTriangulation(}%
+setMinAngleForTriangulation( real minAngle  =20.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Set the minium angle for the triangulation of the trimmed mapping.
+\item[{\bf minAngle (input) :}]  choosing a smaller value will result in fewer triangles.
+            A negative value means use the default. A value of zero will give the
+           fewest triangles.
+\end{description}
+\subsection{setElementDensityTolerance}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{setElementDensityToleranceForTriangulation(}%
+setElementDensityToleranceForTriangulation( real elementDensity  =.05)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Specify the element denisty tolerance
+\item[{\bf elementDensity (input) :}]  choosing a smaller value will result in more triangles
+    The number of grid points on an edge is based on the ratio of the curvature to the 
+         elementDensity. A negative value means use the default. 
+\end{description}
+\subsection{setCurves}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{setCurves(}%
+setCurves(Mapping \& surface\_, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}const int \& numberOfTrimCurves\_  =0, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}Mapping **trimCurves\_  =NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Specify the surface and trimming curves.
+\item[{\bf surface (input) :}]  surface to be trimmed
+\item[{\bf numberOfInnerCurves (input) :}]  number of closed curves that trim the surface
+\item[{\bf trimCurves\_ (input) :}]  the oriented trim curves that trim the surface
+\end{description}
+\subsection{setUnInitialized}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{setUnInitialized(}%
+setUnInitialized() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Indicate that this Mapping is not up to date. This will destroy the triangulation used to plot it.
+   
+\end{description}
+\subsection{initializeTrimCurves}
+ 
+\begin{flushleft} \textbf{%
+void \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{initializeTrimCurves(}%
+initializeTrimCurves()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  protected
+\item[{\bf Description:}] 
+   
+     Compute trimming curve arclengths, areas, orientation, dRmin, dSmin.
+
+\end{description}
+\subsection{addCurve}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{addTrimCurve(}%
+addTrimCurve(Mapping *newCurve)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Add a trimming curve to the surface
+\item[{\bf newCurve (input) :}]  the new trim curve
+\item[{\bf returns :}]  true if there were no problems with the trimming curve, false otherwise
+\end{description}
+\subsection{deleteTrimCurve}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{deleteTrimCurve(}%
+deleteTrimCurve(int curveToDelete)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    delete a specific trimming curve from the surface. Note : if the curve
+ to be delete is the last counterclockwise curve, then a default trimming
+ curve is built consisting of the untrimmed surface's boundary.
+\item[{\bf curveToDelete :}]  index of the trim curve to be removed
+\item[{\bf returns :}]  returns false if the last counterclockwise trim curve was removed 
+ resulting in the creation of a default outer curve.
+\end{description}
+\subsection{deleteTrimCurve}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{deleteTrimCurve(}%
+deleteTrimCurve( int numberOfCurvesToDelete, int *curvesToDelete)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    delete multiple trimming curves from the surface. Note : if the curve
+ to be delete is the last counterclockwise curve, then a default trimming
+ curve is built consisting of the untrimmed surface's boundary.
+\item[{\bf numberOfCurvesToDelete (input):}]  the length of the array curvesToDelete
+\item[{\bf curvesToDelete (input):}]  an array containing a list of the curves to be deleted
+\item[{\bf returns :}]  returns false if the last counterclockwise trim curve was removed 
+ resulting in the creation of a default outer curve.
+\end{description}
+\subsection{undoDelete}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{undoLastDelete(}%
+undoLastDelete()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  undo the last call to deleteTrimCurve
+\item[{\bf returns :}]  true if successfull,  false otherwise
+\end{description}
+\subsection{initializeQuadTree (protected)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{initializeQuadTree(}%
+initializeQuadTree(bool buildQuadTree  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Initialize things needed by the quad-tree search and optionally build the quad-tree.
+  \begin{itemize}
+     \item initialize the bounding boxes for each of the trimming curves
+     \item Make the array rCurve[c] point to the "grid" for each trimming curve
+     \item determine the rBound array which holds the bounds on the unit square
+        in which conatins the trimmed surface.
+  \end{itemize}
+\end{description}
+\subsection{getOuterCurve}
+ 
+\begin{flushleft} \textbf{%
+Mapping*  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{getOuterCurve(}%
+getOuterCurve()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return a pointer to the outer trimming curve.
+\end{description}
+\subsection{getInnerCurve}
+ 
+\begin{flushleft} \textbf{%
+Mapping*  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{getInnerCurve(}%
+getInnerCurve(const int \& curveNumber)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return a pointer to the inner trimming curve number curveNumber.
+\item[{\bf curveNumber (input) :}]  number of the trimming curve, between 0 and {\tt getNumberOfInnerCurves()}.
+         Return 0 if the curveNumber is invalid.
+\end{description}
+\subsection{curveGoesThrough}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{curveGoesThrough(}%
+curveGoesThrough(const TMquad\& square, const int\& c, int\& segstart, int\& segstop ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  public.
+\item[{\bf Description:}] 
+
+  Determine whether the polygonal curve c goes through the square quadtree
+ node "square".  If so, return true.
+ One may specify starting and stopping segment numbers of the curve.
+ These will be reset to indicate the curve segments which pass through
+ the square.  0 and -1 mean to use all segments.
+
+\end{description}
+\subsection{insideOrOutside}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{insideOrOutside(}%
+insideOrOutside( const realArray \& rr\_, const int \& c )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  protected.
+\item[{\bf Purpose:}]  find if the point rr lies inside the curve c 
+      (actually inside the polygon defined by rCurve(0:n,0:1)) and return
+   the distance to that curve.
+\item[{\bf Method:}] 
+  Use the routine from the mapping inverse to count how many times a vertical ray traced
+  above the point crosses the polygon. 
+   NOTE: points exactly on the boundary are "outside" by this definition
+\item[{\bf rr (input):}]  point the the parameter space of the untrimmed surface.
+\item[{\bf c (input):}]  curve number.
+\item[{\bf distance (output):}]  
+\item[{\bf Return values:}] 
+  \begin{description}
+    \item[+1] if the point is inside the outerCurve (c==1) or oustide the inner curve (c>1)
+    \item[-1] otherwise
+  \end{description}   
+\end{description}
+\subsection{insideOrOutside}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{insideOrOutside(}%
+insideOrOutside( const realArray \& rr, const int \& c, realArray \& distance )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  protected.
+\item[{\bf Purpose:}]  find if the point rr lies inside the curve c 
+      (actually inside the polygon defined by rCurve(0:n,0:1)) and return
+   the distance to that curve. This routine calls the 
+   {\tt insideOrOutside( const realArray \& rr, const int \& c )}
+   function.
+\item[{\bf rr (input):}]  point the the parameter space of the untrimmed surface.
+\item[{\bf c (input):}]  curve number.
+\item[{\bf distance (output):}]  
+\item[{\bf Return values:}] 
+  \begin{description}
+    \item[+1] if the point is inside the outerCurve (c==1) or oustide the inner curve (c>1)
+    \item[-1] otherwise
+  \end{description}   
+\end{description}
+\subsection{findClosestCurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{findClosestCurve(}%
+findClosestCurve(const realArray \& x\_, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}intArray  \& cMin\_, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}realArray \& rC\_, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}realArray \& xC\_, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}realArray \& dist\_,\\ 
+\hspace{\TrimmedMappingIncludeArgIndent}const int \& approximate  =TRUE) 
+}\end{flushleft}
+ / N.B. I HAVE CHANGED THIS: Some changed in the specification are to match the actual
+ code, and some changes in the code are to match the pre-existing specification.
+ But the code has changed in that cMin=-2 has a new, special meaning. (jfp 0399)
+\begin{description}
+\item[{\bf Access:}]  protected.
+\item[{\bf Description:}] 
+   Find the closest curve to a point and/or determine if the point is inside the curve.
+
+\item[{\bf x(R,.) (input) :}]  points in the untrimmed surfaces parameter space
+\item[{\bf cMin(R) (input/output) :}]  If cMin(base)>0, then each cMin(i) is the number of
+ the curve to be used for x(i,.).  If cMin(base)<0, then all curves will be checked,
+ and on output cMin(i) will be the number of the curve nearest x(i,.) (This has been
+ implemented only for the case where x is one point.)
+ When cMin(base)>0, cMin(i)==-2 means to skip computing the projection of x(i,).
+ When cMin(base)=-2, nothing is computed.
+\item[{\bf xC(R,.) (output) :}]  closest point on closest curve
+\item[{\bf dist (output) :}]  dist(R) = minimum distance
+\item[{\bf approximate (input) :}]  if TRUE only determine an approximation to the closest closest point
+     on the closest curve (based on the nearest grid point on the polygonal representation of
+     the curve).
+ 
+\end{description}
+\subsection{findDistanceToACurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{findDistanceToACurve(}%
+findDistanceToACurve(const realArray \& x, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}IntegerArray  \& cMin, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}realArray \& dist,\\ 
+\hspace{\TrimmedMappingIncludeArgIndent}const real \& delta )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  protected.
+\item[{\bf Description:}] 
+   Find the approximate distance to a curve. (approximate if the distance > deltaX )
+
+\item[{\bf x(R,.) (input) :}]  points
+\item[{\bf cMin(R) (input/output) :}]  if >0 on input then use this curve, on output it is the number of closest curve
+\item[{\bf dist (output) :}]  dist(R) = approximate distance
+ 
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{map(}%
+map( const realArray \& r, realArray \& x, realArray \& xr, MappingParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Evaluate the Trimmed and/or derivatives. 
+\item[{\bf NOTE:}]  In order to evaluate a trimmed surface you MUST provided a MappingParameters argument.
+        Otherwise only the untrimmed mapping will be defined.
+  
+\item[{\bf Notes:}] 
+  (1 The array params.mask(I) is returned with the values -1=outside, 0=inside
+   
+  (2) if point i is outside the grid but near the trimmed boundary 
+  the array distanceToBoundary(i) is set to 
+  be the distance (in parameter space) of the point r(i,.) to the nearest
+  trimming curve. The the point is far from the boundary, distance(i) is set to a large value.
+
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{mapGrid(}%
+mapGrid(const realArray \& r, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}realArray \& x, \\ 
+\hspace{\TrimmedMappingIncludeArgIndent}realArray \& xr,\\ 
+MappingParameters \& params  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Map grid points and project grid points that cross a trimming curve
+    onto the trimming curve.  This routine is called by the plotting routine
+    so that trimmed curves are properly plotted.
+\end{description}
+\subsection{hasTriangulation}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{hasTriangulation(}%
+hasTriangulation() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ return true if there is a triangulation computed
+\end{description}
+\subsection{getTriangulation}
+ 
+\begin{flushleft} \textbf{%
+UnstructuredMapping \&  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{getTriangulation(}%
+getTriangulation()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the triangulation for the TrimmedMapping (compute it first if necessary).
+\end{description}
+\subsection{triangulate}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{triangulate(}%
+triangulate( )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Triangulate a TrimmedMapping.
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively create and/or change the Trimmed mapping.
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}
+\subsection{reportTrimCurveInfo}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{reportTrimCurveInfo(}%
+reportTrimCurveInfo(Mapping *c, bool \& curveok)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  return a string describing the state of a trim curve
+\item[{\bf c (input) :}]  the curve in question
+\end{description}
+\subsection{reportTrimmingInfo}
+ 
+\begin{flushleft} \textbf{%
+aString  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{reportTrimmingInfo(}%
+reportTrimmingInfo() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  return a string describing the state of the trimming
+\end{description}
+\subsection{editTrimCurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{editTrimCurve(}%
+editTrimCurve( Mapping \&trimCurve, MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively edit a trim curve
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}
+\subsection{editNurbsTrimCurve}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TrimmedMappingIncludeArgIndent}{editNurbsTrimCurve(}%
+editNurbsTrimCurve( NurbsMapping \&trimCurve, MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively edit  a nurbs trim curve
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}

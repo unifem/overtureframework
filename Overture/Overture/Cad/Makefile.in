@@ -1,0 +1,43 @@
+#
+#
+
+
+GridFunction= ../GridFunction
+GridGenerator=../GridGenerator
+boxlib=       ../boxlib
+Mapping=      ../Mapping
+templates=    ../templates
+Oges=         ../Oges
+Ogshow=       ../Ogshow
+DataBase=     ../DataBase
+Grid=         ../Grid
+FVO=          ../FiniteVolumeOperators
+otherStuff=   ../otherStuff
+Ogmg=         ../Ogmg
+
+.SUFFIXES:
+.SUFFIXES:.C .o
+.C.o:; $(CC) $(CCFLAGS) $(CC_SUN5_TEMPLATEFLAG)  -c $*.C
+
+
+default: depend_date rap_date
+
+# Here is the static rap library
+rapFiles= rapNewModel.o rapEditModel.o rapSurfaceGrids.o rapVolumeGrids.o rapSimpleGeometry.o \
+          rapUtil.o Edge.o Point.o nurbsCurveEditor.o linerGeometry.o ModelBuilder.o \
+          SphereLoading.o RandomSampling.o fillVolumeWithSpheres.o
+rap_date: $(rapFiles)
+	  $(AR) $(ARFLAGS) rap.a $(rapFiles)
+	  $(RANLIB) rap.a
+	  touch $@
+
+Source = ${rapFiles:.o=.C}
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+clean:	
+	rm *.o *~
+
+.PRECIOUS:rap_date depend_date

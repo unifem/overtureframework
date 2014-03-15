@@ -1,0 +1,45 @@
+
+
+To use the document extraction program extract.p (~henshaw/bin/extract.p)
+
+  1) The file test.C in this directory ($Overture/extract/test.C) shows examples of how to add
+     comments to your file.
+
+  2) Run "extract.p test.C". This will generate the file testInclude.tex.
+
+  3) Run "latex document", this will include testInclude.tex, then look at document.dvi
+
+
+  4) Annotated example: (see -- comments to the right)
+
+ //\begin{>>testInclude.tex}{\subsection{gradient}}                       --- use >> to append, > to start a new file
+ MappedGrid::int MappedGridOperators::
+ gradient(realArray & x,          /* = nullRealArray */                   --- add default args as comments
+ 	  const intArray & y,     // = nullIntArray
+ 	  const floatArray & z,   // = nullFloatArray
+          real a /* = 1. */, 
+          real b /* = 2. */ ) :  baseGradient(),
+     x(1.), y(2.)
+ //=============================================================
+ //
+ // /Purpose:                                                            --- anything between a "/" and ":" will
+ //   The purpose of this routine is to compute the gradient of          --- be highlighted.
+ //   a realArray, $x=\grad y$                                           --- all comments should be valid latex.
+ //
+ // /x(all,all,all,numberOfDimensions) (input) : the vector              -- "/" ... ":" appears again here
+ //       x is used to compute the gradient.
+ // /y (output) : the vector y
+ //
+ // /Return Values: ~
+ //   \begin{itemize}
+ //     \item 0 : success
+ //     \item 1 : error
+ //   \end{itemize}
+ // /Errors:
+ //   none
+ //  
+ //\end{testInclude.tex}                                                --- This marks the end of the comments
+ //===============================================================
+
+
+    

@@ -1,0 +1,26 @@
+\section{Class GridCollectionOperators and Class \CGO}\index{GridCollectionOperators}
+
+This class is used to define differential operators for {\ff \RCGF}'s.
+It uses the {\ff \MGO} class to do this. The class {\ff \CGO} is 
+actually derived from the class {\ff \GCO}. Most of the member
+functions are defined in the base class. For the discussion here,
+however, we will pretend that the functions are defined in 
+class {\ff \CGO}.
+
+\subsection{Public member function and member data descriptions}
+
+\input GridCollectionOperatorsInclude.tex
+
+
+\vfill\eject
+\subsection{Example 1: Operators applied to a {\ff realCompositeGridFunction}} \label{sec:cgoex}
+\index{GridCollectionOperators!examples}
+
+In this example we use the CompositeGridOperators to compute some derivatives.
+This example is similar to the example described in section (\ref{sec:mgoex}),
+see the comments there for more information.
+(file {\ff \examples /tcgo.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/tcgo.C}
+}
+

@@ -1,0 +1,16 @@
+# See the Readme file for instructions
+# Here is the executable:
+../hype
+# here is the name of the check file
+hype.check
+# 
+# --- 2D ---
+#
+bump2d.check ../cmd/bump2d.cmd 
+bumpp.check ../cmd/bumpp.cmd 
+#
+# --- 3D ---
+#
+planeMatchToCylinder.check ../cmd/planeMatchToCylinder.cmd
+cubeInABoxHypeGrids.check ../cmd/cubeInABoxHypeGrids.cmd
+loftedBoxHypeGrids.check ../cmd/loftedBoxHypeGrids.cmd

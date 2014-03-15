@@ -1,0 +1,112 @@
+\subsection{Constructor}
+ 
+\newlength{\RevolutionMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\RevolutionMappingIncludeArgIndent}{RevolutionMapping(}% 
+RevolutionMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\RevolutionMappingIncludeArgIndent}{RevolutionMapping(}% 
+RevolutionMapping(Mapping \& revolutionary\_, \\ 
+\hspace{\RevolutionMappingIncludeArgIndent}const real startAngle\_  =0., \\ 
+\hspace{\RevolutionMappingIncludeArgIndent}const real endAngle\_  =1.,\\ 
+const RealArray \& lineOrigin\_  =Overture::nullRealDistributedArray(),\\ 
+const RealArray \& lineTangent\_  =Overture::nullRealDistributedArray()
+\hspace{\RevolutionMappingIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  This constructor takes a mapping to revolve plus option parameters
+\item[{\bf revolutionary\_ (input) :}]  mapping to revolve.
+\item[{\bf startAngle\_ (input) :}]  starting "angle" (in [0,1]) for the reolution.
+\item[{\bf endAngle\_ (input) :}]  ending "angle" (in [0,1]) for the revolution.
+\item[{\bf lineOrigin\_ (input) :}]  the point of origin for the line of revolution.
+\item[{\bf lineTangent\_ (input) :}]  the tangent to the line of revolution.
+\end{description}
+\subsection{setRevolutionAngle}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\RevolutionMappingIncludeArgIndent}{setRevolutionAngle(}%
+setRevolutionAngle(const real startAngle\_  =0., \\ 
+\hspace{\RevolutionMappingIncludeArgIndent}const real endAngle\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Define the angle through which the revolution progresses.
+\item[{\bf startAngle\_ (input) :}]  starting "angle" (in [0,1]) for the revolution.
+\item[{\bf endAngle\_ (input) :}]  ending "angle" (in [0,1]) for the revolution.
+\end{description}
+\subsection{getRevolutionAngle}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\RevolutionMappingIncludeArgIndent}{getRevolutionAngle(}%
+getRevolutionAngle( real \& startAngle\_, \\ 
+\hspace{\RevolutionMappingIncludeArgIndent}real \& endAngle\_  )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Get the bounding angles in the revolution progresses.
+\item[{\bf startAngle\_ (input) :}]  starting "angle" for the revolution.
+\item[{\bf endAngle\_ (input) :}]  ending "angle" for the revolution.
+\end{description}
+\subsection{setParameterAxes}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\RevolutionMappingIncludeArgIndent}{setParameterAxes(}%
+setParameterAxes( const int \& revAxis1\_, const int \& revAxis2\_, const int \& revAxis3\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Define the parameter axes the mapping. The 2D mapping will
+   be evaluated with {\tt (r(I,revAxis1),\-r(I,revAxis2))} while {\tt r(I,revAxis3)}
+   will correspond to the angle of revolution $\theta$.
+   The choice of these variables is normally only important if the body of revolution
+   has a spherical polar singularity at one or both ends and the user wants to remove
+   the singularity using the orthographic projection.(reparameterization option). The
+   orthographic project expects the mapping to parameterized like a sphere with
+   the parameters in the order $(\phi,\theta,r)$. 
+
+  \begin{description}
+    \item[revAxis1] The axis corresponding to $\phi$ in a spherical coordinate systems 
+         or the axial variable $s$ in cylindrical  coordinates. {\tt revAxis1} will
+         normally be $0$ (or $1$) and correspond to the axial like variable in the 2D mapping
+         that is being revolved.
+    \item[revAxis2] The axis corresponding to $r$ in a spherical coordinate system. Normally
+          {revAxis2=2} so the axial variable appears last.
+    \item[revAxis3] The axis corresponding to $\theta$ in a spherical coordinate system. Normally
+        {revAxis3=1}.
+  \end{description}
+   
+\item[{\bf revAxis1\_,revAxis2\_,revAxis3\_ (input) :}]  A permutation of (0,1,2).
+\end{description}
+\subsection{setRevolutionary}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\RevolutionMappingIncludeArgIndent}{setRevolutionary(}%
+setRevolutionary(Mapping \& revolutionary\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Define the mapping that will be revolved.
+\item[{\bf revolutionary\_input) :}]  mapping to revolve.
+\end{description}
+\subsection{setLineOfRevolution}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\RevolutionMappingIncludeArgIndent}{setLineOfRevolution(}%
+setLineOfRevolution(const RealArray \& lineOrigin\_,\\ 
+\hspace{\RevolutionMappingIncludeArgIndent}const RealArray \& lineTangent\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Define the point of origin and the tangent of the line of revolution. 
+ *For now this point and line must
+    lie in the x-y plane (lineOrigin\_(2)==0, lineTangent\_(2)==0)
+\item[{\bf lineOrigin\_ (input) :}]  the point of origin for the line of revolution. For
+    now we require lineOrigin\_(2)==0.
+\item[{\bf lineTangent\_ (input) :}]  the tangent to the line of revolution with lineTangent\_(2)==0
+\end{description}

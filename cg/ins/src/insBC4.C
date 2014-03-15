@@ -1,0 +1,2844 @@
+// This file automatically generated from insBC4.bC with bpp.
+#include "Cgins.h"
+#include "display.h"
+#include "Parameters.h"
+#include "ParallelUtility.h"
+#include "ParallelGridUtility.h"
+#include "InsParameters.h"
+#include "Insbc4WorkSpace.h"
+#include "App.h"
+
+// ===================================================================================
+//   This macro extracts the boundary data arrays
+//
+//  *wdh* 110312 THIS WAS COPIED FROM cg/sm/src -- FIX ME ---
+// ===================================================================================
+
+
+#define inscr EXTERN_C_NAME(inscr)
+#define insbc4 EXTERN_C_NAME(insbc4)
+#define bcOptTemperature EXTERN_C_NAME(bcopttemperature)
+extern "C"
+{
+//     void insbc4(const int& nd,
+//         const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+//         const int&nd4a,const int&nd4b,const int&gridIndexRange,const int&bc,
+//         real&u,const int& mask,const real&gv, const real&xy, const real&rsxy,
+//         const int&  ipar,const real& rpar, int& ierr );
+
+void inscr( const int&kd1,const int&ks1,const int&kd2,const int&ks2,const int&nd,const int&gridIndexRange,
+                        const int&bc,const int&ndra,const int&ndrb,const int&ndsa,const int&ndsb,const int&ndta,
+                        const int&ndtb,real&u,const real&t,const real&d14,const real&d24,const real&ajs,
+                        const real&xy,const real&rsxy );
+
+void insbc4(const int&bcOption,const int&nd,const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,
+                        const int&nd3a,const int&nd3b,const int&nd4a,const int&nd4b,
+                        const int&ipar,const real&rpar, real&u, const int&mask, const real&x,const real&rx, 
+                        const real &gridVelocity, const real&gtt,
+                        const int&bc, const int&indexRange, const int&ierr );
+
+//       subroutine bcOptTemperature( nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,//                           gridIndexRange, u, mask,rsxy, xy, boundaryCondition, //                           addBoundaryForcing, interfaceType, ndb, bcData,  //                           dim, bcf0, bcOffset, ipar, rpar, ierr )
+
+void bcOptTemperature( const int&nd, 
+                                              const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+                   		       const int&gridIndexRange, const int& dimRange, const int &isPeriodic, real&u, const int&mask,
+                                              const real&rsxy, const real&xy, const int&boundaryCondition, 
+                   		       const int&addBoundaryForcing, const int&interfaceType, const int&ndb, const real&bcData,  
+                   		       const int&dim, const real&bcf0, const int64_t & bcfOffset, 
+                                              const int&ipar, const real&rpar, int&ierr );
+
+
+}
+
+
+
+
+
+
+
+// Define fourth order derivatives
+#define U u
+#define UR4 UR4A
+#define US4 US4A
+#define UT4 UT4A
+#include "cgux4a.h"
+
+#define fu1(m,ib) pfu1[m+ndf*(ib)]
+#define fu2(m,ib) pfu2[m+ndf*(ib)]
+
+#define ibe(m,ib) pibe[m+3*(ib)]
+
+#define u(i1,i2,i3,n) pu[i1-ndra+ndr*(i2-ndsa+nds*(i3-ndta+ndt*(n)))]
+#define u0(i1,i2,i3,n) pu0[i1-ndra0+ndr0*(i2-ndsa0+nds0*(i3-ndta0+ndt0*(n)))]
+
+
+void
+insbe1( const int iopt, int *pibe, const int nib, const int kd, const int ks, const int ndf, real *pfu1, real *pfu2,
+                real t, realMappedGridFunction & ua, const realArray & inverseVertexDerivative,
+                const int ndra, const int ndrb, const int ndsa, const int ndsb, const int ndta, const int ndtb, 
+                real *pu, const IntegerArray & ipar, const RealArray & rpar,
+                OGFunction & e )
+// =============================================================================================================
+//  /Description:
+//
+//  Evaluate two boundary conditions used to determine the tangential components of the
+//  velocity at the 2 ghost points. This function is called by applyFourthOrderBoundarys.
+//
+//  /iopt (input): 
+//    iopt : = 0 : Normal evaluation
+//           = 1 : use when evaluating coefficients by delta function
+//                 approach, Only return anu*Delta \uv (leave off
+//                 lower order terms)
+//           = 2 : as with iopt=1 but only return utan(3) (as other
+//                 quantities are indepenent of the solution)
+//  /pibe, nib (input) : Evaluate equations at the points ibe(0:2,ib) ib=0,...,nib-1; here pibe is the pointer 
+//            to the start of the ibe array.
+//  /kd,ks (input) : side we are on
+//  /ndf,pfu1,pfu2 : output results in fu1(.,ib), fu2(.,ib) ib=0,...,nib-1;
+//
+//
+//  /NOTES:
+//      o insbe will use only the tangential component of the
+//         two conditions returned by this routine
+//      o D+^6 below is really D+^(ibcex)   ibcex=6 by default
+//
+//    o No-slip wall
+//       1) return the momentum equation
+//           nu \Delta u = ....   -> fu1(kdd,ib)
+//       2) extrapolate the velocity
+//          D+^6 u = ....   -> fu2(kdd,ib)
+//    o  Slip-wall:
+//       1) Return (u).n   (since we will impose  \tv.[ (u.n) ] =0 )
+//           u.n   -> fu1(kdd,ib)
+//       2) Approximate u.nnn=0 by
+//          D+^3 u = ....   -> fu2(kdd,ib)
+//    o Outflow:
+//       1) Return (u).nn
+//           u.nn  -> fu1(kdd,ib)
+//       2) extrapolate the velocity
+//          D+^6 u = ....   -> fu2(kdd,ib)
+//    o Inflow bc=2,3,7 (u=, v=)
+//       1) Return (u).nn    ************* why do this instead of using eqn? --> no need for guess for p ...
+//           u.nn  -> fu1(kdd,ib)            ...also nonlinear terms appear which may cause problems
+//       2) extrapolate the velocity
+//          D+^6 u = ....   -> fu2(kdd,ib)
+//
+//
+//
+//======================================================================
+{
+    int debug=ipar(0);
+
+// define coefficients of extrapolation formulae
+    const real cxp[5][7]={-1.,2.,-1.,0.,0.,0.,0.,
+                                                -1.,3.,-3.,+1.,0.,0.,0.,
+                                                -1.,4.,-6.,4.,-1.,0.,0.,
+                  			-1.,5.,-10.,+10.,-5.,1.,0.,
+                  			-1.,6.,-15.,+20.,-15.,6.,-1. };
+#define cx(i,ord) cxp[ord-2][i]
+        
+
+    const real cxnp[5][5]={-1.,2.,-1.,0.,0.,
+                                                  -1.,3.,-3.,+1.,0.,
+                                                  -1.,4.,-6.,4.,-1.,
+                   			 -1.,5.,-10.,+10.,-5.,
+                   			 -1.,6.,-15.,+20.,-15. };
+#define cxn(i,ord) cxnp[ord-2][i]
+
+//     ---general extrapolation formula up to D+^6
+#define XX(n1,n2,i1,i2,i3,kd,iord) (cx(0,iord)*u(i1     ,i2     ,i3,kd)+cx(1,iord)*u(i1+  n1,i2+  n2,i3,kd)+cx(2,iord)*u(i1+2*n1,i2+2*n2,i3,kd)+cx(3,iord)*u(i1+3*n1,i2+3*n2,i3,kd)+cx(4,iord)*u(i1+4*n1,i2+4*n2,i3,kd)+cx(5,iord)*u(i1+5*n1,i2+5*n2,i3,kd)+cx(6,iord)*u(i1+6*n1,i2+6*n2,i3,kd) )
+
+//     ---narrow form of the extrapolation formula
+#define XXN(n1,n2,i1,i2,i3,kd,iord) (cxn(0,iord)*u(i1     ,i2     ,i3,kd)+cxn(1,iord)*u(i1+  n1,i2+  n2,i3,kd)+cxn(2,iord)*u(i1+2*n1,i2+2*n2,i3,kd)+cxn(3,iord)*u(i1+3*n1,i2+3*n2,i3,kd)+cxn(4,iord)*u(i1+4*n1,i2+4*n2,i3,kd))
+
+#define X2(n1,n2,i1,i2,i3,kd) (-u(i1     ,i2     ,i3,kd)+ 2.*u(i1+  n1,i2+  n2,i3,kd)-    u(i1+2*n1,i2+2*n2,i3,kd) )
+
+#define X3(n1,n2,i1,i2,i3,kd) (-u(i1     ,i2     ,i3,kd)+ 3.*u(i1+  n1,i2+  n2,i3,kd)- 3.*u(i1+2*n1,i2+2*n2,i3,kd)+    u(i1+3*n1,i2+3*n2,i3,kd))
+
+#define X4(n1,n2,i1,i2,i3,kd) (-    (u(i1     ,i2     ,i3,kd)+u(i1+4*n1,i2+4*n2,i3,kd))+ 4.*(u(i1+  n1,i2+  n2,i3,kd)+u(i1+3*n1,i2+3*n2,i3,kd))- 6.* u(i1+2*n1,i2+2*n2,i3,kd) )
+
+//   ...extrapolate velocity in 3D
+#define XT3(n1,n2,n3,i1,i2,i3,kd) (  -    u(i1     ,i2     ,i3     ,kd)  + 3.*u(i1+  n1,i2+  n2,i3+  n3,kd)  - 3.*u(i1+2*n1,i2+2*n2,i3+2*n3,kd)  +    u(i1+3*n1,i2+3*n2,i3+3*n3,kd))
+#define XT6(n1,n2,n3,i1,i2,i3,kd)(  -    u(i1     ,i2     ,i3     ,kd)  + 6.*u(i1+  n1,i2+  n2,i3+  n3,kd)  -15.*u(i1+2*n1,i2+2*n2,i3+2*n3,kd)  +20.*u(i1+3*n1,i2+3*n2,i3+3*n3,kd)  -15.*u(i1+4*n1,i2+4*n2,i3+4*n3,kd)  + 6.*u(i1+5*n1,i2+5*n2,i3+5*n3,kd)  -    u(i1+6*n1,i2+6*n2,i3+6*n3,kd))
+//     ...narrow formula assumes u=0 outside...
+#define XT6N(n1,n2,n3,i1,i2,i3,kd)(  -    u(i1     ,i2     ,i3     ,kd)  + 6.*u(i1+  n1,i2+  n2,i3+  n3,kd)  -15.*u(i1+2*n1,i2+2*n2,i3+2*n3,kd)  +20.*u(i1+3*n1,i2+3*n2,i3+3*n3,kd)  -15.*u(i1+4*n1,i2+4*n2,i3+4*n3,kd))
+
+// ***** Here are the momentum equations ****
+//     ---Here are the momemtum equations in 2D split
+//        into two pieces, du2 contains the linear terms
+//        without grad p (in this case the viscous terms),
+//        and du2f holds the rest
+
+// do this for now: ***************************************** fix this ********************
+#define u0bt(i1,i2,i3,kd,t) e.t(xyz(i1,i2,i3,0),xyz(i1,i2,i3,1),z0,kd,t)
+#define u0bt3d(i1,i2,i3,kd,t) e.t(xyz(i1,i2,i3,0),xyz(i1,i2,i3,1),xyz(i1,i2,i3,2),kd,t)
+
+// we could include u.grad u in du2 but then we would need to refactor when u changes
+#define  DU2(i1,i2,i3,kd) ( nu*(LAPLACIAN42(i1,i2,i3,kd))- anl*(u0(i1,i2,i3,uc)*UX42(i1,i2,i3,kd) +u0(i1,i2,i3,vc)*UY42(i1,i2,i3,kd)) )
+#define  DU2F1(i1,i2,i3,kd) ( UX42(i1,i2,i3,pc) +u0bt(i1,i2,i3,kd,t) )
+#define  DU2F2(i1,i2,i3,kd) ( UY42(i1,i2,i3,pc) +u0bt(i1,i2,i3,kd,t) )
+
+// ***use these instead DO NOT INCLUDE TIME DERIVATIVE TERM HERE ****
+#define  DU2A(i1,i2,i3,kd) ( nu*LAPLACIAN42(i1,i2,i3,kd) )
+#define  DU2F1A(i1,i2,i3,kd) ( UX42(i1,i2,i3,pc) +anl*(u0(i1,i2,i3,uc)*UX42(i1,i2,i3,kd) +u0(i1,i2,i3,vc)*UY42(i1,i2,i3,kd)) )
+#define  DU2F2A(i1,i2,i3,kd) ( UY42(i1,i2,i3,pc) +anl*(u0(i1,i2,i3,uc)*UX42(i1,i2,i3,kd) +u0(i1,i2,i3,vc)*UY42(i1,i2,i3,kd)) )
+
+#define X0(i1,i2,i3) xyz(i1,i2,i3,0)
+#define Y0(i1,i2,i3) xyz(i1,i2,i3,1)
+#define Z0(i1,i2,i3) xyz(i1,i2,i3,2)
+
+// In this version we use the analytic solution on the nonlinear term for testing stability
+#define  DU2B(i1,i2,i3,kd) ( nu*LAPLACIAN42(i1,i2,i3,kd) )
+#define  DU2F1B(i1,i2,i3,kd) ( UX42(i1,i2,i3,pc) +anl*(e(X0(i1,i2,i3),Y0(i1,i2,i3),z0,uc,t)*e.x(X0(i1,i2,i3),Y0(i1,i2,i3),z0,kd,t) +e(X0(i1,i2,i3),Y0(i1,i2,i3),z0,vc,t)*e.y(X0(i1,i2,i3),Y0(i1,i2,i3),z0,kd,t) ) +u0bt(i1,i2,i3,kd,t) )
+#define  DU2F2B(i1,i2,i3,kd) ( UY42(i1,i2,i3,pc) +anl*(e(X0(i1,i2,i3),Y0(i1,i2,i3),z0,uc,t)*e.x(X0(i1,i2,i3),Y0(i1,i2,i3),z0,kd,t) +e(X0(i1,i2,i3),Y0(i1,i2,i3),z0,vc,t)*e.y(X0(i1,i2,i3),Y0(i1,i2,i3),z0,kd,t) ) +u0bt(i1,i2,i3,kd,t) )
+//     ...here are the momentum equations in 2D for Twilight-zone
+#define  FB1(x0,y0,z0,t0) ( -nu*(e.xx(x0,y0,z0,uc,t0)+e.yy(x0,y0,z0,uc,t0)) +anl*(e(x0,y0,z0,uc,t0)*e.x(x0,y0,z0,uc,t0)+e(x0,y0,z0,vc,t0)*e.y(x0,y0,z0,uc,t0)) +e.x(x0,y0,z0,pc,t0)+e.t(x0,y0,z0,uc,t0) )
+
+#define FB2(x0,y0,z0,t0)( -nu*(e.xx(x0,y0,z0,vc,t0)+e.yy(x0,y0,z0,vc,t0)) +anl*(e(x0,y0,z0,uc,t0)*e.x(x0,y0,z0,vc,t0)+e(x0,y0,z0,vc,t0)*e.y(x0,y0,z0,vc,t0)) +e.y(x0,y0,z0,pc,t0)+e.t(x0,y0,z0,vc,t0) )
+
+//     ---Here are the momemtum equations in 3D split
+//        into two pieces, du3 contains the linear terms
+//        without grad p (in this case the viscous terms),
+//        and du3f holds the rest
+//         ++++ use (u,v,w) in nonlinear terms ++++
+//     ---add artificial diffusion too
+// ********** DO NOT INCLUDE TIME DERIVATIVE TERM HERE  ************** FIX for moving grids
+#define DU3(i1,i2,i3,kd) ( nu*LAPLACIAN43(i1,i2,i3,kd) )
+#define DU3F1(i1,i2,i3,kd) ( UX43(i1,i2,i3,pc)+anl*( u0(i1,i2,i3,uc)*UX43(i1,i2,i3,kd)+  u0(i1,i2,i3,vc)*UY43(i1,i2,i3,kd)+  u0(i1,i2,i3,wc)*UZ43(i1,i2,i3,kd) ) )
+#define DU3F2(i1,i2,i3,kd) ( UY43(i1,i2,i3,pc) +anl*( u0(i1,i2,i3,uc)*UX43(i1,i2,i3,kd)+  u0(i1,i2,i3,vc)*UY43(i1,i2,i3,kd)+  u0(i1,i2,i3,wc)*UZ43(i1,i2,i3,kd) ) )
+#define DU3F3(i1,i2,i3,kd) ( UZ43(i1,i2,i3,pc) +anl*( u0(i1,i2,i3,uc)*UX43(i1,i2,i3,kd)+  u0(i1,i2,i3,vc)*UY43(i1,i2,i3,kd)+  u0(i1,i2,i3,wc)*UZ43(i1,i2,i3,kd) ) )
+//    Here are versions for tz flow where the nonlinear terms are treated with the exact solution
+#define DU3B(i1,i2,i3,kd) ( nu*LAPLACIAN43(i1,i2,i3,kd) )
+#define DU3F1B(i1,i2,i3,kd) ( UX43(i1,i2,i3,pc)+anl*( e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),uc,t)*e.x(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t)+  e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),vc,t)*e.y(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t)+  e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),wc,t)*e.z(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t) ) +u0bt3d(i1,i2,i3,kd,t) )
+#define DU3F2B(i1,i2,i3,kd) ( UY43(i1,i2,i3,pc) +anl*( e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),uc,t)*e.x(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t)+  e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),vc,t)*e.y(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t)+  e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),wc,t)*e.z(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t) ) +u0bt3d(i1,i2,i3,kd,t) )
+#define DU3F3B(i1,i2,i3,kd) ( UZ43(i1,i2,i3,pc) +anl*( e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),uc,t)*e.x(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t)+  e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),vc,t)*e.y(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t)+  e(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),wc,t)*e.z(X0(i1,i2,i3),Y0(i1,i2,i3),Z0(i1,i2,i3),kd,t) ) +u0bt3d(i1,i2,i3,kd,t) )
+
+
+
+//  ...here are the momentum equations in 3D for Twilight-zone
+#define F31(x0,y0,z0,t0) ( e.t(x0,y0,z0,uc,t0)  +anl*(e(x0,y0,z0,uc,t0)*e.x(x0,y0,z0,uc,t0)  +e(x0,y0,z0,vc,t0)*e.y(x0,y0,z0,uc,t0)  +e(x0,y0,z0,wc,t0)*e.z(x0,y0,z0,uc,t0))  + e.x(x0,y0,z0,pc,t0)  - nu*( e.xx(x0,y0,z0,uc,t0)+e.yy(x0,y0,z0,uc,t0)+e.zz(x0,y0,z0,uc,t0) ) )
+#define F32(x0,y0,z0,t0) ( e.t(x0,y0,z0,vc,t0)  +anl*(e(x0,y0,z0,uc,t0)*e.x(x0,y0,z0,vc,t0)  +e(x0,y0,z0,vc,t0)*e.y(x0,y0,z0,vc,t0)  +e(x0,y0,z0,wc,t0)*e.z(x0,y0,z0,vc,t0))  + e.y(x0,y0,z0,pc,t0)  - nu*( e.xx(x0,y0,z0,vc,t0)+e.yy(x0,y0,z0,vc,t0)+e.zz(x0,y0,z0,vc,t0) ) )
+#define F33(x0,y0,z0,t0) ( e.t(x0,y0,z0,wc,t0)  +anl*(e(x0,y0,z0,uc,t0)*e.x(x0,y0,z0,wc,t0)  +e(x0,y0,z0,vc,t0)*e.y(x0,y0,z0,wc,t0)  +e(x0,y0,z0,wc,t0)*e.z(x0,y0,z0,wc,t0))  + e.z(x0,y0,z0,pc,t0)  - nu*( e.xx(x0,y0,z0,wc,t0)+e.yy(x0,y0,z0,wc,t0)+e.zz(x0,y0,z0,wc,t0) ) )
+
+    const int ndr=ndrb-ndra+1;
+    const int nds=ndsb-ndsa+1;
+    const int ndt=ndtb-ndta+1;
+    
+    int ibcex=6;  // *** this should be an input parameter
+
+    const int pc=ipar(1);
+    const int uc=ipar(2);
+    const int vc=ipar(3);
+    const int wc=ipar(4);
+    const int twilightZoneFlow=ipar(13);
+
+    const real nu=rpar(4);
+    assert( nu >= 0. && nu<1.e10 );
+    const real anl=rpar(6);
+    assert( anl==0. || anl==1. );
+
+    MappedGrid & mg = *ua.getMappedGrid();
+    const IntegerArray & bc = mg.boundaryCondition();
+    const realArray & xyz = mg.vertex();
+    
+    const int nd=mg.numberOfDimensions();
+    const int numberOfDimensions=nd;
+    
+    assert( pu!=NULL );
+    assert( ks>=0 && ks<=1 );
+    assert( kd>=0 && kd<=nd );
+    assert( iopt>=0 && iopt<=1 );
+    assert( nd>=2 && nd<=3 );
+    assert( pc>=0 && uc>=0 );
+    assert( vc==uc+1 );
+    assert( wc==vc+1 || nd<3 );
+    assert( pc!=uc );
+    
+  // u0(i1,i2,i3,m) : always points to the current solution
+  //                  if iopt==1 then u0 should be obtained from ua rather than pu[...]
+  //                  since pu is the "discrete delta function"
+    real *pu0;
+    int ndra0,ndrb0,ndsa0,ndsb0,ndta0,ndtb0,ndr0,nds0,ndt0;
+    if( iopt==0 )
+    {
+        pu0=pu;
+        ndra0=ndra; ndrb0=ndrb; ndsa0=ndsa; ndsb0=ndsb; ndta0=ndta; ndtb0=ndtb; 
+        ndr0=ndr; nds0=nds; ndt0=ndt; 
+    }
+    else
+    {
+        pu0=getDataPointer(ua);
+        ndra0=ua.getBase(0); ndrb0=ua.getBound(0);
+        ndsa0=ua.getBase(1); ndsb0=ua.getBound(1);
+        ndta0=ua.getBase(2); ndtb0=ua.getBound(2);
+    }
+    ndr0=ndrb0-ndra0+1;
+    nds0=ndsb0-ndsa0+1;
+    ndt0=ndtb0-ndta0+1;
+
+        
+    const realArray & normal = mg.vertexBoundaryNormal(ks,kd);
+    
+
+    int kdd,ib,i1,i2,i3;
+
+    real d12p[3],d22p[3],d14p[3],d24p[3];
+    real h21p[3],h22p[3],h41p[3],h42p[3]; 
+
+#define d12(m) d12p[m]
+#define d22(m) d22p[m]
+#define d14(m) d14p[m]
+#define d24(m) d24p[m]
+//  if( !rectangular )
+    {
+        for( int axis=0; axis<3; axis++ )
+        {
+            d12(axis)=1./(2.*mg.gridSpacing(axis));  
+            d22(axis)=1./SQR(mg.gridSpacing(axis));
+
+            d14(axis)=1./(12.*mg.gridSpacing(axis));
+            d24(axis)=1./(12.*SQR(mg.gridSpacing(axis)));
+        }
+    }
+//    else
+//    {
+//      for( int axis=0; axis<3; axis++ )
+//      {
+//          h21(axis)=1./(2.*dx[axis]); 
+//          h22(axis)=1./SQR(dx[axis]);
+//          h41(axis)=1./(12.*dx[axis]);
+//          h42(axis)=1./(12.*SQR(dx[axis]));
+//      }
+//    }
+
+    real xvp[3];
+#define xv(m) xvp[m]
+    
+    real z0=0.;
+    
+    if( nd==2 )
+    {
+    // *************** 2D **********************
+        z0=0.;
+        xv(2)=0.;
+        if( bc(ks,kd)==Parameters::slipWall ) // **this is no longer used ****
+        {
+      //  ---slip wall, return n.grad u  (since we will impose  \tv.(n.grad u)=0 )
+            for( ib=0; ib<nib; ib++ )
+            {
+      	i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+      	fu1(0,ib)=(normal(i1,i2,i3,0)*UX42(i1,i2,i3,uc)+
+               		   normal(i1,i2,i3,1)*UY42(i1,i2,i3,uc));
+      	fu1(1,ib)=(normal(i1,i2,i3,0)*UX42(i1,i2,i3,vc)+
+               		   normal(i1,i2,i3,1)*UY42(i1,i2,i3,vc));
+            }
+            if( twilightZoneFlow && iopt==0 )
+            {
+        //  ...add twilight zone forcing
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  xv(0)=xyz(i1,i2,i3,0);
+        	  xv(1)=xyz(i1,i2,i3,1);
+        	  fu1(0,ib)-=(normal(i1,i2,i3,0)*e.x(xv(0),xv(1),xv(2),uc,t)+
+                  		      normal(i1,i2,i3,1)*e.y(xv(0),xv(1),xv(2),uc,t) );
+            	      
+        	  fu1(1,ib)-=(normal(i1,i2,i3,0)*e.x(xv(0),xv(1),xv(2),vc,t)+
+                  		      normal(i1,i2,i3,1)*e.y(xv(0),xv(1),xv(2),vc,t) );
+      	}
+            }
+        }
+        else if( bc(ks,kd)==InsParameters::outflow ||
+                          bc(ks,kd)==InsParameters::inflowWithVelocityGiven )
+        {
+      // ---bc=21, outflow, bc=2, inflow: u.nn=  **** why not just use : ( D+D- \uv ) ************
+            for( kdd=0; kdd<nd; kdd++ )
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu1(kdd,ib)=(normal(i1,i2,i3,0)*(normal(i1,i2,i3,0)*UXX42(i1,i2,i3,uc+kdd)+
+                                 					   normal(i1,i2,i3,1)*UXY42(i1,i2,i3,uc+kdd) )+
+                   		       normal(i1,i2,i3,1)*(normal(i1,i2,i3,1)*UYY42(i1,i2,i3,uc+kdd)));
+      	}
+            }
+            if( twilightZoneFlow && iopt==0 )
+            {
+        //  ...add twilight zone forcing
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  xv(0)=xyz(i1,i2,i3,0);
+        	  xv(1)=xyz(i1,i2,i3,1);
+                    for( kdd=0; kdd<2; kdd++ )
+        	  {
+          	    fu1(kdd,ib)-=(normal(i1,i2,i3,0)*(
+            	      normal(i1,i2,i3,0)*e.xx(xv(0),xv(1),xv(2),uc+kdd,t)+
+            	      normal(i1,i2,i3,1)*e.xy(xv(0),xv(1),xv(2),uc+kdd,t) )
+                  			+normal(i1,i2,i3,1)*normal(i1,i2,i3,1)*e.yy(xv(0),xv(1),xv(2),uc+kdd,t) );
+        	  }
+      	}
+            }
+        }
+        else
+        {
+      //     --no-slip wall or other bc
+      //     ...get the momentum equations
+            if( iopt==0 )
+            {
+	//   ...here we return the full momemtum equations
+      	if( twilightZoneFlow )
+      	{
+          // If u!=0 on the boundary then th enonlinear terms in the momentum equation appear
+          //     It seems to be unstable if we try to use time-extrapolated values for u to determine these
+          //     One probably needed to solve for the nonlinear terms as well.
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu1(0,ib)=( DU2B(i1,i2,i3,uc)-DU2F1B(i1,i2,i3,uc));  // use tz in nonlinear terms
+          	    fu1(1,ib)=( DU2B(i1,i2,i3,vc)-DU2F2B(i1,i2,i3,vc));
+          	    if( debug & 8 ) 
+            	      printf("insbe1: i=(%i,%i,%i) fu1(u:v,ib=%i)=%8.2e,%8.2e\n",i1,i2,i3,ib,fu1(0,ib),fu1(1,ib));
+        	  }
+      	
+	  //    add twilight zone forcing
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    xv(0)=xyz(i1,i2,i3,0);
+          	    xv(1)=xyz(i1,i2,i3,1);
+          	    fu1(0,ib)+=FB1(xv(0),xv(1),xv(2),t);
+          	    fu1(1,ib)+=FB2(xv(0),xv(1),xv(2),t);
+                        if( debug & 8 )printf("insbe1:add TZ i=(%i,%i,%i) fu1(0:1,ib=%i)=%8.2e,%8.2e\n",
+                                                i1,i2,i3,ib,fu1(0,ib),fu1(1,ib));
+        	  }
+      	}
+                else
+                {
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu1(0,ib)=( DU2A(i1,i2,i3,uc)-DU2F1A(i1,i2,i3,uc));
+          	    fu1(1,ib)=( DU2A(i1,i2,i3,vc)-DU2F2A(i1,i2,i3,vc));
+        	  }
+      	}
+      	
+            }
+            else
+            {
+	// ...iopt=1:
+	// ...here we return only the linear part of the equations
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu1(0,ib)=DU2A(i1,i2,i3,uc);
+        	  fu1(1,ib)=DU2A(i1,i2,i3,vc);
+//  	  if( debug & 8 )printf("insbe1:delta i=(%i,%i,%i) (u0,v0)=(%8.2e,%8.2e) fu1(u:v,ib=%i)=%8.2e,%8.2e\n",
+//                      i1,i2,i3,u0(i1,i2,i3,uc),u0(i1,i2,i3,vc),ib,fu1(0,ib),fu1(1,ib));
+      	}
+            }
+//            if( modeltb.eq.0 )then
+//              call insfbc0( iopt,id,rd,ibe,nib,kd,ks,ndf,fu1,fu2,nd,
+//       &       ndra0,ndrb0,ndsa0,ndsb0,ndta0,ndtb0,u1,
+//       &       ndra ,ndrb ,ndsa ,ndsb ,ndta ,ndtb ,u,p,rsxy,
+//       &       d14,d24,d4,d32,ajs,k,t )
+//            elseif( modeltb.eq.3 )then
+//              call insfbc3( iopt,id,rd,ibe,nib,kd,ks,ndf,fu1,fu2,nd,
+//       &       ndra0,ndrb0,ndsa0,ndsb0,ndta0,ndtb0,u1,
+//       &       ndra ,ndrb ,ndsa ,ndsb ,ndta ,ndtb ,u,p,rsxy,
+//       &       d14,d24,d4,d32,ajs,k,t )
+//            else
+//              call insfbc0( iopt,id,rd,ibe,nib,kd,ks,ndf,fu1,fu2,nd,
+//       &       ndra0,ndrb0,ndsa0,ndsb0,ndta0,ndtb0,u1,
+//       &       ndra ,ndrb ,ndsa ,ndsb ,ndta ,ndtb ,u,p,rsxy,
+//       &       d14,d24,d4,d32,ajs,k,t )
+//            end if
+        }//  if bc
+    }
+    else
+    {
+    //  **********************************
+    //  ***************3D*****************
+    //  **********************************
+
+        if( bc(ks,kd)==Parameters::slipWall )
+        {
+      //  ---slip wall, return n.grad u
+            for( ib=0; ib<nib; ib++ )
+            {
+      	i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+      	fu1(0,ib)=(normal(i1,i2,i3,0)*UX43(i1,i2,i3,uc)+
+               		   normal(i1,i2,i3,1)*UY43(i1,i2,i3,uc)+ 
+               		   normal(i1,i2,i3,2)*UZ43(i1,i2,i3,uc));
+      	fu1(1,ib)=(normal(i1,i2,i3,0)*UX43(i1,i2,i3,vc)+
+               		   normal(i1,i2,i3,1)*UY43(i1,i2,i3,vc)+ 
+               		   normal(i1,i2,i3,2)*UZ43(i1,i2,i3,vc));
+      	fu1(2,ib)=(normal(i1,i2,i3,0)*UX43(i1,i2,i3,wc)+
+               		   normal(i1,i2,i3,1)*UY43(i1,i2,i3,wc)+ 
+               		   normal(i1,i2,i3,2)*UZ43(i1,i2,i3,wc));
+            }
+            if( twilightZoneFlow && iopt==0 )
+            {
+        //  ...add twilight zone forcing
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  xv(0)=xyz(i1,i2,i3,0);
+        	  xv(1)=xyz(i1,i2,i3,1);
+        	  xv(2)=xyz(i1,i2,i3,2);
+        	  for( kdd=0; kdd<nd; kdd++ )
+        	  {
+          	    
+          	    fu1(kdd,ib)-=(normal(i1,i2,i3,0)*e.x(xv(0),xv(1),xv(2),uc+kdd,t)+
+                    			  normal(i1,i2,i3,1)*e.y(xv(0),xv(1),xv(2),uc+kdd,t)+  
+                    			  normal(i1,i2,i3,2)*e.z(xv(0),xv(1),xv(2),uc+kdd,t) );
+        	  }
+      	}
+            }
+        }
+        else if( bc(ks,kd)==InsParameters::outflow ||
+                          bc(ks,kd)==InsParameters::inflowWithVelocityGiven )
+        {
+      // ---bc=21, outflow, bc=2, inflow: u.nn=
+            for( kdd=0; kdd<nd; kdd++ )
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu1(kdd,ib)=(normal(i1,i2,i3,0)*(normal(i1,i2,i3,0)*UXX43(i1,i2,i3,uc+kdd)+
+                                 					   normal(i1,i2,i3,1)*UXY43(i1,i2,i3,uc+kdd)+
+                                 					   normal(i1,i2,i3,2)*UXZ43(i1,i2,i3,uc+kdd) )+
+                   		       normal(i1,i2,i3,1)*(normal(i1,i2,i3,1)*UYY43(i1,i2,i3,uc+kdd)+
+                                                                                      normal(i1,i2,i3,2)*UYZ43(i1,i2,i3,uc+kdd) )+
+                                              normal(i1,i2,i3,2)*(normal(i1,i2,i3,2)*UZZ43(i1,i2,i3,uc+kdd) ));
+      	}
+            }
+            if( twilightZoneFlow && iopt==0 )
+            {
+        //  ...add twilight zone forcing
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  xv(0)=xyz(i1,i2,i3,0);
+        	  xv(1)=xyz(i1,i2,i3,1);
+        	  xv(2)=xyz(i1,i2,i3,2);
+                    for( kdd=0; kdd<nd; kdd++ )
+        	  {
+          	    fu1(kdd,ib)-=(normal(i1,i2,i3,0)*(normal(i1,i2,i3,0)*e.xx(xv(0),xv(1),xv(2),uc+kdd,t)+
+                                    					      normal(i1,i2,i3,1)*e.xy(xv(0),xv(1),xv(2),uc+kdd,t)+ 
+                                    					      normal(i1,i2,i3,2)*e.xz(xv(0),xv(1),xv(2),uc+kdd,t) )+
+                    			  normal(i1,i2,i3,1)*(normal(i1,i2,i3,1)*e.yy(xv(0),xv(1),xv(2),uc+kdd,t)+
+                                                                                            normal(i1,i2,i3,2)*e.yz(xv(0),xv(1),xv(2),uc+kdd,t) )+
+                                                    normal(i1,i2,i3,2)*(normal(i1,i2,i3,2)*e.zz(xv(0),xv(1),xv(2),uc+kdd,t)) );
+        	  }
+      	}
+            }
+        }
+        else
+        {
+      //     --no-slip wall or other bc
+      //     ...get the momentum equations
+            if( iopt==0 )
+            {
+	//   ...here we return the full momemtum equations
+                
+      	if( !twilightZoneFlow )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu1(0,ib)=( DU3(i1,i2,i3,uc)-DU3F1(i1,i2,i3,uc));
+          	    fu1(1,ib)=( DU3(i1,i2,i3,vc)-DU3F2(i1,i2,i3,vc));
+          	    fu1(2,ib)=( DU3(i1,i2,i3,wc)-DU3F3(i1,i2,i3,wc));
+        	  }
+      	}
+      	else if( twilightZoneFlow )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu1(0,ib)=( DU3B(i1,i2,i3,uc)-DU3F1B(i1,i2,i3,uc));
+          	    fu1(1,ib)=( DU3B(i1,i2,i3,vc)-DU3F2B(i1,i2,i3,vc));
+          	    fu1(2,ib)=( DU3B(i1,i2,i3,wc)-DU3F3B(i1,i2,i3,wc));
+        	  }
+	  //    add twilight zone forcing
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    xv(0)=xyz(i1,i2,i3,0);
+          	    xv(1)=xyz(i1,i2,i3,1);
+          	    xv(2)=xyz(i1,i2,i3,2);
+          	    fu1(0,ib)+=F31(xv(0),xv(1),xv(2),t);
+          	    fu1(1,ib)+=F32(xv(0),xv(1),xv(2),t);
+          	    fu1(2,ib)+=F33(xv(0),xv(1),xv(2),t);
+        	  }
+      	}
+            }
+            else
+            {
+	// ...iopt=1:
+	// ...here we return only the linear part of the equations
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu1(0,ib)=DU3(i1,i2,i3,uc);
+        	  fu1(1,ib)=DU3(i1,i2,i3,vc);
+        	  fu1(2,ib)=DU3(i1,i2,i3,wc);
+      	}
+            }
+        } // end if bc
+    }  // end nd
+
+
+  // ******************************************************
+  // **************  2nd Condition ************************
+  // ******************************************************
+
+    if( bc(ks,kd)==InsParameters::outflow )
+    {
+        ibcex=5; // 4;
+    }
+    else if( bc(ks,kd)==InsParameters::inflowWithVelocityGiven )
+    {
+        ibcex=6; // 5; // 4;  // order 5 works better maybe.
+    }
+    
+
+    int is=1-2*ks;
+    if( nd==2 )
+    {
+    // ****************** 2D *********************
+        
+        if( ibcex<2 || ibcex>6 )
+        {
+            printf(" INSBE1: ERROR, invalid ibcex =%i\n"
+                          "       : setting ibcex=6...\n",ibcex);
+            ibcex=6;
+        }
+
+        if( bc(ks,kd)==Parameters::slipWall )
+        {
+      //   ---slip wall return an approximation to u.nnn -> D+3 u
+            if( kd==0 )
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu2(0,ib)=X3(is,0,i1-2*is,i2,i3,uc);
+        	  fu2(1,ib)=X3(is,0,i1-2*is,i2,i3,vc);
+      	}
+      	if( twilightZoneFlow && iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    for( kdd=0; kdd<nd; kdd++ )
+          	    {
+            	      fu2(kdd,ib)-=(-   e(xyz(i1-2*is,i2,i3,0),xyz(i1-2*is,i2,i3,1),z0,uc+kdd,t)
+                      			    +3.*e(xyz(i1-  is,i2,i3,0),xyz(i1-  is,i2,i3,1),z0,uc+kdd,t)
+                      			    -3.*e(xyz(i1     ,i2,i3,0),xyz(i1     ,i2,i3,1),z0,uc+kdd,t)
+                      			    +   e(xyz(i1+  is,i2,i3,0),xyz(i1+  is,i2,i3,1),z0,uc+kdd,t));
+          	    }
+        	  }
+      	}
+      	
+            }
+            else // kd==1
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu2(0,ib)=X3(0,is,i1,i2-2*is,i3,uc);
+        	  fu2(1,ib)=X3(0,is,i1,i2-2*is,i3,vc);
+      	}
+      	if( twilightZoneFlow && iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    for( kdd=0; kdd<nd; kdd++ )
+          	    {
+            	      fu2(kdd,ib)-=(-   e(xyz(i1,i2-2*is,i3,0),xyz(i1,i2-2*is,i3,1),z0,uc+kdd,t)
+                      			    +3.*e(xyz(i1,i2-  is,i3,0),xyz(i1,i2-  is,i3,1),z0,uc+kdd,t)
+                      			    -3.*e(xyz(i1,i2     ,i3,0),xyz(i1,i2     ,i3,1),z0,uc+kdd,t)
+                      			    +   e(xyz(i1,i2+  is,i3,0),xyz(i1,i2+  is,i3,1),z0,uc+kdd,t));
+          	    }
+        	  }
+      	}
+            }
+        }
+        else
+        {
+      // **** noSlipWall or other ****
+      //   ---extrapolate tangential velocity on the second line
+            if( kd==0 )
+            {
+      	if( iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XX(is,0,i1-2*is,i2,i3,uc,ibcex);
+          	    fu2(1,ib)=XX(is,0,i1-2*is,i2,i3,vc,ibcex);
+          	    if( debug & 8 )
+                            printf("insbe1:XX i=(%i,%i,%i) fu2(u:v,ib=%i)=%8.2e,%8.2e\n",i1,i2,i3,ib,fu2(0,ib),fu2(1,ib));
+        	  }
+      	}
+      	else
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XXN(is,0,i1-2*is,i2,i3,uc,ibcex);
+          	    fu2(1,ib)=XXN(is,0,i1-2*is,i2,i3,vc,ibcex);
+          	    if( debug & 8 )
+            	      printf("insbe1:XXN i=(%i,%i,%i) fu2(u:v,ib=%i)=%8.2e,%8.2e\n",i1,i2,i3,ib,fu2(0,ib),fu2(1,ib));
+        	  }
+      	}
+            }
+            else
+            {
+      	if( iopt==0 )
+      	{
+        	  for( kdd=0; kdd<nd; kdd++ )
+        	  {
+          	    for( ib=0; ib<nib; ib++ )
+          	    {
+                            i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+            	      fu2(kdd,ib)=XX(0,is,i1,i2-2*is,i3,uc+kdd,ibcex);
+          	    }
+        	  }
+      	}
+      	else
+      	{
+        	  for( kdd=0; kdd<nd; kdd++ )
+        	  {
+          	    for( ib=0; ib<nib; ib++ )
+          	    {
+                        i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+            	      fu2(kdd,ib)=XXN(0,is,i1,i2-2*is,i3,uc+kdd,ibcex);
+          	    }
+        	  }
+      	}
+            }
+        }
+    }
+    else
+    {
+    //  *******************  3D **********************
+    //   (only extrapolation of ibcex=6 implemented in 3D)
+        if( ibcex<6 || ibcex>6 )
+        {
+            printf(" INSBE1: ERROR, invalid ibcex =%i\n"
+                          "       : setting ibcex=6...\n",ibcex);
+            ibcex=6;
+        }
+
+        if( bc(ks,kd)==Parameters::slipWall )
+        {
+      //   ---slip wall return an approximation to u.nnn -> D+3 u
+            if( kd==0 )
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu2(0,ib)=XT3(is,0,0,i1-2*is,i2,i3,uc);
+        	  fu2(1,ib)=XT3(is,0,0,i1-2*is,i2,i3,vc);
+        	  fu2(2,ib)=XT3(is,0,0,i1-2*is,i2,i3,wc);
+      	}
+      	if( twilightZoneFlow && iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    for( kdd=0; kdd<nd; kdd++ )
+          	    {
+            	      fu2(kdd,ib)-=(-   e(xyz(i1-2*is,i2,i3,0),xyz(i1-2*is,i2,i3,1),xyz(i1-2*is,i2,i3,2),uc+kdd,t)
+                      			    +3.*e(xyz(i1-  is,i2,i3,0),xyz(i1-  is,i2,i3,1),xyz(i1-  is,i2,i3,2),uc+kdd,t)
+                      			    -3.*e(xyz(i1     ,i2,i3,0),xyz(i1     ,i2,i3,1),xyz(i1     ,i2,i3,2),uc+kdd,t)
+                      			    +   e(xyz(i1+  is,i2,i3,0),xyz(i1+  is,i2,i3,1),xyz(i1+  is,i2,i3,2),uc+kdd,t));
+          	    }
+        	  }
+      	}
+            }
+            else if( kd==1 )
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu2(0,ib)=XT3(0,is,0,i1,i2-2*is,i3,uc);
+        	  fu2(1,ib)=XT3(0,is,0,i1,i2-2*is,i3,vc);
+        	  fu2(2,ib)=XT3(0,is,0,i1,i2-2*is,i3,wc);
+      	}
+      	if( twilightZoneFlow && iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    for( kdd=0; kdd<nd; kdd++ )
+          	    {
+            	      fu2(kdd,ib)-=(-   e(xyz(i1,i2-2*is,i3,0),xyz(i1,i2-2*is,i3,1),xyz(i1,i2-2*is,i3,2),uc+kdd,t)
+                      			    +3.*e(xyz(i1,i2-  is,i3,0),xyz(i1,i2-  is,i3,1),xyz(i1,i2-  is,i3,2),uc+kdd,t)
+                      			    -3.*e(xyz(i1,i2     ,i3,0),xyz(i1,i2     ,i3,1),xyz(i1,i2     ,i3,2),uc+kdd,t)
+                      			    +   e(xyz(i1,i2+  is,i3,0),xyz(i1,i2+  is,i3,1),xyz(i1,i2+  is,i3,2),uc+kdd,t));
+          	    }
+        	  }
+      	}
+            }
+            else 
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  fu2(0,ib)=XT3(0,0,is,i1,i2,i3-2*is,uc);
+        	  fu2(1,ib)=XT3(0,0,is,i1,i2,i3-2*is,vc);
+        	  fu2(2,ib)=XT3(0,0,is,i1,i2,i3-2*is,wc);
+      	}
+      	if( twilightZoneFlow && iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    for( kdd=0; kdd<nd; kdd++ )
+          	    {
+            	      fu2(kdd,ib)-=(-   e(xyz(i1,i2,i3-2*is,0),xyz(i1,i2,i3-2*is,1),xyz(i1,i2,i3-2*is,2),uc+kdd,t)
+                      			    +3.*e(xyz(i1,i2,i3-  is,0),xyz(i1,i2,i3-  is,1),xyz(i1,i2,i3-  is,2),uc+kdd,t)
+                      			    -3.*e(xyz(i1,i2,i3     ,0),xyz(i1,i2,i3     ,1),xyz(i1,i2,i3     ,2),uc+kdd,t)
+                      			    +   e(xyz(i1,i2,i3+  is,0),xyz(i1,i2,i3+  is,1),xyz(i1,i2,i3+  is,2),uc+kdd,t));
+          	    }
+        	  }
+      	}
+            }
+        }
+        else
+        {
+      // **** noSlipWall or other BC than slip ****
+
+      //   ---extrapolate tangential velocity on the second line
+            if( kd==0 )
+            {
+      	if( iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XT6(is,0,0,i1-2*is,i2,i3,uc);
+          	    fu2(1,ib)=XT6(is,0,0,i1-2*is,i2,i3,vc);
+          	    fu2(2,ib)=XT6(is,0,0,i1-2*is,i2,i3,wc);
+        	  }
+      	}
+      	else
+      	{ //  (use narrow formula)
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XT6N(is,0,0,i1-2*is,i2,i3,uc);
+          	    fu2(1,ib)=XT6N(is,0,0,i1-2*is,i2,i3,vc);
+          	    fu2(2,ib)=XT6N(is,0,0,i1-2*is,i2,i3,wc);
+        	  }
+      	}
+            }
+            else if( kd==1 )
+            {
+      	if( iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XT6(0,is,0,i1,i2-2*is,i3,uc);
+          	    fu2(1,ib)=XT6(0,is,0,i1,i2-2*is,i3,vc);
+          	    fu2(2,ib)=XT6(0,is,0,i1,i2-2*is,i3,wc);
+        	  }
+      	}
+      	else
+      	{ //  (use narrow formula)
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+                        i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XT6N(0,is,0,i1,i2-2*is,i3,uc);
+          	    fu2(1,ib)=XT6N(0,is,0,i1,i2-2*is,i3,vc);
+          	    fu2(2,ib)=XT6N(0,is,0,i1,i2-2*is,i3,wc);
+        	  }
+      	}
+            }
+            else // kd==2
+            {
+      	if( iopt==0 )
+      	{
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+          	    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XT6(0,0,is,i1,i2,i3-2*is,uc);
+          	    fu2(1,ib)=XT6(0,0,is,i1,i2,i3-2*is,vc);
+          	    fu2(2,ib)=XT6(0,0,is,i1,i2,i3-2*is,wc);
+        	  }
+      	}
+      	else
+      	{ //  (use narrow formula)
+        	  for( ib=0; ib<nib; ib++ )
+        	  {
+                        i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+          	    fu2(0,ib)=XT6N(0,0,is,i1,i2,i3-2*is,uc);
+          	    fu2(1,ib)=XT6N(0,0,is,i1,i2,i3-2*is,vc);
+          	    fu2(2,ib)=XT6N(0,0,is,i1,i2,i3-2*is,wc);
+        	  }
+      	}
+            }
+        }
+
+    }
+
+    return;
+}
+
+
+
+#define df(m,ib) pdf[m+ndf*(ib)]
+
+void
+insbe2(const int iopt, const int ks, const int kd, const int ndf, real *pdf,
+              const int nib, int *pibe, 
+              const int ndra, const int ndrb, const int ndsa, const int ndsb, const int ndta, const int ndtb, real*pu,
+              realMappedGridFunction & ua, const realArray & inverseVertexDerivative,
+              const IntegerArray & ipar, const RealArray & rpar )
+//===============================================================================================
+// /Description: Evaluate the two boundary conditions that are used to determine the normal
+//   component of the velocity at the 2 ghost points.
+//
+//  Evaluate the divergence and its first parameteric (normal) derivative
+//             div(u)=0
+//             div(u).r=0
+//
+//  /iopt (input): 
+//    iopt : = 0 : Normal evaluation
+//           = 1 : use when evaluating coefficients by delta function approach.
+//           = 2 : ??
+//  /pibe, nib (input) : Evaluate equations at the points ibe(0:2,ib) ib=0,...,nib-1; here pibe is the pointer 
+//            to the start of the ibe array.
+//  /kd,ks (input) : side we are on
+//  /ndf,pdf : output results in df(0.,ib)=div, df(1,ib)=div.rn, ib=0,...,nib-1;
+//
+//
+//=================================================================================================
+{
+
+
+#define DIV42(i1,i2,i3) (UX42(i1,i2,i3,uc)+UY42(i1,i2,i3,vc))
+#define DIV43(i1,i2,i3) (UX43(i1,i2,i3,uc)+UY43(i1,i2,i3,vc)+UZ43(i1,i2,i3,wc))
+
+#define DIV42_R(i1,i2,i3) (  RX  (i1,i2,i3)*URR4(i1,i2,i3,uc)  +SX  (i1,i2,i3)*URS4(i1,i2,i3,uc)  +RXR4(i1,i2,i3)*UR4 (i1,i2,i3,uc)  +SXR4(i1,i2,i3)*US4 (i1,i2,i3,uc)  +RY  (i1,i2,i3)*URR4(i1,i2,i3,vc)  +SY  (i1,i2,i3)*URS4(i1,i2,i3,vc)  +RYR4(i1,i2,i3)*UR4 (i1,i2,i3,vc)  +SYR4(i1,i2,i3)*US4 (i1,i2,i3,vc) )
+
+#define DIV42_S(i1,i2,i3) ( RX  (i1,i2,i3)*URS4(i1,i2,i3,uc)  +SX  (i1,i2,i3)*USS4(i1,i2,i3,uc)  +RXS4(i1,i2,i3)*UR4 (i1,i2,i3,uc)  +SXS4(i1,i2,i3)*US4 (i1,i2,i3,uc)  +RY  (i1,i2,i3)*URS4(i1,i2,i3,vc)  +SY  (i1,i2,i3)*USS4(i1,i2,i3,vc)  +RYS4(i1,i2,i3)*UR4 (i1,i2,i3,vc)  +SYS4(i1,i2,i3)*US4 (i1,i2,i3,vc) )
+
+
+#define DIV43_R(i1,i2,i3) (  RX  (i1,i2,i3)*URR4(i1,i2,i3,uc)  +SX  (i1,i2,i3)*URS4(i1,i2,i3,uc)  +TX  (i1,i2,i3)*URT4(i1,i2,i3,uc)  +RXR4(i1,i2,i3)*UR4 (i1,i2,i3,uc)  +SXR4(i1,i2,i3)*US4 (i1,i2,i3,uc)  +TXR4(i1,i2,i3)*UT4 (i1,i2,i3,uc)  +RY  (i1,i2,i3)*URR4(i1,i2,i3,vc)  +SY  (i1,i2,i3)*URS4(i1,i2,i3,vc)  +TY  (i1,i2,i3)*URT4(i1,i2,i3,vc)  +RYR4(i1,i2,i3)*UR4 (i1,i2,i3,vc)  +SYR4(i1,i2,i3)*US4 (i1,i2,i3,vc)  +TYR4(i1,i2,i3)*UT4 (i1,i2,i3,vc)  +RZ  (i1,i2,i3)*URR4(i1,i2,i3,wc)  +SZ  (i1,i2,i3)*URS4(i1,i2,i3,wc)  +TZ  (i1,i2,i3)*URT4(i1,i2,i3,wc)  +RZR4(i1,i2,i3)*UR4 (i1,i2,i3,wc)  +SZR4(i1,i2,i3)*US4 (i1,i2,i3,wc)  +TZR4(i1,i2,i3)*UT4 (i1,i2,i3,wc) )
+
+#define DIV43_S(i1,i2,i3) (  RX  (i1,i2,i3)*URS4(i1,i2,i3,uc)  +SX  (i1,i2,i3)*USS4(i1,i2,i3,uc)  +TX  (i1,i2,i3)*UST4(i1,i2,i3,uc)  +RXS4(i1,i2,i3)*UR4 (i1,i2,i3,uc)  +SXS4(i1,i2,i3)*US4 (i1,i2,i3,uc)  +TXS4(i1,i2,i3)*UT4 (i1,i2,i3,uc)  +RY  (i1,i2,i3)*URS4(i1,i2,i3,vc)  +SY  (i1,i2,i3)*USS4(i1,i2,i3,vc)  +TY  (i1,i2,i3)*UST4(i1,i2,i3,vc)  +RYS4(i1,i2,i3)*UR4 (i1,i2,i3,vc)  +SYS4(i1,i2,i3)*US4 (i1,i2,i3,vc)  +TYS4(i1,i2,i3)*UT4 (i1,i2,i3,vc)  +RZ  (i1,i2,i3)*URS4(i1,i2,i3,wc)  +SZ  (i1,i2,i3)*USS4(i1,i2,i3,wc)  +TZ  (i1,i2,i3)*UST4(i1,i2,i3,wc)  +RZS4(i1,i2,i3)*UR4 (i1,i2,i3,wc)  +SZS4(i1,i2,i3)*US4 (i1,i2,i3,wc)  +TZS4(i1,i2,i3)*UT4 (i1,i2,i3,wc) )
+
+#define DIV43_T(i1,i2,i3)  ( RX  (i1,i2,i3)*URT4(i1,i2,i3,uc)  +SX  (i1,i2,i3)*UST4(i1,i2,i3,uc)  +TX  (i1,i2,i3)*UTT4(i1,i2,i3,uc)  +RXT4(i1,i2,i3)*UR4 (i1,i2,i3,uc)  +SXT4(i1,i2,i3)*US4 (i1,i2,i3,uc)  +TXT4(i1,i2,i3)*UT4 (i1,i2,i3,uc)  +RY  (i1,i2,i3)*URT4(i1,i2,i3,vc)  +SY  (i1,i2,i3)*UST4(i1,i2,i3,vc)  +TY  (i1,i2,i3)*UTT4(i1,i2,i3,vc)  +RYT4(i1,i2,i3)*UR4 (i1,i2,i3,vc)  +SYT4(i1,i2,i3)*US4 (i1,i2,i3,vc)  +TYT4(i1,i2,i3)*UT4 (i1,i2,i3,vc)  +RZ  (i1,i2,i3)*URT4(i1,i2,i3,wc)  +SZ  (i1,i2,i3)*UST4(i1,i2,i3,wc)  +TZ  (i1,i2,i3)*UTT4(i1,i2,i3,wc)  +RZT4(i1,i2,i3)*UR4 (i1,i2,i3,wc)  +SZT4(i1,i2,i3)*US4 (i1,i2,i3,wc)  +TZT4(i1,i2,i3)*UT4 (i1,i2,i3,wc) )
+
+
+    const int ndr=ndrb-ndra+1;
+    const int nds=ndsb-ndsa+1;
+    const int ndt=ndtb-ndta+1;
+    
+#define u(i1,i2,i3,n) pu[i1-ndra+ndr*(i2-ndsa+nds*(i3-ndta+ndt*(n)))]
+
+    const int pc=ipar(1);
+    const int uc=ipar(2);
+    const int vc=ipar(3);
+    const int wc=ipar(4);
+    
+    MappedGrid & mg = *ua.getMappedGrid();
+    const IntegerArray & bc = mg.boundaryCondition();
+    const realArray & normal = mg.vertexBoundaryNormal(ks,kd);
+
+    const int nd=mg.numberOfDimensions();
+    const int numberOfDimensions=mg.numberOfDimensions();
+
+    real d12p[3],d22p[3],d14p[3],d24p[3];
+    real h21p[3],h22p[3],h41p[3],h42p[3];
+
+    
+#define d12(m) d12p[m]
+#define d22(m) d22p[m]
+#define d14(m) d14p[m]
+#define d24(m) d24p[m]
+
+//  if( !rectangular )
+
+    for( int axis=0; axis<3; axis++ )
+    {
+        d12(axis)=1./(2.*mg.gridSpacing(axis));  
+        d22(axis)=1./SQR(mg.gridSpacing(axis));
+
+        d14(axis)=1./(12.*mg.gridSpacing(axis));
+        d24(axis)=1./(12.*SQR(mg.gridSpacing(axis)));
+    }
+
+    int ib,i1,i2,i3;
+    if( kd==0 )
+    {
+    //  u.x = r.x u.r + s.x u.s
+    //  v.y = r.y v.r + s.y v.s
+    //  (u.x+v.y).rr = r.x u.rrr + ...
+    //  (u.x+v.y).rrr= r.x u.rrrr + ...
+              
+        if( nd==2 )
+        {
+            if( false && (bc(ks,kd)==InsParameters::outflow || bc(ks,kd)==InsParameters::inflowWithVelocityGiven) )
+            {
+        // use D+^3( nv.uv )=0
+                int is1=1-2*ks;
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  df(0,ib)=DIV42(i1,i2,i3);
+        	  df(1,ib)=normal(i1,i2,i3,0)*( X4(is1,0,i1-2*is1,i2,i3,uc) )+
+                                      normal(i1,i2,i3,1)*( X4(is1,0,i1-2*is1,i2,i3,vc));
+
+//  	  df(1,ib)=normal(i1,i2,i3,0)*( X2(is1,0,i1-is1,i2,i3,uc) )+
+//                     normal(i1,i2,i3,1)*( X2(is1,0,i1-is1,i2,i3,vc));
+
+//  	  df(1,ib)=normal(i1,i2,i3,0)*( X3(is1,0,i1-2,i2,i3,uc) )+
+//                 normal(i1,i2,i3,1)*( X3(is1,0,i1-2,i2,i3,vc));
+      	}
+            }
+            else
+            {
+        //   div and div.r
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  df(0,ib)=DIV42(i1,i2,i3);
+        	  df(1,ib)=DIV42_R(i1,i2,i3);
+      	}
+            }
+            
+        }
+        else // *********** 3D ***************
+        {
+            if( false && (
+                    bc(ks,kd)==InsParameters::outflow ||
+                    bc(ks,kd)==InsParameters::inflowWithVelocityGiven) )
+            {
+        // use D+^3( nv.uv )=0
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  df(0,ib)=DIV42(i1,i2,i3);
+        	  df(1,ib)=normal(i1,i2,i3,0)*( X3(0,1,i1,i2-2,i3,uc) )+
+                                      normal(i1,i2,i3,1)*( X3(0,1,i1,i2-2,i3,vc));
+      	}
+            }
+            else
+            {
+        //   div and div.r
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  df(0,ib)=DIV43(i1,i2,i3);
+        	  df(1,ib)=DIV43_R(i1,i2,i3);
+      	}
+            }
+            
+        }
+    }
+    else if( kd==1 )
+    {
+    //      div and div.s
+        if( nd==2 )
+        {
+            if( false && bc(ks,kd)==InsParameters::outflow )
+            {
+        // use D+^3( nv.uv )=0
+                int is2=1-2*ks;
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  df(0,ib)=DIV42(i1,i2,i3);
+        	  df(1,ib)=normal(i1,i2,i3,0)*( X4(0,is2,i1,i2-2*is2,i3,uc) )+
+                                      normal(i1,i2,i3,1)*( X4(0,is2,i1,i2-2*is2,i3,vc));
+
+      	}
+            }
+            else
+            {
+      	for( ib=0; ib<nib; ib++ )
+      	{
+        	  i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  df(0,ib)=DIV42(i1,i2,i3);
+        	  df(1,ib)=DIV42_S(i1,i2,i3);
+      	}
+            }
+            
+        }
+        else
+        {
+            for( ib=0; ib<nib; ib++ )
+            {
+                i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+      	df(0,ib)=DIV43(i1,i2,i3);
+      	df(1,ib)=DIV43_S(i1,i2,i3);
+            }
+        }
+    }
+    else if( kd==2 )
+    {
+    //    div and div.t :
+        for( ib=0; ib<nib; ib++ )
+        {
+            i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+            df(0,ib)=DIV43(i1,i2,i3);
+            df(1,ib)=DIV43_T(i1,i2,i3);
+        }
+    }
+    else
+    {
+        Overture::abort("ERROR: invalid kd");
+    }
+    
+}
+
+#undef u
+#undef u0
+#undef fu1
+#undef fu2
+#undef ibe
+#undef df
+#undef U
+
+#undef d12
+#undef d22
+#undef d14
+#undef d24
+#undef xv
+
+
+
+// extern "C"
+// {
+
+// /* Here are functions for TZ flow that can be called from fortran */
+// /*  TZ boundary forcing for the INS equations -- NO time derivative --- */
+// real
+// insbfu2d_(OGFunction *&ep, const real &x, const real &y,const real &z, const real & t,
+//        const real & nu, const int & pc, const int & uc, const int & vc )
+// {
+//   OGFunction & e = *ep;
+//   return  -nu*(e.xx(x,y,z,uc,t)+e.yy(x,y,z,uc,t)) 
+//     /* +(e(x,y,z,uc,t)*e.x(x,y,z,uc,t)+e(x,y,z,vc,t)*e.y(x,y,z,uc,t))  */
+//           +e.x(x,y,z,pc,t) /*  +e.t(x,y,z,uc,t) */;
+// }
+// real
+// insbfv2d_(OGFunction *&ep, const real &x, const real &y,const real &z, const real & t,
+//        const real & nu, const int & pc, const int & uc, const int & vc )
+// {
+//   OGFunction & e = *ep;
+//   return  -nu*(e.xx(x,y,z,vc,t)+e.yy(x,y,z,vc,t)) 
+//           /* +(e(x,y,z,uc,t)*e.x(x,y,z,vc,t)+e(x,y,z,vc,t)*e.y(x,y,z,vc,t))  */
+//           +e.y(x,y,z,pc,t) /*  +e.t(x,y,z,vc,t) */;
+
+// }
+
+// real
+// insbfu3d_(OGFunction *&ep, const real &x, const real &y,const real &z, const real & t,
+//        const real & nu, const int & pc, const int & uc, const int & vc, const int & wc )
+// {
+//   OGFunction & e = *ep;
+//   return /* e.t(x,y,z,uc,t) */
+//    /* +    (e(x,y,z,uc,t)*e.x(x,y,z,uc,t) 
+//         +e(x,y,z,vc,t)*e.y(x,y,z,uc,t) 
+//         +e(x,y,z,wc,t)*e.z(x,y,z,uc,t)) */
+//    + e.x(x,y,z,pc,t)  
+//    - nu*( e.xx(x,y,z,uc,t)+e.yy(x,y,z,uc,t)+e.zz(x,y,z,uc,t) ) ;
+// }
+// real
+// insbfv3d_(OGFunction *&ep, const real &x, const real &y,const real &z, const real & t,
+//        const real & nu, const int & pc, const int & uc, const int & vc, const int & wc )
+// {
+//   OGFunction & e = *ep;
+//   return /* e.t(x,y,z,vc,t) */ 
+//    /* +    (e(x,y,z,uc,t)*e.x(x,y,z,vc,t)  
+//         +e(x,y,z,vc,t)*e.y(x,y,z,vc,t)  
+//         +e(x,y,z,wc,t)*e.z(x,y,z,vc,t))  */
+//    + e.y(x,y,z,pc,t)  
+//     - nu*( e.xx(x,y,z,vc,t)+e.yy(x,y,z,vc,t)+e.zz(x,y,z,vc,t) ) ;
+    
+
+// }
+// real
+// insbfw3d_(OGFunction *&ep, const real &x, const real &y,const real &z, const real & t,
+//        const real & nu, const int & pc, const int & uc, const int & vc, const int & wc )
+// {
+//   OGFunction & e = *ep;
+//   return /* e.t(x,y,z,wc,t) */
+//    /* +    (e(x,y,z,uc,t)*e.x(x,y,z,wc,t)  
+//         +e(x,y,z,vc,t)*e.y(x,y,z,wc,t)  
+//         +e(x,y,z,wc,t)*e.z(x,y,z,wc,t))  */
+//    + e.z(x,y,z,pc,t) 
+//     - nu*( e.xx(x,y,z,wc,t)+e.yy(x,y,z,wc,t)+e.zz(x,y,z,wc,t) ) ;
+    
+
+// }
+
+// real
+// ogf_(OGFunction *&e, const real &x, const real &y,const real &z, const int & c, const real & t )
+// {
+//   return (*e)(x,y,z,c,t);
+// }
+
+
+// real
+// exx_(OGFunction *&e, const real &x, const real &y,const real &z, const int & c, const real & t )
+// {
+//   real value=(*e).xx(x,y,z,c,t);
+//   printf("exx: x=(%8.2e,%8.2e,%8.2e) c=%i t=%8.2e ...exx=%8.2e \n",x,y,z,c,t,value);
+//   return value;
+// }
+
+// }
+
+
+
+// Output error information for the fourth-order BC routine
+static void 
+printErrors( const aString & label,
+                          realMappedGridFunction & u0, real t, const int grid,
+           	     Parameters & parameters )
+{
+    #ifdef USE_PPP
+    return;
+    #endif
+
+    const int myid=Communication_Manager::My_Process_Number;
+
+    const int debug=parameters.dbase.get<int >("debug");
+
+    if( false && debug & 1 )
+    {
+        FILE *debugFile = parameters.dbase.get<FILE* >("debugFile");
+        aString buff;
+        
+        if( grid==1 )
+        {
+            display(u0,sPrintF(buff,"applyBC4: t=%9.3e solution %s",t,(const char*)label),debugFile,"%5.2f ");
+        }
+
+    }
+
+    if( debug & 4 )
+    {
+
+        FILE *debugFile = parameters.dbase.get<FILE* >("debugFile");
+
+        MappedGrid & mg = *u0.getMappedGrid();
+        const int nd=mg.numberOfDimensions();
+    
+        const int uc  = parameters.dbase.get<int >("uc");
+        const int vc  = uc+1;
+
+        OGFunction & exact = *parameters.dbase.get<OGFunction* >("exactSolution");
+
+        Index I1,I2,I3;
+        getIndex(mg.gridIndexRange(),I1,I2,I3,2);
+        mg.update(MappedGrid::THEcenter);
+        
+        #ifdef USE_PPP 
+            realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u0,uLocal);
+            realSerialArray xLocal; getLocalArrayWithGhostBoundaries(mg.center(),xLocal);
+            intSerialArray mask; getLocalArrayWithGhostBoundaries(mg.mask(),mask);
+        #else
+            realSerialArray & uLocal=u0; 
+            const realSerialArray & xLocal=mg.center(); 
+            const intArray & mask = mg.mask();
+        #endif  
+        bool ok = ParallelUtility::getLocalArrayBounds(u0,uLocal,I1,I2,I3); 
+        const bool isRectangular=mg.isRectangular();
+
+        aString buff;
+        Range N(uc,uc+nd-1);
+        if( parameters.dbase.get<bool >("twilightZoneFlow") )
+        {
+            display(u0,sPrintF(buff,"applyBC4: Solution %s",(const char*)label),debugFile,"%5.2f ");
+
+            Range all;
+            realMappedGridFunction err(mg,all,all,all,N);
+            #ifdef USE_PPP 
+                realSerialArray errLocal; getLocalArrayWithGhostBoundaries(err,errLocal);
+            #else
+        	realSerialArray & errLocal = err; 
+            #endif  
+
+            real errMax=0.;
+            if( ok )
+            {
+        // evaluate the true solution and save in "err"
+                errLocal=0.;
+      	
+      	exact.gd( errLocal,xLocal,mg.numberOfDimensions(),isRectangular,0,0,0,0,I1,I2,I3,N,t);
+
+      	where( mask(I1,I2,I3)!=0 )
+      	{
+        	  for( int n=uc; n<=uc+nd-1; n++ )
+          	    errLocal(I1,I2,I3,n)=fabs(uLocal(I1,I2,I3,n)-errLocal(I1,I2,I3,n));
+      	}
+      	real errMax =max(errLocal);
+            }
+            errMax=ParallelUtility::getMaxValue(errMax);
+            
+            fPrintF(debugFile,"applyBC4:grid=%i t=%e Max error %s = %8.2e\n",grid,t,(const char*)label,errMax);
+            if( debug & 8 )
+            {
+      	display(err,sPrintF(buff,"Error %s (mask!=0)",(const char*)label),debugFile,"%7.1e ");
+            }
+        }
+        else
+        {
+            display(u0,sPrintF(buff,"applyBC4: Solution %s",(const char*)label),debugFile,"%5.2f ");
+            if( mg.numberOfDimensions()==2 )
+            {
+      	Range all;
+                realMappedGridFunction div(mg,all,all,all);
+                #ifdef USE_PPP 
+                    realSerialArray divLocal; getLocalArrayWithGhostBoundaries(div,divLocal);
+                #else
+          	  realSerialArray & divLocal = div; 
+                #endif  
+
+                if( ok )
+      	{
+        	  realSerialArray ux(I1,I2,I3), vy(I1,I2,I3);
+        	  exact.gd( ux,xLocal,mg.numberOfDimensions(),isRectangular,0,1,0,0,I1,I2,I3,uc  ,t);
+        	  exact.gd( vy,xLocal,mg.numberOfDimensions(),isRectangular,0,0,1,0,I1,I2,I3,uc+1,t);
+                    divLocal(I1,I2,I3)=ux+vy;
+      	}
+
+      	display(div,sPrintF(buff,"applyBC4: divergence %s",(const char*)label),debugFile,"%5.2f ");
+            }
+        }
+        
+    }
+}
+
+
+void
+applyFourthOrderBoundaryConditionsOld( realMappedGridFunction & u0, real t, int grid, Insbc4WorkSpace & ws,
+                               				       IntegerArray & ipar, RealArray & rpar, OGFunction & exact,
+                               				       Parameters & parameters );
+
+
+//====================================================================================================
+// /Description: 
+//    Assign values on the 2 ghost lines for a fourth order approximation.
+//
+// /Note: This function assumes that the values have been assigned on boundaries, INCLUDING
+//    the extension of the boundaries to the ghost lines
+//    
+//====================================================================================================
+// void 
+// applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int grid, Insbc4WorkSpace & ws,
+//                                    IntegerArray & ipar, RealArray & rpar, OGFunction & exact,
+//                                    Parameters & parameters )
+void Cgins::
+applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int grid, 
+                                                                        realMappedGridFunction & gridVelocity )
+{
+    
+    MappedGrid & mg = *u0.getMappedGrid();
+    const int numberOfDimensions=mg.numberOfDimensions();
+
+    Insbc4WorkSpace & ws = *parameters.dbase.get<Insbc4WorkSpace* >("bc4workSpacePointer");
+    OGFunction & exact = *parameters.dbase.get<OGFunction* >("exactSolution");
+
+    real thermalExpansivity=1.;
+    parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
+
+    ArraySimpleFixed<real,3,1,1,1> & gravity =parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+
+    if( !parameters.dbase.get<int >("useNewFourthOrderBoundaryConditions") )
+    {
+    // *** old way ***
+        IntegerArray ipar(20);  // fix this 
+        RealArray rpar(20);
+        int useWhereMask2=false;
+            
+        const int orderOfAccuracy=min(4,parameters.dbase.get<int >("orderOfAccuracy"));
+
+        ipar(0) = parameters.dbase.get<int >("debug");
+        ipar(1) = parameters.dbase.get<int >("pc");
+        ipar(2) = parameters.dbase.get<int >("uc");
+        ipar(3) = parameters.dbase.get<int >("vc");
+        ipar(4) = parameters.dbase.get<int >("wc");
+        ipar(5) = grid;
+        ipar(6) = orderOfAccuracy;
+        ipar(7) = parameters.gridIsMoving(grid);
+        ipar(8) = useWhereMask2;
+        ipar(9) = parameters.getGridIsImplicit(grid);
+        ipar(10)= parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+        ipar(11)= parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+        ipar(12)= parameters.isAxisymmetric();
+        ipar(13)= parameters.dbase.get<bool >("twilightZoneFlow");
+
+        real dx1,dy1,dz1;
+        rpar(0) = t;
+        rpar(1) = dx1;
+        rpar(2) = dy1;
+        rpar(3) = dz1;
+        rpar(4) = parameters.dbase.get<real >("nu");
+        rpar(5) = getSignForJacobian(mg); // mg.mapping().getSignForJacobian();
+        rpar(6) = parameters.dbase.get<real >("anl");
+
+    // printf(" applyFourthOrderBoundaryConditions at t=%e\n",t);
+        assert( parameters.dbase.get<Insbc4WorkSpace* >("bc4workSpacePointer")!=NULL );
+            
+        rpar(6) = gravity(0);
+        rpar(7) = gravity(1);
+        rpar(8) = gravity(2);
+        rpar(9) = thermalExpansivity;
+
+        applyFourthOrderBoundaryConditionsOld( u0,t,grid,ws,ipar,rpar,exact,parameters );
+        return;
+    }
+
+
+
+    const int np = Communication_Manager::Number_Of_Processors;
+    
+    int debug=parameters.dbase.get<int >("debug");
+    FILE *debugFile = parameters.dbase.get<FILE* >("debugFile");
+    
+//   real *pu = getDataPointer(u0);
+// #define u(i1,i2,i3,n) pu[i1-ndra+ndr*(i2-ndsa+nds*(i3-ndta+ndt*(n)))]
+    
+  // fill in the boundary conditions
+    
+    const int uc  = parameters.dbase.get<int >("uc");
+    const int vc  = parameters.dbase.get<int >("vc");
+
+    const IntegerArray & d = mg.dimension();
+    const IntegerArray & gid = mg.gridIndexRange();
+    const intArray & mask = mg.mask();
+//    const realArray & vertex = mg.vertex();
+//    const realArray & rx = mg.inverseVertexDerivative();
+    const IntegerArray & boundaryCondition= mg.boundaryCondition();
+    IntegerArray bc; bc= mg.boundaryCondition();
+    
+    const int nd=mg.numberOfDimensions();
+    real d14p[3], d24p[3], dr;
+#define d14(m) d14p[m]
+#define d24(m) d24p[m]
+    for( int axis=0; axis<=2; axis++ )
+    {
+        for( int side=0; side<=1; side++ )
+        {
+      // Here are BC's that we skip
+            if( bc(side,axis)==Parameters::dirichletBoundaryCondition ||
+                    bc(side,axis)==Parameters::slipWall )
+            {
+                bc(side,axis)=Parameters::dirichletBoundaryCondition;
+            }
+        }
+
+        if( axis<nd )
+            dr=mg.gridSpacing(axis);
+        else
+            dr=1.;
+        d14(axis)=1./(12.*dr);
+        d24(axis)=1./(12.*dr*dr);
+    }
+    
+    real dx[3]={1.,1.,1.};
+    bool isRectangular=mg.isRectangular();
+    if( isRectangular )
+    {
+        mg.getDeltaX(dx);
+    }
+
+  // real ajs=mg.mapping().getSignForJacobian();
+    real ajs=getSignForJacobian(mg);
+
+  // parameters.dbase.get<int >("useNewFourthOrderBoundaryConditions")=0;
+    
+    if( debug > 3 )
+    {
+        fPrintF(debugFile,"********************** insBC4 t=%8.2e (useNew=%i)************************************\n",t,
+                      parameters.dbase.get<int >("useNewFourthOrderBoundaryConditions"));
+
+        if( debug & 8 )
+        {
+            display(u0,sPrintF("insBC4: u0 at start, t=%9.2e",t),debugFile,"%6.2f ");
+        }
+
+        printErrors("at start",u0,t,grid,parameters);
+    }
+    
+
+    int useWhereMask=false; // **NOTE** for  moving grids we may need to evaluate at more points than just mask >0 
+        
+  // isRectangular=false;  // for testing **********************************************************
+
+
+  // twilight always needs the vertex: 
+    bool vertexNeeded = !isRectangular || parameters.dbase.get<bool >("twilightZoneFlow");
+
+    if( !isRectangular )
+    {
+        mg.update(MappedGrid::THEinverseVertexDerivative | MappedGrid::THEvertex | MappedGrid::THEcenter );
+    }
+    else if( vertexNeeded  )
+    { // twilight always needs the vertex: 
+        
+        mg.update( MappedGrid::THEvertex | MappedGrid::THEcenter );
+    }
+    
+
+
+#ifdef USE_PPP
+    realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u0,uLocal);
+    const int *pmask = mg.mask().getLocalArray().getDataPointer();
+#else
+    realSerialArray & uLocal = u0;
+    const int *pmask = mg.mask().getDataPointer();
+#endif  
+    real *pu = uLocal.getDataPointer();
+    real temp;
+    real *pxy=&temp, *prsxy=&temp;
+    if( !isRectangular )
+    {
+        #ifdef USE_PPP
+          prsxy=mg.inverseVertexDerivative().getLocalArray().getDataPointer();
+        #else
+          prsxy=mg.inverseVertexDerivative().getDataPointer();
+        #endif    
+    }
+    if( vertexNeeded )
+    {
+        #ifdef USE_PPP
+          pxy=mg.vertex().getLocalArray().getDataPointer();
+        #else
+          pxy=mg.vertex().getDataPointer();
+        #endif    
+    }
+    
+    Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+    getIndex(mg.gridIndexRange(),I1,I2,I3);
+    int includeGhost=1;
+    bool ok = ParallelUtility::getLocalArrayBounds(u0,uLocal,I1,I2,I3,includeGhost);
+
+
+    OV_GET_SERIAL_ARRAY_CONDITIONAL(real,gridVelocity,gridVelocityLocal,parameters.gridIsMoving(grid));
+    realSerialArray gtt;  // holds the boundary acceleration
+    if( parameters.gridIsMoving(grid) )
+    {
+    // Moving grid problem: compute the acceleration on the boundary
+
+        MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+        int boundaryAccelerationOption=4; // return gtt
+        if( ok )
+        {
+      // note: insbc4 assumes gtt has the same first 3 dimensions as uLocal
+            gtt.redim(uLocal.dimension(0),uLocal.dimension(1),uLocal.dimension(2),numberOfDimensions);
+            gtt=0.;
+            movingGrids.getBoundaryAcceleration( mg, gtt, grid, t, boundaryAccelerationOption );
+        }
+        
+    }
+    real *pgt  = gridVelocityLocal.getDataPointer(); // pointer to the grid velocity, g'
+    real *pgtt = gtt.getDataPointer();               // pointer to the grid acceleration, g''
+    
+
+
+  // check -- is it ok to use gid instead of ir?
+    IntegerArray indexRangeLocal(2,3), dimLocal(2,3), bcLocal(2,3);
+    ParallelGridUtility::getLocalIndexBoundsAndBoundaryConditions( u0,indexRangeLocal,dimLocal,bcLocal ); 
+
+
+  // *wdh* 110311 - Add Boussinesq terms and boundary conditions for T
+    const InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
+
+
+    const bool assignTemperature = pdeModel==InsParameters::BoussinesqModel ||
+                                                                  pdeModel==InsParameters::viscoPlasticModel;
+
+  // -- We may adjust the artificial dissipation since the fourth-order dissipation doesn't work too well ---
+    bool useSecondOrderArtificialDiffusion = parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion");
+    bool useFourthOrderArtificialDiffusion = parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion");
+    
+    real ad21 = parameters.dbase.get<real >("ad21");
+    real ad22 = parameters.dbase.get<real >("ad22");
+    real ad41 = parameters.dbase.get<real >("ad41");
+    real ad42 = parameters.dbase.get<real >("ad42");
+    if( parameters.dbase.get<bool >("stabilizeHighOrderBoundaryConditions") )
+    {
+    // --- Stabilize the fourth-order BC's by using 2nd-order dissipation ----  *wdh* 2011/11/29
+    // The fourth order dissipation seems to be very touchy 
+
+    // -- We temporarily turn OFF the fourth order and turn ON the second-order dissipation
+
+        if( useFourthOrderArtificialDiffusion )
+        {
+            if( false )
+            {
+	//kkc 120323	printF(" insBC4: stabilize 4th-order BC - turn off ad42. \n");
+      	ad42 =0.;
+            }
+            else
+            {
+	//kkc 120323 printF(" insBC4: stabilize 4th-order BC - use second-order dissipation. \n");
+
+      	useFourthOrderArtificialDiffusion=false;   // locally turn off
+      	useSecondOrderArtificialDiffusion=true;    // locally turn on 
+
+	// Choose boundary dissipation as the max of the 2nd and 4th order coefficients:
+      	ad21 = max( ad21,ad41 );
+      	ad22 = max( ad22,ad42 );
+
+	// ad22=0.;
+
+	// try this:
+	// useFourthOrderArtificialDiffusion=true;
+	// ad41=5.;
+	// ad42=0.;
+	// ad21=10.;
+	// ad22=0.;
+            }
+            
+            
+        }
+        
+    }
+
+
+    int gridType = isRectangular ? 0 : 1;
+    int iparam[] ={parameters.dbase.get<int >("pc"),
+             		 parameters.dbase.get<int >("uc"),
+             		 parameters.dbase.get<int >("vc"),
+             		 parameters.dbase.get<int >("wc"),
+             		 parameters.dbase.get<int >("sc"),
+             		 grid,
+             		 gridType,
+		 //kkc 100216 fix for testing compact ops		   parameters.dbase.get<int >("orderOfAccuracy"),
+             		 min(4,parameters.dbase.get<int >("orderOfAccuracy")),
+             		 (int)parameters.gridIsMoving(grid),
+             		 useWhereMask,
+             		 parameters.getGridIsImplicit(grid),
+             		 (int)parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod"),
+             		 (int)parameters.dbase.get<Parameters::ImplicitOption >("implicitOption"),
+             		 (int)parameters.isAxisymmetric(),
+             		 useSecondOrderArtificialDiffusion,
+             		 useFourthOrderArtificialDiffusion,
+             		 (int)parameters.dbase.get<bool >("twilightZoneFlow"),
+             		 np,
+             		 parameters.dbase.get<int>("outflowOption"),
+                                  parameters.dbase.get<int >("orderOfExtrapolationForOutflow"),
+                                  parameters.dbase.get<int >("debug"),
+             		 parameters.dbase.get<int >("myid"),
+                                  (int)assignTemperature,
+                                  parameters.dbase.get<int >("tc"),
+                                  parameters.dbase.get<int >("numberOfComponents")
+    };
+
+
+    const Parameters::TimeSteppingMethod & timeSteppingMethod = 
+                                        parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod");
+    const Parameters::ImplicitMethod &method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
+
+    if( false // *wdh* 2011/11/29 -- by default the fourth-order dissipation is now turned OFF and second-order turned on (see above)
+            && timeSteppingMethod==Parameters::implicit && method==Parameters::approximateFactorization )
+    {
+    // kkc 101029: Apparently we can't use the nonlinear artificial dissipation term with the 
+    //   factored scheme in the bc, set that coefficient to zero for now
+    //   and add the two coefficients together to make a new linear damping coefficient.
+        ad21 = ad21;// + ad22;
+        ad41 = ad41;// + ad42;
+
+        ad22 = 0;
+        ad42 = 0;
+    //      ad21 = 0;
+    //            ad41 = 0;
+    }
+
+    
+
+
+
+    const real adcPassiveScalar=1.; // coeff or linear artificial diffusion for the passive scalar ** add to params
+
+    real rparam[]={dx[0],dx[1],dx[2],
+                                  mg.gridSpacing(0),
+                                  mg.gridSpacing(1),
+                                  mg.gridSpacing(2),
+                                  parameters.dbase.get<real >("nu"),
+                                  t,
+                                  ad21, //kkc 101029 parameters.dbase.get<real >("ad21"),
+                                  ad22, //kkc 101029 parameters.dbase.get<real >("ad22"),
+                                  ad41, //kkc 101029 parameters.dbase.get<real >("ad41"),
+                                  ad42, //kkc 101029 parameters.dbase.get<real >("ad42"),
+                                  parameters.dbase.get<real >("nuPassiveScalar"),
+                                  adcPassiveScalar,
+                                  ajs,
+                                  gravity(0),
+                                  gravity(1),
+                                  gravity(2),
+                                  thermalExpansivity,
+                                  (real &)(parameters.dbase.get<OGFunction* >("exactSolution")), // pointer to TZ
+                                  REAL_MIN
+    };
+
+    int ierr=0;
+        
+//      realArray u; // *************************** for testing ***********************
+//      u=u0;
+
+  // ************** There are too many updateGhostBoundaries here !! FIX ME *wdh* 110221 *************
+
+    Range V(uc,uc+nd-1);
+    if( true ) // *wdh* 110221 ABC
+    {
+        u0.periodicUpdate(V);        
+        u0.updateGhostBoundaries();    // This IS needed *wdh* 110221
+    }
+    
+
+    
+    int bcOption=1+2;  // extended boundaries + corners
+    insbc4(bcOption,
+       	 mg.numberOfDimensions(),
+       	 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+       	 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+       	 iparam[0],rparam[0], *pu, *pmask, *pxy, *prsxy, *pgt, *pgtt,
+       	 bcLocal(0,0), indexRangeLocal(0,0), ierr ) ;
+
+
+    if( np>1 )
+    {
+    // *wdh* 110318 -- we cannot use the optimized periodic update in insbc4->inscr4 in parallel -- *FIX ME*
+    // Do this for now:
+
+    //  ....swap periodic edges
+        u0.periodicUpdate(V);             // *** this is over-kill
+        u0.updateGhostBoundaries();  
+    }
+    
+    printErrors("after updating corners",u0,t,grid,parameters);
+
+    bcOption=4;  // tangential components
+    insbc4(bcOption,
+       	 mg.numberOfDimensions(),
+       	 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+       	 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+       	 iparam[0],rparam[0], *pu, *pmask, *pxy, *prsxy, *pgt, *pgtt,
+       	 bcLocal(0,0), indexRangeLocal(0,0),  ierr  ) ;
+
+
+  //  ....swap periodic edges
+    u0.periodicUpdate(V);             // *** this is over-kill
+    u0.updateGhostBoundaries();       // *** this too
+
+    printErrors("after updating tangential components",u0,t,grid,parameters);
+
+    bcOption=8;  // normal components
+    insbc4(bcOption,
+       	 mg.numberOfDimensions(),
+       	 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+       	 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+       	 iparam[0],rparam[0], *pu, *pmask, *pxy, *prsxy, *pgt, *pgtt, 
+       	 bcLocal(0,0), indexRangeLocal(0,0),  ierr  ) ;
+
+
+  // -- Assign Temperature boundary conditions for Boussinesq --
+  if( assignTemperature )
+  {
+
+//       subroutine bcOptTemperature( nd, nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,//                           gridIndexRange, u, mask,rsxy, xy, boundaryCondition, //                           addBoundaryForcing, interfaceType, ndb, bcData,  //                           dim, bcf0, bcOffset, ipar, rpar, ierr )
+
+            
+      RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
+      BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid);
+      const IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
+      real *fptr   = pu;  // used in macro below:
+
+   // The next macro is in boundaryMacros.h (copied from cg/sm/src)
+          int pdbc[2*3*2*3];
+          #define dbc(s,a,side,axis) (pdbc[(s)+2*((a)+3*((side)+2*(axis)))])
+          int pAddBoundaryForcing[6];
+          #define addBoundaryForcing(side,axis) (pAddBoundaryForcing[(side)+2*(axis)])
+          real *pbcf[2][3];
+     // long int pbcfOffset[6];
+     // We need an 8 byte integer so we can pass to fortran: int64_t is in stdint.h 
+          int64_t pbcfOffset[6];
+          #define bcfOffset(side,axis) pbcfOffset[(side)+2*(axis)]
+          for( int axis=0; axis<=2; axis++ )
+          {
+              for( int side=0; side<=1; side++ )
+              {
+         // *** for now make sure the boundary data array is allocated on all sides
+                  if( false &&   // We do NOT need to always allocate the boundaryDataArray for INS *wdh* 110313
+                          ( pBoundaryData[side][axis]==NULL || parameters.isAdaptiveGridProblem() ) && 
+                          mg.boundaryCondition(side,axis)>0 )
+                  {
+            	parameters.getBoundaryData(side,axis,grid,mg);
+           // RealArray & bd = *pBoundaryData[side][axis]; // this is now done in the above line *wdh* 090819
+           // bd=0.;
+                  }
+                  if( pBoundaryData[side][axis]!=NULL )
+                  {
+                      addBoundaryForcing(side,axis)=true;
+                      RealArray & bd = *pBoundaryData[side][axis];
+                      pbcf[side][axis] = bd.getDataPointer();
+   	// if( debug & 8 )
+           // ::display(bd,sPrintF(" ++++ Cgsm: Here is bd (side,axis)=(%i,%i) ++++",side,axis),"%4.2f ");
+            	for( int a=0; a<=2; a++ )
+            	{
+              	  dbc(0,a,side,axis)=bd.getBase(a);
+              	  dbc(1,a,side,axis)=bd.getBound(a);
+            	}
+                  }
+                  else
+                  {
+                      addBoundaryForcing(side,axis)=false;
+            	pbcf[side][axis] = fptr;  // should not be used in this case 
+            	for( int a=0; a<=2; a++ )
+            	{
+              	  dbc(0,a,side,axis)=0;
+              	  dbc(1,a,side,axis)=0;
+            	}
+                  }
+         // for now we save the offset in a 4 byte int (double check that this is ok)
+                  int64_t offset = pbcf[side][axis]- pbcf[0][0];
+   //       if( offset > INT_MAX )
+   //       {
+   // 	printF("ERROR: offset=%li INT_MAX=%li \n",offset,(long int)INT_MAX);
+   //       }
+   //       assert( offset < INT_MAX );
+                  bcfOffset(side,axis) = offset;
+         // bcfOffset(side,axis) = pbcf[side][axis]- pbcf[0][0];
+         // cout << " **** bcfOffset= " << bcfOffset(side,axis) << endl;
+              }
+          }
+
+
+   // ::display(bcData,sPrintF("bcData before bcOptTemperature (grid=%i)",grid));
+
+      bcOptTemperature(mg.numberOfDimensions(),
+                		    uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+                		    uLocal.getBase(2),uLocal.getBound(2),
+                		    indexRangeLocal(0,0), dimLocal(0,0), mg.isPeriodic(0),
+                                        *pu, *pmask, *prsxy, *pxy,  bcLocal(0,0),  
+                		    *pAddBoundaryForcing, *interfaceType.getDataPointer(), 
+                		    bcData.getLength(0), *bcData.getDataPointer(), 
+                		    *pdbc, *pbcf[0][0], pbcfOffset[0], iparam[0],rparam[0], ierr );
+
+   // ...swap periodic edges (T too)
+      u0.periodicUpdate();
+      u0.updateGhostBoundaries();
+
+  }
+  else
+  {
+   // ...swap periodic edges
+      u0.periodicUpdate(V);
+      u0.updateGhostBoundaries();
+  }
+  
+    printErrors("after updating normal components",u0,t,grid,parameters);
+
+
+
+//      real maxDiff = max(fabs(u-u0));
+//      printf("Max difference after new insbc4 = %8.2e\n",maxDiff);
+//      if( false && maxDiff>REAL_EPSILON*100. )
+//      {
+//        display(u-u0,"u-u0","%8.2e ");
+//        u.display("u");
+//        u0.display("u0");
+//      }
+
+}
+
+
+
+
+
+// *************************************************************************************************************
+// ***************************** OLD WAY ***********************************************************************
+// *************************************************************************************************************
+
+//====================================================================================================
+// /Description:   ********* OLD VERSION **********
+//    Assign values on the 2 ghost lines for a fourth order approximation.
+//
+// /Note: This function assumes that the values have been assigned on boundaries, INCLUDING
+//    the extension of the boundaries to the ghost lines
+//    
+//====================================================================================================
+void
+applyFourthOrderBoundaryConditionsOld( realMappedGridFunction & u0, real t, int grid, Insbc4WorkSpace & ws,
+                               				       IntegerArray & ipar, RealArray & rpar, OGFunction & exact,
+                               				       Parameters & parameters )
+{
+    int debug=ipar(0);
+    FILE *debugFile = parameters.dbase.get<FILE* >("debugFile");
+    
+    real *pu = getDataPointer(u0);
+#define u(i1,i2,i3,n) pu[i1-ndra+ndr*(i2-ndsa+nds*(i3-ndta+ndt*(n)))]
+    
+  // fill in the boundary conditions
+    MappedGrid & mg = *u0.getMappedGrid();
+    const int numberOfDimensions=mg.numberOfDimensions();
+    
+    const int uc  = ipar(2);
+    const int vc  = uc+1;
+
+    const IntegerArray & d = mg.dimension();
+    const IntegerArray & gid = mg.gridIndexRange();
+    const intArray & mask = mg.mask();
+//    const realArray & vertex = mg.vertex();
+//    const realArray & rx = mg.inverseVertexDerivative();
+    const IntegerArray & boundaryCondition= mg.boundaryCondition();
+    IntegerArray bc; bc= mg.boundaryCondition();
+    
+    const int nd=mg.numberOfDimensions();
+    real d14p[3], d24p[3], dr;
+#define d14(m) d14p[m]
+#define d24(m) d24p[m]
+    for( int axis=0; axis<=2; axis++ )
+    {
+        for( int side=0; side<=1; side++ )
+        {
+      // Here are BC's that we skip
+            if( bc(side,axis)==Parameters::dirichletBoundaryCondition ||
+                    bc(side,axis)==Parameters::slipWall )
+            {
+                bc(side,axis)=Parameters::dirichletBoundaryCondition;
+            }
+        }
+
+        if( axis<nd )
+            dr=mg.gridSpacing(axis);
+        else
+            dr=1.;
+        d14(axis)=1./(12.*dr);
+        d24(axis)=1./(12.*dr*dr);
+    }
+    
+    real dx[3]={1.,1.,1.};
+    bool isRectangular=mg.isRectangular();
+    if( isRectangular )
+    {
+        mg.getDeltaX(dx);
+    }
+
+  // real ajs=mg.mapping().getSignForJacobian();
+    real ajs=getSignForJacobian(mg);
+
+  // parameters.dbase.get<int >("useNewFourthOrderBoundaryConditions")=0;
+    
+    if( debug > 3 )
+    {
+        fPrintF(debugFile,"********************** insBC4 t=%8.2e (useNew=%i)************************************\n",t,
+                      parameters.dbase.get<int >("useNewFourthOrderBoundaryConditions"));
+
+        if( debug & 8 )
+        {
+            display(u0,sPrintF("insBC4: u0 at start, t=%9.2e",t),debugFile,"%6.2f ");
+        }
+
+        printErrors("at start",u0,t,grid,parameters);
+    }
+    
+    assert( !parameters.dbase.get<int >("useNewFourthOrderBoundaryConditions") );
+    
+  // this version always needs these:
+    mg.update(MappedGrid::THEinverseVertexDerivative | MappedGrid::THEvertex );
+
+    const realArray & vertex = mg.vertex();
+    const realArray & rx = mg.inverseVertexDerivative();
+
+    if( debug & 2 && ! parameters.dbase.get<bool >("twilightZoneFlow") )
+    {
+        Index I1,I2,I3;
+        getIndex(mg.gridIndexRange(),I1,I2,I3,2);
+        Range N(uc,uc+nd-1);
+        display(u0(I1,I2,I3,N),"Solution BEFORE updating corners",debugFile,"%5.2f ");
+    }
+
+    Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+    int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+
+    int kd1;
+    for( kd1=0; kd1<nd; kd1++ )
+    {
+        for( int ks1=0; ks1<=1; ks1++ )
+        {
+            const int bc1=boundaryCondition(ks1,kd1);
+      // printf(" ks1,kd1,bc1=%i,%i,%i\n",ks1,kd1,bc1);
+            
+            if( bc1==Parameters::slipWall || bc1==InsParameters::outflow || 
+                    bc1==InsParameters::inflowWithVelocityGiven )
+            {
+	// In some cases we may need to assign values on the ghost points on the extended boundary
+        // For a noSlipWall these values are already set (u=0)
+        //
+        //                |                      |
+        //                |                      |
+        //      X----X----|----------------------|----X----X
+        //                |                      |
+        //                |                      |
+
+      	assert( nd==2 );
+
+                getBoundaryIndex(mg.gridIndexRange(),ks1,kd1,I1,I2,I3);
+      	for( int kd2=0; kd2<nd; kd2++ )
+      	{
+        	  if( kd2!=kd1 )
+        	  {
+          	    for( int ks2=0; ks2<=1; ks2++ )
+          	    {
+                            const int bc2=boundaryCondition(ks2,kd2);
+                            if( bc1==Parameters::slipWall && 
+                                    ( bc2==InsParameters::outflow || bc2==InsParameters::inflowWithVelocityGiven) )
+            	      {
+                // On the slip wall ghost points solve for the normal components:
+                //      u.x + v.y = 0
+                //     D+^p ( n.u ) = 0
+
+            		
+                                Iv[kd2]=mg.gridIndexRange(ks2,kd2);
+            		int i1=I1.getBase();
+            		int i2=I2.getBase();
+            		int i3=I3.getBase();
+            		
+                                is1=is2=is3=0;
+            		isv[kd2]=2*ks2-1;
+                // printf(" Set points (%i,%i,%i),(%i,%i,%i) where slip wall meets outflow\n",
+                //                 i1+is1,i2+is2,i3,i1+2*is1,i2+2*is2,i3);
+            		
+                // ************** finish this **************
+                                if( true )
+            		{
+                  // u.x+v.y=0
+                  // D+4(u)=0
+              		  u0(i1+is1,i2,i3,uc)=-1.5*u0(i1,i2,i3,uc)+3.*u0(i1-is1,i2-2*is2,i3,uc)-.5*u0(i1-2*is1,i2,i3,uc) 
+                		    -.25*is1*dx[0]/dx[1]*( 8.*(u0(i1,i2+1,i3,vc)-u0(i1,i2-1,i3,vc))+
+                                     					       u0(i1,i2-2,i3,vc)-u0(i1,i2+2,i3,vc));
+
+              		  u0(i1+2*is1,i2+2*is2,i3,uc)=4.*(u0(i1+is1,i2+is2,i3,uc)+u0(i1-is1,i2-is2,i3,uc))
+                   			 -6.*u0(i1,i2,i3,uc)- u0(i1-2*is1,i2-2*is2,i3,uc);
+                                    
+            		}
+            		else if( true )
+            		{
+		  // do this for now
+              		  u0(i1+  is1,i2+  is2,i3,uc)=2.*u0(i1,i2,i3,uc)-u0(i1-  is1,i2-  is2,i3,uc);
+                                    u0(i1+2*is1,i2+2*is2,i3,uc)=2.*u0(i1,i2,i3,uc)-u0(i1-2*is1,i2-2*is2,i3,uc);
+            		}
+            		else  if( true )
+            		{
+
+               		   const int extrapOrder=3;
+               		   if( extrapOrder==2 )
+               		   {
+                 		     for( int c=uc; c<=uc; c++ )
+                 		     {
+                   		       u0(i1+  is1,i2+  is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-  is1,i2-  is2,i3,c);
+                   		       u0(i1+2*is1,i2+2*is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c);
+                 		     }
+
+               		   }
+               		   else if( extrapOrder==3 )
+               		   {
+                 		     for( int c=uc; c<=uc; c++ )
+                 		     {
+                   		       u0(i1+  is1,i2+  is2,i3,c)=3.*u0(i1,i2,i3,c)-3.*u0(i1-is1,i2-is2,i3,c)+u0(i1-2*is1,i2-2*is2,i3,c);
+                   		       u0(i1+2*is1,i2+2*is2,i3,c)=3.*u0(i1+is1,i2+is2,i3,c)-3.*u0(i1,i2,i3,c)+u0(i1-is1,i2-is2,i3,c);
+                 		     }
+              		  
+               		   }
+               		   else if( extrapOrder==4 )
+               		   {
+                 		     for( int c=uc; c<=uc; c++ )
+                 		     {
+                   		       u0(i1+  is1,i2+  is2,i3,c)=4.*(u0(i1,i2,i3,c)+u0(i1-2*is1,i2-2*is2,i3,c))
+                   			 -6.*u0(i1-is1,i2-is2,i3,c)-u0(i1-3*is1,i2-3*is2,i3,c);
+                   		       u0(i1+2*is1,i2+2*is2,i3,c)=4.*(u0(i1+is1,i2+is2,i3,c)+u0(i1-is1,i2-is2,i3,c))
+                   			 -6.*u0(i1,i2,i3,c)- u0(i1-2*is1,i2-2*is2,i3,c);
+                 		     }
+              		  
+               		   }
+               		   else if( extrapOrder==5 )
+               		   {
+                 		     for( int c=uc; c<=uc; c++ )
+                 		     {
+                   		       u0(i1+  is1,i2+  is2,i3,c)=(   5.*(u0(i1,i2,i3,c)-u0(i1-3*is1,i2-3*is2,i3,c))
+                                          						      -10.*(u0(i1-is1,i2-is2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c))
+                                          						      +u0(i1-4*is1,i2-4*is2,i3,c) );
+                   		       u0(i1+2*is1,i2+2*is2,i3,c)=(  5.*(u0(i1+is1,i2+is2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c))
+                                         						     -10.*(u0(i1,i2,i3,c)-u0(i1-is1,i2-is2,i3,c))
+                                         						     +u0(i1-3*is1,i2-3*is2,i3,c) );
+                 		     }
+              		  
+               		   }
+               		   else
+               		   {
+                 		     printf("Unimplemented order of extrapolation =%i\n",extrapOrder);
+                 		     Overture::abort("");
+               		   }
+
+
+            		}
+            		else
+            		{
+		  // Here we apply the discrete divergence condition twice to get the solution at both
+		  //   the first and second ghost line -- we assume the slip wall BC has been applied so we
+		  //   have the appropriate ghost values already assigned
+		  // ux(+1) = -vy(+1)
+                                    assert( kd1==1 );
+              		  
+#define DIVBC(j1) u0(j1+2*is1,i2,i3,uc)=8.*(u0(j1+is1,i2,i3,uc)-u0(j1-is1,i2-2*is2,i3,uc))+u0(j1-2*is1,i2,i3,uc) +is1*dx[0]/dx[1]*( 8.*(u0(j1,i2+1,i3,vc)-u0(j1,i2-1,i3,vc))+  	 	               u0(j1,i2-2,i3,vc)-u0(j1,i2+2,i3,vc));
+      
+              		  assert( is1!=0 && isRectangular );
+            		
+              		  DIVBC(i1-is1);
+              		  DIVBC(i1);
+              		  
+            		}
+            		
+            	      }
+            	      else if( bc1==InsParameters::outflow && 
+                                              (bc2==InsParameters::outflow || bc2==Parameters::noSlipWall) )
+            	      {
+                                Iv[kd2]=mg.gridIndexRange(ks2,kd2);
+            		int i1=I1.getBase();
+            		int i2=I2.getBase();
+            		int i3=I3.getBase();
+            		
+                                is1=is2=is3=0;
+            		isv[kd2]=2*ks2-1;
+                // printf(" Set points (%i,%i,%i),(%i,%i,%i) on outflow extended boundary...\n",
+                //                 i1+is1,i2+is2,i3,i1+2*is1,i2+2*is2,i3);
+            		
+		// do this for now
+//                  u0(i1+  is1,i2+  is2,i3,uc)=2.*u0(i1,i2,i3,uc)-u0(i1-  is1,i2-  is2,i3,uc);
+//                  u0(i1+2*is1,i2+2*is2,i3,uc)=2.*u0(i1,i2,i3,uc)-u0(i1-2*is1,i2-2*is2,i3,uc);
+//                  u0(i1+  is1,i2+  is2,i3,vc)=2.*u0(i1,i2,i3,vc)-u0(i1-  is1,i2-  is2,i3,vc);
+//                  u0(i1+2*is1,i2+2*is2,i3,vc)=2.*u0(i1,i2,i3,vc)-u0(i1-2*is1,i2-2*is2,i3,vc);
+		// do this for now
+                                const int extrapOrder=5;
+                                if( extrapOrder==2 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-  is1,i2-  is2,i3,c);
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c);
+              		  }
+
+            		}
+            		else if( extrapOrder==3 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=3.*u0(i1,i2,i3,c)-3.*u0(i1-is1,i2-is2,i3,c)+u0(i1-2*is1,i2-2*is2,i3,c);
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=3.*u0(i1+is1,i2+is2,i3,c)-3.*u0(i1,i2,i3,c)+u0(i1-is1,i2-is2,i3,c);
+              		  }
+              		  
+            		}
+            		else if( extrapOrder==4 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=4.*(u0(i1,i2,i3,c)+u0(i1-2*is1,i2-2*is2,i3,c))
+                                                                                            -6.*u0(i1-is1,i2-is2,i3,c)-u0(i1-3*is1,i2-3*is2,i3,c);
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=4.*(u0(i1+is1,i2+is2,i3,c)+u0(i1-is1,i2-is2,i3,c))
+                                                                                            -6.*u0(i1,i2,i3,c)- u0(i1-2*is1,i2-2*is2,i3,c);
+              		  }
+              		  
+            		}
+            		else if( extrapOrder==5 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=(   5.*(u0(i1,i2,i3,c)-u0(i1-3*is1,i2-3*is2,i3,c))
+                                     						 -10.*(u0(i1-is1,i2-is2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c))
+                                     						 +u0(i1-4*is1,i2-4*is2,i3,c) );
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=(  5.*(u0(i1+is1,i2+is2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c))
+                                                                                                -10.*(u0(i1,i2,i3,c)-u0(i1-is1,i2-is2,i3,c))
+                                                                                                    +u0(i1-3*is1,i2-3*is2,i3,c) );
+              		  }
+              		  
+            		}
+                                else
+            		{
+              		  printf("Unimplemented order of extrapolation =%i\n",extrapOrder);
+              		  Overture::abort("");
+            		}
+            		
+            	      }
+            	      else if( bc1==InsParameters::inflowWithVelocityGiven )
+            	      {
+                                Iv[kd2]=mg.gridIndexRange(ks2,kd2);
+            		int i1=I1.getBase();
+            		int i2=I2.getBase();
+            		int i3=I3.getBase();
+            		
+                                is1=is2=is3=0;
+            		isv[kd2]=2*ks2-1;
+                // printf(" Set points (%i,%i,%i),(%i,%i,%i) on inflow extended boundary...\n",
+                //             i1+is1,i2+is2,i3,i1+2*is1,i2+2*is2,i3);
+            		
+		// do this for now
+                                const int extrapOrder=5;
+                                if( extrapOrder==2 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-  is1,i2-  is2,i3,c);
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c);
+              		  }
+
+            		}
+            		else if( extrapOrder==3 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=3.*u0(i1,i2,i3,c)-3.*u0(i1-is1,i2-is2,i3,c)+u0(i1-2*is1,i2-2*is2,i3,c);
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=3.*u0(i1+is1,i2+is2,i3,c)-3.*u0(i1,i2,i3,c)+u0(i1-is1,i2-is2,i3,c);
+              		  }
+              		  
+            		}
+            		else if( extrapOrder==4 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=4.*(u0(i1,i2,i3,c)+u0(i1-2*is1,i2-2*is2,i3,c))
+                                                                                            -6.*u0(i1-is1,i2-is2,i3,c)-u0(i1-3*is1,i2-3*is2,i3,c);
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=4.*(u0(i1+is1,i2+is2,i3,c)+u0(i1-is1,i2-is2,i3,c))
+                                                                                            -6.*u0(i1,i2,i3,c)- u0(i1-2*is1,i2-2*is2,i3,c);
+              		  }
+              		  
+            		}
+            		else if( extrapOrder==5 )
+            		{
+                                    for( int c=uc; c<=uc+nd-1; c++ )
+              		  {
+                		    u0(i1+  is1,i2+  is2,i3,c)=(   5.*(u0(i1,i2,i3,c)-u0(i1-3*is1,i2-3*is2,i3,c))
+                                     						 -10.*(u0(i1-is1,i2-is2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c))
+                                     						 +u0(i1-4*is1,i2-4*is2,i3,c) );
+                		    u0(i1+2*is1,i2+2*is2,i3,c)=(  5.*(u0(i1+is1,i2+is2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c))
+                                                                                                -10.*(u0(i1,i2,i3,c)-u0(i1-is1,i2-is2,i3,c))
+                                                                                                    +u0(i1-3*is1,i2-3*is2,i3,c) );
+              		  }
+              		  
+            		}
+                                else
+            		{
+              		  printf("Unimplemented order of extrapolation =%i\n",extrapOrder);
+              		  Overture::abort("");
+            		}
+//                  const int extrapOrder=3;
+//                  if( extrapOrder==2 )
+//  		{
+//                    for( int c=uc; c<=uc+nd-1; c++ )
+//  		  {
+//  		    u0(i1+  is1,i2+  is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-  is1,i2-  is2,i3,c);
+//  		    u0(i1+2*is1,i2+2*is2,i3,c)=2.*u0(i1,i2,i3,c)-u0(i1-2*is1,i2-2*is2,i3,c);
+//  		  }
+
+//  		}
+//  		else
+//  		{
+//                    for( int c=uc; c<=uc+nd-1; c++ )
+//  		  {
+//  		    u0(i1+  is1,i2+  is2,i3,c)=3.*u0(i1,i2,i3,c)-3.*u0(i1-is1,i2-is2,i3,c)+u0(i1-2*is1,i2-2*is2,i3,c);
+//  		    u0(i1+2*is1,i2+2*is2,i3,c)=3.*u0(i1+is1,i2+is2,i3,c)-3.*u0(i1,i2,i3,c)+u0(i1-is1,i2-is2,i3,c);
+//  		  }
+              		  
+//  		}
+            		
+            	      }
+            	      else if( bc1==InsParameters::outflow && bc2==Parameters::noSlipWall )
+            	      {
+            	      }
+          	    }
+        	  }
+      	}
+            }
+        }
+    }
+
+  //  ...Get values outside corners in 2D,3D and edges in 3D using values on the extended boundary
+  //     and values in the interior
+  //     The corner or edge is labelled as (kd1,ks1),(kd2,ks2)
+    for( int kd1=1; kd1<=nd-1; kd1++ )
+    {
+        for( int kd2=kd1+1; kd2<=nd; kd2++ )
+        {
+            for( int ks1=1; ks1<=2; ks1++ )
+            {
+      	for( int ks2=1; ks2<=2; ks2++ )
+      	{
+        	  if( bc(ks1-1,kd1-1)>0 && bc(ks2-1,kd2-1)>0 )
+        	  {
+                        inscr( kd1,ks1,kd2,ks2,nd,mg.gridIndexRange(0,0),bc(0,0),
+                          d(0,0),d(1,0),d(0,1),d(1,1),d(0,2),d(1,2),
+                          *pu,t,d14(0),d24(0),ajs,*vertex.getDataPointer(),*rx.getDataPointer() );
+        	  }
+      	}
+            }
+        }
+    }
+
+    printErrors("after updating corners",u0,t,grid,parameters);
+
+    
+    int mrp[3*3*2];
+#define mr(m,kd,ks) mrp[m+3*(kd)+9*(ks)]
+    int nrmp[3*2*3*2];
+#define nrm(kd,ks,kd1,ks1) nrmp[kd+3*(ks)+6*(kd1)+18*(ks1)]
+
+    int kd,ks,kdd,is,i;
+    for( i=0; i<36; i++ )
+        nrmp[i]=0;
+
+    
+    for( kd=0; kd<nd; kd++ )
+    {
+        for( ks=0; ks<=1; ks++ )
+        {
+            if( bc(ks,kd)>0 )
+            {
+      	is=1-2*ks;
+      	mr(0,kd,ks)=0;
+      	mr(1,kd,ks)=0;
+      	mr(2,kd,ks)=0;
+      	mr(kd,kd,ks)=is;
+        //            ...apply BC's at nra+1,...,nrb-1 (unless periodic)
+      	nrm(kd,0,kd,ks)=gid(ks,kd);
+      	nrm(kd,1,kd,ks)=gid(ks,kd);
+
+                for( kdd=0; kdd<nd; kdd++ ) // tangential directions to the boundary
+      	{
+                    if( kdd!=kd )
+        	  {
+          	    nrm(kdd,0,kd,ks)=gid(0,kdd);  // by default we include the corners
+          	    nrm(kdd,1,kd,ks)=gid(1,kdd);
+
+            // If the adjacent BC is a noslipWall or inflow then we do not need to assign
+            // ghost points on extended boundaries because these have already been assigned (e.g. u=0 for a noSlipWall)
+                        for( int side=0; side<=1; side++ )
+          	    {
+            	      if( bc(side,kdd)==Parameters::noSlipWall || 
+                                    bc(side,kdd)==InsParameters::inflowWithVelocityGiven 
+                                    || bc(side,kdd)==Parameters::slipWall 
+		  // || bc(side,kdd)==Parameters::outflow 
+            		)
+            	      {
+                                if( side==0 )
+                  		  nrm(kdd,side,kd,ks)=min(gid(side,kdd)+1,gid(1,kdd));
+                                else
+                                    nrm(kdd,side,kd,ks)=max(gid(side,kdd)-1,gid(0,kdd));
+            	      }
+          	    }
+        	  }
+      	}
+            }
+        }
+    }
+
+    assert( ws.first!=NULL );
+
+    int *pnib = ws.pnib;
+#define nib(kd,ks,m,k) pnib[kd+3*(ks)+6*(m)+12*(k)]
+
+    const int ndra=d(0,0), ndrb=d(1,0);
+    const int ndsa=d(0,1), ndsb=d(1,1);
+    const int ndta=d(0,2), ndtb=d(1,2);
+    const int ndr=ndrb-ndra+1, nds=ndsb-ndsa+1, ndt=ndtb-ndta+1;
+    
+//    printf(" ndra=%i, ndrb=%i, ndsa=%i, ndsb=%i, ndta=%i, ndtb=%i \n",ndra,ndrb,ndsa,ndsb,ndta,ndtb);
+//    printf(" rx : %i:%i %i:%i %i:%i %i:%i\n",rx.getBase(0),rx.getBound(0),rx.getBase(1),rx.getBound(1),
+//  	 rx.getBase(2),rx.getBound(2),rx.getBase(3),rx.getBound(3));
+    
+    const real *prx = getDataPointer(rx);
+// define rx3(kd1,kd2) rx(i1,i2,i3,kd1+nd*(kd2))
+#define rx3(kd1,kd2) (prx[i1-ndra+ndr*(i2-ndsa+nds*(i3-ndta+ndt*(kd1+nd*(kd2))))])
+
+    int & nibt = ws.pnibt[grid];   // total number of boundary points for this grid
+    IntegerArray & ibe = ws.pibe[grid]; // (3,ndb);
+    RealArray & tg =ws.ptg[grid];
+    RealArray & ct =ws.pct[grid];
+    RealArray & cn =ws.pcn[grid];
+    
+    int m, m1,m2,m3,i1,i2,i3;
+
+  // =========Set up=========
+    if( ws.first[grid] )
+    {
+        ws.first[grid]=false;
+        
+    // count up the max number of boundary points
+        int nbd=0;
+        for( kd=0; kd<nd; kd++ )
+        {
+            const int kdp1=(kd+1)%nd;
+            const int kdp2=(kd+2)%nd;
+            for( ks=0; ks<=1; ks++ )
+            {
+      	if( bc(ks,kd)>0 && bc(ks,kd)!=Parameters::dirichletBoundaryCondition )
+      	{
+                    if( nd==2 )
+              	    nbd+=(nrm(kdp1,1,kd,ks)-nrm(kdp1,0,kd,ks)+1); // number of pts on this face
+                    else
+              	    nbd+=(nrm(kdp1,1,kd,ks)-nrm(kdp1,0,kd,ks)+1)*(nrm(kdp2,1,kd,ks)-nrm(kdp2,0,kd,ks)+1);
+      	}
+            }
+        }
+        if( nbd>0 )
+        {
+            ibe.redim(3,nbd);
+            tg.redim(nd,2,nbd);
+            ct.redim(2,2,nbd);
+            cn.redim(2,2,nbd);
+            
+        }
+        else
+        {
+            ibe.redim(0);
+            tg.redim(0);
+            ct.redim(0);
+            cn.redim(0);
+        }
+        
+        const int ndcf=3;
+        const int ndcf2=3;
+        real pcf1[ndcf*ndcf2*2], pcf2[ndcf*ndcf2*2], pa0[4];
+    // u4(-2:2,-2:2,-2:2,4) 
+        real pu4[5*5*5*4];
+        for( m=0; m<500; m++ ) pu4[m]=0.;
+            
+#define cf1(n1,n2,n3) pcf1[n1+ndcf*(n2+ndcf2*(n3))]
+#define cf2(n1,n2,n3) pcf2[n1+ndcf*(n2+ndcf2*(n3))]
+#define a0(n1,n2) pa0[n1+2*(n2)]
+#define u4(i1,i2,i3,m) pu4[i1+2+5*(i2+2+5*(i3+2+5*(m)))]
+
+    // 
+        int ib=-1;  // counts boundary points
+        
+    //.........FOR each side DO
+        for( kd=0; kd<nd; kd++ )
+        {
+            for( ks=0; ks<=1; ks++ )
+            {
+        //  ...nib(kd,ks,0,k) : pointer to starting ib for this side
+        //     nib(kd,ks,1,k) : number of ib points on this side
+
+      	nib(kd,ks,0,grid)=ib+1;
+
+      	if( bc(ks,kd)>0 && bc(ks,kd)!=Parameters::dirichletBoundaryCondition )
+      	{
+         //  ..get (u,v) at 2 fictitious lines using:
+         //         div = 0
+         //         div.n = 0
+         //         t.(\uv.t+(\uv.grad)\uv+\grad p - \nu Delta\uv)=0
+         //         Extrapolate t.\uv
+         //    extract coefficients by a discrete delta-function approach
+
+        	  const realArray & normal = mg.vertexBoundaryNormal(ks,kd);
+        	  
+        	  m1=mr(0,kd,ks);
+        	  m2=mr(1,kd,ks);
+        	  m3=mr(2,kd,ks);
+        	  
+          //   This loop goes along the side
+                    for( i3=nrm(2,0,kd,ks); i3<=nrm(2,1,kd,ks); i3++ )
+        	  {
+          	    for( i2=nrm(1,0,kd,ks); i2<=nrm(1,1,kd,ks); i2++ )
+          	    {
+            	      for( i1=nrm(0,0,kd,ks); i1<=nrm(0,1,kd,ks); i1++ )
+            	      {
+                //     Set-up: Store coefficents
+            		if( mask(i1,i2,i3)>0 )
+            		{
+              		  ib=ib+1;
+                                    if( ib>=nbd )
+              		  {
+                		    Overture::abort("INSBE: dimension error, ib>=nbd");
+              		  }
+              		  
+              		  ibe(0,ib)=i1;
+              		  ibe(1,ib)=i2;
+              		  ibe(2,ib)=i3;
+                		    
+                  // ..get tangent vector(s)
+              		  if( numberOfDimensions==2 )
+              		  {
+                		    tg(0,0,ib)=-normal(i1,i2,i3,1);
+                		    tg(1,0,ib)= normal(i1,i2,i3,0);
+              		  }
+              		  else
+              		  {
+		    // ...get xr from rx
+                		    int kdp1=(kd+1)%numberOfDimensions; // mod(kd  ,nd)+1;
+                		    int kdp2=(kd+2)%numberOfDimensions; //mod(kdp1,nd)+1;
+                		    int kdp3=(kd+3)%numberOfDimensions; //mod(kdp2,nd)+1;
+                  		      
+                		    tg(0,0,ib)=rx3(kdp2,1)*rx3(kdp3,2)-rx3(kdp2,2)*rx3(kdp3,1);
+                		    tg(1,0,ib)=rx3(kdp2,2)*rx3(kdp3,0)-rx3(kdp2,0)*rx3(kdp3,2);
+                		    tg(2,0,ib)=rx3(kdp2,0)*rx3(kdp3,1)-rx3(kdp2,1)*rx3(kdp3,0);
+                		    tg(0,1,ib)=rx3(kdp3,1)*rx3(kdp1,2)-rx3(kdp3,2)*rx3(kdp1,1);
+                		    tg(1,1,ib)=rx3(kdp3,2)*rx3(kdp1,0)-rx3(kdp3,0)*rx3(kdp1,2);
+                		    tg(2,1,ib)=rx3(kdp3,0)*rx3(kdp1,1)-rx3(kdp3,1)*rx3(kdp1,0);
+                  		      
+		    //       ...normalize
+                		    for( m=0; m<nd-1; m++ )
+                		    {
+                  		      real tgn=sqrt(SQR(tg(0,m,ib))+SQR(tg(1,m,ib))+SQR(tg(2,m,ib)));
+                  		      if( tgn==0. )
+                  		      {
+                  			Overture::abort("INSBE:ERROR tgn=0");
+                  		      }
+                  		      for( kdd=0; kdd<numberOfDimensions; kdd++ )
+                  		      {
+                  			tg(kdd,m,ib)=tg(kdd,m,ib)/tgn;
+                  		      }
+                		    }
+              		  }
+              		  
+                  //      if(d(5)) write(1,'('' ib,tangent ='',i3,3e12.4)') (ib,
+                  //     &      (tg(kdd,m,ib),kdd=1,nd),m=2,nd)
+
+                  //   ...get coefficient by evaluating a delta function
+                  //   ...get coefficients anu*Delta, nonlinear terms
+                  //      are lagged, therefore all tangential components
+                  //      are the same:
+              		  for( kdd=0; kdd<=0; kdd++ )
+              		  {
+		    // ...evaluate at 2 fictitious points:
+                		    for( int kf=1; kf<=2; kf++ )
+                		    {
+                  		      u4(-m1*kf,-m2*kf,-m3*kf,uc+kdd)=1.;
+
+		      // Get   nu \Delta u = ....   -> cf1(kdd,..)
+		      // Get   D+^6      u = ....   -> cf2(kdd,.)
+
+//  		      insbe1( 1,id,rd,ibe(1,ib),1,kd,ks,ndcf,cf1(1,kdd,kf),cf2(1,kdd,kf),
+//  			      nd,i1-2,i1+2,i2-2,i2+2,i3-2,i3+2,u4,ndra,ndrb,ndsa,ndsb,ndta,ndtb,u,
+//  			      u(ndra,ndsa,ndta,nvp),rsxy,d14,d24,d4,d32,ajs,k,t );
+
+                                            int iopt=1;
+                                            int nib=1;
+                                            insbe1( iopt,&ibe(0,ib),nib,kd,ks, ndcf, &cf1(0,kdd,kf-1),&cf2(0,kdd,kf-1),
+                        			      t, u0, rx, i1-2,i1+2,i2-2,i2+2,i3-2,i3+2,pu4,ipar,rpar,exact );
+
+                  		      u4(-m1*kf,-m2*kf,-m3*kf,uc+kdd)=0.;
+                		    }
+              		  }
+		  // ...Tangential components:
+		  // cf1(1,1,2)*ut(-2)+cf1(1,1,1)*ut(-1) = f1(m)
+		  // cf2(1,1,2)*ut(-2)+cf2(1,1,1)*ut(-1) = f2(m)
+		  //=>
+		  // [ ut_m(-2,j) ] = [ ct11 ct12 ] [f1(m,j)]
+		  // [ ut_m(-1,j) ] = [ ct21 ct22 ] [f1(m,j)]
+              		  a0(0,0)=cf1(0,0,1);
+              		  a0(0,1)=cf1(0,0,0);
+              		  a0(1,0)=cf2(0,0,1);
+              		  a0(1,1)=cf2(0,0,0);
+                  		      
+              		  if( debug & 8 ) 
+                                        printf("Tangential: ks,kd=%i,%i, ib=%i a00,a01=(%10.4e,%10.4e) a10,a11=(%10.4e,%10.4e)\n",
+                               					 ks,kd,ib,a0(0,0),a0(0,1),a0(1,0),a0(1,1));
+              		  
+              		  real det=a0(0,0)*a0(1,1)-a0(0,1)*a0(1,0);
+                  		      
+              		  if( det==0. )
+              		  {
+                		    printf("INSBE:ERROR det=0 ib=%i\n",ib);
+                		    Overture::abort("ERROR");
+              		  }
+
+              		  ct(0,0,ib)= a0(1,1)/det;
+              		  ct(0,1,ib)=-a0(0,1)/det;
+              		  ct(1,0,ib)=-a0(1,0)/det;
+              		  ct(1,1,ib)= a0(0,0)/det;
+                  		      
+                                    if( debug & 8 )
+                		    printf(" ks,kd=%i,%i i=(%i,%i,%i) ib=%i ct=(%8.2e,%8.2e,%8.2e,%8.2e)\n",ks,kd,i1,i2,i3,ib,
+                     			   ct(0,0,ib),ct(0,1,ib),ct(1,0,ib),ct(1,1,ib));
+              		  
+		  // ...Normal Components
+		  // [ un(-2,j) ] =  A(j) [ f3 ]
+		  // [ un(-1,j) ]         [ f4 ]
+		  // k,l=-2,-1,0,1,2
+              		  for( kdd=0; kdd<numberOfDimensions; kdd++ )
+              		  {
+                		    for( int kf=1; kf<=2; kf++ )
+                		    {
+                  		      u4(-m1*kf,-m2*kf,-m3*kf,kdd+uc)=1.;
+                    			  
+		      // ...Get coefficients in:
+		      //   div U    -> cf1(1,.)
+		      //   (div U).n -> cf1(2,.)
+//		      ndcf=3;
+//  		      call insbe2( 1,id,rd,ibe(1,ib),1,kd,ks,ndcf,cf1(1,kdd,kf),
+//  				 nd,i1-2,i1+2,i2-2,i2+2,i3-2,i3+2,u4,ndra,ndrb,ndsa,ndsb,ndta,ndtb,u,
+//  				 u(ndra,ndsa,ndta,nvp),rsxy, d14,d24,d4,d32,ajs,k,t );
+                  			
+                                            int iopt=1;
+                                            int nib=1;
+                                            insbe2(iopt,ks, kd, ndcf, &cf1(0,kdd,kf-1), nib, &ibe(0,ib), 
+                                                          i1-2,i1+2,i2-2,i2+2,i3-2,i3+2, pu4, u0, rx,ipar,rpar );
+
+
+                  		      u4(-m1*kf,-m2*kf,-m3*kf,kdd+uc)=0.;
+                		    }
+              		  }
+
+
+              		  a0(0,0)=0.;
+              		  a0(1,0)=0.;
+              		  a0(0,1)=0.;
+              		  a0(1,1)=0.;
+              		  for( kdd=0; kdd<numberOfDimensions; kdd++ )
+              		  {
+                		    a0(0,0)=a0(0,0)+cf1(0,kdd,1)*normal(i1,i2,i3,kdd);
+                		    a0(1,0)=a0(1,0)+cf1(1,kdd,1)*normal(i1,i2,i3,kdd);
+                		    a0(0,1)=a0(0,1)+cf1(0,kdd,0)*normal(i1,i2,i3,kdd);
+                		    a0(1,1)=a0(1,1)+cf1(1,kdd,0)*normal(i1,i2,i3,kdd);
+              		  }
+                  		      
+		  // ...Invert the matrix
+              		  det=a0(0,0)*a0(1,1)-a0(0,1)*a0(1,0);
+              		  if( det==0. )
+              		  {
+                		    Overture::abort("INSBE:ERROR det=0");
+              		  }
+              		  cn(0,0,ib)= a0(1,1)/det;
+              		  cn(1,0,ib)=-a0(1,0)/det;
+              		  cn(0,1,ib)=-a0(0,1)/det;
+              		  cn(1,1,ib)= a0(0,0)/det;
+              		  
+                                    if( debug & 8 )
+                		    printf(" ks,kd=%i,%i i=(%i,%i,%i) ib=%i cn=(%8.2e,%8.2e,%8.2e,%8.2e)\n",ks,kd,i1,i2,i3,ib,
+                     			   cn(0,0,ib),cn(0,1,ib),cn(1,0,ib),cn(1,1,ib));
+
+                  	        } // end if( mask > 0 )
+            	      }
+          	    }
+        	  } // end for i3
+      	}  // end if bc
+      	nib(kd,ks,1,grid)=ib-nib(kd,ks,0,grid)+1; // number of boundary points on this face
+                if( debug & 8 ) printf(" face ks,kd=%i,%i has %i boundary points\n",ks,kd,nib(kd,ks,1,grid));
+            }
+        }
+        nibt=ib+1; // total number of boundary points for this grid
+    }
+  //      ==== End Setup ===
+
+
+  //  ==== Evaluate solution ===
+  //  ...Evaluate \nu Delta \uv + ... and D+^6 \uv at all boundary pts
+    int nbd=ibe.getLength(1);
+    if( nbd==0 ) return;
+    
+    const int ndf=nd;
+    RealArray f1(ndf,nbd), f2(ndf,nbd), v(nd-1,2,nbd);
+    
+//    f1=-123.;
+//    f2=-456.;
+//    v=-789.;
+
+    for( kd=0; kd<nd; kd++ )
+    {
+        for( ks=0; ks<=1; ks++ )
+        {
+            if( bc(ks,kd)>0 && bc(ks,kd)!=Parameters::dirichletBoundaryCondition )
+            {
+//             call insbe1( 0,id,rd,ibe(1,nib(kd,ks,1,k)),nib(kd,ks,2,k),
+//      &       kd,ks,nd,f1(1,nib(kd,ks,1,k)),f2(1,nib(kd,ks,1,k)),
+//      &               nd,ndra,ndrb,ndsa,ndsb,ndta,ndtb,u,
+//      &               ndra,ndrb,ndsa,ndsb,ndta,ndtb,u,
+//      &               u(ndra,ndsa,ndta,nvp),rsxy,
+//      &               d14,d24,d4,d32,ajs,k,t )
+
+      	int iopt=0;
+      	int nib=1;
+      	insbe1( iopt,&ibe(0,nib(kd,ks,0,grid)),nib(kd,ks,1,grid),kd,ks, 
+                                ndf, &f1(0,nib(kd,ks,0,grid)),&f2(0,nib(kd,ks,0,grid)),
+            		t, u0, rx, ndra,ndrb,ndsa,ndsb,ndta,ndtb,pu,ipar,rpar,exact  );
+
+            }
+        }
+    }
+
+  // ...compute tangential components of the correction:
+    real t1,t2;
+    int ib;
+    for( m=0; m<nd-1; m++ )
+    {
+        if( numberOfDimensions==2 )
+        {
+            for( ib=0; ib<nibt; ib++ )
+            {
+                if( debug & 8 )
+      	{
+        	  fprintf(debugFile," tangential correction: ib=%i, f1=(%9.2e,%9.2e), f2=(%9.2e,%9.2e)\n",
+             		 ib,f1(0,ib),f1(1,ib),f2(0,ib),f2(1,ib));
+      	}
+      	t1=tg(0,m,ib)*f1(0,ib)+tg(1,m,ib)*f1(1,ib);
+      	t2=tg(0,m,ib)*f2(0,ib)+tg(1,m,ib)*f2(1,ib);
+      	v(m,1,ib)=ct(0,0,ib)*t1+ct(0,1,ib)*t2;
+      	v(m,0,ib)=ct(1,0,ib)*t1+ct(1,1,ib)*t2;
+            }
+        }
+        else
+        {
+            for( ib=0; ib<nibt; ib++ )
+            {
+                if( debug & 2 )
+      	{
+        	  fprintf(debugFile," tangential corr.: ib=%i, f1=(%9.2e,%9.2e,%9.2e), f2=(%9.2e,%9.2e,%9.2e)\n",
+             		 ib,f1(0,ib),f1(1,ib),f1(2,ib),f2(0,ib),f2(1,ib),f2(2,ib));
+      	}
+      	t1=tg(0,m,ib)*f1(0,ib)+tg(1,m,ib)*f1(1,ib)+tg(2,m,ib)*f1(2,ib);
+      	t2=tg(0,m,ib)*f2(0,ib)+tg(1,m,ib)*f2(1,ib)+tg(2,m,ib)*f2(2,ib);
+      	v(m,1,ib)=ct(0,0,ib)*t1+ct(0,1,ib)*t2;
+      	v(m,0,ib)=ct(1,0,ib)*t1+ct(1,1,ib)*t2;
+            }
+        }
+    }
+
+  // ...Add tangential correction to the solution
+
+    for( kd=0; kd<nd; kd++ )
+    {
+        for( ks=0; ks<=1; ks++ )
+        {
+            m1=mr(0,kd,ks);
+            m2=mr(1,kd,ks);
+            m3=mr(2,kd,ks);
+      	
+            for( m=0; m<nd-1; m++ )
+            {
+      	for( ib=nib(kd,ks,0,grid); ib<=nib(kd,ks,0,grid)+nib(kd,ks,1,grid)-1; ib++ )
+      	{
+                    i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+        	  for( kdd=0; kdd<nd; kdd++ )
+        	  {
+          	    u(i1-m1  ,i2-m2  ,i3-m3  ,kdd+uc)-=tg(kdd,m,ib)*v(m,0,ib);
+          	    u(i1-m1*2,i2-m2*2,i3-m3*2,kdd+uc)-=tg(kdd,m,ib)*v(m,1,ib);
+                        if( debug & 8 )
+          	    {
+            	      real x1=vertex(i1-m1,i2-m2,i3-m3,0), y1=vertex(i1-m1,i2-m2,i3-m3,1), z1=0.;
+            	      real x2=vertex(i1-m1*2,i2-m2*2,i3-m3*2,0), y2=vertex(i1-m1*2,i2-m2*2,i3-m3*2,1), z2=0.;
+            	      if( numberOfDimensions==3 )
+            	      {
+            		z1=vertex(i1-m1,i2-m2,i3-m3,2);
+            		z2=vertex(i1-m1*2,i2-m2*2,i3-m3*2,2);
+            	      }
+                            if( debug & 8 && parameters.dbase.get<bool >("twilightZoneFlow") )
+            	      {
+            		fprintf(debugFile," Add tangential correction: ks,kd=%i,%i i=(%i,%i,%i) kdd=%i tg=%8.2e"
+                   		       " v=(%8.2e,%8.2e) dv=(%8.2e,%8.2e)\n"
+                   		       "  --> (u,err)(%i,%i,%i,%i) =%8.2e,%8.2e, (u,err)(%i,%i,%i,%i) =%8.2e,%8.2e\n",
+                   		       ks,kd,i1,i2,i3,kdd,
+                   		       tg(kdd,m,ib),v(m,0,ib),v(m,1,ib),
+                   		       tg(kdd,m,ib)*v(m,0,ib),tg(kdd,m,ib)*v(m,1,ib),
+                   		       i1-m1,i2-m2,i3-m3,kdd+uc,u(i1-m1,i2-m2,i3-m3,kdd+uc),
+                   		       fabs(u(i1-m1,i2-m2,i3-m3,kdd+uc)-exact(x1,y1,z1,kdd+uc,t)),
+                   		       i1-m1*2,i2-m2*2,i3-m3*2,kdd+uc,u(i1-m1*2,i2-m2*2,i3-m3*2,kdd+uc),
+                   		       fabs(u(i1-m1*2,i2-m2*2,i3-m3*2,kdd+uc)-exact(x2,y2,z2,kdd+uc,t)) );
+            	      }
+            	      
+          	    }
+        	  }
+      	}
+            }
+        }
+    }
+//        if( d(5) )then
+//          if( itest.eq.0 )then
+//            write(iout,*) '======INSBE: err after Tangential Corr.=='
+//            write(iout,*) '======errors in u====='
+//            call inserr( id,rd,nd,pu,t,err )
+//          else
+//            write(iout,*) '======INSBE: u after Tangential Corr.==='
+//            call insprt( id,rd,nd,pu,t )
+//          end if
+//        end if
+
+  //  ....swap periodic edges
+    Range V(uc,uc+nd-1);
+    u0.periodicUpdate(V);
+
+    printErrors("after updating tangential components",u0,t,grid,parameters);
+    
+  //  ...Determine the correction to the normal component of u
+    for( kd=0; kd<nd; kd++ )
+    {
+        for( ks=0; ks<=1; ks++ )
+        {
+            if( bc(ks,kd)>0 && bc(ks,kd)!=Parameters::dirichletBoundaryCondition )
+            {
+// 	call insbe2( 0,id,rd,ibe(1,nib(kd,ks,0,grid)),nib(kd,ks,1,grid),
+// 		     kd,ks,nd,f1(1,nib(kd,ks,0,grid)),
+// 		     nd,ndra,ndrb,ndsa,ndsb,ndta,ndtb,u,
+// 		     ndra,ndrb,ndsa,ndsb,ndta,ndtb,u,
+// 		     u(ndra,ndsa,ndta,nvp),rsxy, d14,d24,d4,d32,ajs,k,t );
+                int iopt=0;
+                insbe2(iopt,ks,kd,ndf, &f1(0,nib(kd,ks,0,grid)),
+             	       nib(kd,ks,1,grid), &ibe(0,nib(kd,ks,0,grid)), ndra,ndrb,ndsa,ndsb,ndta,ndtb, pu,
+             	       u0,rx,ipar,rpar );
+
+
+            }
+        }
+    }
+
+  //  ...compute normal component of the correction:
+    for( ib=0; ib<nibt; ib++ )
+    {
+        v(0,1,ib)=cn(0,0,ib)*f1(0,ib)+cn(0,1,ib)*f1(1,ib);
+        v(0,0,ib)=cn(1,0,ib)*f1(0,ib)+cn(1,1,ib)*f1(1,ib);
+    }
+
+  // ...add in correction to normal component
+    for( kd=0; kd<nd; kd++ )
+    {
+        for( ks=0; ks<=1; ks++ )
+        {
+            const realArray & normal = mg.vertexBoundaryNormal(ks,kd);
+
+            m1=mr(0,kd,ks);
+            m2=mr(1,kd,ks);
+            m3=mr(2,kd,ks);
+      	
+            for( ib=nib(kd,ks,0,grid); ib<=nib(kd,ks,0,grid)+nib(kd,ks,1,grid)-1; ib++ )
+            {
+      	i1=ibe(0,ib); i2=ibe(1,ib); i3=ibe(2,ib);
+      	if( debug & 8 ) 
+      	{
+        	  fprintf(debugFile,"Update normal component to pt ib=%i i=(%i,%i,%i) v=(%8.2e,%8.2e)\n",
+                                  ib,i1,i2,i3, v(0,0,ib),v(0,1,ib) );
+      	}
+      	for( kdd=0; kdd<nd; kdd++ )
+      	{
+        	  u(i1-m1  ,i2-m2  ,i3-m3  ,uc+kdd)-=normal(i1,i2,i3,kdd)*v(0,0,ib);
+        	  u(i1-m1*2,i2-m2*2,i3-m3*2,uc+kdd)-=normal(i1,i2,i3,kdd)*v(0,1,ib);
+      	}
+            }
+        }
+    }
+
+  // ...swap periodic edges
+    u0.periodicUpdate(V);
+
+    printErrors("after updating normal components",u0,t,grid,parameters);
+    
+    
+}
+
+
+
+#undef u
+#undef rx3

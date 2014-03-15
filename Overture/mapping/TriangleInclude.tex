@@ -1,0 +1,270 @@
+\subsection{Constructor}
+ 
+\newlength{\TriangleIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\TriangleIncludeArgIndent}{Triangle(}% 
+Triangle()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor, make a default triangle with 
+ vertices (0,0,0), (1,0,0), (0,1,0)
+\end{description}
+\subsection{Constructor( const real x1[],x2[],x3[])}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\TriangleIncludeArgIndent}{Triangle(}% 
+Triangle( const real x1\_[3], const real x2\_[3], const real x3\_[3] )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create a triangle with vertices x1,x2,x3
+\item[{\bf x1,x2,x3 (input) :}]  the three vertices of the triangle
+\end{description}
+\subsection{Constructor( const RealArray \& x1,x2,x3)}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\TriangleIncludeArgIndent}{Triangle(}% 
+Triangle( const RealArray \& x1\_, const RealArray \& x2\_, const RealArray \& x3\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Create a triangle with vertices x1,x2,x3
+\item[{\bf x1,x2,x3 (input) :}]  the three vertices of the triangle
+\end{description}
+\subsection{Constructor(grid)}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\TriangleIncludeArgIndent}{Triangle(}% 
+Triangle(const realArray \& grid, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& i1, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& i2, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& i3, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& choice  =0,\\ 
+\hspace{\TriangleIncludeArgIndent}const int \& axis  =axis1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Build a triangle from a quadrilateral on the face of a grid grid, 
+  This constructor just calls the corresponding {\tt setVertices} function.
+  See the comments there.
+\end{description}
+\subsection{setVertices(const real x1,x2,x3)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TriangleIncludeArgIndent}{setVertices(}%
+setVertices( const real x1\_[3], const real x2\_[3], const real x3\_[3] )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Assign the vertices to a triangle.
+\item[{\bf x1,x2,x3 (input) :}]  the three vertices of the triangle
+\end{description}
+\subsection{setVertices( const RealArray \& x1,x2,x3)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TriangleIncludeArgIndent}{setVertices(}%
+setVertices( const RealArray \& x1\_, const RealArray \& x2\_, const RealArray \& x3\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Assign the vertices to a triangle.
+\item[{\bf x1,x2,x3 (input) :}]  the three vertices of the triangle
+\end{description}
+\subsection{setVertices}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TriangleIncludeArgIndent}{setVertices(}%
+setVertices(const realArray \& grid, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& i1, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& i2, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& i3, \\ 
+\hspace{\TriangleIncludeArgIndent}const int \& choice  =0,\\ 
+\hspace{\TriangleIncludeArgIndent}const int \& axis  =axis3)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Form a triangle from a quadrilateral on the face of a grid grid, 
+    there are six possible choices.
+\item[{\bf grid (input) :}]  and array containing the four points {\tt grid(i1+m,i2+n,i3,0:2)}, {\tt m=0,1}, {\tt n=0,1}.
+\item[{\bf i1,i2,i3 (input) :}]  indicates which quadrilateral to use
+\item[{\bf choice, axis (input) :}]  These define which of 6 poissible triangles to choose:
+  \begin{description}
+    \item[choice=0, axis=axis3(==2)]: use  points (i1,i2,i3), (i1+1,i2,i3), (i1,i2+1,i3). Lower left
+              triangle in the plane i3==constant.
+    \item[choice=1, axis=axis3(==2)]: use points (i1+1,i2+1,i3), (i1,i2+1,i3), (i1+1,i2,i3). Upper right
+              triangle in the plane i3==constant.
+    \item[choice=0, axis=axis2(==1)]: use  points (i1,i2,i3), (i1,i2,i3+1), (i1+1,i2,i3).
+    \item[choice=1, axis=axis2(==1)]: use points (i1+1,i2,i3+1), (i1+1,i2,i3), (i1,i2,i3+1).
+    \item[choice=0, axis=axis1(==0)]: use  points (i1,i2,i3), (i1,i2+1,i3), (i1,i2,i3+1). 
+    \item[choice=1, axis=axis1(==0)]: use points (i1,i2+1,i3+1), (i1,i2,i3+1), (i1,i2+1,i3).
+   \end{description}
+    The figure below shows the two choices for axis=axis3:
+ \begin{verbatim}
+        x2
+     x3 ----------- x1
+        |\        |
+        |  \   1  |
+        |    \    |
+        | 0    \  |
+        |________\|x3
+       x1        x2
+
+ \end{verbatim}
+\end{description}
+\subsection{area}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\TriangleIncludeArgIndent}{area(}%
+area() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    return the area of the triangle
+\end{description}
+\subsection{display}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\TriangleIncludeArgIndent}{display(}%
+display(const aString \& label  =blankString) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    print out the vertices and the normal.
+\end{description}
+\subsection{tetrahedralVolume}
+ 
+\begin{flushleft} \textbf{%
+double  \\ 
+\settowidth{\TriangleIncludeArgIndent}{tetrahedralVolume(}%
+tetrahedralVolume(const real a[], const real b[], const real c[], const real d[]) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Return the approximate volume (actually 6 times the volume) of the
+      tretrahedra formed by the points (a,b,c,d)
+\end{description}
+\subsection{intersects}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TriangleIncludeArgIndent}{intersects(}%
+intersects(Triangle \& tri, real xi1[3], real xi2[3] ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Determine if this triangle intersect another.
+\item[{\bf tri (input) :}]  intersect with this triangle.
+\item[{\bf xi1, xi2 (output) :}]  if the return value is true then these are the endpoints
+    of the line of intersection between the two triangles.
+\item[{\bf Return value :}]  TRUE if the triangles intersect, false otherwise.
+\end{description}
+\subsection{intersects}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TriangleIncludeArgIndent}{intersects(}%
+intersects(Triangle \& triangle, RealArray \& xi1, RealArray \& xi2 ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Determine if this triangle intersect another.
+\item[{\bf tri (input) :}]  intersect with this triangle.
+\item[{\bf xi1, xi2 (output) :}]  if the return vaule is true then these are the endpoints
+    of the line of intersection between the two triangles.
+\item[{\bf Return value :}]  TRUE if the triangles intersect, false otherwise.
+\end{description}
+\subsection{intersects}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TriangleIncludeArgIndent}{intersects(}%
+intersects(real x[3], real xi[3] ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Determine if this triangle intersects a ray starting at the point x[] and
+     extending to y=+infinity.
+\item[{\bf x (input) :}]  find the intersection with a vertical ray starting at this point.
+\item[{\bf xi (output) :}]  if the return value is true then this is the intersection point.
+\item[{\bf Return value :}]  TRUE if the ray intersects the triangle, false otherwise.
+\end{description}
+\subsection{intersects}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TriangleIncludeArgIndent}{intersects(}%
+intersects(RealArray \& x, RealArray \&  xi ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Determine if this triangle intersects a line starting at the point x and
+     extending to y=+infinity.
+\item[{\bf x (input) :}]  find the intersection with a vertical ray starting at this point.
+\item[{\bf xi (output) :}]  if the return value is true then this is the intersection point.
+\item[{\bf Return value :}]  TRUE if the ray intersects the triangle, false otherwise.
+\end{description}
+\subsection{intersects}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TriangleIncludeArgIndent}{intersects(}%
+intersects(real x[3], real xi[3], real b0[3], real b1[3], real b2[3]  ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Determine if this triangle intersects a ray starting at the point x[] and
+     extending in the direction b1
+\item[{\bf x (input) :}]  find the intersection with a vertical ray starting at this point.
+\item[{\bf xi (output) :}]  if the return value is true then this is the intersection point.
+\item[{\bf b0,b1,b2 :}]  these vectors form an ortho-normal set
+\item[{\bf Return value :}]  TRUE if the ray intersects the triangle, false otherwise.
+\end{description}
+\subsection{intersects}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\TriangleIncludeArgIndent}{intersects(}%
+intersects(RealArray \& x, RealArray \&  xi, real b0[3], real b1[3], real b2[3]  ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Determine if this triangle intersects a ray starting at the point x and
+     extending in the direction b1
+\item[{\bf x (input) :}]  find the intersection with a vertical ray starting at this point.
+\item[{\bf xi (output) :}]  if the return value is true then this is the intersection point.
+\item[{\bf b0,b1,b2 :}]  these vectors form an ortho-normal set
+\item[{\bf Return value :}]  TRUE if the ray intersects the triangle, false otherwise.
+\end{description}
+\subsection{getRelativeCoordinates}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\TriangleIncludeArgIndent}{getRelativeCoordinates(}%
+getRelativeCoordinates( const real x[3], \\ 
+\hspace{\TriangleIncludeArgIndent}real \& alpha1, \\ 
+\hspace{\TriangleIncludeArgIndent}real \& alpha2, \\ 
+\hspace{\TriangleIncludeArgIndent}const bool \& shouldBeInside  =TRUE) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+
+  Determine the coordinates of the point x with respect to this triangle. I.e. solve for alpha1,alpha2 where 
+           x-x1 = alpha1 * v1 + alpha2 * v2
+
+  where v1=x2-x1 and v2=x3-x1 are two vectors from the sides of the triangle, (x1,x2,x3)
+    Solve
+ \begin{verbatim}
+         [ v1.v1 v1.v2 ] [ alpha1 ] = [ v1.x ]
+         [ v1.v2 v2.v2 ] [ alpha2 ] = [ v2.x ]
+   alpha1 = ( v1.x * v2.v2 - v2.x * v1.v2 ) /( v1.v1 * v2.v2 - v1.v2 * v1.v2 )
+   alpha2 = ( v1.x * v2.v2 - v2.x * v1.v2 ) /( v1.v1 * v2.v2 - v1.v2 * v1.v2 )
+ \end{verbatim}
+
+\item[{\bf x (input) :}]  find coordinates of this point.
+\item[{\bf alpha1, alpha2 (output) :}]  relative coordinates.
+\item[{\bf shouldBeInside (input) :}]  if true, this routine will print out a message if alpha1 or alpha
+   are not in the range [0,1]  ( +/- epsilon), AND return a value of 1
+\item[{\bf Return value :}]  0 on sucess, 1 if shouldBeInside==TRUE and the point is not inside.
+
+\end{description}

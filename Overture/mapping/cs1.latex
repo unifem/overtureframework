@@ -1,0 +1,25 @@
+\setlength{\unitlength}{3947sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFont\undefined%
+\gdef\SetFigFont#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(7680,4417)(1179,-5708)
+\thinlines
+\put(7126,-4186){\circle{150}}
+\put(8776,-2686){\circle{150}}
+\put(3601,-2686){\circle{150}}
+\thicklines
+\put(1201,-2761){\line( 1, 0){4800}}
+\put(6001,-2761){\line( 5,-6){2422.131}}
+\thinlines
+\put(3601,-2686){\line( 1, 0){5175}}
+\put(8776,-2686){\line(-6,-5){1711.475}}
+\put(3601,-2686){\line( 1, 0){5175}}
+\put(3526,-2461){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\bfdefault}{\updefault}x\_old}}}
+\put(8701,-2461){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\bfdefault}{\updefault}x}}}
+\put(6676,-4411){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\bfdefault}{\updefault}x\_p}}}
+% \put(4726,-1486){\makebox(0,0)[lb]{\smash{\SetFigFont{12}{14.4}{\rmdefault}{\bfdefault}{\updefault}x\_1}}}
+\end{picture}

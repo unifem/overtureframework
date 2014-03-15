@@ -1,0 +1,47 @@
+#
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+
+default:   depend_date ListClasses_date 
+
+SourceC= \
+ ListOfIntDistributedArray.C ListOfFloatDistributedArray.C ListOfDoubleDistributedArray.C \
+ ListOfIntSerialArray.C ListOfFloatSerialArray.C ListOfDoubleSerialArray.C \
+ ListOfFloatGridCollectionFunction.C  ListOfIntGridCollectionFunction.C ListOfDoubleGridCollectionFunction.C \
+ ListOfFloatArray.C ListOfFloatGenericGridFunction.C ListOfFloatMappedGridFunction.C   \
+ ListOfFloatCompositeGridFunction.C ListOfListOfFloatArray.C ListOfFloatGenericGridFunction.C \
+ ListOfFloatMappedGridFunction.C ListOfFloatCompositeGridFunction.C ListOfListOfFloatArray.C \
+ ListOfDoubleArray.C ListOfDoubleGenericGridFunction.C ListOfDoubleMappedGridFunction.C   \
+ ListOfDoubleCompositeGridFunction.C ListOfListOfDoubleArray.C ListOfDoubleGenericGridFunction.C \
+ ListOfDoubleMappedGridFunction.C ListOfDoubleCompositeGridFunction.C ListOfListOfDoubleArray.C \
+ ListOfIntArray.C ListOfIntGenericGridFunction.C ListOfIntMappedGridFunction.C   \
+ ListOfIntCompositeGridFunction.C ListOfListOfIntArray.C ListOfIntGenericGridFunction.C \
+ ListOfIntMappedGridFunction.C ListOfIntCompositeGridFunction.C ListOfListOfIntArray.C \
+ ListOfGenericGrid.C ListOfMappedGrid.C ListOfGridCollection.C ListOfGenericGridCollection.C \
+ ListOfCompositeGrid.C \
+ ListOfMappedGridOperators.C ListOfCompositeGridOperators.C  \
+ ListOfGenericMappedGridOperators.C ListOfGenericGridCollectionOperators.C  \
+ ListOfGenericCompositeGridOperators.C 
+
+ListClasses_date: ${SourceC:.C=.o}
+	  touch $@
+
+# Here are the files that Bill always likes to optimize 
+# filesOpt = 
+# templates_Opt_date: $(filesOpt)
+# 	 $(CC) $(CCFLAGSO) -c $?
+# 	  touch $@
+
+Source = $(SourceC) $(filesOpt) 
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+clean:	rm *.o
+
+.PRECIOUS:ListClasses_date depend_date
+

@@ -1,0 +1,107 @@
+#
+# PML equations
+# restart; read "pml.maple";
+
+
+with(StringTools):
+
+# ----------- function to permute (r,s,t) for different directions
+permuteXYZ :=proc( uu )
+ local vv:
+  
+ vv := convert(uu,string):
+ vv := SubstituteAll(vv,"x","X"):
+ vv := SubstituteAll(vv,"y","Y"):
+ vv := SubstituteAll(vv,"z","Z"):
+       
+ vv := SubstituteAll(vv,"X",x[m1]):
+ vv := SubstituteAll(vv,"Y",x[m2]):
+ vv := SubstituteAll(vv,"Z",x[m3]):
+
+ vv := SubstituteAll(vv,"yyyx","xyyy"):
+ vv := SubstituteAll(vv,"yyxx","xxyy"):
+ vv := SubstituteAll(vv,"yxx","xxy"):
+
+ vv := SubstituteAll(vv,"zzzx","xzzz"):
+ vv := SubstituteAll(vv,"zzxx","xxzz"):
+ vv := SubstituteAll(vv,"zxx","xxz"):
+
+ vv := SubstituteAll(vv,"zzzy","yzzz"):
+ vv := SubstituteAll(vv,"zzyy","yyzz"):
+ vv := SubstituteAll(vv,"zyy","yyz"):
+
+ vv := SubstituteAll(vv,"sigma1",cat("sigma",m+1)):
+
+# vv := SubstituteAll(vv,"va",cat("v",a[m1])):
+# vv := SubstituteAll(vv,"wa",cat("w",a[m1])):
+
+ vv := SubstituteAll(vv,"eyp","exp"):
+ vv := SubstituteAll(vv,"ezp","exp"):
+
+ vv := SubstituteAll(vv,"eypsdt","expsdt"):
+ vv := SubstituteAll(vv,"ezpsdt","expsdt"):
+
+ if( nd=3 )then
+   vv := SubstituteAll(vv,"2r(","3r("):
+ end if:
+
+ vv := SubstituteAll(vv,"DIM",sprintf("%d",nd)):
+
+ RETURN(vv):
+end:
+# -------------
+
+# ---------------
+output :=proc(uu)
+ fprintf(file,permuteXYZ(uu)):
+end;
+
+# restart; read "pml.maple";
+
+printf(" **** read file pmlUpdate.h and write file pml.h  **** \n"):
+
+file := fopen( "pml.h",WRITE ):
+
+
+# restart; read "pml.maple";
+
+x := array(0..2):
+x[0]:="x":
+x[1]:="y":
+x[2]:="z":
+
+a := array(0..2):
+a[0]:="a":
+a[1]:="b":
+a[2]:="c":
+
+for nd from 2 to 3 do 
+for m from 0 to nd-1 do
+  
+  m1:= m mod nd:
+  m2:= (m+1) mod nd:
+  m3:= (m+2) mod nd:
+
+  inputFile := fopen( "pmlUpdate.h", READ ):
+
+  output("! ******** This file generated from pmlUpdate.h using pml.maple ***** \n\n"):
+  line := readline(inputFile):
+  while line <> 0  do
+    output(line): output("\n"):
+    line := readline(inputFile):
+  end do;
+
+  fclose(inputFile):
+
+#   output(sprintf("#beginMacro update4%s\n",x[m1])):
+
+#   output(" ux = uxx22r()\n"):
+#  output(" uxy= uxy22r()\n"):
+
+#   output("#endMacro\n\n"):
+od: # m
+od: # nd
+
+
+fclose(file):
+ 

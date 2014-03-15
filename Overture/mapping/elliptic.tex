@@ -1,0 +1,91 @@
+%=======================================================================================================
+% Elliptic Grid Generation Documentation
+%=======================================================================================================
+\documentclass{article}
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height for xdvi
+
+\usepackage{epsfig}
+\usepackage{graphics}    
+\usepackage{moreverb}
+\usepackage{amsmath}
+\usepackage{fancybox}
+\usepackage{subfigure}
+
+\begin{document}
+
+
+\input  wdhDefinitions
+
+\newcommand{\primer}{/home/henshaw/res/primer}
+\newcommand{\gf}{/home/henshaw/res/gf}
+\newcommand{\mapping}{/home/henshaw/res/mapping}
+\newcommand{\ogshow}{/home/henshaw/res/ogshow}
+\newcommand{\oges}{/home/henshaw/res/oges}
+\newcommand{\figures}{../docFigures}
+
+\vglue3\baselineskip
+\begin{flushleft}
+  {\Large 
+   The Overture Elliptic Grid Generator \\
+   User Guide, Version 1.0 
+  }
+\vskip 2\baselineskip
+William D. Henshaw               
+\footnote{
+        This work was partially
+        supported by grant N00014-95-F-0067 from the Office of Naval
+        Research
+        }   \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+\vskip1\baselineskip
+\today
+\vskip\baselineskip
+% UCRL-MA-132239
+
+\end{flushleft}
+
+\vskip1\baselineskip
+
+\begin{abstract}
+This document describes the {\tt EllipticTransform} Mapping class and the {\tt EllipticGridGenerator}
+class for smoothing grids using elliptic equations.
+Given an initial 2D grid, 3D grid or 3D surface grid these classes can be used to create a new
+grid with nice smoothness properties. A variety of options are available for boundary conditions
+and for stretching grid lines.
+\end{abstract}
+
+
+\vfill\eject
+\tableofcontents
+
+\section{Introduction}
+
+The {\tt EllipticTransform} Mapping class takes an existing Mapping and builds a new Mapping
+defined through elliptic grid generation (i.e. defined by solving an elliptic boundary value problem
+for the location of the new grid points). The {\tt EllipticGridGenerator} is called by the
+{\tt EllipticTransform} class to solve the elliptic equations. The {\tt EllipticGridGenerator} 
+uses a multigrid algorithm to solve the elliptic grid generation equations.
+
+
+\vfill\eject
+\input EllipticGridGenerator.tex
+
+\section{Examples}
+
+
+
+
+\vfill\eject
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\end{document}

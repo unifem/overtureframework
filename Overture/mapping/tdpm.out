@@ -1,0 +1,199 @@
+A++ Internal_Index bounds checking: ON 
+A++ Internal_Index bounds checking: OFF 
+
+
+ *******************orderOfAccuracy=2 ************* 
+
++++++++++++++++++ Checking a line+++++++++++++++++++++ 
+checkMapping2: check properties of Mapping:DataPointMapping 
+checkMapping::finished checking the mapping, no errors were found
+ Scalar version: err(x)=1.11e-16 err(xr)=4.66e-15
+ Compare new scalar version to non-scalar: xDiff=0.00e+00, xrDiff=0.00e+00, err=4.66e-15
+time for dpm.map(r,x) ................. 1.100000e-05 (ratio to Mapping =  1.8)
+time for dpm.map(r,x,xr) .............. 1.700000e-05 (ratio to Mapping =  2.4)
+time for dpm.inverseMap(x,r) .......... 9.080000e-04 (ratio to Mapping = 56.8)
+time for dpm.inverseMap(x,r,rx) ....... 6.480000e-04 (ratio to Mapping = 58.9)
+
++++++++++++++++++ Checking an Annulus+++++++++++++++++++++ 
+checkMapping2: check properties of Mapping:DataPointMapping 
+Warning:  xr(0,0) is inaccurate at r=(-0.062,-0.062, 0.000) 
+ xr(0,0)=  1.1262e+00 <-> Dx=  1.1270e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=(-0.062,-0.062, 0.000) 
+ xr(1,0)=  2.7189e+00 <-> Dx=  2.7207e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+
+ checkMapping:Warning:  xr^{-1} != rx; Here is an example: 
+xr^{-1} = [ 1.30e-01  1.85e+00]
+          [ 3.14e-01 -7.66e-01]
+rx      = [ 1.30e-01  1.85e+00]
+          [ 3.14e-01 -7.66e-01]
+diff    = [ 8.91e-05 -2.44e-15]
+          [ 2.15e-04 -2.44e-15]
+Warning:  xr(0,0) is inaccurate at r=( 0.062,-0.062, 0.000) 
+ xr(0,0)= -1.1262e+00 <-> Dx= -1.1270e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.062,-0.062, 0.000) 
+ xr(1,0)=  2.7189e+00 <-> Dx=  2.7207e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.188,-0.062, 0.000) 
+ xr(0,0)= -2.7189e+00 <-> Dx= -2.7207e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.188,-0.062, 0.000) 
+ xr(1,0)=  1.1262e+00 <-> Dx=  1.1270e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.312,-0.062, 0.000) 
+ xr(0,0)= -2.7189e+00 <-> Dx= -2.7207e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.312,-0.062, 0.000) 
+ xr(1,0)= -1.1262e+00 <-> Dx= -1.1270e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.438,-0.062, 0.000) 
+ xr(0,0)= -1.1262e+00 <-> Dx= -1.1270e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.438,-0.062, 0.000) 
+ xr(1,0)= -2.7189e+00 <-> Dx= -2.7207e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.562,-0.062, 0.000) 
+ xr(0,0)=  1.1262e+00 <-> Dx=  1.1270e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.562,-0.062, 0.000) 
+ xr(1,0)= -2.7189e+00 <-> Dx= -2.7207e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.688,-0.062, 0.000) 
+ xr(0,0)=  2.7189e+00 <-> Dx=  2.7207e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.688,-0.062, 0.000) 
+ xr(1,0)= -1.1262e+00 <-> Dx= -1.1270e+00, |Dx|=  2.9870e+00, h=  4.0652e-04 
+Too many warnings for inaccurate xr. I am not printing anymore!
+checkMapping:Warning:  the map derivative xr(0,0) is inaccurate; relative error =6.311968e-04 
+checkMapping:Warning:  rx^{-1}(0,0) != xr(0,0); relative error =6.311968e-04, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,0) != rx(0,0); relative error =1.060068e-04, expected accuracy=2.220446e-14
+checkMapping:Warning:  the map derivative xr(1,0) is inaccurate; relative error =6.311968e-04 
+checkMapping:Warning:  rx^{-1}(1,0) != xr(1,0); relative error =6.311968e-04, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,1) != rx(0,1); relative error =1.060068e-04, expected accuracy=2.220446e-14
+checkMapping: The jacobian of the transformation is negative.
+checkMapping::finished checking the mapping, some errors were found
+ Scalar version: err(x)=3.43e-04 err(xr)=5.02e-03
+ Compare new scalar version to non-scalar: xDiff=0.00e+00, xrDiff=0.00e+00, err=5.02e-03
+time for dpm.map(r,x) ................. 1.030000e-03 (ratio to Mapping =  0.6)
+time for dpm.map(r,x,xr) .............. 1.843000e-03 (ratio to Mapping =  1.0)
+time for dpm.inverseMap(x,r) .......... 4.193000e-02 (ratio to Mapping = 20.5)
+time for dpm.inverseMap(x,r,rx) ....... 1.803200e-02 (ratio to Mapping =  7.2)
+
++++++++++++++++++ Checking a Cylinder+++++++++++++++++++++ 
+checkMapping2: check properties of Mapping:DataPointMapping 
+Warning:  xr(0,0) is inaccurate at r=(-0.125,-0.125,-0.125) 
+ xr(0,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=(-0.125,-0.125,-0.125) 
+ xr(1,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+
+ checkMapping:Warning:  xr^{-1} != rx; Here is an example: 
+xr^{-1} = [ 1.24e-01 -0.00e+00  1.43e+00]
+          [ 1.24e-01  0.00e+00 -1.43e+00]
+          [-0.00e+00  5.00e-01  0.00e+00]
+rx      = [ 1.21e-01 -0.00e+00  1.43e+00]
+          [ 1.21e-01  0.00e+00 -1.43e+00]
+          [-0.00e+00  5.00e-01  0.00e+00]
+diff    = [ 3.02e-03  0.00e+00 -1.11e-15]
+          [ 3.02e-03  0.00e+00  2.22e-16]
+          [ 0.00e+00  1.11e-16  0.00e+00]
+Warning:  xr(0,0) is inaccurate at r=( 0.125,-0.125,-0.125) 
+ xr(0,0)= -4.0466e+00 <-> Dx= -4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.125,-0.125,-0.125) 
+ xr(1,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.375,-0.125,-0.125) 
+ xr(0,0)= -4.0466e+00 <-> Dx= -4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.375,-0.125,-0.125) 
+ xr(1,0)= -4.0466e+00 <-> Dx= -4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.625,-0.125,-0.125) 
+ xr(0,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.625,-0.125,-0.125) 
+ xr(1,0)= -4.0466e+00 <-> Dx= -4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 0.875,-0.125,-0.125) 
+ xr(0,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 0.875,-0.125,-0.125) 
+ xr(1,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=( 1.125,-0.125,-0.125) 
+ xr(0,0)= -4.0466e+00 <-> Dx= -4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=( 1.125,-0.125,-0.125) 
+ xr(1,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(0,0) is inaccurate at r=(-0.125, 0.125,-0.125) 
+ xr(0,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Warning:  xr(1,0) is inaccurate at r=(-0.125, 0.125,-0.125) 
+ xr(1,0)=  4.0466e+00 <-> Dx=  4.1481e+00, |Dx|=  6.2175e+00, h=  4.0652e-04 
+Too many warnings for inaccurate xr. I am not printing anymore!
+checkMapping:Warning:  the map derivative xr(0,0) is inaccurate; relative error =1.693236e-02 
+checkMapping:Warning:  rx^{-1}(0,0) != xr(0,0); relative error =1.693236e-02, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,0) != rx(0,0); relative error =1.444904e-03, expected accuracy=2.220446e-14
+checkMapping:Warning:  the map derivative xr(1,0) is inaccurate; relative error =1.693236e-02 
+checkMapping:Warning:  rx^{-1}(1,0) != xr(1,0); relative error =1.693236e-02, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,1) != rx(0,1); relative error =1.444904e-03, expected accuracy=2.220446e-14
+checkMapping::finished checking the mapping, some errors were found
+ Scalar version: err(x)=1.82e-02 err(xr)=2.65e-01
+ Compare new scalar version to non-scalar: xDiff=0.00e+00, xrDiff=0.00e+00, err=2.65e-01
+time for dpm.map(r,x) ................. 3.570000e-03 (ratio to Mapping =  0.7)
+time for dpm.map(r,x,xr) .............. 8.982000e-03 (ratio to Mapping =  0.6)
+time for dpm.inverseMap(x,r) .......... 1.388010e-01 (ratio to Mapping = 19.2)
+time for dpm.inverseMap(x,r,rx) ....... 8.505000e-02 (ratio to Mapping =  7.8)
+
+
+ *******************orderOfAccuracy=4 ************* 
+
++++++++++++++++++ Checking a line+++++++++++++++++++++ 
+checkMapping2: check properties of Mapping:DataPointMapping 
+checkMapping::finished checking the mapping, no errors were found
+ Scalar version: err(x)=2.22e-16 err(xr)=1.78e-14
+ Compare new scalar version to non-scalar: xDiff=0.00e+00, xrDiff=0.00e+00, err=1.78e-14
+time for dpm.map(r,x) ................. 1.700000e-05 (ratio to Mapping =  2.8)
+time for dpm.map(r,x,xr) .............. 1.900000e-05 (ratio to Mapping =  2.7)
+time for dpm.inverseMap(x,r) .......... 9.200000e-04 (ratio to Mapping =102.2)
+time for dpm.inverseMap(x,r,rx) ....... 6.410000e-04 (ratio to Mapping = 58.3)
+
++++++++++++++++++ Checking an Annulus+++++++++++++++++++++ 
+checkMapping2: check properties of Mapping:DataPointMapping 
+checkMapping:Warning:  rx^{-1}(0,0) != xr(0,0); relative error =7.489979e-13, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,0) != rx(0,0); relative error =1.265724e-13, expected accuracy=2.220446e-14
+checkMapping:Warning:  rx^{-1}(1,0) != xr(1,0); relative error =7.464708e-13, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(1,0) != rx(1,0); relative error =6.909423e-13, expected accuracy=2.220446e-14
+checkMapping:Warning:  rx^{-1}(0,1) != xr(0,1); relative error =1.169078e-13, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,1) != rx(0,1); relative error =1.266956e-13, expected accuracy=2.220446e-14
+checkMapping:Warning:  rx^{-1}(1,1) != xr(1,1); relative error =1.172423e-13, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(1,1) != rx(1,1); relative error =6.880965e-13, expected accuracy=2.220446e-14
+checkMapping: The jacobian of the transformation is negative.
+checkMapping::finished checking the mapping, some errors were found
+ Scalar version: err(x)=1.76e-07 err(xr)=7.51e-05
+ Compare new scalar version to non-scalar: xDiff=0.00e+00, xrDiff=0.00e+00, err=7.51e-05
+time for dpm.map(r,x) ................. 2.686000e-03 (ratio to Mapping =  1.6)
+time for dpm.map(r,x,xr) .............. 4.286000e-03 (ratio to Mapping =  2.4)
+time for dpm.inverseMap(x,r) .......... 5.072000e-02 (ratio to Mapping = 26.0)
+time for dpm.inverseMap(x,r,rx) ....... 2.757100e-02 (ratio to Mapping = 11.0)
+
++++++++++++++++++ Checking a Cylinder+++++++++++++++++++++ 
+checkMapping2: check properties of Mapping:DataPointMapping 
+
+ checkMapping:Warning:  xr^{-1} != rx; Here is an example: 
+xr^{-1} = [ 1.06e-01  6.58e-16  1.41e+00]
+          [ 1.06e-01 -5.99e-16 -1.41e+00]
+          [ 9.14e-18  5.00e-01 -1.62e-15]
+rx      = [ 1.06e-01  8.70e-16  1.41e+00]
+          [ 1.06e-01 -1.49e-15 -1.41e+00]
+          [-1.07e-17  5.00e-01  3.56e-16]
+diff    = [-1.48e-11 -2.12e-16  1.66e-11]
+          [-1.23e-11  8.87e-16  1.66e-11]
+          [ 1.98e-17  8.88e-16 -1.98e-15]
+checkMapping:Warning:  rx^{-1}(0,0) != xr(0,0); relative error =2.904244e-09, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,0) != rx(0,0); relative error =1.473613e-10, expected accuracy=2.220446e-14
+checkMapping:Warning:  rx^{-1}(1,0) != xr(1,0); relative error =2.904244e-09, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(2,0) != rx(2,0); relative error =8.792384e-10, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(0,1) != rx(0,1); relative error =1.473613e-10, expected accuracy=2.220446e-14
+checkMapping:Warning:  xr^{-1}(2,1) != rx(2,1); relative error =8.792360e-10, expected accuracy=2.220446e-14
+checkMapping:Warning:  rx^{-1}(0,2) != xr(0,2); relative error =4.616654e-11, expected accuracy=2.220446e-14
+checkMapping:Warning:  rx^{-1}(1,2) != xr(1,2); relative error =4.616665e-11, expected accuracy=2.220446e-14
+checkMapping::finished checking the mapping, some errors were found
+ Scalar version: err(x)=3.35e-04 err(xr)=2.40e-02
+ Compare new scalar version to non-scalar: xDiff=0.00e+00, xrDiff=0.00e+00, err=2.40e-02
+time for dpm.map(r,x) ................. 1.638000e-02 (ratio to Mapping =  3.1)
+time for dpm.map(r,x,xr) .............. 4.456300e-02 (ratio to Mapping =  3.1)
+time for dpm.inverseMap(x,r) .......... 2.265790e-01 (ratio to Mapping = 31.2)
+time for dpm.inverseMap(x,r,rx) ....... 1.812710e-01 (ratio to Mapping = 16.5)
+Mapping Inverse, Statistics: 
+------------------------               time            percentage
+ timeForApproximateInverse...........5.512150e-01          53.335 
+   timeForFindNearestGridPoint.......0.000000e+00           0.000 
+   timeForBinarySearchOverBoundary...0.000000e+00           0.000 
+   timeForBinarySearchOnLeaves.......0.000000e+00           0.000 
+ timeForExactInverse.................4.822880e-01          46.665 
+
+ average number of stencil searches/walk...     6.70 
+ number of binary searches.................    92373   
+ number of boxes checked/( binary search)..    16.05 
+ total number of bounding boxes............      184   
+ average number of Newton iterations.......     2.00 

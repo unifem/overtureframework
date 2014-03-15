@@ -1,0 +1,1300 @@
+// This file automatically generated from plot.bC with bpp.
+//#define BOUNDS_CHECK
+//#define OV_DEBUG
+
+#include "Cgsm.h"
+#include "SmParameters.h"
+#include "PlotStuff.h"
+#include "GL_GraphicsInterface.h"
+#include "DialogData.h"
+#include "UnstructuredMapping.h"
+#include "CompositeGridOperators.h"
+#include "ParallelUtility.h"
+#include "display.h"
+#include "App.h"
+#include "GridFunctionFilter.h"
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+// Define macros for forcing functions:
+// ==================================================================================
+// Macro to evaluate the traveling (shock) wave solution
+// 
+// evalSolution : true=eval solution, false=eval error
+// ==================================================================================
+
+// ==================================================================================
+// Macro to evaluate the traveling (sine) wave solution
+// 
+// evalSolution : true=eval solution, false=eval error
+// ==================================================================================
+
+
+// ==========================================================================
+//  Define a Rayleigh surface wave: (see cgDoc/sm/notes.pdf)
+//     u1 = SUM_n a_n [ exp(-b1(k_n)*y + ...  ] cos( 2*pi*k_n (x-c*t) )
+//     u2 = SUM_n a_n [                       ] sin( 2*pi*k_n (x-c*t) )
+//
+//  Here we assume that the solid occupies the space y<= ySurf
+// where ySurf is given by the user. 
+// ==========================================================================
+
+// =======================================================================================
+//  The function "fg" is basically the integral appearing in the D'Alambert solution
+// ======================================================================================
+
+
+// ===========================================================
+// Evaluate the D'Alambert function "f" and it's derivative
+//  Here we assume that u(x,0)=0 and v(x,0)!=0  
+// ===========================================================
+
+// ===========================================================
+// Evaluate the D'Alambert function "g"
+//  Here we assume that u(x,0)=0 and v(x,0)!=0  
+// ===========================================================
+
+
+
+// ==========================================================================
+//  Define the pistonMotion solution (see cgDoc/mp/fluidStructure/fsm.tex)
+// ==========================================================================
+
+
+
+
+
+
+
+
+//   (Ex).t = (1/eps)*[  (Hz).y ]
+//   (Ey).t = (1/eps)*[ -(Hz).x ]
+//   (Hz).t = (1/mu) *[ (Ex).y - (Ey).x ]
+
+#define exTrue(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*(-ky/(eps*cc))
+#define eyTrue(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*( kx/(eps*cc))
+#define hzTrue(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))
+
+#define exLaplacianTrue(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*(+ky*(twoPi*twoPi*(kx*kx+ky*ky))/(eps*cc))
+#define eyLaplacianTrue(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*(-kx*(twoPi*twoPi*(kx*kx+ky*ky))/(eps*cc))
+#define hzLaplacianTrue(x,y,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*( -(twoPi*twoPi*(kx*kx+ky*ky) ) )
+
+// define eyTrue(x,y,t) exp( -beta*SQR((x-x0)-c*(t)) )
+
+// Here is a plane wave with the shape of a Gaussian
+// xi = kx*(x)+ky*(y)-cc*(t)
+// cc=  c*sqrt( kx*kx+ky*ky );
+#define hzGaussianPulse(xi)  exp(-betaGaussianPlaneWave*((xi)*(xi)))
+#define exGaussianPulse(xi)  hzGaussianPulse(xi)*(-ky/(eps*cc))
+#define eyGaussianPulse(xi)  hzGaussianPulse(xi)*( kx/(eps*cc))
+
+#define hzLaplacianGaussianPulse(xi)  ((4.*betaGaussianPlaneWave*betaGaussianPlaneWave*(kx*kx+ky*ky))*xi*xi-(2.*betaGaussianPlaneWave*(kx*kx+ky*ky)))*exp(-betaGaussianPlaneWave*((xi)*(xi)))
+#define exLaplacianGaussianPulse(xi)  hzLaplacianGaussianPulse(xi,t)*(-ky/(eps*cc))
+#define eyLaplacianGaussianPulse(xi)  hzLaplacianGaussianPulse(xi,t)*( kx/(eps*cc))
+
+// 3D
+// E:
+//   u.tt = (1/eps)*[ ((1/mu)*u.x).x + ((1/mu)*u.y).y + ((1/mu)*u.z).z ]
+//   div(u)=0
+// H
+//   v.tt = (1/mu)*[ ((1/eps)*v.x).x + ((1/eps)*v.y).y + ((1/eps)*v.z).z ]
+// Define macros for forcing functions
+
+
+//
+//   (Ex).t = (1/eps)*[ (Hz).y - (Hy).z ]
+//   (Ey).t = (1/eps)*[ (Hx).z - (Hz).x ]
+//   (Ez).t = (1/eps)*[ (Hy).x - (Hx).y ]
+//   (Hx).t = (1/mu) *[ (Ey).z - (Ez).y ]
+//   (Hy).t = (1/mu) *[ (Ez).x - (Ex).z ]
+//   (Hz).t = (1/mu) *[ (Ex).y - (Ey).x ]
+
+// ****************** finish this -> should `rotate' the 2d solution ****************
+
+#define exTrue3d(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*(-ky/(eps*cc))
+#define eyTrue3d(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))*( kx/(eps*cc))
+#define ezTrue3d(x,y,z,t) 0
+
+#define hxTrue3d(x,y,z,t) 0
+#define hyTrue3d(x,y,z,t) 0
+#define hzTrue3d(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)+kz*(z)-cc*(t)))
+
+#define exLaplacianTrue3d(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*(+ky*(twoPi*twoPi*(kx*kx+ky*ky))/(eps*cc))
+#define eyLaplacianTrue3d(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*(-kx*(twoPi*twoPi*(kx*kx+ky*ky))/(eps*cc))
+#define ezLaplacianTrue3d(x,y,z,t) 0
+
+#define hxLaplacianTrue3d(x,y,z,t) 0
+#define hyLaplacianTrue3d(x,y,z,t) 0
+#define hzLaplacianTrue3d(x,y,z,t) sin(twoPi*(kx*(x)+ky*(y)-cc*(t)))*( -(twoPi*twoPi*(kx*kx+ky*ky) ) )
+
+
+// ------------ macros for the plane material interface -------------------------
+
+
+// OPTION: initialCondition, error, boundaryCondition
+
+//==================================================================================================
+// Evaluate Tom Hagstom's exact solution defined as an integral of Guassian sources
+// 
+// OPTION: OPTION=solution or OPTION=error OPTION=bounary to compute the solution or the error or
+//     the boundary condition
+//
+//==================================================================================================
+
+static int numberOfPushButtons=0, numberOfTextBoxes=0;
+
+
+//=================================================================================================
+/// \brief Interface to the base class function
+//=================================================================================================
+realCompositeGridFunction & Cgsm::
+getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
+{
+    assert( &gf0 == &gf[current] );
+    return getAugmentedSolution(current, v, gf[current].t );
+    
+}
+
+
+//=================================================================================================
+/// \brief Create a grid function that holds all the things we can plot.
+//=================================================================================================
+realCompositeGridFunction& Cgsm::
+getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
+{
+    int & debug = parameters.dbase.get<int >("debug");
+    if( plotErrors && ( cgerrp==NULL || debug > 1 ) )
+    {
+    // compute the errors if they have not been computed yet:
+    // -- if debug>1 then we should recompute errors to make sure they are current 
+        getErrors( current,t,dt,sPrintF(" *** getAugmentedSolution: errors at t=%9.3e ****\n",t) );
+    }
+
+    const bool saveErrors = plotErrors && !(cgerrp==NULL);
+    const bool saveDissipation =  plotDissipation && ((artificialDissipation>0. ) || cgdissipation);
+
+    Range all;
+
+//  printF(">>>>getAugmentedSolution: numberOfComponents=%i\n",numberOfComponents);
+    const int numberOfDimensions = cg.numberOfDimensions();
+    const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+    const int & uc =  parameters.dbase.get<int >("uc");
+    const int & vc =  parameters.dbase.get<int >("vc");
+    const int & wc =  parameters.dbase.get<int >("wc");
+    const int & rc =  parameters.dbase.get<int >("rc");
+    const int & tc =  parameters.dbase.get<int >("tc");
+
+  // For the SVK model we compute the Cauchy stress
+    const bool svkStressStrain = parameters.dbase.get<int >("pdeTypeForGodunovMethod")==2;
+
+
+  // Determine the number of components to plot and the component numbers for the errors, etc.
+  //    nErr : component where the error is stored
+  //    ndd  : component where the dissipation is stored
+    int numberOfStressComponents = numberOfDimensions==2 ? 3 : 6;
+  // For SVK we plot all components of the Cauchy stress (to check symmetry)
+    if( svkStressStrain ) numberOfStressComponents = numberOfDimensions*numberOfDimensions;
+
+    int numberToPlot=numberOfComponents;                  // save fields
+    int nErr=numberToPlot;      numberToPlot += numberOfComponents*int(saveErrors);     // this is assumed to go second
+    int ndd=numberToPlot;       numberToPlot += numberOfComponents*int(saveDissipation);
+    int nVarDis=numberToPlot;   numberToPlot += int(useVariableDissipation);
+    int nDivU=numberToPlot;     numberToPlot += int(plotDivergence); 
+    int nVorU=numberToPlot;   
+    if( plotVorticity )
+        numberToPlot += cg.numberOfDimensions()==2 ? 1 : 3;
+    int nVelocity=numberToPlot; numberToPlot += numberOfDimensions*int(plotVelocity);
+    int nStress  =numberToPlot; numberToPlot += numberOfStressComponents*int(plotStress);
+    
+    int nErrEst=numberToPlot;
+    const bool plotAmrErrorFunction = parameters.isAdaptiveGridProblem() && 
+                                                                        parameters.dbase.get<int >("showAmrErrorFunction");
+  // printP("getAugmentedSolution : isAdaptiveGridProblem=%i showAmrErrorFunction=%i\n",
+  // 	 (int)parameters.isAdaptiveGridProblem(), parameters.dbase.get<int >("showAmrErrorFunction"));
+    
+    if( plotAmrErrorFunction )
+        numberToPlot += 1;
+    
+//  int nRho=numberToPlot;    numberToPlot += int(plotRho); 
+    int nRho=0;
+
+  // we build a grid function with more components (errors, dissipation) for plotting
+    v.updateToMatchGrid(cg,all,all,all,numberToPlot);
+
+  // printF("*********** Cgsm:getAugmentedSolution t=%9.3e plotVelocity=%i\n",t,plotVelocity);
+  // printF("*********** Cgsm:getAugmentedSolution plotErrors=%i saveErrors=%i\n",(int)plotErrors, (int)saveErrors );
+
+    v=0;
+    for( int n=0; n<numberOfComponents; n++ )
+    {
+        v.setName(gf[current].u.getName(n),n);
+        if( saveErrors )
+            v.setName(cgerrp->getName(n),n+nErr);
+        if( saveDissipation )
+            v.setName(cgdissipation->getName(n),n+ndd);
+    }
+
+    if( plotVelocity )
+    {
+        v.setName("v1",nVelocity+0);
+        v.setName("v2",nVelocity+1);
+        if( numberOfDimensions==3 )
+            v.setName("v3",nVelocity+2);
+    }
+    if( plotStress )
+    {
+        if( !svkStressStrain )
+        {
+            if( numberOfDimensions==2 )
+            {
+      	v.setName("s11",nStress+0);
+      	v.setName("s12",nStress+1);
+      	v.setName("s22",nStress+2);
+            }
+            else if( numberOfDimensions==3 )
+            {
+      	v.setName("s11",nStress+0);
+      	v.setName("s12",nStress+1);
+      	v.setName("s13",nStress+2);
+      	v.setName("s22",nStress+3);
+      	v.setName("s23",nStress+4);
+      	v.setName("s33",nStress+5);
+            }
+        }
+        else
+        {
+      // For the SVK model we compute the Cauchy stress
+            if( numberOfDimensions==2 )
+            {
+      	v.setName("cs11",nStress+0);
+      	v.setName("cs12",nStress+1);
+      	v.setName("cs21",nStress+2);
+      	v.setName("cs22",nStress+3);
+            }
+            else if( numberOfDimensions==3 )
+            {
+      	v.setName("cs11",nStress+0);
+      	v.setName("cs12",nStress+1);
+      	v.setName("cs13",nStress+2);
+
+      	v.setName("cs21",nStress+3);
+      	v.setName("cs22",nStress+4);
+      	v.setName("cs23",nStress+5);
+
+      	v.setName("cs31",nStress+6);
+      	v.setName("cs32",nStress+7);
+      	v.setName("cs33",nStress+8);
+            }
+
+        }
+        
+    }
+    
+    if( plotDivergence )
+        v.setName("div",nDivU);
+    if( plotVorticity )
+    {
+        if( cg.numberOfDimensions()==2 )
+            v.setName("vorz",nVorU);
+        else
+        {
+            v.setName("vorx",nVorU  );
+            v.setName("vory",nVorU+1);
+            v.setName("vorz",nVorU+2);
+        }
+    }
+    
+    if( useVariableDissipation )
+        v.setName("varDis",nVarDis);
+
+    if( plotAmrErrorFunction )
+    {
+        v.setName("error estimate",nErrEst);
+    }
+    
+//   if( plotRho )
+//     v.setName("rho",nRho);
+
+  // printF(" plot: cg.numberOfComponentGrids() = %i \n",cg.numberOfComponentGrids());
+    
+    divUMax=0.;
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        MappedGrid & mg = cg[grid];
+
+        realMappedGridFunction & u = gf[current].u[grid];
+        realMappedGridFunction & vg = v[grid];
+    
+#ifdef USE_PPP
+    // realSerialArray xLocal; getLocalArrayWithGhostBoundaries(x,xLocal);
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray vLocal; getLocalArrayWithGhostBoundaries(v[grid],vLocal);
+    // const int includeGhost=1;
+    // ok = ParallelUtility::getLocalArrayBounds(u[grid],uLocal,I1,I2,I3,includeGhost); 
+#else
+    // const realSerialArray & xLocal = x;
+        const realSerialArray & uLocal = u;
+        const realSerialArray & vLocal = v[grid];
+#endif
+
+    // add in error and dissipation components for plotting
+        if( mg.getGridType()==MappedGrid::structuredGrid )
+        {
+      // ********************************************
+      // ************ Structured Grid ***************
+      // ********************************************
+
+            Range N=numberOfComponents;
+            vLocal(all,all,all,N)=uLocal(all,all,all,N); // for now make a copy *** fix this **
+
+            if( saveErrors )
+            {
+      	realMappedGridFunction & err = cgerrp!=NULL ? (*cgerrp)[grid] : u;    
+                #ifdef USE_PPP
+                    realSerialArray errLocal; getLocalArrayWithGhostBoundaries(err,errLocal);
+                #else
+                    const realSerialArray & errLocal = err;
+                #endif
+      	vLocal(all,all,all,N+numberOfComponents)=errLocal(all,all,all,N);
+            }
+            
+            if( useVariableDissipation )
+            {
+                #ifdef USE_PPP
+                    realSerialArray varDissLocal; getLocalArrayWithGhostBoundaries((*variableDissipation)[grid],varDissLocal);
+                #else
+                    const realSerialArray & varDissLocal = (*variableDissipation)[grid];
+                #endif
+                vLocal(all,all,all,nVarDis)=varDissLocal;
+            }
+            
+            if( saveDissipation )
+            {
+                #ifdef USE_PPP
+                    realSerialArray dissLocal; getLocalArrayWithGhostBoundaries((*cgdissipation)[grid],dissLocal);
+                #else
+                    const realSerialArray & dissLocal = (*cgdissipation)[grid];
+                #endif
+      	vLocal(all,all,all,N+ndd)=dissLocal(all,all,all,N);
+            }
+            
+        }
+        else
+        {
+      // *** unstructured grid case ****
+
+        }
+    } // end for grid
+    
+  // Compute the divergence and/or vorticity
+    realCompositeGridFunction *pDiv = plotDivergence ? &v : NULL;
+    realCompositeGridFunction *pVor = plotVorticity  ? &v : NULL;
+      	
+    getMaxDivAndCurl( current,t, pDiv,nDivU, pVor,nVorU, &v,nRho);
+
+  // *new* wdh 081103 -- finish me ---
+    if( plotVelocity || plotStress )
+    {
+    // --- Compute the velocity and stress for the displacement formulation ---
+        realCompositeGridFunction *pVelocity = plotVelocity ? &v : NULL;
+        realCompositeGridFunction *pStress = plotStress  ? &v : NULL;
+
+        bool computeMaxNorms=true;
+        getVelocityAndStress( current,t, pVelocity,nVelocity, pStress,nStress, computeMaxNorms );
+    }
+    
+
+    if( parameters.isAdaptiveGridProblem() && parameters.dbase.get<int >("showAmrErrorFunction") )
+    {
+    // add on the AMR error estimate
+        const int ec = nErrEst; 
+        #ifndef USE_PPP
+            realCompositeGridFunction error;
+            error.link(v,Range(ec,ec));
+            bool computeOnFinestLevel=true;
+            getAmrErrorFunction(gf[current].u,t,error,computeOnFinestLevel);
+        #else
+            realCompositeGridFunction error(cg);
+            bool computeOnFinestLevel=true;
+            getAmrErrorFunction(gf[current].u,t,error,computeOnFinestLevel);
+            for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+            {
+                realMappedGridFunction & u = gf[current].u[grid];
+                assign(v[grid],all,all,all,ec, u,all,all,all, 0 );
+            }
+            
+        #endif
+
+    // do NOT count time spent here as part of AMR, but rather part of plotting
+    // parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrErrorFunction"))-=getCPU()-timeAmr; 
+    }
+
+
+    bool interpAugmented = !parameters.isAdaptiveGridProblem();  // do this for now 
+    interpAugmented=true;
+    assert( gf[current].u.getOperators() !=NULL );
+    v.setOperators(*(gf[current].u.getOperators()));
+
+    if( interpAugmented &&
+            (plotDivergence || plotVorticity || plotVelocity || plotStress) )
+    {
+        int na= plotDivergence ? nDivU : nVorU;
+        int num = int(plotDivergence==1);
+        if( plotVorticity )
+            num += cg.numberOfDimensions()==2 ? 1 : cg.numberOfDimensions(); // only 1 component of vorticity in 2d
+        if( plotVelocity )
+            num+= numberOfDimensions;
+        if( plotStress )
+            num += numberOfStressComponents;
+
+          if( num>0 )
+          {
+              Range C(na,na+num-1);
+       // we need to interpolate the divergence/vorticity to give values at the interp. pts. for plotting
+              v.interpolate(C);
+          }
+          
+     // v.interpolate();
+    }
+
+    return v;
+    
+}
+
+                   		       
+
+int Cgsm::
+buildRunTimeDialog()
+// =============================================================================================
+// =============================================================================================
+{
+    GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+    if( runTimeDialog==NULL )
+    {
+        real & cfl = parameters.dbase.get<real>("cfl");
+        real & tFinal = parameters.dbase.get<real>("tFinal");
+        real & tPlot = parameters.dbase.get<real>("tPrint");
+        int & debug = parameters.dbase.get<int >("debug");
+
+        runTimeDialog = new GUIState;
+        GUIState & dialog = *runTimeDialog;
+        
+
+        dialog.setWindowTitle("Cgsm");
+        dialog.setExitCommand("finish", "finish");
+
+        aString cmds[] = {"break",
+                                            "continue",
+                                            "movie mode",
+                                            "movie and save",
+                                            "contour", 
+                                            "displacement", 
+                                            "grid", 
+                                            "U field lines",
+                                            "erase",
+                                            "plot options...",
+                                            "parameters...",
+                                            "plot material properties",
+                      // "change the grid...",
+                      // "show file options...","file output...",
+                      // "pde parameters...",
+                                            ""};
+        numberOfPushButtons=12;  // number of entries in cmds
+        int numRows=(numberOfPushButtons+1)/2;
+        dialog.setPushButtons( cmds, cmds, numRows ); 
+
+    // get any extra components such as errors for tz flow or the pressure for CNS.
+        realCompositeGridFunction v;
+        real t=0.;
+        realCompositeGridFunction & u = getAugmentedSolution(0,v,t);
+
+        const int nc = u.getComponentBound(0)-u.getComponentBase(0)+1;
+    // create a new menu with options for choosing a component.
+        aString *cmd = new aString[nc+1];
+        aString *label = new aString[nc+1];
+        for( int n=0; n<nc; n++ )
+        {
+            label[n]=u.getName(n);
+            cmd[n]="plot:"+u.getName(n);
+
+        }
+        cmd[nc]="";
+        label[nc]="";
+        
+        dialog.addOptionMenu("plot component:", cmd,label,0);
+        delete [] cmd;
+        delete [] label;
+
+//     aString tbCommands[] = {"project fields",
+// 			    ""};
+//     int tbState[10];
+//     tbState[0] = projectFields; 
+//     int numColumns=1;
+//     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+        const int numberOfTextStrings=7;
+        aString textLabels[numberOfTextStrings];
+        aString textStrings[numberOfTextStrings];
+
+        int nt=0;
+        textLabels[nt] = "final time";  sPrintF(textStrings[nt], "%g",tFinal);  nt++; 
+        textLabels[nt] = "times to plot";  sPrintF(textStrings[nt], "%g",tPlot);  nt++; 
+        textLabels[nt] = "cfl";  
+        sPrintF(textStrings[nt], "%g",cfl);  nt++; 
+        textLabels[nt] = "debug";  sPrintF(textStrings[nt], "%i",debug);  nt++; 
+  
+       // null strings terminal list
+        textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+        dialog.setTextBoxes(textLabels, textLabels, textStrings);
+        numberOfTextBoxes=nt;
+        
+
+    // ******************* file output *************************
+//     DialogData & fileOutputDialog = dialog.getDialogSibling();
+
+//     fileOutputDialog.setWindowTitle("File Output Parameters");
+//     fileOutputDialog.setExitCommand("close file output dialog", "close");
+
+//     aString cmdf[] = {"file output",
+//                       "output periodically to a file",
+//                       "close an output file",
+//                       "save restart file",
+//                       ""};
+//     int numberOfRows=4;
+//     fileOutputDialog.setPushButtons( cmdf, cmdf, numberOfRows );
+
+//     nt=0;
+//     textLabels[nt] = "output file name";  sPrintF(textStrings[nt], "%s","overBlown.out");  nt++; 
+//     textLabels[nt]= "restart file name";  sPrintF(textStrings[nt], "%s",(const char*)restartFileName);nt++; 
+//     textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+//     fileOutputDialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+//     // ****** pde parameters *************
+//     DialogData &pdeDialog = dialog.getDialogSibling();
+//     pdeDialog.setExitCommand("close pde options", "close");
+//     setPdeParameters("build dialog",&pdeDialog);
+
+
+
+        gi.pushGUI(dialog);
+
+
+    }
+    return 0;
+
+}
+
+
+static void
+setSensitivity( GUIState & dialog, bool trueOrFalse )
+{
+    dialog.getOptionMenu(0).setSensitive(trueOrFalse);
+    int n;
+    for( n=1; n<numberOfPushButtons; n++ ) // leave first push button sensitive (=="break")
+        dialog.setSensitive(trueOrFalse,DialogData::pushButtonWidget,n);
+    
+    for( n=0; n<numberOfTextBoxes; n++ )
+        dialog.setSensitive(trueOrFalse,DialogData::textBoxWidget,n);
+    
+}
+
+int Cgsm::
+buildParametersDialog(DialogData & dialog )
+// ==========================================================================================
+// /Description:
+//    Build the parameters dialog -- these are various parameters that can be changed
+//   at run time. 
+// ==========================================================================================
+{
+
+  // ************** PUSH BUTTONS *****************
+    dialog.setOptionMenuColumns(1);
+
+//   aString tbCommands[] = {"project fields",
+//  			  ""};
+//   int tbState[15];
+//   tbState[0] = projectFields;
+
+//   int numColumns=1;
+//   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
+
+
+  // ----- Text strings ------
+    const int numberOfTextStrings=30;
+    aString textCommands[numberOfTextStrings];
+    aString textLabels[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+    textCommands[nt] = "dissipation"; 
+    textLabels[nt]=textCommands[nt]; sPrintF(textStrings[nt], "%e",artificialDissipation);  nt++; 
+
+  // null strings terminal list
+    assert( nt<numberOfTextStrings );
+    textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  
+    dialog.setTextBoxes(textCommands, textLabels, textStrings);
+
+    return 0;
+}
+
+
+// ======================================================================================================
+/// \brief: Return the name used in plot titles and the show file titles.
+// ======================================================================================================
+int Cgsm::
+getMethodName( aString & methodName )
+{
+    const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
+    const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+    SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+
+    aString buff;
+
+    if( pdeVariation==SmParameters::nonConservative ||
+            pdeVariation==SmParameters::conservative )
+    {
+        if( !useConservative )
+        {
+            methodName=sPrintF(buff,"NC%i%i",orderOfAccuracyInSpace,orderOfAccuracyInTime);
+        }
+        else
+        {
+            methodName=sPrintF(buff,"C%i%i",orderOfAccuracyInSpace,orderOfAccuracyInTime);
+        }
+    }
+    else if( pdeVariation==SmParameters::godunov )
+    {
+    // Do this for now:
+    // pdeTypeForGodunovMethod==2 : SVK 
+        const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
+        if( pdeTypeForGodunovMethod==2 )
+        {
+            methodName="SVK";
+        }
+        else
+        {
+            methodName="GD";
+        }
+        
+    }
+    else if( pdeVariation==SmParameters::hemp )
+    {
+        methodName="Hemp";
+    }
+    else
+    {
+        methodName="UnKnown";
+    }
+    return 0;
+}
+
+
+int Cgsm::
+plot(int current, real t, real dt )
+// ========================================================================================
+// /Description:
+//  plotOptions :  0 = no plotting
+//            1 - plot and wait
+//            2 - do not wait for response after plotting
+// /Return values: 0=normal exit. 1=user has requested "finish".
+// ========================================================================================
+{
+    if( plotOptions==0 )
+        return 0;
+
+    real cpu0=getCPU();
+    int returnValue=0;
+
+    GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+    GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters>("psp");
+
+//   const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
+//   const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+    SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+    RealArray & timing = parameters.dbase.get<RealArray >("timing");
+
+    aString methodName,buff;
+
+    getMethodName( methodName );
+    
+    real & mu = parameters.dbase.get<real>("mu");
+    real & lambda = parameters.dbase.get<real>("lambda");
+
+    real & cfl = parameters.dbase.get<real>("cfl");
+    real & tFinal = parameters.dbase.get<real>("tFinal");
+    real & tPlot = parameters.dbase.get<real>("tPrint");
+    int & debug = parameters.dbase.get<int >("debug");
+    const int stepNumber = parameters.dbase.get<int >("globalStepNumber")+1; // note plus 1
+    const real cpu=getCPU()-parameters.dbase.get<real>("cpuInitial");
+
+
+    psp.set(GI_TOP_LABEL,sPrintF(buff,"Cgsm %s: t=%6.2e (lam,mu)=(%g,%g)",(const char *)methodName,t,lambda,mu));
+    aString label;
+    label=sPrintF(buff,"dt=%4.1e",dt);
+
+    SmParameters::TimeSteppingMethodSm & timeSteppingMethodSm = 
+                                                                      parameters.dbase.get<SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
+    if( pdeVariation==SmParameters::nonConservative ||
+            pdeVariation==SmParameters::conservative )
+    {
+        if( timeSteppingMethodSm==SmParameters::modifiedEquationTimeStepping )
+            label+=" TS=ME";
+        else if( timeSteppingMethodSm==SmParameters::stoermerTimeStepping )
+            label+=" TS=ST";
+        else if( timeSteppingMethodSm==SmParameters::rungeKuttaFourthOrder )
+            label+=" TS=RK";
+        else if( timeSteppingMethodSm==SmParameters::defaultTimeStepping )
+            label+=" TS=default";
+        else if( timeSteppingMethodSm==SmParameters::forwardEuler )
+            label+=" TS=FE";
+        else if( timeSteppingMethodSm==SmParameters::improvedEuler )
+            label+=" TS=IE";
+        else if( timeSteppingMethodSm==SmParameters::adamsBashforth2 )
+            label+=" TS=AB2";
+        else if( timeSteppingMethodSm==SmParameters::adamsPredictorCorrector2 )
+            label+=" TS=PC2";
+        else if( timeSteppingMethodSm==SmParameters::adamsPredictorCorrector4 )
+            label+=" TS=PC4";
+        else
+            label+="TS=??";
+    }
+    else if( pdeVariation==SmParameters::godunov || pdeVariation==SmParameters::hemp )
+    {
+    }
+    
+    Parameters::TwilightZoneChoice & twilightZoneChoice = 
+        parameters.dbase.get<Parameters::TwilightZoneChoice >("twilightZoneChoice");
+    const int & tzDegreeSpace= parameters.dbase.get<int >("tzDegreeSpace");
+    const int & tzDegreeTime = parameters.dbase.get<int >("tzDegreeTime");
+    if( forcingOption==twilightZoneForcing && twilightZoneChoice==Parameters::polynomial )
+        label+=sPrintF(buff," degree(X,T)=(%i,%i)",tzDegreeSpace,tzDegreeTime);
+    
+    if( artificialDissipation!=0. )
+        label+=sPrintF(buff," ad=%4.2f(order=%i)",artificialDissipation,orderOfArtificialDissipation);
+    if( divergenceDamping>0. )
+        label+=sPrintF(buff," dd=%5.3f",divergenceDamping);
+
+    if( parameters.dbase.get<bool >("applyFilter") )
+    {
+        GridFunctionFilter *& gridFunctionFilter =parameters.dbase.get<GridFunctionFilter*>("gridFunctionFilter");
+        assert( gridFunctionFilter!=NULL );
+        GridFunctionFilter & filter = *gridFunctionFilter;
+        const int orderOfFilter = filter.orderOfFilter;
+        label+=sPrintF(buff," filter%i",orderOfFilter);
+    }
+    
+
+    if( plotScatteredField )
+        label+="(scattered field)";
+        
+    psp.set(GI_TOP_LABEL_SUB_1,label);
+
+  // we need to know if the graphics is oen on any processor -- fix this in the GraphicsInterface.
+    int graphicsIsOn = gi.isGraphicsWindowOpen();
+    graphicsIsOn=ParallelUtility::getMaxValue(graphicsIsOn);
+    int readingCommandFile = gi.readingFromCommandFile();
+    readingCommandFile=ParallelUtility::getMaxValue(readingCommandFile);
+
+  // printF(" **** t=%e, graphicsIsOn=%i readingCommandFile=%i, processor=%i\n",t,graphicsIsOn,readingCommandFile, 
+  //            myid);
+  // fflush(stdout);
+
+    bool getDiv=false; // set to true for debugging 
+    if(  getDiv || (!graphicsIsOn && readingCommandFile) )
+    {
+    // printF(" **** call getMaxDivergence t=%e, processor=%i\n",t, myid);
+    // fflush(stdout);
+    
+
+    // no plotting and reading from a command file
+    // *** get divUMax and uMin, uMax
+
+        getMaxDivAndCurl( current,t );
+
+        printF(">>> Cgsm: %s: t=%6.2e, steps=%i, %s |div(U)|=%8.2e, |curl(U)|=%8.2e, cpu=%8.2e(s)\n",
+         	   (const char *)methodName,t,stepNumber,(const char*)label,divUMax,vorUMax,cpu);
+
+    // *wdh* 101017  -- next line moved to printTimeStepInfo
+    // outputResults(current,t,dt);  // save check file
+        
+        timing(parameters.dbase.get<int>("timeForPlotting"))+=getCPU()-cpu0;
+        if( !getDiv ) return returnValue;
+    }
+    
+
+    if( runTimeDialog==NULL )
+    {
+        buildRunTimeDialog();
+    // --- Build the sibling dialog for plot options ---
+        DialogData & plotOptionsDialog = runTimeDialog->getDialogSibling();
+        pPlotOptionsDialog = &plotOptionsDialog;
+        plotOptionsDialog.setWindowTitle("Cgsm Plot Options");
+        plotOptionsDialog.setExitCommand("close plot options", "close");
+        buildPlotOptionsDialog(plotOptionsDialog);
+
+        DialogData & parametersDialog = runTimeDialog->getDialogSibling();
+        pParametersDialog = &parametersDialog;
+        parametersDialog.setWindowTitle("Cgsm Parameters");
+        parametersDialog.setExitCommand("close parameters", "close");
+        buildParametersDialog(parametersDialog);
+
+    }
+    DialogData &plotOptionsDialog = *pPlotOptionsDialog;
+    DialogData &parametersDialog = *pParametersDialog;
+
+    GUIState & dialog = *runTimeDialog;
+
+    aString answer;
+
+  // get any extra components such as errors for tz flow or the pressure for CNS.
+
+  // **** no need to compute extra components if we are in movie mode and we are not
+  //      plotting any extra component ****
+    realCompositeGridFunction v;
+    realCompositeGridFunction & u = getAugmentedSolution(current,v,t);  // u is either solution or v
+
+    const int nc = u.getComponentBound(0)-u.getComponentBase(0)+1;
+
+    if( movieFrame>=0   )
+    { // save a ppm file as part of a movie.
+        psp.set(GI_HARD_COPY_TYPE,GraphicsParameters::ppm);
+        gi.outputString(sPrintF(buff,"Saving file %s%i.ppm",(const char*)movieFileName,movieFrame));
+        gi.hardCopy(    sPrintF(buff,            "%s%i.ppm",(const char*)movieFileName,movieFrame),psp);
+        psp.set(GI_HARD_COPY_TYPE,GraphicsParameters::postScript);
+        movieFrame++;
+    }
+
+    
+    gi.erase();
+    if( plotOptions & 1 )
+    {
+        printF(">>> Cgsm: %s: t=%6.2e, steps=%i, %s |div(U)|=%8.2e, |curl(U)|=%8.2e, |div(U)|/|grad(U)|=%8.2e"
+         	   " |grad(U)|=%8.2e, cpu=%8.2e(s)\n",
+         	   (const char *)methodName,t,stepNumber,(const char*)label,
+         	   divUMax,vorUMax,divUMax/max(REAL_MIN*100.,gradUMax),gradUMax,cpu);
+
+    // *wdh* 101017  -- next line moved to printTimeStepInfo
+    // outputResults(current,t,dt);  // save check file
+        
+
+    // Plot all the the things that the user has previously plotted
+        psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,TRUE);
+        if( plotChoices & 1 )
+        {
+            PlotIt::plot(gi,cg,psp);
+        }
+        if( plotChoices & 2 )
+            PlotIt::contour(gi,u,psp);
+        if( plotChoices & 4 )
+            PlotIt::streamLines(gi,u,psp);
+        if( plotChoices & 8 ) 
+            PlotIt::displacement(gi,u,psp);
+
+        bool programHalted=false;
+        if( plotOptions & 2 )
+        {
+      // movie mode ** check here if the user has hit break ***
+            if( gi.isGraphicsWindowOpen() && 
+          !gi.readingFromCommandFile() )  // for now we cannot check if we are reading from a command file
+            {
+	// gi.outputString(sPrintF(buff,"Check for break at t=%e\n",t));
+      	answer="";
+      	int menuItem = gi.getAnswerNoBlock(answer,"monitor>");
+      	if( answer=="break" )
+      	{
+        	  programHalted=true;
+      	}
+            }
+            
+        }
+        
+        if( ! (plotOptions & 2) || programHalted )
+        {
+            if( plotOptions & 1 )
+            {
+      	setSensitivity( dialog,true );
+            }
+            
+            plotOptions=1; // reset movie mode if set.
+            movieFrame=-1;
+            
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,FALSE);
+
+//       DialogData & fileOutputDialog = dialog.getDialogSibling(1);
+//       DialogData & pdeDialog = dialog.getDialogSibling(2);
+
+            int len;
+            bool replot=false;
+            for(;;)
+            {
+	// int menuItem = gi.getMenuItem(menu,answer,"choose an option");
+                real timew=getCPU();
+      	int menuItem = gi.getAnswer(answer,"");
+                timing(parameters.dbase.get<int>("timeForWaiting"))+=getCPU()-timew;
+
+      	if( answer=="contour" )
+      	{
+                    if(plotChoices & 2 )
+                        gi.erase();
+        	  
+                    PlotIt::contour(gi,u,psp);
+
+          // update the component in the option menu 
+                    int componentToPlot=0;
+        	  psp.get(GI_COMPONENT_FOR_CONTOURS,componentToPlot);
+        	  dialog.getOptionMenu("plot component:").setCurrentChoice(componentToPlot);
+
+        	  if( psp.getObjectWasPlotted() ) 
+          	    plotChoices |= 2;
+                    else
+                        plotChoices &= ~2;
+      	}
+                else if( answer=="grid" )
+      	{
+                    PlotIt::plot(gi,cg,psp);
+
+        	  if( psp.getObjectWasPlotted() ) 
+          	    plotChoices |= 1;
+                    else
+                        plotChoices &= ~1;
+      	}
+      	else if( answer=="U field lines" )
+      	{
+        	  const int & uc =  parameters.dbase.get<int >("uc");
+        	  const int & vc =  parameters.dbase.get<int >("vc");
+
+        	  psp.set(GI_U_COMPONENT_FOR_STREAM_LINES,uc);
+        	  psp.set(GI_V_COMPONENT_FOR_STREAM_LINES,vc);
+                    PlotIt::streamLines(gi,u,psp);
+
+        	  if( psp.getObjectWasPlotted() ) 
+          	    plotChoices |= 4;
+                    else
+                        plotChoices &= ~4;
+      	}
+      	else if( answer=="displacement" )
+      	{
+                    if(plotChoices & 8 )
+                        gi.erase();
+        	  
+                    const int & u1c =  parameters.dbase.get<int >("u1c"); // hemp code uses this for the displacement ** fix this somehow **
+                    bool & methodComputesDisplacements = parameters.dbase.get<bool>("methodComputesDisplacements");
+        	  if( u1c>=0  || methodComputesDisplacements )  
+        	  {
+// 	    if( u1c<0 )
+// 	    {
+// 	      const int & uc =  parameters.dbase.get<int >("uc");
+// 	      const int & vc =  parameters.dbase.get<int >("vc");
+// 	      const int & wc =  parameters.dbase.get<int >("wc");
+// 	      psp.set(GI_DISPLACEMENT_U_COMPONENT,uc);
+// 	      psp.set(GI_DISPLACEMENT_V_COMPONENT,vc);
+// 	      psp.set(GI_DISPLACEMENT_W_COMPONENT,wc);
+// 	    }
+// 	    else
+// 	    {
+// 	      const int & u2c =  parameters.dbase.get<int >("u2c");
+// 	      const int & u3c =  parameters.dbase.get<int >("u3c");
+// 	      psp.set(GI_DISPLACEMENT_U_COMPONENT,u1c);
+// 	      psp.set(GI_DISPLACEMENT_V_COMPONENT,u2c);
+// 	      psp.set(GI_DISPLACEMENT_W_COMPONENT,u3c);
+// 	    }
+          	    
+
+          	    PlotIt::displacement(gi,u,psp);
+          	    if( psp.getObjectWasPlotted() ) 
+            	      plotChoices |= 8;
+          	    else
+            	      plotChoices &= ~8;
+        	  }
+        	  else
+        	  {
+	    // plot the grid if the method does not compute displacements
+          	    PlotIt::plot(gi,cg,psp);
+          	    if( psp.getObjectWasPlotted() ) 
+            	      plotChoices |= 1;
+          	    else
+            	      plotChoices &= ~1;
+        	  }
+        	  
+      	}	
+                else if( answer=="plot material properties" )
+      	{
+          // --- plot material properties ---
+                    realCompositeGridFunction matPropValues;
+
+        	  int rt = getMaterialProperties( gf[current], matPropValues );
+        	  if( rt==-1 )
+        	  {
+          	    printF("Sorry: there are no variable material properties defined.\n");
+          	    continue;
+        	  }
+        	  
+        	  gi.erase();
+        	  psp.set(GI_TOP_LABEL,"Material properties");
+        	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+        	  PlotIt::contour(gi,matPropValues, psp);
+        	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+        	  gi.erase();
+
+          // reset the title
+                    psp.set(GI_TOP_LABEL,sPrintF(buff,"Cgsm %s: t=%6.2e (lam,mu)=(%g,%g)",(const char *)methodName,t,lambda,mu));
+      	}
+                else if( answer=="erase" )
+      	{
+                    gi.erase();
+        	  plotChoices=0;
+      	}
+      	else if( answer=="plot options..." )
+      	{
+        	  plotOptionsDialog.showSibling();
+      	}
+      	else if( answer=="close plot options" )
+      	{
+        	  plotOptionsDialog.hideSibling();
+      	}
+      	else if( answer=="parameters..." )
+      	{
+        	  parametersDialog.showSibling();
+      	}
+      	else if( answer=="close parameters" )
+      	{
+        	  parametersDialog.hideSibling();
+      	}
+//         else if( answer=="save a restart file" )
+// 	{
+// 	  gi.inputFileName(answer,sPrintF(buff,"Enter the restart file name (default value=%s)",
+// 					  (const char *)restartFileName));
+// 	  if( answer!="" )
+// 	    restartFileName=answer;
+
+// 	  saveRestartFile(solution,restartFileName);
+// 	}
+//         else if( answer=="save restart file" ) // new way, do not prompt for restart file name
+// 	{
+// 	  saveRestartFile(solution,restartFileName);
+// 	}
+//         else if( answer=="output to a file" )
+// 	{
+// 	  FileOutput fileOutput;
+// 	  fileOutput.update(u,gi);
+// 	}
+// 	else if( answer=="output periodically to a file" || answer=="output periodically to a file..." )
+// 	{
+//           if( numberOfOutputFiles>=maximumNumberOfOutputFiles )
+// 	  {
+// 	    printF("ERROR: too many files open\n");
+// 	    continue;
+// 	  }
+//           fileOutputFrequency[numberOfOutputFiles]=1;
+//           gi.inputString(answer,"Save to the file every how many steps? (default=1)");
+//           sScanF(answer,"%i",&fileOutputFrequency[numberOfOutputFiles]);
+        	  
+//           FileOutput & fileOutput = * new FileOutput;
+// 	  outputFile[numberOfOutputFiles] = &fileOutput;
+// 	  numberOfOutputFiles++;
+                    
+//           fileOutput.update(u,gi);
+
+        	  
+// 	}
+// 	else if( answer=="close an output file" )
+// 	{
+//           aString *fileMenu = new aString [numberOfOutputFiles+2];
+//           int n;
+// 	  for( n=0; n<numberOfOutputFiles; n++ )
+// 	  {
+// 	    fileMenu[n]=outputFile[n]->getFileName();
+// 	  }
+//           fileMenu[parameters.numberOfOutputFiles]="none";
+//           fileMenu[parameters.numberOfOutputFiles+1]="";
+// 	  int fileChosen = gi.getMenuItem(fileMenu,answer,"Choose a file to close");
+// 	  if( fileChosen>=0 && fileChosen<parameters.numberOfOutputFiles )
+// 	  {
+//             printF("close file %s\n",(const char*)fileMenu[fileChosen]);
+// 	    delete parameters.outputFile[fileChosen];
+//             parameters.numberOfOutputFiles--;
+// 	    for( n=fileChosen; n<parameters.numberOfOutputFiles; n++ )
+// 	      parameters.outputFile[n]=parameters.outputFile[n+1];
+// 	    parameters.outputFile[parameters.numberOfOutputFiles]=NULL;
+// 	  }
+// 	}
+      	else if( answer=="continue" )
+      	{
+                    if( t >= tFinal-dt/10. )
+        	  {
+          	    printF("WARNING: t=tFinal. Choose `finish' if you really want to end\n");
+        	  }
+        	  else
+                        break;
+        	}
+      	else if( answer=="movie mode" )
+      	{
+                    plotOptions=3;  // don't wait
+
+            	  setSensitivity( dialog,false );
+                    break;
+        	}
+                else if( answer=="movie and save" )
+      	{
+        	  gi.inputString(answer,"Enter basic name for the ppm files (default=plot)");
+        	  if( answer !="" && answer!=" ")
+          	    movieFileName=answer;
+                    else
+          	    movieFileName="plot";
+                    gi.outputString(sPrintF(buff,"pictures will be named %s0.ppm, %s1.ppm, ...",
+                        (const char*)movieFileName,(const char*)movieFileName));
+        	  movieFrame=0;
+                    plotOptions=3;  // don't wait
+
+            	  setSensitivity( dialog,false );
+                    break;
+      	}
+//         else if( answer=="show file options" || answer=="show file options..." )
+// 	{
+//            updateShowFile();
+// 	}
+      	else if( answer=="finish" )
+      	{
+                    tFinal=t;
+                    returnValue=1;
+                    break;
+        	}
+      	else if( plotOptionsDialog.getTextValue(answer,"displacement scale factor","%g",dScale) )
+      	{ 
+        	  psp.set(GI_DISPLACEMENT_SCALE_FACTOR,dScale);
+      	}
+      	else if( plotOptionsDialog.getToggleValue(answer,"plot errors",plotErrors) ){replot=true;}//
+      	else if( plotOptionsDialog.getToggleValue(answer,"plot scattered field",plotScatteredField) ){ replot=true; }//
+      	else if( plotOptionsDialog.getToggleValue(answer,"plot total field",plotTotalField) ){ replot=true; }//
+      	else if( plotOptionsDialog.getToggleValue(answer,"plot dissipation",plotDissipation) ){replot=true;}//
+      	else if( plotOptionsDialog.getToggleValue(answer,"plot divergence",plotDivergence) ){replot=true;}//
+      	else if( plotOptionsDialog.getToggleValue(answer,"plot vorticity",plotVorticity) ){replot=true;}//
+                else if( plotOptionsDialog.getToggleValue(answer,"plot velocity",plotVelocity) ){}//
+                else if( plotOptionsDialog.getToggleValue(answer,"plot stress",plotStress) ){}//
+      	else if( dialog.getToggleValue(answer,"adjust grid for displacement",parameters.dbase.get<int>("adjustGridForDisplacement")) )
+      	{
+        	  psp.set(GI_ADJUST_GRID_FOR_DISPLACEMENT,parameters.dbase.get<int>("adjustGridForDisplacement"));
+      	}
+      	else if( plotOptionsDialog.getToggleValue(answer,"check errors",checkErrors) ){replot=true;}//
+                else if( plotOptionsDialog.getToggleValue(answer,"compute energy",computeEnergy) ){}//
+      	else if( plotOptionsDialog.getToggleValue(answer,"compare to show file",compareToReferenceShowFile) )
+                  {replot=true;}//
+
+      	else if( dialog.getTextValue(answer,"cfl","%g",cfl) )
+                {
+          // this will cause dt to be recomputed in solve: 
+                    parameters.dbase.get<bool>("adjustTimeStep")=true; 
+                    parameters.dbase.get<bool>("recomputeDt")=true;
+                }
+      	else if( dialog.getTextValue(answer,"final time","%g",tFinal) ){}//
+      	else if( dialog.getTextValue(answer,"times to plot","%g",tPlot) ){}//
+                else if( dialog.getTextValue(answer,"debug","%i",debug) ){}//
+                else if( dialog.getTextValue(answer,"radius for checking errors","%f",radiusForCheckingErrors) )
+                {
+                    getErrors( current,t,dt );
+                    replot=true;
+      	}
+                else if( parametersDialog.getTextValue(answer,"dissipation","%g",artificialDissipation) ){}//
+      	else if( len=answer.matches("plot:") )
+      	{
+          // plot a new component
+                    aString name = answer(len,answer.length()-1);
+                    int component=-1;
+        	  for( int n=0; n<nc; n++ )
+        	  {
+          	    if( name==u.getName(n) )
+          	    {
+            	      component=n;
+            	      break;
+          	    }
+        	  }
+                    if( component==-1 )
+        	  {
+                        printF("ERROR: unknown component name =[%s]\n",(const char*)name);
+          	    component=0;
+        	  }
+                    dialog.getOptionMenu(0).setCurrentChoice(component);
+                    if( plotChoices & 2 || plotChoices & 8)
+        	  {
+                        gi.erase();
+          	    psp.set(GI_COMPONENT_FOR_CONTOURS,component);
+          	    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,TRUE);
+
+          	    if( plotChoices & 1 )
+          	    {
+            	      PlotIt::plot(gi,cg,psp);
+          	    }
+
+          	    if( plotChoices & 2 ) PlotIt::contour(gi,u,psp);
+          	    if( plotChoices & 8 ) PlotIt::displacement(gi,u,psp);
+
+          	    if( plotChoices & 4 )
+            	      PlotIt::streamLines(gi,u,psp);
+
+          	    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,FALSE);
+        	  }
+      	}
+// 	else if( answer=="file output..." )
+// 	{
+//           fileOutputDialog.showSibling();
+// 	}
+//         else if( answer=="close file output dialog" )
+// 	{
+//           fileOutputDialog.hideSibling();
+// 	}
+// 	else if( answer=="pde parameters..." )
+// 	{
+// 	  pdeDialog.showSibling();
+// 	}
+// 	else if( answer=="close pde options" )
+// 	{
+// 	  pdeDialog.hideSibling();  // pop timeStepping
+// 	}
+// 	else if( parameters.setPdeParameters(answer,&pdeDialog)==0 )
+// 	{
+// 	  printF("Answer was found in setPdeParameters\n");
+// 	}
+                else if( answer=="break" )
+      	{
+      	}
+                else
+      	{
+        	  cout << "Unknown response: " << answer << endl;
+      	}
+      	if( replot )
+      	{
+        	  replot=false;
+                    getAugmentedSolution(current,v,t);
+        	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+                    gi.erase();
+        	  if( plotChoices & 1 )
+        	  {
+          	    PlotIt::plot(gi,cg,psp);
+        	  }
+        	  if( plotChoices & 2 )
+          	    PlotIt::contour(gi,u,psp);
+        	  if( plotChoices & 4 )
+          	    PlotIt::streamLines(gi,u,psp);
+        	  if( plotChoices & 8 ) 
+          	    PlotIt::displacement(gi,u,psp);
+
+        	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+                }//
+            }
+        }
+    }
+    
+
+    if( plotOptions & 2  )
+    {
+        gi.redraw(TRUE);
+        
+    }
+    
+    timing(parameters.dbase.get<int>("timeForPlotting"))+=getCPU()-cpu0;
+    return returnValue;
+}

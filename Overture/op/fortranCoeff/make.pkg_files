@@ -1,0 +1,11 @@
+PKGDIR := $(OvertureCheckout)/op/fortranCoeff
+
+L_SRC := $(addsuffix .f,coeff opcoeff) \
+	$(addsuffix Coeff2.f,x y z xx xy xz yy yz zz laplacian divScalarGrad identity) \
+	$(addsuffix Coeff4.f,x y z xx xy xz yy yz zz laplacian divScalarGrad identity) \
+	$(addsuffix Coeff2.f,r s t rr rs rt ss st tt) \
+	$(addsuffix Coeff4.f,r s t rr rs rt ss st tt) 
+
+SRC_FILES += $(L_SRC)
+
+

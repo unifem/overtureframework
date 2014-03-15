@@ -1,0 +1,14 @@
+PKGDIR := $(OvertureCheckout)/op/fortranDeriv
+
+L_SRC := $(addsuffix .f, xFDeriv yFDeriv zFDeriv xxFDeriv xyFDeriv xzFDeriv yyFDeriv yzFDeriv zzFDeriv) \
+	$(addsuffix .f, laplacianFDeriv assignBoundaryConditions findInterpolationNeighbours) \
+	$(addsuffix .f, dsg dsg2 dsg3 dsgr dsgc4 laplaceNC divScalarGradNC derivativeScalarDerivativeNC) \
+	$(addsuffix .f, standardDerivative dsgc6 div findInterpNeighbours assignOptTangentialComponent) \
+	$(addsuffix .f, assignOptNeumann assignOptGenDiv assignOptNormalDer assignOptNormalComponent assignOptADotGradU) \
+	$(addsuffix .f, extrapolateOpt assignCornersOpt fixBCOptEdge1 fixBCOptEdge2 fixBCOptEdge3 fixBCOptVerticies) 
+
+SRC_FILES += $(L_SRC)
+
+#dsg%.f:dsg.bf
+#	$(BPP) $<
+

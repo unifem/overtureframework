@@ -1,0 +1,29 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src $(INCLUDES)
+
+FORTRAN_INCLUDES += -I$(CG)/common/src  -I./src -I./src/godunov
+
+
+#SHARED_LIBRARY_LOAD_LIBS := $(LIBS) $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib -lCgCommon 
+#SHARED_LIBRARY_LOAD_LIBS :=  
+ifeq ($(OS),Darwin)
+SHARED_LIBRARY_LOAD_LIBS += -L$(CGBUILDPREFIX)common/lib -lCgCommon $(LAPACK_LIBRARIES)
+endif
+
+ifeq ($(usePETSc),on)
+PETSC_FILES_OBJ := $(addprefix $(OBJPREFIX),$(PETSC_FILES))
+endif
+ 
+ifneq ($(OV_RPATH),)
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)cns/lib -L$(CGBUILDPREFIX)cns/lib -lCgcns \
+        $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib -lCgCommon \
+        $(LIBS)  $(LAPACK_LIBRARIES) 
+else
+LIBS := -L$(CGBUILDPREFIX)cns/lib -lCgcns \
+        -L$(CGBUILDPREFIX)common/lib -lCgCommon \
+        $(LIBS)  $(LAPACK_LIBRARIES) 
+endif
+

@@ -1,0 +1,76 @@
+# 
+# Run with: conv.p io.conv
+# 
+$check="mp.check";
+#
+$tFinal=1.; $nu=.025; $kThermal=.03; $ktcFluid=.04; $kappa=.04; $ktcSolid=.9; $tz="trig"; $fx1=1.; $fx2=2.; 
+$iTol=1.e-5; 
+$mixed=1;   # Use a mixed interface BC if $mixed=1
+$gName1 = "innerOuterFixede1.order2"; # names of the grids
+$gName2 = "innerOuterFixede2.order2";
+$gName3 = "innerOuterFixede3.order2";
+$gName4 = "innerOuterFixede4.order2";
+$gName6 = "innerOuterFixede6.order2";
+$gName8 = "innerOuterFixede8.order2";
+# ------------------------ Start a new problem -----------------------------------
+# ------------------------ Implicit time stepping  -------------------------------
+# Set the name of final TeX file with errors and convergence rates: 
+$outputFile= $mixed ? "mp.io.imp.mixed.tex" : "mp.io.imp.tex";
+$caseName="io.imp"; 
+$numberOfComponents=7;
+$numberOfDomains=2; 
+# define the table heading and caption
+$title= "grid  \& N \&  p \&  u \& v \& T \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  \& \$T_S\$"; 
+$iOmega=1.; 
+# **NOTE: we need to decrease the time step in order to see 2nd-order accuracy
+$dtMax1=.05; 
+$dtMax2=$dtMax1/2.; 
+$dtMax3=$dtMax1/3.; 
+$dtMax4=$dtMax1/4.; 
+$dtMax6=$dtMax1/6.; 
+$dtMax8=$dtMax1/8.; 
+$caption= "\\caption\{Cgmp: INS+AD implicit, order=\$2\$, \$\\nu=$nu\$, \$\\kappa_F=$kThermal\$, \$k_F=$ktcFluid\$, \$\\kappa_S=$kappa\$, \$k_S=$ktcSolid\$, \$\\omega_i=$iOmega\$, \$\\eps_i=$iTol\$, \$t=$tFinal\$, \$\\Delta t_1=$dtMax1\$, $tz TZ, \$fx_1=$fx1\$, \$fx_2=$fx2\$, mixed=$mixed}\\label\{table:mp.io.imp}"; 
+# 
+$options = "-tz=$tz -fx1=$fx1 -fx2=$fx2 -solver=yale -nu=$nu -kThermal=$kThermal -ktcFluid=$ktcFluid -kappa=$kappa -ktcSolid=$ktcSolid -tf=$tFinal -ts=im -coupled=0 -iTol=$iTol -nc=20 -iOmega=$iOmega -mixedInterface=$mixed -go=go";
+$grid="innerOuter1"; $res=1; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName1 -dtMax=$dtMax1 $options";
+$grid="innerOuter2"; $res=2; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName2 -dtMax=$dtMax2 $options";
+# $grid="innerOuter3"; $res=3; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName3 -dtMax=$dtMax3 $options";
+$grid="innerOuter4"; $res=4; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName4 -dtMax=$dtMax4 $options";
+# $grid="innerOuter6"; $res=6; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName6 -dtMax=$dtMax6 $options";
+# $grid="innerOuter8"; $res=8; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName8 -dtMax=$dtMax8 $options";
+$closeFile="true"; 
+# --------------------------- end problem ------------------------------------------
+exit
+
+
+# ------------------------ Start a new problem -----------------------------------
+# ------------------------ Explicit time stepping  -------------------------------
+# Set the name of final TeX file with errors and convergence rates: 
+$outputFile="mp.io.tex"; 
+$caseName="io"; 
+$numberOfComponents=7;
+$numberOfDomains=2; 
+# define the table heading and caption
+$title= "grid  \& N \&  p \&  u \& v \& T \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  \& \$T_S\$"; 
+$caption= "\\caption\{Cgmp: INS+AD order=\$2\$, \$\\nu=$nu\$, \$\\kappa_F=$kThermal\$, \$k_F=$ktcFluid\$, \$\\kappa_S=$kappa\$, \$k_S=$ktcSolid\$, \$t=$tFinal\$, $tz TZ, \$fx_1=$fx1\$, \$fx_2=$fx2\$}\\label\{table:mp.io}"; 
+# 
+$options = "-tz=$tz -fx1=$fx1 -fx2=$fx2 -solver=yale -nu=$nu -kThermal=$kThermal -ktcFluid=$ktcFluid -kappa=$kappa -ktcSolid=$ktcSolid -tf=$tFinal -go=go";
+$grid="innerOuter1"; $res=1; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName1 $options";
+$grid="innerOuter2"; $res=2; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName2 $options";
+$grid="innerOuter4"; $res=4; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName4 $options";
+# $grid="innerOuter8"; $res=8; $cmd="../bin/cgmp noplot ../cmd/io -g=$gName8 $options";
+$closeFile="true"; 
+# --------------------------- end problem ------------------------------------------
+exit
+
+
+
+
+
+
+
+
+
+
+
+

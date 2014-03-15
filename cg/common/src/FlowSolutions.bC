@@ -1,0 +1,1861 @@
+#include "FlowSolutions.h"
+#include "PistonMotion.h"
+#include "GridStatistics.h"
+#include "display.h"
+
+FlowSolutions::
+FlowSolutions()
+{
+  v=NULL;
+  wallDataPointer=NULL;
+}
+
+FlowSolutions::
+~FlowSolutions()
+{
+  delete v;
+  delete wallDataPointer;
+}
+
+
+int FlowSolutions::
+getFlowSolution( const KnownSolutionsEnum knownSolution,
+		 realCompositeGridFunction & ua, int *ipar, real *rpar )
+// ========================================================================================
+// /Description:
+//     Return a flow solution.
+// /knownSolution (input): specifies which flow solution
+// ========================================================================================
+{
+  CompositeGrid & cg = *ua.getCompositeGrid();
+  Index I1,I2,I3;
+  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    MappedGrid & mg = cg[grid];
+    getIndex(mg.dimension(),I1,I2,I3);
+    getFlowSolution( knownSolution,cg,grid,ua[grid],ipar,rpar,I1,I2,I3);
+  }
+  
+  return 0;
+}
+
+
+int FlowSolutions::
+getFlowSolution( const KnownSolutionsEnum knownSolution,
+		 CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+		 const Index & I1, const Index &I2, const Index &I3  )
+// ========================================================================================
+// /Description:
+//     Return a flow solution.
+// /knownSolution (input): specifies which flow solution
+// ========================================================================================
+{
+
+  if( knownSolution==superSonicExpandingFlow )
+  {
+    getSupersonicExpandingFlow( cg,grid,ua,ipar,rpar,I1,I2,I3 );
+  }
+  else if( knownSolution==specifiedPistonMotion ||
+           knownSolution==forcedPistonMotion )
+  {
+    getPistonFlow( knownSolution,cg,grid,ua,ipar,rpar,I1,I2,I3 );
+  }
+  else if( knownSolution==shockElasticPiston )
+  {
+    getShockElasticPistonFlow( knownSolution,cg,grid,ua,ipar,rpar,I1,I2,I3 );
+  }
+  else if( knownSolution==obliqueShockFlow )
+  {
+    getObliqueShockFlow( knownSolution,cg,grid,ua,ipar,rpar,I1,I2,I3 );
+  }
+  else if( knownSolution==deformingDiffuser )
+  {
+    getDeformingDiffuser( knownSolution,cg,grid,ua,ipar,rpar,I1,I2,I3 );
+  }
+  else if( knownSolution==rotatingElasticDiskInFluid )
+  {
+    getRotatingElasticDiskInFluid( knownSolution,cg,grid,ua,ipar,rpar,I1,I2,I3 );
+  }
+  else
+  {
+    printF("FlowSolutions::getFlowSolution:ERROR: unknown knownSolution=%i\n",knownSolution);
+    OV_ABORT("error");
+  }
+  
+  return 0;
+  
+}
+
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+static int rc=0, uc=1, vc=2, wc=-1, pc=3;
+static int sc, tc;
+static real gammaGas=1.4;
+
+static real p0=1., rho0=1.; 
+static real a0 = sqrt(gammaGas*p0/rho0); // speed of sound   a0=1.1832 for gammaGas=1.4
+static real u0=a0*1.5, v0=0.;            // upstream Mach number is u0/a0
+static real q0 = sqrt( u0*u0 + v0*v0);
+static real mu0=asin(a0/q0);
+
+static int cside,caxis,cgrid; // here is the curved boundary
+
+static real cpmu1= sqrt((gammaGas+1.)/(gammaGas-1.));
+static real pmuValue=0.;
+
+#define zeroin EXTERN_C_NAME(zeroin)
+#define dfmin EXTERN_C_NAME(dfmin)
+#define dfmin2 EXTERN_C_NAME(dfmin2)
+extern "C"
+{
+  // zeroin: function to compute the zero of a function on an interval -- f is assumed to change sign
+  real zeroin(real & ax,real & bx, real (*f) (const real&), real & tol);
+
+  // *NOTE* we seem to need 2 versions since calling dfmin from within dfmin fails to converge
+  real dfmin(real (*f) (const real&), real &x, real&a, real&b, real&tol);
+  real dfmin2(real (*f) (const real&), real &x, real&a, real&b, real&tol);
+
+  // for small mu Pmu(mu) = 5 mu
+  real pmu(const real & mu)
+  { // 0< mu < pi/2
+    return cpmu1*atan(cpmu1*tan(mu))-mu - pmuValue;
+  }
+
+  real pmuSquared(const real & mu)
+  { // 0< mu < pi/2
+    real pmu= cpmu1*atan(cpmu1*tan(mu))-mu - pmuValue;
+    return pmu*pmu;
+    
+  }
+
+}
+
+static real pmu0 = cpmu1*atan(cpmu1*tan(mu0))-mu0;
+static real xValue,yValue; // global values for boundaryFunction
+
+// Compute mu such that P(mu)=pmuVal
+real 
+muFromPmu( real pmuVal )
+{
+  pmuValue=pmuVal;
+  real mu=pmuValue/5.;
+  real a=0., b=Pi*.5;
+  real tol=1.e-12;
+  real val = dfmin(pmuSquared,mu,a,b,tol);
+  // printf(" mu=%e in [%e,%e], pmu(mu)=%e pmuSquared=%e\n",mu,a,b,pmu(mu),pmuSquared(mu));
+  return mu;
+}
+
+Mapping *mapPointer=NULL;
+
+void
+evaluateBoundaryCurve(const real & xi, real & x0xi, real & y0xi, real & xr, real & yr )
+{
+  if( false )
+  {
+   x0xi=xi;
+   y0xi = -xi*xi;
+   xr = 1.;
+   yr = -2.*xi;
+  }
+  else
+  {
+    realArray r(1,2), x(1,2), xrv(1,2,2);
+    r(0,0)=xi;
+    r(0,1)=0.;
+    mapPointer->map(r,x,xrv);
+    x0xi=x(0,0);
+    y0xi=x(0,1);
+    xr=xrv(0,0,0);
+    yr=xrv(0,1,0);
+  }
+}
+
+
+
+extern "C"
+{
+
+ real boundaryFunction(const real & xi )
+ { 
+   real x0xi,y0xi,xr,yr;
+   evaluateBoundaryCurve(xi,x0xi,y0xi,xr,yr );
+
+   real thetaw; // wall value for theta
+   if( fabs(xr)>0. || fabs(yr)>0. )
+     thetaw = atan2((double)yr,(double)xr);   
+   else
+     thetaw=0.;
+   
+   real pmuVal = thetaw+pmu0;
+   
+   // printf(" boundaryFunction: xi=%8.2e, thetaw=%8.2e\n",xi,thetaw);
+   real muw = muFromPmu(pmuVal);
+   // printf(" boundaryFunction: xi=%8.2e, muw=%8.2e\n",xi,muw);
+   
+   real value = y0xi - yValue + tan(thetaw + muw )*( xValue - x0xi );
+
+//     printf(" boundaryFunction: xi=%8.2e, thetaw=%8.2e, muw=%8.2e, mu0=%8.2e pmu0=%8.2e value=%8.2e\n",
+//                  xi,thetaw,muw,mu0,pmu0,value);
+   
+   return value*value;
+   
+ }
+
+//   real boundaryFunction( real & tau ){ return  -tau*tau + (a0+gp1b2*(-2.*tau))*(t-tau) -xx; } 
+//  real boundaryFunction( real & tau ){ return  tau*(tau-1.)*(tau+1.)*(tau-2.)*(tau+2.); } 
+}
+
+
+int
+findStartOfCPlusCharacteristic(real & x,real & y, real & xi, real & thetaw, real & muw,
+                               real a, real b )
+// Given (x,y) find xi such that the C+ characterstic starting at 0 < xi < 1 passes through (x,y)
+//
+//     y = y0(xi) + tan(thetaw(xi) +muw(xi))( x - x0(xi) )
+//
+// where  thetaw(xi) is defined as
+//
+//      thetaw(xi) = atan2( y0'(xi), x0'(xi) ) : "slope" of boundary curve
+//     
+// and muw(xi) satisfies
+//     Pmu(muw(xi)) = thetaw(xi) + Pmu(mu0)  : mu0 = upstream value for mu, sin(mu)=a/q   q^2=u^2+v^2
+{
+  int debug=0;
+  // for testing : define x0(s) = s, y0(s) = -s*s
+
+  xValue=x;  // global variables for boundaryFunction
+  yValue=y;
+  
+  // *** There is trouble with convergence for some points near x=0, x<0 --> we need to limit b
+//    real slope=tan(0+mu0);
+//    real a= 0.; // x<0. ? -.5 : 0.;
+//    real b= x<0. ? .6+slope*x : 1.;
+
+  xi=.5*(a+b);     // initial guess ** fix ***
+
+  // *wdh* 110106 real tol=1.e-9;
+  real tol=1.e-12;
+  real minval = dfmin2(boundaryFunction,xi,a,b,tol);
+  // printf("Find xi: After minimizing : xi=%7.3f, boundaryFunction=%8.2e\n",xi,boundaryFunction(xi));
+  if( minval>tol*10. )
+  {
+    // If current solution lies at an end point then increase the interval and try again
+    real tol2=tol*1.e-3;
+    if( fabs(xi-a)<= (b-a)*.1 )
+    {
+      printf("Find xi: WARNING: no convergence in finding xi=%9.3e, boundaryFunction=%8.2e [a,b]=[%9.3e,%9.3e], TRY AGAIN...\n",
+	     xi,boundaryFunction(xi),a,b);
+
+      a -= .1; // .5*(b-a);
+      minval = dfmin2(boundaryFunction,xi,a,b,tol2);
+    }
+    else if( fabs(xi-b) <= (b-a)*.1 )
+    {
+      b+= .5*(b-a);
+      minval = dfmin2(boundaryFunction,xi,a,b,tol2);
+    }
+    
+    
+    if( minval>tol*10. )
+      printf("Find xi: ERROR: no convergence in finding xi=%9.3e, boundaryFunction=%8.2e [a,b]=[%9.3e,%9.3e]\n",
+	     xi,boundaryFunction(xi),a,b);
+
+  }
+  
+  // =======================
+  real x0xi,y0xi,xr,yr;
+  evaluateBoundaryCurve(xi,x0xi,y0xi,xr,yr );
+
+  //  thetaw; // wall value for theta
+  if( fabs(xr)>0. || fabs(yr)>0. )
+    thetaw = atan2((double)yr,(double)xr);   
+  else
+    thetaw=0.;
+   
+  real pmuValue = thetaw+pmu0;
+   
+  muw = muFromPmu(pmuValue);
+
+  if( debug >0 )
+    printf(" Find xi: (x,y)=(%6.3f,%6.3f) xi=%7.4f, (x0(xi),y0(xi))=(%6.3f,%6.3f) thetaw=%6.3f, muw=%6.3f\n",
+	   x,y,xi,x0xi,y0xi,thetaw,muw);
+
+}
+
+#beginMacro getWallData()
+  const int nxi=102;
+//  real dxi=1./(nxi-1.);
+  real dxi=1.1/(nxi-1.); // Note: evaluate past xi=1. so we can get ghost points near xi=1
+  if( wallDataPointer==NULL )
+  {
+    // first evaluate the solution at a sequence of points along the boundary
+    // We use these values to get an initial guess 
+
+    wallDataPointer = new RealArray;
+    RealArray & wallData = *wallDataPointer;
+    
+    wallData.redim(nxi,6);
+
+    int i;
+    for( i=0; i<nxi; i++ )
+    {
+      real xi=i*dxi;
+      real x0,y0,xr,yr;
+      evaluateBoundaryCurve(xi,x0,y0,xr,yr );
+    
+      real thetaw; // wall value for theta
+      if( fabs(xr)>0. || fabs(yr)>0. )
+	thetaw = atan2((double)yr,(double)xr);   
+      else
+	thetaw=0.;
+   
+      real pmuVal = thetaw+pmu0;
+      real muw = muFromPmu(pmuVal);
+
+      wallData(i,0)=xi;
+      wallData(i,1)=x0;
+      wallData(i,2)=y0;
+      wallData(i,3)=thetaw;
+      wallData(i,4)=muw;
+      wallData(i,5)=tan(thetaw+muw);
+    
+    }
+  }
+#endMacro
+
+
+// ====================================================================================
+/// \brief Determine the solution to supersonic flow around an expanding corner
+/// \param ipar (input) : 
+/// \param rpar (input) : 
+// ===================================================================================
+int FlowSolutions::
+getSupersonicExpandingFlow( realCompositeGridFunction & ua, int *ipar, real *rpar )
+{
+  int debug = 0;
+
+  CompositeGrid & cg = *ua.getCompositeGrid();
+  cg.update(MappedGrid::THEcenter);
+
+  rc=ipar[0];
+  uc=ipar[1];
+  vc=ipar[2];
+  int wc=ipar[3];
+  tc=ipar[4];
+  pc=ipar[5];  // fill in if >=0 
+  sc=ipar[6];  // fill in if >=0 
+  
+  // here is the curved boundary: 
+  cside=ipar[7];
+  caxis=ipar[8];
+  cgrid=ipar[9];
+
+  real Rg;
+  gammaGas=rpar[0];
+  Rg      =rpar[1];
+  rho0    =rpar[2];
+  u0      =rpar[3];
+  v0      =rpar[4];
+  p0      =rpar[5];
+  
+
+  // assign some derived constants
+  a0 = sqrt(gammaGas*p0/rho0); // speed of sound   a0=1.1832 for gammaGas=1.4
+  q0 = sqrt( u0*u0 + v0*v0);
+  mu0=asin(a0/q0);
+  cpmu1= sqrt((gammaGas+1.)/(gammaGas-1.));
+  pmuValue=0.;
+  pmu0 = cpmu1*atan(cpmu1*tan(mu0))-mu0;
+
+
+  Index I1,I2,I3;
+  assert( cgrid>=0 && cgrid<cg.numberOfComponentGrids() );
+  mapPointer = &(cg[cgrid].mapping().getMapping());  // this is used by evaluateBoundaryCurve
+
+  getWallData();
+  
+  RealArray & wallData = *wallDataPointer;
+
+  int grid;
+  for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    MappedGrid & mg=cg[grid];
+    const realArray & center = mg.center();
+    realArray & u = ua[grid];
+
+    getIndex(mg.dimension(),I1,I2,I3);  
+
+    u(I1,I2,I3,rc)=rho0;
+    u(I1,I2,I3,uc)=u0;
+    u(I1,I2,I3,vc)=v0;
+    u(I1,I2,I3,tc)=p0/(rho0*Rg);
+    if( pc>=0 ) u(I1,I2,I3,pc)=p0;
+   
+   
+    real x,y,xi,thetaw,muw,theta,mu;
+    pmuValue=0.;
+
+    real xa=-.5;
+    real slope=tan(0.+mu0);  // should be slope of C+ at inflow
+   
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      x= center(i1,i2,i3,0);
+      y= center(i1,i2,i3,1);
+     
+      // The point (x,y) should lie between the (k-1)'th and k'th C+ characteristic 
+      int k=0;
+      for( int i=0; i<nxi; i++ )
+      {
+        real xxi=wallData(i,1), yxi=wallData(i,2), tanxi=wallData(i,5);
+        if(  (yxi-y+tanxi*(x-xxi))<= 0. )
+//    	if( (i2>=0 && x>=xxi && (yxi-y+tanxi*(x-xxi))<= 0.) ||
+//              (i2<=0 && x<=xxi && (yxi-y+tanxi*(x-xxi))<= 0.))
+	{
+	  k=i;
+	  break;
+	}
+      }
+      // if( y < slope*(x-xa) )
+      if( k>0 )
+      {
+        real xiStart=wallData(k-1,0), xiEnd=wallData(k,0);
+
+	findStartOfCPlusCharacteristic(x,y,xi,thetaw,muw,xiStart,xiEnd);
+      }
+      else
+      { // assume these C+ characteristics reach the initial conditions
+	xi=0.;
+	thetaw=0.;
+	muw=mu0;
+      }
+
+//        pmuValue=0.;
+//        real pmuw=pmu(muw);
+
+//        theta=.5*( thetaw+pmuw-pmu0);
+//        real pmuVal=.5*(thetaw+pmuw+pmu0);
+//        mu=muFromPmu(pmuVal);
+
+      theta=thetaw;
+      mu=muw;
+       
+      real sinmu=sin(mu);
+      real sinmu0=sin(mu0);
+
+       
+      real asq = a0*a0*( 1. + .5*(gammaGas-1.)/(sinmu0*sinmu0) )/( 1. + .5*(gammaGas-1.)/(sinmu*sinmu) );
+      real a = sqrt(asq);
+      real p =    p0*pow( a/a0, 2.*gammaGas/(gammaGas-1.) );
+      real rho =rho0*pow( a/a0,         2.0/(gammaGas-1.) );
+
+      // real qsq= (a0*a0 + .5*(gammaGas-1.)*q0*q0 )/( sinmu*sinmu + .5*(gammaGas-1.) );
+      // real q=sqrt(qsq);
+      real q=a/sinmu;
+    
+      u(i1,i2,i3,rc)=rho;
+      u(i1,i2,i3,uc)=q*cos(theta);
+      u(i1,i2,i3,vc)=q*sin(theta);
+      u(i1,i2,i3,tc)=p/(rho*Rg);
+
+      if( pc>=0 ) u(i1,i2,i3,pc)=p;      
+      if( sc>=0 ) u(i1,i2,i3,sc)=log( p/pow(rho,gammaGas) );  // really Cv*log()
+     
+      if( debug > 0 )
+        printf(" i=(%i,%i) (x,y)=(%6.3f,%6.3f) (rho,u,v,T)=(%6.3f,%6.3f,%6.3f,%6.3f) \n",i1,i2,x,y,
+	     rho,u(i1,i2,i3,uc),u(i1,i2,i3,vc),u(i1,i2,i3,tc));
+     
+    }
+  }
+
+  return 0;
+}
+
+int FlowSolutions::
+getSupersonicExpandingFlow( CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+                            const Index & I1, const Index &I2, const Index &I3  )
+// =====================================================================================================
+//  Determine the solution to supersonic flow around an expanding corner
+//
+//  Evaluate the solution at the points (I1,I2)
+// =====================================================================================================
+{
+  int debug = 0;
+
+  MappedGrid & mg = cg[grid];
+  mg.update(MappedGrid::THEcenter);
+
+  rc=ipar[0];
+  uc=ipar[1];
+  vc=ipar[2];
+  int wc=ipar[3];
+  tc=ipar[4];
+  pc=ipar[5];  // fill in if >=0 
+  sc=ipar[6];  // fill in if >=0 
+  
+  // here is the curved boundary: 
+  cside=ipar[7];
+  caxis=ipar[8];
+  cgrid=ipar[9];
+
+  real Rg;
+  gammaGas=rpar[0];
+  Rg      =rpar[1];
+  rho0    =rpar[2];
+  u0      =rpar[3];
+  v0      =rpar[4];
+  p0      =rpar[5];
+  
+
+  // assign some derived constants
+  a0 = sqrt(gammaGas*p0/rho0); // speed of sound   a0=1.1832 for gammaGas=1.4
+  q0 = sqrt( u0*u0 + v0*v0);
+  mu0=asin(a0/q0);
+  cpmu1= sqrt((gammaGas+1.)/(gammaGas-1.));
+  pmuValue=0.;
+  pmu0 = cpmu1*atan(cpmu1*tan(mu0))-mu0;
+
+  // mapPointer = &(mg.mapping().getMapping());  // this is used by evaluateBoundaryCurve
+  assert( cgrid>=0 && cgrid<cg.numberOfComponentGrids() );
+  mapPointer = &(cg[cgrid].mapping().getMapping());  // this is used by evaluateBoundaryCurve
+
+  // This next function is a macro
+  getWallData();
+  
+  RealArray & wallData = *wallDataPointer;
+  
+  // ***********
+
+  const realArray & center = mg.center();
+  realArray & u = ua;
+
+
+  u(I1,I2,I3,rc)=rho0;
+  u(I1,I2,I3,uc)=u0;
+  u(I1,I2,I3,vc)=v0;
+  u(I1,I2,I3,tc)=p0/(rho0*Rg);
+  if( pc>=0 ) u(I1,I2,I3,pc)=p0;
+   
+   
+  real x,y,xi,thetaw,muw,theta,mu;
+  pmuValue=0.;
+
+  real xa=-.5;
+  real slope=tan(0.+mu0);  // should be slope of C+ at inflow
+   
+  int i1,i2,i3;
+  FOR_3D(i1,i2,i3,I1,I2,I3)
+  {
+    x= center(i1,i2,i3,0);
+    y= center(i1,i2,i3,1);
+     
+    // The point (x,y) should lie between the (k-1)'th and k'th C+ characteristic 
+    int k=0;
+    for( int i=0; i<nxi; i++ )
+    {
+      real xxi=wallData(i,1), yxi=wallData(i,2), tanxi=wallData(i,5);
+      if(  (yxi-y+tanxi*(x-xxi))<= 0. )
+//    	if( (i2>=0 && x>=xxi && (yxi-y+tanxi*(x-xxi))<= 0.) ||
+//              (i2<=0 && x<=xxi && (yxi-y+tanxi*(x-xxi))<= 0.))
+      {
+	k=i;
+	break;
+      }
+    }
+    // if( y < slope*(x-xa) )
+    if( k>0 )
+    {
+      real xiStart=wallData(k-1,0), xiEnd=wallData(k,0);
+
+      findStartOfCPlusCharacteristic(x,y,xi,thetaw,muw,xiStart,xiEnd);
+    }
+    else
+    { // assume these C+ characteristics reach the initial conditions
+      xi=0.;
+      thetaw=0.;
+      muw=mu0;
+    }
+
+//        pmuValue=0.;
+//        real pmuw=pmu(muw);
+
+//        theta=.5*( thetaw+pmuw-pmu0);
+//        real pmuVal=.5*(thetaw+pmuw+pmu0);
+//        mu=muFromPmu(pmuVal);
+
+    theta=thetaw;
+    mu=muw;
+       
+    real sinmu=sin(mu);
+    real sinmu0=sin(mu0);
+
+       
+    real asq = a0*a0*( 1. + .5*(gammaGas-1.)/(sinmu0*sinmu0) )/( 1. + .5*(gammaGas-1.)/(sinmu*sinmu) );
+    real a = sqrt(asq);
+    real p =    p0*pow( a/a0, 2.*gammaGas/(gammaGas-1.) );
+    real rho =rho0*pow( a/a0,         2.0/(gammaGas-1.) );
+
+    // real qsq= (a0*a0 + .5*(gammaGas-1.)*q0*q0 )/( sinmu*sinmu + .5*(gammaGas-1.) );
+    // real q=sqrt(qsq);
+    real q=a/sinmu;
+    
+    u(i1,i2,i3,rc)=rho;
+    u(i1,i2,i3,uc)=q*cos(theta);
+    u(i1,i2,i3,vc)=q*sin(theta);
+    u(i1,i2,i3,tc)=p/(rho*Rg);
+
+    if( pc>=0 ) u(i1,i2,i3,pc)=p;      
+    if( sc>=0 ) u(i1,i2,i3,sc)=log( p/pow(rho,gammaGas) );  // really Cv*log()
+     
+    if( debug > 0 )
+      printf(" i=(%i,%i) (x,y)=(%6.3f,%6.3f) (rho,u,v,T)=(%6.3f,%6.3f,%6.3f,%6.3f) \n",i1,i2,x,y,
+	     rho,u(i1,i2,i3,uc),u(i1,i2,i3,vc),u(i1,i2,i3,tc));
+     
+  }
+
+  return 0;
+}
+
+
+// **************************************************************************************************
+// ***********************    Motion of a Piston      ***********************************************
+// **************************************************************************************************
+
+
+static real cc0,cc1,cc2,cc3,cc4,cc5,cc6,cc7,cc8,cc9;
+static real ag,pg;
+
+static FlowSolutions::KnownSolutionsEnum problem;
+
+// Solution to the hydrodynamically forced piston problem and the time derivative:
+#define G_FORCED_PISTON(t) \
+      ( (-1./cc1)*( (t) - (cc2-1.)/(cc2-2.)/(cc3*cc5)*(pow( 1.+cc3*cc5*(t), (cc2-2.)/(cc2-1.) ) -1. ) ) )
+#define GT_FORCED_PISTON(t) \
+      ( (-1./cc1)*( 1. - pow( 1.+cc3*cc5*(t), (-1.)/(cc2-1.) ) ) )
+
+// Characteristic function for the hydrodynamically forced piston
+ //     H(tau) =   g(tau) + (a0 + gp1*.5* gDot(tau) )(t-tau) - x = 0
+#define CHARACTERISTIC_FORCED_PISTON(tau) \
+    ( G_FORCED_PISTON(tau) + (cc6+cc7*GT_FORCED_PISTON(tau))*(cc8-(tau))+cc9 )
+
+namespace
+{
+
+extern "C"
+{
+ // evaluate the characteristic function used to define the boundary position
+ //     H(tau) =   g(tau) + (a0 + gp1*.5* gDot(tau) )(t-tau) - x = 0
+ //   expanding piston: write in the form :  H(tau)= cc0 + cc1*tau + cc2*tau^2 + cc3*tau^3
+ //   ****NOTE:  Return the square of the function:  H^2(t) (instead  of H(t)) -- to which we find a minimum
+ real pistonBoundaryFunction( const real & tau )
+ { 
+   real hh;
+   if( problem==FlowSolutions::specifiedPistonMotion )
+   {
+     real g = ag*pow(tau,pg);
+     real gt= ag*pg*pow(tau,pg-1.);
+     hh = g + (cc6+cc7*gt)*(cc8-(tau))+cc9;
+   }
+   else if( problem==FlowSolutions::forcedPistonMotion )
+   {
+     hh = CHARACTERISTIC_FORCED_PISTON(tau);
+   }
+   return hh*hh;
+ }
+ 
+}
+
+} // end namespace
+
+int FlowSolutions::
+getPistonFlow( const KnownSolutionsEnum knownSolution,
+               CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+	       const Index & I1, const Index &I2, const Index &I3  )
+// =======================================================================================
+// /Description: Define the exact solution for a piston moving with a specified motion
+// 
+// 
+// =======================================================================================
+{
+  int debug = 0;
+  problem=knownSolution;
+  assert( knownSolution==specifiedPistonMotion || knownSolution==forcedPistonMotion );
+
+  MappedGrid & mg = cg[grid];
+  mg.update(MappedGrid::THEcenter);
+
+  const int rc=ipar[0];
+  const int uc=ipar[1];
+  const int vc=ipar[2];
+  const int tc=ipar[3];
+  const int pc=ipar[4];  // fill in if >=0 
+  const int sc=ipar[5];  // fill in if >=0 
+  
+  const real gamma   =rpar[0];
+  const real Rg      =rpar[1];
+  const real rho0    =rpar[2];
+  const real u0      =rpar[3];
+  const real v0      =rpar[4];
+  const real p0      =rpar[5];
+  const real t       =rpar[6];
+             ag      =rpar[7];  // g(t)= ap*t^pg  (piston with specfied motion)
+             pg      =rpar[8];
+  const real mass    =rpar[9];  // for hydrodynamically forced piston
+  const real height  =rpar[10]; // for hydrodynamically forced piston
+  real angle         =rpar[11]; // angle (in degrees) for a rotated piston
+
+  if( false )
+    printF(" ****** getPistonFlow: t=%9.3e, gamma=%8.2e rho0=%8.2e p0=%8.2e mass=%8.2e height=%8.2e angle=%8.2e\n",
+	   t,gamma,rho0,p0,mass,height,angle);
+
+
+  const realArray & center = mg.center();
+
+  // const real p0=1., rho0=1.;
+  const real a0 = sqrt(gamma*p0/rho0);
+  const real gp1 = gamma+1., gm1=gamma-1.;
+	
+  // global constants for the hydrodynamically forced piston:
+  cc1=(gamma-1.)/(2.*a0);
+  cc2=2.*gamma/(gamma-1.);
+  cc3=p0*height/mass;  // p0*A/M // cc3=p0*H/Mass;
+  cc4=0.;
+  cc5=cc1*(cc2-1.);
+
+  angle = angle*Pi/180.;
+  const real cosa = cos(angle), sina=sin(angle);
+
+  if( t==0. )
+  {
+    u(I1,I2,I3,rc)=rho0;
+    u(I1,I2,I3,uc)=0.; // uTrue=-gt;
+    u(I1,I2,I3,vc)=0.;
+    u(I1,I2,I3,tc)=p0/(rho0*Rg);
+    if( pc>=0 ) u(I1,I2,I3,pc)=p0;
+  }
+  else
+  {
+    real tol=REAL_EPSILON*100.;
+    real a,b;
+    real tau=-1.;
+    real uTrue;
+
+    int i1,i2,i3;
+    real x,y; 
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      x= center(i1,i2,i3,0);
+      y= center(i1,i2,i3,1);
+
+      // real xx=x;
+      real xx = x*cosa + y*sina;  // xx is the distance of (x,y) from the interface
+
+      if( xx>a0*t )
+      {
+	uTrue = 0.; // -gt;
+      }
+      else
+      {
+	// note: these next (global) variables are used in the definition of the "pistonBoundaryFunction" 
+	cc6=a0, cc7=gp1*.5, cc8=t, cc9=-xx;
+		
+	// *********************************************************************
+	// Find the value of tau where the following function is zero : 
+	//     g(tau) + (a0 + gp1*.5* gDot(tau) )(t-tau) - x = 0 
+
+	// real tau = zeroin(a,b,pistonBoundaryFunction,tol);
+
+	// It seems easier to find a minimum to g(tau)^2: 
+
+	// Look for a minimum in the interval [a,b]
+	a=0.;
+	b= i1==I1Base ? t-xx/a0 : tau;  // use last solution as upper bound
+	      
+                 
+	real ggmin = dfmin(pistonBoundaryFunction,tau,a,b,tol);
+
+	if( false )
+	{
+	  real hh;
+	  if( problem==FlowSolutions::specifiedPistonMotion )
+	  {
+	    real g = ag*pow(tau,pg);
+	    real gt= ag*pg*pow(tau,pg-1.);
+	    hh = g + (cc6+cc7*gt)*(cc8-(tau))+cc9;
+            printf("getPistonFlow: t=%8.5f, xx=%8.5f, tau=%8.5f, h(tau)=%8.2e [a,b]=[%8.2e,%8.2e] g=%8.5f gt=%8.5f \n",
+ 		 t,xx,tau,hh,a,b,g,gt);
+	  }
+	}
+	
+// #define GG(tau) cc0 + (tau)*(cc1+(tau)*(cc2+(tau)*(cc3+(tau)*cc4)))
+// 	if( false && problem==expandingPiston )
+// 	  printf(" t=%8.5f, xx=%8.5f, tau=%8.5f, f(tau)=%8.2e [a,b]=[%8.2e,%8.2e] \n",
+// 		 t,xx,tau,GG(tau),a,b);
+// #undef GG
+		
+	if( problem==specifiedPistonMotion )
+	{
+          // g(t) = ag*tau^pg
+	  uTrue = ag*pg*pow(tau,pg-1.);   // here is the velocity
+	}
+	else
+	{
+	  uTrue = GT_FORCED_PISTON(tau);
+	}
+	
+      }
+      real aTrue = a0+.5*gm1*uTrue;
+
+      // const real kappa = p0/pow(rho0,gamma);
+      // real pTrue = kappa*pow( aTrue*aTrue/(gamma*kappa), gamma/gm1 );
+      // real rTrue = pow( aTrue*aTrue/(gamma*kappa), 1./gm1 );
+      
+      // *wdh* 101020 ??
+      real pTrue = p0*pow(aTrue/a0,2.*gamma/gm1);
+      real rTrue = rho0*pow(aTrue/a0,2./gm1 );
+
+      if( false && i1==0 && i2==0 )
+      {
+        real g = G_FORCED_PISTON(tau); // piston position
+        printf("getPistonFlow: i1,i2=%i,%i  t=%8.5f x=%7.5f  (r,u,p)=(%8.2e,%8.2e,%8.2e) G=%9.3e\n",i1,i2,t,x,rTrue,uTrue,pTrue,g);
+      }
+      
+
+      u(i1,i2,i3,rc)=rTrue;
+      u(i1,i2,i3,uc)=uTrue*cosa;  // *wdh* 110517 -- add option for rotated piston
+      u(i1,i2,i3,vc)=uTrue*sina;
+      u(i1,i2,i3,tc)=pTrue/(Rg*rTrue);
+      if( pc>0 ) u(i1,i2,i3,pc)=pTrue;
+      
+    } // end FOR_3D
+    
+  }
+  
+  
+  return 0;
+  
+}
+
+
+
+// =========================================================================================
+/// \brief Compute the solution defined by the PistonMotion class.
+// =========================================================================================
+int FlowSolutions::
+getFlowSolution( PistonMotion & pistonMotion,
+		 CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+		 const Index & I1, const Index &I2, const Index &I3  )
+{
+  MappedGrid & mg = cg[grid];
+  mg.update(MappedGrid::THEcenter);
+
+  const int rc=ipar[0];
+  const int uc=ipar[1];
+  const int vc=ipar[2];
+  const int tc=ipar[3];
+  const int pc=ipar[4];  // fill in if >=0 
+  const int sc=ipar[5];  // fill in if >=0 
+  
+  const real gamma   =rpar[0];
+  const real Rg      =rpar[1];
+  const real t       =rpar[2];
+
+//   if( false )
+//     printF(" ****** getPistonFlow: t=%9.3e, gamma=%8.2e rho0=%8.2e p0=%8.2e mass=%8.2e height=%8.2e angle=%8.2e\n",
+// 	   t,gamma,rho0,p0,mass,height,angle);
+
+
+  const realArray & center = mg.center();
+
+  real angle=0.;  // *fix me* rotated piston -- add to PistonMotion ?
+
+  angle = angle*Pi/180.;
+  const real cosa = cos(angle), sina=sin(angle);
+
+  real rTrue,uTrue,pTrue;
+
+  int i1,i2,i3;
+  real x,y; 
+  FOR_3D(i1,i2,i3,I1,I2,I3)
+  {
+    x= center(i1,i2,i3,0);
+    y= center(i1,i2,i3,1);
+
+    // real xx=x;
+    real xx = x*cosa + y*sina;  // xx is the distance of (x,y) from the interface
+
+    pistonMotion.getFlow( t, xx, rTrue,  uTrue, pTrue );
+
+
+    u(i1,i2,i3,rc)=rTrue;
+    u(i1,i2,i3,uc)=uTrue*cosa; 
+    u(i1,i2,i3,vc)=uTrue*sina;
+    u(i1,i2,i3,tc)=pTrue/(Rg*rTrue);
+    if( pc>0 ) u(i1,i2,i3,pc)=pTrue;
+      
+  } // end FOR_3D
+    
+  return 0;
+}
+
+
+
+
+// =======================================================================================
+/// \brief Define an oblqiue shock exact solution
+// =======================================================================================
+int FlowSolutions::
+getObliqueShockFlow( const KnownSolutionsEnum knownSolution,
+		     CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+		     const Index & I1, const Index &I2, const Index &I3  )
+{
+
+  assert( knownSolution==obliqueShockFlow );
+
+  MappedGrid & mg = cg[grid];
+  mg.update(MappedGrid::THEcenter);
+  const realArray & center = mg.center();
+
+  const int rc=ipar[0];
+  const int uc=ipar[1];
+  const int vc=ipar[2];
+  const int wc=ipar[3];
+  const int tc=ipar[4];
+  const int pc=ipar[5];  // fill in if >=0 
+  const int sc=ipar[6];  // fill in if >=0 
+  
+  real  r1 = rpar[0];
+  real v11 = rpar[1];
+  real v21 = rpar[2];
+  real v31 = rpar[3];
+  real  T1 = rpar[4];
+  real  p1 = rpar[5];
+
+  real  r2 = rpar[6];
+  real v12 = rpar[7];
+  real v22 = rpar[8];
+  real v32 = rpar[9];
+  real  T2 = rpar[10];
+  real  p2 = rpar[11];
+
+  real an1 = rpar[12];  // normal to the shock 
+  real an2 = rpar[13];
+  real an3 = rpar[14];
+  real x0  = rpar[15];  // point on the shock 
+  real y0  = rpar[16];
+  real z0  = rpar[17];
+  real shockSpeed = rpar[18];
+  real t   = rpar[19];
+
+  int i1,i2,i3;
+  real x,y,z; 
+  const int numberOfDimensions=mg.numberOfDimensions();
+      
+  // we could just use the smoothed profile for the initial conditions
+  bool useSmoothProfile=false; // true; // use a smoothed profile
+  
+  if( !useSmoothProfile )
+  {
+    // -- profile is a jump --
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      x= center(i1,i2,i3,0);
+      y= center(i1,i2,i3,1);
+
+      real xi = an1*(x-x0)+an2*(y-y0) - shockSpeed*t;
+      if( numberOfDimensions==3 )
+      {
+	z=center(i1,i2,i3,2);
+	xi+= an3*(z-z0);
+      }
+      
+      if( xi > 0 )
+      {
+	u(i1,i2,i3,rc)=r1;
+	u(i1,i2,i3,uc)=v11;
+	u(i1,i2,i3,vc)=v21;
+	if( numberOfDimensions==3 ) u(i1,i2,i3,wc)=v31;
+	u(i1,i2,i3,tc)=T1;
+	if( pc>0 ) u(i1,i2,i3,pc)=p1;
+      }
+      else
+      {
+	u(i1,i2,i3,rc)=r2;
+	u(i1,i2,i3,uc)=v12;
+	u(i1,i2,i3,vc)=v22;
+	if( numberOfDimensions==3 ) u(i1,i2,i3,wc)=v32;
+	u(i1,i2,i3,tc)=T2;
+	if( pc>0 ) u(i1,i2,i3,pc)=p2;
+      }
+      
+    } // end FOR_3D
+  }
+  else
+  {
+    // -- smooth profile --
+
+    real beta=30.; // exponent for tanh
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      x= center(i1,i2,i3,0);
+      y= center(i1,i2,i3,1);
+      real xi = an1*(x-x0)+an2*(y-y0) - shockSpeed*t;
+      if( numberOfDimensions==3 )
+      {
+	z=center(i1,i2,i3,2);
+	xi+= an3*(z-z0);
+      }
+
+      real alpha = .5*(1.+tanh(beta*xi));  // alpha transitions smoothly between 0 and 1 
+      
+      u(i1,i2,i3,rc)=(1.-alpha)*r2 +alpha*r1;
+      u(i1,i2,i3,uc)=(1.-alpha)*v12+alpha*v11;
+      u(i1,i2,i3,vc)=(1.-alpha)*v22+alpha*v21;
+      if( numberOfDimensions==3 ) u(i1,i2,i3,wc)=(1.-alpha)*v32+alpha*v31;
+      u(i1,i2,i3,tc)=(1.-alpha)*T2+alpha*T1;
+      if( pc>0 ) u(i1,i2,i3,pc)=(1.-alpha)*p2+alpha*p1;
+      
+    } // end FOR_3D
+
+  }
+  
+  
+  
+  return 0;
+
+}
+
+
+// ===========================================================================================
+/// \brief Return the solid-mechanics solution to a deforming diffuser solid container
+// ==========================================================================================
+int FlowSolutions::
+getDeformingDiffuser( const KnownSolutionsEnum knownSolution,
+		     CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+		     const Index & I1, const Index &I2, const Index &I3  )
+{
+
+  assert( knownSolution==deformingDiffuser );
+
+  MappedGrid & mg = cg[grid];
+  mg.update(MappedGrid::THEcenter);
+  const realArray & center = mg.center();
+
+
+  // -- Read in the exact solution from a file
+  //   nx, ny
+  //   i1, i2, x, y, u1, u2, s11, s12, s22
+
+  // Create a grid function for exact
+
+
+  // Interpolate points onto u 
+
+
+
+  OV_ABORT("finish me");
+
+
+
+
+
+  const int rc=ipar[0];
+  const int uc=ipar[1];
+  const int vc=ipar[2];
+  const int wc=ipar[3];
+  const int tc=ipar[4];
+  const int pc=ipar[5];  // fill in if >=0 
+  const int sc=ipar[6];  // fill in if >=0 
+  
+  real  r1 = rpar[0];
+  real v11 = rpar[1];
+  real v21 = rpar[2];
+  real v31 = rpar[3];
+  real  T1 = rpar[4];
+  real  p1 = rpar[5];
+
+  real  r2 = rpar[6];
+  real v12 = rpar[7];
+  real v22 = rpar[8];
+  real v32 = rpar[9];
+  real  T2 = rpar[10];
+  real  p2 = rpar[11];
+
+  real an1 = rpar[12];  // normal to the shock 
+  real an2 = rpar[13];
+  real an3 = rpar[14];
+  real x0  = rpar[15];  // point on the shock 
+  real y0  = rpar[16];
+  real z0  = rpar[17];
+  real shockSpeed = rpar[18];
+  real t   = rpar[19];
+
+  int i1,i2,i3;
+  real x,y,z; 
+  const int numberOfDimensions=mg.numberOfDimensions();
+      
+  FOR_3D(i1,i2,i3,I1,I2,I3)
+  {
+    x= center(i1,i2,i3,0);
+    y= center(i1,i2,i3,1);
+
+    real xi = an1*(x-x0)+an2*(y-y0) - shockSpeed*t;
+    if( numberOfDimensions==3 )
+    {
+      z=center(i1,i2,i3,2);
+      xi+= an3*(z-z0);
+    }
+      
+    if( xi > 0 )
+    {
+      u(i1,i2,i3,rc)=r1;
+      u(i1,i2,i3,uc)=v11;
+      u(i1,i2,i3,vc)=v21;
+      if( numberOfDimensions==3 ) u(i1,i2,i3,wc)=v31;
+      u(i1,i2,i3,tc)=T1;
+      if( pc>0 ) u(i1,i2,i3,pc)=p1;
+    }
+    else
+    {
+      u(i1,i2,i3,rc)=r2;
+      u(i1,i2,i3,uc)=v12;
+      u(i1,i2,i3,vc)=v22;
+      if( numberOfDimensions==3 ) u(i1,i2,i3,wc)=v32;
+      u(i1,i2,i3,tc)=T2;
+      if( pc>0 ) u(i1,i2,i3,pc)=p2;
+    }
+      
+  } // end FOR_3D
+
+  
+  
+  return 0;
+
+}
+
+
+int FlowSolutions::
+getShockElasticPistonFlow( const KnownSolutionsEnum knownSolution,
+			   CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+			   const Index & I1, const Index &I2, const Index &I3  )
+// =======================================================================================
+// /Description: Define the exact solution for a shock hitting an elastic piston 
+// 
+// 
+// =======================================================================================
+{
+  int debug = 0;
+  problem=knownSolution;
+  assert( knownSolution==shockElasticPiston );
+
+  MappedGrid & mg = cg[grid];
+  mg.update(MappedGrid::THEcenter);
+
+  int m=0;
+  const int domain = ipar[m]; m++;  // 1=solid, 2=fluid
+  const int rc=ipar[m]; m++;
+  const int uc=ipar[m]; m++;
+  const int vc=ipar[m]; m++;
+  const int tc=ipar[m]; m++;
+
+  const int v1c=ipar[m]; m++; 
+  const int v2c=ipar[m];  m++; 
+
+  const int s11c=ipar[m]; m++; 
+  const int s12c=ipar[m]; m++;  
+  const int s21c=ipar[m]; m++;  
+  const int s22c=ipar[m]; m++;  
+
+  const int u1c=ipar[m]; m++; 
+  const int u2c=ipar[m]; m++;  
+  
+  assert( s11c>=0 );
+
+  m=0;
+  const real t       =rpar[m]; m++;
+
+  const real gamma   =rpar[m]; m++;
+  const real Rg      =rpar[m]; m++;
+
+  const real rho0    =rpar[m]; m++;
+  const real v0      =rpar[m]; m++;
+  const real p0      =rpar[m]; m++;
+
+  const real rho1    =rpar[m]; m++;
+  const real v1      =rpar[m]; m++;
+  const real p1      =rpar[m]; m++;
+
+
+  const real xShock  =rpar[m]; m++;
+  const real shockSpeed =rpar[m]; m++;  // incident shock speed
+
+  const real pOffset =rpar[m]; m++;
+
+  const real rs0     =rpar[m]; m++;  // rhoSolid 
+  const real vs0     =rpar[m]; m++; 
+  const real sigmas0 =rpar[m]; m++; 
+  const real as0     =rpar[m]; m++;   // cp 
+
+  const real rfsr    =rpar[m]; m++;    // state from fluid-solid-Riemann (FSR) problem 
+  const real vfsr    =rpar[m]; m++; 
+  const real pfsr    =rpar[m]; m++; 
+  const real vsfsr   =rpar[m]; m++; 
+  const real sigmasfsr =rpar[m];  m++;
+  const real Mfsr    =rpar[m];  m++;  
+  const real Sfsr    =rpar[m];  m++;  // reflected shock speed
+  const real lambda  =rpar[m];  m++;
+  const real mu      =rpar[m];  m++;
+
+  if( t<=0. )
+  {
+    printF(" ****** getShockElasticPistonFlow: domain=%i, t=%9.3e, gamma=%8.2e rho0=%8.2e p0=%8.2e \n"
+           "  xShock=%8.2e Sfsr=%8.2e, shockSpeed=%8.2e, as0=%8.2e, vsfsr=%8.2e\n",
+	   domain,t,gamma,rho0,p0,xShock,Sfsr,shockSpeed,as0,vsfsr);
+  }
+  
+
+  const realArray & center = mg.center();
+
+  const real gam = gamma;
+  const real ts = -xShock/shockSpeed; // the time the shock hits the interface
+  const real tp = t-ts; 
+
+  int i1,i2,i3;
+  real x;
+
+  if( tp<0. )
+  {
+    // --- shock has not hit the interface yet: ---
+
+    if( domain==1 )
+    {
+      // solid
+      u(I1,I2,I3,v1c )=0.;
+      u(I1,I2,I3,v2c )=0.;
+      u(I1,I2,I3,s11c)=sigmas0; //  -pOffset;
+      u(I1,I2,I3,s12c)=0.;
+      u(I1,I2,I3,s21c)=0.;
+      u(I1,I2,I3,s22c)=0.;
+      u(I1,I2,I3,u1c )=0.;
+      u(I1,I2,I3,u2c )=0.;
+    }
+    else
+    {
+      // fluid
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	x= center(i1,i2,i3,0);
+
+	if( x < xShock+shockSpeed*t )
+	{
+          u(i1,i2,i3,rc)=rho0;
+	  u(i1,i2,i3,uc)=v0;
+	  u(i1,i2,i3,vc)=0.;
+          u(i1,i2,i3,tc)=p0/(Rg*rho0);
+	}
+	else
+	{
+          u(i1,i2,i3,rc)=rho1;
+	  u(i1,i2,i3,uc)=v1;
+	  u(i1,i2,i3,vc)=0.;
+          u(i1,i2,i3,tc)=p1/(Rg*rho1);
+	}
+      }
+    }
+  }
+  else // tp>=0 
+  {
+    // --- shock has hit the interface ---
+
+    if( domain==1 )
+    {
+      //solid: 
+      const real cs22=lambda/(lambda+2.*mu);
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	x = center(i1,i2,i3,0);  // reference state
+	if( x < -as0*tp )
+	{
+	  //  solid state to the left of th p-wave
+	  u(i1,i2,i3,v1c) = vs0;
+	  u(i1,i2,i3,v2c) = 0.;
+
+	  u(i1,i2,i3,s11c) = sigmas0; // -pOffset;
+	  u(i1,i2,i3,s12c)=0.;
+	  u(i1,i2,i3,s21c)=0.;
+	  u(i1,i2,i3,s22c)=0.;
+
+	  u(i1,i2,i3,u1c) = 0.;
+	  u(i1,i2,i3,u2c) = 0.;
+	}
+	else
+	{
+	  // solid state between the p-wave and interface
+	  u(i1,i2,i3,v1c) = vsfsr;
+	  u(i1,i2,i3,v2c) = 0.;
+
+	  u(i1,i2,i3,s11c) = sigmasfsr; // -pOffset;
+	  u(i1,i2,i3,s12c) =0.;
+	  u(i1,i2,i3,s21c) =0.;
+           // s22 = lambda/(lambda+2*mu)*s11 from s11=(lambda+2*mu)*ux, s22=lambda*ux
+	  u(i1,i2,i3,s22c) = cs22*sigmasfsr ;  
+
+	  u(i1,i2,i3,u1c) = sigmasfsr/(rs0*as0*as0)*( x+as0*tp ) ;
+	  u(i1,i2,i3,u2c) = 0.;
+
+	}
+      }
+    }
+    else 
+    {
+      // fluid
+      if( Mfsr>=1 )
+      {
+	// shock in the fluid:
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  x = center(i1,i2,i3,0);
+	  if( x < Sfsr*tp )
+	  {
+	    // the state between the interface and the reflected shock:
+	    u(i1,i2,i3,rc) = rfsr;
+	    u(i1,i2,i3,uc) = vfsr;
+            u(i1,i2,i3,vc) = 0.;
+	    u(i1,i2,i3,tc) = pfsr/(Rg*rfsr);
+	  }
+	  else
+	  {
+	    // the state to the right of the reflected shock: 
+	    u(i1,i2,i3,rc)=rho1;
+	    u(i1,i2,i3,uc)=v1;
+	    u(i1,i2,i3,vc)=0.;
+	    u(i1,i2,i3,tc)=p1/(Rg*rho1);
+	  }
+	}
+      }
+      else 
+      {
+        // expansion fan in the fluid
+	const real a1 = sqrt( gamma*p1/rho1 );
+        const real afsr = sqrt( gamma*pfsr/rfsr );
+        FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  x = center(i1,i2,i3,0);
+	  if( x < (vfsr+afsr)*tp )
+	  {
+	    // the state between the interface and the start of the fan
+	    u(i1,i2,i3,rc) = rfsr;
+	    u(i1,i2,i3,uc) = vfsr;
+            u(i1,i2,i3,vc) = 0.;
+	    u(i1,i2,i3,tc) = pfsr/(Rg*rfsr);
+	  }
+	  else if( x < (v1+a1)*tp )
+	  {
+	    // state in the fan: v is linear
+
+	    real vFan = vfsr + (x/tp-(vfsr+afsr))/(v1+a1-(vfsr+afsr))*( v1-vfsr ) ;
+	    real aFan = a1 + .5*(gam-1.)*( vFan-v1);                // From C- char
+	    real rFan = rho1*pow( (aFan/a1) , (2./(gam-1.)) );        // from isentropic relations
+	    real pFan = p1*pow(   (aFan/a1) , (2.*gam/(gam-1.)) );    // from isentropic relations
+
+//               vFan = vfsr + (xt(i)/tp-(vfsr+afsr))/(v2+a2-(vfsr+afsr))*( v2-vfsr ) ;
+//               aFan = a2 + .5*(gam-1.)*( vFan-v2);       % From C- char
+//               rFan = r2*(aFan/a2)^(2./(gam-1.));        % from isentropic relations
+//               pFan = p2*(aFan/a2)^(2.*gam/(gam-1.));    % from isentropic relations
+
+	    u(i1,i2,i3,rc) = rFan;
+	    u(i1,i2,i3,uc) = vFan;
+	    u(i1,i2,i3,tc) = pFan/(Rg*rFan);
+	  }
+	  else
+	  {
+	    // the state to the right of the reflected shock: 
+	    u(i1,i2,i3,rc)=rho1;
+	    u(i1,i2,i3,uc)=v1;
+	    u(i1,i2,i3,vc)=0.;
+	    u(i1,i2,i3,tc)=p1/(Rg*rho1);
+	  }
+	}
+      }
+    }
+  }
+  
+  
+  return 0;
+  
+}
+
+#define rotatingDiskInFluid EXTERN_C_NAME(rotatingdiskinfluid)
+
+extern "C"
+{
+// rotating elastic (SVK) disk in a fluid
+void rotatingDiskInFluid( const int & nSolid, real & uSolid, 
+                          const int & nFluid, real & uFluid,
+			  const real & tfinal, const real & param, const int & nrwk, real & rwk );
+}
+
+
+int FlowSolutions::
+getRotatingElasticDiskInFluid( const KnownSolutionsEnum knownSolution,
+			       CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+				 const Index & I1, const Index &I2, const Index &I3 )
+// =======================================================================================
+/// \brief: Define the exact solution for a rotating elastic (SVK) disk in a 
+/// compressible fluid.
+//
+// Solution is returned as follows:
+//   If domain==1   (domain=ipar[0])
+//    solid variables: R, ur, utheta, urDot, uthetaDot, Pbar11, Pbar12, Pbar21, Pbar22
+//         R(i) = radial coordinates (reference domain)
+//
+//   If domain==2 
+//     fluid variables: r,rho,vr,p 
+//         r(i) = radial coordinates (deformed coordinates)
+// 
+// =======================================================================================
+{
+  int debug = 0;
+
+  problem=knownSolution;
+  assert( knownSolution==rotatingElasticDiskInFluid );
+
+  MappedGrid & mg = cg[grid];
+  mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex);
+
+  // -- extract parameters that define the exact solution --
+  int mi=0;
+  const int domain  =ipar[mi]; mi++;  // 1=solid, 2=fluid
+  const int rc      =ipar[mi]; mi++;
+  const int uc      =ipar[mi]; mi++;
+  const int vc      =ipar[mi]; mi++;
+  const int tc      =ipar[mi]; mi++;
+
+  const int u1c=ipar[mi]; mi++; 
+  const int u2c=ipar[mi]; mi++;  
+  const int v1c=ipar[mi]; mi++; 
+  const int v2c=ipar[mi]; mi++; 
+  const int s11c=ipar[mi]; mi++; 
+  const int s12c=ipar[mi]; mi++;  
+  const int s21c=ipar[mi]; mi++;  
+  const int s22c=ipar[mi]; mi++;  
+
+  int mr=0;
+  const real tfinal =rpar[mr]; mr++;
+  const real r0     =rpar[mr]; mr++;
+  const real r1     =rpar[mr]; mr++;
+  const real omega0 =rpar[mr]; mr++;
+  const real lambdas=rpar[mr]; mr++;
+  const real mus    =rpar[mr]; mr++;
+  const real r2     =rpar[mr]; mr++;
+  const real rho0   =rpar[mr]; mr++;
+  const real pOffset=rpar[mr]; mr++;
+  const real gamma  =rpar[mr]; mr++;
+  const real Rg     =rpar[mr]; mr++;
+  const real gridRatio=rpar[mr]; mr++;
+
+  if( tfinal<=0. )
+  {
+    printF(" ******FlowSolutions::getRotatingElasticDiskInFluid:INFO: domain=%i, tfinal=%9.3e, omega0=%g [r0,r1,r2]=[%g,%g,%g] gridRatio=%g\n"
+           "  lambdas=%g, mu=%g, gamma=%8.2e rho0=%8.2e pOffset=%8.2e, Rg=%g \n",
+	   domain,tfinal,omega0,r0,r1,r2,gridRatio, lambdas,mus, gamma,rho0,pOffset,Rg);
+    printF(" rc=%i uc=%i vc=%i tc=%i, u1c=%i, u2c=%i, v1c=%i, v2c=%i, s11c=%i, s12c=%i, s21c=%i, s22c=%i\n",
+	   rc,uc,vc,tc,u1c,u2c,v1c,v2c,s11c,s12c,s21c,s22c);
+  }
+
+  if( !dbase.has_key("tDiskInFluid") )
+  { 
+    // First time through create some variables to store the solution in:
+
+    dbase.put<real>("tDiskInFluid",-1.);  // solution has been computed already at this time.
+    dbase.put<RealArray>("uSolid");
+    dbase.put<RealArray>("uFluid");
+
+    // --- choose the number of grid points for the 1D solution ----
+    dbase.put<int>("nSolid",-1);
+    dbase.put<int>("nFluid",-1);
+    int & nSolid = dbase.get<int>("nSolid");
+    int & nFluid = dbase.get<int>("nFluid");
+
+    // -- first determine the spacing in 2D
+    MappedGrid & mg = cg[0]; // find spacing for this grid 
+    real dsMin[3], dsAve[3], dsMax[3];
+    GridStatistics::getGridSpacing(mg,dsMin,dsAve,dsMax);
+    real dx2d=min(dsAve[0],dsAve[1]);
+
+    // make 1D grid finer --> errors should be gridRatio^2 smaller
+    real dx1d=dx2d/gridRatio;
+    nSolid = (r1-r0)/dx1d+1.5;
+    nFluid = (r2-r1)/dx1d+1.5;
+
+    printF("FlowSolutions::getRotatingElasticDiskInFluid: 2D grid spacing=%9.3e, choosing 1D spacing=%9.3e\n",
+            " (nSolid=%i, nFluid=%i)\n",dx2d,dx1d,nSolid,nFluid);
+  }
+
+  real & tDiskInFluid = dbase.get<real>("tDiskInFluid");
+  const int & nSolid = dbase.get<int>("nSolid");
+  const int & nFluid = dbase.get<int>("nFluid");
+  
+  RealArray & uSolid = dbase.get<RealArray>("uSolid");
+  RealArray & uFluid = dbase.get<RealArray>("uFluid");
+
+  real param[] = {r0,r1,omega0,lambdas,mus,r2,rho0,pOffset,gamma};  // 
+
+  int nrwk=20*max(nSolid,nFluid);
+  RealArray rwk(nrwk);
+
+  if( uSolid.getLength(0)!=nSolid )
+  {
+    uSolid.redim(nSolid,9);
+    uFluid.redim(nFluid,4);
+  }
+  
+  if( tDiskInFluid!=tfinal )
+  {
+    if( tfinal<.01 )
+      printF("Compute rotatingDiskInFluid at time t=%9.3e (domain=%i, 1=solid, 2=fluid)\n",tfinal,domain);
+    
+    rotatingDiskInFluid( nSolid, uSolid(0), nFluid, uFluid(0), tfinal, param[0], nrwk, rwk(0) );
+    tDiskInFluid=tfinal;  // solution is now defined at this time
+    if( debug & 4 )
+    {
+      ::display(uSolid,"Solid solution from rotatingDiskInFluid","%5.1f");
+      ::display(uFluid,"Fluid solution from rotatingDiskInFluid","%5.1f");
+    }
+  }
+  else
+  {
+    if( debug & 2 )
+      printF("Skip computation of rotatingDiskInFluid at time t=%9.3e (domain=%i, 1=solid, 2=fluid)\n",tfinal,domain);
+  }
+  
+
+  //  --- Interpolate the one-dimensional solution onto the two-dimensional grid function --
+
+  const realArray & center = mg.center();
+  const intArray & mask = mg.mask();
+
+  const real twopi=twoPi;
+  const real x0=0., y0=0.;  // center of the disk 
+  int i1,i2,i3;
+
+  const int orderOfInterpolation=3;  // linear=2, quadratic=3
+  const int maxExtrapWidth=41;  // 2D ghost points may be outside the fine grid by at most this many fine grid pts (sanity check)
+
+  if( domain==1 )
+  {
+    // -------------
+    // --- solid ---
+    // -------------
+
+    assert( u1c>=0 && u2c>=0 && v1c>=0 && v2c>=0 && s11c>=0 && s12c>=0 && s21c>=0 && s22c>=0 );
+
+    const real dr = (r1-r0)/(nSolid-1.);  
+    
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      if( mask(i1,i2,i3)!=0 )
+      {
+	// Reference coordinates:
+	real x= center(i1,i2,i3,0);
+	real y= center(i1,i2,i3,1);
+
+	real r = sqrt( SQR(x-x0) + SQR(y-y0) );
+
+        int i;
+	real alpha, c1,c2,c3=0.;
+
+	if( orderOfInterpolation==2 )
+	{
+	  // -- linear interpolation --
+	  // closest point in uSolid less than or equal to r:
+	  i = int( (r-r0)/dr );  
+	  assert( i>-maxExtrapWidth && i < nSolid+maxExtrapWidth ); // sanity check
+	  i = max(0,min(i,nSolid-2));
+      
+	  alpha = (r-r0)/dr - i;
+	  c1=1.-alpha; c2=alpha; c3=0.;
+	}
+	else if( orderOfInterpolation==3 )
+	{
+          // -- quadratic interpolation --
+	  // closest point minus 1
+          i = int( (r-r0)/dr+.5 ) -1;  
+          assert( i>-maxExtrapWidth && i < nSolid+maxExtrapWidth ); // sanity check
+          i = max(0,min(i,nSolid-3));
+
+          alpha = (r-r0)/dr - i;
+          c1=.5*(2.-alpha)*(1.-alpha);  c2=alpha*(2.-alpha); c3=.5*alpha*(alpha-1.); // Lagrange weights
+	  
+	}
+	else
+	{
+	  OV_ABORT("unexpected orderOfInterpolation");
+	}
+	
+	
+	// Solid variables:
+	//   R         : radial coordinate (reference state)
+	//   ur        : radial displacement
+	//   uTheta    : angular displacement
+	//   urDot     : radial velocity 
+	//   uThetaDot : angular velocity
+	//   Pbar11    : Pbar components
+	//   Pbar12
+	//   Pbar21
+	//   Pbar22
+	// Component numbers in the solid solution uSolid: 
+	const int Rc=0, urc=1, utc=2, urdc=3, utdc=4, p11c=5, p12c=6, p21c=7, p22c=8;
+
+	// radial and angular displacements
+        real w,p;
+	if( orderOfInterpolation==2 )
+	{
+	  w=c1*uSolid(i,urc)+c2*uSolid(i+1,urc);
+	  p=c1*uSolid(i,utc)+c2*uSolid(i+1,utc);
+	}
+	else if( orderOfInterpolation==3 )
+	{
+	  w=c1*uSolid(i,urc)+c2*uSolid(i+1,urc)+c3*uSolid(i+2,urc);
+	  p=c1*uSolid(i,utc)+c2*uSolid(i+1,utc)+c3*uSolid(i+2,utc);
+	}
+	else
+	{
+          OV_ABORT("unexpected orderOfInterpolation");
+	}
+	
+
+	// angular position
+	real theta=0.;
+	if (r>0.)
+	{
+	  if (y<0.)
+	  {
+	    theta=twopi-acos((x-x0)/r);
+	  }
+	  else
+	  {
+	    theta=acos((x-x0)/r);
+	  }
+	}
+
+//      printF("rotatingDisk: i=%i, uSolid(i,0)=%9.3e, uSolid(i+1,0)=%9.3e, uSolid(i,1)=%9.3e, uSolid(i+1,1)=%9.3e\n",i,uSolid(i,0),uSolid(i+1,0),uSolid(i,1),uSolid(i+1,1));
+//      printF("rotatingDisk: i=%i, alpha=%9.3e, c1=%9.3e, c2=%9.3e, w=%9.3e, p=%9.3e, theta=%9.3e\n",i,alpha,c1,c2,w,p,theta);
+
+	const real cost=cos(theta);
+	const real sint=sin(theta);
+
+	// displacements
+	real thbar=theta+p;
+	const real costb=cos(thbar);
+	const real sintb=sin(thbar);
+
+      
+	u(i1,i2,i3,u1c)=(r+w)*costb-x;
+	u(i1,i2,i3,u2c)=(r+w)*sintb-y;
+
+	// velocities
+        real wt,pt;
+	if( orderOfInterpolation==2 )
+	{
+	  wt=c1*uSolid(i,urdc)+c2*uSolid(i+1,urdc);
+	  pt=c1*uSolid(i,utdc)+c2*uSolid(i+1,utdc);
+	}
+	else if( orderOfInterpolation==3 )
+	{
+	  wt=c1*uSolid(i,urdc)+c2*uSolid(i+1,urdc)+c3*uSolid(i+2,urdc);
+	  pt=c1*uSolid(i,utdc)+c2*uSolid(i+1,utdc)+c3*uSolid(i+2,utdc);
+	}
+	else
+	{
+          OV_ABORT("unexpected orderOfInterpolation");
+	}
+	
+	u(i1,i2,i3,v1c)=wt*costb-pt*(r+w)*sintb;
+	u(i1,i2,i3,v2c)=wt*sintb+pt*(r+w)*costb;
+
+	// stresses
+        real pbar11,pbar12,pbar21,pbar22;
+        if( orderOfInterpolation==2 )
+	{
+	  pbar11=c1*uSolid(i,p11c)+c2*uSolid(i+1,p11c);
+	  pbar12=c1*uSolid(i,p12c)+c2*uSolid(i+1,p12c);
+	  pbar21=c1*uSolid(i,p21c)+c2*uSolid(i+1,p21c);
+	  pbar22=c1*uSolid(i,p22c)+c2*uSolid(i+1,p22c);
+	}
+	else if( orderOfInterpolation==3 )
+	{
+	  pbar11=c1*uSolid(i,p11c)+c2*uSolid(i+1,p11c)+c3*uSolid(i+2,p11c);
+	  pbar12=c1*uSolid(i,p12c)+c2*uSolid(i+1,p12c)+c3*uSolid(i+2,p12c);
+	  pbar21=c1*uSolid(i,p21c)+c2*uSolid(i+1,p21c)+c3*uSolid(i+2,p21c);
+	  pbar22=c1*uSolid(i,p22c)+c2*uSolid(i+1,p22c)+c3*uSolid(i+2,p22c);
+	}
+	else
+	{
+          OV_ABORT("unexpected orderOfInterpolation");
+	}	
+
+	real pt11=pbar11*costb-pbar12*sintb;
+	real pt12=pbar11*sintb+pbar12*costb;
+	real pt21=pbar21*costb-pbar22*sintb;
+	real pt22=pbar21*sintb+pbar22*costb;
+
+	u(i1,i2,i3,s11c)=cost*pt11-sint*pt21;
+	u(i1,i2,i3,s12c)=cost*pt12-sint*pt22;
+	u(i1,i2,i3,s21c)=sint*pt11+cost*pt21;
+	u(i1,i2,i3,s22c)=sint*pt12+cost*pt22;
+
+      }
+      else
+      {
+	// unused point
+	u(i1,i2,i3,u1c)=0.;
+	u(i1,i2,i3,u2c)=0.;
+	u(i1,i2,i3,v1c)=0.;
+	u(i1,i2,i3,v2c)=0.;
+	u(i1,i2,i3,s11c)=0.;
+	u(i1,i2,i3,s12c)=0.;
+	u(i1,i2,i3,s21c)=0.;
+	u(i1,i2,i3,s22c)=0.;
+      }
+      
+    }
+    
+  }
+  else
+  {
+    // -------------
+    // --- fluid ---
+    // -------------
+
+    assert( rc>=0 && uc>=0 && vc>=0 && tc>=0 );
+
+    // Fluid variables: 
+    //
+    // r : radial position on deformed grid
+    // rho : density
+    // vr : radial velocity
+    // p  : pressure
+    const int radc=0, rfc=1, vrc=2, pfc=3;  // component numbers in uFluid
+
+    // fluid grid is assumed to vary in a linear fashion
+    const real ra = uFluid(0,radc), rb=uFluid(nFluid-1,radc);
+    const real dr = (rb-ra)/(nFluid-1.);
+    // printF("FlowSolutions: REDIF: fluid domain: [ra,rb]=[%g,%g], dr=%8.2e\n",ra,rb,dr);
+    
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      if( mask(i1,i2,i3)!=0 )
+      {
+	const real x= center(i1,i2,i3,0);
+	const real y= center(i1,i2,i3,1);
+	const real r = sqrt( SQR(x-x0) + SQR(y-y0) );
+	const real cost = x/r;
+	const real sint = y/r;
+
+        int i;
+	real alpha, c1,c2,c3=0.;
+
+	if( orderOfInterpolation==2 )
+	{
+	  // -- linear interpolation --
+	  // closest point in uSolid less than or equal to r:
+	  i = int( (r-ra)/dr );  
+	  assert( i>-maxExtrapWidth && i < nFluid+maxExtrapWidth ); // sanity check
+	  i = max(0,min(i,nFluid-2));
+      
+	  alpha = (r-ra)/dr - i;
+	  c1=1.-alpha; c2=alpha; c3=0.;
+	}
+	else if( orderOfInterpolation==3 )
+	{
+          // -- quadratic interpolation --
+	  // closest point minus 1
+          i = int( (r-ra)/dr+.5 ) -1;  
+          assert( i>-maxExtrapWidth && i < nFluid+maxExtrapWidth ); // sanity check
+          i = max(0,min(i,nFluid-3));
+
+          alpha = (r-ra)/dr - i;
+          c1=.5*(2.-alpha)*(1.-alpha);  c2=alpha*(2.-alpha); c3=.5*alpha*(alpha-1.); // Lagrange weights
+	  
+	}
+	else
+	{
+	  OV_ABORT("unexpected orderOfInterpolation");
+	}
+
+	// // closest point in uFluid less than or equal to r:
+	// int i = int( (r-ra)/dr );  
+	// if( debug & 8 )
+	//   printF(" fluid: (i1,i2)=(%i,%i) x=%g, y=%g, r=%g --> i=%i\n",i1,i2,x,y,r,i);
+      
+	// assert( i>-10 && i <nFluid+10 ); // sanity check 
+      
+	// i = max(0,min(i,nFluid-2));
+      
+	// // linear interpolation
+	// real alpha = (r-ra)/dr - i;
+	// real c1=1.-alpha, c2=alpha;
+
+	const real vr1 = uFluid(i,vrc), vr2=uFluid(i+1,vrc);
+
+	if( orderOfInterpolation==2 )
+	{
+	  u(i1,i2,i3,rc)=c1*uFluid(i,rfc)+c2*uFluid(i+1,rfc);
+	  u(i1,i2,i3,uc)=(c1*vr1 + c2*vr2)*cost;
+	  u(i1,i2,i3,vc)=(c1*vr1 + c2*vr2)*sint;
+	  // pOffset ??
+	  u(i1,i2,i3,tc)=( c1*uFluid(i,pfc)+c2*uFluid(i+1,pfc) )/(Rg*u(i1,i2,i3,rc));   // T = p/(rho*Rg)
+	}
+	else if( orderOfInterpolation==3 )
+	{
+          // -- quadratic interpolation --
+          const real vr3=uFluid(i+2,vrc);
+
+	  u(i1,i2,i3,rc)=c1*uFluid(i,rfc)+c2*uFluid(i+1,rfc)+c3*uFluid(i+2,rfc);
+	  u(i1,i2,i3,uc)=(c1*vr1 + c2*vr2 + c3*vr3)*cost;
+	  u(i1,i2,i3,vc)=(c1*vr1 + c2*vr2 + c3*vr3)*sint;
+	  // pOffset ??
+	  u(i1,i2,i3,tc)=( c1*uFluid(i,pfc)+c2*uFluid(i+1,pfc)+c3*uFluid(i+2,pfc) )/(Rg*u(i1,i2,i3,rc));   // T = p/(rho*Rg)
+	  
+	}
+	else
+	{
+	  OV_ABORT("unexpected orderOfInterpolation");
+	}	
+      }
+      else
+      { // unused point: 
+	u(i1,i2,i3,rc)=1.;
+	u(i1,i2,i3,uc)=0.;
+	u(i1,i2,i3,vc)=0.;
+	u(i1,i2,i3,tc)=1.;
+      }
+      
+    }
+  }
+ 
+
+  
+  
+  return 0;
+  
+}
+
+
+

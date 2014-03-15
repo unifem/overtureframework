@@ -1,0 +1,500 @@
+%-----------------------------------------------------------------------
+%   GenericDataBase and ADataBase documentation
+%
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\dataBase}{\homeHenshaw/Overture/hdf}
+
+\begin{document}
+
+
+% -----definitions-----
+\def\R      {{\bf R}}
+\def\Dv     {{\bf D}}
+\def\bv     {{\bf b}}
+\def\fv     {{\bf f}}
+\def\Fv     {{\bf F}}
+\def\gv     {{\bf g}}
+\def\iv     {{\bf i}}
+\def\jv     {{\bf j}}
+\def\kv     {{\bf k}}
+\def\nv     {{\bf n}}
+\def\rv     {{\bf r}}
+\def\tv     {{\bf t}}
+\def\uv     {{\bf u}}
+\def\Uv     {{\bf U}}
+\def\vv     {{\bf v}}
+\def\Vv     {{\bf V}}
+\def\xv     {{\bf x}}
+\def\yv     {{\bf y}}
+\def\zv     {{\bf z}}
+\def\lt     {{<}}
+\def\grad    {\nabla}
+\def\comma  {~~~,~~}
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\def\ff {\tt} % font for fortran variables
+\def\neq {{\ff neq }}
+\def\nze {{\ff nze }}
+\def\nsave {{\ff nsave}}
+\def\nfill {{\ff nfill }}
+\def\nqs {${\ff nze}^*$}
+\def\flags {{\ff flags }}
+\def\icf {{\ff icf}}
+\def\idebug {{\ff idebug}}
+\def\zratio {{\ff zratio }}
+\def\fratio {{\ff fratio }}
+\def\icg {{\ff icg }}
+\def\ipc {{\ff ipc }}
+\def\ipcf {{\ff ipcf }}
+\def\rpcf {{\ff rpcf }}
+\def\icf {{\ff icf }}
+\def\nd {{\ff nd }}
+\def\nv {{\ff nv }}
+\def\ng {{\ff ng }}
+\def\bc {{\ff bc}}
+
+%---------- Title Page for a Research Report----------------------------
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+GenericDataBase: A C++ Interface to Scientific Data-Bases for Use With A++\\
+\vspace{ .25\baselineskip}
+HDF\_DataBase: An Implementation of GenericDataBase Using HDF and HDF5 \\
+\vspace{ .5\baselineskip}
+User Guide, Version 1.00 \\
+}
+
+\vspace{2\baselineskip}
+William D. Henshaw                   \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+\vspace{2\baselineskip}
+\today
+\vspace{\baselineskip}
+UCRL-MA-132236
+% LA-UR-96-4447
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+We describe a simple C++ interface that can be used to save and retrieve objects
+from a hierarchical data-base. Objects are stored in a tree of ``directories'',
+much like a unix file system.
+Each directory has a name and a class-name to identify it. Any directory can
+contain other ``sub-directories'' as well as any of the following types:
+\begin{itemize}
+  \item int, float, double, String or ``c'' arrays of these types.
+  \item A++ and P++ arrays: intSerialArray, floatSerialArray, doubleSerialArray, and
+   intArray, floatArray, doubleArray
+\end{itemize}
+The class {\ff GenericDataBase} is a virtual base class (i.e. it declares functions
+but does not implement them) that can be used as a generic interface to a data-base.
+Applications should be written primarly with a {\ff GenericDataBase} so that they
+do not depend on any particular data-base format.
+The class {\ff HDF\_DataBase} is derived from {\ff GenericDataBase} and implements
+the data-base functions using the Hierarchical Data Format (HDF) from the National Centre
+for Super-Computing Applications (NCSA). Versions for both HDF4 and HDF5 have been implemented.
+A user interested in using HDF formatted files
+can create an object of the type {\ff HDF\_DataBase} (in a main program for example) and pass
+this object to functions that are written in terms of the {\ff GenericDataBase}.
+
+\end{flushleft}
+
+\vfill\eject
+\tableofcontents
+
+%---------- End of title Page for a Research Report
+
+% \newcommand{\MGF}{Mapped\-Grid\-Function}
+% \newcommand{\GCF}{Grid\-Collection\-Function}
+% \newcommand{\CGF}{Composite\-Grid\-Function}
+
+% \newcommand{\MGO}{Mapped\-Grid\-Operators}
+% \newcommand{\GCO}{Grid\-Collection\-Operators}
+% \newcommand{\CGO}{Composite\-Grid\-Operators}
+
+% \newcommand{\primer}{/home/henshaw/Overture/primer}
+% \newcommand{\gf}{/home/henshaw/Overture/gf}
+% \newcommand{\figures}{../docFigures}
+% \newcommand{\mapping}{/home/henshaw/Overture/mapping}
+% \newcommand{\ogshow}{/home/henshaw/Overture/ogshow}
+% \newcommand{\oges}{/home/henshaw/Overture/oges}
+
+
+\section{Introduction}
+
+
+We describe a simple C++ interface that can be used to save and retrieve objects
+from a hierarchical data-base. Objects are stored in a tree of ``directories'',
+much like a unix file system.
+Each directory has a name and a class-name to identify it. Any directory can
+contain other ``sub-directories'' as well as any of the following types:
+\begin{itemize}
+  \item int, float, double, String
+  \item A++ arrays: intArray, floatArray, doubleArray
+  \item arrays of Strings.
+\end{itemize}
+Using these functions the user can create a hierarchical tree of information in which
+user-derived class's can be conveniently stored. 
+
+The class {\ff GenericDataBase} is a virtual base class (i.e. it declares functions
+but does not implement them) that can be used as a generic interface to a data-base.
+Applications should be written primarly with a {\ff GenericDataBase} so that they
+do not depend on any particular data-base format.
+
+The class {\ff HDF\_DataBase} is derived from {\ff GenericDataBase} and implements
+the data-base functions using the Hierarchical Data Format (HDF) from the National Centre
+for Super-Computing Applications (NCSA). A user interested in creating HDF files
+can create an object of the type {\ff HDF\_DataBase} (in a main program for example) and pass
+this object to functions that are written in terms of the {\ff GenericDataBase}.
+
+There is also a {\bf streaming mode} where the objects are not saved in a tree structure 
+but rather they are collected together and saved in a a few big buffers. In streaming mode 
+the creation of directories and the names of objects are ignored.  In streaming mode the
+data must be read back in exactly the same order it was written. This mode is faster and
+requires less storage than the normal mode. The draw back is that the objects saved,
+cannot be located individually by name. Streaming mode can be selectively turned on and off 
+(although it should only be turned on and off once with any given directory).
+
+
+We recommend that each class that needs to be saved to a data-base
+implement a {\ff get} and {\ff put} member function using the {\ff
+GenericDataBase} class, as shown in example 2.  The class should be
+saved in a directory with a given name. The class-name for the
+directory should be the name of the class that is being stored.
+
+
+For more information about HDF, consult the HDF home page at {\tt http://hdf.ncsa.uiuc.edu}.
+
+\vfill\eject
+\section{Examples}
+
+\subsection{Example 1: Using the HDF\_DataBase}
+
+In this first example we show how to use the {\ff HDF\_DataBase} class to
+save and retrieve data from a file.
+
+
+This example will create a data-base file that schematically 
+has the form shown in figure~\ref{figd}.
+%-----------------------------------------------------------------
+%                +------+
+%                : root :
+%                +==+===+
+%                   :
+%              +----+------+-------------+
+%              :           :             |
+%           +--+---+    +--+---+      +--+--+
+%           :  k   :    : a    :      | bin |
+%           +======+    +======+      +==+==+
+%                                        |
+%                                    +---+---+
+%                                    | input |
+%                                    +=======+
+
+% \def\dskitem#1{\begin{picture}(40,25)     % root in a box
+%   \put(-20,8){\framebox(40,17){#1}}
+%   \put(-20,0){\framebox(40, 5){}  }    % data block
+%  \end{picture}}
+
+\def\dskitem#1#2{\begin{picture}(50,25)     % root in a box
+  \put(-25,8){\framebox(50,17){#1}}
+  \put(-25,-7){\framebox(50,15){#2}  }    % data block
+ \end{picture}}
+
+% define a DSK item box without data block beneath
+%  bottom centre of box is at (0,8)
+\def\dskitemw#1{\begin{picture}(40,25)     % root in a box
+  \put(-20,8){\framebox(40,17){#1}}
+ \end{picture}}
+\begin{figure}\begin{center}
+ \begin{picture}(180,150)
+
+  \put( 80,102){\dskitemw{(root)}}
+  \put( 80, 45){\dskitem{num}{int}}
+  \put( 20, 45){\dskitem{x}{floatArray}}
+  \put(140, 45){\dskitem{stuff}{directory}}
+  \put(140,  0){\dskitem{label1}{String}}
+  \put( 20, 70){\line(0,1){20}}
+  \put( 80, 70){\line(0,1){40}}
+  \put(140, 70){\line(0,1){20}}
+  \put(140, 25){\line(0,1){13}}
+  \put( 20, 90){\line(1,0){120}}
+
+ \end{picture}
+
+ \caption{Data-base structure for example 1. Each node has a name and a class-name}
+ \label{figd}
+\end{center} \end{figure}
+%---------------------------------------------------------------
+
+(file {\ff \dataBase/dbex1.C})
+{\footnotesize
+\listinginput[1]{1}{\dataBase/dbex1.C}
+}
+
+\vfill\eject
+\subsection{Example 2: Writing get and put functions for a class using GenericDataBase}
+
+In this example we show how to write {\ff get} and {\ff put} functions for a class
+using the {\ff GenericDataBase}.  The {\ff put } function creates a directory of
+a given name into which it stores the data needed by the class. The class name for
+the directory is set equal to the name of the class, ``myClass''. 
+The {\ff get} function looks for a directory of a given name and class and retrieves
+the data needed by the class.
+
+
+% The {\ff virtualConstructor} member function
+% of the data-base class will create 
+
+%-----------------------------------------------------------------
+%                +------+
+%                : root :
+%                +==+===+
+%                   :
+%                +--+---+
+%                :  m1  :
+%                +======+
+%                   |
+%             --------------
+%             |            |
+%         +------+     +------+
+%         |  a1  |     |  a2  |
+%         +------+     +------+
+%
+\begin{figure}\begin{center}
+ \begin{picture}(120,160)
+
+  \put( 50,113){\dskitemw{(root)}}
+  \put( 50, 75){\dskitem{m1}{myClass}}
+  \put( 20,  0){\dskitem{a1}{float}}
+  \put( 80,  0){\dskitem{a2}{float}}
+
+  \put( 50,100){\line(0,1){20}}
+
+  \put( 50, 45){\line(0,1){22}}
+  \put( 20, 45){\line(1,0){60}} % ---
+
+  \put( 20, 25){\line(0,1){20}}
+  \put( 80, 25){\line(0,1){20}}
+
+ \end{picture}
+
+ \caption{Data-base structure for example 2.}
+ \label{figb}
+\end{center} \end{figure}
+%---------------------------------------------------------------
+
+(file {\ff \dataBase/dbex2.C})
+{\footnotesize
+\listinginput[1]{1}{\dataBase/dbex2.C}
+}
+
+
+\vfill\eject
+\subsection{Example 2a: Writing get and put functions for a class using streaming}
+
+In this example we show how to use the {\bf streaming mode} to put and get an object.
+In this mode only the data for each {\tt put} is saved into a long buffer. The name
+of the object is ignored and no new directories are created. 
+Saving data with this mode saves space and is faster. However, the data must be read
+back in exactly the way it was written. A {\sl magic number} separates each object
+in the buffer so that if you make a mistake when reading in streaming mode it will
+most likely be detected.
+
+The previous example is changed so that
+the data base mode is set to {\tt streamOutputMode} for the {\tt put} function
+and  {\tt streamInputMode} for the {\tt get} function. Only these two new lines
+need be added to the class.
+
+In this example {\tt streamInputMode} is turned on in the sub directory created
+in the {\tt MyClass} {\tt put} function. When the sub-directory is initially created it inherits
+the mode from its parent which in this case is the default mode of {\tt normalMode}.
+With the mode set to {\tt streamInputMode} the data saved from subsequent put's 
+will be streamed into 3 buffers (float, int and double).
+When this sub-directory is deleted the buffers will be saved (since the buffers were
+originally opened in this sub-directory). 
+Setting the mode back to {\tt normalMode} would also cause the buffers to be saved. 
+
+
+There is also a {\tt noStreamMode}
+which can be set. In {\tt noStreamMode} any attempt to set the mode to {\tt streamInputMode} or
+{\tt streamOutputMode} will be ignored. 
+This can be used
+to force all objects to save themselves in the standard fashion. Thus the main program
+could call {\tt db.setMode(GenericDataBase::noStreamMode);} in which case the class
+would not be saved in a streaming mode.
+To override {\tt noStreamMode} (not normally suggested) 
+one must first set the mode back to {\tt normalMode}.
+
+
+(file {\ff \dataBase/dbex2a.C})
+{\footnotesize
+\listinginput[1]{1}{\dataBase/dbex2a.C}
+}
+
+\section{GenericDataBase}
+
+ This is a class to support access to and from a data-base.
+This class knows how to get and put the types
+\begin{itemize}
+  \item int, float, double, String
+  \item A++ arrays, intArray, floatArray, doubleArray
+  \item "c" arrays of Strings.
+\end{itemize}
+
+\input GenericDataBaseInclude.tex
+
+\vfill\eject
+\section{HDF\_DataBase}
+
+HDF\_DataBase is derived from GenericDataBase and implements the
+functions using the HDF library from NCSA. HDF stands for
+Hierarchical Data Format and NCSA is the National Centre for
+Super-Computing Applications. There is both an implementation using HDF4 and
+an implemenation using HDF5.
+
+\subsection{HDF5 Implementation notes}
+
+HDF5 provides parallel IO capabilities. This allows different processors to 
+all write to the same file. It allows a distributed array to be created
+in the file. There are two flavours of parallel IO supported by HDF5.
+These are called {\em collective} and {\em independent}. The collective IO
+should in principle scale.
+
+  There are problems with both the collective and independent modes of 
+parallel IO. The collective IO doesn't seem to work in general. The independent
+mode seems to work more often but also seems flakely when using more than
+a couple of processors. The independent mode is also very slow. See section~\ref{sec:hdf5Results}
+for some results.
+
+To over-come the limitations of HDF5 parallel IO, a new {\em multipleFileIO}
+option has been added. In this option each processor writes it's own separate
+HDF5 file that contains the local values from distributed data (i.e. P++
+arrays). These extra files are transparent to the user. When reading in the HDF5
+file (using a possibly different number of processors or different distribution
+for any given P++ array), each processor determines which files it needs to read
+to recover the distributed data. This can be accomplished with no communication
+since the array distribution is saved in the HDF5 file. Thus no communication is
+required to write or read the HDF5 files.
+
+
+\subsection{HDF4 Implementation notes}
+
+\begin{itemize}
+ \item   In HDF directories (nodes) in the hierarchy are called vgroups.
+  When a vgroup is opened (attached) it is assigned a unique {\ff vgroup\_id}. 
+  Every time we open a vgroup we need to close it. Thus in order to {\ff umount}
+  a file we must be able to find all open vgroup's and close them. 
+  Therefore we keep a list of objects that contain the {\ff vgroup\_id}
+  of all the open vgroups. These objects are called {\ff HDF\_DataBaseRCData}
+  since they hold Reference-Counted Data.
+  A vgroup may be accessed mutliple times, but we only open it once. Each time
+  it is accessed we increase the reference count for that vgroup.
+ When the reference
+ count goes to zero we can close the vgroup. The list that holds the 
+ {\ff HDF\_DataBaseRCData} objects
+  is called {\ff dbList}.
+ Every element in the
+ list will refer to a different vgroup so that the {\ff vgroup\_id}'s will
+ be different for all elements in the list.
+
+ \item A++ arrays are stored as SDS (Scientfic-Data-Sets). Since the SDS
+   interface accesses files in a different way from the vgroup interface
+  we need to keep two file identifiers, {\ff file\_id} and {\ff sds\_id}.
+  The SDS interface does not have the notion of lower bounds to arrays
+  other than zero so we stored the lower bounds for each of the A++
+  array dimensions as an SDS ``attribute'' called ``arrayBase''.
+
+ \item {\ff float}'s, {\ff double}'s, {\ff int}'s, {\ff String}'s 
+  and arrays of {\ff Strings}'s are stored as HDF vdata objects. 
+  The array of {\ff String's} is concatenated and stored as a
+  single list of characters (with the different array elements separated
+ by the null character).
+\end{itemize}
+
+
+\subsection{LIMITATIONS}
+
+\begin{itemize}
+ \item There is no way to delete items from an HDF file, this is a limitation of HDF.
+ \item Currently I {\bf do not support the over-writing of data}. If you put something
+     twice with the same name it will just create a new item with that same name. The get
+     routine will never find it since it finds the first one it encounters. 
+\end{itemize}
+
+\clearpage
+\subsection{Parallel IO Results}\label{sec:hdf5Results}
+
+Table~\ref{tab:hdf5Results} shows some results from using HDF5 parallel IO. 
+Note that the times reported can vary considerably from run to run. 
+The times reported are values that might be expected on average. 
+
+The results in table~\ref{tab:hdf5Results} show that the {\em multi-file IO} option
+is currently the best choice for writing files. 
+
+
+\begin{table}[hbt]
+\begin{center}% \small%\footnotesize
+\begin{tabular}{|c|c|c|c|} \hline 
+ processors & collective IO & independent IO & multi-file IO     \\ \hline
+-N1 -n2     &   3.1(s)      &      75(s)     & 1.3           \\
+-N1 -n4     &   2.3(s)      &      96(s)     & .8            \\ 
+-N1 -n8     &   2.5(s)      &     265(s)     & .49             \\ 
+-N2 -n8     &    ??         &      ??        & .52           \\
+-N2 -n12    &   fails       &     1540(s)    & .57            \\
+-N2 -n16    &   fails       &      ??        & .44            \\ 
+\hline
+\end{tabular}		
+\end{center}		
+\caption{Parallel IO results using HDF5. Wall-clock time, in seconds, to save a ``show'' file.
+Results from {\em detTube.cmd}. The number of grid points is about $1.3$ million. Results from
+the Zeus Linux cluster at LLNL.}
+ \label{tab:hdf5Results} 
+\end{table}
+
+
+
+
+\end{document}
+
+
+\bibliography{henshaw}
+\bibliographystyle{siam}
+
+
+\end{document}

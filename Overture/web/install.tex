@@ -1,0 +1,1086 @@
+%-----------------------------------------------------------------------
+%   Overture installation instructions
+%-----------------------------------------------------------------------
+\documentclass{article}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=1.in,rmargin=1.in,tmargin=1.in,bmargin=1.in]{geometry}
+
+
+% \usepackage{html}
+
+\newcommand{\documentation}{../documentation}
+\newcommand{\software}{../software}
+
+\begin{document}
+
+\begin{center}
+{\Large Overture Installation Instructions} \\
+~~ \\
+LLNL Overlapping Grid Project \\
+\htmladdnormallink{Centre for Applied Scientific Computing}{http://www.llnl.gov/casc} \\
+\htmladdnormallink{Lawrence Livermore National Laboratory}{http://www.llnl.gov}  \\
+\htmladdnormallink{Overture}{http://www.llnl.gov/CASC/Overture} 
+\end{center}
+
+
+\begin{abstract}
+% \large Overture is not easy to install.  Overture is a research code. Overture is a
+% large code. If you don't know C++ or you don't know how to use a debugger then
+% Overture is not for you.
+% 
+% If you are still reading at this point then this document contains the
+% wonderfully easy step-by-step instructions on how to install Overture and the
+% supporting packages. Let us know where there are mistakes in these instructions.
+This document contains step-by-step instructions on how to install Overture and the
+supporting packages. 
+\end{abstract}
+
+\tableofcontents
+
+\clearpage
+\input installedMachines
+
+\section{Installing Open Motif}
+
+Note: Mac OS/X users should skip ahead to Section~\ref{sec:installMac}.
+\vskip\baselineskip
+
+You may need to install Motif if you do not already have a version. 
+Most Linux systems now come with Motif in {\tt /usr/lib/libXm.so} (or {\tt /usr/lib64/libXm.so} for 64 bit
+machines) in which case you can skip this step.
+
+The Motif library
+is called {\tt libXm.a} or {\tt libXm.so}. In older versions of Linux the default version of
+Motif is probably LessTif. I have had trouble with LessTif 
+so you should install open Motif which you can get for free from 
+\htmladdnormallink{open Motif}{http://www.openmotif.com/}. I have tried version 2.2.1.
+There is an rpm available with precompiled binaries.
+Here are the steps I took to install open Motif from the source files:
+\begin{enumerate}
+    \item {\tt gzip -d openMotif-2.2.1.tar.gz}
+    \item {\tt tar -xf openMotif-2.2.1.tar}
+    \item {\tt cd openMotif-2.2.1}
+    \item {\tt setenv CC gcc} ~:~set CC to your favourite C compiler, usually gcc on linux
+%  configure --prefix=`pwd`
+    \item {\tt ./configure -\,-prefix="this directory"} ~:~ where "this directory" is the current directory
+       (or the place you want to install Motif).
+    \item {\tt make}
+    \item {\tt make install}
+\end{enumerate}   
+
+
+\clearpage
+\section{Installing Mesa OpenGL}
+
+You may need to install \htmladdnormallink{Mesa}{http://www.mesa3d.org/} (OpenGL),
+Most Linux systems should already have OpenGL. However, if you would like off-screen rendering
+support (for making high-resolution hard copies) then you should install Mesa. I normally run with
+Mesa rather than the native OpenGL.
+
+% I currently use version Mesa-6.2.1.
+% I currently use version Mesa-6.4.2.
+I currently use version Mesa-7.2.
+
+Assuming you have downloaded {\tt MesaDemos-XXX.tar.gz} and {\tt  MesaLib-XXX.tar.gz}
+in directory MESA (e.g. /home/henshaw/Mesa)
+ \begin{enumerate}
+   \item {\tt tar xzf MesaLib-XXX.tar}
+   \item {\tt tar xzf MesaDemos-XXX.tar.gz} (optional)
+   \item {\tt tar xzf MesaGLUT-XXX.tar.gz} (optional)
+   \item {\tt cd Mesa-XXX}
+   \item {\tt make} (to see a list of available machines)
+   \item {\tt make <machine-name>} where {\tt <machine-name>} is the appropriate choice, such as
+        linux-x86 (linux-x86-64). I usually use dynamic libraries.
+   \item Goto to one of the example directories (such as demos) and run a test. If you have built
+       dynamic libraries then you will first need to set your LD\_LIBRARY\_PATH as indicated by
+       the message from Mesa when it finished building.
+   \item In previous versions of Overture one needed to build the libGLw library in the
+        {\tt cd widgets-sgi} directory. This is no longer necessary since these widgets
+      will be built with Overture.
+   \item Mesa has off-screen rendering support (for creating hard-copy's) found in libOSMesa.a which should
+        automatically be built with Mesa. Overture also needs access to some of the source files in Mesa
+        (such as Mesa-XXX/src/mesa/main/context.h)  so your OpenGL environmental variable should point to the
+        Mesa source (as opposed to /usr/lib) if you want this off screen rendering. Overture can also
+        do off-screen rendering using X pixmaps, but this may not work if you have a graphics card that
+        does direct rendering.
+%   \item You will need to make some motif widgets that come with Mesa since Overture
+%       uses the libGLw library. To make this library:
+%      \begin{enumerate}
+%        \item {\tt cd widgets-sgi} (i.e. goto the Mesa-3.0/widgets-sgi directory. 
+%        \item Edit Makefile.X11 (I hope you use emacs) and change the line in the Makefile:
+%         \begin{verbatim}
+%     INCDIRS = -I../include -I/usr/include/Motif1.2
+%         \end{verbatim}
+%         to point to the location of your motif, for example:
+%         \begin{verbatim}
+%     INCDIRS = -I../include -I$(MOTIF)/include
+%         \end{verbatim}
+%         where \$MOTIF is the environmental variable as defined for Overture (see below).
+%         You should also change the lines
+%         \begin{verbatim}
+%     #SOURCES = GLwDrawA.c GLwMDrawA.c
+%     SOURCES = GLwDrawA.c
+%         \end{verbatim}
+%         to
+%         \begin{verbatim}
+%     SOURCES = GLwDrawA.c GLwMDrawA.c
+%     #SOURCES = GLwDrawA.c
+%         \end{verbatim}
+%         so the GLwMDrawA.c file is also compiled.
+%        \item Type "make $<$machine-name$>$" (use the same name as above)
+%            This will make the libGLw.a library and copy it to the Mesa/lib directory.
+%        \item {\tt cp *.h ../include/GL} (Copy the .h files from Mesa/widgets-sgi to the Gl include directory)
+%      \end{enumerate}
+   \item You may increase the maximum possible resolution that an image can be saved as.
+         Mesa is compiled with certain default maximum values
+      and the highest resolution depends on the parameters
+      that were used to compile Mesa. To increase the Mesa resolution you should
+      change the definitions for {\tt MAX\_WIDTH} and {\tt MAX\_HEIGHT} 
+      in {\tt Mesa/src/config.h}. For example you may set these to be $2048$ or more.
+      Mesa must be re-compiled after these changes are made.
+%   \item {\tt setenv OpenGL MESA/Mesa-3.0} (e.g. {\tt setenv /home/henshaw/Mesa-3.0}
+%             and add to your .cshrc)
+ \end{enumerate}
+
+\clearpage
+\section{Installing HDF}
+
+HDF ({\tt http://www.hdfgroup.org/HDF5/}) is a data base package that you may need to install. It may
+already be installed on your system.
+
+% Beginning with version 22, Overture can use either HDF4 or HDF5 (decided at the time one configures Overture). 
+% HDF5 will be needed if you want to
+% run parallel jobs with a grid that is too large to fit in the memory of one processor.
+
+Here are the installation steps for HDF5. I currently use hdf5-1.8.8 (1.6.5 should also work). You will need to build a 
+serial version and/or parallel version depending on which version of Overture you are building.
+\begin{enumerate}
+  \item {\tt tar xzf hdf5-1.8.8.tar.gz}
+  \item optionally rename the directory hdf5xxx
+  \item {\tt cd hdf5xxx}
+  \item {\tt unsetenv CC}
+  \item {\tt unsetenv cc}
+  \item For the serial version : {\tt setenv CC gcc} (if you want to use gcc).
+  \item For the parallel version : {\tt setenv CC \$MPI\_ROOT/bin/mpicc}.  % setenv CC $MPI_ROOT/bin/mpicc
+  \item {\tt ./configure --prefix=`pwd`}
+  \item Sometimes in parallel I instead need to use {\tt setenv CC gcc} and then {\tt ./configure --prefix=`pwd` --enable-parallel}.
+  \item {\tt make}
+  \item {\tt make install}
+\end{enumerate}
+
+
+% Be sure to install a release of HDF4 (and not HDF5), I currently use HDF4.2r0.
+% Be sure to install HDF4.1r1 or HDF4.1r3. Here is 
+% \htmladdnormallink{HDF4.1r3.tar.gz}{\software/HDF4.1r3.tar.gz}. 
+% HDF5 has completely new function names and cannot be used.
+
+%- Here are the install notes if you choose to use HDF4 (I currently use HDF4.2r1).
+%- \begin{enumerate}
+%-    \item {\tt gzip -d HDFxxx.tar.gz}
+%-    \item {\tt tar -xf HDFxxx.tar}
+%-    \item {\tt cd HDFxxx}
+%-    \item {\tt unsetenv CC} 
+%-    \item {\tt setenv LDFLAGS -lm} -- this may be necessary to avoid an error about not finding ``sqrt''
+%-        when you run the ``make'' step below.
+%-    \item The INSTALL file tells you where to get libjpeg.a and libz.a if you don't already have them, the next
+%-          step will complain if it can't find these libraries.
+%- %    configure --prefix=`pwd`
+%-    \item {\tt configure -\,-prefix="this directory"} where "this directory" is the current directory
+%-        (or the place you want to install hdf).
+%-    \item {\tt make}
+%-    \item {\tt make install}
+%-    \item At this stage you should see some libraries built in the HDF lib directory.
+%- %   \item {\tt cd hdf/test}, {\tt testhdf} ~:~Goto a test directory and run a test
+%- \end{enumerate}
+
+\clearpage
+\section{Installing A++}
+
+A++/P++ is the serial/parallel array class.
+To get A++/P++ you will need to go to the \htmladdnormallink{Overture home page}{http://www.llnl.gov/CASC/Overture}
+and register under software.
+
+The A++ installation process requires the gnu autoconf package and gmake, available from the
+gnu site \htmladdnormallink{http://www.gnu.org/order/ftp.html}{http://www.gnu.org/order/ftp.html}.
+
+If you have downloaded AP-nnn.tar.gz into directory XXX then the basic steps 
+are as follows (if something goes wrong, consult the documentation that comes with A++). 
+\begin{enumerate}
+    \item {\tt cd XXX}
+    \item {\tt gzip -d AP-nnn.tar.gz}
+    \item {\tt tar -xf AP-nnn.tar}
+    \item {\tt cd A++P++nnn}
+%            configure --enable-SHARED_LIBS --prefix=`pwd`
+    \item {\tt configure -\,-enable-SHARED\_LIBS -\,-prefix=`pwd`}
+%     \item {\tt ./configure --with-CC=insure --with-CXX=insure --enable-CXX_OPT= --enable-C_OPT= --enable-MDI_C_OPT= --enable-SHARED\_LIBS --prefix=`pwd`}
+% ./configure --enable-SHARED\_LIBS --prefix=`pwd` --with-CC=xlc --with-CXX=xlC
+% ./configure --enable-SHARED\_LIBS --prefix=`pwd` --with-CC=xlc --with-CXX=xlC --enable-CXX_OPT=-g --enable-C_OPT=-g
+    \item {\tt make} 
+    \item {\tt make install}
+    \item Optionally type {\tt make check} to run the A++ test codes.
+\end{enumerate}
+The libraries will be installed in {\tt XXX/A++P++nnn/A++/install/lib}.
+You should use {\tt setenv APlusPlus XXX/A++P++nnn/A++/install } when building Overture.
+
+\clearpage
+\section{Installing P++}
+
+P++ is the parallel version of the array class. NOTE: many but not all features of Overture run in parallel. 
+{\bf Note} that we build the version of P++ without the newer PADRE implementation. 
+
+To build the P++ library (only required if you are going to build the parallel version of Overture)
+\begin{enumerate}
+    \item {\tt cd A++P++nnn} (\qquad goto the A++P++ directory)
+    \item  Set the enviroment variable {\tt MPI\_ROOT} to point to the mpi directory such as
+            {\tt setenv MPI\_ROOT /usr/local/mpi})
+    \item Here is the configure statement I used to compile with gcc version 4.3.2 on my dual processor work-station
+\begin{verbatim}
+configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS \
+          --with-mpi-include=-I${MPI_ROOT}/include \
+          --with-mpi-lib-dirs="-Wl,-rpath,/usr/apps/gcc/4.3.2/lib -L${MPI_ROOT}/lib" \
+          --with-mpi-libs="-lpmpich -lmpich -lc -lm"  \
+          --with-mpirun=${MPI_ROOT}/bin/mpirun --without-PADRE
+\end{verbatim}
+    \item Here is a configure statement I used on a Linux cluster that did not use mpirun to start parallel
+      jobs. P++ expects to find mpirun by default but you can overide this and provide another script. In the example below 
+      I use {\tt mpirun-wdh}, a script that I wrote which calls the appropriate routine to launch parallel jobs. 
+\begin{verbatim}
+configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS \
+          --with-mpi-include=-I${MPI_ROOT}/include \
+          --with-mpi-lib-dirs="-Wl,-rpath,${MPI_ROOT}/lib -L${MPI_ROOT}/lib" \
+           --with-mpi-libs="-lmpi++ -lmpi" \
+           --with-mpirun=${HOME}/bin/mpirun-wdh --without-PADRE
+\end{verbatim}
+    \item Here is the configure statement I used when I couldn't run mpirun on a front end machine so I disabled
+the checks that parallel jobs can be executed: 
+\begin{verbatim}
+configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS \
+          --with-mpi-include=-I${MPI_ROOT}/include \
+          --with-mpi-lib-dirs="-L${MPI_ROOT}/lib" \
+          --with-mpi-libs="-lmpi"\
+          --disable-mpirun-check \
+          --without-PADRE
+\end{verbatim}
+Here is the configure statement Robert Read used to install P++ on his laptop running fedora and Open MPI
+\begin{verbatim}
+configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS \
+          --with-mpi-include=-I/usr/include/openmpi-x86_64 \
+          --with-mpi-lib-dirs="-Wl,-rpath,${MPI_ROOT}/lib -L${MPI_ROOT}/lib" \
+          --with-mpi-libs="-lmpi -lmpi_cxx -lc -lm" \
+          --with-mpirun=${MPI_ROOT}/bin/mpirun --without-PADRE
+\end{verbatim}
+
+%
+% **** note: change the version of gcc in the next line as appropriate ***
+% **** note 2: include the rpath flag for any .so libraries in the FORTARN_LIBS otherwise mpirun tests by configure may fail
+
+% NOTE: Don set the machine file using
+%       --with-mpi-machinefile=${MPI_ROOT}/share/machines.ch_mx.LINUX
+
+% *************** for making with gcc 3.4.3 and NO PADRE **************************
+% for making with gcc 3.4.3
+% configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,/usr/apps/gcc/3.4.3/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lpmpich -lmpich ${FORTRAN_LIBS}" --with-mpirun=${MPI_ROOT}/bin/mpirun --without-PADRE
+
+% *************** for making with gcc 3.4.3 -g and NO PADRE **************************
+% configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,/usr/apps/gcc/3.4.4/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lpmpich -lmpich ${FORTRAN_LIBS}" --with-mpirun=${MPI_ROOT}/bin/mpirun --enable-CXX_OPT=-g --enable-C_OPT=-g --without-PADRE
+
+% *********** for mcr: NO PADRE *************
+% configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,${MPI_ROOT}/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lmpi" --with-mpirun=${HOME}/bin/mpirun-wdh --without-PADRE
+%%
+
+% ============================== OLD =======================================
+
+
+% with gcc 3.4.4 (ifort64) (no FORTRAN_LIBS needed)
+%  configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,/usr/apps/gcc/3.4.3/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lpmpich -lmpich " --with-mpirun=${MPI_ROOT}/bin/mpirun --enable-CXX_WARNINGS=""
+
+% for making with gcc 3.4.4
+% configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,/usr/apps/gcc/3.4.4/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lpmpich -lmpich ${FORTRAN_LIBS}" --with-mpirun=${MPI_ROOT}/bin/mpirun
+
+% for making with gcc 3.4.3 -g 
+% configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,/usr/apps/gcc/3.4.4/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lpmpich -lmpich ${FORTRAN_LIBS}" --with-mpirun=${MPI_ROOT}/bin/mpirun --enable-CXX_OPT=-g --enable-C_OPT=-g
+
+
+
+
+
+%configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,/usr/apps/gcc/3.3.3/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lpmpich -lmpich ${FORTRAN_LIBS}" --with-mpirun=${MPI_ROOT}/bin/mpirun
+%
+% configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,${MPI_ROOT}/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lmpi" --with-mpirun=${MPI_ROOT}/bin/mpirun
+% 
+% for mcr:
+% configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS --with-mpi-include=-I${MPI_ROOT}/include --with-mpi-lib-dirs="-Wl,-rpath,${MPI_ROOT}/lib -L${MPI_ROOT}/lib" --with-mpi-libs="-lmpi" --with-mpirun=${HOME}/bin/mpirun-wdh
+% 
+% from the P++ directory
+% configure --enable-PXX --enable-SHARED_LIBS --prefix=`pwd` --with-mpich=${MPI_ROOT}
+%
+% edit the file P++/install/Makefile.user.defs
+%  MPIINCLUDE     		= -I/usr/local/mpi/include
+%  MPILIBDIRS     		= -L/usr/local/mpi/lib
+%  MPILIBS        		= -lmpich
+%
+%%    \item {\tt configure -\,-enable-PXX -enable-SHARED\_LIBS -\,-prefix=`pwd` -\,-with-mpich=\${MPI\_ROOT}}
+    \item {\tt make} 
+    \item {\tt make install}
+    \item Optionally type {\tt make check} to run the P++ test codes.
+\end{enumerate}
+The libraries will be installed in {\tt XXX/A++P++nnn/P++/install/lib}.
+You should use {\tt setenv PPlusPlus XXX/A++P++nnn/P++/install } and {\tt setenv APlusPlus XXX/A++P++nnn/P++/install } 
+when building the parallel version of Overture.
+
+{\bf Note:} To change the maximum number of parallel processes that can be used by P++, change the
+   file  A++P++nnn/P++/include/maxProcessors.h before building the P++ library.
+
+\vskip\baselineskip
+Here are more example builds of P++:
+\begin{itemize}
+  \item To build on a Linux cluster at LLNL I first ran {\tt mpic++} on a C++ file with the ``-v'' option
+    to see all the libraries that were being linked to:
+\begin{verbatim}
+   mpic++ -v -o conftest -I/usr/local/tools/mvapich2-gnu/include conftest.C
+\end{verbatim}
+     I then configured P++ using these libraries:
+\begin{verbatim}
+configure --enable-PXX --prefix=`pwd` --enable-SHARED_LIBS \
+   --with-mpi-include=-I${MPI_ROOT}/include \
+   --with-mpi-lib-dirs="-Wl,-rpath,${MPI_ROOT}/lib -L${MPI_ROOT}/lib" \
+   --with-mpi-libs="-lmpichcxx -lmpich -lpmi -lopa -lmpl -lpthread -lrdmacm \
+                    -libverbs -libumad -ldl -lrt -lnuma -lstdc++ -lm" \
+   --with-mpirun=${HOME}/bin/mpirun-wdh --without-PADRE
+\end{verbatim}
+\end{itemize}
+
+%- \clearpage
+%- \section{Using gfortran or installing f2c and fort77}
+%- 
+%- Many of the fortran files in Overture use a fortran compile option that converts single precision code
+%- to double precision. Most fortran compilers support this option with the -r8 flag. The gnu fortran
+%- compiler g77 does NOT support this option but the newer gnu fortran compiler gfortran does with the
+%- {\tt -fdefault-real-8} flag. gfortran is available starting with gcc 4.x.x.
+%- 
+%- If you do not have gfortran or some other commerical compiler and want to compile Overture 
+%- in double precision then you can use f2c and fort77 as described below.
+%- 
+%- % If you are running on a linux machine I suggest that you 
+%- 
+%- % Note: We recommend that you use a commercial fortran compiler on Linux
+%- 
+%-  When you use the gnu fortran compiler g77 and ask for double precision, Overture uses fort77 (a script
+%- that uses f2c) to compile fortran files (since the -r8 flag is not supported by g77). 
+%- f2c is a nice program that converts fortran to c.
+%- f2c and fort77 may be distributed will your version of linux. Type ``{\tt which f2c}'' to see if it
+%- is in your path.
+%- The f2c library can be obtained from the web, at \htmladdnormallink{netlib}{http://www.netlib.org}, for example.
+%- fort77 is a perl script that can be downloaded from the web if you do not
+%- already have it. I had trouble with fort77 version 1.15 but 1.14a seemed to work ok except
+%- for some warnings that I was able to remove by editing the fort77 file.
+%- 
+%- Here are versions that worked for me  \htmladdnormallink{f2c.tar.gz}{\software/f2c.tar.gz},
+%- \htmladdnormallink{fort77.tar.gz}{\software/fort77.tar.gz}. Here is how to install them
+%- \begin{enumerate}
+%-    \item {\tt gzip -d f2c.tar.gz}
+%-    \item {\tt tar -xf f2c.tar}
+%-    \item {\tt cd f2c}
+%-    \item edit the makefile and set the compiler and compile flags.
+%-    \item {\tt make} ~:~ this should build the {\tt f2c} executable used by fort77
+%-    \item {\tt gzip -d fort77.tar.gz}
+%-    \item {\tt tar -xf fort77.tar}
+%-    \item change your path variable or add some symbolic links so that {\tt f2c} and {\tt fort77}
+%-      can be found. If you type ``{\tt which f2c}'' from any directory it should locate {\tt f2c}.
+%- \end{enumerate}
+% My version of gcc already came with the library {\tt libg2c.a} 
+
+% \clearpage
+% \section{Installing STL}
+% 
+% All current compilers come with STL so there should be no need to install it.
+% 
+% However, for people who have an older compiler that doesn't support STL (such as Sun 4.2 compilers) you will
+%   need to install STL (if you don't have a version already). Most new compilers including gcc support STL,
+% which is part of the C++ standard.
+% When you configure Overture it will check
+%   to see if the compiler supports STL and complain if it doesn't.
+%   Here is a version that works for the Sun with CC version 4.2, 
+%   \htmladdnormallink{stl.tar.gz}{\software/stl.tar.gz} 
+% \begin{enumerate}
+%    \item {\tt gzip -d stl.tar.gz}
+%    \item {\tt tar -xf stl.tar} ~:~ this completes the installation since STL is all header files.
+% %   \item {\tt setenv STL -I$<$this directory$>$/STL/old\_hp -I$<$this directory$>$/STL/SC5} ~:~ tell Overture where to look for STL header files (add this to your .cshrc)
+% \end{enumerate}
+
+\clearpage
+\section{Installing PETSc (optional)}
+
+Overture can optionally use PETSc to solve sparse matrix problems. You will probably want 
+to get PETSc if you want to solve the 3D incompressible Navier-Stokes equations with cgins.
+
+The version of PETSc that works
+with Overture.v25 or v22 is PETSc 2.3.2\htmladdnormallink{petsc-lite-2.3.2-p6.tar.gz}{\software/petsc-lite-2.3.2-p6.tar.gz}.
+Here are the steps I took to install the (uni-processor version)
+on my Linux machine where I use the gcc and PGI fortran compilers:
+%   setenv PETSC_DIR `pwd`
+%   setenv PETSC_ARCH linux-gnu-opt
+%   setenv PETSC_LIB $PETSC_DIR/lib/$PETSC_ARCH
+%   ./config/configure.py --PETSC\_ARCH=linux-gnu-opt --with-debugging=0 --with-fortran=0 --with-matlab=0 --with-mpi=0 --with-shared=1 --with-dynamic=1 
+% if BLAS is needed: 
+%   ./config/configure.py --PETSC\_ARCH=linux-gnu-opt --with-debugging=0 --with-fortran=0 --with-matlab=0 --with-mpi=0 --with-shared=1 --with-dynamic=1 --download-c-blas-lapack=1
+\begin{enumerate}
+   \item {\tt tar xzf petsc-lite-2.3.2-p6.tar.gz}
+   \item {\tt mv petsc-2.3.2-p6 petsc-2.3.2}
+   \item {\tt cd petsc-2.3.2}
+   \item {\tt setenv PETSC\_DIR `pwd`}
+   \item {\tt setenv PETSC\_ARCH linux-gnu-opt}
+   \item {\tt setenv PETSC\_LIB \$PETSC\_DIR/lib/\$PETSC\_ARCH}
+   \item {\tt setenv CC gcc}
+   \item {\tt (for help type: ./config/configure.py --help)}
+   \item {\tt ./config/configure.py  --PETSC\_ARCH=linux-gnu-opt --with-debugging=0 --with-fortran=0 \\    
+                              --with-matlab=0 --with-mpi=0 --with-shared=1 --with-dynamic=1}
+   \item {\tt make}
+\end{enumerate}
+
+{\bf Notes for Mac:} Follow the above instructions but use:
+\begin{enumerate}
+   \item {\tt setenv PETSC_ARCH macx}
+   \item {\tt ./config/configure.py  --PETSC\_ARCH=linux-gnu-opt --with-debugging=0 --with-fortran=0 \\    
+                              --with-matlab=0 --with-mpi=0 --with-shared=0 --with-dynamic=0}
+\end{enumerate}
+
+% NOTES: MAC
+
+% setenv PETSC_DIR `pwd`
+% setenv PETSC_ARCH macx
+% setenv PETSC_LIB $PETSC_DIR/lib/$PETSC_ARCH
+
+
+
+%  ./config/configure.py  --PETSC\_ARCH=linux-gnu-opt --with-debugging=0 --with-fortran=0 --with-matlab=0 --with-mpi=0 --with-shared=1 --with-dynamic=1
+
+
+% \vskip2\baselineskip
+% {\bf Older version for Overture.v21:} 
+% 
+% The version of PETSc that works
+% with Overture.v21 is PETSc 2.2.1\htmladdnormallink{petsc-2.2.1.tar.gz}{\software/petsc-2.2.1.tar.gz}.
+% See also the \htmladdnormallink{PETSc home page}{http://www-fp.mcs.anl.gov/petsc/} where the most recent
+% version of PETSc can be found.
+% 
+% Here are the steps I took for petsc-2.2.1 (uni-processor version)
+% on my Linux machine where I use the gcc and PGI fortran compilers.
+% \begin{enumerate}
+%    \item {\tt gunzip -c petsc-2.2.1.tar.gz | tar xof -}
+%    \item {\tt cd petsc-2.2.1}
+%    \item {\tt setenv PETSC\_DIR `pwd`}
+%    \item {\tt ./config/configure.py --with-mpi=0 --with-matlab=0 --with-fc=pgf77}
+%    \item {\tt make BOPT=O}
+%    \item {\tt make BOPT=O test}
+% \end{enumerate}
+% 
+% making petsc-lite-2.3.2-p3.tar.gz on zeus, 070518
+% 
+% *** PARALLEL ****
+%     (zeus, 070518)
+% 
+%     module p (sets PETSC_DIR PETSC_ARCH)
+%     tar xzf petsc-lite-2.3.2-p3.tar.gz
+%     mv petsc-2.3.2-p3 petsc-2.3.2.gcc3.4.4x86_64.parallel
+%     cd petsc-2.3.2.gcc3.4.4x86_64.parallel
+%   
+%     setenv CC gcc
+%     (for help: ./config/configure.py --help)
+% 
+%     setenv PETSC_ARCH linux-gnu-opt  (done in module)
+% 
+%  here we have petsc build hypre: 
+%     ./config/configure.py  --with-cc=gcc --PETSC_ARCH=linux-gnu-opt --with-debugging=0 --with-fortran=0 --with-matlab=0 --with-mpi-dir=${MPI_ROOT} --LIBS="-Wl,-rpath,${MPI_ROOT}/lib/shared -L${MPI_ROOT}/lib/shared -lmpich" --with-hypre=1 --download-hypre=ifneeded
+% 
+%   make all test
+
+
+% 
+% \vskip2\baselineskip
+% {\bf Older version for Overture.v20:} 
+% Here are the steps I took for petsc-2.1.3 on my Linux machine where I use the gcc and PGI fortran compilers.
+% \begin{enumerate}
+%    \item {\tt gunzip -c petsc.tar.gz | tar xof -}
+%    \item {\tt cd petsc-2.1.3}
+%    \item Change the following lines in the file bmake/linux\_gcc\_pgf90/packages (assuming you are using the PGI
+%      fortran compilers) (here I am using the single processor version of petsc)
+% \begin{verbatim}
+% #
+% # Location of MPI (Message Passing Interface) software
+% #
+% # wdh MPI_HOME       = /soft/apps/packages/mpich-gnucc-pgf-1.2.1
+% # wdh MPI_LIB        = -L${MPI_HOME}/lib -lmpich
+% # wdh MPI_INCLUDE    = -I${MPI_HOME}/include
+% # wdh MPIRUN         = mpirun -machinefile ${PETSC_DIR}/maint/hosts.local
+% #MPIRUN         = /home/bsmith/petsc/bin/mpirun.chiba -showtimesoff -shared
+% # wdh added:
+% MPI_LIB = ${PETSC_DIR}/lib/lib${BOPT}/${PETSC_ARCH}/libmpiuni.a
+% MPI_INCLUDE = -I${PETSC_DIR}/src/sys/src/mpiuni 
+% MPIRUN = ${PETSC_DIR}/src/sys/src/mpiuni/mpirun 
+% \end{verbatim}
+%    \item Set the PETSC enviromental variables (note I am using gcc and the PGI compiler pgf90)
+% \begin{verbatim}
+% setenv PETSC_DIR /home/henshaw/petsc/petsc-2.1.3
+% setenv PETSC_ARCH "linux_gcc_pgf90"
+% setenv PETSC_LIB $PETSC_DIR/lib/libO/$PETSC_ARCH
+% \end{verbatim}
+%    \item {\tt make BOPT=O all} ~~~(to build the PETSc libraries).
+% \end{enumerate}
+
+\clearpage
+\section{Installing Overture}\label{sec:installingOverture}
+
+Here are instructions to install the Overture library. See also the README file that comes with Overture.
+To get Overture you will need to go to the \htmladdnormallink{Overture home page}{http://www.llnl.gov/CASC/Overture}
+and register under software.
+
+Overture requires perl for configuration and running tests. If you don't have perl you
+can get it for free from \htmladdnormallink{http://www.perl.com}{http://www.perl.com}
+
+
+Overture needs a collection of environment variables to be set. These variables tell Overture
+where to look for other libraries. You can edit the
+file {\tt\bf Overture/defenv} to define these variables and then type ``{\tt source defenv}'' to actually set the
+variables.
+You might want to add them to your {\tt .cshrc} so they get assigned when you open a window (shell).
+\begin{itemize}
+   \item {\tt setenv XLIBS xxxx} ~:~ Directory holding the {\tt include} and {\tt lib} directories
+       for the X window system. For example you might type ``{\tt setenv XLIBS /usr}''.
+        If you then type "{\tt ls \$XLIBS/lib}" you should see the X libraries
+          such as {\tt libX11.so} or {\tt libX11.a} 
+   \item {\tt setenv OpenGL xxxx} ~:~ If you type "{\tt ls \$OpenGL/lib}" you should see the OpenGL libraries
+          such as {\tt libGL.so} ({\tt libGL.a}), or {\tt libMesaGL.so} ({\tt libMesaGL.a}) if you use Mesa.
+   \item {\tt setenv MOTIF xxxx} ~:~ If you type "{\tt ls \$MOTIF/lib}" you should see the Motif library
+          {\tt libXm.so} or {\tt libXm.a} 
+   \item {\tt setenv HDF xxx} ~:~ If you type "{\tt ls \$HDF}" you should see the HDF directories including
+        {\tt include} and {\tt lib}. If the HDF variable contains the sub-string ``hdf5'' in it, then the
+         Overture configure script will know to use HDF5 (otherwise you will need to use the configure option useHDF5).
+   \item {\tt setenv APlusPlus xxxx } ~:~ if you type "{\tt ls \$APlusPlus}" you should see the A++
+       directories {\tt include} and {\tt lib}; if you type "{\tt ls \$APlusPlus/lib}" you should
+       see the A++ libraries and if you type "{\tt ls \$APlusPlus/include}" you should see the A++ include
+       files. Here is an example:
+       {\tt setenv APlusPlus /home\-/dilbert\-/A++P++\-/A++\-/install}.
+   \item {\tt setenv Overture xxxx } ~:~ location of the Overture directory that we are just going
+          to install. Here is an example : {\tt Overture /home/henshaw/Overture.v23.d}. 
+   \item {\tt setenv CG xxxx } ~: If you install the CG solvers this is the location of the CG source directory.
+          Here is an example : {\tt setenv CG /home/henshaw/cg.v23}. 
+   \item {\tt setenv CGBUILDPREFIX xxxx} ~: This is the location of the CG executable and object files. You 
+           can make this the same as {\tt CG} or choose a different directory location. This option is used
+           to compile multiple versions of CG (e.g. serial and parallel) from the same source tree. 
+              Here is an example : {\tt setenv CGBUILDPREFIX /home/henshaw/cg.v23.d}
+   \item {\tt setenv LAPACK xxx} : CG needs the LAPACK and BLAS libraries. This env variable is the
+           directory that holds the {\tt liblapack.a} and {\tt libblas.a} libraries. 
+           Example: {\tt setenv LAPACK /home/henshaw/lapack}
+%   \item {\tt setenv F2C\_INCLUDE xxx}  ~:~ if you use f2c and fort77 to get double precision, this is 
+%      the location of the f2c include files. If you type "{\tt ls \$F2C\_INCLUDE}" you should see
+%       the f2c files such as {\tt f2c.h}
+%   \item {\tt setenv STL xxx}  ~:~ for users with a C++ compiler that does not include the STL libraries
+%      (such as Sun CC version 4.2) this is a list of include paths to look for STL such as
+% \begin{verbatim}
+%       setenv STL "-I/home/henshaw/STL"
+% \end{verbatim}
+    \item Set the {\tt LD\_LIBRARY\_PATH} environment variable which is used by the loader when you run an Overture
+   program in order to find dynamic libraries (such as libX11.so or libOverture.so):
+{\footnotesize
+\begin{verbatim}
+setenv LD_LIBRARY_PATH ${MOTIF}/lib:${XLIBS}/lib:${HDF}/lib:${OpenGL}/lib:$Overture/lib:${APlusPlus}/lib
+\end{verbatim}
+}
+    For machines with the ``-rpath'' like load flag, it may not be necessary to set the {\tt LD\_LIBRARY\_PATH}
+    since this information is stored with the executable. 
+\end{itemize}
+
+\noindent Here now are the steps for installation:
+\begin{enumerate}
+    \item {\tt tar xzf Overture.xxx.tar}
+    \item {\tt cd Overture.xxx}
+    \item {\tt configure} ~~:~(or {\tt configure [option1] [option2]} ...) (or type {\tt configure -\,-help}).
+          If perl is in a funny place then type {\tt perl configure}. The default is to build a debug version
+          with double precision (recommended). 
+    \item {\tt make} ~:~this will build Overture, takes about 1/2 hour for the default options, a couple of hours
+                 for an optimized version. You can also type ``{\tt make -j 2}'' on machines with multiple processors
+                 in order to perform a parallel make.
+\end{enumerate}
+
+If you would like to {\bf test the distribution} type 
+\begin{flushleft}
+  ~~~~{\tt check.p} 
+\end{flushleft}
+from the main Overture directory to build a collection of grids and run a set of regression tests. 
+You can also run these test separately (as well as other tests) by: 
+\begin{enumerate}
+    \item {\tt cd sampleGrids} ~:~goto the sample grids directory
+    \item {\tt make} ~:~will build a set of overlapping grids and check to see if they are correctly built.
+                This is a good test that Overture is installed and working. 
+    \item {\tt cd ../primer}
+    \item {\tt make}  ~:~to make the primer examples. Now run some of the primer examples, such as
+    {\tt mappedGridExample1} or {\tt mappedGridExample2} etc.
+    \item {\tt cd ../tests} ~:~go to the tests directory which holds other tests
+    \item {\tt make} ~:~make the test routines. Type {\tt checkop.p} to run a perl script
+         to test the operators. 
+    \item There are other demos and tests in the {\tt sampleGrids}, {\tt sampleMappings} and {\tt examples}
+          directories.
+\end{enumerate}
+ 
+
+\subsection{More comments on installing Overture}
+
+Overture uses the perl script {\tt configure} to build configuration files. Type
+\begin{verbatim}
+    configure --help
+\end{verbatim}
+to see the configure options. If perl is not installed where I think it should be then you may have
+to type
+\begin{verbatim}
+    perl configure --help
+\end{verbatim}
+The default options are ``precision=double'' for double-precision and
+``debug'' for compiling with debug information so that you can diagnose problems with a 
+debugger. In most cases performance is not seriously degraded by the ``debug'' option although some
+programs such as the grid generator ``ogen'' will run quite a bit faster if you configure
+with the ``opt'' option for optimization:
+\begin{verbatim}
+    configure opt
+\end{verbatim}
+
+Generally the configure script will automatically determine the machine type. If not you may have
+to type
+\begin{verbatim}
+       configure <machine-name> [options]
+\end{verbatim}
+The configure script will read the file config/Makedefs.$<$machine-name$>$
+and build Makefile's in each directory. If you need to change the Makefile's for your setup
+then you should usually change the config/Makedefs.xxx file and re-configure, rather than changing all the
+Makefile's.
+
+
+% Some routines such as
+% \begin{enumerate}
+%    \item Mapping/DataPointMapping.C
+%    \item Mapping/dmpScalar.C
+%    \item GridFunction/LaplaceFDCoefficients.C
+% \end{enumerate}
+% can take a long time to compile with some compilers if the -O optimization flag is
+% on. You may have to compile these separately with -g. Files 1-2 I am working on simplifying 
+% but if you still cannot compile them with -g then look for the \#ifdef in these files
+% where I don't compile the 4th order accurate interpolation and turn this \#ifdef on for your machine
+% so that the code for 4th-order interpolation is not compiled.
+
+% \subsection{Notes for compiling on an SGI}
+% 
+% \begin{enumerate}
+%   \item Overture will build a 64 bit version (-64 flag)
+%   \item You should set LD\_LIBRARY64\_PATH instead of LD\_LIBRARY\_PATH as in
+% \begin{verbatim}
+% setenv LD_LIBRARY64_PATH ${MOTIF}/lib:${XLIBS}/lib:${HDF}/lib:${OpenGL}/lib64:$Overture/lib:${APlusPlus}/lib
+% \end{verbatim}
+%   \item Build the 64 bit version of HDF
+%   \item Normally I link to the native OpenGL but if you need to run on an SGI and display on another
+%      machine you may want to build Overture with Mesa (depending on your graphics capabilities you may not
+%      be able to display graphics on a non-sgi machine). Build the 64 bit version of Mesa if you use it.
+% \end{enumerate}
+
+\clearpage
+\section{General comments}
+
+Here are some steps that I would take to track down bugs.
+
+\begin{enumerate}
+  \item Do the A++ test codes run?
+  \item If you are having trouble with the graphics try building the {\tt paperplane} example
+     in the {\tt Overture/tests} directory. This example tests whether OpenGL and Motif are working (and does
+     not even link to any Overture libraries). 
+  \item The perl script {\tt Overture/check.p} will run a series of regression tests. 
+  \item Some Overture test codes are in the directory Overture/tests. 
+        The perl script {\tt Overture/tests/checkop.p} will
+        run regression tests on the operators (these tests are also run by Overture/check.p). 
+%     The perl script testGridFunctions.p is supposed to run some tests and
+%     compare the results to stored answers (in files *.check). This test
+%     routine still needs some work so you may have to interpret the results.
+ \item Use gdb or your favourite debugger to see what the problem is. If you don't
+    know how to use a debugger you've come to the wrong party.
+\end{enumerate}
+
+% ========================================================================================
+\clearpage
+% ----------- Installation on the Mac ----------------------
+
+
+\input macInstall.tex
+
+% Overture and cg have been build on Mac OS/X although we are still working on getting
+% the configuration files properly set. 
+% 
+% Here are some comments from Daniel Appelo on the packages he used: 
+% {\small
+% \begin{verbatim}
+% The other packages I use are easily obtainable by fink (built from source):
+% bash-3.2$ fink list hdf5
+%  i   hdf5                         1.6.5-1012     Library and file format for scientific data
+%  i   hdf5-bin                     1.6.5-1012     Library and file format for scientific data
+%  i   hdf5-shlibs                  1.6.5-1012     Library and file format for scientific data
+% bash-3.2$ fink list openmotif
+% (i)  openmotif3                   2.2.4-1        Official Implementation of OSF/Motif
+% (i)  openmotif3-bin               2.2.4-1        Official Implementation of OSF/Motif
+% (i)  openmotif3-shlibs            2.2.4-1        Official Implementation of OSF/Motif
+% bash-3.2$ fink list jpeg
+%  i   libjpeg                      6b-17          JPEG image format handling library
+%  i   libjpeg-bin                  6b-17          Executables for libjpeg package
+%  i   libjpeg-exif                 6b-17          Utilities for manipulating JPEG and EXIF
+%  i   libjpeg-shlibs               6b-17          Shared libraries for libjpeg package
+% bash-3.2$ fink list gcc
+% (i)  gcc43                        4.3.2-1000     GNU Compiler Collection Version 4.3
+% (i)  gcc43-shlibs                 4.3.2-1000     Shared libraries for gcc4
+% \end{verbatim}
+
+
+% }
+% ========================================================================================
+\clearpage
+\section{Installing LAPACK}
+
+CG needs the LAPACK and BLAS libraries. If you need to build these libraries you
+should find a version {\tt lapack.tgz} from the web. 
+
+\noindent Here are the steps for installation:
+\begin{enumerate}
+    \item {\tt tar xzf lapack.tgz} :  Untar the lapack library.
+    \item {\tt cd LAPACK}
+    \item Copy the appropriate {\tt make.inc.XXX} file from the INSTALL directory into
+           {\tt make.inc} in the main directory. Example: {\tt cp INSTALL/make.inc.LINUX make.inc}
+    \item Edit the {\tt make.inc} file and define the compiler and compiler options.
+    \item Type {\tt make blaslib} to make BLAS.
+    \item Type {\tt make lapacklib} to make LAPACK.
+    \item CG expects the libraries to be named {\tt liblapack.a} and {\tt libblas.a}
+          so you may need to rename the libraries that are built in the main directory.
+\end{enumerate}
+
+% ***************************************************************************************
+% ******************************* CG ****************************************************
+% ***************************************************************************************
+\clearpage
+\section{Installing CG} \label{sec:installingCG}
+
+Here are instructions to install the CG solvers. CG uses the same enviromental variables 
+as Overture. There is no need to configure CG since it finds all the information it
+needs from Overture. See the cg {\tt Readme} file for more information. 
+
+\noindent Here are the steps for installation:
+\begin{enumerate}
+    \item {\tt tar xzf cg.xxx.tar} : untar the cg files. 
+    \item Define the CG and CGBUILDPREFIX environmental variables as described in Section~\ref{sec:installingOverture}.
+    \item {\tt cd cg.xxx} 
+    \item {\tt make} ~:~this will build the default CG solvers.
+                 You can also type ``{\tt make -j 2}'' on machines with multiple processors
+                 in order to perform a parallel make. Sometimes the parallel make gets
+                 confused so you may have to type {\tt make} again after the first one finishes.
+    \item Instead of making all the default CG solvers as above, you can also just build individual ones. 
+       If you only want to build cgins, for example, go to the {\tt \$CG/ins} directory and type {\tt make}. 
+    \item By default the Maxwell solver is not built. Go to the {\tt \$CG/mx} directory and type {\tt make} if you
+          want to use it. 
+\end{enumerate}
+
+Here are some tests you can run 
+\begin{enumerate}
+    \item From the main cg directory type {\tt make check} 
+   %  (or {\tt make check-quiet} if you want to see less output)
+     to run regression tests for each solver.
+    \item To test just one solver, say cgins, go to the {\tt \$CG/ins/check} directory and type {\tt make}. 
+\end{enumerate}
+
+If you want to change some CG files and rebuild a solver you can use the {\tt \$CG/user} directory
+to do this. See the {\tt \$CG/user/Readme} file for more information.
+
+
+% ========================================================================================
+\clearpage
+\section{Notes for running Overture in parallel}
+
+
+The parallel version of Overture is in beta release to friendly users. Not everything works in
+parallel but many things do.
+
+To configure and build the parallel version (you need to install P++ first):
+\begin{enumerate}
+  \item {\tt setenv PPlusPlus xxxx } where xxxx is the location of the P++ installation.
+  \item {\tt setenv APlusPlus xxxx } where xxxx is ALSO the location of the P++ installation.
+  \item {\tt configure parallel} 
+  \item {\tt make} 
+\end{enumerate}
+
+
+\noindent{\bf General notes:}
+\begin{itemize}
+  \item You will need to have both a serial and parallel version of Overture built.
+  \item It is safer to use the serial version of plotStuff to plot grids and plot results in show files, although
+        some of the graphics, such as plotting grids and 2d/3d contours, should work in parallel.
+  \item Build grids with the serial version of ogen unless you have to build a very large grid. (The parallel version of ogen
+        works in many cases but is still under development).
+  \item Parallel moving grids work (but not yet parallel deforming grids).
+  \item Parallel AMR works (but not yet parallel AMR and parallel moving grids).
+  \item Some Mapping's don't work in parallel since I haven't gotten around to writing the
+     new mapS and inverseMapS functions that take serial arrays as arguments 
+     -- these are usually easy to write. 
+  \item Generally it is best to convert some Mapping's (e.g. DataPointMapping, HyperbolicMapping)
+       into NurbsMappings for use with parallel (see, for example, {\tt Overture/sampleGrids/loftedBox.cmd}). 
+%  \item Overture graphics ``works'' in parallel but should only be used for smaller examples since the
+%        graphics routines copy the distributed grids/grid-functions to processor 0 for plotting (and thus there
+%        must be enough memory on processor 0 to hold everything).
+\end{itemize}
+
+
+\noindent{\bf PDE solvers that should run in parallel:}
+\begin{itemize}
+  \item The primer example pwave is a good example of a small parallel code. Many of the
+        other primer examples may run in parallel but are generally not good examples of how to write efficient
+        parallel code.
+  \item The cg solvers cgcns, cgins, cgad, cgmx, cgsm, and cgmp run in parallel but not all options will work. 
+        cgasf does not run in parallel yet. 
+%   \item There are some issues with the parallel I/O (through hdf5) that we don't fully understand. 
+%         There are collective and non-collective read/write modes in hdf5. Non-collective mode is currently the 
+%         default and seems more stable. Collective writes, however, are generally much faster. When running cg codes
+%         you can turn on the collective modes as follows:
+% \begin{verbatim}
+%            mpirun -np 2 cgcns -readCollective -writeCollective cicShockg.cmd
+% \end{verbatim}
+\end{itemize}
+
+
+\noindent{\bf Developer notes:} If you are writing Overture code to run in parallel here are some notes:
+\begin{itemize}
+  \item Avoid scalar indexing of a parallel array, $u(i1,i2,i3)$ since this will use communication by default.
+        Instead, access the local serial array (see examples in pwave.C for example). 
+  \item Avoid P++ array operations except for simple copies.  It is more efficient and robust to grab the serial
+        arrays, operate on the serial arrays and then call updateGhostBoundaries. 
+  \item There are a variety of parallel utility routines for dealing with parallel array operations,
+        grid functions and parallel copies etc. See the files {\tt App.\{h,C\}} and {\tt ParallelUtility.\{h,C\}}.
+\end{itemize}
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Before installing Overture you will need to get the supporting software.
+You will need A++, OpenGL and HDF. See the instructions on the web site 
+for more details. 
+
+
+--------------------------------------------------------------------------------------------------
+(1)  Setting Environmental variables.
+
+Before making Overture you should define the following environmental variables:
+    
+Overture  = directory for Overture
+APlusPlus = directory for A++, the array class library -- this directory should contain a lib and include directory
+OpenGL    = directory for OpengGL -- this directory should conatin a lib and include directory
+HDF       = directory where HDF exists  -- this directory should contain a lib and include directory
+MOTIF     = directory in which the Motif lib and include directories sit
+XLIBS     = directory in which the X window lib and include directories sit
+
+PARALLEL_LIB   = libraries needed by the parallel version of Overture (future versions only)
+F2C_INCLUDE = only needed for compiling with gcc and double precision. This is the location
+              of the f2c include files.
+    
+For example, in your .cshrc you can put something like   
+   setenv Overture  /home/henshaw/Overture.v18
+   setenv APlusPlus /users/dquinlan/A++P++.v1.2.34/A++/lib/solaris_cc_CC
+   setenv OpenGL    /users/henshaw/OpenGL/Mesa 
+   setenv HDF       /users/henshaw/hdf
+   setenv MOTIF     /usr/dt 
+   setenv XLIBS     /usr/openwin
+    
+   setenv PPlusPlus /users/dquinlan/A++P++.v1.2.34/P++/lib/solaris_cc_CC
+   setenv PARALLEL_LIB  
+
+In future (as yet unreleased) versions you will need something like 
+the following for running in parallel:
+   setenv PARALLEL_LIB   -L/usr/local/mpi/mpich-1.1.1 -lmpi
+
+Remember to run 'source .cshrc' after changing the .cshrc file so the new variables are defined.
+NOTE: See also the primer documentation, the section on Makefiles and
+.cshrc files, for some examples on how to set environmental variables. 
+
+You will need to set your LD_LIBRARY_PATH so that the loader will know where to  look
+for the dynamically loaded Overture libraries. This may look something like
+
+setenv LD_LIBRARY_PATH  ${MOTIF}/lib:${XLIBS}/lib:${HDF}/lib:${OpenGL}/lib:$Overture/lib:${APlusPlus}/lib
+
+--------------------------------------------------------------------------------------------------
+
+(2) Make Overture
+  Type "configure" with no arguments and read the instructions there. Or type "perl configure"
+  if perl is not located in "/usr/local/bin/perl".
+    Then type 
+       configure [options]
+    Then type
+       make
+
+I usually configure with
+       configure double debug
+to build a double precision version with debugging. The debug version compiles faster (approximately 1/2 hour)
+compared to an optimized version (1-2 hours). 
+
+The compile options for different machines are defined in the files
+in the config directory.
+
+The Overture/bin directory contains the overlapping grid generator,
+ogen, and the plotting routine, plotStuff, which can be used to plot
+results ("show" files) or grids.
+
+--------------------------------------------------------------------------------------------------
+
+(3) Make the primer examples (optional)
+
+   Go to the Overture/primer directory and type
+      make 
+   to build the primer examples. Or you can type 
+      make <name>
+   to build an example with a given name.
+
+A good place to start is to compile and run the examples in the primer
+directory. See the primer documentation that can be obatined from
+Bill's home page under the Documentation directory.
+
+
+-----------------------------------------------------------------------------------------------
+
+Note for compiling on an HP:
+  
+  In A++P++.v0.6.8f I had to change src/array.C :
+
+array.C: (3 places, intArray and floatArray too)
+// *wdh * int doubleArray::DISPLAY_FORMAT = doubleArray::SMART_DISPLAY_FORMAT;
+int doubleArray::DISPLAY_FORMAT = 2;   
+
+
+
+
+
+
+
+
+
+
+
+======General install notes===============================================================
+
+ o first type 
+       configure
+   to see the configure options. Then type something like
+       configure <machine-name> [options]
+
+   The <machine-name> is normlly not required as configure will figure this out in most cases.
+   You may have to type "perl configure" to run the script as it is a perl script.
+   The configure script will read the file config/Makedefs.<machine-name>
+   and build Makefile's in each directory. If you need to change the Makefile's for your setup
+   then you should usually change the config/Makedefs.xxx file and re-configure, rather than changing all the
+   Makefile's.
+
+
+
+Some routines such as
+     1.  Mapping/DataPointMapping.C
+     2.  Mapping/dmpScalar.C
+     3.  GridFunction/LaplaceFDCoefficients.C
+   can take a long time to compile with some compilers if the -O optimization flag is
+on. You may have to compile these separately with -g. Files 1-2 I am working on simplifying 
+but if you still cannot compile them with -g then look for the #ifdef in these files
+where I don't compile the 4th order accurate interpolation and turn this #ifdef on for your machine
+so that the code for 4th-order interpolation is not compiled.
+
+
+
+
+------------------------------------------------------------------------------------------
+ 
+ NOTES on installing Mesa (OpenGL)
+
+If you are using the Mesa libraries for OpenGL then:
+
+  (1) I suggest that you make dynamic libraries (such as sunos5-sl on a sun).
+  (2) You will need to make some motif widgets that come with Mesa since Overture
+      uses the libGLw library. To make this library:
+      (a) Goto the Mesa/widgets-sgi directory. (You may need to download the MesaDemos
+          part of Mesa, depending on the version of Mesa)  Change the line in the Makefile:
+               INCDIRS = -I../include -I/usr/include/Motif1.2
+          to point to the location of your motif, for example:
+               INCDIRS = -I../include -I$(MOTIF)/include
+          where $MOTIF is the environmental variable as defined for Overture (see below).
+      (b) Type "make <machine-name>" 
+          This will make the GLw library and copy it to the Mesa/lib directory.
+          
+      (c) Copy the .h files from Mesa/widgets-sgi to the Gl include directory,
+              cp *.h ../include/GL
+------------------------------------------------------------------------------------------
+
+
+NOTES on installing HDF:
+
+ (0) ./configure -v --prefix="this directory"
+     To compile the library and utilities type:
+        make
+    To install the libraries, utilities, includes and man pages type: e.g.
+        make install
+
+ (1) To create dynamic libraries (this is optional) for HDF I did the following steps: 
+   (a) Changed the CFLAGS macro in the appropriate configure file in the hdf config directory
+       to compile for position-independent-code, on a Sun ultra I changed config/mh-solaris:
+          CFLAGS= -Xc -O -KPIC
+   (b) built the hdf libraries
+   (c) copied Overture/DataBase/Makefile.hdf to hdf/lib/Makefile
+   (d) typed "make" in hdf/lib to build the dyaynmic libraries from the static libraries.
+
+
+   (e) On a pentium machine running linux I had to change the CFLAGS macro in config/mh-linux to
+         CFLAGS=-ansi -DINTEL86
+
+------------------------------------------------------------------------------------------
+
+
+NOTES on f2c and fort77 - double precision and gcc:
+
+   (1) When you use gcc (g++) and ask for double precision, Overture uses fort77 (a script
+       that uses f2c) to compile fortran files (since the -r8 flag is not supported by g77). 
+       The f2c library can be obtained from the web, at www.netlib.org, for example.
+       fort77 is a perl script that can be downloaded from the web if you do not
+       already have it. I had trouble with version 1.15 but 1.14a seemed to work ok except
+       for some warnings that I was able to remove by editing the fort77 file.
+
+
+
+
+
+
+======Linux install notes:===============================================================
+
+ *******Newer versions of Linux (glibc linux or Red-hat 5.0 or later) ********
+
+   o There are some problems with using dynamic libraries and fortran with g77.
+     I had to compile with -g to get it to work. This is the default in config/Makedef.linux
+

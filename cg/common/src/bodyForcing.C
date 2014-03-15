@@ -1,0 +1,5418 @@
+// This file automatically generated from bodyForcing.bC with bpp.
+// ===================================================================================
+//  Define common body forcings such as drag, wake models, and heat sources. 
+//  See also userDefinedForce.C for user defined forcings. 
+// ===================================================================================
+#include "DomainSolver.h"
+#include "ShowFileReader.h"
+#include "App.h"
+#include "ParallelUtility.h"
+#include "BodyForce.h"
+#include "GridMaterialProperties.h"
+#include "Controller.h"
+#include "TimeFunction.h"
+#include "MappingInformation.h"
+#include "UnstructuredMapping.h"
+
+int createMappings( MappingInformation & mapInfo );
+
+// The next file defines macros used for body forces (bodyForcing.bC) and boundary forces (defineVariableBoundaryValues.bC)
+// ---------------------------------------------------------------------------------------------------------------------------
+// 
+// bodyForcingMacros.h: 
+//   This file defines macros used for body forces (bodyForcing.bC) and boundary forces (defineVariableBoundaryValues.bC)
+//
+// ---------------------------------------------------------------------------------------------------------------------------
+
+
+// =================================================================
+// Macro to compute the grid point coordinates.
+// =================================================================
+
+// ============================================================================================
+// This macro computes the directions in which the region box is longest.
+// ============================================================================================
+
+// ===================================================================================
+// Macro: Add a body force or boundary force (i.e. assign the RHS to a BC):
+//
+//  This macro will add a body/boundary force over the appropriate region.
+//
+// Parameters:
+//  TYPE : body or boundary to indicate whether this is a body forcing or BC forcing
+//  I1,I2,I3 : apply forcing over this indicies.
+//
+// Implied Parameters:
+//   regionType : a string (e.g. "box") denoting the region.
+//   bodyForce : a BodyForce object that contains info on the region.
+// NOTE: 
+// This macro expects the perl variable $statements to hold the statements that assign 
+// the body/boundary force at a single point 
+// ===================================================================================
+
+
+// =====================================================================================
+// Save info about the body force region and profile in the bodyForce object.
+// =====================================================================================
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+//==============================================================================================
+//
+/// \brief Compute the body forcing such as drag models, wake models and heat sources.
+/// \details Compute the body forcings such as drag models, wake models and heat sources that are added to 
+///   the right-hand side of the equations.
+///   This function is called to actually evaluate the forcing.
+///   The function setupBodyForcing is first called to assign the option and parameters.
+/// \Note The forcing is saved in the realCompositeGridFunction bodyForce found in the data-base.
+///
+/// \param gf (input) : current solution
+/// \param tForce (input) : evaluate the forcing at this time.
+///
+//==============================================================================================
+int DomainSolver:: 
+computeBodyForcing( GridFunction & gf, const real & tForce )
+{
+
+    if( parameters.dbase.get<bool >("turnOnController") )
+    {
+    // Update the state for the control function
+
+        if( !parameters.dbase.has_key("Controller") )
+        {
+            printF("computeBodyForcing:ERROR: controls are on but no Controller exists!\n");
+            OV_ABORT("error");
+        }
+
+        Controller & controller = parameters.dbase.get<Controller>("Controller");
+        const real dt = parameters.dbase.get<real>("dt");
+    // ** WARNING tForce may be different than gf.t -- what should we use?
+        controller.updateControl( gf.u, gf.t,dt );  
+
+    }
+
+
+    if( !parameters.dbase.get<bool >("turnOnBodyForcing") )
+    {
+    // there are no body forcings defined
+        return 0;
+    }
+
+
+  // Here is where we save the body forcing:
+    assert( parameters.dbase.get<realCompositeGridFunction* >("bodyForce")!=NULL );
+    realCompositeGridFunction & f = *parameters.dbase.get<realCompositeGridFunction* >("bodyForce");
+
+
+    if( parameters.dbase.get<bool >("turnOnUserDefinedForcing") )
+    {
+    // compute any user defined forcing:  (we may add on further contributions to f below)
+        userDefinedForcing( f, gf, tForce );
+    }
+    else
+    {
+        assign(f,0.); 
+    }
+    
+
+  // Here is the array of body forcings:
+    std::vector<BodyForce*> & bodyForcings =  parameters.dbase.get<std::vector<BodyForce*> >("bodyForcings");
+    if( bodyForcings.size()==0 )
+    { // there are no additional body forcings.
+        return 0;
+    }
+
+    CompositeGrid & cg = gf.cg;
+    realCompositeGridFunction & u = gf.u;
+
+  // ** FIX ME**
+//   const bool & userDefinedForcingIsTimeDependent = parameters.dbase.get<bool >("userDefinedForcingIsTimeDependent");
+//   // There is no forcing to compute if none was specified or if the forcing is not time dependent and t>0
+//   if( option==noForcing || ( !userDefinedForcingIsTimeDependent && tForce>0. ) )
+//     return 0;
+
+    const int & numberOfComponents=parameters.dbase.get<int >("numberOfComponents");
+    const int & numberOfDimensions=parameters.dbase.get<int >("numberOfDimensions");
+    const int & rc = parameters.dbase.get<int >("rc");   //  density = u(all,all,all,rc)  (if appropriate for this PDE)
+    const int & uc = parameters.dbase.get<int >("uc");   //  u velocity component =u(all,all,all,uc)
+    const int & vc = parameters.dbase.get<int >("vc");  
+    const int & wc = parameters.dbase.get<int >("wc");
+    const int & tc = parameters.dbase.get<int >("tc");   //  temperature
+    const int & sc = parameters.dbase.get<int >("sc");   //  mass fraction lambda
+    const int & pc = parameters.dbase.get<int >("pc");
+    
+
+    
+    Index I1,I2,I3;
+    int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];  // NOTE: iv[0]==i1, iv[1]==i2, iv[2]==i3
+    real xv[3]={0.,0.,0.};
+
+
+  // --- loop over component grids ---
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+
+        MappedGrid & mg = *(u[grid].getMappedGrid());
+    
+    // -- To save space we do not create the array of grid vertices on rectangular grids --
+        const bool isRectangular = mg.isRectangular();
+        real dvx[3]={1.,1.,1.}, xab[2][3]={{0.,0.,0.},{0.,0.,0.}};
+        int iv0[3]={0,0,0}; //
+        if( isRectangular )
+        {
+            mg.getRectangularGridParameters( dvx, xab );
+            for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
+            {
+      	iv0[dir]=mg.gridIndexRange(0,dir);
+      	if( mg.isAllCellCentered() )
+        	  xab[0][dir]+=.5*dvx[dir];  // offset for cell centered
+            }
+        }
+        else
+        { // for curvilinear grids we need the array of grid vertices
+            mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );  // make sure the vertex array has been created
+        }
+    
+    // This macro defines the grid points for rectangular grids:
+        #undef XC
+        #define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+
+    // Extract local serial arrays:
+        OV_GET_SERIAL_ARRAY_CONDITIONAL(real,mg.vertex(),vertexLocal,!isRectangular);
+        OV_GET_SERIAL_ARRAY_CONST(real,u[grid],uLocal);
+        OV_GET_SERIAL_ARRAY(real,f[grid],fLocal);
+
+    // --- NOTE: we should fill in the force at ghost points too since we may need to take the
+    //           divergence of the forcing for the pressure equation in cgins.
+
+
+        getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+    // restrict bounds to local processor, include ghost
+        bool ok = ParallelUtility::getLocalArrayBounds(u[grid],uLocal,I1,I2,I3,1);   
+        if( !ok ) continue;  // no points on this processor
+
+    // --- loop over different body forcings ---
+        for( int bf=0; bf<bodyForcings.size(); bf++ )
+        {
+            BodyForce & bodyForce = *bodyForcings[bf];
+            const bool & addForcing = bodyForce.dbase.get<bool >("addForcing");
+            const bool forcingIsTimeDependent = bodyForce.dbase.get<bool >("forcingIsTimeDependent");
+            bool & forcingHasBeenAssigned = bodyForce.dbase.get<bool >("forcingHasBeenAssigned");
+
+      // ******************* FIX ME: do this for now:
+            forcingHasBeenAssigned=false;
+            
+            if( !forcingIsTimeDependent && forcingHasBeenAssigned )
+            {
+	// This forcing is NOT time dependent and has already been assigned.
+      	continue;
+            }
+
+            const aString & forcingType = bodyForce.dbase.get<aString >("forcingType");
+            const aString & regionType = bodyForce.dbase.get<aString>("regionType");
+
+            if( forcingType=="dragForce" )
+            {
+	// --- drag force : linear plus quadratic terms ---
+	//    Du/Dt + ... = - dragCoeff1*u - dragCoeff2*|u|*u 
+
+      	const real & dt = parameters.dbase.get<real >("dt");  // here is the current dt
+      	assert( dt>0. );
+
+                const real *dragCoefficients = bodyForce.dbase.get<real[2]>("dragCoefficients");
+                const real dragCoeff1 = dragCoefficients[0];
+      	const real dragCoeff2 = dragCoefficients[1];
+
+        // Only print this message the first time we assign the force:
+      	if( (!forcingHasBeenAssigned && gf.t<dt) || debug() & 4 )
+        	  printF("computeBodyForce: grid=%i forcing=%i, drag (%s), region=%s, at time tForce=%9.3e (t=%9.3e), "
+                          " dragCoeff1=%g, dragCoeff2=%g\n",
+             		 grid,bf,(addForcing? "add" : "set"),(const char*)regionType,tForce,gf.t,dragCoeff1,dragCoeff2);
+      	
+        // The velocity components should be defined:
+      	assert( uc>=0 );
+      	assert( vc>=0 );
+      	assert( numberOfDimensions<3 || wc>=0 );
+        
+                real uNorm;
+                if( addForcing )
+      	{ // --- add the forcing to the current force ---
+
+          // Here are the statements that impose the forcing:
+          // Note: the forcing is multiplied by profileFactor (defined in the add body force macro)
+    
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+      	}
+      	else
+      	{ // --- set (over-write) the forcing ---
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        if( numberOfDimensions==2 ){ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc))); }
+else{ uNorm = sqrt(SQR(uLocal(i1,i2,i3,uc)) + SQR(uLocal(i1,i2,i3,vc)) + SQR(uLocal(i1,i2,i3,wc))); }
+for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*(dragCoeff1+dragCoeff2*uNorm)*uLocal(i1,i2,i3,uc+axis); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+      	}
+      	
+            }
+            else if( forcingType=="immersedBoundary" )
+            {
+        // --- The immersed boundary forcing approximates a no-slip wall at the region boundary ---
+
+      	const real & dt = parameters.dbase.get<real >("dt");  // here is the current dt
+      	assert( dt>0. );
+
+	// Here is the heat transfer option for the body:
+      	const BodyForce::bodyTemperatureOptionEnum & bodyTemperatureOption = 
+                                  bodyForce.dbase.get<BodyForce::bodyTemperatureOptionEnum>("bodyTemperatureOption");
+      	const real & bodyTemperature = bodyForce.dbase.get<real>("bodyTemperature");
+                real *bodyVelocity = bodyForce.dbase.get<real[3]>("bodyVelocity");
+
+      	real bodyTemp = bodyTemperature;
+                if( bodyForce.dbase.has_key("timeFunctionTemperature") )
+      	{
+          // The temperature is time dependent
+          // *wdh* 2012/10/02 -- CHECK ME --
+                    TimeFunction & timeFunction = bodyForce.dbase.get<TimeFunction>("timeFunctionTemperature");
+        	  timeFunction.eval(gf.t,bodyTemp);
+        	  printF("BBBBB computeBodyForce: grid=%i forcing=%i, eval time dependent T, t=%8.2e, bodyTemp=%9.3e\n",
+             		 grid,bf,bodyTemp);
+      	}
+      	
+
+        // The coefficent here cannot be too large or the time-stepping goes unstable:
+                const real dampingCoefficient=.5;
+      	real damp=dampingCoefficient/dt;  
+
+      	if( (!forcingHasBeenAssigned && gf.t<dt) || debug() & 4 )
+      	{
+        	  printF("computeBodyForce: grid=%i forcing=%i, immersed boundary (%s), region=%s, at time tForce=%9.3e "
+             		 " (t=%9.3e, dt=%9.3e) bodyVelocity=(%g,%g,%g)",
+             		 grid,bf,(addForcing? "add" : "set"),(const char*)regionType,tForce,gf.t,dt,
+                                  bodyVelocity[0],bodyVelocity[1],bodyVelocity[2] );
+                    if( bodyTemperatureOption==BodyForce::isothermalBody && tc>=0 )
+        	  {
+          	    printF(" body=isothermal, T=%g\n",bodyTemperature);
+        	  }
+        	  printF("\n");
+      	}
+      	
+      	assert( uc>=0 );
+      	assert( vc>=0 );
+      	assert( numberOfDimensions<3 || wc>=0 );
+
+      	if( bodyTemperatureOption==BodyForce::isothermalBody && tc>=0 )
+      	{
+	  // --- Isothermal body: force the Temperature to be T=bodyTemperature ---
+        	  if( addForcing )
+        	  { // --- add the forcing to the current force ---
+
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) += -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) += -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) += -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) += -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) += -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) += -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) += -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+        	  }
+        	  else
+        	  { // --- set (over-write) the forcing ---
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) = -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) = -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) = -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) = -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) = -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) = -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+fLocal(i1,i2,i3,tc) = -profileFactor*damp*(uLocal(i1,i2,i3,tc)-bodyTemp);
+
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+        	  }
+      	}
+      	else
+      	{
+	  // --- No Temperature ---
+        	  if( addForcing )
+        	  { // --- add the forcing to the current force ---
+
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis) += -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+        	  }
+        	  else
+        	  { // --- set (over-write) the forcing ---
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        for( int axis=0; axis<numberOfDimensions; axis++ ){
+  fLocal(i1,i2,i3,uc+axis)  = -profileFactor*damp*(uLocal(i1,i2,i3,uc+axis)-bodyVelocity[axis]); }
+
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+        	  }
+      	}
+      	
+            }
+            else if( forcingType=="heatSource" && tc>=0 )
+            {
+        // -- add a heat source ---
+
+                const real heatCoefficient = bodyForce.dbase.get<real >("heatCoefficient");
+
+      	real bodyTemp = heatCoefficient;
+                if( bodyForce.dbase.has_key("timeFunctionTemperature") )
+      	{
+          // The temperature is time dependent
+          // *wdh* 2012/10/02 -- CHECK ME --
+                    TimeFunction & timeFunction = bodyForce.dbase.get<TimeFunction>("timeFunctionTemperature");
+        	  timeFunction.eval(gf.t,bodyTemp);
+        	  printF("FFF computeBodyForce: grid=%i forcing=%i, eval time dependent T, t=%8.2e, heatCoeff=%9.3e\n",
+             		 grid,bf,gf.t,bodyTemp);
+      	}
+
+      	if( (!forcingHasBeenAssigned && gf.t<5*dt) || debug() & 4 )
+        	  printF("computeBodyForce: grid=%i forcing=%i, heat source (%s), region=%s, heatCoefficient=%g, "
+                                  "at time tForce=%9.3e (t=%9.3e,dt=%8.2e)\n",
+             		 grid,bf,(addForcing? "add" : "set"),(const char*)regionType,bodyTemp,tForce,gf.t,dt);
+
+        // The Temperature should be defined:
+                assert( tc>=0 );
+
+        // Here are the statements that impose the forcing:
+        // Note: the forcing is multipled by profileFactor (defined in the add body force macro)
+                if( addForcing )
+      	{ // --- add the forcing to the current force ---
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        fLocal(i1,i2,i3,tc) += profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        fLocal(i1,i2,i3,tc) += profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    fLocal(i1,i2,i3,tc) += profileFactor*bodyTemp;
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	fLocal(i1,i2,i3,tc) += profileFactor*bodyTemp;
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        fLocal(i1,i2,i3,tc) += profileFactor*bodyTemp;
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        fLocal(i1,i2,i3,tc) += profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        fLocal(i1,i2,i3,tc) += profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+      	}
+      	else
+      	{ // --- set (over-write) the forcing ---
+                        const int addBodyForce=0, addBoundaryForce=1;
+                          const int forcingType=addBodyForce;
+                        real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                        if( regionType=="box" )
+                        {
+              // -- drag is applied over a box (square in 2D) --
+                            const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                            #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                            const real & xa = xab(0,0), &xb = xab(1,0);
+                            const real & ya = xab(0,1), &yb = xab(1,1);
+                            const real & za = xab(0,2), &zb = xab(1,2);
+                            const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+              // if( debug() & 4 )
+              // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                            if( profileType=="uniform" )
+                            {
+                // --- uniform profile ---
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the box
+                          	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                          	{
+                                        fLocal(i1,i2,i3,tc)  = profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="parabolic" )
+                            {
+                // -- Parabolic profile --
+                // Near each edge of the region the parabolic profile looks like: 
+                //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+                //     u(x) = U(x) ,                      for d(x) > W
+                // where d(x) is the distance from the point x to the box that defines the region,
+                // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                                const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                    real dist;
+          	  // Body force (volume): compute minimum distance to any side of the box:
+                                	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                        if( numberOfDimensions==3 )
+                                  	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+          	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                          	if( dist>=0. )
+                          	{  
+                                        dist /= parabolicProfileDepth;
+                                        if( dist<1. )
+                            	  {
+                      // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                            profileFactor = dist*(2.-dist);
+                            	  }
+                            	  else
+                            	  {
+                                            profileFactor=1.;
+                            	  }
+          	  // printF("         : profileFactor=%g \n",profileFactor);
+                                        fLocal(i1,i2,i3,tc)  = profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                            else if( profileType=="tanh" )
+                            {
+                // -- Tanh profile:
+                // The one-dimensional tanh profile is of the form:
+                //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+                // 
+                                const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                                const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+                // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                                int dir1, dir2;  
+                                  if( numberOfDimensions==2 )
+                                  {
+                   // dir1 = the longest axes of the box (in 2D) 
+                   // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                                      dir1 = xWidth > yWidth ? 0 : 1;
+                                  }
+                                  else
+                                  {
+                   // Find the two directions (dir1,dir2) that define the two longest axes of the box
+                   // 
+                                      if( xWidth < min(yWidth,zWidth) )
+                                      {
+                                          dir1=1; dir2=2;
+                                      }
+                                      else if( yWidth < min(xWidth,zWidth) )
+                                      {
+                                          dir1=0; dir2=2;
+                                      }
+                                      else
+                                      {
+                                          dir1=0; dir2=1;
+                                      }
+                                  }
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                  // --> we could have a cutoff if we are far away from the transition zone, to avoid
+                  //  evaluating the tanh's.
+          	  // Body force force:
+                                        profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                        profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                            	  if( numberOfDimensions==3 )
+                                            profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                                    fLocal(i1,i2,i3,tc)  = profileFactor*bodyTemp;
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                                OV_ABORT("ERROR");
+                            }
+                        }
+                        else if( regionType=="ellipse" )
+                        {
+              // -- drag is applied over an ellipse --
+              //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                            const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                            const real ae = ellipse[0];
+                            const real be = ellipse[1];
+                            const real ce = ellipse[2];
+                            const real xe = ellipse[3];
+                            const real ye = ellipse[4];
+                            const real ze = ellipse[5];
+                            FOR_3D(i1,i2,i3,I1,I2,I3)
+                            {
+                // Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+                                real rad;
+                                if( numberOfDimensions==2 )
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	rad = xa*xa+ya*ya;
+                                }
+                                else
+                                {
+                          	real xa = (xv[0]-xe)/ae;
+                          	real ya = (xv[1]-ye)/be;
+                          	real za = (xv[2]-ze)/ce;
+                          	rad = xa*xa+ya*ya+za*za;
+                                }
+                //       // amp = 1 inside the circle and 0 outside
+                //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+                //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+                //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+                //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+                // here we turn on the drag as a step function at rad=rad0
+                                if( rad < 1. )
+                                {
+                          	fLocal(i1,i2,i3,tc)  = profileFactor*bodyTemp;
+                                }
+                            } // end FOR_3D
+                        }
+                        else if( regionType=="maskFromGridFunction" )
+                        {
+              // ---- The region is defined by a grid function that holds a mask ----
+                            if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                            {
+                                printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                                OV_ABORT("ERROR");
+                            }
+              // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                            realCompositeGridFunction *maskPointer = 
+                                                                parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                            assert( maskPointer!=NULL );
+                            realCompositeGridFunction & bodyForceMask = *maskPointer;
+                            realArray & bfMask = bodyForceMask[grid];
+                            OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                            getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+              // restrict bounds to local processor, include ghost
+                            bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                            if( ok )
+                            {
+                                profileFactor=1.;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+                          	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                          	{
+                                        fLocal(i1,i2,i3,tc)  = profileFactor*bodyTemp;
+                          	}
+                                }
+                            }
+                        }
+                        else if( regionType=="mapping" )
+                        {
+              // --- region is defined by a Mapping ---
+              //   2D : closed curve
+              //   3D : water-tight surface
+                            if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                            {
+                                printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                                continue;
+                            }
+                            MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                            if( pBodyForceMapping==NULL )
+                            {
+                                printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                                continue;
+                            }
+                            Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                            if( numberOfDimensions==2 )
+                            {
+                                IntegerArray cross(1);
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could save a mask ---
+                          	cross=0;
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                          	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                                    int inside = (cross(0) % 2 == 0) ? 0 : +1;
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                          	if( inside )
+                          	{
+                                        fLocal(i1,i2,i3,tc)  = profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                            else
+                            {
+                                IntegerArray inside(1); 
+                                RealArray xa(1,3);
+                                xa=0.;
+                                assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                                UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                                FOR_3D(i1,i2,i3,I1,I2,I3)
+                                {
+          	// Get the grid coordinates xv[axis]:
+                                    if( isRectangular )
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=XC(iv,axis);
+                                    }
+                                    else
+                                    {
+                                        for( int axis=0; axis<numberOfDimensions; axis++ )
+                                            xv[axis]=vertexLocal(i1,i2,i3,axis);
+                                    }
+          	// Turn on the drag if we are inside the body
+                  // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                                    xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                                    #ifndef USE_PPP
+                                	  uMap.insideOrOutside(xa,inside);
+                                    #else
+                                        OV_ABORT("finish me for parallel");
+                                    #endif
+          	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                          	if( inside(0) )
+                          	{
+                                        fLocal(i1,i2,i3,tc)  = profileFactor*bodyTemp;
+                          	}
+                                } // end FOR_3D
+                            }
+                        }
+                        else
+                        {
+                            printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                            OV_ABORT("ERROR: finish me...");
+                        }
+      	}
+            
+            }
+            else
+            {
+                printF("computeBodyForcing:ERROR: Unknown bodyForceType =%s\n",(const char*)forcingType);
+      	OV_ABORT("error");
+            }
+            
+            forcingHasBeenAssigned=true; // for time independent forcing we only need to evaluate the RHS once.
+            
+            
+        } // end for different body forcings
+
+    } // end for grid 
+    
+    return 0;
+}
+
+
+
+
+//==============================================================================================
+//
+/// \brief Assign variable material properties:  user-defined or "body-force" regions.
+/// \details This function fills in the arrays that hold the material properties on the grids.
+///   The material properties can vary in different regions. These regions are the same regions
+//    that are used to define body forces. 
+///
+/// \param gf (input) : current solution
+/// \param t (input) : current time (not currently used ?)
+///
+//==============================================================================================
+int DomainSolver:: 
+setVariableMaterialProperties( GridFunction & gf, const real & t )
+{
+
+    if( true )
+        printF("****** setVariableMaterialProperties: t=%e, variableMaterialPropertiesOption=%i\n",
+         	   t,parameters.dbase.get<int>("variableMaterialPropertiesOption"));
+
+
+
+    if( parameters.dbase.get<int>("variableMaterialPropertiesOption")==0 )
+    {
+    // Material properties do not vary.
+        return 0;
+    }
+
+
+    CompositeGrid & cg = gf.cg;
+    const int numberOfComponentGrids = cg.numberOfComponentGrids();
+    const int numberOfDimensions = cg.numberOfDimensions();
+    
+  // Material properties are stored in an array of GridMaterialProperties objects:
+    if (!parameters.dbase.has_key("materialProperties")) 
+        parameters.dbase.put<std::vector<GridMaterialProperties> >("materialProperties");
+
+    std::vector<GridMaterialProperties> & materialProperties = 
+        parameters.dbase.get<std::vector<GridMaterialProperties> >("materialProperties");
+    
+  // Make sure the materialProperties vector the correct number of entries:
+    while( materialProperties.size() < numberOfComponentGrids )
+    {
+        materialProperties.push_back(GridMaterialProperties());
+    }
+    if( materialProperties.size()>numberOfComponentGrids )
+    { // remove entries if we have too many
+        int numToDelete =  materialProperties.size()-numberOfComponentGrids;
+        materialProperties.erase(materialProperties.end()-numToDelete+1,materialProperties.end());
+    }
+    assert( materialProperties.size() == numberOfComponentGrids );
+
+  // Names of material properties go here: (Each name should be an entry in the dbase of type real)
+    std::vector<aString> & materialPropertyNames = parameters.dbase.get<std::vector<aString> >("materialPropertyNames");
+
+    GridMaterialProperties::MaterialFormatEnum materialFormat;
+    if( parameters.dbase.get<int>("variableMaterialPropertiesOption")==1 )
+        materialFormat=GridMaterialProperties::piecewiseConstantMaterialProperties;
+    else
+        materialFormat=GridMaterialProperties::variableMaterialProperties;
+
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        GridMaterialProperties & matProp = materialProperties[grid];
+
+        matProp.setMaterialFormat(materialFormat);
+    }
+    
+
+  // -----------------------------------------
+  // --- Twilight-zone material properties ---
+  // -----------------------------------------
+    if( parameters.dbase.get<bool >("twilightZoneFlow") )
+    {
+        printF("****** setVariableMaterialProperties:INFO: setting twilight-zone material properties.\n");
+
+        assert( materialFormat==GridMaterialProperties::variableMaterialProperties );
+
+        OGFunction *& tz = parameters.dbase.get<OGFunction* >("exactSolution");
+        assert( tz!=NULL );
+        OGFunction & e = *tz;
+
+        Index I1,I2,I3;
+    // --- loop over component grids ---
+        for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+        {
+            GridMaterialProperties & matProp = materialProperties[grid];
+            RealArray & matVal      = matProp.getMaterialValuesArray();
+
+            MappedGrid & mg = cg[grid];
+      // For now we always need the vertex array for TZ:
+            mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+
+            const bool isRectangular = mg.isRectangular();
+            OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+            getIndex( mg.dimension(),I1,I2,I3 );  // Set all points including ghost points.
+            const int includeGhost=1;
+            bool ok=ParallelUtility::getLocalArrayBounds(mg.vertex(),xLocal,I1,I2,I3,includeGhost);
+
+            if( ok ) // this processor has grid points
+            {
+	// --- allocate space for material property value arrays ---
+      	std::vector<aString> & materialPropertyNames = parameters.dbase.get<std::vector<aString> >("materialPropertyNames");
+      	const int numberOfMaterialProperties=materialPropertyNames.size();
+        // Here is index of the first component: (e.g. look for "rhoc" for elasticty)
+                aString componentName; sPrintF(componentName,"%sc",(const char*)materialPropertyNames[0]);
+                const int matPropc = parameters.dbase.get<int>((const char*)componentName);
+      	Range M(matPropc,matPropc+numberOfMaterialProperties-1);
+      	
+      	printF("setMat: matPropc=%i name=%s\n",matPropc,(const char*)materialPropertyNames[0]);
+      	
+	// material properties vary from grid-point to grid-point
+	// matVal.redim(I1,I2,I3,numberOfMaterialProperties);
+      	matVal.redim(I1,I2,I3,M);
+
+	// Evaluate the TZ material parameters: 
+      	e.gd(matVal,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,M,t);
+      	matVal.reshape(I1,I2,I3,numberOfMaterialProperties);
+
+      	if( false )
+      	{
+        	  for( int m=0; m<numberOfMaterialProperties; m++ )
+        	  {
+          	    ::display(matVal(I1,I2,I3,m),sPrintF(componentName,"setMat: %s TZ",(const char*)materialPropertyNames[m]),"%4.1f ");
+        	  }
+      	}
+            }
+
+        }
+    
+
+        return 0;
+    }
+    
+
+  // -----------------------------------------------
+  // --- assign user defined material properties ---
+  // -----------------------------------------------
+    int rt = userDefinedMaterialProperties( gf );
+    if( rt == 0 )
+    { // user defined material properties were set. (For now we do NOT allow both user defined and "body-force" regions.)
+        return 0;
+    }
+    
+  // -----------------------------------------------------------------------------------------------
+  // ---- Assign material property values in regions defined through the "body-force" interface ----
+  // -----------------------------------------------------------------------------------------------
+
+  // We save the different regions and values for material properties in an array:
+    std::vector<BodyForce*> & materialPropertyRegions = parameters.dbase.get<std::vector<BodyForce*> >("materialPropertyRegions");
+
+    if( materialPropertyRegions.size()==0 )
+    { // there are no additional body forcings.
+        return 0;
+    }
+
+
+    Index I1,I2,I3;
+    int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];  // NOTE: iv[0]==i1, iv[1]==i2, iv[2]==i3
+    real xv[3]={0.,0.,0.};
+
+
+  // --- loop over component grids ---
+    for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        GridMaterialProperties & matProp = materialProperties[grid];
+
+        IntegerArray & matIndex = matProp.getMaterialIndexArray();
+        RealArray & matVal      = matProp.getMaterialValuesArray();
+        
+
+        MappedGrid & mg = cg[grid];
+    
+    // -- To save space we do not create the array of grid vertices on rectangular grids --
+        const bool isRectangular = mg.isRectangular();
+        real dvx[3]={1.,1.,1.}, xab[2][3]={{0.,0.,0.},{0.,0.,0.}};
+        int iv0[3]={0,0,0}; //
+        if( isRectangular )
+        {
+            mg.getRectangularGridParameters( dvx, xab );
+            for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
+            {
+      	iv0[dir]=mg.gridIndexRange(0,dir);
+      	if( mg.isAllCellCentered() )
+        	  xab[0][dir]+=.5*dvx[dir];  // offset for cell centered
+            }
+        }
+        else
+        { // for curvilinear grids we need the array of grid vertices
+            mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );  // make sure the vertex array has been created
+        }
+    
+    // This macro defines the grid points for rectangular grids:
+        #undef XC
+        #define XC(iv,axis) (xab[0][axis]+dvx[axis]*(iv[axis]-iv0[axis]))
+
+    // Extract local serial arrays:
+        OV_GET_SERIAL_ARRAY_CONDITIONAL(real,mg.vertex(),vertexLocal,!isRectangular);
+        const intArray & mask = mg.mask();
+        OV_GET_SERIAL_ARRAY_CONST(int,mask,maskLocal);
+
+
+        getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+    // restrict bounds to local processor, include ghost
+        bool ok = ParallelUtility::getLocalArrayBounds(mask,maskLocal,I1,I2,I3,1);   
+        if( !ok ) continue;  // no points on this processor
+
+    // --- allocate space for material property value arrays ---
+        std::vector<aString> & materialPropertyNames = parameters.dbase.get<std::vector<aString> >("materialPropertyNames");
+        const int numberOfMaterialProperties=materialPropertyNames.size();
+
+        int matRegion=0;  // default (background) values.
+        if( materialFormat==GridMaterialProperties::piecewiseConstantMaterialProperties )
+        {
+      // material properties are piecewise constant.
+            const int numberOfMaterialRegions=materialPropertyRegions.size()+1; 
+            matIndex.redim(I1,I2,I3);
+            matIndex=0;  // all points are initialized to the back ground values
+            matVal.redim(numberOfMaterialProperties,numberOfMaterialRegions);
+            for( int m=0; m<numberOfMaterialProperties; m++ )
+                matVal(m,matRegion)=parameters.dbase.get<real>(materialPropertyNames[m]);  // default value 
+        }
+        else if( materialFormat==GridMaterialProperties::variableMaterialProperties )
+        {
+      // material properties vary from grid-point to grid-point
+            matVal.redim(I1,I2,I3,numberOfMaterialProperties);
+        }
+          
+
+    // --- loop over different body forcings ---
+        for( int bf=0; bf<materialPropertyRegions.size(); bf++ )
+        {
+            matRegion++;  // define a new material region
+
+            BodyForce & bodyForce = *materialPropertyRegions[bf];
+            const aString & regionType = bodyForce.dbase.get<aString>("regionType");
+            real *materialPropertyValues = bodyForce.dbase.get<real*>("materialPropertyValues");
+            
+            if( materialFormat==GridMaterialProperties::piecewiseConstantMaterialProperties )
+            {
+      	for( int m=0; m<numberOfMaterialProperties; m++ )
+        	  matVal(m,matRegion)=materialPropertyValues[m];
+            
+                const int addBodyForce=0, addBoundaryForce=1;
+                  const int forcingType=addBodyForce;
+                real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                if( regionType=="box" )
+                {
+          // -- drag is applied over a box (square in 2D) --
+                    const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                    #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                    const real & xa = xab(0,0), &xb = xab(1,0);
+                    const real & ya = xab(0,1), &yb = xab(1,1);
+                    const real & za = xab(0,2), &zb = xab(1,2);
+                    const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+          // if( debug() & 4 )
+          // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                    if( profileType=="uniform" )
+                    {
+            // --- uniform profile ---
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+      	// Turn on the drag if we are inside the box
+                  	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                  	{
+                                  matIndex(i1,i2,i3) = matRegion;
+
+                  	}
+                        } // end FOR_3D
+                    }
+                    else if( profileType=="parabolic" )
+                    {
+            // -- Parabolic profile --
+            // Near each edge of the region the parabolic profile looks like: 
+            //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+            //     u(x) = U(x) ,                      for d(x) > W
+            // where d(x) is the distance from the point x to the box that defines the region,
+            // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                        const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                        const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+            // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                        int dir1, dir2;  
+                          if( numberOfDimensions==2 )
+                          {
+               // dir1 = the longest axes of the box (in 2D) 
+               // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                              dir1 = xWidth > yWidth ? 0 : 1;
+                          }
+                          else
+                          {
+               // Find the two directions (dir1,dir2) that define the two longest axes of the box
+               // 
+                              if( xWidth < min(yWidth,zWidth) )
+                              {
+                                  dir1=1; dir2=2;
+                              }
+                              else if( yWidth < min(xWidth,zWidth) )
+                              {
+                                  dir1=0; dir2=2;
+                              }
+                              else
+                              {
+                                  dir1=0; dir2=1;
+                              }
+                          }
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+                            real dist;
+      	  // Body force (volume): compute minimum distance to any side of the box:
+                        	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                if( numberOfDimensions==3 )
+                          	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+      	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                  	if( dist>=0. )
+                  	{  
+                                dist /= parabolicProfileDepth;
+                                if( dist<1. )
+                    	  {
+                  // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                    profileFactor = dist*(2.-dist);
+                    	  }
+                    	  else
+                    	  {
+                                    profileFactor=1.;
+                    	  }
+      	  // printF("         : profileFactor=%g \n",profileFactor);
+                                  matIndex(i1,i2,i3) = matRegion;
+
+                  	}
+                        } // end FOR_3D
+                    }
+                    else if( profileType=="tanh" )
+                    {
+            // -- Tanh profile:
+            // The one-dimensional tanh profile is of the form:
+            //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+            // 
+                        const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                        const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+            // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                        int dir1, dir2;  
+                          if( numberOfDimensions==2 )
+                          {
+               // dir1 = the longest axes of the box (in 2D) 
+               // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                              dir1 = xWidth > yWidth ? 0 : 1;
+                          }
+                          else
+                          {
+               // Find the two directions (dir1,dir2) that define the two longest axes of the box
+               // 
+                              if( xWidth < min(yWidth,zWidth) )
+                              {
+                                  dir1=1; dir2=2;
+                              }
+                              else if( yWidth < min(xWidth,zWidth) )
+                              {
+                                  dir1=0; dir2=2;
+                              }
+                              else
+                              {
+                                  dir1=0; dir2=1;
+                              }
+                          }
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+              // --> we could have a cutoff if we are far away from the transition zone, to avoid
+              //  evaluating the tanh's.
+      	  // Body force force:
+                                profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                    	  if( numberOfDimensions==3 )
+                                    profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                              matIndex(i1,i2,i3) = matRegion;
+
+                        } // end FOR_3D
+                    }
+                    else
+                    {
+                        printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                        OV_ABORT("ERROR");
+                    }
+                }
+                else if( regionType=="ellipse" )
+                {
+          // -- drag is applied over an ellipse --
+          //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                    const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                    const real ae = ellipse[0];
+                    const real be = ellipse[1];
+                    const real ce = ellipse[2];
+                    const real xe = ellipse[3];
+                    const real ye = ellipse[4];
+                    const real ze = ellipse[5];
+                    FOR_3D(i1,i2,i3,I1,I2,I3)
+                    {
+            // Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+                        real rad;
+                        if( numberOfDimensions==2 )
+                        {
+                  	real xa = (xv[0]-xe)/ae;
+                  	real ya = (xv[1]-ye)/be;
+                  	rad = xa*xa+ya*ya;
+                        }
+                        else
+                        {
+                  	real xa = (xv[0]-xe)/ae;
+                  	real ya = (xv[1]-ye)/be;
+                  	real za = (xv[2]-ze)/ce;
+                  	rad = xa*xa+ya*ya+za*za;
+                        }
+            //       // amp = 1 inside the circle and 0 outside
+            //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+            //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+            //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+            //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+            // here we turn on the drag as a step function at rad=rad0
+                        if( rad < 1. )
+                        {
+                  	  matIndex(i1,i2,i3) = matRegion;
+
+                        }
+                    } // end FOR_3D
+                }
+                else if( regionType=="maskFromGridFunction" )
+                {
+          // ---- The region is defined by a grid function that holds a mask ----
+                    if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                    {
+                        printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                        OV_ABORT("ERROR");
+                    }
+          // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                    realCompositeGridFunction *maskPointer = 
+                                                        parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                    assert( maskPointer!=NULL );
+                    realCompositeGridFunction & bodyForceMask = *maskPointer;
+                    realArray & bfMask = bodyForceMask[grid];
+                    OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                    getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+          // restrict bounds to local processor, include ghost
+                    bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                    if( ok )
+                    {
+                        profileFactor=1.;
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+                  	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                  	{
+                                  matIndex(i1,i2,i3) = matRegion;
+
+                  	}
+                        }
+                    }
+                }
+                else if( regionType=="mapping" )
+                {
+          // --- region is defined by a Mapping ---
+          //   2D : closed curve
+          //   3D : water-tight surface
+                    if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                    {
+                        printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                        continue;
+                    }
+                    MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                    if( pBodyForceMapping==NULL )
+                    {
+                        printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                        continue;
+                    }
+                    Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                    if( numberOfDimensions==2 )
+                    {
+                        IntegerArray cross(1);
+                        RealArray xa(1,3);
+                        xa=0.;
+                        assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+      	// Turn on the drag if we are inside the body
+              // ----- OPTIMZE ME -- could save a mask ---
+                  	cross=0;
+                            xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                  	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                            int inside = (cross(0) % 2 == 0) ? 0 : +1;
+      	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                  	if( inside )
+                  	{
+                                  matIndex(i1,i2,i3) = matRegion;
+
+                  	}
+                        } // end FOR_3D
+                    }
+                    else
+                    {
+                        IntegerArray inside(1); 
+                        RealArray xa(1,3);
+                        xa=0.;
+                        assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                        UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+      	// Turn on the drag if we are inside the body
+              // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                            xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                            #ifndef USE_PPP
+                        	  uMap.insideOrOutside(xa,inside);
+                            #else
+                                OV_ABORT("finish me for parallel");
+                            #endif
+      	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                  	if( inside(0) )
+                  	{
+                                  matIndex(i1,i2,i3) = matRegion;
+
+                  	}
+                        } // end FOR_3D
+                    }
+                }
+                else
+                {
+                    printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                    OV_ABORT("ERROR: finish me...");
+                }
+            }
+            else if( materialFormat==GridMaterialProperties::variableMaterialProperties )
+            {
+        // Note profileFactor -- should we do this ?
+                const int addBodyForce=0, addBoundaryForce=1;
+                  const int forcingType=addBodyForce;
+                real profileFactor=1.;  // The forcing is multiplied by this factor (changed below for parabolic, ...)
+                if( regionType=="box" )
+                {
+          // -- drag is applied over a box (square in 2D) --
+                    const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+                    #define xab(side,axis) boxBounds[(side)+2*(axis)]
+                    const real & xa = xab(0,0), &xb = xab(1,0);
+                    const real & ya = xab(0,1), &yb = xab(1,1);
+                    const real & za = xab(0,2), &zb = xab(1,2);
+                    const aString & profileType = bodyForce.dbase.get<aString>("profileType");
+          // if( debug() & 4 )
+          // printF("computeBodyForce: profileType=%s, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",(const char*)profileType,xa,xb,ya,yb,za,zb);
+                    if( profileType=="uniform" )
+                    {
+            // --- uniform profile ---
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+      	// Turn on the drag if we are inside the box
+                  	if( xv[0]>=xa && xv[0]<=xb && xv[1]>=ya && xv[1]<=yb && xv[2]>=za && xv[2]<=zb )
+                  	{
+                                for( int m=0; m<numberOfMaterialProperties; m++ ){
+  matVal(i1,i2,i3,m) = profileFactor*materialPropertyValues[m]; }
+
+                  	}
+                        } // end FOR_3D
+                    }
+                    else if( profileType=="parabolic" )
+                    {
+            // -- Parabolic profile --
+            // Near each edge of the region the parabolic profile looks like: 
+            //     u(x) = U(x)*( 1 - (1-d(x)/W)^2 ),  for d(x) < W
+            //     u(x) = U(x) ,                      for d(x) > W
+            // where d(x) is the distance from the point x to the box that defines the region,
+            // and W=parabolicProfileDepth is the width of the parabolic profile. 
+                        const real & parabolicProfileDepth = bodyForce.dbase.get<real>("parabolicProfileDepth");
+                        const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+            // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                        int dir1, dir2;  
+                          if( numberOfDimensions==2 )
+                          {
+               // dir1 = the longest axes of the box (in 2D) 
+               // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                              dir1 = xWidth > yWidth ? 0 : 1;
+                          }
+                          else
+                          {
+               // Find the two directions (dir1,dir2) that define the two longest axes of the box
+               // 
+                              if( xWidth < min(yWidth,zWidth) )
+                              {
+                                  dir1=1; dir2=2;
+                              }
+                              else if( yWidth < min(xWidth,zWidth) )
+                              {
+                                  dir1=0; dir2=2;
+                              }
+                              else
+                              {
+                                  dir1=0; dir2=1;
+                              }
+                          }
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+                            real dist;
+      	  // Body force (volume): compute minimum distance to any side of the box:
+                        	  dist = min( xv[0]-xab(0,0), xab(1,0)-xv[0], xv[1]-xab(0,1), xab(1,1)-xv[1] );
+                                if( numberOfDimensions==3 )
+                          	    dist=min( dist, xv[2]-xab(0,2), xab(1,2)-xv[2] );
+      	// printF("parabolic: (i1,i2)=(%i,%i) x=(%g,%g) dist=%g \n",i1,i2,xv[0],xv[1],dist);
+                  	if( dist>=0. )
+                  	{  
+                                dist /= parabolicProfileDepth;
+                                if( dist<1. )
+                    	  {
+                  // 1 - (1-d)^2 = 2*d-d^2 = d*(2-d)
+                                    profileFactor = dist*(2.-dist);
+                    	  }
+                    	  else
+                    	  {
+                                    profileFactor=1.;
+                    	  }
+      	  // printF("         : profileFactor=%g \n",profileFactor);
+                                for( int m=0; m<numberOfMaterialProperties; m++ ){
+  matVal(i1,i2,i3,m) = profileFactor*materialPropertyValues[m]; }
+
+                  	}
+                        } // end FOR_3D
+                    }
+                    else if( profileType=="tanh" )
+                    {
+            // -- Tanh profile:
+            // The one-dimensional tanh profile is of the form:
+            //     u = U(x) *[  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]
+            // 
+                        const real & b  = bodyForce.dbase.get<real>("tanhProfileExponent");
+                        const real xWidth=xb-xa, yWidth=yb-ya, zWidth=zb-za;
+            // For now we assume the boundary is parallel to the longest axis (2D) axes (3D) of the box.
+                        int dir1, dir2;  
+                          if( numberOfDimensions==2 )
+                          {
+               // dir1 = the longest axes of the box (in 2D) 
+               // xb-xa > yb-ya : assume the boundary is horizontal, else vertical
+                              dir1 = xWidth > yWidth ? 0 : 1;
+                          }
+                          else
+                          {
+               // Find the two directions (dir1,dir2) that define the two longest axes of the box
+               // 
+                              if( xWidth < min(yWidth,zWidth) )
+                              {
+                                  dir1=1; dir2=2;
+                              }
+                              else if( yWidth < min(xWidth,zWidth) )
+                              {
+                                  dir1=0; dir2=2;
+                              }
+                              else
+                              {
+                                  dir1=0; dir2=1;
+                              }
+                          }
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+              // --> we could have a cutoff if we are far away from the transition zone, to avoid
+              //  evaluating the tanh's.
+      	  // Body force force:
+                                profileFactor =  .5*( tanh( b*(xv[0]-xab(0,0)) ) - tanh( b*(xv[0]-xab(1,0)) ) );
+                                profileFactor *= .5*( tanh( b*(xv[1]-xab(0,1)) ) - tanh( b*(xv[1]-xab(1,1)) ) );
+                    	  if( numberOfDimensions==3 )
+                                    profileFactor *= .5*( tanh( b*(xv[2]-xab(0,2)) ) - tanh( b*(xv[2]-xab(1,2)) ) );
+                            for( int m=0; m<numberOfMaterialProperties; m++ ){
+  matVal(i1,i2,i3,m) = profileFactor*materialPropertyValues[m]; }
+
+                        } // end FOR_3D
+                    }
+                    else
+                    {
+                        printF("addBodyForceMacro: ERROR: unknown profileType=%s\n",(const char*)profileType);
+                        OV_ABORT("ERROR");
+                    }
+                }
+                else if( regionType=="ellipse" )
+                {
+          // -- drag is applied over an ellipse --
+          //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+                    const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+                    const real ae = ellipse[0];
+                    const real be = ellipse[1];
+                    const real ce = ellipse[2];
+                    const real xe = ellipse[3];
+                    const real ye = ellipse[4];
+                    const real ze = ellipse[5];
+                    FOR_3D(i1,i2,i3,I1,I2,I3)
+                    {
+            // Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+                        real rad;
+                        if( numberOfDimensions==2 )
+                        {
+                  	real xa = (xv[0]-xe)/ae;
+                  	real ya = (xv[1]-ye)/be;
+                  	rad = xa*xa+ya*ya;
+                        }
+                        else
+                        {
+                  	real xa = (xv[0]-xe)/ae;
+                  	real ya = (xv[1]-ye)/be;
+                  	real za = (xv[2]-ze)/ce;
+                  	rad = xa*xa+ya*ya+za*za;
+                        }
+            //       // amp = 1 inside the circle and 0 outside
+            //       // -- here is a smooth transition from 0 to damp at "radius" rad0
+            //       real amp = .5*damp*(tanh( -beta*(rad-rad0) )+1.);
+            //       fg(i1,i2,i3,uc) =  -amp*ug(i1,i2,i3,uc);
+            //       fg(i1,i2,i3,vc) =  -amp*ug(i1,i2,i3,vc);
+            // here we turn on the drag as a step function at rad=rad0
+                        if( rad < 1. )
+                        {
+                  	for( int m=0; m<numberOfMaterialProperties; m++ ){
+  matVal(i1,i2,i3,m) = profileFactor*materialPropertyValues[m]; }
+
+                        }
+                    } // end FOR_3D
+                }
+                else if( regionType=="maskFromGridFunction" )
+                {
+          // ---- The region is defined by a grid function that holds a mask ----
+                    if( !parameters.dbase.has_key("bodyForceMaskGridFunction") )
+                    {
+                        printF("ERROR: regionType==`maskFromGridFunction' but the grid function does not exist!\n");
+                        OV_ABORT("ERROR");
+                    }
+          // printF("Setting a body force for regionType==maskFromGridFunction for grid=%i\n",grid);
+                    realCompositeGridFunction *maskPointer = 
+                                                        parameters.dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+                    assert( maskPointer!=NULL );
+                    realCompositeGridFunction & bodyForceMask = *maskPointer;
+                    realArray & bfMask = bodyForceMask[grid];
+                    OV_GET_SERIAL_ARRAY(real,bfMask,bfMaskLocal);
+                    getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+          // restrict bounds to local processor, include ghost
+                    bool ok = ParallelUtility::getLocalArrayBounds(bfMask,bfMaskLocal,I1,I2,I3,1);
+                    if( ok )
+                    {
+                        profileFactor=1.;
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+                  	if( bfMaskLocal(i1,i2,i3)<=0. )  // signed distance 
+                  	{
+                                for( int m=0; m<numberOfMaterialProperties; m++ ){
+  matVal(i1,i2,i3,m) = profileFactor*materialPropertyValues[m]; }
+
+                  	}
+                        }
+                    }
+                }
+                else if( regionType=="mapping" )
+                {
+          // --- region is defined by a Mapping ---
+          //   2D : closed curve
+          //   3D : water-tight surface
+                    if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                    {
+                        printF("computeBodyForcing:WARNING: there is no body force Mapping!\n");
+                        continue;
+                    }
+                    MappingRC *& pBodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                    if( pBodyForceMapping==NULL )
+                    {
+                        printF("computeBodyForcing:WARNING: the body force Mapping is NULL!\n");
+                        continue;
+                    }
+                    Mapping & bodyForceMapping = pBodyForceMapping->getMapping();
+                    if( numberOfDimensions==2 )
+                    {
+                        IntegerArray cross(1);
+                        RealArray xa(1,3);
+                        xa=0.;
+                        assert( bodyForceMapping.approximateGlobalInverse !=NULL );
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+      	// Turn on the drag if we are inside the body
+              // ----- OPTIMZE ME -- could save a mask ---
+                  	cross=0;
+                            xa(0,0)=xv[0]; xa(0,1)=xv[1];
+                  	bodyForceMapping.approximateGlobalInverse->countCrossingsWithPolygon( xa,cross );
+                            int inside = (cross(0) % 2 == 0) ? 0 : +1;
+      	// printF("computeBodyForcing: point (%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),inside);
+                  	if( inside )
+                  	{
+                                for( int m=0; m<numberOfMaterialProperties; m++ ){
+  matVal(i1,i2,i3,m) = profileFactor*materialPropertyValues[m]; }
+
+                  	}
+                        } // end FOR_3D
+                    }
+                    else
+                    {
+                        IntegerArray inside(1); 
+                        RealArray xa(1,3);
+                        xa=0.;
+                        assert( bodyForceMapping.getClassName()=="UnstructuredMapping" );
+                        UnstructuredMapping & uMap = (UnstructuredMapping&)bodyForceMapping;
+                        FOR_3D(i1,i2,i3,I1,I2,I3)
+                        {
+      	// Get the grid coordinates xv[axis]:
+                            if( isRectangular )
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=XC(iv,axis);
+                            }
+                            else
+                            {
+                                for( int axis=0; axis<numberOfDimensions; axis++ )
+                                    xv[axis]=vertexLocal(i1,i2,i3,axis);
+                            }
+      	// Turn on the drag if we are inside the body
+              // ----- OPTIMZE ME -- could do many pts at once, save a mask ---
+                            xa(0,0)=xv[0]; xa(0,1)=xv[1]; xa(0,2)=xv[2];
+                            #ifndef USE_PPP
+                        	  uMap.insideOrOutside(xa,inside);
+                            #else
+                                OV_ABORT("finish me for parallel");
+                            #endif
+      	// printF("computeBodyForcing: point (%8.2e,%8.2e,%8.2e) : inside=%i.\n",xa(0,0),xa(0,1),xa(0,2),inside(0));
+                  	if( inside(0) )
+                  	{
+                                for( int m=0; m<numberOfMaterialProperties; m++ ){
+  matVal(i1,i2,i3,m) = profileFactor*materialPropertyValues[m]; }
+
+                  	}
+                        } // end FOR_3D
+                    }
+                }
+                else
+                {
+                    printF("computeBodyForcing:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                    OV_ABORT("ERROR: finish me...");
+                }
+            }
+            
+            
+        } // end for different body forcings
+    } // end for grid 
+
+    return 0;
+}
+
+//==============================================================================================
+//
+/// \brief Evaluate the variable material parameters (for plotting for example).
+/// \details This function fills in a grid function with the variable material properties.
+///
+/// \param gf (input) : current solution
+/// \param matPropValues (output) : holds the values of the material properties.
+/// \return values: -1 : there are no variable material properties defined. 
+///
+//==============================================================================================
+int DomainSolver::
+getMaterialProperties( GridFunction & gf, realCompositeGridFunction & matPropValues )
+{
+
+  // Names of material properties are stored here: (Each name should be an entry in the dbase of type real)
+    std::vector<aString> & materialPropertyNames = parameters.dbase.get<std::vector<aString> >("materialPropertyNames");
+    const int numberOfMaterialProperties=materialPropertyNames.size();
+
+    if( true )
+        printF("****** getMaterialProperties: numberOfMaterialProperties=%i, variableMaterialPropertiesOption=%i"
+                      " materialProperties exists=%i \n",
+         	   numberOfMaterialProperties,parameters.dbase.get<int>("variableMaterialPropertiesOption"),
+                      parameters.dbase.has_key("materialProperties"));
+
+    if( numberOfMaterialProperties==0 || !parameters.dbase.has_key("materialProperties") )
+        return -1;  // there are no variable material properties defined.
+    
+
+  // const int & variableMaterialPropertiesOption = parameters.dbase.get<int>("variableMaterialPropertiesOption");
+
+    CompositeGrid & cg = gf.cg;
+    const int numberOfComponentGrids = cg.numberOfComponentGrids();
+    const int numberOfDimensions = cg.numberOfDimensions();
+    
+  // Material properties are stored in an array of GridMaterialProperties objects:
+    std::vector<GridMaterialProperties> & materialProperties = 
+        parameters.dbase.get<std::vector<GridMaterialProperties> >("materialProperties");
+    
+  // --- dimension the grid function that holds the material properties ---
+    Range all;
+    matPropValues.updateToMatchGrid(cg,all,all,all,numberOfMaterialProperties);
+    for( int m=0; m<numberOfMaterialProperties; m++ )
+    {
+        matPropValues.setName(materialPropertyNames[m],m); // set names for components.
+    }
+    
+    Index I1,I2,I3;
+    int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];  // NOTE: iv[0]==i1, iv[1]==i2, iv[2]==i3
+
+  // --- loop over component grids ---
+    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        MappedGrid & mg = cg[grid];
+    
+        const intArray & mask = mg.mask();
+        OV_GET_SERIAL_ARRAY_CONST(int,mask,maskLocal);
+        OV_GET_SERIAL_ARRAY(real,matPropValues[grid],matPropValuesLocal);
+
+
+        getIndex( mg.dimension(),I1,I2,I3 );          // all points including ghost points.
+    // restrict bounds to local processor, include ghost
+        bool ok = ParallelUtility::getLocalArrayBounds(mask,maskLocal,I1,I2,I3,1);   
+        if( !ok ) continue;  // no points on this processor
+
+        if( parameters.dbase.get<bool >("twilightZoneFlow") )
+        {
+      // -- For Twilightzone flow we set the material properties from the TZ function ---
+    
+            printF("getMaterialProperties: INFO: Setting material properties to twilight-zone.\n");
+
+      // const int matPropc = parameters.dbase.get<int>("numberOfComponents")+1; // first material property is here
+      // Here is index of the first component: (e.g. look for "rhoc" for elasticty)
+            aString componentName; sPrintF(componentName,"%sc",(const char*)materialPropertyNames[0]);
+            const int matPropc = parameters.dbase.get<int>((const char*)componentName);
+
+            OGFunction *& tz = parameters.dbase.get<OGFunction* >("exactSolution");
+            assert( tz!=NULL );
+            OGFunction & e = *tz;
+
+            mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+            OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+            
+            const real t0=0.;  // evaluate material propeties at t=0
+            const bool isRectangular = false; // ** do this for now **         
+            realSerialArray matProp(I1,I2,I3);
+            for( int m=0; m<numberOfMaterialProperties; m++ )
+            {
+      	e.gd( matProp,xLocal,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,matPropc+m, t0);
+
+      	matPropValuesLocal(I1,I2,I3,m) =matProp;
+            }
+            continue;
+        }
+        
+
+        GridMaterialProperties & matProp = materialProperties[grid];
+        GridMaterialProperties::MaterialFormatEnum materialFormat = matProp.getMaterialFormat();
+        
+        IntegerArray & matIndex = matProp.getMaterialIndexArray();
+        RealArray & matVal      = matProp.getMaterialValuesArray();
+
+        if( true )
+            printF(" getMaterialProperties: grid=%i materialFormat=%i\n",grid,(int)materialFormat);
+        
+        if( materialFormat==GridMaterialProperties::constantMaterialProperties )
+        {
+      // material properties are constant on this grid.
+            for( int m=0; m<numberOfMaterialProperties; m++ )
+            {
+                real matValConst = parameters.dbase.get<real>(materialPropertyNames[m]);
+      	matPropValuesLocal(I1,I2,I3,m) = matValConst;
+            }
+        }
+        else if( materialFormat==GridMaterialProperties::piecewiseConstantMaterialProperties )
+        {
+      // material properties are piecewise constant.
+            for( int m=0; m<numberOfMaterialProperties; m++ )
+            {
+                FOR_3D(i1,i2,i3,I1,I2,I3)
+      	{
+        	  matPropValuesLocal(i1,i2,i3,m) = matVal(m,matIndex(i1,i2,i3));
+      	}
+            }
+        }
+        else if( materialFormat==GridMaterialProperties::variableMaterialProperties )
+        {
+      // material properties vary from grid-point to grid-point
+            for( int m=0; m<numberOfMaterialProperties; m++ )
+            {
+                FOR_3D(i1,i2,i3,I1,I2,I3)
+      	{
+        	  matPropValuesLocal(i1,i2,i3,m) = matVal(i1,i2,i3,m);
+      	}
+            }
+        }
+          
+    } // end for grid 
+
+
+
+    return 0;
+}
+
+
+
+// ===================================================================================================================
+/// \brief Build the dialog that defines different regions for body forces and boundary data.
+/// \param dialog (input) : graphics dialog to use.
+///
+// ==================================================================================================================
+int Parameters::
+buildBodyForceRegionsDialog(DialogData & dialog, BodyForceRegionParameters & regionPar )
+{
+
+    real *boxBounds =  regionPar.dbase.get<real[6] >("boxBounds");
+    real & xa = boxBounds[0];
+    real & xb = boxBounds[1];
+    real & ya = boxBounds[2];
+    real & yb = boxBounds[3];
+    real & za = boxBounds[4];
+    real & zb = boxBounds[5];
+
+
+    real *ellipse =  regionPar.dbase.get<real[6] >("ellipse");
+    real & ae = ellipse[0];
+    real & be = ellipse[1];
+    real & ce = ellipse[2];
+    real & xe = ellipse[3];
+    real & ye = ellipse[4];
+    real & ze = ellipse[5];
+
+
+    aString bodyForceRegionCommands[] = { "box",
+                              					"ellipse",
+                                                                                "mask from grid function",
+                                                                                "region from a mapping...",
+                              					"" };
+    dialog.addOptionMenu("Region:",bodyForceRegionCommands, bodyForceRegionCommands, 0 );
+
+  // ----- Text strings ------
+    const int numberOfTextStrings=10;
+    aString textCommands[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+
+    textCommands[nt] = "box:";       
+    sPrintF(textStrings[nt],"%g,%g, %g,%g, %g,%g (xa,xb, ya,yb, za,zb)",xa,xb,ya,yb,za,zb);  nt++; 
+
+    textCommands[nt] = "ellipse:";  
+    sPrintF(textStrings[nt],"%g,%g,%g, %g,%g,%g (a,b,c, x0,y0,z0)",ae,be,ce,xe,ye,ze);  nt++; 
+
+    int *linesToPlot =  regionPar.dbase.get<int[3] >("linesToPlot");
+    textCommands[nt] = "region lines:";       
+    sPrintF(textStrings[nt],"%i, %i, %i (for plotting)",linesToPlot[0],linesToPlot[1],linesToPlot[2]);  nt++; 
+
+
+  // null strings terminal list
+    textCommands[nt]="";   textCommands[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    dialog.setTextBoxes(textCommands, textCommands, textStrings);
+
+    return 0;
+}
+
+
+//================================================================================
+/// \brief: Look for a response to the BodyForceDialog
+///
+/// \param answer (input) : check this command 
+/// \param regionPar (output) : changes to the region are returned in this object.
+///
+/// \return return 1 if the command was found, 0 otherwise.
+//====================================================================
+int Parameters::
+getBodyForceRegionsOption(const aString & answer,
+                    			  BodyForceRegionParameters & regionPar,
+                    			  DialogData & dialog, 
+                                                    CompositeGrid & cg )
+{
+    GenericGraphicsInterface & gi = *dbase.get<GenericGraphicsInterface* >("ps");
+    GraphicsParameters & psp = dbase.get<GraphicsParameters >("psp");
+
+    real *boxBounds =  regionPar.dbase.get<real[6] >("boxBounds");
+    real & xa = boxBounds[0];
+    real & xb = boxBounds[1];
+    real & ya = boxBounds[2];
+    real & yb = boxBounds[3];
+    real & za = boxBounds[4];
+    real & zb = boxBounds[5];
+
+
+    real *ellipse =  regionPar.dbase.get<real[6] >("ellipse");
+    real & ae = ellipse[0];
+    real & be = ellipse[1];
+    real & ce = ellipse[2];
+    real & xe = ellipse[3];
+    real & ye = ellipse[4];
+    real & ze = ellipse[5];
+
+    int found=true; 
+    int len=0;
+
+    if( answer=="box" ||
+            answer=="ellipse" )
+    {
+        regionPar.dbase.get<aString>("regionType")=answer;
+    }
+    else if( len=answer.matches("box:") )
+    {
+        sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e",&xa,&xb,&ya,&yb,&za,&zb);
+        printF("BodyForceRegion: box bounds = [%e,%e]x[%e,%e][%e,%e]\n",xa,xb,ya,yb,za,zb);
+        dialog.setTextLabel("box:",sPrintF(answer,"%g,%g, %g,%g, %g,%g (xa,xb, ya,yb, za,zb)",xa,xb,ya,yb,za,zb));
+    }
+    else if( len=answer.matches("region lines:") )
+    {
+        int *linesToPlot =  regionPar.dbase.get<int[3] >("linesToPlot");
+        sScanF(answer(len,answer.length()-1),"%i %i %i",&linesToPlot[0],&linesToPlot[1],&linesToPlot[2]);
+        printF("BodyForceRegion: lines for plotting = [%i,%i,%i]\n",linesToPlot[0],linesToPlot[1],linesToPlot[2]);
+        dialog.setTextLabel("region lines:",sPrintF(answer,"%i, %i, %i (for plotting)",
+                                                linesToPlot[0],linesToPlot[1],linesToPlot[2]));
+    }
+    else if( len=answer.matches("ellipse:") )
+    {
+        sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e",&ae,&be,&ce,&xe,&ye,&ze);
+        printF("BodyForceRegion: The ellipse is : [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1 \n"
+         	   "  (ae,be,ce)=(%g,%g,%g) (xe,ye,ze)=(%g,%g,%g)",ae,be,ce,xe,ye,ze);
+        dialog.setTextLabel("ellipse:",sPrintF(answer,"%g,%g,%g, %g,%g,%g (a,b,c, x0,y0,z0)",ae,be,ce,xe,ye,ze));
+    }
+    else if( answer=="mask from grid function" )
+    {
+    // --- the mask is defined as a grid function in a show file ---
+
+        regionPar.dbase.get<aString>("regionType")="maskFromGridFunction";
+
+        printF("INFO: A body force region can be defined by a grid function that contains values of 0. or 1.\n"
+                      "      The body force is turned on where the mask is 1.\n" );
+
+        if( !dbase.has_key("bodyForceMaskGridFunction") )
+        {
+            dbase.put<realCompositeGridFunction*>("bodyForceMaskGridFunction",NULL);
+            dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction") = new realCompositeGridFunction;
+
+      // For now we keep a copy of the body force mask CompositeGrid
+            dbase.put<CompositeGrid*>("bodyForceMaskCompositeGrid",NULL);
+            dbase.get<CompositeGrid*>("bodyForceMaskCompositeGrid") = new CompositeGrid;
+        }
+        realCompositeGridFunction & bodyForceMask = *dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+
+        aString showFileName,answer2;
+        gi.inputString(showFileName,"Enter the name of the show file that contains the mask.\n");
+
+        int solutionNumber;
+        ShowFileReader showFileReader;
+
+        printF("Opening the show file [%s].\n",(const char*)showFileName);
+        
+        showFileReader.open(showFileName);
+        printF("There are %i solutions in the show file.\n",showFileReader.getNumberOfFrames());
+        
+        gi.inputString(answer2,"Enter the solution number (-1 for last).");
+        sScanF(answer2,"%i",&solutionNumber);
+        if( solutionNumber < 0 || solutionNumber > showFileReader.getNumberOfFrames() )
+        {
+            solutionNumber=max(1,showFileReader.getNumberOfFrames());
+        }
+    // *FIX ME* -- we do not need to keep an extra copy of the grid if it is the same as the one we solve on ************
+        CompositeGrid & cg = *dbase.get<CompositeGrid*>("bodyForceMaskCompositeGrid");
+        showFileReader.getASolution(solutionNumber,cg,bodyForceMask);
+        showFileReader.close();
+        
+    }
+    else if( answer=="region from a mapping..." )
+    {
+
+        printF("INFO: A body force region can be defined by Mapping which should be:\n"
+                      "    2D: A closed curve (e.g. defined by NurbsMapping),\n"
+                      "    3D: A closed surface (e.g. defined by an UnstructuredMapping).\n" );
+
+    // --- now let the user define a mapping from the create mappings menu ----
+        MappingInformation mapInfo;
+        mapInfo.graphXInterface=&gi;
+        createMappings( mapInfo );
+    
+        const int numberOfDimensions = cg.numberOfDimensions();
+        
+    // Look for the last Mapping in the list that is a curve in 2d or a surface in 3d.
+        MappingRC *mapPointer=NULL;
+        for( int i=mapInfo.mappingList.getLength()-1; i>=0; i-- )
+        {
+            MappingRC & map = mapInfo.mappingList[i];
+            printF(" map %i : domainDimension=%i, rangeDimension=%i.\n",i,map.getDomainDimension(),map.getRangeDimension());
+            
+            if( map.getRangeDimension()==numberOfDimensions &&
+                    map.getDomainDimension()==numberOfDimensions-1 )
+            {
+      	mapPointer=&map;
+      	printF("Choosing Mapping [%s].\n",(const char*)map.getName(Mapping::mappingName));
+      	break;
+            }
+        }
+        if( mapPointer!=NULL )
+        {
+      // -- A Mapping has been found: this will define a body force region  ---
+
+            regionPar.dbase.get<aString>("regionType")="mapping";
+            if( !regionPar.dbase.has_key("bodyForceMapping") )
+            {
+      	regionPar.dbase.put<MappingRC*>("bodyForceMapping");
+      	regionPar.dbase.get<MappingRC*>("bodyForceMapping")=NULL;
+            }
+            MappingRC *& bodyForceMapping = regionPar.dbase.get<MappingRC*>("bodyForceMapping");
+            if( bodyForceMapping==NULL )
+                bodyForceMapping = new MappingRC();
+            bodyForceMapping->reference(*mapPointer);
+        }
+        else
+        {
+            printF("getBodyForceRegionsOption:WARNING: no suitable Mapping was found to define the body force region!\n");
+        }
+        
+
+    }
+    else
+    {
+        found=false;
+    }
+
+    return found;
+}
+
+
+// ===================================================================================================================
+/// \brief Build the dialog that defines different profiles for the forcing (.e.g. parabolic shape)
+/// \param dialog (input) : graphics dialog to use.
+///
+// ==================================================================================================================
+int Parameters::
+buildForcingProfilesDialog(DialogData & dialog, BodyForceRegionParameters & regionPar )
+{
+
+    real & parabolicProfileDepth =  regionPar.dbase.get<real>("parabolicProfileDepth");
+    real & tanhProfileExponent =  regionPar.dbase.get<real>("tanhProfileExponent");
+
+    aString forcingProfilesCommands[] = { "uniform forcing profile",
+                              					"parabolic forcing profile",
+                                                                                "tanh forcing profile",
+                              					"" };
+    dialog.addOptionMenu("Profile:",forcingProfilesCommands, forcingProfilesCommands, 0 );
+
+  // ----- Text strings ------
+    const int numberOfTextStrings=10;
+    aString textCommands[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+
+    textCommands[nt] = "parabolic depth:";       
+    sPrintF(textStrings[nt],"%g",parabolicProfileDepth);  nt++; 
+
+    textCommands[nt] = "tanh exponent:";       
+    sPrintF(textStrings[nt],"%g",tanhProfileExponent);  nt++; 
+
+  // null strings terminal list
+    textCommands[nt]="";   textCommands[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    dialog.setTextBoxes(textCommands, textCommands, textStrings);
+
+    return 0;
+}
+
+
+//================================================================================
+/// \brief: Look for a response to the ForcingProfiles
+///
+/// \param answer (input) : check this command 
+/// \param regionPar (output) : changes to the region are returned in this object.
+///
+/// \return return 1 if the command was found, 0 otherwise.
+//====================================================================
+int Parameters::
+getForcingProfilesOption(const aString & answer,
+                    			  BodyForceRegionParameters & regionPar,
+                    			  DialogData & dialog )
+{
+    GenericGraphicsInterface & gi = *dbase.get<GenericGraphicsInterface* >("ps");
+    GraphicsParameters & psp = dbase.get<GraphicsParameters >("psp");
+
+    int found=true; 
+    int len=0;
+
+    if( answer=="uniform forcing profile" ||
+            answer=="parabolic forcing profile" ||
+            answer=="tanh forcing profile" )
+    {
+        aString profileType;
+        if(  answer=="uniform forcing profile" )
+            profileType="uniform";
+        else if( answer=="parabolic forcing profile" )
+            profileType="parabolic";
+        else if( answer=="tanh forcing profile" )
+            profileType="tanh";
+        else
+        {
+            OV_ABORT("getForcingProfilesOption:ERROR: unknown profileType");
+        }
+        
+        regionPar.dbase.get<aString>("profileType")=profileType;
+        printF("Setting the forcing profile to be %s\n",(const char*)profileType);
+
+        if( regionPar.dbase.get<aString>("profileType")=="parabolic" )
+        {
+      // output info on the parabolic profile.
+            printF("INFO: The parabolic profile is defined as ... finish me ... \n");
+        }
+        else if( profileType=="tanh" )
+        {
+            printF("Info: The tanh profile defines a smooth transition at the edges of the body force region.\n",
+                          " For a one-dimensional interval [xa,xb] the tanh profile takes the form:\n"
+                          "    u(x,t) = U(x,t) * [  .5*( tanh( b*(x-xa) ) - tanh( b*(x-xb) ) ) ]\n"
+                          " where U(x,t) is the initial profile and b is the `tanh exponent. In more dimensions we'\n"
+                          " multiply the above function by additional `[ ... ]' factors that vary with y and/or z.\n");
+        }
+        
+    }
+    else if( len=answer.matches("parabolic depth:") )
+    {
+        real & parabolicProfileDepth =  regionPar.dbase.get<real>("parabolicProfileDepth");
+
+        sScanF(answer(len,answer.length()-1),"%e",&parabolicProfileDepth);
+        printF("Parabolic profile depth=%g\n",parabolicProfileDepth);
+        dialog.setTextLabel("parabolic depth:",sPrintF(answer,"%g",parabolicProfileDepth));
+    }
+    else if( dialog.getTextValue(answer,"tanh exponent:","%g",regionPar.dbase.get<real>("tanhProfileExponent")) ){}//
+    else
+    {
+        found=false;
+    }
+
+    return found;
+}
+
+
+
+
+// ===================================================================================================================
+/// \brief Build the dialog that allows material parameters to be set.
+/// \param dialog (input) : graphics dialog to use.
+///
+// ==================================================================================================================
+int Parameters::
+buildMaterialParametersDialog(DialogData & dialog, BodyForceRegionParameters & regionPar )
+{
+
+    std::vector<aString> & materialPropertyNames = dbase.get<std::vector<aString> >("materialPropertyNames");
+    const int numberOfMaterialProperties=materialPropertyNames.size();
+
+    const int & variableMaterialPropertiesOption = dbase.get<int>("variableMaterialPropertiesOption");
+
+    aString materialPropertiesCommands[] = { "constant material",
+                                 					   "piecewise constant material",
+                                 					   "variable material",
+                                 					   "" };
+    dialog.addOptionMenu("Material properties:",materialPropertiesCommands, materialPropertiesCommands,
+                   		       variableMaterialPropertiesOption );
+
+  // ----- Text strings ------
+    const int numberOfTextStrings=numberOfMaterialProperties+1;
+    aString *textCommands = new aString[numberOfTextStrings];
+    aString *textStrings  = new aString[numberOfTextStrings];
+
+    int nt=0;
+
+
+    if( numberOfMaterialProperties>0 )
+    {
+        for( int m=0; m<numberOfMaterialProperties; m++ )
+        {
+            aString & matName = materialPropertyNames[m];
+            real matValue = dbase.get<real>(matName); // current (default value) for the material property
+
+            textCommands[nt] = matName;
+            sPrintF(textStrings[nt],"%g",matValue);
+            
+            nt++;
+            
+            regionPar.dbase.put<real>(matName,matValue); // Here is where we store new values for the region
+        }
+    }
+    else if( false )
+    {
+    // *** OLD : 
+
+        if( Parameters::pdeName =="solidMechanics" )
+        {
+            if (!regionPar.dbase.has_key("rho"))    regionPar.dbase.put<real>("rho",dbase.get<real>("rho"));
+            if (!regionPar.dbase.has_key("lambda")) regionPar.dbase.put<real>("lambda",dbase.get<real>("lambda"));
+            if (!regionPar.dbase.has_key("mu"))     regionPar.dbase.put<real>("mu",dbase.get<real>("mu"));
+
+            real & rho    = regionPar.dbase.get<real>("rho");
+            real & lambda = regionPar.dbase.get<real>("lambda");
+            real & mu     = regionPar.dbase.get<real>("mu");
+
+            textCommands[nt] = "rho,lambda,mu:";       
+            sPrintF(textStrings[nt],"%g,%g,%g",rho,lambda,mu);  nt++; 
+        }
+        else if( Parameters::pdeName =="incompressibleNavierStokes" )
+        {
+            if (!regionPar.dbase.has_key("rho")) regionPar.dbase.put<real>("rho",dbase.get<real>("rho"));
+            if (!regionPar.dbase.has_key("Cp"))  regionPar.dbase.put<real>("Cp",dbase.get<real>("Cp"));
+            if (!regionPar.dbase.has_key("thermalConductivity")) 
+      	regionPar.dbase.put<real>("thermalConductivity",dbase.get<real>("thermalConductivity"));
+
+            real & rho = regionPar.dbase.get<real>("rho");
+            real & Cp  = regionPar.dbase.get<real>("Cp");
+            real & thermalConductivity = regionPar.dbase.get<real>("thermalConductivity");
+
+            textCommands[nt] = "rho,Cp,k:";       
+            sPrintF(textStrings[nt],"%g,%g,%g",rho,Cp,thermalConductivity);  nt++; 
+        }
+        else
+        {
+            textCommands[nt] = "finish me ...:";       
+            sPrintF(textStrings[nt],"%g",0.);  nt++; 
+        }
+    }
+    
+    
+  // null strings terminal list
+    textCommands[nt]="";   textCommands[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    dialog.setTextBoxes(textCommands, textCommands, textStrings);
+
+    return 0;
+}
+
+
+//================================================================================
+/// \brief: Look for a response to the MaterialParametersDialog
+///
+/// \param answer (input) : check this command 
+/// \param regionPar (output) : changes to the region are returned in this object.
+///
+/// \return return 1 if the command was found, 0 otherwise.
+//====================================================================
+int Parameters::
+getMaterialParametersOption(const aString & answer,
+                    			  BodyForceRegionParameters & regionPar,
+                    			  DialogData & dialog )
+{
+    GenericGraphicsInterface & gi = *dbase.get<GenericGraphicsInterface* >("ps");
+    GraphicsParameters & psp = dbase.get<GraphicsParameters >("psp");
+
+
+    int found=true; 
+    int len=0;
+
+    if( answer=="constant material" ||
+            answer=="piecewise constant material" ||
+            answer=="variable material" )
+    {
+        int & variableMaterialPropertiesOption = dbase.get<int>("variableMaterialPropertiesOption");
+        if( answer=="constant material" )
+        {
+            variableMaterialPropertiesOption = GridMaterialProperties::constantMaterialProperties;
+            printF("Setting `constant material' : material properties do not change\n");
+        }
+        else if( answer=="piecewise constant material" )
+        {
+            variableMaterialPropertiesOption = GridMaterialProperties::piecewiseConstantMaterialProperties;
+            printF("Setting `piecewise constant material' : material properties are constant within each region.\n");
+        }
+        else if( answer=="variable material" )
+        {
+            variableMaterialPropertiesOption = GridMaterialProperties::variableMaterialProperties;
+            printF("Setting `variable material' : material properties vary continuously.\n");
+        }
+        else
+        {
+            OV_ABORT("Parameters::getMaterialParametersOption:ERROR: unexpected answer -- this should not happen");
+        }
+    }
+//   else if( len=answer.matches("rho,lambda,mu:") )
+//   {
+//     real & rho    = regionPar.dbase.get<real>("rho");
+//     real & lambda = regionPar.dbase.get<real>("lambda");
+//     real & mu     = regionPar.dbase.get<real>("mu");
+
+//     sScanF(answer(len,answer.length()-1),"%e %e %e",&rho,&lambda,&mu);
+//     printF("Setting rho=%g, lambda=%g, mu=%g, as region parameters.\n",rho,lambda,mu);
+//     dialog.setTextLabel("rho,lambda,mu:",sPrintF(answer,"%g,%g,%g",rho,lambda,mu));
+//   }
+//   else if( len=answer.matches("rho,Cp,k:") )
+//   {
+//     real & rho = regionPar.dbase.get<real>("rho");
+//     real & Cp  = regionPar.dbase.get<real>("Cp");
+//     real & thermalConductivity = regionPar.dbase.get<real>("thermalConductivity");
+
+//     sScanF(answer(len,answer.length()-1),"%e %e %e",&rho,&Cp,&thermalConductivity);
+//     printF("Setting rho=%g, Cp=%g, thermalConductivity=%g, as region parameters.\n",rho,Cp,thermalConductivity);
+//     dialog.setTextLabel("rho,Cp,k:",sPrintF(answer,"%g,%g,%g",rho,Cp,thermalConductivity));
+//   }
+    else
+    {
+    // --- look for changes to any of the material properties ---
+
+        found=false;
+
+        std::vector<aString> & materialPropertyNames = dbase.get<std::vector<aString> >("materialPropertyNames");
+        const int numberOfMaterialProperties=materialPropertyNames.size();
+
+        if( numberOfMaterialProperties>0 )
+        {
+            for( int m=0; m<numberOfMaterialProperties; m++ )
+            {
+      	const aString & matName = materialPropertyNames[m];
+      	real & matValue = regionPar.dbase.get<real>(matName); 
+
+      	if( dialog.getTextValue(answer,matName,"%e",matValue) )
+      	{
+        	  printF("Parameters:: setting %s=%g as a region material property.\n",(const char*)matName,matValue);
+                    found=true;
+              	  break;
+      	}
+            }
+        }
+    }
+
+    return found;
+}
+
+
+
+//\begin{>>DomainSolverInclude.tex}{\subsection{setupUserDefinedForcing}}  
+int Parameters::
+setupBodyForcing(CompositeGrid & cg)
+//==============================================================================================
+// /Description:
+//    Setup the body forcings. This function is used to setup and define different body forces.
+// The function getBodyForcing (above) is called to actually assign the forcing.
+//
+// /Return values: 0=success, non-zero=failure.
+//\end{DomainSolverInclude.tex}  
+//==============================================================================================
+{
+    GenericGraphicsInterface & gi = *dbase.get<GenericGraphicsInterface* >("ps");
+
+  // We save the different body forcings in an array:
+    if( !dbase.has_key("bodyForcings") )
+    {
+    // Note: We save pointers here instead of objects since adding elements to an std::vector calls the
+    // copy constructor, equals operator and destructor. Defining an equals operator is difficult 
+    // since entries are added to the BodyForce dbase.
+        dbase.put<std::vector<BodyForce*> >("bodyForcings");
+    }
+    
+  // Here is the array of body forcings:
+    std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
+    bool & turnOnBodyForcing = dbase.get<bool >("turnOnBodyForcing"); 
+
+    GUIState dialog;
+
+    dialog.setWindowTitle("Define Body Forcings");
+    dialog.setExitCommand("exit", "exit");
+
+
+  // Here is where we save the current parameters that define any body force region type:
+    BodyForceRegionParameters regionPar;
+    
+  // body forcing name:
+    aString bodyForcingName="bodyForcing0";
+    
+  // drag force has a linear and quadratic component
+    real dragCoeff1=1., dragCoeff2=1.;
+
+  // Heat source per unit volume: 
+    real heatCoefficient=1.;
+    
+    real bodyTemperature=0;             // temperature inside a body
+    real bodyVelocity[3] = { 0.,0.,0.}; // velocity inside a body (e.g. immersed boundary)
+
+    BodyForce::bodyTemperatureOptionEnum bodyTemperatureOption=BodyForce::adiabaticBody;
+
+    aString immersedBoundaryTemperatureOptionsCommands[] = { "adiabatic body",
+                                             							   "isothermal body",
+                                             							   "conducting body",
+                                             							   "" };
+    dialog.addOptionMenu("Body heat transfer:",immersedBoundaryTemperatureOptionsCommands, 
+                   		       immersedBoundaryTemperatureOptionsCommands,(int)bodyTemperatureOption);
+
+  //   printF("INFO: After setting drag force parameters choose `add drag force' to create the drag forcing.\n");
+
+  // option menus
+  //     dialog.setOptionMenuColumns(1);
+    aString cmds[] = {"choose region...",
+                                        "define material properties...",
+                                        "add drag force",
+                                        "set drag force",
+                                        "add heat source",
+                                        "set heat source",
+                                        "add immersed boundary",
+                                        "set immersed boundary",
+                                        "set material properties",
+                                        "define temperature time variation...",
+                                        "plot",
+                                        "plot grid",
+                		    "help",
+                		    ""};
+    int numberOfPushButtons=13;  // number of entries in cmds
+    int numRows=(numberOfPushButtons+1)/2; // (numberOfPushButtons+1)/2;
+    dialog.setPushButtons( cmds, cmds, numRows ); 
+
+//   aString tbCommands[] = {"three dimensional",
+//  			  ""};
+//   int tbState[10];
+
+//   bool makeThreeDimensional=false;
+    
+//   tbState[0] = makeThreeDimensional;
+//   int numColumns=1;
+//   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+    const int numberOfTextStrings=7;  // max number allowed
+    aString textCommands[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+
+    int nt=0;
+
+    textCommands[nt] = "drag coefficients:";  
+    sPrintF(textStrings[nt],"%g, %g (linear,quadratic)",dragCoeff1,dragCoeff2);  nt++;   
+
+    textCommands[nt] = "heat coefficient:";  
+    sPrintF(textStrings[nt],"%g",heatCoefficient);  nt++;   
+
+    textCommands[nt] = "body temperature:";  
+    sPrintF(textStrings[nt],"%g",bodyTemperature);  nt++;   
+
+    textCommands[nt] = "body velocity:";  
+    sPrintF(textStrings[nt],"%g %g %g",bodyVelocity[0],bodyVelocity[1],bodyVelocity[2]);  nt++;   
+
+    textCommands[nt] = "body forcing name:";  
+    sPrintF(textStrings[nt],"%s",(const char*)bodyForcingName);  nt++;   
+
+  // null strings terminal list
+    textCommands[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    dialog.setTextBoxes(textCommands, textCommands, textStrings);
+
+
+  // ********************* Region options ********************************
+    DialogData &bodyForceRegionsDialog = dialog.getDialogSibling();
+    bodyForceRegionsDialog.setWindowTitle("Body Force Regions");
+    bodyForceRegionsDialog.setExitCommand("close region options", "close");
+    buildBodyForceRegionsDialog( bodyForceRegionsDialog,regionPar );
+
+  // ********************* Material parameters options ********************************
+    DialogData &materialParametersDialog = dialog.getDialogSibling();
+    materialParametersDialog.setWindowTitle("Material Parameters");
+    materialParametersDialog.setExitCommand("close material parameters", "close");
+    buildMaterialParametersDialog( materialParametersDialog,regionPar );
+
+
+    gi.pushGUI(dialog);
+
+
+    int len=0;
+    aString answer,line,answer2; 
+
+    bool plotObject=false;
+    GraphicsParameters & psp = dbase.get<GraphicsParameters >("psp");
+
+    bool regionIsNew=true;  // true if we define a new region
+
+    gi.appendToTheDefaultPrompt("bodyForce>"); // set the default prompt
+    for( int it=0;; it++ )
+    {
+  
+        gi.getAnswer(answer,"");  
+  
+        if( answer=="exit" )
+        {
+            break;
+        }
+        else if( len=answer.matches("drag coefficients:") )
+        {
+            sScanF(answer(len,answer.length()-1),"%e %e",&dragCoeff1,&dragCoeff2);
+            printF("Setting the drag to be F = -dragCoeff1*u -dragCoeff2*|u|*u with dragCoeff1=%g, dragCoeff2=%g\n",
+           	     dragCoeff1,dragCoeff2);
+            dialog.setTextLabel("drag coefficients:",sPrintF("%g, %g (linear,quadratic)",dragCoeff1,dragCoeff2));
+        }
+        else if( dialog.getTextValue(answer,"drag coefficient:","%e",dragCoeff1) ){} // *OLD WAY*
+        else if( dialog.getTextValue(answer,"heat coefficient:","%e",heatCoefficient) ){} //
+        else if( dialog.getTextValue(answer,"body temperature:","%e",bodyTemperature) )
+        {
+            printF("Setting the body temperature=%g (this applies to `immersed boundary' isothermal bodies).\n",
+           	     bodyTemperature);
+        }
+        else if( len=answer.matches("body velocity:") )
+        {
+            sScanF(answer(len,answer.length()-1),"%e %e %e",&bodyVelocity[0],&bodyVelocity[1],&bodyVelocity[2]);
+            printF("Setting the velocity for the interior of immersed boundaries to v=(%8.2e,%8.2e,%8.2e)\n",
+                              bodyVelocity[0],bodyVelocity[1],bodyVelocity[2]);
+            dialog.setTextLabel("body velocity:",sPrintF("%g %g %g",bodyVelocity[0],bodyVelocity[1],bodyVelocity[2]));
+        }
+        else if( dialog.getTextValue(answer,"body forcing name:","%s",bodyForcingName) )
+        {
+            printF("Setting the body name=[%s], this will be the name of NEXT body created.\n",
+           	     (const char*)bodyForcingName);
+        }
+
+        else if( answer=="choose region..." )
+        {
+            bodyForceRegionsDialog.showSibling();
+        }
+        else if( answer=="close region options" )
+        {
+            bodyForceRegionsDialog.hideSibling(); 
+        }
+        else if( getBodyForceRegionsOption(answer,regionPar,bodyForceRegionsDialog,cg ) )
+        {
+            printF("Answer=%s found in getBodyForceRegionsOption.\n",(const char*)answer);
+            regionIsNew=true;
+        }
+
+        else if( answer=="define material properties..." )
+        {
+            materialParametersDialog.showSibling();
+        }
+        else if( answer=="close material parameters" )
+        {
+            materialParametersDialog.hideSibling(); 
+        }
+        else if( getMaterialParametersOption(answer,regionPar,materialParametersDialog ) )
+        {
+            printF("Answer=%s found in getMaterialParametersOption.\n",(const char*)answer);
+        }
+
+        else if( answer=="adiabatic body" ||
+                          answer=="isothermal body" ||
+                          answer=="conducting body" )
+        {
+            if( answer=="adiabatic body" )
+      	bodyTemperatureOption=BodyForce::adiabaticBody;
+            else if( answer=="isothermal body" )
+      	bodyTemperatureOption=BodyForce::isothermalBody;
+            else if( answer=="conducting body" )
+      	bodyTemperatureOption=BodyForce::conductingBody;
+            else
+            {
+                printF("ERROR: Body heat transfer: unknown answer=[%s]\n",(const char*)answer);
+      	continue;
+            }
+            dialog.getOptionMenu("Body heat transfer:").setCurrentChoice(answer);
+        }
+        else if( answer=="add drag force"        || answer=="set drag force" ||
+                          answer=="add heat source"       || answer=="set heat source" ||
+                          answer=="add immersed boundary" || answer=="set immersed boundary" )
+        {
+      // --- Make a new BodyForce and add it to the list ---
+
+            BodyForce *pbf = new BodyForce;
+            bodyForcings.push_back(pbf);
+        	  
+            BodyForce & bodyForce = *bodyForcings[bodyForcings.size()-1];
+        	  
+            printF("Creating a body forcing with name=[%s]. (Note: you should choose the name before creation).\n",
+                          (const char*)bodyForcingName);
+            bodyForce.dbase.get<aString >("bodyForcingName")=bodyForcingName;
+
+      // here is the default name for the next body forcing:
+            sPrintF(bodyForcingName,"bodyForcing%i",bodyForcings.size());
+            dialog.setTextLabel("body forcing name:",bodyForcingName);
+
+            if( !regionIsNew )
+                bodyForce.dbase.get<bool>("visible")=false;  // we do not plot duplicate regions
+
+            regionIsNew=false;  // this region has a body force associated with it
+            
+            if( answer=="add drag force" || answer=="set drag force" )
+            {
+                bodyForce.dbase.get<aString >("forcingType")="dragForce";
+      	bodyForce.dbase.get<bool >("addForcing")=answer=="add drag force";
+      	bodyForce.dbase.get<bool >("forcingIsTimeDependent")=true; // this forcing depends on time
+      	bodyForce.dbase.get<bool >("forcingHasBeenAssigned")=false;
+
+                bodyForce.dbase.put<real[2]>("dragCoefficients");
+                real *dragCoefficients = bodyForce.dbase.get<real[2]>("dragCoefficients");
+                dragCoefficients[0]=dragCoeff1;
+      	dragCoefficients[1]=dragCoeff2;
+            }
+            else if( answer=="add heat source" || answer=="set heat source" )
+            {
+                bodyForce.dbase.get<aString >("forcingType")="heatSource";
+      	bodyForce.dbase.get<bool >("addForcing")=answer=="add heat source";
+      	bodyForce.dbase.get<bool >("forcingIsTimeDependent")=false; // this forcing does NOT depend on time
+      	bodyForce.dbase.get<bool >("forcingHasBeenAssigned")=false;
+                bodyForce.dbase.put<real >("heatCoefficient",heatCoefficient);
+            }
+            else if( answer=="add immersed boundary" || answer=="set immersed boundary" )
+            {
+                bodyForce.dbase.get<aString >("forcingType")="immersedBoundary";
+      	bodyForce.dbase.get<bool >("addForcing")=answer=="add immersed boundary";
+      	bodyForce.dbase.get<bool >("forcingIsTimeDependent")=true; // this forcing depends on time
+      	bodyForce.dbase.get<bool >("forcingHasBeenAssigned")=false;
+
+	// Here is the heat transfer option for the body:
+      	bodyForce.dbase.put<BodyForce::bodyTemperatureOptionEnum>("bodyTemperatureOption",bodyTemperatureOption);
+      	bodyForce.dbase.put<real>("bodyTemperature",bodyTemperature);
+                                
+      	bodyForce.dbase.put<real[3]>("bodyVelocity");
+                real *bv = bodyForce.dbase.get<real[3]>("bodyVelocity");
+      	for( int axis=0; axis<3; axis++ )
+        	  bv[axis]=bodyVelocity[axis];
+
+            }
+            else
+            {
+                OV_ABORT("error");
+            }
+            
+      // Save info about the body force region and profile: 
+            {
+        // Here is the region type ("box", "ellipse", ... ) chosen by the user
+                const aString & regionType = regionPar.dbase.get<aString>("regionType");
+        // Save the region type:
+                if( !bodyForce.dbase.has_key("regionType") )
+                    bodyForce.dbase.put<aString>("regionType");  // region type
+                bodyForce.dbase.get<aString>("regionType")=regionType;
+                if( !bodyForce.dbase.has_key("linesToPlot") )
+                    bodyForce.dbase.put<int[3]>("linesToPlot"); 
+                int *linesToPlot = bodyForce.dbase.get<int[3]>("linesToPlot"); 
+                int *lines =  regionPar.dbase.get<int[3] >("linesToPlot");
+                for( int i=0; i<3; i++ )
+                    linesToPlot[i]=lines[i];
+                if( regionType=="box" )
+                {
+                    bodyForce.dbase.put<real[6] >("boxBounds");
+                    real *boxBounds =  bodyForce.dbase.get<real[6]>("boxBounds");
+                    const real *bpar = regionPar.dbase.get<real[6]>("boxBounds");
+                    for( int i=0; i<6; i++ )
+                        boxBounds[i]=bpar[i];
+                }
+                else if( regionType=="ellipse" )
+                {
+                    bodyForce.dbase.put<real[6] >("ellipse");
+                    real *ellipse    =  bodyForce.dbase.get<real[6]>("ellipse");
+                    const real *epar =  regionPar.dbase.get<real[6]>("ellipse");
+                    for( int i=0; i<6; i++ )
+                        ellipse[i]=epar[i];
+                }
+                else if( regionType=="maskFromGridFunction" )
+                {
+          // region defined from a mask in a grid function
+                }
+                else if( regionType=="mapping" )
+                {
+          // region defined by a closed curve in 2D or a 3D surface
+          // -- Make a copy of the Mapping that was temporarily saved in the regionPar --
+                    assert( regionPar.dbase.has_key("bodyForceMapping") );
+                    MappingRC *& regionParMapping = regionPar.dbase.get<MappingRC*>("bodyForceMapping"); 
+                    assert( regionParMapping!=NULL );
+                    printF("saveBodyForce: regionParMapping referenceCount=%i BEFORE\n",regionParMapping->getMapping().getReferenceCount());
+                    if( !bodyForce.dbase.has_key("bodyForceMapping") )
+                    {
+                        bodyForce.dbase.put<MappingRC*>("bodyForceMapping");
+                        bodyForce.dbase.get<MappingRC*>("bodyForceMapping")=NULL;
+                    }
+                    MappingRC *& bodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                    if( bodyForceMapping==NULL )
+                        bodyForceMapping = new MappingRC();
+                    bodyForceMapping->reference(*regionParMapping);
+                    printF("saveBodyForce: regionParMapping referenceCount=%i\n",regionParMapping->getMapping().getReferenceCount());
+                    printF("saveBodyForce: bodyForceMapping referenceCount=%i\n",bodyForceMapping->getMapping().getReferenceCount());
+                }
+                else
+                {
+                    printF("defineVariableBoundaryValues:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                    OV_ABORT("ERROR: finish me...");
+                }
+        // Save the profile type
+                const aString & profileType = regionPar.dbase.get<aString>("profileType");
+                bodyForce.dbase.put<aString>("profileType");  
+                bodyForce.dbase.get<aString>("profileType")=profileType;
+                if( profileType=="parabolic" )
+                {
+                    bodyForce.dbase.put<real>("parabolicProfileDepth");
+                    bodyForce.dbase.get<real>("parabolicProfileDepth")=regionPar.dbase.get<real>("parabolicProfileDepth"); 
+                }
+                else if( profileType=="tanh" )
+                {
+                    bodyForce.dbase.put<real>("tanhProfileExponent");
+                    bodyForce.dbase.get<real>("tanhProfileExponent")=regionPar.dbase.get<real>("tanhProfileExponent"); 
+                }
+            }
+
+            
+        }
+        else if( answer=="set material properties" )
+        {
+      // We save the different regions and values for material properties in an array:
+            if( !dbase.has_key("materialPropertyRegions") )
+            {
+      	dbase.put<std::vector<BodyForce*> >("materialPropertyRegions");
+            }
+    
+            std::vector<aString> & materialPropertyNames = dbase.get<std::vector<aString> >("materialPropertyNames");
+            const int numberOfMaterialProperties=materialPropertyNames.size();
+
+      // Here is the array of material property regions and values
+            std::vector<BodyForce*> & materialPropertyRegions =  dbase.get<std::vector<BodyForce*> >("materialPropertyRegions");
+
+
+            materialPropertyRegions.push_back(new BodyForce());
+            BodyForce & materialRegion = *materialPropertyRegions[materialPropertyRegions.size()-1];
+
+            materialRegion.dbase.get<aString >("forcingType")="materialProperty";
+            materialRegion.dbase.put<real*>("materialPropertyValues",NULL);
+            real *& materialPropertyValues = materialRegion.dbase.get<real*>("materialPropertyValues");
+            
+            materialPropertyValues = new real[numberOfMaterialProperties];  // *** DELETE ME when done *******
+
+            for( int m=0; m<numberOfMaterialProperties; m++ )
+            {
+                materialPropertyValues[m]= regionPar.dbase.get<real>(materialPropertyNames[m]); 	
+            }
+            
+      // Save info about the body force region and profile: 
+            {
+        // Here is the region type ("box", "ellipse", ... ) chosen by the user
+                const aString & regionType = regionPar.dbase.get<aString>("regionType");
+        // Save the region type:
+                if( !materialRegion.dbase.has_key("regionType") )
+                    materialRegion.dbase.put<aString>("regionType");  // region type
+                materialRegion.dbase.get<aString>("regionType")=regionType;
+                if( !materialRegion.dbase.has_key("linesToPlot") )
+                    materialRegion.dbase.put<int[3]>("linesToPlot"); 
+                int *linesToPlot = materialRegion.dbase.get<int[3]>("linesToPlot"); 
+                int *lines =  regionPar.dbase.get<int[3] >("linesToPlot");
+                for( int i=0; i<3; i++ )
+                    linesToPlot[i]=lines[i];
+                if( regionType=="box" )
+                {
+                    materialRegion.dbase.put<real[6] >("boxBounds");
+                    real *boxBounds =  materialRegion.dbase.get<real[6]>("boxBounds");
+                    const real *bpar = regionPar.dbase.get<real[6]>("boxBounds");
+                    for( int i=0; i<6; i++ )
+                        boxBounds[i]=bpar[i];
+                }
+                else if( regionType=="ellipse" )
+                {
+                    materialRegion.dbase.put<real[6] >("ellipse");
+                    real *ellipse    =  materialRegion.dbase.get<real[6]>("ellipse");
+                    const real *epar =  regionPar.dbase.get<real[6]>("ellipse");
+                    for( int i=0; i<6; i++ )
+                        ellipse[i]=epar[i];
+                }
+                else if( regionType=="maskFromGridFunction" )
+                {
+          // region defined from a mask in a grid function
+                }
+                else if( regionType=="mapping" )
+                {
+          // region defined by a closed curve in 2D or a 3D surface
+          // -- Make a copy of the Mapping that was temporarily saved in the regionPar --
+                    assert( regionPar.dbase.has_key("bodyForceMapping") );
+                    MappingRC *& regionParMapping = regionPar.dbase.get<MappingRC*>("bodyForceMapping"); 
+                    assert( regionParMapping!=NULL );
+                    printF("saveBodyForce: regionParMapping referenceCount=%i BEFORE\n",regionParMapping->getMapping().getReferenceCount());
+                    if( !materialRegion.dbase.has_key("bodyForceMapping") )
+                    {
+                        materialRegion.dbase.put<MappingRC*>("bodyForceMapping");
+                        materialRegion.dbase.get<MappingRC*>("bodyForceMapping")=NULL;
+                    }
+                    MappingRC *& bodyForceMapping = materialRegion.dbase.get<MappingRC*>("bodyForceMapping");
+                    if( bodyForceMapping==NULL )
+                        bodyForceMapping = new MappingRC();
+                    bodyForceMapping->reference(*regionParMapping);
+                    printF("saveBodyForce: regionParMapping referenceCount=%i\n",regionParMapping->getMapping().getReferenceCount());
+                    printF("saveBodyForce: bodyForceMapping referenceCount=%i\n",bodyForceMapping->getMapping().getReferenceCount());
+                }
+                else
+                {
+                    printF("defineVariableBoundaryValues:ERROR: unexpected regionType=%s\n",(const char*)regionType);
+                    OV_ABORT("ERROR: finish me...");
+                }
+        // Save the profile type
+                const aString & profileType = regionPar.dbase.get<aString>("profileType");
+                materialRegion.dbase.put<aString>("profileType");  
+                materialRegion.dbase.get<aString>("profileType")=profileType;
+                if( profileType=="parabolic" )
+                {
+                    materialRegion.dbase.put<real>("parabolicProfileDepth");
+                    materialRegion.dbase.get<real>("parabolicProfileDepth")=regionPar.dbase.get<real>("parabolicProfileDepth"); 
+                }
+                else if( profileType=="tanh" )
+                {
+                    materialRegion.dbase.put<real>("tanhProfileExponent");
+                    materialRegion.dbase.get<real>("tanhProfileExponent")=regionPar.dbase.get<real>("tanhProfileExponent"); 
+                }
+            }
+
+
+        }
+
+        else if( answer=="define temperature time variation..." )
+        {
+      // Define a time dependent temperature forcing for the current bodyForce
+
+            BodyForce & bodyForce = *bodyForcings[bodyForcings.size()-1];
+
+            printF("Define a time dependent temperature forcing. NOTE: this is associated with last body forcing"
+                          " that was created, name=[%s].\n",(const char*)bodyForce.dbase.get<aString >("bodyForcingName"));
+            
+            if( !bodyForce.dbase.has_key("timeFunctionTemperature") )
+            {
+                bodyForce.dbase.put<TimeFunction>("timeFunctionTemperature");
+            }
+            TimeFunction & timeFunction = bodyForce.dbase.get<TimeFunction>("timeFunctionTemperature");
+
+            timeFunction.update(gi);
+
+        }
+
+        else if( answer=="plot grid" )
+        {
+            gi.erase();
+            PlotIt::plot(gi,cg,psp); 
+
+            plotObject=true;
+        }
+        else if( answer=="help" )
+        {
+
+            printF("Use this routine to define body forces that are applied over a given region.\n");
+    
+            printF("  Drag force:   (fu,fv,fw) = - (dragCoeff1 + dragCoeff2*U)*(u,v,w),   where U = flow speed\n");
+            printF("  Heat source:  fT = heatCoefficient*T  \n");
+            printF("  Immersed boundary: the forcing is chosen to approximate a no-slip wall. \n");
+            
+        }
+        else if( answer=="exit" )
+        {
+            break;
+        }
+        else if( answer=="plot" )
+        {
+            plotObject=true;
+        }
+        else
+        {
+            printF("Unknown answer =[%s]\n",(const char*)answer);
+            gi.stopReadingCommandFile();
+        }
+
+    // set to true if body forcings are defined: 
+        turnOnBodyForcing = (bodyForcings.size()>0) || dbase.get<bool >("turnOnUserDefinedForcing");
+
+    // only plot if graphics is on and we are not reading from a command file.
+        plotObject= plotObject && gi.isInteractiveGraphicsOn() && !gi.readingFromCommandFile();
+        
+        if( plotObject )
+        {
+            psp.set(GI_TOP_LABEL,"Body Force Regions");
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+            gi.erase();
+      // Plot body/boundary forcing regions and immersed boundaries. 
+            BodyForce::plotForcingRegions(gi,dbase,cg,psp); 
+            PlotIt::plot(gi,cg,psp); 
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+        }
+
+    } // end for it
+    
+    gi.erase();
+    gi.unAppendTheDefaultPrompt();  // reset
+
+    gi.popGUI(); // restore the previous GUI
+
+
+  // set to true if body forcings are defined: 
+    turnOnBodyForcing = (bodyForcings.size()>0) || dbase.get<bool >("turnOnUserDefinedForcing");
+
+    return 0;
+
+}
+
+
+
+//! This routine is called when DomainSolver is finished and can be used to clean up memory.
+void DomainSolver::
+bodyForcingCleanup()
+{
+  // Finish me 
+
+//   if( parameters.dbase.get<int >("myid")==0 ) 
+//     printf("***userDefinedForcingCleanup: delete arrays\n");
+
+//   if( parameters.dbase.get<DataBase >("modelData").has_key("userDefinedForcingData") )
+//   {
+//     DataBase & db = parameters.dbase.get<DataBase >("modelData").get<DataBase>("userDefinedForcingData");
+//   }
+    
+}

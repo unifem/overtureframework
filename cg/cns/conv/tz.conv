@@ -1,0 +1,107 @@
+#
+# Measure convergence rates for cgcns and the twilight-zone
+#
+# -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir,
+# 
+# To run the convergence tests type: 
+# 
+# -- nonSquare:
+#  conv.p tz.conv -tp=.2 -tf=.2 -ad=0. -slopeLimiter=0 -bc1=slip -cg=nonSquare -ng=3 -alwaysCompute=1
+#   ...Convergence rates: c0=1.89 c1=1.92 c2=1.96 c3=2.00
+# -- Annulus:
+#  conv.p tz.conv -tp=.2 -tf=.2 -ad=0. -slopeLimiter=0 -bc1=slip -cg=annulus -ng=3 -alwaysCompute=1
+#    .. Convergence rates: c0=2.08 c1=2.05 c2=1.89 c3=1.81  [SEE tz.out for more results]
+#
+# -- Disk high-order slip wall BC's
+#  conv.p tz.conv -tp=.2 -tf=.2 -ad=0.5 -slopeLimiter=0 -reduceInterpWidth=3 -bc1=slip -cg=sicFixed -ng=3 -alwaysCompute=1
+#   ... Convergence rates: c0=1.89 c1=2.05 c2=1.66 c3=1.73
+#
+#
+# --------options: 
+#   -bcOption: slip-wall BC: 0=default, 4=2nd-order-BC
+#   -slopeLimiter : 1=turn on limiter
+#   -tz 
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+# ---------------------
+# 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgsmCmd = "$CGBUILDPREFIX/cns/bin/cgcns";  # command for cgcns
+$cmdDir="$ENV{CG}/cns/cmd"; 
+$cmdFile="$ENV{CG}/cns/cmd/tz.cmd"; 
+# Set default parameters: 
+$cnsVariation = "godunov"; $tz="trig"; $bcn = "d"; $en="max"; $ng=4; $tf=.5; $bcOption=4; $slopeLimiter=1; $dtMax=1.e3; 
+$tPlot=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; $ad=0.; $numberOfParallelGhost=2; $cgrid=0; 
+$bc1="slipWall"; $bc2="slipWall"; $bc3="slipWall"; $bc4="slipWall";  $bc5="slipWall";  $bc6=""; $reduceInterpWidth=2; 
+#
+$amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
+$cg = "expand"; $alwaysCompute=1; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+$case="tz"; 
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,\
+            "diss=f"=>\$diss,"tp=f"=>\$tPlot,"alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,\
+            "showAllComponents=i"=>\$showAllComponents,"bg=s"=>\$bg,"amr=i"=>\$amr,"tol=f"=>\$tol,"nrl=i"=>\$nrl,\
+            "nbz=i"=>\$nbz,"ratio=i"=>\$ratio,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"cfl=f"=>\$cfl,"ad=f"=>\$ad,\
+            "cgsmCmd=s"=>\$cgsmCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"bcOption=i"=>\$bcOption,\
+            "case=s"=>\$case,"slopeLimiter=i"=>\$slopeLimiter,"dtMax=f"=>\$dtMax,"cgrid=i"=>\$cgrid,\
+            "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
+            "reduceInterpWidth=i"=> \$reduceInterpWidth,"cnsVariation=s"=>\$cnsVariation,"tz=s"=>\$tz );
+#
+if( $cg eq "nonSquare" ){ $case = "tzNonSquare"; }
+if( $cg eq "sicFixed" ){ $case = "tzsic"; }
+if( $cg eq "annulus" ){ $case = "tzannulus"; }
+$check="cns.check";
+#
+$caseName="$case.$cg.$cnsVariation"; 
+$name="$case.$cg.$pv"; 
+#
+# --- define the table heading and caption --
+# 
+if( $nd eq 2 )\
+{ $numberOfComponents= 4; \
+  $title ="grid  \& N \&  \$rho\$  \& \$u\$  \& \$v\$  \& \$T\$  ";\
+  @componentName = ( "r", "v0", "v1" , "T" );\
+}\
+else\
+{ $numberOfComponents= 5;\
+  $title ="grid  \& N \&  \$rho\$  \& \$u\$  \& \$v\$ \& \$w\$   \& \$T\$  ";\
+  @componentName = ( "r", "u", "v" , "w", "T" );\
+}
+$caption= "\\caption\{Cgcns, $name, \$t=$tf\$, $cnsVariation, bcOption=$bcOption, slopeLimiter=$slopeLimiter, ad=$ad, cfl=$cfl $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = " -bcOption=$bcOption -cnsVariation=$cnsVariation -tp=$tPlot -tf=$tf -tz=$tz -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -en=$en -slopeLimiter=$slopeLimiter -reduceInterpWidth=$reduceInterpWidth -ad=$ad -cgrid=$cgrid -go=go";
+# 
+if( $cg eq "nonSquare" ){\
+$grid1="nonSquare16";  $gName1 = "nonSquare16.order2"; \
+$grid2="nonSquare32";  $gName2 = "nonSquare32.order2"; \
+$grid3="nonSquare64";  $gName3 = "nonSquare64.order2"; \
+$grid4="nonSquare128"; $gName4 = "nonSquare128.order2"; \
+$grid5="nonSquare256"; $gName5 = "nonSquare256.order2"; }
+if( $cg eq "sicFixed" ){\
+$grid1="sicFixed2";  $gName1 = "sicFixede2.order2"; \
+$grid2="sicFixed4";  $gName2 = "sicFixede4.order2"; \
+$grid3="sicFixed8";  $gName3 = "sicFixede8.order2"; \
+$grid4="sicFixed16"; $gName4 = "sicFixede16.order2"; \
+$grid5="sicFixed32"; $gName5 = "sicFixede32.order2"; }
+if( $cg eq "annulus" ){\
+$grid1="annulus2";  $gName1 = "annulus2.order2"; \
+$grid2="annulus4";  $gName2 = "annulus4.order2"; \
+$grid3="annulus8";  $gName3 = "annulus8.order2"; \
+$grid4="annulus16"; $gName4 = "annulus16.order2"; \
+$grid5="annulus32"; $gName5 = "annulus32.order2"; }
+
+# 
+# 
+$grid=$grid1; $res=1; $cmd="$cgsmCmd -noplot $cmdFile -g=$gName1 $options";
+$grid=$grid2; $res=2; $cmd="$cgsmCmd -noplot $cmdFile -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4;  $cmd="$cgsmCmd -noplot $cmdFile -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8;  $cmd="$cgsmCmd -noplot $cmdFile -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgsmCmd -noplot $cmdFile -g=$gName5 $options";}
+if( $ng > 5 ){ $grid=$grid6; $res=32; $cmd="$cgsmCmd -noplot $cmdFile -g=$gName6 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

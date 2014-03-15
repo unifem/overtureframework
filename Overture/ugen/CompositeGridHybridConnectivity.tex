@@ -1,0 +1,18 @@
+\subsection{Composite Grid Hybrid Connectivities}
+ 
+\newlength{\CompositeGridHybridConnectivityArgIndent}
+ A {\tt CompositeGridHybridConnectivity} manages the mappings between the structured and 
+ unstructured components of hybrid meshes contained in a CompositeGrid.  This class
+ enables a user to iterate through the boundary faces of an unstructured mesh and access
+ the adjacent structured elements.  The inverse is also available where
+ the user iterates through the elements in a structured grid seeking the adjacent unstructured 
+ elements, if any exist.
+\subsection{Connectivity data}
+ 
+ \itemize
+  \item gridIndex2UnstructuredVertex : maps a particular grid and index 
+ into an unstructured grid and vertex id
+  \item unstructuredVertex2GridIndex : maps an unstructured vertex into a grid and index
+  \item gridVertex2UnstructuredVertex : condensation of vertexIDMapping, contains all the vertices on a particular grid that are on
+ a hybrid interface
+  \item boundaryFaceMapping : maps the boundary element of unstructured boundary faces into a grid and zone index

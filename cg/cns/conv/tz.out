@@ -1,0 +1,131 @@
+**** 2011/07/10
+
+-- nonSquare
+
+conv.p tz.conv -tp=.2 -tf=.2 -ad=0. -slopeLimiter=0 -bc1=slip -cg=nonSquare -ng=3 -alwaysCompute=1
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+         nonSquare16 &     1 & 3.10e-03 &      & 6.45e-03 &      & 4.53e-03 &      & 2.56e-03 &
+         nonSquare32 &     2 & 8.64e-04 &  3.6 & 1.77e-03 &  3.6 & 1.18e-03 &  3.8 & 6.39e-04 &  4.0
+         nonSquare64 &     4 & 2.26e-04 &  3.8 & 4.48e-04 &  4.0 & 3.00e-04 &  3.9 & 1.59e-04 &  4.0
+
+
+-- sicFixed:
+
+conv.p tz.conv -tp=.2 -tf=.2 -ad=0.5 -slopeLimiter=0 -reduceInterpWidth=3 -bc1=slip -cg=sicFixed -ng=3 -alwaysCompute=1
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+           sicFixed2 &     1 & 6.99e-03 &      & 1.05e-02 &      & 5.03e-03 &      & 5.33e-03 &
+           sicFixed4 &     2 & 1.94e-03 &  3.6 & 2.53e-03 &  4.2 & 1.66e-03 &  3.0 & 1.71e-03 &  3.1
+           sicFixed8 &     4 & 5.06e-04 &  3.8 & 6.10e-04 &  4.1 & 5.05e-04 &  3.3 & 4.82e-04 &  3.5
+Convergence rates: c0=1.89 c1=2.05 c2=1.66 c3=1.73
+
+
+conv.p tz.conv -tp=.1 -tf=.1 -ad=0. -slopeLimiter=0 -bc1=slip -cg=sicFixed -ng=3 -alwaysCompute=1
+
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+           sicFixed2 &     1 & 2.77e-03 &      & 6.28e-03 &      & 4.19e-03 &      & 2.48e-03 &
+           sicFixed4 &     2 & 1.02e-03 &  2.7 & 2.13e-03 &  2.9 & 1.05e-03 &  4.0 & 6.55e-04 &  3.8
+           sicFixed8 &     4 & 3.16e-04 &  3.2 & 6.03e-04 &  3.5 & 4.27e-04 &  2.5 & 1.92e-04 &  3.4
+Convergence rates: c0=1.57 c1=1.69 c2=1.65 c3=1.85
+
+
+
+
+---- Again, using final version of cnsSlipWallBC2.bf
+
+conv.p tz.conv -tp=.2 -tf=.2 -ad=0. -slopeLimiter=0 -bc1=slip -cg=annulus -ng=3 -alwaysCompute=1
+
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+            annulus2 &     1 & 3.00e-03 &      & 6.70e-03 &      & 2.43e-03 &      & 4.77e-03 &
+            annulus4 &     2 & 6.98e-04 &  4.3 & 1.62e-03 &  4.1 & 6.87e-04 &  3.5 & 1.48e-03 &  3.2
+            annulus8 &     4 & 1.68e-04 &  4.2 & 3.93e-04 &  4.1 & 1.78e-04 &  3.9 & 3.90e-04 &  3.8
+Convergence rates: c0=2.08 c1=2.05 c2=1.89 c3=1.81
+
+
+-- Given solution at inflow points on the boundary
+conv.p tz.conv -tp=.5 -tf=.5 -ad=.5 -slopeLimiter=0 -bc1=slip -cg=annulus -ng=3 -alwaysCompute=1
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+            annulus2 &     1 & 1.06e-02 &      & 1.36e-02 &      & 1.13e-02 &      & 1.18e-02 &
+            annulus4 &     2 & 3.28e-03 &  3.2 & 3.98e-03 &  3.4 & 3.05e-03 &  3.7 & 3.31e-03 &  3.6
+            annulus8 &     4 & 8.92e-04 &  3.7 & 1.07e-03 &  3.7 & 8.17e-04 &  3.7 & 8.68e-04 &  3.8
+Convergence rates: c0=1.79 c1=1.83 c2=1.89 c3=1.88
+
+
+conv.p tz.conv -tp=.5 -tf=.5 -ad=0. -slopeLimiter=0 -bc1=slip -cg=annulus -ng=3 -alwaysCompute=1
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+            annulus2 &     1 & 6.71e-03 &      & 7.87e-03 &      & 5.42e-03 &      & 4.53e-03 &
+            annulus4 &     2 & 1.89e-03 &  3.6 & 2.20e-03 &  3.6 & 1.43e-03 &  3.8 & 1.19e-03 &  3.8
+            annulus8 &     4 & 5.13e-04 &  3.7 & 5.78e-04 &  3.8 & 3.90e-04 &  3.7 & 3.28e-04 &  3.6
+Convergence rates: c0=1.85 c1=1.88 c2=1.90 c3=1.89
+
+
+conv.p tz.conv -tp=.2 -tf=.2 -ad=0. -slopeLimiter=0 -bc1=slip -cg=annulus -ng=3 -alwaysCompute=1
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+            annulus2 &     1 & 3.07e-03 &      & 6.70e-03 &      & 2.41e-03 &      & 4.39e-03 &
+            annulus4 &     2 & 6.97e-04 &  4.4 & 1.62e-03 &  4.1 & 6.80e-04 &  3.5 & 1.40e-03 &  3.1
+            annulus8 &     4 & 1.68e-04 &  4.1 & 3.91e-04 &  4.1 & 1.76e-04 &  3.9 & 3.90e-04 &  3.6
+Convergence rates: c0=2.10 c1=2.05 c2=1.89 c3=1.75
+
+
+-- add artificial diffusion:
+conv.p tz.conv -tp=.1 -tf=.1 -ad=1. -slopeLimiter=0 -bc1=slip -cg=annulus -ng=3 -alwaysCompute=1 
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+            annulus2 &     1 & 8.33e-03 &      & 8.83e-03 &      & 3.91e-03 &      & 4.83e-03 &
+            annulus4 &     2 & 3.16e-03 &  2.6 & 2.24e-03 &  3.9 & 1.47e-03 &  2.7 & 1.51e-03 &  3.2
+            annulus8 &     4 & 1.43e-03 &  2.2 & 1.07e-03 &  2.1 & 1.04e-03 &  1.4 & 8.25e-04 &  1.8
+Convergence rates: c0=1.27 c1=1.52 c2=0.96 c3=1.27
+
+
+
+**** 2011/07/09
+
+>>>>>>>>>>>>>> annulus
+
+conv.p tz.conv -tp=.1 -tf=.1 -slopeLimiter=0 -bc1=slip -cg=annulus -ng=3 -alwaysCompute=1 
+
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+            annulus2 &     1 & 4.71e-03 &      & 3.45e-03 &      & 2.80e-03 &      & 2.30e-03 &
+            annulus4 &     2 & 1.78e-03 &  2.6 & 1.61e-03 &  2.1 & 1.58e-03 &  1.8 & 1.41e-03 &  1.6
+            annulus8 &     4 & 9.73e-04 &  1.8 & 1.11e-03 &  1.5 & 1.08e-03 &  1.5 & 1.05e-03 &  1.3
+Convergence rates: c0=1.14 c1=0.82 c2=0.69 c3=0.57
+
+-bcOption=0
+
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+            annulus2 &     1 & 2.23e-03 &      & 3.69e-03 &      & 1.38e-03 &      & 2.34e-03 &
+            annulus4 &     2 & 6.42e-04 &  3.5 & 8.60e-04 &  4.3 & 4.07e-04 &  3.4 & 5.51e-04 &  4.2
+            annulus8 &     4 & 1.68e-04 &  3.8 & 2.03e-04 &  4.2 & 1.10e-04 &  3.7 & 1.32e-04 &  4.2
+Convergence rates: c0=1.87 c1=2.09 c2=1.82 c3=2.07
+
+
+
+>>>>>>>>>>>>>>> sicFixed:
+
+Extrap T to order 3 instead of using p.n : -- better!
+conv.p tz.conv -tp=.1 -tf=.1 -slopeLimiter=1 -bc1=slip -cg=sicFixed -ng=3 -alwaysCompute=1 -bcOption=4
+               grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+           sicFixed2 &     1 & 5.01e-03 &      & 6.29e-03 &      & 4.24e-03 &      & 3.12e-03 &
+           sicFixed4 &     2 & 1.02e-03 &  4.9 & 2.13e-03 &  3.0 & 1.67e-03 &  2.5 & 8.74e-04 &  3.6
+           sicFixed8 &     4 & 4.23e-04 &  2.4 & 1.10e-03 &  1.9 & 1.06e-03 &  1.6 & 6.25e-04 &  1.4
+Convergence rates: c0=1.78 c1=1.26 c2=1.00 c3=1.16
+
+
+
+-bcOption=0 OK:
+conv.p tz.conv -tp=.1 -tf=.1 -slopeLimiter=0 -bc1=slip -cg=sicFixed -ng=3 -alwaysCompute=1 -bcOption=0
+
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+           sicFixed2 &     1 & 1.62e-03 &      & 4.78e-03 &      & 2.39e-03 &      & 1.66e-03 &
+           sicFixed4 &     2 & 5.64e-04 &  2.9 & 1.17e-03 &  4.1 & 7.10e-04 &  3.4 & 4.03e-04 &  4.1
+           sicFixed8 &     4 & 1.76e-04 &  3.2 & 3.87e-04 &  3.0 & 2.74e-04 &  2.6 & 1.03e-04 &  3.9
+Convergence rates: c0=1.60 c1=1.81 c2=1.56 c3=2.01
+
+
+-bcOption=4 : not so good
+conv.p tz.conv -tp=.1 -tf=.1 -slopeLimiter=0 -bc1=slip -cg=sicFixed -ng=3 -alwaysCompute=1  -bcOption=4
+
+                grid  & N &  $rho$  & r & $u$  & r & $v$  & r & $T$  & r
+           sicFixed2 &     1 & 4.14e-03 &      & 4.78e-03 &      & 3.69e-03 &      & 2.19e-03 &
+           sicFixed4 &     2 & 1.56e-03 &  2.7 & 1.82e-03 &  2.6 & 1.76e-03 &  2.1 & 1.41e-03 &  1.6
+           sicFixed8 &     4 & 9.95e-04 &  1.6 & 1.15e-03 &  1.6 & 1.12e-03 &  1.6 & 1.06e-03 &  1.3
+Convergence rates: c0=1.03 c1=1.03 c2=0.86 c3=0.52
+

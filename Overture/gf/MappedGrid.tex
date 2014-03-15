@@ -1,0 +1,172 @@
+Define the Ranges $R1,R2,R3$ to define all points on a component
+grid:
+{\footnotesize
+\begin{verbatim}
+    const int Start=0, End=1, axis1=0, axis2=1, axis3=2;
+    CompositeGrid cg;
+    MappedGrid & mg = cg[grid];
+    Range R1(mg.dimension(Start,axis1),mg.dimension(End,axis1));
+    Range R2(mg.dimension(Start,axis2),mg.dimension(End,axis2));
+    Range R3(mg.dimension(Start,axis3),mg.dimension(End,axis3));
+    Range ND(0,cg.numberOfDimensions);
+\end{verbatim}
+}
+
+Recall that we denote the axes of the unit square (or cube)
+by $r_1$, $r_2$, (and $r_3$).
+Some arrays such as the {\ff boundaryCondition} array, associate values with each
+side of a grid. The sides of the grid can be denoted by $r_i=0$ or $r_i=1$.
+These arrays are dimensioned as {\ff boundaryCondition(0:1,0:2)}
+with
+\begin{equation}
+boundaryCondition(side,axis) = \mbox{ value for } r_{axis} = side ~~,~side=0,1~~,~axis=0,1,2
+\end{equation}
+% \begin{equation}
+% boundaryCondition(side,axis) = \left\{
+%        \begin{array}{ll}
+%              side=Start, axis=axis1 & \mbox{ value for $r_1=0$} \\
+%              side=End, axis=axis1 & \mbox{ value for $r_1=1$} \\
+%              side=Start, axis=axis2 & \mbox{ value for $r_2=0$} \\
+%              side=End, axis=axis2 & \mbox{ value for $r_2=1$} \\
+%              side=Start, axis=axis3 & \mbox{ value for $r_3=0$} \\
+%              side=End, axis=axis3 & \mbox{ value for $r_3=1$} \\
+%        \end{array} 
+%           \right.
+% \end{equation}
+
+Some arrays, such as the array of vertex coordinates, 
+come in three flavours, {\ff vertex}, {\ff vertex2D} and {\ff vertex1D}.
+The first is dimensioned {\ff vertex(R1,R2,R3,ND)} and thus looks like
+an array for a three dimensional grid. When the grid is two-dimensional
+the Range {\ff R3} will only have 1 point. This array is useful when 
+writing a code that will work in both 3D and 2D. The array
+{\ff vertex2D(R1,R2,ND)} is only available when the grid is two-dimensional.
+
+\begin{itemize}
+\item {\bf IntArray boundaryCondition(0:1,0:2)}  
+       Boundary condition flags, positive for a real boundary, negative for a
+       periodic boundary and zero for an interpolation boundary.
+\item {\bf IntArray boundaryDiscretizationWidth(0:2)} 
+       Width of the boundary condition stencil.  
+\item {\bf realMappedGridFunction center(R1,R2,R3,ND)}
+       Coordinates of discretization centres. 
+\item {\bf realMappedGridFunction center2D(R1,R2,ND)}
+         Coordinates of discretization centers, for a two-dimensional grid.  
+\item {\bf realMappedGridFunction center1D(R1,ND)}
+         Coordinates of discretization centers, for a one-dimensional grid.  
+\item {\bf realMappedGridFunction centerDerivative(R1,R2,R3,ND,ND)}
+        Derivative of the mapping at the discretization centers.
+\item {\bf realMappedGridFunction centerDerivative2D(R1,R2,ND,ND)}
+         Derivative at the discretization centers, for a two-dimensional grid.
+\item {\bf realMappedGridFunction centerDerivative1D(R1,ND,ND)}
+\item {\bf FloatMappedGridFunction centerJacobian(R1,R2,R3)} Determinant of centerDerivative.
+\item {\bf IntArray   dimension(0:1,0:2)}   Dimensions of grid arrays -- actual size of the
+      A++ arrays, including ghostpoints.
+\item {\bf IntArray discretizationWidth(0:2)}   Interior discretization stencil width (default=3)
+\item {\bf IntArray gridIndexRange(0:1,0:2)}   Index range of gridpoints, excluding ghost points.
+\item {\bf realArray gridSpacing(0:2)} Grid spacing in the unit square, equal to 1 over the number of grid cells.
+\item {\bf IntArray indexRange(0:1,0:2)}   
+      Index range of computational points, excluding ghostpoints and excluding periodic
+      grid lines on the ``End''.
+\item {\bf LogicalR isAllCellCentered}   Grid is cell-centred in all directions
+       (variable name misspelled for historial reasons, circa 1776)
+\item {\bf LogicalR isAllVertexCentered}   Grid is vertex-centred in all directions
+\item {\bf LogicalArray isCellCentered(0:2)}   Is this grid cell-centred in each direction.  
+\item {\bf IntArray   isPeriodic(0:2)}   Grid periodicity, equal one if notPeriodic,
+      derivativePeriodic or functionPeriodic.   
+\item {\bf realMappedGridFunction inverseVertexDerivative(R1,R2,R3,ND,ND)} 
+      Inverse derivative of the mapping at the vertices.             
+      {\ff inverseVertexDerivative(i1,i2,i3,axis,dir)}
+        is the partial derivative of $r_{axis}$ with respesct to $x_{dir}$.
+\item {\bf realMappedGridFunction inverseVertexDerivative2D(R1,R2,ND,ND)} 
+      Inverse derivative at the vertices,  for a two-dimensional grid.      
+\item {\bf realMappedGridFunction inverseVertexDerivative1D(R1,ND,ND)} 
+      Inverse derivative at the vertices, for a one-dimensional grid.    
+
+\item {\bf realMappedGridFunction inverseCenterDerivative(R1,R2,R3,ND,ND)} Inverse derivative at the 
+            discretization centers.
+\item {\bf realMappedGridFunction inverseCenterDerivative2D(R1,R2,ND,ND)} Inverse derivative at the 
+       discretization centers, for a two-dimensional grid.
+\item {\bf realMappedGridFunction inverseCenterDerivative1D(R1,ND,ND)}
+           Inverse derivative at the discretization centers, for a one-dimensional grid.
+
+\item{\bf IntMappedGridFunction mask(R1,R2,R3)} mask array that indicates which points are used and not used.
+
+\item{\bf MappingRC mapping} Grid mapping (MappingRC is a reference counted Mapping which
+       behaves like the Mapping class)
+
+\item{\bf FloatArray minimumEdgeLength(0:2)} Minimum grid cell-edge length.
+\item{\bf FloatArray maximumEdgeLength(0:2)} Maximum grid cell-edge length.
+
+\item {\bf IntR numberOfDimensions}  Number of space dimensions,
+          an {\ff IntR} is basically an {\ff int} (used for reference counting).
+\item {\bf IntArray   numberOfGhostPoints(0:1,0:2)}   number of ghost points on each side.
+
+\item {\bf realMappedGridFunction vertex(R1,R2,R3,ND)}
+          Vertex coordinates.                                          
+\item {\bf realMappedGridFunction vertex2D(R1,R2,ND)}
+           Vertex coordinates, for a two-dimensional grid.
+\item {\bf realMappedGridFunction vertex1D(R1,ND)}
+           Vertex coordinates, for a one-dimensional grid.
+\item{\bf FloatArray vertexBoundaryNormal[3][2]}
+  Outward normal vectors at the vertices on each boundary. These arrays are dimensioned so
+  that they lie on their respective boundary:
+  \begin{itemize}
+    \item vertexBoundaryNormal[0][0](R1.getBase():R1.getBase(),R2,R3,ND),
+    \item vertexBoundaryNormal[0][1](R1.getBound():R1.getBound(),R2,R3,ND),
+    \item vertexBoundaryNormal[1][0](R1,R2.getBase():R2.getBase(),R3,ND),
+    \item vertexBoundaryNormal[1][1](R1,R2.getBound():R2.getBound(),R3,ND), 
+    \item etc.
+  \end{itemize}
+\item{\bf FloatArray centerBoundaryNormal[3][2]}
+  Outward normal vectors at the centers on each boundary.
+\item {\bf realMappedGridFunction vertexDerivative(R1,R2,R3,ND,ND)}
+         Derivative of the mapping at the vertices, {\ff vertexDeriavtive(i1,i2,i3,axis,dir)}
+        is the partial derivative of $x_{axis}$ with respesct to $r_{dir}$.
+\item {\bf realMappedGridFunction vertexDerivative2D(R1,R2,ND,ND)}
+         Derivative of the mapping at the vertices, for a two-dimensional grid.
+\item {\bf realMappedGridFunction vertexDerivative1D(R1,ND,ND)}
+         Derivative of the mapping at the vertices, for a one-dimensional grid.
+\item{\bf FloatMappedGridFunction vertexJacobian(R1,R2,R3)} Determinant of vertexDerivative.
+
+% \item {\bf//  Un-normalized cell-face normal vector.
+% \item {\bf    realMappedGridFunction faceNormal;
+% \item {\bf//  Un-normalized cell-face normal vector, for a two-dimensional grid.
+% \item {\bf    realMappedGridFunction faceNormal2D;
+% \item {\bf//  Un-normalized cell-face normal vector, for a one-dimensional grid.
+% \item {\bf    realMappedGridFunction faceNormal1D;
+
+\end{itemize}
+
+One may specify (or change) which arrays are to exist in the {\ff MappedGrid}
+by calling the {\ff update} function with an integer bit-flag.
+The values of the bit flag are determined from the following
+enumerator
+{\footnotesize
+\begin{verbatim}
+    enum {
+      USEmask                    = USEgenericGrid             << 1,
+      USEinverseVertexDerivative = USEmask                    << 1,
+      USEinverseCenterDerivative = USEinverseVertexDerivative << 1,
+      USEvertex                  = USEinverseCenterDerivative << 1,
+      USEcenter                  = USEvertex                  << 1,
+      USEvertexDerivative        = USEcenter                  << 1,
+      USEcenterDerivative        = USEvertexDerivative        << 1,
+      USEfaceNormal              = USEcenterDerivative        << 1,
+      USEvertexJacobian          = USEfaceNormal              << 1,
+      USEcenterJacobian          = USEvertexJacobian          << 1,
+      USEvertexBoundaryNormal    = USEcenterJacobian          << 1,
+      USEcenterBoundaryNormal    = USEvertexBoundaryNormal    << 1,
+      USEmappedGrid              = USEcenterBoundaryNormal // Do not use.
+    };
+\end{verbatim}
+}
+
+\begin{itemize}
+\item{\bf MappedGrid(const String \& file, const String \& name)} Constructor from database file and name.
+\item{\bf MappedGrid(Mapping \& mapping)}  Constructor from a mapping.
+\item{\bf void updateReferences()} Set references to reference-counted data.
+\item{\bf void update(const Int what = USEtheUsualSuspects)} Update the grid.
+\end{itemize}
+
+For further details consult the documentation sitting in the chair in Geoff's office.

@@ -1,0 +1,24 @@
+Cgins: vortex shedding around a flexible, nonlinear beam.
+
+This simulation is based on the paper
+
+"Proposal for numerical benchmarking of fluid-structure interaction between an elastic object and laminar compressible flow",
+by S. Turek and J. Hron
+
+This simulation corresponds to the one labelled "FSI2" in their paper.
+
+(1) Generate the grid, e.g.,
+  
+ 
+  ogen -noplot turek_hron_fsi2_grid -interp=e -factor=2
+
+ finer: 
+  ogen -noplot turek_hron_fsi2_grid -interp=e -factor=4
+
+
+(2) Perform the run, e.g.,
+
+  cgins turek_hron_fsi2_run -g=turek_hron_fsi2e2.hdf -tf=10. -tp=1e-2 -cfl=.5
+
+  finer: 
+  cgins turek_hron_fsi2_run -g=turek_hron_fsi2e4.hdf -tf=10. -tp=1e-2 -cfl=.5

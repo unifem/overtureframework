@@ -1,0 +1,109 @@
+OBJDIR := ./obj/
+DEPDIR := ./dep/
+BINDIR := ./bin/
+LIBDIR := ./lib/
+
+OBJPREFIX = $(OBJDIR)
+DEPPREFIX = $(DEPDIR)
+
+include overture.config
+include $(CONFIGDIR)/make.rules
+include $(CONFIGDIR)/make.options
+include $(CONFIGDIR)/make.Linux
+include make.overture
+
+vpath % $(PKGS) $(CONFIGDIR)
+VPATH = $(PKGS) $(CONFIGDIR)
+
+SRC_FILES := 
+HDRS :=
+STATIC_SRC_FILES := 
+phonies := 
+PKG_INCLUDE := $(foreach p, $(PKGS), $(p)/make.pkg_files)
+
+usage: 
+	-@echo "usage : "
+	-@echo "        % make "$(COPTS) "<all|libs|ilink>"
+	-@echo "sigh"
+	-@echo "YES, you must type a target; because I said so!"
+
+include $(PKG_INCLUDE)
+
+SRC := $(SRC_FILES)
+SSRC := $(STATIC_SRC_FILES)
+
+OBJ := $(patsubst %.cc, %.o, $(SRC))
+OBJ := $(patsubst %.c, %.o, $(OBJ))
+OBJ := $(patsubst %.C, %.o, $(OBJ))
+OBJ := $(patsubst %.f, %.o, $(OBJ))
+OBJ := $(patsubst %.F, %.o, $(OBJ))
+DEP := $(patsubst %.o, %.d, $(OBJ))
+
+SOBJ := $(patsubst %.cc, %.o, $(SSRC))
+SOBJ := $(patsubst %.c, %.o, $(SOBJ))
+SOBJ := $(patsubst %.C, %.o, $(SOBJ))
+SOBJ := $(patsubst %.f, %.o, $(SOBJ))
+SOBJ := $(patsubst %.F, %.o, $(SOBJ))
+DEP := $(patsubst %.o, %.d, $(SOBJ) $(OBJ))
+
+OBJ := $(addprefix $(OBJPREFIX),$(OBJ))
+SOBJ := $(addprefix $(OBJPREFIX),$(SOBJ))
+
+DEP := $(addprefix $(DEPPREFIX),$(DEP)) 
+
+LIBS := -Wl,-rpath=`pwd`/lib -L./lib $(LIBS)
+
+.PHONY: ilink doc clean usage $(phonies) #$(BINDIR) $(LIBDIR) $(OBJDIR)
+
+REALTARGS := $(strip $(filter-out ilink doc clean usage,$(MAKECMDGOALS)))
+
+DEPTARG := $(DEPDIR)depdep
+
+all: $(phonies)
+
+libs: $(LIBSO) $(LIBA)
+
+$(LIBSO): $(OBJ)
+	@-mkdir lib
+	$(LD) $(LD_FLAGS)  -o $@ $(OBJ)
+
+$(LIBA): $(SOBJ)
+	@-mkdir lib
+	$(AR) $(AR_FLAGS) $@ $(SOBJ)
+
+$(BINS): $(BINDIR)
+
+#$(QBIN): $(OBJDIR)eleven_ui.o $(QLIB)
+#	-@mkdir bin
+#	$(CXX) $(CXX_FLAGS) -o $@ $< $(LIBS)
+
+$(BINDIR) $(LIBDIR) $(DEPDIR) $(OBJDIR):
+	@-mkdir $@
+
+$(DEPTARG): $(DEPDIR) $(BINDIR) $(LIBDIR) $(OBJDIR)
+	@-touch $(DEPDIR)/depdep
+
+ilink:
+	@-mkdir include
+	echo $(HDRS)
+	for d in $(HDRS); do \
+	  ln -s $$d ./include/.; \
+	done
+	@-ln -s $(OvertureCheckout)/Overture/configure .
+	@-ln -s $(OvertureCheckout)/include/OvertureDefine.h.in ./include/.
+	@-ln -s $(OvertureCheckout)/Overture/include/OVFortranDefine.h.in ./include/.
+	@ln -s $(OvertureCheckout)/Overture/config/checkTemplate.C ./config/.
+	@ln -s $(OvertureCheckout)/Overture/config/checkForBool.C ./config/.
+	@ln -s $(OvertureCheckout)/Overture/config/checkForExceptions.C ./config/.
+	@ln -s $(OvertureCheckout)/Overture/config/checkFort77.F ./config/.
+
+doc:
+
+clean:
+	-rm  $(OBJPREFIX)*.o $(DEPPREFIX)*.d
+
+#ifneq ($(MAKECMDGOALS),ilink)
+ifneq ($(REALTARGS),)
+-include $(DEP)
+include $(DEPDIR)depdep
+endif

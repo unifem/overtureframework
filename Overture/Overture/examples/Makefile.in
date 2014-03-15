@@ -1,0 +1,31 @@
+#
+# test routines and examples from the documentation
+#    type `make programName' to make the example called `programName', see the
+#       possible program names below
+#    type `make' to make all examples
+#
+
+
+Source = readShowFile.C edge.C bcgf.C ps.C 
+
+# Here are the things we can make
+PROGRAMS = readShowFile edge bcgf ps
+
+all:  depend $(PROGRAMS) 
+
+.SUFFIXES:
+.SUFFIXES: .C
+
+.C: $(LIB_DEPENDENCIES)
+	 $(CC) $(CCFLAGS) $(PURIFY_OPTIONS) -o $@ $< \
+        $(CLIBS) $(FLIBS)  $(GLIBS)
+
+clean:  
+	rm $(PROGRAMS) *.o 
+
+depend: ../depend.date; perl $(Overture)/config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+.PRECIOUS: 

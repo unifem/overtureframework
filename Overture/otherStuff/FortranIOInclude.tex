@@ -1,0 +1,276 @@
+\subsection{constructor}
+ 
+\newlength{\FortranIOIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\FortranIOIncludeArgIndent}{FortranIO(}% 
+FortranIO()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Build a FortranIO object. 
+\end{description}
+\subsection{open}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\FortranIOIncludeArgIndent}{open(}%
+open(const aString \& fileName, \\ 
+\hspace{\FortranIOIncludeArgIndent}const aString \& fileForm, \\ 
+\hspace{\FortranIOIncludeArgIndent}const aString \& fileStatus,\\ 
+\hspace{\FortranIOIncludeArgIndent}const int \& fortranUnitNumber  =25)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Open a fortran file with a fortran statement of the form:
+ \begin{verbatim}
+    open (unit=io, file=fileName,form=fileForm,status=fileStatus)
+ \end{verbatim}
+\item[{\bf fileName (input) :}]  name of the file.
+\item[{\bf fileForm (input) :}]  a valid fortran file format such as "formatted" or "unformatted". *** only "unformatted"
+  is currently supported.
+\item[{\bf fileStatus (input) :}]  a valid file status such as "old", "new", "unknown"
+\item[{\bf fortranUnitNumber (input) :}]  a positive integer.
+\end{description}
+\subsection{close}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\FortranIOIncludeArgIndent}{close(}%
+close()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Close a fortran file.
+\end{description}
+\subsection{print( int )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const int \& i)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an int in the file.
+\end{description}
+\subsection{print( float )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const float \& f)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{print( double )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const double \& d)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{print( int* )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const int *a, const int \& count)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an array of values.
+\end{description}
+\subsection{print( float* )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const float *a, const int \& count)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an array of values.
+\end{description}
+\subsection{print( double* )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const double *a, const int \& count)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an array of values.
+\end{description}
+\subsection{print( aString )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const aString \& label )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{print( intArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const intArray \& u)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{print( floatArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const floatArray \& u)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{print( doubleArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const doubleArray \& u)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{print( intArray,floatArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const intArray \& u, const floatArray \& v)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output an int and float array.
+\end{description}
+\subsection{print( intArray,doubleArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{print(}%
+print(const intArray \& u, const doubleArray \& v)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{read( int )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const int \& i)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an int in the file.
+\end{description}
+\subsection{read( float )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const float \& f)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{read( double )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const double \& d)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{read( int* )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const int *a, const int \& count)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an array of values.
+\end{description}
+\subsection{read( float* )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const float *a, const int \& count)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an array of values.
+\end{description}
+\subsection{read( double* )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const double *a, const int \& count)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Save an array of values.
+\end{description}
+\subsection{read( aString )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const aString \& label )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\end{description}
+\subsection{read( intArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const intArray \& u)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Read in an array -- the array must be dimensioned to the correct size.
+\end{description}
+\subsection{read( floatArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const floatArray \& u)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Read in an array -- the array must be dimensioned to the correct size.
+\end{description}
+\subsection{read( doubleArray )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FortranIOIncludeArgIndent}{read(}%
+read(const doubleArray \& u)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Read in an array -- the array must be dimensioned to the correct size.
+\end{description}

@@ -1,0 +1,14 @@
+This directory contains a brief description of the source files for cgcns
+
+
+Notes:
+
+
+Cgcns.C : 
+  - Cgcns(CompositeGrid & cg_, ... )
+
+  - writeParameterSummary( FILE * file ) : writes header comments
+
+
+setupPde.C :
+  - setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBoundaryCondition)

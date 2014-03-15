@@ -1,0 +1,27 @@
+PKGDIR := $(OvertureCheckout)/templates
+
+L1 := Float Int Double
+L2 := Array SerialArray DistributedArray GenericGridFunction MappedGridFunction \
+	GridCollectionFunction CompositeGridFunction \
+
+L_SRC :=  $(foreach t, $(L1), $(foreach a, $(L2), ListOf$(t)$(a).C))
+
+L_SRC +=  $(foreach t, $(L1), ListOfListOf$(t)Array.C)
+
+L1 := GenericGrid MappedGrid GenericGridCollection GridCollection CompositeGrid \
+	MappingRC BoundingBox \
+	MappedGridOperators CompositeGridOperators \
+	GenericMappedGridOperators GenericGridCollectionOperators \
+	GenericCompositeGridOperators
+
+L_SRC += $(foreach a, $(L1), ListOf$(a).C)
+
+SRC_FILES += $(L_SRC)
+
+L_HDRS := $(patsubst %.C, %.h, $(L_SRC))
+L_HDRS +=  ListOfReferenceCountedObjects.C ListOfReferenceCountedObjects.h \
+	tlist.h tlist.C \
+	ListOfListOfRealArray.h \
+	ListOfIntegerArray.h ListOfRealArray.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))

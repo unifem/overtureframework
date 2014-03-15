@@ -1,0 +1,312 @@
+\subsubsection{Constructor}
+ 
+\newlength{\SplineMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\SplineMappingIncludeArgIndent}{SplineMapping(}% 
+SplineMapping(const int \& rangeDimension\_  =2) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+    Default Constructor: create a spline curve with the given range dimension.
+ Use this Mapping to create a cubic spline curve in two dimensions.
+ This spline is defined by a set of points (knots), $x(i),y(i)$.
+ The spline is normally parameterized by arclength. The pline can also be parameterized
+ by a weighting of arclength and curvature so that more points are placed in regions
+ with high curvature.
+ For a spline which is periodic in space, the Mapping will automatically
+ add an extra point if the first point is not equal to the last point.
+
+\item[{\bf rangeDimension\_ :}]  1,2, 3
+
+ The SplineMapping uses `{\bf TSPACK}: Tension Spline Curve Fitting Package'
+ by Robert J. Renka; available from Netlib. See the TSPACK documentation
+ and the reference 
+ \begin{description}
+   \item[RENKA, R.J.] Interpolatory tension splines with automatic selection
+   of tension factors. SIAM J. Sci. Stat. Comput. {\bf 8}, (1987), pp. 393-415.
+ \end{description}
+
+\end{description}
+\subsection{shift}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{shift(}%
+shift(const real \& shiftx  =0., \\ 
+\hspace{\SplineMappingIncludeArgIndent}const real \& shifty  =0., \\ 
+\hspace{\SplineMappingIncludeArgIndent}const real \& shiftz /* =0.*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Shift the SPLINE in space.
+\end{description}
+\subsection{scale}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{scale(}%
+scale(const real \& scalex  =0., \\ 
+\hspace{\SplineMappingIncludeArgIndent}const real \& scaley  =0., \\ 
+\hspace{\SplineMappingIncludeArgIndent}const real \& scalez /* =0.*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Scale the SPLINE in space.
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{rotate(}%
+rotate( const int \& axis, const real \& theta )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a rotation about a given axis. This rotation is applied
+   after any existing transformations. Use the reset function first if you
+   want to remove any existing transformations.
+\item[{\bf axis (input) :}]  axis to rotate about (0,1,2)
+\item[{\bf theta (input) :}]  angle in radians to rotate by.
+\end{description}
+\subsubsection{setParameterizationType}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setParameterizationType(}%
+setParameterizationType(const ParameterizationType \& type)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Specify the parameterization for the Spline. With {\tt index} parameterization
+ the knots on the spline are parameterized as being equally spaced. With {\tt arclength}
+  parameterization the knots are parameterized by arclength or a weighted combination
+ of arclength and curvature. With {\tt userDefined} parameterization the user must supply
+ the parameterization through the {\tt setParameterization} function.
+\item[{\bf type (input) :}]  One of {\tt index} or {\tt arcLength} or {\tt userDefined}.
+\end{description}
+\subsubsection{getParameterization}
+ 
+\begin{flushleft} \textbf{%
+const RealArray \&  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{getParameterizationS(}%
+getParameterizationS() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the current parameterization.
+\end{description}
+\subsubsection{getNumberOfKnots}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{getNumberOfKnots(}%
+getNumberOfKnots() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Return the number of knots on the spline. 
+\end{description}
+\subsubsection{setParameterization}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setParameterization(}%
+setParameterization(const RealArray \& s\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Supply a user defined parameterization. This routine will set the parameterization type
+ to be {\tt userDefined}.
+\item[{\bf s\_ (input) :}]  An increasing sequence of values that are to be
+     used to parameterize the spline points. These values must cover the interval [0,1] which
+   will be the interval defining the mapping. You could add values outside [0,1] to define the
+ behaviour of the spline at "ghost points".  The number of points in the array must
+     be equal to the number of points supplied when the {\tt setPoints} function is called.
+\end{description}
+\subsubsection{parameterize}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{parameterize(}%
+parameterize(const real \& arcLengthWeight\_ /* =1.*/, \\ 
+\hspace{\SplineMappingIncludeArgIndent}const real \& curvatureWeight\_ /* =0.*/ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Set the `arclength' parameterization parameters. The parameterization is chosen to
+ redistribute the points to resolve the arclength and/or the curvature of the curve.
+ By default the spline is parameterized by arclength only. To resolve regions of high
+ curvature choose the recommended values of {\tt arcLengthWeight\_=1.} and
+  {\tt curvatureWeight\_=.5}.
+
+  To determine the parameterization we equidistribute the weight function 
+  \[
+     w(r) = 1. + {\rm arcLengthWeight} {s(r)\over |s|_\infty}  
+               + {\rm curvatureWeight} {c(r)\over |c|_\infty}
+  \]
+  where $s(r)$ is the local arclength and $c(r)$ is the curvature. Note that we normalize
+ $s$ and $c$ by their maximum values.
+  
+\item[{\bf arcLengthWeight\_ (input):}]  A weight for arclength. A negative value may give undefined results.
+\item[{\bf curvatureWeight\_ (input):}]  A weight for curvature. A negative value may give undefined results.
+\end{description}
+\subsubsection{setEndConditions}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setEndConditions(}%
+setEndConditions(const EndCondition \& condition, \\ 
+const RealArray \& endValues  =Overture::nullRealDistributedArray())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Specify end conditions for the spline
+\item[{\bf condition (input) :}]  Specify an end condition.
+    \begin{description}
+      \item[monontone parabolic fit] : default BC for the shape preserving spline.
+      \item[first derivative] : user specified first derivatives.
+      \item[second derivative] : user specified second derivatives.
+    \end{description}
+\item[{\bf endValues (input) :}]  if {\tt condition==firstDerivative} (or {\tt condition==secondDerivative})
+  then endValues(0:1,0:r-1) should
+  hold the values for the first (or second) derivatives of the spline at the start and end. Here
+   r=rangeDimension.
+     
+\end{description}
+\subsubsection{setPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setPoints(}%
+setPoints( const RealArray \& x )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Supply spline points for a 1D curve.
+\item[{\bf x (input) :}]  array of spline knots.
+  The spline is parameterized by a NORMALIZED index, i/(number of points -1), i=0,1,...
+\end{description}
+\subsubsection{setPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setPoints(}%
+setPoints( const RealArray \& x, const RealArray \& y )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Supply spline points for a 2D curve. Use the points (x(i),y(i)) i=x.getBase(0),..,x.getBound(0)
+\item[{\bf x,y (input) :}]  array of spline knots.
+\end{description}
+\subsubsection{setPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setPoints(}%
+setPoints( const RealArray \& x, const RealArray \& y, const RealArray \& z )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Supply spline points for a 3D curve. Use the points (x(i),y(i),z(i)) i=x.getBase(0),..,x.getBound(0)
+\item[{\bf x,y,z (input) :}]  array of spline knots.
+\end{description}
+\subsubsection{setShapePreserving}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setShapePreserving(}%
+setShapePreserving( const bool trueOrFalse  = true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Create a shape preserving (monotone) spline or not
+\item[{\bf trueOrFalse (input) :}]  if true, create a spline that preserves the shape. For a one dimensional
+   curve the shape preserving spline will attempt to remain montone where the knots ar montone.
+   See the comments with TSPACK for further details.
+
+\end{description}
+\subsubsection{setTension}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setTension(}%
+setTension( const real \& tensionFactor )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Specify a constant tension factor. Specifying this value will turn off the shape preseeving feature.
+\item[{\bf tensionFactor (input):}]  A value from 0. to 85. A value of 0. corresponds to no tension.
+
+\end{description}
+\subsubsection{setDomainInterval}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setDomainInterval(}%
+setDomainInterval(const real \& rStart\_  =0., \\ 
+\hspace{\SplineMappingIncludeArgIndent}const real \& rEnd\_  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Restrict the domain of the spline.
+ By default the spline is parameterized on the interval [0,1].
+ You may choose a sub-section of the spline by choosing a new interval [rStart,rEnd].
+ For periodic splines the interval may lie in [-1,2] so the sub-section can cross the branch cut.
+ You may even choose rEnd<rStart to reverse the order of the parameterization.
+\item[{\bf rStart\_,rEnd\_ (input) :}]  define the new interval.
+\end{description}
+\subsubsection{getDomainInterval}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{getDomainInterval(}%
+getDomainInterval(real \& rStart\_, real \& rEnd\_) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Get the current domain interval.
+\item[{\bf rStart\_,rEnd\_ (output) :}]  the current domain interval.
+\end{description}
+\subsubsection{setIsPeriodic}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{setIsPeriodic(}%
+setIsPeriodic( const int axis, const periodicType isPeriodic0 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf axis (input):}]  axis = (0,1,2) (or axis = (axis1,axis2,axis3)) with $axis<domainDimension$.
+\item[{\bf Notes:}] 
+    This routine has some side effects. It will change the boundaryConditions to be consistent
+  with the periodicity (if necessary).
+\end{description}
+\subsubsection{useOldSpline}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{useOldSpline(}%
+useOldSpline( const bool \& trueOrFalse  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Use the old spline routines from FMM, Forsythe Malcolm and Moler. This is for backward
+ compatability.
+\item[{\bf trueOrFalse (input) :}]  If true Use the old spline from FMM, otherwise use the tension splines.
+
+\end{description}
+\subsubsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{mapS(}%
+mapS( const RealArray \& r, RealArray \& x, RealArray \& xr, MappingParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Evaluate the spline and/or derivatives. 
+\end{description}
+\subsubsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\SplineMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively create and/or change the spline mapping.
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}

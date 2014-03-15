@@ -1,0 +1,23 @@
+PKGDIR := $(OvertureCheckout)/grid
+
+SRC_FILES += $(addsuffix .C, \
+	GenericGrid MappedGrid MappedGridGeometry1 MappedGridGeometry2 \
+	GenericGridCollection GridCollection UnstructuredGridGeometry \
+	CompositeGrid CompositeGridGeometry BoundaryAdjustment MultigridCompositeGrid )
+
+STATIC_SRC_FILES += ReferenceCounting.C
+
+L_HDRS := $(addsuffix .h, \
+	GenericGrid MappedGrid GenericGridCollection GridCollection CompositeGrid \
+	ReferenceCounting TrivialArray BoundaryAdjustment MultigridCompositeGrid \
+	UnstructuredGeometry)
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+ifneq ($(fdbg),y)
+
+$(OBJDIR)MappedGridGeometry2.o: MappedGridGeometry2.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+endif

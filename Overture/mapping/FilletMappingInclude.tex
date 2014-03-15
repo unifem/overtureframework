@@ -1,0 +1,34 @@
+\subsection{setCurves}
+ 
+\newlength{\FilletMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FilletMappingIncludeArgIndent}{setCurves(}%
+setCurves(Mapping \& curve1, \\ 
+\hspace{\FilletMappingIncludeArgIndent}Mapping \& curve2)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Supply the curves or surfaces from which the fillet will be defined.
+\item[{\bf curve1, curve2 (input):}]  
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\FilletMappingIncludeArgIndent}{map(}%
+map( const realArray \& r, realArray \& x, realArray \& xr, MappingParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Evaluate the mapping and/or derivatives. 
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\FilletMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively create and/or change the Fillet mapping.
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}

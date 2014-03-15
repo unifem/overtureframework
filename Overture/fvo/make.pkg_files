@@ -1,0 +1,48 @@
+PKGDIR := $(OvertureCheckout)/fvo
+
+ifeq ($(fvo),y)
+
+SRC_FILES += $(addsuffix .C, \
+	Display \
+	CompositeGridFiniteVolumeOperators GridCollectionFiniteVolumeOperators \
+	MappedGridFiniteVolumeOperators Projection setEllipticSolverParameter \
+	makeDebugPlots testUtils TwilightZoneWizard getDefaultIndex createGeometry \
+	average differences contravariantVelocity cellsToFaces divergence gradient \
+	convectiveDerivative vorticity Laplacian laplacian inputErrorHandling \
+	boundaryConditionCoefficients derivatives derivativeCoefficients \
+	defaultMappedGridFunctions \
+	GenericGridMotion MatrixTransformGridMotion GenericGridMotionParameters \
+	DynamicMovingGrids MatrixTransformMotionFunction MatrixTransformGridMotionParameters ) \
+	boundaryConditions_fvo.o
+
+#       project applyVelocityBoundaryConditions 	applyRightHandSideBoundaryConditions \
+#	formLaplacianCoefficients \
+
+
+L_HDRS := $(addsuffix .h, \
+	GridCollectionFiniteVolumeOperators MappedGridFiniteVolumeOperators laplacian \
+	Projection Display DynamicMovingGrids CompositeGridFiniteVolumeOperators \
+	MatrixTransformMotionFunction MatrixTransformGridMotionParameters \
+	GenericGridMotionParameters GenericGridMotion MatrixTransformGridMotion \
+	MatrixTransformGridMotionParameters billsMergeMacro TwilightZoneWizard makeDebugPlots \
+	davidsReal axisDefs loops OgesEnums testUtils xDC )
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+## the file "boundaryConditions.C" exists in both ogmg and fvo
+##   to get around this (duplicate .o files) we create a special target
+##   for fvo's boundaryConditions.C
+
+$(PKGDIR)/boundaryConditions_fvo.C: $(PKGDIR)/boundaryConditions.C
+	cp $< $@
+
+else
+
+SRC_FILES += Display.C
+L_HDRS := Display.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+endif
+
+

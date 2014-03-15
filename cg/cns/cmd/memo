@@ -1,0 +1,573 @@
+==== 2013/09/30 -- test user defined forcing : blast wave source
+
+cgcns blastWaveSource.cmd -g=square80.order2 -amr=1 -l=2 -r=4
+
+
+==== 2013/08/31
+
+user defined forcing test:
+
+
+cgcns shockTubeg.cmd -g=square40.order2 -bg=square -l=2 -r=2 -tf=2. -tp=.05 -bf=1
+
+
+cgcns testforcing.cmd
+
+cgcns testforcing.cmd
+
+==== 2012/11/20
+
+srun -N1 -n4 -ppdebug $cgcnsp airfoil -g=airfoile2.order2 -tp=.01 -tf=1. -amr=1 -go=halt [TROUBLE
+
+
+BUG FOUND: grid: airfoil.cmd --> do NOT use ngp=ng+1; 
+
+totalview srun -a -N1 -n1 -ppdebug $cgcnsp airfoil -g=airfoile2.order2 -tp=.01 -tf=1. -amr=1 -go=halt
+
+srun -N1 -n1 -ppdebug $cgcnsp airfoil -g=airfoile2.order2 -tp=.01 -tf=1. -amr=1 -go=halt [TROUBLE
+srun -N1 -n1 -ppdebug $cgcnsp airfoil -g=airfoile2.order2 -tp=.01 -tf=1. -amr=0 -go=halt  [OK
+
+cgcns airfoil -g=airfoile2.order2 -tp=.001 -tf=1. -amr=1 -go=halt [OK
+cgcns airfoil -g=airfoile2.order2 -tp=.01 -tf=1. -amr=0 -go=halt  [OK
+
+==== 2012/11/19
+
+TROUBLE with airfoil.cmd
+
+TRY THIS
+mpirun -np 1 $cgcnsp airfoil -g=cice2.order2 -tp=.01 -tf=1. -amr=1 -bg=square -show=cic.show -go=halt [OK
+
+cgcns airfoil -g=cice2.order2 -tp=.01 -tf=1. -amr=1 -bg=square -show=cic.show -go=halt [OK
+cgcns airfoil -g=cice2.order2 -tp=.01 -tf=1. -amr=0 -bg=square -show=cic.show -go=halt
+
+
+==== 2012/09/08 -- user defined EOS
+
+userDefinedEquationOfStateDataPointer=[0xcb0bd0]
+
+
+**** 2012/09/05
+
+cgcns flow.cmd -g=twoBump -l=2 -r=2 -tf=.35 -tp=.05 -xStep="x=-.25" -show="flow.show"
+
+**** 2012/03/28 -- include boundary averaging with wall-heating fix
+
+cgcns cicMove -g=cice4.order2 -move=shift -bcOption=4 -checkForWallHeating=1 
+cgcns cicMove -g=cice2.order2 -move=shift -bcOption=4 -checkForWallHeating=1 
+
+-- smooth solution : no difference
+cgcns pistonSpecifiedMotion -g=plug8.hdf -bcOption=4 -ap=-.5 -pp=4 -tp=.1 -tf=1. -checkForWallHeating=1
+determineErrors: t=5.000e-01, maxNorm errors: [rho,u,v,T]=[1.58e-05,1.13e-05,0.00e+00,3.53e-06]
+determineErrors: t=5.000e-01, l1-norm errors: [rho,u,v,T]=[1.99e-06,1.40e-06,0.00e+00,4.40e-07]
+
+cgcns pistonSpecifiedMotion -g=plug8.hdf -bcOption=4 -ap=-.5 -pp=4 -tp=.1 -tf=1. 
+determineErrors: t=5.000e-01, maxNorm errors: [rho,u,v,T]=[1.58e-05,1.13e-05,0.00e+00,3.53e-06]
+determineErrors: t=5.000e-01, l1-norm errors: [rho,u,v,T]=[1.99e-06,1.40e-06,0.00e+00,4.40e-07]
+
+
+**** 2012/03/27 -- revisit wall heating
+
+AMR: 
+cgcns cicMove -g=cice4.order2 -move=shift -bcOption=4 -checkForWallHeating=1 -ad=1 -amr=1 -ratio=4 -l=2
+
+cgcns cicMove -g=cice2.order2 -move=shift -bcOption=4 -checkForWallHeating=1 -ad=1
+
+**** 2012/03/13
+
+WALL HEATING EXAMPLE
+
+
+cgcns cicMove -g=cice2.order2 -move=shift -bcOption=4 -checkForWallHeating=1 -ad=1
+cgcns cicMove -g=cice2.order2 -move=shift -bcOption=4 
+
+
+
+**** 2012/03/12 
+
+WALL HEATING EXAMPLE
+
+new BC:
+cgcns pistonSpecifiedMotion -g=plug8.hdf -bcOption=4 -ap=1. -pp=1 -tp=.1 -tf=1. -checkForWallHeating=1 -ad=1
+
+OLD BC: 
+cgcns pistonSpecifiedMotion -g=plug8.hdf -bcOption=4 -ap=1. -pp=1 -tp=.1 -tf=1.
+
+
+**** 2011/07/28 -- start on the parallel moving grid algorithm
+
+totalview:
+mpirun -tv -np 2 $cgcnsp cicMove -g=cice2.order2 -move=shift -xShift=0. -tf=.05 -tp=.01 -go=halt
+
+mpirun -np 2 $cgcnsp -noplot cicMove -g=cice2.order2 -move=shift -xShift=0. -tf=.05 -tp=.01 -go=go
+
+mpirun -np 2 $cgcnsp -noplot cicMove -g=cice2.order2 -move=shift -xShift=0. -tf=.05 -tp=.01 -go=go
+
+mpirun -np 1 $cgcnsp cicMove -g=cice2.order2 -move=shift -xShift=0. -tp=.01 -go=halt
+
+
+
+*** 2011/07/13 -- restart moving grids to non-moving 
+
+-- why are moving grids turned on again?
+cgcns cicMove -g=cice2.order2 -show=restart.show -restart=cicMove.show -move=off
+
+OK:
+cgcns cicMove -g=cice2.order2 -show=restart.show -restart=cicMove.show
+
+
+cgcns cicMove -g=cice2.order2 -show=cicMove.show 
+
+
+
+*** 2011/07/10 -- fix BC for rotating bodies
+
+-- Trouble with T limiter being too strong !
+-- slow rotation does show the problem:
+cgcns cicMove -g=cice1.order2 -move=rotate -tp=.05 -tf=1. -uInflow=1. -go=halt -bcOption=4 -freq=.1
+
+
+-- With the current wrong BC's, this next flow should not be symmetric:
+cgcns cicMove -g=cice2.order2 -move=rotate -tp=.1 -tf=1. -uInflow=1. -freq=5. -bcOption=4 -go=halt
+
+cgcns cicMove -g=cice2.order2 -move=rotate -tp=.05 -tf=1. -uInflow=1. -bcOption=4 -go=halt
+
+cgcns cicMove -g=cice1.order2 -move=rotate -tp=.05 -tf=1. -uInflow=1. -go=halt
+
+
+-- this is OK: why? .. sinve v=0 so n_t.v=0
+cgcns cicMove -g=cice2.order2 -move=rotate -tp=.05 -tf=1. -go=halt
+
+
+
+*** 2011/07/10 -- NOTE: errors in TZ seem to tbe large where there is strong inflow/outflow
+
+--- Give (rho,u,v) at inflow points on the boundary
+
+cgcns -noplot tz.cmd -g=sicFixede2.order2 -tf=.05 -tp=.05 -tz=trig -bc1=slip -bcOption=4 -go=go
+
+
+-- revisit square and corners .. not bad
+
+cgcns tz.cmd -g=nonSquare32.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=0
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.010 1.86e-04 9.17e-05 6.89e-05 9.00e-05 1.25e+00 5.00e-03 4.23e+00 (      25,      25)
+   0.020 2.56e-04 1.87e-04 1.36e-04 1.64e-04 1.25e+00 5.00e-03 8.21e+00 (      25,      25)
+   0.030 2.83e-04 2.85e-04 2.02e-04 2.16e-04 1.25e+00 5.00e-03 9.87e+00 (      25,      25)
+   0.040 3.05e-04 3.88e-04 2.66e-04 2.53e-04 1.25e+00 5.00e-03 1.13e+01 (      25,      25)
+   0.050 3.35e-04 4.95e-04 3.27e-04 2.80e-04 1.25e+00 5.00e-03 1.29e+01 (      25,      25)
+
+
+cgcns tz.cmd -g=nonSquare16.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=0
+    t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.010 5.31e-04 3.78e-04 2.85e-04 2.32e-04 1.25e+00 1.00e-02 7.08e+00 (      24,      24)
+   0.020 9.09e-04 7.73e-04 5.60e-04 4.65e-04 1.25e+00 1.00e-02 1.23e+01 (      24,      24)
+   0.030 1.17e-03 1.19e-03 8.25e-04 6.84e-04 1.25e+00 1.00e-02 1.39e+01 (      24,      24)
+   0.040 1.36e-03 1.63e-03 1.08e-03 8.83e-04 1.25e+00 1.00e-02 1.55e+01 (      24,      24)
+   0.050 1.50e-03 2.08e-03 1.32e-03 1.06e-03 1.25e+00 1.00e-02 4.15e+01 (      24,      24)
+
+
+cgcns tz.cmd -g=annulus8.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=0
+   0.010 1.31e-05 2.02e-05 1.46e-05 1.27e-05 1.25e+00 2.50e-03 8.92e+00 (      33,      33)
+   0.020 2.25e-05 4.00e-05 2.84e-05 2.52e-05 1.25e+00 2.50e-03 1.26e+01 (      33,      33)
+ ----> t=2.750e-02, dt=2.50e-03: step=10 |u.t|[max,l2]: all=[3.0e-01, 1.2e-01] r=[3.24e-02, 1.51e-02] u=[2.67e-01, 1.10e-01] v=[1.34e-01, 7.93e-02] T=[2.99e-01, 1.25e-01]
+   0.030 4.00e-05 5.97e-05 4.17e-05 4.05e-05 1.25e+00 2.50e-03 1.58e+01 (      30,      33)
+   0.040 5.72e-05 7.95e-05 5.46e-05 6.16e-05 1.25e+00 2.50e-03 1.92e+01 (      31,      33)
+   0.050 7.28e-05 9.96e-05 6.65e-05 8.51e-05 1.25e+00 2.50e-03 2.78e+01 (      31,      33)
+ ----> t=5.250e-02, dt=2.50e-03: step=20 |u.t|[max,l2]: all=[5.8e-01, 2.4e-01] r=[6.30e-02, 2.97e-02] u=[5.19e-01, 2.14e-01] v=[2.60e-01, 1.54e-01] T=[5.78e-01, 2.42e-01]
+   0.060 8.59e-05 1.20e-04 7.74e-05 1.10e-04 1.25e+00 2.50e-03 3.10e+01 (      31,      33)
+   0.070 9.60e-05 1.40e-04 8.72e-05 1.37e-04 1.24e+00 2.50e-03 3.40e+01 (      31,      33)
+ ----> t=7.750e-02, dt=2.50e-03: step=30 |u.t|[max,l2]: all=[8.4e-01, 3.5e-01] r=[9.32e-02, 4.40e-02] u=[7.66e-01, 3.16e-01] v=[3.84e-01, 2.28e-01] T=[8.45e-01, 3.55e-01]
+   0.080 1.06e-04 1.60e-04 9.57e-05 1.64e-04 1.24e+00 2.50e-03 3.71e+01 (      31,      33)
+   0.090 1.16e-04 1.81e-04 1.03e-04 1.92e-04 1.24e+00 2.50e-03 4.12e+01 (      31,      33)
+   0.100 1.24e-04 2.01e-04 1.09e-04 2.19e-04 1.24e+00 2.50e-03 4.47e+01 (      31,      33)
+
+
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=0
+     t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.010 5.56e-05 8.17e-05 5.61e-05 5.44e-05 1.25e+00 5.00e-03 3.77e+00 (      26,      26)
+   0.020 1.02e-04 1.65e-04 1.09e-04 1.07e-04 1.25e+00 5.00e-03 5.41e+00 (      26,      26)
+   0.030 1.36e-04 2.48e-04 1.59e-04 1.58e-04 1.25e+00 5.00e-03 7.38e+00 (      26,      26)
+   0.040 1.80e-04 3.29e-04 2.08e-04 2.13e-04 1.25e+00 5.00e-03 9.12e+00 (      26,      26)
+   0.050 2.42e-04 4.10e-04 2.49e-04 2.71e-04 1.25e+00 5.00e-03 1.13e+01 (      26,      26)
+ ----> t=5.500e-02, dt=5.00e-03: step=10 |u.t|[max,l2]: all=[5.9e-01, 2.5e-01] r=[6.46e-02, 2.97e-02] u=[5.35e-01, 2.20e-01] v=[2.67e-01, 1.59e-01] T=[5.94e-01, 2.47e-01]
+   0.060 3.04e-04 4.93e-04 2.91e-04 3.29e-04 1.25e+00 5.00e-03 1.32e+01 (      26,      26)
+   0.070 3.63e-04 5.77e-04 3.24e-04 4.02e-04 1.24e+00 5.00e-03 1.50e+01 (      26,      26)
+   0.080 4.18e-04 6.61e-04 3.57e-04 4.86e-04 1.24e+00 5.00e-03 1.69e+01 (      26,      26)
+   0.090 4.66e-04 7.50e-04 3.81e-04 5.74e-04 1.24e+00 5.00e-03 1.85e+01 (      26,      26)
+   0.100 5.06e-04 8.37e-04 4.02e-04 6.64e-04 1.24e+00 5.00e-03 2.01e+01 (      26,      26)
+
+
+
+--- fixup extrap with TZ
+cgcns tz.cmd -g=annulus8.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=0
+
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=0
+    t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.010 6.36e-05 1.04e-04 9.45e-05 5.41e-05 1.25e+00 5.00e-03 2.47e+01 (      26,      26)
+   0.020 1.32e-04 2.37e-04 2.20e-04 1.09e-04 1.25e+00 5.00e-03 3.16e+01 (      26,      26)
+   0.030 2.10e-04 4.07e-04 3.80e-04 1.65e-04 1.25e+00 5.00e-03 3.35e+01 (      26,      26)
+   0.040 2.97e-04 6.18e-04 5.80e-04 2.22e-04 1.25e+00 5.00e-03 3.52e+01 (      26,      26)
+   0.050 4.03e-04 8.74e-04 8.24e-04 2.77e-04 1.25e+00 5.00e-03 3.71e+01 (      26,      26)
+ ----> t=5.500e-02, dt=5.00e-03: step=10 |u.t|[max,l2]: all=[5.9e-01, 2.5e-01] r=[6.49e-02, 2.98e-02] u=[5.35e-01, 2.20e-01] v=[2.67e-01, 1.59e-01] T=[5.94e-01, 2.47e-01]
+   0.060 5.29e-04 1.18e-03 1.11e-03 3.29e-04 1.25e+00 5.00e-03 4.11e+01 (      26,      26)
+   0.070 6.79e-04 1.53e-03 1.45e-03 4.67e-04 1.24e+00 5.00e-03 4.36e+01 (      26,      26)
+   0.080 8.56e-04 1.94e-03 1.85e-03 6.38e-04 1.24e+00 5.00e-03 4.54e+01 (      26,      26)
+   0.090 1.06e-03 2.41e-03 2.29e-03 8.38e-04 1.24e+00 5.00e-03 4.71e+01 (      26,      26)
+   0.100 1.29e-03 2.94e-03 2.80e-03 1.07e-03 1.24e+00 5.00e-03 5.22e+01 (      26,      26)
+
+
+-- try adding ad
+cgcns tz.cmd -g=annulus8.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=1.
+
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -ad=1.
+    t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.010 7.50e-05 2.31e-04 1.05e-04 1.06e-04 1.25e+00 5.00e-03 7.92e+01 (      26,      26)
+   0.020 2.42e-04 4.64e-04 2.08e-04 2.21e-04 1.25e+00 5.00e-03 8.11e+01 (      26,      26)
+   0.030 4.87e-04 6.98e-04 3.06e-04 3.53e-04 1.25e+00 5.00e-03 8.32e+01 (      26,      26)
+   0.040 7.69e-04 9.30e-04 4.08e-04 4.89e-04 1.25e+00 5.00e-03 8.55e+01 (      26,      26)
+   0.050 1.07e-03 1.16e-03 5.19e-04 6.31e-04 1.25e+00 5.00e-03 9.21e+01 (      26,      26)
+ ----> t=5.500e-02, dt=5.00e-03: step=10 |u.t|[max,l2]: all=[6.1e-01, 2.5e-01] r=[6.77e-02, 3.07e-02] u=[5.50e-01, 2.25e-01] v=[2.75e-01, 1.62e-01] T=[6.05e-01, 2.49e-01]
+   0.060 1.41e-03 1.38e-03 6.66e-04 7.82e-04 1.25e+00 5.00e-03 9.41e+01 (      26,      26)
+   0.070 1.78e-03 1.60e-03 8.32e-04 9.42e-04 1.24e+00 5.00e-03 9.60e+01 (      26,      26)
+   0.080 2.19e-03 1.82e-03 1.02e-03 1.11e-03 1.24e+00 5.00e-03 9.84e+01 (      26,      26)
+   0.090 2.65e-03 2.03e-03 1.23e-03 1.29e-03 1.24e+00 5.00e-03 9.98e+01 (      26,      26)
+   0.100 3.15e-03 2.24e-03 1.47e-03 1.48e-03 1.24e+00 5.00e-03 1.01e+02 (      26,      26)
+
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 
+
+*** 2011/07/09 - check TZ + bcOption=4
+
+>>> new computationm of p(-1) in slipwallbc2
+
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+
+
+Isentropic: 
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -slopeLimiter=0 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+    t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.010 7.30e-05 8.17e-05 5.67e-05 5.43e-05 1.25e+00 5.00e-03 4.10e+00 (      26,      26)
+   0.020 1.29e-04 1.65e-04 1.10e-04 1.07e-04 1.25e+00 5.00e-03 9.54e+00 (      26,      26)
+   0.030 2.26e-04 2.48e-04 1.75e-04 1.65e-04 1.25e+00 5.00e-03 1.12e+01 (      26,      26)
+   0.040 3.24e-04 3.29e-04 2.72e-04 2.23e-04 1.25e+00 5.00e-03 1.33e+01 (      26,      26)
+   0.050 4.20e-04 4.10e-04 3.95e-04 2.80e-04 1.25e+00 5.00e-03 1.51e+01 (      26,      26)
+ ----> t=5.500e-02, dt=5.00e-03: step=10 |u.t|[max,l2]: all=[5.9e-01, 2.5e-01] r=[6.45e-02, 2.96e-02] u=[5.35e-01, 2.20e-01] v=[2.67e-01, 1.59e-01] T=[5.94e-01, 2.46e-01]
+   0.060 5.16e-04 5.43e-04 5.46e-04 3.33e-04 1.25e+00 5.00e-03 1.67e+01 (      26,      26)
+   0.070 6.16e-04 7.28e-04 7.29e-04 3.83e-04 1.24e+00 5.00e-03 1.86e+01 (      26,      26)
+   0.080 7.19e-04 9.51e-04 9.46e-04 4.29e-04 1.24e+00 5.00e-03 2.05e+01 (      26,      26)
+   0.090 8.25e-04 1.21e-03 1.20e-03 4.79e-04 1.24e+00 5.00e-03 2.24e+01 (      26,      26)
+   0.100 9.32e-04 1.52e-03 1.50e-03 5.26e-04 1.24e+00 5.00e-03 2.41e+01 (      26,      26)
+
+
+cgcns tz.cmd -g=annulus2.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+    t    err(r)   err(u)   err(v)   err(T)    uMax     dt       cpu  (cur,max)-mem (Gb)
+   0.020 5.55e-04 6.67e-04 3.95e-04 4.66e-04 1.25e+00 1.00e-02 1.05e+01 (      25,      25)
+   0.030 7.67e-04 9.93e-04 5.77e-04 7.15e-04 1.25e+00 1.00e-02 1.24e+01 (      25,      25)
+   0.040 1.01e-03 1.34e-03 7.50e-04 9.66e-04 1.25e+00 1.00e-02 1.44e+01 (      25,      25)
+   0.050 1.37e-03 1.70e-03 1.00e-03 1.21e-03 1.25e+00 1.00e-02 1.60e+01 (      25,      25)
+   0.060 1.73e-03 2.06e-03 1.28e-03 1.46e-03 1.25e+00 1.00e-02 1.74e+01 (      25,      25)
+   0.070 2.10e-03 2.41e-03 1.58e-03 1.68e-03 1.24e+00 1.00e-02 1.91e+01 (      25,      25)
+   0.080 2.46e-03 2.76e-03 1.90e-03 1.90e-03 1.24e+00 1.00e-02 2.05e+01 (      25,      25)
+   0.090 2.81e-03 3.11e-03 2.26e-03 2.09e-03 1.24e+00 1.00e-02 2.21e+01 (      25,      25)
+   0.100 3.14e-03 3.45e-03 2.64e-03 2.27e-03 1.24e+00 1.00e-02 2.38e+01 (      25,      25)
+
+
+
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+   0.050 5.75e-04 4.09e-04 4.06e-04 3.15e-04 1.25e+00 5.00e-03 1.41e+01 (      26,      27)
+   0.100 1.68e-03 1.58e-03 1.56e-03 1.31e-03 1.24e+00 5.00e-03 2.56e+01 (      26,      26)
+
+cgcns tz.cmd -g=annulus2.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+  0.050 1.68e-03 1.71e-03 1.04e-03 1.24e-03 1.25e+00 1.00e-02 1.03e+01 (      25,      25)
+  0.100 4.57e-03 3.46e-03 2.76e-03 2.33e-03 1.24e+00 1.00e-02 2.18e+01 (      25,      25)
+
+
+
+***NOTE*** We need to increase the default orders of EXTRAPOLATION **********
+cgcns tz.cmd -g=annulus4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+
+
+
+cgcns tz.cmd -g=sicFixede4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+
+-- trig: bcOption=0
+cgcns tz.cmd -g=sicFixede4.order2 -tf=.1 -tp=.01 -tz=trig -reduceInterpWidth=2 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt  
+   0.100 1.05e-03 2.15e-03 1.07e-03 6.60e-04 1.24e+00 5.00e-03 4.29e+01 (      29,      29)
+
+*** increase default extrap-order to 2 and use interpWidth=2: 
+cgcns tz.cmd -g=sicFixede4.order2 -tf=.1 -tp=.01 -reduceInterpWidth=2 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt  
+  0.100 1.95e-04 3.06e-04 2.74e-04 2.18e-04 5.68e+00 1.43e-03 5.90e+01 (      29,      29)
+
+
+
+*** turn off limited extrapolation in BC's 
+
+
+cgcns tz.cmd -g=sicFixede4.order2 -tf=.1 -tp=.001 -reduceInterpWidth=3 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt
+  0.100 2.98e-03 4.79e-03 3.08e-03 4.77e-03 5.68e+00 1.43e-03 3.23e+01 (      28,      29)
+
+-- maybe first order: (slope limiter?)
+cgcns -noplot tz.cmd -g=sicFixede8.order2 -tf=.1 -tp=.01 -reduceInterpWidth=3 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -go=go
+- Set exact value for p.n 
+  0.100 1.47e-03 2.60e-03 1.62e-03 2.43e-03 5.68e+00 7.14e-04 5.39e+01 (      25,      27)
+-- Set p.n old way: 
+  0.100 2.50e-03 2.60e-03 1.62e-03 8.88e-03 5.68e+00 7.14e-04 5.88e+01 (      25,      27)
+   old way, no BC limiting:
+  0.100 1.47e-03 2.60e-03 1.62e-03 2.41e-03 5.68e+00 7.14e-04 5.18e+01 (      25,      26) 
+-- New way:
+  0.100 2.71e-03 2.60e-03 1.62e-03 9.89e-03 5.68e+00 7.14e-04 4.76e+01
+
+cgcns -noplot tz.cmd -g=sicFixede4.order2 -tf=.1 -tp=.01 -reduceInterpWidth=3 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4 -go=go
+-- Set exact value for p.n AND no BC-limiting 
+   0.100 2.98e-03 4.79e-03 3.08e-03 4.77e-03 5.68e+00 1.43e-03 5.07e+01 (      29,      29)
+-- Set p.n old way: 
+   0.100 2.92e-03 4.79e-03 3.08e-03 9.40e-03 5.68e+00 1.43e-03 7.32e+00 (      21,      22)
+   -- old way NO BC-limiting:
+   0.100 2.98e-03 4.79e-03 3.08e-03 4.78e-03 5.68e+00 1.43e-03 7.70e+00 (      21,      22)
+-- New way:
+  0.100 2.92e-03 4.79e-03 3.08e-03 1.00e-02 5.68e+00 1.43e-03 6.93e+00 (      21,      22)
+
+
+cgcns tz.cmd -g=sice4.order2 -tf=.1 -tp=.001 -reduceInterpWidth=3 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+
+
+
+-- not converging properly:
+cgcns tz.cmd -g=sice8.order2 -tf=.1 -tp=.01 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+  0.020 1.49e-03 2.35e-03 1.78e-03 3.28e-03 5.45e+00 7.69e-04 2.74e+01 (      36,      36)
+
+cgcns tz.cmd -g=sice4.order2 -tf=.1 -tp=.01 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+   0.050 3.12e-03 4.67e-03 3.28e-03 5.76e-03 5.53e+00 1.43e-03 3.45e+01 (      29,      29)
+   0.100 3.34e-03 5.10e-03 3.24e-03 6.77e-03 5.68e+00 1.43e-03 6.05e+01 (      29,      29)
+
+TROUBLE at corners!
+cgcns tz.cmd -g=nonSquare20.order2 -tf=.01 -tp=.01 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=halt -bcOption=4
+
+TROUBLE: -bcoption=4 = slipWallDerivative
+cgcns -noplot tz.cmd -g=nonSquare20.order2 -tf=.1 -tp=.1 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=go -bcOption=4
+   0.100 8.86e-02 5.30e-03 6.18e-03 4.50e-01 5.86e+00 2.86e-03 5.15e-01 (      18,      18)
+
+OK:
+cgcns -noplot tz.cmd -g=nonSquare20.order2 -tf=.1 -tp=.1 -bc1=slip -bc3=slip -bc2=slip -bc4=slip -go=go -bcOption=0
+   0.100 4.98e-04 2.83e-04 2.82e-04 1.21e-03 5.86e+00 2.86e-03 3.83e-01 (      18,      18)
+
+
+*** 2011/07/04 - fixed bug with IW=2 CanInterpolate.bC
+
+OK now:
+mpirun -np 4 $cgcnsp prop2d -g=prop2de8.order2.s2 -tp=.1 -tf=1. -freq=.2 -freqFullUpdate=1 -go=go
+
+*** 2011/07/02 - fixed array leak in POGI
+
+There is a memory leak here: approx 5M / 30 steps
+mpirun -np 4 $cgcnsp -noplot prop2d -g=prop2de8.order2.s2 -tp=.1 -tf=1. -freq=.2 -freqFullUpdate=1 -interpWidth=3 -go=go >! prop2d.out 
+
+*** 2011/07/01 
+
+OK: but there are leaks plus grid-generation takes 75% of the time!
+mpirun -np 4 $cgcnsp prop2d -g=prop2de8.order2.s2 -tp=.01 -tf=5. -freq=.2 -freqFullUpdate=1 -interpWidth=3
+
+
+
+*** 2011/06/19 -- check for leaks in parallel moving grids
+
+-- no array leaks -- simulate motion only
+mpirun -np 1 $cgcnsp cicMove -g=cice2.order2 -fullGridGenFreq=1 -memoryCheck=1 -interpWidth=3 -simulateMotion=1 -dtMax=.01 -tp=.1
+
+
+*** problem: interpWidth=2: fixes grid gen, leaks still there
+mpirun -np 1 $cgcnsp cicMove -g=cice2.order2 -fullGridGenFreq=1 -memoryCheck=1 -interpWidth=3
+
+-- array leak here AND errors from ogen ---> interpWidth=2 !! 
+mpirun -np 1 $cgcnsp cicMove -g=cice2.order2 -fullGridGenFreq=1 -memoryCheck=1
+
+Ogen::checkInterpolationOnBoundaries:end: number of array ID's has increased to 964
+Ogen::cutHoles: fix me for parallel and mixed-boundaries
+Ogen:markPtsNeeded:ERROR:grid=0, donor=1, (i1,i2,i3)=(30,24,0), g2.bc=0  interpolee location is invalid. (will shift to boundary)
+  rI(1)=1.00e+00, r=6.00e+00 -> iab=8 > g2.extendedIndexRange=7
+Ogen:markPtsNeeded:ERROR:grid=0, donor=1, (i1,i2,i3)=(25,25,0), g2.bc=0  interpolee location is invalid. (will shift to boundary)
+
+
+
+SERIAL: OK: no array leaks, no ogen error
+cgcns cicMove -g=cice2.order2 -fullGridGenFreq=1 -memoryCheck=1
+
+
+
+**** 110322
+
+
+(5rp) mpirun -np 1 $cgcnsp airfoil -g=airfoile1big.order2 -tf=1. -tp=1.e-5 -amr=1 -restart=airfoil1a.show -useGridFromShowfile=0 -go=halt [TROUBLE in Ogen::updateRefinementNewer - mask does not match maskr - periodic?
+
+(4p) mpirun -np 4 $cgcnsp airfoil -g=airfoile1big.order2 -tf=2. -amr=0 -show=airfoil2.show -restart=airfoil1.show -useGridFromShowfile=0 -go=halt [OK
+
+
+(5r) cgcns airfoil -g=airfoile1big.order2 -tf=1. -tp=1.e-5 -amr=1 -restart=airfoil1a.show -useGridFromShowfile=0 -go=halt
+(5) cgcns airfoil -g=airfoile1.order2 -tf=1. -tp=1.e-5 -amr=1 -show=airfoil1a.show -go=halt [OK
+
+(4) cgcns airfoil -g=airfoile1big.order2 -tf=2. -amr=0 -show=airfoil2.show -restart=airfoil1.show -useGridFromShowfile=0 -go=halt [OK
+
+(3) cgcns airfoil -g=airfoile2.order2 -tf=2. -amr=1 -show=airfoil2.show -restart=airfoil1.show -useGridFromShowfile=0 -tol=.05 -go=halt [OK
+
+(2) cgcns airfoil -g=airfoile2.order2 -tf=2. -amr=0 -show=airfoil2.show -restart=airfoil1.show -useGridFromShowfile=0 -go=halt [OK
+
+(1) cgcns airfoil -g=airfoile1.order2 -tf=1. -amr=0 -show=airfoil1.show -go=halt [OK
+
+
+***** 110321
+
+TROUBLE: 
+mpirun -np 2 $cgcnsp airfoil -g=airfoile1.order2 -tf=1. -amr=1 -show=airfoil1b.show -restart=airfoil1a.show -go=halt
+
+
+cgcns airfoil -g=airfoile2.order2 -tf=2. -amr=0 -show=airfoil2.show -restart=airfoil1.show -go=halt -amr=1
+
+cgcns airfoil -g=airfoile2.order2 -tf=2. -amr=0 -show=airfoil2.show -restart=airfoil1.show -go=halt -amr=0 [OK
+
+cgcns airfoil -g=airfoile1.order2 -tf=1. -amr=0 -show=airfoil1.show -go=halt
+
+
+
+
+*********** 101104 - BUG found: HyperbolicMapping: operator= -- deep copy DataPointMapping (for ExposedPoints)
+
+
++++ computed velocity and acceleration:
+cgcns noplot plugDeform.cmd -g=plugDeform8  -bcOption=4 -tp=.2 -tf=1. -ap=-1. -pp=4 -en=max -go=go 
+determineErrors: t=1.000e+00, maxNorm errors: [rho,u,v,T]=[1.34e-04,1.76e-04,7.64e-15,1.40e-04]
+   1.000 1.34e-04 1.76e-04 7.64e-15 1.40e-04 1.40e+00 6.30e-03 5.45e+00 (      24,      24)
+
++++ computed velocity and acceleration:
+cgcns noplot plugDeform.cmd -g=plugDeform4  -bcOption=4 -tp=.2 -tf=1. -ap=-1. -pp=4 -en=max -go=go 
+determineErrors: t=1.000e+00, maxNorm errors: [rho,u,v,T]=[5.58e-04,6.99e-04,3.64e-15,7.79e-04]
+   1.000 5.58e-04 6.99e-04 3.64e-15 7.79e-04 1.40e+00 1.15e-02 2.20e+01 (      32,      32)
+
+
+
+
++++ exact velocity and acceleration: 
+cgcns noplot plugDeform.cmd -g=plugDeform4  -bcOption=4 -tp=.2 -tf=1. -ap=-1. -pp=4 -en=max -go=go >! plugDeform4.out
+  determineErrors: t=1.000e+00, maxNorm errors: [rho,u,v,T]=[3.78e-04,4.14e-04,3.62e-15,7.18e-04]
+     1.000 3.78e-04 4.14e-04 3.62e-15 7.18e-04 1.40e+00 1.15e-02 1.74e+00 (      24,      24)
+
+cgcns noplot plugDeform.cmd -g=plugDeform8  -bcOption=4 -tp=.2 -tf=1. -ap=-1. -pp=4 -en=max -go=go >! junk
+
+
+************** 101103
+
+cgcns noplot plugDeform.cmd -g=plugDeform8  -bcOption=4 -tp=.2 -tf=1. -ap=-1. -pp=4 -en=max -go=go >! plugDeform8.out
+cgcns noplot pistonSpecifiedMotion.cmd -g=plugDeform8  -bcOption=4 -tp=.2 -tf=1. -ap=-1. -pp=4 -en=max -go=go >! psm8.out
+
+
+*** these differ: in l1-norm but not max-norm !!
+cgcns -noplot plugDeform -g=plugDeform4.hdf -tp=.05 -tf=1. -godOrder=2 -debug=7 -go=go >! plugDeform4.out
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform4.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.05 -tf=1. -godOrder=2 -debug=7 -go=go >! psm4.out
+
+
+== Agree: 
+cgcns -noplot plugDeform -g=plugDeform1.hdf -tp=.2 -tf=1. -godOrder=2 -debug=7 -go=go >! plugDeform1.out
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform1.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.2 -tf=1. -godOrder=2 -debug=7 -go=go >! psm1.out
+
+== Agree: 
+cgcns -noplot plugDeform -g=plugDeform1.hdf -tp=.05 -tf=1. -godOrder=2 -debug=7 -go=go >! plugDeform1.out
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform1.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.05 -tf=1. -godOrder=2 -debug=7 -go=go >! psm1.out
+
+======  -godOrder=1 -- these seem to agree
+
+cgcns -noplot plugDeform -g=plugDeform8.hdf -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! plugDeform8.out
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform8.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! psm8.out
+
+cgcns -noplot plugDeform -g=plugDeform4.hdf -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! plugDeform4.out
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform4.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! psm4.out
+
+cgcns -noplot plugDeform -g=plugDeform2.hdf -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! plugDeform2.out
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform2.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! psm2.out
+
+
+cgcns -noplot plugDeform -g=plugDeform1.hdf -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! plugDeform1.out
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform1.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -debug=7 -go=go >! psm1.out
+
+
+cgcns pistonSpecifiedMotion -g=plugDeform2.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -go=halt
+cgcns pistonSpecifiedMotion -g=plugDeform2.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -go=halt
+
+
+
+cgcns -noplot plugDeform -g=plugDeform8.hdf -tp=.01 -tf=1. -godOrder=1 -go=go > ! plugDeform8.out
+
+cgcns -noplot pistonSpecifiedMotion -g=plugDeform8.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -go=go > ! psmg8.out
+
+cgcns -noplot pistonSpecifiedMotion -g=nonPlug8.hdf -ap=-1. -pp=4 -bcOption=4 -tp=.01 -tf=1. -godOrder=1 -go=go > ! psm8.out
+
+
+************************************************************
+
+
+090811:
+
+totalview srun -a -N1 -n1 -ppdebug $cgcnsp cicMove -g=cice2.order2 -fullGridGenFreq=1 -amr=1
+
+updateRefinementFillInterpolationDataNew:ERROR: myid=0 : pt 0=(110,64,0)
+   grid=2 base=0 mask(55,32,0)=-2113929216 is negative but not marked as an interp pt!
+
+
+
+
+----------------------------------------------------------------------------------------------------------------------
+
+090806: 
+
+mpirun -np 1 $ogen/ogen gridFailed 
+
+
+*************************** June 03 2007  ********************************
+
+-----------------------------
+
+srun -N1 -n4 -ppdebug $cgcnsp noplot axisymmetricSphere -g=oneBump2e.order2.hdf -l=3 -r=2 -tf=1.25 -tp=.25 -x0=-1. -show=oneBump2l3r2.show > ! oneBump2l3r2.N1.n4.out &
+
+   ok. 
+
+-----------------------------
+
+srun -N1 -n4 -ppdebug $cgcnsp noplot axisymmetricSphere -g=oneBump2e.order2.hdf -l=2 -r=2 -tf=1.25 -tp=.25 -x0=-1. -show=oneBump2l2r2.show > ! oneBump2l2r2.N1.n4.out &
+
+   ok.
+
+
+---------------------
+
+srun -N1 -n8 -ppdebug $cgcnsp noplot quarterSphere -g=quarterSphere4e.hdf -l=1 -r=2 -tf=1. -tp=.25 -x0=-1 >! qs4el1r2.N2.n16.out &
+
+  l=1 : ok 
+
+
+---------------------
+
+srun -N2 -n16 -ppdebug $cgcnsp noplot quarterSphere -g=quarterSphere4e.hdf -l=2 -r=2 -tf=1. -tp=.25 -x0=-1 >! qs4el2r2.N2.n16.out &
+
+ ??
+
+
+---------------------
+
+srun -N2 -n16 -ppdebug $cgcnsp noplot quarterSphere -g=quarterSphere4e.hdf -l=2 -r=4 -tf=1. -tp=.25 -x0=-1 >! qs4el2r4.N2.n16.out &
+
+ ?? 
+
+
+-----------------------------
+srun -N2 -n16 -ppdebug $cgcnsp noplot quarterSphere -g=quarterSphere2e.hdf -l=3 -r=2 -tf=1. -tp=.25 -x0=-1 >! qs2el3r2.N2.n16.out &
+
+  ??
+
+-----------------------------
+srun -N1 -n4 -ppdebug $cgcnsp noplot quarterSphere -g=quarterSphere2e.hdf -l=3 -r=2 -tf=1. -tp=.25 -x0=-1 >! qs2el3r2.N1.n4.out &
+
+ OK  (negative density was caused by order of extrap interp-neighbours =2 )
+
+
+-----------------------------
+srun -N1 -n4 -ppdebug $cgcnsp noplot quarterSphere -g=quarterSphere2e.hdf -l=2 -r=2 -tf=1. -tp=.25 -x0=-1 >! qs2el2r2.N1.n4.out &
+
+
+  OK

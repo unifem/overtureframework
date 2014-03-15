@@ -1,0 +1,965 @@
+#include "BodyForce.h"
+#include "AnnulusMapping.h"
+#include "BoxMapping.h"
+#include "SquareMapping.h"
+#include "GenericGraphicsInterface.h"
+#include "xColours.h"
+#include "UnstructuredMapping.h"
+
+// ====================================================================================
+// This class holds information about different body forces.
+// It is used in setupBodyForcing and computeBodyForcing.
+// ====================================================================================
+BodyForce::
+BodyForce()
+{
+  initialize();
+}
+
+BodyForce::
+~BodyForce()
+{
+  aString & regionType = dbase.get<aString>("regionType");
+
+  printF("BodyForce: destructor called for bodyForcingName=[%s]\n",
+          (const char*)dbase.get<aString >("bodyForcingName"));
+
+  if( regionType=="mapping" )
+  {
+    if( dbase.has_key("bodyForceMapping") )
+    {
+      printF("~BodyForce(): delete bodyForceMapping\n");
+      delete dbase.get<MappingRC*>("bodyForceMapping");
+    }
+  }
+}
+
+// ====================================================================================
+/// \brief Initialize a BodyForce.
+// ====================================================================================
+void BodyForce::
+initialize()
+{
+
+  if( !dbase.has_key("bodyForcingName") ) dbase.put<aString>("bodyForcingName");
+  dbase.get<aString >("bodyForcingName")="bodyForcingDefaultName";
+
+  // forcingType: name of the forcing, e.g. "dragForce", "wakeModel"
+  if( !dbase.has_key("forcingType") ) dbase.put<aString >("forcingType");
+  dbase.get<aString >("forcingType")="unknown";
+
+  // addForcing is true of we add this forcing to the current forcings, otherwise we set the forcing and
+  // over-write current forcings.
+  if( !dbase.has_key("addForcing") ) dbase.put<bool >("addForcing",true);
+
+  // forcingIsTimeDependent : true if the forcing depends on time
+  if( !dbase.has_key("forcingIsTimeDependent") ) dbase.put<bool >("forcingIsTimeDependent",true);
+
+  // forcingHasBeenAssigned : set to true when the forcing has been assigned (for time-independent forcing)
+  if( !dbase.has_key("forcingHasBeenAssigned") ) dbase.put<bool >("forcingHasBeenAssigned",false);
+
+  // visible : true if this region should be plotted (some forcings use the same regions as others)
+  if( !dbase.has_key("visible") ) dbase.put<bool >("visible",true);
+
+  // regionType is "box", "ellipse" , ...
+  if( !dbase.has_key("regionType") ) dbase.put<aString>("regionType");
+  dbase.get<aString>("regionType")="none";
+
+  // linesToPlot[3] is used when plotting regions (e.g. number of lines on a box)
+  if( !dbase.has_key("linesToPlot") ) dbase.put<int[3]>("linesToPlot"); 
+  int *linesToPlot= dbase.get<int[3]>("linesToPlot"); 
+  linesToPlot[0]=linesToPlot[1]=linesToPlot[2]=11;
+  
+}
+
+
+// ====================================================================================
+/// \brief copy constructor
+// ====================================================================================
+BodyForce::
+BodyForce( const BodyForce & bf )
+{
+  printF("BodyForce: copy constructor called! bf.bodyForcingName=[%s]\n",
+          (const char*)bf.dbase.get<aString >("bodyForcingName"));
+
+  initialize();
+  *this = bf;
+}
+
+
+// =====================================================================================
+/// \brief equals operator
+// =====================================================================================
+BodyForce & BodyForce::
+operator=( const BodyForce & bf )
+{
+
+  printF("BodyForce: operator= called! bf.bodyForcingName=[%s]\n",
+          (const char*)bf.dbase.get<aString >("bodyForcingName"));
+
+
+  return *this;
+}
+
+
+
+//=================================================================================
+/// \brief Get the BodyForce object from the database
+//=================================================================================
+int BodyForce::
+get( const GenericDataBase & dir, const aString & name)
+{
+  GenericDataBase & subDir = *dir.virtualConstructor();
+  dir.find(subDir,name,"BodyForce");
+
+  subDir.get( dbase.get<aString>("bodyForcingName"),"bodyForcingName" );
+  subDir.get( dbase.get<aString>("forcingType"),"forcingType" );            
+  subDir.get( dbase.get<bool>("addForcing"),"addForcing" );            
+  subDir.get( dbase.get<bool>("forcingIsTimeDependent"),"forcingIsTimeDependent" );            
+  subDir.get( dbase.get<bool>("forcingHasBeenAssigned"),"forcingHasBeenAssigned" );       
+  subDir.get( dbase.get<bool>("visible"),"visible" );            
+
+  aString & regionType = dbase.get<aString>("regionType");
+  subDir.get( regionType,"regionType" );            
+  subDir.get( dbase.get<int[3]>("linesToPlot"), "linesToPlot",3 );
+
+  if( regionType=="box" )
+  {
+    if( !dbase.has_key("boxBounds") ) dbase.put<real[6]>("boxBounds");
+    subDir.get( dbase.get<real[6]>("boxBounds"),"boxBounds",6 );
+  }
+  else if( regionType=="ellipse" )
+  {
+    if( !dbase.has_key("ellipse") ) dbase.put<real[6]>("ellipse");
+    subDir.get( dbase.get<real[6]>("ellipse"),"ellipse",6 );
+  }
+  else if( regionType=="maskFromGridFunction" )
+  {
+    // region defined from a mask in a grid function
+    // *FINISH ME*
+  }  
+  else if( regionType=="mapping" )
+  {
+    if( !dbase.has_key("bodyForceMapping") ) dbase.put<MappingRC*>("bodyForceMapping");
+    MappingRC*& bodyForceMapping= dbase.get<MappingRC*>("bodyForceMapping");
+    bodyForceMapping = new MappingRC();
+    bodyForceMapping->get(subDir,"mapping");  // this will "make" the correct type of Mapping
+  }
+
+//   subDir.get( xa,"xa" );
+//   subDir.get( ya,"ya" );
+//   subDir.get( xb,"xb" );
+//   subDir.get( yb,"yb" );
+//   subDir.get( z ,"z" );
+
+  delete &subDir;
+  return 0; 
+}
+
+//=================================================================================
+/// \brief Put the BodyForce object into the database
+//=================================================================================
+int BodyForce::
+put( GenericDataBase & dir, const aString & name) const
+{  
+  GenericDataBase & subDir = *dir.virtualConstructor();      // create a derived data-base object
+  dir.create(subDir,name,"BodyForce");                      // create a sub-directory 
+
+  subDir.put( dbase.get<aString>("bodyForcingName"),"bodyForcingName" );
+  subDir.put( dbase.get<aString>("forcingType"),"forcingType" );            
+  subDir.put( dbase.get<bool>("addForcing"),"addForcing" );            
+  subDir.put( dbase.get<bool>("forcingIsTimeDependent"),"forcingIsTimeDependent" );            
+  subDir.put( dbase.get<bool>("forcingHasBeenAssigned"),"forcingHasBeenAssigned" );            
+  subDir.put( dbase.get<bool>("visible"),"visible" );            
+
+  // This may not aways exist: *fix me*      
+  const aString & regionType = dbase.get<aString>("regionType");
+  subDir.put( regionType,"regionType" );            
+  subDir.put( dbase.get<int[3]>("linesToPlot"), "linesToPlot",3 );
+  
+  if( regionType=="box" )
+  {
+    subDir.put( dbase.get<real[6]>("boxBounds"),"boxBounds",6 );
+  }
+  else if( regionType=="ellipse" )
+  {
+    subDir.put( dbase.get<real[6]>("ellipse"),"ellipse",6 );
+  }
+  else if( regionType=="maskFromGridFunction" )
+  {
+    // region defined from a mask in a grid function
+    // *FINISH ME*
+  }  
+  else if( regionType=="mapping" )
+  {
+    MappingRC *pMap = dbase.get<MappingRC*>("bodyForceMapping");
+    assert( pMap!=NULL );
+    pMap->put(subDir,"mapping" );
+  }
+  
+  delete &subDir;
+  return 0;
+}
+
+
+
+// ==================================================================================================
+// Here is the class where we keep current parameters that define the current region for a body force:
+// These parameters are only used while the body force is being defined.
+// ==================================================================================================
+BodyForceRegionParameters::
+BodyForceRegionParameters()
+{
+  // regionType : name of the region:
+  if( !dbase.has_key("regionType") ) dbase.put<aString >("regionType");
+  dbase.get<aString >("regionType")="box";
+
+
+  // Default box bounds:
+  real xa=0., xb=1., ya=0., yb=1., za=0., zb=1.;
+  dbase.put<real[6] >("boxBounds");
+  real *boxBounds =  dbase.get<real[6] >("boxBounds");
+  boxBounds[0]=xa;
+  boxBounds[1]=xb;
+  boxBounds[2]=ya;
+  boxBounds[3]=yb;
+  boxBounds[4]=za;
+  boxBounds[5]=zb;
+
+
+  // Default ellipse: [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1 
+  real ae=1., be=1., ce=1., xe=0., ye=0., ze=0.;
+  dbase.put<real[6] >("ellipse");
+  real *ellipse =  dbase.get<real[6] >("ellipse");
+  ellipse[0]=ae;
+  ellipse[1]=be;
+  ellipse[2]=ce;
+  ellipse[3]=xe;
+  ellipse[4]=ye;
+  ellipse[5]=ze;
+
+  // profile type: name of the forcing profile: uniform, parabolic, ..
+  if( !dbase.has_key("profileType") ) dbase.put<aString >("profileType");
+  dbase.get<aString >("profileType")="uniform";
+
+  if( !dbase.has_key("parabolicProfileDepth") ) dbase.put<real>("parabolicProfileDepth",0.1);
+  if( !dbase.has_key("tanhProfileExponent") ) dbase.put<real>("tanhProfileExponent",10.);
+
+  // Specify number of lines to use when plotting the region:
+  dbase.put<int[3] >("linesToPlot");
+  int *linesToPlot =  dbase.get<int[3] >("linesToPlot");
+  linesToPlot[0]=linesToPlot[1]=linesToPlot[2]=10;
+
+}
+
+BodyForceRegionParameters::
+~BodyForceRegionParameters()
+{
+  if( dbase.has_key("bodyForceMapping") )
+  {
+    printF("~BodyForceRegionParameters(): delete bodyForceMapping\n");
+    delete dbase.get<MappingRC*>("bodyForceMapping");
+  }
+}
+
+
+// ==========================================================================================
+//  This macro plots body/boundary forcing regions
+// ==========================================================================================
+#beginMacro plotRegionMacro()
+
+  //  save ID for picking:
+  if( !bodyForce.dbase.has_key("globalID") ) bodyForce.dbase.put<int>("globalID",-1); 
+  int & globalID = bodyForce.dbase.get<int>("globalID");
+
+  if( regionType=="box" )
+  {
+    const real *boxBounds =  bodyForce.dbase.get<real[6] >("boxBounds");
+    const int *linesToPlot =  bodyForce.dbase.get<int[3] >("linesToPlot");
+
+    const real xa = boxBounds[0];
+    const real xb = boxBounds[1];
+    const real ya = boxBounds[2];
+    const real yb = boxBounds[3];
+    const real za = boxBounds[4];
+    const real zb = boxBounds[5];
+
+    if( debug & 4 )
+      printF("plotBodyForcing: bf=%i, box bounds = [%e,%e]x[%e,%e][%e,%e]\n",bf,xa,xb,ya,yb,za,zb);
+
+    if( numberOfDimensions==2 )
+    {
+      SquareMapping square(xa,xb,ya,yb);
+      globalID=square.getGlobalID();  // save ID for picking 
+      
+      // Just plot the square outline -- we could make this an option
+      square.setGridDimensions(axis1,linesToPlot[0]);
+      square.setGridDimensions(axis2,linesToPlot[1]);
+      PlotIt::plot(gi, square,psp);      
+    }
+    else
+    {
+      BoxMapping box(xa,xb,ya,yb,za,zb);
+      globalID=box.getGlobalID();  // save ID for picking 
+
+      // Just plot the box outline -- we could make this an option
+      box.setGridDimensions(axis1,linesToPlot[0]);
+      box.setGridDimensions(axis2,linesToPlot[1]);
+      box.setGridDimensions(axis3,linesToPlot[2]);
+      PlotIt::plot(gi, box,psp);      
+    }
+      
+
+  }
+  else if( regionType=="ellipse" )
+  {
+    //   [(x-xe)/ae]^2 + [(y-ye)/be]^2 + [(z-ze)/ce]^2 = 1
+
+    const real *ellipse =  bodyForce.dbase.get<real[6] >("ellipse");
+    const int *linesToPlot =  bodyForce.dbase.get<int[3] >("linesToPlot");
+
+    const real ae = ellipse[0];
+    const real be = ellipse[1];
+    const real ce = ellipse[2];
+    const real xe = ellipse[3];
+    const real ye = ellipse[4];
+    const real ze = ellipse[5];
+
+    if( numberOfDimensions==2 )
+    {
+      AnnulusMapping map(0.,be, xe,ye, 0.,1.,ae/be);
+      globalID=map.getGlobalID();  // save ID for picking 
+
+      map.setGridDimensions(axis1,linesToPlot[0]);
+      map.setGridDimensions(axis2,linesToPlot[1]);
+      PlotIt::plot(gi, map,psp);      
+    }
+    else
+    {
+      // **finish me**
+    }
+
+  }
+  else if( regionType=="maskFromGridFunction" )
+  {
+    if( dbase.get<bool >("plotBodyForceMaskSurface") )
+    {
+      if( !dbase.has_key("bodyForceMaskGridFunction") )
+      {
+	printF("plotBodyForcingRegions: there is no body force mask defined!\n");
+	continue;
+      }
+      realCompositeGridFunction & bodyForceMask = 
+	*dbase.get<realCompositeGridFunction*>("bodyForceMaskGridFunction");
+
+      
+      // The body force mask iso surface has its own graphics parameters:
+      if( !dbase.has_key("bodyForceMaskGraphicsParameters") )
+      {
+	dbase.put<GraphicsParameters>("bodyForceMaskGraphicsParameters");
+      }
+      printF("plotBodyForcingRegions: plot the body force mask iso-surface\n");
+      
+      GraphicsParameters & gp = dbase.get<GraphicsParameters>("bodyForceMaskGraphicsParameters");
+      gp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+      PlotIt::contour(gi,bodyForceMask, gp);
+    }
+    
+  }
+  else if( regionType=="mapping" )
+  {
+    if( !bodyForce.dbase.has_key("bodyForceMapping") )
+    {
+      printF("plotBodyForcingRegions:WARNING: there is no body force Mapping!\n");
+      continue;
+    }
+    MappingRC *& bodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+    if( bodyForceMapping!=NULL )
+    {
+
+      printF("plotBodyForcingRegions: plotMapping [%s]\n",
+               (const char*)bodyForceMapping->getName(Mapping::mappingName));
+
+      Mapping & map = bodyForceMapping->getMapping();
+      globalID=map.getGlobalID();  // save ID for picking 
+
+      if( numberOfDimensions==2 )
+	psp.set(GraphicsParameters::lineWidth,lineWidth);  // default is 1
+      
+      PlotIt::plot(gi,map,psp);  
+
+      if( numberOfDimensions==2 )
+	psp.set(GraphicsParameters::lineWidth,1.);  // default is 1
+
+    }
+    else
+    {
+      printF("plotBodyForcingRegions:WARNING: the body force Mapping is NULL!\n");
+    }
+    
+
+
+  }
+  else
+  {
+    printF("plotBodyForcing:WARNING: unexpected regionType=%s\n",(const char*)regionType);
+  }
+#endMacro
+
+// ======================================================================================
+/// \brief Plot body/boundary forcing regions and immersed boundaries. 
+/// \details We interactively check for answers if the calling program has set GI\_PLOT\_THE_OBJEC\T_AND\_EXIT to false,
+/// otherwise we plot the regions and exit.
+///
+/// \param dbase (input) : DataBase holding the lists of body and boundary forcings.
+/// \param cg (input) : the current grid.
+// ======================================================================================
+int BodyForce::
+plotForcingRegions( GenericGraphicsInterface &gi, DataBase & dbase, CompositeGrid & cg, 
+		    GraphicsParameters & pspGlobal )
+{
+
+  if( !dbase.has_key("turnOnBodyForcing") )
+      return 0;
+
+  if( !dbase.get<bool >("turnOnBodyForcing") &&
+      !dbase.get<bool>("turnOnBoundaryForcing") )
+  {
+    // there are no body or boundary forcings defined
+    return 0;
+  }
+
+  const int numberOfDimensions = cg.numberOfDimensions();
+
+  if( !dbase.has_key("lineWidth") )
+  {// line width for 2d curves
+    dbase.put<real>("lineWidth");
+    dbase.get<real>("lineWidth")=3.;
+  }
+  real & lineWidth=dbase.get<real>("lineWidth");
+
+  // We interactively check for answers if the calling program has set GI_PLOT_THE_OBJECT_AND_EXIT to false,
+  // otherwise we plot the regions and exit.
+  int plotObjectAndExit=true;
+  pspGlobal.get(GI_PLOT_THE_OBJECT_AND_EXIT,plotObjectAndExit);
+
+  // Here is a GraphicsParameters for saving properties of the body and boundary forcing
+  if( !dbase.has_key("bodyForcingGraphicsParameters")) 
+  {
+    dbase.put<GraphicsParameters>("bodyForcingGraphicsParameters");
+    GraphicsParameters & pspBody = dbase.get<GraphicsParameters>("bodyForcingGraphicsParameters");
+    // set initial values
+    pspBody.getBoundaryColourOption()=GraphicsParameters::defaultColour; // GraphicsParameters::colourByGrid;
+    pspBody.set(GI_BLOCK_BOUNDARY_COLOUR_OPTION,GraphicsParameters::defaultColour); // means use mapping colour
+    pspBody.set(GI_BOUNDARY_COLOUR_OPTION,GraphicsParameters::colourByGrid);  // for 2D
+
+    pspBody.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,true);   // 2d grid lines: OFF?  *BUT* THIS IS ALSO FOR 2D LINES !! so ON!
+    pspBody.set(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,false); // 3d lines : OFF
+    pspBody.set(GI_MAPPING_COLOUR,"DARKTURQUOISE");
+
+    pspBody.set(GI_PLOT_GRID_POINTS_ON_CURVES,false);  // grid points on curves OFF by default
+
+    // Unstructured mappings: 
+    pspBody.set(GI_PLOT_UNS_FACES,true);
+    pspBody.set(GI_PLOT_UNS_EDGES,false);
+    pspBody.set(GI_PLOT_UNS_BOUNDARY_EDGES,false);
+
+  }
+  GraphicsParameters & pspBody = dbase.get<GraphicsParameters>("bodyForcingGraphicsParameters");
+  if( !dbase.has_key("boundaryForcingGraphicsParameters")) 
+  {
+    dbase.put<GraphicsParameters>("boundaryForcingGraphicsParameters");
+    GraphicsParameters & pspBoundary = dbase.get<GraphicsParameters>("boundaryForcingGraphicsParameters");
+    // set initial values
+    pspBoundary.getBoundaryColourOption()=GraphicsParameters::defaultColour; // GraphicsParameters::colourByGrid;
+    pspBoundary.set(GI_BLOCK_BOUNDARY_COLOUR_OPTION,GraphicsParameters::defaultColour); // means use mapping colour
+    pspBoundary.set(GI_BOUNDARY_COLOUR_OPTION,GraphicsParameters::colourByGrid);  // for 2D
+
+    pspBoundary.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,false);   // 2d grid lines: OFF
+    pspBoundary.set(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,false); // 3d lines : OFF
+    pspBoundary.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,false);   // shaded surfaces : OFF
+    pspBoundary.set(GI_MAPPING_COLOUR,"DARKORCHID");
+
+    // Unstructured mappings: 
+    pspBoundary.set(GI_PLOT_UNS_FACES,true);
+    pspBoundary.set(GI_PLOT_UNS_EDGES,false);
+    pspBoundary.set(GI_PLOT_UNS_BOUNDARY_EDGES,false);
+  }
+  GraphicsParameters & pspBoundary = dbase.get<GraphicsParameters>("boundaryForcingGraphicsParameters");
+
+  int bodyForcePlotShaded;
+  int bodyForcePlotBlockBoundaries;
+  int bodyForcePlotGridLines;
+  pspBody.get(GI_PLOT_SHADED_MAPPING_BOUNDARIES,bodyForcePlotShaded);
+  pspBody.get(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,bodyForcePlotGridLines);
+  pspBody.get(GI_PLOT_BLOCK_BOUNDARIES,bodyForcePlotBlockBoundaries);
+
+  int boundaryForcePlotShaded;
+  int boundaryForcePlotBlockBoundaries;
+  int boundaryForcePlotGridLines;
+  pspBoundary.get(GI_PLOT_SHADED_MAPPING_BOUNDARIES,boundaryForcePlotShaded);
+  pspBoundary.get(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,boundaryForcePlotGridLines);
+  pspBoundary.get(GI_PLOT_BLOCK_BOUNDARIES,boundaryForcePlotBlockBoundaries);
+
+
+  enum PickingOptionEnum
+  {
+    pickingOff,
+    pickToColourBlocks,
+  } pickingOption=pickingOff;
+
+  bool pickClosest=false;  // if true only pick the closest of the chosen items, other use all
+  int pickColourIndex=getXColour("aquamarine");  // index of the colour used for pick to colour grids
+
+  GUIState dialog;
+  // --- Build the sibling dialog for colour dialog ---
+  DialogData & colourDialog = dialog.getDialogSibling();
+  colourDialog.setWindowTitle("Pick colour");
+  colourDialog.setExitCommand("close colour choices", "close");
+
+  if( !plotObjectAndExit )
+  {
+    dialog.setWindowTitle("Forcing Regions Plotter");
+    dialog.setExitCommand("exit", "exit");
+
+    PlotIt::buildColourDialog(colourDialog);
+
+    aString pbCommands[] = {"plot",
+                            // "plot the grid",
+                            "regions info",
+                            "pick colour...",
+			    "exit",
+			    ""};
+
+    int numRows=4;
+    dialog.setPushButtons( pbCommands, pbCommands, numRows ); 
+
+    // --- Here are the picking options ---
+    aString opcmd[] = {"pick off",
+                       "pick to colour blocks",
+                       ""};
+    aString opLabel[] = {"off",
+                         "colour blocks",
+                         ""};
+    dialog.addOptionMenu("Pick to:", opcmd,opLabel,pickingOption);
+
+
+    aString tbCommands[] = {"body force shaded surfaces",
+			    "body force block boundaries",
+			    "body force grid lines",
+                            "boundary force shaded surfaces",
+  			    "boundary force block boundaries",
+			    "boundary force grid lines",
+                            "pick closest",
+			    ""};
+    int tbState[10];
+    tbState[0] = bodyForcePlotShaded;
+    tbState[1] = bodyForcePlotBlockBoundaries;
+    tbState[2] = bodyForcePlotGridLines;
+    tbState[3] = boundaryForcePlotShaded;
+    tbState[4] = boundaryForcePlotBlockBoundaries;
+    tbState[5] = boundaryForcePlotGridLines;
+    tbState[6] = pickClosest;
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
+    const int numberOfTextStrings=5;  // max number allowed
+    aString textLabels[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+
+    int nt=0;
+    textLabels[nt] = "line width:";  sPrintF(textStrings[nt],"%g",lineWidth);  nt++; 
+
+    // null strings terminal list
+    textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+    gi.pushGUI( dialog );
+  }
+
+
+  int debug=0;
+  if( dbase.has_key("debug" ) )
+    debug = dbase.get<int>("debug");
+  
+
+  bool plotObject=true;
+  aString answer,pickColour;
+  SelectionInfo select; select.nSelect=0;
+  int len=0;
+  
+  for( int it=0; ;it++)
+  {
+    if( it==0 )
+      answer="plot";               // plot first time through 
+    else if( it==1 && plotObjectAndExit )
+      answer="exit this menu";
+    else
+    {
+      // gi.getAnswer(answer,"");
+      gi.savePickCommands(false); // temporarily turn off saving of pick commands.     
+      gi.getAnswer(answer,"", select);
+      gi.savePickCommands(true); // turn back on
+    }
+    
+
+    if( answer=="exit" || answer=="exit this menu" )
+    {
+      break;
+    }
+    else if( dialog.getTextValue(answer,"line width:","%e",lineWidth) ){}  //
+    else if( answer=="pick to colour blocks" || 
+             answer=="pick off" )
+    {
+      pickingOption= (answer=="pick to colour blocks"  ? pickToColourBlocks :
+                      pickingOff);
+      
+      dialog.getOptionMenu("Pick to:").setCurrentChoice((int)pickingOption);
+    }
+    else if( (pickingOption==pickToColourBlocks ) && 
+	     (select.active || select.nSelect ) )
+    {
+      // --- the user has picked an item ---
+      if( pickClosest )
+      {
+        printF("Look for the closest item picked...(toggle `pick closest' to choose all items picked)\n");
+      }
+      else
+      {
+        printF("Look for the all items picked... (toggle `pick closest' to only choose the closest)\n");
+      }
+
+      if( dbase.get<bool >("turnOnBodyForcing") )
+      {
+	// Here is the array of body forcings:
+	std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
+	
+	for( int bf=0; bf<bodyForcings.size(); bf++ )
+	{
+	  BodyForce & bodyForce = *bodyForcings[bf];
+          if( !bodyForce.dbase.has_key("globalID") ) bodyForce.dbase.put<int>("globalID",-1); 
+	  const int & globalID = bodyForce.dbase.get<int>("globalID");
+	
+	  for( int i=0; i<(pickClosest ? 1 : select.nSelect); i++ )
+	  {
+	    // printF("body.globalID=%i, select.globalID=%i\n",globalID,select.globalID);
+	    
+	    if( (pickClosest && globalID==select.globalID) ||
+		(!pickClosest && globalID==select.selection(i,0)) )
+	    {
+
+	      if( pickingOption==pickToColourBlocks )
+	      {
+		// the value of pickColourIndex was set elsewhere
+		const aString pickColour=getXColour(pickColourIndex);
+
+		const aString & bodyForcingName= bodyForce.dbase.get<aString > ("bodyForcingName");
+		printF("Colour forcing region %i (%s) to be %s.\n",
+		       bf,(const char*)bodyForcingName,(const char*)pickColour);
+
+		gi.outputToCommandFile(sPrintF(answer,"forcing region colour (bf,colour): %i %s\n",
+					       bf,(const char*)pickColour));
+              
+		if( !bodyForce.dbase.has_key("colour") ) bodyForce.dbase.put<int>("colour");
+                bodyForce.dbase.get<int>("colour")=pickColourIndex;
+
+                // -- we need to erase the old display lists for unstructured mappings -- FIX ME
+		if( bodyForce.dbase.get<aString>("regionType")=="mapping" )
+		{
+                  MappingRC *& bodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                  Mapping & map = bodyForceMapping->getMapping();
+		  if( map.getClassName()=="UnstructuredMapping" )
+		  {
+		    UnstructuredMapping & uns = (UnstructuredMapping&)map;
+		    uns.eraseUnstructuredMapping(gi);
+		  }
+		}
+
+         	gi.erase();
+		plotObject=true;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    else if( len=answer.matches("forcing region colour (bf,colour):") )
+    {
+      // here we process the command line that changes a body colour
+      char colour[100];
+      int bf=-1;
+      sScanF( &answer[len],"%i %s",&bf,colour);
+      if( dbase.get<bool >("turnOnBodyForcing") )
+      {
+	// Here is the array of body forcings:
+	std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
+        
+	const int numberOfBodyForcingRegions=bodyForcings.size();
+	
+	if( bf<0 || bf>=numberOfBodyForcingRegions )
+	{
+	  printF("plotForcingRegions::ERROR:set colour: body forcing region %i is invalid! numberOfBodyForcingRegions=%i\n",
+                 bf,numberOfBodyForcingRegions);
+	  gi.stopReadingCommandFile();
+	  continue;
+	}
+        BodyForce & bodyForce = *bodyForcings[bf];
+
+	int index=getXColour(colour);
+	if( index==0 )
+	{
+	  printF("plotForcingRegions::ERROR: colour=[%s] not recognized! using DARKTURQUOISE instead\n",(const char*)colour);
+	  index=getXColour("DARKTURQUOISE");
+	}
+	printF(" Setting forcing region %i to colour=%s (X colour index=%i)\n",bf,(const char*)colour,index);
+	if( !bodyForce.dbase.has_key("colour") ) bodyForce.dbase.put<int>("colour");
+	bodyForce.dbase.get<int>("colour")=index;
+
+	// -- we need to erase the old display lists for unstructured mappings -- FIX ME
+	if( bodyForce.dbase.get<aString>("regionType")=="mapping" )
+	{
+	  MappingRC *& bodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+	  Mapping & map = bodyForceMapping->getMapping();
+	  if( map.getClassName()=="UnstructuredMapping" )
+	  {
+	    UnstructuredMapping & uns = (UnstructuredMapping&)map;
+	    uns.eraseUnstructuredMapping(gi);
+	  }
+	}
+	gi.erase();
+        plotObject=true;
+      }
+      else
+      {
+	printF("WARNING:There are no body forcing regions to colour!\n");
+      }
+      
+    }
+
+    else if( answer=="plot" )
+    {
+      // plotting is done below
+      plotObject=true;
+    }
+    else if( dialog.getToggleValue(answer,"body force shaded surfaces",bodyForcePlotShaded) )
+    { 
+      pspBody.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,bodyForcePlotShaded);
+      pspBody.set(GI_PLOT_UNS_FACES,bodyForcePlotShaded);  // Unstructured mappings
+
+      plotObject=true; 
+      gi.erase();
+    } //
+    else if( dialog.getToggleValue(answer,"body force block boundaries",bodyForcePlotBlockBoundaries) )
+    { 
+      pspBody.set(GI_PLOT_BLOCK_BOUNDARIES,bodyForcePlotBlockBoundaries); // 2d block boundaries ??
+      pspBody.set(GI_PLOT_MAPPING_EDGES,bodyForcePlotBlockBoundaries); // 3d block boundaries
+      plotObject=true; 
+      gi.erase();
+    } //
+    else if( dialog.getToggleValue(answer,"body force grid lines",bodyForcePlotGridLines) )
+    { 
+      if( numberOfDimensions==2 )
+        pspBody.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,bodyForcePlotGridLines); // 2d grid lines
+      pspBody.set(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,bodyForcePlotGridLines); // lines on 3d ??
+
+      pspBody.set(GI_PLOT_GRID_POINTS_ON_CURVES,bodyForcePlotGridLines);  // grid points on curves
+
+      // Unstructured mappings: 
+      pspBody.set(GI_PLOT_UNS_EDGES,bodyForcePlotGridLines);
+      pspBody.set(GI_PLOT_UNS_BOUNDARY_EDGES,bodyForcePlotGridLines);
+
+      plotObject=true; 
+      gi.erase();
+    } //
+
+    else if( dialog.getToggleValue(answer,"boundary force shaded surfaces",boundaryForcePlotShaded) )
+    { 
+      pspBoundary.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,boundaryForcePlotShaded);
+      pspBoundary.set(GI_PLOT_UNS_FACES,boundaryForcePlotShaded);  // Unstructured mappings
+
+      plotObject=true; 
+      gi.erase();
+    } //
+    else if( dialog.getToggleValue(answer,"boundary force block boundaries",boundaryForcePlotBlockBoundaries) )
+    {  
+      pspBoundary.set(GI_PLOT_BLOCK_BOUNDARIES,boundaryForcePlotBlockBoundaries); // 2d block boundaries ??
+      pspBoundary.set(GI_PLOT_MAPPING_EDGES,boundaryForcePlotBlockBoundaries); // 3d block boundaries
+      plotObject=true; 
+      gi.erase();
+    } //
+    else if( dialog.getToggleValue(answer,"boundary force grid lines",boundaryForcePlotGridLines) )
+    {  
+      if( numberOfDimensions==2 )
+        pspBoundary.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,boundaryForcePlotGridLines); // 2d grid lines
+      pspBoundary.set(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,boundaryForcePlotGridLines); // lines on 3d ??
+      // Unstructured mappings: 
+      pspBoundary.set(GI_PLOT_UNS_EDGES,boundaryForcePlotGridLines);
+      pspBoundary.set(GI_PLOT_UNS_BOUNDARY_EDGES,boundaryForcePlotGridLines);
+
+      plotObject=true; 
+      gi.erase();
+    } //
+    else if( dialog.getToggleValue(answer,"pick closest",pickClosest) ){}//
+    else if( answer=="pick colour..." )
+    {
+      // open the colour dialog 
+      colourDialog.showSibling();
+      if( pickingOption!=pickToColourBlocks )
+      {
+	printF("INFO: setting picking option to `pick to colour grids'.\n");
+	pickingOption=pickToColourBlocks;
+	dialog.getOptionMenu("Pick to:").setCurrentChoice((int)pickingOption);
+      }
+    }
+    else if( answer=="close colour choices" )
+    {
+      colourDialog.hideSibling();
+    }
+    else if( PlotIt::getColour( answer,colourDialog,pickColour ) )
+    {
+      printF("answer=%s was processed by the colourDialog\n",(const char*)answer);
+      pickColourIndex=getXColour(pickColour);
+      if( pickColourIndex==0 )
+      {
+	printF(" ERROR: colour=[%s] not recognized! using aquamarine instead\n",(const char*)pickColour);
+	pickColourIndex=getXColour("aquamarine");
+      }
+    }
+
+    else if( answer=="regions info" )
+    {
+      if( dbase.get<bool >("turnOnBodyForcing") )
+      {
+	// Here is the array of body forcings:
+	std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
+	
+	for( int bf=0; bf<bodyForcings.size(); bf++ )
+	{
+	  const BodyForce & bodyForce = *bodyForcings[bf];
+	  const aString & bodyForcingName= bodyForce.dbase.get<aString >("bodyForcingName");
+	  const aString & forcingType = bodyForce.dbase.get<aString >("forcingType");
+	  const aString & regionType = bodyForce.dbase.get<aString>("regionType");
+	  const int & visible = bodyForce.dbase.get<bool>("visible");
+          const bool & addForcing = bodyForce.dbase.get<bool >("addForcing");
+	  const bool & forcingIsTimeDependent =  bodyForce.dbase.get<bool >("forcingIsTimeDependent");
+	  
+	  printF("Body Force %i, name=%s, forcingType=%s, add=%i, time-dependent=%i, regionType=%s, visible=%i.\n",bf,(const char*)bodyForcingName,
+                 (const char*)forcingType,(int)addForcing,(int)forcingIsTimeDependent, (const char*)regionType,(int)visible);
+	}
+      }
+
+      if( dbase.get<bool >("turnOnBoundaryForcing") )
+      {
+	// Here is the array of boundary forcings:
+	std::vector<BodyForce*> & boundaryForcings =  dbase.get<std::vector<BodyForce*> >("boundaryForcings");
+	
+	for( int bf=0; bf<boundaryForcings.size(); bf++ )
+	{
+	  const BodyForce & boundaryForce = *boundaryForcings[bf];
+	  const aString & bodyForcingName= boundaryForce.dbase.get<aString >("bodyForcingName");
+	  const aString & forcingType = boundaryForce.dbase.get<aString >("forcingType");
+	  const aString & regionType = boundaryForce.dbase.get<aString>("regionType");
+	  const int & visible = boundaryForce.dbase.get<bool>("visible");
+          const bool & addForcing = boundaryForce.dbase.get<bool >("addForcing");
+	  const bool & forcingIsTimeDependent =  boundaryForce.dbase.get<bool >("forcingIsTimeDependent");
+	  
+	  printF("Boundary Force %i, name=%s, forcingType=%s, add=%i, time-dependent=%i, regionType=%s, visible=%i.\n",bf,
+                 (const char*)bodyForcingName,
+                 (const char*)forcingType,(int)addForcing,(int)forcingIsTimeDependent, (const char*)regionType,(int)visible);
+	}
+      }
+
+    }
+    else 
+    {
+      printF("plotBodyForcingRegions:ERROR: unknown answer=[%s]\n",(const char*)answer);
+      gi.stopReadingCommandFile();
+    }
+    
+    
+    plotObject = plotObject && gi.isInteractiveGraphicsOn();  // only plot if graphics is on
+
+    if( plotObject )
+    {
+      // --- plot the regions ---
+
+      // --- loop over different body forcings ---
+      if( dbase.get<bool >("turnOnBodyForcing") )
+      {
+	// Here is the array of body forcings:
+	std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
+	
+	GraphicsParameters & psp = pspBody;
+	psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+
+	for( int bf=0; bf<bodyForcings.size(); bf++ )
+	{
+	  BodyForce & bodyForce = *bodyForcings[bf];
+	  if( !bodyForce.dbase.get<bool>("visible") )
+	  {
+	    if( debug & 8 ) printF("plotForcingRegions:INFO: body force region %i is not visible\n",bf);
+	    continue;  // this region should nu be plotted
+	  }
+	  
+	  const aString & forcingType = bodyForce.dbase.get<aString >("forcingType");
+	  const aString & regionType = bodyForce.dbase.get<aString>("regionType");
+      
+	  if( bodyForce.dbase.has_key("colour") )
+	  {
+            int pickColourIndex=bodyForce.dbase.get<int>("colour");
+            const aString pickColour=getXColour(pickColourIndex);
+            pspBody.set(GI_MAPPING_COLOUR,pickColour);
+	  }
+	  else
+	  {
+	    pspBody.set(GI_MAPPING_COLOUR,"DARKTURQUOISE"); // default colour
+	  }
+	  
+	  plotRegionMacro();
+	} // end for bf 
+	
+      }
+      
+      // --- loop over different boundary forcings ---
+      if( dbase.get<bool>("turnOnBoundaryForcing") )
+      {
+	// Here is the array of boundary forcings:
+	std::vector<BodyForce*> & boundaryForcings =  dbase.get<std::vector<BodyForce*> >("boundaryForcings");
+
+	GraphicsParameters & psp = pspBoundary;
+	psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+
+	for( int bf=0; bf<boundaryForcings.size(); bf++ )
+	{
+	  BodyForce & bodyForce = *boundaryForcings[bf];
+	  if( !bodyForce.dbase.get<bool>("visible") )
+	  {
+	    if( debug & 8 ) printF("plotForcingRegions:INFO: boundary force region %i is not visible\n",bf);
+	    continue;  // this region should nu be plotted
+	  }
+
+	  const aString & forcingType = bodyForce.dbase.get<aString >("forcingType");
+	  const aString & regionType = bodyForce.dbase.get<aString>("regionType");
+      
+	  plotRegionMacro();
+	}
+      }
+
+      // Reset:
+      // psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,plotObjectAndExit);
+      
+    }  // end if plotObject
+    
+
+  } // end for( it )
+  
+  if( !plotObjectAndExit )
+  {
+    gi.popGUI( );
+  }
+  
+  return 0;
+  
+}

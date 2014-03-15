@@ -1,0 +1,69 @@
+#
+# Makefile.in : used by the configure script
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o .c .o .f .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.c.o:; $(cc) $(CFLAGS) -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+# SECOND = second.o
+# new default:
+SECOND = second3.o
+
+default:  depend_date mapUtil_date 
+
+mapUtil_date: mapUtil1_date files_Opt_date Oges_fs_date GridGenerator_date
+	touch $@
+
+Source1=  conversion.C getCPU.C ListOfMappingRC.C ListOfBoundingBox.C Checker.C
+
+mapUtil1 = ${Source1:.C=.o} 
+mapUtil1_date:  $(mapUtil1) $(SECOND)
+	  touch $@
+
+
+# the xlc compiler does not like to include OvertureDefine.h in .F files 
+%.o : %.F
+	$(FC) $(FFLAGSO) $(USE_DOUBLE_OR_SINGLE) -c $<
+
+# Here are the files that Bill always likes to optimize 
+filesOpt = GeometricADT3dInt.C
+files_Opt_date: $(filesOpt)
+	 $(CC) $(CCFLAGSO) -c $?
+	  touch $@
+
+# Compile these next files without auto-double precision (but do include the double or single define)
+linpack_files = linpack.f blas2.f drmach.F
+Oges_fs_date: $(linpack_files)
+	$(FC) $(FFLAGSSO) $(USE_DOUBLE_OR_SINGLE) -c $(linpack_files)
+	  touch $@
+
+Tri_Source = TriangleWrapper.C Geom.C
+
+Tri_Objects = ${Tri_Source:.C=.o} TriangleSource.o
+
+# compile this with optimization
+# The dec compiler dies with -O 
+# wdh: compile with -ffloat-store to make pentium processors behave like IEEE for robust predicates.
+CFLAGSOO = $(CFLAGSO)
+#dec CFLAGSOO = $(CFLAGS)
+#gcc CFLAGSOO = $(CFLAGSO) -ffloat-store 
+TriangleSource.o: TriangleSource.c
+	$(cc)  $(CFLAGSOO) -c TriangleSource.c
+
+GridGenerator_date: $(Tri_Objects)
+	  touch $@
+
+Source = $(Source1) $(filesOpt) $(linpack_files)
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+clean:	
+	rm *.o
+
+.PRECIOUS:mapUtil_date mapUtil1_date mapUtil2_date mapUtil_Opt_date depend_date
+

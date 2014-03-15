@@ -1,0 +1,106 @@
+#
+# Makefile core -- the configure script uses this to make the file "Makefile"
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o .c .o .f .o
+#kkc 100325 .C.o:; $(CC) $(CCFLAGS) -DNO_REAL  -I$(HDF)/include -c $*.C
+#kkc 100325 .c.o:; $(cc) $(CFLAGS)  -DNO_REAL  -I$(HDF)/include -c $*.c
+.C.o:; $(CC) $(CCFLAGS) -DNO_REAL  -c $*.C
+.c.o:; $(cc) $(CFLAGS)  -DNO_REAL  -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default:   depend_date otherStuff_date 
+rapsodi:   depend_date otherStuff_rapsodi_date 
+
+SourceC= \
+          Integrate.C  BodyDefinition.C  BodyForce.C   \
+          OGgetIndex.C OGFunction.C OGTrigFunction.C OGPolyFunction.C OGPulseFunction.C \
+          Integrate.C \
+          getFromADataBase.C \
+          floatDisplay.C intDisplay.C doubleDisplay.C FortranIO.C \
+          floatSerialDisplay.C intSerialDisplay.C doubleSerialDisplay.C \
+          displayMask.C printArray.C displayCoeff.C \
+          DisplayParameters.C \
+          Stencil.C \
+          helpOverture.C 
+
+SourceC_rapsodi= \
+          floatDisplay.C intDisplay.C doubleDisplay.C \
+          floatSerialDisplay.C intSerialDisplay.C doubleSerialDisplay.C \
+          DisplayParameters.C \
+          helpOverture.C 
+
+SourceF = prtpeg.f
+
+# -NC396 : increase number of continuation lines for some of the poly*.f functions
+EXTRA_FFLAGS = 
+#g77 EXTRA_FFLAGS = -NC396
+filesF = polyFunction2D5.f polyFunction2D6.f polyEvaluate3D.f polyFunction3D.f \
+         polyFunction3D4.f polyFunction3D5.f polyFunction3D6.f
+
+# the ifort compiler has trouble with -g -- we also pass the IFORT_COMPILER flag to the .F files
+FFLAGS_POLY = $(FFLAGSO)
+#ifort FFLAGS_POLY = $(FFLAGSO) -DIFORT_COMPILER
+
+# compile one at a time to avoid compiler problems
+polyEvaluate3D.o  : ${@:.o=.F}; $(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c ${@:.o=.F}
+
+polyFunction2D5.o : ${@:.o=.f}; $(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c ${@:.o=.f}
+polyFunction2D6.o : ${@:.o=.f}; $(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c ${@:.o=.f}
+polyFunction3D.o  : ${@:.o=.f}; $(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c ${@:.o=.f}
+polyFunction3D4.o : ${@:.o=.f}; $(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c ${@:.o=.f}
+polyFunction3D5.o : ${@:.o=.f}; $(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c ${@:.o=.f}
+polyFunction3D6.o : ${@:.o=.f}; $(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c ${@:.o=.f}
+
+otherStuff_f_date: $(filesF:.f=.o)
+	  touch $@
+
+# otherStuff_f_date: $(filesF)
+# 	$(FC) $(FFLAGS_POLY) $(EXTRA_FFLAGS) -c $?
+# 	  touch $@
+
+# Compile these next files without auto-double precision
+files = fortranInputOutput.f
+otherStuff_fs_date: $(files)
+	$(FC) $(FFLAGSS) -c $?
+	  touch $@
+
+# Here are the C++ files that Bill always likes to optimize 
+filesOpt = TridiagonalSolver.C TridiagonalFactor.C arrayGetIndex.C
+otherStuff_Opt_date: $(filesOpt)
+	 $(CC) $(CCFLAGSO) -c $?
+	  touch $@
+
+# Here are the fortran files that Bill always likes to optimize 
+filesOptF = polyEvaluate1D.F polyEvaluate2D.F\
+            polyFunction.f polyFunction1D.f \
+            polyFunction2D.f pentaDiagonal.f
+otherStuff_fopt_date: $(filesOptF)
+	$(FC) $(FFLAGSO) $(EXTRA_FFLAGS) -c $?
+	  touch $@
+
+
+
+otherStuff_C_date: ${SourceC:.C=.o} ${SourceF:.f=.o}
+	  touch $@
+
+otherStuff_date: otherStuff_Opt_date otherStuff_fopt_date otherStuff_f_date otherStuff_fs_date  otherStuff_C_date 
+	  touch $@
+
+otherStuff_C_rapsodi_date: ${SourceC_rapsodi:.C=.o} ${SourceF:.f=.o}
+	  touch $@
+
+otherStuff_rapsodi_date: otherStuff_C_rapsodi_date otherStuff_Opt_date otherStuff_fs_date otherStuff_fopt_date
+	  touch $@
+
+Source = $(SourceC) $(filesOpt) $(SourceF) $(files)
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+clean:	rm *.o
+
+.PRECIOUS:otherStuff_date depend_date
+

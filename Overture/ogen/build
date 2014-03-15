@@ -1,0 +1,134 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "Copy ogen.C and related files into the $ovDir/GridGenerator..."
+
+# here is where the original files are:
+set Overture        = $ovDir
+set OvertureOgshow  = $ovDir/Ogshow
+set OvertureBin     = $ovDir/bin
+set OvertureInclude = $ovDir/include
+set OverturePrimer  = $ovDir/primer
+set sampleGrids     = $ovDir/sampleGrids
+set OvertureTests   = $ovDir/tests
+
+cp {ogenDriver,ogenFunction}.C         $OvertureBin
+# cp getFromADataBase.C          $OvertureOgshow
+
+# cp DataBaseAccessFunctions.h   $OvertureInclude
+
+# Here are files for Bill's grid generator
+cp {Ogen,check,checkOverlap,changeParameters,classify,computeOverlap,cutHoles,buildCutout}.C  $Overture/GridGenerator
+cp {boundaryAdjustment,improveQuality,movingUpdate,cutHolesNew,lastChance,markPointsNeeded}.C $Overture/GridGenerator
+cp {updateRefinement,updateRefinementNew,updateRefinementNewer,updateRefineFillInterp}.C      $Overture/GridGenerator
+cp {updateRefineFillInterpNew,adjustBoundary,getHoleWidth,movingUpdateNew,cutHolesNewer}.C    $Overture/GridGenerator
+cp {ExplicitHoleCutter,explicitHoleCutting}.C                                                 $Overture/GridGenerator
+cp {interpolatePoints}.C                                                                      $Overture/GridGenerator
+cp {Ogen.h,UpdateRefinementData.h,ExplicitHoleCutter.h}                                       $OvertureInclude
+
+# .bC files
+cp {cutHolesNew,lastChance,markPointsNeeded}.bC $Overture/GridGenerator 
+cp {updateRefinement,updateRefinementNew,updateRefinementNewer,updateRefineFillInterp}.bC     $Overture/GridGenerator
+
+# cp {Regrid,RotatedBox,ListOfRotatedBox}.C $Overture/GridGenerator
+# cp {Regrid,RotatedBox,ListOfRotatedBox}.h $OvertureInclude
+
+cp {checkOverlappingGrid.C}                                                                            $OvertureOgshow
+
+cp {generate.p,GridDescriptions}                                                                       $sampleGrids
+
+cp {square,square5,square5CC,square10,square20,square40,cic,cic2,cicCC,cic.4,cicmg,cilc,cilcArg}.cmd   $sampleGrids
+cp {valve,valveCC,obstacle,inletOutlet,inletOutletCC,edgeRefinement,naca0012}.cmd                      $sampleGrids
+cp {mismatch,mismatchAnnulus,end,filletThree,stir,stirSplit,twoBump}.cmd                               $sampleGrids
+cp {sic,stretchedAnnulus,stretchedCube,box5,box10,box20,box40,line20}.cmd                              $sampleGrids
+cp {valve3d,valve3dCC,sphereInATube,tse,valvePort,bib,sis,sub,revolve}.cmd                             $sampleGrids
+cp {revolveCC,pipes,pipesCC,sib,sibCC,ellipsoid,ellipsoid1,ellipsoid2,ellipsoidCC}.cmd                 $sampleGrids
+cp {singularSphere,filletTwoCyl,joinTwoCyl,mastSail2d,naca.hype,orthoSphere}.cmd                       $sampleGrids
+cp {halfCylinder,appendAnnulus,halfAnnulus,depth,backStep,triSail,filter}.cmd                          $sampleGrids
+cp {twoDrop,hgrid,cgrid,sis,oneValve,innerOuterTest,cgrid.manual,twoPipes,dropsGrid}.cmd               $sampleGrids
+cp asmo.distribute.cmd                                                                                 $sampleGrids/asmo.cmd
+cp {cicManualHoleCut,sibManualHoleCut,building3,backStepSmooth,quarterCyl}.cmd                         $sampleGrids
+cp {multiBuildings,buildRoundedCylinder,buildPolyBuilding,buildTower}.cmd                              $sampleGrids
+cp {annulus20,annulus40,tcilc,tcilc2,tcilc3,inletOutlet3d,cicAdd,rocket}.cmd                           $sampleGrids
+cp {channelShort,iceCircle,circleDeform,lattice,innerOuter,knifeEdge}.cmd                              $sampleGrids
+cp {multiCylRandomGrid,csPipe,csSmoothedPolygon,detChannel,cylDeform,sisArg}.cmd                       $sampleGrids
+cp {quarterSphere,airfoil,innerOuter3d,diskArray,latticeCyl,rectangleArg}.cmd                          $sampleGrids
+cp {sibArg,twoBumpArg,cicArg,convOct,cylBoxArg,sinfoil,qcic,sicArg,cylArray}.cmd                       $sampleGrids
+cp {twoSquaresInterface,twoBoxesInterface,pipe,doubleAnnulusArg,tubeArg}.cmd                           $sampleGrids
+cp {squareObject,twoSquaresInterface,twoBoxesInterface,benard,benard3d,lgridArg}.cmd                   $sampleGrids
+cp {crv,crvNurbs,crvHype,squareArg,cylShell,multiDomain,io,hio,square16.order4,aia}.cmd                $sampleGrids
+cp {box16.order4,tube1.order4,tube2.order4,triangleArg,wiggley,wiggley3d}.cmd                          $sampleGrids
+cp {sib1.order4,sib2.order4,sib3.order4,sib4.order4,blockAnnulus,channelWithBump2dGrid}.cmd            $sampleGrids
+cp {box32,box64,box128,box256}.order4.cmd                                                              $sampleGrids
+cp cic.bbmg{2,3,4,5,6}.cmd                                                                             $sampleGrids
+cp {diskAblate,diskDeform,naca.hype.smooth,curvedPipe,threeValve,multiCylIG}.cmd                       $sampleGrids
+cp {solidFuelAssembly,valveDemo,shapesDemo,valvePortDemo,annulusArg}.cmd                               $sampleGrids
+cp {cornerThreeSquares,cavityDeform,divot,afm,lens,solidSphereInABox}.cmd                              $sampleGrids
+cp {interfaceBump3d.cmd,twoSpheresInAChannel.cmd,sphere.h}                                             $sampleGrids
+cp {superseismicGrid,filament,bigSquare,bigBox,box,nonBox,cubeInABox,slider}.cmd                       $sampleGrids
+cp {squareHole.cmd,sphere.cmd,sphereThreePatch.h,solidSphereInABox.h}                                  $sampleGrids
+cp {rotatedBoxBesideBox,valveArg,plateWithHoles,plate3dWithHoles,wing3d}.cmd                           $sampleGrids
+cp {nozzleAndCavity.cmd,nozzleAndCavity.igs,marsCapsule.cmd,marsCapsule.igs}                           $sampleGrids
+cp {backStepSmooth3d,shapesArg,joukowsky2d,sphereInABox,cylinderInAChannel}.cmd                        $sampleGrids
+cp {annulus,cylinder,rhombus,rhomboid,dropStick,twoDropArg,bibArg,nonBib,boxBesideBox}.cmd             $sampleGrids
+cp {flatPlate,flatPlateWingGrid,boxArg,oneDrop,drop3d,sphereInTube,ellipseArg}.cmd                     $sampleGrids
+cp {cylInBoxRefinedGrid,halfAnnulusRefinedGrid,windFarm,hypeCyl,benardGrid}.cmd                        $sampleGrids
+cp {wingj,loftedBox,loftedHalfBox,loftedJoukowskyFlatTip,flattenedTorusGrid}.cmd                       $sampleGrids
+cp {roundedBladeGrid,elasticPistonGrid,pump2dGrid,pillInABoxGrid,room2d,starFishGrid}.cmd              $sampleGrids
+cp {buildingsGrid.cmd,buildTower.h,buildRoundedCylinder.h,site300SurfaceGrid.h}                        $sampleGrids
+cp {splitAnnulusGrid,splitCylinderGrid,valvee,box32,sib.bbmg,ellipsoid.bbmg}.cmd                       $sampleGrids
+
+cp {turbineAndTower.cmd,towerWithCap.h,cylWithCaps.h,tower.h,turbineBlade.h}                           $sampleGrids
+
+cp slac2.distribute.cmd                                                                                $sampleGrids/slac2.cmd
+
+# here are some more grids we use for cg
+cp {cic3,cic4,circle2}.cmd                                                                             $sampleGrids    
+
+cp {move1.C}                                              $OverturePrimer
+cp {move1.C}                                              ../primer
+
+cp {move2.C,moveAndSolve.C}                                             $OvertureTests
+
+# echo "**** remember to copy the check files if they have changed ******"
+echo "*** copy check files ***"
+
+
+echo "Copy check files into the $sampleGrids..."
+
+cp check.dp/{square5,square10,square20,square40,cic,cicCC,cic.4,cicmg,cilc,valve,valveCC}.check $sampleGrids/check.dp
+cp check.dp/{obstacle,inletOutlet,inletOutletCC,stir,twoBump,square5CC,stirSplit}.check         $sampleGrids/check.dp
+cp check.dp/{edgeRefinement,naca0012,mismatch,end,filletThree,sib,sibCC,pipes,pipesCC}.check    $sampleGrids/check.dp
+cp check.dp/{valve3d,valve3dCC,tse,filletTwoCyl,joinTwoCyl,box5,box10,box20,box40}.check        $sampleGrids/check.dp
+cp check.dp/{sphereInATube,ellipsoid,revolve,revolveCC,valvePort,bib,sis,sub,building3}.check   $sampleGrids/check.dp
+cp check.dp/{mismatchAnnulus,naca.hype,mastSail2d,hgrid,cgrid,oneValve,twoBoxesInterface}.check $sampleGrids/check.dp
+cp check.dp/{cicAdd,innerOuterTest,channelShort,sinfoil,qcic,twoSquaresInterface,cic2}.check    $sampleGrids/check.dp
+# Special versions for some machines
+cp check.dp/{pipes.dec,building3.dec}.check                                                     $sampleGrids/check.dp
+
+# Hybrid grid examples:
+cp check.dp/{sib,obstacle,valve,twoBump,inletOutlet,mastSail2d}.hyb.check  $sampleGrids/check.dp
+
+# Special versions for some machines
+cp check.sp/{square5,square10,square20,square40,cic,cicCC,cic.4,cicmg,cilc,valve,valveCC}.check $sampleGrids/check.sp
+cp check.sp/{obstacle,inletOutlet,inletOutletCC,stir,twoBump,square5CC,stirSplit}.check         $sampleGrids/check.sp
+cp check.sp/{edgeRefinement,naca0012,mismatch,end,filletThree,sib,sibCC,pipes,pipesCC}.check    $sampleGrids/check.sp
+cp check.sp/{valve3d,valve3dCC,tse,filletTwoCyl,joinTwoCyl,box5,box10,box20,box40}.check        $sampleGrids/check.sp
+cp check.sp/{sphereInATube,ellipsoid,revolve,revolveCC,valvePort,bib,sis,sub,building3}.check   $sampleGrids/check.sp
+cp check.sp/{mismatchAnnulus,naca.hype,mastSail2d,hgrid,cgrid,oneValve,twoBoxesInterface}.check $sampleGrids/check.sp
+cp check.sp/{cicAdd,innerOuterTest,channelShort,sinfoil,qcic,twoSquaresInterface,cic2}.check    $sampleGrids/check.sp
+
+
+echo "done"
+

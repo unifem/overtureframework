@@ -1,0 +1,47 @@
+Cgins: flow over terrain 
+
+
+Step 1: Generate surface data and 2D cross-sections in matlab:
+
+  matlab>> readTerrain -file=site300 -name=site300 -plotOption=2 -smooth=1 -yCrossSection=725 -xCrossSection=600
+
+
+=== Example 1:
+
+
+-- Generate 2D grids:
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=4 -ml=3
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=8 -ml=4
+  ogen -noplot terrainGrid2d -site=site300y71.dat -prefix=site3002d -interp=e -order=4 -factor=16 -ml=4
+
+
+-- Run cgins in 2D: (NOTE: we use a slow start)
+
+AFS24: fourth-order, finer grid: (decrease nu) 
+  nohup $ins/bin/cgins -noplot terrain2d -g=site3002de8.order4.ml4 -nu=.1 -ad2=0 -ad4=1 -ts=afs -cfl=5. -slowStartCFL=2. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -tf=300. -tp=20. -ts=afs -psolver=mg -debug=1 -show=terrain2dO4G8.show -go=go >! terrain2dO4G8.out &
+
+  ** AFS24: fourth-order, coarse grid
+  cgins -noplot terrain2d -g=site3002de4.order4.ml3 -nu=1. -ad2=0 -ad4=1 -ts=afs -cfl=5. -slowStartCFL=2. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -tf=300. -tp=20. -ts=afs -psolver=mg -debug=1 -show=terrain2dO4G4.show -go=go >! terrain2dO4G4.out &
+
+  
+-- Plot results:
+
+   plotStuff plotTerrain2d.cmd -show=terrain2dO4G4.show -vorMax=1. -time=300 -name=site3002dO4G4
+   plotStuff plotTerrain2d.cmd -show=terrain2dO4G4.show -vorMax=1. -time=300 -name=site3002dO4G8
+
+
+==== Example 2:
+
+Generate a 3D grid:
+
+  ogen -noplot terrainGrid -interp=e -site=site300.dat -prefix=site300 -order=4 -factor=2 -ml=2
+
+
+Run cgins in 3D:
+
+
+cgins -noplot terrain -g=site300Gride2.order4.ml2 -nu=10. -ad2=0 -ad4=1 -ts=afs  -tf=100. -tp=.01 -solver=mg -psolver=mg -numberOfParallelGhost=4 -cfl=2. -slowStartCFL=.2 -slowStartSteps=50 -slowStartRecomputeDt=10 -recomputeDt=50 -debug=3 -go=og
+
+
+Plot results with 
+  plotStuff 

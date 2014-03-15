@@ -1,0 +1,2976 @@
+// This file automatically generated from HDF_DataBase.bC with bpp.
+#include "HDF_DataBase.h"
+#include "DataBaseBuffer.h"
+#include "ReferenceCountingList.h"
+
+#ifdef OV_USE_HDF5
+#include "HDF5_DataBase.C"
+#else
+
+#include "mfhdf.h"          // multi-file hdf include
+int HDF_DataBase::debug =0; 
+
+//\begin{>HDF_DataBaseInclude.tex}{\subsection{Constructors}} 
+HDF_DataBase::
+HDF_DataBase()
+//=====================================================================================
+// /Description:
+//   Default constructor;
+// /Author: WDH
+//
+//\end{HDF_DataBaseInclude.tex} 
+//=====================================================================================
+{  
+    className="HDF_DataBase";
+    rcData = NULL;
+    dbList=NULL;
+    accessMode=none;
+    file_id=sd_id=-1;
+
+    mode=normalMode; // *wdh* do not change this
+    dataBaseBuffer=NULL;
+    bufferWasCreatedInThisDirectory=FALSE;
+}
+
+//\begin{>>HDF_DataBaseInclude.tex}{}
+HDF_DataBase::
+HDF_DataBase(const HDF_DataBase & db )
+//=====================================================================================
+// /Description:
+//   Copy constructor (shallow copy).
+//   Make a copy of the directory. This does not copy the data-base file.
+// /Author: WDH
+//
+//\end{HDF_DataBaseInclude.tex} 
+//=====================================================================================
+{
+    rcData=NULL;
+    *this=db;
+}
+
+//\begin{>>HDF_DataBaseInclude.tex}{}
+HDF_DataBase::
+HDF_DataBase(const GenericDataBase & db )
+//=====================================================================================
+// /Description:
+//   Copy constructor, this works if db is really a member of this derived class.
+// /Author: WDH
+//
+//\end{HDF_DataBaseInclude.tex} 
+//=====================================================================================
+{
+  // cast to HDF_DataBase -- first check class name
+    if( db.className=="HDF_DataBase" )
+    {
+        rcData=NULL;
+        *this=(const HDF_DataBase &) db;
+    }
+    else
+    {
+        cout << "HDF_DataBase:ERROR: copy constructor - input type is not HDF_DataBase\n";
+        throw "HDF_DataBase:ERROR: copy constructor - input type is not HDF_DataBase";
+    }
+}
+
+GenericDataBase* HDF_DataBase::
+virtualConstructor() const
+{
+    return new HDF_DataBase;
+}
+
+
+
+HDF_DataBase & HDF_DataBase::
+operator=(const HDF_DataBase & db )
+//=====================================================================================
+// /Description:
+//   Shallow copy: make a copy of the directory. This does not copy the data-base file.
+// /Author: WDH
+//
+//=====================================================================================
+{ 
+    if( debug & 2 )
+        cout << "HDF_DataBase: operator = called " << endl;
+
+    if( rcData && rcData->decrementReferenceCount()==0 )
+        destroy();
+
+    this->GenericDataBase::operator=(db);            // call = base class
+  // make this object point to the same rcData
+    rcData=db.rcData;
+    if( rcData )
+        rcData->incrementReferenceCount();
+
+    file_id=db.file_id;
+    sd_id=db.sd_id;
+    dbList=db.dbList;
+    accessMode=db.accessMode;
+
+    mode=db.mode;
+    dataBaseBuffer=db.dataBaseBuffer; // copy pointer only
+    bufferWasCreatedInThisDirectory=FALSE;
+
+    return *this;
+}
+
+GenericDataBase & HDF_DataBase::
+operator=(const GenericDataBase & db )
+{
+  // cast to HDF_DataBase if appropriate
+    if( db.className=="HDF_DataBase" )
+    {
+        *this = (const HDF_DataBase &) db;
+    }
+    else
+    {
+        cout << "HDF_DataBase:ERROR: operator= - input type is not HDF_DataBase\n";
+        throw "HDF_DataBase:ERROR: operator= - input type is not HDF_DataBase";
+    }
+    return *this;
+}
+
+
+HDF_DataBase::
+~HDF_DataBase()
+{
+    if( dataBaseBuffer!=NULL && bufferWasCreatedInThisDirectory )
+    {
+        mode=normalMode;
+        closeStream();  // close stream buffers
+    }
+
+    if( debug & 2 )
+        cout << "HDF_DataBase: destructor called\n";
+    if( rcData && rcData->decrementReferenceCount()==0 )
+        destroy();
+    if( dbList && dbList->getLength()==0 )
+    {
+        if( debug & 1 )
+            cout << "~HDF_DataBase: delete the list...\n";
+        delete dbList;
+    }
+}
+
+void HDF_DataBase::
+destroy()
+{
+  // close the vgroup, delete from the list and then delete
+    close();
+    dbList->deleteElement(*rcData);
+    delete rcData;
+}
+
+  
+
+int HDF_DataBase:: 
+close()
+// close the directory, flush data
+{
+    assert(rcData!=NULL);
+  // Terminate access to the Vgroup interface.
+    if( rcData->vgroup_id > 0 )
+    {
+    // assert( file_id > 0 && sd_id > 0 );
+        if( file_id<=0 || sd_id<=0 ) 
+        {
+            printf("HDF_DataBase::close:ERROR: file_id=%i and sd_id=%i\n",file_id,sd_id);
+            assert( file_id > 0 && sd_id > 0 );
+        }
+        if( debug & 2 )
+            cout << "close: vgroup_id =" << rcData->vgroup_id << endl;
+        Vdetach(rcData->vgroup_id);
+        rcData->vgroup_id=-1;
+    // rcData->vgroup_ref=-1;
+    }
+    return 0;
+}
+  
+void HDF_DataBase::
+reference( const HDF_DataBase & db )
+{
+    *this=db;
+}
+
+// This is a private routine
+// It will allocate a new rcData and put it in the list
+// you should always assign a (new) vgroup_id after calling breakReference
+// all rcData's in the list should have different vgroup_id's
+void HDF_DataBase::
+breakReference()
+{
+    if( rcData && rcData->decrementReferenceCount()==0 )
+        destroy();
+
+    rcData = new HDF_DataBaseRCData;
+    rcData->incrementReferenceCount();
+    rcData->vgroup_id=-1;
+  // rcData->vgroup_ref=-1;
+    dbList->addElement(*rcData);
+}
+
+
+//\begin{>>HDF_DataBaseInclude.tex}{\subsection{mount}} 
+int HDF_DataBase:: 
+mount(const aString & fileName, const aString & flags )
+//=============================================================================
+// /Description:
+//   Mount a data-base file.
+// /fileName (input): the name of the file.
+// /flags (input): flags to indicate how to access the file, "I" = initialize
+//   a new file, "W" = open an existing file for reading and writing,
+//   "R" = open an existing file read-only.
+// /Return values: 0=success, -1=unable to open a file that was supposed to exist,
+//     1=error in file format for an exitsing file, 2=unknown value for flags 
+//\end{HDF_DataBaseInclude.tex} 
+//=============================================================================
+{
+    if( file_id > 0 )
+    {
+        cout << "HDF_DataBase:mount: ERROR: cannot mount a file on a dataBase that already has a file mounted!\n";
+        throw "HDF_DataBase:mount: ERROR: cannot mount a file on a dataBase that already has a file mounted!\n";
+    }
+  // **** could check more here dbList==NULL ...
+
+  //
+  // make the list that holds all the data-bases associated with this file
+  // The list may already be there if we have used this dataBase for something else
+  // It had better be empty or only contain vgroups with vgroup_id=-1
+  // We should not delete it since there may be objects around that use the rcData's found in the list
+  // 
+    if( dbList==NULL )
+        dbList = new ListOfHDF_DataBaseRCData;
+
+    if( referenceCountingList==NULL )
+        referenceCountingList = new ReferenceCountingList;
+
+    /* Open an HDF file with full access. */
+    if( flags==" I" || flags[0]=='I' || flags[0]=='i' )
+    {
+        accessMode=write;
+        sd_id   = SDstart((const char *)fileName, DFACC_CREATE);
+        if( sd_id <= 0 )
+        {
+            cout << "HDF_DataBase:mount:ERROR: unable to open a new file = " << (const char *)fileName << endl;
+            exit (1);
+        }	
+        file_id = Hopen((const char *)fileName, DFACC_RDWR, 0);
+    // Initialize HDF for subsequent Vgroup/Vdata access. 
+        if( file_id<=0 ) 
+        {
+            printf("HDF_DataBase::mount:ERROR return from Hopen file_id=%i\n",file_id);
+            assert( file_id > 0 );
+        }
+
+        Vstart(file_id);
+    // Create a Vgroup.
+        breakReference();  // this will create a new rcData
+        rcData->vgroup_id = Vattach(file_id, -1, "w"); 
+
+        /* Set the name and class for this Vgroup. */
+        Vsetname(rcData->vgroup_id, "root");
+        Vsetclass(rcData->vgroup_id, "directory");
+
+    }
+    else 
+    {
+        if( flags==" W" || flags[0]=='W' || flags[0]=='w' )
+        {
+            accessMode=write;
+            sd_id   = SDstart((const char *)fileName, DFACC_RDWR);
+            if (sd_id == -1) 
+      	return -1; // file couldn't be opened
+            file_id = Hopen((const char *)fileName, DFACC_RDWR, 0);
+        }
+        else if( flags==" R" || flags[0]=='R' || flags[0]=='r' )
+        {
+/* check if it is possible to open the file */
+            accessMode=read;
+            sd_id   = SDstart((const char *)fileName, DFACC_READ);
+            if (sd_id == -1) 
+      	return -1; // file couldn't be opened
+            file_id = Hopen((const char *)fileName, DFACC_READ, 0);
+        }
+        else
+        {
+            cout << "HDF_DataBase:mount: unknown flags = " << (const char *)flags << endl;
+            return 2;
+        }
+        if( sd_id <= 0 )
+        {
+      // cout << "HDF_DataBase:mount:ERROR: unable to open an old file = " << (const char *)fileName << endl;
+            return -1;
+        }	
+        if( file_id<=0 ) 
+        {
+            printf("HDF_DataBase::mount:ERROR return from Hopen file_id=%i\n",file_id);
+            assert( file_id > 0 );
+        }
+
+    // attach the root -- here we assume that it is the first vgroup in file *****
+        Vstart(file_id);
+        int32 ref = -1;
+        ref = Vgetid(file_id,ref);
+        breakReference();  // this will create a new rcData
+        rcData->vgroup_id = Vattach(file_id, ref, (accessMode==write ? "w" : "read" )); 
+        if( rcData->vgroup_id <= 0 )
+        {
+            cout << "HDF_DataBase::mount: There is no `root' directory in this dataBase file!\n";
+            cout << "                     The data base is not valid. Maybe it was not closed properly\n";
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int HDF_DataBase:: 
+isNull() const
+//======================================================================================
+// /Description: Return TRUE if the dataBase is not pointing to a valid directory,
+//    FALSE otherwise. 
+//======================================================================================
+{
+    return file_id <= 0 ;
+}
+
+
+int HDF_DataBase:: 
+unmount() 
+//=============================================================================
+// /Description:
+//   Flush all the data to the file and close it.
+//=============================================================================
+{
+    assert(rcData!=NULL);
+  // assert( file_id > 0 && sd_id > 0 );
+    if( file_id<=0 ) 
+    {
+        printf("HDF_DataBase::unmount:ERROR file_id=%i\n",file_id);
+        assert( file_id > 0 );
+    }
+
+    if( dataBaseBuffer!=NULL )
+        closeStream();    // flush any stream buffers
+        
+  // remove all vgroups in reverse order
+    int length = dbList->getLength();
+    for( int i=length-1; i>=0; i-- )
+    {
+        if( (*dbList)[i].vgroup_id > 0 )
+        {
+            if( debug & 2 )
+      	cout << "close: vgroup_id =" << (*dbList)[i].vgroup_id << endl;
+            Vdetach((*dbList)[i].vgroup_id);
+            (*dbList)[i].vgroup_id=-1;
+        }
+        else
+        {
+      // This is ok if the dataBase was mounted and unmounted more than once and there are
+      // still leftover's in the list
+      // cout << "HDF_DataBase:unmount: consistency error, a vgroup_id <=0 in the list!\n";
+      // throw "HDF_DataBase:unmount: consistency error, a vgroup_id <=0 in the list!\n";
+        }
+    }
+    Vend(file_id);
+
+  // Close the HDF file. 
+    Hclose(file_id);
+    SDend(sd_id); 
+    file_id=sd_id=-1;
+
+    delete referenceCountingList;
+    referenceCountingList=NULL;
+
+    return 0;
+}
+
+int HDF_DataBase:: 
+flush() 
+//=============================================================================
+// /Description:
+//   Flush all the data to the file
+// *** this doesn't seem to work **** may have to close the file and reopen
+//=============================================================================
+{
+    assert(rcData!=NULL);
+  // assert( file_id > 0 && sd_id > 0 );
+    if( file_id<=0 || sd_id<=0 ) 
+    {
+        printf("HDF_DataBase::flush:ERROR file_id=%i sd_id=%i\n",file_id,sd_id);
+        assert( file_id > 0 && sd_id > 0 );
+    }
+
+    if( debug & 2)
+        cout << "HDF_DataBase::flush the file\n";
+
+    if( dataBaseBuffer!=NULL )
+        closeStream();    // flush any stream buffers
+
+  // dettach and attach all the open vgroups -- this should flush the data
+    int length = dbList->getLength();
+    int32 *vgroup_ref = new int32[length+1];
+    int i;
+    for( i=length-1; i>=0; i-- )
+    {
+        if( (*dbList)[i].vgroup_id > 0 )
+        {
+            vgroup_ref[i] = VQueryref((*dbList)[i].vgroup_id);
+            if( vgroup_ref[i] <= 0 )
+            {
+                cout << " HDF_DataBase::flush:ERROR computing vgroup_ref = " << vgroup_ref[i] << endl;
+                throw "error";
+            }
+            if( debug & 2 )
+      	cout << "flush: vgroup_ref = " << vgroup_ref[i] << ", vgroup_id =" << (*dbList)[i].vgroup_id << endl;
+            Vdetach((*dbList)[i].vgroup_id);
+      // ******* open again *****
+      // (*dbList)[i].vgroup_id=Vattach(file_id,vgroup_ref[i],(accessMode==read ? "r" : "w"));
+        }
+    }
+  // end vgroup access, then start again
+    Vend(file_id);
+
+    HDflush(file_id); // *** this doesn't seem to work
+    Hsync(file_id);
+    
+    Vstart(file_id);
+    for( i=length-1; i>=0; i-- )
+    {
+        if( (*dbList)[i].vgroup_id > 0 )
+        {
+      // ******* open again *****
+            (*dbList)[i].vgroup_id=Vattach(file_id,vgroup_ref[i],(accessMode==read ? "r" : "w"));
+        }
+    }
+    delete [] vgroup_ref;
+    return 0;
+}
+
+int HDF_DataBase:: 
+getID() const
+//=====================================================================================
+// /Description: 
+//   Get the identifier for this directory. For HDF files this is the reference number.
+//=====================================================================================
+{
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 || rcData->vgroup_id<=0  ) 
+    {
+        printf("HDF_DataBase::getID:ERROR file_id=%i sd_id=%i rcData->vgroup_id=%i\n",file_id,sd_id,rcData->vgroup_id);
+        assert( file_id > 0 && sd_id > 0 && rcData->vgroup_id > 0 );
+    }
+    int32 ref= VQueryref(rcData->vgroup_id);
+
+    return ref;
+}
+
+
+int HDF_DataBase:: 
+create(GenericDataBase & db0, const aString & name, const aString & dirClassName ) 
+//=============================================================================
+// /Description:
+//   create a sub-directory
+// /name (input): name of the sub-directory
+//   If name="." then the current directory will be returned.
+// /dirClassName (input): name of the class for the directory, default="directory"
+// /return value: is 0 is the directory was successfully created, 1 otherwise
+//=============================================================================
+{
+    
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 )
+    {
+        printf("HDF_DataBase::create:ERROR file_id=%i sd_id=%i\n",file_id,sd_id);
+        assert( file_id > 0 && sd_id > 0 );
+    }
+    if( accessMode!=write )
+    {
+        cout << "HDF_DataBase:ERROR: cannot createDir on a read-only dataBase \n";
+        throw  "HDF_DataBase:ERROR: cannot createDir on a read-only dataBase ";
+    }    
+
+  // cast to this derived type
+    if( db0.className!="HDF_DataBase" )
+    {
+        cout << "HDF_DataBase:ERROR: create - input type is not HDF_DataBase\n";
+        throw "HDF_DataBase:ERROR: create - input type is not HDF_DataBase";
+    }
+    HDF_DataBase & db = (HDF_DataBase &) db0;
+
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    // flush any stream buffers
+
+  // Create a Vgroup.
+    db=*this;  // initialize
+    if( name=="." || mode==streamOutputMode )
+        return 0;
+
+    db.breakReference();  // this will create a new rcData
+    db.rcData->vgroup_id = Vattach(file_id, -1, "w"); 
+    if( db.rcData->vgroup_id <= 0 )
+    {
+        cout << "HDF_DataBase:create: fatal error in creating a new directory! \n";
+        throw "HDF_DataBase:create: fatal error in creating a new directory! \n";
+    }    
+  // Set the name and class for this Vgroup. 
+    int32 istat=Vsetname(db.rcData->vgroup_id, (const char *)name);
+    if( istat==FAIL )
+    { 
+        printf("HDF_DataBase::create sub directory: ERROR return from Vsetname\n"); 
+        return 1; 
+    } 
+    istat=Vsetclass(db.rcData->vgroup_id,(const char *)dirClassName);
+    if( istat==FAIL )
+    { 
+        printf("HDF_DataBase::create sub directory: ERROR return from Vsetclass\n"); 
+        return 1; 
+    } 
+
+  // Insert the sub-directory into "this" directory. 
+    istat=Vinsert(rcData->vgroup_id, db.rcData->vgroup_id);
+    if( istat==FAIL )
+    { 
+        printf("HDF_DataBase::create sub directory: ERROR return from Vinsert\n"); 
+        return 1; 
+    } 
+
+    return 0;
+}
+
+int HDF_DataBase:: 
+find(GenericDataBase & db, const aString & name, const aString & dirClassName ) const
+//=============================================================================
+// /Description:
+//   find a sub-directory with a given name and class-name (optional)
+//   If name="." then the current directory will be returned.
+//   This function will "crash" if the sub-directory was not found. Use
+//   locate if you don't want the function to crash.
+// /name (input): name of the sub-directory
+// /dirClassName (input): name of the class for the directory, default="directory"
+// /return value: is 0 is the directory was found, 1 otherwise
+//=============================================================================
+{
+    int returnValue;
+    returnValue = locate(db,name,dirClassName);
+    if( returnValue!=0 )
+    {
+        cout << "FindDir:ERROR: unable to find directory " << (const char *) name << endl;
+        throw "FindDir:ERROR: unable to find directory ";
+    }
+    return returnValue;
+}
+
+int HDF_DataBase:: 
+locate(GenericDataBase & db0, const aString & name, const aString & dirClassName ) const
+//=============================================================================
+// /Description:
+//   locate a sub-directory with a given name and class-name (optional)
+//   If name="." then the current directory will be returned.
+// /name (input): name of the sub-directory
+// /dirClassName (input): name of the class for the directory, default="directory"
+// /return value: is 0 is the directory was found, 1 otherwise
+//   See also the find function.
+//=============================================================================
+{
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 )
+    {
+        printf("HDF_DataBase::locate:ERROR file_id=%i sd_id=%i\n",file_id,sd_id);
+        assert( file_id > 0 && sd_id > 0 );
+    }
+
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    // flush any stream buffers
+
+  // cast to this derived type
+    if( db0.className!="HDF_DataBase" )
+    {
+        cout << "HDF_DataBase:ERROR: create - input type is not HDF_DataBase\n";
+        throw "HDF_DataBase:ERROR: create - input type is not HDF_DataBase";
+    }
+    HDF_DataBase & db = (HDF_DataBase &) db0;
+    db=*this; // initialize
+    if( name=="." || mode==streamInputMode )
+        return 0;
+
+  // get the total number of tag/reference pairs in the vgroup
+    int npairs = Vntagrefs(rcData->vgroup_id);
+    int32 tag, ref;
+    char vname[VGNAMELENMAX], cname[VGNAMELENMAX];
+    int found=FALSE;
+    for( int i=0; i<npairs; i++ )
+    {
+    // get tag and ref
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );
+        if( debug & 2 )
+            printf(" findDir i=%i, tag=%i, ref=%i\n", i,tag,ref);
+        if( Visvg(rcData->vgroup_id,ref) )
+        {
+      // this is a vgroup
+            int vgID = Vattach(file_id,ref,(accessMode==read ? "r" : "w") );
+            Vgetname(vgID,vname);
+            Vgetclass(vgID,cname);
+            if( debug & 2 )
+            {
+                printf(" findDir vname = [%s], class= [%s]\n",vname,cname);
+                printf(" findDir  name = [%s], dirClassName= [%s]\n",(const char*)name,(const char*)dirClassName);
+            }
+            if( name==vname && (dirClassName=="directory" || dirClassName==cname) )
+            {
+        // check if this vgroup is already in the dbList:
+                int length = dbList->getLength();
+                int foundInList=FALSE;
+                for( int i=length-1; i>=0; i-- )
+                {
+                    if( (*dbList)[i].vgroup_id==vgID )
+        	  {
+                        if( debug & 2 )
+            	      cout << "***find/locate(db): vgroup is already in the list!\n";
+                        if( db.rcData && db.rcData->decrementReferenceCount()==0 )
+                            db.destroy();
+                        db.rcData=&(*dbList)[i];  
+                        db.rcData->incrementReferenceCount();
+                        foundInList=TRUE;
+          	    break;
+        	  }
+                }
+                if( !foundInList )
+      	{
+        	  db.breakReference();
+            	  db.rcData->vgroup_id=vgID;
+      	}
+                if( debug & 2 )
+        	  cout << "findDir: item found: vgroup_id=" << db.rcData->vgroup_id << endl;
+      	found=TRUE;
+      	break;
+            }
+            else
+                Vdetach(vgID);
+        }
+    }
+    if( !found )
+    {
+        if( debug & 1 )
+            cout << "FindDir:ERROR: unable to find directory " << (const char *) name << endl;
+        return 1;
+    }
+    return 0;
+}
+
+int HDF_DataBase::
+find(aString *nameOut, const aString & dirClassName, const int & maxNumber, int & actualNumber) const
+// ====================================================================================================
+// /Description:
+//   Find all objects with the given class name in this directory.
+// 
+// See comments in GenericDataBase.C
+// ====================================================================================================
+{
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 )
+    {
+        printf("HDF_DataBase::find:ERROR file_id=%i sd_id=%i\n",file_id,sd_id);
+        assert( file_id > 0 && sd_id > 0 );
+    }
+
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    // flush any stream buffers
+
+  // get the total number of tag/reference pairs in the vgroup
+    int npairs = Vntagrefs(rcData->vgroup_id);
+    int32 tag, ref;
+    char cname[VGNAMELENMAX], name[VGNAMELENMAX];
+    int numberFound=0, numberSaved=0;
+    for( int i=0; i<npairs; i++ )
+    {
+        int found=FALSE;
+    // get tag and ref
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );
+        if( debug & 2 )
+            printf(" findDir npairs=%i, i=%i, tag=%i, ref=%i\n", npairs,i,tag,ref);
+        
+        if( tag==DFTAG_NDG ) // Numeric Data Group -- should be an A++ array 
+        { 
+      // get index (which SDS in the file 0,1,2,...)  
+            int32 sds_index=SDreftoindex(sd_id,ref); 
+      // select this SDS and get identifier  
+            int32 sds_id=SDselect(sd_id,sds_index); 
+
+            int32 rank, dims[MAX_VAR_DIMS], numberType, nattrs;
+            status = SDgetinfo(sds_id, name, &rank, dims, &numberType, &nattrs); 
+            if( (dirClassName=="intArray"    && numberType==DFNT_INT32   ) ||
+                    (dirClassName=="floatArray"  && numberType==DFNT_FLOAT32 ) ||
+                    (dirClassName=="doubleArray" && numberType==DFNT_FLOAT64 ) )
+            {
+        // double check that this is an A++ array, it will have the following attribute:
+                int32 attr_index = SDfindattr(sds_id,(char *)"arrayBase");
+      	if( attr_index >= 0 )
+      	{
+                    found=TRUE;
+                    if( debug & 2 )
+                	    cout << "find( *name ): item found: (Numeric Data Group), name=" << name << endl;
+      	}
+      	else
+      	{
+                    cout << "HDF_DataBase:find(*name,...) : WARNING: file contains a Scientific Data set " <<
+          	    "that is not an A++ array, name=" << name << endl;
+      	}
+            }
+            int32 status = SDendaccess(sds_id);
+        }
+        else if( tag==DFTAG_VH ) //  Vdata Header  -- this could be an int/float/double or string
+        { // this is a VDATA
+            int vdataID = VSattach(file_id,ref,"r");
+            VSgetclass(vdataID,cname);
+            if( dirClassName==cname )
+            {
+      	found=TRUE;
+      	VSgetname(vdataID,name);
+      	if( debug & 2 )
+        	  cout << "find( *name ): item found: class = " << cname << ", name=" << name << endl;
+            }
+            VSdetach(vdataID);
+        }
+        else if( tag==DFTAG_VG ) // Vgroup
+        {
+            int vgID = Vattach(file_id,ref,"r"); 
+            Vgetclass(vgID,cname);
+            if( debug & 2 )
+            {
+      	Vgetname(vgID,name);
+      	printf(" find( *name ): cname = %s, name=%s\n",cname,name);
+            }
+            if( dirClassName==cname ) // ***************** special checks needed for "floatArray" , "int" ...
+            {
+                found=TRUE;
+      	Vgetname(vgID,name);
+      	if( debug & 2 )
+        	  cout << "find( *name ): item found: vgroup_id=" << vgID << endl;
+            }
+            Vdetach(vgID);
+        }
+        else
+        {
+            cout << "HDF_DataBase:find(*name,...) : WARNING: unknown item in file, tag= " << tag << endl;
+        }
+        if( found )
+        { // save name in the list
+            numberFound++;
+            if( numberFound<=maxNumber )
+            { 
+      	nameOut[numberSaved]=name;  // save the name
+      	numberSaved++;
+            }
+        }
+    }
+    actualNumber=numberFound;
+    return numberSaved;
+}
+
+
+
+int HDF_DataBase::
+find(GenericDataBase *dbOut, aString *nameOut, const aString & dirClassName, 
+                                            const int & maxNumber, int & actualNumber) const
+// =====================================================================================
+// /Description:
+//   Find all sub-directories with a given dirClassName
+//
+//  /dbOut (input/output): return directories found in this array. You must allocate
+//     at least maxNumber directories in dbOut, for example with if maxNumber=10 you
+//     could say
+//     \begin{verbatim}
+//         HDF_DataBase dbOut[10];
+//     \end{verbatim}
+//  /nameOut : array of Strings to hold the names of the directories. You must allocate at
+//     least maxNumber Strings in this array.
+//  /maxNumber (input): this is the maximum number of directories that 
+//         can be stored in dbOut[]. 
+//  /actualNumber (output): This is the actual number of directories
+//         that exist.
+//  /return value:  The number of directories that were saved in the db array.
+//
+// /Description:
+//   To first determine the number of sub-directories with the given dirClassName that exist 
+//    make a call with maxNumber=0. Then allocate db[actualNumber] and call again.
+//    
+// =====================================================================================
+{
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 )
+    {
+        printf("HDF_DataBase::find:ERROR file_id=%i sd_id=%i\n",file_id,sd_id);
+        assert( file_id > 0 && sd_id > 0 );
+    }
+
+    if( dbOut->className!="HDF_DataBase" )
+    {
+        cout << "HDF_DataBase:findDir:ERROR the arg GenericDataBase *db does not point to `HDF_DataBase'! \n";
+        throw "HDF_DataBase:findDir:ERROR";
+    }
+    HDF_DataBase *db = (HDF_DataBase *)dbOut;
+    
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    // flush any stream buffers
+
+  // get the total number of tag/reference pairs in the vgroup
+    int npairs = Vntagrefs(rcData->vgroup_id);
+    int32 tag, ref;
+    char cname[VGNAMELENMAX], name[VGNAMELENMAX];
+    int numberFound=0, numberSaved=0;
+    for( int i=0; i<npairs; i++ )
+    {
+    // get tag and ref
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );
+        if( debug & 2 )
+            printf(" find(*db): npairs=%i, i=%i, tag=%i, ref=%i\n", npairs,i,tag,ref);
+            
+        if( Visvg(rcData->vgroup_id,ref) ) // is this a vgroup
+        { 
+            int vgID = Vattach(file_id,ref,(accessMode==read ? "r" : "w")); 
+            Vgetclass(vgID,cname);
+            if( debug & 2 )
+            {
+                printf(" find(*db): cname = %s \n",cname);
+            }
+            if( dirClassName==cname )
+            {
+      	Vgetname(vgID,name);
+                if( debug & 2 )
+        	  printf("find(*db): item found: name=%s, vgroup_id=%i \n",name,vgID);
+
+                numberFound++;
+      	if( numberFound<=maxNumber )
+      	{ // save the data base
+                    nameOut[numberSaved]=name;  // save the name
+	  // check if this vgroup is already in the dbList:
+                    HDF_DataBase & db0 = db[numberSaved];
+                    db0=*this; // initialize
+                    int foundInList=FALSE;
+        	  int length = dbList->getLength();
+        	  for( int i=length-1; i>=0; i-- )
+        	  {
+          	    if( (*dbList)[i].vgroup_id==vgID )
+          	    {
+                            if( debug & 2 )
+              	        cout << "***findDir's: vgroup is already in the list!\n";
+                              
+            	      if( db0.rcData && db0.rcData->decrementReferenceCount()==0 )
+            		db0.destroy();
+            	      db0.rcData=&(*dbList)[i];  
+                            db0.rcData->incrementReferenceCount();
+            	      foundInList=TRUE;
+            	      break;
+          	    }
+        	  }
+        	  if( !foundInList )
+        	  {
+              	    db0.breakReference();
+              	    db0.rcData->vgroup_id=vgID;
+        	  }
+        	  numberSaved++;
+      	}
+                else
+                    Vdetach(vgID);
+            }
+            else
+                Vdetach(vgID);
+        }
+    }
+    actualNumber=numberFound;
+    return numberSaved;
+}
+
+int HDF_DataBase::
+build(GenericDataBase & db0, int id)
+//=====================================================================================
+// /Description: 
+//    Build a directory with the given ID, such as that returned by the member function {\tt getID()}.
+// /db0 (output) : on output a data base that points to the directory with reference number equal to "id".
+// /id (input) : build a directory for this identifier.
+//=====================================================================================
+{
+  // *** looks like we should use the "ref" number as the directory ID
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 )
+    {
+        printf("HDF_DataBase::build:ERROR file_id=%i sd_id=%i\n",file_id,sd_id);
+        assert( file_id > 0 && sd_id > 0 );
+    }
+
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    // flush any stream buffers
+
+  // cast to this derived type
+    if( db0.className!="HDF_DataBase" )
+    {
+        cout << "HDF_DataBase:ERROR: create - input type is not HDF_DataBase\n";
+        throw "HDF_DataBase:ERROR: create - input type is not HDF_DataBase";
+    }
+    HDF_DataBase & db = (HDF_DataBase &) db0;
+    db=*this; // initialize
+
+    int32 ref=id;
+    int vgID = Vattach(file_id,ref,(accessMode==read ? "r" : "w") );
+
+  // check if this vgroup is already in the dbList:
+    int length = dbList->getLength();
+    int foundInList=FALSE;
+    for( int i=length-1; i>=0; i-- )
+    {
+        if( (*dbList)[i].vgroup_id==vgID )
+        {
+            if( debug & 2 )
+      	cout << "***build: vgroup is already in the list!\n";
+            if( db.rcData && db.rcData->decrementReferenceCount()==0 )
+      	db.destroy();
+            db.rcData=&(*dbList)[i];  
+            db.rcData->incrementReferenceCount();
+            foundInList=TRUE;
+            break;
+        }
+    }
+    if( !foundInList )
+    {
+    // attach a vgroup with a given ID
+    // int vgID = Vattach(file_id,ref,(accessMode==read ? "r" : "w") );
+        db.breakReference();
+        db.rcData->vgroup_id=vgID;
+    }
+
+    return 0;
+}
+
+
+void HDF_DataBase::
+closeStream() const
+// this is not really a const function
+{
+    
+    HDF_DataBase & db = (HDF_DataBase & )(*this);  // cast away const
+
+// *wdh* 000925  if( dataBaseBuffer==NULL ||  !dataBaseBuffer->isOpen() )
+    if( dataBaseBuffer==NULL ||  !dataBaseBuffer->isOpen() || !bufferWasCreatedInThisDirectory )
+        return;
+    if( mode!=normalMode )
+    {
+        cout << "HDF_DataBase::closeStream: error: you should be in normalMode to close the stream buffers\n";
+        throw "error";
+    }
+    if( HDF_DataBase::debug & 1 )
+        printf("HDF_DataBase::closeStream: close the stream buffers: db.dataBaseBuffer=%d \n",db.dataBaseBuffer);
+  // close and de-allocate buffers
+    db.mode=bufferMode;
+    db.dataBaseBuffer->closeBuffer(db); 
+    delete db.dataBaseBuffer;
+    db.dataBaseBuffer=NULL;
+    db.mode=normalMode;
+
+}
+
+void HDF_DataBase::
+setMode(const InputOutputMode & mode_ /* =normalMode */)
+//=====================================================================================
+//    
+// /Description:
+//   Set the input-output mode for the data base.
+// /mode\_ (input) : input-output mode, {\tt normalMode}, {\tt streamInputMode}, 
+//  {\tt streamOutput}, or {\tt noStreamMode}. In {\tt normalMode} the data is saved in the standard
+//   hierarchical manner. In {\tt streamInputMode}/{\tt streamOutputMode} mode the
+//   data is input/output continuguously from/into a buffer. The name of the object is ignored and
+//   the act of creating new directories is ignored. In stream mode the data must be read back 
+//   in in exactly the order it was written. In {\tt noStreamMode}
+//   any requests to change to  {\tt streamInputMode} or {\tt streamOutputMode} will be ignored. This can
+//   be used to suggest that no streaming should be done. To overide this mode you must first set the
+//   mode to {\tt normalMode} and then you can change the mode to a streaming mode.
+//=====================================================================================
+{
+    if( mode==mode_ || (mode==noStreamMode && mode_!=normalMode) )
+        return;
+
+    if( mode_==bufferMode )
+    {
+        mode=mode_;
+        return;
+    }
+
+    if( dataBaseBuffer==NULL )
+    {
+        dataBaseBuffer= new DataBaseBuffer;
+        bufferWasCreatedInThisDirectory=TRUE;
+    }
+
+    InputOutputMode oldMode =mode;
+    if( mode_!=oldMode )
+    {
+        if( mode_==streamOutputMode )
+        {
+      // open new buffers
+            mode=bufferMode;
+            dataBaseBuffer->openBuffer(*this,mode_);
+        }
+        else if( mode_==streamInputMode )
+        {
+      // get existing buffers
+            mode=bufferMode;
+            dataBaseBuffer->openBuffer(*this,mode_); // we should be in normalMode for this get
+        }
+        else if( mode_==normalMode )
+        {
+            if( !bufferWasCreatedInThisDirectory && (oldMode==streamOutputMode || oldMode==streamInputMode) )
+            {
+      	cout << "HDF_DataBase::setMode:ERROR: attempt to set mode back to normalMode from streamOutputMode or \n"
+                          << " streamInputMode BUT this directory did not originally set the mode! \n";
+      	cout << "  ...this could cause fatal errors, continuing anyway... \n";
+            }
+      // close and de-allocate buffers
+            mode=normalMode;   // change the mode so we can put arrays in normal way
+            closeStream();
+        }
+        mode=mode_;
+    }
+    
+}
+
+
+// number of array dimensions for A++
+#define NUM_APP_DIMS 4
+#undef PUT
+
+
+//=====================================================================================
+// /Description: Save an A++ array in the data-base. The array is saved as an HDF
+// Scientific Data Set.
+// /x (input): array to save
+// /name (input): save the array with this name.
+//
+// Define a macro to save a float/int/double A++ Array
+//  type=floatArray/intArray/doubleArray HDFType=corresponding HDF type
+// ========================================================================================
+
+// now declare instances of the macro
+// PUTARRAY(floatSerialArray,floatSerialArray,DFNT_FLOAT32,put)
+int HDF_DataBase::  
+put( const floatSerialArray & x_, const aString & name )  
+{  
+//   #If "floatSerialArray" eq "floatSerialArray"
+        const floatSerialArray & x = x_;
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::put(floatSerialArray,name):ERROR file_id=%i sd_id=%i name=%s\n",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( accessMode!=write )  
+    {  
+        cout << "HDF_DataBase:ERROR:put: cannot put an array to a read-only file, name ="   
+                  << (const char*) name << endl;  
+        return 1;  
+    }  
+    if( mode==streamOutputMode ) 
+    { 
+        /* save in the stream buffer */ 
+        int dims[NUM_APP_DIMS][2]; 
+        int size=1; 
+        for( int d=0; d<NUM_APP_DIMS; d++) 
+        { 
+            dims[d][0]=x.getBase(d); 
+            dims[d][1]=x.getBound(d);  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        } 
+        dataBaseBuffer->putToBuffer( NUM_APP_DIMS*2, dims[0] ); 
+        dataBaseBuffer->putToBuffer( size,x.getDataPointer() ); 
+        return 0; 
+    } 
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    int32 dims[NUM_APP_DIMS], rank, start[NUM_APP_DIMS], edges[NUM_APP_DIMS], base[NUM_APP_DIMS];  
+    rank=NUM_APP_DIMS;  
+    for( int n=0; n<NUM_APP_DIMS; n++ )  
+    {  
+        dims[n]=x.getLength(n);  
+        start[n]=0;  
+        edges[n]=dims[n];  
+        base[n]=x.getBase(n);  
+    }  
+    /* to prevent a seg fault for a null array we create an SDS with 1 element, rank=1 */ 
+    /* the seg fault seems to be generated when all the dims=0 in the SDcreate statement */ 
+    SDsetfillmode(sd_id,SD_NOFILL); /* no need to initialize array */ 
+    int32 sds_id, istat; 
+    if( dims[0] > 0 && dims[1] > 0 && dims[2] > 0 && dims[3] > 0 )                       
+    {   
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+        istat = SDwritedata(sds_id,start, NULL, edges,(unsigned char*)(x.getDataPointer()));  
+        if( istat==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDwritedata\n"); 
+            return 1; 
+        } 
+    }
+    else  
+    { 
+        rank=1; dims[0]=1; 
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+    } 
+      /* only use new way of saving dimensions -- this save space */ 
+    for( int r=0; r<rank; r++ ) 
+    { 
+        int32 dimID=SDgetdimid(sds_id,r); /* get id for dimension r */ 
+        if( dimID==FAIL ) printf(" +++put:ERROR getting dimension id \n"); 
+        SDsetdimval_comp(dimID,SD_DIMVAL_BW_INCOMP); 
+    }
+  /* Save array lower bounds */  
+    istat =SDsetattr(sds_id,(char*)"arrayBase", DFNT_INT32, NUM_APP_DIMS, base );  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDsetattr\n"); 
+        return 1; 
+    } 
+    /* Insert the sds into the Vgroup.  */  
+    int32 ref = SDidtoref(sds_id);  
+    if( ref<0 ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from  SDidtoref\n"); 
+        return 1; 
+    } 
+    istat=Vaddtagref(rcData->vgroup_id, DFTAG_NDG, ref );   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from Vaddtagref\n"); 
+        return 1; 
+    } 
+    /* terminate access to the array */  
+    istat = SDendaccess(sds_id);  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDendaccess\n"); 
+        return 1; 
+    } 
+    return 0;  
+}
+// PUTARRAY(intSerialArray,intSerialArray,DFNT_INT32,put)
+int HDF_DataBase::  
+put( const intSerialArray & x_, const aString & name )  
+{  
+//   #If "intSerialArray" eq "intSerialArray"
+        const intSerialArray & x = x_;
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::put(intSerialArray,name):ERROR file_id=%i sd_id=%i name=%s\n",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( accessMode!=write )  
+    {  
+        cout << "HDF_DataBase:ERROR:put: cannot put an array to a read-only file, name ="   
+                  << (const char*) name << endl;  
+        return 1;  
+    }  
+    if( mode==streamOutputMode ) 
+    { 
+        /* save in the stream buffer */ 
+        int dims[NUM_APP_DIMS][2]; 
+        int size=1; 
+        for( int d=0; d<NUM_APP_DIMS; d++) 
+        { 
+            dims[d][0]=x.getBase(d); 
+            dims[d][1]=x.getBound(d);  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        } 
+        dataBaseBuffer->putToBuffer( NUM_APP_DIMS*2, dims[0] ); 
+        dataBaseBuffer->putToBuffer( size,x.getDataPointer() ); 
+        return 0; 
+    } 
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    int32 dims[NUM_APP_DIMS], rank, start[NUM_APP_DIMS], edges[NUM_APP_DIMS], base[NUM_APP_DIMS];  
+    rank=NUM_APP_DIMS;  
+    for( int n=0; n<NUM_APP_DIMS; n++ )  
+    {  
+        dims[n]=x.getLength(n);  
+        start[n]=0;  
+        edges[n]=dims[n];  
+        base[n]=x.getBase(n);  
+    }  
+    /* to prevent a seg fault for a null array we create an SDS with 1 element, rank=1 */ 
+    /* the seg fault seems to be generated when all the dims=0 in the SDcreate statement */ 
+    SDsetfillmode(sd_id,SD_NOFILL); /* no need to initialize array */ 
+    int32 sds_id, istat; 
+    if( dims[0] > 0 && dims[1] > 0 && dims[2] > 0 && dims[3] > 0 )                       
+    {   
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_INT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+        istat = SDwritedata(sds_id,start, NULL, edges,(unsigned char*)(x.getDataPointer()));  
+        if( istat==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDwritedata\n"); 
+            return 1; 
+        } 
+    }
+    else  
+    { 
+        rank=1; dims[0]=1; 
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_INT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+    } 
+      /* only use new way of saving dimensions -- this save space */ 
+    for( int r=0; r<rank; r++ ) 
+    { 
+        int32 dimID=SDgetdimid(sds_id,r); /* get id for dimension r */ 
+        if( dimID==FAIL ) printf(" +++put:ERROR getting dimension id \n"); 
+        SDsetdimval_comp(dimID,SD_DIMVAL_BW_INCOMP); 
+    }
+  /* Save array lower bounds */  
+    istat =SDsetattr(sds_id,(char*)"arrayBase", DFNT_INT32, NUM_APP_DIMS, base );  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDsetattr\n"); 
+        return 1; 
+    } 
+    /* Insert the sds into the Vgroup.  */  
+    int32 ref = SDidtoref(sds_id);  
+    if( ref<0 ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from  SDidtoref\n"); 
+        return 1; 
+    } 
+    istat=Vaddtagref(rcData->vgroup_id, DFTAG_NDG, ref );   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from Vaddtagref\n"); 
+        return 1; 
+    } 
+    /* terminate access to the array */  
+    istat = SDendaccess(sds_id);  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDendaccess\n"); 
+        return 1; 
+    } 
+    return 0;  
+}
+// PUTARRAY(doubleSerialArray,doubleSerialArray,DFNT_FLOAT64,put)
+int HDF_DataBase::  
+put( const doubleSerialArray & x_, const aString & name )  
+{  
+//   #If "doubleSerialArray" eq "doubleSerialArray"
+        const doubleSerialArray & x = x_;
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::put(doubleSerialArray,name):ERROR file_id=%i sd_id=%i name=%s\n",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( accessMode!=write )  
+    {  
+        cout << "HDF_DataBase:ERROR:put: cannot put an array to a read-only file, name ="   
+                  << (const char*) name << endl;  
+        return 1;  
+    }  
+    if( mode==streamOutputMode ) 
+    { 
+        /* save in the stream buffer */ 
+        int dims[NUM_APP_DIMS][2]; 
+        int size=1; 
+        for( int d=0; d<NUM_APP_DIMS; d++) 
+        { 
+            dims[d][0]=x.getBase(d); 
+            dims[d][1]=x.getBound(d);  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        } 
+        dataBaseBuffer->putToBuffer( NUM_APP_DIMS*2, dims[0] ); 
+        dataBaseBuffer->putToBuffer( size,x.getDataPointer() ); 
+        return 0; 
+    } 
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    int32 dims[NUM_APP_DIMS], rank, start[NUM_APP_DIMS], edges[NUM_APP_DIMS], base[NUM_APP_DIMS];  
+    rank=NUM_APP_DIMS;  
+    for( int n=0; n<NUM_APP_DIMS; n++ )  
+    {  
+        dims[n]=x.getLength(n);  
+        start[n]=0;  
+        edges[n]=dims[n];  
+        base[n]=x.getBase(n);  
+    }  
+    /* to prevent a seg fault for a null array we create an SDS with 1 element, rank=1 */ 
+    /* the seg fault seems to be generated when all the dims=0 in the SDcreate statement */ 
+    SDsetfillmode(sd_id,SD_NOFILL); /* no need to initialize array */ 
+    int32 sds_id, istat; 
+    if( dims[0] > 0 && dims[1] > 0 && dims[2] > 0 && dims[3] > 0 )                       
+    {   
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT64,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+        istat = SDwritedata(sds_id,start, NULL, edges,(unsigned char*)(x.getDataPointer()));  
+        if( istat==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDwritedata\n"); 
+            return 1; 
+        } 
+    }
+    else  
+    { 
+        rank=1; dims[0]=1; 
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT64,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+    } 
+      /* only use new way of saving dimensions -- this save space */ 
+    for( int r=0; r<rank; r++ ) 
+    { 
+        int32 dimID=SDgetdimid(sds_id,r); /* get id for dimension r */ 
+        if( dimID==FAIL ) printf(" +++put:ERROR getting dimension id \n"); 
+        SDsetdimval_comp(dimID,SD_DIMVAL_BW_INCOMP); 
+    }
+  /* Save array lower bounds */  
+    istat =SDsetattr(sds_id,(char*)"arrayBase", DFNT_INT32, NUM_APP_DIMS, base );  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDsetattr\n"); 
+        return 1; 
+    } 
+    /* Insert the sds into the Vgroup.  */  
+    int32 ref = SDidtoref(sds_id);  
+    if( ref<0 ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from  SDidtoref\n"); 
+        return 1; 
+    } 
+    istat=Vaddtagref(rcData->vgroup_id, DFTAG_NDG, ref );   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from Vaddtagref\n"); 
+        return 1; 
+    } 
+    /* terminate access to the array */  
+    istat = SDendaccess(sds_id);  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDendaccess\n"); 
+        return 1; 
+    } 
+    return 0;  
+}
+
+// PUTARRAY(floatArray,floatSerialArray,DFNT_FLOAT32,putDistributed)
+int HDF_DataBase::  
+putDistributed( const floatArray & x_, const aString & name )  
+{  
+//   #If "floatArray" eq "floatSerialArray"
+//   #Else
+    // For parallel arrays we save the data without ghost points
+    // we assume that the data lives on one processor.
+        const int myid = max(0,Communication_Manager::My_Process_Number);
+        if( myid!=0 )
+        {
+            printf("HDF_DataBase::put:floatArray: ERROR: put called for a processor number not equal to zero!\n");
+            throw "error";
+        }
+        const floatSerialArray & xLocal = x_.getLocalArray();  // this is a view
+        floatSerialArray x;
+        x=xLocal;      // this will now hold contiguous data that we can save
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::put(floatArray,name):ERROR file_id=%i sd_id=%i name=%s\n",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( accessMode!=write )  
+    {  
+        cout << "HDF_DataBase:ERROR:put: cannot put an array to a read-only file, name ="   
+                  << (const char*) name << endl;  
+        return 1;  
+    }  
+    if( mode==streamOutputMode ) 
+    { 
+        /* save in the stream buffer */ 
+        int dims[NUM_APP_DIMS][2]; 
+        int size=1; 
+        for( int d=0; d<NUM_APP_DIMS; d++) 
+        { 
+            dims[d][0]=x.getBase(d); 
+            dims[d][1]=x.getBound(d);  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        } 
+        dataBaseBuffer->putToBuffer( NUM_APP_DIMS*2, dims[0] ); 
+        dataBaseBuffer->putToBuffer( size,x.getDataPointer() ); 
+        return 0; 
+    } 
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    int32 dims[NUM_APP_DIMS], rank, start[NUM_APP_DIMS], edges[NUM_APP_DIMS], base[NUM_APP_DIMS];  
+    rank=NUM_APP_DIMS;  
+    for( int n=0; n<NUM_APP_DIMS; n++ )  
+    {  
+        dims[n]=x.getLength(n);  
+        start[n]=0;  
+        edges[n]=dims[n];  
+        base[n]=x.getBase(n);  
+    }  
+    /* to prevent a seg fault for a null array we create an SDS with 1 element, rank=1 */ 
+    /* the seg fault seems to be generated when all the dims=0 in the SDcreate statement */ 
+    SDsetfillmode(sd_id,SD_NOFILL); /* no need to initialize array */ 
+    int32 sds_id, istat; 
+    if( dims[0] > 0 && dims[1] > 0 && dims[2] > 0 && dims[3] > 0 )                       
+    {   
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+        istat = SDwritedata(sds_id,start, NULL, edges,(unsigned char*)(x.getDataPointer()));  
+        if( istat==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDwritedata\n"); 
+            return 1; 
+        } 
+    }
+    else  
+    { 
+        rank=1; dims[0]=1; 
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+    } 
+      /* only use new way of saving dimensions -- this save space */ 
+    for( int r=0; r<rank; r++ ) 
+    { 
+        int32 dimID=SDgetdimid(sds_id,r); /* get id for dimension r */ 
+        if( dimID==FAIL ) printf(" +++put:ERROR getting dimension id \n"); 
+        SDsetdimval_comp(dimID,SD_DIMVAL_BW_INCOMP); 
+    }
+  /* Save array lower bounds */  
+    istat =SDsetattr(sds_id,(char*)"arrayBase", DFNT_INT32, NUM_APP_DIMS, base );  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDsetattr\n"); 
+        return 1; 
+    } 
+    /* Insert the sds into the Vgroup.  */  
+    int32 ref = SDidtoref(sds_id);  
+    if( ref<0 ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from  SDidtoref\n"); 
+        return 1; 
+    } 
+    istat=Vaddtagref(rcData->vgroup_id, DFTAG_NDG, ref );   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from Vaddtagref\n"); 
+        return 1; 
+    } 
+    /* terminate access to the array */  
+    istat = SDendaccess(sds_id);  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDendaccess\n"); 
+        return 1; 
+    } 
+    return 0;  
+}
+// PUTARRAY(intArray,intSerialArray,DFNT_INT32,putDistributed)
+int HDF_DataBase::  
+putDistributed( const intArray & x_, const aString & name )  
+{  
+//   #If "intArray" eq "intSerialArray"
+//   #Else
+    // For parallel arrays we save the data without ghost points
+    // we assume that the data lives on one processor.
+        const int myid = max(0,Communication_Manager::My_Process_Number);
+        if( myid!=0 )
+        {
+            printf("HDF_DataBase::put:intArray: ERROR: put called for a processor number not equal to zero!\n");
+            throw "error";
+        }
+        const intSerialArray & xLocal = x_.getLocalArray();  // this is a view
+        intSerialArray x;
+        x=xLocal;      // this will now hold contiguous data that we can save
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::put(intArray,name):ERROR file_id=%i sd_id=%i name=%s\n",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( accessMode!=write )  
+    {  
+        cout << "HDF_DataBase:ERROR:put: cannot put an array to a read-only file, name ="   
+                  << (const char*) name << endl;  
+        return 1;  
+    }  
+    if( mode==streamOutputMode ) 
+    { 
+        /* save in the stream buffer */ 
+        int dims[NUM_APP_DIMS][2]; 
+        int size=1; 
+        for( int d=0; d<NUM_APP_DIMS; d++) 
+        { 
+            dims[d][0]=x.getBase(d); 
+            dims[d][1]=x.getBound(d);  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        } 
+        dataBaseBuffer->putToBuffer( NUM_APP_DIMS*2, dims[0] ); 
+        dataBaseBuffer->putToBuffer( size,x.getDataPointer() ); 
+        return 0; 
+    } 
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    int32 dims[NUM_APP_DIMS], rank, start[NUM_APP_DIMS], edges[NUM_APP_DIMS], base[NUM_APP_DIMS];  
+    rank=NUM_APP_DIMS;  
+    for( int n=0; n<NUM_APP_DIMS; n++ )  
+    {  
+        dims[n]=x.getLength(n);  
+        start[n]=0;  
+        edges[n]=dims[n];  
+        base[n]=x.getBase(n);  
+    }  
+    /* to prevent a seg fault for a null array we create an SDS with 1 element, rank=1 */ 
+    /* the seg fault seems to be generated when all the dims=0 in the SDcreate statement */ 
+    SDsetfillmode(sd_id,SD_NOFILL); /* no need to initialize array */ 
+    int32 sds_id, istat; 
+    if( dims[0] > 0 && dims[1] > 0 && dims[2] > 0 && dims[3] > 0 )                       
+    {   
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_INT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+        istat = SDwritedata(sds_id,start, NULL, edges,(unsigned char*)(x.getDataPointer()));  
+        if( istat==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDwritedata\n"); 
+            return 1; 
+        } 
+    }
+    else  
+    { 
+        rank=1; dims[0]=1; 
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_INT32,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+    } 
+      /* only use new way of saving dimensions -- this save space */ 
+    for( int r=0; r<rank; r++ ) 
+    { 
+        int32 dimID=SDgetdimid(sds_id,r); /* get id for dimension r */ 
+        if( dimID==FAIL ) printf(" +++put:ERROR getting dimension id \n"); 
+        SDsetdimval_comp(dimID,SD_DIMVAL_BW_INCOMP); 
+    }
+  /* Save array lower bounds */  
+    istat =SDsetattr(sds_id,(char*)"arrayBase", DFNT_INT32, NUM_APP_DIMS, base );  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDsetattr\n"); 
+        return 1; 
+    } 
+    /* Insert the sds into the Vgroup.  */  
+    int32 ref = SDidtoref(sds_id);  
+    if( ref<0 ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from  SDidtoref\n"); 
+        return 1; 
+    } 
+    istat=Vaddtagref(rcData->vgroup_id, DFTAG_NDG, ref );   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from Vaddtagref\n"); 
+        return 1; 
+    } 
+    /* terminate access to the array */  
+    istat = SDendaccess(sds_id);  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDendaccess\n"); 
+        return 1; 
+    } 
+    return 0;  
+}
+// PUTARRAY(doubleArray,doubleSerialArray,DFNT_FLOAT64,putDistributed)
+int HDF_DataBase::  
+putDistributed( const doubleArray & x_, const aString & name )  
+{  
+//   #If "doubleArray" eq "doubleSerialArray"
+//   #Else
+    // For parallel arrays we save the data without ghost points
+    // we assume that the data lives on one processor.
+        const int myid = max(0,Communication_Manager::My_Process_Number);
+        if( myid!=0 )
+        {
+            printf("HDF_DataBase::put:doubleArray: ERROR: put called for a processor number not equal to zero!\n");
+            throw "error";
+        }
+        const doubleSerialArray & xLocal = x_.getLocalArray();  // this is a view
+        doubleSerialArray x;
+        x=xLocal;      // this will now hold contiguous data that we can save
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::put(doubleArray,name):ERROR file_id=%i sd_id=%i name=%s\n",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( accessMode!=write )  
+    {  
+        cout << "HDF_DataBase:ERROR:put: cannot put an array to a read-only file, name ="   
+                  << (const char*) name << endl;  
+        return 1;  
+    }  
+    if( mode==streamOutputMode ) 
+    { 
+        /* save in the stream buffer */ 
+        int dims[NUM_APP_DIMS][2]; 
+        int size=1; 
+        for( int d=0; d<NUM_APP_DIMS; d++) 
+        { 
+            dims[d][0]=x.getBase(d); 
+            dims[d][1]=x.getBound(d);  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        } 
+        dataBaseBuffer->putToBuffer( NUM_APP_DIMS*2, dims[0] ); 
+        dataBaseBuffer->putToBuffer( size,x.getDataPointer() ); 
+        return 0; 
+    } 
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    int32 dims[NUM_APP_DIMS], rank, start[NUM_APP_DIMS], edges[NUM_APP_DIMS], base[NUM_APP_DIMS];  
+    rank=NUM_APP_DIMS;  
+    for( int n=0; n<NUM_APP_DIMS; n++ )  
+    {  
+        dims[n]=x.getLength(n);  
+        start[n]=0;  
+        edges[n]=dims[n];  
+        base[n]=x.getBase(n);  
+    }  
+    /* to prevent a seg fault for a null array we create an SDS with 1 element, rank=1 */ 
+    /* the seg fault seems to be generated when all the dims=0 in the SDcreate statement */ 
+    SDsetfillmode(sd_id,SD_NOFILL); /* no need to initialize array */ 
+    int32 sds_id, istat; 
+    if( dims[0] > 0 && dims[1] > 0 && dims[2] > 0 && dims[3] > 0 )                       
+    {   
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT64,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+        istat = SDwritedata(sds_id,start, NULL, edges,(unsigned char*)(x.getDataPointer()));  
+        if( istat==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDwritedata\n"); 
+            return 1; 
+        } 
+    }
+    else  
+    { 
+        rank=1; dims[0]=1; 
+        /* create the array */  
+        sds_id = SDcreate(sd_id,(char*)((const char *)name),DFNT_FLOAT64,rank,dims);  
+        if( sds_id==FAIL ) 
+        {  
+            printf("HDF_DataBase::put(A++ array): ERROR return from SDCreate\n"); 
+            return 1; 
+        } 
+    } 
+      /* only use new way of saving dimensions -- this save space */ 
+    for( int r=0; r<rank; r++ ) 
+    { 
+        int32 dimID=SDgetdimid(sds_id,r); /* get id for dimension r */ 
+        if( dimID==FAIL ) printf(" +++put:ERROR getting dimension id \n"); 
+        SDsetdimval_comp(dimID,SD_DIMVAL_BW_INCOMP); 
+    }
+  /* Save array lower bounds */  
+    istat =SDsetattr(sds_id,(char*)"arrayBase", DFNT_INT32, NUM_APP_DIMS, base );  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDsetattr\n"); 
+        return 1; 
+    } 
+    /* Insert the sds into the Vgroup.  */  
+    int32 ref = SDidtoref(sds_id);  
+    if( ref<0 ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from  SDidtoref\n"); 
+        return 1; 
+    } 
+    istat=Vaddtagref(rcData->vgroup_id, DFTAG_NDG, ref );   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from Vaddtagref\n"); 
+        return 1; 
+    } 
+    /* terminate access to the array */  
+    istat = SDendaccess(sds_id);  
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put(A++ array): ERROR return from SDendaccess\n"); 
+        return 1; 
+    } 
+    return 0;  
+}
+
+//=====================================================================================  
+// /Description: get an A++ array from the data-base.   
+// /x (output): the array to get. This array will be redim'd to have the  
+//   correct dimensions (base and bound).  
+// /name (input): the name of the array in the data-base  
+//=====================================================================================  
+// Define a macro to get a float/int/double A++ Array
+//  type=floatArray/intArray/doubleArray HDFType=corresponding HDF type
+
+// now declare instances of the macro
+// GETARRAY(floatSerialArray,floatSerialArray,DFNT_FLOAT32,get)
+int HDF_DataBase::  
+// #If "floatSerialArray" eq "floatArray" || "floatSerialArray" eq "intArray" || "floatSerialArray" eq "doubleArray"
+// #Else
+get( floatSerialArray & x, const aString & name, Index *Iv )  const 
+{  
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::get(floatSerialArray,name):ERROR file_id=%i sd_id=%i name=%sn",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( mode==streamInputMode )  
+    {  
+        /* get from the stream buffer */ 
+        int dims[NUM_APP_DIMS][2];  
+        dataBaseBuffer->getFromBuffer( NUM_APP_DIMS*2, dims[0] );  
+        int size=1;  
+        for( int d=0; d<NUM_APP_DIMS; d++)  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        x.redim(Range(dims[0][0],dims[0][1]),  
+                        Range(dims[1][0],dims[1][1]),  
+                        Range(dims[2][0],dims[2][1]),  
+                        Range(dims[3][0],dims[3][1]));  
+            //     #If "floatSerialArray" eq "floatSerialArray"
+            dataBaseBuffer->getFromBuffer( size,x.getDataPointer() );  
+        return 0;  
+    }  
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    /*  get the total number of tag/reference pairs in the vgroup */  
+    int npairs = Vntagrefs(rcData->vgroup_id);  
+    int32 tag, ref, rank, nt, dims[MAX_VAR_DIMS], nattrs;  
+    int32 start[MAX_VAR_DIMS], edges[MAX_VAR_DIMS], base[MAX_VAR_DIMS];  
+    char sd_name[MAX_NC_NAME];  
+    int found=FALSE;  
+    int i;   
+    for( i=0; i<npairs; i++ )  
+    {  
+        /* get tag and ref */  
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );  
+        if( debug & 2 )  
+            printf(" getSDS: i=%i, tag=%i, ref=%in", i,tag,ref);  
+        if( tag==DFTAG_NDG )  
+        { /* this is a Numeric Data group */  
+            /* get index (which SDS in the file 0,1,2,...)  */  
+            int32 sds_index=SDreftoindex(sd_id,ref);  
+            /* select this SDS and get identifier  */  
+            int32 sds_id=SDselect(sd_id,sds_index);  
+            status = SDgetinfo(sds_id, sd_name, &rank, dims, &nt, &nattrs);  
+            if( debug & 2 )  
+                printf("SDgetinfo: name=%s, rank = %i, dims = %i, %i, %i, %in",sd_name,rank,  
+           	     dims[0],dims[1],dims[2],dims[3]);  
+            if( name==sd_name )  
+            {  
+                found=TRUE;  
+                /* --- we set rank=1 if the array was null for a put ---- */ 
+                if( rank==NUM_APP_DIMS ) 
+      	{ 
+                    int n;  
+            	  for( n=0; n<rank; n++ )  
+        	  {  
+          	    start[n]=0;  
+          	    edges[n]=dims[n];  
+        	  }  
+                    /* get base for arrays (set to zero if the attribute isn't there) : */  
+                    int32 attr_index = SDfindattr(sds_id,(char*)"arrayBase");  
+                    if( attr_index >= 0 )   
+                        SDreadattr(sds_id,attr_index,base);  
+                    else  
+                    {   
+                        for( n=0; n<NUM_APP_DIMS; n++ )  
+                            base[n]=0;  
+        	  }  
+                    if( debug & 2 )  
+                        printf("SDreadattr: attr_index=%i, base = %i, %i, %i, %in",attr_index, 
+                            base[0],base[1],base[2],base[3]);  
+              //           #If "floatSerialArray" eq "floatSerialArray"
+                  	    x.redim(dims[0],dims[1],dims[2],dims[3]); /* ****** fix this for more dims **** */  
+          	    for( n=0; n<rank; n++ )  
+                            x.setBase(base[n],n);  
+                        /* now read in the array data */  
+                        status = SDreaddata(sds_id, start, NULL, edges,(unsigned char*)x.getDataPointer());   
+      	}  
+                status = SDendaccess(sds_id);  
+                break;  
+            }  
+            status = SDendaccess(sds_id);  
+        }  
+    }  
+    if( !found && issueWarnings )  
+    {  
+        cout << "get: ERROR searching for " << (const char *)name << endl;  
+    }      
+    return found ? 0 : 1;  
+}
+// GETARRAY(intSerialArray,intSerialArray,DFNT_INT32,get)
+int HDF_DataBase::  
+// #If "intSerialArray" eq "floatArray" || "intSerialArray" eq "intArray" || "intSerialArray" eq "doubleArray"
+// #Else
+get( intSerialArray & x, const aString & name, Index *Iv )  const 
+{  
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::get(intSerialArray,name):ERROR file_id=%i sd_id=%i name=%sn",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( mode==streamInputMode )  
+    {  
+        /* get from the stream buffer */ 
+        int dims[NUM_APP_DIMS][2];  
+        dataBaseBuffer->getFromBuffer( NUM_APP_DIMS*2, dims[0] );  
+        int size=1;  
+        for( int d=0; d<NUM_APP_DIMS; d++)  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        x.redim(Range(dims[0][0],dims[0][1]),  
+                        Range(dims[1][0],dims[1][1]),  
+                        Range(dims[2][0],dims[2][1]),  
+                        Range(dims[3][0],dims[3][1]));  
+            //     #If "intSerialArray" eq "intSerialArray"
+            dataBaseBuffer->getFromBuffer( size,x.getDataPointer() );  
+        return 0;  
+    }  
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    /*  get the total number of tag/reference pairs in the vgroup */  
+    int npairs = Vntagrefs(rcData->vgroup_id);  
+    int32 tag, ref, rank, nt, dims[MAX_VAR_DIMS], nattrs;  
+    int32 start[MAX_VAR_DIMS], edges[MAX_VAR_DIMS], base[MAX_VAR_DIMS];  
+    char sd_name[MAX_NC_NAME];  
+    int found=FALSE;  
+    int i;   
+    for( i=0; i<npairs; i++ )  
+    {  
+        /* get tag and ref */  
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );  
+        if( debug & 2 )  
+            printf(" getSDS: i=%i, tag=%i, ref=%in", i,tag,ref);  
+        if( tag==DFTAG_NDG )  
+        { /* this is a Numeric Data group */  
+            /* get index (which SDS in the file 0,1,2,...)  */  
+            int32 sds_index=SDreftoindex(sd_id,ref);  
+            /* select this SDS and get identifier  */  
+            int32 sds_id=SDselect(sd_id,sds_index);  
+            status = SDgetinfo(sds_id, sd_name, &rank, dims, &nt, &nattrs);  
+            if( debug & 2 )  
+                printf("SDgetinfo: name=%s, rank = %i, dims = %i, %i, %i, %in",sd_name,rank,  
+           	     dims[0],dims[1],dims[2],dims[3]);  
+            if( name==sd_name )  
+            {  
+                found=TRUE;  
+                /* --- we set rank=1 if the array was null for a put ---- */ 
+                if( rank==NUM_APP_DIMS ) 
+      	{ 
+                    int n;  
+            	  for( n=0; n<rank; n++ )  
+        	  {  
+          	    start[n]=0;  
+          	    edges[n]=dims[n];  
+        	  }  
+                    /* get base for arrays (set to zero if the attribute isn't there) : */  
+                    int32 attr_index = SDfindattr(sds_id,(char*)"arrayBase");  
+                    if( attr_index >= 0 )   
+                        SDreadattr(sds_id,attr_index,base);  
+                    else  
+                    {   
+                        for( n=0; n<NUM_APP_DIMS; n++ )  
+                            base[n]=0;  
+        	  }  
+                    if( debug & 2 )  
+                        printf("SDreadattr: attr_index=%i, base = %i, %i, %i, %in",attr_index, 
+                            base[0],base[1],base[2],base[3]);  
+              //           #If "intSerialArray" eq "intSerialArray"
+                  	    x.redim(dims[0],dims[1],dims[2],dims[3]); /* ****** fix this for more dims **** */  
+          	    for( n=0; n<rank; n++ )  
+                            x.setBase(base[n],n);  
+                        /* now read in the array data */  
+                        status = SDreaddata(sds_id, start, NULL, edges,(unsigned char*)x.getDataPointer());   
+      	}  
+                status = SDendaccess(sds_id);  
+                break;  
+            }  
+            status = SDendaccess(sds_id);  
+        }  
+    }  
+    if( !found && issueWarnings )  
+    {  
+        cout << "get: ERROR searching for " << (const char *)name << endl;  
+    }      
+    return found ? 0 : 1;  
+}
+// GETARRAY(doubleSerialArray,doubleSerialArray,DFNT_FLOAT64,get)
+int HDF_DataBase::  
+// #If "doubleSerialArray" eq "floatArray" || "doubleSerialArray" eq "intArray" || "doubleSerialArray" eq "doubleArray"
+// #Else
+get( doubleSerialArray & x, const aString & name, Index *Iv )  const 
+{  
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::get(doubleSerialArray,name):ERROR file_id=%i sd_id=%i name=%sn",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( mode==streamInputMode )  
+    {  
+        /* get from the stream buffer */ 
+        int dims[NUM_APP_DIMS][2];  
+        dataBaseBuffer->getFromBuffer( NUM_APP_DIMS*2, dims[0] );  
+        int size=1;  
+        for( int d=0; d<NUM_APP_DIMS; d++)  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        x.redim(Range(dims[0][0],dims[0][1]),  
+                        Range(dims[1][0],dims[1][1]),  
+                        Range(dims[2][0],dims[2][1]),  
+                        Range(dims[3][0],dims[3][1]));  
+            //     #If "doubleSerialArray" eq "doubleSerialArray"
+            dataBaseBuffer->getFromBuffer( size,x.getDataPointer() );  
+        return 0;  
+    }  
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    /*  get the total number of tag/reference pairs in the vgroup */  
+    int npairs = Vntagrefs(rcData->vgroup_id);  
+    int32 tag, ref, rank, nt, dims[MAX_VAR_DIMS], nattrs;  
+    int32 start[MAX_VAR_DIMS], edges[MAX_VAR_DIMS], base[MAX_VAR_DIMS];  
+    char sd_name[MAX_NC_NAME];  
+    int found=FALSE;  
+    int i;   
+    for( i=0; i<npairs; i++ )  
+    {  
+        /* get tag and ref */  
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );  
+        if( debug & 2 )  
+            printf(" getSDS: i=%i, tag=%i, ref=%in", i,tag,ref);  
+        if( tag==DFTAG_NDG )  
+        { /* this is a Numeric Data group */  
+            /* get index (which SDS in the file 0,1,2,...)  */  
+            int32 sds_index=SDreftoindex(sd_id,ref);  
+            /* select this SDS and get identifier  */  
+            int32 sds_id=SDselect(sd_id,sds_index);  
+            status = SDgetinfo(sds_id, sd_name, &rank, dims, &nt, &nattrs);  
+            if( debug & 2 )  
+                printf("SDgetinfo: name=%s, rank = %i, dims = %i, %i, %i, %in",sd_name,rank,  
+           	     dims[0],dims[1],dims[2],dims[3]);  
+            if( name==sd_name )  
+            {  
+                found=TRUE;  
+                /* --- we set rank=1 if the array was null for a put ---- */ 
+                if( rank==NUM_APP_DIMS ) 
+      	{ 
+                    int n;  
+            	  for( n=0; n<rank; n++ )  
+        	  {  
+          	    start[n]=0;  
+          	    edges[n]=dims[n];  
+        	  }  
+                    /* get base for arrays (set to zero if the attribute isn't there) : */  
+                    int32 attr_index = SDfindattr(sds_id,(char*)"arrayBase");  
+                    if( attr_index >= 0 )   
+                        SDreadattr(sds_id,attr_index,base);  
+                    else  
+                    {   
+                        for( n=0; n<NUM_APP_DIMS; n++ )  
+                            base[n]=0;  
+        	  }  
+                    if( debug & 2 )  
+                        printf("SDreadattr: attr_index=%i, base = %i, %i, %i, %in",attr_index, 
+                            base[0],base[1],base[2],base[3]);  
+              //           #If "doubleSerialArray" eq "doubleSerialArray"
+                  	    x.redim(dims[0],dims[1],dims[2],dims[3]); /* ****** fix this for more dims **** */  
+          	    for( n=0; n<rank; n++ )  
+                            x.setBase(base[n],n);  
+                        /* now read in the array data */  
+                        status = SDreaddata(sds_id, start, NULL, edges,(unsigned char*)x.getDataPointer());   
+      	}  
+                status = SDendaccess(sds_id);  
+                break;  
+            }  
+            status = SDendaccess(sds_id);  
+        }  
+    }  
+    if( !found && issueWarnings )  
+    {  
+        cout << "get: ERROR searching for " << (const char *)name << endl;  
+    }      
+    return found ? 0 : 1;  
+}
+
+// GETARRAY(floatArray,floatSerialArray,DFNT_FLOAT32,getDistributed)
+int HDF_DataBase::  
+// #If "floatArray" eq "floatArray" || "floatArray" eq "intArray" || "floatArray" eq "doubleArray"
+getDistributed( floatArray & x, const aString & name )  const 
+{  
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::get(floatArray,name):ERROR file_id=%i sd_id=%i name=%sn",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( mode==streamInputMode )  
+    {  
+        /* get from the stream buffer */ 
+        int dims[NUM_APP_DIMS][2];  
+        dataBaseBuffer->getFromBuffer( NUM_APP_DIMS*2, dims[0] );  
+        int size=1;  
+        for( int d=0; d<NUM_APP_DIMS; d++)  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        x.redim(Range(dims[0][0],dims[0][1]),  
+                        Range(dims[1][0],dims[1][1]),  
+                        Range(dims[2][0],dims[2][1]),  
+                        Range(dims[3][0],dims[3][1]));  
+            //     #If "floatArray" eq "floatSerialArray"
+            //     #Else
+      // For distributed arrays we read the whole array into a temporary location and then copy the
+      // appropriate portion to the local array
+            Range S0(dims[0][0],dims[0][1]);
+            Range S1(dims[1][0],dims[1][1]);
+            Range S2(dims[2][0],dims[2][1]);
+            Range S3(dims[3][0],dims[3][1]);
+            floatSerialArray xs(S0,S1,S2,S3);
+// parse error on next line with gcc 3.3.2 ???
+//        floatSerialArray xs(Range(dims[0][0],dims[0][1]),  
+//                      Range(dims[1][0],dims[1][1]),  
+//                      Range(dims[2][0],dims[2][1]),  
+//                      Range(dims[3][0],dims[3][1])); 
+            dataBaseBuffer->getFromBuffer( size,xs.getDataPointer() );  
+            const floatSerialArray & xLocal = x.getLocalArrayWithGhostBoundaries();
+            Range R1(max(dims[0][0],xLocal.getBase(0)),min(dims[0][1],xLocal.getBound(0)));
+            Range R2(max(dims[1][0],xLocal.getBase(1)),min(dims[1][1],xLocal.getBound(1)));
+            Range R3(max(dims[2][0],xLocal.getBase(2)),min(dims[2][1],xLocal.getBound(2)));
+            Range R4(max(dims[3][0],xLocal.getBase(3)),min(dims[3][1],xLocal.getBound(3)));
+            xLocal(R1,R2,R3,R4)=xs(R1,R2,R3,R4);
+      // xLocal.display("HDF_DB: xLocal after get");
+        return 0;  
+    }  
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    /*  get the total number of tag/reference pairs in the vgroup */  
+    int npairs = Vntagrefs(rcData->vgroup_id);  
+    int32 tag, ref, rank, nt, dims[MAX_VAR_DIMS], nattrs;  
+    int32 start[MAX_VAR_DIMS], edges[MAX_VAR_DIMS], base[MAX_VAR_DIMS];  
+    char sd_name[MAX_NC_NAME];  
+    int found=FALSE;  
+    int i;   
+    for( i=0; i<npairs; i++ )  
+    {  
+        /* get tag and ref */  
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );  
+        if( debug & 2 )  
+            printf(" getSDS: i=%i, tag=%i, ref=%in", i,tag,ref);  
+        if( tag==DFTAG_NDG )  
+        { /* this is a Numeric Data group */  
+            /* get index (which SDS in the file 0,1,2,...)  */  
+            int32 sds_index=SDreftoindex(sd_id,ref);  
+            /* select this SDS and get identifier  */  
+            int32 sds_id=SDselect(sd_id,sds_index);  
+            status = SDgetinfo(sds_id, sd_name, &rank, dims, &nt, &nattrs);  
+            if( debug & 2 )  
+                printf("SDgetinfo: name=%s, rank = %i, dims = %i, %i, %i, %in",sd_name,rank,  
+           	     dims[0],dims[1],dims[2],dims[3]);  
+            if( name==sd_name )  
+            {  
+                found=TRUE;  
+                /* --- we set rank=1 if the array was null for a put ---- */ 
+                if( rank==NUM_APP_DIMS ) 
+      	{ 
+                    int n;  
+            	  for( n=0; n<rank; n++ )  
+        	  {  
+          	    start[n]=0;  
+          	    edges[n]=dims[n];  
+        	  }  
+                    /* get base for arrays (set to zero if the attribute isn't there) : */  
+                    int32 attr_index = SDfindattr(sds_id,(char*)"arrayBase");  
+                    if( attr_index >= 0 )   
+                        SDreadattr(sds_id,attr_index,base);  
+                    else  
+                    {   
+                        for( n=0; n<NUM_APP_DIMS; n++ )  
+                            base[n]=0;  
+        	  }  
+                    if( debug & 2 )  
+                        printf("SDreadattr: attr_index=%i, base = %i, %i, %i, %in",attr_index, 
+                            base[0],base[1],base[2],base[3]);  
+              //           #If "floatArray" eq "floatSerialArray"
+              //           #Else
+            // For distributed arrays we read the whole array into a temporary location and then copy the
+            // appropriate portion to the local array
+          	    Range S0(base[0],base[0]+dims[0]-1);
+          	    Range S1(base[1],base[1]+dims[1]-1);
+          	    Range S2(base[2],base[2]+dims[2]-1);
+          	    Range S3(base[3],base[3]+dims[3]-1);
+          	    floatSerialArray xs(S0,S1,S2,S3);
+// parse error here with gcc 3.2.2 ??
+//              floatSerialArray xs(Range(base[0],base[0]+dims[0]-1),  
+//                            Range(base[1],base[1]+dims[1]-1),  
+//                            Range(base[2],base[2]+dims[2]-1),  
+//                            Range(base[3],base[3]+dims[3]-1)); 
+                        status = SDreaddata(sds_id, start, NULL, edges,(unsigned char*)xs.getDataPointer()); 
+                        const floatSerialArray & xLocal = x.getLocalArrayWithGhostBoundaries();
+                        Range R1(max(S0.getBase(),xLocal.getBase(0)),min(S0.getBound(),xLocal.getBound(0)));
+                        Range R2(max(S1.getBase(),xLocal.getBase(1)),min(S1.getBound(),xLocal.getBound(1)));
+                        Range R3(max(S2.getBase(),xLocal.getBase(2)),min(S2.getBound(),xLocal.getBound(2)));
+                        Range R4(max(S3.getBase(),xLocal.getBase(3)),min(S3.getBound(),xLocal.getBound(3)));
+                        xLocal(R1,R2,R3,R4)=xs(R1,R2,R3,R4);
+            // xLocal.display("HDF_DB: xLocal after get");
+      	}  
+                status = SDendaccess(sds_id);  
+                break;  
+            }  
+            status = SDendaccess(sds_id);  
+        }  
+    }  
+    if( !found && issueWarnings )  
+    {  
+        cout << "get: ERROR searching for " << (const char *)name << endl;  
+    }      
+    return found ? 0 : 1;  
+}
+// GETARRAY(intArray,intSerialArray,DFNT_INT32,getDistributed)
+int HDF_DataBase::  
+// #If "intArray" eq "floatArray" || "intArray" eq "intArray" || "intArray" eq "doubleArray"
+getDistributed( intArray & x, const aString & name )  const 
+{  
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::get(intArray,name):ERROR file_id=%i sd_id=%i name=%sn",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( mode==streamInputMode )  
+    {  
+        /* get from the stream buffer */ 
+        int dims[NUM_APP_DIMS][2];  
+        dataBaseBuffer->getFromBuffer( NUM_APP_DIMS*2, dims[0] );  
+        int size=1;  
+        for( int d=0; d<NUM_APP_DIMS; d++)  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        x.redim(Range(dims[0][0],dims[0][1]),  
+                        Range(dims[1][0],dims[1][1]),  
+                        Range(dims[2][0],dims[2][1]),  
+                        Range(dims[3][0],dims[3][1]));  
+            //     #If "intArray" eq "intSerialArray"
+            //     #Else
+      // For distributed arrays we read the whole array into a temporary location and then copy the
+      // appropriate portion to the local array
+            Range S0(dims[0][0],dims[0][1]);
+            Range S1(dims[1][0],dims[1][1]);
+            Range S2(dims[2][0],dims[2][1]);
+            Range S3(dims[3][0],dims[3][1]);
+            intSerialArray xs(S0,S1,S2,S3);
+// parse error on next line with gcc 3.3.2 ???
+//        intSerialArray xs(Range(dims[0][0],dims[0][1]),  
+//                      Range(dims[1][0],dims[1][1]),  
+//                      Range(dims[2][0],dims[2][1]),  
+//                      Range(dims[3][0],dims[3][1])); 
+            dataBaseBuffer->getFromBuffer( size,xs.getDataPointer() );  
+            const intSerialArray & xLocal = x.getLocalArrayWithGhostBoundaries();
+            Range R1(max(dims[0][0],xLocal.getBase(0)),min(dims[0][1],xLocal.getBound(0)));
+            Range R2(max(dims[1][0],xLocal.getBase(1)),min(dims[1][1],xLocal.getBound(1)));
+            Range R3(max(dims[2][0],xLocal.getBase(2)),min(dims[2][1],xLocal.getBound(2)));
+            Range R4(max(dims[3][0],xLocal.getBase(3)),min(dims[3][1],xLocal.getBound(3)));
+            xLocal(R1,R2,R3,R4)=xs(R1,R2,R3,R4);
+      // xLocal.display("HDF_DB: xLocal after get");
+        return 0;  
+    }  
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    /*  get the total number of tag/reference pairs in the vgroup */  
+    int npairs = Vntagrefs(rcData->vgroup_id);  
+    int32 tag, ref, rank, nt, dims[MAX_VAR_DIMS], nattrs;  
+    int32 start[MAX_VAR_DIMS], edges[MAX_VAR_DIMS], base[MAX_VAR_DIMS];  
+    char sd_name[MAX_NC_NAME];  
+    int found=FALSE;  
+    int i;   
+    for( i=0; i<npairs; i++ )  
+    {  
+        /* get tag and ref */  
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );  
+        if( debug & 2 )  
+            printf(" getSDS: i=%i, tag=%i, ref=%in", i,tag,ref);  
+        if( tag==DFTAG_NDG )  
+        { /* this is a Numeric Data group */  
+            /* get index (which SDS in the file 0,1,2,...)  */  
+            int32 sds_index=SDreftoindex(sd_id,ref);  
+            /* select this SDS and get identifier  */  
+            int32 sds_id=SDselect(sd_id,sds_index);  
+            status = SDgetinfo(sds_id, sd_name, &rank, dims, &nt, &nattrs);  
+            if( debug & 2 )  
+                printf("SDgetinfo: name=%s, rank = %i, dims = %i, %i, %i, %in",sd_name,rank,  
+           	     dims[0],dims[1],dims[2],dims[3]);  
+            if( name==sd_name )  
+            {  
+                found=TRUE;  
+                /* --- we set rank=1 if the array was null for a put ---- */ 
+                if( rank==NUM_APP_DIMS ) 
+      	{ 
+                    int n;  
+            	  for( n=0; n<rank; n++ )  
+        	  {  
+          	    start[n]=0;  
+          	    edges[n]=dims[n];  
+        	  }  
+                    /* get base for arrays (set to zero if the attribute isn't there) : */  
+                    int32 attr_index = SDfindattr(sds_id,(char*)"arrayBase");  
+                    if( attr_index >= 0 )   
+                        SDreadattr(sds_id,attr_index,base);  
+                    else  
+                    {   
+                        for( n=0; n<NUM_APP_DIMS; n++ )  
+                            base[n]=0;  
+        	  }  
+                    if( debug & 2 )  
+                        printf("SDreadattr: attr_index=%i, base = %i, %i, %i, %in",attr_index, 
+                            base[0],base[1],base[2],base[3]);  
+              //           #If "intArray" eq "intSerialArray"
+              //           #Else
+            // For distributed arrays we read the whole array into a temporary location and then copy the
+            // appropriate portion to the local array
+          	    Range S0(base[0],base[0]+dims[0]-1);
+          	    Range S1(base[1],base[1]+dims[1]-1);
+          	    Range S2(base[2],base[2]+dims[2]-1);
+          	    Range S3(base[3],base[3]+dims[3]-1);
+          	    intSerialArray xs(S0,S1,S2,S3);
+// parse error here with gcc 3.2.2 ??
+//              intSerialArray xs(Range(base[0],base[0]+dims[0]-1),  
+//                            Range(base[1],base[1]+dims[1]-1),  
+//                            Range(base[2],base[2]+dims[2]-1),  
+//                            Range(base[3],base[3]+dims[3]-1)); 
+                        status = SDreaddata(sds_id, start, NULL, edges,(unsigned char*)xs.getDataPointer()); 
+                        const intSerialArray & xLocal = x.getLocalArrayWithGhostBoundaries();
+                        Range R1(max(S0.getBase(),xLocal.getBase(0)),min(S0.getBound(),xLocal.getBound(0)));
+                        Range R2(max(S1.getBase(),xLocal.getBase(1)),min(S1.getBound(),xLocal.getBound(1)));
+                        Range R3(max(S2.getBase(),xLocal.getBase(2)),min(S2.getBound(),xLocal.getBound(2)));
+                        Range R4(max(S3.getBase(),xLocal.getBase(3)),min(S3.getBound(),xLocal.getBound(3)));
+                        xLocal(R1,R2,R3,R4)=xs(R1,R2,R3,R4);
+            // xLocal.display("HDF_DB: xLocal after get");
+      	}  
+                status = SDendaccess(sds_id);  
+                break;  
+            }  
+            status = SDendaccess(sds_id);  
+        }  
+    }  
+    if( !found && issueWarnings )  
+    {  
+        cout << "get: ERROR searching for " << (const char *)name << endl;  
+    }      
+    return found ? 0 : 1;  
+}
+// GETARRAY(doubleArray,doubleSerialArray,DFNT_FLOAT64,getDistributed)
+int HDF_DataBase::  
+// #If "doubleArray" eq "floatArray" || "doubleArray" eq "intArray" || "doubleArray" eq "doubleArray"
+getDistributed( doubleArray & x, const aString & name )  const 
+{  
+    assert(rcData!=NULL); 
+    if( file_id<=0 || sd_id<=0 ) 
+    { 
+        printf("HDF_DataBase::get(doubleArray,name):ERROR file_id=%i sd_id=%i name=%sn",file_id,sd_id,(const char*)name); 
+        assert( file_id > 0 && sd_id > 0 ); 
+    } 
+    if( mode==streamInputMode )  
+    {  
+        /* get from the stream buffer */ 
+        int dims[NUM_APP_DIMS][2];  
+        dataBaseBuffer->getFromBuffer( NUM_APP_DIMS*2, dims[0] );  
+        int size=1;  
+        for( int d=0; d<NUM_APP_DIMS; d++)  
+            size*=(dims[d][1]-dims[d][0]+1);  
+        x.redim(Range(dims[0][0],dims[0][1]),  
+                        Range(dims[1][0],dims[1][1]),  
+                        Range(dims[2][0],dims[2][1]),  
+                        Range(dims[3][0],dims[3][1]));  
+            //     #If "doubleArray" eq "doubleSerialArray"
+            //     #Else
+      // For distributed arrays we read the whole array into a temporary location and then copy the
+      // appropriate portion to the local array
+            Range S0(dims[0][0],dims[0][1]);
+            Range S1(dims[1][0],dims[1][1]);
+            Range S2(dims[2][0],dims[2][1]);
+            Range S3(dims[3][0],dims[3][1]);
+            doubleSerialArray xs(S0,S1,S2,S3);
+// parse error on next line with gcc 3.3.2 ???
+//        doubleSerialArray xs(Range(dims[0][0],dims[0][1]),  
+//                      Range(dims[1][0],dims[1][1]),  
+//                      Range(dims[2][0],dims[2][1]),  
+//                      Range(dims[3][0],dims[3][1])); 
+            dataBaseBuffer->getFromBuffer( size,xs.getDataPointer() );  
+            const doubleSerialArray & xLocal = x.getLocalArrayWithGhostBoundaries();
+            Range R1(max(dims[0][0],xLocal.getBase(0)),min(dims[0][1],xLocal.getBound(0)));
+            Range R2(max(dims[1][0],xLocal.getBase(1)),min(dims[1][1],xLocal.getBound(1)));
+            Range R3(max(dims[2][0],xLocal.getBase(2)),min(dims[2][1],xLocal.getBound(2)));
+            Range R4(max(dims[3][0],xLocal.getBase(3)),min(dims[3][1],xLocal.getBound(3)));
+            xLocal(R1,R2,R3,R4)=xs(R1,R2,R3,R4);
+      // xLocal.display("HDF_DB: xLocal after get");
+        return 0;  
+    }  
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) 
+        closeStream();    /* flush any stream buffers */ 
+    /*  get the total number of tag/reference pairs in the vgroup */  
+    int npairs = Vntagrefs(rcData->vgroup_id);  
+    int32 tag, ref, rank, nt, dims[MAX_VAR_DIMS], nattrs;  
+    int32 start[MAX_VAR_DIMS], edges[MAX_VAR_DIMS], base[MAX_VAR_DIMS];  
+    char sd_name[MAX_NC_NAME];  
+    int found=FALSE;  
+    int i;   
+    for( i=0; i<npairs; i++ )  
+    {  
+        /* get tag and ref */  
+        int status = Vgettagref(rcData->vgroup_id, i, &tag, &ref );  
+        if( debug & 2 )  
+            printf(" getSDS: i=%i, tag=%i, ref=%in", i,tag,ref);  
+        if( tag==DFTAG_NDG )  
+        { /* this is a Numeric Data group */  
+            /* get index (which SDS in the file 0,1,2,...)  */  
+            int32 sds_index=SDreftoindex(sd_id,ref);  
+            /* select this SDS and get identifier  */  
+            int32 sds_id=SDselect(sd_id,sds_index);  
+            status = SDgetinfo(sds_id, sd_name, &rank, dims, &nt, &nattrs);  
+            if( debug & 2 )  
+                printf("SDgetinfo: name=%s, rank = %i, dims = %i, %i, %i, %in",sd_name,rank,  
+           	     dims[0],dims[1],dims[2],dims[3]);  
+            if( name==sd_name )  
+            {  
+                found=TRUE;  
+                /* --- we set rank=1 if the array was null for a put ---- */ 
+                if( rank==NUM_APP_DIMS ) 
+      	{ 
+                    int n;  
+            	  for( n=0; n<rank; n++ )  
+        	  {  
+          	    start[n]=0;  
+          	    edges[n]=dims[n];  
+        	  }  
+                    /* get base for arrays (set to zero if the attribute isn't there) : */  
+                    int32 attr_index = SDfindattr(sds_id,(char*)"arrayBase");  
+                    if( attr_index >= 0 )   
+                        SDreadattr(sds_id,attr_index,base);  
+                    else  
+                    {   
+                        for( n=0; n<NUM_APP_DIMS; n++ )  
+                            base[n]=0;  
+        	  }  
+                    if( debug & 2 )  
+                        printf("SDreadattr: attr_index=%i, base = %i, %i, %i, %in",attr_index, 
+                            base[0],base[1],base[2],base[3]);  
+              //           #If "doubleArray" eq "doubleSerialArray"
+              //           #Else
+            // For distributed arrays we read the whole array into a temporary location and then copy the
+            // appropriate portion to the local array
+          	    Range S0(base[0],base[0]+dims[0]-1);
+          	    Range S1(base[1],base[1]+dims[1]-1);
+          	    Range S2(base[2],base[2]+dims[2]-1);
+          	    Range S3(base[3],base[3]+dims[3]-1);
+          	    doubleSerialArray xs(S0,S1,S2,S3);
+// parse error here with gcc 3.2.2 ??
+//              doubleSerialArray xs(Range(base[0],base[0]+dims[0]-1),  
+//                            Range(base[1],base[1]+dims[1]-1),  
+//                            Range(base[2],base[2]+dims[2]-1),  
+//                            Range(base[3],base[3]+dims[3]-1)); 
+                        status = SDreaddata(sds_id, start, NULL, edges,(unsigned char*)xs.getDataPointer()); 
+                        const doubleSerialArray & xLocal = x.getLocalArrayWithGhostBoundaries();
+                        Range R1(max(S0.getBase(),xLocal.getBase(0)),min(S0.getBound(),xLocal.getBound(0)));
+                        Range R2(max(S1.getBase(),xLocal.getBase(1)),min(S1.getBound(),xLocal.getBound(1)));
+                        Range R3(max(S2.getBase(),xLocal.getBase(2)),min(S2.getBound(),xLocal.getBound(2)));
+                        Range R4(max(S3.getBase(),xLocal.getBase(3)),min(S3.getBound(),xLocal.getBound(3)));
+                        xLocal(R1,R2,R3,R4)=xs(R1,R2,R3,R4);
+            // xLocal.display("HDF_DB: xLocal after get");
+      	}  
+                status = SDendaccess(sds_id);  
+                break;  
+            }  
+            status = SDendaccess(sds_id);  
+        }  
+    }  
+    if( !found && issueWarnings )  
+    {  
+        cout << "get: ERROR searching for " << (const char *)name << endl;  
+    }      
+    return found ? 0 : 1;  
+}
+
+#undef GET
+
+/* -----
+int HDF_DataBase::
+get( floatArray & x, const aString & name ) const
+{
+  // get the total number of tag/reference pairs in the vgroup
+    int npairs = Vntagrefs(rcData->vgroup_id);
+    int32 vdata_tag, vdata_ref;
+    char vdata_name[VSNAMELENMAX];
+    int found=FALSE;
+    for( int i=0; i<npairs; i++ )
+    {
+    // get tag and ref
+        int status = Vgettagref(rcData->vgroup_id, i, &vdata_tag, &vdata_ref );
+        printf(" get: i=%i, tag=%i, ref=%i\n", i,vdata_tag,vdata_ref);
+        if( Visvs(rcData->vgroup_id,vdata_ref) )
+        { // this is a vdata
+      // get identifier for vdata
+            int32 vdata_id=VSattach(file_id,vdata_ref,"r");
+      // get name of the vdata
+            VSgetname(vdata_id,vdata_name);
+            printf(" get: vdata_name = %s\n",vdata_name);
+            if( name==vdata_name )
+            {
+                if( debug & 2 )
+            	  cout << "get: item found! \n";
+      	found=TRUE;
+      	int32 n_records;
+      	VSQuerycount( vdata_id, &n_records );
+      	printf(" get: n_records=%i \n",n_records);
+      	x.redim(n_records);
+      	VSread(vdata_id, (unsigned char*)x.getDataPointer(), n_records, FULL_INTERLACE );
+
+                VSdetach(vdata_id);
+                break;
+            }
+            VSdetach(vdata_id);
+        }
+    }
+    if( !found )
+    {
+        cout << "get: ERROR searching for " << (const char *)name << endl;
+    }    
+    return found ? 0 : 1;
+    
+}
+
+int HDF_DataBase::
+put( const floatArray & x, const aString & name )
+{
+  // Create a Vdata to store the array values, set its name and class. 
+    int32 vdata_id = VSattach(file_id, -1, "w");
+    VSsetname(vdata_id, (const char *)name);
+    VSsetclass(vdata_id, "floatArray");
+
+  // Specify the Vdata data type, name and the order.  
+    VSfdefine(vdata_id, (const char *)name, DFNT_FLOAT32, 1);  // order ??
+
+  // Set the field names. 
+    VSsetfields(vdata_id, (const char *)name);
+
+  // Write the buffered data into the Vdata object. 
+    int num=x.elementCount();
+    VSwrite(vdata_id, (unsigned char*)(x.getDataPointer()), num, FULL_INTERLACE);
+
+  // Insert the Vdata into the Vgroup. 
+    Vinsert(rcData->vgroup_id, vdata_id);
+
+  // Detach from the Vdata. 
+    VSdetach(vdata_id);
+
+    return 0;
+}
+
+----- */
+
+// Define a macro to save either float/int/double
+//  type=float/int/double HDFType=corresponding HDF type
+//=====================================================================================  
+// /Description: Save a type in the data-base. The type is saved as an HDF vdata.  
+// /x (input): value to save.  
+// /name (input): save the value with this name.  
+// /Notes:
+//    Save a float/int/double in a vdata. 
+//=====================================================================================  
+#undef PUT
+#define PUT(type,HDFType) int HDF_DataBase::   put( const type & x, const aString & name )  {  assert(rcData!=NULL); if( file_id<=0 || sd_id<=0 ) {printf("HDF_DataBase::put(type,name):ERROR: file_id=%i and sd_id=%i when attempting to put name=%s\n",file_id,sd_id,(const char*)name);assert( file_id > 0 && sd_id > 0 );  }if( accessMode!=write ) { cout << "HDF_DataBase:ERROR:put: cannot put a float/double/int to a read-only file, name ="  << (const char*) name << endl; return 1; } if( mode==streamOutputMode ) { dataBaseBuffer->putToBuffer( 1,&x ); return 0; } if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) ) closeStream();    /* flush any stream buffers */ /* Create a Vdata to store the array values, set its name and class. */   int32 vdata_id = VSattach(file_id, -1, (accessMode==read ? "r" : "w"));   if( vdata_id==FAIL ) {  printf("HDF_DataBase::put(" #type "): ERROR return from VSattach\n"); return 1; } int32 istat =VSsetname(vdata_id, (const char *)name);   VSsetclass(vdata_id, #type );   if( istat==FAIL ) {  printf("HDF_DataBase::put(" #type "): ERROR return from VSsetclass\n"); return 1; } /* Specify the Vdata data type, name and the order.  */     istat=VSfdefine(vdata_id, (const char *)name, HDFType, 1);    if( istat==FAIL ) {  printf("HDF_DataBase::put(" #type "): ERROR return from VSdefine\n"); throw "error"; /* return 1;  */ } /* Set the field names.  */    istat=VSsetfields(vdata_id, (const char *)name);   if( istat==FAIL ) {  printf("HDF_DataBase::put(" #type "): ERROR return from VSsetfields\n"); return 1; } /* Write the buffered data into the Vdata object.  */    int num=1;   istat = VSwrite(vdata_id, (unsigned char*)(&x), num, FULL_INTERLACE);   if( istat==FAIL ) {  printf("HDF_DataBase::put(" #type "): ERROR return from VSwrite\n"); return 1; } /* Insert the Vdata into the Vgroup.  */    istat=Vinsert(rcData->vgroup_id, vdata_id);   if( istat==FAIL ) {  printf("HDF_DataBase::put(" #type "): ERROR return from VSinsert\n"); return 1; } /* Detach from the Vdata. */  istat=VSdetach(vdata_id);   if( istat==FAIL ) {  printf("HDF_DataBase::put(" #type "): ERROR return from VSdetach\n"); return 1; } return 0;   }
+
+// now declare instances of the macro
+PUT(float,DFNT_FLOAT32)
+PUT(int,DFNT_INT32)
+PUT(double,DFNT_FLOAT64)
+#ifdef OV_BOOL_DEFINED
+    PUT(bool,DFNT_INT32)
+#endif
+#undef PUT
+
+// put a single aString:
+int HDF_DataBase::   
+put( const aString & x, const aString & name ) 
+{  
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 ) 
+    {
+        printf("HDF_DataBase::put(aString,name):ERROR: file_id=%i and sd_id=%i when attempting to put name=%s\n",
+                file_id,sd_id,(const char*)name);
+        assert( file_id > 0 && sd_id > 0 );  
+    }
+    if( accessMode!=write ) 
+    { 
+        cout << "HDF_DataBase:ERROR:put: cannot put a float/double/int to a read-only file, name ="  
+                  << (const char*) name << endl; 
+        return 1; 
+    } 
+    if( mode==streamOutputMode )
+    {
+        int num=x.length()+1;
+        dataBaseBuffer->putToBuffer( 1,&num );   // save number of chars
+        dataBaseBuffer->putToBuffer( num,(const char *)x ); 
+        return 0;
+    }
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    // flush any stream buffers 
+    /* Create a Vdata to store the array values, set its name and class. */   
+    int32 vdata_id = VSattach(file_id, -1, (accessMode==read ? "r" : "w"));   
+    if( vdata_id==FAIL )
+    {  
+        printf("HDF_DataBase::put( aString ): ERROR return from VSattach\n"); 
+        return 1; 
+    } 
+    VSsetname(vdata_id, (const char *)name);   
+    VSsetclass(vdata_id, "string" );   
+    /* Specify the Vdata data type, name and the order.  */     
+    VSfdefine(vdata_id, (const char *)name, DFNT_CHAR8, 1);    
+    /* Set the field names.  */    
+    VSsetfields(vdata_id, (const char *)name);   
+    /* Write the buffered data into the Vdata object.  */    
+    int num=x.length()+1;    // add one for '\0' terminator
+    int32 istat = VSwrite(vdata_id, (unsigned char*)((const char *)x), num, FULL_INTERLACE);   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put( aString ): ERROR return from VSwrite\n"); 
+        return 1; 
+    } 
+    /* Insert the Vdata into the Vgroup.  */    
+    istat = Vinsert(rcData->vgroup_id, vdata_id);   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put( aString ): ERROR return from VSinsert\n"); 
+        return 1; 
+    } 
+    /* Detach from the Vdata. */  
+    istat = VSdetach(vdata_id);   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put( aString ): ERROR return from VSdetach\n"); 
+        return 1; 
+    } 
+    return 0;   
+}
+
+// put a "c" array of floats, int's or doubles
+
+int HDF_DataBase::   
+put( const int x[], const aString & name, const int number ) 
+{  
+//  intSerialArray a;
+//  a.adopt(x,number); // this causes a leak (or else the number of A++ array increases)
+    intSerialArray a(number);
+    for( int i=0; i<number; i++ )
+        a(i)=x[i];
+    put(a,name);
+    return 0;
+}
+int HDF_DataBase::   
+put( const float x[], const aString & name, const int number ) 
+{  
+//  floatSerialArray a;
+//  a.adopt(x,number);
+    floatSerialArray a(number);
+    for( int i=0; i<number; i++ )
+        a(i)=x[i];
+    put(a,name);
+    return 0;
+}
+int HDF_DataBase::   
+put( const double x[], const aString & name, const int number ) 
+{  
+//  doubleSerialArray a;
+//  a.adopt(x,number);
+    doubleSerialArray a(number);
+    for( int i=0; i<number; i++ )
+        a(i)=x[i];
+    put(a,name);
+    return 0;
+}
+
+
+
+//=================================================================================
+// /Description:
+//   Put an array of Strings.
+// /x[] (input): array of Strings to save.
+// /name (input): save the array under this name.
+// /numberOfStrings (input): Save this many elements from the array.
+// 
+// /Notes:
+//    The array of strings are concatenated together and saved in a vdata.
+//=================================================================================
+int HDF_DataBase::   
+put( const aString x[], const aString & name, const int numberOfStrings ) 
+{  
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 ) 
+    {
+        printf("HDF_DataBase::put(aString[],name):ERROR: file_id=%i and sd_id=%i when attempting to put name=%s\n",
+                file_id,sd_id,(const char*)name);
+        assert( file_id > 0 && sd_id > 0 );  
+    }
+    if( accessMode!=write ) 
+    { 
+        cout << "HDF_DataBase:ERROR:put: cannot put a float/double/int to a read-only file, name ="  
+                  << (const char*) name << endl; 
+        return 1; 
+    } 
+    if( mode==streamOutputMode )
+    {
+        dataBaseBuffer->putToBuffer( 1,&numberOfStrings );   // save number of chars
+        int i;
+        for( i=0; i<numberOfStrings; i++ )
+            put( x[i],"dummy");
+        return 0;
+    }
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    // flush any stream buffers 
+    /* Create a Vdata to store the array values, set its name and class. */   
+    int32 vdata_id = VSattach(file_id, -1, (accessMode==read ? "r" : "w"));   
+    if( vdata_id==FAIL )
+    {  
+        printf("HDF_DataBase::put( aString ): ERROR return from VSattach\n"); 
+        return 1; 
+    } 
+    VSsetname(vdata_id, (const char *)name);   
+    VSsetclass(vdata_id, "string" );   
+    /* Specify the Vdata data type, name and the order.  */     
+    VSfdefine(vdata_id, (const char *)name, DFNT_CHAR8, 1);    
+    /* Set the field names.  */    
+    VSsetfields(vdata_id, (const char *)name);   
+    /* Write the buffered data into the Vdata object.  */    
+  // first concatenate all the strings together
+    int num=0;
+    int n;
+    for( n=0; n<numberOfStrings; n++)
+        num+=x[n].length()+1;  // add one for null terminator
+    char *temp = new char[num];
+    int j=0;
+    for( n=0; n<numberOfStrings; n++)
+    {
+        for( int i=0; i<x[n].length(); i++ )
+            temp[j++]=x[n][i];
+        temp[j++]='\0';
+    }
+    if( debug & 2 )
+        printf("Put aString[] number of chars = %i\n",num);
+    int32 istat=VSwrite(vdata_id, (unsigned char*)((const char *)temp), num, FULL_INTERLACE);   
+    delete [] temp;
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put( aString[] ): ERROR return from VSwrite\n"); 
+        return 1; 
+    } 
+    
+    /* Insert the Vdata into the Vgroup.  */    
+    istat=Vinsert(rcData->vgroup_id, vdata_id);   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put( aString[] ): ERROR return from VSinsert\n"); 
+        return 1; 
+    } 
+    /* Detach from the Vdata. */  
+    istat=VSdetach(vdata_id);   
+    if( istat==FAIL ) 
+    {  
+        printf("HDF_DataBase::put( aString[] ): ERROR return from VSdetach\n"); 
+        return 1; 
+    } 
+    return 0;   
+}
+
+
+// Define a macro to get either float/int/double
+//  type=float/int/double HDFType=corresponding HDF type
+//=====================================================================================  
+// /Description: get a type from the data-base.   
+// /x (input): value to get.   
+// /name (input): name of the item.   
+// /return value: 0 if the item was found, 1 otherwise.   
+//=====================================================================================  
+#undef GET
+#define GET(type,HDFType) int HDF_DataBase::   get( type & x, const aString & name )  const  {   assert(rcData!=NULL); if( file_id<=0 || sd_id<=0 ) {printf("HDF_DataBase::get(type[],name):ERROR: file_id=%i and sd_id=%i when attempting to put name=%s\n",file_id,sd_id,(const char*)name);assert( file_id > 0 && sd_id > 0 );  }if( mode==streamInputMode ) { dataBaseBuffer->getFromBuffer( 1,&x ); return 0; } if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )  closeStream();    /* flush any stream buffers */  /* get the total number of tag/reference pairs in the vgroup  */  int npairs = Vntagrefs(rcData->vgroup_id);   int32 vdata_tag, vdata_ref;   char vdata_name[VSNAMELENMAX];   int found=FALSE;   int i;   for( i=0; i<npairs; i++ )   {   /* get tag and ref  */  int status = Vgettagref(rcData->vgroup_id, i, &vdata_tag, &vdata_ref );   if( debug & 2 )   printf(" get: i=%i, tag=%i, ref=%i\n", i,vdata_tag,vdata_ref);   if( Visvs(rcData->vgroup_id,vdata_ref) )   { /* this is a vdata  */  /* get identifier for vdata   */ int32 vdata_id=VSattach(file_id,vdata_ref,(accessMode==read ? "r" : "w"));   /* get name of the vdata   */ VSgetname(vdata_id,vdata_name);   if( debug & 2 )   printf(" get: vdata_name = %s\n",vdata_name);   if( name==vdata_name )   {   if( debug & 2 )   	  cout << "get: item found! \n";   	found=TRUE;   	int32 n_records;   	VSQuerycount( vdata_id, &n_records );   if( debug & 2 ) 	  printf(" get: n_records=%i \n",n_records);   	VSread(vdata_id, (unsigned char*)&x, n_records, FULL_INTERLACE );   VSdetach(vdata_id);   break;   }   VSdetach(vdata_id);   }   }   if( !found && issueWarnings )   {   cout << "get: ERROR searching for " << (const char *)name << endl;   }       return found ? 0 : 1;   }
+
+GET(float,DFNT_FLOAT32)
+GET(int,DFNT_INT32)
+GET(double,DFNT_FLOAT64)
+#ifdef OV_BOOL_DEFINED
+    GET(bool,DFNT_INT32)
+#endif
+#undef GET
+
+
+int HDF_DataBase::   
+get( aString & x, const aString & name )   const 
+{   
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 ) 
+    {
+        printf("HDF_DataBase::get(aString,name):ERROR: file_id=%i and sd_id=%i when attempting to put name=%s\n",
+                file_id,sd_id,(const char*)name);
+        assert( file_id > 0 && sd_id > 0 );  
+    }
+    if( mode==streamInputMode )
+    {
+        int num;
+        dataBaseBuffer->getFromBuffer( 1,&num );   // get number of chars
+        char *temp = new char [num];
+        dataBaseBuffer->getFromBuffer( num,temp ); 
+        x=temp;
+        delete [] temp;
+        return 0;
+    }
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    /* flush any stream buffers */ 
+    /* get the total number of tag/reference pairs in the vgroup  */  
+    int npairs = Vntagrefs(rcData->vgroup_id);   
+    int32 vdata_tag, vdata_ref;   
+    char vdata_name[VSNAMELENMAX];   
+    int found=FALSE;   
+    int i;
+    for( i=0; i<npairs; i++ )   
+    {   
+        /* get tag and ref  */  
+        int status = Vgettagref(rcData->vgroup_id, i, &vdata_tag, &vdata_ref );   
+        if( debug & 2 )   
+            printf(" get: i=%i, tag=%i, ref=%i\n", i,vdata_tag,vdata_ref);   
+        if( Visvs(rcData->vgroup_id,vdata_ref) )   
+        { /* this is a vdata  */  
+            /* get identifier for vdata   */ 
+            int32 vdata_id=VSattach(file_id,vdata_ref,(accessMode==read ? "r" : "w"));   
+            /* get name of the vdata   */ 
+            VSgetname(vdata_id,vdata_name);   
+            if( debug & 2 )   
+                printf(" get: vdata_name = %s\n",vdata_name);   
+            if( name==vdata_name )   
+            {   
+                if( debug & 2 )   
+        	  cout << "get: item found! n";   
+      	found=TRUE;   
+      	int32 n_records;   
+      	VSQuerycount( vdata_id, &n_records );   
+                if( debug & 1 ) 
+            	  printf(" get: n_records=%i n",n_records);   
+                char * temp = new char[n_records];
+      	VSread(vdata_id, (unsigned char*)temp, n_records, FULL_INTERLACE );   
+                if( debug & 2 )
+                    printf("get(aString): temp = [%s] \n",temp);
+                x=temp;
+      	delete [] temp;
+      
+                VSdetach(vdata_id);   
+                break;   
+            }   
+            VSdetach(vdata_id);   
+        }   
+    }   
+    if( !found  && issueWarnings )   
+    {   
+        cout << "get: ERROR searching for " << (const char *)name << endl;   
+    }       
+    return found ? 0 : 1;   
+}
+
+
+int HDF_DataBase::   
+get( int x[], const aString & name, const int number ) const   
+{   
+    intSerialArray a;
+    int returnValue=get(a,name);
+    if( returnValue!=0 )
+        return -1;
+
+    int num=a.getLength(0);
+    num= num <= number ? num : number;
+    for( int i=0; i<num; i++ )
+        x[i]=a(i);
+
+    return num;
+}
+int HDF_DataBase::   
+get( float x[], const aString & name, const int number ) const   
+{   
+    floatSerialArray a;
+    int returnValue=get(a,name);
+    if( returnValue!=0 )
+        return -1;
+
+    int num=a.getLength(0);
+    num= num <= number ? num : number;
+    for( int i=0; i<num; i++ )
+        x[i]=a(i);
+
+    return num;
+}
+int HDF_DataBase::   
+get( double x[], const aString & name, const int number ) const   
+{   
+    doubleSerialArray a;
+    int returnValue=get(a,name);
+    if( returnValue!=0 )
+        return -1;
+
+    int num=a.getLength(0);
+    num= num <= number ? num : number;
+    for( int i=0; i<num; i++ )
+        x[i]=a(i);
+
+    return num;
+}
+
+// get an array of Strings
+// get at most numberOfStrings elements in the array.
+// return the number of strings actually saved in the array
+int HDF_DataBase::   
+get( aString x[], const aString & name, const int numberOfStrings ) const   
+{   
+    assert(rcData!=NULL);
+    if( file_id<=0 || sd_id<=0 ) 
+    {
+        printf("HDF_DataBase::get(aString[],name):ERROR: file_id=%i and sd_id=%i when attempting to put name=%s\n",
+                file_id,sd_id,(const char*)name);
+        assert( file_id > 0 && sd_id > 0 );  
+    }
+    if( mode==streamInputMode )
+    {
+        int numberSaved=0;
+        dataBaseBuffer->getFromBuffer( 1,&numberSaved );   // get number of strings in array
+        if( numberSaved>numberOfStrings )
+            numberSaved=numberOfStrings;
+        for( int i=0; i<numberSaved; i++ )
+            get( x[i],"dummy");
+        return numberSaved;
+    }
+    if( dataBaseBuffer!=NULL && (mode==normalMode || mode==noStreamMode) )
+        closeStream();    /* flush any stream buffers */ 
+    /* get the total number of tag/reference pairs in the vgroup  */  
+    int npairs = Vntagrefs(rcData->vgroup_id);   
+    int32 vdata_tag, vdata_ref;   
+    char vdata_name[VSNAMELENMAX];   
+    int found=FALSE;   
+    int numberSaved=0;
+    int i;
+    for( i=0; i<npairs; i++ )   
+    {   
+        /* get tag and ref  */  
+        int status = Vgettagref(rcData->vgroup_id, i, &vdata_tag, &vdata_ref );   
+        if( debug & 2 )   
+            printf(" get: i=%i, tag=%i, ref=%i\n", i,vdata_tag,vdata_ref);   
+        if( Visvs(rcData->vgroup_id,vdata_ref) )   
+        { /* this is a vdata  */  
+            /* get identifier for vdata   */ 
+            int32 vdata_id=VSattach(file_id,vdata_ref,(accessMode==read ? "r" : "w"));   
+            /* get name of the vdata   */ 
+            VSgetname(vdata_id,vdata_name);   
+            if( debug & 2 )   
+                printf(" get: vdata_name = %s\n",vdata_name);   
+            if( name==vdata_name )   
+            {   
+                if( debug & 2 )   
+        	  cout << "get: item found! \n";   
+      	found=TRUE;   
+      	int32 n_records;   
+      	VSQuerycount( vdata_id, &n_records );   
+                if( debug & 2 ) 
+            	  printf(" get aString[]: n_records=%i (=number of chars) max numberOfStrings=%i\n",n_records,
+                                    numberOfStrings);   
+                char * temp = new char[n_records];
+      	VSread(vdata_id, (unsigned char*)temp, n_records, FULL_INTERLACE );   
+        // split temp in different strings (separated by '\0')
+                int j=0;
+                for( numberSaved=0; numberSaved<numberOfStrings && j<n_records; numberSaved++)
+      	{
+                    if( debug & 2 ) cout << "char[" << j << "]=[" << temp[j] << "]\n";
+        	  x[numberSaved]=&temp[j];
+                    for( ; temp[j]!='\0' && j<n_records; j++ )  
+        	  {
+                    if( debug & 2 ) cout << "char[" << j << "]=[" << temp[j] << "]\n";
+        	  }
+                    j++;
+      	}
+      	delete [] temp;
+                VSdetach(vdata_id);   
+                break;   
+            }   
+            VSdetach(vdata_id);   
+        }   
+    }   
+    if( !found )   
+    {   
+        cout << "get aString[]: ERROR searching for " << (const char *)name << endl;   
+        return -1;
+    }       
+    return numberSaved;   
+}
+
+
+
+void  HDF_DataBase::
+printStatistics() const 
+// output statistics on the file such as number of vgroups, vdatas
+{
+
+    int numberOfVgroups = Hnumber(file_id,DFTAG_VG);
+    int numberOfVDatas  = Hnumber(file_id,DFTAG_VS);
+    int numberOfSDs     = Hnumber(file_id,DFTAG_SD);
+    int numberOfSDGs    = Hnumber(file_id,DFTAG_SDG);
+    int numberOfObjects  = Hnumber(file_id,DFTAG_WILDCARD);
+    
+    printf("HDF_DataBase:: There are %i vgroups, %i vdatas %i sds %i sdgs and %i objects in the file \n",
+              numberOfVgroups,numberOfVDatas,numberOfSDs,numberOfSDGs,numberOfObjects);
+}
+
+#endif

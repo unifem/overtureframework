@@ -1,0 +1,260 @@
+\subsection{Constructor}
+ 
+\newlength{\DataPointMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\DataPointMappingIncludeArgIndent}{DataPointMapping(}% 
+DataPointMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor. 
+\end{description}
+\subsection{getDataPoints}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\DataPointMappingIncludeArgIndent}{getDataPoints(}% 
+getDataPoints()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return the array of data points. It will not be the same array as was given to
+    setDataPoints since ghostlines will have been added. Use getGridIndexRange
+    to determine the index positions for the grid boundaries.
+\item[{\bf Return value:}]  array of data points, xy(I1,I2,I3,0:r-1), r=rangeDimension
+\end{description}
+\subsection{getGridIndexRange}
+ 
+\begin{flushleft} \textbf{%
+const IntegerArray \&  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{getGridIndexRange(}%
+getGridIndexRange()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return the gridIndexRange array for the data points. These values indicate
+  the index positions for the grid boundaries.
+\item[{\bf Return value:}]  The gridIndexRange(0:1,0:2).
+\end{description}
+\subsection{getDimension}
+ 
+\begin{flushleft} \textbf{%
+const IntegerArray \&  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{getDimension(}%
+getDimension()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return the dimension array for the data points. These values indicate
+  the index positions for the array dimensions.
+\item[{\bf Return value:}]  The dimension(0:1,0:2).
+\end{description}
+\subsection{setDataPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{setDataPoints(}%
+setDataPoints(const realArray \& xd,\\ 
+\hspace{\DataPointMappingIncludeArgIndent}const int positionOfCoordinates  =3, \\ 
+\hspace{\DataPointMappingIncludeArgIndent}const int domainDimension\_  =-1,\\ 
+\hspace{\DataPointMappingIncludeArgIndent}const int numberOfGhostLinesInData  = 0,\\ 
+const IntegerArray \& xGridIndexRange  = Overture::nullIntArray()) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Supply data points as
+    \begin{enumerate}
+      \item  xd(0:r-1,I,J,K) if positionOfCoordinates==0 $\rightarrow$ domainDimension=domainDimension\_
+      \item  xd(I,0:r-1)     if positionOfCoordinates==1 $\rightarrow$ domainDimension=1
+      \item  xd(I,J,0:r-1)   if positionOfCoordinates==2 $\rightarrow$ domainDimension=2
+      \item  xd(I,J,K,0:r-1) if positionOfCoordinates==3 $\rightarrow$ domainDimension=domainDimension\_
+    \end{enumerate}
+   where r=number of dimensions (range dimension)
+\item[{\bf xd (input):}]  An array of values defining the coordinates of a grid of points. This routine make a COPY
+   of this array.
+\item[{\bf positionOfCoordinates (input):}]  indicates the "shape" of the input array xd.
+\item[{\bf domainDimension\_ (input):}]  As indicated above this parameter defines the domainDimension when
+    positionOfCoordinates is 0 or 3.
+\item[{\bf numberOfGhostLinesInData (input) :}]  The data includes the coordinates of this many ghost lines (for all sides).
+    These values are over-ridden by the index array argument.
+\item[{\bf xGridIndexRange (input):}]  If this array is not null and size (2,0:r-1) then these values indicate the 
+    points in the array xd that represent the boundary points on the grid. Use this option to specify
+    arbitrary number of ghost points on any side.
+\item[{\bf Remarks:}] 
+   Note that by default the DataPointMapping will have the properties
+   \begin{itemize}
+     \item domainSpace = parameterSpace
+     \item rangeSpace = cartesianSpace
+     \item not periodic
+     \item boundary conditions all 1
+   \end{itemize}
+   You will have to change the above properties as appropriate.  
+   NOTE: you should set the periodicity of this mapping before supplying data points.      
+\end{description}
+\subsection{setDataPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{setDataPoints(}%
+setDataPoints(const realArray \& xd, \\ 
+\hspace{\DataPointMappingIncludeArgIndent}const int positionOfCoordinates, \\ 
+\hspace{\DataPointMappingIncludeArgIndent}const int domainDimension\_,\\ 
+\hspace{\DataPointMappingIncludeArgIndent}const int numberOfGhostLinesInData[2][3],\\ 
+const IntegerArray \& xGridIndexRange  = Overture::nullIntArray())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Supply data points: Same as above routine except that the numberOfGhostLinesInData can
+  be defined as separate values for each face.
+\item[{\bf numberOfGhostLinesInData[side][axis] :}]  specify the number of ghostlines in the input data
+    for each face.
+\end{description}
+\subsection{computeGhostPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{computeGhostPoints(}%
+computeGhostPoints( IndexRangeType \& numberOfGhostLinesOld, \\ 
+\hspace{\DataPointMappingIncludeArgIndent}IndexRangeType \& numberOfGhostLinesNew )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access Level:}]  protected
+\item[{\bf Description:}] 
+   Determine values at ghost points that have not been user set:  extrapolate or use periodicity
+   Ghost lines on sides with boundaryCondition>0 are extrapolated with a stretchingFactor (see below)
+   so that the grid lines get
+   further apart. This is useful for highly stretched grids so that the ghost points move away from
+   the boundary.
+\end{description}
+\subsection{setNumberOfGhostLines}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{setNumberOfGhostLines(}%
+setNumberOfGhostLines( IndexRangeType \& numberOfGhostLinesNew )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Specify the number of ghost lines.
+\item[{\bf numberOfGhostLinesNew(side,axis) :}]  specify the number of ghostlines.
+\end{description}
+\subsection{projectGhostPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{projectGhostPoints(}%
+projectGhostPoints(MappingInformation \& mapInfo )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Project the ghost points on physical boundaries onto the closest mapping
+  found in a list of Mapping's
+
+\item[{\bf mapInfo (input):}]   Project onto the closest mapping found in mapInfo.mappingList.
+
+\end{description}
+\subsection{setDataPoints( fileName )}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{setDataPoints(}%
+setDataPoints( const aString \& fileName )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Assign the  data points from a file of data. By default this routine will
+    attempt to automaticall determine the format of the file.
+\item[{\bf fileName (input) :}]  name of an existing file of data (such as a plot3d file)
+ 
+\end{description}
+\subsection{setMapping}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{setMapping(}%
+setMapping( Mapping \& map )             
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Build a data point mapping from grids points obtained by evaluating a 
+  mapping. 
+\item[{\bf map (input) :}]  Mapping to get data points from.
+ 
+\end{description}
+\subsection{setMapping}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{setMapping(}%
+setMapping( Mapping \& map )             
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Build a data point mapping from grids points obtained by evaluating a 
+  mapping. 
+\item[{\bf map (input) :}]  Mapping to get data points from.
+ 
+\end{description}
+\subsection{setOrderOfInterpolation}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{setOrderOfInterpolation(}%
+setOrderOfInterpolation( const int order )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Set the order of interpolation, 2 or 4.
+\item[{\bf order (input) :}]  A value of 2 or 4.
+\end{description}
+\subsection{setOrderOfInterpolation}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{getOrderOfInterpolation(}%
+getOrderOfInterpolation()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Get the order of interpolation.
+\item[{\bf Return value:}]  The order of interpolation.
+\end{description}
+\subsection{useScalarArrayIndexing}
+ 
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{useScalarArrayIndexing(}%
+useScalarArrayIndexing(const bool \& trueOrFalse  =FALSE) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Turn on or off the use of scalar indexing. Scalar indexing for array
+ operations can be faster when the length of arrays are smaller.
+\item[{\bf trueOrFalse (input) :}]  TRUE means turn on scalra indexing.
+\end{description}
+\subsubsection{sizeOf}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{sizeOf(}%
+sizeOf(FILE *file  = NULL) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return size of this object  
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\DataPointMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+   Interactively change parameters describing the Mapping.
+   The user may choose to read in data points from a file. The current supported
+  file formats are
+   \begin{itemize}
+     \item plot3d 
+   \end{itemize}
+         
+\end{description}

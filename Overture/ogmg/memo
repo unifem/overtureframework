@@ -1,0 +1,4 @@
+040715: Turned off variable smoothing factor in 3D  -- the values seem
+    too large for the case of ellipsoidFixed.cmd on the curvilinear grids.
+    (turned off in smooth.bC)
+       parameters.useLocallyOptimalOmega=false; 

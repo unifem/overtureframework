@@ -1,0 +1,307 @@
+\index{domainDimension|PREFIX{MP}}{12}
+\index{rangeDimension|PREFIX{MP}}{12}
+\index{parameter space|PREFIX{MP}}{12}
+\index{cartesian space|PREFIX{MP}}{12}
+\index{periodicity|PREFIX{MP}}{13}
+\index{coordinate systems|PREFIX{MP}}{13}
+\index{coordinate systems|PREFIX{MP}}{14}
+\index{periodic mappings|PREFIX{MP}}{29}
+\index{map|PREFIX{MP}}{29}
+\index{getIndex|PREFIX{MP}}{29}
+\index{inverseMap|PREFIX{MP}}{30}
+\index{basicInverse|PREFIX{MP}}{30}
+\index{coordinate singularity|PREFIX{MP}}{31}
+\index{coordinate systems|PREFIX{MP}}{31}
+\index{mapping parameters|PREFIX{MP}}{32}
+\index{inverse!approximate global inverse|PREFIX{MP}}{33}
+\index{inverse!exact local inverse|PREFIX{MP}}{38}
+\index{registering a new mapping|PREFIX{MP}}{41}
+\index{annulus mapping|PREFIX{MP}}{44}
+\index{Mapping!AnnulusMapping|PREFIX{MP}}{44}
+\index{airfoil mapping|PREFIX{MP}}{46}
+\index{Mapping!AirfoilMapping|PREFIX{MP}}{46}
+\index{NACA|PREFIX{MP}}{46}
+\index{box mapping|PREFIX{MP}}{49}
+\index{Mapping!BoxMapping|PREFIX{MP}}{49}
+\index{circle mapping|PREFIX{MP}}{50}
+\index{Mapping!CircleMapping|PREFIX{MP}}{50}
+\index{ellipse|PREFIX{MP}}{50}
+\index{compose mapping|PREFIX{MP}}{52}
+\index{Mapping!ComposeMapping|PREFIX{MP}}{52}
+\index{composite surface mapping|PREFIX{MP}}{53}
+\index{Mapping!CompositeSurface|PREFIX{MP}}{53}
+\index{patched surface|PREFIX{MP}}{53}
+\index{cross-section mapping|PREFIX{MP}}{59}
+\index{Mapping!CrossSectionMapping|PREFIX{MP}}{59}
+\index{cylinder mapping|PREFIX{MP}}{64}
+\index{Mapping!CylinderMapping|PREFIX{MP}}{64}
+\index{data-point mapping|PREFIX{MP}}{67}
+\index{Mapping!DataPointMapping|PREFIX{MP}}{67}
+\index{Mapping!discrete mapping|PREFIX{MP}}{67}
+\index{Mapping!external|PREFIX{MP}}{67}
+\index{Mapping!plot3d|PREFIX{MP}}{67}
+\index{depth mapping|PREFIX{MP}}{72}
+\index{Mapping!DepthMapping|PREFIX{MP}}{72}
+\index{bathymetry|PREFIX{MP}}{72}
+\index{elliptic mapping|PREFIX{MP}}{74}
+\index{Mapping!EllipticTransform|PREFIX{MP}}{74}
+\index{fillet mapping|PREFIX{MP}}{80}
+\index{Mapping!FilletMapping|PREFIX{MP}}{80}
+\index{intersection mapping|PREFIX{MP}}{84}
+\index{Mapping!IntersectionMapping|PREFIX{MP}}{84}
+\index{join mapping|PREFIX{MP}}{90}
+\index{Mapping!JoinMapping|PREFIX{MP}}{90}
+\index{intersecting surfaces|PREFIX{MP}}{90}
+\index{line mapping|PREFIX{MP}}{95}
+\index{Mapping!LineMapping|PREFIX{MP}}{95}
+\index{matrix mapping|PREFIX{MP}}{97}
+\index{Mapping!MatrixMapping|PREFIX{MP}}{97}
+\index{matrix transform mapping|PREFIX{MP}}{99}
+\index{Mapping!MatrixTransformMapping|PREFIX{MP}}{99}
+\index{Mapping!rotate|PREFIX{MP}}{99}
+\index{Mapping!scale|PREFIX{MP}}{99}
+\index{Mapping!shift|PREFIX{MP}}{99}
+\index{Mapping!translate|PREFIX{MP}}{99}
+\index{normal mapping|PREFIX{MP}}{101}
+\index{Mapping!NormalMapping|PREFIX{MP}}{101}
+\index{nurbs mapping|PREFIX{MP}}{102}
+\index{Mapping!NurbsMapping|PREFIX{MP}}{102}
+\index{spline!surface|PREFIX{MP}}{102}
+\index{spline!curve|PREFIX{MP}}{102}
+\index{orthographic mapping|PREFIX{MP}}{111}
+\index{Mapping!OrthographicTransformMapping|PREFIX{MP}}{111}
+\index{plane mapping|PREFIX{MP}}{114}
+\index{Mapping!PlaneMapping|PREFIX{MP}}{114}
+\index{rhombus|PREFIX{MP}}{114}
+\index{reduction mapping|PREFIX{MP}}{115}
+\index{Mapping!ReductionMapping|PREFIX{MP}}{115}
+\index{Mapping!restrict an existing mapping to face or line|PREFIX{MP}}{115}
+\index{reparameterization mapping|PREFIX{MP}}{117}
+\index{Mapping!ReparameterizationTransform|PREFIX{MP}}{117}
+\index{polar singularity!remove|PREFIX{MP}}{117}
+\index{restrict a mapping to a sub-rectangle|PREFIX{MP}}{117}
+\index{orthographic|PREFIX{MP}}{117}
+\index{restriction mapping|PREFIX{MP}}{120}
+\index{Mapping!RestrictionMapping|PREFIX{MP}}{120}
+\index{revolution mapping|PREFIX{MP}}{122}
+\index{Mapping!RevolutionMapping|PREFIX{MP}}{122}
+\index{body of revolution|PREFIX{MP}}{122}
+\index{axisymmetric|PREFIX{MP}}{122}
+\index{sphere mapping|PREFIX{MP}}{128}
+\index{Mapping!SphereMapping|PREFIX{MP}}{128}
+\index{spline mapping|PREFIX{MP}}{131}
+\index{Mapping!SplineMapping|PREFIX{MP}}{131}
+\index{spline!curve|PREFIX{MP}}{131}
+\index{spline!tension|PREFIX{MP}}{131}
+\index{spline!shape preserving|PREFIX{MP}}{131}
+\index{TSPACK|PREFIX{MP}}{131}
+\index{square mapping|PREFIX{MP}}{137}
+\index{Mapping!SquareMapping|PREFIX{MP}}{137}
+\index{rectangle|PREFIX{MP}}{137}
+\index{stretch mapping|PREFIX{MP}}{138}
+\index{Mapping!StretchMapping|PREFIX{MP}}{138}
+\index{stretching!inverse hyperbolic tangent|PREFIX{MP}}{138}
+\index{stretching!hyperbolic tangent|PREFIX{MP}}{140}
+\index{stretching!exponential|PREFIX{MP}}{140}
+\index{stretching!exponential blend|PREFIX{MP}}{140}
+\index{stretched-square mapping|PREFIX{MP}}{146}
+\index{Mapping!StretchedSquareMapping|PREFIX{MP}}{146}
+\index{stretch-transform mapping|PREFIX{MP}}{147}
+\index{Mapping!StretchTransformMapping|PREFIX{MP}}{147}
+\index{smoothed-polygon mapping|PREFIX{MP}}{148}
+\index{Mapping!SmoothedPolygonMapping|PREFIX{MP}}{148}
+\index{sweep mapping|PREFIX{MP}}{152}
+\index{Mapping!SweepMapping|PREFIX{MP}}{152}
+\index{Mapping!make a 3D mapping by extruding a 2D mapping|PREFIX{MP}}{152}
+\index{tfi mapping|PREFIX{MP}}{156}
+\index{Mapping!TFIMapping|PREFIX{MP}}{156}
+\index{interpolation!transfinite|PREFIX{MP}}{156}
+\index{transfinite interpolation|PREFIX{MP}}{156}
+\index{Coon's patch|PREFIX{MP}}{156}
+\index{trimmed mapping|PREFIX{MP}}{162}
+\index{Mapping!TrimmedMapping|PREFIX{MP}}{162}
+\index{Nurbs!trimmed|PREFIX{MP}}{162}
+\index{triangle|PREFIX{MP}}{172}
+\index{GenericGrid|PREFIX{GF}}{5}
+\index{MappedGrid|PREFIX{GF}}{5}
+\index{GenericGridGridCollection|PREFIX{GF}}{5}
+\index{GridCollection|PREFIX{GF}}{5}
+\index{CompositeGrid|PREFIX{GF}}{5}
+\index{MappedGrid|PREFIX{GF}}{9}
+\index{GridCollection|PREFIX{GF}}{11}
+\index{CompositeGrid|PREFIX{GF}}{11}
+\index{grid function|PREFIX{GF}}{13}
+\index{MappedGridFunction|PREFIX{GF}}{15}
+\index{grid function!dimension|PREFIX{GF}}{36}
+\index{MappedGridFunction!examples|PREFIX{GF}}{36}
+\index{grid function!defined on boundaries|PREFIX{GF}}{37}
+\index{grid function!coefficient matrix|PREFIX{GF}}{38}
+\index{grid function!cell centred|PREFIX{GF}}{59}
+\index{grid function!face centred|PREFIX{GF}}{59}
+\index{vertexCentered|PREFIX{GF}}{59}
+\index{cellCentered|PREFIX{GF}}{59}
+\index{faceCenteredAll|PREFIX{GF}}{59}
+\index{faceCenteredAxis1|PREFIX{GF}}{59}
+\index{faceCenteredAxis2|PREFIX{GF}}{59}
+\index{faceCenteredAxis3|PREFIX{GF}}{59}
+\index{grid function!arbrtray centredness|PREFIX{GF}}{62}
+\index{interpolant|PREFIX{GF}}{64}
+\index{interpolant!test routine|PREFIX{GF}}{65}
+\index{interpolate!arbitrary points|PREFIX{GF}}{69}
+\index{interpolate!exposed points on a moving grid|PREFIX{GF}}{71}
+\index{differentiation|PREFIX{OP}}{4}
+\index{MappedGridOperators|PREFIX{OP}}{6}
+\index{MappedGridOperators!examples|PREFIX{OP}}{17}
+\index{differentiation!efficient method|PREFIX{OP}}{18}
+\index{differentiation!difference approximations|PREFIX{OP}}{19}
+\index{differentiation!conservative approximations|PREFIX{OP}}{20}
+\index{GridCollectionOperators|PREFIX{OP}}{23}
+\index{GridCollectionOperators!examples|PREFIX{OP}}{26}
+\index{boundary conditions|PREFIX{OP}}{28}
+\index{boundary conditions!general approach|PREFIX{OP}}{28}
+\index{boundary conditions!examples|PREFIX{OP}}{29}
+\index{boundary conditions!finishBoundaryConditions|PREFIX{OP}}{29}
+\index{boundary conditions!detail description|PREFIX{OP}}{32}
+\index{boundary conditions!dirichlet|PREFIX{OP}}{33}
+\index{boundary conditions!neumann|PREFIX{OP}}{33}
+\index{boundary condition!physical boundary|PREFIX{GG}}{5}
+\index{boundary condition|PREFIX{GG}}{5}
+\index{share flag|PREFIX{GG}}{6}
+\index{cutting holes!turning off|PREFIX{GG}}{6}
+\index{interpolation|PREFIX{GG}}{6}
+\index{interpolation!explicit|PREFIX{GG}}{6}
+\index{interpolation!implicit|PREFIX{GG}}{6}
+\index{command file|PREFIX{GG}}{8}
+\index{airfoil|PREFIX{GG}}{21}
+\index{mapping!AirFoilMapping|PREFIX{GG}}{21}
+\index{mapping!transfinite interpolation|PREFIX{GG}}{21}
+\index{boundary condition!mixed boundary condition|PREFIX{GG}}{23}
+\index{c-grid|PREFIX{GG}}{23}
+\index{h-grid|PREFIX{GG}}{23}
+\index{orthographic|PREFIX{GG}}{27}
+\index{body of revolution|PREFIX{GG}}{33}
+\index{trouble shooting|PREFIX{GG}}{41}
+\index{hints|PREFIX{GG}}{41}
+\index{tips|PREFIX{GG}}{43}
+\index{user defined mapping|PREFIX{GG}}{44}
+\index{overlapping grid algorithm|PREFIX{GG}}{48}
+\index{hole cutting|PREFIX{GG}}{48}
+\index{interpolation!proper|PREFIX{GG}}{48}
+\index{interpolation!improper|PREFIX{GG}}{48}
+\index{interpolation!redundant|PREFIX{GG}}{48}
+\index{hole cutting!algorithm|PREFIX{GG}}{48}
+\index{boundary mismatch|PREFIX{GG}}{51}
+\index{refinement grids|PREFIX{GG}}{53}
+\index{interpolation!improved quality|PREFIX{GG}}{54}
+\index{basic steps|PREFIX{OBU}}{3}
+\index{command file|PREFIX{OBU}}{3}
+\index{algorithms|PREFIX{OBU}}{3}
+\index{command files|PREFIX{OBU}}{5}
+\index{command file|PREFIX{OBU}}{5}
+\index{incompressible flow!naca airfoil|PREFIX{OBU}}{8}
+\index{divergence|PREFIX{OBU}}{8}
+\index{artificial diffusion|PREFIX{OBU}}{8}
+\index{moving grids!stirring stick|PREFIX{OBU}}{9}
+\index{axisymmetric|PREFIX{OBU}}{10}
+\index{incompressible flow!pipes|PREFIX{OBU}}{12}
+\index{compressible flow!two bumps|PREFIX{OBU}}{13}
+\index{options|PREFIX{OBU}}{18}
+\index{parameters|PREFIX{OBU}}{18}
+\index{PDE!choices|PREFIX{OBU}}{18}
+\index{boundary conditions!assigning|PREFIX{OBU}}{22}
+\index{boundary conditions!optional data|PREFIX{OBU}}{23}
+\index{show file!flushing|PREFIX{OBU}}{24}
+\index{artificial diffusion|PREFIX{OBU}}{24}
+\index{minimum scale|PREFIX{OBU}}{25}
+\index{user defined functions|PREFIX{OBU}}{25}
+\index{hints for running|PREFIX{OBU}}{26}
+\index{artificial viscosity|PREFIX{OBU}}{26}
+\index{post processing|PREFIX{OBU}}{27}
+\index{installation|PREFIX{OBU}}{28}
+\index{PETSc|PREFIX{OBU}}{28}
+\index{time stepping|PREFIX{OBR}}{6}
+\index{time stepping!Adams predictor corrector|PREFIX{OBR}}{6}
+\index{time stepping!implicit multistep|PREFIX{OBR}}{6}
+\index{axisymmetric|PREFIX{OBR}}{18}
+\index{sPrintF|PREFIX{OS}}{4}
+\index{sScanF|PREFIX{OS}}{4}
+\index{fScanF|PREFIX{OS}}{5}
+\index{getLine|PREFIX{OS}}{5}
+\index{getLine|PREFIX{OS}}{6}
+\index{ftor|PREFIX{OS}}{6}
+\index{getIndex|PREFIX{OS}}{7}
+\index{getBoundaryIndex|PREFIX{OS}}{7}
+\index{getGhostIndex|PREFIX{OS}}{7}
+\index{OGgetIndex|PREFIX{OS}}{7}
+\index{OGFunction|PREFIX{OS}}{12}
+\index{twilight zone!defining functions|PREFIX{OS}}{12}
+\index{method of analytic solutions|see{twilight zone}|PREFIX{OS}}{12}
+\index{twilight zone!how to test PDE codes|PREFIX{OS}}{12}
+\index{OGPolyFunction|PREFIX{OS}}{17}
+\index{OGTrigFunction|PREFIX{OS}}{19}
+\index{data base access functions|PREFIX{OS}}{21}
+\index{display!of A++ arrays|PREFIX{OS}}{22}
+\index{integrate!grid functions on overlapping grids|PREFIX{OS}}{23}
+\index{surface integrals|PREFIX{OS}}{23}
+\index{volume integrals|PREFIX{OS}}{23}
+\index{tridiagonal solver|PREFIX{OS}}{27}
+\index{block tridiagonal solver|PREFIX{OS}}{27}
+\index{Fortarn!write fortran files from C++|PREFIX{OS}}{31}
+\index{reference counting!reference counted objects|PREFIX{OS}}{35}
+\index{OpenGL|PREFIX{PS}}{4}
+\index{Motif|PREFIX{PS}}{4}
+\index{graphical user interface|PREFIX{PS}}{4}
+\index{command files|PREFIX{PS}}{4}
+\index{bigger,smaller,erase,reset|PREFIX{PS}}{4}
+\index{rubber band zoom|PREFIX{PS}}{5}
+\index{mouse button!translate, rotate ans zoom|PREFIX{PS}}{5}
+\index{default window size|PREFIX{PS}}{6}
+\index{saving postscript|PREFIX{PS}}{6}
+\index{postscript!including in \TeX\ files|PREFIX{PS}}{6}
+\index{postscript!saving as hardcopy|PREFIX{PS}}{6}
+\index{raster resolution|PREFIX{PS}}{6}
+\index{making mpeg movies|PREFIX{PS}}{7}
+\index{ps2giff|PREFIX{PS}}{7}
+\index{ps2ppm|PREFIX{PS}}{7}
+\index{PlotStuffParameters|PREFIX{PS}}{27}
+\index{GraphicsParameters|PREFIX{PS}}{27}
+\index{graphics parameters|PREFIX{PS}}{27}
+\index{colour tables|PREFIX{PS}}{32}
+\index{hard copy resolution|PREFIX{PS}}{33}
+\index{Mesa!increasing resolution|PREFIX{PS}}{33}
+\index{OpenGL|PREFIX{PS}}{33}
+\index{Mesa!web site|PREFIX{PS}}{33}
+\index{NameList|PREFIX{PS}}{35}
+\index{ShowFileReader|PREFIX{SF}}{1}
+\index{show file|PREFIX{SF}}{3}
+\index{initial conditions!from a show file|PREFIX{SF}}{11}
+\index{restart!from a show file|PREFIX{SF}}{11}
+\index{MappedGrid!example|PREFIX{PR}}{6}
+\index{MappedGridFunction!example|PREFIX{PR}}{6}
+\index{MappedOperators!example|PREFIX{PR}}{6}
+\index{PDE!solve on a MappedGrid|PREFIX{PR}}{8}
+\index{PDE!solve on a MappedGrid with explicit boundary conditions.|PREFIX{PR}}{10}
+\index{boundary conditions!explicit application|PREFIX{PR}}{10}
+\index{PDE!using finite volume operators|PREFIX{PR}}{13}
+\index{finite volume operators!example|PREFIX{PR}}{13}
+\index{Mapping!for writing your own|PREFIX{PR}}{15}
+\index{twilight zone!example|PREFIX{PR}}{16}
+\index{time step determination!example|PREFIX{PR}}{19}
+\index{PDE!steady incompressible Navier-Stokes|PREFIX{PR}}{23}
+\index{coefficient matrix!system example|PREFIX{PR}}{23}
+\index{CompositeGrid!example|PREFIX{PR}}{27}
+\index{CompositeGridFunction!example|PREFIX{PR}}{30}
+\index{interpolation!example|PREFIX{PR}}{33}
+\index{show file!example|PREFIX{PR}}{34}
+\index{differentiation!of a grid function, example|PREFIX{PR}}{36}
+\index{PDE!on a CompositeGrid, example|PREFIX{PR}}{38}
+\index{PDE!Poisson equation, example|PREFIX{PR}}{41}
+\index{PlotStuff!example|PREFIX{PR}}{43}
+\index{restart file|PREFIX{PR}}{45}
+\index{differentiation|PREFIX{PR}}{47}
+\index{wave equation, example|PREFIX{PR}}{50}
+\index{PDE!wave equation, example|PREFIX{PR}}{50}
+\index{moving grids!example|PREFIX{PR}}{52}
+\index{adaptive grids!example|PREFIX{PR}}{55}
+\index{multigrid!example|PREFIX{PR}}{57}
+\index{double precision, compiling for|PREFIX{PR}}{63}

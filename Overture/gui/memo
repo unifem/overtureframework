@@ -1,0 +1,127 @@
+
+=================================================================================================
+**** Here is a list of the files in Kyle's GUI/src directory
+
+GUIDefine.h
+PlotStuffParameters.h
+dia.C
+getCPU.C
+helpOverture.C
+initGUIGlobalVariables.C
+ListOfReferenceCountedObjects.C
+mathutil.h
+mogl.C
+OvertureParser.h
+PlotStuff.h
+sPrintF.C
+wdhdefs.h
+ColourBar.C
+DialogData.C
+DialogData.h
+GenericGraphicsInterface.C
+GenericGraphicsInterface.h
+GL_GraphicsInterface.h
+GraphicsParameters.h
+GUIinit.C
+GUIInit.h
+GUIState.h
+GUITypes.h
+colourTable.C
+getAnswer.C
+GL_GraphicsInterface.C
+GraphicsParameters.C
+label.C
+OvertureParser.C
+plotPoints.C
+textGetMenu.C
+ColourBar.h
+getAnswer.C.YES_APP
+GLwDrawA.c
+GLwDrawA.h
+GLwDrawAP.h
+GLwMDrawA.c
+GLwMDrawA.h
+GLwMDrawAP.h
+GUIState.C
+mogl.h
+osRender.C
+overlay.c
+OvertureDefine.h
+plotAxes.C
+render.C
+stroke.C
+tlist.C
+xColours.C
+xColours.h
+
+=========================
+files copied in GUI/build:
+
+cp ~henshaw/junk/GUI/src/{ColourBar,colourTable,DialogData,GenericGraphicsInterface}.C .
+cp ~henshaw/junk/GUI/src/{getAnswer,GL_GraphicsInterface,GraphicsParameters,GUIState,helpOverture}.C .
+cp ~henshaw/junk/GUI/src/{label,mogl,osRender,OvertureParser,plotAxes,plotPoints,render}.C .
+cp ~henshaw/junk/GUI/src/{stroke,textGetMenu,tlist,xColours}.C .
+
+cp ~henshaw/junk/GUI/src/{ColourBar,DialogData,GenericGraphicsInterface,GL_GraphicsInterface,GraphicsParameters}.h .
+
+cp ~henshaw/junk/GUI/src/{GUIInit,GUIState,GUITypes,mathutil,mogl,OvertureParser,PlotStuff,PlotStuffParameters,wdhdefs,xColours}.h .
+
+
+=================================================================================================
+**** Here are the files that we copied
+
+  Notes: getCPU.C is from gf
+         sPrintF  is from mapping
+
+GUIDefine.h
+PlotStuffParameters.h
+dia.C
+getCPU.C
+helpOverture.C
+initGUIGlobalVariables.C
+** no: ListOfReferenceCountedObjects.C
+** no: mathutil.h
+mogl.C
+OvertureParser.h
+PlotStuff.h
+sPrintF.C
+** no: wdhdefs.h
+ColourBar.C
+DialogData.C
+DialogData.h
+GenericGraphicsInterface.C
+GenericGraphicsInterface.h
+GL_GraphicsInterface.h
+GraphicsParameters.h
+GUIinit.C
+GUIInit.h
+GUIState.h
+GUITypes.h
+colourTable.C
+getAnswer.C
+GL_GraphicsInterface.C
+GraphicsParameters.C
+label.C
+OvertureParser.C
+plotPoints.C
+textGetMenu.C
+ColourBar.h
+** no getAnswer.C.YES_APP
+GLwDrawA.c
+GLwDrawA.h
+GLwDrawAP.h
+GLwMDrawA.c
+GLwMDrawA.h
+GLwMDrawAP.h
+GUIState.C
+mogl.h
+osRender.C
+overlay.c
+** no OvertureDefine.h
+plotAxes.C
+render.C
+stroke.C
+** ?? tlist.C
+xColours.C
+xColours.h
+

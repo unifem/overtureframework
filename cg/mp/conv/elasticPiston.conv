@@ -1,0 +1,142 @@
+#
+# Measure convergence rates for cgmp and the elastic piston (see elasticPiston.out)
+#
+# -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
+# 
+# To run the convergence tests type: 
+# -- Receding piston: (-problem=1) -- NEW: elasticPistonGrid: 
+#    conv.p elasticPiston.conv -tp=.5 -tf=.5 -cg=epg -bcOption=4 -ng=2
+#      -> c0=2.29 c1=2.03 c2=1.54 c3=2.28 c4=1.73 c5=2.03 c6=2.08
+#    conv.p elasticPiston.conv -tp=1. -tf=1. -cg=epg -bcOption=4 -ng=2
+#      -> c0=1.79 c1=1.88 c2=1.71 c3=2.51 c4=1.70 c5=2.02 c6=2.06
+#    conv.p elasticPiston.conv -tp=.7 -tf=.7 -cg=epg -bcOption=4 -ng=3 
+#
+# --- OLD: 
+# cgmp elasticPiston -method=cns -cnsVariation=godunov -g="planeInterfacenp32" -tp=.05 -tf=.5 -nc=1 -smVariation=g -debug=0 
+#   conv.p elasticPiston.conv -tp=.1 -tf=.1 -cg=pinp -ng=2
+#   conv.p elasticPiston.conv -tp=.1 -tf=.1 -cg=pinp -ng=4
+#   conv.p elasticPiston.conv -tp=.1 -tf=.1 -cg=pinp -ng=4 -en=l1
+#
+# -- 2nd-order BC's for cgcns:
+#   conv.p elasticPiston.conv -tp=.1 -tf=.1 -cg=pinp -bcOption=4 -ng=2
+#   conv.p elasticPiston.conv -tp=.2 -tf=.2 -cg=pinp -bcOption=4 -ng=3
+#   conv.p elasticPiston.conv -tp=.5 -tf=.5 -cg=pinp -bcOption=4 -ng=3
+# -- non-conservative cgsm:
+#   conv.p elasticPiston.conv -tp=.2 -tf=.2 -cg=pinp -bcOption=4 -smVariation=nc -ng=3
+# 
+# -- rotated piston
+#  conv.p elasticPiston.conv -cfl=.8 -tp=.7 -tf=.7 -cg=epg45 -angle=45 -bcOption=4 -ng=4
+#
+# -- SVK piston + TZ 
+#  conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -bcOption=4 -ng=3 [trig
+#  conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=poly -problem=0 -cg=epgxy -godunovType=2 -bcOption=4 -ng=3 [poly
+# 
+# -- SVK piston + TZ + projection: 
+#  conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=trig -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=0 -pi=1 -bcOption=4 -ng=3 [trig
+#  conv.p elasticPiston.conv -tf=.1 -tp=.1 -tz=poly -problem=0 -cg=epgxy -godunovType=2 -piGhostOption=0 -pi=1 -bcOption=4 -ng=3 [poly
+# 
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+#   -angle : angle in degrees for rotated case
+# ---------------------
+# Set default parameters: 
+$pv = "g"; $tz="none"; $bcn = "d";  $ng=4; $diss=0.; $dissOrder=4; $tf=.5;  $tPlot=.1; $order=2; $nd=2; $scf=1.; 
+$cfl=.9; $ad=0.; $numberOfParallelGhost=2; $bcOption=0; $smVariation="g"; $pi=0; $piGhostOption=1; $adCns=0.; $angle=0;
+$problem=1; $en="max"; 
+$stressRelaxation=0; $relaxAlpha=0.1; $relaxDelta=0.1; $godunovType=0; 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgsmCmd = "$CGBUILDPREFIX/mp/bin/cgmp";  # command for cgmp
+$cmdDir="$ENV{CG}/mp/cmd"; 
+$cmdFile="$cmdDir/elasticPiston.cmd"; 
+$amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
+$cg = "square"; $bg="square"; $alwaysCompute=1; $ts="me"; $lambda=1; $filter=0; $filterOrder=6; $filterStages=2; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+$case="default"; 
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,\
+            "diss=f"=>\$diss,"tp=f"=>\$tPlot,"alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,\
+            "filter=i"=>\$filter,"filterOrder=i"=>\$filterOrder,"filterStages=i"=>\$filterStages,\
+            "showAllComponents=i"=>\$showAllComponents,"bg=s"=>\$bg,"amr=i"=>\$amr,"tol=f"=>\$tol,"nrl=i"=>\$nrl,\
+            "nbz=i"=>\$nbz,"ratio=i"=>\$ratio,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"cfl=f"=>\$cfl,"ad=f"=>\$ad,\
+            "cgsmCmd=s"=>\$cgsmCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"dissOrder=i"=>\$dissOrder,\
+            "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
+            "bcOption=i"=>\$bcOption,"smVariation=s"=>\$smVariation,"pi=i"=>\$pi,"adCns=f"=>\$adCns,\
+            "angle=i"=>\$angle,"piGhostOption=i"=>\$piGhostOption,"godunovType=i"=>\$godunovType,"tz=s"=>\$tz,\
+            "problem=i"=>\$problem,"scf=f"=>\$scf,"case=s"=>\$case );
+#
+$check="mp.check";
+#
+$numberOfDomains=2; 
+$caseName="rotatingDisk.$cg.$case"; 
+if( $saveVectorErrors eq 1 ){ $caseName.= ".vector"; }
+$name=$caseName;
+#
+# --- define the table heading and caption --
+# 
+#  --- Godunov solid: include |u|, |v|, |sigma| in table by default (these are the first three in the sm check file)
+#    for($i=3; $i<11; $i++ ){ $ignoreComponent[$i]=1; } 
+#    $ignoreComponent[3]=1; $ignoreComponent[4]=1;  
+if( $pv eq "g" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    if( $nd eq 2 ){ $numberOfComponents= 4 + 11; }else{ $numberOfComponents= 5 + 18; }  \
+     $title ="grid  \& N \&  \$\\rho\$  \& \$u\$  \& \$v\$  \& \$T\$  \&\$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$ ";\
+     @componentName = ( "r", "v0", "v1" , "T" , "u", "v", "s", "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" );\
+  }\
+  else\
+  { \
+    $numberOfComponents= 4 + 3;  \
+    $numberOfComponents= 4 + 11; for($i=7; $i<15; $i++ ){ $ignoreComponent[$i]=1; }  \
+    $title ="grid  \& N \&  \$\\rho\$  \& \$v_1\$  \& \$v_2\$  \& \$T\$ \& \$\\vert u\\vert\$  \&  \$\\vert v\\vert\$  \&  \$\\vert\\sigma\\vert\$  "; \
+    @componentName = ( "r", "v0", "v1" , "T", "u", "v", "s"  ); \
+  }\
+}
+#
+if( $pv eq "g" ){ $clabel = "diss=$diss"; }
+$caption= "\\caption\{MP, $name, \$t=$tf\$, $clabel, \$\\lambda=$lambda\$, angle=$angle, cfl=$cfl, pi=$pi, piGhostOption=$piGhostOption, -godunovType=$godunovType, problem=$problem tz=$tz, scf=$scf, stressRelaxation=$stressRelaxation, $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-method=cns -cfl=$cfl -tp=$tPlot -tf=$tf -tz=$tz -problem=$problem -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=$smVariation -pi=$pi -en=$en -adCns=$adCns -bcOption=$bcOption -angle=$angle -piGhostOption=$piGhostOption -godunovType=$godunovType -scf=$scf -stressRelaxation=$stressRelaxation";
+# 
+if( $cg eq "pinp" ){\
+$grid1="pi4";  $gName1 = "planeInterfacenp4"; \
+$grid2="pi8";  $gName2 = "planeInterfacenp8"; \
+$grid3="pi16"; $gName3 = "planeInterfacenp16"; \
+$grid4="pi32"; $gName4 = "planeInterfacenp32"; \
+$grid5="pi64"; $gName5 = "planeInterfacenp64"; }
+# 
+if( $cg eq "epg" ){\
+$grid1="epg4";  $gName1 = "elasticPistonGrid4"; \
+$grid2="epg8";  $gName2 = "elasticPistonGrid8"; \
+$grid3="epg16"; $gName3 = "elasticPistonGrid16"; \
+$grid4="epg32"; $gName4 = "elasticPistonGrid32"; \
+$grid5="epg64"; $gName5 = "elasticPistonGrid64"; }
+# 
+if( $cg eq "epgxy" ){\
+$grid1="epg2";  $gName1 = "elasticPistonGridfx2fy2"; \
+$grid2="epg4";  $gName2 = "elasticPistonGridfx4fy4"; \
+$grid3="epg8";  $gName3 = "elasticPistonGridfx8fy8"; \
+$grid4="epg16"; $gName4 = "elasticPistonGridfx16fy16"; \
+$grid5="epg32"; $gName5 = "elasticPistonGridfx32fy32"; \
+$grid6="epg64"; $gName6 = "elasticPistonGridfx64fy64"; }
+# 
+if( $cg eq "epg45" ){\
+$grid1="epg4";  $gName1 = "elasticPistonGridRotated4Angle45"; \
+$grid2="epg8";  $gName2 = "elasticPistonGridRotated8Angle45"; \
+$grid3="epg16"; $gName3 = "elasticPistonGridRotated16Angle45"; \
+$grid4="epg32"; $gName4 = "elasticPistonGridRotated32Angle45"; \
+$grid5="epg64"; $gName5 = "elasticPistonGridRotated64Angle45"; }
+# 
+$grid=$grid1; $res=1; $cmd="$cgsmCmd noplot $cmdFile -g=$gName1 $options";
+$grid=$grid2; $res=2; $cmd="$cgsmCmd noplot $cmdFile -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4;  $cmd="$cgsmCmd noplot $cmdFile -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8;  $cmd="$cgsmCmd noplot $cmdFile -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgsmCmd noplot $cmdFile -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

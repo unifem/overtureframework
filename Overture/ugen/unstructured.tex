@@ -1,0 +1,275 @@
+%=======================================================================================================
+% Unstructured Mesh Documentation
+%=======================================================================================================
+\documentclass{article}
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+\usepackage{epsfig}
+\usepackage{subfigure}
+
+\begin{document}
+
+
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\id     {i}
+\def\jd     {j}
+\def\kap {\sqrt{s+\omega^2}}
+
+\newcommand{\primer}{\homeHenshaw/res/primer}
+\newcommand{\gf}{\homeHenshaw/res/gf}
+\newcommand{\mapping}{\homeHenshaw/res/mapping}
+\newcommand{\ogshow}{\homeHenshaw/res/ogshow}
+\newcommand{\oges}{\homeHenshaw/res/oges}
+% \newcommand{\figures}{../docFigures}
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+
+\begin{flushleft}
+ ~~  \\
+ ~~  \\
+ ~~  \\
+ ~~  \\
+ ~~  \\
+  {\Large 
+   Unstructured Hybrid Mesh Support for Overture  \\ 
+   A Description of the Ugen and AdvancingFront Classes  \\
+   and Documentation for Additional Support Classes 
+  }\\
+\vspace{2\baselineskip}
+Kyle K. Chand \\
+% \footnote{
+%         This work was partially
+%         supported by 
+%         }   \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+chand@llnl.gov \\
+http://www.llnl.gov/casc/people/chand \\
+http://www.llnl.gov/casc/Overture \\
+\vspace{1\baselineskip}
+\today
+\vspace{\baselineskip}
+
+\end{flushleft}
+
+\vspace{1\baselineskip}
+
+\begin{abstract}
+Overture's support for unstructured and hybrid mesh generation is implemented 
+through the classes described in this document.  There are three tiers
+of classes used for the generation of unstructured meshes.  The first tier consists
+of container classes, essentially {\tt GeometricADT}, used by the mesh generator to 
+perform geometric searches.  The {\tt AdvancingFront} class encapsulates the
+logic of an advancing front mesh generator and uses {\tt GeometricADT}'s. Finally, 
+{\tt Ugen} acts as the interface between the unstructured mesh generator and the 
+rest of Overture.
+
+The following classes are described in this document:
+\begin{itemize}
+ \item Ugen : Unstructured/Hybrid mesh generator interface
+ \item AdvancingFront : unstructured mesh generation using the advancing front method
+ \item GeometricADT : bounding box alternating digital tree for geometric searches
+ \item GeometricADT::iterator : defines an iteration path through a GeometricADT
+ \item GeometricADT::traversor : performs a search traversal of a GeometricADT
+ \item NTreeNode$<$int degree, class Data$>$ : primitive container class used to build GeometricADT
+ \item Exceptions : a list of the various exceptions thrown by the above classes
+ \item CompositeGridHybridConnectivity : manages the mappings between unstructured and structrutred components of a CompositeGrid
+\end{itemize}
+\end{abstract}
+
+\tableofcontents
+
+\vspace{3\baselineskip}
+
+\section{Introduction}
+Hybrid meshes consist of regions of structured grids joined by unstructured 
+meshes.  Figure~\ref{fig:overlapHybridComp} compares overlapping and hybrid meshes
+for the same geometry.  Generation of unstructured hybrid meshes in Overture is orchestrated by the 
+class {\tt Ugen}.  When provided with a {\tt CompositeGrid},
+{\tt Ugen} removes the overlap, determines the hole boundaries and conducts the
+generation of an unstructured mesh filling the spaces between component grids. 
+Currently, the {\tt CompositeGrid} must contain an overlapping grid with holes 
+cut using the {\tt ``compute for hybrid mesh''} option in {\tt Ogen}.  To generate
+unstructured meshes, {\tt Ugen} utilizes an advancing front method implemented
+in the class {\tt AdvancingFront}.  One the unstructured regions have been generated they
+are placed into an {\tt UnstructuredMapping} and subsequently added to the 
+original CompositeGrid.  Connectivity between the structured and unstructured regions 
+can be accessed through the class {\tt CompositeGridHybridConnectivity}, an instance of
+which is created in the original {\tt CompositeGrid}.
+
+\begin{figure} [htb] 
+\centering
+ \mbox{
+       \subfigure[]{\epsfig{file=\figures/overlappingExample.eps,width=.35\textwidth}}
+       \hspace{.25in}
+       \subfigure[]{\epsfig{file=\figures/hybridExample.eps,width=.35\textwidth}}}
+ \caption{Comparison of Overlapping and Hybrid Meshes : (a) Overlapping Grid; (b) Hybrid Mesh} \label{fig:overlapHybridComp} 
+\end{figure}
+
+\section{Generating Hybrid Meshes}
+The environment provided by {\tt Ugen} assumes that mappings have already been created and
+that the user is prepared to assemble a hybrid mesh.  Selecting the ``generate hybrid mesh'' option
+in the main {\tt Ogen} menu initially proceeds in a manner similar to the overlapping grid version.
+A list of the mappings involved in the construction of the hybrid mesh is built.  As with the
+overlapping grid case, a priority is assigned to each mapping with selections being made in 
+ascending order of priority.  Higher priority grids will cut holes in lower priority ones.
+Figure~\ref{ugenEnv.eps} displays the initial state of the hybrid mesh generation environment
+just after the mappings for Figure~\ref{overlapHybridComp}a have been selected.  There are several
+options now available via the pop-up menu :\\
+\begin{itemize}
+\item set plotting frequency (<1 for never) : This options selects how many unstructured elements will be generated before the plot is updated. Setting the value to -1 forces the mesh generator to continue until the mesh is completely generated or an error occurs.
+\item continue generation : continue generating the unstructured mesh until the plotting frequency is reached; the mesh is complete; or an error occurs.
+\item enlarge hole : enlarge the hole and reinitialize the mesh.  This option will destroy an already generated unstructured mesh
+\item reset hole : destroy any unstuructured mesh elements and reinitialize the algorithm
+\item plot component grids (toggle) : plot/do not plot component grids
+\item plot control function (toggle) : plot/do not plot the control function
+\item open graphics : open a graphics dump file
+\item plot object : plot/refresh the image
+\item change the plot : change plotting characteristics such as the component grids and control function
+\item exit : exit the hybrid mesh generation interface, this will attempt to add the unstructured mesh to the {\tt CompositeGrid} and generate the connectivity between the unstructured and structured meshes.
+\end{itemize}
+
+\subsection{Preprocessing the Composite Grids}
+\subsection{Class Ugen}
+\input Ugen.tex
+
+\section{Advancing Front Mesh Generation}
+Advancing front mesh generation creates an unstructured mesh by ``growing'' 
+elements off of an initial set of curves (2D) or surfaces (3D) which describe a connected domain.
+Discretized representations of these curves or surfaces are collectively
+known as the "front" which is successively "advanced" until the domain
+is filled with an unstructured mesh.  Figure~\ref{fig:advfront} illustrates an advancing front. 
+In this case, the initial curve is bold black,
+the front is bold red with dots and the generated elements are black
+The implmentation of the mesh generator follows that of Peraire, J, Peiro, J. and Morgan, K., Ref ??.
+\begin{figure}
+ \begin{center}
+  \epsfig{file=\figures/advFront.eps}
+  \caption{An advancing front (red) grows off of an initial curve (black)}\label{fig:advfront}
+  \end{center}
+\end{figure}
+
+\subsubsection{Mesh Generation Algorithm}
+Advancement of the ``advancing'' front refers
+the the process by which new elements are created.  The process may be summarized as :
+\begin{enumerate}
+\item Choose and discretize an initial boundary
+\item Select a face to advance
+\item Find all nearby old vertices
+\item Calculate possible new vertices
+\item Prioritize and choose a vertex from the list of old and new vertices
+\item Delete the starting face from the front and add any new faces
+\item Return to 2 and repeat until the front is empty.
+\end{enumerate}
+
+Initially, a discretized
+curve (2D) or surface (3D) must be created that encloses the region to be meshed.  
+Assuming we start with 2D curve discretized into a set of line segments (called
+``faces''), mesh generation consists of generating elements/zones from faces in the 
+front.  As faces are used they are deleted from the front, while new faces are created
+and added to it.  Eventually the front will collapse upon itself, becoming empty, 
+resulting in a completed mesh.
+Zooming into the dashed circle of Figure~\ref{fig:advfront} provides an
+opportunity to examine a sample front advance.  Figure~\ref{fig:advfront-cand} shows
+a face chosen for advancement and marks several important features of the algorithm.
+The letter symbols indicate the points that could be used to complete a new element and
+dashed lines represent the new elements they would create.
+\begin{figure}
+ \begin{center}
+ \epsfig{file=\figures/advFront-cand.eps}
+ \caption{A cluttered view of candidate vertices}\label{fig:advfront-cand}
+ \end{center}
+\end{figure} 
+A new element may be created by using existing points belonging to other
+faces in the front or a new point may be created.  
+
+A user defined notion of
+the ``ideal'' element in that region of the mesh leads to the calculation of
+the ``ideal'' new point, $P_{\mbox{ideal}}$.  In a uniform 2D mesh the ideal element would be an
+equliateral triangle, but typically mesh size and quality control
+parameters can permit stretched elements.  Candidate points that already exist in
+the front are sought within a circle with an origin at $P_{\mbox{ideal}}$ and passing throught the 
+points in the face. Figure~\ref{fig:advfront-cand} shows this search circle 
+in bold black and marks the candidates already in the front as $E_{1}$ and $E_{2}$.  
+An element can also be created by generating a new point.  In addition to the ``ideal''
+point, the locations of new points are the centers of the circles created using the two edge 
+points and each existing candidate front point.  In this case, the two circles
+are shown in red and blue for the circles using $E_{1}$ and $E_{2}$ respectively. $P_{1}$
+and $P_{2}$ are the additional new points to be considered.  Now the algorithm must choose 
+which point to use, or, equivalently, which element to create.
+
+The candidates $E_{1}, E_{2}, P_{\mbox{ideal}}, P_{1}, P_{2}$, are prioritized and 
+assembled into a queue.  Vertices that already exist, $E_{1}$ and $E_{2}$ are ordered 
+according to how close the element they would create is to the ``ideal'' element.
+Next comes the actual ``ideal'' vertex $P_{\mbox{ideal}}$.  Then the additional
+candidate new ( $P_{1}, P_{2}$) vertices are ordered in a similar way to the 
+existing vertices, the closer to ``ideal'' the element would be, the higher the priority.  
+In Figure~\ref{fig:advfront-cand}, the ordering would be : 
+$E_{1}, E_{2}, P_{\mbox{ideal}}, P_{1}, P_{2}$.  The first candidate in this queue that
+generates a valid element (no intersections) is chosen to complete the new element.  Once the new
+element has been created any new faces are added to the front.  The
+original face, now buried beneath the front, is removed.  Figure~\ref{fig:advfront-newfront} 
+illustrates the end result of our example.  This process is repeated until the front is empty.
+\begin{figure}
+ \begin{center}
+ \epsfig{file=\figures/advFront-newfront.eps}
+ \caption{The new front}\label{fig:advfront-newfront}
+ \end{center}
+\end{figure}	
+
+\subsubsection{Mesh stretching control}
+you'll have to wait for this subsection
+
+\subsection{Class AdvancingFront}
+\input AdvancingFront.tex
+
+\vfill\eject
+
+\section{Geometric Searching}
+and this subsection 
+\subsection{Class GeometricADT}
+\input GeometricADT.tex
+
+\subsection{Class GeometricADT::iterator}
+Creation of a {\tt GeometricADT::iterator} requires the specification of a 
+target representing a location in bounding box space.  The iterator will then
+iterate from the root of a GeometricADT to the terminal leaf that would store
+an object with the given target.  The default constructor is protected since 
+the iterator requires the context of both a GeometricADT and a target bounding
+box. 
+\input GeometricADTIterator.tex
+%\vfill\eject
+\subsection{Class GeometricADT::traversor}
+A {\tt GeometricADT::traversor} will traverse it's {\tt GeometricADT} yielding 
+all the elements that overlap the target bounding box.  This class is the basic
+tool used for performing geometric searches using the {\tt GeometricADT} class.
+%\input GeometricADTTraversor.tex
+%\vfill\eject
+\section{Class NTreeNode$<$int degree, Class Data$>$}
+\input NTreeNode.tex
+%\vfill\eject
+\section{Exception Classes}
+%\input Exceptions.tex
+%\vfill\eject
+\section{Composite Grid Hybrid Connectivity}
+\input CompositeGridHybridConnectivity.tex
+\input CompositeGridHybridConnectivityImp.tex
+
+\end{document}

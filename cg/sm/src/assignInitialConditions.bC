@@ -1,0 +1,139 @@
+#include "Cgsm.h"
+#include "SmParameters.h"
+#include "CompositeGridOperators.h"
+#include "display.h"
+#include "UnstructuredMapping.h"
+#include "OGPolyFunction.h"
+#include "OGTrigFunction.h"
+#include "OGPulseFunction.h"
+#include "interpPoints.h"
+#include "ShowFileReader.h"
+#include "ParallelUtility.h"
+#include "App.h"
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+// ===========================================================================================
+/// \brief Assign initial conditions.
+/// \details This function assigns the initial conditions 
+/// \param gfIndex (input) : assign gf[gfIndex].u 
+// ===========================================================================================
+int Cgsm::
+assignInitialConditions(int gfIndex)
+{
+  real time0=getCPU();
+  int & debug = parameters.dbase.get<int >("debug");
+  FILE *& debugFile  =parameters.dbase.get<FILE* >("debugFile");
+
+  SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+
+  printP("\n ***assignInitialConditions: gfIndex=%i initialConditionOption=%i\n",gfIndex,(int)initialConditionOption);
+
+  if( initialConditionOption==twilightZoneInitialCondition )
+  {
+    assignTwilightZoneInitialConditions(gfIndex);
+  }
+  else if( initialConditionOption==parabolicInitialCondition ) 
+  {
+    assignParabolicInitialConditions(gfIndex);
+  }
+  else if( initialConditionOption==gaussianPulseInitialCondition )
+  {
+    assignGaussianPulseInitialConditions(gfIndex);
+  }
+  else if( initialConditionOption==specialInitialCondition )
+  {
+    assignSpecialInitialConditions(gfIndex, computeInitialConditions);
+  }
+  else if( initialConditionOption==hempInitialCondition )
+  {
+    assignHempInitialConditions(gfIndex);
+  }
+  else if( initialConditionOption==annulusEigenfunctionInitialCondition )
+  {
+    assignAnnulusEigenfunction(gfIndex, computeInitialConditions );
+  }
+  else if( initialConditionOption==defaultInitialCondition ||
+           initialConditionOption==zeroInitialCondition )
+  {
+    if( pdeVariation == SmParameters::hemp )
+    {
+      printF("Cgsm::assignInitialConditions:ERROR: you should not use zero initial conditions for the HEMP option\n");
+      Overture::abort("error");
+    }
+
+    assign( gf[gfIndex].u, 0. );
+  }
+  else if( initialConditionOption==knownSolutionInitialCondition )
+  {
+    realCompositeGridFunction & u = gf[gfIndex].u;
+    realCompositeGridFunction & uKnown = parameters.getKnownSolution( gf[gfIndex].cg, gf[gfIndex].t );
+    u.dataCopy(uKnown);
+  }
+  else if( initialConditionOption==userDefinedInitialCondition )
+  {
+    userDefinedInitialConditions( gf[gfIndex].cg, gf[gfIndex].u );
+  }
+  else
+  {
+    // call the base class to evaluate the initial conditions:
+    // --- NOTE: this probably won't work since Cgsm has it's own initialConditionOption and enum's
+    DomainSolver::assignInitialConditions(gfIndex);
+  } 
+
+  // *wdh* We cannot apply BC's here since the operators are not defined yet
+  //  int option=0;
+  //  real dt=0.;
+  // **   applyBoundaryConditions( option, dt, gfIndex, gfIndex );
+
+
+  if( debug & 8 )
+  {
+    gf[gfIndex].u.display(sPrintF("After assignInitialConditions, t=%8.2e",gf[gfIndex].t),debugFile,"%8.2e ");
+  }
+
+  RealArray & timing = parameters.dbase.get<RealArray >("timing");
+  timing(parameters.dbase.get<int>("timeForProject"))=0.; // count project of IC's as part of the time for IC's
+  timing(parameters.dbase.get<int>("timeForInitialConditions"))+=getCPU()-time0;
+
+  return 0;
+}
+
+
+
+// =========================================================================================
+//  Use this function to initialize a known solution -- currently used to compute
+//  scattering past a cylinder or sphere or the Gaussian integral solution from Tom H.
+// =========================================================================================
+void Cgsm::
+initializeKnownSolution()
+{
+  if( knownSolution!=NULL )
+    return;
+
+  const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+
+  if( knownSolution==NULL )
+  {
+    // We save the Re and Im parts of the known solution
+    //      u(.,.,.,0..2) = (Ex,Ey,[Hz,ez]) : Re part
+    //      u(.,.,.,3..5) = (Ex,Ey,[Hz,ez]) : Im part
+    Range all;
+    knownSolution=new realCompositeGridFunction(cg,all,all,all,numberOfComponents);
+  }
+
+  Overture::abort("error");
+  
+}

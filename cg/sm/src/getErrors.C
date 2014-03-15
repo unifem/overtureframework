@@ -1,0 +1,703 @@
+// This file automatically generated from getErrors.bC with bpp.
+#include "Cgsm.h"
+#include "SmParameters.h"
+#include "CompositeGridOperators.h"
+#include "display.h"
+#include "UnstructuredMapping.h"
+#include "OGPolyFunction.h"
+#include "OGTrigFunction.h"
+#include "OGPulseFunction.h"
+#include "interpPoints.h"
+#include "ShowFileReader.h"
+#include "ParallelUtility.h"
+#include "gridFunctionNorms.h"
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+// Define macros for forcing functions:
+// #Include "forcing.h"
+
+
+//! Determine the errors.
+/*!
+
+  */
+void Cgsm::
+getErrors( int current, real t, real dt, const aString & label /* =nullString */ )
+// =================================================================================================================
+// =================================================================================================================
+{
+  // printF("getErrors: t=%9.3e, checkErrors=%i, initialConditionOption=%i\n",t,checkErrors,initialConditionOption);
+    
+    const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+    Range C=numberOfComponents;
+
+    if( !checkErrors )
+    {
+    // *wdh* 101017 -- always compute the solution norm (for saving to the check file)
+        realCompositeGridFunction & cgu = gf[current].u;
+        if( solutionNorm.dimension(0)!=C )
+            solutionNorm.redim(C); 
+        for( int c=C.getBase(); c<=C.getBound(); c++ )
+        {
+            const int maskOption=0;  // check points where mask != 0
+            solutionNorm(c)=maxNorm(cgu,c,maskOption,parameters.dbase.get<int >("checkErrorsAtGhostPoints") );
+        }
+        
+        return;
+    }
+    
+    real time0=getCPU();
+
+
+    const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
+    const int next = (current+1) % numberOfTimeLevels;
+    
+  // printF(" >>>>>>>>getErrors: current=%i next=%i <<<<<<<<<<< \n",current,next);
+
+    FILE *& debugFile  =parameters.dbase.get<FILE* >("debugFile");
+    FILE *& logFile    =parameters.dbase.get<FILE* >("logFile");
+    FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+    const int numberOfComponentGrids = cg.numberOfComponentGrids();
+    const int numberOfDimensions = cg.numberOfDimensions();
+    const int & uc =  parameters.dbase.get<int >("uc");
+    const int & vc =  parameters.dbase.get<int >("vc");
+    const int & wc =  parameters.dbase.get<int >("wc");
+    const int & rc =  parameters.dbase.get<int >("rc");
+    const int & tc =  parameters.dbase.get<int >("tc");
+
+    SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+
+    const int v1c = parameters.dbase.get<int >("v1c");
+    const int v2c = parameters.dbase.get<int >("v2c");
+    const int v3c = parameters.dbase.get<int >("v3c");
+
+    bool assignVelocities= v1c>=0 ;
+    const int s11c = parameters.dbase.get<int >("s11c");
+    const int s12c = parameters.dbase.get<int >("s12c");
+    const int s13c = parameters.dbase.get<int >("s13c");
+    const int s21c = parameters.dbase.get<int >("s21c");
+    const int s22c = parameters.dbase.get<int >("s22c");
+    const int s23c = parameters.dbase.get<int >("s23c");
+    const int s31c = parameters.dbase.get<int >("s31c");
+    const int s32c = parameters.dbase.get<int >("s32c");
+    const int s33c = parameters.dbase.get<int >("s33c");
+        
+    bool assignStress = s11c >=0 ;
+
+    const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
+    const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+
+    real & rho=parameters.dbase.get<real>("rho");
+    real & mu = parameters.dbase.get<real>("mu");
+    real & lambda = parameters.dbase.get<real>("lambda");
+    RealArray & muGrid = parameters.dbase.get<RealArray>("muGrid");
+    RealArray & lambdaGrid = parameters.dbase.get<RealArray>("lambdaGrid");
+    int & debug = parameters.dbase.get<int >("debug");
+
+    Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+
+    if( label!=nullString && debug>0 )
+    {
+        fPrintF(debugFile,(const char*)label);
+        if( debugFile!=pDebugFile )
+            fPrintF(pDebugFile,(const char*)label);
+    }
+
+
+    if( cgerrp==NULL )
+    {
+        cgerrp = new realCompositeGridFunction;
+        Range all;
+        cgerrp->updateToMatchGrid(gf[current].cg,all,all,all,numberOfComponents);
+        for( int n=0; n<numberOfComponents; n++ )
+            cgerrp->setName(gf[current].u.getName(n)+"Err",n);
+    //  cgerrp->setName(gf[current].u.getName(n)+"-error",n); //  *wdh* 101109 don't use '-' in name (for matlab)
+    }
+
+    assert( numberOfSequences>=numberOfComponents );
+    maximumError.redim(numberOfSequences); 
+    solutionNorm.redim(C);  // for nfdtd
+
+    realCompositeGridFunction *uReference=NULL;
+    if( compareToReferenceShowFile )
+    {
+    // This case is used for comparing absorbing BC's -- we compare the solution to a reference
+    // solution that was computed on a bigger grid
+        if( referenceShowFileReader==NULL )
+        {
+            referenceShowFileReader = new ShowFileReader(nameOfReferenceShowFile);
+        }
+          	    
+        CompositeGrid cgRef;
+        realCompositeGridFunction uRef;
+          	    
+        real & tPlot = parameters.dbase.get<real>("tPrint");
+        int solutionNumber = 1 + int( t/tPlot + .5); // fix this ******************************
+        printF(" **** compareToReferenceShowFile: t=%f solutionNumber=%i\n",t,solutionNumber);
+        
+        referenceShowFileReader->getASolution(solutionNumber,cgRef,uRef);        // read in a grid and solution
+
+    // This solution uReference will live on the smaller domain 
+        Range all;
+        uReference = new realCompositeGridFunction(cg,all,all,all,C);
+        cg.update(MappedGrid::THEmask );
+        cgRef.update(MappedGrid::THEmask );
+        interpolateAllPoints( uRef,*uReference );  // interpolate uReference from uRef
+    }
+
+    maximumError=0.;  // max error over all grids
+    solutionNorm=0.;
+    
+    if( knownSolutionOption==annulusEigenfunctionKnownSolution )
+    {  // compute the errors for the annulus solution
+        assignAnnulusEigenfunction(current, computeErrors );
+    }
+    else if( initialConditionOption==specialInitialCondition )
+    {
+        assignSpecialInitialConditions(current, computeErrors );
+    }
+    
+
+
+    assert( cgerrp!=NULL );
+    int i1,i2,i3;
+
+    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+        MappedGrid & mg = cg[grid];
+        const bool isRectangular = mg.isRectangular();
+        mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+
+        realMappedGridFunction & u   =gf[current].u[grid];
+        realMappedGridFunction & err =(*cgerrp)[grid];
+        const intArray & mask = mg.mask();
+        
+    // we always need the center array for TZ forcing, otherwise not needed for rectangular grids:
+        const realArray & x = (isRectangular && forcingOption!=twilightZoneForcing) ? u : mg.center();
+
+        #ifdef USE_PPP
+            realSerialArray uLocal;  getLocalArrayWithGhostBoundaries(u,uLocal);
+            realSerialArray errLocal;  getLocalArrayWithGhostBoundaries(err,errLocal);
+            realSerialArray xLocal;  getLocalArrayWithGhostBoundaries(x,xLocal);
+            intSerialArray maskLocal;  getLocalArrayWithGhostBoundaries(mask,maskLocal);
+        #else
+            const realSerialArray & uLocal  =  u;
+            realSerialArray & errLocal=  err;
+            const realSerialArray & xLocal  =  x;
+            const intSerialArray & maskLocal=  mask;
+        #endif
+
+        real *up = uLocal.Array_Descriptor.Array_View_Pointer3;
+        const int uDim0=uLocal.getRawDataSize(0);
+        const int uDim1=uLocal.getRawDataSize(1);
+        const int uDim2=uLocal.getRawDataSize(2);
+        #undef U
+        #define U(i0,i1,i2,i3) up[i0+uDim0*(i1+uDim1*(i2+uDim2*(i3)))]
+
+        real *errp = errLocal.Array_Descriptor.Array_View_Pointer3;
+        const int errDim0=errLocal.getRawDataSize(0);
+        const int errDim1=errLocal.getRawDataSize(1);
+        const int errDim2=errLocal.getRawDataSize(2);
+        #undef ERR
+#define ERR(i0,i1,i2,i3) errp[i0+errDim0*(i1+errDim1*(i2+errDim2*(i3)))]
+
+        real *xp = xLocal.Array_Descriptor.Array_View_Pointer3;
+        const int xDim0=xLocal.getRawDataSize(0);
+        const int xDim1=xLocal.getRawDataSize(1);
+        const int xDim2=xLocal.getRawDataSize(2);
+#undef X
+#define X(i0,i1,i2,i3) xp[i0+xDim0*(i1+xDim1*(i2+xDim2*(i3)))]
+
+        const int *maskp = maskLocal.Array_Descriptor.Array_View_Pointer2;
+        const int maskDim0=maskLocal.getRawDataSize(0);
+        const int maskDim1=maskLocal.getRawDataSize(1);
+        const int md1=maskDim0, md2=md1*maskDim1; 
+#define MASK(i0,i1,i2) maskp[(i0)+(i1)*md1+(i2)*md2]
+
+        int numberOfGhost=orderOfAccuracyInSpace/2;
+        if( pdeVariation == SmParameters::godunov ) 
+            numberOfGhost++;  // compute errors on an additional ghost line for Gounov (for plotting)
+        getIndex(mg.gridIndexRange(),I1,I2,I3,numberOfGhost);
+
+        bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
+    // if( !ok ) continue;
+
+
+        lambda = lambdaGrid(grid);
+        mu = muGrid(grid);
+        c1=(mu+lambda)/rho, c2= mu/rho;
+
+        bool energyOnly = false;
+
+//     const int i0a=mg.gridIndexRange(0,0);
+//     const int i1a=mg.gridIndexRange(0,1);
+//     const int i2a=mg.gridIndexRange(0,2);
+
+//     const real xa=xab[0][0], dx0=dx[0];
+//     const real ya=xab[0][1], dy0=dx[1];
+//     const real za=xab[0][2], dz0=dx[2];
+
+//     #define X0(i0,i1,i2) (xa+dx0*(i0-i0a))
+//     #define X1(i0,i1,i2) (ya+dy0*(i1-i1a))
+//     #define X2(i0,i1,i2) (za+dz0*(i2-i2a))
+
+            
+
+    // Here is the box where we apply the interior equations when there is a PML
+        bool usePML = getBoundsForPML( mg,Iv,pmlErrorOffset ); 
+
+//    errLocal=0.;
+
+        if( initialConditionOption==planeWaveInitialCondition )
+        {
+//       if( numberOfDimensions==2 )
+//       {
+// 	err(I1,I2,I3,uc)  = u(I1,I2,I3,uc)-exTrue(xe,ye,t);
+// 	err(I1,I2,I3,vc)  = u(I1,I2,I3,vc)-eyTrue(xe,ye,t);
+//       }
+//       else // 3D
+//       {
+// 	err(I1,I2,I3,uc)=u(I1,I2,I3,uc)-exTrue3d(xe,ye,ze,t);
+// 	err(I1,I2,I3,vc)=u(I1,I2,I3,vc)-eyTrue3d(xe,ye,ze,t);
+// 	err(I1,I2,I3,wc)=u(I1,I2,I3,wc)-ezTrue3d(xe,ye,ze,t);
+//       }
+          	    
+        }
+        else if( initialConditionOption==twilightZoneInitialCondition )
+        {
+      // *****************************************************************
+      // ******************* TZ FORCING **********************************
+      // *****************************************************************
+            OGFunction *& tz = parameters.dbase.get<OGFunction* >("exactSolution");
+            assert( tz!=NULL );
+            OGFunction & e = *tz;
+          	    
+            if( ok )
+            {
+      	if( mg.numberOfDimensions()==2 )
+      	{
+        	  FOR_3D(i1,i2,i3,I1,I2,I3)
+        	  {
+          	    real x0 = X(i1,i2,i3,0);
+          	    real y0 = X(i1,i2,i3,1);
+                        for( int n=0; n<numberOfComponents; n++ )
+                        {
+            	      ERR(i1,i2,i3,n)=U(i1,i2,i3,n)-e(x0,y0,0.,n,t);
+          	    }
+        	  }
+      	}
+      	else // 3D
+      	{
+        	  FOR_3D(i1,i2,i3,I1,I2,I3)
+        	  {
+          	    real x0 = X(i1,i2,i3,0);
+          	    real y0 = X(i1,i2,i3,1);
+          	    real z0 = X(i1,i2,i3,2);
+                        for( int n=0; n<numberOfComponents; n++ )
+                        {
+            	      ERR(i1,i2,i3,n)=U(i1,i2,i3,n)-e(x0,y0,z0,n,t);
+          	    }
+        	  }
+      	}
+            }
+            
+            if( debug & 4 ) 
+            {
+      	if( ok )
+      	{
+        	  where( maskLocal(I1,I2,I3)==0 )
+          	    for( int n=0; n<numberOfComponents; n++ )
+            	      errLocal(I1,I2,I3,n)=0.;
+      	}
+      	
+                Index J1,J2,J3;
+      	getIndex(mg.gridIndexRange(),J1,J2,J3,numberOfGhost);
+                display(err(J1,J2,J3,C),sPrintF("err on grid=%i at t=%e",grid,t),debugFile,"%9.2e "); 
+            }
+
+        }
+        else if( initialConditionOption==hempInitialCondition )
+        {
+        }
+        else if( initialConditionOption==specialInitialCondition )
+        {
+      // this is done above 
+        }
+        else if( initialConditionOption==gaussianPlaneWave )
+        {
+//       realArray xei,xhi;
+//       //xi=kx*(x-x0GaussianPlaneWave)+ky*(y-y0GaussianPlaneWave) -cc*t;
+//       xei=kx*(xe-x0GaussianPlaneWave)+ky*(ye-y0GaussianPlaneWave) -cc*tE;
+//       xhi=kx*(xh-x0GaussianPlaneWave)+ky*(yh-y0GaussianPlaneWave) -cc*tH;
+
+//       realArray hzei;
+//       hzei = hzGaussianPulse(xei);
+//       erre(Ie1,Ie2,Ie3)=ue(Ie1,Ie2,Ie3)-hzei(I1,I2,I3)*(-ky/(eps*cc));
+//       erre(Ie1,Ie2,Ie3)=ue(Ie1,Ie2,Ie3)-hzei(I1,I2,I3)*( kx/(eps*cc));
+//       errh(Ih1,Ih2,Ih3,hz)=uh(Ih1,Ih2,Ih3,hz) - hzGaussianPulse(xhi);
+        }
+        else if( initialConditionOption==squareEigenfunctionInitialCondition )
+        {
+//       real fx=Pi*initialConditionParameters[0];
+//       real fy=Pi*initialConditionParameters[1];
+//       real fz=Pi*initialConditionParameters[2];
+//       real omega,x0, y0, z0;
+//       real a1=1., a2=-2., a3=1.;  // For 3d, divergence free if a1+a2+a3=0
+//       if( numberOfDimensions==2 )
+//       {
+// 	omega=c*sqrt(fx*fx+fy*fy);
+// 	x0=-.5, y0=-.5;   // for the square [-.5,.5]x[-.5,.5] 
+//       }
+//       else
+//       {
+// 	omega=c*sqrt(fx*fx+fy*fy+fz*fz);
+// 	x0=0., y0=0., z0=0.;   // for the box [0,1]^3
+//       }
+          	    
+//       int i1,i2,i3;
+//       real xd,yd,zd;
+//       if( isRectangular )
+//       {
+// 	if( numberOfDimensions==2 )
+// 	{
+// 	  Index J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+// 	  Index J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+// 	  Index J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+// 	  FOR_3D(i1,i2,i3,J1,J2,J3)
+// 	  {
+// 	    xd=X0(i1,i2,i3)-x0;
+// 	    yd=X1(i1,i2,i3)-y0;
+
+// 	    ERRHZ(i1,i2,i3)=UHZ(i1,i2,i3) - cos(fx*xd)*cos(fy*yd)*cos(omega*tH);
+// 	  }
+
+// 	  J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+// 	  J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+// 	  J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+// 	  FOR_3(i1,i2,i3,J1,J2,J3)
+// 	  {
+// 	    xd=X0(i1,i2,i3)-x0;
+// 	    yd=X1(i1,i2,i3)-y0;
+// 	    ERREX(i1,i2,i3)=UEX(i1,i2,i3) - (-fy/omega)*cos(fx*xd)*sin(fy*yd)*sin(omega*tE);  // Ex.t = Hz.y
+// 	    ERREY(i1,i2,i3)=UEY(i1,i2,i3) - ( fx/omega)*sin(fx*xd)*cos(fy*yd)*sin(omega*tE);  // Ey.t = - Hz.x
+// 	  }
+
+// 	} 
+// 	else // 3D
+// 	{
+
+// 	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+// 	  Index J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+// 	  Index J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+// 	  FOR_3D(i1,i2,i3,I1,I2,I3)
+// 	  {
+// 	    xd=X0(i1,i2,i3)-x0;
+// 	    yd=X1(i1,i2,i3)-y0;
+// 	    zd=X2(i1,i2,i3)-z0;
+
+// 	    ERREX(i1,i2,i3)=UEX(i1,i2,i3) -  (a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*cos(omega*tE);  // 
+// 	    ERREY(i1,i2,i3)=UEY(i1,i2,i3) -  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*tE);  // 
+// 	    ERREZ(i1,i2,i3)=UEZ(i1,i2,i3) -  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*tE);  // 
+// 	  }
+// 	}
+//       }
+//       else // curvilinear 
+//       {
+// 	// curvilinear
+// 	if( numberOfDimensions==2 )
+// 	{
+// 	  Index J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+// 	  Index J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+// 	  Index J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+
+// 	  FOR_3D(i1,i2,i3,J1,J2,J3)
+// 	  {
+// 	    xd=XHP(i1,i2,i3,0)-x0;
+// 	    yd=XHP(i1,i2,i3,1)-y0;
+// 	    ERRHZ(i1,i2,i3)=UHZ(i1,i2,i3) - cos(fx*xd)*cos(fy*yd)*cos(omega*tH);
+// 	  }
+
+// 	  J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+// 	  J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+// 	  J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+// 	  FOR_3(i1,i2,i3,J1,J2,J3)
+// 	  {
+// 	    xd=XEP(i1,i2,i3,0)-x0;
+// 	    yd=XEP(i1,i2,i3,1)-y0;
+// 	    ERREX(i1,i2,i3)=UEX(i1,i2,i3) - (-fy/omega)*cos(fx*xd)*sin(fy*yd)*sin(omega*tE);  // Ex.t = Hz.y
+// 	    ERREY(i1,i2,i3)=UEY(i1,i2,i3) - ( fx/omega)*sin(fx*xd)*cos(fy*yd)*sin(omega*tE);  // Ey.t = - Hz.x
+// 	  }
+// 	} 
+// 	else // 3D
+// 	{
+// 	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+// 	  Index J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+// 	  Index J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+// 	  FOR_3D(i1,i2,i3,J1,J2,J3)
+// 	  {
+// 	    xd=XEP(i1,i2,i3,0)-x0;
+// 	    yd=XEP(i1,i2,i3,1)-y0;
+// 	    zd=XEP(i1,i2,i3,2)-z0;
+
+// 	    ERREX(i1,i2,i3)=UEX(i1,i2,i3) -  (a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*cos(omega*tE);  // 
+// 	    ERREY(i1,i2,i3)=UEY(i1,i2,i3) -  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*tE);  // 
+// 	    ERREZ(i1,i2,i3)=UEZ(i1,i2,i3) -  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*tE);  // 
+// 	  }
+// 	}
+
+//       }
+
+        }
+        else if( initialConditionOption==annulusEigenfunctionInitialCondition )
+        {
+      // This is a macro:
+//    annulusEigenFunction(error)
+
+        }
+        else if( initialConditionOption==planeMaterialInterfaceInitialCondition )
+        {
+// 	// adjust array dimensions for local arrays
+// 	Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
+// 	Index J2 = Range(max(I2.getBase(),uel.getBase(1)),min(I2.getBound(),uel.getBound(1)));
+// 	Index J3 = Range(max(I3.getBase(),uel.getBase(2)),min(I3.getBound(),uel.getBound(2)));
+
+// 	setPlaneMaterialInterfaceMacro(error,J1,J2,J3);
+        }
+        else if( initialConditionOption==gaussianIntegralInitialCondition )
+        {
+          	    
+//       // adjust array dimensions for local arrays
+//       Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
+//       Index J2 = Range(max(I2.getBase(),uel.getBase(1)),min(I2.getBound(),uel.getBound(1)));
+//       Index J3 = Range(max(I3.getBase(),uel.getBase(2)),min(I3.getBound(),uel.getBound(2)));
+
+//       getGaussianIntegralSolution(error,UEX,UEY,UHZ,tE);
+
+          	    
+        }
+        else if( knownSolutionOption==annulusEigenfunctionKnownSolution )
+        {
+
+
+        }
+        else if( initialConditionOption==knownSolutionInitialCondition ) 
+        {
+            realCompositeGridFunction *pKnownSolution = parameters.dbase.get<realCompositeGridFunction* >("pKnownSolution");
+      // assert( pKnownSolution!=NULL );
+      // realCompositeGridFunction & uKnown = *pKnownSolution;
+            
+            assert( pKnownSolution!=NULL );
+            realCompositeGridFunction & uKnown = parameters.getKnownSolution( cg, t );  // *wdh* 101212
+
+
+            OV_GET_SERIAL_ARRAY_CONST(real,uKnown[grid],uKnownLocal);
+
+            if( false )
+                printP(" *** compute errors from known solution t=%8.2e ****\n",t);
+            
+            errLocal(I1,I2,I3,C)=fabs( uLocal(I1,I2,I3,C) - uKnownLocal(I1,I2,I3,C));
+
+        }
+        else if( compareToReferenceShowFile )
+        {
+            assert( uReference!=NULL );
+          	    
+            realMappedGridFunction & ur = (*uReference)[grid];
+            #ifdef USE_PPP
+                realSerialArray urLocal;  getLocalArrayWithGhostBoundaries(ur,urLocal);
+            #else
+                const realSerialArray & urLocal  =  ur;
+            #endif	    
+
+            errLocal(I1,I2,I3,C)=fabs( uLocal(I1,I2,I3,C) - urLocal(I1,I2,I3,C));
+        }
+        else if( forcingOption==planeWaveBoundaryForcing ||
+           	     initialConditionOption==planeWaveScatteredFieldInitialCondition )
+        {
+        
+        }
+        else
+        {
+      //	    Overture::abort("Cgsm::unknown forcing option");
+            energyOnly = true;
+        }
+
+// *   -- old way -- 090418
+// *     RealArray errMax(C);
+// *     errMax=0.;  // max error on this grid
+// * 	
+// *     // **** Here is where we compute the errors that are printed to the screen and saved in the log file *****
+// * 
+// *     int numGhostToCheck=0;
+// *     if( parameters.dbase.get<int >("checkErrorsAtGhostPoints") !=0 )
+// *     {
+// *       numGhostToCheck=orderOfAccuracyInSpace/2;
+// *     }
+// *     Index J1,J2,J3;
+// *     getIndex(mg.gridIndexRange(),J1,J2,J3,numGhostToCheck); // optionally include ghost pts
+// *     ok = ParallelUtility::getLocalArrayBounds(u,uLocal,J1,J2,J3);
+// *     if( ok )
+// *     {
+// *       FOR_3D(i1,i2,i3,J1,J2,J3)
+// *       {
+// * 	if( MASK(i1,i2,i3)!=0 )
+// * 	{
+// * 	  for( int c=C.getBase(); c<=C.getBound(); c++ )
+// * 	  {
+// * 	    errMax(c)=max(errMax(c),fabs(ERR(i1,i2,i3,c)));           // this is the max err on this grid
+// * 	    solutionNorm(c)=max(solutionNorm(c),fabs(U(i1,i2,i3,c)));
+// * 	  }
+// * 	}
+// *       }
+// *     }
+// * 	
+// *     for( int c=C.getBase(); c<=C.getBound(); c++ )
+// *     {
+// *       errMax(c)=ParallelUtility::getMaxValue(errMax(c));
+// *       solutionNorm(c)=ParallelUtility::getMaxValue(solutionNorm(c));
+// * 	      
+// *       maximumError(c)=max(maximumError(c),errMax(c));  // max error over all grids
+// * 
+// *       // printF("getErrors: maximumError(%i)=%9.3e\n",c,maximumError(c));
+// * 	  
+// *     }
+// * 
+// *     bool computeErrorsAtGhost=true;
+// * #ifdef USE_PPP
+// *     computeErrorsAtGhost=false;
+// * #endif
+// *     if( computeErrorsAtGhost && !usePML )
+// *     {
+// * 	      
+// *       // *** Compute error including ghost points and output a warning if the errors get too large ***
+// * 
+// *       RealArray ghostError(C,Range(1,numberOfGhost));
+// *       ghostError=0.;
+// *       int c,ghost;
+// *       Index Ig1,Ig2,Ig3;
+// *       for( int axis=0; axis<mg.numberOfDimensions(); axis++)
+// *       {
+// * 	for( int side=0; side<=1; side++ )
+// * 	{
+// * 	  getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+// * 	  for( ghost=1; ghost<=numberOfGhost; ghost++ )
+// * 	  {
+// * 	    getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,ghost);
+// * 			
+// * 	    where( mask(I1,I2,I3)!=0 && mask(Ig1,Ig2,Ig3)!=0 )
+// * 	    {
+// * 	      for( c=C.getBase(); c<=C.getBound(); c++ )
+// * 		ghostError(c,ghost)=max(ghostError(c,ghost),max(fabs(err(Ig1,Ig2,Ig3,c))));
+// * 			    
+// * 	      for( c=C.getBase(); c<=C.getBound(); c++ )
+// * 	      {
+// * 		if( max(fabs(err(Ig1,Ig2,Ig3,c)))>1.e+1 )
+// * 		{
+// * 		  printF(" *** grid=%i side,axis=%i,%i ghost=%i c=%i ****\n",grid,side,axis,ghost,c);
+// * 		  err(Ig1,Ig2,Ig3,c).display("ERROR on the ghost line");
+// * 		}
+// * 	      }
+// * 			    
+// * 	    }
+// * 	  }
+// * 	}
+// *       }
+// * 
+// *       if( debug & 2 )
+// *       {
+// * 	for( ghost=1; ghost<=numberOfGhost; ghost++ )
+// * 	{
+// * 	  printF(" t=%9.3e: grid=%i: Errors at ghost line %i: ",t,grid,ghost);
+// * 	  for( c=C.getBase(); c<=C.getBound(); c++ )
+// * 	    printF("%8.2e, ",ghostError(c,ghost));
+// * 	  printF("\n");
+// * 	}
+// *       }
+// *       
+// *     } // end if compute error at ghost
+
+    
+        err.updateGhostBoundaries();  // *wdh* 091116
+
+    } // end for grid
+    
+  // **new way** 090418 -- print multiple norms 
+
+    realCompositeGridFunction & cgerr = *cgerrp;
+    realCompositeGridFunction & cgu = gf[current].u;
+
+  // We print the max norm and optionally some lp norms
+    const int errorNorm = parameters.dbase.get<int >("errorNorm");
+    int numberOfNormsToPrint=1;
+    if( errorNorm<10000 ) numberOfNormsToPrint+=errorNorm;
+
+    for( int norm=0; norm<numberOfNormsToPrint; norm++ )
+    { // norm==0 : max-norm, otherwise Lp-norm with p=norm
+        int pNorm = norm==0 ? INT_MAX : norm;
+
+        maximumError=0.;
+        for( int c=C.getBase(); c<=C.getBound(); c++ )
+        {
+            const int maskOption=0;  // check points where mask != 0
+            if( pNorm<10000 )
+            {
+      	maximumError(c)=lpNorm(pNorm,cgerr,c,maskOption,parameters.dbase.get<int >("checkErrorsAtGhostPoints") );
+      	solutionNorm(c)=lpNorm(pNorm,cgu  ,c,maskOption,parameters.dbase.get<int >("checkErrorsAtGhostPoints") );
+            }
+            else
+            { // assume this is the max-norm
+      	maximumError(c)=maxNorm(cgerr,c,maskOption,parameters.dbase.get<int >("checkErrorsAtGhostPoints") );
+      	solutionNorm(c)=maxNorm(cgu  ,c,maskOption,parameters.dbase.get<int >("checkErrorsAtGhostPoints") );
+            }
+        }
+
+        aString normName;
+        if( pNorm<1000 )
+            sPrintF(normName,"l%i-norm",pNorm);
+        else
+            normName="maxNorm";
+
+        const int numFiles = debug > 0 ? 3 : 2;
+        for( int fileio=0; fileio<numFiles; fileio++ )
+        {
+            FILE *output = fileio==0 ? logFile : fileio==1 ? stdout : pDebugFile;
+
+            if( norm==0 )
+      	fPrintF(output,(const char*)label);
+
+            fPrintF(output,"-->t=%10.4e dt=%7.1e %s errors:[",t,dt,(const char*)normName);
+
+            for( int c=C.getBase(); c<=C.getBound(); c++ )
+      	fPrintF(output,"%10.4e,",maximumError(c));
+
+            fPrintF(output,"], %s(u):[",(const char*)normName);
+
+            for( int c=C.getBase(); c<=C.getBound(); c++ )
+      	fPrintF(output,"%8.2e,",solutionNorm(c));
+
+            fPrintF(output,"]\n");
+        	  
+            if( fileio==2 && norm==numberOfNormsToPrint-1 )
+            {
+      	fPrintF(output,"\n");
+            }
+            
+        }
+
+    // 
+    //if( norm==0 )
+    //  saveSequenceInfo( t, maximumError );
+
+    } // end for norm 
+    
+    RealArray & timing = parameters.dbase.get<RealArray >("timing");
+    timing(parameters.dbase.get<int>("timeForGetError"))+=getCPU()-time0;
+}

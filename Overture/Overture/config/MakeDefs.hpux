@@ -1,0 +1,85 @@
+#
+# MakeDefs.hpux : definitions for HP
+#
+
+# +a1 : ansi c
+# +Z  : shared libraries
+# -Ae : extended ansi
+# -Aa : ansi mode
+# +ppu append _ to fortran
+
+A++ = $(APlusPlus)
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+AppLibraries = -L$(APlusPlus)/lib -lApp -lApp_static 
+
+Include=  $(Overture)/include
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+LibRapsodi= -lRapsodi -lRapsodi_static 
+GL_LIBS = -lGLw -lMesaGL -lMesaGLU -lMesatk -lMesaaux
+BOXLIB_DEFS = -DBL_USE_FLOAT -DBL_Solaris
+
+# Here is the rpath command -- what should this be ??
+OV_RPATH = -rpath
+
+# Here is where we can find the perl include files and library (CORE)
+# These will normally be changed by the configure script unless it can't find the location of the perl CORE 
+OV_PERL_INCLUDE = /usr/lib/perl5/5.6.1/i386-linux/CORE
+OV_PERL_LIB     = /usr/lib/perl5/5.6.1/i386-linux/CORE
+# Here are the perl libraries we need to link to
+OV_PERL_LIBRARIES = $(OV_RPATH) $(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lcrypt
+
+cc = cc
+CC = CC
+FC = f77
+
+# Seems to take a long time to compile with -O
+C_OPTIMIZATION_FLAG = 
+CPP_OPTIMIZATION_FLAG = 
+FORTRAN_OPTIMIZATION_FLAG = 
+
+CFLAGS =  -I$(Include)  $(C_OPTIMIZATION_FLAG) $(OverturePrecision) -Aa -D_HPUX_SOURCE +Z -I$(APlusPlus)/include -I$(OpenGL)/include  -I$(XLIBS)/include -DSHM
+# flags for c routines we always optimize
+CFLAGS =  -O -I$(Include)  $(OverturePrecision) -Aa -D_HPUX_SOURCE +Z -I$(APlusPlus)/include -I$(OpenGL)/include  -I$(XLIBS)/include -DSHM
+
+
+# do not include some paths, such as STL in the places searched by makedepend (takes too long)
+CC_INCLUDES_FOR_DEPEND =  $(OverturePrecision) -Wp,-H20000 -Aa +eh -D_HPUX_SOURCE +Z -ext -I$(Overture)/include -I$(APlusPlus)/include -I$(OpenGL)/include  -I$(XLIBS)/include -DSHM $(BOXLIB_DEFS) -I$(OV_PERL_INCLUDE)
+
+STL_INCLUDE = 
+CC_INCLUDES = $(CC_FLAGS) $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE)
+
+CCFLAGS= $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG)
+
+# things that are always compile with optimization use this flag
+CCFLAGSO= $(CC_INCLUDES) -O
+
+# things that are always compile with lots of optimization use this flag
+CCFLAGSF= $(CC_INCLUDES) -O 
+
+# things that need to be compiled with no optimization use the following
+CCFLAGSG= $(CC_INCLUDES) -g
+
+FFLAGS= $(FORTRAN_OPTIMIZATION_FLAG)  $(FortranDouble) $(OverturePrecision) +Z +ppu -I$(Include)
+# single precision always:
+FFLAGSS= $(OverturePrecision) $(FORTRAN_OPTIMIZATION_FLAG)  +Z +ppu -I$(Include)
+
+# things that are always compile with optimization use these flags
+FFLAGSO= -O $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) -I$(Include)  
+FFLAGSSO= -O $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) -I$(Include) 
+
+AR = ar
+ARFLAGS = ruv
+
+RANLIB = ranlib
+LD = ld
+SOFLAGS = -b
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES= 
+RAPTEMPLATES= 
+OpenGLibs=
+GLIBS= $(OV_PERL_LIBRARIES) -L$(OpenGL)/lib $(OpenGLibs) -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm -L$(XLIBS)/lib -lXt -lX11 -lXext -lm
+
+FLIBS= -Wl,-rpath,$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 

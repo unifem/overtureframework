@@ -1,0 +1,76 @@
+#!/bin/bash
+
+cat <<EOF
+#!/bin/bash
+# getFlags.sh -- return compiler flags, a-la gtk-config
+# (C)2002, Petri Fast & the Overture team at LLNL.
+#
+EOF
+
+index=0
+for arg in "$@"
+do
+    argList[$index]="$arg"
+    echo \# $index "=" ${argList[$index]}
+    let "index=$index+1"
+done
+numberOfArgs=$index
+
+##echo "#number of args=$numberOfArgs zz"
+echo
+echo -n "params=( "
+index=0
+offset=0
+
+while [ $offset -lt $numberOfArgs ]
+do
+  echo -n ${argList[$offset]} "  "
+  let "index=$index+1"  
+  let "offset=  $index * 2"
+done
+echo ")"
+echo 
+
+echo
+echo "flags=( "
+index=0
+offset=0
+
+while [ $offset -lt $numberOfArgs ]
+do
+  echo "  " \'${argList[$offset+1]}\'
+  let "index=$index+1"  
+  let "offset=  $index * 2"
+done
+echo ")"
+echo 
+
+cat <<EOF-LAST-CODE-SEGMENT
+
+if [ -z $1 ]
+then
+  echo "Usage: getFlags.sh <flags>"
+  exit -1
+fi
+
+
+numberOfParameters=\${#params[@]}   # extracts length of param list
+
+for arg in "\$@"
+do
+  index=0
+  while [ \$index -lt \$numberOfParameters ]
+  do
+    param=\${params[\$index]}
+#    echo "  param[\$index] = \$param"
+
+    if [ \$arg = \$param ] 
+    then
+      echo \${flags[\$index]}
+    fi   
+    let "index = \$index + 1"
+  done
+done   # \$@ sees arguments as separate words. 
+
+exit 0
+EOF-LAST-CODE-SEGMENT

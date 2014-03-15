@@ -1,0 +1,1908 @@
+\documentclass{article}
+
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% NOTE THIS DOCUMENT NEEDS A DIFFERENT TOPMARGIN!! WHY??
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .5in }
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+
+% \usepackage{html}  % including this changes the page spacing  !!
+% \input documentationPageSize.tex
+
+\input{pstricks}
+\input{pst-node}
+\input{colours}
+\psset{xunit=0.9in,yunit=0.9in,runit=0.9in,linewidth=0.4pt}
+
+% \usepackage{float}
+% \usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\input wdhDefinitions
+
+% \special{header=/home/henshaw/latex2e/pstricks.pro}
+% \special{header=/home/henshaw/latex2e/pst-node.pro}
+
+
+
+% *wdh* \floatstyle{boxed}\restylefloat{figure}
+%\floatstyle{plain}\restylefloat{table}
+% \newfloat{example}{htb}{exa}[section]\floatname{example}{Example}
+
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+ ~~ \\
+ ~~ \\
+ ~~ \\
+ ~~ \\
+ ~~ \\
+{\Large The Overture Grid Classes \\
+        Users' Guide, Version 1.0} \\
+\vspace{ 2\baselineskip}
+Geoffrey S. Chesshire \\
+\vspace{\baselineskip}
+Scientific Computing Group (CIC-19) \\
+Los Alamos National Laboratory \\
+Los Alamos, New Mexico 87545, USA \\
+\vspace{2\baselineskip}
+William D. Henshaw \\
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture 
+\vspace{\baselineskip}
+\today
+\vspace{\baselineskip}
+UCRL-MA-134445
+\end{center}
+
+\vspace{ 8\baselineskip}
+\begin{abstract}
+
+Overture is a library containing classes for grids, overlapping grid
+generation and the discretization and solution of PDEs on overlapping
+grids.  This document shows how the Overture grid classes may be used.
+ The primary
+classes described are the {\bf MappedGrid}, {\bf GridCollection} and {\bf CompositeGrid} classes.
+These classes hold the geometry arrays required by PDE solvers such as the {\bf vertex} (grid vertices),
+{\bf vertexDerivative} (jacobian derivatives), and {\bf vertexBoundaryNormal} (normals
+on the boundary), etc. The geometry arrays can be optionally generated as required by
+the application. The grid classes have support for multigrid levels and for adaptive mesh refinement.
+While reading this users' guide, it may be useful to have a copy of
+the reference manual " The Overture Grid Classes, Reference Guide" at hand.  Both
+this users' guide and the reference manual may be found on the Overture home page.
+
+\end{abstract}
+\end{titlepage}
+
+% generate a table of contents and list of figures
+\tableofcontents
+% \begin{latexonly}
+% \listof{example}{List of Examples}
+% \listoffigures
+% \listoftables
+\vfill\eject
+% \end{latexonly}
+
+\section{Introduction}
+\label{Introduction}
+
+The Overture framework contains C++ classes that describe grids for the
+discretization of partial differential equations on complex domains in one,
+two and three dimensions.  While most of our work until now has been in the
+area of finite-difference and finite-volume methods using boundary-fitted
+curvilinear grids and overlapping collections of such grids, we anticipate
+supporting additional types of grids and the methods that use them.
+The Overture grid classes include classes for single grids and classes
+for collections of grids.  The single-grid classes are related to each
+other through the C++ inheritance mechanism.  The base class is
+\textbf{ GenericGrid} (\S\ref{GenericGrid}),
+which actually contains no geometric data.  The class
+\textbf{MappedGrid} (\S\ref{MappedGrid})
+is derived from \textbf{GenericGrid} and is used to describe
+curvilinear grids.  It contains the geometric data normally required for
+the implementation of finite-difference and finite-volume methods.
+The collections of grids are also related to each other through
+inheritance.  The base class for collections of grids is
+\textbf{GenericGridCollection} (\S\ref{GenericGridCollection}),
+which contains a collection of \textbf{GenericGrid}s.  The class
+\textbf{GridCollection} (\S\ref{GridCollection})
+is derived from GenericGridCollection, and contains a collection of
+\textbf{MappedGrid}s.  All other Overture grid classes that
+contain collections of \textbf{MappedGrid}s are derived from
+\textbf{GridCollection}.  In particular, the class
+\textbf{CompositeGrid} (\S\ref{CompositeGrid})
+is derived from \textbf{GridCollection}.  All of the Overture grid
+classes are reference-counted, using the envelope-letter paradigm.
+To support this, the base grid classes \textbf{GenericGrid} and
+\textbf{GenericGridCollection} are derived from the base class
+\textbf{ReferenceCounting} (Appendix~\ref{ReferenceCounting}).
+All of these classes are described in this document.
+
+
+\section{Class \textbf{GenericGrid}} \index{GenericGrid}
+\label{GenericGrid}
+
+Class \textbf{GenericGrid} is the base class for all of the Overture
+single-grid classes.  By itself it does not contain any geometric data.
+It is useful only as a base class for other grid classes that
+contain data to describe particular kinds of grids.  We envision deriving
+from \textbf{GenericGrid} separate classes for structured and unstructured
+grids, and perhaps for other kinds of grids that we have not yet anticipated.
+For example, the class \textbf{MappedGrid} (\S\ref{MappedGrid})
+is derived from \textbf{GenericGrid} in order to describe curvilinear
+structured grids.  \textbf{GenericGrid} is derived from class
+\textbf{ReferenceCounting} (Appendix~\ref{ReferenceCounting}),
+which provides a mechanism for implementing the envelope-letter paradigm for
+reference-counted objects.  This allows several \textbf{GenericGrid}s to
+share the same data, in such a way that the data are deallocated only when
+the last \textbf{GenericGrid} that uses the data is destroyed, due either
+to its being deleted or to its going out of scope.
+
+\subsection{Data-sharing between \textbf{GenericGrid}s}
+\label{GenericGrid:DataSharing}
+
+Example~\ref{Example:GenericGrid:DataSharing} shows several
+ways that a \textbf{GenericGrid} can be made either to share data or to contain
+a separate copy of the data of another grid.  The copy constructor can be used
+to construct a "shallow copy" of another grid, so that the two grids share
+the same data.  The three forms shown in Example~\ref{Example:GenericGrid:DataSharing}
+for the use of the copy constructor to construct a shallow copy are equivalent
+and may be used interchangeably.  An existing grid can also be made to
+become a shallow copy of another grid by using the \textbf{reference}()
+member function, as shown in the example.
+The example also shows several ways to make a "deep copy," in which data are
+copied from one grid to another when the two grids do not share data.  First,
+the copy constructor may be used, with the second argument set to \textbf{DEEP},
+to construct a copy of a grid with separate data all set equal to that of the
+original grid.  Second, \textbf{operator=}() may be used to copy one grid
+to another existing grid.  This will of course also modify any other grids
+with which the latter shares data.  Third, a deep copy can be accomplished by
+using the \textbf{reference}() member function, followed by using the
+\textbf{breakReference}() member function, as shown in
+Example~\ref{Example:GenericGrid:DataSharing}.  By contrast to
+the use of \textbf{operator=}(), this method does not modify any other grids
+with which the grid originally shared data before the call to \textbf{reference}().
+The member functions \textbf{operator==}() and \textbf{operator!=}()
+answer the question of whether two \textbf{GenericGrid}s are references
+to the same grid, in the sense that they share the same data.  This test is
+fast and easy, but is not equivalent to checking whether all of the data of
+two distinct grids are equal.  All of the functions shown in this example are
+available in derived classes such as \textbf{MappedGrid}.  In some cases they
+may be called directly, as for \textbf{operator==}() and
+\textbf{operator!=}(); in some cases as virtual functions,
+as for \textbf{breakReference}(); and in other cases as overloaded functions
+with arguments of the appropriate derived types, as for the copy constructor,
+\textbf{operator=}() and \textbf{reference}().
+
+% \begin{figure}
+{\small
+\begin{verbatim}
+#include "GenericGrid.h"   
+void example(const GenericGrid & g0)
+{ 
+  GenericGrid                             // Construct some grids.
+       g1,                                // g1 uses the default constructor. 
+       g2 = g0, g3(g0), g4(g0, SHALLOW),  // g2, g3 and g4 are "shallow copies" sharing data with g0,
+       g5(g0, DEEP);                      // g5 is a "deep copy" of g0, with its own separate data.
+  g1.breakReference();
+  g1 = g0;   assert(g1 != g0);            // Now g1 is a "deep copy" of g0.   
+  g1.breakReference}();
+  g1.reference}(g0);   assert(g1 == g0);  // Now g1 is a "shallow copy," sharing data with g0.
+  g1.breakReference(); assert(g1 != g0);  // Now g1 has a separate "deep copy" of its old data.
+}                                  
+\end{verbatim}
+}
+{\center Deep and shallow copies of \textbf{GenericGrid}s\label{Example:GenericGrid:DataSharing}}
+% \end{figure}
+
+\subsection{Geometry management}
+\label{GenericGrid:Geometry}
+
+Some member functions of class \textbf{GenericGrid} are used to
+manage the geometric data of a grid.  Several of these member functions
+are overloaded in derived classes such as \textbf{MappedGrid} (See also
+the discussion in \S\ref{MappedGrid:Geometry}.)  They are defined in the
+base grid class in order to provide a consistent interface independent of
+the particular derived class.  They use the C++ virtual function mechanism
+in order to manage the geometry of derived classes in situations where only
+the base grid class name is known.  The member function
+\textbf{computedGeometry}() returns a mask that indicates which geometric
+data have been computed and are up-to-date.  Since class
+\textbf{GenericGrid} contains no geometric data, this mask is meaningful
+only for an object belonging to a derived class.  The member function
+\textbf{geometryHasChanged}() is used to mark geometric data out-of-date.
+It takes as an optional argument an integer mask that indicates which
+geometric data have become out-of-date.  This
+function has a default argument value that indicates all geometric data,
+including the data of any derived class.  Before attempting to use any
+geometric data, it is essential to ensure that the data
+have been computed, by calling the member function \textbf{update}()
+with arguments specifying exactly which geometric data are needed.
+For example, if the \textbf{GenericGrid} is actually a
+\textbf{MappedGrid} and some geometric data are needed which are defined
+in class \textbf{MappedGrid}, then \textbf{update}() must be called
+with arguments specifying which \textbf{MappedGrid} geometric data are
+needed.  If the grid is changed in any way that could affect its
+geometric data, then these data are automatically marked out-of-date.  The
+data are never recomputed until this is explicitly requested by a call to
+\textbf{update}(), with the arguments specifying exactly which
+geometric data are needed.  This argument is an integer
+mask formed by taking the "bitwise or" of constants defined in the
+class \textbf{GenericGrid} and any class derived from
+it.
+%\footnote{It is possible to call update() with no arguments, but this
+%has an undefined effect.  {\em I.e.}, you should not have any expectations
+%about the result of calling update() with no arguments.  You should
+%also not expect to have any geometry computed that you do not explicitly
+%ask for by calling update() with arguments specifying exactly which
+%geometry you want.  It is an extremely unfortunate historical accident
+%that I mistakenly defined update() with a default argument, and I wish to
+%discourage reliance on this default argument.}  
+These member
+functions may be used for any class derived from \textbf{GenericGrid},
+such as class \textbf{MappedGrid}.
+Example~\ref{Example:GenericGrid:Geometry}
+illustrates the use of these member functions.  First, we find out which
+geometric data already have been computed.  This information is returned
+by \textbf{computedGeometry}() as a mask of bits, where each bit refers
+to geometric data that are specific to the derived class of the
+grid.  We store this mask in the integer \textbf{cg}.  Next, we mark
+this geometric data out-of-date using \textbf{geometryHasChanged}(),
+as we might want to do if we had modified the grid in a way that would
+affect its geometric data.  For example, if the grid was a
+\textbf{MappedGrid} and we had applied a rotation to its mapping, then
+all of the geometric data would become invalid and would need to be
+recomputed.  Next, we destroy this geometric data using
+\textbf{destroy}().  We would not normally do this; we do it here only
+to show how it may be done. This reduces the storage used for the
+\textbf{GenericGrid} to the least possible.  Finally, we recompute the
+geometric data specified by the mask \textbf{cg}.
+
+% \begin{example}\begin{tabular}{ll}%
+{\small
+\begin{verbatim}
+#include "GenericGrid.h"
+void example(GenericGrid g) 
+{
+  Integer cg = g.computedGeometry();  // Check which geometric data are up-to-date.          
+  g.geometryHasChanged(cg);           // Mark this geometric data out-of-date.               
+  g.destroy(cg);                      // Deallocate storage for this geometric data.         
+  g.update(cg);                       // Reallocate storage and compute this geometric data. 
+} 
+\end{verbatim}
+}
+{\center Example~\ref{Example:GenericGrid:Geometry}: \textbf{GenericGrid} geometry management\label{Example:GenericGrid:Geometry}}
+% \end{example}
+
+\subsection{Input/output and miscellaneous member functions}
+\label{GenericGrid:Miscellaneous}
+
+We list here some member functions of class \textbf{GenericGrid} for
+input/output of data structures, and any other member functions not
+mentioned above.  Typically these member functions are overloaded in derived
+classes, and most of these are virtual member functions.  The virtual member
+function \textbf{initialize}() is used to put the
+\textbf{GenericGrid} back into the state it was in after it was first
+constructed.  However, this function is not particularly useful, because if
+the grid belongs to a derived grid class (as it usually does), it may have
+undesired side effects that leave the grid in a state that is not
+self-consistent.  Other examples are the member functions
+\textbf{get}() and \textbf{put}(), for reading and writing a
+\textbf{GenericGrid} to or from a database.  An example of an
+overloaded function which is not a virtual function (and not even a member
+function) is the stream output operator.  This function prints out a summary
+of the data of a \textbf{GenericGrid}.
+Example~\ref{Example:GenericGrid:Miscellaneous} illustrates the use of these
+functions.
+
+%\begin{example}\begin{tabular}{ll}%
+{\small
+\begin{verbatim}
+#include "GenericGrid.h" 
+void example(GenericDataBase & file) 
+{ 
+  GenericGrid g;
+  g.get(file, "grid1");           // Read a GenericGrid named "grid1" from the file.
+  g.put(file, "grid2");           // Write the GenericGrid to the file with name "grid2."
+  cout << "g = " << endl << g << endl;  // Print out the contents of g.   
+}
+\end{verbatim}
+}
+{\center Example~\ref{Example:GenericGrid:Miscellaneous}: Input/output of \textbf{GenericGrid}s\label{Example:GenericGrid:Miscellaneous}}
+
+\section{Class \textbf{\Index{MappedGrid}}}
+\label{MappedGrid}
+
+Class \textbf{MappedGrid} is used for all logically-rectangular grids.
+This includes cartesian, rectangular and curvilinear grids in one, two
+and three dimensions.  Class \textbf{MappedGrid} allows for grids with
+holes, unused vertices or cells within a grid.  It is assumed that a
+continuous function exists which maps the vertices of a uniform grid to the
+vertices of the \textbf{MappedGrid}.  This is no restriction, becauase
+it is always possible to construct an interpolant function with this
+property.  \textbf{MappedGrid} is derived from class
+\textbf{GenericGrid} (\S\ref{GenericGrid}).
+It overloads some of the \textbf{GenericGrid} public constants, member
+data and member functions described in (\S\ref{GenericGrid}).  All of the
+member functions of class \textbf{GenericGrid} described there may be
+used; only note that now the copy constructor and the member functions
+\textbf{reference}() and \textbf{operator=}() take a
+\textbf{MappedGrid} as their argument.  There is an additional
+constructor for \textbf{MappedGrid}, which takes a \textbf{Mapping}
+as argument, as shown in
+Example~\ref{Example:MappedGrid:VertexGeometry}.
+Corresponding to this constructor, there is also a \textbf{reference}()
+function which takes a \textbf{Mapping} as argument.
+
+% \newcommand{\dv}{{\bf d}}
+% \newcommand{\rv}{{\bf r}}
+
+\subsection{Geometry management}
+\label{MappedGrid:Geometry}
+
+
+Class \textbf{MappedGrid} provides access to geometric data at the 
+grid vertices.  In addition, it provides access to geometric data at cell
+centers and other locations, as well as some global geometric data.  However,
+to start the discussion, we consider first only the the global geometric data
+and the geometric data that class \textbf{MappedGrid} provides at the grid
+vertices.  In particular, it provides access to the coordinates of the
+vertices as computed from the mapping, the derivative, the inverse derivative
+and the jacobian determinant of the derivative of the mapping at the vertices,
+as well as the unit outward normal vector at the boundary vertices of the grid.
+The global information it provides is a bounding box for vertices of the grid
+and, for each direction in the parameter space of the grid, the minimum and
+maximum distance between adjacent grid vertices.  The grid vertices and other
+local geometric data computed at the grid vertices are stored in
+\textbf{RealMappedGridFunction}s, which are derived from \textbf{A++}
+arrays.  The first three indices of these arrays indicate the particular
+grid vertex.  The fourth index refers, in the case of the vertex coordinates,
+the mapping derivative and the normal vector, to the coordinate $(x,y,z)$;
+for the inverse mapping derivative it refers to the coordinate $(r_1,r_2,r_3)$.
+The fifth index refers, in the case of the mapping derivative,
+to the partial derivative $(\partial/\partial r_1, \partial/\partial r_2,
+\partial/\partial r_3)$; in the case of the inverse mapping derivative it
+refers to the partial derivative 
+$(\partial/\partial x, \partial/\partial y,\partial/\partial z)$. For example, if the mapping is
+$\dv\colon[0,1]^3\mapsto\mbox{I\kern-.22em R}^3$ then\hfil\\\hfil\\
+the coordinates of grid vertex $(i_1,i_2,i_3)$ are
+\[
+    \dv(r_1,r_2,r_3) =
+      \left[\begin{array}{c}x\\y\\z\\\end{array}\right]_{i_1,i_2,i_3} =
+      \left[\begin{array}{c}
+        \textbf{vertex}(i_1,i_2,i_3,0) \\
+        \textbf{vertex}(i_1,i_2,i_3,1) \\
+        \textbf{vertex}(i_1,i_2,i_3,2) \\
+      \end{array}\right] 
+\]
+and the mapping derivative at grid vertex $(i_1,i_2,i_3)$ is
+\begin{eqnarray*}
+    {\partial\dv\over\partial\rv}(r_1,r_2,r_3) & = &
+      \left[\begin{array}{ccc}
+        \partial x\over\partial r_1 & \partial x\over\partial r_2 & \partial x\over\partial r_3 \\
+        \partial y\over\partial r_1 & \partial y\over\partial r_2 & \partial y\over\partial r_3 \\
+        \partial z\over\partial r_1 & \partial z\over\partial r_2 & \partial z\over\partial r_3 \\
+      \end{array}\right]_{i_1,i_2,i_3} \\ & = &
+      \left[{\footnotesize\begin{array}{ccc}
+        \textbf{vertexDerivative}(i_1,i_2,i_3,0,0) &
+        \textbf{vertexDerivative}(i_1,i_2,i_3,0,1) &
+        \textbf{vertexDerivative}(i_1,i_2,i_3,0,2) \\
+        \textbf{vertexDerivative}(i_1,i_2,i_3,1,0) &
+        \textbf{vertexDerivative}(i_1,i_2,i_3,1,1) &
+        \textbf{vertexDerivative}(i_1,i_2,i_3,1,2) \\
+        \textbf{vertexDerivative}(i_1,i_2,i_3,2,0) &
+        \textbf{vertexDerivative}(i_1,i_2,i_3,2,1) &
+        \textbf{vertexDerivative}(i_1,i_2,i_3,2,2) \\
+      \end{array}}\right]_{\mbox{.}} 
+\end{eqnarray*}
+The ranges of indices of grid vertices that lie in the
+interior or on the boundary of the grid are returned by the function
+\textbf{gridIndexRange}($i$,$j$), where $i = 0$ refers to the lower bound
+for the index and $i = 1$ refers to the upper bound; $j = 0,1,2$ refers to the
+first, second or third index of the grid vertex.  The geometric data are
+computed at grid vertices with indices in the range given by
+\textbf{dimension}($i$,$j$), which determines the array dimensions of the
+\textbf{RealMappedGridFunction}s, and may extend outside the boundary of
+the grid.  Access to vertex data is shown in
+Example~\ref{Example:MappedGrid:VertexGeometry}.
+
+% \begin{figure}[hbt]
+{\small
+\listinginput[1]{1}{mgexvg.C}
+}
+{\center Example~\ref{Example:MappedGrid:VertexGeometry}: Access to \textbf{MappedGrid} grid vertex data\label{Example:MappedGrid:VertexGeometry}}
+% \end{figure}
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "MappedGrid.h"                                                        &                                                                           \\
+%                                                                                    &                                                                           \\
+%  void example(\textbf{Mapping}\& map) \{                                   &                                                                           \\
+%  \ \ \ \ \textbf{MappedGrid} g = map;                                      & // Construct \textbf{MappedGrid} from a \textbf{Mapping}. \\
+%  \ \ \ \ g.\textbf{update}(MappedGrid::THEvertex $|$                       & // Update the grid vertex coordinates, the                                \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEvertexDerivative $|$                  & // derivative of the mapping at the vertices,                             \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEinverseVertexDerivative $|$           & // the inverse derivative at the vertices, the                            \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEvertexJacobian $|$                    & // jacobian determinant of the derivative, the                            \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEvertexBoundaryNormal $|$              & // unit outward normal at boundary vertices,                              \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEboundingBox $|$                       & // the bounding box for grid vertices, and the                            \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEminMaxEdgeLength);                    & // min.~and max.~distance between vertices.                               \\
+%  \ \ \ \ \textbf{RealMappedGridFunction} \&vertex = g.\textbf{vertex}(),            & // Access the grid vertices and the                      \\
+%  \ \ \ \ \ \ \ \ \&vertexDerivative = g.\textbf{vertexDerivative}();                        & // mapping derivative at the grid vertices.              \\
+%  \ \ \ \ \textbf{Range} d0 = g.\textbf{numberOfDimensions}(),                       & // The indices of the vertices corresponding             \\
+%  \ \ \ \ \ \ \ \ I1(g.\textbf{gridIndexRange}(0,0),g.\textbf{gridIndexRange}(1,0)), & // to interior and boundaries of the grid are            \\
+%  \ \ \ \ \ \ \ \ I2(g.\textbf{gridIndexRange}(0,1),g.\textbf{gridIndexRange}(1,1)), & // given by g.\textbf{gridIndexRange}.  The      \\
+%  \ \ \ \ \ \ \ \ I3(g.\textbf{gridIndexRange}(0,2),g.\textbf{gridIndexRange}(1,2)); & // fourth index selects the (x,y,z) component.           \\
+%  \ \ \ \ \textbf{RealArray} v = vertex(I1,I2,I3,d0),                                        & // {\itshape E.g.}, copy the grid vertices and           \\
+%  \ \ \ \ \ \ \ \ vD = vertexDerivative(I1,I2,I3,d0,d0);                                             & // the mapping derivative into arrays.                   \\
+%  \}                                                                                                 &                                                          \\
+%\end{tabular}
+%\caption{Access to \textbf{MappedGrid} grid vertex data\label{Example:MappedGrid:VertexGeometry}}
+%\end{example}
+
+The data are computed and stored only when this is requested through a call to the \textbf{update}() member function with
+arguments specifying exactly which geometric data are needed.  The "bitwise or" operator is used to combine several requests
+into one.  The geometric data requested through the call to \textbf{update}() are computed only if it is determined that
+they are out-of-date.  This would occur on the first call to \textbf{update}(), for example, or any time that the mapping
+is changed or the number of grid vertices is changed.  (Note, however, that the \textbf{MappedGrid} is not able to determine
+if or when the user changes its mapping; in that case the user is responsible to call \textbf{geometryHasChanged}(), as
+explained in \S\ref{GenericGrid:Geometry}.)  If \textbf{update}() were called again right away with the same arguments
+then no geometric data would be recomputed, because the data would already be marked up-to-date as a result of the previous
+call to \textbf{update}().  It is essential that \textbf{update}() be called in any function where geometric data are
+used, to update the specific geometric data needed in that function, if there is any possibility that the data may be
+out-of-date when the function is called.  This is always safe to do and is never wasteful, because the only data recomputed
+are those which are still out-of-date.
+
+
+
+
+
+\begin{figure}[htb]
+\begin{center}\pspicture(-3.875,-1.5)(3.875,1.5)
+  \rput{0}(-0.4,1.2){% Legend
+    \psframe[fillcolor=grayninety,fillstyle=solid,linecolor=grayninety](-0.1,-2.4)(0.9,0.0)%
+    \psline[linecolor=steelblue](-0.1,-2.4)(0.9,-2.4)\psline[linecolor=steelblue]( 0.9,-2.4)(0.9, 0.0)%
+    \footnotesize\psset{labelsep=10pt}%
+    \rput{0}(0.40,-0.20){\underline{LEGEND}}%
+    \rput{0}(0.00,-0.45){\psset{linecolor=blue}\qline(-4pt,-4pt)(4pt,4pt)\qline(-4pt,4pt)(4pt,-4pt)                        \uput[0](0,0){grid vertex}}%
+    \rput{0}(0.00,-0.65){\psset{linecolor=blue}\pscircle(0,0){3pt}                                                         \uput[0](0,0){cell center}}%
+    \rput{0}(0.00,-0.85){\psset{linecolor=blue}\qdisk(0,0){2pt}                                                            \uput[0](0,0){cell corner}}%
+    \rput{0}(0.00,-1.05){\pspolygon[fillstyle=solid,fillcolor=blue,linecolor=blue](-3pt,-3pt)(3pt,-3pt)(0,1.5pt)(-3pt,-3pt)\uput[0](0,0){face normal}}%
+    \rput{0}(0.42,-2.10){discretization}%
+    \rput{0}(0.42,-2.25){cell}%
+    \rput{0}(0.10,-1.65){%
+      \multirput{0}(0,-0.3)(0,0.6){2}{\psset{linecolor=red}\qline(0,0)(0.6,0)}%
+      \multirput{0}(0,-0.3)(0.6,0){2}{\psset{linecolor=red}\qline(0,0)(0,0.6)}%
+      \pscircle[linecolor=blue](0.3,0){3pt}% Center
+      \multirput{0}(0.3,-0.3)(0,0.6){2}{\multirput{0}(-0.3,0)(0.6,0){2}{\psset{linecolor=blue}\qdisk(0,0){2pt}}}% Corners
+      \multirput{0}(0.3,-0.3)(0,0.6){2}{\pspolygon[fillstyle=solid,fillcolor=blue,linecolor=blue](-3pt,0)(3pt,0)(0,4.5pt)(-3pt,0)}% Face normals
+      \multirput{0}(0.0, 0.0)(0.6,0){2}{\pspolygon[fillstyle=solid,fillcolor=blue,linecolor=blue](0,-3pt)(0,3pt)(4.5pt,0)(0,-3pt)}% Face normals
+    }%
+  }%
+  \multirput{0}(-2.25,0)(4.5,0){2}{% Gridlines
+    \psframe[fillcolor=grayninety,fillstyle=solid,linecolor=grayninety](-1.2,-1.2)(1.2,1.2)
+  }%
+  \multirput{0}(-2.25,0)(4.5,0){2}{% Gridlines
+    \psset{linecolor=green}
+    \multirput{0}(-1.2,-1.2)(0,0.6){5}{\qline(0,0)(2.4,0)}
+    \multirput{0}(-1.2,-1.2)(0.6,0){5}{\qline(0,0)(0,2.4)}
+  }%
+  \rput{0}(-2.25,0){\psset{linecolor=red}\multirput{0}(-0.3,-0.3)(0,0.6){2}{\qline(0,0)(0.6,0)}\multirput{0}(-0.3,-0.3)(0.6,0){2}{\qline(0,0)(0,0.6)}}% Cell
+  \rput{0}( 2.25,0){\psset{linecolor=red}\multirput{0}(-0.6,-0.6)(0,0.6){2}{\qline(0,0)(0.6,0)}\multirput{0}(-0.6,-0.6)(0.6,0){2}{\qline(0,0)(0,0.6)}}% Cell
+  \multirput{0}(-2.25,0)(4.5,0){2}{% Vertices
+    \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-1.2,0)(0.6,0){5}{\qline(-4pt,-4pt)(4pt,4pt)\qline(-4pt,4pt)(4pt,-4pt)}}%
+  }%
+  \rput{0}(-2.25,0){% Centers
+    \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-1.2,0)(0.6,0){5}{\pscircle(0,0){3pt}}}%
+  }%
+  \rput{0}(2.25,0){% Centers
+    \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-0.9,0)(0.6,0){4}{\pscircle(0,0){3pt}}}%
+  }%
+  \rput{0}(-2.25,0){% Corners
+    \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-0.9,0)(0.6,0){4}{\qdisk(0,0){2pt}}}%
+  }%
+  \rput{0}(2.25,0){% Corners
+    \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-1.2,0)(0.6,0){5}{\qdisk(0,0){2pt}}}%
+  }%
+  \rput{0}(-2.25,0){% Face normals
+    \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-1.2,0)(0.6,0){5}%
+      {\pspolygon[fillstyle=solid,fillcolor=blue](-3pt,0)(3pt,0)(0,4.5pt)(-3pt,0)}}%
+    \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-0.9,0)(0.6,0){4}%
+      {\pspolygon[fillstyle=solid,fillcolor=blue](0,-3pt)(0,3pt)(4.5pt,0)(0,-3pt)}}%
+  }%
+  \rput{0}(2.25,0){% Face normals
+    \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-0.9,0)(0.6,0){4}%
+      {\pspolygon[fillstyle=solid,fillcolor=blue](-3pt,0)(3pt,0)(0,4.5pt)(-3pt,0)}}%
+    \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-1.2,0)(0.6,0){5}%
+      {\pspolygon[fillstyle=solid,fillcolor=blue](0,-3pt)(0,3pt)(4.5pt,0)(0,-3pt)}}%
+  }%
+  \rput{0}(-2.25,-1.5){\mbox{\hss Vertex-centered grid\hss}}
+  \rput{0}( 2.25,-1.5){\mbox{\hss Cell-centered grid\hss}}
+\endpspicture\end{center}
+\caption{Some \textbf{MappedGrid} centering options \label{MappedGrid:Centering}}
+\end{figure}
+
+% \begin{figure}[htb]
+% \begin{center}\pspicture(-3.875,-1.5)(3.875,1.5)
+%   \rput{0}(-0.4,1.2)  {% Legend
+%     \psframe[fillcolor=grayninety,fillstyle=solid,linecolor=grayninety](-0.1,-2.4)(0.9,0.0)%
+%     \psline[linecolor=steelblue](-0.1,-2.4)(0.9,-2.4)\psline[linecolor=steelblue]( 0.9,-2.4)(0.9, 0.0)%
+%     \footnotesize\psset{labelsep=10pt}%
+%     \rput{0}(0.40,-0.20){\underline{LEGEND}}%
+%     \rput{0}(0.00,-0.45){\psset{linecolor=blue}\qline(-4pt,-4pt)(4pt,4pt)\qline(-4pt,4pt)(4pt,-4pt)                        \uput[0](0,0){grid vertex}}%
+%     \rput{0}(0.00,-0.65){\psset{linecolor=blue}\pscircle(0,0){3pt}                                                         \uput[0](0,0){cell center}}%
+%     \rput{0}(0.00,-0.85){\psset{linecolor=blue}\qdisk(0,0){2pt}                                                            \uput[0](0,0){cell corner}}%
+%     \rput{0}(0.00,-1.05){\pspolygon[fillstyle=solid,fillcolor=blue,linecolor=blue](-3pt,-3pt)(3pt,-3pt)(0,1.5pt)(-3pt,-3pt)\uput[0](0,0){face normal}}%
+%     \rput{0}(0.42,-2.10){discretization}%
+%     \rput{0}(0.42,-2.25){cell}%
+%     \rput{0}(0.10,-1.65){%
+%       \multirput{0}(0,-0.3)(0,0.6){2}{\psset{linecolor=red}\qline(0,0)(0.6,0)}%
+%       \multirput{0}(0,-0.3)(0.6,0){2}{\psset{linecolor=red}\qline(0,0)(0,0.6)}%
+%       \pscircle[linecolor=blue](0.3,0){3pt}% Center
+%       \multirput{0}(0.3,-0.3)(0,0.6){2}{\multirput{0}(-0.3,0)(0.6,0){2}{\psset{linecolor=blue}\qdisk(0,0){2pt}}}% Corners
+%       \multirput{0}(0.3,-0.3)(0,0.6){2}{\pspolygon[fillstyle=solid,fillcolor=blue,linecolor=blue](-3pt,0)(3pt,0)(0,4.5pt)(-3pt,0)}% Face normals
+%       \multirput{0}(0.0, 0.0)(0.6,0){2}{\pspolygon[fillstyle=solid,fillcolor=blue,linecolor=blue](0,-3pt)(0,3pt)(4.5pt,0)(0,-3pt)}% Face normals
+%     }%
+%   }%
+%   \multirput{0}(-2.25,0)(4.5,0){2}{% Gridlines
+%     \psframe[fillcolor=grayninety,fillstyle=solid,linecolor=grayninety](-1.2,-1.2)(1.2,1.2)
+%   }%
+%   \multirput{0}(-2.25,0)(4.5,0){2}{% Gridlines
+%     \psset{linecolor=green}
+%     \multirput{0}(-1.2,-1.2)(0,0.6){5}{\qline(0,0)(2.4,0)}
+%     \multirput{0}(-1.2,-1.2)(0.6,0){5}{\qline(0,0)(0,2.4)}
+%   }%
+%   \rput{0}(-2.25,0){\psset{linecolor=red}\multirput{0}(-0.3,-0.3)(0,0.6){2}{\qline(0,0)(0.6,0)}\multirput{0}(-0.3,-0.3)(0.6,0){2}{\qline(0,0)(0,0.6)}}% Cell
+%   \rput{0}( 2.25,0){\psset{linecolor=red}\multirput{0}(-0.6,-0.6)(0,0.6){2}{\qline(0,0)(0.6,0)}\multirput{0}(-0.6,-0.6)(0.6,0){2}{\qline(0,0)(0,0.6)}}% Cell
+%   \multirput{0}(-2.25,0)(4.5,0){2}{% Vertices
+%     \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-1.2,0)(0.6,0){5}{\qline(-4pt,-4pt)(4pt,4pt)\qline(-4pt,4pt)(4pt,-4pt)}}%
+%   }%
+%   \rput{0}(-2.25,0){% Centers
+%     \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-1.2,0)(0.6,0){5}{\pscircle(0,0){3pt}}}%
+%   }%
+%   \rput{0}(2.25,0){% Centers
+%     \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-0.9,0)(0.6,0){4}{\pscircle(0,0){3pt}}}%
+%   }%
+%   \rput{0}(-2.25,0){% Corners
+%     \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-0.9,0)(0.6,0){4}{\qdisk(0,0){2pt}}}%
+%   }%
+%   \rput{0}(2.25,0){% Corners
+%     \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-1.2,0)(0.6,0){5}{\qdisk(0,0){2pt}}}%
+%   }%
+%   \rput{0}(-2.25,0){% Face normals
+%     \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-1.2,0)(0.6,0){5}%
+%       {\pspolygon[fillstyle=solid,fillcolor=blue](-3pt,0)(3pt,0)(0,4.5pt)(-3pt,0)}}%
+%     \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-0.9,0)(0.6,0){4}%
+%       {\pspolygon[fillstyle=solid,fillcolor=blue](0,-3pt)(0,3pt)(4.5pt,0)(0,-3pt)}}%
+%   }%
+%   \rput{0}(2.25,0){% Face normals
+%     \psset{linecolor=blue}\multirput{0}(0,-1.2)(0,0.6){5}{\multirput{0}(-0.9,0)(0.6,0){4}%
+%       {\pspolygon[fillstyle=solid,fillcolor=blue](-3pt,0)(3pt,0)(0,4.5pt)(-3pt,0)}}%
+%     \psset{linecolor=blue}\multirput{0}(0,-0.9)(0,0.6){4}{\multirput{0}(-1.2,0)(0.6,0){5}%
+%       {\pspolygon[fillstyle=solid,fillcolor=blue](0,-3pt)(0,3pt)(4.5pt,0)(0,-3pt)}}%
+%   }%
+%   \rput{0}(-2.25,-1.5){\mbox{\hss Vertex-centered grid\hss}}
+%   \rput{0}( 2.25,-1.5){\mbox{\hss Cell-centered grid\hss}}
+% \endpspicture\end{center}
+% \label{Some \textbf{MappedGrid} centering options \label{MappedGrid:Centering}}
+% \end{figure}
+
+The grid vertex data are used for graphics applications such as drawing a representation of the grid.  They also could be used in the
+discretization of partial differential equations.  However, we discourage their use in the discretization of PDEs.  For this purpose,
+\textbf{MappedGrid} provides and we recommend instead the use of geometric data at points that we refer to as "discretization-cell
+centers," "discretization points," or simply "gridpoints."  These are points where the discretization of a PDE is centered.  For a
+vertex-centered discretization, as commonly used in finite-difference methods, the discretization points are identical to the grid vertices.
+For a cell-centered discretization, as commonly used in finite-volume methods, the discretization cells are grid cells, whose corners are the
+grid vertices.  These two options for grid centering are illustrated in Figure~\ref{MappedGrid:Centering}.  The
+\textbf{MappedGrid} contains the notion of how it is centered.  This is given by the member function \textbf{isCellCentered}($i$),
+which refers to the location of discretization points with respect to cells bounded by the grid vertices.  For example,
+$\textbf{isCellCentered}(i) = \textbf{LogicalFalse}$ for $i=0,\dots,\textbf{numberOfDimensions}()-1$ for a vertex-centered
+grid, used for a vertex-centered discretization, and $\textbf{isCellCentered}(i) = \textbf{LogicalTrue}$ for
+$i=0,\dots,\textbf{numberOfDimensions}()-1$ for a cell-centered grid.  Sometimes it is convenient to have available a PDE
+discretization that may be applied either at grid vertices or at grid-cell centers.  To make it easy to implement such a discretization,
+\textbf{MappedGrid} provides geometric data at discretization points, and on faces and at corner of cells that are centered at
+discretization points.  For a cell-centered grid, these cells are identical to the cells with grid vertices at their corners.
+However, for a vertex-centered grid, the corners of these cells form a dual grid.  Some of the geometric data available at the
+discretization points are \textbf{center}, the coordinates of the discretization points, \textbf{centerDerivative},
+\textbf{inverseCenterDerivative} and \textbf{centerJacobian}, the derivative, inverse derivative and the jacobian determinant
+of the derivative of the mapping computed at the discretization points.
+Example~\ref{Example:MappedGrid:CenterGeometry} shows how to access these data.
+
+{\small
+\listinginput[1]{1}{mgexcg.C}
+}
+{\center Example~\ref{Example:MappedGrid:CenterGeometry}: Access to \textbf{MappedGrid} discretization-point data\label{Example:MappedGrid:CenterGeometry}}
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "MappedGrid.h"                                              &                                                                             \\
+%                                                                          &                                                                             \\
+%  void example(\textbf{Mapping}\& map) \{                         &                                                                             \\
+%  \ \ \ \ \textbf{MappedGrid} g = map;                            & // Construct a \textbf{MappedGrid} from a \textbf{Mapping}. \\
+%  \ \ \ \ g.\textbf{update}(MappedGrid::THEcenter $|$             & // Update the discretization points,                                        \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEcenterDerivative $|$        & // the derivative, the inverse derivative and                               \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEinverseCenterDerivative $|$ & // the jacobian determinant of the derivative                               \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEcenterJacobian);            & // of the mapping at the discretization points.                             \\
+%  \ \ \ \ \textbf{RealMappedGridFunction}\& center = g.\textbf{center}(); & // Access the discretization points.                        \\
+%  \}                                                                      &                                                                             \\
+%\end{tabular}
+%\caption{Access to \textbf{MappedGrid} discretization-point data\label{Example:MappedGrid:CenterGeometry}}
+%\end{example}
+
+
+To aid in the implementation of finite-volume discretizations,
+\textbf{MappedGrid} provides additional geometric data about the discretization cells.  In particular, it provides
+\textbf{faceNormal}, the inward normal vector to the left, bottom and back faces of the cell, normalized to the area of the face.
+(This assumes a right-handed coordinate system; for a left-handed coordinate system these vectors are outward normals.)
+It provides \textbf{faceArea}, the area of the left, bottom and back faces of the cell.  Of course, the corresponding data on
+the right, top and front faces of the cell are available also, as these faces are the left, bottom and back faces of neighbouring cells.
+Class \textbf{MappedGrid} provides also \textbf{cellVolume}, \textbf{centerNormal} and \textbf{centerArea}.
+The latter two refer to faces formed by cutting the cell through its center in each direction.  Finally, on the boundary of the grid, it
+provides \textbf{centerBoundaryNormal}, the unit outward normal vector, and \textbf{centerBoundaryTangent}, unit vectors
+tangent to the faces of cells on the boundary.  These tangent vectors are not necessarily orthogonal to each other, although each of them is
+orthogonal to the normal vector.  Class \textbf{MappedGrid} also provides access to \textbf{corner}, the coordinates of
+corners of the discretization cells.  In the case of a cell-centered grid, these are identical with the grid vertices,
+while in the case of a vertex-centered grid, these form a dual grid, as mentioned above.
+Example~\ref{Example:MappedGrid:FiniteVolumeGeometry} shows how to access these data.  Sometimes it is interesting to compute
+the geometric data not directly from the mapping, but instead by using appropriate finite differences and/or averaging of the coordinates of
+the discretization-cell corners.  This is common when the finite-volume discretization is defined using a geometric construction.  In order
+to force the geometry to be computed in this way, an optional second argument to \textbf{update}() may be passed the value
+\textbf{MappedGrid::USEdifferenceApproximation}, as shown in Example~\ref{Example:MappedGrid:FiniteVolumeGeometry}.
+
+{\small
+\listinginput[1]{1}{mgexfv.C}
+}
+{\center Example~\ref{Example:MappedGrid:FiniteVolumeGeometry}: Access to \textbf{MappedGrid} data used for finite-volume 
+discretizations\label{Example:MappedGrid:FiniteVolumeGeometry}}
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "MappedGrid.h"                                            &                                                                             \\
+%                                                                        &                                                                             \\
+%  void example(\textbf{Mapping}\& map) \{                       &                                                                             \\
+%  \ \ \ \ \textbf{MappedGrid} g = map;                          & // Construct a \textbf{MappedGrid} from a \textbf{Mapping}. \\
+%  \ \ \ \ g.\textbf{changeToAllCellCentered}();                 & // Make this a cell-centered grid.                                          \\
+%  \ \ \ \ g.\textbf{update}(MappedGrid::THEcorner $|$           & // Update the discretization cell corners,                                  \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEfaceNormal $|$            & // the cell face normal vectors,                                            \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEfaceArea $|$              & // the cell face areas,                                                     \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEcellVolume $|$            & // the cell volumes,                                                        \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEcenterNormal $|$          & // the cell-centered normal vectors,                                        \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEcenterArea $|$            & // the cell-centered face areas,                                            \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEcenterBoundaryNormal $|$  & // the unit normals to the grid boundaries, and                             \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::THEcenterBoundaryTangent,    & // the unit tangents to the grid boundaries.                                \\
+%  \ \ \ \ \setbox0=\hbox{g.\textbf{update}(}\hbox to\wd0{\hfil}%
+%                               MappedGrid::USEdifferenceApproximation); & // Compute the the cell corners from the mapping,                           \\
+%                                                                        & // and compute everything else from the corners by                          \\
+%                                                                        & // finite differences and averaging of corner data.                         \\
+%  \ \ \ \ \textbf{RealMappedGridFunction}\& center = g.\textbf{corner}(); & // Access the discretization-cell corners.                \\
+%  \}                                                                    &                                                                             \\
+%\end{tabular}
+%\caption{Access to \textbf{MappedGrid} data used for finite-volume discretization\label{Example:MappedGrid:FiniteVolumeGeometry}}
+%\end{example}
+
+\subsection{Access to \textbf{MappedGrid} parameters}
+\label{MappedGrid:Parameters}
+
+
+Class \textbf{MappedGrid} has many useful parameters that may accessed and modified in order to make the grid useful for
+the discretization of a given PDE problem.  For example, as we mentioned above, a \textbf{MappedGrid} may be vertex-centered
+or cell-centered.  There are parameters that may be modified by the user in order to change the grid from vertex-centered to
+cell-centered and vice versa.  The parameters of a \textbf{MappedGrid} may be divided into several broad categories.
+First, there are parameters describing the dimensions of the index space of data (such as gridpoints) on the grid.  Second,
+there are parameters describing the topology of the grid.  Third, there are parameters describing discretization stencils
+used on the grid.  The cell-centering is such a parameter.  All of these parameters have reasonable default values;
+some of these are determined from the mapping that describes the grid.  Many of these parameters may be set or changed by the
+user; the rest are recomputed whenever \textbf{update}() is called, in order to make all of the parameters consistent with
+each other.  Whenever any of these parameters is changed, and the result of the change makes some of the geometric data invalid,
+the data that become invalid are marked out-of-date.  For example, if the number of gridpoints is changed, then all geometric
+data that are computed on the gridpoints (such as the coordinates of the grid vertices) become invalid.  It is the user's
+responsibility to call \textbf{update}() again with arguments that specify which geometric data are needed, in order to
+recompute geometric data that are still needed but have become out-of-date.  For example, if \textbf{center}, the coordinates
+of the discretization points, is needed again after the number of gridpoints has changed, then it is necessary to call
+\textbf{update}() and pass \textbf{MappedGrid::THEcenter} as its argument.  If this step is omitted, then \textbf{center}
+will either be empty, or it will have the wrong dimensions, or it will contain incorrect data.  There is no warning given when
+geometric data become out-of-date, because there is no assumption made about which data will be needed again unless and until
+\textbf{update}() is called to specify exactly which geometric data are still needed.
+
+The \textbf{MappedGrid} parameters that describe the index space of grid data are \textbf{indexRange},
+\textbf{extendedIndexRange}, \textbf{gridIndexRange}, \textbf{dimension} and \textbf{numberOfGhostPoints}.
+The parameters that may be set by the user are \textbf{gridIndexRange} and \textbf{numberOfGhostPoints}; the other
+parameters are automatically computed from these whenever \textbf{update}() is called.  The parameter
+\textbf{gridIndexRange} gives the indices of grid vertices corresponding
+to each boundary of the grid.  In the index space of the grid, where the grid vertices form an integer lattice, we refer to the
+left, right, bottom, top, back and front sides of the grid, where the first, second and third indices of grid vertices take their
+lower and upper bound, respectively.  The lower and upper bounds of the first index of the grid vertices on the boundary are
+\textbf{gridIndexRange}(0,0) and \textbf{gridIndexRange}(1,0), respectively; the lower and upper bounds of the second
+index are \textbf{gridIndexRange}(0,1) and \textbf{gridIndexRange}(1,1), and the lower and upper bounds of the third
+index are \textbf{gridIndexRange}(0,2) and \textbf{gridIndexRange}(1,2).  These are initially determined from the
+mapping that describes the grid; the user may change them using the function \textbf{setGridIndexRange}().  The parameter
+\textbf{numberOfGhostPoints} gives the width of a band of extra gridpoints that lie outside the boundary of the grid.
+These extra gridpoints are not usually considered to be part of the grid, but may be convenient to have for the discretization
+of a PDE.  There is no guarantee that the mapping is well-behaved at these points.  The number of ghost points on the
+left and right sides of the grid are given by \textbf{numberOfGhostPoints}(0,0) and \textbf{numberOfGhostPoints}(1,0),
+respectively; on the bottom and top, \textbf{numberOfGhostPoints}(0,1) and \textbf{numberOfGhostPoints}(1,1); and on
+the back and front, \textbf{numberOfGhostPoints}(0,2) and \textbf{numberOfGhostPoints}(1,2).  These are initially set
+to one, which may be convenient for a discretization-stencil width of three.  They may be set using the function
+\textbf{setNumberOfGhostPoints}().  All of the other parameters that describe the index space of grid data are recomputed
+whenever \textbf{update}() is called.  For example, \textbf{dimension}, the dimensions used for the arrays of grid data,
+is set to \textbf{gridIndexRange} plus or minus \textbf{numberOfGhostPoints}.  The parameter \textbf{indexRange}
+gives the lower and upper bounds for the discretization points in the interior and on the boundary of the grid.  For a vertex-centered
+grid, \textbf{indexRange} is identical to \textbf{gridIndexRange}, because the discretization points are the
+grid vertices.  The exception to this rule is a periodic grid, in which case the first and last gridpoints are equivalent;
+the last gridpoint is considered redundant for the purposes of discretization, so it is not
+included in the range of discretization points, and $\textbf{indexRange}(1,i) = \textbf{gridIndexRange}(1,i)-1$ in the
+periodic direction $i$.  For a cell-centered grid, the discretization points are grid-cell centers.  In each direction the
+number of cells is one fewer than the number of grid vertices.  The cell centers are numbered the in same way as their
+lower-left corners ({\em i.e.}, the grid vertices), so $\textbf{indexRange}(0,i) = \textbf{gridIndexRange}(0,i)$ and
+$\textbf{indexRange}(1,i) = \textbf{gridIndexRange}(1,i)-1$ on a cell-centered grid.  To summarize,
+\textbf{indexRange} is the same as \textbf{gridIndexRange}, except in directions where the grid is either periodic
+or cell-centered, in which cases the upper bound \textbf{indexRange}(1,$i$) is less by one.  The parameter
+\textbf{extendedIndexRange} is identical to \textbf{indexRange} with the possible exception that on sides of the grid
+where there is no boundary condition specified, \textbf{extendedIndexRange} may include a strip of ghost points as wide
+as $(\textbf{discretizationWidth}-1)/2$.  This strip of ghost points is included only if the flag
+\textbf{useGhostPoints}() is set to \textbf{LogicalTrue}.  By default, this flag is set to LogicalFalse; it may be
+changed by calling the function \textbf{setUseGhostPoints}().  Example~\ref{Example:MappedGrid:IndexSpace} shows how
+to access and set the parameters that describe the index space of grid data.
+
+
+{\small
+\listinginput[1]{1}{mgexis.C}
+\begin{verbatim}
+------------------------ output -----------------------
+gridIndexRange=[0,20]x[0,6]x[0,0]
+indexRange=[0,19]x[0,6]x[0,0]
+numberOfGhostPoints=[1,1]x[1,1]x[0,0]
+dimension=[-1,21]x[-1,7]x[0,0]
+\end{verbatim}
+}
+{\center Example~\ref{Example:MappedGrid:IndexSpace}: Access to \textbf{MappedGrid} index-space data\label{Example:MappedGrid:IndexSpace}}
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "MappedGrid.h"                                                           &                                             \\
+%                                                                                       &                                             \\
+%  void example(\textbf{Mapping}\& map) \{                                      &                                             \\
+%  \ \ \ \ \textbf{MappedGrid} g = map; \textbf{Integer} kd;            & // Construct a \textbf{MappedGrid}. \\
+%  \ \ \ \ for (kd=0; kd$<$g.\textbf{numberOfDimensions}(); kd++) \{            &                                             \\
+%  \ \ \ \ \ \ \ \ cout $\ll$ "gridIndexRange(0," $\ll$ kd $\ll$ ") = "             & // Print out the range of indices           \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{gridIndexRange}(0,kd) $\ll$ ",~"      & // for grid vertices.                       \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "gridIndexRange(1," $\ll$ kd $\ll$ ") = "             &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{gridIndexRange}(1,kd) $\ll$ endl        &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "indexRange(0," $\ll$ kd $\ll$ ") = "                 & // Print out the range of indices           \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{indexRange}(0,kd) $\ll$ ",~"          & // for discretization points.               \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "indexRange(1," $\ll$ kd $\ll$ ") = "                 &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{indexRange}(1,kd) $\ll$ endl            &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "numberOfGhostPoints(0," $\ll$ kd $\ll$ ") = "        & // Print out the number of ghost points     \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{numberOfGhostPoints}(0,kd) $\ll$ ",~" & // on each side of the grid.                \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "numberOfGhostPoints(1," $\ll$ kd $\ll$ ") = "        &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{numberOfGhostPoints}(1,kd) $\ll$ endl   &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "dimension(0," $\ll$ kd $\ll$ ") = "                  & // Print out the grid dimensions.           \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{dimension}(0,kd) $\ll$ ",~"           &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "dimension(1," $\ll$ kd $\ll$ ") = "                  &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{dimension}(1,kd) $\ll$ endl;            &                                             \\
+%  \ \ \ \ \} // end for                                                                &                                             \\
+%                                                                                       &                                             \\
+%  \ \ \ \ for (kd=0; kd$<$g.\textbf{numberOfDimensions}(); kd++) \{            &                                             \\
+%  \ \ \ \ \ \ \ \ g.\textbf{setIsCellCentered}(kd, LogicalTrue);               & // Change the grid to cell-centered.        \\
+%  \ \ \ \ \ \ \ \ g.\textbf{setNumberOfGhostPoints}(0,kd, 2);                  & // Change the number of ghost points        \\
+%  \ \ \ \ \ \ \ \ g.\textbf{setNumberOfGhostPoints}(1,kd, 2);                  & // to two on all sides of the grid.         \\
+%  \ \ \ \ \} // end for                                                                &                                             \\
+%                                                                                       & // Compute the geometry;                    \\
+%  \ \ \ \ g.\textbf{update}(\dots);             & // \textbf{indexRange} and \textbf{dimension} will change. \\
+%  \}                                                                                   &                                             \\
+%\end{tabular}
+%\caption{Access to \textbf{MappedGrid} index-space data\label{Example:MappedGrid:IndexSpace}}
+%\end{example}
+
+The \textbf{MappedGrid} parameters that describe the topology of the grid are \textbf{numberOfDimensions},
+\textbf{isPeriodic}, \textbf{boundaryCondition}, \textbf{sharedBoundaryFlag} and \textbf{sharedBoundaryTolerance}.
+All of these parameters have default values determined from the mapping that describes the grid.  These parameters may all be
+set by the user.  However, it is important that they be set in such a way as to be consistent with the mapping.  At this time
+I can think of no good reason to change \textbf{numberOfDimensions}; to do so would probably cause all kinds of trouble.
+Its initial value is that of the \textbf{Mapping} member function \textbf{getRangeDimension}(), which we assume is equal
+to \textbf{getDomainDimension}().  The parameter \textbf{isPeriodic} gives the periodicity of the grid in each coordinate
+direction.  If the grid itself is periodic, then \textbf{isPeriodic} should be set to \textbf{Mapping::functionPeriodic};
+otherwise, if the PDE problem to be solved on the grid is periodic, then \textbf{isPeriodic} should be set to
+\textbf{Mapping::derivativePeriodic}; otherwise \textbf{isPeriodic} should be set to \textbf{Mapping::notPeriodic}.
+The parameter \textbf{boundaryCondition} should be positive on each side of the grid that corresponds to a domain boundary.
+It should be negative on both opposite sides of the grid in each direction where either the domain is periodic or the PDE
+problem to be solved on the grid is periodic.  In any case, the parameters \textbf{boundaryCondition} and
+\textbf{isPeriodic} must be set so that they are consistent with each other.  The parameters \textbf{sharedBoundaryFlag}
+and \textbf{sharedBoundaryTolerance} are useful only in situations where several \textbf{MappedGrid}s overlap to cover
+the domain.  Class \textbf{CompositeGrid} contains \textbf{MappedGrid}s used for this purpose, so the discussion of these
+parameters is deferred.  The use of the \textbf{MappedGrid} parameters that describe the topology of the grid is shown in
+Example~\ref{Example:MappedGrid:Topology}.
+
+{\small
+\listinginput[1]{1}{mgextp.C}
+\begin{verbatim}
+------------------------ output -----------------------
+isPeriodic=[2,0,1]
+boundaryCondition=[-1,-1]x[1,2]x[-1,-1]
+numberOfGhostPoints=[0,0]x[0,0]x[0,0]
+sharedBoundaryTolerance=[0.100000,0.100000]x[0.100000,0.100000]x[0.000000,0.000000]
+\end{verbatim}
+}
+{\center Example~\ref{Example:MappedGrid:Topology}: Access to \textbf{MappedGrid} topology data\label{Example:MappedGrid:Topology}}
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "MappedGrid.h"                                                               &                                             \\
+%                                                                                           &                                             \\
+%  void example(\textbf{Mapping}\& map) \{                                          &                                             \\
+%  \ \ \ \ \textbf{MappedGrid} g = map; \textbf{Integer} kd;                & // Construct a \textbf{MappedGrid}. \\
+%  \ \ \ \ for (kd=0; kd$<$g.\textbf{numberOfDimensions}(); kd++) \{                &                                             \\
+%  \ \ \ \ \ \ \ \ cout $\ll$ "isPeriodic(" $\ll$ kd $\ll$ ") = "                       & // Print out the periodicity of the         \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{isPeriodic}(kd) $\ll$ endl                  & // grid in each coordinate direction.       \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "boundaryCondition(0," $\ll$ kd $\ll$ ") = "              & // Print out the boundary conditions.       \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{boundaryCondition}(0,kd) $\ll$ ",~"       & // on each side of the grid.                \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "boundaryCondition(1," $\ll$ kd $\ll$ ") = "              &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{boundaryCondition}(1,kd) $\ll$ endl         &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "sharedBoundaryFlag(0," $\ll$ kd $\ll$ ") = "             & // Print out the shared boundary flag       \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{sharedBoundaryFlag}(0,kd) $\ll$ ",~"      & // on each side of the grid.                \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "sharedBoundaryFlag(1," $\ll$ kd $\ll$ ") = "             &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{sharedBoundaryFlag}(1,kd) $\ll$ endl        &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "sharedBoundaryTolerance(0," $\ll$ kd $\ll$ ") = "        & // Print out the shared boundary            \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{sharedBoundaryTolerance}(0,kd) $\ll$ ",~" & // tolerance on each side.                  \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "sharedBoundaryTolerance(1," $\ll$ kd $\ll$ ") = "        &                                             \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{sharedBoundaryTolerance}(1,kd) $\ll$ endl;  &                                             \\
+%  \ \ \ \ \} // end for                                                                    &                                             \\
+%                                                                                           &                                             \\
+%  \ \ \ \ for (kd=0; kd$<$g.\textbf{numberOfDimensions}(); kd++) \{                &                                             \\
+%  \ \ \ \ \ \ \ \ g.\textbf{setIsPeriodic}(kd, Mapping::derivativePeriodic);       & // Change the grid to periodic.             \\
+%  \ \ \ \ \ \ \ \ g.\textbf{setBoundaryCondition}(0,kd, -1);                       & // Change the boundary condition to be      \\
+%  \ \ \ \ \ \ \ \ g.\textbf{setBoundaryCondition}(1,kd, -1);                       & // consistent with the periodicity.         \\
+%  \ \ \ \ \} // end for                                                                    &                                             \\
+%                                                                                           & // Compute the geometry;                    \\
+%  \ \ \ \ g.\textbf{update}(\dots);                                                & // \textbf{indexRange} will change. \\
+%  \}                                                                                       &                                             \\
+%\end{tabular}
+%\caption{Access to \textbf{MappedGrid} topology data\label{Example:MappedGrid:Topology}}
+%\end{example}
+
+The \textbf{MappedGrid} parameters that describe discretization stencils used on the grid are \textbf{discretizationWidth},
+\textbf{boundaryDiscretizationWidth}, \textbf{isCellCentered}, \textbf{isAllCellCentered}, \textbf{isAllVertexCentered}
+and \textbf{gridSpacing}.  All of these have default values.  The parameters \textbf{discretizationWidth},
+\textbf{boundaryDiscretizationWidth} and \textbf{isCellCentered} may be set by the user; the others are automatically
+computed whenever \textbf{update}() is called.  The parameter \textbf{discretizationWidth} refers to the width of the interior
+discretization stencil in each coordinate direction, and may be set to any positive odd integer.  (A centered discretization is
+assumed.)  The default value for \textbf{discretizationWidth} is three.  The parameter \textbf{boundaryDiscretizationWidth}
+refers to the width, in the normal direction, of the discretization stencil of the boundary conditions on each side of the grid.
+This width does not include any ghost points that may or may not be used in the discretization of the boundary conditions.  The
+stencil width in the tangential directions is assumed to be equal to the interior discretization-stencil width in those directions.
+This width may be any positive integer.  The default value for \textbf{boundaryDiscretizationWidth} is three, which is convenient
+for a second-order one-sided approximation to the normal derivative.  The parameter \textbf{isCellCentered} refers to the
+centering of discretization points within the cells of the grid.  By default, \textbf{isCellCentered}($i$) is \textbf{LogicalFalse}
+in each direction $i$, to indicate a vertex-centered grid.  The parameter \textbf{isCellCentered}($i$) may be set
+independently for each direction $i$, so that face-centered and edge-centered grids are possible in addition to vertex-centered and
+cell-centered grids.  However, I can think of no possible use for a face-centered or edge-centered grid.  Certainly some geometrical
+data such as face normal vectors may be face-centered, but this has nothing to do with whether or not the grid itself is face-centered.
+The parameter \textbf{isAllCellCentered} is computed by \textbf{update}() and is \textbf{LogicalTrue} only if
+\textbf{isCellCentered}($i$) is \textbf{LogicalTrue} for all directions $0 < i < \textbf{numberOfDimensions}()$.
+Likewise, the parameter \textbf{isAllVertexCentered} is computed by \textbf{update}() and is \textbf{LogicalTrue}
+only if \textbf{isCellCentered}($i$) is \textbf{LogicalFalse} for all directions $0 < i < \textbf{numberOfDimensions}()$.
+Finally, the parameter \textbf{discretizationWidth} is computed by \textbf{update}() to be the distance between gridpoints on the
+uniform rectangular grid on the unit-square parameter space of the grid and its mapping.  The use of the \textbf{MappedGrid} parameters
+that describe discretization stencils on the grid is shown in Example~\ref{Example:MappedGrid:StencilData}.
+
+{\small
+\listinginput[1]{1}{mgexds.C}
+\begin{verbatim}
+------------------------ output -----------------------
+discretizationWidth=[3,3,1]
+boundaryDiscretizationWidth=[3,3]x[3,3]x[1,1]
+gridSpacing=[0.050000,0.166667,1.000000]
+isCellCentered=[0,0,0]
+isAllCellCentered=0
+isAllVertexCentered=1
+\end{verbatim}
+}
+{\center Example~\ref{Example:MappedGrid:StencilData}: Access to \textbf{MappedGrid} discretization-stencil data\label{Example:MappedGrid:StencilData}}
+
+% ok \end{document}
+
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "MappedGrid.h"                                                                 &                                                                 \\
+%                                                                                             &                                                                 \\
+%  void example(\textbf{Mapping}\& map) \{                                            &                                                                 \\
+%  \ \ \ \ \textbf{MappedGrid} g = map; \textbf{Integer} kd;                  & // Construct a \textbf{MappedGrid}.                     \\
+%  \ \ \ \ for (kd=0; kd$<$g.\textbf{numberOfDimensions}(); kd++) \{                  &                                                                 \\
+%  \ \ \ \ \ \ \ \ cout $\ll$ "discretizationWidth(" $\ll$ kd $\ll$ ") = "                & // Print out the interior discretization                        \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{discretizationWidth}(kd) $\ll$ ",~"         & // width in each direction.                                     \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "boundaryDiscretizationWidth(0," $\ll$ kd $\ll$ ") = "      & // Print out the boundary discretization                        \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{boundaryDiscretizationWidth}(0,kd) $\ll$ endl & // stencil width in the normal direction                        \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "boundaryDiscretizationWidth(1," $\ll$ kd $\ll$ ") = "      & // on each side of the grid.                                    \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{boundaryDiscretizationWidth}(1,kd) $\ll$ endl &                                                                 \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "isCellCentered(" $\ll$ kd $\ll$ ") = "                     & // Print out the cell-centering of                              \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{isCellCentered}(kd) $\ll$ ",~"              & // the grid in each direction.                                  \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "gridSpacing(" $\ll$ kd $\ll$ ") = "                        & // Print out the grid spacing                                   \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{gridSpacing}(kd) $\ll$ endl;                  & // in each direction.                                           \\
+%  \ \ \ \ \} // end for                                                                      &                                                                 \\
+%  \ \ \ \ cout $\ll$ "isAllCellCentered() = "                                              & // Print cell-centering of the grid.                            \\
+%  \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%               $\ll$ g.\textbf{isAllCellCentered}() $\ll$ ",~"                     &                                                                 \\
+%  \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%               $\ll$ "isAllVertexCentered() = "                                            & // Print vertex-centering of the grid.                          \\
+%  \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%               $\ll$ g.\textbf{isAllVertexCentered}() $\ll$ endl;                    &                                                                 \\
+%                                                                                             &                                                                 \\
+%  \ \ \ \ for (kd=0; kd$<$g.\textbf{numberOfDimensions}(); kd++)                     & // Change the grid to cell-centered.                            \\
+%  \ \ \ \ \ \ g.\textbf{setIsCellCentered}(kd, LogicalTrue);                         &                                                                 \\
+%                                                                                             & // Compute the geometry;                                        \\
+%  \ \ \ \ g.\textbf{update}(\dots);                                                  & // \textbf{isAllCellCentered}, {\em etc.}\ will change. \\
+%  \}                                                                                         &                                                                 \\
+%\end{tabular}
+%\caption{Access to \textbf{MappedGrid} discretization-stencil data\label{Example:MappedGrid:StencilData}}
+%\end{example}
+
+There are two exceptions to the rule that geometric data invalidated by changes to parameters are not automatically updated
+at the same time as the parameter changes are made.  The member functions \textbf{changeToAllCellCentered}() and
+\textbf{changeToAllVertexCentered}() cause any geometric data that were up-to-date before the call to be recomputed if
+the parameter changes caused them to become invalid.  This is supposed to be useful in the case where the only parameter
+changes needed are to change the grid either to cell-centered or to vertex-centered.  If any other parameters need to be
+changed also, then the geometric data may become invalid as a result of these other changes, and it would be a waste of
+time to have these member functions recompute the geometric data before all of the changes have been made.  Also, it is
+wasteful to update the geometric data before changing the grid to cell-centered or vertex-centered, as some of the
+geometric data will usually need to be recomputed.  Clearly, these member functions should be used with care if they are
+used at all.
+
+\subsection{Miscellaneous member functions}
+\label{MappedGrid:Miscellaneous}
+
+Class \textbf{MappedGrid} has a few member functions not mentioned above.  These functions are probably not needed by most people.
+The function \textbf{box}() returns a reference to a \textbf{Boxlib} \textbf{Box} object that contains index-space
+and cell-centering information about the \textbf{MappedGrid}.  This information is redundant in the sense that it duplicates the
+information returned by \textbf{indexRange}() and \textbf{isCellCentered}().  However, it may be useful for interfacing with
+code that uses \textbf{Boxlib}.  The function \textbf{adjustBoundary}() is used to force the parameter-space coordinates
+$(r_1,r_2,r_3)$ of a point to zero or one, as appropriate, if the point is on a boundary of another grid that is shared with the
+corresponding boundary of this grid.  The function \textbf{getInverseCondition}() computes a condition number for the sensitivity
+of the parameter-space coordinates $(r_1,r_2,r_3)$ in this grid of a point from another grid, to errors in the coordinates of the
+point in the parameter space of the other grid.  This condition number is used in estimates of the truncation error for interpolation
+of data from the other grid.  The function \textbf{specifyProcesses}() is used to specify how data (such as geometric data) on the
+\textbf{MappedGrid} are distributed over processes on a multiprocessor computer.  The function \textbf{initialize}() is used
+to put the \textbf{MappedGrid} back into the state it was in after it was first constructed, supposing that it was constructed using
+its current mapping.  In this state, the geometric data are marked out-of-date and their storage is dellocated.  This function should be
+used with care, because if the grid belongs to a derived grid class, it may have undesired side effects that leave the grid in a state that
+is not self-consistent.  In addition to these functions, the member functions of the base grid class \textbf{GenericGrid} are
+accessible from \textbf{MappedGrid}, either directly as they are described in \S\ref{GenericGrid} or as overloaded functions defined
+in class \textbf{MappedGrid}.
+
+\section{Class \textbf{\Index{GenericGridCollection}}}
+\label{GenericGridCollection}
+
+Class \textbf{GenericGridCollection} is the base class for all Overture classes that contain collections of grids.  It is derived from
+class \textbf{ReferenceCounting} (Appendix~\ref{ReferenceCounting}), just as class \textbf{GenericGrid} is.  As a consequence,
+the entire discussion of data-sharing in \S\ref{GenericGrid:DataSharing} and Example~\ref{Example:GenericGrid:DataSharing} applies directly to
+class \textbf{GenericGridCollection}.  For each \textbf{GenericGrid} member function discussed there, there is a corresponding
+\textbf{GenericGridCollection} member function.  The only difference is that the default constructor and member function
+\textbf{initialize}() take an optional argument specifying the number of grids initially in the collection, as shown in
+Example~\ref{GenericGridCollection:Partitions}.  The discussion of geometry management in \S\ref{GenericGrid:Geometry} and
+Example~\ref{Example:GenericGrid:Geometry} also applies directly to class \textbf{GenericGridCollection}.  Whenever the
+\textbf{GenericGridCollection} member functions \textbf{update}(), \textbf{destroy}(), or
+\textbf{geometryHasChanged}() are called, these in turn call the corresponding function for each grid in the collection, passing on the
+arguments that specify the geometric data.  In addition, these member functions are used to manage the geometric data discussed in
+\S\ref{GenericGridCollection:RefinementsAndCoarsenings}, as shown in Example~\ref{GenericGridCollection:Partitions}.  The discussion of the
+miscellaneous functions in \S\ref{GenericGrid:Miscellaneous} and Example~\ref{Example:GenericGrid:Miscellaneous} also applies directly to class
+\textbf{GenericGridCollection}.  It is a valuable exercise to review \S\ref{GenericGrid} in its entirety, mentally substituting
+\textbf{GenericGridCollection} everywhere that \textbf{GenericGrid} appears there.
+
+\begin{figure}[htb]
+\begin{center}\pspicture(-3.875,-1.5)(3.875,1.5)
+% \psline(-3.875,-1.74)(3.875,-1.74)\psline(3.875,-1.74)(3.875,1.5)\psline(3.875,1.5)(-3.875,1.5)\psline(-3.875,1.5)(-3.875,-1.74)% Frame
+  \rput{0}(-0.4,1.2){% Legend
+    \psframe[fillcolor=grayninety,fillstyle=solid,linecolor=grayninety](-0.1,-2.4)(0.9,0.0)%
+    \psline[linecolor=steelblue](-0.1,-2.4)(0.9,-2.4)%
+    \psline[linecolor=steelblue]( 0.9,-2.4)(0.9, 0.0)%
+    \footnotesize\psset{labelsep=10pt}%
+    \rput{0}(0.4,-0.2){\underline{LEGEND}}%
+    \rput{0}(0.42,-1.20){base grid 0}%
+    \rput{0}(0.4,-0.7){%
+      \pspolygon[hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=6pt,linewidth=1pt](-0.3,-0.3)(-0.3,0.3)(0.3,0.3)(0.3,-0.3)(-0.3,-0.3)%
+    }%
+    \rput{0}(0.42,-2.15){base grid 1}%
+    \rput{0}(0.4,-1.7){%
+      \pspolygon[hatchcolor=mediumturquoise,fillstyle=crosshatch,hatchangle=30,hatchsep=6pt,linewidth=1pt](-0.3,-0.3)(-0.3,0.3)(0.3,0.3)(0.3,-0.3)(-0.3,-0.3)%
+    }%
+  }%
+  \multirput{0}(-2.25,0)(4.5,0){2}{%  Domain
+    \pscustom[fillcolor=grayninety,fillstyle=solid,linewidth=1pt]{%
+      \psecurve(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)(0.4,-0.8)(0.8,-1.2)(1.2,0.0)(1.2,0.0)(0.8,1.2)(0.4,0.8)(0.0,1.0)%
+      \psecurve(0.8,1.2)(0.4,0.8)(0.0,1.0)(-0.4,0.8)(-0.8,1.2)(-1.2,0.0)(-1.2,0.0)(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)%
+    }%
+  }%
+  \rput{0}(2.25,0){% Base grids
+    \pscustom[fillcolor=grayninety,hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=6pt,linewidth=1pt]{%
+      \psecurve(0.8,1.2)(0.4,0.8)(0.0,1.0)(-0.4,0.8)(-0.8,1.2)(-1.2,0.0)(-1.2,0.0)(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)%
+      \psecurve(-0.4,-1.2)(-0.4,-0.8)(-0.4,-0.4)(0.0,-0.4)(0.0,0.4)(0.4,0.4)(0.4,0.8)(0.4,1.2)%
+    }%
+    \pscustom[fillcolor=grayninety,hatchcolor=mediumturquoise,fillstyle=crosshatch,hatchangle=30,hatchsep=6pt,linewidth=1pt]{%
+      \psecurve(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)(0.4,-0.8)(0.8,-1.2)(1.2,0.0)(1.2,0.0)(0.8,1.2)(0.4,0.8)(0.0,1.0)%
+      \psecurve(0.4,1.2)(0.4,0.8)(0.4,0.4)(0.0,0.4)(0.0,-0.4)(-0.4,-0.4)(-0.4,-0.8)(-0.4,-1.2)%
+    }%
+  }%
+  \rput{0}(-2.25,-1.5){\mbox{\hss The domain\hss}}
+  \rput{0}( 2.25,-1.5){\mbox{\hss Two base grids covering the domain\hss}}
+\endpspicture\end{center}
+\caption[A computational domain covered by a \textbf{GenericGridCollection} of two base grids]
+        {A computational domain covered by a \textbf{GenericGridCollection} of two base grids.
+         The cross-hatch patterns abstractly represent the base grids.  However, since the grids are only \textbf{GenericGrid}s,
+         which have no particular structure, these patterns are are not intended to imply the structure of the grids.  The grids may be
+         rectangular, unstructured triangular, or who knows what else.
+        \label{GenericGridCollection:DomainAndBaseGrids}}
+\end{figure}
+
+Class \textbf{GenericGridCollection} contains a collection of \textbf{GenericGrid}s that may be indexed using the member function
+\textbf{operator[]}(), and it may be used as merely a collection of grids.  However, it provides a mechanism for
+adding some structure to this collection.  Each grid added to the collection is called a "base grid," to indicate that these grids are
+independent of and unrelated to each other.  A base grid may cover the entire domain of the problem under consideration, or it may possibly
+cover only part of the domain, in which case we expect to have several base grids which together cover the entire domain.  If there is more
+than one base grid, then each of the base grids is normally expected to cover a different part of the domain, although possibly with some
+overlap.  It is expected that all of the base grids are needed in order to describe the domain accurately, and that if any of the base grids
+were omitted then the description of the domain would be incomplete or at best inaccurate.  Figure~\ref{GenericGridCollection:DomainAndBaseGrids}
+shows a cartoon of a domain covered by two base grids.  The structure of the base grids is intended to be ambiguous, since these are
+\textbf{GenericGrid}s and therefore have no particular structure.  In a concrete example, these grids would belong to a derived
+grid class and would have some geometric structure.  For example, the base grids might be \textbf{MappedGrid}s, in which case they would
+have logically-rectangular geometric structure that includes curvilinear gridlines, quadrilateral or hexahedral cells, and the like.
+This figure is supposed to convey the concept of a \textbf{GenericGridCollection} consisting of two base grids that do not overlap
+but which together cover the domain completely.  Example~\ref{GenericGridCollection:Partitions} shows how a \textbf{GenericGridCollection}
+may be constructed with two grids that are also two base grids.
+
+\subsection{Local refinements and multigrid coarsenings}
+\label{GenericGridCollection:RefinementsAndCoarsenings}
+
+\begin{figure}[htb]
+\begin{center}\pspicture(-3.875,-1.5)(3.875,1.5)
+% \psline(-3.875,-1.74)(3.875,-1.74)\psline(3.875,-1.74)(3.875,1.5)\psline(3.875,1.5)(-3.875,1.5)\psline(-3.875,1.5)(-3.875,-1.74)% Frame
+  \rput{0}(-0.4,1.2){% Legend
+    \psframe[fillcolor=grayninety,fillstyle=solid,linecolor=grayninety](-0.1,-2.4)(0.9,0.0)%
+    \psline[linecolor=steelblue](-0.1,-2.4)(0.9,-2.4)%
+    \psline[linecolor=steelblue]( 0.9,-2.4)(0.9, 0.0)%
+    \footnotesize\psset{labelsep=10pt}%
+    \rput{0}(0.4,-0.2){\underline{LEGEND}}%
+    \rput{0}(0.42,-1.20){base grid}%
+    \rput{0}(0.4,-0.7){%
+      \pspolygon[hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=6pt,linewidth=1pt](-0.3,-0.3)(-0.3,0.3)(0.3,0.3)(0.3,-0.3)(-0.3,-0.3)%
+    }%
+    \rput{0}(0.42,-2.15){refinement}%
+    \rput{0}(0.4,-1.7){%
+      \pspolygon[hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=3pt,linewidth=1pt](-0.3,-0.3)(-0.3,0.3)(0.3,0.3)(0.3,-0.3)(-0.3,-0.3)%
+    }%
+  }%
+  \multirput{0}(-2.25,0)(4.5,0){2}{%  Domain
+    \pscustom[fillcolor=grayninety,fillstyle=solid,linewidth=1pt]{%
+      \psecurve(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)(0.4,-0.8)(0.8,-1.2)(1.2,0.0)(1.2,0.0)(0.8,1.2)(0.4,0.8)(0.0,1.0)%
+      \psecurve(0.8,1.2)(0.4,0.8)(0.0,1.0)(-0.4,0.8)(-0.8,1.2)(-1.2,0.0)(-1.2,0.0)(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)%
+    }%
+    \pscustom[fillcolor=grayninety,hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=6pt,linewidth=1pt]{% Base Grid
+      \psecurve(0.8,1.2)(0.4,0.8)(0.0,1.0)(-0.4,0.8)(-0.8,1.2)(-1.2,0.0)(-1.2,0.0)(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)%
+      \psecurve(-0.4,-1.2)(-0.4,-0.8)(-0.4,-0.4)(0.0,-0.4)(0.0,0.4)(0.4,0.4)(0.4,0.8)(0.4,1.2)%
+    }%
+    \pscustom[fillcolor=grayninety,hatchcolor=mediumturquoise,fillstyle=crosshatch,hatchangle=30,hatchsep=6pt,linewidth=1pt]{% Base Grid
+      \psecurve(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)(0.4,-0.8)(0.8,-1.2)(1.2,0.0)(1.2,0.0)(0.8,1.2)(0.4,0.8)(0.0,1.0)%
+      \psecurve(0.4,1.2)(0.4,0.8)(0.4,0.4)(0.0,0.4)(0.0,-0.4)(-0.4,-0.4)(-0.4,-0.8)(-0.4,-1.2)%
+    }%
+  }%
+  \rput{0}(2.25,0){%  Local refinements
+    \psccurve[fillcolor=grayninety,fillstyle=solid]% Refinement Grid
+      (-0.35,0.25)(-0.6,0.3)(-0.8,0.6)(-0.95,0.0)(-0.8,-0.5)(-0.65,-0.3)(-0.5,-0.15)(-0.22,-0.17)(-0.35,0.25)%
+    \psccurve[hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=3pt,linewidth=1pt]%
+      (-0.35,0.25)(-0.6,0.3)(-0.8,0.6)(-0.95,0.0)(-0.8,-0.5)(-0.65,-0.3)(-0.5,-0.15)(-0.22,-0.17)(-0.35,0.25)%
+    \psccurve[fillcolor=grayninety,fillstyle=solid]% Refinement Grid
+      (0.35,-0.25)(0.6,-0.3)(0.8,-0.6)(0.95,0.0)(0.8,0.5)(0.65,0.3)(0.5,0.15)(0.22,0.17)(0.35,-0.25)%
+    \psccurve[hatchcolor=mediumturquoise,fillstyle=crosshatch,hatchangle=30,hatchsep=3pt,linewidth=1pt]%
+      (0.35,-0.25)(0.6,-0.3)(0.8,-0.6)(0.95,0.0)(0.8,0.5)(0.65,0.3)(0.5,0.15)(0.22,0.17)(0.35,-0.25)%
+  }%
+  \rput{0}(-2.25,-1.5){\mbox{\hss Two base grids\hss}}
+  \rput{0}( 2.25,-1.5){\mbox{\hss Base grids with one refinement each\hss}}
+\endpspicture\end{center}
+\caption[Some \textbf{GenericGridCollection} base grids and local refinements]
+        {Some \textbf{GenericGridCollection} base grids and local refinements.  Each base grid has one level-one refinement grid.
+         This \textbf{GenericGridCollection} has two base grids and two refinement levels.
+        \label{GenericGridCollection:BaseGridsAndRefinements}}
+\end{figure}
+
+Corresponding to each base grid in a \textbf{{}GenericGridCollection}, there may also be some local refinement grids.
+All of the refinements of a base grid are related to that base grid, in the sense that they each cover either the same sub-domain as
+that of the unrefined base grid, or perhaps only a part of that sub-domain.  In other words, each refinement grid is a refinement of only
+one base grid, and does not cover any part of the domain which is not already covered by that base grid.  Each base grid and refinement
+grid is labeled by a base grid number and a refinement level number.  Each unrefined base grid has a unique base grid number and has
+refinement level number zero; its refinements have the same base grid number and have refinement level number one.  The union of the
+level-one refinements of an unrefined base grid covers a sub-domain within that of the base grid.  If this sub-domain is refined further,
+then these further refinements have refinement level number two.  In this way an arbitrary number of nested refinement levels may be added
+to a base grid, each consisting of one or more local refinement grids.  In other words, the refinement levels form successively finer
+representations of nested sub-domains.  If the \textbf{GenericGridCollection} contains more than one base grid, then the collection
+of grids may be partitioned into disjoint subsets of grids that belong to each of the unrefined base grids (those grids which have in common
+their base grid number).  Class \textbf{GenericGridCollection} contains a collection of \textbf{GenericGridCollection}s that
+hold the subsets of grids that form this partition.  It also contains a collection of \textbf{GenericGridCollection}s that hold the
+disjoint subsets of grids that have in common their refinement level number, without consideration of which base grids they refine.  Each of
+these subsets may contain refinements of more than one base grid, if it happens that different base grids each have refinements at the same
+refinement level.  The two partitions of the collection of grids into subsets according to their base grid number and according to their
+refinement level number are arthogonal to each other in the sense that these two partitioning criteria are independent of each other.
+Figure~\ref{GenericGridCollection:BaseGridsAndRefinements} shows on the left a domain covered by two base grids; on the right it shows these
+base grids each partially covered by a level-one local refinement grid.  Example~\ref{GenericGridCollection:Partitions} shows how a
+refinement may be added to each of two base grids, so that afterward the \textbf{GenericGridCollection} has two refinement levels
+and two base grids, each with one level-one refinement, for a total of four grids.
+
+\begin{figure}[htb]
+\begin{center}\pspicture(-3.875,-1.5)(3.875,1.5)
+% \psline(-3.875,-1.74)(3.875,-1.74)\psline(3.875,-1.74)(3.875,1.5)\psline(3.875,1.5)(-3.875,1.5)\psline(-3.875,1.5)(-3.875,-1.74)% Frame
+  \rput{0}(-0.4,1.2){% Legend
+    \psframe[fillcolor=grayninety,fillstyle=solid,linecolor=grayninety](-0.1,-2.4)(0.9,0.0)%
+    \psline[linecolor=steelblue](-0.1,-2.4)(0.9,-2.4)%
+    \psline[linecolor=steelblue]( 0.9,-2.4)(0.9, 0.0)%
+    \footnotesize\psset{labelsep=10pt}%
+    \rput{0}(0.4,-0.2){\underline{LEGEND}}%
+    \rput{0}(0.42,-1.15){component}%
+    \rput{0}(0.42,-1.27){grid}%
+    \rput{0}(0.4,-0.7){%
+      \pspolygon[hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=6pt,linewidth=1pt](-0.3,-0.3)(-0.3,0.3)(0.3,0.3)(0.3,-0.3)(-0.3,-0.3)%
+    }%
+    \rput{0}(0.42,-2.20){coarsening}%
+    \rput{0}(0.4,-1.75){%
+      \pspolygon[hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=12pt,linewidth=1pt](-0.3,-0.3)(-0.3,0.3)(0.3,0.3)(0.3,-0.3)(-0.3,-0.3)%
+    }%
+  }%
+  \multirput{0}(-2.25,0)(4.5,0){2}{%  Domain
+    \pscustom[fillcolor=grayninety,fillstyle=solid,linewidth=1pt]{%
+      \psecurve(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)(0.4,-0.8)(0.8,-1.2)(1.2,0.0)(1.2,0.0)(0.8,1.2)(0.4,0.8)(0.0,1.0)%
+      \psecurve(0.8,1.2)(0.4,0.8)(0.0,1.0)(-0.4,0.8)(-0.8,1.2)(-1.2,0.0)(-1.2,0.0)(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)%
+    }%
+  }%
+  \rput{0}(-2.25,0){%  Component Grids
+    \pscustom[fillcolor=grayninety,hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=6pt,linewidth=1pt]{% Base Grid
+      \psecurve(0.8,1.2)(0.4,0.8)(0.0,1.0)(-0.4,0.8)(-0.8,1.2)(-1.2,0.0)(-1.2,0.0)(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)%
+      \psecurve(-0.4,-1.2)(-0.4,-0.8)(-0.4,-0.4)(0.0,-0.4)(0.0,0.4)(0.4,0.4)(0.4,0.8)(0.4,1.2)%
+    }%
+    \pscustom[fillcolor=grayninety,hatchcolor=mediumturquoise,fillstyle=crosshatch,hatchangle=30,hatchsep=6pt,linewidth=1pt]{% Base Grid
+      \psecurve(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)(0.4,-0.8)(0.8,-1.2)(1.2,0.0)(1.2,0.0)(0.8,1.2)(0.4,0.8)(0.0,1.0)%
+      \psecurve(0.4,1.2)(0.4,0.8)(0.4,0.4)(0.0,0.4)(0.0,-0.4)(-0.4,-0.4)(-0.4,-0.8)(-0.4,-1.2)%
+    }%
+  }%
+  \rput{0}(2.25,0){%  Coarsenings
+    \pscustom[fillcolor=grayninety,hatchcolor=sandybrown,fillstyle=crosshatch,hatchangle=-30,hatchsep=12pt,linewidth=1pt]{% Base Grid
+      \psecurve(0.8,1.2)(0.4,0.8)(0.0,1.0)(-0.4,0.8)(-0.8,1.2)(-1.2,0.0)(-1.2,0.0)(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)%
+      \psecurve(-0.4,-1.2)(-0.4,-0.8)(-0.4,-0.4)(0.0,-0.4)(0.0,0.4)(0.4,0.4)(0.4,0.8)(0.4,1.2)%
+    }%
+    \pscustom[fillcolor=grayninety,hatchcolor=mediumturquoise,fillstyle=crosshatch,hatchangle=30,hatchsep=12pt,linewidth=1pt]{% Base Grid
+      \psecurve(-0.8,-1.2)(-0.4,-0.8)(0.0,-1.0)(0.4,-0.8)(0.8,-1.2)(1.2,0.0)(1.2,0.0)(0.8,1.2)(0.4,0.8)(0.0,1.0)%
+      \psecurve(0.4,1.2)(0.4,0.8)(0.4,0.4)(0.0,0.4)(0.0,-0.4)(-0.4,-0.4)(-0.4,-0.8)(-0.4,-1.2)%
+    }%
+  }%
+  \rput{0}(-2.25,-1.5){\mbox{\hss Two component grids (base grids)\hss}}
+  \rput{0}( 2.25,-1.5){\mbox{\hss One coarsening of each component grid\hss}}
+\endpspicture\end{center}
+\caption[Some \textbf{GenericGridCollection} component grids and multigrid coarsenings]
+        {Some \textbf{GenericGridCollection} component grids and multigrid coarsenings.
+         The component grids in this case are base grids.  Each component grid has one level-one multigrid coarsening.
+         This \textbf{GenericGridCollection} has two component grids and two multigrid levels.
+        \label{GenericGridCollection:ComponentGridsAndCoarsenings}}
+\end{figure}
+
+Each base grid or refinement grid in a \textbf{GenericGridCollection} may be coarsened for the purposes of multigrid, and may have
+several levels of multigrid coarsening.  Each base grid or refinement grid, before coarsening for multigrid, is called a "component
+grid."  Each multigrid coarsening covers the same subdomain as the component grid that it coarsens.  If there is more than one level
+of multigrid coarsening, then each multigrid level is a coarsening of the grid that forms the preceding multigrid level.  In other
+words, the multigrid levels form successively coarser representations of the sub-domain covered by their corresponding component grid
+(which may itself be either a base grid or a refinement grid).  Each component grid and multigrid coarsening is labeled with a component
+grid number and a multigrid level number.  Each component grid has a unique component grid number and has multigrid level number zero;
+its multigrid coarsenings have the same component grid number and have increasing multigrid level numbers according to the number of times
+they have been coarsened.  If there is more than one component grid, the collection of grids may be partitioned into disjoint subsets of
+grids that have the same component grid number.  Class \textbf{GenericGridCollection} contains a collection of
+\textbf{GenericGridCollection}s that hold the subsets of grids that form this partition.  It also contains a collection of
+\textbf{GenericGridCollection}s that holds the disjoint subsets of grids that have in common their multigrid level number.  The
+two partitions of the collection of grids into subsets according to their component grid number and according to their multigrid level
+number are arthogonal to each other in the sense that these two partitioning criteria are independent of each other.
+Figure~\ref{GenericGridCollection:ComponentGridsAndCoarsenings} shows on the left a domain covered by two base grids, each of
+which is a component grid; on the right it shows level-one multigrid coarsenings of these component grids.
+Example~\ref{GenericGridCollection:Partitions} shows how a multigrid coarsenings may be added to each of four
+component grids, two of which are base grids and two are refinements, so that afterward the \textbf{GenericGridCollection} has two
+base grids at two refinement levels, for a total of four component grids, and each of these has three multigrid levels, for a total twelve
+grids.
+
+{\small
+\listinginput[1]{1}{mgexgt.C}
+\begin{verbatim}
+------------------------ output -----------------------
+Initial:
+numberOfGrids=2, numberOfBaseGrids=2, numberOfComponentGrids=2
+numberOfRefinementLevels=1, numberOfMultigridLevels=1
+After add refinement:
+numberOfGrids=4, numberOfBaseGrids=2, numberOfComponentGrids=4
+numberOfRefinementLevels=2, numberOfMultigridLevels=1
+After add multigrid coarsenings:
+numberOfGrids=12, numberOfBaseGrids=2, numberOfComponentGrids=4
+numberOfRefinementLevels=2, numberOfMultigridLevels=3
+\end{verbatim}
+}
+{\center Example~\ref{GenericGridCollection:Partitions}: Access to partitions of a \textbf{GenericGridCollection}\label{GenericGridCollection:Partitions}}
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "GenericGridCollection.h"                                                         &                                                                \\
+%                                                                                                &                                                                \\
+%  void example() \{                                                                             &                                                                \\
+%  \ \ \ \ \textbf{GenericGridCollection} g(2);                                          & // \textbf{GenericGridCollection} with 2 base grids.   \\
+%  \setbox0=\hbox{\ \ \ \ }\hbox to\wd0{//\hfil}\textbf{GenericGridCollection} g; g.\textbf{initialize}(2); & // This would have the same effect. \\
+%  \ \ \ \ \textbf{Integer} k, l;                                                        &                                                                \\
+%                                                                                                &                                                                \\
+%  \ \ \ \ assert(g.\textbf{numberOfGrids}() == 2) ;                                     & // Initially there are two grids,                              \\
+%  \ \ \ \ assert(g.\textbf{numberOfBaseGrids}() == 2);                                  & // two base grids,                                             \\
+%  \ \ \ \ assert(g.\textbf{numberOfComponentGrids}() == 2);                             & // two component grids,                                        \\
+%  \ \ \ \ assert(g.\textbf{numberOfRefinementLevels}() == 1);                           & // one refinement level, and                                   \\
+%  \ \ \ \ assert(g.\textbf{numberOfMultigridLevels}() == 1);                            & // one multigrid level.                                        \\
+%                                                                                                &                                                                \\
+%  \ \ \ \ for (k=0; k$<$g.\textbf{numberOfBaseGrids}(); k++)                            &                                                                \\
+%  \ \ \ \ \ \ \ \ g.\textbf{addRefinement}(1, k);                                       & // Add a level-one refinement of each base grid.               \\
+%                                                                                                &                                                                \\
+%  \ \ \ \ assert(g.\textbf{numberOfGrids}() == 4) ;                                     & // Now there are four grids,                                   \\
+%  \ \ \ \ assert(g.\textbf{numberOfBaseGrids}() == 2);                                  & // two base grids,                                             \\
+%  \ \ \ \ assert(g.\textbf{numberOfComponentGrids}() == 4);                             & // four component grids,                                       \\
+%  \ \ \ \ assert(g.\textbf{numberOfRefinementLevels}() == 2);                           & // two refinement levels, and                                  \\
+%  \ \ \ \ assert(g.\textbf{numberOfMultigridLevels}() == 1);                            & // one multigrid level.                                        \\
+%                                                                                                &                                                                \\
+%  \ \ \ \ for (l=1; l$<$3; l++)                                                                 &                                                                \\
+%  \ \ \ \ \ \ \ \ for (k=0; k$<$g.\textbf{numberOfComponentGrids}(); k++)               & // Add level-one and level-two multigrid                       \\
+%  \ \ \ \ \ \ \ \ \ \ \ \ g.\textbf{addMultigridCoarsening}(l, k);                      & // coarsenings of each component grid.                         \\
+%                                                                                                &                                                                \\
+%  \ \ \ \ assert(g.\textbf{numberOfGrids}() == 12);                                     & // Now there are twelve grids,                                 \\
+%  \ \ \ \ assert(g.\textbf{numberOfBaseGrids}() == 2);                                  & // two base grids,                                             \\
+%  \ \ \ \ assert(g.\textbf{numberOfComponentGrids}() == 4);                             & // four component grids,                                       \\
+%  \ \ \ \ assert(g.\textbf{numberOfRefinementLevels}() == 2);                           & // two refinement levels, and                                  \\
+%  \ \ \ \ assert(g.\textbf{numberOfMultigridLevels}() == 3);                            & // three multigrid levels.                                     \\
+%                                                                                                &                                                                \\
+%  \ \ \ \ g.\textbf{update}(GenericGridCollection::THEbaseGrid);                        & // Partition g according to base grid number.                  \\
+%  \ \ \ \ \textbf{GenericGridCollection}\& g1 = g.\textbf{baseGrid[}1{\bf ]}; & // Access base grid one and its refinements.               \\
+%                                                                                                &                                                                \\
+%  \ \ \ \ g1.\textbf{update}(GenericGridCollection::THEmultigridLevel);                 & // Partition g1 according to multigrid level.                  \\
+%  \ \ \ \ \textbf{GenericGridCollection}\& g12 = g1.\textbf{multigridLevel[}2{\bf ]}; & // Access base grid one and its refinements        \\
+%                                                                                                & // at multigrid level two.                                     \\
+%  \}                                                                                            &                                                                \\
+%\end{tabular}
+%\caption{Access to partitions of a \textbf{GenericGridCollection}\label{GenericGridCollection:Partitions}}
+%\end{example}
+
+To summarize, the collection of grids in a \textbf{GenericGridCollection} may be partitioned according to base grid or refinement
+level, and these two partitions are orthogonal to each other.  Similarly, the collection may be partitioned according to component
+grid or multigrid level, and these two partitions also are orthogonal to each other.  Since the collections forming the subsets in any
+of these four partitions are also \textbf{GenericGridCollection}s, they may be further partitioned in exactly the same ways.  For
+example, it is possible in this way to form a collection of all the refinements of a particular base grid at a given multigrid level.
+Example~\ref{GenericGridCollection:Partitions} shows how member functions \textbf{update}() and
+\textbf{operator[]}() may be used to partition a \textbf{GenericGridCollection} in this way.
+
+\subsection{Miscellaneous member functions}
+\label{GenericGridCollection:Miscellaneous}
+
+% ok \end{document}
+
+We describe here some member functions of class \textbf{GenericGridCollection}
+that were not mentioned above.  Typically these member functions are overloaded in
+derived classes, and most of these are virtual member functions.  The virtual member
+functions \textbf{deleteMultigridCoarsening}() and
+\textbf{deleteMultigridLevels}() are used to delete multigrid coarsenings.
+The latter deletes all coarsenings whose multigrid levels are higher than the level
+specified.  Similarly, member functions \textbf{deleteRefinement}() and
+\textbf{deleteRefinementLevels}() are used to delete refinement grids;
+the latter deletes all refinement grids whose refinement levels are higher than the
+level specified.  Sometimes it is useful and efficient to be able to have a "new"
+\textbf{GenericGridCollection} that shares all of the unrefined grids of
+an "old" \textbf{GenericGridCollection}.  A different set of refinements
+may be added to the new collection so that it becomes appropriately adapted to new
+data.  At this point, the old and new \textbf{GenericGridCollection}s share
+the same base grids but have distinct sets of refinements.  The virtual member
+function \textbf{referenceRefinementLevels}() provides this capability.  It
+causes one \textbf{GenericGridCollection} to share with another
+\textbf{GenericGridCollection} all grids with refinement levels up to a
+given level of refinement.  In order to share only the base grids, you would pass
+arguments to specify level zero.  The member function \textbf{getIndex}()
+is used to look for a \textbf{GenericGrid} within a
+\textbf{GenericGridCollection}.  It returns the index of the grid within
+the collection, if the grid is found; otherwise it returns a negative number to
+indicate that the grid was not found.  The \textbf{GenericGrid} member
+functions \textbf{operator==}() and \textbf{operator!=}() are used
+in this search.  Example~\ref{GenericGridCollection:MiscellaneousFunctions} shows
+how some of these member functions may be used.
+
+{\small
+\listinginput[1]{1}{mgexgm.C}
+\begin{verbatim}
+------------------------ output -----------------------
+gc1 after adding grids:
+numberOfGrids=18, numberOfBaseGrids=2, numberOfComponentGrids=6
+numberOfRefinementLevels=3, numberOfMultigridLevels=3
+gc2 after reference:
+numberOfGrids=12, numberOfBaseGrids=2, numberOfComponentGrids=4
+numberOfRefinementLevels=2, numberOfMultigridLevels=3
+gc1 after deleting grids:
+numberOfGrids=8, numberOfBaseGrids=2, numberOfComponentGrids=4
+numberOfRefinementLevels=2, numberOfMultigridLevels=2
+\end{verbatim}
+}
+{\center Example~\ref{GenericGridCollection:MiscellaneousFunctions}: Miscellaneous \textbf{GenericGridCollection} member functions\label{GenericGridCollection:MiscellaneousFunctions}}
+
+%\begin{example}\begin{tabular}{ll}%
+%  \#include "GenericGridCollection.h"                                                                &                                                       \\
+%                                                                                                       &                                                       \\
+%  void example() \{                                                                                    &                                                       \\
+%  \ \ \ \ \textbf{GenericGridCollection} gc1(2), gc2; \textbf{Integer} k, l;           & // Construct \textbf{GenericGridCollection}s. \\
+%                                                                                                       &                                                       \\
+%  \ \ \ \ for (l=1; l$<$3; l++)                                                                        &                                                       \\
+%  \ \ \ \ \ \ \ \ for (k=0; k$<$gc1.\textbf{numberOfBaseGrids}(); k++)                         & // Add level-one and level-two                        \\
+%  \ \ \ \ \ \ \ \ \ \ \ \ gc1.\textbf{addRefinement}(1, k);                                    & // refinements of each base grid.                     \\
+%                                                                                                       &                                                       \\
+%  \ \ \ \ for (l=1; l$<$3; l++)                                                                        &                                                       \\
+%  \ \ \ \ \ \ \ \ for (k=0; k$<$gc1.\textbf{numberOfComponentGrids}(); k++)                    & // Add level-one and level-two multigrid              \\
+%  \ \ \ \ \ \ \ \ \ \ \ \ gc1.\textbf{addMultigridCoarsening}(1, k);                           & // coarsenings of each component grid.                \\
+%                                                                                                       &                                                       \\
+%  \ \ \ \ gc2.\textbf{referenceRefinementLevels}(gc1, 1);                                      & // Share grids with gc1 that have                     \\
+%                                                                                                       & // refinement level at most one.                      \\
+%  \ \ \ \ gc1.\textbf{deleteRefinementLevels}(1);                                              & // Delete refinements with refinement                 \\
+%                                                                                                       & // levels higher than one.                            \\
+%  \ \ \ \ gc1.\textbf{deleteMultigridLevels}(1);                                               & // Delete coarsenings with multigrid                  \\
+%                                                                                                       & // levels higher than one.                            \\
+%  \ \ \ \ \textbf{GenericGrid}\& g1 = gc1{\bf[}0{\bf]}; assert(gc1.\textbf{getIndex}(g1) == 0);
+%                                                                                                       & // Check that g1 is in gc1 at index zero.             \\
+%  \ \ \ \ \setbox0=\hbox{\textbf{GenericGrid}\& g1 = gc1{\bf[}0{\bf]};}\hbox to\wd0%
+%  {\textbf{GenericGrid}\phantom{\&} g2;\hfil} assert(gc1.\textbf{getIndex}(g2) $<$ 0); & // Check that g2 is not in gc1.                       \\
+%  \}                                                                                                   &                                                       \\
+%\end{tabular}
+%\caption{Miscellaneous \textbf{GenericGridCollection} member functions\label{GenericGridCollection:MiscellaneousFunctions}}
+%\end{example}
+
+\section{Class \textbf{\Index{GridCollection}}}
+\label{GridCollection}
+
+Class \textbf{GridCollection} is the base class for all Overture classes that contain collections of \textbf{MappedGrid}s.
+It is derived from class \textbf{GenericGridCollection}.  It overloads some of the \textbf{GenericGridCollection} public
+constants, member data and member functions described in \S\ref{GenericGridCollection}.  All of the member functions of class
+\textbf{GenericGridCollection} described there may be used; only note that the default constructor and member function
+\textbf{initialize}() take an additional optional argument specifying the number of dimensions of the grids initially in the
+collection, and the copy constructor and the member functions \textbf{reference}() and \textbf{operator=}() now take a
+\textbf{GridCollection} as their argument. Also, the overloaded member functions \textbf{addRefinement}() and
+\textbf{addMultigridCoarsening}() take additional arguments that describe how the refinements and coarsenings are constructed from
+the corresponding lower refinement-level or multigrid-level grids, as explained in \S\ref{GridCollection:RefinementsAndCoarsenings}.  Class
+\textbf{GridCollection} has additional and member functions \textbf{boundingBox}, \textbf{numberOfDimensions}(),
+\textbf{changeToAllVertexCentered}() and \textbf{changeToAllCellCentered}() that correspond to the
+\textbf{MappedGrid} member functions of the same names. The member function \textbf{boundingBox} returns coordinate bounds
+of the smallest box containing the bounding boxes of all of the \textbf{MappedGrid}s in the collection; this bounding box is
+computed by \textbf{update}().  The member function \textbf{numberOfDimensions}() returns the same value as the
+corresponding member functions of all of the \textbf{MappedGrid}s in the collection (which must all agree).  The member functions
+\textbf{changeToAllVertexCentered}() and \textbf{changeToAllCellCentered}() cause the corresponding member function to be
+called for each \textbf{MappedGrid} in the collection.  Example~\ref{GridCollection:MemberFunctions} shows how some of these member
+functions may be used.
+
+{\small
+\listinginput[1]{1}{mgexgmf.C}
+\begin{verbatim}
+------------------------ output -----------------------
+boundingBox=[0.000000,1.000000]x[0.000000,1.000000]x[0.000000,0.000000]
+refinementFactor=[1,1,1]
+multigridCoarseningFactor=[1,1,1]
+refinementFactor=[1,1,1]
+\end{verbatim}
+}
+{\center Example~\ref{GridCollection:MemberFunctions} : Some \textbf{GridCollection} member functions\label{GridCollection:MemberFunctions}}
+
+%\begin{example}\begingroup\footnotesize\begin{tabular}{ll}%
+%  \#include "Square.h"                                                                     &                                                                  \\
+%  \#include "GridCollection.h"                                                             &                                                                  \\
+%                                                                                             &                                                                  \\
+%  int main() \{                                                                              &                                                                  \\
+%  \ \ \ \ \textbf{GridCollection} g(2,1);                                            & // Start with one two-dimensional grid.                          \\
+%  \setbox0=\hbox{\ \ \ \ }\hbox to\wd0{//\hfil}\textbf{GridCollection} g; g.\textbf{initialize}(2,1); & // This would have the same effect.     \\
+%  \ \ \ \ \textbf{Integer} base = 0, ratio = 2, level = 1, refinement;               & // The base grid is grid zero.                                   \\
+%  \ \ \ \ \textbf{SquareMapping} square(0.,1.,0.,1.);                                & // A \textbf{Mapping} for the square [0,1]$\times$[0,1]. \\
+%  \ \ \ \ g{\bf[}base{\bf]}.\textbf{reference}(square);                  & // Make the base grid use the square mapping.                    \\
+%                                                                                             &                                                                  \\
+%  \ \ \ \ g.\textbf{update}(GridCollection::THEboundingBox);                         & // Update and print out the bounding box                         \\
+%  \ \ \ \ cout $\ll$ "boundingBox = ("                                                      & // for grid vertices of all of the grids                         \\
+%  \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%               $\ll$ g.\textbf{boundingBox}(0,0) $\ll$ ":"                         & // in the collection.                                            \\
+%  \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%               $\ll$ g.\textbf{boundingBox}(1,0) $\ll$ ","                         &                                                                  \\
+%  \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%               $\ll$ g.\textbf{boundingBox}(0,1) $\ll$ ":"                         &                                                                  \\
+%  \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%               $\ll$ g.\textbf{boundingBox}(1,1) $\ll$ ")" $\ll$ endl;             &                                                                  \\
+%                                                                                             &                                                                  \\
+%  \ \ \ \ g.\textbf{changeToAllVertexCentered}();                                    & // Make the base grid vertex-centered.                           \\
+%  \ \ \ \ \textbf{IntegerArray} range = g{\bf[}base{\bf]}.\textbf{indexRange}();
+%                                                                                             & // Find the index range of discretization points.                \\
+%  \ \ \ \ range(0,0) = range(0,1) = 1; range(1,0) = range(1,1) = 3;                          & // Refine the index range [1:3,1:3].                             \\
+%  \ \ \ \ refinement = g.\textbf{addRefinement}(range, ratio, level, base);          & // Add a level-one refinement grid.                              \\
+%  \ \ \ \ g.\textbf{deleteRefinement}(refinement);                                   & // Delete the refinement grid.                                   \\
+%                                                                                             &                                                                  \\
+%  \ \ \ \ g.\textbf{changeToAllCellCentered}();                                      & // Make the base grid cell-centered.                             \\
+%  \ \ \ \ range = g{\bf[}base{\bf]}.\textbf{indexRange}();               & // Find the index range of discretization points.                \\
+%  \ \ \ \ range(0,0) = range(0,1) = 1; range(1,0) = range(1,1) = 2;                          & // Refine the index range [1:2,1:2].                             \\
+%  \ \ \ \ refinement = g.\textbf{addRefinement}(range, ratio, level, base);          & // Add a level-one refinement grid.                              \\
+%  \ \ \ \ g.\textbf{deleteRefinement}(refinement);                                   & // Delete the refinement grid.                                   \\
+%                                                                                             &                                                                  \\
+%  \ \ \ \ \textbf{Integer} component = 0, coarsening =                               &                                                                  \\
+%  \ \ \ \ \ \ g.\textbf{addMultigridCoarsening}(ratio, level, component);            & // Add a level-one multigrid coarsening.                         \\
+%  \ \ \ \ g.\textbf{deleteMultigridCoarsening}(coarsening);                          & // Delete the multigrid coarsening.                              \\
+%                                                                                             &                                                                  \\
+%  \ \ \ \ for (\textbf{Integer} kg=0; kg$<$g.\textbf{numberOfGrids}(); kg++) &                                                                  \\
+%  \ \ \ \ \ \ for (\textbf{Integer} kd=0; kd$<$g.\textbf{numberOfDimensions}(); kd++)    &                                                      \\
+%  \ \ \ \ \ \ \ \ cout $\ll$ "refinementFactor(" $\ll$ kd $\ll$ "," $\ll$ kg $\ll$ ") = "          & // Print out the refinement factors                  \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{refinementFactor}(kd,kg) $\ll$ ",~"                     & // in each direction on each grid.                   \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ "multigridCoarseningFactor(" $\ll$ kd $\ll$ "," $\ll$ kd $\ll$ ") = " & // Print out the multigrid coarsening                \\
+%  \ \ \ \ \ \ \ \ \setbox0=\hbox{cout}\hbox to\wd0{\hfil}
+%                       $\ll$ g.\textbf{multigridCoarseningFactor}(kd,kg) $\ll$ endl;             & // factors in each direction on each grid.           \\
+%                                                                                             &                                                                  \\
+%  \ \ \ \ return 0;                                                                          &                                                                  \\
+%  \}                                                                                         &                                                                  \\
+%\end{tabular}\endgroup
+%\caption{Some \textbf{GridCollection} member functions\label{GridCollection:MemberFunctions}}
+%\end{example}
+
+% ok \end{document}
+
+\subsection{Local refinements and multigrid coarsenings}
+\label{GridCollection:RefinementsAndCoarsenings}
+
+\input localRefinementFig
+
+% ok \end{document}
+
+Class \textbf{GridCollection} contains a collection of \textbf{MappedGrid}s.  This is indexed using the overloaded member
+function \textbf{operator[]}().  It also contains \textbf{baseGrid}, \textbf{refinementLevel},
+\textbf{componentGrid}, and \textbf{multigridLevel}, collections of \textbf{GridCollection}s that overload the
+corresponding member data of class \textbf{GenericGridCollection}.  The discussion of base grids, refinements, component grids and
+multigrid coarsenings in \S\ref{GenericGridCollection} applies directly to class \textbf{GridCollection}.  However, since each grid
+is a \textbf{MappedGrid}, we can say more about how the refinements and multigrid coarsenings are related to the base grids and
+component grids.  In particular, each refinement must be generated by the mapping of its base grid, restricted to an aligned rectangular
+subset of the parameter space of the base grid.  For each level-one refinement, this rectangular subset must be bounded exactly by cells of
+the base grid, and the cells of the refinement must refine the cells of the base grid by an integer refinement ratio in each direction, as
+shown in Figure~\ref{GridCollection:AlignmentOfRefinements}.  For each level-$n$ refinement, this rectangular subset must be bounded exactly
+by cells of the union of level-$(n-1)$ refinements of the same base grid, and the cells of the level-$n$ refinement must refine the cells of
+the level-$(n-1)$ refinements by an integer refinement ratio in each direction.  While refinements of different base grids may use different
+refinement ratios, all same-level refinements of the same base grid must use the same refinement ratios.  Each multigrid coarsenings of a
+component grid must be generated by the mapping of its uncoarsened component grid (which is either a base grid or a refinement), and the
+cells of the level-$n$ multigrid coarsening must coarsen the cells of the level-$(n-1)$ coarsening by an integer coarsening ratio in each
+direction.  This places a restriction on the number of cells of the component grid, namely that in each direction it must be divisible by
+the product of the coarsening ratios of all of its multigrid coarsenings.  The member function \textbf{refinementFactor} returns an
+the refinement factor of each grid in each direction relative to its base grid; this is the product of the refinement ratios of each
+refinement level up to that of the grid.  For example, if level-one refinement grids are refined by a ratio of two and level-two refinement
+grids are refined by a ratio of three, then the level-two refinement grids have a refinement factor of $6 = 2 \times 3$.  Similarly, the
+member function \textbf{multigridCoarseningFactor} returns the multigrid coarsening factor of each grid in each direction relative
+to its uncoarsened component grid; this is the product of the coarsening ratios of each multigrid level up to that of the grid.
+Example~\ref{GridCollection:MemberFunctions} shows how some of these member functions may be used.
+Figure~\ref{GridCollection:AlignmentOfRefinements} shows the base grid and refinement that are produced by the example, in cases where
+the base grid is vertex-centered or cell-centered.
+
+\section{Class \textbf{\Index{CompositeGrid}}}
+\label{CompositeGrid}
+
+Class \textbf{CompositeGrid} is the class used for composite overlapping grids; it is a collection of \textbf{MappedGrid}s
+with a description of how function values defined on the component grids are related through interpolation between component grids in their
+regions of overlap.  Figure~\ref{CompositeGrid:OverlappingGrid} shows a simple example of a \textbf{CompositeGrid} consisting of two
+overlapping component grids.  \textbf{CompositeGrid} is derived from class \textbf{GridCollection}.  It overloads some of the
+\textbf{GridCollection} public constants, member data and member functions described in \S\ref{GridCollection}.  All of the member
+functions of class \textbf{GridCollection} described there may be used; only note that the copy constructor and the member functions
+\textbf{reference}() and \textbf{operator=}() now take a \textbf{CompositeGrid} as their argument.  Also,
+\textbf{CompositeGrid} overloads the member data \textbf{multigridLevel}, which are now a collection of
+\textbf{CompositeGrid}s.  Class \textbf{CompositeGrid} has member data that describe the criteria used in determining the
+overlap and interpolation of data between component grids, and the computed member data for interpolation at each interpolation point.
+It has member functions for use by grid-generation packages to aid in computing the overlap between component grids and determining which
+gridpoints should be interpolation points and from which component grid these should interpolate.  Example~\ref{CompositeGrid:MemberFunctions}
+shows how some of these member data and member functions may be used.
+
+\input compositeGridFig
+
+
+\small
+\begin{verbatim}
+#include "CompositeGrid.h"
+
+void example( CompositeGrid & g) 
+{                                        
+  g.update(CompositeGrid::THEmask |                     // Update the interpolation data.  
+           CompositeGrid::THEinterpolationCoordinates | // This is usually done by a
+           CompositeGrid::THEinterpoleeGrid |           // grid-generation package.  
+           CompositeGrid::THEinterpoleeLocation | 
+           CompositeGrid::THEinterpolationPoint |   
+           CompositeGrid::THEinterpolationCondition | 
+           CompositeGrid::THEinverseMap);   
+
+  for( Integer k=0; k<g.numberOfGrids(); k++) 
+  {                                                       
+    Integer np = g.numberOfInterpolationPoints(k);    // Access the number of interpolation points,             
+    IntegerArray & ig = g.interpolationGrid[k],       // the interpolee grids, 
+                  & il = g.interpoleeLocation[k];     // the interpolee-stencil locations, 
+                 & ip = g.interpolationPoint[k];      // the interpolation points,    
+                 & ic = g.interpolationCoordinates[k];// the interpolation coordinates, and   
+    IntegerMappedGridFunction & mask = g. mask[k];    // the gridpoint mask.
+    IntegerArray & dimension = g[k]. dimension,       // Access the outer dimensions of the grid.               
+    Range I1(dimension(0,0), dimension(1,0)),         // Construct  Ranges for gridpoints in the
+          I2(dimension(0,1), dimension(1,1)),         // interior and on the boundary of grid k,                
+          I3(dimension(0,2), dimension(1,2));         // and ghost points outside the boundary.                 
+    where (mask(I1,I2,I3) & CompositeGrid::ISdiscretizationPoint) 
+    {                                                                                              
+       // ...           // These are discretization points.                       
+    }
+    elsewhere (mask(I1,I2,I3) & CompositeGrid::ISinterpolationPoint) 
+    {                                                                                               
+       //  These are interpolation points.                        
+    }
+    elsewhere (mask(I1,I2,I3) & CompositeGrid::ISghostPoint)
+    {
+       // These are ghost points.                                
+    }  
+    otherwise
+    {
+       // These are unused points.                               
+    } 
+  } 
+}
+\end{verbatim}
+{\center Example~\ref{CompositeGrid:MemberFunctions}: Some \textbf{CompositeGrid} member functions\label{CompositeGrid:MemberFunctions}}
+
+
+The gridpoints of a \textbf{CompositeGrid} are classified as to whether they are discretization points, interpolation points, ghost points
+or unused points.  Note that in order to make this distinction, we no longer use the terms "discretization-cell center" and "discretization point"
+synonymously with "gridpoint" as we did in \S\ref{MappedGrid:Geometry}.  As before, a gridpoint is any point centered on the grid in the same way
+that the interior discretization stencil is centered.  If the grid is vertex-centered then the gridpoints are the grid vertices, including any ghost
+points outside the grid boundaries; if the grid is cell-centered then the gridpoints are the grid-cell centers, including any ghost cells outside
+the grid boundaries.  For the purposes of a \textbf{CompositeGrid}, "discretization-cell centers" and "discretization points" are those
+gridpoints in the interior or on the boundary of the grid which are labeled as discretization points in the \textbf{MappedGrid} member data
+\textbf{mask}, as shown in Example~\ref{CompositeGrid:MemberFunctions}.  "Interpolation points" are those interior or boundary
+gridpoints which are in the list of interpolation points for that grid and are labeled as interpolation points in \textbf{mask}.  "Ghost
+points" are those gridpoints outside the grid boundaries for which the nearest interior or boundary gridpoint is either a discretization point or
+an interpolation point; ghost points are labeled as such in \textbf{mask}.
+
+\subsection{Interpolation criteria}
+\label{CompositeGrid:InterpolationCriteria}
+
+To ensure stable and accurate interpolation of data between component grids, it is necessary to use criteria that impose some constraints on the
+overlap between the component grids.  For example, if the interpolation points of two neighbouring component grids were perfectely aligned, then
+interpolation of data from each component grid to the other would consist of copying the data from the interpolation points of one component grid
+to those of the other and vice versa.  If the interpolation points initially contained invalid data, then after interpolation they would still
+contain invalid data.  The interpolation fails because there is insufficient overlap.  With slightly more overlap, the interpolation stencils
+would include both interpolation points and discretization points.  This is called implicit interpolation, and requires that the interpolation
+conditions be solved as a system of simultaneous linear equations.  This system of equations becomes singular if any interpolation points of
+neighbouring component grids are perfectly aligned. As the amount of overlap increases, the system of equations becomes well-conditioned.  If the
+component grids overlap by more than half the width of the discretization stencil plus half the width of the interpolation stencil, then the
+interpolation stencil of each interpolation point is guaranteed to contain only discretization points of the other component grid and the system
+of equations becomes diagonal.  This is called explicit interpolation, and allows the interpolation conditions to be applied independently at
+each interpolation point.
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|p{2.75in}|p{3.75in}|}                   \hline\hline
+Member data or member function & Description \\ \hline\hline
+\textbf{epsilon}() & 
+      The accuracy tolerance used in the computation of interpolation coordinates 
+      using the inverse mapping of each component grid.  \\ \hline
+\textbf{interpolationIsImplicit}($k_1$,\,$k_2$,\,$l$)\hfil\break
+\textbf{backupInterpolationIsImplicit}($k_1$,\,$k_2$,\,$l$)  &
+\textbf{LogicalTrue} if interpolation of component grid~$k_1$ from component grid~$k_2$
+ at multigrid level~$l$ may be implicit (in other words, if the interpolation stencils of 
+interpolation points of grid~$k_1$ may include interpolation points of grid~$k_2$);
+\textbf{LogicalFalse} otherwise.  \\ \hline
+\textbf{interpolationIsAllExplicit}() &
+\textbf{LogicalTrue} if \textbf{interpolationIsImplicit}($k_1$,\,$k_2$,\,$l$) 
+is \textbf{LogicalFalse} for all pairs
+    ($k_1$,\,$k_2$) of grids at all multigrid levels~$l$;
+    \textbf{LogicalFalse} otherwise.                       \\ \hline
+\textbf{interpolationIsAllImplicit}() &
+\textbf{LogicalTrue} if \textbf{interpolationIsImplicit}($k_1$,\,$k_2$,\,$l$) 
+is \textbf{LogicalTrue} for all pairs
+($k_1$,\,$k_2$) of grids at all multigrid levels~$l$; \textbf{LogicalFalse} otherwise. \\ \hline
+\textbf{interpolationWidth}($i$,\,$k_1$,\,$k_2$,\,$l$)\hfil\break
+\textbf{backupInterpolationWidth}($i$,\,$k_1$,\,$k_2$,\,$l$) &
+The interpolation-stencil width in index direction~$i$ for interpolation of component grid~$k_1$
+from component grid~$k_2$ at multigrid level~$l$.   \\ \hline 
+\textbf{interpolationOverlap}($i$,\,$k_1$,\,$k_2$,\,$l$)\hfil\break
+\textbf{backupInterpolationOverlap}($i$,\,$k_1$,\,$k_2$,\,$l$) &
+The minimum overlap in index direction~$i$ for interpolation of component grid~$k_1$ 
+from component grid~$k_2$ at multigrid level~$l$.  \\ \hline 
+\textbf{interpolationConditionLimit}($k_1$,\,$k_2$,\,$l$)\hfil\break
+\textbf{backupInterpolationConditionLimit}($k_1$,\,$k_2$,\,$l$) &
+The maximum condition number allowed for interpolation of component grid~$k_1$ 
+from component grid~$k_2$ at multigrid level~$l$.
+The constraint on the condition number is ignored if this parameter is set to zero. \\ \hline 
+\textbf{interpolationPreference}($i$,\,$k$,\,$l$) &
+The list of preferences for interpolation and discretization of component grid~$k$ 
+at multigrid level~$l$.
+For each grid~$k$, the component grid numbers of interpolee grids 
+(and for discretization, the component grid number~$k$) are listed so that their
+order of preference increases with the index~$i$.  
+The end of the list is indicated by the value~$-1$. \\ \hline 
+\textbf{mayInterpolate}($k_1$,\,$k_2$,\,$l$)\hfil\break
+\textbf{mayBackupInterpolate}($k_1$,\,$k_2$,\,$l$) &
+\textbf{LogicalTrue} if component grid~$k_1$ may be interpolated from 
+component grid~$k_2$ at multigrid level~$l$;
+\textbf{LogicalFalse} otherwise. \\ \hline 
+\textbf{mayCutHoles}($k_1$,\,$k_2$) &
+\textbf{LogicalTrue} if the domain boundaries of component grid~$k_1$ may
+ cut holes in component grid~$k_2$;
+\textbf{LogicalFalse} otherwise.\\ \hline 
+\textbf{multigridCoarseningRatio}($i$,\,$k$,\,$l$) &
+The multigrid coarsening ratio in direction~$i$ of component grid~$k$ at 
+multigrid levels~$l-1$ and~$l$.\\ \hline 
+\textbf{multigridProlongationWidth}($i$,\,$k$,\,$l$) &
+The multigrid prolongation-stencil width in direction~$i$ for prolongation of 
+component grid~$k$ from multigrid level~$l$ to multigrid level~$l-1$.\\ \hline 
+\textbf{multigridRestrictionWidth}($i$,\,$k$,\,$l$) &
+  The multigrid restriction-stencil width in direction~$i$ for restriction of 
+   component grid~$k$ from multigrid level~$l$ to multigrid level~$l+1$.\\ \hline 
+\textbf{numberOfCompleteMultigridLevels}() &
+    The least number of multigrid levels of all component grids.
+    All component grids are supposed to have at least this many multigrid levels.
+    When interpolation is updated, it is updated only for the complete multigrid levels.\\ \hline \hline 
+\end{tabular}
+\end{center}
+\caption[Some \textbf{CompositeGrid} member data and member functions]
+        {Some \textbf{CompositeGrid} member data and member functions describing the criteria used in
+         determining interpolation and overlap between component grids
+        \label{CompositeGrid:InterpolationCriteria:MemberDataAndMemberFunctions}}
+\end{table}
+
+
+% \begingroup
+% \newcommand{\topStrut}{\vrule height2.3ex depth0pt width0pt}
+% \newcommand{\bottomStrut}{\vrule height0pt depth1.2ex width0pt}
+% \setbox0=\hbox{\vrule\begin{tabular}{l|l}\strut&\strut\\\end{tabular}\vrule}
+% \newlength{\columnWidth}\setlength{\columnWidth}{\textwidth}\addtolength{\columnWidth}{-\wd0}
+% \setbox0=\hbox{\textbf{backupInterpolationConditionLimit}($k_1$,\,$k_2$,\,$l$)}
+% \newlength{\columnOneWidth}\setlength{\columnOneWidth}{\wd0}
+% \newlength{\columnTwoWidth}\setlength{\columnTwoWidth}{\columnWidth}\addtolength{\columnTwoWidth}{-\columnOneWidth}
+% \begin{table}[htb]\vrule\begin{tabular}{l|l}\hline\hline
+%   \begin{minipage}[t]{\columnOneWidth}\topStrut
+%     Member data or member function%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     Description%
+%   \bottomStrut\end{minipage}\\\hline\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{epsilon}()%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The accuracy tolerance used in the computation of interpolation coordinates using the inverse mapping of each component grid.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{interpolationIsImplicit}($k_1$,\,$k_2$,\,$l$)\hfil\break
+%     \textbf{backupInterpolationIsImplicit}($k_1$,\,$k_2$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     \textbf{LogicalTrue} if interpolation of component grid~$k_1$ from component grid~$k_2$ at multigrid level~$l$ may be implicit
+%     (in other words, if the interpolation stencils of interpolation points of grid~$k_1$ may include interpolation points of grid~$k_2$);
+%     \textbf{LogicalFalse} otherwise.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{interpolationIsAllExplicit}()%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     \textbf{LogicalTrue} if \textbf{interpolationIsImplicit}($k_1$,\,$k_2$,\,$l$) is \textbf{LogicalFalse} for all pairs
+%     ($k_1$,\,$k_2$) of grids at all multigrid levels~$l$;
+%     \textbf{LogicalFalse} otherwise.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{interpolationIsAllImplicit}()%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     \textbf{LogicalTrue} if \textbf{interpolationIsImplicit}($k_1$,\,$k_2$,\,$l$) is \textbf{LogicalTrue} for all pairs
+%     ($k_1$,\,$k_2$) of grids at all multigrid levels~$l$;
+%     \textbf{LogicalFalse} otherwise.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{interpolationWidth}($i$,\,$k_1$,\,$k_2$,\,$l$)\hfil\break
+%     \textbf{backupInterpolationWidth}($i$,\,$k_1$,\,$k_2$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The interpolation-stencil width in index direction~$i$ for interpolation of component grid~$k_1$ from component grid~$k_2$ at multigrid level~$l$.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{interpolationOverlap}($i$,\,$k_1$,\,$k_2$,\,$l$)\hfil\break
+%     \textbf{backupInterpolationOverlap}($i$,\,$k_1$,\,$k_2$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The minimum overlap in index direction~$i$ for interpolation of component grid~$k_1$ from component grid~$k_2$ at multigrid level~$l$.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{interpolationConditionLimit}($k_1$,\,$k_2$,\,$l$)\hfil\break
+%     \textbf{backupInterpolationConditionLimit}($k_1$,\,$k_2$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The maximum condition number allowed for interpolation of component grid~$k_1$ from component grid~$k_2$ at multigrid level~$l$.
+%     The constraint on the condition number is ignored if this parameter is set to zero.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{interpolationPreference}($i$,\,$k$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The list of preferences for interpolation and discretization of component grid~$k$ at multigrid level~$l$.%
+%     For each grid~$k$, the component grid numbers of interpolee grids (and for discretization, the component grid number~$k$) are listed so that their
+%     order of preference increases with the index~$i$.  The end of the list is indicated by the value~$-1$.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{mayInterpolate}($k_1$,\,$k_2$,\,$l$)\hfil\break
+%     \textbf{mayBackupInterpolate}($k_1$,\,$k_2$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     \textbf{LogicalTrue} if component grid~$k_1$ may be interpolated from component grid~$k_2$ at multigrid level~$l$;
+%     \textbf{LogicalFalse} otherwise.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{mayCutHoles}($k_1$,\,$k_2$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     \textbf{LogicalTrue} if the domain boundaries of component grid~$k_1$ may cut holes in component grid~$k_2$;
+%     \textbf{LogicalFalse} otherwise.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{multigridCoarseningRatio}($i$,\,$k$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The multigrid coarsening ratio in direction~$i$ of component grid~$k$ at multigrid levels~$l-1$ and~$l$.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{multigridProlongationWidth}($i$,\,$k$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The multigrid prolongation-stencil width in direction~$i$ for prolongation of component grid~$k$ from multigrid level~$l$ to multigrid level~$l-1$.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{multigridRestrictionWidth}($i$,\,$k$,\,$l$)%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The multigrid restriction-stencil width in direction~$i$ for restriction of component grid~$k$ from multigrid level~$l$ to multigrid level~$l+1$.%
+%   \bottomStrut\end{minipage}\\\hline\begin{minipage}[t]{\columnOneWidth}\topStrut
+%     \textbf{numberOfCompleteMultigridLevels}()%
+%   \bottomStrut\end{minipage}&\begin{minipage}[t]{\columnTwoWidth}\topStrut
+%     The least number of multigrid levels of all component grids.
+%     All component grids are supposed to have at least this many multigrid levels.
+%     When interpolation is updated, it is updated only for the complete multigrid levels.%
+%   \bottomStrut\end{minipage}\\\hline\hline
+% \end{tabular}\vrule
+% \caption[Some \textbf{CompositeGrid} member data and member functions]
+%         {Some \textbf{CompositeGrid} member data and member functions describing the criteria used in
+%          determining interpolation and overlap between component grids
+%         \label{CompositeGrid:InterpolationCriteria:MemberDataAndMemberFunctions}}
+% \end{table}
+% \endgroup
+
+There are several \textbf{CompositeGrid} member data arrays and member functions that express these interpolation criteria.  The array
+\textbf{interpolationWidth} indicates, for each pair of component grids at each multigrid level, the width of the interpolation stencil in
+each direction.  The array \textbf{interpolationIsImplicit} indicates, for each pair of component grids at each multigrid level, whether or
+not the interpolation stencil for any interpolation point of the one component grid may contain interpolation points from the other component grid.
+If implicit interpolation is allowed, then less overlap is needed.  The member functions \textbf{interpolationIsAllExplicit} and
+\textbf{interpolationIsAllImplicit} summarize this data, indicating whether interpolation from every pair of component grids at every
+multigrid level must be explicit, or whether interpolation between all pairs of component grids at all multigrid levels may be implicit.  The array
+\textbf{interpolationOverlap} indicates, for each pair of component grids at each multigrid level, the minimum amount of overlap allowed in
+each direction.  Occasionally it is useful to restrict interpolation so that interpolation is allowed only between certain pairs of grids.  This
+constraint might be useful, for example, to avoid interpolation between grids that are known to have incompatible resolution.  The array
+\textbf{mayInterpolate} indicates, for each pair of component grids at each multigrid level, whether interpolation is allowed between these
+component grids.  In addition, it is possible to specify, for each component grid at each multigrid level, a sequence of preferences for how the
+gridpoints of that component grid should be used.  This sequence should contain discretization as well as interpolation from any subset of the other
+component grids, in any sequence.  For example, if discretization were specified to be the highest priority for all component grids, then the amount
+of overlap would be maximized, because only those points which could not be discretized would be considered for interpolation. The array
+\textbf{interpolationPreference} indicates, for each component grid at each multigrid level, the sequence of preferences for the gridpoints of
+that component grid.  In order for gridpoints of grid $k_1$ to be allowed to interpolate from grid $k_2$, \textbf{mayInterpolate}($k_1$,$k_2$)
+must be \textbf{LogicalTrue} and $k_2$ must appear in the \textbf{interpolationPreference} list for $k_1$.  These and other member
+data arrays and member functions that describe constraints on interpolation are summarized in
+Table~\ref{CompositeGrid:InterpolationCriteria:MemberDataAndMemberFunctions}.
+
+For diagnostic purposes, class \textbf{CompositeGrid} allows for a second set of interpolation criteria using less stringent constraints.
+These are useful when no configuration of gridpoints is possible that would satisfy the primary interpolation constraints.  For example, given a
+set of component grids with insufficient overlap, it is impossible to interpolate data between the component grids in the areas of insufficient
+overlap.  By allowing less stringent constraints to be used where the primary constraints fail, it is possible to identify these problem areas.
+The parameters that describe these constraints are \textbf{backupInterpolationIsImplicit}, \textbf{backupInterpolationWidth},
+\textbf{backupInterpolationOverlap}, \textbf{backupInterpolationConditionLimit} and \textbf{mayBackupInterpolate}.
+The latter determines whether the backup interpolation criteria may be used.
+
+\subsection{Interpolation data} \index{interpolation data}
+\label{CompositeGrid:InterpolationData}
+
+The interpolation data for a \textbf{CompositeGrid} consists of a collection of interpolation points, with data specifying from which
+component grids they interpolate, and their location within the parameter space of the components grid from which they interpolate.  This data
+may be used to compute interpolation weights.  The array \textbf{numberOfInterpolationPoints} contains the number of interpolation points
+of each component grid at each multigrid level.
+%
+I should discuss the following member data and functions:
+    enum                         ISgivenByInterpoleePoint;
+    IntegerArray                 numberOfInterpolationPoints;
+    IntegerArray                 numberOfInterpoleePoints;
+    IntegerArray                 interpoleeGridRange;
+    RVector$<$RealArray$>$       interpolationCoordinates;
+    RVector$<$IntegerArray$>$    interpoleeGrid;
+    RVector$<$IntegerArray$>$    interpoleePoint;
+    RVector$<$IntegerArray$>$    interpoleeLocation;
+    RVector$<$IntegerArray$>$    interpolationPoint;
+    RVector$<$RealArray$>$       interpolationCondition;
+
+\subsection{Local refinements and multigrid coarsenings}
+\label{CompositeGrid:RefinementsAndCoarsenings}
+
+I should discuss the following member data and functions:
+    IntegerArray                 multigridCoarseningRatio;
+    IntegerArray                 multigridProlongationWidth;
+    IntegerArray                 multigridRestrictionWidth;
+    RCVector$<$CompositeGrid$>$  multigridLevel;
+    virtual void makeCompleteMultigridLevels();
+    inline void adjustBoundary(const Integer\& k1, const Integer\& k2, const IntegerArray\& i1, const RealArray\& x);
+
+\subsection{Miscellaneous member data and functions}
+\label{CompositeGrid:Miscellaneous}
+
+I should discuss the following member data and functions:
+    RealCompositeGridFunction    inverseCondition;
+    RealCompositeGridFunction    inverseCoordinates;
+    IntegerCompositeGridFunction inverseGrid;
+    inline void getInterpolationStencil(const Integer\& k1, const Integer\& k2, const RealArray\& r, const IntegerArray\& interpolationStencil, const LogicalArray\& useBackupRules);
+    inline void getInterpolationStencil(const MappedGrid\& g, const Integer\& k1, const Integer\& k2, const RealArray\& r, const IntegerArray\& interpolationStencil, const LogicalArray\& useBackupRules);
+    inline Logical canInterpolate(const Integer\& k1, const Integer\& k2, const RealArray\& r, const LogicalArray\& ok, const LogicalArray\& useBackupRules, const Logical checkForOneSided = LogicalFalse);
+    inline Logical canInterpolate(const MappedGrid\& g, CompositeMask\& g\_mask, const Integer\& k1, const Integer\& k2, const RealArray\& r, const LogicalArray\& ok, const LogicalArray\& useBackupRules, const Logical checkForOneSided = LogicalFalse);
+    void isInteriorBoundaryPoint(const Integer\& k1, const Integer\& k2, const IntegerArray\& i1, const RealArray\& r2, const LogicalArray\& ok);
+    inline void adjustBoundary(const Integer\& k1, const Integer\& k2, const IntegerArray\& i1, const RealArray\& x);
+
+\appendix % Every \section after this is an appendix.
+
+\section{Class \textbf{ReferenceCounting}}
+\label{ReferenceCounting}
+
+I should discuss the following member functions:
+the default constructor,
+the copy constructor,
+the destructor,
+\textbf{operator=}(),
+\textbf{reference}(),
+\textbf{breakReference}(),
+\textbf{virtualConstructor}(),
+\textbf{incrementReferenceCount}(),
+\textbf{decrementReferenceCount}(),
+\textbf{getReferenceCount}(),
+\textbf{uncountedReferencesMayExist}(),
+\textbf{getClassName}(),
+\textbf{getGlobalID}(), and
+\textbf{consistencyCheck}().
+One example of a virtual member function that is overloaded in derived
+classes is the function \textbf{getClassName}(), which returns the
+name of the most-derived class of the object.
+
+\printindex
+
+\end{document}

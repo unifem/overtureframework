@@ -1,0 +1,7 @@
+
+
+Command files for the "motion" test routine for MatrixMotion
+
+motion1.cmd  : usage ../bin/motion motion1.cmd 
+motion2.cmd
+motion3.cmd

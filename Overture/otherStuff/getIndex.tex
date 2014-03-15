@@ -1,0 +1,68 @@
+\section{Constructing A++ Index Objects for Grid Functions: 
+   \Index{getIndex}, \Index{getBoundaryIndex}, \Index{getGhostIndex}} 
+\label{getIndex}
+
+
+A number of functions are provided to construct A++ Index 
+objects for grid functions. The {\tt getIndex} function
+constructs Index objects for the interior points
+of a grid function. The function {\tt getBoundaryIndex}
+constructs the Index objects corresponding to a
+given boundary face. The {\tt getGhostIndex} function
+constructs Index objects for a ghost line on a given
+face of the grid. 
+
+Recall that a gridFunction can be cell-centred
+or vertex-centred in any of the coordinate
+directions. Typically grid functions are either
+all vertex-centred, all cell-centred or
+else face-centred (a face-centred grid function
+is vertex-centred along one axis and cell-centred
+along the others).
+By passing a grid function to {\tt getIndex}, 
+{\tt getBoundaryIndex} or {\tt getGhostIndex} one
+can be sure to get the Index objects corresponding 
+to the ``centred-ness'' of the grid function.
+This is important because the ``interior'' points
+of a vertex-centred grid function are different
+from the interior
+points of a cell-centred grid function or the
+interior points of a face-centred grid function.
+For grid functions that are {\tt faceCenteredAll} (i.e. they have components
+that are faceCentered along each axis) there is a {\tt getIndex} function
+with an extra argument that species which face centering axis to use.
+
+
+\subsection{Index functions}\index{OGgetIndex}
+
+Here are the getIndex functions (see also file {\tt \gf/OGgetIndex.h}).
+There are at least three flavours of each function. The first takes an {\tt indexArray},
+the second takes a grid function and component number and the third takes
+a grid function (in which case {\tt component=0} is used to determine
+the Index's). The function {\tt getIndex} has an additional 2 flavours.
+
+
+\noindent A summary of the arguments is as follows:
+\begin{itemize}
+  \item {\tt indexArray} : an intArray with dimensions (0:1,0:2), such as
+        {\tt indexRange}, {\tt gridIndexRange} or {\tt dimension}, that defines
+        a region on the grid.
+  \item {\tt extra} :  Increase the size of the domain by this many lines. 
+  \item {\tt side, axis} : these arguments define which face to use
+  \item {\tt floatMappedGridFunction} : Use the cell-centeredness properties of this grid function 
+     to determine the index range. Versions of the function also exist for
+    {\tt doubleMappedGridFunction} and {\tt intMappedGridFunction}. 
+  \item {\tt component} : base the Index objects on this component of
+    the grid function (required since different components of a grid function may be centred in
+    different ways). The functions where the {\tt component} argument is missing use {\tt component=0}.
+    The exception to the above rule is when the grid function 
+    is {\tt faceCenteredAll} in which case {\tt component} =0,1 or 2 will indicate whether to return
+   Index's for the faceCenteredAxis1, faceCenteredAxis2 or the faceCenteredAxis3 components.
+  \item {\tt ghostLine} : return Index objects for this ghost line. Choose
+    {\tt ghostline=1} for the first ghost line, {\tt ghostline=2} for the
+    second ghost line. ({\tt ghostline=0} will give the boundary).
+\end{itemize}
+
+\input OGgetIndexInclude.tex
+
+

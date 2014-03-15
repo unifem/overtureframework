@@ -1,0 +1,157 @@
+#! /bin/csh -f
+#  Make the Overture library
+
+
+echo 'usage: buildOverture [overtureDirectory=$OvertureBuild]'
+
+if ($#argv != 1) then
+  echo " default : $OvertureBuild"
+  set ovDir =   $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "make a clean copy of Overture"
+echo "copying Overture into $ovDir"
+
+if ( -e $ovDir ) then
+  echo "WARNING: $ovDir exists"
+  echo "erase it? (y/n)"
+  set answer = $<
+  if ( $answer == "y" ) then
+    echo "removing $ovDir"
+    # first move the directory and then delete in the background -- this is faster
+    mv $ovDir $ovDir.junk
+    rm -r $ovDir.junk &
+    echo "first copy the Overture skeleton directory (./Overture)"
+    cp -r Overture $ovDir
+    # remove CVS directories from the skeleton.
+    rm -rf $ovDir/CVS
+    rm -rf $ovDir/*/CVS
+
+  else
+    echo "copying files into the existing directory"
+    echo "copy skeleton files..."
+    cd Overture
+    build $ovDir
+    cd ..
+  endif
+else
+  echo "$ovDir does not exist"
+  echo "first copy the Overture skeleton directory (./Overture)"
+  cp -r Overture $ovDir
+  # remove CVS directories from the skeleton.
+  rm -rf $ovDir/CVS
+  rm -rf $ovDir/*/CVS
+endif
+
+echo "copy grid files..."
+cd grid
+build $ovDir
+
+echo "copy ogshow files..."
+cd ../ogshow
+build $ovDir
+
+echo "copy rap files..."
+cd ../rap
+build $ovDir
+
+echo "copy gf files..."
+cd ../gf
+build $ovDir
+
+echo "copy op files..."
+cd ../op
+build $ovDir
+
+echo "copy doc files..."
+cd ../doc
+build $ovDir
+
+echo "copy mapping files..."
+cd ../mapping
+build $ovDir
+
+echo "copy hype files..."
+cd ../hype
+build $ovDir
+
+echo "copy ogen files..."
+cd ../ogen
+build $ovDir
+
+echo "copy ugen files..."
+cd ../ugen
+build $ovDir
+
+echo "copy otherStuff files..."
+cd ../otherStuff
+build $ovDir
+
+echo "copy oges files..."
+cd ../oges
+build $ovDir
+
+echo "copy ogmg files..."
+cd ../ogmg
+build $ovDir
+
+echo "copy primer files..."
+cd ../primer
+build $ovDir
+
+echo "copy hdf files..."
+cd ../hdf
+build $ovDir
+
+# We no longer support these files: wdh 051028
+# echo "copy fvo files..."
+# cd ../fvo
+# build $ovDir
+
+echo "copy templates files..."
+cd ../templates
+build $ovDir
+
+echo "copy boxlib files..."
+cd ../boxlib
+build $ovDir
+
+echo "copy include files..."
+cd ../include
+build $ovDir
+
+# echo "copy xCogToOverture files..."
+# cd ../xCogToOverture
+# build $ovDir
+
+echo "copy amr files..."
+cd ../amr
+build $ovDir
+
+echo "copy gui files..."
+cd ../gui
+build $ovDir
+
+echo "copy perl modules..."
+cd ../perl
+build $ovDir
+
+echo "copy parallel files..."
+cd ../parallel
+build $ovDir
+
+# if ( $?GUIDir ) then
+#   if ( -e $GUIDir ) then
+#     echo "using gui in " $GUIDir
+#     cd $GUIDir
+#     build $ovDir
+#   endif
+# endif
+
+echo "done"
+echo "go to the Overture directory, $ovDir,  and run 'configure' and 'make' "
+
+exit

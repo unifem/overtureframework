@@ -1,0 +1,67 @@
+AppLib = -L$(A++)/lib -lApp -lApp_static
+
+OvertureInclude=  $(Overture)/include
+OvertureLib=      $(Overture)/lib
+A++ =             $(APlusPlus)
+A+++ =             $(APlusPlus)
+LIBAPP =          $(A++)/libA++.a
+GridFunction=     /usr/snurp/henshaw/res/gf
+OpenGLInclude = $(OpenGL)/include
+
+Include =     -I. -I$(A++)/include -I$(OvertureInclude) -I$(OpenGLInclude) $(STL) \
+              -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/src/sys/src/mpiuni
+
+CCFLAGS=    $(OverturePrecision) -g $(Include) $(EXTRA_CC_FLAGS) -DBOUNDS_CHECK  
+CCFLAGS=    $(OverturePrecision) -g $(Include) $(EXTRA_CC_FLAGS)
+CCFLAGSO=    $(OverturePrecision) -O $(Include) $(EXTRA_CC_FLAGS)
+CCFLAGSF=    $(OverturePrecision) -fast $(Include) $(EXTRA_CC_FLAGS)
+
+
+CFLAGS=    -g $(Include) 
+# CCFLAGS=    -g -cg92 -DDOUBLE $(Include) 
+
+FC=         f77
+FFLAGS=     $(OvertureFortranPrecision) $(EXTRA_FFLAGS)  -g 
+FFLAGSF=     $(OvertureFortranPrecision) $(EXTRA_FFLAGS) -fast
+FFLAGSG=     $(OvertureFortranPrecision) $(EXTRA_FFLAGS) -g
+CLIBS=      -L$(OvertureLib) -lOverture  -lOverture_static $(AppLib) \
+            -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz $(FORTRAN_LIBS)
+
+# Here the Overture library is split into two
+CLIBS2=      -L$(OvertureLib) -lOverture1 -lOverture2 -lOverture_static $(AppLib) \
+            -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz $(FORTRAN_LIBS)
+# here we use the static library
+CLIBS3=      -L$(OvertureLib) -lOvertureBig -lOverture_static $(AppLib) \
+            -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz $(FORTRAN_LIBS)
+
+PETSC_LIBS = -L$(PETSC_LIB) -lpetscsles -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni -L/usr/local/lib -llapack -lblas 
+
+
+# add FLIBS to the end of CLIBS
+#FLIBS=    $(PETSC_LIBS)   $(FORTRAN_LIBS)
+# FLIBS=     $(FORTRAN_LIBS)
+
+GLIBS=   -L$(OpenGL)/lib $(GL_LIBS) \
+         -L$(MOTIF)/lib -lXm -L$(OPENWINHOME)/lib -lXt -lXmu -lXi -LXext -lX11 -lm
+
+PFLAGS  = -cache-dir=/n/c19s8/henshaw/cache -first-only=yes -leaks-at-exit=yes -inuse-at-exit=yes -recursion-depth-limit=20000
+PFLAGS  = -cache-dir=$(PURIFY_CACHE) -best-effort -first-only=yes -leaks-at-exit=yes -inuse-at-exit=yes -always-use-cache-dir=yes -recursion-depth-limit=20000
+PFLAGS  =  -best-effort -first-only=yes -leaks-at-exit=yes -inuse-at-exit=yes -always-use-cache-dir=yes -recursion-depth-limit=20000 -chain-length="16" 
+# stud PDIR    = `purify -print-home-dir`
+PURIFY  = 
+# PURIFY  = purify $(PFLAGS) 
+PSTUBS  = $(PDIR)/purify_stubs.a
+# PURIFY_OPTIONS = -I$(PDIR) -xildoff
+
+
+.SUFFIXES:
+.SUFFIXES:.f .o .C .o .c .o
+.C.o:; $(CC) $(CCFLAGS) -instances=static -c $*.C
+
+.c.o:; $(cc) $(CFLAGS)  -c $*.c
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+.bf.f:; bpp $*.bf
+.bf.o: $*.f ; 
+.C: $*.o
+	$(PURIFY) $(CC) $(CCFLAGS) $(PURIFY_OPTIONS) -o $@  $< $(CLIBS) $(FLIBS)  $(GLIBS) -lF77 -lM77 -lV77
+

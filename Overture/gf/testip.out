@@ -1,0 +1,148 @@
+***New: Time to interpolateAllPoints: 1.05e+01
+        After interpolating a grid function: (number of extrapolated points =0)
+ grid=0 (main-pipe-box) max. rel. err=2.562053e-16 (7.252201e-05 with ghost)
+ grid=1 (main-pipe) max. rel. err=4.379255e-04 (9.841286e-03 with ghost)
+ grid=2 (top-pipe-box) max. rel. err=3.181234e-04 (3.181234e-04 with ghost)
+ grid=3 (top-pipe) max. rel. err=2.413193e-04 (9.253581e-03 with ghost)
+ grid=4 (fillet) max. rel. err=7.847894e-04 (3.304057e-03 with ghost)
+Maximum relative error = 7.847894e-04 (9.841286e-03 with ghost)
+Successfully opened /home/henshaw/.overturerc for reading
+
+
+
+
+
+==================================================================================================
+080324: Fixed extrap in new version. Added option to only interp some ghost points
+
+
+----------------------------------------------------------------------------------------
+testip -in=cice3.order2.hdf -out=cice2.order2.hdf -tz=trig
+
+
+***Old: Time to interpolateAllPoints: 2.34e-01
+      After interpolating a grid function: (number of extrapolated points =1143)
+ grid=0 (square) max. rel. err=2.672023e-03 (2.447174e-02 with ghost)
+ grid=1 (Annulus) max. rel. err=2.309105e-03 (1.755705e-01 with ghost)
+Maximum relative error = 2.672023e-03 (1.755705e-01 with ghost)
+InterpolatePoints::buildInterpolationInfo: total interpolated=5936 extrapolated=328 not assigned=0
+InterpolatePoints::buildInterpolationInfo: total interpolated=680 extrapolated=85 not assigned=0
+
+***New: Time to interpolateAllPoints: 4.70e-03
+        After interpolating a grid function: (number of extrapolated points =0)
+ grid=0 (square) max. rel. err=2.672023e-03 (8.104950e-03 with ghost)
+ grid=1 (Annulus) max. rel. err=2.309105e-03 (2.691082e-03 with ghost)
+Maximum relative error = 2.672023e-03 (8.104950e-03 with ghost)
+Successfully opened /home/henshaw/.overturerc for reading
+
+----------------------------------------------------------------------------------------
+
+testip -in=sibe3.order2.hdf -out=sibe2.order2.hdf
+
+***Old: Time to interpolateAllPoints: 8.85e+00
+      After interpolating a grid function: (number of extrapolated points =26053)
+ grid=0 (box) max. rel. err=1.623640e-04 (8.487852e-01 with ghost)
+ grid=1 (north-pole) max. rel. err=9.563290e-04 (1.561239e-01 with ghost)
+ grid=2 (south-pole) max. rel. err=1.212661e-03 (1.681997e-01 with ghost)
+Maximum relative error = 1.212661e-03 (8.487852e-01 with ghost)
+InterpolatePoints::buildInterpolationInfo: total interpolated=67288 extrapolated=10586 not assigned=0
+InterpolatePoints::buildInterpolationInfo: total interpolated=3470 extrapolated=593 not assigned=0
+InterpolatePoints::buildInterpolationInfo: total interpolated=4166 extrapolated=937 not assigned=0
+
+***New: Time to interpolateAllPoints: 1.21e-01
+        After interpolating a grid function: (number of extrapolated points =0)
+ grid=0 (box) max. rel. err=2.866303e-04 (4.870921e-04 with ghost)
+ grid=1 (north-pole) max. rel. err=1.088848e-03 (1.714071e-03 with ghost)
+ grid=2 (south-pole) max. rel. err=1.532427e-03 (1.532427e-03 with ghost)
+Maximum relative error = 1.532427e-03 (1.714071e-03 with ghost)
+
+
+
+
+====================================================================================
+
+
+021012: gps15 *new* optimised (and 3d version)
+
+======== sib
+
+***Old: Time to interpolateAllPoints: 5.99e+00
+      After interpolating a grid function: (number of extrapolated points =7889)
+Maximum error = 2.18e+00 (dimension) or = 1.43e-02 (gridIndexRange)
+buildInterpolationInfo: total interpolated=15436, num not interpolated=0
+buildInterpolationInfo: total interpolated=776, num not interpolated=0
+buildInterpolationInfo: total interpolated=2312, num not interpolated=0
+
+***New: Time to interpolateAllPoints: 5.57e-02
+        After interpolating a grid function: (number of extrapolated points =0)
+buildInterpolationInfo: total interpolated=15436, num not interpolated=0
+buildInterpolationInfo: total interpolated=776, num not interpolated=0
+buildInterpolationInfo: total interpolated=2312, num not interpolated=0
+*     : Time to interpolate again:    3.03e-02
+Maximum error = 3.02e-02 (dimension) or = 3.02e-02 (gridIndexRange)
+
+
+
+========= cic
+
+***Old: Time to interpolateAllPoints: 1.41e-01
+      After interpolating a grid function: (number of extrapolated points =398)
+Maximum error = 2.58e-01 (dimension) or = 4.17e-03 (gridIndexRange)
+buildInterpolationInfo: total interpolated=1160, num not interpolated=0
+buildInterpolationInfo: total interpolated=370, num not interpolated=0
+
+***New: Time to interpolateAllPoints: 2.93e-03
+        After interpolating a grid function: (number of extrapolated points =0)
+buildInterpolationInfo: total interpolated=1160, num not interpolated=0
+buildInterpolationInfo: total interpolated=370, num not interpolated=0
+*     : Time to interpolate again:    1.95e-03
+Maximum error = 4.33e-03 (dimension) or = 4.33e-03 (gridIndexRange)
+
+
+
+
+
+021012: gps15
+
+===========================================================================
+valve
+
+***Old: Time to interpolateAllPoints: 2.56e+00
+      After interpolating a grid function: (number of extrapolated points =538)
+Maximum error = 1.42e-01 (dimension) or = 9.74e-02 (gridIndexRange)
+buildInterpolationInfo: total interpolated=1530, num not interpolated=0
+buildInterpolationInfo: total interpolated=579, num not interpolated=0
+buildInterpolationInfo: total interpolated=743, num not interpolated=0
+
+***New: Time to interpolateAllPoints: 2.52e-01
+      After interpolating a grid function: (number of extrapolated points =0)
+Maximum error = 8.76e-04 (dimension) or = 8.76e-04 (gridIndexRange)
+
+
+
+=========================================================================
+cic
+
+***Old: Time to interpolateAllPoints: 1.49e-01
+      After interpolating a grid function: (number of extrapolated points =398)
+Maximum error = 2.58e-01 (dimension) or = 4.17e-03 (gridIndexRange)
+buildInterpolationInfo: total interpolated=1160, num not interpolated=0
+buildInterpolationInfo: total interpolated=370, num not interpolated=0
+
+***New: Time to interpolateAllPoints: 1.17e-02
+      After interpolating a grid function: (number of extrapolated points =0)
+Maximum error = 4.33e-03 (dimension) or = 4.33e-03 (gridIndexRange)
+
+
+======================================================================
+cilc
+
+***Old: Time to interpolateAllPoints: 6.32e-01
+      After interpolating a grid function: (number of extrapolated points =871)
+Maximum error = 2.00e-01 (dimension) or = 6.90e-04 (gridIndexRange)
+buildInterpolationInfo: total interpolated=5362, num not interpolated=0
+buildInterpolationInfo: total interpolated=1780, num not interpolated=0
+
+***New: Time to interpolateAllPoints: 5.27e-02
+      After interpolating a grid function: (number of extrapolated points =0)
+Maximum error = 7.53e-04 (dimension) or = 7.53e-04 (gridIndexRange)

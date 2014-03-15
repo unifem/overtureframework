@@ -1,0 +1,70 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+# here is where the original files are:
+set OvertureOgshow  =  $ovDir/Ogshow
+set OvertureInclude =  $ovDir/include
+set OvertureBin     =  $ovDir/bin
+set OvertureStatic  =  $ovDir/static
+set OvertureExamples = $ovDir/examples
+set OvertureTests    = $ovDir/tests
+
+echo "ogshow/build: copy ogshow files into $ovDir..."
+
+
+# copy these into the static directory
+#cp {mogl.C,overlay.c}                                                              $OvertureStatic
+cp overlay.c                                                                        $OvertureStatic
+cp  xColours.C                                                                      $OvertureStatic
+
+# These files may be used if the user hasn't built the GLw library -- these files don't seem to change
+cp {GLwDrawA.c,GLwDrawA.h,GLwDrawAP.h,GLwMDrawA.c,GLwMDrawA.h,GLwMDrawAP.h}.backup $OvertureStatic
+# These files are for Mesa off-screen rendering -- get a new version if Mesa changes
+# no: cp {context.h,osmesa.h,osmesa.c}.backup $OvertureStatic
+
+cp {Ogshow,ShowFileReader,NameList,ParallelUtility,PlotStuff,ShowFilePlotter}.C       $OvertureOgshow
+cp {plotMapping,xInterpolate,plotAdvancingFront,CopyArray}.C                          $OvertureOgshow
+cp {plotCompositeSurface,plotUnstructured,plotStructured}.C                           $OvertureOgshow
+cp {grid3d,grid,gridOpt,contour,contourOpt,contour3dOpt,ShowFileParameter}.C          $OvertureOgshow
+cp {contour3d,DerivedFunctions,plot3dToOverture,ParallelGridUtility}.C                $OvertureOgshow
+cp {FileOutput,streamLines,streamLinesOpt,streamLines3d}.C                            $OvertureOgshow
+cp {GridStatistics,plotGridQuality,userDefinedDerivedFunction,userDefinedOutput}.C    $OvertureOgshow
+cp {contourOpt,CopyArray,gridOpt,grid3d,GridStatistics,ParallelUtility}.bC            $OvertureOgshow
+cp {ParallelGridUtility,GridStatistics}.bC                                            $OvertureOgshow
+cp {getLocalInterpolationData.C,showFileFromDataFile.C,ContourSurface.C}              $OvertureOgshow
+cp cggi.f isosurf.f                                                                   $OvertureOgshow
+
+# copy include files into the include directory
+cp {PlotIt,broadCast,ContourSurface}.h                                                $OvertureInclude
+cp {Ogshow,ShowFileReader,NameList}.h                                                 $OvertureInclude
+cp {ParallelUtility,DerivedFunctions,FileOutput,ParallelGridUtility}.{h}              $OvertureInclude
+cp {GridStatistics,ShowFileParameter,ShowFilePlotter,InterpolationData}.h             $OvertureInclude
+
+# Here is the plotStuff program for displaying show files
+cp {plotStuffDriver,plotStuffFunction}.C                                                   $OvertureBin
+
+cp {ps2ppm,decompress}.C                                                           $OvertureBin
+
+# copy bpp too
+cp ../bpp/bpp                                                                      $OvertureBin
+
+cp readShowFile.C                                                                  $OvertureExamples
+
+cp {small-GI-test.C,paperplane.C,giMain.C,pl.C,togshow.C,tsf.C,tca.C}              $OvertureTests
+
+# --- here are phoney files that are used when we only build the OvertureMapping library
+
+# AP: No longer needed 
+#cp phoneyPlot.C $ovDir/phoneyFiles
+
+echo "done"

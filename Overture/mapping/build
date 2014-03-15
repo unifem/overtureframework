@@ -1,0 +1,100 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "Copy Mapping files into the $ovDir/Mapping directory..."
+
+# here is where the library is
+set Overture        = $ovDir
+set OvertureMapping = $ovDir/Mapping
+set OvertureInclude = $ovDir/include
+
+# these files must go in the static library, so put them in the static directory:
+cp {initStaticMappingVariables}.C                                                          $Overture/static
+
+cp {strtch,cs,cggpoly,dpm,tspack,ingrid}.f                                                 $OvertureMapping
+cp {r1machc.c,r1mach.f,nurbs_eval.F}                                                       $OvertureMapping
+
+cp {Inverse,stencilWalk,DistributedInverse,inverseMap}.C                                   $OvertureMapping
+cp {ComposeMapping,MatrixMapping}.C                                                        $OvertureMapping
+cp {Fraction,Bound,Mapping,checkMapping,StretchMapping,StretchedSquareMapping}.C           $OvertureMapping
+cp {BoundingBox,SquareMapping,SphereMapping,SmoothedPolygonMapping,MappingRC}.C            $OvertureMapping
+cp {DataPointMapping,dpmScalar,dpmInverse,dpmMap}.C                                        $OvertureMapping
+cp {CircleMapping,NormalMapping,ReductionMapping,AnnulusMapping,FilletMapping}.C           $OvertureMapping
+cp {MappingP,MappingBuilder,UserDefinedMapping1}.C                                         $OvertureMapping
+cp {CylinderMapping,PlaneMapping,PolynomialMapping,IntersectionMapping,TriangleClass}.C    $OvertureMapping
+cp {RevolutionMapping,BoxMapping}.C                                                        $OvertureMapping
+cp {OrthographicTransform,ReparameterizationTransform,CrossSectionMapping}.C               $OvertureMapping
+cp {RestrictionMapping,SplineMapping,TFIMapping,ReorientMapping}.C                         $OvertureMapping
+cp {LineMapping,MatrixTransform,StretchTransform,stretchUpdate,QuadraticMapping}.C         $OvertureMapping
+cp initializeMappingList.C                                                                 $OvertureMapping
+cp {createMappings,viewMappings,TrimmedMappingBuilder}.C                                   $OvertureMapping
+cp {AirfoilMapping,DepthMapping,JoinMapping,SweepMapping}.C                                $OvertureMapping
+cp {UnstructuredMapping,unstructuredProject,unstructuredCompositeSurface}.C                $OvertureMapping
+cp {OffsetShell,MappingGeometry,LoftedSurfaceMapping,findNearestGridPoint}.C               $OvertureMapping
+cp {equi.C,hyperNull.C}                                                                    $OvertureMapping
+cp {NurbsMapping,IgesReader,TrimmedMapping,CompositeSurface,MappingProjectionParameters}.C $OvertureMapping
+cp {compositeTopology,nurbsEvaluation,mappingUtil,FaceInfo,refineTriangulation}.C          $OvertureMapping
+cp {refineCurve,readMappings,DataFormats,DataFormatsMG}.C                                  $OvertureMapping
+
+cp {QuadTree,RocketMapping,ReferenceCountingList}.C                   $OvertureMapping 
+
+cp {entityConnectivityBuilder,verifyUnstructuredConnectivity}.C $OvertureMapping
+# ---- The Elliptic Grid Generator uses MappedGridOperators and functions : put this in a different place
+#      so that files in the Overture/Mapping directory do not depend on grid-functions and operators  ---
+cp {EllipticGridGenerator,Elliptic,EllipticTransform,readMappingsFromAnOverlappingGridFile}.C $ovDir/GridGenerator
+
+cp sPrintF.C                                                                              $OvertureMapping
+
+cp FilamentMapping.C                                                                      $OvertureMapping
+cp plyfile.c plyFileInterface.C                                                           $OvertureMapping
+cp {EntityTag,ULink}.C                                                                    $OvertureMapping
+
+# copy include files
+
+
+cp {Mapping,MappingEnums,MappingP,MappingRC,MappingWS,BoundingBox,DistributedInverse}.h   $OvertureInclude
+cp {ComposeMapping,MatrixMapping,PlaneMapping,IntersectionMapping,TriangleClass}.h        $OvertureInclude
+cp {Bound,CircleMapping,CylinderMapping,Fraction,Inverse,SphereMapping,SquareMapping}.h   $OvertureInclude
+cp {AnnulusMapping,SmoothedPolygon,DataPointMapping,NormalMapping,RestrictionMapping}.h   $OvertureInclude
+cp {RevolutionMapping,BoxMapping,StretchMapping,ReductionMapping}.h                       $OvertureInclude
+cp {OrthographicTransform,ReparameterizationTransform,CrossSectionMapping}.h              $OvertureInclude
+cp {MappingInformation,MappingBuilder,OffsetShell,UserDefinedMapping1}.h                  $OvertureInclude
+cp {LineMapping,MatrixTransform,StretchedSquare,StretchTransform,ReorientMapping}.h       $OvertureInclude
+cp {SplineMapping,TFIMapping,FilletMapping,QuadraticMapping,CompositeTopology}.h          $OvertureInclude
+cp {AirfoilMapping,EllipticTransform,DepthMapping,JoinMapping,SweepMapping}.{h}           $OvertureInclude
+cp {EquiDistribute,DataFormats,UnstructuredMapping,PolynomialMapping,FaceInfo}.{h}        $OvertureInclude
+cp {NurbsMapping,IgesReader,TrimmedMapping,CompositeSurface,MappingProjectionParameters}.h $OvertureInclude
+cp {EllipticGridGenerator,QuadTree,MappingsFromCAD,RocketMapping,ReferenceCountingList}.h  $OvertureInclude
+cp {EntityTag,ULink,MappingGeometry,LoftedSurfaceMapping,TrimmedMappingBuilder}.h         $OvertureInclude
+
+cp {FilamentMapping.h}                                        $OvertureInclude
+cp plyFileInterface.h ply.h                                                               $OvertureInclude
+
+cp {uns_templates,entityConnectivityBuilder}.h             $OvertureInclude
+# copy tests
+#echo "copy sample .cmd files into $Overture/tests"
+
+echo "copy sample .cmd files into $Overture/sampleMappings"
+cp {aorticArch,csPipe,csSP2,hypeSphere}.cmd            $Overture/sampleMappings
+cp {createCylinderPlot3d,readCylinderPlot3d}.cmd                  $Overture/sampleMappings
+# cp {gridForFilamMapping,userDefinedCenterLineFilamGrid}.cmd     $Overture/sampleMappings
+
+
+cp mbuilder.C $ovDir/bin/mbuilder.C
+
+# --- here are phoney files that are used when we only build the Rapsodi library
+
+cp phoneyMappings.C $ovDir/phoneyFiles
+
+echo "done"

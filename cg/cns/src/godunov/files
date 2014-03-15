@@ -1,0 +1,13 @@
+SRC_FILES += tzsource.C addViscousTerms.f geteosb.f geteosc.f
+
+# fortran files compiled without auto-double:
+# FSRC += dudr2d.f dudr3d.f dudr3dold.f seteos.f geteos.f
+# FSRC += dudr2dold.f geteosburnt.f 
+# FSRC += cmpduv.f cmpduv1d.f
+
+# fortran files the we always compile optimized and single precision
+FSRCSO += dudr2d.f dudr3d.f dudr3dold.f seteos.f geteos.f
+FSRCSO += dudr2dold.f geteosburnt.f 
+FSRCSO += cmpduv.f cmpflux1d.f
+FSRCSO += geteosm.f getmixeos.f
+FSRCSO += cmfdu.f

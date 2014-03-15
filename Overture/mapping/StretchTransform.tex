@@ -1,0 +1,34 @@
+%--------------------------------------------------------------
+\section{StretchTransform: stretch grid lines of an existing mapping}
+\index{stretch-transform mapping}\index{Mapping!StretchTransformMapping}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+This mapping can be used to reparameterize another mapping by stretcing
+the grid lines in the parameter directions. It does this by composing
+the {\ff StretchedSquare} mapping with the given mapping. The {\ff StretchedSquare}
+mapping in turn uses the {\ff StretchMapping} to create stretching functions.
+
+
+
+% \subsection{Constructors}
+% 
+% 
+% \begin{tabbing}
+% {\ff StretchTransform()xxxx}\= \kill
+% {\ff StretchTransform()}    \> Default constructor\\
+% \end{tabbing}
+% 
+% 
+% \subsection{Data Members}
+% 
+% \subsection{Member Functions}
+% 
+% \begin{tabbing}
+% 0123456789012345678901234567689012345678901234567890123 \= \kill
+% {\ff void map( ... ) }     \> evaluate the mapping and derivative  \\
+% {\ff void inverseMap( ... ) }  \> evaluate the inverse mapping and derivative  \\
+% {\ff void get( const Dir \& dir, const String \& name)} \> get from a database file \\
+% {\ff void put( const Dir \& dir, const String \& name)} \> put to a database file \\
+% \end{tabbing}

@@ -1,0 +1,11 @@
+ ********************************************* 
+ ************** Ogen check file ************** 
+ ********************************************* 
+
+ This grid data is used to make sure the grid generator is giving 
+ the same answer after changes are made. Compare this file to a the 
+ check file from previous version. 
+
+grid   0 points: discretization=    4642, interpolation=     96, all=    5151, unused=     413, name=square
+grid   1 points: discretization=    1445, interpolation=     84, all=    1530, unused=       1, name=annulus
+total    points: discretization=    6087, interpolation=    180, all=    6681, unused=     414

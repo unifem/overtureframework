@@ -1,0 +1,104 @@
+#
+#
+# Notes:
+#   The .so library needs a full path name
+#   define the enviromental variables HDF and OpenGL
+
+# The .so library needs a full path name:
+Overture="`pwd`/.."
+
+INCLUDE= -I$(MOTIF)/include -I$(XLIBS)/include #kkc 100325 -I$(HDF)/include
+
+CCFLAGS2 = $(CCFLAGS) # removed by kkc $(INCLUDE)
+
+
+.SUFFIXES:
+.SUFFIXES:.C .o
+.C.o:;    $(CC) $(CCFLAGS2) $(CC_SUN5_TEMPLATEFLAG) -c $*.C
+
+default:  depend plotStuff ogen rap mbuilder ps2ppm decompress comp smesh ov_hot transferSolution 
+
+plotStuffC= plotStuffDriver.C plotStuffFunction.C 
+plotStuff= ${plotStuffC:.C=.o}
+plotStuff: $(plotStuff) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(plotStuff) $(CLIBS) $(FLIBS) $(GLIBS)
+
+ogenC= ogenDriver.C ogenFunction.C 
+ogen = ${ogenC:.C=.o}
+ogen: $(ogen) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(ogen) $(CLIBS) $(FLIBS) $(GLIBS)
+
+smeshC = simpleMesh.C
+smesh = ${smeshC:.C=.o}
+smesh: $(smesh) $(LIB_DEPENDENCIES) ../Cad/rap_date
+	$(CC) $(CCFLAGS2) -o $@ $(smesh) $(Overture)/Cad/rap.a $(CLIBS) $(FLIBS) $(GLIBS)
+
+ov_hotC = ov_hot.C
+ov_hot = ${ov_hotC:.C=.o}
+ov_hot: $(ov_hot) $(LIB_DEPENDENCIES) ../Cad/rap_date
+	$(CC) $(CCFLAGS2) -o $@ $(ov_hot) $(Overture)/Cad/rap.a $(CLIBS) $(FLIBS) $(GLIBS)
+
+rapC= rap.C
+rap = ${rapC:.C=.o}
+
+
+# RAP_LIB_DEPENDENCIES = ../lib/libRapsodi_date ../lib/libRapsodiso_date
+# ifneq ($(OV_RPATH),)
+# RAP_FLIBS = $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibRapsodi) $(HDF_LIBS) $(AppLibraries) $(FORTRAN_LIBS)
+# else
+# RAP_FLIBS = $(LDFLAGS)$(Overture)/lib $(LibRapsodi) $(HDF_LIBS) $(AppLibraries) $(FORTRAN_LIBS)
+# 
+# endif
+# rap: $(rap) $(RAP_LIB_DEPENDENCIES) ../Cad/rap_date
+# 	$(CC) $(CCFLAGS2) -o rap $(rap) $(Overture)/Cad/rap.a $(CLIBS) $(RAP_FLIBS) $(GLIBS)
+
+rap: $(rap) $(LIB_DEPENDENCIES) ../Cad/rap_date
+	$(CC) $(CCFLAGS2) -o rap $(rap) $(Overture)/Cad/rap.a $(CLIBS) $(FLIBS) $(GLIBS)
+
+# mapping builder
+mbuilderC= mbuilder.C
+mbuilder = ${mbuilderC:.C=.o}
+mbuilder: $(mbuilder) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(mbuilder) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# convert a plotStuff .ps files into a raster file (.ppm)
+ps2ppmC= ps2ppm.C 
+ps2ppm= ${ps2ppmC:.C=.o}
+ps2ppm: $(ps2ppm) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(ps2ppm) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# convert a compressed grid (hdf) file into a form that can usually be read by a newer version of Overture.
+decompressC= decompress.C 
+decompress= ${decompressC:.C=.o}
+decompress: $(decompress) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(decompress) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# program to compare solutions in show files compute convergence rates  
+compC= comp.C 
+comp= ${compC:.C=.o}
+comp: $(comp) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(comp) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# program to transfer solutions between different overlapping grids:
+transferSolutionC= transferSolution.C 
+transferSolution= ${transferSolutionC:.C=.o}
+transferSolution: $(transferSolution) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(transferSolution) $(CLIBS) $(FLIBS) $(GLIBS)
+
+
+# test program for Ogmg (multigrid solver)
+ogmgtC= ogmgt.C 
+ogmgt = ${ogmgtC:.C=.o}
+ogmgt: $(ogmgt) $(LIB_DEPENDENCIES)
+	$(CC) $(CCFLAGS2) -o $@ $(ogmgt) $(OGMGLIB) $(CLIBS) $(FLIBS) $(GLIBS)
+
+
+clean:
+	rm -f plotStuff ogen rap ps2ppm decompress comp ogmgt transferSolution
+
+Source = $(plotStuffC) $(ogenC) $(rapC) $(mbuilderC) $(ps2ppmC) $(decompressC)
+depend: ../depend.date; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+

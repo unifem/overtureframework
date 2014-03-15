@@ -1,0 +1,52 @@
+#
+#
+
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default:      FVO_date
+
+Fvoobjs=  \
+ CompositeGridFiniteVolumeOperators.o \
+ GridCollectionFiniteVolumeOperators.o \
+ MappedGridFiniteVolumeOperators.o \
+ Display.o \
+ Projection.o \
+ setEllipticSolverParameter.o \
+ makeDebugPlots.o \
+ testUtils.o \
+ TwilightZoneWizard.o \
+ getDefaultIndex.o \
+ createGeometry.o \
+ average.o \
+ differences.o \
+ contravariantVelocity.o \
+ cellsToFaces.o \
+ divergence.o \
+ gradient.o \
+ convectiveDerivative.o \
+ vorticity.o \
+ Laplacian.o \
+ laplacian.o \
+ inputErrorHandling.o \
+ boundaryConditions.o \
+ boundaryConditionCoefficients.o \
+ derivatives.o \
+ derivativeCoefficients.o \
+ inputErrorHandling.o \
+ defaultMappedGridFunctions.o 
+
+Mgobjs=         GenericGridMotion.o MatrixTransformGridMotion.o \
+		GenericGridMotionParameters.o MatrixTransformGridMotionParameters.o \
+		DynamicMovingGrids.o MatrixTransformMotionFunction.o
+
+FVO_date:$(Fvoobjs) $(Mgobjs)
+	  touch $@
+
+.PRECIOUS:$(FVO_date) FVO_date
+
+
+

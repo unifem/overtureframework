@@ -1,0 +1,16 @@
+
+
+  This primer directory holds the examples found in the primer documentation.
+  
+  You must first build Overture before you can build these examples.
+
+  Type "make" to make the some of the examples found here. (You must define the 
+  same environemental variables as were needed to build Overture -- see the Overture/REAME
+  file or the section on Makefiles and .cshrc files in the primer documentation)
+
+  You can also type "make mappedGridExample1" to just make one thing.
+
+  The command files for generating grids are now located in the sampleGrids directory
+  The overlapping grid examples require an overlapping grid to have been made.
+
+  

@@ -1,0 +1,6 @@
+PKGDIR := $(OvertureCheckout)/include
+
+L_HDRS := $(addsuffix .h, Overture wdhdefs OvertureTypes mathutil GCMath) \
+	OvertureDefine.h.in 
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))

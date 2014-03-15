@@ -1,0 +1,49 @@
+\subsection{Constructor}
+ 
+\newlength{\PlaneMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\PlaneMappingIncludeArgIndent}{PlaneMapping(}% 
+PlaneMapping(const real \& x1  =0. */, const real \& y1 /* =0. */, const real \& z1 /* =0.,\\ 
+\hspace{\PlaneMappingIncludeArgIndent}const real \& x2  =1. */, const real \& y2 /* =0. */, const real \& z2 /* =0.,\\ 
+\hspace{\PlaneMappingIncludeArgIndent}const real \& x3  =0. */, const real \& y3 /* =1. */, const real \& z3 /* =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor, define a plane (or rhomboid) by three
+   (non-collinear) points, p1=(x1,y1,z1), p2=(x2,y2,z2), p3=(x3,y3,z3)
+  arranged as:
+ \begin{verbatim}
+                  p3------------
+                    |          |
+                    |          |
+                    |          |
+                    |          |
+                    -----------
+                  p1           p2
+
+ \end{verbatim}
+\end{description}
+\subsection{setPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\PlaneMappingIncludeArgIndent}{setPoints(}%
+setPoints(const real \& x1  =0. */, const real \& y1 /* =0. */, const real \& z1 /* =0.,\\ 
+\hspace{\PlaneMappingIncludeArgIndent}const real \& x2  =1. */, const real \& y2 /* =0. */, const real \& z2 /* =0.,\\ 
+\hspace{\PlaneMappingIncludeArgIndent}const real \& x3  =0. */, const real \& y3 /* =1. */, const real \& z3 /* =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Set the corners of the plane or rhomboid. The plane (or rhomboid) 
+  is defined by three
+   (non-collinear) points, p1=(x1,y1,z1), p2=(x2,y2,z2), p3=(x3,y3,z3)
+  arranged as:
+ \begin{verbatim}
+                  p3------------
+                    |          |
+                    |          |
+                    |          |
+                    |          |
+                    -----------
+                  p1           p2
+
+ \end{verbatim}
+\end{description}

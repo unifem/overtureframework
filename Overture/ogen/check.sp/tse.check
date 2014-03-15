@@ -1,0 +1,17 @@
+ ********************************************* 
+ ************** Ogen check file ************** 
+ ********************************************* 
+
+ This grid data is used to make sure the grid generator is giving 
+ the same answer after changes are made. Compare this file to a the 
+ check file from previous version. 
+
+grid   0 points: discretization=    2594, interpolation=   1153, all=    7938, unused=    4191, name=cylinder-core
+grid   1 points: discretization=    3969, interpolation=   1597, all=    9702, unused=    4136, name=piston-core
+grid   2 points: discretization=    6174, interpolation=   1152, all=    8820, unused=    1494, name=cylinder
+grid   3 points: discretization=   13197, interpolation=   2379, all=   15620, unused=      44, name=piston
+grid   4 points: discretization=    1484, interpolation=     35, all=    1519, unused=       0, name=port-1
+grid   5 points: discretization=    1484, interpolation=     35, all=    1519, unused=       0, name=port-2
+grid   6 points: discretization=    1484, interpolation=     35, all=    1519, unused=       0, name=port-3
+grid   7 points: discretization=    2591, interpolation=    126, all=    2717, unused=       0, name=exhaust
+total    points: discretization=   32977, interpolation=   6512, all=   49354, unused=    9865

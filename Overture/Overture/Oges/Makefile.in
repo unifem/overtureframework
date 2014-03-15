@@ -1,0 +1,61 @@
+#
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o .F .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+.f.o:; $(FC) $(FFLAGSO) -c $*.f
+.F.o:; $(FC) $(FFLAGSO) -c $*.F
+
+default:  depend_date Oges_date 
+
+SourceCA= Oges.C determineErrors.C ogesFiles.C  buildEquationSolvers.C OgesParameters.C \
+          EquationSolver.C PETScEquationSolver.C YaleEquationSolver.C \
+          SlapEquationSolver.C HarwellEquationSolver.C MultigridEquationSolver.C \
+          obsolete.C residual.C
+SourceC= $(SourceCA) 
+SourceC= $(SourceCA) nullOgmg.C OgmgParameters.C
+
+Oges_C_date: ${SourceC:.C=.o}
+	  touch $@
+
+# these next files are included into slapFiles.F (in single or double precision)
+fileSP = sbcg.f scgs.f sgmres.f slapcg.f slaputil.f smset.f smvops.f 
+fileDP = dbcg.f dcgs.f dgmres.f dlapcg.f dlaputil.f dmset.f dmvops.f 
+
+Oges_f=   cgesl1234.o       cgesnull.o        \
+          spsor.o           \
+          ma28a.o           ma28dd.o          yalesp.o   csort.o
+Oges_f_date:$(Oges_f)
+	  touch $@
+
+# the xlc compiler does not like to include OvertureDefine.h in .F files 
+%.o : %.F
+	$(FC) $(FFLAGSO) $(USE_DOUBLE_OR_SINGLE) -c $<
+
+# Compile these next files without auto-double precision (but we should include the definition of double or single)
+files = xersla.f slapFiles.F
+Oges_fs_date: $(files)
+	$(FC) $(FFLAGSSO) $(USE_DOUBLE_OR_SINGLE) -c $(files)
+	  touch $@
+
+# Here are the files that Bill always likes to optimize -- 
+filesOpt = formMatrix.C generateMatrix.C
+Oges_Opt_date: $(filesOpt)
+	 $(CC) $(CCFLAGSF) -c $?
+	  touch $@
+
+
+Oges_date=Oges_Opt_date Oges_C_date Oges_f_date Oges_fs_date
+Oges_date:$(Oges_date); touch $@
+
+
+Source = $(SourceC) $(files) $(filesOpt)
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+
+.PRECIOUS:$(Oges_date) Oges_date depend_date
+

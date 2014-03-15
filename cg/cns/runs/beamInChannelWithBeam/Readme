@@ -1,0 +1,24 @@
+This simulation is based on the article
+
+"Shock wave impacts on deforming panel, an application of fluid-structure interaction",
+by J. Giordano, G. Jourdan, Y. Burtschell, M. Medale, D.e., Zeitoun, and L. Houas,
+Shock Waves, 2005.
+
+The article consists of a flexible beam being hit by a Mach 1.21 shock.  
+In this simulation, we simulate the panel with a one dimensional linear beam model. 
+(c.f. the corresponding example in mp/runs/beamInChannelDynamic, where the beam is modelled as a 
+ two dimensional solid).
+
+Generate the grid, e.g.,
+
+  ogen -noplot beam_in_channel_dynamic_with_beam_grid -interp=e -factor=4
+  
+Perform the run, e.g.,
+
+  cgcns beam_in_channel_dynamic_with_beam_run.cmd -g="beam_in_channel_dynamic_with_beam_gride4.hdf" -tp=1.e-5 -go=halt
+
+
+Run for movie:
+
+  ogen -noplot beam_in_channel_dynamic_with_beam_grid -interp=e -factor=8
+  cgcns -noplot beam_in_channel_dynamic_with_beam_run.cmd -g="beam_in_channel_dynamic_with_beam_gride8.hdf" -tf=5.e-3 -tp=2.e-6 -show="beam8.show" -go=go >! beam8.out &

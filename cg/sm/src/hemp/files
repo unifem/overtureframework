@@ -1,0 +1,16 @@
+# fortran files the we always compile optimized 
+FSRCO += solidMechanicsHemp.f
+FSRCO += getArea.f
+FSRCO += getEng.f
+FSRCO += getPress.f
+FSRCO += setQ.f
+FSRCO += solid_step.f
+FSRCO += getMu.f
+FSRCO += hemp_bcs.f
+FSRCO += hemp_hg.f
+FSRCO += solid_step_ol.f
+FSRCO += getEOSDerivs.f
+
+# fortran files the we always compile optimized and single precision
+FSRCSO +=
+

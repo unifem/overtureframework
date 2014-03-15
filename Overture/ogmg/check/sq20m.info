@@ -1,0 +1,49 @@
+\clearpage
+ \section{check/sq20m}
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline 
+ $i$  & res(i)     & rate(i)    &  WU(i)     & ECR(i)  \\   \hline 
+ $ 1$  & $ 9.8e-02$ & $0.044$ & $ 5.4$ & $0.56$ \\ 
+ $ 2$  & $ 4.6e-03$ & $0.047$ & $ 5.4$ & $0.57$ \\ 
+ $ 3$  & $ 2.3e-04$ & $0.049$ & $ 5.4$ & $0.58$ \\ 
+ $ 4$  & $ 1.2e-05$ & $0.052$ & $ 5.4$ & $0.58$ \\ 
+ $ 5$  & $ 6.2e-07$ & $0.052$ & $ 5.4$ & $0.58$ \\ 
+ $ 6$  & $ 3.2e-08$ & $0.052$ & $ 5.4$ & $0.58$ \\ 
+ $ 7$  & $ 1.7e-09$ & $0.052$ & $ 5.4$ & $0.58$ \\ 
+ $ 8$  & $ 8.7e-11$ & $0.052$ & $ 5.4$ & $0.58$ \\ 
+ $ 9$  & $ 4.5e-12$ & $0.052$ & $ 5.4$ & $0.58$ \\ 
+\hline 
+\end{tabular}
+\end{center}
+\caption{Multigrid convergence rates.}
+% \label{fig:square} 
+\end{table}
+{\footnotesize
+\begin{verbatim}
+                 Ogmg, Statistics: 
+                 -----------------     time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............4.26e+00  4.26e-01    90.02% 
+ defect.(excluding those in smooth)....1.23e-01  1.23e-02     2.60% 
+ fine to coarse........................4.01e-02  4.01e-03     0.85% 
+ coarse to fine........................9.45e-03  9.45e-04     0.20% 
+ direct solve on coarsest level........3.05e-02  3.05e-03     0.65% 
+    interpolation......................1.05e-02  1.05e-03  (  0.22%) (already counted)
+    boundary conditions................3.57e+00  3.57e-01  ( 75.57%) (already counted)
+ sum of above..........................4.46e+00  4.46e-01    94.32%  
+
+ total.................................4.73e+00  4.73e-01   100.00% 
+
+ total number of grid points = 625 
+ total number of cycles      = 10 
+ storage allocated = 4.76e-01 MBytes,   760.9 bytes/(grid point) or   95.1 reals/(grid point)
+
+ number of levels = 3 
+ interpolate defect = 1
+ number of cycles per level= 1  1  1 
+ coarse grid solver : yale, direct sparse solver, no pivoting 
+
+grid 0 : rb[3] rb[3] rb[3]  : square 
+         bc=[neumann,neumann] [neumann,neumann] 
+\end{verbatim}
+} % end footnotesize

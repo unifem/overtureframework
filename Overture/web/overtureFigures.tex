@@ -1,0 +1,383 @@
+%-----------------------------------------------------------------------
+%   Overture figures and movies
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+% \setlength{\textwidth}{9in}      % page width
+
+\usepackage{verbatim}
+%\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+%\usepackage{calc}
+%\usepackage{ifthen}
+\usepackage{float}
+%\usepackage{fancybox}
+
+\usepackage{html}
+
+\newcommand{\documentation}{../documentation}
+\newcommand{\figures}{../figures}
+
+
+\begin{document}
+
+\begin{center}
+{\Large Overture Figures and Movies} \\
+~~ \\
+LLNL Overlapping Grid Project \\
+\htmladdnormallink{Centre for Applied Scientific Computing}{http://www.llnl.gov/casc} \\
+\htmladdnormallink{Lawrence Livermore National Laboratory}{http://www.llnl.gov}  \\
+\htmladdnormallink{Overture}{http://www.llnl.gov/CASC/Overture} 
+\end{center}
+
+
+All figures shown here we generated with the Overture graphics routines.
+Many more figures can be found in the documentation for Overture, especially
+the {\bf OverBlown}, {\bf Ogen} and {\bf Mapping} documentation.
+
+\section{Using plotStuff to display results from a moving grid computation}
+
+Here is a figure showing the results from moving grid computation using the {\bf OverBlown} flow solver. 
+The figure is displayed in a post-processing
+mode using {\bf plotStuff}
+% <p align=center><img src="../figures/plotStuff.gif"></p>
+\begin{rawhtml}
+<p align=center><img src="../figures/plotStuff.gif"></p>
+\end{rawhtml}
+
+\section{Some sample overlapping grids}
+
+The  grid generator {\bf ogen} can be used to
+build overlapping grids. It has extensive capabilities
+for building the individual component grids and an automatic
+algorithm for cutting holes and computing the interpolation 
+points.
+
+\subsection{{\bf ogen} in action}
+
+\begin{rawhtml}
+<p align=center><img  src="../figures/ogenScreenSub.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE A figure showing the graphical user interface to {\bf ogen}.}
+\end{flushleft}
+ogenScreenSub.gif
+
+\subsection{Submarine grid}
+
+\begin{rawhtml}
+<p align=center><img src="../figures/sub.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE 3D overlapping grid for a submarine demonstrating capabilities
+   for joining surfaces such as where the sail joins the hull.} 
+\end{flushleft}
+
+\subsection{Airfoil grid built with elliptic grid generation.}
+
+\begin{rawhtml}
+<p align=center><img src="../figures/naca-elliptic.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Airfoil grid initially built with transfinite interpolation and
+   then smoothed elliptic grid generation.} 
+\end{flushleft}
+
+
+\subsection{Grids for a oceanography}
+
+Thanks to Lotta Olsson for creating these grids.
+
+
+\begin{rawhtml}
+<p align=center><img src="../figures/ocean.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE 2D overlapping grid for the gulf of Mexico} 
+\end{flushleft}
+
+\subsection{2D wave equation}
+
+This example from the primer (version 16 or later)
+shows the solution of the 2D wave equation.
+
+\begin{rawhtml}
+<p align=center><img src="../figures/wave0.gif"></p> \\
+<p align=center><img src="../figures/wave1.gif"></p>  \\
+<p align=center><img src="../figures/wave2.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Results from the 2D wave equation.}
+\end{flushleft}
+
+\section{Some sample results from OverBlown}
+
+{\bf OverBlown} can be used to solve the Navier-Stokes equations. It 
+has a number of algorithms including ones for incompressible flow,
+compressible flow and slightly compressible flow.
+
+\subsection{Incompressible flow past a cylinder.}
+\begin{rawhtml}
+<p align=center><img src="../figures/ob.ins.cylinder.sl50.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Incompressible flow past a cylinder.}
+\end{flushleft}
+
+\subsection{Incompressible flow through some pipes.}
+\begin{rawhtml}
+<p align=center><img src="../figures/ins.pipes.p.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Incompressible flow through some pipes.}
+\end{flushleft}
+
+
+\subsection{Compressible flow past a triangle}
+\begin{rawhtml}
+<p align=center><img src="../figures/triangleShock.rp6.gif"></p> \\
+<p align=center><img src="../figures/triangleShock.r1p0.gif"></p> 
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Compressible flow past a triangle. Note how there is few noticeable affects
+    coming from the overlapping grid.}
+\end{flushleft}
+
+\subsection{Incompressible flow past a NACA 0012 airfoil.}
+\begin{rawhtml}
+<p align=center><img src="../figures/ins.naca.p.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Incompressible flow past a NACA 0012 airfoil.}
+\end{flushleft}
+
+
+\section{A moving grid stirring stick}
+
+These figures show results from an {\bf OverBlown} computation using moving overlapping
+grids solving the incompressible Navier-Stokes equations. The central
+grid (stirring stick) rotates about its centre. The boundary conditions
+are no-slip on the four walls and the stirring stick.
+
+Here is a 
+\htmladdnormallink{movie (MPEG)}{../movies/stir.mpg}.
+
+\begin{rawhtml}
+<href="../movies/stir.mpg">
+\end{rawhtml}
+
+
+\begin{rawhtml}
+<p align=center><img src="../figures/stirg.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Moving overlapping grid for a stirring stick} \\
+~ \\   % do this to add vertical space -- must be an easier way?
+~ \\
+~ \\
+\end{flushleft}
+
+\begin{rawhtml}
+<p align=center><img src="../figures/stir7.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Streamlines for the stirring stick} \\
+~ \\
+~ \\
+~ \\
+\end{flushleft}
+
+\section{A moving valve}
+
+These figures show results from an {\bf OverBlown} computation using moving overlapping
+grids solving the incompressible Navier-Stokes equations. A valve opens
+and closes. 
+
+
+Here is a 
+\htmladdnormallink{movie (MPEG)}{../movies/slValve.mpg}.
+showing stream-lines.
+Here is another
+\htmladdnormallink{movie (MPEG)}{../movies/uValve.mpg}
+showing the {\tt u} component of the velocity.
+Yet another
+\htmladdnormallink{movie (MPEG)}{../movies/vortValve.mpg}
+showing the {\tt vorticity} -- a regular multiplex cinema here!
+
+\begin{rawhtml}
+<href="../movies/valve.mpg">
+\end{rawhtml}
+
+
+\begin{rawhtml}
+<p align=center><img src="../figures/valve02.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Streamlines for the valve as it begins to open}
+\end{flushleft}
+
+\section{A two-stroke engine}
+
+These figures show the results from solving the incompressible
+Navier-Stokes equations on a model of a two-stroke engine. In the
+current computation the geometry is fixed. A pressure
+gradient drives the fluid from the 3 inlet ports into 
+the larger outlet port.
+
+In the near future we hope
+to solve the problem with a moving geometry in which case the
+lower face of the cylinder will move up and down.
+
+Here is a 
+\htmladdnormallink{movie (MPEG)}{../movies/tse.mpg}
+showing the piston moving.
+
+Here is a 
+\htmladdnormallink{movie (MPEG)}{../movies/tseSpeed.mpg}
+of a compressible flow with the piston moving.
+
+% \noindent
+% Here is a static image of the piston at different heights
+
+\begin{rawhtml}
+<p align=center><img src="../figures/tse.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Grid for a model two-stroke engine} \\
+~ \\   % do this to add vertical space -- must be an easier way?
+~ \\
+~ \\
+\end{flushleft}
+
+% \begin{rawhtml}
+% <p align=center><img  src="../figures/tsevp9.gif"></p>
+% \end{rawhtml}
+% \begin{flushleft}
+% {\LARGE Flow in a two-stroke engine computed with CGINS} \\
+% ~ \\
+% ~ \\
+% ~ \\
+%\end{flushleft}
+
+\section{Shock hitting some rigid bodies.}
+
+Here are some movies of a shock hitting a collection of cylinders that are free to
+move as rigid bodies. These computations were performed with the compressible Euler solver in
+OverBlown using the Godunov solver from Don Schwendeman (RPI). 
+Adaptive mesh refinement is combined with moving grids in these computations.
+
+Here is a Schlieren style \htmladdnormallink{movie (MPEG)}{../movies/randomCylSchlieren.mpg}.
+
+Here is a \htmladdnormallink{movie (MPEG)}{../movies/randomCylGrids.mpg} 
+showing a coarsened version of the grids. The overlapping grid
+is regenerated at every time step. The AMR grids are completely rebuilt every 8 time steps.
+
+
+\section{Falling rigid bodies in an incompressible flow}
+
+Here a \htmladdnormallink{movie (MPEG)}{../movies/drops-speed.mpg} showing 
+a collection of cylinders falling in a channel. There is
+an upward flow that is nearly equal to the terminal velocity of the cylinders.
+The solution
+is computed with the incompressible flow algorithm in OverBlown. A multigrid
+solver is used to solve the pressure Poisson equation. 
+
+
+
+
+\section{Random movies}
+
+Here is a movie of a 
+\htmladdnormallink{rotating frissbee (MPEG)}{../movies/pib.mpg}. There is a
+cross flow from left to right.
+
+
+\section{Grid generation from CAD}
+
+We are now working on some grid generation tools to create overlapping
+grids for surfaces defined from IGES files
+(as produced by proEngineer, for example).
+
+The next figure shows a geometry that was created using proEngineer and output
+as an IGES file. The IGES file was then read into Overture, interpreted and plotted.
+The surface is represented as a collection of trimmed NURBS (basically
+spline surfaces with parts removed.) Each trimmed NURBS is shown as a different colour.
+
+\begin{rawhtml}
+<p align=center><img  src="../figures/cat201.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Composite surface of trimmed NURBS, read from an IGES file output from proEnginner 
+    and plotted with Overture} \\
+~ \\
+~ \\
+~ \\
+\end{flushleft}
+
+The main step is to generate a fewer number of overlapping surface patches
+using hyperbolic grid generation.
+
+% \begin{rawhtml}
+% <p align=center><img  src="../figures/valveSurf.gif"></p>
+% \end{rawhtml}
+% \begin{flushleft}
+% {\LARGE A valve taken from the above geometry, consisting of 10 trimmed nurbs.} \\
+% ~ \\
+% ~ \\
+% ~ \\
+% \end{flushleft}
+% \begin{rawhtml}
+% <p align=center><img  src="../figures/valve-hs.gif"></p>
+% \end{rawhtml}
+% \begin{flushleft}
+% {\LARGE A surface grid for the valve computed with hyperbolic surface grid generation.} \\
+% ~ \\
+% ~ \\
+% ~ \\
+% \end{flushleft}
+
+Here are some grids generated for parts of the CAD geometry shown above. These can be generated
+with the tools available in Overture.v17.
+
+% <p align=center><img  src="../figures/valveExit-cs.gif"></p>
+\begin{rawhtml}
+<p align=center><img src="../figures/valveExit.gif"></p>
+<p align=center><img src="../figures/buildPortsPlus2.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Overlapping grid generated with hyperbolic grid generation and other tools available in Overture.} \\
+~ \\
+~ \\
+~ \\
+\end{flushleft}
+
+
+\section{Future work}
+
+
+  We are beginning to add support for unstructured grids into Overture. 
+
+   Current work involves the generation of hybrid grids from overlapping grids. Hybrid grids
+will replace the overlap with a region of unstructured elements. Kyle Chand has developed 
+algorithms for generating two-dimensional hybrid grids. 
+
+
+\begin{rawhtml}
+<p align=center><img src="../figures/interior_bdy_overlap.gif"></p>
+<p align=center><img src="../figures/interior2_stretch.gif"></p>
+\end{rawhtml}
+\begin{flushleft}
+{\LARGE Hybrid grid generated from an overlapping grid.} \\
+~ \\
+~ \\
+~ \\
+\end{flushleft}
+
+
+
+% \begin{figure}
+% \htmlimage{thumbnail=0.25}  % make a thumb-nail sketch
+% \end{figure}
+
+\end{document}

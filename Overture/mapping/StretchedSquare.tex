@@ -1,0 +1,75 @@
+%--------------------------------------------------------------
+\section{StretchedSquare: stretch grid lines on the unit interval}
+\index{stretched-square mapping}\index{Mapping!StretchedSquareMapping}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+This mapping uses the stretching functions of the {\ff StretchMapping} class
+to stretch grid lines on the unit square or unit cube. The {\tt StretchedSquare}
+defines a mapping from parameter space to parameter space. It can be 
+used to stretch grids lines on other mappings (such as an annulus) using the
+{\tt StretchTransform} class.
+
+
+\begin{figure}\begin{center}
+\setlength{\unitlength}{2pt}
+\begin{picture}(250,120)
+  \put( 20, 20){\line(1,0){80}}
+  \put( 20, 30){\line(1,0){80}}
+  \put( 20, 40){\line(1,0){80}}
+  \put( 20, 50){\line(1,0){80}}
+  \put( 20, 60){\line(1,0){80}}
+  \put( 20, 70){\line(1,0){80}}
+  \put( 20, 80){\line(1,0){80}}
+  \put( 20, 90){\line(1,0){80}}
+  \put( 20,100){\line(1,0){80}}
+  \put( 20, 20){\line(0,1){80}}
+  \put( 30, 20){\line(0,1){80}}
+  \put( 40, 20){\line(0,1){80}}
+  \put( 50, 20){\line(0,1){80}}
+  \put( 60, 20){\line(0,1){80}}
+  \put( 70, 20){\line(0,1){80}}
+  \put( 80, 20){\line(0,1){80}}
+  \put( 90, 20){\line(0,1){80}}
+  \put(100, 20){\line(0,1){80}}
+  \put(10,10){\vector(1,0){30}}
+  \put(10,10){\vector(0,1){30}}
+  \put(45,10){\makebox(0,0)[l]{$r_0$}}
+  \put(10,45){\makebox(0,0)[b]{$r_1$}}
+
+  \put(150,20){\begin{picture}(80,80)(0,0)
+   \put(0, 0){\line(1,0){80}}
+   \put(0, 2){\line(1,0){80}}
+   \put(0, 5){\line(1,0){80}}
+   \put(0,12){\line(1,0){80}}
+   \put(0,22){\line(1,0){80}}
+   \put(0,34){\line(1,0){80}}
+   \put(0,48){\line(1,0){80}}
+   \put(0,60){\line(1,0){80}}
+   \put(0,80){\line(1,0){80}}
+
+   \put(  0, 0){\line(0,1){80}}
+   \put( 17, 0){\line(0,1){80}}
+   \put( 31, 0){\line(0,1){80}}
+   \put( 37, 0){\line(0,1){80}}
+   \put( 40, 0){\line(0,1){80}}
+   \put( 43, 0){\line(0,1){80}}
+   \put( 49, 0){\line(0,1){80}}
+   \put( 63, 0){\line(0,1){80}}
+   \put( 80, 0){\line(0,1){80}}
+      \end{picture}}
+   \put(140, 10){\vector(1,0){30}}
+   \put(140, 10){\vector(0,1){30}}
+   \put(175, 10){\makebox(0,0)[l]{$x_0$}}
+   \put(140, 45){\makebox(0,0)[b]{$x_1$}}
+
+\end{picture}
+  \caption{The StretchedSquare class can be used to stretch grids lines on the unit square or unit
+          cube. The class defines a mapping from the parameter space $(r_0,r_1)$
+         to the parameter space $(x_0,x_1)$. Grids lines can be stretched on other
+      Mapping's (such as an Annulus) by using the {\tt StretchTransform} class which composes
+       a Mapping with a {\tt StretchedSquare}.  } \label{fig:stretchTransform}
+\end{center}\end{figure}
+
+

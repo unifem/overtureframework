@@ -1,0 +1,225 @@
+\subsection{Evaluate the function or a derivative at a point}
+ 
+\newlength{\OGFunctionIncludeArgIndent}
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(const real x, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real y, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real z, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int n  =0, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t  =0.)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(const real x, const real y, const real z, const int n)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(const real x, const real y, const real z)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{x(}%
+x(const real x, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real y, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real z, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int n  =0, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t  =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Evaluate the function or a derivative of the function at a point
+    The function name {\bf x} can be replaced by any one of {\bf t}, {\bf x}, {\bf y}, {\bf z}, {\bf xx},
+     {\bf yy}, {\bf zz}, {\bf xy}, {\bf xz}, {\bf yz}, {\bf xxx} or {\bf xxxx}.
+\item[{\bf x,y,z (input) :}]  coordinates
+\item[{\bf n (input) :}]  component number (starting from 0)
+\item[{\bf t (input) :}]  time
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{gd(}%
+gd(const int \& ntd, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int \& nxd, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int \& nyd, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int \& nzd,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const real x0, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real y0, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real z0, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int n  =0, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t0  =0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Evaluate a general derivative. The arguments are the same as in the
+ corresponding {\tt x} function except that the first 4 arguments specify the derivative
+ to compute.
+\item[{\bf ntd,nxd,nyd,nzd (input):}]  Specify the derivative to compute by indicating the order
+   of each partial derivative. 
+    \begin{description}
+       \item[ntd] : number of time derivatives (order of the time derivative).
+       \item[nxd] : number of x derivatives (order of the x derivative).
+       \item[nyd] : number of y derivatives (order of the y derivative).
+       \item[nzd] : number of z derivatives (order of the z derivative).
+    \end{description}
+\end{description}
+\subsection{Evaluate the function or a derivative on a MappedGrid}
+ 
+\begin{flushleft} \textbf{%
+RealDistributedArray  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(const MappedGrid \& c, const Index \& I1,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I2,const Index \& I3, const Index \& N)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+RealDistributedArray  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(const MappedGrid \& c,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I1,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I2,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I3, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& N, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t  =0.,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const GridFunctionParameters::GridFunctionType \& centering \\ 
+\hspace{\OGFunctionIncludeArgIndent}=defaultCentering)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+RealDistributedArray  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{x(}%
+x(const MappedGrid \& c, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I1,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I2,const\\ 
+\hspace{\OGFunctionIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& N, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const GridFunctionParameters::GridFunctionType \& centering \\ 
+\hspace{\OGFunctionIncludeArgIndent}= defaultCentering)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Evaluate the function or a derivative of the function at points on a MappedGrid
+    The function name {\bf x} can be replaced by any one of {\bf t}, {\bf x}, {\bf y}, {\bf z}, {\bf xx},
+     {\bf yy}, {\bf zz}, {\bf xy}, {\bf xz}, {\bf yz}, {\bf laplacian}, {\bf xxx} or {\bf xxxx}.
+\item[{\bf I1,I2,I3 (input) :}]  Ranges that indicate points to use, for example by default the
+     points 
+    \[ {\tt c.center()(I1,I2,I3,0:numberOfDimensions-1)} \]
+     are used.
+\item[{\bf N (input) :}]  component indicies to assign
+\item[{\bf t (input) :}]  time
+\item[{\bf centering (input):}]  This enum is found in {\tt GridFunctionParameters}.
+       It indicates the positions of the coordinates, one of 
+   \begin{description} 
+    \item[defaultCentering] use the {\tt c.center()} array (vertices for a vertex centered grid
+       and cell centers for a cell-centered grid).
+    \item[vertexCentered] grid vertices, {\tt c.vertex()}.
+    \item[cellCentered] {\tt c.center()} for a cell-centered grid or else {\tt c.corner()} for
+        a vertex centered grid (the cell centers).
+    \item[faceCenteredAxis1] use the center of the cell face in the axis1 direction (defined
+       by averaging the {\tt c.vertex() values} for the y,z coordinates).
+    \item[faceCenteredAxis2] use the center of the cell face in the axis2 direction (defined
+       by averaging the {\tt c.vertex() values} for the x,z coordinates).
+    \item[faceCenteredAxis3] use the center of the cell face in the axis3 direction (defined
+       by averaging the {\tt c.vertex() values} for the x,y coordinates).
+  \end{description}
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+RealDistributedArray  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{gd(}%
+gd(const int \& ntd, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int \& nxd, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int \& nyd, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const int \& nzd,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const MappedGrid \& c, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I1,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I2,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& I3, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& N, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t0  =0.,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const GridFunctionParameters::GridFunctionType \& centering  = defaultCentering)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Evaluate a general derivative. The arguments are the same as in the
+ corresponding {\tt x} function except that the first 4 arguments specify the derivative
+ to compute.
+\item[{\bf ntd,nxd,nyd,nzd (input):}]  Specify the derivative to compute by indicating the order
+   of each partial derivative. 
+    \begin{description}
+       \item[ntd] : number of time derivatives (order of the time derivative).
+       \item[nxd] : number of x derivatives (order of the x derivative).
+       \item[nyd] : number of y derivatives (order of the y derivative).
+       \item[nzd] : number of z derivatives (order of the z derivative).
+    \end{description}
+\end{description}
+\subsection{Evaluate the function or a derivative on a CompositeGrid}
+ 
+\begin{flushleft} \textbf{%
+realCompositeGridFunction  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(CompositeGrid \& cg, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& N, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const GridFunctionParameters::\\ 
+\hspace{\OGFunctionIncludeArgIndent}GridFunctionType \& centering   = defaultCentering)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+realCompositeGridFunction  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(CompositeGrid \& cg, const Index \& N)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+realCompositeGridFunction  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{operator()(}%
+operator()(CompositeGrid \& cg)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+realCompositeGridFunction  \\ 
+\settowidth{\OGFunctionIncludeArgIndent}{x(}%
+x(CompositeGrid \& cg, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const Index \& N, \\ 
+\hspace{\OGFunctionIncludeArgIndent}const real t,\\ 
+\hspace{\OGFunctionIncludeArgIndent}const GridFunctionParameters::GridFunctionType \& centering\\ 
+\hspace{\OGFunctionIncludeArgIndent}= defaultCentering)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Evaluate the function or a derivative of the function at points on a CompositeGrid
+    The function name {\bf x} can be replaced by any one of {\bf t}, {\bf x}, {\bf y}, {\bf z}, {\bf xx},
+     {\bf yy}, {\bf zz}, {\bf xy}, {\bf xz}, {\bf yz}, {\bf laplacian}, {\bf xxx} or {\bf xxxx}.
+\item[{\bf cg (input) :}]  use this grid.
+     By default the points \[ {\tt c.center()(i1,I2,I3,0:numberOfDimensions-1)}\] are used.
+\item[{\bf N (input) :}]  evaluate these components
+\item[{\bf t (input) :}]  time
+\item[{\bf centering (input):}]  This enum is found in {\tt GridFunctionParameters}.
+       It indicates the positions of the coordinates, one of 
+   \begin{description} 
+    \item[defaultCentering] use the {\tt c.center()} array (vertices for a vertex centered grid
+       and cell centers for a cell-centered grid).
+    \item[vertexCentered] grid vertices, {\tt c.vertex()}.
+    \item[cellCentered] {\tt c.center()} for a cell-centered grid or else {\tt c.corner()} for
+        a vertex centered grid (the cell centers).
+    \item[faceCenteredAxis1] use the center of the cell face in the axis1 direction (defined
+       by averaging the {\tt c.vertex() values} for the y,z coordinates).
+    \item[faceCenteredAxis2] use the center of the cell face in the axis1 direction (defined
+       by averaging the {\tt c.vertex() values} for the x,z coordinates).
+    \item[faceCenteredAxis3] use the center of the cell face in the axis1 direction (defined
+       by averaging the {\tt c.vertex() values} for the x,y coordinates).
+  \end{description}
+\end{description}

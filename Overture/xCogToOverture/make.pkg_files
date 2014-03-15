@@ -1,0 +1,7 @@
+PKGDIR := $(OvertureCheckout)/xCogToOverture
+
+SRC_FILES += xCogToOverture.C c_array.C hdf_stuff.C
+
+L_HDRS := hdf_stuff.h c_array.h real.h stupid_compiler.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))

@@ -1,0 +1,235 @@
+%--------------------------------------------------------------
+\section{CrossSectionMapping: define various surfaces by cross-sections}
+\index{cross-section mapping}\index{Mapping!CrossSectionMapping}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+The CrossSectionMapping can be used to define a Mapping from a collection of cross-sectional curves
+or surfaces.
+The available options for the cross-section type are
+\begin{description}
+  \item[general:] Build a mapping from a sequence of cross sections. The cross sections may
+    be curves (such as circles or splines etc.) or they may be surfaces such as an Annulus
+    or SmoothPolygonMapping.
+ \item[ellipse:] Define an ellipsoid, either a surface or a shell.
+ \item[joukowsky:] Define a ``wing'' surface with cross sections defined as Joukowsky airfoils.
+\end{description}
+
+Thanks go to Thomas Rutaganira for help with this Mapping.
+
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{9cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{.1}{.3}{.3}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}
+  \useasboundingbox (0,0.2) rectangle (18,6);  % set the bounding box (so we have less surrounding white space)
+% 
+  \draw (0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\figures/csPipe_cs}{\figWidth}};
+  \draw (9, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\figures/csPipe}{\figWidth}};
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (18,6);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+ \caption{A volume grid created from the six AnnulusMapping's (cubic interpolation).}
+\end{center}
+\end{figure}
+
+
+\subsection{General cross-section type}
+When the cross-section type is {\tt general} the user specifies a sequence of curves (or surfaces)
+that will be used as the cross-sections.
+
+Given a sequence of $n$ cross-sectional curves
+\[
+ \cv_i(r_0), ~~i=0,1,...,n-1  \qquad \mbox{(cross-section curves)}
+\]
+the {\ff CrossSectionMapping} defines a surface by blending the curves in the
+regions between them.
+\[
+      \xv(\tv,r_a) = \Cv(\cv_i(\tv), r_a)~.
+\]
+% Here  $s=S(r_1)$ is a 1D invertible function that defines how the grids lines are spaced
+% between the different cross-sections.
+The parameter direction(s) $\tv$ will be called the {\em tangential} direction(s). If the
+cross-sections are curves then $\tv=r_0$; if they are surfaces $\tv=(r_0,r_1)$.
+The direction $r_a$ will
+be called the {\em axial} direction. As $r_a$ varies for fixed $\tv$ we trace a curve
+that follows the axis of the surface.
+
+With linear interpolation (default) the curve is a linearly interpolated between
+succussive cross-sections:
+\begin{align*}
+     \xv(\tv,r_a) & = (1-s_a) \cv_i(\tv) + s_a \xv_{i+1}(\tv) 
+       \qquad \mbox{~for~}  {i\over n-1} \le S(r_a) \le {i+1 \over n-1} \\
+  s_a &= S(r_a)(n-1) - \lfloor S(r_a) (n-1) \rfloor
+\end{align*}
+where the axial parameterization function $S(r_a)$ is defined below.
+The variable $s_a$ varies between $0$ and $1$ as we move from cross-section $i$
+to cross-section $i+1$.
+Here $\lfloor x \rfloor$ is the biggest integer less or equal to x.
+
+With {\tt index} parameterization $S(r_a)=r_a$ in which case the cross-sections
+are parameterized as if they were equally spaced. Thus there will be approximately
+an equal number of axial grid lines between any two cross-sections. Normally this
+is not a good parameterization unless the cross-sections are nearly equally spaced.
+
+With {\tt arcLength} parameterization (the default) the axial direction is parameterized
+using the average distance between the cross-sectional curves. The average
+distance between the curves is computed by evaluating each curve at $m$ equally spaced
+points $\{\cv_i(t_j)\}_{j=0}^{m-1}$, $t_j=j/(m-1)$, and then taking the average of the distances
+between these points.
+\begin{align*}
+    s_{i+1} &= s_i + \| \cv_{i+1} - \cv_i \| / L \qquad s_0=0, \quad \mbox{L chosen so $s_{n-1}=1.$}  \\
+    \| \xv_{i+1} - \cv_i \| & = {1\over m} \sum_{j=0}^{m-1} \| \xv_{i+1}(t_j)-\cv_i(t_j) \| 
+\end{align*} 
+The {\em inverse} of the function $S(r_a)$ 
+is defined by fitting a spline to the data points $\{ s_i \}_{i=0}^{n-1}$.
+That is a spline fitted to the points $\{ s_i \}_{i=0}^{n-1}$ will define the 
+function $S^{-1}$. The exact properties of the spline can be adjusted by choosing the
+``{\tt change arclength spline parameters}'' option. For example, one may want to use a spline
+with tension or a spline that is shape preserving. See the SplineMapping documentation, 
+section (\ref{sec:SplineMapping}), for further details.
+
+With a {\tt userDefined} parameterization the user defines the parameter values $s_i$
+for each of the cross-sections. The values $s_i$ should satisfy $s_0=0$, $s_i<s_{i+1}$ and
+$s_{n-1}=1.$ Normally the value of $s_i-s_{i-1}$ would be based on the distance between
+the cross-section curves $i-1$ and $i$. The inverse of the function $S(r_a)$ 
+is defined by fitting a spline to the data points $\{ s_i \}_{i=0}^{n-1}$.
+
+With piecewise cubic interpolation the mapping is defined as a cubic polynomial on each interval (except the
+first and last where quadratic polynomials are used)
+\begin{align*}
+  \xv(\tv,r_a) & = q_{03}(s_a)\cv_{i-1}(\tv) + q_{13}(s_a)\xv_{i}(\tv) + 
+                 q_{23}(s_a)\xv_{i+1}(\tv) + q_{33}(s_a)\xv_{i=2}(\tv) 
+       \qquad \mbox{~for~}  {i\over n-1} \le S(r_a) \le {i+1 \over n-1} \\
+  s_a &= S(r_a)(n-1) - \lfloor S(r_a) (n-1) \rfloor
+\end{align*}
+where $q_{i3}$ are cubic Lagrange polynomials. On the left edge a quadratic polynomial is used
+which passes through the cross sections $0,1,2$. Similarly for the right edge. 
+
+\subsubsection{Notes for generating general cross section mappings}
+
+\begin{enumerate}
+  \item For best results the cross sections should be {\bf nearly equally spaced}.
+  \item With the cubic interpolation option: quadratic polynomials are used on the first
+    and last segments. If you wish an end segment to be ``straight'' then you should
+    place three cross sections in a straight line at the end.
+  \item It is up to you to make sure that the cross sections are all parameterized in a 
+     compatible fashion; if they are not then the axial grid lines may twist and the grid may not be
+     invertible.
+  \item With the cubic interpolation option: if the cross sections vary rapidly from one
+    to the next or the cross sections are very unevenly spaced then the cubic interpolant 
+    (or quadratic interpolants on the ends) may wiggle a lot. Adding more cross-sections
+    should fix this problem.
+\end{enumerate}
+
+\subsection{Ellipse cross-section type}
+
+  When the cross-section type is {\tt ellipse} the Mapping defines an ellipsoid
+in cylindrical coordinates with semi-axes {\tt a,b,c}:
+\begin{align*}
+  \zeta &= (\rm{endS}-\rm{startS}) r_0 -(1.-2.*{\rm startS}) \\
+  \rho &= \sqrt{ 1-\zeta^2 } \\
+  R &= {\rm innerRadius} + r_2 (\rm{outerRadius}-{\rm innerRadius}) \\
+  x_0 &= a R \rho \cos( 2\pi r_1)+\rm{x0} \\
+  x_1 &= b R \rho \sin( 2\pi r_1)+\rm{y0} \\
+  x_2 &= c R \zeta + \rm{z0}
+\end{align*}
+The default values for the parameters are startS=0, endS=1, innerRadius=1, outerRadius=1.5,
+x0=0, y0=0, z0=0.
+
+After building an ellipsoid one would normally remove the singularities at the
+poles by building patches to cover the 
+ends using the {\tt reparameterize} option. See the example in the overlapping
+grid documentation.
+
+\subsection{Joukowsky cross-section type}
+
+  This section needs to be written.
+
+\subsection{Cross section Mappings with polar singularities}
+
+   It is often the case that one desires the cross-sections to converge to a point at one or both ends.
+In this case one should indicate that the Mapping has a polar singularity at one or both
+ends. One should also choose the last cross section to be a small ellipse. The CrossSectionMapping
+will then slightly deform the Mapping to cause the last cross-section to converge to a point. The
+resulting deformed Mapping can then have an orthographic patch built to cover the singularity
+using the {\tt ReparameterizationTransform}.
+
+In order for the {\tt OrthographicTransform} to nicely remove a polar singularity, the Mapping with 
+the singularity must locally near the pole be parameterized like
+\begin{align*}
+   \xv & \sim A \rho(r_1) (a \cos(\theta(r_2),b \sin(\theta(r_2))) \\
+   \rho &= \sqrt{ 1 - \zeta^2 } \\
+    \zeta &= 2 r_1 -1
+\end{align*}
+Thus locally the surface must look like an ellipsoid (it can be oriented in any direction, the above
+equation assumes a particular orientation).
+ The ``radius'' of the cross section, defined, say, by the average distance of the cross-section from its centroid,
+should be decaying like $\rho\sim\sqrt{r_1}$ as $r_1\rightarrow 0$. If the radius decays at
+a different rate then the coordinates lines on the orthographic patch will not be rectangular
+near the pole.
+
+%% \input CrossSectionMappingInclude.tex
+
+\subsection{Examples}
+
+\noindent
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/csEllipse} \\
+   % \epsfig{file=\figures/csEllipse.ps,width=\linewidth}  \\
+  {An ellipsoid created with the {\tt ellipse} cross-section type.}
+  \end{center}
+\end{minipage}
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/csJoukowsky} \\
+   % \epsfig{file=\figures/csJoukowsky.ps,width=\linewidth}  \\
+  {A Joukoswky airfoil created with the {\tt joukowsky} cross-section type.}
+  \end{center}
+\end{minipage}
+\begin{minipage}{.5\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/csSP2}
+   % \epsfig{file=\figures/csSP2.ps,width=\linewidth}  \\
+  {A volume grid created from 4 smoothed polygon cross-section surfaces (linear interpolation).}
+  \end{center}
+\end{minipage}
+
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/csCircle.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/csCircle} \\
+   % \epsfig{file=\figures/csCircle.ps,width=.8\linewidth}  \\
+  {A surface grid created from 4 circular cross-sections (linear interpolation). 
+   The cross-sections are shown in green.} \\
+   \includegraphics[width=8cm]{\figures/csCircle_cubic} \\
+   % \epsfig{file=\figures/csCircle.cubic.ps,width=.8\linewidth}  \\
+  {As above with cubic interpolation.}
+  \end{center}
+\end{minipage}
+
+% \noindent
+% \begin{minipage}{.4\linewidth}
+% {\footnotesize
+% \listinginput[1]{1}{\mapping /csSP.cmd}
+% }
+% \end{minipage}\hfill
+% \begin{minipage}{.6\linewidth}
+%   \begin{center}
+%    \epsfig{file=\figures/csSP.ps,width=\linewidth}  \\
+%   {A surface grid created from 4 smoothed polygon cross-sections.}
+%   \end{center}
+% \end{minipage}
+
+

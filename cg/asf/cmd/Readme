@@ -1,0 +1,25 @@
+**********************************************************************************
+The asf/cmd directory holds command files for running examples of
+the all-speed flow solver, cgasf
+
+Type "../bin/cgasf file.cmd" to run the command file named "file.cmd"
+
+**********************************************************************************
+
+flow.cmd : flow past a body
+
+heatedBox.cmd : flow in a box with gravity and a heated wall
+
+heatedCyl.cmd : Heated cylinder in a gravitational field 
+
+sinfoil.cmd : flow past a sinusoidal bump
+
+tz.cmd : tests in the twilight-zone 
+
+
+Parallel examples:
+
+set cgasfp = /home/henshaw.0/cgp/asf/bin/cgasf
+
+mpirun -np 1 $cgasfp flow
+mpirun -np 1 -gdb $cgasfp tzp

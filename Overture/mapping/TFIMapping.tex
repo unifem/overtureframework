@@ -1,0 +1,185 @@
+\section{TFIMapping: Transfinite-Interpolation}
+\index{tfi mapping}\index{Mapping!TFIMapping}\index{interpolation!transfinite}\index{transfinite interpolation}
+\index{Coon's patch}
+
+{\bf Thanks} to Brian Miller for help with this Mapping.
+
+Use this Mapping to create a transfinite-interpolation mapping (also known as a Coon's patch).
+Transfinite-interpolation creates a patch (grid) in 2D (3D) using curves (surfaces) that define the boundaries.
+The quality of this algebaric grid is strongly dependent on the parameterizations
+of the boundary curves.
+//
+In its simplest form this mapping blends two given curves to create a grid
+in the region between the curves. 
+Given the two curves $\cv_i(r_1)$ the linear interpolation formula is
+\[
+  \xv(r_1,r_2) = \cv_0(r_1) (1-r_2) + \cv_1(r_1) r_2
+\]
+   
+With an hermite interpolation it is possible to also specify the $r_2$ derivative of the
+patch at the boundaries. The formula for hermite interpolation between two curves
+is
+\[
+  \xv(r_1,r_2) = \cv_0(r_1)\Phi_0(r_2) + \cv(r_1) \Phi_1(r_2)
+            ~+~  \dot{\cv}_0(r_1)\Psi_0(r_2) + \dot{\cv}(r_1) \Psi_1(r_2)
+\]
+where the blending functions are given by
+\begin{eqnarray*} 
+  \Phi_0(r)=(1+2r)(1-r)^2 && \Phi_1(r)=(3-2r) r^2 \\
+  \Psi_0(r)= r    (1-r)^2 && \Psi_1(r)=(r-1)  r^2
+\end{eqnarray*} 
+The patch will satisfy the conditions
+\[
+ \xv(r_1,i) =  \cv_i(r_1) ~~\mbox{and}~~ {\partial \over\partial r_2} \xv(r_1,0) =  \dot{\cv}_i(r_1)~~~i=0,1 ~~
+\]
+The grid lines will be normal to the boundary provided that we choose the derivatives $\dot{\cv}_i$
+to be proportional to the normal vectors. The scaling of this vector will determine the grid
+spacing near the boundary. We choose 
+\[
+    \dot{\cv}_i(r) = \| \cv_1(r)-\cv_0(r) \| ~\nv_i(r)
+\]
+ where $\nv_i(r)$ is the unit normal vector and $\| (a,b) \| =\sqrt{a^2+b^2}$. 
+
+ The derivative of the hermite-interpolant involves the second derivative of the
+ boundary curves and is given by
+\[
+  { \partial\over \partial r_1 } \xv(r_1,r_2) = { \partial\over \partial r_1 }\cv_0(r_1)\Phi_0(r_2) 
+        +{ \partial\over \partial r_1 } \cv(r_1) \Phi_1(r_2)
+    ~+~ { \partial\over \partial r_1 } \dot{\cv}_0(r_1)\Psi_0(r_2) 
+      + { \partial\over \partial r_1 } \dot{\cv}_1(r_1) \Psi_1(r_2)
+\]
+where
+\[
+  { \partial\over \partial r_1 }  \dot{\cv_i} =   
+      { (\cv_1-\cv_0)\cdot(\cv_{1,r_1}-\cv_{0,r_1}) \dot{\cv_i} \over \| \cv_1-\cv_0 \|^2 }
+    - { (\dot{\cv_i}\cdot\cv_{i,r_1 r_1}) \cv_{i,r_1} \over \| \cv_{i,r_1} \|^2 }    
+\]
+
+\newcommand{\cvLeft}{\cv_{\rm left}}
+\newcommand{\cvRight}{\cv_{\rm right}}
+\newcommand{\cvBottom}{\cv_{\rm bottom}}
+\newcommand{\cvTop}{\cv_{\rm top}}
+\newcommand{\cvBack}{\cv_{\rm back}}
+\newcommand{\cvFront}{\cv_{\rm Front}}
+More generally a transfinite-interpolation mapping can interpolate 4 curves in 2D/3D or up to 6 curves in 3D.
+Define
+\begin{align*}
+  \cvLeft    & :  \mbox{side corresponding to $r_1=0$.}  \\
+  \cvRight   & :  \mbox{side corresponding to $r_1=1$.}  \\
+  \cvBottom  & :  \mbox{side corresponding to $r_2=0$.}  \\
+  \cvTop     & :  \mbox{side corresponding to $r_2=1$.}  \\
+  \cvBack    & :  \mbox{side corresponding to $r_3=0$.}  \\
+  \cvFront   & :  \mbox{side corresponding to $r_3=1$.}
+\end{align*}
+The notation `left', `right', etc. comes from the fact that when a cube is plotted in the graphics window
+the left side is the face $r_1=0$, the right face is $r_1=1$ etc.
+
+In two dimensions, when 4 sides are specified, the formula for linear interpolation is
+\begin{align*}
+    \cv(r_1,r_2) & = \cvLeft(r_2) (1-r_1) + \cvRight(r_2) r_1 \\
+                 & + \cvBottom(r_1)(1-r_2) + \cvTop(r_1) r_2  \\  
+                 & -\Big\{ (1-r_2)( (1-r_1)\cvLeft(0) + r_1 \cvRight(1) ) 
+                          +   r_2( (1-r_1)\cvBottom(0) + r_1 \cvTop(1) ) \Big\}.
+\end{align*}
+The last line in this formula represents a correction, a bilinear function that passes through the
+four corners, that ensures the mapping, $\cv$, matches the four boundary curves.
+In three-dimensions with 6 sides specified
+\begin{align*}
+    \cv(r_1,r_2) & = \cvLeft(r_2,r_3) (1-r_1) + \cvRight(r_2,r_3) r_1 \\
+                 & + \cvBottom(r_1,r_3)(1-r_2)  +   \cvTop(r_1,r_3) r_2  \\  
+                 & + \cvBack(r_1,r_2)(1-r_3)  +   \cvFront(r_1,r_2) r_3  \\  
+                 & -\Big\{ (1-r_2)( (1-r_1)\cvLeft(0,r_3) + r_1 \cvRight(0,r_3) )  
+                           +    r_2( (1-r_1)\cvBottom(0,r_3) + r_1 \cvTop(1,r_3) )   \\  
+                 &         + (1-r_2)( (1-r_3)\cvBottom(r_1,0) + r_3 \cvTop(r_1,1) )      
+                           +    r_2( (1-r_3)\cvBack(r_1,1) + r_3 \cvFront(r_1,1) )   \\  
+                 &         + (1-r_3)( (1-r_1)\cvBack(0,r_2) + r_1 \cvFront(1,r_2) )      
+                           +    r_3( (1-r_1)\cvLeft(r_2,1) + r_1 \cvRight(r_2,1) )  \Big\}  \\  
+                 & +\Big[ (1-r_3)[ (1-r_2)( (1-r_1)\cv(0,0,0) + r_1 \cv(1,0,0) )      
+                                     + r_2 ( (1-r_1)\cv(0,1,0) + r_1 \cv(1,1,0)) )   \\  
+                 &           +r_3 [ (1-r_2)( (1-r_1)\cv(0,0,1) + r_1 \cv(1,0,1) )      
+                                     + r_2 ( (1-r_1)\cv(0,1,1) + r_1 \cv(1,1,1)) )   \Big].
+\end{align*}
+In the 3d case we must first subtract off corrections as in 2D (3 such corrections) and then
+add back a trilinear function that passes through the 8 vertices to ensure that all 6 sides are
+matched.
+
+\subsection{Compatibility conditions}
+  The above TFI formulae will only give a reasonable grid if
+\begin{enumerate}
+  \item The curves that define the faces match at vertices (and edges in 3d).
+  \item The curves are parameterized in the `same direction', otherwise the
+        grids lines could cross.
+  \item Curves on opposite sides are parameterized in a similar way.
+\end{enumerate}
+Even if all these conditions are met the grid lines may still cross if the boundary curves
+are strange enough.
+
+
+\subsection{Examples}
+\subsubsection{2D linear TFI mapping with 2 sides specified}
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping /tfi.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/tfi1} \\
+   % \epsfig{file=\figures/tfi1.ps,height=4.in}  \\
+  {A grid created with linear trans-finite interpolation}  \label{fig:tfi1}
+  \end{center}
+\end{minipage}
+
+\subsubsection{2D hermite TFI mapping with 2 sides specified}
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping /tfi2.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/tfi2} \\
+   % \epsfig{file=\figures/tfi2.ps,height=4.in}  \\
+  {A grid created with hermite trans-finite interpolation; grid lines are normal to the 
+       bottom and top boundaries}  \label{fig:tfi2}
+  \end{center}
+\end{minipage}
+
+\subsubsection{2D linear TFI mapping with 4 sides specified}
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping /tfi2d4.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/tfi2d4c} \\
+   \includegraphics[width=9cm]{\figures/tfi2d4} \\
+   % \epsfig{file=\figures/tfi2d4c.ps,height=4.in}  \\
+   % \epsfig{file=\figures/tfi2d4.ps,height=4.in}  \\
+  {A grid created with linear trans-finite interpolation, all four sides are specified. The top
+     figure shows the 4 boundary curves before interpolation.} \label{fig:tfi2d4}
+  \end{center}
+\end{minipage}
+
+\subsubsection{3D linear TFI mapping with 2 sides specified}
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping /tfi4.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/tfi4} \\
+   % \epsfig{file=\figures/tfi4.ps,height=4.in}  \\
+  {A grid created with linear trans-finite interpolation between two Annulus mappings.}
+  \end{center}
+\end{minipage}
+
+
+
+%% \input TFIMappingInclude.tex

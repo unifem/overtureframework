@@ -1,0 +1,1165 @@
+%-----------------------------------------------------------------------
+%   A Primer for writing overlapping grid codes in C++
+%
+%-----------------------------------------------------------------------
+
+\documentclass{article}
+
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{subfigure}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% \input{psfig}  % PSFIG macros
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+
+%--------- Regular Title Page---------------------------------------
+% \maketitle
+% \begin{abstract}
+% We describe a Fortran program, CGES, for the solution of a general
+%
+% \end{abstract}
+%
+% \noindent {\bf keywords:}
+% overlapping grids, elliptic equations, numerical continuation
+%--------- End regular Title Page---------------------------------------
+
+%---------- Title Page for a Research Report----------------------------
+\vglue5\baselineskip
+\begin{flushleft}
+{\Large
+A Primer for Writing PDE Solvers with Overture \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw\\
+%\footnote{
+%        This work was partially
+%        supported by grant N00014-95-F-0067 from the Office of Naval
+%        Research}                       \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+~~~\\
+\today \\
+~~~\\
+UCRL-MA-132233
+% LA-UR-96-3894
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+We describe how to write C++ programs to solve partial differential
+equations on a single curvilinear grid or on a collection of
+curvlinear grids that form an overlapping grid. We use classes from the
+Overture framework to represent grids and grid functions, and to perform
+operations on the grid functions.
+Overture makes extensive use of the the serial/parallel array 
+class library A++/P++ to write efficient and portable serial or parallel
+code.
+\end{flushleft}
+
+\tableofcontents
+
+\vfill\eject
+%---------- End of title Page for a Research Report
+
+\newcommand{\MGF}{Mapped\-Grid\-Function}
+\newcommand{\GCF}{Grid\-Collection\-Function}
+\newcommand{\CGF}{Composite\-Grid\-Function}
+
+\newcommand{\MGO}{Mapped\-Grid\-Operators}
+\newcommand{\GCO}{Grid\-Collection\-Operators}
+\newcommand{\CGO}{Composite\-Grid\-Operators}
+
+\newcommand{\primer}{\homeHenshaw/Overture/primer}
+\newcommand{\gf}{\homeHenshaw/Overture/gf}
+% \newcommand{\figures}{../figures}
+
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+
+\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
+\newcommand{\oges}{\homeHenshaw/Overture/oges}
+\newcommand{\cgsh}{\homeHenshaw/Overture/cgsh}
+
+
+\section{Introduction}
+
+This is a primer for writing C++ codes to solve partial
+differential equations (PDEs) within the Overture framework. 
+The first set of examples describe how to use Overture to solve
+problems on a single curvilinear grid. Overture classes are used
+to represent the grid, to represent the solution on the grid, to operate
+on the solution (differentiate, for example) and to plot the results.
+
+The second set of examples show how to solve problems on overlapping grids.
+These examples are very similiar to the single grid case.
+
+The reader is assumed to be familiar with the A++ (parallel) array
+class library~\cite{A++}. For the reader wanting to solve problems
+on overlapping grids, some familiarity with the concept of an overlapping grid
+is assumed.
+
+
+In this primer we will introduce and show how to use the following
+classes
+\begin{itemize}
+\item {\bf Mapping} : A transformation that can be used to represent a curvilinear domain
+    such as a square, annulus, sphere or other more complicated region.
+\item {\bf MappedGrid} : A logically rectangular grid that is a discrete version of a {\tt Mapping}.
+  A MappedGrid contains grid point coordinates as well as information such as
+  boundary conditions, periodicity, singularities etc.
+\item {\bf realMappedGridFunction} : A grid function that holds a solution (such as pressure 
+   or velocity) on a MappedGrid;  this is a glorified A++ array. 
+\item {\bf \MGO~} : the class used with grid functions to define spatial derivatives
+    and to apply boundary conditions.
+\item {\bf PlotStuff} The class used to interactively plot Overture objects.
+\item {\bf Ogshow} : A class for saving solutions and other information in a ``show file''.
+    A show file can be read by plotStuff (in the Overture/bin directory) to plot solutions.
+\item {\bf Oges} : The equation solver class that can be used to 
+    solve systems of boundary value problems such as Poisson's equation.
+\item {\bf CompositeGrid} : An ``overlapping composite grid''.
+Each component grid of a CompositeGrid is a MappedGrid.
+The grid generator {\tt Ogen}, for example, can generate a CompositeGrid.
+\item {\bf realCompositeGridFunction} : A grid function that holds a solution
+(such as the pressure or velocity) on a CompositeGrid.
+\item {\bf \CGO~} : classes used with grid collection functions to define spatial derivatives
+    and to apply boundary conditions.
+\item {\bf Ogen} : The overlapping grid generator that can be used in a moving grid computation
+    to regenerate an overlapping
+    grid when one or more of the component grids change. The grid generator can also be run
+    interactively to create an overlapping grid. See the documentation elsewhere.
+\end{itemize}
+These classes are collectively known as ``Overture''. ``Overture'' is an acronym
+that has absolutely no meaning.
+
+\input \homeHenshaw/Overture/primer/otherDocs.tex
+
+
+Figure \ref{fig:system} gives an overview of the classes that make
+up Overture. 
+
+
+\begin{figure} \label{fig:system}
+  \begin{center}
+  \includegraphics{\figures/system.idraw.ps}
+  \caption{An overview of the Overture classes}
+  \end{center}
+\end{figure}
+
+\vfill\eject
+\section{Getting Started with MappedGrid's}
+
+\subsection{mappedGridExample1: Mapping's, MappedGrid's, MappedGridFunction's}\index{mappedGridExample1}
+\index{MappedGrid!example}
+\index{MappedGridFunction!example}
+\index{MappedOperators!example}
+
+In this first example we introduce the classes that are used to represent domains ({\tt Mapping}),
+grids ({\tt MappedGrid}) and and grid functions ({\tt realMappedGridFunction})
+(a grid function is the Overture name for a solution variable or a field variable).
+
+In this example the {\tt SquareMapping} is created to define the simple domain that is a square.
+A {\tt MappedGrid} is created from the {\tt SquareMapping}, the {\tt MappedGrid} is a discrete
+version of the {\tt Mapping} since it has a specified number of grid points.
+To define a solution variable on the grid we build a {\tt realMappedGridFunction}. This is an
+A++ array that is automatically dimensioned to the size of the grid.
+The grid function is assigned values using array operations (instead of looping over
+all the grid points, which could also be done). 
+
+The {\tt MappedGridOperator} class is used to differentiate the grid function and the 
+{\tt PlotStuff} class is used to interactively display the grid and the grid function.
+
+\noindent {\bf Notes when you run the code:}
+\begin{itemize}
+ \item After some information is printed, a PlotStuff window should appear.
+ \item Use the right mouse button to show the popup menu.
+ \item After choosing the {\tt contour} menu item, a contour plot will appear and you will 
+     be in the contour plotter with the contour popup menu.
+     The contour is actually a surface which can be seen by rotating the view
+     by clicking, with the left mouse buttom on one of the {\tt x-r}, {\tt x+r}, {\tt y-r}, ... buttons.
+ \item Now choose {\tt erase and exit} to return to the previous menu.
+ \item Use the left mouse button to look at the {\tt file} pull-down menu (in the upper left corner).
+  Here is the command to save a postscript file.
+   Answers to commands, such as the file name for the postscript file
+   are typed on the {\tt Command:} line at the bottom. Any current menu item may also be optionally
+   typed on the command line (one need only type at least as many letters in the name as to distinguish it).
+\end{itemize}
+
+(file {\tt Overture/primer/mappedGridExample1.C})
+
+
+
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/mappedGridExample1.C}
+}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\figures/mgex1.ps,height=6.0in}
+  \caption{Results from running mappedGridExample1 (contour option, rotated)} 
+  \end{center}
+\end{figure}
+
+\vfill\eject
+\subsection{mappedGridExample2: Solve a PDE on an Annulus using operators}\index{mappedGridExample2}
+\index{PDE!solve on a MappedGrid}
+
+In this second example we put together all the classes that were introduced
+in the first example to solve a simple PDE, a convection diffusion equation:
+\begin{align*}
+    u_t + a u_x + b u_y & = \nu( u_{xx} + u_{yy} ), \\
+        u(x,y,0) & = 1    \qquad \text{(initial conditions)}, \\
+        u(x,y,t) & = 0    \qquad \text{on the boundary}.
+\end{align*}
+
+An {\tt AnnulusMapping} is used to create an annulus on which to solve the PDE.
+
+The {\tt MappedGridOperator} class is used to apply boundary conditions, in this
+case a simple Dirichlet boundary condition (i.e. $u=0$ given on the boundary).
+Many other boundary conditions are available.
+
+\noindent {\bf Notes when you run the code:}
+\begin{itemize}
+ \item The solution will be plotted every 10 steps. 
+ \item Choose the {\tt erase and exit} menu item from the popup menu to continue another 10 steps.
+ \item you can rotate the view (left mouse button click on {\tt x-r} a couple of times) to 
+       see the solution surface.
+\end{itemize}
+
+(file {\tt Overture/primer/mappedGridExample2.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/mappedGridExample2.C}
+}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\figures/mge2.ps,height=6.0in}
+  \caption{Results from running mappedGridExample2} 
+  \end{center}
+\end{figure}
+
+\vfill\eject
+\subsection{mappedGridExample3:  Solve a PDE on an Annulus, explicit BC's, use NameList input}\index{mappedGridExample3}
+\index{PDE!solve on a MappedGrid with explicit boundary conditions.}
+\index{boundary conditions!explicit application}
+
+In this example we make some minor changes to the previous PDE solver. 
+The {\tt NameList} class is used to interactively enter parameter values by name. This is useful
+if there are many parameters and only a few need to be changed. The NameList class is described
+in the PlotStuff documentation.
+
+Boundary conditions are assigned explicitly just to demonstrate how this is done. Using the
+operators to apply boundary conditions is easier but there may be cases when the predefined
+boundary conditions don't do what you want to do.
+
+
+
+
+\noindent {\bf Notes when you run the code:}
+\begin{itemize}
+ \item When prompted for changes to the parameters you can type ``numberOfTimeSteps=100''
+   (or ``nts=100'') to change the parameter {\tt numberOfTimeSteps}. Type ``exit'' to 
+   continue.
+ \item A contour plot of the initial conditions should appear. Choose ``exit'' from 
+      the popup menu (right mouse button) and the solution will be automatically displayed
+      every 5 time steps (``movie mode'').
+\end{itemize}
+
+
+
+(file {\tt Overture/primer/mappedGridExample3.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/mappedGridExample3.C}
+}
+
+% \vfill\eject
+% \subsection{mappedGridExample3CC: Solve a PDE on an Annulus with Finite Volume Operators, explicit BC's, use NameList input}\index{mappedGridExample3CC}
+% \index{PDE!using finite volume operators}
+% \index{finite volume operators!example}
+% 
+% We repeat the last example but now using the finite volume operators on a cell centered grid.
+% 
+% (file {\tt Overture/primer/mappedGridExample3CC.C})
+% {\footnotesize
+% \listinginput[1]{1}{\homeHenshaw/Overture/primer/mappedGridExample3CC.C}
+% }
+
+\vfill\eject
+\subsection{mappedGridExample4: Write your own Mapping and test it}\index{mappedGridExample4}
+\index{Mapping!for writing your own}
+
+This example can be skipped for first time users.
+This program can be used to test a new Mapping if you have written one. 
+
+
+(file {\tt Overture/primer/mappedGridExample4.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/mappedGridExample4.C}
+}
+
+\vfill\eject
+\subsection{mappedGridExample5: Generate exact solutions in the Twilight Zone}\index{mappedGridExample5}
+\index{twilight zone!example}
+
+In this example we show how to use the {\bf method of analytic solutions} to generate
+an exact solution to a PDE (the so-called twilight-zone solution). 
+Given a PDE that we want to solve, such as,
+\begin{align*}
+    u_t + a u_x + b u_y & = \nu( u_{xx} + u_{yy} ) + f(x,y,t), \\
+        u(x,y,t) & = g(x,y,t)    \qquad \text{on the boundary},
+\end{align*}
+we can choose the forcing function $f(x,y,t)$ and boundary condition $g(x,y,t)$
+so that the solution is known. Suppose
+that we want the solution to be the known function $U(x,y,t)$. For example $U$ may
+be the polynomial
+\[
+ U=(1+x+x^2)(1+y+y^2)(1+t+t^2).
+\]
+By choosing
+\begin{align*}
+   f(x,y,t) & = U_t + a U_x + b U_y - \nu( U_{xx} + U_{yy} ) \\
+   g(x,y,t) &= U(x,y,t)
+\end{align*}
+the exact solution for $u(x,y,t)$ will then be $U(x,y,t)$.
+ 
+The classes {\tt OGPolyFunction} and {\tt OGTrigFunction} have been written to define
+polynomial and trigonometric functions and their derivatives that can be used to define
+the known function $U(x,y,z,t)$.
+
+The boundary conditions defined in the operators have been written to optionally use
+this method of analytic solutions. The operators need to be given the appropriate
+true solution and they need to be told to force the boundary conditions as shown
+in the example code below.
+
+When using the polynomial exact solution (default) in the example below
+the errors in the computed solution are `zero' (to roundoff, $2\times 10^{-7}$ in IEEE single precision).
+
+When using the trigonometric exact solution (by choosing ``f=2'') the errors at time $t=.5$
+are  $3.9\times 10^{-3}$ in IEEE single precision.
+
+(file {\tt Overture/primer/mappedGridExample5.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/mappedGridExample5.C}
+}
+
+\vfill\eject
+\subsection{mappedGridExample6: Time Step determination}\index{mappedGridExample6}
+\index{time step determination!example}
+
+In this example we demonstrate how the time step can be accurately determined
+for a convection diffusion equation
+\[
+    u_t + a u_x + b u_y = \nu( u_{xx} + u_{yy} )
+\]
+The function that determines the time step is in 
+file {\tt Overture/primer/getDt.C} while the file {\tt Overture/\-primer/\-mappedGridExample6.C}
+uses this function. See the document {\it Time Step Determination for PDEs with Applications
+to Programs Written with Overture} \cite{TIMESTEP} (available from the
+Overture home page) for further details.
+
+(file {\tt Overture/primer/getDt.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/getDt.C}
+}
+
+(file {\tt Overture/primer/mappedGridExample6.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/mappedGridExample6.C}
+}
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example: Steady state, linearized, incompressible Navier-Stokes Equations}
+\index{PDE!steady incompressible Navier-Stokes}
+\index{coefficient matrix!system example}
+
+This example shows how to solve a system of equations that looks something like
+the steady state incompressible Navier-Stokes equations. The system we solve is
+\begin{align*}
+  \nu \Delta u -( u_0(x,y) u_x + v_0(x,y) u_y  + p_x ) &= f_0 \\
+  \nu \Delta v -( u_0(x,y) v_x + v_0(x,y) v_y  + p_y ) &= f_1 \\
+  \Delta p - \delta (u_x+v_y)                      &= f_2 
+\end{align*}
+with boundary conditions
+\newcommand{\given}{\rm given}
+\begin{align*}
+   \text{wall:}&\qquad u=\given \quad v=\given, \quad p_n=\given \\
+   \text{inflow:}&\qquad u=\given, \quad v=\given, \quad p=\given \\
+   \text{outflow:}&\qquad u_n=\given \quad v_n=\given, \quad p=\given
+\end{align*}
+The damping factor $\delta$ helps to keep $u_x+v_y$ small, see the papers
+ \cite{ICNS},\cite{BCNS} for more details on discretizing the incompressible
+Navier-Stokes equations.
+
+The system of equations is built using coefficient matrices, see the operator
+documentation, available from the Overture home page, for other examples.
+The program solves the equations on a square with an inflow boundary on the left,
+an outflow boundary on the right and no-slip walls on the top and bottom.
+The forcing functions $f_0$, $f_1$ and $f_2$ are chosen so that the exact solution
+is known. This known solution is a quadratic polynomial for which the method should
+give the exact answer. Indeed if you run this example you should see that the
+computed errors are ``zero'' (round off level).
+
+
+
+(file {\tt Overture/primer/lins.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/lins.C}
+}
+
+
+
+
+\vfill\eject
+\section{Getting Started with CompositeGrid's}
+
+A {\tt CompositeGrid} is a class that holds an overlapping grid. An
+overlapping grid can be created with the interactive grid generation program
+{\tt ogen}, and saved in a data-base (HDF) file. Application programs such
+as the examples that follow can easily read the data-base file to create 
+an overlapping grid.
+
+
+\subsection{Example 1: CompositeGrid's and MappedGrid's}\index{example1}
+\index{CompositeGrid!example}
+
+Here is an example of how to create a CompositeGrid from 
+a data base file created by the interactive grid generation program {\tt ogen}.
+
+(file {\tt Overture/primer/example1.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/example1.C}
+}
+We first read in a {\tt CompositeGrid} from the data base file that was created
+with {\tt ogen}.
+We then loop over the component grids
+and print out some variables.
+A component grid is actually a ``MappedGrid'', as shown
+in the example. A {\tt MappedGrid} is so named since it contains
+a mapping function. See sections \ref{sec:MappedGrid} and \ref{sec:CompositeGrid}
+for  a brief description of the variables that are contained 
+in a {\tt MappedGrid} and a {\tt CompositeGrid}.
+
+When I run this example the program will prompt for the name of the
+overlapping grid data base file, and I will enter the name of the file
+that I created with {\tt ogen}, for example {\tt \cgsh/square5.hdf}.
+
+The file {\tt Overture/primer/gridQuery.C} is a program that can be used to read in
+and display various information about a CompositeGrid.
+\index{CompositeGrid!display interactively with gridQuery}\index{gridQuery}.
+
+\begin{figure} 
+  \begin{center}
+  \includegraphics{\figures /grids.idraw.ps}
+  \caption{Class diagram for grid classes} \label{fig:grids}
+  \end{center}
+\end{figure}
+
+\begin{figure} 
+  \begin{center}
+  \includegraphics{\figures /mappedGrid.idraw.ps}
+  \caption{Class diagram for a MappedGrid}\label{fig:mappedGrid}
+  \end{center}
+\end{figure}
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 2: grid functions}\index{example2}
+\index{CompositeGridFunction!example}
+
+In the next example we introduce the notion of a grid function.
+A ``realCompositeGridFunction'' is a discrete function that lives
+on the grid points (or cell centres or faces)
+of a CompositeGrid~\cite{GF}. A {\tt realCompositeGridFunction}
+contains a list of ``realMappedGridFunctions'', one {\tt realMappedGridFunction}
+for each component grid. 
+
+(file {\tt Overture/primer/example2.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/example2.C}
+}
+A ``realCompositeGridFunction will either
+be a grid function of ``floats'' or a grid function of ``doubles''
+depending on a compiler flag. 
+In the above example we use the function {\tt getIndex} to
+define the Index objects {\tt I1,I2,I3}
+corresponding to the {\tt indexRange} -- i.e. the interior
+points of the grid. The interior points on each
+component grid of the grid function {\tt u} are given values
+equal to $sin(x) cos(y)$. The object {\tt u[grid]} is a 
+``realMappedGridFunction''. This object is derived from an
+A++ array and thus inherits all the functionality of an
+A++ array.
+
+
+\begin{figure} 
+  \begin{center}
+  \includegraphics{\figures /gf.idraw.ps}
+  \caption{Class diagram for grid function classes} \label{fig:GridFunctions}
+  \end{center}
+\end{figure}
+
+
+\begin{figure}
+  \begin{center}
+  \includegraphics{\figures /mappedGridFunction.idraw.ps}
+  \caption{Class diagram for a MappedGridFunction}
+  \end{center}\label{fig:MappedGridFunction}
+\end{figure}
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 3: interpolation}\index{example3}
+\index{interpolation!example}
+
+In the next example we show how to interpolate a grid function, i.e. how to
+obtain the values at the interpolation points given the values at all other
+points. In order to interpolate you must first create an ``Interpolant''
+object. This object knows how to interpolate grid functions on a 
+given CompositeGrid. 
+
+(file {\tt Overture/primer/example3.C})
+{\footnotesize
+\listinginput[1]{1}{\homeHenshaw/Overture/primer/example3.C}
+}
+In this example we use the {\tt mask} array to selectively assign 
+the grid points. The mask array is positive for discretization points,
+negative for interpolation points and zero for unused points.
+After interpolation the values at points with {\tt mask<0} will 
+have been assigned.
+As shown in the example there are two ways to interpolate.
+The second way, {\tt u.interpolate()} may seem a bit mysterious since
+why should the grid function know about the Interpolant? The answer
+is that when the Interpolant is made it tells the CompositeGrid
+that it exists. The grid function checks with the CompositeGrid that
+it is associated with to see if an Interpolant has been made and
+if so it uses it.
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 4: show files}\index{example4}
+\index{show file!example}
+
+Grid functions can be saved in a ``show file'' and later displayed
+with plotStuff (in the Overture/bin directory). In this example we show how to make a show file.
+More work has to be done on show files so some of the syntax
+may change in the future.
+
+(file {\tt Overture/primer/example4.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/example4.C}
+}
+This example demonstrates a few other features of grid functions such
+as declaring a grid function with more than one component and linking
+one grid function to another.
+
+Use plotStuff to display the results from this example, ``plotStuff fileName.show''
+where ``fileName.show'' was the name chosen for the showfile when the program was run.
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 5: Differentiating grid functions}\index{example5}
+\index{differentiation!of a grid function, example}
+
+The {\tt \MGO} and {\tt \CGO} classes can be used
+can be used to compute spatial
+derivatives of grid functions and to apply boundary conditions.
+In this example we show how to differentiate grid functions
+to second or fourth-order accuracy.
+
+(file {\tt Overture/primer/example5.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/example5.C}
+}
+In this example we create a {\tt \CGO} object and associate
+it with a {\tt CompositeGrid}. We compute the x-derivative of
+a {\tt realCompositeGridFunction} and of 
+{\tt realMappedGridFunction}'s.
+The member
+function ``x'' in the grid function returns the
+x derivative of the grid function as a new grid function. 
+It uses the derivative
+defined in the {\tt \CGO} object which in turn uses a {\tt \MGO} object
+to compute the derivatives of a {\MGF}. The default {\tt \MGO} object
+used by a {\tt \CGO} can be changed.
+Note that by default the derivative of a {\tt realCompositeGridFunction} 
+is only computed at interior and boundary points (indexRange). Thus to
+access (make a view) of the derivative values of the grid function {\tt u.x()} 
+at the Index's {\tt (I1,I2,I3)}
+it is necessary to say {\tt u.x()(I1,I2,I3)}. On the other hand the statement
+{\tt u.x(I1,I2,I3)} will evaluate the derivatives on the points
+defined by {\tt (I1,I2,I3)}, but will return a grid function that is dimensioned
+for the entire grid. Thus in general on could say {\tt u.x(I1,I2,I3)(J1,J2,J3)}
+to evaluate the derivatives at points {\tt (I1,I2,I3)} but to use (take a view)
+of the grid function at the Index's {\tt (J1,J2,J3)}. 
+
+The {\tt \MGO~} and {\tt \CGO} classes are described in more detail in the
+grid function documentation.
+
+
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 6: Solving a simple PDE using Differential and Boundary operators}\index{example6}
+\index{PDE!on a CompositeGrid, example}
+
+In this example we solve the convection-diffusion equation
+\[
+   {\partial u \over \partial t} 
+ + a {\partial u \over \partial x} 
+ + b {\partial u \over \partial y} 
+ = \nu ( {\partial^2 u \over \partial x^2} 
+        + {\partial^2 u \over \partial y^2}  )
+\]
+with a simple time stepping method (forward Euler)
+The solutions at different time steps are saved in a show
+file. 
+% The {\tt DifferentialAndBoundaryOperators} class
+% will be described in more detail in the next section.
+
+(file {\tt Overture/primer/example6.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/example6.C}
+}
+To run this example:
+\begin{itemize}
+  \item First create an overlapping grid. For example, from the {\tt Overture/sampleGrids} directory
+     type {\tt ../bin/ogen noplot cic.cmd} to create the grid {\tt cic.hdf} using
+      the command file {\tt cic.cmd}.
+  \item Run {\tt example6}. Enter {\tt cic.hdf} as the overlapping grid to use
+     and {\tt primer.show} as the name of the output ``show'' file.
+  \item Look at the results by typing {\tt ../bin/plotStuff primer.show}.
+\end{itemize}
+
+{\bf Note} that a fixed time step is used in this example and that
+the time step may not be small enough to keep the method stable if you
+use a different grid from {\tt cic.hdf}.
+
+Currently, computing derivatives in this way will not be so
+efficient. An efficient way to compute derivatives is described
+in section (\ref{efficient}) and in the grid function documentation.
+
+In this example we chose the boundary conditions to be dirichlet
+on all sides of all grids. By default the values at dirichet
+boundaries are set to zero. Boundary conditions can be defined
+in a much more general manner as described in the grid function
+documentation.
+
+
+\begin{figure}
+  \begin{center}
+  \epsfig{file=\figures/example6.ps,height=6.0in}
+  \caption{Results from example6. Solving a convection diffusion equation.}
+  \end{center} \label{fig:solver}
+\end{figure}
+
+If you want to solve the problem with fourth-order accuracy you can 
+un-comment the two lines indicated in example6.C. You will need to use an
+overlapping grid created for fourth order (such as {\tt cic.4.cmd}) and
+you will need to decrease the time step {\tt dt} by a factor of 4 or so(?).
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 7: Solving Poisson's equation with Oges}\index{example7}
+\index{PDE!Poisson equation, example}
+
+In this example we solve Poisson's equation in 2 or 3D,
+$$
+   {\partial^2 u \over \partial x^2} 
+ + {\partial^2 u \over \partial y^2} 
+ + {\partial^2 u \over \partial z^2} 
+= f ~~~~\mbox{for~} \xv \in \Omega
+$$
+with Dirichlet boundary conditions
+$$
+    u=0 ~~~~\mbox{for~} \xv \in \partial\Omega
+$$
+(file {\tt Overture/primer/example7.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/example7.C}
+}
+We use the {\tt Oges} (Overlapping grid equation solver)
+class to use a sparse matrix solver to solve the problem.
+We use the differential operators in the {\tt \CGO} class
+to define coefficients of the Laplacian operator and
+the coefficients for the boundary condition.
+By default the {\tt Oges} solver will use the Yale
+sparse matrix solver. The first time the problem
+is solved the matrix will be factored. Subsequent calls
+to solve with different right-hand-sides will only 
+involve a back-substitution. See the {\tt Oges} 
+documentation for further details on the many 
+available options.
+
+If instead of the Laplacian operator we wanted to define
+some other operator, say,
+$$
+   2{\partial^2 u \over \partial x^2} 
+ +  {\partial^2 u \over \partial y^2} 
+ + 3{\partial u \over \partial x} 
+$$
+then we could have used the statement
+{\footnotesize
+\begin{verbatim}
+    coeff=2.*u.xxCoefficients()+u.yyCoefficients()+3.*u.xCoefficients(();
+\end{verbatim}
+}
+
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 8: Interactive plotting with PlotStuff}\index{example8}
+\index{PlotStuff!example}
+
+ In this example we show how to plot ``stuff'' interactively from a
+program using the {\tt PlotStuff} class. These plotting routines
+are based on OpenGL and can run on many platforms. Currently 
+on Sun's I use Brian Paul's Mesa library which is a public domain implementation of
+OpenGL that runs under X-windows.
+More information about plotting can be found in the document
+\ogshow/PlotStuff.tex.
+
+Here is an example code that uses the {\tt PlotStuff} class to plot
+various objects from the Overture class
+(file {\tt Overture/primer/example8.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/example8.C}
+}
+When the example is run
+a window will pop up. To see the menus, put the cursor over the window and
+press the right mouse button. 
+Choosing {\bf contour}, for example, will
+cause the {\tt contour} function to be called. Now choose {\bf plot} to
+display the contour/surface plot. Other menu items allow one to change
+features of the plot. 
+Buttons on the window allow one to shift rotate and zoom the plot.
+The left mouse button can be used to zoom using a rubber-band box.
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example 9: Saving and Reading a Restart file}\index{example9}
+\index{restart file}
+
+This example show how to save information in a data base file. This could
+be a restart file for a PDE solver. It is also possible to create a hierarchical
+directory structure within the data base file. See the data base documentation
+for further details.
+
+
+See also the documentation on ShowFileReader in the Ogshow documentation
+for how to read grids and grid functions from a show file. This would
+be another way to get initial conditions for a solver.
+
+
+
+(file {\tt Overture/primer/example9.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/example9.C}
+}
+
+% ---------------------------------------------------------------------------------------
+% \vfill\eject
+% \subsection{Example 10: Efficient computation of derivatives for PDE solvers}\index{example10} \label{efficient}
+% \index{differentiation}{efficient computation, example}
+% 
+% An efficient method for computing derivatives is shown in this
+% example. See also the example for the wave equation~(\ref{sec:wave}) for
+% a perhaps even more efficient approach.
+% 
+% One must first indicate how many derivatives will be
+% evaluated, {\tt setNumberOfDerivativesToEvaluate}, and which
+% derivatives should be evaluated, {\tt setDerivativeType}, and also
+% supply A++ arrays to hold the results in ({\tt uvx,uvy,uvxx,uvyy}).
+% These arrays will automatically be made large enough to hold the
+% results if they are not already large enough.  The arrays are not,
+% however, made smaller if they are too big. Thus once the arrays
+% are large enough for the grid with the most grid points the arrays
+% will not be redimensioned anymore. The call to {\tt
+% getDerivatives} will evaluate all the derivatives all at once (thus
+% saving computations) and place the results in the user supplied arrays
+% (thus saving memory allocation overhead).
+% 
+% 
+% (file {\tt Overture/primer/example10.C})
+% {\footnotesize
+% \listinginput[1]{1}{\primer/example10.C}
+% }
+% 
+% \begin{figure} 
+%   \begin{center}
+%   \epsfig{file=\figures/example10.ps,width=6.0in}
+%   \caption{Results from example10, run with the grid cic.hdf}
+%   \end{center} \label{fig:example10}
+% \end{figure}
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example: 2D Wave equation (optimised for performance and memory usage)}\label{sec:wave}
+\index{wave equation, example}
+\index{PDE!wave equation, example} \index{efficient computation, example}
+
+
+This example shows how to solve the 2D wave equation,
+\[
+      u_{tt} - c^2 \Delta u = 0 ~.
+\]
+This example has been optimised for performance and memory usage.
+Rectangular grids especially, are treated in an efficent manner.
+
+We discretize this second order equation in time using a second-order
+centered difference,
+\[
+    { u^{n+1}_i - 2 u^n_i + u^{n-1}_i \over \Delta t^2 }  - c^2 \Delta_h u^n_i =0 ~,
+\]
+where the superscript $n$ denotes the time level.
+We use either a 2nd order or 4th order discretization in space. We only interpolate assuming
+a second-order scheme so formally the method is not fourth-order.
+
+The above scheme has no dissipation. To smooth out numerical oscillations an artificial
+dissipation term has been added of the form $h^4 \partial_t u_{xxxx}$,
+\[
+  { u^{n+1}_i - 2 u^n_i + u^{n-1}_i \over \Delta t^2 }  - c^2 \Delta_h u^n_i +
+       -C~ h^4(D_+D_-)^2 (u^n-u^{n-1})=0
+\]
+
+To allow the use of a fourth-order difference approximation on an overlapping grid
+that is only built for a stencil that is $3\times3$ we use the {\tt extrapolateInterpolationNeighbours}
+boundary condition to extrapolate values at the normally unused points next to interpolation points.
+With these values defined we can apply a fourth order difference at all interior points.
+
+See file {\tt Overture/primer/wave.C}. 
+\begin{figure} 
+  \begin{center}
+  \epsfig{file=\figures/wave0.ps,width=.45\linewidth}
+  \epsfig{file=\figures/wave1.ps,width=.45\linewidth}
+  \epsfig{file=\figures/wave2.ps,width=.45\linewidth}
+  \epsfig{file=\figures/wave3.ps,width=.45\linewidth}
+  \caption{Results from the 2D wave equation. An initial rectangular pulse splits into two
+and then collides with the cylinder and walls.}
+  \end{center} \label{fig:wave}
+\end{figure}
+
+
+% In this example the grid had about $6.3$ million grids points of which $5\times10^5$ points were
+% on the curvlinear grids. Running with the `noplot' option required about $220M$ of memory.
+
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example: Moving overlapping grids}
+\index{moving grids!example}
+
+This example shows how to move a component grid and recompute the
+overlapping grid. The second component grid will be rotated.
+
+You might try running this example with the grid {\tt sis.hdf} which
+is an overlapping grid for a square inside a square. When the 
+example runs a window will pop up and a grid will be shown. Choose
+the menu item {\tt erase and exit} (right mouse button) to continue.
+
+The results will also be saved in a show file, called ``move1.show''.
+Use Overture/bin/plotStuff to look at this file.
+
+(file {\tt Overture/primer/move1.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/move1.C}
+}
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example: Adaptive Grids}
+\index{adaptive grids!example}
+
+This example shows how to build an adaptive grid with a refinement level.
+Starting from a grid collection consisting of a single square, two refinement
+grids are added. Grid functions are created and the grid functions are plotted
+on the adaptive grid and the refinement levels.
+
+(file {\tt Overture/primer/amrExample1.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/amrExample1.C}
+}
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example: Time dependent adaptive mesh refinement solver: amrh}
+\index{adaptive grids!example}
+
+The file {\tt Overture/primer/amrh.C} solves a convection diffusion equation
+using adaptive mesh refinement (AMR). The equation
+\[
+    u_t + a u_x + b u_y = \nu \Delta u
+\]
+is advanced with a fouth-order accurate Runge-Kutta time stepping algorithm.
+Every few steps a new AMR grid is computed, based on an estimate of the error.
+The solution must then be interpolated from the old AMR grid to the new AMR grid.
+For simplicity, a single time step is used on all grids.
+The AMR algorithm is implemented with the help of the following classes
+\begin{description}
+  \item[ErrorEstimator] : class used to compute error estimates.
+  \item[Regrid] : class used to build a new AMR grid.
+  \item[InterpolateRefinements] : used to 
+     \begin{itemize}
+        \item interpolate from one AMR grid to a second AMR grid, 
+        \item interpolate ghost-boundaries of refinement grids
+        \item interpolate coarse grid ppoints that are hidden by refinement grids.
+     \end{itemize}
+     This class in turn uses the {\bf Interpolate} class which knows how to interpolate
+     refinement patch points from a coarser grid.
+\end{description}
+See the documents \cite{amrGuide},\cite{Interpolate} for further details.
+
+\begin{figure}
+  \begin{center}
+  \epsfig{file=\figures/amrHype0.ps,width=.3\linewidth}
+  \epsfig{file=\figures/amrHype1.ps,width=.3\linewidth} \\
+  \epsfig{file=\figures/amrHype2.ps,width=.3\linewidth}
+  \epsfig{file=\figures/amrHype3.ps,width=.3\linewidth}
+  \caption{Results from amrh, solving a convection diffusion equation with adaptive mesh refinement.}
+  \end{center} \label{fig:hypeAMR}
+\end{figure}
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\subsection{Example: Multigrid Overlapping Grids}
+\index{multigrid!example}
+
+This example shows how to manipulate an overlapping grid that has more than
+one multigrid level. The overlapping grid should be created with more than one 
+multigrid level as shown for example in the {\tt cicmg.cmd} command file presented
+in the {\tt ogen} grid generator documentation.
+% (file {\tt Overture/primer/cicmg.cmd})
+% {\footnotesize
+% \listinginput[1]{1}{\primer/cicmg.cmd}
+% }
+
+
+The following program reads in the overlapping grid. It then plots the overlapping grids
+at the different levels (each multigrid level is a valid {\tt CompositeGrid}).
+Next a grid function is built and the different multigrid levels of the grid function
+are assigned and plotted.
+(file {\tt Overture/primer/mgExample1.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/mgExample1.C}
+}
+
+\begin{figure}[htb]
+\centering
+ \mbox{
+       \subfigure[]{\epsfig{file=\figures/cicmg0.ps,width=.5\textwidth}}
+       \subfigure[]{\epsfig{file=\figures/cicmg1.ps,width=.5\textwidth}}}
+ \caption{The two multigrid levels for the grid created by {\tt cicmg.cmd}. A {\tt Composite\-Grid cg}
+        can hold multiple multigrid levels which are referenced as {\tt cg.multigridLevel[level]},
+        {\tt level=0,1,\ldots}.
+        Each {\tt cg.multigridLevel[level]} is itself a valid {\tt CompositeGrid}. }
+\end{figure}
+
+\clearpage
+\subsection{Example: Solving elliptic problems on each multigrid level}
+
+This example shows how to solve an elliptic problem on each multigrid level of an overlapping
+grid. The example also shows how to access the matrix coefficients and compute
+the residual. The overlapping grid should be created with more than one 
+multigrid level as shown for example in the {\tt cicmg.cmd} command file (see the previous section).
+
+
+The following program reads in the overlapping grid. 
+Grid functions are built on the multigrid overlapping grid to hold the solution, right-hand-side
+and the coefficient matrix. Since the {\tt CompositeGridOperators} and the sparse solver
+class {\tt Oges} do not know about multigrid levels it is necessary to explicitly build these objects
+for each level. For each multigrid level we build a coefficient matrix and solve a problem.
+The errors are printed.
+(file {\tt Overture/primer/mgExample2.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/mgExample2.C}
+}
+For the grid {\tt cicmg.hdf} the output is
+{\footnotesize
+\begin{verbatim}
+ultrabert{henshaw}74: mgExample2
+A++ Internal_Index bounds checking: ON 
+ -------------------------------------------------------------------------- 
+ Demonstrate how to solve an elliptic problem on different multigrid levels.
+ The overlapping grid should be created with more than 1 multigrid level,   
+ see the cicmg.cmd command file as an example.                              
+ -------------------------------------------------------------------------- 
+mgExample2>> Enter the name of the (old) overlapping grid file: (cicmg for example)
+../cgsh/cicmg
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+level=0, time for solve of the Dirichlet problem = 0.165335
+level=0, Maximum error with dirichlet bc's= 2.058983e-03
+level=0, Maximum residual with dirichlet bc's= 4.582405e-04
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+level=1, time for solve of the Dirichlet problem = 0.0532484
+level=1, Maximum error with dirichlet bc's= 6.177902e-03
+level=1, Maximum residual with dirichlet bc's= 1.449585e-04
+ultrabert{henshaw}75: 
+\end{verbatim}
+}
+
+\clearpage
+\subsection{Example: Calling a fortran function for each component grid.}
+
+In this example we solve the equation $u_t=f(u,\xv,t)$ on an overlapping grid.
+A Fortran function is called to compute $f(u,\xv,t)$ for each component grid
+(file {\tt Overture/primer/callingFortran.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/callingFortran.C}
+}
+The fortran function is defined in the file {\tt Overture/primer/mySolver.f}
+
+
+\clearpage
+\subsection{Example: Building an overlapping grid directly in a program.}
+
+In this example we generate an overlapping grid directly in a program, rather than
+interactively, (file {\tt Overture/primer/gridGenExample.C})
+{\footnotesize
+\listinginput[1]{1}{\primer/gridGenExample.C}
+}
+
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\section{Single versus double precision}
+\index{double precision, compiling for}
+
+Overture is designed so that one writes a single code that can be used in
+either single or double precision. The types {\tt real}, {\tt realMappedGridFunction},
+{\tt realCompositeGridFunction} etc. are either {\tt float} or {\tt double} depending on
+whether the Overture library has been built with the double precision option.
+ Note that the Overture
+library must be entirely recompiled for double precision. Thus the steps to take to
+run in {\bf double precision} are
+\begin{enumerate}
+  \item Build the Overture library in double precision.
+  \item remake any overlapping grids with the new double precision version of the grid generator.
+\end{enumerate}
+Thus one would never explicitly create a {\tt doubleMappedGridFunction} (except in very special
+cases).
+The file {\tt Overture/include/OvertureDefine.h} will define the macro {\tt OV\_USE\_DOUBLE} if
+Overture has been compiled in double precision. 
+
+% ---------------------------------------------------------------------------------------
+\vfill\eject
+\section{Makefile's and .cshrc files}
+
+When Overture is installed using the {\tt Overture/configure} script {\tt Makefile}'s are
+build in sub-directories of Overture. You can copy the {\tt Makefile} from the 
+{\tt Overture/primer} directory to use as a starting point for making other applications.
+
+The Overture {\tt Makefile}'s require a number of environmental variables to be 
+defined so that it knows where
+to find various libraries. 
+Here are some example {\tt .cshrc} files that could be used to define these environmental
+variables.
+
+\noindent
+{\bf NOTE} that if you are making (i.e. installing) Overture (as opposed to just using it) you must explicitly 
+define the locations of OpenGL, HDF and APlusPlus (rather than using
+the relative paths given below).
+
+\noindent
+{\bf Note:} If you have made the {\bf double precision} version of Overture then you should add {\tt -DDOUBLE}
+to the {\tt CCFLAGS} definitions in the Makefiles below as in {\tt CCFLAGS= -DDOUBLE -O ...}
+
+\subsection{Sun Workstations}
+
+Here is a {\tt .cshrc} file and a {\tt Makefile} that can be used on a Sun workstation.
+
+\noindent File {\tt Overture/primer/cshrc.sun}:
+{\footnotesize
+\listinginput[1]{1}{\primer/cshrc.sun}
+}
+\noindent  File {\tt Overture/primer/Makefile.sun}:
+{\footnotesize
+\listinginput[1]{1}{\primer/Makefile.sun}
+}
+
+\subsection{SGI Workstations}
+
+Here is a {\tt .cshrc} file and a {\tt Makefile} that can be used on an SGI machine.
+% for Overture made with the command {\tt ``make irix64''}.
+
+\noindent File {\tt Overture/primer/cshrc.sgi64}:
+{\footnotesize
+\listinginput[1]{1}{\primer/cshrc.sgi64}
+}
+\noindent File {\tt Overture/primer/Makefile.sgi64}:
+{\footnotesize
+\listinginput[1]{1}{\primer/Makefile.sgi64}
+}
+
+
+\subsection{Pentium with Linux}
+\noindent  File {\tt Overture/primer/Makefile.linux}:
+
+
+{\footnotesize
+\listinginput[1]{1}{\primer/Makefile.linux}
+}
+
+
+\vfill\eject
+\section{Variables contained in a MappedGrid}  \label{sec:MappedGrid}
+
+Here we give a brief overview of some of the most important
+items that are contained in a MappedGrid.
+
+\input \homeHenshaw/Overture/gf/MappedGrid.tex
+
+\vfill\eject
+\section{Variables contained in a CompositeGrid} \label{sec:CompositeGrid}
+
+\input \homeHenshaw/Overture/gf/CompositeGrid.tex
+
+
+
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}
+
+
+
+

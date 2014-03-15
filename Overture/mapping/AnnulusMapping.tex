@@ -1,0 +1,56 @@
+\section{AnnulusMapping}\index{annulus mapping}\index{Mapping!AnnulusMapping}
+
+
+This Mapping defines a circular or elliptical annulus in two or three space dimensions
+\begin{eqnarray*}
+\theta &=&  2\pi( \theta_0 + r_1( \theta_1-\theta_0) ) \\
+\xv(r_1,r_2) &=& (R_0 + r_2 (R_1-R_0)) ( \alpha \cos( \theta ) + x_0 , \sin(\theta) + y_0, z_0 )
+\end{eqnarray*}
+By default the annulus is parameterized with a left-handed coordinate system. You can 
+make the system right handed by choosing the {\tt outerRadius} to be less than the
+{\tt innerRadius}.
+
+By default the annulus is two dimensional. To make a three dimensional annulus use the
+{\tt setRangeDimension()} function or use the {\tt setOrigin(x0,y0,z0)} function with a
+non-zero value of {\tt z0}.
+
+
+
+%- \begin{figure}[ht]
+%-   \begin{center}
+%-   \includegraphics[width=10cm]{\figures/AnnulusMapping_idraw}
+%-   % \epsfig{file=\figures/AnnulusMapping.idraw.ps,width=10cm}
+%-   \caption{The AnnulusMapping defines an annulus}
+%-   \end{center}
+%- \label{fig:AnnulusMapping}
+%- \end{figure}
+%- 
+
+%% \input AnnulusMappingInclude.tex
+
+%- \begin{figure}[ht]
+%-   \begin{center}
+%-   \includegraphics[width=10cm]{\figures/annulus}
+%-   % \epsfig{file=\figures/annulus.ps,width=.5\linewidth}
+%-   \caption{A mapping for a partial annulus.}
+%-   \end{center}
+%- \end{figure}
+
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{10cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.075}{.1}{.1}{.1}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}
+  \useasboundingbox (0,0.5) rectangle (10,10);  % set the bounding box (so we have less surrounding white space)
+% 
+  \draw (0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\figures/annulus}{\figWidth}};
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (10,10);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+ \caption{A mapping for a partial annulus.}
+\label{fig:AnnulusMapping}
+\end{center}
+\end{figure}

@@ -1,0 +1,18 @@
+In table~\ref{tab:performance} we show some timings and memory usage for a selection of
+problems.
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|} \hline 
+  problem                      &  grid points & CR  & cpu/cycle  & Memory  & reals/grid-point\\ \hline\hline 
+  circle in a square (2D)      & 1.1 million  &.056 &  .93       &  48 M   &    5.2  \\
+  two circles  (2D)            & 6.3 million  &.043 &  4.7       & 287 M   &    5.7  \\
+  ellipsoid in a box (3D )     & 4.7 million  &.12  &  8.5       & 442 M   &   11.7 \\
+  two spheres (3D)             &10.2 million  &.085 & 29.2       &1420 M   &   17.4 \\ \hline
+\end{tabular}
+\end{center}
+\caption{Performance and memory usuage results for the 
+predefined Laplace operator which has been optimised for Cartesian grids; 2.2 GigaHertz Pentium workstation.}
+ \label{tab:performance} 
+\end{table}
+

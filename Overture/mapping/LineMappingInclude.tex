@@ -1,0 +1,107 @@
+\subsection{Constructor}
+ 
+\newlength{\LineMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\LineMappingIncludeArgIndent}{LineMapping(}% 
+LineMapping(const real xa\_, \\ 
+\hspace{\LineMappingIncludeArgIndent}const real xb\_, \\ 
+\hspace{\LineMappingIncludeArgIndent}const int numberOfGridPoints )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Build a mapping for a line in 1D.
+\item[{\bf xa\_, xb\_ (input) :}]  End points of the interval.
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\LineMappingIncludeArgIndent}{LineMapping(}% 
+LineMapping(const real xa\_,const real ya\_, \\ 
+\hspace{\LineMappingIncludeArgIndent}const real xb\_,const real yb\_,\\ 
+\hspace{\LineMappingIncludeArgIndent}const int numberOfGridPoints)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Build a mapping for a line in 2D.
+\item[{\bf xa\_, ya\_, xb\_, yb\_ (input) :}]  End points of the line.
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\LineMappingIncludeArgIndent}{LineMapping(}% 
+LineMapping(const real xa\_,const real ya\_,const real za\_, \\ 
+\hspace{\LineMappingIncludeArgIndent}const real xb\_,const real yb\_,const real zb\_,\\ 
+\hspace{\LineMappingIncludeArgIndent}const int numberOfGridPoints)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Build a mapping for a line in 3D.
+\item[{\bf xa\_, ya\_,za\_,  xb\_, yb\_,zb\_ (input) :}]  End points of the line.
+\end{description}
+\subsection{getPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\LineMappingIncludeArgIndent}{getPoints(}%
+getPoints( real \& xa\_, real \& xb\_ ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Get the end points of the line.
+\item[{\bf xa\_, xb\_ (output) :}]  End points of the line.
+\end{description}
+\subsection{getPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\LineMappingIncludeArgIndent}{getPoints(}%
+getPoints( real \& xa\_, real \& ya\_,\\ 
+\hspace{\LineMappingIncludeArgIndent}real \& xb\_, real \& yb\_ ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Get the end points of the line.
+\item[{\bf xa\_, ya\_, xb\_, yb\_ (output) :}]  End points of the line.
+\end{description}
+\subsection{getPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\LineMappingIncludeArgIndent}{getPoints(}%
+getPoints( real \& xa\_, real \& ya\_, real \& za\_, \\ 
+\hspace{\LineMappingIncludeArgIndent}real \& xb\_, real \& yb\_, real \& zb\_ ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Get the end points of the line.
+\item[{\bf xa\_, ya\_,za\_,  xb\_, yb\_,zb\_ (output) :}]  End points of the line.
+\end{description}
+\subsection{setPoints}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\LineMappingIncludeArgIndent}{setPoints(}%
+setPoints( const real \& xa\_, const real \& xb\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the end points for a line in 1D.
+\item[{\bf xa\_, xb\_ (input) :}]  End points of the interval.
+\end{description}
+\subsection{setPoints}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\LineMappingIncludeArgIndent}{setPoints(}%
+setPoints( const real \& xa\_, const real \& ya\_,\\ 
+\hspace{\LineMappingIncludeArgIndent}const real \& xb\_, const real \& yb\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the end points for a line in 2D.
+\item[{\bf xa\_, ya\_, xb\_, yb\_ (input) :}]  End points of the line.
+\end{description}
+\subsection{setPoints}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\LineMappingIncludeArgIndent}{setPoints(}%
+setPoints( const real \& xa\_, const real \& ya\_, const real \& za\_, \\ 
+\hspace{\LineMappingIncludeArgIndent}const real \& xb\_, const real \& yb\_, const real \& zb\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Specify the end points for a line in 3D.
+\item[{\bf xa\_, ya\_,za\_,  xb\_, yb\_,zb\_ (input) :}]  End points of the line.
+\end{description}

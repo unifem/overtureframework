@@ -1,0 +1,54 @@
+A++ Internal_Index bounds checking: ON 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/square5 ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=square5
+TwilightZone: algebraic polynomial
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+time for 1st solve of the Dirichlet problem = 0
+time for 2nd solve of the Dirichlet problem = 0
+Maximum relative error with dirichlet bc's= 3.037179e-07
+time for 1st solve of the Neumann problem = 0
+time for 2nd solve of the Neumann problem = 0
+Maximum relative error with neumann bc's= 4.768372e-07
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/cic ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
+TwilightZone: algebraic polynomial
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+time for 1st solve of the Dirichlet problem = 0
+time for 2nd solve of the Dirichlet problem = 0
+Maximum relative error with dirichlet bc's= 5.297653e-04
+time for 1st solve of the Neumann problem = 0
+time for 2nd solve of the Neumann problem = 0
+Maximum relative error with neumann bc's= 1.287094e-03
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/sib ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=sib
+TwilightZone: algebraic polynomial
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+ sslugm1: (gmres, ilu) initialization...
+time for 1st solve of the Dirichlet problem = 0
+time for 2nd solve of the Dirichlet problem = 0
+Maximum relative error with dirichlet bc's= 5.227178e-03
+ sslugm1: (gmres, ilu) initialization...
+time for 1st solve of the Neumann problem = 0
+time for 2nd solve of the Neumann problem = 0
+Maximum relative error with neumann bc's= 5.947899e-03
+
+
+ ************************************************************************************************
+ ************** Test apparently successful, worst error =5.947899e-03 ******************
+ **************************************************************************************************
+

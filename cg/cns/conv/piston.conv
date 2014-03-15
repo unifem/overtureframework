@@ -1,0 +1,118 @@
+#
+# Measure convergence rates for cgcns for a piston (See piston.out)
+#
+# -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir,
+# 
+# To run the convergence tests type: 
+# 
+# -- specified piston motion:
+#   conv.p piston.conv -tp=1. -tf=1. -cg=nonPlug -ng=4 -pp=4 -alwaysCompute=1  [c0=2.41 c1=2.43 c2= nan c3=2.53
+#   conv.p piston.conv -tp=1. -tf=1. -cg=nonPlug -ng=4 -pp=3 -alwaysCompute=1  [c0=1.43 c1=1.43 c2= nan c3=1.43
+#
+#   conv.p piston.conv -tp=1. -tf=1. -cg=plug -ng=4 -pp=4 -alwaysCompute=1 [c0=2.41 c1=2.43 c2= nan c3=2.53
+#
+#   conv.p piston.conv -tp=1. -tf=1. -cg=nonPlug -ng=4 -ap=-1. -pp=4 -alwaysCompute=1  [c0=2.22 c1=2.24 c2= nan c3=2.42
+# 
+# -- pressure driven piston 
+#   conv.p piston.conv -tp=1. -tf=1. -cg=plug -ng=4 -case=plug -en=l1 -alwaysCompute=1 [c0=1.44 c1=1.44 c2= nan c3=1.43
+# 
+# -- piston that uses a deforming grid
+#  conv.p piston.conv -tp=.2 -tf=1. -cg=plugDeform -case=plugDeform -ng=4 -ap=-1. -pp=4 -en=max -alwaysCompute=1 
+#     -> c0=1.99 c1=2.19 c2= nan c3=2.41
+# 
+# compare:
+#  conv.p piston.conv -tp=.2 -tf=1. -cg=plugDeform                  -ng=4 -ap=-1. -pp=4 -en=l1 -alwaysCompute=1
+#  conv.p piston.conv -tp=.2 -tf=1. -cg=plugDeform -case=plugDeform -ng=4 -ap=-1. -pp=4 -en=l1 -alwaysCompute=1
+# 
+#  --- pressure driven light piston:
+#  conv.p piston.conv -tp=1. -tf=1. -newts=1 -projectRigidBody=1 -addedMass=1 -mass=1.e-6 -bfx0=1. -bfx3=-.5 -rbOrder=2 -cg=plug -gridStart=2 -ng=4 -case=lightPiston -alwaysCompute=1 
+#
+#  conv.p piston.conv -tp=1. -tf=1. -newts=1 -projectRigidBody=1 -addedMass=1 -mass=1.e-6 -bfx0=1. -bfx3=-.5 -rbOrder=2 -cg=plug -ng=5 -atole=1.e-12 -case=lightPiston -alwaysCompute=0
+#
+# --------options: 
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+# ---------------------
+# 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgsmCmd = "$CGBUILDPREFIX/cns/bin/cgcns";  # command for cgcns
+$cmdDir="$ENV{CG}/cns/cmd"; 
+$cmdFile="$ENV{CG}/cns/cmd/pistonSpecifiedMotion.cmd"; 
+# Set default parameters: 
+$pv = "g"; $tz="trig"; $bcn = "d"; $en="max"; $ng=4; $tf=.5; $bcOption=4; $slope=1; $dtMax=1.e3; $gridStart=1; 
+$ap=-.5; $pp=4.;  # piston motion is a*t^pp
+$tPlot=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; $ad=0.; $numberOfParallelGhost=2; 
+$mass=2.;   # mass of the piston
+$newts=0; $projectRigidBody=0; $addedMass=0; $rbOrder=2;
+$bfx0=0.; $bfx1=0.; $bfx2=0.; $bfx3=0.;
+# tolerances for the exact solution:
+$rtole=1.e-6; $atole=1.e-9; 
+#
+$amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
+$cg = "plug"; $alwaysCompute=1; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+$case="piston"; 
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,\
+            "diss=f"=>\$diss,"tp=f"=>\$tPlot,"alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,"gridStart=i"=>\$gridStart,\
+            "showAllComponents=i"=>\$showAllComponents,"bg=s"=>\$bg,"amr=i"=>\$amr,"tol=f"=>\$tol,"nrl=i"=>\$nrl,\
+            "nbz=i"=>\$nbz,"ratio=i"=>\$ratio,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"cfl=f"=>\$cfl,"ad=f"=>\$ad,\
+            "cgsmCmd=s"=>\$cgsmCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"bcOption=i"=>\$bcOption,\
+            "pp=f"=>\$pp,"ap=f"=>\$ap,"case=s"=>\$case,"slope=i"=>\$slope,"dtMax=f"=>\$dtMax,"rtole=f"=>\$rtol,"atole=f"=>\$atole,\
+            "newts=i"=>\$newts, "projectRigidBody=i"=>\$projectRigidBody,"rbOrder=i"=>\$rbOrder,"mass=f"=>\$mass,\
+            "addedMass=i"=>\$addedMass,"bfx0=f"=>\$bfx0,"bfx1=f"=>\$bfx1,"bfx2=f"=>\$bfx2,"bfx3=f"=>\$bfx3 );
+#
+if( $case eq "plug" || $case eq "lightPiston" ){ $cmdFile="$ENV{CG}/cns/cmd/plug.cmd"; }
+lightPistonif( $case eq "plugDeform" ){ $cmdFile="$ENV{CG}/cns/cmd/plugDeform.cmd"; }
+$check="cns.check";
+#
+$caseName="$case.$cg.$pv"; 
+$name="$case.$cg.$pv"; 
+#
+# --- define the table heading and caption --
+# 
+if( $nd eq 2 )\
+{ $numberOfComponents= 4; \
+  $title ="grid  \& N \&  \$rho\$  \& \$u\$  \& \$v\$  \& \$T\$  ";\
+  @componentName = ( "r", "v0", "v1" , "T" );\
+}\
+else\
+{ $numberOfComponents= 5;\
+  $title ="grid  \& N \&  \$rho\$  \& \$u\$  \& \$v\$ \& \$w\$   \& \$T\$  ";\
+  @componentName = ( "r", "u", "v" , "w", "T" );\
+}
+$caption= "\\caption\{Cgcns, $name, \$t=$tf\$, pp=$pp, cfl=$cfl, mass=$mass, addedMass=$addedMass, rbOrder=$rbOrder, bfx0=$bfx0, bfx1=$bfx1, bfx2=$bfx2, bfx3=$bfx3  $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = " -bcOption=$bcOption -tp=$tPlot -tf=$tf -ap=$ap -pp=$pp -en=$en -slope=$slope -dtMax=$dtMax -newts=$newts -projectRigidBody=$projectRigidBody -rbOrder=$rbOrder -addedMass=$addedMass -mass=$mass -bfx0=$bfx0 -bfx1=$bfx1 -bfx2=$bfx2 -bfx3=$bfx3 -rtole=$rtole -atole=$atole -go=go";
+# 
+if( $cg eq "plug" ){\
+$grid1="plug4";  $gName1 = "plug4"; \
+$grid2="plug8";  $gName2 = "plug8"; \
+$grid3="plug16"; $gName3 = "plug16"; \
+$grid4="plug32"; $gName4 = "plug32"; \
+$grid5="plug64"; $gName5 = "plug64"; }
+if( $cg eq "nonPlug" ){\
+$grid1="nonPlug4";  $gName1 = "nonPlug4"; \
+$grid2="nonPlug8";  $gName2 = "nonPlug8"; \
+$grid3="nonPlug16"; $gName3 = "nonPlug16"; \
+$grid4="nonPlug32"; $gName4 = "nonPlug32"; \
+$grid5="nonPlug64"; $gName5 = "nonPlug64"; }
+# 
+if( $cg eq "plugDeform" ){\
+$grid1="plugDeform4";  $gName1 = "plugDeform4"; \
+$grid2="plugDeform8";  $gName2 = "plugDeform8"; \
+$grid3="plugDeform16"; $gName3 = "plugDeform16"; \
+$grid4="plugDeform32"; $gName4 = "plugDeform32"; \
+$grid5="plugDeform64"; $gName5 = "plugDeform64"; }
+# 
+if( $gridStart eq 1 ){ $grid=$grid1; $res=1; $cmd="$cgsmCmd noplot $cmdFile -g=$gName1 $options"; }
+$grid=$grid2; $res=2; $cmd="$cgsmCmd noplot $cmdFile -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4;  $cmd="$cgsmCmd noplot $cmdFile -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8;  $cmd="$cgsmCmd noplot $cmdFile -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgsmCmd noplot $cmdFile -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit

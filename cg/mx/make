@@ -1,0 +1,7 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src $(INCLUDES)
+
+# LIBS := $(LIBS)

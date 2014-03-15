@@ -1,0 +1,127 @@
+%=======================================================================================================
+% MappingsFromCAD documentation
+%=======================================================================================================
+\documentclass{article}
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height for xdvi
+
+\usepackage{epsfig}
+\usepackage{graphics}    
+\usepackage{moreverb}
+\usepackage{amsmath}
+\usepackage{fancybox}
+\usepackage{subfigure}
+\usepackage{multicol}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\begin{document}
+
+
+\input wdhDefinitions
+
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\id     {i}
+\def\jd     {j}
+\def\kap {\sqrt{s+\omega^2}}
+
+\newcommand{\mapping}{/home/henshaw/Overture/mapping}
+\newcommand{\figures}{../docFigures}
+
+\vspace{3\baselineskip}
+\begin{flushleft}
+  {\Large 
+   Mappings from CAD, \\
+   A Description of the IgesReader and MappingsFromCAD Classes\\
+  }
+\vspace{2\baselineskip}
+William D. Henshaw, \\
+Anders Petersson, \\             
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+\vspace{1\baselineskip}
+\today
+\vspace{\baselineskip}
+% UCRL-MA-132239
+
+\end{flushleft}
+
+\vspace{1\baselineskip}
+
+\begin{abstract}
+\end{abstract}
+
+
+
+% \tableofcontents
+
+\section{IgesReader}\index{IgesReader}\index{iges}\index{CAD}
+
+The {\tt IgesReader} is a class that can be used to read an IGES file that contains
+objects created from a computer-aided-design package (such as proENGINEER).
+For full details on the IGES file format,
+see the reference guide, {\sl IGES, Initial Graphics Exchange Specification}\cite{iges}.
+The IGES file is composed of six sections,
+
+\begin{description}
+  \item[1. flag] section (binary or compressed files only).
+  \item[2. start] section.
+  \item[3. global] section contains various global parameters about the file such as units, date created, etc.
+  \item[4. directory entry] section (DE) contains a short entry for each entity in the file describing what
+     the entity is and containing pointers to the parameter data.
+  \item[5. parameter data] section (PD) contains the parameter data for each entity in the file.
+  \item[6. terminate] section.
+\end{description}
+
+The IgesReader will read an IGES file and build a list of all the items of interest (i.e. items
+that we currently know what to do with). This list is the {\tt entityInfo} list.
+
+Here are some definitions
+\begin{description}
+  \item[entity type] is an enumerated list of entities found in the {\tt IgesReader} class
+   that includes enums such as {\tt parametric\-Spline\-Surface=114}. In this case IGES entity type
+    114 is a parametric spline surface; look for the description of entity 114 in the IGES manual.
+  \item[sequence number] : each directory entry (DE) line in the file ends with a ``D'' followed by
+     a sequence number -- this is the line number relative to the start of the DE section.
+     The sequence number for an ``item'', saved in {\tt entityInfo(1,item)}
+      will be the line number of the first line of the DE entry
+     for that item.
+\end{description}         
+
+
+\input IgesReaderInclude.tex
+
+\section{MappingsFromCAD}\index{CAD}\index{NURBS}
+
+ The {\tt MappingsFromCAD} class builds selected Mappings from a CAD description. For example,
+Mappings can be created from an IGES file.
+
+\input MappingsFromCADInclude.tex
+
+\vfill\eject
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}
+
+
+
+
+
+
+
+

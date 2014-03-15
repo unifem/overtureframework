@@ -1,0 +1,118 @@
+% documentation for the Nurbs curve builder
+
+
+{% ----
+\newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](2.2,6.5)(19.2,16.9)}\epsfig{#1}\endpsclip}
+\psset{xunit=1.0cm,yunit=1.0cm,runit=1.0cm}
+\begin{figure}[ht]
+\begin{center}
+\begin{pspicture}(0,0)(17,11)
+\rput(11,4){\clipfig{file=nurbsCurveBuilder.ps,width=1.5\linewidth}}
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+\rput(11,-.3){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\normalss Nurbs Curve Builder dialog}}
+\psline[linewidth=1.5pt]{->}(11,0)(11,2.)
+\rput(3,-.3){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\normalss main screen}}
+\psline[linewidth=1.5pt]{->}(3,0)(3,2.)
+%
+\rput(2.,8){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss sub-curve}}
+\psline[linewidth=1.pt]{->}(2,7.75)(3.5,6.25)
+% 
+\rput(4.,8.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss point}}
+\psline[linewidth=1.pt]{->}(4,8.25)(5.15,7.65)
+%
+\end{pspicture}
+\end{center}
+\caption{Creating sub-curves with the Nurbs Curve Builder. The sub-curves can be joined to form a 
+piecewise smooth curve. }
+\label{fig:nurbsCurveBuilder}
+\end{figure}
+  } % ----
+
+
+The {\em Nurbs Curve Builder} can be used to create and modify two-dimensional curves. The curves are
+represented as a NURBS (non-uniform rational B-spline) which is a generalized type of spline.
+The {\em Nurbs Curve Builder} dialog is shown in figure~\ref{fig:nurbsCurveBuilder}.
+The Curve Builder allows one to create a curve consisting of a set of smooth sub-curves that are joined together.
+The assembled curve is allowed to have corners where the sub-curves meet. 
+Note that there are two types of curves plotted in the graphics window, the sub-curves and the
+assembled curve. Plotting of the assembled curve is controlled by the 
+\cmd{Current Curve} toggle button. 
+
+The basic steps to build a curve are to first create a set of points and then choose a 
+subset of these points to interpolate a sub-curve. Sub-curves are {\tt assembled} into
+a single curve.
+\begin{description}
+  \item[Build Points] To build points select the \cmd{ Build Point} mouse mode toggle. Points may now
+    be chosen interactively by clicking with the mouse. Alternatively, the coordinates of a 
+    point can be typed into the text box, \cmd{New point (x,y)}, on the dialog window.
+    It may be necessary to first set the {\em plot bounds} (see below) so that the plotting region is the correct size.
+  \item[Interpolate Curve] To create a curve from points select the \cmd{Interpolate Curve} mouse
+         mode toggle. Points can be selected with the mouse. Choose {\tt done} (from the lower
+         left corner of the main window) when a sub-curve is completed.
+  \item[Assemble] Choose {\tt Assemble} to join the set of sub-curves (where possible) into a
+         single curve. Assemble should be chosen even if there is only one sub-curve.
+\end{description}
+
+Additional mouse modes are available including
+\begin{description}
+  \item[Query Point] With this mode on, selecting a point will cause the point label and coordinates
+     to be printed.
+  \item[Circular Arc] build a circular arc from two points and a radius of curvature 
+      (choose a negative value for the radius of curvature 
+      to form the other possible arc that passes through the two points.)
+  \item[Hide SubCurve] hide a sub-curve (the hidden sub-curve will not be considered during the
+      assemble step).
+  \item[Move Curve Endpoint] move the endpoint of one sub-curve to match the endpoint of another
+         curve. First select a curve endpoint and then select a point near the end of another curve.
+  \item[Join W/Line Segment]  Join the endpoints of two sub-curves with a line segment by selecting
+           two points near the ends of the cub-curves.
+  \item[Snap to Intersection] If two sub-curves intersect, \cmd{Snap to Intersection} will 
+             join the sub-curves at the point of intersection and discard the extra segments. Select each sub-curve
+             by clicking a point that lies on the portion of the sub-curve that should be retained.
+  \item[Split] split an existing curve into two pieces by selecting a point on the curve.
+  \item[Edit SubCurve] Enter the Nurbs editor to edit the properties of a sub-curve.
+\end{description}
+
+Here are descriptions of the buttons that appear in the {\em Nurbs Curve Builder} 
+dialog,
+\begin{description}
+  \item[Clear Last Point] Remove the last point that was selected (when selecting points for \cmd{Interpolate Curve},
+      for example.)
+  \item[Clear All Points] Remove all selected points (when selecting points for \cmd{Interpolate Curve},
+      for example).
+  \item[Assemble] Join sub-curves (where possible) into an assembled curve (the current curve).
+  \item[Show All] Show all sub-curves and the assembled curve.
+  \item[Show Used] Only show sub-curves that are used in the assembled curve.
+  \item[Hide all] Hide all sub-curves.
+  \item[Hide Unused] Hide unused sub-curves.
+  \item[Show Last Hidden] Show the last hidden sub-curve.
+\end{description}
+
+The toggle buttons are
+\begin{description}
+  \item[Current Curve] plot the assembled curve if it has been created.
+  \item[SubCurves] plot the sub-curves.
+\end{description}
+
+The text strings that appear in the {\em Nurbs Curve Builder} are
+\begin{description}
+  \item[New point (x,y)] build a new point by typing the $x$ and $y$ coordinates.
+  \item[plot bounds] Enter new plot bounds as $x_{\rm min}$, $x_{\rm max}$, $y_{\rm min}$, $y_{\rm max}$.
+     Points can only be built interactively if the new coordinates lie inside the current plot bounds.
+     Thus it may be necessary to increase the plot bounds before building new points.
+\end{description}
+
+% 
+% Geometry used as the bounding curves of mesh regions are created using
+% the interface shown in Figure~\ref{fig:geom}.  Points can be placed
+% either by interactively clicking with the mouse (after selecting the
+% ``Build Point'' mouse mode toggle) or by inputting the coordinates in
+% the text box at the bottom.  Once at least two points are placed, a
+% curve can be created by changing the mouse mode to ``Interpolate
+% Curve'' and then picking a sequence of points with the mouse.  After
+% the last point has been chosen, clicking ``Done'' at the bottom of the
+% graphics window creates a spline curve that interpolates the selected
+% points.  At this point, the curve could be edited using mouse modes
+% such as ``Split Curve''; new curves can be created; or the user can
+% exit the geometry creation interface.

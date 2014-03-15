@@ -1,0 +1,22 @@
+=== 2012/10/28 -- look to add to cns/runs
+
+#  ogen -noplot dropsGrid -interp=e -order=2 -factor=4 -ml=2 -saveWeights=0
+#  ogen -noplot dropsGrid -interp=e -order=2 -factor=8 -ml=3 -saveWeights=0
+
+nohup $ins/bin/cgins -noplot drops -g=dropsGride4.order2.hdf -nu=.01 -tp=.1 -tf=10. -inflowVelocity=.75 -forceLimit=40. -solver=mg -psolver=mg -show=drops4.show -go=go >! drops4.out 
+
+=== 2011/12/15
+
+OK 
+cgins -noplot drops -g=dropsi4.order2 -nu=.01 -tp=.1 -tf=10. -ts=afs -mass=2. -inflowVelocity=2. -cfl=2. -forceLimit=200. -solver=mg -psolver=mg -show=dropsAFS.show -go=go >! dropsAFS.out
+
+AFS TROUBLE: low mass
+cgins drops -g=dropsi4.order2 -nu=.01 -tp=.02 -tf=10. -ts=afs -inflowVelocity=.65 -forceLimit=200. -solver=mg -psolver=mg -go=halt
+
+
+
+
+==== 2011/12/06 - dropping cylinders as a possible example for imog
+
+
+cgins drops -g=dropsi2.order2 -nu=.01 -tp=.05 -tf=10. -inflowVelocity=.65 -forceLimit=40. -go=halt

@@ -1,0 +1,990 @@
+%-----------------------------------------------------------------------
+% Oges: An Overlapping Grid Equation Solver
+%
+%  This version has a long page length for printing out
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+\hyphenation{con-ju-gate-Gra-dient-Pre-condition-er}
+
+%\documentclass{article}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+% \input{psfig}  % PSFIG macros
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% \usepackage{fancybox}
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+
+\begin{document}
+
+
+% -----definitions-----
+\input wdhDefinitions
+
+
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+
+
+%---------- Title Page for a Research Report----------------------------
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+Oges User Guide, Version 2.0, \\
+A Solver for Steady State Boundary Value Problems \\
+on Overlapping Grids \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw, \\
+Petri Fast \\
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture
+\vspace{\baselineskip}
+\today
+\vspace{\baselineskip}
+% LA-UR-96-3468
+UCRL-MA-132234
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:} 
+We describe the Overture class Oges, an
+``Overlapping Grid Equation Solver'', that can be used for the
+solution of sparse matrix equations on overlapping grids such that
+those created by the grid generator Ogen.  Oges acts as a front end to
+a variety of sparse matrix solvers including direct sparse solvers
+such as those from Yale or Harwell or iterative solvers (from SLAP and
+PETSc) that use algorithms such as conjugate gradient or GMRES.
+
+To use Oges one must first generate a a system of equations (usually
+defining a PDE boundary value problem) using the `coefficient matrix'
+grid functions and the Overture operator classes. Oges will take a
+coefficient matrix generated in this way and then call the appropriate
+sparse matrix solver.
+Oges can be easily extended to use a new Sparse matrix package.
+
+This document is available from the {\bf Overture} home page,
+{\tt http://\-www.llnl.gov/\-casc/\-Overture}.
+
+\end{flushleft}
+
+\tableofcontents
+
+\vfill\eject
+
+%---------- End of title Page for a Research Report
+
+\section{Introduction}
+
+\begin{figure} 
+  \begin{center}
+  \epsfig{file=\figures/toges.ps,width=.75\linewidth}
+  \caption{The `toges' program can be used to test Oges}
+  \end{center} 
+\end{figure}
+
+We describe the Overture class Oges, an
+``Overlapping Grid Equation Solver'', that can be used for the
+solution of sparse matrix equations on overlapping grids such that
+those created by the grid generator Ogen.  Oges acts as a front end to
+a variety of sparse matrix solvers. Currently we have support for
+\begin{description}
+  \item[\Index{Yale}] : direct sparse matrix package (no pivoting).
+  \item[\Index{Harwell}] : direct sparse matrix package with partial pivoting.
+  \item[\Index{SLAP}] : The Sparse Linear Algebra Package
+from Greenbaum and Seager, an  iterative solver package, includes conjugate gradient and gmres solvers.
+  \item[\Index{PETSc}] : The Portable Extensible Toolkit for Scientific computations\cite{petsc-manual} from
+     iterative solver package, includes conjugate gradient and gmres solvers
+     in addition to many others. Thanks to Petri Fast for writing the interface (PETScEquationSolver) 
+     to the serial version of PETSc. There is also a newer interface (PETScSolver) for use with PETSc in parallel. 
+\end{description}
+By changing one or two parameters
+the user may easily try a different solver. For example,
+although Yale is in general faster than Harwell, the latter,
+ which does pivoting, may be better for some problems.
+The SLAP and PETSc iterative solvers may be especially useful for very large
+problems when storage is at a premium.
+
+Oges can be easily extended by you to use a new Sparse matrix package. 
+
+To use Oges one must first generate a a system of equations (usually
+defining a PDE boundary value problem) using the `coefficient matrix'
+grid functions and the Overture operator classes \cite{GF}\cite{OPERATORS}\cite{brown:1996}. 
+A `coefficient matrix'\index{grid function!coefficient matrix}
+is stored in a {\tt realCompositeGridFunction}. Typically the creation of
+a PDE boundary value problem will look something like
+{\footnotesize
+\begin{verbatim}
+   CompositeGrid cg(...);
+   realCompositeGridFunction coeff(...);
+   CompositeGridOperators op(cg); 
+   ...
+
+   coeff=op.laplacianCoefficients();         // form the laplace operator 
+
+   coeff.applyBoundaryConditionCoefficients(0,0,dirichlet,  allBoundaries);
+   coeff.applyBoundaryConditionCoefficients(0,0,extrapolate,allBoundaries);
+   coeff.finishBoundaryConditions();
+\end{verbatim}
+}
+Oges will take a
+coefficient matrix generated in this way and then call the appropriate
+sparse matrix solver. Usually this will involve converting the `coefficient matrix'
+representation to some other representation such as a compressed-row storage format (this is
+done automatically by Oges).
+
+Given a coefficient matrix, Oges can be used as follows
+{\footnotesize
+\begin{verbatim}
+   Oges solver(cg);                       // build a solver
+   // use the yale solver:
+   solver.set(OgesParameters::THEsolverType,OgesParameters::yale);   
+   // ...or.. use PETSc
+   solver.set(OgesParameters::THEsolverType,OgesParameters::PETSc);   
+
+   solver.setCoefficientArray( coeff );   // supply coefficients
+   realCompositeGridFunction u(cg),f(cg); // build solution and right-hand-side
+
+   ... assign f ...
+
+   u=0.;                                  // initial guess for iterative solvers
+   solver.solve(u,f);                     // solve the equations
+   ...
+\end{verbatim}
+}
+Generally one must also set other parameters such as the convergence tolerance, preconditioner, etc, when using
+iterative solvers such as SLAP or PETSC.
+
+The global variable {\tt Oges::debug} is a bit flag that generates various diagnostic output
+from Oges. Setting {\tt Oges::debug=63} (63=1+2+4+8+16+32) will generate lots of debugging output. Setting
+{\tt Oges::debug=3} will generate only some debugging output. 
+
+
+\section{Example Codes}
+
+The file {\tt Overture/tests/toges.C} is a test program for {\tt Oges}.
+See the files {\tt Overture/tests/tcm.C}, {\tt tcm2.C}, {\tt tcm3.C}, {\tt tcm4.C} for
+examples of working codes. See also the examples presented in the Overture primer\cite{PRIMER}.
+The flow solver {\tt OverBlown} \cite{OverBlownUserGuide} also uses Oges. One could look at the source
+files for OverBlown for further examples.
+
+
+\section{Initial guesses for iterative solvers}
+
+When using an iterative solver, the grid function holding the solution should
+contain an initial guess. Choose zero if you don't have any idea. If you do
+provide and initial guess then all points used in the discretization should be
+given initial values including interpolation points and ghost points.
+
+
+% Oges generates a matrix (stored in one of a number of possible sparse
+% matrix formats) corresponding to the discretization of the PDE
+% boundary value problem (or any set of equations defined on an
+% overlapping grid)
+% $$
+%      A \Uv = \Fv
+% $$
+% 
+% derivatives to 2nd or 4th order accuracy and how
+% to discretize problems in conservation form. 
+
+
+
+% The basic procedure for solving a problem with Oges is illustrated
+% in the following code ({\ff \oges/sample.C}). This example will become more
+% clear after you have read the rest of this manual.
+% {\footnotesize
+% \listinginput[1]{1}{\oges/sample.C}
+% }
+% 
+% \begin{figure} 
+%   \begin{center}
+%   \includegraphics{\figures /Oges.idraw.ps}
+%   \caption{Class diagram for Oges}
+%   \end{center} \label{fig:OgesClassDiagram}
+% \end{figure}
+
+\vfill\eject
+\input ogesResults
+
+
+\vfill\eject
+\section{Oges Parameters} \label{sec:OgesParameters}\index{OgesParameters}
+
+Solver dependent parameters are found in the {\tt OgesParameters} class.
+It is a container class for such parameters are the type of solver, type of preconditioner,
+convergence tolerance etc.
+Oges contains an {\tt OgesParameters} object to hold these parameters.
+Parameters can be set by directly using the Oges {\tt set} functions. This will indirectly
+set the values in an {\tt OgesParameters} object contained in an Oges object.
+Alternatively  one can first create an {\tt OgesParameters} object, set parameters in that
+object and then provide the {\tt OgesParameters} object to Oges using the
+{\tt setParameters} function (which will copy you values
+into it's local version). Parameters can also be set interactively by calling the Oges
+{\tt update} function or the {\tt OgesParameters} update function.
+
+
+\input OgesParametersInclude.tex
+
+\section{Convergence criteria}
+
+There are many ways to define \Index{convergence criteria} for iterative methods.
+The trick for Oges is to have a reasonable uniform way of defining a 
+convergence tolerance for the different methods.
+
+
+
+The standard PETSc convergence test is
+\[
+    \| r_k \|_2 < \max ( rtol \star \| r_0 \|_2 <, atol ) \qquad \mbox{PETSc}
+\]
+where 
+\[
+   \| x \|_2 = \sqrt{ \sum_i x_i^2 }
+\]
+
+The SLAP convergence test is somewhat different:
+{\footnotesize
+\begin{verbatim}
+C   ******************* SLAP ******************
+C *Description:
+C       SGMRES solves a linear system A*X = B rewritten in the form:
+C
+C        (SB*A*(M-inverse)*(SX-inverse))*(SX*M*X) = SB*B,
+C
+C       with right preconditioning, or
+C
+C        (SB*(M-inverse)*A*(SX-inverse))*(SX*X) = SB*(M-inverse)*B,
+C
+C       with left preconditioning, where A is an N-by-N real matrix,
+C       X  and  B are N-vectors,   SB and SX   are  diagonal scaling
+C       matrices,   and M is  a preconditioning    matrix.   It uses
+C       preconditioned  Krylov   subpace  methods  based     on  the
+C       generalized minimum residual  method (GMRES).   This routine
+C       optionally performs  either  the  full     orthogonalization
+C       version of the  GMRES  algorithm or an incomplete variant of
+C       it.  Both versions use restarting of the linear iteration by
+C       default, although the user can disable this feature.
+C
+C       The GMRES  algorithm generates a sequence  of approximations
+C       X(L) to the  true solution of the above  linear system.  The
+C       convergence criteria for stopping the  iteration is based on
+C       the size  of the  scaled norm of  the residual  R(L)  =  B -
+C       A*X(L).  The actual stopping test is either:
+C
+C               norm(SB*(B-A*X(L))) .le. TOL*norm(SB*B),
+C
+C       for right preconditioning, or
+C
+C               norm(SB*(M-inverse)*(B-A*X(L))) .le.
+C                       TOL*norm(SB*(M-inverse)*B),
+C
+C       for left preconditioning, where norm() denotes the euclidean
+C       norm, and TOL is  a positive scalar less  than one  input by
+C       the user.  If TOL equals zero  when SGMRES is called, then a
+C       default  value  of 500*(the   smallest  positive  magnitude,
+C       machine epsilon) is used.  If the  scaling arrays SB  and SX
+C       are used, then  ideally they  should be chosen  so  that the
+C       vectors SX*X(or SX*M*X) and  SB*B have all their  components
+C       approximately equal  to  one in  magnitude.  If one wants to
+C       use the same scaling in X  and B, then  SB and SX can be the
+C       same array in the calling program.
+C
+\end{verbatim}
+}
+
+
+% \input OgesParametersInclude.tex
+\vfill\eject
+\section{Linking to PETSc}\index{PETSc!linking to}
+
+An example of linking to the PETSc libraries can be found in the {\tt Overture/tests}
+directory. Type 'make tcm3p' to build the {\tt tcm3.C} test code with PETSc. Type
+'tcm3p cic.hdf -solver=petsc' to run the example on the grid {\tt cic.hdf} with PETSc.
+This example assumes that the {\tt PETSC\_DIR} {\tt PETSC\_ARCH} and {\tt PETSC\_LIB} environmental
+variables have been defined per instructions with the PETSc installation.
+
+Here is an explanation of the steps required to build an Overture application with PETSc
+(as implemented in the above example).
+By default, the {\tt Overture} library is unaware whether  PETSc solvers are available. 
+To use PETSc you should
+\begin{enumerate}
+  \item Build or locate a version of PETSc. I have only built and linked Overture to
+the non-parallel version of PETSc. Link to the PETSc libraries (and {\tt lapack}). I link to
+\begin{verbatim}
+petscLib = -L$(PETSC_LIB) -lpetscsles -lpetscdm -lpetscmat -lpetscvec -lpetsc  \
+           -L/usr/local/lib -llapack  -L$(PETSC_LIB) -lmpiuni 
+\end{verbatim}
+where {\tt \$(PETSC\_LIB)} is the location of the PETSc libraries.
+  \item Copy the files {\tt Oges/buildEquationSolvers.C} and {\tt Oges/PETScEquationSolver.C}
+    to your application directory
+    and compile this file with the flags {\tt -DOVERTURE\_USE\_PETSC} (or edit the file and
+   define this variable inside with {\tt \#define OVERTURE\_USE\_PETSC}).
+  \item Link these new files, {\tt buildEquationSolvers.o} and {\tt PETScEquationSolver.o}
+      with your application (ahead of the
+     Overture library so that you get the new version) along with the PETSc libraries.
+\end{enumerate}
+
+\section{Adding a new sparse matrix solver to Oges}\index{sparse matrix solver}
+
+If you want to add a new sparse matrix solver to Oges you should look at one of the
+existing solvers, {\tt YaleEquationSolver}, {\tt HarwellEquationSolver}, {\tt SlapEquationSolver}
+or {\tt PETScEquationSolver}. These classes all derive from the base class {\tt EquationSolver}.
+{\tt Oges} contains a list of pointers to these {\tt EquationSolver}'s. You will be able to add
+a new solver to this list. It will be known as {\tt OgesParameters::userSolver1}, 
+or {\tt OgesParameters::userSolver2} etc., depending on how many new solvers have been added.
+
+
+You should
+\begin{enumerate}
+  \item Derive a new class from {\tt EquationSolver}, copying one of the existing solvers (which ever
+is closest) to your new solver. Hopefully you can reuse parameters that already exist in {\tt OgesParameters}.
+  \item Change the {\tt Oges/buildEquationSolvers.C} file to `new' the solver to have defined and add it
+    to the list of {\tt EquationSolver}'s. Change the other functions in {\tt Oges/buildEquationSolvers.C}
+    as appropriate.
+  \item Compile your files and the new version of {\tt buildEquationSolvers.C} and link to these
+    ahead of the Overture library when you build an executable. 
+\end{enumerate}
+
+\section{Some More Details about Oges}
+
+In general, Oges expects that the user wants to solve one or more
+equations at each valid grid point on an overlapping grid.  The number
+of equations that are given at each grid point is called the {\ff
+numberOfComponents}.  In the simple case only one equation, such as a
+discrete Laplace operator, is specified at each grid point, {\ff
+numberOfComponents=1}.  In a more complicated case there will be a
+system of equations at each grid point. For example, one may want to
+solve the biharmonic equation as a system of two Possion equations in
+which case {\ff numberOfComponents=2}.
+
+Oges will create a large sparse matrix where each unknown 
+for the sparse matrix will correspond to a particular
+component {\ff n},
+% ${\ff 0\le n < numberOfComponents}$,
+at a particular
+grid point ({\ff i1,i2,i3}) on a particular component
+grid, {\ff grid}.
+Thus there is a mapping from 
+${\ff (n,i1,i2,i3,grid)}$ to a unique equation number.
+The member functions 
+$$
+\begin{array}{c}
+{\ff int~equationNo(int~n, int~i1, int~i2, int~i3, int~grid)}  \\
+{\ff intArray~equationNo(int~n, Index~\&~I1, Index~\&~I2, Index~\&~I3, int~grid)} 
+\end{array}
+$$
+give the equation number(s) for each grid point.
+%  Here $n=0,\ldots,{\ff numberOfComponents-1}$ specifies
+% the component. For example, if we solve the biharmonic eqaution as
+% a system of two Possion equations then {\ff numberOfComponents=2}.
+For now the function {\ff equationNo} is defined to use all the grid points
+in a given order. In the future, a user should be able to define this
+function in a different way. There is also a member function
+$$
+{\ff void~equationToIndex( int~eqnNo, int~n, int~i1, int~i2, int~i3, int~grid)}
+$$ 
+that maps an equation number, {\ff eqnNo},  back to a
+grid point and component, ${\ff (n,i1,i2,i3,grid)}$ (i.e. it is the
+inverse of {\ff equationNo}).
+
+
+
+% In general a user defines a problem by giving the discrete stencil for
+% each grid point, such as the discrete Laplacian or discrete
+% approximations to boundary conditions.  Usually, however, Oges will
+% automatically supply the stencils for interpolation, periodicity and
+% extrapolation equations.  Thus the user defined discrete stencils can
+% ignore interpolation points, extrapolation points and periodic
+% boundary conditions (i.e. the user defined stencil does not have to
+% correct for periodicity).  The user defined coefficients are supplied
+% to Oges in one of two ways.  In simple cases the user can supply just
+% the coefficient array using {\ff setCoefficientArray( coeff )}. In
+% this case the coefficients are assumed to be numbered in a default
+% manner (see section \ref{USC} for more details). A second way that a
+% user can supply coefficients is through the virtual member function
+% {\ff assignDiscreteCoefficients}.  (Thus the user would have to derive
+% a new class from Oges.)  The stencil is defined by a set of
+% coefficients and a set of equation numbers on a particular component
+% grid
+% $$
+% \begin{array}{lcl}
+%   {\ff coeff(i,i1,i2,i3)} &=& \mbox{coefficients, $i=0,1,2,...$} \\
+%   {\ff equationNumber(i,i1,i2,i3)} &=& \mbox{equation number $i=0,1,2,...$} \\
+% \end{array}
+% $$
+% For example, in two dimensions, one standard discretization uses a $3\times 3$
+% stencil and thus coefficients will be supplied for $i=0,1,2,...,8$.
+% The {\ff equationNumber} array associates an equation number with 
+% each coefficient. The function {\ff equationNo} can be used to fill
+% in the {\ff equationNumber} array (see the examples).
+
+Sometimes extra unknowns and extra equations are required in order to 
+specify a problem.
+For example, an eignvalue problem has an extra unknown, the eigenvalue.
+An extra unknown may be added to the singular Neumann problem in order
+to create a nonsingular system.
+Extra unknowns are associated with grid points that are not used.
+The number of extra equations is specified with {\ff setNumberOfExtraEquations}.
+Oges will find unused points that can be used for extra equations; the
+equation numbers for these points will be saved in {\ff extraEquationNumber(i)}.
+
+
+% The {\ff classify} array is an integer array that indicates 
+% the classification of each grid point:
+% $$
+% {\ff classify[grid](i1,i2,i3,n)} = \left\{
+%     \begin{array}{ll}
+%           >0 & 
+%      =\left\{ \begin{array}{ll} \mbox{interior} & \mbox{point is in the interior}\\
+%                                 \mbox{boundary} & \mbox{point is on the boundary}\\
+%                                 \mbox{ghost1} & \mbox{point is on ghost line 1} \\
+%                                 \mbox{ghost2} & \mbox{point is on ghost line 2} \\
+%                                 \mbox{ghost3} & \mbox{point is on ghost line 3} \\
+%                                 10+i & \mbox{extra equation $i$} 
+%                         \end{array} \right. \\
+%           <0 &
+%                =\left\{ \begin{array}{ll} \mbox{interpolation} \\
+%                                           \mbox{extrapolation} \\
+%                                           \mbox{periodic}      \\
+%                         \end{array} \right. \\
+%            0 & \mbox{unused point}
+%     \end{array} \right. 
+% $$
+% The names {\ff interior}, {\ff boundary}, {\ff ghost1} etc. are 
+% defined by the enumerator {\ff classifyTypes} declared in the 
+% {\ff OgesOG} class.
+% The user is responsible to supply discrete stencils for all points
+% with {\ff classify[grid](i1,i2,i3,n)>0}.
+% Oges will supply the stencil
+% for all points with ${\ff classify[grid](i1,i2,i3,n)\le 0}$. 
+% Values in the {\ff classify} array are determined by various parameters
+% such as the {\ff numberOfGhostLines}, {\ff ghostLineOptions},
+% the {\ff mask} array and the boundary conditions.
+% For example, in some discretizations both the equation and the 
+% boundary condition are applied on the boundary. The boundary equation
+% may then be associated with the first ghost line in which case
+% ({\ff classify[grid]>0}) on the first ghostline. In other cases
+% or the values on the ghost points may just 
+% be extrapolated ({\ff classify[grid]<0}) (see {\ff setGhostLineOption}).
+% In general you may (if you are careful)
+% change the entries in the {\ff classify} array from 
+% their default values and this will change how the sparse matrix is generated.
+% For example, you may want to change certain extrapolation points to use
+% different equations. (To do this you must first call the {\ff initialize}
+% function which will create the {\ff classify array}, and then you can change the
+% values.)
+% 
+% The classify array should be used when assigning the right-hand-side.
+% If {\ff realCompositeGridFunction f} is the name of the user's right-hand-side
+% then the user is responsible to assign values to {\ff f} at {\bf all} points.
+% At points where ${\ff classify[grid](i1,i2,i3,n) > 0 }$ 
+% the user will give
+% the appropriate values corresponding to the data in his equations.
+% At all other points ${\ff classify[grid](i1,i2,i3,n) \le 0 }$ the user 
+% should set {\ff f=0} (unless for some strange reason the user wants 
+% a nonzero right-hand-side for an interpolation, extrapolation or
+% periodicity equation!).
+
+
+
+%---------------------------------------------------------------------------------------------
+\section{Oges Function Descriptions}
+
+\input OgesInclude.tex
+
+
+% \section{Examples of using Oges}
+
+
+% \subsection{Example: Solving a Poisson equation}
+% Here is an example of using Oges to solve Laplace's equation (file {\ff toges1.C}).
+% 
+% {\footnotesize
+% \listinginput[1]{1}{\oges/toges1.C}
+% }
+% 
+% \vfill\eject
+% \subsection{Example: Assigning the right-hand-side}
+% Here is an example of how to assign the right-hand-side using the
+% classify array (file {\ff assignRHS.C})
+% 
+% {\footnotesize
+% \listinginput[1]{1}{\oges/assignRHS.C}
+% }
+% 
+% \vfill\eject
+% \subsection{Example: User Supplied Coefficients} \label{USC}
+% 
+% If you would like to discretize some equations that are different
+% than the predefined ones you can supply a matrix of coefficients
+% for Oges to use.
+% Some important points to remember
+% when supplying our own coefficients
+% \begin{itemize}
+% \item The coefficients appear as the first index in the array.
+% \item The stencil size is by default $3\times3$ in 2D or
+% $3\times3\times3$ in 3D. The stencil size can be changed
+% by changing the {\ff orderOfAccuracy}. The stencil width
+% is one more than the order of accuracy. 
+% \item NOTE that Oges will store the interpolation coefficients 
+% in YOUR coefficient array -- thus you must leave space for
+% the interpolation equations. This usually means that you must
+% leave space for ONE EXTRA coefficient. Also see remarks about the
+% compatibility constraint below.
+% \item By default the values on the ghost lines are extrapolated.
+% If you want to supply equations for a ghost line you should
+% use {\ff setGhostlineOption}.
+% \item Oges will automatically supply the interpolation 
+% equations and periodic boundary conditions. You do not need
+% to worry about periodic boundary conditions when forming
+% your coefficients.
+% \item If your problem is singular such that the constant vector
+% is the right null vector then you can de-singularize you system
+% with {\ff setCompatibilityConstraint(TRUE)}. In this case you
+% must allow space for ONE ADDITIONAL coefficient in your matrix.
+% \end{itemize}
+% 
+% 
+% \subsubsection{User supplied coefficients -- vertex-centred grid}
+% Here is an example of how to supply your own discrete equations
+% for a vertex-centered grid
+% (file {\ff togesUSC.C}) 
+% 
+% {\footnotesize
+% \listinginput[1]{1}{\oges/togesUSC.C}
+% }
+% 
+% \subsubsection{User supplied coefficients -- cell-centred grid}
+% Here is an example of how to supply your own discrete equations
+% for a cell-centered grid
+% (file {\ff togesUSCC.C}) 
+% 
+% {\footnotesize
+% \listinginput[1]{1}{\oges/togesUSCC.C}
+% }
+
+
+% \subsection{Example: Refactoring the matrix when the coefficients change}
+% 
+% In some applications the coefficients of the matrix will change over
+% time. One should use the option {\ff setRefactor(TRUE)} to tell Oges
+% that the coefficients have changed. For the Yale solver this will mean
+% that the matrix is refactored. For the GMRES solver this will mean
+% that the preconditionner is recomputed if necessary(?). In the case of
+% the Yale solver one could also {\ff setReorder(TRUE)} to tell the 
+% solver to reorder the rows to minimize fillin. The re-order option
+% is NOT recommended if the matrix system has not changed it's
+% STRUCTURE dramatically since re-ordering can take quite a long time. 
+% The orginal re-ordering is probably good enough.
+% 
+% 
+% In the example that follows (file {\ff togesRF.C}) one should note
+% that a copy of the original coefficients has been saved. This is necessary
+% since Oges changes the coefficients (by adding interpolation, extrapolation
+% and periodicity equations) -- ***I should fix this so it is not necessary
+% to save the old coefficients ****
+% {\footnotesize
+% \listinginput[1]{1}{\oges/togesRF.C}
+% }
+
+
+% \vfill\eject
+% \section{GhostLineOptions}  \label{secGhostLineOptions}
+% 
+% Here we illustrate how the {\ff ghostLineOptions} 
+% affect the {\ff classify} array. We also show that
+% ghostline values next to interpolation points
+% are always extrapolated.
+% 
+% 
+% % \newcommand{\interiorMark}{\circle{2}}
+% % \newcommand{\interiorMark}{\oval(3,3)}
+% \newcommand{\interiorMark}{{\makebox(0,0){$\otimes$}}}
+% 
+% \def\Dmark {\interiorMark}
+% \def\Bmark {\interiorMark}
+% % \def\Bmark {\interiorMark}
+% \def\Emark {\makebox(0,0){\framebox(4,4){}}}
+% \def\Imark {\makebox(0,0){$\Delta$}}
+% \begin{figure}[hbt]
+% \begin{center}
+%  \setlength{\unitlength}{2pt}
+%  \begin{picture}(180,160)(0,-70)
+% 
+% %.............................................................
+%  \thicklines
+%  \put( 20, 20){\line(1,0){60}}   % horizontal lines
+%  \put( 20, 80){\line(1,0){60}}
+% 
+%  \put( 20, 20){\line(0,1){60}}   % vertical lines
+%  \put( 80, 20){\line(0,1){60}}
+%  \thinlines
+% 
+%  \put(  0,  0){\dashbox{1.}(10,80){}} % dashed boxes
+%  \put( 10,  0){\dashbox{1.}(10,80){}}
+%  \put( 20,  0){\dashbox{1.}(10,80){}}
+% %  \put( 30,  0){\dashbox{1.}(10,80){}}
+%  \put( 40,  0){\dashbox{1.}(10,80){}}
+%  \put(  0,  0){\dashbox{1.}(80,10){}}
+%  \put(  0, 10){\dashbox{1.}(80,10){}}
+%  \put(  0, 20){\dashbox{1.}(80,10){}}
+% %  \put(  0, 30){\dashbox{1.}(80,10){}}
+%  \put(  0, 40){\dashbox{1.}(80,10){}}
+% 
+% 
+%  \put(  0,  0){\Emark}
+%  \put( 10,  0){\Emark}
+%  \put( 20,  0){\Emark}
+%  \put( 30,  0){\Emark}
+%  \put( 40,  0){\Emark}
+%  \put( 50,  0){\Emark}
+%  \put( 60,  0){\Emark}
+% 
+%  \put(  0, 10){\Emark}
+%  \put( 10, 10){\Emark}
+%  \put( 20, 10){\Bmark}
+%  \put( 30, 10){\Bmark}
+%  \put( 40, 10){\Bmark}
+%  \put( 50, 10){\Emark}
+%  \put( 60, 10){\Emark}
+% 
+%  \put(  0, 20){\Emark}
+%  \put( 10, 20){\Bmark}
+%  \put( 20, 20){\Dmark}
+%  \put( 30, 20){\Dmark}
+%  \put( 40, 20){\Dmark}
+%  \put( 50, 20){\Imark}
+%  \put( 60, 20){\Imark}
+% 
+%  \put(  0, 30){\Emark}
+%  \put( 10, 30){\Bmark}
+%  \put( 20, 30){\Dmark}
+%  \put( 30, 30){\Dmark}
+%  \put( 40, 30){\Dmark}
+%  \put( 50, 30){\Imark}
+%  \put( 60, 30){\Imark}
+% 
+%  \put(  0, 40){\Emark}
+%  \put( 10, 40){\Bmark}
+%  \put( 20, 40){\Dmark}
+%  \put( 30, 40){\Dmark}
+%  \put( 40, 40){\Dmark}
+%  \put( 50, 40){\Imark}
+%  \put( 60, 40){\Imark}
+% %.............................................................
+%  \thicklines
+%  \put(120, 20){\line(1,0){60}}   % horizontal lines
+%  \put(120, 80){\line(1,0){60}}
+% 
+%  \put(120, 20){\line(0,1){60}}   % vertical lines
+%  \put(180, 20){\line(0,1){60}}
+%  \thinlines
+% 
+%  \put(100,  0){\dashbox{1.}(10,80){}} % dashed boxes
+%  \put(110,  0){\dashbox{1.}(10,80){}}
+%  \put(120,  0){\dashbox{1.}(10,80){}}
+% %  \put(130,  0){\dashbox{1.}(10,80){}}
+%  \put(140,  0){\dashbox{1.}(10,80){}}
+%  \put(100,  0){\dashbox{1.}(80,10){}}
+%  \put(100, 10){\dashbox{1.}(80,10){}}
+%  \put(100, 20){\dashbox{1.}(80,10){}}
+% %  \put(100, 30){\dashbox{1.}(80,10){}}
+%  \put(100, 40){\dashbox{1.}(80,10){}}
+% 
+% 
+%  \put(100,  0){\Emark}
+%  \put(110,  0){\Emark}
+%  \put(120,  0){\Emark}
+%  \put(130,  0){\Emark}
+%  \put(140,  0){\Emark}
+%  \put(150,  0){\Emark}
+%  \put(160,  0){\Emark}
+% 
+%  \put(100, 10){\Emark}
+%  \put(110, 10){\Emark}
+%  \put(120, 10){\Emark}
+%  \put(130, 10){\Dmark}
+%  \put(140, 10){\Dmark}
+%  \put(150, 10){\Emark}
+%  \put(160, 10){\Emark}
+% 
+%  \put(100, 20){\Emark}
+%  \put(110, 20){\Emark}
+%  \put(120, 20){\Bmark}
+%  \put(130, 20){\Bmark}
+%  \put(140, 20){\Bmark}
+%  \put(150, 20){\Imark}
+%  \put(160, 20){\Imark}
+% 
+%  \put(100, 30){\Emark}
+%  \put(110, 30){\Dmark}
+%  \put(120, 30){\Bmark}
+%  \put(130, 30){\Dmark}
+%  \put(140, 30){\Dmark}
+%  \put(150, 30){\Imark}
+%  \put(160, 30){\Imark}
+% 
+%  \put(100, 40){\Emark}
+%  \put(110, 40){\Dmark}
+%  \put(120, 40){\Bmark}
+%  \put(130, 40){\Dmark}
+%  \put(140, 40){\Dmark}
+%  \put(150, 40){\Imark}
+%  \put(160, 40){\Imark}
+% 
+% %.............................................................
+%   \put( 40,-10){\makebox(0,0){useGhostLineExceptCorner}}
+%   \put(140,-10){\makebox(0,0){useGhostLineExceptCornerAndNeighbours}}
+% 
+%  \put(0,-25){
+% 
+%   \put( 80,  0){\makebox(-4,0)[r]{\Dmark}}
+%   \put( 80,  0){\makebox(0,0)[l]{ : Discretized Equation}}
+%   \put( 80,-10){\makebox(-4,0)[r]{\Emark}}
+%   \put( 80,-10){\makebox(0,0)[l]{ : Extrapolation}}
+%   \put( 80,-20){\makebox(-4,0)[r]{\Imark}}
+%   \put( 80,-20){\makebox(0,0)[l]{ : Interpolation}}
+%     } % end put
+% 
+%  \end{picture}
+% \caption{Illustrating two ghostLineOption's}
+%       \label{DBC4}
+% \end{center}\end{figure}
+% 
+% 
+% 
+% \section{Examples of Discretizing Equations}
+% 
+% 
+% Here is some examples taken from {\ff discreteVertex.C} showing how
+% to define the discretization for Oges. 
+% 
+% The first example shows how the Laplace
+% Operator with Dirichlet boundary conditions is defined for a
+% vertex centred grid (non-conservative discretization).  In this example
+% we apply the Dirchlet boundary condition on the boundary (the value
+% on the first ghostline will be extrapolated).
+% {\footnotesize\begin{verbatim}
+%       
+%       int m1,m2,m3;
+%       int n=0;  // component number
+%       Index I1,I2,I3,R[3];
+%       getIndex(cg[grid].indexRange,I1,I2,I3);  // get Index's based on indexRange
+% 
+%       // Assign equation Numbers - default values:
+%       ForStencil(m1,m2,m3)  // loop over the stencil: m1=-1,0,1 m2=-1,0,1 m3=0
+%         EQUATIONNUMBER(m1,m2,m3,n,I1,I2,I3)=equationNo(n,I1+m1,I2+m2,I3+m3,grid);
+% 
+%       ForStencil(m1,m2,m3)
+%         COEFF(m1,m2,m3,n,I1,I2,I3)=UXX2(I1,I2,I3,m1,m2,m3)
+%                                   +UYY2(I1,I2,I3,m1,m2,m3);
+%       ForBoundary(side,axis)  // loop over each boundary
+%       {
+%         if( cg[grid].boundaryConditions(side,axis) > 0 )
+%         {
+%           getBoundaryIndex( side,axis,Ib1,Ib2,Ib3);
+%           ForStencil(m1,m2,m3)
+%             COEFF(m1,m2,m3,n,Ib1,Ib2,Ib3)=delta(m1)*delta(m2);
+%         }
+%       }
+% 
+% \end{verbatim}
+% }
+% In this example there are a number of Macros that have been used to
+% improve the readability of the code. The {\ff COEFF} macro expands the
+% first index of the {\ff coeff} array to appear as if there are 4
+% indices {\ff (m1,m2,m3,n)}, corresponding to the stencil in each
+% of 3 dimensions and the component number. The
+% {\ff EQUATIONNUMBER} macro performs a similar function for the
+% {\ff equationNumber} array.
+% The macros {\ff UXX2} and {\ff UYY2} (found in ogesux2.h) define
+% second order approximations to the second derivatives. 
+% {\ff getBoundaryIndex} is a macro that returns the Index operators
+% for a given side of a grid.
+% 
+% 
+% In this second example we discretize the Laplace operator with
+% Neumann boundary conditions. The Laplace operator will be
+% applied on the boundary and the Neumann boundary condition
+% will be associated with the first ghostline.
+% 
+% {\footnotesize\begin{verbatim}
+% 
+%       ForStencil(m1,m2,m3)
+%       COEFF(m1,m2,m3,n,I1,I2,I3)=UXX2(I1,I2,I3,m1,m2,m3)
+%                                 +UYY2(I1,I2,I3,m1,m2,m3);
+%       ForBoundary(side,axis)
+%       {
+%         if( c.boundaryConditions(side,axis) > 0 )
+%         {
+%           getBoundaryIndex(side,axis,Ib1,Ib2,Ib3);
+%           getGhostIndex1(side,axis,Ig1,Ig2,Ig3);   // Index's for ghost points
+%           ForStencil(m1,m2,m3)
+%           {
+%             COEFF(m1,m2,m3,n,Ig1,Ig2,Ig3)=
+%                  NORMAL(Ib1,Ib2,Ib3,axis1)*UX2(Ib1,Ib2,Ib3,m1,m2,m3)
+%                 +NORMAL(Ib1,Ib2,Ib3,axis2)*UY2(Ib1,Ib2,Ib3,m1,m2,m3);
+%              //assign eqn numbers (different from default)
+%             EQUATIONNUMBER(m1,m2,m3,n,Ig1,Ig2,Ig3)=
+% 		             equationNo(n,Ib1+m1,Ib2+m2,Ib3+m3,grid);
+%           }
+%         }
+%       }
+% 
+% \end{verbatim}
+% }
+% The {\ff NORMAL} macro is used to access the {\ff normal } array which
+% holds the normal vector on the boundary. The {\ff getGhostIndex1} 
+% macro returns the Index operators for the first ghost-line.
+% Since the normal derivative boundary condition is centred on the
+% boundary we have to set the equation numbers to be different
+% from their default values. Thus we set the equation numbers
+% associated with the ghost-line {\ff EQUATIONNUMBER(m1,m2,m3,n,Ig1,Ig2,Ig3)} to have
+% equation numbers based on the boundary {\ff equationNo(n,Ib1+m1,Ib2+m2,Ib3+m3,grid)}.
+% 
+% {\footnotesize\begin{verbatim}
+% 
+% \end{verbatim}
+% }
+% 
+% \section{Computing Integration Weights and Integrating Functions}
+% 
+% Oges can be use to compute the weights for integration functions
+% on overlapping grids. As described in \cite{CGIC} the integration
+% weights can be obtained from the left null vector of the matrix
+% that discretizes the Laplace operator with Neumann boundary
+% conditions.
+% 
+% There are three steps to integrate a function on an overlapping
+% grid. First you must solve for the left null vector using
+% Oges. Next the null vector must be scaled by a constant 
+% so that its entries become the integration weights. Now a 
+% function can be integrated using the appropriate entries
+% in the null vector. Some of the entries are used to compute
+% the integral of a function over the entire domain while other
+% entries are used to compute the integral of a function over
+% the boundary.
+% 
+% Here is a program that computes the integration weights.
+% {\footnotesize
+% \listinginput[1]{1}{\oges/integrationWeights.C}
+% }
+% 
+
+% You should use the predefined equationType  {\ff LaplaceNeumann}
+% and solve for the transpose:
+% {
+% \footnotesize
+% \begin{verbatim}
+% 
+%   Oges solver;
+%   ...
+%   solver.setEquationType(OgesOG::LaplaceNeumann);
+%   solver.setTranspose(TRUE);
+%   solver.initialize();
+%   ...
+% 
+% \end{verbatim}
+% }
+% The right
+% hand side function should be zero except for the value
+% of the extra equation which you can set to 1 (or any
+% other non-zero value).
+% This value gives a scaling to the integration weights. This scaling will
+% be corrected in step 2.
+% {
+% \footnotesize
+% \begin{verbatim}
+% 
+%   CompositeGrid cg(...);
+% 
+%   realCompositeGridFunction f(cg);
+%   ...
+%   for( int grid=0; grid<f.numberOfComponentGrids; grid++ )
+%     f[grid]=0.; 
+%   // assign extra equation associated with Neumann problem
+%   int n,i1,i2,i3;
+%   og.equationToIndex( og.extraEquationNumber(0),n,i1,i2,i3,grid );
+%   f[grid](i1,i2,i3,n)=1.;
+% 
+%   realCompositeGridFunction integrationWeights(cg);
+%   og.solve( integrationWeights,f );
+% 
+% \end{verbatim}
+% }
+% 
+% The second step is to scale the left null vector
+% with the function {\ff scaleIntegrationWeights}. 
+% {
+% \footnotesize
+% \begin{verbatim}
+% 
+%   og.scaleIntegrationWeights( integrationWeights );
+% 
+% \end{verbatim}
+% }
+% 
+% Now you are
+% ready to integrate a function using, for example, the 
+% function {\ff integrate}:
+% {
+% \footnotesize
+% \begin{verbatim}
+% 
+%   ...
+%   // Here is the function we will integrate
+%   for( grid=0; grid<f.numberOfComponentGrids; grid++ )
+%     f[grid]=1.;
+%   real volumeIntegral,surfaceIntegral;
+%   og.integrate( integrationWeights,f,volumeIntegral,surfaceIntegral );
+%   ...
+% 
+% \end{verbatim}
+% }
+
+% 
+% The {\ff integrate} function is quite simple as shown below 
+% ({\ff ogif.C})
+% 
+% {\footnotesize
+% \listinginput[1]{1}{\oges/ogif.C}
+% }
+
+\bibliography{/homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}

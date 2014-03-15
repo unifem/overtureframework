@@ -1,0 +1,176 @@
+\subsection{Constructors}
+ 
+\begin{flushleft} \textbf{%
+\newlength{\argIndent}\settowidth{\argIndent}{PlotStuff(}% 
+PlotStuff()
+}\end{flushleft}
+\begin{Lentry}
+\item[Description] 
+   Default constructor; the default constructor will open a window
+\item[Author]  WDH
+
+\end{Lentry}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\argIndent}{PlotStuff(}% 
+PlotStuff(int \& argc, char *argv[]) 
+}\end{flushleft}
+\begin{Lentry}
+\item[Description] 
+   This Constructor takes the argc and argv from the main program -- The GLUT 
+   window manager will strip off any parameters that it recognizes such as the
+   size of the window. See the GLUT manual for further details.
+
+\item[argc (input/output)]  The argument count to main.
+\item[argv (input/output)]  The arguments to main.
+
+\end{Lentry}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\argIndent}{PlotStuff(}% 
+PlotStuff( const bool initialize )
+}\end{flushleft}
+\begin{Lentry}
+\item[Description] 
+    This Constructor will only create a window if the the argument initialize=TRUE
+    To create a window later call createWindow()
+
+\item[initialize (input)]  If TRUE then a window will be created. If FALSE no window will
+         be created and you will have to call {\ff createWindow} to make the window.
+
+\item[Author]  WDH.  
+\end{Lentry}
+\subsection{Plot a MappedGrid}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\argIndent}{void plot(}%
+void plot(const MappedGrid \& mg, \\ 
+\hspace{\argIndent}      PlotStuffParameters \& parameters  = defaultPlotStuffParameters)
+}\end{flushleft}
+\begin{Lentry}
+\item[Description] 
+   Plot a MappedGrid and optionally supply parameters that define the plot characteristics.
+   In two-dimensions grid-lines are plotted. 
+   In three dimensions, by default only the block boundaries of the grid are plotted.
+   You may also plot grid lines on boundaries and/or plot shaded boundary surfaces.
+
+   Grids and boundary conditions are plotted with different colours. Grids are numbered
+   and boundary conditions are numbered. For each number there corresponds a colour.
+   The colour associated with each number is plotted in the lower left corner.
+ 
+
+\item[mg (input)]  MappedGrid to plot.
+\item[parameters (input/output)]  Supply optional parameters to alter plot characteristics.
+
+\item[Author]  WDH
+
+\end{Lentry}
+\subsection{Contour a realMappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\argIndent}{void contour(}%
+void contour(const realMappedGridFunction \& u, \\ 
+\hspace{\argIndent}         PlotStuffParameters \& parameters  = defaultPlotStuffParameters)
+}\end{flushleft}
+\begin{Lentry}
+
+\item[Description] 
+   Plot contours of a realMappedGridFunction in 2D or 3D.
+  Optionally supply parameters that define the plot characteristics.
+  In two-dimensions plotting options include
+  \begin{itemize}
+    \item plot shaded surface 
+    \item plot (colour) contour lines
+    \item plot wire mesh surface (hidden lines are not supported here due to
+          limitations in OpenGL).
+    \item choose which component to plot
+  \end{itemize}
+   In 3D options include
+  \begin{itemize}
+    \item plot shaded surface contours on arbitrary planes that cut through the grid
+    \item plot shaded surface contours on boundaries.
+    \item plot (colour) contour lines on the planes or boundaries
+  \end{itemize}
+
+\item[u (input)]  function to plot contours of
+\item[parameters (input)]  supply optional parameters
+
+\item[Author]  WDH
+
+\end{Lentry}
+\subsection{StreamLines of a realMappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\argIndent}{void streamLines(}%
+void streamLines(const realMappedGridFunction \& uv, \\ 
+\hspace{\argIndent}             PlotStuffParameters \& parameters  = defaultPlotStuffParameters)
+}\end{flushleft}
+\begin{Lentry}
+
+\item[Description] 
+  Plot stream lines of a two-dimensional vector field.
+  Optionally supply parameters that define the plot characteristics.
+  This routine draws lines that are parallel to a vector field defined by
+  two components of the grid function {\ff uv}. By default component values
+  0 and 1 of the first component of {\ff uv} are used for ``u'' and ``v''.
+  Plotting options include
+  \begin{itemize}
+    \item choose the components to use for ``u'' and ``v''.
+    \item choose new plot bounds (to zoom in on a particular region). In this case
+          new streamlines are drawn on the new region as opposed to the plot
+          being simply magnified.
+  \end{itemize}
+
+\item[uv (input)]  function to plot streamlines of.
+\item[parameters (input)]  supply optional parameters
+
+\item[Remarks] 
+  \begin{itemize}
+    \item The streamlines are coloured by the relative value of $u^2+v^2$
+    \item Streamlines that move too slowly are stopped  
+    \item There is a maximum number of steps used to integrate any streamline.
+    \item To plot streamlines to cover a CompositeGrid, I make a rectangular
+          background grid that covers some region (this region could be
+          smaller than the entire grid if we are zooming). The number of
+          points on this grid is nxg*nyg. The intArray ig(nxg,nyg) is used
+          to mark cells in the background grid. I draw streamlines starting
+          at the midpoints of the background grid. Whenever a streamline
+          pass through a cell of the background grid I increase the value
+          of ig(i,j) by one. Only two streamlines are allowed per cell
+          or else the streamline is stopped (or never started).
+            In this way streamlines cover the domain in a reasonably
+          uniform manner.
+  \end{itemize}
+
+\item[Author]  WDH
+
+\end{Lentry}
+\subsection{Plot a CompositeGrid}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\argIndent}{void plot(}%
+void plot(const CompositeGrid \& cg, \\ 
+\hspace{\argIndent}      PlotStuffParameters \& parameters  = defaultPlotStuffParameters)
+}\end{flushleft}
+\begin{Lentry}
+\item[Description] 
+   Plot a CompositeGrid and optionally supply parameters that define the plot characteristics.
+   In two-dimensions grid-lines are plotted. Interpolation points can be plotted with
+   small circles.
+   In three dimensions, by default only the block boundaries of the grid are plotted.
+   You may also plot grid lines on boundaries and/or plot shaded boundary surfaces.
+   
+
+   Grids and boundary conditions are plotted with different colours. Grids are numbered
+   and boundary conditions are numbered. For each number there corresponds a colour.
+   The colour associated with each number is plotted in the lower left corner.
+ 
+
+\item[cg (input)]  CompositeGrid to plot.
+\item[parameters (input/output)]  Supply optional parameters to alter plot characteristics.
+
+\item[Author]  WDH
+
+\end{Lentry}

@@ -1,0 +1,37 @@
+====================================================================
+ o Cab with tender and wheels:
+     *** build these grids with buildTruck.p
+
+
+     ogen/cabTender.cmd
+        requires:
+          1) cabTenderGrids.hdf    from cabGrids.cmd
+          2) frontLeftWheel.hdf    from frontLeftWheel.cmd
+          3) frontRightWheel.hdf   from frontRightWheel.cmd:
+          4) tenderRearWheels.hdf  from rearWheels.cmd
+
+     cabGrids.cmd requires:
+          1) cabTop.hdf : cabTop.cmd
+          2) hood.hdf  : hood.cmd
+          3) front.hdf : front.cmd
+          4) windshield.hdf : windshield.cmd
+          5) body.hdf : body.cmd
+          6) tender.hdf : tender.cmd
+          7) backTender.hdf : backTender.cmd
+          8) backCabTopEdge.hdf : backCabTopEdge.cmd
+          9) backCabBottomEdge.hdf : backCabBottomEdge.cmd
+         10) backCabMiddleEdge.hdf : backCabMiddleEdge.cmd
+         11) leftCabCorner.hdf : leftCabCorner.cmd
+         12) rightCabCorner.hdf : rightCabCorner.cmd
+
+====================================================================
+
+ o truck1.cmd : read in full iges file
+
+ o truckCab:  
+
+     o hype createTruckCabNoWheels.cmd   : build topology for the truck cab
+     o hype truckCabSmoothed.cmd   -> creates truckCabGrids.hdf
+     o hype truckCabGrids.cmd      -> creates truckCabWithBox.hdf
+
+

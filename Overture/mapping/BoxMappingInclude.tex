@@ -1,0 +1,63 @@
+\subsection{constructor}
+ 
+\newlength{\BoxMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\BoxMappingIncludeArgIndent}{BoxMapping(}% 
+BoxMapping( \\ 
+\hspace{\BoxMappingIncludeArgIndent}const real xMin, const real xMax, \\ 
+\hspace{\BoxMappingIncludeArgIndent}const real yMin, const real yMax,\\ 
+\hspace{\BoxMappingIncludeArgIndent}const real zMin, const real zMax ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Build a rectangular box in 3D. The box can also be rotated
+  around one the coordinate directions.
+\item[{\bf xMin,xMax :}]  minimum and maximum values for x(xAxis)
+\item[{\bf yMin,yMax :}]  minimum and maximum values for y(yAxis)
+\item[{\bf zMin,zMax :}]  minimum and maximum values for z(zAxis)
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\BoxMappingIncludeArgIndent}{rotate(}%
+rotate(const real angle, \\ 
+\hspace{\BoxMappingIncludeArgIndent}const int axisOfRotation  = 2,\\ 
+\hspace{\BoxMappingIncludeArgIndent}const real x0  = 0.,\\ 
+\hspace{\BoxMappingIncludeArgIndent}const real y0  = 0.,\\ 
+\hspace{\BoxMappingIncludeArgIndent}const real z0  = 0.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Rotate the box around a coordinate direction.
+\item[{\bf angle (input) :}]  angle in degrees.
+\item[{\bf xisOfRotation (input) :}]  0,1 or 2.
+\item[{\bf x0,y0,z0 (input) :}]  rotate about this point.
+\end{description}
+\subsection{getVertices}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\BoxMappingIncludeArgIndent}{getVertices(}%
+getVertices(real \& xMin, real \& xMax, real \& yMin, real \& yMax, real \& zMin, real \& zMax ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Return the bounds on the box.
+\item[{\bf xMin, xMax, yMin, yMax, zMin, zMax (output) :}]  bounds on the box.
+\end{description}
+\subsection{setVertices}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\BoxMappingIncludeArgIndent}{setVertices(}%
+setVertices(const real \& xMin  =0.,\\ 
+\hspace{\BoxMappingIncludeArgIndent}const real \& xMax  =1., \\ 
+\hspace{\BoxMappingIncludeArgIndent}const real \& yMin  =0., \\ 
+\hspace{\BoxMappingIncludeArgIndent}const real \& yMax  =1.,\\ 
+\hspace{\BoxMappingIncludeArgIndent}const real \& zMin  =0.,\\ 
+\hspace{\BoxMappingIncludeArgIndent}const real \& zMax  =1.)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Set the bounds on the box.
+\item[{\bf xMin, xMax, yMin, yMax, zMin, zMax (input) :}]  bounds on the box.
+\end{description}

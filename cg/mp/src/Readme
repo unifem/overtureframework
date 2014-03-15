@@ -1,0 +1,58 @@
+--- Here are some files and some of the functions they contain ----
+
+
+advance.C:
+ cycleZero()
+ setupAdvance()
+ advance(real &tFinal) : advance the solution to time tFinal.
+ finishAdvance()
+  
+advanceImplicit.C:
+  advanceImplicit( real &t, real & tFinal )
+
+assignInterfaceBoundaryConditions.C
+  initializeInterfaces(std::vector<int> gfIndex)
+
+  assignInterfaceBoundaryConditions(std::vector<int> gfIndex, const real dt )
+
+  initializeIterativeInterfaceBoundaryConditions( real t, real dt, std::vector<int> gfIndex )
+
+  assignInterfaceRightHandSide( int d, real t, real dt, int correct, std::vector<int> & gfIndex )
+
+  getInterfaceResiduals( real t, real dt, std::vector<int> gfIndex, real & maxRes )
+
+ ** For interfaces see also:
+   common/src/interfaceBoundaryConditions.C : for iterative implicit interface conditions
+      setInterfaceBoundaryCondition( GridFaceDescriptor & info )
+      iterativeInterfaceRightHandSide( IterativeInterfaceOptionsEnum option, GridFaceDescriptor & info, 
+                                       int gfIndex, real t )
+   common/src/assignInterfaceBoundaryConditions.C
+
+
+Cgmp.C:
+
+getTimeStep.C:
+ getTimeStep( GridFunction & gf)
+
+multiDomainAdvance.C
+
+
+plot.C:
+ buildRunTimeDialog()
+ setSensitivity( GUIState & dialog, bool trueOrFalse );
+ setTopLabel(std::vector<realCompositeGridFunction*> u, real t)
+ plot(const real & t, const int & optionIn, real & tFinal )
+
+printTimeStepInfo.C:
+ 
+
+setParametersInteractively.C:
+   setupDomainSolverParameters:
+   setParametersInteractively: 
+   setup: output header info
+
+
+solve.C:
+ solve() : main routine to advance and plot the solution
+ printStatistics : output final stats
+

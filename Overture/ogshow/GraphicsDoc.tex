@@ -1,0 +1,1677 @@
+%-----------------------------------------------------------------------
+% Documentation for the PlotIt, GenericGraphicsInterface,
+% GraphicsParameters, GUIState, Dialogdata and NameList Classes
+%
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+\usepackage{html} %to have conditional code for latex2html
+
+% These packages are loaded for latex
+  \usepackage[usenames,dvipsnames]{color}
+% *wdh* don't use hyperref or else the index is messed up for the master index
+  \usepackage[dvips]{graphicx}    
+  \usepackage{epsfig}    
+
+
+\begin{htmlonly}
+% These packages are loaded for latex2html
+  \usepackage[usenames,dvipsnames]{color}
+  \usepackage[dvips]{graphicx}    
+  \usepackage{epsfig}    
+\end{htmlonly}
+
+\definecolor{webgreen}{rgb}{0,.5,0}
+\definecolor{webbrown}{rgb}{.6,0,0}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{calc}
+\usepackage{ifthen}
+%\usepackage{fancybox} % This package screws up the table of contents
+\usepackage{supertabular}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\ogshow}{\homeHenshaw/Overture/ogshow}
+\newcommand{\ogshowAP}{/home/andersp/src/Overture/ogshow}
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+
+\newcommand{\OVERTUREOVERTURE}{/home/\-henshaw/\-Overture/\-Overture}
+\newcommand{\OvertureOverture}{\homeHenshaw/Overture/Overture}
+
+\newcommand{\RA}{realArray}
+\newcommand{\MGF}{MappedGridFunction}
+\newcommand{\RMGF}{realMappedGridFunction}
+\newcommand{\RCGF}{realCompositeGridFunction}
+
+\newcommand{\DABO}{Differential\-And\-Boundary\-Operators}
+
+\newcommand{\MG}{Mapped\-Grid}
+\newcommand{\GC}{Grid\-Collection}
+\newcommand{\CG}{Composite\-Grid}
+\newcommand{\MGCG}{Multigrid\-Composite\-Grid}
+
+\newcommand{\MGO}{MappedGridOperators}
+\newcommand{\GCO}{Grid\-Collection\-Operators}
+\newcommand{\CGO}{Composite\-Grid\-Operators}
+\newcommand{\MGCGO}{Multigrid\-Composite\-Grid\-Operators}
+
+\begin{document}
+
+
+% -----definitions-----
+\def\R      {{\bf R}}
+\def\Dv     {{\bf D}}
+\def\bv     {{\bf b}}
+\def\fv     {{\bf f}}
+\def\Fv     {{\bf F}}
+\def\gv     {{\bf g}}
+\def\iv     {{\bf i}}
+\def\jv     {{\bf j}}
+\def\kv     {{\bf k}}
+\def\nv     {{\bf n}}
+\def\rv     {{\bf r}}
+\def\tv     {{\bf t}}
+\def\uv     {{\bf u}}
+\def\Uv     {{\bf U}}
+\def\vv     {{\bf v}}
+\def\Vv     {{\bf V}}
+\def\xv     {{\bf x}}
+\def\yv     {{\bf y}}
+\def\zv     {{\bf z}}
+\def\lt     {{<}}
+\def\grad    {\nabla}
+\def\comma  {~~~,~~}
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\def\ff {\tt} % font for fortran variables
+\def\neq {{\ff neq }}
+\def\nze {{\ff nze }}
+\def\nsave {{\ff nsave}}
+\def\nfill {{\ff nfill }}
+\def\nqs {${\ff nze}^*$}
+\def\flags {{\ff flags }}
+\def\icf {{\ff icf}}
+\def\idebug {{\ff idebug}}
+\def\zratio {{\ff zratio }}
+\def\fratio {{\ff fratio }}
+\def\icg {{\ff icg }}
+\def\ipc {{\ff ipc }}
+\def\ipcf {{\ff ipcf }}
+\def\rpcf {{\ff rpcf }}
+\def\icf {{\ff icf }}
+\def\nd {{\ff nd }}
+\def\nv {{\ff nv }}
+\def\ng {{\ff ng }}
+\def\bc {{\ff bc}}
+
+\vspace{\baselineskip}
+\begin{flushleft}
+{\Large
+User's Guide to\\
+PlotIt: Plotting Overture data,\\
+GenericGraphicsInterface: A generic graphics interface, \\
+GUIState: A graphical user interface, \\
+GraphicsParameters: Setting graphics parameters,\\
+NameList: Inputting parameters.\\
+\vspace{1cm}
+Version 1.19 \\
+}
+\vspace{2\baselineskip}
+Bill Henshaw \& Anders Petersson\footnote{
+This work was performed under the auspices of the U.S. Department of
+Energy by University of California Lawrence Livermore National
+Laboratory under contract No. W-7405-Eng-48.
+}\\
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+\vspace{\baselineskip}
+henshaw@llnl.gov\\
+http://www.llnl.gov/casc/people/henshaw \\
+\vspace{\baselineskip}
+andersp@llnl.gov\\
+http://www.llnl.gov/casc/people/petersson \\
+\vspace{\baselineskip}
+http://www.llnl.gov/casc/Overture \\
+\vspace{\baselineskip}
+\today
+%October 9, 2000\\
+\vspace{\baselineskip}
+UCRL-MA-132238 rev. 2
+\end{flushleft}
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:} The classes PlotIt, GenericGraphicsInterface,
+GUIState and GraphicsParameters can be used to setup graphics windows
+and a graphical user interface for plotting and interacting with
+various stuff from Overture, such as Mappings, MappedGrids or
+GridCollections, as well as plotting one-dimensional line plots from
+A++ arrays.
+
+While the current implementation of the graphics interface is based on
+the graphics library OpenGL and the windowing system Motif/X11, the
+implementation details are confined to the class {\bf
+GL\_GraphicsInterface}, which is derived from the abstract base-class
+{\bf GenericGraphicsInterface}. Therefore, application codes using
+graphics only need to know of the {\bf GenericGraphicsInterface}
+class, which make them independent of the underlying implementation. A
+hierachical graphical user interface (GUI) containing dialog windows
+with pulldown, option and popup menues, push, toggle and radio
+buttons, as well as informative labels and textboxes for editable
+text, can be setup using the {\bf GUIState} class.
+
+Higher level functionality, such as plotting grids, contours,
+surfaces, and streamlines is provided in the class {\bf PlotIt}, which
+only is a collection of functions and does not contain any data in
+itself. Parameters controlling the graphics are set using objects from
+the {\bf GraphicsParameters} class.
+
+\newpage
+\tableofcontents
+\listoffigures
+
+\vfill\eject
+%---------- End of title Page for a Research Report
+
+\section{Introduction}
+
+The classes {\bf PlotIt}, {\bf GenericGraphicsInterface}, {\bf GUIState} and
+{\bf GraphicsParameters} can be used to setup graphics windows and a
+graphical user interface for plotting and interacting with various
+stuff from Overture, such as Mappings, MappedGrids or GridCollections,
+as well as plotting one-dimensional line plots from A++ arrays. These
+classes are used in many places throughout the Overture library, for
+example to interactively make grids in {\bf ogen}, manipulating
+geometry in {\bf rap}, to setup parameters in the solver {\bf
+overBlown}, and to postprocess results in {\bf plotStuff}.
+
+The abstract base-class {\bf GenericGraphicsInterface} defines an
+interface for using graphics from an application code. In itself, it
+implements text-based I/O as well as the reading and writing of
+command files, but it does not contain any code that is specific to a
+particular window or graphics system. Hence, application codes using
+{\bf GenericGraphicsInterface} are independent of the underlying
+graphics and windowing system. Interactions with the underlying
+graphics system are done through virtual functions. The class {\bf
+GL\_GraphicsInterface}, which is derived from {\bf
+GenericGraphicsInterface}, provides an implementation for systems with
+OpenGL graphics. The interaction with the underlying windowing system
+is confined to routines in the file mogl.C, which implements it using
+\Index{Motif}/X11. Hence, to port {\bf GL\_GraphicsInterface} to
+another windowing system with OpenGL, it would not be necessary to
+change any other files in the distribution.
+
+The class {\bf GUIState}, which is derived from {\bf DialogData}, can
+be used to setup a hierachical graphical user interface (GUI). The GUI
+can contain dialog windows with pulldown, option and popup menues,
+push, toggle and radio buttons, as well as informative labels and
+textboxes for editable text.
+
+Higher level functionality, such as plotting contours, surfaces, and
+streamlines is implemented in the separate class {\bf PlotIt}, which
+only contains static member functions and no data.
+
+\vspace{0.1\baselineskip}
+It is quite simple to use {\bf GenericGraphicsInterface} to plot stuff from
+Overture. Here is an example 
+{\footnotesize
+\begin{verbatim}
+
+  Overture::start();                 // Initialize the Overture library
+  CompositeGrid cg = ... ;           // define a CompositeGrid somehow
+  Range all;
+  realCompositeGridFunction u(cg,all,all,all,2);  // create a grid function
+  u=...                              // give values to u 
+
+// get a reference to the graphics interface
+  GenericGraphicsInterface & gi = *Overture::getGraphicsInterface();
+
+  PlotIt::plot(gi,cg);                       // interactively plot a CompositeGrid
+  PlotIt::contour(gi,u)                      // interactively plot contours and/or shaded surface of u
+  PlotIt::streamLines(gi,u)                  // interactively plot streamlines
+  ...
+  Overture::finish();                 // cleanup after the Overture library
+
+\end{verbatim}
+}
+
+The GenericGraphicsInterface / GUIState graphical user interface is
+used by the applications `ogen', 'rap', `plotStuff', and most other
+applications in the Overture library.  An example of the
+GenericGraphicsInterface / GUIState graphical user interface is shown in
+figure~\protect\ref{fig:small-test}. This figure was produced by the
+short example code given in section~\protect\ref{sec:test-program},
+which will be used throughout the manual to describe the functionality
+in this class.
+%
+\newcommand{\figWidth}{.75\linewidth}
+\begin{figure}
+  \begin{center}
+    \epsfig{file=\figures/GIScreenShotNew.eps,width=\figWidth}
+  \caption{A screen shot from the test program}  \label{fig:small-test}
+  \end{center}
+\end{figure}
+%
+The figure shows some of the features of the GUI, which include
+\begin{itemize}
+  \item Plot a Mapping, MappedGrid or GridCollection (CompositeGrid).
+%
+  \item Plot contour, surface and streamlines of a 2D MappedGridFunction or CompositeGridFunction
+%
+  \item Plot contours on cutting planes, isosurfaces and streamlines
+  of a 3D MappedGridFunction or CompositeGridFunction
+%
+  \item Plot 1D line plots of 1D grid functions.
+%
+  \item User defined dialog windows that can contain pulldown menus
+  with push or toggle buttons, option menus, text labels (for
+  inputting strings), push buttons, and toggle buttons.
+%
+  \item Multiple graphics windows and a single command window with a
+  scrollable sub-window for outputting text, a command line, and a
+  scrollable list of previous commands.
+%
+  \item Rotation buttons 
+     \epsfig{file=\figures/rot_x_p.eps},
+     \epsfig{file=\figures/rot_y_p.eps}, 
+     \epsfig{file=\figures/zrotp.eps} ,... which
+     rotate the object on the screen about fixed x, y, and z axes (the
+     x axis is to the right, the y-axis is up and the z-axis is out of
+     the screen).
+%
+  \item Translation buttons \epsfig{file=\figures/right.eps},
+  \epsfig{file=\figures/down.eps}, 
+  \epsfig{file=\figures/zp.eps},
+  \epsfig{file=\figures/zm.eps},... which shift
+  the object on the screen along a given axis. The two last buttons
+  shift the object in and out of the screen, respectively. Since an
+  othographic projection method is used in the graphics interface, these buttons only change
+  the appearance when clipping planes are used.
+%
+  \item Push buttons for making the objects bigger:
+  \epsfig{file=\figures/zoom_in.eps}, 
+  or smaller: \epsfig{file=\figures/zoom_out.eps},
+  and a reset button: \epsfig{file=\figures/reset.eps} to reset the view point, and a {\bf clear} button
+  to erase all objects on the
+  screen.\index{bigger,smaller,clear,reset}
+%
+  \item A push button \epsfig{file=\figures/rotpnt.eps} to set the rotation center.
+%
+  \item A {\bf rubber band zoom} feature.
+%
+  \item Mouse driven {\bf translate, rotate and zoom}.
+%
+  \item A pop-up menu that is active on the command and graphics
+  windows. This menu is defined by the application (= user program).
+%
+  \item Static pull-down menus ({\bf file}, {\bf view},
+     and {\bf help}) on the graphics windows. Here, the screen can be saved in
+     different formats, clipping planes and viewing characteristics
+     can be set, annotations can be made (not fully implemented), and some help can be found. 
+%
+  \item Static pull-down menus ({\bf file} and {\bf help}) on the
+     command window. Here command files can be read/saved, new
+     graphics windows can be opened, the window focus can be set, and
+     the application can be aborted.
+%
+  \item An optional pull-down menu ({\bf My menu} in this case) that is
+     defined by the application.
+%
+  \item Pushbuttons ({\bf Pick 3D} and {\bf Plot} in this case) that are defined by the application.
+%
+  \item A file-selection dialog box (not shown in the figure).
+%
+  \item The option of typing any command on the command line or reading
+  any command from a command file. All commands can be entered in this
+  fashion, including any pop-up or pull-down menu item or any of the
+  buttons, {\bf x+r:0}, {\bf y-r:0}, {\bf x+:0}, {\bf y+:0}, {\bf
+  bigger:0}, etc. For the buttons, the :0 refers to the window number
+  where the view should be modified, which in this case is window
+  \#0. Furthermore, when typing a command, only the first
+  distinguishing characters need to be entered.
+%
+  \item Recording or retrieving a command sequence in a command file.
+\end{itemize}
+
+\section{A small application}\label{sec:test-program}
+The following program was used to generate the plot in
+figure~\protect\ref{fig:small-test}. The source code is in the {\tt tests}
+directory of the Overture distribution and is called {\tt
+small-GI-test.C}. Instructions on how to run the application follows
+in next section.
+% 
+% Include the code that shows how to do these things.
+%
+{\footnotesize
+\listinginput[1]{1}{\ogshowAP /small-GI-test.C}
+}
+
+% ===========================================================================================
+
+\section{Running the test application}
+After starting the {\bf small-GI-test} application from a UNIX window, you will be queried
+``Enter the name of the (old) composite grid file:'' and a file
+selection dialog box will appear. A proper input to the program is a
+database file containing an overlapping grid. This file can, for
+example, be generated with the program `ogen'. Usually these files
+have the extension .hdf and you can look for such files by setting the
+filter text to be *.hdf. For example, when I run the program I
+set the text in the filterbox to be
+``/home/andersp/src/Overture/ogshow/*.hdf''. To open a file, you click
+on one of the files in the list and then click on the OK button, or
+you can double click on the file name. After the program has succeeded
+in opening the file it will print ``Ready to serve$>$'' in the output
+sub-window in the command window. 
+
+At this point, there is one graphics window, one command window, and one dialog
+window on the screen. If you press the ``Grid''
+push button, you will enter the grid plotter and the grid that is stored in the file will
+get plotted. The grid plotter changes the push buttons and the popup menu and puts up
+another dialog window with a lot of options.  By pressing the toggle buttons on the dialog
+window, you can toggle different features on or off. The popup menu gives you further
+opportunity to change the appearance of the plot, for instance by changing the
+colours. When you are done exploring the grid plotter, you can exit by clicking on the
+``exit'' button on the dialog window. The dialog window will then disappear and the push
+buttons will be restored to the original setting.
+
+If you press the ``Contour'' push button in the left window, you will enter the contour
+plotter and a contour plot on the composite grid will appear on the screen. Similar to the
+grid plotter, a number of push buttons will appear and the popup menu will change to
+accomodate the needs of the contour plotter. When you are done exploring the contour
+plotter, you can exit by clicking on the ``exit'' push button. The push buttons will then
+get restored to the original setting.
+
+To explore the more advanced (and perhaps less well-tested) features of the graphics
+interface, you can try plotting the grids and contours in different windows. To open a new
+graphics window, you select ``new window'' from the ``File'' menu on the command window
+(on the bottom of the screen). You can plot in the new window using the same technique as
+above. The new graphics window will have its title surrounded by asterisks to indicate
+that this is the active graphics window. To switch back to the original window, you need
+to first activate it. This is done by choosing the ``figure'' item from the ``File'' menu
+on the command window and typing a ``0'' in the text window following ``Command:'' (below
+the prompt). Once you have activated the first window, you will see that the title in this
+window now is surrounded by asterisks indicating that it is the active window.
+
+\subsection{Rotating and scaling the graphics window}
+
+Rotations are performed with respect to axes that are fixed relative
+to the screen. The x-axis points to the right, the y-axis points
+upward and the z-axis points out of the screen.  Rotations can either
+be performed about the centre of the window, or about a user defined
+point. This point can either be set by first pressing the {\bf set
+rotation point} icon on the graphics window and then clicking on the
+screen with the left mouse button. The rotation point can also be set
+by opening the ``Set View Characteristics'' dialog from the ``View''
+pull-down menu (see section~\protect\ref{sec:view-characteristics} for
+details). Note that the centre of the window is changed with the
+translation commands {\bf x+}, {\bf x-}, {\bf y+}, etc.
+
+Typing a rotation command with an argument (on the command line), 
+such as {\bf x+r:1 45}, will cause the view in window number 1 to 
+rotate by 45 degrees about the x-axis.
+
+Typing a translation command with an argument, such as {\bf x+:0 .25}
+will cause the view in window number 0 to move to the right $.25$ units
+(in normalized screen coordinates; the screen goes from -1 to 1).
+
+{\bf Rubber band zoom:} \index{rubber band zoom} The middle mouse
+button is used to ZOOM in. Press the middle button at one corner of a
+square, drag the mouse to another corner and lift the button.  The
+view will magnify to the square that was marked.  Use `reset' to reset
+the view.
+
+{\bf Mouse driven translate, rotate and zoom}: \index{mouse
+button!translate, rotate and zoom} All these operations are performed
+with the SHIFT key down. To translate, you hold the SHIFT key down,
+press the left mouse button and drag the cursor; the plotted objects
+will translate in the same direction as the mouse is moved. To rotate
+the view, you hold the SHIFT key down and press the middle mouse
+button and drag the cursor. Moving the cursor left or right will
+rotate about the y-axis (the vertical screen direction) and moving up
+or down will rotate about the x-axis (horizontal screen direction). To
+zoom in or out, you hold the SHIFT key down, press the right mouse
+button and drag the cursor vertically. To rotate about the z-axis, you
+press the left mouse buttons and drag the cursor horizontally.
+
+{\bf Picking (aka selecting):} While clicking the left mouse button,
+you select an object and get the $(x,y,z)$ coordinate of the point on
+the object where you clicked. The object that was selected is reported
+in the selectionInfo data structure, which holds the global ID number,
+the front and back z-buffer coordinates and the window and 3--D
+coordinates. The global ID number can be used by the application to
+identify the selected object.
+
+It is also possible to select several objects on the screen by
+specifying a rectangular region. To do this, you press the left mouse
+button in one corner of the rectangle and drag it to the diagonally
+opposite corner of the rectangle, where the mouse-button is
+released. The program will draw a rectangular frame to indicate the
+selected region. When you are happy with the selected region, you
+release the mouse button. An imaginary viewing volume is defined by
+translating the rectangular region into the screen and all objects
+that intersect the viewing volume are selected. However, only the 3--D
+coordinate of the closest object is computed. We remark that the
+object with the lowest front z-buffer value is the closest to the
+viewer. Also note:
+\begin{enumerate}
+\item Objects that are hidden by another object are also selected by
+this method.
+\item The selection takes clipping planes (see below) into
+account, so it is not possible to select an object that has been
+removed by a clipping plane.
+\end{enumerate}
+%
+The mouse driven features are summarized in table~\protect\ref{tab:mouse}.
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{r|r|l}  
+Modifier      & Mouse button & Function                      \\ \hline\hline
+              & left         & picking                       \\ \hline
+              & middle       & rubber band zoom              \\ \hline
+              & right        & pop-up menu                   \\ \hline
+$<$SHIFT$>$   & left         & translate                     \\ \hline
+$<$SHIFT$>$   & middle       & rotate around the x \& y axes \\ \hline
+$<$SHIFT$>$   & right        & zoom (up \& down) and z-rotation (left \& right) \\ \hline
+\end{tabular}
+  \caption{Mouse driven features.}\label{tab:mouse}
+\end{center}
+\end{table}
+
+\subsection{Using clip planes}
+The clip plane dialog for each graphics window is opened from the
+`View' pull-down menu on the menu bar in the graphics
+window. Figure~\protect\ref{fig:clip-plane} shows an example from the test
+program. The first clip plane is activated by clicking on the toggle
+button in the top left corner. After it is activated, we can look
+inside the cube and see the sphere. By dragging the slider bar for the
+clipping plane, the clipping plane is moved closer or further away
+from the eye. The direction of the normal of the clipping plane can
+also be changed by editing the numbers in the `Normal' box.
+\begin{figure}
+  \begin{center}
+    \epsfig{file=\figures/clipPlane.eps,width=\figWidth}
+
+  \caption{The clip plane dialog window}\label{fig:clip-plane}
+  \end{center}
+\end{figure}
+
+\subsection{Setting the view characteristics} \label{sec:view-characteristics}
+The view characteristics dialog for each graphics window is opened
+from the `View' pull-down menu on the menu bar in the graphics
+window. Figure~\protect\ref{fig:view-char} shows an example from the test
+program. NOTE: When entering numerical values into a text box, it is
+necessary to hit $<$RETURN$>$ before the changes take effect.
+
+Here follows a brief description of the functionality in this window:
+\begin{description}
+\item[Background colour:]Select a background colour from the menu by
+clicking on the label with the current colour. In this example, the
+background colour is white. Changing the background colour will take
+effect immediately.
+%
+\item[Text colour:]Select a text (foreground) colour from the menu by
+clicking on the label with the current colour. In this example, the
+text colour is steel blue. Note that the text colour is used to colour
+the axes, the labels, and sometimes also the grid lines. However, only
+the axes will change colour immediately after a new colour is
+chosen. To update the colour of the labels and the grid lines, it is
+necessary to replot the object on the screen.
+%
+\item[Axes origin:] Click on the radio buttons to set the origin of
+the coordinate axes either at the default location (lower, left,
+back corner of the bounding box), or at the rotation point.
+%
+\item[Rotation point:] Enter the (X, Y, Z) coordinates of the rotation
+point. The rotation point will remain fixed to the screen during both
+interactive rotation with $<$SHIFT$>$+middle mouse button, and during
+rotation with the buttons {\bf x+r}, {\bf y+r}, etc.
+%
+\item[Pick rotation point:]After clicking on this button, set the
+rotation point by clicking with the left mouse button on a point
+on an object in the graphics window. NOTE: 
+\begin{enumerate}
+\item Picking will only work in the window from which the view
+characteristics dialog was opened. If you are unsure which window to
+pick in, you can press the right mouse button and read the window
+number from the title of the popup menu.
+\end{enumerate}
+%
+\item[Lighting:]Activate/deactivate lighting in the graphics window.
+%
+\item[Light \#i:]Turn on/off light source number $i$,
+$i=0,1,2$. Turning off all light sources is the same as deactivating
+lighting with the above function.
+%
+\begin{description}
+\item[Position (X, Y, Z):]The location (X, Y, Z) of light source
+number i. 
+\item[Ambient (R, G, B, A):]The ambient colour (R, G, B, A) of light source
+number i.
+\item[Diffusive (R, G, B, A):]The diffusive colour (R, G, B, A) of light source
+number i.
+\item[Specular (R, G, B, A):]The specular colour (R, G, B, A) of light source
+number i.
+\end{description}
+%
+\item[X-colour material properties:] The following properties
+characterize the default material, which is used when a X-colour is
+chosen for a lit object. The X-colours are distinguished from the
+predefined ``special'' materials in that only their ambient and
+diffuse reflections are defined, but not their specular and shininess
+properties. (For those fluent in OpenGL, this functionality is
+obtained by calling the function glColorMaterial with the argument
+GL\_AMBIENT\_AND\_DIFFUSE.)  Note that the reflective properties only
+influence objects that are lit. Also note that the objects need to be
+re-plotted in order for the changes to take effect.
+
+The predefined materials are listed in table~\protect\ref{tab:colours}. Hence,
+any colour that is not in the table is considered to be an X-colour.
+%
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l|l|l|l|} \hline
+ emerald &  jade & obsidian &  pearl \\ \hline
+ ruby &  turquoise &  brass &  bronze \\ \hline
+ chrome &  copper &  gold & silver \\ \hline
+ blackPlastic &  cyanPlastic &  greenPlastic &  redPlastic \\ \hline 
+ whitePlastic &  yellowPlastic &  blackRubber &  cyanRubber \\ \hline
+ greenRubber & redRubber &  whiteRubber &  yellowRubber \\ \hline
+\end{tabular}
+  \caption{Predefined materials.}\label{tab:colours}
+\end{center}
+\end{table}
+%
+\begin{description}
+\item[Specular (R, G, B, A):]The specular reflective property of the
+X-colour material. For example, by setting the first number to
+zero, you will get a bluish reflection on the green sphere in the
+example application. Note that the same effect could have been
+obtained by changing the specular colour of the light sources.
+\item[Shininess exponent:]A number between 0 and 128 that describes
+how ``narrow'' the specular reflection of the X-colour material will
+be. A lower number gives a wider reflection.
+\end{description}
+%
+\end{description}
+%
+\begin{figure}
+  \begin{center}
+    \epsfig{file=\figures/viewChar.eps,width=\figWidth}
+  \caption{The view characteristics dialog window}\label{fig:view-char}
+  \end{center}
+\end{figure}
+
+
+\subsection{Opening additional graphics windows}\index{opening windows}
+Additional graphics windows can be opened both interactively and
+from within the code. To open a new graphics window from the
+test application, you select the ``new window'' item from the
+``File'' menu in the command window. Once the new window is opened, it
+will become the active window. This window will have the same push
+buttons as the original one, and you plot in the same way as before.
+
+\vspace{0.1\baselineskip}
+The following example code opens a new graphics window.
+\begin{verbatim}
+  ...
+  GenericGraphicsInterface & gi = *Overture::getGraphicsInterface("window title");
+  int win0 = 0; // the default graphics window has number 0
+  ...
+  int win1 = gi.createWindow("Another window");
+  ...
+\end{verbatim}
+
+
+\subsection{Saving postscript files and including them in TeX documents}\index{saving postscript}
+\index{postscript!including in \TeX\ files} 
+% \TeX --->   <DT><STRONG>including in T<SMALL>E</SMALL>X files</STRONG>
+\index{postscript!saving as hardcopy}
+
+To save the contents of the graphics window in a postscript,
+encapsulated postscript, or ppm file, you can use the {\tt Hardcopy}
+dialog which is opened from the {\tt file} pull-down menu on
+the graphics window. From within a C++ program, you can use
+the {\ff hardCopy} function to save a post-script file.
+
+Note that the image is rendered off-screen in a buffer with default
+resolution of $1024\times 1024$.  This resolution can be changed in
+the {\tt Hardcopy} dialog (but see the note below).  The format of the
+post-script file can also be changed between 8-bit colour (i.e. $2^8$
+colours, but actually only 255 colours) , 24-bit colour (i.e. $2^{24}$
+colours), black-and-white or gray-scale.  See the comments for the
+{\ff hardCopy} function for more details. Also see the comments in the
+section describing the {\tt GraphicsParameters}, reference {\tt
+GI\_OUTPUT\_FORMAT}, {\tt GI\_RASTER\_RESOLUTION}, and {\tt
+GI\_HARD\_COPY\_TYPE}.
+
+% You can also use the ``Snapshot'' program to save the window.
+% For example, to create the postscript files for this document
+% here is what I did:
+% \begin{itemize}
+%   \item Capture the window with ``Snapshot'' and save the
+%         raster file as fileName.rs. The bigger you make the
+%         window the more resolution the raster will have.
+%   \item Use the ``ras2ps'' conversion function (found
+%         in /usr/openwin/bin on my system) to convert
+%         the figure to postscript:
+% \begin{verbatim}
+%         ras2ps -C fileName.rs > fileName.ps
+% \end{verbatim}
+% \end{itemize}
+
+
+\vspace{0.1\baselineskip}
+If you have saved an image as a postscript file you can use the {\ff
+epsfig} command in a LaTeX or TeX file to embed the figure as in the
+following example:
+\begin{verbatim}
+\begin{figure} \label{fig:CompositeGrid}
+  \begin{center}
+   \epsfig{file=figure.ps,height=7.0in}
+  \caption{Plot of a 2D CompositeGrid}
+  \end{center}
+\end{figure}
+\end{verbatim}
+
+
+Note that the raster resolution is independent of
+the height and width values that you give to {\ff epsfig}. If you make the figure too
+small, however, some thin lines may be lost on the plot depending
+on the resolution of the output device. Thus a plot may print ok
+even though it may look bad on the screen since a laser printer 
+has more resolution than the typical screen.
+
+\subsubsection{Saving high resolution figures}
+
+If you are using OpenGL Mesa you may increase the maximum resolution
+of hard-copies. Mesa is compiled with certain default maximum values
+and the highest resolution depends on the parameters
+that were used to compile Mesa. To increase the Mesa resolution you should
+change the definitions for {\tt MAX\_WIDTH} and {\tt MAX\_HEIGHT} 
+in {\tt Mesa/src/config.h}. For example you may set these to be $2048$ or more.
+Mesa must be re-compiled after these changes are made.
+
+There is a problem with saving an image at a high resolution since the width of
+lines and size of points are specified in number of pixels in OpenGL (!). Thus
+lines become thinner as the resolution increases. To fix this you can increase
+the width of all lines by setting the {\tt Line width scale factor} in {\tt View
+Characteristics dialog} (found under the {\tt View} button on the top of the
+main graphics window). The default scale factor is $1.0$ and I suggest that you
+change this to $3.0$ if your output resolution is $2048$. (You may even want to
+set the scale factor to $2.0$ for the default resolution of 1024.)  You will
+then need to replot your figure. The lines will now appear very thick on the
+screen but they will look better on the hardcopy. 
+
+
+\section{Embedding Perl statements into command files}
+
+Perl statements can be used inside command files to define variables that
+can later be used in commands to Overture functions.
+Overture creates an instance of a perl interpreter (see OvertureParser.C if you are
+interested in the details)
+and thus any valid perl statement can be used in a command file.
+Here is a simple example showing how to compute the number of lines 
+that are later used as input to some Overture function:
+\begin{verbatim}
+  $nx=5*7; $ny=$nx+5;
+  lines
+    $nx $ny
+\end{verbatim}
+This example shows the two cases when the perl interpreter is invoked:
+\begin{itemize}
+  \item Any non-comment line containing a semi-colon, `;', is considering to contain
+    perl statements and is sent to the perl interpreter. 
+  \item Any line containing a dollar, `\$',
+   but no semi-colon, is first sent to the perl interpreter for {\em variable evaluation only}, and
+   the result is returned to the Overture function that is reading the command file.
+\end{itemize}
+As a second example we show how to define and use a perl subroutine,
+\begin{verbatim}
+* scale number of grid points in each direction by the following factor
+$factor=2.**(1./3.); printf(" factor=$factor\n");
+*
+* Define a subroutine to convert the number of grid points
+sub getGridPoints\
+{ local($n1,$n2,$n3)=@_; \
+  $nx=int(($n1-1)*$factor+1.5); \
+  $ny=int(($n2-1)*$factor+1.5); \
+  $nz=int(($n3-1)*$factor+1.5);\
+}
+* call the perl subroutine to compute $nx,$ny,$nz
+getGridPoints(21,11,31);
+lines
+  $nx $ny $nz
+\end{verbatim}
+Note the use of the back-slash for continuation lines.
+
+
+Perl conditional statements and loops can be used in an indirect way within
+command files. Within a conditional or loop, a string can be generated that
+contains multiple commands; these commands can then be used  as command file statements
+as illustrated in the following example:
+\begin{verbatim}
+if( $nd eq "2" ){  $commands = "plot grid \n plot streamLines \n plot contour";} \
+else{ $commands = "plot grid \n plot contour"; }
+* Now execute the commands 
+$commands
+\end{verbatim}
+Note that multiple commands can be placed in the \$commands perl variable using 
+the newline character `\verb-\n-'.
+
+
+
+\section{ppm2mpeg: Making mpeg movies}\index{making mpeg movies} 
+
+The {\tt plotStuff} post processor can be used to make mpeg movies.  The {\tt
+show movie} command with {\tt save movie files} toggle set ``on'', allows one to
+create a sequence of {\tt ppm} files that can be encoded into an mpeg movie
+using the perl script {\tt Overture/bin/ppm2mpeg}.  This perl script uses {\tt
+mpeg\_encode} which you can download and install from the web. We use version
+{\tt mpeg\_encode-1.5b.tar.gz}.  Note that I had to comment out the body of the
+function {\tt static void pm_perror( reason )} in file {\tt libpnmrw.c } to
+avoid a compile error.
+
+
+You can also make frames for a movie directly in the GUI using the
+Movie dialog from the File menu. This functionality enables you to
+save a specified number of frames while moving the view point from one
+place to another.
+
+You can also make your own {\tt ppm} files by directly calling the {\tt hardCopy}
+function with the {\tt ppm} file option or by using the {\tt Hardcopy}
+to save frames in the ppm format.
+
+
+\section{Creating gif files to add to your www home page}\index{ps2gif}
+
+% AP: ps2gif is not in the $OVERTURE/bin/Makefile
+%
+%{\bf New way:} There is a conversion routine, {\tt Overture/bin/ps2giff}, (which you
+%may have to make by going to the Overture/bin directory and typing
+%"make ps2gif), that can convert a post-script file generated by
+% GIGraphicsInterface into a gif file.
+%
+%{\bf Old way:} 
+To create a {\tt gif} file (that can be included on one's www home
+page) one can first create a {\tt ppm} file by calling the {\tt
+hardCopy} function with the {\tt ppm} file option or by using the {\tt
+Hardcopy} dialog. You then need to convert the {\tt ppm} file to a
+{\tt gif} file. I use the {\tt convert} utility which is now available
+on many machines. In principle you could also convert a postscript
+file to a gif file but this doesn't usually work very well because the
+resolution gets messed up.
+
+\section{ps2ppm: Converting Post-script files to PPM files}\index{ps2ppm}
+
+There is a conversion routine, {\tt Overture/bin/ps2ppm}, (which you
+may have to make by going to the Overture/bin directory and typing
+"make ps2ppm), that can convert a post-script file generated by
+the GenericGraphicsInterface into a raster file (.ppm file). The later can be converted
+to gif using some utility routine. Most conversion routines that I am aware
+of will botch the direct conversion of the postscript file to a gif file.
+   
+\section{Changing the default appearance of the windows}
+
+Default settings for some parameters can be changed throught a file
+named .overturerc in your HOME directory. An example of an
+.overturerc file is
+\begin{verbatim}
+commandwindow*width: 800
+commandwindow*height: 150
+graphicswindow*width:  650
+graphicswindow*height: 500
+backgroundcolour: mediumgoldenrod
+foregroundcolour: steelblue
+\end{verbatim}
+The window sizes is specified in pixels. It is not necessary to
+specify both the width and height, and the default size is obtained
+either by omitting the command completely, or by setting the size to
+-1. The default foreground colour is black and the default background
+colour is white. If you change them, you must use one of the
+following colours:
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+black    &  white     &  red            & blue      &  green   \\ \hline
+orange   &  yellow    &  darkgreen      & seagreen  &  skyblue \\ \hline
+navyblue &  violet    &  pink           & turquoise &  gold    \\ \hline
+coral    &  violetred &  darkturquoise  & steelblue &  orchid  \\ \hline
+salmon   & aquamarine & mediumgoldenrod & wheat     &  khaki   \\ \hline
+maroon   &  slateblue & darkorchid      & plum      &
+\end{tabular}
+\end{center}
+
+
+\section{Examples from PlotIt}
+In figures~\ref{fig:cg}-\ref{fig:timePlot}, we present assorted plots
+generated by PlotIt functions.
+%
+\renewcommand{\figWidth}{.45\linewidth}
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/naca0012.ps,width=\figWidth}
+  \caption{Plot of a 2D CompositeGrid around a NACA0012 airfoil.}
+  \label{fig:cg}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp]
+  \begin{center}
+   \epsfig{file=\figures/sphereInATube.ps,width=\figWidth}
+  \caption{Plot of a 3D CompositeGrid, the sphere-in-a-tube grid.}
+  \label{fig:sphere}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/contour.ps,width=\figWidth}
+  \caption{Contour lines and surface plot of a two dimensional grid function.}
+  \label{fig:contour}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/contourLines.ps,width=\figWidth}
+  \caption{The solution plotted along lines that pass through an overlapping grid (from figure (\protect\ref{fig:contour})). 
+     The solution values are set to the minimum value where the line crosses the hole in the middle of the grid.}
+   \label{fig:contourLines}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/stream_Re2000_t5.ps,width=\figWidth}
+  \caption{Stream lines around a circular cylinder.} \label{fig:streamLines}
+  \label{fig:streamlines}
+  \end{center}
+\end{figure}
+
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/contourPlanes.ps,width=\figWidth}
+  \caption{Contour planes drawn on the sphere-in-a-box grid. The planes cut across the component grids.} 
+  \label{fig:contourPlanes}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/coordinatePlanes.ps,width=\figWidth}
+  \caption{Contour plot of some specified coordinate planes for the sphere-in-a-tube grid. } \label{fig:coordinatePlanes}
+  \label{fig:coordplanes}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/2dCoordinatePlane.ps,width=\figWidth}
+  \caption{Contour plot of a coordinate plane of a 3d grid (for one of the component grids covering the
+     sphere from the sphere-in-a-box grid) projected onto a plane. The different coordinate planes can
+     be selected from the {\tt component} menu option.} \label{fig:2dCoordinatePlane}
+  \label{fig:2dcoordplane}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/streamLines3d.ps,width=\figWidth}
+  \caption{Stream lines in 3D for flow past two spheres, the pressure is plotted on surface of the the spheres.} 
+     \label{fig:streamLines3d}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp] 
+  \begin{center}
+   \epsfig{file=\figures/plotPoints3d.ps,width=\figWidth}
+  \caption{Use the {\tt plotPoints} function to plot points in space and optionally colour each point
+           based on a value.} 
+     \label{fig:plotPoints}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp]
+  \begin{center}
+   \epsfig{file=\figures/linePlot.ps,width=\figWidth}
+  \caption{Line plots can be made with the contour function for 1D grid functions or the plot function for arrays} 
+      \label{fig:linePlot}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hp]
+  \begin{center}
+   \epsfig{file=\figures/timeSequence.ps,width=\figWidth}
+  \caption{A time sequence of line plots.}  
+ \label{fig:timePlot}
+  \end{center}
+\end{figure}
+
+\clearpage % forces placement of all unprocessed figures
+
+% ===========================================================================================
+\vfill\eject
+\section{PlotIt function descriptions}
+
+PlotIt contains a collection of functions for making various high
+level plotting of Overture objects,
+such as contour plots or streamlines. PlotIt does not contain any data
+and all functions are static. Hence, you don't have to create a PlotIt
+object to access these functions. Instead you just prepend the
+function name with ``PlotIt::'' in the calling sequence.
+
+\input PlotItInclude.tex
+
+\vfill\eject
+\section{GenericGraphicsInterface function descriptions}
+
+GenericGraphicsInterface contains functions for handling text IO. For
+example, it knows how to display a text menu and getting a response,
+input and output strings, and how to read and write command files. The
+class GenericGraphicsInterface does not implement any of the plotting
+or graphical user interface (GUI) functions, but it provides pure
+virtual functions to perform such tasks. This enables applications to
+be written independently of the actual graphics and windowing
+system. The class GL\_GraphicsInterface is derived from
+GenericGraphicsInterface and implementes the virtual functions using
+OpenGL and Motif.
+
+The GraphicsInterface object is allocated by the first call to the function
+getGraphicsInterface in the Overture class. There can only be one such
+object and subsequent calls to that function will just return a
+pointer to the original object. Note that you should NOT build your
+own GL\_GraphicsInterface object in your application.
+
+We proceed by describing the functionality provided in GenericGraphicsInterface.
+
+\input GenericGraphicsInterfaceInclude.tex
+\input GL_GraphicsInterfaceInclude.tex
+
+% ===========================================================================================
+\vfill\eject
+\section{GUIState Function Descriptions}
+
+Objects of the class GUIState describe the context and layout of the
+Graphical User Interface (GUI). The GUI can have a popup menu,
+pulldown menus and push buttons in the graphics windows as well as
+several dialog windows. The class GUIState is derived from the class
+DialogData, which handles dialog windows. Each GUIState object has one
+main dialog window, but can also have several sibling dialog
+windows. The sibling windows can, for example, be used when there are
+more options than what fits in the main dialog window.
+
+The GenericGraphicsInterface stores the GUIStates on a stack to help
+support a hierarchical GUI, which is commonly used throughout the
+Overture class library. A hierachical GUI is organized in a tree-like
+structure which can change appearance as commands are given. For
+example, the GUI changes in the grid generator `ogen' when the create
+mappings command is given. When the user is done creating mappings,
+the GUI changes back to the original appearance.
+
+The following example illustrates how the GUIState class can be used.
+\begin{verbatim}
+  ...
+  GenericGraphicsInterface & ps = *Overture::getGraphicsInterface("GUI test program"); 
+  GUIState interface;// create a GUI object
+  interface.setWindowTitle("DIA test dialog"); // window title
+  interface.setExitCommand("exit", "Exit"); // set the exit command  
+
+// specify toggle buttons
+  aString tbCommands[] = {"plot the object and exit", "render directly", ""};
+  aString tbLabels[] = {"Plot and exit", "render directly", ""};
+  int tbState[] = {1,0}; // 1 means on, 0 off
+  interface.setToggleButtons(tbCommands, tbLabels, tbState, 2); // organize in 2 columns
+  
+// first option menu 
+  aString opCommand0[10]; aString opLabel0[10];
+// assign opCommand0 and opLabel0...
+  interface.addOptionMenu( "Mapping to plot", opCommand0, opLabel0, 0);
+
+// make a popup menu
+  aString menu[] = { "!DIA test program", "plot points", "file output", "" };
+  interface.buildPopup(menu);
+
+// make window buttons
+  aString wbuttons[][2] = {{"plot points with colour", "Colour pnt"}, {"", ""}  };
+  interface.setUserButtons(wbuttons);
+
+// make a window pulldown menu
+  aString pulldown[] = {"enter 2D points", ""};
+  interface.setUserMenu(pulldown, "DIA test");
+  
+// bring up the new GUI on the screen and disable any previous GUI
+  ps.pushGUI( interface );
+
+  aString answer;
+  for(;;)
+  {
+    ps.getAnswer(answer, "Dia test>");
+// process answer...
+  }
+// remove the GUI from the screen and restore any previous GUI
+  ps.popGUI();
+\end{verbatim}
+
+\input GUIStateInclude.tex
+
+% ===========================================================================================
+\vfill\eject
+
+\section{DialogData Function Descriptions}
+The class DialogData handles the layout and creation of dialog
+windows. A dialog window can contain push buttons, toggle buttons,
+text labels (for inputting strings), option menus, radio boxes and
+pulldown menus. The pulldown menus can consist of either push buttons
+or toggle buttons.
+\begin{figure}[hp]
+  \begin{center}
+   \epsfig{file=\figures/gui.ps,height=4in}
+  \caption{A dialog window.}  
+ \label{fig:gui}
+  \end{center}
+\end{figure}
+
+DialogData is the base class for GUIState. Objects from
+DialogData can only be made through access 
+functions in the GUIState class. 
+
+The widgets in the DialogData class are handled by small classes that
+only provide some basic functionality, typically for setting the
+sensitivity or the state of the widget. These classes are described in
+sections~\ref{sec:push-button}-\ref{sec:pull-down}. We mention in
+passing that a widget is insensitive when it is grayed out and cannot
+be interacted with. The state of a ToggleButton determines whether a
+checkmark is drawn in the square to the left of the ToggleButton.
+
+The following example shows how to set up the main dialog window in 
+a GUIState object as well as initiating one sibling window.
+\begin{verbatim}
+  ... 
+  GenericGraphicsInterface & ps = *Overture::getGraphicsInterface("GUI test program"); 
+  GUIState interface;// create a GUI object
+  interface.setWindowTitle("DIA test dialog"); // window title
+  interface.setExitCommand("exit", "Exit"); // set the exit command  
+
+// specify toggle buttons in the main dialog window
+  aString tbCommands[] = {"plot the object and exit", "render directly", "show sibling 1", ""};
+  aString tbLabels[] = {"Plot and exit", "render directly", "more options", ""};
+  int tbState[] = {1, 0, 0}; // initial state of the toggle buttons
+  int siblingToggle=2;  // remember the index of the sibling toggle button
+  interface.setToggleButtons(tbCommands, tbLabels, tbState, 2); // organize in 2 columns
+
+// Set up the popup menu, the pulldown menu, push buttons and the rest
+// of the main dialog window...
+  
+// make a dialog sibling
+  DialogData &ds = interface.getDialogSibling();
+  ds.setWindowTitle("Sibling 1"); // Sibling window title
+  ds.setExitCommand("close sibling 1", "Close"); // Sibling exit command 
+// define push buttons in the Sibling window
+  aString pbCommands[] = {"clear points", "spline", ""};
+  aString pbLabels[] = {"clear points", "Spline", ""};
+  ds.setPushButtons( pbCommands, pbLabels, 1 ); // organize buttons in 1 row
+
+// bring up the interface on the screen. The sibling will be hidden initially.
+  ps.pushGUI( interface );
+
+  aString answer;
+  for(;;){
+    ps.getAnswer(answer, "Sibling test");
+    if (answer(0,13) == "show sibling 1"){
+      int onOff=1;
+      sScanF(&answer[14],"%i", &onOff); // read the toggle state
+      if (onOff)
+        ds.showSibling(); // show the sibling
+      else
+        ds.hideSibling(); // hide the sibling
+    }
+    else if (answer == "close sibling 1"){
+      ds.hideSibling(); // hide the sibling
+// unset the toggle button on the main dialog
+      interface.setToggleState( siblingToggle , 0);
+    }
+// parse all other commands...
+  }
+  ps.popGUI();
+\end{verbatim}
+
+\input DialogDataInclude.tex
+
+% ===========================================================================================
+\vfill\eject
+
+\section{Helper classes for the widgets in a dialog window}
+\subsection{The PushButton Class} \label{sec:push-button}
+\begin{verbatim}
+struct PushButton
+{
+// buttonCommand holds the name of the command and 
+// buttonLabel holds the label that will appear on the button.
+  PushButton(){pb=NULL;sensitive=true;} 
+  void setSensitive(bool trueOrFalse);  
+
+  aString buttonCommand;
+  aString buttonLabel;
+  bool sensitive;
+  void *pb; // widget
+};
+\end{verbatim}
+\input PushButtonInclude.tex
+
+\subsection{The ToggleButton Class}
+\begin{verbatim}
+struct ToggleButton
+{
+  ToggleButton(){tb=NULL;sensitive=true;} 
+  int setState(bool trueOrFalse ); 
+  void setSensitive(bool trueOrFalse);  
+
+// buttonCommand holds the name of the command and 
+// buttonLabel holds the label that will appear on the button.
+  aString buttonCommand;
+  aString buttonLabel;
+  int state;
+  bool sensitive;      
+  void *tb; // widget
+};
+\end{verbatim}
+\input ToggleButtonInclude.tex
+
+\subsection{The TextLabel Class}
+\begin{verbatim}
+struct TextLabel
+{
+// textCommand holds the name of the command and 
+// textLabel holds the label that will appear in front of the editable text.
+// string holds the editable string.
+// textWidget holds a pointer to the editable text widget, which makes it possible to change the text
+// without typing in the dialog window. This might be useful for correcting typos, for example.
+  TextLabel(){textWidget=NULL;sensitive=true; labelWidget=NULL;} // *wdh*
+  void setSensitive(bool trueOrFalse);  // *wdh*
+
+  aString textCommand;
+  aString textLabel;
+  aString string;
+  bool sensitive;      // *wdh*
+  void *textWidget; // Widget
+  void *labelWidget; // Widget
+};
+\end{verbatim}
+\input TextLabelInclude.tex
+
+\subsection{The OptionMenu Class}
+\begin{verbatim}
+struct OptionMenu
+{
+  OptionMenu(){menupane=NULL;sensitive=true; menuframe=NULL;}
+  int setCurrentChoice(int command);
+  void setSensitive(bool trueOrFalse);
+
+  aString optionLabel;
+  int n_options;
+  PushButton *optionList;
+  aString currentChoice;
+  bool sensitive;     
+  void *menupane; // widget
+  void *menuframe; // widget
+};
+\end{verbatim}
+\input OptionMenuInclude.tex
+
+\subsection{The RadioBox Class}
+\begin{verbatim}
+class RadioBox
+{
+public:
+  RadioBox(){sensitive=true; radioBox=NULL; columns=1;} 
+  bool setCurrentChoice(int command);          
+  void setSensitive(bool trueOrFalse); // set the sensitivity of the entire radio box widget
+  void setSensitive(int btn, bool trueOrFalse);  // set the sensitivity of one toggle button 
+
+  aString radioLabel;
+  int n_options;
+  ToggleButton *optionList;
+  aString currentChoice;
+  int currentIndex;
+  bool sensitive;
+  int columns;
+  void *radioBox; // widget
+};
+\end{verbatim}
+\input RadioBoxInclude.tex
+
+\subsection{The PullDownMenu Class}\label{sec:pull-down}
+\begin{verbatim}
+class PullDownMenu
+{
+public:
+PullDownMenu(){menupane=NULL;sensitive=true;n_button=0;} // default constructor
+// set all fields except the menupane in a PullDownMenu
+int setPullDownMenu(const aString &pdMainLabel, aString commands[], aString labels[], button_type bt, 
+		    int *initState /* = NULL */); 
+// set the state of a toggle button
+int setToggleState(int n, bool trueOrFalse ); // *wdh*
+void setSensitive(bool trueOrFalse);  // *wdh*
+
+aString menuTitle;
+int n_button;
+button_type type;
+PushButton *pbList;
+ToggleButton *tbList;
+bool sensitive;      // *wdh*
+void *menupane; // widget
+};
+\end{verbatim}
+\input PullDownMenuInclude.tex
+
+% ===========================================================================================
+\vfill\eject
+\section{Setting Parameters: \Index{GraphicsParameters}} 
+\label{sec:GraphicsParameters}
+\index{graphics parameters}
+
+Optional parameters can be passed to the various plotting functions by
+using the GraphicsParameters Class. These parameters can be used to
+set titles on the plots, or to turn off the plotting of the axes, for
+example. To pass optional parameters you create an object of type
+GraphicsParameters, set parameter values for this object and then pass
+the object to the plotting function.  Here is an example of setting
+the title on a contour plot and turning off the plotting of the colour
+bar:
+
+%
+{\footnotesize\begin{verbatim}
+  ...
+  GenericGraphicsInterface & ps = *Overture::getGraphicsInterface(); 
+  GraphicsParameters gp; // create an object that is used to pass parameters
+
+  gp.set(GI_TOP_LABEL,"My Title");   // Set the title
+  gp.set(GI_PLOT_COLOUR_BAR,FALSE);  // Do not plot the colour bar
+  PlotIt::contour(ps, u, gp);        // plot contours and pass parameters
+  ...
+\end{verbatim}
+}
+%
+Observe that the GraphicsParameters object, {\ff gp}, will be changed within {\ff contour}
+if parameters are changed interactively in the contour window.  This means that you can
+set parameters interactively the first time you call a plotting function and then on
+subsequent calls the parameters will be remembered. A list of all variables that can be
+set is given in section~\protect\ref{sec:list-of-parameters}.
+
+NOTE: There used to be a derived class called PlotStuffParameters,
+which provided alternative ways to access the information in the
+GraphicsParameters class. This is no longer the case and all new
+development should use the class GraphicsParameters. To ensure
+backwards compatibility, a typedef is supplied in the include file
+PlotStuffParameters.h that defines the name PlotStuffParameters to be
+equivalent to GraphicsParameters.
+
+Also note that the parameter GI\_PLOT\_THE\_AXES has been removed
+completely. To turn on or off the axes, you instead call the routine
+setPlotTheAxes in the GenericGraphicsInterface class.
+
+The class GraphicsParameters contains the following member functions:
+
+\input GraphicsParametersInclude.tex
+
+\section{List of parameters in GraphicsParameters}\label{sec:list-of-parameters}
+Here is a list of the various parameters that can be set in the class
+GraphicsParameters. Note that there used to be aliases for some of
+these names in the class PlotStuffParameters. In particular, the name
+PS\_TOP\_LABEL was an alias for GI\_TOP\_LABEL. 
+\vspace{2\baselineskip}
+\tablecaption{Graphics Parameter Options}
+\tablefirsthead{\hline}
+\tablehead{\multicolumn{2}{l}{continued from previous page}\\ 
+          \hline option name  &      value to supply \\ \hline}
+\tabletail{\hline}
+\begin{supertabular}{|l|l|}
+\hline
+ option name  &      value to supply \\
+\hline
+ GI\_AXES\_ORIGIN                           &  realArray axesOrigin(0:2) \\
+ GI\_BACK\_GROUND\_GRID\_FOR\_STREAM\_LINES &  intArray dimension(0:1)  \\
+ GI\_BLOCK\_BOUNDARY\_COLOUR\_OPTION               & enum ColourOptions \\
+ GI\_BOUNDARY\_COLOUR\_OPTION               & enum ColourOptions \\
+ GI\_BOTTOM\_LABEL                               &  String or character array   \\
+ GI\_BOTTOM\_LABEL\_SUP\_1                       &  String or character array   \\
+ GI\_BOTTOM\_LABEL\_SUP\_2                       &  String or character array   \\
+ GI\_BOTTOM\_LABEL\_SUP\_3                       &  String or character array   \\
+ GI\_COLOUR\_INTERPOLATION\_POINTS               &  bool, TRUE or FALSE  \\
+ GI\_COLOUR\_LINE\_CONTOURS                      &  bool, TRUE or FALSE  \\
+ GI\_CONTOUR\_ON\_GRID\_FACE                     & intArray cgf(0:1,0:2,0:?) \\
+ GI\_CONTOUR\_SURFACE\_VERTICAL\_SCALE\_FACTOR   & real \\
+ GI\_CONTOUR3D\_MIN\_MAX\_OPTION                & enum Contour3dMinMaxEnum \\
+ GI\_COLOUR\_TABLE                          &  enum ColourTables \\
+ GI\_COMPONENT\_FOR\_CONTOURS               &  int   \\
+ GI\_COMPONENT\_FOR\_SURFACE\_CONTOURS      &  int   \\
+ GI\_COMPONENTS\_TO\_PLOT                   &  intArray \\
+ GI\_CONTOUR\_LEVELS                        &  realArray \\
+ GI\_COORDINATE\_PLANES                     &  IntegerArray \\
+ GI\_GRID\_COORDINATE\_PLANES                     &  IntegerArray \\
+ GI\_GRID\_LINE\_COLOUR\_OPTION             & enum ColourOptions \\
+ GI\_GRIDS\_TO\_PLOT                        &  boolArray grids(0:?)  \\
+ GI\_HARD\_COPY\_TYPE                       &  HardCopyType \\
+ GI\_ISO\_SURFACE\_VALUES                   &  realArray \\
+ GI\_KEEP\_ASPECT\_RATIO                    & bool \\
+ GI\_LABEL\_GRIDS\_AND\_BOUNDARIES               &  bool \\
+ GI\_LINE\_COLOUR                           &  String or character array   \\
+ GI\_MAPPING\_COLOUR                        &  String or character array   \\
+ GI\_MAPPING\_OFFSET                        &  real (default=-3)\\
+ GI\_MINIMUM\_CONTOUR\_SPACING              &  real \\
+ GI\_MIN\_AND\_MAX\_CONTOUR\_LEVELS         &  realArray \\
+ GI\_MIN\_AND\_MAX\_STREAM\_LINES           &  realArray minMax(0:1) \\
+ GI\_MULTIGRID\_LEVEL\_TO\_PLOT             & int \\ 
+ GI\_NORMAL\_AXIS\_FOR\_2D\_CONTOURS--      & int (0,1, or 2) \\
+ \hspace{4cm}\_ON\_COORDINATE\_PLANES            & \\
+ GI\_NUMBER\_OF\_CONTOUR\_LEVELS            &  int    \\
+ GI\_NUMBER\_OF\_GHOST\_LINES\_TO\_PLOT     &  int \\
+ GI\_REFINEMENT\_LEVEL\_TO\_PLOT            & int \\ 
+ GI\_OUTPUT\_FORMAT                         & OutputFormat \\
+ GI\_PLOT\_2D\_CONTOURS\_ON\_COORDINATE\_PLANES  & bool \\
+ GI\_PLOT\_BACKUP\_INTERPOLATION\_POINTS         & bool \\
+ GI\_PLOT\_BLOCK\_BOUNDARIES                     & bool \\
+ GI\_PLOT\_GRID\_BOUNDARIES\_ON\_CONTOUR\_PLOTS  & bool \\
+ GI\_PLOT\_COLOUR\_BAR                           &  bool  \\
+ GI\_PLOT\_CONTOUR\_LINES                        &  bool  \\
+ GI\_PLOT\_GRID\_LINES                           & bit mask \\
+ GI\_PLOT\_LABELS                                & bool \\
+ GI\_PLOT\_LINES\_ON\_GRID\_BOUNDARIES           & bool \\
+ GI\_PLOT\_LINES\_ON\_MAPPING\_BOUNDARIES        & bool \\
+ GI\_PLOT\_GRID\_POINTS\_ON\_CURVES              & bool \\
+ GI\_PLOT\_END\_POINTS\_ON\_CURVES              & bool \\
+ GI\_PLOT\_INTERPOLATION\_POINTS                 &  bool  \\
+ GI\_PLOT\_THE\_OBJECT\_AND\_EXIT                &  bool  \\
+ GI\_PLOT\_REFINEMENT\_GRIDS                     & bool \\
+ GI\_PLOT\_SHADED\_MAPPING\_BOUNDARIES               & bool \\
+ GI\_PLOT\_SHADED\_SURFACE                       &  bool  \\
+ GI\_PLOT\_SHADED\_SURFACE \_GRIDS               &  bool  \\
+ GI\_PLOT\_THE\_OBJECT                           &  bool  \\
+ GI\_PLOT\_WIRE\_FRAME                           &  bool  \\
+ GI\_POINT\_COLOUR                          & String \\
+ GI\_POINT\_SIZE                            & real   \\
+ GI\_POINT\_SYMBOL                          & int    \\
+ GI\_PLOT\_BOUNDS                           &  realArray bounds(0:1,0:2)  \\
+ GI\_USE\_PLOT\_BOUNDS,                          &  bool \\
+ GI\_USE\_PLOT\_BOUNDS\_OR\_LARGER,              &  bool \\
+ GI\_RASTER\_RESOLUTION                     & int \\
+ GI\_STREAM\_LINE\_TOLERANCE                & real \\
+ GI\_U\_COMPONENT\_FOR\_STREAM\_LINES       &  int   \\
+ GI\_V\_COMPONENT\_FOR\_STREAM\_LINES       &  int   \\
+ GI\_TOP\_LABEL                                  &  String or character array  \\
+ GI\_TOP\_LABEL\_SUB\_1                          &  String or character array  \\
+ GI\_TOP\_LABEL\_SUB\_2                          &  String or character array  \\
+ GI\_TOP\_LABEL\_SUB\_3                          &  String or character array  \\
+ GI\_X\_SCALE\_FACTOR                        & real \\
+ GI\_Y\_SCALE\_FACTOR                        & real \\
+ GI\_Z\_SCALE\_FACTOR                        & real \\
+ GI\_Y\_LEVEL\_FOR\_1D\_GRIDS                & real \\
+ GI\_Z\_LEVEL\_FOR\_2D\_GRIDS                & real \\
+
+\end{supertabular}
+
+\vspace{2\baselineskip}
+Here are explanations of some of the less obvious options:
+\begin{itemize}
+ \item {\bf GI\_PLOT\_GRID\_LINES:} Set to 1 to turn on grid lines in 2D, set to 2 to turn
+    on grid lines in 3D (set to 1+2=3 to turn on grid lines in 2D and 3D).
+ \item {\bf GI\_PLOT\_THE\_OBJECT\_AND\_EXIT:} Plot the object and exit without
+   staying in the local menu. 
+ \item {\bf GI\_CONTOUR\_ON\_GRID\_FACE:}  Supply an {\tt intArray cgf(0:1,0:2,0:numberOfGrids-1)}
+    with {\tt cgf(side,axis,grid)=TRUE} if 3D contours should be plotted on that face of the grid.
+ \item{\bf  GI\_PLOT\_SHADED\_SURFACE:} plot shaded surfaces on Mappings.
+ \item{\bf  GI\_PLOT\_SHADED\_SURFACE\_GRIDS:} plot shaded surfaces on grids.
+ \item {\bf GI\_MINIMUM\_CONTOUR\_SPACING:} Force the contour spacing
+  to be larger than this amount. This option is useful when the solution is
+  nearly constant except for small variations caused by round-off errors, and
+  you do not want to see the small variaions. 
+ \item {\bf GI\_PLOT\_BOUNDS:} Set the plot bounds to be used. The plot bounds
+   are set equal to the given realArray ``bounds(0:1,0:2)''. One must also set
+   GI\_USE\_PLOT\_BOUNDS to TRUE if you want these bounds to be used.
+ \item {\bf GI\_USE\_PLOT\_BOUNDS:} Use the current plot bounds found with the
+    GraphicsParameters object.
+ \item {\bf GI\_USE\_PLOT\_BOUNDS\_OR\_LARGER:} Use plot bounds that are least as
+  large as the current plot bounds -- increase the plot bounds if the current object
+  requires it.
+ \item {\bf GI\_CONTOUR\_LEVELS:} Specify the contour levels in an array. Levels
+  should be in increasing order. The dimension of the array determines the number of levels.
+  If the array is a null array, the number of contour levels is reset to the default value.
+ \item{\bf GI\_COMPONENTS\_TO\_PLOT} Specify which components to plot for 1D contour plots.
+ \item{\bf GI\_COLOUR\_TABLE} The available \Index{colour tables} are defined in the enum 
+    {\tt ColourTables} found in the class {\tt GraphicsParameters}:
+\begin{verbatim}
+  enum ColourTables
+  {
+    rainbow,
+    gray,
+    red,
+    green,
+    blue,
+    userDefined,
+    numberOfColourTables
+  } colourTable;
+\end{verbatim}
+ \item{\bf GI\_COORDINATE\_PLANES} Specify the coordinate planes to plot contours on. The given array should be
+    dimensioned, {\tt IntegerArray coordinatePlane(3,numberOfCoordinatePlanes)} where
+\begin{verbatim}
+  coordinatePlane(0,plane) = grid number
+  coordinatePlane(1,plane) = coordinate axis (0,1,2)
+  coordinatePlane(2,plane) = grid index number 
+\end{verbatim}
+
+ \item{\bf GI\_GRID\_COORDINATE\_PLANES} Specify the coordinate planes to plot grid lines on. The given array should be
+    dimensioned, {\tt IntegerArray coordinatePlane(3,numberOfCoordinatePlanes)} where
+\begin{verbatim}
+  gridCoordinatePlane(0,plane) = grid number
+  gridCoordinatePlane(1,plane) = coordinate axis (0,1,2)
+  gridCoordinatePlane(2,plane) = grid index number 
+\end{verbatim}
+
+ \item{\bf GI\_GRID\_LINE\_COLOUR\_OPTION} The available colour schemes are defined in the enum 
+    {\tt ColourOptions} found in the class {\tt GraphicsParameters}:
+\begin{verbatim}
+  enum ColourOptions  // options for colouring boundaries, grids lines and block boundaries
+  { 
+    defaultColour,   // default 
+    colourByGrid,
+    colourByRefinementLevel,
+    colourByBoundaryCondition,
+    colourByShare,
+    colourByValue,
+    colourBlack
+  };
+\end{verbatim}
+
+ \item{\bf GI\_HARD\_COPY\_TYPE} Specify the file type, postScript, encapsulated postScript,
+      or ppm, to be saved in a call
+    to the {\tt hardCopy} function. The enum HardCopy type defines the types:
+\begin{verbatim}
+  enum HardCopyType
+  {
+    postScript,
+    encapsulatedPostScript,
+    ppm           // portable pixmap format (P6 binary format)
+  };
+\end{verbatim}
+ \item{\bf GI\_MAPPING\_OFFSET} By default the mapping is offset by -3 ``units'' behind
+   grid lines (so the grid lines appear correctly on the surface). You can change this value
+   in order to plot two mapping surfaces that are right on top of one another. 
+ \item{\bf GI\_MIN\_AND\_MAX\_STREAM\_LINES} Supply a {\tt realArray minMax(0:1)} to
+    indicate the the minimum ({\tt minMax(0)}) and maximum ({\tt minMax(1)}) values for the
+    speed, $\sqrt{u^2+v^2}$, of the stream lines. These values are only used to determine
+    how the stream lines are coloured. Specifying a minimum value greater than the maximum
+    value will reset all values to the default.
+ \item{\bf GI\_OUTPUT\_FORMAT} Set the output format for files saved with a call to the
+   {\tt hardCopy} function. The choices can be taken from the enum OutputFormat:
+\begin{verbatim}
+  enum OutputFormat   // formats for outputing postscript files
+  {
+    colour8Bit,       // compressed colour file with 225 colours
+    colour24Bit,      // 24 bits of colour (2^24 colours)
+    blackAndWhite,    // black and white
+    grayScale         // 8 bit gray scale (2^8 shades of gray)
+  };
+\end{verbatim}
+   The default is {\tt colour8Bit} which results in a much smaller postscript file than {\tt colour24Bit}.
+ \item{\bf GI\_RASTER\_RESOLUTION} Set the raster resolution for files saved with a call to the
+   {\tt hardCopy} function. This resolution is by default 1024 (ie. the figure saved is
+   rendered as $1024\times 1024$ pixels. Setting the resolution to 0 (zero) will cause the highest
+   resolution available to be used. Mesa can be compiled with increased resolution by changing 
+   the macros {\tt MAX\_WIDTH} and {\tt MAX\_HEIGHT} in the file {\tt ``Mesa''/src/config.h}.
+   I change both these values to 2048, for example.\index{hard copy resolution}\index{Mesa!increasing resolution}
+ \item{\bf GI\_[X/Y/Z]\_SCALE\_FACTOR:} scale the plots by this factor in the [x/y/z]-direction. This can be used
+   to change the aspect ratio of the plot (if plotting a very ``thin'' geometry, for example).
+\end{itemize}
+
+\section{Writing your own plotting routines with \Index{OpenGL}}
+
+You can easily write your own plotting routines if you know OpenGL.
+Take a look at the source code for the grid plotter or contour
+plotter for some examples.
+
+OpenGL is a widely available package for three dimensional plotting.
+Versions of OpenGL exist for almost all workstations and PC's.
+Currently on Sun worktstations, we use both the (faster) native OpenGL
+library and Brian Paul's Mesa library --
+a public domain implementation of OpengL that runs under X windows.
+See the OpenGL site on the WWW for further details, 
+{\ff http://www.sgi.com/Technology/openGL}. \index{Mesa!web site}
+OpenGl is described
+in  the {\ff OpenGL Programming Guide} and the {\ff OpenGL Reference
+Manual}, published by Addison Wesley.
+
+
+Here is an example section of code that shows how the colour bar
+is drawn.
+{\footnotesize\begin{verbatim}
+      if( plotColourBar )
+      {
+        // ==========Draw the colour Bar==================
+        glPolygonMode(GL_FRONT_AND_BACK,GL_FILL); // filled polygons
+        glShadeModel(GL_SMOOTH);                  // interpolate colours between vertices
+
+        // The colour bar is drawn in a way that is unaffected by rotations and scalings 
+        setNormalizedCoordinates();               // sets view to bounds [-1,1]x[-1,1]
+
+        const int numberOfIntervals=50;
+        real xLeft=.8, xRight=.85;                // place the bar down the right side
+        real yBottom=-.75, yTop=.75,y;
+        glBegin(GL_QUAD_STRIP);                   // begin drawing a ``quad-strip''
+        for( int i=0; i<numberOfIntervals; i++ )
+        {
+          y=yBottom+i*(yTop-yBottom)/(numberOfIntervals-1);
+          // the next routine chooses a colour from a colour table. It then calls glColor3f(red,green,blue)
+          setColourFromTable((y-yBottom)/(yTop-yBottom));    
+          glVertex2f(xLeft ,y);
+          glVertex2f(xRight,y);
+        }
+        glEnd();                                  // end quad-strip colour bar
+        // ---label colour bar---
+        int numberOfLabels=numberOfContourLevels;
+        glColor3f(0.,0.,0.);  // label colour is black
+        real size=.01;
+        for( i=0; i<numberOfLabels; i++ )
+        {
+          y=yBottom+i*(yTop-yBottom)/(numberOfLabels-1);
+          real alpha=(y-yBottom)/(yTop-yBottom);
+          if( max(fabs(uMax),fabs(uMin)) < 10. )
+            label(sprintf(buff," %6.3f",uMin+alpha*(uMax-uMin)),xRight,y,size,-1);  // flush left
+          else if( max(fabs(uMax),fabs(uMin)) < 100. )
+            label(sprintf(buff," %7.2f",uMin+alpha*(uMax-uMin)),xRight,y,size,-1);  // flush left
+          else
+            label(sprintf(buff," %6e",uMin+alpha*(uMax-uMin)),xRight,y,size,-1);  // flush left
+        }
+        // ---draw lines on colour bar corresponding to the contour levels
+        glBegin(GL_LINES);
+        for( i=0; i<numberOfContourLevels; i++ )
+        {
+          y=yBottom+i*(yTop-yBottom)/(numberOfContourLevels-1);
+          glVertex3f(xLeft ,y,.1);  // raise the lines so we see them
+          glVertex3f(xRight,y,.1);
+        }
+        glEnd();
+      
+        unsetNormalizedCoordinates();
+      }
+\end{verbatim}
+}
+
+
+\vfill\eject
+\section{Using the \Index{NameList} Class for interactively changing parameters}
+
+This class defines routines for inputing parameters by name
+in a similar fashion to the namelist facility in Fortran.
+
+Suppose that an application has a list of variables that can
+be changed by the user. Also suppose that the variables have
+default values so that the user may only want to selectively
+change the values of some variables.
+Then when the code is run the user would like to input changes
+to the parameters by name such as by typing
+{\footnotesize
+\begin{verbatim}
+cfl=.75
+machNumber=.2
+boundaryCondition(0,1)=slipWall
+\end{verbatim}
+}
+
+Here is a program that demonstrates how an application could prompt for changes using the
+NameList class:
+
+{\footnotesize
+\listinginput[1]{1}{\ogshow/nl.C}
+}
+
+Here is some possible input when this program is run
+{\footnotesize
+\begin{verbatim}
+a=3.
+itest=2
+array(2)=7
+matrix(2,3,1)=8
+num(0,1)=one
+c(2,2)=6
+d(1,2,1,2)=3
+n(two)=55
+\end{verbatim}
+}
+Note that ``c'' style arrays are assigned with ``()'' rather than ``[]''
+
+\subsection{NameList Function definitions}
+\input NameListInclude.tex
+
+\printindex
+\end{document}

@@ -1,0 +1,639 @@
+A++ Internal_Index bounds checking: ON 
+Successfully opened /home/henshaw/.overturerc for reading
+ ------------------------------------------------------------ 
+ Test routine for the multigrid solver Ogmg                   
+ ------------------------------------------------------------ 
+User commands are being saved in the file [ogmg.cmd]
+ ps.graphicsIsOn()=1 isGraphicsWindowOpen()=0
+read command file = tz
+# ===========================================================================
+#   TZ tests for ogmg:
+# Usage:
+#
+#  ogmgt tz -g=<name> -maxit=<num> -sm=[rb|rbj|lz1|lz2|lz3|j|alj|alz] -ibs=[0|1] -nibs=<> -ils=<> -iml=<>
+#           -ins=<> -bls=<> -bli= -bll= -fmg=[0|1] -opav=[0|1|2] -autoSmooth=[0|1]
+#           -option=[solve|sm|fc|cf|bc|cg] -lb=[kh|all] -levels=<num> -ssr=[0|1] -mii=<> -cycle=[V|W|F] -nsm="n m"
+#           -eqn=[lap|dsg|heat] -predefined=[0|1] -autoChoose=[0|1|2] -tz=[poly|trig] -ic=[0|1] -scg=[0|1]
+#           -cgSolver=[best|yale] -bcOrder4=[eqn|extrap] -matlab=[0|1] -omegaz=<> -rtol=<> -etol=<> -rtolcg=<>
+#           -conv=[residual|errEst|old] -rb=[new|old] -ilu=[0|1|2...] -iluFill=<>
+#
+#   -nibs = IBS: number of global smoothing iterations
+#   -ils = IBS: number of interpolation layers to smooth
+#   -iml = IBS: number of MG levels to apply IBS smoothing
+#   -ins = IBS: number of smooth iterations
+#   -bls, -bli, -bll = boundary smoothing: number of boundary layers to smooth, number of iterations, number of levels
+#   -lb = load balancer
+#   -levels = maximum number of levels
+#   -ssr = show smoothing rates
+#   -mii = max iterations for interpolation
+#   -cycle = V, W or F
+#   -nsm = number of pre and post smooths, e.g. -nsm="2 1"
+#   -opav : operator averaging, 0=none, 1=all grids, 2=only average Cartesian grids (for 4th-order)
+#   -autoSmooth : 0= turn off auto sub smooth determination, i.e. fix number of sub-smooths
+#   -option : test different parts of the MG solver, sm=smoother, fc=fine-to-coarse, cf=coarse-to-fine,
+#   -autoChoose : 0=OFF, 1= automatically choose good parameters (smoothers, etc.), 2=choose more robust params
+#   -ic : 1=start with exact initial conditions
+#   -scg : 1 = solve coarse grid equations with the smoother
+#   -cgsi : number of iterations to use when smoothing the coarse grid equations
+#   -matlab=1 : save a matlab file for plotting convergence rates
+#   -rtolcg : coarse grid convergence tolerance
+#   -ilucg : coarse grid solve ILU levels
+#   -iluFill : expected fill in for coarse grid ILU pre-conditionner.
+#   -bcOrder4 : 4th order BC's : use-equation or extrapolate to get extra conditions
+#   -conv=[residual|errEst|old] : set the convergence criteria
+#
+# Examples (See also tz.tests for a more extensive list of examples)
+#  ogmgt tz -noplot -g=square16.order2 -debug=3  [ ECR=0.419
+#  ogmgt tz -noplot -g=cic.bbmg -debug=3  [ ECR=0.667
+#  ogmgt tz -g=cic.bbmg4 -maxit=8
+#  ogmgt tz -noplot -g=cic.bbmg -debug=7
+#  ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -debug=3 [ECR=.569
+#  ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -autoChoose=1 -debug=3 [ECR=.608
+#
+#
+# ===========================================================================
+#
+# Set default parameters:
+#
+$grid="cic.bbmg6.hdf"; $maxit=10; $debug=3; $sm="rb"; $fmg=0; $opav=1; $option="solve"; $cfw=2; $omega=-1.; $omegaz=-1.; $ic=0;
+$ibs=1;$nibs=2; $ils=0; $iml=1; $ins=2;
+$bls=0; $bli=5; $bll=1;
+$bsmooth="smoother(0)=rb"; $bsm=""; $autoSmooth=1; $conv="residual";  $rb="new";
+$maxInterpIts=3; $lb="kh"; $ssr=0; $cycle="V"; $nsm="1 1"; $autoChoose=0; $matlab=0;
+$rtol=1.e-14; $atol=1.e-10; $etol=1.e-12;
+$rtolcg=1.e-3; $atolcg=1.e-14;  $ilucg=1; $iluFill=3.;
+$predefined=1;  $cgSolver="best"; $ogesDebug=0;
+$eqn=lap; $tz="trig"; $bcOrder4=""; $fx=1.; $fy=1.; $fz=1.;
+$bc1=""; $bc2=""; $bc3=""; $bc4="";  $bc5=""; $bc6=""; $bc7=""; $bc8="";
+$solveCoarseGridBySmoother=0; $cgsi=10; $projectSingular=1; $adjustSingularEquations=0;
+#
+# ----------------------------- get command line arguments ---------------------------------------
+GetOptions( "g=s"=>\$grid,"maxit=i"=>\$maxit,"debug=i"=>\$debug,"sm=s"=>\$sm,"bsm=s"=>\$bsm,"ic=i"=>\$ic,            "fmg=i"=>\$fmg,"opav=i"=>\$opav,"rtol=f"=>\$rtol,"atol=f"=>\$atol,"option=s"=>\$option,"lb=s"=>\$lb,            "ssr=i"=>\$ssr,"mii=i"=>\$maxInterpIts,"cycle=s"=>\$cycle,"nsm=s"=>\$nsm,"bc=s"=>\$bc,"conv=s"=>\$conv,            "ibs=i"=>\$ibs,"nibs=i"=>\$nibs,"ils=i"=>\$ils,"iml=i"=>\$iml,"ins=i"=>\$ins,"cfw=i"=>\$cfw,            "bls=i"=>\$bls,"bli=i"=>\$bli,"bll=i"=>\$bll,"autoSmooth=i"=>\$autoSmooth,"omega=f"=>\$omega,"omegaz=f"=>\$omegaz,            "eqn=s"=>\$eqn,"predefined=i"=>\$predefined,"tz=s"=>\$tz,"cgSolver=s"=>\$cgSolver,"etol=f"=>\$etol,            "ogesDebug=i"=>\$ogesDebug,"autoChoose=i"=>\$autoChoose,"bcOrder4=s"=>\$bcOrder4,"matlab=i"=>\$matlab,            "fx=f"=>\$fx,"fy=f"=>\$fy,"fz=f"=>\$fz,"rtolcg=f"=>\$rtolcg,"atolcg=f"=>\$atolcg,"scg=i"=>\$solveCoarseGridBySmoother,            "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,            "bc7=s"=>\$bc7,"bc8=s"=>\$bc8,"rb=s"=>\$rb,"cgsi=i"=>\$cgsi,"projectSingular=i"=>\$projectSingular,            "adjustSingularEquations=i"=>\$adjustSingularEquations,"ilucg=i"=>\$ilucg,"iluFill=f"=>\$iluFill );
+# -------------------------------------------------------------------------------------------------
+$grid
+OvertureParser::result = [box256.order4]
+Searching for grids in locations specified by the `OvertureGridDirectories' environment variable
+look for /home/henshaw.0/Overture/ogen/box256.order4 
+ ***** Mounting file /home/henshaw.0/Overture/ogen/box256.order4.hdf****
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=box256.order4
+Time to read in the grid is 4.46e-02(s)
+ ===>Before mgSolver.updateToMatchGrid(cg) my total =  71.5 M,  memory per-processor: [min,max]=[82.3828,82.3828] Mb 
+
+if( $eqn eq "lap" && $predefined eq 1 ){ $eqn = "laplace (predefined)"; }
+if( $eqn eq "dsg" && $predefined eq 1 ){ $eqn = "divScalarGrad (predefined)"; }
+if( $eqn eq "heat" && $predefined eq 1 ){ $eqn = "heat equation (predefined)"; }
+if( $eqn eq "lap" && $predefined eq 0 ){ $eqn = "laplace"; }
+if( $eqn eq "dsg" && $predefined eq 0 ){ $eqn = "divScalarGrad"; }
+if( $eqn eq "heat" && $predefined eq 0 ){ $eqn = "heat equation"; }
+#
+if( $cgSolver eq "best" ){ $cgSolver="choose best iterative solver"; }
+if( $ssr eq 1 ){ $ssr="show smoothing rates"; }else{ $ssr="#"; }
+if( $option eq "solve" ){ $option="solve"; }
+if( $option eq "sm" ){ $option="test smoother"; $bsmooth="#"; }
+if( $option eq "cf" ){ $option="test coarse to fine"; }
+if( $option eq "fc" ){ $option="test fine to coarse"; }
+if( $option eq "bc" ){ $option="test bc"; }
+if( $option eq "cg" ){ $option="test coarse grid solver"; }
+if( $sm eq "rb" ){ $smooth="red black"; }
+if( $sm eq "rbj" ){ $smooth="red black jacobi"; $bsmooth="#"; }
+if( $sm eq "j" ){ $smooth="jacobi"; }
+if( $sm eq "lz1" ){ $smooth="line zebra direction 1"; }
+if( $sm eq "lz2" ){ $smooth="line zebra direction 2"; }
+if( $sm eq "lz3" ){ $smooth="line zebra direction 3"; }
+if( $sm eq "lj1" ){ $smooth="line jacobi direction 1"; }
+if( $sm eq "lj2" ){ $smooth="line jacobi direction 2"; }
+if( $sm eq "lj3" ){ $smooth="line jacobi direction 3"; }
+if( $sm eq "al" ){ $smooth="alternating"; }
+if( $sm eq "alj" ){ $smooth="alternating jacobi"; }
+if( $sm eq "alz" ){ $smooth="alternating zebra"; }
+if( $sm eq "oges" ){ $smooth="oges smoother"; }
+#
+if( $bsm eq "rb" ){ $bsmooth="red black"; }
+if( $bsm eq "rbj" ){ $bsmooth="red black jacobi"; }
+if( $bsm eq "j" ){ $bsmooth="jacobi"; }
+if( $bsm eq "lz1" ){ $bsmooth="line zebra direction 1"; }
+if( $bsm eq "lz2" ){ $bsmooth="line zebra direction 2"; }
+if( $bsm eq "lz3" ){ $bsmooth="line zebra direction 3"; }
+if( $bsm eq "lj1" ){ $bsmooth="line jacobi direction 1"; }
+if( $bsm eq "lj2" ){ $bsmooth="line jacobi direction 2"; }
+if( $bsm eq "lj3" ){ $bsmooth="line jacobi direction 3"; }
+if( $bsm eq "al" ){ $bsmooth="alternating"; }
+if( $bsm eq "alj" ){ $bsmooth="alternating jacobi"; }
+if( $bsm eq "alz" ){ $bsmooth="alternating zebra"; }
+if( $bsm eq "oges" ){ $bsmooth="oges smoother"; }
+if( $ibs eq 0 ){ $ibs="do not combine smooths with IBS"; }else{ $ibs="combine smooths with IBS"; }
+#
+$bcmd = "#";
+if( $bc eq "nddd" ){ $bcmd = "bc(0,0,0)=2"; }
+if( $bc eq "ddnd" ){ $bcmd = "bc(0,1,0)=2"; }
+if( $bc eq "nndd" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=2"; }
+if( $bc eq "ddnn" ){ $bcmd = "bc(0,1,0)=2\n bc(1,1,0)=2"; }
+if( $bc eq "dndd" ){ $bcmd = "bc(0,0,0)=1\n bc(1,0,0)=2"; }
+if( $bc eq "dnnd" ){ $bcmd = "bc(1,0,0)=2\n bc(0,1,0)=2"; }
+if( $bc eq "ndnn" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2"; }
+if( $bc eq "nmnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=3\n bc(0,1,0)=2\n bc(1,1,0)=2"; }
+if( $bc eq "nmnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=3\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,1,1)=2"; }
+if( $bc eq "nmnnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=3\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=2\n bc(1,2,0)=2\n bc(0,1,1)=2\n bc(0,1,2)=2"; }
+if( $bc eq "ndnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,1,1)=2"; }
+if( $bc eq "dedd" ){ $bcmd = "bc(1,0,0)=5"; }  # 5=extrapolate
+if( $bc eq "ndnnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=2\n bc(1,2,0)=2"; }
+if( $bc eq "ndnnnd" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=2\n bc(1,2,0)=1"; }
+if( $bc eq "ndddnd" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=1\n bc(1,1,0)=1\n bc(0,2,0)=2\n bc(1,2,0)=1"; }
+if( $bc eq "nnddnd" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=1\n bc(0,2,0)=2\n bc(1,2,0)=1"; }
+if( $bc eq "dnddnd" ){ $bcmd = "bc(0,0,0)=1\n bc(1,0,0)=2\n bc(0,1,0)=1\n bc(1,1,0)=1\n bc(0,2,0)=2\n bc(1,2,0)=1"; }
+if( $bc eq "dndddn" ){ $bcmd = "bc(0,0,0)=1\n bc(1,0,0)=2\n bc(0,1,0)=1\n bc(1,1,0)=1\n bc(0,2,0)=1\n bc(1,2,0)=2"; }
+if( $bc eq "dnddnn" ){ $bcmd = "bc(0,0,0)=1\n bc(1,0,0)=2\n bc(0,1,0)=1\n bc(1,1,0)=1\n bc(0,2,0)=2\n bc(1,2,0)=2"; }
+if( $bc eq "nnnndd" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=1\n bc(1,2,0)=1"; }
+if( $bc eq "ddnnnn" ){ $bcmd = "bc(0,0,0)=1\n bc(1,0,0)=1\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=2\n bc(1,2,0)=2"; }
+if( $bc eq "nnddnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=2\n bc(0,1,0)=1\n bc(1,1,0)=1\n bc(0,2,0)=2\n bc(1,2,0)=2"; }
+if( $bc eq "dnnnnn" ){ $bcmd = "bc(0,0,0)=1\n bc(1,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=2\n bc(1,2,0)=2"; }
+if( $bc eq "nndnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=2\n bc(0,1,0)=1\n bc(1,1,0)=2\n bc(0,2,0)=2\n bc(1,2,0)=2"; }
+if( $bc eq "nnndnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=1\n bc(0,2,0)=2\n bc(1,2,0)=2"; }
+if( $bc eq "nnnndn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=1\n bc(1,2,0)=2"; }
+if( $bc eq "ndndnd" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=1\n bc(0,1,0)=2\n bc(1,1,0)=1\n bc(0,2,0)=2\n bc(1,2,0)=1"; }
+if( $bc eq "ndnddn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=1\n bc(0,1,0)=2\n bc(1,1,0)=1\n bc(0,2,0)=1\n bc(1,2,0)=2"; }
+if( $bc eq "ddddnd" ){ $bcmd = "bc(0,2,0)=2"; }
+if( $bc eq "dddddn" ){ $bcmd = "bc(1,2,0)=2"; }
+if( $bc eq "ddddnn" ){ $bcmd = "bc(0,2,0)=2\n bc(1,2,0)=2"; }
+#
+if( $fmg eq "1" ){ $fmg="use full multigrid"; }else{ $fmg="#"; }
+if( $opav eq "0" ){ $opav = "do not average coarse grid equations"; }  elsif( $opav eq "2" ){ $opav ="do not average coarse curvilinear grid equations"; }else{ $opav = "#"; }
+if( $lb eq "kh" ){ $lb="KernighanLin"; }
+if( $lb eq "all" ){ $lb="all to all"; }
+#
+# pause
+#
+#
+$option
+OvertureParser::result = [solve]
+---- solvePredefined=0
+#
+# divScalarGrad (predefined)
+# laplace (predefined)
+# heat equation (predefined)
+$eqn
+OvertureParser::result = [laplace (predefined)]
+---- solvePredefined=1
+if( $adjustSingularEquations eq 1 ){ $cmd="adjust singular equations"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+#
+# turn off twilight zone
+# turn on trigonometric
+if( $tz eq "poly" ){ $cmd="turn on polynomial"; }elsif( $tz eq trig ){ $cmd="turn on trigonometric"; }else{ $cmd = "turn off twilight zone"; }
+$cmd
+OvertureParser::result = [turn on trigonometric]
+---- solvePredefined=1
+set trigonometric frequencies
+$fx $fy $fz
+OvertureParser::result = [1 1 1]
+ fx=1.000000, fy=1.000000, fz=1.000000
+---- solvePredefined=1
+if( $ic eq 1 ){ $cmd="set exact initial conditions"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+# dirichlet=1 neumann=2 mixed=3
+$bcmd
+OvertureParser::result = [#]
+# assign bc's of the form bcNumber<num>=[d|n|m|e]
+$cmd="#";
+if( $bc1 ne "" ){ $cmd.="\n bcNumber1=$bc1"; }
+if( $bc2 ne "" ){ $cmd.="\n bcNumber2=$bc2"; }
+if( $bc3 ne "" ){ $cmd.="\n bcNumber3=$bc3"; }
+if( $bc4 ne "" ){ $cmd.="\n bcNumber4=$bc4"; }
+if( $bc5 ne "" ){ $cmd.="\n bcNumber5=$bc5"; }
+if( $bc6 ne "" ){ $cmd.="\n bcNumber6=$bc6"; }
+if( $bc7 ne "" ){ $cmd.="\n bcNumber7=$bc7"; }
+if( $bc8 ne "" ){ $cmd.="\n bcNumber8=$bc8"; }
+$cmd
+OvertureParser::result = [#]
+#
+# bc(0,0,0)=2
+# bc(1,0,0)=3
+# bc(0,1,0)=2
+# bc(1,1,0)=2
+# bc(0,1,1)=2
+#
+#****************************************************
+change parameters
+#[residual|errEst|old]
+if( $conv eq "residual" ){ $conv="Convergence criteria: residual converged"; }elsif($conv eq "errEst"){ $conv="Convergence criteria: error estimate converged"; }else{ $conv="Convergence criteria: residual converged old-way"; }
+$conv
+OvertureParser::result = [Convergence criteria: residual converged]
+Ogmg:INFO: Setting convergence criteria to : l2Norm(residual) < residualTolerance*l2Nnorm(f) + absoluteTolerance
+# do not use error estimate in convergence test
+#
+# operator averaging option:
+$opav
+OvertureParser::result = [#]
+#
+#* use new auto sub-smooth
+#*
+$fmg
+OvertureParser::result = [#]
+#
+#* set load balancing options
+#    KernighanLin
+#    all to all
+#*  $lb
+#* exit
+#ghost line averaging option
+# 1=impose-extrapolation 3=partial-weighting (default), 6=impose-Neumann
+#  1 6
+#
+if( $bcOrder4 eq "extrap" ){ $cmd="extrapolate fourth order boundary conditions"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+# do not use symmetry corner boundary condition
+# For 4th-order + Neumann: solve for 2 ghost AND boundary point:
+# solve equation with boundary conditions
+******
+# -- direct/sparse solver on coarse grid:
+Oges parameters
+# choose best direct solver
+# choose best iterative solver
+$cgSolver
+OvertureParser::result = [choose best iterative solver]
+Choosing: PETSc, generalized minimal residual iteration (parallel), bi-conjugate gradient stabilized, ILU(1), reverse Cuthill-McKee ordering
+number of incomplete LU levels
+$ilucg
+OvertureParser::result = [1]
+incomplete LU expected fill
+$iluFill
+OvertureParser::result = [3]
+relative tolerance
+$rtolcg
+OvertureParser::result = [0.001]
+absolute tolerance
+$atolcg
+OvertureParser::result = [1e-14]
+debug
+$ogesDebug
+OvertureParser::result = [0]
+Setting Oges::debug=0
+exit
+# Solve the coarse grid equations using the smoother:
+if( $solveCoarseGridBySmoother == 1 ){ $cmd = "iterate on coarse grid"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+number of iterations on coarse grid
+$cgsi
+OvertureParser::result = [10]
+# The sub-smooth reference grid uses 1 sub-smooth, other grids can use more.
+# sub-smooth reference grid: 2 (-1=use default)
+#
+******
+#****
+#* now the default: use new fine to coarse BC
+#**********************************************
+number of boundary layers to smooth
+$bls
+OvertureParser::result = [0]
+numberOfBoundaryLayersToSmooth=0
+number of boundary smooth iterations
+# 5 3 1 3  1 3 1 9 7 6 5 3 2 3 1 5 3
+$bli
+OvertureParser::result = [5]
+numberOfBoundarySmoothIterations=5
+number of levels for boundary smooths
+# 1 5 2 1
+$bll
+OvertureParser::result = [1]
+numberOfLevelsForBoundarySmoothing=1
+# -- IBS: Interpolation boundary smoothing:
+$ibs
+OvertureParser::result = [combine smooths with IBS]
+number of interpolation smooth global iterations
+$nibs
+OvertureParser::result = [2]
+numberOfIBSIterations=2
+number of interpolation layers to smooth
+# 4 3 2 2 1 2 1 3 0 2 1 3 2 1
+$ils
+OvertureParser::result = [0]
+numberOfInterpolationLayersToSmooth=0
+number of interpolation smooth iterations
+# 2 2 3 5 2 1 3 1 3  1 3 1 9 7 6 5 3 2 3 1 5 3
+$ins
+OvertureParser::result = [2]
+numberOfInterpolationSmoothIterations=2
+number of levels for interpolation smooths
+# 1 2 1 5 2 1
+$iml
+OvertureParser::result = [1]
+numberOfLevelsForInterpolationSmoothing=1
+#*************************
+#
+# do not use locally optimal omega
+# omega red-black
+#   1.03 1.05 1.0 1.05 1.16 1.05 1.0 1.07 1.0 1.05 1.05 1.1 1.09  1.1 1.07
+if( $omega > 0 ){ $cmd="do not use locally optimal omega\n omega red-black\n $omega"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+# Omega for the line smoother:
+if( $omegaz > 0 ){ $cmd="omega line-zebra\n $omegaz"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+# omega line-zebra
+#   1.2 1.1
+#**********
+# do not use split step line solver
+#**********
+project right hand side for singular problems $projectSingular
+OvertureParser::result = [project right hand side for singular problems 1]
+adjust equations for singular problems $adjustSingularEquations
+OvertureParser::result = [adjust equations for singular problems 0]
+#
+residual tolerance $rtol
+OvertureParser::result = [residual tolerance 1e-14]
+ getTextValue: answer found: [residual tolerance 1.000000e-14]
+absolute tolerance $atol
+OvertureParser::result = [absolute tolerance 1e-10]
+ getTextValue: answer found: [absolute tolerance 1.000000e-10]
+error tolerance $etol
+OvertureParser::result = [error tolerance 1e-12]
+ getTextValue: answer found: [error tolerance 1.000000e-12]
+#
+maximum number of iterations
+$maxit
+OvertureParser::result = [9]
+maximum number of interpolation iterations
+$maxInterpIts
+OvertureParser::result = [3]
+Setting maximumNumberOfInterpolationIterations=3
+coarse to fine transfer width
+$cfw
+OvertureParser::result = [2]
+#
+# do not interpolate after smoothing
+# --- for parallel use:
+# use new red-black smoother
+if( $rb eq "old" ){ $cmd = "do not use new red-black smoother"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+#
+# works better if we interpolate the defect!
+# do not interpolate the defect
+$ssr
+OvertureParser::result = [#]
+if( $autoSmooth eq 0 ){ $cmd="do not use automatic sub-smooth determination"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+#
+#   do not interpolate the defect
+#  jacobi
+# alternating zebra
+# alternating
+# ld1
+# line zebra direction 1
+# line jacobi direction 2
+$smooth
+OvertureParser::result = [red black]
+$bsmooth
+OvertureParser::result = [smoother(0)=rb]
+set smoother=rb : cg.numberOfComponentGrids()=1 numberOfMultigridLevels=10
+set smoother(grid=0,level=0)=rb
+set smoother(grid=0,level=1)=rb
+set smoother(grid=0,level=2)=rb
+set smoother(grid=0,level=3)=rb
+set smoother(grid=0,level=4)=rb
+set smoother(grid=0,level=5)=rb
+set smoother(grid=0,level=6)=rb
+set smoother(grid=0,level=7)=rb
+set smoother(grid=0,level=8)=rb
+set smoother(grid=0,level=9)=rb
+#*********
+#oges smoother
+#  1
+#done
+#oges smoother parameters
+# number of incomplete LU levels
+#   0
+# exit
+#***************
+# smoother(0)=jacobi
+# number of cycles=2 : W cycle
+#
+$cmd="#";
+if( $cycle eq "V" ){ $cmd = "number of cycles\n 1 1 1 1 1 "; }
+if( $cycle eq "W" ){ $cmd = "number of cycles\n 2 2 2 2 2"; }
+if( $cycle eq "F" ){ $cmd = "use an F cycle"; }
+$cmd
+OvertureParser::result = [number of cycles
+ 1 1 1 1 1 ]
+number of cycles
+Enter the number of iterations for a level solve: 1=V cycle, 2=W cycle, 3,..
+Enter multiple values, one for each level. The last value entered will apply to all levels not given
+1 1 1 1 1
+numberOfCycles(level=0)=1
+numberOfCycles(level=1)=1
+numberOfCycles(level=2)=1
+numberOfCycles(level=3)=1
+numberOfCycles(level=4)=1
+numberOfCycles(level=5)=1
+numberOfCycles(level=6)=1
+numberOfCycles(level=7)=1
+numberOfCycles(level=8)=1
+numberOfCycles(level=9)=1
+#
+number of smooths
+Enter the number of pre-smooths and post-smooths (applied to all levels)
+$nsm
+OvertureParser::result = [1 1]
+level 0: preSmooths=1, postSmooths=1
+level 1: preSmooths=1, postSmooths=1
+level 2: preSmooths=1, postSmooths=1
+level 3: preSmooths=1, postSmooths=1
+level 4: preSmooths=1, postSmooths=1
+level 5: preSmooths=1, postSmooths=1
+level 6: preSmooths=1, postSmooths=1
+level 7: preSmooths=1, postSmooths=1
+level 8: preSmooths=1, postSmooths=1
+level 9: preSmooths=1, postSmooths=1
+if( $matlab eq 1 ){ $cmd = "output a matlab file"; }else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+# save the check file for coarse grid levels built:
+#* save coarse grid check file
+# do not use optimized version
+#
+# --------Automatically choose parameters -----------------------
+# if( $autoChoose eq 1 ){ $cmd="choose good parameters"; }else{ $cmd="#"; }
+# $cmd
+choose good parameters: $autoChoose
+OvertureParser::result = [choose good parameters: 1]
+ getTextValue: answer found: [choose good parameters: 1]
+choose good parameters: 0=OFF, 1=ON, 2=Use more robust parameters. Setting value to 1
+ ------------- Automatically Choosing Good Multigrid Parameters -----------------
+ Choosing a V(2,1) cycle.
+ Turning on IBS (interpolation boundary smoothing), orderOfAccuracy=4.
+ IBS: interp. bndry smoothing: global its=2, local its=2, layers=4 for 1 levels, combine with smooths.
+OgesParameters: relativeTolerance=1.000000e-03 
+ Choosing coarse grid solver: `best iterative', tol=1.000e-03, maxit=100
+ ------------- Done Automatically Choosing Good Multigrid Parameters -----------------
+# ---------------------------------------------------------------
+# -- over-ride auto:
+if( $ils ne 0 ){ $cmd = "number of interpolation layers to smooth\n $ils\n"; } else{ $cmd="#"; }
+$cmd
+OvertureParser::result = [#]
+#
+exit
+---- solvePredefined=1
+debug
+$debug
+OvertureParser::result = [3]
+ Ogmg::debug=3
+---- solvePredefined=1
+exit
+............... solvePredefined=1
+
+ >>>>> Build the multigrid levels ...
+
+ ++++++++++++++ Entering Ogmg::updateToMatchGrid ++++++++++++++
+
+ MMMMMMMMMMMMMMMM  Ogmg: call buildExtraLevels: max MG levels = 8 (1=no coarser levels) MMMMMMMMMMMMMMMMMMMMMMM
+Ogmg:INFO: 6 extra multigrid levels could be built on grid 0 (box).
+**** Ogmg::buildExtraLevels: this grid supports 6 extra MG levels (numberOfExtraLevels). *****
+**** At most 10 levels will be made (maximumNumberOfExtraLevels).                         *****
+*** OgmgParameters::updateToMatchGrid: maxLevels=-1, old=cg.numberOfMultigridLevels=1 new=mg.numberOfMultigridLevels=7 (new)
+ ===>After mgSolver.updateToMatchGrid(cg) my total = 248.0 M,  memory per-processor: [min,max]=[94.2383,94.2383] Mb 
+
+ ===>Before build coeff my total = 248.0 M,  memory per-processor: [min,max]=[94.3281,94.3281] Mb 
+
+ ogmgt: assign the RHS...
+ ogmgt: time to assign the RHS =3.92e+01
+ ******** Ogmg::solve, solver=ogmgt, grid=/home/henshaw.0/Overture/ogen/box256.order4.hdf********
+Solve: maximum defect at start=2.62e+05...
+  Ogmg::cycle:level=0, it=0, Initial defect =2.62e+05
+  Ogmg::cycle:level=0, it=1, WU= 6.62, defect=1.87e+03, defect/defectOld= 0.007,  ECR0=   0.474 ***
+   ->solve: (level=0) it=1, l2NormResidual=1.87e+03 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=2, WU= 4.62, defect=6.28e+01, defect/defectOld= 0.034,  ECR0=   0.480 ***
+   ->solve: (level=0) it=2, l2NormResidual=6.28e+01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=3, WU= 4.62, defect=2.48e+00, defect/defectOld= 0.040,  ECR0=   0.497 ***
+   ->solve: (level=0) it=3, l2NormResidual=2.48e+00 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=4, WU= 4.62, defect=1.05e-01, defect/defectOld= 0.042,  ECR0=   0.505 ***
+   ->solve: (level=0) it=4, l2NormResidual=1.05e-01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=5, WU= 4.62, defect=4.88e-03, defect/defectOld= 0.046,  ECR0=   0.515 ***
+   ->solve: (level=0) it=5, l2NormResidual=4.88e-03 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=6, WU= 4.62, defect=2.29e-04, defect/defectOld= 0.047,  ECR0=   0.516 ***
+   ->solve: (level=0) it=6, l2NormResidual=2.29e-04 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=7, WU= 4.62, defect=1.01e-05, defect/defectOld= 0.044,  ECR0=   0.510 ***
+   ->solve: (level=0) it=7, l2NormResidual=1.01e-05 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=8, WU= 4.62, defect=5.04e-07, defect/defectOld= 0.050,  ECR0=   0.523 ***
+   ->solve: (level=0) it=8, l2NormResidual=5.04e-07 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+  Ogmg::cycle:level=0, it=9, WU= 4.62, defect=2.48e-08, defect/defectOld= 0.049,  ECR0=   0.521 ***
+   ->solve: (level=0) it=9, l2NormResidual=2.48e-08 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10 
+
+
+ ******************************************************************************
+ *************** ogmgt: Solve predefined Laplace Equation *****************
+ ******************************************************************************
+
+ *****After solve: max residual = 2.48e-08 (9 cycles)****
+
+
+ ========================Ogmg Summary=========================
+
+                       Grid = /home/henshaw.0/Overture/ogen/box256.order4.hdf 
+ Equation: Laplace.
+ Boundary conditions explicitly specified = 1.
+ Equations are are not singular.
+ Convergence criteria: l2Norm(residual) < residualTolerance*l2Nnorm(f) + absoluteTolerance (residualTolerance=1.00e-14, absoluteTolerance=1.00e-10)
+ order of accuracy = 4
+ number of levels = 7 (6 extra levels).
+ interpolate defect = 1
+ number of cycles per level= 1  1  1  1  1  1  1 
+ number of smooths (global) per level= [2,1]  [2,1]  [2,1]  [2,1]  [2,1]  [2,1]  [2,1] 
+ grid ordering in smooth is alternating.
+ auto sub-smooth determination is on (reference grid for sub-smooths=0).
+ use new red black smoother=1
+ number of iterations for implicit interpolation is 3
+ coarse to fine interpolation width=2.
+ fine to coarse transfer is full weighting.
+ operator averaging: average coarse grid equations.
+   boundary averaging option is imposeDirichlet (for a 'dirichlet BC') and partialWeighting (for a 'Neumann' BC)
+   ghost line averaging option is imposeExtrapolation (for a 'dirichlet BC') and partialWeighting (for a 'Neumann' BC)
+ boundary smoothing: number of layers=0, iterations=5, apply on 1 levels.
+ interp. boundary smoothing: layers=4, iterations=2, global-its=2, apply on 1 levels, combine-with-smooths=1.
+ assumeSparseStencilForRectangularGrids=1
+
+ Coarse Grid:
+   coarse grid solver : PETSc, generalized minimal residual iteration (parallel),
+                        bi-conjugate gradient stabilized, ILU(3), reverse Cuthill-McKee ordering
+   relative tol.=1.00e-03, absolute tol.=1.00e-14, max number of iterations=100 (0=choose default)
+   average number of iterations per coarse grid solve =   1.0/cycle
+   coarse grid has 810 grid points (4.5e-03 % of fine grid)
+   coarse grid averaging option: Galerkin averaging
+
+grid 0 : rb[2,1] rb[2,1] rb[2,1] rb[2,1] rb[2,1] rb[2,1] rb[2,1]  : box 
+         bc=[dirichlet,dirichlet] [dirichlet,dirichlet] [dirichlet,dirichlet] 
+         ave no. of subSmooths: l0= 1.0, l1= 1.0, l2= 1.0, l3= 1.0, l4= 1.0, l5= 1.0, l6= 0.0, 
+         gid=[0,256][0,256][0,256], gridPoints=17847702 (100.00%).
+
+ IBS: interp. bndry smoothing: global its=2, local its=2, layers=4 for 1 levels, combine with smooths.
+
+Discrete boundary conditions: B=boundary, G1=ghost-1, G2=ghost-2, extrapN=extrap to order N
+  Dirichlet: l=0 : B=D,    G1=PDE2    , G2=extrap4 
+           : l>0 : B=D,    G1=PDE2    , G2=extrap4 
+  Neumann  : l=0 : B=PDE,  G1=N4      , G2=PDE.n2  
+           : l>0 : B=PDE,  G1=N2      , G2=N2      
+ Corner BC: l=0 : taylor4  , l>0 taylor4  
+
+    Ogmg, Statistics  /home/henshaw.0/Overture/ogen/box256.order4.hdf, grids=1, cycles=9, gridPoints=17847702, number of processors=1
+    ----------------                  time (s)  time/cycle  percentage
+ smooth..(includes bc's)...............3.44e+01  3.82e+00    61.91% 
+ defect.(excluding those in smooth)....1.34e+01  1.49e+00    24.19% 
+ fine to coarse........................6.62e-01  7.36e-02     1.19% 
+ coarse to fine........................5.82e+00  6.47e-01    10.47% 
+ direct solve on coarsest level........1.59e-01  1.76e-02     0.29% 
+ miscellaneous.........................4.81e-01  5.34e-02     0.87% 
+ sum of above..........................5.50e+01  6.11e+00    98.92%  
+ Details:
+    defect called from smooth..........0.00e+00  0.00e+00  (  0.00%) (already counted)
+    relaxation part of smooth..........3.05e+01  3.39e+00  ( 54.94%) (already counted)
+    extra boundary smoothing...........0.00e+00  0.00e+00  (  0.00%) (already counted)
+    extra interpolation smoothing......0.00e+00  0.00e+00  (  0.00%) (already counted)
+    tridiagonal factor part of smooth..0.00e+00  0.00e+00  (  0.00%) (already counted)
+    tridiagonal solve part of smooth...0.00e+00  0.00e+00  (  0.00%) (already counted)
+    interpolation......................3.85e-03  4.27e-04  (  0.01%) (already counted)
+    boundary conditions................4.55e+00  5.06e-01  (  8.19%) (already counted)
+      (bcOpt=0.00e+00 extrap=0.00e+00 setup=-2.75e+04 geom=0.00e+00 finish=2.75e+04 total=4.55e+00)
+    initial guess with FMG.............0.00e+00  0.00e+00  (  0.00%) (already counted)
+    fine to coarse BC's................4.18e-02  4.64e-03  (  0.08%) (already counted)
+    interp coarse from fine............4.81e-01  5.35e-02  (  0.87%) (already counted)
+    compute norms of defect............3.88e-02  4.32e-03  (  0.07%) (already counted)
+    ghost boundary update..............0.00e+00  0.00e+00  (  0.00%) (already counted)
+
+ total.................................5.56e+01  6.17e+00   100.00% 
+
+ initialize............................8.11e-01  9.01e-02     1.46%  (not counted above)
+    build extra levels.................7.50e-01  8.33e-02     1.35%  (already counted)
+    operator averaging.................4.83e-03  5.37e-04     0.01%  (already counted)
+    build predefined equations.........8.15e-03  9.06e-04     0.01%  (already counted)
+    oges smoother init.................0.00e+00  0.00e+00     0.00%  (already counted)
+
+ TOTAL (solve+initialize)..............5.64e+01  6.26e+00
+ total number of grid points = 17847702 
+ total number of cycles      = 9 
+==== memory per-proc: [min=982.27,ave=982.27,max=982.27](Mb), max-recorded=0 (Mb), total=982.27 (Mb)
+ Ogmg::sizeOf: uMG=  21.1 M, fMG=  21.1 M, cMG=   1.2 M, defectMG= 157.3 M, uOld=   0.0 M, mgcg=2461.9 M, 
+                    operators=   0.1 M, interpolant=   0.0 M, trid=   0.0 M, direct=   1.2 M, IBS=   0.0 M
+                 ** total = 2664.1 M 
+ storage allocated = 2.79e+03 MBytes,   156.5 bytes/(grid point) or   19.6 reals/(grid point)
+
+*** timeForNeumannBC=0.00e+00 timeForBC=4.55e+00  timeForFinishBC=2.75e+04 timeForBCFinal=0.00e+00
+   timeForGeneralNeumannBC=0.00e+00 timeForExtrapolationBC=0.00e+00 
+      timeForSetupBC=-2.75e+04, timeForBCWhere=0.00e+00, timeForBCOpt=0.00e+00 timeForBC4Extrap=2.33e-01
+
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=9.46e-14, ave CR=0.0357 ave ECR=0.503 np=1
+  MaxRes=2.48e-08, TR10=4.27e+00 (time to reduce residual by a factor of 10) TR10/M=2.39e-01
+
+ ===>After solve my total = 4007.2 M,  memory per-processor: [min,max]=[982.297,982.297] Mb 
+
+Maximum error on grid:             box = 4.78e-10, max relative error=4.78e-10 (includes 0 ghost)
+Maximum error on grid:             box = 1.26e-08, max relative error=1.26e-08 (includes 1 ghost)
+Maximum error on grid:             box = 1.03e-07, max relative error=1.03e-07 (includes 2 ghost)
+
+ *** Summary of results written to file ogmg.info **** 
+Inside of ~Oges() 
+Overture::finish: shut down PETSc...

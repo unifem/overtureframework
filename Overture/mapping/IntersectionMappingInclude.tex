@@ -1,0 +1,237 @@
+\subsection{Constructor}
+ 
+\newlength{\IntersectionMappingIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\IntersectionMappingIncludeArgIndent}{IntersectionMapping(}% 
+IntersectionMapping() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Default Constructor
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{Constructor}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\IntersectionMappingIncludeArgIndent}{IntersectionMapping(}% 
+IntersectionMapping(Mapping \& map1\_,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}Mapping \& map2\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}] 
+   Define a mapping for the intersection of map1\_ and map2\_
+\item[{\bf map1\_, map2\_ :}]  two surfaces in 3D
+\end{description}
+\subsection{intersect}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{intersect(}%
+intersect(Mapping \& map1\_, Mapping \& map2\_,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}GenericGraphicsInterface *gi  =NULL,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}GraphicsParameters \& params  =nullGraphicsParameters)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Determine the intersection between two mappings, optionally supply graphic parameters
+    so the intersection curves can be plotted, (for debugging purposes).
+   NEW FEATURE: If the intersection curve has disjoint segments, these segments will be 
+   stored as sub curves in the NURBS for the physical and parameter curves on each surface.
+\item[{\bf map1\_, map2\_ (input) :}]  These two mappings will be intersected.
+\item[{\bf gi, paramas (input) :}]  Optional parameters for graphics.
+\item[{\bf Return value:}]  0 for success
+\end{description}
+\subsection{intersect}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{intersectWithCompositeSurface(}%
+intersectWithCompositeSurface(Mapping \& map1\_, CompositeSurface \& cs,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}GenericGraphicsInterface *gi  =NULL,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}GraphicsParameters \& params  =nullGraphicsParameters)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    A Protected routine that computes the intersection between a Mapping
+ and a CompositeSurface. 
+
+\item[{\bf map1\_, map2\_ (input) :}]  These two mappings will be intersected.
+\item[{\bf gi, paramas (input) :}]  Optional parameters for graphics.
+\item[{\bf Return value:}]  0 for success
+
+\item[{\bf Output:}]  The output intersection curve is a NurbsMapping. The number of subcurves of this
+ mapping defines the number of disconnected components of the intersection.
+
+\end{description}
+\subsection{newtonIntersection}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{newtonIntersection(}%
+newtonIntersection(realArray \& x, realArray \& r1, realArray \& r2, const realArray \& n )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   This is a protected routine to determine the exact intersection point on two surfaces using Newton's
+  method.
+
+ Solve for (x,r1,r2 ) such that 
+ \begin{verbatim}
+
+    map1(r1) - x = 0
+    map2(r2) - x = 0
+    n.x = c
+ \end{verbatim}
+
+\item[{\bf x(.,3) (input/output) :}]  initial guess to the intersection point (in the Range space)
+\item[{\bf r1(.,2) (input/output):}]  initial guess to the intersection point (in the domain space of map1)
+\item[{\bf r2(.,2) (input/output):}]  initial guess to the intersection point (in the domain space of map2)
+\item[{\bf n(.,3) :}]  a normal vector to a plane that crosses the intersection curve, often choosen
+         to be  n(i,.) = x(i+1,.) - x(i-1,.) if we are computing x(i,.)
+\item[{\bf Return values:}]  0 for success. 1 if the newton iteration did not converge, 2 if there is a
+ zero normal vector.
+\end{description}
+\subsection{project}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{project(}%
+project( realArray \& x,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}int \& iStart, \\ 
+\hspace{\IntersectionMappingIncludeArgIndent}int \& iEnd,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}periodicType periodic)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+     Project the points x(iStart:iEnd,0:6) onto the intersection
+  NOTE: When the points are projected onto the curves it is possible that points
+      fold back on themselves if they get out of order. This routine will try and
+      detect this situation and it may remove some points to fix the problem.
+ Return values: 0 for success, otherwise failure.
+\end{description}
+\subsection{determineIntersection}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{determineIntersection(}%
+determineIntersection(GenericGraphicsInterface *gi  =NULL,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}GraphicsParameters \& params  =nullGraphicsParameters)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   This is a protected routine to determine the intersection curve(s) between two surfaces.
+
+\item[{\bf Notes:}] 
+
+  (1) First obtain an initial guess to the intersection: Using the bounding boxes that cover
+      the surface to determine a list of pairs of (leaf) bounding boxes that intersect. Triangulate
+      the surface quadrilaterals that are found in this "collision" list and find all line segments
+      that are formed when two triangles intersect.
+
+  (2) Join the line segments found in step 1 into a continuous curve(s). There will be three 
+    different intersection curves -- a curve in the Range space (x) and a curve in each of the
+    domain spaces (r). Since the domain spaces may be periodic it may be necessary to shift 
+    parts of the domain-space curves by +1 or -1 so that the curves are continuous. Note that
+    the domain curves will sometimes have to be outside the unit square. It is up to ?? to map
+    these values back to [0,1] if they are used.
+    
+  (3) Now fit a NURBS curve to all of the intersection curves, using chord-length of the space-curve
+      to parameterize the three curves.
+  (4) Re-evaluate the points on the curve using Newton's method to obtain the points that are exactly
+      on on the intersection of the surfaces. Refit the NURBS curves using these new points. 
+
+\item[{\bf Return values:}]  0 for success, otherwise failure.
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{reparameterize(}%
+reparameterize(const real \& arcLengthWeight  =1., \\ 
+\hspace{\IntersectionMappingIncludeArgIndent}const real \& curvatureWeight  =.2)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  
+    Redistribute points on the intersection curve to place more points where the
+  curvature is large. 
+\item[{\bf Description:}]  The default distribution of points in the intersection curve
+  is equally spaced in arc length (really chord length). To cluster more points
+  near sharp corners, call this routine with a non-zero value for {\tt curvatureWeight}.
+  In this case the points will be placed to equidistribute the weight function
+  \begin{verbatim}
+      w(r) = 1 + arcLength(r)*arcLengthWeight + curvature(r)*curvatureWeight
+   where
+      arcLength(r) =  | x_r |
+      curvature(r) =  | x_rr |    (*** this is not really the curvature, but close ***)
+  \end{verbatim}
+ Note that the point distribution only depends on the ratio of arcLengthWeight to curvatureWeight 
+ and not on their absolute vaules. The weight function must be positive everywhere.
+ Also note that for the unit circle, $| x_r |=2\pi$ and $| x_{rr}|= (2\pi)^2$ so that the curvature
+ is naturally $2\pi$ times larger in the weight function.
+
+\item[{\bf arcLengthWeight (input) :}]  weight for the arc length, should be positive.
+\item[{\bf curvatureWeight (input) :}]  weight for the curvature, should normally be non-negative. 
+\end{description}
+\subsection{intersectCurves}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{intersectCurves(}%
+intersectCurves(Mapping \& curve1, \\ 
+\hspace{\IntersectionMappingIncludeArgIndent}Mapping \& curve2, \\ 
+\hspace{\IntersectionMappingIncludeArgIndent}int \& numberOfIntersectionPoints, \\ 
+\hspace{\IntersectionMappingIncludeArgIndent}realArray \& r1, \\ 
+\hspace{\IntersectionMappingIncludeArgIndent}realArray \& r2,\\ 
+\hspace{\IntersectionMappingIncludeArgIndent}realArray \& x )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+   Determine the intersection between two 2D curves.
+
+\item[{\bf curve1, curve2 (input) :}]  intersect these curves
+\item[{\bf numberOfIntersectionPoints (output):}]  the number of intersection points found.
+\item[{\bf r1,r2,x (output) :}]  r1(i),r2(i),x(0:1,i) the intersection point(s) for $i=0,\ldots,numberOfIntersectionPoints-1$
+    are $curve1(r1(i))=curve2(r2(i))=x(i)$
+     
+
+\end{description}
+\subsection{map}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{map(}%
+map( const realArray \& r, realArray \& x, realArray \& xr, MappingParameters \& params )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Evaluate the intersection curve.
+\end{description}
+\subsection{get}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{get(}%
+get( const GenericDataBase \& dir, const aString \& name)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  get a mapping from the database.
+\end{description}
+\subsection{put}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{put(}%
+put( GenericDataBase \& dir, const aString \& name) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  put the mapping to the database.
+\end{description}
+\subsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\IntersectionMappingIncludeArgIndent}{update(}%
+update( MappingInformation \& mapInfo ) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Interactively create and/or change the mapping.
+\item[{\bf mapInfo (input):}]  Holds a graphics interface to use.
+\end{description}

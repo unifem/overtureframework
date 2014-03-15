@@ -1,0 +1,2533 @@
+// This file automatically generated from finishBoundaryConditions.bC with bpp.
+#include "GenericMappedGridOperators.h"
+#include "SparseRep.h"
+#include "GridFunctionParameters.h"
+#include "display.h"
+#include "ParallelUtility.h"
+
+// Use this for indexing into coefficient matrices representing systems of equations
+#undef CE
+#define CE(c,e) (stencilSize*((c)+numberOfComponentsForCoefficients*(e)))
+
+
+
+
+
+static real extrapCoeff[10][10] = 
+                                      {
+                                              {1.,-1.,0.,0.,0.,0.,0.,0.,0.,0.},     // order 1
+                                              {1.,-2.,1.,0.,0.,0.,0.,0.,0.,0.},     // order 2		       
+                                              {1.,-3.,3.,-1.,0.,0.,0.,0.,0.,0.},    // order 3		       
+                                              {1.,-4.,6.,-4.,1.,0.,0.,0.,0.,0.},		       
+                                              {1.,-5.,10.,-10.,5.,-1.,0.,0.,0.,0.},		       
+                                              {1.,-6.,15.,-20.,15.,-6.,1.,0.,0.,0.},		       
+                                              {1.,-7.,21.,-35.,35.,-21.,7.,-1.,0.,0.},		       
+                                              {1.,-8.,28.,-56.,70.,-56.,28.,-8.,1.,0.},		       
+                   		       {1.,-9.,36.,-84.,126.,-126.,84.,-36.,9.,-1.}
+                 		     };
+
+// ********************************************************************************************************
+//    Assign coeffcients for extarpolation along edges and corners
+// ********************************************************************************************************
+
+
+// ===============================================================================================================
+// Assign the ghost points using a Taylor series approximation which reduces to an even symmetry condition
+// if the solution has even symmetry.
+//
+// These approximations come from ogmg/doc/bc.maple -- see also fortranDeriv/assignCornersOpt.bf
+// ===============================================================================================================
+
+
+
+
+// ===============================================================================================================
+// Assign the ghost points using a 4th-order Taylor series approximation which reduces to an even symmetry condition
+// if the solution has even symmetry.
+//
+// These approximations come from ogmg/doc/bc.maple -- see also fortranDeriv/assignCornersOpt.bf
+// ===============================================================================================================
+
+
+
+// This macro is used to fill in coefficients at edges and corners
+
+//\begin{>>MappedGridOperatorsInclude.tex}{\subsubsection{finishBoundaryConditions}}  
+void GenericMappedGridOperators::
+finishBoundaryConditions(realMappedGridFunction & u,
+                                                  const BoundaryConditionParameters & bcParameters /* = Overture::defaultBoundaryConditionParameters() */,
+                   			 const Range & C0 /* =nullRange */ )
+//=======================================================================================
+// /Description: Call this routine when all boundary conditions have been applied.
+//  This function will update periodic edges and fix up the solution values in the ghost points
+//  outside corners which are not assigned by {\tt applyBoundaryCondition} (i.e. the ghost
+//  points that lie outside the corners in 2D or the ghost points that lie outside the edges and the vertices
+//  in 3D).  This routine wil also fill in extrapolation equations at ghost points that correspond to
+//  interpolation points on physical boundaries.
+// 
+// More precisely,
+//  \begin{enumerate}
+//    \item First call {\tt u.periodicUpdate()} to assign values to {\tt side=1} boundary lines
+//          \[ 
+//             {\tt i_{\tt axis}={\tt mg.gridIndexRange()(1,axis)}}~~{\tt axis}=0,1,..,{\tt mg.numberOfDimensions}
+//          \]
+//           ({\tt mg} is the {\tt MappedGrid} associated with the grid function {\tt u})
+//          as well as all ghost lines on all sides that have periodic boundary conditions.
+//    \item Extrapolate corner ghost points which are not assigned by step 1 
+//           using extrapolation to order bcParameters.orderOfExtrapolation (orderOfAccuray+1)
+//        \begin{itemize} 
+//            \item  In 2D extrapolate the corner ghost points along the diagonal.
+//               For example, if
+//               \[
+//                    {\tt bcParameters.orderOfExtrapolation=3 ~~(default for 2nd order accuracy) }
+//               \]
+//               then the value at the lower left
+//               corner ghost point 
+//               \[
+//                    (i_1,i_2)=({\tt mg.indexRange()(Start,axis1)}-1,{\tt mg.indexRange()(Start,axis2)}-1)
+//               \]
+//               will be given by 
+//            \[
+//               u(i_1,i_2)=3 u(i_1+1,i_2+1) - 3 u(i_1+2,i_2+2) + u(i_1+3,i_2+3)
+//            \]
+//            If there are two ghost lines then also assign points $(i_1-1,i_2)$,$(i_1,i_2-1)$,$(i_1-1,i_2-1)$.
+//            And so on, if there are more than 2 ghost lines.
+//            \item  In 3D extrapolate the ghost points next to edges and the ghost points next to vertices.
+//                   Obtain values by extrapolating into the interior as much as possible.
+//        \end{itemize}
+//     \item extrapolate ghost points that lies outside of interpolation points on the physical boundary,
+//         mg.boundaryCondition(side,aixs)>0.
+//  \end{enumerate}
+//   For even more details you can look at the code in {\tt Overture/GridFunction/GenericMappedGridOperators.C}
+//
+//   {\bf Note:} When applied to a coefficient matrix the above operations will generate new equations in the
+//     coefficient matrix rather than be applied directly to the grid function.
+//   
+// /u (input/output): Grid function to which boundary conditions were applied.
+// /bcParameters (input): Supply parameters such as bcParameters.orderOfExtrapolation which indicates
+//   the order of extrapolation to use.
+// /C0 (input) : apply to these components 
+// 
+// /NOTE: This function calls u.updateGhostBoundaries() for updating parallel ghost points (in fixBoundaryCorners)
+//\end{MappedGridOperatorsInclude.tex}
+//=======================================================================================
+{
+    if( false )
+    {
+        finishBoundaryConditionsOld(u,bcParameters,C0);
+        return;
+    }
+    
+
+    if( u.sparse!=NULL )
+    {
+    // fix up the classify array for the mask array and periodicity 
+        u.sparse->fixUpClassify(u);
+
+    // extrapolate corners as needed
+        
+        IntegerDistributedArray & classify = u.sparse->classify;     
+
+        MappedGrid & mg = *u.getMappedGrid();
+        realMappedGridFunction & coeff = u ;
+        
+        #ifdef USE_PPP
+            const realSerialArray & coeffLocal = coeff.getLocalArray();
+            intSerialArray classifyLocal; getLocalArrayWithGhostBoundaries(classify,classifyLocal); 
+            intSerialArray maskLocal; getLocalArrayWithGhostBoundaries(mg.mask(),maskLocal); 
+        #else
+            const realSerialArray & coeffLocal = coeff;
+            const intSerialArray & classifyLocal = classify;
+            const intSerialArray & maskLocal = mg.mask();
+        #endif
+
+    //     ---when two (or more) adjacent faces have boundary conditions
+    //        we set the values on the fictitous line (or vertex)
+    //        that is outside both faces ( points marked + below)
+    //
+    //                  +                +
+    //                    --------------
+    //                    |            |
+    //                    |            |
+    //
+        int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+        int side1,side2,side3,i1,i2,i3;
+        int m1,m2,m3,n1,n2,n3,ng1a,ng1b,ng2a,ng2b,ng3a,ng3b,j1,j2,j3,e,i;
+        int n1a,n1b,n2a,n2b,n3a,n3b;
+
+        const IntegerArray & indexRange = mg.indexRange();
+        const IntegerArray & dimension = mg.dimension();
+        const int orderOfExtrapolation = bcParameters.orderOfExtrapolation<0 ? orderOfAccuracy+1 :
+                                                                          bcParameters.orderOfExtrapolation ;
+        Index I1,I2,I3;
+
+        int order = orderOfExtrapolation;
+        if( order<1 || order>10 )
+        {
+            cout << "finishBoundaryConditions:: - invalid value for orderOfExtrapolation = " << order << endl;
+            Overture::abort("setExtrapolationCoefficients:: - invalid value for orderOfExtrapolation");
+        }
+        if( order >= stencilSize*numberOfComponentsForCoefficients )
+        {
+            cout << "finishBoundaryConditions:: - orderOfExtrapolation >= stencilSize*numberOfComponentsForCoefficients \n";
+            Overture::abort("ERROR : orderOfExtrapolation >= stencilSize*numberOfComponentsForCoefficients");
+        }
+
+    // bcParameters.numberOfCornerGhostLinesToAssign;
+        
+        const int ndg = 4;  // max number of corner/edge ghost lines we may assign with taylor order 4
+    // cc(-ndg:ndg,-ndg:ndg,-ndg:ndg)
+        const int ndg3 = mg.numberOfDimensions()==2 ? 0 : ndg;
+        real *pcc = new real [(2*ndg+1)*(2*ndg+1)*(2*ndg3+1)];
+        const int ndc1 = 2*ndg+1;
+#define cc(k1,k2,k3) pcc[(k1+ndg)+ndc1*((k2+ndg)+ndc1*(k3+ndg3))]
+
+    //    ----------------------------------------------------------------
+    //    ------------Assign corner boundary conditions ------------------
+    //    ----------------------------------------------------------------
+        if( !mg.isPeriodic(axis1) && !mg.isPeriodic(axis2) )
+        {
+      //       ...Do the four edges parallel to i3
+            side3=-1;
+            is3=0;
+            for( side1=Start; side1<=End; side1++ )
+            {
+      	is1=1-2*side1;
+      	for( side2=Start; side2<=End; side2++ )
+      	{
+        	  is2=1-2*side2;
+                    if( mg.boundaryCondition(side1,0)>0 || mg.boundaryCondition(side2,1)>0 ) // *wdh* added 070506
+        	  {
+                        int bc =bcParameters.getCornerBoundaryCondition(side1,side2,side3);
+            // Extrapolate corner ghost if this is not a physical corner: *wdh* 100713
+                        if( mg.boundaryCondition(side1,0)==0 || mg.boundaryCondition(side2,1)==0 )
+                            bc=BoundaryConditionParameters::extrapolateCorner;
+          // 	    assignCorners(side1,side2,side3,bc);
+          // getLoopBounds();
+                    if( is1==0 )
+                    {
+                        n1a=indexRange(0,axis1);
+                        n1b=indexRange(1,axis1);
+                        ng1a=0;
+                        ng1b=0;
+                    }
+                    else
+                    {
+                        n1a=indexRange(side1,axis1);
+                        n1b=n1a;
+                        ng1a=1;
+                        ng1b=abs(indexRange(side1,axis1)-dimension(side1,axis1));
+                    }
+                    if( is2==0 )
+                    {
+                        n2a=indexRange(0,axis2);
+                        n2b=indexRange(1,axis2);
+                        ng2a=0;
+                        ng2b=0;
+                    }
+                    else
+                    {
+                        n2a=indexRange(side2,axis2);
+                        n2b=n2a;
+                        ng2a=1;
+                        ng2b=abs(indexRange(side2,axis2)-dimension(side2,axis2));
+                    }
+                    if( is3==0 )
+                    {
+                        n3a=indexRange(0,axis3);
+                        n3b=indexRange(1,axis3);
+                        ng3a=0;
+                        ng3b=0;
+                    }
+                    else
+                    {
+                        n3a=indexRange(side3,axis3);
+                        n3b=n3a;
+                        ng3a=1;
+                        ng3b=abs(indexRange(side3,axis3)-dimension(side3,axis3));
+                    }
+                    #ifdef USE_PPP
+                        I1=Range(n1a,n1b); I2=Range(n2a,n2b); I3=Range(n3a,n3b);
+                        ParallelUtility::getLocalArrayBounds(classify,classifyLocal,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b); 
+                    #endif
+                    if( bc==BoundaryConditionParameters::extrapolateCorner )
+                    {
+            // extrapolate corners as needed
+            // setExtrapolationCoefficientsMacro();
+            // printf(" setExtrapolationCoefficientsMacro: n1a,n1b,...=[%i,%i][%i,%i][%i,%i] ng1a,...=[%i,%i][%i,%i][%i,%i] p=%i\n",
+            //        n1a,n1b,n2a,n2b,n3a,n3b,ng1a,ng1b,ng2a,ng2b,ng3a,ng3b,Communication_Manager::My_Process_Number);
+            //  *wdh* 070506 -- At a "corner" where one side is interpolation, do NOT extrap along the diagonal, instead 
+            //    extrap in the "normal" direction. (diagonal extrap can fail since the grid generator only makes sure there
+            //    are "boundaryDiscretizationWidth" points in the normal direction, -- see quarterSphere.cmd plus tcm3)
+                        int js1=is1, js2=is2, js3=is3;
+                        bool checkForValidExtrapolation=false;
+                        if( (side1==0 || side1==1) && mg.boundaryCondition(side1,0)==0 )
+                        {
+                            js1=0; 
+                            checkForValidExtrapolation=true;
+                        }
+                        if( (side2==0 || side2==1) && mg.boundaryCondition(side2,1)==0 )
+                        {
+                            js2=0; 
+                            checkForValidExtrapolation=true;
+                        }
+                        if( (side3==0 || side3==1) && mg.boundaryCondition(side3,2)==0 )
+                        {
+                            js3=0; 
+                            checkForValidExtrapolation=true;
+                        }
+                        if( js1==0 && js2==0 && js3==0 )
+                        {
+                            printF("finishBC:coeff:assignCorners:ERROR: js1=js2=js3=0 : side1=%i side2=%i side3=%i bc=[%i,%i,%i]\n",
+                               	 side1,side2,side3,mg.boundaryCondition(side1,0),mg.boundaryCondition(side2,1),mg.boundaryCondition(side3,2));
+                            Overture::abort("error");
+                        }
+            // beginLoops() 
+                        for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                        {
+                            const int ce=CE(0,e);
+                            const int ceb=CE(0,e+1)-1;
+                            for( i3=n3a; i3<=n3b; i3++ )
+                            for( i2=n2a; i2<=n2b; i2++ )
+                            for( i1=n1a; i1<=n1b; i1++ )
+                        {
+                            for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                            for( m2=ng2a; m2<=ng2b; m2++ )
+                            for( m1=ng1a; m1<=ng1b; m1++ )
+                            {
+                                j3=i3-m3*is3;  j2=i2-m2*is2;  j1=i1-m1*is1; // (j1,j2,j3) : ghost point to assign , NOTE: use (is1,is2,is3)
+                                if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                {
+                                    int orderOfExtrap=order;
+                                    if( checkForValidExtrapolation )
+                                    { // check the mask for valid extrapolation and reduce the order of extrapolation as necessary
+                                        int m=1;
+                                        while( m<=order && maskLocal(j1+m*(js1),j2+m*(js2),j3+m*(js3))!=0 ){ m++; }  //
+                              	orderOfExtrap=max(1,m-1);
+                              	if( false && orderOfExtrap!=order )
+                              	{
+                                	  printf("*** finishBC:coeff:assignCorners: INFO: reduce corner extrap order to %i from %i\n",
+                                                            orderOfExtrap,order);
+                              	}
+                                    }
+                  // NOTE: store at the start of the equation (for Oges) 
+                                    for( i=0; i<=orderOfExtrap; i++ )
+                                    {
+                                        coeffLocal(i+ce,j1,j2,j3)=extrapCoeff[orderOfExtrap-1][i];    
+                                        coeff.sparse->setCoefficientIndex(i+ce, e,j1,j2,j3, e,j1+i*js1,j2+i*js2,j3+i*js3);
+                                    }
+                                    for( i=ce+orderOfExtrap+1; i<=ceb; i++ )
+                              	coeffLocal(i,j1,j2,j3)=0.;   // zero out remaining coefficients
+                                }
+                            }
+                        }
+            // endLoops()
+                                } // end for e
+                    }
+                    else if( bc==BoundaryConditionParameters::evenSymmetryCorner ||
+                                      bc==BoundaryConditionParameters::symmetryCorner  ) 
+                    {
+            // setEvenSymmetryCoefficients();
+            // beginLoops()
+                        for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                        {
+                            const int ce=CE(0,e);
+                            const int ceb=CE(0,e+1)-1;
+                            for( i3=n3a; i3<=n3b; i3++ )
+                            for( i2=n2a; i2<=n2b; i2++ )
+                            for( i1=n1a; i1<=n1b; i1++ )
+                        {
+                            for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                            for( m2=ng2a; m2<=ng2b; m2++ )
+                            for( m1=ng1a; m1<=ng1b; m1++ )
+                            {
+                                j3=i3-m3*is3;
+                                j2=i2-m2*is2;
+                                j1=i1-m1*is1;
+                                if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                {
+                                    coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                    coeffLocal(1+ce,j1,j2,j3)=-1.;
+                                    coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                    coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                    for( i=ce+2; i<=ceb; i++ )
+                              	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                }
+                            }
+                        }
+            // endLoops()
+                                } // end for e
+                    }
+                    else if( bc==BoundaryConditionParameters::oddSymmetryCorner )
+                    {
+            // setOddSymmetryCoefficients();
+            // beginLoops()
+                        for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                        {
+                            const int ce=CE(0,e);
+                            const int ceb=CE(0,e+1)-1;
+                            for( i3=n3a; i3<=n3b; i3++ )
+                            for( i2=n2a; i2<=n2b; i2++ )
+                            for( i1=n1a; i1<=n1b; i1++ )
+                        {
+                            for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                            for( m2=ng2a; m2<=ng2b; m2++ )
+                            for( m1=ng1a; m1<=ng1b; m1++ )
+                            {
+                                j3=i3-m3*is3;
+                                j2=i2-m2*is2;
+                                j1=i1-m1*is1;
+                                if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                {
+                  // odd symmetry is u(-g) = 2*u(0) - u(+g)
+                                    coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                    coeffLocal(1+ce,j1,j2,j3)=-2.;
+                                    coeffLocal(2+ce,j1,j2,j3)= 1.;
+                                    coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                    coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1,i2,i3);
+                                    coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                    for( i=ce+3; i<=ceb; i++ )
+                              	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                }
+                            }
+                        }
+            // endLoops()
+                                } // end for e
+                    }
+                    else if( bc==BoundaryConditionParameters::taylor2ndOrderEvenCorner ||
+                                      bc==BoundaryConditionParameters::taylor2ndOrder  ) 
+                    {
+            // setTaylor2ndOrderEven(is1,is2,is3);
+                        if( mg.numberOfDimensions()==2 )
+                        {
+              // -- 2d --
+              //        taylor2ndOrderEven2d(i1,i2,i3,m1,m2,c)=-m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)//                                               -m2*u(i1,i2+1,i3,c)+m2*u(i1,i2-1,i3,c)+u(i1+m1,i2+m2,i3,c)
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                for( int n2=ng2a; n2<=ng2b; n2++ )
+                                for( int n1=ng1a; n1<=ng1b; n1++ )
+                                {
+                                    m1=n1*is1;
+                                    m2=n2*is2;
+                                    m3=n3*is3;
+                                    j3=i3-m3;
+                                    j2=i2-m2;
+                                    j1=i1-m1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                              	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                              	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                              	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                              	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                              	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                              	coeffLocal(5+ce,j1,j2,j3)=  1.;
+                              	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                              	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                              	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                              	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                              	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                              	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                              	for( i=ce+6; i<=ceb; i++ )
+                                	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else
+                        {
+              // --- 3D ---
+              //  taylor2ndOrderEven3d(i1,i2,i3,m1,m2,m3,c)= -m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)-m2*u(i1,i2+1,i3,c)//                       +m2*u(i1,i2-1,i3,c)-m3*u(i1,i2,i3+1,c)+m3*u(i1,i2,i3-1,c)+u(i1+m1,i2+m2,i3+m3,c)
+              // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                for( int n2=ng2a; n2<=ng2b; n2++ )
+                                for( int n1=ng1a; n1<=ng1b; n1++ )
+                                {
+                                    m1=n1*is1;
+                                    m2=n2*is2;
+                                    m3=n3*is3;
+                                    j3=i3-m3;
+                                    j2=i2-m2;
+                                    j1=i1-m1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                              	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                              	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                              	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                              	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                              	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                              	coeffLocal(5+ce,j1,j2,j3)= -m3;
+                              	coeffLocal(6+ce,j1,j2,j3)=  m3;
+                              	coeffLocal(7+ce,j1,j2,j3)=  1.;
+                              	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                              	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                              	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                              	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                              	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                              	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1  ,i2  ,i3+1);
+                              	coeff.sparse->setCoefficientIndex(6+ce, e,j1,j2,j3, e,i1  ,i2  ,i3-1);
+                              	coeff.sparse->setCoefficientIndex(7+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                              	for( i=ce+8; i<=ceb; i++ )
+                                	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                    }
+                    else if( bc==BoundaryConditionParameters::taylor4thOrderEvenCorner )
+                    {
+            // setTaylor4thOrderEven(is1,is2,is3)
+            // check that the cc array is big enough: 
+                        assert( (ng1b-ng1a < ndg) && (ng2b-ng2a < ndg) && (ng3b-ng3a < ndg) );
+                        if( mg.numberOfDimensions()==2 )
+                        {
+              // -- 2d --
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                for( int n2=ng2a; n2<=ng2b; n2++ )
+                                for( int n1=ng1a; n1<=ng1b; n1++ )
+                                {
+                                    m1=n1*is1;
+                                    m2=n2*is2;
+                                    m3=n3*is3;
+                                    int m1p2=m1*m1, m1p3=m1p2*m1;
+                                    int m2p2=m2*m2, m2p3=m2p2*m2;
+                                    int m3p2=m3*m3, m3p3=m3p2*m3;
+                                    j3=i3-m3;
+                                    j2=i2-m2;
+                                    j1=i1-m1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                    // Step 1: fill coefficients into the local array cc(.,.,.)
+                    //   We do this since there may be more than one contribution to the
+                    //   coefficient at a given point depending on the values of is1,is2. 
+                                        for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                              	{
+                                	  cc(k1,k2,0)=0.;
+                              	}
+                              	if( n1==1 && n2==1 )
+                              	{ // special case for ghost pt "(-1,-1)": 
+                      // u4(i1-is1,i2-is2,i3,n)=(2*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1-1,i2+is2,i3,n)-3*is1*u(i1+1,i2,i3,n)+3*is1*u(i1-1,i2,i3,n)-is1*u(i1+1,i2+2*is2,i3,n)+is1*u(i1-1,i2+2*is2,i3,n)+2*is2*u(i1+is1,i2+1,i3,n)-is2*u(i1+2*is1,i2+1,i3,n)+3*is2*u(i1,i2-1,i3,n)+is2*u(i1+2*is1,i2-1,i3,n)-2*is2*u(i1+is1,i2-1,i3,n)-3*is2*u(i1,i2+1,i3,n)+2*u(i1+is1,i2+is2,i3,n))/2.0
+                                	  cc(-m1,-m2,-m3)=-1.;
+                                	  cc(0,-1,0)=cc(0,-1,0)+(3*is2)/2.0;
+                                	  cc(-1,0,0)=cc(-1,0,0)+(3*is1)/2.0;
+                                	  cc(1,0,0)=cc(1,0,0)+(-3*is1)/2.0;
+                                	  cc(0,1,0)=cc(0,1,0)+(-3*is2)/2.0;
+                                	  cc(is1,-1,0)=cc(is1,-1,0)+(-2*is2)/2.0;
+                                	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(is2)/2.0;
+                                	  cc(is1,1,0)=cc(is1,1,0)+(2*is2)/2.0;
+                                	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-is2)/2.0;
+                                	  cc(-1,is2,0)=cc(-1,is2,0)+(-2*is1)/2.0;
+                                	  cc(1,is2,0)=cc(1,is2,0)+(2*is1)/2.0;
+                                	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(is1)/2.0;
+                                	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-is1)/2.0;
+                                	  cc(is1,is2,0)=cc(is1,is2,0)+(2)/2.0;
+                              	}
+                              	else
+                              	{ // general case: 
+                      // u4(i1-m1,i2-m2,i3,n)=((-m2+m2**3)*u(i1,i2-2,i3,n)+(3*m1**2*m2-2*m2**3+8*m2)*u(i1,i2-1,i3,n)+(-8*m2-3*m1**2*m2+2*m2**3)*u(i1,i2+1,i3,n)+(-m2**3+m2)*u(i1,i2+2,i3,n)+(m1**3-m1)*u(i1-2,i2,i3,n)+(-2*m1**3+8*m1+3*m1*m2**2)*u(i1-1,i2,i3,n)+(-8*m1+2*m1**3-3*m1*m2**2)*u(i1+1,i2,i3,n)+(m1-m1**3)*u(i1+2,i2,i3,n)+6*m1**2*m2*u(i1+is1,i2+1,i3,n)+6*u(i1+m1,i2+m2,i3,n)-3*m1**2*m2*u(i1+2*is1,i2+1,i3,n)-6*m1**2*m2*u(i1+is1,i2-1,i3,n)+3*m1*m2**2*u(i1-1,i2+2*is2,i3,n)+6*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1-1,i2+is2,i3,n)-3*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+3*m1**2*m2*u(i1+2*is1,i2-1,i3,n))/6.0
+                                	  cc(-m1,-m2,-m3)=-1.;
+                                	  cc(0,-2,0)=cc(0,-2,0)+(-m2+m2p3)/6.0;
+                                	  cc(0,-1,0)=cc(0,-1,0)+(3*m1p2*m2-2*m2p3+8*m2)/6.0;
+                                	  cc(-2,0,0)=cc(-2,0,0)+(m1p3-m1)/6.0;
+                                	  cc(-1,0,0)=cc(-1,0,0)+(-2*m1p3+8*m1+3*m1*m2p2)/6.0;
+                                	  cc(1,0,0)=cc(1,0,0)+(-8*m1+2*m1p3-3*m1*m2p2)/6.0;
+                                	  cc(2,0,0)=cc(2,0,0)+(m1-m1p3)/6.0;
+                                	  cc(0,1,0)=cc(0,1,0)+(-8*m2-3*m1p2*m2+2*m2p3)/6.0;
+                                	  cc(0,2,0)=cc(0,2,0)+(-m2p3+m2)/6.0;
+                                	  cc(is1,-1,0)=cc(is1,-1,0)+(-6*m1p2*m2)/6.0;
+                                	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(3*m1p2*m2)/6.0;
+                                	  cc(is1,1,0)=cc(is1,1,0)+(6*m1p2*m2)/6.0;
+                                	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-3*m1p2*m2)/6.0;
+                                	  cc(-1,is2,0)=cc(-1,is2,0)+(-6*m1*m2p2)/6.0;
+                                	  cc(1,is2,0)=cc(1,is2,0)+(6*m1*m2p2)/6.0;
+                                	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(3*m1*m2p2)/6.0;
+                                	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-3*m1*m2p2)/6.0;
+                                	  cc(m1,m2,m3)=cc(m1,m2,m3)+(6)/6.0;
+                              	}
+                    // Step 2: fill-in the the non-zero coefficients
+                                        int ie=0;  // counts non-zero coefficients
+                                        for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                              	{
+                                	  if( cc(k1,k2,0)!=0. )
+                                	  {
+                                                coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,0);
+                                                coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3  );
+                                                ie++;
+                                	  }
+                              	}
+                              	for( i=ie+ce; i<=ceb; i++ )
+                                	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else
+                        {
+              // --- 3D ---
+              // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+            //        taylor4thOrderEven3dVertex(i1,i2,i3,m1,m2,m3,n)=(u(i1+is1,i2+is2,i3-is3,n)+8*is3*u(i1,i2,i3-1,n)-8*is3*u(i1,i2,i3+1,n)+8*is2*u(i1,i2-1,i3,n)-8*is2*u(i1,i2+1,i3,n)-4*is1*u(i1+1,i2,i3,n)+u(i1+is1,i2-is2,i3+is3,n)-u(i1+is1,i2-is2,i3-is3,n)+u(i1-is1,i2+is2,i3+is3,n)-u(i1-is1,i2+is2,i3-is3,n)-u(i1-is1,i2-is2,i3+is3,n)+3*u(i1+is1,i2+is2,i3+is3,n)-2*is2*u(i1+2*is1,i2+1,i3,n)+2*is2*u(i1+2*is1,i2-1,i3,n)-4*is2*u(i1+is1,i2-1,i3,n)+4*is2*u(i1+is1,i2+1,i3,n)-4*is3*u(i1+is1,i2,i3-1,n)+2*is3*u(i1+2*is1,i2,i3-1,n)+4*is3*u(i1+is1,i2,i3+1,n)-2*is3*u(i1+2*is1,i2,i3+1,n)+2*is2*u(i1,i2-1,i3+2*is3,n)+4*is2*u(i1,i2+1,i3+is3,n)+2*is1*u(i1-1,i2,i3+2*is3,n)+2*is1*u(i1-1,i2+2*is2,i3,n)-2*is1*u(i1+1,i2,i3+2*is3,n)+4*is1*u(i1+1,i2,i3+is3,n)-4*is1*u(i1-1,i2+is2,i3,n)+4*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1+1,i2+2*is2,i3,n)-4*is1*u(i1-1,i2,i3+is3,n)-2*is2*u(i1,i2+1,i3+2*is3,n)-4*is2*u(i1,i2-1,i3+is3,n)+4*is1*u(i1-1,i2,i3,n)-4*is1*u(i1+1,i2,i3,n)+4*is1*u(i1-1,i2,i3,n)-2*is3*u(i1,i2+2*is2,i3+1,n)+4*is3*u(i1,i2+is2,i3+1,n)-4*is3*u(i1,i2+is2,i3-1,n)+2*is3*u(i1,i2+2*is2,i3-1,n))/3.0
+            //        taylor4thOrderEven3d(i1,i2,i3,m1,m2,m3,n)=(6*m2*m3**2*u(i1,i2-1,i3,n)+6*m2*m3**2*u(i1,i2-1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2,i3-1,n)-12*m2**2*m3*u(i1,i2+is2,i3-1,n)+6*m1*m3**2*u(i1-1,i2,i3,n)-6*m2*m3**2*u(i1,i2+1,i3,n)+12*m2**2*m3*u(i1,i2+is2,i3+1,n)-6*m1**2*m3*u(i1+2*is1,i2,i3+1,n)+12*m1**2*m3*u(i1+is1,i2,i3+1,n)-6*m1**2*m3*u(i1,i2,i3+1,n)+6*m1**2*m3*u(i1+2*is1,i2,i3-1,n)-12*m1**2*m3*u(i1+is1,i2,i3-1,n)+6*m1**2*m3*u(i1,i2,i3-1,n)-6*m1**2*m2*u(i1+2*is1,i2+1,i3,n)+12*m1**2*m2*u(i1+is1,i2+1,i3,n)-6*m1**2*m2*u(i1,i2+1,i3,n)+6*m1**2*m2*u(i1+2*is1,i2-1,i3,n)-12*m1**2*m2*u(i1+is1,i2-1,i3,n)+6*m1**2*m2*u(i1,i2-1,i3,n)-6*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+12*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1+1,i2,i3,n)+6*m1*m2**2*u(i1-1,i2+2*is2,i3,n)-12*m1*m2**2*u(i1-1,i2+is2,i3,n)+6*m1*m2**2*u(i1-1,i2,i3,n)+12*m2*m3**2*u(i1,i2+1,i3+is3,n)+12*m1*m3**2*u(i1+1,i2,i3+is3,n)-12*m1*m3**2*u(i1-1,i2,i3+is3,n)-6*m1*m3**2*u(i1+1,i2,i3,n)-12*m2*m3**2*u(i1,i2-1,i3+is3,n)-6*m2**2*m3*u(i1,i2,i3+1,n)-6*m1*m3**2*u(i1+1,i2,i3+2*is3,n)+6*m1*m3**2*u(i1-1,i2,i3+2*is3,n)-6*m2**2*m3*u(i1,i2+2*is2,i3+1,n)-6*m2*m3**2*u(i1,i2+1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2+2*is2,i3-1,n)+12*u(i1+m1,i2+m2,i3+m3,n)-16*m2*u(i1,i2+1,i3,n)+16*m2*u(i1,i2-1,i3,n)-16*m3*u(i1,i2,i3+1,n)+16*m3*u(i1,i2,i3-1,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3-is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3-is3,n)-12*m1*u(i1+1,i2,i3,n)+12*m1*u(i1-1,i2,i3,n)+2*m1*u(i1+2,i2,i3,n)-4*m1*u(i1+1,i2,i3,n)+4*m1*u(i1-1,i2,i3,n)-2*m1*u(i1-2,i2,i3,n)+2*m2*u(i1,i2+2,i3,n)-2*m2*u(i1,i2-2,i3,n)+2*m3*u(i1,i2,i3+2,n)-2*m3*u(i1,i2,i3-2,n)-2*m1**3*u(i1+2,i2,i3,n)+4*m1**3*u(i1+1,i2,i3,n)-4*m1**3*u(i1-1,i2,i3,n)+2*m1**3*u(i1-2,i2,i3,n)-2*m2**3*u(i1,i2+2,i3,n)+4*m2**3*u(i1,i2+1,i3,n)-4*m2**3*u(i1,i2-1,i3,n)+2*m2**3*u(i1,i2-2,i3,n)-2*m3**3*u(i1,i2,i3+2,n)+4*m3**3*u(i1,i2,i3+1,n)-4*m3**3*u(i1,i2,i3-1,n)+2*m3**3*u(i1,i2,i3-2,n))/12.0
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                for( int n2=ng2a; n2<=ng2b; n2++ )
+                                for( int n1=ng1a; n1<=ng1b; n1++ )
+                                {
+                                    m1=n1*is1;
+                                    m2=n2*is2;
+                                    m3=n3*is3;
+                                    int m1p2=m1*m1, m1p3=m1p2*m1;
+                                    int m2p2=m2*m2, m2p3=m2p2*m2;
+                                    int m3p2=m3*m3, m3p3=m3p2*m3;
+                                    j3=i3-m3;
+                                    j2=i2-m2;
+                                    j1=i1-m1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                    // Step 1: fill coefficients into the local array cc(.,.,.)
+                    //   We do this since there may be more than one contribution to the
+                    //   coefficient at a given point depending on the values of is1,is2. 
+                                        for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                              	{
+                                	  cc(k1,k2,k3)=0.;
+                              	}
+                              	if( n1==1 && n2==1 && n3==1 )
+                              	{ // special case for ghost pt "(-1,-1,-1)": 
+                                	  cc(-m1,-m2,-m3)=-1.;
+                                	  cc(0,0,-1)=cc(0,0,-1)+(8*is3)/3.0;
+                                	  cc(0,-1,0)=cc(0,-1,0)+(8*is2)/3.0;
+                                	  cc(-1,0,0)=cc(-1,0,0)+(8*is1)/3.0;
+                                	  cc(1,0,0)=cc(1,0,0)+(-8*is1)/3.0;
+                                	  cc(0,1,0)=cc(0,1,0)+(-8*is2)/3.0;
+                                	  cc(0,0,1)=cc(0,0,1)+(-8*is3)/3.0;
+                                	  cc(is1,0,-1)=cc(is1,0,-1)+(-4*is3)/3.0;
+                                	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(2*is3)/3.0;
+                                	  cc(is1,-1,0)=cc(is1,-1,0)+(-4*is2)/3.0;
+                                	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(2*is2)/3.0;
+                                	  cc(is1,1,0)=cc(is1,1,0)+(4*is2)/3.0;
+                                	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-2*is2)/3.0;
+                                	  cc(is1,0,1)=cc(is1,0,1)+(4*is3)/3.0;
+                                	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-2*is3)/3.0;
+                                	  cc(0,is2,-1)=cc(0,is2,-1)+(-4*is3)/3.0;
+                                	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(2*is3)/3.0;
+                                	  cc(-1,is2,0)=cc(-1,is2,0)+(-4*is1)/3.0;
+                                	  cc(1,is2,0)=cc(1,is2,0)+(4*is1)/3.0;
+                                	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(2*is1)/3.0;
+                                	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-2*is1)/3.0;
+                                	  cc(0,is2,1)=cc(0,is2,1)+(4*is3)/3.0;
+                                	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-2*is3)/3.0;
+                                	  cc(0,-1,is3)=cc(0,-1,is3)+(-4*is2)/3.0;
+                                	  cc(-1,0,is3)=cc(-1,0,is3)+(-4*is1)/3.0;
+                                	  cc(1,0,is3)=cc(1,0,is3)+(4*is1)/3.0;
+                                	  cc(0,1,is3)=cc(0,1,is3)+(4*is2)/3.0;
+                                	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(2*is2)/3.0;
+                                	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(2*is1)/3.0;
+                                	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-2*is1)/3.0;
+                                	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-2*is2)/3.0;
+                                	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-1)/3.0;
+                                	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-1)/3.0;
+                                	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(1)/3.0;
+                                	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-1)/3.0;
+                                	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(1)/3.0;
+                                	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(1)/3.0;
+                                	  cc(is1,is2,is3)=cc(is1,is2,is3)+(3)/3.0;
+            	  // cc(m1,m2,m3)=cc(m1,m2,m3)+(3)/3.0;
+                              	}
+                              	else
+                              	{ // general case: 
+                                	  cc(-m1,-m2,-m3)=-1.;
+                                	  cc(0,0,-2)=cc(0,0,-2)+(2*m3p3-2*m3)/12.0;
+                                	  cc(0,0,-1)=cc(0,0,-1)+(-4*m3p3+16*m3+6*m1p2*m3+6*m2p2*m3)/12.0;
+                                	  cc(0,-2,0)=cc(0,-2,0)+(2*m2p3-2*m2)/12.0;
+                                	  cc(0,-1,0)=cc(0,-1,0)+(6*m2*m3p2+16*m2+6*m1p2*m2-4*m2p3)/12.0;
+                                	  cc(-2,0,0)=cc(-2,0,0)+(-2*m1+2*m1p3)/12.0;
+                                	  cc(-1,0,0)=cc(-1,0,0)+(-4*m1p3+6*m1*m3p2+16*m1+6*m1*m2p2)/12.0;
+                                	  cc(1,0,0)=cc(1,0,0)+(-6*m1*m3p2+4*m1p3-6*m1*m2p2-16*m1)/12.0;
+                                	  cc(2,0,0)=cc(2,0,0)+(2*m1-2*m1p3)/12.0;
+                                	  cc(0,1,0)=cc(0,1,0)+(-6*m2*m3p2-16*m2-6*m1p2*m2+4*m2p3)/12.0;
+                                	  cc(0,2,0)=cc(0,2,0)+(-2*m2p3+2*m2)/12.0;
+                                	  cc(0,0,1)=cc(0,0,1)+(-16*m3+4*m3p3-6*m1p2*m3-6*m2p2*m3)/12.0;
+                                	  cc(0,0,2)=cc(0,0,2)+(-2*m3p3+2*m3)/12.0;
+                                	  cc(is1,0,-1)=cc(is1,0,-1)+(-12*m1p2*m3)/12.0;
+                                	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(6*m1p2*m3)/12.0;
+                                	  cc(is1,-1,0)=cc(is1,-1,0)+(-12*m1p2*m2)/12.0;
+                                	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(6*m1p2*m2)/12.0;
+                                	  cc(is1,1,0)=cc(is1,1,0)+(12*m1p2*m2)/12.0;
+                                	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-6*m1p2*m2)/12.0;
+                                	  cc(is1,0,1)=cc(is1,0,1)+(12*m1p2*m3)/12.0;
+                                	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-6*m1p2*m3)/12.0;
+                                	  cc(0,is2,-1)=cc(0,is2,-1)+(-12*m2p2*m3)/12.0;
+                                	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(6*m2p2*m3)/12.0;
+                                	  cc(-1,is2,0)=cc(-1,is2,0)+(-12*m1*m2p2)/12.0;
+                                	  cc(1,is2,0)=cc(1,is2,0)+(12*m1*m2p2)/12.0;
+                                	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(6*m1*m2p2)/12.0;
+                                	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-6*m1*m2p2)/12.0;
+                                	  cc(0,is2,1)=cc(0,is2,1)+(12*m2p2*m3)/12.0;
+                                	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-6*m2p2*m3)/12.0;
+                                	  cc(0,-1,is3)=cc(0,-1,is3)+(-12*m2*m3p2)/12.0;
+                                	  cc(-1,0,is3)=cc(-1,0,is3)+(-12*m1*m3p2)/12.0;
+                                	  cc(1,0,is3)=cc(1,0,is3)+(12*m1*m3p2)/12.0;
+                                	  cc(0,1,is3)=cc(0,1,is3)+(12*m2*m3p2)/12.0;
+                                	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(6*m2*m3p2)/12.0;
+                                	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(6*m1*m3p2)/12.0;
+                                	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-6*m1*m3p2)/12.0;
+                                	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-6*m2*m3p2)/12.0;
+                                	  cc(-is1,-is2,-is3)=cc(-is1,-is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(is1,is2,is3)=cc(is1,is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                	  cc(m1,m2,m3)=cc(m1,m2,m3)+(12)/12.0; 
+                              	}
+                    // Step 2: fill-in the the non-zero coefficients
+                                        int ie=0; // counts non-zero coefficients
+                                        for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                              	{
+                                	  if( cc(k1,k2,k3)!=0. )
+                                	  {
+                                                coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,k3);
+                                                coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3+k3 );
+                                                ie++;
+                                	  }
+                              	}
+                              	for( i=ie+ce; i<=ceb; i++ )
+                                	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+              // printf("****WARNING***set corner BC's in coefficient matrix: corner BC taylor4thOrderEvenCorner not implemented yet, "
+              //      "***** using symmetry BC for now \n");
+             // setEvenSymmetryCoefficients();
+                    }
+                    else
+                    {
+                        printf("setCornerCoefficients:ERROR:Unknown value for bcParameters.getCornerBoundaryCondition\n");
+                        OV_ABORT("error");
+                    }
+        	  }
+      	}
+            }
+        }
+        if( mg.numberOfDimensions()==3 )
+        {
+            if( !mg.isPeriodic(axis1) && !mg.isPeriodic(axis3) )
+            {
+	//       ...Do the four edges parallel to i2
+                side2=-1;
+                is2=0;
+      	for( side1=Start; side1<=End; side1++ )
+      	{
+        	  is1=1-2*side1;
+        	  for( side3=Start; side3<=End; side3++ )
+        	  {
+          	    is3=1-2*side3;
+          	    if( mg.boundaryCondition(side1,0)>0 || mg.boundaryCondition(side3,2)>0 )// *wdh* added 070506
+          	    {
+            	      int bc =bcParameters.getCornerBoundaryCondition(side1,side2,side3);
+	      // Extrapolate corner ghost if this is not a physical corner: *wdh* 100713
+            	      if( mg.boundaryCondition(side1,0)==0 || mg.boundaryCondition(side3,2)==0 )
+            		bc=BoundaryConditionParameters::extrapolateCorner;
+            // 	      assignCorners(side1,side2,side3,bc);
+            // getLoopBounds();
+                        if( is1==0 )
+                        {
+                            n1a=indexRange(0,axis1);
+                            n1b=indexRange(1,axis1);
+                            ng1a=0;
+                            ng1b=0;
+                        }
+                        else
+                        {
+                            n1a=indexRange(side1,axis1);
+                            n1b=n1a;
+                            ng1a=1;
+                            ng1b=abs(indexRange(side1,axis1)-dimension(side1,axis1));
+                        }
+                        if( is2==0 )
+                        {
+                            n2a=indexRange(0,axis2);
+                            n2b=indexRange(1,axis2);
+                            ng2a=0;
+                            ng2b=0;
+                        }
+                        else
+                        {
+                            n2a=indexRange(side2,axis2);
+                            n2b=n2a;
+                            ng2a=1;
+                            ng2b=abs(indexRange(side2,axis2)-dimension(side2,axis2));
+                        }
+                        if( is3==0 )
+                        {
+                            n3a=indexRange(0,axis3);
+                            n3b=indexRange(1,axis3);
+                            ng3a=0;
+                            ng3b=0;
+                        }
+                        else
+                        {
+                            n3a=indexRange(side3,axis3);
+                            n3b=n3a;
+                            ng3a=1;
+                            ng3b=abs(indexRange(side3,axis3)-dimension(side3,axis3));
+                        }
+                        #ifdef USE_PPP
+                            I1=Range(n1a,n1b); I2=Range(n2a,n2b); I3=Range(n3a,n3b);
+                            ParallelUtility::getLocalArrayBounds(classify,classifyLocal,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b); 
+                        #endif
+                        if( bc==BoundaryConditionParameters::extrapolateCorner )
+                        {
+              // extrapolate corners as needed
+              // setExtrapolationCoefficientsMacro();
+              // printf(" setExtrapolationCoefficientsMacro: n1a,n1b,...=[%i,%i][%i,%i][%i,%i] ng1a,...=[%i,%i][%i,%i][%i,%i] p=%i\n",
+              //        n1a,n1b,n2a,n2b,n3a,n3b,ng1a,ng1b,ng2a,ng2b,ng3a,ng3b,Communication_Manager::My_Process_Number);
+              //  *wdh* 070506 -- At a "corner" where one side is interpolation, do NOT extrap along the diagonal, instead 
+              //    extrap in the "normal" direction. (diagonal extrap can fail since the grid generator only makes sure there
+              //    are "boundaryDiscretizationWidth" points in the normal direction, -- see quarterSphere.cmd plus tcm3)
+                            int js1=is1, js2=is2, js3=is3;
+                            bool checkForValidExtrapolation=false;
+                            if( (side1==0 || side1==1) && mg.boundaryCondition(side1,0)==0 )
+                            {
+                                js1=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( (side2==0 || side2==1) && mg.boundaryCondition(side2,1)==0 )
+                            {
+                                js2=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( (side3==0 || side3==1) && mg.boundaryCondition(side3,2)==0 )
+                            {
+                                js3=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( js1==0 && js2==0 && js3==0 )
+                            {
+                                printF("finishBC:coeff:assignCorners:ERROR: js1=js2=js3=0 : side1=%i side2=%i side3=%i bc=[%i,%i,%i]\n",
+                                   	 side1,side2,side3,mg.boundaryCondition(side1,0),mg.boundaryCondition(side2,1),mg.boundaryCondition(side3,2));
+                                Overture::abort("error");
+                            }
+              // beginLoops() 
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;  j2=i2-m2*is2;  j1=i1-m1*is1; // (j1,j2,j3) : ghost point to assign , NOTE: use (is1,is2,is3)
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                                        int orderOfExtrap=order;
+                                        if( checkForValidExtrapolation )
+                                        { // check the mask for valid extrapolation and reduce the order of extrapolation as necessary
+                                            int m=1;
+                                            while( m<=order && maskLocal(j1+m*(js1),j2+m*(js2),j3+m*(js3))!=0 ){ m++; }  //
+                                  	orderOfExtrap=max(1,m-1);
+                                  	if( false && orderOfExtrap!=order )
+                                  	{
+                                    	  printf("*** finishBC:coeff:assignCorners: INFO: reduce corner extrap order to %i from %i\n",
+                                                                orderOfExtrap,order);
+                                  	}
+                                        }
+                    // NOTE: store at the start of the equation (for Oges) 
+                                        for( i=0; i<=orderOfExtrap; i++ )
+                                        {
+                                            coeffLocal(i+ce,j1,j2,j3)=extrapCoeff[orderOfExtrap-1][i];    
+                                            coeff.sparse->setCoefficientIndex(i+ce, e,j1,j2,j3, e,j1+i*js1,j2+i*js2,j3+i*js3);
+                                        }
+                                        for( i=ce+orderOfExtrap+1; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;   // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::evenSymmetryCorner ||
+                                          bc==BoundaryConditionParameters::symmetryCorner  ) 
+                        {
+              // setEvenSymmetryCoefficients();
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;
+                                    j2=i2-m2*is2;
+                                    j1=i1-m1*is1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                                        coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                        coeffLocal(1+ce,j1,j2,j3)=-1.;
+                                        coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                        coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                        for( i=ce+2; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::oddSymmetryCorner )
+                        {
+              // setOddSymmetryCoefficients();
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;
+                                    j2=i2-m2*is2;
+                                    j1=i1-m1*is1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                    // odd symmetry is u(-g) = 2*u(0) - u(+g)
+                                        coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                        coeffLocal(1+ce,j1,j2,j3)=-2.;
+                                        coeffLocal(2+ce,j1,j2,j3)= 1.;
+                                        coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                        coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1,i2,i3);
+                                        coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                        for( i=ce+3; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::taylor2ndOrderEvenCorner ||
+                                          bc==BoundaryConditionParameters::taylor2ndOrder  ) 
+                        {
+              // setTaylor2ndOrderEven(is1,is2,is3);
+                            if( mg.numberOfDimensions()==2 )
+                            {
+                // -- 2d --
+                //        taylor2ndOrderEven2d(i1,i2,i3,m1,m2,c)=-m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)//                                               -m2*u(i1,i2+1,i3,c)+m2*u(i1,i2-1,i3,c)+u(i1+m1,i2+m2,i3,c)
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                                  	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                                  	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                                  	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                                  	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                                  	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                                  	coeffLocal(5+ce,j1,j2,j3)=  1.;
+                                  	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                                  	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                                  	for( i=ce+6; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                            else
+                            {
+                // --- 3D ---
+                //  taylor2ndOrderEven3d(i1,i2,i3,m1,m2,m3,c)= -m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)-m2*u(i1,i2+1,i3,c)//                       +m2*u(i1,i2-1,i3,c)-m3*u(i1,i2,i3+1,c)+m3*u(i1,i2,i3-1,c)+u(i1+m1,i2+m2,i3+m3,c)
+                // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                                  	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                                  	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                                  	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                                  	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                                  	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                                  	coeffLocal(5+ce,j1,j2,j3)= -m3;
+                                  	coeffLocal(6+ce,j1,j2,j3)=  m3;
+                                  	coeffLocal(7+ce,j1,j2,j3)=  1.;
+                                  	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                                  	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1  ,i2  ,i3+1);
+                                  	coeff.sparse->setCoefficientIndex(6+ce, e,j1,j2,j3, e,i1  ,i2  ,i3-1);
+                                  	coeff.sparse->setCoefficientIndex(7+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                                  	for( i=ce+8; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                        }
+                        else if( bc==BoundaryConditionParameters::taylor4thOrderEvenCorner )
+                        {
+              // setTaylor4thOrderEven(is1,is2,is3)
+              // check that the cc array is big enough: 
+                            assert( (ng1b-ng1a < ndg) && (ng2b-ng2a < ndg) && (ng3b-ng3a < ndg) );
+                            if( mg.numberOfDimensions()==2 )
+                            {
+                // -- 2d --
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        int m1p2=m1*m1, m1p3=m1p2*m1;
+                                        int m2p2=m2*m2, m2p3=m2p2*m2;
+                                        int m3p2=m3*m3, m3p3=m3p2*m3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                      // Step 1: fill coefficients into the local array cc(.,.,.)
+                      //   We do this since there may be more than one contribution to the
+                      //   coefficient at a given point depending on the values of is1,is2. 
+                                            for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  cc(k1,k2,0)=0.;
+                                  	}
+                                  	if( n1==1 && n2==1 )
+                                  	{ // special case for ghost pt "(-1,-1)": 
+                        // u4(i1-is1,i2-is2,i3,n)=(2*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1-1,i2+is2,i3,n)-3*is1*u(i1+1,i2,i3,n)+3*is1*u(i1-1,i2,i3,n)-is1*u(i1+1,i2+2*is2,i3,n)+is1*u(i1-1,i2+2*is2,i3,n)+2*is2*u(i1+is1,i2+1,i3,n)-is2*u(i1+2*is1,i2+1,i3,n)+3*is2*u(i1,i2-1,i3,n)+is2*u(i1+2*is1,i2-1,i3,n)-2*is2*u(i1+is1,i2-1,i3,n)-3*is2*u(i1,i2+1,i3,n)+2*u(i1+is1,i2+is2,i3,n))/2.0
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(3*is2)/2.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(3*is1)/2.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-3*is1)/2.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-3*is2)/2.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-2*is2)/2.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(is2)/2.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(2*is2)/2.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-is2)/2.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-2*is1)/2.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(2*is1)/2.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(is1)/2.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-is1)/2.0;
+                                    	  cc(is1,is2,0)=cc(is1,is2,0)+(2)/2.0;
+                                  	}
+                                  	else
+                                  	{ // general case: 
+                        // u4(i1-m1,i2-m2,i3,n)=((-m2+m2**3)*u(i1,i2-2,i3,n)+(3*m1**2*m2-2*m2**3+8*m2)*u(i1,i2-1,i3,n)+(-8*m2-3*m1**2*m2+2*m2**3)*u(i1,i2+1,i3,n)+(-m2**3+m2)*u(i1,i2+2,i3,n)+(m1**3-m1)*u(i1-2,i2,i3,n)+(-2*m1**3+8*m1+3*m1*m2**2)*u(i1-1,i2,i3,n)+(-8*m1+2*m1**3-3*m1*m2**2)*u(i1+1,i2,i3,n)+(m1-m1**3)*u(i1+2,i2,i3,n)+6*m1**2*m2*u(i1+is1,i2+1,i3,n)+6*u(i1+m1,i2+m2,i3,n)-3*m1**2*m2*u(i1+2*is1,i2+1,i3,n)-6*m1**2*m2*u(i1+is1,i2-1,i3,n)+3*m1*m2**2*u(i1-1,i2+2*is2,i3,n)+6*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1-1,i2+is2,i3,n)-3*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+3*m1**2*m2*u(i1+2*is1,i2-1,i3,n))/6.0
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,-2,0)=cc(0,-2,0)+(-m2+m2p3)/6.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(3*m1p2*m2-2*m2p3+8*m2)/6.0;
+                                    	  cc(-2,0,0)=cc(-2,0,0)+(m1p3-m1)/6.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(-2*m1p3+8*m1+3*m1*m2p2)/6.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-8*m1+2*m1p3-3*m1*m2p2)/6.0;
+                                    	  cc(2,0,0)=cc(2,0,0)+(m1-m1p3)/6.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-8*m2-3*m1p2*m2+2*m2p3)/6.0;
+                                    	  cc(0,2,0)=cc(0,2,0)+(-m2p3+m2)/6.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-6*m1p2*m2)/6.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(3*m1p2*m2)/6.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(6*m1p2*m2)/6.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-3*m1p2*m2)/6.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-6*m1*m2p2)/6.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(6*m1*m2p2)/6.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(3*m1*m2p2)/6.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-3*m1*m2p2)/6.0;
+                                    	  cc(m1,m2,m3)=cc(m1,m2,m3)+(6)/6.0;
+                                  	}
+                      // Step 2: fill-in the the non-zero coefficients
+                                            int ie=0;  // counts non-zero coefficients
+                                            for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  if( cc(k1,k2,0)!=0. )
+                                    	  {
+                                                    coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,0);
+                                                    coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3  );
+                                                    ie++;
+                                    	  }
+                                  	}
+                                  	for( i=ie+ce; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                            else
+                            {
+                // --- 3D ---
+                // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+              //        taylor4thOrderEven3dVertex(i1,i2,i3,m1,m2,m3,n)=(u(i1+is1,i2+is2,i3-is3,n)+8*is3*u(i1,i2,i3-1,n)-8*is3*u(i1,i2,i3+1,n)+8*is2*u(i1,i2-1,i3,n)-8*is2*u(i1,i2+1,i3,n)-4*is1*u(i1+1,i2,i3,n)+u(i1+is1,i2-is2,i3+is3,n)-u(i1+is1,i2-is2,i3-is3,n)+u(i1-is1,i2+is2,i3+is3,n)-u(i1-is1,i2+is2,i3-is3,n)-u(i1-is1,i2-is2,i3+is3,n)+3*u(i1+is1,i2+is2,i3+is3,n)-2*is2*u(i1+2*is1,i2+1,i3,n)+2*is2*u(i1+2*is1,i2-1,i3,n)-4*is2*u(i1+is1,i2-1,i3,n)+4*is2*u(i1+is1,i2+1,i3,n)-4*is3*u(i1+is1,i2,i3-1,n)+2*is3*u(i1+2*is1,i2,i3-1,n)+4*is3*u(i1+is1,i2,i3+1,n)-2*is3*u(i1+2*is1,i2,i3+1,n)+2*is2*u(i1,i2-1,i3+2*is3,n)+4*is2*u(i1,i2+1,i3+is3,n)+2*is1*u(i1-1,i2,i3+2*is3,n)+2*is1*u(i1-1,i2+2*is2,i3,n)-2*is1*u(i1+1,i2,i3+2*is3,n)+4*is1*u(i1+1,i2,i3+is3,n)-4*is1*u(i1-1,i2+is2,i3,n)+4*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1+1,i2+2*is2,i3,n)-4*is1*u(i1-1,i2,i3+is3,n)-2*is2*u(i1,i2+1,i3+2*is3,n)-4*is2*u(i1,i2-1,i3+is3,n)+4*is1*u(i1-1,i2,i3,n)-4*is1*u(i1+1,i2,i3,n)+4*is1*u(i1-1,i2,i3,n)-2*is3*u(i1,i2+2*is2,i3+1,n)+4*is3*u(i1,i2+is2,i3+1,n)-4*is3*u(i1,i2+is2,i3-1,n)+2*is3*u(i1,i2+2*is2,i3-1,n))/3.0
+              //        taylor4thOrderEven3d(i1,i2,i3,m1,m2,m3,n)=(6*m2*m3**2*u(i1,i2-1,i3,n)+6*m2*m3**2*u(i1,i2-1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2,i3-1,n)-12*m2**2*m3*u(i1,i2+is2,i3-1,n)+6*m1*m3**2*u(i1-1,i2,i3,n)-6*m2*m3**2*u(i1,i2+1,i3,n)+12*m2**2*m3*u(i1,i2+is2,i3+1,n)-6*m1**2*m3*u(i1+2*is1,i2,i3+1,n)+12*m1**2*m3*u(i1+is1,i2,i3+1,n)-6*m1**2*m3*u(i1,i2,i3+1,n)+6*m1**2*m3*u(i1+2*is1,i2,i3-1,n)-12*m1**2*m3*u(i1+is1,i2,i3-1,n)+6*m1**2*m3*u(i1,i2,i3-1,n)-6*m1**2*m2*u(i1+2*is1,i2+1,i3,n)+12*m1**2*m2*u(i1+is1,i2+1,i3,n)-6*m1**2*m2*u(i1,i2+1,i3,n)+6*m1**2*m2*u(i1+2*is1,i2-1,i3,n)-12*m1**2*m2*u(i1+is1,i2-1,i3,n)+6*m1**2*m2*u(i1,i2-1,i3,n)-6*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+12*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1+1,i2,i3,n)+6*m1*m2**2*u(i1-1,i2+2*is2,i3,n)-12*m1*m2**2*u(i1-1,i2+is2,i3,n)+6*m1*m2**2*u(i1-1,i2,i3,n)+12*m2*m3**2*u(i1,i2+1,i3+is3,n)+12*m1*m3**2*u(i1+1,i2,i3+is3,n)-12*m1*m3**2*u(i1-1,i2,i3+is3,n)-6*m1*m3**2*u(i1+1,i2,i3,n)-12*m2*m3**2*u(i1,i2-1,i3+is3,n)-6*m2**2*m3*u(i1,i2,i3+1,n)-6*m1*m3**2*u(i1+1,i2,i3+2*is3,n)+6*m1*m3**2*u(i1-1,i2,i3+2*is3,n)-6*m2**2*m3*u(i1,i2+2*is2,i3+1,n)-6*m2*m3**2*u(i1,i2+1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2+2*is2,i3-1,n)+12*u(i1+m1,i2+m2,i3+m3,n)-16*m2*u(i1,i2+1,i3,n)+16*m2*u(i1,i2-1,i3,n)-16*m3*u(i1,i2,i3+1,n)+16*m3*u(i1,i2,i3-1,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3-is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3-is3,n)-12*m1*u(i1+1,i2,i3,n)+12*m1*u(i1-1,i2,i3,n)+2*m1*u(i1+2,i2,i3,n)-4*m1*u(i1+1,i2,i3,n)+4*m1*u(i1-1,i2,i3,n)-2*m1*u(i1-2,i2,i3,n)+2*m2*u(i1,i2+2,i3,n)-2*m2*u(i1,i2-2,i3,n)+2*m3*u(i1,i2,i3+2,n)-2*m3*u(i1,i2,i3-2,n)-2*m1**3*u(i1+2,i2,i3,n)+4*m1**3*u(i1+1,i2,i3,n)-4*m1**3*u(i1-1,i2,i3,n)+2*m1**3*u(i1-2,i2,i3,n)-2*m2**3*u(i1,i2+2,i3,n)+4*m2**3*u(i1,i2+1,i3,n)-4*m2**3*u(i1,i2-1,i3,n)+2*m2**3*u(i1,i2-2,i3,n)-2*m3**3*u(i1,i2,i3+2,n)+4*m3**3*u(i1,i2,i3+1,n)-4*m3**3*u(i1,i2,i3-1,n)+2*m3**3*u(i1,i2,i3-2,n))/12.0
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        int m1p2=m1*m1, m1p3=m1p2*m1;
+                                        int m2p2=m2*m2, m2p3=m2p2*m2;
+                                        int m3p2=m3*m3, m3p3=m3p2*m3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                      // Step 1: fill coefficients into the local array cc(.,.,.)
+                      //   We do this since there may be more than one contribution to the
+                      //   coefficient at a given point depending on the values of is1,is2. 
+                                            for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  cc(k1,k2,k3)=0.;
+                                  	}
+                                  	if( n1==1 && n2==1 && n3==1 )
+                                  	{ // special case for ghost pt "(-1,-1,-1)": 
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,0,-1)=cc(0,0,-1)+(8*is3)/3.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(8*is2)/3.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(8*is1)/3.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-8*is1)/3.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-8*is2)/3.0;
+                                    	  cc(0,0,1)=cc(0,0,1)+(-8*is3)/3.0;
+                                    	  cc(is1,0,-1)=cc(is1,0,-1)+(-4*is3)/3.0;
+                                    	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(2*is3)/3.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-4*is2)/3.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(2*is2)/3.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(4*is2)/3.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-2*is2)/3.0;
+                                    	  cc(is1,0,1)=cc(is1,0,1)+(4*is3)/3.0;
+                                    	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-2*is3)/3.0;
+                                    	  cc(0,is2,-1)=cc(0,is2,-1)+(-4*is3)/3.0;
+                                    	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(2*is3)/3.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-4*is1)/3.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(4*is1)/3.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(2*is1)/3.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-2*is1)/3.0;
+                                    	  cc(0,is2,1)=cc(0,is2,1)+(4*is3)/3.0;
+                                    	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-2*is3)/3.0;
+                                    	  cc(0,-1,is3)=cc(0,-1,is3)+(-4*is2)/3.0;
+                                    	  cc(-1,0,is3)=cc(-1,0,is3)+(-4*is1)/3.0;
+                                    	  cc(1,0,is3)=cc(1,0,is3)+(4*is1)/3.0;
+                                    	  cc(0,1,is3)=cc(0,1,is3)+(4*is2)/3.0;
+                                    	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(2*is2)/3.0;
+                                    	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(2*is1)/3.0;
+                                    	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-2*is1)/3.0;
+                                    	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-2*is2)/3.0;
+                                    	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-1)/3.0;
+                                    	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-1)/3.0;
+                                    	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(1)/3.0;
+                                    	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-1)/3.0;
+                                    	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(1)/3.0;
+                                    	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(1)/3.0;
+                                    	  cc(is1,is2,is3)=cc(is1,is2,is3)+(3)/3.0;
+              	  // cc(m1,m2,m3)=cc(m1,m2,m3)+(3)/3.0;
+                                  	}
+                                  	else
+                                  	{ // general case: 
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,0,-2)=cc(0,0,-2)+(2*m3p3-2*m3)/12.0;
+                                    	  cc(0,0,-1)=cc(0,0,-1)+(-4*m3p3+16*m3+6*m1p2*m3+6*m2p2*m3)/12.0;
+                                    	  cc(0,-2,0)=cc(0,-2,0)+(2*m2p3-2*m2)/12.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(6*m2*m3p2+16*m2+6*m1p2*m2-4*m2p3)/12.0;
+                                    	  cc(-2,0,0)=cc(-2,0,0)+(-2*m1+2*m1p3)/12.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(-4*m1p3+6*m1*m3p2+16*m1+6*m1*m2p2)/12.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-6*m1*m3p2+4*m1p3-6*m1*m2p2-16*m1)/12.0;
+                                    	  cc(2,0,0)=cc(2,0,0)+(2*m1-2*m1p3)/12.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-6*m2*m3p2-16*m2-6*m1p2*m2+4*m2p3)/12.0;
+                                    	  cc(0,2,0)=cc(0,2,0)+(-2*m2p3+2*m2)/12.0;
+                                    	  cc(0,0,1)=cc(0,0,1)+(-16*m3+4*m3p3-6*m1p2*m3-6*m2p2*m3)/12.0;
+                                    	  cc(0,0,2)=cc(0,0,2)+(-2*m3p3+2*m3)/12.0;
+                                    	  cc(is1,0,-1)=cc(is1,0,-1)+(-12*m1p2*m3)/12.0;
+                                    	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(6*m1p2*m3)/12.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-12*m1p2*m2)/12.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(6*m1p2*m2)/12.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(12*m1p2*m2)/12.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-6*m1p2*m2)/12.0;
+                                    	  cc(is1,0,1)=cc(is1,0,1)+(12*m1p2*m3)/12.0;
+                                    	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-6*m1p2*m3)/12.0;
+                                    	  cc(0,is2,-1)=cc(0,is2,-1)+(-12*m2p2*m3)/12.0;
+                                    	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(6*m2p2*m3)/12.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-12*m1*m2p2)/12.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(12*m1*m2p2)/12.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(6*m1*m2p2)/12.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-6*m1*m2p2)/12.0;
+                                    	  cc(0,is2,1)=cc(0,is2,1)+(12*m2p2*m3)/12.0;
+                                    	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-6*m2p2*m3)/12.0;
+                                    	  cc(0,-1,is3)=cc(0,-1,is3)+(-12*m2*m3p2)/12.0;
+                                    	  cc(-1,0,is3)=cc(-1,0,is3)+(-12*m1*m3p2)/12.0;
+                                    	  cc(1,0,is3)=cc(1,0,is3)+(12*m1*m3p2)/12.0;
+                                    	  cc(0,1,is3)=cc(0,1,is3)+(12*m2*m3p2)/12.0;
+                                    	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(6*m2*m3p2)/12.0;
+                                    	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(6*m1*m3p2)/12.0;
+                                    	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-6*m1*m3p2)/12.0;
+                                    	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-6*m2*m3p2)/12.0;
+                                    	  cc(-is1,-is2,-is3)=cc(-is1,-is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,is2,is3)=cc(is1,is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(m1,m2,m3)=cc(m1,m2,m3)+(12)/12.0; 
+                                  	}
+                      // Step 2: fill-in the the non-zero coefficients
+                                            int ie=0; // counts non-zero coefficients
+                                            for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  if( cc(k1,k2,k3)!=0. )
+                                    	  {
+                                                    coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,k3);
+                                                    coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3+k3 );
+                                                    ie++;
+                                    	  }
+                                  	}
+                                  	for( i=ie+ce; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                // printf("****WARNING***set corner BC's in coefficient matrix: corner BC taylor4thOrderEvenCorner not implemented yet, "
+                //      "***** using symmetry BC for now \n");
+               // setEvenSymmetryCoefficients();
+                        }
+                        else
+                        {
+                            printf("setCornerCoefficients:ERROR:Unknown value for bcParameters.getCornerBoundaryCondition\n");
+                            OV_ABORT("error");
+                        }
+          	    }
+          	    
+        	  }
+      	}
+            }
+            if( !mg.isPeriodic(axis2) && !mg.isPeriodic(axis3) )
+            {
+	//       ...Do the four edges parallel to i1
+                side1=-1;
+                is1=0;
+      	for( side2=Start; side2<=End; side2++ )
+      	{
+        	  is2=1-2*side2;
+        	  for( side3=Start; side3<=End; side3++ )
+        	  {
+          	    is3=1-2*side3;
+          	    if( mg.boundaryCondition(side2,1)>0 || mg.boundaryCondition(side3,2)>0 )// *wdh* added 070506
+          	    {
+            	      int bc =bcParameters.getCornerBoundaryCondition(side1,side2,side3);
+	      // Extrapolate corner ghost if this is not a physical corner: *wdh* 100713
+            	      if( mg.boundaryCondition(side2,1)==0 || mg.boundaryCondition(side3,2)==0 )
+            		bc=BoundaryConditionParameters::extrapolateCorner;
+            // 	      assignCorners(side1,side2,side3,bc);
+            // getLoopBounds();
+                        if( is1==0 )
+                        {
+                            n1a=indexRange(0,axis1);
+                            n1b=indexRange(1,axis1);
+                            ng1a=0;
+                            ng1b=0;
+                        }
+                        else
+                        {
+                            n1a=indexRange(side1,axis1);
+                            n1b=n1a;
+                            ng1a=1;
+                            ng1b=abs(indexRange(side1,axis1)-dimension(side1,axis1));
+                        }
+                        if( is2==0 )
+                        {
+                            n2a=indexRange(0,axis2);
+                            n2b=indexRange(1,axis2);
+                            ng2a=0;
+                            ng2b=0;
+                        }
+                        else
+                        {
+                            n2a=indexRange(side2,axis2);
+                            n2b=n2a;
+                            ng2a=1;
+                            ng2b=abs(indexRange(side2,axis2)-dimension(side2,axis2));
+                        }
+                        if( is3==0 )
+                        {
+                            n3a=indexRange(0,axis3);
+                            n3b=indexRange(1,axis3);
+                            ng3a=0;
+                            ng3b=0;
+                        }
+                        else
+                        {
+                            n3a=indexRange(side3,axis3);
+                            n3b=n3a;
+                            ng3a=1;
+                            ng3b=abs(indexRange(side3,axis3)-dimension(side3,axis3));
+                        }
+                        #ifdef USE_PPP
+                            I1=Range(n1a,n1b); I2=Range(n2a,n2b); I3=Range(n3a,n3b);
+                            ParallelUtility::getLocalArrayBounds(classify,classifyLocal,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b); 
+                        #endif
+                        if( bc==BoundaryConditionParameters::extrapolateCorner )
+                        {
+              // extrapolate corners as needed
+              // setExtrapolationCoefficientsMacro();
+              // printf(" setExtrapolationCoefficientsMacro: n1a,n1b,...=[%i,%i][%i,%i][%i,%i] ng1a,...=[%i,%i][%i,%i][%i,%i] p=%i\n",
+              //        n1a,n1b,n2a,n2b,n3a,n3b,ng1a,ng1b,ng2a,ng2b,ng3a,ng3b,Communication_Manager::My_Process_Number);
+              //  *wdh* 070506 -- At a "corner" where one side is interpolation, do NOT extrap along the diagonal, instead 
+              //    extrap in the "normal" direction. (diagonal extrap can fail since the grid generator only makes sure there
+              //    are "boundaryDiscretizationWidth" points in the normal direction, -- see quarterSphere.cmd plus tcm3)
+                            int js1=is1, js2=is2, js3=is3;
+                            bool checkForValidExtrapolation=false;
+                            if( (side1==0 || side1==1) && mg.boundaryCondition(side1,0)==0 )
+                            {
+                                js1=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( (side2==0 || side2==1) && mg.boundaryCondition(side2,1)==0 )
+                            {
+                                js2=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( (side3==0 || side3==1) && mg.boundaryCondition(side3,2)==0 )
+                            {
+                                js3=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( js1==0 && js2==0 && js3==0 )
+                            {
+                                printF("finishBC:coeff:assignCorners:ERROR: js1=js2=js3=0 : side1=%i side2=%i side3=%i bc=[%i,%i,%i]\n",
+                                   	 side1,side2,side3,mg.boundaryCondition(side1,0),mg.boundaryCondition(side2,1),mg.boundaryCondition(side3,2));
+                                Overture::abort("error");
+                            }
+              // beginLoops() 
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;  j2=i2-m2*is2;  j1=i1-m1*is1; // (j1,j2,j3) : ghost point to assign , NOTE: use (is1,is2,is3)
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                                        int orderOfExtrap=order;
+                                        if( checkForValidExtrapolation )
+                                        { // check the mask for valid extrapolation and reduce the order of extrapolation as necessary
+                                            int m=1;
+                                            while( m<=order && maskLocal(j1+m*(js1),j2+m*(js2),j3+m*(js3))!=0 ){ m++; }  //
+                                  	orderOfExtrap=max(1,m-1);
+                                  	if( false && orderOfExtrap!=order )
+                                  	{
+                                    	  printf("*** finishBC:coeff:assignCorners: INFO: reduce corner extrap order to %i from %i\n",
+                                                                orderOfExtrap,order);
+                                  	}
+                                        }
+                    // NOTE: store at the start of the equation (for Oges) 
+                                        for( i=0; i<=orderOfExtrap; i++ )
+                                        {
+                                            coeffLocal(i+ce,j1,j2,j3)=extrapCoeff[orderOfExtrap-1][i];    
+                                            coeff.sparse->setCoefficientIndex(i+ce, e,j1,j2,j3, e,j1+i*js1,j2+i*js2,j3+i*js3);
+                                        }
+                                        for( i=ce+orderOfExtrap+1; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;   // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::evenSymmetryCorner ||
+                                          bc==BoundaryConditionParameters::symmetryCorner  ) 
+                        {
+              // setEvenSymmetryCoefficients();
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;
+                                    j2=i2-m2*is2;
+                                    j1=i1-m1*is1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                                        coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                        coeffLocal(1+ce,j1,j2,j3)=-1.;
+                                        coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                        coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                        for( i=ce+2; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::oddSymmetryCorner )
+                        {
+              // setOddSymmetryCoefficients();
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;
+                                    j2=i2-m2*is2;
+                                    j1=i1-m1*is1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                    // odd symmetry is u(-g) = 2*u(0) - u(+g)
+                                        coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                        coeffLocal(1+ce,j1,j2,j3)=-2.;
+                                        coeffLocal(2+ce,j1,j2,j3)= 1.;
+                                        coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                        coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1,i2,i3);
+                                        coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                        for( i=ce+3; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::taylor2ndOrderEvenCorner ||
+                                          bc==BoundaryConditionParameters::taylor2ndOrder  ) 
+                        {
+              // setTaylor2ndOrderEven(is1,is2,is3);
+                            if( mg.numberOfDimensions()==2 )
+                            {
+                // -- 2d --
+                //        taylor2ndOrderEven2d(i1,i2,i3,m1,m2,c)=-m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)//                                               -m2*u(i1,i2+1,i3,c)+m2*u(i1,i2-1,i3,c)+u(i1+m1,i2+m2,i3,c)
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                                  	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                                  	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                                  	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                                  	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                                  	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                                  	coeffLocal(5+ce,j1,j2,j3)=  1.;
+                                  	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                                  	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                                  	for( i=ce+6; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                            else
+                            {
+                // --- 3D ---
+                //  taylor2ndOrderEven3d(i1,i2,i3,m1,m2,m3,c)= -m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)-m2*u(i1,i2+1,i3,c)//                       +m2*u(i1,i2-1,i3,c)-m3*u(i1,i2,i3+1,c)+m3*u(i1,i2,i3-1,c)+u(i1+m1,i2+m2,i3+m3,c)
+                // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                                  	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                                  	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                                  	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                                  	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                                  	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                                  	coeffLocal(5+ce,j1,j2,j3)= -m3;
+                                  	coeffLocal(6+ce,j1,j2,j3)=  m3;
+                                  	coeffLocal(7+ce,j1,j2,j3)=  1.;
+                                  	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                                  	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1  ,i2  ,i3+1);
+                                  	coeff.sparse->setCoefficientIndex(6+ce, e,j1,j2,j3, e,i1  ,i2  ,i3-1);
+                                  	coeff.sparse->setCoefficientIndex(7+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                                  	for( i=ce+8; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                        }
+                        else if( bc==BoundaryConditionParameters::taylor4thOrderEvenCorner )
+                        {
+              // setTaylor4thOrderEven(is1,is2,is3)
+              // check that the cc array is big enough: 
+                            assert( (ng1b-ng1a < ndg) && (ng2b-ng2a < ndg) && (ng3b-ng3a < ndg) );
+                            if( mg.numberOfDimensions()==2 )
+                            {
+                // -- 2d --
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        int m1p2=m1*m1, m1p3=m1p2*m1;
+                                        int m2p2=m2*m2, m2p3=m2p2*m2;
+                                        int m3p2=m3*m3, m3p3=m3p2*m3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                      // Step 1: fill coefficients into the local array cc(.,.,.)
+                      //   We do this since there may be more than one contribution to the
+                      //   coefficient at a given point depending on the values of is1,is2. 
+                                            for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  cc(k1,k2,0)=0.;
+                                  	}
+                                  	if( n1==1 && n2==1 )
+                                  	{ // special case for ghost pt "(-1,-1)": 
+                        // u4(i1-is1,i2-is2,i3,n)=(2*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1-1,i2+is2,i3,n)-3*is1*u(i1+1,i2,i3,n)+3*is1*u(i1-1,i2,i3,n)-is1*u(i1+1,i2+2*is2,i3,n)+is1*u(i1-1,i2+2*is2,i3,n)+2*is2*u(i1+is1,i2+1,i3,n)-is2*u(i1+2*is1,i2+1,i3,n)+3*is2*u(i1,i2-1,i3,n)+is2*u(i1+2*is1,i2-1,i3,n)-2*is2*u(i1+is1,i2-1,i3,n)-3*is2*u(i1,i2+1,i3,n)+2*u(i1+is1,i2+is2,i3,n))/2.0
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(3*is2)/2.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(3*is1)/2.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-3*is1)/2.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-3*is2)/2.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-2*is2)/2.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(is2)/2.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(2*is2)/2.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-is2)/2.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-2*is1)/2.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(2*is1)/2.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(is1)/2.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-is1)/2.0;
+                                    	  cc(is1,is2,0)=cc(is1,is2,0)+(2)/2.0;
+                                  	}
+                                  	else
+                                  	{ // general case: 
+                        // u4(i1-m1,i2-m2,i3,n)=((-m2+m2**3)*u(i1,i2-2,i3,n)+(3*m1**2*m2-2*m2**3+8*m2)*u(i1,i2-1,i3,n)+(-8*m2-3*m1**2*m2+2*m2**3)*u(i1,i2+1,i3,n)+(-m2**3+m2)*u(i1,i2+2,i3,n)+(m1**3-m1)*u(i1-2,i2,i3,n)+(-2*m1**3+8*m1+3*m1*m2**2)*u(i1-1,i2,i3,n)+(-8*m1+2*m1**3-3*m1*m2**2)*u(i1+1,i2,i3,n)+(m1-m1**3)*u(i1+2,i2,i3,n)+6*m1**2*m2*u(i1+is1,i2+1,i3,n)+6*u(i1+m1,i2+m2,i3,n)-3*m1**2*m2*u(i1+2*is1,i2+1,i3,n)-6*m1**2*m2*u(i1+is1,i2-1,i3,n)+3*m1*m2**2*u(i1-1,i2+2*is2,i3,n)+6*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1-1,i2+is2,i3,n)-3*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+3*m1**2*m2*u(i1+2*is1,i2-1,i3,n))/6.0
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,-2,0)=cc(0,-2,0)+(-m2+m2p3)/6.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(3*m1p2*m2-2*m2p3+8*m2)/6.0;
+                                    	  cc(-2,0,0)=cc(-2,0,0)+(m1p3-m1)/6.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(-2*m1p3+8*m1+3*m1*m2p2)/6.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-8*m1+2*m1p3-3*m1*m2p2)/6.0;
+                                    	  cc(2,0,0)=cc(2,0,0)+(m1-m1p3)/6.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-8*m2-3*m1p2*m2+2*m2p3)/6.0;
+                                    	  cc(0,2,0)=cc(0,2,0)+(-m2p3+m2)/6.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-6*m1p2*m2)/6.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(3*m1p2*m2)/6.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(6*m1p2*m2)/6.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-3*m1p2*m2)/6.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-6*m1*m2p2)/6.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(6*m1*m2p2)/6.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(3*m1*m2p2)/6.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-3*m1*m2p2)/6.0;
+                                    	  cc(m1,m2,m3)=cc(m1,m2,m3)+(6)/6.0;
+                                  	}
+                      // Step 2: fill-in the the non-zero coefficients
+                                            int ie=0;  // counts non-zero coefficients
+                                            for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  if( cc(k1,k2,0)!=0. )
+                                    	  {
+                                                    coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,0);
+                                                    coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3  );
+                                                    ie++;
+                                    	  }
+                                  	}
+                                  	for( i=ie+ce; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                            else
+                            {
+                // --- 3D ---
+                // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+              //        taylor4thOrderEven3dVertex(i1,i2,i3,m1,m2,m3,n)=(u(i1+is1,i2+is2,i3-is3,n)+8*is3*u(i1,i2,i3-1,n)-8*is3*u(i1,i2,i3+1,n)+8*is2*u(i1,i2-1,i3,n)-8*is2*u(i1,i2+1,i3,n)-4*is1*u(i1+1,i2,i3,n)+u(i1+is1,i2-is2,i3+is3,n)-u(i1+is1,i2-is2,i3-is3,n)+u(i1-is1,i2+is2,i3+is3,n)-u(i1-is1,i2+is2,i3-is3,n)-u(i1-is1,i2-is2,i3+is3,n)+3*u(i1+is1,i2+is2,i3+is3,n)-2*is2*u(i1+2*is1,i2+1,i3,n)+2*is2*u(i1+2*is1,i2-1,i3,n)-4*is2*u(i1+is1,i2-1,i3,n)+4*is2*u(i1+is1,i2+1,i3,n)-4*is3*u(i1+is1,i2,i3-1,n)+2*is3*u(i1+2*is1,i2,i3-1,n)+4*is3*u(i1+is1,i2,i3+1,n)-2*is3*u(i1+2*is1,i2,i3+1,n)+2*is2*u(i1,i2-1,i3+2*is3,n)+4*is2*u(i1,i2+1,i3+is3,n)+2*is1*u(i1-1,i2,i3+2*is3,n)+2*is1*u(i1-1,i2+2*is2,i3,n)-2*is1*u(i1+1,i2,i3+2*is3,n)+4*is1*u(i1+1,i2,i3+is3,n)-4*is1*u(i1-1,i2+is2,i3,n)+4*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1+1,i2+2*is2,i3,n)-4*is1*u(i1-1,i2,i3+is3,n)-2*is2*u(i1,i2+1,i3+2*is3,n)-4*is2*u(i1,i2-1,i3+is3,n)+4*is1*u(i1-1,i2,i3,n)-4*is1*u(i1+1,i2,i3,n)+4*is1*u(i1-1,i2,i3,n)-2*is3*u(i1,i2+2*is2,i3+1,n)+4*is3*u(i1,i2+is2,i3+1,n)-4*is3*u(i1,i2+is2,i3-1,n)+2*is3*u(i1,i2+2*is2,i3-1,n))/3.0
+              //        taylor4thOrderEven3d(i1,i2,i3,m1,m2,m3,n)=(6*m2*m3**2*u(i1,i2-1,i3,n)+6*m2*m3**2*u(i1,i2-1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2,i3-1,n)-12*m2**2*m3*u(i1,i2+is2,i3-1,n)+6*m1*m3**2*u(i1-1,i2,i3,n)-6*m2*m3**2*u(i1,i2+1,i3,n)+12*m2**2*m3*u(i1,i2+is2,i3+1,n)-6*m1**2*m3*u(i1+2*is1,i2,i3+1,n)+12*m1**2*m3*u(i1+is1,i2,i3+1,n)-6*m1**2*m3*u(i1,i2,i3+1,n)+6*m1**2*m3*u(i1+2*is1,i2,i3-1,n)-12*m1**2*m3*u(i1+is1,i2,i3-1,n)+6*m1**2*m3*u(i1,i2,i3-1,n)-6*m1**2*m2*u(i1+2*is1,i2+1,i3,n)+12*m1**2*m2*u(i1+is1,i2+1,i3,n)-6*m1**2*m2*u(i1,i2+1,i3,n)+6*m1**2*m2*u(i1+2*is1,i2-1,i3,n)-12*m1**2*m2*u(i1+is1,i2-1,i3,n)+6*m1**2*m2*u(i1,i2-1,i3,n)-6*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+12*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1+1,i2,i3,n)+6*m1*m2**2*u(i1-1,i2+2*is2,i3,n)-12*m1*m2**2*u(i1-1,i2+is2,i3,n)+6*m1*m2**2*u(i1-1,i2,i3,n)+12*m2*m3**2*u(i1,i2+1,i3+is3,n)+12*m1*m3**2*u(i1+1,i2,i3+is3,n)-12*m1*m3**2*u(i1-1,i2,i3+is3,n)-6*m1*m3**2*u(i1+1,i2,i3,n)-12*m2*m3**2*u(i1,i2-1,i3+is3,n)-6*m2**2*m3*u(i1,i2,i3+1,n)-6*m1*m3**2*u(i1+1,i2,i3+2*is3,n)+6*m1*m3**2*u(i1-1,i2,i3+2*is3,n)-6*m2**2*m3*u(i1,i2+2*is2,i3+1,n)-6*m2*m3**2*u(i1,i2+1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2+2*is2,i3-1,n)+12*u(i1+m1,i2+m2,i3+m3,n)-16*m2*u(i1,i2+1,i3,n)+16*m2*u(i1,i2-1,i3,n)-16*m3*u(i1,i2,i3+1,n)+16*m3*u(i1,i2,i3-1,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3-is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3-is3,n)-12*m1*u(i1+1,i2,i3,n)+12*m1*u(i1-1,i2,i3,n)+2*m1*u(i1+2,i2,i3,n)-4*m1*u(i1+1,i2,i3,n)+4*m1*u(i1-1,i2,i3,n)-2*m1*u(i1-2,i2,i3,n)+2*m2*u(i1,i2+2,i3,n)-2*m2*u(i1,i2-2,i3,n)+2*m3*u(i1,i2,i3+2,n)-2*m3*u(i1,i2,i3-2,n)-2*m1**3*u(i1+2,i2,i3,n)+4*m1**3*u(i1+1,i2,i3,n)-4*m1**3*u(i1-1,i2,i3,n)+2*m1**3*u(i1-2,i2,i3,n)-2*m2**3*u(i1,i2+2,i3,n)+4*m2**3*u(i1,i2+1,i3,n)-4*m2**3*u(i1,i2-1,i3,n)+2*m2**3*u(i1,i2-2,i3,n)-2*m3**3*u(i1,i2,i3+2,n)+4*m3**3*u(i1,i2,i3+1,n)-4*m3**3*u(i1,i2,i3-1,n)+2*m3**3*u(i1,i2,i3-2,n))/12.0
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        int m1p2=m1*m1, m1p3=m1p2*m1;
+                                        int m2p2=m2*m2, m2p3=m2p2*m2;
+                                        int m3p2=m3*m3, m3p3=m3p2*m3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                      // Step 1: fill coefficients into the local array cc(.,.,.)
+                      //   We do this since there may be more than one contribution to the
+                      //   coefficient at a given point depending on the values of is1,is2. 
+                                            for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  cc(k1,k2,k3)=0.;
+                                  	}
+                                  	if( n1==1 && n2==1 && n3==1 )
+                                  	{ // special case for ghost pt "(-1,-1,-1)": 
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,0,-1)=cc(0,0,-1)+(8*is3)/3.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(8*is2)/3.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(8*is1)/3.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-8*is1)/3.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-8*is2)/3.0;
+                                    	  cc(0,0,1)=cc(0,0,1)+(-8*is3)/3.0;
+                                    	  cc(is1,0,-1)=cc(is1,0,-1)+(-4*is3)/3.0;
+                                    	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(2*is3)/3.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-4*is2)/3.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(2*is2)/3.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(4*is2)/3.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-2*is2)/3.0;
+                                    	  cc(is1,0,1)=cc(is1,0,1)+(4*is3)/3.0;
+                                    	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-2*is3)/3.0;
+                                    	  cc(0,is2,-1)=cc(0,is2,-1)+(-4*is3)/3.0;
+                                    	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(2*is3)/3.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-4*is1)/3.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(4*is1)/3.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(2*is1)/3.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-2*is1)/3.0;
+                                    	  cc(0,is2,1)=cc(0,is2,1)+(4*is3)/3.0;
+                                    	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-2*is3)/3.0;
+                                    	  cc(0,-1,is3)=cc(0,-1,is3)+(-4*is2)/3.0;
+                                    	  cc(-1,0,is3)=cc(-1,0,is3)+(-4*is1)/3.0;
+                                    	  cc(1,0,is3)=cc(1,0,is3)+(4*is1)/3.0;
+                                    	  cc(0,1,is3)=cc(0,1,is3)+(4*is2)/3.0;
+                                    	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(2*is2)/3.0;
+                                    	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(2*is1)/3.0;
+                                    	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-2*is1)/3.0;
+                                    	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-2*is2)/3.0;
+                                    	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-1)/3.0;
+                                    	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-1)/3.0;
+                                    	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(1)/3.0;
+                                    	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-1)/3.0;
+                                    	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(1)/3.0;
+                                    	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(1)/3.0;
+                                    	  cc(is1,is2,is3)=cc(is1,is2,is3)+(3)/3.0;
+              	  // cc(m1,m2,m3)=cc(m1,m2,m3)+(3)/3.0;
+                                  	}
+                                  	else
+                                  	{ // general case: 
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,0,-2)=cc(0,0,-2)+(2*m3p3-2*m3)/12.0;
+                                    	  cc(0,0,-1)=cc(0,0,-1)+(-4*m3p3+16*m3+6*m1p2*m3+6*m2p2*m3)/12.0;
+                                    	  cc(0,-2,0)=cc(0,-2,0)+(2*m2p3-2*m2)/12.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(6*m2*m3p2+16*m2+6*m1p2*m2-4*m2p3)/12.0;
+                                    	  cc(-2,0,0)=cc(-2,0,0)+(-2*m1+2*m1p3)/12.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(-4*m1p3+6*m1*m3p2+16*m1+6*m1*m2p2)/12.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-6*m1*m3p2+4*m1p3-6*m1*m2p2-16*m1)/12.0;
+                                    	  cc(2,0,0)=cc(2,0,0)+(2*m1-2*m1p3)/12.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-6*m2*m3p2-16*m2-6*m1p2*m2+4*m2p3)/12.0;
+                                    	  cc(0,2,0)=cc(0,2,0)+(-2*m2p3+2*m2)/12.0;
+                                    	  cc(0,0,1)=cc(0,0,1)+(-16*m3+4*m3p3-6*m1p2*m3-6*m2p2*m3)/12.0;
+                                    	  cc(0,0,2)=cc(0,0,2)+(-2*m3p3+2*m3)/12.0;
+                                    	  cc(is1,0,-1)=cc(is1,0,-1)+(-12*m1p2*m3)/12.0;
+                                    	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(6*m1p2*m3)/12.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-12*m1p2*m2)/12.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(6*m1p2*m2)/12.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(12*m1p2*m2)/12.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-6*m1p2*m2)/12.0;
+                                    	  cc(is1,0,1)=cc(is1,0,1)+(12*m1p2*m3)/12.0;
+                                    	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-6*m1p2*m3)/12.0;
+                                    	  cc(0,is2,-1)=cc(0,is2,-1)+(-12*m2p2*m3)/12.0;
+                                    	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(6*m2p2*m3)/12.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-12*m1*m2p2)/12.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(12*m1*m2p2)/12.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(6*m1*m2p2)/12.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-6*m1*m2p2)/12.0;
+                                    	  cc(0,is2,1)=cc(0,is2,1)+(12*m2p2*m3)/12.0;
+                                    	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-6*m2p2*m3)/12.0;
+                                    	  cc(0,-1,is3)=cc(0,-1,is3)+(-12*m2*m3p2)/12.0;
+                                    	  cc(-1,0,is3)=cc(-1,0,is3)+(-12*m1*m3p2)/12.0;
+                                    	  cc(1,0,is3)=cc(1,0,is3)+(12*m1*m3p2)/12.0;
+                                    	  cc(0,1,is3)=cc(0,1,is3)+(12*m2*m3p2)/12.0;
+                                    	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(6*m2*m3p2)/12.0;
+                                    	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(6*m1*m3p2)/12.0;
+                                    	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-6*m1*m3p2)/12.0;
+                                    	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-6*m2*m3p2)/12.0;
+                                    	  cc(-is1,-is2,-is3)=cc(-is1,-is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,is2,is3)=cc(is1,is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(m1,m2,m3)=cc(m1,m2,m3)+(12)/12.0; 
+                                  	}
+                      // Step 2: fill-in the the non-zero coefficients
+                                            int ie=0; // counts non-zero coefficients
+                                            for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  if( cc(k1,k2,k3)!=0. )
+                                    	  {
+                                                    coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,k3);
+                                                    coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3+k3 );
+                                                    ie++;
+                                    	  }
+                                  	}
+                                  	for( i=ie+ce; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                // printf("****WARNING***set corner BC's in coefficient matrix: corner BC taylor4thOrderEvenCorner not implemented yet, "
+                //      "***** using symmetry BC for now \n");
+               // setEvenSymmetryCoefficients();
+                        }
+                        else
+                        {
+                            printf("setCornerCoefficients:ERROR:Unknown value for bcParameters.getCornerBoundaryCondition\n");
+                            OV_ABORT("error");
+                        }
+          	    }
+          	    
+        	  }
+      	}
+            }
+
+            if( !mg.isPeriodic(axis1) && !mg.isPeriodic(axis2) )
+            {
+	//       ...Do the 8 corners
+      	for( side1=Start; side1<=End; side1++ )
+      	{
+        	  is1=1-2*side1;
+        	  for( side2=Start; side2<=End; side2++ )
+        	  {
+          	    is2=1-2*side2;
+          	    for( side3=Start; side3<=End; side3++ )
+          	    {
+            	      is3=1-2*side3;
+            	      if( mg.boundaryCondition(side1,0)>0 || // *wdh* added 070506
+                                    mg.boundaryCondition(side2,1)>0 || 
+                                    mg.boundaryCondition(side3,2)>0 )
+            	      {
+            		int bc =bcParameters.getCornerBoundaryCondition(side1,side2,side3);
+		// Extrapolate corner ghost if this is not a physical corner: *wdh* 100713
+            		if( mg.boundaryCondition(side1,0)==0 || 
+                                        mg.boundaryCondition(side2,1)==0 || 
+                                        mg.boundaryCondition(side3,2)==0 )
+              		  bc=BoundaryConditionParameters::extrapolateCorner;
+            // 		assignCorners(side1,side2,side3,bc);
+            // getLoopBounds();
+                        if( is1==0 )
+                        {
+                            n1a=indexRange(0,axis1);
+                            n1b=indexRange(1,axis1);
+                            ng1a=0;
+                            ng1b=0;
+                        }
+                        else
+                        {
+                            n1a=indexRange(side1,axis1);
+                            n1b=n1a;
+                            ng1a=1;
+                            ng1b=abs(indexRange(side1,axis1)-dimension(side1,axis1));
+                        }
+                        if( is2==0 )
+                        {
+                            n2a=indexRange(0,axis2);
+                            n2b=indexRange(1,axis2);
+                            ng2a=0;
+                            ng2b=0;
+                        }
+                        else
+                        {
+                            n2a=indexRange(side2,axis2);
+                            n2b=n2a;
+                            ng2a=1;
+                            ng2b=abs(indexRange(side2,axis2)-dimension(side2,axis2));
+                        }
+                        if( is3==0 )
+                        {
+                            n3a=indexRange(0,axis3);
+                            n3b=indexRange(1,axis3);
+                            ng3a=0;
+                            ng3b=0;
+                        }
+                        else
+                        {
+                            n3a=indexRange(side3,axis3);
+                            n3b=n3a;
+                            ng3a=1;
+                            ng3b=abs(indexRange(side3,axis3)-dimension(side3,axis3));
+                        }
+                        #ifdef USE_PPP
+                            I1=Range(n1a,n1b); I2=Range(n2a,n2b); I3=Range(n3a,n3b);
+                            ParallelUtility::getLocalArrayBounds(classify,classifyLocal,I1,I2,I3,n1a,n1b,n2a,n2b,n3a,n3b); 
+                        #endif
+                        if( bc==BoundaryConditionParameters::extrapolateCorner )
+                        {
+              // extrapolate corners as needed
+              // setExtrapolationCoefficientsMacro();
+              // printf(" setExtrapolationCoefficientsMacro: n1a,n1b,...=[%i,%i][%i,%i][%i,%i] ng1a,...=[%i,%i][%i,%i][%i,%i] p=%i\n",
+              //        n1a,n1b,n2a,n2b,n3a,n3b,ng1a,ng1b,ng2a,ng2b,ng3a,ng3b,Communication_Manager::My_Process_Number);
+              //  *wdh* 070506 -- At a "corner" where one side is interpolation, do NOT extrap along the diagonal, instead 
+              //    extrap in the "normal" direction. (diagonal extrap can fail since the grid generator only makes sure there
+              //    are "boundaryDiscretizationWidth" points in the normal direction, -- see quarterSphere.cmd plus tcm3)
+                            int js1=is1, js2=is2, js3=is3;
+                            bool checkForValidExtrapolation=false;
+                            if( (side1==0 || side1==1) && mg.boundaryCondition(side1,0)==0 )
+                            {
+                                js1=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( (side2==0 || side2==1) && mg.boundaryCondition(side2,1)==0 )
+                            {
+                                js2=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( (side3==0 || side3==1) && mg.boundaryCondition(side3,2)==0 )
+                            {
+                                js3=0; 
+                                checkForValidExtrapolation=true;
+                            }
+                            if( js1==0 && js2==0 && js3==0 )
+                            {
+                                printF("finishBC:coeff:assignCorners:ERROR: js1=js2=js3=0 : side1=%i side2=%i side3=%i bc=[%i,%i,%i]\n",
+                                   	 side1,side2,side3,mg.boundaryCondition(side1,0),mg.boundaryCondition(side2,1),mg.boundaryCondition(side3,2));
+                                Overture::abort("error");
+                            }
+              // beginLoops() 
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;  j2=i2-m2*is2;  j1=i1-m1*is1; // (j1,j2,j3) : ghost point to assign , NOTE: use (is1,is2,is3)
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                                        int orderOfExtrap=order;
+                                        if( checkForValidExtrapolation )
+                                        { // check the mask for valid extrapolation and reduce the order of extrapolation as necessary
+                                            int m=1;
+                                            while( m<=order && maskLocal(j1+m*(js1),j2+m*(js2),j3+m*(js3))!=0 ){ m++; }  //
+                                  	orderOfExtrap=max(1,m-1);
+                                  	if( false && orderOfExtrap!=order )
+                                  	{
+                                    	  printf("*** finishBC:coeff:assignCorners: INFO: reduce corner extrap order to %i from %i\n",
+                                                                orderOfExtrap,order);
+                                  	}
+                                        }
+                    // NOTE: store at the start of the equation (for Oges) 
+                                        for( i=0; i<=orderOfExtrap; i++ )
+                                        {
+                                            coeffLocal(i+ce,j1,j2,j3)=extrapCoeff[orderOfExtrap-1][i];    
+                                            coeff.sparse->setCoefficientIndex(i+ce, e,j1,j2,j3, e,j1+i*js1,j2+i*js2,j3+i*js3);
+                                        }
+                                        for( i=ce+orderOfExtrap+1; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;   // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::evenSymmetryCorner ||
+                                          bc==BoundaryConditionParameters::symmetryCorner  ) 
+                        {
+              // setEvenSymmetryCoefficients();
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;
+                                    j2=i2-m2*is2;
+                                    j1=i1-m1*is1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                                        coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                        coeffLocal(1+ce,j1,j2,j3)=-1.;
+                                        coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                        coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                        for( i=ce+2; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::oddSymmetryCorner )
+                        {
+              // setOddSymmetryCoefficients();
+              // beginLoops()
+                            for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                            {
+                                const int ce=CE(0,e);
+                                const int ceb=CE(0,e+1)-1;
+                                for( i3=n3a; i3<=n3b; i3++ )
+                                for( i2=n2a; i2<=n2b; i2++ )
+                                for( i1=n1a; i1<=n1b; i1++ )
+                            {
+                                for( m3=ng3a; m3<=ng3b; m3++ ) // loop over different ghost points
+                                for( m2=ng2a; m2<=ng2b; m2++ )
+                                for( m1=ng1a; m1<=ng1b; m1++ )
+                                {
+                                    j3=i3-m3*is3;
+                                    j2=i2-m2*is2;
+                                    j1=i1-m1*is1;
+                                    if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                    {
+                    // odd symmetry is u(-g) = 2*u(0) - u(+g)
+                                        coeffLocal(0+ce,j1,j2,j3)= 1.;
+                                        coeffLocal(1+ce,j1,j2,j3)=-2.;
+                                        coeffLocal(2+ce,j1,j2,j3)= 1.;
+                                        coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1,j2,j3);
+                                        coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1,i2,i3);
+                                        coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1+m1*is1,i2+m2*is2,i3+m3*is3);
+                                        for( i=ce+3; i<=ceb; i++ )
+                                  	coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                    }
+                                }
+                            }
+              // endLoops()
+                                    } // end for e
+                        }
+                        else if( bc==BoundaryConditionParameters::taylor2ndOrderEvenCorner ||
+                                          bc==BoundaryConditionParameters::taylor2ndOrder  ) 
+                        {
+              // setTaylor2ndOrderEven(is1,is2,is3);
+                            if( mg.numberOfDimensions()==2 )
+                            {
+                // -- 2d --
+                //        taylor2ndOrderEven2d(i1,i2,i3,m1,m2,c)=-m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)//                                               -m2*u(i1,i2+1,i3,c)+m2*u(i1,i2-1,i3,c)+u(i1+m1,i2+m2,i3,c)
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                                  	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                                  	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                                  	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                                  	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                                  	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                                  	coeffLocal(5+ce,j1,j2,j3)=  1.;
+                                  	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                                  	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                                  	for( i=ce+6; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                            else
+                            {
+                // --- 3D ---
+                //  taylor2ndOrderEven3d(i1,i2,i3,m1,m2,m3,c)= -m1*u(i1+1,i2,i3,c)+m1*u(i1-1,i2,i3,c)-m2*u(i1,i2+1,i3,c)//                       +m2*u(i1,i2-1,i3,c)-m3*u(i1,i2,i3+1,c)+m3*u(i1,i2,i3-1,c)+u(i1+m1,i2+m2,i3+m3,c)
+                // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                                  	coeffLocal(0+ce,j1,j2,j3)= -1.;
+                                  	coeffLocal(1+ce,j1,j2,j3)= -m1;
+                                  	coeffLocal(2+ce,j1,j2,j3)=  m1;
+                                  	coeffLocal(3+ce,j1,j2,j3)= -m2;
+                                  	coeffLocal(4+ce,j1,j2,j3)=  m2;
+                                  	coeffLocal(5+ce,j1,j2,j3)= -m3;
+                                  	coeffLocal(6+ce,j1,j2,j3)=  m3;
+                                  	coeffLocal(7+ce,j1,j2,j3)=  1.;
+                                  	coeff.sparse->setCoefficientIndex(0+ce, e,j1,j2,j3, e,j1  ,j2  ,j3  );
+                                  	coeff.sparse->setCoefficientIndex(1+ce, e,j1,j2,j3, e,i1+1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(2+ce, e,j1,j2,j3, e,i1-1,i2  ,i3  );
+                                  	coeff.sparse->setCoefficientIndex(3+ce, e,j1,j2,j3, e,i1  ,i2+1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(4+ce, e,j1,j2,j3, e,i1  ,i2-1,i3  );
+                                  	coeff.sparse->setCoefficientIndex(5+ce, e,j1,j2,j3, e,i1  ,i2  ,i3+1);
+                                  	coeff.sparse->setCoefficientIndex(6+ce, e,j1,j2,j3, e,i1  ,i2  ,i3-1);
+                                  	coeff.sparse->setCoefficientIndex(7+ce, e,j1,j2,j3, e,i1+m1,i2+m2,i3+m3 );
+                                  	for( i=ce+8; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                        }
+                        else if( bc==BoundaryConditionParameters::taylor4thOrderEvenCorner )
+                        {
+              // setTaylor4thOrderEven(is1,is2,is3)
+              // check that the cc array is big enough: 
+                            assert( (ng1b-ng1a < ndg) && (ng2b-ng2a < ndg) && (ng3b-ng3a < ndg) );
+                            if( mg.numberOfDimensions()==2 )
+                            {
+                // -- 2d --
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        int m1p2=m1*m1, m1p3=m1p2*m1;
+                                        int m2p2=m2*m2, m2p3=m2p2*m2;
+                                        int m3p2=m3*m3, m3p3=m3p2*m3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                      // Step 1: fill coefficients into the local array cc(.,.,.)
+                      //   We do this since there may be more than one contribution to the
+                      //   coefficient at a given point depending on the values of is1,is2. 
+                                            for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  cc(k1,k2,0)=0.;
+                                  	}
+                                  	if( n1==1 && n2==1 )
+                                  	{ // special case for ghost pt "(-1,-1)": 
+                        // u4(i1-is1,i2-is2,i3,n)=(2*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1-1,i2+is2,i3,n)-3*is1*u(i1+1,i2,i3,n)+3*is1*u(i1-1,i2,i3,n)-is1*u(i1+1,i2+2*is2,i3,n)+is1*u(i1-1,i2+2*is2,i3,n)+2*is2*u(i1+is1,i2+1,i3,n)-is2*u(i1+2*is1,i2+1,i3,n)+3*is2*u(i1,i2-1,i3,n)+is2*u(i1+2*is1,i2-1,i3,n)-2*is2*u(i1+is1,i2-1,i3,n)-3*is2*u(i1,i2+1,i3,n)+2*u(i1+is1,i2+is2,i3,n))/2.0
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(3*is2)/2.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(3*is1)/2.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-3*is1)/2.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-3*is2)/2.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-2*is2)/2.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(is2)/2.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(2*is2)/2.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-is2)/2.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-2*is1)/2.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(2*is1)/2.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(is1)/2.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-is1)/2.0;
+                                    	  cc(is1,is2,0)=cc(is1,is2,0)+(2)/2.0;
+                                  	}
+                                  	else
+                                  	{ // general case: 
+                        // u4(i1-m1,i2-m2,i3,n)=((-m2+m2**3)*u(i1,i2-2,i3,n)+(3*m1**2*m2-2*m2**3+8*m2)*u(i1,i2-1,i3,n)+(-8*m2-3*m1**2*m2+2*m2**3)*u(i1,i2+1,i3,n)+(-m2**3+m2)*u(i1,i2+2,i3,n)+(m1**3-m1)*u(i1-2,i2,i3,n)+(-2*m1**3+8*m1+3*m1*m2**2)*u(i1-1,i2,i3,n)+(-8*m1+2*m1**3-3*m1*m2**2)*u(i1+1,i2,i3,n)+(m1-m1**3)*u(i1+2,i2,i3,n)+6*m1**2*m2*u(i1+is1,i2+1,i3,n)+6*u(i1+m1,i2+m2,i3,n)-3*m1**2*m2*u(i1+2*is1,i2+1,i3,n)-6*m1**2*m2*u(i1+is1,i2-1,i3,n)+3*m1*m2**2*u(i1-1,i2+2*is2,i3,n)+6*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1-1,i2+is2,i3,n)-3*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+3*m1**2*m2*u(i1+2*is1,i2-1,i3,n))/6.0
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,-2,0)=cc(0,-2,0)+(-m2+m2p3)/6.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(3*m1p2*m2-2*m2p3+8*m2)/6.0;
+                                    	  cc(-2,0,0)=cc(-2,0,0)+(m1p3-m1)/6.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(-2*m1p3+8*m1+3*m1*m2p2)/6.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-8*m1+2*m1p3-3*m1*m2p2)/6.0;
+                                    	  cc(2,0,0)=cc(2,0,0)+(m1-m1p3)/6.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-8*m2-3*m1p2*m2+2*m2p3)/6.0;
+                                    	  cc(0,2,0)=cc(0,2,0)+(-m2p3+m2)/6.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-6*m1p2*m2)/6.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(3*m1p2*m2)/6.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(6*m1p2*m2)/6.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-3*m1p2*m2)/6.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-6*m1*m2p2)/6.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(6*m1*m2p2)/6.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(3*m1*m2p2)/6.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-3*m1*m2p2)/6.0;
+                                    	  cc(m1,m2,m3)=cc(m1,m2,m3)+(6)/6.0;
+                                  	}
+                      // Step 2: fill-in the the non-zero coefficients
+                                            int ie=0;  // counts non-zero coefficients
+                                            for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  if( cc(k1,k2,0)!=0. )
+                                    	  {
+                                                    coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,0);
+                                                    coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3  );
+                                                    ie++;
+                                    	  }
+                                  	}
+                                  	for( i=ie+ce; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                            else
+                            {
+                // --- 3D ---
+                // These next loops apply to edges and corners. On an edge, one of is1, is2 or is3 will be zero.
+              //        taylor4thOrderEven3dVertex(i1,i2,i3,m1,m2,m3,n)=(u(i1+is1,i2+is2,i3-is3,n)+8*is3*u(i1,i2,i3-1,n)-8*is3*u(i1,i2,i3+1,n)+8*is2*u(i1,i2-1,i3,n)-8*is2*u(i1,i2+1,i3,n)-4*is1*u(i1+1,i2,i3,n)+u(i1+is1,i2-is2,i3+is3,n)-u(i1+is1,i2-is2,i3-is3,n)+u(i1-is1,i2+is2,i3+is3,n)-u(i1-is1,i2+is2,i3-is3,n)-u(i1-is1,i2-is2,i3+is3,n)+3*u(i1+is1,i2+is2,i3+is3,n)-2*is2*u(i1+2*is1,i2+1,i3,n)+2*is2*u(i1+2*is1,i2-1,i3,n)-4*is2*u(i1+is1,i2-1,i3,n)+4*is2*u(i1+is1,i2+1,i3,n)-4*is3*u(i1+is1,i2,i3-1,n)+2*is3*u(i1+2*is1,i2,i3-1,n)+4*is3*u(i1+is1,i2,i3+1,n)-2*is3*u(i1+2*is1,i2,i3+1,n)+2*is2*u(i1,i2-1,i3+2*is3,n)+4*is2*u(i1,i2+1,i3+is3,n)+2*is1*u(i1-1,i2,i3+2*is3,n)+2*is1*u(i1-1,i2+2*is2,i3,n)-2*is1*u(i1+1,i2,i3+2*is3,n)+4*is1*u(i1+1,i2,i3+is3,n)-4*is1*u(i1-1,i2+is2,i3,n)+4*is1*u(i1+1,i2+is2,i3,n)-2*is1*u(i1+1,i2+2*is2,i3,n)-4*is1*u(i1-1,i2,i3+is3,n)-2*is2*u(i1,i2+1,i3+2*is3,n)-4*is2*u(i1,i2-1,i3+is3,n)+4*is1*u(i1-1,i2,i3,n)-4*is1*u(i1+1,i2,i3,n)+4*is1*u(i1-1,i2,i3,n)-2*is3*u(i1,i2+2*is2,i3+1,n)+4*is3*u(i1,i2+is2,i3+1,n)-4*is3*u(i1,i2+is2,i3-1,n)+2*is3*u(i1,i2+2*is2,i3-1,n))/3.0
+              //        taylor4thOrderEven3d(i1,i2,i3,m1,m2,m3,n)=(6*m2*m3**2*u(i1,i2-1,i3,n)+6*m2*m3**2*u(i1,i2-1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2,i3-1,n)-12*m2**2*m3*u(i1,i2+is2,i3-1,n)+6*m1*m3**2*u(i1-1,i2,i3,n)-6*m2*m3**2*u(i1,i2+1,i3,n)+12*m2**2*m3*u(i1,i2+is2,i3+1,n)-6*m1**2*m3*u(i1+2*is1,i2,i3+1,n)+12*m1**2*m3*u(i1+is1,i2,i3+1,n)-6*m1**2*m3*u(i1,i2,i3+1,n)+6*m1**2*m3*u(i1+2*is1,i2,i3-1,n)-12*m1**2*m3*u(i1+is1,i2,i3-1,n)+6*m1**2*m3*u(i1,i2,i3-1,n)-6*m1**2*m2*u(i1+2*is1,i2+1,i3,n)+12*m1**2*m2*u(i1+is1,i2+1,i3,n)-6*m1**2*m2*u(i1,i2+1,i3,n)+6*m1**2*m2*u(i1+2*is1,i2-1,i3,n)-12*m1**2*m2*u(i1+is1,i2-1,i3,n)+6*m1**2*m2*u(i1,i2-1,i3,n)-6*m1*m2**2*u(i1+1,i2+2*is2,i3,n)+12*m1*m2**2*u(i1+1,i2+is2,i3,n)-6*m1*m2**2*u(i1+1,i2,i3,n)+6*m1*m2**2*u(i1-1,i2+2*is2,i3,n)-12*m1*m2**2*u(i1-1,i2+is2,i3,n)+6*m1*m2**2*u(i1-1,i2,i3,n)+12*m2*m3**2*u(i1,i2+1,i3+is3,n)+12*m1*m3**2*u(i1+1,i2,i3+is3,n)-12*m1*m3**2*u(i1-1,i2,i3+is3,n)-6*m1*m3**2*u(i1+1,i2,i3,n)-12*m2*m3**2*u(i1,i2-1,i3+is3,n)-6*m2**2*m3*u(i1,i2,i3+1,n)-6*m1*m3**2*u(i1+1,i2,i3+2*is3,n)+6*m1*m3**2*u(i1-1,i2,i3+2*is3,n)-6*m2**2*m3*u(i1,i2+2*is2,i3+1,n)-6*m2*m3**2*u(i1,i2+1,i3+2*is3,n)+6*m2**2*m3*u(i1,i2+2*is2,i3-1,n)+12*u(i1+m1,i2+m2,i3+m3,n)-16*m2*u(i1,i2+1,i3,n)+16*m2*u(i1,i2-1,i3,n)-16*m3*u(i1,i2,i3+1,n)+16*m3*u(i1,i2,i3-1,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2+is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1+is1,i2-is2,i3-is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3+is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2+is2,i3-is3,n)-3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3+is3,n)+3*m1*m2*m3*is1*is2*is3*u(i1-is1,i2-is2,i3-is3,n)-12*m1*u(i1+1,i2,i3,n)+12*m1*u(i1-1,i2,i3,n)+2*m1*u(i1+2,i2,i3,n)-4*m1*u(i1+1,i2,i3,n)+4*m1*u(i1-1,i2,i3,n)-2*m1*u(i1-2,i2,i3,n)+2*m2*u(i1,i2+2,i3,n)-2*m2*u(i1,i2-2,i3,n)+2*m3*u(i1,i2,i3+2,n)-2*m3*u(i1,i2,i3-2,n)-2*m1**3*u(i1+2,i2,i3,n)+4*m1**3*u(i1+1,i2,i3,n)-4*m1**3*u(i1-1,i2,i3,n)+2*m1**3*u(i1-2,i2,i3,n)-2*m2**3*u(i1,i2+2,i3,n)+4*m2**3*u(i1,i2+1,i3,n)-4*m2**3*u(i1,i2-1,i3,n)+2*m2**3*u(i1,i2-2,i3,n)-2*m3**3*u(i1,i2,i3+2,n)+4*m3**3*u(i1,i2,i3+1,n)-4*m3**3*u(i1,i2,i3-1,n)+2*m3**3*u(i1,i2,i3-2,n))/12.0
+                // beginLoops()
+                                for( e=0; e<numberOfComponentsForCoefficients; e++ )
+                                {
+                                    const int ce=CE(0,e);
+                                    const int ceb=CE(0,e+1)-1;
+                                    for( i3=n3a; i3<=n3b; i3++ )
+                                    for( i2=n2a; i2<=n2b; i2++ )
+                                    for( i1=n1a; i1<=n1b; i1++ )
+                                {
+                                    for( int n3=ng3a; n3<=ng3b; n3++ ) // loop over different ghost points
+                                    for( int n2=ng2a; n2<=ng2b; n2++ )
+                                    for( int n1=ng1a; n1<=ng1b; n1++ )
+                                    {
+                                        m1=n1*is1;
+                                        m2=n2*is2;
+                                        m3=n3*is3;
+                                        int m1p2=m1*m1, m1p3=m1p2*m1;
+                                        int m2p2=m2*m2, m2p3=m2p2*m2;
+                                        int m3p2=m3*m3, m3p3=m3p2*m3;
+                                        j3=i3-m3;
+                                        j2=i2-m2;
+                                        j1=i1-m1;
+                                        if( classifyLocal(j1,j2,j3,e)==SparseRepForMGF::extrapolation )  
+                                        {
+                      // Step 1: fill coefficients into the local array cc(.,.,.)
+                      //   We do this since there may be more than one contribution to the
+                      //   coefficient at a given point depending on the values of is1,is2. 
+                                            for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  cc(k1,k2,k3)=0.;
+                                  	}
+                                  	if( n1==1 && n2==1 && n3==1 )
+                                  	{ // special case for ghost pt "(-1,-1,-1)": 
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,0,-1)=cc(0,0,-1)+(8*is3)/3.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(8*is2)/3.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(8*is1)/3.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-8*is1)/3.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-8*is2)/3.0;
+                                    	  cc(0,0,1)=cc(0,0,1)+(-8*is3)/3.0;
+                                    	  cc(is1,0,-1)=cc(is1,0,-1)+(-4*is3)/3.0;
+                                    	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(2*is3)/3.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-4*is2)/3.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(2*is2)/3.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(4*is2)/3.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-2*is2)/3.0;
+                                    	  cc(is1,0,1)=cc(is1,0,1)+(4*is3)/3.0;
+                                    	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-2*is3)/3.0;
+                                    	  cc(0,is2,-1)=cc(0,is2,-1)+(-4*is3)/3.0;
+                                    	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(2*is3)/3.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-4*is1)/3.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(4*is1)/3.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(2*is1)/3.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-2*is1)/3.0;
+                                    	  cc(0,is2,1)=cc(0,is2,1)+(4*is3)/3.0;
+                                    	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-2*is3)/3.0;
+                                    	  cc(0,-1,is3)=cc(0,-1,is3)+(-4*is2)/3.0;
+                                    	  cc(-1,0,is3)=cc(-1,0,is3)+(-4*is1)/3.0;
+                                    	  cc(1,0,is3)=cc(1,0,is3)+(4*is1)/3.0;
+                                    	  cc(0,1,is3)=cc(0,1,is3)+(4*is2)/3.0;
+                                    	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(2*is2)/3.0;
+                                    	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(2*is1)/3.0;
+                                    	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-2*is1)/3.0;
+                                    	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-2*is2)/3.0;
+                                    	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-1)/3.0;
+                                    	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-1)/3.0;
+                                    	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(1)/3.0;
+                                    	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-1)/3.0;
+                                    	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(1)/3.0;
+                                    	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(1)/3.0;
+                                    	  cc(is1,is2,is3)=cc(is1,is2,is3)+(3)/3.0;
+              	  // cc(m1,m2,m3)=cc(m1,m2,m3)+(3)/3.0;
+                                  	}
+                                  	else
+                                  	{ // general case: 
+                                    	  cc(-m1,-m2,-m3)=-1.;
+                                    	  cc(0,0,-2)=cc(0,0,-2)+(2*m3p3-2*m3)/12.0;
+                                    	  cc(0,0,-1)=cc(0,0,-1)+(-4*m3p3+16*m3+6*m1p2*m3+6*m2p2*m3)/12.0;
+                                    	  cc(0,-2,0)=cc(0,-2,0)+(2*m2p3-2*m2)/12.0;
+                                    	  cc(0,-1,0)=cc(0,-1,0)+(6*m2*m3p2+16*m2+6*m1p2*m2-4*m2p3)/12.0;
+                                    	  cc(-2,0,0)=cc(-2,0,0)+(-2*m1+2*m1p3)/12.0;
+                                    	  cc(-1,0,0)=cc(-1,0,0)+(-4*m1p3+6*m1*m3p2+16*m1+6*m1*m2p2)/12.0;
+                                    	  cc(1,0,0)=cc(1,0,0)+(-6*m1*m3p2+4*m1p3-6*m1*m2p2-16*m1)/12.0;
+                                    	  cc(2,0,0)=cc(2,0,0)+(2*m1-2*m1p3)/12.0;
+                                    	  cc(0,1,0)=cc(0,1,0)+(-6*m2*m3p2-16*m2-6*m1p2*m2+4*m2p3)/12.0;
+                                    	  cc(0,2,0)=cc(0,2,0)+(-2*m2p3+2*m2)/12.0;
+                                    	  cc(0,0,1)=cc(0,0,1)+(-16*m3+4*m3p3-6*m1p2*m3-6*m2p2*m3)/12.0;
+                                    	  cc(0,0,2)=cc(0,0,2)+(-2*m3p3+2*m3)/12.0;
+                                    	  cc(is1,0,-1)=cc(is1,0,-1)+(-12*m1p2*m3)/12.0;
+                                    	  cc(2*is1,0,-1)=cc(2*is1,0,-1)+(6*m1p2*m3)/12.0;
+                                    	  cc(is1,-1,0)=cc(is1,-1,0)+(-12*m1p2*m2)/12.0;
+                                    	  cc(2*is1,-1,0)=cc(2*is1,-1,0)+(6*m1p2*m2)/12.0;
+                                    	  cc(is1,1,0)=cc(is1,1,0)+(12*m1p2*m2)/12.0;
+                                    	  cc(2*is1,1,0)=cc(2*is1,1,0)+(-6*m1p2*m2)/12.0;
+                                    	  cc(is1,0,1)=cc(is1,0,1)+(12*m1p2*m3)/12.0;
+                                    	  cc(2*is1,0,1)=cc(2*is1,0,1)+(-6*m1p2*m3)/12.0;
+                                    	  cc(0,is2,-1)=cc(0,is2,-1)+(-12*m2p2*m3)/12.0;
+                                    	  cc(0,2*is2,-1)=cc(0,2*is2,-1)+(6*m2p2*m3)/12.0;
+                                    	  cc(-1,is2,0)=cc(-1,is2,0)+(-12*m1*m2p2)/12.0;
+                                    	  cc(1,is2,0)=cc(1,is2,0)+(12*m1*m2p2)/12.0;
+                                    	  cc(-1,2*is2,0)=cc(-1,2*is2,0)+(6*m1*m2p2)/12.0;
+                                    	  cc(1,2*is2,0)=cc(1,2*is2,0)+(-6*m1*m2p2)/12.0;
+                                    	  cc(0,is2,1)=cc(0,is2,1)+(12*m2p2*m3)/12.0;
+                                    	  cc(0,2*is2,1)=cc(0,2*is2,1)+(-6*m2p2*m3)/12.0;
+                                    	  cc(0,-1,is3)=cc(0,-1,is3)+(-12*m2*m3p2)/12.0;
+                                    	  cc(-1,0,is3)=cc(-1,0,is3)+(-12*m1*m3p2)/12.0;
+                                    	  cc(1,0,is3)=cc(1,0,is3)+(12*m1*m3p2)/12.0;
+                                    	  cc(0,1,is3)=cc(0,1,is3)+(12*m2*m3p2)/12.0;
+                                    	  cc(0,-1,2*is3)=cc(0,-1,2*is3)+(6*m2*m3p2)/12.0;
+                                    	  cc(-1,0,2*is3)=cc(-1,0,2*is3)+(6*m1*m3p2)/12.0;
+                                    	  cc(1,0,2*is3)=cc(1,0,2*is3)+(-6*m1*m3p2)/12.0;
+                                    	  cc(0,1,2*is3)=cc(0,1,2*is3)+(-6*m2*m3p2)/12.0;
+                                    	  cc(-is1,-is2,-is3)=cc(-is1,-is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,-is2,-is3)=cc(is1,-is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,is2,-is3)=cc(-is1,is2,-is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,is2,-is3)=cc(is1,is2,-is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,-is2,is3)=cc(-is1,-is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,-is2,is3)=cc(is1,-is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(-is1,is2,is3)=cc(-is1,is2,is3)+(3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(is1,is2,is3)=cc(is1,is2,is3)+(-3*m1*m2*m3*is1*is2*is3)/12.0;
+                                    	  cc(m1,m2,m3)=cc(m1,m2,m3)+(12)/12.0; 
+                                  	}
+                      // Step 2: fill-in the the non-zero coefficients
+                                            int ie=0; // counts non-zero coefficients
+                                            for( int k3=-ndg; k3<=ndg; k3++ )for( int k2=-ndg; k2<=ndg; k2++ )for( int k1=-ndg; k1<=ndg; k1++ )
+                                  	{
+                                    	  if( cc(k1,k2,k3)!=0. )
+                                    	  {
+                                                    coeffLocal(ie+ce,j1,j2,j3)=cc(k1,k2,k3);
+                                                    coeff.sparse->setCoefficientIndex(ie+ce, e,j1,j2,j3, e,j1+k1,j2+k2,j3+k3 );
+                                                    ie++;
+                                    	  }
+                                  	}
+                                  	for( i=ie+ce; i<=ceb; i++ )
+                                    	  coeffLocal(i,j1,j2,j3)=0.;  // zero out remaining coefficients
+                                        }
+                                    }
+                                }
+                // endLoops()
+                                        } // end for e
+                            }
+                // printf("****WARNING***set corner BC's in coefficient matrix: corner BC taylor4thOrderEvenCorner not implemented yet, "
+                //      "***** using symmetry BC for now \n");
+               // setEvenSymmetryCoefficients();
+                        }
+                        else
+                        {
+                            printf("setCornerCoefficients:ERROR:Unknown value for bcParameters.getCornerBoundaryCondition\n");
+                            OV_ABORT("error");
+                        }
+            	      }
+          	    }
+        	  }
+      	}
+            }
+
+        }
+
+        delete [] pcc;
+        
+    //
+    // now fill in extrapolation points that lie outside interpolation points on the boundary
+    //         
+        const int numberOfGhostLines = u.sparse->numberOfGhostLines;
+        #ifdef USE_PPP
+            const intSerialArray & mask = mg.mask().getLocalArray();
+        #else
+            const intSerialArray & mask = mg.mask();
+        #endif
+        for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+        {
+            is1=is2=is3=0;
+            for( int side=Start; side<=End; side++ )
+            {
+                isv[axis]=1-2*side;
+                if( mg.boundaryCondition(side,axis)>0 )
+      	{
+        	  getBoundaryIndex(mg.gridIndexRange(),side,axis,I1,I2,I3);
+                    bool ok = ParallelUtility::getLocalArrayBounds(classify,classifyLocal,I1,I2,I3);
+        	  if( ok )
+        	  {
+          	    for( i3=I3.getBase(); i3<=I3.getBound(); i3++ )
+          	    {
+            	      for( i2=I2.getBase(); i2<=I2.getBound(); i2++ )
+            	      {
+            		for( i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+            		{
+              		  if( mask(i1,i2,i3) & CompositeGrid::ISinterpolationPoint )
+              		  {
+		    // printf("*** finishBC: fill in extrap point that is outside a boundary-interp point\n");
+              		  
+		    // *wdh* 000925 for( int g=0; g<=numberOfGhostLines; g++ )
+                		    for( int g=1; g<=numberOfGhostLines; g++ )
+                  		      for( int e=0; e<numberOfComponentsForCoefficients; e++ )
+                  			setExtrapolationCoefficients(u,e,i1-is1*g,i2-is2*g,i3-is3*g,orderOfExtrapolation);
+              		  }
+            		}
+            	      }
+          	    }
+        	  }
+      	}
+            }
+        }
+        
+
+    // fill in equations for the periodic boundary conditions
+        setPeriodicCoefficients( u );
+
+    // update parallel ghost boundaries *wdh* 100415 (these are needed by some solvers such as multigrid)
+        u.updateGhostBoundaries();
+
+    }
+    else
+    {
+        fixBoundaryCorners( u,bcParameters,C0 ); 
+    }
+}
+
+
+
+
+#undef CE

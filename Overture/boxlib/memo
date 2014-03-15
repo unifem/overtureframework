@@ -1,0 +1,82 @@
+---------
+   Add #include "OvertureBL.h" to
+      CONSTANTS.H REAL.H Utility.H
+to define BL_USE_FLOAT or BL_USE_DOUBLE in terms of DOUBLE
+---------
+
+
+
+
+Hi:
+
+  We are using boxlib here in CIC-19 with Overture. I have recently
+upgraded to version 2 and I have the following suggested changes:
+
+Boolean.H: You undef some variables without redefining them. Since Overture
+defines some of these, by undef'ing them they then become unknown in Overture.
+
+// *wdh
+// undef TRUE
+// undef FALSE
+// undef True
+// undef False
+// *wdh
+
+
+Assert.H
+ You redefine the "assert" macro  -- I think this is a not a good practice since users of boxlib 
+are not going to know this. It also causes lots of warnings on sun 4.1.3 machines.
+Perhaps boxlib can use an "assert" with a different name??
+
+
+Array.H
+  The inline template functions in this class are not treated properly by the sun compiler.
+It seems that no matter what I do I get the following error:
+----------------
+Undefined			first referenced
+ symbol  			    in file
+Array<int>::Array<int>(void)                    /users/henshaw/boxlib/guthamr/lib/Solaris.CC.FLOAT/libbox3d.a(BoxAssoc.o)
+Array<int>::~Array<int>(void)                    /users/henshaw/boxlib/guthamr/lib/Solaris.CC.FLOAT/libbox3d.a(BoxAssoc.o)
+----------------
+For now I have made them not inlined.
+
+
+
+
+
+aString: The following functions we find useful in the aString class. Perhaps they could
+be added:
+
+aString.H:
+// *wdh
+    operator const char *() const {return p->s; }
+    aString operator()( const int i1, const int i2 );  // return a substring from i1...i2
+// *wdh
+
+
+
+aString.C:
+//-----------------------------------------------------------------------
+// *wdh* added
+//  return a substring
+// substring from i1...i2
+//----------------------------------------------------------------------
+aString aString::
+operator()( const int i1, const int i2 )
+{
+    
+  int ia= i1<0 ? 0 : i1;
+  int ib= i2>length() ? length() : i2;
+     
+  char *c = new char[ib-ia+2];
+  for( int i=ia; i<=ib; i++ )
+    c[i-ia]=p->s[i];
+  c[ib-ia+1]='\0';
+  aString sub=c;
+  delete c;
+  return sub;
+}    
+
+
+Boolean.H :  64 bit sgi compiler supports bool type
+#if !(defined(__PHOTON) || defined(__KCC) || defined(__GNUG__) || defined(_MIPS_ISA_MIPS4))

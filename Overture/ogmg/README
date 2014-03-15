@@ -1,0 +1,39 @@
+ 
+     CGMG: Solve Elliptic Equations in 2D and 3D on Overlapping Grids
+               with the Multigrid Algorithm
+         
+               Bill Henshaw  LANL
+
+NOTES:
+  The calling sequence of CGMG is very similar to the composite grid
+ equation solver CGES. You should first learn how to run CGES before
+ running CGMG.
+
+1. Makefiles: 
+  Go to the main cmpgrd directory and follow the instructions for making
+ cmpgrd.
+
+2. Documentation: 
+  The file cgap/doc/cgmg.tex contains a description of CGMG
+  The multigrid solver relys heavily on the equation solver CGES. It is
+ recommended that one first understand how to run CGES and then CGMG
+ should not be difficult.
+
+2. Example runs:
+  
+  There are a number of scripts that run CGMG, found in cgap/cgmg/examples.
+These scripts use composite
+grids that have been generated in the cgap/cguser directory.  When you
+first install you will have to make these grids using the appropriate
+command file.
+
+
+test1: Uses ./cgap/cguser/sicmg.dat : Square in a circle with 2 MG levels.
+  This test runs through 4 cases
+       (1) Possion equation with Dirichlet BC's to second order
+       (2) Possion equation with Dirichlet BC's to fourth order
+       (1) Possion equation with Neumann BC's to second order
+       (1) Possion equation with Neumann BC's to fourth order
+  Expected results of the runs are saved in test1.results
+
+

@@ -1,0 +1,79 @@
+%--------------------------------------------------------------
+\section{NurbsMapping: define a new mapping as a NURBS.}\index{nurbs mapping}\index{Mapping!NurbsMapping}
+\index{spline!surface}\index{spline!curve}
+%-------------------------------------------------------------
+
+The {\tt NurbsMapping} class defines mapings in terms of a non-uniform
+rational b-spline, NURBS.
+The implementation here is based on the reference, {\sl The NURBS Book}
+Les Piegl and Wayne Tiller, Springer, 1997. 
+
+The n-th degree Berstein polynomial is
+\[
+     B_{i,n}(u) = \binom{n}{i} u^i (1-u)^{n-i}
+\]
+and the n-th degree Bezier curve
+\[
+    \Cv(u) = \sum_{i=0}^n B_{i,n}(u) \Pv_i , \qquad 0\le u \le 1
+\]
+with control points $\Pv_i$.
+
+The n-th degree rational Bezier curve is
+\begin{align*}
+    \Cv(u) &= { \sum_{i=0}^n B_{i,n}(u) w_i \Pv_i  \over \sum_{i=0}^n B_{i,n}(u) w_i } , \qquad 0\le u \le 1 \\
+           &= \sum_{i=0}^n R_{i,n}(u) \Pv_i  
+\end{align*}
+with weights $w_i$.
+
+Written using homogeneous coordinates
+\[
+    \Cv^w(u) = \sum_{i=0}^n B_{i,n}(u) \Pv^w_i  
+\]
+where $\Pv^w_i=(w_i\Pv_i,w_i)$.
+
+B-spline basis functions are defined as
+\begin{align*}
+   N_{i,0}(u) &= \begin{cases} 1 & u_i \le u < u_{i+1} \\
+                           0 & \text{otherwise} 
+              \end{cases} \\
+   N_{i,p}(u) &= {u-u_i \over u_{i+p} - u_i } N_{i,p-1}(u) + {u_{i+p+1}-u  \over u_{i+p+1} - u_{i+1} } N_{i+1,p-1}(u)
+\end{align*}
+where $\Uv=\{ u_0,\ldots,u_m\}$ are the knots, $u_i\le u_{i+1}$.
+
+We only use nonperiodic (clamped or open) knot vectors,
+\[
+   \Uv =\{ a,\ldots,a, u_{p+1},\ldots,u_{m-p-1},b,\ldots,b \}
+\]
+with the end knots repeated $p+1$ times.
+
+NonUniform Rational B-Spline (NURBS). p-th degree NURBS curve
+\begin{align*}
+    \Cv(u) &= { \sum_{i=0}^n N_{i,p}(u) w_i \Pv_i  \over \sum_{i=0}^n N_{i,p}(u) w_i} , \qquad a\le u \le b\\
+           &= \sum_{i=0}^n R_{i,p} (u) \Pv_i  
+\end{align*}
+Written using homogeneous coordinates
+\[
+    \Cv^w(u) = \sum_{i=0}^p N_{i,p}(u) \Pv^w_i  
+\]
+
+
+%% \input NurbsMappingInclude.tex
+
+\subsection{Examples}
+% 
+% \noindent
+% \begin{minipage}{.4\linewidth}
+% {\footnotesize
+% \listinginput[1]{1}{\mapping/nurbs1.cmd}
+% }
+% \end{minipage}\hfill
+% \begin{minipage}{.6\linewidth}
+  \begin{center}
+  \includegraphics[width=9cm]{\figures/nurbs} \\
+  % \epsfig{file=\figures/nurbs.ps,height=.6\linewidth}  \\
+  {A 2D NURBS curve defined by specifying control points.} \\
+  \includegraphics[width=9cm]{\figures/nurbs1} \\
+  % \epsfig{file=\figures/nurbs1.ps,height=.6\linewidth}  \\
+  {A 3D NURBS surface defined by specifying control points.}
+  \end{center}
+% \end{minipage}

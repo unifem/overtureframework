@@ -1,0 +1,438 @@
+\subsection{turnOffGraphics}
+ 
+\newlength{\GenericGraphicsInterfaceIncludeArgIndent}
+\begin{flushleft} \textbf{%
+void   \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{turnOffGraphics(}%
+turnOffGraphics()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Turn off graphics plotting (grid, contour, streamline... plots). We may turn off plotting in
+ batch mode or parallel to avoid some computations (in parallel we avoid
+ building a copy of the grid on one processor)
+
+\item[{\bf return value:}]  true or false.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getValues (IntegerArray)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{getValues(}%
+getValues(const aString \& prompt, \\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}IntegerArray \& values,\\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const int minimumValue  =INT\_MIN, \\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const int maximumValue  =INT\_MAX,\\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const int sort  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Read in a set of integer values.
+\item[{\bf prompt (input) :}]  use this prompt
+\item[{\bf values (output) :}]  return values in this array, dimensioned to the number of values.
+\item[{\bf minimumValue (input) :}]  specify an optional minimum value. All returned values will be at least this value.
+\item[{\bf maximumValue (input) :}]  specify an optional maximum value. All returned values will be at no greater than
+        this value.
+\item[{\bf sort (input) :}]  optional indicator. If $sort>0$  sort the values to be in increasing order, if $sort<0$,
+    sort the values to be in decreasing order. If $sort==0$, no sorting is done.
+\item[{\bf return value:}]   Number of values read.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getValues (RealArray)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{getValues(}%
+getValues(const aString \& prompt, \\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}RealArray \& values,\\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const real minimumValue  =-REAL\_MAX, \\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const real maximumValue  =REAL\_MAX,\\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const int sort  = 0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Read in a set of real values.
+\item[{\bf prompt (input) :}]  use this prompt
+\item[{\bf values (output) :}]  return values in this array, dimensioned to the number of values.
+\item[{\bf minimumValue (input) :}]  specify an optional minimum value. All returned values will be at least this value.
+\item[{\bf maximumValue (input) :}]  specify an optional maximum value. All returned values will be at no greater than
+        this value.
+\item[{\bf sort (input) :}]  optional indicator. If $sort>0$  sort the values to be in increasing order, if $sort<0$,
+    sort the values to be in decreasing order. If $sort==0$, no sorting is done.
+\item[{\bf return value:}]   Number of values read.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getDefaultPrompt}
+ 
+\begin{flushleft} \textbf{%
+const aString \&   \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{getDefaultPrompt(}%
+getDefaultPrompt()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Return the current defaultPrompt
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{setDefaultPrompt}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{setDefaultPrompt(}%
+setDefaultPrompt(const aString \& prompt)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Set the deafult prompt and clear the stack of default prompts
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{pushDefaultPrompt}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{pushDefaultPrompt(}%
+pushDefaultPrompt(const aString \& prompt )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Push a default prompt onto a stack and make it the current prompt
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{popDefaultPrompt}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{popDefaultPrompt(}%
+popDefaultPrompt()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ pop a default prompt off the stack and make the next prompt the new default
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{appendToTheDefaultPrompt}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{appendToTheDefaultPrompt(}%
+appendToTheDefaultPrompt(const aString \& appendage )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Append a aString to the defaultPrompt and push this new prompt onto the stack.
+  Also increase the amount of indentation used when writing to command files.
+\item[{\bf appendage (input):}]  append this string to the default prompt.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{unAppendTheDefaultPrompt}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{unAppendTheDefaultPrompt(}%
+unAppendTheDefaultPrompt()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Remove the last string appended to the default prompt by popping the stack.
+  Also decrease the amount of indentation used when writing to command files.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{outputString (base class)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{outputString(}%
+outputString(const aString \& message, int messageLevel  =2)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Output a string to standard output.
+   If the echo file is open, also output the string in that file.
+\item[{\bf message (input):}]  the string to be output.
+\item[{\bf messageLevel (input) :}]  output the string if messageLevel is less than or equal
+    to the current value for infoLevel. Values for infoLevel are 0=expert, 1=intermediate, 2=novice.
+\item[{\bf Return Values:}]  none.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{readCommandFile}
+ 
+\begin{flushleft} \textbf{%
+FILE*  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{readCommandFile(}%
+readCommandFile(const aString \& commandFileName  =nullString)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Start reading a command file. 
+\item[{\bf commandFileName (input):}] 
+    If {\ff commandFileName} is specified
+    then this should be the name of the command file to read. This routine
+    will automatically add a ".cmd" to the file name if the
+    file named {\tt commandFileName} is not found.
+    If  {\ff commandFileName} is not given then
+    you will be prompted to enter the name of the file.
+\item[{\bf Errors:}]   Unable to open the file.
+\item[{\bf Return Values:}]  Pointer to the opened file or NULL if able to open the file.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getReadCommandFile}
+ 
+\begin{flushleft} \textbf{%
+FILE*  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{getReadCommandFile(}%
+getReadCommandFile() const
+}\end{flushleft}
+   Return a file pointer to the current command file we are reading
+ 
+\subsection{getSaveCommandFile}
+ 
+\begin{flushleft} \textbf{%
+FILE*  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{getSaveCommandFile(}%
+getSaveCommandFile() const
+}\end{flushleft}
+   Return a file pointer to the current command file we are saving
+ 
+\subsection{readCommandsFromStrings}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{readCommandsFromStrings(}%
+readCommandsFromStrings(const aString *commands)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Start reading commands from an array of Strings, commands terminated by the aString=""
+\item[{\bf commands (input):}]  A list of Strings (commands). There must be a null string, "",
+       to indicate the end of the list.
+\item[{\bf Errors:}]  unexpected results will occur if there is no null string to terminate the array.
+\item[{\bf Return Values:}]  0
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{readingFromCommandFile}
+ 
+\begin{flushleft} \textbf{%
+bool  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{readingFromCommandFile(}%
+readingFromCommandFile() const 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return true of we are reading from a command file.
+ 
+\end{description}
+\subsection{saveCommandFile}
+ 
+\begin{flushleft} \textbf{%
+FILE*  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{saveCommandFile(}%
+saveCommandFile(const aString \& commandFileName  =nullString)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Start saving a command file. 
+\item[{\bf commandFileName (input):}] 
+    If {\ff commandFileName} is specified
+    then this should be the name of the command file to save commands in. It will
+    first be opened. If  {\ff commandFileName} is not given then
+    you will be prompted to enter the name of the file.
+\item[{\bf Errors:}]  Unable to open the file.
+\item[{\bf Return Values:}]  Pointer to the opened file or NULL if able to open the file.
+
+\item[{\bf Author:}]  WDH \& AP
+\end{description}
+\subsection{abortIfCommandFileEnds}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{abortIfCommandFileEnds(}%
+abortIfCommandFileEnds(bool trueOrFalse  =true)
+}\end{flushleft}
+  Specify whether to abort the program if we stop reading a command file.
+  This option is used by automated scripts to prevent a program hanging while
+  waiting for input.
+\begin{description}
+\item[{\bf trueOrFalse (input):}]  the explanation is in the name itself!
+\item[{\bf Return Values:}]  None.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{outputToCommandFile}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{outputToCommandFile(}%
+outputToCommandFile( const aString \& line )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Output a line to the command file if there is one open.
+\item[{\bf line (input) :}]  save this string, NOTE: you should include a newline character if you want one.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{saveEchoFile}
+ 
+\begin{flushleft} \textbf{%
+FILE*  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{saveEchoFile(}%
+saveEchoFile(const aString \& fileName /*=nullString*/)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Start saving an echo file (if no file name is given, prompt for one)
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{stopSavingEchoFile}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{stopSavingEchoFile(}%
+stopSavingEchoFile()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Stop saving the echo file (and close the file)
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{savePickCommands}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{savePickCommands(}%
+savePickCommands(bool trueOrFalse  =TRUE)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Set wether picking commands should be logged in the command file in their raw form.
+\item[{\bf trueOrFalse(input):}]  the description is in the name!
+\item[{\bf Author:}]  AP
+\end{description}
+\subsection{setIgnorePause}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{setIgnorePause(}%
+setIgnorePause( bool trueOrFalse  =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ If true, ignore the "pause" statement in command files.
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{stopReadingCommandFile}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{stopReadingCommandFile(}%
+stopReadingCommandFile()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Stop reading the command file (and close the file)
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{stopSavingCommandFile}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{stopSavingCommandFile(}%
+stopSavingCommandFile()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Stop saving the command file (and close the file)
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{buildCascadingMenu}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{buildCascadingMenu(}%
+buildCascadingMenu( aString *\&menu,\\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}int startCascade, \\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}int endCascade ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Take a menu that (might) have a long list of items and cascade these items so that
+ they will appear nicely on the screen.
+
+\item[{\bf menu (input/output) :}]  On input an array of strings termined with a "" (null) string. On output
+    a new cascading menu.
+\item[{\bf startCascade,endCascade (input) :}]  these specify the set of menu items to
+    cascade. 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{indexInCascadingMenu}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{indexInCascadingMenu(}%
+indexInCascadingMenu( int \& index,\\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const int startCascade,\\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const int endCascade ) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Used in conjuction with buildCascadingMenu to convert an index into the cascading menu into
+   an index into the original menu.
+\item[{\bf index (input/ouput) :}]  on input this is a index into the cascading menu, built by buildCascadingMenu
+   On output this is an index into the original menu.
+\item[{\bf return value:}]  is the same as index.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{inputString (base class)}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{inputString(}%
+inputString(aString \&answer, \\ 
+\hspace{\GenericGraphicsInterfaceIncludeArgIndent}const aString \& prompt  =nullString)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Input a string after displaying an optional prompt
+\item[{\bf answer (output):}]  the string that was read
+\item[{\bf prompt (input):}]  display an optional prompt.
+\item[{\bf Return Values:}]  none.
+
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getMatch}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{getMatch(}%
+getMatch(const aString *menu, aString \& answer)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Find the menu item that "best" matches answer -- answer can be a truncated version
+  of the menu item but it must be a unique match.
+\item[{\bf menu(input):}]  array of strings terminated by empty string.
+\item[{\bf answer(input):}]  string to be matched.
+\item[{\bf Return values:}]  Index in the menu array of the unique matching entry, or -1 if
+ no unique entry was found or other error occured.
+  
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{readLineFromCommandFile}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\GenericGraphicsInterfaceIncludeArgIndent}{readLineFromCommandFile(}%
+readLineFromCommandFile(aString \& answer )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Read a line from the command file. Lines beginning with a "*" or "\#" are
+   treated as comments.
+\item[{\bf Return values:}]  Number of characters read. A return value of zero means
+   that an end-of-file was reached.
+\item[{\bf Author:}]  WDH
+\end{description}

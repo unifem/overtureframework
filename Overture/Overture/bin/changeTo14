@@ -1,0 +1,60 @@
+#!/usr/local/bin/perl
+# perl program to change things in files
+#  usage: 
+#         change  fileName1 [fileName2] [ fileName3] ...
+# 
+
+@fileNames = @ARGV;
+# $fileName          = $ARGV[0];
+
+foreach $fileName ( @fileNames )  # process all files
+{
+  
+  
+  printf(" change file = $fileName \n");
+  
+  open(FILE,"$fileName") || die "cannot open file $fileName!" ;
+  open(OUTFILE,">junk.X") || die "cannot open output file junk.X!" ;
+  
+  while( <FILE> )
+  {
+    $line = $_;
+
+     $line =~ s/\.numberOfDimensions\b/.numberOfDimensions()/g;
+     $line =~ s/\.numberOfComponents\b/.numberOfComponents()/g;
+     $line =~ s/\.numberOfComponentGrids\b/.numberOfComponentGrids()/g;
+     $line =~ s/\.positionOfFaceCentering\b/.positionOfFaceCentering()/g;
+     $line =~ s/\.faceCentering\b/.faceCentering()/g;
+     $line =~ s/\.isACoefficientMatrix\b/.isACoefficientMatrix()/g;
+     $line =~ s/\.stencilType\b/.stencilType()/g;
+     $line =~ s/\.stencilWidth\b/.stencilWidth()/g;
+     $line =~ s/\.numberOfGrids\b/.numberOfGrids()/g;
+     $line =~ s/\.isAllCellCentered\b/.isAllCellCentered()/g;
+     $line =~ s/\.isAllVertexCentered\b/.isAllVertexCentered()/g;
+     $line =~ s/\.numberOfRefinementLevels\b/.numberOfRefinementLevels()/g;
+     $line =~ s/\.numberOfMultigridLevels\b/.numberOfMultigridLevels()/g;
+#    $line =~ s/\././g;
+
+    print OUTFILE $line;
+  }
+
+  close(OUTFILE);
+  close(FILE);
+
+#  now copy over the original file
+
+  open(FILE,"junk.X") || die "cannot open file junk.X!" ;
+  open(OUTFILE,">$fileName") || die "cannot open output file $fileName!" ;
+  
+  while( <FILE> )
+  {
+    $line = $_;
+
+    print OUTFILE $line;
+  }
+
+  close(OUTFILE);
+  close(FILE);
+  unlink("junk.X");  # delete the file
+}
+

@@ -1,0 +1,19 @@
+PKGDIR := $(OvertureCheckout)/rap
+
+SRC_FILES += Edge.C Point.C rapEditModel.C rapNewModel.C rapSurfaceGrids.C \
+	rapVolumeGrids.C rapUtil.C rapSimpleGeometry.C \
+	nurbsCurveEditor.C linerGeometry.C ModelBuilder.C SphereLoading.C \
+	RandomSampling.C fillVolumeWithSpheres.C
+
+L_HDRS := rap.h Edge.h Point.h nurbsCurveEditor.h ModelBuilder.h \
+	SphereLoading.h RandomSampling.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+ifneq ($(BINDIR),)
+rap: $(BINDIR)rap
+phonies += rap
+endif
+
+$(BINDIR)rap: $(OV_LIB) $(OV_SLIB) $(OBJDIR)rap.o
+	$(CXX) -o $@ $+ $(LIBS)

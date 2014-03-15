@@ -1,0 +1,18 @@
+ ********************************************* 
+ ************** Ogen check file ************** 
+ ********************************************* 
+
+ This grid data is used to make sure the grid generator is giving 
+ the same answer after changes are made. Compare this file to a the 
+ check file from previous version. 
+
+grid   0 points: discretization=  219709, interpolation=   7584, all=  251991, unused=   24698, name=backGround
+grid   1 points: discretization=     730, interpolation=    610, all=    1482, unused=     142, name=roundedBox1
+grid   2 points: discretization=    7690, interpolation=   2204, all=   13338, unused=    3444, name=roundedTop1
+grid   3 points: discretization=   12851, interpolation=   2485, all=   15600, unused=     264, name=roundedGrid1
+grid   4 points: discretization=     730, interpolation=    610, all=    1482, unused=     142, name=roundedBox2
+grid   5 points: discretization=    7524, interpolation=   2072, all=   13338, unused=    3742, name=roundedTop2
+grid   6 points: discretization=   13125, interpolation=   2442, all=   15600, unused=      33, name=roundedGrid2
+grid   7 points: discretization=   14799, interpolation=   2074, all=   17360, unused=     487, name=roundedCylinderGrid1
+grid   8 points: discretization=     567, interpolation=    401, all=     968, unused=       0, name=roundedCylinderTop1
+total    points: discretization=  277725, interpolation=  20482, all=  331159, unused=   32952

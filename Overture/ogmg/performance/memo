@@ -1,0 +1,417 @@
+************************************************************************************************************
+************************************************************************************************************
+   This file contains performance runs and comparisons to PETSc etc.
+************************************************************************************************************
+************************************************************************************************************
+
+set perf = $ov/ogmg/performance
+
+=== 2012/08/20 
+
+
+SECOND-ORDER
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+TODO--
+
+$perf/sphereInABoxe8.order2.ml5.petcsc.np32.out
+submit.p -jobName="ogmgSib82" -bank=windpowr -out="ogmgSib82.out" -walltime=12:00 -submit=0 -cmd='srun -N32 -n64 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe8.order2.ml5  -numParallelGhost=2 -levels=1 -rtol=1.e-8'
+Iteration=1..1 : Total WU=3.00e+00, total res reduction=1.27e-09, ave CR=0.0000 ave ECR=0.001 np=64
+  MaxRes=8.00e-05, TR10=1.08e+03 (time to reduce residual by a factor of 10) TR10/(M/np)=5.56e+02
+
+==== memory/proc: [min=1879.59,ave=2125.16,max=2305.12](Mb), max-recorded=0 (Mb), total=136010 (Mb), 143.0 reals/(grid-pt)
+
+srun -N8 -n64 -ppdebug $ogmgp -noplot tz -g=sphereInABoxe8.order2.ml5 -numParallelGhost=2 -autoChoose=1 -maxit=10  >! $perf/sphereInABoxe8.order2.ml5.np64.out
+==== memory per-proc: [min=157.281,ave=300.022,max=375.141](Mb), max-recorded=0 (Mb), total=19201.4 (Mb)
+Iteration=1..10 : Total WU=5.37e+01, total res reduction=5.48e-12, ave CR=0.0748 ave ECR=0.617 np=64
+  MaxRes=3.45e-07, TR10=3.97e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=2.04e+00
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+$perf/sphereInABoxe4.order2.ml4.petcsc.np8.out (/perf)  ... time limit 2H not enough.
+submit.p -jobName="ogmgSib42" -bank=windpowr -out="ogmgSib42.out" -walltime=2:00 -submit=0 -cmd='srun -N2 -n8 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe4.order2.ml4  -numParallelGhost=2 -levels=1 -rtol=1.e-8'
+
+$perf/sphereInABoxe4.order2.ml4.petcsc.np16.out (/performance)
+submit.p -jobName="ogmgSib42" -bank=windpowr -out="ogmgSib42.out" -walltime=1:00 -submit=0 -cmd='srun -N4 -n16 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe4.order2.ml4  -numParallelGhost=2 -levels=1 -rtol=1.e-8'
+
+==== memory per-proc: [min=1036.49,ave=1139.3,max=1209.04](Mb), max-recorded=0 (Mb), total=18228.7 (Mb)
+Iteration=1..1 : Total WU=3.00e+00, total res reduction=2.63e-09, ave CR=0.0000 ave ECR=0.001 np=16
+  MaxRes=4.47e-05, TR10=2.44e+02 (time to reduce residual by a factor of 10) TR10/(M/np)=2.42e+02
+
+--- NP=16
+srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order2.ml4  -numParallelGhost=2 -levels=1 -rtol=1.e-8  >! $perf/sphereInABoxe4.order2.ml3.petcsc.np16.out
+
+RERUN: -ng=2
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order2.ml4  -numParallelGhost=2 -levels=1 -rtol=1.e-8  >! $perf/sphereInABoxe4.order2.ml3.petcsc.np32.out
+==== memory per-proc: [min=551.906,ave=607.412,max=650.992](Mb), max-recorded=0 (Mb), total=19437.2 (Mb)
+Iteration=1..1 : Total WU=3.00e+00, total res reduction=3.19e-09, ave CR=0.0000 ave ECR=0.001 np=32
+  MaxRes=5.43e-05, TR10=7.47e+01 (time to reduce residual by a factor of 10) TR10/(M/np)=1.48e+02
+
+==== memory per-proc: [min=602.902,ave=673.825,max=717.824](Mb), max-recorded=0 (Mb), total=21562.4 (Mb)
+Iteration=1..1 : Total WU=3.00e+00, total res reduction=3.19e-09, ave CR=0.0000 ave ECR=0.001 np=32
+  MaxRes=5.43e-05, TR10=7.48e+01 (time to reduce residual by a factor of 10) TR10/(M/np)=1.48e+02
+
+
+---- NP=8
+srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order2.ml4 -autoChoose=1 -numParallelGhost=2 -maxit=10  >! $perf/sphereInABoxe4.order2.ml4.np8.out
+==== memory per-proc: [min=182.023,ave=309.401,max=374.926](Mb), max-recorded=0 (Mb), total=2475.21 (Mb)
+Iteration=1..10 : Total WU=5.29e+01, total res reduction=6.03e-12, ave CR=0.0755 ave ECR=0.614 np=8
+  MaxRes=1.03e-07, TR10=2.20e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=1.09e+00
+
+---- NP=16
+srun -N1 -n16 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order2.ml4 -autoChoose=1 -numParallelGhost=2 -maxit=10  >! $perf/sphereInABoxe4.order2.ml4.N1n16.out
+==== memory per-proc: [min=121.215,ave=187.818,max=236.094](Mb), max-recorded=0 (Mb), total=3005.09 (Mb)
+Iteration=1..10 : Total WU=5.29e+01, total res reduction=5.93e-12, ave CR=0.0754 ave ECR=0.614 np=16
+  MaxRes=1.01e-07, TR10=1.90e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=1.88e+00
+
+srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order2.ml4 -autoChoose=1 -numParallelGhost=2 -maxit=10  >! $perf/sphereInABoxe4.order2.ml4.np16.out
+==== memory per-proc: [min=117.938,ave=184.184,max=222.461](Mb), max-recorded=0 (Mb), total=2946.95 (Mb)
+Iteration=1..10 : Total WU=5.29e+01, total res reduction=5.93e-12, ave CR=0.0754 ave ECR=0.614 np=16
+  MaxRes=1.01e-07, TR10=1.54e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=1.52e+00
+
+
+--- NP=32
+
+TODO: RERUN -ng=2
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order2.ml4 -autoChoose=1 -numParallelGhost=2 -maxit=10  >! $perf/sphereInABoxe4.order2.ml4.np32.out
+==== memory per-proc: [min=79.8789,ave=117.048,max=143.766](Mb), max-recorded=0 (Mb), total=3745.53 (Mb)
+Iteration=1..10 : Total WU=5.29e+01, total res reduction=5.82e-12, ave CR=0.0752 ave ECR=0.613 np=32
+  MaxRes=9.90e-08, TR10=1.27e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=2.51e+00
+
+
+==== memory per-proc: [min=91.7617,ave=143.901,max=175.562](Mb), max-recorded=0 (Mb), total=4604.82 (Mb)
+Iteration=1..10 : Total WU=5.29e+01, total res reduction=5.88e-12, ave CR=0.0753 ave ECR=0.613 np=32
+  MaxRes=1.00e-07, TR10=1.41e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=2.78e+00
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+-- NP=16
+srun -N2 -n16 -ppdebug $ogmgp tz -noplot -g=box256.order2 -levels=1 -rtol=1.e-8 >! $perf/box256.order2.petcsc.np16.out 
+Iteration=1..1 : Total WU=3.00e+00, total res reduction=2.58e-07, ave CR=0.0000 ave ECR=0.006 np=16
+  MaxRes=5.07e-02, TR10=1.65e+01 (time to reduce residual by a factor of 10) TR10/(M/np)=1.48e+01
+
+==== memory/proc: [min=1242.43,ave=1257.57,max=1269.18](Mb), max-recorded=0 (Mb), total=20121.2 (Mb), 147.8 reals/(grid-pt)
+
+
+--- NP=32
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=box256.order2 -levels=1 -rtol=1.e-8 >! $perf/box256.order2.petcsc.np32.out 
+==== memory per-proc: [min=646.922,ave=662.135,max=671.77](Mb), max-recorded=0 (Mb), total=21188.3 (Mb)
+Iteration=1..1 : Total WU=3.00e+00, total res reduction=2.67e-07, ave CR=0.0000 ave ECR=0.006 np=32
+  MaxRes=5.25e-02, TR10=6.62e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=1.19e+01
+
+-- NP=16
+srun -N2 -n16 -ppdebug $ogmgp  tz -noplot -g=box256.order2 -autoChoose=1 -maxit=9  >! $perf/box256.order2.np16.out 
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=8.22e-13, ave CR=0.0454 ave ECR=0.528 np=16
+  MaxRes=1.62e-07, TR10=4.53e-01 (time to reduce residual by a factor of 10) TR10/(M/np)=4.06e-01
+==== memory/proc: [min=115.621,ave=118.095,max=128.824](Mb), max-recorded=0 (Mb), total=1889.52 (Mb),  13.9 reals/(grid-pt)
+
+
+--- NP=32
+srun -N4 -n32 -ppdebug $ogmgp  tz -noplot -g=box256.order2 -autoChoose=1 -maxit=9  >! $perf/box256.order2.np32.out 
+==== memory per-proc: [min=75.4492,ave=77.5093,max=88.1875](Mb), max-recorded=0 (Mb), total=2480.3 (Mb)
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=8.22e-13, ave CR=0.0454 ave ECR=0.528 np=32
+  MaxRes=1.62e-07, TR10=3.11e-01 (time to reduce residual by a factor of 10) TR10/(M/np)=5.57e-01
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+RUNNING: 
+$perf/tcilce64.order2.ml4.petcsc.np8.out
+submit.p -jobName="tcilc64" -bank=windpowr -out="tcilc64.out" -walltime=2:00 -submit=0 -cmd='srun -N1 -n8 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=tcilce64.order2.ml4 -numParallelGhost=2 -levels=1 -rtol=1.e-8'
+==== memory per-proc: [min=1466.03,ave=1502.68,max=1597.06](Mb), max-recorded=0 (Mb), total=12021.5 (Mb)
+Iteration=1..1 : Total WU=3.02e+00, total res reduction=1.68e-07, ave CR=0.0000 ave ECR=0.006 np=8
+  MaxRes=1.68e+00, TR10=2.36e+02 (time to reduce residual by a factor of 10) TR10/(M/np)=8.26e+01
+
+
+srun -N1 -n8 -ppdebug $ogmgp  tz -noplot -g=tcilce64.order2.ml4 -numParallelGhost=2 -autoChoose=1 -maxit=9  >! $perf/tcilce64.order2.ml4.np8.ou==== memory per-proc: [min=189.797,ave=205.559,max=257.375](Mb), max-recorded=0 (Mb), total=1644.47 (Mb)
+Iteration=1..9 : Total WU=4.85e+01, total res reduction=4.96e-13, ave CR=0.0429 ave ECR=0.558 np=8
+  MaxRes=4.97e-06, TR10=1.52e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=5.32e-01
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice64.order2.ml5 -numParallelGhost=2 -levels=1 -rtol=1.e-8 >! $perf/cice64.order2.ml5.petsc.np1.out==== memory per-proc: [min=3278.87,ave=3278.87,max=3278.87](Mb), max-recorded=0 (Mb), total=3278.87 (Mb)
+Iteration=1..1 : Total WU=3.02e+00, total res reduction=2.16e-09, ave CR=0.0000 ave ECR=0.001 np=1
+  MaxRes=1.77e-03, TR10=1.62e+02 (time to reduce residual by a factor of 10) TR10/(M/np)=2.34e+01
+
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=cice64.order2.ml5 -autoChoose=1 -numParallelGhost=2 -maxit=10 >! $perf/cice64.order2.ml5.np1.out
+==== memory per-proc: [min=487.246,ave=487.246,max=487.246](Mb), max-recorded=0 (Mb), total=487.246 (Mb)
+Iteration=1..10 : Total WU=5.41e+01, total res reduction=1.44e-15, ave CR=0.0328 ave ECR=0.532 np=1
+  MaxRes=1.18e-09, TR10=2.14e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=3.10e-01
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square2048.order2 -numParallelGhost=2 -levels=1 -rtol=1.e-8 >! $perf/square2048.order2.petsc.np1.out==== memory per-proc: [min=2042.11,ave=2042.11,max=2042.11](Mb), max-recorded=0 (Mb), total=2042.11 (Mb)
+Iteration=1..1 : Total WU=3.02e+00, total res reduction=2.07e-10, ave CR=0.0000 ave ECR=0.001 np=1
+  MaxRes=1.74e-03, TR10=5.27e+01 (time to reduce residual by a factor of 10) TR10/(M/np)=1.25e+01
+
+
+srun -N1 -n1 -ppdebug $ogmgp tz -noplot -g=square2048.order2  -autoChoose=1 -numParallelGhost=2 -maxit=10 >! $perf/square2048.order2.np1.out
+==== memory per-proc: [min=255.234,ave=255.234,max=255.234](Mb), max-recorded=0 (Mb), total=255.234 (Mb)
+Iteration=1..10 : Total WU=5.25e+01, total res reduction=2.92e-15, ave CR=0.0352 ave ECR=0.529 np=1
+  MaxRes=2.45e-08, TR10=8.54e-01 (time to reduce residual by a factor of 10) TR10/(M/np)=2.03e-01
+
+
+PETSC -- tux291
+ogmgt tz -noplot -g=square2048.order2 -levels=1 -rtol=1.e-8 > ! square2048.order2.petsc.out
+==== memory per-proc: [min=2024.77,ave=2024.77,max=2024.77](Mb), max-recorded=0 (Mb), total=2024.77 (Mb)
+Iteration=1..1 : Total WU=3.02e+00, total res reduction=1.50e-09, ave CR=0.0000 ave ECR=0.001 np=1
+  MaxRes=1.26e-02, TR10=3.04e+01 (time to reduce residual by a factor of 10) TR10/(M/np)=7.20e+00
+
+OGMG -- tux291
+ogmgt tz -noplot -g=square2048.order2 -maxit=7 > ! square2048.order2.out
+==== memory per-proc: [min=234.5,ave=234.5,max=234.5](Mb), max-recorded=0 (Mb), total=234.5 (Mb)
+Iteration=1..7 : Total WU=2.94e+01, total res reduction=4.77e-12, ave CR=0.0241 ave ECR=0.411 np=1
+  MaxRes=4.00e-05, TR10=2.82e-01 (time to reduce residual by a factor of 10) TR10/(M/np)=6.68e-02
+ ===>After solve my total = 968.1 M,  memory per-processor: [min,max]=[234.531,234.531] Mb 
+
+<<<<<<<<<<
+
+
+==== 2012/08/17-20 
+
+FOURTH-ORDER : COMPARE Ogmg to PETSc
+
+=========== sphereInABoxe8.order4.ml4.hdf pts=122M M 
+
+REDO -- increase ilu levels, reduce tol
+submit.p -jobName="ogmgSib84" -bank=windpowr -out="ogmgSib84.out" -walltime=24:00 -submit=0 -cmd='srun -N32 -n64 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe8.order4.ml5  -numParallelGhost=4 -levels=1 -ilucg=5 -rtol=1.e-6'
+
+REDO: 6 hours too short, 12 hours too short  -- perf/ --> 24Hours too short!
+$perf/sphereInABoxe8.order4.ml5.petcsc.np64.out
+submit.p -jobName="ogmgSib84" -bank=windpowr -out="ogmgSib84.out" -walltime=24:00 -submit=0 -cmd='srun -N32 -n64 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe8.order4.ml5  -numParallelGhost=4 -levels=1 -rtol=1.e-8'
+
+
+srun -N8 -n64 -ppdebug $ogmgp -noplot tz -g=sphereInABoxe8.order4.ml5 -numParallelGhost=4 -autoChoose=1 -maxit=10  >! $perf/sphereInABoxe8.order4.ml5.np64.out
+    Ogmg, Statistics  /p/lscratchd/henshaw/Overture/ogen/sphereInABoxe8.order4.ml5.hdf, grids=4, cycles=10, gridPoints=124631956, number of processors=64
+Iteration=1..10 : Total WU=5.22e+01, total res reduction=4.63e-11, ave CR=0.0926 ave ECR=0.634 np=64
+  MaxRes=3.88e-06, TR10=9.21e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=4.73e+00
+==== memory per-proc: [min=196.758,ave=789.965,max=1122.12](Mb), max-recorded=0 (Mb), total=50557.7 (Mb)
+ total.................................9.52e+01  9.52e+00   100.00% 
+
+=========== sphereInABoxe4.order4.ml4.hdf : 16M  speedup = 2010/5.5 = 360
+
+TRY ILU(3) --- about the same time : 72 iterations
+$perf/sphereInABoxe4.order4.ml4.petcsc.ilu3.np32.out
+submit.p -jobName="ogmgSib44" -bank=windpowr -out="ogmgSib44ilu3.out" -walltime=6:00 -submit=0 -cmd='srun -N8 -n32 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe4.order4.ml4  -numParallelGhost=4 -levels=1 -ilucg=3 -rtol=1.e-8'
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=1.07e-09, ave CR=0.0000 ave ECR=0.016 np=32
+  MaxRes=2.42e-05, TR10=1.02e+03 (time to reduce residual by a factor of 10) TR10/(M/np)=2.02e+03
+==== memory per-proc: [min=2629.71,ave=3073.87,max=3456.35](Mb), max-recorded=0 (Mb), total=98363.9 (Mb)
+
+
+$perf/sphereInABoxe4.order4.ml4.petcsc.np32.out
+submit.p -jobName="ogmgSib44" -bank=windpowr -out="ogmgSib44a.out" -walltime=6:00 -submit=0 -cmd='srun -N8 -n32 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe4.order4.ml4  -numParallelGhost=4 -levels=1 -rtol=1.e-8'
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=1.55e-09, ave CR=0.0000 ave ECR=0.017 np=32
+  MaxRes=3.52e-05, TR10=1.02e+03 (time to reduce residual by a factor of 10) TR10/(M/np)=2.01e+03
+==== memory per-proc: [min=2074.58,ave=2376.03,max=2563.62](Mb), max-recorded=0 (Mb), total=76033 (Mb)
+ total.................................8.95e+03  8.95e+03   100.00% 
+
+TODO: PETSC: TAKES FOREVER: Swapping? 
+submit.p -jobName="ogmgSib44" -bank=windpowr -out="ogmgSib44.out" -walltime=6:00 -submit=0 -cmd='srun -N4 -n32 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=sphereInABoxe4.order4.ml4  -numParallelGhost=4 -levels=1 -rtol=1.e-8'
+
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order4.ml4  -numParallelGhost=4 -levels=1 -rtol=1.e-8  >! $perf/sphereInABoxe4.order4.ml3.petcsc.np32.out
+Iteration=1..10 : Total WU=5.11e+01, total res reduction=3.44e-11, ave CR=0.0899 ave ECR=0.624 np=32
+  MaxRes=7.79e-07, TR10=2.80e+00 (time to reduce residual by a factor of 10) TR10/M=1.73e-01 -> *32 = 5.536
+==== memory per-proc: [min=119.113,ave=308.808,max=430.207](Mb), max-recorded=0 (Mb), total=9881.85 (Mb)
+
+
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=sphereInABoxe4.order4.ml4 -autoChoose=1 -numParallelGhost=4 -maxit=10  >! $perf/sphereInABoxe4.order4.ml4.np32.out
+Iteration=1..10 : Total WU=5.11e+01, total res reduction=3.44e-11, ave CR=0.0899 ave ECR=0.624 np=32
+  MaxRes=7.79e-07, TR10=2.80e+00 (time to reduce residual by a factor of 10) TR10/M=1.73e-01
+
+
+ML4: 
+ogmgt tz -noplot -g=sphereInABoxe4.order4.ml4  -autoChoose=1 -maxit=10  >! sphereInABoxe4.order4.ml4.out 
+Iteration=1..10 : Total WU=5.04e+01, total res reduction=1.59e-11, ave CR=0.0832 ave ECR=0.610 np=1
+  MaxRes=3.60e-07, TR10=1.03e+01 (time to reduce residual by a factor of 10) TR10/M=6.38e-01
+
+ML3: 
+ogmgt tz -noplot -g=sphereInABoxe4.order4.ml3  -autoChoose=1 -maxit=10  >! sphereInABoxe4.order4.ml3.out 
+Iteration=1..10 : Total WU=4.98e+01, total res reduction=6.95e-13, ave CR=0.0608 ave ECR=0.570 np=1
+  MaxRes=1.88e-08, TR10=9.85e+00 (time to reduce residual by a factor of 10) TR10/M=6.36e-01
+
+
+NOTE: THIS WAS ONLY ML2: Mem=5G . direct solve on coarsest level........3.40e+02  3.40e+01    81.88% 
+ogmgt tz -noplot -g=sphereInABoxe4.order4.ml3  -autoChoose=1 -maxit=10  >! sphereInABoxe4.order4.ml3.out 
+Iteration=1..10 : Total WU=5.18e+01, total res reduction=6.20e-14, ave CR=0.0478 ave ECR=0.556 np=1
+  MaxRes=2.09e-09, TR10=3.14e+01 (time to reduce residual by a factor of 10)
+
+
+====box256.order4.hdf 17M pts
+
+>>>>>>>>>>>>>>>  speed-up=1.94/.0256 = 75  memory = 2200/92 = 24 ,  TR10/(M/np) = .82
+RUN: (to big for 10G  tux291, too big for -N2)
+srun -N4 -n32 -ppdebug $ogmgp tz -noplot -g=box256.order4 -levels=1 -rtol=1.e-8 >! $perf/box256.order4.petcsc.np32.out 
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=2.20e-07, ave CR=0.0000 ave ECR=0.047 np=32
+  MaxRes=5.76e-02, TR10=3.46e+01 (time to reduce residual by a factor of 10) TR10/M=1.94e+00
+==== memory per-proc: [min=2196.26,ave=2248.27,max=2283.86](Mb), max-recorded=0 (Mb), total=71944.8 (Mb)
+
+srun -N4 -n32 -ppdebug $ogmgp  tz -noplot -g=box256.order4 -autoChoose=1 -maxit=9  >! $perf/box256.order4.np32.out 
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=4.32e-12, ave CR=0.0546 ave ECR=0.549 np=32
+  MaxRes=1.13e-06, TR10=4.56e-01 (time to reduce residual by a factor of 10) TR10/M=2.56e-02
+==== memory per-proc: [min=75.4492,ave=77.8274,max=92.4922](Mb), max-recorded=0 (Mb), total=2490.48 (Mb)
+<<<<<<<<<<<<<<<<
+
+hera:
+srun -N1 -n2 -ppdebug $ogmgp  tz -noplot -g=box256.order4 -autoChoose=1 -maxit=9  >! $perf/box256.order4.np2.out 
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=4.32e-12, ave CR=0.0546 ave ECR=0.549 np=2
+  MaxRes=1.13e-06, TR10=4.23e+00 (time to reduce residual by a factor of 10) TR10/M=2.37e-01
+
+
+ogmgt tz -noplot -g=box256.order4 -autoChoose=1 -maxit=9  >! box256.order4.out 
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=9.46e-14, ave CR=0.0357 ave ECR=0.503 np=1
+  MaxRes=2.48e-08, TR10=4.27e+00 (time to reduce residual by a factor of 10) TR10/M=2.39e-01
+
+====box128.order4.hdf  2.4M pts 
+
+PETSC
+srun -N1 -n2 -ppdebug $ogmgp  tz -noplot -g=box128.order4 -levels=1 -rtol=1.e-12 >! box128.order4.petcsc.np2.out 
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=3.01e-13, ave CR=0.0000 ave ECR=0.003 np=2
+  MaxRes=1.97e-08, TR10=1.47e+01 (time to reduce residual by a factor of 10) TR10/M=6.18e+00
+
+
+srun -N1 -n2 -ppdebug $ogmgp  tz -noplot -g=box128.order4 -autoChoose=1 -maxit=9  >! box128.order4.np2.out 
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=2.33e-12, ave CR=0.0510 ave ECR=0.541 np=2
+  MaxRes=1.53e-07, TR10=4.98e-01 (time to reduce residual by a factor of 10) TR10/M=2.10e-01
+
+
+PETSC
+ogmgt tz -noplot -g=box128.order4 -levels=1 -rtol=1.e-12 >! box128.order4.petcsc.out 
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=2.72e-14, ave CR=0.0000 ave ECR=0.002 np=1
+  MaxRes=1.78e-09, TR10=1.15e+01 (time to reduce residual by a factor of 10) TR10/M=4.83e+00
+
+
+ogmgt tz -noplot -g=box128.order4 -levels=1 -rtol=1.e-10 >! box128.order4.petcsc.out 
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=2.57e-11, ave CR=0.0000 ave ECR=0.008 np=1
+  MaxRes=1.69e-06, TR10=1.27e+01 (time to reduce residual by a factor of 10) TR10/M=5.36e+00
+
+
+ogmgt tz -noplot -g=box128.order4 -levels=1 -rtol=1.e-8 >! box128.order4.petcsc.out 
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=4.13e-09, ave CR=0.0000 ave ECR=0.021 np=1
+  MaxRes=2.71e-04, TR10=1.12e+01 (time to reduce residual by a factor of 10) TR10/M=4.74e+00
+
+ogmgt tz -noplot -g=box128.order4 -autoChoose=1 -maxit=9  >! box128.order4.out 
+Iteration=1..9 : Total WU=4.36e+01, total res reduction=6.43e-14, ave CR=0.0342 ave ECR=0.499 np=1
+  MaxRes=4.22e-09, TR10=8.99e-01 (time to reduce residual by a factor of 10) TR10/M=3.79e-01
+
+====box64.order4.hdf
+
+ogmgt tz -noplot -g=box64.order4 -levels=1 -rtol=1.e-8 >! box64.order4.petcsc.out 
+Iteration=1..1 : Total WU=5.00e+00, total res reduction=1.83e-09, ave CR=0.0000 ave ECR=0.018 np=1
+  MaxRes=3.00e-05, TR10=1.05e+00 (time to reduce residual by a factor of 10) TR10/M=3.16e+00
+
+ogmgt tz -noplot -g=box64.order4 -autoChoose=1 -maxit=9  >! box64.order4.out 
+Iteration=1..9 : Total WU=4.37e+01, total res reduction=2.29e-14, ave CR=0.0305 ave ECR=0.487 np=1
+  MaxRes=3.75e-10, TR10=7.33e-02 (time to reduce residual by a factor of 10) TR10/M=2.20e-01
+
+
+==========tcilce64.order4.ml4 : 22M pts speedup = 225 /.93 =  
+
+$perf/tcilce64.order4.ml4.petcsc.np8.out
+submit.p -jobName="tcilc64" -bank=windpowr -out="tcilc64.out" -walltime=2:00 -submit=0 -cmd='srun -N1 -n8 -ppbatch /g/g10/henshaw/Overture/ogmg/ogmgt tz -noplot -g=tcilce64.order4.ml4 -numParallelGhost=4 -levels=1 -rtol=1.e-8'
+==== memory per-proc: [min=2807.91,ave=2915.11,max=3063.43](Mb), max-recorded=0 (Mb), total=23320.9 (Mb)
+Iteration=1..1 : Total WU=5.02e+00, total res reduction=3.38e-09, ave CR=0.0000 ave ECR=0.020 np=8
+  MaxRes=4.51e-02, TR10=6.45e+02 (time to reduce residual by a factor of 10) TR10/(M/np)=2.25e+02
+
+srun -N1 -n8 -ppdebug $ogmgp tz -noplot -g=tcilce64.order4.ml4 -numParallelGhost=4 -levels=1 -rtol=1.e-8  >! $perf/tcilce64.order4.ml4.petcsc.np8.out
+
+TOO MUCH MEMORY tux291 (10G):
+ogmgt tz -noplot -g=tcilce64.order4.ml4  -levels=1 -rtol=1.e-8  >! tcilce64.order4.ml4.petcsc.out 
+
+
+
+srun -N1 -n8 -ppdebug $ogmgp  tz -noplot -g=tcilce64.order4.ml4 -numParallelGhost=4 -autoChoose=1 -maxit=9  >! $perf/tcilce64.order4.ml4.np8.out
+Iteration=1..9 : Total WU=4.95e+01, total res reduction=1.12e-12, ave CR=0.0470 ave ECR=0.573 np=8
+  MaxRes=1.49e-05, TR10=2.67e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=9.31e-01
+==== memory per-proc: [min=199.816,ave=228.083,max=316.637](Mb), max-recorded=0 (Mb), total=1824.66 (Mb)
+
+ogmgt tz -noplot -g=tcilce64.order4.ml4  -autoChoose=1 -maxit=9  >! tcilce64.order4.ml4.out 
+
+Iteration=1..9 : Total WU=4.95e+01, total res reduction=1.19e-12, ave CR=0.0473 ave ECR=0.574 np=1
+  MaxRes=1.59e-05, TR10=4.38e+00 (time to reduce residual by a factor of 10) TR10/M=1.91e-01
+
+
+==========cice64.order4.ml5.hdf 7.3M pts: speedup =  95.8/1.9 = 50 
+
+ NOTE: TR10 is about the same for lower and higher tol
+HIGHER TOL:
+ogmgt tz -noplot -g=cice64.order4.ml5.hdf -levels=1 -rtol=1.e-8  >! cice64.order4.ml5.petcsc.out 
+Iteration=1..1 : Total WU=5.02e+00, total res reduction=5.30e-11, ave CR=0.0000 ave ECR=0.009 np=1
+  MaxRes=5.78e-05, TR10=1.02e+02 (time to reduce residual by a factor of 10)
+==== memory per-proc: [min=5531.31,ave=5531.31,max=5531.31](Mb), max-recorded=0 (Mb), total=5531.31 (Mb)
+
+LOWER TOL: 
+ogmgt tz -noplot -g=cice64.order4.ml5.hdf -levels=1 -rtol=.5e-10  >! cice64.order4.ml5.petcsc.out 
+Iteration=1..1 : Total WU=5.02e+00, total res reduction=7.25e-13, ave CR=0.0000 ave ECR=0.004 np=1
+  MaxRes=7.92e-07, TR10=9.58e+01 (time to reduce residual by a factor of 10)
+
+*** ML6: 7.3M  coarse-grid-solve=1% 
+ogmgt tz -noplot -g=cice64.order4.ml6.hdf -autoChoose=1 -maxit=10  >! cice64.order4.ml6.out 
+Iteration=1..10 : Total WU=5.42e+01, total res reduction=3.52e-15, ave CR=0.0359 ave ECR=0.541 np=1
+  MaxRes=3.84e-09, TR10=1.11e+00 (time to reduce residual by a factor of 10) TR10/(M/np)=1.52e-01
+==== memory per-proc: [min=751.332,ave=751.332,max=751.332](Mb), max-recorded=0 (Mb), total=751.332 (Mb)
+
+Iteration=1..10 : Total WU=5.42e+01, total res reduction=3.52e-15, ave CR=0.0359 ave ECR=0.541 np=1
+  MaxRes=3.84e-09, TR10=1.12e+00 (time to reduce residual by a factor of 10)
+
+AUTOCHOOSE: coarse-grid solver=45%
+ogmgt tz -noplot -g=cice64.order4.ml5.hdf -autoChoose=1 -maxit=10  >! cice64.order4.ml5.out 
+Iteration=1..10 : Total WU=5.38e+01, total res reduction=8.99e-16, ave CR=0.0313 ave ECR=0.526 np=1
+  MaxRes=9.82e-10, TR10=1.85e+00 (time to reduce residual by a factor of 10)
+
+
+LOWER TOL:
+ogmgt tz -noplot -g=cice64.order4.ml5.hdf -maxit=12  >! cice64.order4.ml5.out 
+Iteration=1..12 : Total WU=5.01e+01, total res reduction=6.32e-11, ave CR=0.1413 ave ECR=0.626 np=1
+  MaxRes=6.91e-05, TR10=2.53e+00 (time to reduce residual by a factor of 10)
+
+HIGHER TOL:
+ogmgt tz -noplot -g=cice64.order4.ml5.hdf -maxit=10  >! cice64.order4.ml5.out 
+ total.................................1.75e+01  1.75e+00   100.00% 
+Iteration=1..10 : Total WU=4.19e+01, total res reduction=6.01e-10, ave CR=0.1196 ave ECR=0.603 np=1
+  MaxRes=6.56e-04, TR10=1.90e+00 (time to reduce residual by a factor of 10)
+
+
+========== square2048.order4: speedup=  42.1/.509 = 82
+TRY ILU(5) -- a bit slower, but half as many iterations 
+ogmgt tz -noplot -g=square2048.order4 -levels=1 -ilucg=5 -rtol=.5e-10 >! square2048.order4.petcscILU5.out
+Iteration=1..1 : Total WU=5.02e+00, total res reduction=1.98e-13, ave CR=0.0000 ave ECR=0.003 np=1
+  MaxRes=2.22e-06, TR10=4.57e+01 (time to reduce residual by a factor of 10) TR10/(M/np)=1.08e+01
+   average number of iterations per coarse grid solve = 175.0/cycle
+
+==== memory/proc: [min=5239.25,ave=5239.25,max=5239.25](Mb), max-recorded=0 (Mb), total=5239.25 (Mb), 162.9 reals/(grid-pt
+
+ogmgt tz -noplot -g=square2048.order4 -levels=1 -rtol=.5e-10 >! square2048.order4.petcsc.out
+ total.................................5.16e+02  5.16e+02   100.00% 
+Iteration=1..1 : Total WU=5.02e+00, total res reduction=5.55e-13, ave CR=0.0000 ave ECR=0.004 np=1
+  MaxRes=6.20e-06, TR10=4.21e+01 (time to reduce residual by a factor of 10)
+==== memory per-proc: [min=3613.91,ave=3613.91,max=3613.91](Mb), max-recorded=0 (Mb), total=3613.91 (Mb)
+   average number of iterations per coarse grid solve = 378.0/cycle
+
+
+ogmgt tz -noplot -g=square2048.order4 -maxit=10  >! square2048.order4.out  
+ total.................................6.94e+00  6.94e-01   100.00% 
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=2.27e-14, ave CR=0.0432 ave ECR=0.463 np=1
+  MaxRes=2.53e-07, TR10=5.09e-01 (time to reduce residual by a factor of 10)
+==== memory per-proc: [min=234.637,ave=234.637,max=234.637](Mb), max-recorded=0 (Mb), total=234.637 (Mb)
+
+========= square1024.order4 : factor=5.08/.162 = 31
+ogmgt tz -noplot -g=square1024.order4 -debug=3 -levels=1 -rtol=.5e-10 >! square1024.order4.petcsc.out
+ total.................................6.34e+01  6.34e+01   100.00% 
+Iteration=1..1 : Total WU=5.02e+00, total res reduction=3.43e-13, ave CR=0.0000 ave ECR=0.003 np=1
+  MaxRes=9.58e-07, TR10=5.08e+00 (time to reduce residual by a factor of 10)
+
+square1024.order4.out
+ogmgt tz -noplot -g=square1024.order4 -maxit=10  >! square1024.order4.out  
+
+ total.................................2.21e+00  2.21e-01   100.00% 
+Iteration=1..10 : Total WU=4.08e+01, total res reduction=2.27e-14, ave CR=0.0432 ave ECR=0.463 np=1
+  MaxRes=6.34e-08, TR10=1.62e-01 (time to reduce residual by a factor of 10)
+

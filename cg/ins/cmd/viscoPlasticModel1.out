@@ -1,0 +1,519 @@
+Output from: (071207)
+
+cgins noplot viscoPlasticModel -g=square20.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=5. -imp=1. -iv=full -debug=1 -go=halt -ic=uniform -dtMax=.1 -rf=10 -tz=trig -go=go > viscoPlasticModel1.out
+
+-----------------------------
+
+
+A++ Internal_Index bounds checking: ON 
+cgins: reading commands from file [viscoPlasticModel]
+Successfully opened /home/henshaw/.overturerc for reading
+User commands are being saved in the file `cgins.cmd'
+read command file =viscoPlasticModel
+*
+* cgins: Test the visco-plastic model with twilight-zone
+*
+* Usage:
+*    cgins [noplot] viscoPlasticModel -g=<name> -degreex=<> -degreet=<> -eta=<val> -yield=<val> -expVP=<val>...
+*                  -its=<max its> -pits=<tPlot> -ic=<uniform/tz> -ad2=[0/1] -bg=<name> -ts=[pc/line/imp] ...
+*                  -tp=<val> -tf=<val> -kThermal=<val> -iv=[viscous/adv/full] -imp=<val> -rf=<val> -dtMax=<val>...
+*                  -debug=<> -show=<name> -ad2=<0|1> -bg=<grid-name> -cfl=<num> -solver=<yale/best> -go=[run/halt/og]
+*
+* -eta = etaVP in equation below
+* -yield = yield-stress, yieldStressVP in equation below. Set to zero for a Newtonian fluid model.
+* -expVP = exponentVP in the equation below
+* -ts : times-stepping method, pc: adams predictor-corrector, line: line-solver, imp: implicit
+* -rf : refactor frequency
+*
+* Visco-plastic viscosity is:
+*   nuT = etaVP + (yieldStressVP/esr)*(1.-exp(-exponentVP*esr))
+*   esr = effective strain rate = || (2/3)*eDot_ij ||
+*
+* Examples:
+*
+*
+* Full implicit method:
+* cgins noplot viscoPlasticModel -g=square5.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.02 -tf=.04 -iv=full -debug=1 -go=go -dtMax=.02
+* cgins noplot viscoPlasticModel -g=square5.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.02 -tf=.04 -iv=full -debug=15 -go=go
+* cgins noplot viscoPlasticModel -g=nonSquare5.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.02 -tf=.04 -iv=full -debug=15 -go=go
+* cgins noplot viscoPlasticModel -g=rotatedSquare10.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.02 -tf=.04 -iv=full -debug=15 -go=go
+* cgins noplot viscoPlasticModel -g=sis.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.02 -tf=.04 -iv=full -debug=1 -go=go
+* cgins noplot viscoPlasticModel -g=rsis2.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.02 -tf=.04 -iv=full -debug=1 -go=go
+* cgins viscoPlasticModel -g=cice1.order2.hdf -eta=1. -yield=0. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig -cDt=.5
+* cgins viscoPlasticModel -g=cice2.order2.hdf -eta=1. -yield=0. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig
+* cgins viscoPlasticModel -g=cice4.order2.hdf -eta=1. -yield=0. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig -cDt=.5
+* 3D:
+* cgins viscoPlasticModel -g=box5.hdf -bg=box -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.1 -dtMax=.1 -tf=1. -iv=full -debug=1 -go=halt
+* cgins viscoPlasticModel -g=nonBox5.hdf -bg=box -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.1 -dtMax=.1 -tf=1. -iv=full -debug=1 -go=halt
+* cgins viscoPlasticModel -g=rotatedBox1.order2 -bg=box -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.1 -dtMax=.1 -tf=1. -iv=full -debug=1 -go=halt
+* cgins viscoPlasticModel -g=bibe.hdf -bg="outer-box" -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.1 -dtMax=.1 -tf=1. -iv=full -debug=1 -go=halt
+*
+* -- nonlinear viscosity
+* cgins viscoPlasticModel -g=square20.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=10 -tz=trig
+* cgins viscoPlasticModel -g=square40.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig
+* cgins viscoPlasticModel -g=rotatedSquare20.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.05 -rf=20 -tz=trig
+*
+* cgins viscoPlasticModel -g=rsis2.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.05 -rf=10 -tz=trig
+*
+* cgins viscoPlasticModel -g=quarterAnnulus.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.05 -rf=20 -tz=trig
+* cgins viscoPlasticModel -g=cice1.order2.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig
+*  3D
+* cgins viscoPlasticModel -g=box10 -bg=box -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig
+* cgins viscoPlasticModel -g=rotatedBox1.order2 -bg=box -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=5. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig
+* cgins viscoPlasticModel -g=quarterCyl2.order2 -bg=quarterCylinder -eta=1. -yield=1. -expVP=2. -ts=imp -tp=.1 -tf=5. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig
+* cgins viscoPlasticModel -g=orthoSphere1.order2 -bg="north-pole" -eta=1. -yield=1. -expVP=2. -ts=imp -tp=.1 -tf=5. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.1 -rf=20 -tz=trig
+*
+* Explicit time-stepping:
+*  cgins noplot viscoPlasticModel -g=square5.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -pits=1 -its=1 -debug=15 -go=go
+*  cgins viscoPlasticModel -g=nonSquare5.hdf -degreex=2 -eta=1. -yield=0. -debug=1
+*  cgins viscoPlasticModel -g=sis.hdf -degreex=2 -eta=1. -yield=0. -ic=tz
+*
+*  cgins viscoPlasticModel -g=square5.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -debug=15
+*  cgins noplot viscoPlasticModel -g=square40.hdf -degreex=2 -eta=1. -yield=1. -expVP=2. -ic=tz -pits=1 -its=1 -go=run
+*  cgins noplot viscoPlasticModel -g=square5.hdf -degreex=1 -eta=1. -yield=0. -tp=.01 -tf=.01 -ic=tz -ts=pc -go=go -debug=15
+*  cgins noplot viscoPlasticModel -g=rhombus10.hdf -degreex=1 -eta=1. -yield=0. -tp=.01 -tf=.01 -ic=tz -ts=pc -go=go -debug=15
+*
+* ok:
+*  cgins noplot viscoPlasticModel -g=rotatedSquare10.hdf -degreex=2 -eta=1. -yield=1. -expVP=2. -ic=tz -pits=1 -its=10
+*  cgins viscoPlasticModel -g=sise4.order2.hdf -degreex=2 -eta=1. -yield=1. -expVP=2. -ic=tz -pits=1 -its=10
+*  cgins noplot viscoPlasticModel -g=rhombus10.hdf -degreex=0 -eta=1. -yield=0. -expVP=2. -ic=tz -pits=1 -its=1 -debug=15 -go=go
+*  cgins viscoPlasticModel -g=rhombus20.hdf -degreex=0 -eta=1. -yield=0. -expVP=2. -ic=tz -pits=1 -its=100
+*  cgins viscoPlasticModel -g=quarterAnnulus.hdf -degreex=2 -eta=1. -yield=0. -expVP=2. -ic=tz -pits=1 -its=100
+*  cgins viscoPlasticModel -g=quarterAnnulus2.hdf -degreex=2 -eta=1. -yield=0. -expVP=2. -ic=tz -pits=1 -its=100
+*
+*  cgins noplot viscoPlasticModel -g=annulus2.hdf -degreex=2 -eta=1. -yield=1. -expVP=2. -ic=tz -pits=1 -its=100 -go=run
+*  cgins noplot viscoPlasticModel -g=cice2.order2.hdf -degreex=2 -eta=1. -yield=1. -expVP=2. -ic=tz -pits=1 -its=1 -go=run
+*
+* Convergence tests with trigonometric solution:
+*  cgins noplot viscoPlasticModel -g=square20.hdf -eta=1. -yield=1. -expVP=2. -ic=tz -pits=100 -its=400 -tz=trig -go=go >! vp.sq20.out &
+*  cgins noplot viscoPlasticModel -g=square40.hdf -eta=1. -yield=1. -expVP=2. -ic=tz -pits=100 -its=600 -tz=trig -go=go >! vp.sq40.out  &
+*  cgins viscoPlasticModel -g=cice1.order2.hdf -eta=1. -yield=1. -expVP=2. -ic=tz -pits=100 -its=500  -tz=trig
+*  cgins viscoPlasticModel -g=cice2.order2.hdf -eta=1. -yield=1. -expVP=2. -ic=tz -pits=100 -its=500 -tz=trig
+*  cgins viscoPlasticModel -g=cice4.order2.hdf -eta=1. -yield=1. -expVP=2. -ic=tz -pits=100 -its=500 -tz=trig
+*
+* --- set default values for parameters ---
+$debug=1; $tFinal=1.; $tPlot=.1; $nuVP=.0; $etaVP=0.1; $yieldStressVP=1.; $exponentVP=1.; $kThermal=1.; $epsVP=1.e-3;
+OvertureParser::Sending the answer to be parsed by perl...
+$cfl=.9; $ts="line";  $implicitFactor=.5; $refactorFrequency=100; $numberOfCorrections=1;
+OvertureParser::Sending the answer to be parsed by perl...
+$implicitVariation="full"; #  $implicitVariation="full";
+OvertureParser::Sending the answer to be parsed by perl...
+$cDt=-1.; # this means use the default given below. old:  $cDt=.25;
+OvertureParser::Sending the answer to be parsed by perl...
+$its=100; $pits=1; $dtMax=.1; $gravity = "0. 0. 0."; $fx=.5; $ft=0.;
+OvertureParser::Sending the answer to be parsed by perl...
+$tz="poly"; $degreex=2; $degreet=0;
+OvertureParser::Sending the answer to be parsed by perl...
+$ic ="uniform"; $ad2=0; $ad21=1.; $ad22=1.; $go="halt"; $bg=square;
+OvertureParser::Sending the answer to be parsed by perl...
+$psolver="yale"; $solver="yale"; $rtol=1.e-8; $atol=.1e-9;
+OvertureParser::Sending the answer to be parsed by perl...
+* $psolver="choose best iterative solver"; $solver="choose best iterative solver";
+*
+* ----------------------------- get command line arguments ---------------------------------------
+GetOptions("g=s"=>\$grid,"its=i"=> \$its,"pits=i"=> \$pits,"cfl=f"=>\$cfl,"debug=i"=> \$debug,"dtMax=f"=>\$dtMax,            "degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "show=s"=>\$show, "bg=s"=>\$bg, "noplot=s"=>\$noplot,            "solver=s"=>\$solver, "model=s"=>\$model, "gravity=s"=>\$gravity, "ic=s"=>\$ic, "ts=s"=>\$ts,           "ad2=i"=> \$ad2,"ad21=f"=>\$ad21,"ad22=f"=>\$ad22,           "tp=f"=>\$tPlot,"tf=f"=>\$tFinal,"kThermal=f"=>\$kThermal,"tz=s"=>\$tz,"imp=f"=>\$implicitFactor,           "iv=s"=>\$implicitVariation,"eta=f"=>\$etaVP,"yield=f"=>\$yieldStressVP,"expVP=f"=>\$exponentVP,           "rf=i"=> \$refactorFrequency,"ad2=i"=> \$ad2,"bg=s"=>\$bg,"gravity=s"=>\$gravity,"fx=f"=>\$fx,           "cDt=f"=>\$cDt,"epsVP=f"=>\$epsVP,"nc=i"=> \$numberOfCorrections,"go=s"=>\$go );
+OvertureParser::Sending the answer to be parsed by perl...
+* -------------------------------------------------------------------------------------------------
+if( $ic eq "tz" ){ $ic="initial conditions\n exit";}else                 { $ic="initial conditions\n uniform flow\n  p=0., u=0., v=0., T=0.\n exit";}
+OvertureParser::Sending the answer to be parsed by perl...
+*
+if( $go eq "halt" ){ $go = "break"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $go eq "og" ){ $go = "open graphics"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $ts eq "line" ){ $ts="steady state RK-line"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $ts eq "imp" ){ $ts="implicit"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $ts eq "pc" ){ $ts="adams PC"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $tz eq "poly" ){ $tz="turn on polynomial"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $tz eq "trig" ){ $tz="turn on trigonometric"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $implicitVariation eq "viscous" ){ $implicitVariation = "implicitViscous"; }elsif( $implicitVariation eq "adv" ){ $implicitVariation = "implicitAdvectionAndViscous"; }elsif( $implicitVariation eq "full" ){ $implicitVariation = "implicitFullLinearized"; }else{ $implicitVariation = "implicitFullLinearized"; }
+OvertureParser::Sending the answer to be parsed by perl...
+if( $cDt<0. ){ $cDt= .2/$dtMax; }
+OvertureParser::Sending the answer to be parsed by perl...
+*
+* -- here is the grid we use:
+$grid
+OvertureParser::result = [square20.hdf]
+Try to read the overlapping grid file : square20.hdf
+Searching for grids in locations specified by the `OvertureGridDirectories' environment variable
+look for /home/henshaw/Overture/ogen/square20.hdf 
+look for /home/henshaw/sampleGrids/square20.hdf 
+look for /home/henshaw/Overture/hype/square20.hdf 
+look for /home/henshaw.0/Overture.g/sampleGrids/square20.hdf 
+ ***** Mounting file /home/henshaw.0/Overture.g/sampleGrids/square20.hdf****
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=square20
+Time to read in the grid is 3.36e-02(s)
+*
+incompressible Navier Stokes
+visco-plastic model
+define real parameter nuViscoPlastic $nuVP
+OvertureParser::result = [define real parameter nuViscoPlastic 0]
+ Adding the real parameter [nuViscoPlastic] with value [0.000000e+00]
+define real parameter etaViscoPlastic $etaVP
+OvertureParser::result = [define real parameter etaViscoPlastic 1.]
+ Adding the real parameter [etaViscoPlastic] with value [1.000000e+00]
+define real parameter yieldStressViscoPlastic $yieldStressVP
+OvertureParser::result = [define real parameter yieldStressViscoPlastic 1.]
+ Adding the real parameter [yieldStressViscoPlastic] with value [1.000000e+00]
+define real parameter exponentViscoPlastic $exponentVP
+OvertureParser::result = [define real parameter exponentViscoPlastic 2.]
+ Adding the real parameter [exponentViscoPlastic] with value [2.000000e+00]
+define real parameter epsViscoPlastic $epsVP
+OvertureParser::result = [define real parameter epsViscoPlastic 0.001]
+ Adding the real parameter [epsViscoPlastic] with value [1.000000e-03]
+define integer parameter maximumNumberOfLinesToSolveAtOneTime 100 3 100 3
+ Adding the integer parameter [maximumNumberOfLinesToSolveAtOneTime] with value [100]
+exit
+*
+* define the time-stepping method:
+$ts
+OvertureParser::result = [implicit]
+Answer=implicit found in getTimeSteppingOption
+first order predictor
+Answer=first order predictor found in getTimeSteppingOption
+number of PC corrections $numberOfCorrections
+OvertureParser::result = [number of PC corrections 1]
+ getTextValue: answer found: [number of PC corrections 1]
+Answer=number of PC corrections 1 found in getTimeSteppingOption
+*
+dtMax $dtMax
+OvertureParser::result = [dtMax .1]
+ dtMax=1.000e-01
+Answer=dtMax .1 found in getTimeSteppingOption
+*
+*
+max iterations $its
+OvertureParser::result = [max iterations 100]
+Answer=max iterations 100 found in getTimeSteppingOption
+plot iterations $pits
+OvertureParser::result = [plot iterations 1]
+Answer=plot iterations 1 found in getTimeSteppingOption
+plot residuals 1
+*
+final time $tFinal
+OvertureParser::result = [final time 5.]
+ tFinal=5.000e+00
+Answer=final time 5. found in getTimeSteppingOption
+times to plot $tPlot
+OvertureParser::result = [times to plot 1.]
+ tPrint=1.000e+00
+*
+useNewImplicitMethod
+
+ &&&&&&&&&& Use the new implicit method &&&&&&&&&
+
+Answer=useNewImplicitMethod found in getTimeSteppingOption
+refactor frequency $refactorFrequency
+OvertureParser::result = [refactor frequency 10]
+*
+implicit factor $implicitFactor
+OvertureParser::result = [implicit factor 1.]
+ implicit factor=1.000e+00
+Answer=implicit factor 1. found in getTimeSteppingOption
+use full implicit system 1
+Answer=use full implicit system 1 found in getTimeSteppingOption
+$implicitVariation
+OvertureParser::result = [implicitFullLinearized]
+Answer=implicitFullLinearized found in getTimeSteppingOption
+*
+*   turn on polynomial
+$tz
+OvertureParser::result = [turn on trigonometric]
+turn on trigonometric
+getInitialConditions: answer found in parameters.setTwilightZoneParameters
+*
+degree in space $degreex
+OvertureParser::result = [degree in space 2]
+ tzDegreeSpace= 2
+getInitialConditions: answer found in parameters.setTwilightZoneParameters
+degree in time $degreet
+OvertureParser::result = [degree in time 0]
+ tzDegreeTime=0 
+getInitialConditions: answer found in parameters.setTwilightZoneParameters
+OBTZ:frequencies (x,y,z,t) $fx, $fx, $fx, $ft
+OvertureParser::result = [OBTZ:frequencies (x,y,z,t) 0.5, 0.5, 0.5, 0]
+(omegaX,omegaY,omegaZ,omegaT)=(5.000000e-01,5.000000e-01,5.000000e-01,0.000000e+00)
+getInitialConditions: answer found in parameters.setTwilightZoneParameters
+*
+* plot and always wait
+no plotting
+pde parameters
+nu  1.
+ getTextValue: answer found: [nu 1.000000e+00]
+kThermal $kThermal
+OvertureParser::result = [kThermal 1]
+ kThermal=1.000e+00
+gravity
+gravity is specified as a vector, it is the accelation per unit mass.
+$gravity
+OvertureParser::result = [0. 0. 0.]
+ gravity=(0.00e+00,0.00e+00)
+cDt div damping $cDt
+OvertureParser::result = [cDt div damping 2]
+ getTextValue: answer found: [cDt div damping 2.000000e+00]
+* now default: use Neumann BC at outflow
+done
+cfl $cfl
+OvertureParser::result = [cfl 0.9]
+ cfl=9.000e-01
+Answer=cfl 0.9 found in getTimeSteppingOption
+**
+OBPDE:second-order artificial diffusion $ad2
+OvertureParser::result = [OBPDE:second-order artificial diffusion 0]
+OBPDE:ad21,ad22  $ad21 $ad22
+OvertureParser::result = [OBPDE:ad21,ad22  1 1]
+ ad21=1.000e+00, ad22=1.000e+00
+**
+pressure solver options
+$psolver
+OvertureParser::result = [yale]
+solver type = yale
+* yale
+* these tolerances are chosen for PETSc
+relative tolerance
+$rtol
+OvertureParser::result = [1e-08]
+absolute tolerance
+$atol
+OvertureParser::result = [1e-10]
+exit
+implicit time step solver options
+* choose best iterative solver
+$solver
+OvertureParser::result = [yale]
+solver type = yale
+* PETSc
+* these tolerances are chosen for PETSc
+relative tolerance
+$rtol
+OvertureParser::result = [1e-08]
+absolute tolerance
+$atol
+OvertureParser::result = [1e-10]
+* debug
+*   3
+exit
+*
+boundary conditions
+INFO: If you want to see the boundary conditions you should first plot the grid
+all=dirichletBoundaryCondition
+ boundary conditions: ()
+Setting boundary condition to dirichletBoundaryCondition (bc=12) on all grids.
+Assign bcData values : 
+
+Assign bcData values : 
+
+Assign bcData values : 
+
+Assign bcData values : 
+
+*  square(0,0)=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)
+*  square(1,0)=noSlipWall
+*     box(0,0)=noSlipWall
+*     box(1,1)=noSlipWall
+*     box(1,2)=noSlipWall
+*  all=noSlipWall
+* ---
+all=noSlipWall
+ boundary conditions: ()
+Setting boundary condition to noSlipWall (bc=1) on all grids.
+Assign bcData values : 
+
+Assign bcData values : 
+
+Assign bcData values : 
+
+Assign bcData values : 
+
+$bg(0,1)=noSlipWall
+OvertureParser::result = [square(0,1)=noSlipWall]
+ boundary conditions: ()
+Setting (side,axis)=(0,1) of grid square to bc=noSlipWall, (number=1)
+Assign bcData values : 
+
+$bg(1,1)=noSlipWall
+OvertureParser::result = [square(1,1)=noSlipWall]
+ boundary conditions: ()
+Setting (side,axis)=(1,1) of grid square to bc=noSlipWall, (number=1)
+Assign bcData values : 
+
+$bg(0,0)=inflowWithVelocityGiven , uniform(p=1.,u=1.)
+OvertureParser::result = [square(0,0)=inflowWithVelocityGiven , uniform(p=1.,u=1.)]
+Parameters::assignParameterValues:assigning boundary conditions: p=1.000000e+00 
+Parameters::assignParameterValues:assigning boundary conditions: u=1.000000e+00 
+ boundary conditions: (p=1.000000,u=1.000000,)
+Setting (side,axis)=(0,0) of grid square to bc=inflowWithVelocityGiven, (number=2)
+Assign bcData values : 
+n=0 : 1,  n=1 : 1,  
+$bg(1,0)=outflow , pressure(1.*p+1.*p.n=0.)
+OvertureParser::result = [square(1,0)=outflow , pressure(1.*p+1.*p.n=0.)]
+Parameters::setBoundaryConditionValues: pressure BC: 1.000000e+00*p+1.000000e+00*p.n=0.000000e+00 
+ boundary conditions: ()
+Parameters::setBoundaryConditionValues: Assign mixed-derivative values mixedDerivValue=[1,1,0] for component=0
+Setting (side,axis)=(1,0) of grid square to bc=outflow, (number=5)
+Assign bcData values : 
+n=0 : 0,  n=5 : 1,  n=10 : 1,  
+all=dirichletBoundaryCondition
+ boundary conditions: ()
+Setting boundary condition to dirichletBoundaryCondition (bc=12) on all grids.
+Assign bcData values : 
+
+Assign bcData values : 
+
+Assign bcData values : 
+
+Assign bcData values : 
+
+* $bg(0,0)=noSlipWall
+***
+* ----
+done
+debug  $debug
+OvertureParser::result = [debug  1]
+ getTextValue: answer found: [debug 1]
+*
+$ic
+OvertureParser::result = [initial conditions
+ uniform flow
+  p=0., u=0., v=0., T=0.
+ exit]
+initial conditions
+uniform flow
+p=0., u=0., v=0., T=0.
+Parameters::assignParameterValues:assigning initial conditions: p=0.000000e+00 
+Parameters::assignParameterValues:assigning initial conditions: u=0.000000e+00 
+Parameters::assignParameterValues:assigning initial conditions: v=0.000000e+00 
+Parameters::assignParameterValues:assigning initial conditions: T=0.000000e+00 
+ initial conditions: (p=0.000000,u=0.000000,v=0.000000,T=0.000000,)
+exit
+check error on ghost
+0 1
+ checkErrorsAtGhostPoints=0
+continue
+inside DomainSolver::setup
+ *** Cgins: buildImplicitSolvers: Determine the type of implicit solver(s) to build ***** 
+++++ buildImplicitSolvers: forcing a system to be solved +++
+buildImplicitSolvers: using a full system for the velocity for implicit time stepping
+ *** buildImplicitSolvers : numberOfImplicitSolvers=1 ***** 
+ DomainSolver::initialize:  numberOfGridFunctionsToUse= 2, numberOfExtraFunctionsToUse=3 
+ +++++DomainSolver::initialize: cg.numberOfComponentGrids=1 ++++++++++++++
+
+******************************************************************
+             Cgins version 0.1                                 
+             -----------------                              
+ Solving: incompressible Navier Stokes, visco-plastic model                                                      
+
+ cfl = 0.900000, tFinal=5.000000e+00, tPrint = 1.000000e+00                                 
+ Time stepping method: implicit
+ recompute dt at least every 100 steps.
+
+ Interpolation type: interpolate computational variables 
+ Order of accuracy in space = 2
+ Order of extrapolation for interpolation neighbours = 3
+ Order of extrapolation for second ghost line = 3
+Implicit time stepping. Order of predictor corrector=2
+   implicit factor = 1.00, (.5=Crank-Nicolson, 1.=Backward Euler)
+   Implicit solver =yale, direct sparse solver, no pivoting (parallel), direct sparse solver, no pivoting, tolerance=1.000000e-08, max number of iterations=default 
+ Twilight zone flow, trigonometric polynomial, fx=5.00e-01, fy=5.00e-01, fz=5.00e-01, ft=0.00e+00
+ The equations are solved in a fixed reference frame.
+ nu=1.000000e+00, cdv=1, cDt=2, pressure solver=yale 
+ implicit variation = implicitFullLinearized
+ nuViscoPlastic = 0.000000e+00
+ etaViscoPlastic = 1.000000e+00
+ yieldStressViscoPlastic = 1.000000e+00
+ exponentViscoPlastic = 2.000000e+00
+ epsViscoPlastic = 1.000000e-03
+ maximumNumberOfLinesToSolveAtOneTime = 100
+               Grid Data
+               ---------
+grid     name      gridIndexRange(0:1,0:2)           gridPoints   hmx      hmn  
+   0: square   ([ 0:   20],[ 0:   20],[ 0:    0])       441    5.00e-02 5.00e-02 
+ total number of grid points =441 (egir), min(hmn)=5.00e-02, max(hmn)=5.00e-02, max(hmx)=5.00e-02,  
+
+ grid   name     side axis    boundary condition and name
+ ----   ----     ---- ----    ---------------------------
+    0: square     0    0     12 : dirichletBoundaryCondition 
+    0: square     1    0     12 : dirichletBoundaryCondition 
+    0: square     0    1     12 : dirichletBoundaryCondition 
+    0: square     1    1     12 : dirichletBoundaryCondition 
+******************************************************************
+
+initialize the solution...
+Parameters::updateTurbulenceModels: turbulenceModel=0
+ interpolateAndApplyBoundaryConditions (start) steps=-1 t=0: number of array ID's has increased to 519
+
+ $$$$$$$$$$$$$$$ Cgins: updateToMatchGrid(CompositeGrid & cg) $$$$$$$$$$$$
+
+
+****  updatePressureEquation: start: Number of A++ arrays has increased to 471 
+
+***userDefinedInitialConditionsCleanup: delete arrays
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   0.000 1.00e+00 4.97e-01 4.97e-01 9.94e-01   3.00e+00 1.50e+01  3.00e+00 1.00e-01 9.46e-04 
+$go
+OvertureParser::result = [movie mode
+ finish]
+movie mode
+advanceImplicitMultiStep:INFO: predictorOrder=1
+ $$$$ save the linearized solution $$$$ (and refactor the matrix at t=0.000e+00, dt0=1.000000e-01)
+allocateWorkSpace: numberOfEquations=1950, nsp = 200760, fillinRatio= 20, numberOfNonzeros = 10038
+allocateWorkSpace: numberOfEquations=650, nsp = 47160, fillinRatio= 20, numberOfNonzeros = 2358
+ ----> t=1.000e-01, dt=1.00e-01: step=0 |u.t|[max,l2]: all=[1.2e+01, 4.0e+00] u=[1.19e+01, 4.02e+00] v=[1.17e+01, 3.88e+00] T=[9.51e+00, 3.84e+00]
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   1.000 1.03e-03 7.44e-05 5.42e-05 5.70e-05   3.00e+00 2.75e-03  3.00e+00 1.00e-01 2.69e-01 
+ ----> t=1.000e+00, dt=1.00e-01: step=9 |u.t|[max,l2]: all=[2.8e-04, 1.5e-04] u=[2.24e-04, 1.92e-05] v=[1.17e-04, 1.74e-05] T=[2.84e-04, 1.50e-04]
+ $$$$ save the linearized solution $$$$ (and refactor the matrix at t=9.000e-01, dt0=1.000000e-01)
+allocateWorkSpace: numberOfEquations=1950, nsp = 228120, fillinRatio= 20, numberOfNonzeros = 11406
+ ----> t=1.100e+00, dt=1.00e-01: step=10 |u.t|[max,l2]: all=[9.5e-05, 5.0e-05] u=[8.86e-06, 1.79e-06] v=[8.70e-06, 1.71e-06] T=[9.48e-05, 5.01e-05]
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   2.000 1.03e-03 7.44e-05 5.41e-05 6.75e-05   3.00e+00 2.75e-03  3.00e+00 1.00e-01 5.36e-01 
+ ----> t=2.000e+00, dt=1.00e-01: step=19 |u.t|[max,l2]: all=[5.2e-09, 2.8e-09] u=[2.21e-12, 4.15e-13] v=[1.92e-12, 3.88e-13] T=[5.23e-09, 2.76e-09]
+ $$$$ save the linearized solution $$$$ (and refactor the matrix at t=1.900e+00, dt0=1.000000e-01)
+ ----> t=2.100e+00, dt=1.00e-01: step=20 |u.t|[max,l2]: all=[1.8e-09, 9.3e-10] u=[3.69e-12, 4.00e-13] v=[2.08e-12, 3.47e-13] T=[1.76e-09, 9.27e-10]
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   3.000 1.03e-03 7.44e-05 5.41e-05 6.75e-05   3.00e+00 2.75e-03  3.00e+00 1.00e-01 8.02e-01 
+ ----> t=3.000e+00, dt=1.00e-01: step=29 |u.t|[max,l2]: all=[3.7e-12, 4.0e-13] u=[3.70e-12, 4.04e-13] v=[2.10e-12, 3.57e-13] T=[8.94e-13, 1.58e-13]
+ $$$$ save the linearized solution $$$$ (and refactor the matrix at t=2.900e+00, dt0=1.000000e-01)
+ ----> t=3.100e+00, dt=1.00e-01: step=30 |u.t|[max,l2]: all=[4.0e-12, 3.9e-13] u=[4.03e-12, 3.94e-13] v=[1.80e-12, 3.81e-13] T=[8.12e-13, 1.47e-13]
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   4.000 1.03e-03 7.44e-05 5.41e-05 6.75e-05   3.00e+00 2.75e-03  3.00e+00 1.00e-01 1.07e+00 
+ ----> t=4.000e+00, dt=1.00e-01: step=39 |u.t|[max,l2]: all=[3.9e-12, 3.9e-13] u=[3.91e-12, 3.85e-13] v=[1.71e-12, 3.91e-13] T=[9.02e-13, 1.43e-13]
+ $$$$ save the linearized solution $$$$ (and refactor the matrix at t=3.900e+00, dt0=1.000000e-01)
+ ----> t=4.100e+00, dt=1.00e-01: step=40 |u.t|[max,l2]: all=[4.1e-12, 4.0e-13] u=[4.09e-12, 3.97e-13] v=[1.66e-12, 3.99e-13] T=[8.57e-13, 1.44e-13]
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   5.000 1.03e-03 7.44e-05 5.41e-05 6.75e-05   3.00e+00 2.75e-03  3.00e+00 1.00e-01 1.33e+00 
+ ----> t=5.000e+00, dt=1.00e-01: step=49 |u.t|[max,l2]: all=[4.1e-12, 4.0e-13] u=[4.12e-12, 3.95e-13] v=[1.92e-12, 4.02e-13] T=[7.68e-13, 1.40e-13]
+ ----> t=5.000e+00, dt=1.00e-01: step=49 |u.t|[max,l2]: all=[4.1e-12, 4.0e-13] u=[4.12e-12, 3.95e-13] v=[1.92e-12, 4.02e-13] T=[7.68e-13, 1.40e-13]
+finish
+
+ ****  CPU: totalTime=1.370e+00 totalMeasured=7.809e-01, timeForOther=5.89e-01 
+
+         ---Cgins Summary : ins --- 
+  ==== numberOfStepsTaken =50, number of grids=1, number of gridpts =      441, processors=1 ==== 
+   Timings:           (ave-sec/proc:) seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+total time.......................... 1.370e+00   2.739e-02   6.211e-05   100.000   1.370e+00   1.370e+00
+setup and initialize................ 1.124e-02   2.247e-04   5.096e-07     0.820   1.124e-02   1.124e-02
+advance............................. 1.358e+00   2.717e-02   6.160e-05    99.177   1.358e+00   1.358e+00
+  compute du/dt..................... 7.805e-02   1.561e-03   3.539e-06     5.698   7.805e-02   7.805e-02
+  add forcing....................... 4.118e-02   8.236e-04   1.867e-06     3.007   4.118e-02   4.118e-02
+  boundary conditions............... 1.168e-01   2.335e-03   5.295e-06     8.525   1.168e-01   1.168e-01
+  implicit time stepping............ 1.269e-01   2.538e-03   5.755e-06     9.266   1.269e-01   1.269e-01
+  compute dt........................ 4.207e-03   8.414e-05   1.908e-07     0.307   4.207e-03   4.207e-03
+    pressure solve.................. 1.366e-02   2.733e-04   6.196e-07     0.998   1.366e-02   1.366e-02
+    assign pressure rhs............. 3.446e-01   6.892e-03   1.563e-05    25.160   3.446e-01   3.446e-01
+  plotting.......................... 4.434e-02   8.869e-04   2.011e-06     3.238   4.434e-02   4.434e-02
+  showFile.......................... 1.500e-05   3.000e-07   6.803e-10     0.001   1.500e-05   1.500e-05
+other............................... 5.887e-01   1.177e-02   2.670e-05    42.980   5.887e-01   5.887e-01
+waiting (not counted)............... 4.240e-04   8.480e-06   1.923e-08     0.031   4.240e-04   4.240e-04
+implicit time stepping: average number of iterations to solve implicit system =  0.0/step
+pressure equation: average number of iterations to solve =0.000000/solve (2.00 solves/step)
+
+ >>>> See the log file for further timings, memory usage and other statistics <<<< 
+

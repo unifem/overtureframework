@@ -1,0 +1,25 @@
+PKGDIR := $(OvertureCheckout)/ogen
+
+#cp {ogenDriver,ogen}.C         $OvertureBin
+
+
+# Here are files for Bill's grid generator
+SRC_FILES += $(addsuffix .C, Ogen check checkOverlap changeParameters classify computeOverlap \
+	cutHoles buildCutout cutHolesNew lastChance markPointsNeeded adjustBoundary getHoleWidth \
+	boundaryAdjustment improveQuality movingUpdate updateRefinement updateRefinementNew \
+        updateRefinementNewer updateRefineFillInterp updateRefineFillInterpNew checkOverlappingGrid \
+        movingUpdateNew cutHolesNewer interpolatePoints explicitHoleCutting ExplicitHoleCutter ) 
+
+
+L_HDRS := Ogen.h UpdateRefinementData.h CanInterpolate.h updateRefinementMacros.h ExplicitHoleCutter.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+ifneq ($(BINDIR),)
+ogen: $(BINDIR)ogen
+phonies += ogen
+endif
+
+$(BINDIR)ogen: $(OV_LIB) $(OV_SLIB) $(OBJDIR)ogenDriver.o $(OBJDIR)ogenFunction.o
+	$(CXX) -o $@ $(OBJDIR)ogenDriver.o $(OBJDIR)ogenFunction.o $(LIBS)
+

@@ -1,0 +1,2667 @@
+// This file automatically generated from advanceLineSolveOld.bC with bpp.
+// ****************************************************************************************************
+// ********* INS Steady-State Line-Solver Routine : solve along lines in a given direction ************
+// ****************************************************************************************************
+
+
+#include "Cgins.h"
+#include "TridiagonalSolver.h"
+#include "MappedGridOperators.h"
+#include "LineSolve.h"
+#include "ParallelUtility.h"
+#include "ParallelGridUtility.h"
+// #include "viscoPlasticMacrosCpp.h"
+
+// TridiagonalSolver **pTridiagonalSolvers=NULL;
+#define tridiagonalSolver(c,axis,grid) lineSolve.pTridiagonalSolvers[c+maxNumberOfSystems*(axis+numberOfDimensions*(grid))]
+
+//    Mixed-derivative BC for component i: 
+//          mixedCoeff(i)*u(i) + mixedNormalCoeff(i)*u_n(i) = mixedRHS(i)
+#define mixedRHS(component,side,axis,grid)         bcData(component+numberOfComponents*(0),side,axis,grid)
+#define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
+#define mixedNormalCoeff(component,side,axis,grid) bcData(component+numberOfComponents*(2),side,axis,grid)
+
+
+// IntegerArray lineSolveIsInitialized;  // ****************************** fix *****************
+
+// in common/src/getBounds.C : (should use new version in ParallelGridUtility.h)
+// void
+// getLocalBoundsAndBoundaryConditions( const realMappedGridFunction & a, 
+//                                      IntegerArray & gidLocal, 
+//                                      IntegerArray & dimensionLocal, 
+//                                      IntegerArray & bcLocal );
+
+#define insLineSetup EXTERN_C_NAME(inslinesetup)
+#define insLineSetupNew EXTERN_C_NAME(inslinesetupnew)
+#define insLineSolveBC EXTERN_C_NAME(inslinesolvebc)
+#define computeResidual EXTERN_C_NAME(computeresidual)
+#define computeResidualNew EXTERN_C_NAME(computeresidualnew)
+extern "C"
+{
+void insLineSetup(const int&nd,
+              		  const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,
+              		  const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,
+                                    const int&nd3b,const int&nd4a,const int&nd4b,
+              		  const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b,
+              		  const int&mask,const real&rx,  const real&u,const real&gv,const real&dt,real&f,const real&dw,
+                                    const int&dir, real&am, real&bm, real&cm, real&dm, real&em,  
+                                    const int&bc, const int&boundaryCondition, const int&ndbcd1a,const int&ndbcd1b,const int&ndbcd2a,const int&ndbcd2b,
+                                    const int&ndbcd3a,const int&ndbcd3b,const int&ndbcd4a,const int&ndbcd4b,const real&bcData,
+                                    const int&ipar, const real&rpar, const int&ierr );
+
+void insLineSetupNew(const int&nd,
+              		  const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,
+              		  const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,
+                                    const int&nd3b,const int&nd4a,const int&nd4b,
+              		  const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b,
+              		  const int&mask,const real&rx,  const real&u,const real&gv,const real&dt,real&f,const real&dw,
+                                    const int&dir, real&am, real&bm, real&cm, real&dm, real&em,  
+                                    const int&bc, const int&boundaryCondition, const int&ndbcd1a,const int&ndbcd1b,const int&ndbcd2a,const int&ndbcd2b,
+                                    const int&ndbcd3a,const int&ndbcd3b,const int&ndbcd4a,const int&ndbcd4b,const real&bcData,
+                                    const int&ipar, const real&rpar, const int&ierr );
+
+void insLineSolveBC(const int&nd,
+              		  const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,
+              		  const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,
+                                    const int&nd3b,const int&nd4a,const int&nd4b,
+              		  const int&md1a,const int&md1b,const int&md2a,const int&md2b,const int&md3a,const int&md3b,
+              		  const int&mask,const real&rx,  const real&u,const real&gv,const real&dt,real&f,const real&dw,
+                                    const int&dir, real&am, real&bm, real&cm, real&dm, real&em,  
+                                    const int&bc, const int&boundaryCondition, const int&ndbcd1a,const int&ndbcd1b,const int&ndbcd2a,const int&ndbcd2b,
+                                    const int&ndbcd3a,const int&ndbcd3b,const int&ndbcd4a,const int&ndbcd4b,const real&bcData,
+                                    const int&ipar, const real&rpar, const int&ierr );
+
+    void computeResidual(const int&nd,
+                   		       const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,
+                   		       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+                   		       const int&nd4a,const int&nd4b,
+                   		       const int&mask,const real&rx,  const real&u,const real&gv,const real&dt,
+                                              const real&f,const real&dw, real&residual,
+                   		       const int&bc, const int&ipar, const real&rpar, const int&ierr );
+
+    void computeResidualNew(const int&nd,
+                   		       const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,
+                   		       const int&nd1a,const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,
+                   		       const int&nd4a,const int&nd4b,
+                   		       const int&mask,const real&rx,  const real&u,const real&gv,const real&dt,
+                                              const real&f,const real&dw, real&residual,
+                   		       const int&bc, const int&ipar, const real&rpar, const int&ierr );
+}
+
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+
+
+// ====================================================================================
+// insLineSetupMacro : 
+//    Call insLineSetup to form the tridiagonal system, compute the RHS, or to compute the residual
+// ====================================================================================
+
+// ====================================================================================
+//   setupParametersMacro :
+//     Setup parameters for the call to insLineSetup
+// ====================================================================================
+
+// ====================================================================================
+//   debugDisplayTridiagonalMatrices Macro:
+// ====================================================================================
+
+// ====================================================================================
+//   debugDisplayFactoredMatrices
+// ====================================================================================
+
+
+// ----------------------------------------------------------------------------
+//  getSystemIndexBounds: 
+//   Return the Index bounds for a given system
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+//  getComponentIndexBounds: 
+//   Return the Index bounds for a given component.
+// WARNING: component is numbered 0,1,2,...   (do NOT use uc,vc, etc.)
+// ----------------------------------------------------------------------------
+
+
+// ===================================================================================================================
+/// \brief INS Steady-State Line-Solver Routine : solve along lines in a given direction
+/// \param lineSolve (input) : 
+/// \param direction : solve along lines in this diresction
+///
+/// \notes advanceLineSolve:
+///    o addForcing : assign body-forcing (e.g. TZ-forcing) to interior equations in f. 
+///    o lineSolverBoundaryConditions : determine BC's for line solves, assign BC right-hand sides to f.
+///    o insLineSetupMacro(Ksv,am,bm,cm,dm,em) : calls insLineSetup to fill in the tri-diagonal matrix
+///         am,b,,cm for a given equation. Optionally assign the RHS f for interior equations (all components)
+//          (this does NOT include dirichlet boundaries) and sets dirichlet values for interpolation points. 
+///    o insLineSolveBC : fill the matrix BC's into am,bm,cm and set dirichlet values for interpolation points
+///          on the boundary (for dirichlet) or ghost line (for neumann).
+// ===================================================================================================================
+int Cgins::
+advanceLineSolveOld(LineSolve & lineSolve,
+                    const int grid, const int direction, 
+                    realCompositeGridFunction & u0, 
+                    realMappedGridFunction & f, 
+                    realMappedGridFunction & residual,
+                    const bool refactor,
+                    const bool computeTheResidual /* =false */ )
+{
+    real t=0.;  // ********************* what time should we use ? 
+
+    CompositeGrid & cg= *u0.getCompositeGrid();
+    realMappedGridFunction & u = u0[grid];
+    MappedGrid & mg = cg[grid];
+    const int numberOfDimensions=cg.numberOfDimensions();
+    const intArray & mask = mg.mask();
+    Range all;
+    Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2]; // for first system (tangential components for slip wall case)
+    Index Jv[3], &J1=Jv[0], &J2=Jv[1], &J3=Jv[2]; // for 2nd system if needed when BC's are different
+    Index Kv[3], &K1=Kv[0], &K2=Kv[1], &K3=Kv[2]; 
+
+
+    const bool fourthOrder = parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion");
+    if( debug() & 8 && fourthOrder )
+        printF(" **** advanceLineSolve:INFO: solving penta-diagonal systems *****\n");
+    
+
+    InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
+    const bool computeTemperature = (pdeModel==InsParameters::BoussinesqModel ||
+                                                                      pdeModel==InsParameters::viscoPlasticModel);
+
+  // For the INS, (u,v,w) have the same form for the implicit matrix equations, so that we can
+  // can re-use the implicit systems:
+  //     Dt + u*Dx + v*Dy - nu*Delta 
+  // For the visco-plastic model, the implicit matrix equations are different for each component (u,v,w)
+    bool momentumMatrixEquationsAreDifferent = pdeModel==InsParameters::viscoPlasticModel;
+
+    bool isRectangular= mg.isRectangular();
+  // turn this next stuff on to test the non-rectangular code even for a rectangular grid
+  // ---------------
+//    isRectangular=false; // mg.isRectangular();
+    
+    if( !isRectangular )
+    {
+        mg.update(MappedGrid::THEinverseVertexDerivative);
+    }
+  // --------------
+
+    bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+    
+
+    const int pc=parameters.dbase.get<int >("pc");
+    const int uc=parameters.dbase.get<int >("uc");
+    const int vc=parameters.dbase.get<int >("vc");
+    const int wc=parameters.dbase.get<int >("wc");
+    const int nc=parameters.dbase.get<int >("kc");  // for SA turbulence model.
+    const int tc=parameters.dbase.get<int >("tc");  // T
+
+    const int numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+
+   // The bcData array is used to access the mixed-derivative BC info for T
+    const RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
+
+    const real nu = parameters.dbase.get<real >("nu");
+    FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+    FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+    RealArray & timing = parameters.dbase.get<RealArray>("timing");
+    Parameters::TurbulenceModel & turbulenceModel=parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel");
+    
+    const bool useTurbulenceModel= turbulenceModel==Parameters::SpalartAllmaras;
+    const int numberOfTimeDependentComponents= (useTurbulenceModel || computeTemperature ) ? numberOfDimensions+1 : numberOfDimensions;
+    
+    Range N(uc,uc+numberOfTimeDependentComponents-1);
+
+
+    if( debug() & 4 )
+    {
+        fprintf(pDebugFile,"\n ************** advanceLineSolve: grid=%i, direction=%i ****************\n",grid,direction);
+    }
+    
+
+    #ifdef USE_PPP
+        intSerialArray maskLocal; getLocalArrayWithGhostBoundaries(mask,maskLocal);
+
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
+        realSerialArray rLocal; getLocalArrayWithGhostBoundaries(residual,rLocal);
+    #else
+        const intSerialArray & maskLocal = mask;
+
+        realSerialArray & uLocal = u;
+        realSerialArray & fLocal = f;
+        realSerialArray & rLocal = residual;
+    #endif
+
+//    // we first compute the smoothed artificial dissipation **** could save temporarily on residual array *****
+
+//    realArray & artificialDissipation = mappedGridSolver[grid]->
+//                      workSpace.get(MappedGridSolverWorkSpace::artificialDissipation);
+//    getIndex(mg.dimension(),I1,I2,I3); 
+//    const int nad= useTurbulenceModel ? 2 : 1;
+//    mappedGridSolver[grid]->workSpace.resize(artificialDissipation,I1,I2,I3,nad);
+    
+//    computeArtficialDissipation();
+    
+
+    bool alwaysComputeResidual=debug() & 4; //  true;  // false
+
+  // ***************************************
+  // ************* FORCING *****************
+  // ***************************************
+
+  // we fill in the forcing first since addForcing sets f everywhere.
+    const int fc=uc;  // put forcing for uc here, vc at fc+1, wc at fc+2
+    real time0,time1;
+    f=0.;
+    if( true ) // twilightZoneFlow )
+    {
+        time0=getCPU();
+        int iparam[10];
+        real rparam[10];
+        rparam[0]=0.; // gf[mk].t;
+        rparam[1]=0.; // gf[mk].t;
+        rparam[2]=0.; // gf[mk].t; // tImplicit
+        iparam[0]=grid;
+        iparam[1]=cg.refinementLevelNumber(grid);
+
+        addForcing(f,u,iparam,rparam); // this does not use the mask
+
+        timing(parameters.dbase.get<int>("timeForForcing"))+=getCPU()-time0;
+
+        if( computeTheResidual || alwaysComputeResidual )
+            rLocal(all,all,all,N)=fLocal(all,all,all,N);  // save for residual computation below *****************
+    }
+
+  // ---------------------------------------------------
+  // ---- Assign initial values to the Index ranges ----
+  // ---------------------------------------------------
+    getIndex(mg.extendedIndexRange(),I1,I2,I3);  // include boundary  -- holds boundary conditions
+
+    bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);  // do not include parallel ghost
+
+
+    const IntegerArray & dim = mg.dimension();
+    IntegerArray gidLocal(2,3), dimLocal(2,3), bcLocal(2,3);
+  // NOTE: bcLocal(side,axis) == -1 for internal boundaries between processors
+  // ** this next call is also done in lineSolverBC's *** -- use version in ParallelGridUtility ***
+    ParallelGridUtility::getLocalIndexBoundsAndBoundaryConditions( u,gidLocal,dimLocal,bcLocal );  
+
+  // isPeriodic[axis] : periodic and not split across processors
+    bool isPeriodic[3]={false,false,false}; // 
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+    {
+        isPeriodic[axis]=mg.isPeriodic(axis)!=Mapping::notPeriodic && 
+            dim(0,axis)==dimLocal(0,axis) && dim(1,axis)==dimLocal(1,axis);
+    }
+    
+
+  // *************************************************
+  // ***************** START *************************
+  // *************************************************
+
+
+  // --------- We have different types of Tridiangonal Systems ------
+  //        system = 0 : solve for the normal component of the velocity (and maybe the tangential comp. if the BC's are compatible)
+  //        system = 1 : solve for the tangential component of the velocity
+  //        system = 2 : solve for the turbulence model variable (one equation model only, so far)
+  //        system = 3 : solve for the Temperature (for INS+Boussinesque)
+
+    if( ok )  // there are points on this processor
+    {
+    // ==== there must be no-communication within this loop ====
+
+        const int maxNumberOfSystems=4; // 0=normal-component, 1=tangential, turbulence-model, and Temperature --- fix this 
+
+        lineSolve.lineSolveIsInitialized=!refactor; 
+
+        if( lineSolve.pTridiagonalSolvers==NULL )
+        {
+      // create pointers to Tridiagonal Systems
+            lineSolve.lineSolveIsInitialized.redim(numberOfDimensions,cg.numberOfComponentGrids());
+            lineSolve.lineSolveIsInitialized=false;
+        
+            lineSolve.pTridiagonalSolvers = 
+      	new TridiagonalSolver* [maxNumberOfSystems*cg.numberOfComponentGrids()*numberOfDimensions];
+            for( int g=0; g<cg.numberOfComponentGrids(); g++ )
+            {
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  for( int m=0; m<maxNumberOfSystems; m++ )
+          	    tridiagonalSolver(m,axis,g)=NULL;
+      	}
+            }
+        }
+    
+
+
+    // --------------------------------------------------------------------------------
+    // ----- by default all velocity components use the first tridiagonal system=0 ----
+    //              uSystem[component] = system-number 
+    // --------------------------------------------------------------------------------
+        const int maxNumberOfComponents=5;  // (u,v,w), n (TM), T
+        int uSystem[maxNumberOfComponents]={0,0,0,0,0};
+
+        if( momentumMatrixEquationsAreDifferent )
+        {
+            uSystem[0]=0;   // fix this for 3d ********
+            uSystem[1]=1;
+        }
+
+        const int systemTM=2; // The SA turbulence model variable uses it's own tridiagonal solver -- should this "2" be "nd" ??
+        uSystem[numberOfDimensions]=systemTM; 
+    
+        const int systemTemperature=3;  // The Temperature equation needs it's own tridiagonal solver 
+        uSystem[numberOfDimensions]=systemTemperature;  // this time dependent component uses this Tridiagonal system
+
+    // *new* Index's
+        Index Ixv[3], &Ix1=Ixv[0], &Ix2=Ixv[1], &Ix3=Ixv[2];  // master Index (from which Index's for separate components are derived)
+
+    // options: (to match insLineSolve.bf)
+        const int assignINS=0, assignSpalartAllmaras=1, setupSweep=2, assignTemperature=3;
+
+        real dx[3]={1.,1.,1.};
+        if( isRectangular  )
+            mg.getDeltaX(dx);
+    
+    // *****************************************************
+    // ************ Boundary conditions ********************
+    // *****************************************************
+    // 
+    // bc(side,system) : holds "boundary conditions" for the tridiagonal system
+    // 
+    //                = dirichlet : the end condition for the line solver is a dicihlet like condition
+    //                = neuman    :
+    //                = extrapolate : 
+    //                = interpolate: the line solve hits an interpolation boundary where the value is assumed given
+    //
+        const int interpolate=0, dirichlet=1, neumann=2, extrapolate=3;
+
+        IntegerArray bc(2,maxNumberOfSystems), extra(2,maxNumberOfSystems);
+
+    // The offset array is used to mark tangential boundaries where we should not solve for a particular
+    // component -- e.g. on a slip wall we do not solve for the normal component
+        IntegerArray offset(2,3,numberOfComponents);
+
+        const int extra4 = fourthOrder && !isPeriodic[direction] ? 1 : 0;  // add one extra for fourth-order
+
+    // The INS momentum equations are the same for all components, so that we can
+    // can re-use the implicit systems:
+    //     Dt + u*Dx + v*Dy - nu*Delta 
+    // ... but the boundary conditions may be different 
+        bool boundaryConditionsAreDifferent=false;
+
+
+    // --- compute bc,extra,offset, Iv,Jv and fill BC's into f -----
+        lineSolverBoundaryConditions( grid,direction,u,f,residual,Iv,Jv,Ixv,maxNumberOfSystems,uSystem,
+                                                                    numberOfTimeDependentComponents,
+                                                                    bc,extra,offset,boundaryConditionsAreDifferent,isPeriodic );
+
+
+    // *****************************************************
+    // ************ Setup               ********************
+    // *****************************************************
+
+          int computeMatrix= !lineSolve.lineSolveIsInitialized(direction,grid);
+          int computeMatrixBoundaryCondtions=computeMatrix;
+          int computeRHS=1;
+          const int ndipar=60, ndrpar=30;
+          int ipar[ndipar];
+          real rpar[ndrpar];
+          ipar[0] = pc;
+          ipar[1] = uc;
+          ipar[2] = vc;
+          ipar[3] = wc;
+          ipar[4] = grid;
+          ipar[5] = parameters.dbase.get<int >("orderOfAccuracy");
+          ipar[6] = parameters.gridIsMoving(grid);
+          ipar[7] = true;
+          ipar[8] = parameters.getGridIsImplicit(grid);
+          ipar[9] = parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+          ipar[10]= parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
+          ipar[11]= parameters.isAxisymmetric();
+          ipar[12]= parameters.dbase.get<bool >("useSecondOrderArtificialDiffusion");
+          ipar[13]= parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion");
+          ipar[14]= isRectangular ? 0 : 1; // gridType;
+          ipar[15]= computeMatrix;
+          ipar[16]= computeRHS;
+          ipar[17]= computeMatrixBoundaryCondtions;
+          ipar[18]= fc;
+          ipar[19]=parameters.dbase.get<int >("orderOfExtrapolationForOutflow");
+          ipar[20]=0;   // (system) specifies which tridiagonal system to solve (index into the bc(0:1,system) array
+          ipar[21]=assignINS; // option 
+          ipar[22]=nc;
+          ipar[23]= turbulenceModel;
+          ipar[24]= twilightZoneFlow;
+          ipar[25]= parameters.dbase.get<bool >("useSelfAdjointDiffusion");
+          ipar[26]= (int)fourthOrder;
+          ipar[27]=(int)pdeModel;
+          ipar[28]=tc;
+          ipar[29]=numberOfComponents;
+          ipar[30]=-1;         // Form the tridiagonal matrix for this velocity component
+          const int nTrip=50;
+          ipar[nTrip]=ipar[nTrip+1]=ipar[nTrip+2]=-1; // turbulence trip location, i,j,k
+          if ( parameters.dbase.get<IntegerArray >("turbulenceTripPoint").getLength(0) )
+          {
+              for ( int i=0; i<mg.numberOfDimensions(); i++ )
+                  ipar[nTrip+i] = parameters.dbase.get<IntegerArray>("turbulenceTripPoint")(i+1);
+          }
+          rpar[0] = dx[0];
+          rpar[1] = dx[1];
+          rpar[2] = dx[2];
+          rpar[3] = parameters.dbase.get<real >("nu");
+     // the SA model always has AD in the equations so turn it off here by setting the coeff's to zero:
+          rpar[4] = parameters.dbase.get<bool>("useSecondOrderArtificialDiffusion") ? parameters.dbase.get<real >("ad21") : 0.;
+          rpar[5] = parameters.dbase.get<bool>("useSecondOrderArtificialDiffusion") ? parameters.dbase.get<real >("ad22") : 0.;
+          rpar[6] = parameters.dbase.get<bool>("useFourthOrderArtificialDiffusion") ? parameters.dbase.get<real >("ad41") : 0.;
+          rpar[7] = parameters.dbase.get<bool>("useFourthOrderArtificialDiffusion") ? parameters.dbase.get<real >("ad42") : 0.;
+          rpar[8] = mg.gridSpacing(0);
+          rpar[9] = mg.gridSpacing(1);
+          rpar[10]= mg.gridSpacing(2);
+          rpar[11]= parameters.dbase.get<real >("cfl");
+          rpar[12]= parameters.dbase.get<real >("ad21n");
+          rpar[13]= parameters.dbase.get<real >("ad22n");
+          rpar[14]= parameters.dbase.get<real >("ad41n");
+          rpar[15]= parameters.dbase.get<real >("ad42n");
+          rpar[16]= parameters.dbase.get<real >("kThermal");
+          ArraySimpleFixed<real,3,1,1,1> & gravity = parameters.dbase.get<ArraySimpleFixed<real,3,1,1,1> >("gravity");
+          real thermalExpansivity=1.;
+          parameters.dbase.get<ListOfShowFileParameters >("pdeParameters").getParameter("thermalExpansivity",thermalExpansivity);
+          rpar[17]=thermalExpansivity;
+          rpar[18]=gravity[0];
+          rpar[19]=gravity[1];
+          rpar[20]=gravity[2];
+     // declare and lookup visco-plastic parameters (macro)
+     // declareViscoPlasticParameters;
+     // rpar[21]=nuViscoPlastic;         
+     // rpar[22]=etaViscoPlastic;        
+     // rpar[23]=yieldStressViscoPlastic;
+     // rpar[24]=exponentViscoPlastic;   
+     // rpar[25]=epsViscoPlastic;           
+        
+
+        int ierr;
+
+        const realArray & rsxy = isRectangular ? u :  mg.inverseVertexDerivative();
+        const realSerialArray *gvp = &uLocal;   // fix this 
+
+        const real *prsxy = rsxy.getDataPointer();
+        if( !isRectangular && prsxy==NULL )
+        {
+            Overture::abort("advanceLineSOlver:ERROR: array rx is not there!");
+        }
+
+        realCompositeGridFunction *& pDistanceToBoundary =parameters.dbase.get<realCompositeGridFunction* >("pDistanceToBoundary");
+    // *wdh* 081214 const realSerialArray *dwp = pDistanceToBoundary==NULL ? &uLocal : &((*pDistanceToBoundary)[grid]).getLocalArray();
+        
+        realSerialArray *dwp = &uLocal;
+        if( pDistanceToBoundary !=NULL )
+        {
+            realSerialArray dtb; getLocalArrayWithGhostBoundaries((*pDistanceToBoundary)[grid],dtb);
+            dwp = &dtb;
+        }
+
+        if ( turbulenceModel==Parameters::BaldwinLomax )
+        {
+      // ------------------------------------------------------------------------------
+      // ------------- BaldwinLomax has a setup stage (zero-equation model) -----------
+      // ------------------------------------------------------------------------------
+
+            int option = ipar[21];
+            ipar[21] = setupSweep; // option:  set up the sweep (compute BL eddy viscosity)
+            ipar[30]=-1;        // form equations for this component (if equationsAreDifferent==true)
+
+            RealArray a,b,c,d,e;   // fix this ***************
+
+              K1=Iv[0], K2=Iv[1], K3=Iv[2]; 
+       // Do not evaluate the matrix or RHS on physical boundaries: 
+              Kv[direction]=Range(Iv[direction].getBase()+ (bc(0,0)>0 ? 1+extra4 : 0),
+                                                      Iv[direction].getBound()-(bc(1,0)>0 ? 1+extra4 : 0));
+       // Note: Fill in the interior coefficients for points (K1,K2,K3), Fill in BC coefficients on one line outside 
+            if( false ) // old way
+            {
+              insLineSetup(numberOfDimensions,
+                                        K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                         		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                         		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                        a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                         		 a.getBase(2),a.getBound(2),                  
+                         		 *maskLocal.getDataPointer(), *prsxy,   
+                                        *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                        *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                        direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                        *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                        bcData.getBase(0),bcData.getBound(0),
+                                        bcData.getBase(1),bcData.getBound(1),
+                                        bcData.getBase(2),bcData.getBound(2),
+                                        bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                        ipar[0],rpar[0], ierr );
+            }
+            else // *new* way
+            {
+              insLineSetupNew(numberOfDimensions,
+                                        K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                         		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                         		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                        a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                         		 a.getBase(2),a.getBound(2),                  
+                         		 *maskLocal.getDataPointer(), *prsxy,   
+                                        *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                        *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                        direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                        *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                        bcData.getBase(0),bcData.getBound(0),
+                                        bcData.getBase(1),bcData.getBound(1),
+                                        bcData.getBase(2),bcData.getBound(2),
+                                        bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                        ipar[0],rpar[0], ierr );
+      // *new* way  boundary conditions are done separately: 
+              insLineSolveBC(numberOfDimensions,
+                                        K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                         		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                         		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                        a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                         		 a.getBase(2),a.getBound(2),                  
+                         		 *maskLocal.getDataPointer(), *prsxy,   
+                                        *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                        *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                        direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                        *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                        bcData.getBase(0),bcData.getBound(0),
+                                        bcData.getBase(1),bcData.getBound(1),
+                                        bcData.getBase(2),bcData.getBound(2),
+                                        bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                        ipar[0],rpar[0], ierr );
+            }
+
+            ipar[21]=option;  // reset 
+        }
+
+    // ***********************************************************************************
+    //  In the normal case we are solving the systems and not just computing the residual
+    // ***********************************************************************************
+        if( !computeTheResidual )  
+        {
+      // ============ loop here to only factor and solve a sub-set of the equations at a time ======
+      // Isv, Jsv : s=subset
+            Index Isv[3], &Is1=Isv[0], &Is2=Isv[1], &Is3=Isv[2]; // for first system (tangential components for slip wall case)
+            Index Jsv[3], &Js1=Jsv[0], &Js2=Jsv[1], &Js3=Jsv[2]; // for 2nd system if needed when BC's are different
+
+            Index Ixsv[3], &Ixs1=Ixsv[0], &Ixs2=Ixsv[1], &Ixs3=Ixsv[2]; // master bounds (when solving a sub-set of equations)
+
+            bool done=false;
+
+      // Here are the max number of parallel tridiagonal lines we solve at one time, in each direction:
+            const int numberOfLinesPerSolve[3]={100,100,100}; // {10,10,10}; // {100,100,100};
+
+      // ******************************************************************************************************
+      // ************* This next loop over (ns1,ns2) is used to split up the number of line solves  ***********
+      // ************* so that we solve fewer simultaneously (this avoids using too much memory)    ***********
+      // ******************************************************************************************************
+            int nsv[2], &ns1=nsv[0], &ns2=nsv[1];
+            ns2=0;                     // second tangential direction
+            for( ns1=0; !done; ns1++ ) // first tangential direction
+            {
+            
+      	time0=getCPU();
+
+      	Ixs1=Ix1, Ixs2=Ix2, Ixs3=Ix3;  // fill in "subset" Index values 
+
+      	Is1=I1, Is2=I2, Is3=I3;  // fill in "subset" Index values 
+      	Js1=J1, Js2=J2, Js3=J3;
+            
+        // Set bounds to solve a sub-set of points at a time: 
+      	for( int dirs=0; dirs<numberOfDimensions-1; dirs++ ) // tangential directions
+      	{
+        	  const int dirp= (direction+dirs+1)%numberOfDimensions;
+
+        	  int base=Iv[dirp].getBase()+nsv[dirs]*numberOfLinesPerSolve[dirp];
+
+        	  if( base>Iv[dirp].getBound() )
+        	  {
+          	    if( dirs==numberOfDimensions-2 )
+          	    {
+            	      done=true;
+            	      break;
+          	    }
+          	    else
+          	    { // in 3D we reset ns1 to zero and keep going
+            	      ns1=0;
+            	      ns2++;
+            	      base=Iv[dirp].getBase();
+          	    }
+        	  }
+        	  int bound=min(base+(numberOfLinesPerSolve[dirp]-1),Iv[dirp].getBound());
+
+                    assert( Iv[dirp]==Jv[dirp] );  // this is assumed here, is it correct ?? *wdh* 070830
+
+        	  Ixsv[dirp]=Range(base,bound);
+
+        	  Isv[dirp]=Range(base,bound);
+        	  Jsv[dirp]=Range(base,bound);
+      	}
+
+      	
+      	if( done ) break;
+
+      	if( debug() & 2 )
+      	{
+        	  fprintf(pDebugFile,
+                                  "\n ++++++ direction=%i (ns1,ns2)=(%i,%i) : solve for points Isv=[%i,%i][%i,%i][%i,%i] "
+             		 "Jsv=[%i,%i][%i,%i][%i,%i] +++++++++++++++\n\n",
+             		 direction,ns1,ns2,
+             		 Is1.getBase(),Is1.getBound(),Is2.getBase(),Is2.getBound(),Is3.getBase(),Is3.getBound(),
+              		  Js1.getBase(),Js1.getBound(),Js2.getBase(),Js2.getBound(),Js3.getBase(),Js3.getBound());
+      	}
+      	
+
+      	if( !lineSolve.lineSolveIsInitialized(direction,grid) )
+      	{
+          // *****************************************************************************
+	  // ************* form and factor the matrix, compute the rhs *******************
+          // *****************************************************************************
+
+        	  computeMatrix= !lineSolve.lineSolveIsInitialized(direction,grid);
+        	  computeMatrixBoundaryCondtions=computeMatrix;
+        	  computeRHS=1;
+
+        	  ipar[15]= computeMatrix;
+        	  ipar[16]= computeRHS;
+        	  ipar[17]= computeMatrixBoundaryCondtions;
+
+        	  if( turbulenceModel==Parameters::SpalartAllmaras )
+        	  {
+	    // ****************************************************************************
+	    // ************** Build the SpalartAllmaras Tridiagonal System ****************
+	    // ****************************************************************************
+
+	    // *** do this first so that the RHS is filled in before the RHS-BC's are assigned
+
+	    // The SA turbulence variable should have the same BC's as the tangential component
+	    //     dirichlet at no slip walls, neumann at slip walls
+          	    RealArray a3(Is1,Is2,Is3),b3(Is1,Is2,Is3),c3(Is1,Is2,Is3),d3,e3;
+          	    if( fourthOrder )
+          	    { // penta-diagonal:
+            	      d3.redim(Is1,Is2,Is3);
+            	      e3.redim(Is1,Is2,Is3);
+          	    }
+        	  
+	    // printf(" Build the tridiagonal matrix for the SA TM, systemTM=%i\n",systemTM);
+
+          	    ipar[20]=systemTM; // system number
+          	    ipar[21]=assignSpalartAllmaras; // option 
+                        ipar[30]=nc;        // form equations for this component (if equationsAreDifferent==true)
+
+            // here we assign the SA tridiagonal system 
+                      K1=Isv[0], K2=Isv[1], K3=Isv[2]; 
+           // Do not evaluate the matrix or RHS on physical boundaries: 
+                      Kv[direction]=Range(Isv[direction].getBase()+ (bc(0,0)>0 ? 1+extra4 : 0),
+                                                              Isv[direction].getBound()-(bc(1,0)>0 ? 1+extra4 : 0));
+           // Note: Fill in the interior coefficients for points (K1,K2,K3), Fill in BC coefficients on one line outside 
+                    if( false ) // old way
+                    {
+                      insLineSetup(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                a3.getBase(0),a3.getBound(0),a3.getBase(1),a3.getBound(1), 
+                                 		 a3.getBase(2),a3.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *a3.getDataPointer(),*b3.getDataPointer(),*c3.getDataPointer(), 
+                                                *d3.getDataPointer(),*e3.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+                    }
+                    else // *new* way
+                    {
+                      insLineSetupNew(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                a3.getBase(0),a3.getBound(0),a3.getBase(1),a3.getBound(1), 
+                                 		 a3.getBase(2),a3.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *a3.getDataPointer(),*b3.getDataPointer(),*c3.getDataPointer(), 
+                                                *d3.getDataPointer(),*e3.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+          // *new* way  boundary conditions are done separately: 
+                      insLineSolveBC(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                a3.getBase(0),a3.getBound(0),a3.getBase(1),a3.getBound(1), 
+                                 		 a3.getBase(2),a3.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *a3.getDataPointer(),*b3.getDataPointer(),*c3.getDataPointer(), 
+                                                *d3.getDataPointer(),*e3.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+                    }
+
+                          if( debug() & 8 )
+                          {
+                              fprintf(pDebugFile," +++grid %i (%s) direction=%i +++\n",
+                                  	    grid,(const char*)mg.getName(),direction);
+                              displayMask(mask,"Here is the mask",pDebugFile);
+                              display(a3,"Here is the tridiagonal INS matrix (system SPAL), a3",pDebugFile,"%6.2f ");
+                              display(b3,"Here is the tridiagonal INS matrix (system SPAL), b3",pDebugFile,"%6.2f ");
+                              display(c3,"Here is the tridiagonal INS matrix (system SPAL), c3",pDebugFile,"%6.2f ");
+                              if( fourthOrder )
+                              {
+                                  display(d3,"Here is the tridiagonal INS matrix (system SPAL), d3",pDebugFile,"%6.2f ");
+                                  display(e3,"Here is the tridiagonal INS matrix (system SPAL), e3",pDebugFile,"%6.2f ");
+                              }
+                              fflush(pDebugFile);
+                          }
+
+          	    if( tridiagonalSolver(systemTM,direction,grid)==NULL )
+            	      tridiagonalSolver(systemTM,direction,grid)=new TridiagonalSolver;
+
+          	    TridiagonalSolver::SystemType type = (isPeriodic[direction] ? TridiagonalSolver::periodic :
+                                      						  (extra(0,systemTM)>0 || extra(1,systemTM)>0) ? TridiagonalSolver::extended :
+                                      						  TridiagonalSolver::normal);
+                        if( debug() & 4 )
+                              fprintf(pDebugFile," Tridiangonal SPAL system type=%i (normal=%i,extended=%i,periodic=%i)\n",
+                   		       (int)type,(int)TridiagonalSolver::normal,(int)TridiagonalSolver::extended,
+                                              (int) TridiagonalSolver::periodic);
+
+
+          	    if( !fourthOrder )
+            	      tridiagonalSolver(systemTM,direction,grid)->factor(a3,b3,c3,type,direction);
+          	    else
+            	      tridiagonalSolver(systemTM,direction,grid)->factor(a3,b3,c3,d3,e3,type,direction);
+
+        	  } // end SPAL TM
+
+
+
+          // *new* 
+          //  ------------- optionally create the tridiagonal system for the temperature here -----------------
+        	  if( computeTemperature )
+        	  {
+            // ------- NOTE: T will need it's own index arrays (instead of Isv)---------
+
+
+                        Index Ksv[3], &Ks1=Ksv[0], &Ks2=Ksv[1], &Ks3=Ksv[2]; 
+                          for( int axis=0; axis<3; axis++ )
+                          {
+                              if( axis==direction )
+                                  Ksv[direction]=Range(Ixsv[direction].getBase()-extra(0,systemTemperature)-extra4,Ixsv[direction].getBound()+extra(1,systemTemperature)+extra4);
+                              else
+                                  Ksv[axis]=Ixsv[axis];
+                          }
+	    // assert( Ksv[0]==Isv[0] && Ksv[1]==Isv[1] && Ksv[2]==Isv[2] );
+                        
+
+          	    RealArray am(Ks1,Ks2,Ks3),bm(Ks1,Ks2,Ks3),cm(Ks1,Ks2,Ks3),dm,em;
+          	    if( fourthOrder )
+          	    { // penta-diagonal:
+            	      dm.redim(Ks1,Ks2,Ks3);
+            	      em.redim(Ks1,Ks2,Ks3);
+          	    }
+        	  
+	    // printf(" Build the tridiagonal matrix for the Temperature equation, systemTemperature=%i\n",systemTemperature);
+
+          	    ipar[20]=systemTemperature;  // ****
+          	    ipar[21]=assignTemperature;  // option
+                        ipar[30]=tc;        // form equations for this component (if equationsAreDifferent==true)
+
+            // bcData.display("bcData before setup T eqn's");
+          	    
+            // here we assign the tridiagonal system for the Temperature equation
+                      K1=Ksv[0], K2=Ksv[1], K3=Ksv[2]; 
+           // Do not evaluate the matrix or RHS on physical boundaries: 
+                      Kv[direction]=Range(Ksv[direction].getBase()+ (bc(0,0)>0 ? 1+extra4 : 0),
+                                                              Ksv[direction].getBound()-(bc(1,0)>0 ? 1+extra4 : 0));
+           // Note: Fill in the interior coefficients for points (K1,K2,K3), Fill in BC coefficients on one line outside 
+                    if( false ) // old way
+                    {
+                      insLineSetup(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                am.getBase(0),am.getBound(0),am.getBase(1),am.getBound(1), 
+                                 		 am.getBase(2),am.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *am.getDataPointer(),*bm.getDataPointer(),*cm.getDataPointer(), 
+                                                *dm.getDataPointer(),*em.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+                    }
+                    else // *new* way
+                    {
+                      insLineSetupNew(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                am.getBase(0),am.getBound(0),am.getBase(1),am.getBound(1), 
+                                 		 am.getBase(2),am.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *am.getDataPointer(),*bm.getDataPointer(),*cm.getDataPointer(), 
+                                                *dm.getDataPointer(),*em.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+          // *new* way  boundary conditions are done separately: 
+                      insLineSolveBC(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                am.getBase(0),am.getBound(0),am.getBase(1),am.getBound(1), 
+                                 		 am.getBase(2),am.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *am.getDataPointer(),*bm.getDataPointer(),*cm.getDataPointer(), 
+                                                *dm.getDataPointer(),*em.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+                    }
+
+                          if( debug() & 8 )
+                          {
+                              fprintf(pDebugFile," +++grid %i (%s) direction=%i +++\n",
+                                  	    grid,(const char*)mg.getName(),direction);
+                              displayMask(mask,"Here is the mask",pDebugFile);
+                              display(am,"Here is the tridiagonal INS matrix (system T), am",pDebugFile,"%6.2f ");
+                              display(bm,"Here is the tridiagonal INS matrix (system T), bm",pDebugFile,"%6.2f ");
+                              display(cm,"Here is the tridiagonal INS matrix (system T), cm",pDebugFile,"%6.2f ");
+                              if( fourthOrder )
+                              {
+                                  display(dm,"Here is the tridiagonal INS matrix (system T), dm",pDebugFile,"%6.2f ");
+                                  display(em,"Here is the tridiagonal INS matrix (system T), em",pDebugFile,"%6.2f ");
+                              }
+                              fflush(pDebugFile);
+                          }
+
+
+          	    if( tridiagonalSolver(systemTemperature,direction,grid)==NULL )
+            	      tridiagonalSolver(systemTemperature,direction,grid)=new TridiagonalSolver;
+
+          	    TridiagonalSolver::SystemType type = (isPeriodic[direction] ? TridiagonalSolver::periodic :
+                                      						  (extra(0,systemTemperature)>0 || extra(1,systemTemperature)>0) ? TridiagonalSolver::extended :
+                                      						  TridiagonalSolver::normal);
+                        if( debug() & 4 )
+                              fprintf(pDebugFile," Tridiagonal Temperature system type=%i (normal=%i,extended=%i,periodic=%i)\n",
+                   		       (int)type,(int)TridiagonalSolver::normal,(int)TridiagonalSolver::extended,
+                                              (int) TridiagonalSolver::periodic);
+
+
+          	    if( !fourthOrder )
+            	      tridiagonalSolver(systemTemperature,direction,grid)->factor(am,bm,cm,type,direction);
+          	    else
+            	      tridiagonalSolver(systemTemperature,direction,grid)->factor(am,bm,cm,dm,em,type,direction);
+
+        	  }
+        	  
+          // What about the visco-plastic model ???
+	  //  if( parameters.dbase.get<InsParameters::PDEModel >("pdeModel")==InsParameters::viscoPlasticModel )
+
+
+          // ---------------------------------------------------------
+	  // -------------- Momentum Equations -----------------------
+          // ---------------------------------------------------------
+
+                    const int system0=0;
+        	  if( true )
+        	  {
+                        Index Ksv[3], &Ks1=Ksv[0], &Ks2=Ksv[1], &Ks3=Ksv[2]; 
+                          for( int axis=0; axis<3; axis++ )
+                          {
+                              if( axis==direction )
+                                  Ksv[direction]=Range(Ixsv[direction].getBase()-extra(0,system0)-extra4,Ixsv[direction].getBound()+extra(1,system0)+extra4);
+                              else
+                                  Ksv[axis]=Ixsv[axis];
+                          }
+          	    assert( Ksv[0]==Isv[0] && Ksv[1]==Isv[1] && Ksv[2]==Isv[2] );
+        	  }
+        	  
+
+        	  RealArray a(Is1,Is2,Is3),b(Is1,Is2,Is3),c(Is1,Is2,Is3),d,e;
+        	  RealArray a2,b2,c2,d2,e2;
+        	  if( fourthOrder )
+        	  { // penta-diagonal:
+          	    d.redim(Is1,Is2,Is3);
+          	    e.redim(Is1,Is2,Is3);
+        	  }
+
+        	  if( debug() & 8 )
+        	  {
+          	    K1=Is1, K2=Is2, K3=Is3;
+          	    Kv[direction]=Range(Isv[direction].getBase() +(bc(0,0)>0 ? 1 : 0),
+                        				Isv[direction].getBound()-(bc(1,0)>0 ? 1 : 0));
+
+          	    fprintf(pDebugFile,"*******Kv = [%i,%i][%i,%i]\n",K1.getBase(),K1.getBound(),
+                		    K2.getBase(),K2.getBound());
+          	    display(fLocal,"Here is f before insLineSetupMacro for system 0",pDebugFile,"%6.2f ");
+        	  }
+
+
+        	  ipar[20]=system0;    // system to solve is 0 (normal component)
+        	  ipar[21]=assignINS; // option: fill in the INS momentum equations
+                    ipar[30]=uc;        // form equations for this component (if equationsAreDifferent==true)
+
+          // fill in system 0 (normal-component momentum equations of the INS), and assign the rhs (for u,v,w)
+                  K1=Isv[0], K2=Isv[1], K3=Isv[2]; 
+         // Do not evaluate the matrix or RHS on physical boundaries: 
+                  Kv[direction]=Range(Isv[direction].getBase()+ (bc(0,0)>0 ? 1+extra4 : 0),
+                                                          Isv[direction].getBound()-(bc(1,0)>0 ? 1+extra4 : 0));
+         // Note: Fill in the interior coefficients for points (K1,K2,K3), Fill in BC coefficients on one line outside 
+                if( false ) // old way
+                {
+                  insLineSetup(numberOfDimensions,
+                                            K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                             		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                             		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                            a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                             		 a.getBase(2),a.getBound(2),                  
+                             		 *maskLocal.getDataPointer(), *prsxy,   
+                                            *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                            *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                            direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                            *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                            bcData.getBase(0),bcData.getBound(0),
+                                            bcData.getBase(1),bcData.getBound(1),
+                                            bcData.getBase(2),bcData.getBound(2),
+                                            bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                            ipar[0],rpar[0], ierr );
+                }
+                else // *new* way
+                {
+                  insLineSetupNew(numberOfDimensions,
+                                            K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                             		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                             		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                            a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                             		 a.getBase(2),a.getBound(2),                  
+                             		 *maskLocal.getDataPointer(), *prsxy,   
+                                            *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                            *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                            direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                            *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                            bcData.getBase(0),bcData.getBound(0),
+                                            bcData.getBase(1),bcData.getBound(1),
+                                            bcData.getBase(2),bcData.getBound(2),
+                                            bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                            ipar[0],rpar[0], ierr );
+        // *new* way  boundary conditions are done separately: 
+                  insLineSolveBC(numberOfDimensions,
+                                            K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                             		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                             		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                            a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                             		 a.getBase(2),a.getBound(2),                  
+                             		 *maskLocal.getDataPointer(), *prsxy,   
+                                            *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                            *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                            direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                            *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                            bcData.getBase(0),bcData.getBound(0),
+                                            bcData.getBase(1),bcData.getBound(1),
+                                            bcData.getBase(2),bcData.getBound(2),
+                                            bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                            ipar[0],rpar[0], ierr );
+                }
+
+                      if( debug() & 8 )
+                      {
+                          fprintf(pDebugFile," +++grid %i (%s) direction=%i +++\n",
+                              	    grid,(const char*)mg.getName(),direction);
+                          displayMask(mask,"Here is the mask",pDebugFile);
+                          display(a,"Here is the tridiagonal INS matrix (system 0), a",pDebugFile,"%6.2f ");
+                          display(b,"Here is the tridiagonal INS matrix (system 0), b",pDebugFile,"%6.2f ");
+                          display(c,"Here is the tridiagonal INS matrix (system 0), c",pDebugFile,"%6.2f ");
+                          if( fourthOrder )
+                          {
+                              display(d,"Here is the tridiagonal INS matrix (system 0), d",pDebugFile,"%6.2f ");
+                              display(e,"Here is the tridiagonal INS matrix (system 0), e",pDebugFile,"%6.2f ");
+                          }
+                          display(fLocal(Is1,Is2,Is3,Range(uc,uc+numberOfDimensions-1)),
+                                          "Here is f after insLineSetupMacro for system 0",pDebugFile,"%6.2f ");
+                          fflush(pDebugFile);
+                      }
+        
+        
+	  // *** when the boundary conditions are different we make a copy of a,b,c and
+	  //     fill in the new boundary conditions ****
+        	  if( momentumMatrixEquationsAreDifferent || boundaryConditionsAreDifferent )
+        	  {
+          	    a2.redim(Js1,Js2,Js3); b2.redim(Js1,Js2,Js3); c2.redim(Js1,Js2,Js3);
+          	    if( boundaryConditionsAreDifferent )
+          	    {
+	      // make a copy of the matrix -- it will only change on the boundary
+            	      a2=a(Js1,Js2,Js3);
+            	      b2=b(Js1,Js2,Js3);
+            	      c2=c(Js1,Js2,Js3);
+          	    }
+          	    if( fourthOrder )
+          	    {
+            	      d2.redim(Js1,Js2,Js3); e2.redim(Js1,Js2,Js3);
+            	      if( boundaryConditionsAreDifferent )
+            	      {
+            		d2=d(Js1,Js2,Js3);
+            		e2=e(Js1,Js2,Js3);
+            	      }
+          	    }
+        	  }
+
+        	  if( tridiagonalSolver(system0,direction,grid)==NULL )
+          	    tridiagonalSolver(system0,direction,grid)=new TridiagonalSolver;
+
+          // Parallel: fix (bool)mg.isPeriodic(direction) ********************************************************
+
+
+        	  TridiagonalSolver::SystemType type = (isPeriodic[direction] ? TridiagonalSolver::periodic :
+                                    						(extra(0,system0)>0 || extra(1,system0)>0) ? TridiagonalSolver::extended :
+                                    						TridiagonalSolver::normal);
+
+                        if( debug() & 4 )
+                              fprintf(pDebugFile," Tridiangonal system type=%i (normal=%i,extended=%i,periodic=%i)\n",
+                   		       (int)type,(int)TridiagonalSolver::normal,(int)TridiagonalSolver::extended,
+                                              (int) TridiagonalSolver::periodic);
+
+
+        	  if( !fourthOrder )
+          	    tridiagonalSolver(0,direction,grid)->factor(a,b,c,type,direction);
+        	  else
+          	    tridiagonalSolver(0,direction,grid)->factor(a,b,c,d,e,type,direction);
+
+                      if( debug() & 16 )
+                      {
+                          display(a,"AFTER FACTOR: Here is the tridiagonal INS matrix (system 0), a",pDebugFile,"%6.0f ");
+                          display(b,"AFTER FACTOR: Here is the tridiagonal INS matrix (system 0), b",pDebugFile,"%6.0f ");
+                          display(c,"AFTER FACTOR: Here is the tridiagonal INS matrix (system 0), c",pDebugFile,"%6.0f ");
+                          if( fourthOrder )
+                          {
+                              display(d,"AFTER FACTOR: Here is the tridiagonal INS matrix (system 0), d",pDebugFile,"%6.0f ");
+                              display(e,"AFTER FACTOR: Here is the tridiagonal INS matrix (system 0), e",pDebugFile,"%6.0f ");
+                          }
+                          fflush(pDebugFile);
+                      }
+
+
+        	  if( momentumMatrixEquationsAreDifferent || boundaryConditionsAreDifferent )
+        	  {
+            // ---------If the boundary conditions are different then we fill a   -----------
+            // -------- second tridiagonal system for the tangential-components   -----------
+
+                        const int system1=1;
+                        Index Ksv[3], &Ks1=Ksv[0], &Ks2=Ksv[1], &Ks3=Ksv[2]; 
+                          for( int axis=0; axis<3; axis++ )
+                          {
+                              if( axis==direction )
+                                  Ksv[direction]=Range(Ixsv[direction].getBase()-extra(0,system1)-extra4,Ixsv[direction].getBound()+extra(1,system1)+extra4);
+                              else
+                                  Ksv[axis]=Ixsv[axis];
+                          }
+          	    assert( Ksv[0]==Jsv[0] && Ksv[1]==Jsv[1] && Ksv[2]==Jsv[2] );
+
+
+            // -------- NOTE: we can copy system=0 and just change the BC's       ----------
+
+	    // printf(" >>>> lineSolve: boundary conditions are different. Build two systems\n");
+
+          	    computeMatrix=momentumMatrixEquationsAreDifferent;   // only need to compute the matrix sometimes
+          	    computeRHS=false;                      // no need to compute the RHS (already done above)
+          	    computeMatrixBoundaryCondtions=true;   // we DO need to fill in the BC's
+            
+	    // computeBoundaryConditions=true;
+          	    ipar[15]= computeMatrix;
+          	    ipar[16]= computeRHS;
+          	    ipar[17]= computeMatrixBoundaryCondtions;
+
+          	    ipar[20]=system1;  // system 1
+                        ipar[30]=vc;        // form equations for this component (if equationsAreDifferent==true)
+
+	    // Kv : do not include boundaries along axis=direction
+            // 	  K1=Js1, K2=Js2, K3=Js3;
+            //   Kv[direction]=Range(Jsv[direction].getBase()+1,Jsv[direction].getBound()-1); // note Jsv
+
+            // --- fill in system 1 (tangential-component momentum equations of the INS) --- 
+                      K1=Jsv[0], K2=Jsv[1], K3=Jsv[2]; 
+           // Do not evaluate the matrix or RHS on physical boundaries: 
+                      Kv[direction]=Range(Jsv[direction].getBase()+ (bc(0,0)>0 ? 1+extra4 : 0),
+                                                              Jsv[direction].getBound()-(bc(1,0)>0 ? 1+extra4 : 0));
+           // Note: Fill in the interior coefficients for points (K1,K2,K3), Fill in BC coefficients on one line outside 
+                    if( false ) // old way
+                    {
+                      insLineSetup(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                a2.getBase(0),a2.getBound(0),a2.getBase(1),a2.getBound(1), 
+                                 		 a2.getBase(2),a2.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *a2.getDataPointer(),*b2.getDataPointer(),*c2.getDataPointer(), 
+                                                *d2.getDataPointer(),*e2.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+                    }
+                    else // *new* way
+                    {
+                      insLineSetupNew(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                a2.getBase(0),a2.getBound(0),a2.getBase(1),a2.getBound(1), 
+                                 		 a2.getBase(2),a2.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *a2.getDataPointer(),*b2.getDataPointer(),*c2.getDataPointer(), 
+                                                *d2.getDataPointer(),*e2.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+          // *new* way  boundary conditions are done separately: 
+                      insLineSolveBC(numberOfDimensions,
+                                                K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                                 		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                                 		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                                a2.getBase(0),a2.getBound(0),a2.getBase(1),a2.getBound(1), 
+                                 		 a2.getBase(2),a2.getBound(2),                  
+                                 		 *maskLocal.getDataPointer(), *prsxy,   
+                                                *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                                *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                                direction, *a2.getDataPointer(),*b2.getDataPointer(),*c2.getDataPointer(), 
+                                                *d2.getDataPointer(),*e2.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                                bcData.getBase(0),bcData.getBound(0),
+                                                bcData.getBase(1),bcData.getBound(1),
+                                                bcData.getBase(2),bcData.getBound(2),
+                                                bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                                ipar[0],rpar[0], ierr );
+                    }
+
+                          if( debug() & 8 )
+                          {
+                              fprintf(pDebugFile," +++grid %i (%s) direction=%i +++\n",
+                                  	    grid,(const char*)mg.getName(),direction);
+                              displayMask(mask,"Here is the mask",pDebugFile);
+                              display(a2,"Here is the tridiagonal INS matrix (system 1), a2",pDebugFile,"%6.2f ");
+                              display(b2,"Here is the tridiagonal INS matrix (system 1), b2",pDebugFile,"%6.2f ");
+                              display(c2,"Here is the tridiagonal INS matrix (system 1), c2",pDebugFile,"%6.2f ");
+                              if( fourthOrder )
+                              {
+                                  display(d2,"Here is the tridiagonal INS matrix (system 1), d2",pDebugFile,"%6.2f ");
+                                  display(e2,"Here is the tridiagonal INS matrix (system 1), e2",pDebugFile,"%6.2f ");
+                              }
+                              fflush(pDebugFile);
+                          }
+
+          	    if( tridiagonalSolver(system1,direction,grid)==NULL )
+            	      tridiagonalSolver(system1,direction,grid)=new TridiagonalSolver;
+
+          	    TridiagonalSolver::SystemType type = (isPeriodic[direction] ? TridiagonalSolver::periodic :
+                                      						  (extra(0,system1)>0 || extra(1,system1)>0) ? TridiagonalSolver::extended :
+                                      						  TridiagonalSolver::normal);
+
+                        if( debug() & 4 )
+                              fprintf(pDebugFile," Tridiangonal system type=%i (normal=%i,extended=%i,periodic=%i)\n",
+                   		       (int)type,(int)TridiagonalSolver::normal,(int)TridiagonalSolver::extended,
+                                              (int) TridiagonalSolver::periodic);
+
+          	    if( !fourthOrder )
+            	      tridiagonalSolver(1,direction,grid)->factor(a2,b2,c2,type,direction);
+          	    else
+            	      tridiagonalSolver(1,direction,grid)->factor(a2,b2,c2,d2,e2,type,direction);
+
+
+        	  }
+        
+	  // add the size computation to LineSolve ?
+        	  if( ns1==0 && ns2==0 )
+        	  {
+	    // *** for statistics we remember how much memory we needed ***
+          	    real size=0;
+          	    for( int c=0; c<maxNumberOfSystems; c++ )
+          	    {
+            	      if( tridiagonalSolver(c,direction,grid)!=NULL )
+            		size+=tridiagonalSolver(c,direction,grid)->sizeOf();
+          	    }
+          	    lineSolve.maximumSizeAllocated=max(lineSolve.maximumSizeAllocated,size);
+        	  }
+        	  
+      	}
+      	else 
+      	{
+          // ********* lineSolve is already initialized  **********
+	  // ********* just compute the RHS              **********
+
+        	  RealArray a,b,c,d,e;   // fix this ***************
+                    ipar[30]=-1;        // form equations for this component (if equationsAreDifferent==true)
+                  K1=Isv[0], K2=Isv[1], K3=Isv[2]; 
+         // Do not evaluate the matrix or RHS on physical boundaries: 
+                  Kv[direction]=Range(Isv[direction].getBase()+ (bc(0,0)>0 ? 1+extra4 : 0),
+                                                          Isv[direction].getBound()-(bc(1,0)>0 ? 1+extra4 : 0));
+         // Note: Fill in the interior coefficients for points (K1,K2,K3), Fill in BC coefficients on one line outside 
+                if( false ) // old way
+                {
+                  insLineSetup(numberOfDimensions,
+                                            K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                             		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                             		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                            a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                             		 a.getBase(2),a.getBound(2),                  
+                             		 *maskLocal.getDataPointer(), *prsxy,   
+                                            *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                            *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                            direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                            *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                            bcData.getBase(0),bcData.getBound(0),
+                                            bcData.getBase(1),bcData.getBound(1),
+                                            bcData.getBase(2),bcData.getBound(2),
+                                            bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                            ipar[0],rpar[0], ierr );
+                }
+                else // *new* way
+                {
+                  insLineSetupNew(numberOfDimensions,
+                                            K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                             		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                             		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                            a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                             		 a.getBase(2),a.getBound(2),                  
+                             		 *maskLocal.getDataPointer(), *prsxy,   
+                                            *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                            *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                            direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                            *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                            bcData.getBase(0),bcData.getBound(0),
+                                            bcData.getBase(1),bcData.getBound(1),
+                                            bcData.getBase(2),bcData.getBound(2),
+                                            bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                            ipar[0],rpar[0], ierr );
+        // *new* way  boundary conditions are done separately: 
+                  insLineSolveBC(numberOfDimensions,
+                                            K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound(),K3.getBase(),K3.getBound(), 
+                             		 uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1), 
+                             		 uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3), 
+                                            a.getBase(0),a.getBound(0),a.getBase(1),a.getBound(1), 
+                             		 a.getBase(2),a.getBound(2),                  
+                             		 *maskLocal.getDataPointer(), *prsxy,   
+                                            *uLocal.getDataPointer(), *gvp->getDataPointer(),  
+                                            *((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),  
+                                            direction, *a.getDataPointer(),*b.getDataPointer(),*c.getDataPointer(), 
+                                            *d.getDataPointer(),*e.getDataPointer(),  bc(0,0), bcLocal(0,0), 
+                                            bcData.getBase(0),bcData.getBound(0),
+                                            bcData.getBase(1),bcData.getBound(1),
+                                            bcData.getBase(2),bcData.getBound(2),
+                                            bcData.getBase(3),bcData.getBound(3),*bcData.getDataPointer(),
+                                            ipar[0],rpar[0], ierr );
+                }
+
+      	}
+      	timing(parameters.dbase.get<int>("timeForLineImplicitFactor"))+=getCPU()-time0;
+
+      	time1=getCPU();
+
+
+      	if( boundaryConditionsAreDifferent || !isRectangular )
+      	{
+          // *** check this for momentumMatrixEquationsAreDifferent=true ********************
+
+	  // fill in normal component BC's when the BC's are different
+	  // These were over-written when the rhs was computed so we re-assign them
+
+        	  Index Jgv[3], &Jg1=Jgv[0],&Jg2=Jgv[1],&Jg3=Jgv[2];
+        	  Jg1=Js1, Jg2=Js2, Jg3=Js3;
+
+        	  for( int side=0; side<=1; side++ )
+        	  {
+          	    const int bc0=mg.boundaryCondition(side,direction);
+
+          	    Jgv[direction] = side==0 ? Jsv[direction].getBase()+extra4 : Jsv[direction].getBound()-extra4;
+
+          	    if( bc0==Parameters::slipWall )
+          	    {
+            	      int fc1= direction==0 ? uc : direction==1 ? vc : wc;  // normal component
+            	      bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Jg1,Jg2,Jg3,1);
+            	      if( ok )
+            		fLocal(Jg1,Jg2,Jg3,fc1)=uLocal(Jg1,Jg2,Jg3,fc1); // dirichlet BC is applied on the boundary
+
+          	    }
+        	  }
+      	}
+
+
+      	if( debug() & 8 )
+      	{
+        	  display(fLocal,"Here is fLocal before solve",pDebugFile,"%6.2f ");
+        	  fflush(pDebugFile);
+      	}
+      	
+
+	// **************************************************************
+	// *****************     Solve     ******************************
+	// **************************************************************
+      	for( int m=0; m<numberOfTimeDependentComponents; m++ )
+      	{
+
+        	  if( uSystem[m]==0 )
+        	  { // system=0 uses (I1,I2,I3)
+          	    K1=Is1, K2=Is2, K3=Is3;
+        	  }
+        	  else
+        	  { // system=1 uses (J1,J2,J3)
+          	    K1=Js1, K2=Js2, K3=Js3;
+        	  }
+        	  if( true )
+        	  {
+                        const int system1=1;
+                        Index Ksv[3], &Ks1=Ksv[0], &Ks2=Ksv[1], &Ks3=Ksv[2]; 
+                          int system = uSystem[m];
+                            for( int axis=0; axis<3; axis++ )
+                            {
+                                if( axis==direction )
+                                    Ksv[direction]=Range(Ixsv[direction].getBase()-extra(0,system)-extra4,Ixsv[direction].getBound()+extra(1,system)+extra4);
+                                else
+                                    Ksv[axis]=Ixsv[axis];
+                            }
+                        if( uc+m != tc )
+          	    {
+            	      assert( Ksv[0]==Kv[0] && Ksv[1]==Kv[1] && Ksv[2]==Kv[2] );
+          	    }
+          	    else
+          	    {
+                            for( int axis=0; axis<3; axis++ ) Kv[axis]=Ksv[axis];  // use Ksv bounds for T
+          	    }
+        	  }
+        	  
+	  // When the tangential boundaries are slip walls we do not solve for the component normal
+	  // to that wall since it is zero and we should not solve the equations there
+        	  int axis;
+        	  for( axis=0; axis<numberOfDimensions; axis++ )
+        	  {
+          	    for( int side=0; side<=1; side++ )
+          	    {
+            	      if( offset(side,axis,uc+m)>0 && 
+              		  ( ( side==0 && Kv[axis].getBase() ==Iv[axis].getBase() ) ||
+                		    ( side==1 && Kv[axis].getBound()==Iv[axis].getBound() ) )  
+            		)
+            	      {
+		// If we don't solve on the boundary then we fill in f=u so that the solution will be
+		// properly copied in the loops below
+            		Index Ksave=Kv[axis];
+            		Kv[axis]= side==0 ? Kv[axis].getBase() : Kv[axis].getBound();
+
+//  	        printf(" direction=%i component m=%i uSystem=%i assign normal component for K=[%i,%i][%i,%i]\n",
+//  		     direction,m,uSystem[m], K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound());
+
+            		bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,K1,K2,K3,1);
+            		if( ok )
+              		  fLocal(K1,K2,K3,uc+m)=uLocal(K1,K2,K3,uc+m); // fill in boundary values of this component
+
+            		Kv[axis]=Ksave;
+            	      }
+          	    }
+        	  }
+        	  for( int axis=0; axis<numberOfDimensions; axis++ )
+        	  {
+          	    if( Kv[axis].getBase()==Iv[axis].getBase() )
+            	      Kv[axis]=Range(Kv[axis].getBase()+offset(0,axis,uc+m),Kv[axis].getBound());
+          	    if( Kv[axis].getBound()==Iv[axis].getBound() )
+            	      Kv[axis]=Range(Kv[axis].getBase(),Kv[axis].getBound()-offset(1,axis,uc+m));
+        	  
+	    // Kv[axis]=Range(Kv[axis].getBase()+offset(0,axis,uc+m),Kv[axis].getBound()-offset(1,axis,uc+m));
+
+        	  }
+        	  if( Kv[0].getBase()>Kv[0].getBound() || Kv[1].getBase()>Kv[1].getBound() || Kv[2].getBase()>Kv[2].getBound() )
+        	  {
+          	    continue;
+        	  }
+        
+//          printf(" direction=%i component m=%i uSystem=%i solve for K=[%i,%i][%i,%i]\n",direction,m,uSystem[m],
+//               K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound());
+        
+        	  if( debug() & 8 )
+        	  {
+          	    fprintf(pDebugFile,"$$$ direction=%i component m=%i uSystem=%i solve for K=[%i,%i][%i,%i]\n",
+                		    direction,m,uSystem[m],  K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound());
+
+          	    display(fLocal(K1,K2,K3,uc+m),sPrintF("Here is the RHS BEFORE triSolver for component m=%i",m),pDebugFile,"%8.1e ");
+              	    fflush(pDebugFile);
+
+        	  }
+        	  if( debug() & 64 )
+        	  { 
+          	    Index I1,I2,I3;
+          	    getIndex(mg.gridIndexRange(),I1,I2,I3);
+          	    I1=Range(-1,1);
+          	    display(fLocal(I1,I2,I3,Range(uc,vc)),sPrintF("\n RHS before triSolver for component m=%i",m),
+                		    pDebugFile,"%7.4f ");
+        	  }
+
+          // ************************************************
+          // ************** solve the system ****************
+          // ********** (solve for u,v,w,n, or T )***********
+          // ************************************************
+
+        	  tridiagonalSolver(uSystem[m],direction,grid)->solve(fLocal(all,all,all,fc+m),K1,K2,K3);
+
+
+        	  if( debug() & 8 )
+        	  {
+          	    fprintf(pDebugFile,"$$$ direction=%i component m=%i uSystem=%i solve for K=[%i,%i][%i,%i]\n",
+                		    direction,m,uSystem[m],  K1.getBase(),K1.getBound(),K2.getBase(),K2.getBound());
+          	    display(fLocal(K1,K2,K3,uc+m),sPrintF("Here is the solution from the triSolver for component m=%i",m),pDebugFile,"%8.1e ");
+              	    fflush(pDebugFile);
+        	  }
+        	  if( debug() & 64 )
+        	  { 
+          	    Index I1,I2,I3;
+          	    getIndex(mg.gridIndexRange(),I1,I2,I3);
+          	    I1=Range(-1,1);
+          	    display(fLocal(I1,I2,I3,Range(uc,vc)),sPrintF("\n solution from triSolver for component m=%i",m),
+                		    pDebugFile,"%7.4f ");
+        	  }
+      	
+      	}  // for m (velocity component)
+            
+      	timing(parameters.dbase.get<int>("timeForLineImplicitSolve"))+=getCPU()-time1;
+      	
+            
+            } // end for( ns ) -- loop that split up the number of line-solves done at one time. 
+        
+
+            time1=getCPU();
+
+      // For now always delete tridiagonal solvers after use
+            for( int c=0; c<maxNumberOfSystems; c++ )
+            {
+      	delete tridiagonalSolver(c,direction,grid);
+      	tridiagonalSolver(c,direction,grid)=NULL;
+            }
+
+            if( debug() & 8 )
+      	display(fLocal,"AFTER ALL SOLVES Here is the solution from the tridiagonalSolver",pDebugFile,"%8.1e ");
+        
+    
+            const int * maskp = maskLocal.Array_Descriptor.Array_View_Pointer2;
+            const int maskDim0=maskLocal.getRawDataSize(0);
+            const int maskDim1=maskLocal.getRawDataSize(1);
+#undef MASK
+#define MASK(i0,i1,i2) maskp[i0+maskDim0*(i1+maskDim1*(i2))]
+            const real *fp = fLocal.Array_Descriptor.Array_View_Pointer3;
+            const int fDim0=fLocal.getRawDataSize(0);
+            const int fDim1=fLocal.getRawDataSize(1);
+            const int fDim2=fLocal.getRawDataSize(2);
+#undef F
+#define F(i0,i1,i2,i3) fp[i0+fDim0*(i1+fDim1*(i2+fDim2*(i3)))]
+            real *up = uLocal.Array_Descriptor.Array_View_Pointer3;
+            const int uDim0=uLocal.getRawDataSize(0);
+            const int uDim1=uLocal.getRawDataSize(1);
+            const int uDim2=uLocal.getRawDataSize(2);
+#undef U
+#define U(i0,i1,i2,i3) up[i0+uDim0*(i1+uDim1*(i2+uDim2*(i3)))]
+
+
+            int i1,i2,i3;
+            real omega=1.,  omegam=1.-omega;
+
+            bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,1);
+            if( ok )
+            {
+                assert( !useTurbulenceModel || !computeTemperature );  // both these cannot currently be on
+      	
+                const int cc = useTurbulenceModel ? nc : tc;  // assign nc or tc 
+      	if( numberOfDimensions==2 )
+      	{
+        	  if( !useTurbulenceModel && !computeTemperature )
+        	  {
+          	    FOR_3D(i1,i2,i3,I1,I2,I3)
+          	    {
+            	      if( MASK(i1,i2,i3)>0 )
+            	      {           
+            		U(i1,i2,i3,uc)=omegam*U(i1,i2,i3,uc)+omega*F(i1,i2,i3,fc);
+            		U(i1,i2,i3,vc)=omegam*U(i1,i2,i3,vc)+omega*F(i1,i2,i3,fc+1);
+            	      }
+          	    }
+        	  }
+        	  else
+        	  {
+          	    FOR_3D(i1,i2,i3,I1,I2,I3)
+          	    {
+            	      if( MASK(i1,i2,i3)>0 )
+            	      {           
+            		U(i1,i2,i3,uc)=omegam*U(i1,i2,i3,uc)+omega*F(i1,i2,i3,fc);
+            		U(i1,i2,i3,vc)=omegam*U(i1,i2,i3,vc)+omega*F(i1,i2,i3,fc+1);
+            		U(i1,i2,i3,cc)=omegam*U(i1,i2,i3,cc)+omega*F(i1,i2,i3,fc+2);
+            	      }
+          	    }
+        	  }
+      	}
+      	else
+      	{
+        	  FOR_3D(i1,i2,i3,I1,I2,I3)
+        	  {
+          	    if( !useTurbulenceModel )
+          	    {
+            	      if( MASK(i1,i2,i3)>0 )
+            	      {           
+            		U(i1,i2,i3,uc)=omegam*U(i1,i2,i3,uc)+omega*F(i1,i2,i3,fc);
+            		U(i1,i2,i3,vc)=omegam*U(i1,i2,i3,vc)+omega*F(i1,i2,i3,fc+1);
+            		U(i1,i2,i3,wc)=omegam*U(i1,i2,i3,wc)+omega*F(i1,i2,i3,fc+2);
+            	      }
+          	    }
+          	    else
+          	    {
+            	      if( MASK(i1,i2,i3)>0 )
+            	      {           
+            		U(i1,i2,i3,uc)=omegam*U(i1,i2,i3,uc)+omega*F(i1,i2,i3,fc);
+            		U(i1,i2,i3,vc)=omegam*U(i1,i2,i3,vc)+omega*F(i1,i2,i3,fc+1);
+            		U(i1,i2,i3,wc)=omegam*U(i1,i2,i3,wc)+omega*F(i1,i2,i3,fc+2);
+            		U(i1,i2,i3,cc)=omegam*U(i1,i2,i3,cc)+omega*F(i1,i2,i3,fc+3);
+            	      }
+          	    }
+        	  }
+      	}
+            }
+        
+      // fill in div(u) BC for a slip wall
+            for( int side=0; side<=1; side++ )
+            {
+      	const int bc0=mg.boundaryCondition(side,direction);
+
+      	if( isRectangular && bc0==Parameters::slipWall )
+      	{
+        	  const int is=1-2*side;
+        	  Index Igv[3], &Ig1=Igv[0], &Ig2=Igv[1], &Ig3=Igv[2];
+        	  Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
+        	  getGhostIndex(mg.gridIndexRange(),side,direction,Ig1,Ig2,Ig3);
+        	  getBoundaryIndex(mg.gridIndexRange(),side,direction,Ib1,Ib2,Ib3);
+
+        	  bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,1);
+        	  if( !ok ) continue;
+        	  ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,1);
+      	
+          // *wdh* 070814
+	  // in parallel -- watch out for bounds in tangential directions: we use: Ib2-1, Ib2+1 etc. 
+        	  for( int axis=1; axis<numberOfDimensions; axis++ )
+        	  {
+          	    int dir = (direction+axis) % numberOfDimensions;  // tangential direction
+          	    if( Ibv[dir].getBase()==uLocal.getBase(dir) )
+          	    {
+            	      Ibv[dir]=Range(Ibv[dir].getBase()+1,Ibv[dir].getBound());
+            	      Igv[dir]=Range(Igv[dir].getBase()+1,Igv[dir].getBound());
+          	    }
+          	    if( Ibv[dir].getBound()==uLocal.getBound(dir) )
+          	    {
+            	      Ibv[dir]=Range(Ibv[dir].getBase(),Ibv[dir].getBound()-1);
+            	      Igv[dir]=Range(Igv[dir].getBase(),Igv[dir].getBound()-1);
+          	    }
+        	  }
+        	  
+
+        	  if( numberOfDimensions==2 )
+        	  {
+	    // u.x+v.y=0
+          	    if( direction==0 )
+            	      uLocal(Ig1,Ig2,Ig3,uc)=uLocal(Ib1+is,Ib2,Ib3,uc)+(is*dx[0]/dx[1])*(uLocal(Ib1,Ib2+1,Ib3,vc)-uLocal(Ib1,Ib2-1,Ib3,vc));
+          	    else 
+            	      uLocal(Ig1,Ig2,Ig3,vc)=uLocal(Ib1,Ib2+is,Ib3,vc)+(is*dx[1]/dx[0])*(uLocal(Ib1+1,Ib2,Ib3,uc)-uLocal(Ib1-1,Ib2,Ib3,uc));
+        	  }
+        	  else
+        	  {
+	    // u.x+v.y+w.z=0
+          	    if( direction==0 )
+            	      uLocal(Ig1,Ig2,Ig3,uc)=(uLocal(Ib1+is,Ib2,Ib3,uc)+
+                              				      (is*dx[0]/dx[1])*(uLocal(Ib1,Ib2+1,Ib3,vc)-uLocal(Ib1,Ib2-1,Ib3,vc))+
+                              				      (is*dx[0]/dx[2])*(uLocal(Ib1,Ib2,Ib3+1,wc)-uLocal(Ib1,Ib2,Ib3-1,wc)));
+          	    else if( direction==1 )
+            	      uLocal(Ig1,Ig2,Ig3,vc)=(uLocal(Ib1,Ib2+is,Ib3,vc)+
+                              				      (is*dx[1]/dx[0])*(uLocal(Ib1+1,Ib2,Ib3,uc)-uLocal(Ib1-1,Ib2,Ib3,uc))+
+                              				      (is*dx[1]/dx[2])*(uLocal(Ib1,Ib2,Ib3+1,wc)-uLocal(Ib1,Ib2,Ib3-1,wc)));
+          	    else
+          	    {
+            	      uLocal(Ig1,Ig2,Ig3,wc)=(uLocal(Ib1,Ib2,Ib3+is,wc)+
+                              				      (is*dx[2]/dx[0])*(uLocal(Ib1+1,Ib2,Ib3,uc)-uLocal(Ib1-1,Ib2,Ib3,uc))+
+                              				      (is*dx[2]/dx[1])*(uLocal(Ib1,Ib2+1,Ib3,vc)-uLocal(Ib1,Ib2-1,Ib3,vc)));
+          	    }
+        	  }
+      	}
+            }// end for side
+        
+
+
+            timing(parameters.dbase.get<int>("timeForLineImplicitSolve"))+=getCPU()-time1;
+
+        } // end if( !computeTheResidual )
+    
+    
+
+        if( computeTheResidual || alwaysComputeResidual )
+        {
+      // *************************************************************
+      // ***********Compute the Residual******************************
+      // *************************************************************
+
+            time1=getCPU();
+        
+            if( twilightZoneFlow )
+            {
+	// In this case we saved the RHS foricng in the residual array
+      	fLocal(all,all,all,N)=rLocal(all,all,all,N);
+            }
+            else
+            {
+      	fLocal(all,all,all,N)=0.;
+            }
+        
+            rLocal=0.;  // **************
+    
+            getIndex(mg.indexRange(),I1,I2,I3,-1);  // interior points, ignore residuals on boundaries
+            bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3,1);
+            if( ok )
+            {
+      	computeResidualNew(numberOfDimensions,I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(), 
+                  			I3.getBase(),I3.getBound(), 
+                  			uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
+                  			uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+                  			*maskLocal.getDataPointer(), *prsxy,
+                  			*uLocal.getDataPointer(), *gvp->getDataPointer(),
+                  			*((*pdtVar)[grid].getDataPointer()), *fLocal.getDataPointer(), *dwp->getDataPointer(),
+                  			*rLocal.getDataPointer(), bc(0,0), ipar[0],rpar[0], ierr );
+            }
+        
+
+      // ** residual.getOperators()->setTwilightZoneFlow(false);
+      // ** real time=0.;
+      // ** residual.applyBoundaryCondition(N,BCTypes::dirichlet,BCTypes::allBoundaries,0.,time);
+      // ** residual.interpolate();  // interpolate the residual for plotting 
+      // ** residual.getOperators()->setTwilightZoneFlow(twilightZoneFlow);
+
+      // RealArray maxRes(numberOfTimeDependentComponents);
+            timing(parameters.dbase.get<int>("timeForLineImplicitResidual"))+=getCPU()-time1;
+        
+        }  // end if compute the residual
+    
+    }  // end if( ok ) // there are points on this processor
+    
+
+  // Update parallel ghost boundaries -- should this be done here ? -- only for direction==0 ??
+    u.updateGhostBoundaries();
+  // this may be needed if the periodic direction is split in parallel:
+    u.periodicUpdate();
+
+    if( !computeTheResidual )
+    {
+        if( debug() & 8 )
+        {
+            fflush(pDebugFile);
+      // MPI_Barrier(Overture::OV_COMM);
+
+            if( twilightZoneFlow )
+            {
+      	OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+      	Index I1,I2,I3;
+      	getIndex(mg.dimension(),I1,I2,I3);
+
+                bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
+                if( ok )
+      	{
+                    const realArray & x= mg.center();
+                    #ifdef USE_PPP
+                        realSerialArray xLocal; getLocalArrayWithGhostBoundaries(x,xLocal);
+                    #else
+                        const realSerialArray & xLocal = x;
+                    #endif
+
+                    realSerialArray ue(I1,I2,I3);
+        	  bool isRectangularForTZ=false;
+                    e.gd( ue,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,I1,I2,I3,uc,t);
+        	  display(fabs(uLocal(I1,I2,I3,uc)-ue),"ERROR in u at end",pDebugFile,"%8.2e ");
+                    e.gd( ue,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,I1,I2,I3,vc,t);
+        	  display(fabs(uLocal(I1,I2,I3,vc)-ue),"ERROR in v at end",pDebugFile,"%8.2e ");
+      	}
+      	
+
+      	fprintf(pDebugFile," lineSolve: errors after solve, direction=%i t=%e \n",direction,gf[current].t);
+      	determineErrors( gf[current] ) ;
+            }
+        }
+        
+    } // end if( !computeTheResidual )
+
+    
+    if( ( computeTheResidual || alwaysComputeResidual ) && debug() & 2 )
+    {
+        real time2=getCPU();
+        printF("lineSolve: grid=%i max residuals from computeResidual are: [",grid);
+        getIndex(mg.gridIndexRange(),I1,I2,I3);
+        bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
+        for(int n=0; n<numberOfTimeDependentComponents; n++ )
+        {
+            real resMax=0.;
+            if( ok )
+      	resMax=max(fabs(rLocal(I1,I2,I3,n+uc)));
+
+            resMax=ParallelUtility::getMaxValue(resMax);
+            printF(" %8.2e,",  resMax);
+        }
+        printF("]\n");
+        timing(parameters.dbase.get<int>("timeForLineImplicitResidual"))+=getCPU()-time2;
+    }
+
+    return 0;
+}
+
+
+int Cgins::
+lineSolverBoundaryConditions(const int grid, const int direction, 
+                       			     realMappedGridFunction & u, 
+                       			     realMappedGridFunction & f, 
+                       			     realMappedGridFunction & residual,
+                                                          Index *Iv, Index *Jv, Index *Ixv,
+                                                          const int maxNumberOfSystems, int *uSystem, 
+                                                          const int numberOfTimeDependentComponents,
+                                                          IntegerArray & bc, IntegerArray & extra, IntegerArray & offset,
+                                                          bool & boundaryConditionsAreDifferent, bool isPeriodic[3] )
+//===========================================================================================================
+// /Description:
+//    Determine the Index Iv, Jv, bounds for the tridiangonal systems. 
+//    Fill in the RHS f with the boundary conditions for the line solver.
+// 
+// /grid, direction (input) : grid and line solver direction
+// /Iv (output) : bounds on line solve for system 0.
+// /Jv (output) : bounds on the line solver for system 1.
+// /Ivx (output) : master index bounds (derive bounds for components using this and the extra array)
+// /uSystem[] (input/output) : uSystem[component] is the system number of a given component
+// 
+// /numberOfTimeDependentComponents (input) :  the number of time dependent components 
+// 
+// /bc(0:1,system) (output) : sets the BC for the line solver. 
+//                   periodic=-1, interpolate=0, dirichlet=1, neumann=2, extrapolate=3;
+// /extra(side,system) (output) : Adjust the range in the line solver direction by extra(side,system). 
+//       extra(side,system)=0 for dirichlet boundaries, otherwise 1. 
+// /offset() (output) : The offset array is used to mark tangential boundaries where we should not 
+//                solve for a particular component -- e.g. on a slip wall we do not solve for the normal component
+// 
+//===========================================================================================================
+{
+
+    real t=0.;  // ********************* what time should we use ? 
+
+    MappedGrid & mg = *u.getMappedGrid();
+
+    const int numberOfDimensions=cg.numberOfDimensions();
+    const intArray & mask = mg.mask();
+    Range all;
+    Index &I1=Iv[0], &I2=Iv[1], &I3=Iv[2]; // for first system (tangential components for slip wall case)
+    Index &J1=Jv[0], &J2=Jv[1], &J3=Jv[2]; // for 2nd system if needed when BC's are different
+
+    const bool fourthOrder = parameters.dbase.get<bool >("useFourthOrderArtificialDiffusion");
+    if( debug() & 8 && fourthOrder )
+        printF(" **** advanceLineSolve:INFO: solving penta-diagonal systems *****\n");
+    
+
+    bool isRectangular= mg.isRectangular();
+    bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+    
+    const int pc=parameters.dbase.get<int >("pc");
+    const int uc=parameters.dbase.get<int >("uc");
+    const int vc=parameters.dbase.get<int >("vc");
+    const int wc=parameters.dbase.get<int >("wc");
+    const int nc=parameters.dbase.get<int >("kc");  // for SA turbulence model.
+    const int tc=parameters.dbase.get<int >("tc");  // Temperature
+
+    const int numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+
+    const real nu = parameters.dbase.get<real >("nu");
+    FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+    FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+    RealArray & timing = parameters.dbase.get<RealArray>("timing");
+    Parameters::TurbulenceModel & turbulenceModel=parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel");
+    
+    const bool useTurbulenceModel= turbulenceModel==Parameters::SpalartAllmaras;
+    InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
+    const bool computeTemperature = pdeModel==InsParameters::BoussinesqModel ||
+                                                                    pdeModel==InsParameters::viscoPlasticModel;
+
+    bool momentumMatrixEquationsAreDifferent = pdeModel==InsParameters::viscoPlasticModel;
+
+//  const int numberOfTimeDependentComponents= ( useTurbulenceModel || computeTemperature ) ? numberOfDimensions+1 : numberOfDimensions;
+
+    Range N(uc,uc+numberOfTimeDependentComponents-1);
+    Range V(uc,uc+numberOfDimensions-1);
+
+    const int fc=uc;   // put forcing for uc here, vc at fc+1, wc at fc+2
+
+  // The bcData array is used to access the mixed-derivative BC info for T
+    const RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
+
+
+    #ifdef USE_PPP
+        intSerialArray maskLocal; getLocalArrayWithGhostBoundaries(mask,maskLocal);
+
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray fLocal; getLocalArrayWithGhostBoundaries(f,fLocal);
+        realSerialArray rLocal; getLocalArrayWithGhostBoundaries(residual,rLocal);
+    #else
+        const intSerialArray & maskLocal = mask;
+
+        realSerialArray & uLocal = u;
+        realSerialArray & fLocal = f;
+        realSerialArray & rLocal = residual;
+    #endif
+
+//    // we first compute the smoothed artificial dissipation **** could save temporarily on residual array *****
+
+//    realArray & artificialDissipation = mappedGridSolver[grid]->
+//                      workSpace.get(MappedGridSolverWorkSpace::artificialDissipation);
+//    getIndex(mg.dimension(),I1,I2,I3); 
+//    const int nad= useTurbulenceModel ? 2 : 1;
+//    mappedGridSolver[grid]->workSpace.resize(artificialDissipation,I1,I2,I3,nad);
+    
+//    computeArtficialDissipation();
+    
+
+    bool alwaysComputeResidual=debug() & 4; //  true;  // false
+
+
+    getIndex(mg.extendedIndexRange(),I1,I2,I3);  // include boundary  -- holds boundary conditions
+
+    bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);  // do NOT include parallel ghost
+
+    if( debug() & 4 ) fprintf(pDebugFile," XXXX lineSolverBC: start: I1=[%i,%i] I2=[%i,%i]\n",
+                     			   I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound());
+
+
+  // *******************************************************
+  // *** boundary conditions for the tridiagonal system ****
+  // *******************************************************
+  //    interpolate: the line solve hits an interpolation boundary where the value is assumed given
+  //
+    const int periodic=-1, interpolate=0, dirichlet=1, neumann=2, extrapolate=3;
+
+
+  // The offset array is used to mark tangential boundaries where we should not solve for a particular
+  // component -- e.g. on a slip wall we do not solve for the normal component
+    offset=0;
+    
+    bc=dirichlet;  // ** set the default boundary condition **
+
+    const int extra4 = fourthOrder && !isPeriodic[direction] ? 1 : 0;  // add one extra for fourth-order
+    extra=0;
+
+// common/src/getBounds.C --> getLocalBoundsAndBoundaryConditions
+// From mp/src/assignInterfaceBoundaryConditions.C
+
+    const IntegerArray & dim = mg.dimension();
+    IntegerArray gidLocal(2,3), dimLocal(2,3), bcLocal(2,3);
+    ParallelGridUtility::getLocalIndexBoundsAndBoundaryConditions( u,gidLocal,dimLocal,bcLocal );
+
+
+    Range S = maxNumberOfSystems;
+
+  // ********* include ghost line for neumann or mixed BC'S **************
+    for( int side=0; side<=1; side++ )
+    {
+        int bc0=mg.boundaryCondition(side,direction);
+
+        if( dimLocal(side,direction)!=dim(side,direction) ||
+                ( bc0<0 && dimLocal(1-side,direction)!=dim(1-side,direction)) )  // periodic boundary that is "split" 
+        {
+      // parallel boundaries -- for now assume values are given (i.e. lag values)
+            bc(side,S)=dirichlet;
+      // The dirichlet BC is applied at the first parallel ghost: 
+            Iv[direction]= side==0 ? Range(Iv[direction].getBase()-1,Iv[direction].getBound()  ) :
+                             	                       Range(Iv[direction].getBase()  ,Iv[direction].getBound()+1);
+
+        }
+        else 
+        {
+
+            if( bc0==0 )
+            {
+      	bc(side,S)=interpolate;
+            }
+            else if( bc0<0 )
+            {
+      	bc(side,S)=periodic;
+            }
+            else if( bc0==Parameters::noSlipWall || 
+             	       bc0==InsParameters::inflowWithVelocityGiven ||
+                              bc0==Parameters::dirichletBoundaryCondition )
+            {
+	// use default
+            }
+            else if( bc0==Parameters::slipWall || ( bc0==InsParameters::outflow && isRectangular) )
+            {
+      	boundaryConditionsAreDifferent=true;
+
+      	uSystem[0]= direction!=0 ? 0 : 1;  // tangential : normal
+      	uSystem[1]= direction!=1 ? 0 : 1;
+      	uSystem[2]= direction!=2 ? 0 : 1;
+	// uSystem[numberOfDimensions]=systemTM; // for turbulence model *wdh* this is already set to beging with
+            
+      	if( bc0==Parameters::slipWall )
+      	{
+	  // The first system should be the wider one since we want to copy the matrix for the second system
+        	  bc(side,0)=neumann;     // (t.u).n=0 : system 0 will be for the tangential components
+        	  bc(side,1)=dirichlet;   // n.u=0     : system 1 will be for the normal component
+        	  bc(side,2)=neumann;     // for turbulent eddy viscosity
+        	  bc(side,3)=neumann;    // for T -- fix this 
+       	 
+        	  extra(side,0)=1;
+        	  extra(side,1)=0;
+        	  extra(side,2)=1;       // for turbulent eddy viscosity
+        	  extra(side,3)=1;       // for T -- fix this 
+
+      	}
+      	else if( bc0==InsParameters::outflow )
+      	{
+        	  bc(side,0)=extrapolate;  // extrap(t.u)=0 : used for tangential components
+        	  bc(side,1)=neumann;      // div(u)=0      : used for normal component
+        	  bc(side,2)=extrapolate;  // for turbulent eddy viscosity
+        	  bc(side,3)=extrapolate;  // for T
+
+        	  extra(side,S)=1;
+      	}
+      	else
+      	{
+                    Overture::abort("lineSolverBoundaryConditions:ERROR");
+      	}
+
+            }
+            else if( bc0==InsParameters::outflow )
+            {
+      	assert( !isRectangular );
+            
+      	bc(side,S)=extrapolate;  // extrap all components in this case
+      	extra(side,S)=1;
+            }
+            else
+            {
+      	printF("lineSolverBoundaryConditions:ERROR: unexpected BC, bc=%i for (side,direction,grid)=(%i,%i,%i)\n",
+             	       bc0,side,direction,grid);
+                Overture::abort("lineSolverBoundaryConditions:ERROR");
+            }
+            
+            if( bc0==Parameters::noSlipWall || 
+        	  bc0==InsParameters::inflowWithVelocityGiven ||
+                    bc0==Parameters::slipWall ||
+                    bc0==InsParameters::outflow )
+            {
+	// we need to check for a mixed-BC on T 
+      	if( computeTemperature )
+      	{
+        	  int axis=direction;
+            
+        	  assert( mixedCoeff(tc,side,axis,grid)!=0. || mixedNormalCoeff(tc,side,axis,grid)!=0. );
+        	  
+        	  if( mixedNormalCoeff(tc,side,axis,grid)!=0. ) // coeff of T.n is non-zero
+        	  {
+	    // adiabaticNoSlipWall=true;
+          	    if( true || debug() & 4 )
+            	      printF("++++lineSolverBC: Mixed BC for T: (grid,side,axis)=(%i,%i,%i), %3.2f*T+%3.2f*T.n=%3.2f,  \n",
+                 		     grid,side,axis, 
+                 		     mixedCoeff(tc,side,axis,grid), mixedNormalCoeff(tc,side,axis,grid), mixedRHS(tc,side,axis,grid));
+
+          	    bc(side,3)=neumann;    // for T -- fix this  
+          	    extra(side,3)=1;       // for T -- fix this 
+
+	    // Overture::abort("ERROR: finish me!");
+        	  }
+      	}
+            }
+            
+        } // end else not parallel boundary
+        
+
+    // check tangential directions -- no need to solve on the boundary for dirichlet BC's
+        for( int dir=0; dir<numberOfDimensions-1; dir++ )
+        {
+            int axis= (direction+dir+1) % numberOfDimensions; // tangential direction
+            bc0=mg.boundaryCondition(side,axis);
+
+            if( dimLocal(side,axis)!=dim(side,axis) ) 
+      	bc0=0;   // for parallel boundaries we should solve on the last line
+
+            if( bc0==Parameters::noSlipWall || 
+                    bc0==InsParameters::inflowWithVelocityGiven ||
+                    bc0==Parameters::dirichletBoundaryCondition )
+	// bc0==Parameters::slipWall )  // *** what should be done here?
+            {
+      	if( side==0 )
+        	  Iv[axis]=Range(Iv[axis].getBase()+1,Iv[axis].getBound());
+      	else
+        	  Iv[axis]=Range(Iv[axis].getBase(),Iv[axis].getBound()-1);
+            }
+            if( bc0==Parameters::slipWall )
+            {
+        // do not solve for the component normal to this slip wall (only works for rectangular grids)
+                offset(side,axis,uc+axis)=1;
+            }
+            
+        }
+    }
+
+  // define the master bounds 
+    for( int axis=0; axis<3; axis++ )
+        Ixv[axis]=Iv[axis];
+
+  // ---- initialize the bounds for the other systems
+  // *NOTE*  Jv[axis]==Iv[axis] for axis != direction 
+  //         Jv[direction] only differs from Iv[direction] through extra(.,system)
+    J1=I1, J2=I2, J3=I3;
+
+    
+
+
+    Iv[direction]=Range(Iv[direction].getBase()-extra(0,0)-extra4,Iv[direction].getBound()+extra(1,0)+extra4);
+    Jv[direction]=Range(Jv[direction].getBase()-extra(0,1)-extra4,Jv[direction].getBound()+extra(1,1)+extra4);
+
+
+
+    if( debug() & 4 ) fprintf(pDebugFile," XXXX lineSolverBC: (2): I1=[%i,%i] I2=[%i,%i]\n",
+                     			   I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound());
+
+    
+
+
+  // *****************************************************
+  // ******** Assign f for the BC's **********************
+  // *****************************************************
+
+    Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
+
+    parameters.dbase.get<int >("orderOfExtrapolationForOutflow")=twilightZoneFlow ? 2 : 2; // 3;   // for outflow BC's
+    real dx[3]={1.,1.,1.};
+    if( isRectangular  )
+          mg.getDeltaX(dx);
+
+    if( twilightZoneFlow )
+    {
+        mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter | MappedGrid::THEvertexBoundaryNormal );
+    }
+    
+    if( true || boundaryConditionsAreDifferent || !isRectangular )
+    {
+    // fill in BC's 
+
+        Index Igv[3], &Ig1=Igv[0],&Ig2=Igv[1],&Ig3=Igv[2];
+        Ig1=I1, Ig2=I2, Ig3=I3;
+        Index Jgv[3], &Jg1=Jgv[0],&Jg2=Jgv[1],&Jg3=Jgv[2];
+        Jg1=J1, Jg2=J2, Jg3=J3;
+        Index Ipv[3], &Ip1=Ipv[0],&Ip2=Ipv[1],&Ip3=Ipv[2];
+
+        int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+        is1=is2=is3=0;
+        
+        for( int side=0; side<=1; side++ )
+        {
+            int bc0=mg.boundaryCondition(side,direction);
+
+            if( dimLocal(side,direction)!=dim(side,direction) || ( bc0<0 && dimLocal(1-side,direction)!=dim(1-side,direction) ) )
+            {
+      	bc0=Parameters::dirichletBoundaryCondition;   // treat parallel ghost boundary as a dirichlet BC
+            }
+            
+            const int is=1-2*side;
+            isv[direction]=is;
+            
+
+            if( bc0==Parameters::noSlipWall || 
+                    bc0==InsParameters::inflowWithVelocityGiven ||
+                    bc0==Parameters::dirichletBoundaryCondition )
+            {
+        // fprintf(debugFile," FILL noSlipWall: [ia,ib]=[%i,%i] [ja,jb]=[%i,%i] \n",ia,ib,ja,jb);
+      	
+                getBoundaryIndex(mg.gridIndexRange(),side,direction,Ib1,Ib2,Ib3);
+
+      	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,1);
+      	if( ok )
+      	{
+        	  
+                    fLocal(Ib1,Ib2,Ib3,V)=uLocal(Ib1,Ib2,Ib3,V); // assign velocity components
+      	
+        	  if( useTurbulenceModel )
+        	  {
+                        fLocal(Ib1,Ib2,Ib3,nc)=uLocal(Ib1,Ib2,Ib3,nc);
+        	  }
+        	  
+
+        	  if( computeTemperature )
+        	  { // Look for mixed BC for T
+          	    int axis=direction;
+            
+                        real a0=mixedCoeff(tc,side,axis,grid), a1=mixedNormalCoeff(tc,side,axis,grid), rhs=mixedRHS(tc,side,axis,grid);
+          	    
+          	    assert( a0!=0. || a1!=0. );
+        	  
+          	    if( a1==0. ) // coeff of T.n is zero -> Dirichlet BC
+          	    {
+            	      fLocal(Ib1,Ib2,Ib3,tc)=uLocal(Ib1,Ib2,Ib3,tc); 
+          	    }
+          	    else  // coeff of T.n is non-zero
+          	    {
+            	      if( true || debug() & 4 )
+            		printF("++++assign line solver mixed BC for T: (grid,side,axis)=(%i,%i,%i), %3.2f*T+%3.2f*T.n=%3.2f,  \n",
+                   		       grid,side,axis, a0, a1, rhs );
+
+
+	      // getBoundaryIndex(mg.gridIndexRange(),side,direction,Ib1,Ib2,Ib3);
+
+            	      getGhostIndex(mg.gridIndexRange(),side,direction,Ig1,Ig2,Ig3);
+            	      ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,1);
+            	      assert( ok );
+            	      
+              // The line solver matrix holds the coefficients of the mixed-BC along a line:
+	      // a0*u + a1*u.n = 
+	      // a0*u + a1*( n1*( rx*ur + sx*us ) + n2*( ry*ur + sy*us ) )
+	      //  n1 = rsxy(dir,0), n2=rsxy(dir,1)
+
+                            if( twilightZoneFlow )
+                                rhs=0.;  // turn off user defined RHS for TZ 
+
+            	      if( isRectangular )
+            	      {
+            		fLocal(Ig1,Ig2,Ig3,tc)=rhs;
+            	      }
+            	      else
+            	      {
+                // --- we should optimize this ---
+
+                                #ifdef USE_PPP
+                         	         const realSerialArray & normal  = mg.vertexBoundaryNormalArray(side,axis);
+             		 realSerialArray rsxy; getLocalArrayWithGhostBoundaries(mg.inverseVertexDerivative(),rsxy);
+                                #else
+             		 const realSerialArray & rsxy = mg.inverseVertexDerivative();
+               	         const realSerialArray & normal  = mg.vertexBoundaryNormal(side,axis);
+                                #endif
+		 // RSXY: index the rsxy array as a 5D array: 
+                                #define RSXY(I1,I2,I3,m1,m2) rsxy(I1,I2,I3,(m1)+numberOfDimensions*(m2))
+
+                                MappedGridOperators & op = *u.getOperators();
+            		
+                // a1*( an1*( rsxy(dir,0)*u_d - ux2()) + an2*( rsxy(dir,1)*u_d - uy2() ) + ...
+                                RealArray ur(Ib1,Ib2,Ib3);
+            		MappedGridOperators::derivativeTypes rDeriv = MappedGridOperators::derivativeTypes(MappedGridOperators::r1Derivative+direction); // "normal" r-derivative
+
+                                if( false )
+            		{
+                  // ** fix this ** the parameter derivatives are NOT defined!
+              		  op.derivative(rDeriv,uLocal,ur ,Ib1,Ib2,Ib3,tc); // ur <- T.r1 or T.r2 or T.r3 
+            		}
+            		else
+            		{
+              		  getGhostIndex(mg.gridIndexRange(),side,direction,Ip1,Ip2,Ip3,-1); // first line inside
+              		  ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ip1,Ip2,Ip3,1);
+              		  ur(Ib1,Ib2,Ib3)=(uLocal(Ip1,Ip2,Ip3,tc)-uLocal(Ig1,Ig2,Ig3,tc))/(is*2.*mg.gridSpacing(direction));
+            		}
+            		
+
+		// ::display(ur," mixed BC: ur");
+
+                                RealArray ux(Ib1,Ib2,Ib3),uy(Ib1,Ib2,Ib3);
+                                op.derivative(MappedGridOperators::xDerivative,uLocal,ux ,Ib1,Ib2,Ib3,tc);
+                                op.derivative(MappedGridOperators::yDerivative,uLocal,uy ,Ib1,Ib2,Ib3,tc);
+
+                // RHS = LHS*u - [ a0*u + a1*T.n ]
+                // LHS*u = a0*u + a1*( an1*( rsxy(dir,0)*ur ) + an2*( rsxy(dir,1)*ur ) ) 
+
+            		fLocal(Ig1,Ig2,Ig3,tc) = rhs + a1*( 
+                                          normal(Ib1,Ib2,Ib3,0)*( RSXY(Ib1,Ib2,Ib3,direction,0)*ur-ux ) + 
+                                          normal(Ib1,Ib2,Ib3,1)*( RSXY(Ib1,Ib2,Ib3,direction,1)*ur-uy ) );
+                                if( numberOfDimensions==3 )
+            		{
+                                    op.derivative(MappedGridOperators::zDerivative,uLocal,ux ,Ib1,Ib2,Ib3,tc); // ux <- T.z 
+              		  fLocal(Ig1,Ig2,Ig3,tc) += a1*( normal(Ib1,Ib2,Ib3,2)*( RSXY(Ib1,Ib2,Ib3,direction,2)*ur-ux ) );
+            		}
+
+		// ::display(ux," mixed BC: ux");
+		// ::display(uy," mixed BC: uy");
+		// ::display(fLocal(Ig1,Ig2,Ig3,tc)," fLocal(Ig1,Ig2,Ig3,tc)");
+            		
+
+                                #undef RSXY
+            	      }
+
+            	      if( twilightZoneFlow )
+            	      {
+                                OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+
+                                #ifdef USE_PPP
+                         	         const realSerialArray & normal  = mg.vertexBoundaryNormalArray(side,axis);
+             		 realSerialArray xLocal; getLocalArrayWithGhostBoundaries(mg.center(),xLocal);
+                                #else
+             		 const realSerialArray & xLocal = mg.center();
+               	         const realSerialArray & normal  = mg.vertexBoundaryNormal(side,axis);
+                                #endif
+                                realSerialArray ue(Ib1,Ib2,Ib3), uex(Ib1,Ib2,Ib3), uey(Ib1,Ib2,Ib3);
+                                bool isRectangularForTZ=false;
+                                e.gd( ue ,xLocal,numberOfDimensions,isRectangularForTZ,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
+                                e.gd( uex,xLocal,numberOfDimensions,isRectangularForTZ,0,1,0,0,Ib1,Ib2,Ib3,tc,t);
+                                e.gd( uey,xLocal,numberOfDimensions,isRectangularForTZ,0,0,1,0,Ib1,Ib2,Ib3,tc,t);
+
+
+            		fLocal(Ig1,Ig2,Ig3,tc) += a0*ue + normal(Ib1,Ib2,Ib3,0)*uex + normal(Ib1,Ib2,Ib3,1)*uey;
+            		if( numberOfDimensions==3 )
+            		{
+              		  e.gd( uex,xLocal,numberOfDimensions,isRectangularForTZ,0,0,0,1,Ib1,Ib2,Ib3,tc,t);  // uex = T.z
+                                    fLocal(Ig1,Ig2,Ig3,tc) +=normal(Ib1,Ib2,Ib3,2)*uex;
+            		}
+            		
+            	      }
+          	    
+
+
+          	    }
+
+        	  }
+
+      	} // end if ok 
+      	
+
+            }
+            else if( bc0==Parameters::slipWall )
+            {
+
+      	int fc1= direction==0 ? uc : direction==1 ? vc : wc;  // normal component
+      	int fc2= direction==0 ? vc : direction==1 ? uc : uc; 
+      	int fc3= direction==0 ? wc : direction==1 ? wc : vc; 
+
+      	Igv[direction] = side==0 ? Igv[direction].getBase()+extra4 : Igv[direction].getBound()-extra4;
+      	Jgv[direction] = side==0 ? Jgv[direction].getBase()+extra4 : Jgv[direction].getBound()-extra4;
+
+                bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,1);
+      	if( !ok ) continue; // no points on this processor
+      	
+                ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Jg1,Jg2,Jg3,1);
+      	assert( ok );
+      	
+      	if( twilightZoneFlow )
+      	{
+        	  Ip1=Ig1, Ip2=Ig2, Ip3=Ig3;
+        	  Ipv[direction]+=2*is;      // first line inside
+        	  OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+	  // Range V(uc,uc+numberOfDimensions-1);
+        	  assert( fc==uc );
+        	  
+                    ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ip1,Ip2,Ip3,1);
+        	  assert( ok );
+
+                    const realArray & x= mg.center();
+                    #ifdef USE_PPP
+                        realSerialArray xLocal; getLocalArrayWithGhostBoundaries(x,xLocal);
+                    #else
+                        const realSerialArray & xLocal = x;
+                    #endif
+
+//            printf("slipWall: Assign dirichlet BCs to component fc1=%i Jgv=[%i,%i][%i,%i]\n",fc1,
+//   		 Jg1.getBase(),Jg1.getBound(),Jg2.getBase(),Jg2.getBound());
+//            printf("slipWall: Assign nemann BCs to component fc2=%i Igv=[%i,%i][%i,%i]\n",fc2,
+//   		 Ig1.getBase(),Ig1.getBound(),Ig2.getBase(),Ig2.getBound());
+        	  
+	  // 030819 f(Jg1,Jg2,Jg3,fc1)=e(mg,Jg1,Jg2,Jg3,fc1);  // normal component: dirichlet BC on the boundary
+	  // 030819 f(Ig1,Ig2,Ig3,fc1)=e(mg,Ig1,Ig2,Ig3,fc1);  // give a value on the ghost line too
+
+        	  fLocal(Jg1,Jg2,Jg3,fc1)=uLocal(Jg1,Jg2,Jg3,fc1); // normal component BC: give dirichlet BC on the boundary
+        	  fLocal(Ig1,Ig2,Ig3,fc1)=uLocal(Ig1,Ig2,Ig3,fc1); // fill in ghost value solution here (assigned below)
+
+                    realSerialArray uge(Ig1,Ig2,Ig3), upe(Ip1,Ip2,Ip3);
+                    bool isRectangularForTZ=false;
+                    e.gd( uge,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ig1,Ig2,Ig3,fc2,t);
+                    e.gd( upe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ip1,Ip2,Ip3,fc2,t);
+
+          // **** check this ***
+
+	  // f(Ig1,Ig2,Ig3,fc2)=e(mg,Ig1,Ig2,Ig3,fc2)-e(mg,Ip1,Ip2,Ip3,fc2);  // tangential component, ghost value
+        	  fLocal(Ig1,Ig2,Ig3,fc2)=uge-upe;  // tangential component, ghost value
+
+        	  if( numberOfDimensions==3 )
+        	  {
+	    // f(Ig1,Ig2,Ig3,fc3)=e(mg,Ig1,Ig2,Ig3,fc3)-e(mg,Ip1,Ip2,Ip3,fc3);
+                        e.gd( uge,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ig1,Ig2,Ig3,fc3,t);
+                        e.gd( upe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ip1,Ip2,Ip3,fc3,t);
+          	    fLocal(Ig1,Ig2,Ig3,fc3)=uge-upe;
+        	  }
+        	  
+        	  if( useTurbulenceModel )
+        	  {
+	    // f(Ig1,Ig2,Ig3,nc)=e(mg,Ig1,Ig2,Ig3,nc)-e(mg,Ip1,Ip2,Ip3,nc);
+                        e.gd( uge,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ig1,Ig2,Ig3,nc,t);
+                        e.gd( upe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ip1,Ip2,Ip3,nc,t);
+          	    fLocal(Ig1,Ig2,Ig3,nc)=uge-upe;
+        	  }
+        	  if( computeTemperature )
+        	  {
+                        e.gd( uge,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ig1,Ig2,Ig3,tc,t);
+                        e.gd( upe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ip1,Ip2,Ip3,tc,t);
+          	    fLocal(Ig1,Ig2,Ig3,tc)=uge-upe;
+        	  }
+        	  
+                    if( fourthOrder )
+        	  {
+          	    Igv[direction] = side==0 ? Igv[direction].getBase()-1 : Igv[direction].getBound()+1;
+          	    Jgv[direction] = side==0 ? Jgv[direction].getBase()-1 : Jgv[direction].getBound()+1;
+          	    fLocal(Ig1,Ig2,Ig3,N)=0.;  // second ghost for tangential variables
+        	  }
+      	}
+      	else
+      	{
+
+        	  fLocal(Jg1,Jg2,Jg3,fc1)=uLocal(Jg1,Jg2,Jg3,fc1); // normal compponent BC: give dirichlet BC on the boundary
+        	  fLocal(Ig1,Ig2,Ig3,fc1)=uLocal(Ig1,Ig2,Ig3,fc1); // fill in ghost value solution here (assigned below)
+        	  fLocal(Ig1,Ig2,Ig3,fc2)=0.;                 // tangential component: neumann BC is applied on the ghost line
+        	  if( numberOfDimensions==3 )
+          	    fLocal(Ig1,Ig2,Ig3,fc3)=0.;
+
+        	  if( useTurbulenceModel )
+          	    fLocal(Ig1,Ig2,Ig3,nc)=0.;
+
+                    if( fourthOrder )
+        	  {
+          	    Igv[direction] = side==0 ? Igv[direction].getBase()-1 : Igv[direction].getBound()+1;
+          	    Jgv[direction] = side==0 ? Jgv[direction].getBase()-1 : Jgv[direction].getBound()+1;
+          	    fLocal(Ig1,Ig2,Ig3,N)=0.;
+        	  }
+      	}
+
+            }
+      // *************************************************************************************************
+            else if( bc0==InsParameters::outflow )
+            {
+	// normal component: use u.x+v.y=0
+	// **** to fix: if there is an  adjacent slipWall --> use u.xx=0 for the line on the wall since
+	//              we have already used div(u)=0 for the slipWall ghost point
+
+      	Igv[direction] = side==0 ? Igv[direction].getBase()+extra4 : Igv[direction].getBound()-extra4;
+      	Jgv[direction] = side==0 ? Jgv[direction].getBase()+extra4 : Jgv[direction].getBound()-extra4;
+
+      	Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
+      	Ib1=Ig1, Ib2=Ig2, Ib3=Ig3;  
+      	Ibv[direction]+=is;      // boundary
+      	if( twilightZoneFlow )
+      	{
+        	  Index Ipv[3], &Ip1=Ipv[0],&Ip2=Ipv[1],&Ip3=Ipv[2];
+        	  Ip1=Ig1, Ip2=Ig2, Ip3=Ig3;
+        	  Ipv[direction]+=2*is;      // first line inside
+        	  OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+        	  const real cex1= parameters.dbase.get<int >("orderOfExtrapolationForOutflow")==2 ? -2. : -3.;
+        	  const real cex2= parameters.dbase.get<int >("orderOfExtrapolationForOutflow")==2 ?  1. :  3.;
+        	  
+                    bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,1);
+          	  if( !ok ) continue; // no points on this processor
+
+                    ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ip1,Ip2,Ip3,1);
+                    assert( ok );
+
+                    const realArray & x= mg.center();
+                    #ifdef USE_PPP
+                        realSerialArray xLocal; getLocalArrayWithGhostBoundaries(x,xLocal);
+                    #else
+                        const realSerialArray & xLocal = x;
+                    #endif
+
+                    Range V(uc,uc+numberOfDimensions-1);
+                    realSerialArray uge(Ig1,Ig2,Ig3,V), upe(Ip1,Ip2,Ip3,V), ube(Ib1,Ib2,Ib3,V);
+                    bool isRectangularForTZ=false;
+                    e.gd( uge,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ig1,Ig2,Ig3,V,t);
+                    e.gd( upe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ip1,Ip2,Ip3,V,t);
+                    e.gd( ube,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ib1,Ib2,Ib3,V,t);
+
+                    bool useNew=true;
+        	  
+          // *********** fix this for 3rd-order extrapolation !!
+
+        	  if( direction==0 )
+        	  { 
+//    	    printf(" Assign outflow BCs to component uc=%i Igv=[%i,%i][%i,%i] Ipv=[%i,%i][%i,%i]\n",uc,
+//    		 Ig1.getBase(),Ig1.getBound(),Ig2.getBase(),Ig2.getBound(),
+//                   Ip1.getBase(),Ip1.getBound(),Ip2.getBase(),Ip2.getBound() );
+          	    if( !useNew )
+          	    {
+            	      if( isRectangular )
+            		f(Ig1,Ig2,Ig3,uc)=e(mg,Ig1,Ig2,Ig3,uc)-e(mg,Ip1,Ip2,Ip3,uc);  // u.x+v.y=0
+            	      else
+            		f(Ig1,Ig2,Ig3,uc)=e(mg,Ig1,Ig2,Ig3,uc)+cex1*e(mg,Ig1+is1,Ig2+is2,Ig3+is3,uc)+cex2*e(mg,Ip1,Ip2,Ip3,uc); 
+            	      
+            	      f(Ig1,Ig2,Ig3,vc)=e(mg,Ig1,Ig2,Ig3,vc)+cex1*e(mg,Ig1+is1,Ig2+is2,Ig3+is3,vc)+cex2*e(mg,Ip1,Ip2,Ip3,vc);
+            	      if( numberOfDimensions==3 )
+            		f(Ig1,Ig2,Ig3,wc)=e(mg,Ig1,Ig2,Ig3,wc)+cex1*e(mg,Ig1+is1,Ig2+is2,Ig3+is3,wc)+cex2*e(mg,Ip1,Ip2,Ip3,wc);
+          	    }
+                        else
+          	    {
+            	      if( isRectangular )
+            	      {
+              	        fLocal(Ig1,Ig2,Ig3,uc)=uge(Ig1,Ig2,Ig3,uc)-upe(Ip1,Ip2,Ip3,uc);
+            	      }
+            	      else
+            	      {
+            		fLocal(Ig1,Ig2,Ig3,uc)=uge(Ig1,Ig2,Ig3,uc)+cex1*ube(Ib1,Ib2,Ib3,uc)+cex2*upe(Ip1,Ip2,Ip3,uc); 
+            	      }
+          	    
+            	      fLocal(Ig1,Ig2,Ig3,vc)=uge(Ig1,Ig2,Ig3,vc)+cex1*ube(Ib1,Ib2,Ib3,vc)+cex2*upe(Ip1,Ip2,Ip3,vc);
+            	      if( numberOfDimensions==3 )
+            		fLocal(Ig1,Ig2,Ig3,wc)=uge(Ig1,Ig2,Ig3,wc)+cex1*ube(Ib1,Ib2,Ib3,wc)+cex2*upe(Ip1,Ip2,Ip3,wc);
+          	    }
+          	    
+        	  }
+        	  else if( direction==1 )
+        	  {
+          	    if( !useNew )
+          	    {
+            	      if( isRectangular )
+            		f(Ig1,Ig2,Ig3,vc)=e(mg,Ig1,Ig2,Ig3,vc)-e(mg,Ip1,Ip2,Ip3,vc);  // u.x+v.y=0
+            	      else
+            		f(Ig1,Ig2,Ig3,vc)=e(mg,Ig1,Ig2,Ig3,vc)+cex1*e(mg,Ig1+is1,Ig2+is2,Ig3+is3,vc)+cex2*e(mg,Ip1,Ip2,Ip3,vc);
+	      // f(Ig1,Ig2,Ig3,uc)=e(mg,Ig1,Ig2,Ig3,uc)-e(mg,Ip1,Ip2,Ip3,uc);
+	      // f(Ig1,Ig2,Ig3,uc)=0.;// this is assigned already
+            	      f(Ig1,Ig2,Ig3,uc)=e(mg,Ig1,Ig2,Ig3,uc)+cex1*e(mg,Ig1+is1,Ig2+is2,Ig3+is3,uc)+cex2*e(mg,Ip1,Ip2,Ip3,uc);
+            	      if( numberOfDimensions==3 )
+            		f(Ig1,Ig2,Ig3,wc)=e(mg,Ig1,Ig2,Ig3,wc)+cex1*e(mg,Ig1+is1,Ig2+is2,Ig3+is3,wc)+cex2*e(mg,Ip1,Ip2,Ip3,wc);
+          	    }
+          	    else
+          	    {
+            	      if( isRectangular )
+            		fLocal(Ig1,Ig2,Ig3,vc)=uge(Ig1,Ig2,Ig3,vc)-upe(Ip1,Ip2,Ip3,vc);  // u.x+v.y=0
+            	      else
+            		fLocal(Ig1,Ig2,Ig3,vc)=uge(Ig1,Ig2,Ig3,vc)+cex1*ube(Ib1,Ib2,Ib3,vc)+cex2*upe(Ip1,Ip2,Ip3,vc);
+            	      fLocal(Ig1,Ig2,Ig3,uc)=uge(Ig1,Ig2,Ig3,uc)+cex1*ube(Ib1,Ib2,Ib3,uc)+cex2*upe(Ip1,Ip2,Ip3,uc);
+            	      if( numberOfDimensions==3 )
+            		fLocal(Ig1,Ig2,Ig3,wc)=uge(Ig1,Ig2,Ig3,wc)+cex1*ube(Ib1,Ib2,Ib3,wc)+cex2*upe(Ip1,Ip2,Ip3,wc);
+          	    }
+          	    
+        	  }
+        	  else 
+        	  {
+	    // if( isRectangular )
+	    //   f(Ig1,Ig2,Ig3,wc)=e(mg,Ig1,Ig2,Ig3,wc)-e(mg,Ip1,Ip2,Ip3,wc);
+	    // else
+	    //   f(Ig1,Ig2,Ig3,wc)=e(mg,Ig1,Ig2,Ig3,wc)+cex1*e(mg,Ib1,Ib2,Ib3,wc)+cex2*e(mg,Ip1,Ip2,Ip3,wc);
+	    // f(Ig1,Ig2,Ig3,uc)=e(mg,Ig1,Ig2,Ig3,uc)+cex1*e(mg,Ib1,Ib2,Ib3,uc)+cex2*e(mg,Ip1,Ip2,Ip3,uc);
+	    // f(Ig1,Ig2,Ig3,vc)=e(mg,Ig1,Ig2,Ig3,vc)+cex1*e(mg,Ib1,Ib2,Ib3,vc)+cex2*e(mg,Ip1,Ip2,Ip3,vc);
+
+          	    if( isRectangular )
+            	      fLocal(Ig1,Ig2,Ig3,wc)=uge(Ig1,Ig2,Ig3,wc)-upe(Ip1,Ip2,Ip3,wc);
+          	    else
+            	      fLocal(Ig1,Ig2,Ig3,wc)=uge(Ig1,Ig2,Ig3,wc)+cex1*ube(Ib1,Ib2,Ib3,wc)+cex2*upe(Ip1,Ip2,Ip3,wc);
+          	    fLocal(Ig1,Ig2,Ig3,uc)=uge(Ig1,Ig2,Ig3,uc)+cex1*ube(Ib1,Ib2,Ib3,uc)+cex2*upe(Ip1,Ip2,Ip3,uc);
+          	    fLocal(Ig1,Ig2,Ig3,vc)=uge(Ig1,Ig2,Ig3,vc)+cex1*ube(Ib1,Ib2,Ib3,vc)+cex2*upe(Ip1,Ip2,Ip3,vc);
+        	  }
+
+        	  if( turbulenceModel==Parameters::SpalartAllmaras )
+        	  {
+	    // if( parameters.dbase.get<int >("orderOfExtrapolationForOutflow")==2 )
+	    //    f(Ig1,Ig2,Ig3,nc)=e(mg,Ig1,Ig2,Ig3,nc)-2.*e(mg,Ib1,Ib2,Ib3,nc)+e(mg,Ip1,Ip2,Ip3,nc);
+	    // else
+	    //    f(Ig1,Ig2,Ig3,nc)=e(mg,Ig1,Ig2,Ig3,nc)-3.*e(mg,Ib1,Ib2,Ib3,nc)+3.*e(mg,Ip1,Ip2,Ip3,nc);
+
+          	    realSerialArray nge(Ig1,Ig2,Ig3), npe(Ip1,Ip2,Ip3), nbe(Ib1,Ib2,Ib3);
+          	    bool isRectangularForTZ=false;
+          	    e.gd( nge,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ig1,Ig2,Ig3,nc,t);
+          	    e.gd( npe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ip1,Ip2,Ip3,nc,t);
+          	    e.gd( nbe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ib1,Ib2,Ib3,nc,t);
+
+          	    if( parameters.dbase.get<int >("orderOfExtrapolationForOutflow")==2 )
+            	      fLocal(Ig1,Ig2,Ig3,nc)=nge-2.*nbe+npe;
+          	    else
+            	      fLocal(Ig1,Ig2,Ig3,nc)=nge-3.*nbe+3.*npe;
+        	  }
+        	  else if( turbulenceModel!=Parameters::noTurbulenceModel )
+        	  {
+          	    Overture::abort();
+        	  }
+        	  if( computeTemperature )
+        	  {
+          	    realSerialArray nge(Ig1,Ig2,Ig3), npe(Ip1,Ip2,Ip3), nbe(Ib1,Ib2,Ib3);
+          	    bool isRectangularForTZ=false;
+          	    e.gd( nge,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ig1,Ig2,Ig3,tc,t);
+          	    e.gd( npe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ip1,Ip2,Ip3,tc,t);
+          	    e.gd( nbe,xLocal,mg.numberOfDimensions(),isRectangularForTZ,0,0,0,0,Ib1,Ib2,Ib3,tc,t);
+
+          	    if( parameters.dbase.get<int >("orderOfExtrapolationForOutflow")==2 )
+            	      fLocal(Ig1,Ig2,Ig3,tc)=nge-2.*nbe+npe;
+          	    else
+            	      fLocal(Ig1,Ig2,Ig3,tc)=nge-3.*nbe+3.*npe;
+        	  }
+                    if( fourthOrder )
+        	  {
+          	    Igv[direction] = side==0 ? Igv[direction].getBase()-1 : Igv[direction].getBound()+1;
+          	    Jgv[direction] = side==0 ? Jgv[direction].getBase()-1 : Jgv[direction].getBound()+1;
+          	    f(Ig1,Ig2,Ig3,N)=0.;
+//	    f(Jg1,Jg2,Jg3,N)=0.;
+
+//	    f(Ig1,Ig2,Ig3,uc)=e(mg,Ig1,Ig2,Ig3,uc);
+          	    
+        	  }
+        	  
+      	}
+      	else // not twilightzone
+      	{
+	  // outflow 
+
+	  // ********************************************** Just give u.xx=0 too for non-rectangular
+        	  if( isRectangular )
+        	  {
+          	    fLocal(Ig1,Ig2,Ig3,N)=0.;
+          	    
+          	    if( numberOfDimensions==2 )
+          	    {
+	      // u.x+v.y=0
+            	      if( direction==0 )
+            		fLocal(Ig1,Ig2,Ig3,uc)= (is*dx[0]/dx[1])*(uLocal(Ib1,Ib2+1,Ib3,vc)-uLocal(Ib1,Ib2-1,Ib3,vc));
+            	      else if( direction==1 )
+            		fLocal(Ig1,Ig2,Ig3,vc)= (is*dx[1]/dx[0])*(uLocal(Ib1+1,Ib2,Ib3,uc)-uLocal(Ib1-1,Ib2,Ib3,uc));
+          	    }
+          	    else
+          	    {
+	      // u.x+v.y+w.z=0
+            	      if( direction==0 )
+            		fLocal(Ig1,Ig2,Ig3,uc)=((is*dx[0]/dx[1])*(uLocal(Ib1,Ib2+1,Ib3,vc)-uLocal(Ib1,Ib2-1,Ib3,vc))+
+                                				        (is*dx[0]/dx[2])*(uLocal(Ib1,Ib2,Ib3+1,wc)-uLocal(Ib1,Ib2,Ib3-1,wc)));
+            	      else if( direction==1 )
+            		fLocal(Ig1,Ig2,Ig3,vc)=((is*dx[1]/dx[0])*(uLocal(Ib1+1,Ib2,Ib3,uc)-uLocal(Ib1-1,Ib2,Ib3,uc))+
+                                				        (is*dx[1]/dx[2])*(uLocal(Ib1,Ib2,Ib3+1,wc)-uLocal(Ib1,Ib2,Ib3-1,wc)));
+            	      else
+            	      {
+            		fLocal(Ig1,Ig2,Ig3,wc)=((is*dx[2]/dx[0])*(uLocal(Ib1+1,Ib2,Ib3,uc)-uLocal(Ib1-1,Ib2,Ib3,uc))+
+                                				        (is*dx[2]/dx[1])*(uLocal(Ib1,Ib2+1,Ib3,vc)-uLocal(Ib1,Ib2-1,Ib3,vc)));
+            	      }
+          	    
+          	    }
+        	  
+	    // **** corners ********
+          	    for( int dir=0; dir<numberOfDimensions-1; dir++ )
+            	      for( int sideAdjacent=0; sideAdjacent<=1; sideAdjacent++ )
+            	      {
+            		int axis= (direction+dir+1) % numberOfDimensions; // tangential direction
+            		int bcAdjacent = mg.boundaryCondition(sideAdjacent,axis);
+            		if( bcAdjacent==Parameters::slipWall )
+            		{
+		  // outflow is next to a slipWall -- replace div(u)=0 BC with u.x=0 (for now, uxx=0 better)...
+              		  Ip1=Ig1, Ip2=Ig2, Ip3=Ig3;
+
+              		  Ipv[direction]=side==0 ? Igv[direction].getBase() : Igv[direction].getBound();
+              		  Ipv[axis]=sideAdjacent==0 ? Igv[axis].getBase() : Igv[axis].getBound();
+
+              		  fLocal(Ip1,Ip2,Ip3,uc+direction)=0.;
+            		
+
+            		}
+            	      }
+        	  }
+        	  else // not rectangular
+        	  {
+          	    fLocal(Ig1,Ig2,Ig3,N)=0.;
+//	    fLocal(Jg1,Jg2,Jg3,N)=0.;
+          	    if( fourthOrder )
+          	    {
+            	      Igv[direction] = side==0 ? Igv[direction].getBase()-1 : Igv[direction].getBound()+1;
+            	      Jgv[direction] = side==0 ? Jgv[direction].getBase()-1 : Jgv[direction].getBound()+1;
+            	      fLocal(Ig1,Ig2,Ig3,N)=0.;
+//	      fLocal(Jg1,Jg2,Jg3,N)=0.;
+          	    }
+        	  }
+        	  
+        	  
+      	}
+            }
+            else if( bc0>0 )
+            {
+      	printf("advanceLineSolver: Unknown boundary condition: bc0=%i\n",bc0);
+      	Overture::abort();
+      	
+            }
+
+            Igv[direction] =Iv[direction];  // reset
+            Jgv[direction] =Jv[direction];  // reset
+      	
+        } // end for side
+        
+        
+    }  // end if boundaryCondition
+    
+    if( debug() & 64 )
+    { 
+        aString buff;
+        Index I1,I2,I3;
+        getIndex(mg.gridIndexRange(),I1,I2,I3);
+        I1=Range(-1,1);
+        display(f(I1,I2,I3,Range(uc,vc)),"\n RHS after fill BC's",debugFile,"%7.4f ");
+    }
+
+    if( debug() & 4 ) 
+        fprintf(pDebugFile," XXXX lineSolverBC: DONE: I1=[%i,%i] I2=[%i,%i], bc=[%i,%i][%i,%i][%i,%i]\n",
+                      			    I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),
+                                            bc(0,0),bc(1,0),bc(0,1),bc(1,1),bc(0,2),bc(1,2));
+
+    return 0;
+}

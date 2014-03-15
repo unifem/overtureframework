@@ -1,0 +1,1651 @@
+// This file automatically generated from updateRefineFillInterp.bC with bpp.
+#include "Overture.h"
+#include "Ogen.h"
+#include "display.h"
+#include "HDF_DataBase.h"
+#include "ParallelUtility.h"
+#include "UpdateRefinementData.h"
+#include "CanInterpolate.h"
+
+
+int 
+outputRefinementInfoNew( GridCollection & gc, 
+                   			 const aString & gridFileName, 
+                   			 const aString & fileName );
+
+int Ogen::
+updateRefinementFillInterpolationData(CompositeGrid & cg, UpdateRefinementData & urd)
+// =============================================================================
+// /Description:
+//   Fill in the interpolation data as part of the updateRefinement algorithm
+// 
+// ==============================================================================
+{
+  // debug=3;
+
+    real & timeForInterpData = urd.timeForInterpData;
+    real & timeForCopyInterpPoints = urd.timeForCopyInterpPoints;
+    
+    timeForInterpData=getCPU();
+    timeForCopyInterpPoints=0.;
+
+    const int np=max(1,Communication_Manager::Number_Of_Processors);
+
+    Overture::checkMemoryUsage("Ogen::updateRefineFillInterp (start)");
+
+    using namespace CanInterpolate;
+
+    Range Rx(0,cg.numberOfDimensions()-1),all;
+    const int & numberOfDimensions = cg.numberOfDimensions();
+    Index Iv[4], &I1 = Iv[0], &I2=Iv[1], &I3=Iv[2];
+      Index Jv[3], &J1 = Jv[0], &J2=Jv[1], &J3=Jv[2];
+    Index Kv[3], &K1 = Kv[0], &K2=Kv[1], &K3=Kv[2];
+
+    int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+    int jv[3], &j1=jv[0], &j2=jv[1], &j3=jv[2];
+    int kv[3], &k3=kv[2];
+    int lv[3], &l3=lv[2];
+    int ie[3], &ie1=ie[0], &ie2=ie[1], &ie3=ie[2];
+
+    
+    IntegerArray & numberOfInterpolationPointsLocal = cg->numberOfInterpolationPointsLocal;
+    int grid,axis,side,dir,l;
+
+    int pShift[3]={0,0,0};
+    RealArray rrs(1,3), xxs(1,3),rbs(1,3); rrs=-1.; rbs=-1.;
+
+    intSerialArray interpolates(1), useBackupRules(1);
+    useBackupRules=FALSE;
+  // 
+  // If checkForOneSided=TRUE then canInterpolate will not allow a one-sided interpolation
+  // stencil to use ANY interiorBoundaryPoint's -- this is actually too strict. We really
+  // only want to disallow interpolation that has less than the minimum overlap distance
+  //
+    checkForOneSided=false;  
+
+    const int notAssigned = INT_MIN;
+    const int mgLevel=0;  // *** multigrid level
+
+
+  // isDonorGrid[grid] : true if this grid is a donor grid for interpolation need for this processor,
+  //                     (used to decide which mask pts we need)
+  // donorBox[grid] : box holding all the donor stencils needed by this processor
+    int *isDonorGrid = new int [cg.numberOfComponentGrids()];
+    IndexBox *donorBox = new IndexBox [cg.numberOfComponentGrids()];  // empty by default
+    for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        isDonorGrid[grid]=0;
+    }
+    
+
+
+  // Dimension the interpolationStartEndIndex array and copy values from base grids (which do not change)
+    IntegerArray ise; ise=cg.interpolationStartEndIndex;
+  // This next is wrong -- will break a reference with the rcData in the GC
+  //  cg.interpolationStartEndIndex.redim(4,cg.numberOfComponentGrids(),cg.numberOfComponentGrids()); // is this needed?
+    cg.interpolationStartEndIndex=-1;
+    Range B = cg.numberOfBaseGrids();
+    cg.interpolationStartEndIndex(all,B,B)=ise(all,B,B);
+
+  // localMaskCopy[g] : build a copy of the mask array on grid g for use with canInterpolate.
+  //                    This should be fixed so that we don't need to make this copy. 
+    intSerialArray *localMaskCopy = new intSerialArray [cg.numberOfComponentGrids()];
+    for( grid=0; grid<cg.numberOfBaseGrids(); grid++ )
+    {
+    // localMaskCopy[grid] will be a copy on this processor of the entire mask
+        ParallelUtility::redistribute(cg[grid].mask(),localMaskCopy[grid]);
+    }
+
+  // arrays to hold copys of the interpolation data
+    intSerialArray *ipLocal = new intSerialArray [cg.numberOfBaseGrids()]; 
+    intSerialArray *ilLocal = new intSerialArray [cg.numberOfBaseGrids()]; 
+    realSerialArray *ciLocal = new realSerialArray [cg.numberOfBaseGrids()];
+  // for now we copy all points from all processors                         *** fix this ***
+    for( grid=0; grid<cg.numberOfBaseGrids(); grid++ )
+    {
+    // ipLocal[grid] will be a local copy of all the interpolation points
+        ParallelUtility::redistribute(cg.interpolationPoint[grid],ipLocal[grid]);
+        ParallelUtility::redistribute(cg.interpoleeGrid[grid],ilLocal[grid]);
+        ParallelUtility::redistribute(cg.interpolationCoordinates[grid],ciLocal[grid]);
+    }
+
+        
+
+    int iv0[3]={0,0,0};
+    real dx[3]={0.,0.,0.},xab[2][3]={0.,0.,0.,0.,0.,0.};
+#define VERTEX0(i0,i1,i2) xab[0][0]+dx[0]*(i0-iv0[0])
+#define VERTEX1(i0,i1,i2) xab[0][1]+dx[1]*(i1-iv0[1])
+#define VERTEX2(i0,i1,i2) xab[0][2]+dx[2]*(i2-iv0[2])
+
+
+    for( l=1; l<cg.numberOfRefinementLevels(); l++ )
+    { // Begin levels =1,...
+
+        GridCollection & rl = cg.refinementLevel[l];
+
+
+    // *** Stage I 
+    //       o make a local copy of the interpolation data for this base grid
+    //       o fill in local base grid mask with interpolation point numbers
+
+        if( debug & 4 )
+        {
+            fPrintF(logFile,"\n **** Level l=%i : STAGE I ****\n",l);
+            fprintf(plogFile,"\n **** Level l=%i : STAGE I ****\n",l);
+        }
+
+    // Allocate mask arrays for the portions of the base grid that lie 
+    // underneath the refinement grid (local portion there-of)
+        intSerialArray *maskBaseGrid = new intSerialArray [rl.numberOfComponentGrids()];  // delete these when done
+
+    // Arrays to hold a local copy of the interpolation data for this base grid
+        intSerialArray *ipBaseGridA = new intSerialArray [rl.numberOfComponentGrids()]; // delete these 
+        intSerialArray *interpoleeGridBaseGridA= new intSerialArray [rl.numberOfComponentGrids()];
+        realSerialArray *interpolationCoordinatesBaseGridA= new realSerialArray [rl.numberOfComponentGrids()];
+
+    // number of local base grid interpolation points for each refinement grid:
+        int *niBaseGrid = new int [rl.numberOfComponentGrids()]; // delete this
+        int g;
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {
+            niBaseGrid[g]=0;
+        }
+        
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {  // Begin grids on this level g=0,...
+
+
+            int grid =rl.gridNumber(g);           // index into cg
+            int bg = cg.baseGridNumber(grid);     // base grid for this refinement
+            MappedGrid & cr = rl[g];              // refined grid
+            MappedGrid & cb = cg[bg];             // base grid
+            const intArray & maskb = cb.mask();
+            intArray & maskr = cr.mask();
+            
+            #ifdef USE_PPP
+              intSerialArray maskrLocal; getLocalArrayWithGhostBoundaries(maskr,maskrLocal);
+            #else
+              intSerialArray & maskrLocal=maskr; 
+            #endif
+            
+
+      // Make a local copy of the interpolation data for this base grid
+//       intArray & ipBG = cg.interpolationPoint[bg];
+//       intArray & interpoleeGridBG = cg.interpoleeGrid[bg];
+//       realArray & interpolationCoordinatesBG = cg.interpolationCoordinates[bg];
+
+            intSerialArray & ipBG = ipLocal[bg];
+            intSerialArray & interpoleeGridBG = ilLocal[bg];
+            realSerialArray & interpolationCoordinatesBG = ciLocal[bg];
+
+            const int niBG=cg.numberOfInterpolationPoints(bg);
+
+            if( niBG==0 ) continue;
+            
+            intSerialArray & ipBaseGrid = ipBaseGridA[g];
+            intSerialArray & interpoleeGridBaseGrid = interpoleeGridBaseGridA[g];
+            realSerialArray & interpolationCoordinatesBaseGrid = interpolationCoordinatesBaseGridA[g];
+
+            ipBaseGrid.redim(niBG,numberOfDimensions);
+            interpoleeGridBaseGrid.redim(niBG);
+            interpolationCoordinatesBaseGrid.redim(niBG,numberOfDimensions);
+
+            int rf[3];  // refinement factors (to the BASE GRID!)
+            rf[0]=rl.refinementFactor(0,g);
+            rf[1]=rl.refinementFactor(1,g);
+            rf[2]=rl.refinementFactor(2,g);
+
+            intSerialArray & maskbLocal = maskBaseGrid[g];
+
+      // We need a copy of the base grid mask points that lie underneath this refinement grid
+      //    maskbLocal : the portion of maskb that unlies maskrLocal (i.e. using the partition of maskr)
+            int ghost[4]={0,0,0,0}; //
+            for( axis=0; axis<numberOfDimensions; axis++ )
+      	ghost[axis]=1;  // one ghost pt on the coarse grid will correspond to rrf points on the refinement grid
+      	
+            getIndex(cr.extendedIndexRange(),I1,I2,I3);
+            Iv[3]=0;
+            CopyArray::copyCoarseToFine( maskb, maskr, Iv, maskbLocal, rf, ghost);
+
+            bool isPeriodic[3]={false,false,false}; //
+            int ndr[3]={0,0,0};  // period in index space
+            for( dir=0; dir<numberOfDimensions; dir++ )
+            {
+      	isPeriodic[dir]=  cb.isPeriodic(dir)==Mapping::functionPeriodic;
+      	ndr[dir]=cb.gridIndexRange(1,dir)-cb.gridIndexRange(0,dir);
+            }
+            
+      // this next loop uses scalar indexing communication  -- this can be improved ---
+            real timeCopyIp=getCPU();
+            iv[2]=cb.indexRange(Start,axis3);
+            int ii=0;
+            for( int i=0; i<niBG; i++ )
+            {
+        // make a copy of the base grid interpolation data that sits under this refinement grid:
+                bool ok=true;
+      	for( int dir=0; dir<numberOfDimensions; dir++ )
+      	{
+        	  iv[dir]=ipBG(i,dir);  // communication here -- 
+
+          // int ivr = iv[dir]*rf[dir]; // index in refinement index space
+	  // if( ivr<maskrLocal.getBase(dir) || ivr>maskrLocal.getBound(dir) ) // *** use local maskb bounds ***
+                    if( iv[dir]<maskbLocal.getBase(dir) || iv[dir]>maskbLocal.getBound(dir) )
+        	  { 
+            // base grid interpolation pt is outside this refinement -- ignore it if the periodic image is also outside
+                        if( isPeriodic[dir] )
+          	    {
+              // is the periodic image of an interp in this local array?
+                            if( iv[dir]<maskbLocal.getBase(dir) &&
+                                    iv[dir]+ndr[dir] <= maskbLocal.getBound(dir)  )
+            	      { // periodic image is inside
+                                iv[dir]+=ndr[dir];
+                                assert( iv[dir] >= maskbLocal.getBase(dir) );
+            	      }
+            	      else if( iv[dir]>maskbLocal.getBound(dir) &&
+                                              iv[dir]-ndr[dir]>=maskbLocal.getBase(dir) )
+            	      {// periodic image is inside
+                                iv[dir]-=ndr[dir];
+                                assert( iv[dir] <= maskbLocal.getBound(dir) );
+            	      }
+            	      else
+            	      {
+                                ok=false;
+            	      }
+          	    }
+          	    else
+          	    {
+            	      ok=false;
+          	    }
+          	    
+	    // ** break;
+        	  }
+      	}
+	// ** if( ok )
+      	{
+          // all processors must do the same P++ array op's
+        	  assert( ii<=interpoleeGridBaseGrid.getBound(0) );
+        	  
+                    interpoleeGridBaseGrid(ii)=interpoleeGridBG(i);      
+                    assert( interpoleeGridBaseGrid(ii)>=0 && interpoleeGridBaseGrid(ii)<cg.numberOfBaseGrids() );
+        	  
+        	  for( int dir=0; dir<numberOfDimensions; dir++ )
+        	  {
+          	    ipBaseGrid(ii,dir)=iv[dir];
+                        interpolationCoordinatesBaseGrid(ii,dir)=interpolationCoordinatesBG(i,dir); 
+        	  }
+                    if( ok ){ ii++; }
+        	  
+      	}
+            }
+            timeForCopyInterpPoints+=getCPU()-timeCopyIp;
+            
+            niBaseGrid[g]=ii;  // number of base grid interpolation points under this local refinement grid
+            
+
+            if( debug & 4 )
+            {
+                fprintf(plogFile,"myid=%i, l=%i g=%i grid=%i bg=%i: ni=%i niBaseGrid[g=%i]=%i (local base grid interp pts)\n",
+                                myid,l,g,grid,bg,cg.numberOfInterpolationPoints(bg),bg,niBaseGrid[g]);
+      	fprintf(plogFile,"Here is the base grid interpolation data that lies in the local refinement grid\n");
+      	for( int i=0; i<niBaseGrid[g]; i++ )
+      	{
+        	  fprintf(plogFile," i=%i, ip=(%i,%i) donor=(%i) ci=(%8.2e,%8.2e)\n",i,
+                                            ipBaseGrid(i,0),ipBaseGrid(i,1),
+              		  interpoleeGridBaseGrid(i),
+                                    interpolationCoordinatesBaseGrid(i,0),interpolationCoordinatesBaseGrid(i,1));
+      	}
+                fflush(plogFile);
+            }
+            
+
+            if( debug & 4 )
+            {
+                fprintf(plogFile,"\n ==== Assign base grid mask with interp pts grid=%i (g=%i,bg=%i) at level=%i ====\n",
+            		grid,g,bg,l);
+            }
+            
+      // printf(" interpoleeGridBG: bg=%i, min=%i, max=%i (before update)\n",bg,min(interpoleeGridBG),max(interpoleeGridBG));
+
+
+            int * maskbp = maskbLocal.Array_Descriptor.Array_View_Pointer2;
+            const int maskbDim0=maskbLocal.getRawDataSize(0);
+            const int maskbDim1=maskbLocal.getRawDataSize(1);
+#undef MASKB
+#define MASKB(i0,i1,i2) maskbp[i0+maskbDim0*(i1+maskbDim1*(i2))]
+
+            int * ipbgp = ipBaseGrid.Array_Descriptor.Array_View_Pointer1;
+            int ipbgDim0=ipBaseGrid.getRawDataSize(0);
+#undef IPBG
+#define IPBG(i0,i1) ipbgp[i0+ipbgDim0*(i1)]
+
+            const int isRectangular = cr.isRectangular();
+
+      // mark base grid interpolation points with an index into its interpolation arrays
+      // this let's us go from a mask<0 point to the index in the interpolationPoint array.
+            i3=cb.indexRange(Start,axis3);
+            const int ni=niBaseGrid[g]; // interp points on the local base grid
+            if( numberOfDimensions==2 )
+            {
+      	for( int i=0; i<ni; i++ )
+      	{
+        	  MASKB(IPBG(i,0),IPBG(i,1),i3)=-(i+1);
+      	}
+            }
+            else
+            {
+      	for( int i=0; i<ni; i++ )
+      	{
+        	  MASKB(IPBG(i,0),IPBG(i,1),IPBG(i,2))=-(i+1);
+      	}
+            }
+      	
+      // **** perform a periodic update on maskbLocal if it spans a periodic direction *****
+
+      // cb.mask().periodicUpdate();
+      	
+            for( dir=0; dir<numberOfDimensions; dir++ )
+            {
+      	if( isPeriodic[dir] )
+      	{ // does the local array span the periodic direction:
+        	  if( maskbLocal.getBase(dir) <cb.indexRange(0,dir) && 
+            	      maskbLocal.getBound(dir)>cb.indexRange(1,dir) )
+        	  {
+                        for( int d=0; d<3; d++ )
+          	    {
+            	      Jv[d]=maskbLocal.dimension(d); Kv[d]=Jv[d];
+          	    }
+            // assign left ghost points from right interior values
+          	    Jv[dir]=Range(maskbLocal.getBase(dir),cb.indexRange(0,dir)-1);
+          	    Kv[dir]=Jv[dir]+ndr[dir];
+          	    maskbLocal(J1,J2,J3)=maskbLocal(K1,K2,K3);
+
+	    // assign right ghost points from left interior values
+          	    Jv[dir]=Range(cb.indexRange(1,dir)+1,maskbLocal.getBound(dir));
+          	    Kv[dir]=Jv[dir]-ndr[dir];
+          	    maskbLocal(J1,J2,J3)=maskbLocal(K1,K2,K3);
+        	  }
+      	}
+      	
+            }
+            
+            if( debug & 4 )
+            {
+	// fprintf(logFile,"*** cg.numberOfInterpolationPoints(bg)=%i\n",cg.numberOfInterpolationPoints(bg));
+	// display(ipBG,"ipBG",logFile);
+      	displayMask(maskbLocal,sPrintF(buff,"Here is maskbLocal with interp pts marked, bg=%i (g=%i grid=%i)",bg,g,grid),plogFile);
+      	display(maskbLocal,sPrintF(buff,"Here is maskbLocal with interp pts marked, bg=%i (g=%i grid=%i)",bg,g,grid),plogFile,"%4i ");
+            }
+            
+            
+        }  // end for grid g=0,...
+
+
+
+    // Stage II: 
+    //    o make a list of potential donor points 
+
+
+    // For each refinement grid interpolation point save a list of potential base grid interpolation points
+
+    // interpolationPointBaseGridA[g][i][bg] = interp. point index on base grid
+    // interpoleeBaseGridA[g][i][bg] = donor base grid
+    // numberOfPossibleInterpoleeBaseGridsA[g][i] = number of potential donor base grids
+    // interpCoordsA[g][bg][3*i]  : interp coordinates of the point on a given base grid
+
+        int **interpolationPointBaseGridA = new int* [rl.numberOfComponentGrids()];
+        int **interpoleeBaseGridA = new int* [rl.numberOfComponentGrids()];
+        int ** numberOfPossibleInterpoleeBaseGridsA = new int* [rl.numberOfComponentGrids()];
+        real **interpCoordsA = new real* [rl.numberOfComponentGrids()];
+
+        const int maximumNumberOfPossibleBaseGrids=10;
+
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {  // Begin grids on this level g=0,...
+
+
+            int grid =rl.gridNumber(g);           // index into cg
+            int bg = cg.baseGridNumber(grid);     // base grid for this refinement
+            MappedGrid & cr = rl[g];              // refined grid
+            MappedGrid & cb = cg[bg];             // base grid
+//       const intArray & maskb = cb.mask();
+//       intArray & maskr = cr.mask();
+
+            const int ni = numberOfInterpolationPointsLocal(grid);  // number of new interp points
+      // const intSerialArray & ip = interpolationPoints[l][g];      // new interp points 
+            const intSerialArray & ip = cg->interpolationPointLocal[grid];  // use the local array
+
+            interpolationPointBaseGridA[g] = new int [ni*maximumNumberOfPossibleBaseGrids];
+            interpoleeBaseGridA[g] = new int [ni*maximumNumberOfPossibleBaseGrids];
+            numberOfPossibleInterpoleeBaseGridsA[g] = new int [ni];
+            interpCoordsA[g] = new real [3*ni*maximumNumberOfPossibleBaseGrids]; // these are not assigned until later
+            
+            #define interpolationPointBaseGrid(i,bg) interpolationPointBaseGridA[g][(bg)+maximumNumberOfPossibleBaseGrids*(i)]    
+            #define interpoleeBaseGrid(i,bg) interpoleeBaseGridA[g][(bg)+maximumNumberOfPossibleBaseGrids*(i)]
+            #define numberOfPossibleInterpoleeBaseGrids(i) numberOfPossibleInterpoleeBaseGridsA[g][i]
+            #define interpCoords(i,bg,dir) interpCoordsA[g][(bg)+maximumNumberOfPossibleBaseGrids*((i)+ni*(dir))]
+            
+      // these names are too close to the above
+            intSerialArray & ipBaseGrid = ipBaseGridA[g];
+            intSerialArray & interpoleeGridBaseGrid = interpoleeGridBaseGridA[g];
+            realSerialArray & interpolationCoordinatesBaseGrid = interpolationCoordinatesBaseGridA[g];
+
+
+//       intArray & ipBG = cg.interpolationPoint[bg];
+//       intArray & interpoleeGridBG = cg.interpoleeGrid[bg];
+//       realArray & interpolationCoordinatesBG = cg.interpolationCoordinates[bg];
+
+            if( debug & 4 )
+                fprintf(plogFile,"\n ========= Find donor pts for grid=%i (g=%i) bg=%i at refinement level=%i =========\n",
+            		grid,g,bg,l);
+
+            int rf[3];  // refinement factors (to the BASE GRID!)
+            rf[0]=rl.refinementFactor(0,g);
+            rf[1]=rl.refinementFactor(1,g);
+            rf[2]=rl.refinementFactor(2,g);
+
+            bool isPeriodic[3]={false,false,false}; //
+            for( dir=0; dir<numberOfDimensions; dir++ )
+            {
+      	isPeriodic[dir]=  cb.isPeriodic(dir)==Mapping::functionPeriodic;
+            }
+
+            intSerialArray & maskbLocal = maskBaseGrid[g];
+
+            int * maskbp = maskbLocal.Array_Descriptor.Array_View_Pointer2;
+            const int maskbDim0=maskbLocal.getRawDataSize(0);
+            const int maskbDim1=maskbLocal.getRawDataSize(1);
+            #undef MASKB
+            #define MASKB(i0,i1,i2) maskbp[i0+maskbDim0*(i1+maskbDim1*(i2))]
+
+            int * ipp = ip.Array_Descriptor.Array_View_Pointer1;
+            int ipDim0=ip.getRawDataSize(0);
+            #undef IP
+            #define IP(i0,i1) ipp[i0+ipDim0*(i1)]
+
+            int * ipbgp = ipBaseGrid.Array_Descriptor.Array_View_Pointer1;
+            int ipbgDim0=ipBaseGrid.getRawDataSize(0);
+            #undef IPBG
+            #define IPBG(i0,i1) ipbgp[i0+ipbgDim0*(i1)]
+
+
+            i3=j3=k3=l3=cr.indexRange(Start,axis3);
+            const int *girp = cb.gridIndexRange().getDataPointer();
+            #define GIR(side,axis) girp[side+2*(axis)]
+
+            bool retry=true;  // in parallel we initially turn on the retry option to we don't have to repeat a point
+            for( int i=0; i<ni; i++ ) // refinement interpolation points
+            {
+//         // int interpoleeFound=0; // 0=not found, 1=found but from a base grid, 2=found from a refinement (done)
+// 	int interpolee=-1;     // best guess so far for an interpolee grid 
+            
+                bool coincident=true;
+                for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+                    iv[axis]=IP(i,axis);      // check this interp point
+
+                    if( iv[axis] % rf[axis] != 0 )
+          	    coincident=false;     // this pt does not lie on a base grid pt
+                    
+          // [ kv[dir] : lv[dir] ] -- look in this box of points on the base grid mask
+
+        	  kv[axis]=floorDiv(iv[axis],rf[axis]);              // base grid pt <= iv
+                    if( isPeriodic[axis] )
+        	  { // adjust for periodicity .. but only if we are outside the local base grid mask
+                        if( kv[axis]<maskbLocal.getBase(axis) || kv[axis]>=maskbLocal.getBound(axis) ) // *wdh* 060312
+          	    {
+            	      int period=GIR(End,axis)-GIR(Start,axis);
+            	      kv[axis] =((kv[axis]+period-GIR(Start,axis)) % period)+GIR(Start,axis);
+          	    }
+          	    
+        	  }
+          // lv[axis]=(iv[axis]+rf[axis]-1)/rf[axis];  // base grid pt >= iv
+                    lv[axis]=kv[axis] + ((iv[axis]%rf[axis]) !=0); // add 1 if iv is not coincident
+                    if( retry )
+        	  { // If we are re-doing this point, increase the size of the base grid region that we search.
+          	    if( kv[axis]==lv[axis] )
+            	      lv[axis]+=1;
+            // coincident=false; // assume this
+        	  }
+        	  
+      	}
+      	if( debug & 4)
+        	  fprintf(plogFile,"\n>>  Interp. pt %i=(%i,%i,%i) (grid %i, base=%i) base coords=kv=(%i,%i):lv=(%i,%i)"
+                                          "...\n",i,i1,i2,i3,grid,bg,kv[0],kv[1],lv[0],lv[1]);
+
+	// **** For this interp pt., make a list of possible donor base grids (usually only one) *** 
+      	numberOfPossibleInterpoleeBaseGrids(i)=0;
+      	for( j3=kv[2]; j3<=lv[2]; j3++ ) // loop over neighbouring base grid points.
+      	{
+        	  for( j2=kv[1]; j2<=lv[1]; j2++ )
+        	  {
+          	    for( j1=kv[0]; j1<=lv[0]; j1++ )
+          	    {
+            	      int ib=-MASKB(j1,j2,j3)-1;
+            	      if( ib>=0 && ib<niBaseGrid[g] )
+            	      {
+		// ** The base grid point jv is an interpolation point. ***
+                //   ib is an index into the local base grid interpolation data arrays
+
+                                assert( ib<=interpoleeGridBaseGrid.getBound(0) );
+
+            		int bgDonor=interpoleeGridBaseGrid(ib);  // donor grid corresponding to the base grid interp pt.
+                                assert( bgDonor>=0 && bgDonor<cg.numberOfBaseGrids());
+		// make sure we don't already have this one in the list.
+            		bool alreadyFound=false;
+            		for( int nb=0; nb<numberOfPossibleInterpoleeBaseGrids(i); nb++ )
+            		{
+              		  if( interpoleeBaseGrid(i,nb)==bgDonor )
+              		  {
+                		    alreadyFound=true;
+                		    break;
+              		  }
+            		}
+            		if( !alreadyFound )
+            		{
+              		  if( debug & 4)
+              		  {
+                		    fprintf(plogFile,"  ..interp. pt %i=(%i,%i,%i) (grid %i, base=%i). Base interp pt %i is close"
+                      			    " ipBG=(%i,%i) =? jv=(%i,%i), donor base-grid=%i.\n",
+                      			    i,i1,i2,i3,grid,bg,ib,IPBG(ib,0),IPBG(ib,1),j1,j2,interpoleeGridBaseGrid(ib));
+                                        fflush(plogFile);
+              		  }
+              		  
+              		  interpolationPointBaseGrid(i,numberOfPossibleInterpoleeBaseGrids(i))=ib;
+              		  interpoleeBaseGrid(i,numberOfPossibleInterpoleeBaseGrids(i))=bgDonor;
+              		  numberOfPossibleInterpoleeBaseGrids(i)++;
+              		  assert( numberOfPossibleInterpoleeBaseGrids(i)<=maximumNumberOfPossibleBaseGrids );
+              		  
+            		}
+
+                // --- keep track of a base grid box that covers all donor stencils ---
+                // We only need to do this for l==1 since the grids are properly nested
+            		if( l==1 )
+            		{
+              		  isDonorGrid[bgDonor]=true;  
+
+		  // Increase the donor box size to cover the donor stencil :
+              		  IndexBox & box = donorBox[bgDonor];
+              		  real rv[3];
+              		  for( int dir=0; dir<numberOfDimensions; dir++ )
+                		    rv[dir]=interpolationCoordinatesBaseGrid(ib,dir);
+
+
+              		  int stencil[3][2];
+              		  computeInterpolationStencil(cg,bg,bgDonor,rv,stencil);
+              		  if( !box.isEmpty() )
+              		  {
+                		    for( int dir=0; dir<numberOfDimensions; dir++ )
+                		    {
+                  		      stencil[dir][0] = min(stencil[dir][0],box.base(dir));
+                  		      stencil[dir][1] = max(stencil[dir][1],box.bound(dir));
+                		    }
+              		  }
+              		  
+              		  box.setBounds(stencil[0][0],stencil[0][1], 
+                                                                stencil[1][0],stencil[1][1], 
+                                                                stencil[2][0],stencil[2][1] );
+            		}
+            		
+            	      }
+          	    }
+        	  }
+      	} // end for j3
+      	if( numberOfPossibleInterpoleeBaseGrids(i)==0 )
+      	{
+                    printf("\n updateRefinement:ERROR: unable to find a base grid interp. pt.! See log file for details\n");
+                    fprintf(plogFile,"\n updateRefinement:ERROR: unable to find a base grid interp. pt.! "
+                                                  "numberOfPossibleInterpoleeBaseGrids=0\n");
+        	  
+        	  fprintf(plogFile,"  ..interp. pt %i=(%i,%i,%i) (grid %i, base=%i). niBaseGrid[g]=%i\n",
+              		  i,i1,i2,i3,grid,bg,niBaseGrid[g]);
+        	  fprintf(plogFile,"Mask values: ib=-mask-1 --> index into base grid interp points. 0 <= ib < %i\n",
+              		  niBaseGrid[g]);
+        	  fprintf(plogFile,"Mask on the base grid (bg=%i), pts [%i,%i][%i,%i][%i,%i]:\n",bg,
+                                        kv[0],lv[0],kv[1],lv[1],kv[2],lv[2]);
+        	  for( j3=kv[2]; j3<=lv[2]; j3++ ) // loop over neighbouring base grid points.
+        	  {
+          	    for( j2=kv[1]; j2<=lv[1]; j2++ )
+          	    {
+            	      for( j1=kv[0]; j1<=lv[0]; j1++ )
+            	      {
+                                int mm=MASKB(j1,j2,j3);  // int ib=-maskb(j1,j2,j3)-1;
+            		fprintf(plogFile,"%6i ",mm); 
+            	      }
+                            fprintf(plogFile,"\n");
+          	    }
+        	  }
+        	  Overture::abort("error");
+      	}
+
+            }  // end for i 
+
+        }// end for g 
+        
+
+
+    // Stage III: 
+    //    o invert donor points 
+
+    // ** first try -- invert 1 pt at a time **
+
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {  // Begin grids on this level g=0,...
+
+
+            int grid =rl.gridNumber(g);           // index into cg
+            int bg = cg.baseGridNumber(grid);     // base grid for this refinement
+            MappedGrid & cr = rl[g];              // refined grid
+            MappedGrid & cb = cg[bg];             // base grid
+
+            const bool isRectangular=cr.isRectangular();
+            const RealArray & vertex = isRectangular ? Overture::nullRealArray() : cr.vertex().getLocalArray();
+
+            if( isRectangular )
+            { // these next values are use in the VERTEX0 macro
+      	cr.getRectangularGridParameters( dx, xab );
+      	iv0[0]=cr.gridIndexRange(0,0);
+      	iv0[1]=cr.gridIndexRange(0,1);
+      	iv0[2]=cr.gridIndexRange(0,2);
+
+            }
+            if( debug & 8 )
+            {
+      	if( !cb.isRectangular() ) display(cb.vertex(),sPrintF("vertex on the base grid=%i",bg),logFile,"%3.1f ");
+      	if( !cr.isRectangular() ) display(vertex,sPrintF("vertex on the refinement grid=%i",grid),logFile,"%3.1f ");
+            }
+            
+            if( debug & 4 )
+                fprintf(plogFile,"\n =============== get interpolation coord's grid=%i (g=%i) at refinement level=%i ============\n",
+            		grid,g,l);
+
+      // printf(" interpoleeGridBG: bg=%i, min=%i, max=%i (before update)\n",bg,min(interpoleeGridBG),max(interpoleeGridBG));
+
+            int rf[3];  // refinement factors (to the BASE GRID!)
+            rf[0]=rl.refinementFactor(0,g);
+            rf[1]=rl.refinementFactor(1,g);
+            rf[2]=rl.refinementFactor(2,g);
+
+      // const intSerialArray & ip = interpolationPoints[l][g];      // new interp points 
+            const intSerialArray & ip = cg->interpolationPointLocal[grid];  // use the local array
+            int * ipp = ip.Array_Descriptor.Array_View_Pointer1;
+            int ipDim0=ip.getRawDataSize(0);
+            #undef IP
+            #define IP(i0,i1) ipp[i0+ipDim0*(i1)]
+
+            i3=j3=k3=l3=cr.indexRange(Start,axis3);
+
+            const int ni=numberOfInterpolationPointsLocal(grid);  // number of interp points on this processor
+
+            for( int i=0; i<ni; i++ ) // refinement interpolation points
+            {
+                bool coincident=true;
+                for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+                    iv[axis]=IP(i,axis);    
+                    if( iv[axis] % rf[axis] != 0 )
+          	    coincident=false;     // this pt does not lie on a base grid pt
+      	}
+      	if( debug & 4)
+        	  fprintf(plogFile,"\n>>Interp. pt %i=(%i,%i,%i) (grid %i, base=%i) numPossibleBase=%i"
+                                          " Trying to interpolate...\n",i,i1,i2,i3,grid,bg,numberOfPossibleInterpoleeBaseGrids(i));
+
+
+        // loop over possible base grids
+      	for( int nb=0; nb<numberOfPossibleInterpoleeBaseGrids(i); nb++ )
+      	{
+        	  if( debug & 4)
+          	    fprintf(plogFile," ...invert pt on base grid %i (grid=%i isRectangular=%i)\n",interpoleeBaseGrid(i,nb), 
+                                    grid,isRectangular);
+          	    
+          // find the coordinates of the interpolation point on this base grid:
+        	  int baseGridInterpolee=interpoleeBaseGrid(i,nb);
+        	  assert( baseGridInterpolee>=0 && baseGridInterpolee<cg.numberOfBaseGrids());
+        	  
+        	  if( !coincident )
+        	  {
+	    // invert the mapping to locate the point.
+          	    if( isRectangular )
+          	    {
+            	      xxs(0,0)=VERTEX0(i1,i2,i3);
+            	      xxs(0,1)=VERTEX1(i1,i2,i3);
+            	      xxs(0,2)=VERTEX2(i1,i2,i3);
+          	    }
+          	    else
+          	    {
+            	      for( dir=0; dir<numberOfDimensions; dir++ )
+            		xxs(0,dir)=vertex(i1,i2,i3,dir);              // *************  use vertexLocal
+          	    }
+
+            // ***** we need to do more than one point at a time ****
+                        rbs=-1.;  // *wdh* 040324
+          	    cg[baseGridInterpolee].mapping().getMapping().inverseMapS(xxs(0,Rx),rbs);
+
+        	  }
+        	  else
+        	  {
+                        realSerialArray & interpolationCoordinatesBaseGrid = interpolationCoordinatesBaseGridA[g];
+
+          	    int ib=interpolationPointBaseGrid(i,nb);
+          	    for( dir=0; dir<numberOfDimensions; dir++ )
+            	      rbs(0,dir)=interpolationCoordinatesBaseGrid(ib,dir);
+          	    
+        	  }
+          // save interp coords
+                    for( dir=0; dir<numberOfDimensions; dir++ )
+                        interpCoords(i,nb,dir)=rbs(0,dir);
+
+        	  if( debug & 4)
+          	    fprintf(plogFile,"            pt %i=(%i,%i,%i) (grid %i, base=%i) --> invert: r=(%8.2e,%8.2e,%8.2e)"
+                		    " (coincident=%i)\n",
+                		    i,i1,i2,i3,grid,bg,rbs(0,0),rbs(0,1),rbs(0,2),coincident);
+        	  
+      	}
+            } 
+        }  // end for g 
+
+        
+    // We can use isDonorGrid[bgDonor] to decide which grids we need a localMaskCopy
+        int *isDonorGridOnAnyProcessor = new int [cg.numberOfComponentGrids()];
+        if( l==1 && debug & 2 )
+        {
+      // printF(" *** isDonorGrid[grid]=true for myid if there are inter
+            for(int gg=0; gg<cg.numberOfBaseGrids(); gg++)
+            {
+                const intSerialArray & m = cg[gg].mask().getLocalArray();
+      	printf(" myid=%i isDonorGrid[%i]=%i local-mask=[%i,%i][%i,%i][%i,%i]\n",myid,gg,isDonorGrid[gg],
+                                m.getBase(0),m.getBound(0),m.getBase(1),m.getBound(1),m.getBase(2),m.getBound(2));
+                IndexBox & box = donorBox[gg];
+                printf(" myid=%i grid=%i, donorBox[%i] = [%i,%i][%i,%i][%i,%i]\n",
+                              myid,gg,gg,
+             	       box.base(0),box.bound(0),
+             	       box.base(1),box.bound(1),
+             	       box.base(2),box.bound(2),
+             	       box.base(3),box.bound(3)); 
+            }
+        }
+        if( debug & 2)
+        {
+            fflush(0);
+            Communication_Manager::Sync();
+        }
+
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {
+            const int grid =rl.gridNumber(g);           // index into cg
+            const int bg = cg.baseGridNumber(grid);     // base grid for this refinement
+
+      // the mask on refinement grid "grid" will be needed if the grid index bounds intersect donorBox[bg]
+            
+            const intSerialArray & maskrLocal = cg[grid].mask().getLocalArray(); // is this right? 
+            int refinementRatio=cg.refinementLevel[1].refinementFactor(0,0); // assumes a const ratio
+            int ratioToBaseLevel=int( pow(refinementRatio,l) +.5 );
+            int ia[3], ib[3];
+            for( int d=0; d<3; d++ )
+            {
+      	ia[d] = maskrLocal.getBase(d)/ratioToBaseLevel; //  +u.getGhostBoundaryWidth(d);  
+      	ib[d] = maskrLocal.getBound(d)/ratioToBaseLevel; // -u.getGhostBoundaryWidth(d);
+            }
+            IndexBox maskrLocalBox(ia[0],ib[0], ia[1],ib[1], ia[2],ib[2]);
+            if( debug & 2 )
+            {
+      	IndexBox & box = maskrLocalBox;
+      	printf(" myid=%i l=%i grid=%i maskrLocal=[%i,%i][%i,%i], coarsened-box=[%i,%i][%i,%i][%i,%i]\n",
+             	       myid,l,grid,
+                              maskrLocal.getBase(0),maskrLocal.getBound(0),
+                              maskrLocal.getBase(1),maskrLocal.getBound(1),
+             	       box.base(0),box.bound(0),
+             	       box.base(1),box.bound(1),
+             	       box.base(2),box.bound(2),
+             	       box.base(3),box.bound(3));
+            }
+            
+            bool boxesIntersect = IndexBox::intersect(donorBox[bg], maskrLocalBox, donorBox[grid]);
+            if( boxesIntersect )
+            {
+      	isDonorGrid[grid]=true;
+      	if( debug & 2 )
+      	{
+        	  IndexBox & box = donorBox[grid];
+        	  printf(" myid=%i l=%i grid=%i(g=%i) intersects base grid bg=%i donorBox:\n"
+             		 "       intersection box = [%i,%i][%i,%i][%i,%i]\n",
+             		 myid,l,grid,g,bg,
+             		 box.base(0),box.bound(0),
+             		 box.base(1),box.bound(1),
+             		 box.base(2),box.bound(2),
+             		 box.base(3),box.bound(3));
+      	}
+      	
+            }
+            else
+            {
+      	if( debug & 2 )
+      	{
+        	  IndexBox & box = maskrLocalBox;
+        	  printf(" myid=%i l=%i grid=%i(g=%i) box does NOT intersect base grid bg=%i \n"
+                                  "    donorBox[bg] = [%i,%i][%i,%i][%i,%i]\n"
+             		 "       box[grid] = [%i,%i][%i,%i][%i,%i]\n",
+             		 myid,l,grid,g,bg,
+             		 donorBox[bg].base(0),donorBox[bg].bound(0),
+             		 donorBox[bg].base(1),donorBox[bg].bound(1),
+             		 donorBox[bg].base(2),donorBox[bg].bound(2),
+             		 donorBox[bg].base(3),donorBox[bg].bound(3),
+             		 box.base(0),box.bound(0),
+             		 box.base(1),box.bound(1),
+             		 box.base(2),box.bound(2),
+             		 box.base(3),box.bound(3));
+      	}
+            }
+        }
+        
+
+        ParallelUtility::getMaxValues( isDonorGrid, isDonorGridOnAnyProcessor, cg.numberOfComponentGrids() );
+        for(int gg=0; gg<cg.numberOfComponentGrids(); gg++) isDonorGrid[gg]=isDonorGridOnAnyProcessor[gg];
+        delete [] isDonorGridOnAnyProcessor;
+
+        if( debug & 2)
+        {
+            fflush(0);
+            Communication_Manager::Sync();
+        }
+
+        if( l==1 && false  )
+        {
+      // Here we could get the localMaskCopy for the base grid's -- use donorBox[bg]
+            for( int g=0; g<cg.numberOfBaseGrids(); g++ )
+            {
+	// copyArray : cg[g].mask --> localMaskCopy using donorBox[g] 
+        // NOTE: make sure the base/bounds on the localMaskCopy are correct
+
+        // we first need to know the donorBox[g] for all processors:
+                IndexBox *pDonorBox = new IndexBox[np]; 
+
+        // pDonorBox[myid]=donorBox[g];
+      	pDonorBox[myid].processor=myid;
+
+        // broad-cast pDonorBox[myid] to other processors
+
+        // Ivc = box that covers all pDonorBox
+	// CopyArray::copyArray(cg[g].mask(),Ivc,pDonorBox,localMaskCopy[g]); 
+
+                delete [] pDonorBox;
+            }
+            
+        }
+
+    // Now get a copy of the mask on all grids on this level
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {
+            const int grid =rl.gridNumber(g);           // index into cg
+      // localMaskCopy[grid] will be a copy on this processor of the entire mask
+            if( true ||   // do this for now
+                    isDonorGrid[grid] )
+            {
+                if( debug & 2) printF("--mask on refinement grid grid=%i is needed for donors.\n",grid);
+                ParallelUtility::redistribute(cg[grid].mask(),localMaskCopy[grid]);
+            }
+            else
+            {
+                if( debug & 2) printF("--mask on refinement grid=%i is NOT needed for donors\n",grid);
+      	
+            }
+            
+        }
+        if( debug & 2)
+        {
+            fflush(0);
+            Communication_Manager::Sync();
+        }
+        
+
+    // Stage IV: 
+    //    o canInterpolate ? 
+
+        IntegerArray multipleInterpoleeGrids(rl.numberOfComponentGrids());
+        multipleInterpoleeGrids=false;
+
+
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {  // Begin grids on this level g=0,...
+
+
+            int grid =rl.gridNumber(g);           // index into cg
+            int bg = cg.baseGridNumber(grid);     // base grid for this refinement
+            MappedGrid & cr = rl[g];              // refined grid
+            MappedGrid & cb = cg[bg];             // base grid
+
+            const bool isRectangular=cr.isRectangular();
+            const RealArray & vertex = isRectangular ? Overture::nullRealArray() : cr.vertex().getLocalArray();
+
+            if( isRectangular )
+            { // these next values are use in the VERTEX0 macro
+      	cr.getRectangularGridParameters( dx, xab );
+      	iv0[0]=cr.gridIndexRange(0,0);
+      	iv0[1]=cr.gridIndexRange(0,1);
+      	iv0[2]=cr.gridIndexRange(0,2);
+
+            }
+            if( debug & 4 )
+                fprintf(plogFile,"\n =============== canInterpolate? grid=%i (g=%i) at refinement level=%i ============\n",
+            		grid,g,l);
+
+
+            int rf[3];  // refinement factors (to the BASE GRID!)
+            rf[0]=rl.refinementFactor(0,g);
+            rf[1]=rl.refinementFactor(1,g);
+            rf[2]=rl.refinementFactor(2,g);
+
+            i3=j3=k3=l3=cr.indexRange(Start,axis3);
+
+            const int ni=numberOfInterpolationPointsLocal(grid);  // number of interp points on this processor
+
+      // *** temp arrays for now:
+            const int nid=max(1,ni);
+//       intSerialArray interpoleeGrid(nid); 
+//       realSerialArray interpolationCoordinates(nid,numberOfDimensions); 
+//       intSerialArray variableInterpolationWidth(nid); 
+
+            intSerialArray & interpolationPoint = cg->interpolationPointLocal[grid]; 
+            interpolationPoint.resize(nid,numberOfDimensions);  // ** does this resize maintain the old values?
+            
+            intSerialArray & interpoleeGrid = cg->interpoleeGridLocal[grid]; 
+            interpoleeGrid.redim(nid);
+            intSerialArray & variableInterpolationWidth = cg->variableInterpolationWidthLocal[grid]; 
+            variableInterpolationWidth.redim(nid);
+            realSerialArray & interpolationCoordinates = cg->interpolationCoordinatesLocal[grid];
+            interpolationCoordinates.redim(nid,numberOfDimensions);
+
+            intSerialArray & interpoleeLocation = cg->interpoleeLocationLocal[grid]; 
+            interpoleeLocation.redim(nid,numberOfDimensions);
+            interpoleeLocation=notAssigned; // these are assigned below
+
+
+      // const intSerialArray & ip = interpolationPoints[l][g];      // new interp points 
+            const intSerialArray & ip = cg->interpolationPointLocal[grid];  // use the local array
+            int * ipp = ip.Array_Descriptor.Array_View_Pointer1;
+            int ipDim0=ip.getRawDataSize(0);
+            #undef IP
+            #define IP(i0,i1) ipp[i0+ipDim0*(i1)]
+
+
+            bool retry=true;  // in parallel we initially turn on the retry option to we don't have to repeat a point
+
+            for( int i=0; i<ni; i++ ) // refinement interpolation points
+            {
+                bool coincident=true;
+                for( axis=0; axis<numberOfDimensions; axis++ )
+      	{
+                    iv[axis]=IP(i,axis);    
+
+                    if( iv[axis] % rf[axis] != 0 )
+          	    coincident=false;     // this pt does not lie on a base grid pt
+
+          // compute kv, lv here or just below for debugging?
+      	}
+      	if( debug & 4)
+      	{
+        	  fprintf(plogFile,"\n>>canInterpolate:Interp. pt %i=(%i,%i,%i) (grid %i, base=%i)\n"
+              		  " Trying to interpolate...\n",i,i1,i2,i3,grid,bg);
+      	}
+      	
+
+	// check the possible base grids.
+	// *** we should try to check the last valid choice ****
+      	bool canInterpolate=false;
+      	bool backupCanInterpolate=false;
+                int interpolee=-1;
+      	for( int nb=0; nb<numberOfPossibleInterpoleeBaseGrids(i); nb++ )
+      	{
+          // find the coordinates of the interpolation point on this base grid:
+        	  int baseGridInterpolee=interpoleeBaseGrid(i,nb);
+
+        	  if( debug & 4)
+          	    fprintf(plogFile," ...check next base grid, nb=%i, base grid %i (grid=%i isRectangular=%i)\n",
+                                    interpoleeBaseGrid(i,nb),bg,grid,isRectangular);
+          	    
+        	  
+        	  if( true )
+        	  { // get x coords for info messages:
+          	    if( isRectangular )
+          	    {
+            	      xxs(0,0)=VERTEX0(i1,i2,i3);
+            	      xxs(0,1)=VERTEX1(i1,i2,i3);
+            	      xxs(0,2)=VERTEX2(i1,i2,i3);
+          	    }
+          	    else
+          	    {
+            	      for( dir=0; dir<numberOfDimensions; dir++ )
+            		xxs(0,dir)=vertex(i1,i2,i3,dir);             
+          	    }
+        	  }
+        	  
+          // get the interp coords
+                    for( dir=0; dir<numberOfDimensions; dir++ )
+                        rbs(0,dir)=interpCoords(i,nb,dir); 
+
+
+
+          // ******** now check canInterpolate ****
+        	  MappedGrid & ibg = cg[baseGridInterpolee]; // the interpolee base grid.
+          	    
+          // ******************************************************************************************
+	  // *** now check to see if we can interpolate from any refinement grids on this base grid ***
+          // ******************************************************************************************
+
+        	  for( int level=l; level>=0 && !canInterpolate ; level-- )
+        	  {
+          	    GridCollection & rll = cg.refinementLevel[level];
+
+          	    for( int g2=0; g2<rll.numberOfComponentGrids() && !canInterpolate; g2++ )
+          	    {
+            	      int grid2=rll.gridNumber(g2);
+            	      if( rll.baseGridNumber(g2)==baseGridInterpolee )
+            	      {
+		// ie[3]=={ie1,ie2,ie3} : nearest point on the interpolee grid
+            		for( axis=0; axis<numberOfDimensions; axis++ )
+            		{
+              		  ie[axis]=int( (rbs(0,axis)/ibg.gridSpacing(axis))*rll.refinementFactor(axis,g2)+
+                        				ibg.indexRange(Start,axis)+.5 );  // closest point (cell centered??)
+		  // adjust points for periodicity -- the refinement patch may go from [-10,10] for example.
+              		  if( ibg.isPeriodic(axis)==Mapping::functionPeriodic )
+              		  {
+                		    int period=(ibg.gridIndexRange(End,axis)-ibg.gridIndexRange(Start,axis))*
+                  		      rll.refinementFactor(axis,g2);
+                		    int ieNew =( (ie[axis]-rll[g2].indexRange(Start,axis)+period) % period ) +
+                  		      rll[g2].indexRange(Start,axis);
+                		    pShift[axis]=ieNew-ie[axis];
+
+		    // fprintf(plogFile,"periodic shift: ie[%i]=%i ieNew=%i, period=%i\n",axis,ie[axis],
+		    //        ieNew,period);
+                      			    
+                		    ie[axis]=ieNew;
+              		  }
+              		  else
+                		    pShift[axis]=0;
+            		}
+            		if( debug & 2 )
+            		{
+              		  fprintf(plogFile," ..check refinement grid2=%i level=%i ie=(%i,%i) rb=(%4.2f,%4.2f) xx=(%8.2e,%8.2e)"
+                                                    "bounds=[%i,%i]x[%i,%i]\n",
+                    			  grid2,level,ie1,ie2,rbs(0,0),rbs(0,1),xxs(0,0),xxs(0,1),
+                                                    rll[g2].indexRange(Start,0),rll[g2].indexRange(End,0),
+                    			  rll[g2].indexRange(Start,1),rll[g2].indexRange(End,1) );
+            		}
+                  			
+                // const IntegerArray & g2IndexRange = rll[g2].indexRange();
+                                const IntegerArray & g2IndexRange = rll[g2].extendedIndexRange(); // *wdh* 040804 
+
+            		if( ie1<g2IndexRange(Start,0) || ie1>g2IndexRange(End,0) ||
+                		    ie2<g2IndexRange(Start,1) || ie2>g2IndexRange(End,1) )        
+              		  continue;
+            		if( numberOfDimensions==3 && 
+                		    (ie3<g2IndexRange(Start,2) || ie3>g2IndexRange(End,2)) )
+              		  continue;
+
+		// we are inside this refinement grid.
+            		if( debug & 4)
+              		  fprintf(plogFile,"  ..pt is inside refinement grid g2=%i (grid2=%i) at level %i\n",
+                    			  g2,grid2,level);
+
+            		interpolee=rll.gridNumber(g2);
+            		MappedGrid & ig = cg[interpolee];  
+            		for( axis=0; axis<numberOfDimensions; axis++ )
+            		{
+              		  const int rf = rll.refinementFactor(axis,g2);
+              		  rrs(0,axis)=(rbs(0,axis)*rf/ibg.gridSpacing(axis)+pShift[axis]
+                        			      -(ig.indexRange(Start,axis)-ibg.indexRange(Start,axis)*rf) )*ig.gridSpacing(axis);
+            		}
+            		if( interpolee==baseGridInterpolee )
+            		{
+                                    for( axis=0; axis<numberOfDimensions; axis++ )
+                		    if( ig.isPeriodic(axis) )
+                		    {
+                  		      rrs(0,axis)=fmod(rrs(0,axis)+1.,1.);   // base grid may be periodic, shift to [0,1]
+                		    }
+            		}
+            		
+                // *** implicit interpolation parameters should be ok to use ****
+                // we need to allow for interpolation from the boundary of two refinement grids.
+
+                // const intSerialArray & maski = ig.mask().getLocalArray(); // do this for now
+                                const intSerialArray & maski = localMaskCopy[interpolee]; // do this for now
+
+
+            		interpolates(0)=true;
+                // ** new can interpolate goes here **
+// 		cg.rcData->canInterpolate(grid,interpolee, rr, interpolates, useBackupRules, 
+// 					  checkForOneSided );
+            		cgCanInterpolate(grid,interpolee, rrs, interpolates, useBackupRules, checkForOneSided, cg,maski );
+
+            		if( interpolates(0) )
+            		{
+              		  canInterpolate=true;
+              		  if( debug & 4)
+                		    fprintf(plogFile,"  ..pt %i can interp from refine grid %i, r=(%6.2e,%6.2e), rb=(%6.2e,%6.2e)"
+                                                        " coincident=%i\n",
+                      			    i,rll.gridNumber(g2),rrs(0,0),rrs(0,1),rbs(0,0),rbs(0,1),coincident);
+
+		  // assign all these below : interpoleeLocation(i,Rx)=0;  // ******
+              		  break;
+            		}
+            		else 
+            		{
+              		  if( level==0 
+                         		         || retry ) // *wdh* added 040804
+              		  {
+		    // try lower order interpolation as a backup : backupCanInterpolate=true
+                		    const int width=cg.interpolationWidth(0,grid,grid2,0);
+                		    const real ov = cg.interpolationOverlap(0,grid,grid2,0);
+
+                    // temporarily change these for the canInterpolate function:
+                		    cg.interpolationWidth(Rx,grid,grid2,0)=max(2,width-1);  // *wdh* max added 040804
+                		    cg.interpolationOverlap(Rx,grid,grid2,0)-=max(0.,.5);   // *wdh* max added 040804 
+
+                		    interpolates(0)=true;
+                    // ** new can interpolate goes here **
+// 		    cg.rcData->canInterpolate(grid,interpolee, rr, interpolates, useBackupRules, 
+// 					      checkForOneSided );
+                  		    cgCanInterpolate(grid,interpolee, rrs, interpolates, useBackupRules, checkForOneSided, cg,maski );
+  
+
+                		    if( interpolates(0) )
+                		    {
+                  		      if( debug & 4)
+                  			fprintf(plogFile,"  ..pt %i can backup interp from refine grid %i, r=(%6.2e,%6.2e) width=%i\n",
+                        				i,rll.gridNumber(g2),rrs(0,0),rrs(0,1),width-1);
+
+                  		      backupCanInterpolate=true;                 // *** we keep looking in this case
+
+                      // **** fix this:
+                  		      interpoleeGrid(i)=interpolee;
+                  		      variableInterpolationWidth(i)=width-1;
+                  		      interpolationCoordinates(i,Rx)=rrs(0,Rx);
+                		    }
+                		    else // cannot interpolate
+                		    {
+		      // Allow interpolation if we are just outside a physical boundary
+                      // This case can happen, for e.g., when a cartesian grid has a higher priority
+                      // than a boundary fitted grid (cicd.cmd) and the stair-step boundary lies
+                      // very close to the physical boundary
+
+                      // *NOTE* if there is a refinement grid on this interpolee grid we should probably
+                      //        use it instead
+
+                                            RealArray rps(1,3);  // will hold the projected interp point
+                                            const IntegerArray & bc = cg[interpolee].boundaryCondition();
+                                            bool pointWasProjected=false;
+                                            for( dir=0; dir<numberOfDimensions; dir++ )
+                  		      {
+                                                rps(0,dir)=rrs(0,dir);
+                                                for( int side=0; side<=1; side++ )
+                  			{
+                    			  if( bc(side,dir)>0  && ( (side==0 && rrs(0,dir)<0.) || (side==1 && rrs(0,dir)>1.) ) )
+                    			  {
+                                                        pointWasProjected=true;
+                                                        rps(0,dir)=side;  // move the interpolation location to be on the boundary
+                                                        break;
+                    			  }
+                  			}
+                  		      }
+                  		      if( pointWasProjected )
+                  		      {
+                  			if( debug & 4)
+                                                    fprintf(plogFile,"  ..pt %i try to interp pt from just? outside a boundary,"
+                         			       "r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+                         			       i,rrs(0,0),rrs(0,1),rrs(0,2),rps(0,0),rps(0,1),rps(0,2) );
+
+                  			interpolates(0)=true;
+
+                        // *** new canInterpolate ***
+// 			cg.rcData->canInterpolate(grid,interpolee, rp, interpolates, useBackupRules, 
+// 						  checkForOneSided );
+                    			cgCanInterpolate(grid,interpolee, rps, interpolates, useBackupRules, checkForOneSided, cg,maski );
+
+                                                if( interpolates(0) )
+                  			{
+                                                    if( debug & 4 )
+                                                        printf("updateRefinement:INFO: backup interpolation from just? outside a boundary,"
+                                                                        "grid=%i interpolee=%i r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+                                                                          grid,interpolee,rrs(0,0),rrs(0,1),rrs(0,2),rps(0,0),rps(0,1),rps(0,2) );
+                    			  if( debug & 4)
+                      			    fprintf(plogFile,"  ..pt %i is just outside a boundary, "
+                                                                      "can backup interp from refine grid %i, r=(%6.2e,%6.2e,%6.2e) "
+                                                                        "r(projected)=(%6.2e,%6.2e,%6.2e) width=%i\n",
+                            				    i,rll.gridNumber(g2),rrs(0,0),rrs(0,1),rrs(0,2),
+                                                                        rps(0,0),rps(0,1),rps(0,2),width-1);
+
+                    			  backupCanInterpolate=true;                 // *** we keep looking in this case
+
+                    			  interpoleeGrid(i)=interpolee;
+                    			  variableInterpolationWidth(i)=width-1;
+                    			  interpolationCoordinates(i,Rx)=rps(0,Rx);
+                  			}
+
+                  		      }
+                  		      
+                  		      
+                		    } // end cannot interpolate
+
+                		    cg.interpolationWidth(Rx,grid,grid2,0)=width; // reset
+                		    cg.interpolationOverlap(Rx,grid,grid2,0)=ov;
+        
+              		  }
+              		  if( !backupCanInterpolate )
+              		  {
+                		    if( debug & 4 )
+                  		      fprintf(plogFile,"  ..pt %i can NOT interp from refine grid %i, r=(%6.2e,%6.2e), rb=(%6.2e,%6.2e)"
+                                                        " coincident=%i\n",
+                        			      i,rll.gridNumber(g2),rrs(0,0),rrs(0,1),rbs(0,0),rbs(0,1),coincident);
+              		  }
+                		    
+            		}
+                  			
+            	      }
+          	    } // end for( g2 )
+        	  } // for level
+      	} // for( nb... : for possible base grids
+
+      	if( canInterpolate )
+      	{
+	  // interpoleeFound=2; // found but from a base grid.
+
+        	  interpoleeGrid(i)=interpolee;
+        	  interpolationCoordinates(i,Rx)=rrs(0,Rx);
+        	  variableInterpolationWidth(i)=cg.interpolationWidth(0,grid,interpolee,mgLevel);
+
+        	  if( debug & 4)
+          	    fprintf(plogFile,"  >>pt %i can interp from interpolee grid %i, r=(%6.2e,%6.2e) width=%i\n",
+                		    i,interpoleeGrid(i),interpolationCoordinates(i,0),interpolationCoordinates(i,1),
+                		    variableInterpolationWidth(i));
+              		  
+        	  if( debug & 4)
+        	  {
+          	    if( coincident ) 
+          	    {
+
+            	      fprintf(plogFile,"<<interp pt %6i=(%i,%i,%i) (grid %i, base=%i) is coincident and interps from grid %i,"
+                  		      " r=(%6.2e,%6.2e,%6.2e) \n",
+                  		      i,i1,i2,i3,grid,bg,interpolee,rrs(0,0),rrs(0,1),rrs(0,2));
+          	    }
+          	    else
+          	    {
+            	      fprintf(plogFile,"  ..inbetween interp.point %5i (refine=%i, base=%i) can interp "
+                  		      "from grid %i, r=(%6.2e,%6.2e), width=%i \n",i,grid,bg,interpolee,rrs(0,0),rrs(0,1),
+                  		      variableInterpolationWidth(i));
+          	    }
+        	  }
+      	}
+      	else if( backupCanInterpolate )
+      	{
+	  // canInterpolate=true;
+        	  if( debug & 4)
+          	    fprintf(plogFile,"  >>pt %i can backup interp from interpolee grid %i, r=(%6.2e,%6.2e) width=%i\n",
+                		    i,interpoleeGrid(i),interpolationCoordinates(i,0),interpolationCoordinates(i,1),
+                		    variableInterpolationWidth(i));
+                    
+	  // interpoleeFound=1; // found but from a base grid.
+      	}
+      	else
+      	{
+                    if( !retry )
+        	  { // We failed to interpolate -- try again
+          	    if( debug & 4 ) 
+          	    {
+                            fprintf(plogFile,"  ***Unable to interp the refinement pt on the first try. Try again"
+                  		      " checking a larger region on the base grid...");
+          	    }
+          	    retry=true;
+          	    i--;   // redo this value of i
+
+                        Overture::abort("retry not implemented");
+          	    
+          	    continue;
+        	  }
+                    else
+        	  {
+                        fprintf(plogFile,"Unable to interp even with a retry!\n");
+        	  }
+        	  
+          // ***** FAILED to interpolate -- output diagnostics ******
+                    const int *girp = cb.gridIndexRange().getDataPointer();
+        	  bool isPeriodic[3]={false,false,false}; //
+        	  for( dir=0; dir<numberOfDimensions; dir++ )
+        	  {
+          	    isPeriodic[dir]=  cb.isPeriodic(dir)==Mapping::functionPeriodic;
+        	  }
+
+        	  for( axis=0; axis<numberOfDimensions; axis++ )
+        	  {
+            // *** compute kv, lv bounds ***
+          	    kv[axis]=floorDiv(iv[axis],rf[axis]);              // base grid pt <= iv
+          	    if( isPeriodic[axis] )
+          	    { // adjust for periodicity
+            	      int period=GIR(End,axis)-GIR(Start,axis);
+            	      kv[axis] =((kv[axis]+period-GIR(Start,axis)) % period)+GIR(Start,axis);
+          	    }
+	    // lv[axis]=(iv[axis]+rf[axis]-1)/rf[axis];  // base grid pt >= iv
+          	    lv[axis]=kv[axis] + ((iv[axis]%rf[axis]) !=0); // add 1 if iv is not coincident
+          	    if( retry )
+          	    { // If we are re-doing this point, increase the size of the base grid region that we search.
+            	      if( kv[axis]==lv[axis] )
+            		lv[axis]+=1;
+	      // coincident=false; // assume this
+          	    }
+        	  
+        	  }
+
+                    intSerialArray & maskbLocal = maskBaseGrid[g];
+        
+                    int * maskbp = maskbLocal.Array_Descriptor.Array_View_Pointer2;
+                    const int maskbDim0=maskbLocal.getRawDataSize(0);
+                    const int maskbDim1=maskbLocal.getRawDataSize(1);
+                    #undef MASKB
+                    #define MASKB(i0,i1,i2) maskbp[i0+maskbDim0*(i1+maskbDim1*(i2))]
+
+        	  printf("updateRefinement:ERROR: refinement patch interpolation point cannot interpolate! \n");
+        	  fprintf(plogFile,"updateRefinement:ERROR: refinement patch interpolation point cannot interpolate! \n");
+        	  fprintf(plogFile,"Mask on the base grid (bg=%i), pts [%i,%i][%i,%i][%i,%i]:\n",bg,
+                                        kv[0],lv[0],kv[1],lv[1],kv[2],lv[2]);
+        	  for( j3=kv[2]; j3<=lv[2]; j3++ ) // loop over neighbouring base grid points.
+        	  {
+          	    for( j2=kv[1]; j2<=lv[1]; j2++ )
+          	    {
+            	      for( j1=kv[0]; j1<=lv[0]; j1++ )
+            	      {
+                                int mm=MASKB(j1,j2,j3);  // int ib=-maskb(j1,j2,j3)-1;
+            		fprintf(plogFile,"%6i ",mm); 
+            	      }
+                            fprintf(plogFile,"\n");
+          	    }
+        	  }
+                    for( int dir=0; dir<numberOfDimensions; dir++ )
+        	  {
+          	    if( kv[dir]==lv[dir] )
+          	    {
+            	      lv[dir]+=1;
+          	    }
+        	  }
+        	  fprintf(plogFile,"*** show more pts: Mask on the base grid (bg=%i), pts [%i,%i][%i,%i][%i,%i]:\n",bg,
+              		  kv[0],lv[0],kv[1],lv[1],kv[2],lv[2]);
+        	  for( j3=kv[2]; j3<=lv[2]; j3++ ) // loop over neighbouring base grid points.
+        	  {
+          	    for( j2=kv[1]; j2<=lv[1]; j2++ )
+          	    {
+            	      for( j1=kv[0]; j1<=lv[0]; j1++ )
+            	      {
+                                int mm=MASKB(j1,j2,j3);  // int ib=-maskb(j1,j2,j3)-1;
+            		fprintf(plogFile,"%6i ",mm); 
+            	      }
+                            fprintf(plogFile,"\n");
+          	    }
+        	  } 
+
+        	  intSerialArray & interpoleeGridBaseGrid = interpoleeGridBaseGridA[g];
+        	  
+        	  for( j3=kv[2]; j3<=lv[2]; j3++ ) // loop over neighbouring base grid points.
+        	  {
+          	    for( j2=kv[1]; j2<=lv[1]; j2++ )
+          	    {
+            	      for( j1=kv[0]; j1<=lv[0]; j1++ )
+            	      {
+            		int ib=-MASKB(j1,j2,j3)-1;
+            		if( ib>=0 && ib<numberOfInterpolationPointsLocal(bg) )
+            		{
+		  // the base grid point jv is an interpolation point.
+              		  int ipbg=interpoleeGridBaseGrid(ib);
+                                    fprintf(plogFile," ** The refinement grid point is close to base grid "
+                                                                    "interpolation pt=%i, donor grid=%i\n",
+                    			  ib,ipbg);
+            		}
+            	      }
+          	    }
+        	  }
+        	  
+        	  if( true )
+        	  {
+                        printf("I will save a file `updateRefinementDebug.cmd' that can be used with the `refine' test\n"
+                                      " program in order to regenerate the adaptive grid and test it.\n");
+                        outputRefinementInfoNew( cg, "bugGrid.hdf","updateRefinementDebug.cmd" );
+
+          	    fclose(plogFile);
+          	    throw "error";
+        	  }
+        	  else
+        	  {
+
+          	    interpoleeGrid(i)=interpolee;
+          	    interpolationCoordinates(i,Rx)=rrs(0,Rx);
+          	    variableInterpolationWidth(i)=cg.interpolationWidth(0,grid,interpolee,mgLevel);
+
+        	  }
+	  // throw "error";
+      	}
+      	
+
+        	if( i>0 && !multipleInterpoleeGrids(g) )
+          	  multipleInterpoleeGrids(g) =interpoleeGrid(i)!=interpoleeGrid(i-1);
+
+	// *** retry=false;
+            } // end for i :  loop over interp points
+
+
+            if( numberOfInterpolationPointsLocal(grid)>0 )
+            {
+        // ** now mark interpolation points in the proper way ***
+                intArray & maskr = cr.mask(); 
+                const intSerialArray & maskrLocal = maskr.getLocalArray();
+      	const int ni=numberOfInterpolationPointsLocal(grid); 
+      	if( numberOfDimensions==2 )
+      	{
+        	  i3=cr.indexRange(Start,axis3);
+                    for( int i=0; i<ni; i++ )
+                  	    maskrLocal(IP(i,0),IP(i,1),i3)=MappedGrid::ISinterpolationPoint;   
+      	}
+      	else
+      	{
+                    for( int i=0; i<ni; i++ )
+          	    maskrLocal(IP(i,0),IP(i,1),IP(i,2))=MappedGrid::ISinterpolationPoint;   
+      	}
+
+            }
+
+      // make sure the parallel ghost points agree: 
+            cr.mask().updateGhostBoundaries();
+
+
+
+        } // end for g
+        
+        
+    //   ***************************************
+    //   **** Sort interp pts by donor grid ****
+    //   ****  assign interpoleeLocations   ****
+    //   ***************************************
+        for( g=0; g<rl.numberOfComponentGrids(); g++ )
+        {  
+            int grid =rl.gridNumber(g);     
+
+            intSerialArray & interpolationPoint = cg->interpolationPointLocal[grid]; 
+            intSerialArray & interpoleeGrid = cg->interpoleeGridLocal[grid]; 
+            intSerialArray & variableInterpolationWidth = cg->variableInterpolationWidthLocal[grid]; 
+            realSerialArray & interpolationCoordinates = cg->interpolationCoordinatesLocal[grid];
+            intSerialArray & interpoleeLocation = cg->interpoleeLocationLocal[grid]; 
+
+            const int ni=numberOfInterpolationPointsLocal(grid); 
+            IntegerArray & ise = cg.interpolationStartEndIndex;
+
+      // sort the interpolation points by interpolee grid.
+      // ise(all,grid,all)=-1;   // --> this is already done above now
+            if( multipleInterpoleeGrids(g) )
+            {
+      	if( debug & 4 )
+        	  fprintf(plogFile," ************* computeOverlap: Sorting interpolation points... ********************\n");
+	// First count the number of interpolee points for each grid.
+      	IntegerArray ng(cg.numberOfComponentGrids()+1);
+      	intSerialArray ig(interpoleeGrid);  // we do need copies of these
+      	intSerialArray ip(interpolationPoint);
+      	intSerialArray il(interpoleeLocation);
+      	realSerialArray ic(interpolationCoordinates);
+      	intSerialArray iw(variableInterpolationWidth);
+      	
+      	ng=0;
+      	for( int i=0; i<ni; i++ )
+        	  ng(interpoleeGrid(i)+1)+=1;
+      	
+      	for( int gg=2; gg<=cg.numberOfComponentGrids(); gg++ )  // note <=
+        	  ng(gg)+=ng(gg-1); // ng(g) now points to the starting position for interpolee grid "g"
+        	  
+      	for( int grid2=0; grid2<cg.numberOfComponentGrids(); grid2++ )
+      	{
+        	  if( ng(grid2+1)-ng(grid2)>0 )
+        	  {
+          	    ise(0,grid,grid2)=ng(grid2);      // start value
+          	    ise(1,grid,grid2)=ng(grid2+1)-1;  // end value
+	    // end value for implicit points: (could sort to put any implicit points first)
+          	    ise(2,grid,grid2)= ise(1,grid,grid2);
+        	  }
+//             printf("     grid=%i, grid2=%i, ng(grid2)=%i, ng(grid2+1)=%i SE=[%i,%i]\n",
+//                      grid,grid2,ng(grid2),ng(grid2+1),ise(0,grid,grid2),
+//                       ise(1,grid,grid2));
+      	}
+      	
+	// Now fill in the points -- this could be sped up --
+      	for( int i=0; i<ni; i++ )
+      	{
+        	  int pos=ng(ig(i)); ng(ig(i))+=1;
+        	  interpoleeGrid(pos)=ig(i);
+        	  interpolationPoint(pos,Rx)=ip(i,Rx);
+        	  interpolationCoordinates(pos,Rx)=ic(i,Rx);
+        	  interpoleeLocation(pos,Rx)=il(i,Rx);
+        	  variableInterpolationWidth(pos)=iw(i);
+      	}
+            }
+            else
+            {
+      	if( ni>0 )
+      	{
+        	  int grid2=interpoleeGrid(0);
+	  //  printf(" grid=%i, grid2=%i, ng(grid2)=%i, ni=%i\n",grid,grid2,cg.numberOfInterpolationPoints(grid));
+
+        	  ise(0,grid,grid2)=0;      // start value
+        	  ise(1,grid,grid2)=numberOfInterpolationPointsLocal(grid)-1;  // end value
+	  // end value for implicit points: (could sort to put any implicit points first)
+        	  ise(2,grid,grid2)= ise(1,grid,grid2);
+      	}
+            }
+            if( debug & 4 )
+            {
+      	for( int grid2=0; grid2<cg.numberOfComponentGrids(); grid2++ )
+        	  fprintf(plogFile," ==> grid=%i grid2=%i ise=%i %i \n",grid,grid2,ise(0,grid,grid2),ise(1,grid,grid2));
+            }
+            
+
+            IntegerArray interpolationWidth(3);
+            interpolationWidth=1;
+            for( int i=0; i<ni; i++ )
+            {
+      	int grid2=interpoleeGrid(i);
+                interpolationWidth(Rx)=variableInterpolationWidth(i);
+      	MappedGrid & g2 = cg[grid2];
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+      	{
+                    if( interpoleeLocation(i,axis)==notAssigned )
+        	  {
+	    // Get the lower-left corner of the interpolation cube.
+          	    int intLoc=int(floor(interpolationCoordinates(i,axis)/g2.gridSpacing(axis) + g2.indexRange(0,axis) -
+                         				 .5 * interpolationWidth(axis) + (g2.isCellCentered(axis) ? .5 : 1.)));
+          	    if (!g2.isPeriodic(axis)) 
+          	    {
+            	      if( (intLoc < g2.extendedIndexRange(0,axis)) && (g2.boundaryCondition(Start,axis)>0) )
+            	      {
+		//                        Point is close to a BC side.
+		//                        One-sided interpolation used.
+            		intLoc = g2.extendedIndexRange(0,axis);
+            	      }
+            	      if( (intLoc + interpolationWidth(axis) - 1 > g2.extendedIndexRange(1,axis))
+              		  && (g2.boundaryCondition(End,axis)>0) )
+            	      {
+		//                        Point is close to a BC side.
+		//                        One-sided interpolation used.
+            		intLoc = g2.extendedIndexRange(1,axis) - interpolationWidth(axis) + 1;
+            	      }
+          	    } // end if
+          	    interpoleeLocation(i,axis) = intLoc;
+        	  }
+      	} // end for axis
+            } // end for i 
+        } // end for g 
+        
+
+    // *** Output all interpolation data for this grid ***
+        if( debug & 2 )
+        {
+            fprintf(plogFile,"\n *** End of Stage IV -- Summary for myid=%i, np=%i ***\n",myid,np);
+            for( g=0; g<rl.numberOfComponentGrids(); g++ )
+            {  
+      	int grid =rl.gridNumber(g);     
+
+      	intSerialArray & interpolationPoint = cg->interpolationPointLocal[grid]; 
+      	intSerialArray & interpoleeGrid = cg->interpoleeGridLocal[grid]; 
+      	intSerialArray & variableInterpolationWidth = cg->variableInterpolationWidthLocal[grid]; 
+      	realSerialArray & interpolationCoordinates = cg->interpolationCoordinatesLocal[grid];
+      	intSerialArray & interpoleeLocation = cg->interpoleeLocationLocal[grid]; 
+
+                const int ni=numberOfInterpolationPointsLocal(grid); 
+                fprintf(plogFile,"\n ---- grid=%i ni=%i ---\n",grid,ni);
+                for( int i=0; i<ni; i++ )
+      	{
+        	  fprintf(plogFile," grid=%i: i=%4i ip=(%3i,%3i,%3i) donor=%i il=(%3i,%3i,%3i) ci=(%9.2e,%9.2e,%9.2e)\n",
+                                    grid,i,
+              		  interpolationPoint(i,0),interpolationPoint(i,1),
+                                              (numberOfDimensions==2 ? 0 : interpolationPoint(i,2)),
+              		  interpoleeGrid(i),
+              		  interpoleeLocation(i,0),interpoleeLocation(i,1),
+                                              (numberOfDimensions==2 ? 0 : interpoleeLocation(i,2)),
+              		  interpolationCoordinates(i,0),interpolationCoordinates(i,1),
+                                    (numberOfDimensions==2 ? 0 : interpolationCoordinates(i,2)));
+      	}
+      	
+            }
+            fflush(plogFile);
+        }
+    
+        Overture::checkMemoryUsage(sPrintF("Ogen::updateRefineFillInterp Before cleanup level=%i",l));
+
+    // clean up 
+
+        delete [] maskBaseGrid;
+        delete [] ipBaseGridA;
+        delete [] interpoleeGridBaseGridA;
+        delete [] interpolationCoordinatesBaseGridA;
+        delete [] niBaseGrid;
+
+        for( int g=0; g<rl.numberOfComponentGrids(); g++ )
+        {
+            delete [] interpolationPointBaseGridA[g];
+            delete [] interpoleeBaseGridA[g];
+            delete [] numberOfPossibleInterpoleeBaseGridsA[g];
+            delete [] interpCoordsA[g];
+        }
+        delete [] interpolationPointBaseGridA;
+        delete [] interpoleeBaseGridA;
+        delete [] numberOfPossibleInterpoleeBaseGridsA;
+        delete [] interpCoordsA;
+//    delete [] ;
+        
+    
+    } // done refinement levels
+
+    delete [] localMaskCopy;
+    
+    delete [] ipLocal;
+    delete [] ilLocal;
+    delete [] ciLocal;
+
+    delete [] isDonorGrid;
+    delete [] donorBox;
+
+    Overture::checkMemoryUsage("Ogen::updateRefineFillInterp (end)");
+    timeForInterpData=getCPU()-timeForInterpData;
+
+    return 0;
+}

@@ -1,0 +1,222 @@
+#
+# Measure convergence rates for cgins with twilight-zone flow 
+#
+# --------options: 
+#   -model=[ins|boussinesq|tp|vp]  : 
+#   -tz : poly or trig 
+#   -bcn : d=dirichlet, 
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -ngStart : start with this grid (default is 1, set to 2 to skip first grid)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+#   -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
+# 
+# To run the convergence tests type: 
+# 
+# === square ===
+# -- INS, order 2: 
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=square -ng=2   [exact 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=square -fx=3.2 -ng=3  [c0=1.97 c1=2.51 c2=2.40 c3=2.51 c4=3.45
+#  - inflow/outflow (note: use Neumann BC at outflow. Trouble with extrap-bc with some trig -- maybe inflow-at-outflow)
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -bc1=inflow -bc2=outflow -tf=.1 -cg=square -fx=3.2 -ng=3   [c0=2.44 c1=2.66 c2=2.27 c3=2.27 c4=2.84
+#  - implicit:
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=square -ts=imp -iv=viscous -ng=3 [almost exact 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.5 -cg=square -ts=imp -iv=viscous -fx=3.2 -ng=3 [c0=1.94 c1=2.11 c2=2.14 c3=2.14 c4=1.62
+# 
+# -- INS, order 4:
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=square -order=4 -degreeX=4 -degreeT=2 -ng=2 [ exact
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=square -order=4 -ts=pc4 -degreeX=4 -degreeT=3 -ng=2 [ exact
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=square -order=4 -ts=pc4 -fx=3.2 -ng=3  [c0=4.44 c1=4.72 c2=4.55 c3=4.72 c4=4.84
+#  - inflow/outflow 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -bc1=inflow -bc2=outflow -tf=.1 -cg=square -order=4 -fx=3.2 -ng=2 [c0=4.45 c1=4.94 c2=4.80 c3=4.94 c4=4.84
+#  - implicit:
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=square -order=4 -ts=imp -iv=viscous -degreeX=4 -degreeT=1 -ng=2 [ exact
+#    -> imp time-stepping is only 2nd-order: 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=square -order=4 -ts=imp -iv=viscous -fx=3.2 -ng=3 [c0=1.98 c1=1.71 c2=1.94 c3=1.92 c4=1.51
+#    -> use small cfl to see 4th order: 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=square -order=4 -ts=imp -iv=viscous -fx=3.2 -cfl=.01 -ng=3 [c0=4.50 c1=5.08 c2=4.80 c3=5.08 c4=4.78
+#
+# === box ===
+# -- INS, order 2: 
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=box -ng=2          [exact 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=box -fx=3.2 -ng=3  [c0=1.38 c1=2.43 c2=2.34 c3=2.34 c4=2.43
+# 
+# -- INS, order 4:
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=box -order=4 -degreeX=4 -degreeT=2 -ng=2 [exact
+#  conv.p tz.conv -model=ins -tz=poly -bcn=noSlip -tf=.1 -cg=box -order=4 -ts=pc4 -degreeX=4 -degreeT=3 -ng=2 [ exact
+#   - inflow/outflow
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -bc1=inflow -bc2=outflow -tf=.1 -cg=box -order=4 -fx=1. -ts=pc4 -ng=2 [
+# 
+# === cicFixed ===
+# -- INS, order 2: 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=cicFixed -fx=.7 -ng=3 [c0=2.00 c1=1.86 c2=2.17 c3=2.03 c4=2.12
+#  - inflow/outflow: 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -bc1=inflow -bc2=outflow -tf=1 -cg=cicFixed -fx=1 -ng=3 [c0=2.48 c1=2.22 c2=2.34 c3=2.34 c4=2.19
+# -- INS, order 4:
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=cicFixed -order=4 -fx=.7 -ngStart=2 -ng=3 [c0=3.99 c1=3.76 c2=4.35 c3=3.87 c4=4.05
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -tf=.1 -cg=cicFixed -order=4 -fx=.7 -ngStart=2 -ng=4 [c0=3.96 c1=3.85 c2=4.27 c3=3.91 c4=3.96
+#
+# === sibFixed ===
+# -- INS, order 2: 
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -bc1=inflow -bc2=outflow -tf=.1 -cg=sibFixed -fx=.5 -psolver=best -rtolp=1.e-6 -debug=3 -ng=2 [c0=2.27 c1=1.59 c2=2.38 c3=2.20 c4=1.59
+# -- INS, order 4:
+#  conv.p tz.conv -model=ins -tz=trig -bcn=noSlip -bc1=inflow -bc2=outflow -tf=.1 -cg=sibFixedi -order=4 -ts=pc4 -fx=.5 -psolver=best -rtolp=1.e-7 -debug=3 -ngStart=2 -ng=3
+#
+# ---------------------
+# Set default parameters: 
+$model="ins"; 
+$tz="trig"; $bcn = "d"; $bcn="#"; $bc1="#"; $bc2="#"; $bc3="#"; $bc4="#"; $bc5="#"; $bc6="#"; 
+$en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; 
+$numberOfParallelGhost=2; $amr=0; $nu=.05; $debug=0; 
+$cdv=1.; $solver="yale";  $rtol=1.e-4; $atol=1.e-6; $psolver="yale"; $rtolp=1.e-4; $atolp=1.e-6; 
+$useNewImp=0; $iv="viscous"; 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cginsCmd = "$CGBUILDPREFIX/ins/bin/cgins";  # command for cgins 
+$cmdDir="$ENV{CG}/ins/cmd"; 
+$cg = "square"; $alwaysCompute=1; $ts="pc"; 
+$showAllComponents=1;  # set to 1 to include all components in the table.
+#
+GetOptions( "model=s"=>\$model,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,"tp=f"=>\$tp,\
+            "nu=f"=>\$nu,"tz=s"=>\$tz,"fx=f"=>\$fx,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,"useNewImp=i"=>\$useNewImp,\
+            "showAllComponents=i"=>\$showAllComponents,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"iv=s"=>\$iv,\
+            "cfl=f"=>\$cfl,"cdv=f"=>\$cdv,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
+            "rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
+            "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
+            "cginsCmd=s"=>\$cginsCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"ngStart=i"=>\$ngStart );
+# 
+# Name of the check file created by cgins:
+$check="ins.check";
+#
+if( $cg eq "sphere" ){ $nd=3; } # 3D 
+#
+$caseName="tz.$cg.$model.order$order.$bcn"; 
+$name="$caseName.$tz"; 
+# if( $amr eq 1 ){ $name .= ".AMRl$nrl" . "r$ratio"; $caseName.=".AMRl$nrl" . "r$ratio"; }
+#
+# --- define the table heading and caption --
+# 
+# NOTE: in $nd component $nd+1 is the norm of the velocity components |\uv| 
+if( $model eq "ins" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    $numberOfComponents=$nd+1 +1+1;  \
+  }\
+  else\
+  { \
+    $numberOfComponents=1; $ignoreComponent[1]=1; \
+  }\
+  if( $numberOfComponents eq 1 )\
+  { \
+     $title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
+     @componentName = ( "u" ); \
+  }\
+  elsif( $numberOfComponents eq 5 )\
+  { \
+     $title ="grid  \& N \& \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  ";\
+     @componentName = ( "p", "u", "v", "uv" , "div" );\
+  }\
+  else{\
+    $title ="grid  \& N \&  \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$\\uv\$ \& \$\grad\cdot\uv\$ ";\
+    @componentName = ( "p", "u", "v", "w" , "uv", "div" );\
+  }\
+}
+# 
+if( $tz eq "poly" ){ $tzLabel = "$tz TZ, degreeX=$degreeX, degreeT=$degreeT"; }else{ $tzLabel = "$tz TZ, fx=$fx"; }
+$amrCaption=""; 
+if( $amr eq 1 ){ $amrCaption = "amr, tol=$tol, l=$nrl, ratio=$ratio, "; }
+$caption= "\\caption\{Cgins, $model, $name, bcn=$bcn, \$t=$tf\$, \$nu=$nu\$, $tzLabel, fx=$fx, $clabel, cfl=$cfl, $amrCaption $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-model=$model -nu=$nu -tf=$tf -tp=$tp -cfl=$cfl -ts=$ts -iv=$iv -tz=$tz -solver=$solver -rtol=$rtol -atol=$atol -psolver=$psolver -rtolp=$rtolp -atolp=$atolp -useNewImp=$useNewImp -cdv=$cdv -bcn=$bcn -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -bc5=$bc5 -bc6=$bc6 -degreex=$degreeX -degreet=$degreeT -fx=$fx -fy=$fx -fz=$fx -ft=$fx -debug=$debug -go=go"; 
+# 
+if( $cg eq "square" ){\
+$grid1="sq20";  $gName1 = "square20.order$order";\
+$grid2="sq40";  $gName2 = "square40.order$order";\
+$grid3="sq80";  $gName3 = "square80.order$order";\
+$grid4="sq160"; $gName4 = "square160.order$order";}
+if( $cg eq "wiggley" ){\
+$grid1="wiggley1"; $gName1 = "wiggley1.order$order";\
+$grid2="wiggley2"; $gName2 = "wiggley2.order$order";\
+$grid3="wiggley4"; $gName3 = "wiggley4.order$order";\
+$grid4="wiggley8"; $gName4 = "wiggley8.order$order";}
+if( $cg eq "cicFixed" ){\
+$grid1="cic1"; $gName1 = "cicFixede1.order$order";\
+$grid2="cic2"; $gName2 = "cicFixede2.order$order";\
+$grid3="cic4"; $gName3 = "cicFixede4.order$order";\
+$grid4="cic8"; $gName4 = "cicFixede8.order$order";\
+$grid5="cic16"; $gName5 = "cicFixede16.order$order";}
+if( $cg eq "sic" ){\
+$grid1="sic2";  $gName1 = "sice2.order$order";\
+$grid2="sic4";  $gName2 = "sice4.order$order";\
+$grid3="sic8";  $gName3 = "sice8.order$order";\
+$grid4="sic16"; $gName4 = "sice16.order$order";}
+if( $cg eq "sicFixed" ){\
+$grid1="sicFixed2";  $gName1 = "sicFixede2.order$order";\
+$grid2="sicFixed4";  $gName2 = "sicFixede4.order$order";\
+$grid3="sicFixed8";  $gName3 = "sicFixede8.order$order";\
+$grid4="sicFixed16"; $gName4 = "sicFixede16.order$order";}
+if( $cg eq "box" ){\
+$grid1="box1"; $gName1 = "box10.order$order";\
+$grid2="box2"; $gName2 = "box20.order$order";\
+$grid3="box4"; $gName3 = "box40.order$order";\
+$grid4="box8"; $gName4 = "box80.order$order";}
+if( $cg eq "nonBox" ){\
+$grid1="nonBox1"; $gName1 = "nonBox10.order$order";\
+$grid2="nonBox2"; $gName2 = "nonBox20.order$order";\
+$grid3="nonBox4"; $gName3 = "nonBox40.order$order";\
+$grid4="nonBox8"; $gName4 = "nonBox80.order$order";}
+if( $cg eq "rotatedBox" ){\
+$grid1="rotatedBox1"; $gName1 = "rotatedBox1.order$order";\
+$grid2="rotatedBox2"; $gName2 = "rotatedBox2.order$order";\
+$grid3="rotatedBox4"; $gName3 = "rotatedBox4.order$order";\
+$grid4="rotatedBox8"; $gName4 = "rotatedBox8.order$order";}
+if( $cg eq "wiggley3d" ){\
+$grid1="wiggley3d1"; $gName1 = "wiggley3d1.order$order";\
+$grid2="wiggley3d2"; $gName2 = "wiggley3d2.order$order";\
+$grid3="wiggley3d4"; $gName3 = "wiggley3d4.order$order";\
+$grid4="wiggley3d8"; $gName4 = "wiggley3d8.order$order";}
+if( $cg eq "sib" ){\
+$grid1="sib1"; $gName1 = "sibe1.order$order";\
+$grid2="sib2"; $gName2 = "sibe2.order$order";\
+$grid3="sib4"; $gName3 = "sibe4.order$order";\
+$grid4="sib8"; $gName4 = "sibe8.order$order";}
+if( $cg eq "sibFixed" ){\
+$grid1="sibFixed1"; $gName1 = "sibFixede1.order$order";\
+$grid2="sibFixed2"; $gName2 = "sibFixede2.order$order";\
+$grid3="sibFixed4"; $gName3 = "sibFixede4.order$order";\
+$grid4="sibFixed8"; $gName4 = "sibFixede8.order$order";}
+if( $cg eq "sibFixedi" ){\
+$grid1="sibFixed1"; $gName1 = "sibFixedi1.order$order";\
+$grid2="sibFixed2"; $gName2 = "sibFixedi2.order$order";\
+$grid3="sibFixed4"; $gName3 = "sibFixedi4.order$order";\
+$grid4="sibFixed8"; $gName4 = "sibFixedi8.order$order";}
+# -- note: we start at factor=2 here: 
+if( $cg eq "sibFixedSmall" ){\
+$grid1="sibFixedSmall2"; $gName1 = "sibFixedSmalle2.order$order";\
+$grid2="sibFixedSmall4"; $gName2 = "sibFixedSmalle4.order$order";\
+$grid3="sibFixedSmall8"; $gName3 = "sibFixedSmalle8.order$order";\
+$grid4="sibFixedSmall16"; $gName4 = "sibFixedSmalle16.order$order";}
+if( $cg eq "sphere" ){\
+$grid1="sphere1"; $gName1 = "spheree1.order$order";\
+$grid2="sphere2"; $gName2 = "spheree2.order$order";\
+$grid3="sphere4"; $gName3 = "spheree4.order$order";\
+$grid4="sphere8"; $gName4 = "spheree8.order$order";}
+# 
+if( $cg eq "rsis" ){\
+$grid1="rsis1"; $gName1 = "rsise1.order$order";\
+$grid2="rsis2"; $gName2 = "rsise2.order$order";\
+$grid3="rsis4"; $gName3 = "rsise4.order$order";\
+$grid4="rsis8"; $gName4 = "rsise8.order$order";}
+# 
+if( $ngStart eq "1" ){ $grid=$grid1; $res=1; $cmd="$cginsCmd noplot $cmdDir/tz -g=$gName1 $options"; }
+$grid=$grid2; $res=2; $cmd="$cginsCmd noplot $cmdDir/tz -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cginsCmd noplot $cmdDir/tz -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cginsCmd noplot $cmdDir/tz -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cginsCmd noplot $cmdDir/tz -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+

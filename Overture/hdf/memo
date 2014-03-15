@@ -1,0 +1,103 @@
+=== 2012/10/21 -- move Kyle's data-base to Overtureb
+
+cvs add dbAccess.C dbFunctions.f kk_ptr.cc DBase.hh kk_defines.hh kk_ptr.hh dbAccess.bC tdb.C testdb.cc ut.f
+
+cp $cg/common/dataBase/{dbAccess.C,dbFunctions.f,kk_ptr.cc,DBase.hh,kk_defines.hh,kk_ptr.hh} .
+cp $cg/common/dataBase/{dbAccess.bC} .
+cp $cg/common/dataBase/{tdb.C,testdb.cc,ut.f} .
+
+g++ -fPIC -g -w -I/home/henshaw.0/cg/common/src -I/home/henshaw.0/cg/common/shared -I/home/henshaw.0/cg/common/moving/src -I/home/henshaw.0/cg/common/multiComponent/src -I/home/henshaw.0/cg/common/chemistry -I/home/henshaw.0/cg/common/dataBase -I/home/henshaw.0/cg/src -I/home/henshaw.0/Overture.g/include -I/home/henshaw.0/A++P++/A++P++-4.3.2-64/A++/install/include  -I/home/henshaw.0/software/hdf/hdf5-1.6.5-gcc4.3.2-64/include  -I/home/henshaw.0/software/OpenGL/Mesa-7.2.intel.gcc4.3.2/include   -o /home/henshaw.0/cg/common/obj/dbAccess.o -c dataBase/dbAccess.C
+
+g++ -fPIC -fmessage-length=200 -I. -I/home/henshaw.0/Overture.g/include -DOVERTURE_USE_PETSC -I/home/henshaw.0/petsc/petsc-2.3.2/include -I/home/henshaw.0/petsc/petsc-2.3.2/bmake/linux-gnu-opt -I/home/henshaw.0/petsc/petsc-2.3.2/include/mpiuni -I/home/henshaw.0/A++P++/A++P++-4.3.2-64/A++/install/include -I/home/henshaw.0/software/OpenGL/Mesa-7.2.intel.gcc4.3.2/include -I/usr/include   -I/home/henshaw.0/software/hdf/hdf5-1.6.5-gcc4.3.2-64/include -DBL_USE_DOUBLE -DBL_Solaris   -DHAS_MODFL_PROTO -g   -c dbAccess.C
+
+
+=== 2012/09/01
+
+Hi Jeff, Richard, 
+
+  I was able to get a much smaller test code to consistently hang/fail in the
+HDF open or close routines. Thanks to Richard's debug version of HDF and after
+adding some printf's to some HDF routines I was able to trace the hang to some
+particular MPIO routines that set the file size. After doing some google searches I
+found the following (http://comments.gmane.org/gmane.comp.file-systems.lustre.user/8251):
+
+>> In the old days every MPI process called ftruncate, and of course that
+>> gave brutally poor performance.  This "ftruncate from one" approach
+>> has been in place since 2004.  I would be both shocked and appalled if
+>> you encountered an ancient ROMIO-based MPI-IO implementation that
+>> still does ftruncate from all.
+
+Well it turns out this was the problem and the version of MPI-IO in 
+    /usr/local/tools/mvapich-gnu/
+is calling ftruncate (which sets the file size) from every process :(
+So I think underlying problem is that the new version of Lustre does 
+not like having so many file requests.
+
+After checking the MPI-2 source I noticed that the MPI-2 routines
+have fixed this problem : 
+   /usr/local/tools/mvapich2-gnu
+
+I have rebuilt all the libraries with MPI-2 and my small
+test code now works fine. I am now checking the big
+code to see how it behaves and so far so good.
+
+Jeff : I am building a new version of Overture, P++, hdf, petsc
+on /usr/gapps for you to try: (my 'module v24g.p')
+
+    /usr/gapps/overture/Overture.v24g.p 
+
+
+...Bill
+
+
+
+
+
+
+
+==== 2012/08/30
+
+mpirun -np 8 thdf2 -maxFiles=2 -nx=301 -ny=301 -nz=301
+
+
+mpirun -np 4 thdf2 -maxFiles=2 -nx=101 -ny=101 -nz=101
+
+
+
+-------------------
+to display an hdf file:
+
+hdp dumpvg fn.hdf
+
+hdp dumpvd fn.hdf
+
+
+----------------------------------------------------------
+
+Hi Bill,
+
+I think things are working now (at least
+for me .  When you update you will get
+a few new files.  Also, the configure script
+has been changed to include a new argument
+"useHDF5".  So you would do something like
+
+configure linux useHDF5 parallel
+
+And I have pwave working in parallel, reading an 
+hdf5 file and apparently doing the right thing.
+
+on the casc cluster I use:
+/usr/apps/hdf5/parallel-1.6.2
+/usr/apps/mpich/1.2.5.2-pgi
+
+on mcr I use whatever mpiCC gives you plus:
+/usr/local/hdf5/hdf5-1.6.5/parallel
+
+I ran the tests and they all passed under linux,
+serial, using hdf4.  I manually tested serial hdf5
+from a distribution so that also seems to work;
+all we need is to have testDistribution understand
+hdf5.
+
+Kyle

@@ -1,0 +1,14 @@
+SRC_FILES += MultiComponent.C MultiComponentFortranInterface.C InteractionPotential.C
+
+TESTS += $(BINDIR)test_potential
+TESTS += $(BINDIR)test_multi
+
+$(BINDIR)test_potential: $(OBJDIR)test_potential.o $(OBJDIR)kk_ptr.o 
+	$(CXX) $(CXX_FLAGS) -o $@ $+ $(FORTRAN_LIBS)
+$(OBJDIR)test_potential.o: InteractionPotential.C
+	$(CXX) $(CXX_FLAGS) -DTEST_MAIN -o $@ -c $< 
+
+$(BINDIR)test_multi: $(OBJDIR)test_multi.o $(OBJDIR)kk_ptr.o  $(OBJDIR)InteractionPotential.o
+	$(CXX) $(CXX_FLAGS) -o $@ $+ $(FORTRAN_LIBS) $(LAPACK_LIBRARIES)
+$(OBJDIR)test_multi.o: MultiComponent.C
+	$(CXX) $(CXX_FLAGS) -DTEST_MAIN -o $@ -c $< 

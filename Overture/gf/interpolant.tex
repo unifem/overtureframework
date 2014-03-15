@@ -1,0 +1,98 @@
+\section{Interpolant: Interpolating Grid Functions} \label{Interpolant}\index{interpolant}
+
+
+The Interpolant class is used for interpolating a CompositeGridFunction --
+i.e. obtaining values at the interpolation points in terms of the
+values at the other points. Once an Interpolant object has been made
+it can be used in one of two ways. One can either use the {\ff interpolate}
+function in the Interpolant class or one can use the {\ff interpolate}
+function that appears in the grid function class.
+
+When an Interpolant is associated with a Composite Grid, the CompositeGrid will
+be changed and will hold a pointer to the Interpolant. Any GridFunction associated
+with the CompositeGrid will be able to use the Interpolant found there. This
+allows GridFunctions to magically know how to interpolant themselves.
+
+
+\subsection{Member Functions}
+
+For now it is only possible to interpolate a {\ff real\-Composite\-Grid\-Function}
+or a {\ff real\-Multigrid\-Composite\-Grid\-Function}. 
+
+\input InterpolateInclude.tex   
+
+\subsection{Examples}
+
+Here is an example of using the Interpolant class \index{interpolant!test routine}
+(file {\ff \examples testInterpolant.C})
+{\footnotesize
+\listinginput[1]{1}{/home/henshaw/res/gf/testInterpolant.C}
+}
+
+
+\section{Other Interpolation Functions}
+
+
+\subsection{interpolatePoints: Interpolate a CompositeGridFunction at some given points in space}
+\index{interpolate!arbitrary points}
+
+\input interpolatePointsInclude.tex
+
+
+
+\noindent {\bf Example:}
+In this example we show how to interpolate a grid function at arbitrary points in space.
+\begin{verbatim}
+  CompositeGrid cg(...);    // get a CompositeGrid from some-where
+  Range all;
+  realCompositeGridFunction u(cg,all,all,all,2);  // grid function with two components
+
+  int numberOfPointsToInterpolate=1;
+  realArray positionToInterpolate(numberOfPointsToInterpolate,3), 
+            uInterpolated(numberOfPointsToInterpolate,2);
+  for(;;)
+  {
+    cout << "Enter a point to interpolate (x,y) \n";
+    cin >> positionToInterpolate(0,0) >> positionToInterpolate(0,1) ;
+
+    int extrap = interpolatePoints(positionToInterpolate,u, uInterpolated);
+
+    if( extrap < 0 )
+      cout << " point was extrapolated" << endl;
+
+    uInterpolated.display("Here is uInterpolated:");
+  }
+\end{verbatim}
+
+
+
+
+
+\subsection{InterpolateAllPoints on one CompositeGridFunction from another CompositeGridFunction}
+
+\input interpolateAllPointsInclude.tex
+
+\noindent {\bf Example:} Here is an example
+\begin{verbatim}
+     CompositeGrid cgFrom(...); 
+     realCompositeGridFunction uFrom(cgFrom);   
+     uFrom=...;
+
+     ...
+
+     CompositeGrid cgTo(...);
+     realCompositeGridFunction uTo(cgTo);   
+
+     interpolateAllPoints(uFrom,uTo);        
+
+\end{verbatim}
+
+
+
+\subsection{InterpolateExposedPoints of a CompositeGridFunction for a Moving CompositeGrid}
+\index{interpolate!exposed points on a moving grid}
+
+
+\input interpolateExposedPointsInclude.tex
+
+

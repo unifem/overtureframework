@@ -1,0 +1,143 @@
+A++ Internal_Index bounds checking: ON 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/square5 ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=square5
++++++++Checking component grid = 0+++++++
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 0.000000e+00, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalDotScalarGrad               = 0.000000e+00, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalComponent                   = 0.000000e+00, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in aDotU                             = 4.768372e-07, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 2.980232e-07, cpu=0.000000e+00(init), 0.000000e+00(equal), 0.000000e+00(unequal) 
+Maximum error in generalMixedDerivative            = 7.152557e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in extrapolateInterpolationNeighbours= 0.000000e+00, cpu=0.000000e+00 
+Maximum error in tangentialComponent0             = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in extrapolateNormalComponent        = 3.099442e-06, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent0  = 7.629395e-06, cpu=0.000000e+00 
+Max error normalDerivativeOfTangentialComponent0  = 2.384186e-07, cpu=0.000000e+00(init), 0.000000e+00
+Maximum error in normalDerivativeOfNormalComponent = 2.384186e-07, cpu=0.000000e+00(init), 0.000000e+00 
+
+
+ ************************************************************************************************
+ ************** Test apparently successful, worst error =7.629395e-06 ******************
+ **************************************************************************************************
+
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/cic ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
++++++++Checking component grid = 0+++++++
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 4.768372e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalDotScalarGrad               = 0.000000e+00, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalComponent                   = 0.000000e+00, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in aDotU                             = 4.768372e-07, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 9.536743e-07, cpu=0.000000e+00(init), 0.000000e+00(equal), 0.000000e+00(unequal) 
+Maximum error in generalMixedDerivative            = 1.907349e-06, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in extrapolateInterpolationNeighbours= 2.384186e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent0             = 1.192093e-07, cpu=0.000000e+00 
+Maximum error in extrapolateNormalComponent        = 7.867813e-06, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent0  = 8.344650e-06, cpu=0.000000e+00 
+Max error normalDerivativeOfTangentialComponent0  = 4.768372e-07, cpu=0.000000e+00(init), 0.000000e+00
+Maximum error in normalDerivativeOfNormalComponent = 9.536743e-07, cpu=0.000000e+00(init), 0.000000e+00 
++++++++Checking component grid = 1+++++++
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 4.887581e-06, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalDotScalarGrad               = 3.576279e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalComponent                   = 2.384186e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 5.960464e-08, cpu=0.000000e+00 
+Maximum error in aDotU                             = 4.768372e-07, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 1.072884e-06, cpu=0.000000e+00(init), 0.000000e+00(equal), 0.000000e+00(unequal) 
+Maximum error in generalMixedDerivative            = 3.099442e-06, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in extrapolateInterpolationNeighbours= 4.768372e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent0             = 4.768372e-07, cpu=0.000000e+00 
+Maximum error in extrapolateNormalComponent        = 2.305955e-05, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent0  = 2.092309e-05, cpu=0.000000e+00 
+Max error normalDerivativeOfTangentialComponent0  = 8.273125e-05, cpu=0.000000e+00(init), 0.000000e+00
+Maximum error in normalDerivativeOfNormalComponent = 8.153915e-05, cpu=0.000000e+00(init), 0.000000e+00 
+
+
+ ************************************************************************************************
+ ************** Test apparently successful, worst error =8.273125e-05 ******************
+ **************************************************************************************************
+
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/sib ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=sib
++++++++Checking component grid = 0+++++++
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 2.980232e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalDotScalarGrad               = 0.000000e+00, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalComponent                   = 0.000000e+00, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in aDotU                             = 1.907349e-06, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 1.192093e-06, cpu=0.000000e+00(init), 0.000000e+00(equal), 0.000000e+00(unequal) 
+Maximum error in generalMixedDerivative            = 1.430511e-06, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in extrapolateInterpolationNeighbours= 7.152557e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent0             = 2.384186e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent1             = 2.384186e-07, cpu=0.000000e+00 
+Maximum error in extrapolateNormalComponent        = 7.748604e-06, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent0  = 8.225441e-06, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent1  = 8.106232e-06, cpu=0.000000e+00 
+Max error normalDerivativeOfTangentialComponent0  = 5.960464e-07, cpu=0.000000e+00(init), 0.000000e+00
+Max error normalDerivativeOfTangentialComponent1  = 5.960464e-07, cpu=0.000000e+00(init), 0.000000e+00
+Maximum error in normalDerivativeOfNormalComponent = 5.960464e-07, cpu=0.000000e+00(init), 0.000000e+00 
++++++++Checking component grid = 1+++++++
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 3.576279e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalDotScalarGrad               = 6.810004e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalComponent                   = 2.384186e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 1.434237e-07, cpu=0.000000e+00 
+Maximum error in aDotU                             = 7.152557e-07, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 1.013279e-06, cpu=0.000000e+00(init), 0.000000e+00(equal), 0.000000e+00(unequal) 
+Maximum error in generalMixedDerivative            = 1.373291e-04, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in extrapolateInterpolationNeighbours= 9.536743e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent0             = 7.152557e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent1             = 9.536743e-07, cpu=0.000000e+00 
+Maximum error in extrapolateNormalComponent        = 2.741814e-05, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent0  = 2.288818e-05, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent1  = 2.956390e-05, cpu=0.000000e+00 
+Max error normalDerivativeOfTangentialComponent0  = 6.103516e-05, cpu=0.000000e+00(init), 0.000000e+00
+Max error normalDerivativeOfTangentialComponent1  = 6.103516e-05, cpu=0.000000e+00(init), 0.000000e+00
+Maximum error in normalDerivativeOfNormalComponent = 9.155273e-05, cpu=0.000000e+00(init), 0.000000e+00 
++++++++Checking component grid = 2+++++++
+Maximum error in dirichlet                         = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in neumann                           = 5.364418e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalDotScalarGrad               = 7.771081e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in normalComponent                   = 3.576279e-07, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in tangentialComponent               = 0.000000e+00, cpu=0.000000e+00 
+Maximum error in vectorSymmetry                    = 1.378357e-07, cpu=0.000000e+00 
+Maximum error in aDotU                             = 9.536743e-07, cpu=0.000000e+00 
+Maximum error in generalizedDivergence             = 9.536743e-07, cpu=0.000000e+00(init), 0.000000e+00(equal), 0.000000e+00(unequal) 
+Maximum error in generalMixedDerivative            = 5.340576e-05, cpu=0.000000e+00(init), 0.000000e+00 
+Maximum error in extrapolateInterpolationNeighbours= 1.430511e-06, cpu=0.000000e+00 
+Maximum error in tangentialComponent0             = 4.768372e-07, cpu=0.000000e+00 
+Maximum error in tangentialComponent1             = 7.152557e-07, cpu=0.000000e+00 
+Maximum error in extrapolateNormalComponent        = 3.492832e-05, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent0  = 3.623962e-05, cpu=0.000000e+00 
+Maximum error in extrapolateTangentialComponent1  = 3.176928e-05, cpu=0.000000e+00 
+Max error normalDerivativeOfTangentialComponent0  = 6.103516e-05, cpu=0.000000e+00(init), 0.000000e+00
+Max error normalDerivativeOfTangentialComponent1  = 4.577637e-05, cpu=0.000000e+00(init), 0.000000e+00
+Maximum error in normalDerivativeOfNormalComponent = 4.577637e-05, cpu=0.000000e+00(init), 0.000000e+00 
+
+
+ ************************************************************************************************
+ ************** Test apparently successful, worst error =1.373291e-04 ******************
+ **************************************************************************************************
+
+Program Terminated Normally! 

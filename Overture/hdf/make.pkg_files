@@ -1,0 +1,10 @@
+PKGDIR := $(OvertureCheckout)/hdf
+
+SRC_FILES += $(addsuffix .C, GenericDataBase HDF_DataBase DataBaseBuffer ListOfHDF_DataBaseRCData)
+SRC_FILES += dbAccess.C dbFunctions.f kk_ptr.cc
+
+L_HDRS := $(addsuffix .h,GenericDataBase HDF_DataBase HDF5_DataBase DataBaseBuffer ListOfHDF_DataBaseRCData)
+L_HDRS += DBase.hh kk_defines.hh kk_ptr.hh
+
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))

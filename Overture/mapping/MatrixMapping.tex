@@ -1,0 +1,103 @@
+%--------------------------------------------------------------
+\section{MatrixMapping: define a mapping from scalings, shifts and rotations} \label{sec:MatrixMapping}
+\index{matrix mapping}\index{Mapping!MatrixMapping}
+%-------------------------------------------------------------
+
+This mapping can be used for rotations, scalings and shifts or any
+transformation that can be represented as a matrix times a vector.
+The mapping is defined by a $4\times4$ matrix 
+that maps from $r$ to $x$ by the relation
+$$
+ \left[ \begin{array}{c} x_1 \\ x_2 \\ x_3 \\ \null \end{array} \right] 
+  =
+ \left[ \begin{array}{cccc}
+      m_{00} & m_{01} & m_{02} & m_{03} \\
+      m_{10} & m_{11} & m_{12} & m_{13} \\
+      m_{20} & m_{21} & m_{22} & m_{23} \\
+       0     &   0    &   0    &   1       
+     \end{array} \right] 
+ \left[ \begin{array}{c} r_1 \\ r_2 \\ r_3 \\ 1 \end{array} \right] 
+$$
+
+
+% \subsection{Constructors}
+% 
+% 
+% \begin{tabbing}
+% {\ff Mapping()xxxx}\= \kill
+% {\ff Mapping()}    \> Default constructor\\
+% \end{tabbing}
+% 
+% 
+% \subsection{Data Members}
+% 
+% \begin{tabbing}
+% {\ff realArray matrix(4,4)xxxxxx  }xx\= \kill
+% {\ff realArray matrix(4,4)   }  \>  holds transformation matrix  \\
+% {\ff realArray inverseMatrix(4,4) }
+%                  \>  holds inverse of matrix (or pseudo-inverse?) \\
+% \end{tabbing}
+% 
+% \subsection{Member Functions}
+% 
+% \begin{tabbing}
+% 0123456789012345678901234567689012345678901234567890123 \= \kill
+% {\ff void rotate( int axis, real theta )}  
+%                \>  rotate about a coordinate axis by theta radians  \\
+% {\ff void scale( real scale1=1., real scale2=1., real scale3=1. )}  
+%                \>  scale in the $x_1$, $x_2$, $x_3$ directions \\
+% {\ff void shift( real shift1=1., real shift2=1., real shift3=1. )}  
+%                \>  shift in the $x_1$, $x_2$, $x_3$ directions \\
+% {\ff void map( ... ) }     \> evaluate the mapping and derivative  \\
+% {\ff void inverseMap( ... ) }  \> evaluate the inverse mapping and derivative  \\
+% {\ff void get( const Dir \& dir, const String \& name)} \> get from a database file \\
+% {\ff void put( const Dir \& dir, const String \& name)} \> put to a database file \\
+% \end{tabbing}
+
+Each time the functions {\ff rotate}, {\ff scale} and {\ff shift} are
+called the current {\ff matrix} is updated and thus the transformations
+are cummulative.
+
+Here is an example of the use of the {\ff MatrixMapping} class.
+{\footnotesize
+\begin{verbatim}
+#include "Overture.h"
+
+void main()
+{
+  realArray r(1,3);
+  realArray x(1,3);
+  realArray xr(1,3,3);
+
+
+  MatrixMapping rotScaleShift  ;     // Define a matrix mapping 
+
+  rotScaleShift.rotate( axis3, Pi/2. );  // rotate about the x_3 axis
+  rotScaleShift.scale( 2.,1.,1. );       // scale by 2 in x_1-direction
+  rotScaleShift.shift( 0.,1.,0. );       // shift by 1 in x_2 direction
+  
+  r=.5;
+
+  rotScaleShift.map( r,x,xr );
+
+}
+\end{verbatim}
+}
+
+%% \input MatrixMappingInclude.tex
+
+% \subsection{Utility Functions}
+% 
+% These utility can be used to manipulate the {\ff matrix}
+% and {\ff inverseMatrix}.
+% 
+% \begin{tabbing}
+% 01234567890123456789012345676890123456789012345678901234567890123456789 \= \kill
+% {\ff void matrixMatrixProduct( realArray \& m1, realArray \& m2,
+%  realArray \& m3 )}    \>  ${\ff m1}(4,4) \gets {\ff m2}(4,4)*{\ff m3}(4,4)$  \\
+% {\ff void matrixVectorProduct( realArray \& v1, realArray \& m2, 
+% realArray \& v3 )}  \>  ${\ff v1}(4) \gets {\ff m2}(4,4)*{\ff v3}(4)$ \\
+% {\ff void matrixInversion( realArray \& m1Inverse, realArray \& m1 )}
+%                \>  ${\ff m1Inverse} \gets {\ff m1}^{-1}$ \\
+% \end{tabbing}
+

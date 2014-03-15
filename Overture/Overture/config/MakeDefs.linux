@@ -1,0 +1,166 @@
+# linux with dynamic libraries 
+
+# these next values for compilers will be used unless overridden with an argument to configure
+cc = gcc
+CC = g++
+FC = g77
+
+# On some 64-bit machines some libraries are in lib64 instead of lib
+# this next line will be changed by the configure script
+LIB64 = lib 
+
+# Here is the rpath command
+OV_RPATH = -Wl,-rpath,
+#xlc OV_RPATH = -R
+
+MOTIF_LIB = $(MOTIF)/$(LIB64)
+OPENGL_LIB = $(OpenGL)/$(LIB64)
+
+XLIBS_LIB = $(XLIBS)/$(LIB64)
+OV_X_LIBRARIES = -L$(XLIBS_LIB) -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11
+OV_MOTIF_LIBRARIES = $(OV_RPATH)$(MOTIF_LIB) -L$(MOTIF_LIB) -lXm
+
+# these next lines will be changed by the configure script
+USE_DOUBLE_OR_SINGLE = -DOV_USE_FLOAT
+#xlc USE_DOUBLE_OR_SINGLE = -WF,-DOV_USE_FLOAT
+
+A++ = $(APlusPlus)
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+AppLibraries = $(OV_RPATH)$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static 
+
+Include=  -I$(Overture)/include -I. 
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+# Make 2 dynamic libs for ibm: 
+#xlc LibOverture= -lOverture1 -lOverture2 -lOverture_static
+LibRapsodi= -lRapsodi -lRapsodi_static 
+BOXLIB_DEFS = -DBL_USE_FLOAT -DBL_Solaris
+
+# Here is where we can find the perl include files and library (CORE)
+# These will normally be changed by the configure script unless it can't find the location of the perl CORE 
+OV_PERL_INCLUDE = /usr/lib/perl5/5.6.1/i386-linux/CORE
+OV_PERL_LIB     = /usr/lib/perl5/5.6.1/i386-linux/CORE
+#kkc 060111 here is an attempt to automatically setup the perl stuff
+PERLSYSS := $(shell perl -V:archname)
+PERL_SYS := $(shell $(PERLSYSS) echo $${archname} )
+PERLDIRS := $(shell perl -V:prefix)
+PERL_DIR := $(shell $(PERLDIRS) echo $${prefix} )
+PERLVERS := $(shell perl -V:version)
+PERL_VER := $(shell $(PERLVERS) echo $${version} )
+OV_PERL_INCLUDE = $(PERL_DIR)/lib/$(PERL_VER)/$(PERL_SYS)/CORE
+OV_PERL_LIB = $(PERL_DIR)/lib/$(PERL_VER)/$(PERL_SYS)/CORE
+# Here are the perl libraries we need to link to (NOTE: this next line is set by the configure script)
+OV_PERL_LIBRARIES = 
+# old OV_PERL_LIBRARIES = $(OV_RPATH)$(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lcrypt
+
+# these next flags are compiler dependent
+# *** WARNING *** these next lines are changed by the configure script
+cc_FLAGS = -fPIC
+CC_FLAGS = -fPIC
+FF_FLAGS = -fPIC
+# turn off warnings from intel f95 compiler
+#ifc FF_FLAGS = -fPIC -w
+
+# these next values will may be changed by the configure script
+C_OPTIMIZATION_FLAG = -O
+CPP_OPTIMIZATION_FLAG = -O
+FORTRAN_OPTIMIZATION_FLAG = -g
+
+# Use this next flag to optimize files that Bill likes to by default compile optimized
+STD_OPT_FLAG = -O 
+
+CFLAGS =  $(cc_FLAGS)  $(Include) $(OverturePrecision) $(C_OPTIMIZATION_FLAG) -I$(XLIBS) -DSHM
+# flags for c routines we always optimize (except if debug is on)
+CFLAGSO =  $(STD_OPT_FLAG) $(cc_FLAGS)  $(Include) $(OverturePrecision) -I$(XLIBS) -DSHM
+
+# do not include some paths, such as STL in the places searched by makedepend (takes too long)
+# *wdh* temporarily add -Wno-deprecated -- fix these later
+# ** CC_INCLUDES_FOR_DEPEND =  $(Include) $(OverturePrecision) -DUSE_MESA -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS) -Wno-deprecated -I$(OV_PERL_INCLUDE)
+CC_INCLUDES_FOR_DEPEND =  $(Include) $(OverturePrecision) -DUSE_MESA -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS) -I$(OV_PERL_INCLUDE)
+
+STL_INCLUDE = 
+#  HAS_MODFL_PROTO is for a perl compile error of OvertureParser.C for gcc 3.4.3
+# CC_INCLUDES = $(CC_FLAGS) $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE) -DHAS_MODFL_PROTO
+# CC_FLAGS = -fPIC -DHAS_MODFL_PROTO 
+# wdh 081212 -- remove HAS_MODFL_PROTO since it fails with xlc
+CC_INCLUDES = $(CC_FLAGS) $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE) 
+CC_FLAGS = -fPIC 
+
+CCFLAGS= $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG)
+
+# things that are always compiled with optimization use this flag (except if debug is on)
+CCFLAGSO= $(CC_INCLUDES) $(STD_OPT_FLAG)
+
+# things that are always compiled with lots of optimization use this flag (except if debug is on)
+CCFLAGSF= $(CC_INCLUDES) $(STD_OPT_FLAG)
+
+# things that need to be compiled with no optimization use the following
+CCFLAGSG= $(CC_INCLUDES) -g
+
+# Notes: There seems to be problems using -O with g77
+#        Some older versions of the egcs compiler also had trouble with -fPIC, removing it seemed to work.
+FFLAGS=    $(FF_FLAGS) $(OverturePrecision)  $(FortranDouble) $(FORTRAN_OPTIMIZATION_FLAG) $(Include)
+# single precision always:
+FFLAGSS=  $(FF_FLAGS) $(OverturePrecision) $(FORTRAN_OPTIMIZATION_FLAG)  $(Include)
+FFLAGSSO = ${FF_FLAGS} $(OverturePrecision) $(Include) $(STD_OPT_FLAG)
+FFLAGSO = $(FF_FLAGS) $(OverturePrecision) $(FortranDouble) $(STD_OPT_FLAG) $(Include)
+FFLAGSG = $(FF_FLAGS) $(OverturePrecision) $(FortranDouble) -g $(Include)
+FFLAGSG2 = $(FF_FLAGS) $(OverturePrecision) $(FortranDouble) -g $(Include)
+# The ifort compiler can take for-ever if we use -g so use -O instead
+#ifort FFLAGSG = $(FF_FLAGS) $(OverturePrecision) $(FortranDouble) -O $(Include)
+
+# things that are always compile with optimization use these flags (except if debug is on)
+FFLAGSO= $(STD_OPT_FLAG) $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) $(Include) 
+FFLAGSSO= $(STD_OPT_FLAG) $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) $(Include)
+
+# Here we add a path to the compiler lib directory (this is sometimes needed so that we find the correct
+# version of the compiler libraries if they are different from the the ones in /usr/lib for e.g.)
+OV_COMPILER_LIBS = $(OV_RPATH)$(COMPILER_LIB_DIRECTORY) -L$(COMPILER_LIB_DIRECTORY)
+
+# here are the hdf libraries (the configure script will change this line for use with hdf5)
+HDF_LIBS = $(OV_RPATH)$(HDF)/lib -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz 
+#xlc HDF_LIBS = $(OV_RPATH)$(HDF)/lib -L$(HDF)/lib -lmfhdf -ldf -lz 
+
+FORTRAN_LIBS = 
+#gcc FORTRAN_LIBS =-lnsl -lg2c
+#gfortran FORTRAN_LIBS =-lgfortran
+# This next line will be used with the Portland group compiler (the configure script will set the next line)
+# 080623: aio_read etc. are found in /usr/lib/librt.so
+PGI_LIB =
+#pgf77 FORTRAN_LIBS = $(OV_RPATH)$(PGI_LIB) -L$(PGI_LIB) -lpgftnrtl -lpgmp  -lpgc -lrt -lstd
+# This next line will be used with the intel fortran compiler. (the configure script will set the next line)
+# g2c may be needed by lapack (for cg)
+IFORT_LIB = 
+#ifc FORTRAN_LIBS = $(OV_RPATH)$(IFORT_LIB) -L$(IFORT_LIB) -lF90 -lIEPCF90 -lg2c
+# old ifc FORTRAN_LIBS = -Wl,-rpath,/opt/intel/compiler60/ia32/lib -L/opt/intel/compiler60/ia32/lib -lF90 -lIEPCF90 -L/usr/lib/gcc-lib/i386-redhat-linux/2.96 -lg2c
+# Here are the libraries for the new intel compiler (called ifort instead of ifc) (use "ifort -dryrun" to see libraries needed)
+#ifort FORTRAN_LIBS = $(OV_RPATH)$(IFORT_LIB) -L$(IFORT_LIB) -lifcoremt
+# Libraries using xlf and linux
+#xlf FORTRAN_LIBS = -L/opt/ibmcmp/xlf/bg/11.1/bglib -lxlopt -lxl -lxlf90 -lxlfmath -L/opt/ibmcmp/xlsmp/bg/1.7/bglib/ -lxlomp_ser
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES= 
+RAPTEMPLATES=
+
+# The KCC compiler should be used to build the static library (for templates)
+AR = ar
+#KCC AR = KCC
+ARFLAGS = ruv  
+#KCC ARFLAGS = -o 
+
+LD = $(CC)
+LDFLAGS = -L
+RANLIB = ranlib
+SOFLAGS = -shared
+#xlc SOFLAGS = -qmkshrobj -qnostaticlink
+# the next line is changed by the configure script
+OpenGLibs=
+GLIBS=  $(OV_PERL_LIBRARIES) $(OV_RPATH)$(OPENGL_LIB) -L$(OPENGL_LIB) $(OpenGLibs) $(OV_MOTIF_LIBRARIES) $(OV_X_LIBRARIES) -lm
+
+# On Don's machine the pgi libraries need to follow the mpi libraries : 
+# FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 
+FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) $(HDF_LIBS) $(AppLibraries) $(FORTRAN_LIBS)
+
+
+OGMGLIB = $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib -lOgmg

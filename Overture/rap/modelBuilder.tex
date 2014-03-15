@@ -1,0 +1,200 @@
+%=======================================================================================================
+% ModelBuilder Documentation
+%=======================================================================================================
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\red}{\color{red}}
+\newcommand{\black}{\color{black}}
+
+
+% \usepackage{epsfig}
+\usepackage{graphicx}    
+\usepackage{moreverb}
+\usepackage{amsmath}
+% \usepackage{fancybox}  % this destroys the table of contents!
+% \usepackage{subfigure}
+\usepackage{multicol}
+
+\input wdhDefinitions
+% \usepackage{pstricks}
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\input trimFig.tex
+
+% define the clipFig commands:
+% \usepackage{calc}
+% \input clipFig.tex
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+\newcommand{\normalss}{\sffamily}
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\begin{document}
+
+
+
+% \end{document}
+
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\id     {i}
+\def\jd     {j}
+\def\kap {\sqrt{s+\omega^2}}
+
+\newcommand{\mapping}{\homeHenshaw/Overture/mapping}
+\newcommand{\figures}{\homeHenshaw/OvertureFigures}
+
+\vspace{3\baselineskip}
+\begin{flushleft}
+  {\Large 
+   Model Builder  \\ 
+   An Overture Tool for CAD Cleanup and Modification  \\
+  }
+\vskip 2\baselineskip
+{\large Kyle K. Chand,  }             \\
+{\large William D. Henshaw,  }             \\
+{\large Anders Petersson}             \\
+\vskip 1\baselineskip
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture \\
+\vskip 1\baselineskip
+\today \\
+\vskip 1\baselineskip
+% UCRL-MA-???????
+
+\end{flushleft}
+
+\vspace{1\baselineskip}
+
+\begin{abstract}
+This document describes the {\tt ModelBuilder} class. This class can be used
+to build geometric models, read, edit, repair and modify CAD geometries.
+Some of the features are
+\begin{itemize}
+ \item read CAD geometries from IGES files.
+ \item automatic detection of many errors in the CAD representation such as invalid
+    trimming curves.
+ \item repair CAD geometries through interactive editing of the trimming curves
+ \item modify CAD geometries to remove features, ... 
+ \item automatically build the topology (connectivity) of the patched model, (closing gaps and removing overlaps),
+  and constructing a water-tight representation of the CAD surface using a global triangulation.
+\end{itemize}
+\end{abstract}
+
+\clearpage
+\tableofcontents
+
+\vspace{3\baselineskip}
+
+\section{Introduction}
+
+{\bf NOTE: This documentation is under construction.}
+
+
+
+
+% \begin{figure} \label{fig:ModelBuilder}
+%   \begin{center}
+%   \includegraphics{modelBuilder.ps}
+%   \caption{The ModelBuilder}
+%   \end{center}
+% \end{figure}
+
+
+% \section{Sample uses of the ModelBuilder}
+
+
+
+% \section{Read an IGES file, repair surfaces, build the topology}
+
+\input retro.tex
+
+
+\clearpage
+% ----------------------------------------------------------------------------------
+% \section{Read an IGES file, simplify the geometry, build the topology}
+
+% This section needs to be written.
+
+% ----------------------------------------------------------------------------------
+\section{Build a surface of revolution}
+
+This section needs to be written.
+
+% ----------------------------------------------------------------------------------
+\clearpage
+\input fixingTrimmingCurves
+
+
+\clearpage
+\input nozzleAndCavity
+
+\clearpage 
+\input marsCapsule
+
+
+
+
+\clearpage
+\section{Model Builder Class Member Functions}\index{ModelBuilder member functions}
+
+\input ModelBuilderInclude.tex
+
+
+
+\clearpage
+\section{Appendix: Mouse and button commands}
+\input mouseAndButtons.tex
+
+
+\clearpage
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}

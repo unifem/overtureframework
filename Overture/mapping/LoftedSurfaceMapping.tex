@@ -1,0 +1,363 @@
+\newcommand{\shat}{\hat{s}}
+
+%--------------------------------------------------------------
+\section{LoftedSurfaceMapping: build a lofted surface}\index{lofted surface}\index{Mapping!LoftedSurfaceMapping}
+%-------------------------------------------------------------
+
+
+The LoftedSurfaceMapping can be used to define a lofted surface such as the
+surface of a wing with a tip.  A lofted surface is defined using {\em sections}
+(formulas that define the basic cross sections) and {\em profile} curves (that
+can be used to deform the sections, such as to form a wing tip).
+Figures~\ref{fig:JoukowskyLoftedSurface},
+\ref{fig:WindTurbineBladeLoftedSurface} and~\ref{fig:BoxLoftedSurface} show examples of some lofted
+surfaces.  
+
+NOTE: The current intention is that users should edit the {\tt
+LoftedSurfaceMapping.C} file to define a new lofted surface by changing the
+formulas for the sections and profile curve.
+
+{
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.0}{.0}{.25}{.25}}
+\newcommand{\figWidtha}{12cm}
+\newcommand{\trimfiga}[2]{\trimPlot{#1}{#2}{.0}{.0}{.35}{.35}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (16.5,8.5);  % set the bounding box (so we have less surrounding white space)
+%
+ \begin{scope}[yshift=4cm]
+    \draw ( 0.0,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/roundTipProfile}{\figWidth}};
+    \draw(1,1.35) node[anchor=west] {\small $s=1$};
+    \draw(1,2.75) node[anchor=west] {\small $s=0$};
+    \draw(1,3.4) node[anchor=west] {\small $\shat=0$};
+    \draw(7.05,2.1) node[anchor=west] {\small $\shat=1$};
+    %
+    \draw(3.25,2.1) node[anchor=east] {\small $w(\shat)$};
+    \draw[<->,thick] (3.25,1.2) -- (3.25,3.10); 
+    %
+    \draw(5.7,2.1) node[anchor=west] {\small $s=s_T$};
+    %
+    \draw(4.0,1.4) node[anchor=west] {\small $\fv^b(s)$};
+    \draw(4.0,2.75) node[anchor=west] {\small $\fv^t(s)$};
+ \end{scope}
+  \draw ( 8.2,4.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/flatTipProfile}{\figWidth}};
+  \draw ( 2.1,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\figures/windTurbineProfile}{\figWidtha}};
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,8);
+\end{tikzpicture}
+\end{center}
+\caption{Some lofted surface profile curves. Top left: rounded-tip-profile. Top right: flat-tip-profile.
+      Bottom: wind-turbine-profile.}
+\label{fig:LoftedSurfaceProfileCruves}
+\end{figure}
+}
+
+% {
+% \newcommand{\figWidth}{9cm}
+% \newcommand{\figWidthb}{13cm}
+% \newcommand{\clipfig}[2]{\clipFig{#1}{#2}{.04}{.9}{.3}{.67}}
+% \newcommand{\clipfigb}[2]{\clipFig{#1}{#2}{.02}{.9}{.375}{.60}}
+% \begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,.0)(16.5,5.6)
+%  \rput(4.  ,4.0){\clipfig{\figures/roundTipProfile.ps}{\figWidth}}
+% %
+%  \rput[l](1,5.4){$\shat=0$}\rput[l](7.8,4){$\shat=1$}
+%  \rput[l](1,4.8){$s=0$}
+%  \rput(5,4.8){$\fv^t(s)$}
+%  \rput[r](6.7,4){$s=s_T$~~\psline[linewidth=1.pt]{->}(0,0)(.8,0)}
+%  \rput(5,3.2){$\fv^b(s)$}
+%  \rput[l](1,3.2){$s=1$}
+%  \rput(3.,4){$w(\shat)$}\rput(3.5,4){\psline[linewidth=1.pt]{<->}(0,-1.1)(0,1.1)}
+% %
+%  \rput(12.75,4.0){\clipfig{\figures/flatTipProfile.ps}{\figWidth}}
+%  \rput(8   ,.9){\clipfigb{\figures/windTurbineProfile.ps}{\figWidthb}}
+% % 
+% %\psgrid[subgriddiv=2]
+% \end{pspicture}
+% \end{center}
+% \caption{Some lofted surface profile curves. Top left: rounded-tip-profile. Top right: flat-tip-profile.
+%       Bottom: wind-turbine-profile.}
+% \label{fig:LoftedSurfaceProfileCruves}
+% \end{figure}
+% }
+
+The generic lofted surface is a three-dimensional surface, $\xv=\Lv(s,\theta)$, $\Lv : \Real^2\rightarrow \Real^3$,
+that is a function of an axial variable $s$ and a tangential variable $\theta$. In the examples
+given here, the surface is thought to extend primarily in the $z$ direction, and be of the form
+\begin{align}
+  \Lv(s,\theta) &= (x(s,\theta),y(s,\theta),z(s,\theta)) = ( \Sv(s,\theta), Z_L(s) ),  \label{eq:loftedSurface}
+\end{align}
+where the function $\Sv(s,\theta)$ defines the $(x,y)$ coordinates of the cross-sections and is usually of the form
+\begin{align}
+\Sv(s,\theta) &=   R(s,\theta) \big( \cv(s,\theta)~w(s) \big) + \gv(s) ,  \label{eq:loftedSectionCurve}
+\end{align}
+where 
+\begin{align*}
+  \cv(s,\theta) & = \text{basic unscaled cross-section curves}, \\
+  w(s) &= \text{profile width function (that defines the shape of the tip)}, \\
+  R(s,\theta) &= \text{twist and scale matrix operator}, \\
+  \gv(s) &= \text{flex operator that bends the surface}.
+\end{align*}
+{\em Profile curves} are used to define $w(s)$ and $Z(s)$. 
+Examples of profile curves are given in Figure~\ref{fig:LoftedSurfaceProfileCruves}.
+In order to have a nicely defined
+tip, we first define a single profile function $(x,y)= \fv^p(s)$, that is subsequently split into a top and bottom portion, 
+ \begin{align*}
+  \fv^p(s) &= \begin{cases}
+              \fv^t(s) & \text{for $0<s<s_T$}, \\
+              \fv^b(s) & \text{for $s_T<s<1$}, 
+              \end{cases}
+\end{align*}
+where $s_T$ denotes the position of the ``tip''. 
+The profile curves have $x$ and $y$ components denoted by $\fv^t(s)=(f_x^t(s),f_y^t(s))$ and $\fv^b(s)=(f_x^b(s),f_y^b(s))$.
+From the profile curves we define the {\em profile width} as the (vertical) $y$-distance between the top
+and bottom profile curves,
+ \begin{align*}
+  w(\shat) &= f^t_y(\shat\, s_T) - f^b_y(1- (1-s_T)\shat), \qquad \text{for $0 \le \shat \le 1$, ($\shat=s/s_T$) },
+\end{align*}
+while the axial distance function $z=Z_L(s)$ in~\eqref{eq:loftedSurface} is defined as the $x$-component of the top profile,
+ \begin{align*}
+    Z_L(\shat) &= f^t_x(\shat\, s_T), \qquad \text{for $0 \le \shat \le 1$}.
+\end{align*}
+Note that in the examples shown, $w(1)=0$, and thus the surface will close to a point at the tip. This point on the
+surface is a coordinate singularity and later in this section we discuss how to deal with this
+singularity when constructing an overlapping grid.
+
+
+{
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.0}{.0}{.25}{.25}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (16.5,11.75);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,7.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/roundTipProfile}{\figWidth}};
+  \draw ( 0.0,4.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/twistedJoukowskyRoundTipTopView}{\figWidth}};
+  \draw ( 0.0,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/twistedJoukowskyRoundedTip}{\figWidth}};
+% 
+ \draw ( 8.0,7.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/flatTipProfile}{\figWidth}};
+  \draw ( 8.0,4.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/twistedJoukowskyFlatTipTopView}{\figWidth}};
+  \draw ( 8.0,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/twistedJoukowskyFlatTip}{\figWidth}};
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,12);
+\end{tikzpicture}
+\end{center}
+\caption{Lofted surface : generic wing with Joukowsky sections, variable chord, twist and flex. 
+         Left: rounded tip wing showing the profile function (top) and two views of the surface. Right: flat tip wing showing the profile function (top) and two views of the surface. The profile functions act primarily to form the tip. A scale function
+causes the chord to decrease through the main portion of the surface.}
+\label{fig:JoukowskyLoftedSurface}
+\end{figure}
+}
+
+% {
+% \newcommand{\figWidth}{9cm}
+% \newcommand{\clipfiga}[2]{\clipFig{#1}{#2}{.0}{1.}{.3}{.67}}
+% \newcommand{\clipfig}[2]{\clipFig{#1}{#2}{.025}{1.}{.3}{.70}}
+% \newcommand{\clipfigb}[2]{\clipFig{#1}{#2}{.05}{1.}{.25}{.70}}
+% \begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,-1.)(16.5,8.70)
+%  \rput(4.,7.5){\clipfiga{\figures/roundTipProfile.ps}{\figWidth}}
+%  \rput(4.,4.0){\clipfig{\figures/twistedJoukowskyRoundTipTopView.ps}{\figWidth}}
+%  \rput(4.,0.5){\clipfigb{\figures/twistedJoukowskyRoundedTip.ps}{\figWidth}}
+% %
+%  \rput(12.5,7.5){\clipfiga{\figures/flatTipProfile.ps}{\figWidth}}
+%  \rput(12.5,4.0){\clipfig{\figures/twistedJoukowskyFlatTipTopView.ps}{\figWidth}}
+%  \rput(12.5,0.5){\clipfigb{\figures/twistedJoukowskyFlatTip.ps}{\figWidth}}
+% % 
+% % \psgrid[subgriddiv=2]
+% \end{pspicture}
+% \end{center}
+% \caption{Lofted surface : generic wing with Joukowsky sections, variable chord, twist and flex. 
+%          Left: rounded tip wing showing the profile function (top) and two views of the surface. Right: flat tip wing showing the profile function (top) and two views of the surface. The profile functions act primarily to form the tip. A scale function
+% causes the chord to decrease through the main portion of the surface.}
+% \label{fig:JoukowskyLoftedSurface}
+% \end{figure}
+% }
+
+
+
+Two lofted surfaces for a generic wing with twist and flex are in shown in Figure~\ref{fig:JoukowskyLoftedSurface}.
+The basic section curve for this wing is a Joukowsky airfoil (defined in Section~\ref{sec:AirfoilMapping}), 
+ \begin{align*}
+  \cv(s,\theta) &= (x_J(\theta),y_J(\theta) =  \Jv(\theta) = \text{Joukowsky airfoil}.
+\end{align*}
+The {\em twist and scale matrix} $R$ in~\eqref{eq:loftedSectionCurve} is the product of
+a rotation matrix and a scaling factor,
+ \begin{align*}
+  R(\zeta,\theta) &= \begin{bmatrix}
+                   \cos(\phi) & -\sin(\phi) \\
+                   \sin(\phi) & \cos(\phi) \\
+                 \end{bmatrix} ~~ S(\zeta) 
+\end{align*}
+where the rotation angle $\phi=\phi(\zeta)$ and scale function $S(\zeta)$ are some function of the
+scaled $z$ coordinate, $\zeta$, defined by 
+\begin{align*}
+   \zeta &= Z(s)/L, \\
+    L &= Z(s_T) . \qquad \text{(length of the wing)}
+\end{align*}
+Normally on would use $\zeta$ as a variable rather than $s$ when defining properties of the surface in physical coordinates. 
+For example, with the flat-tip-profile in Figure~\ref{fig:LoftedSurfaceProfileCruves}, $s$ continues to vary along
+the flat face even though $\zeta$ does not.
+In the example shown in Figure~\ref{fig:JoukowskyLoftedSurface}
+we choose $\phi$ to vary between $\phi_a=0$ and $\phi_b=-30^o$ by the formula
+\begin{align*}
+  \phi(\zeta) &= \phi_a (1-\zeta^2) + \phi_b \zeta^2, 
+\end{align*}
+while the scale function varies between $S_a=1$ and $S_b=.7$ according to 
+\begin{align*}
+  S(\zeta) &= S_a (1-\zeta^3) + S_b \zeta^3 . 
+\end{align*}
+The scale function acts to shorten the chord and make the surface thinner.
+The flex function is chosen to bend the surface in the $y$-direction and is given by
+\begin{align*}
+  \gv(\zeta) &= (0,g_y(\zeta)), \\
+  g_y(\zeta) &= g_a (1-\zeta^3) + g_b \zeta^3, \\
+  g_a&=0, ~~ g_b=1/4~ . 
+\end{align*}
+The powers of $\zeta$ used in these formulae are arbitrary.
+
+
+% \begin{align*}
+%   \Jv(\theta) & = \text{Joukowsky airfoil} \\
+%   W(s) &= P^t_y(s) - P^b_y(s),  \\
+%   \Sv_0(s,\theta) &= \Jv(\theta)~W(s) , \qquad \text{multiply section by profile width,} \\
+%   z &= P_x(s), \qquad \zeta  = z/L, \\
+%   \Sv(s,\theta) &= R(\zeta) \Sv_0(s,\theta) + \fv(\zeta), \qquad \text{apply twist and flex}.
+% \end{align*}
+% 
+% The {\em rounded tip profile} curve is used to form a rounded tip with an
+% elliptical end. The {\em flat tip profile} curve is used to form a (nearly) flat wing tip. 
+% 
+% 
+% 
+% A lofted surface for a wind-turbine blade in shown in figure~\ref{fig:wingTurbineLoftedSurface} together
+% with the profile curve.
+% The formula for the lofted surface is 
+% % \begin{align*}
+% % \end{align*}
+
+
+{
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.0}{.0}{.30}{.20}}
+\newcommand{\figWidtha}{8cm}
+\newcommand{\trimfiga}[2]{\trimPlot{#1}{#2}{.0}{.0}{.20}{.25}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.5,8);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,4.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/windTurbineProfile}{\figWidth}};
+  \draw ( 8.0,4.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/cylinderJoukowskyWindTurbineTopView}{\figWidth}};
+  \draw ( 4.0,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\figures/cylinderJoukowskyWindTurbine}{\figWidtha}};
+% grid:
+%\draw[step=1cm,gray] (0,0) grid (16,8);
+\end{tikzpicture}
+\end{center}
+\caption{Lofted surface : wind-turbine blade showing the profile (top left) and two views of the wing. The
+profile function determines the overall shape and the tip.}
+\label{fig:WindTurbineBladeLoftedSurface}
+\end{figure}
+}
+
+
+
+The wind-turbine surface in Figure~\ref{fig:WindTurbineBladeLoftedSurface} uses the profile function 
+to shape the entire surface. The unscaled cross-section function $\cv(s,\theta)$ starts as a circle
+and transitions to a Joukowsky airfoil. 
+
+{\bf Notes:} 
+\begin{enumerate}
+  \item In the examples represented here the surface converges to a point at the tip. This is a result
+        of the profile width function $w(s)$ going to zero as $s$ goes to 1. In order that the 
+       surface near the tip be single valued, it is important that the point $(x,y)=(0,0)$ be inside the
+       the cross-section curves $\cv(s,\theta)$ as $s$ approaches 1. To achieve this property we 
+       shift the basic cross-section (such as the Joukowsky profile) so that this is true. We then 
+       rely on the rotation, scaling  and flex functions to define the actual shape (note that these
+      functions as applied after we multiply by $w(s)$).
+\end{enumerate}
+
+
+Figure~\ref{fig:BoxLoftedSurface} shows a surface for a box with rounded corners generated
+with the lofted surface mapping. The profile is the {\em flat double tip profile}. The sections
+are defined from a smoothed polygon mapping that blends into a circle at the tips. 
+This mapping can be used to create a grid around the exterior of a box. 
+{
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.0}{.0}{.25}{.25}}
+\newcommand{\figWidtha}{8cm}
+\newcommand{\trimfiga}[2]{\trimPlot{#1}{#2}{.0}{.0}{.0}{.0}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.5,8);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,2.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/loftedSurfaceFlatDoubleTipProfile}{\figWidth}};
+  \draw ( 8.0,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\figures/loftedSurfaceSmoothPolygonFlatDoubleTip}{\figWidtha}};
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,8);
+\end{tikzpicture}
+\end{center}
+\caption{Lofted surface : box with rounded corners constructed from the {\em smooth polygon sections} and the {\em flat double tip profile}. Left: profile. Right: lofted surface for the box. Note that the cross-sections transition to a circle at the singular poles.}
+\label{fig:BoxLoftedSurface}
+\end{figure}
+}
+
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{Lofted surface for a Wigely ship hull}\index{ship hull}
+
+{
+\newcommand{\figWidth}{8cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.0}{.0}{.15}{.15}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.5,6);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/loftedShipHullFull}{\figWidth}};
+  \draw ( 8.0,0.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\figures/loftedShipHull}{\figWidth}};
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,6);
+\end{tikzpicture}
+\end{center}
+\caption{Lofted surface for a Wigley ship hull is constructed from the {\em ship hull sections} and the {\em flat double tip profile}. 
+    Full revolution (left) and half revolution (right), using $L=2$, $B=L/10$ and $D=L/16$.}
+\label{fig:loftedShipHull}
+\end{figure}
+}
+
+
+A lofted surface for a ship hull is shown in Figure~\ref{fig:loftedShipHull}.
+The ship hull is of the form of a Wigley hull. Wigley hull's form a class of
+simple hulls that are used in validation.
+The cross-section we use is defined as
+ \begin{align*}
+  \cv(s,\theta) &= (x_S(s,\theta),y_S(s,\theta)), \\
+  x_S(s,\theta) &= b(s) \cos(\theta), \\
+  y_S(s,\theta) &= d(s) \sin(\theta),  \\
+  b(s) &=   2 B \hat{z} (1- \hat{z}) , \\
+  \hat{z} &= (1-2\delta) (z/ L) + \delta, \\
+  d(s) &= D ,
+\end{align*}
+where $L$ is the length, $B$ is the breadth (width), and $D$ is the depth (draft).
+
+
+The breadth of the hull is parabolic in shape 
+as a function of $z$ (this is the basic characteristic of Wigley hulls), given approximately by $ 2 B (z/L)(1-z/L)$.
+To avoid the sharp bow/stern at $z=0$ and $z=L$ we round off the hull a bit. This is done in a simple way by making
+the breadth finite at the ends as determined by the small parameter $\delta$ (e.g. $\delta=.02$). 
+The {\em flat double tip profile} is used to close off the bow and stern as a smooth surface.
+
+The cross-section shape is taken as an ellipse of constant depth and variable breadth. Different Wigley
+hulls can be defined with different cross sections (e.g. square, rectangular).
+Note that in order to make a nice symmetric surface we first construct the hull as a full revolution in $\theta$. 
+The Reparameterization Mapping can then be used to create just half the surface.
+
+An overlapping grid for the ship hull is constructed with the Ogen script {\tt loftedShipHullGrid.cmd}, 
+see the Ogen documentation~\cite{OGEN} for further details.

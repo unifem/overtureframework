@@ -1,0 +1,61 @@
+# 
+# Curved pipe convergence test: 
+#          conv.p curvedPipe.conv
+#
+$check="mp.check";
+#
+$tFinal=1.; $nu=.0125; $kappa=.025; $degreeX=2; $degreeT=2; $tz="trig"; $fx1=1.5; $fx2=1.; 
+$ktcSolid=.05; $ktcFluid=.1; 
+# ------------------------ Start a new problem -----------------------------------
+# ------------------------ explicit -----------------------------------
+# Set the name of final TeX file with errors and convergence rates: 
+$name="curvedPipeFixed90";  # radial grids use a fixed dist. 
+$outputFile="mp.$name.table.tex"; 
+$caseName="curvedPipe"; 
+$numberOfComponents=8;
+$numberOfDomains=2; 
+$gName1 = $name . "e1.order2"; # names of the grids
+$gName2 = $name . "e2.order2";
+$gName3 = $name . "e3.order2";
+# define the table heading and caption
+$title= "grid  \& N \&  p \&  u \& v \& w \& T \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  \& \$T_S\$"; 
+$caption= "\\caption\{Cgmp: INS+AD, explicit, order=\$2\$, \$\\nu=$nu\$, \$\\kappa=$kappa\$, \$t=$tFinal\$, $tz TZ, kFluid=\$$ktcFluid\$, kSolid=\$$ktcSolid\$, fx1=$fx1, fx2=$fx2, $name, $date}\\label\{table:mp.$name}"; 
+# 
+$options = "-ts=pc -tz=$tz -solver=best -nu=$nu -kappa=$kappa -tf=$tFinal -tp=$tFinal -go=go";
+$options = $options . " -ktcSolid=$ktcSolid -ktcFluid=$ktcFluid -fx1=$fx1 -fx2=$fx2"; 
+$grid="curvedPipe1"; $res=1; $cmd="../bin/cgmp noplot ../cmd/curvedPipe -g=$gName1 $options";
+$grid="curvedPipe2"; $res=2; $cmd="../bin/cgmp noplot ../cmd/curvedPipe -g=$gName2 $options";
+$closeFile="true"; 
+# --------------------------- end problem ------------------------------------------
+exit
+
+
+# ------------------------ Start a new problem -----------------------------------
+# ------------------------ implicit -----------------------------------
+# Set the name of final TeX file with errors and convergence rates: 
+$name="curvedPipeFixed90";  # radial grids use a fixed dist. 
+$outputFile="mp.$name.imp.table.tex"; 
+$caseName="curvedPipeImp"; 
+$numberOfComponents=8;
+$numberOfDomains=2; 
+$gName1 = $name . "e1.order2"; # names of the grids
+$gName2 = $name . "e2.order2";
+$gName3 = $name . "e3.order2";
+# define the table heading and caption
+$title= "grid  \& N \&  p \&  u \& v \& w \& T \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  \& \$T_S\$"; 
+$caption= "\\caption\{Cgmp: INS+AD, implicit-viscous, order=\$2\$, \$\\nu=$nu\$, \$\\kappa=$kappa\$, \$t=$tFinal\$, $tz TZ, kFluid=\$$ktcFluid\$, kSolid=\$$ktcSolid\$, fx1=$fx1, fx2=$fx2, $name, $date}\\label\{table:mp.$name.imp}"; 
+# 
+$options = "-ts=pc -tz=$tz -solver=best -nu=$nu -kappa=$kappa -tf=$tFinal -tp=$tFinal -go=go -ts=imp -iv=viscous -coupled=0 -nc=5 ";
+$options = $options . " -ktcSolid=$ktcSolid -ktcFluid=$ktcFluid -fx1=$fx1 -fx2=$fx2 "; 
+$show1=$caseName . "1.show"; 
+$show2=$caseName . "2.show"; 
+$grid="curvedPipe1"; $res=1; $cmd="../bin/cgmp noplot ../cmd/curvedPipe -g=$gName1 $options -show=$show1";
+$grid="curvedPipe2"; $res=2; $cmd="../bin/cgmp noplot ../cmd/curvedPipe -g=$gName2 $options -show=$show2";
+$closeFile="true"; 
+# --------------------------- end problem ------------------------------------------
+exit
+
+
+
+
+

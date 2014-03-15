@@ -1,0 +1,154 @@
+\section{OGFunction: A class for defining Twilight-zone flows}
+\index{OGFunction}\index{twilight zone!defining functions}\index{method of analytic solutions|see{twilight zone}}
+
+The class {\tt OGFunction} and derived classes such as
+{\tt OGTrigFunction}, {\tt OGPolyfunction} and {\tt OGPulseFunction} can be used
+to define ``exact solutions'' for PDE solvers in the 
+manner that has come to be known as ``twilight-zone flow''
+(Brown, 1985).
+
+Basically this class defines an analytic function (such 
+as a polynomial) and provides functions for evaluating
+this function and derivatives in convenient ways. Note that 
+as of version 14 it is possible to evaluate any partial
+derivative using the {\tt gd} (general derivative) member function.
+
+It is often difficult to come up with exact solutions 
+to test a PDE code. \index{twilight zone!how to test PDE codes}
+To over come this difficulty one
+can add forcing functions to the PDE and boundary
+conditions that will make any given function an
+exact solution. For example given the time
+dependent PDE for vector function $\uv$ 
+$$
+  \uv_t + a \uv_x + b \uv_y = \fv(x,y,t)
+$$
+with boundary conditions
+$$
+  B(\uv)=\gv(x,y,t)
+$$
+one can make any given function $\Uv(x,y,t)$ an exact solution
+by defining
+$$
+ \fv(x,y,t) = \Uv_t + a \Uv_x + b \Uv_y
+$$
+and
+$$
+  \gv(x,y,t)=B(\Uv(x,y,t))
+$$
+
+The class {\tt OGPolyFunction} can be used to define the function 
+$\Uv(x,y,z,t)$
+which is defined to be a polynomial in $x$, $y$, [$z$] and $t$.
+The class {\tt OGTrigfunction} can be used to define a function $\Uv(x,y,z,t)$
+which is a trigonometric function such as $\cos(2\pi x)\cos(2\pi y)\cos(2\pi t)$.
+
+
+The base class {\tt OGFunction} does not define any functions and thus you should
+never construct one of these. You might, however, keep a pointer to the
+base class. This pointer can point to an object of a derived class.
+
+
+% ----------------------------------
+\input OGFunctionInclude.tex
+% ----------------------------------
+
+\vfill\eject 
+\subsection{\Index{OGPolyFunction}}
+
+This class is derived from the {\tt OGFunction} class and defines a function
+that is a polynomial in space times a polynomial in time of the form
+$$
+U(x,y,z,n,t) = ( \sum_{i,j,k} c(i,j,k,n) x^i y^j z^k ) \sum_m a(m,n) t^m
+$$
+Each component is a polynomial in space and time.
+The coefficient matrices, $c(i,j,k,n)$ and $a(m,n)$ can be specified or else
+default values can be used.
+
+\input OGPolyFunctionInclude.tex
+
+
+\vfill\eject 
+\subsection{\Index{OGTrigFunction}}
+ 
+\input OGTrigFunctionInclude.tex
+
+% 
+% This class is derived from the {\tt OGFunction} class and defines a function
+% and defines a function that is a trigonometric polynomial:
+% $$
+%   \cos(f_x(n) \pi x) \cos( f_y(n) \pi y) \cos( f_z(n) \pi z) \cos( f_t(n) \pi t)
+% $$
+% where $f_x(n)$, $f_y(n)$ and $f_z(n)$ can be given values for each component n.
+% 
+% \noindent Use this constructor to use default values for
+% $f_x(n)$, $f_y(n)$, $f_z(n)$ and $f_t(n)$ or to give equal values for all $n$.
+% 
+% \shadowbox{\parbox{4in}{\begin{flushleft}
+%   OGTrigFunction(const real fx0=1.,  \\
+% ~~~~~~~~~~~~~~~~~~~~~~~const real fy0=1.,  \\
+% ~~~~~~~~~~~~~~~~~~~~~~~const real fz0=0.,   \\
+% ~~~~~~~~~~~~~~~~~~~~~~~const real ft0=0.,  \\
+% ~~~~~~~~~~~~~~~~~~~~~~~const int maximumNumberOfComponents=10);
+% \end{flushleft}}}
+% 
+% \noindent Use this constructor to give different values to
+% $f_x(n)$, $f_y(n)$, $f_z(n)$ and $f_t(n)$ for different values of $n$.
+% 
+% \shadowbox{\parbox{4in}{\begin{flushleft}
+%   OGTrigFunction(const realArray \& fx0, \\
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~const realArray \& fy0, \\
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~const realArray \& fz0, \\
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~const realArray \& ft0);
+% \end{flushleft}}}
+
+
+
+% {\footnotesize
+% \listinginput[1]{1}{\otherStuff/tz.C}
+% }
+
+\vfill\eject 
+\subsection{\Index{OGPulseFunction}}
+ 
+This class defines a {\it pulse} like function that can be useful for testing
+adaptive mesh refinement codes.
+
+The pulse is defined as a generalized Gaussian,
+\begin{align*}
+  u(\xv,t) &=  a_0 \exp( - a_1 | \xv-\bv(t) |^{2p} )  \\
+  \bv(t) &= \cv_0 + \vv t
+\end{align*}
+where $p>{1\over 2}$.
+
+The derivatives of $u$ are determined as follows. 
+Letting
+\begin{align*}
+   r &= (x-b_0)^2 + (y-b_1)^2 + (z-b_2)^2 \\
+   f &= r^p \\
+   u &= a_0 \exp(-a_1 f )
+\end{align*}
+then
+\begin{align*}
+   u_x &= a_0 \exp(-a_1 f )\left[ -a_1 f_x \right] \\
+   u_{xx} &= a_0 \exp(-a_1 f )\left[ (a_1 f_x)^2 - a_1 f_{xx} \right] \\
+   u_{xy} &= a_0 \exp(-a_1 f )\left[ a_1 f_x a_1 f_y - a_1 f_{xy} \right] \\
+   u_{xxxx} &= a_0 \exp(-a_1 f )\left[ -(a_1 f_x)^3 + 3 f_x f_{xx} - f_{xxx}\right] \\
+   u_{xxxx} &= a_0 \exp(-a_1 f )\left[ (a_1 f_x)^4 + 3 f_{xx}^2 -6 f_x^2 f_{xx} +4 f_x f_{xxx} -f_{xxxx}\right] 
+\end{align*}
+where
+\begin{align*}
+  f_x & = 2 p r^{p-1} (x-b_0) \\
+  f_{xx} &= 2 p r^{p-1} ( 2(p-1) {(x-b_0)^2\over r} + 1 ) \\
+  f_{xy} &= 4 p(p-1) r^{p-2} ( (x-b_0)(y-b_1) ) \\
+  f_{xxx} &= 4 p (p-1) r^{p-2} (x-b_0)\left[ (p-2) {(x-b_0)^2\over r} + 3  \right] \\
+  f_{xxxx} &= 4 p (p-1) r^{p-2}\left[ 4(p-2){(x-b_0)^2\over r}( (p-3){(x-b_0)^2\over r}+3) + 3 \right]
+\end{align*}
+\input OGPulseFunctionInclude.tex
+
+
+\subsection{Examples}
+
+The file {\tt Overture/tests/tz.C} is an example code that uses the {\tt OGPolyFunction},
+{\tt OGTrigFunction} and {\tt OGPulseFunction} classes. See also the exmaples in the
+primer directory.

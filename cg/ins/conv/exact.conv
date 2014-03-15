@@ -1,0 +1,277 @@
+#
+# Measure convergence rates for cgins with exact solutions.
+#       - Hagen-Poiseuille pipe flow, 
+#       - Couette flow (flow between rotating cylinders), 
+#       - Taylor-Green vortex
+#
+# --------options: 
+#   -model=[ins|boussinesq|tp|vp]  : 
+#   -tz : poly or trig 
+#   -bcn : d=dirichlet, 
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -ngStart : start with this grid (default is 1, set to 2 to skip first grid)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+#   -conv= conv directory (and directory for output). .. So you can run the script outside the conv dir, e.g. for parallel
+# 
+# To run the convergence tests type: 
+# 
+# === Taylor Green vortex ===
+#   NOTE: solution decays rapidly for larger nu, so do not take =tf too big.
+#  -- TGV - PC: 
+#  conv.p exact.conv -option=tg -ts=pc -nu=.05 -tf=.2 -tp=.1 -psolver=yale -cg=squarep -ng=4
+#    Convergence rates: c0=1.98 c1=1.84 c2=1.84 c3=1.84 c4=3.93  [ tf=.5 
+#  conv.p exact.conv -option=tg -ts=pc -nu=.05 -tf=.2 -tp=.1 -psolver=yale -cg=squarep -order=4 -ng=3
+#
+#  -- TGV - AFS: 
+#  conv.p exact.conv -option=tg -ts=afs -nu=.05 -tf=.2 -tp=.1 -psolver=yale -dtMax=1.e-3 -cg=squarep -ng=3
+#  conv.p exact.conv -option=tg -ts=afs -nu=.05 -tf=.2 -tp=.2 -psolver=yale -dtMax=1.e-4 -cg=squarep -order=4 -ng=3
+#
+#  -- Taylor-Green 3D
+#  conv.p exact.conv -option=tg -ts=afs -nu=.05 -tf=.2 -tp=.2 -psolver=yale -dtMax=5.e-4 -cg=boxp -psolver=best -saveVectorErrors=1 -order=4 -ng=3
+# 
+# === Couette flow (annulus) ONE STATIC GRID ===
+#
+#  -- Couette, annulus - PC
+#  conv.p exact.conv -option=rotating -ts=pc -nu=.05 -tf=.5 -tp=.1 -psolver=yale -cg=annulus -ng=3
+#    Convergence rates: c0=2.01 c1=2.32 c2=2.30 c3=2.32 c4=3.52 [ tf=1
+#  conv.p exact.conv -option=rotating -ts=pc -nu=.05 -tf=.5 -tp=.1 -psolver=yale -cg=annulus -order=4 -ng=3
+#
+#  -- Couette, annulus - AFS
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.5 -tp=.1 -cg=annulus -dtMax=1.e-2 -ng=3
+#    Convergence rates: c0=1.94 c1=1.87 c2=1.88 c3=1.88 c4=1.91 [ tf=1
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.5 -tp=.1 -cg=annulus -order=4 -dtMax=1.e-3 -saveVectorErrors=1 -ng=3
+#
+#   +++ TIME ACCURACY: (dt's are set below) NOTE - solution is STEADY STATE so time convergence is a bit funny
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.2 -tp=.2 -cg=annulus4 -order=4 -aftol=1.e-8 -dtMax=1.e-3 -cfl=4. -ng=4
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.2 -tp=.2 -cg=annulus8 -order=4 -aftol=1.e-12 -dtMax=1.e-3 -cfl=4. -ng=4
+#
+# === Couette flow (annulus) TWO GRIDS, ONE MOVING===
+#
+#  -- Couette, annulus - PC
+#  conv.p exact.conv -option=rotating -ts=pc -nu=.05 -tf=.5 -tp=.1 -psolver=yale -move=rotate -cg=splitAnnulus -ng=3
+#  conv.p exact.conv -option=rotating -ts=pc -nu=.05 -tf=.5 -tp=.1 -psolver=yale -move=rotate -cg=splitAnnulus -order=4 -ng=3
+#
+#  -- Couette, annulus - AFS
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.5 -tp=.1 -cg=splitAnnulus -move=rotate -dtMax=.5e-2 -ng=3
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.5 -tp=.1 -cg=splitAnnulus -move=rotate -order=4 -dtMax=1.e-3  -saveVectorErrors=1 -ng=3 -alwaysCompute=0
+#
+#   +++ TIME ACCURACY: (dt's are set below)
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.2 -tp=.2 -cg=splitAnnulus4 -move=rotate -order=4 -aftol=1.e-8 -dtMax=1.e-3 -cfl=4. -ng=4
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.2 -tp=.2 -cg=splitAnnulus8 -move=rotate -order=4 -aftol=1.e-8 -dtMax=1.e-3 -cfl=4.  -saveVectorErrors=1 -ng=4
+# 
+# === Couette flow (cylinder 3D ) ===
+#
+#  -- Couette, cylinder - PC
+#  conv.p exact.conv -option=rotating -ts=pc -nu=.05 -tf=.1 -tp=.1 -psolver=best -cg=cylinderp -ng=2
+#    Convergence rates: c0=2.44 c1=2.56 c2=2.55 c3=2.35 c4=2.35 c5=1.74
+#  conv.p exact.conv -option=rotating -ts=pc -nu=.05 -tf=.05 -tp=.05 -psolver=best -cg=cylinderp -order=4 -ng=3
+#
+#  -- Couette, cylinder - AFS
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.05 -tp=.05 -psolver=best -cg=cylinderp -dtMax=1.e-2 -ng=3
+#   Convergence rates: c0=2.14 c1=2.21 c2=2.21 c3= nan c4=2.21 c5=1.66
+#  conv.p exact.conv -option=rotating -ts=afs -nu=.05 -tf=.05 -tp=.05 -psolver=best -cg=cylinderp -order=4 -dtMax=1.e-3 -ng=3
+#     Convergence rates: c0=3.89 c1=3.75 c2=3.75 c3= nan c4=3.75 c5=2.36 [-ng=2 
+#
+# === Couette flow (2D channel) ===
+#  conv.p exact.conv -option=pipe -ts=pc -nu=.05 -tf=.2 -tp=.1 -psolver=yale -cg=channel -ng=3
+#  conv.p exact.conv -option=pipe -ts=pc -nu=.05 -tf=.2 -tp=.1 -psolver=yale -cg=channel -order=4 -ng=3
+#
+#  conv.p exact.conv -option=pipe -ts=afs -nu=.05 -tf=.2 -tp=.1 -psolver=yale -cg=channel -dtMax=1.e-2 -ng=3
+#  conv.p exact.conv -option=pipe -ts=afs -nu=.05 -tf=.2 -tp=.1 -psolver=yale -cg=channel -order=4 -dtMax=1.e-3 -ng=3
+#
+# === Hagen-Poiseuille flow (3D pipe) ===
+#  conv.p exact.conv -option=pipe -ts=pc -nu=.1 -tf=.02 -tp=.02 -psolver=best -cg=pipe -ng=3
+#    Convergence rates: c0= nan c1=2.03 c2= nan c3= nan c4=2.03 c5= nan
+#  conv.p exact.conv -option=pipe -ts=pc -nu=.1 -tf=.02 -tp=.02 -psolver=best -cg=pipe -order=4 -ng=3
+#
+#  conv.p exact.conv -option=pipe -ts=afs -nu=.1 -tf=.02 -tp=.02 -psolver=best -cg=pipe -dtMax=.5e-2 -ng=2
+#  conv.p exact.conv -option=pipe -ts=afs -nu=.1 -tf=.02 -tp=.02 -psolver=best -cg=pipe -order=4 -dtMax=.25e-3 -ng=2
+#
+# ---------------------
+# Set default parameters: 
+$option="tg"; 
+$model="ins"; $dtMax=.1; $move=0; $kp=1.; 
+$tz="trig"; $bcn = "d"; $bcn="#"; $bc1="#"; $bc2="#"; $bc3="#"; $bc4="#"; $bc5="#"; $bc6="#"; 
+$en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; 
+$numberOfParallelGhost=2; $amr=0; $nu=.05; $debug=0; $insDebug=3; $aftol=1.e-10; $axialAxis=2; 
+$cdv=1.; $solver="yale";  $rtol=1.e-4; $atol=1.e-6; $psolver="yale"; $rtolp=1.e-10; $atolp=1.e-10; 
+$useNewImp=0; $iv="viscous"; 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cginsCmd = "$CGBUILDPREFIX/ins/bin/cgins";  # command for cgins 
+$cmdDir="$ENV{CG}/ins/cmd"; 
+$cg = "square"; $alwaysCompute=1; $ts="pc"; 
+$showAllComponents=1;  # set to 1 to include all components in the table.
+$saveVectorErrors=0; # if 1 then save "vector" errors only
+#
+GetOptions( "option=s"=>\$option,"model=s"=>\$model,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,\
+            "bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,"tp=f"=>\$tp,"nu=f"=>\$nu,"tz=s"=>\$tz,"fx=f"=>\$fx,\
+            "order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,"useNewImp=i"=>\$useNewImp,\
+            "showAllComponents=i"=>\$showAllComponents,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"iv=s"=>\$iv,\
+            "cfl=f"=>\$cfl,"cdv=f"=>\$cdv,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
+            "rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,"dtMax=f"=>\$dtMax,\
+            "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
+            "cginsCmd=s"=>\$cginsCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"ngStart=i"=>\$ngStart,\
+            "aftol=f"=>\$aftol,"move=s"=>\$move,"saveVectorErrors=i"=>\$saveVectorErrors,\
+            "axialAxis=i"=>\$axialAxis,"kp=f"=>\$kp );
+# 
+# Name of the check file created by cgins:
+$check="ins.check";
+#
+if( $cg eq "cylinder" || $cg eq "cylinderp"  || $cg eq "pipe" || $cg eq "boxp" ){ $nd=3; } # 3D 
+#
+$caseName="exact.$option.$ts.$cg.$model.order$order"; 
+if( $saveVectorErrors eq 1 ){ $caseName.= ".vector"; }
+if( $axialAxis ne 2 ){ $caseName.= ".axial$axialAxis"; }
+$name="$caseName"; 
+#
+# --- define the table heading and caption --
+# 
+$numberOfComponents=$nd+1 +1+1;
+if( $saveVectorErrors eq 0 ){\
+  if( $nd eq 2 ){\
+    $title ="grid  \& N \& \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  ";\
+    @componentName = ( "p", "u", "v", "uv" , "div" );\
+  }else{\
+    $title ="grid  \& N \&  \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$ ";\
+    @componentName = ( "p", "u", "v", "w" , "uv", "div" );\
+  }\
+}else{\
+ if( $nd eq 2 ){\
+   $title ="grid  \& N \& \$p\$ \&  \$\\vv\$ \& \$\\grad\\cdot\\uv\$  ";\
+   $ignoreComponent[1]=1; $ignoreComponent[2]=1;\
+   @componentName = ( "p", "uv" , "div" );\
+ }else{\
+   $title ="grid  \& N \&  \$p\$ \& \$\\vv\$ \& \$\\grad\\cdot\\uv\$ ";\
+   $ignoreComponent[1]=1; $ignoreComponent[2]=1;  $ignoreComponent[3]=1; \
+   @componentName = ( "p", "uv", "div" );\
+ }\
+}
+#----------- OLD: 
+#- # NOTE: in $nd component $nd+1 is the norm of the velocity components |\uv| 
+#- if( $model eq "ins" )\
+#- {\
+#-   if( $showAllComponents == 1 )\
+#-   { \
+#-     $numberOfComponents=$nd+1 +1+1;  \
+#-   }\
+#-   else\
+#-   { \
+#-     $numberOfComponents=1; $ignoreComponent[1]=1; \
+#-   }\
+#-   if( $numberOfComponents eq 1 )\
+#-   { \
+#-      $title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
+#-      @componentName = ( "u" ); \
+#-   }\
+#-   elsif( $numberOfComponents eq 5 )\
+#-   { \
+#-      $title ="grid  \& N \& \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$  ";\
+#-      @componentName = ( "p", "u", "v", "uv" , "div" );\
+#-   }\
+#-   else{\
+#-     $title ="grid  \& N \&  \$p\$ \&  \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$\\uv\$ \& \$\\grad\\cdot\\uv\$ ";\
+#-     @componentName = ( "p", "u", "v", "w" , "uv", "div" );\
+#-   }\
+#- }
+# 
+$caption= "\\caption\{Cgins, $option, $model, $name, ts=$ts, \$t=$tf\$, \$\\nu=$nu\$, dtMax=$dtMax, aftol=$aftol, axialAxis=$axialAxis, kp=$kp, $clabel, cfl=$cfl, $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-option=$option -model=$model -nu=$nu -tf=$tf -tp=$tp -cfl=$cfl -ts=$ts -iv=$iv -tz=$tz -solver=$solver -rtol=$rtol -atol=$atol -psolver=$psolver -rtolp=$rtolp -atolp=$atolp -useNewImp=$useNewImp -cdv=$cdv -bcn=$bcn -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -bc5=$bc5 -bc6=$bc6 -dtMax=$dtMax -nd=$nd -aftol=$aftol -move=$move -kp=$kp -axialAxis=$axialAxis -debug=$insDebug -go=go"; 
+# 
+if( $cg eq "squarep" ){\
+$grid1="sq10p";  $gName1 = "square10p.order$order";\
+$grid2="sq20p";  $gName2 = "square20p.order$order";\
+$grid3="sq40p";  $gName3 = "square40p.order$order";\
+$grid4="sq80p";  $gName4 = "square80p.order$order";\
+$grid5="sq160p"; $gName5 = "square160p.order$order";}
+#
+if( $cg eq "square" ){\
+$grid1="sq20";  $gName1 = "square20.order$order";\
+$grid2="sq40";  $gName2 = "square40.order$order";\
+$grid3="sq80";  $gName3 = "square80.order$order";\
+$grid4="sq160"; $gName4 = "square160.order$order";}
+#
+# 
+if( $cg eq "boxp" ){\
+$grid1="box1p"; $gName1 = "box1p.order$order";\
+$grid2="box2p"; $gName2 = "box2p.order$order";\
+$grid3="box4p"; $gName3 = "box4p.order$order";\
+$grid4="box8p"; $gName4 = "box8p.order$order";}
+# 
+if( $cg eq "annulus" ){\
+$grid1="annulus2";  $gName1 = "annulus2.order$order";\
+$grid2="annulus4";  $gName2 = "annulus4.order$order";\
+$grid3="annulus8";  $gName3 = "annulus8.order$order";\
+$grid4="annulus16"; $gName4 = "annulus16.order$order";}
+#
+if( $cg eq "splitAnnulus" ){\
+$grid1="splitAnnulus2";  $gName1 = "splitAnnulusGride2.order$order";\
+$grid2="splitAnnulus4";  $gName2 = "splitAnnulusGride4.order$order";\
+$grid3="splitAnnulus8";  $gName3 = "splitAnnulusGride8.order$order";\
+$grid4="splitAnnulus16"; $gName4 = "splitAnnulusGride16.order$order";}
+# -- TIME CONVERGENCE --
+if( $cg eq "annulus4" ){\
+$grid1="annulus4"; $gName1 = "annulus4.order$order -dtMax=4.e-2";\
+$grid2="annulus4"; $gName2 = "annulus4.order$order -dtMax=2e-2";\
+$grid3="annulus4"; $gName3 = "annulus4.order$order -dtMax=1e-2";\
+$grid4="annulus4"; $gName4 = "annulus4.order$order -dtMax=.5e-2";\
+$grid5="annulus4"; $gName5 = "annulus4.order$order -dtMax=.25e-2";}
+if( $cg eq "annulus8" ){\
+$grid1="annulus8"; $gName1 = "annulus8.order$order -dtMax=2.e-2";\
+$grid2="annulus8"; $gName2 = "annulus8.order$order -dtMax=1.e-2";\
+$grid3="annulus8"; $gName3 = "annulus8.order$order -dtMax=.5e-2";\
+$grid4="annulus8"; $gName4 = "annulus8.order$order -dtMax=.25e-2";\
+$grid5="annulus8"; $gName5 = "annulus8.order$order -dtMax=.125e-2";}
+# -- TIME CONVERGENCE - MOVING GRID --
+if( $cg eq "splitAnnulus4" ){\
+$grid1="splitAnnulus4"; $gName1 = "splitAnnulusGride4.order$order -dtMax=2.e-2";\
+$grid2="splitAnnulus4"; $gName2 = "splitAnnulusGride4.order$order -dtMax=1e-2";\
+$grid3="splitAnnulus4"; $gName3 = "splitAnnulusGride4.order$order -dtMax=.5e-2";\
+$grid4="splitAnnulus4"; $gName4 = "splitAnnulusGride4.order$order -dtMax=.25e-2";\
+$grid5="splitAnnulus4"; $gName5 = "splitAnnulusGride4.order$order -dtMax=.125e-2";}
+# -- TIME CONVERGENCE - MOVING GRID  --
+if( $cg eq "splitAnnulus8" ){\
+$grid1="splitAnnulus8"; $gName1 = "splitAnnulusGride8.order$order -dtMax=1.e-2";\
+$grid2="splitAnnulus8"; $gName2 = "splitAnnulusGride8.order$order -dtMax=.5e-2";\
+$grid3="splitAnnulus8"; $gName3 = "splitAnnulusGride8.order$order -dtMax=.25e-2";\
+$grid4="splitAnnulus8"; $gName4 = "splitAnnulusGride8.order$order -dtMax=.125e-2";}
+#
+if( $cg eq "cylinder" ){\
+$grid1="cylinder1"; $gName1 = "cylinder1.order$order";\
+$grid2="cylinder2"; $gName2 = "cylinder2.order$order";\
+$grid3="cylinder4"; $gName3 = "cylinder4.order$order";\
+$grid4="cylinder8"; $gName4 = "cylinder8.order$order";}
+#
+# periodic cylinder: 
+if( $cg eq "cylinderp" ){\
+$grid1="cylinder1"; $gName1 = "cylinder1.order$order" ."p";\
+$grid2="cylinder2"; $gName2 = "cylinder2.order$order" ."p";\
+$grid3="cylinder4"; $gName3 = "cylinder4.order$order" ."p";\
+$grid4="cylinder8"; $gName4 = "cylinder8.order$order" ."p";}
+#
+if( $cg eq "channel" ){\
+$grid1="channel1"; $gName1 = "channel1.order$order";\
+$grid2="channel2"; $gName2 = "channel2.order$order";\
+$grid3="channel4"; $gName3 = "channel4.order$order";\
+$grid4="channel8"; $gName4 = "channel8.order$order";}
+#
+if( $cg eq "pipe" ){\
+$grid1="pipe2";  $gName1 = "pipeFixede2.order$order";\
+$grid2="pipe4";  $gName2 = "pipeFixede4.order$order";\
+$grid3="pipe8";  $gName3 = "pipeFixede8.order$order";\
+$grid4="pipe16"; $gName4 = "pipeFixede16.order$order";}
+#
+# 
+if( $ngStart eq "1" ){ $grid=$grid1; $res=1; $cmd="$cginsCmd -noplot $cmdDir/exact $options -g=$gName1"; }
+$grid=$grid2; $res=2; $cmd="$cginsCmd -noplot $cmdDir/exact $options -g=$gName2";
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cginsCmd -noplot $cmdDir/exact $options -g=$gName3";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cginsCmd -noplot $cmdDir/exact $options -g=$gName4";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cginsCmd -noplot $cmdDir/exact $options -g=$gName5";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+

@@ -1,0 +1,119 @@
+\subsubsection{Constructors}
+ 
+\newlength{\OGTrigFunctionIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\OGTrigFunctionIncludeArgIndent}{OGTrigFunction(}% 
+OGTrigFunction(const real \& fx\_  =1., \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const real \& fy\_  =1., \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const real \& fz\_  =0., \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const real \& ft\_  =0., \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const int \& maximumNumberOfComponents  =10)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ 
+ This class is derived from the {\ff OGFunction} class and defines a function
+ and defines a function that is a trigonometric polynomial:
+ \[
+      u_n(x,y,z,t) = a(n) \cos(f_x(n) \pi (x-g_x(n)))
+                          \cos(f_y(n) \pi (y-g_y(n)))
+                          \cos(f_z(n) \pi (z-g_z(n)))
+                          \cos(f_t(n) \pi (t-g_t(n)))  + c(n)
+ \]
+  where $a(n)$, $f_x(n)$, $f_y(n)$ etc. can be given values for each component n.
+
+\item[{\bf fx\_, fy\_, fz\_, ft\_ (input):}]  give frequencies (constant for all components).
+\item[{\bf maximumNumberOfComponents (input):}]  maximum number of components.
+
+\item[{\bf Notes:}] 
+    By default $a(n)=1$ and $g_x(n)=g_y(n)=g_z(n)=g_t(n)=0$.
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\OGTrigFunctionIncludeArgIndent}{OGTrigFunction(}% 
+OGTrigFunction(const RealArray \& fx\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& fy\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& fz\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& ft\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ 
+ Use this constructor to supply different frequencies for different components.
+
+\item[{\bf fx\_, fy\_, fz\_, ft\_ (input):}]  give frequencies for different components. The dimension of fx\_
+        will determine the maximumNumberOfComponents.
+
+\end{description}
+\subsubsection{setAmplitudes}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OGTrigFunctionIncludeArgIndent}{setAmplitudes(}%
+setAmplitudes(const RealArray \& a\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ 
+ Use this function to supply different amplitudes for different components.
+
+\item[{\bf a\_ (input):}]  give amplitudes for different components. The dimension of a\_
+   should be equal to the maximumNumberOfComponents as determined by the call to the constructor.
+
+\end{description}
+\subsubsection{setConstants}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OGTrigFunctionIncludeArgIndent}{setConstants(}%
+setConstants(const RealArray \& c\_ )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ 
+ Use this function to supply different constants for different components.
+
+\item[{\bf c\_ (input):}]  give constants for different components. The dimension of c\_
+   should be equal to the maximumNumberOfComponents as determined by the call to the constructor.
+
+\end{description}
+\subsubsection{setFrequencies}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OGTrigFunctionIncludeArgIndent}{setFrequencies(}%
+setFrequencies(const RealArray \& fx\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& fy\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& fz\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& ft\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ 
+ Use this function to supply different frequencies for different components.
+
+\item[{\bf fx\_, fy\_, fz\_, ft\_ (input):}]  give frequencies for different components. The dimension of fx\_
+        will determine the maximumNumberOfComponents.
+
+\end{description}
+\subsubsection{setShifts}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\OGTrigFunctionIncludeArgIndent}{setShifts(}%
+setShifts(const RealArray \& gx\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& gy\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& gz\_, \\ 
+\hspace{\OGTrigFunctionIncludeArgIndent}const RealArray \& gt\_)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ 
+ Use this function to supply different shifts for different components.
+
+\item[{\bf gx\_, gy\_, gz\_, gt\_ (input):}]  give shifts for different components. The dimensions of gx\_, gy\_,...
+   should be equal to the maximumNumberOfComponents as determined by the call to the constructor.
+
+\end{description}

@@ -1,0 +1,25 @@
+\section{Fourier Operators}
+
+\input FourierOperatorsInclude.tex
+
+\subsection{Examples}
+
+\subsubsection{Example using A++ arrays}
+Here is an example code demonstrating the use of this class with A++ arrays
+(file {\tt \examples ps.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/ps.C}
+}
+\subsubsection{Example using mappedGridFunctions and MappedGridOperators}
+Here is an example code demonstrating the use of the MappedGridOperators to compute
+pseudo-spectral derivatives. The {\tt MappedGridOperators} contain a pointer to a
+{\tt FourierOperators} object which can be obtained with the {\tt getFourierOperators()}
+member function. You may want to access this pointer in order to write more efficient code
+or to access the extra functionality that is found in the {\tt FourierOperators} class.
+
+
+(file {\tt \examples testSpectral.C})
+{\footnotesize
+\listinginput[1]{1}{\op/tests/testSpectral.C}
+}
+

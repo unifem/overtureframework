@@ -1,0 +1,261 @@
+% \section{Results}  \label{sec:OgesResults}\index{results}
+
+
+\section{Parallel Results} \label{sec:OgesParallelResults}\index{results!parallel}
+
+Here are some parallel results using Oges.
+
+First some comments about the form of the parallel algorithms.
+
+Krylov space methods (KSP) are a common approach to solving linear 
+systems. Examples of KSP algorithms are GMRES and BCGS (bi-conjugate-gradient-stabilized). 
+
+A KSP method will generally use a preconditioner (PC) which acts as an approximate inverse.
+Incomplete-LU is an example of a PC.
+
+In parallel it is common to use a block-Jacobi preconditioner 
+(there may be 1 block per processor, for e.g.). This means that each block
+is independently updated and then boundary information between the blocks
+is synchronized. Within each block one may again use a KSP method (referenced as
+the sub\_ksp in PETSc) with optional PC (referenced as the sub\_pc in PETSc).
+
+A typical case will use ksp=BCGS, pc=block-Jacobi, sub\_ksp=preconditioner-only,
+sub\_pc=ILU(2). 
+
+
+The Hypre package (which can be accessed through the PETSc interface) has
+a number of preconditioners. One of these is a parallel AMG (algebraic multigrid)
+method call BoomerAMG. Although the AMG method can be used as a stand alone
+solver (Using ksp=Richardson and pc=boomeramg), it is generally more robust to use
+AMG as a preconditioner for a KSP method such as ksp=BCGS and pc=boomeramg.
+
+
+
+%    np    cpu   its   grid   option  
+%    --    ---   ---   ----   ------
+%
+% option:   PETSc: BCGS+BJACOBI+PREONLY+ILU(3)
+  
+
+In the first set of results we solve Poisson's equation on a overlapping grid.
+We consider different boundary conditions
+\begin{description}
+  \item[dirichlet] : Dirichlet BC's on all boundaries
+  \item[neumann] : Neumann BC's on all boundaries
+  \item[mixed] : Neumann BC's on all boundaries but one, where a mixed boundary condition $\alpha u + \beta u_n$
+            is applied (with $\alpha=1$, $\beta=1$). This option represents a common set of BC's when solving
+            the pressure equation for the incompressible Navier-Stokes equations.
+\end{description}
+
+% \begin{table}[hbt]
+% \begin{center}\footnotesize
+% \begin{tabular}{|c|c|c|c|l|} \hline 
+% grid(pts)       &     NP       & cpu(s)  & its    &  option                             \\   \hline\hline 
+% cic5e (2.8e5)   &     1        &  $8.9$  & $86$   &  PETSc+BCGS+BJACOBI+PREONLY+ILU(3)   \\ 
+%                 &     2        &  $11.2$ & $99$   &                                      \\ 
+%                 &     2        &  $16.5$ & $204$  &                                      \\ \hline
+%                 &     1        &  $10.5$ & $128$  &  PETSc+GMRES+BJACOBI+PREONLY+ILU(3)   \\         
+%                 &     2        &  $14.4$ & $184$  &                                       \\ \hline
+%                 &     1        &  $5.1$  & $5$    &  Hypre+BCGS+AMG                      \\ 
+%                 &     2        &  $6.37$ & $5$    &                                      \\        
+%                 &     1        &  $6.1$  & $18$   &  Hypre+Richardson+AMG                \\ 
+%                 &     2        &  $7.3$  & $17$   &                                      \\ 
+% \hline
+% \end{tabular}		
+% \end{center}		
+% \caption{Parallel results. 2 processor Intel ... }
+%  \label{tab:parallelResults} 
+% \end{table}
+% 
+
+\clearpage
+\subsection{Circle in a Channel}
+
+Results from solving Poisson's equation on the two-dimensional circle-in-a-channel grid,
+cic5e (2.8e5 grid points), are computed
+for both dirichlet and mixed boundary conditions. 
+
+
+% -------------------------------------------------------------------------------------
+Table~\ref{tab:cic5e.bcgs.bjacobi.preonly.ilu2}
+shows the results using BCGS with a block-jacobi preconditioner where each
+block uses an ILU preconditioner, ILU(2).
+
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|} \hline 
+\multicolumn{4}{|c|}{Poisson+dirichlet} \\
+  NP   & factor(s)  & solve(s) &  its    \\ \hline 
+  1   &       3.16  &     16.83 & 100 \\
+  2   &       3.90  &     12.29 & 141 \\
+  4   &       2.30  &      5.77 & 133 \\
+  8   &       1.13  &      3.13 & 139 \\
+\hline
+\end{tabular}		
+\qquad
+\begin{tabular}{|c|c|c|c|l|} \hline 
+\multicolumn{4}{|c|}{Poisson+mixed} \\
+  NP   & factor(s)  & solve(s) &  its    \\ \hline
+  1   &       2.61  &     45.54 & 275 \\
+  2   &       3.97  &     32.29 & 378 \\
+  4   &       2.24  &     17.72 & 412 \\
+  8   &       1.13  &      9.19 & 411 \\
+\hline
+\end{tabular}
+\end{center}		
+\caption{Results for grid cic5e (2.8e5 grid points), bcgs-bjacobi-ilu(2) (mcr).}
+ \label{tab:cic5e.bcgs.bjacobi.preonly.ilu2} 
+\end{table}
+
+
+% ASM preliminary results:
+% 
+%  ** results written to file cic5e.bcgs.asm2.preonly.ilu2.dirichlet.results.np2 (overlap=2)
+%   NP   & factor(s)  & solve(s) &  its    \\
+%   2   &       4.24  &     10.75 & 109 \\
+%  ** results written to file cic5e.bcgs.asm4.preonly.ilu2.dirichlet.results.np2 (overlap=4)
+%   NP   & factor(s)  & solve(s) &  its    \\
+%   2   &       4.08  &     10.85 & 109 \\
+% ** results written to file cic5e.bcgs.asm2.preonly.ilu4.dirichlet.results.np2 (ilu=4, overlap=2)
+%   NP   & factor(s)  & solve(s) &  its    \\
+%   2   &       4.18  &      8.89 & 78 \\
+%  ** results written to file cic5e.bcgs.asm4.preonly.ilu4.dirichlet.results.np2 (ilu=4, overlap=4)
+%   NP   & factor(s)  & solve(s) &  its    \\
+%   2   &       4.20  &      8.94 & 78 \\
+%  ** results written to file cic5e.bcgs.asm1.preonly.ilu4.dirichlet.results.np2 (ilu=4, overlap=1)
+%   NP   & factor(s)  & solve(s) &  its    \\
+%   2   &       4.20  &      8.90 & 78 \\
+
+% -------------------------------------------------------------------------------------
+Table~\ref{tab:cic5e.bcgs.bjacobi.preonly.ilu2}
+shows the results using BCGS with a block-jacobi preconditioner where each
+block uses an LU (direct solver). These results show the limitations of the 
+BGCS+block-jacobi combination. When we perform a direct solve on 
+each block (by a back-substitution) the number of BCGS iterations is reduced
+from the previous case. The overall solve time is longer, however. 
+
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|} \hline 
+\multicolumn{4}{|c|}{Poisson+dirichlet} \\
+  NP   & factor(s)  & solve(s) &  its    \\ \hline 
+  8   &      14.96  &     19.59 & 69 \\
+\hline
+\end{tabular}		
+\qquad
+\begin{tabular}{|c|c|c|c|l|} \hline 
+\multicolumn{4}{|c|}{Poisson+mixed} \\
+  NP   & factor(s)  & solve(s) &  its    \\ \hline
+  4   &      48.21  &     49.53 & 82 \\
+\hline
+\end{tabular}
+\end{center}		
+\caption{Results for grid cic5e (2.8e5 grid points), bcgs-bjacobi-lu (mcr).}
+ \label{tab:cic5e.bcgs.bjacobi.preonly.lu.mixed} 
+\end{table}
+
+% -----------------------------------------------------------------------
+
+Table~\ref{tab:cic5-bcgs-hypre-AMG-dirichlet}
+shows the results using the AMG method, BoomerAMG, from Hypre.
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|l|} \hline 
+\multicolumn{4}{|c|}{Poisson+dirichlet} \\
+  NP   & factor(s)  & solve(s) &  its    \\\hline 
+  1   &       6.57  &      4.40 & 5 \\
+  2   &       6.18  &      2.39 & 5 \\
+  4   &       3.56  &      1.25 & 5 \\
+  8   &       1.77  &      0.69 & 5 \\
+\hline
+\end{tabular}		
+\qquad
+\begin{tabular}{|c|c|c|c|l|} \hline 
+\multicolumn{4}{|c|}{Poisson+mixed} \\
+  NP   & factor(s)  & solve(s) &  its    \\\hline 
+  1   &       4.94  &      8.99 & 11 \\
+  2   &       5.48  &      4.39 & 10 \\
+  4   &       3.15  &      2.33 & 10 \\
+  8   &       1.69  &      1.16 & 9 \\
+\hline
+\end{tabular}		
+\end{center}		
+\caption{Results for grid cic5e (2.8e5 grid points), bcgs-hypre-AMG (mcr).}
+ \label{tab:cic5-bcgs-hypre-AMG} 
+\end{table}
+
+
+
+
+
+% ==============================================================================================
+\clearpage
+\subsection{Cylinder in a Channel}
+
+Results from solving Poisson's equation on the three-dimensional cylinder-in-a-channel grid 
+cylinderInAChannel2 (1.2e6 grid points) are computed
+for both dirichlet and mixed boundary conditions.
+
+
+Table~\ref{tab:cylinderInAChannel2.bcgs.bjacobi.preonly.ilu2}
+shows the results using BCGS with a block-jacobi preconditioner where each
+block uses an ILU preconditioner, ILU(2).
+
+
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|} \hline 
+\multicolumn{4}{|c|}{Poisson+dirichlet} \\
+  NP   & factor(s)  & solve(s) &  its    \\ \hline 
+  1   &      25.48  &     53.25 & 32 \\
+  2   &     226.41  &     37.32 & 48 \\
+  4   &      95.76  &     20.36 & 54 \\
+  8   &      33.03  &      9.43 & 51 \\
+\hline
+\end{tabular}		
+\qquad
+\begin{tabular}{|c|c|c|c|l|} \hline 
+\multicolumn{4}{|c|}{Poisson+mixed} \\
+  NP   & factor(s)  & solve(s) &  its    \\ \hline
+  4   &      96.58  &     53.58 & 138 \\
+  8   &      32.54  &     30.78 & 162 \\
+\hline
+\end{tabular}
+\end{center}		
+\caption{Results for grid cylinderInAChannel2 (1.2e6 grid points), bcgs-bjacobi-ilu(2) (mcr).}
+ \label{tab:cylinderInAChannel2.bcgs.bjacobi.preonly.ilu2} 
+\end{table}
+
+
+% -----------------------------------------------------------------------
+
+Table~\ref{tab:cylinderInAChannel2-bcgs-hypre-AMG-dirichlet}
+shows the results using the AMG method, BoomerAMG, from Hypre.
+
+% 061020 -- mixed BC: trouble converging with hypre -np=16
+\begin{table}[hbt]
+\begin{center}\footnotesize
+\begin{tabular}{|c|c|c|c|l|} \hline 
+\multicolumn{4}{|c|}{Poisson+dirichlet} \\
+  NP   & factor(s)  & solve(s) &  its    \\\hline 
+  1   &      40.49  &     18.48 & 4 \\
+  2   &     248.22  &     13.30 & 5 \\
+  4   &     108.57  &      6.88 & 5 \\
+  8   &      40.28  &      4.04 & 5 \\
+ 16   &      14.59  &      2.61 & 5 \\
+\hline
+\end{tabular}		
+\qquad
+\begin{tabular}{|c|c|c|c|l|} \hline 
+\multicolumn{4}{|c|}{Poisson+mixed} \\
+  NP   & factor(s)  & solve(s) &  its    \\\hline 
+ 16   &  failed  &    failed & failed \\
+\hline
+\end{tabular}		
+\end{center}		
+\caption{Results for grid cylinderInAChannel2 (1.2e6 grid points), bcgs-hypre-AMG (mcr).}
+ \label{tab:cylinderInAChannel2-bcgs-hypre-AMG} 
+\end{table}

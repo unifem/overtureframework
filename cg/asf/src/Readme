@@ -1,0 +1,22 @@
+ This directory holds the source files for the all-speed compressible Navier-Stokes Solver
+
+
+
+Notes:
+
+
+asf.bC:
+  getUt
+
+asfp.bC :
+  solveForAllSpeedPressure
+  addForcingToPressureEquation
+asfBC.bC 
+  applyBoundaryConditions
+
+AsfParameters.C:
+   setDefaultDataForABoundaryCondition
+
+
+formAllSpeedPressureEquation.C :
+   formAllSpeedPressureEquation

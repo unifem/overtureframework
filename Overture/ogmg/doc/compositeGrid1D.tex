@@ -1,0 +1,58 @@
+% \documentclass[12pt]{article}
+% \usepackage{graphicx}
+% \input wdhDefinitions
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+% \begin{document}
+
+{% begin new psset environment
+\psset{xunit=.25in,yunit=.25in,runit=.25in,linewidth=1.pt}
+
+
+\begin{figure}[htb]
+\begin{center}\pspicture*(-11,-3.)(11.,2.)
+% turn on a background-grid here:
+% \psgrid(0,0)(-11,-5)(11,5)
+%
+{\psset{linewidth=2pt,linecolor=blue}%
+\rput{0}(.0,0.45){\qline(-10., 0.0)(.5, 0.0)%
+\multirput{0}(-10,.0)(1.5,.0){8}{\qline(0,-.20)(0,.20)}}%
+}%
+{%
+\psset{linewidth=2pt,linecolor=red}%
+\rput{0}(.0,-.45){\qline(-.5, 0.0)(10., 0.0)%
+\multirput{0}(10.,0)(-1.5,0){8}{\qline(0,-.20)(0,.20)}}%
+}
+\rput[c](-10., 1.25){$U_0$}
+\rput[c](-8.5, 1.25){$U_1$}
+\rput[c](-7.0, 1.25){$U_2$}
+\rput[c](-5.5, 1.25){$\cdots$}
+\rput[c](  .5, 1.25){$U_{N_1}$}
+%
+\rput[c]( -.5,-1.25){$V_0$}
+\rput[c]( 1.0,-1.25){$V_1$}
+\rput[c]( 2.5,-1.25){$V_2$}
+\rput[c]( 4.0,-1.25){$\cdots$}
+\rput[c](10.0,-1.25){$V_{N_2}$}
+%
+{\psset{linewidth=2pt,linecolor=black}%
+\qline(-10.,-2.5)(10,-2.5)%
+\rput{0}(-10.,-2.5){\qline(0,-.20)(0,.20)}%
+\rput{0}(-0.5,-2.5){\qline(0,-.20)(0,.20)}%
+\rput{0}(+0.5,-2.5){\qline(0,-.20)(0,.20)}%
+\rput{0}( 10.,-2.5){\qline(0,-.20)(0,.20)}%
+}
+\rput[c](-10.,-3){$x_a$}
+\rput[c](-.50,-3){$x_c$}
+\rput[c]( .50,-3){$x_d$}
+\rput[c]( 10.,-3){$x_b$}
+
+% \rput(-8, 1.){\makebox(0,0)[l]{$U_1$}}
+\endpspicture\end{center}
+\caption{Overlapping grid in one dimension.}  \label{fig:overlappingGrid1D}
+\end{figure}
+
+}% end psset environment 
+% \end{document}
+
+

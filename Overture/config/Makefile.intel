@@ -1,0 +1,165 @@
+# 
+# linux configuration file for the Overture CVS repo
+#   This expects the following variables to be set
+#
+#       OvertureFortranPrecision  to "-i4 -r8" for double precision
+#       GL_LIBS 
+#       USE_PPP_FLAG   (for P++ : setenv USE_PPP_FLAG "-DUSE_PPP -I${MPI_ROOT}/include")
+#
+cc = gcc
+CC = g++
+# take this from the environment: FC = pgf77
+
+# on the 64 bit intel some lib's are in the lib64 directory
+ifeq ($(HARDWARE),x86_64)
+ LIB64 = lib64
+else
+ LIB64 = lib 
+endif
+
+# SPARSEKIT_LIB = -L/home/chand/temp/SPARSKIT2 -lskit
+# *wdh* here is a version we can see from the lc machines
+SPARSEKIT_LIB = -L/usr/casc/overture/Overture/sparsekit/SPARSKIT2.intel -lskit
+
+A++ = $(APlusPlus)
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+
+usePPP = $(USE_PPP_FLAG)
+
+ifeq ($(strip $(usePPP)),)
+  AppLibraries = -Wl,-rpath,$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static 
+else
+  AppLibraries = $(DEFINE_PPP_LIBRARIES)
+endif
+
+libApp = ${AppLibraries}
+
+
+Include= -I. -I$(Overture)/include $(PETSC_INCLUDE) -I$(APlusPlus)/include
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+OvertureInclude=  $(Overture)/include
+OvertureLib=      $(Overture)/lib
+BOXLIB_DEFS = -DBL_USE_DOUBLE -DBL_Solaris
+
+# these next flags are compiler dependent
+cc_FLAGS = -fPIC
+# CC_FLAGS = -fPIC  -fpermissive -fmessage-length=200
+CC_FLAGS = -fPIC -fmessage-length=200
+FF_FLAGS = -fPIC 
+
+C_OPTIMIZATION_FLAG = -g
+CPP_OPTIMIZATION_FLAG = -g
+FORTRAN_OPTIMIZATION_FLAG = -g
+
+CFLAGS =  $(cc_FLAGS)  $(Include)  $(C_OPTIMIZATION_FLAG) -I$(XLIBS) -DSHM
+# flags for c routines we always optimize
+CFLAGSO =  -O $(cc_FLAGS)  $(Include)  -I$(XLIBS) -DSHM
+CFLAGSF =  -O $(cc_FLAGS)  $(Include)  -I$(XLIBS) -DSHM
+
+# do not include some paths, such as STL in the places searched by makedepend (takes too long)
+# CC_INCLUDES_FOR_DEPEND =  $(Include) -I$(OpenGL)/include -I$(XLIBS)/include   -I$(HDF)/include $(BOXLIB_DEFS) -Wno-deprecated
+CC_INCLUDES_FOR_DEPEND =  $(Include) -I$(OpenGL)/include -I$(XLIBS)/include   -I$(HDF)/include $(BOXLIB_DEFS)
+
+STL_INCLUDE = 
+# CC_INCLUDES = $(CC_FLAGS) $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE) $(USE_PPP_FLAG)
+#  HAS_MODFL_PROTO is for a perl compile error of OvertureParser.C for gcc 3.4.3
+CC_INCLUDES = $(CC_FLAGS) $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE) $(USE_PPP_FLAG) -DHAS_MODFL_PROTO
+
+CCFLAGS= $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG) $(EXTRA_CC_FLAGS) 
+
+# things that are always compile with optimization use this flag
+CCFLAGSO= $(CC_INCLUDES) -O $(EXTRA_CC_FLAGS) 
+CCFLAGSF= $(CC_INCLUDES) -O3 $(EXTRA_CC_FLAGS) 
+# things that need to be compiled with no optimization use the following
+CCFLAGSG= $(CC_INCLUDES)  $(EXTRA_CC_FLAGS) -g
+
+FFLAGS=    $(FF_FLAGS)   $(OvertureFortranPrecision) $(FORTRAN_OPTIMIZATION_FLAG)  $(EXTRA_FFLAGS) $(Include)
+# single precision always:
+FFLAGSS=  $(FF_FLAGS)  $(FORTRAN_OPTIMIZATION_FLAG)   $(EXTRA_FFLAGS) $(Include)
+
+# things that are always compile with optimization use these flags
+FFLAGSG= -g $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+FFLAGSO= -O $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+FFLAGSF= -fast $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+FFLAGSO4= -O4 $(FF_FLAGS)   $(OvertureFortranPrecision)  $(FLAGS) $(Include) 
+# single precision always:
+FFLAGSSO= -O  $(FF_FLAGS)  $(FLAGS) $(Include)
+FFLAGSSF= -fast $(FF_FLAGS)  $(FLAGS) $(Include)
+FFLAGSSG= -g $(FF_FLAGS)  $(FLAGS) $(Include)
+
+FORTRAN_LIBS =-lnsl -lg2c
+ifeq ($(FC),pgf77)
+  # Use the pgi fortran compiler
+  FORTRAN_LIBS =-Wl,-rpath,$(PGI_LIB) -L$(PGI_LIB) -lpgftnrtl -lpgmp  -lpgc -lrt -lstd
+endif
+ifeq ($(FC),gfortran)
+  FORTRAN_LIBS = -lgfortran
+endif
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES=  
+
+LAPACK_LIBRARIES = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
+
+usePPP = $(USE_PPP_FLAG)
+ifneq ($(strip $(usePPP)),)
+  # P++ version
+ PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
+ PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc $(HYPRE_LIBS) $(LAPACK_LIBRARIES)
+ PETSC =  buildEquationSolvers.o PETScEquationSolver.o PETScSolver.o
+else
+ PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni
+ PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
+ PETSC =  buildEquationSolvers.o PETScEquationSolver.o 
+endif
+
+# The KCC compiler should be used to build the static library (for templates)
+AR = ar
+#KCC AR = KCC
+ARFLAGS = ruv  
+#KCC ARFLAGS = -o 
+
+HDF_LIBS = -lmfhdf -ldf -ljpeg -lz
+# check for use of hdf5:
+ifneq (,$(findstring hdf5,$(HDF)))
+  HDF_LIBS = -lhdf5 -lz
+endif
+ifneq ($(strip $(usePPP)),)
+  HDF_LIBS = -lhdf5 -lz
+endif
+
+LD = $(CC)
+LDFLAGS = -Wl,-rpath,$(Overture)/lib
+RANLIB = ranlib
+SOFLAGS = -shared
+OpenGLibs =$(GL_LIBS)
+GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXpm -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11 -lm
+#
+#
+CLIBS=   $(LDFLAGS) -L$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) -Wl,-rpath,$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS)
+FLIBS=   $(AppLibraries) $(FORTRAN_LIBS) 
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o .F .o .bf .f .c .o .cc .o
+.C.o:; $(CC) $(CCFLAGS) -c $<
+.cc.o:; $(CC) $(CCFLAGS) -c $<
+.c.o:; $(cc) $(CFLAGS) -c $<
+.f.o:; $(FC) $(FFLAGSO) -c $<
+.F.o:; $(FC) $(FFLAGSO) -c $<
+.bf.f:; bpp $*.bf
+.bC.C:; bpp $*.bC
+.bf.o: $*.f ; 
+.bC.o: $*.C ; 
+
+# %.o : %.C ; $(CC) $(CCFLAGS) -c $*.C
+
+# .C: $(LIB_DEPENDENCIES)
+#	 $(CC) $(CCFLAGS) -o $@ $< $(CLIBS) $(FLIBS)  $(GLIBS)
+
+BPP = bpp
+%.C : %.bC
+	$(BPP) -quiet -clean  $<
+%.f : %.bf
+	$(BPP) -quiet -clean $<

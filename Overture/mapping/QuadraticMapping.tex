@@ -1,0 +1,49 @@
+%--------------------------------------------------------------
+\section{QuadraticMapping: define a quadratic curve or surface.}
+\index{quadratic mapping}\index{Mapping!QuadraticMapping}
+\index{parabola}\index{paraboloid}
+\index{hyperbola}\index{hyperboloid}
+%-------------------------------------------------------------
+
+
+Use this mapping to define a quadratic curve or surface.
+
+A parabola (curve in 2D) is defined by
+\begin{align*}
+   x_0 &= c_{0x} + c_{1x} r_0 \\
+   x_1 &= a_{00} + a_{10} x_0 + a_{20} x_0^2
+\end{align*}
+A 3d paraboloid (surface) is defined by
+\begin{align*}
+   x_0 &= c_{0x} + c_{1x} r_0 \\
+   x_1 &= c_{0y} + c_{1y} r_1 \\
+   x_2 &= a_{00} + a_{10} x_0 + a_{01} x_1 + a_{20} x_0^2 + a_{11}x_0 x_1 + a_{02} x_1^2
+\end{align*}
+
+A hyperbola (2d curve) is defined by
+\begin{align*}
+   x_0 &= c_{0x} + c_{1x} r_0 \\
+   x_1 &= \pm (a_{00} + a_{10} x_0 + a_{20} x_0^2 )^{1/2}
+\end{align*}
+
+A 3d hyperboloid (surface) is defined by
+\begin{align*}
+   x_0 &= c_{0x} + c_{1x} r_0 \\
+   x_1 &= c_{0y} + c_{1y} r_1 \\
+   x_2 &= \pm (a_{00} + a_{10} x_0 + a_{01} x_1 + a_{20} x_0^2 + a_{11}x_0 x_1 + a_{02} x_1^2)^{1/2}
+\end{align*}
+
+
+
+\subsection{Examples}
+  \begin{center}
+  \includegraphics[width=9cm]{\figures/parabola} \\
+  % \epsfig{file=\figures/parabola.ps,height=.6\linewidth}  \\
+  {A 2D parabola.} \\
+  \includegraphics[width=9cm]{\figures/paraboloid} \\
+  % \epsfig{file=\figures/paraboloid.ps,height=.6\linewidth}  \\
+  {A 3D parabolic surface.}
+  \end{center}
+
+%% \input QuadraticMappingInclude.tex
+

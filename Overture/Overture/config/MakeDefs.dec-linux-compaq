@@ -1,0 +1,82 @@
+###########################################
+# OVERTURE CONFIGURE SCRIPT INPUT FILE FOR
+#
+# LINUX ALPHA WITH COMPAQ COMPILERS
+###########################################
+
+# these next values for compilers will be used unless overridden with an argument to configure
+cc = ccc
+CC = cxx 
+FC = fort 
+
+A++ = $(APlusPlus)
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+AppLibraries = -L$(APlusPlus)/lib -lApp -lApp_static 
+
+Include = $(Overture)/include
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+LibRapsodi= -lRapsodi -lRapsodi_static 
+BOXLIB_DEFS = -DBL_USE_FLOAT 
+
+
+# Here is the rpath command  -- waht should this be ?
+OV_RPATH = 
+
+# Here is where we can find the perl include files and library (CORE)
+# These will normally be changed by the configure script unless it can't find the location of the perl CORE 
+OV_PERL_INCLUDE = /usr/lib/perl5/5.6.1/i386-linux/CORE
+OV_PERL_LIB     = /usr/lib/perl5/5.6.1/i386-linux/CORE
+# Here are the perl libraries we need to link to
+OV_PERL_LIBRARIES = $(OV_RPATH) $(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lcrypt
+
+# these next values will may be changed by the configure script
+C_OPTIMIZATION_FLAG = -O
+CPP_OPTIMIZATION_FLAG = -O
+FORTRAN_OPTIMIZATION_FLAG = -O
+
+CFLAGS =  $(OverturePrecision)  -I$(Include) $(C_OPTIMIZATION_FLAG) -I$(XLIBS) -std1 -DARCH_IEEE 
+
+CC_INCLUDES_FOR_DEPEND =  $(OverturePrecision) -DUSE_MESA -DARCH_IEEE -Olimit 2000  -I$(Overture)/include -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS) -I$(OV_PERL_INCLUDE)
+
+STL_INCLUDE = 
+CC_INCLUDES = $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE)
+CCFLAGS=  $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG) 
+
+# things that are always compile with optimization use this flag
+CCFLAGSO= $(CC_INCLUDES) -O 
+
+# things that are always compile with lots of optimization use this flag
+CCFLAGSF= $(CC_INCLUDES) -O
+
+# things that need to be compiled with no optimization use the following
+CCFLAGSG=  $(CC_INCLUDES) -gall  
+
+FFLAGS= -I$(Overture)/include  $(OverturePrecision) $(FortranDouble) $(FORTRAN_OPTIMIZATION_FLAG)
+# single precision always:
+FFLAGSS= -I$(Overture)/include $(OverturePrecision) $(FORTRAN_OPTIMIZATION_FLAG)
+
+# things that are always compile with optimization use these flags
+FFLAGSO= -O $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) -I$(Include)  
+FFLAGSSO= -O $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) -I$(Include) 
+
+
+FORTRAN_LIBS =  -lFutil -lUfor -lfor -lots
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES=  ../boxlib/cxx_repository/*.o ../GridGenerator/cxx_repository/*.o ../mapUtil/cxx_repository/*.o
+RAPTEMPLATES= ../boxlib/cxx_repository/*.o ../mapUtil/cxx_repository/*.o ../Mapping/cxx_repository/*.o 
+
+AR = ar
+ARFLAGS = ruv 
+
+LD = $(CC)
+RANLIB = ranlib
+SOFLAGS = -shared -expect_unresolved '*'
+# GLIBS=   -L$(OpenGL)/lib -lMesaGL -lMesaGLU   -lGLw -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm  -lXpm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11 -lm
+
+OpenGLibs=
+GLIBS= $(OV_PERL_LIBRARIES) -L$(OpenGL)/lib $(OpenGLibs) -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm  -lXpm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11  -lm
+
+FLIBS= -Wl,-rpath,$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 

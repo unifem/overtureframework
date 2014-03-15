@@ -1,0 +1,329 @@
+%
+% These sections also appear in GraphicsDoc.tex -- should share 
+%
+% 
+%  Suggested title for this section is 
+% ------------ \section{Mouse, Button and View Characteristics of the Graphics Window}
+% ------------ \section{Features and Properties of the Overture Graphical User Interface}
+
+This section describes some of the features and properties of the Overture graphical user interface
+which is illustrated in figure~\ref{fig:clip-plane}.
+Some of these features are
+
+\begin{itemize}
+%
+  \item User defined dialog windows that can contain pulldown menus
+  with push or toggle buttons, option menus, text labels (for
+  inputting strings), push buttons, and toggle buttons.
+%
+  \item Multiple graphics windows and a single command window with a
+  scrollable sub-window for outputting text, a command line, and a
+  scrollable list of previous commands.
+%
+  \item Rotation buttons 
+     \includegraphics{\figures/rot_x_p},
+     \includegraphics{\figures/rot_y_p}, 
+     \includegraphics{\figures/zrotp} ,... which
+     rotate the object on the screen about fixed x, y, and z axes (the
+     x axis is to the right, the y-axis is up and the z-axis is out of
+     the screen).
+%
+  \item Translation buttons \includegraphics{\figures/right},
+  \includegraphics{\figures/down}, 
+  \includegraphics{\figures/zp},
+  \includegraphics{\figures/zm},... which shift
+  the object on the screen along a given axis. The two last buttons
+  shift the object in and out of the screen, respectively. Since an
+  othographic projection method is used in the graphics interface, these buttons only change
+  the appearance when clipping planes are used.
+%
+  \item Push buttons for making the objects bigger:
+  \includegraphics{\figures/zoom_in}, 
+  or smaller: \includegraphics{\figures/zoom_out},
+  and a reset button: \includegraphics{\figures/reset} to reset the view point, and a {\bf clear} button
+  to erase all objects on the
+  screen.\index{bigger,smaller,clear,reset}
+%
+  \item A push button \includegraphics{\figures/rotpnt} to set the rotation center (after selecting this
+    button, pick a point on the displayed grid or surface to use as a new rotation point).
+%
+  \item A {\bf rubber band zoom} feature.
+%
+  \item Mouse driven {\bf translate, rotate and zoom}.
+%
+  \item A pop-up menu that is active on the command and graphics
+  windows. This menu is defined by the application (= user program).
+%
+  \item Static pull-down menus ({\bf file}, {\bf view},
+     and {\bf help}) on the graphics windows. Here, the screen can be saved in
+     different formats, clipping planes and viewing characteristics
+     can be set, annotations can be made (not fully implemented), and some help can be found. 
+%
+  \item Static pull-down menus ({\bf file} and {\bf help}) on the
+     command window. Here command files can be read/saved, new
+     graphics windows can be opened, the window focus can be set, and
+     the application can be aborted.
+%
+  \item An optional pull-down menu ({\bf My menu} in this case) that is
+     defined by the application.
+%
+  \item Pushbuttons ({\bf Pick 3D} and {\bf Plot} in this case) that are defined by the application.
+%
+  \item A file-selection dialog box (not shown in the figure).
+%
+  \item The option of typing any command on the command line or reading
+  any command from a command file. All commands can be entered in this
+  fashion, including any pop-up or pull-down menu item or any of the
+  buttons, {\bf x+r:0}, {\bf y-r:0}, {\bf x+:0}, {\bf y+:0}, {\bf
+  bigger:0}, etc. For the buttons, the :0 refers to the window number
+  where the view should be modified, which in this case is window
+  \#0. Furthermore, when typing a command, only the first
+  distinguishing characters need to be entered.
+%
+  \item Recording or retrieving a command sequence in a command file.
+\end{itemize}
+
+
+
+\subsection{Using the mouse for rotating, scaling and picking}
+
+Rotations are performed with respect to axes that are fixed relative
+to the screen. The x-axis points to the right, the y-axis points
+upward and the z-axis points out of the screen.  Rotations can either
+be performed about the centre of the window, or about a user defined
+point. This point can be set by first pressing the {\bf set
+rotation point} icon on the graphics window and then clicking on the
+screen with the left mouse button. The rotation point can also be set
+by opening the ``Set View Characteristics'' dialog from the ``View''
+pull-down menu (see section~\protect\ref{sec:view-characteristics} for
+details). Note that the centre of the window is changed with the
+translation commands {\bf x+}, {\bf x-}, {\bf y+}, etc.
+
+Typing a rotation command with an argument (on the command line), 
+such as {\bf x+r:1 45}, will cause the view in window number 1 to 
+rotate by 45 degrees about the x-axis. If no window number is given
+with the commands, such as, {\bf y-y 30}, the command will apply to
+window 0.
+
+Typing a translation command with an argument, such as {\bf x+:0 .25}
+will cause the view in window number 0 to move to the right $.25$ units
+(in normalized screen coordinates; the screen goes from -1 to 1).
+
+{\bf Rubber band zoom:} \index{rubber band zoom} The middle mouse
+button is used to ZOOM in. Press the middle button at one corner of a
+square, drag the mouse to another corner and lift the button.  The
+view will magnify to the square that was marked.  Use `reset' to reset
+the view.
+
+{\bf Mouse driven translate, rotate and zoom}: \index{mouse
+button!translate, rotate and zoom} All these operations are performed
+with the SHIFT key down. To translate, you hold the SHIFT key down,
+press the left mouse button and drag the cursor; the plotted objects
+will translate in the same direction as the mouse is moved. To rotate
+the view, you hold the SHIFT key down and press the middle mouse
+button and drag the cursor. Moving the cursor left or right will
+rotate about the y-axis (the vertical screen direction) and moving up
+or down will rotate about the x-axis (horizontal screen direction). To
+zoom in or out, you hold the SHIFT key down, press the right mouse
+button and drag the cursor vertically. To rotate about the z-axis, you
+press the left mouse buttons and drag the cursor horizontally.
+
+{\bf Picking (aka selecting):} While clicking the left mouse button,
+you select an object and get the $(x,y,z)$ coordinate of the point on
+the object where you clicked. The object that was selected is reported
+in the selectionInfo data structure, which holds the global ID number,
+the front and back z-buffer coordinates and the window and 3--D
+coordinates. The global ID number can be used by the application to
+identify the selected object.
+
+It is also possible to select several objects on the screen by
+specifying a rectangular region. To do this, you press the left mouse
+button in one corner of the rectangle and drag it to the diagonally
+opposite corner of the rectangle, where the mouse-button is
+released. The program will draw a rectangular frame to indicate the
+selected region. When you are happy with the selected region, you
+release the mouse button. An imaginary viewing volume is defined by
+translating the rectangular region into the screen and all objects
+that intersect the viewing volume are selected. However, only the 3--D
+coordinate of the closest object is computed. We remark that the
+object with the lowest front z-buffer value is the closest to the
+viewer. Also note:
+\begin{enumerate}
+\item Objects that are hidden by another object are also selected by
+this method.
+\item The selection takes clipping planes (see below) into
+account, so it is not possible to select an object that has been
+removed by a clipping plane.
+\end{enumerate}
+%
+The mouse driven features are summarized in table~\protect\ref{tab:mouse}.
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{r|r|l}  
+Modifier      & Mouse button & Function                      \\ \hline\hline
+              & left         & picking                       \\ \hline
+              & middle       & rubber band zoom              \\ \hline
+              & right        & pop-up menu                   \\ \hline
+$<$SHIFT$>$   & left         & translate                     \\ \hline
+$<$SHIFT$>$   & middle       & rotate around the x \& y axes \\ \hline
+$<$SHIFT$>$   & right        & zoom (up \& down) and z-rotation (left \& right) \\ \hline
+\end{tabular}
+  \caption{Mouse driven features.}\label{tab:mouse}
+\end{center}
+\end{table}
+
+\newcommand{\figWidth}{.95\linewidth}
+% ----------------------------------------------------------------------------
+\subsection{Using clipping planes}
+The clipping plane dialog for each graphics window is opened from the
+`View' pull-down menu on the menu bar in the graphics
+window. Figure~\protect\ref{fig:clip-plane} shows an example from the test
+program. The first clip plane is activated by clicking on the toggle
+button in the top left corner. After it is activated, we can look
+inside the cube and see the sphere. By dragging the slider bar for the
+clipping plane, the clipping plane is moved closer or further away
+from the eye. The direction of the normal of the clipping plane can
+also be changed by editing the numbers in the `Normal' box.
+\begin{figure}
+  \begin{center}
+     \includegraphics[width=\figWidth]{\figures/clipPlane}
+  \caption{The Overture graphics interface. The clipping plane dialog window is also shown}\label{fig:clip-plane}
+  \end{center}
+\end{figure}
+
+\subsection{Setting the view characteristics} \label{sec:view-characteristics}
+The view characteristics dialog for each graphics window is opened
+from the `View' pull-down menu on the menu bar in the graphics
+window. Figure~\protect\ref{fig:view-char} shows an example from the test
+program. NOTE: When entering numerical values into a text box, it is
+necessary to hit $<$RETURN$>$ before the changes take effect.
+
+Here follows a brief description of the functionality in this window:
+\begin{description}
+\item[Background colour:]Select a background colour from the menu by
+clicking on the label with the current colour. In this example, the
+background colour is white. Changing the background colour will take
+effect immediately.
+%
+\item[Text colour:]Select a text (foreground) colour from the menu by
+clicking on the label with the current colour. In this example, the
+text colour is steel blue. Note that the text colour is used to colour
+the axes, the labels, and sometimes also the grid lines. However, only
+the axes will change colour immediately after a new colour is
+chosen. To update the colour of the labels and the grid lines, it is
+necessary to replot the object on the screen.
+%
+\item[Axes origin:] Click on the radio buttons to set the origin of
+the coordinate axes either at the default location (lower, left,
+back corner of the bounding box), or at the rotation point.
+%
+\item[Rotation point:] Enter the (X, Y, Z) coordinates of the rotation
+point. The rotation point will remain fixed to the screen during both
+interactive rotation with $<$SHIFT$>$+middle mouse button, and during
+rotation with the buttons {\bf x+r}, {\bf y+r}, etc.
+%
+\item[Pick rotation point:]After clicking on this button, set the
+rotation point by clicking with the left mouse button on a point
+on an object in the graphics window. NOTE: 
+\begin{enumerate}
+\item Picking will only work in the window from which the view
+characteristics dialog was opened. If you are unsure which window to
+pick in, you can press the right mouse button and read the window
+number from the title of the popup menu.
+\end{enumerate}
+%
+\item[Lighting:]Activate/deactivate lighting in the graphics window.
+%
+\item[Light \#i:]Turn on/off light source number $i$,
+$i=0,1,2$. Turning off all light sources is the same as deactivating
+lighting with the above function.
+%
+\begin{description}
+\item[Position (X, Y, Z):]The location (X, Y, Z) of light source
+number i. 
+\item[Ambient (R, G, B, A):]The ambient colour (R, G, B, A) of light source
+number i.
+\item[Diffusive (R, G, B, A):]The diffusive colour (R, G, B, A) of light source
+number i.
+\item[Specular (R, G, B, A):]The specular colour (R, G, B, A) of light source
+number i.
+\end{description}
+%
+\item[X-colour material properties:] The following properties
+characterize the default material, which is used when a X-colour is
+chosen for a lit object. The X-colours are distinguished from the
+predefined ``special'' materials in that only their ambient and
+diffuse reflections are defined, but not their specular and shininess
+properties. (For those fluent in OpenGL, this functionality is
+obtained by calling the function glColorMaterial with the argument
+GL\_AMBIENT\_AND\_DIFFUSE.)  Note that the reflective properties only
+influence objects that are lit. Also note that the objects need to be
+re-plotted in order for the changes to take effect.
+
+The predefined materials are listed in table~\protect\ref{tab:colours}. Hence,
+any colour that is not in the table is considered to be an X-colour.
+%
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l|l|l|l|} \hline
+ emerald &  jade & obsidian &  pearl \\ \hline
+ ruby &  turquoise &  brass &  bronze \\ \hline
+ chrome &  copper &  gold & silver \\ \hline
+ blackPlastic &  cyanPlastic &  greenPlastic &  redPlastic \\ \hline 
+ whitePlastic &  yellowPlastic &  blackRubber &  cyanRubber \\ \hline
+ greenRubber & redRubber &  whiteRubber &  yellowRubber \\ \hline
+\end{tabular}
+  \caption{Predefined materials.}\label{tab:colours}
+\end{center}
+\end{table}
+%
+\begin{description}
+\item[Specular (R, G, B, A):]The specular reflective property of the
+X-colour material. For example, by setting the first number to
+zero, you will get a bluish reflection on the green sphere in the
+example application. Note that the same effect could have been
+obtained by changing the specular colour of the light sources.
+\item[Shininess exponent:]A number between 0 and 128 that describes
+how ``narrow'' the specular reflection of the X-colour material will
+be. A lower number gives a wider reflection.
+\end{description}
+%
+\end{description}
+%
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=\figWidth]{\figures/viewChar}
+  \caption{The view characteristics dialog window}\label{fig:view-char}
+  \end{center}
+\end{figure}
+
+
+\subsection{Changing the default appearance of the windows}
+
+Default settings for some parameters can be changed through a file
+named .overturerc in your HOME directory. An example of an
+.overturerc file is
+\begin{verbatim}
+commandwindow*width: 800
+commandwindow*height: 150
+graphicswindow*width:  650
+graphicswindow*height: 500
+backgroundcolour: mediumgoldenrod
+foregroundcolour: steelblue
+\end{verbatim}
+The window sizes is specified in pixels. It is not necessary to
+specify both the width and height, and the default size is obtained
+either by omitting the command completely, or by setting the size to
+-1. The default foreground colour is black and the default background
+colour is white. If you change them, you must use one of the
+following colours:
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+black    &  white     &  red            & blue      &  green   \\ \hline
+orange   &  yellow    &  darkgreen      & seagreen  &  skyblue \\ \hline
+navyblue &  violet    &  pink           & turquoise &  gold    \\ \hline
+coral    &  violetred &  darkturquoise  & steelblue &  orchid  \\ \hline
+salmon   & aquamarine & mediumgoldenrod & wheat     &  khaki   \\ \hline
+maroon   &  slateblue & darkorchid      & plum      &
+\end{tabular}
+\end{center}

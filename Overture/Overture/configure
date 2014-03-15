@@ -1,0 +1,1919 @@
+eval 'exec perl -S $0 ${1+"$@"}'
+if 0;
+#!/usr/bin/perl
+# perl program to configure Overture Makefiles
+#
+
+@fileNames = @ARGV;
+
+$machine  = $ARGV[0];
+
+
+# We now build Ogmg by default:
+$buildOgmg = "true";  # this is now always built
+$buildRapsodi = "";
+$useX11 = 1;  #   set to 0 to build without X11 graphics (for machines without X11 libraries)
+
+
+if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
+{
+  printf("Usage: configure <machine name> [options] \n");
+  printf(" where <machine name> is automatically determined if left blank or is one of\n");
+  printf("   aix              : IBM AIX         \n");
+  printf("   dec              : Dec alpha with native compiler \n");
+  printf("   dec-linux        : Dec alpha with linux and g++ \n");
+  printf("   dec-linux-compaq : Dec alpha with linux and (cxx, ccc and fort as default compilers) \n");
+  printf("   hpux             : HP with native compiler  \n");
+  printf("   linux            : Intel based machine running linux with the g++ compiler \n");
+  printf("   irix             : sgi (64 bit origin)  \n");
+  printf("   sun5             : sun solaris \n");
+  printf("   darwin           : Mac OSX \n");
+  printf("   bg               : cross-compile on a Blue Gene/P machine\n");
+  printf(" \n");
+  printf(" options: (any combinations of) \n");
+  printf("   opt     : compile with optimization (by default most important files are compiled opt). \n");
+  printf("   debug   : compile with all files with debug.\n");
+  printf("   debugFlag=<value> : specify the flag to use for compiling with debugging. \n");
+  printf("   CC=<value>  : use this C++ compiler (instead of the default). e.g. CC=g++, CC=xlC, CC=mpiCC \n");
+  printf("   cc=<value>  : use this C compiler (instead of the default). e.g. CC=gcc \n");
+  printf("   FC=<value>  : use this Fortran compiler (instead of the default). e.g. FC=gfortran, FC=f77, FC=pgf77, FC=ifort\n");
+  printf("   bCC=<value>  : base C++ compiler (if CC is a script then bCC is the actual compiler, e.g. CC=mpiCC, bCC=g++) \n");
+  printf("   bcc=<value>  : base C compiler (actual compiler if cc is a script)\n");
+  printf("   bFC=<value>  : base Fortran compiler (actual compiler if FC is a script)\n");
+  printf("   precision=[double][single]  : compile Overture in double(default) or single precision\n");
+  printf("   multigrid: build the ogmg multigrid solver\n");
+  printf("   parallel: compile the parallel version using P++ (NOT yet available for general use)\n");
+  printf("   headers: only create the configuration dependent header files (OvertureDefine.h)\n");
+  printf("   useHDF4: configure for hdf4 instead of hdf5 \n");
+  printf("   noX11: build without X11 graphics (for machines without X11 libraries) \n");
+  printf(" \n");
+  printf(" Example: to compile with optimization: `configure opt`\n");
+  printf(" Example: to compile with optimization and single precision: `configure opt precision=single`\n");
+  printf(" Example: to force use of the gnu compilers : `configure CC=g++ cc=gcc FC=g77`\n");
+  printf("\n The configure script will build Makefiles in most sub-directories\n");
+  printf("\n The default values for different architectures are in the config directory\n");
+  exit;
+}
+
+# read some command line args here:
+foreach $arg ( @ARGV )
+{
+  if ( $arg =~ "noX11" )
+  {
+    $useX11 = 0;
+    printf("Do NOT use X11.\n");
+  }
+}
+
+# should use : *** these are NOT supported yet ****
+#   --host=HOST             configure for HOST [guessed]
+#   --with-CC=ARG           manually set C compiler to ARG"
+#   --with-CXX=ARG          manually set C++ compiler to ARG"
+#   --enable-opt            Sets up compiler flags for optimization"
+#   --enable-debug          Sets up compiler flags for debugging"
+
+if( $machine ne "aix"       &&
+    $machine ne "dec"       &&
+    $machine ne "dec-linux" &&
+    $machine ne "dec-linux-compaq" &&
+    $machine ne "hpux"      &&
+    $machine ne "linux"     &&
+    $machine ne "irix"      &&
+    $machine ne "sun5"      &&
+    $machine ne "darwin" &&
+    $machine ne "bg" &&
+    $machine ne "ignore" )
+{
+  # automatically find the architecture type
+  system("config/tarch > config/arch");
+  open(ARCH,"config/arch") || die print "unable to open config/arch\n";
+  while( <ARCH> )
+  {
+      $arch = $_;
+      chop($arch);
+      break;
+  }
+
+  printf("*** architecture = [$arch]\n");
+  $machine = $arch;
+  if( $arch eq "solaris" )
+  {
+    $machine = "sun5";
+  }
+  elsif( $arch eq "alpha" )
+  {
+    $machine = "dec";
+  }
+  elsif( $arch eq "rs6000" )
+  {
+    $machine = "aix";
+  }
+  elsif( $arch eq "LINUX" )
+  {
+    $machine = "linux";
+  }
+  elsif( $arch eq "IRIX64" )
+  {
+    $machine = "irix";
+  }
+  elsif( $arch eq "darwin" )
+  {
+    $machine = "darwin";
+  } else {
+    printf("I don't know the architecture type=[$arch]. Type `configure --help' for more info\n");
+    exit(1);
+  }
+}
+printf(" *** configure for machine = $machine **** \n");
+
+if( $machine eq "bg" ){ $useX11=0; } # we do not use X11 on Blue Gene
+
+
+# On some 64 bit machines some of the libraries are called "lib64" instead of "lib"
+#     x86_64 : intel 64 bit machine
+$machineType = `uname -m`; 
+chop($machineType);
+printf(" *** machineType = [$machineType] **** \n");
+$LIB64="lib"; 
+if( $machineType eq "x86_64" && $arch ne "darwin" )
+{
+  $LIB64="lib64"; 
+}
+
+printf("First checking for proper definition of Overture environmental variables:\n");
+
+@environmentalVariables=(
+              "APlusPlus",
+              "OpenGL",
+              "HDF",
+              "Overture",
+              "XLIBS"
+                 );
+$numberOfErrors =0;
+foreach $ev ( @environmentalVariables )
+{
+  next if $ev eq "XLIBS" && !$useX11 ; # skip XLIBS if we don''t use X11
+  $eev = $ENV{$ev};
+  if( -e $eev )
+  {
+    print "       $ev = " , $eev, "\n";
+  }
+  else
+  {
+    print "ERROR: environmental variable $ev = " , $eev, " DOES NOT EXIST\n";
+    $numberOfErrors++;
+  }
+}
+
+
+$OpenGL = $ENV{"OpenGL"};
+$Overture = $ENV{"Overture"};
+if( $useX11 ){ $XLIBS = $ENV{"XLIBS"}; }else{ $XLIBS="";} #
+
+
+# check for the Mesa or native OpenGL libraries.
+# Note in the latest version of Mesa the libraries no longer include the name MESA
+# $OpenGLibs = "-lMesaGL -lMesaGLU -lGLw";
+$OpenGLibs = "-lMesaGL -lMesaGLU";   # we no longer look for -lGLw
+
+# library locations for OpenGL and XLIBS (lib or lib64):
+$OpenGLibPath = "$OpenGL/$LIB64";
+if( $useX11 ){ $XLIBSLibPath = "$XLIBS/$LIB64";}else{ $XLIBSLibPath ="";} #
+
+@libGLNames = <$OpenGLibPath/libGL.*>;
+$length = @libGLNames;
+$useMesa = "";
+$buildOSMesa = "";
+if( $length ne 0 )
+{
+   if( $useX11 )
+   {
+     $OpenGLibs = "-lGL -lGLU";  # we no longer look for -lGLw
+   }
+   else
+   {
+     $OpenGLibs = "-lGLU";  # we don't use libGL if we don't have X11
+   } 
+  # we now check the gl.h file for the word mesa to see if we are really using Mesa.
+  $rt = open(OPENGL_FILE,"$OpenGL/include/GL/gl.h");
+  if( $rt ne 1 )
+  {
+    print "Unable to find the OpenGL file $OpenGL/include/GL/gl.h\n";
+    print "Check your OpenGL environmental variable, OpenGL=[$OpenGL]. Is seems to be incorrect.\n";
+    exit 1;
+  }
+
+  $useMesa="";
+  while( <OPENGL_FILE> )
+  {
+    if( /Mesa/ )
+    {
+      $useMesa = "newMesa";
+      break;
+    }
+    elsif ( /NVIDIA/ )
+    {
+	$useMesa = 2
+    }
+  }
+  close(OPENGL_FILE);
+  if( $useMesa eq "newMesa" )
+  {
+    printf("Using Mesa `OpenGL' libraries since gl.h contains the word Mesa\n");
+
+    # For Mesa off-screen rendering we need both the OSMesa library and we need access to the context.h file
+    @OSMesaNames = <$OpenGLibPath/libOSMesa.*>;
+    $length = @OSMesaNames;
+    if( $length ne 0 || $machine ne "darwin" )
+    {
+      # kkc: on Macs the following file finds context.h but the include in osRender.C does not match so
+      #    the context.h header file is still not found at compile time
+      # @ContextHeader = <$OpenGLibPath/../src/context.h>;
+      # $length = @ContextHeader;
+      # wdh: this should work now:
+      $contextFile = "$OpenGLibPath/../src/mesa/main/context.h";
+      if( -e $contextFile )
+      {
+        printf("Mesa off-screen rendering library and $contextFile found. Will build Mesa OS rendering.\n");
+        $OpenGLibs = "$OpenGLibs -lOSMesa";
+      }
+      else
+      {
+        printf("Mesa file: $contextFile NOT found. Off-screen rendering is disabled\n");
+        $length=0;
+      }
+    }
+    # if( $length eq 0 || $machine eq "darwin" ) # *wdh* 081212 -- hopefully this is not needed anymore
+    if( $length eq 0 )
+    {
+      printf("Mesa off-screen will not be supported since I couldn't find the library and files I need.\n");
+      printf("Using Mesa `OpenGL' but treating it as native OpenGL. (no off-screen rendering)\n");
+      $useMesa="2";
+    }
+    # osRender.C needs to be changed for the new version
+   
+    # *** we compile the off-screen rendering capabilities of Mesa ****
+
+#     printf("I am going to copy the OSMesa off-screen rendering files to be built in the Overture/static directory\n"); 
+#     printf("*** this could be wrong if I have the wrong version of these files. You may have to replace them.\n");
+#     $buildOSMesa = "true";
+#     @OSMesaFiles=( "osmesa.c","osmesa.h","context.h");
+#     foreach $file (@OSMesaFiles) 
+#     {
+#       system("cp static/$file.backup static/$file");
+#     }
+
+  }
+  elsif ( $useMesa eq "glwOnly" )
+  {
+      
+  }
+  else
+  {
+    print "Using native OpenGL libraries since gl.h does not contain the word Mesa\n";
+  }
+}
+else
+{
+  @libGLNames = <$OpenGLibPath/libMesaGL.*>;
+  $length = @libGLNames;
+  if( $length ne 0 )
+  {
+    $useMesa="oldMesa";
+    printf("Using Mesa `OpenGL' libraries since libMesaGL found in $OpenGLibPath \n");
+  }
+  else
+  {
+    printf("ERROR: Unable to find OpenGL library libGL or libMesaGL in  $OpenGLibPath \n");
+    printf("Check the OpenGL environmental variable and try again\n");
+    $numberOfErrors++;  
+  }
+}
+
+# check for the libGLw.a or .so library **** we nolonger require this to be built ****
+#@libAGLwNames = <$OpenGLibPath/libGLw.a>;
+#@libSOGLwNames = <$OpenGLibPath/libGLw.so>;
+#$length = @libAGLwNames;
+#my $ln2 = @libSOGLwNames;
+#$length += $ln2;
+
+$buildGlw = "true";
+if( $useMesa ne "" )
+{
+  # *wdh* 050327 : For Mesa we need to check for libGLw and the include files (the system versions may be inconsistent)
+  # kkc 060405 : check for non-mesa locations for these things in the paths we already have, just in case they are there
+  if( (-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" || -e "$XLIBSLibPath/libGLw.a" || -e "$XLIBSLibPath/libGLw.so" ) ){ printf(" Mesa has libGLw\n"); }
+  if( ( -e "$OpenGL/include/GLwDrawA.h" || -e "$XLIBS/include/GLwDrawA.h" || -e "$OpenGL/include/GL/GLwDrawA.h") )
+    { printf(" Mesa has GLwDrawA.h in the include dir\n"); }
+  else 
+    { printf(" Mesa does not have GLwDrawA.h in the include dir\n"); }
+
+#  if (  (-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so") && ( -e "$OpenGL/include/GLwDrawA.h" ) )
+  if ((-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" || -e "$XLIBSLibPath/libGLw.a" || -e "$XLIBSLibPath/libGLw.so") &&
+      ( -e "$OpenGL/include/GLwDrawA.h" || -e "$XLIBS/include/GLwDrawA.h" || -e "$OpenGL/include/GL/GLwDrawA.h") )
+  {
+    $buildGlw="";
+  }
+
+}
+else
+{
+  if ( -e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" ||  
+       -e "$XLIBSLibPath/libGLw.a" ||  -e "$XLIBSLibPath/libGLw.so" ){
+    $buildGlw="";
+  }
+}  
+#kkc 050128 $length = 0;  # *******   For now always copy and build the GLw files so users don't need to ****
+if( $buildGlw )
+{
+  # printf("INFO: unable to find the libGLW.a or libGLW.so library in $OpenGLibPath \n");
+  printf("INFO: I am going to copy my version of the GLw files into Overture/static directory\n"); 
+
+  $buildGLw = "true";
+  @glwFiles=( "GLwDrawA.c","GLwDrawA.h","GLwDrawAP.h","GLwMDrawA.c","GLwMDrawA.h","GLwMDrawAP.h");
+  foreach $file (@glwFiles) 
+  {
+    system("cp static/$file.backup static/$file");
+  }
+}
+else
+{
+    # -lGLw is there, we will use it.
+    printf("INFO: I am going to use the system's GLw library\n");
+  $OpenGLibs = "$OpenGLibs -lGLw";
+}
+# # check for GLwMDrawA.h
+# $GLwMDrawAInclude="GL";
+# @name = <$OpenGL/include/GL/GLwMDrawA.h>;
+# $length= @name;
+# if( $length == 0 )
+# { 
+#   @GLwMDrawAInclude = <$OpenGL/include/X11/GLw/GLwMDrawA.h>;
+#   if( $length == 0 )
+#   {
+#   }
+#   $GLwMDrawAInclude="X11/GLw";  
+# }
+
+# check for Lesstif or Motif (if we are using X11)
+if( $useX11 )
+{
+  $MOTIF = $ENV{"MOTIF"};
+  print "Checking for the Motif header files in $MOTIF/include/Xm/\n";
+
+  $rt = open(MOTIF_FILE,"$MOTIF/include/Xm/Xm.h");
+  if( $rt ne 1 )
+  {
+    print "Unable to find the Motif or Lesstif file $MOTIF/include/Xm/Xm.h\n";
+    print "Check your MOTIF environmental variable, MOTIF=[$MOTIF]. It seems to be incorrect.\n";
+    exit 1;
+  }
+  $motif="motif";
+  while( <MOTIF_FILE> )
+  {
+    if( /Lesstif/ )
+    {
+      $motif = "Lesstif";
+      break;
+    }
+  }
+  close(MOTIF_FILE);
+  printf("Using $motif. \n");
+}
+if( $useX11 )
+{ # use mog.C.backup if we use X11
+  system("cp static/mogl.C.backup static/mogl.C");
+}    
+else
+{ # use moglNull.C if we don't use X11
+  system("cp static/moglNull.C static/mogl.C");
+}
+
+# Find the location of the perl CORE libraries for the Overture parser
+system("perl -V > config/perl-V");
+open(PERLMV,"config/perl-V") || die print "unable to open config/perl-V\n";
+$perllibs="";
+
+# Get the location of the perl core libraries this way:
+use Config; 
+$perlloc="$Config{archlib}/CORE";
+printf("perlloc = [$perlloc]\n");
+
+while( <PERLMV> )
+{
+  if( /perllibs=/ )
+  {
+    $perllibs = $_;
+    chop($perllibs);
+    $perllibs =~ s/[ \t]*perllibs=//;
+    $perllibs = "-lperl $perllibs";
+    # printf(" perllibs=[$perllibs]\n");
+  }
+#   if( /\@INC:/ )
+#   {
+#     $perlloc = <PERLMV>;  
+#     chop($perlloc);
+#     $perlloc =~ s/[ \t]*//g;
+#     $perlloc = $perlloc . "\/CORE";
+#     # printf("perlloc = [$perlloc]\n");
+#  }
+}
+close(PERLMV);
+if( $perllibs ne "" && $perlloc ne "" )
+{
+  printf("Using perl headers and lib from perllibs=[$perlloc]\n");
+  printf("Will link to the libraries perllibs=[$perllibs]\n");
+}
+else
+{
+  printf("configure:ERROR: searching for the location of the perl headers and lib! Will use the\n");
+  printf("                 info supplied in config/MakeDef.$machine\n");
+}
+
+# By default we now use HDF5
+$useHDF5 = "useHDF5";
+
+if( $numberOfErrors > 0 )
+{
+    printf("$numberOfErrors ERROR(S) found. Fix environmental variables and try again\n");
+    printf("See the Overture README file for information on how to set environmental variables\n");
+    exit 1;
+}
+
+
+$opt="";            # optimization is off by default 
+$debug="";          
+$double= "double";  # double precision is on by default
+$FortranDouble= "";
+$cc = "";           # use default values from Makedef file unless over-ridden
+$CC = "";
+$FC = "";
+# $bcc, $bCC and $bFC are the "base" name for the compilers: needed when $cc, $CC, $FC are scripts such as mpicc
+$bcc = "";          
+$bCC = "";
+$bFC = "";
+$CC_FLAGS = "";
+$FF_FLAGS = "";
+$petsc = "";
+$parallel = "";
+$debugFlag="";     # may be set by command line arguments
+$headers = "";
+
+# ---------------------------------------------------------
+# --- Now get some default values from the Makedef file ---
+# ---------------------------------------------------------
+if ( $machine ne "ignore" )
+{
+  open(MAKE_DEFS,"config/MakeDefs.$machine") || die print "unable to open config/MakeDefs.$machine\n";
+  while( <MAKE_DEFS> )
+  {
+    if( /^CC[ ]*=(.*)/ ){ $CC =$1;  $CC =~s/ //g; }
+    if( /^cc[ ]*=(.*)/ ){ $cc =$1;  $cc =~s/ //g; }
+    if( /^FC[ ]*=(.*)/ ){ $FC =$1;  $FC =~s/ //g; }
+    if( /^bCC[ ]*=(.*)/ ){ $bCC =$1;  $bCC =~s/ //g; }
+    if( /^bcc[ ]*=(.*)/ ){ $bcc =$1;  $bcc =~s/ //g; }
+    if( /^bFC[ ]*=(.*)/ ){ $bFC =$1;  $bFC =~s/ //g; }
+  }
+  close(MAKE_DEFS);
+}
+printf("Using configuration file config/MakeDefs.$machine\n");
+
+close(MAKE_DEFS);
+
+$useDefaultFortranCompiler=1; 
+
+foreach $arg ( @ARGV )
+{
+  if( $arg =~ "debugFlag=(.*)" )
+  {
+    $debugFlag = $1;
+  }
+  elsif( $arg eq "opt" )
+  {
+    $opt = "opt";
+  }
+  elsif( $arg eq "debug" )
+  {
+    $debug = "debug";
+    printf("\n **** Compiling ALL files with debugging flags. **\n\n");
+  }
+  elsif( $arg =~ /precision=(.*)/ )
+  { 
+    if( $1 eq "double" )
+    {
+      $double = "double";
+    }
+    elsif( $1 eq "single" )
+    {
+      $double = "";
+    }
+    else
+    {
+      printf("Unknown precision: [$arg]\n");
+    }
+  }
+  elsif( $arg =~ /^CC=(.*)/ )
+  {
+    $CC = $1;  $CC =~ s/ //g;
+    if( $CC eq "kcc" ){ $CC = "KCC"; }
+  }
+  elsif( $arg =~ /^cc=(.*)/ )
+  {
+    $cc = $1; $cc =~ s/ //g;
+  }
+  elsif( $arg =~ /^FC=(.*)/ )
+  {
+    $FC = $1; $FC =~ s/ //g;
+    $useDefaultFortranCompiler=0;
+  }
+  elsif( $arg =~ /bCC=(.*)/ )
+  {
+    $bCC = $1;  $bCC =~ s/ //g;
+    if( $bCC eq "kcc" ){ $bCC = "KCC"; }
+  }
+  elsif( $arg =~ /bcc=(.*)/ )
+  {
+    $bcc = $1; $bcc =~ s/ //g;
+  }
+  elsif( $arg =~ /bFC=(.*)/ )
+  {
+    $bFC = $1; $bFC =~ s/ //g;
+  }
+  elsif( $arg eq "multigrid" )
+  {
+    $buildOgmg="true";
+    print "Building the Ogmg multigrid solver.\n";
+  }
+  elsif( $arg eq "parallel" )
+  {
+    $parallel="parallel";
+    $useHDF5 = "useHDF5";
+    print "Compiling Overture in parallel (will use hdf5.)\n";
+  }
+  elsif( $arg eq "headers" )
+  {
+    $headers = "headers";
+    print "Only configuring the header files\n";
+  }
+  elsif( $arg eq "useHDF5" )
+  {
+    $useHDF5 = "useHDF5";
+    print "Using hdf5 \n";
+  }
+  elsif( $arg eq "useHDF4" )
+  {
+    $useHDF5 = "";
+    print "Using hdf4 \n";
+  }
+  elsif( $arg eq "petsc" )
+  {
+    $petsc = "petsc";
+    printf(" using the PETSc sparse matrix solver package.\n");
+
+    $ev = "PETSC_LIB";
+    $eev = $ENV{$ev}; 
+    if( -e $eev )
+    {
+      print "       $ev = " , $eev, "\n";
+    }
+    else
+    {
+      print "ERROR: environmental variable $ev = " , $eev, " DOES NOT EXIST\n";
+      print "define this variable if you want to use PETSc\n";
+      exit 1;
+    }
+  }
+  elsif ( $arg eq $machine )
+  {
+#   
+  }
+  elsif ( $arg eq "noX11" )
+  {
+#   
+  }
+  else
+  {
+    print "ERROR: unknown argument = [$arg]\n";
+    exit 1;
+  }
+}
+
+# printf("FC = [%s]\n",$FC);
+
+
+# We look for the pgf77 or ifort fortran compilers either by default or if they were explicitly specified
+# NOTE: 100212 -- for ifort we always go in the next block so that we find the correct loaction of
+#       the compiler. 
+if( $machine eq "linux" && ( $FC eq "ifort" || $bFC eq "ifort" || $bFC eq "pgf77" || $useDefaultFortranCompiler eq 1) )
+{
+  $pgf77Found=0;
+  if( $bFC ne "ifc" && $bFC ne "ifort" )
+  {
+    # On linux look for the pgi fortran compiler
+
+    $rc = system("which pgf77 > config/pgf77.which");
+    open(PGF77,"config/pgf77.which") || die print "unable to open config/pgf77.which\n";
+    $pgiLibDirectory="";
+    while( <PGF77> )
+    {
+      $line =$_;
+      if( $line =~ /pgf77$/ ) # if pgf77 was found the $line will like "/usr/apps/pgi/3.3/linux86/bin/pgf77"
+      {
+        $pgf77Found=1;
+        $pgiLibDirectory=$line;
+        chop($pgiLibDirectory);
+        $pgiLibDirectory =~ s/bin\/pgf77$/lib/;
+        last;
+      }
+    }
+    close(PGF77);
+    if(  $pgf77Found==1 )
+    {
+      print "pgf77 was found: $line";
+      print "I will look for the pgi library in $pgiLibDirectory\n";
+      $FC = "pgf77"; $bFC=$FC;
+      print "The pgi fortran compiler was found and will be used\n";
+      print "Explicitly set the FC option if you want a different fortran compiler\n";
+    }
+  }
+  if( $pgf77Found eq 0 )
+  {
+
+    # **** the new intel fortran compiler is called ifort    
+    # Here we look for the intel compiler ifort
+    $rc = system("which ifort > config/ifort.which");
+    open(IFORT,"config/ifort.which") || die print "unable to open config/ifort.which\n";
+    $ifortFound=0;
+    while( <IFORT> )
+    {
+      $line =$_;
+      if( $line =~ /ifort$/ ) # look for the name ending in ifort
+      {
+        $ifortFound=1;
+        $ifortLibDirectory=$line;
+        $ifortLibDirectory =~ s/bin\/ifort$/lib/;
+        last;
+      }
+    }
+    close(IFORT);
+    if(  $ifortFound==1 )
+    {
+      print "ifort was found: $line";
+      print "I will look for the ifort library in $ifortLibDirectory";
+      $FC = "ifort"; $bFC=$FC;
+      print "The intel fortran compiler ifort was found and will be used.\n";
+      print "Explicitly set the FC option if you want a different fortran compiler\n";
+    }
+    else
+    {
+      # Here we look for the OLD intel fortran compiler ifc
+
+      $rc = system("which ifc > config/ifc.which");
+      open(IFC,"config/ifc.which") || die print "unable to open config/ifc.which\n";
+      $ifcFound=0;
+      while( <IFC> )
+      {
+        $line =$_;
+        if( $line =~ /ifc$/ ) # look for the name ending in ifc
+        {
+          $ifcFound=1;
+          $ifortLibDirectory=$line;
+          $ifortLibDirectory =~ s/bin\/ifc$/lib/;
+          last;
+        }
+      }
+      close(IFC);
+      if(  $ifcFound==1 )
+      {
+        print "ifc was found: $line";
+        print "I will look for the ifc library in $ifortLibDirectory";
+        $FC = "ifc"; $bFC=$FC;
+        print "The intel fortran compiler ifc was found and will be used.\n";
+        print "Explicitly set the FC option if you want a different fortran compiler\n";
+      }
+   }    
+      
+  }
+}
+# if we don''t find pgf77 or ifort then look for gfortran
+if( $useDefaultFortranCompiler eq 1 && $pgf77Found eq 0  && $ifortFound eq 0 )
+{
+  $rc = system("which gfortran > config/gfortran.which");
+  open(GFORTRAN,"config/gfortran.which") || die print "unable to open config/gfortran.which\n";
+  while( <GFORTRAN> )
+  {
+    $line =$_;
+    if( $line =~ /gfortran/ ) 
+    {
+      print "The gfortran compiler was found.\n";
+      $FC = "gfortran"; $bFC=$FC;
+    }
+  }
+  close(GFORTRAN);
+}
+
+# set the base names for compilers if they have not been already set
+if( $bcc eq "" ){ $bcc=$cc; } # 
+if( $bCC eq "" ){ $bCC=$CC; } # 
+if( $bFC eq "" ){ $bFC=$FC; } # 
+
+printf("Using Compilers: C++=$CC, C=$cc, Fortran=$FC (base version: C++=$bCC, C=$bcc, Fortran=$bFC)\n");
+
+$compilerLibDir=""; # holds location of compiler libraries 
+
+# check the version of g++
+if( $bCC eq "g++" )
+{
+  system("g++ --version > config/gcc.version");
+  open(CC_VERSION,"config/gcc.version") || die print "unable to open config/gcc.version\n";
+
+  $version = <CC_VERSION>;
+  printf("Using g++ version $version");
+  # $version =~ /(\d*)\.(\d*)\.(\d*)/;
+  $version =~ /(\d*)\.(\d*)/;
+  $major=$1;
+  $minor=$2;
+  # $minorMinor=$3;
+  # print "major=[$major] minor=[$minor] \n";
+
+  $versionNumber=$major*100+$minor;
+  #  printf(" The version number is [$versionNumber] \n");
+
+  # Find the gcc library directory
+  $rc = system("which gcc > config/gcc.which");
+  open(GCC_WHICH,"config/gcc.which") || die print "unable to open config/gcc.which\n";
+  while( <GCC_WHICH> )
+  {
+    $line =$_;
+    if( $line =~ /gcc$/ ) # if gcc was found the $line will like "/usr/apps/gcc/4.3.2/bin/gcc"
+    {
+      $gccFound=1;
+      $compilerLibDir=$line;
+      chop($compilerLibDir);
+      $compilerLibDir =~ s/bin\/gcc$/$LIB64/;
+      last;
+    }
+  }
+  close(GCC_WHICH);
+
+  print "gcc lib directory = $compilerLibDir\n";
+
+
+#   if( $version =~ /egcs/ || $versionNumber>290 )
+#   {
+#   }
+#   else
+#   {
+#     printf("WARNING: this is apparently not an egcs version of g++ or \n");
+#     printf("the version number is prior to 2.91.66\n");
+#     printf("Overture will not work without a relatively new version of g++.\n");
+#     printf("You can download it free from www.cygnus.com \n");
+#   }
+
+}
+
+
+if( $double ne "" )
+{
+  $double = "Compiled in double precision";
+  # Here are the default flags to automatically promote real*4 to real*8 in Fortran: (leave integer*4 as is)
+  $FortranDouble = "-r8 -i4";
+  if ( $bFC eq "xlf" )
+  {
+    # dbl4: promotes 4-byte reals to 8-bytes : real*4 -> real*8 (does not change real*8)
+    $FortranDouble = "-qautodbl=dbl4";
+  }
+  # sun version 5: use     -xtypemap=real:64,double:64,integer:mixed
+  #        The allowable size values are:
+  #
+  #            On SPARC:
+  #              real:64,
+  #              double:64, double:128,
+  #              integer:64, integer:mixed.
+  #
+  #            On x86:
+  #              real:64,
+  #              double:64,
+  #              integer:64, integer:mixed.
+
+  #          The mapping integer:mixed indicates 8-byte integers but
+  #         only 4-byte arithmetic.  
+  # gfortran: 
+  #  -fdefault-integer-8         Set the default integer kind to an 8 byte wide type
+  #  -fdefault-real-8            Set the default real kind to an 8 byte wide type
+  #  -fdefault-double-8          *new* 4.6.1 -- need to set double precision too or else -fdefault-real-8 turns real*8 into real*16
+
+  printf("**Overture will be compiled in double precision\n");
+}
+else
+{
+  printf("**Overture will be compiled in single precision\n");
+}
+
+if( $bFC eq "gfortran" && $double ne "" )
+{
+  # old: $FortranDouble = "-fdefault-real-8";
+  # *new* for 4.6.1
+  $FortranDouble = "-fdefault-real-8 -fdefault-double-8";
+}
+
+if( $bCC eq "g++" && $double ne "" && $machine ne "dec-linux-compaq" && ($bFC eq "" || $bFC eq "g77") )
+{
+  # use f2c and the fort77 macro for the fortran compiler.
+  
+  $FortranDouble = "-r8";
+  $FC = "fort77";  $bFC=$FC;
+  $ev = "F2C_INCLUDE";
+  $f2cInclude =$ENV{$ev};  
+  $FF_FLAGS = "-I$f2cInclude";
+
+  printf("Using fort77 (a script that runs f2c) instead of g77 since g77 does not support the -r8 flag\n");
+  printf("for automatic double precsion\n");
+
+  if( -e $f2cInclude )
+  {
+   print "       $ev = " , $f2cInclude, "\n";
+  }
+  else
+  {
+    print "ERROR: environmental variable $ev = " , $f2cInclude, " DOES NOT EXIST\n";
+    print "You should define this, for example `setenv F2C_INCLUDE /home/henshaw/f2c/libf2c' \n";
+    print "You may be able to just use `setenv F2C_INCLUDE .' if f2c comes with your system. \n"; 
+    exit 1;
+  }
+  $rc = system("which f2c > config/f2c.which");
+  open(F2C,"config/f2c.which") || die print "unable to open config/f2c.which\n";
+  # print "line=$line";
+  $f2cFound=0;
+  while( <F2C> )
+  {
+     $line = $_;
+     if( $line =~ /f2c$/ ) # if f2c was found the $line will be a path like "/usr/local/bin/f2c"
+     {
+       print "f2c was found: $line";
+       $f2cFound=1;
+       last;
+     }
+   }
+  close(F2C);
+  if( $f2cFound == 0 )
+  {
+    print "f2c was NOT found. You will need f2c (and fort77) to run in double precision with gcc.\n";
+    print "Both f2c and fort77 can be obtained free on the web. \n";
+    exit 1;
+  }
+
+  $rc = system("which fort77 > config/fort77.which");
+  open(FORT77,"config/fort77.which") || die print "unable to open config/fort77.which\n";
+  $fort77Found=0;
+  while( <FORT77> )
+  {
+    $line =$_;
+    if( $line =~ /fort77$/ ) # if fort77 was found the $line will be a path like "/usr/local/bin/fort77"
+    {
+      $fort77Found=1;
+      last;
+    }
+  }
+  close(FORT77);
+  if(  $fort77Found==1 )
+  {
+    print "fort77 was found: $line";
+  }
+  else
+  {
+    print "fort77 was NOT found. You will need fort77 to run in double precision with gcc.\n";
+    exit 1;
+  }
+
+  # now test fort77
+  printf("Checking that fort77 works...\n");
+  $returnCode = system("$FC -v $FF_FLAGS -c config/checkFort77.F");  # returnCode isn''t set ??
+  if( !(-e "checkFort77.o") )
+  {
+    $returnCode=1;
+  }
+  system("rm -f checkFort77.o");
+
+  if( $returnCode==0 )
+  {
+    printf("fort77 seems to work.\n");
+  }
+  else
+  {
+    printf("fort77 does not seem to work\n");
+    if( $f2cInclude eq "" )
+    {
+      print "The problem could be that fort77 cannot find the f2c include files\n";
+      print "Try setting the environmental variable F2C_INCLUDE to be the directory\n";
+      print "where f2c.h etc sit.\n";
+    }
+    elsif( !(-e $f2cInclude) )
+    {
+      print "ERROR: The directory $f2cInclude defined by the F2C_INCLUDE environmental variable ";
+      print "does not exist\n";
+    }
+    elsif( !(-e "$f2cInclude/f2c.h") )
+    {
+      print "ERROR: f2c.h is not found in the directory $f2cInclude defined by\n";
+      print "the F2C_INCLUDE environmental variable ";
+    }
+    exit 1;
+  }  
+
+#  printf("***ERROR*** Sorry, but you cannot use double-precision and $CC since g77 does not support\n");
+#  printf("            the -r8 -i4 flags for automatic conversion to double precision\n");
+#  exit 1;
+}       
+
+$majorVersionNumber="123456789";
+if( $bCC eq "CC" && $arch eq "solaris" )
+{
+  system("CC -V 2> config/CC.version");
+  open(CC_VERSION,"config/CC.version") || die print "unable to open config/CC.version\n";
+  while( <CC_VERSION> )
+  {
+    $version = $_;
+    printf("Using-> $version\n");
+    if( $version =~ /C\+\+ (.)/ )
+    {
+      $majorVersionNumber=$1;
+      # printf("Using CC major version number: $majorVersionNumber\n");
+    }
+  }
+}
+
+# $debugFlag holds the flag to be used for compiling with debug
+if( $debugFlag eq "" )  # may have already been specified by the user
+{
+  # here are the default values to use for the debug flag
+  $debugFlag = "-g";
+  if( $machine eq "dec-linux" )
+  {
+    $debugFlag = "-g0";
+  }
+  elsif( $machine eq "dec-linux-compaq" )
+  {
+    $debugFlag = "-gall";
+  }
+  if( $bCC eq "KCC" )
+  {
+    $debugFlag = "+K0";
+  }
+  # NO The ifort compiler can take for-ever if we use -g so use -O instead
+  # if( $FC eq "ifort" )
+  # {
+  #    $debugFlag = "-O";
+  # }
+}
+if( $opt ne "" )
+{
+  printf(" optimizing is turned on. (using debugFlag=$debugFlag for any files compiled without optimization)\n");
+}
+else
+{
+  printf(" debugging turned on, using debugFlag=$debugFlag. \n");
+}
+
+open(STDERR,">config.tempFile" ) || die print "unable to open config.tempFile\n";
+
+printf("Checking for bool support\n");
+$returnCode = system("$CC $CC_FLAGS -c config/checkForBool.C");
+system("rm -f checkForBool.o");
+if( $returnCode==0 )
+{
+  $boolDefined = 1;
+  printf("bool is supported.\n");
+}
+else
+{
+  $boolDefined = 0;
+  printf("bool is not supported.\n");
+}
+# printf("return code for bool check = $returnCode. boolDefined=$boolDefined \n");
+
+printf("Checking for exceptions support\n");
+$returnCode = system("$CC $CC_FLAGS -c config/checkForExceptions.C");
+system("rm -f checkForExceptions.o");
+if( $returnCode==0 )
+{
+  $exceptionsSupported = 1;
+  printf("exceptions are supported.\n");
+}
+else
+{
+  $exceptionsSupported = 0;
+  printf("exceptions are not supported.\n");
+}
+# printf("return code for bool check = $returnCode. boolDefined=$boolDefined \n");
+
+
+$ev = "STL";
+$STL = $ENV{$ev}; 
+if ( $STL eq "") 
+{ 
+    $STLINC = "";
+}
+else 
+{
+    $STLINC = "$STL"; 
+}
+printf("Checking for STL availability. \$STLINC=$STLINC\n");
+
+
+$returnCode = system("$CC $CC_FLAGS $STLINC -DCHECKFORSTL -c config/checkTemplate.C");
+system("rm -f checkTemplate.o");
+if( $returnCode==0 )
+{
+  printf("stl is available using std include format");
+  $stlAvailable = 1;
+  $useOldSTL = 0;
+}
+else
+{
+  $returnCode = system("$CC $CC_FLAGS $STLINC -DCHECKFOROLDSTL -c config/checkTemplate.C");
+  system("rm -f checkTemplate.o");
+  if ( $returnCode==0 )
+  {
+    $stlAvailable= 1;
+    $useOldSTL = 1;
+    printf("stl is available using old include format.\n");
+  }
+  else
+  {
+    $stlAvailable = 0;
+    printf("\n***ERROR: STL is not available.\n");
+    printf("  I am unable to compile the test code config/checkTemplate.C with the command:\n");
+    printf("     $CC $CC_FLAGS $STLINC -DCHECKFORSTL -c config/checkTemplate.C\n");
+    printf("  or with the command\n");
+    printf("     $CC $CC_FLAGS $STLINC -DCHECKFOROLDSTL -c config/checkTemplate.C\n");
+    printf("  Set the enviromental variable STL to point to the directory holding STL\n");
+    printf("  The current value for \$STL is [$STL]\n");
+    printf("  NOTE that \$STL should be the include path specification such as in `-I/usr/lib/STL'\n");
+    exit(1);
+  }
+}
+
+$returnCode = system("$CC $CC_FLAGS -DCHECKNAMESPACE -c config/checkTemplate.C");
+system("rm -f checkTemplate.o");
+if ( $returnCode==0 )
+{
+  $understandsNamespace = 1;
+  printf("\nthe compiler understands namespaces\n");
+}
+else
+{
+  $understandsNamespace = 0;
+  printf("\nthe compiler does not understand namespaces\n");
+}
+
+$returnCode = system("$CC $CC_FLAGS -DCHECKTEMPLARGS -c config/checkTemplate.C");
+system("rm -f checkTemplate.o");
+if ( $returnCode==0 )
+{
+  $noDefaultTemplArgs = 0;
+  printf("\nthe compiler understands default template arguments\n");
+}
+else
+{
+  $noDefaultTemplArgs = 1;
+  printf("\nthe compiler does not understand default template arguments\n");
+}
+
+$returnCode = system("$CC $CC_FLAGS -DCHECKFOREXPLICIT -c config/checkTemplate.C");
+if ( $returnCode==0 )
+{
+  $noExplicit = 0;
+  printf("\nthe compiler understands explicit\n");
+}
+else
+{
+  $noExplicit = 1;
+  printf("\nthe compiler does not understand explicit\n");
+}
+
+close(STDERR);
+unlink( "config.tempFile" );
+
+if( $parallel eq "parallel" )
+{
+  # look for PPlusPlus variable
+  $ev = "PPlusPlus";
+  $eev = $ENV{$ev};
+  if( -e $eev )
+  {
+    print "$ev = " , $eev, "\n";
+  }
+  else
+  {
+    print "ERROR: environmental variable $ev = " , $eev, " DOES NOT EXIST\n";
+    $numberOfErrors++;
+  }
+  $PPlusPlus = $eev;
+  # open PPlusPlus Makefile and find info about MPI
+
+  # $makefile="$PPlusPlus/../TESTS/Makefile";
+  $makefile="$PPlusPlus/Makefile.user.defs"; # Here is where we find what mpi was use to build P++
+  if( !(-e $makefile) )
+  {
+    $makefile="$PPlusPlus/../../Makefile";
+  }
+  printf("Look for MPI info from $makefile\n");
+
+  open(PPP_MAKEFILE,$makefile) || die print "ERROR: unable to find the Makefile in P++\n";
+
+  $mpiInclude="";
+  while( <PPP_MAKEFILE> )
+  {
+    chop($_);
+    if( $_ =~ /^MPIINCLUDE/ )
+    {
+      $mpiInclude = $_;
+      $mpiInclude =~ s/^MPIINCLUDE[ \t=]*//;
+      print "mpi include directory: $mpiInclude\n";
+    }
+    if( $_ =~ /^MPILIBDIRS/ )
+    {
+      $mpiLibDirs=$_;
+      $mpiLibDirs =~ s/^MPILIBDIRS[ \t=]*//;
+      print "mpi lib directory: $mpiLibDirs\n";
+    }
+    if( $_ =~ /^MPILIBS/ )
+    {
+      $mpiLibs = $_;
+      $mpiLibs =~ s/^MPILIBS[ \t=]*//;
+      # hdf5 uses libmpio -- we need to check if this library is really there (mpich doesn't seem to have it)
+      # hdf5 uses libmpio -- we need to check if this library is really there (mpich doesn't seem to have it)
+      if( $useHDF5 eq "useHDF5" )
+      { 
+       $mpioLib = "$mpiLibDirs";  
+       $mpioLib =~ s/^.*-L//;   # this should be the directory where the mpi libraries sit (e.g. /usr/lib/mpi/lib)
+
+       @mpiLibNames = <$mpioLib/libmpio*>;
+       # print("mpiLibNames=", @mpiLibNames,"\n");
+       $length = @mpiLibNames;
+       if( $length>0 )
+       {
+         printf("mpio library found in $mpioLib \n");
+         $mpiLibs = "$mpiLibs -lmpio";
+         # printf("mpiLibs=[$mpiLibs]\n");
+       }
+       else
+       {
+        printf("mpio library NOT found in $mpioLib. I will assume there is no need to link to it. \n");
+       }
+      }
+      print "mpi librarys : $mpiLibs\n";
+    }
+  }
+  close(PPP_MAKEFILE);
+  if( $mpiInclude eq "" )
+  {
+    printf("ERROR looking for MPIINCLUDE !\n");
+    exit 1;
+  }
+}
+
+# Now create the file include/OvertureDefine.h 
+open(OVERTURE_DEFINE_IN,"include/OvertureDefine.h.in") || die print "unable to open include/OvertureDefine.h.in\n";
+open(OVERTURE_DEFINE,">include/OvertureDefine.h") || die print "unable to open include/OvertureDefine.h\n";
+while( <OVERTURE_DEFINE_IN> )
+{
+  $line = $_;
+  $line =~ s/This file is changed by the configure script/This file was generated by the configure script/;
+  $line =~ s/OVERTURE_HOME.*/OVERTURE_HOME \"$Overture\"/g;
+
+  if( $arch eq "aix" ){ $line =~ s/^#undef OV_ARCH/#define OV_ARCH_AIX/; }
+  if( $arch eq "darwin" ){ $line =~ s/^#undef OV_ARCH/#define OV_ARCH_DARWIN/; }
+  if( $arch eq "linux" ){ $line =~ s/^#undef OV_ARCH/#define OV_ARCH_LINUX/; }
+
+  if( $bFC eq "xlf" )
+  { # IBM xlf compiler does not add an underscore to fortran names:
+    $line =~ s/^#define OV_USE_UNDERSCORE/#undef OV_USE_UNDERSCORE/;
+  }
+
+# wdh $line =~ s/\$\(OverturePrecision\)/$double/g;
+  $line =~ s/\$\(OverturePrecision\)//g;
+    $line =~ s/\$\(FortranDouble\)/$FortranDouble/g;
+  if( $boolDefined==1 )
+  {
+    $line =~ s/^#undef OV_BOOL_DEFINED/#define OV_BOOL_DEFINED/g;
+  }
+  if( $double ne "" )
+  {
+    $line =~ s/^#undef OV_USE_DOUBLE/#define OV_USE_DOUBLE/g;
+    $line =~ s/^BL_USE_FLOAT/BL_USE_DOUBLE/g;
+  }
+  if( $useHDF5 ne "" )
+  {
+    $line =~ s/^#undef OV_USE_HDF5/#define OV_USE_HDF5/g;
+  }
+  if( $useX11 )
+  {
+    $line =~ s/^#undef OV_USE_X11/#define OV_USE_X11/g;
+  }
+  if( $exceptionsSupported==0 )
+  {
+    $line =~ s/^#undef OV_EXCEPTIONS_NOT_SUPPORTED/#define OV_EXCEPTIONS_NOT_SUPPORTED/g;
+  }
+  if( $machine eq "sun5" || $machine eq "aix" )
+  {
+    $line =~ s/^#undef BL_Solaris/#define BL_Solaris/g;
+  }
+  if( $bCC eq "g++" || $bCC eq "xlC" || $bCC eq "KCC" || $bCC eq "pgCC" )
+  {
+    # this is for templates
+    $line =~ s/^#undef BL_AUTO_INSTANTIATE/#define BL_AUTO_INSTANTIATE/g;
+  }
+  if( $stlAvailable==1 && $useOldSTL==1 )
+  {
+    $line =~ s/^#undef OV_USE_OLD_STL_HEADERS/#define OV_USE_OLD_STL_HEADERS/g;
+  }
+  if ( $noDefaultTemplArgs==1 )
+  {   # kkc, added in order to use ArraySimple on Sun CC 4.2
+	$line =~ s/^#undef OV_NO_DEFAULT_TEMPL_ARGS/#define OV_NO_DEFAULT_TEMPL_ARGS/g;
+  }
+  if ( $understandsNamespace==1 )
+  {
+    $line =~ s/^#define OV_USINGNAMESPACE\(x\)/#define OV_USINGNAMESPACE(x) using namespace x/g;
+  }
+  if ( $noExplicit==1 )
+  {
+    $line =~ s/^#undef EXPLICIT/#define EXPLICIT/g;
+  }
+  if( $motif eq "Lesstif" )
+  {
+    $line =~ s/^#undef OV_USE_LESSTIF/#define OV_USE_LESSTIF/;
+  }
+  if( $useMesa ne "" )
+  {
+    $line =~ s/^#undef OV_USE_MESA/#define OV_USE_MESA $useMesa/g;
+    if( $useMesa eq "oldMesa" )
+    {
+      $line =~ s/^#undef glBlendEquation/#define glBlendEquation glBlendEquationEXT/;
+    }
+
+  }
+  if( $buildGLw ne "" )
+  {
+    $line =~ s/^#undef OV_USE_LOCAL_GLW/#define OV_USE_LOCAL_GLW/g;
+  }
+
+  print OVERTURE_DEFINE $line;
+}
+close(OVERTURE_DEFINE_IN);
+close(OVERTURE_DEFINE);
+
+open(OVERTURE_DEFINE_IN,"include/OVFortranDefine.h.in") || die print "unable to open include/OVFortranDefine.h.in\n";
+open(OVERTURE_DEFINE,">include/OVFortranDefine.h") || die print "unable to open include/OVFortranDefine.h\n";
+while( <OVERTURE_DEFINE_IN> )
+{
+  $line = $_;
+  $line =~ s/This file is changed by the configure script/This file was generated by the configure script/;
+  if( $double ne "" )
+  {
+    $line =~ s/OVUseDouble=0/OVUseDouble=1/;
+  }
+  print OVERTURE_DEFINE $line;
+}
+close(OVERTURE_DEFINE_IN);
+close(OVERTURE_DEFINE);
+
+
+#if ( $headers eq "headers" ) {exit 0;}
+# Here are the directories in which we make Makefile''s
+@directories=(
+              "mapUtil",
+              "phoneyFiles",
+	      "Cad",
+              "DataBase",
+	      "Grid",
+              "GridFunction",
+              "GridGenerator",
+              "Mapping",
+              "Oges",
+	      "Ogshow",
+	      "otherStuff",
+              "bin",
+              "boxlib",
+              "lib",
+              "primer",
+              "sampleGrids",
+              "static",
+              "templates",
+              "examples",
+              "Ogmg",
+              "tests",
+              "check"
+                 );
+
+$mc = "^#$machine";  # uncomment lines that start with #$machine (#sun or #hpux...)
+$ccc = "^#$bcc";     # uncomment lines that start with #$cc (#gcc ...)"
+$CCC = "^#$bCC";     # uncomment lines that start with #$CC (#KCC ...)"
+$CCC =~ s/\+/\\+/g;  # replace + by \+ in the string
+
+$cppFlags="-fPIC";    # Flags needed for C++
+$ccFlags="-fPIC";     # Flags needs for C
+$fortranFlags="-fPIC"; # Flags needed for fortran
+if( $bFC =~ "^fort77" )
+{
+  $FCC = "^#g77";
+  if( $machine ne "darwin" )
+  {
+    $fortranFlags = "-fPIC -NC400 -Nn3208 -I\$(F2C_INCLUDE)";
+  }
+  else
+  {
+    $fortranFlags = "-NC400 -Nn3208 -I\$(F2C_INCLUDE)";
+  }
+}
+else
+{
+  $FCC = "^#$bFC";
+  # maxmem : number of Kbytes used for compiling (-1 : means use all)
+  if( $bFC eq "xlf" )
+  { 
+     $cppFlags="-qpic -qmaxmem=-1"; $ccFlags="-qpic -qmaxmem=-1"; $fortranFlags ="-qpic -qmaxmem=-1"; 
+  }  
+}
+# printf(" FCC = $FCC\n");
+
+$rpath = "";  # rpath command for this machine
+$fortranLibs = "";
+$hdfLibs = "";
+$xLibs = "";
+$appLibs = "";
+$ovLibs= "";
+$compilerLibraryLocation = "OV_COMPILER_LIBS=";
+
+$CCV = "^#CC$majorVersionNumber"; # uncomment lines that start with #CC$versionNumber
+$petscComment ="^#petsc"; 
+foreach $dir ( @directories )
+{
+  if( -e $dir )
+  {
+    printf("Create the Makefile for directory: $dir \n");
+
+    if ( $headers ne "headers" ) {
+      open(OUTFILE,">$dir/Makefile") || die print "cannot open output file $dir/Makefile!\n" ;
+
+      print OUTFILE "# \n";
+      print OUTFILE "# This Makefile was created by the configure script using\n";
+      print OUTFILE "# the files config/MakeDefs.$machine and $dir/Makefile.in \n";
+      print OUTFILE "# \n";
+    }
+
+    open(MAKE_DEFS,"config/MakeDefs.$machine") || die print "unable to open config/MakeDefs.$machine\n";
+    while( <MAKE_DEFS> )
+    {
+	$line = $_;
+	# *wdh* $line =~ s/\$\(OverturePrecision\)/$double/g;
+	$line =~ s/\$\(OverturePrecision\)//g;
+	$line =~ s/\$\(FortranDouble\)/$FortranDouble/g;
+	if ( $useHDF5 eq "useHDF5" )
+	{
+	    $line =~ s/-lmfhdf -ldf/-lhdf5/g;
+	}
+
+	if( $opt eq "" )
+	{
+	  $line =~ s/^(C_OPTIMIZATION_FLAG).*/\1 = $debugFlag/g;
+	  $line =~ s/^(CPP_OPTIMIZATION_FLAG).*/\1 = $debugFlag/g;
+	  $line =~ s/^(FORTRAN_OPTIMIZATION_FLAG).*/\1 = $debugFlag/g;
+	}    
+        if( $debug ne "" )
+        {
+          if( $line =~ /^STD_OPT_FLAG/ ) { $line =~ s/-O/$debugFlag/; } #  undo optimization
+        }
+	if( $double ne "" )
+	{
+	  $line =~ s/-DBL_USE_FLOAT/-DBL_USE_DOUBLE/g;
+	  $line =~ s/-DOV_USE_FLOAT/-DOV_USE_DOUBLE/g;
+	}
+	if( $CC ne "" )
+	{
+	  $line =~ s/cc = .*/cc = $cc/g;
+	  $line =~ s/CC = .*/CC = $CC/g;
+	}
+        $line =~ s/FC = .*/FC = $FC/g;
+	if( $bCC eq "KCC" )
+	{
+	  $line =~ s/CC_FLAGS = .*/CC_FLAGS = -KPIC --exceptions/g;
+	  $line =~ s/FF_FLAGS = .*/FF_FLAGS = -KPIC/g;
+	  $line =~ s/TEMPLATES=.*/TEMPLATES=/g;
+	}
+	elsif( $bCC eq "g++" && $machine ne "darwin" )
+	{
+	  $line =~ s/cc_FLAGS = .*/cc_FLAGS = -fPIC/;
+	  if( $versionNumber>294 )
+	  {
+	    # wdh 081215 $line =~ s/CC_FLAGS = .*/CC_FLAGS = -fPIC  -fpermissive/;
+	    $line =~ s/CC_FLAGS = .*/CC_FLAGS = -fPIC/;
+	  }
+	  if( $bFC eq "g77" || $bFC =~ "^fort77"  )
+	  {
+	    $line =~ s/FF_FLAGS = .*/FF_FLAGS = $fortranFlags/;
+	  }
+	  $line =~ s/TEMPLATES=.*/TEMPLATES=  /g;
+	}
+        elsif( $bCC eq "xlC" )
+        {
+	  $line =~ s/cc_FLAGS = .*/cc_FLAGS = $ccFlags/;
+	  $line =~ s/CC_FLAGS = .*/CC_FLAGS = $cppFlags/;
+	  $line =~ s/FF_FLAGS = .*/FF_FLAGS = $fortranFlags/;  
+
+        }
+
+        $line =~ s/STL_INCLUDE = .*/STL_INCLUDE = $STLINC/;
+
+        if( $perllibs ne "" && $perlloc ne "" )
+        {
+          $line =~ s/^OV_PERL_INCLUDE.*/OV_PERL_INCLUDE = $perlloc/;
+          $line =~ s/^OV_PERL_LIB[ =].*/OV_PERL_LIB = $perlloc/;
+          if ( $rpath ne "" ) 
+	  {
+	    if( $bCC eq "g++" || $bCC eq "pgCC" )
+	    {
+              # No space between rpath command and location
+	      $line =~ s/^OV_PERL_LIBRARIES.*/OV_PERL_LIBRARIES = \$(OV_RPATH)\$(OV_PERL_LIB) -L\$(OV_PERL_LIB) $perllibs/;
+	    }
+	    else
+	    {
+	      $line =~ s/^OV_PERL_LIBRARIES.*/OV_PERL_LIBRARIES = \$(OV_RPATH) \$(OV_PERL_LIB) -L\$(OV_PERL_LIB) $perllibs/;
+	    }
+	  }
+	  else
+	  {
+	    $line =~ s/^OV_PERL_LIBRARIES.*/OV_PERL_LIBRARIES = -L\$(OV_PERL_LIB) $perllibs/;
+	  }
+        }
+
+        $line =~ s/$mc //g;   # uncomment lines that start with #$machine
+        $line =~ s/$ccc //g;  # uncomment lines that start with #$cc
+        $line =~ s/$CCC //g;  # uncomment lines that start with #$CC
+
+        $line =~ s/$FCC //g;  # uncomment lines that start with #$FCC
+        if( $bFC eq "ifort" ){  $line =~ s/\#ifc //g;  } # uncomment lines that start with #ifc 
+
+        if( $bFC eq "ifort" && $machineType eq "x86_64" ){  $line =~ s/\#ifort64 //g;  } 
+
+        $line =~ s/^#$bFC //g;  # uncomment lines that start with #$FC  (to get fort77 too)
+
+        $line =~ s/^PGI_LIB.*/PGI_LIB = $pgiLibDirectory/;  # set the location of the PGI fortran libraries
+        $line =~ s/^IFC_LIB.*/IFC_LIB = $ifortLibDirectory/;  # set the location of the ifc fortran libraries
+        $line =~ s/^IFORT_LIB.*/IFORT_LIB = $ifortLibDirectory/;  # set the location of the ifc fortran libraries
+
+        $line =~ s/^LIB64 =.*/LIB64 = $LIB64/g;  # set the name of the "lib" directory for 64 bit machines
+
+
+        $line =~ s/^OpenGLibs=.*/OpenGLibs =$OpenGLibs /;
+        if( $useMesa eq "" )
+        {
+	    $line =~ s/-DUSE_MESA//g;
+        }
+        $line =~ s/$CCV //g;  # uncomment lines that start with #$CC$majorVersionNumber
+
+        if( $line =~ /^OV_RPATH/ )
+        {
+          $rpath = $line;   # save the rpath command for use in the make.options file
+          chop($rpath);
+        }
+
+        # Here we specify the location of the compiler libraries (this may be needed to over-ride libraries in /usr/lib)
+        if( $line =~ /^OV_COMPILER_LIBS/ )
+        {
+          # We do not specify the compiler lib directory if it is in /usr/lib or /usr/lib/64 as this may cause libGL to
+          # be found there instead of in the Mesa directory.
+          if( ($compilerLibDir ne "") && ($compilerLibDir ne "/usr/lib") && ($compilerLibDir ne "/usr/lib64") )
+          {
+            $line =~ s/\$\(COMPILER_LIB_DIRECTORY\)/$compilerLibDir/g;
+            $compilerLibraryLocation = $line;
+            chop($compilerLibraryLocation);
+          }
+          else
+          {
+            $line =~ s/^/#/; # not used, comment out. 
+          }
+        }
+
+        if( $line =~ /^FORTRAN_LIBS/ )
+        {
+          $fortranLibs = $line; # save the FORTRAN_LIBS command for use in the make.options file
+          chop($fortranLibs);
+          $fortranLibs =~ s/^FORTRAN_LIBS/OV_FORTRAN_LIBRARIES/;
+        }
+        if( $line =~ /^SOFLAGS/ )
+        {
+          $sharedLibFlags = $line; # save for use in the make.options file
+          chop($sharedLibFlags);
+          $sharedLibFlags =~ s/^SOFLAGS/OV_SHARED_LIB_FLAGS/;
+        }
+        if( $line =~ /^HDF_LIBS/ )
+        {
+          $hdfLibs = $line; # save the HDF_LIBS for use in the make.options file
+          chop($hdfLibs);
+          $hdfLibs =~ s/^HDF_LIBS/OV_HDF_LIBRARIES/;
+        }
+        if( $line =~ /^OV_X_LIBRARIES/ )
+        {
+	  if( $useX11 )
+          {
+            $xLibs = $line; # save these for use in the make.options file
+            chop($xLibs);
+            $xLibs =~ s/XLIBS_LIB/OV_XLIBS_LIB/;
+  	  }
+          else
+          { # remove X11 libs:
+            $line =~ s/OV_X_LIBRARIES.*/OV_X_LIBRARIES=/g;
+          }
+        }
+        if( $line =~ /^OV_MOTIF_LIBRARIES/ )
+        {
+          if( !$useX11 )
+          { # remove Motif libs:
+            $line =~ s/OV_MOTIF_LIBRARIES.*/OV_MOTIF_LIBRARIES=/g;
+          }
+        }
+        if( $line =~ /^AppLibraries/ )
+        {
+          $appLibs = $line; # save these for use in the make.options file
+          chop($appLibs);
+          $appLibs =~ s/^AppLibraries/APP_LIBRARIES/;
+        }
+        if( $line =~ /^LibOverture/ )
+        {
+          $ovLibs = $line; # save these for use in the make.options file
+          chop($ovLibs);
+          $ovLibs =~ s/^LibOverture[.]*=//;
+        }
+        if( $parallel ne "" )
+        {
+          $line =~ s/^#parallel //g;  # uncomment lines that start with #parallel
+
+          $line =~ s/-lApp -lApp_static/-lPpp -lPpp_static $mpiLibDirs $mpiLibs/;
+          $line =~ s/APlusPlus/PPlusPlus/g; 
+          $line =~ s/(CC_INCLUDES.?= .*)/\1 $mpiInclude -DUSE_PPP/;
+          $line =~ s/(CFLAGS.?= .*)/\1 -DUSE_PPP/;
+	}
+        if ( $headers ne "headers" ){
+	   print OUTFILE $line;
+        }
+    }
+    close(MAKE_DEFS);
+
+    if ( $headers ne "headers" ) 
+    {
+    open(MAKEFILE_IN,"$dir/Makefile.in") || die print "unable to open the Makefile template: $dir/Makefile.in\n";
+
+    while( <MAKEFILE_IN> )
+    {
+        $line = $_;   
+        $line =~ s/$mc //g;  # uncomment lines that start with #$machine
+        if( $opt ne "" )
+	{
+          $line =~ s/$mc$opt //g;  # uncomment lines that start with $machineopt
+        }
+        $line =~ s/$ccc //g;  # uncomment lines that start with #$CC
+        $line =~ s/$CCC //g;  # uncomment lines that start with #$CC
+        $line =~ s/$CCV //g;  # uncomment lines that start with #$CC$majorVersionNumber
+        $line =~ s/$FCC //g;  # uncomment lines that start with #$FCC
+        $line =~ s/^#$FC //g;  # uncomment lines that start with #$FC  (to get fort77 too)
+
+        if( $bFC eq "ifort" && $machineType eq "x86_64" ){  $line =~ s/\#ifort64 //g;  } 
+
+	if( $buildOgmg ne "" )
+	{
+	  $line =~ s/\#buildOgmg//;  # uncomment lines that start with #buildOgmg
+	}
+        else
+        {
+          $line =~ s/\#doNotBuildOgmg//; 
+          if( $line =~ /\#buildOgmg/ )
+          {
+            next;    # skip this line
+          }
+        }
+	if( $buildFvo ne "" )
+	{
+	  $line =~ s/\#buildFvo//;  # uncomment lines that start with #buildFvo
+	}
+        else
+        {
+          if( $line =~ /\#buildFvo/ )
+          {
+            next;    # skip this line
+          }
+        }
+        if( $petsc ne "" )
+	{
+          $line =~ s/$petscComment //;  # uncomment lines that start with #petsc
+        }
+        if( $buildGLw ne "" )
+        {
+          $line =~ s/\#buildGLw//;  # uncomment lines that start with #buildGLw 
+        }
+	if( $buildGLw ne "" )
+	{
+	    $line =~ s/^\#PPDEFS =/PPDEFS =/g;
+	    $line =~ s/^\#paperplane =/paperplane =/g;
+	}
+
+	if ( $useHDF5 eq "useHDF5" )
+	{
+	    $line =~ s/^#hdf5//g;  # uncomment lines that start with #hdf5
+	}
+        if( $parallel ne "" )
+        {
+          $line =~ s/^#parallel //g;  # uncomment lines that start with #parallel
+        }
+        if( $buildOSMesa ne "" )
+        {
+ 	   $line =~ s/^#buildOSMesa//; # uncomment lines that start with #buildOSMesa
+        }
+	print OUTFILE $line;
+    }
+    close(MAKEFILE_IN);
+    close(OUTFILE);
+  } 
+ }
+}  
+
+close(FILE);
+
+# look for old configure options to see if we need to regenerate dependencies.
+$configureFile="configure.options";
+open(CONFIG,"$configureFile");
+$buildDependencies=0;
+while( <CONFIG> )
+{
+  foreach $ev ( @environmentalVariables )
+  {
+    if( /^$ev=/ )
+    {
+      $old=$_;
+      chop($old);
+      $old =~ s/^$ev= (.*)/\1/;
+      $old =~ s/ //g;
+      $eev = $ENV{$ev};
+      if( $old ne $eev )
+      {
+        print "$ev has changed from last configure, new=($eev) old=($old)\n";
+        $buildDependencies=1;
+        last;
+      }
+      else
+      {
+        print "$ev has NOT changed from last configure, ($eev)\n";
+      }
+    }
+  }
+}
+close(CONFIG);
+if( $buildDependencies==0 &&  -e"depend.date" )
+{
+  print "no need to rebuild dependencies\n";
+}
+else
+{
+  open(OUTFILE,">depend.date") || die print "cannot open output file depend.date!\n" ;
+  system("date > config/date");
+  open(DATE,"config/date")|| die print "cannot open output file config/date\n" ; 
+  $date = <DATE>;
+  close(DATE);
+  # print "date=$date";
+  print OUTFILE "Dependencies changed on $date";
+  close OUTFILE;
+}
+
+# save any old configure.options file
+
+# now write configuration variables to a file.
+$configureFile="configure.options";
+open(OUTFILE,">$configureFile") || die print "cannot open output file $configureFile!\n" ;
+
+printf("\nconfiguration options written to file $configureFile\n");
+
+print OUTFILE "***** Do not edit this file *****\n";
+print OUTFILE "This file contains the options used to configure this directory\n";
+print OUTFILE "It was automatically generated by the configure script\n";
+
+print OUTFILE "machine=$machine\n";
+print OUTFILE "arch=$arch\n";
+print OUTFILE "opt=$opt\n";
+print OUTFILE "debugFlag=$debugFlag\n";
+print OUTFILE "double=$double\n";
+print OUTFILE "parallel=$parallel\n";
+print OUTFILE "CC=$CC\n";
+print OUTFILE "cc=$cc\n";
+print OUTFILE "FC=$FC\n";
+print OUTFILE "bCC=$bCC\n";
+print OUTFILE "bcc=$bcc\n";
+print OUTFILE "bFC=$bFC\n";
+$ev=$ENV{"APlusPlus"}; print OUTFILE "APlusPlus= $ev \n";
+$ev=$ENV{"OpenGL"};    print OUTFILE "OpenGL= $ev \n";
+$ev=$ENV{"HDF"};       print OUTFILE "HDF= $ev \n";
+$ev=$ENV{"Overture"};  print OUTFILE "Overture=  $ev \n";
+if( $useX11 )
+{
+  $ev=$ENV{"XLIBS"};     print OUTFILE "XLIBS=  $ev \n";
+}
+else
+{
+  print OUTFILE "XLIBS=\n";
+}
+print OUTFILE "USE_HDF5=$useHDF5\n";
+print OUTFILE "useX11=$useX11\n";
+
+close(OUTFILE);
+
+#} # end of if ( $headers ne "headers" )
+
+# ---------------------------------------------------------------------------------------------------
+# now write file make.options (can be included in other make files such as those in the cg solvers)
+$makeOptionsFile="make.options";
+open(OUTFILE,">$makeOptionsFile") || die print "cannot open output file $makeOptionsFile!\n" ;
+
+printf("\nMake options saved to file $makeOptionsFile.\n");
+
+print OUTFILE "# This file was generated by the Overture configure script \n";
+print OUTFILE "# It can be included in other makefiles to define compilers etc.\n";
+
+print OUTFILE "# machine=$machine\n";
+print OUTFILE "# arch=$arch\n";
+print OUTFILE "# double=$double\n";
+print OUTFILE "# parallel=$parallel\n";
+print OUTFILE "CXX = $CC\n";
+print OUTFILE "CC  = $cc\n";
+print OUTFILE "FC  = $FC\n";
+print OUTFILE "bCXX = $bCC\n";
+print OUTFILE "bCC  = $bcc\n";
+print OUTFILE "bFC  = $bFC\n";
+print OUTFILE "LIB64 = $LIB64\n";
+
+print OUTFILE "OV_PARALLEL = $parallel\n";
+print OUTFILE "OV_AUTO_DOUBLE_FLAGS = $FortranDouble\n";
+print OUTFILE "OV_CXX_FLAGS = $cppFlags\n"; 
+print OUTFILE "OV_CC_FLAGS = $ccFlags\n";   
+print OUTFILE "OV_FORTRAN_FLAGS = $fortranFlags\n";  
+print OUTFILE "$sharedLibFlags\n";
+$ev=$ENV{"APlusPlus"}; print OUTFILE "APlusPlus = $ev\n";
+$ev=$ENV{"PPlusPlus"}; print OUTFILE "PPlusPlus = $ev\n";
+if( $rpath ne "" )
+{
+  print OUTFILE "$rpath\n";
+}
+else
+{
+  print OUTFILE "OV_RPATH =\n";
+}
+
+if( $bFC eq "pgf77" )
+{
+  print OUTFILE "PGI_LIB =$pgiLibDirectory\n";
+}
+elsif( $bFC eq "ifort" )
+{
+  print OUTFILE "IFORT_LIB =$ifortLibDirectory\n";
+}
+if( $fortranLibs ne "" )
+{
+  print OUTFILE "$fortranLibs\n";
+}
+else
+{
+  print OUTFILE "OV_FORTRAN_LIBS =\n";
+}
+print OUTFILE "OV_PERL_LIB = $perlloc\n";
+if ( $rpath ne "" )
+{
+    print OUTFILE "OV_PERL_LIBRARIES =\$(OV_RPATH)\$(OV_PERL_LIB) -L\$(OV_PERL_LIB) $perllibs\n";
+}
+else
+{
+    print OUTFILE "OV_PERL_LIBRARIES =-L\$(OV_PERL_LIB) $perllibs\n";
+}
+$ev=$ENV{"OpenGL"};    print OUTFILE "OV_OPENGL = $ev\n";
+print OUTFILE "OV_OPENGL_LIB_DIR = \$(OV_OPENGL)/$LIB64\n";
+if ( $rpath ne "" )
+{
+    print OUTFILE "OV_OPENGL_LIBRARIES = \$(OV_RPATH)\$(OV_OPENGL_LIB_DIR) -L\$(OV_OPENGL_LIB_DIR) $OpenGLibs\n";
+}
+else
+{
+    print OUTFILE "OV_OPENGL_LIBRARIES = -L\$(OV_OPENGL_LIB_DIR) $OpenGLibs\n";
+}
+if( $useX11 )
+{
+  print OUTFILE "OV_MOTIF_LIB = $MOTIF/$LIB64\n";
+  if ( $rpath ne "" )
+  {
+    print OUTFILE "OV_MOTIF_LIBRARIES = \$(OV_RPATH)\$(OV_MOTIF_LIB) -L\$(OV_MOTIF_LIB) -lXm \n";
+  }
+  else
+  {
+    print OUTFILE "OV_MOTIF_LIBRARIES = -L\$(OV_MOTIF_LIB) -lXm \n";
+  }
+  $ev=$ENV{"XLIBS"};     print OUTFILE "OV_XLIBS =  $ev\n";
+  print OUTFILE "OV_XLIBS_LIB = \$(OV_XLIBS)/$LIB64\n";
+  if( $xLibs ne "" )
+  {
+    print OUTFILE "$xLibs\n";
+  }
+  else
+  {
+    print OUTFILE "OV_X_LIBRARIES = \n";
+  }
+}
+else
+{ # not using X11:
+  print OUTFILE "OV_MOTIF_LIB =\n";
+  print OUTFILE "OV_MOTIF_LIBRARIES =\n";
+  print OUTFILE "OV_XLIBS =\n";
+  print OUTFILE "OV_XLIBS_LIB =\n";
+  print OUTFILE "OV_X_LIBRARIES =\n";
+}
+
+print OUTFILE "$compilerLibraryLocation\n"; 
+
+$ev=$ENV{"HDF"};       print OUTFILE "HDF = $ev\n";
+if( $hdfLibs ne "" )
+{
+  print OUTFILE "$hdfLibs\n";
+}
+else
+{
+  print OUTFILE "OV_HDF_LIBRARIES = \n";
+}
+
+if( $parallel ne "" )
+{
+  $appLibs =~ s/-lApp -lApp_static/-lPpp -lPpp_static $mpiLibDirs $mpiLibs/;
+  $appLibs =~ s/APlusPlus/PPlusPlus/g; 
+  print OUTFILE "OV_PARALLEL_INCLUDE = $mpiInclude -DUSE_PPP\n";
+}
+if( $appLibs ne "" )
+{
+  print OUTFILE "$appLibs\n";
+}
+else
+{
+
+  print OUTFILE "APP_LIBRARIES = \n";
+}
+
+if ( $rpath ne "" )
+{
+    print OUTFILE "OVERTURE_LIBRARIES = \$(OV_RPATH)\$(Overture)/lib -L\$(Overture)/lib $ovLibs \n";
+}
+else
+{
+    print OUTFILE "OVERTURE_LIBRARIES = -L\$(Overture)/lib $ovLibs \n";
+}
+
+close(OUTFILE);
+# ---------------------------------------------------------------------------------------------------
+
+if ( $machine ne "ignore" ) {
+if ( $headers ne "headers" ) {
+
+printf("\nBuild the Makefile in the main directory\n");
+open(OUTFILE,">Makefile") || die print "cannot open output file Makefile!\n" ;
+open(MAKEFILE_IN,"Makefile.in") || die print "cannot open the file Makefile.in!\n" ;
+
+while( <MAKEFILE_IN> )
+  {
+    $line = $_;   
+    if( $buildOgmg ne "" )
+    {
+      $line =~ s/\#buildOgmg//g;  # uncomment lines that start with #buildOgmg
+    }
+    if( $buildFvo ne "" )
+    {
+      $line =~ s/\#buildFvo//g;  # uncomment lines that start with #buildFvo
+    }
+    print OUTFILE $line;
+  }
+close(MAKEFILE_IN);
+close(OUTFILE);
+
+} # end of if ( $headers ne "headers" )
+} #  end ( $machine ne "ignore")
+
+printf("done configuration.\n\n");
+
+$LANG = $ENV{"LANG"};
+if( $LANG ne "en_US" && $LANG ne "" && $LANG ne "en_US.UTF-8" )
+{
+  printf("****************************************************************************************************\n");
+  printf("WARNING: Environment variable LANG=$LANG -- Overture may not work with this language.\n");
+  printf("         European languages may reverse the meaning of `.' and ',' in numbers such a 3,14 or 3.14\n");
+  printf("         and then Overture will not parse command files properly. \n");
+  printf("         Type `locale' to see your language settings. You may need to change to the language `en_US' \n");
+  printf("****************************************************************************************************\n");
+}
+
+printf("type `make' to build Overture (or 'make -j2' for a parallel make with 2 processes).\n");
+printf("type `make rapsodi' to build the Rapsodi libraries and rap.\n");
+
+exit 0;
+

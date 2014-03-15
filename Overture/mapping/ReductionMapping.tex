@@ -1,0 +1,22 @@
+%--------------------------------------------------------------
+\section{ReductionMapping: create a Mapping from the face or edge of an existing Mapping}
+\index{reduction mapping}\index{Mapping!ReductionMapping}\index{Mapping!restrict an existing mapping to face or line}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+  The {\tt ReductionMapping} can be use to make a new Mapping from the face or edge of
+another Mapping, thus reducing the domain dimension of the original mapping. 
+
+In general the new Mapping is defined by fixing one or more of the r-coordinates
+of the original mapping. 
+
+For example if we have a mapping from $\Rv^3\rightarrow \Rv^3$, $\xv(r_0,r_1,r_2)$,
+we can define a new Mapping from $\Rv^2\rightarrow \Rv^3$ by the surface
+$\xv_r(r_0,r_1)=\xv(r_0,r_1,r_{2a})$ for some fixed value $r_{2a}$. 
+We could also define the curve in 3-space by
+$\xv_r(r_0)=\xv(r_{0a},r_0,r_{2a})$ for some fixed values $r_{0a}$ and $r_{2a}$. 
+
+%% \input ReductionMappingInclude.tex
+
+

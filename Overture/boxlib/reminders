@@ -1,0 +1,10 @@
+Changes for version 2
+
+Change OvertureTypes : BL_SPACEDIM
+Change Make-config : BOXLIB_DEFS
+
+Changed undef's in Boolean.H
+
+Added String.H
+Changed aString
+

@@ -1,0 +1,80 @@
+# Dec alpha with linux with dynamic libraries (requires ecgs compiler)
+# Do not use -DINTEL86
+# Use -g0 or else the assmebler generates an error -- string to long
+
+A++ = $(APlusPlus)
+A+++ = $(APlusPlus)
+# AppLibraries = -L$(APlusPlus) -lA++ -lA++_static
+AppLibraries = -L$(APlusPlus)/lib -lApp -lApp_static 
+
+Include=  $(Overture)/include
+Lib=      $(Overture)/lib
+LibOverture= -lOverture -lOverture_static
+LibRapsodi= -lRapsodi -lRapsodi_static 
+BOXLIB_DEFS = -DBL_USE_FLOAT -DBL_Solaris
+cc = gcc
+CC = g++
+FC = g77
+
+# Here is the rpath command
+OV_RPATH = -Wl,-rpath,
+
+# Here is where we can find the perl include files and library (CORE)
+# These will normally be changed by the configure script unless it can't find the location of the perl CORE 
+OV_PERL_INCLUDE = /usr/lib/perl5/5.6.1/i386-linux/CORE
+OV_PERL_LIB     = /usr/lib/perl5/5.6.1/i386-linux/CORE
+# Here are the perl libraries we need to link to
+OV_PERL_LIBRARIES = $(OV_RPATH)$(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lcrypt
+
+C_OPTIMIZATION_FLAG = -O
+CPP_OPTIMIZATION_FLAG = -O
+FORTRAN_OPTIMIZATION_FLAG = -O
+
+CFLAGS =  $(OverturePrecision)  -I$(Include) $(C_OPTIMIZATION_FLAG) -fPIC -I$(XLIBS) -DSHM
+# flags for c routines we always optimize
+CFLAGS =  -O $(OverturePrecision)  -I$(Include)  -fPIC -I$(XLIBS) -DSHM
+
+
+CC_INCLUDES_FOR_DEPEND =  $(OverturePrecision) -fPIC -DUSE_MESA -I../include -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include  $(BOXLIB_DEFS) -I$(OV_PERL_INCLUDE)
+
+STL_INCLUDE = 
+CC_INCLUDES = $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE)
+CCFLAGS=  $(CC_INCLUDES)
+
+
+CCFLAGS=  $(CC_INCLUDES)
+
+# things that are always compile with optimization use this flag
+CCFLAGSO= $(CC_INCLUDES)  $(CPP_OPTIMIZATION_FLAG)
+
+# things that are always compile with lots of optimization use this flag
+CCFLAGSF= $(CC_INCLUDES) -O
+
+# things that need to be compiled with no optimization use the following
+CCFLAGSG=  $(CC_INCLUDES) -g0 
+
+# Notes: There seems to be problems using -O with g77
+#        Some older versions of the egcs compiler also had trouble with -fPIC, removing it seemed to work.
+FFLAGS=    -fPIC -g $(OverturePrecision)  $(FortranDouble) $(FORTRAN_OPTIMIZATION_FLAG) -I$(Include)
+# single precision always:
+FFLAGSS=  -fPIC -g $(OverturePrecision) $(FORTRAN_OPTIMIZATION_FLAG) -I$(Include) 
+
+FORTRAN_LIBS = 
+LIB_TARGETS= lib_date libso_date
+LIB_DEPENDENCIES= ../lib/lib_date
+TEMPLATES= 
+RAPTEMPLATES=
+
+AR = ar
+ARFLAGS = ruv 
+
+LD = $(CC)
+RANLIB = ranlib
+SOFLAGS = -shared
+# GLIBS=   -L$(OpenGL)/lib -lMesaGL -lMesaGLU   -lGLw -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm  -lXpm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11  -lg++ -lf2c -lm
+
+# if you have -lffm then add this before -lm (for faster math)
+OpenGLibs=
+GLIBS= $(OV_PERL_LIBRARIES) -L$(OpenGL)/lib $(OpenGLibs) -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm  -lXpm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11  -lm
+
+FLIBS= -Wl,-rpath,$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 

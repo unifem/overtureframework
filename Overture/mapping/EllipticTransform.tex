@@ -1,0 +1,333 @@
+\newcommand{\egr}{EllipticTransform.C}
+\def\Grad{\mathop{\nabla}}
+\def\ParS#1#2{\mathord{\frac{\partial^2{#1}}{\partial{#2}^2}}}
+\def\vel{\mathord{\mathbf{V}}}
+\def\Par#1#2{\mathord{\frac{\partial{#1}}{\partial{#2}}}}
+\def\ParC#1#2#3{\mathord{\frac{\partial^2{#1}}{\partial{#2}\partial{#3}}}}
+\def\velt{\mathord{\mathbf{V}_{\! \mathnormal{t}}}}
+\def\bx{\mathord{\mathbf{x}}}
+\def\Lap{\mathop{{\nabla}^2}}
+\def\TrInt{\int\!\int\!\int}
+\def\DbInt{\int\!\int}
+\def\DA{{d}{\bf A}}
+\def\velnp{\mathord{\mathbf{V}}^{n+1}}
+\def\E{\mathord{\mathbf{E}}}
+\def\Ei{\mathord{\mathbf{E}^{-1}}}
+\def\M{\mathord{\mathbf{M}}}
+\def\Mi{\mathord{\mathbf{M}^{-1}}}
+\def\D{\mathord{\mathbf{D}}}
+\def\xxi{\bx_\xi}
+\def\xeta{\bx_\eta}
+\def\xxixi{\bx_{\xi\xi}}
+\def\xetaeta{\bx_{\eta\eta}}
+
+\section{EllipticTransform}\index{elliptic mapping}\index{Mapping!EllipticTransform}
+  This Mapping was originally created by Eugene Sy. Changes made by Bill Henshaw.
+
+ **** This documentation is out of date as I have made lots of changes ****
+
+
+\subsection{Introduction}
+
+The program {\egr} performs smoothing on a desired mapping by solving a Poisson equation
+on the domain.  A new elliptic mapping is created from the original mapping which is
+supplied as an initial condition.
+
+The original mapping $\M$ maps the unit square $U$ into physical space $\Omega_p$.
+With the elliptic transform, a one to one function $E'$ taking $U$ into 
+$\Omega_p$ is first created.  Then,
+$\Mi$ is applied to the solution in $\Omega_p$ to map the points back into the unit
+square.  In this way, a mapping $\D=\Mi(E')$ is obtained, where $\D:U\mapsto U$, and 
+$\D$ is a data point mapping.  The elliptic mapping $\E$ is then given by a 
+composition, where
+
+\begin{eqnarray*}
+\E(U) = \M(\D(U))
+\end{eqnarray*}
+
+\subsection{The Governing Equations}
+
+The focus from here on will be on the creation of the mapping $\E$.  Assume
+that $U$ has coordinate directions $\xi$ and $\eta$.  The equations to 
+be solved are:
+
+\begin{eqnarray*}
+\Lap\xi=P(\xi,\eta) \\
+\Lap\eta=Q(\xi,\eta)
+\end{eqnarray*}
+These are transformed to computational space and take the form:
+
+\begin{eqnarray*}
+\alpha(\ParS{x}{\xi}+P\Par{x}{\xi})+\beta(\ParS{x}{\eta}+Q\Par{x}{\eta})-
+2\gamma\ParC{x}{\xi}{\eta} &=& 0	\\
+\alpha(\ParS{y}{\xi}+P\Par{y}{\xi})+\beta(\ParS{y}{\eta}+Q\Par{y}{\eta})-
+2\gamma\ParC{y}{\xi}{\eta} &=& 0        \\
+\end{eqnarray*}
+\begin{eqnarray*}
+\alpha &=& (\Par{x}{\eta})^2 + (\Par{y}{\eta})^2	\\
+\beta &=& (\Par{x}{\xi})^2 + (\Par{y}{\xi})^2	\\
+\gamma &=& \Par{x}{\xi}\Par{x}{\eta} + \Par{y}{\xi}\Par{y}{\eta}    \\
+\end{eqnarray*}
+These equations are solved on the 
+unit square $U$ using finite difference methods.
+
+\subsection{Control of the Boundary}
+
+The existing code has the ability to evaluate Dirichlet, orthogonal, and periodic
+boundary conditions for solving the above equations.
+
+\subsubsection{Dirichlet Conditions}
+If the boundary conditions are Dirichlet
+the locations of the boundary points must be 
+correctly specified in the initial condition.  These points are considered
+by the elliptic grid generator  
+to be fixed, and computations are done only on the interior 
+of the grid.
+
+\subsubsection{Orthogonal Boundary Conditions}
+If the user desires that the gridlines meet the boundary orthogonally, then
+the points on the boundary are given a degree of freedom, and are allowed to
+move along the boundary.  For example, consider the boundary $\xi=0$.
+Assume that the $(n+1)$st iteration is being computed, and let $j$ represent
+the $\eta$ coordinate.  
+The following two equations are solved to give the location of the boundary points.
+
+\begin{eqnarray}
+{\bx}_{\eta}\cdot{\bx}_{\xi} &=& 0      \\
+\bx^{n+1} &=& \bx^n + (\Delta\bx\cdot{\hat{\bx}}_{\eta}){\hat{\bx}}_{\eta}
+\end{eqnarray}
+
+Equation 1 is the orthogonality condition, and equation 2 prevents the boundary 
+points from moving off the boundary.  $\Delta\bx$ represents the change in 
+position of the point $\bx$ dictated from equation 1.  In other words, if $\bx^n$
+is the location of the point at the $n$th iteration step, equation 1 will steer 
+the point towards a position $\bx^*$ for the $(n+1)$st iterate.  It follows that
+\begin{eqnarray*}
+\Delta\bx&=&\bx^*-\bx^n\\
+\Delta\bx\cdot{\hat{\bx}}_{\eta}&=&{\bx}^{*}\cdot{\hat{\bx}}_{\eta}-
+{\bx}^{n}\cdot{\hat{\bx}}_{\eta}
+\end{eqnarray*}
+%\def\mimo{\mathord{\frac{\mbox{mass out}}{\mbox{mass in}}}}
+
+To solve the equations, ${\bx}_{\xi}$ in equation 1 is first forward differenced 
+to obtain the following result.
+\begin{eqnarray}
+{x^*}_{0,j}x_{\eta} &=& y_{\xi}y_{\eta}+x_{1,j}x_{\eta}\\
+{y^*}_{0,j}y_{\eta} &=& x_{\xi}x_{\eta}+y_{1,j}y_{\eta}
+\end{eqnarray}
+This gives an expression for ${\bx}^{*}\cdot{\bx}_{\eta}$, where
+$\bx^*$ represents the position the boundary point wants to move to
+in order to satisfy the orthogonality condition.  $\bx_{\eta}$ and
+all the terms on the right hand side
+are calculated from the solution at the $n$th iterate.
+Normalizing by $\|{\bx}_{\eta}\|$
+yields the following:
+\begin{eqnarray}
+{x^*}_{0,j}{\hat{x}}_{\eta} &=& y_{\xi}{\hat{y}}_{\eta}+x_{1,j}{\hat{x}}_{\eta}\\
+{y^*}_{0,j}{\hat{y}}_{\eta} &=& x_{\xi}{\hat{x}}_{\eta}+y_{1,j}{\hat{y}}_{\eta}
+\end{eqnarray}
+This is ${\bx}^{*}\cdot{\hat{\bx}}_{\eta}$.  Then, since 
+${\bx}^{n}\cdot{\hat{\bx}}_{\eta}$ is also readily calculated from the $n$th iterate,
+the entire right hand side of equation 2 is known.  This allows calculation of 
+${\bx}^{n+1}$, and the continuation of the iteration.
+
+Orthogonality at the boundary can also be obtained by a different means.  As explained in
+Thompson, et al. [3], the boundary points can be fixed, and boundary orthogonality 
+enforced
+by utilization of the proper forcing functions $P$ and $Q$.  In addition, the 
+thickness of the boundary layer can be specified by the user.  
+
+Again, let $\xi=0$, as above, and let $j$ represent the $\eta$ coordinate.
+Assume that the boundary layer thickness $\|\bx_{\xi}\|$ is chosen,
+and calculate ${\bx_{\eta}}$ and ${\bx_{\eta\eta}}$ from
+the fixed locations of the boundary points.  
+All this, together with the orthogonality condition
+\begin{eqnarray*}
+{\bx}_{\eta}\cdot{\bx}_{\xi} = 0    
+\end{eqnarray*}
+allows for the determination of $\bx_{\xi}$.  As shown in Knupp and Steinberg[2].  
+$\bx_{\xi}$ is given by:
+\begin{eqnarray}
+\bx_{\xi}=\frac{\|\bx_{\xi}\|}{\|\bx_{\eta}\|}{\bx_{\eta}}^{\perp}
+\end{eqnarray}
+Here, ${\bx_{\eta}}^{\perp}$ is the vector perpendicular to the vector ${\bx_{\eta}}$.  
+In addition to this, the method requires $\bx_{\xi\xi}$, and this is calculated by means of the Pade
+approximation 
+\begin{eqnarray}
+\bx_{\xi\xi}|_0=\frac{-7\bx_{1,j}+8\bx_{1,j}-\bx_{3,j}}{2\Delta\eta^2}-3\frac{\bx_{\xi}|_0}{\Delta\eta}
+\end{eqnarray}
+Using this information, the proper forcing functions $P$ and $Q$ can be determined.
+\begin{eqnarray*}
+P(\xi,\eta)&=&-\frac{\xxi\cdot\xxixi}{\|\xxi\|^2}-\frac{\xxi\cdot\xetaeta}{\|\xeta\|^2} \\
+Q(\xi,\eta)&=&-\frac{\xeta\cdot\xetaeta}{\|\xeta\|^2}-\frac{\xeta\cdot\xxixi}{\|\xxi\|^2}
+\end{eqnarray*}
+Once the appropriate $P$ and $Q$ are determined for the boundary, the values are interpolated onto
+the interior points using a linear scaling, and the iteration is continued.
+
+Note that because second order differences are being lagged, heavy underrelaxation is 
+required for this scheme to converge (Knupp and Steinberg [2]).  
+
+\subsubsection{Periodic Boundaries}
+
+Two types of periodic boundaries exist.  The first is derivative periodic and the second
+is function periodic.  Derivative periodicity involves identical derivatives on the 
+boundary, but not necessarily identical positions.  Function periodicity involves
+matching both the derivatives and the positions at the boundary points (as in the case of an
+annulus).
+
+In either case, the values beyond the boundary are evaluated by means of ghost points.   
+A ghost array allows for calculation of values on the boundary in much the same way they
+are found on the interior.
+
+\subsection{Sources}
+
+Should clustering of points or lines be necessary in the interior, certain points or lines
+may be designated as being lines of attraction.  This involves manipulation of the source 
+terms $P$ and $Q$ before iteration begins.  If a coordinate line is to be made a
+line of attraction,
+the attraction power $\pi$ must be specified along with the diffusivity
+$\delta$.  With these two parameters, the following expressions
+for $P$ and $Q$ are evaluated at all points in the field.
+\begin{eqnarray*}
+P_{line}(\xi,\eta) &=& -\sum_{i=1}^{N}\pi_{i}Sign(\xi-\xi_i)e^{-\delta_i|\xi-\xi_i|} \\
+Q_{line}(\xi,\eta) &=& -\sum_{j=1}^{M}\pi_{j}Sign(\eta-\eta_j)e^{-\delta_j|\eta-\eta_j|}
+\end{eqnarray*}
+Here, $N$ and $M$ represent the number of $\xi$ and $\eta$ lines of attraction respectively.
+Should points of attraction be desired, power and diffusivity are specified
+for each point, and two more sums are evaluated.
+\begin{eqnarray*}
+P_{point}(\xi,\eta) &=& -\sum_{i=1}^{L}\pi_{i}Sign(\xi-\xi_i)e^{-\delta_i|\xi-\xi_i|} \\
+Q_{point}(\xi,\eta) &=& -\sum_{j=1}^{L}\pi_{j}Sign(\eta-\eta_j)e^{-\delta_j|\eta-\eta_j|}
+\end{eqnarray*}
+Here, L is the number of point sources.  Note that a source can be made into a sink by
+merely changing the sign in front of the power $\pi$.
+
+\subsection{Using the Elliptic Grid Generator With Ogen}
+
+The user is assumed to be familiar with generation of mappings in Ogen.  A mapping
+must first be made as an initial condition for the elliptic smoother.
+
+\subsubsection{Grid Dimensions}
+The first thing to specify after choosing a mapping is the amount of grid refinement desired.
+The number of grid lines in i and j (or $\xi$ and $\eta$ respectively) should be 
+entered before all else, as these parameters are needed for correct implementation of
+the boundary conditions.
+
+\subsubsection{Boundary Conditions}
+The appropriate GRID boundary conditions should be entered next.
+These are not to be confused with the boundary conditions for the physical problem
+to be solved later, and the switches are completely independent.  The following
+choices are available:
+
+\begin{itemize}
+ \item -1:  Refers to a {\bf periodic} boundary condition.  This
+  is selected by default if a periodic boundary is declared when the original mapping
+  is made.  If a 
+  periodic boundary is not specified when the original mapping was created, this boundary
+  condition should not be used.
+ \item  1:  Refers to a {\bf Dirichlet} boundary condition.  The positions of the boundary 
+  points in the original mapping are used as the boundary condition for the elliptic map.
+ \item  2:  Refers to a {\bf orthogonal} boundary condition.  This forces the gridlines to  
+  meet the boundary in an orthogonal fashion.  The boundary points are free to move, but
+  only along the boundary.
+ \item  3:  Refers to the {\bf combined} boundary condition.  The boundary points are fixed
+  as in the Dirichlet case, but the sources and sinks are modified so as to guarantee 
+  orthogonality at the boundary.  This boundary condition requires that the user 
+  specify the thickness of the boundary layer.
+\end{itemize}
+
+The boundary conditions are stored in a 2-dimensional array {\bf gridBc(i,j)}, where
+i and j range from 0 to 1.  On the unit square, the following are the locations of the 
+boundaries:
+
+\begin{itemize}
+ \item gridBc(0,0):  Refers to the boundary condition on $0\leq x \leq1, y=0$.
+ \item gridBc(0,1):  Refers to the boundary condition on $x=0, 0\leq y \leq1$.
+ \item gridBc(1,0):  Refers to the boundary condition on $0\leq x \leq1, y=1$.
+ \item gridBc(1,1):  Refers to the boundary condition on $x=1, 0\leq y \leq1$.
+\end{itemize}
+ 
+\subsubsection{Sources and Sinks}
+
+If the user decides that lines or points of attraction (repulsion) are desired for 
+the elliptic grid, these can be specified.  The selection \emph{Poisson i-line sources} 
+creates lines of constant $\xi$ into lines of attraction.  Similarly, \emph{Poisson
+j-line sources} turns lines of constant $\eta$ into lines of attraction, and 
+\emph{Poisson point sources} creates points of attraction in $\xi-\eta$ space.
+
+The power and diffusivity of each source must be selected carefully.  Too much power or 
+too little diffusivity can mar convergence of the grid.
+
+\subsubsection{Other Functions}
+
+There are several other switches that can be used.  These are:
+
+\begin{itemize}
+ \item \emph{change SOR parameter}:  This changes the value of $\omega$ used for either 
+  overrelaxation or underrelaxation.  Setting $\omega=1$ indicates a point Gauss-
+  Seidel method, and is a good conservative first choice.  Note that if {\bf combined}
+  boundary conditions are used, then $\omega$ needs to be quite small, usually on
+  the order of 0.05 or 0.1.  This is because of the lagged second order quantities
+  that the scheme requires.
+ \item \emph{set maximum number of iterations}:  This controls the maximum amount of iterations
+  for the grid to converge.
+ \item \emph{set epsilon for convergence}:  This value is the indicator for the convergence
+  of the elliptic grid.  If the differences between successive iterations drops below
+  epsilon, then the grid is said to have converged.  This 
+  is preset to $10^{-5}$.
+ \item \emph{set number of periods}:  If the grid is periodic (either derivative or function),
+  then any sources or sinks in the field need to be made periodic as well.  The number 
+  entered here indicates the number of periods desired for these sources and sinks.
+  1 is the default value.  
+  Increasing this number is crucial if strong source terms exist, and 5 or 7 may 
+  be needed to properly resolve the periodicity.
+ \end{itemize}
+
+\subsection{In Conclusion}
+
+The elliptic transform is a fine way to smooth out a grid, and 
+frees the user from the restriction to simple geometries.
+Unfortunately, convergence of the routine is
+not guaranteed for all geometries, and for all powers of sources and sinks.  
+
+The routine, however, does provide an ability to deal with boundaries well, and 
+can greatly simplify many complex computations.
+
+
+
+%% \subsection{Member functions}
+%% \input EllipticTransformInclude.tex
+
+
+\subsection{Examples}
+
+\subsubsection{Smoothed out diamond airfoil}
+
+In the left column is the command file that was used to generate the grid on the bottom right.
+
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping/ellaf.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/ellaf1}\\
+  % \epsfig{file=\figures/ellaf1.ps,height=3.in}  \\
+  {Diamond airfoil before elliptic transform.}    \\
+   \includegraphics[width=8cm]{\figures/ellaf2}\\
+   % \epsfig{file=\figures/ellaf2.ps,height=3.in}  \\
+  {Diamond airfoil after elliptic transform.}
+  \end{center}
+\end{minipage}
+
+
+
+
+ 
+% \end{document}
+
+
+

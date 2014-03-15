@@ -1,0 +1,812 @@
+// This file automatically generated from App.bC with bpp.
+#include "App.h"
+#include "ParallelUtility.h"
+
+#include "display.h"
+
+#ifdef USE_PPP
+    extern bool automaticCommunication;  // *wdh* 
+#else
+    static bool automaticCommunication;  // *wdh* 
+#endif
+
+void
+turnOnAutomaticCommunication(){automaticCommunication=true;}  //
+
+void
+turnOffAutomaticCommunication(){automaticCommunication=false;}  //
+
+
+bool getAutomaticCommunication(){ return automaticCommunication;}  //
+
+
+static int sent=0, received=0; 
+
+int 
+getSent()
+{
+    int sentNew=Diagnostic_Manager::getNumberOfMessagesSent()-sent;
+    sent+=sentNew;
+    return sentNew;
+}
+int 
+getReceived()
+{
+    int receivedNew=Diagnostic_Manager::getNumberOfMessagesReceived()-received;
+    received+=receivedNew;
+    return receivedNew;
+}
+
+void
+printMessageInfo( const char* msg, FILE *file /* =stdout */ )
+{
+    if( Communication_Manager::My_Process_Number==0 )
+    {
+        fprintf(file,"%s\n",msg);
+        fprintf(file," new messages sent=%i, new messages received=%i\n",getSent(),getReceived());
+        fprintf(file," total messages sent=%i, total messages received=%i\n",Diagnostic_Manager::getNumberOfMessagesSent(),
+                                      Diagnostic_Manager::getNumberOfMessagesReceived());
+        fprintf(file," total number of ghost boundary updates=%i\n",Diagnostic_Manager::getNumberOfGhostBoundaryUpdates());
+    }
+}
+
+
+// Put this here for now -- should be moved to OGFunction
+int
+assignGridFunction( OGFunction & exact, 
+                		    realMappedGridFunction & u, 
+                                        const Index &I1, const Index&I2, const Index&I3, const Index & N, const real t)
+{
+
+
+    MappedGrid & mg = *u.getMappedGrid();
+    
+    const bool isRectangular = mg.isRectangular();
+    
+    if( !isRectangular )
+        mg.update(MappedGrid::THEcenter );
+
+    const realArray & center = !isRectangular ? mg.center() : u;
+
+    #ifdef USE_PPP 
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray xLocal; getLocalArrayWithGhostBoundaries(center,xLocal);
+    #else
+        const realSerialArray & uLocal = u; 
+        const realSerialArray & xLocal = center; 
+    #endif
+
+    Index J1=I1, J2=I2, J3=I3, J4=N;
+    Index nullIndex;
+    if( J4==nullIndex ) J4=u.dimension(3);
+    
+  // assign parallel ghost boundaries too
+
+    const int n1a = I1==nullIndex ? uLocal.getBase(0) : max(I1.getBase() , uLocal.getBase(0));
+    const int n1b = I1==nullIndex ? uLocal.getBound(0): min(I1.getBound(),uLocal.getBound(0));
+
+    const int n2a = I2==nullIndex ? uLocal.getBase(1) : max(I2.getBase() , uLocal.getBase(1));
+    const int n2b = I2==nullIndex ? uLocal.getBound(1): min(I2.getBound(),uLocal.getBound(1));
+
+    const int n3a = I3==nullIndex ? uLocal.getBase(2) : max(I3.getBase() , uLocal.getBase(2));
+    const int n3b = I3==nullIndex ? uLocal.getBound(2): min(I3.getBound(),uLocal.getBound(2));
+
+    if( n1a>n1b || n2a>n2b || n3a>n3b ) return 0; 
+
+    J1 = Range(n1a,n1b), J2 = Range(n2a,n2b), J3 = Range(n3a,n3b);
+
+  // ::display(xLocal,"assign grid function: xLocal","%6.2f ");
+    
+
+    realSerialArray & u0 = (realSerialArray&)uLocal;
+    for( int n=J4.getBase(); n<=J4.getBound(); n++ )
+        exact.gd( u0,xLocal,mg.numberOfDimensions(),isRectangular,0,0,0,0,J1,J2,J3,n,t);
+
+    return 0;
+
+}
+
+// ************************************************************************
+//    Define assignment functions
+// ************************************************************************
+
+
+
+// defineAssignMacro(real,realArray,realSerialArray,realGridCollectionFunction);
+void
+assign( realGridCollectionFunction & u, const realGridCollectionFunction & v )
+// Assign two grid collection functions without communication
+{
+    GridCollection & gc = *u.getGridCollection();
+    for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
+    {
+        assign( u[grid],v[grid] );
+    }
+}
+void
+assign( realGridCollectionFunction & u, real value )
+// Assign two grid collection functions without communication
+{
+    GridCollection & gc = *u.getGridCollection();
+    for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
+    {
+        assign( u[grid],value );
+    }
+}
+void
+assign( realArray & u, const realArray & v )
+// Assign two arrays without communication 
+{
+    #ifdef USE_PPP
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray vLocal; getLocalArrayWithGhostBoundaries(v,vLocal);
+        uLocal=vLocal;
+    #else
+        u=v;
+    #endif
+}
+void
+assign( realArray & u, const realArray & v, 
+                const Index & I1, const Index & I2, const Index & I3, const Index & I4 )
+// Assign two arrays without communication
+{
+    #ifdef USE_PPP
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray vLocal; getLocalArrayWithGhostBoundaries(v,vLocal);
+        realSerialArray & uu = (realSerialArray&) uLocal;
+        Index J1=I1, J2=I2, J3=I3, J4=I4;
+        Index nullIndex;
+        if( J1==nullIndex ) J1=u.dimension(0);
+        if( J2==nullIndex ) J2=u.dimension(1);
+        if( J3==nullIndex ) J3=u.dimension(2);
+        if( J4==nullIndex ) J4=u.dimension(3);
+    // assign parallel ghost boundaries too
+//     const int n1a = max(J1.getBase() , uLocal.getBase(0));
+//     const int n1b = min(J1.getBound(),uLocal.getBound(0));
+//     const int n2a = max(J2.getBase() , uLocal.getBase(1));
+//     const int n2b = min(J2.getBound(),uLocal.getBound(1));
+//     const int n3a = max(J3.getBase() , uLocal.getBase(2));
+//     const int n3b = min(J3.getBound(),uLocal.getBound(2));
+        const int n1a = I1==nullIndex ? uLocal.getBase(0) : max(I1.getBase() , uLocal.getBase(0));
+        const int n1b = I1==nullIndex ? uLocal.getBound(0): min(I1.getBound(),uLocal.getBound(0));
+        const int n2a = I2==nullIndex ? uLocal.getBase(1) : max(I2.getBase() , uLocal.getBase(1));
+        const int n2b = I2==nullIndex ? uLocal.getBound(1): min(I2.getBound(),uLocal.getBound(1));
+        const int n3a = I3==nullIndex ? uLocal.getBase(2) : max(I3.getBase() , uLocal.getBase(2));
+        const int n3b = I3==nullIndex ? uLocal.getBound(2): min(I3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        J1 = Range(n1a,n1b), J2 = Range(n2a,n2b), J3 = Range(n3a,n3b);
+        uu(J1,J2,J3,J4)=vLocal(J1,J2,J3,J4);
+    #else
+        u(I1,I2,I3,I4)=v(I1,I2,I3,I4);
+    #endif
+}
+void
+assign( realArray & u, const Index & I1_, const Index & I2_, const Index & I3_, const Index & I4_,
+                const realArray & v, const Index & J1_, const Index & J2_, const Index & J3_, const Index & J4_ )
+// =====================================================================================================
+// /Description: Assign two arrays without communication (it is assumed that they have the same parallel
+//       distribution
+//
+//            u(I1,I2,I3,I4)=v(J1,J2,J3,J4)
+// 
+// =====================================================================================================
+{
+    #ifdef USE_PPP
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray vLocal; getLocalArrayWithGhostBoundaries(v,vLocal);
+        Index I1=I1_, I2=I2_, I3=I3_, I4=I4_;
+        Index nullIndex;
+        if( I4==nullIndex ) I4=u.dimension(3);
+        int n1a = I1==nullIndex ? uLocal.getBase(0) : max(I1.getBase() , uLocal.getBase(0));
+        int n1b = I1==nullIndex ? uLocal.getBound(0): min(I1.getBound(),uLocal.getBound(0));
+        int n2a = I2==nullIndex ? uLocal.getBase(1) : max(I2.getBase() , uLocal.getBase(1));
+        int n2b = I2==nullIndex ? uLocal.getBound(1): min(I2.getBound(),uLocal.getBound(1));
+        int n3a = I3==nullIndex ? uLocal.getBase(2) : max(I3.getBase() , uLocal.getBase(2));
+        int n3b = I3==nullIndex ? uLocal.getBound(2): min(I3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        I1 = Range(n1a,n1b), I2 = Range(n2a,n2b), I3 = Range(n3a,n3b);
+        Index J1=J1_, J2=J2_, J3=J3_, J4=J4_;
+        if( J4==nullIndex ) J4=u.dimension(3);
+        n1a = J1==nullIndex ? uLocal.getBase(0) : max(J1.getBase() , uLocal.getBase(0));
+        n1b = J1==nullIndex ? uLocal.getBound(0): min(J1.getBound(),uLocal.getBound(0));
+        n2a = J2==nullIndex ? uLocal.getBase(1) : max(J2.getBase() , uLocal.getBase(1));
+        n2b = J2==nullIndex ? uLocal.getBound(1): min(J2.getBound(),uLocal.getBound(1));
+        n3a = J3==nullIndex ? uLocal.getBase(2) : max(J3.getBase() , uLocal.getBase(2));
+        n3b = J3==nullIndex ? uLocal.getBound(2): min(J3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        J1 = Range(n1a,n1b), J2 = Range(n2a,n2b), J3 = Range(n3a,n3b);
+    // assign parallel ghost boundaries too
+        uLocal(I1,I2,I3,I4)=vLocal(J1,J2,J3,J4);
+    #else
+        u(I1_,I2_,I3_,I4_)=v(J1_,J2_,J3_,J4_);
+    #endif
+}
+void
+assign( realArray & u, real value )
+// ==================================================================================
+//   Assign u=value (this will assign all ghost values of a parallel array)
+// ==================================================================================
+{
+    #ifdef USE_PPP
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        uLocal=value;
+    #else
+        u=value;
+    #endif
+}
+void
+assign( realArray & u, real value, 
+                const Index & I1, const Index & I2, const Index & I3, const Index & I4 )
+// ==================================================================================
+//   Assign u(I1,I2,I3,I4)=value
+//
+// /Note: If Im is a null index (m=1,2,3,4) then all ghost values along that 
+//        direction will be assigned.
+// ==================================================================================
+{
+    #ifdef USE_PPP
+        realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        realSerialArray & uu = (realSerialArray&) uLocal;
+    // assign parallel ghost boundaries too
+        Index nullIndex;
+        const int n1a = I1==nullIndex ? uLocal.getBase(0) : max(I1.getBase() , uLocal.getBase(0));
+        const int n1b = I1==nullIndex ? uLocal.getBound(0): min(I1.getBound(),uLocal.getBound(0));
+        const int n2a = I2==nullIndex ? uLocal.getBase(1) : max(I2.getBase() , uLocal.getBase(1));
+        const int n2b = I2==nullIndex ? uLocal.getBound(1): min(I2.getBound(),uLocal.getBound(1));
+        const int n3a = I3==nullIndex ? uLocal.getBase(2) : max(I3.getBase() , uLocal.getBase(2));
+        const int n3b = I3==nullIndex ? uLocal.getBound(2): min(I3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        Index J1 = Range(n1a,n1b), J2 = Range(n2a,n2b), J3 = Range(n3a,n3b);
+        Index J4=I4;
+        if( J4==nullIndex ) J4=u.dimension(3);
+        uu(J1,J2,J3,J4)=value; 
+    #else
+        u(I1,I2,I3,I4)=value; 
+    #endif
+}
+// defineAssignMacro(int,intArray,intSerialArray,intGridCollectionFunction);
+void
+assign( intGridCollectionFunction & u, const intGridCollectionFunction & v )
+// Assign two grid collection functions without communication
+{
+    GridCollection & gc = *u.getGridCollection();
+    for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
+    {
+        assign( u[grid],v[grid] );
+    }
+}
+void
+assign( intGridCollectionFunction & u, int value )
+// Assign two grid collection functions without communication
+{
+    GridCollection & gc = *u.getGridCollection();
+    for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
+    {
+        assign( u[grid],value );
+    }
+}
+void
+assign( intArray & u, const intArray & v )
+// Assign two arrays without communication 
+{
+    #ifdef USE_PPP
+        intSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        intSerialArray vLocal; getLocalArrayWithGhostBoundaries(v,vLocal);
+        uLocal=vLocal;
+    #else
+        u=v;
+    #endif
+}
+void
+assign( intArray & u, const intArray & v, 
+                const Index & I1, const Index & I2, const Index & I3, const Index & I4 )
+// Assign two arrays without communication
+{
+    #ifdef USE_PPP
+        intSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        intSerialArray vLocal; getLocalArrayWithGhostBoundaries(v,vLocal);
+        intSerialArray & uu = (intSerialArray&) uLocal;
+        Index J1=I1, J2=I2, J3=I3, J4=I4;
+        Index nullIndex;
+        if( J1==nullIndex ) J1=u.dimension(0);
+        if( J2==nullIndex ) J2=u.dimension(1);
+        if( J3==nullIndex ) J3=u.dimension(2);
+        if( J4==nullIndex ) J4=u.dimension(3);
+    // assign parallel ghost boundaries too
+//     const int n1a = max(J1.getBase() , uLocal.getBase(0));
+//     const int n1b = min(J1.getBound(),uLocal.getBound(0));
+//     const int n2a = max(J2.getBase() , uLocal.getBase(1));
+//     const int n2b = min(J2.getBound(),uLocal.getBound(1));
+//     const int n3a = max(J3.getBase() , uLocal.getBase(2));
+//     const int n3b = min(J3.getBound(),uLocal.getBound(2));
+        const int n1a = I1==nullIndex ? uLocal.getBase(0) : max(I1.getBase() , uLocal.getBase(0));
+        const int n1b = I1==nullIndex ? uLocal.getBound(0): min(I1.getBound(),uLocal.getBound(0));
+        const int n2a = I2==nullIndex ? uLocal.getBase(1) : max(I2.getBase() , uLocal.getBase(1));
+        const int n2b = I2==nullIndex ? uLocal.getBound(1): min(I2.getBound(),uLocal.getBound(1));
+        const int n3a = I3==nullIndex ? uLocal.getBase(2) : max(I3.getBase() , uLocal.getBase(2));
+        const int n3b = I3==nullIndex ? uLocal.getBound(2): min(I3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        J1 = Range(n1a,n1b), J2 = Range(n2a,n2b), J3 = Range(n3a,n3b);
+        uu(J1,J2,J3,J4)=vLocal(J1,J2,J3,J4);
+    #else
+        u(I1,I2,I3,I4)=v(I1,I2,I3,I4);
+    #endif
+}
+void
+assign( intArray & u, const Index & I1_, const Index & I2_, const Index & I3_, const Index & I4_,
+                const intArray & v, const Index & J1_, const Index & J2_, const Index & J3_, const Index & J4_ )
+// =====================================================================================================
+// /Description: Assign two arrays without communication (it is assumed that they have the same parallel
+//       distribution
+//
+//            u(I1,I2,I3,I4)=v(J1,J2,J3,J4)
+// 
+// =====================================================================================================
+{
+    #ifdef USE_PPP
+        intSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        intSerialArray vLocal; getLocalArrayWithGhostBoundaries(v,vLocal);
+        Index I1=I1_, I2=I2_, I3=I3_, I4=I4_;
+        Index nullIndex;
+        if( I4==nullIndex ) I4=u.dimension(3);
+        int n1a = I1==nullIndex ? uLocal.getBase(0) : max(I1.getBase() , uLocal.getBase(0));
+        int n1b = I1==nullIndex ? uLocal.getBound(0): min(I1.getBound(),uLocal.getBound(0));
+        int n2a = I2==nullIndex ? uLocal.getBase(1) : max(I2.getBase() , uLocal.getBase(1));
+        int n2b = I2==nullIndex ? uLocal.getBound(1): min(I2.getBound(),uLocal.getBound(1));
+        int n3a = I3==nullIndex ? uLocal.getBase(2) : max(I3.getBase() , uLocal.getBase(2));
+        int n3b = I3==nullIndex ? uLocal.getBound(2): min(I3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        I1 = Range(n1a,n1b), I2 = Range(n2a,n2b), I3 = Range(n3a,n3b);
+        Index J1=J1_, J2=J2_, J3=J3_, J4=J4_;
+        if( J4==nullIndex ) J4=u.dimension(3);
+        n1a = J1==nullIndex ? uLocal.getBase(0) : max(J1.getBase() , uLocal.getBase(0));
+        n1b = J1==nullIndex ? uLocal.getBound(0): min(J1.getBound(),uLocal.getBound(0));
+        n2a = J2==nullIndex ? uLocal.getBase(1) : max(J2.getBase() , uLocal.getBase(1));
+        n2b = J2==nullIndex ? uLocal.getBound(1): min(J2.getBound(),uLocal.getBound(1));
+        n3a = J3==nullIndex ? uLocal.getBase(2) : max(J3.getBase() , uLocal.getBase(2));
+        n3b = J3==nullIndex ? uLocal.getBound(2): min(J3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        J1 = Range(n1a,n1b), J2 = Range(n2a,n2b), J3 = Range(n3a,n3b);
+    // assign parallel ghost boundaries too
+        uLocal(I1,I2,I3,I4)=vLocal(J1,J2,J3,J4);
+    #else
+        u(I1_,I2_,I3_,I4_)=v(J1_,J2_,J3_,J4_);
+    #endif
+}
+void
+assign( intArray & u, int value )
+// ==================================================================================
+//   Assign u=value (this will assign all ghost values of a parallel array)
+// ==================================================================================
+{
+    #ifdef USE_PPP
+        intSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        uLocal=value;
+    #else
+        u=value;
+    #endif
+}
+void
+assign( intArray & u, int value, 
+                const Index & I1, const Index & I2, const Index & I3, const Index & I4 )
+// ==================================================================================
+//   Assign u(I1,I2,I3,I4)=value
+//
+// /Note: If Im is a null index (m=1,2,3,4) then all ghost values along that 
+//        direction will be assigned.
+// ==================================================================================
+{
+    #ifdef USE_PPP
+        intSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+        intSerialArray & uu = (intSerialArray&) uLocal;
+    // assign parallel ghost boundaries too
+        Index nullIndex;
+        const int n1a = I1==nullIndex ? uLocal.getBase(0) : max(I1.getBase() , uLocal.getBase(0));
+        const int n1b = I1==nullIndex ? uLocal.getBound(0): min(I1.getBound(),uLocal.getBound(0));
+        const int n2a = I2==nullIndex ? uLocal.getBase(1) : max(I2.getBase() , uLocal.getBase(1));
+        const int n2b = I2==nullIndex ? uLocal.getBound(1): min(I2.getBound(),uLocal.getBound(1));
+        const int n3a = I3==nullIndex ? uLocal.getBase(2) : max(I3.getBase() , uLocal.getBase(2));
+        const int n3b = I3==nullIndex ? uLocal.getBound(2): min(I3.getBound(),uLocal.getBound(2));
+        if( n1a>n1b || n2a>n2b || n3a>n3b ) return; 
+        Index J1 = Range(n1a,n1b), J2 = Range(n2a,n2b), J3 = Range(n3a,n3b);
+        Index J4=I4;
+        if( J4==nullIndex ) J4=u.dimension(3);
+        uu(J1,J2,J3,J4)=value; 
+    #else
+        u(I1,I2,I3,I4)=value; 
+    #endif
+}
+
+
+extern int APP_Global_Array_ID;
+
+int numberOfArrayIDs=0;
+void checkArrayIDs(const aString & label, bool printNumber /*= false */ )
+{
+    const int myid=max(Communication_Manager::My_Process_Number,0);
+    if( APP_Global_Array_ID>numberOfArrayIDs )
+    {
+        if( myid==0 )
+            printf("%s: number of array ID's has increased to %i\n",(const char *)label,APP_Global_Array_ID);
+        numberOfArrayIDs=APP_Global_Array_ID;
+    }
+    else if( APP_Global_Array_ID<numberOfArrayIDs )
+    {
+        if( myid==0 )
+            printf("%s: number of array ID's has decreased to %i\n",(const char *)label,APP_Global_Array_ID);
+        numberOfArrayIDs=APP_Global_Array_ID;
+    }
+    else if( printNumber )
+    {
+        if( myid==0 )
+            printf("%s: number of array ID's is %i\n",(const char *)label,APP_Global_Array_ID);
+    }
+
+    Overture::checkMemoryUsage(label);  
+}
+
+
+
+real getSignForJacobian( MappedGrid & mg )
+{
+#ifdef USE_PPP
+    Mapping & map = mg.mapping().getMapping();
+    real & signForJacobian = map.signForJacobian;
+    if( signForJacobian==0. )
+    { // the sign has not been determined yet.
+        if( false )
+        {
+            signForJacobian=map.getSignForJacobian();
+        }
+        else
+        {
+      // do thios for now with P++ to avoid problems evaluating the Mapping.
+            if( mg.isRectangular() )
+            {
+      	real dx[3],xab[2][3];
+      	mg.getRectangularGridParameters( dx, xab );
+      	signForJacobian=xab[1][0]-xab[0][0];
+      	for( int axis=1; axis<mg.numberOfDimensions(); axis++ )
+      	{
+        	  signForJacobian*=xab[1][axis]-xab[0][axis];
+      	}
+            }
+            else
+            {
+      	mg.update(MappedGrid::THEinverseVertexDerivative);
+      	realSerialArray rx; getLocalArrayWithGhostBoundaries(mg.inverseVertexDerivative(),rx);
+      	Index I1,I2,I3;
+      	getIndex(mg.gridIndexRange(),I1,I2,I3);
+      	bool ok = ParallelUtility::getLocalArrayBounds(mg.inverseVertexDerivative(),rx,I1,I2,I3); 
+            
+                const int numberOfDimensions=mg.numberOfDimensions();
+      	#define RX(m,n) rx(i1,i2,i3,m+numberOfDimensions*(n))
+      	if( ok )
+      	{
+        	  int i1=(I1.getBase()+I1.getBound())/2;
+        	  int i2=(I2.getBase()+I2.getBound())/2;
+        	  int i3=(I3.getBase()+I3.getBound())/2;
+      	
+        	  if( mg.numberOfDimensions()==1 )
+        	  {
+          	    signForJacobian=rx(i1,i2,i3,0,0);
+        	  }
+        	  else if( mg.numberOfDimensions()==2 )
+          	    signForJacobian=RX(0,0)*RX(1,1)-RX(1,0)*RX(0,1);
+        	  else
+          	    signForJacobian=( (RX(0,0)*RX(1,1)-RX(0,1)*RX(1,0))*RX(2,2) +
+                        			      (RX(0,1)*RX(1,2)-RX(0,2)*RX(1,1))*RX(2,0) +
+                        			      (RX(0,2)*RX(1,0)-RX(0,0)*RX(1,2))*RX(2,1) );
+      	
+                  #undef RX
+      	}
+      	else
+      	{
+        	  signForJacobian=1.;  // there are no points on this processor -- shouldn't matter??
+        	  printf("getSignForJacobian:WARNING: cannot compute signForJacobian since there are no "
+             		 "points on this processor\n");
+      	}
+            }
+            signForJacobian = signForJacobian>0. ? 1. : -1.;
+        }
+        
+        printf("getSignForJacobian: signForJacobian=%3.1f grid=%s (p=%i)\n",signForJacobian,
+                        (const char*)mg.getName(),Communication_Manager::My_Process_Number);
+        
+    }
+    return signForJacobian;
+#else
+    return mg.mapping().getMapping().getSignForJacobian();
+#endif
+    
+}
+
+bool hasSameDistribution(const Partitioning_Type & uPartition, const Partitioning_Type & vPartition )
+// ===================================================================================
+// /Description:
+//   Return true if the two Partitioning_Type's have the same parallel distribution.
+//  This function should really be in the Partitioning_Type class.
+// ===================================================================================
+{
+    if( Communication_Manager::numberOfProcessors()<=1 ) 
+        return true;
+    
+
+  // We could compare the pointer to the internal partitioning object:
+  // Internal_Partitioning_Type* getInternalPartitioningObject()
+    if( false && uPartition.getInternalPartitioningObject() == vPartition.getInternalPartitioningObject() )
+    {
+    // printF("hasSameDistribution: Partitioning_Type's have the same Internal_Partitioning_Type\n");
+        return true;
+    }
+
+    const intSerialArray & uProcessors  = ((Partitioning_Type &)uPartition).getProcessorSet();
+    const intSerialArray & vProcessors  = ((Partitioning_Type &)vPartition).getProcessorSet();
+
+  // For now we just check the set of processors
+    bool returnValue = uProcessors.getLength(0)==vProcessors.getLength(0) && max(abs(uProcessors-vProcessors))==0;
+    if( returnValue )
+    {
+    // printF("hasSameDistribution: Internal_Partitioning_Type's are NOT the same but processors agree!\n");
+    }
+    
+    return returnValue;
+
+}
+
+
+
+// sameDistribution(intArray);
+bool hasSameDistribution(const intArray & u, const intArray & v )
+// ===================================================================================
+// /Description:
+//   Return true if the two arrays have the same parallel distribution
+// ===================================================================================
+{
+    return hasSameDistribution(u.getPartition(),v.getPartition());
+}
+// sameDistribution(floatArray);
+bool hasSameDistribution(const floatArray & u, const floatArray & v )
+// ===================================================================================
+// /Description:
+//   Return true if the two arrays have the same parallel distribution
+// ===================================================================================
+{
+    return hasSameDistribution(u.getPartition(),v.getPartition());
+}
+// sameDistribution(doubleArray);
+bool hasSameDistribution(const doubleArray & u, const doubleArray & v )
+// ===================================================================================
+// /Description:
+//   Return true if the two arrays have the same parallel distribution
+// ===================================================================================
+{
+    return hasSameDistribution(u.getPartition(),v.getPartition());
+}
+
+
+
+// sameDistributionMacro(intArray);
+bool hasSameDistribution(const intArray & u, const Partitioning_Type & partition )
+// ===================================================================================
+// /Description:
+//   Return true if the array u has a consistent distribution with partition
+//
+//   In this version we perform a double check by comparing the processor range in 
+//  the PARTI descriptor to processorSet from partition. This check is needed if the
+// partitioning object in u has been changed but the array u has not yet been updated.
+// 
+// (This function is used by the floatMappedGridFunction::privateUpdateToMatchGrid)
+// ===================================================================================
+{
+  #ifdef USE_PPP
+    bool hasSame = hasSameDistribution(u.getPartition(),partition);
+    if( hasSame )
+    {
+    // double check
+        #ifndef USE_PADRE
+          DARRAY *uDArray = u.Array_Descriptor.Array_Domain.BlockPartiArrayDomain;
+        #else
+    // Padre version:
+          DARRAY *uDArray = u.Array_Descriptor.Array_Domain.getParallelPADRE_DescriptorPointer()->representation->
+                                                  pPARTI_Representation->BlockPartiArrayDescriptor; 
+        #endif
+        if( uDArray!=NULL )
+        {
+            DECOMP *uDecomp = uDArray->decomp;
+            Partitioning_Type & partition_ = (Partitioning_Type &)partition;
+            const intSerialArray & processorSet = partition_.getProcessorSet();
+      // compare the sequence of processors in processorSet to the PARTI descriptor processors
+            hasSame = processorSet(processorSet.getBase(0))==uDecomp->baseProc &&
+              	        processorSet(processorSet.getBound(0))==uDecomp->baseProc+uDecomp->nProcs-1;
+        }
+    }
+    return hasSame;
+  #else
+    return true;
+  #endif
+}
+// sameDistributionMacro(floatArray);
+bool hasSameDistribution(const floatArray & u, const Partitioning_Type & partition )
+// ===================================================================================
+// /Description:
+//   Return true if the array u has a consistent distribution with partition
+//
+//   In this version we perform a double check by comparing the processor range in 
+//  the PARTI descriptor to processorSet from partition. This check is needed if the
+// partitioning object in u has been changed but the array u has not yet been updated.
+// 
+// (This function is used by the floatMappedGridFunction::privateUpdateToMatchGrid)
+// ===================================================================================
+{
+  #ifdef USE_PPP
+    bool hasSame = hasSameDistribution(u.getPartition(),partition);
+    if( hasSame )
+    {
+    // double check
+        #ifndef USE_PADRE
+          DARRAY *uDArray = u.Array_Descriptor.Array_Domain.BlockPartiArrayDomain;
+        #else
+    // Padre version:
+          DARRAY *uDArray = u.Array_Descriptor.Array_Domain.getParallelPADRE_DescriptorPointer()->representation->
+                                                  pPARTI_Representation->BlockPartiArrayDescriptor; 
+        #endif
+        if( uDArray!=NULL )
+        {
+            DECOMP *uDecomp = uDArray->decomp;
+            Partitioning_Type & partition_ = (Partitioning_Type &)partition;
+            const intSerialArray & processorSet = partition_.getProcessorSet();
+      // compare the sequence of processors in processorSet to the PARTI descriptor processors
+            hasSame = processorSet(processorSet.getBase(0))==uDecomp->baseProc &&
+              	        processorSet(processorSet.getBound(0))==uDecomp->baseProc+uDecomp->nProcs-1;
+        }
+    }
+    return hasSame;
+  #else
+    return true;
+  #endif
+}
+// sameDistributionMacro(doubleArray);
+bool hasSameDistribution(const doubleArray & u, const Partitioning_Type & partition )
+// ===================================================================================
+// /Description:
+//   Return true if the array u has a consistent distribution with partition
+//
+//   In this version we perform a double check by comparing the processor range in 
+//  the PARTI descriptor to processorSet from partition. This check is needed if the
+// partitioning object in u has been changed but the array u has not yet been updated.
+// 
+// (This function is used by the floatMappedGridFunction::privateUpdateToMatchGrid)
+// ===================================================================================
+{
+  #ifdef USE_PPP
+    bool hasSame = hasSameDistribution(u.getPartition(),partition);
+    if( hasSame )
+    {
+    // double check
+        #ifndef USE_PADRE
+          DARRAY *uDArray = u.Array_Descriptor.Array_Domain.BlockPartiArrayDomain;
+        #else
+    // Padre version:
+          DARRAY *uDArray = u.Array_Descriptor.Array_Domain.getParallelPADRE_DescriptorPointer()->representation->
+                                                  pPARTI_Representation->BlockPartiArrayDescriptor; 
+        #endif
+        if( uDArray!=NULL )
+        {
+            DECOMP *uDecomp = uDArray->decomp;
+            Partitioning_Type & partition_ = (Partitioning_Type &)partition;
+            const intSerialArray & processorSet = partition_.getProcessorSet();
+      // compare the sequence of processors in processorSet to the PARTI descriptor processors
+            hasSame = processorSet(processorSet.getBase(0))==uDecomp->baseProc &&
+              	        processorSet(processorSet.getBound(0))==uDecomp->baseProc+uDecomp->nProcs-1;
+        }
+    }
+    return hasSame;
+  #else
+    return true;
+  #endif
+}
+
+
+
+
+
+// consistencyMacro(intArray,intSerialArray);
+int testConsistency( const intArray & u, const char* label )
+// ===================================================================================
+// /Description:
+//     Test the consistency of the parallel array 
+// /Return value: 0=ok, 1=error. 
+// ===================================================================================
+{
+    int returnValue=0;
+  #ifdef USE_PPP
+    const int myid=max(Communication_Manager::My_Process_Number,0);
+    IndexBox uBox;
+    CopyArray::getLocalArrayBoxWithGhost( myid,u,uBox );
+    intSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+    for( int d=0; d<4; d++ )
+    {
+        if( uBox.base(d)!=uLocal.getBase(d) || uBox.bound(d)!=uLocal.getBound(d) )
+        {
+            if( returnValue==0 )
+                printf("testConsistency:ERROR: label=%s :\n",label);
+            returnValue=1;
+            printf("   myid=%i, dimension d=%i: parti bounds=[%i,%i], local-array bounds=[%i,%i] \n",
+           	     myid,d,uBox.base(d),uBox.bound(d),uLocal.getBase(d),uLocal.getBound(d));
+        }
+    }
+    if( returnValue!=0 )
+    {
+        Overture::abort("error");
+    }
+  #endif
+    return returnValue;
+}
+
+// consistencyMacro(floatArray,floatSerialArray);
+int testConsistency( const floatArray & u, const char* label )
+// ===================================================================================
+// /Description:
+//     Test the consistency of the parallel array 
+// /Return value: 0=ok, 1=error. 
+// ===================================================================================
+{
+    int returnValue=0;
+  #ifdef USE_PPP
+    const int myid=max(Communication_Manager::My_Process_Number,0);
+    IndexBox uBox;
+    CopyArray::getLocalArrayBoxWithGhost( myid,u,uBox );
+    floatSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+    for( int d=0; d<4; d++ )
+    {
+        if( uBox.base(d)!=uLocal.getBase(d) || uBox.bound(d)!=uLocal.getBound(d) )
+        {
+            if( returnValue==0 )
+                printf("testConsistency:ERROR: label=%s :\n",label);
+            returnValue=1;
+            printf("   myid=%i, dimension d=%i: parti bounds=[%i,%i], local-array bounds=[%i,%i] \n",
+           	     myid,d,uBox.base(d),uBox.bound(d),uLocal.getBase(d),uLocal.getBound(d));
+        }
+    }
+    if( returnValue!=0 )
+    {
+        Overture::abort("error");
+    }
+  #endif
+    return returnValue;
+}
+
+// consistencyMacro(doubleArray,doubleSerialArray)
+int testConsistency( const doubleArray & u, const char* label )
+// ===================================================================================
+// /Description:
+//     Test the consistency of the parallel array 
+// /Return value: 0=ok, 1=error. 
+// ===================================================================================
+{
+    int returnValue=0;
+  #ifdef USE_PPP
+    const int myid=max(Communication_Manager::My_Process_Number,0);
+    IndexBox uBox;
+    CopyArray::getLocalArrayBoxWithGhost( myid,u,uBox );
+    doubleSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
+    for( int d=0; d<4; d++ )
+    {
+        if( uBox.base(d)!=uLocal.getBase(d) || uBox.bound(d)!=uLocal.getBound(d) )
+        {
+            if( returnValue==0 )
+                printf("testConsistency:ERROR: label=%s :\n",label);
+            returnValue=1;
+            printf("   myid=%i, dimension d=%i: parti bounds=[%i,%i], local-array bounds=[%i,%i] \n",
+           	     myid,d,uBox.base(d),uBox.bound(d),uLocal.getBase(d),uLocal.getBound(d));
+        }
+    }
+    if( returnValue!=0 )
+    {
+        Overture::abort("error");
+    }
+  #endif
+    return returnValue;
+}
+

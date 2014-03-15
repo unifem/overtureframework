@@ -1,0 +1,26 @@
+#!/bin/tcsh
+rm convrates.m
+#foreach m ( mp )
+#  echo "***** " $m "*******"
+set m = mp
+foreach tz ( poly trig )
+#set tz = poly
+#foreach g ( innerOuter3d )#innerOuter3d )
+set g = twoSquare
+  foreach r ( 1 2 3 4 )
+    echo "finish" | $CGBUILDPREFIX/mp/bin/cgmp aa_g.cmd nopause noplot -factor=$r -order=2 -interp=e -kappa1=1. -kappa2=.5 -tf=.05 -tp=.01 -tz=1 -degreet1=3 -degreet2=3 -degreex1=3 -degreex2=3 -go="movie mode" | tee out
+    mv mp.check $m.$tz.$r.$g.check
+    mv out $m.$tz.$r.$g.log
+  end # for each resolution
+  grep "^ 5." $m.$tz.*.$g.check | awk '{for (i=5; i<NF; i+=3) printf "%e ",$i; printf "\n"}' > $m.$tz.$g.dat
+  grep "total number of grid points" $m.$tz.*.$g.log | sed 's/[a-z():,]//g' | awk -F= '{print $3,"  ",$4,"  ",$5}' | sed 's/-/e-/g' > $m.$tz.$g.h.dat
+  echo "${m}_${tz}_${g} = load('$m.$tz.$g.dat');" >> convrates.m
+  echo "${m}_${tz}_${g}_h = load('$m.$tz.$g.h.dat');" >> convrates.m
+  echo "N=size(${m}_${tz}_${g},1)/2;">>convrates.m
+  echo "disp('%%% method=$m grid=$g(0) tz=$tz');">>convrates.m
+  echo "for d=1:size(${m}_${tz}_$g,2), [p,s]=polyfit(log(${m}_${tz}_${g}_h(1:2:N,3)),log(${m}_${tz}_$g(1:2:N,d)),1);disp(strcat(strcat(num2str(d),' & '),num2str(p(1))));end">>convrates.m
+  echo "disp('%%% method=$m grid=$g(1) tz=$tz');">>convrates.m
+  echo "for d=1:size(${m}_${tz}_$g,2), [p,s]=polyfit(log(${m}_${tz}_${g}_h(1:2:N,3)),log(${m}_${tz}_$g(2:2:N,d)),1);disp(strcat(strcat(num2str(d),' & '),num2str(p(1))));end">>convrates.m
+#end # for each grid
+ end # for each tz
+#end

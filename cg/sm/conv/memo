@@ -1,0 +1,79 @@
+=== 2013/11/01
+
+SVK+Traction+Trig
+
+conv.p tz.conv -pv=g -tz=trig -bcn=sf -tf=.3 -godunovType=2 -ng=3 
+
+                grid  & N &  $u$  & r &  $v$  & r &  $\sigma$   & r 
+                sq20 &     1 & 6.05e-07 &      & 1.79e-06 &      & 4.70e-06 &      
+                sq40 &     2 & 1.13e-07 &  5.4 & 4.43e-07 &  4.0 & 1.14e-06 &  4.1 
+                sq80 &     4 & 2.20e-08 &  5.1 & 1.17e-07 &  3.8 & 2.63e-07 &  4.3 
+               sq160 &     8 & 4.65e-09 &  4.7 & 2.93e-08 &  4.0 & 6.20e-08 &  4.2 
+Convergence rates: c0=2.34 c1=1.97 c2=2.08 
+
+                grid  & N &  $u$  & r &  $v$  & r &  $\sigma$   & r 
+                sq20 &     1 & 6.05e-07 &      & 1.79e-06 &      & 4.70e-06 &      
+                sq40 &     2 & 1.13e-07 &  5.4 & 4.43e-07 &  4.0 & 1.14e-06 &  4.1 
+                sq80 &     4 & 2.20e-08 &  5.1 & 1.17e-07 &  3.8 & 2.63e-07 &  4.3 
+Convergence rates: c0=2.39 c1=1.97 c2=2.08 
+
+
+SVK+Displacement+trig: NOTE: blips in v2-err propagate into domain
+conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.3 -godunovType=2 -ng=3
+
+ROTATED SQUARE: 90
+conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.3 -godunovType=2 -cg=rotatedSquareAngle90 -ng=3
+
+
+ROTATED SQUARE: 45
+conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.3 -godunovType=2 -cg=rotatedSquare -ng=3
+
+                grid  & N &  $u$  & r &  $v$  & r &  $\sigma$   & r 
+                sq20 &     1 & 4.07e-07 &      & 2.72e-06 &      & 2.39e-05 &      
+                sq40 &     2 & 9.48e-08 &  4.3 & 5.13e-07 &  5.3 & 5.72e-06 &  4.2 
+                sq80 &     4 & 2.24e-08 &  4.2 & 9.73e-08 &  5.3 & 1.39e-06 &  4.1 
+Convergence rates: c0=2.09 c1=2.40 c2=2.05 
+
+
+NON-SQUARE:
+conv.p tz.conv -pv=g -tz=trig -bcn=d -tf=.3 -godunovType=2 -cg=nonSquare -ng=3
+convRate : output written to ./tz.nonSquare.g.d.trig.ConvTable.tex
+convRate : open file ./results
+convRate: header=[grid  & N &  $u$  &  $v$  &  $\sigma$   ]
+convRate: numberOfComponents=3 (from header)
+                grid  & N &  $u$  & r &  $v$  & r &  $\sigma$   & r 
+                sq20 &     1 & 1.75e-07 &      & 7.20e-07 &      & 8.42e-06 &      
+                sq40 &     2 & 3.14e-08 &  5.6 & 1.87e-07 &  3.9 & 2.01e-06 &  4.2 
+                sq80 &     4 & 1.05e-08 &  3.0 & 5.48e-08 &  3.4 & 4.88e-07 &  4.1 
+Convergence rates: c0=2.03 c1=1.86 c2=2.05 
+
+
+
+-tf=.5:
+                grid  & N &  $u$  & r &  $v$  & r &  $\sigma$   & r 
+                sq20 &     1 & 1.47e-07 &      & 1.14e-06 &      & 2.03e-06 &      
+                sq40 &     2 & 5.68e-08 &  2.6 & 2.17e-07 &  5.3 & 4.71e-07 &  4.3 
+                sq80 &     4 & 1.57e-08 &  3.6 & 4.67e-08 &  4.6 & 1.31e-07 &  3.6 
+Convergence rates: c0=1.61 c1=2.30 c2=1.98 
+
+
+-tf=.3
+convRate : output written to ./tz.square.g.d.trig.ConvTable.tex
+convRate : open file ./results
+convRate: header=[grid  & N &  $u$  &  $v$  &  $\sigma$   ]
+convRate: numberOfComponents=3 (from header)
+                grid  & N &  $u$  & r &  $v$  & r &  $\sigma$   & r 
+                sq20 &     1 & 1.75e-07 &      & 7.20e-07 &      & 8.42e-06 &      
+                sq40 &     2 & 3.14e-08 &  5.6 & 1.87e-07 &  3.9 & 2.01e-06 &  4.2 
+                sq80 &     4 & 1.05e-08 &  3.0 & 5.48e-08 &  3.4 & 4.88e-07 &  4.1 
+               sq160 &     8 & 3.00e-09 &  3.5 & 1.39e-08 &  3.9 & 1.20e-07 &  4.1 
+Convergence rates: c0=1.92 c1=1.89 c2=2.04 
+
+
+                grid  & N &  $u$  & r &  $v$  & r &  $\sigma$   & r 
+                sq20 &     1 & 1.75e-07 &      & 7.20e-07 &      & 8.42e-06 &      
+                sq40 &     2 & 3.14e-08 &  5.6 & 1.87e-07 &  3.9 & 2.01e-06 &  4.2 
+                sq80 &     4 & 1.05e-08 &  3.0 & 5.48e-08 &  3.4 & 4.88e-07 &  4.1 
+Convergence rates: c0=2.03 c1=1.86 c2=2.05 
+
+

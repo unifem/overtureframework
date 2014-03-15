@@ -1,0 +1,21 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+set boxlib = $ovDir/boxlib
+set include = $ovDir/include
+
+cp *.C $boxlib
+cp *.{h,H} $include
+
+# cp template files to include dir too
+cp {AliasedDPtr,ArithFab,Array,BaseFab,DPtr,FabArray,BL_List,NormedFab,OrderedFab,PArray,Pointers,SimpleDPtr,Tuple}.C $include

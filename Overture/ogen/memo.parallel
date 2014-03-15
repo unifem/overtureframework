@@ -1,0 +1,74 @@
+* parallel test cases
+
+=============== sibDpm ===========================
+
+srun -N 1 -n 1 -ppdebug ogenp noplot sibDpm -order=2 -interp=e -factor=4
+
+
+=============== sibNurbs ====================
+
+-- try sib + nurbs: 
+srun -N1 -n2 -ppdebug ogenp noplot sibNurbs -order=2 -interp=e -factor=4
+
+srun -N1 -n2 -ppdebug ogenp noplot sibNurbs -order=2 -interp=e -factor=1 : -n2 and -n1 do not agree (sibArg is ok) 
+
+pt (10,7,4) on grid 1 interpolates=1 from grid2=2  r=(6.60e-01,8.98e-01,6.06e-01), x=(2.69e-01,-5.39e-01,9.20e-01)
+
+=============== cicNurbs ====
+
+srun -N 1 -n 2 -ppdebug ogenp noplot cicNurbs -order=2 -interp=e -factor=32
+
+
+================ build from an old grid =============
+
+srun -N 1 -n4 -ppdebug ogenp noplot buildFromOldGrid
+
+============== cicArg ==================
+
+
+srun -N 1 -n 1 -ppdebug ogenp noplot cicArg -factor=2 -interp=e 
+
+srun -N 1 -n 2 -ppdebug ogenp noplot cicArg -factor=4 -interp=e
+
+srun -N 1 -n 2 -ppdebug ogenp noplot cicArg -factor=4 -interp=e
+
+
+
+==== valve ===
+
+srun -ppdebug -N 1 -n 2  ogenp noplot valve
+
+totalview srun -a -N 1 -n 2 -ppdebug ogenp noplot valveCheck
+srun -ppdebug -N 1 -n 2 memcheck_all  ogenp noplot valveCheck
+
+mpirun -np 2 ogenp noplot valve
+
+===== sib =====
+
+srun -ppdebug -N 1 -n 1 ogenp noplot sibArg -order=2 -interp=e -factor=8 
+srun -N 1 -n 2 -ppdebug ogenp noplot sibArg -order=2 -interp=e -factor=4
+
+
+==== crv ====
+
+ogenp noplot crvNurbs -factor=2 -interp=e -name="crve2.order2.nurbs.yana.hdf"
+ogenp noplot crv -factor=2 -interp=e -name="crve2.order2.yana.hdf"
+
+srun -N 1 -n1 -ppdebug ogenp noplot buildFromOldGrid
+totalview srun -a -N 1 -n2 -ppdebug ogenp noplot buildFromOldGrid
+
+srun -N 1 -n 2 -ppdebug ogenp noplot crv -factor=2 -interp=e -name="crve2.order2.save.hdf"
+
+ -- use nurbs versions of the mappings: 
+srun -N 1 -n 2 -ppdebug ogenp noplot crvNurbs -factor=2 -interp=e -name="crve2.order2.nurbs.hdf"
+srun -N 1 -n 2 -ppdebug ogenp noplot crvNurbs -factor=4 -interp=e -name="crve4.order2.save.hdf"
+
+totalview srun -a -N 1 -n 2 -ppdebug ogenp noplot crv -factor=2 -interp=e -name="crve2.order4.hdf"
+
+srun -N 1 -n 2 -ppdebug ogenp noplot crvNurbs -factor=2 -dw=5 -iw=5 -interp=e -name="crve2.order4.hdf"
+
+
+
+
+
+

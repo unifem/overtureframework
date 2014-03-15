@@ -1,0 +1,12 @@
+The cns directory holds the files for the compressible Navier-Stokes solver, cgcns
+
+Makefile  : type "make" to build the solver bin/cgcns 
+
+bin       : executable files
+check     : type "make" to run the regression tests
+cmd       : command files for running examples
+doc       : documentation
+lib       : holds the library
+obj       : .o files
+runs      : sample runs from the documentation or from papers.
+src       : source files 

@@ -1,0 +1,144 @@
+PKGDIR := $(OvertureCheckout)/mapping
+
+STATIC_SRC_FILES += initStaticMappingVariables.C
+
+SRC_FILES += \
+	$(addsuffix .f,strtch cs cggpoly dpm tspack ingrid) \
+	r1machc.c r1mach.f \
+	$(addsuffix .C, Inverse stencilWalk inverseMap \
+		ComposeMapping MatrixMapping \
+		Fraction Bound Mapping checkMapping StretchMapping StretchedSquareMapping MappingRC \
+		BoundingBox SquareMapping SphereMapping SmoothedPolygonMapping \
+		DataPointMapping dpmScalar dpmInverse dpmMap AnnulusMapping FilletMapping \
+		CircleMapping NormalMapping ReductionMapping \
+		MappingP MappingBuilder UserDefinedMapping1 \
+		CylinderMapping PlaneMapping PolynomialMapping IntersectionMapping TriangleClass \
+		RevolutionMapping BoxMapping \
+		OrthographicTransform ReparameterizationTransform CrossSectionMapping \
+		RestrictionMapping SplineMapping TFIMapping ReorientMapping \
+		LineMapping MatrixTransform StretchTransform stretchUpdate QuadraticMapping \
+		createMappings viewMappings \
+		AirfoilMapping DepthMapping JoinMapping SweepMapping \
+		UnstructuredMapping unstructuredProject unstructuredCompositeSurface \
+		NurbsMapping IgesReader TrimmedMapping CompositeSurface MappingProjectionParameters \
+		compositeTopology nurbsEvaluation mappingUtil FaceInfo refineTriangulation refineCurve \
+		QuadTree RocketMapping ReferenceCountingList \
+		entityConnectivityBuilder verifyUnstructuredConnectivity \
+		EllipticGridGenerator Elliptic EllipticTransform readMappingsFromAnOverlappingGridFile \
+		EntityTag ULink \
+		OffsetShell MappingGeometry DistributedInverse LoftedSurfaceMapping findNearestGridPoint\
+                TrimmedMappingBuilder ) \
+	initializeMappingList.C \
+	equi.C hyperNull.C \
+	readMappings.C DataFormats.C DataFormatsMG.C \
+	sPrintF.C \
+	FilamentMapping.C \
+	plyfile.c plyFileInterface.C  \
+	nurbs_eval.F readPlot3d.C
+
+#	phoneyMappings.C
+
+L_HDRS := $(addsuffix .h, \
+	Mapping MappingEnums MappingP MappingRC MappingWS BoundingBox \
+	ComposeMapping MatrixMapping PlaneMapping IntersectionMapping TriangleClass \
+	Bound CircleMapping CylinderMapping Fraction Inverse SphereMapping SquareMapping \
+	AnnulusMapping SmoothedPolygon DataPointMapping NormalMapping RestrictionMapping \
+	RevolutionMapping BoxMapping StretchMapping ReductionMapping \
+	OrthographicTransform ReparameterizationTransform CrossSectionMapping \
+	MappingInformation MappingBuilder OffsetShell UserDefinedMapping1 \
+	LineMapping MatrixTransform StretchedSquare StretchTransform ReorientMapping \
+	SplineMapping TFIMapping FilletMapping QuadraticMapping CompositeTopology \
+	uns_templates entityConnectivityBuilder \
+	AirfoilMapping EllipticTransform DepthMapping JoinMapping SweepMapping \
+	EquiDistribute DataFormats UnstructuredMapping PolynomialMapping FaceInfo \
+	NurbsMapping IgesReader TrimmedMapping CompositeSurface MappingProjectionParameters \
+	EllipticGridGenerator QuadTree MappingsFromCAD RocketMapping ReferenceCountingList \
+	EntityTag ULink MappingGeometry DistributedInverse LoftedSurfaceMapping TrimmedMappingBuilder ) \
+	FilamentMapping.h \
+	plyFileInterface.h ply.h
+
+#cp pm.C $ovDir/bin/mbuilder.C
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+## ## ## 
+## HERE IS WHERE WE PUT TARGETS FOR BINARIES
+ifneq ($(BINDIR),)
+
+mbuilder: $(BINDIR)mbuilder
+cgen: $(BINDIR)cgen
+cgrid:$(BINDIR)cgrid
+phonies += mbuilder cgen cgrid
+
+endif
+
+$(BINDIR)mbuilder: $(OV_LIB) $(OV_SLIB) $(OBJDIR)mbuilder.o
+	$(CXX) -o $@ $(OBJDIR)mbuilder.o $(LIBS)
+
+$(BINDIR)cgen: $(OV_LIB) $(OV_SLIB) $(OBJDIR)cgen.o
+	$(CXX) -o $@ $(OBJDIR)cgen.o $(LIBS)
+
+$(BINDIR)cgrid: $(OV_LIB) $(OV_SLIB) $(OBJDIR)cgrid.o
+	$(CXX) -o $@ $(OBJDIR)cgrid.o $(LIBS)
+
+$(OBJDIR)strtch.o: strtch.f
+	@-echo -n "compiling $(<F) optimized : "
+	$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"	
+
+## ## ## 
+## HERE IS WHERE WE PUT STATIC OVERRIDES FOR SPECIFIC FILES
+ifneq ($(fdbg),y)
+
+## ## all of these could be taken care of in one static pattern rule
+
+$(OBJDIR)nurbs_eval.o: nurbs_eval.F
+	@-echo -n "compiling $(<F) optimized : "
+	@$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -DKK_NRB_BLOCKED -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"	
+
+$(OBJDIR)stencilWalk.o: stencilWalk.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+$(OBJDIR)Inverse.o: Inverse.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+$(OBJDIR)NurbsMapping.o: NurbsMapping.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+$(OBJDIR)TrimmedMapping.o: TrimmedMapping.C 
+	@-echo -n "compiling $(<F) optimized : "
+	$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 
+	@-echo "success"
+$(OBJDIR)nurbsEvaluation.o: nurbsEvaluation.C 
+	@-echo -n "compiling $(<F) optimized : "
+	$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+$(OBJDIR)dpmInverse.o: dpmInverse.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+$(OBJDIR)dpmScalar.o: dpmScalar.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+$(OBJDIR)mappingUtil.o: mappingUtil.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+$(OBJDIR)AnnulusMapping.o: AnnulusMapping.C
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+else
+
+$(OBJDIR)nurbs_eval.o: nurbs_eval.F
+	@-echo -n "compiling $(<F) debug : "
+	$(FC) $(INCLUDE) $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) $(FC_FLAGS_PREC) -DKK_NRB_BLOCKED -o $@ -c $< 
+	@-echo "success"	
+
+endif

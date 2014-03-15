@@ -1,0 +1,121 @@
+\section{TridiagonalSolver: Solve sets of tridiagonal systems or block tridiagonal systems}
+\index{tridiagonal solver}\index{block tridiagonal solver}
+
+The {\tt TridiagonalSolver} class can be used to solve tridiagonal systems or
+block tridiagonal systems. Sets of tridiagonal systems can be solved such as those
+that are formed when line smoothing is performed on a 2 or 3 dimensional grid or
+an ADI type method is used to solve a PDE. Currently only blocks or size 2 or 3 are
+implemented. 
+
+The two basic steps to solve a tridiagonal system are to first factor the system
+by calling the {\tt factor} member function and then solve the system using {\tt solve}.
+
+There are three types of boundary conditions supported, {\tt normal}, {\tt extended} and
+{\tt periodic}. A {\tt normal} matrix is of the form
+\[
+  {\rm normal } = 
+        \begin{bmatrix}
+               b_0 & c_0 &      &        &        &     \\
+               a_1 & b_1 & c_1  &        &        &     \\
+                   & a_2 & b_2  & c_2    &        &     \\
+                   &     &\ddots&\ddots  & \ddots &      \\ 
+                   &     &      & a_{n-1}& b_{n-1} & c_{n-1} \\
+                   &     &      &        & a_n     & b_n 
+        \end{bmatrix}
+\]
+The extended matrix allows extra entries on the first and last rows (required
+by some PDE boundary conditions)
+\[
+  {\rm extended} = 
+        \begin{bmatrix}
+               b_0 & c_0 & a_0  &        &        &     \\
+               a_1 & b_1 & c_1  &        &        &     \\
+                   & a_2 & b_2  & c_2    &        &     \\
+                   &     &\ddots&\ddots  & \ddots &      \\ 
+                   &     &      & a_{n-1}& b_{n-1} & c_{n-1} \\
+                   &     &      & c_n    & a_n     & b_n 
+        \end{bmatrix}
+\]
+The periodic case is
+\[
+  {\rm periodic } = 
+        \begin{bmatrix}
+               b_0 & c_0 &      &        &        & a_0 \\
+               a_1 & b_1 & c_1  &        &        &     \\
+                   & a_2 & b_2  & c_2    &        &     \\
+                   &     &\ddots&\ddots  & \ddots &      \\ 
+                   &     &      & a_{n-1}& b_{n-1} & c_{n-1} \\
+              c_n  &     &      &        & a_n     & b_n 
+        \end{bmatrix}
+\]
+Here is an example code that shows how to use the TridiagonalSolver
+(file {\tt Overture/tests/trid.C})
+{\footnotesize
+\begin{verbatim}
+#include "TridiagonalSolver.h"
+#include "display.h"
+
+// test the tridiagonal solver
+
+int
+main()
+{
+  ios::sync_with_stdio(); // Synchronize C++ and C I/O subsystems
+  Index::setBoundsCheck(on);  //  Turn on A++ array bounds checking
+
+
+  TridiagonalSolver tri;
+  // first solve a single tridiagonal system
+  Range I1(0,10);
+  RealArray a(I1),b(I1),c(I1),u(I1);
+  a=1.;
+  b=2.;
+  c=1.;
+  // choose the rhs so the answer will be 1
+  u=4.;
+  tri.factor(a,b,c,TridiagonalSolver::periodic);
+  tri.solve(u);
+
+  real error = max(abs(u-1.));
+  printf(" ****maximum error=%e for the periodic case.\n",error);
+
+  // Now solve a collection of tridiagonal systems
+  Range I2(0,2), I3(0,2);
+  a.redim(I1,I2,I3);
+  b.redim(I1,I2,I3);
+  c.redim(I1,I2,I3);
+  u.redim(I1,I2,I3);
+  
+  int base =I1.getBase();
+  int bound=I1.getBound();
+  for( int i3=I3.getBase(); i3<=I3.getBound(); i3++)
+  {
+    for( int i2=I2.getBase(); i2<=I2.getBound(); i2++)
+    {
+      for( int i1=I1.getBase(); i1<=I1.getBound(); i1++)
+      {
+	a(i1,i2,i3)=  -(i1+i2+i3+1);
+	b(i1,i2,i3)= 4*(i1+i2+i3+1);
+	c(i1,i2,i3)=-2*(i1+i2+i3+1);
+	u(i1,i2,i3)=   (i1+i2+i3+1);
+      }
+      u(base,i2,i3) -=a(base,i2,i3);
+      u(bound,i2,i3)-=c(bound,i2,i3);
+    }
+  }
+  
+  tri.factor(a,b,c,TridiagonalSolver::normal,axis1);
+  tri.solve(u,I1,I2,I3);
+  
+  error = max(abs(u-1.));
+  printf(" ****maximum error=%e for the normal case.\n",error);
+
+  return 0;
+}
+\end{verbatim}
+}
+
+\subsection{Member Functions}
+
+\input TridiagonalSolverInclude.tex
+

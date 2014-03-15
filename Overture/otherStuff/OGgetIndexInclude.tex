@@ -1,0 +1,3393 @@
+\subsection{getIndex from an index array}
+ 
+\newlength{\OGgetIndexIncludeArgIndent}
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const IntegerArray \& indexArray, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return Index objects for the region defined by indexArray
+
+\item[{\bf indexArray(0\collon1,0\collon2) (input):}]  defines a region
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from an index array}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const IntegerArray \& indexArray, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf indexArray(0\collon1,0\collon2) (input):}]  defines a region
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from an index array}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const IntegerArray \& indexArray, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3      =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line
+
+\item[{\bf indexArray(0\collon1,0\collon2) (input):}]  defines a region
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline of the region
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghsot points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component. To get Index's for a {\tt faceCenteredAll} grid function
+     use the {\tt getIndex} function described next.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getIndex(}%
+getIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& I3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf I1,I2,I3 (output):}]  Index values for the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+\subsection{getBoundaryIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getBoundaryIndex(}%
+getBoundaryIndex(const intMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ib3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3\\ 
+\hspace{\OGgetIndexIncludeArgIndent})
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   return Index objects for a side of the region defined by indexArray
+
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. 
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll} in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ib1,Ib2,Ib3 (output):}]  Index values for the given boundary of the region
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\end{description}
+\subsection{getGhostIndex from a \{float,double,int\}MappedGridFunction}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis0, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function. Use the "first" component of the grid function, that is
+     use the base value for each component.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{getGhostIndex(}%
+getGhostIndex(const floatMappedGridFunction \& u, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int component,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int side, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int axis, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig1, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig2, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}Index \& Ig3, \\ 
+\hspace{\OGgetIndexIncludeArgIndent}int ghostLine =1,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra1 =0,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra2 =OGgetIndexDefaultValue,\\ 
+\hspace{\OGgetIndexIncludeArgIndent}int extra3   =OGgetIndexDefaultValue)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Get Index's corresponding to a given ghost-line of region defined by a grid function.
+\item[{\bf u (input):}]  Base the Index's on the {\tt indexRange} and cell-centredness associated   
+     with this grid function
+\item[{\bf component (input):}]  use this component of the grid function, UNLESS the grid function 
+    is {\tt faceCenteredAll } in which case component =0,1 or 2 will indicate whether to return
+   Index's for the {\tt faceCenteredAxis1}, {\tt faceCenteredAxis2} or the {\tt faceCenteredAxis3} components.
+\item[{\bf side,axis (input):}]  defines which side=0,1 and axis=0,1,2
+\item[{\bf Ig1,Ig2,Ig3 (output):}]  Index values for the given ghostline on the given side
+\item[{\bf ghostline (input):}]  get Index's for this ghost line, can be positive, negative or zero.
+        A value of zero would give the boundary, a value of 1 would give the first
+        line outside and a value of -1 would give the first line inside.
+\item[{\bf extra1,extra2,extra3 (input):}]  increase region by this many lines, by default extra1=0, while 
+                         extra2 and extra3 default to extra1 (so that if you only set extra1=1
+                         then by default extra2=extra3=1)
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridIndexRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridIndexRange(}%
+extendedGridIndexRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridIndexRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). NOTE: Does not include ghost points on mixed physical/interpolation bounadries
+\item[{\bf Author:}]  WDH
+\end{description}
+extendedGridRange
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \\ 
+\settowidth{\OGgetIndexIncludeArgIndent}{extendedGridRange(}%
+extendedGridRange(const MappedGrid \& mg)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the extendedGridRange which is equal to mg.gridIndexRange except on
+  interpolation boundaries AND mixedPhyscialInterpolation boundaries
+  where it is equal to mg.extendedIndexRange (i.e. it includes
+  the ghost points). 
+\item[{\bf Author:}]  WDH
+\end{description}

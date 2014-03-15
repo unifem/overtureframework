@@ -1,0 +1,442 @@
+#
+# Fourth-order Neumann BC's (TWO DIMENSIONS)
+#   Derive the condition coming from the normal derivative of the PDE
+#
+# ******************************************************
+# ************* neumannEquationBC.new.h ********************
+# ******************************************************
+#
+# restart; read "neumann2d.maple";
+
+clear;
+Dzr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x+1,y,z)-f(x-1,y,z))/2 ), x,y,z);
+end:
+Dpr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x+1,y,z)-f(x,y,z) ), x,y,z );
+end:
+Dmr := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x-1,y,z)), x,y,z);
+end:
+Dzs := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y+1,z)-f(x,y-1,z))/2 ), x,y,z);
+end:
+Dps := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y+1,z)-f(x,y,z) ), x,y,z);
+end:
+Dms := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y-1,z)), x,y,z);
+end:
+
+Dzt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( (f(x,y,z+1)-f(x,y,z-1))/2 ), x,y,z);
+end:
+Dpt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z+1)-f(x,y,z) ), x,y,z);
+end:
+Dmt := proc(f)
+  local x,y,z;
+  option operator;
+  unapply( simplify( f(x,y,z)-f(x,y,z-1)), x,y,z);
+end:
+
+# The Mixed BC is 
+#      anR*ur + anS*us +a0*u = g
+
+# anR*ur = g - anS*us - a0*u
+aur := g - anS*us - a0*u;  
+ur := aur/anR;
+
+aurs := gs - anS*uss - anSs*us - a0*us;   
+aurss:= gss -anS*usss-2*anSs*uss - anSss*us - a0*uss;
+
+# anR*urs + anRs*ur = aurs
+urs:= (aurs -anRs*ur)/anR;
+
+# anR*urss + 2*anRs*urs + anRss*ur = aurss
+urss:= (aurss -2*anRs*urs - anRss*ur)/anR;
+
+# The PDE is
+#     cRR*urr + cRS*urs + cSS*uss + cR*ur + cS*us + c0 *u = f
+#
+#  cRR*urr = f - (cRS*urs + cSS*uss + cR*ur + cS*us + c0*u)
+curr := ff -( cRS*urs + cSS*uss + cR*ur + cS*us + c0*u );
+
+# keep this undefined: urr := curr/cRR;
+# Define this before defining urs
+# This next statement is recursive since urs depends on uss
+#  uss := ( ff -(cRR*urr + cRS*urs +  cR*ur + cS*us + c0*u ))/cSS;
+
+Luf := cRR*urr + cRS*urs + cSS*uss + cR*ur + cS*us + c0*u - ff;
+
+Uss:= solve( Luf, uss );
+uss:=Uss;
+
+
+currs := ffs - ( cRS*urss + cSS*usss + cR*urs + cS*uss + c0*us 
+                +cRSs*urs + cSSs*uss + cRs*ur + cSs*us + c0s*u );
+
+# cRR*urrs + cRRs*urr = currs
+urrs := (currs - cRRs*urr)/cRR:
+
+
+# We need urrr
+#
+#   cRR*urrr = ...
+
+# currr := ffr -( cRS*urrs + cSS*urss + cR*urr + cS*urs + c0*ur  + 
+#               cRSr*urs + cSSr*uss + cRr*ur + cSr*us + c0r*u  );
+
+# urrr := (currr-cRRr*urr)/cRR;
+
+fI := (cRR*urrr + cRRr*urr +  cRS*urrs + cSS*urss + cR*urr + cS*urs + c0*ur +
+                              cRSr*urs + cSSr*uss + cRr*ur + cSr*us + c0r*u  - ffr)/cRR:
+fII := anR*ur4 + anS*us + an0*u - g:
+
+fI := collect(simplify(fI),{u,us,usss,urr,urrr});
+
+# urrr = b0a*u + b1a*us + b2a*uss + b3a*usss + bf
+# fI = urrr -( b0a*u + b1a*us + b2a*uss + b3a*usss + bf )
+
+b0a :=-simplify(coeff(fI,u));
+b1a :=-simplify(coeff(fI,us));
+# b2a:=-coeff(fI,uss);
+b2a :=0;
+b3a :=-simplify(coeff(fI,usss));
+br2a:= simplify(coeff(fI,urr));
+
+# Here is the "constant" term in fI -- the term that does not involve u or us, ...
+bf:=urrr + br2a*urr - fI  - ( b0a*u + b1a*us + b3a*usss):
+bf:=collect(simplify(bf),{ff,ffr,ffs,g,gs,gss});
+
+
+# fI is of the form
+fa := urrr2/dr^3 + br2*urr2/dr^2  - ( b0*u(i1,i2,i3) + b1*us2/ds + b3*usss2/ds^3 + bff ):
+fa := collect(simplify(fa),{u,us,usss}):
+
+# fb := anR*ur4 + anS*us4 + an0*u - g:
+
+ur2 := Dzr(u)(i1,i2,i3):                           # 2nd-order approx to ur(0,0)
+ur4 := (Dzr(u)-1/6*Dzr(Dpr(Dmr(u))))(i1,i2,i3):    # 4th order approx
+us2 := Dzs(u)(i1,i2,i3):                           # 2nd-order approx to us(0,0)
+us4 := (Dzs(u)-1/6*Dzs(Dps(Dms(u))))(i1,i2,i3):    # 4th order approx
+ut2 := Dzt(u)(i1,i2,i3):                           # 2nd-order approx to ut(0,0)
+ut4 := (Dzt(u)-1/6*Dzt(Dpt(Dmt(u))))(i1,i2,i3):    # 4th order approx
+
+urr2 := Dpr(Dmr(u))(i1,i2,i3):
+uss2 := Dps(Dms(u))(i1,i2,i3):
+
+urrr2 := Dzr(Dpr(Dmr(u)))(i1,i2,i3):
+usss2 := Dzs(Dps(Dms(u)))(i1,i2,i3):
+uttt2 := Dzt(Dpt(Dmt(u)))(i1,i2,i3):
+
+urrs2 := Dzs(Dpr(Dmr(u)))(i1,i2,i3):
+urss2 := Dzr(Dps(Dms(u)))(i1,i2,i3):
+
+l1 := collect(simplify(fa),{u(i1-1,i2,i3),u(i1-2,i2,i3),u(i1,i2,i3),u(i1+1,i2,i3),u(i1+2,i2,i3),
+                     u(i1,i2-1,i3),u(i1,i2+1,i3),u(i1,i2-2,i3),u(i1,i2+2,i3) });
+
+um2:=expand(simplify(coeff(l1,u(i1-2,i2,i3)))):
+um1:=expand(simplify(coeff(l1,u(i1-1,i2,i3)))):
+u0 :=expand(simplify(coeff(l1,u(i1,i2,i3)))):
+up1:=expand(simplify(coeff(l1,u(i1+1,i2,i3)))):
+up2:=expand(simplify(coeff(l1,u(i1+2,i2,i3)))):
+
+# ********************************************************
+
+with(StringTools):
+
+file := fopen( "neumannEquationBC.new.h",WRITE ):
+
+
+# convert([fortran(b0a)][1],string);
+
+# fprintf(file,"b0a=%s\n",substring(convert([fortran(b0a)],string),10..-10));
+fprintf(file,"c File generated by ogmg/doc/neumann2d.maple\n"):
+fprintf(file,"c Fourth-order BC for mixed boundary condition using the normal derivative of the PDE \n"):
+fprintf(file,"c BC:    an1*ur+an2*us+an0*u = g \n"):
+fprintf(file,"c PDE:   c11*urr + c12*urs + c22*uss + c1*ur + c2*us + c0 *u = f \n"):
+fprintf(file,"c PDE.r: urrr + br2*urr = b0*u + b1*us + b3*usss + bf  \n\n"):
+fprintf(file,"c real alpha1,alpha2,a1,a2,a0\n"):
+fprintf(file,"c real rxi,ryi,sxi,syi,rxr,rxs,sxr,sxs,ryr,rys,syr,sys\n"):
+fprintf(file,"c real rxx,ryy,sxx,syy\n"):
+fprintf(file,"c real rxrr,rxrs,rxss,ryrr,ryrs,ryss\n"):
+fprintf(file,"c real sxrr,sxrs,sxss,syrr,syrs,syss\n"):
+fprintf(file,"c real rxx,ryy,sxx,syy\n"):
+fprintf(file,"c real rxxr,ryyr,rxxs,ryys, sxxr,syyr,sxxs,syys\n"):
+fprintf(file,"c real rxNormI,rxNormIs,rxNormIss,rxNormIr,rxNormIrr\n"):
+fprintf(file,"c real n1,n1s,n1ss,n2,n2s,n2ss\n"):
+fprintf(file,"c real an1,an1s,an1ss,an2,an2s,an2ss \n"):
+fprintf(file,"c real an1r,an1rr,an2r,an2rs \n"):
+fprintf(file,"c real ff,ffs,ffr,g,gs,gss \n"):
+fprintf(file,"c real c11,c11r,c11s,c12,c12r,c12s,c22,c22r,c22s,c1,c1r,c1s,c2,c2r,c2s,c0,c0r,c0s\n"):
+fprintf(file,"c real b0,b1,b2,b3,bf,br2\n"):
+fprintf(file,"\n"):
+
+
+# ss:=convert(b0a,string);
+# ss:= SubstituteAll(convert(b0a,string),"^","**");
+
+fprintf(file,"#beginMacro fourthOrderNeumannEquationBCNew(DIR,DIM)\n"):
+
+fprintf(file," #If #DIM == ""3"" \n"):
+fprintf(file,"   stop 45\n"):
+fprintf(file," #End\n"):
+
+fprintf(file," rxi=rx(i1,i2,i3)\n"):
+fprintf(file," ryi=ry(i1,i2,i3)\n"):
+fprintf(file," sxi=sx(i1,i2,i3)\n"):
+fprintf(file," syi=sy(i1,i2,i3)\n\n"):
+
+fprintf(file," rxr=rxr2(i1,i2,i3)\n"):
+fprintf(file," rxs=rxs2(i1,i2,i3)\n"):
+fprintf(file," ryr=ryr2(i1,i2,i3)\n"):
+fprintf(file," rys=rys2(i1,i2,i3)\n\n"):
+
+fprintf(file," sxr=sxr2(i1,i2,i3)\n"):
+fprintf(file," sxs=sxs2(i1,i2,i3)\n"):
+fprintf(file," syr=syr2(i1,i2,i3)\n"):
+fprintf(file," sys=sys2(i1,i2,i3)\n\n"):
+
+fprintf(file," rxx=rxx22(i1,i2,i3)\n"):
+fprintf(file," ryy=ryy22(i1,i2,i3)\n"):
+fprintf(file," rxrr=rxrr2(i1,i2,i3)\n"):
+fprintf(file," rxrs=rxrs2(i1,i2,i3)\n"):
+fprintf(file," rxss=rxss2(i1,i2,i3)\n"): 
+fprintf(file," ryrr=ryrr2(i1,i2,i3)\n"):
+fprintf(file," ryrs=ryrs2(i1,i2,i3)\n"):
+fprintf(file," ryss=ryss2(i1,i2,i3)\n\n"):
+
+fprintf(file," sxx=sxx22(i1,i2,i3)\n"):
+fprintf(file," syy=syy22(i1,i2,i3)\n"):
+fprintf(file," sxrr=sxrr2(i1,i2,i3)\n"):
+fprintf(file," sxrs=sxrs2(i1,i2,i3)\n"):
+fprintf(file," sxss=sxss2(i1,i2,i3)\n"):
+fprintf(file," syrr=syrr2(i1,i2,i3)\n"):
+fprintf(file," syrs=syrs2(i1,i2,i3)\n"):
+fprintf(file," syss=syss2(i1,i2,i3)\n\n"):
+
+# rxx = rx*rxr + sx*rxs
+fprintf(file," rxxr=rxi*rxrr+rxr*rxr + sxi*rxrs + sxr*rxs\n"):
+fprintf(file," ryyr=ryi*ryrr+ryr*ryr + syi*ryrs + syr*rys\n\n"):
+
+fprintf(file," rxxs=rxi*rxrs+rxs*rxr + sxi*rxss + sxs*rxs\n"):
+fprintf(file," ryys=ryi*ryrs+rys*ryr + syi*ryss + sys*rys\n\n"):
+
+fprintf(file," sxxr=rxi*sxrr+rxr*sxr + sxi*sxrs + sxr*sxs\n"):
+fprintf(file," syyr=ryi*syrr+ryr*syr + syi*syrs + syr*sys\n\n"):
+
+fprintf(file," sxxs=rxi*sxrs+rxs*sxr + sxi*sxss + sxs*sxs\n"):
+fprintf(file," syys=ryi*syrs+rys*syr + syi*syss + sys*sys\n\n"):
+
+fprintf(file," alpha1=a1*nsign  ! nsign=2*side-1\n"):
+fprintf(file," alpha2=a1*nsign\n"):
+fprintf(file,"\n"):
+
+fprintf(file," #If #DIR == ""R""\n"):
+fprintf(file,"  rxNormI=1./sqrt(rxi**2+ryi**2)\n"):
+fprintf(file,"  rxNormIs=-(rxi*rxs+ryi*rys)*rxNormI**3\n"):
+fprintf(file,"  rxNormIss=-(rxi*rxss+ryi*ryss+rxs*rxs+rys*rys)*rxNormI**3 -3.*(rxi*rxs+ryi*rys)*rxNormI**2*rxNormIs\n"):
+fprintf(file,"\n"):
+fprintf(file,"  n1=rxi*rxNormI\n"):
+fprintf(file,"  n1s=rxs*rxNormI + rxi*rxNormIs\n"):
+fprintf(file,"  n1ss=rxss*rxNormI + 2.*rxs*rxNormIs + rxi*rxNormIss\n"):
+fprintf(file,"  n2=ryi*rxNormI\n"):
+fprintf(file,"  n2s=rys*rxNormI + ryi*rxNormIs\n"):
+fprintf(file,"  n2ss=ryss*rxNormI + 2.*rys*rxNormIs + ryi*rxNormIss\n"):
+
+fprintf(file,"  an1=alpha1*(n1*rxi+n2*ryi)\n"):
+fprintf(file,"  an2=alpha2*(n1*sxi+n2*syi)\n"):
+fprintf(file,"  an1s=alpha1*(n1*rxs+n2*rys+n1s*rxi+n2s*ryi)\n"):
+fprintf(file,"  an1ss=alpha1*(n1*rxss+n2*ryss+2.*(n1s*rxs+n2s*rys)+n1ss*rxi+n2ss*ryi)\n"):
+fprintf(file,"  an2s=alpha2*(n1*sxs+n2*sys + n1s*sxi+n2s*syi)\n"):
+fprintf(file,"  an2ss=alpha2*(n1*sxss+n2*syss + 2.*(n1s*sxs+n2s*sys) + n1ss*sxi+n2ss*syi)\n"):
+
+fprintf(file," #Else\n"):
+
+fprintf(file,"  sxNormI=1./sqrt(sxi**2+syi**2)\n"):
+fprintf(file,"  sxNormIr=-(sxi*sxr+syi*syr)*sxNormI**3\n"):
+fprintf(file,"  sxNormIrr=-(sxi*sxrr+syi*syrr+sxr*sxr+syr*syr)*sxNormI**3 -3.*(sxi*sxr+syi*syr)*sxNormI**2*sxNormIr\n"):
+fprintf(file,"\n"):
+fprintf(file,"  n1=sxi*sxNormI\n"):
+fprintf(file,"  n1r=sxr*sxNormI + sxi*sxNormIr\n"):
+fprintf(file,"  n1rr=sxrr*sxNormI + 2.*sxr*sxNormIr + sxi*sxNormIrr\n"):
+fprintf(file,"  n2=syi*sxNormI\n"):
+fprintf(file,"  n2r=syr*sxNormI + syi*sxNormIr\n"):
+fprintf(file,"  n2rr=syrr*sxNormI + 2.*syr*sxNormIr + syi*sxNormIrr\n"):
+
+fprintf(file,"  an1=alpha1*(n1*rxi+n2*ryi)\n"):
+fprintf(file,"  an2=alpha2*(n1*sxi+n2*syi)\n"):
+fprintf(file,"  an1r=alpha1*(n1*rxr+n1r*rxi + n2*ryr+n2r*ryi)\n"):
+fprintf(file,"  an1rr=alpha1*(n1*rxrr+n2*ryrr+ 2.*(n1r*rxr+n2r*ryr) + n1rr*rxi+n2rr*ryi)\n"):
+fprintf(file,"  an2r=alpha2*(n1*sxr+n1r*sxi + n2*syr+n2r*syi)\n"):
+fprintf(file,"  an2rr=alpha2*(n1*sxrr+n2*syrr+ 2.*(n1r*sxr+n2r*syr) + n1rr*sxi+n2rr*syi)\n"):
+
+fprintf(file," #End\n"):
+fprintf(file,"\n"):
+
+
+fprintf(file," c11=rxi**2+ryi**2\n"):
+fprintf(file," c11r=2.*(rxi*rxr+ryi*ryr)\n"):
+fprintf(file," c11s=2.*(rxi*rxs+ryi*rys)\n"):
+fprintf(file," c12=2.*(rxi*sxi+ryi*syi)\n"):
+fprintf(file," c12r=2.*(rxr*sxi+rxi*sxr + ryr*syi+ ryi*syr)\n"):
+fprintf(file," c12s=2.*(rxs*sxi+rxi*sxs + rys*syi+ ryi*sys)\n"):
+fprintf(file," c22=sxi**2+syi**2\n"):
+fprintf(file," c22r=2.*(sxi*sxr+syi*syr)\n"):
+fprintf(file," c22s=2.*(sxi*sxs+syi*sys)\n"):
+fprintf(file," c1=rxx+ryy\n"):
+fprintf(file," c1r=rxxr+ryyr\n"):
+fprintf(file," c1s=rxxs+ryys\n"):
+fprintf(file," c2=sxx+syy\n"):
+fprintf(file," c2r=sxxr+syyr\n"):
+fprintf(file," c2s=sxxs+syys\n"):
+fprintf(file," c0=0.\n"):
+fprintf(file," c0r=0.\n"):
+fprintf(file," c0s=0.\n"):
+
+fprintf(file,"\n"):
+
+fprintf(file,"c Coefficients of u(i1-2,i2,i3) u(i1-1,i2,i3) u(i1,i2,i3) u(i1+1,i2,i3) u(i1+2,i2,i3)\n"):
+fprintf(file,"c um2=%s\n",SubstituteAll(convert(um2,string),"^","**")):
+fprintf(file,"c um1=%s\n",SubstituteAll(convert(um1,string),"^","**")):
+fprintf(file,"c u0 =%s\n",SubstituteAll(convert(u0 ,string),"^","**")):
+fprintf(file,"c up1=%s\n",SubstituteAll(convert(up1,string),"^","**")):
+fprintf(file,"c up2=%s\n",SubstituteAll(convert(up2,string),"^","**")):
+
+# fprintf(file," #Else\n"):
+
+for dir from 0 to 1 do
+
+  if dir=0 then
+    fprintf(file," #If #DIR == ""R""\n"):
+  else
+    fprintf(file," #Else\n"):
+  fi:
+
+for k from 0 to 4 do
+
+  if k=0 then
+    bb:=b0a:
+    bName:="b0":
+  elif k=1 then
+    bb:=b1a:
+    bName:="b1":
+  elif k=2 then
+    bb:=br2a:
+    bName:="br2":
+  elif k=3 then
+    bb:=b3a:
+    bName:="b3":
+  elif k=4 then
+    bb:=bf:
+    bName:="bf":
+  fi:
+
+  bb:=convert(bb,string):
+  bb:=SubstituteAll(bb,"^","**"):
+  # fprintf(file," BEFORE: %s=%s\n\n",bName,bb):
+
+  if dir=0 then
+
+    bb:=SubstituteAll(bb,"R","1"):
+    bb:=SubstituteAll(bb,"R","1"):
+    bb:=SubstituteAll(bb,"S","2"):
+
+  elif dir=1 then
+   # interchange r <-> s and R <-> S
+
+   bb:=SubstituteAll(bb,"r","X"):
+   bb:=SubstituteAll(bb,"s","r"):
+   bb:=SubstituteAll(bb,"X","s"):
+   #  bb:=SubstituteAll(bb,"R","X"):
+   #  bb:=SubstituteAll(bb,"S","R"):
+   #  bb:=SubstituteAll(bb,"X","S"):
+
+   bb:=SubstituteAll(bb,"RS","12"):
+   bb:=SubstituteAll(bb,"R","2"):
+   bb:=SubstituteAll(bb,"S","1"):
+
+  fi:
+
+
+  fprintf(file," %s=%s\n\n",bName,bb):
+
+od:
+
+od: # end dir
+
+fprintf(file," #End\n"):
+
+fprintf(file,"#endMacro"):
+
+
+# substring(convert([fortran(b0a)][1],string),10..-1);
+
+
+urrr := 'urrr';
+ur := 'ur';
+
+
+for k from 0 to 1 do
+
+  if k=0 then
+     ue:=solve({ur4/drn=ga, urrr2/drn^3+br2*urr2/drn^2=gb},{u(i1-2,i2,i3),u(i1-1,i2,i3)});
+  else
+     ue:=solve({ur4/drn=ga, urrr2/drn^3+br2*urr2/drn^2=gb},{u(i1+2,i2,i3),u(i1+1,i2,i3)});
+  fi:
+
+  ue1 := collect(simplify(ue[1]),{u(i1,i2,i3),u(i1+1,i2,i3),u(i1+2,i2,i3),u(i1-2,i2,i3),u(i1-1,i2,i3)});
+  ue2 := collect(simplify(ue[2]),{u(i1,i2,i3),u(i1+1,i2,i3),u(i1+2,i2,i3),u(i1-2,i2,i3),u(i1-1,i2,i3)});
+
+  fprintf(file,"\n"):
+  fprintf(file,"c Solution for ur4=ga, urrr2+br2*urr2 = gb is \n"):
+  fprintf(file,"c %s\n",SubstituteAll(convert(ue1,string),"^","**")):
+  fprintf(file,"c %s\n",SubstituteAll(convert(ue2,string),"^","**")):
+
+od:
+
+# pde:= c(-2,0,0,i1,i2,i3)*u(i1-2,i2,i3)+c(-1,0,0,i1,i2,i3)*u(i1-1,i2,i3)+c(0,0,0,i1,i2,i3)*u(i1,i2,i3);
+pde:= ca*u(i1-2,i2,i3)+cb*u(i1-1,i2,i3)+cc*u(i1,i2,i3);
+
+for k from 0 to 1 do
+
+  if k=0 then
+     ue:=solve({ur4/drn=ga, urrr2/drn^3+br2*urr2/drn^2=gb,pde=gc},{u(i1-2,i2,i3),u(i1-1,i2,i3),u(i1,i2,i3)});
+  else
+     ue:=solve({ur4/drn=ga, urrr2/drn^3+br2*urr2/drn^2=gb,pde=gc},{u(i1+2,i2,i3),u(i1+1,i2,i3),u(i1,i2,i3)});
+  fi:
+
+  ue1 := collect(simplify(ue[1]),{u(i1,i2,i3),u(i1+1,i2,i3),u(i1+2,i2,i3),u(i1-2,i2,i3),u(i1-1,i2,i3)});
+  ue2 := collect(simplify(ue[2]),{u(i1,i2,i3),u(i1+1,i2,i3),u(i1+2,i2,i3),u(i1-2,i2,i3),u(i1-1,i2,i3)});
+  ue3 := collect(simplify(ue[3]),{u(i1,i2,i3),u(i1+1,i2,i3),u(i1+2,i2,i3),u(i1-2,i2,i3),u(i1-1,i2,i3)});
+
+  fprintf(file,"\n"):
+  fprintf(file,"c Solution for ur4=ga, urrr2+br2*urr2 = gb, ca*u(i1-2)+cb*u(i1-1)+cc*u = gc is \n"):
+  fprintf(file,"c %s\n",SubstituteAll(convert(ue1,string),"^","**")):
+  fprintf(file,"c %s\n",SubstituteAll(convert(ue2,string),"^","**")):
+  fprintf(file,"c %s\n",SubstituteAll(convert(ue3,string),"^","**")):
+
+od:
+
+
+# restart; read "neumann2d.maple";
+
+fclose(file):
+

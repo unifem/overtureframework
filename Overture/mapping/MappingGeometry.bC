@@ -1,0 +1,587 @@
+#include "MappingGeometry.h"
+
+// #include "nurbsCurveEditor.h"
+// #include "Point.h"
+// #include "ArraySimple.h"
+// #include "RevolutionMapping.h"
+// #include "SphereMapping.h"
+// #include "MappingProjectionParameters.h"
+#include "CompositeSurface.h"
+#include "UnstructuredMapping.h"
+#include "CompositeTopology.h"
+
+
+// *************** These next functions should be in the Mapping class ******
+
+// Declare and define base and bounds, perform loop
+#define  FOR_3D(i1,i2,i3,I1,I2,I3)\
+  int I1Base=I1.getBase(), I2Base=I2.getBase(), I3Base=I3.getBase();\
+  int I1Bound=I1.getBound(), I2Bound=I2.getBound(), I3Bound=I3.getBound();\
+  for( i3=I3Base; i3<=I3Bound; i3++ )  \
+  for( i2=I2Base; i2<=I2Bound; i2++ )  \
+  for( i1=I1Base; i1<=I1Bound; i1++ )
+
+// Perform loop
+#define  FOR_3(i1,i2,i3,I1,I2,I3)\
+  I1Base=I1.getBase(), I2Base=I2.getBase(), I3Base=I3.getBase();\
+  I1Bound=I1.getBound(), I2Bound=I2.getBound(), I3Bound=I3.getBound();\
+  for( i3=I3Base; i3<=I3Bound; i3++ )  \
+  for( i2=I2Base; i2<=I2Bound; i2++ )  \
+  for( i1=I1Base; i1<=I1Bound; i1++ )
+
+static inline 
+double
+tetVolume6(real *p1, real*p2, real *p3, real *p4 )
+{
+  // Rteurn 6 times the volume of the tetrahedra
+  // (p2-p1)x(p3-p1) points in the direction of p4 ( p1,p2,p3 are counter clockwise viewed from p4 )
+  // 6 vol = (p4-p1) . ( (p2-p1)x(p3-p1) )
+  return  ( (p4[0]-p1[0])*( (p2[1]-p1[1])*(p3[2]-p1[2]) - (p2[2]-p1[2])*(p3[1]-p1[1]) ) -
+	    (p4[1]-p1[1])*( (p2[0]-p1[0])*(p3[2]-p1[2]) - (p2[2]-p1[2])*(p3[0]-p1[0]) ) +
+	    (p4[2]-p1[2])*( (p2[0]-p1[0])*(p3[1]-p1[1]) - (p2[1]-p1[1])*(p3[0]-p1[0]) ) ) ;
+	  
+}
+
+static inline 
+real
+hexVolume( real *v000, real *v100, real *v010, real *v110, real *v001, real *v101, 
+           real *v011, real *v111 )
+// =====================================================================================================
+// Return true if the hex defined by the vertices v000,v100,... has any tetrahedra that are negative.
+// =====================================================================================================
+{
+  return (tetVolume6(v000,v100,v010, v001)+
+	  tetVolume6(v110,v010,v100, v111)+
+	  tetVolume6(v101,v001,v111, v100)+
+	  tetVolume6(v011,v111,v001, v010)+
+	  tetVolume6(v100,v010,v001, v111));
+}
+
+void MappingGeometry::
+getGeometricProperties( Mapping & map, RealArray & rvalues, IntegerArray & ivalues )
+// =======================================================================================================
+//  Compute some geometric properties of a mapping
+// /rvalues (output):
+//     rvalues(0) = volume (domainDimension==3) or area (domainDimension==2) or length (domainDimension=1)
+//     rvalues(1) = min volume
+//     rvalues(2) = max volume
+//     rvalues(3) = average volume
+// 
+//     rvalues(4)=centerOfMass(0);
+//     rvalues(5)=centerOfMass(1);
+//     rvalues(6)=centerOfMass(2);
+//     
+//     rvalues( 7)=momentOfInertial(0,0);
+//     rvalues( 8)=momentOfInertial(0,1);
+//     rvalues( 9)=momentOfInertial(0,2);
+//     rvalues(10)=momentOfInertial(1,0);
+//     rvalues(11)=momentOfInertial(1,1);
+//     rvalues(12)=momentOfInertial(1,2);
+//     rvalues(13)=momentOfInertial(2,0);
+//     rvalues(14)=momentOfInertial(2,1);
+//     rvalues(15)=momentOfInertial(2,2);
+// 
+// /ivalues (output):
+//     ivalues(0) = number of grid-points
+//     ivalues(1) = number of volumes.
+//     ivalues(2) = number of negative volumes.
+//
+// =======================================================================================================
+{
+  
+  real volMin=REAL_MAX, volAve=0.,volMax=0., volume=0.;
+
+  RealArray centerOfMass(3);  centerOfMass=0.;
+  RealArray momentOfInertial(3,3); momentOfInertial=0;  
+
+  int numberOfVolumes=0;
+  int numberOfNegativeVolumes=0;
+  int numberOfGridPoints=0;
+  
+  const int domainDimension = map.getDomainDimension();
+  const int rangeDimension =  map.getRangeDimension();
+
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+
+  if( map.getClassName()!="UnstructuredMapping" && map.getClassName()!="CompositeSurface" )
+  {
+    #ifdef USE_PPP
+      const realArray & vertexd = map.getGrid();
+      const realArray & vertex = vertexd.getLocalArrayWithGhostBoundaries();
+    #else
+      const realArray & vertex = map.getGrid();
+    #endif
+
+    int axis;
+    for( int axis=0; axis<domainDimension; axis++ )
+      Iv[axis]=vertex.dimension(axis);
+    
+    for( axis=0; axis<domainDimension; axis++ )
+      Iv[axis]=Range(Iv[axis].getBase(),Iv[axis].getBound()-1);  // only compute at cell centres.
+
+    const real orientation = map.getSignForJacobian();
+
+    #ifdef USE_PPP
+      I1 = Range(max(I1.getBase(),vertex.getBase(0)),min(I1.getBound(),vertex.getBound(0)));
+      I2 = Range(max(I2.getBase(),vertex.getBase(1)),min(I2.getBound(),vertex.getBound(1)));
+      I3 = Range(max(I3.getBase(),vertex.getBase(2)),min(I3.getBound(),vertex.getBound(2)));
+    #else
+    #endif
+
+    const real *vertexp = vertex.Array_Descriptor.Array_View_Pointer3;
+    const int vertexDim0=vertex.getRawDataSize(0);
+    const int vertexDim1=vertex.getRawDataSize(1);
+    const int vertexDim2=vertex.getRawDataSize(2);
+    #define X(i0,i1,i2,i3) vertexp[i0+vertexDim0*(i1+vertexDim1*(i2+vertexDim2*(i3)))]
+
+    int i1,i2,i3;
+    if( domainDimension==2 && rangeDimension==2 )
+    {
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	// area of a polygon = (1/2) sum{ x_i y_{i+1} - x_{i+1} y_i
+	real vol = ( X(i1  ,i2  ,i3,0)*X(i1+1,i2  ,i3,1)-X(i1+1,i2  ,i3,0)*X(i1  ,i2  ,i3,1) +  // (i1,i2)
+		     X(i1+1,i2  ,i3,0)*X(i1+1,i2+1,i3,1)-X(i1+1,i2+1,i3,0)*X(i1+1,i2  ,i3,1) + 
+		     X(i1+1,i2+1,i3,0)*X(i1  ,i2+1,i3,1)-X(i1  ,i2+1,i3,0)*X(i1+1,i2+1,i3,1) + 
+		     X(i1  ,i2+1,i3,0)*X(i1  ,i2  ,i3,1)-X(i1  ,i2  ,i3,0)*X(i1  ,i2+1,i3,1) );
+    
+	vol*=.5*orientation;
+	volMin=min(volMin,vol);
+	volMax=max(volMax,vol);
+	volume+=vol;
+	numberOfVolumes++;
+
+	numberOfGridPoints++;
+	if( vol<=0. ) numberOfNegativeVolumes++;
+      
+      }
+      
+      volAve=volume/max(1,numberOfGridPoints);
+    
+    }
+    else if( domainDimension==2 && rangeDimension==3 )
+    {
+      printf("getGeometricProperties: not implemented yet for surface grids.\n");
+    }
+    else if( domainDimension==3 )
+    {
+      // ************ 3D ***********************
+
+      real v[2][2][2][3];
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	for( int axis=0; axis<3; axis++ )
+	{
+	  v[0][0][0][axis]=X(i1  ,i2  ,i3  ,axis);
+	  v[1][0][0][axis]=X(i1+1,i2  ,i3  ,axis);
+	  v[0][1][0][axis]=X(i1  ,i2+1,i3  ,axis);
+	  v[1][1][0][axis]=X(i1+1,i2+1,i3  ,axis);
+	  v[0][0][1][axis]=X(i1  ,i2  ,i3+1,axis);
+	  v[1][0][1][axis]=X(i1+1,i2  ,i3+1,axis);
+	  v[0][1][1][axis]=X(i1  ,i2+1,i3+1,axis);
+	  v[1][1][1][axis]=X(i1+1,i2+1,i3+1,axis);
+	}
+
+	real vol=hexVolume(v[0][0][0],v[1][0][0],v[0][1][0],v[1][1][0],
+			   v[0][0][1],v[1][0][1],v[0][1][1],v[1][1][1])*orientation;
+      
+	volMin=min(volMin,vol);
+	volMax=max(volMax,vol);
+	volume+=vol;
+	numberOfVolumes++;
+	  
+	numberOfGridPoints++;
+	if( vol<=0. ) numberOfNegativeVolumes++;
+      
+      }
+      volAve=volume/max(1,numberOfGridPoints);
+
+    }
+    
+  }
+  else if( map.getClassName()=="CompositeSurface" )
+  {
+    printf("getGeometricProperties: not implemented yet for a CompositeSurface.\n");
+  }
+  else if( map.getClassName()=="UnstructuredMapping" )
+  {
+    // unstructured grid --- finish this
+
+    UnstructuredMapping & uns = (UnstructuredMapping &)map;
+    
+    if( domainDimension==2 && rangeDimension==3 )
+    {
+      
+      RealArray values;
+      computeVolumeIntegrals(uns,values);
+      volume=values(0);
+      centerOfMass(0)=values(1); 
+      centerOfMass(1)=values(2);
+      centerOfMass(2)=values(3);
+      momentOfInertial(0,0)=values( 4);  momentOfInertial(0,1)=values( 5); momentOfInertial(0,2)=values( 6);
+      momentOfInertial(1,0)=values( 7);  momentOfInertial(1,1)=values( 8); momentOfInertial(1,2)=values( 9);
+      momentOfInertial(2,0)=values(10);  momentOfInertial(2,1)=values(11); momentOfInertial(2,2)=values(12);
+      
+      
+    }
+    else
+    {
+      printf("getGeometricProperties: not implemented yet for this case of UnstructuredMapping.\n");
+    }
+    
+  }
+  else
+  {
+    printf("getGeometricProperties: Unknown Mapping class = %s\n",(const char*)map.getClassName());
+  }
+
+  rvalues.redim(20); rvalues=0.;
+  
+  rvalues(0) = volume;
+  rvalues(1) = volMin;
+  rvalues(2) = volMax;
+  rvalues(3) = volAve;
+
+  rvalues(4)=centerOfMass(0);
+  rvalues(5)=centerOfMass(1);
+  rvalues(6)=centerOfMass(2);
+  
+  rvalues( 7)=momentOfInertial(0,0);
+  rvalues( 8)=momentOfInertial(0,1);
+  rvalues( 9)=momentOfInertial(0,2);
+  rvalues(10)=momentOfInertial(1,0);
+  rvalues(11)=momentOfInertial(1,1);
+  rvalues(12)=momentOfInertial(1,2);
+  rvalues(13)=momentOfInertial(2,0);
+  rvalues(14)=momentOfInertial(2,1);
+  rvalues(15)=momentOfInertial(2,2);
+  
+
+  ivalues.redim(5);
+  ivalues(0)=numberOfGridPoints;
+  ivalues(1)=numberOfVolumes;
+  ivalues(2)=numberOfNegativeVolumes;
+
+}
+
+#undef X
+
+
+
+
+// ========================================================================
+// Reference:
+//   Brian Mirtich, "Fast and Accurate Computation of   
+//   Polyhedral Mass Properties," journal of graphics   
+//   tools, volume 1, number 2, 1996.  
+// =========================================================================
+
+
+#define SQR(x) ((x)*(x))
+#define CUBE(x) ((x)*(x)*(x))
+
+/* compute various integrations over projection of face */
+#beginMacro compProjectionIntegrals()
+{
+  real a0, a1, da;
+  real b0, b1, db;
+  real a0_2, a0_3, a0_4, b0_2, b0_3, b0_4;
+  real a1_2, a1_3, b1_2, b1_3;
+  real C1, Ca, Caa, Caaa, Cb, Cbb, Cbbb;
+  real Cab, Kab, Caab, Kaab, Cabb, Kabb;
+  int i;
+
+  P1 = Pa = Pb = Paa = Pab = Pbb = Paaa = Paab = Pabb = Pbbb = 0.0;
+
+  for( i=0; i<numVerts; i++ ) 
+  {
+    a0 = verts[i][A];
+    b0 = verts[i][B];
+    a1 = verts[(i+1) % numVerts][A];
+    b1 = verts[(i+1) % numVerts][B];
+    da = a1 - a0;
+    db = b1 - b0;
+    a0_2 = a0 * a0; a0_3 = a0_2 * a0; a0_4 = a0_3 * a0;
+    b0_2 = b0 * b0; b0_3 = b0_2 * b0; b0_4 = b0_3 * b0;
+    a1_2 = a1 * a1; a1_3 = a1_2 * a1; 
+    b1_2 = b1 * b1; b1_3 = b1_2 * b1;
+
+
+    C1 = a1 + a0;
+    Ca = a1*C1 + a0_2; Caa = a1*Ca + a0_3; Caaa = a1*Caa + a0_4;
+    Cb = b1*(b1 + b0) + b0_2; Cbb = b1*Cb + b0_3; Cbbb = b1*Cbb + b0_4;
+    Cab = 3*a1_2 + 2*a1*a0 + a0_2; Kab = a1_2 + 2*a1*a0 + 3*a0_2;
+    Caab = a0*Cab + 4*a1_3; Kaab = a1*Kab + 4*a0_3;
+    Cabb = 4*b1_3 + 3*b1_2*b0 + 2*b1*b0_2 + b0_3;
+    Kabb = b1_3 + 2*b1_2*b0 + 3*b1*b0_2 + 4*b0_3;
+
+
+    P1 += db*C1;
+    Pa += db*Ca;
+    Paa += db*Caa;
+    Paaa += db*Caaa;
+    Pb += da*Cb;
+    Pbb += da*Cbb;
+    Pbbb += da*Cbbb;
+    Pab += db*(b1*Cab + b0*Kab);
+    Paab += db*(b1*Caab + b0*Kaab);
+    Pabb += da*(a1*Cabb + a0*Kabb);
+
+    // printf(".. a0,b0,a1,b1=[%5.2f,%5.2f,%5.2f,%5.2f]\n",a0,b0,a1,b1);
+    // printf(".. da,db,Ca,Cb=[%5.2f,%5.2f,%5.2f,%5.2f]\n",da,db,Ca,Cb);
+    // printf(".. Pa,Pb=[%5.2f,%5.2f]\n",Pa,Pb);
+
+  }
+
+  P1 /= 2.0;
+  Pa /= 6.0;
+  Paa /= 12.0;
+  Paaa /= 20.0;
+  Pb /= -6.0;
+  Pbb /= -12.0;
+  Pbbb /= -20.0;
+  Pab /= 24.0;
+  Paab /= 60.0;
+  Pabb /= -60.0;
+}
+#endMacro
+
+#beginMacro compFaceIntegrals()
+{
+  real *n;
+  real k1, k2, k3, k4;
+
+  compProjectionIntegrals();
+
+  n = norm;
+  k1 = 1 / n[C]; k2 = k1 * k1; k3 = k2 * k1; k4 = k3 * k1;
+
+  Fa = k1 * Pa;
+  Fb = k1 * Pb;
+  Fc = -k2 * (n[A]*Pa + n[B]*Pb + w*P1);
+
+  // printf(".. k1,k2,Pa,Pb,w=[%5.2f,%5.2f,%5.2f,%5.2f,%5.2f]\n",k1,k2,Pa,Pb,w);
+
+  Faa = k1 * Paa;
+  Fbb = k1 * Pbb;
+  Fcc = k3 * (SQR(n[A])*Paa + 2*n[A]*n[B]*Pab + SQR(n[B])*Pbb
+	 + w*(2*(n[A]*Pa + n[B]*Pb) + w*P1));
+
+  Faaa = k1 * Paaa;
+  Fbbb = k1 * Pbbb;
+  Fccc = -k4 * (CUBE(n[A])*Paaa + 3*SQR(n[A])*n[B]*Paab 
+	   + 3*n[A]*SQR(n[B])*Pabb + CUBE(n[B])*Pbbb
+	   + 3*w*(SQR(n[A])*Paa + 2*n[A]*n[B]*Pab + SQR(n[B])*Pbb)
+	   + w*w*(3*(n[A]*Pa + n[B]*Pb) + w*P1));
+
+  Faab = k1 * Paab;
+  Fbbc = -k2 * (n[A]*Pabb + n[B]*Pbbb + w*Pbb);
+  Fcca = k3 * (SQR(n[A])*Paaa + 2*n[A]*n[B]*Paab + SQR(n[B])*Pabb
+	 + w*(2*(n[A]*Paa + n[B]*Pab) + w*Pa));
+}
+#endMacro
+
+
+void MappingGeometry::
+computeVolumeIntegrals(UnstructuredMapping & uns, RealArray & values)
+// ===========================================================================================
+// /Description:
+//    Compute volume and "mass" integrals. The mass integrals such as the centre of mass
+// and the moments of inertia are computed assuming a uniform mass distribution.
+//
+// /values (output):
+//       values(0) : volume
+//       values(1..3) : center of mass
+//  values(4...12) : moments of inertia  
+//         values( 4)=I[X][X]; values( 5)=I[X][Y]; values( 6)=I[X][Z];
+//         values( 7)=I[X][X]; values( 8)=I[X][Y]; values( 9)=I[X][Z];
+//         values(10)=I[X][X]; values(11)=I[X][Y]; values(12)=I[X][Z];
+// ===========================================================================================
+{
+  real time=getCPU();
+
+  const int X=0, Y=1, Z=2;
+
+  int A;   /* alpha */
+  int B;   /* beta */
+  int C;   /* gamma */
+
+  /* projection integrals */
+  real P1, Pa, Pb, Paa, Pab, Pbb, Paaa, Paab, Pabb, Pbbb;
+
+  /* face integrals */
+  real Fa, Fb, Fc, Faa, Fbb, Fcc, Faaa, Fbbb, Fccc, Faab, Fbbc, Fcca;
+
+  /* volume integrals */
+  real T0, T1[3], T2[3], TP[3];
+
+  real nx, ny, nz, norm[3], w;
+  int i;
+
+  T0 = T1[X] = T1[Y] = T1[Z] 
+     = T2[X] = T2[Y] = T2[Z] 
+     = TP[X] = TP[Y] = TP[Z] = 0;
+
+  const int domainDimension = uns.getDomainDimension();
+  const int rangeDimension =  uns.getRangeDimension();
+
+  const realArray & x0 = uns.getNodes();
+  const real *xp = x0.Array_Descriptor.Array_View_Pointer1;
+  const int xDim0=x0.getRawDataSize(0);
+    
+#define x(i0,i1) xp[(i0)+xDim0*(i1)]
+
+  const int maxVerts=5;    // maximum number of vertices per face
+  real verts[maxVerts][3];
+  if( domainDimension==2 && rangeDimension==3 )
+  {
+    UnstructuredMappingIterator face;
+    for( face=uns.begin(UnstructuredMapping::Face);
+	 face!=uns.end(UnstructuredMapping::Face);
+	 face++ )
+    {
+      UnstructuredMappingAdjacencyIterator faceVert;
+      
+      int i=0;
+      for( faceVert=uns.adjacency_begin(face,UnstructuredMapping::Vertex);
+	   faceVert!=uns.adjacency_end(face,UnstructuredMapping::Vertex);
+	   faceVert++ )
+      {
+	int n0=*faceVert;
+	verts[i][0]=x(n0,0); 
+        verts[i][1]=x(n0,1); 
+        verts[i][2]=x(n0,2);
+	i++;
+      }
+      int numVerts=i;
+      
+      // compute the normal, norm, and offset, w,  from the first three vertices      
+
+      real dx1, dy1, dz1, dx2, dy2, dz2, nx, ny, nz, len;
+      /* compute face normal and offset w from first 3 vertices */
+      dx1 = verts[1][X] - verts[0][X];
+      dy1 = verts[1][Y] - verts[0][Y];
+      dz1 = verts[1][Z] - verts[0][Z];
+      dx2 = verts[2][X] - verts[1][X];
+      dy2 = verts[2][Y] - verts[1][Y];
+      dz2 = verts[2][Z] - verts[1][Z];
+      nx = dy1 * dz2 - dy2 * dz1;
+      ny = dz1 * dx2 - dz2 * dx1;
+      nz = dx1 * dy2 - dx2 * dy1;
+      len = sqrt(nx * nx + ny * ny + nz * nz);
+      norm[X] = nx / len;
+      norm[Y] = ny / len;
+      norm[Z] = nz / len;
+      w = - norm[X] * verts[0][X]
+	  - norm[Y] * verts[0][Y]
+	  - norm[Z] * verts[0][Z];
+
+      
+      nx = fabs(norm[X]);
+      ny = fabs(norm[Y]);
+      nz = fabs(norm[Z]);
+      if (nx > ny && nx > nz) C = X;
+      else C = (ny > nz) ? Y : Z;
+      A = (C + 1) % 3;
+      B = (A + 1) % 3;
+
+      compFaceIntegrals();
+
+      // printf(" face=%i norm=[%5.2f,%5.2f,%5.2f] A=%i Fa,Fb,Fc=[%5.2f,%5.2f,%5.2f]\n",
+      //             *face,norm[0],norm[1],norm[2],A,Fa,Fb,Fc);
+
+      T0 += norm[X] * ((A == X) ? Fa : ((B == X) ? Fb : Fc));
+
+      T1[A] += norm[A] * Faa;
+      T1[B] += norm[B] * Fbb;
+      T1[C] += norm[C] * Fcc;
+      T2[A] += norm[A] * Faaa;
+      T2[B] += norm[B] * Fbbb;
+      T2[C] += norm[C] * Fccc;
+      TP[A] += norm[A] * Faab;
+      TP[B] += norm[B] * Fbbc;
+      TP[C] += norm[C] * Fcca;
+    }
+
+    T1[X] /= 2; T1[Y] /= 2; T1[Z] /= 2;
+    T2[X] /= 3; T2[Y] /= 3; T2[Z] /= 3;
+    TP[X] /= 2; TP[Y] /= 2; TP[Z] /= 2;
+
+  }  // end domainDimension==2 && rangeDimension==3
+
+
+
+
+  real density, mass;
+  real r[3];            /* center of mass */
+  real J[3][3];         /* inertia tensor */
+
+  if( false )
+  {
+    printf("\nT1 =   %+20.6f\n\n", T0);
+
+    printf("Tx =   %+20.6f\n", T1[X]);
+    printf("Ty =   %+20.6f\n", T1[Y]);
+    printf("Tz =   %+20.6f\n\n", T1[Z]);
+  
+    printf("Txx =  %+20.6f\n", T2[X]);
+    printf("Tyy =  %+20.6f\n", T2[Y]);
+    printf("Tzz =  %+20.6f\n\n", T2[Z]);
+
+    printf("Txy =  %+20.6f\n", TP[X]);
+    printf("Tyz =  %+20.6f\n", TP[Y]);
+    printf("Tzx =  %+20.6f\n\n", TP[Z]);
+  }
+  
+  density = 1.0;  /* assume unit density */
+
+  mass = density * T0;
+
+  /* compute center of mass */
+  r[X] = T1[X] / T0;
+  r[Y] = T1[Y] / T0;
+  r[Z] = T1[Z] / T0;
+
+  /* compute inertia tensor */
+  J[X][X] = density * (T2[Y] + T2[Z]);
+  J[Y][Y] = density * (T2[Z] + T2[X]);
+  J[Z][Z] = density * (T2[X] + T2[Y]);
+  J[X][Y] = J[Y][X] = - density * TP[X];
+  J[Y][Z] = J[Z][Y] = - density * TP[Y];
+  J[Z][X] = J[X][Z] = - density * TP[Z];
+
+  /* translate inertia tensor to center of mass */
+  J[X][X] -= mass * (r[Y]*r[Y] + r[Z]*r[Z]);
+  J[Y][Y] -= mass * (r[Z]*r[Z] + r[X]*r[X]);
+  J[Z][Z] -= mass * (r[X]*r[X] + r[Y]*r[Y]);
+  J[X][Y] = J[Y][X] += mass * r[X] * r[Y]; 
+  J[Y][Z] = J[Z][Y] += mass * r[Y] * r[Z]; 
+  J[Z][X] = J[X][Z] += mass * r[Z] * r[X]; 
+
+  if( false )
+  {
+    printf("center of mass:  (%+12.6f,%+12.6f,%+12.6f)\n\n", r[X], r[Y], r[Z]);
+
+    printf("inertia tensor with origin at c.o.m. :\n");
+    printf("%+15.6f  %+15.6f  %+15.6f\n", J[X][X], J[X][Y], J[X][Z]);
+    printf("%+15.6f  %+15.6f  %+15.6f\n", J[Y][X], J[Y][Y], J[Y][Z]);
+    printf("%+15.6f  %+15.6f  %+15.6f\n\n", J[Z][X], J[Z][Y], J[Z][Z]);
+  }
+  
+  values.redim(15); values=0.;
+  
+  values(0)=fabs(T0); // volume
+
+  values(1)=r[X]; values(2)=r[Y]; values(3)=r[Z]; // centre of mass
+  
+  // moments of inertia
+  values( 4)=J[X][X]; values( 5)=J[X][Y]; values( 6)=J[X][Z];
+  values( 7)=J[Y][X]; values( 8)=J[Y][Y]; values( 9)=J[Y][Z];
+  values(10)=J[Z][X]; values(11)=J[Z][Y]; values(12)=J[Z][Z];
+  
+  
+
+  time=getCPU()-time;
+  printf("MappingGeometry::computeVolumeIntegrals Time to compute volume integrals = %8.2e\n",time);
+}
+

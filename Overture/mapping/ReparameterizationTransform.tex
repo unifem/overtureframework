@@ -1,0 +1,86 @@
+%--------------------------------------------------------------
+\section{ReparameterizationTransform: reparameterize an existing mapping 
+(e.g. remove a polar singularity)}
+\index{reparameterization mapping}\index{Mapping!ReparameterizationTransform}\index{polar singularity!remove}
+\index{restrict a mapping to a sub-rectangle}\index{orthographic}\index{reorder domain coordinates}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+The {\tt ReparameterizationTransform} can reparameterize a given Mapping
+in one of the following ways:
+\begin{description}
+   \item[Orthographic:] remove a polar singularity by using a orthographic projection
+      to define a new patch over the singularity.
+   \item[Restriction:] restrict the parameter space to a sub-rectangle of the
+       original parameter space. Use this, for example, to define a refined patch in an
+       adapative grid.
+   \item[Reorder domain coordinates:] uses the ReorientMapping to reorder the domain (i.e. parameter space)
+     coordinates of a mapping. This can be useful for debugging purposes in order to see that
+     the results of some application are independent of the order of $(r_1,r_2,r_3)$.
+\end{description}   
+
+
+\subsection{Reparameterizing a spherical-polar or cylindrical-polar singularity}
+
+  The {\tt orthographic} reparameterization can be used to remove a spherical polar
+singluarity or cylindrical polar singularity by defining a new patch over the singularity. 
+
+  In order for the {\tt orthographic} reparameterization to be applicable the Mapping
+to be reparmeterized must have the following properties:
+\begin{description}
+  \item[a polar singularity] : The mapping must have a polar singularity at $r_1=0$ or
+$r_1=1$ and the coordinate direction $r_2$ must be the angular ($\theta$) variable. ($r_3$ would
+be the radial direction). If the mapping has such a singularity then one should indicate this
+property with the call of the form
+\begin{verbatim}
+	setTypeOfCoordinateSingularity( side,axis,polarSingularity ); 
+\end{verbatim}
+  \item[can be evaluated in spherical (or cylindrical) coordinates]: this property should be set with a call
+\begin{verbatim}
+	setCoordinateEvaluationType( spherical,TRUE ); 
+\end{verbatim}
+or
+\begin{verbatim}
+	setCoordinateEvaluationType( cylindrical,TRUE ); 
+\end{verbatim}
+   A Mapping that can be evaluated in spherical or cylindrical coordinates must define the {\tt map} and
+   {\tt basicInverse} functions to optionally return the derivatives
+   in a special form. For spherical coordinates the derivatives of the mapping are computed as
+\[
+   \left({\partial x_i \over\partial r_1},{1\over\sin(\phi)}{\partial x_i \over\partial r_2},
+         {\partial x_i \over\partial r_3} \right)
+\]
+and the derivatives of the inverse mapping as
+\[
+   \left({\partial r_1\over\partial x_i},\sin(\phi){\partial r_2 \over\partial x_i},
+         {\partial r_3\over\partial x_i} \right).
+\]
+Here $\phi=\pi r_0$ is the parameter (latitude) for which the spherical singularities occur
+at $\phi=0,\pi$.
+See the implementation of the {\tt SphereMapping} or the {\tt RevolutionMapping} for two examples.
+
+For cylindrical coordinates the derivatives of the mapping are computed as
+\[
+   \left(-\rho {\partial x_i \over\partial r_1},{1\over\rho}{\partial x_i \over\partial r_2},
+         {\partial x_i \over\partial r_3} \right)
+\]
+and the derivatives of the inverse mapping as
+\[
+   \left({-1\over\rho}{\partial r_1\over\partial x_i},\rho{\partial r_2 \over\partial x_i},
+         {\partial r_3\over\partial x_i} \right).
+\]
+Here the variable $\rho$, defined by
+\begin{align*}
+ \zeta &= 2 r_0 -1. \\
+  \rho &= \sqrt{ 1- r_0^2 } 
+\end{align*}
+goes to zero at the singularity.
+See the implementation of the ellipse in {\tt CrossSectionMapping.C} for an example of cylindrical
+coordinates.
+\end{description}
+
+
+
+%% \input ReparameterizationTransformInclude.tex
+

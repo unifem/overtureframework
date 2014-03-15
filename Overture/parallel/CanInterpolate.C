@@ -1,0 +1,2502 @@
+// This file automatically generated from CanInterpolate.bC with bpp.
+#include "CanInterpolate.h"
+#include "ParallelUtility.h"
+
+
+CanInterpolate::CanInterpolateQueryData& 
+CanInterpolate::CanInterpolateQueryData::operator=(const CanInterpolateQueryData& x)
+// =====================================================================
+//  Operator equals 
+// =====================================================================
+{
+    rv[0]=x.rv[0];
+    rv[1]=x.rv[1];
+    rv[2]=x.rv[2];
+
+    id   =x.id;
+    i    =x.i;
+    grid =x.grid;
+    donor=x.donor;
+
+    return *this;
+}
+
+CanInterpolate::CanInterpolateResultData& 
+CanInterpolate::CanInterpolateResultData::operator=(const CanInterpolateResultData& x)
+// =====================================================================
+//  Operator equals 
+// =====================================================================
+{
+    id    = x.id;
+    width = x.width;
+    il[0] = x.il[0];
+    il[1] = x.il[1];
+    il[2] = x.il[2];
+
+    return *this;
+}
+
+static FILE *plogFile=NULL;
+
+// ===============================================================================================
+//  Macro to query points to determine if they can interpolate.
+//  This macro can be shared between the serial and parallel version of canInterpolate
+// ===============================================================================================
+
+// ************** NEW VERSION 2012/06/19 *****************
+int CanInterpolate::
+canInterpolate( CompositeGrid & cg, 
+                                int numberToCheck, 
+                                CanInterpolateQueryData *cid, 
+                                CanInterpolateResultData *cir,
+                                const int numberOfValidGhost /* =0  */ )
+// ============================================================================================
+// /Description:
+//     Parallel canInterpolate: Given a set of possible interpolation points, determine whether
+//  they can interpolate from specified donor grids. This routine will locate the processor where
+//  the donor grid mask array is and send the query to be evaluated on that processor.
+//
+//  /numberToCheck (input) : total number of points to check.
+//  /cid (input) : a list of queries, cid[i], i=0,...,numberToCheck-1, that provides the 
+//                 receptor grid, cid[i].grid, the donor grid, cid[i].donor,  and the 
+//                 interpolation coordinates cid[i].rv, of the pt to check.
+//  /cir (output) : The results are returned here, cir[i], i=0,...,numberToCheck-1, with
+//            cir[i].width being the width of the valid interpolation stencil.
+//  /numberOfValidGhost (input) : specify the number of ghost points that can be used when
+//            interpolating. By default no ghost points are used.
+//
+// /Notes: *wdh* 091118 : now we can allow interpolation from ghost points.
+// 
+// ============================================================================================
+{
+    real time0=getCPU();
+    
+    int debug=0; // 7; // 1; // 3; // 7; 
+    const MPI_Comm & OV_COMM = Overture::OV_COMM;
+    
+    const int np= max(1,Communication_Manager::numberOfProcessors());
+    const int myid=max(0,Communication_Manager::My_Process_Number);
+    const int numberOfDimensions = cg.numberOfDimensions();
+    
+    if( debug>0 && plogFile==NULL )
+    {
+        plogFile = fopen(sPrintF("canInterp%i.log",myid),"w" ); 
+    // plogFile = stdout;
+        fprintf(plogFile,
+                        " ********************************************************************************** \n"
+          	    " ***** canInterpolate log file, processor=%i, number of processors=%i *********** \n"
+          	    " ********************************************************************************** \n\n",
+          	    myid,np);
+    }
+
+    if( debug & 2 )
+    {
+        fprintf(plogFile," ** canInterpolate: myid=%i numberToCheck=%i ***\n",myid,numberToCheck);
+        if( debug & 4 )
+        {
+            fprintf(plogFile," ** myid=%i INPUT queries:\n",myid);
+            for( int i=0; i<numberToCheck; i++ )
+            {
+      	CanInterpolateQueryData & q = cid[i];
+      	fprintf(plogFile,"   id=%i i=%i grid=%i donor=%i\n",q.id,q.i,q.grid,q.donor);
+            }
+        }
+    }
+
+#ifndef USE_PPP
+
+  // NEW: *wdh* 091117
+  // ---------------------------------------------------------------------------------------
+  // ------------------------------------ SERIAL Version -----------------------------------
+  // ---------------------------------------------------------------------------------------
+
+    int numberOfQueries=numberToCheck;
+  // In serial just set pointers: 
+    CanInterpolateQueryData *qcid = cid;
+    CanInterpolateResultData *cirp = cir;
+    
+  // Macro: 
+  // queryCanInterpolate();
+    // perform the queries:
+        real timeForCheck=getCPU();
+        RealArray rr(1,3); rr=0.;
+        intSerialArray interpolates(1), useBackupRules(1);
+        useBackupRules=FALSE;
+        bool checkForOneSided=false;  
+        Range Rx=cg.numberOfDimensions();
+        IntegerArray iab(1,2,3); iab=0; // holds interpolation stencil
+        int pvr[6];
+        #define validRange(ks,kd) pvr[(ks)+2*(kd)]
+        for( int i=0; i<numberOfQueries; i++ )
+        {
+      // **todo** make a list of all points that query a given donor grid
+            int grid= qcid[i].grid, donor=qcid[i].donor;
+            for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+                rr(0,axis)=qcid[i].rv[axis];
+            if( fabs(rr(0,0))>5. )
+            { // *wdh* 110522 -- skip points with bogus coordinates
+                interpolates(0)=false;
+                continue;
+            }
+            int *pValidRange=NULL; // NULL means that by default this will point to cg[donor].extendedRange
+            if( numberOfValidGhost>0 )
+            { 
+        // We may interpolate from ghost points: 
+        // Make an index range that includes ghost points
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & dim = cg[donor].dimension();
+                for( int axis=0; axis<3; axis++ )
+                {
+          	validRange(0,axis)=max(dim(0,axis),gid(0,axis)-numberOfValidGhost);
+          	validRange(1,axis)=min(dim(1,axis),gid(1,axis)+numberOfValidGhost);
+                }
+                pValidRange=pvr;
+            }
+            intSerialArray donorMask; getLocalArrayWithGhostBoundaries(cg[donor].mask(),donorMask);
+            const int width=cg.interpolationWidth(0,grid,donor,0);  // initial interpolation stencil width
+            int validWidth=width;  // width that we can interpolate to 
+            interpolates(0)=true;
+            cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask,pValidRange );
+            if( interpolates(0) )
+            {
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+            }
+            if( !interpolates(0)  && debug & 1 )
+            {
+                fprintf(plogFile,"canInterpolate:INFO myid=%i A point can NOT interpolate, id=%i i=%i grid=%i donor=%i r=(%g,%g,%g)\n",
+               	     myid,qcid[i].id,qcid[i].i,grid,donor,rr(0,0),rr(0,1),rr(0,2));
+        // NOTE: iab(i,side,axis) is returned as INT_MAX if the point rr is outside the bounds
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & er= cg[donor].extendedRange();
+                fprintf(plogFile," stencil = [%i,%i][%i,%i][%i,%i],  donor bnds=[%i,%i][%i,%i][%i,%i] gid=[%i,%i][%i,%i][%i,%i]"
+                                                  " extended=[%i,%i][%i,%i] periodic=[%i,%i]\n",
+                                    iab(0,0,0),iab(0,1,0),iab(0,0,1),iab(0,1,1),iab(0,0,2),iab(0,1,2),
+                                    donorMask.getBase(0),donorMask.getBound(0),
+                                    donorMask.getBase(1),donorMask.getBound(1),
+                                    donorMask.getBase(2),donorMask.getBound(2),
+                                    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+                                    er(0,0),er(1,0),er(0,1),er(1,1),(int)cg[donor].isPeriodic(0),(int)cg[donor].isPeriodic(1));
+                int i1=iab(0,0,0), i2=iab(0,0,1), i3=iab(0,0,2);
+                if( i1<donorMask.getBound(0) && i2<donorMask.getBound(1) && (numberOfDimensions==2 || i3<donorMask.getBound(2)) )
+                {
+          	fprintf(plogFile," mask = [%i,%i,%i][%i,%i,%i][%i,%i,%i]\n",
+                 	       donorMask(i1,i2  ,i3),donorMask(i1+1,i2  ,i3),donorMask(i1+2,i2  ,i3),
+                 	       donorMask(i1,i2+1,i3),donorMask(i1+1,i2+1,i3),donorMask(i1+2,i2+1,i3),
+                 	       donorMask(i1,i2+2,i3),donorMask(i1+1,i2+2,i3),donorMask(i1+2,i2+2,i3));
+                }
+                if( debug & 4 )
+          	displayMask(donorMask,"donorMask",plogFile);
+            }
+            if( !interpolates(0) )
+            {
+        // if the pt cannot interpolate try a backup rule: reduce the stencil width
+                const real ov = cg.interpolationOverlap(0,grid,donor,0);
+                validWidth=max(2,width-1);
+        // *wdh* 110704 -- no need to check if width=2. This fixes a bug with ogen not working for IW=2
+                if( width>2 ) 
+                {
+  	// temporarily change these for the canInterpolate function:
+          	cg.interpolationWidth(Rx,grid,donor,0)=validWidth;
+  	// cg.interpolationOverlap(Rx,grid,donor,0)-=max(0.,.5); // *wdh* 091118 Do not reduce overlap below zero
+          	const real overlap =max(0.,ov-.5); // reduce the overlap by .5 
+  	// *wdh* 110522
+  	// fprintf(plogFile,"CanInterpolate: check backup: overlap=%8.2e -> new overlap = %8.2e\n",ov,overlap);
+          	cg.interpolationOverlap(Rx,grid,donor,0)=overlap;
+          	interpolates(0)=true;
+          	cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange );
+          	if( interpolates(0) )
+          	{
+  	  // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+          	}
+                }
+                if( !interpolates(0) )
+                {
+  	// Allow interpolation if we are just outside a physical boundary
+  	// This case can happen, for e.g., when a cartesian grid has a higher priority
+  	// than a boundary fitted grid (cicd.cmd) and the stair-step boundary lies
+  	// very close to the physical boundary
+          	RealArray rps(1,3);  // will hold the projected interp point
+          	const IntegerArray & bc = cg[donor].boundaryCondition();
+          	bool pointWasProjected=false;
+          	for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+          	{
+            	  rps(0,dir)=rr(0,dir);
+            	  for( int side=0; side<=1; side++ )
+            	  {
+              	    if( bc(side,dir)>0  && ( (side==0 && rr(0,dir)<0.) || (side==1 && rr(0,dir)>1.) ) )
+              	    {
+                	      pointWasProjected=true;
+                	      rps(0,dir)=side;  // move the interpolation location to be on the boundary
+                	      break;
+              	    }
+            	  }
+          	}
+          	if( pointWasProjected )
+          	{
+  // 	  if( debug & 4)
+  // 	    ffprintf(plogFile,plogFile,"  ..pt %i try to interp pt from just? outside a boundary,"
+  // 		    "r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		    i,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  interpolates(0)=true;
+            	  cgCanInterpolate(grid,donor, rps, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange);
+            	  if( interpolates(0) )
+            	  {
+  	    // *wdh* 070728 getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg);
+              // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+              	    getInterpolationStencil(grid, donor, rps, iab, useBackupRules, cg, pValidRange);
+  // 	    if( true && iab(0,0,2)>1000 )
+  // 	    {
+  // 	      printf("CanInterp:ERROR:PROJECT: grid=%i donor=%i width=%i i=%i il=[%i,%i,%i] rr=[%8.2e,%8.2e,%8.2e]"
+  //                      " rps=[%8.2e,%8.2e,%8.2e]\n",
+  // 		     grid,donor,validWidth,i,
+  // 		     iab(0,0,0),iab(0,0,1),iab(0,0,2),rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2));
+  // 	    }
+  // 	    fprintf(plogFile,"updateRefinement:INFO: backup interpolation from just? outside a boundary,"
+  // 		   "grid=%i interpolee=%i r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		   grid,interpolee,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  }
+          	}
+                } // end if( !interpolates(0) ) 
+                cg.interpolationWidth(Rx,grid,donor,0)=width; // reset
+                cg.interpolationOverlap(Rx,grid,donor,0)=ov;
+            }
+            if( !interpolates(0) ) validWidth=0;
+            cirp[i].id=qcid[i].id;  // fill in the results 
+            cirp[i].width=validWidth;
+            cirp[i].il[0]=iab(0,0,0);
+            cirp[i].il[1]=iab(0,0,1);
+            cirp[i].il[2]=iab(0,0,2);
+            if( debug & 2 ) // *wdh* 110522
+            {
+                fprintf(plogFile,"CanInterp: i=%i id=%i donor=%i width=%i il=(%i,%i,%i)\n",i,cirp[i].id,donor,cirp[i].width,
+                	      cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            }
+            if( true )
+            {
+                for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+                {
+          	if( cirp[i].il[dir]==INT_MAX )
+          	{
+            // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  printf("CanInterp:ERROR:invalid donor location:  grid=%i donor=%i width=%i i=%i il=[%i,%i,%i]\n",
+                 		 grid,donor,cirp[i].width,i,
+                 		 cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            	  OV_ABORT("ERROR");
+          	}
+                }
+            }
+        }
+        timeForCheck=getCPU()-timeForCheck;
+
+
+#else
+
+  // ---------------------------------------------------------------------------------------
+  // ---------------------------------- PARALLEL Version -----------------------------------
+  // ---------------------------------------------------------------------------------------
+
+
+  // determine the processor that will perform each query.
+
+  // cid[n] n=0,1,2,...numberToCheck : base queries for this processor.
+  // processorToCheck[n] = query n is sent to processor p .
+  // nqs[p] = number of queries to send to processor p.
+
+  // number[p] : number of queries from proc. p that must be performed on this proc. 
+
+    int *processorToCheck = new int[max(1,numberToCheck)];
+    int index[3]={0,0,0}; //
+    int *nqs = new int [np];  // nqs[p] counts number of queries to send to processor p
+    for( int p=0; p<np; p++ ){ nqs[p]=0; } // 
+
+    for( int n=0; n<numberToCheck; n++ )
+    {
+        int grid= cid[n].grid, donor=cid[n].donor;
+        const realSerialArray & gridSpacing = cg[donor].gridSpacing();
+        const intSerialArray & gid = cg[donor].gridIndexRange();
+        for( int axis=0; axis<numberOfDimensions; axis++ )
+        { // index = index of closest grid point on the donor grid
+            index[axis] = int( cid[n].rv[axis]/gridSpacing(axis)+gid(0,axis) +.5 );
+        }
+        const intArray & donorMask = cg[donor].mask();
+    // We will check the donorMask on the following processor:
+        processorToCheck[n]= donorMask.Array_Descriptor.findProcNum( index );  
+        nqs[processorToCheck[n]]++;
+        
+        if( debug & 4 )
+            fprintf(plogFile," myid=%i, i=%i, grid=%i donor=%i processorToCheck=%i\n",myid,cid[n].i,grid,donor,processorToCheck[n]);
+    }
+    if( debug & 2 )
+    {
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+
+  // ** To do *** do not send info from a processor to itself <--- not sure if this makes any difference 
+
+  // Send query sizes to the other processors so that buffers can be allocated
+    
+    int tag=123;
+    MPI_Status status;
+
+    int *number = new int [np];  // number of queries from processor p
+    int numberOfQueries=0;       // total number of queries for processor myid
+    const int tag0=298167;
+    int nmr = 0;  // counts number of messages to receive
+    int nms=0;    // counts number of messages to send
+    for( int p=0; p<np; p++ )
+    {
+        int tags=tag0+p, tagr=tag0+myid;
+        MPI_Sendrecv(&nqs[p],    1, MPI_INT, p, tags, 
+                                  &number[p], 1, MPI_INT, p, tagr, OV_COMM, &status ); 
+        if( number[p]>0 )
+        {
+            nmr++;
+            numberOfQueries += number[p];
+        }
+        if( nqs[p]>0 )
+            nms++;
+    }
+
+  // define the derived datatype --NOTE: put doubles first in struct to align in memory
+  // --- Define an MPI Type for this struct: ---
+  // struct CanInterpolateQueryData
+  // {
+  //   real rv[3]; // location in donor grid  -- note: put doubles first for memory alignment
+  //   int id;     // index to an array of these objects -- used for testing --> can eventually be removed
+  //   int i;      // index into the interpolation array's 
+  //   int grid;   // receptor grid
+  //   int donor;  // donor grid
+  // };
+    MPI_Datatype CanInterpolateQueryDataType, CanInterpolateResultDataType, oldTypes[2];
+    MPI_Aint offsets[2], extent;
+    int blockCounts[2];
+    
+    offsets[0]    = 0;
+    oldTypes[0]   = MPI_Real;  // NOTE: Use MPI_Real  (not MPI_REAL == MPI_FLOAT)
+    blockCounts[0]= 3;  // there are 3 reals
+
+    MPI_Type_extent(oldTypes[0], &extent);  // extent = number of bytes in MPI_Real
+
+    offsets[1]    = blockCounts[0]*extent;
+    oldTypes[1]   = MPI_INT;
+    blockCounts[1]= 4;      // there are 4 int's in CanInterpolateQueryData
+
+    MPI_Type_struct(2, blockCounts, offsets, oldTypes, &CanInterpolateQueryDataType);
+    MPI_Type_commit(&CanInterpolateQueryDataType);
+
+
+  // --- Post receives for the base queries that are performed on other processors ----
+
+  // allocate space for all queries from all processors:
+    CanInterpolateQueryData *qcid = new CanInterpolateQueryData [max(1,numberOfQueries)];  
+
+  // ** FIX ME FOR nmr==0 or nms==0 
+    MPI_Request *receiveRequest = new MPI_Request[max(1,nmr)];  
+    MPI_Request *sendRequest = new MPI_Request[max(1,nms)];  
+
+  // NOTE: is is NB to use separate receiveRequest (sendRequest ?) to avoid a memory leak
+    MPI_Request *receiveRequest2 = new MPI_Request[max(1,nms)];   // we receive answers back equal to the number that we sent out.
+    MPI_Request *sendRequest2 = new MPI_Request[max(1,nmr)];      // we send answers back equal to the number of queries we receieved
+
+    const int tag1=4118623;
+    int loc=0;
+    nmr = 0;  // counts number of messages to receive
+    for( int p=0; p<np; p++ )
+    {  
+        if( number[p]>0 )
+        {
+            tag=tag1+myid;
+            MPI_Irecv( &(qcid[loc]), number[p], CanInterpolateQueryDataType, p, tag, OV_COMM, &receiveRequest[nmr] );
+            loc+=number[p];
+            nmr++;
+        }
+    }
+
+    
+  // ---------------------------------------------------------------------------------------
+  // ---- Send the base query data to the appropriate processor where it can be checked ----
+  // ---------------------------------------------------------------------------------------
+
+  // --- Define an MPI Type for this struct: ---
+  // struct CanInterpolateResultData{
+  //  int id;     // id to match the one in a CanInterpolateQueryData object --> can eventually be removed
+  //  int width;  // width of valid interpolation (0=cannot interpolate)
+  //  int il[3];  // interpolation location
+  // }
+    MPI_Type_contiguous( 5, MPI_INT, &CanInterpolateResultDataType);
+    MPI_Type_commit(&CanInterpolateResultDataType);
+
+  // We buffer up the query data to send to proc. p: 
+  // pcid[p] = array of query data 
+    CanInterpolateQueryData **pcid = new CanInterpolateQueryData* [np];   // this really on needs to be nms instead of np
+
+    int nmsg =0;
+    for( int p=0; p<np; p++ )
+    {
+        if( nqs[p]>0 )
+            pcid[p] = new CanInterpolateQueryData [nqs[p]];
+        else
+            pcid[p] = NULL;
+    }
+    
+  // nqs[p] = counts number of queries to send to processor p 
+    int *nqc = new int [np];  // nqc[p] counts number of queries to send to processor p
+    for( int p=0; p<np; p++ ){ nqc[p]=0; } //
+
+  // -- copy base query data into the appropriate buffer ---
+    for( int n=0; n<numberToCheck; n++ )
+    {
+        const int p = processorToCheck[n];  // query goes to this proc.
+          
+        pcid[p][nqc[p]] = cid[n];  // deep copy of query data
+        
+        nqc[p]++;
+    }
+    if( debug & 1 )
+    {
+    // sanity check:
+        for( int p=0; p<np; p++ ){ assert( nqc[p]==nqs[p] ); } 
+    }
+    
+  // --- Send the query data to proc. p ---
+    nms=0;  // counts number of messages to send
+    for( int p=0; p<np; p++ )
+    {
+        if( nqs[p]>0 )
+        {
+            tag=tag1+p;
+            MPI_Isend( pcid[p], nqs[p], CanInterpolateQueryDataType, p, tag, OV_COMM, &sendRequest[nms] );  
+            nms++;
+            
+        }
+    }
+    
+
+    if( debug & 2 )
+    {
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+    
+  // --- wait for all the receives to finish ---
+    const int numStatus = max(1,nmr,nms);  //   receiveStatus is reused so dimension appropriately
+    MPI_Status *receiveStatus= new MPI_Status[numStatus];  
+
+    MPI_Waitall(nmr,receiveRequest,receiveStatus);
+    
+    if( debug & 4 )
+    {
+        loc=0;
+        for( int p=0; p<np; p++ )
+        {  
+            fprintf(plogFile,"<< myid=%i received the following %i queries from processor p=%i\n",myid,number[p],p);
+            for( int i=0; i<number[p]; i++ )
+            {
+      	CanInterpolateQueryData & q = qcid[loc+i];
+      	fprintf(plogFile,"   id=%i i=%i grid=%i donor=%i\n",q.id,q.i,q.grid,q.donor);
+            }
+            loc+=number[p];
+        }
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+    
+  // if( true ) Overture::abort();
+
+
+  // -----------------------------------------------------
+  // --- allocate buffers to hold the returned queries ---
+  // ---  AND post receives for the return data  ---
+  // -----------------------------------------------------
+
+    CanInterpolateResultData **pcir = new CanInterpolateResultData* [np]; // this really on needs to be nms instead of np
+
+    const int tag2=580215;
+    int nmr2 = 0;  // counts number of messages to receive
+    for( int p=0; p<np; p++ )
+    {
+        if( nqs[p]>0 )
+        {
+            pcir[p] = new CanInterpolateResultData [nqs[p]];
+        
+            tag=tag2+myid;
+            MPI_Irecv( pcir[p], nqs[p], CanInterpolateResultDataType, p, tag, OV_COMM, &receiveRequest2[nmr2] );
+            nmr2++;
+        }
+        else
+        {
+            pcir[p] = NULL;
+        }
+        
+    }
+    assert( nmr2==nms );
+
+  // ------------------------------------------------------------------------------
+  // --- Perform the canInterpolate queries for points local to this processor ----
+  // ------------------------------------------------------------------------------
+
+
+    CanInterpolateResultData *cirp = new CanInterpolateResultData[max(1,numberOfQueries)];
+    
+  // real timeForCheck=getCPU();
+
+  // Macro: 
+  // queryCanInterpolate();
+    // perform the queries:
+        real timeForCheck=getCPU();
+        RealArray rr(1,3); rr=0.;
+        intSerialArray interpolates(1), useBackupRules(1);
+        useBackupRules=FALSE;
+        bool checkForOneSided=false;  
+        Range Rx=cg.numberOfDimensions();
+        IntegerArray iab(1,2,3); iab=0; // holds interpolation stencil
+        int pvr[6];
+        #define validRange(ks,kd) pvr[(ks)+2*(kd)]
+        for( int i=0; i<numberOfQueries; i++ )
+        {
+      // **todo** make a list of all points that query a given donor grid
+            int grid= qcid[i].grid, donor=qcid[i].donor;
+            for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+                rr(0,axis)=qcid[i].rv[axis];
+            if( fabs(rr(0,0))>5. )
+            { // *wdh* 110522 -- skip points with bogus coordinates
+                interpolates(0)=false;
+                continue;
+            }
+            int *pValidRange=NULL; // NULL means that by default this will point to cg[donor].extendedRange
+            if( numberOfValidGhost>0 )
+            { 
+        // We may interpolate from ghost points: 
+        // Make an index range that includes ghost points
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & dim = cg[donor].dimension();
+                for( int axis=0; axis<3; axis++ )
+                {
+          	validRange(0,axis)=max(dim(0,axis),gid(0,axis)-numberOfValidGhost);
+          	validRange(1,axis)=min(dim(1,axis),gid(1,axis)+numberOfValidGhost);
+                }
+                pValidRange=pvr;
+            }
+            intSerialArray donorMask; getLocalArrayWithGhostBoundaries(cg[donor].mask(),donorMask);
+            const int width=cg.interpolationWidth(0,grid,donor,0);  // initial interpolation stencil width
+            int validWidth=width;  // width that we can interpolate to 
+            interpolates(0)=true;
+            cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask,pValidRange );
+            if( interpolates(0) )
+            {
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+            }
+            if( !interpolates(0)  && debug & 1 )
+            {
+                fprintf(plogFile,"canInterpolate:INFO myid=%i A point can NOT interpolate, id=%i i=%i grid=%i donor=%i r=(%g,%g,%g)\n",
+               	     myid,qcid[i].id,qcid[i].i,grid,donor,rr(0,0),rr(0,1),rr(0,2));
+        // NOTE: iab(i,side,axis) is returned as INT_MAX if the point rr is outside the bounds
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & er= cg[donor].extendedRange();
+                fprintf(plogFile," stencil = [%i,%i][%i,%i][%i,%i],  donor bnds=[%i,%i][%i,%i][%i,%i] gid=[%i,%i][%i,%i][%i,%i]"
+                                                  " extended=[%i,%i][%i,%i] periodic=[%i,%i]\n",
+                                    iab(0,0,0),iab(0,1,0),iab(0,0,1),iab(0,1,1),iab(0,0,2),iab(0,1,2),
+                                    donorMask.getBase(0),donorMask.getBound(0),
+                                    donorMask.getBase(1),donorMask.getBound(1),
+                                    donorMask.getBase(2),donorMask.getBound(2),
+                                    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+                                    er(0,0),er(1,0),er(0,1),er(1,1),(int)cg[donor].isPeriodic(0),(int)cg[donor].isPeriodic(1));
+                int i1=iab(0,0,0), i2=iab(0,0,1), i3=iab(0,0,2);
+                if( i1<donorMask.getBound(0) && i2<donorMask.getBound(1) && (numberOfDimensions==2 || i3<donorMask.getBound(2)) )
+                {
+          	fprintf(plogFile," mask = [%i,%i,%i][%i,%i,%i][%i,%i,%i]\n",
+                 	       donorMask(i1,i2  ,i3),donorMask(i1+1,i2  ,i3),donorMask(i1+2,i2  ,i3),
+                 	       donorMask(i1,i2+1,i3),donorMask(i1+1,i2+1,i3),donorMask(i1+2,i2+1,i3),
+                 	       donorMask(i1,i2+2,i3),donorMask(i1+1,i2+2,i3),donorMask(i1+2,i2+2,i3));
+                }
+                if( debug & 4 )
+          	displayMask(donorMask,"donorMask",plogFile);
+            }
+            if( !interpolates(0) )
+            {
+        // if the pt cannot interpolate try a backup rule: reduce the stencil width
+                const real ov = cg.interpolationOverlap(0,grid,donor,0);
+                validWidth=max(2,width-1);
+        // *wdh* 110704 -- no need to check if width=2. This fixes a bug with ogen not working for IW=2
+                if( width>2 ) 
+                {
+  	// temporarily change these for the canInterpolate function:
+          	cg.interpolationWidth(Rx,grid,donor,0)=validWidth;
+  	// cg.interpolationOverlap(Rx,grid,donor,0)-=max(0.,.5); // *wdh* 091118 Do not reduce overlap below zero
+          	const real overlap =max(0.,ov-.5); // reduce the overlap by .5 
+  	// *wdh* 110522
+  	// fprintf(plogFile,"CanInterpolate: check backup: overlap=%8.2e -> new overlap = %8.2e\n",ov,overlap);
+          	cg.interpolationOverlap(Rx,grid,donor,0)=overlap;
+          	interpolates(0)=true;
+          	cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange );
+          	if( interpolates(0) )
+          	{
+  	  // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+          	}
+                }
+                if( !interpolates(0) )
+                {
+  	// Allow interpolation if we are just outside a physical boundary
+  	// This case can happen, for e.g., when a cartesian grid has a higher priority
+  	// than a boundary fitted grid (cicd.cmd) and the stair-step boundary lies
+  	// very close to the physical boundary
+          	RealArray rps(1,3);  // will hold the projected interp point
+          	const IntegerArray & bc = cg[donor].boundaryCondition();
+          	bool pointWasProjected=false;
+          	for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+          	{
+            	  rps(0,dir)=rr(0,dir);
+            	  for( int side=0; side<=1; side++ )
+            	  {
+              	    if( bc(side,dir)>0  && ( (side==0 && rr(0,dir)<0.) || (side==1 && rr(0,dir)>1.) ) )
+              	    {
+                	      pointWasProjected=true;
+                	      rps(0,dir)=side;  // move the interpolation location to be on the boundary
+                	      break;
+              	    }
+            	  }
+          	}
+          	if( pointWasProjected )
+          	{
+  // 	  if( debug & 4)
+  // 	    ffprintf(plogFile,plogFile,"  ..pt %i try to interp pt from just? outside a boundary,"
+  // 		    "r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		    i,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  interpolates(0)=true;
+            	  cgCanInterpolate(grid,donor, rps, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange);
+            	  if( interpolates(0) )
+            	  {
+  	    // *wdh* 070728 getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg);
+              // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+              	    getInterpolationStencil(grid, donor, rps, iab, useBackupRules, cg, pValidRange);
+  // 	    if( true && iab(0,0,2)>1000 )
+  // 	    {
+  // 	      printf("CanInterp:ERROR:PROJECT: grid=%i donor=%i width=%i i=%i il=[%i,%i,%i] rr=[%8.2e,%8.2e,%8.2e]"
+  //                      " rps=[%8.2e,%8.2e,%8.2e]\n",
+  // 		     grid,donor,validWidth,i,
+  // 		     iab(0,0,0),iab(0,0,1),iab(0,0,2),rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2));
+  // 	    }
+  // 	    fprintf(plogFile,"updateRefinement:INFO: backup interpolation from just? outside a boundary,"
+  // 		   "grid=%i interpolee=%i r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		   grid,interpolee,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  }
+          	}
+                } // end if( !interpolates(0) ) 
+                cg.interpolationWidth(Rx,grid,donor,0)=width; // reset
+                cg.interpolationOverlap(Rx,grid,donor,0)=ov;
+            }
+            if( !interpolates(0) ) validWidth=0;
+            cirp[i].id=qcid[i].id;  // fill in the results 
+            cirp[i].width=validWidth;
+            cirp[i].il[0]=iab(0,0,0);
+            cirp[i].il[1]=iab(0,0,1);
+            cirp[i].il[2]=iab(0,0,2);
+            if( debug & 2 ) // *wdh* 110522
+            {
+                fprintf(plogFile,"CanInterp: i=%i id=%i donor=%i width=%i il=(%i,%i,%i)\n",i,cirp[i].id,donor,cirp[i].width,
+                	      cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            }
+            if( true )
+            {
+                for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+                {
+          	if( cirp[i].il[dir]==INT_MAX )
+          	{
+            // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  printf("CanInterp:ERROR:invalid donor location:  grid=%i donor=%i width=%i i=%i il=[%i,%i,%i]\n",
+                 		 grid,donor,cirp[i].width,i,
+                 		 cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            	  OV_ABORT("ERROR");
+          	}
+                }
+            }
+        }
+        timeForCheck=getCPU()-timeForCheck;
+
+
+  // send the query results back to the appropriate processor 
+    int nms2=0;  // counts number of messages to send
+    loc=0;
+    for( int p=0; p<np; p++ )
+    {
+        if( number[p] > 0 )
+        {
+            tag=tag2+p;
+            MPI_Isend( &(cirp[loc]), number[p], CanInterpolateResultDataType, p, tag, OV_COMM, &sendRequest2[nms2] ); 
+            loc+= number[p];  
+            nms2++;
+        }
+        
+    }
+    assert( nms2==nmr );
+
+    MPI_Waitall(nmr2,receiveRequest2,receiveStatus);
+    
+
+  // --------------------------
+  // --- Unpack the results ---
+  // --------------------------
+
+    for( int p=0; p<np; p++ ){ nqc[p]=0; } // reset counts to zero
+    for( int n=0; n<numberToCheck; n++ )
+    {
+        const int p = processorToCheck[n];
+          
+        cir[n] = pcir[p][nqc[p]];  // deep copy of result data
+        
+        nqc[p]++;
+    }
+    if( debug & 1 )
+    {
+    // sanity check:
+        for( int p=0; p<np; p++ ){ assert( nqc[p]==nqs[p] ); } 
+    }
+
+
+
+    if( debug & 1 )
+    { // sanity check:
+        int nm=0; // counts number of messages 
+        for( int p=0; p<np; p++ )
+        {
+            if( nqs[p]>0 )
+            {
+      	int num=0;
+      	MPI_Get_count( &receiveStatus[nm], CanInterpolateResultDataType, &num );
+      	assert( num==nqs[p] );
+                nm++;
+            }
+            
+        }
+        int totalReceived=0;
+        for( int p=0; p<np; p++ )
+            totalReceived+=nqs[p];
+        for( int n=0; n<totalReceived; n++ )
+        {
+            int grid= cid[n].grid, donor=cid[n].donor;
+            int i=cid[n].i;
+            fprintf(plogFile,"canInterpolate: myid=%i query response: id=%i i=%i grid=%i donor=%i width=%i il=(%i,%i,%i)\n",
+            	      myid,cir[n].id,i,grid,donor,cir[n].width,cir[n].il[0],cir[n].il[1],cir[n].il[2]);
+        }
+        
+    }
+    
+  // wait for sends to finish on this processor before we can clean up
+    MPI_Waitall(nms,sendRequest,receiveStatus);
+    MPI_Waitall(nms2,sendRequest2,receiveStatus);
+
+  // cleanup:
+    MPI_Type_free( &CanInterpolateResultDataType );
+    MPI_Type_free( &CanInterpolateQueryDataType );
+    
+    for( int p=0; p<np; p++ )
+    {
+        delete [] pcid[p];
+        delete [] pcir[p];
+    }
+    delete []  pcid;
+    delete []  pcir;
+
+    delete [] receiveStatus;
+    delete [] receiveRequest;
+    delete [] receiveRequest2;
+    delete [] sendRequest;
+    delete [] sendRequest2;
+
+    delete [] qcid;
+    delete [] cirp;
+    delete [] number;
+    delete [] nqs;
+    delete [] nqc;
+    delete [] processorToCheck;
+
+#endif /*  end parallel version */
+
+    if( debug > 0 )
+    {
+        real totalTime=ParallelUtility::getMaxValue(getCPU()-time0);
+        timeForCheck=ParallelUtility::getMaxValue(timeForCheck);
+        fprintf(plogFile,"canInterpolate: np=%i total=time=%8.2e(s), time-for-local-canInterpolate=%8.2e(s) (%5.2f%%)\n",
+         	   np,totalTime,timeForCheck,100.*timeForCheck/totalTime);
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+
+    return 0;
+}
+
+// ************** OLD VERSION *****************
+int CanInterpolate::
+canInterpolateOld( CompositeGrid & cg, 
+               		   int numberToCheck, 
+               		   CanInterpolateQueryData *cid, 
+               		   CanInterpolateResultData *cir,
+               		   const int numberOfValidGhost /* =0  */ )
+// ============================================================================================
+// /Description:
+//     Parallel canInterpolate: Given a set of possible interpolation points, determine whether
+//  they can interpolate from specified donor grids. This routine will locate the processor where
+//  the donor grid mask array is and send the query to be evaluated on that processor.
+//
+//  /numberToCheck (input) : total number of points to check.
+//  /cid (input) : a list of queries, cid[i], i=0,...,numberToCheck-1, that provides the 
+//                 receptor grid, cid[i].grid, the donor grid, cid[i].donor,  and the 
+//                 interpolation coordinates cid[i].rv, of the pt to check.
+//  /cir (output) : The results are returned here, cir[i], i=0,...,numberToCheck-1, with
+//            cir[i].width being the width of the valid interpolation stencil.
+//  /numberOfValidGhost (input) : specify the number of ghost points that can be used when
+//            interpolating. By default no ghost points are used.
+//
+// /Notes: *wdh* 091118 : now we can allow interpolation from ghost points.
+// ============================================================================================
+{
+    real time0=getCPU();
+    
+    int debug=0; // 1; // 3;
+    const MPI_Comm & OV_COMM = Overture::OV_COMM;
+    
+    const int np= max(1,Communication_Manager::numberOfProcessors());
+    const int myid=max(0,Communication_Manager::My_Process_Number);
+    const int numberOfDimensions = cg.numberOfDimensions();
+    
+    if( debug>0 )
+    {
+        plogFile = fopen(sPrintF("canInterp%i.log",myid),"w" ); 
+    // plogFile = stdout;
+        fprintf(plogFile,
+                        " ********************************************************************************** \n"
+          	    " ***** canInterpolate log file, processor=%i, number of processors=%i *********** \n"
+          	    " ********************************************************************************** \n\n",
+          	    myid,np);
+    }
+
+    if( debug & 2 )
+    {
+        fprintf(plogFile," ** canInterpolate: myid=%i numberToCheck=%i ***\n",myid,numberToCheck);
+        if( debug & 4 )
+        {
+            fprintf(plogFile," ** myid=%i INPUT queries:\n",myid);
+            for( int i=0; i<numberToCheck; i++ )
+            {
+      	CanInterpolateQueryData & q = cid[i];
+      	fprintf(plogFile,"   id=%i i=%i grid=%i donor=%i\n",q.id,q.i,q.grid,q.donor);
+            }
+        }
+    }
+
+#ifndef USE_PPP
+
+  // NEW: *wdh* 091117
+  // ---------------------------------------------------------------------------------------
+  // ------------------------------------ SERIAL Version -----------------------------------
+  // ---------------------------------------------------------------------------------------
+
+    int numberOfQueries=numberToCheck;
+  // In serial just set pointers: 
+    CanInterpolateQueryData *qcid = cid;
+    CanInterpolateResultData *cirp = cir;
+    
+  // Macro: 
+  // queryCanInterpolate();
+    // perform the queries:
+        real timeForCheck=getCPU();
+        RealArray rr(1,3); rr=0.;
+        intSerialArray interpolates(1), useBackupRules(1);
+        useBackupRules=FALSE;
+        bool checkForOneSided=false;  
+        Range Rx=cg.numberOfDimensions();
+        IntegerArray iab(1,2,3); iab=0; // holds interpolation stencil
+        int pvr[6];
+        #define validRange(ks,kd) pvr[(ks)+2*(kd)]
+        for( int i=0; i<numberOfQueries; i++ )
+        {
+      // **todo** make a list of all points that query a given donor grid
+            int grid= qcid[i].grid, donor=qcid[i].donor;
+            for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+                rr(0,axis)=qcid[i].rv[axis];
+            if( fabs(rr(0,0))>5. )
+            { // *wdh* 110522 -- skip points with bogus coordinates
+                interpolates(0)=false;
+                continue;
+            }
+            int *pValidRange=NULL; // NULL means that by default this will point to cg[donor].extendedRange
+            if( numberOfValidGhost>0 )
+            { 
+        // We may interpolate from ghost points: 
+        // Make an index range that includes ghost points
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & dim = cg[donor].dimension();
+                for( int axis=0; axis<3; axis++ )
+                {
+          	validRange(0,axis)=max(dim(0,axis),gid(0,axis)-numberOfValidGhost);
+          	validRange(1,axis)=min(dim(1,axis),gid(1,axis)+numberOfValidGhost);
+                }
+                pValidRange=pvr;
+            }
+            intSerialArray donorMask; getLocalArrayWithGhostBoundaries(cg[donor].mask(),donorMask);
+            const int width=cg.interpolationWidth(0,grid,donor,0);  // initial interpolation stencil width
+            int validWidth=width;  // width that we can interpolate to 
+            interpolates(0)=true;
+            cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask,pValidRange );
+            if( interpolates(0) )
+            {
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+            }
+            if( !interpolates(0)  && debug & 1 )
+            {
+                fprintf(plogFile,"canInterpolate:INFO myid=%i A point can NOT interpolate, id=%i i=%i grid=%i donor=%i r=(%g,%g,%g)\n",
+               	     myid,qcid[i].id,qcid[i].i,grid,donor,rr(0,0),rr(0,1),rr(0,2));
+        // NOTE: iab(i,side,axis) is returned as INT_MAX if the point rr is outside the bounds
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & er= cg[donor].extendedRange();
+                fprintf(plogFile," stencil = [%i,%i][%i,%i][%i,%i],  donor bnds=[%i,%i][%i,%i][%i,%i] gid=[%i,%i][%i,%i][%i,%i]"
+                                                  " extended=[%i,%i][%i,%i] periodic=[%i,%i]\n",
+                                    iab(0,0,0),iab(0,1,0),iab(0,0,1),iab(0,1,1),iab(0,0,2),iab(0,1,2),
+                                    donorMask.getBase(0),donorMask.getBound(0),
+                                    donorMask.getBase(1),donorMask.getBound(1),
+                                    donorMask.getBase(2),donorMask.getBound(2),
+                                    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+                                    er(0,0),er(1,0),er(0,1),er(1,1),(int)cg[donor].isPeriodic(0),(int)cg[donor].isPeriodic(1));
+                int i1=iab(0,0,0), i2=iab(0,0,1), i3=iab(0,0,2);
+                if( i1<donorMask.getBound(0) && i2<donorMask.getBound(1) && (numberOfDimensions==2 || i3<donorMask.getBound(2)) )
+                {
+          	fprintf(plogFile," mask = [%i,%i,%i][%i,%i,%i][%i,%i,%i]\n",
+                 	       donorMask(i1,i2  ,i3),donorMask(i1+1,i2  ,i3),donorMask(i1+2,i2  ,i3),
+                 	       donorMask(i1,i2+1,i3),donorMask(i1+1,i2+1,i3),donorMask(i1+2,i2+1,i3),
+                 	       donorMask(i1,i2+2,i3),donorMask(i1+1,i2+2,i3),donorMask(i1+2,i2+2,i3));
+                }
+                if( debug & 4 )
+          	displayMask(donorMask,"donorMask",plogFile);
+            }
+            if( !interpolates(0) )
+            {
+        // if the pt cannot interpolate try a backup rule: reduce the stencil width
+                const real ov = cg.interpolationOverlap(0,grid,donor,0);
+                validWidth=max(2,width-1);
+        // *wdh* 110704 -- no need to check if width=2. This fixes a bug with ogen not working for IW=2
+                if( width>2 ) 
+                {
+  	// temporarily change these for the canInterpolate function:
+          	cg.interpolationWidth(Rx,grid,donor,0)=validWidth;
+  	// cg.interpolationOverlap(Rx,grid,donor,0)-=max(0.,.5); // *wdh* 091118 Do not reduce overlap below zero
+          	const real overlap =max(0.,ov-.5); // reduce the overlap by .5 
+  	// *wdh* 110522
+  	// fprintf(plogFile,"CanInterpolate: check backup: overlap=%8.2e -> new overlap = %8.2e\n",ov,overlap);
+          	cg.interpolationOverlap(Rx,grid,donor,0)=overlap;
+          	interpolates(0)=true;
+          	cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange );
+          	if( interpolates(0) )
+          	{
+  	  // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+          	}
+                }
+                if( !interpolates(0) )
+                {
+  	// Allow interpolation if we are just outside a physical boundary
+  	// This case can happen, for e.g., when a cartesian grid has a higher priority
+  	// than a boundary fitted grid (cicd.cmd) and the stair-step boundary lies
+  	// very close to the physical boundary
+          	RealArray rps(1,3);  // will hold the projected interp point
+          	const IntegerArray & bc = cg[donor].boundaryCondition();
+          	bool pointWasProjected=false;
+          	for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+          	{
+            	  rps(0,dir)=rr(0,dir);
+            	  for( int side=0; side<=1; side++ )
+            	  {
+              	    if( bc(side,dir)>0  && ( (side==0 && rr(0,dir)<0.) || (side==1 && rr(0,dir)>1.) ) )
+              	    {
+                	      pointWasProjected=true;
+                	      rps(0,dir)=side;  // move the interpolation location to be on the boundary
+                	      break;
+              	    }
+            	  }
+          	}
+          	if( pointWasProjected )
+          	{
+  // 	  if( debug & 4)
+  // 	    ffprintf(plogFile,plogFile,"  ..pt %i try to interp pt from just? outside a boundary,"
+  // 		    "r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		    i,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  interpolates(0)=true;
+            	  cgCanInterpolate(grid,donor, rps, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange);
+            	  if( interpolates(0) )
+            	  {
+  	    // *wdh* 070728 getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg);
+              // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+              	    getInterpolationStencil(grid, donor, rps, iab, useBackupRules, cg, pValidRange);
+  // 	    if( true && iab(0,0,2)>1000 )
+  // 	    {
+  // 	      printf("CanInterp:ERROR:PROJECT: grid=%i donor=%i width=%i i=%i il=[%i,%i,%i] rr=[%8.2e,%8.2e,%8.2e]"
+  //                      " rps=[%8.2e,%8.2e,%8.2e]\n",
+  // 		     grid,donor,validWidth,i,
+  // 		     iab(0,0,0),iab(0,0,1),iab(0,0,2),rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2));
+  // 	    }
+  // 	    fprintf(plogFile,"updateRefinement:INFO: backup interpolation from just? outside a boundary,"
+  // 		   "grid=%i interpolee=%i r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		   grid,interpolee,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  }
+          	}
+                } // end if( !interpolates(0) ) 
+                cg.interpolationWidth(Rx,grid,donor,0)=width; // reset
+                cg.interpolationOverlap(Rx,grid,donor,0)=ov;
+            }
+            if( !interpolates(0) ) validWidth=0;
+            cirp[i].id=qcid[i].id;  // fill in the results 
+            cirp[i].width=validWidth;
+            cirp[i].il[0]=iab(0,0,0);
+            cirp[i].il[1]=iab(0,0,1);
+            cirp[i].il[2]=iab(0,0,2);
+            if( debug & 2 ) // *wdh* 110522
+            {
+                fprintf(plogFile,"CanInterp: i=%i id=%i donor=%i width=%i il=(%i,%i,%i)\n",i,cirp[i].id,donor,cirp[i].width,
+                	      cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            }
+            if( true )
+            {
+                for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+                {
+          	if( cirp[i].il[dir]==INT_MAX )
+          	{
+            // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  printf("CanInterp:ERROR:invalid donor location:  grid=%i donor=%i width=%i i=%i il=[%i,%i,%i]\n",
+                 		 grid,donor,cirp[i].width,i,
+                 		 cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            	  OV_ABORT("ERROR");
+          	}
+                }
+            }
+        }
+        timeForCheck=getCPU()-timeForCheck;
+
+
+#else
+
+  // ---------------------------------------------------------------------------------------
+  // ---------------------------------- PARALLEL Version -----------------------------------
+  // ---------------------------------------------------------------------------------------
+
+
+  // determine the processor that will perform each query.
+
+    int *processorToCheck = new int[numberToCheck];
+    int index[3]={0,0,0}; //
+    int *nqs = new int [np];  // nqs[p] counts number of queries to send to processor p
+    for( int p=0; p<np; p++ ) nqs[p]=0;
+    for( int n=0; n<numberToCheck; n++ )
+    {
+        int grid= cid[n].grid, donor=cid[n].donor;
+        const realSerialArray & gridSpacing = cg[donor].gridSpacing();
+        const intSerialArray & gid = cg[donor].gridIndexRange();
+        for( int axis=0; axis<numberOfDimensions; axis++ )
+        { // index = index of closest grid point on the donor grid
+            index[axis] = int( cid[n].rv[axis]/gridSpacing(axis)+gid(0,axis) +.5 );
+        }
+        const intArray & donorMask = cg[donor].mask();
+    // We will check the donorMask on the following processor:
+        processorToCheck[n]= donorMask.Array_Descriptor.findProcNum( index );  
+        nqs[processorToCheck[n]]++;
+        
+        if( debug & 4 )
+            fprintf(plogFile," myid=%i, i=%i, grid=%i donor=%i processorToCheck=%i\n",myid,cid[n].i,grid,donor,processorToCheck[n]);
+    }
+    if( debug & 2 )
+    {
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+
+  // ** To do *** do not send info from a processor to itself <--- not sure if this makes any difference 
+
+  // Send query sizes to the other processors so that buffers can be allocated
+    
+    int tag=123;
+    MPI_Status status;
+
+    int *number = new int [np];  // number of queries from processor p
+    int numberOfQueries=0;       // total number of queries for processor myid
+    const int tag0=298167;
+    for( int p=0; p<np; p++ )
+    {
+        int tags=tag0+p, tagr=tag0+myid;
+        MPI_Sendrecv(&nqs[p],    1, MPI_INT, p, tags, 
+                                  &number[p], 1, MPI_INT, p, tagr, OV_COMM, &status ); 
+        numberOfQueries += number[p];
+    }
+
+  // define the derived datatype --NOTE: put doubles first in struct to align in memory
+
+    MPI_Datatype CanInterpolateQueryDataType, CanInterpolateResultDataType, oldTypes[2];
+    MPI_Aint offsets[2], extent;
+    int blockCounts[2];
+    
+    offsets[0]    = 0;
+    oldTypes[0]   = MPI_Real;  // NOTE: Use MPI_Real  (not MPI_REAL == MPI_FLOAT)
+    blockCounts[0]= 3;  // there are 3 reals
+
+    MPI_Type_extent(oldTypes[0], &extent);  // extent = number of bytes in MPI_Real
+
+    offsets[1]    = blockCounts[0]*extent;
+    oldTypes[1]   = MPI_INT;
+    blockCounts[1]= 4;      // there are 4 int's in CanInterpolateQueryData
+
+    MPI_Type_struct(2, blockCounts, offsets, oldTypes, &CanInterpolateQueryDataType);
+    MPI_Type_commit(&CanInterpolateQueryDataType);
+
+
+  // --- Post receives for the queries that we can perform on this processor ----
+
+  // allocate space for all queries from all processors:
+    CanInterpolateQueryData *qcid = new CanInterpolateQueryData [numberOfQueries];  
+
+    MPI_Request *receiveRequest = new MPI_Request[np];  
+    MPI_Request *sendRequest = new MPI_Request[np];  
+
+    const int tag1=4118623;
+    int loc=0;
+    for( int p=0; p<np; p++ )
+    {  
+        tag=tag1+myid;
+        MPI_Irecv( &(qcid[loc]), number[p], CanInterpolateQueryDataType, p, tag, OV_COMM, &receiveRequest[p] );
+        loc+=number[p];
+    }
+
+    
+  // ---- Send data to the processor where it can be checked ----
+
+    MPI_Datatype IndexedQueryDataType;
+
+  // Return Info is stored as this type:
+    MPI_Type_contiguous( 5, MPI_INT, &CanInterpolateResultDataType);
+    MPI_Type_commit(&CanInterpolateResultDataType);
+  // Here is the indexed return data type: (to return the data in the order it was sent)
+    MPI_Datatype *IndexedResultDataType = new MPI_Datatype [np];
+
+    for( int p=0; p<np; p++ )
+    {
+    // *** watch out for nqs[p]==0
+    // assert( nqs[p]!=0 );
+
+        int num=-1;
+        int *blocklen = new int [max(1,nqs[p])];
+        int *displacement = new int [max(1,nqs[p])];
+        if( nqs[p]>0 )
+        {
+            for( int n=0; n<numberToCheck; n++ )
+            {
+	// collect all queries that go to processor p (collect blocks of queries that all go to the same p)
+      	if( processorToCheck[n]==p )
+      	{
+        	  if( n==0 || processorToCheck[n]!=processorToCheck[n-1] )
+        	  {
+          	    num++;
+          	    displacement[num]=n;  // index of first entry in this block
+          	    blocklen[num]=1;      // number of entries in this block
+        	  }
+        	  else
+          	    blocklen[num]++;
+      	}
+            }
+        }
+        num++;
+        
+    // MPI_Datatype IndexedQueryDataType;
+        MPI_Type_indexed(num, blocklen, displacement, CanInterpolateQueryDataType, &IndexedQueryDataType);
+        MPI_Type_commit(&IndexedQueryDataType);     
+
+    // also create the indexed return type which uses the same block structure as the query data
+        MPI_Type_indexed(num, blocklen, displacement, CanInterpolateResultDataType, &IndexedResultDataType[p]);
+        MPI_Type_commit(&IndexedResultDataType[p]);
+        
+        if( debug & 2 ) fprintf(plogFile,">> myid=%i send %i queries to p=%i \n"
+                                                  "     (number of blocks=%i, blocklen[0]=%i displacement[0]=%i)\n",
+                                                                myid,nqs[p],p,num,blocklen[0],displacement[0]);
+        
+        tag=tag1+p;
+        MPI_Isend(cid, 1, IndexedQueryDataType, p, tag, OV_COMM, &sendRequest[p] );  // 1: means we send one indexed type
+    // MPI_Send(cid, numberToCheck, CanInterpolateQueryDataType, p, tag, OV_COMM); 
+
+        delete [] blocklen;                      // is this ok to do here?
+        delete [] displacement; 
+        MPI_Type_free( &IndexedQueryDataType );  // This IS OK according to the MPI  documentation
+
+    } // end for p
+    
+    if( debug & 2 )
+    {
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+    
+    
+  // --- wait for all the receives to finish ---
+    MPI_Status *receiveStatus= new MPI_Status[np];  
+    MPI_Waitall(np,receiveRequest,receiveStatus);
+    
+    if( debug & 4 )
+    {
+        loc=0;
+        for( int p=0; p<np; p++ )
+        {  
+            fprintf(plogFile,"<< myid=%i received the following %i queries from processor p=%i\n",myid,number[p],p);
+            for( int i=0; i<number[p]; i++ )
+            {
+      	CanInterpolateQueryData & q = qcid[loc+i];
+      	fprintf(plogFile,"   id=%i i=%i grid=%i donor=%i\n",q.id,q.i,q.grid,q.donor);
+            }
+            loc+=number[p];
+        }
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+    
+  // if( true ) Overture::abort();
+
+
+  // --- Perform the canInterpolate queries for points local to this processor ----
+
+
+    CanInterpolateResultData *cirp = new CanInterpolateResultData[numberOfQueries];
+    
+  // real timeForCheck=getCPU();
+
+  // Macro: 
+  // queryCanInterpolate();
+    // perform the queries:
+        real timeForCheck=getCPU();
+        RealArray rr(1,3); rr=0.;
+        intSerialArray interpolates(1), useBackupRules(1);
+        useBackupRules=FALSE;
+        bool checkForOneSided=false;  
+        Range Rx=cg.numberOfDimensions();
+        IntegerArray iab(1,2,3); iab=0; // holds interpolation stencil
+        int pvr[6];
+        #define validRange(ks,kd) pvr[(ks)+2*(kd)]
+        for( int i=0; i<numberOfQueries; i++ )
+        {
+      // **todo** make a list of all points that query a given donor grid
+            int grid= qcid[i].grid, donor=qcid[i].donor;
+            for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+                rr(0,axis)=qcid[i].rv[axis];
+            if( fabs(rr(0,0))>5. )
+            { // *wdh* 110522 -- skip points with bogus coordinates
+                interpolates(0)=false;
+                continue;
+            }
+            int *pValidRange=NULL; // NULL means that by default this will point to cg[donor].extendedRange
+            if( numberOfValidGhost>0 )
+            { 
+        // We may interpolate from ghost points: 
+        // Make an index range that includes ghost points
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & dim = cg[donor].dimension();
+                for( int axis=0; axis<3; axis++ )
+                {
+          	validRange(0,axis)=max(dim(0,axis),gid(0,axis)-numberOfValidGhost);
+          	validRange(1,axis)=min(dim(1,axis),gid(1,axis)+numberOfValidGhost);
+                }
+                pValidRange=pvr;
+            }
+            intSerialArray donorMask; getLocalArrayWithGhostBoundaries(cg[donor].mask(),donorMask);
+            const int width=cg.interpolationWidth(0,grid,donor,0);  // initial interpolation stencil width
+            int validWidth=width;  // width that we can interpolate to 
+            interpolates(0)=true;
+            cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask,pValidRange );
+            if( interpolates(0) )
+            {
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+            }
+            if( !interpolates(0)  && debug & 1 )
+            {
+                fprintf(plogFile,"canInterpolate:INFO myid=%i A point can NOT interpolate, id=%i i=%i grid=%i donor=%i r=(%g,%g,%g)\n",
+               	     myid,qcid[i].id,qcid[i].i,grid,donor,rr(0,0),rr(0,1),rr(0,2));
+        // NOTE: iab(i,side,axis) is returned as INT_MAX if the point rr is outside the bounds
+                getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+                const IntegerArray & gid = cg[donor].gridIndexRange();
+                const IntegerArray & er= cg[donor].extendedRange();
+                fprintf(plogFile," stencil = [%i,%i][%i,%i][%i,%i],  donor bnds=[%i,%i][%i,%i][%i,%i] gid=[%i,%i][%i,%i][%i,%i]"
+                                                  " extended=[%i,%i][%i,%i] periodic=[%i,%i]\n",
+                                    iab(0,0,0),iab(0,1,0),iab(0,0,1),iab(0,1,1),iab(0,0,2),iab(0,1,2),
+                                    donorMask.getBase(0),donorMask.getBound(0),
+                                    donorMask.getBase(1),donorMask.getBound(1),
+                                    donorMask.getBase(2),donorMask.getBound(2),
+                                    gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2),
+                                    er(0,0),er(1,0),er(0,1),er(1,1),(int)cg[donor].isPeriodic(0),(int)cg[donor].isPeriodic(1));
+                int i1=iab(0,0,0), i2=iab(0,0,1), i3=iab(0,0,2);
+                if( i1<donorMask.getBound(0) && i2<donorMask.getBound(1) && (numberOfDimensions==2 || i3<donorMask.getBound(2)) )
+                {
+          	fprintf(plogFile," mask = [%i,%i,%i][%i,%i,%i][%i,%i,%i]\n",
+                 	       donorMask(i1,i2  ,i3),donorMask(i1+1,i2  ,i3),donorMask(i1+2,i2  ,i3),
+                 	       donorMask(i1,i2+1,i3),donorMask(i1+1,i2+1,i3),donorMask(i1+2,i2+1,i3),
+                 	       donorMask(i1,i2+2,i3),donorMask(i1+1,i2+2,i3),donorMask(i1+2,i2+2,i3));
+                }
+                if( debug & 4 )
+          	displayMask(donorMask,"donorMask",plogFile);
+            }
+            if( !interpolates(0) )
+            {
+        // if the pt cannot interpolate try a backup rule: reduce the stencil width
+                const real ov = cg.interpolationOverlap(0,grid,donor,0);
+                validWidth=max(2,width-1);
+        // *wdh* 110704 -- no need to check if width=2. This fixes a bug with ogen not working for IW=2
+                if( width>2 ) 
+                {
+  	// temporarily change these for the canInterpolate function:
+          	cg.interpolationWidth(Rx,grid,donor,0)=validWidth;
+  	// cg.interpolationOverlap(Rx,grid,donor,0)-=max(0.,.5); // *wdh* 091118 Do not reduce overlap below zero
+          	const real overlap =max(0.,ov-.5); // reduce the overlap by .5 
+  	// *wdh* 110522
+  	// fprintf(plogFile,"CanInterpolate: check backup: overlap=%8.2e -> new overlap = %8.2e\n",ov,overlap);
+          	cg.interpolationOverlap(Rx,grid,donor,0)=overlap;
+          	interpolates(0)=true;
+          	cgCanInterpolate(grid,donor, rr, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange );
+          	if( interpolates(0) )
+          	{
+  	  // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg, pValidRange);
+          	}
+                }
+                if( !interpolates(0) )
+                {
+  	// Allow interpolation if we are just outside a physical boundary
+  	// This case can happen, for e.g., when a cartesian grid has a higher priority
+  	// than a boundary fitted grid (cicd.cmd) and the stair-step boundary lies
+  	// very close to the physical boundary
+          	RealArray rps(1,3);  // will hold the projected interp point
+          	const IntegerArray & bc = cg[donor].boundaryCondition();
+          	bool pointWasProjected=false;
+          	for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+          	{
+            	  rps(0,dir)=rr(0,dir);
+            	  for( int side=0; side<=1; side++ )
+            	  {
+              	    if( bc(side,dir)>0  && ( (side==0 && rr(0,dir)<0.) || (side==1 && rr(0,dir)>1.) ) )
+              	    {
+                	      pointWasProjected=true;
+                	      rps(0,dir)=side;  // move the interpolation location to be on the boundary
+                	      break;
+              	    }
+            	  }
+          	}
+          	if( pointWasProjected )
+          	{
+  // 	  if( debug & 4)
+  // 	    ffprintf(plogFile,plogFile,"  ..pt %i try to interp pt from just? outside a boundary,"
+  // 		    "r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		    i,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  interpolates(0)=true;
+            	  cgCanInterpolate(grid,donor, rps, interpolates, useBackupRules, checkForOneSided, cg,donorMask, pValidRange);
+            	  if( interpolates(0) )
+            	  {
+  	    // *wdh* 070728 getInterpolationStencil(grid, donor, rr, iab, useBackupRules, cg);
+              // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+              	    getInterpolationStencil(grid, donor, rps, iab, useBackupRules, cg, pValidRange);
+  // 	    if( true && iab(0,0,2)>1000 )
+  // 	    {
+  // 	      printf("CanInterp:ERROR:PROJECT: grid=%i donor=%i width=%i i=%i il=[%i,%i,%i] rr=[%8.2e,%8.2e,%8.2e]"
+  //                      " rps=[%8.2e,%8.2e,%8.2e]\n",
+  // 		     grid,donor,validWidth,i,
+  // 		     iab(0,0,0),iab(0,0,1),iab(0,0,2),rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2));
+  // 	    }
+  // 	    fprintf(plogFile,"updateRefinement:INFO: backup interpolation from just? outside a boundary,"
+  // 		   "grid=%i interpolee=%i r=(%6.2e,%6.2e,%6.2e) r(projected)=(%6.2e,%6.2e,%6.2e)\n",
+  // 		   grid,interpolee,rr(0,0),rr(0,1),rr(0,2),rps(0,0),rps(0,1),rps(0,2) );
+            	  }
+          	}
+                } // end if( !interpolates(0) ) 
+                cg.interpolationWidth(Rx,grid,donor,0)=width; // reset
+                cg.interpolationOverlap(Rx,grid,donor,0)=ov;
+            }
+            if( !interpolates(0) ) validWidth=0;
+            cirp[i].id=qcid[i].id;  // fill in the results 
+            cirp[i].width=validWidth;
+            cirp[i].il[0]=iab(0,0,0);
+            cirp[i].il[1]=iab(0,0,1);
+            cirp[i].il[2]=iab(0,0,2);
+            if( debug & 2 ) // *wdh* 110522
+            {
+                fprintf(plogFile,"CanInterp: i=%i id=%i donor=%i width=%i il=(%i,%i,%i)\n",i,cirp[i].id,donor,cirp[i].width,
+                	      cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            }
+            if( true )
+            {
+                for( int dir=0; dir<cg.numberOfDimensions(); dir++ )
+                {
+          	if( cirp[i].il[dir]==INT_MAX )
+          	{
+            // NOTE: getInterpolationStencil returns INT_MAX if rps is outside the expected bounds
+            	  printf("CanInterp:ERROR:invalid donor location:  grid=%i donor=%i width=%i i=%i il=[%i,%i,%i]\n",
+                 		 grid,donor,cirp[i].width,i,
+                 		 cirp[i].il[0],cirp[i].il[1],cirp[i].il[2]);
+            	  OV_ABORT("ERROR");
+          	}
+                }
+            }
+        }
+        timeForCheck=getCPU()-timeForCheck;
+
+  // --- post receives for the return data  ---
+    const int tag2=580215;
+    for( int p=0; p<np; p++ )
+    {
+    // return the results in the same order as they were posed:
+        tag=tag2+myid;
+        MPI_Irecv( cir, 1, IndexedResultDataType[p], p, tag, OV_COMM, &receiveRequest[p] );
+    }
+
+  // send the answers back to the appropriate processor 
+    loc=0;
+    for( int p=0; p<np; p++ )
+    {
+        tag=tag2+p;
+        MPI_Isend( &(cirp[loc]), number[p], CanInterpolateResultDataType, p, tag, OV_COMM, &sendRequest[p] ); 
+        loc+= number[p];  
+    }
+
+    MPI_Waitall(np,receiveRequest,receiveStatus);
+    
+    if( debug & 1 )
+    { // sanity check:
+        for( int p=0; p<np; p++ )
+        {
+            int num=0;
+            MPI_Get_count( &receiveStatus[p], CanInterpolateResultDataType, &num );
+            assert( num==nqs[p] );
+        }
+        int totalReceived=0;
+        for( int p=0; p<np; p++ )
+            totalReceived+=nqs[p];
+        for( int n=0; n<totalReceived; n++ )
+        {
+            int grid= cid[n].grid, donor=cid[n].donor;
+            int i=cid[n].i;
+            fprintf(plogFile,"canInterpolate: myid=%i query response: id=%i i=%i grid=%i donor=%i width=%i il=(%i,%i,%i)\n",
+            	      myid,cir[n].id,i,grid,donor,cir[n].width,cir[n].il[0],cir[n].il[1],cir[n].il[2]);
+        }
+        
+    }
+    
+  // wait for sends to finish on this processor before we can clean up
+    MPI_Waitall(np,sendRequest,receiveStatus);
+
+  // cleanup:
+    MPI_Type_free( &CanInterpolateResultDataType );
+    MPI_Type_free( &CanInterpolateQueryDataType );
+    
+    for( int p=0; p<np; p++ ) MPI_Type_free( &IndexedResultDataType[p] );
+    delete [] IndexedResultDataType;
+
+    delete [] receiveStatus;
+    delete [] receiveRequest;
+    delete [] sendRequest;
+
+    delete [] qcid;
+    delete [] cirp;
+    delete [] number;
+    delete [] nqs;
+    delete [] processorToCheck;
+
+#endif /*  end parallel version */
+
+    if( debug > 0 )
+    {
+        real totalTime=ParallelUtility::getMaxValue(getCPU()-time0);
+        timeForCheck=ParallelUtility::getMaxValue(timeForCheck);
+        fprintf(plogFile,"canInterpolate: np=%i total=time=%8.2e(s), time-for-local-canInterpolate=%8.2e(s) (%5.2f%%)\n",
+         	   np,totalTime,timeForCheck,100.*timeForCheck/totalTime);
+        fflush(plogFile);
+        Communication_Manager::Sync();
+    }
+
+    return 0;
+}
+
+
+int CanInterpolate::
+transferInterpDataForAMR(CompositeGrid & cg, 
+                                                  intSerialArray *ipLocal, intSerialArray *igLocal, realSerialArray *ciLocal)
+// =================================================================================================
+// /Description:
+//   Transfer base grid interpolation data to the processors where it is need to update
+//   the interpolation points on refinement grids.
+// /ipLocal, igLocal, ciLocal (output): On input these should be arrays of grids, 
+//             ipLocal[grid] grid=0,1,...cg.numberOfBaseGrids()-1
+//             igLocal[grid] grid=0,1,...cg.numberOfBaseGrids()-1
+//             ciLocal[grid] grid=0,1,...cg.numberOfBaseGrids()-1
+//    On output these arrays will be dimensioned and 
+//    ipLocal[grid] will be the array of interpolation points,
+//    igLocal[grid] the interpoleeGrid and ciLocal[grid] the interpolationCoordinates for
+//    each base grid, grid=0,1,...cg.numberOfBaseGrids()-1.
+//
+// /Motivation:
+//   The updateRefinementNewer function will determine interpolation points on refinement grids.
+//   It will use the base grid interpolation pts to mark a refinement grid. We therefore need the
+//   base grid interpolation points that lie within the refinement grid. The interpolation point data
+//   are stored in distributed ararys and may not be available on the processor where it is needed. 
+//   This function will find the base grid interpolation points needed by any refinement grid 
+//   on each processor and communicate this data to the appropriate processor. 
+// /Author:
+//    WDH 061110. 
+// =================================================================================================
+{
+#ifdef USE_PPP
+    
+    if( cg.numberOfRefinementLevels()<=1 ) return 0;
+
+    real time=getCPU();
+    int debug=0;
+
+    const int np= max(1,Communication_Manager::numberOfProcessors());
+    const int myid=max(0,Communication_Manager::My_Process_Number);
+    const int numberOfDimensions = cg.numberOfDimensions();
+    const MPI_Comm & OV_COMM = Overture::OV_COMM;
+
+  // The base grid interpolation data may be stored in the local or global arrays *wdh* 090811
+    const bool allGridsHaveLocalData = cg->localInterpolationDataState==CompositeGridData::localInterpolationDataForAll;
+    
+  // ---------------------------------------------------------------------------------------
+  // -------- Determine which interpolation pts on this processor need to be send to -------
+  // -------- other processors since these points are inside refinement grids        -------
+  // ---------------------------------------------------------------------------------------
+
+    int niTotal = 0; // total number of interp points on this processor
+    for( int bg=0; bg<cg.numberOfBaseGrids(); bg++ )
+    {
+        const intSerialArray & ip = allGridsHaveLocalData ? cg->interpolationPointLocal[bg] :
+                                                                                                                cg.interpolationPoint[bg].getLocalArray();
+        niTotal+=ip.getLength(0);
+    }
+    
+    struct InterpList
+    {
+        int bg,i,p;
+    };
+
+    int *numToSend = new int [np];  // number of interp pts to send to each processor
+    for( int p=0; p<np; p++ ) numToSend[p]=0;
+
+
+  // A given interp pt. may have to go to more than one processor (assume at most 2 on average):
+    int maxNumberInList=max(100,niTotal)*2;  // 
+    InterpList *sendList = new InterpList [maxNumberInList];
+    
+    int ghost=1;  // increase box size of refinement grids by this many base grid spacings
+
+    bool *found = new bool [np];
+    IndexBox box; // holds the box for the local mask on a processor
+    int index[3];
+    int n=0;
+    for( int bg=0; bg<cg.numberOfBaseGrids(); bg++ )
+    {
+        MappedGrid & mgb = cg[bg];
+        const IntegerArray & gir = mgb.gridIndexRange();
+        const intSerialArray & ip = allGridsHaveLocalData ? cg->interpolationPointLocal[bg] :
+                                                                                                                cg.interpolationPoint[bg].getLocalArray();
+
+        bool isPeriodic[3]={false,false,false}; //
+        for( int dir=0; dir<numberOfDimensions; dir++ )
+        {
+            isPeriodic[dir]= mgb.isPeriodic(dir)==Mapping::functionPeriodic;
+        }
+
+        for( int i=ip.getBase(0); i<=ip.getBound(0); i++ )  // interp pts. on this grid and processor
+        {
+      // We look for interp pts that are inside a refinement grid.
+      //  We need to check all levels (since even though the grids are nested the parallel distributions
+      //     are different)
+
+            for( int p=0; p<np; p++ ) found[p]=false;  // use this to avoid duplicate entries
+            int numFound=0; // if we have found all np processors need the data for pt i, then we are done.
+            
+            for( int l=1; l<cg.numberOfRefinementLevels(); l++ )
+            {
+      	GridCollection & rl = cg.refinementLevel[l];
+      	for( int g=0; g<rl.numberOfComponentGrids() && numFound<np; g++ )
+      	{
+        	  int grid = rl.gridNumber(g);           // index into cg
+        	  const intArray & mask = cg[grid].mask();  // refinement grid mask
+        	  int rf[3];  // refinement factors (to the BASE GRID!)
+        	  rf[0]=rl.refinementFactor(0,g);
+        	  rf[1]=rl.refinementFactor(1,g);
+        	  rf[2]=rl.refinementFactor(2,g);
+
+        	  for( int axis=0; axis<numberOfDimensions; axis++ ) index[axis]=ip(i,axis);
+
+        	  for( int p=0; p<np && numFound<np ; p++ ) // is pt i needed by processor p?
+        	  {
+          	    if( !found[p] )
+          	    {
+//	    CopyArray::getLocalArrayBoxWithGhost( p, mask, box );  // get box for local mask array on processor p
+            	      CopyArray::getLocalArrayBox( p, mask, box );  // get box for local mask array on processor p
+//             printf("myid=%i: bg=%i i=%i grid=%i p=%i box=[%i,%i][%i,%i] rf=[%i,%i]\n", 
+// 		   myid,bg,i,grid,p,box.base(0),box.bound(0),box.base(1),box.bound(1),rf[0],rf[1]);
+          	    
+            	      if( ! box.isEmpty() )
+            	      {
+            		bool inside=true;
+            		for( int axis=0; axis<numberOfDimensions; axis++ )
+            		{
+              		  if( index[axis]<box. base(axis)/rf[axis]-ghost ||
+                  		      index[axis]>box.bound(axis)/rf[axis]+ghost )
+              		  {
+                		    inside=false;
+                                        if( isPeriodic[axis] )
+                		    { // if the base grid is periodic in this direction, check periodic image of the interp pt.
+                  		      int period=gir(1,axis)-gir(0,axis);
+                                            int indexp;
+                                            if( index[axis]<box.base(axis)/rf[axis]-ghost )
+                                                indexp=index[axis]+period;
+                  		      else
+                                                indexp=index[axis]-period;
+                  		      if( indexp>=box. base(axis)/rf[axis]-ghost &&
+                    			  indexp<=box.bound(axis)/rf[axis]+ghost )
+                  		      {
+                  			inside=true;
+                  		      }
+                		    }
+                		    if( !inside ) break;
+              		  }
+            		}
+
+            		if( inside ) 
+            		{
+              		  if( debug & 2 )
+                		    printf("myid=%i: bg=%i i=%i pt (%i,%i) is inside refine grid=%i box=[%i,%i][%i,%i]\n",
+                     			   myid,bg,i,index[0],index[1],grid,
+                     			   box.base(axis1)/rf[axis1]-ghost,box.bound(axis1)/rf[axis1]+ghost,
+                     			   box.base(axis2)/rf[axis2]-ghost,box.bound(axis2)/rf[axis2]+ghost);
+            		
+
+              		  found[p]=true; numFound++;
+		  // assert( n <maxNumberInList );
+                                    if( n>=maxNumberInList )
+              		  {
+                    // allocate more space
+                                        int newMaxNumberInList=int(maxNumberInList*1.5);
+                                        InterpList *newSendList = new InterpList [newMaxNumberInList];
+                                        for( int m=0; m<maxNumberInList; m++ )
+                		    {
+                  		      newSendList[m].bg=sendList[m].bg;
+                  		      newSendList[m].i =sendList[m].i; 
+                  		      newSendList[m].p =sendList[m].p; 
+                		    }
+                                        delete [] sendList;
+                		    sendList=newSendList;
+                                        printF("\n *** transferInterpDataForAMR:INFO: allocating more space for sendList ***\n"
+                                                      "   niTotal=%i, old-number=%i, new-number=%i\n\n",
+                                                        niTotal,maxNumberInList,newMaxNumberInList);
+                		    maxNumberInList=newMaxNumberInList;
+              		  }
+              		  
+              		  sendList[n].bg=bg; sendList[n].i=i; sendList[n].p=p;
+              		  numToSend[p]++;
+              		  n++;
+            		}
+            	      }
+          	    }
+        	  }
+      	} // end for g
+            } // end for level l
+        } // end for i
+    } // end for  bg 
+    
+    int totalNumberToSend=n;
+    
+  // communicate the number of points we will be sending (we could overlap this with computations below)
+    int tag=173;
+    MPI_Status status;
+    int *numToReceive = new int [np];
+    const int tag0=311745;
+    for( int p=0; p<np; p++ )
+    {
+        int tags=tag0+p, tagr=tag0+myid;
+        MPI_Sendrecv(&numToSend[p],    1, MPI_INT, p, tags, 
+                                  &numToReceive[p], 1, MPI_INT, p, tagr, OV_COMM, &status ); 
+    }
+      	
+                
+  // We pass the interp data in this next struct:
+    struct InterpData
+    {
+        real ci[3];  //  put doubles first for memory alignment
+        int grid, ip[3], donor;
+    };
+        
+    InterpData **dataToSend = new InterpData* [np];
+    InterpData **dataToReceive = new InterpData* [np];
+        
+
+    for( int p=0; p<np; p++ )
+    { 
+        dataToSend[p]    = new InterpData [max(1,numToSend[p])];
+        dataToReceive[p] = new InterpData [max(1,numToReceive[p])];
+    }
+
+    MPI_Request *receiveRequest = new MPI_Request[np];  
+    MPI_Request *sendRequest = new MPI_Request[np];
+
+    MPI_Datatype InterpDataType, oldTypes[2];
+    MPI_Aint offsets[2], extent;
+    int blockCounts[2];
+
+    offsets[0]    = 0;
+    oldTypes[0]   = MPI_Real;  // NOTE: MPI_REAL == MPI_FLOAT
+    blockCounts[0]= 3;         // there are 3 reals
+
+    MPI_Type_extent(oldTypes[0], &extent);
+
+    offsets[1]    = blockCounts[0]*extent;
+    oldTypes[1]   = MPI_INT;   
+    blockCounts[1]= 5;         // there are 5 int's to InterpData
+
+    MPI_Type_struct(2, blockCounts, offsets, oldTypes, &InterpDataType);
+    MPI_Type_commit(&InterpDataType);
+  // post receives
+    const int tag1=991528;
+    for( int p=0; p<np; p++ )
+    {
+        tag=tag1+myid;
+        MPI_Irecv( dataToReceive[p], numToReceive[p], InterpDataType, p, tag, OV_COMM, &receiveRequest[p] );
+    }
+        
+  // Package up the data and send it
+    int *numSent = new int [np];
+    for( int p=0; p<np; p++ ) numSent[p]=0;
+    for( int n=0; n<totalNumberToSend; n++ )
+    {
+        int p = sendList[n].p;
+        int i = sendList[n].i;
+        int bg = sendList[n].bg;
+        
+        InterpData & data = dataToSend[p][numSent[p]];
+        numSent[p]++;
+        
+        data.grid=bg;
+        
+    // const intSerialArray & ip = cg.interpolationPoint[bg].getLocalArray();      
+    // const intSerialArray & ig = cg.interpoleeGrid[bg].getLocalArray();
+    // const realSerialArray & ci = cg.interpolationCoordinates[bg].getLocalArray();
+    // *wdh* 090811
+        const intSerialArray & ip = allGridsHaveLocalData ?  cg->interpolationPointLocal[bg] :
+                                                                                                                  cg.interpolationPoint[bg].getLocalArray();
+        const intSerialArray & ig = allGridsHaveLocalData ?  cg->interpoleeGridLocal[bg] :
+                                                                                                                  cg.interpoleeGrid[bg].getLocalArray();
+        const realSerialArray & ci = allGridsHaveLocalData ? cg->interpolationCoordinatesLocal[bg] : 
+                                                                                                                  cg.interpolationCoordinates[bg].getLocalArray();
+
+        if( i<ip.getBase(0) || i>ip.getBound(0) )
+        {
+            printf("ERROR: myid=%i n=%i p=%i i=%i bg = %i but ip bounds=[%i,%i]\n",
+           	     myid,n,p,bg,ip.getBase(0),ip.getBound(0));
+            Overture::abort("error");
+        }
+    // assert( i>=ip.getBase(0) && i<=ip.getBound(0) );
+        data.donor   =ig(i);
+        for( int axis=0; axis<numberOfDimensions; axis++ )
+        {
+            data.ip[axis]=ip(i,axis);
+            data.ci[axis]=ci(i,axis);
+        }
+        for( int axis=numberOfDimensions; axis<3; axis++ )
+        {
+            data.ip[axis]=0;
+            data.ci[axis]=0.;
+        }
+
+    // printf(" myid=%i : send data for pt i=%i ci=(%g,%g,%g)\n",myid,i,data.ci[0],data.ci[1],data.ci[2]);
+        
+    }
+    for( int p=0; p<np; p++ )
+    {
+        assert( numSent[p]==numToSend[p] );
+    }
+
+
+    for( int p=0; p<np; p++ )
+    {
+        if( debug & 4 ) printf("myid=%i send %i to p=%i\n",myid,numToSend[p],p);
+        tag=tag1+p;
+        MPI_Isend( dataToSend[p], numToSend[p], InterpDataType, p, tag, OV_COMM, &sendRequest[p] );
+
+    }
+    if( debug & 4 )
+    {
+        fflush(0);
+        Communication_Manager::Sync();
+    }
+
+  // --- wait for all the receives to finish ---
+    MPI_Status *receiveStatus= new MPI_Status [np];  
+    MPI_Waitall(np,receiveRequest,receiveStatus);
+
+
+
+    if( debug & 1 )
+    { // sanity check:
+        for( int p=0; p<np; p++ )
+        {
+            int num=0;
+            MPI_Get_count( &receiveStatus[p], InterpDataType, &num );
+            if( debug & 4 ) printf("myid=%i received %i from p=%i\n",myid,num,p);
+            assert( num==numToReceive[p] );
+        }
+        if( debug & 4 )
+        {
+            fflush(0);
+            Communication_Manager::Sync();
+        }
+        
+    }
+
+    MPI_Type_free( &InterpDataType);
+
+  // -----------------------------------------------------------------------------
+  // ----------- receive the interp data and put into normal arrays ---------------
+  // -----------------------------------------------------------------------------
+
+    int *numPerGrid = new int[cg.numberOfBaseGrids()]; // counst number of interp pts. per grid that we will receive.
+    for( int grid=0; grid<cg.numberOfBaseGrids(); grid++ ) numPerGrid[grid]=0;
+    for( int p=0; p<np; p++ )
+    {
+        for( int n=0; n<numToReceive[p]; n++ )
+        {
+            int grid = dataToReceive[p][n].grid;
+            assert( grid>=0 && grid<cg.numberOfBaseGrids() );
+            numPerGrid[grid]++;
+        }
+        
+    }
+    assert( ipLocal!=NULL && igLocal!=NULL && ciLocal!=NULL );
+    
+    for( int grid=0; grid<cg.numberOfBaseGrids(); grid++ )
+    {
+        if( numPerGrid[grid]>0 )
+        {
+            ipLocal[grid].redim(numPerGrid[grid],numberOfDimensions);
+            igLocal[grid].redim(numPerGrid[grid]);
+            ciLocal[grid].redim(numPerGrid[grid],numberOfDimensions);
+        }
+        
+    }
+
+    for( int grid=0; grid<cg.numberOfBaseGrids(); grid++ ) numPerGrid[grid]=0;
+    for( int p=0; p<np; p++ )
+    {
+        for( int n=0; n<numToReceive[p]; n++ )
+        {
+            InterpData & data = dataToReceive[p][n];
+            int grid = data.grid;
+            int i = numPerGrid[grid];
+
+            assert( i>=0 && i<=ipLocal[grid].getBound(0) );
+            
+            for( int axis=0; axis<numberOfDimensions; axis++ )
+            {
+      	ipLocal[grid](i,axis)=data.ip[axis];
+      	ciLocal[grid](i,axis)=data.ci[axis];
+            }
+            igLocal[grid](i)=data.donor;
+
+      // printf(" myid=%i : receive data for pt i=%i ci=(%g,%g,%g)\n",myid,i,data.ci[0],data.ci[1],data.ci[2]);
+
+            numPerGrid[grid]++;
+        }
+    }
+
+
+  // wait for sends to complete before cleanup
+    MPI_Waitall(np,sendRequest,receiveStatus);
+
+  // --- clean up ---
+
+    delete [] numToSend;
+    delete [] sendList;
+    delete [] found;
+    delete [] numToReceive;
+    for( int p=0; p<np; p++ )
+    {
+        delete [] dataToSend[p];
+        delete [] dataToReceive[p];
+    }
+    delete [] dataToSend;
+    delete [] dataToReceive;
+    delete [] receiveRequest;
+    delete [] sendRequest;
+    delete [] numSent;
+    delete [] receiveStatus;
+    delete [] numPerGrid;
+
+    if( debug & 2 )
+    {
+        fflush(0);
+        Communication_Manager::Sync();
+        printF("*** Results from transferInterpDataForAMR   ***\n");
+        printF("  * Interp data needed for updateRefinement * \n");
+        fflush(0);
+        Communication_Manager::Sync();
+        for( int grid=0; grid<cg.numberOfBaseGrids(); grid++ )
+        {
+            intSerialArray & ip = ipLocal[grid];
+            intSerialArray & ig = igLocal[grid];
+            realSerialArray & ci = ciLocal[grid];
+            for( int i=ip.getBase(0); i<=ip.getBound(0); i++ )
+            {
+      	printf(" myid=%i grid=%i i=%i ip=(%i,%i,%i) ig=%i ci=(%g,%g,%g)\n",
+             	       myid,grid,i,ip(i,0),ip(i,1),(numberOfDimensions==2 ? 0 : ip(i,2)),
+                              ig(i),
+                              ci(i,0),ci(i,1),(numberOfDimensions==2 ? 0. : ci(i,2)));
+            }
+        }
+        fflush(0);
+        Communication_Manager::Sync();
+    }
+
+    if( debug & 1 )
+    {
+        time=getCPU()-time;
+        time=ParallelUtility::getMaxValue(time);
+        printF("transferInterpDataForAMR: time=%8.2e(s) \n",time);
+    }
+#endif  
+    return 0;
+}
+
+
+
+
+//  Define a triple for loop.  The macro is defined only within this file.
+#define COMPOSITE_GRID_FOR_3(range,i,j,k)                              for (k=((Integer*)(range))[4]; k<=((Integer*)(range))[5]; k++) for (j=((Integer*)(range))[2]; j<=((Integer*)(range))[3]; j++) for (i=((Integer*)(range))[0]; i<=((Integer*)(range))[1]; i++)
+
+
+// =====================================================================================
+/// \brief  Determine the lower-left corner of the interpolation stencil.
+/// 
+/// \Note: If the coordinates r(i,0:d-1) lie outside the extendedIndexRange then
+///    a value of INT_MAX is returned in the interpolationStencil.
+/// 
+///  \pValidRange : pointer to an array validRange(2,3) which defines the valid
+///    index range of points that can be used for interpolation. Normally
+///    this is cg[k2].extendedRange
+///
+/// \Notes: *wdh* 091118 : added validRange so we can interpolate from ghost points.
+// =====================================================================================
+void CanInterpolate::
+getInterpolationStencil(const Integer&      k10,
+                  			const Integer&      k20,
+                  			const RealArray&    r,
+                  			const IntegerArray& interpolationStencil,
+                  			const IntegerArray& useBackupRules,
+                                                const CompositeGrid & cg,
+                                                int *pValidRange /* = NULL */  ) 
+{
+    const MappedGrid& g = cg[k20];
+
+    const int numberOfDimensions=g.numberOfDimensions();
+//     const int numberOfGrids=cg.numberOfGrids();
+    const IntegerArray & interpolationWidth = cg.interpolationWidth;
+//     const RealArray & interpolationOverlap = cg.interpolationOverlap; 
+        
+    const real epsilon=cg->epsilon;
+
+    const Real a = -(Real)2. * epsilon, b = (Real)1. - a;
+    const Integer base = r.getBase(0), bound = r.getBound(0),
+        k1 = cg.componentGridNumber(k10), k2 = cg.componentGridNumber(k20),
+        l  = cg.multigridLevelNumber(k10);
+
+#ifdef DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+#define g_boundaryCondition(i,j)     g.boundaryCondition ((i),(j))
+#define g_gridSpacing(i)             g.gridSpacing       ((i))
+#define g_indexRange(i,j)            g.indexRange        ((i),(j))
+#define g_extendedIndexRange(i,j)    g.extendedIndexRange((i),(j))
+#define g_isCellCentered(i)          g.isCellCentered    ((i))
+#define g_isPeriodic(i)              g.isPeriodic        ((i))
+#define r_(i,j)                      r                   ((i),(j))
+#define interpolationStencil_(i,j,k) interpolationStencil((i),(j),(k))
+#define useBackupRules_(i)           useBackupRules      ((i))
+#define iw0_(i)                      iw0                 ((i),k1,k2,l)
+#else
+#define g_boundaryCondition(i,j)     g_boundaryCondition_ [(i) + 2 * (j)]
+#define g_gridSpacing(i)             g_gridSpacing_       [(i)]
+#define g_indexRange(i,j)            g_indexRange_        [(i) + 2 * (j)]
+#define g_extendedIndexRange(i,j)    g_extendedIndexRange_[(i) + 2 * (j)]
+#define g_isCellCentered(i)          g_isCellCentered_    [(i)]
+#define g_isPeriodic(i)              g_isPeriodic_        [(i)]
+#define r_(i,j)                      r__                  [(i) + r_s * (j)]
+#define interpolationStencil_(i,j,k) interpolationStencil__[(i) + iS_s1 * (j) + iS_s2 * (k)]
+#define useBackupRules_(i)           useBackupRules__     [(i)]
+#define iw0_(i)                      iw0__                [(i)]
+    Integer *g_boundaryCondition_   = g.boundaryCondition() .getDataPointer(),
+        *g_indexRange_          = g.indexRange()        .getDataPointer(),
+//    *g_extendedIndexRange_  = g.extendedIndexRange().getDataPointer(),
+        *g_isCellCentered_      = g.isCellCentered()    .getDataPointer(),
+        *g_isPeriodic_          = g.isPeriodic()        .getDataPointer(),
+        *interpolationStencil__ = interpolationStencil  .getDataPointer(),
+        *useBackupRules__       = useBackupRules        .getDataPointer(),
+        *interpolationWidth__   = &interpolationWidth(0,k1,k2,l);
+//        *backupInterpolationWidth__ = &backupInterpolationWidth(0,k1,k2,l);
+    Real    *g_gridSpacing_         = g.gridSpacing()       .getDataPointer(),
+        *r__                    = r                     .getDataPointer();
+    const Integer r_s = &r(base,1) - &r(base,0),
+        iS_s1 = &interpolationStencil(base,1,0) -
+        &interpolationStencil(base,0,0),
+        iS_s2 = &interpolationStencil(base,0,1) -
+        &interpolationStencil(base,0,0);
+    r__                    = &r_(-base,0);
+    interpolationStencil__ = &interpolationStencil_(-base,0,0);
+    useBackupRules__       = &useBackupRules_(-base);
+#endif // DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+
+  // *wdh* 091118 -- this function previously used the extendedIndexRange -> use extendedRange
+  // NOTE: g.extendedRange() is NOT an A++ array
+    if( pValidRange==NULL ) pValidRange = (int*)(&g.extendedRange(0,0));
+#undef validRange
+#define validRange(ks,kd) pValidRange[(ks)+2*(kd)]
+
+//   printF(" getInterpolationStencil: validRange=[%i,%i][%i,%i][%i,%i]\n",
+// 	 validRange(0,0),validRange(1,0),
+// 	 validRange(0,1),validRange(1,1),
+// 	 validRange(0,2),validRange(1,2));
+
+  // wdh: we can interpolate from extended index range
+    real rBound[3][2];
+    Integer kd;
+    for (kd=0; kd<3; kd++) 
+    {
+        rBound[kd][0]=a+(validRange(0,kd)-g_indexRange(0,kd))*g_gridSpacing(kd);   
+        rBound[kd][1]=b+(validRange(1,kd)-g_indexRange(1,kd))*g_gridSpacing(kd);
+    }
+
+    for (Integer i=base; i<=bound; i++) 
+    {
+#ifdef DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+        IntegerArray& iw0 = interpolationWidth;
+//        IntegerArray& iw0 = useBackupRules_(i) ?
+//          backupInterpolationWidth : interpolationWidth;
+#else
+        Integer* iw0__ = interpolationWidth__;
+//        Integer* iw0__ = useBackupRules_(i) ?
+//          backupInterpolationWidth__ : interpolationWidth__;
+#endif // DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+        for ( kd=0; kd<3; kd++) if (kd < numberOfDimensions) 
+        {
+// *wdh     if (r_(i,kd) < a || r_(i,kd) > b) {
+            if (r_(i,kd) < rBound[kd][0] || r_(i,kd) > rBound[kd][1]) 
+            {
+      	interpolationStencil_(i,0,kd) = interpolationStencil_(i,1,kd) = INTEGER_MAX;
+            } 
+            else 
+            {
+      	Real rr = r_(i,kd) / g_gridSpacing(kd) + g_indexRange(0,kd);
+      	interpolationStencil_(i,0,kd) =
+        	  Integer(floor(rr - (Real).5 * iw0_(kd) +
+                  			(g_isCellCentered(kd) ? (Real).5 : (Real)1.)));
+      	interpolationStencil_(i,1,kd) =
+        	  Integer(floor(rr + (Real).5 * iw0_(kd) -
+                  			(g_isCellCentered(kd) ? (Real).5 : (Real)0.)));
+      	if (!g_isPeriodic(kd)) {
+        	  if (interpolationStencil_(i,0,kd) < validRange(0,kd) &&
+            	      g_boundaryCondition(0,kd)) {
+//                      Point is close to a BC side.  One-sided interpolation used.
+          	    interpolationStencil_(i,0,kd) = validRange(0,kd);
+          	    interpolationStencil_(i,1,kd) = interpolationStencil_(i,0,kd)
+            	      + (iw0_(kd) - 1);
+        	  } // end if
+        	  if (interpolationStencil_(i,1,kd) > validRange(1,kd) &&
+            	      g_boundaryCondition(1,kd)) {
+//                      Point is close to a BC side.  One-sided interpolation used.
+          	    interpolationStencil_(i,1,kd) = validRange(1,kd);
+          	    interpolationStencil_(i,0,kd) = interpolationStencil_(i,1,kd)
+            	      - (iw0_(kd) - 1);
+        	  } // end if
+      	} // end if
+            } // end if
+        } 
+        else if (kd <= interpolationStencil.getBound(2)) 
+        {
+            interpolationStencil_(i,0,kd) = validRange(0,kd);
+            interpolationStencil_(i,1,kd) = validRange(1,kd);
+        } // end if, end for
+    } // end for
+#undef g_boundaryCondition
+#undef g_gridSpacing
+#undef g_indexRange
+#undef g_extendedIndexRange
+#undef g_isCellCentered
+#undef g_isPeriodic
+#undef interpolationStencil_
+#undef useBackupRules_
+#undef iw0_
+#undef r_
+}
+
+
+// ====================================================================================
+/// \brief Determine whether points on grid k1 (target) at r in the coordinates 
+///   of grids k2 (donor) can be interpolated from grids k2 (donor).
+///
+///  \pValidRange : pointer to an array validRange(2,3) which defines the valid
+///    index range of points that can be used for interpolation. Normally
+///    this is cg[k20].extendedRange
+///
+/// \Notes: *wdh* 091118 : added validRange so we can interpolate from ghost points.
+// =======================================================================================
+Logical CanInterpolate::
+cgCanInterpolate(
+    const Integer&      k10,
+    const Integer&      k20,
+    const RealArray&    r,
+    const IntegerArray& ok,
+    const IntegerArray& useBackupRules,
+    const Logical       checkForOneSided,
+    const CompositeGrid & cg,
+    const IntegerArray & mask,
+    int *pValidRange /* = NULL */ ) 
+{
+    const MappedGrid & g = cg[k20];
+    const int numberOfDimensions=g.numberOfDimensions();
+    const int numberOfGrids=cg.numberOfGrids();
+    const IntegerArray & interpolationWidth = cg.interpolationWidth;
+    const RealArray & interpolationOverlap = cg.interpolationOverlap; 
+        
+    const real epsilon=cg->epsilon;
+        
+    Integer iv1[3], &i1=iv1[0], &i2=iv1[1], &i3=iv1[2], ks, kd, iab_[2*3];
+    Logical isOneSided, oneSided[3][2], returnValue = LogicalTrue, invalid;
+
+    IntegerArray iab2(1,2,3); RealArray rA(1,numberOfDimensions); // ********** fix this !
+
+    const Real a = -(Real)2. * epsilon, b = (Real)1. - a;
+    const Integer base = r.getBase(0), bound = r.getBound(0),
+        k1 = cg.componentGridNumber(k10), k2 = cg.componentGridNumber(k20),
+        l  = cg.multigridLevelNumber(k10);
+
+    assert( k10>=0 && k10<numberOfGrids);
+    assert( k20>=0 && k20<numberOfGrids);
+
+    assert( k1>=0 && k1<numberOfGrids);
+    assert( k2>=0 && k2<numberOfGrids);
+        
+
+#define iab(i,j) iab_[(i) + 2 * (j)]
+
+#define g_boundaryCondition(i,j)  g_boundaryCondition_  [(i) + 2 * (j)]
+#define g_dimension(i,j)          g_dimension_          [(i) + 2 * (j)]
+#define g_discretizationWidth(i)  g_discretizationWidth_[(i)]
+#define g_gridSpacing(i)          g_gridSpacing_        [(i)]
+#define g_indexRange(i,j)         g_indexRange_         [(i) + 2 * (j)]
+#define g_extendedIndexRange(i,j) g_extendedIndexRange_ [(i) + 2 * (j)]
+#define g_isCellCentered(i)       g_isCellCentered_     [(i)]
+#define g_isPeriodic(i)           g_isPeriodic_         [(i)]
+// define g_mask(i,j,k)             g_mask_               [(i)+i10*(j)+j10*(k)]
+#define r_(i,j)                   r__                   [(i) + r_s * (j)]
+#define useBackupRules_(i)        useBackupRules__      [(i)]
+#define ok_(i)                    ok__                  [(i)]
+#define iw0_(i)                   iw0__                 [(i)]
+#define ov0_(i)                   ov0__                 [(i)]
+    Integer *g_boundaryCondition_   = g.boundaryCondition()  .getDataPointer(),
+        *g_dimension_           = g.dimension()          .getDataPointer(),
+        *g_discretizationWidth_ = g.discretizationWidth().getDataPointer(),
+        *g_indexRange_          = g.indexRange()         .getDataPointer(),
+        *g_isCellCentered_      = g.isCellCentered()     .getDataPointer(),
+        *g_isPeriodic_          = g.isPeriodic()         .getDataPointer(),
+// **            *g_mask_                = mask()                 .getDataPointer(),
+        *useBackupRules__       = useBackupRules         .getDataPointer(),
+        *ok__                   = ok                     .getDataPointer(),
+        *interpolationWidth__   = &interpolationWidth(0,k1,k2,l);
+        
+    Real    *g_gridSpacing_         = g.gridSpacing()        .getDataPointer(),
+        *r__                    = r                      .getDataPointer(),
+        *interpolationOverlap__ = &interpolationOverlap(0,k1,k2,l);
+//     const Integer i10 = g_dimension(1,0) - g_dimension(0,0) + 1,
+//       j10 = i10 * (g_dimension(1,1) - g_dimension(0,1) + 1);
+    int r_s = &r(base,1) - &r(base,0);
+
+// **    g_mask_ = &g_mask(-g_dimension(0,0),-g_dimension(0,1),-g_dimension(0,2));
+    r__               = &r_(-base,0);
+    ok__              = &ok_(-base);
+    useBackupRules__  = &useBackupRules_(-base);
+
+    const Integer *g_I1 = g.I1(), *g_I2 = g.I2(), *g_I3 = g.I3();
+        
+    int * maskp = mask.Array_Descriptor.Array_View_Pointer2;
+    if( maskp==NULL )
+    {
+        const int myid=Communication_Manager::My_Process_Number;
+        printf("cgCanInterpolate:ERROR: mask is empty for grid=%i donor=%i, myid=%i\n",k10,k20,myid);
+        Overture::abort("fatal error");
+    }
+        
+    const int maskDim0=mask.getRawDataSize(0);
+    const int maskDim1=mask.getRawDataSize(1);
+#undef g_mask
+#define g_mask(i0,i1,i2) maskp[i0+maskDim0*(i1+maskDim1*(i2))]    
+
+  // NOTE: g.extendedRange() is NOT an A++ array
+    if( pValidRange==NULL ) pValidRange = (int*)(&g.extendedRange(0,0));
+#undef validRange
+#define validRange(ks,kd) pValidRange[(ks)+2*(kd)]
+
+//   printF(" cgCanInterpolate: validRange=[%i,%i][%i,%i][%i,%i]\n",
+// 	 validRange(0,0),validRange(1,0),
+// 	 validRange(0,1),validRange(1,1),
+// 	 validRange(0,2),validRange(1,2));
+
+
+  // wdh: By default we can interpolate from the index range : g.extendedRange
+    real rBound[3][2];
+    for (kd=0; kd<3; kd++) 
+    {
+        rBound[kd][0]=a+(validRange(0,kd)-g_indexRange(0,kd))*g_gridSpacing(kd);   
+        rBound[kd][1]=b+(validRange(1,kd)-g_indexRange(1,kd))*g_gridSpacing(kd);
+    }
+
+    for (Integer i=base; i<=bound; i++)
+    {
+        if (ok_(i)) 
+        {
+//
+//      Determine the stencil of points to check.
+//
+#ifdef DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+            IntegerArray& iw0 = interpolationWidth;
+            RealArray& ov0 = interpolationOverlap;
+#else
+            Integer* iw0__ = interpolationWidth__;
+            Real* ov0__ = interpolationOverlap__;
+#endif // DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+            invalid = isOneSided = LogicalFalse;
+            for (kd=0; kd<3; kd++) 
+            {
+      	oneSided[kd][0] = oneSided[kd][1] = LogicalFalse;
+      	if (kd < numberOfDimensions) 
+      	{
+	  // *wdh if (invalid = r_(i,kd) < a || r_(i,kd) > b) break;
+        	  if (invalid = r_(i,kd) < rBound[kd][0] || r_(i,kd) > rBound[kd][1]) break;
+        	  Real rr = r_(i,kd) / g_gridSpacing(kd) + g_indexRange(0,kd);
+
+	  // real overlap=ov0_(kd); // *wdh*
+            		
+//    if( plogFile!=NULL ) fprintf(plogFile,"cgCanInterp: after r-check invalid=%i "
+// 				   " r_=(%g,%g) rBound=[%g,%g][%g,%g]\n",
+// 				   (int)invalid,r_(i,0),r_(i,1),
+//                                    rBound[0][0],rBound[0][1],rBound[1][0],rBound[1][1]);
+            
+        	  iab(0,kd) = Integer(floor(rr - ov0_(kd) -  (g_isCellCentered(kd) ? (Real).5 : (Real)0.)));
+        	  iab(1,kd) = Integer(floor(rr + ov0_(kd) +  (g_isCellCentered(kd) ? (Real).5 : (Real)1.)));
+          // int ovWidth = int(ov0_(kd)*2.+.5);  // *wdh* sometimes due to round off iab(1,kd) above will be 1 too big
+	  // iab(1,kd) = iab(0,kd) + ovWidth;
+
+        	  if (!g_isPeriodic(kd)) 
+                    {
+          	    if (iab(0,kd) < validRange(0,kd)) 
+                        {
+              // Check if point is too close to an interpolated side.
+            	      if (invalid = !g_boundaryCondition(0,kd)) break;
+              // One-sided interpolation is used close to a boundary.
+            	      isOneSided = oneSided[kd][0] = LogicalTrue;
+            	      iab(0,kd) = validRange(0,kd);
+            	      iab(1,kd) = iab(0,kd) + Integer(floor( .5*iw0_(kd) + ov0_(kd) + (Real).5));
+          	    } // end if
+          	    if (iab(1,kd) > validRange(1,kd)) 
+                        {
+              // Check if point is too close to an interpolated side.
+            	      if (invalid = !g_boundaryCondition(1,kd)) break;
+              //  One-sided interpolation is used close to a boundary.
+            	      isOneSided = oneSided[kd][1] = LogicalTrue;
+            	      iab(1,kd) = validRange(1,kd);
+            	      iab(0,kd) = iab(1,kd) - Integer(floor( .5 *iw0_(kd) + ov0_(kd) + (Real).5));
+          	    } // end if
+        	  } // end if
+                    if( iab(0,kd)<mask.getBase(kd) || iab(1,kd)>mask.getBound(kd) )
+        	  {
+                        const int myid=max(0,Communication_Manager::My_Process_Number);
+                        printf("cgCanInterpolate:ERROR: iab(0:1,kd=%i)=[%i,%i] is outside the mask bounds [%i,%i]\n"
+                                      "  r=[%g,%g,%g], rr=%g, ov=[%g,%g,%g], grid=%i donor=%i, myid=%i\n"
+                                      "  The problem could be that you do not have enough parallel ghost points. \n"
+                                      "  You should set `minimum number of distributed ghost lines' from the top level ogen menu.\n",
+               		   kd,iab(0,kd),iab(1,kd),mask.getBase(kd),mask.getBound(kd),
+                                      r_(i,0),r_(i,1),(numberOfDimensions==3 ? r_(i,2) : 0.),
+                                      rr,ov0_(0),ov0_(1),ov0_(2), k10,k20,myid);
+          	    Overture::abort("error");
+        	  }
+        	  
+      	} 
+                else 
+                {
+        	  iab(0,kd) = validRange(0,kd);
+        	  iab(1,kd) = validRange(1,kd);
+      	} // end if
+            } // end for
+
+      //      Check that all points in the stencil are either discretization points
+      //      or interpolation points.  Backup discretization points and backup
+      //      interpolation points are also allowed.
+
+//       if( plogFile!=NULL ) fprintf(plogFile,"cgCanInterp: before mask check invalid=%i iab=[%i,%i][%i,%i]\n"
+//                                    " valid=[%i,%i][%i,%i] periodic=[%i,%i] bc=[%i,%i][%i,%i]\n",
+// 				   (int)invalid,iab(0,0),iab(1,0),iab(0,1),iab(1,1),
+//                                    validRange(0,0),validRange(1,0),
+//                                    validRange(0,1),validRange(1,1),
+//                                    g_isPeriodic(0),g_isPeriodic(1),
+// 				   g_boundaryCondition(0,0),g_boundaryCondition(1,0),
+//                                    g_boundaryCondition(0,1),g_boundaryCondition(1,1));
+            
+
+
+            if (!invalid) 
+            {
+      	COMPOSITE_GRID_FOR_3(iab_, i1, i2, i3)
+      	{
+          // if( plogFile!=NULL ) fprintf(plogFile," (i1,i2,i3)=(%i,%i,%i) g_I=(%i,%i,%i)\n",
+	  //			       i1,i2,i3,g_I1[i1],g_I2[i2],g_I3[i3]);
+        	  
+          // *wdh* we cannot use the indirection arrays g_I1,g_I2,g_I3 in parallel since these
+          //       include the periodic wrap (the local mask may not span the periodic direction)
+	  // if (invalid = invalid ||
+	  //     !(g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & CompositeGrid::ISusedPoint)) break;
+
+        	  if (invalid = invalid || !(g_mask(i1,i2,i3) & CompositeGrid::ISusedPoint)) break;
+      	}
+
+//         if (!invalid) 
+// 	{
+// 	  for (kd=0; kd<3; kd++)
+// 	  {
+// 	    if( oneSided[kd][0] )
+// 	      interpolationLocation(i,0)=iab(0,kd);
+// 	    else
+//               interpolationLocation(i,0)=iab(0,kd) + int(floor( ov0_(kd)- .5*iw0_(kd);
+// 	}
+      	
+
+            }
+            
+
+
+            if (!invalid && checkForOneSided && isOneSided) 
+            {
+        //   Check for one-sided interpolation from BC points
+        //   that interpolate from the interior of another grid.
+        //
+        //   Find the interpolation stencil.
+
+      	for (kd=0; kd<numberOfDimensions; kd++) rA(0,kd) = r_(i,kd);
+      	getInterpolationStencil(k10, k20, rA, iab2, useBackupRules, cg, pValidRange);
+
+#ifdef DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+#define     iab2_(i,j,k) iab2((i),(j),(k))
+#else
+#define     iab2_(i,j,k) iab2__[(j) + 2 * (k)]
+#endif // DO_NOT_OPTIMIZE_SCALAR_ARRAY_REFERENCES
+      	Integer* iab2__ = iab2.getDataPointer();
+      	for (kd=0; kd<3; kd++) 
+                {
+        	  for (ks=0; ks<2; ks++) 
+        	  {
+                        if (oneSided[kd][ks]) 
+                        {
+            	      Integer iab21=iab2_(0,0,kd), iab22=iab2_(0,1,kd);
+	      // *wdh* 021205: check added getInterpolationStencil will return this value for bogus pts
+            	      if( iab21==INT_MAX ) 
+            	      {
+            		invalid=true;
+            		break;
+            	      }
+//                  Restrict the interpolation stencil to points that could be
+//                  boundary discretization points of side (kd,ks) of the grid.
+            	      if (ks == 0) 
+                            {
+            		iab2_(0,0,kd) = validRange(0,kd);
+            		iab2_(0,1,kd) = min0(
+              		  iab2_(0,1,kd),
+              		  iab2_(0,0,kd) +
+              		  (g_discretizationWidth(kd) - 1) / 2 - 1);
+            	      } 
+                            else 
+                            {
+            		iab2_(0,1,kd) = validRange(1,kd);
+            		iab2_(0,0,kd) = max0(iab2_(0,0,kd), iab2_(0,1,kd) -
+                             				     (g_discretizationWidth(kd) - 1) / 2 + 1);
+            	      } // end if
+//
+//                  Check that all points in the stencil are either
+//                  discretization points or interpolation points that are not
+//                  interpolated one-sided from another grid.  Backup
+//                  discretization points and backup interpolation points that
+//                  are not interpolated one-sided from another grid are also
+//                  allowed.
+//
+
+            	      COMPOSITE_GRID_FOR_3(iab2__, i1, i2, i3)
+            	      {
+            		if (invalid = invalid || g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & CompositeGrid::ISinteriorBoundaryPoint)
+            		{
+		  // Make sure that we are not too close to an the interpolation point
+              		  real rDist=0.;
+              		  real cellCenterederedOffset=g_isCellCentered(kd) ? .5 : 0.;
+              		  for( int dir=0; dir<numberOfDimensions; dir++ )
+                		    rDist=max(rDist,fabs( r_(i,dir)/g_gridSpacing(dir)
+                                					  -(iv1[dir]+cellCenterederedOffset-g_indexRange(Start,dir))));
+              		  if( rDist > ov0_(0) )  // use ov_(0) as the minimum overlap. Normally=.5
+              		  {
+		    // printf("CompositeGrid::canInterpolate: near an interior boundary point but rDist=%e"
+		    //       ", ov=%6.2e, so this point is ok! \n",rDist,ov0_(0));
+                		    invalid=FALSE;  // this point is ok after all
+              		  }
+              		  else
+                		    break;
+            		}
+            		if (invalid) break;
+            	      }
+                		    
+//                  Restore the interpolation stencil;
+            	      iab2_(0,0,kd) = iab21;
+            	      iab2_(0,1,kd) = iab22;
+          	    } // end if
+        	  } // end for ks
+        	  
+        	  if (invalid) break;
+      	} // end for
+            } // end if
+
+            if (invalid) ok_(i) = returnValue = LogicalFalse;
+
+        } 
+        else 
+        {
+            returnValue = LogicalFalse;
+        } // end if
+    } // end for
+
+    return returnValue;
+
+
+
+#undef iab
+#undef g_boundaryCondition
+#undef g_dimension
+#undef g_discretizationWidth
+#undef g_gridSpacing
+#undef g_indexRange
+#undef g_extendedIndexRange
+#undef g_isCellCentered
+#undef g_isPeriodic
+#undef g_mask
+#undef r_
+#undef useBackupRules_
+#undef ok_
+#undef iw0_
+#undef ov0_
+#undef iab2_
+}
+
+
+
+#undef COMPOSITE_GRID_FOR_3

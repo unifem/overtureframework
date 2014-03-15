@@ -1,0 +1,860 @@
+%=======================================================================================================
+% UnstructuredMapping Connectivity documentation
+%=======================================================================================================
+%% \documentclass[12pt,letterpaper]{article}
+
+%% \usepackage{epsfig}
+%% \usepackage{subfigure}
+
+%% %\voffset=-1.25truein
+%% \hoffset=-1.truein
+%% \setlength{\textwidth}{7in}      % page width
+%% %\setlength{\textheight}{9.5in}    % page height for xdvi
+
+%% \begin{document}
+
+
+%% \def\uvd    {{\bf U}}
+%% \def\ud     {{    U}}
+%% \def\pd     {{    P}}
+%% \def\id     {i}
+%% \def\jd     {j}
+%% \def\kap {\sqrt{s+\omega^2}}
+
+% \newcommand{\figures}{../docFigures}
+
+\newcommand{\umap}{{\tt UnstructuredMapping} }
+\newcommand{\umapI}{{\tt UnstructuredMappingIterator} }
+\newcommand{\umapAI}{{\tt UnstructuredMappingAdjacencyIterator} }
+\newcommand{\forceb}{\linebreak[4]}
+
+%% \vspace{3\baselineskip}
+%% \begin{flushleft}
+%%   {\Large 
+%%     Unstructured Mesh Connectivity in \umap\\
+%%   }
+%% \vspace{2\baselineskip}
+%% Kyle K. Chand
+%% Centre for Applied Scientific Computing \\
+%% Lawrence Livermore National Laboratory    \\
+%% Livermore, CA, 94551   \\
+%% chand1@llnl.gov \\
+%% http://www.llnl.gov/casc/people/chand \\
+%% http://www.llnl.gov/casc/Overture
+%% \vspace{1\baselineskip}
+%% \today
+%% \vspace{\baselineskip}
+
+%% \end{flushleft}
+
+%% \vspace{1\baselineskip}
+
+%% \begin{abstract}
+%% The connectivity interface for \umap has been rewritten
+%% to provide a more thorough interface to the mesh.  This new design
+%% also resembles the TSTT mesh query interface.  While data is still
+%% stored in array form, indexed by integers, the interface provides
+%% iterators through the mesh entities and adjacencies.  This document
+%% describes the additions to the \umap class as well as
+%% the definition and use of the \umapI and
+%% \umapAI classes.
+%% \end{abstract}
+
+%% \tableofcontents
+
+%% \vspace{3\baselineskip}
+
+\subsection{Introduction}
+Connectivity in the \umap is based on the set of
+``entities'' specified in \umap{\tt::EntityTypeEnum}.
+``Vertex'', ``Edge'', ``Face'', and ``Region'' refer to entities in
+ascending topological dimension, with ``Vertex'' equivalent to 0 and
+``Region'' equivalent to 3:
+
+\begin{verbatim}
+  enum EntityTypeEnum
+  {
+    Invalid=-1,
+    Vertex=0,
+    Edge,
+    Face,
+    Region,
+    Mesh, // kkc put this here to enable "Mesh" tagging...
+    NumberOfEntityTypes
+  };
+\end{verbatim}
+
+  This approach will be familiar to users of the TSTT mesh query
+interface.  Entities themselves are defined by their topological
+dimension (Type) and the specific vertices that they contain.  For
+example, no two edges have the same vertices.  Each entity has an
+orientation defined by their vertices and ``Element'' type as
+specified in \umap{\tt::ElementTypeEnum:}
+\begin{verbatim}
+ enum ElementType 
+  {
+    triangle,
+    quadrilateral,
+    tetrahedron,
+    pyramid,
+    triPrism,
+    septahedron,  
+    hexahedron,
+    other,
+    boundary,
+    NumberOfElementTypes
+  };
+\end{verbatim}
+  ElementTypeEnum is analogous to the EntityTopology enum from the TSTT
+interface and specifies the ``shape'' of a given entity (triangle,
+quad, etc...).  Iterating through the entities and their adjacencies
+is managed most effectively (though not exclusively) through the
+\umapI and \umapAI
+classes. The Iterator classes provide iterations through entities of a
+specific type (eg all the Regions) while the AdjacencyIterators
+provide access to the entities adjacent to a specific entities.  A
+tagging mechanism has also been added, again following the TSTT
+approach, in order to allow a very general method for placing
+information on entities and grouping them together into sets.  Several
+additions to the methods and data in the \umap class
+have been created to facilitate the construction and use of the new
+connectivity and iterators.
+
+
+Prior to discussing the details of the interface and changes to the
+\umap class, we demonstrate the basic use of
+the interface with two examples.  In the first example we
+read an \umap from a file and then iterate through all the ``Faces''
+in the mesh:
+
+\begin{verbatim}
+
+  UnstructuredMapping umap;
+  umap.get(fileName);
+
+  // loop through all the Faces in the mesh
+  UnstructuredMappingIterator face;
+  for ( face = umap.begin(UnstructuredMapping::Face);
+        face!=umap.end(UnstructuredMapping::Face);
+        face++ )
+     cout<<"Here is a Face with index "<< *face <<endl;
+\end{verbatim}
+
+The declaration and {\tt get} method should be familiar to users of
+the \umap.  Looping through all the faces in the \umap, however, is
+performed using the new \umapI iterator class.  \umapI's use mirrors
+that of STL containers and iterators.  \umap's {\tt begin} and {\tt
+end} methods require an argument specifying the type of entity
+requested ( from {\tt EntityTypeEnum } ).  The dereference operator of
+the iterator returns an integer index which may be used as part of an
+identification mechanism or access into another array.  In order to
+obtain adjacency information (such as the vertices attached to the a
+specific face) we need to use an \umapAI :
+
+\begin{verbatim}
+  UnstructuredMappingIterator face;
+  for ( face =  umap.begin(UnstructuredMapping::Face);
+        face != umap.end(UnstructuredMapping::Face);
+        face++ )
+    {
+      cout<<"Face "<<*face<<" has vertices : ";
+
+      UnstructuredMappingAdjacencyIterator faceVert;
+      for ( faceVert =  umap.adjacency_begin(face, UnstructuredMapping::Vertex);
+            faceVert != umap.adjacency_end(face, UnstructuredMapping::Vertex);
+            faceVert++ )
+         cout<<*faceVert<<"  ";
+      
+      cout<<endl;
+    }
+\end{verbatim}
+
+The \umap's {\tt adjacency\_begin } and {\tt adjacency\_end } methods
+are used in the same fashion as the \umapI versions. They
+require an \linebreak[4] \umapI as the first argument in order to specify the
+``from'' entity and a second argument to specify the type of the
+``to'', or adjacent, entities.  Variations on these two iterations
+will form the bulk of the examples and are expected to provide the
+necessary functionality to build unstructured mesh operators and
+manipulations.
+
+\subsection{Additions to the \umap class}
+\subsubsection{Generic size and data access methods}
+\begin{itemize}
+\item \begin{verbatim} const intArray & getEntities(EntityTypeEnum);\end{verbatim}
+return an array of the vertices in all the entities of the type requested by the argument
+
+\item \begin{verbatim} inline int size( EntityTypeEnum t ) const; \end{verbatim}
+returns the number of entities of type {\tt t} available in the mesh.
+
+\item \begin{verbatim}  inline int capacity( EntityTypeEnum t ) const; \end{verbatim}
+return the total storage available for entities of type {\tt t}.
+
+\item \begin{verbatim} int reserve( EntityTypeEnum, int) const; \end{verbatim}
+reserve a specified amount of space (increase/decrease the capacity) for entities of a specified type
+\end{itemize}
+
+\subsubsection{Iterator related methods}
+\begin{itemize}
+\item \begin{verbatim} 
+inline UnstructuredMappingIterator 
+begin(EntityTypeEnum entityType_, bool skipGhostEntities) const;
+\end{verbatim}
+returns an iterator pointing to the beginning of the list of entities of type entityType\_.  {\tt skipGhostEntities } is
+an optional argument; if true, the ghost entities in the iteration are skipped, if false (default) they are included. NOTE: if
+the specified entity does not exist the mapping will attempt to build it!
+
+\item \begin{verbatim}
+inline UnstructuredMappingIterator 
+end(EntityTypeEnum entityType_, bool skipGhostEntities) const;
+\end{verbatim}
+returns an iterator pointing to the end of the list of entities of type{\tt  entityType\_ }.  
+\forceb {\tt skipGhostEntities } is
+an optional argument; if true, the ghost entities in the iteration are skipped, if false (default) they are included. NOTE: if
+the requested entity does not exist the mapping will try to build it!
+
+\item \begin{verbatim}
+inline UnstructuredMappingAdjacencyIterator 
+adjacency_begin(UnstructuredMappingIterator from, 
+                EntityTypeEnum to, bool skipGhostEntities) const;
+\end{verbatim}
+returns an iterator pointing to the beginning of the list of entities of type {\tt to} surrounding the entities specified
+by the iterator {\tt from}.  {\tt skipGhostEntities} is an optional argument; if true, the ghost 
+entities in the iteration are skipped, if false (default) they are included. NOTE: if the requested adjacency information does not
+exist then the mapping will attempt to build it.
+
+\item \begin{verbatim}
+inline UnstructuredMappingAdjacencyIterator 
+adjacency_end(UnstructuredMappingIterator from, 
+              EntityTypeEnum to, bool skipGhostEntities) const; 
+\end{verbatim}
+returns an iterator pointing to the end of the list of entities of type {\tt to} surrounding the entities specified
+by the iterator {\tt from}.  {\tt skipGhostEntities} is an optional argument; if true, the ghost 
+entities in the iteration are skipped, if false (default) they are included.  NOTE: if the requested adjacency information does not
+exist then the mapping will attempt to build it.
+
+\item \begin{verbatim}
+inline UnstructuredMappingAdjacencyIterator 
+adjacency_begin(UnstructuredMappingAdjacencyIterator from, 
+                EntityTypeEnum to, bool skipGhostEntities) const;
+\end{verbatim}
+returns an iterator pointing to the beginning of the list of entities of type {\tt to} surrounding the entities specified
+by the iterator {\tt from}.  {\tt skipGhostEntities} is an optional argument; if true, the ghost 
+entities in the iteration are skipped, if false (default) they are included.
+
+\item \begin{verbatim}
+inline UnstructuredMappingAdjacencyIterator 
+adjacency_end(UnstructuredMappingAdjacencyIterator from, 
+              EntityTypeEnum to, bool skipGhostEntities) const;
+\end{verbatim}
+returns an iterator pointing to the end of the list of entities of type {\tt to} surrounding the entities specified
+by the iterator {\tt from}.  {\tt skipGhostEntities} is an optional argument; if true, the ghost 
+entities in the iteration are skipped, if false (default) they are included.
+\end{itemize}
+
+\subsubsection{Entity and connectivity manipulations}
+\begin{itemize}
+\item \begin{verbatim} inline int maxVerticesInEntity(EntityTypeEnum type); \end{verbatim}
+returns the maximum number of vertices in a given entity type.
+
+\item \begin{verbatim} inline ElementType computeElementType(EntityTypeEnum type, int e); \end{verbatim}
+computes the element type as given in the {\tt ElementType } enum for a {\tt type } entity with index {\tt e}.
+\item \begin{verbatim} inline int numberOfVertices(EntityTypeEnum, int); \end{verbatim}
+
+\item \begin{verbatim} 
+ bool 
+ entitiesAreEquivalent(EntityTypeEnum type, int entity, ArraySimple<int> &verticies); \end{verbatim}
+two entities are equivalent if their vertices are the same.  This method returns true if the {\tt type }
+entity with index {\tt e} is equivalent to an entity specified by {\tt vertices}.
+
+\item \begin{verbatim} void setAsGhost(EntityTypeEnum type, int entity); \end{verbatim}
+toggles the {\tt type} entity at index {\tt entity} to be a ghost.  This also adds a tag marking the entity as a ghost
+through the tagging mechanism.  The entity is added to the list of entities with the same ghost tag.
+
+\item \begin{verbatim} bool specifyVertices(const realArray & verts); \end{verbatim}
+provide a list of vertices to be copied into the mapping.  This replaces the ``node'' array from the old interface.
+returns true if successful.
+
+\item \begin{verbatim} 
+ bool 
+ buildEntity(EntityTypeEnum type, bool rebuild, bool keepDownward, bool keepUpward); \end{verbatim}
+Build the connectivity data for entities of type {\tt type}.  {\tt rebuild} is an optional argument that
+tells the method to destroy existing connectivity if present; the default is false.  {\tt keepDownward } and
+{\tt keepUpward } are optional arguments that instruct the mapping to keep downward or upward adjacencies built
+during the construction of the entities; both are true by default.
+
+\item \begin{verbatim} bool specifyEntity(const EntityTypeEnum type, const intArray &entity); \end{verbatim}
+specifiy the entities of a type given by  {\tt type} by providing an array of the vertices in each entity.
+The {\tt entity } array is dimensioned by the number of entities and the maximum number of vertices
+in that entity type.  Each entity in the array is specified by a list of vertex indices terminated by a $-1$ or
+by the use of all the available vertices for that entity type.
+
+\item \begin{verbatim} bool buildConnectivity(EntityTypeEnum from, EntityTypeEnum to, bool rebuild); \end{verbatim}
+build the connectivity (adjacency) information from entities of type {\tt from } to entities of type {\tt to }.
+The optional argument {\tt rebuild} forces the mapping to destroy any previous data if set to true; the default is false.
+
+\item \begin{verbatim} 
+ bool 
+ specifyConnectivity(const EntityTypeEnum from, const EntityTypeEnum to, 
+                     const intArray &index, const char *orientation, 
+                     const intArray &offset); \end{verbatim}
+allows the user to specify the adjacencies between {\tt from } and {\tt to } entities.  The {\tt index } array contains a list
+of {\tt to} entities for each {\tt from} entity in compressed form.  The beginning of the list of {\tt to } entities for
+each {\tt from } is specified by the {\tt offset} array.
+
+\item \begin{verbatim} inline bool connectivityExists(EntityTypeEnum from, EntityTypeEnum to) const; \end{verbatim}
+returns true if the adjacency information between {\tt from } and {\tt to } has been built already.
+
+\item \begin{verbatim} void deleteConnectivity(EntityTypeEnum from, EntityTypeEnum to); \end{verbatim}
+destroys the data associated with the connectivity between {\tt from } and {\tt to } entities.
+
+\item \begin{verbatim} void deleteConnectivity(EntityTypeEnum type); \end{verbatim}
+destroys ALL the connectivity information relating to entities of type {\tt type}.
+
+\item \begin{verbatim} void deleteConnectivity(); \end{verbatim}
+destroys ALL the connectivity information in the mesh.
+\end{itemize}
+
+\subsection{Iterator Classes}
+There are two iterator classes available : \umapI, and \forceb \umapAI.  The former 
+provides iteration through the entities of a particular type and the latter
+allows the iteration through the entities adjacent to a particular entity.
+Both skip holes in the entity data structures (unused locations in the arrays) and
+both optionally skip ``ghost'' entities by providing an argument to the iterator. 
+Comparisons are also possible between the iterators.
+\subsubsection{Common methods and operators}
+\begin{itemize}
+\item \begin{verbatim} void operator++(int); \end{verbatim}
+increments the iterator to the next entity.
+
+\item \begin{verbatim} int operator *() const {return e;} \end{verbatim}
+returns an unique (amongst the entity type of the iterator) index for the current entity.
+
+\item \begin{verbatim} bool operator==(const UnstructuredMappingIterator & iter) const;\end{verbatim}
+\item \begin{verbatim} 
+ bool 
+ operator==(const UnstructuredMappingAdjacencyIterator & iter) const;\end{verbatim}
+return true if two iterators point to the same entity.
+
+\item \begin{verbatim} bool operator!=(const UnstructuredMappingIterator & iter) const \end{verbatim}
+\item \begin{verbatim} 
+ bool 
+ operator!=(const UnstructuredMappingAdjacencyIterator & iter) const \end{verbatim}
+return true if two iterators point to different entities.
+
+\end{itemize}
+
+\subsubsection{\umapI constructor}
+The \umapI is typically initialized by the use of a \umap's {\tt begin} or {\tt end}
+method.  While not intended for common use by the user, the constructor for this class 
+is:
+\begin{itemize}
+\item \begin{verbatim} 
+ UnstructuredMappingIterator(const UnstructuredMapping & uns, 
+                             UnstructuredMapping::EntityTypeEnum entityType_,
+                             int position, bool skipGhostEntities ); \end{verbatim}
+\end{itemize}
+The first argument is the \umap containing the data to iterate through.  {\tt entityType\_ } designates the the type, or
+topological dimension, of the entities for iteration.  The {\tt position} argument is $0$ if an iterator pointing to
+the beginning of the list is requested and $1$ for the end.  Finally, if {\tt skipGhostEntities} is true, ghost entities
+will be skipped during the iteration.
+\subsubsection{\umapAI constructor}
+As with the \umapI, the \umapAI constructor is intended to be used by
+methods in the \umap class for beginning, ending and querying
+iterators:
+\begin{itemize}
+\item \begin{verbatim} 
+ UnstructuredMappingAdjacencyIterator(const UnstructuredMapping & uns, 
+                                      UnstructuredMapping::EntityTypeEnum from, 
+                                      int adjTo, 
+                                      UnstructuredMapping::EntityTypeEnum to,
+                                      int position, bool skipGhostEntities_ = false ); \end{verbatim}
+\end{itemize}
+The first argument is the \umap containing the data to iterate
+through.  {\tt from } is an iterator (either a \umapI or \umapAI )
+pointing to the entity around which the iteration will take place.
+The {\tt EntityTypeEnum } variable {\tt to } specifies the desired
+topological dimension of the adjacent entities.  {\tt position}
+argument is $0$ if an iterator pointing to the beginning of the list
+is requested and $1$ for the end.  Finally, if {\tt skipGhostEntities}
+is true, ghost entities will be skipped during the iteration.
+
+\subsubsection{\umapAI orientation}
+Each entity is given an orientation when it is constructed by the
+\umap.  For example, the first vertex index in each edge is always the
+one with the lowest index value.  Each entity maintains information
+about the orientation of adjacent (upward or downward adjacencies)
+entities relative to its own definition.  For example, a ``Face''
+adjacent to two ``Regions'' will have its vertices defined
+counterclockwise when viewed from outside one ( the first in the
+upward adjacency ) of the regions.  This is by definition the
+adjacency with a positive orientation.  When viewed relative to and
+from outside the second ``Region'', the ``Face'' will have a
+clockwise, or negative, orientation.  (MAYBE ADD A FIGURE TO DESCRIBE THIS?).
+In the downward adjacency from the first region to the face the adjacency is
+positive (the face is oriented correctly relative the the first region) and
+negative to the second (it is reversed relative to the second).  In the upward
+adjacency, the first ``Region'' has a positive orientation while the second
+has negative.  The orientation information is provided in the \umapAI by the following
+method:
+\begin{itemize}
+\item \begin{verbatim} int orientation() const; \end{verbatim}
+\end{itemize}
+This method returns 1 for positive orientation and -1 for negative.
+Use of the adjacency orientation will be demonstrated in the Examples
+section.
+
+\subsection{The tagging interface}
+Often it is convenient to tag an entity or group of entities with a
+piece of data for later use.  Common examples would include tagging
+boundary condition information on boundary entities and adding
+material property information to groups of entities.  A new interface
+has been created to support these features and consists of the typdefs
+{\tt entity\_tag\_iterator }, and {\tt tag\_entity\_iterator } and the following
+new methods:
+
+\begin{itemize}
+
+\item \begin{verbatim}  
+EntityTag & 
+addTag( const EntityTypeEnum entityType, const int entityIndex, 
+        const std::string tagName,
+        const void *tagData, const bool copyTag, const int tagSize ); \end{verbatim}
+adds a tag onto an entity of type {\tt entityType } at index {\tt entityIndex }.  The ``name'' of the tag, used later
+for lookups of the tag, is specified by the string {\tt tagName}.  An optional argument {\tt tagData } is a void
+pointer, possibly pointing to user defined data.  User defined data can be managed by the tagging system by
+forcing deep copies of the tagData by setting {\tt copyTag } to true.  If {\tt copyTag } is true and {\tt tagData }
+is a pointer to user allocated data, {\tt tagSize } must specify the size of the tag instance.
+
+\item \begin{verbatim}  
+ int 
+ deleteTag( const EntityTypeEnum entityType, const int entityIndex, 
+            const EntityTag &tagToDelete ); \end{verbatim}
+deletes the tag associated with an entity of type {\tt entityType } at index {\tt entityIndex } and matching the name
+of {\tt tagToDelete }.
+
+\item \begin{verbatim} 
+ int 
+ deleteTag( const EntityTypeEnum entityType, const int entityIndex, 
+            const std::string tagToDelete ); \end{verbatim}
+deletes the tag associated with an entity of type {\tt entityType } at index {\tt entityIndex } and matching the string
+{\tt tagToDelete }.
+  
+\item \begin{verbatim}  
+ bool 
+ hasTag( const EntityTypeEnum entityType, const int entityIndex, 
+        const std::string tag ); \end{verbatim}
+returns true if an entity has a tag with the name {\tt tag}.
+
+\item \begin{verbatim}  
+ EntityTag & 
+ getTag( const EntityTypeEnum entityType, 
+         const int entityIndex, const std::string tagName); \end{verbatim}
+returns a reference to the instance of {\tt EntityTag } associated with a particular entity and tag name.
+
+\item \begin{verbatim} 
+ void * 
+ getTagData( const EntityTypeEnum entityType, const int entityIndex, 
+            const std::string tag ); \end{verbatim} 
+returns a pointer to
+that data stored by a tag corresponding to a particular name on a
+given entity defined by {\tt entityType } and {\tt entityIndex} .
+
+\item \begin{verbatim}  
+ int 
+ setTag( const EntityTypeEnum entityType, const int entityIndex, 
+ const EntityTag & newTag ); \end{verbatim}
+copies the data in {\tt newTag } to the matching tag in the entity defined by {\tt entityType } and  {\tt entityIndex }.
+
+\item \begin{verbatim}  
+ int setTagData( const EntityTypeEnum entityType, const int entityIndex, 
+                 const std::string tagName, 
+                 const void *data, const bool copyData=false, const int tagSize=0 ); \end{verbatim}
+sets the data in a tag on the specified entity.  User defined data can be managed by the tagging system by
+forcing deep copies of the tagData by setting {\tt copyTag } to true.  If {\tt copyTag } is true and {\tt tagData }
+is a pointer to user allocated data, {\tt tagSize } must specify the size of the tag instance.
+  
+\item \begin{verbatim}  void maintainTagToEntityMap( bool v ); \end{verbatim}
+if {\tt v } is true, the mapping creates and maintains the list of entities associated with each tag.  If false,
+the mapping destroys this information and does not maintain it until reset to true.
+
+\item \begin{verbatim}  bool maintainsTagToEntityMap() const; \end{verbatim}
+returns true if the mapping maintains the list of entities with associated with each tag;
+
+\item \begin{verbatim}  inline entity_tag_iterator entity_tag_begin(EntityTypeEnum et, int index); \end{verbatim}
+returns an iterator to the beginning of the tags associated with an entity defined by {\tt et } and {\tt index}.
+
+\item \begin{verbatim}  inline entity_tag_iterator entity_tag_end(EntityTypeEnum et, int index); \end{verbatim}
+returns an iterator to the end of the tags associated with an entity defined by {\tt et } and {\tt index}.
+
+\item \begin{verbatim}  inline tag_entity_iterator tag_entity_begin(std::string tagName); \end{verbatim}
+returns an iterator to the beginning of the entities associated with a tag named {\tt tagName}.
+  
+\item \begin{verbatim}  inline tag_entity_iterator tag_entity_end(std::string tagName); \end{verbatim}
+returns an iterator to the end of the entities associated with a tag named {\tt tagName}.
+
+\end{itemize}
+
+Note that any of these methods may throw an exception of type {\tt
+UnstructuredMapping::TagError }.  Dereferencing an {\tt
+entity\_tag\_iterator } results in a reference to an {\tt EntityTag }.
+Dereferencing a {\tt tag\_entity\_iterator } results in a reference to
+an instance of {\tt UnstructuredMapping::IDTuple } whose
+straightforward definition is :
+\begin{verbatim}
+ struct IDTuple 
+  { 
+    EntityTypeEnum et; int e; 
+
+    inline IDTuple(EntityTypeEnum et_=Invalid, int e_=-1) : et(et_), e(e_) { }
+    inline IDTuple( const IDTuple &id ) : et(id.et), e(id.e) { }
+    inline ~IDTuple() {}
+    
+    inline bool operator< ( const IDTuple & id ) const 
+    inline bool operator< ( const IDTuple & id ) 
+    inline bool operator== ( const IDTuple & id ) const 
+    inline bool operator== ( const IDTuple & id ) 
+    inline bool operator!= ( const IDTuple & id ) const 
+    inline bool operator!= ( const IDTuple & id ) 
+  };
+\end{verbatim}
+{\tt IDTuple's } can be used to provide a shorthand for comparing
+entities. This class may be merged into \umapI at some later date.
+
+\subsection{Other useful stuff}
+Two new public static class members have been added to \umap :
+\begin{verbatim}
+static aString EntityTypeStrings[];
+static aString ElementTypeStrings[];
+\end{verbatim}
+Each of these arrays store string ``names'' associated with each {\tt EntityTypeEnum }
+(except {\tt Invalid } whose value is -1) and {\tt ElementType}.  These are often useful
+for diagnostic purposes.
+
+A function to provide integrity checking of meshes and the connectivity built by \umap has
+been created:
+\begin{itemize}
+\item \begin{verbatim} bool verifyUnstructuredConnectivity( UnstructuredMapping &umap, bool verbose ); \end{verbatim}
+performs several tests on the connectivity and geometry in the \umap {\tt umap}.  If {\tt verbose }
+is true the function will output any errors as well as some information collected during the
+integrity checks.  The function returns true if there were no errors.
+\end{itemize}
+
+{\tt verifyUnstructuredConnectivity } first checks to make sure the
+downward and upward adjacencies agree.  In other words, it makes sure
+that each entity is contained in the downward adjacencies of higher
+dimensional entities and the upward adjacency of lower dimensional
+ones.  These tests ensure that adjacency loops are consistent with one
+another.  The second part of the test is more comprehensive and
+involves checking the orientations of the adjacencies as well as the
+geometric validity of the mesh.  Geometric validity means that each
+``Face'' in a 2D mesh has a positive area computed with the adjacency
+information and that each ``Region'' in 3D has a positive volume.
+Each ``Edge'' is also checked for duplicate nodes (zero length edges).
+During the tests, the volumes or areas are computed several times
+using the available adjacencies.  Inconsistencies in the orientations
+are detected when these volumes are not the same sign or magnitude.
+The typical output of this function when the ``verbose'' option is true
+looks like:
+\begin{verbatim}
+=== VERIFY CONNECTIVITY REPORT ================================
+NUMBER OF ERRORS   : 0
+NUMBER OF WARNINGS : 0
+--- Entity Information ----------------------------------------
+Vertex Count : 8121
+Edge Count : 34712
+Face Count : 47248
+Region Count : 20571
+--- Element Information ---------------------------------------
+triangle Count : 34268
+quadrilateral Count : 12980
+tetrahedron Count : 14419
+pyramid Count : 2644
+triPrism Count : 0
+septahedron Count : 0
+hexahedron Count : 3508
+--- Geometric Information -------------------------------------
+Min. Edge : 0.0302402
+Max. Edge : 0.245611
+Avg. Edge : 0.0889839
+Min. Vol : 1.65491e-09
+Max. Vol : 0.00461466
+Avg. Vol : 0.00017042
+===============================================================
+\end{verbatim}
+
+\subsection{Examples}
+\subsubsection{Iterating through entities of a given type}
+Here is an iteration similar to the one in the introduction,
+except we choose a different entity to iterate through:
+\begin{verbatim}
+  UnstructuredMappingIterator edge;
+  for ( edge  = umap.begin(UnstructuredMapping::Edge);
+        edge != umap.end(UnstructuredMapping::Edge);
+        edge++ )
+     cout<<"Here is an Edge with index "<<*edge<<endl;
+\end{verbatim}
+\subsubsection{Adjacency iterations}
+Upward and downward adjacencies are determined by the arguments
+to the {\tt adjacency\_begin/end } functions or the constructor
+to the \umapAI.  The {\tt to } entity type is compared to the
+type of the {\tt from } iterator for this purpose.  Here is
+a sample downward iteration of the vertices in an edge:
+\begin{verbatim}
+  UnstructuredMappingIterator edge = umap.begin(UnstructuredMapping::Edge);
+  UnstructuredMappingAdjacencyIterator edgeVert;
+  for ( edgeVert  = umap.adjacency_begin(edge, UnstructuredMapping::Vertex);
+        edgeVert != umap.adjacency_end(edge, UnstructuredMapping::Vertex);
+        edgeVert++ )
+     cout<<"Edge "<<*edge<<" has Vertex "<<*edgeVert<<endl;
+\end{verbatim}
+We can define an upwards iteration of the regions, for example, surrounding
+the edge by altering the second argument of the adjacency begin and end methods:
+\begin{verbatim}
+  UnstructuredMappingIterator edge = umap.begin(UnstructuredMapping::Edge);
+  UnstructuredMappingAdjacencyIterator edgeReg;
+  for ( edgeReg  = umap.adjacency_begin(edge, UnstructuredMapping::Region);
+        edgeReg != umap.adjacency_end(edge, UnstructuredMapping::Region);
+        edgeReg++ )
+     cout<<"Edge "<<*edge<<" has Region "<<*edgeReg<<endl;
+\end{verbatim}
+\subsubsection{Tag all vertices on the boundary of the mesh}
+This example shows how to use {\tt EntityTypeEnum }'s in a general way
+to write generic algorithms.  This example marks all the vertices that
+live on the boundary of the mesh with a tag called ``boundary vertex''.
+\begin{verbatim}
+    // determine the highest dimensional entity that bounds the mesh
+    UnstructuredMapping::EntityTypeEnum cellBdyType = umap.getRangeDimension()==2 ? 
+      UnstructuredMapping::Edge : UnstructuredMapping::Face;
+
+    // the next higher entity we will all the ``cell''
+    UnstructuredMapping::EntityTypeEnum cellType = ((int)cellBdyType) + 1;
+
+    UnstructuredMappingIterator e_iter;
+    UnstructuredMappingAdjacencyIterator cellIter, vertIter;
+
+    // iterate through the bounding entities and determine if they are on the boundary
+    for ( e_iter=umap.begin(cellBdyType); e_iter!=umap.end(cellBdyType); e_iter++)
+      {
+        // an e_iter is on the boundary if it only has one neighboring cell
+        int nAdj=0;
+        for ( cellIter=umap.adjacency_begin(e_iter, cellType); 
+              cellIter!=umap.adjacency_end(e_iter, cellType); cellIter++ )
+           nAdj++;
+	
+        if ( nAdj==1 ) 
+          {
+            // we are on a boundary, tag the vertices as such
+            for ( vertIter=umap.adjacency_begin(e_iter, UnstructuredMapping::Vertex);
+                  vertIter!=umap.adjacency_end(e_iter, UnstructuredMapping::Vertex);
+                  vertIter++ )
+               if ( !umap.has_tag(UnstructuredMapping::Vertex, 
+                                  *vertIter, "boundary vertex") )
+                 umap.addTag(UnstructuredMapping::Vertex, *vertIter, 
+                             "boundary vertex", ((void *)*vertIter));
+          }
+
+      }
+\end{verbatim}
+The first step determines the highest dimensional bounding entity of
+the mesh, in 2D this is an Edge, in 3D this is a Face.  We then
+compute the ``cell'' type, which is the first upward adjacency of the
+bounding entity (Face in 2D, Region in 3D).  We loop through each of
+the entities of the type that bound the mesh and determine whether
+they sit on the boundary.  If an entity does sit on the boundary, each
+of its vertices are tagged with a tag named ``boundary vertex''.
+The data we store in the tag is just the index of the vertex
+associated with the tag.
+
+\subsubsection{Computing 2D Face areas}
+Here is one way to compute the areas of faces in a 2D mesh.  Note that
+this method will also work for arbitrary polygonal faces and could be
+optimized for tets and quads if necessary:
+\begin{verbatim}
+  UnstructuredMapping umap; // get this from somewhere
+  UnstructuredMappingIterator edge;
+  UnstructuredMappingAdjacencyIterator edgeVert, edgeCell;
+
+  ArraySimple< ArraySimpleFixed<real,3,1,1,1> > 
+            cellCenters(umap.size(UnstructuredMapping::Face));
+
+  // compute the cell centers with another loop ...
+
+  realArray cellAreas(umap.size(UnstructuredMapping::Face));
+  cellAreas = 0;
+
+  // loop through all the edges in the mesh and compute the ``side'' area's
+  //  side areas are computed from the edge and the cell centeres.  These areas
+  //  are then added to the corresponding Face.
+
+  for ( edge  = umap.begin(UnstructuredMapping::Edge);
+        edge != umap.end(UnstructuredMapping::Edge);
+        edge++ )
+     {
+       ArraySimpleFixed<real,2,1,1,1> edgeVertices[2];
+
+       // in 2D we connect the cell (face) center to 
+       //    the center of the edge to form the area normals
+       ArraySimpleFixed<real,2,1,1,1> edgeVertices[2], edgeCenter;
+       int v=0;
+
+       // get the vertices for the edge       
+       for ( edgeVert  = umap.adjacency_begin(edge,UnstructuredMapping::Vertex);
+             edgeVert != umap.adjacency_end(edge,UnstructuredMapping::Vertex);
+             edgeVert++ ) 
+         { // we could optimize this loop by getting the edge entities directly
+           for ( int a=0; a<rDim; a++ )
+              edgeVertices[v][a] = vertices(*edgeVert,a);
+         }
+
+       // loop through the adjacent Face's and compute each side area, 
+       //   adding each area to each Face as we go along
+       for ( edgeCell  = umap.adjacency_begin(edge, UnstructuredMapping::Face );
+             edgeCell != umap.adjacency_end(edge, UnstructuredMapping::Face );
+             edgeCell++ )
+         {
+           // compute the area of the ``side'' 
+           real area = edgeCell.orientation()*triangleArea2D(edgeVertices[0], 
+	                  edgeVertices[1], cellCenters[*edgeCell]);
+           // add the area to the cell;
+           cellAreas(*edgeCell) += area;
+         }
+     }
+
+\end{verbatim}
+
+\subsubsection{A generic finite volume gradient operator}
+In this example we construct a generic discrete gradient operator
+using the finite volume method.  We can approximate the gradient of a
+function $u$ using finite volumes in the usual way with the identity:
+\begin{eqnarray}
+\int_{\Omega}\nabla u d\Omega = \int_{\partial\Omega}u\mathbf{n}ds
+\end{eqnarray}
+Where $\Omega$ is some domain bounded by $\partial\Omega$ with an area
+normal given by $\mathbf{n}ds$.  If we replace $\nabla u$ by its
+average , denoted $(\nabla u)_\Omega$ we get the following familiar
+approximation:
+\begin{eqnarray}
+(\nabla u)_\Omega \approx \frac{1}{\Omega}\int_{\partial\Omega}u\mathbf{n}ds
+\end{eqnarray}\label{eqn:fvapprox}
+There are, of course, a variety of ways to compute this approximation depending
+on the centering of $u$ on the mesh (Face, Vertex, Edge, etc) and the desired
+centering of the resulting gradient.  If we assume that $\Omega$ is represented
+by polygons in 2D and polyhedra in 3D we can compute the approximation by summing
+the value of $u\mathbf{n}ds$ on the boundary of a polygon or polyhedra using
+$\mathbf{n}ds$ computed from the straight line segments (2D) or polygonal surfaces (3D)
+bounding $\Omega$ :
+\begin{eqnarray}
+(\nabla u)_\Omega \approx \frac{1}{\Omega}\sum_{b=1}^{m}u_b (\mathbf{n}ds)_b
+\end{eqnarray}
+where the subscript $b$ denotes a facet of the boundary of the polygon or polyhedron.
+An approximation for $u_b$ is still needed.  In some instances, this value may exist
+at the same centering for $u$ and can be computed by averaging the values on either 
+side of each facet.  In other cases, such as a staggered grid, $u$ may exist at a 
+centering with a different adjacency to the gradient ($u$ could exist on the Vertices while
+$\nabla u$ lives on Faces or Regions).  In either case, we compute $u_b$ by averaging
+values adjacent to the facets of $\Omega$ :
+\begin{eqnarray}
+(\nabla u)_\Omega \approx \frac{1}{\Omega}\sum_{b=1}^{m} (\frac{1}{n}\sum_{c=1}^n u_c^b) (\mathbf{n}ds)_b
+\end{eqnarray}
+where $u_c^b$ are the values of $u$ adjacent to facet $b$.
+
+ First we compute the volumes and surface normals
+required.  By noting that each surface is adjacent to two regions, $\Omega_1$
+and $\Omega_2$, we can loop through the surfaces computing the value of
+$u_b$ and adding the result of $u_b(\mathbf{n}ds)_b$ to $\Omega_1$ and
+subtracting it from $\Omega_2$ (subtract since the area normal relative
+to $\Omega_2$ points in the opposite direction to $\Omega_1$. The
+resulting algorithm looks like:
+\begin{enumerate}
+  \item Compute the volumes, $\Omega$, of the polygons or polyhedra at the desired centering for $(\nabla u)_\Omega $
+  \item Compute the area normals, $\mathbf{n}ds$, of the facets at the centering corresponding to the boundary of each $\Omega$
+  \item For each surface {\tt surf}:
+    \begin{enumerate}
+      \item ${\tt numberAdjacent}=0$
+      \item $u_b$ = 0
+      \item For each $u$, (denoted by ${\tt u\_cell }$), adjacent to {\tt surf}
+	\begin{enumerate}
+	  \item $u_b += u_{\tt u\_cell}^{\tt surf}$
+	  \item ${\tt numberAdjacent}++$
+	\end{enumerate}
+      \item $u_b /= {\tt numberAdjacent}$
+      \item $u_{\Omega_1} += \frac{1}{\Omega_1} u_b (\mathbf{n}ds)_{\tt surf}$
+      \item $u_{\Omega_2} -= \frac{1}{\Omega_2} u_b (\mathbf{n}ds)_{\tt surf}$
+    \end{enumerate}
+\end{enumerate}
+ 
+The code for this algorithm using the new \umap iterator interface is given in the function
+{\tt computeGradient}.  {\tt centering } refers to the centering of the function $u$; {\tt 
+surfaceCentering } the centering of the surface normals; and {\tt gradientCentering} refers
+to the centering of {\tt gradu }.
+\newpage
+
+\begin{verbatim}
+  void computeGradient(UnstructuredMapping &umap, 
+                       UnstructuredMapping::EntityTypeEnum centering, 
+                       UnstructuredMapping::EntityTypeEnum surfaceCentering,
+                       UnstructuredMapping::EntityTypeEnum gradientCentering,
+                       realArray &u, realArray &surfaceNormals, realArray &volumes, 
+                       realArray &gradu)
+  {
+
+    UnstructuredMappingIterator surf;
+    UnstructuredMappingAdjacencyIterator u_cell, g_cell;
+
+    gradu.redim(umap.size(centering), umap.getRangeDimension());
+    gradu = 0;
+
+    for ( surf  = umap.begin(surfaceCentering);
+          surf != umap.end(surfaceCentering);
+          surf++ )
+      {
+        int nC=0;
+        real uOnSurf=0;
+        for ( u_cell  = umap.adjacency_begin(surf, centering);
+              u_cell != umap.adjacency_end(surf, centering);
+              u_cell++ )
+          {
+            uOnSurf += u(*u_cell);
+            nC++;
+          }
+
+        uOnSurf /= real(nC); 
+
+        for ( g_cell  = umap.adjacency_begin(surf, gradientCentering);
+              g_cell != umap.adjacency_end(surf, gradientCentering);
+              g_cell++ )
+          for ( int a=0; a<umap.getRangeDimension(); a++ )
+            gradu(*g_cell,a) += 
+                g_cell.orientation()*surfaceNormals(*surf,a)*uOnSurf/volumes(*g_cell);
+      }
+  }
+\end{verbatim}
+
+This function can be used to compute Vertex centered gradients using Vertex centered
+values for $u$ by calling:
+\begin{verbatim}
+computeGradient(umap, 
+                UnstructuredMapping::Vertex, UnstructuredMapping::Edge,
+                UnstructuredMapping::Vertex,
+                vertexCenteredScalar, edgeAreaNormals, vertexVolumes, 
+                vertexCenteredGradient);
+\end{verbatim}
+It can also be used to compute ``cell'' (Face or Region) centered gradients using:
+\begin{verbatim}
+computeGradient(umap, 
+                cellType, UnstructuredMapping::EntityTypeEnum( ((int)cellType)-1 ),
+                cellType,
+                cellCenteredScalar, cellSurfNormals, cellVolumes, 
+                cellCenteredGradient);
+\end{verbatim}
+Yet another example places $u$ at the vertices but computes $(\nabla u)_\Omega$ at
+Face or Region (Cell) centers:
+\begin{verbatim}
+computeGradient(umap,
+                UnstructuredMapping::Vertex, UnstructuredMapping::EntityTypeEnum( ((int)cellType)-1 ),
+                cellType,
+                vertexCenteredScalar, cellSurfNormals, cellVolumes,
+                cellCenteredGradientFromNodeU);
+\end{verbatim}
+%%\end{document}

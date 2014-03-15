@@ -1,0 +1,81 @@
+PKGDIR := $(OvertureCheckout)/otherStuff
+
+SRC_FILES += OGgetIndex.C OGFunction.C OGTrigFunction.C OGPolyFunction.C \
+	Integrate.C arrayGetIndex.C TridiagonalSolver.C \
+	TridiagonalFactor.C getFromADataBase.C OGPulseFunction.C \
+	helpOverture.C floatDisplay.C intDisplay.C doubleDisplay.C \
+	displayMask.C DisplayParameters.C \
+	floatSerialDisplay.C intSerialDisplay.C doubleSerialDisplay.C \
+	printArray.C \
+	FortranIO.C fortranInputOutput.f \
+	Stencil.C BodyDefinition.C \
+	polyEvaluate1D.F polyEvaluate2D.F polyEvaluate3D.F \
+	polyFunction.f polyFunction1D.f polyFunction2D.f polyFunction2D5.f \
+	polyFunction2D6.f \
+	polyFunction3D.f polyFunction3D4.f polyFunction3D5.f polyFunction3D6.f \
+	pentaDiagonal.f prtpeg.f displayCoeff.C BodyForce.C
+
+L_HDRS := OGgetIndex.h OGFunction.h OGTrigFunction.h OGPolyFunction.h \
+	Integrate.h TridiagonalSolver.h display.h DisplayParameters.h \
+	DataBaseAccessFunctions.h FortranIO.h OGPulseFunction.h \
+	arrayGetIndex.h Stencil.h BodyDefinition.h SparseArray.h BodyForce.h
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+#polyEvaluate%D.F: polyFunction.f
+
+#polyFunction%.f: polyFunction.f
+
+#%Diagonal.f: %Diagonal.bf
+#	$(BPP) $<
+
+ifeq ($compile,dbg)
+$(OBJDIR)fortranInputOutput.o: fortranInputOutput.f
+	$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) -o $@ -c $<
+else
+$(OBJDIR)fortranInputOutput.o: fortranInputOutput.f
+	$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) -o $@ -c $<
+endif
+
+ifneq ($(fdbg),y)
+
+$(OBJDIR)TridiagonalSolver.o: TridiagonalSolver.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)TridiagonalFactor.o: TridiagonalFactor.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)arrayGetIndex.o: arrayGetIndex.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)polyFunction.o : polyFunction.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)polyFunction2D.o : polyFunction2D.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)pentaDiagonal.o : pentaDiagonal.f
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)polyEvaluate1D.o : polyEvaluate1D.F
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)polyEvaluate2D.o : polyEvaluate2D.F
+	@-echo -n "compiling $(<F) optimized : "
+	 @$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+endif

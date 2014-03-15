@@ -1,0 +1,24 @@
+#! /bin/csh -f
+#  cp files into /usr/casc/overture/Overture
+
+
+# usage: build 
+
+echo "Copy files to /usr/casc/overture/Overture/bin and /usr/casc/overture/Overture/testResults"
+
+set targetDir = "/usr/casc/overture/Overture"
+
+# change permissions so anyone can over-write these files
+chmod g+w {checkOverture.p,testDistribution}
+chmod g+w {displayBuildTestResults.html,buildTestResults.js}
+
+cp {checkOverture.p}   $targetDir/bin/checkOverture.p
+# echo "** temporarily make a special version checkOverture.wdh.p **"
+# cp {checkOverture.p}   $targetDir/bin/checkOverture.wdh.p
+
+cp {testDistribution}  $targetDir/bin/
+cp {displayBuildTestResults.html,buildTestResults.js} $targetDir/testResults/
+
+
+echo "done"
+

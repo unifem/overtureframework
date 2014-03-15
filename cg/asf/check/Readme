@@ -1,0 +1,5 @@
+This directory holds regressions tests 
+
+Type "make" to run the regression tests.
+
+The file "test" holds the list of tests to run.

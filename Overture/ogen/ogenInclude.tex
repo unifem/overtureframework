@@ -1,0 +1,36 @@
+\subsubsection{buildACompositeGrid}
+ 
+\newlength{\ogenIncludeArgIndent}
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ogenIncludeArgIndent}{buildACompositeGrid(}%
+buildACompositeGrid(CompositeGrid \& cg, \\ 
+\hspace{\ogenIncludeArgIndent}MappingInformation \& mapInfo, \\ 
+\hspace{\ogenIncludeArgIndent}const IntegerArray \& mapList,\\ 
+\hspace{\ogenIncludeArgIndent}const int \& numberOfMultigridLevels  =1,\\ 
+\hspace{\ogenIncludeArgIndent}const bool useOldGrid  =false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Build a CompositeGrid with optional multigrid levels from a set of Mappings.
+  This routine will build a CompositeGrid from a list of Mapping's. 
+  
+\item[{\bf cg (input/output):}]  if useAnOldGrid==true then this holds the old grid on input. On output cg
+ holds the new grid.
+\item[{\bf mapInfo (input):}]  This object holds a list of Mappings from which we choose a subset to build the grid from.
+\item[{\bf mapList (input):}]  indicate which Mappings in mapInfo.mappingList should be added to the CompositeGrid.
+    Add mapInfo.mappingList[mapList(i)] for each element of mapList.
+\item[{\bf useAnOldGrid (input) :}]  this means we are adding new grids to an existing overlapping grid.
+\end{description}
+\subsubsection{setGridParameters}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\ogenIncludeArgIndent}{setGridParameters(}%
+setGridParameters(CompositeGrid \& cg )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Specify the number of grid points on each grid based on the number of multigrid levels.
+
+\end{description}

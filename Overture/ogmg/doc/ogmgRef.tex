@@ -1,0 +1,289 @@
+%=======================================================================================================
+% Ogmg Multigrid solver : Reference Guide for developers
+%=======================================================================================================
+\documentclass{article}
+% \usepackage[bookmarks=true]{hyperref} 
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \documentclass[xcolor=rgb,svgnames,dvipsnames,11pt]{article}
+% \usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+
+\input homeHenshaw
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+% \usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% \usepackage{fancybox}
+
+\newcommand{\Gc}{\mathcal{G}}
+\newcommand{\Nc}{\mathcal{N}}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+% \input{pstricks}\input{pst-node}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\input trimFig.tex
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\newcommand{\red}{\color{red}}
+\newcommand{\green}{\color{green}}
+
+
+% ============================================================================================================================
+% ============================================================================================================================
+\begin{document}
+
+% -----definitions-----
+
+\newcommand{\ogen}{\homeHenshaw/res/ogen}
+\newcommand{\figures}{\homeHenshaw/Overture/docFigures}
+\newcommand{\automg}{\homeHenshaw/papers/automg}
+% \newcommand{\automg}{../automg}
+\newcommand{\ogmgDir}{\homeHenshaw/Overture/ogmg/doc}
+\newcommand{\ogmgDocDir}{\homeHenshaw/Overture/ogmg/doc}
+% \newcommand{\ogmgDir}{.}
+
+\newcommand{\Ogen}{{Ogen}}
+\newcommand{\Overture}{{Overture}}
+\newcommand{\Ogmg}{{Ogmg}}
+
+% \newcommand{\figWidth}{.495\linewidth}
+\newcommand{\tablefontsize}{\footnotesize}
+\newcommand{\clipfig}{}
+
+\input wdhDefinitions.tex
+
+
+%---------- Title Page for a Research Report----------------------------
+\vglue 5\baselineskip
+\begin{flushleft}
+{\Large
+{\bf Ogmg} Reference Guide: A Multigrid Solver for Overlapping Grids, \\
+Version 1.00 \\
+}
+\vspace{3\baselineskip}
+William D. Henshaw   \\                    
+\vspace{2\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{2\baselineskip}
+\today\\
+\vspace{\baselineskip}
+UCRL-MA-???????
+
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+This is the reference guide to \Ogmg, the Overlapping-Grid-MultiGrid-solver.
+This document is primarily intended for developers and contains reference notes,
+details on some algorithms, 
+convergence results and performance results. 
+% member function descriptions as well current and future work. In addition this
+% report contains extensive results from running \Ogmg~ on a variety of problems.
+
+The Overlapping-Grid-MultiGrid-solver, \Ogmg, can be used to obtain solutions 
+to elliptic boundary value problems.
+% on composite overlapping grids with the multigrid algorithm.  
+\Ogmg~ solves problems in two and three space
+dimensions on composite overlapping grids. 
+Second and fourth-order accurate approximations are supported.
+Given an overlapping grid generated from the \Ogen~  grid generator,
+\Ogmg~  will generate the coarse grid multigrid levels using an automatic coarsening algorithm.
+The equations on the coarse grids can be determined automatically using a Galerkin averaging
+procedure.
+The multigrid solution algorithm has been optimised for some commonly occuring problems such as
+equations defined with the Laplace operator.
+Smoothers include Red-Black, Jacobi, Gauss-Seidel, line-zebra and line-Jacobi.
+\Ogmg~  is particularly efficient when a majority of the grid points belong to Cartesian component grids;
+this is often the case when grids become sufficiently fine.
+The fourth-order accurate approximations are solved directly with multigrid (as opposed to using
+a defect correction scheme). Convergence rates for the fourth-order approximations are often nearly as
+good as the convergence rates for second-order discretizations.
+% Currently only scalar elliptic boundary value problems can be solved. 
+\end{flushleft}
+
+\clearpage
+\tableofcontents
+% \listoffigures
+
+%---------- End of title Page for a Research Report
+
+
+\clearpage
+\section{Introduction}\index{multigrid}
+
+\Ogmg~ is a multigrid solver for use with \Overture~\cite{overset96},\cite{OGES}.
+\Ogmg~ can solve scalar elliptic problems
+on overlapping grids~\cite{automg,CGMG}. This reference manual is intended for developers and describes
+some of the details of the code structure and organization.
+Included are some convergence results and well a performance results. More detailed
+convergence results are found in the document {\em  Convergence Results for Ogmg: A Multigrid Solver for Overlapping Grids}.
+This report also describes work that needs to be completed and potential new features
+as well as working notes.
+
+
+
+\section{Work in progress notes}
+
+\begin{itemize}
+%   \item Fourth-order accuracy: To do: Neumann equation BC's in 3D.
+  \item Optimize storage for fourth-order curvilinear grids by using jacobian derivatives
+        instead of forming the elliptic operator.
+  \item Allow sharing of the grid hierarchy amongst different \Ogmg~ solvers.
+  \item Clean up the code, further optimizations.
+\end{itemize}
+
+
+%% \input eigenfunctions
+
+
+\clearpage
+\section{Singular problems}
+
+When the problem being solved is singular, such as the Neumann problem
+\begin{align*}
+   \Delta u & = f \\
+   u_n & =g
+\end{align*}
+there are some difficulties using multigrid and estimating the errors and
+convergence rates. The problem stems from the facts that the solution is
+only determined up to a constant and that there is a compatability condition
+on $f$ and $g$ that may not be exactly satisfied in the discrete equations. 
+If the compatability condition is not satisfied then the residual cannot 
+be driven to zero but rather the solution can only be expected to converge
+in a generalized sense. 
+
+
+$$
+    A U = F 
+$$
+If $l^T A =0$ then the compatability condition is $l^TF=0$. 
+
+     
+When Oges is used to solve a singular system such as the one given
+it solves the related non-singular problem
+\begin{equation} \label{aug}
+   \left[ \begin{array}{cc}
+            A  & \rv  \\
+          \rv^T &  0
+           \end{array}\right]
+   \left[ \begin{array}{c} U \\ \alpha  \end{array}\right]
+ = \left[ \begin{array}{c} F \\ 1  \end{array}\right]
+\end{equation}
+where $\rv=[1,1,\ldots,1]^T$ is the right null vector.
+Although the matrix $A$ is singular the augmented matrix
+is nonsingular and has a unique solution:
+\begin{align*}
+   A U &= F - \alpha \rv \\
+   \rv^T U &=0 \\
+ \alpha &= { \lv^T F \over \lv^t\rv } 
+\end{align*}
+
+
+We could try to solve the above non-singular system with multigrid. The
+question arises how to compute $\alpha$ or how to compute iterates
+$\alpha^n$ that converge. I don't know how to do this. 
+If we knew the left null-vector then we could compute $\alpha$ directly.
+The left null vector is expensive to compute and thus we may wish to avoid
+computing it (especially in a moving grid application where the left null
+vector would be changing as the grid changes.)
+
+Another approach is to use multigrid to iterate as if the problem were
+non-singular. If we further set the mean value of the solution to 
+be zero at every iteration we would then expect the solution to 
+converge. The only problem is that the residual will not go to
+zero if the compatibility condition is not satisfied. 
+The multigrid solver relies on knowing an estimate for the
+norm of the residual in order to cycle properly. We therefore
+would like an estimated residual that does go to zero. 
+
+To get this estimate we can define the solution to our singular problem
+to be the one that satisfies
+\begin{align*}
+    \rv^n & = \fv - A \uv^n \\    
+    \tilde{\rv}^n &= \rv^n -\alpha \zv^*
+\end{align*}
+where $\alpha$ minimizes the expression
+\[
+    \min_\alpha \| A \uv - \fv - \alpha \wv \|
+\]
+and $\wv$ satisfies
+\begin{align*}
+     A \wv &= \rv \\
+     \rv^T \wv &= 1
+\end{align*}
+
+
+\clearpage
+\section{Convergence Results}\label{sec:convergenceResults}
+
+In this section we present some convergence results for some
+two and three dimensional problems and second-order and fourth-order
+accurate approximations.
+
+\input notation
+
+FINISH ME -- put a summary of convergence and performance results here.
+
+
+\clearpage
+\input performanceResults
+
+
+\clearpage
+\section{References}
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+% \clearpage
+% \section{Ogmg Function Descriptions}
+
+% \input OgmgInclude
+
+
+
+\printindex
+
+\end{document}
+
+

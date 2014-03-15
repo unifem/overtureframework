@@ -1,0 +1,61 @@
+%=======================================================================================================
+% Mapping Documentation
+%    Short version for looking at the write up for one or two mappings.
+%=======================================================================================================
+\documentclass{article}
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height for xdvi
+
+\usepackage{epsfig}
+\usepackage{graphics}    
+\usepackage{moreverb}
+\usepackage{amsmath}
+\usepackage{fancybox}
+\usepackage{subfigure}
+\usepackage{multicol}
+
+\begin{document}
+
+
+\input wdhDefinitions
+
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\id     {i}
+\def\jd     {j}
+\def\kap {\sqrt{s+\omega^2}}
+
+\newcommand{\primer}{/home/henshaw/res/primer}
+\newcommand{\gf}{/home/henshaw/res/gf}
+\newcommand{\mapping}{/home/henshaw/res/mapping}
+\newcommand{\ogshow}{/home/henshaw/res/ogshow}
+\newcommand{\oges}{/home/henshaw/res/oges}
+\newcommand{\figures}{../docFigures}
+
+
+% \input DataPointMapping.tex
+
+% \input inverse
+\input NurbsMapping.tex
+% \input HyperbolicMapping.tex
+
+% \vfill\eject
+% \input SweepMapping.tex
+
+% \input TrimmedMapping.tex
+% \input RevolutionMapping.tex
+% \input EllipticGridGenerator.tex
+% \vfill\eject
+% \input CompositeSurface.tex
+% \vfill\eject
+
+% \input FilletMapping.tex
+% \input JoinMapping.tex
+% \input CrossSectionMapping.tex
+
+
+\end{document}

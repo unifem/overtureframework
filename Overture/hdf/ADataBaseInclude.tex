@@ -1,0 +1,63 @@
+\subsection{Constructors}
+ 
+\newlength{\ADataBaseIncludeArgIndent}\begin{flushleft} \textbf{%
+\settowidth{\ADataBaseIncludeArgIndent}{ADataBase(}% 
+ADataBase()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Default constructor;
+\item[{\bf Author:}]  WDH
+
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ADataBaseIncludeArgIndent}{ADataBase(}% 
+ADataBase(const ADataBase \& db )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Copy constructor (shallow copy).
+   Make a copy of the directory. This does not copy the data-base file.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ADataBaseIncludeArgIndent}{ADataBase(}% 
+ADataBase(const GenericDataBase \& db )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Copy constructor, this works if db is really a member of this derived class.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{operator =}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ADataBaseIncludeArgIndent}{ADataBase \& operator=(}%
+ADataBase \& operator=(const ADataBase \& db )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Shallow copy: make a copy of the directory. This does not copy the data-base file.
+\item[{\bf Author:}]  WDH
+
+\end{description}
+\subsection{mount}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\ADataBaseIncludeArgIndent}{int  mount(}%
+int  mount(const String \& fileName, const String \& flags )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Mount a data-base file.
+\item[{\bf fileName (input):}]  the name of the file.
+\item[{\bf flags (input):}]  flags to indicate how to access the file, "I" = initialize
+   a new file, "W" = open an existing file for reading and writing,
+   "R" = open an existing file read-only.
+\end{description}

@@ -1,0 +1,115 @@
+#
+# MakeDefs.sun5 : definitions for sun5 (solaris)
+#
+
+# these next values for compilers will be used unless overridden with an argument to configure
+cc = cc 
+CC = CC 
+FC = f77 
+
+# these next flags are compiler dependent
+cc_FLAGS = -KPIC -Xa -DSHM 
+CC_FLAGS = -cg92 -PIC 
+FF_FLAGS = -cg92 -PIC 
+
+A++ = $(APlusPlus) 
+# AppLibraries = -R $(APlusPlus) -L$(APlusPlus) -lA++ -lA++_static 
+AppLibraries = -R $(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static 
+
+Include=  $(Overture)/include 
+Lib=      $(Overture)/lib 
+LibOverture= -lOverture -lOverture_static 
+LibRapsodi= -lRapsodi -lRapsodi_static 
+
+BOXLIB_DEFS = -DBL_USE_FLOAT -DBL_Solaris   
+
+# Here is the rpath command 
+OV_RPATH = -R
+
+# Here is where we can find the perl include files and library (CORE)
+# These will normally be changed by the configure script unless it can't find the location of the perl CORE 
+OV_PERL_INCLUDE = /usr/lib/perl5/5.6.1/i386-linux/CORE
+OV_PERL_LIB     = /usr/lib/perl5/5.6.1/i386-linux/CORE
+# Here are the perl libraries we need to link to
+OV_PERL_LIBRARIES = $(OV_RPATH) $(OV_PERL_LIB) -L$(OV_PERL_LIB) -lperl -lcrypt
+
+# these next values will may be changed by the configure script
+C_OPTIMIZATION_FLAG = -O
+CPP_OPTIMIZATION_FLAG = -O
+FORTRAN_OPTIMIZATION_FLAG = -O
+
+CC_SUN5_TEMPLATEFLAG = -instances=static
+#gcc CC_SUN5_TEMPLATEFLAG =
+
+CFLAGS = $(cc_FLAGS) -I$(Include) $(OverturePrecision) $(C_OPTIMIZATION_FLAG) $(FLAGS) -I$(XLIBS)/include
+# flags for c routines we always optimize
+CFLAGSO = -fast $(cc_FLAGS) -I$(Include) $(OverturePrecision) $(FLAGS) -I$(XLIBS)/include
+CFLAGSO = -g $(cc_FLAGS) -I$(Include) $(OverturePrecision) $(FLAGS) -I$(XLIBS)/include
+#gcc CFLAGSO = -O $(cc_FLAGS) -I$(Include) $(OverturePrecision) $(FLAGS) -I$(XLIBS)/include
+
+# do not include some paths, such as STL in the places searched by makedepend (takes too long)
+CC_INCLUDES_FOR_DEPEND = $(OverturePrecision) $(FLAGS) -DUSE_MESA -I$(Include) -I$(APlusPlus)/include -I$(OpenGL)/include -I$(XLIBS)/include $(BOXLIB_DEFS) -I$(PPlusPlus)/../../include -I$(PPlusPlus)/../../PADRE/include  -I$(OV_PERL_INCLUDE)
+
+STL_INCLUDE = 
+CC_INCLUDES = $(CC_FLAGS) $(CC_INCLUDES_FOR_DEPEND) $(STL_INCLUDE)
+
+CCFLAGS= $(CC_INCLUDES) $(CPP_OPTIMIZATION_FLAG) 
+
+# things that are always compile with optimization use this flag
+CCFLAGSO= $(CC_INCLUDES) -O 
+CCFLAGSO= $(CC_INCLUDES) -g
+
+# things that are always compile with lots of optimization use this flag
+CCFLAGSF= $(CC_INCLUDES) -fast 
+CCFLAGSF= $(CC_INCLUDES) -g
+#gcc CCFLAGSF= $(CC_INCLUDES) -O
+
+# things that need to be compiled with no optimization use the following
+CCFLAGSG= $(CC_INCLUDES) -g 
+
+FFLAGS=  $(FF_FLAGS) $(OverturePrecision) $(FortranDouble) $(FORTRAN_OPTIMIZATION_FLAG) $(FLAGS) -I$(Include)
+# single precision always: (but keep DOUBLE definition)
+FFLAGSS=  $(OverturePrecision) $(FF_FLAGS) $(FORTRAN_OPTIMIZATION_FLAG) $(FLAGS) -I$(Include) 
+
+# things that are always compile with optimization use these flags
+FFLAGSO= -fast $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) -I$(Include)  
+FFLAGSO= -g $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) -I$(Include)  
+#g77 FFLAGSO= -O $(FF_FLAGS) $(OverturePrecision) $(FortranDouble)  $(FLAGS) -I$(Include) 
+FFLAGSSO= -fast $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) -I$(Include) 
+FFLAGSSO= -g $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) -I$(Include) 
+#g77 FFLAGSSO= -O $(OverturePrecision) $(FF_FLAGS)  $(FLAGS) -I$(Include)
+
+# Fortran libraries are specified here
+FORTRAN_LIBS = -lF77 -lM77 -lV77 -lnsl -lsunmath   
+# If we are using f77 with gcc we need to say which fortran libraries to use
+#gcc FORTRAN_LIBS = -L/opt/SUNWspro/SC4.2/lib/ -lF77 -lM77 -lV77 -lnsl -lsunmath 
+#g77 FORTRAN_LIBS =-lnsl -lg2c
+
+LIB_TARGETS= lib_date libso_date 
+LIB_DEPENDENCIES= ../lib/lib_date 
+# CC4.2 TEMPLATES= ../boxlib/Templates.DB/*.o ../mapUtil/Templates.DB/*.o ../Grid/Templates.DB/*.o
+# CC4.2 RAPTEMPLATES= ../boxlib/Templates.DB/*.o ../mapUtil/Templates.DB/*.o 
+# CC V5.* puts templates in SunWS_cache/*/*.o
+TEMPLATES= ../boxlib/SunWS_cache/*/*.o ../mapUtil/SunWS_cache/*/*.o ../Grid/SunWS_cache/*/*.o
+RAPTEMPLATES= ../boxlib/SunWS_cache/*/*.o ../mapUtil/SunWS_cache/*/*.o
+
+# The KCC compiler should be used to build the static library (for templates)
+AR = ar
+#KCC AR = KCC
+ARFLAGS = ruv  
+#KCC ARFLAGS = -o 
+
+LD = $(CC)
+LDFLAGS = -R
+#gcc LD = gcc
+
+RANLIB = true 
+SOFLAGS = -G
+OpenGLibs=
+# explicitly link to -lc for running with mpi
+GLIBS=  $(OV_PERL_LIBRARIES) -R $(OpenGL)/lib  -L$(OpenGL)/lib $(OpenGLibs) -R $(HDF)/lib -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz -L$(MOTIF)/lib -lXm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11 -lm -lc
+
+#hdf5 GLIBS=  -R $(OpenGL)/lib  -L$(OpenGL)/lib $(OpenGLibs) -R $(HDF)/lib -L$(HDF)/lib -lhdf5 -L/usr/local/lib -lz -L$(MOTIF)/lib -lXm -L$(XLIBS)/lib -lXt -lXmu -lXi -lXext -lX11 -lm -lc
+
+
+#sun FLIBS= -R$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)

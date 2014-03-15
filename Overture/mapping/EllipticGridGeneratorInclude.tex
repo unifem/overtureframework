@@ -1,0 +1,324 @@
+\subsubsection{constructor}
+ 
+\newlength{\EllipticGridGeneratorIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{EllipticGridGenerator(}% 
+EllipticGridGenerator()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Default constructor.
+
+\end{description}
+\subsubsection{solution}
+ 
+\begin{flushleft} \textbf{%
+const RealMappedGridFunction \&  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{solution(}%
+solution() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Return a reference to the current solution.
+\end{description}
+\subsubsection{setup}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{setup(}%
+setup(Mapping \& mapToUse, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}Mapping *projectionMappingToUse  =NULL)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+     Setup the EllipticGridGenerator
+\item[{\bf mapToUse:}]  This mapping defines the ...
+\end{description}
+\subsubsection{updateForNewBoundaryConditions}
+ 
+\begin{flushleft} \textbf{%
+int      \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{updateForNewBoundaryConditions(}%
+updateForNewBoundaryConditions()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Update some variables that depend on the boundary consitions.
+ gridIndex : interior points plus boundaries where interior equations are applied.
+
+\end{description}
+\subsubsection{plot}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{plot(}%
+plot( const RealMappedGridFunction \& v, const aString \& label )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Plot a grid function.
+\end{description}
+\subsubsection{projectBoundaryPointst}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{projectBoundaryPoints(}%
+projectBoundaryPoints(const int \& level,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}RealMappedGridFunction \& uu, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const int \& side,  \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const int \& axis,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const Index \& I1,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const Index \& I2,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const Index \& I3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Project boundary points onto the Mappings`s that define the actual boundary.
+
+ boundaryProjectionMap[2][3] : pointer to the mapping to use to project a point onto a boundary.
+\end{description}
+\subsubsection{applyBoundaryConditions}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{applyBoundaryConditions(}%
+applyBoundaryConditions(const int \& level,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}RealMappedGridFunction \& uu )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+    Apply boundary conditions. 
+
+  {\bf slip orthogonal boundary:}
+
+  Adjust the points on the boundary to make the grid orthogonal at the boundary.
+  To do this we compute the amount to shift the point in the unit square coordinates.
+  We then recompute the $\xv$ coordinates by evaluating the Mapping on the boundary.
+
+  Suppose that  $r,s$ are the coordinates tangential to the boundary and $t$ is the coordinate
+  normal to the boundary. Let $\xv_0$ be the grid point on the boundary that we
+ want to adjust and let $\xv_1$ be the grid point one line away from the boundary.
+  Then we want to choose a new boundary 
+ point $\xv(r,s)$ so that
+ \begin{align*}
+    (\xv-\xv_1) \cdot \xv_r &= 0 \\
+    (\xv-\xv_1) \cdot \xv_s &= 0
+ \end{align*}
+ We use the approximation
+ \[
+    \xv(r,s) \approx \xv_0 + \Delta r \xv_r^0 + \Delta s \xv_s^0 
+ \]
+ and thus the equation for $(\Delta r,\Delta s)$ is
+ \begin{align*}
+   \begin{bmatrix}  
+       \xv_r^0\cdot\xv_r^0 & \xv_r^0\cdot\xv_s^0 \\
+       \xv_r^0\cdot\xv_s^0 & \xv_s^0\cdot\xv_s^0 
+   \end{bmatrix}  
+   \begin{bmatrix} \Delta r \\ \Delta s \end{bmatrix} =
+   \begin{bmatrix} (\xv_1-\xv_0)\cdot \xv_r^0 \\ (\xv_1-\xv_0)\cdot \xv_s^0 \end{bmatrix}
+ \end{align*}
+ with solution
+ \begin{align*}
+   \begin{bmatrix} \Delta r \\ \Delta s \end{bmatrix} =
+   {1\over \xv_r^0\cdot\xv_r^0 \xv_s^0\cdot\xv_s^0 - (\xv_r^0\cdot\xv_s^0)^2 }
+    \begin{bmatrix}  
+       \xv_s^0\cdot\xv_s^0 &-\xv_r^0\cdot\xv_s^0 \\
+      -\xv_r^0\cdot\xv_s^0 & \xv_r^0\cdot\xv_r^0 
+   \end{bmatrix}  
+   \begin{bmatrix} (\xv_1-\xv_0)\cdot \xv_r^0 \\ (\xv_1-\xv_0)\cdot \xv_s^0 \end{bmatrix}
+ \end{align*}
+ In 2D this reduces to
+ \[
+  \Delta r = {1\over \xv_r^0\cdot\xv_r^0} (\xv_1-\xv_0)\cdot \xv_r^0
+ \]
+
+\end{description}
+\subsubsection{stretchTheGrid}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{stretchTheGrid(}%
+stretchTheGrid(Mapping \& mapToStretch)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+
+   Determine a starting guess for grids with stretched boundary layer spacing.
+
+  If the user has requested a very small spacing near the boundary we can
+ can explicitly stretch the initial grid to approximately statisfy the grid spacing.
+ To do this we measure the actual grid spacing near each boundary that needs to be stretched.
+ We then determine use stretching functions to determine a new grid by composing a 
+ stretched
+ 
+ 
+ 
+ 
+\end{description}
+\subsubsection{determineBoundarySpacing}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{determineBoundarySpacing(}%
+determineBoundarySpacing(const int \& side, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const int \& axis,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}real \& averageSpacing,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}real \& minimumSpacing,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}real \& maximumSpacing )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Compute the current spacing of the first grid line from the boundary
+    
+\item[{\bf side,axis (input) :}]  determine spacing for this side.
+\item[{\bf averageSpacing,minimumSpacing,maximumSpacing (output) :}] 
+
+\end{description}
+\subsubsection{redBlack}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{redBlack(}%
+redBlack(const int \& level, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}RealMappedGridFunction \& uu )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+     Red black smooth.
+\item[{\bf uu (input/output) :}]  On input and output : current solution valid at all points, including periodic points.
+
+\end{description}
+\subsubsection{jacobi}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{jacobi(}%
+jacobi(const int \& level, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}RealMappedGridFunction \& uu )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+     Jacobi smooth.
+\item[{\bf uu (input/output) :}]  On input and output : current solution valid at all points, including periodic points.
+
+\end{description}
+\subsubsection{lineSmoother}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{lineSmoother(}%
+lineSmoother(const int \& direction,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const int \& level,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}RealMappedGridFunction \& uu )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Perform a line smooth.
+\item[{\bf direction (input) :}]  perform a line smooth along this axis, 0,1, or 2.
+\item[{\bf uu (input/output) :}]  On input and output : current solution valid at all points, including periodic points.
+
+\end{description}
+\subsubsection{smooth}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{smooth(}%
+smooth(const int \& level, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const SmoothingTypes \& smoothingType,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const int \& numberOfSubIterations  =1)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Handles the different smoothing methods.
+\end{description}
+\subsubsection{fineToCoarse}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{fineToCoarse(}%
+fineToCoarse(const int \& level, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const RealMappedGridFunction \& uFine, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}RealMappedGridFunction \& uCoarse,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const bool \& isAGridFunction  = FALSE)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Compute the restriction of the defect
+\item[{\bf isAGridFunction (input) :}]  If true then this variable defines some (x,y,z) coordinates on a grid.
+    This is used to get the correct periodicity.
+\end{description}
+\subsubsection{coarseToFine}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{coarseToFine(}%
+coarseToFine(const int \& level,  \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const RealMappedGridFunction \& uCoarse, \\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}RealMappedGridFunction \& uFineGF,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}const bool \& isAGridFunction  = FALSE)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+             Correct a Component Grid
+      u(i,j) = u(i,j) + P[ u2(i,j) ]   ( P : Prolongation )
+  cp21,cp22,cp23 : coeffcients for prolongation, 2nd order
+  cp41,cp41,cp43 : coeffcients for prolongation, 4th order
+
+\end{description}
+\subsubsection{multigrid}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{multigridVcycle(}%
+multigridVcycle(const int \& level )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+   Multigrid V cycle.
+\end{description}
+\subsubsection{generateGrid}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{generateGrid(}%
+generateGrid()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Access:}]  {\bf Protected}.
+\item[{\bf Description:}] 
+     Perform some multigrid iterations.
+
+\item[{\bf u0 (input) :}]  initial guess.     // ****** fix this -- we should keep ghost values ------------------
+
+\end{description}
+\subsubsection{update}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\EllipticGridGeneratorIncludeArgIndent}{update(}%
+update(DataPointMapping \& dpm,\\ 
+\hspace{\EllipticGridGeneratorIncludeArgIndent}GenericGraphicsInterface *gi\_  = NULL, \\ 
+GraphicsParameters \& parameters  =Overture::nullMappingParameters())
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Prompt for changes to parameters and compute the grid.
+\item[{\bf dpm (input) :}]  build this mapping with the grid.
+\item[{\bf gi (input) :}]  supply a graphics interface if you want to see the grid as it
+    is being computed.
+\item[{\bf parameters (input) :}]  optional parameters used by the graphics interface.
+
+\end{description}

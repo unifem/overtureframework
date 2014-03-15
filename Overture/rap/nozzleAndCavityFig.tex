@@ -1,0 +1,140 @@
+
+
+%-rw-r--r--  1 henshaw  staff    186639 Feb 10 06:31 nacCavityBaseFrontVolume.ps
+%-rw-r--r--  1 henshaw  staff    562121 Feb 10 06:31 nacCavityBaseFrontSurface.ps
+%-rw-r--r--  1 henshaw  staff    528168 Feb 10 06:31 nacCavityBaseFrontChooseBoundaryCurves.ps
+%-rw-r--r--  1 henshaw  staff    520956 Feb 10 06:31 nacCavityBaseFrontChooseInitialCurve.ps
+%-rw-r--r--  1 henshaw  staff    241968 Feb 10 06:31 nacLeftCornerVolume.ps
+%-rw-r--r--  1 henshaw  staff    593637 Feb 10 06:31 nacLeftCornerSurface.ps
+%-rw-r--r--  1 henshaw  staff    542509 Feb 10 06:30 nacLeftCornerInitialCurve.ps
+%-rw-r--r--  1 henshaw  staff    382952 Feb 10 06:30 nacLeftNozzleVolume.ps
+%-rw-r--r--  1 henshaw  staff    417081 Feb 10 06:30 nacLeftNozzleSurface.ps
+%-rw-r--r--  1 henshaw  staff    375145 Feb 10 06:30 nacLeftNozzleSurfaceChooseCurve.ps
+%-rw-r--r--  1 henshaw  staff    304393 Feb 10 06:30 nozzleAndCavityTopo.ps
+%-rw-r--r--  1 henshaw  staff    297843 Feb 10 06:30 nozzleAndCavityCAD.ps
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{6cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (18,6);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{nacLeftCornerInitialCurve}{\figWidtha}};
+ \draw (6,0.0) node[anchor=south west] {\trimfig{nacLeftCornerSurface}{\figWidtha}};
+ \draw (12,0.0) node[anchor=south west] {\trimfig{nacLeftCornerVolume}{\figWidtha}};
+%
+% \draw[step=1cm,gray] (0,0) grid (18,6);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Nozzle and Cavity. Construct a grid to connect the nozzle and cavity (left-side). 
+Left: choose a start curve by joining two edges. Middle: grow a surface grid in both directions
+from the start curve. Right: grow a volume grid.}
+\label{fig:nozzleAndCavityLeftCorner}
+\end{figure}
+}
+
+%% ----------------------------------------------------------------------
+%{
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.0}{1.}}
+%\newcommand{\figWidth}{5.5cm}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,0)(16,6)
+%  \rput(3.0,3.0){\clipfig{nacLeftCornerInitialCurve.ps}{\figWidth}}
+%  \rput(8.5,3.0){\clipfig{nacLeftCornerSurface.ps}{\figWidth}}
+%  \rput(14.,3.0){\clipfig{nacLeftCornerVolume.ps}{\figWidth}}
+% \psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{Nozzle and Cavity. Construct a grid to connect the nozzle and cavity (left-side). 
+%Left: choose a start curve by joining two edges. Middle: grow a surface grid in both directions
+%from the start curve. Right: grow a volume grid.}
+%\label{fig:nozzleAndCavityLeftCorner}
+%\end{figure}
+%}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{6cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (18,6);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{nacCavityBaseFrontChooseInitialCurve}{\figWidtha}};
+ \draw (6,0.0) node[anchor=south west] {\trimfig{nacCavityBaseFrontSurface}{\figWidtha}};
+ \draw (12,0.0) node[anchor=south west] {\trimfig{nacCavityBaseFrontVolume}{\figWidtha}};
+%
+%\draw[step=1cm,gray] (0,0) grid (18,6);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Nozzle and Cavity. Construct a grid for the cavity. 
+Left: choose a start curve from an edge (boundary curves are highlighted in blue). 
+Middle: grow a surface grid along the base of the
+cavity; the boundary conditions for this surface grid have been set to follow boundary curves that have been previously selected. 
+Right: grow a volume grid.}
+\label{fig:nozzleAndCavityBase}
+\end{figure}
+}
+
+% ----------------------------------------------------------------------
+%{
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.0}{1.}}
+%\newcommand{\figWidth}{5.5cm}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,0)(16,6)
+%% nacCavityBaseFrontChooseBoundaryCurves.ps
+%  \rput(3.0,3.0){\clipfig{nacCavityBaseFrontChooseInitialCurve.ps}{\figWidth}}
+%  \rput(8.5,3.0){\clipfig{nacCavityBaseFrontSurface.ps}{\figWidth}}
+%  \rput(14.,3.0){\clipfig{nacCavityBaseFrontVolume.ps}{\figWidth}}
+%% 
+% \psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{Nozzle and Cavity. Construct a grid for the cavity. 
+%Left: choose a start curve from an edge (boundary curves are highlighted in blue). 
+%Middle: grow a surface grid along the base of the
+%cavity; the boundary conditions for this surface grid have been set to follow boundary curves that have been previously selected. 
+%Right: grow a volume grid.}
+%\label{fig:nozzleAndCavityBase}
+%\end{figure}
+%}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{12cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (12,10);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{nozzleAndCavityGrid}{\figWidtha}};
+%
+%\draw[step=1cm,gray] (0,0) grid (12,10);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Nozzle and Cavity. Overlapping grid.}
+\label{fig:nozzleAndCavityGrid}
+\end{figure}
+}
+%{
+%\newcommand{\figWidtha}{12.cm}
+%\newcommand{\figWidth}{14.cm}
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.125}{.85}}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(0,0)(14,8)
+%  \rput(7.,4){\clipfig{nozzleAndCavityGrid.ps}{\figWidtha}}
+% \psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{Nozzle and Cavity. Overlapping grid.}
+%\label{fig:nozzleAndCavityGrid}
+%\end{figure}
+%}

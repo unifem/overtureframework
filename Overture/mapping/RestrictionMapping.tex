@@ -1,0 +1,23 @@
+%--------------------------------------------------------------
+\section{RestrictionMapping: define a restriction to a sub-rectangle of the unit cube}
+\index{restriction mapping}\index{Mapping!RestrictionMapping}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+The {\tt RestrictionMapping} is a simple mapping that defines a restriction to
+a sub-rectangle of the unit square or unit cube.
+This Mapping is used by the {\tt ReparameterizationTransform} where it can be used
+to define a mesh refinement patch on an adpative grid.
+
+The restriction is a Mapping from {\tt parameter} space $\rv$ to {\tt parameter} space
+$\xv$ defined by 
+\begin{align*}
+    x(I,axis1) &= (rb-ra) r(I,axis1)+ra \\
+    x(I,axis2) &= (sb-sa) r(I,axis2)+sa \\
+    x(I,axis3) &= (tb-ta) r(I,axis3)+ta  
+\end{align*}
+
+
+%% \input RestrictionMappingInclude.tex
+

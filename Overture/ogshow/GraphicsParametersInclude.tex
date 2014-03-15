@@ -1,0 +1,221 @@
+\subsection{Constructor}
+ 
+\newlength{\GraphicsParametersIncludeArgIndent}
+\begin{flushleft} \textbf{%
+  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{GraphicsParameters(}%
+GraphicsParameters(bool default0)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Constructor 
+
+\end{description}
+\subsection{isDefault}
+ 
+\begin{flushleft} \textbf{%
+bool   \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{isDefault(}%
+isDefault()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return true if this object is a default object. 
+ This routine can be used to tell whether a GraphicsParameter object is
+ equal to the static object {\tt Overture::defaultGraphicsParameters()} which can
+ be used as a default argument in a function call.
+\end{description}
+\subsection{getObjectWasPlotted}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{getObjectWasPlotted(}%
+getObjectWasPlotted() const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    Determine if the object was plotted in the last plotting routine
+    that was called.
+\item[{\bf Return value:}]  true if an object was plotted, false otherwise.
+
+\end{description}
+\subsection{get(aString)}
+ 
+\begin{flushleft} \textbf{%
+aString \&  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{get(}%
+get(const GraphicsOptions \& option, aString \& label) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the aString associated with a GraphicsParameter option.
+\item[{\bf option (input) :}]  Return the aString associated with this option (if any).
+\item[{\bf label (output) :}]  Return the string in this variable
+\item[{\bf Return value:}]  the return value is also equal to label.
+\end{description}
+\subsection{get(int)}
+ 
+\begin{flushleft} \textbf{%
+int \&  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{get(}%
+get(const GraphicsOptions \& option, int \& value) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the int associated with a GraphicsParameter option.
+\item[{\bf option (input) :}]  Return the int value associated with this option (if any).
+\item[{\bf value (output) :}]  Return the value in this variable
+\item[{\bf Return value:}]  the return value is also equal to value.
+\end{description}
+\subsection{get(real)}
+ 
+\begin{flushleft} \textbf{%
+real \&   \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{get(}%
+get(const GraphicsOptions \& option, real \& value) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the real associated with a GraphicsParameter option.
+\item[{\bf option (input) :}]  Return the real value associated with this option (if any).
+\item[{\bf value (output) :}]  Return the value in this variable
+\item[{\bf Return value:}]  the return value is also equal to value.
+\end{description}
+\subsection{get(IntegerArray)}
+ 
+\begin{flushleft} \textbf{%
+IntegerArray \&  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{get(}%
+get(const GraphicsOptions \& option, IntegerArray \& values) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the IntegerArray associated with a GraphicsParameter option.
+\item[{\bf option (input) :}]  Return the IntegerArray value associated with this option (if any).
+\item[{\bf value (output) :}]  Return the value in this variable
+\item[{\bf Return value:}]  the return value is also equal to value.
+\end{description}
+\subsection{get(RealArray)}
+ 
+\begin{flushleft} \textbf{%
+RealArray \&  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{get(}%
+get(const GraphicsOptions \& option, RealArray \& values) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Return the RealArray associated with a GraphicsParameter option.
+\item[{\bf option (input) :}]  Return the RealArray value associated with this option (if any).
+\item[{\bf value (output) :}]  Return the value in this variable
+\item[{\bf Return value:}]  the return value is also equal to value.
+\end{description}
+\subsection{get(Sizes)}
+ 
+\begin{flushleft} \textbf{%
+real \&  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{get(}%
+get(const Sizes \& option, real \& value) const
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Deterimine the value of a {\it size} parameter
+\item[{\bf option (input) :}]  determine the value for this size.
+\item[{\bf value (output) :}]  the value.
+\item[{\bf Return value:}]  the return value is also equal to value.
+
+\end{description}
+\subsection{set(GraphicsOptions, int/real)}
+ 
+\begin{flushleft} \textbf{%
+int   \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{set(}%
+set(const GraphicsOptions \& option, real value)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Assign a parameter with an int or real value
+
+\end{description}
+\subsection{set(GraphicsOptions, IntegerArray)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{set(}%
+set(const GraphicsOptions \& option, const IntegerArray \& values)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Assign a parameter with that requires an array of int's
+
+\end{description}
+\subsection{set(GraphicsOptions, RealArray)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{set(}%
+set(const GraphicsOptions \& option, const RealArray \& values)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Assign a parameter with that requires an array of real's
+
+\end{description}
+\subsection{set(GraphicsOptions, aString)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{set(}%
+set(const GraphicsOptions \& option, const aString \& label)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Assign a parameter with a aString
+
+\end{description}
+\subsection{set(Sizes)}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{set(}%
+set(const Sizes \& option, real value) set a size
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Assign a {\it size} parameter
+
+\end{description}
+\subsection{setColourTable}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\GraphicsParametersIncludeArgIndent}{setColourTable(}%
+setColourTable(ColourTableFunctionPointer ctf)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Provide a function to use for a colour table. This function will then be subsequently used for
+   the colour table. The colour table can be reset to one of the provided colour tables
+   using the  {\tt GI\_SET\_COLOUR\_TABLE} option. (The function provided here corresponds
+   to the {\tt userDefined} colour table).
+\item[{\bf ctf (input) :}]  a pointer to a function of the form shown below. 
+
+  Here is an example of a function that defines a colour table
+ 
+ {\footnotesize
+ \begin{verbatim}
+ void 
+ defaultColourTableFunction(const real & value, real & red, real & green, real & blue)
+ // =============================================================================================
+ // Description: Convert a value from [0,1] into (red,green,blue) values, each in the range [0,1]
+ // value (input) :  0 <= value <= 1 
+ // red, green, blue (output) : values in the range [0,1]
+ // =============================================================================================
+ { // a sample user defined colour table function: 
+   red=0.;
+   green=value;
+   blue=(1.-value);
+ }
+ \end{verbatim}
+ }
+
+\end{description}

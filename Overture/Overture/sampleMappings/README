@@ -1,0 +1,12 @@
+Most of these command files test the rap program and can be run through the perl scripts check.p 
+and heal.p. They can also be run independently, for example, with "rap ship-5415-fix.cmd". Note that
+the check and heal scripts also attempt to run examples that we are unable to distribute, but the 
+scripts should ignore any files that don't exist.
+
+Some of these command files generate some of the Mapping's shown
+in the Mapping documentation. To run one of these examples:
+   1) start ogen
+   2) choose 'create mappings' from the pop-up menu
+   3) choose 'read command file' from the file pull-down menu
+   4) enter the name of the command file to read.
+

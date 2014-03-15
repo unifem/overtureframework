@@ -1,0 +1,57 @@
+\section{CylinderMapping}\index{cylinder mapping}\index{Mapping!CylinderMapping}
+
+This mapping defines a cylindrical volume or surface in three-dimensions.
+\begin{align}
+ \theta &=  2\pi( \theta_0 + r_0( \theta_1-\theta_0) ) ,\\
+ R(r_1) &= (R_0 + r_2 (R_1-R_0))  , \\
+ \xv(r_0,r_1,r_2) &= ( R \cos(\theta ) + x_0 , R\sin(\theta) + y_0 , s_0 + r_1(s_1-s_0) + z_0 ) 
+\end{align}
+The above cylinder has the z-axis as the axial direction. It is also possible to to have the
+axial direction to point in any of the coordinate direction using the 
+({\tt cylAxis1}, {\tt cylAxis2}, {\tt cylAxis3}) variables (which should be a permutation of (0,1,2)):
+Changing these variables will permute the definition of $(x_0,x_1,x_2)$: 
+\begin{align}
+    (x_{\mathtt cylAxis1},x_{\mathtt cylAxis2},x_{\mathtt cylAxis3}) = ( R \cos(\theta ) 
+             + x_0 , R\sin(\theta) + y_0 , s_0 + r_2(s_1-s_0) + z_0 )
+\end{align}
+NOTE that the parameter space coordinates are always $(\theta,\rm{axial},\rm{radial})$. 
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{10cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.05}{.025}{.05}{.05}}
+\begin{center}\small
+% ------------------------------------------------------------------------------------------------
+\begin{tikzpicture}
+  \useasboundingbox (0,0.25) rectangle (10,10);  % set the bounding box (so we have less surrounding white space)
+% 
+  \draw (0, 0) node[anchor=south west,xshift=-4pt,yshift=-4pt] {\trimfig{\figures/cylinder}{\figWidth}};
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (10,10);
+\end{tikzpicture}
+% ----------------------------------------------------------------------------------------
+ \caption{CylinderMapping. This is the volume representation. The cylinder may also represent a surface. }
+\label{fig:CylinderMapping}
+\end{center}
+\end{figure}
+
+
+%- \begin{figure}[ht]
+%-   \begin{center}
+%-   \includegraphics[width=14cm]{\figures/CylinderMapping_idraw}
+%-   % \epsfig{file=\figures/CylinderMapping.idraw.ps,width=14cm}
+%-   \caption{The CylinderMapping defines a cylinder in three-dimensions.}
+%-   \end{center}
+%- \label{fig:CylinderMapping}
+%- \end{figure}
+%- 
+%- 
+%- %% \input CylinderMappingInclude.tex
+%- 
+%- 
+%- \begin{figure}[htb]
+%- \centering
+%-   \includegraphics[width=10cm]{\figures/cylinder}
+%-   % \epsfig{file=\figures/cylinder.ps,width=.5\textwidth}
+%-  \caption{CylinderMapping. This is the volume representation. The cylinder may
+%-    also represent a surface. }
+%- \end{figure}

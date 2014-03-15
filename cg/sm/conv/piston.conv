@@ -1,0 +1,131 @@
+#
+# Measure convergence rates for cgsm with the elsatic piston
+#
+# To run the convergence tests type: 
+# 
+#   conv.p piston.conv -pv=g -bcn=dirichlet -tf=1. -tp=1. -cg=piston -ap=1. -pp=4. -ng=3 -alwaysCompute=1  [ c0=2.00 c1=2.01 c2=2.00
+#
+# --------options: 
+#   -pv : PDE variation:  nc=non-conservative, c=conservative, g=Godunov
+#   -tz : poly or trig 
+#   -bcn : d=dirichlet, sf=traction, slip=slip, mixed=dirchlet and traction
+#   -en : error norm: max, l1, l2
+#   -ng : number of grids to use (i.e. how many times is the grid refined)
+#   -cg : square, sis, cic, sic
+#   -alwaysCompute=1 : force each case to be re-run even if the check file exists
+# ---------------------
+# Set default parameters: 
+$pv = "nc"; $tz="trig"; $bcn = "d"; $en="max"; $ng=4; $diss=0.; $dissOrder=4; $tf=.5;  $tPlot=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; $ad=0.; $numberOfParallelGhost=2; 
+$stressRelaxation=0; $relaxAlpha=0.1; $relaxDelta=0.1; 
+$CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
+$cgsmCmd = "$CGBUILDPREFIX/sm/bin/cgsm";  # command for cgsm
+$cmdDir="$ENV{CG}/sm/cmd"; 
+$ap=1.; $pp=4.; 
+$cg = "square"; $bg="square"; $alwaysCompute=0; $ts="me"; $lambda=1; $filter=0; $filterOrder=6; $filterStages=2; 
+$showAllComponents=0;  # set to 1 to include all components in the table.
+#
+GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,"tp=f"=>\$tPlot,\
+            "diss=f"=>\$diss,"tz=s"=>\$tz,"fx=f"=>\$fx,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,"lambda=f"=>\$lambda,\
+            "filter=i"=>\$filter,"filterOrder=i"=>\$filterOrder,"filterStages=i"=>\$filterStages,\
+            "showAllComponents=i"=>\$showAllComponents,"ap=f"=>\$ap,"pp=f"=>\$pp,"cfl=f"=>\$cfl,"ad=f"=>\$ad,\
+            "cgsmCmd=s"=>\$cgsmCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"dissOrder=i"=>\$dissOrder,\
+            "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta );
+#
+$check="sm.check";
+#
+if( $cg eq "sphere" ){ $nd=3; } # 3D 
+#
+if( $pv eq "nc" || $pv eq "c" ){ $numberOfComponents = $nd; }
+if( $pv eq "g" ){ $numberOfComponents = $nd + $nd + $nd*$nd; }
+if( $pv eq "h" ){ $numberOfComponents = 11; }
+if( $ts eq "me" ){ $ts = "modifiedEquationTimeStepping"; }
+if( $ts eq "fe" ){ $ts = "forwardEuler"; }
+if( $ts eq "ie" ){ $ts = "improvedEuler"; }
+if( $ts eq "ab" ){ $ts = "adamsBashforth2"; }
+# 
+$caseName="piston.$cg.$pv.$bcn"; 
+$name="piston.$cg.$pv.$bcn.$tz"; 
+#
+# --- define the table heading and caption --
+# 
+#  --- SOS NC or C : include |u| in table by default
+if( $pv eq "nc" || $pv eq "c" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    $numberOfComponents=$nd+1;  \
+  }\
+  else\
+  { \
+    $numberOfComponents=1; $ignoreComponent[1]=1; \
+  }\
+  if( $numberOfComponents eq 1 )\
+  { \
+     $title ="grid  \& N \&  \$\\vert u \\vert\$   "; \
+     @componentName = ( "u" ); \
+  }\
+  elsif( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \& \$u\$ \&  \$u_1\$ \& \$u_2\$  ";\
+     @componentName = ( "u", "u0", "u1" );\
+  }\
+  else{\
+    $title ="grid  \& N \&  \$u\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$  ";\
+    @componentName = ( "u", "u0", "u1", "u2" );\
+  }\
+}
+#  --- Godunov : include |u|, |v|, |sigma| in table by default
+if( $pv eq "g" )\
+{\
+  if( $showAllComponents == 1 )\
+  { \
+    if( $nd eq 2 ){ $numberOfComponents=11; }else{ $numberOfComponents=18; }  \
+  }\
+  else\
+  { \
+    $numberOfComponents=3;  \
+  }\
+  if( $numberOfComponents eq 3 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v\$  \&  \$\\sigma\$   "; \
+     @componentName = ( "u", "v", "s" ); \
+  }\
+  elsif( $numberOfComponents eq 11 )\
+  { \
+     $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{21}\$ \& \$s_{22}\$ \&  \$u_1\$ \& \$u_2\$ ";\
+     @componentName = ( "u", "v", "s", "v0", "v1" , "s11", "s12", "s21", "s22", "u0", "u1" );\
+  }\
+  else{\
+         $title ="grid  \& N \&  \$u\$  \&  \$v$  \&  \$\\sigma\$ \& \$v_1\$ \& \$v_2\$ \& \$v_3\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{13}\$ \& \$s_{21}\$ \& \$s_{22}\$ \& \$s_{23}\$ \& \$s_{31}\$ \& \$s_{32}\$ \& \$s_{33}\$ \&  \$u_1\$ \& \$u_2\$ \& \$u_3\$ ";\
+         @componentName = ( "u", "v", "s", "v0", "v1", "v2" , "s11", "s12", "s13", "s21", "s22", "s23", "s31", "s32", "s33", "u0", "u1", "u2");\
+  }\
+}
+if( $pv eq "h" ){ $ignoreComponent[0]=1; $ignoreComponent[1]=1; $ignoreComponent[7]=1; $ignoreComponent[8]=1;  }
+if( $numberOfComponents eq 11 ){ $title= "grid  \& N  \& \$v_1\$ \& \$v_2\$ \& \$s_{11}\$ \& \$s_{12}\$ \& \$s_{22}\$ \& \$u_1\$ \& \$u_2\$"; }
+#
+if( $numberOfComponents eq 11 ){ @componentName = ( "x0", "x1", "v0", "v1" , "s11", "s12", "s22", "p", "q", "u0", "u1" ); }
+# 
+if( $pv eq "g" ){ $clabel="ad=$ad"; }else{ $clabel = "diss=$diss, dissOrder=$dissOrder, filter=$filter, filterOrder=$filterOrder"; }
+$caption= "\\caption\{SM, $name, bcn=$bcn, \$t=$tf\$, $clabel, \$\\lambda=$lambda\$, cfl=$cfl $date}\\label\{table:$name}"; 
+$outputFile="$name" . ".ConvTable.tex"; 
+# 
+$options = "-pv=$pv -ic=special -bc=$bcn -ap=$ap -pp=$pp -ts=$ts -cfl=$cfl -tf=$tf -tp=$tPlot -en=$en -diss=$diss -dissOrder=$dissOrder -filter=$filter -filterOrder=$filterOrder -filterStages=$filterStages -lambda=$lambda -ad=$ad -stressRelaxation=$stressRelaxation -relaxAlpha=relaxAlpha -relaxDelta=$relaxDelta -go=go"; 
+# 
+if( $cg eq "piston" ){\
+$grid1="piston8";  $gName1 = "pistonSolidGridf8";\
+$grid2="piston16"; $gName2 = "pistonSolidGridf16";\
+$grid3="piston32"; $gName3 = "pistonSolidGridf32";\
+$grid4="piston64"; $gName4 = "pistonSolidGridf64";}
+# 
+$grid=$grid1; $res=1; $cmd="$cgsmCmd noplot $cmdDir/piston -g=$gName1 $options";
+$grid=$grid2; $res=2; $cmd="$cgsmCmd noplot $cmdDir/piston -g=$gName2 $options";
+if( $ng > 2 ){ $grid=$grid3; $res=4; $cmd="$cgsmCmd noplot $cmdDir/piston -g=$gName3 $options";}
+if( $ng > 3 ){ $grid=$grid4; $res=8; $cmd="$cgsmCmd noplot $cmdDir/piston -g=$gName4 $options";}
+if( $ng > 4 ){ $grid=$grid5; $res=16; $cmd="$cgsmCmd noplot $cmdDir/piston -g=$gName5 $options";}
+$closeFile="true";
+# -------------------------------------------------------------------------------
+exit
+
+
+
+

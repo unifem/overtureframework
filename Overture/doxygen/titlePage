@@ -1,0 +1,26 @@
+/// \mainpage Overture: An Object Oriented Framework for Solving PDEs on Composite Grids
+///  
+/// 
+///  \section intro_sec Introduction
+///     This document contains the Overture source code documentation. 
+///   Overture is a framework for grid generation and solving partial differential equations (PDEs) on composite overlapping grids.
+///
+///  \section summary_sec Overview
+///    Here is a summary of the various capabilities of Overture.
+///
+///      - Mapping's such as AnnulusMapping, NurbsMapping and HyperbolicMapping represent geometry and continuous representation of grids.
+///      - Grids and GridCollections such as MappedGrid, GridCollection and CompositeGrid represent discrete forms of the domain.
+///      - GridFunctions such as doubleMappedGridFunction, intGridCollectionFunction and floatCompositeGridFunction 
+///                hold solutions (fields) on grids.
+///      - Ogen is the overlapping grid generator from constructing overlapping grids from Mapping's.
+///      - Interactive graphics is provided through classes such as PlotStuff and PlotIt.
+///      - Graphics postprocessing is done with classes such as plotStuff, Ogshow and ShowFileReader.
+///      - Database support using HDF is managed through the HDF_DataBase class.
+///      - Operators such as MappedGridOperators and CompositeGridOperators define discrete approximations to differential operators and
+///           boundary conditions.      
+///      - Ogmg is the overlapping grid multigrid solver.
+///      - Oges can be used to solve sparse systems with e.g. PETSc. 
+///      - Ugen is the hybrid (structured/unstructured) grid generator. 
+///      - There are a variety of utility routines such as Integrate (for integration on overlapping grids), OGFunction (for
+///          manufactured solutions), TridiagonalSolver (for solving tri- and penta-diagonal systems).
+///

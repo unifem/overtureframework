@@ -1,0 +1,89 @@
+\subsection{Constructor}
+ 
+\newlength{\MatrixTransformIncludeArgIndent}
+\begin{flushleft} \textbf{%
+\settowidth{\MatrixTransformIncludeArgIndent}{MatrixTransform(}% 
+MatrixTransform() 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Build a mapping for matrix transform.
+\end{description}
+\subsection{Constructor(Mapping\&)}
+ 
+\begin{flushleft} \textbf{%
+\settowidth{\MatrixTransformIncludeArgIndent}{MatrixTransform(}% 
+MatrixTransform(Mapping \& map) 
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Build a Mapping for matrix transformation of another Mapping.
+\end{description}
+\subsection{reset}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixTransformIncludeArgIndent}{reset(}%
+reset()
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Reset the transformation to the identity.
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixTransformIncludeArgIndent}{rotate(}%
+rotate( const int axis, const real theta )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a rotation about a given axis.
+\item[{\bf axis (input) :}]  axis to rotate about (0,1,2)
+\item[{\bf theta (input) :}]  angle in radians to rotate by.
+\end{description}
+\subsection{rotate}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixTransformIncludeArgIndent}{rotate(}%
+rotate( const RealArray \& rotate, bool incremental  =false)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a "rotation" using a $3\times3$ matrix. This does not really have to
+  be a rotation. 
+\item[{\bf rotate (input):}]  If incremental=false then the upper $3\times3$ portion of the $4\times4$ transformation
+    matrix will be replaced by the matrix {\tt rotate(0:2,0:2)}. Otherwise this rotation matrix
+    will mutliply the existing transformation.
+\item[{\bf incremental (input) :}]  if true apply this rotation to the existing transformation,
+    otherwise replace the existing rotation.
+\end{description}
+\subsection{scale}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixTransformIncludeArgIndent}{scale(}%
+scale( const real scalex  =1.,\\ 
+\hspace{\MatrixTransformIncludeArgIndent}const real scaley  =1., \\ 
+\hspace{\MatrixTransformIncludeArgIndent}const real scalez  =1., \\ 
+\hspace{\MatrixTransformIncludeArgIndent}bool incremental   =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a scaling
+\item[{\bf scalex, scaley, scalez (input):}]  Scale factors along each axis.
+\item[{\bf incremental (input) :}]  if true then incrementally transform the 
+       existing mapping, other transform the original mapping.
+\end{description}
+\subsection{shift}
+ 
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\MatrixTransformIncludeArgIndent}{shift(}%
+shift( const real shiftx  =0., \\ 
+\hspace{\MatrixTransformIncludeArgIndent}const real shifty  =0.,\\ 
+\hspace{\MatrixTransformIncludeArgIndent}const real shiftz  =0., \\ 
+\hspace{\MatrixTransformIncludeArgIndent}bool incremental   =true)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Purpose:}]  Perform a shift.
+\item[{\bf shitx, shity, shitz (input):}]  shifts along each axis.
+\item[{\bf incremental (input) :}]  if true then incrementally transform the 
+       existing mapping, other transform the original mapping.
+\end{description}

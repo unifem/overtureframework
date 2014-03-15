@@ -1,0 +1,39 @@
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{6cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0}{.0}{.1}{.1}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (18,6);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0.0) node[anchor=south west] {\trimfig{nacLeftNozzleSurfaceChooseCurve}{\figWidtha}};
+ \draw (6,0.0) node[anchor=south west] {\trimfig{nacLeftNozzleSurface}{\figWidtha}};
+ \draw (12,0.0) node[anchor=south west] {\trimfig{nacLeftNozzleVolume}{\figWidtha}};
+%
+%\draw[step=1cm,gray] (0,0) grid (18,6);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Nozzle and Cavity. Construct a grid for the left section of the nozzle boundary. Left: choose a start curve. Middle: grow a surface grid. Right: grow a volume grid.}
+\label{fig:nozzleAndCavityLeftNozzle}
+\end{figure}
+}
+
+%% ----------------------------------------------------------------------
+%{
+%\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.05}{1.}}
+%\newcommand{\clipfiga}[2]{\clipFigb{#1}{#2}{.0}{.9}{.05}{.9}}
+%\newcommand{\figWidth}{5.5cm}
+%\begin{figure}[hbt]
+% \begin{center}
+% \begin{pspicture}(1,.75)(16,5.5)
+%  \rput(2.5,3.0){\clipfig{nacLeftNozzleSurfaceChooseCurve.ps}{\figWidth}}
+%  \rput(8.25,3.0){\clipfig{nacLeftNozzleSurface.ps}{\figWidth}}
+%  \rput(14.,3.0){\clipfiga{nacLeftNozzleVolume.ps}{\figWidth}}
+%% \psgrid[subgriddiv=2]
+%\end{pspicture}
+%\end{center}
+%\caption{Nozzle and Cavity. Construct a grid for the left section of the nozzle boundary. Left: choose a start curve. Middle: grow a surface grid. Right: grow a volume grid.}
+%\label{fig:nozzleAndCavityLeftNozzle}
+%\end{figure}
+%}

@@ -1,0 +1,2638 @@
+// This file automatically generated from addGrids.bC with bpp.
+#include "DomainSolver.h"
+#include "GenericGraphicsInterface.h"
+#include "Ogshow.h"
+#include "Ogen.h"
+#include "SquareMapping.h"
+#include "interpPoints.h"
+#include "Regrid.h"
+#include "InterpolateRefinements.h"
+#include "ErrorEstimator.h"
+#include "SplineMapping.h"
+#include "MatrixTransform.h"
+#include "InterpolatePoints.h"
+#include "ParallelUtility.h"
+#include "CompositeGridOperators.h"
+#include "App.h"
+#include "gridFunctionNorms.h"
+
+#include "EquationDomain.h"
+
+// typedef OB_MappedGridSolver* OB_MappedGridSolverPointer;
+
+int createMappings( MappingInformation & mapInfo );
+
+int 
+userDefinedErrorEstimator(realCompositeGridFunction & u, 
+                    			  real t,
+                    			  Parameters & parameters,
+                    			  realCompositeGridFunction & error );
+
+
+int
+updateEquationDomainsForAMR( CompositeGrid & cg, Parameters & parameters )
+// ==================================================================================================
+// /Description:
+//    Update the EquationDomain's after an AMR regrid. This routine assumes that the number of
+// base grids is the same. Refinement grids are associated with the same EquationDomain as the
+// corresponding base grid.
+//
+// NOTES:
+//        equationDomainList[eqd].gridList[i] : list of grid in EquationDomain eqd
+//        equationDomainList.gridDomainNumberList[grid]  :  EquationDomain number for each grid
+// ==================================================================================================
+{
+    if( parameters.dbase.get<ListOfEquationDomains* >("pEquationDomainList")!=NULL )
+    {
+        ListOfEquationDomains & equationDomainList = *(parameters.dbase.get<ListOfEquationDomains* >("pEquationDomainList"));
+        const int numberOfEquationDomains=equationDomainList.size();
+
+    // clear the existing gridList's in each EquationDomain
+        for( int eqd=0; eqd<numberOfEquationDomains; eqd++ )
+        {
+            equationDomainList[eqd].gridList.clear();
+        }
+    // make sure the global list is the correct size
+        equationDomainList.gridDomainNumberList.resize(cg.numberOfComponentGrids());
+    
+        for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+        {
+            int base=cg.baseGridNumber(grid);
+      // The base grid belongs to EquationDomain number:
+            int baseGridEquationDomainNumber = equationDomainList.gridDomainNumberList[base];
+
+            EquationDomain & baseEquationDomain = equationDomainList[baseGridEquationDomainNumber];
+        
+            if( base!=grid )
+            {
+	// this is not a base grid -- update the global list:
+      	equationDomainList.gridDomainNumberList[grid]=baseGridEquationDomainNumber;
+            
+            }
+            baseEquationDomain.gridList.push_back(grid);  // add this grid to this EquationDomain
+        }
+    }
+}
+
+
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{getAmrErrorFunction}} 
+int DomainSolver::
+getAmrErrorFunction(realCompositeGridFunction & u, 
+                                        real t,
+                                        realCompositeGridFunction & error,
+                                        bool computeOnFinestLevel /* =false */ )
+// ========================================================================================
+// /Description:
+//    Determine the AMR error function.
+// /gf0 (input) : base error estimate on this grid function.
+//\end{CompositeGridSolverInclude.tex}  
+// ========================================================================================
+{
+    real time0=getCPU(); 
+
+    ErrorEstimator *& errorEstimator = parameters.dbase.get<ErrorEstimator* >("errorEstimator");
+
+    if( errorEstimator==NULL )
+        parameters.buildErrorEstimator();
+    
+  // Tell the error estimator how many refinement levels there are -- there is no need
+  // to compute the error on the finest level (unless requested -- for plotting for e.g.)
+    assert( parameters.dbase.get<Regrid* >("regrid")!=NULL );
+    int maxLevels=parameters.dbase.get<Regrid* >("regrid")->getDefaultNumberOfRefinementLevels();
+    if( computeOnFinestLevel ) maxLevels++;
+    errorEstimator->setMaximumNumberOfRefinementLevels(maxLevels);
+
+    error.setOperators(*u.getOperators());
+  // if( !parameters.dbase.get<bool >("twilightZoneFlow") ) // *wdh* 090829
+    if( parameters.dbase.get<int>("amrErrorFunctionOption")==0 )
+    {
+        if( parameters.dbase.get<bool >("useDefaultErrorEstimator") )
+            errorEstimator->computeErrorFunction( u,error);
+        else
+            error=0.;
+        
+    // add in truncation error
+        if(	parameters.dbase.get<realCompositeGridFunction* >("truncationError")!=NULL && 
+      	parameters.dbase.get<real >("truncationErrorCoefficient")>0. )
+        {
+            if( parameters.dbase.get<int >("debug") & 1) printF("**** getAmrErrorFunction: add truncation error *******\n");
+
+            CompositeGrid & cg = *u.getCompositeGrid();
+
+            int actualNumberOfRefinementLevels=1;
+            for( int l=cg.numberOfRefinementLevels()-1; l>0; l-- )
+            {
+      	if( cg.refinementLevel[l].numberOfComponentGrids()>0 )
+      	{
+        	  actualNumberOfRefinementLevels=l+1;
+        	  break;
+      	}
+            }
+            
+            realCompositeGridFunction & truncation = *parameters.dbase.get<realCompositeGridFunction* >("truncationError");
+            for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+            {
+        // we need to scale the truncation error by the level since it is scaled by dt
+        // and we don't do sub-cycling.
+                assert( parameters.dbase.get<Regrid* >("regrid")!=NULL );
+                real rf= parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio();
+
+                real factor=1;
+                real exponent = 2.*(actualNumberOfRefinementLevels-1 -cg.refinementLevelNumber(grid));
+      	if( exponent>0. )
+                    factor=pow(rf,exponent);
+
+                if( parameters.dbase.get<int >("debug") & 4 )
+      	{
+        	  printF("**** getAmrErrorFunction: add truncation error: grid=%i, level=%i (max=%i), rf=%3.1f, "
+                                  " scale by =%9.3e, max(trunc)=%9.2e \n",
+             		 grid,cg.refinementLevelNumber(grid),actualNumberOfRefinementLevels,
+             		 rf,factor,max(fabs((*parameters.dbase.get<realCompositeGridFunction* >("truncationError")))));
+
+        	  if( parameters.dbase.get<int >("debug") & 8 && parameters.dbase.get<GenericGraphicsInterface* >("ps")!=NULL )
+        	  {
+          	    parameters.dbase.get<GraphicsParameters >("psp").set(GI_TOP_LABEL,"truncation error at t=0");
+          	    PlotIt::contour(*parameters.dbase.get<GenericGraphicsInterface* >("ps"), *parameters.dbase.get<realCompositeGridFunction* >("truncationError"),parameters.dbase.get<GraphicsParameters >("psp"));
+        	  }
+      	}
+      	
+                error[grid]+=(parameters.dbase.get<real >("truncationErrorCoefficient")*factor)*truncation[grid];
+            }
+            
+        }
+
+        if( parameters.dbase.get<bool >("useUserDefinedErrorEstimator") )
+            userDefinedErrorEstimator( u,t,parameters,error );
+
+        if( parameters.dbase.get<int >("debug") & 32 )
+        { // Output the error function -- no need to print on the finest level since these are not used or computed
+            CompositeGrid & cg = *u.getCompositeGrid();
+            char buff[100];
+            fPrintF(parameters.dbase.get<FILE* >("debugFile"),"\n ---- getAmrErrorFunction: error function before smooth t=%12.6e ----\n",t);
+            const int levelsToCheck = max(1,cg.numberOfRefinementLevels()-1);
+            for( int level=0; level<levelsToCheck; level++ ) // note: do not print on finest level
+            {
+      	GridCollection & rl = cg.numberOfRefinementLevels()==1 ? cg : cg.refinementLevel[level];
+      	for( int g=0; g<rl.numberOfGrids(); g++ )
+      	{
+        	  int grid=rl.gridNumber(g);
+        	  ::display(error[grid],sPrintF(buff,"error est. before smooth grid=%i",grid),
+                                        parameters.dbase.get<FILE* >("debugFile"),parameters.dbase.get<aString >("outputFormat"));
+      	}
+            }
+        }
+
+        errorEstimator->smoothErrorFunction( error,ErrorEstimator::defaultNumberOfSmooths,u.getOperators() );
+    }
+    else
+    {
+    // With TZ flow, base error estimator on the top-hat function:
+        CompositeGrid & cg = *u.getCompositeGrid();
+        realCompositeGridFunction ue(cg);   // ************** use a work space *************
+        ue.setOperators(*u.getOperators());
+        errorEstimator->computeFunction( ue,ErrorEstimator::topHat,t);
+        errorEstimator->computeAndSmoothErrorFunction( ue,error);
+    }
+
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrErrorFunction"))+=getCPU()-time0;
+    return 0;
+}
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{getAmrErrorFunction}} 
+int DomainSolver::
+getAmrErrorFunction(realCompositeGridFunction & u, 
+                                        real t,
+                                        intCompositeGridFunction & errorFlag,
+                                        realCompositeGridFunction & error )
+// ========================================================================================
+// /Description:
+//    Determine the AMR error flag (integer tag array).
+//
+// /gf0 (input) : base error estimate on this grid function.
+// /errorFlag (output) : holds the tagged cells.
+// /error (input/output) : use this for temp space, on output holds the error function
+//\end{CompositeGridSolverInclude.tex}  
+// ========================================================================================
+{
+
+    if( parameters.dbase.get<ErrorEstimator* >("errorEstimator")==NULL )
+        parameters.buildErrorEstimator();
+    
+    CompositeGrid & cg = *u.getCompositeGrid();
+
+    getAmrErrorFunction(u,t,error);
+
+    real time0=getCPU(); // start timing here, the above call is already timed
+
+    assert( parameters.dbase.get<Regrid* >("regrid")!=NULL );
+    Regrid & regrid = *parameters.dbase.get<Regrid* >("regrid");
+    
+
+//   if( false )
+//   {
+//     aString buff;
+//     int nGhost=1;
+//     int rt=checkForSymmetry(error,parameters,
+//            sPrintF(buff,"after AmrErrorFunction: check error t=%8.2e: u",t),nGhost);
+//     if( rt!=0 )
+//     {
+//       fprintf(parameters.dbase.get<FILE* >("debugFile")," ***after AmrErrorFunction: Symmetry broken! t=%8.2 error: ***\n",t);
+//       error.display("amr error function",parameters.dbase.get<FILE* >("debugFile"),"%8.2e ");
+//     }
+//   }
+
+  // Form the tag array or 0 or 1's
+  // errorFlag=0;
+    real maxErr=0.;
+    real l2Err=0.;
+    for( int grid=0; grid<cg.numberOfGrids(); grid++ )
+    {
+        if( cg.refinementLevelNumber(grid)>=regrid.getDefaultNumberOfRefinementLevels()-1 )
+            continue;  // no need to compute errors on the finest level
+
+        if( debug() & 1 )
+        { // compute the max and average of the error estimate 
+            real maxErrg = maxNorm(error[grid],0);
+            maxErr=max(maxErr,maxErrg);
+            real l2Errg = l2Norm(error[grid],0);
+            l2Err += SQR(l2Errg);
+        }
+
+        MappedGrid & mg=cg[grid];
+        Index I1,I2,I3;
+        getIndex(mg.dimension(),I1,I2,I3); 
+
+        const intArray & mask = mg.mask();
+        #ifdef USE_PPP
+            intSerialArray maskLocal;      getLocalArrayWithGhostBoundaries(mask,maskLocal);
+            realSerialArray errorLocal;    getLocalArrayWithGhostBoundaries(error[grid],errorLocal);
+            intSerialArray errorFlagLocal; getLocalArrayWithGhostBoundaries(errorFlag[grid],errorFlagLocal);
+            bool ok = ParallelUtility::getLocalArrayBounds(mask,maskLocal,I1,I2,I3,1);   
+            if( !ok ) continue;  // no points on this processor
+        #else
+            const intSerialArray & maskLocal = mask;
+            const realSerialArray & errorLocal = error[grid];
+            intSerialArray & errorFlagLocal = errorFlag[grid];
+        #endif     
+          
+    // errorFlag[grid]=0;
+
+        errorFlagLocal=0;
+        where( maskLocal(I1,I2,I3)!=0 )
+        {
+            errorFlagLocal(I1,I2,I3,0)=errorLocal(I1,I2,I3,0)>parameters.dbase.get<real >("errorThreshold");  
+        }    
+
+        
+    }
+    if( debug() & 1 )
+    {
+        l2Err=sqrt(l2Err);
+        fPrintF(parameters.dbase.get<FILE* >("logFile"),"Compute Error estimate at step=%i, t=%9.3e, maxErr=%8.2e l2Err=%8.2e\n",
+          	    parameters.dbase.get<int >("globalStepNumber"),t,maxErr,l2Err);
+    }
+
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrErrorFunction"))+=getCPU()-time0;
+    return 0;
+}
+
+
+
+int DomainSolver::
+newAdaptiveGridBuilt(CompositeGrid & cg, realCompositeGridFunction & u, bool updateSolution )
+// =====================================================================================
+// /Description:
+//    This function is called when assigning initial conditions to successively build
+//  new refinement levels. After each new level is built the initial conditions must
+//  be re-assigned.
+//
+// /cg (input/output) : grid to add refinement levels to.
+// /u (input/output) : solution to base refinements on.
+// /updateSolution (input) : if tru update u and the parameters
+//
+// /Return value: true if new refinement levels were built, false otherwise.
+// build an adaptive grid.
+// =====================================================================================
+{
+    if( !parameters.isAdaptiveGridProblem() )
+        return false;   
+
+    const int oldNumberOfGrids=cg.numberOfComponentGrids();
+
+    if( parameters.dbase.get<Regrid* >("regrid")==NULL )
+        parameters.dbase.get<Regrid* >("regrid") = new Regrid();
+
+    Regrid & regrid = *parameters.dbase.get<Regrid* >("regrid");
+    const int numberOfRefinementLevels=regrid.getDefaultNumberOfRefinementLevels();
+    if( cg.numberOfRefinementLevels() >= numberOfRefinementLevels )
+    {
+    // no need to build any more levels
+        return false;
+    }
+  // we can only increase the number of refinement levels by one from the previous grid
+  // it may take a few steps to reach th correct level
+    int level=min( cg.numberOfRefinementLevels(),numberOfRefinementLevels-1);
+
+    CompositeGrid cgNew=cg;     // this is a waste if no changes are made.
+    
+    CompositeGridOperators op;
+    bool operatorsSet=false;
+    if( u.getOperators()==NULL )
+    {
+        operatorsSet=true;
+        op.updateToMatchGrid(cg);
+        u.setOperators(op);        // watch out -- these operators will go out of scope
+    }
+
+    if( parameters.dbase.get<ErrorEstimator* >("errorEstimator")==NULL )
+        parameters.buildErrorEstimator();
+    
+    intCompositeGridFunction errorFlag(cg);       // ************** use a work space *************
+    realCompositeGridFunction error(cg);          // ************** use a work space *************
+
+    getAmrErrorFunction(u,0.,errorFlag,error);
+
+    regrid.setGridAlgorithmOption( Regrid::aligned );
+    int baseLevel=0;  // this means regenerate all levels above level 0
+    regrid.regrid(cg,cgNew, errorFlag, level, baseLevel);
+
+    regrid.printStatistics(cgNew);
+
+    if( false && parameters.dbase.get<int >("debug") & 2 )
+    {
+        printF("newAdaptiveGridBuilt: saving amr grid info to amrDebug.cmd\n");
+        regrid.outputRefinementInfo( cgNew, "junk.hdf","amrDebug.cmd" );
+    }
+        
+    if( cgNew.numberOfRefinementLevels()==cg.numberOfRefinementLevels() )
+    {
+        printF("newAdaptiveGridBuilt:INFO: No grids built for refinement level %i. \n",level);
+        u.updateToMatchGrid(cg);
+        return false;
+    }
+    
+
+    if( parameters.dbase.get<Ogen* >("gridGenerator")==NULL )
+        parameters.dbase.get<Ogen* >("gridGenerator") = new Ogen(*parameters.dbase.get<GenericGraphicsInterface* >("ps"));
+    
+    parameters.dbase.get<Ogen* >("gridGenerator")->updateRefinement(cgNew); // only really need if number of base grids > 1
+
+    real time0=getCPU();
+
+  //  cgNew.update(MappedGrid::THEvertex | MappedGrid::THEcenter | MappedGrid::THEmask ); // ***** fix this ***
+    cgNew.update(MappedGrid::THEmask ); 
+
+  // timeForUpdate+=getCPU()-time0;
+  // cgNew.updateParentChildSiblingInfo();
+
+    printF("newAdaptiveGridBuilt: oldNumberOfGrids=%i, new number=%i\n",oldNumberOfGrids,cgNew.numberOfComponentGrids());
+            
+    if( parameters.dbase.get<int >("debug") & 8 )
+    {
+        GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+        psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+        psp.set(GI_PLOT_NON_PHYSICAL_BOUNDARIES,true);
+        psp.set(GI_TOP_LABEL,"Grid after regrid");
+
+        parameters.dbase.get<GenericGraphicsInterface* >("ps")->erase();
+        PlotIt::plot(*(parameters.dbase.get<GenericGraphicsInterface* >("ps")),cgNew,psp);
+    }
+    
+    cg.reference(cgNew);
+
+    if( updateSolution )
+    {
+        u.updateToMatchGrid(cg);
+        parameters.updateToMatchGrid(cg);  // **** need to fix variableBoundaryData and isImplicit
+    }
+    
+    if( operatorsSet )
+    {
+        u.operators=NULL;
+    }
+
+    parameters.dbase.get<int >("saveGridInShowFile")=true;  // we need to save the grid in the show file if it has changed.
+    
+    return true;
+      
+
+}
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{adaptGrids}} 
+int DomainSolver::
+adaptGrids(GridFunction & gf0, 
+                      int numberOfGridFunctionsToUpdate /* =0 */,
+                      realCompositeGridFunction *cgf /* =NULL */,
+                      realCompositeGridFunction *uWork /* =NULL */ )
+// ========================================================================================
+// /Description:
+//    Build a new adaptive grid and optionally update the solution on a list of grid functions.
+// /numberOfGridFunctionsToUpdate (input) : number of grid functions needing updating
+// /cgf[n] : update this grid function to live on the new grid and interpolate the solution
+//           to the new gridfunction from the old one.
+// /*uWork : if not NULL this is a grid function to use as a work space. If given as input,
+//     on output this grid function will be updated to match the new grid 
+//\end{CompositeGridSolverInclude.tex}  
+// ========================================================================================
+{
+    int returnValue=0;
+
+    checkArrayIDs(sPrintF("adaptGrids (start) step=%i",parameters.dbase.get<int >("globalStepNumber")) ); 
+    if( debug() & 2 )
+        Overture::printMemoryUsage(sPrintF("adaptGrids (start) step=%i",parameters.dbase.get<int >("globalStepNumber")),stdout);
+    
+    GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+    GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+    
+    CompositeGrid & cg = gf0.cg;
+
+  // changes(0,i) = grid : ths grid was changed
+  //        (1,i) = option from ChangesEnum such as gridWasAdded or grid was changed.
+    int numberOfChanges=0;
+    IntegerArray changes(2,cg.numberOfGrids()+20);
+    changes=-1;
+
+    if( Parameters::checkForFloatingPointErrors )
+    {
+        checkSolution(gf0.u,"adaptGrids:START");
+    }
+    
+    if( parameters.dbase.get<ErrorEstimator* >("errorEstimator")==NULL )
+        parameters.buildErrorEstimator();
+    
+    Range C=parameters.dbase.get<int >("numberOfComponents");
+
+//   printF(" *** before getAmrErrorFunction: gf0.form = %s\n",
+// 	 gf0.form==GridFunction::primitiveVariables ? "primitive" : "conservative");
+//   if( gf0.form!=GridFunction::primitiveVariables )
+//   {
+//     printF("adaptGrids:ERROR: gf0.form!=GridFunction::primitiveVariables\n");
+//   }
+    
+  // extrap Interp neighbours first -- are the operators changed in the regrid process??
+    if( Parameters::checkForFloatingPointErrors )
+        checkSolution(gf0.u,"adaptGrids:gf0.u before extrapInterpN");
+
+  // is this needed for sis with rf=4? ---> YES
+  // extrapolate neighbours of interpolation points for 4th order artificial viscosity
+  // *wdh* 030910 gf0.u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours);
+    BoundaryConditionParameters extrapParams;
+    if ( parameters.dbase.get<int >("extrapolateInterpolationNeighbours")) 
+        { // kkc 060711
+            extrapParams.orderOfExtrapolation=parameters.dbase.get<int >("orderOfExtrapolationForInterpolationNeighbours"); // 3;
+            gf0.u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours,BCTypes::allBoundaries,0.,0.,extrapParams);
+            
+            if( Parameters::checkForFloatingPointErrors )
+      	checkSolution(gf0.u,"adaptGrids:gf0.u after extrapInterpN");
+        }
+    intCompositeGridFunction errorFlag(cg);       // ************** use a work space *************
+    realCompositeGridFunction error; // (cg); 
+    realCompositeGridFunction *pError;
+    if( false && uWork!=NULL )
+    {
+        printF("$$$$ adaptGrids: use work space\n");
+    // error.link(*uWork,0);
+    // pError=&error;
+        pError=uWork;
+    }
+    else
+    {
+        error.updateToMatchGrid(cg);
+        pError = &error;
+    }
+
+    getAmrErrorFunction(gf0.u,gf0.t,errorFlag,*pError);
+    
+  // pError->destroy();
+    
+    if( debug() & 32 )
+    { // Output the error function -- no need to print on the finest level since these are not used or computed
+        char buff[100];
+        realCompositeGridFunction & err = *pError;
+        fPrintF(parameters.dbase.get<FILE* >("debugFile"),"\n ---- Error function before regrid t=%12.6e ----\n",gf0.t);
+        const int levelsToCheck = max(1,cg.numberOfRefinementLevels()-1);
+        for( int level=0; level<levelsToCheck; level++ ) // note: do not print on finest level
+        {
+            GridCollection & rl = cg.numberOfRefinementLevels()==1 ? cg : cg.refinementLevel[level];
+            for( int g=0; g<rl.numberOfGrids(); g++ )
+            {
+      	int grid=rl.gridNumber(g);
+      	::display(err[grid],sPrintF(buff,"error est. grid=%i",grid),parameters.dbase.get<FILE* >("debugFile"),parameters.dbase.get<aString >("outputFormat"));
+            }
+        }
+    }
+    
+
+    real time0=getCPU();
+  // ** this is expensive *** We should destroy all grid data except the mask
+  //   cg.destroy(~MappedGrid::THEmask);
+  // cg.destroy(MappedGrid::THEcenter | MappedGrid::THEvertex | MappedGrid::THEcenterJacobian | MappedGrid::THEinverseCenterDerivative | MappedGrid::THEinverseVertexDerivative | MappedGrid::THEvertexBoundaryNormal );
+  // but we shouldn't destroy the base grid data
+
+  // *** For moving grids this next line will break the reference between the cgf.transform[grid] and cg[grid] *** fix this ***
+
+    CompositeGrid cgNew=cg;     // this is a waste if no changes are made. ************************
+
+//    if( true || debug() & 8 )
+//    {
+//      psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+//      psp.set(GI_PLOT_NON_PHYSICAL_BOUNDARIES,true);
+
+
+//      psp.set(GI_TOP_LABEL,"adaptGrids: cg after cgNew=cg");
+//      ps.erase();
+//      PlotIt::plot(ps,cg,psp);
+
+//      cgNew.destroy(MappedGrid::THEvertex | MappedGrid::THEcenter);
+//      cgNew.update(MappedGrid::THEvertex | MappedGrid::THEcenter,MappedGrid::COMPUTEgeometry);
+        
+//      psp.set(GI_TOP_LABEL,"adaptGrids: cgNew after cgNew=cg");
+//      ps.erase();
+//      PlotIt::plot(ps,cgNew,psp);
+//    }
+
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrUpdate"))+=getCPU()-time0;
+
+    if( debug() & 4 ) printF(" +++ adaptGrids: time for CompositeGrid cgNew=cg = %8.1e  \n",getCPU()-time0);
+
+//   error.setOperators(*gf0.u.getOperators());
+//   if( !parameters.dbase.get<bool >("twilightZoneFlow") )
+//     parameters.dbase.get<ErrorEstimator* >("errorEstimator")->computeAndSmoothErrorFunction( gf0.u,error);
+//   else
+//   {
+//     // With TZ flow, base error estimator on the top-hat function:
+//     realCompositeGridFunction ue(cg);   // ************** use a work space *************
+//     ue.setOperators(*gf0.u.getOperators());
+//     parameters.dbase.get<ErrorEstimator* >("errorEstimator")->computeFunction( ue,ErrorEstimator::topHat,gf0.t);
+//     parameters.dbase.get<ErrorEstimator* >("errorEstimator")->computeAndSmoothErrorFunction( ue,error);
+//   }
+    
+//   if( debug() & 4 )
+//   {
+//     psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+//     psp.set(GI_TOP_LABEL,"error before regrid");
+
+//     ps.erase();
+//     ps.contour(error,psp);
+//   }
+
+    const int oldNumberOfGrids=cg.numberOfComponentGrids();
+
+    if( parameters.dbase.get<Regrid* >("regrid")==NULL )
+        parameters.dbase.get<Regrid* >("regrid") = new Regrid();
+
+    Regrid & regrid = *parameters.dbase.get<Regrid* >("regrid");
+            
+  // cgNew.update(GridCollection::THErefinementLevel);  // ************** fix this 
+            
+  // regrid.setGridAdditionOption(Regrid::addGridsAsBaseGrids);
+    regrid.setGridAlgorithmOption( Regrid::aligned );
+
+    const int numberOfRefinementLevels=regrid.getDefaultNumberOfRefinementLevels();
+  // we can only increase the number of refinement levels by one from the previous grid
+  // it may take a few steps to reach th correct level
+    time0=getCPU();
+    
+    int level=min( cg.numberOfRefinementLevels(),numberOfRefinementLevels-1);
+    int baseLevel=0;  // this means regenerate all levels above level 0
+    regrid.regrid(cg,cgNew, errorFlag, level, baseLevel);
+
+    real time1=getCPU();
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrRegridBaseGrids"))+=time1-time0;
+
+    if( debug() & 1 )
+    {
+        printP("AMR regrid at step=%i, t=%9.3e:\n",parameters.dbase.get<int >("globalStepNumber"),gf0.t);
+        regrid.printStatistics(cgNew);
+    }
+    
+    if( cgNew.numberOfRefinementLevels()==1 )
+    {
+    // keep track of the max min and ave number of grids
+      // keep track of the max min and ave number of grids
+            parameters.dbase.get<real >("minimumNumberOfGrids")=min(parameters.dbase.get<real >("minimumNumberOfGrids"),(real)cgNew.numberOfComponentGrids());
+            parameters.dbase.get<real >("maximumNumberOfGrids")=max(parameters.dbase.get<real >("maximumNumberOfGrids"),(real)cgNew.numberOfComponentGrids());
+            parameters.dbase.get<real >("totalNumberOfGrids")+=cgNew.numberOfComponentGrids();
+            parameters.dbase.get<real >("numberOfRegrids")++;
+            real numGridPoints=0;
+            for( int grid=0; grid<cgNew.numberOfComponentGrids(); grid++ )
+            {
+                numGridPoints+=cgNew[grid].mask().elementCount();
+            }
+            parameters.dbase.get<real >("minimumNumberOfGridPoints")=min(parameters.dbase.get<real >("minimumNumberOfGridPoints"),numGridPoints);
+            parameters.dbase.get<real >("maximumNumberOfGridPoints")=max(parameters.dbase.get<real >("maximumNumberOfGridPoints"),numGridPoints);
+            parameters.dbase.get<real >("sumTotalNumberOfGridPoints")+=numGridPoints;
+        return returnValue; // no levels added
+    }
+
+    if( debug() & 64 )
+    {
+        psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+        psp.set(GI_PLOT_NON_PHYSICAL_BOUNDARIES,true);
+
+        psp.set(GI_TOP_LABEL,"adaptGrids: cg (original grid) after regrid");
+        ps.erase();
+        PlotIt::plot(ps,cg,psp);
+
+        psp.set(GI_TOP_LABEL,"adaptGrids: cgNew after regrid");
+        ps.erase();
+        PlotIt::plot(ps,cgNew,psp);
+    }
+
+    if( debug() & 2 )
+    {
+        printF("saving amr grid info to amrDebug.cmd\n");
+        regrid.outputRefinementInfo( cgNew, "junk.hdf","amrDebug.cmd" );
+    }
+        
+  // *************     save the time stepping eigenvalues from the old grid  ************
+  // **** This could be done in a better way ************
+  // For now: compute the largest eigenvalues on all grids at a given level.
+    const int numberOfLevels=max(cg.numberOfRefinementLevels(),cgNew.numberOfRefinementLevels());
+    real *maxReLambda = new real[numberOfLevels];
+    real *maxImLambda = new real[numberOfLevels];
+    for( level=0; level<numberOfLevels; level++ )
+    {
+    // maxReLambda[level]=0.;
+    // maxImLambda[level]=0.;
+        maxReLambda[level]=-1.;  // *wdh* 090410 set to -1 so getTimeSteppingEigenvalue performs correctly
+        maxImLambda[level]=-1.;
+    }
+    int grid;
+    for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+    {
+        real reLambda = realPartOfEigenvalue[grid]; // mappedGridSolver[grid]->realPartOfTimeSteppingEigenvalue;
+        real imLambda = imaginaryPartOfEigenvalue[grid]; // mappedGridSolver[grid]->imaginaryPartOfTimeSteppingEigenvalue;
+
+        level = cg.refinementLevelNumber(grid);
+            
+        maxReLambda[level]=max(reLambda,maxReLambda[level]);
+        maxImLambda[level]=max(imLambda,maxImLambda[level]);
+            
+    }
+  // for new levels we guess a value by multiplying by the refinement factor
+    for( level= cg.numberOfRefinementLevels(); level< cgNew.numberOfRefinementLevels(); level++ )
+    {
+        const int refinementRatio= regrid.getRefinementRatio();
+        maxReLambda[level]=maxReLambda[level-1]*refinementRatio;
+        maxImLambda[level]=maxImLambda[level-1]*refinementRatio;
+    }
+    if( debug() & 4 )
+    {
+        for( level=0; level<numberOfLevels; level++ )
+            printF(" *** adaptGrids: level=%i maxReLambda=%e, maxImLambda=%e \n",level,
+                              maxReLambda[level],maxImLambda[level]);
+    }
+    
+
+    if( debug() & 64 )
+    {
+        psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+        psp.set(GI_PLOT_NON_PHYSICAL_BOUNDARIES,true);
+        psp.set(GI_TOP_LABEL,"cgNew before updateRefinement");
+
+        ps.erase();
+        PlotIt::plot(ps,cgNew,psp);
+    }
+    
+
+    if(  parameters.dbase.get<Ogen* >("gridGenerator")==NULL )
+        parameters.dbase.get<Ogen* >("gridGenerator") = new Ogen(*parameters.dbase.get<GenericGraphicsInterface* >("ps"));
+    
+    time0=getCPU();
+    parameters.dbase.get<Ogen* >("gridGenerator")->updateRefinement(cgNew); // only really need if number of base grids > 1
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrRegridOverlap"))+=getCPU()-time0;
+
+
+    time0=getCPU();
+  // cgNew.update(MappedGrid::THEvertex | MappedGrid::THEcenter | MappedGrid::THEmask ); // ***** fix this ***
+    cgNew.update( MappedGrid::THEmask );
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrUpdate"))+=getCPU()-time0;
+  // timeForUpdate+=getCPU()-time0;
+
+  // cgNew.updateParentChildSiblingInfo();
+
+    if( debug() )
+    {
+        const int np= max(1,Communication_Manager::numberOfProcessors());
+        if( np>1 )
+            cgNew.displayDistribution(sPrintF("cgNew after AMR regrid step=%i, t=%9.3e",
+                              					parameters.dbase.get<int >("globalStepNumber"),gf0.t),parameters.dbase.get<FILE* >("logFile"));
+    }
+    
+  // keep track of the max min and ave number of grids
+    // keep track of the max min and ave number of grids
+        parameters.dbase.get<real >("minimumNumberOfGrids")=min(parameters.dbase.get<real >("minimumNumberOfGrids"),(real)cgNew.numberOfComponentGrids());
+        parameters.dbase.get<real >("maximumNumberOfGrids")=max(parameters.dbase.get<real >("maximumNumberOfGrids"),(real)cgNew.numberOfComponentGrids());
+        parameters.dbase.get<real >("totalNumberOfGrids")+=cgNew.numberOfComponentGrids();
+        parameters.dbase.get<real >("numberOfRegrids")++;
+        real numGridPoints=0;
+        for( int grid=0; grid<cgNew.numberOfComponentGrids(); grid++ )
+        {
+            numGridPoints+=cgNew[grid].mask().elementCount();
+        }
+        parameters.dbase.get<real >("minimumNumberOfGridPoints")=min(parameters.dbase.get<real >("minimumNumberOfGridPoints"),numGridPoints);
+        parameters.dbase.get<real >("maximumNumberOfGridPoints")=max(parameters.dbase.get<real >("maximumNumberOfGridPoints"),numGridPoints);
+        parameters.dbase.get<real >("sumTotalNumberOfGridPoints")+=numGridPoints;
+    
+            
+  // Update the EquationDomain's
+    updateEquationDomainsForAMR( cgNew,parameters );  // *wdh* 050617
+    
+
+    if( debug() & 4 ) // this info is now printed above
+    {
+        printF("oldNumberOfGrids=%i, new number=%i (level,grids,pts)=",
+                        oldNumberOfGrids,cgNew.numberOfComponentGrids());
+        fPrintF(parameters.dbase.get<FILE* >("debugFile"),"\n --- adaptGrids: t=%12.6e, oldNumberOfGrids=%i, new number=%i -----\n",
+                                gf0.t, oldNumberOfGrids,cgNew.numberOfComponentGrids());
+
+        int totalNumberOfPoints=0;
+        for( int level=0; level<cgNew.numberOfRefinementLevels(); level++ )
+        {
+            int numberOfPoints=0;
+            GridCollection & rl = cgNew.numberOfRefinementLevels()==1 ? cgNew : cgNew.refinementLevel[level];
+            for( int g=0; g<rl.numberOfGrids(); g++ )
+            {
+      	int grid=rl.gridNumber(g);
+      	const IntegerArray & d=cgNew[grid].dimension();
+      	numberOfPoints+=(d(1,0)-d(0,0)+1)*(d(1,1)-d(0,1)+1)*(d(1,2)-d(0,2)+1);
+
+        // for parallel debugging -- output grid sizes
+                fPrintF(parameters.dbase.get<FILE* >("debugFile"),"  level %i: grid=%i dimension=[%i,%i][%i,%i][%i,%i]\n",
+                                level,grid,d(0,0),d(1,0),d(0,1),d(1,1),d(0,2),d(1,2));
+            }
+            totalNumberOfPoints+=numberOfPoints;
+//      printF("(l=%i,g=%i,n=%i) ",level,cgNew.refinementLevel[level].numberOfComponentGrids(),numberOfPoints);
+            printF("(%i,%i,%i) ",level,cgNew.refinementLevel[level].numberOfComponentGrids(),numberOfPoints);
+        }
+        printF("total pts=%i\n",totalNumberOfPoints);
+    }
+            
+    int newNum=cgNew.numberOfComponentGrids()-oldNumberOfGrids+numberOfChanges;
+    if( newNum >= changes.getBound(1) )
+    {
+        Range R(changes.getBound(1)+1,newNum+10);
+        changes.resize(2,R.getBound()+1);
+        changes(changes.dimension(0),R)=-1;
+    }
+
+    for( grid=oldNumberOfGrids; grid<cgNew.numberOfComponentGrids(); grid++ )
+    {
+        changes(0,numberOfChanges)=grid;
+        changes(1,numberOfChanges)=gridWasAdded;
+        numberOfChanges++;
+    }
+            
+    if(debug() & 64 )
+    {
+        psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+        psp.set(GI_PLOT_NON_PHYSICAL_BOUNDARIES,true);
+        psp.set(GI_TOP_LABEL,"Grid after regrid");
+
+        ps.erase();
+        PlotIt::plot(ps,cgNew,psp);
+    }
+    
+    time0=getCPU();
+
+    Range all;
+  // realCompositeGridFunction uNew(cgNew,all,all,all,C);  // ***************** use a work space ? ****
+    realCompositeGridFunction uTemp;
+    realCompositeGridFunction *pTemp;
+    if( uWork!=NULL )
+        pTemp=uWork;
+    else
+        pTemp=&uTemp;
+
+    realCompositeGridFunction & uNew = *pTemp;
+    uNew.updateToMatchGrid(cgNew,all,all,all,C);
+  
+    uNew=1.; // -1.;
+
+  // fixupUnusedPoints( gf0.u );  // ** this must be done before extrapolateInterpolationNeighbours
+    
+/* -----
+    if( Parameters::checkForFloatingPointErrors )
+        checkSolution(gf0.u,"adaptGrids:gf0.u before extrapInterpN");
+
+  // is this needed for sis with rf=4? ---> YES
+    gf0.u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours);
+    if( Parameters::checkForFloatingPointErrors )
+        checkSolution(gf0.u,"adaptGrids:gf0.u after extrapInterpN");
+
+  ----- */  
+  // printF("interpolate new refinements from old ...\n");
+    if( debug() & 32 )
+    {
+        fPrintF(parameters.dbase.get<FILE* >("debugFile")," ***adaptGrids: gf0.u before interpolateRefinements t=%e  ***\n",gf0.t);
+        outputSolution( gf0.u,gf0.t );
+    }
+    
+  // this will interp interior points and call interpolateRefinementBoundaries
+    if( parameters.dbase.get<InterpolateRefinements* >("interpolateRefinements")==NULL )
+    {
+        parameters.dbase.get<InterpolateRefinements* >("interpolateRefinements") = new InterpolateRefinements(cg.numberOfDimensions());
+        parameters.dbase.get<InterpolateRefinements* >("interpolateRefinements")->setOrderOfInterpolation(parameters.dbase.get<int >("orderOfAdaptiveGridInterpolation"));
+
+    }
+    InterpolateRefinements & interp = *parameters.dbase.get<InterpolateRefinements* >("interpolateRefinements");
+//   IntegerArray ratio(3);
+//   ratio=regrid.getRefinementRatio();
+//   interp.setRefinementRatio( ratio );
+    
+    if( Parameters::checkForFloatingPointErrors )
+        checkSolution(gf0.u,"adaptGrids:gf0.u before interpRef");
+
+  // ********************************************************************
+  // ***************Transfer solution to new AMR GridFunction************
+  // ********************************************************************
+    interp.interpolateRefinements( gf0.u,uNew );
+
+//   if( true ) // ++++ 110713 +++++
+//   {
+//     psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+//     psp.set(GI_PLOT_NON_PHYSICAL_BOUNDARIES,true);
+
+//     psp.set(GI_TOP_LABEL,"gf0.u (old solution) after interpolateRefinements");
+//     ps.erase();
+//     PlotIt::contour(ps,gf0.u,psp);
+
+//     psp.set(GI_TOP_LABEL,"uNew after interpolateRefinements");
+//     ps.erase();
+//     PlotIt::contour(ps,uNew,psp);
+
+
+//     if( cgNew.numberOfComponentGrids()>67 )
+//     {
+//       ::displayMask(cgNew[67].mask(),"cgNew[67].mask() after interpolateRefinements");
+//       ::display(uNew[67],"u[67] after interpolateRefinements","%5.2f ");
+//     }
+//   }
+    
+
+
+    if( debug() & 32 ) // trouble here in parallel (?) --> fixed parallel copy in outputSolution
+    {
+        fPrintF(parameters.dbase.get<FILE* >("debugFile")," ***adaptGrids: uNew after interpolateRefinements t=%e  ***\n",gf0.t);
+        outputSolution( uNew,gf0.t );
+    }
+    if( Parameters::checkForFloatingPointErrors )
+        checkSolution(uNew,"adaptGrids:uNew after interpRef");
+    
+//  gf0.cg.reference(cgNew);
+
+    gf0.u.updateToMatchGrid(cgNew); // this will keep operators
+  // *wdh* 061029  gf0.u=uNew;
+    assign(gf0.u,uNew);
+
+  //  updateGeometryArrays(gf0);
+
+// ** this is done in updateMorMovingGrids
+//    if( parameters.isMovingGridProblem() )  // *wdh* 040314
+//    {
+//      // update cgf.gridVelocity arrays
+//      gf0.updateGridVelocityArrays();
+//      gf0.gridVelocityTime=gf0.t -1.e10;  // this will force a recomputation of the grid velocity the next time...
+//    }
+
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrInterpolateRefinements"))+=getCPU()-time0;
+
+    if( Parameters::checkForFloatingPointErrors )
+    {
+        checkSolution(uNew,"adaptGrids:uNew after gf0.u=uNew");
+        checkSolution(gf0.u,"adaptGrids:gf0.u after =uNew");
+    }
+    
+    time0=getCPU();
+  // Now update other functions as requested.
+    int i;
+    for( i=0; i<numberOfGridFunctionsToUpdate; i++ )
+    {
+        realCompositeGridFunction & u = cgf[i];
+        C=Range(u.getComponentBase(0),u.getComponentBound(0));
+
+        if ( parameters.dbase.get<int >("extrapolateInterpolationNeighbours")) 
+            { // kkc 060711
+      	u.applyBoundaryCondition(C,BCTypes::extrapolateInterpolationNeighbours);
+            }
+
+        uNew.updateToMatchGrid(cgNew,all,all,all,C);
+        uNew=0.;
+        
+        interp.interpolateRefinements( u,uNew );
+
+        u.updateToMatchGrid(cgNew);
+        u=uNew;
+    }
+
+  // Now do these since cgNew will go out of scope (GF's keep a pointer to the envelope)
+    gf0.cg.reference(cgNew);
+    if( movingGridProblem() && gf0.transform!=NULL )
+    {
+    // Now make the transform pointers in gf0 point to the current transform
+        for( int grid=0; grid<gf0.cg.numberOfBaseGrids(); grid++ )
+        {
+            if( parameters.gridIsMoving(grid) && 
+                    gf0.transform[grid]!=NULL )       // *wdh* 100601 deforming grids do not use this 
+            {
+        // assert( gf0.transform[grid]!=NULL );
+                MatrixTransform & transform = *gf0.transform[grid];
+      	if( transform.decrementReferenceCount()==0 )
+        	  delete &transform;
+
+        // Mapping & map = gf0.cg[grid].mapping().getMapping();
+                Mapping & map = cgNew[grid].mapping().getMapping();
+      	assert( map.getClassName()=="MatrixTransform" );   
+      	gf0.transform[grid]=(MatrixTransform *)(&map); 
+      	gf0.transform[grid]->incrementReferenceCount();
+
+      	
+            }
+        }
+    }
+    
+
+    updateGeometryArrays(gf0);
+
+    gf0.u.updateToMatchGrid(gf0.cg);
+    for( i=0; i<numberOfGridFunctionsToUpdate; i++ )
+    {
+        cgf[i].updateToMatchGrid(gf0.cg);
+    // What about transform's in the moving grid case ??
+    }
+    
+    if( Parameters::checkForFloatingPointErrors )
+        checkSolution(gf0.u,"adaptGrids:gf0.u after update");
+
+  // updateToMatchNewGrid(cgNew,changes,gf0);
+    updateWorkSpace(gf0);
+
+    gf0.u.getOperators()->updateToMatchGrid(gf0.cg); 
+    
+    gf0.u.setOperators(*gf0.u.getOperators()); // need to assign all components
+    
+  //  update the body forcing *wdh* 2013/08/31
+    if( parameters.dbase.get<bool >("turnOnBodyForcing") )
+    {
+        realCompositeGridFunction *&bodyForce = parameters.dbase.get<realCompositeGridFunction* >("bodyForce");
+        (*bodyForce).updateToMatchGrid(gf0.cg);
+    }
+
+  // *wdh* 070706 -- put this here instead of the routines that call this function 
+    real time2=getCPU();
+    gf0.cg.rcData->interpolant->updateToMatchGrid( gf0.cg ); 
+    time2=getCPU()-time2;  
+    time0+=time2; // do not include the time for updating the interpolant
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateInterpolant"))+=time2;
+
+    if( debug() & 8 )
+    {
+        checkSolution(gf0.u,"adaptGrids:gf0.u after update");
+
+        psp.set(GI_TOP_LABEL,"Solution on the new grid");
+        ps.erase();
+        PlotIt::contour(ps,gf0.u,psp);
+    }
+
+    if( true ) // newNumberOfGrids != oldNumberOfGrids )
+    {
+
+        for( grid=0; grid<cg.numberOfComponentGrids(); grid++)
+        {
+      // ** should update here instead for old grids ****
+
+            level = cg.refinementLevelNumber(grid);
+
+            realPartOfEigenvalue[grid]=maxReLambda[level];
+            imaginaryPartOfEigenvalue[grid]=maxImLambda[level];
+            
+        }
+        delete [] maxReLambda;
+        delete [] maxImLambda;
+    }
+
+    parameters.updateToMatchGrid(cg);  // **** need to fix variableBoundaryData and isImplicit
+
+    if( debug() & 8 )
+    {
+        for( grid=0; grid<cg.numberOfComponentGrids(); grid++)
+        {
+            const IntegerArray & bc = cg[grid].boundaryCondition();
+            const IntegerArray & gid = cg[grid].gridIndexRange();
+            printF("grid=%i, bc=[%i,%i],[%i,%i] gid=[%i,%i][%i,%i]\n",grid,bc(0,0),bc(1,0),bc(0,1),bc(1,1),
+                                gid(0,0),gid(1,0),gid(0,1),gid(1,1));
+            Range all;
+            for( int axis=0; axis<cg.numberOfDimensions(); axis++ ) 
+      	for( int side=0; side<=1; side++ )
+      	{
+        	  const RealArray & bcd = parameters.dbase.get<RealArray>("bcData")(all,side,axis,grid);
+        	  const RealArray & bcp = parameters.dbase.get<RealArray>("bcParameters")(all,side,axis,grid);
+        	  printF("       side=%i, axis=%i, bcData=%5.1f,%5.1f,%5.1f,%5.1f,  bcParameters=%5.1f,%5.1f,%5.1f,%5.1f\n",
+             		 side,axis,bcd(0),bcd(1),bcd(2),bcd(3),bcp(0),bcp(1),bcp(2),bcp(3));
+      	}
+        }
+    }
+    
+
+    variableDt.resize(cg.numberOfComponentGrids());
+
+
+    if( debug() & 32 )
+    {
+        if( Parameters::checkForFloatingPointErrors )
+            checkSolution(gf0.u,"adaptGrids:end");
+        printF("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                      "    adaptGrids: Test the interpolation on the new AMR grid...\n");
+        
+        Interpolant::testInterpolation( cg,1 );
+        printF("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+    }
+    
+    if( false )
+    {
+        FILE *file = stdout;
+        fprintf(file,"\n ++++++++++++adaptGrids:END+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+            cg[grid].displayComputedGeometry(file);
+        fprintf(file," +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+    }
+
+    checkArrayIDs(sPrintF("adaptGrids (end) step=%i",parameters.dbase.get<int >("globalStepNumber")) ); 
+    if( debug() & 2 )
+        Overture::printMemoryUsage(sPrintF("adaptGrids (end) step=%i",parameters.dbase.get<int >("globalStepNumber")),stdout);
+
+    parameters.dbase.get<int >("saveGridInShowFile")=true;  // we need to save the grid in the show file if it has changed.
+
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrUpdate"))+=getCPU()-time0;
+    
+    return returnValue;
+}
+
+
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{addGrids}} 
+int DomainSolver::
+addGrids()
+// ========================================================================================
+// /Description:
+//    Add or remove  grids interactively
+//\end{CompositeGridSolverInclude.tex}  
+// ========================================================================================
+{
+    if( parameters.dbase.get<GenericGraphicsInterface* >("ps")==NULL )
+        return 0;
+
+    int returnValue=0;
+
+    GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+    GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+    
+    CompositeGrid & cg = gf[current].cg;
+
+    GUIState gui;
+    gui.setWindowTitle("Change Grids");
+    gui.setExitCommand("exit", "continue");
+    DialogData & dialog = gui;
+
+    aString pbLabels[] = {"change a grid",
+			// "add a rectangle",
+                  			"add a refinement",
+                  			"add a new grid",
+                  			"remove a grid",
+                  			"remove a refinement",
+                  			"adapt a grid",
+                  			"build a grid",
+                                                "user defined grid",
+                  			""};
+  // addPrefix(pbLabels,prefix,cmd,maxCommands);
+    int numRows=7;
+    dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
+
+//   int nt=0;
+//   textLabels[nt] = "Starting curve bounds"; 
+//   sPrintF(textStrings[nt], "%g, %g",0.,1.); nt++; 
+
+//   dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+    aString answer;
+//   aString menu[]=
+//   {
+//     "!change the grid",
+//     "change a grid",
+//     "add a rectangle",
+//     "add a refinement",
+//     "add a new grid",
+//     "remove a grid",
+//     "remove a refinement",
+//     "adapt a grid",
+//     "build a grid",
+//     "done",
+//     "" 
+//   };
+
+//   dialog.buildPopup(menu);
+
+    ps.pushGUI(gui);
+    ps.appendToTheDefaultPrompt("change>"); // set the default prompt
+
+
+    char buff[100];
+    
+    int mappingWasAdded=false;
+    int gridChanged=false;
+    int newGrid=-1;
+    int newNumberOfGrids=cg.numberOfGrids();
+
+    int numberOfChanges=0;
+    IntegerArray changes(2,cg.numberOfGrids()+20);
+    changes=-1;
+
+  // keep track of boundaries on new grids that should have the same BC as an old grid
+  // sharedBoundaryCondition(side,axis,grid) = side2+2*(axis2+3*grid2) : match to (side2,axis2,grid2)
+    IntegerArray sharedBoundaryCondition(2,3,cg.numberOfGrids()+20);
+    sharedBoundaryCondition=-1;
+
+    Mapping *newMapping=NULL;
+
+    CompositeGrid cgNew=cg;     // this is a waste if no changes are made.
+    
+    
+    for( ;; )
+    {
+    // ps.getMenuItem(menu,answer);
+        ps.getAnswer(answer,"");
+        
+        if( numberOfChanges > changes.getBound(1) )
+        {
+            int extra=10;
+            Range R(changes.getBound(1)+1,changes.getBound(1)+1+extra);
+            changes.resize(2,changes.getBound(1)+extra);
+            changes(changes.dimension(0),R)=-1;
+
+        }
+        if( newNumberOfGrids> sharedBoundaryCondition.getBound(2) )
+        {
+            sharedBoundaryCondition.resize(2,3,newNumberOfGrids+20);
+            Range all;
+            sharedBoundaryCondition(all,all,Range(newNumberOfGrids,newNumberOfGrids+20-1))=-1;
+        }
+        
+
+        if( answer=="done" || answer=="exit" )
+        {
+            break;
+        }
+        else if( answer=="add a refinement" )
+        {
+            aString *gridMenu = new aString[cg.numberOfGrids()+3];
+            int grid,n=0;
+            gridMenu[n]="!refine a grid"; n++;
+            for( grid=0; grid<cg.numberOfGrids(); grid++ )
+            {
+                gridMenu[n]=cg[grid].getName(); n++;
+            }
+            gridMenu[n]="done"; n++;
+            gridMenu[n]="";
+            
+            aString answer2;
+            grid = ps.getMenuItem(gridMenu,answer2,"choose a grid to refine")-1;
+            
+            if( grid>=0 && grid<cg.numberOfGrids() )
+            {
+      	mappingWasAdded=true;
+                newGrid=newNumberOfGrids; newNumberOfGrids++;
+
+                changes(0,numberOfChanges)=newGrid;
+                changes(1,numberOfChanges)=refinementWasAdded;
+      	numberOfChanges++;
+
+                MappedGrid & c=cg[grid];
+                const IntegerArray & gid=c.gridIndexRange();
+      	printf("refine grid %s : gridIndexRange=[%i,%i]x[%i,%i]x[%i,%i]\n",(const char*)c.getName(),
+             	       gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2));
+
+                Mapping & map =c.mapping().getMapping();
+                ReparameterizationTransform & refine = 
+                                    *new ReparameterizationTransform (c.mapping(),ReparameterizationTransform::restriction);
+
+                refine.incrementReferenceCount();
+      	newMapping=&refine;
+      	
+                refine.setName(Mapping::mappingName,sPrintF(buff,"grid %i",newGrid));
+
+                RealArray ra(2,3);
+                ra(0,nullRange)=.25; ra(1,nullRange)=.75;
+
+      	refine.setBounds(ra(0,0),ra(1,0),ra(0,1),ra(1,1),ra(0,2),ra(1,2));
+        // scale bounds in case we change a previous refinement.
+	// refine.scaleBounds(ra(0,0),ra(1,0),ra(0,1),ra(1,1),ra(0,2),ra(1,2));
+
+                int side,axis;
+      	for( axis=0; axis<cg.numberOfDimensions(); axis++ )
+      	{
+        	  for( side=Start; side<=End; side++ )
+        	  {
+          	    refine.setBoundaryCondition(side,axis,0);
+        	  }
+      	}
+            	      
+                aString menu3[]=
+      	{
+        	  "set bounds",
+                    "lines",
+                    "update the mapping",
+                    "done",
+                    ""
+      	};
+      	aString answer3;
+      	
+      	for(;;)
+      	{
+                    ps.erase();
+                    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+                    PlotIt::plot(ps,cg,psp);
+        	  PlotIt::plot(ps,refine,psp);
+        	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+                    
+                    ps.getMenuItem(menu3,answer3);
+        	  if( answer3=="done" || answer3=="exit" )
+        	  {
+                        break;
+        	  }
+        	  else if( answer3=="set bounds" )
+        	  {
+                        printF("Current bounds: ra=%e, rb=%e, sa=%e, sb=%e, ta=%e, tb=%e\n",
+                                        ra(0,0),ra(1,0),ra(0,1),ra(1,1),ra(0,2),ra(1,2));
+
+                        ps.inputString(answer3,"Enter ra,rb,sa,sb,ta,tb");
+          	    if( answer3!="" )
+          	    {
+            	      sScanF(answer3,"%e %e %e %e %e %e",&ra(0,0),&ra(1,0),&ra(0,1),&ra(1,1),&ra(0,2),&ra(1,2));
+
+                            refine.setBounds(ra(0,0),ra(1,0),ra(0,1),ra(1,1),ra(0,2),ra(1,2));
+              // refine.scaleBounds(ra(0,0),ra(1,0),ra(0,1),ra(1,1),ra(0,2),ra(1,2));
+
+                            for( axis=0; axis<cg.numberOfDimensions(); axis++ )
+            	      {
+            		for( side=Start; side<=End; side++ )
+            		{
+              		  if( ra(side,axis)==(real)side && c.boundaryCondition(side,axis)>=0 )
+              		  {
+                		    refine.setBoundaryCondition(side,axis,c.boundaryCondition(side,axis));
+                                        printF(" refine.getBoundaryCondition(%i,%i)=%i\n",side,axis,refine.getBoundaryCondition(side,axis));
+              		  }
+            		}
+                                if( ra(Start,axis)==0. && ra(End,axis)==1. )
+            		{
+              		  refine.setIsPeriodic(axis,map.getIsPeriodic(axis));
+            		}
+            	      }
+          	    }
+        	  }
+                    else if( answer3=="lines" )
+        	  {
+          	    int nd[3];
+          	    printF("Current number of grid lines:");
+          	    for( axis=0; axis<cg.numberOfDimensions(); axis++ )
+          	    {
+            	      nd[axis]=refine.getGridDimensions(axis);
+            	      printF(" %i,",nd[axis]);
+          	    }
+          	    printF("\n");
+          	    ps.inputString(answer3,"Enter number of grid lines");
+          	    if( answer3!="" )
+          	    {
+            	      sScanF(answer3,"%i %i %i",&nd[0],&nd[1],&nd[2]);
+            	      for( axis=0; axis<cg.numberOfDimensions(); axis++ )
+            		refine.setGridDimensions(axis,nd[axis]);
+          	    }
+        	  }
+                    else if( answer3=="update the mapping")
+        	  {
+                        MappingInformation mapInfo;
+          	    mapInfo.graphXInterface=&ps;
+          	    refine.update(mapInfo);
+        	  }
+        	  else
+        	  {
+          	    printF("Unknown answer=[%s]\n",(const char *)answer3);
+          	    ps.stopReadingCommandFile();
+        	  }
+      	} 
+            }
+            else if( answer2=="done" || answer2=="exit" )
+            {
+            }
+            else
+            {
+                printF("Unknown answer=[%s]\n",(const char *)answer2);
+                ps.stopReadingCommandFile();
+            }
+            delete [] gridMenu;
+        }
+        else if( answer=="add a rectangle" )
+        {
+            mappingWasAdded=true;
+            newGrid=newNumberOfGrids; newNumberOfGrids++;
+            
+            changes(0,numberOfChanges)=newGrid;
+            changes(1,numberOfChanges)=gridWasAdded;
+            numberOfChanges++;
+
+            Mapping & map = * new SquareMapping(.25,.75,.25,.75 );
+
+      //       Mapping & map = * new SquareMapping(.2,.7,.2,.7 );
+      //       map.setGridDimensions(0,6);
+      //       map.setGridDimensions(1,6);
+
+            map.incrementReferenceCount();
+            newMapping=&map;
+            map.setName(Mapping::mappingName,sPrintF(buff,"grid %i",newGrid));
+
+            map.setBoundaryCondition(Start,axis1,0);
+            map.setBoundaryCondition(End  ,axis1,0);
+            map.setBoundaryCondition(Start,axis2,0);
+            map.setBoundaryCondition(End  ,axis2,0);
+            
+        }
+        else if( answer=="add a new grid" )
+        {
+            MappingInformation mapInfo;
+            mapInfo.graphXInterface=&ps;      
+            createMappings(mapInfo);
+            
+            if( mapInfo.mappingList.getLength()>0 )
+            {
+      	mappingWasAdded=true;
+      	newGrid=newNumberOfGrids; newNumberOfGrids++;
+            
+      	changes(0,numberOfChanges)=newGrid;
+      	changes(1,numberOfChanges)=gridWasAdded;
+      	numberOfChanges++;
+
+      	newMapping=&(mapInfo.mappingList[0].getMapping());
+                newMapping->incrementReferenceCount();
+            }
+        }
+        else if( answer=="build a grid" )
+        {
+            buildGrid( newMapping, newNumberOfGrids, sharedBoundaryCondition  );
+
+            if( newMapping!=NULL )
+            {
+      	mappingWasAdded=true;
+      	newGrid=newNumberOfGrids; newNumberOfGrids++;
+            
+      	changes(0,numberOfChanges)=newGrid;
+      	changes(1,numberOfChanges)=gridWasAdded;
+      	numberOfChanges++;
+
+            }      
+        }
+        else if( answer=="user defined grid" )
+        {
+            userDefinedGrid( gf[current], newMapping, newNumberOfGrids, sharedBoundaryCondition  );
+
+            if( newMapping!=NULL )
+            {
+      	mappingWasAdded=true;
+      	newGrid=newNumberOfGrids; newNumberOfGrids++;
+            
+      	changes(0,numberOfChanges)=newGrid;
+      	changes(1,numberOfChanges)=gridWasAdded;
+      	numberOfChanges++;
+
+            }      
+        }
+        else if( answer=="change a grid" )
+        {
+            aString *gridMenu = new aString[cg.numberOfGrids()+3];
+            int grid,n=0;
+            gridMenu[n]="!change a grid"; n++;
+            for( grid=0; grid<cg.numberOfGrids(); grid++ )
+            {
+                gridMenu[n]=cg[grid].getName(); n++;
+            }
+            gridMenu[n]="done"; n++;
+            gridMenu[n]="";
+            
+            aString answer2;
+            grid = ps.getMenuItem(gridMenu,answer2,"change which grid?")-1;
+            
+            if( grid>=0 && grid<cg.numberOfGrids() )
+            {
+      	newGrid=grid;
+
+      	changes(0,numberOfChanges)=newGrid;
+      	changes(1,numberOfChanges)=gridWasChanged;
+      	numberOfChanges++;
+
+
+                MappedGrid & c=cgNew[grid];
+                const IntegerArray & gid=c.gridIndexRange();
+      	printf("refine grid %s : gridIndexRange=[%i,%i]x[%i,%i]x[%i,%i]\n",(const char*)c.getName(),
+             	       gid(0,0),gid(1,0),gid(0,1),gid(1,1),gid(0,2),gid(1,2));
+
+                Mapping & map =c.mapping().getMapping();
+
+                aString menu3[]=
+      	{
+                    "lines",
+                    "update the mapping",
+                    "done",
+                    ""
+      	};
+      	aString answer3;
+      	
+      	for(;;)
+      	{
+                    ps.erase();
+                    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+                    PlotIt::plot(ps,cg,psp);
+                    
+                    ps.getMenuItem(menu3,answer3);
+        	  if( answer3=="done" || answer3=="exit" )
+        	  {
+                        break;
+        	  }
+                    else if( answer3=="lines" )
+        	  {
+          	    int nd[3];
+          	    printF("Current number of grid lines:");
+                        int axis;
+          	    for( axis=0; axis<cg.numberOfDimensions(); axis++ )
+          	    {
+            	      nd[axis]=c.gridIndexRange(End,axis)-c.gridIndexRange(Start,axis)+1;
+            	      printF(" %i,",nd[axis]);
+          	    }
+          	    printF("\n");
+          	    ps.inputString(answer3,"Enter number of grid lines");
+          	    if( answer3!="" )
+          	    {
+            	      sScanF(answer3,"%i %i %i",&nd[0],&nd[1],&nd[2]);
+            	      for( axis=0; axis<cg.numberOfDimensions(); axis++ )
+            		c.setGridIndexRange(End,axis,nd[axis]+c.gridIndexRange(Start,axis)-1);
+          	    }
+        	  }
+                    else if( answer3=="update the mapping")
+        	  {
+                        MappingInformation mapInfo;
+          	    mapInfo.graphXInterface=&ps;
+          	    map.update(mapInfo);
+        	  }
+        	  else
+        	  {
+          	    printF("Unknown answer=[%s]\n",(const char *)answer3);
+          	    ps.stopReadingCommandFile();
+        	  }
+                    if( gridChanged )
+        	  {
+          	    c.update(MappedGrid::THEmask);
+        	  }
+      	} 
+            }
+            else if( answer2=="done" || answer2=="exit" )
+            {
+            }
+            else
+            {
+                printF("Unknown answer=[%s]\n",(const char *)answer2);
+                ps.stopReadingCommandFile();
+            }
+            delete [] gridMenu;
+        }
+        else if( answer=="remove a grid" )
+        {
+            aString *gridMenu = new aString[cg.numberOfGrids()+3];
+            int grid,n=0;
+            gridMenu[n]="!remove a grid"; n++;
+            for( grid=0; grid<cg.numberOfGrids(); grid++ )
+            {
+                gridMenu[n]=cg[grid].getName(); n++;
+            }
+            gridMenu[n]="done"; n++;
+            gridMenu[n]="";
+            
+            aString answer2;
+            grid = ps.getMenuItem(gridMenu,answer2,"remove which grid?")-1;
+            
+            if( grid>=0 && grid<cg.numberOfGrids() )
+            {
+      	gridChanged=true;
+      	newGrid=grid;
+
+      	changes(0,numberOfChanges)=newGrid;
+      	changes(1,numberOfChanges)=gridWasRemoved;
+      	numberOfChanges++;
+
+            }
+            else
+            {
+                printF("Unknown answer=[%s]\n",(const char *)answer2);
+                ps.stopReadingCommandFile();
+            }
+            delete [] gridMenu;
+        }
+        else if( answer=="adapt a grid" )
+        {
+            realCompositeGridFunction error(cgNew);
+            if( parameters.dbase.get<ErrorEstimator* >("errorEstimator")!=NULL )
+      	parameters.buildErrorEstimator();
+            parameters.dbase.get<ErrorEstimator* >("errorEstimator")->computeErrorFunction( error,ErrorEstimator::diagonal );
+
+            int level=1, baseLevel=0;
+
+            const int oldNumberOfGrids=cgNew.numberOfComponentGrids();
+
+            if( parameters.dbase.get<Regrid* >("regrid")==NULL )
+      	parameters.dbase.get<Regrid* >("regrid") = new Regrid();
+
+            Regrid & regrid = *parameters.dbase.get<Regrid* >("regrid");
+            
+      // cgNew.update(GridCollection::THErefinementLevel);  // ************** fix this 
+            
+            regrid.setGridAdditionOption(Regrid::addGridsAsBaseGrids);
+            regrid.setGridAlgorithmOption( Regrid::aligned );
+            regrid.regrid(cg,cgNew, error, parameters.dbase.get<real >("errorThreshold"), level, baseLevel);
+            cgNew.update(MappedGrid::THEmask);
+      // cgNew.updateParentChildSiblingInfo();      
+
+            if( true || debug() & 2 )
+            {
+      	printF("After AMR regrid: oldNumberOfGrids=%i, new number=%i\n",oldNumberOfGrids,
+             	       cgNew.numberOfComponentGrids());
+            }
+
+            int newNum=cgNew.numberOfComponentGrids()-oldNumberOfGrids+numberOfChanges;
+            if( newNum >= changes.getBound(1) )
+            {
+      	Range R(changes.getBound(1)+1,newNum+10);
+      	changes.resize(2,R.getBound()+1);
+      	changes(changes.dimension(0),R)=-1;
+            }
+
+
+            for( int grid=oldNumberOfGrids; grid<cgNew.numberOfComponentGrids(); grid++ )
+            {
+      	changes(0,numberOfChanges)=grid;
+      	changes(1,numberOfChanges)=gridWasAdded;
+      	numberOfChanges++;
+            }
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false); 
+            ps.erase();
+            PlotIt::plot(ps,cgNew,psp);
+        }
+        else
+        {
+                printF("Unknown answer=[%s]\n",(const char *)answer);
+                ps.stopReadingCommandFile();
+        }
+        
+        if( mappingWasAdded )
+        {
+            mappingWasAdded=FALSE;
+            int i=numberOfChanges-1;
+            assert( changes(1,i)==gridWasAdded || changes(1,i)==refinementWasAdded );
+            assert( newMapping!=NULL );
+            cgNew.add( *newMapping);    // Add a new component grid, built from this Mapping.
+            newMapping->decrementReferenceCount();
+            newMapping=NULL;
+        }
+
+    }
+
+    if( numberOfChanges>0 )
+    {
+        
+        const int oldNumberOfGrids=cg.numberOfGrids();
+
+        int i;
+        for( i=0; i<numberOfChanges; i++ )
+        {
+            if( changes(1,i)==gridWasAdded || changes(1,i)==refinementWasAdded )
+            {
+	// this was dealt with above
+            }
+            else if( changes(1,i)==gridWasRemoved || changes(1,i)==refinementWasRemoved  )
+            {
+      	cgNew.deleteGrid( changes(0,i) );
+      	printf("After deleteGrid: numberOfComponentGrids=%i, numberOfGrids=%i\n",
+             	       cgNew.numberOfComponentGrids(),cgNew.numberOfGrids());
+            
+            }
+            else if( changes(1,i)==gridWasChanged )
+            {
+            }
+            else
+            {
+      	printf("addGrids:ERROR: unknown change! \n");
+      	Overture::abort("error");
+            }
+        }
+            
+        if( parameters.dbase.get<Ogen* >("gridGenerator")==NULL )
+            parameters.dbase.get<Ogen* >("gridGenerator") = new Ogen(*parameters.dbase.get<GenericGraphicsInterface* >("ps"));
+        assert( parameters.dbase.get<Ogen* >("gridGenerator")!=NULL );
+            
+        parameters.dbase.get<Ogen* >("gridGenerator")->updateOverlap(cgNew);
+            
+        if( false )
+        {
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+            ps.erase();
+            psp.set(GI_TOP_LABEL,"Grid after updateOverlap");  
+            PlotIt::plot(ps,cgNew,psp);
+            
+        }
+        
+        updateToMatchNewGrid(cgNew,changes,sharedBoundaryCondition,gf[current]);
+
+        if( false )
+        {
+            ps.erase();
+            psp.set(GI_TOP_LABEL,"gf[current].u after updateToMatchNewGrid");  
+            PlotIt::contour(ps,gf[current].u,psp);
+
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+            ps.erase();
+            psp.set(GI_TOP_LABEL,"gf[current].cg : Grid after updateOverlap");  
+            PlotIt::plot(ps,gf[current].cg,psp);
+        }
+        
+
+        parameters.dbase.get<int >("saveGridInShowFile")=true;  // we need to save the grid in the show file if it has changed.
+    }
+    
+    ps.popGUI();
+    ps.unAppendTheDefaultPrompt();  // reset
+    return returnValue;
+}
+
+
+
+
+#include "LineMapping.h"
+#include "TFIMapping.h"
+#include "ReductionMapping.h"
+#include "ReparameterizationTransform.h"
+
+int DomainSolver::
+buildGrid( Mapping *&newMapping, int newGridNumber, IntegerArray & sharedBoundaryCondition )
+// =====================================================================================
+// /Description:
+//    Build a grid that matches to boundaries of a CompositeGrid and to a solution.
+// ====================================================================================
+{
+    if( parameters.dbase.get<GenericGraphicsInterface* >("ps")==NULL )
+        return 0;
+
+
+    int returnValue=0;
+    newMapping=NULL;
+
+    GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+    GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+
+    CompositeGrid & cg = gf[current].cg;
+
+
+    if( debug() & 8 )
+    {
+        for( int grid=0; grid<cg.numberOfComponentGrids(); grid++)
+        {
+            const IntegerArray & bc = cg[grid].boundaryCondition();
+            const IntegerArray & gid = cg[grid].gridIndexRange();
+            printF("grid=%i, bc=[%i,%i],[%i,%i] gid=[%i,%i][%i,%i]\n",grid,bc(0,0),bc(1,0),bc(0,1),bc(1,1),
+                                gid(0,0),gid(1,0),gid(0,1),gid(1,1));
+            Range all;
+            for( int axis=0; axis<cg.numberOfDimensions(); axis++ ) 
+      	for( int side=0; side<=1; side++ )
+      	{
+        	  const RealArray & bcd = parameters.dbase.get<RealArray>("bcData")(all,side,axis,grid);
+        	  const RealArray & bcp = parameters.dbase.get<RealArray>("bcParameters")(all,side,axis,grid);
+        	  printF("       side=%i, axis=%i, bcData=%5.1f,%5.1f,%5.1f,%5.1f,  bcParameters=%5.1f,%5.1f,%5.1f,%5.1f\n",
+             		 side,axis,bcd(0),bcd(1),bcd(2),bcd(3),bcp(0),bcp(1),bcp(2),bcp(3));
+      	}
+        }
+    }
+
+
+    GUIState gui;
+    gui.setWindowTitle("Builder");
+    gui.setExitCommand("exit", "continue");
+    DialogData & dialog = gui;
+
+    enum ChoiceEnum
+    {
+        chooseStartingPoint=0,
+        chooseEndingPoint
+    };
+    
+    ChoiceEnum choice=chooseStartingPoint;
+
+    aString pbLabels[] = {"pick points (left curve)",
+                                                "pick points (right curve)",
+                                                "edit mapping...",
+                                                "contour",
+                  			""};
+  // addPrefix(pbLabels,prefix,cmd,maxCommands);
+    int numRows=3;
+    dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
+
+//   int nt=0;
+//   textLabels[nt] = "Starting curve bounds"; 
+//   sPrintF(textStrings[nt], "%g, %g",0.,1.); nt++; 
+
+//   dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+    bool snapPointsToBoundary=true;
+    bool plotContours=true;
+    
+    aString tbCommands[] = {"snap points to boundary","plot contours",""};
+    int tbState[10];
+    tbState[0] = snapPointsToBoundary;
+    tbState[1] = plotContours;
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
+    gi.pushGUI(gui);
+    gi.appendToTheDefaultPrompt("build>"); // set the default prompt
+
+    
+
+    bool plotObject=true;
+    aString answer,line;
+    realArray xp(2,3), rp(2,3);
+    Range R3=3;
+    
+    SelectionInfo select; select.nSelect=0;
+
+    int numberChosen=0;
+    bool firstPointChosen=false;
+    bool lastPointChosen=false;
+    int gridStart=-1;
+    int gridEnd=-1;
+    
+    Mapping *edgeCurve[2][2]={NULL,NULL,NULL,NULL}; //
+    Mapping * leftCurve=NULL, *rightCurve=NULL, *bottomCurve=NULL, *topCurve=NULL;
+
+    int len=0;
+    for(int it=0; ; it++)
+    {
+        if( it==0 && plotObject )
+            answer="plotObject";
+        else
+        {
+            gi.getAnswer(answer,"", select);
+        }
+
+        printF("answer=[%s]\n",(const char*)answer);
+
+
+        if( len=answer.matches("snap points to boundary") )
+        {
+            int value;
+            sScanF(answer(len,answer.length()-1),"%i",&value);
+            snapPointsToBoundary=value;
+            dialog.setToggleState(0,value);      
+        }
+        else if( len=answer.matches("plot contours") )
+        {
+            int value;
+            sScanF(answer(len,answer.length()-1),"%i",&value);
+            plotContours=value;
+            dialog.setToggleState(1,value);      
+        }
+        else if( answer=="contour" )
+        {
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,FALSE);
+            PlotIt::contour(gi,gf[current].u,psp);
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,FALSE);
+        }
+        else if( select.nSelect )
+        {
+            printF("Selection \n");
+            int gridFound=-1;
+            
+            for (int i=0; i<select.nSelect && gridFound<0; i++)
+            {
+      	printf("i=%i, ID=%i, minZ=%i, maxZ=%i\n", i,select.selection(i,0),
+             	       select.selection(i,1),select.selection(i,2));
+      	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      	{
+        	  if( cg[grid].getGlobalID()==select.selection(i,0) )
+        	  {
+          	    printF("Grid %i selected\n",grid);
+                        gridFound=grid;
+                        break;
+        	  }
+      	}
+            }
+            if( gridFound>=0 )
+            {
+      	assert( select.active == 1 );
+        
+      	printf("World coordinates: %e, %e, %e\n", select.x[0], select.x[1], select.x[2]);
+
+      	realArray x(1,3), r(1,3);
+      	x(0,0)=select.x[0]; x(0,1)=select.x[1]; x(0,2)=select.x[2];
+
+                Mapping & mapping = cg[gridFound].mapping().getMapping();
+                r=-1;
+      	mapping.inverseMap(x,r);
+      	
+                printF(" Point chosen on grid=%i is x=(%8.2e,%8.2e,%8.2e) r=(%8.2e,%8.2e,%8.2e) \n",
+             	       gridFound, x(0,0),x(0,1),x(0,2),r(0,0),r(0,1),r(0,2));
+      	
+      	if( choice==chooseStartingPoint )
+      	{
+                    xp(0,R3)=x(0,R3);
+        	  rp(0,R3)=r(0,R3);
+                    gridStart=gridFound;
+        	  
+                    firstPointChosen=true;
+      	}
+                else
+      	{
+                    xp(1,R3)=x(0,R3);
+        	  rp(1,R3)=r(0,R3);
+                    gridEnd=gridFound;
+
+                    lastPointChosen=true;
+      	}
+      	
+
+
+            }
+            
+        }
+        else if( answer=="pick points (left curve)" || 
+                          answer=="pick points (right curve)" )
+        {
+            if( cg.numberOfDimensions()!=2 )
+            {
+      	printf("Sorry, one can only pick points with the mouse in 2D\n");
+                continue;
+            }
+
+            if( newMapping!=NULL && newMapping->decrementReferenceCount()==0 )
+            {
+      	delete newMapping;
+                newMapping=NULL;
+            }
+
+            Mapping *&mapPointer = answer=="pick points (left curve)" ? edgeCurve[0][0] : edgeCurve[1][0];
+            
+
+            RealArray pt(1000,2); // at most 1000 points -- fix this --
+      // turn on the back ground grid
+      // gi.setPlotTheBackgroundGrid(true);
+            
+      // ifndef USE_PPP
+            int numberOfPoints=gi.pickPoints(pt);
+
+            if( numberOfPoints>0 )
+            {
+      	pt.resize(numberOfPoints,2);
+
+        // project end points onto the boundary if they are close
+
+                if( snapPointsToBoundary )
+      	{
+        	  int gridFound=0;
+        	  Mapping & map = cg[gridFound].mapping().getMapping();
+
+        	  RealArray r(1,2), x(1,2);
+        	  for( int side=0; side<=1; side++ )
+        	  {
+          	    int n= side==0 ? 0 : numberOfPoints-1;
+          	    x(0,0)=pt(n,0);
+          	    x(0,1)=pt(n,1);
+          	    
+          	    r=-1;
+                        #ifdef USE_PPP
+           	     map.inverseMapS(x,r);
+                        #else
+           	     map.inverseMap(x,r);
+                        #endif
+          	    const real eps =.05;
+          	    bool projected=false;
+          	    for( int dir=0; dir<=1; dir++ )
+          	    {
+            	      if( fabs(r(0,0)-dir)<eps )
+            	      {
+            		r(0,0)=dir; projected=true;
+            	      }
+            	      else if( fabs(r(0,1)-dir)<eps )
+            	      {
+            		r(0,1)=dir; projected=true;
+            	      }
+          	    }
+          	    if( projected )
+          	    {
+            	      printF("End point on side=%i, r=%e,%e was projected to the boundary of the grid=%i\n",side,
+                 		     r(0,0),r(0,1),gridFound);
+                            #ifdef USE_PPP
+             	       map.mapS(r,x);
+                            #else
+             	       map.map(r,x);
+                            #endif
+            	      pt(n,0)=x(0,0);
+            	      pt(n,1)=x(0,1);
+          	    }
+        	  }
+      	}
+      	
+      	if( mapPointer==NULL )
+      	{
+        	  mapPointer=new SplineMapping; mapPointer->incrementReferenceCount();
+      	}
+      	SplineMapping & curve = (SplineMapping&)(*mapPointer);
+      	Range R=numberOfPoints;
+      	curve.setPoints(pt(R,0),pt(R,1));
+      	
+            }
+        }
+        else if( answer=="choose starting point" )
+        {
+            choice=chooseStartingPoint;
+        }
+        else if( answer=="choose ending point" )
+        {
+            choice=chooseEndingPoint;
+        }
+        else if( answer=="edit mapping..." )
+        {
+            if( newMapping!=NULL )
+            {
+      	newMapping->interactiveUpdate(gi);
+            }
+            else
+            {
+                gi.outputString("You must first build the mapping");
+            }
+            
+        }
+        else if( answer=="exit" )
+            break;
+        else if( answer=="plotObject" )
+        {
+        }
+        else 
+        {
+            gi.outputString( sPrintF(line,"Unknown response=%s",(const char*)answer) );
+            printF("Unknown response=[%s] \n",(const char*)answer);
+            gi.stopReadingCommandFile();
+        }
+
+        if( newMapping==NULL && edgeCurve[0][0]!=NULL && edgeCurve[1][0]!=NULL )
+        {
+      // build a mapping
+            printF("build a TFIMapping from the left and right curves. \n");
+            
+      // build curve to match to adjacent boundaries if appropriate.
+
+            const realArray & xLeft = edgeCurve[0][0]->getGrid();
+            const realArray & xRight = edgeCurve[1][0]->getGrid();
+      	
+            realArray x(2,2),r(2,2);
+            int bc[2][2]={0,0,0,0}; // default BC is interpolation
+      	
+            for( int direction=0; direction<=1; direction++ )
+            {
+             		 
+        // project the end points onto the boundary of the grid
+
+      	int n1=direction==0 ? xLeft.getBase(0) : xLeft.getBound(0);
+      	int n2=direction==0 ? xRight.getBase(0) : xRight.getBound(0);
+
+      	x(0,0)= xLeft(n1,0,0,0); x(0,1)= xLeft(n1,0,0,1);
+      	x(1,0)=xRight(n2,0,0,0); x(1,1)=xRight(n2,0,0,1);
+      	
+      	int gridFound=0;  // **************************************** fix this ***** find actual grid ****
+      	Mapping & map = cg[gridFound].mapping().getMapping();
+
+      	r=-1;
+      	map.inverseMap(x,r);
+      	
+      	printf("match curve to boundary? r=[%e,%e] and [%e,%e] \n",r(0,0),r(0,1),r(1,0),r(1,1));
+
+      	int side=-1, axis=-1;
+      	real ra,rb;
+      	real sa,sb;
+      	const real eps = .01;  // REAL_EPSILON*10.;
+      	for( int dir=0; dir<=1; dir++ )
+      	{
+        	  if( fabs(r(0,0)-dir)<eps && fabs(r(1,0)-dir)<eps )
+        	  {
+          	    side=dir, axis=0; 
+          	    ra=r(0,1), rb=r(1,1);
+        	  }
+        	  else if( fabs(r(0,1)-dir)<eps && fabs(r(1,1)-dir)<eps )
+        	  {
+          	    side=dir, axis=1;
+          	    ra=r(0,0), rb=r(1,0);
+        	  }
+      	}
+      	if( side!=-1 )
+      	{
+        	  real sa,sb;
+        	  if( axis==1 )
+        	  {
+          	    sa=-1;
+          	    sb=(real)side;
+        	  }
+        	  else
+        	  {
+          	    sa=(real)side;
+          	    sb=-1;
+        	  }
+        	  
+        	  ReductionMapping & edge = * new ReductionMapping(map,sa,sb);
+                    edge.incrementReferenceCount();
+
+        	  ReparameterizationTransform & curve= 
+          	    *new ReparameterizationTransform(edge,ReparameterizationTransform::restriction);
+
+        	  edge.decrementReferenceCount();
+        	  
+        	  curve.setBounds(ra,rb);
+                      
+	  // curveEdge[side]=&curve;
+        	  
+                    int bcg=cg[gridFound].boundaryCondition(side,axis);
+        	  
+	  // ::display(cg[gridFound].boundaryCondition(),"cg[gridFound].boundaryCondition");
+        	  
+
+        	  edgeCurve[direction][1] = &curve; edgeCurve[direction][1]->incrementReferenceCount();
+
+                    printF(" set bc[%i][%i] = boundaryCondition(%i,%i) = %i\n",direction,1,side,axis, bcg);
+        	  
+                    bc[direction][1] = bcg;
+
+          // in order to update BC's we keep track of where boundaries on the new grid match to old.
+                    sharedBoundaryCondition(direction,1,newGridNumber)=side+2*(axis+3*gridFound);
+
+      	}
+            }
+            
+            if( edgeCurve[0][1]!=NULL && edgeCurve[1][1]!=NULL )
+      	newMapping = new TFIMapping(edgeCurve[0][0],edgeCurve[1][0],edgeCurve[0][1],edgeCurve[1][1]);
+            else
+      	newMapping = new TFIMapping(edgeCurve[0][0],edgeCurve[1][0]);
+
+            newMapping->incrementReferenceCount();
+
+            int side,axis;
+            for( side=0; side<=1; side++ )
+      	for( axis=0; axis<2; axis++ )
+        	  newMapping->setBoundaryCondition(side,axis,bc[side][axis]);
+            
+        }
+        
+        gi.erase();
+        PlotIt::plot(gi,cg,psp);
+        
+        if( newMapping!=NULL )
+        {
+            psp.set(GI_MAPPING_COLOUR,"blue");
+            PlotIt::plot(gi, *newMapping,psp );
+        }
+        else
+        {
+            real oldCurveLineWidth;
+            psp.get(GraphicsParameters::curveLineWidth,oldCurveLineWidth);
+            psp.set(GraphicsParameters::curveLineWidth,4.);
+
+            for( int side=0; side<=1; side++ )
+            {
+      	for( int axis=0; axis<2; axis++ )
+      	{
+                    int num = side+2*axis;
+        	  if( edgeCurve[side][axis]!=NULL )
+        	  {
+          	    aString colour = num==0 ? "green" : num==1 ? "red" : num==2 ? "yellow" : "orange";
+          	    psp.set(GI_MAPPING_COLOUR,colour);
+          	    PlotIt::plot(gi,*edgeCurve[side][axis],psp);
+        	  }
+      	}
+            }
+            psp.set(GraphicsParameters::curveLineWidth,oldCurveLineWidth);
+            
+        }
+        
+        if( plotContours )
+            PlotIt::contour(gi,gf[current].u,psp);  // also plot the solution
+            
+
+    }
+        
+    for( int side=0; side<=1; side++ )
+    {
+        for( int axis=0; axis<2; axis++ )
+        {
+            if( edgeCurve[side][axis]!=NULL && edgeCurve[side][axis]->decrementReferenceCount()==0 )
+            {
+      	delete edgeCurve[side][axis];
+            }
+        }
+    }
+
+    psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+    gi.erase();
+    gi.unAppendTheDefaultPrompt();  // reset
+    gi.popGUI();
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+//\begin{>>CompositeGridSolverInclude.tex}{\subsection{addGrids}} 
+int DomainSolver::
+updateToMatchNewGrid(CompositeGrid & cgNew,  
+                                          IntegerArray & changes,
+                                          IntegerArray & sharedBoundaryCondition,
+                                          GridFunction & gf0 )
+// ========================================================================================
+// /Description:
+//    Update grida and grid functions after grids have been added or removed.
+//
+// /cgNew (input) : here is the new grid.
+// /changes (input): change(0,i) = number for the grid that was changed (in the new grid if added, in
+//   the old grid if removed). changes(1,i) = type of change that was made.
+//\end{CompositeGridSolverInclude.tex}  
+// ========================================================================================
+{
+    int newGrid=changes(0,0);
+
+
+  // GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+  // GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+
+
+    CompositeGrid & cg = gf0.cg;
+    realCompositeGridFunction & u = gf0.u;
+    Range all;
+
+  // numberOfGridFunctionsToUse=2;  // ******** ??
+    int numberOfFn=1;
+    int numberOfGridFunctionsToInterpolate=0;
+    int numberOfFnToInterpolate=0;
+    switch (parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod"))   // ***************************** fix this ******************
+    {
+    case Parameters::forwardEuler:
+        numberOfGridFunctionsToUse=3;
+        numberOfFn=1;
+        numberOfGridFunctionsToInterpolate=0; // only interpolate gf0
+        numberOfFnToInterpolate=0;
+        break;
+    case Parameters::midPoint:
+        numberOfGridFunctionsToUse=3;
+        numberOfFn=1;
+        numberOfGridFunctionsToInterpolate=3;  // ??
+        numberOfFnToInterpolate=0;
+        break;
+    case Parameters::adamsBashforth2:
+    case Parameters::adamsPredictorCorrector2:
+        numberOfGridFunctionsToUse=2; 
+        numberOfFn=2;
+        numberOfGridFunctionsToInterpolate=2;  // ??
+        numberOfFnToInterpolate=2;
+        break;
+    case Parameters::implicit:
+        numberOfGridFunctionsToUse=2; 
+        numberOfFn=3;
+        numberOfGridFunctionsToInterpolate=2;  // ??
+        numberOfFnToInterpolate=3;
+        break;
+    case Parameters::implicitAllSpeed:
+        numberOfGridFunctionsToUse=2; 
+        numberOfFn=4;
+        numberOfGridFunctionsToInterpolate=2;  // ??
+        numberOfFnToInterpolate=4;
+        break;
+    default:
+        break;
+    }
+
+
+    int oldNumberOfGrids=cg.numberOfGrids();
+    int newNumberOfGrids=cgNew.numberOfGrids();
+
+    int numberOfChanges=0, numberAdded=0, numberDeleted=0;
+    IntegerArray gridsAdded(changes.getLength(1)), gridsDeleted(changes.getLength(1));
+    gridsAdded=-1; gridsDeleted=-1;
+    
+    int i,j,grid;
+    for( i=0; i<=changes.getBound(1); i++ )
+    {
+        if( changes(0,i)>=0  )
+        {
+            numberOfChanges++;
+            if( changes(1,i)==gridWasAdded || changes(1,i)==refinementWasAdded )
+            {
+      	gridsAdded(numberAdded)=changes(0,i);  // grid number of cgNew that is new.
+                numberAdded++;
+                printF("updateToMatchNewGrid: grid %i was added\n",changes(0,i));
+      	
+            }
+            else if( changes(1,i)==gridWasRemoved || changes(1,i)==refinementWasRemoved  )
+            {
+                gridsDeleted(numberDeleted)=changes(0,i);  // grid number of cg that is deleted
+                printF("updateToMatchNewGrid: grid %i was deleted\n",changes(0,i));
+
+        // shift gridsAdded:
+                for( int j=0; j<numberAdded; j++ )
+      	{
+        	  if( gridsAdded(j)>gridsDeleted(numberDeleted) )
+        	  {
+          	    gridsAdded(j)-=1;
+        	  }
+      	}
+      	numberDeleted++;
+            }
+            
+        }
+        else
+        {
+            break;
+        }
+    }
+    if( numberDeleted>0 )
+    {
+        display(gridsAdded(Range(0,numberDeleted-1)),"gridsAdded after shifting for deleted grids");
+    
+        gridsDeleted.resize(numberDeleted);
+    }
+    
+
+    if( false )
+    {
+        GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+        GraphicsParameters psp;
+        ps.erase();
+        psp.set(GI_TOP_LABEL,"Solution u before interpolate");  
+        PlotIt::contour(ps,u,psp);
+    }
+    
+//   grid=newGrid;
+//   assert( grid>=0 && grid<cgNew.numberOfGrids() );
+
+//   assert( newNumberOfGrids-oldNumberOfGrids == 1 || newNumberOfGrids-oldNumberOfGrids==0 );
+    
+    if( numberAdded+numberDeleted>0 )
+    {
+    // **** grids were added or removed *****
+
+        
+    // *** what about AMR grids ? *****
+
+    // ** interpolateAllPoints will find any grid, not necessarily the best one ****
+    // 1) search for a base grid --> 2) then search for a refinement patch
+
+    // If we add a new base grid we need to build the new AMR grid level by level
+    //    1) interpolate new base grid from old cg
+    //    2) compute error estimate -> refine -> interpolate from old cg ...
+
+
+    // --- interpolate solution values on new grids from the old CompositeGrid ----
+
+        InterpolatePoints interpolator;
+
+
+    // We temporarily save new values in the realMappedGridFunction's va[i]:
+        realMappedGridFunction *va = new realMappedGridFunction [numberAdded];
+        for( i=0; i<numberAdded; i++ )
+        {
+            grid=gridsAdded(i);
+            assert( grid>=0 && grid<cgNew.numberOfComponentGrids() );
+            
+            realMappedGridFunction & v = va[i];
+            v.updateToMatchGrid(cgNew[grid],all,all,all,parameters.dbase.get<int >("numberOfComponents")); 
+            v=1.;
+      // ***************** ghost points will not be correct if they lie outside the region ************
+            printF("update for new grid interpolateAllPoints on u for grid=%i\n",grid);
+
+      // displayMask(cg[2].mask(),"cg[2].mask()",parameters.dbase.get<FILE* >("debugFile"));
+            
+            if( true )
+                interpolator.interpolateAllPoints(u,v);
+            else
+                interpolateAllPoints(u,v);  // old way.
+
+      // display(v,"Here is solution on new grid after interpolateAllPoints", "%7.1e ");
+            
+
+
+        }
+
+    //  ---- if grids were deleted we need to interpolate points that were exposed, previously being unused ----
+
+    // for old grids
+    // where( cgNew[grid].mask() >0 && cg[grid].mask()==0 )
+    //    interpolate these points of u from u 
+    // this is easier if only refinement were deleted.
+        if( numberDeleted>0 )
+        {
+            const int numberOfGrids=min(cg.numberOfComponentGrids(),cgNew.numberOfComponentGrids());
+            
+            for( grid=0; grid<numberOfGrids; grid++ )
+            {
+                if( max(abs(gridsDeleted-grid))>0 ) // no need to interpolate a grid that was deleted.
+      	{
+                    	  const intArray & mask = cg[grid].mask();
+                    int newGrid=grid;
+        	  newGrid -= sum( (grid-gridsDeleted) > 0 );
+        	  
+                    	  const intArray & newMask = cgNew[grid].mask();
+        	  intArray ia;
+                    ia= (mask==0 && newMask!=0 ).indexMap();
+                    if( ia.getLength(0) > 0 )
+        	  {
+	    // there are exposed points
+
+                        printF("*** interpolate %i exposed points on grid %i (newGrid=%i)\n",ia.getLength(0),grid,newGrid);
+
+          	    Range I=ia.getLength(0);
+          	    if( cg.numberOfDimensions()==2 )
+          	    {
+            	      ia.resize(I,3);
+            	      ia(I,2)=cg[grid].dimension(Start,axis3);
+          	    }
+
+                        const realArray & vertex = cg[grid].vertex();
+          	    realArray x(I,cg.numberOfDimensions());
+                        for( int axis=0; axis<cg.numberOfDimensions(); axis++ )
+                	      x(I,axis)=vertex(ia(I,0),ia(I,1),ia(I,2),axis);
+
+            // interpolate points
+                        realArray uii(I,parameters.dbase.get<int >("numberOfComponents"));
+
+                        #ifndef USE_PPP
+            	      interpolator.interpolatePoints(x,u,uii);
+                        #else
+            	      Overture::abort("finish me for parallel Bill!");
+                        #endif
+
+	    // interpolatePoints(x,u,uii);
+                        realArray & uNew = u[newGrid];
+                        for( int c=0; c<parameters.dbase.get<int >("numberOfComponents"); c++ )
+            	      uNew(ia(I,0),ia(I,1),ia(I,2),c)=uii(I,c);
+
+          	    for( j=0; j<numberOfGridFunctionsToInterpolate; j++ )
+          	    {
+                            #ifndef USE_PPP
+                                interpolator.interpolatePoints(x,gf[j].u,uii);
+                            #else
+                                Overture::abort("finish me for parallel Bill!");
+                            #endif
+            	      realArray & uNew = gf[j].u[newGrid];
+            	      for( int c=0; c<parameters.dbase.get<int >("numberOfComponents"); c++ )
+            		uNew(ia(I,0),ia(I,1),ia(I,2),c)=uii(I,c);
+            	      
+          	    }
+
+          	    for( j=0; j<numberOfFnToInterpolate; j++ )
+          	    {
+                            #ifndef USE_PPP
+                                interpolator.interpolatePoints(x,fn[j],uii);
+                            #else
+                                Overture::abort("finish me for parallel Bill!");
+                            #endif
+            	      realArray & uNew = fn[j][newGrid];
+            	      for( int c=0; c<parameters.dbase.get<int >("numberOfComponents"); c++ )
+            		uNew(ia(I,0),ia(I,1),ia(I,2),c)=uii(I,c);
+          	    }
+          	    
+        	  }
+      	}
+            }
+        }
+        
+
+
+    // ps.erase();
+    // psp.set(GI_TOP_LABEL,"u before adding a grid.");  
+    // ps.contour(u,psp);
+
+        u.updateToMatchGrid(cgNew); // **** now update u to match the new grid ****
+        
+        for( i=0; i<numberAdded; i++ )
+        {
+            u[gridsAdded(i)]=va[i];
+        }
+
+
+    //     fixupUnusedPoints(u); // we could use u instead of va below, since u is now fixed.
+
+        for( j=0; j<numberOfGridFunctionsToUse; j++ )
+        {
+              
+
+            if( j < numberOfGridFunctionsToInterpolate )
+            {
+      	for( i=0; i<numberAdded; i++ )
+      	{
+        	  printF("update for new grid %i on gf[%i]\n",i,j);
+                    va[i]=1.;
+        	  interpolator.interpolateAllPoints(gf[j].u,va[i]); 
+      	}
+            }
+
+            gf[j].u.updateToMatchGrid(cgNew);
+
+            if( j < numberOfGridFunctionsToInterpolate )
+            {
+      	for( i=0; i<numberAdded; i++ )
+        	  gf[j].u[gridsAdded(i)]=va[i];
+            }
+            
+
+    //      fixupUnusedPoints(gf[j].u);
+        }
+        for( j=0; j<numberOfFn; j++ )
+        {
+            if( j<numberOfFnToInterpolate )
+            {
+      	for( i=0; i<numberAdded; i++ )
+      	{
+        	  printF("update for new grid %i on fn[%i]\n",i,j);
+                    fn[j]=0.;
+        	  interpolator.interpolateAllPoints(fn[j],va[i]);
+      	}
+            }
+            
+            fn[j].updateToMatchGrid(cgNew);
+
+            if( j<numberOfFnToInterpolate )
+            {
+      	for( i=0; i<numberAdded; i++ )
+        	  fn[j][gridsAdded(i)]=va[i];
+            }
+        }
+
+        delete [] va;
+    }
+    else
+    {
+        u.updateToMatchGrid(cgNew); 
+        for( j=0; j<numberOfGridFunctionsToUse; j++ )
+        {
+            gf[j].u.updateToMatchGrid(cgNew);
+        }
+        for( j=0; j<numberOfFn; j++ )
+        {
+            fn[j].updateToMatchGrid(cgNew);
+        }
+    }
+    
+//   OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
+//   Index I1,I2,I3;
+//   MappedGrid & c = cgNew[grid];
+//   getIndex(c.dimension(),I1,I2,I3);
+//   Range C(parameters.dbase.get<int >("pc"),parameters.dbase.get<int >("vc"));
+//   if( false )
+//     u[grid](I1,I2,I3,C)=e(c,I1,I2,I3,C,gf0.t);
+
+//   psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+//   psp.set(GI_TOP_LABEL,"u after adding a grid.");  
+//   ps.contour(u,psp);
+//  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+        
+//   for( i=0; i<numberOfGridFunctionsToUse; i++ )
+//   {
+//     interpolateAllPoints(gf[i].u,v); 
+
+//     gf[i].u.updateToMatchGrid(cgNew);
+            
+//     gf[i].u[grid]=v;
+
+// //     if( false )
+// //       gf[i].u[grid](I1,I2,I3,C)=e(c,I1,I2,I3,C,gf[i].t);
+
+// //     ps.erase();
+// //     psp.set(GI_TOP_LABEL,"gf[i].u after adding a grid.");  
+// //     ps.contour(gf[i].u,psp);
+//   }
+
+    
+  // **** Now set cg to cgNew *****
+    cg.reference(cgNew);
+
+    CompositeGridOperators & op = *gf0.u.getOperators();
+    op.updateToMatchGrid(cg);
+    op.setTwilightZoneFlow(parameters.dbase.get<bool >("twilightZoneFlow"));
+    op.setTwilightZoneFlowFunction(*(parameters.dbase.get<OGFunction* >("exactSolution")));
+
+    gf0.u.setOperators(op);
+
+    for( i=0; i<numberOfGridFunctionsToUse; i++ )
+    {
+        gf[i].cg.reference(cg);
+        gf[i].u.setOperators( *gf0.u.getOperators() ); 
+
+        assert( !movingGridProblem() );
+        
+    // **** fix *** gf[i].gridVelocity.updateToMatchGrid(cg);
+
+    // int ng=gf[i].u.getCompositeGrid()->numberOfComponentGrids();
+    // printF("gf[%i].u.getCompositeGrid()->numberOfComponentGrids()=%i \n",i,ng);
+        
+    }
+    
+  // we need to do this since cgNew will go out of scope
+    u.updateToMatchGrid(cg);
+    updateGeometryArrays(gf0);
+
+    for( i=0; i<numberOfGridFunctionsToUse; i++ )
+    {
+        gf[i].u.updateToMatchGrid(cg);
+        updateGeometryArrays(gf[i]);
+    }
+    for( i=0; i<numberOfFn; i++ )
+        fn[i].updateToMatchGrid(cg);  
+        
+
+    updateWorkSpace(gf[current]);
+
+    updateTimeIndependentVariables(cg, gf0 );
+
+    gf0.cg.rcData->interpolant->updateToMatchGrid( cg); 
+
+
+//   for( i=0; i<numberOfGridFunctionsToUse; i++ )
+//   {
+//     int ng=gf[i].u.getCompositeGrid()->numberOfComponentGrids();
+//     printF("addGrids::end: gf[%i].u.getCompositeGrid()->numberOfComponentGrids()=%i \n",i,ng);
+//   }
+
+    parameters.updateToMatchGrid(cg,sharedBoundaryCondition);  // **** need to fix variableBoundaryData and isImplicit
+
+    if( debug() & 8 )
+    {
+        for( grid=0; grid<cg.numberOfComponentGrids(); grid++)
+        {
+            const IntegerArray & bc = cg[grid].boundaryCondition();
+            const IntegerArray & gid = cg[grid].gridIndexRange();
+            printF("grid=%i, bc=[%i,%i],[%i,%i] gid=[%i,%i][%i,%i]\n",grid,bc(0,0),bc(1,0),bc(0,1),bc(1,1),
+                                gid(0,0),gid(1,0),gid(0,1),gid(1,1));
+            Range all;
+            for( int axis=0; axis<cg.numberOfDimensions(); axis++ ) 
+      	for( int side=0; side<=1; side++ )
+      	{
+        	  const RealArray & bcd = parameters.dbase.get<RealArray>("bcData")(all,side,axis,grid);
+        	  const RealArray & bcp = parameters.dbase.get<RealArray>("bcParameters")(all,side,axis,grid);
+        	  printF("       side=%i, axis=%i, bcData=%5.1f,%5.1f,%5.1f,%5.1f,  bcParameters=%5.1f,%5.1f,%5.1f,%5.1f\n",
+             		 side,axis,bcd(0),bcd(1),bcd(2),bcd(3),bcp(0),bcp(1),bcp(2),bcp(3));
+      	}
+        }
+    }
+
+    variableDt.resize(cg.numberOfComponentGrids());
+
+    if( false )
+    {
+        GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+        GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+        psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+        psp.set(GI_TOP_LABEL,"Solution BEFORE interpolateAndApplyBoundaryConditions");  
+        ps.erase();
+        PlotIt::contour(ps,gf0.u,psp);
+    }
+
+  // apply boundary conditions a the end to make sure BC and ghost values are coorect
+  // applyBoundaryConditions(gf0);   // ***** apply boundary conditions 052501
+    interpolateAndApplyBoundaryConditions(gf0);
+
+    for( i=0; i<numberOfGridFunctionsToInterpolate; i++ )
+    {
+    // applyBoundaryConditions(gf[i]);
+        interpolateAndApplyBoundaryConditions(gf[i]);
+    }
+
+    if( true )
+    {
+        GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+        GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+        psp.set(GI_TOP_LABEL,"Solution AFTER interpolateAndApplyBoundaryConditions");  
+        ps.erase();
+        PlotIt::contour(ps,gf0.u,psp);
+    }
+    
+
+    return 0;
+}

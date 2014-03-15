@@ -1,0 +1,111 @@
+%--------------------------------------------------------------
+\section{OffsetShell: Define mappings to build a grid around a shell or plate.}
+\index{offset mapping}\index{overlapping round}
+\index{spline!surface}\index{spline!curve}
+%-------------------------------------------------------------
+
+The OffsetShell class starts with a 3D surface defining a thin shell or plate (this is
+called the reference surface).
+An offset surface will be built by translating the reference surface a small amount in
+a user specified direction.
+An edge surface will then be constructed that joins the reference and offset surfaces
+with a rounded edge that overlaps both surfaces.
+
+Volume grids can be built for the reference, offset and edge surfaces.
+
+\begin{figure}[h]
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/flyingCarpetSurface} 
+   % \epsfig{file=\figures/flyingCarpetSurface.ps,height=.5\linewidth} 
+   \caption{ The original reference surface for a flying carpet given to OffsetShell.} 
+  \end{center} 
+\end{figure}
+
+\subsection{Defining the edge surface : an overlapping round}
+
+The first step in defining the edge surface is to define a smooth curve on the reference surface that
+smoothly follows the boundary of the reference surface but is offset a small amount inside the
+boundary. To define this curve we first construct a smooth curve, $\cv_0(t) = (r_0,r_1)(t)$,
+near the boundary of the unit square:
+\begin{align*}
+  \cv_0(t) &= 
+     \begin{cases}
+        (1-\Delta_0, .5+\xi)  &  0\le \xi \le t_0 \\
+        (1-\Delta_1-\xi, 1-\Delta_0)  &  t_1 \le \xi \le t_2 \\
+        (\Delta_0, 1-\Delta_1-\xi)  &  t_3 \le \xi \le t_4 \\
+        (\Delta_1+\xi, \Delta_0)  &    t_5 \le \xi \le t_6 \\
+        (1-\Delta_0, \Delta_1+\xi)  &  t_7\le \xi \le t_8 \\
+     \end{cases}  \\
+  t_0 & = .5-\Delta_1 
+\end{align*}
+\begin{figure}[h]
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/flyingCarpetC0} 
+%   \epsfig{file=\figures/flyingCarpetC0.ps,height=.3\linewidth} 
+   \vglue-.2in
+  \caption{An edge curve $\cv_0(t)$ is defined on the unit square.}
+  \end{center} 
+\end{figure}
+
+
+
+The curve on the reference surface is defined 
+as $\cv(t) = \Rv(\cv_0(t))$ where $\xv(\rv)=\Rv(\rv)$ defines the reference surface.
+
+
+Given the edge curve $\cv(t)$ we can define the tangent vector $\tv(t)$ to the curve as well
+as the vector normal to the reference surface, $\nv(t)$.
+\begin{align*}
+  \tv(t) &= \dot{\cv} / \| \dot{\cv} \|  \\
+  \nv(t) &= {\partial \Rv \over \partial r_0}(\cv_0(t)) \times {\partial \Rv \over  \partial r_1}(\cv_0(t))
+%  /  \| {\partial \Rv \partial r_0}(\cv_0(t)) \times {\partial \Rv \partial r_1}(\cv_0(t)) \|
+\end{align*}
+Given $\tv(t)$ and $\nv(t)$ we define the direction vector, $\dv(t)$, at each point on the
+edge curve to be orthogonal to these two vectors and point towards the boundary of the
+reference surface,
+\[
+  \dv(t) = \tv \times \nv / \| \tv \times \nv \|
+\]
+
+
+\begin{figure}[h]
+  \begin{center}
+  \includegraphics[width=9cm]{\figures/flyingCarpetOffsetSurfaces} 
+  % \epsfig{file=\figures/flyingCarpetOffsetSurfaces.ps,height=.4\linewidth} 
+   \vglue-.2in
+  \caption{ The reference surface, offset surface, and edge surface near a corner.} 
+  \end{center} 
+\end{figure}
+
+The edge surface defined as 3 sections, an initial and final portion that lie on the reference
+surface connected by half a circle:
+\begin{align*}
+  \ev(t,s) &= 
+     \begin{cases}
+      \cv(t) + a_0 s \dv(t) &  0\le s \le s_0 \\
+       \ev(t,s_0) + .5 (1-cos(\theta)) \sv + \sin(\theta) a_1 \dv(t) &  s_0 < s \le s_1\\
+      \ev(t,s_1) - a_0 (1-s) \dv(t) & s_1 < s \le 1 \\
+     \end{cases}  \\
+  \theta & = \pi (s-s_0)/(s_1-s_0)
+\end{align*}
+
+%  \begin{center}
+%   \epsfig{file=\figures/flyingCarpetSurface.ps,height=.6\linewidth}  \\
+%  { The original reference surface given to OffsetShell.} \\
+%   \epsfig{file=\figures/flyingCarpetOffsetSurfaces.ps,height=.6\linewidth}  \\
+%  { The reference surface. offset surface and edge surface.} \\
+%   \epsfig{file=\figures/flyingCarpetGrid.ps,height=.6\linewidth}  \\
+%  {The overlapping grid for the flying carpet in a box.}
+%  \end{center}
+
+\begin{figure}[h]
+  \begin{center}
+   \includegraphics[width=9cm]{\figures/flyingCarpetGrid} 
+   % \epsfig{file=\figures/flyingCarpetGrid.ps,height=.75\linewidth} 
+   \vglue-.2in
+  \caption{The overlapping grid for the flying carpet in a box.}
+  \end{center}
+\end{figure}
+
+%% \subsection{Member function descriptions}
+%% \input OffsetShellInclude.tex

@@ -1,0 +1,38 @@
+A++ Internal_Index bounds checking: ON 
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/square5 ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=square5
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum relative error in component 0 with dirichlet bc's= 1.907349e-07
+Maximum relative error in component 1 with dirichlet bc's= 4.768372e-08
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/cic ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=cic
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+Maximum relative error in component 0 with dirichlet bc's= 3.888057e-06
+Maximum relative error in component 1 with dirichlet bc's= 3.044422e-06
+
+ *****************************************************************
+ ******** Checking grid: /home/henshaw/res/ogen/sib ************ 
+ *****************************************************************
+
+getFromADataBase: number of CompositeGrid(s) found =1, name[0]=sib
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+>>>>>> SparseRep::update to match grid <<<<<<<<<< 
+ sslugm1: (gmres, ilu) initialization...
+Maximum relative error in component 0 with dirichlet bc's= 1.100992e-04
+Maximum relative error in component 1 with dirichlet bc's= 1.709398e-04
+
+
+ ************************************************************************************************
+ ************** Test apparently successful, worst error =1.709398e-04 ******************
+ **************************************************************************************************
+

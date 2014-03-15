@@ -1,0 +1,150 @@
+%--------------------------------------------------------------
+\section{DepthMapping: Add a depth to a 2D Mapping}\index{depth mapping}\index{Mapping!DepthMapping}\index{bathymetry}
+%-------------------------------------------------------------
+
+\subsection{Description}
+
+ Define a 3D Mapping from 2D Mapping by extending in 
+the z-direction by a variable amount
+
+The depth mapping starts with some region defined in the $(x,y)=(x_0,x_1)$ plane, $(x_0,x_1)=\xv_s(r_0,r_1)$, such as
+an annulus or square etc. It then defines a 3D volume (or 3D surface) of the form
+\[
+               \xv(r_0,r_1,r_2) = ( x_0(r_0,r_1), x_1(r_0,r_1), x_2(r_0,r_1,r_2) )
+\]
+As the variable $r_2$ varies, the initial 2D surface is deformed to define a generalized cylinder.
+
+
+The depth coordinate, $x_2$ is defined in a number of ways:
+
+{\bf Representation I: } In this case the depth is a function of $(x_0,x_1)$ and uses some predefined
+functions available in the {\tt DepthMapping},
+\[
+     \xv(\rv) = (\xv_s(r_0,r_1), z_0 + r_2 z(\xv_s(r_0,r_1)) )
+\]
+
+{\bf Representation II: depthFunction}
+
+One would like to be able to provide a depth function $z=d(x,y)$ which gives a depth as a function
+of $(x,y)$. This is not easily done with the existing Mapping's in Overture, since most Mapping's are
+parameterized as transformations from the unit square, $\xv=\xv(\rv)$. 
+Thus instead of a function $z=d(x,y)$, we use a parameterized representation,
+\[
+\dv(r_0,r_1,r_2)=(d_0(r_0,r_1),d_1(r_0,r_1),d_2(r_0,r_1,r_2)).
+\]
+where only $d_2(r_0,r_1,r_2)$ is of interest. Now given a point $(x,y)$ on the original 2D Mapping
+we want to determine the corresponding value for $d_2$. To do this we need a transformation from
+$(x,y)$ to the arguments $(r_0,r_1)$ of $g_2$, which we take to be the simple linear transformation
+ $(x,y) = \gv(x,y) = ( a_0 + b_0 r_0, a_1 + b_1 r_1 )$.
+
+The volume depth mapping is then defined as
+\[
+   \xv(r_0,r_1,r_2) = \left( x_0(r_0,r_1), x_1(r_0,r_1), 
+         d_2( (x_0(r_0,r_1)-a_0)/b_0 , (x_1(r_0,r_1)-a_1)/b_1,r_2) \right)
+\]
+A surface depth Mapping would simply omit the argument $r_2$.
+The scale parameters $(a_0,b_0,a_1,b_1)$ must be supplied by the user to ensure
+that the scaled coordinates
+\[
+   \tilde{r}_i = (x_i-a_i)/b_i \qquad i=0,1
+\]
+satisfy $0 \le \tilde{r}_i \le 1$ for all points $\xv_s(r_0,r_1)$.
+
+Normally the scale parameters just indicate how to scale fron the unit square
+into $(x,y)$ corrdinates,
+\[
+      x_i = a_i + b_i r_i
+\]
+So that if the physical domain covers the rectangle $[-1,1]\times[-2,2]$ one should take
+$a_0=-1, b_0=2, a_1=-2, b_1=4$ since $x=-1+2*r_0$, $y=-2+4*r_1$.
+
+% This will be made more clear with an example. Suppose we define a Mapping for the
+% depth function
+% \begin{align*}
+%     x & = \alpha r_0 \\
+%     y & = \beta r_1 \\
+%     z & = h(r_0,r_1) 
+% \end{align*}
+
+
+% 
+% In this case the depth is defined by a special type of 3D surface or volume mapping, 
+% \[
+% \dv(r_0,r_1,r_2)=(d_0(r_0,r_1),d_1(r_0,r_1),d_2(r_0,r_1,r_2)).
+% \]
+% For example, a typical depth function will be of the form
+% \[
+%    \dv(r_0,r_1,r_2)=(A_0+B_0 r_0 ,A_1+B_1 r_1, d_2(r_0,r_1,r_2)).
+% \]
+% The last coordinate, $d_2$ defines the height as a function of $(r_0,r_1,r_2)$.
+% The first two coordinates $(d_0,d_1)$ are ignored.
+% 
+% Starting from a point on the planar region $(x_0,x_1)=\xv_s(r_0,r_1)$ we compute scaled coordinates
+% \[
+%    \tilde{r}_i &= (x_i-a_i)/b_i \qquad i=0,1
+% \]
+% where the $a_i,b_i$ are user specified and must be set so that $0 \le \tilde{r}_i \le 1$
+% We then evaluate the depth function to give a height,
+% \[
+%     h = d_2(\tilde{r}_0,\tilde{r}_1,r_2)
+% \]
+% The final mapping is then defined with the $x,y$ coordinates equal to the original planar mapping
+% and the $z$ coordinate given by $h$,
+% \[
+%     (x_0,y_0,h) = \left(\xv_s,d_2((x_0-a_0)/b_0, (y_0-a_1)/b_1) \right)
+% \]
+% 
+
+%  In the example
+% below we use a TFIMapping to blend a lower and upper surface.
+% The depth mapping is given by
+% \begin{align*}
+%     \sv &= \dv^{-1}(\xv_s,x_{20}) \qquad \mbox{Invert $\dv$ at some level $x_{20}$}\\
+%      \xv(\rv) &= (\xv_s(r_0,r_1), d_2(s_0,r_0,r_2) ) \\
+% \end{align*}
+% In this case the depth function is a function of the unit square coordinates $rv$. Thus we must first
+% invert the surface coordinates $\xv_s$ to determine where we sit in $\dv$. We can then determine
+% the value for the height. 
+
+\subsubsection{Quadratic depth profile}
+
+The quadratic depth function is defined by a quadratic polynomial:
+\[
+    z(x_0,x_1) =  a_{00} + a_{10} x_0 + a_{01} x_1 + a_{20} x_0^2 + a_{11}x_0 x_1 + a_{02} x_1^2
+\]
+
+\subsection{Examples}
+
+\noindent
+\begin{minipage}{.4\linewidth}
+{\footnotesize
+\listinginput[1]{1}{\mapping /depthAnnulus.cmd}
+}
+\end{minipage}\hfill
+\begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=8cm]{\figures/depthAnnulus} \\
+  %  \epsfig{file=\figures/depthAnnulus.ps,height=4.in}  \\
+  {A DepthMapping starting from an Annulus. The depth is defined by a parabola.}
+  \end{center}
+\end{minipage}
+
+
+\begin{figure}[hbt]
+  \begin{center}
+ \includegraphics[width=8cm]{\figures/depthTFI}
+ \includegraphics[width=8cm]{\figures/depthAnnulusSquare}\\
+ \includegraphics[width=8cm]{\figures/depth}
+   % \epsfig{file=\figures/depthTFI.ps,width=.45\linewidth}
+   % \epsfig{file=\figures/depthAnnulusSquare.ps,width=.45\linewidth} \\
+   % \epsfig{file=\figures/depth.ps,width=.45\linewidth}
+  \caption{The DepthMapping (see bottom figure) 
+           is used to give a vertical dimension to mappings defined in the plane, {\tt depth.cmd}.
+           In this case a separate TFI mapping, top left, defines the vertical height function
+           Both an annulus and a square (top right) are given a depth.}
+  \end{center}
+\end{figure}
+
+
+%% \input DepthMappingInclude.tex
+

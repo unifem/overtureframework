@@ -1,0 +1,51 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "Copy amr files into $ovDir/GridGenerator..."
+
+# here is where the original files are:
+set Overture        = $ovDir
+set OvertureOgshow  = $ovDir/Ogshow
+set OvertureBin     = $ovDir/bin
+set OvertureInclude = $ovDir/include
+set OverturePrimer  = $ovDir/primer
+set sampleGrids     = $ovDir/sampleGrids
+set OvertureTests   = $ovDir/tests
+
+
+cp {amrh,util,rk}.C util.h amrhtz.cmd $OverturePrimer
+
+cp {Interpolate,InterpolateParameters,Regrid,InterpolateRefinements,ErrorEstimator}.C $Overture/GridGenerator
+cp {interpFineFromCoarse,interpCoarseFromFine}.f $Overture/GridGenerator
+cp {ListOfRotatedBox,RotatedBox}.{h,C}  $Overture/GridGenerator
+cp {interpFineFromCoarse,interpCoarseFromFine}.bf $Overture/GridGenerator
+cp {Interpolate}.bC $Overture/GridGenerator
+
+cp {Interpolate,InterpolateParameters,Regrid,InterpolateRefinements,ErrorEstimator}.h $OvertureInclude
+
+cp {testInterpolate,testInterpolateFineToCoarse}.C $Overture/tests
+cp {InterpolateHelpfulFunctions.h,TwilightZone.h,testUtils.h,InterpolateHelpfulFunctions.C} $Overture/tests
+cp {testUtils.C,TestParameters.h,TestParameters.C} $Overture/tests
+
+cp {ChildInfo,ParentChildSiblingBase,ParentInfo}.h                          $OvertureInclude
+cp {ListOfParentChildSiblingInfo,ParentChildSiblingInfo,SiblingInfo}.h      $OvertureInclude
+
+cp {ChildInfo,ParentChildSiblingBase,ParentInfo}.C                          $ovDir/Grid
+cp {ListOfParentChildSiblingInfo,ParentChildSiblingInfo,SiblingInfo}.C      $ovDir/Grid
+
+# These are P++ files that have been changed: (eventually these changes will get into the P++ source)
+cp {partitioning.C,conform_enforce.C,p_array.C,array.C,p_abstract_op.C,p_descriptor.C} $ovDir/GridFunction
+
+echo "done"
+

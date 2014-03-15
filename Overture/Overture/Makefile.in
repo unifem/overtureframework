@@ -1,0 +1,239 @@
+
+default: all
+
+help:
+	@echo "================================================================================"
+	@echo "               Making Overture "
+	@echo "               ----------------"
+	@echo " "
+	@echo "NOTE: See the primer documentation, the section on Makefiles and"
+	@echo ".cshrc files, for some examples on how to set environmental variables. "
+	@echo " "
+	@echo "Before making Overture you should define the following environmental"
+	@echo "variables: "
+	@echo "    "
+	@echo "APlusPlus = directory for A++, the array class library"
+	@echo "OpenGL    = directory for OpengGL"
+	@echo "HDF       = directory for HDF (Hierarchical Data Format library)"
+	@echo "MOTIF     = directory in which the Motif lib and include directories sit"
+	@echo "XLIBS     = directory in which the X window lib and include directories sit"
+	@echo "PPlusPlus = directory for P++ (parallel array class)"
+	@echo "    "
+	@echo "You will need to set your LD_LIBRARY_PATH so that the loader will know where to look"
+	@echo "for the dynamically loaded Overture libraries. "
+	@echo " "
+	@echo " For example, in your .cshrc you can put something like   "
+	@echo "   setenv APlusPlus /users/dquinlan/A++P++.v1.2.34/A++/SUNULTRA "
+	@echo "   setenv OpenGL    /users/henshaw/OpenGL/Mesa "
+	@echo "   setenv HDF       /users/henshaw/hdf         "
+	@echo "   setenv MOTIF     /usr/dt         "
+	@echo "   setenv XLIBS     /usr/openwin      "
+	@echo "   setenv PPlusPlus /users/dquinlan/A++P++.v1.2.34/P++/SUNULTRA "
+	@echo "   setenv LD_LIBRARY_PATH ${MOTIF}/lib:${XLIBS}/lib:${HDF}/lib:${OpenGL}/lib:$Overture/lib:${APlusPlus}"
+	@echo "    "
+	@echo " Current values are: "
+	@echo "    APlusPlus = $(APlusPlus)"
+	@echo "    OpenGL    = $(OpenGL) "
+	@echo "    HDF       = $(HDF) "
+	@echo "    MOTIF     = $(MOTIF) "
+	@echo "    XLIBS     = $(XLIBS) "
+	@echo "    PPlusPlus = $(PPlusPlus)"
+	@echo "    LD_LIBRARY_PATH = $(LD_LIBRARY_PATH) "
+	@echo " "
+	@echo "======================================================================================="
+	@echo "   "
+	@echo "THEN run the configure script to generate all the Makefiles"
+	@echo "  type "
+	@echo "     configure "
+	@echo "  or type "
+	@echo "     perl configure "
+	@echo "   "
+	@echo "Then type make"
+	@echo "               "
+	@echo "(When finished making you can run the perl script check.p to run regression tests)"
+	@echo "======================================================================================="
+
+
+
+all:
+	@echo "----------------------------------------------------------------------- "
+	@echo "type <make help> for help. Run the configure script before running make"
+	@echo "----------------------------------------------------------------------- "
+	  rm -rf A++; rm -f OpenGL; rm -f HDF; ln -s $(APlusPlus) A++; ln -s $(OpenGL) OpenGL; ln -s $(HDF) HDF
+	  @cd DataBase;      $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd GridFunction;  $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd templates;     $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd boxlib;        $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Mapping;       $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd static;        $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Oges;          $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Ogshow;        $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Grid;          $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd GridGenerator; $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd otherStuff;    $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Cad;           $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd mapUtil;       $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd phoneyFiles;   $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+#buildFvo	  @cd FiniteVolumeOperators; $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+#buildOgmg	  @if [ -d Ogmg   ]  ; then cd Ogmg    ; $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" ; fi
+	  @cd lib;           $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd bin;           $(MAKE) -$(MAKEFLAGS) Overture="`pwd`/.." FLAGS1="$(FLAGS)"
+
+rapsodi:
+	@echo "----------------------------------------------------------------------- "
+	@echo "type <make help> for help. Run the configure script before running make"
+	@echo "----------------------------------------------------------------------- "
+	  rm -rf A++; rm -f OpenGL; rm -f HDF; ln -s $(APlusPlus) A++; ln -s $(OpenGL) OpenGL; ln -s $(HDF) HDF
+	  @cd DataBase;      $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd boxlib;        $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Mapping;       $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd static;        $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Ogshow;        $(MAKE) rapsodi -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd otherStuff;    $(MAKE) rapsodi -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd Cad;           $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd mapUtil;       $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd phoneyFiles;   $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd lib;           $(MAKE) rapsodi -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
+	  @cd bin;           $(MAKE) rap -$(MAKEFLAGS) Overture="`pwd`/.." FLAGS1="$(FLAGS)"
+
+# Here is the source for the Rapsodi library with it's dependencies.
+
+boxlib=       boxlib
+Mapping=      Mapping
+Hype=         Mapping/hype
+templates=    templates
+Ogshow=       Ogshow
+DataBase=     DataBase
+otherStuff=   otherStuff
+mapUtil=      mapUtil
+phoneyFiles=  phoneyFiles
+RapsodiIncludeDir = include
+
+RapsodiOgshowFiles = $(Ogshow)/Makefile.in $(Ogshow)/depend $(Ogshow)/render.C $(Ogshow)/osRender.C \
+	 $(Ogshow)/GenericGraphicsInterface.C $(Ogshow)/GraphicsParameters.C $(Ogshow)/plotMapping.C \
+         $(Ogshow)/GL_GraphicsInterface.C $(Ogshow)/plotCompositeSurface.C \
+	 $(Ogshow)/plotUnstructured.C $(Ogshow)/plotStructured.C  \
+         $(Ogshow)/GUIState.C $(Ogshow)/getAnswer.C $(Ogshow)/DialogData.C $(Ogshow)/textGetMenu.C \
+         $(Ogshow)/colourTable.C $(Ogshow)/label.C \
+         $(Ogshow)/plotAxes.C $(Ogshow)/NameList.C $(Ogshow)/stroke.C \
+         $(Ogshow)/plotPoints.C $(Ogshow)/ColourBar.C \
+         $(Ogshow)/cggi.f $(Ogshow)/isosurf.f 
+# AP: Are the last two files really needed?
+
+RapsodiOtherStuffFiles = $(otherStuff)/Makefile.in $(otherStuff)/depend \
+         $(otherStuff)/helpOverture.C $(otherStuff)/floatDisplay.C $(otherStuff)/intDisplay.C \
+         $(otherStuff)/doubleDisplay.C $(otherStuff)/floatSerialDisplay.C $(otherStuff)/intSerialDisplay.C \
+         $(otherStuff)/doubleSerialDisplay.C $(otherStuff)/DisplayParameters.C $(otherStuff)/TridiagonalSolver.C \
+         $(otherStuff)/TridiagonalFactor.C $(otherStuff)/arrayGetIndex.C $(otherStuff)/fortranInputOutput.f \
+         $(otherStuff)/prtpeg.f
+
+# AP: Everything in Mapping besides DataFormatsMG.C
+RapsodiMappingFiles = $(Mapping)/Makefile.in $(Mapping)/depend \
+         $(Mapping)/AirfoilMapping.C $(Mapping)/NormalMapping.C $(Mapping)/createMappings.C \
+         $(Mapping)/AnnulusMapping.C $(Mapping)/NurbsMapping.C $(Mapping)/cs.f $(Mapping)/Bound.C \
+         $(Mapping)/OffsetShell.C $(Mapping)/dpm.f $(Mapping)/BoundingBox.C $(Mapping)/OrthographicTransform.C \
+         $(Mapping)/dpmInverse.C $(Mapping)/BoxMapping.C $(Mapping)/PlaneMapping.C $(Mapping)/dpmScalar.C \
+         $(Mapping)/CircleMapping.C $(Mapping)/QuadTree.C $(Mapping)/dpmVector.C $(Mapping)/ComposeMapping.C \
+         $(Mapping)/QuadraticMapping.C $(Mapping)/equi.C $(Mapping)/CompositeSurface.C $(Mapping)/ReductionMapping.C \
+         $(Mapping)/CrossSectionMapping.C $(Mapping)/ReferenceCountingList.C \
+         $(Mapping)/hyperNull.C $(Mapping)/CylinderMapping.C $(Mapping)/ReparameterizationTransform.C \
+         $(Mapping)/ingrid.f $(Mapping)/DataFormats.C $(Mapping)/RestrictionMapping.C \
+         $(Mapping)/initializeMappingList.C $(Mapping)/RevolutionMapping.C $(Mapping)/mappingUtil.C \
+         $(Mapping)/DataPointMapping.C $(Mapping)/RocketMapping.C $(Mapping)/nurbsEvaluation.C \
+         $(Mapping)/DepthMapping.C $(Mapping)/SmoothedPolygonMapping.C \
+         $(Mapping)/FilamentMapping.C $(Mapping)/SphereMapping.C $(Mapping)/plyFileInterface.C \
+         $(Mapping)/FilletMapping.C $(Mapping)/SplineMapping.C $(Mapping)/plyfile.c $(Mapping)/Fraction.C \
+         $(Mapping)/SquareMapping.C $(Mapping)/StretchMapping.C \
+         $(Mapping)/r1mach.f $(Mapping)/IgesReader.C $(Mapping)/StretchTransform.C $(Mapping)/r1machc.c \
+         $(Mapping)/IntersectionMapping.C $(Mapping)/StretchedSquareMapping.C $(Mapping)/readMappings.C \
+         $(Mapping)/Inverse.C $(Mapping)/SweepMapping.C $(Mapping)/sPrintF.C $(Mapping)/JoinMapping.C \
+         $(Mapping)/TFIMapping.C $(Mapping)/LineMapping.C $(Mapping)/TriangleClass.C \
+         $(Mapping)/stencilWalk.C $(Mapping)/Mapping.C $(Mapping)/TrimmedMapping.C $(Mapping)/strtch.f \
+         $(Mapping)/MappingBuilder.C $(Mapping)/UnstructuredMapping.C $(Mapping)/tspack.f $(Mapping)/MappingP.C \
+         $(Mapping)/UserDefinedMapping1.C $(Mapping)/unstructuredCompositeSurface.C \
+         $(Mapping)/MappingProjectionParameters.C \
+         $(Mapping)/unstructuredProject.C $(Mapping)/MappingRC.C $(Mapping)/cggpoly.f \
+         $(Mapping)/MatrixMapping.C $(Mapping)/checkMapping.C $(Mapping)/MatrixTransform.C \
+         $(Mapping)/compositeTopology.C $(Mapping)/viewMappings.C $(Mapping)/PolynomialMapping.C \
+         $(Mapping)/FaceInfo.C $(Mapping)/refineTriangulation.C \
+         $(Mapping)/DataFormats.C $(Mapping)/DataFormatsMG.C \
+         $(Mapping)/EntityTag.C $(Mapping)/entityConnectivityBuilder.C $(Mapping)/verifyUnstructuredConnectivity.C \
+         $(Hype)/util.C $(Hype)/plot.C $(Hype)/generate.C $(Hype)/project.C $(Hype)/HyperbolicMapping.C \
+         $(Hype)/startCurve.C $(Hype)/applyBoundaryConditions.C $(Hype)/update.C \
+         $(Hype)/stretch.C $(Hype)/GridSmoother.C $(Hype)/GridStretcher.C $(Hype)/MatchingCurve.C \
+         $(Hype)/ellipticSmooth.f $(Mapping)/nurbs_eval.F
+
+
+RapsodiLibraryFiles = $(DataBase)/depend $(DataBase)/Makefile.in $(DataBase)/*.C \
+                      $(mapUtil)/depend $(mapUtil)/Makefile.in $(mapUtil)/*.C $(mapUtil)/*.c \
+                      $(mapUtil)/*.F $(mapUtil)/*.f \
+                      $(phoneyFiles)/depend $(phoneyFiles)/Makefile.in $(phoneyFiles)/phoneyMappings.C \
+                      Cad/*.C Cad/Makefile.in Cad/depend \
+                      boxlib/*.C boxlib/Makefile.in boxlib/depend \
+                      $(RapsodiMappingFiles) \
+                      $(RapsodiOgshowFiles) \
+                      $(RapsodiOtherStuffFiles) \
+                      $(RapsodiIncludeDir)/*.h $(RapsodiIncludeDir)/*.H $(RapsodiIncludeDir)/*.C \
+                      lib/Makefile.in 
+
+RapsodiStaticFiles= static/Makefile.in static/depend \
+             static/mogl.C static/overlay.c static/initOvertureGlobalVariables.C \
+             static/initStaticMappingVariables.C static/xColours.C static/ReferenceCounting.C \
+             static/RapsodiInit.C static/GLwDrawA.c static/GLwMDrawA.c static/OvertureInit.C static/*.h 
+
+RapsodiBinFiles= bin/Makefile.in bin/depend bin/rap.C 
+
+RapsodiMainFiles= Makefile.in configure depend.date config/* sampleMappings/*
+
+rapsodi.tgz: 
+# first clean up dependency files
+	rm -f boxlib/depend; touch boxlib/depend
+	rm -f Cad/depend; touch Cad/depend
+	rm -f DataBase/depend; touch DataBase/depend
+	rm -f Mapping/depend; touch Mapping/depend
+	rm -f mapUtil/depend; touch mapUtil/depend
+	rm -f Ogshow/depend; touch Ogshow/depend
+	rm -f otherStuff/depend; touch otherStuff/depend
+	rm -f phoneyFiles/depend; touch phoneyFiles/depend
+	rm -f static/depend; touch static/depend
+	rm -f depend.date; touch depend.date
+	tar zcf $@ $(RapsodiMainFiles) $(RapsodiLibraryFiles) $(RapsodiStaticFiles) $(RapsodiBinFiles)
+
+
+clean:;   rm -rf A++
+	  rm -f OpenGL
+	  rm -f HDF
+	  rm -f */*.a */*.o */*~ */*_date bin/ogen bin/plotStuff bin/ps2ppm bin/rap bin/decompress configure.options
+	  rm -f  */*.so* 
+	  rm -rf  */Templates.DB
+	  rm -rf A++
+	  rm -rf OpenGL
+	  if [ -d Ogmg   ]  ; then rm -f Ogmg/*.a Ogmg/*.o Ogmg/*~ Ogmg/*_date ; fi
+# clean up dependency files
+	rm -f bin/depend; touch bin/depend
+	rm -f Cad/depend; touch Cad/depend
+	rm -f DataBase/depend; touch DataBase/depend
+	rm -f Grid/depend; touch Grid/depend
+	rm -f GridFunction/depend; touch GridFunction/depend
+	rm -f GridGenerator/depend; touch GridGenerator/depend
+	rm -f Mapping/depend; touch Mapping/depend
+	rm -f mapUtil/depend; touch mapUtil/depend
+	rm -f Oges/depend; touch Oges/depend
+	rm -f Ogmg/depend; touch Ogmg/depend
+	rm -f Ogshow/depend; touch Ogshow/depend
+	rm -f otherStuff/depend; touch otherStuff/depend
+	rm -f phoneyFiles/depend; touch phoneyFiles/depend
+	rm -f primer/depend; touch primer/depend
+	rm -f static/depend; touch static/depend
+	rm -f templates/depend; touch templates/depend
+	rm -f depend.date; touch depend.date
+
+# clean up but leave libraries
+cleano:;  rm -rf A++
+	  rm -rf  */Templates.DB
+	  rm -f */*.o */*~ */*_date bin/ogen bin/plotStuff bin/ps2ppm bin/rap bin/mbuilder
+	  if [ -d Ogmg   ]  ; then rm -f Ogmg/*.o Ogmg/*~ Ogmg/*_date ; fi
+
+cleangg:; rm -rf GridGenerator/Templates.DB
+	  rm GridGenerator/*.o
+

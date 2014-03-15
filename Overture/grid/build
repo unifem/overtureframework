@@ -1,0 +1,40 @@
+#! /bin/csh -f
+#  cp files into the Overture directory
+
+
+# usage: build [overtureDirectory=$OvertureBuild]
+
+if ($#argv != 1) then
+  # default:
+  set ovDir = $OvertureBuild
+else
+  set ovDir = $argv[1]
+endif
+
+
+echo "grid/build: cp files to $ovDir"
+
+# here is where the Overture Grid Function files are:
+set Overture = $ovDir
+set grid = $Overture/Grid
+set include = $Overture/include
+set static = $Overture/static
+
+echo "grid/build: copy grid files into the directory: $grid ..."
+echo "grid/build: copy grid include files into the directory: $include ..."
+
+
+cp {GenericGrid,MappedGrid,MappedGridGeometry1,MappedGridGeometry2}.C                    $grid
+cp {GenericGridCollection,GridCollection,UnstructuredGridGeometry}.C                     $grid
+cp {CompositeGrid,CompositeGridGeometry,BoundaryAdjustment,MultigridCompositeGrid}.C     $grid
+cp {ReferenceCounting}.C                                                                 $static
+
+
+cp {GenericGrid,MappedGrid,GenericGridCollection,GridCollection,CompositeGrid}.h         $include
+cp {ReferenceCounting,TrivialArray,BoundaryAdjustment,MultigridCompositeGrid}.h          $include
+cp {UnstructuredGeometry}.h                                 $include
+
+
+
+echo "done"
+

@@ -1,0 +1,174 @@
+#include "display.h"
+#include "MappedGrid.h"
+#include "conversion.h"
+#include "CompositeGrid.h"
+#include "ParallelUtility.h"
+
+
+// ***** define macros for displaying a mask ****
+#beginMacro displayMaskMacro(intArray,outputAllProcessors)
+int 
+displayMaskPrivate( const intArray & mask, 
+		    const aString & label /* =nullString */,
+		    FILE *file /* = NULL */,
+		    const DisplayParameters *displayParameters /* = NULL */, 
+		    const Index *Iv /* =NULL*/ )
+// =====================================================================================
+//  /Description:
+//    Display the mask array in a MappedGrid in a reasonable way. This function should
+// not be called directly. Use the other displayMask functions.
+// =====================================================================================
+{
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+
+  DisplayParameters defaultDisplayParameters;
+  defaultDisplayParameters.set(DisplayParameters::intFormat,"%3i");
+  if( file!=NULL && displayParameters==NULL )
+    defaultDisplayParameters.set(file);
+
+  const DisplayParameters & dp = displayParameters==NULL ? defaultDisplayParameters : *displayParameters;
+  const int & ordering = dp.ordering;
+
+
+  FILE *filep = file!=NULL ? file : dp.file!=NULL ? dp.file : stdout; // dp.file defaults to stdout
+
+  intArray m;
+  #If #intArray ne "intSerialArray"
+    m.partition(mask.getPartition());
+  #End
+  m.redim(mask);
+
+#If #intArray ne "intSerialArray"
+  #ifdef USE_PPP
+    intSerialArray maskLocal; getLocalArrayWithGhostBoundaries(mask,maskLocal);
+    intSerialArray mLocal;    getLocalArrayWithGhostBoundaries(m,mLocal);
+  #else
+    const intSerialArray & maskLocal=mask;
+    intSerialArray & mLocal=m;
+  #endif
+#Else
+    const intSerialArray & maskLocal=mask;
+    intSerialArray & mLocal=m;
+#End
+
+  if( mLocal.elementCount()>0 )
+  {
+    mLocal=6;
+
+    where( maskLocal == 0 )
+      mLocal=0;
+    where( (maskLocal & MappedGrid::ISdiscretizationPoint) && (maskLocal & MappedGrid::ISinteriorBoundaryPoint) )
+      mLocal=3;
+    elsewhere( maskLocal & MappedGrid::ISdiscretizationPoint )
+      mLocal=1;
+    where( maskLocal<0 && maskLocal>-100 )
+      mLocal=maskLocal;
+    elsewhere( maskLocal<0 )
+      mLocal=-1;
+    elsewhere( maskLocal & MappedGrid::ISghostPoint )
+      mLocal=2;
+
+    where( maskLocal<0 && (maskLocal & MappedGrid::ISinteriorBoundaryPoint) )
+      mLocal=-2;
+
+    where( mLocal==1 && (maskLocal & MappedGrid::IShiddenByRefinement) )
+    {
+      mLocal=4;
+    }
+  
+    where( mLocal<0 && (maskLocal & CompositeGrid::USESbackupRules) )
+    {
+      mLocal=-2;
+    }
+
+    const int ISneededPoint = CompositeGrid::ISreservedBit2;  // from Ogen
+    where( mLocal>0 && (maskLocal & ISneededPoint) )
+    {
+      mLocal=5;
+    }
+    where( mLocal<0 && (maskLocal & ISneededPoint) )
+    {
+      mLocal=-5;
+    }
+  }
+  
+  if( myid==0 || outputAllProcessors )
+  {
+    if( dp.indexLabel[0] )
+      fprintf(filep,"-- mask: 1=interior, 2=ghost, -2,3=interiorBoundaryPoint, 4=hidden by refinement, <0 =interp,"
+	      " -2=backup-interp, -5,5=needed, 6=unknown --\n");
+  }
+  
+  display(m,label,dp,Iv);
+
+  int numberOfBackupInterpolationPoints = sum(m==-2);
+  if( numberOfBackupInterpolationPoints>0 )
+    printf("displayMask: There were %i backup interpolation points\n",numberOfBackupInterpolationPoints);
+  
+//   display(m,label,file,"%3i");
+  return 0;
+}
+
+
+
+int 
+displayMask( const intArray & mask, 
+             const aString & label /* =nullString */,
+             const DisplayParameters & displayParameters, 
+             const Index *Iv /* =NULL*/ )
+// =======================================================================================
+// /Description:
+// Display the mask array in a MappedGrid in a reasonable way
+// The mask array in a MappedGrid is a bit-mapping that is difficult to look at
+// if displayed in the formal way. This routine will display the mask in a more
+// compact form (although some information is not printed) where each entry printed will mean:
+// \begin{description}
+//   \item[1] : ISdiscretizationPoint
+//   \item[2] : ISghostPoint
+//   \item[-1] : ISinterpolationPoint
+// \end{description}   
+//
+// /Iv[d] : If Iv is not NULL then print the values x(Iv[0],Iv[1],Iv[2],...)
+//\end{displayInclude.tex}
+// =======================================================================================
+{
+  return displayMaskPrivate(mask,label,NULL,&displayParameters,Iv);
+}
+
+
+
+//\begin{>>displayInclude.tex}{\subsection{displayMask}}
+int 
+displayMask( const intArray & mask, 
+             const aString & label /* =nullString */,
+             FILE *file /* = NULL */, 
+	     const Index *Iv /* =NULL*/ )
+// =======================================================================================
+// /Description:
+// Display the mask array in a MappedGrid in a reasonable way
+// The mask array in a MappedGrid is a bit-mapping that is difficult to look at
+// if displayed in the formal way. This routine will display the mask in a more
+// compact form (although some information is not printed) where each entry printed will mean:
+// \begin{description}
+//   \item[1] : ISdiscretizationPoint
+//   \item[2] : ISghostPoint
+//   \item[-1] : ISinterpolationPoint
+// \end{description}   
+//\end{displayInclude.tex}
+// 
+// /Iv[d] : If Iv is not NULL then print the values x(Iv[0],Iv[1],Iv[2],...)
+// =======================================================================================
+{
+  return displayMaskPrivate(mask,label,file,NULL,Iv);
+}
+
+#endMacro
+
+
+displayMaskMacro(intArray,false);
+
+
+// Here are versions for serial arrays
+#ifdef USE_PPP
+displayMaskMacro(intSerialArray,true)
+#endif

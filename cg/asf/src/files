@@ -1,0 +1,30 @@
+SRC_FILES += Cgasf.C AsfParameters.C asf.C asfBC.C asfp.C formAllSpeedPressureEquation.C \
+             setupPde.C timeSteppingDialog.C printTimeStepInfo.C boundaryConditions.C \
+             allSpeedImplicitTimeStep.C getTimeSteppingEigenvalue.C setupGridFunctions.C \
+             assignTestProblem.C interface.C
+
+ifeq ($(Chemkin),on)
+  SRC_FILES += Chemkin.C
+else
+  SRC_FILES += ChemkinNull.C
+endif
+
+SRC_FILES += asfdt.f asfdtASF2dOrder2.f asfdtASF3dOrder2.f \
+             asfUtil.f asfdts.f asfdtsASF.f
+
+# fortran files compiled without auto-double:
+# FSRC += 
+
+
+# we need to add these explicitly since the implicit rule for %.bf doesn't work for some reason (?)
+src/asfdt.f : src/asfdt.bf; $(BPP) -I$(Overture)/include -I../ins/src -quiet -clean $<
+src/asfdts.f : src/asfdts.bf; $(BPP) -I$(Overture)/include -quiet -clean $<
+src/asfUtil.f : src/asfUtil.bf; $(BPP) -I$(Overture)/include -quiet -clean $<
+
+src/allSpeedImplicitTimeStep.C : src/allSpeedImplicitTimeStep.bC; $(BPP) -quiet -clean $<
+src/asf.C : src/asf.bC; $(BPP) -quiet -clean $<
+src/asfp.C : src/asfp.bC; $(BPP) -quiet -clean $<
+src/asfBC.C : src/asfBC.bC; $(BPP) -quiet -clean $<
+
+src/interface.C : src/interface.bC; $(BPP) -quiet -clean $<
+

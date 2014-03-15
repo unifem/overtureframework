@@ -1,0 +1,189 @@
+% -*-Mode: LaTeX; -*- 
+
+\newcommand{\LORCO}{ListOfReferenceCountedObjects}
+\section{Reference Counted Objects}
+\index{reference counting!reference counted objects}
+
+\subsection{Introduction} 
+
+This section describes our notion of reference counted
+objects and describes the class {\ff \LORCO}. 
+
+Grids, grid functions and A++ arrays are all reference
+counted objects. 
+
+A reference counted object can be
+extremely useful for a number of reasons
+\begin{itemize}
+ \item a reference counted objects can be easily shared
+        between different classes without the need to use 
+        pointers.
+ \item a reference counted object can automatically
+        delete itself when it's reference count goes
+        to zero. 
+ \item Someone who makes a reference to
+        a reference counted object does not have to
+        worry that the object will be deleted by someone
+        else. 
+\end{itemize}
+
+
+Any object can be made into a
+reference counted object by supplying certain
+member functions and by following certain rules.
+We will describe how to do this later in this
+section.
+
+A reference counted object extends the
+notion of a reference in C++. The statement
+\begin{verbatim}
+      realArray & u = v;
+\end{verbatim}
+makes {\ff u} become a reference (alias) for v.
+Similiarly the statements
+\begin{verbatim}
+      realArray u; 
+      u.reference(v);
+\end{verbatim}
+also make u a reference for v; In both cases changing {\ff u}
+with a statement like {\ff u=5.;} will cause {\ff v} to also
+change.
+However, the latter method for creating
+a reference is more dynamic. For example, at a later stage {\ff u} can
+reference a different array, {\ff u.reference(w)} or {\ff u}
+can break the reference {\ff u.breakReference()}. When a reference
+is broken {\ff u} will be given it's own copy of the array data.
+
+\subsection{How to Write a Reference Counted Class}
+
+In this section we describe how to write a reference
+counted class. Examples of reference counted classes
+are {\ff MappedGrid}, {\ff GridCollection}, 
+{\ff typeMappedGridFunction} and {\ff typeGridCollectionFunction}.
+
+% The basic philosphy behind writing a reference counted class
+% is based on the paradyne?? of a letter and envelope??. The letter
+% class holds all the data. 
+
+Here is an example of a header file for a reference counted
+class
+(file {\ff Overture/examples/Reference\-Counted\-Class.h})
+{\footnotesize
+\listinginput[1]{1}{ReferenceCountedClass.h}
+}
+
+A reference counted class should 
+\begin{itemize}
+ \item be derived from the {\ff ReferenceCounting} class.
+ \item contain a copy constructor which can be a deep or shallow copy.
+ \item have an assignment operator which is a deep copy.
+ \item have a {\ff reference} function
+ \item have a {\ff breakReference} function
+ \item create another class to hold all the data associated with the class
+       (class RCData in the example).
+ \item contain a pointer to a class that holds the data for the object
+ \item a private section with functions {\ff reference}, assignment,
+       and {\ff virtualConstructor}, see example. These member functions
+       allow all class's that are derived from the {\ff ReferenceCounting}
+       class to be put in a list.
+\end{itemize}
+
+Here is the implementation of {\ff ReferenceCountedClass}
+(file {\ff Overture/examples/Reference\-Counted\-Class.C})
+{\footnotesize
+\listinginput[1]{1}{ReferenceCountedClass.C}
+}
+
+
+
+A reference counted class should be derived from the 
+{\ff ReferenceCounting} class
+(file {\ff /Reference\-Counting.h})
+{\footnotesize
+\listinginput[1]{1}{\grid/ReferenceCounting.h}
+}
+
+% Reference Counting
+%  This class supports two types of reference counting. The suggested
+%  way to do reference counting is to use the reference and breakReference
+%  member functions as shown in the examples below. If instead you want
+%  to keep pointers to ListOfReferenceObjects then you can use the
+%  incrementReferenceCount(), decrementReferenceCount() and
+%  getReferenceCount() member functions (derived from the ReferenceCounting
+%  in order to manage references). It is up to you to call delete when
+%  the reference count reaches zero.
+
+
+\subsection{Class \LORCO}
+
+This is a template list class for holding holding 
+reference counted objects.
+
+The class is declared as
+\begin{verbatim}
+template<class T>
+class ListOfReferenceCountedObjects : public ReferenceCounting
+\end{verbatim}
+so that {\ff T} is the generic name of the class whose instances
+will be placed in the list.
+
+\subsubsection{Constructors}
+
+\begin{tabbing}
+{\ff xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx} xxxxx \= xxxxxxxxxxxx \=  \kill
+{\ff DifferentialAndBoundaryOperators( )} \> Default constructor \\
+{\ff ListOfReferenceCountedObjects()}  \> default constructor \\
+{\ff ListOfReferenceCountedObjects(int numberOfElements)} \> Create a list with a given number of elements \\
+\end{tabbing}
+
+\subsubsection{Public Member Functions}
+
+\noindent
+Here are the public member functions. 
+\begin{tabbing}
+{\ff xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx} xxxxx \= xxxxxxxxxxx \=  \kill
+{\ff ListOfReferenceCountedObjects\& operator=(ListOfReferenceCountedObjects\&)} \> \\
+{\ff void addElement(int index)} \> Add an object to the list \\
+{\ff void addElement()} \> Add an object to the end of the list \\
+{\ff void addElement(T \& t, int index)} \> Add an object and reference to  t \\
+{\ff void addElement(T \& t )} \> Add an object to the end, and reference to t \\
+{\ff int getLength()} \> Get length of list. \\
+{\ff T\& operator[](int index)} \>  Reference the object at a given location. \\
+{\ff void deleteElement(T \& X)} \> Find an element on the list and delete it \\
+{\ff void deleteElement(int index)} \> Delete the element at the given index \\
+{\ff void deleteElement()} \> Delete the element appearing last in the list   \\
+{\ff void swapElements(int i, int j)} \>  Swap two elements (for sorting) \\
+{\ff int getIndex(T \& X)} \> get the index for an element \\
+{\ff void reference(ListOfReferenceCountedObjects<T> \& list )} \> reference one list to another \\
+{\ff void breakReference()} \> break any references with this list 
+\end{tabbing}
+
+
+\subsubsection{Examples}
+
+This class supports two types of reference counting. The suggested
+way to do reference counting is to use the reference and breakReference
+member functions as shown in the examples below. If instead you want
+to keep pointers to ListOfReferenceObjects then you can use the
+incrementReferenceCount(), decrementReferenceCount() and
+getReferenceCount() member functions (derived from the ReferenceCounting
+in order to mange references). With this latter mode of reference
+counting it is up to you to call delete when
+the reference count reaches zero.
+
+Typical Usage:
+\begin{verbatim}
+     floatArray a(10),b(5);
+     ListOfReferenceCountedObjects<floatArray> list,list2;
+     list.addElement();      // add an element
+     list[0].reference(a);   // reference to array a
+     list.addElement(b);     // add element and reference to b in one step
+     list[1]=b;
+     list[0]=1.;             //  same as a=1.;
+
+     list2.reference(list);  // list2 and list are now the same
+     list2[0]=2.;            // same as list[0]=2.;
+     list2.breakReference();
+     list2[0]=5.;            // does not change list[0]
+\end{verbatim}
+

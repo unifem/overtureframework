@@ -1,0 +1,190 @@
+%-----------------------------------------------------------------------
+%   OtherStuff :
+%      Here we describe other Overture stuff
+%
+%-----------------------------------------------------------------------
+
+\documentclass{article}
+
+\usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height
+%\setlength{\textheight}{7.5in}    % page height for xdvi
+% \renewcommand{\baselinestretch}{1.5}    % "double" spaced
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{calc}
+\usepackage{ifthen}
+% \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\otherStuff}{/home/henshaw/res/otherStuff}
+
+\newcommand{\primer}{/users/henshaw/res/primer}
+\newcommand{\examples}{Overture/examples}
+\newcommand{\gf}{/users/henshaw/res/gf}
+\newcommand{\mapping}{/users/henshaw/res/mapping}
+% \newcommand{\ogshow}{/users/henshaw/res/ogshow}
+% \newcommand{\oges}{/users/henshaw/res/oges}
+% \newcommand{\cguser}{/users/henshaw/cgap/cguser}
+\newcommand{\figures}{/home/henshaw/OvertureFigures}
+\newcommand{\grid}{/home/henshaw/res/grid}
+
+\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
+
+% \newcommand{\RA}{realArray}
+% \newcommand{\MGF}{MappedGridFunction}
+% \newcommand{\RMGF}{realMappedGridFunction}
+% \newcommand{\RCGF}{realCompositeGridFunction}
+% 
+% \newcommand{\DABO}{Differential\-And\-Boundary\-Operators}
+% 
+% \newcommand{\MG}{Mapped\-Grid}
+% \newcommand{\GC}{Grid\-Collection}
+% \newcommand{\CG}{Composite\-Grid}
+% \newcommand{\MGCG}{Multigrid\-Composite\-Grid}
+% 
+% \newcommand{\MGO}{MappedGridOperators}
+% \newcommand{\GCO}{Grid\-Collection\-Operators}
+% \newcommand{\CGO}{Composite\-Grid\-Operators}
+% \newcommand{\MGCGO}{Multigrid\-Composite\-Grid\-Operators}
+
+\begin{document}
+
+% -----definitions-----
+\input wdhDefinitions.tex
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+Other Stuff for Overture\\
+User Guide, Version 1.0\\
+}
+\vspace{2\baselineskip}
+William D. Henshaw
+\footnote{
+        This work was partially
+        supported by grant N00014-95-F-0067 from the Office of Naval
+        Research
+        } \\
+\vspace{\baselineskip}
+Centre for Applied Scientific Computing \\
+Lawrence Livermore National Laboratory    \\
+Livermore, CA, 94551   \\
+henshaw@llnl.gov \\
+http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+UCRL-MA-134292
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+We describe miscellaneous Overture stuff:
+\begin{description}
+ \item[Overture start and finish functions, Overture global variables]
+ \item[sPrintF,sScanF,...] : miscellaneous utility routines.
+ \item[getIndex] : the {\tt getIndex} utility routines for generating A++ Index's for operating
+     on sub-domains of {\tt MappedGrid}'s.
+  \item[Twilight-zone functions]: {\tt OGFunction}, {\tt OGPolyFunction}, {\tt OGTrigFunction} and
+      {\tt OGPulseFunction}.
+  \item[Database access functions]: functions for reading various objects (such as a {\tt CompositeGrid})
+     from a database file, including the function {\tt getFromADataBase}.
+  \item[display functions] : formatted display functions for A++ arrays and for writing A++ arrays to files.
+  \item[Integrate] : This class provides methods for easily integrating grid functions on domains
+      or boundaries of domains.
+  \item[TridiagonalSystem solver] : solve tridiagonal and block tridiagonal systems.
+  \item[FortranIO] : write unformatted Fortran files.
+  \item[Reference Counting]: A description of how reference counting works.
+\end{description}
+\end{flushleft}
+
+\vfill\eject
+\tableofcontents
+% \listoffigures
+
+%---------- End of title Page for a Research Report
+% \vfill\eject
+% \section{Introduction}
+
+%==============================================================================
+\vfill\eject
+\section{Overture start and finish functions, Overture global variables}
+\input OvertureInclude.tex
+%==============================================================================
+
+
+
+%==============================================================================
+\vfill\eject
+\section{Miscellaneous Stuff}
+\input otherStuffInclude.tex
+%==============================================================================
+
+%==============================================================================
+\vfill\eject
+\input getIndex.tex
+%==============================================================================
+
+%=============================================================================
+\vfill\eject
+\input OGFunction.tex
+%=============================================================================
+
+%==============================================================================
+\vfill\eject
+\input DataBaseAccessFunctions.tex
+%==============================================================================
+
+%=============================================================================
+\vfill\eject
+\section{Display functions for arrays (writing arrays to files)}\index{display!of A++ arrays}
+\input displayInclude.tex
+%=============================================================================
+
+%=============================================================================
+\vfill\eject
+\input IntegrateHTML.tex
+%=============================================================================
+
+%=============================================================================
+\vfill\eject
+\input TridiagonalSolverHTML.tex
+%=============================================================================
+
+%=============================================================================
+\vfill\eject
+\input FortranIO.tex
+%=============================================================================
+
+%=============================================================================
+\vfill\eject
+\input referenceCountedObjectsHTML.tex
+
+%=============================================================================
+
+
+\printindex
+
+\end{document}
+
+
+

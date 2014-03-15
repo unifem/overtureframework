@@ -1,0 +1,9 @@
+PKGDIR := $(OvertureCheckout)/op/coeff
+
+L_SRC := $(addsuffix FDCoefficients.C, x y z xx xy xz yy yz zz div grad identity laplacian) \
+	$(addsuffix FDCoefficients.C, divScalarGrad scalarGrad derivativeScalarDerivative divVectorScalar) \
+	$(addsuffix DerivCoefficients.C, r s t rr rs rt ss st tt) 
+
+SRC_FILES += $(L_SRC)
+
+

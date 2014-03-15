@@ -1,0 +1,44 @@
+\section{Fixing errors in trimming curves}\label{sec:fixingTrimCurves}
+
+
+% -------------------------------------------------------------------
+\subsection{Example: Self-intersecting trimming curve}
+
+  
+A trimming curve may be invalid if it intersects itself. One
+common way this can happen is near a cusp in the geometry.
+The CAD program may not care if the trim curve intersects itself
+near the end of the cusp since it is not visible. We must fix this
+problem, however, so that we can build a proper water-tight triangulation. 
+
+\input selfIntersectionTrimCurveFig.tex
+
+Figure~\ref{fig:selfIntersectingTrimCurveFig} shows an example. 
+One good way to fix this problem is to 
+\begin{enumerate}
+  \item split one of the curves near the cusp but before
+    the intersection point (usually one should split the sub-curve that
+        has more curvature).
+  \item hide the small portion of the split curve that contains
+    the intersection.
+  \item Join the split sub-curve to the end-point of the cusp with
+        a straight-line
+\end{enumerate}
+
+
+
+
+% -------------------------------------------------------------------
+\subsection{Example: A trimming curves with missing and self-intersecting segments}\label{sec:retroSurf11}
+
+
+  In this example there are a number of mistakes in the trimming curves.
+Figure~\ref{fig:retroSurf11Trim1} shows the original trim curve (plot the sub-curves in difference colours)
+along with a gap between segments that is fixed by adding a line segment.
+
+Figure~\ref{fig:retroSurf11Trim2} show two other problems where the trim curve intersects
+itself. These are fixed using the {\em snap-to-intersection} option.
+
+
+\input retroSurf11TrimCurveFig.tex
+

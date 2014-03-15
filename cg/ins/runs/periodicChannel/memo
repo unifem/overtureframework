@@ -1,0 +1,32 @@
+2013/11/30 -- test fixes to Ogmg for periodic-singular
+
+
+
+Yale: OK: 
+nohup $ins/bin/cgins -noplot pChannel.cmd -g=channel2.order4.ml2.hdf -nu=1e-5 -Ny=101 -Nx=101 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel2ml2_NullVector.hdf -show=pChannel2da.show -tp=1 -tf=500 -debug=3 -nopause >! pChannela.out &
+
+Yale: 
+cgins pChannel.cmd -g=channel2.order4.ml2.hdf -nu=1e-5 -Ny=101 -Nx=101 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel2ml2_NullVector.hdf -show=pChannel2da.show -tp=1 -tf=1000 -debug=3
+
+2013/11/23 -- redo stretching to use exp-to-linear
+
+
+# -- use the grid from channelArg: 
+cgins pChannel.cmd -g=channel2.order4.ml2.hdf -nu=1e-5 -Ny=101 -Nx=101 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=3 -bc=noSlipWall -solver=mg -nullVector=channel2ml2_NullVector.hdf -show=pChannel2da.show -tp=1 -tf=1000 
+
+cgins periodicChannel.cmd -nu=1e-5 -Ny=101 -Nx=101 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=3 -bc=noSlipWall -solver=mg -nullVector=pChannel100_NullVector.hdf -show=pChannel2da.show -tp=1 -tf=1000 
+
+
+
+2013/11/20 :
+
+
+finer: increase ad4
+nohup $ins/bin/cgins periodicChannel.cmd -nu=1e-5 -Ny=321 -Nx=401 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=1. -ad4n=1. -debug=1 -bc=noSlipWall -Nz=41 -solver=mg -nullVector=periodicChannel_321_401_nullvector.hdf  -show=pChannel2d.show -tp=1 -tf=1000 -noplot -nopause >! pChannel321.out &
+
+
+finer: 
+cgins periodicChannel.cmd -nu=1e-5 -Ny=161 -Nx=201 -order=4 -cfl=3 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=1 -bc=noSlipWall -Nz=41 -solver=mg -nullVector=periodicChannel_161_201_nullvector.hdf  -show=pChannel2d.show -tp=1 -tf=1000 
+
+
+cgins periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=3 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.25 -ad4n=0.25 -debug=1 -bc=noSlipWall -Nz=41 -solver=mg -show=pChannel.2d.ns.show -tp=1 -tf=1000 

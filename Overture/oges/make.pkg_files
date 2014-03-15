@@ -1,0 +1,70 @@
+PKGDIR := $(OvertureCheckout)/oges
+
+SRC_FILES += $(addsuffix .C, \
+	Oges ogesFiles OgesParameters formMatrix generateMatrix \
+        buildEquationSolvers determineErrors obsolete \
+	EquationSolver PETScEquationSolver YaleEquationSolver SlapEquationSolver HarwellEquationSolver \
+	MultigridEquationSolver residual)
+
+ifneq ($(parallel),)
+SRC_FILES += PETScSolver
+endif
+
+ifeq ($(ogmg),)
+SRC_FILES += nullOgmg.C OgmgParameters.C
+endif
+
+SRC_FILES += cgesl1234.F slapFiles.F
+
+# cp {blas2,cgesbpc,cgesnull,cgesrd,cgessra,linpack}.f                                $OvertureOges
+SRC_FILES +=  cgesnull.f csort.f blas2.f linpack.f drmach.F \
+	spsor.f xersla.f \
+	ma28a.f ma28dd.f \
+	yalesp.F                                              
+
+#	sbcg.f scgs.f sgmres.f slapcg.f slaputil.f smset.f smvops.f 
+#	dbcg.f dcgs.f dgmres.f dlapcg.f dlaputil.f dmset.f dmvops.f  \
+
+L_HDRS := Oges.h OgesParameters.h
+
+L_HDRS += $(addsuffix .h, EquationSolver PETScEquationSolver PETScSolver YaleEquationSolver SlapEquationSolver HarwellEquationSolver MultigridEquationSolver)
+
+HDRS += $(addprefix $(PKGDIR)/, $(L_HDRS))
+
+ifneq ($(fdbg),y)
+
+$(OBJDIR)formMatrix.o: formMatrix.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)generateMatrix.o: generateMatrix.C 
+	@-echo -n "compiling $(<F) optimized : "
+	@$(CXX) $(INCLUDE) $(CXX_FLAGS_REQ) $(CXX_FLAGS_OPT) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+$(OBJDIR)blas2.o $(OBJDIR)linpack.o $(OBJDIR)xersla.o: $(OBJDIR)%.o : %.f
+	@-echo -n "compiling $(<F) optimized : "
+	 $(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+
+$(OBJDIR)drmach.o $(OBJDIR)slapFiles.o: $(OBJDIR)%.o : %.F
+	@-echo -n "compiling $(<F) optimized : "
+	 $(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_OPT) $(INCLUDE) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+else
+
+$(OBJDIR)blas2.o $(OBJDIR)linpack.o $(OBJDIR)xersla.o: $(OBJDIR)%.o : %.f
+	@-echo -n "compiling $(<F) debug : "
+	 @$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_DBG) $(FC_FLAGS_PREC) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+
+$(OBJDIR)drmach.o $(OBJDIR)slapFiles.o: $(OBJDIR)%.o : %.F
+	@-echo -n "compiling $(<F) debug : "
+	 @$(FC) $(FC_FLAGS_REQ) $(FC_FLAGS_DBG)   $(INCLUDE) -o $@ -c $< 2> /dev/null >&2
+	@-echo "success"
+
+endif

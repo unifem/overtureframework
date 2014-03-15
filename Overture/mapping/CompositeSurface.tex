@@ -1,0 +1,90 @@
+%--------------------------------------------------------------
+\section{CompositeSurface: define a surface formed from many sub-surfaces}
+\index{composite surface mapping}\index{Mapping!CompositeSurface}\index{patched surface}
+%-------------------------------------------------------------
+
+The {\tt CompositeSurface} Mapping is used to represent a surface that
+is formed from a collection of sub-surfaces. This Mapping is not a
+normal Mapping since it does not represent a transformation from the
+unit square. 
+
+As an example, a CompositeSurface is used to represent the collection of
+NURBS and trimmed-NURBS surfaces that can be created by CAD packages. A single
+CompositeSurface can hold any number of these surfaces. Each sub-surface
+in a CompositeSurface is just any Mapping. Usually every sub-surface
+will actually be a surface in 3D but this is not necessary.
+
+
+The most common use for a CompositeSurface is in combination with
+the Hyperbolic surface grid generator. This surface grid generator
+can grow a grid over a portion of a CompositeSurface, starting from
+some intial curve on the surface. 
+
+
+
+\subsection{Projection onto the composite surface}
+
+  The CompositeSurface has a function {\tt project} that can be used 
+to take one or more points in space, $\xv_i$, and project these points
+onto the CompositeSurface, giving new points $\xv_i^p$. 
+
+The hyperbolic surface grid generator, for example, will march a line
+of points over the CompositeSurface. At each step in it's marching algorithm,
+new positions will be predicted for the next position for the line of points.
+These predicted values are then projected exactly onto the CompositeSurface.
+
+The projection algorithm make use of the following variables:
+\begin{description}
+  \item[$\xv$] : point near the surface that needs to be projected.
+  \item[$s_0$] : initial guess for the sub-surface patch on which to look (may be omitted).
+  \item[$\xv_0$] : a previous point on the CompositeSurface that is near to $\xv$. This 
+    may be the previous location of $\xv$ from a surface grid generator (may be omitted).
+  \item[$\nv_0$] : normal to the CompositeSurface at the point $\xv_0$  (may be omitted).
+  \item[$\xv_p$] : projected point on the surface.
+  \item[$s_p$] : subsurface index where the point was projected.
+  \item[$\nv_p$] : normal to the CompositeSurface at the point $\xv_p$.
+\end{description}
+Here is the basic projection algorithm
+\begin{enumerate}
+  \item Project $\xv$ on the sub-surface patch $s_0$, giving the point $\yv=P_{s_0}(\xv)$. If $\yv$
+    is in the interior of the sub-surface then we are done.
+  \item If $\yv$ is on the boundary of the sub-surface $s_0$ then compute the distance
+     $\dv_0=\| \xv-\yv \|$. We will try to find a sub-surface that is closer than this
+     distance.
+  \item Choose a new sub-surface to check, $s_1$, and project $\xv$ onto this surface,
+           $\yv_1=P_{s_0}(\xv)$.  
+\end{enumerate}
+
+\subsubsection{Moving around sharp corners}
+
+If the point $\xv$ to be projected is near a sharp corner in the surface
+then there is some ambiguity as to the desired projection point $\xv_p$. 
+
+
+If we are
+marching over the surface then we usually want the projected point $\xv_p$
+to be some specified distance from the old point $\xv_0$. In this case 
+we may have to adjust the projected point and move it away from the corner.
+
+
+%% *wdh* 2012/10/12 \input cs1.latex
+
+
+
+%% \input CompositeSurfaceInclude.tex
+
+\subsection{Examples}
+% 
+% \noindent
+% \begin{minipage}{.4\linewidth}
+% {\footnotesize
+% \listinginput[1]{1}{\mapping/nurbs1.cmd}
+% }
+% \end{minipage}\hfill
+% \begin{minipage}{.6\linewidth}
+  \begin{center}
+   \includegraphics[width=10cm]{\figures/compositeCyl4} \\
+   % \epsfig{file=\figures/compositeCyl4.ps,height=.6\linewidth}  \\
+  {A CompositeSurface for a cylindrical surface read from an IGES file created by pro/ENGINEER}
+  \end{center}
+% \end{minipage}

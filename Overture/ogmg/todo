@@ -1,0 +1,15 @@
+o 3rd order extrapolation for ghost points may use points that are not
+  available.  reduce or --> could have variable extrapolationWidth?
+
+o do we need to add inetrpolation equations in finishBC for multigrid levels?
+
+o build a set of convergence results and save with date.
+
+o document operator averaging and boundary conditions
+
+o agglomerate neumann BC's on coarse grid operators
+   -> remove iteration to solve BC's
+
+o why does the 'mixed' case have slower convergence?
+    o semi-periodic and dirichlet are very close (square40, square40p)
+    0 maybe need agglomerated BC's?

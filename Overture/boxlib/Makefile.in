@@ -1,0 +1,42 @@
+#
+#
+
+# also define -DBL_USE_FLOAT or -DBL_USE_DOUBLE
+#             -DBL_Solaris
+
+BOXLIB_DEFINES = -DBL_SPACEDIM=3 -DBL_USE_FLOAT -DBL_ARCH_IEEE -DBL_FORT_USE_UNDERSCORE -DBL_BUG_DEFARG -DBL_LANG_CC
+
+.SUFFIXES:
+.SUFFIXES:.C .o .f .o
+.C.o:; $(CC) -I. $(CCFLAGS) $(BOXLIB_DEFINES) -c $*.C
+.f.o:; $(FC) $(FFLAGS) -c $*.f
+
+default:      boxlib_date
+
+boxlib= AliasedDPtr.o  \
+	Box.o  \
+	BoxList.o  \
+	FabConv.o  \
+	Pointers.o  \
+        ArithFab.o  \
+	BoxArray.o  \
+	IndexType.o  \
+	OrderedFab.o  \
+	BoxAssoc.o  \
+	FArrayBox.o  \
+	IntVect.o  \
+	Orientation.o  \
+        BArena.o  \
+	BoxDomain.o  \
+	FPC.o  \
+	Utility.o  \
+	BoxLib.o  \
+	MultiFab.o  \
+	ParmParse.o  \
+	aString.o
+
+
+boxlib_date:$(boxlib)
+	  touch $@
+
+.PRECIOUS:boxlib_date

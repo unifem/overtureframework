@@ -1,0 +1,55 @@
+#
+# Makefile.in -- the configure script uses this to make the file "Makefile"
+#
+
+.SUFFIXES:
+.SUFFIXES:.C .o
+.C.o:; $(CC) $(CCFLAGS) -c $*.C
+
+default:  depend_date Grid_date 
+
+Source=   GenericGrid.C                \
+          MappedGrid.C         \
+          GenericGridCollection.C      \
+          GridCollection.C             \
+	  CompositeGrid.C              \
+          CompositeGridGeometry.C      \
+	  MappedGridGeometry1.C        \
+          UnstructuredGridGeometry.C \
+          BoundaryAdjustment.C \
+	  ChildInfo.C \
+          ParentChildSiblingBase.C \
+          ParentInfo.C \
+          ListOfParentChildSiblingInfo.C \
+          ParentChildSiblingInfo.C \
+          SiblingInfo.C \
+          MultigridCompositeGrid.C
+
+# Here are the files that Bill always likes to optimize -- 
+CCFLAGSOPT = $(CCFLAGSF)
+filesOpt = MappedGridGeometry2.C
+Grid_Opt_date: $(filesOpt)
+	 $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c $?
+	  touch $@
+
+
+Grid_date: Grid_Opt_date ${Source:.C=.o}
+#hpux	  mv MappedGridGeometry.o ../static; 
+	  touch $@
+
+# Compile these next files with -g because the compiler dies
+# files = 
+# Grid2_date: $(files)
+# 	$(CC) $(CCFLAGSG) -c $(files)
+# 	cp ReferenceCounting.C ../static
+# 	  touch $@
+
+depend_date: depend; perl ../config/makeDepend -f depend -Y -- $(CC_INCLUDES_FOR_DEPEND) -- $(Source)
+	touch $@
+# include the dependencies here
+include depend
+
+
+clean:	rm *.o *~
+
+.PRECIOUS:Grid_date depend_date

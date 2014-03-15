@@ -1,0 +1,672 @@
+#include "Cgsm.h"
+#include "display.h"
+#include "CompositeGridOperators.h"
+#include "ParallelUtility.h"
+#include "ParallelOverlappingGridInterpolator.h"
+#include "SmParameters.h"
+#include "GridMaterialProperties.h"
+
+#Include "boundaryMacros.h"
+
+
+#define solidMechanicsGodunov EXTERN_C_NAME(solidmechanicsgodunov)
+#define solidMechanicsHemp EXTERN_C_NAME(solidmechanicshemp)
+extern "C"
+{
+/* Don's Godunov code */
+void solidMechanicsGodunov(
+         const int&nd, const int&nd1a, const int&nd1b, const int&nd2a, const int&nd2b, const int&nd3a, const int&nd3b,
+	 const int&mask, const real&rx, const real&xy, const real&det, const real&u, real&up, 
+         const real&f1, const real&f2, 
+         const int & ndMatProp, const int& matIndex, const real& matValpc, const real& matVal,
+         const real &ad,const real &ad4,
+         const int&ipar, real&rpar, 
+         const int&niwk, const int&iwk, const int&nrwk, const real&rwk, const int&ierr );
+
+/* Jeff's Hemp code */
+void solidMechanicsHemp(
+         const int&nd, const int&nd1a, const int&nd1b, const int&nd2a, const int&nd2b, const int&nd3a, const int&nd3b,
+	 const int&mask, const real&f0, const real&u, real&up,  real&xy, 
+         const int & boundaryCondition, const int& dim, const real& bcf0, const int64_t & bcOffset,
+         const int&ipar, real&rpar, 
+         const int&niwk, const int&iwk, const int&nrwk, const real&rwk, const int&ierr );
+
+}
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FN(m) fn[m+numberOfFunctions*(grid)]
+
+// ============================================================================================
+/// \brief Compute du/dt for the first-order-system
+// ============================================================================================
+void Cgsm::
+getUtFOS(GridFunction & cgf, 
+	 const real & t, 
+	 RealCompositeGridFunction & ut, 
+	 real tForce )
+{
+  real & dt= deltaT;
+
+  // --- do this for now ---
+  int cur=-1;
+  for( int i=0; i<numberOfGridFunctionsToUse; i++ )
+  {
+    if( &cgf == &gf[i] )
+    {
+      cur=i;
+      break;
+    }
+  }
+  assert( cur>=0 );
+  advanceFOS( cur,t,dt, &ut, tForce );
+}
+
+
+#Include "boundaryMacros.h"
+
+// =============================================================================
+/// \brief Advance the solution as a second-order system. This function will
+//     update the interior points; boundary conditions and interpolation are left
+//     to advance(..)
+// \param ut : if not NULL, compute du/dt and return in this grid-function. Otherwise
+//             return the solution gf[next] at t=t+dt.
+// =============================================================================
+void Cgsm::
+advanceFOS(  int current, real t, real dt,
+             RealCompositeGridFunction *ut /* = NULL */ , 
+	     real tForce /* = 0. */  )
+{
+  checkArrays("advanceFOS:end");
+
+
+  FILE *& debugFile  =parameters.dbase.get<FILE* >("debugFile");
+  FILE *& logFile    =parameters.dbase.get<FILE* >("logFile");
+  FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+  
+  const int numberOfDimensions = cg.numberOfDimensions();
+  const int numberOfComponentGrids = cg.numberOfComponentGrids();
+  const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+  const int & uc =  parameters.dbase.get<int >("uc");
+  const int & vc =  parameters.dbase.get<int >("vc");
+  const int & wc =  parameters.dbase.get<int >("wc");
+  const int & rc =  parameters.dbase.get<int >("rc");
+  const int & tc =  parameters.dbase.get<int >("tc");
+  const int & orderOfAccuracyInSpace = parameters.dbase.get<int>("orderOfAccuracy");
+  const int & orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+  bool & computeTimeSteppingEigenValues = parameters.dbase.get<bool>("computeTimeSteppingEigenValues");
+  real & realPartOfTimeSteppingEigenValue = parameters.dbase.get<real>("realPartOfTimeSteppingEigenValue");
+  real & imaginaryPartOfTimeSteppingEigenValue = parameters.dbase.get<real>("imaginaryPartOfTimeSteppingEigenValue");
+
+  SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
+
+  SmParameters::TimeSteppingMethodSm & timeSteppingMethodSm = 
+                                   parameters.dbase.get<SmParameters::TimeSteppingMethodSm>("timeSteppingMethodSm");
+  RealArray & timing = parameters.dbase.get<RealArray >("timing");
+
+  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+  Range C=numberOfComponents;
+  const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
+  const int next = (current+1) % numberOfTimeLevels;
+
+  real & rho=parameters.dbase.get<real>("rho");
+  real & mu = parameters.dbase.get<real>("mu");
+  real & lambda = parameters.dbase.get<real>("lambda");
+  RealArray & muGrid = parameters.dbase.get<RealArray>("muGrid");
+  RealArray & lambdaGrid = parameters.dbase.get<RealArray>("lambdaGrid");
+  bool & gridHasMaterialInterfaces = parameters.dbase.get<bool>("gridHasMaterialInterfaces");
+  int & debug = parameters.dbase.get<int >("debug");
+  bool centerNeeded=forcingOption==twilightZoneForcing;
+
+  RealArray & artificialDiffusion = parameters.dbase.get<RealArray >("artificialDiffusion");
+  RealArray & artificialDiffusion4 = parameters.dbase.get<RealArray >("artificialDiffusion4");
+  if( artificialDiffusion.getLength(0)==0 )  // *** fix me ***
+  {
+    artificialDiffusion.redim(numberOfComponents);
+    artificialDiffusion=0.;
+    artificialDiffusion4.redim(numberOfComponents);
+    artificialDiffusion4=0.;
+  }
+  
+
+  #ifdef USE_PPP
+   // *wdh* 091123 == this should no longer be needed using new AssignInterpNeighbours ==
+   // in parallel we need to extrap. interpolation neighbours again to get some points that
+   // are invalidated when updateGhostBoundaries is called. (rsise2 example, -N4 -n32)
+    const bool extrapInterpolationNeighbours = !parameters.dbase.get<int>("useNewExtrapInterpNeighbours");
+  #else
+    const bool extrapInterpolationNeighbours=false;
+  #endif
+
+  if( extrapInterpolationNeighbours && parameters.dbase.get<int >("extrapolateInterpolationNeighbours") )
+  {
+    if( true ) 
+      printF("advFOS: Extrapolate interpolation neighbours before the filter, t=%9.3e\n",t);
+    extrapolateInterpolationNeighbours( gf[current], C );
+  }
+   
+
+
+  const int computeUt = ut != NULL;  // compute u.t
+
+  const real cMax=max(lambdaGrid+muGrid)/rho;
+
+  realPartOfTimeSteppingEigenValue=0.;
+  imaginaryPartOfTimeSteppingEigenValue=0.;
+  sizeOfLocalArraysForAdvance=0.;
+  int grid;
+  for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+    real time0=getCPU();
+
+    MappedGrid & mg = cg[grid];
+    MappedGridOperators & mgop = (*cgop)[grid];
+
+    getIndex(mg.gridIndexRange(),I1,I2,I3);
+  
+    getBoundsForPML( mg,Iv );
+
+    realMappedGridFunction & fieldCurrent =gf[current].u[grid];
+    realMappedGridFunction & fieldNext    =gf[next].u[grid];
+
+
+    realArray & u  = fieldCurrent;
+    realArray & un = fieldNext;
+
+    if( debug & 4 )
+    {
+      Communication_Manager::Sync();
+      fPrintF(debugFile," **** start of advanceFOS, t=%8.2e\n",t);
+      fprintf(pDebugFile," **** start of advanceFOS, t=%8.2e\n",t);
+      
+      // display(u,sPrintF("u start of advanceFOS, t=%8.2e",t),debugFile,"%8.2e ");
+      Communication_Manager::Sync();
+    }
+
+    lambda = lambdaGrid(grid);
+    mu = muGrid(grid);
+    c1=(mu+lambda)/rho, c2= mu/rho;
+    
+    if( numberOfStepsTaken<1 ) 
+      printF(" advanceFOS:INFO lambda,mu=%8.2e %8.2e for grid=%i (%s) \n",lambda,mu,grid,
+         (const char*)cg[grid].getName());
+    
+    const real dtsq=dt*dt; 
+    // const real adc=artificialDissipation*SQR(cMax); // scale dissipation by c^2 *wdh* 041103
+    const real adc=artificialDissipation; // do not scale *wdh* 090216
+
+    bool useOpt=true; // true;
+
+    bool isRectangular=mg.isRectangular();
+    if( false && numberOfDimensions==3 )  // *wdh* 100814 turn this off , why was it still on?
+    { // use this to force Cartesian grids to look curvilinear 
+      isRectangular=false;   
+    }
+
+    if( pdeVariation==SmParameters::hemp )
+    {
+      // For hemp we will change the coordinates even for a Cartesian grid
+      isRectangular=false;
+      centerNeeded=true;
+      mg.mapping().getMapping().setMappingCoordinateSystem( Mapping::general );
+    }
+    centerNeeded=true; // jwb-- for centered discretization
+    
+
+    if( !isRectangular )
+    {
+      real timea=getCPU();
+      mg.update( MappedGrid::THEinverseVertexDerivative | 
+		 MappedGrid::THEinverseCenterDerivative | MappedGrid::THEcenterJacobian );
+      timea=getCPU()-timea;
+      timing(parameters.dbase.get<int>("timeForInitialize"))+=timea;
+
+      time0+=timea;  // do not include with time for curvilinear
+    }
+    if( centerNeeded )
+    {
+      real timea=getCPU();
+      mg.update( MappedGrid::THEcenter | MappedGrid::THEvertex );
+      timea=getCPU()-timea;
+      timing(parameters.dbase.get<int>("timeForInitialize"))+=timea;
+    }
+    
+    realArray f, f2;
+    const bool addForcing = forcingOption!=noForcing;
+
+    if( addForcing )
+    {
+      Index D1,D2,D3;
+      getIndex(mg.dimension(),D1,D2,D3);
+      f.partition(mg.getPartition());
+      f.redim(D1,D2,D3,C);  // could use some other array for work space ??
+
+      int option=1;  
+      real timef = getCPU();
+      getForcing( next, grid,f,t,dt,option );
+      timing(parameters.dbase.get<int>("timeForForcing")) += getCPU()-timef;
+
+      if( pdeVariation == SmParameters::godunov )
+      {
+        // For Godunov we also compute f(t+dt) -- we could probably avoid recomputing f ---
+	Index D1,D2,D3;
+	getIndex(mg.dimension(),D1,D2,D3);
+	f2.partition(mg.getPartition());
+	f2.redim(D1,D2,D3,C);  // could use some other array for work space ??
+
+	real timef = getCPU();
+	getForcing( next, grid,f2,t+dt,dt,option );
+	timing(parameters.dbase.get<int>("timeForForcing")) += getCPU()-timef;
+      }
+    }
+
+    // --- We always call advOpt ---
+    real timeAdv=getCPU();
+      
+    const int useWhereMask = numberOfComponentGrids>1;
+    int gridType = isRectangular? 0 : 1;
+
+
+    int ierr=0;
+
+#ifdef USE_PPP
+    realSerialArray uLocal;   getLocalArrayWithGhostBoundaries(u,uLocal);
+    realSerialArray unLocal;  getLocalArrayWithGhostBoundaries(un,unLocal);
+    realSerialArray utLocal;  if( computeUt ) getLocalArrayWithGhostBoundaries( (*ut)[grid],utLocal);
+    realSerialArray fLocal;   getLocalArrayWithGhostBoundaries(f,fLocal);
+    realSerialArray f2Local;   getLocalArrayWithGhostBoundaries(f2,f2Local);
+#else
+    const realSerialArray & uLocal  =  u;
+    const realSerialArray & unLocal = un;
+    const realSerialArray & fLocal = f;
+    const realSerialArray & f2Local = f2;
+    const realSerialArray & utLocal = computeUt ? (*ut)[grid] : u;
+#endif
+
+    real *uptr =uLocal.getDataPointer();
+    real *unptr=unLocal.getDataPointer();
+      
+    if( computeUt )
+    { // in this case we save u.t in *ut 
+      unptr=utLocal.getDataPointer();
+    }
+
+
+    real *fptr   = addForcing ? fLocal.getDataPointer() : uptr;
+
+    // Two time levels of forcing for Godunov: 
+    real *f1ptr, *f2ptr;
+    f1ptr= addForcing ? fLocal.getDataPointer() : uptr;
+    f2ptr= addForcing ? f2Local.getDataPointer() : uptr;
+
+    const intArray & mask = mg.mask();
+#ifdef USE_PPP
+    intSerialArray maskLocal;  getLocalArrayWithGhostBoundaries(mask,maskLocal);
+#else
+    const intSerialArray & maskLocal = mask; 
+#endif
+
+    real *rxptr, *jacptr;
+    if( isRectangular )
+    {
+      rxptr=uptr;
+      jacptr=uptr;
+    }
+    else
+    {
+#ifdef USE_PPP
+      realSerialArray rxLocal; getLocalArrayWithGhostBoundaries(mg.inverseVertexDerivative(),rxLocal);
+      realSerialArray jacLocal; getLocalArrayWithGhostBoundaries(mg.centerJacobian(),jacLocal);
+#else
+      const realSerialArray & rxLocal=mg.inverseVertexDerivative();
+      const realSerialArray & jacLocal=mg.centerJacobian();
+#endif
+      rxptr = rxLocal.getDataPointer();
+      jacptr = jacLocal.getDataPointer();
+    }
+      
+    #ifdef USE_PPP
+      realSerialArray xy;
+      if( centerNeeded ) getLocalArrayWithGhostBoundaries(mg.center(),xy);
+    #else
+      const realSerialArray & xy = centerNeeded ? mg.center() : unLocal;
+    #endif
+    real *xyptr=xy.getDataPointer();
+
+    real *initialStateptr=NULL;
+    if( pdeVariation==SmParameters::hemp )
+    {
+      assert( parameters.dbase.get<realCompositeGridFunction*>("initialStateGridFunction") != NULL );
+      
+      realCompositeGridFunction & initialState = 
+                *parameters.dbase.get<realCompositeGridFunction*>("initialStateGridFunction");
+
+      #ifdef USE_PPP
+        realSerialArray initialStateLocal; getLocalArrayWithGhostBoundaries(initialState[grid],initialStateLocal);
+      #else
+        const realSerialArray & initialStateLocal = initialState[grid];
+      #endif
+      initialStateptr=initialStateLocal.getDataPointer();
+    }
+    
+
+    int *maskptr = maskLocal.getDataPointer();
+
+
+    // Macro to extract the pointers to the variable material property arrays
+    getVariableMaterialPropertyPointers(maskptr,uptr);
+
+
+    bool ok = ParallelUtility::getLocalArrayBounds(u,uLocal,I1,I2,I3);
+    if( ok )
+    {
+
+      if( pdeVariation == SmParameters::godunov )
+      {
+        // ********* Don's Godunov Code **********
+
+	const int ndipar=30;
+	int ipar[ndipar];
+	ipar[0] = I1.getBase();        // n1a 
+	ipar[1] = I1.getBound();       // n1b
+	ipar[2] = I2.getBase();        // n2a
+	ipar[3] = I2.getBound();       // n2b
+	ipar[4] = I3.getBase();        // n3a
+	ipar[5] = I3.getBound();       // n3b 
+	ipar[6] = numberOfComponents;
+	ipar[7] = gridType;            // 0=rectangular, 1=curvilinear 
+	ipar[8] = grid;
+	ipar[9] = parameters.dbase.get<int>("orderOfAccuracyForGodunovMethod");
+	ipar[10]= debug;
+        ipar[11]=forcingOption==twilightZoneForcing;
+        ipar[12]=parameters.dbase.get<int >("orderOfAccuracyForGodunovMethod");   // does this need to be assigned here *and* for ipar[9] ??? DWS
+
+        ipar[13]=parameters.dbase.get<int >("fluxMethodForGodunovMethod");
+        ipar[14]=parameters.dbase.get<int >("slopeLimitingForGodunovMethod");
+        ipar[15]=parameters.dbase.get<int >("slopeUpwindingForGodunovMethod");
+        ipar[16]=parameters.dbase.get<int >("pdeTypeForGodunovMethod");   // 0=linear, 2=SVK ? 
+        ipar[17]=(int)addForcing;  // *wdh* 090825
+	ipar[18] = parameters.dbase.get<int>( "stressRelaxation" ); // jwb 11 Aug 2010
+        ipar[19]=(int)materialFormat;
+             
+	real dx[3]={1.,1.,1.};
+	if( isRectangular )
+	  mg.getDeltaX(dx);
+	  
+	const int ndrpar=30;
+	real rpar[ndrpar];
+	rpar[ 0]=t;
+	rpar[ 1]=dt;
+	rpar[ 2]=dx[0];
+	rpar[ 3]=dx[1];
+	rpar[ 4]=dx[2];
+	rpar[ 5]=mg.gridSpacing(0);
+	rpar[ 6]=mg.gridSpacing(1);
+	rpar[ 7]=mg.gridSpacing(2);
+	rpar[ 8]=parameters.dbase.get<real>("rho");
+	rpar[ 9]=lambda;
+	rpar[10]=mu;
+        rpar[11]=(real &)parameters.dbase.get<OGFunction* >("exactSolution");  // twilight zone pointer, ep
+	rpar[12] = parameters.dbase.get<real>( "relaxAlpha" ); // jwb 11 Aug 2010 ... relaxation parameters
+	rpar[13] = parameters.dbase.get<real>( "relaxDelta" ); // (alpha+delta/dt)
+	rpar[14] = parameters.dbase.get<real>("tangentialStressDissipation");
+	
+	// rpar[20]=reLambda;   // return this
+	// rpar[21]=imLambda;   // return this 
+
+	const int nd1a=uLocal.getBase(0), nd1b=uLocal.getBound(0);
+	const int nd2a=uLocal.getBase(1), nd2b=uLocal.getBound(1);
+	int nrwk;
+	if( mg.numberOfDimensions() == 2 )
+	{
+	  nrwk=(10*numberOfComponents+42)*(nd1b-nd1a+1);
+	}
+	else if( mg.numberOfDimensions() == 3 )
+	{
+	  if( ipar[16] == 0 )
+	    nrwk = (14*numberOfComponents+38)*(nd1b-nd1a+1)*(nd2b-nd2a+1);
+	  else
+	  {
+	    nrwk = (14*numberOfComponents+200)*(nd1b-nd1a+1)*(nd2b-nd2a+1);
+	  }
+	}
+	real *rwk = new real [nrwk];
+	int niwk=1;
+	int *iwk = new int [niwk];
+
+	solidMechanicsGodunov(mg.numberOfDimensions(),
+			      uLocal.getBase(0),uLocal.getBound(0),
+			      uLocal.getBase(1),uLocal.getBound(1),
+			      uLocal.getBase(2),uLocal.getBound(2),
+			      *maskptr,*rxptr,*xyptr,*jacptr,*uptr,*unptr, *f1ptr,*f2ptr, 
+                              ndMatProp,*matIndexPtr,*matValPtr,*matValPtr,
+                              artificialDiffusion(0),artificialDiffusion4(0),
+			      ipar[0],rpar[0], niwk,iwk[0], nrwk,rwk[0], ierr );
+	
+        real reLambda=rpar[20];
+	real imLambda=rpar[21];
+	realPartOfTimeSteppingEigenValue     =max(realPartOfTimeSteppingEigenValue     ,reLambda);
+	imaginaryPartOfTimeSteppingEigenValue=max(imaginaryPartOfTimeSteppingEigenValue,imLambda);
+	
+	// base class DomainSolver uses: 
+	realPartOfEigenvalue[grid]=reLambda;
+	imaginaryPartOfEigenvalue[grid]=imLambda;
+    
+
+	if( debug & 8 )
+	{
+	  display(utLocal,sPrintF("advFOS: u(next) at t=%9.3e, dt=%8.2e\n",t,dt),debugFile);
+	}
+	
+
+
+	// printF(" advanceFOS: godunov: reLambda=%8.2e, imLambda=%8.2e\n",reLambda,imLambda);
+
+	delete [] rwk;
+	delete [] iwk;
+      }
+      else if( pdeVariation==SmParameters::hemp )
+      {
+        // ********* Jeff's Hemp Code **********
+        BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid);
+        extractBoundaryDataArrays();
+
+
+	const int ndipar=30;
+	int ipar[ndipar];
+	ipar[0] = I1.getBase();        // n1a 
+	ipar[1] = I1.getBound();       // n1b
+	ipar[2] = I2.getBase();        // n2a
+	ipar[3] = I2.getBound();       // n2b
+	ipar[4] = I3.getBase();        // n3a
+	ipar[5] = I3.getBound();       // n3b 
+	ipar[6] = numberOfComponents;
+	ipar[7] = grid;
+	ipar[8] = debug;
+	ipar[9] = parameters.dbase.get<int>("hourGlassFlag"); // flag for type of hourglass control
+
+        ipar[17]=(int)addForcing;  // *wdh* 090825
+       
+	real Rg=parameters.dbase.get<real>("Rg"); // gas constant
+	real yieldStress=parameters.dbase.get<real>("yieldStress"); 
+	const std::vector<real> & polyEOS = parameters.dbase.get<std::vector<real> >("polyEos"); // a,b,c,d in Wilkin's EOS
+	real basePress=parameters.dbase.get<real>("basePress"); // gas constant
+	real c0Param=parameters.dbase.get<real>("c0Visc"); // artificial viscosity parameter
+	real clParam=parameters.dbase.get<real>("clVisc"); // artificial viscosity parameter
+	real hgParam=parameters.dbase.get<real>("hgVisc"); // artificial viscosity parameter
+	real & lemu = parameters.dbase.get<real>("mu");
+	real & lelambda = parameters.dbase.get<real>("lambda");
+
+	const int ndrpar=30;
+	real rpar[ndrpar];
+	rpar[ 0]=t;
+	rpar[ 1]=dt;
+        rpar[ 2]=Rg;  // 8.314/27.; 
+        rpar[ 3]=yieldStress;
+        rpar[ 4]=polyEOS[0];
+        rpar[ 5]=polyEOS[1];
+        rpar[ 6]=polyEOS[2];
+        rpar[ 7]=polyEOS[3];
+	rpar[ 8]=basePress;
+	rpar[ 9]=c0Param;
+	rpar[10]=clParam;
+	rpar[11]=hgParam;
+	rpar[12]=lemu;
+	rpar[13]=lelambda;
+	//rpar[ 7]=parameters.dbase.get<real>("");
+
+	// rpar[20]=reLambda;   // return this
+	// rpar[21]=imLambda;   // return this 
+
+        int ndx = I1.getLength()+2; // the extra 2 are to make sure we have enough space for all BCs
+        int ndy = I2.getLength()+2;
+
+	//int nrwk = 9*ndx*ndy+11*(ndx-1)*(ndy-1);
+	int nrwk = 11*ndx*ndy+11*(ndx-1)*(ndy-1);
+	real *rwk = new real [nrwk];
+	int niwk=1;
+	int *iwk = new int [niwk];
+
+        assert( initialStateptr!=NULL );
+
+	if( dt==0. )
+	{
+	  printF("advanceFOS:ERROR: dt=0. for hemp -- this should not happen\n");
+	  Overture::abort("error");
+	}
+	
+	if( debug & 8 )
+	{
+	  display(uLocal,sPrintF("advFOS:BEFORE: solidMechanicsHemp: u at t=%9.3e, dt=%8.2e\n",t,dt),debugFile);
+	}
+
+	solidMechanicsHemp(mg.numberOfDimensions(),
+			   uLocal.getBase(0),uLocal.getBound(0),
+			   uLocal.getBase(1),uLocal.getBound(1),
+			   uLocal.getBase(2),uLocal.getBound(2),
+			   *maskptr,*initialStateptr,*uptr,*unptr,
+			   *xyptr,
+                           mg.boundaryCondition(0,0),*pdbc,*pbcf[0][0],pbcfOffset[0],
+			   ipar[0],rpar[0], niwk,iwk[0], nrwk,rwk[0], ierr );
+	
+        real reLambda=rpar[20];
+	real imLambda=rpar[21];
+	realPartOfTimeSteppingEigenValue     =max(realPartOfTimeSteppingEigenValue     ,reLambda);
+	imaginaryPartOfTimeSteppingEigenValue=max(imaginaryPartOfTimeSteppingEigenValue,imLambda);
+	// base class DomainSolver uses: 
+	realPartOfEigenvalue[grid]=reLambda;
+	imaginaryPartOfEigenvalue[grid]=imLambda;
+
+	if( debug & 8 )
+	{
+	  display(utLocal,sPrintF("advFOS:solidMechanicsHemp: un or ut at t=%9.3e, dt=%8.2e\n",t,dt),debugFile);
+	}
+
+	//if( twilightZoneForcing ) // ***** for now do not update the grid with TZ so we can compute errors ***
+	if( false )
+	{
+          // For now we change the grid coordinates to match the hemp positions
+          // We could set these to the cell centers
+          mg.update( MappedGrid::THEcenter | MappedGrid::THEvertex );
+          #ifdef USE_PPP
+            realSerialArray xLocal; getLocalArrayWithGhostBoundaries(mg.center(),xLocal);
+          #else
+            realSerialArray & xLocal = mg.center();
+          #endif
+          for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
+            xLocal(I1,I2,I3,dir)=uLocal(I1,I2,I3,dir);
+	}
+	
+	delete [] rwk;
+	delete [] iwk;
+      }
+      else
+      {
+	printF("advanceFOS:ERROR: unknown pdeVariation=%i\n",(int)pdeVariation);
+	Overture::abort("error");
+      }
+      
+      // If we are just computing the time stepping values then we do not update the solution.
+      // This option is used at the start to initialize the time step.
+      if( computeTimeSteppingEigenValues )
+	continue;
+
+      if( !computeUt )
+      {
+	unLocal(I1,I2,I3,C)= uLocal(I1,I2,I3,C) + dt*unLocal(I1,I2,I3,C);
+      }
+      
+    } // end if( ok)
+    
+    timeAdv=getCPU()-timeAdv;
+    timing(parameters.dbase.get<int>("timeForAdvOpt"))+=timeAdv;
+      
+    if( debug & 8 )
+    {
+      if( debugFile!=pDebugFile )
+      {
+	display(unLocal,sPrintF("advFOS: unLocal after advanceFOS, processor=%i before BC's t=%8.2e",
+				myid,t),pDebugFile,"%8.2e ");
+      }
+      
+      display(un,sPrintF("advFOS: un after advanceFOS before BC's t=%8.2e",t),debugFile,"%8.2e ");
+    }
+
+    if( isRectangular )   
+      timing(parameters.dbase.get<int>("timeForAdvanceRectangularGrids"))+=getCPU()-time0;
+    else
+      timing(parameters.dbase.get<int>("timeForAdvanceCurvilinearGrids"))+=getCPU()-time0;
+
+    // Is this the right place?
+    #ifdef USE_PPP
+//     if( true && t<2.*dt ) // *wdh* 091205 -- this is not needed -- we call interpolate next which does this 
+//     {
+//       real timea=getCPU();
+
+//       if( debug & 4 )
+//       {
+// 	Communication_Manager::Sync();
+// 	display(unLocal,sPrintF(" Before updateGhostBoundaries: t=%e",t),pDebugFile,"%8.2e ");
+//       }
+      
+//       // **** at this point we really only need to update interior-ghost points needed for
+//       //      interpolation or boundary conditions
+//       un.updateGhostBoundaries();
+
+//       if( debug & 4 )
+//       {
+// 	display(unLocal,sPrintF(" After updateGhostBoundaries: processor=%i t=%e",myid,t),pDebugFile,"%8.2e ");
+//       }
+      
+//       timing(parameters.dbase.get<int>("timeForUpdateGhostBoundaries"))+=getCPU()-timea;
+//     }
+    #endif
+
+    if( debug & 16 )
+    {
+      if( addForcing ) 
+        ::display(f,sPrintF("  *** advanceFOS: Here is the forcing for grid=%i t=%9.3e ********\n",grid,t),
+		  pDebugFile,"%7.4f ");
+    }
+    if( debug & 4 )
+    {
+      getErrors( next,t+dt,dt,sPrintF(" *** advanceFOS: Errors after advance, before BC, grid=%i t=%9.3e ********\n",grid,t) );
+    }
+
+  } // end grid
+  
+  checkArrays("advanceFOS:end");
+  
+}

@@ -1,0 +1,41 @@
+===============================================================
+021012: after more opt's
+
+ numberOfSteps=2 debug=1 xShift=2.00e-01
+Ogen::updateOverlap: Time to compute overlap = 2.83e-02 (+ update geom.=3.32e-02) (using optimized algorithm)
+Interpolate exposed points...
+buildInterpolationInfo: total interpolated=192, num not interpolated=0
+interpolateExposedPoints: 192 exposed pts interpolated max error =4.44e-16
+ Time for interpolateExposedPoints=9.77e-04
+Ogen::updateOverlap: Time to compute overlap = 2.05e-02 (+ update geom.=2.25e-02) (using optimized algorithm)
+Interpolate exposed points...
+buildInterpolationInfo: total interpolated=144, num not interpolated=0
+interpolateExposedPoints: 144 exposed pts interpolated max error =3.33e-16
+ Time for interpolateExposedPoints=9.77e-04
+
+===============================================================
+021012: after some opt's
+
+ numberOfSteps=2 debug=1 xShift=2.00e-01
+Ogen::updateOverlap: Time to compute overlap = 3.03e-02 (+ update geom.=3.81e-02) (using optimized algorithm)Interpolate exposed points...
+buildInterpolationInfo: total interpolated=192, num not interpolated=0
+interpolateExposedPoints: 192 exposed pts interpolated max error =4.44e-16
+ Time for interpolateExposedPoints=4.88e-03
+Ogen::updateOverlap: Time to compute overlap = 2.05e-02 (+ update geom.=2.34e-02) (using optimized algorithm)Interpolate exposed points...
+buildInterpolationInfo: total interpolated=144, num not interpolated=0
+interpolateExposedPoints: 144 exposed pts interpolated max error =3.33e-16
+ Time for interpolateExposedPoints=9.77e-04
+
+=================================================================
+021012: before optimising interpolateExposedPoints
+
+
+sisMove:
+
+ numberOfSteps=2 debug=1 xShift=2.00e-01
+Ogen::updateOverlap: Time to compute overlap = 2.83e-02 (+ update geom.=3.32e-02) (using optimized algorithm)Interpolate exposed points...
+interpolateExposedPoints: 192 exposed pts interpolated max error =3.33e-16
+ Time for interpolateExposedPoints=6.64e-02
+Ogen::updateOverlap: Time to compute overlap = 2.05e-02 (+ update geom.=2.25e-02) (using optimized algorithm)Interpolate exposed points...
+interpolateExposedPoints: 144 exposed pts interpolated max error =4.44e-16
+ Time for interpolateExposedPoints=5.08e-02

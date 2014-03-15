@@ -1,0 +1,62 @@
+eval 'exec perl -S $0 ${1+"$@"}'
+if 0;
+# perl program to convert .ppm files to an mpeg movie
+#
+#         ps2mpeg file start end
+# 
+# Author: wdh
+
+@fileNames = @ARGV;
+
+$inFile = $ARGV[0];
+$start  = $ARGV[1];
+$end    = $ARGV[2];
+
+  if( $ARGV[2] eq "" )
+  {
+      printf("Usage: ppm2mpeg file start end \n example: ppm2mpeg myPlot 000 150\n");
+      printf(" will convert files myPlot000.ppm, myPlot001.ppm,..., myPlot150.ppm \n");
+      exit;
+  }
+  
+# open mpeg parameter file
+open(FILE,">paramin.wdh") || die "cannot open file $inFile!" ;
+
+print FILE "PATTERN         IPPPPPPP\n";
+print FILE "OUTPUT          $inFile.mpg\n";
+print FILE "BASE_FILE_FORMAT        PPM\n";
+print FILE "GOP_SIZE                30\n";
+print FILE "SLICES_PER_FRAME        1\n";
+
+print FILE "PIXEL           HALF\n";
+print FILE "RANGE           10\n";
+print FILE "PSEARCH_ALG     LOGARITHMIC\n";
+print FILE "BSEARCH_ALG     CROSS2\n";
+# The next three values are integers in the range 1..31
+# Lower values of the next three values give better quality but less compression
+#print FILE "IQSCALE         8\n";
+#print FILE "PQSCALE         10\n";
+#print FILE "BQSCALE         25\n";
+print FILE "IQSCALE         1\n";
+print FILE "PQSCALE         1\n";
+print FILE "BQSCALE         1\n";
+
+print FILE "REFERENCE_FRAME ORIGINAL\n";
+print FILE "INPUT\n";
+print FILE "$inFile*.ppm [$start-$end]\n";
+print FILE "END_INPUT\n";
+print FILE "INPUT_CONVERT   *\n";
+print FILE "INPUT_DIR       .\n";
+
+close FILE;
+
+# printf("Now call mpeg_encode...\n");
+system("mpeg_encode paramin.wdh ");
+
+# remove the temp files
+unlink(paramin.wdh);
+
+printf("...done, say `mplayer $inFile.mpg' to play the movie, if you have mplayer. \n");
+
+
+exit;

@@ -1,0 +1,336 @@
+\subsubsection{getVariableName}
+ 
+\newlength{\NameListIncludeArgIndent}
+\begin{flushleft} \textbf{%
+void  \\ 
+\settowidth{\NameListIncludeArgIndent}{getVariableName(}%
+getVariableName( aString \& answer, aString \& name )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+   Parse the aString "answer" and return the variable name:
+ \begin{verbatim}
+     answer: "method=4"         -> name="method"
+           : "array(5,6)=56.7"  -> name="array"
+ \end{verbatim}
+\item[{\bf answer (input) :}]  string to parse.
+\item[{\bf name (output) :}]  string before the first "=" sign
+\end{description}
+\subsubsection{intValue}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{intValue(}%
+intValue( aString \& answer )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return an int for a string of the form "name=int"
+\item[{\bf answer (input) :}]  a aString of the form "name=int"
+\item[{\bf Return value:}]  The value of the rhs in "name=int"
+\end{description}
+\subsubsection{realValue}
+ 
+\begin{flushleft} \textbf{%
+real  \\ 
+\settowidth{\NameListIncludeArgIndent}{realValue(}%
+realValue( aString \& answer )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+  Return a real for a string of the form "name=real"
+\item[{\bf answer (input) :}]  a aString of the form "name=real"
+\item[{\bf Return value:}]  The value of the rhs in "name=real"
+\end{description}
+\subsubsection{getIntArray}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getIntArray(}%
+getIntArray( aString \& answer, IntegerArray \& a )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getIntArray(}%
+getIntArray( aString \& answer, IntegerArray \& a, int \& i0 )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getIntArray(}%
+getIntArray( aString \& answer, IntegerArray \& a, int \& i0, int \& i1 )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getIntArray(}%
+getIntArray( aString \& answer, IntegerArray \& a, int \& i0, int \& i1, int \& i2 )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getIntArray(}%
+getIntArray( aString \& answer, IntegerArray \& a, int \& i0, int \& i1, int \& i2, int \& i3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  
+ Assign the value in an IntegerArray from a string of
+ one of the following forms
+ \begin{verbatim}
+      name=value
+      name(i0)=value  
+      name(i0,i1)=value
+      name(i0,i1,i2)=value
+      name(i0,i1,i2,i3)=value
+ \end{verbatim}
+\item[{\bf answer (input) :}]  a aString of one of the above forms
+\item[{\bf a (output) :}]  an array that is to be assigned
+\item[{\bf i0,i1,i2,i3 (output) :}]  Return the values for the indices used in evaluating the array.
+\item[{\bf Return value:}]  Return TRUE if successful
+\end{description}
+\subsubsection{getRealArray}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getRealArray(}%
+getRealArray( aString \& answer, RealArray \& a )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getRealArray(}%
+getRealArray( aString \& answer, RealArray \& a, int \& i0 )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getRealArray(}%
+getRealArray( aString \& answer, RealArray \& a, int \& i0, int \& i1 )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getRealArray(}%
+getRealArray( aString \& answer, RealArray \& a, int \& i0, int \& i1, int \& i2 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Assign values of a RealArray. see the documentation for
+  getIntArray.
+\end{description}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{getRealArray(}%
+getRealArray( aString \& answer, RealArray \& a, int \& i0, int \& i1, int \& i2, int \& i3 )
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}]  Assign values of a RealArray. see the documentation for
+  getIntArray.
+\end{description}
+\subsubsection{intArrayValue}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{intArrayValue(}%
+intArrayValue( aString \& answer, int \& value, int \& i0 )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{intArrayValue(}%
+intArrayValue( aString \& answer, int \& value, int \& i0 , int \& i1)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{intArrayValue(}%
+intArrayValue( aString \& answer, int \& value, int \& i0, int \& i1, int \& i2)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{intArrayValue(}%
+intArrayValue( aString \& answer, int \& value, int \& i0, int \& i1, int \& i2, int \& i3)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Return value and indices i0,i1,i2,i3 from a string of the form
+ \begin{verbatim}
+   name(i0)         =value  : intArrayValue(answer, value, i0 )
+   name(i0,i1)      =value  : intArrayValue(answer, value, i0, i1)
+   name(i0,i1,i2)   =value  : intArrayValue(answer, value, i0, i1, i2)
+   name(i0,i1,i2,i3)=value  : intArrayValue(answer, value, i0, i1, i2, i3)
+ \end{verbatim}
+\item[{\bf answer (input) :}]  string to parse.
+\item[{\bf value (output) :}]  value found on the rhs of the string
+\item[{\bf i0,i1,i2,i3 (output) :}]  index values
+\item[{\bf Return value :}]   Return TRUE if successful
+\end{description}
+\subsubsection{realArrayValue}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{realArrayValue(}%
+realArrayValue( aString \& answer, real \& value, int \& i0 )
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{realArrayValue(}%
+realArrayValue( aString \& answer, real \& value, int \& i0 , int \& i1)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{realArrayValue(}%
+realArrayValue( aString \& answer, real \& value, int \& i0, int \& i1, int \& i2)
+}\end{flushleft}
+
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{realArrayValue(}%
+realArrayValue( aString \& answer, real \& value, int \& i0, int \& i1, int \& i2, int \& i3)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+ Return value and indices i0,i1,i2,i3 from a string of the form
+ \begin{verbatim}
+   name(i0)         =value  : realArrayValue(answer, value, i0 )
+   name(i0,i1)      =value  : realArrayValue(answer, value, i0, i1)
+   name(i0,i1,i2)   =value  : realArrayValue(answer, value, i0, i1, i2)
+   name(i0,i1,i2,i3)=value  : realArrayValue(answer, value, i0, i1, i2, i3)
+ \end{verbatim}
+\item[{\bf answer (input) :}]  string to parse.
+\item[{\bf value (output) :}]  value found on the rhs of the string
+\item[{\bf i0,i1,i2,i3 (output) :}]  index values
+\item[{\bf Return value :}]   Return TRUE if successful
+\end{description}
+\subsubsection{arrayEqualsName}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{arrayEqualsName(}%
+arrayEqualsName(aString \& answer, \\ 
+\hspace{\NameListIncludeArgIndent}const aString nameList[], \\ 
+\hspace{\NameListIncludeArgIndent}IntegerArray \& a, \\ 
+\hspace{\NameListIncludeArgIndent}int \& i0 optional argument,\\ 
+\hspace{\NameListIncludeArgIndent}int \& i1 optional argument,\\ 
+\hspace{\NameListIncludeArgIndent}int \& i2 optional argument,\\ 
+\hspace{\NameListIncludeArgIndent}int \& i3   optional argument)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    The aString answer should be of the form of one of
+    \begin{itemize}
+       \item arrayName(i0)=name
+       \item arrayName(i0,i1)=name
+       \item arrayName(i0,i1,i2)=name
+       \item arrayName(i0,i1,i2,i3)=name
+    \end{itemize}
+   and the result of this function will be to set
+    \begin{itemize}
+       \item a(i0)=value where nameList[value]==name
+       \item a(i0,i1)=value where nameList[value]==name
+       \item a(i0,i1,i2)=value where nameList[value]==name
+       \item a(i0,i1,i2,i3)=value where nameList[value]==name
+    \end{itemize}
+
+    
+\item[{\bf answer (input) :}]  a aString that should be of the form shown above.
+\item[{\bf nameList (input) :}]  a null terminated array of names. These names will
+    appear on the right hand side of the equals sign.
+\item[{\bf a (output):}]  assign a value into this array.
+\item[{\bf i0,i1,i2,i3 (ouput) :}]  optional arguments, return the values used in assigning a.
+\item[{\bf Return values:}]  return TRUE if successful
+\end{description}
+\subsubsection{arrayOfNameEqualsValue}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{arrayOfNameEqualsValue(}%
+arrayOfNameEqualsValue(aString \& answer, \\ 
+\hspace{\NameListIncludeArgIndent}const aString nameList[], \\ 
+\hspace{\NameListIncludeArgIndent}IntegerArray \& a, \\ 
+\hspace{\NameListIncludeArgIndent}int \& i0 optional argument,\\ 
+\hspace{\NameListIncludeArgIndent}int \& i1 optional argument,\\ 
+\hspace{\NameListIncludeArgIndent}int \& i2 optional argument,\\ 
+\hspace{\NameListIncludeArgIndent}int \& i3   optional argument)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    The aString answer should be of the form of one of
+    \begin{itemize}
+       \item arrayName(name0)=value
+       \item arrayName(name0,name1)=value
+       \item arrayName(name0,name1,name2)=value
+       \item arrayName(name0,name1,name2,name3)=value
+    \end{itemize}
+   and the result of this function will be to set
+    \begin{itemize}
+       \item a(i0)=value where nameList[i0]==name0
+       \item a(i0,i1)=value where nameList[i0]==name0, nameList[i1]==name1
+       \item a(i0,i1,i2)=value where nameList[i0]==name0, nameList[i1]==name1,...
+       \item a(i0,i1,i2,i3)=value where nameList[i0]==name0, nameList[i1]==name1,...
+    \end{itemize}
+
+    
+\item[{\bf answer (input) :}]  a aString that should be of the form shown above.
+\item[{\bf nameList (input) :}]  a null terminated array of names. These names will
+    appear as array arguements in answer.
+\item[{\bf a (output):}]  assign a value into this array.
+\item[{\bf i0,i1,i2,i3 (ouput) :}]  optional arguments, return the values used in assigning a.
+\item[{\bf Return values:}]  return TRUE if successful
+\end{description}
+\subsection{arrayOfNameEqualsValue}
+ 
+\begin{flushleft} \textbf{%
+int  \\ 
+\settowidth{\NameListIncludeArgIndent}{arrayOfNameEqualsValue(}%
+arrayOfNameEqualsValue(aString \& answer, \\ 
+\hspace{\NameListIncludeArgIndent}const aString nameList[], \\ 
+\hspace{\NameListIncludeArgIndent}RealArray \& a, \\ 
+\hspace{\NameListIncludeArgIndent}int \& i0, \\ 
+\hspace{\NameListIncludeArgIndent}int \& i1, \\ 
+\hspace{\NameListIncludeArgIndent}int \& i2, \\ 
+\hspace{\NameListIncludeArgIndent}int \& i3)
+}\end{flushleft}
+\begin{description}
+\item[{\bf Description:}] 
+    The aString answer should be of the form of one of
+    \begin{itemize}
+       \item arrayName(name0)=value
+       \item arrayName(name0,name1)=value
+       \item arrayName(name0,name1,name2)=value
+       \item arrayName(name0,name1,name2,name3)=value
+    \end{itemize}
+   and the result of this function will be to set
+    \begin{itemize}
+       \item a(i0)=value where nameList[i0]==name0
+       \item a(i0,i1)=value where nameList[i0]==name0, nameList[i1]==name1
+       \item a(i0,i1,i2)=value where nameList[i0]==name0, nameList[i1]==name1,...
+       \item a(i0,i1,i2,i3)=value where nameList[i0]==name0, nameList[i1]==name1,...
+    \end{itemize}
+
+    
+\item[{\bf answer (input) :}]  a aString that should be of the form shown above.
+\item[{\bf nameList (input) :}]  a null terminated array of names. These names will
+    appear as array arguements in answer.
+\item[{\bf a (output):}]  assign a value into this array.
+\item[{\bf i0,i1,i2,i3 (ouput) :}]  optional arguments, return the values used in assigning a.
+\item[{\bf Return values:}]  return TRUE if successful
+\end{description}

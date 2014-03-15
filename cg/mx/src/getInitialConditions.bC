@@ -1,0 +1,2157 @@
+#include "Maxwell.h"
+#include "CompositeGridOperators.h"
+#include "display.h"
+#include "UnstructuredMapping.h"
+#include "OGPolyFunction.h"
+#include "OGTrigFunction.h"
+#include "OGPulseFunction.h"
+#include "interpPoints.h"
+#include "ShowFileReader.h"
+#include "ParallelUtility.h"
+
+#define scatCyl EXTERN_C_NAME(scatcyl)
+#define scatSphere EXTERN_C_NAME(scatsphere)
+#define exmax EXTERN_C_NAME(exmax)
+
+extern "C"
+{
+void scatCyl(const int&nd ,
+	     const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,const int&nd1a,
+	     const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,const int&nd4a,const int&nd4b,
+	     const real& xy, real&u, const int&ipar, const real&rpar );
+
+void scatSphere(const int&nd ,
+	     const int&n1a,const int&n1b,const int&n2a,const int&n2b,const int&n3a,const int&n3b,const int&nd1a,
+	     const int&nd1b,const int&nd2a,const int&nd2b,const int&nd3a,const int&nd3b,const int&nd4a,const int&nd4b,
+	     const real& xy, real&u, const int&ipar, const real&rpar );
+
+void exmax(double&Ez,double&Bx,double&By,const int &nsources,const double&xs,const double&ys,
+           const double&tau,const double&var,const double&amp, const double&a,
+           const double&x,const double&y,const double&time);
+
+}
+
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+// Define macros for forcing functions:
+#Include "forcing.h"
+#Include "annulusEigenFunction.h"
+
+// Gaussian pulse initial conditions:
+#Include "gaussianPulse.h"
+
+// Polynomial TZ functions
+#Include "polynomialTZ.h"
+
+// Trigonometric TZ functions
+#Include "trigonometricTZ.h"
+
+// Macros for the plane material interface:
+#Include "planeMaterialInterface.h"
+ definePlaneMaterialInterfaceMacros(C)
+
+
+//==================================================================================================
+//==================================================================================================
+int 
+Maxwell::
+getCenters( MappedGrid &mg, UnstructuredMapping::EntityTypeEnum cent, realArray &xe )
+{
+  if ( cent==UnstructuredMapping::Vertex ) 
+    {
+      xe.redim(0);
+      xe = mg.vertex();
+      return 0;
+    }
+
+  Mapping & map = mg.mapping().getMapping();
+  assert( map.getClassName()=="UnstructuredMapping" );
+  
+  UnstructuredMapping & uns= (UnstructuredMapping &)map;
+  
+  UnstructuredMappingIterator citer, citer_end;
+  UnstructuredMappingAdjacencyIterator viter, viter_end;
+  UnstructuredMappingAdjacencyIterator fiter, fiter_end;
+  int nNodes;
+
+  xe.redim(uns.size(cent),mg.numberOfDimensions());
+  xe = 0.;
+  
+  const realArray & verts = mg.vertex();
+
+  citer_end = uns.end(cent);
+  for ( citer=uns.begin(cent); citer!=citer_end; citer++ )
+  {
+    int e=*citer;
+    if ( cent==UnstructuredMapping::Face || mg.numberOfDimensions()==2 || false)
+    {
+      nNodes = 0;
+      viter_end = uns.adjacency_end(citer, UnstructuredMapping::Vertex);
+      for ( viter=uns.adjacency_begin(citer, UnstructuredMapping::Vertex);
+	    viter!=viter_end;
+	    viter++ )
+      {
+	int v=*viter;
+	for ( int a=0; a<mg.numberOfDimensions(); a++ )
+	  xe(e,a) += verts(v,0,0,a);
+	nNodes++;
+      }
+	  
+      for ( int a=0; a<mg.numberOfDimensions(); a++ )
+	xe(e,a)/=real(nNodes);
+    }
+    else
+    {
+      ArraySimpleFixed<real,3,1,1,1> xfc;
+      int nFaces=0;
+      fiter_end = uns.adjacency_end(citer, UnstructuredMapping::Face);
+      for ( fiter=uns.adjacency_begin(citer, UnstructuredMapping::Face);
+	    fiter!=fiter_end;
+	    fiter++ )
+      {
+	nNodes = 0;
+	viter_end = uns.adjacency_end(citer, UnstructuredMapping::Vertex);
+	xfc=0;
+	for ( viter=uns.adjacency_begin(citer, UnstructuredMapping::Vertex);
+	      viter!=viter_end;
+	      viter++ )
+	{
+	  int v=*viter;
+	  for ( int a=0; a<mg.numberOfDimensions(); a++ )
+	    xfc[a] += verts(v,0,0,a);
+	  nNodes++;
+	}
+	for ( int a=0; a<mg.numberOfDimensions(); a++ )
+	  xe(e,a) += xfc[a]/real(nNodes);
+	nFaces++;
+      }
+
+      for ( int a=0; a<mg.numberOfDimensions(); a++ )
+	xe(e,a) /= real(nFaces);
+
+    }
+  }
+  
+  return 0;
+}
+
+static int
+getFaceCenters( MappedGrid & mg, realArray & xe )
+{
+  Mapping & map = mg.mapping().getMapping();
+  assert( map.getClassName()=="UnstructuredMapping" );
+  
+  UnstructuredMapping & uns= (UnstructuredMapping &)map;
+  
+  int numberOfFaces=uns.size(UnstructuredMapping::Edge);//getNumberOfFaces();
+  xe.redim(numberOfFaces,mg.numberOfDimensions());
+  const realArray & x= uns.getNodes();
+  const intArray & faces = uns.getFaces();
+  
+  for( int f=0; f<numberOfFaces; f++ )
+  {
+    int n0=faces(f,0), n1=faces(f,1);
+    xe(f,0)=.5*( x(n0,0)+x(n1,0));
+    xe(f,1)=.5*( x(n0,1)+x(n1,1));
+  }
+  return 0;
+}
+
+
+
+
+//! Return the true solution for the electric field
+void Maxwell::
+getField( real x, real y, real t, real *eField )
+{
+  const real cc= c*sqrt( kx*kx+ky*ky+kz*kz );
+  eField[0]=exTrue(x,y,t);
+  eField[1]=eyTrue(x,y,t);
+  
+}
+
+//==========================================================================================
+/// \brief Initialize the constants that define the plane material interface solution.
+//==========================================================================================
+int Maxwell::
+initializePlaneMaterialInterface()
+{
+  if( initialConditionOption!=planeMaterialInterfaceInitialCondition )
+  {
+    return 0;
+  }
+  
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+  const int numberOfDimensions=cg.numberOfDimensions();
+
+  // ------------------------------------------------------------
+  // Here we compute the coefficients in the exact solution
+  // 
+  // E(x,y) = (a1,a2,a3)*cos( k.(x-x0)-wt) + r*(b1,b2,b3)*cos( kr.(x-x0) - w t )
+  //        =                              tau*(d1,d2,d3)*cos( kappa.(x-x0) - w t )
+  //
+  // H(x,y) = (e1,e2,e3)*cos( k.(x-x0)-wt) + r*(f1,f2,f3)*cos( kr.(x-x0) - w t )
+  //        =                              tau*(g1,g2,g3)*cos( kappa.(x-x0) - w t )
+  //
+  // ------------------------------------------------------------
+  if( numberOfDimensions==2 && kz!=0 )
+  {
+    printF("Maxwell::initializePlaneMaterialInterface:ERROR: plane material interface: kz!=0 in 2D!\n");
+    OV_ABORT("error");
+  }
+      
+  real c1,c2,eps1,eps2,mu1,mu2;
+  if( method==yee )
+  {
+    eps1=epsv(0); mu1=muv(0);    // incident 
+    eps2=epsv(1); mu2=muv(1);   // transmitted
+  }
+  else
+  {
+    eps1=epsGrid(0); mu1=muGrid(0); // incident
+    eps2=epsGrid(1); mu2=muGrid(1); // transmitted
+
+  }
+  c1=1./sqrt(eps1*mu1);  // incident 
+  c2=1./sqrt(eps2*mu2);  // transmitted
+  
+  real eta1=sqrt(mu1/eps1), eta2=sqrt(mu2/eps2);  // wave impedance 
+
+  const real cr =c2/c1;                   // relative index of refraction
+
+  real nv[3];
+  for( int axis=0; axis<3; axis++ )
+    nv[axis]=normalPlaneMaterialInterface[axis];
+
+  const real kv[3]={kx,ky,kz};
+  const real kNorm = sqrt(kx*kx+ky*ky+kz*kz);
+  assert( kNorm>0. );
+  const real kDotN = kx*nv[0]+ky*nv[1]+kz*nv[2];
+      
+  // kr : reflected wave number:
+  //   kr.nv = - k.nv 
+  real kr[3]={kx,ky,kz};
+  for( int axis=0; axis<3; axis++ )
+    kr[axis] = kr[axis] - 2.*kDotN*nv[axis];
+
+  const real krNorm=sqrt( SQR(kr[0])+SQR(kr[1])+SQR(kr[2]) );
+  assert( krNorm>0. );
+
+  printF("PMI:3d: kv=(%8.2e,%8.2e,%8.2e) nv=(%8.2e,%8.2e,%8.2e)\n",kv[0],kv[1],kv[2],nv[0],nv[1],nv[2]);
+
+  // kappa: transmitted wave number
+  //   kappa.t = k.t 
+  real kappa[3]={kx,ky,kz};     
+  real kappatSq = kNorm*kNorm - kDotN*kDotN;        // tangential component of kappa = tang. comp of k (sign doesn't matter)
+  real arg = (kNorm*kNorm)/(cr*cr) - kappatSq;
+  printF("PMI:3d: cr=%8.2e kNorm=%8.2e kDotN=%8.2e kappatSq=%8.2e arg=%8.2e\n",cr,kNorm,kDotN,kappatSq,arg);
+  
+  if( arg<0. )
+  {
+    printF("ERROR: computing the plane material interface solution: angle of incident is too close to 90 degrees\n");
+    printF("       This case is not supported.\n");
+    OV_ABORT("error");
+  }
+  real kappan = sqrt( arg );   // normal comp. of kappa jumps 
+  for( int axis=0; axis<3; axis++ )
+    kappa[axis] = kappa[axis] + (kappan- kDotN)*nv[axis];  // subtract off k.n and add on kappa.n
+  printF(" (kx,ky,kz)=(%8.2e,%8.2e,%8.2e) kr=(%8.2e,%8.2e,%8.2e), kappa=(%8.2e,%8.2e,%8.2e), nv=\(%8.2e,%8.2e,%8.2e)\n",
+	 kx,ky,kz,kr[0],kr[1],kr[2],kappa[0],kappa[1],kappa[2],nv[0],nv[1],nv[2]);
+  printF("kappatSq=%e, kappan=%e, kDotN=%e, arg=%e\n",kappatSq,kappan,kDotN,arg);
+      
+  const real kappaNorm=sqrt( SQR(kappa[0])+SQR(kappa[1])+SQR(kappa[2]) );
+  assert( kappaNorm>0. );
+  const real cosTheta1=kDotN/kNorm;
+  const real cosTheta2=kappan/kappaNorm;
+
+
+  // E: (amplitude of incident=1)
+  real av[3]={-ky/kNorm, kx/kNorm,0.};         // incident : we have different choices here in 3d 
+  real bv[3]={-kr[1]/krNorm, kr[0]/krNorm,0.}; // reflected : this depends on av
+  real dv[3]={-kappa[1]/kappaNorm, kappa[0]/kappaNorm,0.}; // transmitted : this depends on av
+
+  // new way: use plane wave solution as the incident:
+  for( int axis=0; axis<3; axis++ )
+    av[axis]=pwc[axis];
+
+  real aNorm = sqrt( SQR(av[0])+SQR(av[1])+SQR(av[2]) );
+  if( numberOfDimensions==2 )
+  { 
+    // reflection and transmission coefficients
+    const real r = (c1*cosTheta1-c2*cosTheta2)/(c1*cosTheta1+c2*cosTheta2);
+    const real tau = (2.*c2*cosTheta1)/(c1*cosTheta1+c2*cosTheta2);
+
+    printF("PMI: reflection-coeff=%8.2e, transmission-coeff=%8.2e\n",r,tau);
+
+    bv[0]=-aNorm*r*kr[1]/krNorm; bv[1]=aNorm*r*kr[0]/krNorm; bv[2]=0;
+    dv[0]=-aNorm*tau*kappa[1]/kappaNorm; dv[1]=aNorm*tau*kappa[0]/kappaNorm; dv[2]=0.;
+  }
+  else
+  {
+    // In 3d we decompose the incident field into components parallel and perpendicular to the plane of incidence 
+    // These two components have different reflection and transmission coeff's etc.
+    
+    real qv[3],gv[3],hv[3],mv[3];
+    
+    // The plane of incident is defined by nv and kv
+    //   qv: normal to the plane of incidence
+    // qv = nv X kv 
+    qv[0] = nv[1]*kv[2]-nv[2]*kv[1];
+    qv[1] = nv[2]*kv[0]-nv[0]*kv[2];
+    qv[2] = nv[0]*kv[1]-nv[1]*kv[0];
+    real qNorm = sqrt( SQR(qv[0])+SQR(qv[1])+SQR(qv[2]) );
+    if( qNorm < REAL_MIN*100. )
+    {
+      // nv is parallel to kv (normal incidence) -- just choose qv = nv X av 
+      qv[0] = nv[1]*av[2]-nv[2]*av[1];
+      qv[1] = nv[2]*av[0]-nv[0]*av[2];
+      qv[2] = nv[0]*av[1]-nv[1]*av[0];
+      qNorm = sqrt( SQR(qv[0])+SQR(qv[1])+SQR(qv[2]) );
+      assert( qNorm > REAL_MIN*100. );
+    }
+    for( int axis=0; axis<3; axis++ )
+      qv[axis]/=qNorm;   // normalize qv 
+    // sanity check: 
+    real qDotN = qv[0]*nv[0]+qv[1]*nv[1]+qv[2]*nv[2];
+    real qDotK = qv[0]*kv[0]+qv[1]*kv[1]+qv[2]*kv[2];
+    assert( fabs(qDotN)< 10.*REAL_EPSILON && fabs(qDotK)< 10.*REAL_EPSILON );
+      
+    // gv= qv X kv is in the plane of incidence and normal to kv 
+    gv[0] = qv[1]*kv[2]-qv[2]*kv[1];
+    gv[1] = qv[2]*kv[0]-qv[0]*kv[2];
+    gv[2] = qv[0]*kv[1]-qv[1]*kv[0];    
+    real gNorm = sqrt( SQR(gv[0])+SQR(gv[1])+SQR(gv[2]) );
+    assert( gNorm>REAL_MIN*100. );
+    for( int axis=0; axis<3; axis++ )
+      gv[axis]/=gNorm;   // normalize gv 
+
+    // Decompose the incident field:  (av.kv =0 since div(E)=0 )
+    //   av = aDotq*qv + aDotg*gv 
+    real aDotQ = av[0]*qv[0]+av[1]*qv[1]+av[2]*qv[2];
+    real aDotG = av[0]*gv[0]+av[1]*gv[1]+av[2]*gv[2];
+
+    printF("PMI:3d: kv=(%8.2e,%8.2e,%8.2e) av=(%8.2e,%8.2e,%8.2e) nv=(%8.2e,%8.2e,%8.2e)\n",kv[0],kv[1],kv[2],
+             av[0],av[1],av[2],nv[0],nv[1],nv[2]);
+    printF("PMI:3d: qv=(%8.2e,%8.2e,%8.2e) aDotQ=%8.2e\n",qv[0],qv[1],qv[2],aDotQ);
+    printF("PMI:3d: gv=(%8.2e,%8.2e,%8.2e) aDotG=%8.2e\n",gv[0],gv[1],gv[2],aDotG);
+    
+
+    const real rParallel   = (c1*cosTheta1-c2*cosTheta2)/(c1*cosTheta1+c2*cosTheta2);
+    const real tauParallel = (2.*c2*cosTheta1          )/(c1*cosTheta1+c2*cosTheta2);
+    
+    const real rPerp   = (c2*cosTheta1-c1*cosTheta2)/(c2*cosTheta1+c1*cosTheta2);
+    const real tauPerp = (2.*c2*cosTheta1          )/(c2*cosTheta1+c1*cosTheta2);
+
+    printF("PMI:3d:  reflection-coeff=(%8.2e,%8.2e), transmission-coeff=(%8.2e,%8.2e) [(parallel,perp)]\n",rParallel,rPerp,tauParallel,tauPerp);
+
+    // reflected: 
+    // hv = qv X kr 
+    hv[0] = (qv[1]*kr[2]-qv[2]*kr[1]);
+    hv[1] = (qv[2]*kr[0]-qv[0]*kr[2]);
+    hv[2] = (qv[0]*kr[1]-qv[1]*kr[0]);   
+    real hNorm = sqrt( SQR(hv[0])+SQR(hv[1])+SQR(hv[2]) );
+    assert( hNorm>REAL_MIN*100. );
+    for( int axis=0; axis<3; axis++ )
+      hv[axis]/=hNorm;   // normalize hv 
+
+    for( int axis=0; axis<3; axis++ )
+      bv[axis]= rPerp*aDotQ*qv[axis] + rParallel*aDotG*hv[axis];
+
+
+    // transmitted:
+    // mv = qv X kappa
+    mv[0] = (qv[1]*kappa[2]-qv[2]*kappa[1]);
+    mv[1] = (qv[2]*kappa[0]-qv[0]*kappa[2]);
+    mv[2] = (qv[0]*kappa[1]-qv[1]*kappa[0]);   
+    real mNorm = sqrt( SQR(mv[0])+SQR(mv[1])+SQR(mv[2]) );
+    assert( mNorm>REAL_MIN*100. );
+    for( int axis=0; axis<3; axis++ )
+      mv[axis]/=mNorm;   // normalize mv 
+    for( int axis=0; axis<3; axis++ )
+      dv[axis]= tauPerp*aDotQ*qv[axis] + tauParallel*aDotG*mv[axis];
+
+
+  }
+  
+  printF("PMI: bv=(%8.2e,%8.2e,%8.2e)\n",bv[0],bv[1],bv[2]);
+  printF("PMI: dv=(%8.2e,%8.2e,%8.2e)\n",dv[0],dv[1],dv[2]);
+
+  // H: (can be computed directly from E)
+  //   mu*H_t = -curl( E )
+  //  -mu*w*Hx = - [ D_y(Ez) - D_z(Ey) ]
+  //  -mu*w*Hy = - [ D_z(Ex) - D_x(Ez) ]
+  //  -mu*w*Hz = - [ D_x(Ey) - D_y(Ex) ]
+  real ev[3]; // incident H: this depends on av
+  real fv[3]; // reflected H
+  real gv[3]; // transmitted H
+
+  const real w = c1*kNorm;  // omega 
+  const real w1=w*mu1, w2=w*mu2;
+  ev[0] = (ky*av[2]-kz*av[1])/w1;
+  ev[1] = (kz*av[0]-kx*av[2])/w1;
+  ev[2] = (kx*av[1]-ky*av[0])/w1;
+      
+  fv[0] = (kr[1]*bv[2]-kr[2]*bv[1])/w1;
+  fv[1] = (kr[2]*bv[0]-kr[0]*bv[2])/w1;
+  fv[2] = (kr[0]*bv[1]-kr[1]*bv[0])/w1;
+
+  gv[0] = (kappa[1]*dv[2]-kappa[2]*dv[1])/w2;
+  gv[1] = (kappa[2]*dv[0]-kappa[0]*dv[2])/w2;
+  gv[2] = (kappa[0]*dv[1]-kappa[1]*dv[0])/w2;
+
+  // Now fill in the constants that define the solution (see planeMaterialInterface.h)
+      
+  // E : Incident+reflected:
+  pmc[ 0]=av[0]; pmc[ 1]=bv[0];
+  pmc[ 2]=av[1]; pmc[ 3]=bv[1];
+  pmc[ 4]=av[2]; pmc[ 5]=bv[2];
+  // E : Transmitted
+  pmc[12]=dv[0]; 
+  pmc[13]=dv[1]; 
+  pmc[14]=dv[2]; 
+
+  // H : Incident+reflected:
+  pmc[ 6]=ev[0]; pmc[ 7]=fv[0];
+  pmc[ 8]=ev[1]; pmc[ 9]=fv[1];
+  pmc[10]=ev[2]; pmc[11]=fv[2];
+
+  // H : Transmitted
+  pmc[15]=gv[0]; 
+  pmc[16]=gv[1]; 
+  pmc[17]=gv[2]; 
+      
+  pmc[18]=w;  // omega 
+  pmc[19]=kx; pmc[20]=ky; pmc[21]=kz;
+  pmc[22]=kr[0]; pmc[23]=kr[1]; pmc[24]=kr[2];
+  pmc[25]=kappa[0]; pmc[26]=kappa[1]; pmc[27]=kappa[2];
+  pmc[28]=x0PlaneMaterialInterface[0]; pmc[29]=x0PlaneMaterialInterface[1]; pmc[30]=x0PlaneMaterialInterface[2];
+  pmc[30]=normalPlaneMaterialInterface[0]; pmc[31]=normalPlaneMaterialInterface[1]; pmc[32]=normalPlaneMaterialInterface[2];
+
+  
+  return 0;
+}
+
+//! Assign initial conditions
+//   (Ex).t = (1/eps)*[  (Hz).y ]
+//   (Ey).t = (1/eps)*[ -(Hz).x ]
+//   (Hz).t = (1/mu) *[ (Ex).y - (Ey).x ]
+void Maxwell::
+assignInitialConditions(int current, real t, real dt )
+// ===========================================================================================
+// ===========================================================================================
+{
+  real time0=getCPU();
+  
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+  const int numberOfDimensions=cg.numberOfDimensions();
+
+  if( forcingOption==twilightZoneForcing )
+  {
+    int numberOfComponents;
+    if( numberOfDimensions==2 )
+      numberOfComponents=3; 
+    else
+      numberOfComponents=(int(solveForElectricField)+int(solveForMagneticField))*3;
+
+    if( method==sosup )
+    {
+      numberOfComponents= cgfields[0][0].getLength(3);
+    }
+    
+    // *wdh* 090516 : define variable coeff's for rho, eps, mu, sigmaE and sigmaH with TZ 
+    int numberOfComponentsForTZ=numberOfComponents+5;
+    assert( sigmaHc==(numberOfComponentsForTZ-1) );
+
+    delete tz;
+    if( twilightZoneOption==polynomialTwilightZone )
+    {
+      
+      definePolynomialTZMacro();
+
+    }
+    else if( twilightZoneOption==trigonometricTwilightZone )
+    {
+
+      defineTrigonometricTZMacro();
+
+    }
+    else if( twilightZoneOption==pulseTwilightZone )
+    {
+      tz= new OGPulseFunction;
+    }
+    else
+    {
+      printF("assignInitialConditions:ERROR:unknown value for twilightZoneOption=%i\n",(int)twilightZoneOption);
+      OV_ABORT("assignInitialConditions:ERROR");
+    }
+
+  };
+
+
+  
+  const int prev = (current-1+numberOfTimeLevels) % numberOfTimeLevels;
+  const int next = (current+1) % numberOfTimeLevels;
+
+  const int numberOfComponentGrids = cg.numberOfComponentGrids();
+
+  if( (method==nfdtd  || method==sosup ) && orderOfAccuracyInTime>=4 )
+  {
+    // ** functions only needed for curvilinear grids **** fix ****
+    numberOfFunctions=1; //  orderOfAccuracyInTime-1;
+
+    if( true || cg.numberOfDimensions()==3 ) numberOfFunctions=3;  // *********************** fix *************** how many are needed?
+
+    delete [] fn;
+    fn = new realArray [numberOfFunctions*numberOfComponentGrids];
+  }
+
+
+  if( initialConditionOption==planeWaveScatteredFieldInitialCondition && knownSolution==NULL )
+  {
+    printF("Setting initial conditions to be planeWaveScatteredFieldInitialCondition. dt=%14.6e\n",dt);
+    // if ( method!=nfdtd && cg.numberOfDimensions()==3 )
+    //   printF("getInitialConditions:ERROR: initialConditionOption==planeWaveScatteredFieldInitialCondition "
+    //          "not implemented for staggered grids yet in 3D.\n");
+
+      initializeKnownSolution();
+  }
+  
+
+  if( initialConditionOption==userDefinedInitialConditionsOption )
+  {
+    // -- evaluate user defined initial conditions --
+
+    userDefinedInitialConditions( current, t, dt );
+
+  }
+  else
+  {
+
+// rectangular grid coordinates
+#define X0(i0,i1,i2) (xa+dx0*(i0-i0a))
+#define X1(i0,i1,i2) (ya+dy0*(i1-i1a))
+#define X2(i0,i1,i2) (za+dz0*(i2-i2a))
+
+
+    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+
+      if( method==yee )
+      { 
+	// Compute the initial conditions for the Yee method
+	assert( numberOfComponentGrids==1 );
+	int option=0;
+	int iparm[5] = { -1,-1,0,0,0 }; // 
+	getValuesFDTD( option, iparm, current, t, dt );
+	getValuesFDTD( option, iparm, prev, t-dt, dt );
+  
+	if( useTwilightZoneMaterials )
+	{
+	  // define material properties from the twilight zone
+	  assert( tz!=NULL );
+	  OGFunction & e = *tz;
+
+	  printF(" ***** Assign the variable coefficient material properties eps(x,y,z) and mu(x,y,z)"
+		 " from the twilight zone ***\n");
+
+	  Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
+  
+	  MappedGrid & mg = cg[grid];
+	  mg.update(MappedGrid::THEmask );
+	  intArray & mask = mg.mask();
+#ifdef USE_PPP
+	  intSerialArray maskLocal;  getLocalArrayWithGhostBoundaries(mask,maskLocal);
+#else
+	  intSerialArray & maskLocal = mask; 
+#endif
+
+	  int extra=1; // include ghost points since we average cell centered values to edges and faces
+	  getIndex(mg.gridIndexRange(),I1,I2,I3,extra);
+	  int includeGhost=0;
+	  bool ok = ParallelUtility::getLocalArrayBounds(mask,maskLocal,I1,I2,I3,includeGhost);
+	  if( ok )
+	  {
+	    // Each cell gets a different material
+	    media.redim(maskLocal.dimension(0),maskLocal.dimension(1),maskLocal.dimension(2));
+	    media=0;
+	  
+	    numberOfMaterialRegions=I1.getLength()*I2.getLength()*I3.getLength();
+	    epsv.resize(numberOfMaterialRegions); muv.resize(numberOfMaterialRegions); 
+	    sigmaEv.resize(numberOfMaterialRegions); sigmaHv.resize(numberOfMaterialRegions);
+
+	    real dx[3]={1.,1.,1.}, xab[2][3]={{0.,0.,0.},{0.,0.,0.}};
+	    mg.getRectangularGridParameters( dx, xab );
+	  
+	    const int i0a=mg.gridIndexRange(0,0);
+	    const int i1a=mg.gridIndexRange(0,1);
+	    const int i2a=mg.gridIndexRange(0,2);
+
+	    const real xa=xab[0][0], dx0=dx[0];
+	    const real ya=xab[0][1], dy0=dx[1];
+	    const real za=xab[0][2], dz0=dx[2];
+
+	    real zc=0.;
+	    int nr=0;
+	    int i1,i2,i3;
+	    FOR_3D(i1,i2,i3,I1,I2,I3)
+	    {
+	      // cell-center: 
+	      real xc=X0(i1,i2,i3)+.5*dx[0];
+	      real yc=X1(i1,i2,i3)+.5*dx[1];
+	      if( numberOfDimensions==3 ) 
+		zc=X2(i1,i2,i3)+.5*dx[2];
+      
+	      // Here we assume the material properaties are independent of time 
+	      media(i1,i2,i3)=nr;
+	      epsv(nr)   =e(xc,yc,zc,epsc,t);
+	      muv(nr)    =e(xc,yc,zc,muc,t);
+	      sigmaEv(nr)=e(xc,yc,zc,sigmaEc,t);
+	      sigmaHv(nr)=e(xc,yc,zc,sigmaHc,t);
+	      nr++;
+	    }
+	    assert( nr==numberOfMaterialRegions );
+	  }
+	}
+
+	continue;
+      }
+
+      const real c = cGrid(grid);
+      const real eps = epsGrid(grid);
+      const real mu = muGrid(grid);
+
+      const real cc= c*sqrt( kx*kx+ky*ky+kz*kz);
+      const real csq=c*c;
+
+      // call the bpp macro to define the E and H field gridfunctions and cpp macros
+      EXTRACT_GFP(IC);
+
+      const int i0a=mg.gridIndexRange(0,0);
+      const int i1a=mg.gridIndexRange(0,1);
+      const int i2a=mg.gridIndexRange(0,2);
+
+      const real xa=xab[0][0], dx0=dx[0];
+      const real ya=xab[0][1], dy0=dx[1];
+      const real za=xab[0][2], dz0=dx[2];
+
+      Index J1,J2,J3;
+      int i1,i2,i3;
+
+      const bool saveExtraForcingLevels = orderOfAccuracyInTime>=4 && timeSteppingMethod!=modifiedEquationTimeStepping;
+
+      uh = umh = 0;
+      ue = ume = 0;
+
+      if( true /*numberOfComponents==3 || method==nfdtd*/ )
+      {
+	if( saveExtraForcingLevels || 
+	    !isRectangular )  // ********************** fix this -- FN used in advanceStructured *****************
+	{
+	  // we need to save the "RHS" at some previous times.
+	  Index D1,D2,D3;
+	  getIndex(mg.dimension(),D1,D2,D3);
+	  Range C(ex,hz);
+	  for( int m=0; m<numberOfFunctions; m++ )
+	  {
+#define FN(m) fn[m+numberOfFunctions*(grid)]
+	    FN(m).partition(mg.getPartition());
+	    FN(m).redim(D1,D2,D3,C);
+	  }
+	  currentFn=0; 
+	}
+
+	Range C(ex,hz);
+
+	getIndex(mg.dimension(),I1,I2,I3);  // ***************** fix this -- needed for bug in OGP
+
+	if( forcingOption==twilightZoneForcing )
+	{
+	  assert( tz!=NULL );
+	  OGFunction & e = *tz;
+	    
+	  if( mg.numberOfDimensions()==2 )
+	  {
+
+	    // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
+	    J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+	    J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+	    J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+	    if( method==sosup )
+	    {
+	      printF("BBBBBBBBBBBBB assign TZ initial conditions for sosup BBBBBBBBBBBBBBBBBB\n");
+	    }
+	    
+
+	    FOR_3D(i1,i2,i3,J1,J2,J3)
+	    {
+
+	      real xe0 = XEP(i1,i2,i3,0);
+	      real ye0 = XEP(i1,i2,i3,1);
+
+	      UEX(i1,i2,i3) =e(xe0,ye0,0.,ex,tE);
+	      UEY(i1,i2,i3) =e(xe0,ye0,0.,ey,tE);
+              if( method==sosup )
+	      {
+		uLocal(i1,i2,i3,ext) =e(xe0,ye0,0.,ext,tE);
+	        uLocal(i1,i2,i3,eyt) =e(xe0,ye0,0.,eyt,tE);
+	      }
+	      
+	    }
+		
+	    if ( method!=sosup )
+	    {
+	      FOR_3D(i1,i2,i3,J1,J2,J3)
+	      {
+		real xe0 = XEP(i1,i2,i3,0);
+		real ye0 = XEP(i1,i2,i3,1);
+		UMEX(i1,i2,i3)=e(xe0,ye0,0.,ex,tE-dt);
+		UMEY(i1,i2,i3)=e(xe0,ye0,0.,ey,tE-dt);
+	      }
+	    }
+
+	  J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+	  J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+	  J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+
+	  FOR_3(i1,i2,i3,J1,J2,J3)
+	  {
+	    real xh0 = XHP(i1,i2,i3,0);
+	    real yh0 = XHP(i1,i2,i3,1);
+		
+	    UHZ(i1,i2,i3) =e(xh0,yh0,0.,hz,tH);
+	    if( method==sosup )
+	    {
+	      uLocal(i1,i2,i3,hzt) =e(xh0,yh0,0.,hzt,tH);
+	    }
+	  }
+
+	  if ( method!=sosup )
+	  {
+	    FOR_3(i1,i2,i3,J1,J2,J3)
+	    {
+	      real xh0 = XHP(i1,i2,i3,0);
+	      real yh0 = XHP(i1,i2,i3,1);
+	      UMHZ(i1,i2,i3)=e(xh0,yh0,0.,hz,t-dt);
+	    }
+	  }
+
+
+	  }
+	  else
+	  { // ***** 3D TZ IC's ****
+
+	    if( solveForElectricField )
+	    {
+	      // these ranges should work since we get the u*Dim* from the local raw data sizes (??!!)
+	      J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+	      J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+	      J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+	      if ( method!=sosup )
+	      {
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  real x0 = XEP(i1,i2,i3,0);
+		  real y0 = XEP(i1,i2,i3,1);
+		  real z0 = XEP(i1,i2,i3,2);
+		  UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
+		  UMEX(i1,i2,i3)=e(x0,y0,z0,ex,tE-dt);
+
+		  UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
+		  UMEY(i1,i2,i3)=e(x0,y0,z0,ey,tE-dt);
+			
+		  UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
+		  UMEZ(i1,i2,i3)=e(x0,y0,z0,ez,tE-dt);
+		}
+	      }
+	      else
+	      {
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  real x0 = XEP(i1,i2,i3,0);
+		  real y0 = XEP(i1,i2,i3,1);
+		  real z0 = XEP(i1,i2,i3,2);
+                  // assign the field:
+		  UEX(i1,i2,i3) =e(x0,y0,z0,ex,tE);
+		  UEY(i1,i2,i3) =e(x0,y0,z0,ey,tE);
+		  UEZ(i1,i2,i3) =e(x0,y0,z0,ez,tE);
+                  // assign time derivatives:
+                  uLocal(i1,i2,i3,ext) =e(x0,y0,z0,ext,tE);
+                  uLocal(i1,i2,i3,eyt) =e(x0,y0,z0,eyt,tE);
+                  uLocal(i1,i2,i3,ezt) =e(x0,y0,z0,ezt,tE);
+
+		}
+	      }
+	      
+	    }
+		
+	    if ( solveForMagneticField )
+	    {
+	      J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+	      J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+	      J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+	      FOR_3D(i1,i2,i3,J1,J2,J3)
+	      {
+		real x0 = XHP(i1,i2,i3,0);
+		real y0 = XHP(i1,i2,i3,1);
+		real z0 = XHP(i1,i2,i3,2);
+		UHX(i1,i2,i3) =e(x0,y0,z0,hx,tH);
+		UMHX(i1,i2,i3)=e(x0,y0,z0,hx,tH-dt);
+		UHY(i1,i2,i3) =e(x0,y0,z0,hy,tH);
+		UMHY(i1,i2,i3)=e(x0,y0,z0,hy,tH-dt);
+		UHZ(i1,i2,i3) =e(x0,y0,z0,hz,tH);
+		UMHZ(i1,i2,i3)=e(x0,y0,z0,hz,tH-dt);
+	      }
+	    }
+	  
+	  }
+	      
+      
+	
+	  if( saveExtraForcingLevels )
+	  {
+	    // we need to save the "RHS" at some previous times.
+	    for( int m=0; m<numberOfFunctions; m++ )
+	    {
+#ifdef USE_PPP
+	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+	      OV_ABORT("finish me for parallel");
+#else
+	      realSerialArray & fnLocal = FN(m);
+#endif
+
+	      FN(m)(I1,I2,I3,C)=csq*e.laplacian(mg,I1,I2,I3,C,t-dt*(m+1));
+	      getForcing( current, grid,FN(m),t-dt*(m+1),dt );
+	    }
+	  }
+	} // end if forcing option == twilightzone
+	else if( initialConditionOption==planeWaveInitialCondition )
+	{
+	  // ::display(initialConditionBoundingBox,"initialConditionBoundingBox");
+
+	  printF(" *** planeWaveInitialCondition: t=%9.3e dt=%9.3e eps=%9.3e mu=%9.3e c=%9.3e ***\n",t,dt,eps,mu,c);
+	
+	  J1 = Range(max(Ie1.getBase(),ue.getBase(0)),min(Ie1.getBound(),ue.getBound(0)));
+	  J2 = Range(max(Ie2.getBase(),ue.getBase(1)),min(Ie2.getBound(),ue.getBound(1)));
+	  J3 = Range(max(Ie3.getBase(),ue.getBase(2)),min(Ie3.getBound(),ue.getBound(2)));
+
+	  if( numberOfDimensions==2 )
+	  {
+	    if( initialConditionBoundingBox(1,0) < initialConditionBoundingBox(0,0) )
+	    {
+	      if( method==nfdtd  ) 
+	      {
+		// new way  --
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  //real x = XEP(i1,i2,i3,0);
+		  //real y = XEP(i1,i2,i3,1);
+
+		  real x = xe(i1,i2,i3);
+		  real y = ye(i1,i2,i3);
+
+		  UMEX(i1,i2,i3)=exTrue(x,y,tE-dt);
+		  UMEY(i1,i2,i3)=eyTrue(x,y,tE-dt);
+		  UMHZ(i1,i2,i3)=hzTrue(x,y,tH-dt);
+		
+		  UEX(i1,i2,i3)=exTrue(x,y,tE);
+		  UEY(i1,i2,i3)=eyTrue(x,y,tE);
+		  UHZ(i1,i2,i3)=hzTrue(x,y,tH);
+
+		}
+	      }
+	      else if( method==sosup )
+	      {
+                // assign both the field and it's time derivative
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  real x = xe(i1,i2,i3);
+		  real y = ye(i1,i2,i3);
+
+                  // FOR NOW set old time: 
+		  UMEX(i1,i2,i3)=exTrue(x,y,tE-dt);
+		  UMEY(i1,i2,i3)=eyTrue(x,y,tE-dt);
+		  UMHZ(i1,i2,i3)=hzTrue(x,y,tH-dt);
+
+		  uLocal(i1,i2,i3,ex )=exTrue(x,y,tE);
+		  uLocal(i1,i2,i3,ey )=eyTrue(x,y,tE);
+		  uLocal(i1,i2,i3,hz )=hzTrue(x,y,tH);
+
+		  uLocal(i1,i2,i3,ext)=extTrue(x,y,tE);
+		  uLocal(i1,i2,i3,eyt)=eytTrue(x,y,tE);
+		  uLocal(i1,i2,i3,hzt)=hztTrue(x,y,tH);
+		}
+	      }
+	      else
+	      {
+		if( method==nfdtd || method==sosup ) // should be (numberOfTimeLevels>2) ??!!
+		{
+		  ume(Ie1,Ie2,Ie3,ex)=exTrue(xe,ye,t-dt);
+		  ume(Ie1,Ie2,Ie3,ey)=eyTrue(xe,ye,t-dt);
+		  umh(Ih1,Ih2,Ih3,hz)=hzTrue(xh,yh,t-dt);
+		}
+
+		ue(Ie1,Ie2,Ie3,ex)=exTrue(xe,ye,tE);
+		ue(Ie1,Ie2,Ie3,ey)=eyTrue(xe,ye,tE);
+		uh(Ih1,Ih2,Ih3,hz)=hzTrue(xh,yh,tH);
+	      }
+	    
+	    }
+	    else
+	    { // limit the plane wave initial condition to lie inside a bounding box: 
+	      assert( method==nfdtd  || method==sosup );
+	      int i1,i2,i3;
+	      if( true )
+	      {
+		// In this version we smoothly damp the plane wave along the direction of the front
+
+		// Damp near the point (x0,y0) on the front
+		// do this for now : 
+		real kNorm = sqrt( kx*kx+ky*ky );
+		// real beta=10./(twoPi*kNorm); // ** fix me ***
+		// *wdh* 111129 real beta=2./twoPi; // ** fix me ***
+		real beta=boundingBoxDecayExponent/twoPi;
+		real x0 = kx>=0 ? initialConditionBoundingBox(1,0) : initialConditionBoundingBox(0,0);
+		real y0 = ky>=0 ? initialConditionBoundingBox(1,1) : initialConditionBoundingBox(0,1);  
+		FOR_3D(i1,i2,i3,Ie1,Ie2,Ie3)
+		{
+		  real x=xe(i1,i2,i3), y=ye(i1,i2,i3);
+
+#define AMP2D(x,y,t) (.5*(1.-tanh(beta*twoPi*(kx*((x)-x0)+ky*((y)-y0)-cc*(t)))))
+
+		  real amp = AMP2D(x,y,t-dt);
+		  ume(i1,i2,i3,ex)=exTrue(x,y,t-dt)*amp;
+		  ume(i1,i2,i3,ey)=eyTrue(x,y,t-dt)*amp;
+		  umh(i1,i2,i3,hz)=hzTrue(x,y,t-dt)*amp;
+
+		  amp = AMP2D(x,y,t);
+		  ue(i1,i2,i3,ex)=exTrue(x,y,tE)*amp;
+		  ue(i1,i2,i3,ey)=eyTrue(x,y,tE)*amp;
+		  uh(i1,i2,i3,hz)=hzTrue(x,y,tH)*amp;
+
+		  if( method == sosup )
+		  {
+		    ue(i1,i2,i3,ext)=extTrue(x,y,tE)*amp;
+		    ue(i1,i2,i3,eyt)=eytTrue(x,y,tE)*amp;
+		    uh(i1,i2,i3,hzt)=hztTrue(x,y,tH)*amp;
+		  }
+		}
+	      }
+	      else
+	      {
+		// old way: clip to a box 
+		FOR_3D(i1,i2,i3,Ie1,Ie2,Ie3)
+		{
+		  real x=xe(i1,i2,i3), y=ye(i1,i2,i3);
+		  if( x>=initialConditionBoundingBox(0,0) && x<=initialConditionBoundingBox(1,0) &&
+		      y>=initialConditionBoundingBox(0,1) && y<=initialConditionBoundingBox(1,1) )
+		  {
+
+		    ume(i1,i2,i3,ex)=exTrue(x,y,t-dt);
+		    ume(i1,i2,i3,ey)=eyTrue(x,y,t-dt);
+		    umh(i1,i2,i3,hz)=hzTrue(x,y,t-dt);
+
+		    ue(i1,i2,i3,ex)=exTrue(x,y,tE);
+		    ue(i1,i2,i3,ey)=eyTrue(x,y,tE);
+		    uh(i1,i2,i3,hz)=hzTrue(x,y,tH);
+
+		  }
+		}
+	      }
+	    
+	    }
+	  
+	  }
+	  else
+	  {  // ***** 3D ********
+	    if( solveForElectricField )
+	    {
+	      if( initialConditionBoundingBox(1,0) < initialConditionBoundingBox(0,0) )
+	      {
+		if( method==nfdtd )
+		{
+		  // new way 
+		  FOR_3D(i1,i2,i3,J1,J2,J3)
+		  {
+		    real x = XEP(i1,i2,i3,0);
+		    real y = XEP(i1,i2,i3,1);
+		    real z = XEP(i1,i2,i3,2);
+		    UMEX(i1,i2,i3)=exTrue3d(x,y,z,tE-dt);
+		    UMEY(i1,i2,i3)=eyTrue3d(x,y,z,tE-dt);
+		    UMEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE-dt);
+		
+		    UEX(i1,i2,i3)=exTrue3d(x,y,z,tE);
+		    UEY(i1,i2,i3)=eyTrue3d(x,y,z,tE);
+		    UEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE);
+		  }
+		}
+		else if( method==sosup )
+		{
+		  FOR_3D(i1,i2,i3,J1,J2,J3)
+		  {
+		    real x = XEP(i1,i2,i3,0);
+		    real y = XEP(i1,i2,i3,1);
+		    real z = XEP(i1,i2,i3,2);
+
+		    // FOR NOW set old time: 
+		    UMEX(i1,i2,i3)=exTrue3d(x,y,z,tE-dt);
+		    UMEY(i1,i2,i3)=eyTrue3d(x,y,z,tE-dt);
+		    UMEZ(i1,i2,i3)=ezTrue3d(x,y,z,tE-dt);
+		    
+		    uLocal(i1,i2,i3,ex )=exTrue3d(x,y,z,tE);
+		    uLocal(i1,i2,i3,ey )=eyTrue3d(x,y,z,tE);
+		    uLocal(i1,i2,i3,ez )=ezTrue3d(x,y,z,tE);
+		    
+		    uLocal(i1,i2,i3,ext)=extTrue3d(x,y,z,tE);
+		    uLocal(i1,i2,i3,eyt)=eytTrue3d(x,y,z,tE);
+		    uLocal(i1,i2,i3,ezt)=eztTrue3d(x,y,z,tE);
+		  }
+		}
+
+		else
+		{
+		  if( method==nfdtd  || method==sosup )
+		  {
+		    ume(I1,I2,I3,ex)=exTrue3d(xe,ye,ze,tE-dt);
+		    ume(I1,I2,I3,ey)=eyTrue3d(xe,ye,ze,tE-dt);
+		    ume(I1,I2,I3,ez)=ezTrue3d(xe,ye,ze,tE-dt);
+		  }
+
+		  ue(Ie1,Ie2,Ie3,ex)=exTrue3d(xe,ye,ze,tE);
+		  ue(Ie1,Ie2,Ie3,ey)=eyTrue3d(xe,ye,ze,tE);
+		  ue(Ie1,Ie2,Ie3,ez)=ezTrue3d(xe,ye,ze,tE);
+		}
+	    
+	      }
+	      else
+	      { // limit the plane wave initial condition to lie inside a bounding box: 
+		assert( method==nfdtd  || method==sosup );
+		assert( !solveForMagneticField );  // fix me for this case
+		int i1,i2,i3;
+		FOR_3D(i1,i2,i3,Ie1,Ie2,Ie3)
+		{
+		  real x=xe(i1,i2,i3), y=ye(i1,i2,i3), z=ze(i1,i2,i3);
+		  if( x>=initialConditionBoundingBox(0,0) && x<=initialConditionBoundingBox(1,0) &&
+		      y>=initialConditionBoundingBox(0,1) && y<=initialConditionBoundingBox(1,1) &&
+		      z>=initialConditionBoundingBox(0,2) && z<=initialConditionBoundingBox(1,2) )
+		  {
+
+		    ume(i1,i2,i3,ex)=exTrue3d(x,y,z,tE-dt);
+		    ume(i1,i2,i3,ey)=eyTrue3d(x,y,z,tE-dt);
+		    ume(i1,i2,i3,ez)=ezTrue3d(x,y,z,tE-dt);
+
+		    ue(i1,i2,i3,ex)=exTrue3d(x,y,z,tE);
+		    ue(i1,i2,i3,ey)=eyTrue3d(x,y,z,tE);
+		    ue(i1,i2,i3,ez)=ezTrue3d(x,y,z,tE);
+
+		  }
+		}
+
+	      }
+	    }
+	    if( solveForMagneticField )
+	    {
+	      if ( method==nfdtd || method==sosup )
+	      {
+		umh(I1,I2,I3,hx)=hxTrue3d(xh,yh,zh,tH-dt);
+		umh(I1,I2,I3,hy)=hyTrue3d(xh,yh,zh,tH-dt);
+		umh(I1,I2,I3,hz)=hzTrue3d(xh,yh,zh,tH-dt);
+	      }
+
+	      uh(Ih1,Ih2,Ih3,hx)=hxTrue3d(xh,yh,zh,tH);
+	      uh(Ih1,Ih2,Ih3,hy)=hyTrue3d(xh,yh,zh,tH);
+	      uh(Ih1,Ih2,Ih3,hz)=hzTrue3d(xh,yh,zh,tH);
+	    }
+	      
+	  }
+	    
+
+	  if( saveExtraForcingLevels && timeSteppingMethod!=modifiedEquationTimeStepping )
+	  {
+	    // we need to save the "RHS" at some previous times.
+	    for( int m=0; m<numberOfFunctions; m++ )
+	    {
+#ifdef USE_PPP
+	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+#else
+	      realSerialArray & fnLocal = FN(m);
+#endif
+	      if( numberOfDimensions==2 )
+	      {
+		fnLocal(I1,I2,I3,ex)=csq*exLaplacianTrue(xe,ye,t-dt*(m+1));
+		fnLocal(I1,I2,I3,ey)=csq*eyLaplacianTrue(xe,ye,t-dt*(m+1));
+		fnLocal(I1,I2,I3,hz)=csq*hzLaplacianTrue(xh,yh,t-dt*(m+1));
+
+	      }
+	      else
+	      {
+		if( solveForElectricField )
+		{
+		  fnLocal(I1,I2,I3,ex)=csq*exLaplacianTrue3d(xe,ye,ze,t-dt*(m+1));
+		  fnLocal(I1,I2,I3,ey)=csq*eyLaplacianTrue3d(xe,ye,ze,t-dt*(m+1));
+		  fnLocal(I1,I2,I3,ez)=csq*ezLaplacianTrue3d(xe,ye,ze,t-dt*(m+1));
+		}
+		if( solveForMagneticField )
+		{
+		  fnLocal(I1,I2,I3,hx)=csq*hxLaplacianTrue3d(xh,yh,zh,t-dt*(m+1));
+		  fnLocal(I1,I2,I3,hy)=csq*hyLaplacianTrue3d(xh,yh,zh,t-dt*(m+1));
+		  fnLocal(I1,I2,I3,hz)=csq*hzLaplacianTrue3d(xh,yh,zh,t-dt*(m+1));
+		}
+		  
+	      }
+	      getForcing( current, grid,FN(m),t-dt*(m+1),dt );
+		
+	    }
+	  }
+	  else if( timeSteppingMethod!=modifiedEquationTimeStepping && orderOfAccuracyInTime!=2 )
+	  {
+	    OV_ABORT();
+	  }
+	  
+	}
+	else if( forcingOption==magneticSinusoidalPointSource )
+	{
+	  uh=0.;
+	  ue=0.;
+	  const IntegerArray & gid = mg.gridIndexRange();
+	  int i1=gid(0,0)+(gid(1,0)-gid(0,0))/2;
+	  int i2=gid(0,1)+(gid(1,1)-gid(0,1))/2;
+	  int i3=gid(0,2)+(gid(1,2)-gid(0,2))/2;
+	    
+	  //kkc 0 for the last index takes care of faceCenteredAll H gridFunctions in 3D
+	  uh(i1,i2,i3,hz,0)=sin(twoPi*frequency*t);
+	}
+	else if( initialConditionOption==zeroInitialCondition )
+	{
+	  printF("Setting ZERO initial conditions\n");
+
+	  uh(Ih1,Ih2,Ih3,all,all)=0.;
+	  ue(Ie1,Ie2,Ie3,all,all)=0.;
+	  //            u(I1,I2,I3,ey)=0.;
+
+	  if ( method==nfdtd )
+	  {
+	    umh(I1,I2,I3,all,all)=0.;
+	    ume(I1,I2,I3,all,all)=0.;
+	  }
+	  //            um(I1,I2,I3,ey)=0.;
+
+	  if( forcingOption==planeWaveBoundaryForcing )
+	  {//kkc XXX probably not working for DSI schemes yet
+	    printF("*** Set BC's for planeWaveBoundaryForcing on initial conditions...\n");
+	    realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];
+	    realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
+
+	    int option=0; // not used.
+	    assignBoundaryConditions( option, grid, t-dt, dt, fieldPrev, fieldPrev, prev );
+	    assignBoundaryConditions( option, grid, t   , dt, fieldCurrent, fieldCurrent, current );
+
+	  }
+	}
+	else if( initialConditionOption==gaussianPlaneWave )
+	{
+	  // (Hz).t = (1/mu) *[ (Ex).y - (Ey).x ]
+	  printF("Setting initial condition to be a Gaussian plane wave, kx,ky,kz=%i %i %i\n",kx,ky,kz);
+	    
+	  realSerialArray xei,xhi;
+
+	  xei=kx*(xe-x0GaussianPlaneWave)+ky*(ye-y0GaussianPlaneWave) -cc*tE;
+	  xhi=kx*(xh-x0GaussianPlaneWave)+ky*(yh-y0GaussianPlaneWave) -cc*tH;
+
+	  uh(Ih1,Ih2,Ih3,hz)=hzGaussianPulse(xhi);
+	  ue(Ie1,Ie2,Ie3,ex)=exGaussianPulse(xei);//u(I1,I2,I3,hz)*(-ky/(eps*cc));
+	  ue(Ie1,Ie2,Ie3,ey)=eyGaussianPulse(xei);//u(I1,I2,I3,hz)*( kx/(eps*cc));
+
+	  xhi+=cc*dt;
+	  xei+=cc*dt;
+	  umh(Ih1,Ih2,Ih3,hz)=hzGaussianPulse(xhi);
+	  ume(Ie1,Ie2,Ie3,ex)=exGaussianPulse(xei);//u(I1,I2,I3,hz)*(-ky/(eps*cc));
+	  ume(Ie1,Ie2,Ie3,ey)=eyGaussianPulse(xei);//u(I1,I2,I3,hz)*( kx/(eps*cc));
+
+	  if( saveExtraForcingLevels )
+	  {
+	    // we need to save the "RHS" at some previous times.
+	    for( int m=0; m<numberOfFunctions; m++ )
+	    {
+#ifdef USE_PPP
+	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+	      OV_ABORT("finish me for parallel");
+#else
+	      realSerialArray & fnLocal = FN(m);
+#endif
+	      xhi=kx*(xe-x0GaussianPlaneWave)+ky*(ye-y0GaussianPlaneWave) -cc*(t-dt*(m+1));
+	      fnLocal(I1,I2,I3,hz)=hzLaplacianGaussianPulse(xhi);
+	      fnLocal(I1,I2,I3,ex)=fnLocal(I1,I2,I3,hz)*(-ky/(eps*cc));
+	      fnLocal(I1,I2,I3,ey)=fnLocal(I1,I2,I3,hz)*( kx/(eps*cc));
+	    }
+	  }
+	}
+	else if( initialConditionOption==gaussianPulseInitialCondition )
+	{
+	  ue=0.;
+	  uh=0.;
+//             // (Hz).t = (1/mu) *[ (Ex).y - (Ey).x ]
+	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+	  Index J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+	  Index J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+	  for( int pulse=0; pulse<numberOfGaussianPulses; pulse++ )
+	  {
+	      
+	    const real *gpp = gaussianPulseParameters[pulse];
+
+	    const real beta    = gpp[0];
+	    const real scale   = gpp[1];
+	    const real exponent= gpp[2];
+	    const real x0      = gpp[3];
+	    const real y0      = gpp[4];
+	    const real z0      = gpp[5];
+	    
+
+	    printF("Gaussian pulse IC's: beta=%8.2e, scale=%8.2e, exponent=%8.2e, (x0,y0,z0)=(%8.2e,%8.2e,%8.2e) \n",
+		   beta,scale,exponent,x0,y0,z0);
+
+	    const real c0= pulse==0 ? 0. : 1.;
+	    if( true )
+	    {
+	      int i1,i2,i3;
+	      if( isRectangular )
+	      {
+		assignGaussianPulseInitialConditions(rectangular);
+	      }
+	      else
+	      {
+		assignGaussianPulseInitialConditions(curvilinear);
+	      }
+	    }
+	  }
+	    
+	  if( saveExtraForcingLevels )
+	  {
+	    // we need to save the "RHS" at some previous times.
+	    for( int m=0; m<numberOfFunctions; m++ )
+	    {
+#ifdef USE_PPP
+	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+	      OV_ABORT("finish me for parallel");
+#else
+	      realSerialArray & fnLocal = FN(m);
+#endif
+	      fnLocal(I1,I2,I3,hz)=0.;
+	      fnLocal(I1,I2,I3,ex)=0.;
+	      fnLocal(I1,I2,I3,ey)=0.;
+	    }
+	  }
+	}
+	else if( initialConditionOption==squareEigenfunctionInitialCondition )
+	{
+	  real fx=Pi*initialConditionParameters[0];
+	  real fy=Pi*initialConditionParameters[1];
+	  real fz=Pi*initialConditionParameters[2];
+	  real x0=initialConditionParameters[3];
+	  real y0=initialConditionParameters[4];
+	  real z0=initialConditionParameters[5];
+	  real omega;
+	  real a1=1., a2=-2., a3=1.;  // For 3d, divergence free if a1+a2+a3=0
+	  if( numberOfDimensions==2 )
+	  {
+	    omega=c*sqrt(fx*fx+fy*fy);
+	    // x0=-.5, y0=-.5;   // for the square [-.5,.5]x[-.5,.5] 
+	  }
+	  else
+	  {
+	    omega=c*sqrt(fx*fx+fy*fy+fz*fz);
+	  }
+	    
+	  Index J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+	  Index J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+	  Index J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+	  int i1,i2,i3;
+	  real xd,yd,zd;
+
+	  if( isRectangular )
+	  {
+
+	    if( numberOfDimensions==2 )
+	    {
+	      Index J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+	      Index J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+	      Index J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+	      FOR_3D(i1,i2,i3,J1,J2,J3)
+	      {
+		real xdh=X0(i1,i2,i3)-x0;
+		real ydh=X1(i1,i2,i3)-y0;
+		UHZ(i1,i2,i3) =cos(fx*xdh)*cos(fy*ydh)*cos(omega*tH);
+	      }
+
+	      J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+	      J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+	      J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+
+	      FOR_3(i1,i2,i3,J1,J2,J3)
+	      {
+		real xde=X0(i1,i2,i3)-x0;
+		real yde=X1(i1,i2,i3)-y0;
+		UEX(i1,i2,i3) =  (-fy/omega)*cos(fx*xde)*sin(fy*yde)*sin(omega*tE);  // Ex.t = Hz.y
+		UEY(i1,i2,i3) =  ( fx/omega)*sin(fx*xde)*cos(fy*yde)*sin(omega*tE);  // Ey.t = - Hz.x
+	      }
+
+	      if( method==nfdtd )
+	      {
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  real xdh=X0(i1,i2,i3)-x0;
+		  real ydh=X1(i1,i2,i3)-y0;
+		  UMHZ(i1,i2,i3)=cos(fx*xdh)*cos(fy*ydh)*cos(omega*(t-dt));
+		}
+		FOR_3(i1,i2,i3,J1,J2,J3)
+		{
+		  real xde=X0(i1,i2,i3)-x0;
+		  real yde=X1(i1,i2,i3)-y0;
+		  UMEX(i1,i2,i3) =  (-fy/omega)*cos(fx*xde)*sin(fy*yde)*sin(omega*(t-dt));  // Ex.t = Hz.y
+		  UMEY(i1,i2,i3) =  ( fx/omega)*sin(fx*xde)*cos(fy*yde)*sin(omega*(t-dt));  // Ey.t = - Hz.x
+		}
+	      }
+              if( method==sosup )
+	      {
+
+		FOR_3(i1,i2,i3,J1,J2,J3)
+		{
+		  real xde=X0(i1,i2,i3)-x0;
+		  real yde=X1(i1,i2,i3)-y0;
+		  // time derivatives: 
+		  uLocal(i1,i2,i3,ext) = (-fy)*cos(fx*xde)*sin(fy*yde)*cos(omega*tE);  // Ex.t
+		  uLocal(i1,i2,i3,eyt) = ( fx)*sin(fx*xde)*cos(fy*yde)*cos(omega*tE);  // Ey.t
+
+		  uLocal(i1,i2,i3,hzt) = (-omega)*cos(fx*xde)*cos(fy*yde)*sin(omega*tH);  // Hz.t 
+		}
+		
+	      }
+	      
+	    } 
+	    else // 3D
+	    {
+
+	      FOR_3D(i1,i2,i3,J1,J2,J3)
+	      {
+		real xde=X0(i1,i2,i3)-x0;
+		real yde=X1(i1,i2,i3)-y0;
+		real zde=X2(i1,i2,i3)-z0;
+
+		UEX(i1,i2,i3) =  (a1/fx)*cos(fx*xde)*sin(fy*yde)*sin(fz*zde)*cos(omega*t);  // 
+		UEY(i1,i2,i3) =  (a2/fy)*sin(fx*xde)*cos(fy*yde)*sin(fz*zde)*cos(omega*t);  // 
+		UEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xde)*sin(fy*yde)*cos(fz*zde)*cos(omega*t);  // 
+
+		UMEX(i1,i2,i3) =  (a1/fx)*cos(fx*xde)*sin(fy*yde)*sin(fz*zde)*cos(omega*(t-dt));  // 
+		UMEY(i1,i2,i3) =  (a2/fy)*sin(fx*xde)*cos(fy*yde)*sin(fz*zde)*cos(omega*(t-dt));  // 
+		UMEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xde)*sin(fy*yde)*cos(fz*zde)*cos(omega*(t-dt));  // 
+	      }
+	      if( method==sosup )
+	      {
+		OV_ABORT("finish me");
+	      }
+
+
+	    }
+	  }
+	  else 
+	  {
+	    // --- curvilinear ---
+
+	    if( numberOfDimensions==2 )
+	    {
+	      Index J1 = Range(max(Ih1.getBase(),uhl.getBase(0)),min(Ih1.getBound(),uhl.getBound(0)));
+	      Index J2 = Range(max(Ih2.getBase(),uhl.getBase(1)),min(Ih2.getBound(),uhl.getBound(1)));
+	      Index J3 = Range(max(Ih3.getBase(),uhl.getBase(2)),min(Ih3.getBound(),uhl.getBound(2)));
+
+	      FOR_3D(i1,i2,i3,J1,J2,J3)
+	      {
+		xd=XHP(i1,i2,i3,0)-x0;
+		yd=XHP(i1,i2,i3,1)-y0;
+		UHZ(i1,i2,i3) =cos(fx*xd)*cos(fy*yd)*cos(omega*tH);
+	      }
+
+	      J1 = Range(max(Ie1.getBase(),uel.getBase(0)),min(Ie1.getBound(),uel.getBound(0)));
+	      J2 = Range(max(Ie2.getBase(),uel.getBase(1)),min(Ie2.getBound(),uel.getBound(1)));
+	      J3 = Range(max(Ie3.getBase(),uel.getBase(2)),min(Ie3.getBound(),uel.getBound(2)));
+	      FOR_3(i1,i2,i3,J1,J2,J3)
+	      {
+		xd=XEP(i1,i2,i3,0)-x0;
+		yd=XEP(i1,i2,i3,1)-y0;
+		
+		UEX(i1,i2,i3) =  (-fy/omega)*cos(fx*xd)*sin(fy*yd)*sin(omega*tE);  // Ex.t = Hz.y
+		UEY(i1,i2,i3) =  ( fx/omega)*sin(fx*xd)*cos(fy*yd)*sin(omega*tE);  // Ey.t = - Hz.x
+	      }            
+
+	      if ( method==nfdtd )
+	      {
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  xd=XHP(i1,i2,i3,0)-x0;
+		  yd=XHP(i1,i2,i3,1)-y0;
+		  UMHZ(i1,i2,i3)=cos(fx*xd)*cos(fy*yd)*cos(omega*(t-dt));
+		}
+		FOR_3(i1,i2,i3,J1,J2,J3)
+		{
+		  xd=XEP(i1,i2,i3,0)-x0;
+		  yd=XEP(i1,i2,i3,1)-y0;
+			
+		  UMEX(i1,i2,i3) =  (-fy/omega)*cos(fx*xd)*sin(fy*yd)*sin(omega*(t-dt));  // Ex.t = Hz.y
+		  UMEY(i1,i2,i3) =  ( fx/omega)*sin(fx*xd)*cos(fy*yd)*sin(omega*(t-dt));  // Ey.t = - Hz.x
+		}
+	      }
+
+              if( method==sosup )
+	      {
+                // --- assign time derivatives ---
+		FOR_3(i1,i2,i3,J1,J2,J3)
+		{
+		  xd=XEP(i1,i2,i3,0)-x0;
+		  yd=XEP(i1,i2,i3,1)-y0;
+
+		  // time derivatives: 
+		  uLocal(i1,i2,i3,ext) = (-fy)*cos(fx*xd)*sin(fy*yd)*cos(omega*tE);  // Ex.t
+		  uLocal(i1,i2,i3,eyt) = ( fx)*sin(fx*xd)*cos(fy*yd)*cos(omega*tE);  // Ey.t
+
+		  uLocal(i1,i2,i3,hzt) = (-omega)*cos(fx*xd)*cos(fy*yd)*sin(omega*tH);  // Hz.t 
+		}
+	      }
+	    } 
+	    else // 3D
+	    {
+
+	      FOR_3D(i1,i2,i3,J1,J2,J3)
+	      {
+		xd=XEP(i1,i2,i3,0)-x0;
+		yd=XEP(i1,i2,i3,1)-y0;
+		zd=XEP(i1,i2,i3,2)-z0;
+
+		UEX(i1,i2,i3) =  (a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*cos(omega*t);  // 
+		UEY(i1,i2,i3) =  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*t);  // 
+		UEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*t);  // 
+
+		if ( method==nfdtd )
+		{
+		  UMEX(i1,i2,i3) =  (a1/fx)*cos(fx*xd)*sin(fy*yd)*sin(fz*zd)*cos(omega*(t-dt));  // 
+		  UMEY(i1,i2,i3) =  (a2/fy)*sin(fx*xd)*cos(fy*yd)*sin(fz*zd)*cos(omega*(t-dt));  // 
+		  UMEZ(i1,i2,i3) =  (a3/fz)*sin(fx*xd)*sin(fy*yd)*cos(fz*zd)*cos(omega*(t-dt));  // 
+		}
+		else
+		  OV_ABORT("not implemented for staggered grids");
+	      }
+	    }
+	      
+	  }
+	  if( saveExtraForcingLevels )
+	  { // not implemented
+	    OV_ABORT("error: not implemented");
+	  }
+
+	}
+	else if( initialConditionOption==annulusEigenfunctionInitialCondition )
+	{
+       
+	  // This is a macro:
+	  annulusEigenFunction(solution)
+	    
+	    if( saveExtraForcingLevels )
+	    { // not implemented
+	      OV_ABORT("error: not implemented");
+	    }
+	    
+
+	}
+	else if( initialConditionOption==planeWaveScatteredFieldInitialCondition )
+	{
+	  printF("Setting initial conditions to be planeWaveScatterFieldInitialCondition. dt=%14.6e\n",dt);
+	  if( debug & 2 ) fPrintF(debugFile,
+				  "Setting initial conditions to be planeWaveScatterFieldInitialCondition. dt=%14.6e\n",dt);
+
+	  if ( method!=nfdtd && method!=sosup )
+	    OV_ABORT("planeWaveScatteredFieldInitialCondition: unexpected method");
+
+	  const realArray & ug = (*knownSolution)[grid];
+
+	  const real cc0= cGrid(0)*sqrt( kx*kx+ky*ky ); // NOTE: use grid 0 values for multi-materials
+
+	  // The analytic solution assumed incident field was Ei = exp(i*k*x-i*w*t) 
+	  //     This gives solution
+	  //           Re(E)*cos(w*t) - Im(E)*sin(w*t) for Ei=cos(w*t)
+	  //      or   Re(E)*cos(w*t-pi/2) - Im(E)*sin(w*t-pi/2) for Ei=cos(w*t-pi/2)               
+	  //      i.e. Re(E)*sin(w*t) + Im(E)*cos(w*t) for Ei=sin(w*t)
+	  // Ex:
+	  const real cost = cos(-twoPi*cc0*t); // *wdh* 040626 add "-"
+	  const real sint = sin(-twoPi*cc0*t); // *wdh* 040626 add "-"
+
+	  const real costm= cos(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+	  const real sintm= sin(-twoPi*cc0*(t-dt)); // *wdh* 040626 add "-"
+
+	  const real dcost =  twoPi*cc0*sint;  // d(sin(..))/dt 
+	  const real dsint = -twoPi*cc0*cost;  // d(sin(..))/dt 
+
+	  //kkc XXX this only works for nfdtd right now (knownSolution will need to change a bit
+	  //                                             to handle staggered grids)
+	    
+	  Range CE = numberOfDimensions==2 ? Range(ex,ey) : Range(ex,ez);
+	  Range CH = numberOfDimensions==2 ? Range(hz,hz) : Range(hx,hz);
+
+
+#ifdef USE_PPP
+	  realSerialArray ugLocal; getLocalArrayWithGhostBoundaries(ug,ugLocal);
+#else
+	  const realSerialArray & ugLocal = ug; 
+#endif
+	  if( method==nfdtd || method==sosup )
+	  { // do this with scalar indexing to avoid a possible bug in P++
+	    real *ugp = ugLocal.Array_Descriptor.Array_View_Pointer3;
+	    const int ugDim0=ugLocal.getRawDataSize(0);
+	    const int ugDim1=ugLocal.getRawDataSize(1);
+	    const int ugDim2=ugLocal.getRawDataSize(2);
+#undef UG
+#define UG(i0,i1,i2,i3) ugp[i0+ugDim0*(i1+ugDim1*(i2+ugDim2*(i3)))]
+
+	    // adjust array dimensions for local arrays
+	    Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
+	    Index J2 = Range(max(I2.getBase(),uel.getBase(1)),min(I2.getBound(),uel.getBound(1)));
+	    Index J3 = Range(max(I3.getBase(),uel.getBase(2)),min(I3.getBound(),uel.getBound(2)));
+	    int i1,i2,i3;
+	    if( numberOfDimensions==2 )
+	    {
+	      if( method==nfdtd )
+	      {
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  UEX(i1,i2,i3)= UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
+		  UEY(i1,i2,i3)= UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
+		  UHZ(i1,i2,i3)= UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost;
+
+		  UMEX(i1,i2,i3)= UG(i1,i2,i3,ex)*sintm+UG(i1,i2,i3,ex+3)*costm;
+		  UMEY(i1,i2,i3)= UG(i1,i2,i3,ey)*sintm+UG(i1,i2,i3,ey+3)*costm;
+		  UMHZ(i1,i2,i3)= UG(i1,i2,i3,hz)*sintm+UG(i1,i2,i3,hz+3)*costm;
+		}
+	      }
+	      else if( method==sosup )
+	      {
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  UEX(i1,i2,i3)= UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
+		  UEY(i1,i2,i3)= UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
+		  UHZ(i1,i2,i3)= UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost;
+
+		  // -- time derivatives: 
+		  uLocal(i1,i2,i3,ext)= UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost;
+		  uLocal(i1,i2,i3,eyt)= UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
+		  uLocal(i1,i2,i3,hzt)= UG(i1,i2,i3,hz)*dsint+UG(i1,i2,i3,hz+3)*dcost;
+		}
+	      }
+	      else
+	      {
+		OV_ABORT("planeWaveScatteredFieldInitialCondition: ERROR: unknown method");
+	      }
+	      
+	      
+	    }
+	    else 
+	    {
+	      if( solveForElectricField )
+	      {
+		if( method==nfdtd )
+		{
+		  FOR_3D(i1,i2,i3,J1,J2,J3)
+		  {
+		    UEX(i1,i2,i3)= UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
+		    UEY(i1,i2,i3)= UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
+		    UEZ(i1,i2,i3)= UG(i1,i2,i3,ez)*sint+UG(i1,i2,i3,ez+3)*cost;
+
+		    UMEX(i1,i2,i3)= UG(i1,i2,i3,ex)*sintm+UG(i1,i2,i3,ex+3)*costm;
+		    UMEY(i1,i2,i3)= UG(i1,i2,i3,ey)*sintm+UG(i1,i2,i3,ey+3)*costm;
+		    UMEZ(i1,i2,i3)= UG(i1,i2,i3,ez)*sintm+UG(i1,i2,i3,ez+3)*costm;
+		  }
+		}
+		else if( method==sosup )
+		{
+		  FOR_3D(i1,i2,i3,J1,J2,J3)
+		  {
+		    UEX(i1,i2,i3)= UG(i1,i2,i3,ex)*sint+UG(i1,i2,i3,ex+3)*cost;
+		    UEY(i1,i2,i3)= UG(i1,i2,i3,ey)*sint+UG(i1,i2,i3,ey+3)*cost;
+		    UEZ(i1,i2,i3)= UG(i1,i2,i3,ez)*sint+UG(i1,i2,i3,ez+3)*cost;
+
+		    // -- time derivatives: 
+		    uLocal(i1,i2,i3,ext)= UG(i1,i2,i3,ex)*dsint+UG(i1,i2,i3,ex+3)*dcost;
+		    uLocal(i1,i2,i3,eyt)= UG(i1,i2,i3,ey)*dsint+UG(i1,i2,i3,ey+3)*dcost;
+		    uLocal(i1,i2,i3,ezt)= UG(i1,i2,i3,ez)*dsint+UG(i1,i2,i3,ez+3)*dcost;
+		  }
+
+
+		}
+		else
+		{
+		  OV_ABORT("planeWaveScatteredFieldInitialCondition: ERROR: unknown method");
+		}
+
+	      }
+	      if( solveForMagneticField )
+	      {
+		FOR_3D(i1,i2,i3,J1,J2,J3)
+		{
+		  UHX(i1,i2,i3)= UG(i1,i2,i3,hx)*sint+UG(i1,i2,i3,hx+3)*cost;
+		  UHY(i1,i2,i3)= UG(i1,i2,i3,hy)*sint+UG(i1,i2,i3,hy+3)*cost;
+		  UHZ(i1,i2,i3)= UG(i1,i2,i3,hz)*sint+UG(i1,i2,i3,hz+3)*cost;
+
+		  UMHX(i1,i2,i3)= UG(i1,i2,i3,hx)*sintm+UG(i1,i2,i3,hx+3)*costm;
+		  UMHY(i1,i2,i3)= UG(i1,i2,i3,hy)*sintm+UG(i1,i2,i3,hy+3)*costm;
+		  UMHZ(i1,i2,i3)= UG(i1,i2,i3,hz)*sintm+UG(i1,i2,i3,hz+3)*costm;
+		}
+	      }
+	    }
+#undef UG
+
+	  }
+	  else
+	  {
+	    ue(Ie1,Ie2,Ie3,CE)= ugLocal(Ie1,Ie2,Ie3,CE)*sint+ugLocal(Ie1,Ie2,Ie3,CE+3)*cost;
+	    uh(Ih1,Ih2,Ih3,CH)= ugLocal(Ih1,Ih2,Ih3,CH)*sint+ugLocal(Ih1,Ih2,Ih3,CH+3)*cost;
+
+	    //            ume(I1,I2,I3,C)= ug(I1,I2,I3,C)*sint+ug(I1,I2,I3,C+3)*cost;
+	    ume(I1,I2,I3,CE)= ugLocal(I1,I2,I3,CE)*sintm+ugLocal(I1,I2,I3,CE+3)*costm;
+	    umh(I1,I2,I3,CH)= ugLocal(I1,I2,I3,CH)*sintm+ugLocal(I1,I2,I3,CH+3)*costm;
+	  }
+	    
+	}
+	else if( initialConditionOption==planeMaterialInterfaceInitialCondition )
+	{
+	  if( method==nfdtd )
+	  { 
+	    // adjust array dimensions for local arrays
+	    Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
+	    Index J2 = Range(max(I2.getBase(),uel.getBase(1)),min(I2.getBound(),uel.getBound(1)));
+	    Index J3 = Range(max(I3.getBase(),uel.getBase(2)),min(I3.getBound(),uel.getBound(2)));
+
+	    setPlaneMaterialInterfaceMacro(initialCondition,J1,J2,J3);
+	  }
+	}
+
+	else if( initialConditionOption==gaussianIntegralInitialCondition )
+	{
+	  printF("Setting initial condition to be Tom's Gaussian integral solution");
+	    
+	  // adjust array dimensions for local arrays
+	  Index J1 = Range(max(I1.getBase(),uel.getBase(0)),min(I1.getBound(),uel.getBound(0)));
+	  Index J2 = Range(max(I2.getBase(),uel.getBase(1)),min(I2.getBound(),uel.getBound(1)));
+	  Index J3 = Range(max(I3.getBase(),uel.getBase(2)),min(I3.getBound(),uel.getBound(2)));
+
+	  getGaussianIntegralSolution(solution,UEX,UEY,UHZ,t,J1,J2,J3);
+
+	  getGaussianIntegralSolution(solution,UMEX,UMEY,UMHZ,t-dt,J1,J2,J3);
+	    
+//             uh(Ih1,Ih2,Ih3,hz)=hzGaussianPulse(xhi);
+//             ue(Ie1,Ie2,Ie3,ex)=exGaussianPulse(xei);
+//             ue(Ie1,Ie2,Ie3,ey)=eyGaussianPulse(xei);
+
+//             xhi+=cc*dt;
+//             xei+=cc*dt;
+//             umh(Ih1,Ih2,Ih3,hz)=hzGaussianPulse(xhi);
+//             ume(Ie1,Ie2,Ie3,ex)=exGaussianPulse(xei);//u(I1,I2,I3,hz)*(-ky/(eps*cc));
+//             ume(Ie1,Ie2,Ie3,ey)=eyGaussianPulse(xei);//u(I1,I2,I3,hz)*( kx/(eps*cc));
+
+	  if( saveExtraForcingLevels )
+	  {
+	    // we need to save the "RHS" at some previous times.
+	    for( int m=0; m<numberOfFunctions; m++ )
+	    {
+#ifdef USE_PPP
+	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+	      OV_ABORT("finish me for parallel");
+#else
+	      realSerialArray & fnLocal = FN(m);
+#endif
+	      fnLocal(I1,I2,I3,hz)=0.; 
+	      fnLocal(I1,I2,I3,ex)=0.; 
+	      fnLocal(I1,I2,I3,ey)=0.; 
+	    }
+	  }
+	}
+
+	else if( initialConditionOption==defaultInitialCondition )
+	{
+	  printF("Setting initial conditions to be zero. (default)\n");
+	    
+	  //            u(I1,I2,I3,C)=0.;
+	  //            um(I1,I2,I3,C)=0.;
+	  uh = 0;
+	  ue = 0;
+	  umh = 0.;
+	  ume = 0;
+	  if( saveExtraForcingLevels )
+	  {
+	    for( int m=0; m<numberOfFunctions; m++ )
+	    {
+#ifdef USE_PPP
+	      realSerialArray fnLocal; getLocalArrayWithGhostBoundaries(FN(m),fnLocal);
+	      OV_ABORT("finish me for parallel");
+#else
+	      realSerialArray & fnLocal = FN(m);
+#endif
+	      fnLocal(I1,I2,I3,C)=0.;
+	    }
+	  
+	  }
+	  if( forcingOption==planeWaveBoundaryForcing )
+	  {
+	    printF("*** Set BC's for planeWaveBoundaryForcing on initial conditions...\n");
+	    realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];
+	    realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
+
+	    int option=0; // not used.
+	    assignBoundaryConditions( option, grid, t-dt, dt, fieldPrev, fieldPrev, prev );
+	    assignBoundaryConditions( option, grid, t   , dt, fieldCurrent, fieldCurrent, current );
+
+	  }
+
+	}
+	else if( initialConditionOption!=userDefinedInitialConditionsOption )
+	{
+	  OV_ABORT("Maxwell::unknown initialConditionOption option");
+	}
+
+      }
+#undef FN	      
+//kkc XXX look inside EXTRACT_GFP_END for the replacement
+//kkc XXX what should replace this??      fieldCurrent.periodicUpdate(); 
+//kkc XXX what should replace this??      fieldPrev.periodicUpdate();
+
+      // reset the cpp macros for the E and H field gridfunctions
+      // should the above periodic updates be done in this macro too?
+      EXTRACT_GFP_END(IC);
+      
+    } // end for grid
+    
+  } // end ! userDefinedIC
+
+    
+  if( debug & 4 ) 
+  {	  
+    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+      realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];
+      realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
+
+      ::display(fieldPrev,sPrintF("fieldPrev after initial conditions, t=%e",t),debugFile,"%9.2e ");
+      ::display(fieldCurrent,sPrintF("fieldCurrent after initial conditions, t=%e",t),debugFile,"%9.2e ");
+    }  // end for grid
+  } 
+
+
+
+  if( projectInitialConditions )
+  {
+    project( numberOfStepsTaken-1, prev,    t-dt, dt );
+
+    project( numberOfStepsTaken  , current, t   , dt );
+
+    if( method!=yee )
+    {
+      // Apply the BC;s
+      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+      {
+	realMappedGridFunction & fieldNext    =mgp!=NULL ? fields[next]    : cgfields[next][grid];
+	realMappedGridFunction & fieldCurrent =mgp!=NULL ? fields[current] : cgfields[current][grid];
+	realMappedGridFunction & fieldPrev    =mgp!=NULL ? fields[prev]    : cgfields[prev][grid];
+
+	int option=0;
+        // what should we use as the "previous" solution in the next call ?
+	assignBoundaryConditions( option, grid, t-dt, dt, fieldPrev   , fieldCurrent,current ); // check this
+
+	assignBoundaryConditions( option, grid, t   , dt, fieldCurrent, fieldPrev   ,prev );
+      }
+    }
+  }
+  
+  timing(timeForProject)=0.; // count project of IC's as part of the time for IC's
+  timing(timeForInitialConditions)+=getCPU()-time0;
+
+}
+
+// ===========================================================
+// Macro to set the known solution inside a radius
+// ===========================================================
+#beginMacro setKnownInside(x,y,z,ex)
+  rad2 = SQR(x)+SQR(y)+SQR(z);
+  if( rad2<radiusSquared )
+  { // set real and imaginary parts of the known solution:
+    ug(i1,i2,i3,ex                   )=ui(i1,i2,i3,ex                   );
+    ug(i1,i2,i3,ex+numberOfComponents)=ui(i1,i2,i3,ex+numberOfComponents);
+  }
+#endMacro  
+
+// =========================================================================================
+//  Use this function to initialize a known solution -- currently used to compute
+//  scattering past a cylinder or sphere or the Gaussian integral solution from Tom H.
+// =========================================================================================
+void Maxwell::
+initializeKnownSolution()
+{
+  if( knownSolution!=NULL )
+    return;
+
+  assert( cgp!=NULL );
+  CompositeGrid & cg = *cgp;
+
+  if( knownSolution==NULL )
+  {
+    // We save the Re and Im parts of the known solution
+    //      u(.,.,.,0..2) = (Ex,Ey,[Hz,ez]) : Re part
+    //      u(.,.,.,3..5) = (Ex,Ey,[Hz,ez]) : Im part
+    Range all;
+    int numberOfComponentsInKnown=6;
+    if( method==yee )
+    {
+      numberOfComponentsInKnown=(cg.numberOfDimensions()-1)*6;  // yee = 6 in 2d, 12 in 3d
+    }
+    
+    knownSolution=new realCompositeGridFunction(cg,all,all,all,numberOfComponentsInKnown);
+  }
+
+//    if( true )
+//    {
+//      *knownSolution=0.;
+//      return;
+//    }
+
+  const real a=.5;  // radius of the cylinder or sphere
+  real cr = 1.;  // c1/c2 (c2=inside)
+  int computeIncident=0;  // set to 1 to compute incident wave too 
+  real rpar[] = {twoPi*kx,a,cr}; //
+  int option=0;  // 0=PEC cylinder, 1=di-electric
+  int inOut=0;   // 0=exterior, 1=interior to the dielectric
+  int staggeredGrid = method==yee ? 1 : 0;
+  int ipar[] = {0,1,2,3,4,5,option,inOut,computeIncident,staggeredGrid,debug}; //
+
+  int numberOfComponents=3;
+  if( cg.numberOfDimensions()==3 && solveForMagneticField )
+  {
+    numberOfComponents=6;
+  }
+  
+
+  Index I1,I2,I3;
+  for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+  {
+
+    MappedGrid & mg = cg[grid];
+    mg.update(MappedGrid::THEcenter);
+    
+    getIndex(mg.dimension(),I1,I2,I3);
+    
+#ifdef USE_PPP
+    const realArray & uga = (*knownSolution)[grid];
+    realSerialArray ug; getLocalArrayWithGhostBoundaries(uga,ug);
+
+    const realArray & xya = mg.center();
+    realSerialArray xy;  getLocalArrayWithGhostBoundaries(xya,xy);
+
+    const int includeGhost=1;
+    bool ok = ParallelUtility::getLocalArrayBounds(uga,ug,I1,I2,I3,includeGhost); 
+    if( !ok ) continue;
+
+#else
+    const realSerialArray & ug = (*knownSolution)[grid];
+    const realSerialArray & xy = mg.center();
+#endif
+
+    if( method==yee &&
+        (knownSolutionOption==scatteringFromADielectricDiskKnownSolution ||
+	 knownSolutionOption==scatteringFromADielectricSphereKnownSolution) )
+    {
+      // ----------------------------------------------------
+      // ------------- Yee : staggered grid -----------------
+      // ----------------------------------------------------
+
+      // dielectric cylinder or sphere with embedded regions
+      assert( numberOfMaterialRegions==2 );
+      option=1;  ipar[6]=option; // 1=dielectric 
+
+      // rpar[2] = sqrt(epsGrid(2)/epsGrid(0)); // c1/c2 (c2=inside)
+      rpar[2] = sqrt( epsv(1)/epsv(0) );
+
+      if( cg.numberOfDimensions()==2 )
+      { 
+	// -- dielectric cylinder --
+	rpar[1] =.4;  // radius for dielectric cyl
+      }
+      else
+      {
+	// -- dielectric sphere --
+	rpar[1] =1.;  // radius for dielectric sphere 
+	ipar[8]=1;    // compute incident field
+      }      
+
+      
+      // ------------------------------------------------
+      // -- Eval the solution outside and save in ug ----
+      // ------------------------------------------------
+      inOut=0; ipar[7]=inOut; // eval outside
+      if( cg.numberOfDimensions()==2 )
+      {
+        // --- evaluate scattering by a cylinder ---
+
+	printF(" Call scatCyl for grid=%i, option=%i cr=%7.3f, inOut=%i...\n",grid,option,rpar[2],inOut);
+	scatCyl(mg.numberOfDimensions(), 
+		I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+		ug.getBase(0),ug.getBound(0),
+		ug.getBase(1),ug.getBound(1),
+		ug.getBase(2),ug.getBound(2),
+		ug.getBase(3),ug.getBound(3),
+		*(xy.getDataPointer()),*(ug.getDataPointer()),ipar[0],rpar[0] );
+      }
+      else
+      {
+        // --- evaluate scattering by a sphere ---
+        assert( ug.getLength(3)==12 );
+      
+	printF(" Call scatSphere for grid=%i...\n",grid);
+	scatSphere(mg.numberOfDimensions(), 
+		   I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+		   ug.getBase(0),ug.getBound(0),
+		   ug.getBase(1),ug.getBound(1),
+		   ug.getBase(2),ug.getBound(2),
+		   ug.getBase(3),ug.getBound(3),
+		   *(xy.getDataPointer()),*(ug.getDataPointer()),ipar[0],rpar[0] );
+      }
+
+      // -----------------------------------------------
+      // -- Eval the solution inside and save in ui ----
+      // -----------------------------------------------
+
+      inOut=1; ipar[7]=inOut; // eval inside
+      RealSerialArray ui(ug.dimension(0),ug.dimension(1),ug.dimension(2),ug.dimension(3));
+      ui=0.;
+      if( cg.numberOfDimensions()==2 )
+      {
+        // --- evaluate scattering by a cylinder ---
+
+	printF(" Call scatCyl for grid=%i, option=%i cr=%7.3f...\n",grid,option,rpar[2]);
+	scatCyl(mg.numberOfDimensions(), 
+		I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+		ug.getBase(0),ug.getBound(0),
+		ug.getBase(1),ug.getBound(1),
+		ug.getBase(2),ug.getBound(2),
+		ug.getBase(3),ug.getBound(3),
+		*(xy.getDataPointer()),*(ui.getDataPointer()),ipar[0],rpar[0] );
+      }
+      else
+      {
+        // --- evaluate scattering by a sphere ---
+	printF(" Call scatSphere for grid=%i...\n",grid);
+	scatSphere(mg.numberOfDimensions(), 
+		   I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+		   ug.getBase(0),ug.getBound(0),
+		   ug.getBase(1),ug.getBound(1),
+		   ug.getBase(2),ug.getBound(2),
+		   ug.getBase(3),ug.getBound(3),
+		   *(xy.getDataPointer()),*(ui.getDataPointer()),ipar[0],rpar[0] );
+      }
+
+      // Now fill in interior values in ug from ui 
+
+      I1=Range(I1.getBase(),min(I1.getBound(),ug.getBound(0)-1));
+      I2=Range(I2.getBase(),min(I2.getBound(),ug.getBound(1)-1));
+      if( mg.numberOfDimensions()==3 )
+	I3=Range(I3.getBase(),min(I3.getBound(),ug.getBound(2)-1));
+      
+      const real radiusSquared=SQR(rpar[1]);
+      real x0,y0,z0,xp,yp,zp,rad2;
+      int i1,i2,i3;
+      if( mg.numberOfDimensions()==2 )
+      {
+        // --- 2D cylinder ---
+        z0=0.;
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  x0 = xy(i1,i2,i3,0);
+	  y0 = xy(i1,i2,i3,1);
+	  xp = .5*( x0 + xy(i1+1,i2,i3,0) );
+	  yp = .5*( y0 + xy(i1,i2+1,i3,1) );
+
+          // Set Ex,Ey,Hz to the inner solution if the location is inside the cyl
+	  setKnownInside(xp,y0,z0,ex);
+	  setKnownInside(x0,yp,z0,ey);
+	  setKnownInside(xp,yp,z0,hz);
+
+	}
+      }
+      else
+      {
+        // --- 3D sphere ---
+        assert( numberOfComponents==6 );
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  x0 = xy(i1,i2,i3,0);
+	  y0 = xy(i1,i2,i3,1);
+	  z0 = xy(i1,i2,i3,2);
+	  xp = .5*( x0 + xy(i1+1,i2,i3,0) );
+	  yp = .5*( y0 + xy(i1,i2+1,i3,1) );
+	  zp = .5*( z0 + xy(i1,i2,i3+1,2) );
+
+          // Set Ex,Ey,Ez, Hx,Hy,Hz to the inner solution if the location is inside the cyl
+	  setKnownInside(xp,y0,z0,ex);
+	  setKnownInside(x0,yp,z0,ey);
+	  setKnownInside(x0,y0,zp,ez);
+	  if( solveForMagneticField )
+	  {
+	    setKnownInside(x0,yp,zp,hx);
+	    setKnownInside(xp,y0,zp,hy);
+	    setKnownInside(xp,yp,z0,hz);
+	  }
+	  
+	}
+      }
+
+    }
+    else if( knownSolutionOption==scatteringFromADiskKnownSolution ||
+	     knownSolutionOption==scatteringFromADielectricDiskKnownSolution ||
+	     knownSolutionOption==scatteringFromASphereKnownSolution ||
+	     knownSolutionOption==scatteringFromADielectricSphereKnownSolution )
+    {
+      if( gridHasMaterialInterfaces )
+      {
+	assert( (cg.numberOfDimensions()==2 && cg.numberOfComponentGrids()==4 ) ||
+                (cg.numberOfDimensions()==3 && (cg.numberOfComponentGrids()==6 || cg.numberOfComponentGrids()==8) ) );
+	option=1;
+	ipar[6]=option;
+	// rpar[2] = sqrt(epsGrid(2)/epsGrid(0)); // c1/c2 (c2=inside)
+	// assume grids 0 and 1 are outside and grids 2,3 are inside the cylinder
+	if( cg.numberOfDimensions()==2 )
+	{
+          // -- dielectric cylinder --
+  	  rpar[1] =.4;  // radius for dielectric cyl
+	  cr = cGrid(0)/cGrid(2); // c1/c2 (c2=inside)
+	  rpar[2] = cr;
+	  if( cg.numberOfDomains()>1 )
+            ipar[7]= cg.domainNumber(grid);    // new way 
+	  else
+  	    ipar[7]= grid<=1 ? 0 : 1;       // assume 2 grids on the outside (fix me!)
+	}
+        else
+	{
+          // -- dielectric sphere --
+	  rpar[1] =1.;  // radius for dielectric sphere 
+	  cr = cGrid(0)/cGrid(4); // c1/c2 (c2=inside)
+	  rpar[2] = cr;
+          // ipar[7]= grid<=2 ? 0 : 1;       // assume 3 grids on the outside (fix me!)
+          ipar[7]= cg.domainNumber(grid);    // new way domain=0 : outside, 1=inside 
+          ipar[8]=1;  // compute incident field
+	}
+      }
+
+      if( cg.numberOfDimensions()==2 )
+      {
+        // --- evaluate scattering by a cylinder ---
+
+	printF(" Call scatCyl for grid=%i, option=%i cr=%7.3f...\n",grid,option,cr);
+	scatCyl(mg.numberOfDimensions(), 
+		I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+		ug.getBase(0),ug.getBound(0),
+		ug.getBase(1),ug.getBound(1),
+		ug.getBase(2),ug.getBound(2),
+		ug.getBase(3),ug.getBound(3),
+		*(xy.getDataPointer()),*(ug.getDataPointer()),ipar[0],rpar[0] );
+      }
+      else
+      {
+        // --- evaluate scattering by a sphere ---
+	printF(" Call scatSphere for grid=%i...\n",grid);
+	scatSphere(mg.numberOfDimensions(), 
+		   I1.getBase(),I1.getBound(),I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),
+		   ug.getBase(0),ug.getBound(0),
+		   ug.getBase(1),ug.getBound(1),
+		   ug.getBase(2),ug.getBound(2),
+		   ug.getBase(3),ug.getBound(3),
+		   *(xy.getDataPointer()),*(ug.getDataPointer()),ipar[0],rpar[0] );
+      }
+
+
+      // Add on the incident field if we are computing the total field
+      //   -- only add on incident field for the outer domain in multi-domain problems ---
+      if( initialConditionOption==planeWaveInitialCondition   &&
+          (cg.numberOfDomains()==1 || cg.domainNumber(grid)==0 ) )
+      {
+        printF(" ** Add on incident field grid=%i...\n",grid);
+        const real t=0.;
+	const real cc= c*sqrt( kx*kx+ky*ky+kz*kz );
+	if( mg.numberOfDimensions()==2 )
+	{
+	  const realSerialArray & x = xy(I1,I2,I3,0);
+	  const realSerialArray & y = xy(I1,I2,I3,1);
+
+
+          // Ex.t=(Hz).y =>  -i*k*Ex = (Hz).y -> Ex = i (Hz).y/k  -> Re(Ex) = -Im(Hz.y)/k  Im(Ex) = Re(Hz.y)
+          // k*Ey =-i*(Hz).x
+
+          // the following is only valid for material interfaces I think 
+	  assert( gridHasMaterialInterfaces );
+
+          realSerialArray cosa,sina;
+	  cosa=cos(twoPi*(kx*(x)+ky*(y)-cc*(t)));
+	  sina=sin(twoPi*(kx*(x)+ky*(y)-cc*(t)));
+	  
+	  ug(I1,I2,I3,hz  )+= cosa;
+	  ug(I1,I2,I3,hz+3)+= sina;
+
+	  ug(I1,I2,I3,ex  )+= -cosa*(ky/cc); 
+	  ug(I1,I2,I3,ex+3)+= -sina*(ky/cc);
+
+	  ug(I1,I2,I3,ey  )+= cosa*(kx/cc); 
+	  ug(I1,I2,I3,ey+3)+= sina*(kx/cc);
+
+	}
+	else
+	{
+          // *** fix me for material interfaces ***
+	  assert( !gridHasMaterialInterfaces );
+	  
+	  const realSerialArray & x = xy(I1,I2,I3,0);
+	  const realSerialArray & y = xy(I1,I2,I3,1);
+	  const realSerialArray & z = xy(I1,I2,I3,2);
+
+	  if( solveForElectricField )
+	  {
+	    ug(I1,I2,I3,ex)+=exTrue3d(x,y,z,t);
+	    ug(I1,I2,I3,ey)+=eyTrue3d(x,y,z,t);
+	    ug(I1,I2,I3,ez)+=ezTrue3d(x,y,z,t);
+	  }
+
+	}
+      }
+
+    }
+    else
+    {
+      printF("initializeKnownSolution:ERROR: unexpected initialConditionOption=%i\n",
+	     initialConditionOption);
+      OV_ABORT("initializeKnownSolution:ERROR");
+    }
+
+
+
+  }  // end for grid
+  
+
+}
+
+

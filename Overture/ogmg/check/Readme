@@ -1,0 +1,11 @@
+Check directory:
+
+Type 'make' to run all checks (in the file 'tests')
+
+Type 'check.p' to run all checks.
+
+Type 'check.p sqp' to run one test.
+
+Type 'check.p -replace sqp' to replace a check file
+
+Type 'check.p -replace' to replace all check files.
