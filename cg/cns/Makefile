@@ -45,7 +45,7 @@ FSRCNO :=
 TESTS := 
 PKG_INCLUDE := $(foreach p, $(PKGS), $(p)/files)
 
-all: lib $(BINDIR)cgcns
+all: $(BINDIR)cgcns
 
 cgcns: $(BINDIR)cgcns
 
