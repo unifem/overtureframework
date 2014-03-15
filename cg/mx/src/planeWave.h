@@ -62,7 +62,16 @@ else if( t.lt.tba )then
   ssftt = ramp4tt(tt)
   ssfttt = ramp4ttt(tt)
   ssftttt = ramp4tttt(tt)
-else
+
+! Here we turn off the plane wave after some time:
+! else if( t.gt.1.0 )then
+!  ssf = 0.
+!  ssft = 0. 
+!  ssftt = 0. 
+!  ssfttt = 0. 
+!  ssftttt = 0. 
+
+ else
   ssf = 1.
   ssft = 0. 
   ssftt = 0. 

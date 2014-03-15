@@ -192,6 +192,14 @@ MovingGrids::
   delete [] rigidBodyInfoName;
 
   //..DeformingBody destructor
+  if( deformingBodyList!=NULL )
+  {
+    for( int b=0; b<numberOfDeformingBodies; b++ )
+    {
+      parameters.userDefinedDeformingSurfaceCleanup( *deformingBodyList[b] );
+    }
+  }
+  
   delete [] deformingBodyList;
 
 }

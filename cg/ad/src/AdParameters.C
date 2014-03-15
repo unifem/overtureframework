@@ -39,6 +39,21 @@ AdParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   // the thermalConductivity is used in boundary conditions at domain interfaces: 
   if (!dbase.has_key("thermalConductivity")) dbase.put<real>("thermalConductivity",-1.);
 
+  if (!dbase.has_key("variableDiffusivity")) dbase.put<bool>("variableDiffusivity",false);
+  if (!dbase.has_key("diffusivityIsTimeDependent")) dbase.put<bool>("diffusivityIsTimeDependent",false);
+  if (!dbase.has_key("kappaVar"))
+  {  // save variable diffusion coefficients here:
+     dbase.put<realCompositeGridFunction*>("kappaVar");
+     dbase.get<realCompositeGridFunction*>("kappaVar")=NULL;
+  }
+
+  if (!dbase.has_key("variableAdvection")) dbase.put<bool>("variableAdvection",false);
+  if (!dbase.has_key("advectionIsTimeDependent")) dbase.put<bool>("advectionIsTimeDependent",false);
+  if (!dbase.has_key("advectVar"))
+  {  // save variable advection coefficients here:
+     dbase.put<realCompositeGridFunction*>("advectVar");
+     dbase.get<realCompositeGridFunction*>("advectVar")=NULL;
+  }
   registerBC((int)mixedBoundaryCondition,"mixedBoundaryCondition");
 
   // initialize the items that we time: 
@@ -366,6 +381,15 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     aString cmd[maxCommands];
     dialog.setWindowTitle("Advection-diffusion parameters");
 
+    // push buttons
+    aString pbCommands[] = {"user defined coefficients",
+			    ""};
+
+    const int numRows=2;
+    addPrefix(pbCommands,prefix,cmd,maxCommands);
+    dialog.setPushButtons( cmd, pbCommands, numRows ); 
+
+
     const int numberOfTextStrings=5+1;
     aString textLabels[numberOfTextStrings];
     aString textStrings[numberOfTextStrings];
@@ -388,6 +412,20 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
     addPrefix(textLabels,prefix,cmd,maxCommands);
     dialog.setTextBoxes(cmd, textLabels, textStrings);
+
+    // -- toggle buttons --
+    aString tbLabels[] = {"variable diffusivity",
+                          "variable advection", 
+			  ""};
+    int tbState[3];
+    tbState[0] =  dbase.get<bool >("variableDiffusivity");
+    tbState[1] =  dbase.get<bool >("variableAdvection");
+    tbState[2]=0;
+
+    int numColumns=1;
+    addPrefix(tbLabels,prefix,cmd,maxCommands);
+    dialog.setToggleButtons(cmd, tbLabels, tbState, numColumns); 
+
 
 //     gui.buildPopup(pdeParametersMenu);
 //     delete [] pdeParametersMenu;
@@ -461,11 +499,20 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     {
       printF("INFO: The thermalConductivity=%g is used for flux interfaces between domains\n",thermalConductivity);
     }
+    else if( dialog.getToggleValue(answer,"variable diffusivity", dbase.get<bool >("variableDiffusivity")) ){}//
+    else if( dialog.getToggleValue(answer,"variable advection", dbase.get<bool >("variableAdvection")) ){}//
+
+    else if( answer=="user defined coefficients" ) 
+    {
+      updateUserDefinedCoefficients(gi);
+    }
+
     else if(  dbase.get<ListOfShowFileParameters >("pdeParameters").matchAndSetValue( answer ) )
     {
       printF("*** answer=[%s] was found as a user defined parameter\n",(const char*)answer);
       
     }
+
     else
     {
       if( executeCommand )

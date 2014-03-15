@@ -113,7 +113,7 @@ tPlot  $tPlot
 order of dissipation $dissOrder
 dissipation  $diss
 #***********************
-#* slow start interval 1.
+# slow start interval 1.
 slow start interval -1.
 #***********************
 # divergence damping  0.0025   .02  1. .005 .001 .0025 .01

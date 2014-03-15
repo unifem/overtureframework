@@ -149,20 +149,47 @@ writeParameterSummary( FILE * file )
 
   real & thermalConductivity = parameters.dbase.get<real>("thermalConductivity");
 
-  for( int n=0; n<4; n++ )
+  if( parameters.dbase.get<bool >("variableDiffusivity") )
   {
-    std::vector<real> & par = n==0 ? kappa : n==1 ? a : n==2 ? b : c;
-    aString name = n==0 ? "kappa" : n==1 ? "a" : n==2 ? "b" : "c";
+    fPrintF(file," The coefficients of diffusivity are variable.\n");
+  }
+  else
+  {
+    fPrintF(file," The coefficients of diffusivity are constant:\n  ");
+    aString name = "kappa";
     for( int m=0; m<numberOfComponents; m++ )
     {
       if( numberOfComponents==1 )
-	fPrintF(file," %s=%g",(const char*)name,par[m]);
+	fPrintF(file," %s=%g",(const char*)name,kappa[m]);
       else
-	fPrintF(file," %s[%i]=%g,",(const char*)name,m,par[m]);
+	fPrintF(file," %s[%i]=%g,",(const char*)name,m,kappa[m]);
     }
-    if( numberOfComponents==1 ){ fPrintF(file,", "); }else{ fPrintF(file,"\n"); };
+    fPrintF(file,"\n");
+
+    
+  }
+  if( parameters.dbase.get<bool >("variableAdvection") )
+  {
+    fPrintF(file," The advection coefficients are variable.\n");
+  }
+  else
+  {
+    fPrintF(file," The advection coefficients are constant:\n");
+    for( int n=1; n<4; n++ )
+    {
+      std::vector<real> & par = n==1 ? a : n==2 ? b : c;
+      aString name = n==1 ? "a" : n==2 ? "b" : "c";
+      for( int m=0; m<numberOfComponents; m++ )
+      {
+	if( numberOfComponents==1 )
+	  fPrintF(file,"   %s=%g",(const char*)name,par[m]);
+	else
+	  fPrintF(file,"   %s[%i]=%g,",(const char*)name,m,par[m]);
+      }
+      fPrintF(file,"\n");
+    }
+    
   }
   fPrintF(file," thermalConductivity=%g\n",thermalConductivity);
 
 }
-

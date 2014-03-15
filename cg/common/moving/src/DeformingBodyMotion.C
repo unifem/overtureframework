@@ -2584,17 +2584,18 @@ integrate( real t1, real t2, real t3,
 	   userDefinedDeformingBodyMotionOption==userDeformingSurface )
   {
     int option=0;  // predictor 
-    ierr=userDefinedDeformingSurface(t1,t2,t3,cgf1,cgf2,cgf3,option);
+    ierr=parameters.userDefinedDeformingSurface(*this,t1,t2,t3,cgf1,cgf2,cgf3,option);
     return ierr;
-   
-  } else if( deformingBodyType==userDefinedDeformingBody && 
+  } 
+  else if( deformingBodyType==userDefinedDeformingBody && 
 	     userDefinedDeformingBodyMotionOption==elasticBeam )
   {
     int option=0;  // predictor 
     ierr=advanceElasticBeam(t1,t2,t3,cgf1,cgf2,cgf3,stress,option);
     return ierr;
    
-  }else if( deformingBodyType==userDefinedDeformingBody && 
+  }
+  else if( deformingBodyType==userDefinedDeformingBody && 
 	     userDefinedDeformingBodyMotionOption==nonlinearBeam )
   {
     int option=0;  // predictor 
@@ -2980,6 +2981,7 @@ correct( real t1, real t2,
   UserDefinedDeformingBodyMotionEnum & userDefinedDeformingBodyMotionOption = 
     deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption");
 
+  int ierr=0;
   if( deformingBodyType==elasticFilament )
   {
   }
@@ -2995,7 +2997,7 @@ correct( real t1, real t2,
 
       realCompositeGridFunction empty;
       int option=1;  // corrector
-      int ierr=advanceElasticBeam(t1,t2,t2,cgf1,cgf2,cgf2,stress,option);
+      ierr=advanceElasticBeam(t1,t2,t2,cgf1,cgf2,cgf2,stress,option);
       //regenerateComponentGrids( t2,cgf2.cg);
     }
     else if(userDefinedDeformingBodyMotionOption==nonlinearBeam ) {
@@ -3005,12 +3007,18 @@ correct( real t1, real t2,
       int ierr=advanceNonlinearBeam(t1,t2,t2,cgf2,stress,option);
       //regenerateComponentGrids( t2,cgf2.cg);
     }
+    else if( userDefinedDeformingBodyMotionOption==userDeformingSurface )
+    {
+      int option=1;  // corrector
+      ierr=parameters.userDefinedDeformingSurface(*this,t1,t2,t2,cgf1,cgf2,cgf2,option);
+    } 
+
   }
   else
   {
     Overture::abort("ERROR: unknown deformingBodyType");
   }
-  return 0;
+  return ierr;
 }
 
 
@@ -4131,6 +4139,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     else if( answer=="user defined deforming surface" )
     {
       userDefinedDeformingBodyMotionOption=userDeformingSurface;
+      // -- choose user defined deforming surface and set parameters ---
+      parameters.userDefinedDeformingSurfaceSetup( *this );
     }
     else if( answer=="deformation frequency" )
     {
@@ -4590,7 +4600,7 @@ void putVectorState(GenericDataBase & subDir, const char* name,
 
       unsigned int one = 1;
       aString R = sPrintF("%d%s_LocalElem_%i",one, name, j);
-      std::cout << "R = " << R << std::endl;
+      // std::cout << "R = " << R << std::endl;
       putLocalElem(subDir,p[j], R);
     }
   }

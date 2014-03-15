@@ -92,10 +92,16 @@ formMatrixForImplicitSolve(const real & dt0,
       printF(" *** Cgad:formMatrixForImplicitSolve: form the implicit time stepping matrix, t=%9.3e dt0=%8.2e *** \n",
               cgf1.t,dt0);
 
+    const int numberOfComponents = parameters.dbase.get<int >("numberOfComponents")-
+      parameters.dbase.get<int >("numberOfExtraVariables");
+
     CompositeGrid & cg = cgf1.cg;
     CompositeGridOperators & op =  *cgf1.u.getOperators();
 
     std::vector<real> & kappa = parameters.dbase.get<std::vector<real> >("kappa");
+
+    const bool variableDiffusivity = parameters.dbase.get<bool >("variableDiffusivity");
+    const bool variableAdvection = parameters.dbase.get<bool >("variableAdvection");
 
     // ***** Use predefined equations *****
 
@@ -116,38 +122,75 @@ formMatrixForImplicitSolve(const real & dt0,
 
       RealArray equationCoefficients(2,cg.numberOfComponentGrids());
 
-      // **** Constant viscosity case *****
 
-      OgesParameters::EquationEnum equation = OgesParameters::heatEquationOperator;
       if( parameters.isAxisymmetric() )
 	implicitSolver[imp].set(OgesParameters::THEisAxisymmetric,true);
 
       Range G=cg.numberOfComponentGrids();
 
-      ListOfShowFileParameters & pdeParameters=parameters.dbase.get<ListOfShowFileParameters >("pdeParameters");
+      // ListOfShowFileParameters & pdeParameters=parameters.dbase.get<ListOfShowFileParameters >("pdeParameters");
 
-    
-      real kappaDt = parameters.dbase.get<real >("implicitFactor")*kappa[imp]*dt0;
-
-      equationCoefficients(0,G)= 1.;  // for heat equation solve I - alpha*nu*dt* Delta
-
-      for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ ) // *wdh* 040910 
-      {
-	if( parameters.getGridIsImplicit(grid) )
-	  equationCoefficients(1,grid)=-kappaDt;
-	else
-	  equationCoefficients(1,grid)=0.;
-      }
-	    
       if( debug() & 4 )
       {
 	fPrintF(debugFile,">>>> setEquationAndBoundaryConditions for implicit solver %i \n",imp);
 	::display(boundaryConditions,"boundaryConditions for Oges",debugFile);
       }
 
-      implicitSolver[imp].setEquationAndBoundaryConditions(equation,op,boundaryConditions, boundaryConditionData,
-							   equationCoefficients );
-	    
+      if( variableDiffusivity )
+      {
+        // --- variable kappa  ---
+	printF("--Cgad::formMatrixForImplicitSolve: form matrix for variable diffusivity at t=%9.3e\n",cgf1.t);
+	
+	realCompositeGridFunction*& pKappaVar= parameters.dbase.get<realCompositeGridFunction*>("kappaVar");
+	if( variableDiffusivity && pKappaVar==NULL )
+	{
+	  OV_ABORT(" Cgad::formMatrixForImplicitSolve:ERROR:kappaVar not created! ");
+	}
+        realCompositeGridFunction & kappaVar = *pKappaVar;
+	
+        // *fix me: 
+	realCompositeGridFunction & varCoeff = poissonCoefficients;  // work space 
+        Range all;
+        varCoeff.updateToMatchGrid(cg,all,all,all,numberOfComponents);
+	
+
+        // Oges will form
+        //       I + div( scalar grad ) 
+        // We set:
+        //    scalar = (-implicitFactor*dt)*kappaVar : 
+	const real implicitFactor = parameters.dbase.get<real >("implicitFactor");
+	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ ) // *wdh* 040910 
+	{
+   	  OV_GET_SERIAL_ARRAY_CONST(real,kappaVar[grid],kappaVarLocal);
+   	  OV_GET_SERIAL_ARRAY(real,varCoeff[grid],varCoeffLocal);
+
+	  varCoeffLocal = (-implicitFactor*dt0)*kappaVarLocal;
+	}
+	
+        OgesParameters::EquationEnum equation = OgesParameters::divScalarGradHeatEquationOperator;
+	implicitSolver[imp].setEquationAndBoundaryConditions(equation,op,boundaryConditions, boundaryConditionData,
+							     equationCoefficients,&varCoeff );
+      }
+      else
+      {
+        // -- constant kappa ---
+ 
+        OgesParameters::EquationEnum equation = OgesParameters::heatEquationOperator;
+
+	real kappaDt = parameters.dbase.get<real >("implicitFactor")*kappa[imp]*dt0;
+	equationCoefficients(0,G)= 1.;  // for heat equation solve I - alpha*nu*dt* Delta
+	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ ) // *wdh* 040910 
+	{
+	  if( parameters.getGridIsImplicit(grid) )
+	    equationCoefficients(1,grid)=-kappaDt;
+	  else
+	    equationCoefficients(1,grid)=0.;
+	}
+
+	implicitSolver[imp].setEquationAndBoundaryConditions(equation,op,boundaryConditions, boundaryConditionData,
+							     equationCoefficients );
+      }
+      
       implicitSolver[imp].set(OgesParameters::THEkeepCoefficientGridFunction,false); 
 
     } // end for( imp

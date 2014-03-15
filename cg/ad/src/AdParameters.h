@@ -45,6 +45,23 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice,
                         const int & degreeSpace =2, 
                         const int & degreeTime =1 );
 
+virtual int 
+updateUserDefinedCoefficients(GenericGraphicsInterface & gi);
+
+virtual
+int userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
+				 real t1, real t2, real t3, 
+				 GridFunction & cgf1,
+				 GridFunction & cgf2,
+				 GridFunction & cgf3,
+				 int option );
+
+virtual
+void userDefinedDeformingSurfaceCleanup( DeformingBodyMotion & deformingBody );
+
+virtual
+int userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody );
+
 
 // virtual int
 // setUserDefinedParameters();

@@ -37,22 +37,25 @@
 * --- set default values for parameters ---
 * 
 $grid="twoSquaresInterfacee1.order2.hdf"; $domain1="rightDomain"; $domain2="leftDomain";
-$method="ins"; $probeFile="probeFile"; $multiDomainAlgorithm=0;  $pi=0; $godunovType=0;
+$method="ins"; $probeFile="probeFile"; $multiDomainAlgorithm=0;   $godunovType=0;
+$pi=0; $piOption=0; $piGhostOption=3; $bcOption=0; 
 $tFinal=20.; $tPlot=.1;  $cfl=.9; $show="";  $pdebug=0; $debug=0; $go="halt"; 
-$muFluid=0.; $rhoFluid=1.4; $pFluid=1.; $TFluid=$pFluid/$rhoFluid; 
+$muFluid=0.; $rhoFluid=1.4; $pFluid=1.; $TFluid=$pFluid/$rhoFluid; $adCns=0.; 
 $nu=.1; $rhoSolid=1.; $prandtl=.72; $cnsVariation="jameson"; $ktcFluid=-1.; $u0=0.; $xShock=-1.5; $uShock=1.25; 
 $cnsEOS="ideal"; 
 $cnsGammaStiff=1.4; $cnsPStiff=0.;   # for stiffened EOS -- by default make it look like an ideal gas
 $lambdaSolid=1.; $muSolid=1.;
 $scf=1.; # solidScaleFactor : scale rho,mu and lambda by this amount 
-$thermalExpansivity=1.; $T0=1.; $Twall=1.;  $kappa=.01; $ktcSolid=-1.; $diss=.1;  $smVariation = "non-conservative";
+$thermalExpansivity=1.; $T0=1.; $Twall=1.;  $kappa=.01; $ktcSolid=-1.; $diss=.1;  $smVariation = "g";
 $tz="none"; $degreeSpace=1; $degreeTime=1;
 $gravity = "0 0. 0."; $boundaryPressureOffset=0.; $cnsGodunovOrder=2; 
 $fic = "uniform";  # fluid initial condition
 $solver="best"; 
 $backGround="outerSquare"; $deformingGrid="interface"; 
 $ts="pc"; $numberOfCorrections=1;  # mp solver
-$coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=10; $useNewInterfaceTransfer=0; 
+$coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=400; $useNewInterfaceTransfer=0; 
+#
+$stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=0.; $tangentialStressDissipation=.5;
 * 
 $solver="best"; 
 $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
@@ -76,10 +79,10 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
   "cfl=f"=>\$cfl,"rhoSolid=f"=>\$rhoSolid,"cnsVariation=s"=>\$cnsVariation,"diss=f"=>\$diss,"fic=s"=>\$fic,"go=s"=>\$go,\
    "smVariation=s"=>\$smVariation,"scf=f"=>\$scf,"probeFile=s"=>\$probeFile,"pOffset=f"=>\$boundaryPressureOffset,\
    "cnsGodunovOrder=f"=>\$cnsGodunovOrder,"flushFrequency=i"=>\$flushFrequency,\
-   "cnsEOS=s"=>\$cnsEOS,"cnsGammaStiff=f"=>\$cnsGammaStiff,"cnsPStiff=f"=>\$cnsPStiff,\
+   "cnsEOS=s"=>\$cnsEOS,"cnsGammaStiff=f"=>\$cnsGammaStiff,"cnsPStiff=f"=>\$cnsPStiff,"adCns"=>\$adCns,\
    "useNewInterfaceTransfer=i"=>\$useNewInterfaceTransfer,"multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,\
    "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"godunovType=i"=>\$godunovType,\
-   "shockSpeed=f"=>\$shockSpeed );
+   "shockSpeed=f"=>\$shockSpeed,"piOption=i"=>\$piOption,"piGhostOption=i"=>\$piGhostOption,"bcOption=i"=>\$bcOption );
 * -------------------------------------------------------------------------------------------------
 #  ---- Shock Jump Conditions: ----
 #  (rho1,u1,T1) = state BEHIND the shock
@@ -197,6 +200,14 @@ continue
   * -- for testing solve the domains in reverse order: 
   OBPDE:domain order 1 0
   OBPDE:project interface $pi
+  OBPDE:use nonlinear interface projection $piOption
+  $cmd="#"; 
+  if( $piGhostOption == 0 ){ $cmd="OBPDE:interface ghost from extrapolation"; }
+  if( $piGhostOption == 1 ){ $cmd="OBPDE:interface ghost from compatibility"; }else{ $cmd="OBPDE:interface ghost from exact"; }
+  if( $piGhostOption == 2 ){ $cmd="OBPDE:interface ghost from exact"; }
+  if( $piGhostOption == 3 ){ $cmd="OBPDE:interface ghost from domain solvers"; }
+  $cmd
+#
   if( $multiDomainAlgorithm eq 1 ){ $cmd="OBPDE:step all then match advance"; }else{ $cmd="#"; }
   $cmd 
   $tz
@@ -225,6 +236,7 @@ continue
             exit
         plot all
 $go
+
 
 
         erase

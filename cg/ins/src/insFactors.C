@@ -1436,7 +1436,6 @@ addExplicitContribution(const real &dt, const GridFunction &u, realCompositeGrid
 					bool isGhost = false;
 					for ( int aa = 0; aa<cg.numberOfDimensions() && !isGhost; aa++ )
 					  isGhost = (ii[aa]<(II[aa].getBase()+extra[aa]) || ii[aa]>(II[aa].getBound()-extra[aa]));
-					//					if ( (A_3D(maskp,i1,i2,i3) & MappedGrid::ISdiscretizationPoint) && !isGhost ) //kkc 120408 & MappedGrid::ISdiscretizationPoint ) //&& !isGhost )
 					if ( (A_3D(maskp,i1,i2,i3) & MappedGrid::ISdiscretizationPoint) && !isGhost ) //kkc 120408 & MappedGrid::ISdiscretizationPoint ) //&& !isGhost )
 					  for ( int xdim=0; xdim<mg.numberOfDimensions(); xdim++ )
 					    {

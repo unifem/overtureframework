@@ -5,7 +5,7 @@
 *   
 *  cgad [-noplot] tz -g=<name> -tz=[poly|trig|pulse] -degreex=<> -degreet=<> -tf=<tFinal> -tp=<tPlot> ...
 *         -go=<go/halt/og> -kappa=<value> -solver=<yale/best> -order=<2/4> -ts=[adams2|euler|implicit|midPoint] ...
-*         -a=<val> -b=<val> -bc=<d|m|n> -amr=[0|1] -useNewStep=[0|1]
+*         -a=<val> -b=<val> -bc=<d|m|n> -amr=[0|1] -useNewStep=[0|1] -varCoeff=[poly]
 *
 *  bc : d=dirichlet, m=mixed boundary condition
 *  useNewStep : 1=use new advance steps time stepping routines
@@ -14,6 +14,7 @@
 * 
 *  cgad tz -g=square10 -degreex=2 -degreet=2 
 *  cgad -noplot tz -g=square10 -degreex=2 -degreet=0 -kappa=.5 -ts=implicit -go=og
+*  cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=1. -go=go -tp=.01 -tf=.05     [ exact 
 *  cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=1. -ts=implicit -go=go -tp=.01 -tf=.05
 * 
 *  cgad tz -g=square5 -degreex=2 -degreet=2 -kappa=1. -ts=implicit -go=go -tp=.01 -tf=.05
@@ -34,6 +35,9 @@
 *  cgad tz -g=square40 -tz=pulse -tp=.05 -amr=1 -ts=euler -amrTol=.05 -useNewStep=1
 *  cgad tz -g=square40 -tz=pulse -tp=.05 -amr=1 -ts=euler -amrTol=.05 -useNewStep=1 -levels=3
 *
+* --- variable coefficients  ----
+#  cgad -noplot tz -g=square20.order2 -degreex=2 -degreet=2 -kappa=1. -tp=.1 -tf=1. -varCoeff=poly -go=og
+# 
 * --- ADI ----
 *  cgad tz -g=square10 -degreex=1 -degreet=0 -tp=.1 -ts=adi -go=halt -a=0. -b=0. -debug=15
 *  cgad noplot tz -g=square5 -degreex=2 -degreet=0 -tp=.01 -tf=.05 -ts=adi -go=go -a=0. -b=0. -debug=15
@@ -44,7 +48,7 @@ $tFinal=1.; $cfl=.9; $kappa=.1;  $kThermal=.1;
 $ts="adams PC"; $noplot=""; $go="halt"; $a=1.; $b=1.; $c=0.; 
 $debug = 0;  $tPlot=.1; $maxIterations=100; $tol=1.e-16; $atol=1.e-16; 
 $tz = "poly"; $degreex=2; $degreet=2; $fx=1.; $fy=1.; $fz=1.; $ft=1.; $bc="d"; 
-$order = 2; $useNewStep=0; 
+$order = 2; $useNewStep=0; $varCoeff=""; 
 $amr=0; $ratio=2; $levels=2; $bufferZones=2; $amrTol=1.e-2; 
 $xPulse=.5; $yPulse=.5; $zPulse=0.;
 * 
@@ -55,7 +59,7 @@ $solver="yale"; $ogesDebug=0; $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $su
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "kappa=f"=>\$kappa,\
  "tp=f"=>\$tPlot, "solver=s"=>\$solver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"amr=i"=>\$amr, \
  "ts=s"=>\$ts, "noplot=s"=>\$noplot, "go=s"=>\$go,"debug=i"=>\$debug,"a=f"=>\$a,"b=f"=>\$b,"c=f"=>\$c,\
- "bc=s"=>\$bc, "amrTol=f"=>\$amrTol, "useNewStep=i"=>\$useNewStep,"levels=i"=>\$levels );
+ "bc=s"=>\$bc, "amrTol=f"=>\$amrTol, "useNewStep=i"=>\$useNewStep,"levels=i"=>\$levels,"varCoeff=s"=>\$varCoeff );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="turn on polynomial"; }elsif( $tz eq "trig" ){ $tz="turn on trigonometric"; }\
@@ -114,6 +118,10 @@ $grid
     a $a
     b $b
     c $c
+#
+    $cmd="#"; $dct=0; $dcx=2; 
+    if( $varCoeff eq "poly" ){ $cmd="OBPDE:user defined coefficients\n polynomial coefficients\n $dct $dcx\n done"; }
+    $cmd 
   done
 * 
   boundary conditions

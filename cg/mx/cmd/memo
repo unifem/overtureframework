@@ -1,3 +1,11 @@
+==== 2014/0301 -- test for Alex F.
+
+cgmx cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcEM2 -tp=.5 -tf=10
+
+
+cgmx -noplot cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcPML -pmlWidth=21 -pmlStrength=50. -tp=1. -tf=30.
+
+
 ==== 2013/12/23 -- test for Alex F.
 
 cgmx -noplot cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcEM2 -tp=1. -tf=100. -show="cylEM2.show"

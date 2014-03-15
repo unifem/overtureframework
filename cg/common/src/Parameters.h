@@ -652,6 +652,19 @@ bool useConservativeVariables(int grid=-1) const;  // if true we are using a sol
 virtual
 int userBcType(int side, int axis,int grid) const;
 
+virtual
+int userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
+				 real t1, real t2, real t3, 
+				 GridFunction & cgf1,
+				 GridFunction & cgf2,
+				 GridFunction & cgf3,
+				 int option );
+
+virtual
+void userDefinedDeformingSurfaceCleanup( DeformingBodyMotion & deformingBody );
+
+virtual
+int userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody );
 
 // ** note: functions are in alphabetical order ***
 

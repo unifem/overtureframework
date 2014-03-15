@@ -1,3 +1,32 @@
+=== 2014/03/05 -- test for stressRelation and instability for JWB
+
+
+
+SSR  + AD4u - DISS4 on displacement only 
+cgsm rotation -g=sice4.order2 -pv=g -godunovType=2 -tp=.5 -tf=40. -xc=0. -yc=0. -rate=1. -bc=sf -cfl=.8 -stressRelaxation=4 -lambda=10. -mu=10. -relaxAlpha=0.1 -relaxDelta=0.1 -ad4=0. -ad4u=.5 -go=halt
+
+SSR  + AD4 - CHANGED -- ad4 is now undivided differences OK
+cgsm rotation -g=sice4.order2 -pv=g -godunovType=2 -tp=.5 -tf=40. -xc=0. -yc=0. -rate=1. -bc=sf -cfl=.7 -stressRelaxation=4 -lambda=10. -mu=10. -relaxAlpha=0.1 -relaxDelta=0.1 -ad4=.5 -go=halt
+
+SSR  + AD4 - NOTE ad4 is ad4/h  --- OK 
+cgsm rotation -g=sice4.order2 -pv=g -godunovType=2 -tp=.5 -tf=40. -xc=0. -yc=0. -rate=1. -bc=sf -cfl=.7 -stressRelaxation=4 -lambda=10. -mu=10. -relaxAlpha=0.1 -relaxDelta=0.1 -ad4=.05 -go=halt
+
+SSR  + AD2   -- stress get very noisy at times but recovers:
+cgsm rotation -g=sice4.order2 -pv=g -godunovType=2 -tp=.5 -tf=40. -xc=0. -yc=0. -rate=1. -bc=sf -cfl=.8 -stressRelaxation=4 -lambda=10. -mu=10. -relaxAlpha=0.5 -relaxDelta=0.5 -dissOrder=2 -ad2=.5 -go=halt
+
+
+NO SSR -- *TROUBLE* at t=23: 
+cgsm rotation -g=sice4.order2 -pv=g -godunovType=2 -tp=.5 -tf=40. -xc=0. -yc=0. -rate=1. -bc=sf -cfl=.8 -stressRelaxation=0 -lambda=10. -mu=10. -relaxAlpha=0. -relaxDelta=0. -go=halt
+
+WITH SSR : *TROUBLE* at t=35
+cgsm rotation -g=sice4.order2 -pv=g -godunovType=2 -tp=.5 -tf=40. -xc=0. -yc=0. -rate=1. -bc=sf -cfl=.8 -stressRelaxation=4 -lambda=10. -mu=10. -go=halt
+
+OK: 3760 steps
+cgsm rotation -g=sice4.order2 -pv=g -godunovType=2 -tp=.5 -tf=20. -xc=0. -yc=0. -rate=1. -bc=sf -cfl=.8 -stressRelaxation=4 -go=halt
+
+
+
+
 ==== 2014/01/09 -- test *NEW* rotating disk exact solution (FSI exact solution)
 
 *** QUADRATIC INTERPOLATION *** --> close to 2nd-order

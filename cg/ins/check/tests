@@ -50,12 +50,12 @@ tzAFS3DdBous.check ../cmd/tz.cmd --boxorder=4 -grid_order=4 -order=2 -g=ogen -gf
 tzAFS3DdBous.cylinder.check ../cmd/tz.cmd --grid_factor=1 --boxorder=4 -grid_order=4 -order=2 -g=ogen -gf=cylinder --N=11 --nx=11 -degreex=1 -degreet=0 -ts=afs -tz=trig -newts=1 -debug=0 --boxbc=d --squarebc= -bcn="*" -fx=2 -fy=2 -fz=2 -ft=1 -advectionCoefficient=1 -nu=1e-2 -tf=.1 -go=run -tp=.1 -dtMax=.1 -do=compact -model=boussinesq -kThermal=.01
 tzAFS2Dd.cic.4.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig 
 tzAFS2DdBous.cic.4.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig 
-tzAFS2Dd.cic.move.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.06 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-tzAFS2DdBous.cic.move.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.06 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+tzAFS2Dd.cic.move.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+tzAFS2DdBous.cic.move.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
 tzAFS2DnoSlip.cic.move.check ../cmd/tz.cmd -g=cic -bcn="all=noSlipWall" -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-#tzAFS2DnoSlipBous.cic.move.check ../cmd/tz.cmd -g=cic -bcn="all=noSlipWall" -nu=1e-2 -tf=.06 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-tzAFS2Dd.cic.4.move.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.06 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
-tzAFS2DdBous.cic.4.move.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.06 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+#tzAFS2DnoSlipBous.cic.move.check ../cmd/tz.cmd -g=cic -bcn="all=noSlipWall" -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+#tzAFS2Dd.cic.4.move.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=ins -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
+#tzAFS2DdBous.cic.4.move.check ../cmd/tz.cmd -g=cic.4 -nu=1e-2 -tf=.1 -dtMax=0.02 -model=boussinesq -ts=afs -go=run -tz=trig -move=shift -gridToMove=Annulus
 tzAFS2Dpenalty.cic.check ../cmd/tz.cmd -g=cic -nu=1e-2 -tf=.2 -dtMax=0.01 -model=ins -ts=afs -go=run -tz=trig -bcn=penaltySlip -bc1="square(0,0)=noSlipWall" -bc2="square(1,0)=noSlipWall"  
 #
 # nonlinear beam:

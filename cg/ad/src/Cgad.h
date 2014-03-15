@@ -64,6 +64,16 @@ formMatrixForImplicitSolve(const real & dt0,
 // 			       realMappedGridFunction & uL,
 // 			       const int & grid );
 
+  
+// Evaluate variable advection coefficients:
+virtual void 
+getAdvectionCoefficients( GridFunction & cgf );
+
+// Evaluate variable diffusion coefficients:
+virtual void 
+getDiffusionCoefficients( GridFunction & cgf );
+
+
 // Return the list of interface data needed by a given interface:
 virtual int
 getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions ) const;
@@ -127,6 +137,9 @@ updateGeometryArrays(GridFunction & cgf);
 
 virtual int
 updateToMatchGrid(CompositeGrid & cg);
+
+virtual int 
+updateStateVariables(GridFunction & cgf, int stage=-1);
 
 virtual int
 userDefinedBoundaryValues(const real & t, 

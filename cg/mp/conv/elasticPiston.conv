@@ -71,7 +71,7 @@ GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng
 $check="mp.check";
 #
 $numberOfDomains=2; 
-$caseName="rotatingDisk.$cg.$case"; 
+$caseName="elasticPiston.$cg.$case"; 
 if( $saveVectorErrors eq 1 ){ $caseName.= ".vector"; }
 $name=$caseName;
 #

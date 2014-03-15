@@ -1,3 +1,17 @@
+# ----- 2014/02/17 -- more runs
+
+-- adCns=1. : Bad 
+cgmp ../cmd/rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.5 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=1. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=140 -pOffset=100 -lambdaSolid=1. -muSolid=1. -diss=1. multiDomainAlgorithm=1 -go=halt
+
+-adCns=0
+cgmp ../cmd/rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.5 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=0. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=140 -pOffset=100 -lambdaSolid=1. -muSolid=1. -diss=1. multiDomainAlgorithm=1 -go=halt
+
+-adCns=2 -- goes bad -- BL but long wavelgenth?
+cgmp ../cmd/rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.5 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=2. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=140 -pOffset=100 -lambdaSolid=1. -muSolid=1. -diss=1. multiDomainAlgorithm=1 -go=halt
+
+-adCns=10: OK : 
+cgmp ../cmd/rotatingDisk.cmd -g=diskDeformFixedBig4e -method=cns -cfl=.5 -tp=.1 -tf=.5 -tz=none -problem=1 -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=g -pi=1 -en=max -adCns=10. -bcOption=4 -rotationRate=.1 -piGhostOption=3 -piOption=0 -godunovType=2 -stressRelaxation=1 -d1=outerDomain -d2=innerDomain -rho0=140 -pOffset=100 -lambdaSolid=1. -muSolid=1. -diss=1. multiDomainAlgorithm=1 -go=halt
+
 # ----- 2014/01/31 START ADDING tables to flunsi
 
 --- SCF=.01 : Lighter fluid: -adCns=10. (cfl=.5 needed for coarse grid)

@@ -61,10 +61,14 @@ getUt(const realMappedGridFunction & v,
   const Parameters::ReferenceFrameEnum referenceFrame = parameters.getReferenceFrame();
   const bool adjustForMovingGrids = gridIsMoving && referenceFrame==Parameters::fixedReferenceFrame;
 
+  const bool variableDiffusivity = parameters.dbase.get<bool >("variableDiffusivity");
+  const bool variableAdvection = parameters.dbase.get<bool >("variableAdvection");
+
   MappedGrid & mg = *(v.getMappedGrid());
   MappedGridOperators & op = *(v.getOperators());
   
   // For now we need the center array for the axisymmetric case:
+  const bool isAxisymmetric =  parameters.isAxisymmetric();
   const bool vertexNeeded=parameters.isAxisymmetric();
   const realArray & xy = vertexNeeded ? mg.center() : v;
   if( vertexNeeded ) 
@@ -76,20 +80,30 @@ getUt(const realMappedGridFunction & v,
   getIndex(mg.extendedIndexRange(),I1,I2,I3);
   Index N(0,numberOfComponents);
   
-#ifdef USE_PPP
-  realSerialArray xLocal; getLocalArrayWithGhostBoundaries(xy,xLocal);
-  realSerialArray uLocal; getLocalArrayWithGhostBoundaries(v,uLocal);
-  realSerialArray utLocal; getLocalArrayWithGhostBoundaries(dvdt,utLocal);
-  realSerialArray utiLocal; getLocalArrayWithGhostBoundaries(dvdtImplicit,utiLocal);
-  realSerialArray gvLocal; if( adjustForMovingGrids ) getLocalArrayWithGhostBoundaries(gridVelocity_,gvLocal);
-#else
-  const realSerialArray & xLocal = xy;
-  const realSerialArray & uLocal = v;
-  const realSerialArray & utLocal = dvdt;
-  const realSerialArray & utiLocal = dvdtImplicit;
-  const realSerialArray & gvLocal = gridVelocity_;
-#endif 
+  OV_GET_SERIAL_ARRAY_CONST(real,xy,xLocal);
+  OV_GET_SERIAL_ARRAY_CONST(real,v,uLocal);
+  OV_GET_SERIAL_ARRAY(real,dvdt,utLocal);
+  OV_GET_SERIAL_ARRAY(real,dvdtImplicit,utiLocal);
+  OV_GET_SERIAL_ARRAY_CONDITIONAL(real,(realArray&)gridVelocity_,gvLocal,adjustForMovingGrids);
+  
+  // --- look for variable diffusion coefficients ---
+  realCompositeGridFunction*& pKappaVar= parameters.dbase.get<realCompositeGridFunction*>("kappaVar");
+  if( variableDiffusivity && pKappaVar==NULL )
+  {
+    OV_ABORT(" Cgad::getUt:ERROR:kappaVar not created! ");
+  }
+  realArray & kappaVar = variableDiffusivity ? (*pKappaVar)[grid] : dvdt; 
+  OV_GET_SERIAL_ARRAY_CONDITIONAL(real,kappaVar,kappaVarLocal,variableDiffusivity);
 
+  // -- look for variable advection velocity ---
+  realCompositeGridFunction*& pAdvectVar= parameters.dbase.get<realCompositeGridFunction*>("advectVar");
+  if( variableAdvection && pAdvectVar==NULL )
+  {
+    OV_ABORT(" Cgad::getUt:ERROR:advectVar not created! ");
+  }
+  realArray & advectVar = variableDiffusivity ? (*pAdvectVar)[grid] : dvdt; 
+  OV_GET_SERIAL_ARRAY_CONDITIONAL(real,advectVar,advectVarLocal,variableAdvection);
+  
   if( debug() & 4 && adjustForMovingGrids )
   {
     char buff[120];
@@ -124,16 +138,28 @@ getUt(const realMappedGridFunction & v,
       op.derivative(MappedGridOperators::yDerivative,uLocal,uy  ,I1,I2,I3,N);
     }
     
-    op.derivative(MappedGridOperators::laplacianOperator,uLocal,uLap,I1,I2,I3,N);
+    if( variableDiffusivity )
+    {
+      // Variable diffusivity:
+      if( true || t==0. ) printF("getUT:INFO: variable dissipation evaluated at t=%9.3e for grid=%i\n",t,grid);
+      
+      op.derivative(MappedGridOperators::divergenceScalarGradient,uLocal,kappaVarLocal,uLap,I1,I2,I3,N);
+    }
+    else
+    {
+      // constant diffusivity: 
+      op.derivative(MappedGridOperators::laplacianOperator,uLocal,uLap,I1,I2,I3,N);
+    }
+    
 
-
-    if( parameters.isAxisymmetric() )
+    RealArray radiusInverse; 
+    if( isAxisymmetric )
     {
       // add on the axis-symmetric correction
       //   Delta(u) = u_xx + u_yy + u_y/y   y>0 
       //            = u_xx + u_yy + u_yy    y=0 
       assert( mg.numberOfDimensions()==2 );
-      RealArray radiusInverse(I1,I2,I3);
+      radiusInverse.redim(I1,I2,I3);
       radiusInverse(I1,I2,I3) = 1./max(REAL_MIN,xLocal(I1,I2,I3,axis2));
       Index Ib1,Ib2,Ib3;
       for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
@@ -170,8 +196,12 @@ getUt(const realMappedGridFunction & v,
        uLap(I1,I2,I3,m) += uy(I1,I2,I3,m)*radiusInverse;
       
     }
-
-
+    if( !variableDiffusivity )
+    { // For constant diffusivity, multiply by kappa
+      for( int m=0; m<numberOfComponents; m++ )
+	uLap(I1,I2,I3,m)*=kappa[m];
+    }
+    
     if( mg.numberOfDimensions()==2 )
     {
       if( firstDerivNeeded )
@@ -181,19 +211,38 @@ getUt(const realMappedGridFunction & v,
 	  // printf("getUt: convectionDiffusion: m=%i, a,b,kappa=%5.3f, %5.3f, %8.2e\n",m,a[m],b[m],kappa[m]);
 	  if( !gridIsImplicit )
 	  {
-	    utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m)+kappa[m]*uLap(I1,I2,I3,m);
+	    if( variableAdvection )
+	    {
+	      utLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m) 
+		- ( advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3,m) );
+	    }
+            else
+	    {
+	      utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m)+uLap(I1,I2,I3,m);
+	    }
+	    
 	  }
 	  else 
 	  {
 	    // Here are the terms that we treat explicitly:
-            utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m);
+            // utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m);
+	    if( variableAdvection )
+	    {
+	      utLocal(I1,I2,I3,m)=
+		- ( advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3,m) );
+	    }
+            else
+	    {
+	      utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m);
+	    }
+
 	    if( implicitOption==Parameters::computeImplicitTermsSeparately )
 	    {
               // Here are the terms for the part treated implicitly
               
 	      // real nuE = kappa[m]*(1.-implicitFactor);   // This is no longer done here *wdh* 0711122
 	      // utiLocal(I1,I2,I3,m)=nuE*uLap(I1,I2,I3,m);
-	      utiLocal(I1,I2,I3,m)=kappa[m]*uLap(I1,I2,I3,m);
+              utiLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
 	    }
 	  }
           if( adjustForMovingGrids )
@@ -209,7 +258,7 @@ getUt(const realMappedGridFunction & v,
 	{
 	  if( !gridIsImplicit )
 	  {
-	    utLocal(I1,I2,I3,m)=kappa[m]*uLap(I1,I2,I3,m);
+	    utLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
 	  }
 	  else 
 	  {
@@ -220,7 +269,7 @@ getUt(const realMappedGridFunction & v,
               // Here are the terms for the part treated implicitly
 	      // real nuE = kappa[m]*(1.-implicitFactor);  // This is no longer done here *wdh* 0711122
 	      // utiLocal(I1,I2,I3,m)=nuE*uLap(I1,I2,I3,m);
-	      utiLocal(I1,I2,I3,m)=kappa[m]*uLap(I1,I2,I3,m);
+              utiLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
 	    }
 	  }
 	}
@@ -237,19 +286,41 @@ getUt(const realMappedGridFunction & v,
 	{
 	  if( !gridIsImplicit )
 	  {
-	    utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m)+(-c[m])*uz(I1,I2,I3,m)+
-                                kappa[m]*uLap(I1,I2,I3,m);
+	    if( variableAdvection )
+	    {
+	      utLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m) 
+		- ( advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + 
+                    advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3,m) + 
+                    advectVarLocal(I1,I2,I3,2)*uz(I1,I2,I3,m) );
+	    }
+            else
+	    {
+	      utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m)+(-c[m])*uz(I1,I2,I3,m)
+                    +uLap(I1,I2,I3,m);
+	    }
 	  }
 	  else 
 	  {
 	    // Here are the terms that we treat explicitly:
-            utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m)+(-c[m])*uz(I1,I2,I3,m);
+            // utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m)+(-c[m])*uz(I1,I2,I3,m);
+	    if( variableAdvection )
+	    {
+	      utLocal(I1,I2,I3,m)=
+		- ( advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + 
+                    advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3,m) + 
+                    advectVarLocal(I1,I2,I3,2)*uz(I1,I2,I3,m) );
+	    }
+            else
+	    {
+	      utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m)+(-c[m])*uz(I1,I2,I3,m);
+	    }
+
 	    if( implicitOption==Parameters::computeImplicitTermsSeparately )
 	    {
               // Here are the terms for the part treated implicitly
 	      // real nuE = kappa[m]*(1.-implicitFactor);  // This is no longer done here *wdh* 0711122
 	      // utiLocal(I1,I2,I3,m)=nuE*uLap(I1,I2,I3,m);
-	      utiLocal(I1,I2,I3,m)=kappa[m]*uLap(I1,I2,I3,m);
+	      utiLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
 	    }
 	  }
           if( adjustForMovingGrids )
@@ -266,7 +337,7 @@ getUt(const realMappedGridFunction & v,
 	{
 	  if( !gridIsImplicit )
 	  {
-	    utLocal(I1,I2,I3,m)=kappa[m]*uLap(I1,I2,I3,m);
+	    utLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
 	  }
 	  else 
 	  {
@@ -276,7 +347,7 @@ getUt(const realMappedGridFunction & v,
 	    {
               // Here are the terms for the part treated implicitly
 	      // real nuE = kappa[m]*(1.-implicitFactor);  // This is no longer done here *wdh* 0711122
-	      utiLocal(I1,I2,I3,m)=kappa[m]*uLap(I1,I2,I3,m);
+	      utiLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
 	    }
 	  }
 	}

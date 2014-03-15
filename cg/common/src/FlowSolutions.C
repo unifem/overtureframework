@@ -1535,7 +1535,8 @@ getRotatingElasticDiskInFluid( const KnownSolutionsEnum knownSolution,
     
     if( tDiskInFluid!=tfinal )
     {
-        printF("Compute rotatingDiskInFluid at time t=%9.3e (domain=%i, 1=solid, 2=fluid)\n",tfinal,domain);
+        if( tfinal<.01 )
+            printF("Compute rotatingDiskInFluid at time t=%9.3e (domain=%i, 1=solid, 2=fluid)\n",tfinal,domain);
         
         rotatingDiskInFluid( nSolid, uSolid(0), nFluid, uFluid(0), tfinal, param[0], nrwk, rwk(0) );
         tDiskInFluid=tfinal;  // solution is now defined at this time

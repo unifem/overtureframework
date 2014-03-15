@@ -11,6 +11,8 @@ axisym.cmd : axisymmetric advection-diffusion
 
 cic.cmd : advection-diffusion around a body
 
+deform.cmd : examples with deforming grids
+
 heatFlux.cmd : test heat flux boundary conditions
 
 heatSource.cmd : advection-diffusion with a source term

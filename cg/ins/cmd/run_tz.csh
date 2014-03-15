@@ -9,19 +9,19 @@ set g="ogen";#t2/cice4.order4.s4.ml4.hdf; set gf=""
 set gfac = 2
 set gridtomove=""
 #set gf = $Overture/sampleGrids/square.cmd; set gfac=2; set N=21; set gridtomove="square"; #40
-set gf = $Overture/sampleGrids/box.cmd; set N=21
+#set gf = $Overture/sampleGrids/box.cmd; set N=21
 #set gf = $Overture/sampleGrids/smoothedPoly.cmd; set gfac=3
 #set gf = $Overture/sampleGrids/annulus.cmd; set N=41; set gfac=2
 #set gf = $Overture/sampleGrids/smoothedPoly.cmd; set gfac=2
 #set gf = $Overture/sampleGrids/annulus.cmd; set N=41; set gridtomove="Annulus";
 #set gf = $Overture/sampleGrids/cylinder.cmd; set gfac=8
-#set gf = $Overture/sampleGrids/mycicArg.cmd; set N=41; set gfac=16; set gridtomove="Annulus"
+set gf = $Overture/sampleGrids/mycicArg.cmd; set N=41; set gfac=16; set gridtomove="Annulus"
 #set gf = $Overture/sampleGrids/mysisArg.cmd; set N=41; set gfac=8; set gridtomove="inner-square";
 
 set degx = 1
 set degt = 0
 set tz = trig
-set tz = poly
+#set tz = poly
 set sbc = "dirichlet" 
 set bbc = "d" 
 set fx = 1
@@ -46,7 +46,7 @@ set model = "ins" #"boussinesq" #"ins"
 set kThermal = 0.01
 set thermalExpansivity=0.1
 set psolver = "best" #"mg"
-set ad4 = 0
+set ad4 = 1
 set ad2 = 0
 set afit = 20
 set aftol=1e-8

@@ -2,18 +2,11 @@
 #ifndef DEFORMING_BODY_MOTION_H
 #define DEFORMING_BODY_MOTION_H
  
+//
 // Master class for keeping track of deforming bodies in flow:
 //   The particular physics of the object is determined by
 //   a separate class that handles the evolution of the body
 //   under the surface stresses arising from the fluid:
-//
-//      1. ElasticFilament -- an elastic 1d filament in 2D flow
-//      2. Elastic shell -- "shell" model in 2D 
-//
-//     NOT AVAILABLE YET:
-//
-//      2. ElasticShell    -- Shell model in 3D
-//      3. ElasticBody     -- 2D or 3D elastic body
 //
 
 #include "Overture.h"
@@ -41,6 +34,13 @@ class DeformingBodyMotion
 {
  
 public:
+
+friend class Parameters;
+friend class AdParameters;
+friend class AsfParameters;
+friend class CnsParameters;
+friend class InsParameters;
+friend class SmParameters;
 
 enum DeformingBodyType
 {

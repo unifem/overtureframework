@@ -54,6 +54,8 @@ exact.cmd : test different exact solutions (Poiseuille, Couette, Taylor-Green)
 
 flatPlateWing.cmd : flow past a moving flate plate wing
 
+freeSurface2d.cmd : deforming free surface 
+
 fuelRods.cmd : flow past some 3d fuel rods with wire wraps
 
 axisym.cmd : test axisymmetric flow (including flow past a half annulus, ie. flow past a sphere)

@@ -103,7 +103,11 @@ addForcing(realMappedGridFunction & dvdt,
       }
 
 
-  if( !parameters.dbase.get<bool >("twilightZoneFlow") && !parameters.dbase.get<bool >("turnOnBodyForcing") &&!(parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization))
+  if( !parameters.dbase.get<bool >("twilightZoneFlow") && 
+      !parameters.dbase.get<bool >("turnOnBodyForcing") &&
+      (parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")!= // *kkc* 2013/10/04 -- added this
+                                                    Parameters::approximateFactorization)
+       )
   {
     // No forcing to add 
     return;
@@ -1722,9 +1726,8 @@ addForcing(realMappedGridFunction & dvdt,
     delete pnuT;
     
   } // if twilight zone
-  else if ( true && parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization )
+  else if ( parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization )
   {
-    cout<<"************** ADD FORCING"<<endl;
     realArray & ut = dvdt;
     realArray & uti = dvdtImplicit;
 

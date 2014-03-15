@@ -44,8 +44,9 @@
 ///
 /// 
 // ========================================================================================================
-int DeformingBodyMotion::
-userDefinedDeformingSurface(real t1, real t2, real t3, 
+int Parameters::
+userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
+                            real t1, real t2, real t3, 
 			    GridFunction & cgf1,
 			    GridFunction & cgf2,
 			    GridFunction & cgf3,
@@ -55,21 +56,26 @@ userDefinedDeformingSurface(real t1, real t2, real t3,
 
   // -----  First look up some variables -----
   const int numberOfDimensions = cgf1.cg.numberOfDimensions();
+
+  DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
+  const aString & userDefinedDeformingSurfaceOption= 
+                   deformingBodyDataBase.get<aString>("userDefinedDeformingSurfaceOption");
+
   int & numberOfDeformingGrids = deformingBodyDataBase.get<int>("numberOfDeformingGrids");
   int & numberOfFaces = deformingBodyDataBase.get<int>("numberOfFaces");
   IntegerArray & boundaryFaces = deformingBodyDataBase.get<IntegerArray>("boundaryFaces");
 
   CompositeGrid & cg = cgf3.cg;
 
-  const real dt = t3-t2;  
+  const real dt = t3-t1;  
   
   // globalStepNumber : counts the time steps 
-  const int & globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
+  const int & globalStepNumber = dbase.get<int >("globalStepNumber");
 
   if( true || debug & 2 )
     printF("--DeformingBodyMotion::userDefinedDeformingSurface called for t1=%g, t2=%g, t3=%g, dt=%9.3e"
-           " globalStepNumber=%i\n",
-	   t1,t2,t3,dt,globalStepNumber);
+           " globalStepNumber=%i, option=%i.\n",
+	   t1,t2,t3,dt,globalStepNumber,option);
 
   // Loop over the "faces" (i.e. surface grid patches) that make up this deforming body 
   for( int face=0; face<numberOfFaces; face++ )
@@ -79,13 +85,13 @@ userDefinedDeformingSurface(real t1, real t2, real t3,
     int gridToMove=boundaryFaces(2,face); 
 
 
-    if( true )
+    if( userDefinedDeformingSurfaceOption=="advection" )
     {
       // advect the body from time t1 to t3 using velocity from time t2 
 
-      const int uc = parameters.dbase.get<int >("uc");
-      const int vc = parameters.dbase.get<int >("vc");
-      const int wc = parameters.dbase.get<int >("wc");
+      const int uc = dbase.get<int >("uc");
+      const int vc = dbase.get<int >("vc");
+      const int wc = dbase.get<int >("wc");
 
       vector<RealArray*> & surfaceArray = deformingBodyDataBase.get<vector<RealArray*> >("surfaceArray");
       assert( face<surfaceArray.size() );
@@ -191,6 +197,11 @@ userDefinedDeformingSurface(real t1, real t2, real t3,
       x2.reshape(Ib1,Ib2,Ib3,Rx);
 
     }
+    else
+    {
+      OV_ABORT("ERROR: unknown user defined deforming surface option");
+    }
+    
     
   } // end for face
   
@@ -198,3 +209,80 @@ userDefinedDeformingSurface(real t1, real t2, real t3,
 }
 
 
+
+
+
+//==============================================================================================
+/// \brief Choose and set parameters for a user defined deforming surface.
+//==============================================================================================
+int Parameters::
+userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody )
+{
+  GenericGraphicsInterface & gi = *dbase.get<GenericGraphicsInterface* >("ps");
+
+  const int & numberOfComponents=dbase.get<int >("numberOfComponents");
+  const int & numberOfDimensions=dbase.get<int >("numberOfDimensions");
+  // const int & rc = dbase.get<int >("rc");   //  density = u(all,all,all,rc)  (if appropriate for this PDE)
+
+  // Here is where parameters can be put to be saved in the show file:
+  ListOfShowFileParameters & showFileParams = dbase.get<ListOfShowFileParameters>("showFileParams");
+
+  // here is a menu of possible initial conditions
+  aString menu[]=  
+  {
+    "advection",
+    "exit",
+    ""
+  };
+  aString answer,answer2;
+  char buff[100];
+  gi.appendToTheDefaultPrompt(">UserDefinedDeformingSurface");
+
+  DataBase & deformingBodyDataBase = deformingBody.deformingBodyDataBase;
+  // first time through allocate variables 
+  if( !deformingBodyDataBase.has_key("userDefinedDeformingSurfaceOption") )
+  {
+    deformingBodyDataBase.put<aString>("userDefinedDeformingSurfaceOption");
+    deformingBodyDataBase.get<aString>("userDefinedDeformingSurfaceOption")="advection";
+  }
+
+  aString & userDefinedDeformingSurfaceOption= deformingBodyDataBase.get<aString>("userDefinedDeformingSurfaceOption");
+  
+ 
+  for( ;; )
+  {
+    gi.getMenuItem(menu,answer,"enter an option");
+    
+    if( answer=="exit" || answer=="done" )
+    {
+      break;
+    }
+    else if( answer=="advection" )
+    {
+      // Advect the interface with the current solution velocity
+      userDefinedDeformingSurfaceOption="advection";
+
+    }
+    else 
+    {
+      printF("Parameters::userDefinedDeformingSurfaceSetup: Unknown option =[%s]\n",(const char*)answer);
+      gi.stopReadingCommandFile();
+    }
+    
+  }
+  
+  gi.unAppendTheDefaultPrompt();
+
+  return 0;
+}
+
+// ================================================================================================
+/// \brief This routine is called when DomainSolver is finished and can 
+///  be used to clean up memory.
+// ================================================================================================
+void Parameters::
+userDefinedDeformingSurfaceCleanup( DeformingBodyMotion & deformingBody )
+{
+  printF("***userDefinedDeformingSurfaceCleanup\n");
+
+}

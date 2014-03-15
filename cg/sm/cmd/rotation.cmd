@@ -31,20 +31,20 @@
 #
 # -- successful SVK examples (1/25/12)
 #  annulus
-# cgsm noplot rotation -g=annulus40 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=1.
-# cgsm noplot rotation -g=annulus80 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=1.
-# cgsm noplot rotation -g=annulus160 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=1.  [dies at t=9.9]
+# cgsm noplot rotation -g=annulus40 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=1.
+# cgsm noplot rotation -g=annulus80 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=1.
+# cgsm noplot rotation -g=annulus160 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=1.  [dies at t=9.9]
 #
 #  disk
-# cgsm noplot rotation -g=sici8.order2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=2.
+# cgsm noplot rotation -g=sici8.order2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=2.
 #
 #  ellipse
-# cgsm noplot rotation -g=ellipseSVK2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=2.  [dies if -ad=1.]
-# cgsm noplot rotation -g=ellipseSVKr2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=-0.3 -yc=0.5 -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=2.  [football]
+# cgsm noplot rotation -g=ellipseSVK2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=0. -yc=0. -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=2.  [dies if -ad2=1.]
+# cgsm noplot rotation -g=ellipseSVKr2 -pv=g -godunovType=2 -tp=.1 -tf=10. -xc=-0.3 -yc=0.5 -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=2.  [football]
 #
 #  square
-# cgsm noplot rotation -g=square40 -pv=g -godunovType=2 -tp=.1 -tf=20. -xc=0.5 -yc=0.5 -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=1.
-# cgsm noplot rotation -g=square80 -pv=g -godunovType=2 -tp=.1 -tf=20. -xc=0.5 -yc=0.5 -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad=2.
+# cgsm noplot rotation -g=square40 -pv=g -godunovType=2 -tp=.1 -tf=20. -xc=0.5 -yc=0.5 -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=1.
+# cgsm noplot rotation -g=square80 -pv=g -godunovType=2 -tp=.1 -tf=20. -xc=0.5 -yc=0.5 -rate=1. -bc=sf -show=rotation.show -godunovOrder=2 -cfl=.8 -ad2=2.
 #
 *
 * --- set default values for parameters ---
@@ -55,9 +55,12 @@ $noplot=""; $grid="rectangle80.ar10"; $mu=1.; $lambda=1.; $godunovOrder=2;
 $debug = 0;  $tPlot=.1; $diss=0.; $dissOrder=2; $bc="d"; $cons=1; $dsf=0.4; $plotStress=0; 
 $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2; 
 $tz = "poly"; $degreex=2; $degreet=2; $fx=.5; $fy=$fx; $fz=$fx; $ft=$fx;
-$ad=0.; # art. diss for Godunov
+$ad2=0.; $ad4=0.; $ad4u=0.; # art. diss for Godunov
 $order = 2; $go="halt"; $show=" "; $model="linear";
-$stressRelaxation=0; $godunovType=0;
+$godunovType=0;
+$stressRelaxation=4; # 2=2nd-order, 4=4th-order
+$relaxAlpha=.1; $relaxDelta=.1;
+$tangentialStressDissipation=1.;
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"diss=f"=>\$diss,\
@@ -66,8 +69,10 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
   "mu=f"=>\$mu,"lambda=f"=>\$lambda,"dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"xc=f"=>\$xc,"yc=f"=>\$yc,\
   "pv=s"=>\$pv,"godunovOrder=f"=>\$godunovOrder,"specialOption=s"=>\$specialOption,\
   "dsf=f"=>\$dsf,"filter=i"=>\$filter,"filterFrequency=i"=>\$filterFrequency,"filterOrder=i"=>\$filterOrder,\
-  "filterStages=i"=>\$filterStages,"ad=f"=>\$ad,"model=s"=>\$model,"godunovType=i"=>\$godunovType,\
-  "stressRelaxation=f"=>\$stressRelaxation,"rate=f"=>\$rate,"dsf=f"=>\$dsf,"plotStress=i"=>\$plotStress );
+  "filterStages=i"=>\$filterStages,"ad2=f"=>\$ad2,"ad4=f"=>\$ad4,"ad4u=f"=>\$ad4u,"model=s"=>\$model,"godunovType=i"=>\$godunovType,\
+  "stressRelaxation=f"=>\$stressRelaxation,"rate=f"=>\$rate,"dsf=f"=>\$dsf,"plotStress=i"=>\$plotStress,\
+  "relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
+  "tangentialStressDissipation=f"=>\$tangentialStressDissipation, );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }else{ $tz="trigonometric"; }
@@ -127,6 +132,9 @@ SMPDE:PDE type for Godunov $godunovType
 SMPDE:slope limiting for Godunov 0
 SMPDE:slope upwinding for Godunov 0
 SMPDE:stressRelaxation $stressRelaxation
+SMPDE:relaxAlpha $relaxAlpha
+SMPDE:relaxDelta $relaxDelta
+SMPDE:tangential stress dissipation $tangentialStressDissipation
 *
 * -- reduce interpolation width for godunov --
 if( $pv eq "godunov" ){ $cmds = "reduce interpolation width\n 2"; }else{ $cmds="#"; }
@@ -145,8 +153,9 @@ done
 displacement scale factor $dsf
 dissipation $diss
 order of dissipation $dissOrder
-* SMPDE:artificial diffusion $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad
-SMPDE:artificial diffusion $ad $ad $ad $ad $ad $ad $ad $ad
+# v1,v2,s11,s12,s21,s22,u1,u2
+SMPDE:artificial diffusion $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2
+SMPDE:fourth-order artificial diffusion $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4u $ad4u
 *
 cfl $cfl
 use conservative difference $cons

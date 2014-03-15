@@ -99,11 +99,6 @@ main(int argc, char *argv[])
   
   GenericGraphicsInterface & ps = *Overture::getGraphicsInterface("cgins",false,argc,argv);
 
-  #ifdef USE_PPP
-    // Set the default number of parallel ghost lines. This can be changed in the ogen menu.
-    // On Parallel machines always add at least this many ghost lines on local arrays
-    MappedGrid::setMinimumNumberOfDistributedGhostLines(numberOfParallelGhost);
-  #endif
 
   char *cgenv = getenv("CG");
   if ( cgenv )

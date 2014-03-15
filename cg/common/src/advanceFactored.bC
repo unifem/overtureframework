@@ -132,8 +132,6 @@ startTimeStepAF( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOp
 	  getGridVelocity( gf[current],t0 );
 	  moveGrids( t0,t0,t0-dt0,-dt0,gf[mCur],gf[mCur],gf[mOld] );  
 
-	  for( int grid=0; grid<gf[mOld].cg.numberOfComponentGrids(); grid++ )
-            gf[mOld].cg[grid].update(MappedGrid::THEvertex | MappedGrid::THEcenter );  
 	  	  getGridVelocity( gf[mOld],t0-dt0); // done in moveGrids
 	  //      OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
 	}
@@ -142,7 +140,8 @@ startTimeStepAF( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOp
       int oldGF = (current+2)%3;
       gf[oldGF].t = t0-dt0;
       Parameters::InitialConditionOption & initialConditionOption = parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption");
-      if ( false&&initialConditionOption!=Parameters::twilightZoneFunctionInitialCondition )
+      if ( false &&  // *wdh* 2013/10/02
+           initialConditionOption!=Parameters::twilightZoneFunctionInitialCondition )
 	{
 	  gf[oldGF].u.dataCopy(gf[current].u);
 	}

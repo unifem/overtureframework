@@ -566,6 +566,8 @@ eulerStep(const real & t1, const real & t2, const real & t3In, const real & dtIn
     real tForce = parameters.dbase.get<int >("explicitMethod") ? cgf2.t : cgf2.t+dt0*.5;
   // printF("################# forwardEuler : cgf2.t =%9.3e t2=%9.3e diff=%9.3e\n",cgf2.t,t2,fabs(cgf2.t-t2));
 
+  // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
+    computeBodyForcing( cgf2, tForce );
 
     for( grid=0; grid<cgf2.cg.numberOfComponentGrids(); grid++ )
     {
@@ -575,12 +577,6 @@ eulerStep(const real & t1, const real & t2, const real & t3In, const real & dtIn
         iparam[0]=grid;
         iparam[1]=cgf2.cg.refinementLevelNumber(grid);
         iparam[2]=numberOfStepsTaken;
-
-    // ************ wdh 060302
-    // cgf2.u[grid].updateGhostBoundaries();
-
-    // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
-        computeBodyForcing( cgf2, tForce );
 
     // **********************************************
     // *********** get du/dt ************************

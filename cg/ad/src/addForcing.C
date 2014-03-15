@@ -114,46 +114,37 @@ addForcing(realMappedGridFunction & dvdt, const realMappedGridFunction & u,
     utLocal(I1,I2,I3,Rt) += bodyForceLocal(I1,I2,I3,Rt);
 
   }
-  
-
-
 
   if( parameters.dbase.get<bool >("twilightZoneFlow") )
   {
     // ---add forcing for twlight-zone flow---
 
+    const bool & variableDiffusivity = parameters.dbase.get<bool >("variableDiffusivity");
+    const bool & variableAdvection = parameters.dbase.get<bool >("variableAdvection");
+
+
     const Parameters::ImplicitOption & implicitOption = parameters.dbase.get<Parameters::ImplicitOption >("implicitOption");
     const real implicitFactor = parameters.dbase.get<real >("implicitFactor");
     
     realArray & uti = dvdtImplicit;
+    OV_GET_SERIAL_ARRAY(real,uti,utiLocal);
 
     OGFunction & e = *(parameters.dbase.get<OGFunction* >("exactSolution"));
 
     Index I1,I2,I3;
 
+
     #ifdef USE_PPP
-      realSerialArray utiLocal; getLocalArrayWithGhostBoundaries(uti,utiLocal);
-      // intSerialArray mask; getLocalArrayWithGhostBoundaries(mg.mask(),mask);
       realSerialArray rfLocal; 
       if( adjustForReferenceFrame ) getLocalArrayWithGhostBoundaries(*referenceFrameVelocity,rfLocal);
     #else
-      const realSerialArray & utiLocal = uti;
       const realSerialArray & rfLocal = adjustForReferenceFrame ? *referenceFrameVelocity : utLocal; 
     #endif  
 
     const bool isRectangular = false; // ** do this for now ** mg.isRectangular();
 
-    const bool vertexNeeded = !isRectangular || parameters.isAxisymmetric();
-    if( vertexNeeded )
-      mg.update(MappedGrid::THEcenter);
-
-    realArray & x= mg.center();
-    #ifdef USE_PPP
-      realSerialArray xLocal;  if( vertexNeeded ) getLocalArrayWithGhostBoundaries(x,xLocal);
-    #else
-      const realSerialArray & xLocal = x;
-    #endif
-
+    mg.update(MappedGrid::THEcenter | MappedGrid::THEcenter);
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.center(),xLocal);
 
     int extra=1;
     getIndex(extendedGridIndexRange(mg),I1,I2,I3,extra); 
@@ -165,144 +156,175 @@ addForcing(realMappedGridFunction & dvdt, const realMappedGridFunction & u,
       std::vector<real> & a = parameters.dbase.get<std::vector<real> >("a");
       std::vector<real> & b = parameters.dbase.get<std::vector<real> >("b");
       std::vector<real> & c = parameters.dbase.get<std::vector<real> >("c");    
-      bool firstDerivNeeded=adjustForReferenceFrame || parameters.isAxisymmetric();
-      for( int m=0; m<numberOfComponents && !firstDerivNeeded; m++ )
-      {
-	firstDerivNeeded= firstDerivNeeded || a[m]!=0. || b[m]!=0. || c[m]!=0.;
-      }
 
-      realSerialArray ut(I1,I2,I3), ux,uy,uz;
-      realSerialArray uxx(I1,I2,I3),uyy(I1,I2,I3),uzz;
+      realSerialArray ut(I1,I2,I3), ux(I1,I2,I3), uy(I1,I2,I3), uz;
+      realSerialArray uxx(I1,I2,I3), uyy(I1,I2,I3), uzz;
 
-      if( firstDerivNeeded )
+      if( numberOfDimensions==3 )
       {
-	ux.redim(I1,I2,I3); uy.redim(I1,I2,I3); 
+	uz.redim(I1,I2,I3); uzz.redim(I1,I2,I3); 
       }
     
-      if( mg.numberOfDimensions()==2 )
+      RealArray radiusInverse;
+      if( numberOfDimensions==2 && parameters.isAxisymmetric() )
       {
-
-        RealArray radiusInverse;
-	if( parameters.isAxisymmetric() )
+	// Compute the term needed for the axi-symmetric correction: 
+	//   Delta(u) = u_xx + u_yy + u_y/y   y>0 
+	//            = u_xx + u_yy + u_yy    y=0 
+	radiusInverse.redim(I1,I2,I3);
+	radiusInverse(I1,I2,I3) = 1./max(REAL_MIN,xLocal(I1,I2,I3,axis2));
+	Index Ib1,Ib2,Ib3;
+	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
 	{
-	  // add on the axis-symmetric correction
-	  //   Delta(u) = u_xx + u_yy + u_y/y   y>0 
-	  //            = u_xx + u_yy + u_yy    y=0 
-	  assert( mg.numberOfDimensions()==2 );
-	  radiusInverse.redim(I1,I2,I3);
-	  radiusInverse(I1,I2,I3) = 1./max(REAL_MIN,xLocal(I1,I2,I3,axis2));
-	  Index Ib1,Ib2,Ib3;
-	  for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	  for( int side=0; side<=1; side++ )
 	  {
-	    for( int side=0; side<=1; side++ )
+	    if( mg.boundaryCondition(side,axis)==Parameters::axisymmetric )  // we should use bcLocal here 
 	    {
-	      if( mg.boundaryCondition(side,axis)==Parameters::axisymmetric )  // we should use bcLocal here 
+	      getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	      bool ok = ParallelUtility::getLocalArrayBounds(dvdt,utLocal,Ib1,Ib2,Ib3);
+	      if( ok )
 	      {
-		getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
-		bool ok = ParallelUtility::getLocalArrayBounds(dvdt,utLocal,Ib1,Ib2,Ib3);
-		if( ok )
-		{
-		  radiusInverse(Ib1,Ib2,Ib3)=0.;
-		}
+		radiusInverse(Ib1,Ib2,Ib3)=0.;
 	      }
 	    }
 	  }
+	}
+      }
+
+      for( int m=0; m<numberOfComponents; m++ )
+      {
+	e.gd( ut ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,m,t);
+	e.gd( ux ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,m,t);
+	e.gd( uy ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,m,t);
+
+	e.gd( uxx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,m,t);
+	e.gd( uyy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,m,t);
+
+	if( numberOfDimensions==3 )
+	{
+	  e.gd( uz ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,m,t);
+	  e.gd( uzz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,m,t);
 	}
 	
-	if( firstDerivNeeded )
+	if( !variableDiffusivity && !variableAdvection )
 	{
-	  for( int m=0; m<numberOfComponents; m++ )
-	  {
-	    e.gd( ut ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,m,t);
-	    e.gd( ux ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,m,t);
-	    e.gd( uy ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,m,t);
-
-	    e.gd( uxx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,m,t);
-	    e.gd( uyy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,m,t);
-
-	    utLocal(I1,I2,I3,m)+= (ut(I1,I2,I3) + a[m]*ux(I1,I2,I3)+b[m]*uy(I1,I2,I3) 
-				   -kappa[m]*(uxx(I1,I2,I3)+uyy(I1,I2,I3)) );
-
-	    if( adjustForReferenceFrame )
-	    {
-	      // ::display(rfLocal,"addForcing: reference frame velocity","%5.2f ");
-	    
-	      utLocal(I1,I2,I3,m)+= rfLocal(I1,I2,I3,0)*ux(I1,I2,I3)+rfLocal(I1,I2,I3,1)*uy(I1,I2,I3);
-	    }
-            if( parameters.isAxisymmetric() )
-	    {
-              utLocal(I1,I2,I3,m)+= -kappa[m]*( uy(I1,I2,I3)*radiusInverse(I1,I2,I3) );
-              where( radiusInverse==0. )
-	      {
-                utLocal(I1,I2,I3,m)+= -kappa[m]*( uyy(I1,I2,I3) );
-	      }
-	    }
-	    
-	  }
+	  if( numberOfDimensions==2 )
+	    utLocal(I1,I2,I3,m)+=ut(I1,I2,I3) + a[m]*ux(I1,I2,I3)+b[m]*uy(I1,I2,I3) 
+                                  - kappa[m]*(uxx(I1,I2,I3)+uyy(I1,I2,I3));
+	  else
+	    utLocal(I1,I2,I3,m)+=ut(I1,I2,I3) + a[m]*ux(I1,I2,I3)+b[m]*uy(I1,I2,I3) +c[m]*uz(I1,I2,I3)
+                                  - kappa[m]*(uxx(I1,I2,I3)+uyy(I1,I2,I3)+uzz(I1,I2,I3));
 	}
 	else
 	{
-	  for( int m=0; m<numberOfComponents; m++ )
+	  // --- variable diffusivity and variable advection ---
+          assert( variableDiffusivity && variableAdvection );
+
+	  DataBase & db =  parameters.dbase.get<DataBase >("modelData").get<DataBase>("userDefinedCoefficientsData");
+	  const aString & userCoefficientsOption = db.get<aString>("userCoefficientsOption");
+
+          RealArray kappaVar(I1,I2,I3), kappaVarx(I1,I2,I3), kappaVary(I1,I2,I3), kappaVarz;
+
+          RealArray advVar(I1,I2,I3,numberOfDimensions);
+
+	  if( userCoefficientsOption== "polynomial coefficients" )
 	  {
-	    e.gd( ut ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,m,t);
-	    e.gd( uxx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,m,t);
-	    e.gd( uyy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,m,t);
+	    // kappa is a polynomial in space and time
+	    const RealArray & pct = db.get<RealArray>("pct"); // polynomial coeff's in time
+	    const RealArray & pcx = db.get<RealArray>("pcx"); // polynomial coeff's in space
 
-	    utLocal(I1,I2,I3,m)+=ut(I1,I2,I3) - kappa[m]*(uxx(I1,I2,I3)+uyy(I1,I2,I3));
+	    real timeFunction = pct(0,m)+t*(pct(1,m)+t*pct(2,m));
+	    kappaVar =( 
+	      pcx(0,0,0,m) 
+	      + xLocal(I1,I2,I3,0)*( pcx(1,0,0,m) + pcx(1,1,0,m)*xLocal(I1,I2,I3,1)+ pcx(2,0,0,m)*xLocal(I1,I2,I3,0))
+	      + xLocal(I1,I2,I3,1)*( pcx(0,1,0,m) + pcx(0,2,0,m)*xLocal(I1,I2,I3,1))
+	      )*timeFunction;
 
-	  }
-	}
-      
-      }
-      else // 3D 
-      {
-	uzz.redim(I1,I2,I3);
-	if( firstDerivNeeded )
-	{
-	  uz.redim(I1,I2,I3);
-
-	  for( int m=0; m<numberOfComponents; m++ )
-	  {
-	    e.gd( ut ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,m,t);
-	    e.gd( ux ,xLocal,numberOfDimensions,isRectangular,0,1,0,0,I1,I2,I3,m,t);
-	    e.gd( uy ,xLocal,numberOfDimensions,isRectangular,0,0,1,0,I1,I2,I3,m,t);
-	    e.gd( uz ,xLocal,numberOfDimensions,isRectangular,0,0,0,1,I1,I2,I3,m,t);
-
-	    e.gd( uxx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,m,t);
-	    e.gd( uyy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,m,t);
-	    e.gd( uzz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,m,t);
-
-	    utLocal(I1,I2,I3,m)+= ( ut(I1,I2,I3) + a[m]*ux(I1,I2,I3)+b[m]*uy(I1,I2,I3)+c[m]*uz(I1,I2,I3)-
-				    kappa[m]*(uxx(I1,I2,I3)+uyy(I1,I2,I3)+uzz(I1,I2,I3)) );
-
-	    if( adjustForReferenceFrame )
+	    if( numberOfDimensions==2 )
 	    {
-	      utLocal(I1,I2,I3,m)+= (rfLocal(I1,I2,I3,0)*ux(I1,I2,I3)+
-				     rfLocal(I1,I2,I3,1)*uy(I1,I2,I3)+
-				     rfLocal(I1,I2,I3,2)*uz(I1,I2,I3));
+	      kappaVarx =( 
+		pcx(1,0,0,m) + pcx(1,1,0,m)*xLocal(I1,I2,I3,1) + (2.*pcx(2,0,0,m))*xLocal(I1,I2,I3,0) 
+		)*timeFunction;
+
+	      kappaVary =( 
+		pcx(0,1,0,m) + pcx(1,1,0,m)*xLocal(I1,I2,I3,0)  + (2.*pcx(0,2,0,m))*xLocal(I1,I2,I3,1)
+		)*timeFunction;
 	    }
+	    else
+	    {
+	      kappaVarz.redim(I1,I2,I3);
+	      OV_ABORT("finish me");
+	    }
+
+
+
 	  }
-	}
-	else
-	{
-	  for( int m=0; m<numberOfComponents; m++ )
+	  else
 	  {
-	    e.gd( ut ,xLocal,numberOfDimensions,isRectangular,1,0,0,0,I1,I2,I3,m,t);
-	    e.gd( uxx,xLocal,numberOfDimensions,isRectangular,0,2,0,0,I1,I2,I3,m,t);
-	    e.gd( uyy,xLocal,numberOfDimensions,isRectangular,0,0,2,0,I1,I2,I3,m,t);
-	    e.gd( uzz,xLocal,numberOfDimensions,isRectangular,0,0,0,2,I1,I2,I3,m,t);
+	    OV_ABORT("Unknown varCoeff option - finish me");
+	  }
 
-	    utLocal(I1,I2,I3,m)+=ut(I1,I2,I3) - kappa[m]*(uxx(I1,I2,I3)+uyy(I1,I2,I3)+uzz(I1,I2,I3));
+	  // -- look for variable advection velocity ---
+	  realCompositeGridFunction*& pAdvectVar= parameters.dbase.get<realCompositeGridFunction*>("advectVar");
+	  OV_GET_SERIAL_ARRAY_CONDITIONAL(real,(*pAdvectVar)[grid],advectVarLocal,variableAdvection);
 
+	  if( numberOfDimensions==2 )
+	  {
+	    utLocal(I1,I2,I3,m)+=ut(I1,I2,I3) 
+               + advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3)
+               + advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3)
+	      -( kappaVar*(uxx(I1,I2,I3)+uyy(I1,I2,I3))
+		 + kappaVarx*ux(I1,I2,I3) + kappaVary*uy(I1,I2,I3));
+	  }
+	  else
+	  {	
+	    utLocal(I1,I2,I3,m)+=ut(I1,I2,I3) 
+               + advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3)
+               + advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3)
+               + advectVarLocal(I1,I2,I3,2)*uz(I1,I2,I3)
+	      - ( kappaVar*(uxx(I1,I2,I3)+uyy(I1,I2,I3)+uzz(I1,I2,I3))
+		  +kappaVarx*ux(I1,I2,I3) + kappaVary*uy(I1,I2,I3)+ kappaVarz*uz(I1,I2,I3) );
+	  }
+	    
+
+	} // end variable coefficients
+	
+	
+	if( adjustForReferenceFrame )
+	{
+	  // ::display(rfLocal,"addForcing: reference frame velocity","%5.2f ");
+	  if( numberOfDimensions==2 )
+	  {
+	    utLocal(I1,I2,I3,m)+= rfLocal(I1,I2,I3,0)*ux(I1,I2,I3)+rfLocal(I1,I2,I3,1)*uy(I1,I2,I3);
+	  }
+	  else
+	  {
+	    utLocal(I1,I2,I3,m)+= (rfLocal(I1,I2,I3,0)*ux(I1,I2,I3)+
+				   rfLocal(I1,I2,I3,1)*uy(I1,I2,I3)+
+				   rfLocal(I1,I2,I3,2)*uz(I1,I2,I3));
 	  }
 	}
-      
-      }
 
-    }
+	if( numberOfDimensions==2 && parameters.isAxisymmetric() )
+	{
+	  // --- Add on the axisymmetric correction ---
+	  //   Delta(u) = u_xx + u_yy + u_y/y   y>0 
+	  //            = u_xx + u_yy + u_yy    y=0 
 
+          assert( !variableDiffusivity );
+
+	  utLocal(I1,I2,I3,m)+= -kappa[m]*( uy(I1,I2,I3)*radiusInverse(I1,I2,I3) );
+	  where( radiusInverse==0. )
+	  {
+	    utLocal(I1,I2,I3,m)+= -kappa[m]*( uyy(I1,I2,I3) );
+	  }
+	}
+	    
+      } // end for m 
+
+    } // end if ok 
     
-  } //end if twilightZone
+  } // end if twilightZone
   
   parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForForcing"))+=getCPU()-cpu0;
 }

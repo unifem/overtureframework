@@ -1,5 +1,6 @@
 SRC_FILES += Cgad.C getUt.C addForcing.C getTimeSteppingEigenvalue.C AdParameters.C applyBoundaryConditions.C \
              setupPde.C timeSteppingDialog.C setupGridFunctions.C implicit.C advanceADI.C interface.C \
-	     userDefinedInitialConditions.C userDefinedBoundaryValues.C
+	     userDefinedInitialConditions.C userDefinedBoundaryValues.C getCoefficients.C updateStateVariables.C \
+             userDefinedDeformingSurface.C
 
 src/interface.C : src/interface.bC; $(BPP) -quiet -clean $<

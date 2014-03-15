@@ -62,8 +62,10 @@ c      write(6,*)alam,amu,rho0
 c      write(6,*)'Message (smg2dn) : itype=',itype
 c      pause
 c
-      tsdiss=1.d0
-      irelax=4
+      ! *wdh* 2014/03/06 -- these were hard coded:
+      ! *wdh* tsdiss=1.d0
+      ! *wdh* irelax=4
+
 c      write(6,*)relaxAlpha,relaxDelta,tsdiss,iorder,method,irelax
 c      write(6,*)'rho0,alam,amu=',rho0,alam,amu
 c      pause
@@ -258,6 +260,12 @@ c
 c 2nd and 4th-order dissipation for components of stress on surfaces whose normal is
 c tangent to cell faces.
         if (tsdiss.gt.1.d-12) then
+
+           if( t.le.2*dt )then
+            write(*,9000) iorder,tsdiss
+ 9000   format(" smgSVK: stressDiss: iorder=",i2," tsdiss=",e8.2)
+          end if
+
           if (iorder.eq.1) then
             call stressDiss2 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
      *                        ds1,ds2,tsdiss,rx,u,up,mask,diseig)
@@ -278,8 +286,11 @@ c artificial dissipation (bulk)
 c
 c second order
         adi=ad(i)
-        adi=0.d0   ! fix me
+        ! *wdh* 2014/03/06 adi=0.d0   ! fix me
         if (adi.gt.1.d-12) then
+          if( t.lt.2*dt )then
+            write(*,'(" smgSVK: ad2(",i2,")=",e10.2)') i,adi
+          end if
           do j2=n2a,n2b
           do j1=n1a,n1b
             if (mask(j1,j2).ne.0) then
@@ -292,16 +303,25 @@ c second order
 c
 c fourth order  (not well tested)
         adi=ad4(i)
-        adi=0.d0   ! fix me
+        ! *wdh* 2014/03/06 adi=0.d0   ! fix me
         if (adi.gt.1.d-12) then
+          if( t.lt.2*dt )then
+            write(*,'(" smgSVK: ad4(",i2,")=",e10.2)') i,adi
+          end if
           do j2=n2a,n2b
           do j1=n1a,n1b
             if (mask(j1,j2).ne.0) then
+              ! *wdh* Use undivided differences: 
               up(j1,j2,i)=up(j1,j2,i)+adi*(
      *                      (-u(j1+2,j2,i)+4*u(j1+1,j2,i)-6*u(j1,j2,i)
-     *                                +4*u(j1-1,j2,i)-u(j1-2,j2,i))/ds1
+     *                                +4*u(j1-1,j2,i)-u(j1-2,j2,i))
      *                     +(-u(j1,j2+2,i)+4*u(j1,j2+1,i)-6*u(j1,j2,i)
-     *                                +4*u(j1,j2-1,i)-u(j1,j2-2,i))/ds2)
+     *                                +4*u(j1,j2-1,i)-u(j1,j2-2,i)))
+!*wdh              up(j1,j2,i)=up(j1,j2,i)+adi*(
+!*wdh     *                      (-u(j1+2,j2,i)+4*u(j1+1,j2,i)-6*u(j1,j2,i)
+!*wdh     *                                +4*u(j1-1,j2,i)-u(j1-2,j2,i))/ds1
+!*wdh     *                     +(-u(j1,j2+2,i)+4*u(j1,j2+1,i)-6*u(j1,j2,i)
+!*wdh     *                                +4*u(j1,j2-1,i)-u(j1,j2-2,i))/ds2)
             end if
           end do
           end do
@@ -3035,6 +3055,7 @@ c
       common / smgprmn / method,iorder,ilimit,iupwind,icart,itype,ifrc
       common / smgdatn / amu,alam,rho0
       common / tzflow / eptz,itz
+
 c
 c wave speed (to provide a scale)
       cp=dsqrt((alam+2.d0*amu)/rho0)
@@ -3136,6 +3157,7 @@ c
       common / smgprmn / method,iorder,ilimit,iupwind,icart,itype,ifrc
       common / smgdatn / amu,alam,rho0
       common / tzflow / eptz,itz
+
 c
 c wave speed (to provide a scale)
       cp=dsqrt((alam+2.d0*amu)/rho0)
@@ -3234,6 +3256,10 @@ c
       common / smgdatn / amu,alam,rho0
       common / tzflow / eptz,itz
 c
+      if( t.le.2*dt )then
+        write(*,9000) irelax,relaxAlpha,relaxDelta
+ 9000   format(" smgSVK: irelax=",i2," alpha=",e8.2," delta=",e8.2)
+      end if
 c      write(6,*)'irelax,icart =',irelax,icart
 c      write(6,*)relaxAlpha,relaxDelta
 c      pause

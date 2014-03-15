@@ -2097,21 +2097,31 @@ writeParameterSummary( FILE * file )
     
   }
   fPrintF(file,"\n");
-  // Do this for now:
-  // pdeTypeForGodunovMethod==2 : SVK 
-  const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
-  if( pdeTypeForGodunovMethod==2 )
-  {
-    fPrintF(file," Solving the St.-Venant Kirchoff model.\n");
-  }
-  else if( pdeTypeForGodunovMethod==3 )
-  {
-    fPrintF(file," Solving the St.-Venant Kirchoff model with rotated-linear stress-strain.\n");
-  }
-  
 
   SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
   fPrintF(file," PDE Variation = %s\n\n",(const char*)SmParameters::PDEVariationName[pdeVariation]);
+
+  if( pdeVariation==SmParameters::godunov )
+  {
+    const int pdeTypeForGodunovMethod = parameters.dbase.get<int >("pdeTypeForGodunovMethod");
+    if( pdeTypeForGodunovMethod==0 )
+      fPrintF(file," Material model: linear elasticity.\n");
+    else if( pdeTypeForGodunovMethod==1 )
+      fPrintF(file," Material model: SVK in LINEAR ELASTIC MODE.\n");
+    else if( pdeTypeForGodunovMethod==2 )
+      fPrintF(file," Material model: SVK (St.-Venant Kirchoff).\n");
+    else if( pdeTypeForGodunovMethod==3 )
+      fPrintF(file," Material model: rotated-linear.\n");
+    else if( pdeTypeForGodunovMethod==4 )
+      fPrintF(file," Material model: neo-Hookean model.\n");
+    else 
+    {
+      fPrintF(file," Material model: UNKNOWN.\n");
+    }
+    
+  }
+  
+
   
 
   SmParameters::PDEModel & pdeModel = parameters.dbase.get<SmParameters::PDEModel>("pdeModel");

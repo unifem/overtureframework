@@ -73,7 +73,6 @@ assignInitialConditions(int gfIndex)
   // printF("DomainSolver::assignInitialConditions: initialConditionOption=%i\n",initialConditionOption);
   realCompositeGridFunction & u = gf[gfIndex].u;
   const real t = gf[gfIndex].t;
-  //CompositeGrid &cg = gf[gfIndex].cg;
 
   CompositeGrid & cg = gf[gfIndex].cg;  // *wdh* 2013/10/02 
   
