@@ -132,7 +132,7 @@ $(BINDIR)checkCheckFiles: $(OBJDIR)checkCheckFiles.o
 
 # Here is the routine that computes convergence rates (and makes a TeX table), used in conv directories
 TESTS += $(BINDIR)convRate
-$(BINDIR)convRate: $(OBJDIR)convRate.o
+$(BINDIR)convRate: lib $(OBJDIR)convRate.o
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)convRate.o $(LIBS)
 
@@ -151,7 +151,7 @@ endif
 
 # routine to create a body force mask
 TESTS += $(BINDIR)createBodyMask
-$(BINDIR)createBodyMask: $(OBJDIR)createBodyMask.o
+$(BINDIR)createBodyMask: lib $(OBJDIR)createBodyMask.o
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)createBodyMask.o $(TEST_LIBS)
 
