@@ -1,0 +1,15 @@
+
+===== Sinusoid example : AD of a Gaussian pulse with a sinusoidal interface motion =============
+ Horizontal interface: 
+  Grid: 
+    ogen -noplot freeSurfaceGrid2d -interp=e -factor=4 -ml=1 
+  Cgad: 
+    cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=sinusoid -kappa=.02 -ampy=.05 -tf=2. -tp=.01 -ic=pulse -tz=none -go=halt
+
+
+==== Concentration example : surface motion depends on the solution =======
+
+  Grid: 
+    ogen -noplot freeSurfaceGrid2d -interp=e -factor=4 -ml=1 
+  Cgad:
+    cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pulse -a=0 -b=0 -bc=n -ts=im -go=halt

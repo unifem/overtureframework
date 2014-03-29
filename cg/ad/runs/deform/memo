@@ -1,0 +1,27 @@
+# 2014/03/10-11
+
+----- Concentration motion: (neumann BC's)
+
+implicit:
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pulse -a=0 -b=0 -bc=n -ts=im -go=halt
+
+
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pu
+lse -a=0 -b=0 -bc=n -go=halt
+
+
+Pulse with horizontal deforming interface:
+
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -ampy=.1 -kappa=.01 -tf=2. -tp=.05 -tz=none -ic=pulse -a=0 -b=0 -go=halt
+
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -ampy=.1 -kappa=.01 -tf=2. -tp=.05 -tz=none -ic=pulse -go=halt
+
+
+# 2014/03/09 -- 
+
+VERTICAL interface
+cgad -noplot deformingSurface -g=freeSurfaceGrid2dye4.order2.ml1 -ampx=.1 -kappa=.01 -tf=2. -tp=.05 -go=og
+
+HORIZONTAL surface works: 
+cgad -noplot deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -kappa=.01 -ampy=.1 -tf=2. -tp=.05 -go=og
+cgad -noplot deformingSurface -g=freeSurfaceGrid2de2.order2.ml1 -kappa=.01 -ampy=.1 -tf=2. -tp=.05 -go=og
