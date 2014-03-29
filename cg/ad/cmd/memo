@@ -1,0 +1,20 @@
+
+
+
+# 2014/03/08 -- test variable coefficients
+
+Variable advection velocity:
+
+cgad -noplot tz -g=square40.order2 -degreex=2 -degreet=2 -kappa=1. -tp=.01 -tf=1. -varCoeff=poly -go=og
+
+
+Variable coefficients: (kappa = quadratic) WHY IS THIS EXACT ?
+
+cgad -noplot tz -g=square40.order2 -degreex=2 -degreet=2 -kappa=1. -tp=.01 -tf=1. -varCoeff=poly -go=og [exact 
+
+cgad -noplot tz -g=square40.order2 -degreex=2 -degreet=2 -kappa=1. -tp=.01 -tf=1. -varCoeff=poly -go=og [exact 
+
+
+
+
+ cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=1. -go=go -tp=.01 -tf=.05 [exact 

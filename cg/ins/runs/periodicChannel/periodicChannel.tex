@@ -1,0 +1,249 @@
+%-----------------------------------------------------------------------
+% Simulating incompressible flow through a periodic channel
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\red}{\color{red}}
+\newcommand{\black}{\color{black}}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\usepackage{tikz}
+% \usepackage{pgfplots}
+\input trimFig.tex
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+\newcommand{\Overture}{{\bf Over\-ture\ }}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+\newcommand{\cgDoc}{\homeHenshaw/cgDoc}
+\newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+
+\newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+\newcommand{\convDir}{\homeHenshaw/cgDoc/ins/tables}
+\newcommand{\insDocDir}{\homeHenshaw/cgDoc/ins}
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.99}
+\renewcommand\topfraction{.99}
+\renewcommand\bottomfraction{.99}
+\renewcommand\textfraction{.01}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+\def\comma  {~~~,~~}
+\newcommand{\uvd}{\mathbf{U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+% \newcommand{\omegav}{\mathbf{\omega}}
+% \newcommand{\Omegav}{\mathbf{\Omega}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\cm}{{\rm cm}}
+
+\newcommand{\ds}{\Delta s}
+\newcommand{\dsbl}{\ds_{\rm bl}}
+
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+% define the clipFig commands:
+%% \input clipFig.tex
+
+\newcommand{\Bc}{{\mathcal B}}
+\newcommand{\Dc}{{\mathcal D}}
+\newcommand{\Ec}{{\mathcal E}}
+\newcommand{\Fc}{{\mathcal F}}
+\newcommand{\Gc}{{\mathcal G}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ic}{{\mathcal I}}
+\newcommand{\Jc}{{\mathcal J}}
+\newcommand{\Lc}{{\mathcal L}}
+\newcommand{\Nc}{{\mathcal N}}
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Rc}{{\mathcal R}}
+\newcommand{\Sc}{{\mathcal S}}
+
+\newcommand{\bogus}[1]{}  % removes is argument completely
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\LARGE
+Simulating Flow in a Periodic Channel using verture's Cgins Solver\\
+}
+\vspace{2\baselineskip}
+Kyle. K. Chand,    \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551  \\
+~ \\
+William D. Henshaw, \\
+Dept. of Mathematical Sciences, \\
+RPI
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This document includes some results from computing flow through a periodic channel.
+
+\end{flushleft}
+
+% \clearpage
+\tableofcontents
+% \listoffigures
+
+\clearpage
+
+
+\subsection{Flow in periodic channel}\label{sec:channelFlow}
+
+The flow through a periodic channel is simulated with the AFS24 scheme.
+Scripts for this case can be found in {\tt cg/ins/runs/periodicChannel}. 
+The flow is driven by a pressure gradient. An initial perturbation is
+added to excite the turbulence. The computations on finer
+grids use coarser grid solutions as initial conditions.
+The channel covers the domain $[-1,1]\times[0,2\pi]$. 
+The grid $G^{(j)}$ for the channel has $64 j$ grid points in the axial direction. The gridlines
+are stretched near the upper and lower walls by a factor of $5$. The viscosity is $\nu=10^{-5}$. 
+For grid $G^{(16)}$ the finest grid-spacing normal to wall is apprximately 1.22e-3. 
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{8.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0}{.21}{.45}{.40}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,-.75) rectangle (18,12.5);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,9.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel128Vorticity}{\figWidtha}};
+ \draw (9,9.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel128StreamLines}{\figWidtha}};
+ \draw (9,12.0) node[draw,fill=white,anchor=south] {\scriptsize Coarse grid: $G^{(2)}$};
+%
+ \draw (0,5.5) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel256Vorticity}{\figWidtha}};
+ \draw (9,5.5) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel256StreamLines}{\figWidtha}};
+ \draw (9,8.5) node[draw,fill=white,anchor=south] {\scriptsize Medium grid: $G^{(4)}$};
+%
+ \draw (0,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel512Vorticity}{\figWidtha}};
+ \draw (9,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel512StreamLines}{\figWidtha}};
+ \draw (9,5.0) node[draw,fill=white,anchor=south] {\scriptsize Fine grid: $G^{(8)}$};
+%
+\begin{scope}[yshift=-3.5cm]
+ \draw (0,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel1024Vorticity}{\figWidtha}};
+ \draw (9,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel1024StreamLines}{\figWidtha}};
+ \draw (9,5.0) node[draw,fill=white,anchor=south] {\scriptsize Finer grid: $G^{(16)}$};
+\end{scope}
+%
+%
+%   \draw[step=1cm,gray] (0,0) grid (18,12);
+%   \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Turbulent flow through a periodic channel on grids of increasing resolution. Left column: vorticity.
+    Right column: streamlines. The vorticity is shown on the scale $[-5,5]$.} 
+\label{fig:periodicChannelFlow}
+\end{figure}
+}
+
+Commands to generate grids:
+\begin{verbatim}
+   ogen -noplot channelArg -order=4 -factor=2 -ml=2
+   ogen -noplot channelArg -order=4 -factor=4 -ml=3
+   ogen -noplot channelArg -order=4 -factor=8 -ml=4
+   ogen -noplot channelArg -order=4 -factor=16 -ml=5
+   ogen -noplot channelArg -order=4 -factor=32 -ml=5
+   ogen -noplot channelArg -order=4 -factor=64 -ml=6
+\end{verbatim}
+
+Commands to run cgins:
+\begin{verbatim}
+Coarse grid (Yale solver)
+nohup $ins/bin/cgins -noplot pChannel.cmd -g=channel2.order4.ml2.hdf -nu=1e-5 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel2ml2_NullVector.hdf -show=pChannel2da.show -tp=1 -tf=200 -debug=3 -nopause >! pChannela.out &
+
+finer, yale restart 
+nohup $ins/bin/cgins -noplot pChannel.cmd -g=channel4.order4.ml3.hdf -nu=1e-5 -order=4 -cfl=2 -ystr=14 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel4ml3_NullVector.hdf -restart=pChannel2da.show -show=pChannel2db.show -tp=1 -tf=300 -debug=3 -nopause >! pChannelb.out &
+
+even finer, yale restart 
+nohup $ins/bin/cgins -noplot pChannel.cmd -g=channel8.order4.ml4.hdf -nu=1e-5 -order=4 -cfl=2 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel8ml4_NullVector.hdf -restart=pChannel2db.show -show=pChannel2dc.show -tp=1 -tf=400 -debug=3 -nopause >! pChannelc.out &
+
+\end{verbatim}
+
+
+% -------------------------------------------------------------------------------------------------
+%\clearpage
+%\bibliography{\homeHenshaw/papers/henshaw}
+%\bibliographystyle{siam}
+
+
+\printindex
+
+
+\end{document}

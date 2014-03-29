@@ -1,0 +1,1840 @@
+// This file automatically generated from advanceStepsFE.bC with bpp.
+// ==========================================================================================
+//   This file contains functions that implement separate steps in an advance routine
+//   These separate steps can be combined to form a time stepping algorithm such as 
+//   a predictor corrector method.
+//
+// These functions should probably be virtual members of an Advance class so they can be 
+// over-loaded? They now implement a PC method. 
+// 
+//      initializeTimeStepping( t,dt,init );
+//      startTimeStep( t0,dt0,advanceOptions );
+//      takeTimeStep( t0,dt0,correction,advanceOptions );
+//      endTimeStep( t0,dt0,advanceOptions );
+// 
+// Here is the anticipated usage: 
+//
+//   initializeTimeStepping( t,dt,init )
+//   for( int subStep=0; subStep<numberOfSubSteps; subStep++ )
+//   {
+//     startTimeStep( t0,dt0,advanceOptions );
+//     for( int correction=0; correction<numberOfCorrections; correction++ )  // these could also be stages of a RK 
+//     {    
+//       takeTimeStep( t0,dt0,correction,advanceOptions );
+//     }
+//     endTimeStep( t0,dt0,advanceOptions );
+// 
+//   } // end  substeps
+//
+//
+// ==========================================================================================
+#include "DomainSolver.h"
+#include "CompositeGridOperators.h"
+#include "GridCollectionOperators.h"
+#include "interpPoints.h"
+#include "SparseRep.h"
+#include "ExposedPoints.h"
+#include "InterpolateRefinements.h"
+#include "Regrid.h"
+#include "Ogen.h"
+#include "App.h"
+#include "ParallelUtility.h"
+#include "Oges.h"
+#include "OgesParameters.h"
+#include "AdamsPCData.h"
+#include "gridFunctionNorms.h"
+#include "updateOpt.h"
+#include "AdvanceOptions.h"
+#include "Ogshow.h"
+
+static bool useNewExposedPoints=true;
+
+#define FOR_3D(i1,i2,i3,I1,I2,I3) int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); for(i3=I3Base; i3<=I3Bound; i3++) for(i2=I2Base; i2<=I2Bound; i2++) for(i1=I1Base; i1<=I1Bound; i1++)
+
+
+// here are some bpp macros that are used for the explicit and implicit predictor-corrector methods
+// This file contains some macros that are shared amongst the different predictor-corrector methods
+
+
+// ==================================================================================================
+// MACRO: This macro saves past values of the pressure and values of the velocity on the ghost lines
+// For use with the fourth-order accurate INS solver. 
+//
+// tp (input) : past value of time
+// nab (input) : save results in fn[nab] (NOTE: use the grid from gf[mOld] not the one with fn[nab] !)
+// ==================================================================================================
+
+
+
+// ===============================================================================
+//  MACRO:  Perform the initialization step for the PC method
+//
+//  /METHOD (input) : name of the method: adamsPC or implicitPC
+// ===============================================================================
+
+
+// =======================================================================================================
+//    Macro to move the grids at the start of a PC time step.
+// Arguments:
+//    METHOD : name of the calling function (for debug output)
+//    utImplicit : name of the grid function that holds the explicit part of the implicit operator.
+//    
+//    predictorOrder : order of the predictor corrector
+//    ub,uc,ud : grid functions that hold du/dt at times tb, tc, td
+//               If predictorOrder==2 then explosed points are filled in on ub.
+//               If predictorOrder==3 then explosed points are filled in on ub and uc.
+//               If predictorOrder==4 then explosed points are filled in on ub, uc and ud.
+// =======================================================================================================
+
+#define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) for( side=0; side<=1; side++ )
+
+
+// *** Put this function here for now 
+#include "RigidBodyMotion.h"
+#include "Integrate.h"
+
+// static real vBodyPredictor[3]={0.,0.,0.};  // ******** TEMP 
+
+
+// ==============================================================================================================
+/// \brief Apply projection boundary conditions for rigid bodies.
+///
+/// \param correction (input) : correction step number.
+// ==============================================================================================================
+int
+rigidBodyBoundaryProjection( GridFunction & cgf, const real dt0, const int correction, Parameters & parameters )
+{
+    const int debugp =0; // local debug variable for this routine
+
+    const real t = cgf.t;
+
+    CompositeGrid & cg = cgf.cg;
+    const int numberOfDimensions = cg.numberOfDimensions();
+
+    assert( numberOfDimensions==2 ); // FINISH ME for 3D
+
+    MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+            
+    const int numberOfRigidBodies=movingGrids.getNumberOfRigidBodies();
+    if( numberOfRigidBodies==0 ) 
+        return 0;
+
+
+    Integrate *integrate = movingGrids.getIntegrate();
+    assert( integrate!=NULL );
+
+    const int & rc = parameters.dbase.get<int >("rc");
+    const int & uc = parameters.dbase.get<int >("uc");
+    const int & vc = parameters.dbase.get<int >("vc");
+    const int & wc = parameters.dbase.get<int >("wc");
+    const int & tc = parameters.dbase.get<int >("tc");
+    const real & gamma = parameters.dbase.get<real>("gamma");
+
+    const real rhoMin = 1.e-2;  // FLOOR for rho -- FIX ME --
+    const real pMin = 1.e-3;    // FLOOR for p -- FIX ME --
+
+
+    Index Ib1,Ib2,Ib3;
+    for( int b=0; b<numberOfRigidBodies; b++ )
+    {
+        RigidBodyMotion & body = movingGrids.getRigidBody(b);
+            
+    // we need movingGrids.integrate	  
+
+    // p = point on the body, vp=velocity of that point
+        RealArray p(3), vp(3), xCM(3), vCM(3), rDotRt(3,3);
+        p=0.; vp=0.; rDotRt=0.; xCM=0.; vCM=0.;
+
+        body.getPosition( t,xCM  );  // center of mass 
+        body.getVelocity( t,vCM );   // center of mass velocity
+        body.getPointTransformationMatrix(t,rDotRt);
+        const Range R=3;
+
+//     if( correction==0 )
+//     { // save the predicted body velocity
+//       for( int axis=0; axis<numberOfDimensions; axis++ )
+//       {
+// 	vBodyPredictor[axis]=vp(axis);
+//       }
+//     }
+
+        const int numberOfFaces=integrate->numberOfFacesOnASurface(b);
+
+    // printF(">>>project RB: body=%i, numberOfFaces=%i\n",b,numberOfFaces);
+        for( int face=0; face<numberOfFaces; face++ )
+        {
+            int side=-1,axis,grid;
+            integrate->getFace(b,face,side,axis,grid);
+            assert( side>=0 && side<=1 && axis>=0 && axis<cg.numberOfDimensions());
+            assert( grid>=0 && grid<cg.numberOfComponentGrids());
+
+
+            MappedGrid & mg = cg[grid];
+      // We could optimize this for rectangular grids 
+            mg.update(MappedGrid::THEcenter | MappedGrid::THEvertex | MappedGrid::THEvertexBoundaryNormal);
+
+            OV_GET_SERIAL_ARRAY_CONST(int,mg.mask(),maskLocal);
+            OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+            OV_GET_SERIAL_ARRAY_CONST(real,cgf.u[grid],uLocal);
+    
+            #ifdef USE_PPP
+                const realSerialArray & normal = mg.vertexBoundaryNormalArray(side,axis);
+            #else
+                const realSerialArray & normal = mg.vertexBoundaryNormal(side,axis);
+            #endif	  
+
+            getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+            int includeGhost=1;
+            bool ok = ParallelUtility::getLocalArrayBounds(mg.mask(),maskLocal,Ib1,Ib2,Ib3,includeGhost);
+            if( ok )
+            {
+	// real vf[3];
+      	int i1,i2,i3;
+      	if( debugp & 1 )
+      	{
+        	  if( correction==0 )
+        	  {
+          	    printF(">>>project RB: t=%9.3e, prediction step, vCM=(%12.5e,%12.5e,%12.5e) : "
+                            "form=%i (0=prim, 1=cons)...\n",t,vCM(0),vCM(1),vCM(2),cgf.form);
+        	  }
+        	  else if( correction>0 )
+        	  {
+          	    printF(">>>project RB: t=%9.3e, correct=%i -- correct the projected values, "
+                                      "vCM=(%12.5e,%12.5e,%12.5e), form=%i (0=prim, 1=cons)...\n",
+                                        t,vCM(0),vCM(1),vCM(2),correction,cgf.form);
+        	  }
+        	  else
+        	  {
+          	    printF(">>>project RB: t=%9.3e, CHECK solution after BCs ...\n");
+        	  }
+      	}
+      	
+      	if( debugp & 4 )
+        	  printF(" rDotRt(i,0:2) = [%12.5e,%12.5e,%12.5e] [%12.5e,%12.5e,%12.5e] [%12.5e,%12.5e,%12.5e]\n",
+                                  rDotRt(0,0),rDotRt(0,1),rDotRt(0,2), rDotRt(1,0),rDotRt(1,1),rDotRt(1,2), 
+             		 rDotRt(2,0),rDotRt(2,1),rDotRt(2,2));
+                  
+      	
+      	int isv[3], &is1=isv[0], &is2=isv[1], &is3=isv[2];
+      	is1=is2=is3=0;
+      	isv[axis]=1-2*side;
+
+      	if( false )
+      	{
+          // check for problems with end values not being set
+
+                    int i1=Ib1.getBase()-is1, i2=Ib2.getBase()-is2, i3=0;
+                    
+        	  uLocal(i1,i2,i3,rc)=-REAL_MAX;
+        	  uLocal(i1,i2,i3,uc)=1e10;
+        	  uLocal(i1,i2,i3,vc)=-2e-10;
+        	  uLocal(i1,i2,i3,tc)=-REAL_MAX;
+        	  
+                    i1=Ib1.getBound()+is1, i2=Ib2.getBound()+is2, i3=0;
+
+        	  uLocal(i1,i2,i3,rc)=-REAL_MAX;
+        	  uLocal(i1,i2,i3,uc)=1e10;
+        	  uLocal(i1,i2,i3,vc)=-2e-10;
+        	  uLocal(i1,i2,i3,tc)=-REAL_MAX;
+      	}
+      	
+
+
+      	FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+      	{
+	  // conservative or primitive ??
+                    real rhof,v1f,v2f,ef,pf;
+
+                    int j1=i1+is1, j2=i2+is2, j3=i3+is3;
+                    if( cgf.form==GridFunction::conservativeVariables )
+        	  {
+          	    rhof= uLocal(i1,i2,i3,rc);
+          	    v1f = uLocal(i1,i2,i3,uc)/rhof;
+          	    v2f = uLocal(i1,i2,i3,vc)/rhof;
+          	    ef  = uLocal(i1,i2,i3,tc);  // ! in conservative vars this is E = p/(gamma-1) + .5*rho*v^2 
+          	    pf = (gamma-1.)*( ef-.5*rhof*(v1f*v1f+v2f*v2f) ); //  p 
+        	  }
+        	  else
+        	  {
+            //  input vars are (rho,u,v,w,T)
+          	    rhof= uLocal(i1,i2,i3,rc);
+          	    v1f = uLocal(i1,i2,i3,uc);
+          	    v2f = uLocal(i1,i2,i3,vc);
+              	    pf = rhof*uLocal(i1,i2,i3,tc); //  ! p=rho*T
+        	  }
+        	  
+        	  if( correction==0 )
+        	  {
+            // limit rho and p on the predictor step (but not the corrector step when pf=p + n*vf 
+          	    if( rhof<rhoMin )
+          	    {
+            	      printF("project RB: WARNING predicted (input) density is too small rhof=%9.3e -- setting to rhoMin=%8.2e\n",rhof,rhoMin);
+            	      rhof=rhoMin;
+          	    }
+          	    if( pf<pMin )
+          	    {
+            	      printF("project RB: WARNING predicted (input) pressure is too small pf=%9.3e -- setting to pMin=%8.2e\n",
+                 		     pf,pMin);
+            	      pf=pMin;
+          	    }
+        	  }
+        	  
+          // momentum: 
+        	  real m1f=rhof*v1f;
+        	  real m2f=rhof*v2f;
+
+        	  real af = sqrt(gamma*pf/rhof);
+        	  real zf = rhof*af;
+          // real zf=1.4;  // do this for now - rho=1.4, a0=1. 
+            	      
+	  // for( int axis=0; axis<numberOfDimensions; axis++ )
+	  //   p(axis)=xLocal(i1,i2,i3,axis);
+	  // body.getPointVelocity( t, p, vp );
+
+	  // get the velocity of a point on the body : vp = vCM + R'(x(0)-xCM(0))
+        	  for( int axis=0; axis<numberOfDimensions; axis++ )
+          	    p(axis)=xLocal(i1,i2,i3,axis) - xCM(axis);
+          	    
+
+	  // body.getPointVelocity( t,p,vp );
+	  // Here is getPointVelocity: 
+	  // getVelocity(t,vCM);
+	  // getPointTransformationMatrix(t,rDotRt);
+        	  vp(R)=vCM(R)+rDotRt(R,0)*p(0)+rDotRt(R,1)*p(1)+rDotRt(R,2)*p(2);
+
+          // NOTE: force on body is p*nv   (since nv is the outward normal)
+        	  real nDotVf = normal(i1,i2,i3,0)*v1f + normal(i1,i2,i3,1)*v2f;
+        	  real nDotVp = normal(i1,i2,i3,0)*vp(0) + normal(i1,i2,i3,1)*vp(1);
+
+
+        	  if( correction<0 )
+        	  {
+                        printF("project RB:check: t=%8.2e, (i1,i2)=(%i,%i) pf=%9.3e n.vf=%9.2e, n.vb=%9.2e n.(vf-vb)=%8.2e\n",
+               		   t,i1,i2,pf,nDotVf,nDotVp,nDotVf-nDotVp);
+          	    continue;
+        	  }
+
+
+        	  real pfProjected;
+        	  if( correction==0 )
+        	  {
+  	    // 345 real nDotVf = ( normal(i1,i2,i3,0)*(v1f-vp(0)) + normal(i1,i2,i3,1)*(v2f-vp(1)) );  // ******* 123
+          	    pfProjected = pf + zf*nDotVf;
+
+          	    if( debugp & 2 )
+            	      printF("project RB:predict: t=%8.2e, (i1,i2)=(%i,%i) vf=(%9.2e,%9.2e) vb=(%9.2e,%9.2e), "
+                 		     "zf=%9.2e, pf=%9.3e, pf_proj=%9.3e, form=%i, n.vf=%9.2e, n.vb=%9.2e \n",
+                 		     t,i1,i2,v1f,v2f,vp(0),vp(1),zf, pf,pfProjected,cgf.form,nDotVf,nDotVp);
+
+        	  }
+        	  else
+        	  { // on correction steps adjust for the rigid-body velocity
+	    // --- We need to compute the original impedance that was used to project p: --
+	    //  p = p0 + zf*( vf )    [ p=projected p. p0 = unprojected)
+	    //  zf = r0*a0 , a0=sqrt( gamma*p0/r0)
+
+	    //  zf^2 = r0^2 a0^2 = gamma*r0*p0 = gamma*r0*( p - zf*(vf) )
+	    //  zf^2 + .5*bb*zf + cc = 0
+
+
+	    // 123 real nDotVf = normal(i1,i2,i3,0)*( v1f ) + normal(i1,i2,i3,1)*( v2f ); // NOTE: vp has been removed
+          	    real bb = .5*gamma*rhof*nDotVf;
+          	    real cc = -gamma*rhof*pf;
+
+          	    zf = -bb + sqrt( bb*bb-cc );
+
+                        real pf0 = pf - zf*nDotVf;  // here is the original p
+
+            // ******* 123
+ 	    // 345 pfProjected = pf + zf*(  normal(i1,i2,i3,0)*(vBodyPredictor[0]-vp(0)) + normal(i1,i2,i3,1)*(vBodyPredictor[1]-vp(1)));
+            	    pfProjected = pf - zf*( normal(i1,i2,i3,0)*vp(0) + normal(i1,i2,i3,1)*vp(1) );
+
+          	    if( pfProjected<pMin )
+          	    {
+                            printF("project RB: WARNING projected pressure is too small pfProjected=%9.3e "
+                                          "-- setting to pMin=%8.2e (zf=%9.3e, pf0=%9.3e)\n",pfProjected,pMin,zf,pf0);
+            	      pfProjected=pMin;
+          	    }
+
+            // ****** TRY THIS *******
+          	    if( false )
+          	    {
+            	      real alpha=.75;
+            	      pfProjected = (1.-alpha)*pf0 + alpha*pfProjected;
+          	    }
+
+	    // ****** TRY THIS *******
+          	    if( false )
+          	    {
+                            real beta=.1;
+                            pfProjected = pfProjected + beta*(pfProjected-pf0);
+          	    }
+          	    
+
+            // On the correction step we also adjust rho 
+          	    if( true )
+          	    {
+            	      real rhofProjected = rhof*pow( pfProjected/pf0, 1./gamma );  // entropy constant: (p/rho)^gamma = S
+            	      rhof = rhofProjected;
+          	    }
+          	    
+              	    real nDotDeltaV = normal(i1,i2,i3,0)*(v1f-vp(0)) + normal(i1,i2,i3,1)*(v2f-vp(1)); 
+                        if( debugp & 2 )
+            	      printF("project RB:correct: t=%8.2e (i1,i2)=(%i,%i) vf=(%9.2e,%9.2e)"
+                 		     " vb=(%9.2e,%9.2e) n.vf=%9.2e n.vb=%9.2e n.(vf-vb)=%9.2e zf=%9.2e pf0=%9.3e pf_proj=%9.3e\n",
+                 		     t,i1,i2,v1f,v2f,vp(0),vp(1),nDotVf,nDotVp,nDotDeltaV,zf, pf0,pfProjected);
+
+            // project v so that n.v = n.vp (is this needed ?)
+          	    v1f = v1f - nDotDeltaV*normal(i1,i2,i3,0);
+          	    v2f = v2f - nDotDeltaV*normal(i1,i2,i3,1);
+          	    
+        	  }
+        	  
+        	  
+                    pf = pfProjected;
+
+          // Change rho, p 
+        	  if( false )
+        	  {
+	    // --- Keep momentum the same ---
+          	    if( cgf.form==GridFunction::conservativeVariables )
+          	    { // conservative vars
+
+            	      ef = pf/(gamma-1.) + .5*(m1f*m1f+m2f*m2f)/rhof;  // Note: keep momentum the same -- is this correct?
+            	      uLocal(i1,i2,i3,rc)=rhof;
+            	      uLocal(i1,i2,i3,tc)=ef;
+          	    }
+          	    else
+          	    { // primitive vars
+	      //  input vars are (rho,u,v,w,T)
+
+            	      uLocal(i1,i2,i3,rc)=rhof;
+            	      uLocal(i1,i2,i3,uc)=m1f/rhof;
+            	      uLocal(i1,i2,i3,vc)=m2f/rhof;
+            	      uLocal(i1,i2,i3,tc)=pf/rhof;
+          	    }
+        	  }
+        	  else
+        	  {
+            // -- project the boundary values ---
+
+
+          	    if( cgf.form==GridFunction::conservativeVariables )
+          	    { // conservative vars
+
+            	      ef = pf/(gamma-1.) + .5*rhof*(v1f*v1f+v2f*v2f);
+            	      uLocal(i1,i2,i3,rc)=rhof;
+            	      uLocal(i1,i2,i3,uc)=rhof*v1f;
+            	      uLocal(i1,i2,i3,vc)=rhof*v2f;
+            	      uLocal(i1,i2,i3,tc)=ef;
+          	    }
+          	    else
+          	    { // primitive vars
+	      //  input vars are (rho,u,v,w,T)
+
+            	      uLocal(i1,i2,i3,rc)=rhof;
+            	      uLocal(i1,i2,i3,uc)=v1f;
+            	      uLocal(i1,i2,i3,vc)=v2f;
+            	      uLocal(i1,i2,i3,tc)=pf/rhof;
+          	    }
+
+        	  }
+        	  
+
+      	}
+
+            }
+
+        }
+        
+
+    }
+
+    return 0;
+}
+
+
+
+
+// ===================================================================================================================
+/// \brief Initialize the time stepping (a time sub-step function). 
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+///
+// ===================================================================================================================
+int DomainSolver::
+initializeTimeSteppingFE( real & t0, real & dt0 )
+{
+    int init=true;
+
+    FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+    FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+    if( debug() & 4 )
+        printF(" ====== DomainSolver::initializeTimeSteppingFE ======\n");
+    if( debug() & 2 )
+        fprintf(debugFile," *** DomainSolver::initializeTimeSteppingFE: t0=%e, dt0=%e dt=%e *** \n",t0,dt0,dt);
+  
+
+    assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::forwardEuler );
+
+    if( !parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") )
+    {
+        parameters.dbase.get<DataBase >("modelData").put<AdamsPCData>("AdamsPCData");
+    }
+    AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
+    
+    real & dtb=adamsData.dtb;
+    int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+    int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+    int &ndt0=adamsData.ndt0;
+    real *dtp = adamsData.dtp;
+
+    int mInitial=mab0;  // save initial value
+    
+    const int numberOfGridFunctions =  2;
+
+    mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+    nab0=nab1=nab3=0;  // we only use fn[0]
+
+    int mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
+    int mCur = mab0;    // current : gf[mCur] : holds u(t) 
+    int mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+    
+//   int nNew = nab1;    // new :    ut(t+dt)
+//   int nCur = nab0;    // current: ut(t)
+//   int nOld = nab1;    // old :    ut(t-dt)
+
+
+//   int grid;
+//   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];  
+//   Range N = parameters.dbase.get<Range >("Rt");   // time dependent variables
+//   RealArray error(numberOfComponents()+3); 
+// //   Range C=parameters.dbase.get<int >("numberOfComponents");
+//   int iparam[10];
+//   real rparam[10];
+    
+//   int numberOfExtraPressureTimeLevels=0;
+
+//   // real time0=getCPU();
+//   checkArrays("DomainSolver::initializeTimeSteppingPC: start"); 
+    
+//   if( debug() & 4 )
+//   {
+//     determineErrors( gf[mCur].u,gf[mCur].gridVelocity, gf[mCur].t, 0, error,
+//            sPrintF("\n ---> aDomainSolver::initializeTimeSteppingPC: errors in u at t=%e \n",gf[mCur].t) );
+//   }
+    
+//   // this is a macro (pcMacros.h):
+//   initializePredictorCorrector(adamsPC,gf[mab0].u);
+        
+    return 0;
+}
+
+
+// ===================================================================================================================
+/// \brief Start an individual time step (a time sub-step function).
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+/// \param correction (input) : for predictor corrector methods this indicates the correction step number.
+/// \param currentGF (output) : points to the grid-function holding the current solution (time t0)
+/// \param nextGF (output) : points to the grid-function holding the new solution (time t0+dt0)
+/// \param advanceOptions.numberOfCorrectorSteps (output) : return the number of corrector steps that will be used.
+///
+// ===================================================================================================================
+int DomainSolver::
+startTimeStepFE( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions )
+{
+    int & globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
+
+    if( globalStepNumber<0 )
+        globalStepNumber=0;
+    globalStepNumber++;
+
+    assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+    AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
+    int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+
+    currentGF=mab0;
+    nextGF=mab2;
+    advanceOptions.numberOfCorrectorSteps=0;  // zero corrector steps are needed
+
+
+  // Determine whether the grid will be changed on this step: 
+    const int regridFrequency = parameters.dbase.get<int >("amrRegridFrequency")>0 ? 
+                                                            parameters.dbase.get<int >("amrRegridFrequency") :
+                                                            parameters.dbase.get<Regrid* >("regrid")==NULL ? 2 : 
+                                                            parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio();
+    if( parameters.isAdaptiveGridProblem() && (( (globalStepNumber-1) % regridFrequency) == 0) )
+    {
+        advanceOptions.gridChanges=AdvanceOptions::newAmrGrid;
+    }
+    else
+    {
+        advanceOptions.gridChanges=AdvanceOptions::noChangeToGrid;  
+    }
+    
+    if( debug() & 4 )
+    {
+        FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+        fprintf(debugFile," *** startTimeStepFE: t0=%e, dt0=%e (dt=%e) *** \n",t0,dt0,dt);
+    }
+
+    return 0;
+
+}
+
+int maskDecode( int m )
+{
+    if( m==0 )
+        return 0;
+    else if( m<0 )
+        return -1;
+    else
+        return 1;
+}
+
+
+// void printShockEllipse( aString & label, GridFunction & cgf1, int grid, int i1, int i2, int i3 )
+static 
+void printShockEllipse( const aString & label, GridFunction & cgf1 )
+{
+  // ** int grid1=12, grid2=28, i1=973, i2=1252, i3=0, numGrids=2;
+  // j1,j2 =  277    1 grid=   1
+    int grid1=1, i1=277, i2=1, i3=0, grid2=grid1, numGrids=1;
+    for( int pt=0; pt<numGrids; pt++ )
+    {
+        int grid = pt==0 ? grid1 : grid2;
+        if( grid < cgf1.cg.numberOfComponentGrids() )
+        {
+            const IntegerArray & d = cgf1.cg[grid].dimension();
+            const IntegerArray & gid = cgf1.cg[grid].gridIndexRange();
+            printF("%s: grid=%i gid=[%i,%i][%i,%i]\n",(const char*)label,grid,gid(0,0),gid(1,0),gid(0,1),gid(1,1));
+            if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+            {
+      	printF("%s: (grid,i1,i2,i3)=(%i,%i,%i,%i) mask=%i u=%9.3e,%9.3e,%9.3e,%9.3e\n",
+             	       (const char*)label,grid,i1,i2,i3,maskDecode(cgf1.cg[grid].mask()(i1,i2,i3)),
+             	       cgf1.u[grid](i1,i2,i3,0),cgf1.u[grid](i1,i2,i3,1),cgf1.u[grid](i1,i2,i3,2),
+             	       cgf1.u[grid](i1,i2,i3,3));
+            }
+        }
+    }
+    
+}
+
+
+
+// ===================================================================================================================
+/// \brief Take a single time step (a time sub-step function).
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+/// \param correction (input) : for predictor corrector methods this indicates the correction step number.
+/// \param advanceOptions (input) : additional options that adjust the behaviour of this function.
+///       advanceOptions.takeTimeStepOption can be used to not apply or only apply the boundary conditions.
+///
+// ===================================================================================================================
+int DomainSolver::
+takeTimeStepFE( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions )
+{
+    const bool checkShockEllipse=false;  // turn on debugging for the shock ellipse
+
+
+    FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+    FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+    const int globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
+
+    if( debug() & 4 )
+        printP("DomainSolver::takeTimeStepFE t0=%e, dt0=%e correction=%i globalStepNumber=%i ++++\n",t0,dt0,correction,
+                        globalStepNumber );
+    if( debug() & 2 )
+    {
+        fprintf(debugFile," *** takeTimeStepFE (start): t0=%e, dt0=%e (dt=%e) *** \n",t0,dt0,dt);
+    }
+
+    assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+    AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
+    
+    real & dtb=adamsData.dtb;
+    int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+    int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+    int &ndt0=adamsData.ndt0;
+    real *dtp = adamsData.dtp;
+
+//   printF("\n &&&&&&&&&&& advanceAdamsPredictorCorrector t0=%8.2e &&&&&&&&&&&&&&&&&\n"
+//          "  mab0,mab1,mab2 = %i, %i, %i \n"
+//          "  nab0,nab1,nab2,nab3= %i, %i, %i, %i \n"
+//         ,t0,mab0,mab1,mab2,nab0,nab1,nab2,nab3);
+
+    aString label;
+    assert( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::forwardEuler );
+    
+    parameters.dbase.get<real >("dt")=dt0; // *wdh* 101106 this is the dt used in getUt
+
+    if( debug() & 2 )
+        fPrintF(debugFile," *** Entering takeTimeStepFE: t0=%e, dt0=%e *** \n",t0,dt0);
+  
+    int mInitial=mab0;  // save initial value
+    
+    const int numberOfGridFunctions =  2; 
+
+    mab2 = (mab0 -1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+    int mNew = mab2;    // new     : gf[mNew] : will hold u(t+dt)
+    int mCur = mab0;    // current : gf[mCur] : holds u(t) 
+    int mOld = mab1;    // old     : gf[mOld] : holds u(t-dt) if numberOfGridFunctions==3 otherwise mOld=mNew
+    
+//   int nNew = nab1;    // new :    ut(t+dt)
+//   int nCur = nab0;    // current: ut(t)
+//   int nOld = nab1;    // old :    ut(t-dt)
+
+
+    checkArrays(" takeTimeStepFE: start"); 
+    
+    GridFunction & cgf1 = gf[mCur];
+    GridFunction & cgf2 = gf[mCur];
+    GridFunction & cgf3 = gf[mNew];
+    
+    realCompositeGridFunction & ut = fn[0];
+    realCompositeGridFunction & uti =fn[0];
+
+//   real dt0 = dtIn;
+//   real t3=t3In;
+    
+    const real t1 = cgf1.t;
+    const real t2 = cgf2.t;
+    const real t3 = t1 + dt0; // This is N.B. for moving grids 
+
+    int grid;
+    Index I1,I2,I3;  
+    Index N = parameters.dbase.get<Range >("Rt");  // time dependent components
+    RealArray error(numberOfComponents()+3); 
+    int iparam[10];
+    real rparam[10];
+
+    const int regridFrequency = parameters.dbase.get<int >("amrRegridFrequency")>0 ? 
+                                                            parameters.dbase.get<int >("amrRegridFrequency") :
+                                                            parameters.dbase.get<Regrid* >("regrid")==NULL ? 2 : 
+                                                            parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio();
+
+    advanceOptions.gridChanges=AdvanceOptions::noChangeToGrid; // By default the grid is not changed (this may be set below)
+
+    const bool takeTimeStep =(advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+                      			    advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepButDoNotApplyBoundaryConditions);
+    const bool applyBC = ( advanceOptions.takeTimeStepOption==AdvanceOptions::takeStepAndApplyBoundaryConditions ||
+                   			 advanceOptions.takeTimeStepOption==AdvanceOptions::applyBoundaryConditionsOnly );
+
+    if( correction==0 && takeTimeStep )
+    {
+
+    // ******************************************************
+    // **************** Predictor Step **********************
+    // ******************************************************
+
+    // *wdh* 100801 -- globalStepNumber starts at "1" instead of zero: 
+        if( parameters.isAdaptiveGridProblem() && (( (globalStepNumber-1) % regridFrequency) == 0) )
+        {
+      // ****************************************************************************
+      // ****************** Adaptive Grid Step  *************************************
+      // ****************************************************************************
+
+            if( debug() & 2 )
+            {
+      	printF("***** EulerStep: AMR regrid at step %i t=%e dt=%8.2e***** \n",globalStepNumber,cgf1.t,dt0);
+      	fPrintF(debugFile,"***** EulerStep: AMR regrid at step %i t=%e dt=%8.2e***** \n",globalStepNumber,cgf1.t,dt0);
+            }
+        
+            real timea=getCPU();
+      
+            if( debug() & 4 )
+      	fPrintF(debugFile,"\n ***** EulerStep: AMR regrid at step %i ***** \n\n",globalStepNumber);
+
+            advanceOptions.gridChanges=AdvanceOptions::newAmrGrid;
+
+            if( false ) // mask-problems
+            {
+      	printF(">>>>eulerStep: before AMR regrid :\n");
+            
+      	for( int grid=0; grid<cgf1.cg.numberOfComponentGrids(); grid++ )
+      	{
+        	  cgf1.cg[grid].update(MappedGrid::THEmask | MappedGrid::THEvertex );
+        	  cgf3.cg[grid].update(MappedGrid::THEmask | MappedGrid::THEvertex );
+      	
+        	  printf(" grid=%i &cgf1.cg[grid].mask()=%i &cgf3.cg[grid].mask()=%i \n",grid,
+             		 &cgf1.cg[grid].mask()(0,0,0),&cgf3.cg[grid].mask()(0,0,0));
+        	  printf(" grid=%i &cgf1.cg[grid].vertex()=%i &cgf3.cg[grid].vertex()=%i \n",grid,
+             		 &cgf1.cg[grid].vertex()(0,0,0),&cgf3.cg[grid].vertex()(0,0,0));
+      	}
+            }
+
+            if( debug() & 8 )
+            {
+      	if( parameters.dbase.get<bool >("twilightZoneFlow") )
+      	{
+        	  fPrintF(debugFile," eulerStep: errors before regrid, t=%e \n",cgf1.t);
+        	  determineErrors( cgf1 ) ;
+      	}
+      	else
+      	{
+	  // displayMask(cgf1.cg[0].mask(),"***aafter regrid:cgf1.cg[0].mask() ***a",debugFile);
+
+        	  if( parameters.dbase.get<int >("myid")==0 ) 
+          	    fprintf(debugFile," ***before regrid: solution ***\n");
+        	  outputSolution( cgf1.u,cgf1.t );
+      	}
+            }
+
+      //     if( parameters.useConservativeVariables() )
+      //       cgf1.primitiveToConservative(parameters);  // *wdh* 010318  -- do amr interp on conservative variables.
+        
+      //     if( debug() & 8 && cgf1.cg.numberOfComponentGrids()>1 )
+      //     {
+      //        char buff[80];
+      //        GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+      //        GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");      
+      //        psp.set(GI_TOP_LABEL,sPrintF(buff,"BEFORE AMR regrid, solution at time %f",cgf1.t));
+      //        psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+      //        ps.erase();
+        
+      //        realCompositeGridFunction v;
+      //        realCompositeGridFunction & uu = getAugmentedSolution(cgf1,v); 
+      //        PlotIt::contour(ps,uu,psp);
+      //     }
+
+//      if( true ) // move bug
+//      {
+//        printF("eulerStep: before adaptGrids: cgf1.cg[1].getName()=%s cgf3.cg[1].getName=%s\n",
+//  	     (const char*)cgf1.cg[1].getName(),(const char*)cgf3.cg[1].getName());
+//      }
+
+            int numberToUpdate=0; // we need to update ub to live on the new grid, and interpolate values.
+
+            adaptGrids( cgf1, numberToUpdate,0, &ut );  // use ut as work space, we could use cgf3 as temp space??
+
+      // the next has been moved into adaptGrids 070706
+      //     real time1=getCPU();
+      //     cgf1.cg.rcData->interpolant->updateToMatchGrid( cgf1.cg ); 
+      //     parameters.dbase.get<RealArray>("timing")(Parameters::timeForUpdateInterpolant)+=getCPU()-time1;
+            real time1=getCPU();
+        
+            if( debug() & 8 ) printF("eulerStep:adapt step: update cgf1 for moving grids...\n");
+            updateForMovingGrids(cgf1);  // ****
+
+      // do here for now -- we shouldn't do this in updateForMovingGrids since this is not correct below
+      // when the grids are moved
+            cgf1.gridVelocityTime=cgf1.t -1.e10; 
+
+      // we need to recompute the grid velocity on AMR grids -- really only need to do refinements***
+            if( parameters.isMovingGridProblem() )
+            {
+	// recompute the grid velocity
+      	getGridVelocity( cgf1, cgf1.t );
+            }
+
+            if( debug() & 8 )
+            {
+      	outputSolution( cgf1.u,cgf1.t,sPrintF(" eulerStep:after adaptGrids, before interpAndApplyBC at t=%11.4e \n",cgf1.t) );
+            }
+
+      // -- Interface info is no longer valid on the new AMR grids --
+      // IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
+      // do this for now: (so we don't apply BCs at interfaces) -- is this correct?
+      // interfaceType=Parameters::noInterface;
+
+            const int applyInterfaceBoundaryConditionsSave=parameters.dbase.get<int>("applyInterfaceBoundaryConditions");
+            parameters.dbase.get<int>("applyInterfaceBoundaryConditions")=0; // turn off application of the interface conditions
+
+            interpolateAndApplyBoundaryConditions( cgf1 );
+            
+            parameters.dbase.get<int>("applyInterfaceBoundaryConditions")=applyInterfaceBoundaryConditionsSave; // reset
+
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrBoundaryConditions"))+=getCPU()-time1;    
+
+      // checkFor symmetry here ---------------------------------------------
+            if( false )
+            {
+      	aString buff;
+      	int nGhost=2;
+      	int rt=checkForSymmetry(cgf1.u,parameters,sPrintF(buff,"after adaptGrids, t=%8.2e: u",cgf1.t),nGhost);
+      	if( rt!=0 )
+      	{
+        	  fprintf(debugFile," ***after adaptGrids: Symmetry broken! solution ***\n");
+        	  outputSolution( cgf1.u,cgf1.t );
+      	}
+            }
+
+            if( debug() & 8 && cgf1.cg.numberOfComponentGrids()>1 )  // ******************* 2012/03/06
+            {
+      	char buff[80];
+                GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+                GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");      
+                psp.set(GI_TOP_LABEL,sPrintF(buff,"After AMR regrid, solution at time %f",cgf1.t));
+                psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+                ps.erase();
+                realCompositeGridFunction v;
+                realCompositeGridFunction & uu = getAugmentedSolution(cgf1,v); 
+                PlotIt::contour(ps,uu,psp);
+            }
+        
+
+            if( debug() & 8 )
+            {
+      	if( parameters.dbase.get<bool >("twilightZoneFlow") )
+      	{
+        	  fPrintF(debugFile," eulerStep: errors after regrid, t=%e \n",cgf1.t);
+        	  determineErrors( cgf1 ) ;
+      	}
+      	else
+      	{
+	  // displayMask(cgf1.cg[0].mask(),"***aafter regrid:cgf1.cg[0].mask() ***a",debugFile);
+
+        	  if( parameters.dbase.get<int >("myid")==0 ) 
+          	    fprintf(debugFile," ***after regrid: solution ***\n");
+        	  outputSolution( cgf1.u,cgf1.t );
+      	}
+            }
+        
+            assert( &cgf1==&cgf2 );
+
+            if( parameters.isMovingGridProblem() )
+            {
+//        if( true ) // move bug
+//        {
+//  	printf("eulerStep: before copy: cgf1.cg[1].getName()=%s cgf3.cg[1].getName=%s\n",
+//  	       (const char*)cgf1.cg[1].getName(),(const char*)cgf3.cg[1].getName());
+//        }
+
+
+// This works: 
+//        cgf3.cg.destroy(CompositeGrid::EVERYTHING);
+//        cgf3.cg.setNumberOfGrids(0);
+            
+
+      	cgf3.cg=cgf1.cg;  // we make a copy in this case
+
+//        if( true ) // move bug
+//        {
+//  	printf("eulerStep: after copy: cgf1.cg[1].getName()=%s cgf3.cg[1].getName=%s\n",
+//  	       (const char*)cgf1.cg[1].getName(),(const char*)cgf3.cg[1].getName());
+//        }
+
+            }
+            else
+            {
+      	cgf3.updateToMatchGrid(cgf1.cg);
+            }
+        
+            cgf3.u.updateToMatchGrid(cgf3.cg);
+            cgf3.u=0.;
+            cgf3.u.setOperators(*cgf1.u.getOperators());
+            
+      // ** ut.updateToMatchGrid(cgf1.cg); // this is done in adaptGrids
+
+      // *this is done above* updateForMovingGrids(cgf1);  // ****
+
+            updateForMovingGrids(cgf3);  // **** 040320 *** need to update gridVelocityArrays
+
+//      if( true ) // move bug
+//      {
+//        printF("eulerStep: after adaptGrids: cgf1.cg[1].getName()=%s cgf3.cg[1].getName=%s\n",
+//  	     (const char*)cgf1.cg[1].getName(),(const char*)cgf3.cg[1].getName());
+//      }
+
+            if( false )
+            {
+      	int grid=2, i1=31, i2=44, i3=0;
+      	const IntegerArray & d = cgf1.cg[grid].dimension();
+      	if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+      	{
+        	  printf("After AMR : (grid,i1,i2,i3)=(%i,%i,%i,%i) mask=%i mask2=%i u1=%8.5f,%8.5f,%8.5f,%8.5f\n"
+             		 ,grid,i1,i2,i3,cgf1.cg[grid].mask()(i1,i2,i3),cgf3.cg[grid].mask()(i1,i2,i3),
+             		 cgf1.u[grid](i1,i2,i3,0),cgf1.u[grid](i1,i2,i3,1),cgf1.u[grid](i1,i2,i3,2),
+             		 cgf1.u[grid](i1,i2,i3,3));
+
+      	}
+            }
+
+      // solveForTimeIndependentVariables( cgf1 ); 
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAmrRegrid"))+=getCPU()-timea;
+        }
+        
+
+        if( movingGridProblem() )
+        {
+      // *********************************************************************************
+      // *********************** Moving Grid Step ****************************************
+      // *********************************************************************************
+
+            checkArrays(" eulerStep, before move grids"); 
+
+            if( debug() & 1 )
+            {
+      	printF("===== eulerStep: Move the grids at globalStepNumber=%i)\n",globalStepNumber);
+            }
+            if( debug() & 2 )
+      	fPrintF(parameters.dbase.get<FILE* >("moveFile"),
+            		"\n===== eulerStep: Move the grids at (globalStepNumber=%i)\n"
+            		"                  t1=%6.3f(cgf.t=%6.3f) t2=%6.3f(%6.3f) t3=%6.3f(%6.3f) \n",
+                       		           globalStepNumber,t1,cgf1.t,t2,cgf2.t,t3,cgf3.t);
+        
+      // move cgf3, compute grid velocity for cgf2 and cgf3
+            moveGrids( t1,t2,t3,dt0,cgf1,cgf2,cgf3 ); 
+
+            if( false ) // mask-problems
+            {
+      	int grid=2, i1=31, i2=44, i3=0;
+      	const IntegerArray & d = cgf1.cg[grid].dimension();
+      	if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+      	{
+        	  printf(">>>>After moveGrids before updateRefinement : (grid,i1,i2,i3)=(%i,%i,%i,%i) mask=%i mask2=%i u1=%8.5f,%8.5f,%8.5f,%8.5f\n"
+             		 ,grid,i1,i2,i3,cgf1.cg[grid].mask()(i1,i2,i3),cgf3.cg[grid].mask()(i1,i2,i3),
+             		 cgf1.u[grid](i1,i2,i3,0),cgf1.u[grid](i1,i2,i3,1),cgf1.u[grid](i1,i2,i3,2),
+             		 cgf1.u[grid](i1,i2,i3,3));
+
+      	}
+      	for( int grid=0; grid<cgf1.cg.numberOfComponentGrids(); grid++ )
+      	{
+        	  cgf1.cg[grid].update(MappedGrid::THEmask | MappedGrid::THEvertex );
+        	  cgf3.cg[grid].update(MappedGrid::THEmask | MappedGrid::THEvertex );
+        	  printf(" grid=%i &cgf1.cg[grid].mask()=%i &cgf3.cg[grid].mask()=%i \n",grid,
+             		 &cgf1.cg[grid].mask()(0,0,0),&cgf3.cg[grid].mask()(0,0,0));
+        	  printf(" grid=%i &cgf1.cg[grid].vertex()=%i &cgf3.cg[grid].vertex()=%i \n",grid,
+             		 &cgf1.cg[grid].vertex()(0,0,0),&cgf3.cg[grid].vertex()(0,0,0));
+      	}
+            }
+
+            if( parameters.isAdaptiveGridProblem() )
+            {
+	// both moving and AMR 
+      	parameters.dbase.get<Ogen* >("gridGenerator")->updateRefinement(cgf3.cg);
+            }
+            if( false ) // mask-problems
+            {
+      	int grid=2, i1=31, i2=44, i3=0;
+      	const IntegerArray & d = cgf1.cg[grid].dimension();
+      	if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+      	{
+        	  printf(">>>>After updateRefinement : (grid,i1,i2,i3)=(%i,%i,%i,%i) mask=%i mask2=%i u1=%8.5f,%8.5f,%8.5f,%8.5f\n"
+             		 ,grid,i1,i2,i3,cgf1.cg[grid].mask()(i1,i2,i3),cgf3.cg[grid].mask()(i1,i2,i3),
+             		 cgf1.u[grid](i1,i2,i3,0),cgf1.u[grid](i1,i2,i3,1),cgf1.u[grid](i1,i2,i3,2),
+             		 cgf1.u[grid](i1,i2,i3,3));
+
+      	}
+            }
+
+
+      // note: the interpolant does not need operators
+            real cpu0=getCPU();
+            cgf3.cg.rcData->interpolant->updateToMatchGrid( cgf3.cg );  
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateInterpolant"))+=getCPU()-cpu0;
+        
+      // ****** fix this -- need different operators
+      // ****    cgf3.u.getOperators()->updateToMatchGrid(cgf3.cg);
+      // **** operators are needed by cfg2 !  *** fix this ****
+            cpu0=getCPU();
+            cgf2.u.getOperators()->updateToMatchGrid(cgf2.cg); 
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateOperators"))+=getCPU()-cpu0;
+      // cgf3.cg.rcData->interpolant->updateToMatchGrid( cgf3.cg );
+
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForMovingUpdate"))+=getCPU()-cpu0;
+
+            updateForMovingGrids(cgf3);
+      //    cgf3.u.updateToMatchGrid( cgf3.cg );    // won't work if number of grid points changes and u1==u3
+
+            if( debug() & 8 )
+            {
+      	fPrintF(debugFile," eulerStep: u1 before interpExposed t=%e \n",cgf1.t);
+      	outputSolution( cgf1.u,cgf1.t ) ;
+            }
+
+
+            cpu0=getCPU();
+      // get values for exposed points on cgf1.cg
+      // *** first two args here cannot be the same
+            if( useNewExposedPoints )
+            {
+      	ExposedPoints exposedPoints;
+      	exposedPoints.setAssumeInterpolationNeighboursAreAssigned(parameters.dbase.get<int >("extrapolateInterpolationNeighbours"));
+      	exposedPoints.initialize(cgf1.cg,cgf3.cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
+            
+      	exposedPoints.interpolate(cgf1.u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t1);
+      	if( &cgf1 != &cgf2 )  // needed for du/dt:
+      	{
+        	  exposedPoints.initialize(cgf2.cg,cgf3.cg,parameters.dbase.get<int >("stencilWidthForExposedPoints"));
+        	  exposedPoints.interpolate(cgf2.u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t2);
+      	}
+            }
+            else
+            {
+      	interpolateExposedPoints(cgf1.cg,cgf3.cg,cgf1.u, (twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t1,
+                         				 false,Overture::nullIntArray(),Overture::nullIntegerDistributedArray(),
+                         				 parameters.dbase.get<int >("stencilWidthForExposedPoints") );  
+      	if( &cgf1 != &cgf2 )  // needed for du/dt:
+        	  interpolateExposedPoints(cgf2.cg,cgf3.cg,cgf2.u,(twilightZoneFlow() ? parameters.dbase.get<OGFunction* >("exactSolution") : NULL),t2,
+                           				   false,Overture::nullIntArray(),Overture::nullIntegerDistributedArray(),
+                           				   parameters.dbase.get<int >("stencilWidthForExposedPoints") ); 
+            }
+        
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForInterpolateExposedPoints"))+=getCPU()-cpu0;
+
+            if( false ) // mask-problems
+            {
+      	int grid=2, j1=31, j2=44, i3=0;
+      	const IntegerArray & d = cgf1.cg[grid].dimension();
+      	for( int i2=j2-2; i2<=j2+2; i2++ )
+        	  for( int i1=j1-2; i1<=j1+2; i1++ )
+        	  {
+          	    if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+          	    {
+            	      printF("After interpExposed: (grid,i1,i2,i3)=(%i,%i,%i,%i) mask=%i mask2=%i u1=%8.5f,%8.5f,%8.5f,%8.5f\n"
+                 		     ,grid,i1,i2,i3,cgf1.cg[grid].mask()(i1,i2,i3),cgf3.cg[grid].mask()(i1,i2,i3),
+                 		     cgf1.u[grid](i1,i2,i3,0),cgf1.u[grid](i1,i2,i3,1),cgf1.u[grid](i1,i2,i3,2),
+                 		     cgf1.u[grid](i1,i2,i3,3));
+          	    }
+        	  }
+            }
+            if( checkShockEllipse ) // shock-ellipse problem
+            {
+                  printShockEllipse( "After interpExposed: cgf1:", cgf1 );
+                  printShockEllipse( "After interpExposed: cgf3:", cgf3 );
+
+
+        // ** Error (dudr) : very small density, j1,j2 =  973 1252 grid=  12 rho=0.294E-38
+        // ** Error (dudr) : very small density, j1,j2 =  973 1252 grid=  28 rho=0.294E-38
+ 	// int grid=28, j1=973, j2=1252, i3=0;
+      	int grid=1, j1=277, j2=1, i3=0;
+        	if( grid < cgf1.cg.numberOfComponentGrids() )
+        	{
+        	  printF("After interpExposed: cgf1.form=%i cgf3.form=%i\n",cgf1.form,cgf3.form);
+        	  
+          	  const IntegerArray & d = cgf1.cg[grid].dimension();
+          	  const IntegerArray & gid = cgf1.cg[grid].gridIndexRange();
+	  //printF("After interpExposed: grid=%i gid=[%i,%i][%i,%i]\n",grid,gid(0,0),gid(1,0),gid(0,1),gid(1,1));
+          	  for( int i2=j2-2; i2<=j2+2; i2++ )
+            	    for( int i1=j1-2; i1<=j1+2; i1++ )
+            	    {
+              	      if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+              	      {
+              		printF("After interpExposed: (grid,i1,i2,i3)=(%i,%i,%i,%i) mask1=%i mask3=%i u1=%9.3e,%9.3e,%9.3e,%9.3e\n"
+                     		       ,grid,i1,i2,i3,maskDecode(cgf1.cg[grid].mask()(i1,i2,i3)),
+                                              maskDecode(cgf3.cg[grid].mask()(i1,i2,i3)),
+                     		       cgf1.u[grid](i1,i2,i3,0),cgf1.u[grid](i1,i2,i3,1),cgf1.u[grid](i1,i2,i3,2),
+                     		       cgf1.u[grid](i1,i2,i3,3));
+              	      }
+            	    }
+        	}
+            }
+
+            if( debug() & 8 && cgf1.cg.numberOfComponentGrids()>1 )  // ******************* 2012/03/06
+            {
+      	char buff[80];
+                GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+                GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");      
+
+	// cgf3.cg.destroy(MappedGrid::THEvertex | MappedGrid::THEcenter );
+	// cgf3.cg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+
+                psp.set(GI_TOP_LABEL,sPrintF(buff,"After MOVE, cf3 (solution not valid) t=%f",cgf3.t));
+                psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+                ps.erase();
+                realCompositeGridFunction v;
+                realCompositeGridFunction & uu = getAugmentedSolution(cgf3,v); 
+                PlotIt::contour(ps,uu,psp);
+            }
+
+            if( debug() & 8 )
+            {
+	// cgf1.cg[0].mask()=cgf3.cg[0].mask();
+      	fPrintF(debugFile," eulerStep: u1 after interpExposed t=%e \n",cgf1.t);
+      	outputSolution( cgf1.u,cgf1.t ) ;
+            }
+
+            checkArrays(" eulerStep, after move grids"); 
+
+        
+        }  // end moving grid problem
+    
+    } // end if correction==0 
+    
+
+    if( takeTimeStep )
+    {
+
+        if( debug() & 16 )
+        {
+            fprintf(pDebugFile," eulerStep: errors in u1 on input t=%e \n",cgf1.t);
+            determineErrors( cgf1 ) ;
+            fprintf(pDebugFile," eulerStep: errors in u2 on input t=%e \n",cgf2.t);
+            determineErrors( cgf2 ) ;
+        }
+
+        if( parameters.useConservativeVariables() )
+        {
+            cgf1.primitiveToConservative();
+            cgf2.primitiveToConservative();
+            cgf3.form=cgf2.form;
+        }
+
+        real tForce = parameters.dbase.get<int >("explicitMethod") ? cgf2.t : cgf2.t+dt0*.5;
+    // printF("################# forwardEuler : cgf2.t =%9.3e t2=%9.3e diff=%9.3e\n",cgf2.t,t2,fabs(cgf2.t-t2));
+
+
+    // -- evaluate any body forcing (this is saved in realCompositeGridFunction bodyForce found in the data-base) ---
+        computeBodyForcing( cgf2, tForce );
+
+        for( grid=0; grid<cgf2.cg.numberOfComponentGrids(); grid++ )
+        {
+            rparam[0]=t2;
+            rparam[1]=tForce;
+            rparam[2]=t2; // tImplicit
+            iparam[0]=grid;
+            iparam[1]=cgf2.cg.refinementLevelNumber(grid);
+            iparam[2]=numberOfStepsTaken;
+
+      // **********************************************
+      // *********** get du/dt ************************
+      // **********************************************
+
+            int returnValue=getUt(cgf2.u[grid],cgf2.getGridVelocity(grid),ut[grid],iparam,rparam,
+                      			    Overture::nullRealMappedGridFunction(),&cgf3.cg[grid],&cgf3.getGridVelocity(grid));
+
+      // ************wdh 060302
+      // ut[grid].updateGhostBoundaries();
+
+            if( checkShockEllipse && grid==1 ) // shock-ellipse problem
+            {
+      	int grid=1, i1=277, i2=1, i3=0;
+                realArray & u1 = cgf1.u[grid];
+      	realArray & u2 = cgf2.u[grid];
+      	realArray & ut0 = ut[grid];
+      	
+      	printF("After getUt: (grid,i1,i2,i3)=(%i,%i,%i,i3) dt0=%12.4e\n"
+                              "     u1=(%9.3e,%9.3e,%9.3e,%9.3e),\n"
+                              "     u2=(%9.3e,%9.3e,%9.3e,%9.3e),\n"
+                              "     up=(%9.3e,%9.3e,%9.3e,%9.3e)\n",
+             	       grid,i1,i2,i3,dt0,
+             	       u1(i1,i2,i3,0),u1(i1,i2,i3,1),u1(i1,i2,i3,2),u1(i1,i2,i3,3),
+             	       u2(i1,i2,i3,0),u2(i1,i2,i3,1),u2(i1,i2,i3,2),u2(i1,i2,i3,3),
+                              u1(i1,i2,i3,0)+dt0*ut0(i1,i2,i3,0),
+                              u1(i1,i2,i3,1)+dt0*ut0(i1,i2,i3,1),
+                              u1(i1,i2,i3,2)+dt0*ut0(i1,i2,i3,2),
+                              u1(i1,i2,i3,3)+dt0*ut0(i1,i2,i3,3));
+            }
+        
+            if( returnValue!=0 ) 
+            {
+      	printF("eulerStep:ERROR:return from mappedGridSolver for grid=%i, error code=%i\n",grid,returnValue);
+      	printF("I am going to plot the solution that caused the problem\n");
+      	char buff[80];
+      	GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+      	GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");      
+      	psp.set(GI_TOP_LABEL,sPrintF(buff,"Solution at time %f",cgf2.t));
+      	psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+      	ps.erase();
+
+      	realCompositeGridFunction v;
+      	realCompositeGridFunction & uu = getAugmentedSolution(cgf2,v); 
+      	PlotIt::contour(ps,uu,psp);
+            }
+
+            if( debug() & 64 )
+            {
+              
+
+      	if( parameters.gridIsMoving(grid) )
+        	  display(cgf2.getGridVelocity(grid),"cgf2[grid].gridVelocity",debugFile);
+
+	// fflush(debugFile);
+	// Communication_Manager::Sync();
+      	::display(ut[grid],sPrintF(" eulerStep:du/dt at t=%9.4e \n",cgf2.t),debugFile,"%12.5e ");
+	// fflush(debugFile);
+	// Communication_Manager::Sync();
+            }
+
+            if( debug() & 16 )
+            {
+      	outputSolution( ut,cgf2.t,sPrintF(" eulerStep:du/dt at t=%11.4e \n",cgf2.t) );
+            }
+
+
+//    dudt( t2,grid,cgf2.cg[grid],cgf2.cg[grid].mask(),cgf2.u[grid],cgf2.getGridVelocity(grid),
+//          cgft.u[grid],cgfti.u[grid] );  // get du/dt  *** cgft.cg must match cgf2.cg ***
+
+            real timeForAddUt=getCPU();
+      // *wdh* 030623     getIndex(cgf3.cg[grid].extendedIndexRange(),I1,I2,I3);
+      // copy all points since consPrim wants to set values all points
+      // ut will be zero at unused points
+
+            const bool useOptUpdate=true;
+            if( useOptUpdate )
+            {
+#ifdef USE_PPP
+      	RealArray u1; getLocalArrayWithGhostBoundaries(cgf1.u[grid],u1);
+      	const RealArray & u3 = cgf3.u[grid].getLocalArray();
+      	const RealArray & uta= ut[grid].getLocalArray();
+      	const intSerialArray & mask1 = cgf3.cg[grid].mask().getLocalArray();
+#else
+      	RealArray & u1 = cgf1.u[grid];
+      	RealArray & u3 = cgf3.u[grid];
+      	RealArray & uta= ut[grid];
+      	const intArray & mask1 = cgf3.cg[grid].mask();
+#endif
+
+      	getIndex(cgf3.cg[grid].dimension(),I1,I2,I3);
+      	const int n1a=max(u1.getBase(0),I1.getBase()), n1b=min(u1.getBound(0),I1.getBound());  
+      	const int n2a=max(u1.getBase(1),I2.getBase()), n2b=min(u1.getBound(1),I2.getBound());
+      	const int n3a=max(u1.getBase(2),I3.getBase()), n3b=min(u1.getBound(2),I3.getBound());
+
+      	
+      	int ierr=0;
+      	const int option=1;     // add on one "ut"
+      	const int maskOption=1; // copy all points, do not use the mask
+      	int ipar[]={option,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
+      	real rpar[5]={dt0,0.,0.,0.,0.};
+      	real *utap= uta.getDataPointer();
+
+      	updateOpt(u1.getBase(0),u1.getBound(0),u1.getBase(1),u1.getBound(1),
+              		  u1.getBase(2),u1.getBound(2),u1.getBase(3),u1.getBound(3),
+              		  *mask1.getDataPointer(),  
+              		  *u1.getDataPointer(),*u3.getDataPointer(), 
+              		  *utap, *utap, *utap, *utap,
+              		  ipar[0], rpar[0], ierr );
+
+            }
+            else
+            {
+      	Index all;
+      	I1=all; I2=all; I3=all;
+      	if( &(cgf1.u) != &(cgf3.u) )
+        	  cgf3.u[grid](I1,I2,I3,N)=cgf1.u[grid](I1,I2,I3,N)+dt0*ut[grid](I1,I2,I3,N); 
+      	else
+        	  cgf3.u[grid](I1,I2,I3,N)+=dt0*ut[grid](I1,I2,I3,N); 
+            
+            }
+        
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-timeForAddUt;
+        }
+        cgf3.t=cgf1.t+dt0;
+
+        checkArrays(" eulerStep, after dudt");  
+
+        if( false ) // mask-problems
+        {
+            int grid=2, i1=31, i2=44, i3=0;
+            const IntegerArray & d = cgf1.cg[grid].dimension();
+            if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+            {
+      	printF(">>>After euler step: (grid,i1,i2,i3)=(%i,%i,%i,%i) mask=%i u=%12.6e, u3=%12.6e,mask2=%i\n"
+             	       ,grid,i1,i2,i3,cgf1.cg[grid].mask()(i1,i2,i3),cgf1.u[grid](i1,i2,i3,0),
+             	       cgf3.u[grid](i1,i2,i3,0),cgf3.cg[grid].mask()(i1,i2,i3));
+            }
+        }
+
+        if( checkShockEllipse ) // shock-ellipse problem
+        {
+            printF("After euler: cgf3.form=%i\n",cgf3.form);
+
+            printShockEllipse( "After euler: cgf1", cgf1 );
+            printShockEllipse( "After euler: cgf3", cgf3 );
+
+      	int grid=1, j1=277, j2=1, i3=0;
+        	if( grid < cgf3.cg.numberOfComponentGrids() )
+        	{
+          	  const IntegerArray & d = cgf3.cg[grid].dimension();
+          	  const IntegerArray & gid = cgf3.cg[grid].gridIndexRange();
+	  //printF("After interpExposed: grid=%i gid=[%i,%i][%i,%i]\n",grid,gid(0,0),gid(1,0),gid(0,1),gid(1,1));
+          	  for( int i2=j2-2; i2<=j2+2; i2++ )
+            	    for( int i1=j1-2; i1<=j1+2; i1++ )
+            	    {
+              	      if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+              	      {
+              		printF("After euler: (grid,i1,i2,i3)=(%i,%i,%i,%i) mask3=%i u3=%9.3e,%9.3e,%9.3e,%9.3e\n"
+                     		       ,grid,i1,i2,i3,
+                                              maskDecode(cgf3.cg[grid].mask()(i1,i2,i3)),
+                     		       cgf3.u[grid](i1,i2,i3,0),cgf3.u[grid](i1,i2,i3,1),cgf3.u[grid](i1,i2,i3,2),
+                     		       cgf3.u[grid](i1,i2,i3,3));
+              	      }
+            	    }
+        	}
+
+        }
+
+        if( debug() & 16 ) 
+        {
+      // when checking errors in ut, use the grid from cgf2 
+            if( twilightZoneFlow() )
+            {
+      	fPrintF(debugFile," eulerStep: errors in ut at t=%e \n",cgf2.t);
+      	fprintf(pDebugFile," eulerStep: errors in ut at t=%e \n",cgf2.t);
+      	determineErrors( ut,cgf2.gridVelocity, cgf2.t, 1, error );
+            }
+            else
+            {
+      	aString label=sPrintF(" eulerStep: cgf2.u at t=%e \n",cgf2.t);
+      	outputSolution( cgf2.u,cgf2.t,label );
+	// ** the next is trouble with amr on:
+	// label=sPrintF(" eulerStep: ut at t=%e \n",cgf2.t);
+	// outputSolution( ut,cgf2.t,label );
+            }
+        }
+        
+
+        if( movingGridProblem() )
+        { // update operators on cgf3 before interpolating
+            real cpu0=getCPU();
+            cgf3.u.getOperators()->updateToMatchGrid(cgf3.cg);
+            parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForUpdateOperators"))+=getCPU()-cpu0;
+
+        }
+
+        if( false  )  // ******************* 2012/03/06
+        {
+            char buff[80];
+            GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+            GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");      
+            psp.set(GI_TOP_LABEL,sPrintF(buff,"BEFORE rigidBodyBoundaryProjection at time %f",cgf3.t));
+            psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+            ps.erase();
+            realCompositeGridFunction v;
+            realCompositeGridFunction & uu = getAugmentedSolution(cgf3,v); 
+            PlotIt::contour(ps,uu,psp);
+        }
+
+        if( parameters.dbase.get<bool>("projectRigidBodyInterface") && movingGridProblem() )
+        {
+      // ---- apply first stage of the projection to fluid variables on the boundaries of light rigid bodies -----
+            rigidBodyBoundaryProjection( cgf3,dt0,correction,parameters );
+
+        }
+
+    }
+    else
+    {
+        if( debug() & 2 )
+            printP("advanceStepsFE: skip takeTimeStep : correction=%i, globalStepNumber=%i, t=%9.3e\n",correction,globalStepNumber,cgf3.t);    
+    } // ---- end if takeTimeStep -----
+      
+
+    if( applyBC )
+    {
+
+        if( !takeTimeStep )
+        {
+            if( debug() & 2 )
+      	printP("advanceStepsFE: only apply BC's : correction=%i, globalStepNumber=%i, t=%9.3e\n",
+             	       correction,globalStepNumber,cgf3.t); 
+        }
+        
+    // correct for forces on moving bodies
+    // For light-rigid bodies correct body before applying the BC's
+        if( parameters.dbase.get<bool>("projectRigidBodyInterface") && movingGridProblem() ) 
+        {
+            if( debug() & 8  ) fprintf(parameters.dbase.get<FILE* >("moveFile"),"<<< eulerStep: correct for moving grids cgf3.t=%6.3f\n",cgf3.t);
+        
+            correctMovingGrids( cgf1.t,cgf3.t, cgf1,cgf3 );   // *wdh* 040318
+
+      // *** Recompute the grid velocity after correcting the rigid bodies ***
+            if( true )
+            {
+                cgf3.gridVelocityTime -= dt0; // force the grid velocity to be recomputed
+      	getGridVelocity( cgf3, cgf3.t );
+            }
+            
+            if( false ) // shock-ellipse problem
+            {
+      	printShockEllipse( "Before proj", cgf3 );
+            }
+
+      // Finish the projection...
+      // ---- apply projection to fluid variables on the boundaries of light rigid bodies -----
+            rigidBodyBoundaryProjection( cgf3,dt0,correction+1,parameters );
+            
+        }
+
+
+        if( debug() & 32 )
+        {
+            fPrintF(debugFile," eulerStep: Before interpolate: errors at t=%e \n",cgf3.t);
+            fprintf(pDebugFile," eulerStep: Before interpolate: errors at t=%e \n",cgf3.t);
+            determineErrors( cgf3 );
+        }
+        if( debug() & 4 ) 
+        {
+            fPrintF(debugFile,"After eulerStep: interpolateAndApplyBoundaryConditions...\n");
+        }
+    
+        if( false ) // shock-ellipse problem
+        {
+            printShockEllipse( "After proj", cgf3 );
+        }
+
+        interpolateAndApplyBoundaryConditions(cgf3, &cgf1, dt0);
+    
+        bool updateSolutionDependentEquations=true;  // e.g. for variable density, do update p eqn here 
+        solveForTimeIndependentVariables( cgf3,updateSolutionDependentEquations ); 
+
+        if( checkShockEllipse ) // shock-ellipse problem
+        {
+            printShockEllipse( "After BC", cgf3 );
+
+      // ** Error (dudr) : very small density, j1,j2 =  973 1252 grid=  12 rho=0.294E-38
+      // ** Error (dudr) : very small density, j1,j2 =  973 1252 grid=  28 rho=0.294E-38
+            int grid=12, j1=973, j2=1252, i3=0;
+            if( grid < cgf3.cg.numberOfComponentGrids() )
+            {
+        	  
+      	const IntegerArray & d = cgf3.cg[grid].dimension();
+      	const IntegerArray & gid = cgf3.cg[grid].gridIndexRange();
+      	const IntegerArray & bc = cgf3.cg[grid].boundaryCondition();
+      	printF("After BC: grid=%i gid=[%i,%i][%i,%i] bc=[%i,%i][%i,%i]\n",grid,gid(0,0),gid(1,0),gid(0,1),gid(1,1),
+             	       bc(0,0),bc(1,0),bc(0,1),bc(1,1));
+
+                int i1=973, i2=1252, i3=0;
+                if( (i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) ) &&
+                        cgf3.u[grid](i1,i2,i3,0)< 1.e-20 )
+      	{
+          // save the grid and solution in a file
+        	  if( true )
+        	  {
+          	    aString gridFileName="gridTrouble.hdf", gridName="gridTrouble";
+          	    printF("Saving the current grids in the file %s \n",(const char*)gridFileName);
+          	    Ogen::saveGridToAFile( cgf3.cg,gridFileName,gridName );
+
+                        saveShow( cgf3 );
+          	    parameters.dbase.get<Ogshow* >("show")->endFrame();
+
+          	    OV_ABORT("done");
+          	    
+        	  }
+
+      	}
+      	
+
+      	for( int i2=j2-1; i2<=j2+1; i2++ )
+        	  for( int i1=j1-1; i1<=j1+1; i1++ )
+        	  {
+          	    if( i1>=d(0,0) && i1<=d(1,0) && i2>=d(0,1) && i2<=d(1,1) )
+          	    {
+            	      printF("After BC: (grid,i1,i2,i3)=(%i,%i,%i,%i) mask1=%i mask3=%i u3=%9.3e,%9.3e,%9.3e,%9.3e\n"
+                 		     ,grid,i1,i2,i3,cgf1.cg[grid].mask()(i1,i2,i3),cgf3.cg[grid].mask()(i1,i2,i3),
+                 		     cgf3.u[grid](i1,i2,i3,0),cgf3.u[grid](i1,i2,i3,1),cgf3.u[grid](i1,i2,i3,2),
+                 		     cgf3.u[grid](i1,i2,i3,3));
+          	    }
+        	  }
+            }
+        }
+
+
+        if( debug() & 16 )
+        {
+            aString label=sPrintF(" eulerStep:DONE errors at t=%e \n",cgf3.t);
+            if( twilightZoneFlow() )
+      	determineErrors( cgf3,label );
+            else
+      	outputSolution( cgf3.u,cgf3.t,label );
+        }
+    
+    // correct for forces on moving bodies
+        if( !parameters.dbase.get<bool>("projectRigidBodyInterface") &&  movingGridProblem() )
+        {
+            if( debug() & 8  ) fprintf(parameters.dbase.get<FILE* >("moveFile"),"<<< eulerStep: correct for moving grids cgf3.t=%6.3f\n",cgf3.t);
+        
+            correctMovingGrids( cgf1.t,cgf3.t, cgf1,cgf3 );   // *wdh* 040318
+        }
+        
+
+
+        if( (debug() & 8) && parameters.dbase.get<bool>("projectRigidBodyInterface") && movingGridProblem() ) 
+        {
+      // check projection after boundary conditions -- n.(vf - vb) should be ZERO
+
+            int cor=-1;  // this means check the projection 
+            rigidBodyBoundaryProjection( cgf3,dt0,cor,parameters );
+        }
+
+
+    }
+    else
+    {
+        if( debug() & 4 ) 
+            printP("eulerStep: skip BCs : correction=%i, globalStepNumber=%i, t=%9.3e\n",correction,globalStepNumber,cgf3.t);
+    }
+    
+    if( debug() & 64 )
+    {
+        for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+            ::display(cgf3.u[grid],sPrintF(" eulerStep:done t=%9.4e grid=%i\n",cgf3.t,grid),debugFile,"%12.5e ");
+    }
+
+
+//    if( true )
+//    {
+//      FILE *file = stdout;
+//      fprintf(file,"\n ++++++++++++eulerStep:cgf3.END+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+//      for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+//        cgf3.cg[grid].displayComputedGeometry(file);
+//      fprintf(file," +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+//    }
+
+
+//  tm(3)+=getCPU()-time0;    // ***** ??
+    checkArrays(" eulerStep, end");  
+
+
+    return 0;
+}
+
+
+// ===================================================================================================================
+/// \brief End an individual time step (a time sub-step function).
+/// \details 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+/// \param correction (input) : for predictor corrector methods this indicates the correction step number.
+///
+// ===================================================================================================================
+int DomainSolver::
+endTimeStepFE( real & t0, real & dt0, AdvanceOptions & advanceOptions )
+{
+    FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+  //   FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+    const int & globalStepNumber = parameters.dbase.get<int >("globalStepNumber");
+    assert( parameters.dbase.get<DataBase >("modelData").has_key("AdamsPCData") );
+    AdamsPCData & adamsData = parameters.dbase.get<DataBase >("modelData").get<AdamsPCData>("AdamsPCData");
+    
+    real & dtb=adamsData.dtb;
+    int &mab0 =adamsData.mab0, &mab1=adamsData.mab1, &mab2=adamsData.mab2;
+    int &nab0 =adamsData.nab0, &nab1=adamsData.nab1, &nab2=adamsData.nab2, &nab3=adamsData.nab3;
+    int &ndt0=adamsData.ndt0;
+    real *dtp = adamsData.dtp;
+
+    nab0=nab1=nab3=0;  // we only use fn[0]
+
+    const int numberOfGridFunctions =  2;
+
+  // permute (mab0,mab1,mab2) 
+    mab0 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+    mab1 = (mab1-1 + numberOfGridFunctions) % numberOfGridFunctions;
+    mab2 = (mab0-1 + numberOfGridFunctions) % numberOfGridFunctions;
+
+    ndt0=(ndt0-1 +5)%5;  // for dtp[]
+        
+    dtb=dt0;
+    t0+=dt0;
+
+    if( (globalStepNumber-1) % parameters.dbase.get<int >("frequencyToSaveSequenceInfo") == 0 )
+    {
+        if( !parameters.isAdaptiveGridProblem() )  // fn[0] is not valid for AMR (?) -- fix this
+            saveSequenceInfo(t0,fn[0]);
+    }
+    
+  // *wdh* 100801  saveSequenceInfo(t0,fn[nab1]);
+
+    output( gf[mab0],globalStepNumber ); // output to files, user defined output
+
+
+// 080508 -- remove this from here -- Does this work? 
+//   if( parameters.useConservativeVariables() )
+//     gf[mab0].conservativeToPrimitive();
+    
+  // update the current solution:  
+    current = mab0;
+    
+    checkArrayIDs("endTimeStepFE:end");
+
+
+    if( false )
+    {
+    // should we turn this on ? (was on in endTimeStepIM)
+        const int zeroUnusedPointsAfterThisManySteps=20;
+        if( ( ((globalStepNumber+1) % zeroUnusedPointsAfterThisManySteps)==0 ) &&  
+      	parameters.dbase.get<int >("extrapolateInterpolationNeighbours")==0 )
+        {
+      // *note* we cannot fixup unused if we extrapolate interp. neighbours since these values will be zeroed out!
+      // (esp. important for viscoPlastic model -- linearized solution becomes corrupted)
+
+            if( debug() & 2 ) printF(" ************** DomainSolver::endTimeStep fixupUnusedPoints ************\n");
+            
+      // zero out unused points to keep them from getting too big ** is this needed?? ****
+            for( int m=0; m<=1; m++ )
+            {
+	// ** gf[m].u.zeroUnusedPoints(coeff);
+      	fixupUnusedPoints(gf[m].u);
+            }
+        }
+    }
+    
+    if( debug() & 4 )
+    {
+        printP("DomainSolver::endTimeStepFE  t0=%e dt0=%e (dt=%e) ----\n",t0,dt0,dt);
+        fprintf(debugFile," ***endTimeStepFE: t0=%e, dt0=%e (dt=%e) *** \n",t0,dt0,dt);
+    }
+    return 0;
+}
+
+// ===============================================================================================================
+/// \brief Compute a new time step and the number sub-steps to reach the next time to print
+/// \details This function is usually called from within the subStep loop.
+///   NOTE: this function also changes the "dt" variable in the data-base. 
+/// \cgf (input) : current solution
+/// \stepNumber (input) : current subStep number
+/// \numberOfSubSteps (output): the number of sub-steps to take to reach the nextTimeToPrint
+/// \dt (input/output) : on input the current time step, on output the new time step.
+/// \return value: 0= dt was not changed, 1=dt was changed.
+// ===============================================================================================================
+int DomainSolver::
+getTimeStepAndNumberOfSubSteps( GridFunction & cgf, int stepNumber, int & numberOfSubSteps, real & dt )
+{
+    int returnValue=0;  // 0=dt was NOT changed, 1= dt was changed.
+
+    const int regridFrequency = (parameters.dbase.get<int >("amrRegridFrequency")>0 ? 
+                         			       parameters.dbase.get<int >("amrRegridFrequency") :
+                         			       parameters.dbase.get<Regrid* >("regrid")==NULL ? 2 : 
+                         			       parameters.dbase.get<Regrid* >("regrid")->getRefinementRatio() ); 
+
+    if( ((stepNumber % 2)==0) && ( 
+            parameters.isAdaptiveGridProblem() && 
+            ((parameters.dbase.get<int >("globalStepNumber") % regridFrequency) == 0)  ||
+            parameters.dbase.get<bool >("recomputeDTEveryStep") ) )
+    {
+    // *********************************************************************************
+    // **** recompute the time step -- recompute every time step for some codes *****
+    // *********************************************************************************
+
+        if( parameters.useConservativeVariables() && !parameters.dbase.get<bool>("timeStepDataIsPrecomputed") )
+        {
+      // Note: no need to convert to primitive variables for some codes
+            cgf.conservativeToPrimitive(); 
+        }
+
+        real dtNew= getTimeStep( cgf ); //       ===Choose time step====
+        int numberOfSteps;
+        real & nextTimeToPrint = parameters.dbase.get<real >("nextTimeToPrint");
+        real tFinal=nextTimeToPrint;
+        computeNumberOfStepsAndAdjustTheTimeStep(cgf.t,tFinal,nextTimeToPrint,numberOfSteps,dtNew);
+      	
+    //    numberOfSubSteps=stepNumber+numberOfSteps-1;
+        int numberOfSubStepsOld=numberOfSubSteps;
+        
+        numberOfSubSteps=stepNumber+numberOfSteps-1;
+
+        if( debug() & 4 )
+        {
+            printF("$$$$$$ getTimeStepAndNumberOfSteps: numberOfSubStepsOld=%i, stepNumber=%i numberOfSubSteps=%i, "
+                        "numberOfSteps=%i\n",numberOfSubStepsOld,stepNumber,numberOfSubSteps,
+                            numberOfSteps);
+            printF("$$$$$$ t=%12.6e, nextTimeToPrint=%12.6e, t+ numberOfSteps*dt=%12.6e\n",nextTimeToPrint,
+           	     cgf.t, cgf.t+numberOfSteps*dtNew);
+        }
+        
+        if( dt!=dtNew || debug() & 4 )
+            printF("\n $$$$$$$$$$$ getTimeStepAndNumberOfSteps:recompute dt: dt(old)=%8.3e, dtNew = %8.3e (t=%8.3e)\n",
+                          dt,dtNew,cgf.t);
+
+        dt=dtNew;
+        parameters.dbase.get<real >("dt")=dt;
+        returnValue=1;
+    }
+    return returnValue;
+    
+}
+
+
+// ==============================================================================================================
+/// \brief Advance using an "forward-Euler" method (new way)
+// ==============================================================================================================
+void DomainSolver::
+advanceForwardEulerNew( real & t0, real & dt0, int & numberOfSubSteps, int & init, int initialStep  )
+{
+    FILE *& debugFile =parameters.dbase.get<FILE* >("debugFile");
+    FILE *& pDebugFile =parameters.dbase.get<FILE* >("pDebugFile");
+
+    if( true || debug() & 4 )
+        printF(" ---- DomainSolver::advanceForwardEulerNew t0=%e, dt0=%e ----\n",t0,dt0);
+    if( debug() & 2 )
+        fprintf(debugFile," *** Entering advanceForwardEulerNew: t0=%e, dt0=%e *** \n",t0,dt0);
+
+
+    if( init )
+    {
+        initializeTimeStepping( t0,dt0 );
+        init=false;
+    }
+
+  // if( true || !parameters.dbase.get<bool>("projectRigidBodyInterface") )
+
+    AdvanceOptions advanceOptions;
+    for( int mst=1; mst<=numberOfSubSteps; mst++ )
+    {
+        int currentGF, nextGF;
+        startTimeStep( t0,dt0,currentGF,nextGF,advanceOptions );
+        
+    // recompute the time step and number of substeps if appropriate *wdh* 2012/02/26
+        getTimeStepAndNumberOfSubSteps( gf[currentGF], mst, numberOfSubSteps, dt0 );
+
+        for( int correction=0; correction<=advanceOptions.numberOfCorrectorSteps; correction++ )
+        {
+            takeTimeStep( t0,dt0,correction,advanceOptions );
+      	
+        } // end corrections
+        
+        endTimeStep( t0,dt0,advanceOptions );
+
+
+    } // end  substeps
+        
+//   }
+//   else
+//   {
+//     // ------- Apply the projection scheme for light rigid bodies ----------
+
+
+//     printF(" PPPPPP advanceForwardEulerNew: Use interface projection scheme for light rigid bodies t=%9.3e PPPPPP\n",t0);
+        
+//     AdvanceOptions advanceOptions;
+//     for( int mst=1; mst<=numberOfSubSteps; mst++ )
+//     {
+//       int currentGF, nextGF;
+//       startTimeStep( t0,dt0,currentGF,nextGF,advanceOptions );
+        
+//       // recompute the time step and number of substeps if appropriate *wdh* 2012/02/26
+//       getTimeStepAndNumberOfSubSteps( gf[currentGF], mst, numberOfSubSteps, dt0 );
+
+//       for( int correction=0; correction<=advanceOptions.numberOfCorrectorSteps; correction++ )
+//       {
+//         // Stage I: advance the solution but do not apply (interface) BC's
+//         advanceOptions.takeTimeStepOption=AdvanceOptions::takeStepButDoNotApplyBoundaryConditions;
+// 	takeTimeStep( t0,dt0,correction,advanceOptions );
+      	
+
+// 	// Stage II: optionally project the interface values: option=0 : 0=set values on the interface
+
+//         // int option=0;
+//         // rigidBodyInterfaceProjection( t0+dt,dt0,correct,option );
+      	
+//         // interfaceProjection( t+dt, dt, correct, gfIndex, 0 );
+
+//         // Stage III: evaluate the interface conditions and apply the boundary conditions
+//         advanceOptions.takeTimeStepOption=AdvanceOptions::applyBoundaryConditionsOnly;
+// 	takeTimeStep( t0,dt0,correction,advanceOptions );
+
+
+//       } // end corrections
+        
+//       endTimeStep( t0,dt0,advanceOptions );
+
+//       // *** we could change the time step here? --> NO we shouldn't change dt, cgmp should do this !
+
+
+//     } // end  substeps
+
+
+//   }
+    
+
+}
