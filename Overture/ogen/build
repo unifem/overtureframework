@@ -90,6 +90,7 @@ cp {buildingsGrid.cmd,buildTower.h,buildRoundedCylinder.h,site300SurfaceGrid.h} 
 cp {splitAnnulusGrid,splitCylinderGrid,valvee,box32,sib.bbmg,ellipsoid.bbmg}.cmd                       $sampleGrids
 
 cp {turbineAndTower.cmd,towerWithCap.h,cylWithCaps.h,tower.h,turbineBlade.h}                           $sampleGrids
+cp {freeSurfaceGrid2d.cmd,freeSurfaceGrid2dy.cmd}                           $sampleGrids
 
 cp slac2.distribute.cmd                                                                                $sampleGrids/slac2.cmd
 
