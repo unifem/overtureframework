@@ -257,12 +257,13 @@ $iv
 #*     square(1,0)=outflow,  pressure(1.*p+1.*p.n=0.)
 #*    square(1,0)=outflow,  pressure(1.*p+0.*p.n=1.)
 # 
+   bcNumber4=outflow ,  pressure(.1*p+1.*p.n=0.)
    bcNumber2=outflow ,  pressure(1.*p+0.*p.n=0.), userDefinedBoundaryData
-    # set the pressure at outflow to a linear profile.
+   # set the pressure at outflow to a linear profile.
     pressure profile
       -1. 1. -2. 2.
     done
-   #
+#-   #
    if( $cyl eq "noSlip" ){ $cmd="bcNumber5=noSlipWall"; }else{ $cmd="bcNumber5=slipWall"; }
    $cmd
    # radial inflow option: (this over-rides previous BC options)

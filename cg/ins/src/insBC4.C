@@ -1798,7 +1798,7 @@ applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int gri
                   else
                   {
                       addBoundaryForcing(side,axis)=false;
-            	pbcf[side][axis] = fptr;  // should not be used in this case 
+            	pbcf[side][axis] =bcData.getDataPointer();  // should not be used in this case 
             	for( int a=0; a<=2; a++ )
             	{
               	  dbc(0,a,side,axis)=0;

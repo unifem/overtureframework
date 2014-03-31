@@ -105,8 +105,6 @@ cleandep:
 clean:
 	-rm -f *~ */*~ $(OBJPREFIX)*.o $(DEPPREFIX)*.d $(BINDIR)cgmx  \
          cmd/*.show* cmd/*.debug cmd/*.check cmd/*.log cmd/*.move cmd/cgmx.cmd 
-	-@cd doc; $(MAKE) clean
-	@cd src; $(MAKE) clean
 
 # include dependencies except for a list of commands 
 ifeq ($(NODEP),)

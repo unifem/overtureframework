@@ -1369,6 +1369,7 @@ userDefinedBoundaryValues(const real & t,
 	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
         OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
 
+
 	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 	
 	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
@@ -1385,6 +1386,7 @@ userDefinedBoundaryValues(const real & t,
 	const real y1    =values(3); 
 
 	printF("userDefinedBoundaryValues: pressureProfile: p0=%g, p1=%g, y0=%g, y1=%g (t=%9.3e)\n",p0,p1,y0,y1,t);
+	// ::display(x(Ib1,Ib2,Ib3,1),"Here is x on the side");
 	
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 

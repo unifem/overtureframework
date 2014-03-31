@@ -236,74 +236,77 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
   else
   {
 
-    BoundaryConditionParameters bcParams;
-    RealArray & a = bcParams.a;
-    a.redim(2);
+// ***** *wdh* 2014/03/31 -- this check is no longer needed *****
+    // BoundaryConditionParameters bcParams;
+    // RealArray & a = bcParams.a;
+    // a.redim(2);
 
-    for( int l=0; l<m.numberOfMultigridLevels(); l++ )
-    {
-      CompositeGrid & cg = m.numberOfMultigridLevels()==1 ? cg0 : m.multigridLevel[l];
-      for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
-      {
-	MappedGrid & c = cg[grid];
-	// For outflow etc. boundaries check whether the pressure BC a*p+b*p.n is neumann (b!=0) or dirichlet
-        // *** for now we either apply a mixed or dirichlet BC at all outflow boundaries on a given component grid ****
-	for( int bcType=0; bcType<3; bcType++ )
-	{
-          // we check the three BC's that specify a mixed condition on the pressure
-	  int bc = 
-	    bcType==0 ? InsParameters::outflow : 
-	    bcType==1 ? InsParameters::convectiveOutflow :
-	                InsParameters::tractionFree;
+//     for( int l=0; l<m.numberOfMultigridLevels(); l++ )
+//     {
+//       CompositeGrid & cg = m.numberOfMultigridLevels()==1 ? cg0 : m.multigridLevel[l];
+//       for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
+//       {
+// 	MappedGrid & c = cg[grid];
+// 	// For outflow etc. boundaries check whether the pressure BC a*p+b*p.n is neumann (b!=0) or dirichlet
+//         // *** for now we either apply a mixed or dirichlet BC at all outflow boundaries on a given component grid ****
+// 	for( int bcType=0; bcType<3; bcType++ )
+// 	{
+//           // we check the three BC's that specify a mixed condition on the pressure
+// 	  int bc = 
+// 	    bcType==0 ? InsParameters::outflow : 
+// 	    bcType==1 ? InsParameters::convectiveOutflow :
+// 	                InsParameters::tractionFree;
 
-  	  int typeOfBoundaryCondition=-1;  // -1=no outflow boundaries, 0=dirichlet, 1=neumann
-	  ForBoundary( side,axis )
-	  {
-	    if( c.boundaryCondition(side,axis)==(int)bc )
-	    {
-	      if( mixedNormalCoeff(pc,side,axis,grid)!=0. )
-	      {
-		if( typeOfBoundaryCondition!=0 )
-		  typeOfBoundaryCondition=1;  // neumann
-		else
-		  typeOfBoundaryCondition=2;  // error
-		a(0)=mixedCoeff(pc,side,axis,grid);
-		a(1)=mixedNormalCoeff(pc,side,axis,grid);
-	      }
-	      else
-	      {
-		if( typeOfBoundaryCondition!=1 )
-		  typeOfBoundaryCondition=0;  // dirichlet
-		else
-		  typeOfBoundaryCondition=2;  // error
-		a(0)=mixedCoeff(pc,side,axis,grid);
-		a(1)=mixedNormalCoeff(pc,side,axis,grid);
-	      }
-	      if( typeOfBoundaryCondition==2 )
-	      {
-		printF("updatePressureEquation:ERROR: in assign boundary conditions for coeff. matrix \n"
-		       "there are two outflow/convectiveOutflow/tractionFree boundaries on a component grid "
-		       "with one a mixed and one a dirichlet BC\n");
-		printF(" Ask Bill to fix this! \n");
-		OV_ABORT("error");
-	      }
-	    }
-	  }
-// 	  if( typeOfBoundaryCondition==1 )
+//   	  int typeOfBoundaryCondition=-1;  // -1=no outflow boundaries, 0=dirichlet, 1=neumann
+// 	  ForBoundary( side,axis )
 // 	  {
-// 	    // mixed or neumann BC
-//             if( parameters.dbase.get<int >("debug") & 2 ) printF("Apply mixed BC on pressure for bc=%i\n",(int)bc);
-// 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::mixed,bc,bcParams);
+// 	    if( c.boundaryCondition(side,axis)==(int)bc )
+// 	    {
+// 	      if( mixedNormalCoeff(pc,side,axis,grid)!=0. )
+// 	      {
+// 		if( typeOfBoundaryCondition!=0 )
+// 		  typeOfBoundaryCondition=1;  // neumann
+// 		else
+// 		  typeOfBoundaryCondition=2;  // error
+// 		a(0)=mixedCoeff(pc,side,axis,grid);
+// 		a(1)=mixedNormalCoeff(pc,side,axis,grid);
+// 	      }
+// 	      else
+// 	      {
+// 		if( typeOfBoundaryCondition!=1 )
+// 		  typeOfBoundaryCondition=0;  // dirichlet
+// 		else
+// 		  typeOfBoundaryCondition=2;  // error
+// 		a(0)=mixedCoeff(pc,side,axis,grid);
+// 		a(1)=mixedNormalCoeff(pc,side,axis,grid);
+// 	      }
+// 	      if( typeOfBoundaryCondition==2 )
+// 	      {
+// 		printF("updatePressureEquation:ERROR: in assign boundary conditions for coeff. matrix \n"
+// 		       "there are two outflow/convectiveOutflow/tractionFree boundaries on a component grid "
+// 		       "with one a mixed and one a dirichlet BC\n");
+// 		printF(" Ask Bill to fix this! \n");
+// 		OV_ABORT("error");
+// 	      }
+// 	    }
 // 	  }
-// 	  else if( typeOfBoundaryCondition==0 )
-// 	  {
-//             if( parameters.dbase.get<int >("debug") & 2 ) printF("Apply dirichlet BC on pressure for bc=%i\n",(int)bc);
-// 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::dirichlet,bc);
-// 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::extrapolate,bc);
-// 	  }
-	}
-      }
-    }
+// // 	  if( typeOfBoundaryCondition==1 )
+// // 	  {
+// // 	    // mixed or neumann BC
+// //             if( parameters.dbase.get<int >("debug") & 2 ) printF("Apply mixed BC on pressure for bc=%i\n",(int)bc);
+// // 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::mixed,bc,bcParams);
+// // 	  }
+// // 	  else if( typeOfBoundaryCondition==0 )
+// // 	  {
+// //             if( parameters.dbase.get<int >("debug") & 2 ) printF("Apply dirichlet BC on pressure for bc=%i\n",(int)bc);
+// // 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::dirichlet,bc);
+// // 	    poissonCoeff.applyBoundaryConditionCoefficients(0,0,BCTypes::extrapolate,bc);
+// // 	  }
+// 	}
+//       }
+//     }// end for( l )
+// ***********
+    
     // *** poissonCoefficients.applyBoundaryConditionCoefficients(0,0,BCTypes::mixed,parameters.dbase.get< >("outflow"),bcParams);
 
 //     poissonCoefficients.finishBoundaryConditions();

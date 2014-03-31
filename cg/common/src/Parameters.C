@@ -1831,10 +1831,34 @@ bcIsAnInterface(int bc) const
 /// \return return true if the boundary face has a boundary condition that varies in time.
 // ===================================================================================================================
 int Parameters::
-bcIsTimeDependent(int side, int axis, int grid) const
+bcIsTimeDependent(int side, int axis, int grid  ) const
 {
-  return  dbase.get<IntegerArray >("bcInfo")(1,side,axis,grid) & 4;
+  const IntegerArray & bcInfo = dbase.get<IntegerArray >("bcInfo");
+  return bcInfo(1,side,axis,grid) & 4;
 }
+// ===================================================================================================================
+/// \brief Return true if ANY boundary face on a grid has a boundary condition that varies in time.
+/// \param grid (input) : check this grid 
+/// \return return true if there is ANY boundary face that has a boundary condition that varies in time.
+// ===================================================================================================================
+int Parameters::
+bcIsTimeDependent( int grid ) const
+{
+  const IntegerArray & bcInfo = dbase.get<IntegerArray >("bcInfo");
+  const int numberOfDimensions= dbase.get<int>("numberOfDimensions");
+  for( int side=0; side<=1; side++ )
+  {
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+    {
+      if( bcInfo(1,side,axis,grid) & 4 )
+	return true; // there is at least one face on this grid with a time-dependent BC
+    }
+  }
+  
+  return false;  // there are no faces  with a time-dependent BC
+}
+
+
 
 // ===================================================================================================================
 /// \brief Specify whether a boundary face has a boundary condition that varies in time.

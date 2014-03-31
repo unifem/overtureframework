@@ -36,7 +36,6 @@
 	// if( debug & 8 )
         // ::display(bd,sPrintF(" ++++ Cgsm: Here is bd (side,axis)=(%i,%i) ++++",side,axis),"%4.2f ");
 
-
 	for( int a=0; a<=2; a++ )
 	{
 	  dbc(0,a,side,axis)=bd.getBase(a);
@@ -46,7 +45,7 @@
       else
       {
         addBoundaryForcing(side,axis)=false;
-	pbcf[side][axis] = fptr;  // should not be used in this case 
+	pbcf[side][axis] =bcData.getDataPointer();  // should not be used in this case 
 	for( int a=0; a<=2; a++ )
 	{
 	  dbc(0,a,side,axis)=0;

@@ -351,7 +351,10 @@ virtual
 int bcIsAnInterface(int bc) const; 
 
 virtual
-int bcIsTimeDependent(int side, int axis, int grid) const; 
+int bcIsTimeDependent(int side, int axis, int grid ) const; 
+
+virtual
+int bcIsTimeDependent( int grid ) const; 
 
 virtual
 int bcType(int side, int axis,int grid) const;
