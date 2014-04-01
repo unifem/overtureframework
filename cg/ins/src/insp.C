@@ -240,7 +240,6 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
     // BoundaryConditionParameters bcParams;
     // RealArray & a = bcParams.a;
     // a.redim(2);
-
 //     for( int l=0; l<m.numberOfMultigridLevels(); l++ )
 //     {
 //       CompositeGrid & cg = m.numberOfMultigridLevels()==1 ? cg0 : m.multigridLevel[l];
