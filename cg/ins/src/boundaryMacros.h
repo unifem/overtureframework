@@ -64,7 +64,6 @@
       // bcfOffset(side,axis) = pbcf[side][axis]- pbcf[0][0];
 
       // cout << " **** bcfOffset= " << bcfOffset(side,axis) << endl;
-      
 
     }
   }
