@@ -92,10 +92,20 @@ namespace KK {
     {
       KK_PTR_OUT("del sptr for address "<<data<<", gid "<<gid<<", count "<<(count ? (*count) : -1)<<endl);
       if ( data )
+      {
 	if ( decrement()==0 )
+	{
 	  destroy();
+	}
 	else if ( (*count)<0 )
+	{
 	  throw sptr_Err();
+	}
+	else
+	{
+	}
+      }
+
     }
 
     /// assignment operator, this will make the reference and increment the reference count

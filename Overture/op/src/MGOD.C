@@ -396,7 +396,7 @@ derivativeScalarDerivative( const realMappedGridFunction & u,
     if( direction1<0 || direction1>numberOfDimensions ||
 	direction2<0 || direction2>numberOfDimensions )
     {
-      printf("derivativeScalarDerivative:ERROR: invalide value for direction1=% or direction2=%i \n"
+      printf("derivativeScalarDerivative:ERROR: invalide value for direction1=%i or direction2=%i \n"
 	     " should be between 0 and numberOfDimensions-1=%i \n",direction1,direction2,numberOfDimensions-1);
       Overture::abort("error");
      

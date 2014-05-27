@@ -26,7 +26,7 @@ class ReferenceCounting {
         className = "ReferenceCounting";
         globalID = incrementGlobalIDCounter();
         referenceCount = uncountedReferences = 0;
-        if (&x || &ct);
+        if (&x || &ct){};
     }
     inline virtual ~ReferenceCounting() {
         if (referenceCount) {
@@ -37,8 +37,8 @@ class ReferenceCounting {
         } // end if
     }
     inline virtual ReferenceCounting& operator=(const ReferenceCounting& x)
-      { if (&x); return *this; }
-    inline virtual void reference(const ReferenceCounting& x) { if (&x); }
+     { if (&x){}; return *this; }
+    inline virtual void reference(const ReferenceCounting& x) { if (&x){}; }
     inline virtual void breakReference() { }
     inline virtual ReferenceCounting* virtualConstructor
       (const CopyType ct = DEEP) const

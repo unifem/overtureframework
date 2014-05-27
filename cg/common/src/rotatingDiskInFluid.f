@@ -252,7 +252,7 @@ c
 c
       ! implicit real*8 (a-h,o-z)
       implicit none
-      real*8 r,r0,r1,omega0,omegaRDIF
+      real*8 r,r0,r1,omega0
       real*8 radialVariation
 c
       ! variable rotation

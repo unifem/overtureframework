@@ -1,5 +1,40 @@
 \section{Installing Overture on Mac OS/X}  \label{sec:installMac}
 
+\subsection{10.9 MAVERICKS} 
+
+\vskip\baselineskip
+\noindent{\bf Stage I:}
+The default compiler for Mavericks is {\em clang} which replaces gcc and g++. DO NOT install gcc. 
+\begin{enumerate}
+  \item Install Xcode from the apple web site.
+  \item Install the command line tools in Xcode: 
+    \begin{verbatim}
+       xcode-select --install
+    \end{verbatim}
+    This command will ask you whether you want to install the command lines tools.
+  \item Install gfortran from {\tt http://gcc.gnu.org/wiki/GFortranBinaries#MacOS}
+\end{enumerate}
+
+
+\vskip\baselineskip
+\noindent{\bf Stage II:} 
+\begin{enumerate}
+  \item Install HDF following the normal instructions.
+  \item Install A++ following the normal instructions but,  
+    you may need to make a symbolic link for gmake (somewhere in your path)
+    \begin{verbatim}
+       ln -s /usr/bin/make /home/dilbert/bin/gmake
+    \end{verbatim}
+    and configure with 
+    \begin{verbatim}
+       ./configure  --disable-SHARED_LIBS  --prefix=`pwd`
+    \end{verbatim}
+  \item Install Overture and cg following the regular instructions.
+\end{enumerate}
+
+\clearpage
+\section{Installing Overture on Mac OS/X -- *OLDER VERSIONS*}  
+
 Overture and cg have been build on Mac OS/X. Thanks to Kyle for working this out.
 The installation process is very similar to the process for Linux after some
 initial steps to install the appropriate compilers etc.. 

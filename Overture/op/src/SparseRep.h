@@ -51,7 +51,7 @@ public:
   ~SparseRepForMGF();
   SparseRepForMGF(const SparseRepForMGF & rep);                // copy constructor
   SparseRepForMGF & operator=( const SparseRepForMGF & rep );  // deep copy
-  ReferenceCounting& operator=(const ReferenceCounting& x){ if (&x); return *this; }
+  ReferenceCounting& operator=(const ReferenceCounting& x){ if (&x){}; return *this; }
   
   int updateToMatchGrid(MappedGrid & mg, 
 			int stencilSize=9,

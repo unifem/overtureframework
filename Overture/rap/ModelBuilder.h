@@ -1,5 +1,5 @@
 #ifndef MODEL_BUILDER_H
-#define MODEL_BUILDER
+#define MODEL_BUILDER_H
 
 #include "Overture.h"
 #include "CompositeSurface.h"

@@ -231,7 +231,7 @@ public:
     */
     friend inline void accrete (BoxDomain&       dest,
                                 const BoxDomain& fin,
-                                int              sz = 1);
+                                int              sz);
     //
     //@ManDoc: Creates the complement of BoxDomain bl in Box b.
     //

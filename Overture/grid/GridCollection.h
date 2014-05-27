@@ -201,7 +201,7 @@ class GridCollectionData:
     inline virtual Integer addRefinement(
       const Integer& level,
       const Integer  k = 0) {
-        if (&level || &k); // Avoid compiler warnings.
+        if (&level || &k){}; // Avoid compiler warnings.
         cerr << "virtual void GridCollectionData::addRefinement(const Integer& level, const Integer k) must not be called!"
              << "It must have been called illegally through the base class GenericGridCollectionData."
              << endl;
@@ -211,7 +211,7 @@ class GridCollectionData:
     inline virtual Integer addMultigridCoarsening(
       const Integer& level,
       const Integer  k = 0) {
-        if (&level || &k); // Avoid compiler warnings.
+        if (&level || &k){}; // Avoid compiler warnings.
         cerr << "virtual void GridCollectionData::addMultigridCoarsening(const Integer& level, const Integer k) must not be called!"
              << "It must have been called illegally through the base class GenericGridCollectionData."
              << endl;
@@ -600,7 +600,7 @@ class GridCollection:
     inline virtual Integer addRefinement(
       const Integer& level,
       const Integer  k = 0) {
-        if (&level || &k); // Avoid compiler warnings.
+        if (&level || &k){}; // Avoid compiler warnings.
         cerr << "virtual void GridCollection::addRefinement(const Integer& level, const Integer k) must not be called!"
              << "It must have been called illegally through the base class GenericGridCollection."
              << endl;
@@ -610,7 +610,7 @@ class GridCollection:
     inline virtual Integer addMultigridCoarsening(
       const Integer& level,
       const Integer  k = 0) {
-        if (&level || &k); // Avoid compiler warnings.
+        if (&level || &k){}; // Avoid compiler warnings.
         cerr << "virtual void GridCollection::addMultigridCoarsening(const Integer& level, const Integer k) must not be called!"
              << "It must have been called illegally through the base class GenericGridCollection."
              << endl;
@@ -619,7 +619,7 @@ class GridCollection:
     }
     inline virtual void initialize(
       const Integer& numberOfGrids_) {
-        if (&numberOfGrids_); // Avoid compiler warnings.
+        if (&numberOfGrids_){}; // Avoid compiler warnings.
         cerr << "virtual void GridCollection::initialize(const Integer& numberOfGrids_) must not be called!"
              << "It must have been called illegally through the base class GenericGridCollection."
              << endl;

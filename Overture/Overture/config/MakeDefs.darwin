@@ -111,7 +111,8 @@ HDF_LIBS = -L$(HDF)/lib -lmfhdf -ldf -ljpeg -lz
 
 FORTRAN_LIBS = 
 #gcc FORTRAN_LIBS =-lnsl -lg2c
-#gfortran FORTRAN_LIBS =-lgfortran
+# On Mavericks with the clang compiler, gfortran is installed separately: 
+#gfortran FORTRAN_LIBS =-L/usr/local/gfortran/lib -lgfortran
 # This next line will be used with the Portland group compiler (the configure script will set the next line)
 PGI_LIB =
 #pgf77 FORTRAN_LIBS = $(OV_RPATH)$(PGI_LIB) -L$(PGI_LIB) -lpgftnrtl -lpgmp  -lpgc -lstd

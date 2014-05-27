@@ -16,7 +16,7 @@ HDF_DataBase.o: HDF_DataBase.C HDF5_DataBase.C
 Source=      GenericDataBase.C HDF_DataBase.C DataBaseBuffer.C  ListOfHDF_DataBaseRCData.C \
              dbAccess.C kk_ptr.cc
 # Here is the source for HDF5:
-#hdf5 Source=      GenericDataBase.C HDF_DataBase.C DataBaseBuffer.C dbAccess.C dbFunctions.f kk_ptr.cc
+#hdf5 Source=      GenericDataBase.C HDF_DataBase.C DataBaseBuffer.C dbAccess.C kk_ptr.cc
 DataBase_date: $(Source)
 	  $(CC) $(CCFLAGS) -DH5_USE_16_API -I$(HDF)/include -c $?
 	  touch $@

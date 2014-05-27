@@ -418,7 +418,7 @@ bool intersect3D(const ArraySimpleFixed<real,3,3,1,1> &triVertices,
 	  vol31 = orient3d(t3.ptr(),p2.ptr(),t1.ptr(),p1.ptr());
 	}
 
-      bool oneVertexOnFace = ( (fabs(vol1)>0 && vol2==0) || fabs(vol2)>0 && vol1==0 );
+      bool oneVertexOnFace = ( (fabs(vol1)>0 && vol2==0) || (fabs(vol2)>0 && vol1==0) );
  
       //cout<<"vols "<<vol12<<" "<<vol23<<" "<<vol31<<endl;
       int npos = 0;

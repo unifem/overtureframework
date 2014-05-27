@@ -3185,7 +3185,7 @@ getInterpolationStencil(CompositeGrid & cg0,
 		    l,grid,i,grid2,i1,i2,i3,k1,k2,k3,MASK2D(k1,k2,k3));
 	  if( Ogmg::debug & 2 )
 	  {
-	    fprintf(pDebugFile,"INFO: one point interpolation, pt=(%i,(from a discretization pt\n");
+	    fprintf(pDebugFile,"INFO: one point interpolation, pt=(%i,(from a discretization pt\n",i);
 	    fprintf(pDebugFile,"    : l=%i, grid=%i i=%i : grid2=%i interp:i=(%i,%i,%i) interpolee:kv=(%i,%i,%i)\n"
 		    "    : mask2 = %i %i %i %i\n",
 		    l,grid,i,grid2,i1,i2,i3,k1,k2,k3,MASK2D(k1,k2,k3),MASK2D(k1+1,k2,k3),MASK2D(k1,k2+1,k3),

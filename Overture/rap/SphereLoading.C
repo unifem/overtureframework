@@ -49,7 +49,7 @@ void SphereLoading::printSpheres(aString &name) {
         printf(" NAME = \"Fragments Sinked in Time");
     }
     if (RNGSeed != 0) {
-        printf("[ RNG seed = %d]");
+      printf("[ RNG seed = %d]",RNGSeed);
     }
     printf("\"\n");
     printf(" VARIABLES = \"R\", \"Xi\", \"Xj\", \"Xk\", " 
@@ -78,7 +78,7 @@ void SphereLoading::printTecPlotSpheres(aString &name) {
         printf(" TITLE = \"Fragments Sinked in Time");
     }
     if (RNGSeed != 0) {
-        printf("[ RNG seed = %d]");
+      printf("[ RNG seed = %d]",RNGSeed);
     }
     printf("\"\n\n");
     printf(" VARIABLES = \"iSpc\", \"R\", \"Xi\", \"Xj\", \"Xk\", \"Vi\", " 
@@ -140,7 +140,7 @@ void SphereLoading::printDuneSpheres(aString &name) {
         printf("%s %13.9e, %13.9e, %13.9e ),\n", v, vval, vval, vval);
         printf("%s %13.9e, %13.9e, %13.9e, %13.9e ),\n", q, qval, qval, qval, qval);
         printf("%s %13.9e, %13.9e, %13.9e ),\n", w, wval, wval, wval);
-        printf("%s %13.9e ),\n", t);
+        printf("%s %13.9e ),\n", t,tval);
         printf("%s\n", impulse);
         printf("%s %13.9e ),\n", tImp, sphereStartTime(i));
         printf("%s %13.9e, %13.9e, %13.9e ),\n     ],\n  ],\n", 
