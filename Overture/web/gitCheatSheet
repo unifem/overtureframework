@@ -1,0 +1,59 @@
+Overture/cg git cheat-sheet: 
+----------------------------
+
+(0) You need an account on sourceforge.net and then I can give you 
+   access to the repos.
+
+(1) To checkout (clone) the Overture and cg repos from sourceforge.net : 
+
+   git clone ssh://wdhenshaw@git.code.sf.net/p/overtureframework/code overtureFramework
+
+(replace wdhenshaw by your sourceforge username, the final argument can
+be any directory name you like).  This works from the LC CZ machines.
+
+
+Note that with git you get a complete and independent copy (clone) of
+the git repo (in the overtureFramework/.git directory) and all the
+checked out files in overtureFramework/Overture and
+overtureFramework/cg (called the working tree).
+
+(2) After adding or changing a file:
+
+(2.1) To store changes in the "staging area" use
+
+    git add <file>
+    git add -u -v   (add any modified files and print those that have changed)
+    git add --dry-run -u -v
+
+(2.2) To commit the staging area to the (local) git repo:
+
+   git commit -m"My message here"
+
+(2.3) To push (i.e save) files from your local repo (origin)
+to the master sourceforge repo:
+
+   git push origin master 
+
+
+(2.4) To get new files from the master sourceforge repo:
+
+   git pull --rebase
+
+(There is also a 'git fetch' which allows you to look at the
+master files before actually deciding to update your repo with
+the master versions). 
+
+(2.5) To view the status of your files (untracked, unmodfied, modified, staged)
+  git status 
+  git status --untracked-files=no
+  git status -s 
+
+(2.6) Restore a deleted file
+   git checkout fileName
+
+(2.7) Differences:
+
+     git diff
+     git diff --cached
+     git diff HEAD
+     git diff --stat
