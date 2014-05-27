@@ -77,6 +77,8 @@ c two time derivatives:
 
 c three time derivatives:
 
+c four time derivatives:
+
 c Here are the slow start versions
 
 c one time derivative:
@@ -84,6 +86,8 @@ c one time derivative:
 c two time derivatives:
 
 c three time derivatives:
+
+c four time derivatives:
 
 
 c **************** Here is the 3D planeWave solution ***************************************
@@ -99,6 +103,9 @@ c two time derivatives:
 c three time derivatives:
 
 
+c four time derivatives:
+
+
 c Here are the slow start versions
 
 
@@ -108,6 +115,9 @@ c one time derivative:
 c two time derivatives:
 
 c three time derivatives:
+
+c four time derivatives:
+
 
 c Helper function: Return minus the second time derivative
 

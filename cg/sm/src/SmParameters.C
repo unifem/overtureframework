@@ -108,6 +108,19 @@ SmParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   if (!dbase.has_key("muGrid")) dbase.put<RealArray>("muGrid");
   if (!dbase.has_key("lambdaGrid")) dbase.put<RealArray>("lambdaGrid");
 
+  if( !dbase.has_key("tzInterfaceVelocity") )
+  { // Here is the (artificial) interface velocity for testing moving interfaces and TZ
+    dbase.put<real [3]>("tzInterfaceVelocity");
+    real *v0 = dbase.get<real [3]>("tzInterfaceVelocity");
+    v0[0]=v0[1]=v0[2]=0.;
+  }
+  if( !dbase.has_key("tzInterfaceAcceleration") )
+  { // Here is the (artificial) interface acceleration for testing moving interfaces and TZ
+    dbase.put<real [3]>("tzInterfaceAcceleration");
+    real *a0 = dbase.get<real [3]>("tzInterfaceAcceleration");
+    a0[0]=a0[1]=a0[2]=0.;
+  }
+  
   // Names of material properties go here: (Each name should be an entry in the dbase of type real)
   // These are coefficients that can vary over the grid.
   std::vector<aString> & materialPropertyNames = dbase.get<std::vector<aString> >("materialPropertyNames");
@@ -134,6 +147,9 @@ SmParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   if (!dbase.has_key("computeTimeSteppingEigenValues")) dbase.put<bool>("computeTimeSteppingEigenValues",false);
   if (!dbase.has_key("realPartOfTimeSteppingEigenValue")) dbase.put<real>("realPartOfTimeSteppingEigenValue",-1.);
   if (!dbase.has_key("imaginaryPartOfTimeSteppingEigenValue")) dbase.put<real>("imaginaryPartOfTimeSteppingEigenValue",-1.);
+  // Worst case eigenvalue of the dissipation that has a coefficient proportional to 1/dt : 
+  if (!dbase.has_key("dtInverseDissipationEigenvalue")) dbase.put<real>("dtInverseDissipationEigenvalue",0.);
+  dbase.get<real>("dtInverseDissipationEigenvalue")=0.;
 
   if (!dbase.has_key("orderOfAccuracyForGodunovMethod") ) dbase.put<int >("orderOfAccuracyForGodunovMethod",2);
   if (!dbase.has_key("fluxMethodForGodunovMethod") ) dbase.put<int >("fluxMethodForGodunovMethod",0);
@@ -168,9 +184,16 @@ SmParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   // Fourth-order AD: 
   if( !dbase.has_key("artificialDiffusion4") ) dbase.put<RealArray >("artificialDiffusion4");
 
+  // Dissipation that has a coefficient proportional to 1/dt : 
+  if( !dbase.has_key("artificialDiffusion2dt") ) dbase.put<RealArray >("artificialDiffusion2dt");
+  if( !dbase.has_key("artificialDiffusion4dt") ) dbase.put<RealArray >("artificialDiffusion4dt");
+
   // FOS (SVK) artificial dissipation for the "tangential" components of the stress on a face
+  //     beta0 + beta1/dt 
   if( !dbase.has_key("tangentialStressDissipation") ) dbase.put<real>("tangentialStressDissipation");
-  dbase.get<real>("tangentialStressDissipation")=.5;  
+  dbase.get<real>("tangentialStressDissipation")=.1; // *wdh* 2014/05/02 - new default -- .5;  
+  if( !dbase.has_key("tangentialStressDissipation1") ) dbase.put<real>("tangentialStressDissipation1");
+  dbase.get<real>("tangentialStressDissipation1")=0.;
 
   // Use new way to extrap. interp. neighbours: 
   if (!dbase.has_key("useNewExtrapInterpNeighbours")) dbase.put<int>("useNewExtrapInterpNeighbours");
@@ -412,16 +435,6 @@ setParameters(const int & numberOfDimensions0 /* =2 */,const aString & reactionN
     // The Godunov stencil is 5 points wide: 
     dbase.get<int >("extrapolateInterpolationNeighbours")=true;
     
-    RealArray & artificialDiffusion = dbase.get<RealArray >("artificialDiffusion");
-    RealArray & artificialDiffusion4 = dbase.get<RealArray >("artificialDiffusion4");
-    if( artificialDiffusion.getLength(0)!=numberOfComponents )
-    {
-      artificialDiffusion.redim(numberOfComponents);
-      artificialDiffusion=0.;
-      artificialDiffusion4.redim(numberOfComponents);
-      artificialDiffusion4=0.;
-    }
-
   }
   else if( pdeVariation==SmParameters::hemp )
   {
@@ -490,6 +503,18 @@ setParameters(const int & numberOfDimensions0 /* =2 */,const aString & reactionN
     Overture::abort("error");
   }
   
+  RealArray & artificialDiffusion2 = dbase.get<RealArray >("artificialDiffusion");
+  RealArray & artificialDiffusion4 = dbase.get<RealArray >("artificialDiffusion4");
+  RealArray & ad2dt = dbase.get<RealArray >("artificialDiffusion2dt");
+  RealArray & ad4dt = dbase.get<RealArray >("artificialDiffusion4dt");
+  if( artificialDiffusion2.getLength(0)==0 )  // *** fix me ***
+  {
+    artificialDiffusion2.redim(numberOfComponents); artificialDiffusion2=0.;
+    artificialDiffusion4.redim(numberOfComponents); artificialDiffusion4=0.;
+    ad2dt.redim(numberOfComponents); ad2dt=0.;
+    ad4dt.redim(numberOfComponents); ad4dt=0.;
+  }
+
 
   // component numbers for material properties (for TZ)
   dbase.get<int>("rhoc")   =numberOfComponents;
@@ -1369,13 +1394,17 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
     amplitude(muc)=.25;     cc(muc)=2.;      gy(muc)=.5/ omega[1];
     amplitude(lambdac)=.30; cc(lambdac)=1.5; gx(lambdac)=.5/ omega[1];
 
+    // Optionally scale amplitudes: 
+    const real & trigonometricTwilightZoneScaleFactor=
+      dbase.get<real>("trigonometricTwilightZoneScaleFactor");  // scale factor for Trigonometric TZ
+    amplitude *= trigonometricTwilightZoneScaleFactor;
+    printF("*** SmParameters:INFO: scaling trig TZ by the factor %9.3e\n",trigonometricTwilightZoneScaleFactor);
 
-    if( dbase.get<int>("pdeTypeForGodunovMethod")>1  ) // *check me* *wdh* 2013/11/01
-    {
-      // scale amplitudes for non-linear solid models: 
-      amplitude *= 1.e-3;
-    }
-    
+    // if( dbase.get<int>("pdeTypeForGodunovMethod")>1  ) // *check me* *wdh* 2013/11/01
+    // {
+    //   // scale amplitudes for non-linear solid models: 
+    //   amplitude *= 1.e-3;
+    // }
 
     // Material properties do NOT depend on time.
     ft(rhoc   )=0.;
@@ -1521,6 +1550,63 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
   return 0;
 }
 
+// ===================================================================================
+/// \brief Utility routine to read coefficients 
+// ===================================================================================
+int SmParameters::
+readCoefficients( DialogData & dialog, const aString & answer, const aString & name, RealArray & coeff )
+{
+  
+  int len=0;
+  aString buff;
+  if( len=answer.matches(name) )
+  {
+    const int maxNum=30;        // assume at most this many components for now
+    RealArray ad(maxNum); 
+    ad=0.;
+    int m;
+    for( m=0; m< min(maxNum,dbase.get<int >("numberOfComponents")); m++ )
+      ad(m)= coeff(m);
+    sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e",
+	   &ad(0),&ad(1),&ad(2),&ad(3),&ad(4),&ad(5),&ad(6),&ad(7),&ad(8),&ad(9),
+	   &ad(10),&ad(11),&ad(12),&ad(13),&ad(14),&ad(15),&ad(16),&ad(17),&ad(18),&ad(19),
+	   &ad(20),&ad(21),&ad(22),&ad(23),&ad(24),&ad(25),&ad(26),&ad(27),&ad(28),&ad(29));
+
+    if(  dbase.get<int >("numberOfComponents")>maxNum )
+    {
+      printF("setPdeParameters:WARNING:Only reading the first %i %s coefficients. Other values will be set to 1.\n"
+	     "                :Get Bill to fix this\n",maxNum,(const char*)name);
+    }
+   
+    aString text;
+    for( m=0; m<dbase.get<int >("numberOfComponents"); m++ )
+    {
+      if( m<maxNum )
+	coeff(m)=ad(m);
+      else
+	coeff(m)=1.;  // default value
+	
+      printF("Setting %s coefficient for component %s to %8.2e\n",
+	     (const char*)name, (const char*) dbase.get<aString* >("componentName")[m],coeff(m));
+	
+      text+=sPrintF(buff, "%g ", coeff(m));
+    }
+    dialog.setTextLabel(name,text);
+  }
+  else
+  {
+    printF(" SmParameters::readCoefficients:ERROR: inconsistent answer=[%s] and name=[%s]\n",
+	   (const char*)answer,(const char*)name);
+   
+    OV_ABORT("ERROR: This should not happen.");
+  }
+  
+  return 0;
+}
+
+
+
+
 int SmParameters::
 setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
                  DialogData *interface /* =NULL */ )
@@ -1555,6 +1641,10 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
   bool & gridHasMaterialInterfaces = dbase.get<bool>("gridHasMaterialInterfaces");
   PDEVariation & pdeVariation = dbase.get<PDEVariation>("pdeVariation");
 
+  const int & u1c = dbase.get<int>("u1c");
+  const int & u2c = dbase.get<int>("u2c");
+  const int & u3c = dbase.get<int>("u3c");
+
   real & Rg = dbase.get<real>("Rg");
   real & yieldStress = dbase.get<real>("yieldStress");
   real & basePress = dbase.get<real>("basePress");
@@ -1570,12 +1660,20 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
   int & smgPDEType = dbase.get<int>("pdeTypeForGodunovMethod");
 
   real & tangentialStressDissipation = dbase.get<real>("tangentialStressDissipation");
+  real & tangentialStressDissipation1 = dbase.get<real>("tangentialStressDissipation1");
+  real displacementDissipation=0.;
+  real displacementDissipation1=0.;
 
   aString answer,line;
   char buff[100];
   //  const int numberOfDimensions = cg.numberOfDimensions();
 
+  RealArray & artificialDiffusion = dbase.get<RealArray >("artificialDiffusion");
+  RealArray & artificialDiffusion4 = dbase.get<RealArray >("artificialDiffusion4");
+  RealArray & ad2dt = dbase.get<RealArray >("artificialDiffusion2dt");
+  RealArray & ad4dt = dbase.get<RealArray >("artificialDiffusion4dt");
 
+    
   GUIState gui;
   gui.setExitCommand("done", "continue");
   DialogData & dialog = interface!=NULL ? *interface : (DialogData &)gui;
@@ -1585,7 +1683,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     dialog.setWindowTitle("Cgsm parameters");
 
     // ----- Text strings ------
-    const int numberOfTextStrings=30;
+    const int numberOfTextStrings=31;
     aString textCommands[numberOfTextStrings];
     aString textLabels[numberOfTextStrings];
     aString textStrings[numberOfTextStrings];
@@ -1612,8 +1710,13 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       textLabels[nt]="relaxAlpha";                  sPrintF(textStrings[nt], "%g",dbase.get<real>("relaxAlpha"));                      nt++;
       textLabels[nt]="relaxDelta";                  sPrintF(textStrings[nt], "%g",dbase.get<real>("relaxDelta"));                      nt++;
 
-      textLabels[nt]="tangential stress dissipation";  sPrintF(textStrings[nt], "%g",tangentialStressDissipation);  nt++; 
+      textLabels[nt]="tangential stress dissipation";  sPrintF(textStrings[nt], "%g, %g",tangentialStressDissipation,tangentialStressDissipation1);  nt++; 
+      textLabels[nt]="displacement dissipation";  sPrintF(textStrings[nt], "%g %g",displacementDissipation,displacementDissipation1);  nt++; 
 
+      real *v0 = dbase.get<real [3]>("tzInterfaceVelocity");
+      textLabels[nt]="TZ interface velocity";  sPrintF(textStrings[nt], "%g %g %g",v0[0],v0[1],v0[2]);  nt++; 
+      real *a0 = dbase.get<real [3]>("tzInterfaceAcceleration");
+      textLabels[nt]="TZ interface acceleration";  sPrintF(textStrings[nt], "%g %g %g",a0[0],a0[1],a0[2]);  nt++; 
     }
     if( true || pdeVariation==hemp )  // *wdh* always add these so we don't get warning messages about labels not found
     {
@@ -1627,16 +1730,6 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       textLabels[nt]="hourglass control"; sPrintF(textStrings[nt], "%i",hourGlassFlag); nt++; 
     }
   
-    RealArray & artificialDiffusion = dbase.get<RealArray >("artificialDiffusion");
-    RealArray & artificialDiffusion4 = dbase.get<RealArray >("artificialDiffusion4");
-    if( artificialDiffusion.getLength(0)!=numberOfComponents )
-    {
-      artificialDiffusion.redim(numberOfComponents);
-      artificialDiffusion=0.;
-      artificialDiffusion4.redim(numberOfComponents);
-      artificialDiffusion4=0.;
-    }
-    
     aString buff;
     textLabels[nt] = "artificial diffusion";  textStrings[nt]=""; 
     for( int m=0; m<dbase.get<int >("numberOfComponents"); m++ )
@@ -1645,6 +1738,16 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     textLabels[nt] = "fourth-order artificial diffusion";  textStrings[nt]=""; 
     for( int m=0; m<dbase.get<int >("numberOfComponents"); m++ )
       textStrings[nt]+=sPrintF(buff, "%g ",artificialDiffusion4(m)); 
+    nt++;
+
+    textLabels[nt] = "second-order dt dissipation";  textStrings[nt]=""; 
+    for( int m=0; m<dbase.get<int >("numberOfComponents"); m++ )
+      textStrings[nt]+=sPrintF(buff, "%g ",ad2dt(m)); 
+    nt++;
+
+    textLabels[nt] = "fourth-order dt dissipation";  textStrings[nt]=""; 
+    for( int m=0; m<dbase.get<int >("numberOfComponents"); m++ )
+      textStrings[nt]+=sPrintF(buff, "%g ",ad4dt(m)); 
     nt++;
 
     // null strings terminal list
@@ -1739,84 +1842,136 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       else if( smgPDEType>1 )
         pdeNameModifier="nonlinear model"; 
     }
-    else if( dialog.getTextValue(answer,"tangential stress dissipation","%g",tangentialStressDissipation) ){}//
+    else if( len=answer.matches("tangential stress dissipation") )
+    {
+      sScanF(answer(len,answer.length()),"%e %e",&tangentialStressDissipation,&tangentialStressDissipation1);
+      printF("Setting coefficients of tangential stress dissipatio, beta0+beta1/dt  to beta0=%9.3e, beta1=%9.3e\n",
+	     tangentialStressDissipation,tangentialStressDissipation1);
+    }
+    
+    else if( len=answer.matches("displacement dissipation") )
+    {
+      if( u1c>=0 )
+      {
+	sScanF(answer(len,answer.length()),"%e %e",&displacementDissipation,&displacementDissipation1);
+	printF("Setting coefficients of 4th-order displacement dissipation, beta0+beta1/dt to beta0=%9.3e, beta1=%9.3e\n",
+	       displacementDissipation,displacementDissipation1);
+	artificialDiffusion4(u1c)=displacementDissipation;
+	artificialDiffusion4(u2c)=displacementDissipation;
+	if( cg.numberOfDimensions()>2 )
+	  artificialDiffusion4(u3c)=displacementDissipation;
 
+        ad4dt(u1c)=displacementDissipation1;
+	ad4dt(u2c)=displacementDissipation1;
+	if( cg.numberOfDimensions()>2 )
+	  ad4dt(u3c)=displacementDissipation1;
+      }
+    }
+
+    else if( len=answer.matches("TZ interface velocity") )
+    {
+       real *v0 = dbase.get<real [3]>("tzInterfaceVelocity");
+       sScanF(answer(len,answer.length()),"%e %e %e",&v0[0],&v0[1],&v0[2]);
+       printF("Setting the interface velocity for (%g,%g,%g) for TZ with a moving interface.\n",v0[0],v0[1],v0[2]);
+    }
+    else if( len=answer.matches("TZ interface acceleration") )
+    {
+       real *a0 = dbase.get<real [3]>("tzInterfaceAcceleration");
+       sScanF(answer(len,answer.length()),"%e %e %e",&a0[0],&a0[1],&a0[2]);
+       printF("Setting the interface acceleration for (%g,%g,%g) for TZ with a moving interface.\n",a0[0],a0[1],a0[2]);
+    }
     else if( len=answer.matches("EOS polynomial") ) 
     {
       sScanF(answer(len,answer.length()),"%e %e %e %e",&polyEos[0],&polyEos[1],&polyEos[2],&polyEos[3]);
     }
     else if( len=answer.matches("artificial diffusion") )
     {
-      RealArray & artificialDiffusion = dbase.get<RealArray >("artificialDiffusion");
-      
-      const int maxNum=30;        // assume at most this many components for now
-      RealArray ad(maxNum); 
-      ad=0.;
-      int m;
-      for( m=0; m< min(maxNum,dbase.get<int >("numberOfComponents")); m++ )
-	ad(m)= artificialDiffusion(m);
-      sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e",
-             &ad(0),&ad(1),&ad(2),&ad(3),&ad(4),&ad(5),&ad(6),&ad(7),&ad(8),&ad(9),
-	     &ad(10),&ad(11),&ad(12),&ad(13),&ad(14),&ad(15),&ad(16),&ad(17),&ad(18),&ad(19),
-	     &ad(20),&ad(21),&ad(22),&ad(23),&ad(24),&ad(25),&ad(26),&ad(27),&ad(28),&ad(29));
+      readCoefficients( dialog, answer,"artificial diffusion",artificialDiffusion);
 
-      if(  dbase.get<int >("numberOfComponents")>maxNum )
-      {
-	printF("setPdeParameters:WARNING:Only reading the first %i artificial diffusion parameters. Other values will be set to 1.\n"
-               "                :Get Bill to fix this\n",maxNum);
-      }
+      // RealArray & artificialDiffusion = dbase.get<RealArray >("artificialDiffusion");
+      
+      // const int maxNum=30;        // assume at most this many components for now
+      // RealArray ad(maxNum); 
+      // ad=0.;
+      // int m;
+      // for( m=0; m< min(maxNum,dbase.get<int >("numberOfComponents")); m++ )
+      // 	ad(m)= artificialDiffusion(m);
+      // sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e",
+      //        &ad(0),&ad(1),&ad(2),&ad(3),&ad(4),&ad(5),&ad(6),&ad(7),&ad(8),&ad(9),
+      // 	     &ad(10),&ad(11),&ad(12),&ad(13),&ad(14),&ad(15),&ad(16),&ad(17),&ad(18),&ad(19),
+      // 	     &ad(20),&ad(21),&ad(22),&ad(23),&ad(24),&ad(25),&ad(26),&ad(27),&ad(28),&ad(29));
+
+      // if(  dbase.get<int >("numberOfComponents")>maxNum )
+      // {
+      // 	printF("setPdeParameters:WARNING:Only reading the first %i artificial diffusion parameters. Other values will be set to 1.\n"
+      //          "                :Get Bill to fix this\n",maxNum);
+      // }
    
-      aString text;
-      for( m=0; m<dbase.get<int >("numberOfComponents"); m++ )
-      {
-	if( m<maxNum )
-          artificialDiffusion(m)=ad(m);
-        else
-          artificialDiffusion(m)=1.;  // default value
+      // aString text;
+      // for( m=0; m<dbase.get<int >("numberOfComponents"); m++ )
+      // {
+      // 	if( m<maxNum )
+      //     artificialDiffusion(m)=ad(m);
+      //   else
+      //     artificialDiffusion(m)=1.;  // default value
 	
-        printF("Setting Godunov constant-coefficient artficial diffusion for component %s to %8.2e\n",
-	       (const char*) dbase.get<aString* >("componentName")[m],artificialDiffusion(m));
+      //   printF("Setting Godunov constant-coefficient artficial diffusion for component %s to %8.2e\n",
+      // 	       (const char*) dbase.get<aString* >("componentName")[m],artificialDiffusion(m));
 	
-	text+=sPrintF(buff, "%g ", artificialDiffusion(m));
-      }
-      dialog.setTextLabel("artificial diffusion",text);
+      // 	text+=sPrintF(buff, "%g ", artificialDiffusion(m));
+      // }
+      // dialog.setTextLabel("artificial diffusion",text);
+
     }
+
     else if( len=answer.matches("fourth-order artificial diffusion") )
     {
-      RealArray & artificialDiffusion4 = dbase.get<RealArray >("artificialDiffusion4");
-      
-      const int maxNum=30;        // assume at most this many components for now
-      RealArray ad(maxNum); 
-      ad=0.;
-      int m;
-      for( m=0; m< min(maxNum,dbase.get<int >("numberOfComponents")); m++ )
-	ad(m)= artificialDiffusion4(m);
-      sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e",
-             &ad(0),&ad(1),&ad(2),&ad(3),&ad(4),&ad(5),&ad(6),&ad(7),&ad(8),&ad(9),
-	     &ad(10),&ad(11),&ad(12),&ad(13),&ad(14),&ad(15),&ad(16),&ad(17),&ad(18),&ad(19),
-	     &ad(20),&ad(21),&ad(22),&ad(23),&ad(24),&ad(25),&ad(26),&ad(27),&ad(28),&ad(29));
+      readCoefficients( dialog, answer,"fourth-order artificial diffusion",artificialDiffusion4);
 
-      if(  dbase.get<int >("numberOfComponents")>maxNum )
-      {
-	printF("setPdeParameters:WARNING:Only reading the first %i fourth-order artificial diffusion parameters. Other values will be set to 1.\n"
-               "                :Get Bill to fix this\n",maxNum);
-      }
+      // RealArray & artificialDiffusion4 = dbase.get<RealArray >("artificialDiffusion4");
+      
+      // const int maxNum=30;        // assume at most this many components for now
+      // RealArray ad(maxNum); 
+      // ad=0.;
+      // int m;
+      // for( m=0; m< min(maxNum,dbase.get<int >("numberOfComponents")); m++ )
+      // 	ad(m)= artificialDiffusion4(m);
+      // sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e  %e %e %e %e %e %e %e %e %e %e",
+      //        &ad(0),&ad(1),&ad(2),&ad(3),&ad(4),&ad(5),&ad(6),&ad(7),&ad(8),&ad(9),
+      // 	     &ad(10),&ad(11),&ad(12),&ad(13),&ad(14),&ad(15),&ad(16),&ad(17),&ad(18),&ad(19),
+      // 	     &ad(20),&ad(21),&ad(22),&ad(23),&ad(24),&ad(25),&ad(26),&ad(27),&ad(28),&ad(29));
+
+      // if(  dbase.get<int >("numberOfComponents")>maxNum )
+      // {
+      // 	printF("setPdeParameters:WARNING:Only reading the first %i fourth-order artificial diffusion parameters. Other values will be set to 1.\n"
+      //          "                :Get Bill to fix this\n",maxNum);
+      // }
    
-      aString text;
-      for( m=0; m<dbase.get<int >("numberOfComponents"); m++ )
-      {
-	if( m<maxNum )
-          artificialDiffusion4(m)=ad(m);
-        else
-          artificialDiffusion4(m)=1.;  // default value
+      // aString text;
+      // for( m=0; m<dbase.get<int >("numberOfComponents"); m++ )
+      // {
+      // 	if( m<maxNum )
+      //     artificialDiffusion4(m)=ad(m);
+      //   else
+      //     artificialDiffusion4(m)=1.;  // default value
 	
-        printF("Setting Godunov constant-coefficient fourth-order artficial diffusion for component %s to %8.2e\n",
-	       (const char*) dbase.get<aString* >("componentName")[m],artificialDiffusion4(m));
+      //   printF("Setting Godunov constant-coefficient fourth-order artficial diffusion for component %s to %8.2e\n",
+      // 	       (const char*) dbase.get<aString* >("componentName")[m],artificialDiffusion4(m));
 	
-	text+=sPrintF(buff, "%g ", artificialDiffusion4(m));
-      }
-      dialog.setTextLabel("fourth-order artificial diffusion",text);
+      // 	text+=sPrintF(buff, "%g ", artificialDiffusion4(m));
+      // }
+      // dialog.setTextLabel("fourth-order artificial diffusion",text);
     }
+
+    else if( len=answer.matches("second-order dt dissipation") )
+    {
+      readCoefficients( dialog, answer,"second-order dt dissipation",ad2dt );
+    }
+    else if( len=answer.matches("fourth-order dt dissipation") )
+    {
+      readCoefficients( dialog, answer,"fourth-order dt dissipation",ad4dt );
+    }
+    
     else if( dialog.getTextValue(answer,"hourglass control","%i",hourGlassFlag) )
     {
       printF(" INFO: hourGlassFlag: \n"

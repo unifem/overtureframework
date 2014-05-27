@@ -10,8 +10,8 @@ FFLAGSO = $(FFLAGSG)
 
 all:
 	gDeriv.p
-	bpp dsg.bf
-	bpp assignBoundaryConditions.bf
+	$(bpp) dsg.bf
+	$(bpp) assignBoundaryConditions.bf
 
 # findInterpolationNeighbours.o: findInterpolationNeighbours.f
 

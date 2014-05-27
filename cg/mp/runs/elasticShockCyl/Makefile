@@ -1,8 +1,9 @@
-all = linkFiles diskDeform
+all : linkFiles diskDeform
 
 linkFiles:
-	ln -s $(Overture)/sampleGrids/diskDeform.cmd .
+	ln -sf $(Overture)/sampleGrids/diskDeform.cmd .
 
+ogen = $(Overture)/bin/ogen
 
 diskDeform:
 	$(ogen) -noplot diskDeform -factor=1 -interp=e -xa=-2.5 -xb=2.5 -ya=-2.5 -yb=2.5 -name="diskDeformBig1e.hdf"

@@ -3413,6 +3413,25 @@ put( GenericDataBase & dir, const aString & name) const
 }
 
 
+// =================================================================================================
+/// \brief Plot things related to moving grids (e.g. the center lines of beams or shells)
+// =================================================================================================
+int MovingGrids::
+plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp )
+{
+
+  for( int b=0; b<numberOfDeformingBodies; b++ )
+  {
+    printF("MovingGrids::plot deforming body %i\n",b);
+    deformingBodyList[b]->plot( gi,cgf,psp );
+
+  }
+
+  
+
+  return 0;
+}
+
 
 
 // =================================================================================================
@@ -4263,3 +4282,6 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
   return 0;
 }
+
+
+

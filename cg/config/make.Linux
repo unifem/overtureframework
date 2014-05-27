@@ -87,7 +87,9 @@ ifneq ($(FC),fort77)
 else
   FC_FLAGS_DBG =
 endif
-FC_FLAGS_OPT = -O3 
+# *wdh* NOTE: gcc 4.4.7 has trouble with -O3 and advMx3dOrder4r.f
+# *wdh* 2014/05/16: FC_FLAGS_OPT = -O3 
+FC_FLAGS_OPT = -O
 FC_FLAGS_PROF = -pg 
 
 ## ## Fortran Compiler options (compiled without auto double)

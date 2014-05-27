@@ -137,6 +137,7 @@ c      if( .false. ) then
 c
       rparam(1) = almax(1)
       rparam(2) = almax(2)
+      rparam(3)=0. ! for 1/dt dissipation
 c      write(6,*)rparam(1),rparam(2)
 c      write(6,*)'**END smcent**'
 c

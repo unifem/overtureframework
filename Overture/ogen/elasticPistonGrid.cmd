@@ -110,9 +110,10 @@ create mappings
 # 
     fourth order
     boundary conditions
-      if( $bc eq "p" ){ $bci ="-1 -1 100 0"; }else{ $bci ="2 3 100 0"; }
+      if( $bc eq "p" ){ $bci ="-1 -1 100 0"; }else{ $bci ="3 4 100 0"; }
       $bci
     share
+      # *wdh* 2014/05/09 2 3 100 0 
       2 3 100 0 
     name interface
     exit

@@ -118,6 +118,28 @@ c To include derivatives of rx use OPTION=RX
 ! =================================================================================
 
 
+
+
+
+! ================================================================================
+!   Update periodic boundaries on the interface
+! ================================================================================
+
+! ================================================================================
+!   Smooth values on the interface
+! 
+! ================================================================================
+
+! =================================================================================
+!   Compute eigen-structure of the T matrix (see Riemann problem notes)
+! =================================================================================
+
+
+! =================================================================================
+!   Compute solid impedances
+! =================================================================================
+
+
 ! ================================================================================
 ! Project values on the fluid-solid interface for linear elasticity
 ! 
@@ -261,7 +283,7 @@ c To include derivatives of rx use OPTION=RX
       integer nn1a,nn1b,nn2a,nn2b,nn3a,nn3b
       integer mm1a,mm1b,mm2a,mm2b,mm3a,mm3b
 
-      real du1,du2,du3,uEps,uNorm,cdl, rhoMin,pMin
+      real du1,du2,du3,uEps,uNorm,cdl, rhoMin,pMin, omega
 
       real rx1,ry1,rx2,ry2
 
@@ -298,8 +320,10 @@ c To include derivatives of rx use OPTION=RX
 ! ** variables used by nonlinear elasticity case
 
       logical printStuff,useAllSolidNormals,compareWithBill,
-     & compareWithExact
+     & compareWithExact,printChecks
       real printErrorsAfterTime
+
+      real bk(2,2),tk(2,2),av(2),bv(2),chk(3),t1f,t2f
 
       real p11tilde,p12tilde
       real u1r,u2r,u1s,u2s,u1r0,u2r0,u1s0,u2s0
@@ -311,9 +335,12 @@ c To include derivatives of rx use OPTION=RX
       real du(2,2),p(2,2),dpdf(4,4),cpar(10),pe(2,2)
       integer ideriv,itype
 
+      integer nonlinearProjectionMethod, meth
+      real ks,zps,zss,pst
+
       real determ,du1r,du2r,du1s,du2s
 
-      integer iter,itmax,istop,k
+      integer iter,itmax,istop,k,itsm
       real bmax,toler
 
       parameter(toler=1.e-12,itmax=10)
@@ -3629,6 +3656,244 @@ c===============================================================================
          !    [ n.v ] = 0
          !    [ n.sigma ] = 0
 
+          ! -- optionally smooth interface values before projection ---
+          do itsm=1,2 ! fix me --
+            if( .false. )then
+              ! *** THIS IS UNDER CONSTRUCTION ***
+              write(*,'(" interfaceCnsSM: smooth interface values 
+     & before project")')
+              write(*,'(" interfaceCnsSM: axis1=",i2," axis2=",i2)') 
+     & axis1,axis2
+              write(*,'(" interfaceCnsSM: axis1p1=",i2," axis2p1=",i2)
+     & ') axis1p1,axis2p1
+              write(*,'(" interfaceCnsSM: n1a,n1b=",2i4," n2a,n2b=",
+     & 2i4)') n1a,n1b,n2a,n2b
+              write(*,'(" interfaceCnsSM: m1a,m1b=",2i4," m2a,m2b=",
+     & 2i4)') m1a,m1b,m2a,m2b
+              ! periodic update  **THIS IS NEEDED** 
+                ! periodic update 
+                if( boundaryCondition1(0,axis1p1).lt.0 )then
+                  ! write(*,'(" interfaceCnsSM: periodic update u1..")')
+                  if( axis1p1.eq.0 )then
+                      u1(n1a-2,n2a,n3a,rc)= u1(n1b-2,n2a,n3a,rc)
+                      u1(n1a-1,n2a,n3a,rc)= u1(n1b-1,n2a,n3a,rc)
+                      u1(n1b  ,n2a,n3a,rc)= u1(n1a  ,n2a,n3a,rc)
+                      u1(n1b+1,n2a,n3a,rc)= u1(n1a+1,n2a,n3a,rc)
+                      u1(n1b+2,n2a,n3a,rc)= u1(n1a+2,n2a,n3a,rc)
+                      u1(n1a-2,n2a,n3a,uc)= u1(n1b-2,n2a,n3a,uc)
+                      u1(n1a-1,n2a,n3a,uc)= u1(n1b-1,n2a,n3a,uc)
+                      u1(n1b  ,n2a,n3a,uc)= u1(n1a  ,n2a,n3a,uc)
+                      u1(n1b+1,n2a,n3a,uc)= u1(n1a+1,n2a,n3a,uc)
+                      u1(n1b+2,n2a,n3a,uc)= u1(n1a+2,n2a,n3a,uc)
+                      u1(n1a-2,n2a,n3a,vc)= u1(n1b-2,n2a,n3a,vc)
+                      u1(n1a-1,n2a,n3a,vc)= u1(n1b-1,n2a,n3a,vc)
+                      u1(n1b  ,n2a,n3a,vc)= u1(n1a  ,n2a,n3a,vc)
+                      u1(n1b+1,n2a,n3a,vc)= u1(n1a+1,n2a,n3a,vc)
+                      u1(n1b+2,n2a,n3a,vc)= u1(n1a+2,n2a,n3a,vc)
+                      u1(n1a-2,n2a,n3a,tc)= u1(n1b-2,n2a,n3a,tc)
+                      u1(n1a-1,n2a,n3a,tc)= u1(n1b-1,n2a,n3a,tc)
+                      u1(n1b  ,n2a,n3a,tc)= u1(n1a  ,n2a,n3a,tc)
+                      u1(n1b+1,n2a,n3a,tc)= u1(n1a+1,n2a,n3a,tc)
+                      u1(n1b+2,n2a,n3a,tc)= u1(n1a+2,n2a,n3a,tc)
+                  else
+                      u1(n1a,n2a-1,n3a,rc)= u1(n1a,n2b-1,n3a,rc)
+                      u1(n1a,n2b  ,n3a,rc)= u1(n1a,n2a  ,n3a,rc)
+                      u1(n1a,n2b+1,n3a,rc)= u1(n1a,n2a+1,n3a,rc)
+                      u1(n1a,n2a-1,n3a,uc)= u1(n1a,n2b-1,n3a,uc)
+                      u1(n1a,n2b  ,n3a,uc)= u1(n1a,n2a  ,n3a,uc)
+                      u1(n1a,n2b+1,n3a,uc)= u1(n1a,n2a+1,n3a,uc)
+                      u1(n1a,n2a-1,n3a,vc)= u1(n1a,n2b-1,n3a,vc)
+                      u1(n1a,n2b  ,n3a,vc)= u1(n1a,n2a  ,n3a,vc)
+                      u1(n1a,n2b+1,n3a,vc)= u1(n1a,n2a+1,n3a,vc)
+                      u1(n1a,n2a-1,n3a,tc)= u1(n1a,n2b-1,n3a,tc)
+                      u1(n1a,n2b  ,n3a,tc)= u1(n1a,n2a  ,n3a,tc)
+                      u1(n1a,n2b+1,n3a,tc)= u1(n1a,n2a+1,n3a,tc)
+                  end if
+                end if
+                if( boundaryCondition2(0,axis2p1).lt.0 )then
+                  ! write(*,'(" interfaceCnsSM: periodic update u2..")')
+                  if( axis2p1.eq.0 )then
+                      u2(m1a-2,m2a,m3a,u1c)= u2(m1b-2,m2a,m3a,u1c)
+                      u2(m1a-1,m2a,m3a,u1c)= u2(m1b-1,m2a,m3a,u1c)
+                      u2(m1b  ,m2a,m3a,u1c)= u2(m1a  ,m2a,m3a,u1c)
+                      u2(m1b+1,m2a,m3a,u1c)= u2(m1a+1,m2a,m3a,u1c)
+                      u2(m1b+2,m2a,m3a,u1c)= u2(m1a+2,m2a,m3a,u1c)
+                      u2(m1a-2,m2a,m3a,u2c)= u2(m1b-2,m2a,m3a,u2c)
+                      u2(m1a-1,m2a,m3a,u2c)= u2(m1b-1,m2a,m3a,u2c)
+                      u2(m1b  ,m2a,m3a,u2c)= u2(m1a  ,m2a,m3a,u2c)
+                      u2(m1b+1,m2a,m3a,u2c)= u2(m1a+1,m2a,m3a,u2c)
+                      u2(m1b+2,m2a,m3a,u2c)= u2(m1a+2,m2a,m3a,u2c)
+                      u2(m1a-2,m2a,m3a,v1c)= u2(m1b-2,m2a,m3a,v1c)
+                      u2(m1a-1,m2a,m3a,v1c)= u2(m1b-1,m2a,m3a,v1c)
+                      u2(m1b  ,m2a,m3a,v1c)= u2(m1a  ,m2a,m3a,v1c)
+                      u2(m1b+1,m2a,m3a,v1c)= u2(m1a+1,m2a,m3a,v1c)
+                      u2(m1b+2,m2a,m3a,v1c)= u2(m1a+2,m2a,m3a,v1c)
+                      u2(m1a-2,m2a,m3a,v2c)= u2(m1b-2,m2a,m3a,v2c)
+                      u2(m1a-1,m2a,m3a,v2c)= u2(m1b-1,m2a,m3a,v2c)
+                      u2(m1b  ,m2a,m3a,v2c)= u2(m1a  ,m2a,m3a,v2c)
+                      u2(m1b+1,m2a,m3a,v2c)= u2(m1a+1,m2a,m3a,v2c)
+                      u2(m1b+2,m2a,m3a,v2c)= u2(m1a+2,m2a,m3a,v2c)
+                  else
+                      u2(m1a,m2a-1,m3a,u1c)= u2(m1a,m2b-1,m3a,u1c)
+                      u2(m1a,m2b  ,m3a,u1c)= u2(m1a,m2a  ,m3a,u1c)
+                      u2(m1a,m2b+1,m3a,u1c)= u2(m1a,m2a+1,m3a,u1c)
+                      u2(m1a,m2a-1,m3a,u2c)= u2(m1a,m2b-1,m3a,u2c)
+                      u2(m1a,m2b  ,m3a,u2c)= u2(m1a,m2a  ,m3a,u2c)
+                      u2(m1a,m2b+1,m3a,u2c)= u2(m1a,m2a+1,m3a,u2c)
+                      u2(m1a,m2a-1,m3a,v1c)= u2(m1a,m2b-1,m3a,v1c)
+                      u2(m1a,m2b  ,m3a,v1c)= u2(m1a,m2a  ,m3a,v1c)
+                      u2(m1a,m2b+1,m3a,v1c)= u2(m1a,m2a+1,m3a,v1c)
+                      u2(m1a,m2a-1,m3a,v2c)= u2(m1a,m2b-1,m3a,v2c)
+                      u2(m1a,m2b  ,m3a,v2c)= u2(m1a,m2a  ,m3a,v2c)
+                      u2(m1a,m2b+1,m3a,v2c)= u2(m1a,m2a+1,m3a,v2c)
+                  end if
+                end if
+               j3d=0
+               if( m1a.eq.m1b )then
+                j1d=0
+               else if( m1a.lt.m1b )then
+                j1d=+1
+               else
+                j1d=-1
+               end if
+               if( m2a.eq.m2b )then
+                j2d=0
+               else if( m2a.lt.m2b )then
+                j2d=+1
+               else
+                j2d=-1
+               end if
+               i3=n3a
+               j3=m3a
+               j1=m1a
+               j2=m2a
+               do i2=n2a,n2b
+                do i1=n1a,n1b
+               omega=.25/4. ! for 2nd order
+               if( axis1.eq.0 )then
+                   u1(i1,i2,i3,rc)= u1(i1,i2,i3,rc) + omega*( u1(i1,i2+
+     & 1,i3,rc)-2.*u1(i1,i2,i3,rc)+u1(i1,i2-1,i3,rc))
+                   u1(i1,i2,i3,uc)= u1(i1,i2,i3,uc) + omega*( u1(i1,i2+
+     & 1,i3,uc)-2.*u1(i1,i2,i3,uc)+u1(i1,i2-1,i3,uc))
+                   u1(i1,i2,i3,vc)= u1(i1,i2,i3,vc) + omega*( u1(i1,i2+
+     & 1,i3,vc)-2.*u1(i1,i2,i3,vc)+u1(i1,i2-1,i3,vc))
+                   u1(i1,i2,i3,tc)= u1(i1,i2,i3,tc) + omega*( u1(i1,i2+
+     & 1,i3,tc)-2.*u1(i1,i2,i3,tc)+u1(i1,i2-1,i3,tc))
+               else
+                   u1(i1,i2,i3,rc)= u1(i1,i2,i3,rc) + omega*( u1(i1+1,
+     & i2,i3,rc)-2.*u1(i1,i2,i3,rc)+u1(i1-1,i2,i3,rc))
+                   u1(i1,i2,i3,uc)= u1(i1,i2,i3,uc) + omega*( u1(i1+1,
+     & i2,i3,uc)-2.*u1(i1,i2,i3,uc)+u1(i1-1,i2,i3,uc))
+                   u1(i1,i2,i3,vc)= u1(i1,i2,i3,vc) + omega*( u1(i1+1,
+     & i2,i3,vc)-2.*u1(i1,i2,i3,vc)+u1(i1-1,i2,i3,vc))
+                   u1(i1,i2,i3,tc)= u1(i1,i2,i3,tc) + omega*( u1(i1+1,
+     & i2,i3,tc)-2.*u1(i1,i2,i3,tc)+u1(i1-1,i2,i3,tc))
+               end if
+               ! omega=0.
+               if( axis2.eq.0 )then
+                   u2(j1,j2,j3,u1c)= u2(j1,j2,j3,u1c) + omega*( u2(j1,
+     & j2+1,j3,u1c)-2.*u2(j1,j2,j3,u1c)+u2(j1,j2-1,j3,u1c))
+                   u2(j1,j2,j3,u2c)= u2(j1,j2,j3,u2c) + omega*( u2(j1,
+     & j2+1,j3,u2c)-2.*u2(j1,j2,j3,u2c)+u2(j1,j2-1,j3,u2c))
+                   u2(j1,j2,j3,v1c)= u2(j1,j2,j3,v1c) + omega*( u2(j1,
+     & j2+1,j3,v1c)-2.*u2(j1,j2,j3,v1c)+u2(j1,j2-1,j3,v1c))
+                   u2(j1,j2,j3,v1c)= u2(j1,j2,j3,v1c) + omega*( u2(j1,
+     & j2+1,j3,v1c)-2.*u2(j1,j2,j3,v1c)+u2(j1,j2-1,j3,v1c))
+               else
+                   u2(j1,j2,j3,u1c)= u2(j1,j2,j3,u1c) + omega*( u2(j1+
+     & 1,j2,j3,u1c)-2.*u2(j1,j2,j3,u1c)+u2(j1-1,j2,j3,u1c))
+                   u2(j1,j2,j3,u2c)= u2(j1,j2,j3,u2c) + omega*( u2(j1+
+     & 1,j2,j3,u2c)-2.*u2(j1,j2,j3,u2c)+u2(j1-1,j2,j3,u2c))
+                   u2(j1,j2,j3,v1c)= u2(j1,j2,j3,v1c) + omega*( u2(j1+
+     & 1,j2,j3,v1c)-2.*u2(j1,j2,j3,v1c)+u2(j1-1,j2,j3,v1c))
+                   u2(j1,j2,j3,v1c)= u2(j1,j2,j3,v1c) + omega*( u2(j1+
+     & 1,j2,j3,v1c)-2.*u2(j1,j2,j3,v1c)+u2(j1-1,j2,j3,v1c))
+               end if
+                 j1=j1+j1d
+                 j2=j2+j2d
+                end do
+               end do
+              ! periodic update 
+                ! periodic update 
+                if( boundaryCondition1(0,axis1p1).lt.0 )then
+                  ! write(*,'(" interfaceCnsSM: periodic update u1..")')
+                  if( axis1p1.eq.0 )then
+                      u1(n1a-2,n2a,n3a,rc)= u1(n1b-2,n2a,n3a,rc)
+                      u1(n1a-1,n2a,n3a,rc)= u1(n1b-1,n2a,n3a,rc)
+                      u1(n1b  ,n2a,n3a,rc)= u1(n1a  ,n2a,n3a,rc)
+                      u1(n1b+1,n2a,n3a,rc)= u1(n1a+1,n2a,n3a,rc)
+                      u1(n1b+2,n2a,n3a,rc)= u1(n1a+2,n2a,n3a,rc)
+                      u1(n1a-2,n2a,n3a,uc)= u1(n1b-2,n2a,n3a,uc)
+                      u1(n1a-1,n2a,n3a,uc)= u1(n1b-1,n2a,n3a,uc)
+                      u1(n1b  ,n2a,n3a,uc)= u1(n1a  ,n2a,n3a,uc)
+                      u1(n1b+1,n2a,n3a,uc)= u1(n1a+1,n2a,n3a,uc)
+                      u1(n1b+2,n2a,n3a,uc)= u1(n1a+2,n2a,n3a,uc)
+                      u1(n1a-2,n2a,n3a,vc)= u1(n1b-2,n2a,n3a,vc)
+                      u1(n1a-1,n2a,n3a,vc)= u1(n1b-1,n2a,n3a,vc)
+                      u1(n1b  ,n2a,n3a,vc)= u1(n1a  ,n2a,n3a,vc)
+                      u1(n1b+1,n2a,n3a,vc)= u1(n1a+1,n2a,n3a,vc)
+                      u1(n1b+2,n2a,n3a,vc)= u1(n1a+2,n2a,n3a,vc)
+                      u1(n1a-2,n2a,n3a,tc)= u1(n1b-2,n2a,n3a,tc)
+                      u1(n1a-1,n2a,n3a,tc)= u1(n1b-1,n2a,n3a,tc)
+                      u1(n1b  ,n2a,n3a,tc)= u1(n1a  ,n2a,n3a,tc)
+                      u1(n1b+1,n2a,n3a,tc)= u1(n1a+1,n2a,n3a,tc)
+                      u1(n1b+2,n2a,n3a,tc)= u1(n1a+2,n2a,n3a,tc)
+                  else
+                      u1(n1a,n2a-1,n3a,rc)= u1(n1a,n2b-1,n3a,rc)
+                      u1(n1a,n2b  ,n3a,rc)= u1(n1a,n2a  ,n3a,rc)
+                      u1(n1a,n2b+1,n3a,rc)= u1(n1a,n2a+1,n3a,rc)
+                      u1(n1a,n2a-1,n3a,uc)= u1(n1a,n2b-1,n3a,uc)
+                      u1(n1a,n2b  ,n3a,uc)= u1(n1a,n2a  ,n3a,uc)
+                      u1(n1a,n2b+1,n3a,uc)= u1(n1a,n2a+1,n3a,uc)
+                      u1(n1a,n2a-1,n3a,vc)= u1(n1a,n2b-1,n3a,vc)
+                      u1(n1a,n2b  ,n3a,vc)= u1(n1a,n2a  ,n3a,vc)
+                      u1(n1a,n2b+1,n3a,vc)= u1(n1a,n2a+1,n3a,vc)
+                      u1(n1a,n2a-1,n3a,tc)= u1(n1a,n2b-1,n3a,tc)
+                      u1(n1a,n2b  ,n3a,tc)= u1(n1a,n2a  ,n3a,tc)
+                      u1(n1a,n2b+1,n3a,tc)= u1(n1a,n2a+1,n3a,tc)
+                  end if
+                end if
+                if( boundaryCondition2(0,axis2p1).lt.0 )then
+                  ! write(*,'(" interfaceCnsSM: periodic update u2..")')
+                  if( axis2p1.eq.0 )then
+                      u2(m1a-2,m2a,m3a,u1c)= u2(m1b-2,m2a,m3a,u1c)
+                      u2(m1a-1,m2a,m3a,u1c)= u2(m1b-1,m2a,m3a,u1c)
+                      u2(m1b  ,m2a,m3a,u1c)= u2(m1a  ,m2a,m3a,u1c)
+                      u2(m1b+1,m2a,m3a,u1c)= u2(m1a+1,m2a,m3a,u1c)
+                      u2(m1b+2,m2a,m3a,u1c)= u2(m1a+2,m2a,m3a,u1c)
+                      u2(m1a-2,m2a,m3a,u2c)= u2(m1b-2,m2a,m3a,u2c)
+                      u2(m1a-1,m2a,m3a,u2c)= u2(m1b-1,m2a,m3a,u2c)
+                      u2(m1b  ,m2a,m3a,u2c)= u2(m1a  ,m2a,m3a,u2c)
+                      u2(m1b+1,m2a,m3a,u2c)= u2(m1a+1,m2a,m3a,u2c)
+                      u2(m1b+2,m2a,m3a,u2c)= u2(m1a+2,m2a,m3a,u2c)
+                      u2(m1a-2,m2a,m3a,v1c)= u2(m1b-2,m2a,m3a,v1c)
+                      u2(m1a-1,m2a,m3a,v1c)= u2(m1b-1,m2a,m3a,v1c)
+                      u2(m1b  ,m2a,m3a,v1c)= u2(m1a  ,m2a,m3a,v1c)
+                      u2(m1b+1,m2a,m3a,v1c)= u2(m1a+1,m2a,m3a,v1c)
+                      u2(m1b+2,m2a,m3a,v1c)= u2(m1a+2,m2a,m3a,v1c)
+                      u2(m1a-2,m2a,m3a,v2c)= u2(m1b-2,m2a,m3a,v2c)
+                      u2(m1a-1,m2a,m3a,v2c)= u2(m1b-1,m2a,m3a,v2c)
+                      u2(m1b  ,m2a,m3a,v2c)= u2(m1a  ,m2a,m3a,v2c)
+                      u2(m1b+1,m2a,m3a,v2c)= u2(m1a+1,m2a,m3a,v2c)
+                      u2(m1b+2,m2a,m3a,v2c)= u2(m1a+2,m2a,m3a,v2c)
+                  else
+                      u2(m1a,m2a-1,m3a,u1c)= u2(m1a,m2b-1,m3a,u1c)
+                      u2(m1a,m2b  ,m3a,u1c)= u2(m1a,m2a  ,m3a,u1c)
+                      u2(m1a,m2b+1,m3a,u1c)= u2(m1a,m2a+1,m3a,u1c)
+                      u2(m1a,m2a-1,m3a,u2c)= u2(m1a,m2b-1,m3a,u2c)
+                      u2(m1a,m2b  ,m3a,u2c)= u2(m1a,m2a  ,m3a,u2c)
+                      u2(m1a,m2b+1,m3a,u2c)= u2(m1a,m2a+1,m3a,u2c)
+                      u2(m1a,m2a-1,m3a,v1c)= u2(m1a,m2b-1,m3a,v1c)
+                      u2(m1a,m2b  ,m3a,v1c)= u2(m1a,m2a  ,m3a,v1c)
+                      u2(m1a,m2b+1,m3a,v1c)= u2(m1a,m2a+1,m3a,v1c)
+                      u2(m1a,m2a-1,m3a,v2c)= u2(m1a,m2b-1,m3a,v2c)
+                      u2(m1a,m2b  ,m3a,v2c)= u2(m1a,m2a  ,m3a,v2c)
+                      u2(m1a,m2b+1,m3a,v2c)= u2(m1a,m2a+1,m3a,v2c)
+                  end if
+                end if
+            end if
+          end do
+
           if( pdeTypeForGodunovMethodCgsm.le.1 )then  ! this is the original code for linear elasticity
 
            ! Note: pdeTypeForGodunovMethodCgsm=0 : linear elasticity code
@@ -3976,6 +4241,23 @@ c===============================================================================
             ! itype=2          ! SVK
             ! itype=4          ! Neo-Hookean
             itype=pdeTypeForGodunovMethodCgsm
+            nonlinearProjectionMethod=0
+            if (interfaceOption.eq.5) then
+              nonlinearProjectionMethod=1
+              if( t.lt.2*dt )then
+                write(*,'(" USE full nonlinear ProjectionMethod")')
+              end if
+            end if
+            meth=nonlinearProjectionMethod
+            ! write(6,*)'meth =',meth
+            ! pause
+            ! meth=0  =>  linear impedances, no tangential stress contribution
+            ! meth=1  =>  full impedances with tangential stress contribution
+            if (meth.ne.0.and.twilightZone.ne.0) then
+              write(6,*)'Error (interfaceCnsSm) : meth.ne.0 and TZ is 
+     & on'
+              stop 3579
+            end if
            !   write(6,*)'TZ=',twilightZone
            !   pause
            !   write(6,*)'pOffset=',pOffset
@@ -4221,6 +4503,7 @@ c===============================================================================
                    write(6,*)'lambda,mu=',lambda,mu
                    ! pause
                 end if
+               ! checkEigenStructure()
             else
                call ogDeriv(ep2,0,1,0,0,xy2(j1,j2,j3,0),xy2(j1,j2,j3,1)
      & ,0.,t,u1c,u1x)
@@ -4245,6 +4528,97 @@ c===============================================================================
             ! Solid velocity
             v1s = u2(j1,j2,j3,v1c)
             v2s = u2(j1,j2,j3,v2c)
+            ! Compute fluid and solid normals, and compute solid impedances
+            ! compute the solid normal (n1s,n2s)
+              rx2=rsxy2(j1,j2,j3,axis2,0)
+              ry2=rsxy2(j1,j2,j3,axis2,1)
+              r2Norm=normalSign2*max(epsx,sqrt(rx2**2+ry2**2))
+              n1s=rx2/r2Norm
+              n2s=ry2/r2Norm
+            ! compute the fluid normal (n1f,n2f)
+              rx1=rsxy1(i1,i2,i3,axis1,0)
+              ry1=rsxy1(i1,i2,i3,axis1,1)
+              r1Norm=normalSign1*max(epsx,sqrt(rx1**2+ry1**2))
+              n1f=-rx1/r1Norm  ! NOTE: flip sign of fluid normal
+              n2f=-ry1/r1Norm
+            ! may want to use all solid normals to compare with linear elasticity
+             if (useAllSolidNormals) then
+               n1f=n1s
+               n2f=n2s
+             end if
+            ! fluid tangent
+             t1f= n2f
+             t2f=-n1f
+            ! check value of "meth"
+             if (meth.eq.0) then
+            ! impedances based on linear model
+               cp=sqrt((lambda+2.*mu)/rhos)
+               zs=rhos*cp
+            ! no tangent stress contribution
+               ks=0.0
+             else
+            ! impedances based on full model (TZ must be "off" so that dpdf is available)
+               if (twilightZone.ne.0) then
+                 write(6,*)'Error (interfaceCnsSm) : meth.ne.0 and TZ 
+     & is on'
+                 stop 3580
+               end if
+            ! compute bk(j,k)=nis*Kijkl*nls for j=1,2 and k=1,2  (Note: bk is symmetric, could just set bk(2,1)=bk(1,2).)
+               bk(1,1)=n1s*(dpdf(1,1)*n1s+dpdf(1,2)*n2s)+n2s*(dpdf(3,1)
+     & *n1s+dpdf(3,2)*n2s)
+               bk(1,2)=n1s*(dpdf(1,3)*n1s+dpdf(1,4)*n2s)+n2s*(dpdf(3,3)
+     & *n1s+dpdf(3,4)*n2s)
+               bk(2,1)=n1s*(dpdf(2,1)*n1s+dpdf(2,2)*n2s)+n2s*(dpdf(4,1)
+     & *n1s+dpdf(4,2)*n2s)
+               bk(2,2)=n1s*(dpdf(2,3)*n1s+dpdf(2,4)*n2s)+n2s*(dpdf(4,3)
+     & *n1s+dpdf(4,4)*n2s)
+            ! compute tk(1,1)=nif*bk(i,j)*njf
+               tk(1,1)=n1f*(bk(1,1)*n1f+bk(1,2)*n2f)+n2f*(bk(2,1)*n1f+
+     & bk(2,2)*n2f)
+            ! compute tk(1,2)=nif*bk(i,j)*tjf
+               tk(1,2)=n1f*(bk(1,1)*t1f+bk(1,2)*t2f)+n2f*(bk(2,1)*t1f+
+     & bk(2,2)*t2f)
+            ! compute tk(2,1)=tif*bk(i,j)*njf  (Note: tk is symmetric, could just set tk(2,1)=tk(1,2).)
+               tk(2,1)=t1f*(bk(1,1)*n1f+bk(1,2)*n2f)+t2f*(bk(2,1)*n1f+
+     & bk(2,2)*n2f)
+            ! compute tk(2,2)=tif*bk(i,j)*tjf
+               tk(2,2)=t1f*(bk(1,1)*t1f+bk(1,2)*t2f)+t2f*(bk(2,1)*t1f+
+     & bk(2,2)*t2f)
+            ! eigenvalues of tk
+               trace=(tk(1,1)+tk(2,2))/2.0
+               discriminant=((tk(1,1)-tk(2,2))/2.0)**2+tk(1,2)**2
+               eval(1)=trace+sqrt(discriminant)
+               eval(2)=trace-sqrt(discriminant)
+               if( eval(2).le.0.0 )then
+                 write(6,*)'Error (interface code) : eigenvalues are 
+     & imaginary'
+                 stop 8887
+               end if
+            !   write(33,'(2(1x,1pe15.8))')eval(1),tk(2,2)
+            ! left eigenvector corresponding to dominant eigenvalue.  There is a basic assumption
+            ! here that tk is close to the matrix [lambda+2*mu, 0; 0, mu]
+               evec(1,2)=tk(1,2)/(eval(1)-tk(2,2))
+               rad=sqrt(evec(1,2)**2+1.0)
+               evec(1,1)=1.0/rad
+               evec(1,2)=evec(1,2)/rad
+            ! Nanson's formula
+               beta=(n1f*(f11s*n1s+f12s*n2s)+n2f*(f21s*n1s+f22s*n2s))
+     & /aj
+            ! zps and zss
+               zps=beta*sqrt(rhos*eval(1))
+               zss=beta*sqrt(rhos*eval(2))
+            ! zs and ks
+               zs=zps*zss/(zss*evec(1,1)**2+zps*evec(1,2)**2)
+               ks=evec(1,1)*evec(1,2)*(zps-zss)/(zss*evec(1,1)**2+zps*
+     & evec(1,2)**2)
+            !   write(33,'(3(1x,1pe15.8))')beta,zs,ks
+             end if
+            ! Compute vs : normal component of the solid velocity
+            vs = n1f*v1s + n2f*v2s
+            ! nf.sigma.nf
+            ps=(n1f*s11s+n2f*s21s)*n1f+(n1f*s12s+n2f*s22s)*n2f
+            ! nf.sigma.tf
+            pst=(n1f*s11s+n2f*s21s)*t1f+(n1f*s12s+n2f*s22s)*t2f
             ! Fluid state
             if( conservativeVariables.eq.1 )then
               rhof = u1(i1,i2,i3,rc)
@@ -4259,37 +4633,13 @@ c===============================================================================
               v2f  = u1(i1,i2,i3,vc)
               pf   = rhof*u1(i1,i2,i3,tc)  ! p=rho*T
             end if
-            ! Compute the fluid normal (n1f,n2f)
-             rx1=rsxy1(i1,i2,i3,axis1,0)
-             ry1=rsxy1(i1,i2,i3,axis1,1)
-             r1Norm=normalSign1*max(epsx,sqrt(rx1**2+ry1**2))
-             n1f=-rx1/r1Norm  ! NOTE: flip sign of fluid normal
-             n2f=-ry1/r1Norm
-            if (useAllSolidNormals) then
-               rx2=rsxy2(j1,j2,j3,axis2,0)
-               ry2=rsxy2(j1,j2,j3,axis2,1)
-               r2Norm=normalSign2*max(epsx,sqrt(rx2**2+ry2**2))
-               n1s=rx2/r2Norm
-               n2s=ry2/r2Norm
-              n1f=n1s
-              n2f=n2s
-            end if
-            ! Compute vf : normal component of the fluid velocity
-            vf = n1f*v1f + n2f*v2f
-            ! Compute vs : normal component of the solid velocity
-            vs = n1f*v1s + n2f*v2s
-            ! Compute the normal component of the fluid traction, this should be matched with nf.sigma.nf
-            pf0 = -(pf-pOffset)
-            ! nf.sigma.nf
-            ps=(n1f*s11s+n2f*s21s)*n1f+(n1f*s12s+n2f*s22s)*n2f
             ! Fluid sound speed and impedance
             af = sqrt(gamma*pf/rhof)
             zf = rhof*af
-            ! Here is the p-wave speed and solid impedance assuming a locally linear model
-            cp = sqrt((lambda+2.*mu)/rhos)
-            zs = rhos*cp
-            !             write(6,*)'rho,lambda,mu=',rhos,lambda,mu
-            !             pause
+            ! Compute vf : normal component of the fluid velocity
+            vf = n1f*v1f + n2f*v2f
+            ! Compute the normal component of the fluid traction, this should be matched with nf.sigma.nf
+            pf0 = -(pf-pOffset)
             ! TZ corrections
             if( twilightZone.ne.0 )then
                ! exact fluid state
@@ -4340,8 +4690,10 @@ c===============================================================================
             ! Compute inpedance-weighted averages
             wf = zf
             ws = zs
-            vi = (wf*vf  + ws*vs + pf0-ps          )/( ws+wf )  ! interface velocity
-            pi = (ws*pf0 + wf*ps + ws*wf*( vf-vs ) )/( ws+wf )  ! interface "pressure" n.s.n
+            vi = (wf*vf  + ws*vs + pf0-ps          + ks*pst    )/( ws+
+     & wf )  ! interface velocity
+            pi = (ws*pf0 + wf*ps + ws*wf*( vf-vs ) - wf*ks*pst )/( ws+
+     & wf )  ! interface "pressure" n.s.n
             ! Set normal component of fluid velocity to be vi
             v1f = v1f + (vi-vf)*n1f
             v2f = v2f + (vi-vf)*n2f
@@ -4355,8 +4707,12 @@ c===============================================================================
             ! Set density assuming constant entropy
             !             if( interfaceOption.eq.1 )then
             rhofi = rhof*(pif/pf)**(1./gamma)
-            if (twilightZone.ne.0) rhofi=rhoe
-            ! rhofi=rhof ! WDH: try not setting rho from netropy condition
+            ! *wdh* if (twilightZone.ne.0) rhofi=rhoe
+            !*wdh*
+            if( twilightZone.ne.0 )then
+              ! Do not change the density from the predicted value: 
+              rhofi=rhof
+            end if
             !             end if
             !             applyLowerBound( rhofi,rhoMin )
             !             rhofi=rhof

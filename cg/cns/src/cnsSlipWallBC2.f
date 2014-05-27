@@ -90,7 +90,7 @@ c.......local
       integer nr(0:1,0:2)
 
       integer ok,getInt,getReal
-      real densityLowerBound, pressureLowerBound
+      real densityLowerBound, pressureLowerBound,velocityLimiterEps
       integer checkForWallHeating
 
       real sxi,syi,szi,txi,tyi,tzi,rxi,ryi,rzi
@@ -2002,7 +2002,6 @@ c .............. end statement functions
       gm1=gamma-1.
       ad2=10.  ! artificial dissipation
 
-      uEps=1.e-4 !
 
       ! Look up parameters from the data base,  *new way*
        ok=getReal(pdb,'densityLowerBound',densityLowerBound)
@@ -2017,6 +2016,16 @@ c .............. end statement functions
      & pressureLowerBound")')
          stop 1133
        end if
+
+      uEps=1.e-4 !
+       ok=getReal(pdb,'velocityLimiterEps',velocityLimiterEps)
+       if( ok.eq.0 )then
+         write(*,'("*** cnsSlipWallBC2:ERROR: unable to find 
+     & velocityLimiterEps")')
+         stop 1133
+       end if
+      uEps=velocityLimiterEps
+
 
        ok=getInt(pdb,'checkForWallHeating',checkForWallHeating)
        if( ok.eq.0 )then

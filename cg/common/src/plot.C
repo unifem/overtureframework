@@ -471,6 +471,10 @@ plot(const real & t,
       if( itemsToPlot & 4 )
 	PlotIt::streamLines(ps,u,psp);
 
+      if( parameters.dbase.get<bool >("plotStructures") )
+      {
+	parameters.dbase.get<MovingGrids >("movingGrids").plot(ps,solution,psp);
+      }
     }
 
     // printf("XXX myid=%i pps->isGraphicsWindowOpen()=%i\n",parameters.dbase.get<int >("myid"),pps->isGraphicsWindowOpen());
@@ -552,6 +556,11 @@ plot(const real & t,
 	    PlotIt::contour(ps,u,psp);
 	  if( itemsToPlot & 4 )
 	    PlotIt::streamLines(ps,u,psp);
+
+          if( parameters.dbase.get<bool >("plotStructures") )
+	  {
+	    parameters.dbase.get<MovingGrids >("movingGrids").plot(ps,solution,psp);
+	  }
 
 	  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
           plotObjects=false;
@@ -709,7 +718,8 @@ plot(const real & t,
 
 	  plotObjects=true; // replot objects
 	}
-	else if( answer=="erase" )
+
+ 	else if( answer=="erase" )
 	{
           ps.erase();
 	  itemsToPlot=0;

@@ -6,6 +6,9 @@
 
 ! loopsm: use mask(i1+im1,i2+im2,i3+im3)
 
+! Assign ghost point from a Neuman or Mixed BC
+! For variable coefficients we set ghost value from
+!   v(i1,i2,i3,0)*u + v(i1,i2,i3,1)*coeff*u = rhs 
 
 
 
@@ -85,7 +88,8 @@
 ! lineForForcing : if 0 evaluate the forcing gfData on the boundary, if 1 evaluate forcing
 !    on the first ghost line, etc.
 !
-! v : for generalizedDiveregence v holds ux(i1,i2,i3,n1) uy(i1,i2,i3,n2) uz(i1,i2,i3,n3)
+! v : = variable coefficients 
+!   : for generalizedDivergence v holds ux(i1,i2,i3,n1) uy(i1,i2,i3,n2) uz(i1,i2,i3,n3)
 !======================================================================
       implicit none
       integer nd, n1a,n1b,n2a,n2b,n3a,n3b,
@@ -348,6 +352,12 @@
 
 
 
+! buildFile(assignOptNeumann,neumann)
+! buildFile(assignOptGenDiv,generalizedDivergence)
+! buildFile(assignOptNormalDer,normalDerivative)
+! buildFile(assignOptNormalComponent,normalComponent)
+! buildFile(assignOptADotGradU,aDotGradU)
+! buildFile(assignOptTangentialComponent,tangentialComponent)
 
 
 
@@ -399,6 +409,7 @@
           if( axis.eq.0 )then
             n1a=dimension(0,0)
             n1b=indexRange(0,0)-1
+! loops1(u(i1,i2,i3,c)=u(i1+diff,i2,i3,c))
             do c=ca,cb
             do i1=n1a,n1b
             do i3=n3a,n3b
@@ -410,6 +421,7 @@
             end do
             n1a=indexRange(1,0)+1
             n1b=dimension(1,0)
+! loops1(u(i1,i2,i3,c)=u(i1-diff,i2,i3,c))
             do c=ca,cb
             do i1=n1a,n1b
             do i3=n3a,n3b
@@ -424,6 +436,7 @@
           else if( axis.eq.1 )then
             n2a=dimension(0,1)
             n2b=indexRange(0,1)-1
+! loops2(u(i1,i2,i3,c)=u(i1,i2+diff,i3,c))
             do c=ca,cb
             do i3=n3a,n3b
             do i2=n2a,n2b
@@ -435,6 +448,7 @@
             end do
             n2a=indexRange(1,1)+1
             n2b=dimension(1,1)
+! loops2(u(i1,i2,i3,c)=u(i1,i2-diff,i3,c))
             do c=ca,cb
             do i3=n3a,n3b
             do i2=n2a,n2b
@@ -449,6 +463,7 @@
           else
             n3a=dimension(0,2)
             n3b=indexRange(0,2)-1
+! loops2(u(i1,i2,i3,c)=u(i1,i2,i3+diff,c))
             do c=ca,cb
             do i3=n3a,n3b
             do i2=n2a,n2b
@@ -460,6 +475,7 @@
             end do
             n3a=indexRange(1,2)+1
             n3b=dimension(1,2)
+! loops2(u(i1,i2,i3,c)=u(i1,i2,i3-diff,c))
             do c=ca,cb
             do i3=n3a,n3b
             do i2=n2a,n2b

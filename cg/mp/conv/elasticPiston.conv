@@ -46,13 +46,14 @@
 # Set default parameters: 
 $pv = "g"; $tz="none"; $bcn = "d";  $ng=4; $diss=0.; $dissOrder=4; $tf=.5;  $tPlot=.1; $order=2; $nd=2; $scf=1.; 
 $cfl=.9; $ad=0.; $numberOfParallelGhost=2; $bcOption=0; $smVariation="g"; $pi=0; $piGhostOption=1; $adCns=0.; $angle=0;
-$problem=1; $en="max"; 
+$problem=1; $en="max"; $trigTzScaleFactor=1.; 
 $stressRelaxation=0; $relaxAlpha=0.1; $relaxDelta=0.1; $godunovType=0; 
 $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $cgsmCmd = "$CGBUILDPREFIX/mp/bin/cgmp";  # command for cgmp
 $cmdDir="$ENV{CG}/mp/cmd"; 
 $cmdFile="$cmdDir/elasticPiston.cmd"; 
 $amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
+$vg0=0.; $vg1=0.; $vg2=0.;  # for the initial grid velocity
 $cg = "square"; $bg="square"; $alwaysCompute=1; $ts="me"; $lambda=1; $filter=0; $filterOrder=6; $filterStages=2; 
 $showAllComponents=0;  # set to 1 to include all components in the table.
 $case="default"; 
@@ -66,7 +67,8 @@ GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng
             "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta,\
             "bcOption=i"=>\$bcOption,"smVariation=s"=>\$smVariation,"pi=i"=>\$pi,"adCns=f"=>\$adCns,\
             "angle=i"=>\$angle,"piGhostOption=i"=>\$piGhostOption,"godunovType=i"=>\$godunovType,"tz=s"=>\$tz,\
-            "problem=i"=>\$problem,"scf=f"=>\$scf,"case=s"=>\$case );
+            "problem=i"=>\$problem,"scf=f"=>\$scf,"case=s"=>\$case,"trigTzScaleFactor=f"=>\$trigTzScaleFactor,\
+            "vg0=f"=>\$vg0,"vg1=f"=>\$vg1,"vg2=f"=>\$vg2 );
 #
 $check="mp.check";
 #
@@ -98,10 +100,10 @@ if( $pv eq "g" )\
 }
 #
 if( $pv eq "g" ){ $clabel = "diss=$diss"; }
-$caption= "\\caption\{MP, $name, \$t=$tf\$, $clabel, \$\\lambda=$lambda\$, angle=$angle, cfl=$cfl, pi=$pi, piGhostOption=$piGhostOption, -godunovType=$godunovType, problem=$problem tz=$tz, scf=$scf, stressRelaxation=$stressRelaxation, $date}\\label\{table:$name}"; 
+$caption= "\\caption\{MP, $name, \$t=$tf\$, $clabel, \$\\lambda=$lambda\$, angle=$angle, cfl=$cfl, pi=$pi, piGhostOption=$piGhostOption, -godunovType=$godunovType, problem=$problem tz=$tz, scf=$scf, stressRelaxation=$stressRelaxation, trigTzScaleFactor=$trigTzScaleFactor, diss=$diss, vg0=$vg0  $date}\\label\{table:$name}"; 
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
-$options = "-method=cns -cfl=$cfl -tp=$tPlot -tf=$tf -tz=$tz -problem=$problem -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=$smVariation -pi=$pi -en=$en -adCns=$adCns -bcOption=$bcOption -angle=$angle -piGhostOption=$piGhostOption -godunovType=$godunovType -scf=$scf -stressRelaxation=$stressRelaxation";
+$options = "-method=cns -cfl=$cfl -tp=$tPlot -tf=$tf -tz=$tz -problem=$problem -cnsVariation=godunov -cnsGodunovOrder=2 -smVariation=$smVariation -pi=$pi -en=$en -adCns=$adCns -bcOption=$bcOption -angle=$angle -piGhostOption=$piGhostOption -godunovType=$godunovType -scf=$scf -stressRelaxation=$stressRelaxation -trigTzScaleFactor=$trigTzScaleFactor -diss=$diss -vg0=$vg0";
 # 
 if( $cg eq "pinp" ){\
 $grid1="pi4";  $gName1 = "planeInterfacenp4"; \

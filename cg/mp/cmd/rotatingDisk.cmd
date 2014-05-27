@@ -32,6 +32,10 @@ $nu=.1; $rhoSolid=1.; $prandtl=.72; $cnsVariation="godunov";  $godunovType=0; $k
 $cnsEOS="ideal"; $bcOption=0; $checkForWallHeating=0;
 $adCns=.0; # linear dissipation in CNS
 $cnsGammaStiff=1.4; $cnsPStiff=0.;   # for stiffened EOS -- by default make it look like an ideal gas
+$cnsSaveAugmented=1; # save all augmented variables to the show file.
+#
+$smoothInterface=0;  # smooth the interface (in DeformingBodyMotion.C )
+$numberOfInterfaceSmooths=2; 
 #
 $lambdaSolid=1.; $muSolid=1.; $rotationRate=1.;  
 $scf=1.; # solidScaleFactor : scale rho,mu and lambda by this amount 
@@ -50,7 +54,7 @@ $coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=10; $useNewInterfaceTransfe
 $vg0=0.; $vg1=0.; $vg2=0.;  # for the initial grid velocity
 $ag0=0.; $ag1=0.; $ag2=0.;  # initial grid acceleration
 #
-$stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=0.; $tangentialStressDissipation=.5;
+$stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=0.; $tangentialStressDissipation=.1;
 #
 $solver="best"; 
 $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
@@ -104,6 +108,8 @@ $moveCmds = \
   "    deforming body\n" . \
   "      user defined deforming body\n" . \
   "        interface deform\n" . \
+  "        smooth surface $smoothInterface \n" . \
+  "        number of surface smooths: $numberOfInterfaceSmooths \n" . \
   "        boundary parameterization\n  1  \n" . \
   "        debug\n $debug \n" . \
   "        initial velocity\n" . \
@@ -185,6 +191,7 @@ $initialConditionCommands="OBTZ:user defined known solution\n" .\
    "knownSolutionInitialCondition";
 #
 $smCheckErrors=1;
+$smPlotStress=1; # plot Cauchy stress
 if( $smVariation eq "hemp" ){ $tsSM= "improvedEuler"; }
 # $probeFileName = $probeFile . "Solid.dat";
 # $extraCmds = \

@@ -34,7 +34,7 @@ $order = 2; $go="halt"; $show=" "; $model="linear elasticity";
 $en="max";
 $omega=.5; $ra=.5; $rb=1.;
 $stressRelaxation=2; $relaxAlpha=.5; $relaxDelta=0.; $godunovType=0;
-$tangentialStressDissipation=.5;
+$tangentialStressDissipation=1.;
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"diss=f"=>\$diss,\

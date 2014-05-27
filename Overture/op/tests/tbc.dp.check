@@ -1,5 +1,6 @@
 <<square5/square/std//dirichlet>>                                                               : err = 0.0e+00
 <<square5/square/std//neumann>>                                                                 : err = 0.0e+00
+<<square5/square/std//mixed (var-coeff)>>                                                       : err = 0.0e+00
 <<square5/square/std//mixed1>>                                                                  : err = 0.0e+00
 <<square5/square/std//mixed2>>                                                                  : err = 0.0e+00
 <<square5/square/con//normalDotScalarGrad>>                                                     : err = 0.0e+00
@@ -24,6 +25,7 @@
 <<square5/square/std//finishBC: taylor4thOrderEven>>                                            : err = 0.0e+00
 <<cic/square/std//dirichlet>>                                                                   : err = 0.0e+00
 <<cic/square/std//neumann>>                                                                     : err = 0.0e+00
+<<cic/square/std//mixed (var-coeff)>>                                                           : err = 0.0e+00
 <<cic/square/std//mixed1>>                                                                      : err = 0.0e+00
 <<cic/square/std//mixed2>>                                                                      : err = 0.0e+00
 <<cic/square/con//normalDotScalarGrad>>                                                         : err = 0.0e+00
@@ -48,6 +50,7 @@
 <<cic/square/std//finishBC: taylor4thOrderEven>>                                                : err = 0.0e+00
 <<cic/Annulus/std//dirichlet>>                                                                  : err = 0.0e+00
 <<cic/Annulus/std//neumann>>                                                                    : err = 0.0e+00
+<<cic/Annulus/std//mixed (var-coeff)>>                                                          : err = 0.0e+00
 <<cic/Annulus/std//mixed1>>                                                                     : err = 0.0e+00
 <<cic/Annulus/std//mixed2>>                                                                     : err = 0.0e+00
 <<cic/Annulus/con//normalDotScalarGrad>>                                                        : err = 2.1e-02
@@ -72,6 +75,7 @@
 <<cic/Annulus/std//finishBC: taylor4thOrderEven>>                                               : err = 0.0e+00
 <<sib/box/std//dirichlet>>                                                                      : err = 0.0e+00
 <<sib/box/std//neumann>>                                                                        : err = 0.0e+00
+<<sib/box/std//mixed (var-coeff)>>                                                              : err = 0.0e+00
 <<sib/box/std//mixed1>>                                                                         : err = 0.0e+00
 <<sib/box/std//mixed2>>                                                                         : err = 0.0e+00
 <<sib/box/con//normalDotScalarGrad>>                                                            : err = 0.0e+00
@@ -99,6 +103,7 @@
 <<sib/box/std//finishBC: taylor4thOrderEven>>                                                   : err = 0.0e+00
 <<sib/north-pole/std//dirichlet>>                                                               : err = 0.0e+00
 <<sib/north-pole/std//neumann>>                                                                 : err = 0.0e+00
+<<sib/north-pole/std//mixed (var-coeff)>>                                                       : err = 0.0e+00
 <<sib/north-pole/std//mixed1>>                                                                  : err = 0.0e+00
 <<sib/north-pole/std//mixed2>>                                                                  : err = 0.0e+00
 <<sib/north-pole/con//normalDotScalarGrad>>                                                     : err = 7.6e-02
@@ -126,6 +131,7 @@
 <<sib/north-pole/std//finishBC: taylor4thOrderEven>>                                            : err = 1.7e-02
 <<sib/south-pole/std//dirichlet>>                                                               : err = 0.0e+00
 <<sib/south-pole/std//neumann>>                                                                 : err = 0.0e+00
+<<sib/south-pole/std//mixed (var-coeff)>>                                                       : err = 0.0e+00
 <<sib/south-pole/std//mixed1>>                                                                  : err = 0.0e+00
 <<sib/south-pole/std//mixed2>>                                                                  : err = 0.0e+00
 <<sib/south-pole/con//normalDotScalarGrad>>                                                     : err = 7.6e-02

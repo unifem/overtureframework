@@ -6,10 +6,16 @@ assignBoundaryConditions.bC:
   - adjustBoundsForPML
   - assignBoundaryConditions
 
+advanceSOSUP.C
+   advanceSOSUP(  int numberOfStepsTaken, int current, real t, real dt )
+
 advanceStructured.C:
  - advanceNFDTD(  int numberOfStepsTaken, int current, real t, real dt )
  - computeDissipation( int current, real t, real dt )
  - addFilter( int current, real t, real dt )
+
+assignInterfaceBoundaryConditions.bC
+ - assignInterfaceBoundaryConditions( int current, real t, real dt )
 
 Maxwell.C:
  - Maxwell()

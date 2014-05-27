@@ -134,6 +134,15 @@ class BeamModel {
   //
   const RealArray& position() const;
 
+  // Return the (x,y) coordinates of the centerline
+  //
+  void getCenterLine( RealArray & xc ) const;
+
+  // Return the current force of the structure.
+  //
+  const RealArray& force() const;
+
+
   // Return the current velocity of the structure.
   //
   const RealArray& velocity() const;
@@ -229,6 +238,13 @@ class BeamModel {
   // dec: angle
   //
   void setDeclination(real dec);
+
+  /// Here is a database to hold parameters (new way)
+  mutable DataBase dbase; 
+
+  static real exactSolutionScaleFactorFSI;  // scale factor for the exact FSI solution 
+  static int debug;
+
 
  private:
 

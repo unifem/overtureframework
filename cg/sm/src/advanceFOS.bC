@@ -19,7 +19,7 @@ void solidMechanicsGodunov(
 	 const int&mask, const real&rx, const real&xy, const real&det, const real&u, real&up, 
          const real&f1, const real&f2, 
          const int & ndMatProp, const int& matIndex, const real& matValpc, const real& matVal,
-         const real &ad,const real &ad4,
+         const real &ad2, const real &ad2dt, const real &ad4, const real &ad4dt,
          const int&ipar, real&rpar, 
          const int&niwk, const int&iwk, const int&nrwk, const real&rwk, const int&ierr );
 
@@ -109,6 +109,8 @@ advanceFOS(  int current, real t, real dt,
   bool & computeTimeSteppingEigenValues = parameters.dbase.get<bool>("computeTimeSteppingEigenValues");
   real & realPartOfTimeSteppingEigenValue = parameters.dbase.get<real>("realPartOfTimeSteppingEigenValue");
   real & imaginaryPartOfTimeSteppingEigenValue = parameters.dbase.get<real>("imaginaryPartOfTimeSteppingEigenValue");
+  // Worst case eigenvalue of the dissipation that has a coefficient proportional to 1/dt : 
+  real & dtInverseDissipationEigenvalue = parameters.dbase.get<real>("dtInverseDissipationEigenvalue");
 
   SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
 
@@ -130,16 +132,10 @@ advanceFOS(  int current, real t, real dt,
   int & debug = parameters.dbase.get<int >("debug");
   bool centerNeeded=forcingOption==twilightZoneForcing;
 
-  RealArray & artificialDiffusion = parameters.dbase.get<RealArray >("artificialDiffusion");
+  RealArray & artificialDiffusion2 = parameters.dbase.get<RealArray >("artificialDiffusion");
   RealArray & artificialDiffusion4 = parameters.dbase.get<RealArray >("artificialDiffusion4");
-  if( artificialDiffusion.getLength(0)==0 )  // *** fix me ***
-  {
-    artificialDiffusion.redim(numberOfComponents);
-    artificialDiffusion=0.;
-    artificialDiffusion4.redim(numberOfComponents);
-    artificialDiffusion4=0.;
-  }
-  
+  RealArray & ad2dt = parameters.dbase.get<RealArray >("artificialDiffusion2dt");
+  RealArray & ad4dt = parameters.dbase.get<RealArray >("artificialDiffusion4dt");
 
   #ifdef USE_PPP
    // *wdh* 091123 == this should no longer be needed using new AssignInterpNeighbours ==
@@ -165,6 +161,8 @@ advanceFOS(  int current, real t, real dt,
 
   realPartOfTimeSteppingEigenValue=0.;
   imaginaryPartOfTimeSteppingEigenValue=0.;
+  dtInverseDissipationEigenvalue=0.;
+  
   sizeOfLocalArraysForAdvance=0.;
   int grid;
   for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
@@ -422,9 +420,11 @@ advanceFOS(  int current, real t, real dt,
 	rpar[12] = parameters.dbase.get<real>( "relaxAlpha" ); // jwb 11 Aug 2010 ... relaxation parameters
 	rpar[13] = parameters.dbase.get<real>( "relaxDelta" ); // (alpha+delta/dt)
 	rpar[14] = parameters.dbase.get<real>("tangentialStressDissipation");
+	rpar[15] = parameters.dbase.get<real>("tangentialStressDissipation1");
 	
 	// rpar[20]=reLambda;   // return this
 	// rpar[21]=imLambda;   // return this 
+	// rpar[22]=dtInverseDissipationEigenvalue;   // return this 
 
 	const int nd1a=uLocal.getBase(0), nd1b=uLocal.getBound(0);
 	const int nd2a=uLocal.getBase(1), nd2b=uLocal.getBound(1);
@@ -452,14 +452,18 @@ advanceFOS(  int current, real t, real dt,
 			      uLocal.getBase(2),uLocal.getBound(2),
 			      *maskptr,*rxptr,*xyptr,*jacptr,*uptr,*unptr, *f1ptr,*f2ptr, 
                               ndMatProp,*matIndexPtr,*matValPtr,*matValPtr,
-                              artificialDiffusion(0),artificialDiffusion4(0),
+                              artificialDiffusion2(0),ad2dt(0),
+                              artificialDiffusion4(0),ad4dt(0),
 			      ipar[0],rpar[0], niwk,iwk[0], nrwk,rwk[0], ierr );
 	
         real reLambda=rpar[20];
 	real imLambda=rpar[21];
 	realPartOfTimeSteppingEigenValue     =max(realPartOfTimeSteppingEigenValue     ,reLambda);
 	imaginaryPartOfTimeSteppingEigenValue=max(imaginaryPartOfTimeSteppingEigenValue,imLambda);
-	
+
+	dtInverseDissipationEigenvalue=max(dtInverseDissipationEigenvalue,rpar[22]);
+	// printF("advanceFOS: dtInverseDissipationEigenvalue=%e\n",dtInverseDissipationEigenvalue);	
+
 	// base class DomainSolver uses: 
 	realPartOfEigenvalue[grid]=reLambda;
 	imaginaryPartOfEigenvalue[grid]=imLambda;

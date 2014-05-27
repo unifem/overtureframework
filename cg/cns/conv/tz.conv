@@ -34,7 +34,8 @@ $cmdFile="$ENV{CG}/cns/cmd/tz.cmd";
 # Set default parameters: 
 $cnsVariation = "godunov"; $tz="trig"; $bcn = "d"; $en="max"; $ng=4; $tf=.5; $bcOption=4; $slopeLimiter=1; $dtMax=1.e3; 
 $tPlot=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; $ad=0.; $numberOfParallelGhost=2; $cgrid=0; 
-$bc1="slipWall"; $bc2="slipWall"; $bc3="slipWall"; $bc4="slipWall";  $bc5="slipWall";  $bc6=""; $reduceInterpWidth=2; 
+$bc1="d"; $bc2="d"; $bc3="d"; $bc4="d";  $bc5="d";  $bc6=""; $reduceInterpWidth=2; 
+$move="off";  $vShiftx=1.; 
 #
 $amr=0; $tol=.01; $x0=.5; $y0=.5; $z0=0.; $ratio=2;  $nrl=2; $nbz=2;
 $cg = "expand"; $alwaysCompute=1; 
@@ -48,7 +49,8 @@ GetOptions( "pv=s"=>\$pv,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng
             "cgsmCmd=s"=>\$cgsmCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"bcOption=i"=>\$bcOption,\
             "case=s"=>\$case,"slopeLimiter=i"=>\$slopeLimiter,"dtMax=f"=>\$dtMax,"cgrid=i"=>\$cgrid,\
             "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
-            "reduceInterpWidth=i"=> \$reduceInterpWidth,"cnsVariation=s"=>\$cnsVariation,"tz=s"=>\$tz );
+            "reduceInterpWidth=i"=> \$reduceInterpWidth,"cnsVariation=s"=>\$cnsVariation,"tz=s"=>\$tz,\
+            "move=s"=>\$move,"vShiftx=f"=>\$vShiftx  );
 #
 if( $cg eq "nonSquare" ){ $case = "tzNonSquare"; }
 if( $cg eq "sicFixed" ){ $case = "tzsic"; }
@@ -70,17 +72,17 @@ else\
   $title ="grid  \& N \&  \$rho\$  \& \$u\$  \& \$v\$ \& \$w\$   \& \$T\$  ";\
   @componentName = ( "r", "u", "v" , "w", "T" );\
 }
-$caption= "\\caption\{Cgcns, $name, \$t=$tf\$, $cnsVariation, bcOption=$bcOption, slopeLimiter=$slopeLimiter, ad=$ad, cfl=$cfl $date}\\label\{table:$name}"; 
+$caption= "\\caption\{Cgcns, $name, \$t=$tf\$, $cnsVariation, bcOption=$bcOption, slopeLimiter=$slopeLimiter, ad=$ad, move=$move, vShiftx=$vShiftx, cfl=$cfl $date}\\label\{table:$name}"; 
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
-$options = " -bcOption=$bcOption -cnsVariation=$cnsVariation -tp=$tPlot -tf=$tf -tz=$tz -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -en=$en -slopeLimiter=$slopeLimiter -reduceInterpWidth=$reduceInterpWidth -ad=$ad -cgrid=$cgrid -go=go";
+$options = " -bcOption=$bcOption -cnsVariation=$cnsVariation -tp=$tPlot -tf=$tf -tz=$tz -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -en=$en -slopeLimiter=$slopeLimiter -reduceInterpWidth=$reduceInterpWidth -ad=$ad -cgrid=$cgrid -move=$move -vShiftx=$vShiftx -go=go";
 # 
 if( $cg eq "nonSquare" ){\
-$grid1="nonSquare16";  $gName1 = "nonSquare16.order2"; \
-$grid2="nonSquare32";  $gName2 = "nonSquare32.order2"; \
-$grid3="nonSquare64";  $gName3 = "nonSquare64.order2"; \
-$grid4="nonSquare128"; $gName4 = "nonSquare128.order2"; \
-$grid5="nonSquare256"; $gName5 = "nonSquare256.order2"; }
+$grid1="nonSquare16.order2";  $gName1 = "nonSquare16.order2"; \
+$grid2="nonSquare32.order2";  $gName2 = "nonSquare32.order2"; \
+$grid3="nonSquare64.order2";  $gName3 = "nonSquare64.order2"; \
+$grid4="nonSquare128.order2"; $gName4 = "nonSquare128.order2"; \
+$grid5="nonSquare256.order2"; $gName5 = "nonSquare256.order2"; }
 if( $cg eq "sicFixed" ){\
 $grid1="sicFixed2";  $gName1 = "sicFixede2.order2"; \
 $grid2="sicFixed4";  $gName2 = "sicFixede4.order2"; \

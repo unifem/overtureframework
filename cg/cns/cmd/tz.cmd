@@ -4,7 +4,7 @@
 # Usage:
 #    cgcns [-noplot] tz.cmd -g=<grid> -tf=<final time> -tp=<tPlot> -tz=[poly|trig] -degreex=<> -degreet=<> ...
 #           -cnsVariation=<> -show=<show file> -axisym=[0|1] -bc[1234]=[noSlip|slip|d|outflow|inflow|axisym] ...
-#           -go=[go|halt|og]
+#           -move=[off|shift|oscillate|rotate]  -go=[go|halt|og]
 #    -cnsVariation : jameson, godunov, nonconservative
 #    -axisym : 1=axisymmetric flow 
 #    -bc1=[noSlip|slip|d|outflow|inflow|axisym] : set boundaries with bc=1 to a given BC.
@@ -35,6 +35,9 @@
 #    cgcns tz.cmd -g=axiSquare2a.order2 -tf=1. -tp=.001 -axisym=1 
 #    cgcns tz.cmd -g=axiSquare8a.order2 -tf=1. -tp=.001 -axisym=1 
 #
+# -- Moving:
+#    cgcns tz.cmd -g=nonSquare32.order2 -bcOption=4 -tp=.1 -tf=.5 -tz=trig -bc1=slip -slopeLimiter=0 -reduceInterpWidth=2 -ad=0. -move=shift -go=halt
+#    cgcns tz.cmd -g=nonPlug8 -bcOption=4 -tp=.1 -tf=.5 -tz=trig -bc1=slip -slopeLimiter=0 -reduceInterpWidth=2 -ad=0. -move=shift -gridToMove=plug -go=halt
 # 
 # --- set default values for parameters ---
 $grid="square20.hdf"; $show = " "; $backGround="square"; $noplot=""; $cnsVariation="godunov"; 
@@ -43,8 +46,10 @@ $axisym=0; $bc1=""; $bc2=""; $bc3=""; $bc4="";  $bc5="";  $bc6="";
 $tz = "poly"; $degreex=2; $degreet=2; $fx=1.; $fy=1.; $fz=1.; $ft=1.;
 $ratio=2;  $nrl=1;  # refinement ratio and number of refinement levels
 $go="halt"; $reduceInterpWidth=2; $slopeLimiter=1; 
+$move="off"; $gridToMove="square"; $fullGridGenFreq=10; $vShiftx=1.; 
 $bcOption=0; # 4 = 2nd order BC's
 $orderOfExtrapForOutflow=2; $orderOfExtrapForGhost2=2; $orderOfExtrapForInterpNeighbours=2;
+$orderOfExtrapForOutflow=3; $orderOfExtrapForGhost2=3; $orderOfExtrapForInterpNeighbours=3;
 # 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"l=i"=> \$nrl,"r=i"=> \$ratio, "tf=f"=>\$tFinal,"debug=i"=> \$debug, \
@@ -52,7 +57,8 @@ GetOptions( "g=s"=>\$grid,"l=i"=> \$nrl,"r=i"=> \$ratio, "tf=f"=>\$tFinal,"debug
             "degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"fx=f"=>\$fx,"fy=f"=>\$fy,"fz=f"=>\$fz,"ft=f"=>\$ft,\
             "cnsVariation=s"=>\$cnsVariation,"go=s"=>\$go,"axisym=i"=>\$axisym,"bcOption=i"=>\$bcOption,\
             "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
-            "reduceInterpWidth=i"=> \$reduceInterpWidth,"slopeLimiter=i"=>\$slopeLimiter,"ad=f"=>\$ad );
+            "reduceInterpWidth=i"=> \$reduceInterpWidth,"slopeLimiter=i"=>\$slopeLimiter,"ad=f"=>\$ad,\
+            "move=s"=>\$move,"vShiftx=f"=>\$vShiftx,"gridToMove=s"=>\$gridToMove );
 # -------------------------------------------------------------------------------------------------
 if( $tz eq "poly" ){ $tz="turn on polynomial"; }else{ $tz="turn on trigonometric"; }
 if( $go eq "halt" ){ $go = "break"; }
@@ -163,6 +169,21 @@ $grid
 #
   if( $reduceInterpWidth eq 2 ){ $cmds = "reduce interpolation width\n 2"; }else{ $cmds = "#"; }
   $cmds
+#
+#  --------------------------- MOVING ----------------------------
+#
+if( $move eq "off" ){ $cmd="turn off moving grids"; }else{ $cmd="turn on moving grids"; }
+ $cmd
+* ---
+ frequency for full grid gen update $fullGridGenFreq
+#
+# (1,0,0) = tangent to motion
+if( $move eq "shift" || $move eq "off" ){ $moveCmds="translate\n 1  0. 0.\n $vShiftx"; }\
+elsif( $move eq "oscillate" ){ $moveCmds ="oscillate\n 1. .5 0\n  1.\n .25\n 0."; }\
+else{ $moveCmds = "rotate\n 0. 0. 0.\n $freq $ramp"; }
+if( $move ne "off" ){ $cmds = "specify grids to move\n $moveCmds\n done\n done"; }else{ $cmds="#"; }
+$cmds 
+#  ------------------------ END MOVING ---------------------------
 #
   boundary conditions
     all=dirichletBoundaryCondition

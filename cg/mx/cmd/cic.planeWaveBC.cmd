@@ -22,6 +22,8 @@
 #    -- new 8th order dissipation ok: (diss=0 goes unstable about t=10)
 #   cgmx cic.planeWaveBC -g=cice4.order4.hdf -dissOrder=8 -tf=100 -tp=1
 #   cgmx cic.planeWaveBC -g=cice8.order4.hdf -dissOrder=8 -tf=100 -tp=1
+#  -- split-annulus:
+#   cgmx cic.planeWaveBC -g=cicSplite2.order4.hdf
 # -- yee:
 #   cgmx cic.planeWaveBC -g=bigSquare2.order2.hdf -errorNorm=2 -method=Yee
 #   cgmx cic.planeWaveBC -g=bigSquare4.order2.hdf -errorNorm=2 -method=Yee
@@ -106,6 +108,7 @@ pml width,strength,power $pmlWidth $pmlStrength $pmlPower
 #bc: square(0,0)=planeWaveBoundaryCondition
 #bc: square(1,0)=planeWaveBoundaryCondition
 if( $method eq "NFDTD" || $method eq "sosup" ){ $cmd="bc: Annulus=perfectElectricalConductor"; }else{ $cmd="#"; }
+if( $grid =~ /cicSplit/ ){ $cmd="bc: annulus1=perfectElectricalConductor\n bc: annulus2=perfectElectricalConductor"; }
 $cmd
 tFinal $tFinal
 tPlot  $tPlot

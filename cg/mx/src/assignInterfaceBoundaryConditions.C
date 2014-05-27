@@ -82,6 +82,13 @@ initializeInterfaces()
     const int numberOfDimensions = cg.numberOfDimensions();
     const int numberOfComponentGrids = cg.numberOfComponentGrids();
 
+    int bcOrderOfAccuracy=orderOfAccuracyInSpace;
+    if( method==sosup && orderOfAccuracyInSpace==6 )
+    {
+    // NOTE: for now apply 4th order BC's for sosup order 6
+        bcOrderOfAccuracy=4;
+    }
+
     Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
     Index Jv[3], &J1=Jv[0], &J2=Jv[1], &J3=Jv[2];
 
@@ -233,7 +240,7 @@ initializeInterfaces()
 
     // allocate work-space
         int nrwk=0, niwk=0;
-        if( orderOfAccuracyInSpace==2 )
+        if( bcOrderOfAccuracy==2 )
         {
             if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
             {
@@ -241,7 +248,7 @@ initializeInterfaces()
       	niwk=  4*ndf;            // ipvt
             }
         }
-        else if( orderOfAccuracyInSpace==4 )
+        else if( bcOrderOfAccuracy==4 )
         {
                                         
             nrwk= (8*8*2*ndf +       // a8, matrix at each point is (8,8), we need 2 copies
@@ -343,6 +350,15 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
 
     bool interpolateThisDomain=false;  // set to true if we need to interpolate again after setting the interface values
     
+    bool reduceOrderOfAccuracyForSosup=true;
+
+    int bcOrderOfAccuracy=orderOfAccuracyInSpace;
+    if( reduceOrderOfAccuracyForSosup && method==sosup && orderOfAccuracyInSpace==6 )
+    {
+    // NOTE: for now apply 4th order BC's for sosup order 6
+        bcOrderOfAccuracy=4;
+    }
+
   //  ----------------------------
   //  --- loop over interfaces ---
   //  ----------------------------
@@ -467,10 +483,10 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
     //   Overture::abort("error");
         }
     // stencil half width: (we copy points (-halfWidth,+halfWidth) 
-        const int halfWidth= orderOfAccuracyInSpace/2;
+        const int halfWidth= bcOrderOfAccuracy/2;
     // The total maximum extrapolation width is extrapWidth+1, e.g. extrapWidth=2 -> 1 3 3 1 extrapolation 
     // Here is the desired width for extrapolation: (we may not have enough room for this) (add 1 to get the order of extrapolation)
-        const int extrapWidth=orderOfAccuracyInSpace;   
+        const int extrapWidth=bcOrderOfAccuracy;   
         int extrapolationWidth1=extrapWidth;  // actual extrapolation width allowed for grid1 (changed below)
         int extrapolationWidth2=extrapWidth;  // actual extrapolation width allowed for grid2 (changed below)
         int width[2];
@@ -787,7 +803,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
 //     };
               		  
 
-        if( orderOfAccuracyInSpace<6 )
+        if( bcOrderOfAccuracy<6 )
         { 
       // ------------------------------------
       // ----- order of accuracy <= 4 -------
@@ -807,7 +823,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         side2, dir2, grid2,         //  keep side2,dir2 since we don't reverse the points.
                             n1a,n1b,n2a,n2b,n3a,n3b,  // use grid1 dimensions for grid2 when we solve on grid1
                         gridType,            
-                        orderOfAccuracyInSpace,    
+                        bcOrderOfAccuracy,
                         orderOfExtrapolation,
                         useForcing,          
                         ex,                  
@@ -859,7 +875,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 const int ndf = max(interface.ndf1,interface.ndf2); 
         // assign pointers into the work spaces
                 int pa2=0,pa4=0,pa8=0, pipvt2=0,pipvt4=0,pipvt8=0;
-                if( orderOfAccuracyInSpace==2 )
+                if( bcOrderOfAccuracy==2 )
                 {
                     if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
                     {
@@ -871,7 +887,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         pipvt8=0;
                     }
                 }
-                else if( orderOfAccuracyInSpace==4 )
+                else if( bcOrderOfAccuracy==4 )
                 {
                     pa2=0; // not used
                     pa4=0;
@@ -916,6 +932,124 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
                 }
+        	  if( method==sosup )
+        	  { // for sosup we assign E.t
+                        int ipar[]={ //
+                            side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
+                                n1a,n1b,n2a,n2b,n3a,n3b,
+                            side2, dir2, grid2,         //  keep side2,dir2 since we don't reverse the points.
+                                n1a,n1b,n2a,n2b,n3a,n3b,  // use grid1 dimensions for grid2 when we solve on grid1
+                            gridType,            
+                            bcOrderOfAccuracy,
+                            orderOfExtrapolation,
+                            useForcing,          
+                            ext,                  
+                            eyt,                  
+                            ezt,                  
+                            hxt ,                 
+                            hyt,                  
+                            hzt,                  
+                            (int)solveForElectricField,          
+                            (int)solveForMagneticField,          
+                            useWhereMask,       
+                            debug,
+                            numberOfIterationsForInterfaceBC,
+                            materialInterfaceOption,
+                            (int)interface.initialized,
+                            myid,
+                            parallel,
+                            (int)forcingOption,
+                            interfaceEquationsOption
+                        };
+                    real rpar[]={ //
+                        dx1[0],
+                        dx1[1],
+                        dx1[2],
+                        mg1.gridSpacing(0),
+                        mg1.gridSpacing(1),
+                        mg1.gridSpacing(2),
+                        dx2[0],
+                        dx2[1],
+                        dx2[2],
+                        mg2.gridSpacing(0),
+                        mg2.gridSpacing(1),
+                        mg2.gridSpacing(2),
+                        t,    
+                        (real &)tz,  // twilight zone pointer
+                        dt,    
+                        epsGrid(grid1),
+                        muGrid(grid1),   
+                        cGrid(grid1),    
+                        epsGrid(grid2),  
+                        muGrid(grid2),   
+                        cGrid(grid2),
+                        omegaForInterfaceIteration
+                    };
+          // work space: 
+                    real *rwk=interface.rwk;
+                    int *iwk=interface.iwk;
+                    assert( rwk!=NULL && iwk!=NULL );
+                    const int ndf = max(interface.ndf1,interface.ndf2); 
+          // assign pointers into the work spaces
+                    int pa2=0,pa4=0,pa8=0, pipvt2=0,pipvt4=0,pipvt8=0;
+                    if( bcOrderOfAccuracy==2 )
+                    {
+                        if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
+                        {
+                            pa2=0; 
+                            pa4=pa2 + 2*2*2*ndf;
+                            pa8=0;  // not used
+                            pipvt2=0;
+                            pipvt4=pipvt2 + 2*ndf; 
+                            pipvt8=0;
+                        }
+                    }
+                    else if( bcOrderOfAccuracy==4 )
+                    {
+                        pa2=0; // not used
+                        pa4=0;
+                        pa8=pa4+4*4*2*ndf;
+                        pipvt2=0;
+                        pipvt4=0;
+                        pipvt8=pipvt4+4*ndf;
+                    }
+                    if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
+                    {
+                        interfaceMaxwell( mg1.numberOfDimensions(), 
+                                      		      u1Local.getBase(0),u1Local.getBound(0),
+                                      		      u1Local.getBase(1),u1Local.getBound(1),
+                                      		      u1Local.getBase(2),u1Local.getBound(2),
+                                      		      mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                      		      u2bLocal.getBase(0),u2bLocal.getBound(0),
+                                      		      u2bLocal.getBase(1),u2bLocal.getBound(1),
+                                      		      u2bLocal.getBase(2),u2bLocal.getBound(2),
+          		      // note: use grid1 mesh data here ASSUMES GRIDS MATCH *FIX ME*
+          		      // mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                // fixed version: but note bc1Local 
+                                                                mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, bc1Local(0,0),
+                                    		    ipar[0], rpar[0], 
+                                    		    rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
+                                    		    ierr );
+                    }
+                    else
+                    {
+                        interface3dMaxwell( mg1.numberOfDimensions(), 
+                                        		        u1Local.getBase(0),u1Local.getBound(0),
+                                        		        u1Local.getBase(1),u1Local.getBound(1),
+                                        		        u1Local.getBase(2),u1Local.getBound(2),
+                                        		        mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                        		        u2bLocal.getBase(0),u2bLocal.getBound(0),
+                                        		        u2bLocal.getBase(1),u2bLocal.getBound(1),
+                                        		        u2bLocal.getBase(2),u2bLocal.getBound(2),
+          		        // note: use grid1 mesh data here ASSUMES GRIDS MATCH *FIX ME*
+          		        // mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *mask1p,*prsxy1, *pxy1, bc1Local(0,0),
+                                  // fixed version: but note bc1Local 
+                                        		        mg1.gridIndexRange(0,0), *u2bLocal.getDataPointer(), *pmask2b,*prsxy2b,*pxy2b, bc1Local(0,0),
+                                      		      ipar[0], rpar[0], 
+                                      		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
+                                      		      ierr );
+                    }
+        	  }
         	  if( debug & 16 )
                         ::display(u1Local,sPrintF("u1Local after assignOptInterface t=%8.2e",t),pDebugFile,"%5.2f ");
       	}
@@ -928,7 +1062,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         side2, dir2, grid2,         //  keep side2,dir2 since we don't reverse the points.
                             m1a,m1b,m2a,m2b,m3a,m3b,
                         gridType,            
-                        orderOfAccuracyInSpace,    
+                        bcOrderOfAccuracy,
                         orderOfExtrapolation,
                         useForcing,          
                         ex,                  
@@ -980,7 +1114,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 const int ndf = max(interface.ndf1,interface.ndf2); 
         // assign pointers into the work spaces
                 int pa2=0,pa4=0,pa8=0, pipvt2=0,pipvt4=0,pipvt8=0;
-                if( orderOfAccuracyInSpace==2 )
+                if( bcOrderOfAccuracy==2 )
                 {
                     if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
                     {
@@ -992,7 +1126,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         pipvt8=0;
                     }
                 }
-                else if( orderOfAccuracyInSpace==4 )
+                else if( bcOrderOfAccuracy==4 )
                 {
                     pa2=0; // not used
                     pa4=0;
@@ -1037,6 +1171,124 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
                 }
+        	  if( method==sosup )
+        	  { // for sosup we assign E.t
+                        int ipar[]={ //
+                            side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
+                                m1a,m1b,m2a,m2b,m3a,m3b,  // use grid2 dimensions for grid1 when we solve on grid2
+                            side2, dir2, grid2,         //  keep side2,dir2 since we don't reverse the points.
+                                m1a,m1b,m2a,m2b,m3a,m3b,
+                            gridType,            
+                            bcOrderOfAccuracy,
+                            orderOfExtrapolation,
+                            useForcing,          
+                            ext,                  
+                            eyt,                  
+                            ezt,                  
+                            hxt ,                 
+                            hyt,                  
+                            hzt,                  
+                            (int)solveForElectricField,          
+                            (int)solveForMagneticField,          
+                            useWhereMask,       
+                            debug,
+                            numberOfIterationsForInterfaceBC,
+                            materialInterfaceOption,
+                            (int)interface.initialized,
+                            myid,
+                            parallel,
+                            (int)forcingOption,
+                            interfaceEquationsOption
+                        };
+                    real rpar[]={ //
+                        dx1[0],
+                        dx1[1],
+                        dx1[2],
+                        mg1.gridSpacing(0),
+                        mg1.gridSpacing(1),
+                        mg1.gridSpacing(2),
+                        dx2[0],
+                        dx2[1],
+                        dx2[2],
+                        mg2.gridSpacing(0),
+                        mg2.gridSpacing(1),
+                        mg2.gridSpacing(2),
+                        t,    
+                        (real &)tz,  // twilight zone pointer
+                        dt,    
+                        epsGrid(grid1),
+                        muGrid(grid1),   
+                        cGrid(grid1),    
+                        epsGrid(grid2),  
+                        muGrid(grid2),   
+                        cGrid(grid2),
+                        omegaForInterfaceIteration
+                    };
+          // work space: 
+                    real *rwk=interface.rwk;
+                    int *iwk=interface.iwk;
+                    assert( rwk!=NULL && iwk!=NULL );
+                    const int ndf = max(interface.ndf1,interface.ndf2); 
+          // assign pointers into the work spaces
+                    int pa2=0,pa4=0,pa8=0, pipvt2=0,pipvt4=0,pipvt8=0;
+                    if( bcOrderOfAccuracy==2 )
+                    {
+                        if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
+                        {
+                            pa2=0; 
+                            pa4=pa2 + 2*2*2*ndf;
+                            pa8=0;  // not used
+                            pipvt2=0;
+                            pipvt4=pipvt2 + 2*ndf; 
+                            pipvt8=0;
+                        }
+                    }
+                    else if( bcOrderOfAccuracy==4 )
+                    {
+                        pa2=0; // not used
+                        pa4=0;
+                        pa8=pa4+4*4*2*ndf;
+                        pipvt2=0;
+                        pipvt4=0;
+                        pipvt8=pipvt4+4*ndf;
+                    }
+                    if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
+                    {
+                        interfaceMaxwell( mg1.numberOfDimensions(), 
+                                      		      u1bLocal.getBase(0),u1bLocal.getBound(0),
+                                      		      u1bLocal.getBase(1),u1bLocal.getBound(1),
+                                      		      u1bLocal.getBase(2),u1bLocal.getBound(2),
+          		      // note: use grid2 mesh data here  ASSUMES GRIDS MATCH *FIX ME*
+                                // mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *mask2p,*prsxy2, *pxy2, bc2Local(0,0),
+                                // fixed version: but note bc2Local 
+                                                                mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b, *pxy1b, bc2Local(0,0),
+                                      		      u2Local.getBase(0),u2Local.getBound(0),
+                                      		      u2Local.getBase(1),u2Local.getBound(1),
+                                      		      u2Local.getBase(2),u2Local.getBound(2),
+                                      		      mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                    		    ipar[0], rpar[0], 
+                                    		    rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
+                                    		    ierr );
+                    }
+                    else
+                    {
+                        interface3dMaxwell( mg1.numberOfDimensions(), 
+                                        		        u1bLocal.getBase(0),u1bLocal.getBound(0),
+                                        		        u1bLocal.getBase(1),u1bLocal.getBound(1),
+                                        		        u1bLocal.getBase(2),u1bLocal.getBound(2),
+          		        // note: use grid2 mesh data here  ASSUMES GRIDS MATCH *FIX ME*
+                                  // mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *mask2p,*prsxy2, *pxy2, bc2Local(0,0),
+                                  // fixed version: but note bc2Local 
+                                        		        mg2.gridIndexRange(0,0), *u1bLocal.getDataPointer(), *pmask1b,*prsxy1b,*pxy1b, bc2Local(0,0),
+                                        		        u2Local.getBase(0),u2Local.getBound(0),
+                                        		        u2Local.getBase(1),u2Local.getBound(1),
+                                        		        u2Local.getBase(2),u2Local.getBound(2),
+                                        		        mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                      		      ipar[0], rpar[0], 
+                                      		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
+                                      		      ierr );
+                    }
+        	  }
         	  if( debug & 16 )
                         ::display(u1Local,sPrintF("u2Local after assignOptInterface t=%8.2e",t),pDebugFile,"%5.2f ");
       	}
@@ -1048,7 +1300,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         side2, dir2, grid2,         //  keep side2,dir2 since we don't reverse the points.
                             m1a,m1b,m2a,m2b,m3a,m3b,
                         gridType,            
-                        orderOfAccuracyInSpace,    
+                        bcOrderOfAccuracy,
                         orderOfExtrapolation,
                         useForcing,          
                         ex,                  
@@ -1100,7 +1352,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                 const int ndf = max(interface.ndf1,interface.ndf2); 
         // assign pointers into the work spaces
                 int pa2=0,pa4=0,pa8=0, pipvt2=0,pipvt4=0,pipvt8=0;
-                if( orderOfAccuracyInSpace==2 )
+                if( bcOrderOfAccuracy==2 )
                 {
                     if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
                     {
@@ -1112,7 +1364,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                         pipvt8=0;
                     }
                 }
-                else if( orderOfAccuracyInSpace==4 )
+                else if( bcOrderOfAccuracy==4 )
                 {
                     pa2=0; // not used
                     pa4=0;
@@ -1151,6 +1403,120 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                                   		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
                                   		      ierr );
                 }
+                if( method==sosup )
+      	{ // for sosup we assign E.t
+          // printF("Assign interface values for sosup: E.t at t=%9.3e\n",t);
+                        int ipar[]={ //
+                            side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
+                                n1a,n1b,n2a,n2b,n3a,n3b,
+                            side2, dir2, grid2,         //  keep side2,dir2 since we don't reverse the points.
+                                m1a,m1b,m2a,m2b,m3a,m3b,
+                            gridType,            
+                            bcOrderOfAccuracy,
+                            orderOfExtrapolation,
+                            useForcing,          
+                            ext,                  
+                            eyt,                  
+                            ezt,                  
+                            hxt ,                 
+                            hyt,                  
+                            hzt,                  
+                            (int)solveForElectricField,          
+                            (int)solveForMagneticField,          
+                            useWhereMask,       
+                            debug,
+                            numberOfIterationsForInterfaceBC,
+                            materialInterfaceOption,
+                            (int)interface.initialized,
+                            myid,
+                            parallel,
+                            (int)forcingOption,
+                            interfaceEquationsOption
+                        };
+                    real rpar[]={ //
+                        dx1[0],
+                        dx1[1],
+                        dx1[2],
+                        mg1.gridSpacing(0),
+                        mg1.gridSpacing(1),
+                        mg1.gridSpacing(2),
+                        dx2[0],
+                        dx2[1],
+                        dx2[2],
+                        mg2.gridSpacing(0),
+                        mg2.gridSpacing(1),
+                        mg2.gridSpacing(2),
+                        t,    
+                        (real &)tz,  // twilight zone pointer
+                        dt,    
+                        epsGrid(grid1),
+                        muGrid(grid1),   
+                        cGrid(grid1),    
+                        epsGrid(grid2),  
+                        muGrid(grid2),   
+                        cGrid(grid2),
+                        omegaForInterfaceIteration
+                    };
+          // work space: 
+                    real *rwk=interface.rwk;
+                    int *iwk=interface.iwk;
+                    assert( rwk!=NULL && iwk!=NULL );
+                    const int ndf = max(interface.ndf1,interface.ndf2); 
+          // assign pointers into the work spaces
+                    int pa2=0,pa4=0,pa8=0, pipvt2=0,pipvt4=0,pipvt8=0;
+                    if( bcOrderOfAccuracy==2 )
+                    {
+                        if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
+                        {
+                            pa2=0; 
+                            pa4=pa2 + 2*2*2*ndf;
+                            pa8=0;  // not used
+                            pipvt2=0;
+                            pipvt4=pipvt2 + 2*ndf; 
+                            pipvt8=0;
+                        }
+                    }
+                    else if( bcOrderOfAccuracy==4 )
+                    {
+                        pa2=0; // not used
+                        pa4=0;
+                        pa8=pa4+4*4*2*ndf;
+                        pipvt2=0;
+                        pipvt4=0;
+                        pipvt8=pipvt4+4*ndf;
+                    }
+                    if( mg1.numberOfDimensions()==2 && !useNewInterfaceRoutines )
+                    {
+                        interfaceMaxwell( mg1.numberOfDimensions(), 
+                                      		      u1Local.getBase(0),u1Local.getBound(0),
+                                      		      u1Local.getBase(1),u1Local.getBound(1),
+                                      		      u1Local.getBase(2),u1Local.getBound(2),
+                                      		      mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                      		      u2Local.getBase(0),u2Local.getBound(0),
+                                      		      u2Local.getBase(1),u2Local.getBound(1),
+                                      		      u2Local.getBase(2),u2Local.getBound(2),
+                                      		      mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                    		    ipar[0], rpar[0], 
+                                    		    rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
+                                    		    ierr );
+                    }
+                    else
+                    {
+                        interface3dMaxwell( mg1.numberOfDimensions(), 
+                                        		        u1Local.getBase(0),u1Local.getBound(0),
+                                        		        u1Local.getBase(1),u1Local.getBound(1),
+                                        		        u1Local.getBase(2),u1Local.getBound(2),
+                                        		        mg1.gridIndexRange(0,0), *u1p, *mask1p,*prsxy1, *pxy1, bc1Local(0,0), 
+                                        		        u2Local.getBase(0),u2Local.getBound(0),
+                                        		        u2Local.getBase(1),u2Local.getBound(1),
+                                        		        u2Local.getBase(2),u2Local.getBound(2),
+                                        		        mg2.gridIndexRange(0,0), *u2p, *mask2p,*prsxy2, *pxy2, bc2Local(0,0), 
+                                      		      ipar[0], rpar[0], 
+                                      		      rwk[pa2],rwk[pa4],rwk[pa8], iwk[pipvt2],iwk[pipvt4],iwk[pipvt8],
+                                      		      ierr );
+                    }
+      	}
+      	
             #endif
 
             
@@ -1158,6 +1524,8 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
         else
         {
       // *** test the new interface routines for order of accuracy >= 6 
+
+            printF("Call new interface routines for order=%i at t=%9.3e\n",orderOfAccuracyInSpace,t);
 
             assert( mg1.numberOfDimensions()==2 );
 
@@ -1168,7 +1536,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
                     side2, dir2, grid2,         //  keep side2,dir2 since we don't reverse the points.
                         m1a,m1b,m2a,m2b,m3a,m3b,
                     gridType,            
-                    orderOfAccuracyInSpace,    
+                    bcOrderOfAccuracy,
                     orderOfExtrapolation,
                     useForcing,          
                     ex,                  
@@ -1318,6 +1686,61 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
     
     } // end for inter
     
+
+  // This code is partially dupliated from assignBoundaryConditions.bC 
+    if( method==sosup )
+    {
+    // Extrapolate an extra ghost line for the wider upwind stencil in SOSUP
+        BoundaryConditionParameters extrapParams;
+
+        const int ghostEnd = (orderOfAccuracyInSpace/2)+1;  // last ghost line for sosup stencil
+
+    // NOTE: for now we impose at most 2 ghost lines with the 4th=order BC's 
+    // first ghost line for sosup stencil: 
+    //     ghostStart=2 for order=2
+    //     ghostStart=3 for order>2   *fix me* when 6'th order BC's are implemented
+        assert( !reduceOrderOfAccuracyForSosup || bcOrderOfAccuracy<=4 );
+        int ghostStart= min(3,ghostEnd);              
+        if( !reduceOrderOfAccuracyForSosup )
+            ghostStart=ghostEnd-1;
+
+        extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;  // what should this be ?
+
+        extrapParams.extraInTangentialDirections=ghostEnd;
+
+        Range Ca = cgfields[0][0].getLength(3); // all components
+
+        for( int grid=0; grid<numberOfComponentGrids; grid++ )
+        {
+            MappedGrid & mg = cg[grid];
+            realMappedGridFunction & u = cgfields[next][grid];
+            bool hasInterface=false;
+            for( int ghost=ghostStart; ghost<=ghostEnd; ghost++ )
+            {
+      	extrapParams.ghostLineToAssign=ghost;
+      	if( debug & 4 )
+      	printF("assignInterface: sosup: extrap ghost-line %i to order %i\n",
+             	       extrapParams.ghostLineToAssign,extrapParams.orderOfExtrapolation);
+
+      	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+        	  for( int side=0; side<=1; side++ )
+        	  {
+          	    const int bc = mg.boundaryCondition(side,axis);
+          	    if( bc==interfaceBoundaryCondition )
+          	    {
+            	      hasInterface=true;
+            	      u.applyBoundaryCondition(Ca,BCTypes::extrapolate,BCTypes::boundary1+side+2*(axis),0.,t,extrapParams);
+          	    }
+        	  }
+            }
+
+            if( hasInterface && ( true || 
+                              (bcOrderOfAccuracy==4 && orderOfAccuracyInSpace>4 ) || numberOfDimensions==3 ) )
+                cgfields[next][grid].periodicUpdate(); // This is needed for some reason
+        }
+        
+    }
+
 
   // **** NOTE: I think this is needed because we do not check the mask array when assigning
   //            interface points and thus over-write interpolation points.

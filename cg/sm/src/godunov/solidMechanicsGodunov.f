@@ -20,7 +20,7 @@
      &                nd,nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      &                mask,rx,xy,det, u,up, f1,f2, 
      &                ndMatProp, matIndex, matValpc, matVal,
-     &                ad,ad4, ipar,rpar,
+     &                ad,ad2dt,ad4,ad4dt, ipar,rpar,
      &                niwk,iwk, nrwk,rwk,ierr ) 
 
       implicit none
@@ -47,7 +47,7 @@
       real matValpc(ndMatProp,0:*)
       real matVal(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,1:*)
 
-      real ad(1:*),ad4(1:*)
+      real ad(1:*),ad2dt(1:*),ad4(1:*),ad4dt(1:*)
       integer niwk,nrwk,ierr
       real rpar(0:*),rwk(nrwk)
       integer ipar(0:*),iwk(niwk)
@@ -60,7 +60,7 @@
       ! relaxation of stress to stress derived from position ... jwb 11 Aug 2010
       integer stressRelaxation
       real relaxAlpha, relaxDelta
-      real tangentialStressDissipation ! for SVK 
+      real tangentialStressDissipation,tsdissdt ! for SVK 
 
       n1a = ipar(0)
       n1b = ipar(1)
@@ -102,7 +102,8 @@ c      pause
       ep   = rpar(11) ! exact solution identifier for tzflow
       relaxAlpha = rpar(12)
       relaxDelta = rpar(13)
-      tangentialStressDissipation = rpar(14)  ! SVK dissipation 
+      tangentialStressDissipation = rpar(14)  ! tangential-stress diss coeff
+      tsdissdt = rpar(15)                     ! tangential-stress dt diss coeff
 
       ! return these: 
       ! rpar(20) = reLambda
@@ -136,6 +137,7 @@ c      write(*,'("smg: dr=",3e9.2)') dr(0),dr(1),dr(2)
         rparam(7) = relaxAlpha
         rparam(8) = relaxDelta
         rparam(9) = tangentialStressDissipation
+        rparam(10) = tsdissdt
 
         iparam(1) = iorder
         iparam(3) = tzflow
@@ -166,6 +168,7 @@ c      write(*,'("smg: dr=",3e9.2)') dr(0),dr(1),dr(2)
           end if
           rpar(20) = rparam(1)
           rpar(21) = rparam(2)
+          rpar(22) = rparam(3)
         else ! use nonlinear code
           if( gridType.eq.0 ) then
             iparam(2) = 1       ! Cartesian case, icart=1
@@ -188,6 +191,7 @@ c      write(*,'("smg: dr=",3e9.2)') dr(0),dr(1),dr(2)
           end if
           rpar(20) = rparam(1)
           rpar(21) = rparam(2)
+          rpar(22) = rparam(3)
         end if
       else if (nd.eq.2) then
         m=8
@@ -198,6 +202,7 @@ c      write(*,'("smg: dr=",3e9.2)') dr(0),dr(1),dr(2)
         rparam(7) = relaxAlpha
         rparam(8) = relaxDelta
         rparam(9)=tangentialStressDissipation
+        rparam(10) = tsdissdt
 
         iparam(1)=iorder
         iparam(3)=tzflow
@@ -234,8 +239,8 @@ c        if( .false. ) then
             ! nonlinear elasticity (SVK model):
             call smg2dn (m,nd1a,nd1b,n1a,n1b,nd2a,nd2b,n2a,n2b,
      *                   dx(0),dx(1),dt,t,xy,rx,det,u,up,f1,f2,ad,
-     *                   ad4,mask,nrprm,rparam,niprm,iparam,nrwk,
-     *                   rwk,niwk,iwk,idebug,ier)
+     *                   ad2dt,ad4,ad4dt,mask,nrprm,rparam,niprm,iparam,
+     *                   nrwk,rwk,niwk,iwk,idebug,ier)
           end if
         else
           iparam(2)=0             ! non-Cartesian case, icart=0
@@ -259,18 +264,20 @@ c        if( .false. ) then
             ! nonlinear elasticity (SVK model):
             call smg2dn (m,nd1a,nd1b,n1a,n1b,nd2a,nd2b,n2a,n2b,
      *                   dr(0),dr(1),dt,t,xy,rx,det,u,up,f1,f2,ad,
-     *                   ad4,mask,nrprm,rparam,niprm,iparam,nrwk,
-     *                   rwk,niwk,iwk,idebug,ier)
+     *                   ad2dt,ad4,ad4dt,mask,nrprm,rparam,niprm,iparam,
+     *                   nrwk,rwk,niwk,iwk,idebug,ier)
           end if
         end if
         else ! centered scheme with 4th order diffusion
           call smcent2d( m,nd1a,nd1b,n1a,n1b,nd2a,nd2b,n2a,n2b,
      *       dt,t,xy,u,up,nrprm,rparam,niprm,iparam,ier )
         end if
-c        write(*,'(" solidMechGod: itype,eigs=",i4,2e10.2)') itype,
-c     & rparam(1),rparam(2)
-        rpar(20)=rparam(1)
-        rpar(21)=rparam(2)
+c        write(*,'(" solidMechGod: itype,eigs=",i4,3e10.2)') itype,
+c     & rparam(1),rparam(2),rparam(3)
+        rpar(20) = rparam(1)
+        rpar(21) = rparam(2)
+        rpar(22) = rparam(3)
+
       else
         write(*,100)
   100   format('Error (smg) : value for nd not supported')

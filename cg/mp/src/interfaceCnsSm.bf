@@ -842,6 +842,298 @@ end if
  end if
 #endMacro
 
+#beginMacro smoothDir1(u,i1,i2,i3,c)
+  u(i1,i2,i3,c)= u(i1,i2,i3,c) + omega*( u(i1+1,i2,i3,c)-2.*u(i1,i2,i3,c)+u(i1-1,i2,i3,c))
+#endMacro
+
+#beginMacro smoothDir2(u,i1,i2,i3,c)
+  u(i1,i2,i3,c)= u(i1,i2,i3,c) + omega*( u(i1,i2+1,i3,c)-2.*u(i1,i2,i3,c)+u(i1,i2-1,i3,c))
+#endMacro
+
+#beginMacro periodicUpdate1(u,i1,i2,i3,c, n1a,n1b,n2a,n2b,n3a,n3b)
+  u(n1a-2,n2a,n3a,c)= u(n1b-2,n2a,n3a,c)
+  u(n1a-1,n2a,n3a,c)= u(n1b-1,n2a,n3a,c)
+  u(n1b  ,n2a,n3a,c)= u(n1a  ,n2a,n3a,c)
+  u(n1b+1,n2a,n3a,c)= u(n1a+1,n2a,n3a,c)
+  u(n1b+2,n2a,n3a,c)= u(n1a+2,n2a,n3a,c)
+#endMacro
+
+#beginMacro periodicUpdate2(u,i1,i2,i3,c, n1a,n1b,n2a,n2b,n3a,n3b)
+  u(n1a,n2a-1,n3a,c)= u(n1a,n2b-1,n3a,c)
+  u(n1a,n2b  ,n3a,c)= u(n1a,n2a  ,n3a,c)
+  u(n1a,n2b+1,n3a,c)= u(n1a,n2a+1,n3a,c)
+#endMacro
+
+! ================================================================================
+!   Update periodic boundaries on the interface
+! ================================================================================
+#beginMacro periodicUpdateInterface()
+  ! periodic update 
+  if( boundaryCondition1(0,axis1p1).lt.0 )then
+    ! write(*,'(" interfaceCnsSM: periodic update u1..")')
+    if( axis1p1.eq.0 )then
+      periodicUpdate1(u1,i1,i2,i3,rc, n1a,n1b,n2a,n2b,n3a,n3b)
+      periodicUpdate1(u1,i1,i2,i3,uc, n1a,n1b,n2a,n2b,n3a,n3b)
+      periodicUpdate1(u1,i1,i2,i3,vc, n1a,n1b,n2a,n2b,n3a,n3b)
+      periodicUpdate1(u1,i1,i2,i3,tc, n1a,n1b,n2a,n2b,n3a,n3b)
+    else
+      periodicUpdate2(u1,i1,i2,i3,rc, n1a,n1b,n2a,n2b,n3a,n3b)
+      periodicUpdate2(u1,i1,i2,i3,uc, n1a,n1b,n2a,n2b,n3a,n3b)
+      periodicUpdate2(u1,i1,i2,i3,vc, n1a,n1b,n2a,n2b,n3a,n3b)
+      periodicUpdate2(u1,i1,i2,i3,tc, n1a,n1b,n2a,n2b,n3a,n3b)
+    end if
+  end if
+
+  if( boundaryCondition2(0,axis2p1).lt.0 )then
+    ! write(*,'(" interfaceCnsSM: periodic update u2..")')
+    if( axis2p1.eq.0 )then
+      periodicUpdate1(u2,j1,j2,j3,u1c, m1a,m1b,m2a,m2b,m3a,m3b)
+      periodicUpdate1(u2,j1,j2,j3,u2c, m1a,m1b,m2a,m2b,m3a,m3b)
+      periodicUpdate1(u2,j1,j2,j3,v1c, m1a,m1b,m2a,m2b,m3a,m3b)
+      periodicUpdate1(u2,j1,j2,j3,v2c, m1a,m1b,m2a,m2b,m3a,m3b)
+    else
+      periodicUpdate2(u2,j1,j2,j3,u1c, m1a,m1b,m2a,m2b,m3a,m3b)
+      periodicUpdate2(u2,j1,j2,j3,u2c, m1a,m1b,m2a,m2b,m3a,m3b)
+      periodicUpdate2(u2,j1,j2,j3,v1c, m1a,m1b,m2a,m2b,m3a,m3b)
+      periodicUpdate2(u2,j1,j2,j3,v2c, m1a,m1b,m2a,m2b,m3a,m3b)
+
+    end if
+  end if
+#endMacro
+
+! ================================================================================
+!   Smooth values on the interface
+! 
+! ================================================================================
+#beginMacro smoothInterfaceValues()
+
+if( .false. )then
+  ! *** THIS IS UNDER CONSTRUCTION ***
+  write(*,'(" interfaceCnsSM: smooth interface values before project")')
+  write(*,'(" interfaceCnsSM: axis1=",i2," axis2=",i2)') axis1,axis2
+  write(*,'(" interfaceCnsSM: axis1p1=",i2," axis2p1=",i2)') axis1p1,axis2p1
+  write(*,'(" interfaceCnsSM: n1a,n1b=",2i4," n2a,n2b=",2i4)') n1a,n1b,n2a,n2b
+  write(*,'(" interfaceCnsSM: m1a,m1b=",2i4," m2a,m2b=",2i4)') m1a,m1b,m2a,m2b
+
+  ! periodic update  **THIS IS NEEDED** 
+  periodicUpdateInterface()
+ 
+  beginIJLoops2d()
+
+   omega=.25/4. ! for 2nd order
+   if( axis1.eq.0 )then
+     smoothDir2(u1,i1,i2,i3,rc)
+     smoothDir2(u1,i1,i2,i3,uc)
+     smoothDir2(u1,i1,i2,i3,vc)
+     smoothDir2(u1,i1,i2,i3,tc)
+   else
+     smoothDir1(u1,i1,i2,i3,rc)
+     smoothDir1(u1,i1,i2,i3,uc)
+     smoothDir1(u1,i1,i2,i3,vc)
+     smoothDir1(u1,i1,i2,i3,tc)
+   end if
+
+   ! omega=0.
+   if( axis2.eq.0 )then
+     smoothDir2(u2,j1,j2,j3,u1c)
+     smoothDir2(u2,j1,j2,j3,u2c)
+     smoothDir2(u2,j1,j2,j3,v1c)
+     smoothDir2(u2,j1,j2,j3,v1c)
+   else
+     smoothDir1(u2,j1,j2,j3,u1c)
+     smoothDir1(u2,j1,j2,j3,u2c)
+     smoothDir1(u2,j1,j2,j3,v1c)
+     smoothDir1(u2,j1,j2,j3,v1c)
+
+   end if
+
+  endIJLoops2d()
+
+  ! periodic update 
+  periodicUpdateInterface()
+
+end if
+
+#endMacro
+
+! =================================================================================
+!   Compute eigen-structure of the T matrix (see Riemann problem notes)
+! =================================================================================
+#beginMacro checkEigenStructure()
+
+ printChecks=.true.
+
+! compute the solid normal (n1s,n2s)
+ getSolidNormal()
+
+! solid tangent
+ t1s= n2s
+ t2s=-n1s
+
+! compute bk(j,k)=ni*Kijkl*nl for j=1,2 and k=1,2
+ bk(1,1)=n1s*(dpdf(1,1)*n1s+dpdf(1,2)*n2s)+n2s*(dpdf(3,1)*n1s+dpdf(3,2)*n2s)
+ bk(1,2)=n1s*(dpdf(1,3)*n1s+dpdf(1,4)*n2s)+n2s*(dpdf(3,3)*n1s+dpdf(3,4)*n2s)
+ bk(2,1)=n1s*(dpdf(2,1)*n1s+dpdf(2,2)*n2s)+n2s*(dpdf(4,1)*n1s+dpdf(4,2)*n2s)
+ bk(2,2)=n1s*(dpdf(2,3)*n1s+dpdf(2,4)*n2s)+n2s*(dpdf(4,3)*n1s+dpdf(4,4)*n2s)
+
+! compute tk(1,1)=ni*bk(i,j)*nj
+ tk(1,1)=n1s*(bk(1,1)*n1s+bk(1,2)*n2s)+n2s*(bk(2,1)*n1s+bk(2,2)*n2s)
+
+! compute tk(1,2)=ni*bk(i,j)*tj
+ tk(1,2)=n1s*(bk(1,1)*t1s+bk(1,2)*t2s)+n2s*(bk(2,1)*t1s+bk(2,2)*t2s)
+
+! compute tk(2,1)=ti*bk(i,j)*nj
+ tk(2,1)=t1s*(bk(1,1)*n1s+bk(1,2)*n2s)+t2s*(bk(2,1)*n1s+bk(2,2)*n2s)
+
+! compute tk(2,2)=ti*bk(i,j)*tj
+ tk(2,2)=t1s*(bk(1,1)*t1s+bk(1,2)*t2s)+t2s*(bk(2,1)*t1s+bk(2,2)*t2s)
+
+! eigenvalues and eigenvectors of tk
+ trace=(tk(1,1)+tk(2,2))/2.0
+ determ=tk(1,1)*tk(2,2)-tk(1,2)*tk(2,1)
+ discriminant=trace**2-determ
+ if( discriminant.le.0.0 )then
+   write(6,*)'Error (interface code) : eigenvalues are complex'
+   stop 8886
+ end if
+ eval(1)=trace+sqrt(discriminant)
+ eval(2)=trace-sqrt(discriminant)
+ if( eval(2).le.0.0 )then
+   write(6,*)'Error (interface code) : eigenvalues are imaginary'
+   stop 8887
+ end if
+ do k=1,2
+   if( abs(eval(k)-tk(1,1)).gt.abs(eval(k)-tk(2,2)) )then
+     evec(k,1)=tk(1,2)/(eval(k)-tk(1,1))
+     evec(k,2)=1.0
+   else
+     evec(k,1)=1.0
+     evec(k,2)=tk(2,1)/(eval(k)-tk(2,2))
+   end if
+   rad=sqrt(evec(k,1)**2+evec(k,2)**2)
+   evec(k,1)=evec(k,1)/rad
+   evec(k,2)=evec(k,2)/rad
+ end do
+
+! compute the fluid normal (n1f,n2f)
+ getFluidNormal()
+
+! fluid tangent
+ t1f= n2f
+ t2f=-n1f
+
+! compute a and b vectors (see notes)
+ av(1)=n1f*n1s+n2f*n2s
+ av(2)=n1f*t1s+n2f*t2s
+ bv(1)=t1f*n1s+t2f*n2s
+ bv(2)=t1f*t1s+t2f*t2s
+
+! checks
+ chk(1)=abs(tk(1,2)-tk(2,1))                  ! symmetry of T
+ chk(2)=abs(av(1)*evec(2,1)+av(2)*evec(2,2))  ! a^T rs = 0
+ chk(3)=abs(bv(1)*evec(1,1)+bv(2)*evec(1,2))  ! b^T rp = 0
+
+! print checks
+ if (printChecks) then
+   write(89,'(2(1x,i4),3(1x,1pe10.3))')j1,j2,chk(1),chk(2),chk(3)
+ end if
+
+#endMacro
+
+
+! =================================================================================
+!   Compute solid impedances
+! =================================================================================
+#beginMacro getSolidImpedances()
+
+! compute the solid normal (n1s,n2s)
+ getSolidNormal()
+
+! compute the fluid normal (n1f,n2f)
+ getFluidNormal()
+
+! may want to use all solid normals to compare with linear elasticity
+ if (useAllSolidNormals) then
+   n1f=n1s
+   n2f=n2s
+ end if
+
+! fluid tangent
+ t1f= n2f
+ t2f=-n1f
+
+! check value of "meth"
+ if (meth.eq.0) then
+
+! impedances based on linear model
+   cp=sqrt((lambda+2.*mu)/rhos)
+   zs=rhos*cp
+
+! no tangent stress contribution
+   ks=0.0
+
+ else
+
+! impedances based on full model (TZ must be "off" so that dpdf is available)
+   if (twilightZone.ne.0) then
+     write(6,*)'Error (interfaceCnsSm) : meth.ne.0 and TZ is on'
+     stop 3580
+   end if
+
+! compute bk(j,k)=nis*Kijkl*nls for j=1,2 and k=1,2  (Note: bk is symmetric, could just set bk(2,1)=bk(1,2).)
+   bk(1,1)=n1s*(dpdf(1,1)*n1s+dpdf(1,2)*n2s)+n2s*(dpdf(3,1)*n1s+dpdf(3,2)*n2s)
+   bk(1,2)=n1s*(dpdf(1,3)*n1s+dpdf(1,4)*n2s)+n2s*(dpdf(3,3)*n1s+dpdf(3,4)*n2s)
+   bk(2,1)=n1s*(dpdf(2,1)*n1s+dpdf(2,2)*n2s)+n2s*(dpdf(4,1)*n1s+dpdf(4,2)*n2s)
+   bk(2,2)=n1s*(dpdf(2,3)*n1s+dpdf(2,4)*n2s)+n2s*(dpdf(4,3)*n1s+dpdf(4,4)*n2s)
+
+! compute tk(1,1)=nif*bk(i,j)*njf
+   tk(1,1)=n1f*(bk(1,1)*n1f+bk(1,2)*n2f)+n2f*(bk(2,1)*n1f+bk(2,2)*n2f)
+
+! compute tk(1,2)=nif*bk(i,j)*tjf
+   tk(1,2)=n1f*(bk(1,1)*t1f+bk(1,2)*t2f)+n2f*(bk(2,1)*t1f+bk(2,2)*t2f)
+
+! compute tk(2,1)=tif*bk(i,j)*njf  (Note: tk is symmetric, could just set tk(2,1)=tk(1,2).)
+   tk(2,1)=t1f*(bk(1,1)*n1f+bk(1,2)*n2f)+t2f*(bk(2,1)*n1f+bk(2,2)*n2f)
+
+! compute tk(2,2)=tif*bk(i,j)*tjf
+   tk(2,2)=t1f*(bk(1,1)*t1f+bk(1,2)*t2f)+t2f*(bk(2,1)*t1f+bk(2,2)*t2f)
+
+! eigenvalues of tk
+   trace=(tk(1,1)+tk(2,2))/2.0
+   discriminant=((tk(1,1)-tk(2,2))/2.0)**2+tk(1,2)**2
+   eval(1)=trace+sqrt(discriminant)
+   eval(2)=trace-sqrt(discriminant)
+   if( eval(2).le.0.0 )then
+     write(6,*)'Error (interface code) : eigenvalues are imaginary'
+     stop 8887
+   end if
+
+!   write(33,'(2(1x,1pe15.8))')eval(1),tk(2,2)
+
+! left eigenvector corresponding to dominant eigenvalue.  There is a basic assumption
+! here that tk is close to the matrix [lambda+2*mu, 0; 0, mu]
+   evec(1,2)=tk(1,2)/(eval(1)-tk(2,2))
+   rad=sqrt(evec(1,2)**2+1.0)
+   evec(1,1)=1.0/rad
+   evec(1,2)=evec(1,2)/rad
+
+! Nanson's formula
+   beta=(n1f*(f11s*n1s+f12s*n2s)+n2f*(f21s*n1s+f22s*n2s))/aj
+
+! zps and zss
+   zps=beta*sqrt(rhos*eval(1))
+   zss=beta*sqrt(rhos*eval(2))
+
+! zs and ks
+   zs=zps*zss/(zss*evec(1,1)**2+zps*evec(1,2)**2)
+   ks=evec(1,1)*evec(1,2)*(zps-zss)/(zss*evec(1,1)**2+zps*evec(1,2)**2)
+
+!   write(33,'(3(1x,1pe15.8))')beta,zs,ks
+
+ end if
+
+#endMacro
+
 
 ! ================================================================================
 ! Project values on the fluid-solid interface for linear elasticity
@@ -1211,6 +1503,25 @@ end if
  ! itype=4          ! Neo-Hookean
  itype=pdeTypeForGodunovMethodCgsm
 
+ nonlinearProjectionMethod=0
+ if (interfaceOption.eq.5) then
+   nonlinearProjectionMethod=1
+   if( t.lt.2*dt )then
+     write(*,'(" USE full nonlinear ProjectionMethod")') 
+   end if
+ end if
+ meth=nonlinearProjectionMethod
+ ! write(6,*)'meth =',meth
+ ! pause
+ ! meth=0  =>  linear impedances, no tangential stress contribution
+ ! meth=1  =>  full impedances with tangential stress contribution
+
+ if (meth.ne.0.and.twilightZone.ne.0) then
+   write(6,*)'Error (interfaceCnsSm) : meth.ne.0 and TZ is on'
+   stop 3579
+ end if
+
+
 !   write(6,*)'TZ=',twilightZone
 !   pause
 !   write(6,*)'pOffset=',pOffset
@@ -1296,6 +1607,8 @@ end if
 
     getDeformationGradients()
 
+    ! checkEigenStructure()
+
  else
 
     call ogDeriv(ep2,0,1,0,0,xy2(j1,j2,j3,0),xy2(j1,j2,j3,1),0.,t,u1c,u1x)
@@ -1322,6 +1635,18 @@ end if
  v1s = u2(j1,j2,j3,v1c)
  v2s = u2(j1,j2,j3,v2c)
 
+ ! Compute fluid and solid normals, and compute solid impedances
+ getSolidImpedances()
+
+ ! Compute vs : normal component of the solid velocity
+ vs = n1f*v1s + n2f*v2s 
+
+ ! nf.sigma.nf
+ ps=(n1f*s11s+n2f*s21s)*n1f+(n1f*s12s+n2f*s22s)*n2f
+
+ ! nf.sigma.tf
+ pst=(n1f*s11s+n2f*s21s)*t1f+(n1f*s12s+n2f*s22s)*t2f
+
  ! Fluid state
  if( conservativeVariables.eq.1 )then
    rhof = u1(i1,i2,i3,rc)
@@ -1337,35 +1662,15 @@ end if
    pf   = rhof*u1(i1,i2,i3,tc)  ! p=rho*T
  end if
 
- ! Compute the fluid normal (n1f,n2f)
- getFluidNormal()
- if (useAllSolidNormals) then
-   getSolidNormal()
-   n1f=n1s
-   n2f=n2s
- end if
-
- ! Compute vf : normal component of the fluid velocity
- vf = n1f*v1f + n2f*v2f
-
- ! Compute vs : normal component of the solid velocity
- vs = n1f*v1s + n2f*v2s 
-
- ! Compute the normal component of the fluid traction, this should be matched with nf.sigma.nf
- pf0 = -(pf-pOffset)
-
- ! nf.sigma.nf
- ps=(n1f*s11s+n2f*s21s)*n1f+(n1f*s12s+n2f*s22s)*n2f
-
  ! Fluid sound speed and impedance
  af = sqrt(gamma*pf/rhof)
  zf = rhof*af 
 
- ! Here is the p-wave speed and solid impedance assuming a locally linear model
- cp = sqrt((lambda+2.*mu)/rhos)
- zs = rhos*cp
- !             write(6,*)'rho,lambda,mu=',rhos,lambda,mu
- !             pause
+ ! Compute vf : normal component of the fluid velocity
+ vf = n1f*v1f + n2f*v2f
+
+ ! Compute the normal component of the fluid traction, this should be matched with nf.sigma.nf
+ pf0 = -(pf-pOffset)
 
  ! TZ corrections
  if( twilightZone.ne.0 )then
@@ -1405,8 +1710,8 @@ end if
  ! Compute inpedance-weighted averages
  wf = zf
  ws = zs
- vi = (wf*vf  + ws*vs + pf0-ps          )/( ws+wf )  ! interface velocity 
- pi = (ws*pf0 + wf*ps + ws*wf*( vf-vs ) )/( ws+wf )  ! interface "pressure" n.s.n 
+ vi = (wf*vf  + ws*vs + pf0-ps          + ks*pst    )/( ws+wf )  ! interface velocity 
+ pi = (ws*pf0 + wf*ps + ws*wf*( vf-vs ) - wf*ks*pst )/( ws+wf )  ! interface "pressure" n.s.n 
 
  ! Set normal component of fluid velocity to be vi
  v1f = v1f + (vi-vf)*n1f
@@ -1424,10 +1729,12 @@ end if
  ! Set density assuming constant entropy
  !             if( interfaceOption.eq.1 )then
  rhofi = rhof*(pif/pf)**(1./gamma)
- if (twilightZone.ne.0) rhofi=rhoe
-
- ! rhofi=rhof ! WDH: try not setting rho from netropy condition
-
+ ! *wdh* if (twilightZone.ne.0) rhofi=rhoe
+ !*wdh*
+ if( twilightZone.ne.0 )then
+   ! Do not change the density from the predicted value: 
+   rhofi=rhof
+ end if 
  !             end if
  !             applyLowerBound( rhofi,rhoMin )
  !             rhofi=rhof
@@ -2516,7 +2823,7 @@ end if
       integer nn1a,nn1b,nn2a,nn2b,nn3a,nn3b
       integer mm1a,mm1b,mm2a,mm2b,mm3a,mm3b
 
-      real du1,du2,du3,uEps,uNorm,cdl, rhoMin,pMin
+      real du1,du2,du3,uEps,uNorm,cdl, rhoMin,pMin, omega
 
       real rx1,ry1,rx2,ry2
 
@@ -2553,8 +2860,10 @@ end if
       real err
 ! ** variables used by nonlinear elasticity case
 
-      logical printStuff,useAllSolidNormals,compareWithBill,compareWithExact
+      logical printStuff,useAllSolidNormals,compareWithBill,compareWithExact,printChecks
       real printErrorsAfterTime
+
+      real bk(2,2),tk(2,2),av(2),bv(2),chk(3),t1f,t2f
 
       real p11tilde,p12tilde
       real u1r,u2r,u1s,u2s,u1r0,u2r0,u1s0,u2s0
@@ -2566,9 +2875,12 @@ end if
       real du(2,2),p(2,2),dpdf(4,4),cpar(10),pe(2,2)
       integer ideriv,itype
 
+      integer nonlinearProjectionMethod, meth
+      real ks,zps,zss,pst
+
       real determ,du1r,du2r,du1s,du2s
 
-      integer iter,itmax,istop,k
+      integer iter,itmax,istop,k,itsm
       real bmax,toler
 
       parameter(toler=1.e-12,itmax=10)
@@ -2987,6 +3299,11 @@ end if
          !    [ n.v ] = 0
          !    [ n.sigma ] = 0
  
+          ! -- optionally smooth interface values before projection ---
+          do itsm=1,2 ! fix me -- 
+            smoothInterfaceValues()
+          end do
+
           if( pdeTypeForGodunovMethodCgsm.le.1 )then  ! this is the original code for linear elasticity
 
            ! Note: pdeTypeForGodunovMethodCgsm=0 : linear elasticity code

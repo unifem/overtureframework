@@ -801,7 +801,10 @@ plot()
   // DerivedFunctions derivedFunctions[numberOfFrameSeries];
   DerivedFunctions *derivedFunctions = new DerivedFunctions [numberOfFrameSeries];
   for( int fs=0; fs<numberOfFrameSeries; fs++ )
-    derivedFunctions[fs].set(showFileReader);
+  {
+    showFileReader.setCurrentFrameSeries(fs);
+    derivedFunctions[fs].set(showFileReader,&psp[fs]);
+  }
   
 
   // ------------ pull down menu (old way) ------------------------------

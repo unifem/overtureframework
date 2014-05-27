@@ -2784,6 +2784,7 @@ printStatistics(FILE *file_ /* =stdout */) const
 	      parameters.residualTolerance*numberOfGridPoints,parameters.residualTolerance);
     }
 
+    fPrintF(file," maximum number of iterations = %i\n",parameters.maximumNumberOfIterations);
     fPrintF(file," order of accuracy = %i\n",orderOfAccuracy);
     fPrintF(file," number of levels = %i (%i extra levels).\n",mgcg.numberOfMultigridLevels(),
                    mgcg.numberOfMultigridLevels()-1);

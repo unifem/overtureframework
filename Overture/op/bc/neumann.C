@@ -334,7 +334,15 @@ applyBCneumann(realMappedGridFunction & u,
 
   int n;
   real b0=0., b1=1.;
-  if( bcType==BCTypes::mixed )
+  int spatiallyVaryingCoefficients = bcParameters.getVariableCoefficientOption()==BoundaryConditionParameters::spatiallyVaryingCoefficients;
+  if( (bool)spatiallyVaryingCoefficients )
+  {
+    // In this case we build coefficients for b0=0 and b1=1 and then include the variable coefficients
+    // when we evaluate the formulae
+    // printF("*** MGOP:neumann:spatiallyVaryingCoefficients\n");
+    assert( bcParameters.getVariableCoefficientsArray()!=NULL );
+  }
+  else if( bcType==BCTypes::mixed )
   {
     const RealArray & a = bcParameters.a;
     
@@ -358,7 +366,7 @@ applyBCneumann(realMappedGridFunction & u,
     if( b1==0. )
     {
       printF("MappedGridOperators::applyBoundaryCondition:mixed BC:ERROR: a(1)==0 \n");
-      Overture::abort("MappedGridOperators::applyBoundaryCondition:mixed BC:ERROR: a(1)==0");
+      OV_ABORT("MappedGridOperators::applyBoundaryCondition:mixed BC:ERROR: a(1)==0");
     }
   }
 
@@ -367,8 +375,6 @@ applyBCneumann(realMappedGridFunction & u,
 
   typedef int POINTER2[2];
   POINTER2 *coeffIsSet = bcType==BCTypes::neumann ? nCoeffIsSet : mCoeffIsSet; 
-
-//  RealDistributedArray uNew;
 
   const bool useOpt=true;
   if( useOpt )
@@ -438,7 +444,7 @@ applyBCneumann(realMappedGridFunction & u,
     if( !ok ) return;
 
     real par[3]={b0,b1,twoDeltaX};
-    int ipar[1]={0};
+    int ipar[2]={0,spatiallyVaryingCoefficients};
     
     real dr[3];
     for( int dir=0; dir<3; dir++ )
@@ -447,6 +453,9 @@ applyBCneumann(realMappedGridFunction & u,
     realSerialArray *gfDatap=(realSerialArray*)(&gfDataLocal);
     realSerialArray *rhsp=NULL;
     
+    // Variable Coefficients:
+    const realSerialArray & vc = spatiallyVaryingCoefficients ? *bcParameters.getVariableCoefficientsArray() : uLocal;
+
     // option from : parameter( scalarForcing=0,gfForcing=1,arrayForcing=2, vectorForcing=3 )
     int option=-1;
     if( twilightZoneFlow )
@@ -539,9 +548,17 @@ applyBCneumann(realMappedGridFunction & u,
           ndx[axis]=1;  // evaluate an x,y or z derivative for axis=0,1, or 2
           (*e).gd( ux,xLocal,c.numberOfDimensions(),isRectangular,ntd,ndx[0],ndx[1],ndx[2],I1,I2,I3,mm,t);
 
-	  FOR_3D(i1,i2,i3,I1,I2,I3)
-	    RHS(i1,i2,i3,mm)=b1*UX(i1,i2,i3)*(2*side-1); 
-
+	  if( !spatiallyVaryingCoefficients )
+	  {
+	    FOR_3D(i1,i2,i3,I1,I2,I3)
+	      RHS(i1,i2,i3,mm)=b1*UX(i1,i2,i3)*(2*side-1); 
+	  }
+	  else
+	  {
+	    FOR_3D(i1,i2,i3,I1,I2,I3)
+	      RHS(i1,i2,i3,mm)=vc(i1,i2,i3,1)*UX(i1,i2,i3)*(2*side-1); 
+	  }
+	  
 	}
 	else
 	{
@@ -549,21 +566,46 @@ applyBCneumann(realMappedGridFunction & u,
   	  (*e).gd( uy,xLocal,c.numberOfDimensions(),isRectangular,0,0,1,0,I1,I2,I3,mm,t);
           if( numberOfDimensions==2 )
 	  {
-            FOR_3D(i1,i2,i3,I1,I2,I3)
-  	      RHS(i1,i2,i3,mm)=b1*(UX(i1,i2,i3)*NORMAL(i1,i2,i3,0)+UY(i1,i2,i3)*NORMAL(i1,i2,i3,1));
+	    if( !spatiallyVaryingCoefficients )
+	    {
+	      FOR_3D(i1,i2,i3,I1,I2,I3)
+		RHS(i1,i2,i3,mm)=b1*(UX(i1,i2,i3)*NORMAL(i1,i2,i3,0)+UY(i1,i2,i3)*NORMAL(i1,i2,i3,1));
+	    }
+	    else
+	    {
+	      FOR_3D(i1,i2,i3,I1,I2,I3)
+		RHS(i1,i2,i3,mm)=vc(i1,i2,i3,1)*(UX(i1,i2,i3)*NORMAL(i1,i2,i3,0)+UY(i1,i2,i3)*NORMAL(i1,i2,i3,1));
+	    }
+	    
 	  }
 	  else if( numberOfDimensions==3 )
 	  {
   	    (*e).gd( uz,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,1,I1,I2,I3,mm,t);
 	    
-            FOR_3D(i1,i2,i3,I1,I2,I3)
-  	      RHS(i1,i2,i3,mm)=b1*(UX(i1,i2,i3)*NORMAL(i1,i2,i3,0)+ 
-                                   UY(i1,i2,i3)*NORMAL(i1,i2,i3,1)+
-                                   UZ(i1,i2,i3)*NORMAL(i1,i2,i3,2));
+	    if( !spatiallyVaryingCoefficients )
+	    {
+	      FOR_3D(i1,i2,i3,I1,I2,I3)
+		RHS(i1,i2,i3,mm)=b1*(UX(i1,i2,i3)*NORMAL(i1,i2,i3,0)+ 
+				     UY(i1,i2,i3)*NORMAL(i1,i2,i3,1)+
+				     UZ(i1,i2,i3)*NORMAL(i1,i2,i3,2));
+	    }
+	    else
+	    {
+	      FOR_3D(i1,i2,i3,I1,I2,I3)
+		RHS(i1,i2,i3,mm)=vc(i1,i2,i3,1)*(UX(i1,i2,i3)*NORMAL(i1,i2,i3,0)+ 
+						 UY(i1,i2,i3)*NORMAL(i1,i2,i3,1)+
+						 UZ(i1,i2,i3)*NORMAL(i1,i2,i3,2));
+	    }
+	    
 	  }
 	}
-        // *wdh* 070924 -- fixed TZ forcing to include b0 and b1 !!
-	if( b0!=0. )
+	if( spatiallyVaryingCoefficients )
+	{
+          (*e).gd( ux,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1,I2,I3,mm,t);
+	  FOR_3D(i1,i2,i3,I1,I2,I3)
+	    RHS(i1,i2,i3,mm)+=vc(i1,i2,i3,0)*UX(i1,i2,i3);  // (UX holds ue)
+	}
+	else if( b0!=0. )
 	{
           (*e).gd( ux,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1,I2,I3,mm,t);
 	  FOR_3D(i1,i2,i3,I1,I2,I3)
@@ -705,8 +747,8 @@ applyBCneumann(realMappedGridFunction & u,
        n1a,n1b,n2a,n2b,n3a,n3b,
        uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
        uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
-       uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),
-       uLocal.getBase(2),uLocal.getBound(2),uLocal.getBase(3),uLocal.getBound(3),
+       vc.getBase(0),vc.getBound(0),vc.getBase(1),vc.getBound(1),
+       vc.getBase(2),vc.getBound(2),vc.getBase(3),vc.getBound(3),
        nmCoeff.getBase(0),nmCoeff.getBound(0),nmCoeff.getBase(1),nmCoeff.getBound(1),
        nmCoeff.getBase(2),nmCoeff.getBound(2),nmCoeff.getBase(3),nmCoeff.getBound(3),
        gfd.getBase(0),gfd.getBound(0),gfd.getBase(1),gfd.getBound(1),
@@ -717,7 +759,7 @@ applyBCneumann(realMappedGridFunction & u,
        ndm[0][0],ndm[1][0],ndm[0][1],ndm[1][1],ndm[0][2],ndm[1][2],  // dimensions for mask
        uLocal.getBase(0),uLocal.getBound(0),uLocal.getBase(1),uLocal.getBound(1),uLocal.getBase(2),uLocal.getBound(2),
        *rxp,
-       *up,*up,*getDataPointer(nmCoeff), *maskp,
+       *up,*vc.getDataPointer(),*getDataPointer(nmCoeff), *maskp,
        scalarData,*getDataPointer(gfd),*arrayDatap,*arrayDatap,
        dx[0],dr[0],ipar[0], par[0], ca,cb, uC.getBase(0),uC(uC.getBase(0)), fC.getBase(0),fC(fC.getBase(0)),
        side,axis,grid, (int)bcType, option,gridType,orderOfAccuracy,useWhereMask,bcParameters.lineToAssign );

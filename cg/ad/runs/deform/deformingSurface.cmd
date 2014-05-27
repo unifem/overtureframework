@@ -135,6 +135,12 @@ $grid
     if( $bc eq "d" ){ $cmd="all=dirichletBoundaryCondition"; }
     if( $bc eq "n" ){ $cmd="all=neumannBoundaryCondition"; }
     $cmd
+    # example of specifying user defined boundary values:
+    bcNumber4=neumannBoundaryCondition, userDefinedBoundaryData
+     specified Neumann values
+       # For now we set the RHS to the Neumann BC to the following value: 
+       0. 
+    done  
   done
 # 
   initial conditions

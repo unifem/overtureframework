@@ -59,35 +59,76 @@ getTimeStep( GridFunction & gf )
         bool & computeTimeSteppingEigenValues = parameters.dbase.get<bool>("computeTimeSteppingEigenValues");
         real & reLambda = parameters.dbase.get<real>("realPartOfTimeSteppingEigenValue");
         real & imLambda = parameters.dbase.get<real>("imaginaryPartOfTimeSteppingEigenValue");
+    // Worst case eigenvalue of the dissipation that has a coefficient proportional to 1/dt : 
+        real & dtInverseDissipationEigenvalue = parameters.dbase.get<real>("dtInverseDissipationEigenvalue");
         
         computeTimeSteppingEigenValues=true;  // this is used in advanceFOS
 
+    // *note: some dissipations depend on dt and thus we must call the solver twice: once to get
+    //   an estimate for dt (using t=-1) and then again to evaluate the dissipation
         real dt =1.e-9;  // choose a small non-zero value 
-    // Call the next routine to compute the time stepping eigenvalue: 
-        advanceFOS( current, gf.t, dt );
-
-        computeTimeSteppingEigenValues=false;  // reset 
-
-        assert( reLambda>=0. && imLambda>=0. );
-
-
-        if( timeSteppingMethodSm==SmParameters::improvedEuler )
-        { // the stability region for the midpoint rule extends to -2 on the Re axis
-      // and about sqrt(3) along the imaginary (NOT REALLY -- it does not touch the Im axis!!)
-            deltaT =cfl/sqrt( SQR(reLambda/2.)+SQR(imLambda/sqrt(3.)) );
-        }
-        else
+        real time=-1.;   // This tells the solver that this is an initialization step
+          
+        const int numit=1;  // ** THIS IS NOT correct -- FIX ME --
+        for( int it=0; it<numit; it++ )
         {
-            deltaT= cfl/sqrt( SQR(reLambda/2.)+SQR(imLambda/1.) );  // ***********is this ok ****
+      // Call the next routine to compute the time stepping eigenvalue: 
+            advanceFOS( current, time, dt );
+
+            computeTimeSteppingEigenValues=false;  // reset 
+
+            assert( reLambda>=0. && imLambda>=0. );
+
+      // Stability region is approximately (x/a)^2 + (y/a)^2 <= 1 
+            real a,b;
+            if( timeSteppingMethodSm==SmParameters::improvedEuler )
+            { // the stability region for the midpoint rule extends to -2 on the Re axis
+	// and about sqrt(3) along the imaginary (NOT REALLY -- it does not touch the Im axis!!)
+                a=2.; b=sqrt(3.);
+	// deltaT =cfl/sqrt( SQR(reLambda/2.)+SQR(imLambda/sqrt(3.)) );
+            }
+            else
+            {
+                a=2.; b=1.;
+	// deltaT= cfl/sqrt( SQR(reLambda/2.)+SQR(imLambda/1.) );  // ***********is this ok ****
+            }
+            deltaT= cfl/sqrt( SQR(reLambda/a)+SQR(imLambda/b) );  
+        
+      // Now include the effects of the (1/dt) dissipation:
+      // printF("getTimeStep: dtInverseDissipationEigenvalue=%e\n",dtInverseDissipationEigenvalue);
+            if( dtInverseDissipationEigenvalue>0. )
+            {
+        // dt is found from
+        // [ (reLambda+dtInverseDissipationEigenvalue/dt)*dt/a ]^2 + [ imLambda*dt/b ]^2 <= 1
+                real dteig = dtInverseDissipationEigenvalue;  // multiply by a safety factor ?
+                real reLam = reLambda; // max(reLambda,.5*imLambda);  // Godunov scheme will have some dissipation ?
+
+      	real a1= SQR(reLam/a)+SQR(imLambda/b);
+      	real b1= 2.*(reLam/a)*(dteig/a);
+      	real c1= SQR(dteig/a)-1.;
+      	if( c1>=0 )
+      	{
+        	  printF("Cgsm:getTimeStepERROR: 'dt dissipation' is too big, dteig=%8.2e. There is no stable time-step!\n",
+                          dteig);
+        	  OV_ABORT("ERROR");
+      	}
+
+      	real dtNew = cfl*(-b1+sqrt(b1*b1-4.*a1*c1) )/(2.*a1);
+      	printF("---> getTimeStep:FOS: dt=%8.2e (dt=%8.2e without dt-dissipation, ratio=%4.2f)\n",
+             	       dtNew,deltaT,dtNew/deltaT);
+
+                deltaT=dtNew;
+            }     
+
+            deltaT=ParallelUtility::getMinValue(deltaT);  // min value over all processors
+            if( gf.t==0. || debug & 4 )
+      	printP("==== getTimeStep: it=%i : FOS: reLamba=%8.2e imLambda=%8.2e, dteig=%8.2e cfl=%8.2e deltaT=%8.2e\n",
+             	       it,reLambda,imLambda,dtInverseDissipationEigenvalue,cfl,deltaT);
+
+            dt=deltaT;
+            time=gf.t;
         }
         
-
-
-        deltaT=ParallelUtility::getMinValue(deltaT);  // min value over all processors
-        if( gf.t==0. || debug & 4 )
-            printP("==== getTimeStep: FOS: reLamba=%8.2e imLambda=%8.2e, cfl=%8.2e deltaT=%8.2e\n",
-           	     reLambda,imLambda,cfl,deltaT);
-
         if( debug & 1 )
             printF("==== getTimeStep: t=%8.2e, deltaT=%8.2e\n",gf.t,deltaT);
 

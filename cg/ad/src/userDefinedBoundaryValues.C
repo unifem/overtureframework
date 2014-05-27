@@ -23,7 +23,8 @@ namespace
 {
 enum UserDefinedBoundaryConditions
 {
-  polynomialTimeVariation
+  polynomialTimeVariation,
+  specifiedNeumannValues
 };
  
 }
@@ -61,6 +62,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
   {
     "!user boundary values",
     "polynomial time variation",
+    "specified Neumann values",
     "done",
     ""
   };
@@ -73,6 +75,23 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     if( answer=="done" || answer=="exit" )
     {
       break;
+    }
+    else if( answer=="specified Neumann values" )
+    {
+      parameters.setUserBcType(side,axis,grid,specifiedNeumannValues);    // set the bcType to be a unique value.
+      parameters.setBcIsTimeDependent(side,axis,grid,true);               // this condition IS time dependent by default
+
+      // Query for parameters : for now just input an "option" number
+      RealArray values(2);  // store parameters here 
+      values=0.;
+      gi.inputString(answer2,"Enter option (the option value  u.n=option)");
+      real option=0.;
+      sScanF(answer2,"%e",&option);
+      printF("Setting option=%g\n",option);
+      values(0)=option;
+      
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);  // save values
+
     }
     else if( answer=="polynomial time variation" )
     {
@@ -194,7 +213,32 @@ userDefinedBoundaryValues(const real & t,
        #endif
 
 
-      if( parameters.userBcType(side,axis,grid)==polynomialTimeVariation )
+      if( parameters.userBcType(side,axis,grid)==specifiedNeumannValues )
+      {
+        RealArray values(2);
+	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+	real option=values(0); // convert back to an integer
+        printF("INFO: Neumann BC values: option=%g for (side,axis,grid)=(%i,%i,%i) at t=%8.2e\n",option,
+        side,axis,grid,t);
+	
+        getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	
+	numberOfSidesAssigned++;
+
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
+	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+
+	for( int n=0; n<numberOfComponents; n++ )
+	{
+          // Assign the RHS for the Neumann BC
+          bd(Ib1,Ib2,Ib3,n)=option;
+	}
+
+
+      }
+      else if( parameters.userBcType(side,axis,grid)==polynomialTimeVariation )
       {
         RealArray values(5*numberOfComponents);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);

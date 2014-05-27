@@ -4,6 +4,10 @@
 #include "OvertureTypes.h"
 #include "A++.h"
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
 #ifndef OV_USE_DOUBLE
 class floatMappedGridFunction;
 #define REAL_MAPPED_GRID_FUNCTION floatMappedGridFunction
@@ -50,6 +54,13 @@ public:
     gridFunctionForcing
   };
 
+  // Specify the form of the variable coefficients for boundary conditions.
+  enum VariableCoefficientOptionEnum
+  {
+    spatiallyConstantCoefficients,
+    spatiallyVaryingCoefficients
+  };
+
   enum ExtrapolationOptionEnum
   {
     polynomialExtrapolation=0,
@@ -77,6 +88,9 @@ public:
 
   int interpolateRefinementBoundaries;  // if true, interpolate all refinement boundaries
   int interpolateHidden;                // if true, interpolate hidden coarse grid points from higher level refinemnts
+
+  // Here is the new place to store parameters *wdh* 2014/05/14
+  DataBase dbase;
 
   int setUseMask(int trueOrFalse=TRUE);
   int getUseMask() const{ return useMask;}
@@ -113,6 +127,9 @@ public:
   int setBoundaryConditionForcingOption( BoundaryConditionForcingOption option );
   BoundaryConditionForcingOption getBoundaryConditionForcingOption() const;
   
+  int setVariableCoefficientOption( VariableCoefficientOptionEnum option );
+  VariableCoefficientOptionEnum getVariableCoefficientOption() const;
+  
 
   // This version is used by MappedGridOperators and expects 0 <= sideN <=2
   int getCornerBC(int side1, int side2, int side3) const{return (int)cornerBC[side1][side2][side3];} //
@@ -131,6 +148,9 @@ public:
   int refinementLevelToSolveFor;  // for refinement level solves.
   BoundaryConditionForcingOption boundaryConditionForcingOption;
   
+  VariableCoefficientOptionEnum variableCoefficientOption; // = spatiallyConstantCoefficients by default
+
+
 };
 
 #undef REAL_MAPPED_GRID_FUNCTION

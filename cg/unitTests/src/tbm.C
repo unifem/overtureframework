@@ -12,6 +12,412 @@
 #include "BeamModel.h"
 #include "display.h"
 // #include "App.h"
+#include "NurbsMapping.h"
+
+#define W1(x,t) (a*sin(k*xl - w*t))
+#define W1t(x,t) (-a*w*cos(k*xl - w*t))
+#define W1x(x,t) (-k*a*cos(k*xl - w*t))
+#define W1tx(x,t) (a*k*w*sin(k*xl - w*t))
+
+// standing wave: 
+#define W(x,t) (a*sin(k*(x))*cos(w*(t)))
+#define Wt(x,t) (-w*a*sin(k*(x))*sin(w*(t)))
+#define Wx(x,t) (w*a*cos(k*(x))*cos(w*(t)))
+#define Wtx(x,t) (-w*a*cos(k*(x))*sin(w*(t)))
+
+
+enum TestProblemEnum
+{
+  standingWave=0,
+  travelingWave,
+} testProblem=standingWave;
+
+aString testProblemName[]=
+{
+  "standingWave",
+  "travelingWave"
+};
+
+
+// ========================================================================================================
+/// \brief Test class for the beam models
+// ========================================================================================================
+
+// momOfIntertia:    I/b (true area moment of inertia divided by the width of the beam
+// E:                Elastic modulus
+// rho:              beam density
+// thickness:        beam thickness (assumed to be constant)
+// pnorm:            value used to scale the pressure (i.e., the fluid density)
+// bcleft:           beam boundary condition on the left
+// x0:               initial location of the left end of the beam (x)
+// y0:               initial location of the left end of the beam (y)
+// useExactSolution: This flag sets the beam model to use the initial conditions
+//                   from the exact solution (FSI) in the documentation.
+// 
+// void setParameters(real momOfIntertia, real E, 
+// 			 real rho,real beamLength,
+// 			 real thickness,real pnorm,
+// 			 int nElem,BoundaryCondition bcleft,
+// 			 BoundaryCondition bcright, 
+// 			 real x0, real y0,
+// 			 bool useExactSolution);
+class TestBeamModel
+{
+
+public:
+
+TestBeamModel();
+~TestBeamModel();
+
+// Check the forcing routines in the Beam Model
+int checkForce();
+
+int getErrors();
+
+int plot(GenericGraphicsInterface & gi, GraphicsParameters & psp );
+
+int plot2(GenericGraphicsInterface & gi, GraphicsParameters & psp );
+
+int solve(GenericGraphicsInterface & gi, GraphicsParameters & psp );
+
+
+
+
+BeamModel beam;
+
+real t;
+
+int nElem;    // number of elements 
+real cfl;
+real tFinal; 
+real tPlot;
+int plotOption;
+int orderOfAccuracy;
+int debug;
+real beamAngle;
+
+real momOfIntertia, E, rho, beamLength, thickness, pnorm,  x0, y0, breadth;
+// --- parameters for the exact solution ---
+real a;  // amplitude 
+real k0;
+real k;
+real w;
+};
+
+TestBeamModel::
+TestBeamModel()
+{
+  t=0.;
+
+  nElem=11;    // number of elements 
+  cfl=.9;
+  tFinal=.5; 
+  tPlot=.02;
+  plotOption=1;
+  orderOfAccuracy=2;
+  debug=1;  
+  beamAngle=0.;
+  
+  // -- beam parameters: *FIX ME*
+  momOfIntertia=1., E=1., rho=100., beamLength=1., thickness=.1, pnorm=10.,  x0=0., y0=0.;
+  breadth=1.;
+
+  // --- parameters for the exact solution ---
+  a=.1;  // amplitude 
+  k0=3.;
+  k=2.*Pi*k0;
+  w = sqrt( E*momOfIntertia*pow(k,4)/( rho*thickness*breadth ) );
+
+
+}
+
+TestBeamModel::
+~TestBeamModel()
+{
+}
+    
+// ========================================================================================
+/// \brief plot the beam solution.
+// ========================================================================================
+int TestBeamModel::
+plot(GenericGraphicsInterface & gi, GraphicsParameters & psp )
+{
+
+  aString cNames[3]={"w","w_e","err-w"};  // 
+  psp.componentsToPlot.redim(3);
+  psp.componentsToPlot(0)=0;
+  psp.componentsToPlot(1)=1;
+  psp.componentsToPlot(2)=2;
+  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);     // set this to run in "movie" mode (after first plot)
+
+
+  RealArray x3,v3;
+  x3 = beam.position(); 
+  v3 = beam.velocity();
+
+  RealArray x(nElem+1), u(nElem+1,3);
+  for (int i = 0; i <= nElem; ++i)
+  {
+    real xl = ( (real)i /nElem) *  beamLength;
+    x(i)=xl;
+    u(i,0)=x3(i*2);
+    u(i,1)=W(xl,t);
+    u(i,2)=u(i,1)-u(i,0); // error 
+  }
+	  
+  gi.erase();
+
+  RealArray pb(2,3);
+  pb=0; pb(1,Range(0,2))=1.;
+  psp.set(GI_PLOT_BOUNDS, pb);
+  psp.set(GI_USE_PLOT_BOUNDS, true);
+
+  // -- plot points to set plot bounds : fix me ---
+  // RealArray points(2,2);
+  // points(0,0)=0.; points(0,1)=-a;
+  // points(1,0)=beamLength; points(1,1)=a;
+  // gi.plotPoints(points,psp);
+  // psp.set(GI_USE_PLOT_BOUNDS,true);
+  PlotIt::plot(gi,x,u,sPrintF("Linear Beam Model, t=%9.3e",t),"x",cNames,psp);
+
+
+  gi.redraw(true);
+  usleep(100000);  // sleep in mirco-seconds
+	  
+  // plot(GenericGraphicsInterface &gi, 
+  //      const realArray & t, 
+  //      const realArray & x, 
+  //      const aString & title = nullString, 
+  //      const aString & tName       = nullString,
+  //      const aString *xName        = NULL,
+  //      GraphicsParameters & parameters=Overture::defaultGraphicsParameters()  );
+
+  return 0;
+}
+
+// ========================================================================================
+/// \brief plot the beam solution.
+// ========================================================================================
+int TestBeamModel::
+plot2(GenericGraphicsInterface & gi, GraphicsParameters & psp )
+{
+
+  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);     // set this to run in "movie" mode (after first plot)
+
+  RealArray xc;
+  beam.getCenterLine(xc);
+  ::display(xc,"beam center line","%8.2e ");
+    
+  NurbsMapping map; 
+  map.interpolate(xc);
+
+  real lineWidth=2;
+  // psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // default is 1
+  psp.set(GraphicsParameters::lineWidth,lineWidth);  
+  gi.erase();
+
+  RealArray pb(2,3);  // plot bounds 
+  pb=-.1; pb(1,Range(0,2))=1.1;
+  psp.set(GI_PLOT_BOUNDS, pb);
+  psp.set(GI_USE_PLOT_BOUNDS, true);
+  // psp.set(GI_USE_PLOT_BOUNDS_OR_LARGER, true);
+
+  // // -- plot points to set plot bounds : fix me ---
+  // RealArray points(2,2);
+  // points(0,0)=0.; points(0,1)=-a;
+  // points(1,0)=beamLength; points(1,1)=a;
+  // gi.plotPoints(points,psp);
+  // psp.set(GI_USE_PLOT_BOUNDS,true);
+
+  PlotIt::plot(gi, map,psp);      
+  gi.redraw(true);
+  psp.set(GraphicsParameters::lineWidth,1);  // reset
+  usleep(100000);  // sleep in mirco-seconds
+}
+
+
+
+int TestBeamModel::
+getErrors()
+{
+  RealArray x3,v3;
+  x3 = beam.position(); 
+  v3 = beam.velocity();
+  
+  real errMax=0., l2Err=0.;
+  for (int i = 0; i <= nElem; ++i)
+  {
+    real xl = ( (real)i /nElem) *  beamLength;
+    real we = W(xl,t);
+
+    real err = fabs( x3(i*2)-we );
+    errMax=max(errMax,err);
+    l2Err += SQR(err);
+	    
+  }
+  l2Err=sqrt(l2Err/(nElem+1));
+  printF("Error t=%9.3e : max=%8.2e, l2=%8.2e\n",t,errMax,l2Err);
+
+  return 0;
+}
+
+
+int TestBeamModel::
+solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
+{
+
+
+  BeamModel::BoundaryCondition bcLeft=BeamModel::Pinned, bcRight=BeamModel::Pinned;
+  // BeamModel::BoundaryCondition bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
+  bool useExactSolution=false;
+  beam.setParameters(momOfIntertia, E, 
+		     rho,beamLength,
+		     thickness,pnorm,
+		     nElem, bcLeft,bcRight,
+		     x0, y0, useExactSolution);
+      
+  beam.setDeclination(beamAngle*Pi/180);
+
+  RealArray x1,v1,x2,v2,x3,v3;
+  x1 = beam.position(); 
+  v1 = beam.velocity();
+
+  x2 = beam.position(); 
+  v2 = beam.velocity();
+
+  x3 = beam.position(); 
+  v3 = beam.velocity();
+
+
+  // wave speed c= w/k ,   c*dt/dx = cfl 
+  real dx=beamLength/nElem;
+  real dt= cfl*dx/(w/k); 
+  int numberOfSteps= int( tFinal/dt + .5);
+  dt = tFinal/numberOfSteps;  // adjust dt so we reach tFinal exactly
+      
+  int nPlot = max(1,int( tPlot/dt+.5 ));
+
+  t=0.;
+
+  for (int i = 0; i <= nElem; ++i)
+  {
+    real xl = ( (real)i /nElem) *  beamLength;
+
+    t=-dt;
+
+    x1(i*2)   = W(xl,t);     // w 
+    x1(i*2+1) = Wx(xl,t);    // w_x
+    
+    v1(i*2)   = Wt(xl,t);    // w_t 
+    v1(i*2+1) = Wtx(xl,t);   // w_xt 
+
+    t=0.;
+	
+    x2(i*2)   = W(xl,t);     // w 
+    x2(i*2+1) = Wx(xl,t);    // w_x
+    
+    v2(i*2)   = Wt(xl,t);    // w_t 
+    v2(i*2+1) = Wtx(xl,t);   // w_xt 
+
+  }
+
+      
+  for( int step=1; step<=numberOfSteps; step++ )
+  {
+
+    beam.predictor(dt, x1,v1,x2,v2,x3,v3);
+
+    beam.corrector(dt, x3,v3);
+
+    t = (step)*dt;
+	
+    if( (step % nPlot == 0)  || step==numberOfSteps )
+    {
+
+      // compute the max error:
+      getErrors();
+      
+      // plot solution
+      // plot(gi,psp);
+      plot2(gi,psp);
+
+      // -- output results to the check file.
+      // fprintf(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput+2); // print |\uv| and divergence too.
+      // for( n=0; n<numberOfComponentsToOutput; n++ )
+      // {
+      //   real err = error(n) > checkFileCutoff(n) ? error(n) : 0.;
+      //   real uc = max(fabs(uMin(n)),fabs(uMax(n)));
+      //   if( uc<checkFileCutoff(n) ) uc=0.;
+      //   fprintf(checkFile,"%i %9.2e %10.3e  ",n,err,uc);
+      // }
+
+    }
+	
+    x1=x2; v1=v2;  // rename solutions for next step
+    x2=x3; v2=v3;
+	
+  }
+      
+
+
+
+  if( false )
+  {
+    const RealArray & xBeam = beam.position();  // (x1,x2) coordinates of the beam
+    const RealArray & vBeam = beam.velocity();  // (v1,v2) components of the velocity of the beam
+      
+    ::display(xBeam,"xBeam","%5.2f ");
+    ::display(vBeam,"vBeam","%5.2f ");
+  }
+      
+
+  return 0;
+}
+
+// Check the forcing routines in the Beam Model
+int TestBeamModel::
+checkForce()
+{
+
+  
+  // The pressure is p(X1) = p1, p(X2) = p2
+  // x0_1: undeformed location of the point on the surface of the beam (x1)  
+  // y0_1: undeformed location of the point on the surface of the beam (y1)
+  // p1:   pressure at the point (x1,y1)
+  // nx_1: normal at x1 (x) [unused]
+  // ny_1: normal at x1 (y) [unused]
+  // x0_2: undeformed location of the point on the surface of the beam (x2)  
+  // y0_2: undeformed location of the point on the surface of the beam (y2)  
+  // p2:   pressure at the point (x2,y2)
+  // nx_2: normal at x2 (x) [unused]
+  // ny_2: normal at x2 (y) [unused]
+  // beam.addForce(const real& x0_1, const real& y0_1,
+  // 		real p1,const real& nx_1,const real& ny_1,
+  // 		const real& x0_2, const real& y0_2,
+  // 		real p2,const real& nx_2,const real& ny_2);
+
+  real h=thickness*.5;
+  real x0=.1, y0=h, x1=.5, y1=h;
+  real nx0=0., ny0=1.;
+  real nx1=0., ny1=1.;
+  
+  real p0=1., p1=1.;
+  beam.resetForce();
+  beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
+
+  const RealArray & force = beam.force();
+  ::display(force(Range(0,2*nElem,2)),"Top force","%8.2e ");
+
+  beam.resetForce();
+  x0=.5, y0=-h, x1=.1, y1=-h;
+  beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
+  ::display(force(Range(0,2*nElem,2)),"Bottom force","%8.2e ");
+
+
+
+  return 0;
+}
+
 
 
 int 
@@ -24,15 +430,18 @@ main(int argc, char *argv[])
   printF("Usage: tbm -cmd=<command file> -noplot -nElem=<> -cfl=<> -tFinal=<> -tPlot=<> -debug=<> ... \n" );
 
 
-  int debug = 1; 
+  TestBeamModel tbm;
 
-  int nElem=11;    // number of elements 
-  int plotOption=1; 
-  int orderOfAccuracy=2;
-  int addedMass=0;
-  int plotBody=1;
-  int testProblem=0;
-  real cfl=.9, tFinal=.1, tPlot=.1;
+  int & debug = BeamModel::debug;
+  debug=1;
+
+  int & nElem= tbm.nElem;    // number of elements 
+  int & plotOption = tbm.plotOption; 
+  int & orderOfAccuracy = tbm.orderOfAccuracy;
+  real & cfl = tbm.cfl;
+  real & tFinal= tbm.tFinal; 
+  real & tPlot= tbm.tPlot;
+  real & beamAngle = tbm.beamAngle;
   
   aString commandFileName="";
 
@@ -56,7 +465,12 @@ main(int argc, char *argv[])
         sScanF(line(len,line.length()-1),"%e",&tFinal);
 	printF("tFinal = %6.2f\n",tFinal);
       }
-      else if( len=line.matches("-tPlot=") )
+      else if( len=line.matches("-tf=") )
+      {
+        sScanF(line(len,line.length()-1),"%e",&tFinal);
+	printF("tFinal = %6.2f\n",tFinal);
+      }
+      else if( len=line.matches("-tp=") )
       {
         sScanF(line(len,line.length()-1),"%e",&tPlot);
 	printF("tPlot = %6.3f\n",tPlot);
@@ -95,6 +509,7 @@ main(int argc, char *argv[])
     gi.readCommandFile(commandFileName);
   }
 
+  FILE *checkFile = fopen("tbm.check","w" );   // Here is the check file for regression tests
 
   aString answer;
 
@@ -111,6 +526,7 @@ main(int argc, char *argv[])
   dialog.addOptionMenu( "Type:", opCommand1, opCommand1, testProblem );
 
   aString cmds[] = {"solve",
+                    "check force",
                     "convergence rate",
                     "leak check",
                     "exit",
@@ -124,8 +540,8 @@ main(int argc, char *argv[])
                           "plot body",
 			  ""};
   int tbState[10];
-  tbState[0] = addedMass;
-  tbState[1] = plotBody;
+  // tbState[0] = addedMass;
+  // tbState[1] = plotBody;
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -145,8 +561,8 @@ main(int argc, char *argv[])
   textLabels[nt] = "cfl:"; 
   sPrintF(textStrings[nt],"%g",cfl);  nt++; 
 
-  // textLabels[nt] = "mass:"; 
-  // sPrintF(textStrings[nt],"%g",mass);  nt++; 
+  textLabels[nt] = "beam angle:"; 
+  sPrintF(textStrings[nt],"%g (degrees)",beamAngle);  nt++; 
 
   textLabels[nt] = "order of accuracy:"; 
   sPrintF(textStrings[nt],"%i",orderOfAccuracy);  nt++; 
@@ -179,6 +595,7 @@ main(int argc, char *argv[])
     else if( dialog.getTextValue(answer,"tFinal:","%e",tFinal) ){} //
     else if( dialog.getTextValue(answer,"tPlot:","%e",tPlot) ){} //
     else if( dialog.getTextValue(answer,"cfl:","%e",cfl) ){} //
+    else if( dialog.getTextValue(answer,"beam angle:","%e",beamAngle) ){ } //
     else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
     // else if( dialog.getTextValue(answer,"mass:","%e",trb.mass) ){} //
     else if( dialog.getTextValue(answer,"order of accuracy:","%i",orderOfAccuracy) ){} //
@@ -190,189 +607,17 @@ main(int argc, char *argv[])
       printF("testProblem=%i\n",(int)testProblem);
 
     }
+    else if( answer=="check force" )
+    {
+      tbm.checkForce();
+    }
     else if( answer=="solve" )
     {
       // ------------ Solve for the beam motion ----------------
 
       // trb.solve(gi);
 
-      BeamModel bm;
-
-      // momOfIntertia:    I/b (true area moment of inertia divided by the width of the beam
-      // E:                Elastic modulus
-      // rho:              beam density
-      // thickness:        beam thickness (assumed to be constant)
-      // pnorm:            value used to scale the pressure (i.e., the fluid density)
-      // bcleft:           beam boundary condition on the left
-      // x0:               initial location of the left end of the beam (x)
-      // y0:               initial location of the left end of the beam (y)
-      // useExactSolution: This flag sets the beam model to use the initial conditions
-      //                   from the exact solution (FSI) in the documentation.
-      // 
-      // void setParameters(real momOfIntertia, real E, 
-      // 			 real rho,real beamLength,
-      // 			 real thickness,real pnorm,
-      // 			 int nElem,BoundaryCondition bcleft,
-      // 			 BoundaryCondition bcright, 
-      // 			 real x0, real y0,
-      // 			 bool useExactSolution);
-
-
-      real momOfIntertia=1., E=1., rho=100., beamLength=1., thickness=.1, pnorm=10.,  x0=0., y0=0.;
-      real breadth=1.;
-      BeamModel::BoundaryCondition bcLeft=BeamModel::Pinned, bcRight=BeamModel::Pinned;
-      // BeamModel::BoundaryCondition bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
-      bool useExactSolution=false;
-      bm.setParameters(momOfIntertia, E, 
-		       rho,beamLength,
-		       thickness,pnorm,
-		       nElem, bcLeft,bcRight,
-		       x0, y0, useExactSolution);
-      
-      // bm.setDeclination(20.*twoPi/360.);
-
-      RealArray x1,v1,x2,v2,x3,v3;
-      x1 = bm.position(); 
-      v1 = bm.velocity();
-
-      x2 = bm.position(); 
-      v2 = bm.velocity();
-
-      x3 = bm.position(); 
-      v3 = bm.velocity();
-
-      // --- parameters for the exact solution ---
-      real a=.1;  // amplitude 
-      real k0=1.;
-      real k=2.*Pi*k0;
-      real w = sqrt( E*momOfIntertia*pow(k,4)/( rho*thickness*breadth ) );
-
-#define W1(x,t) (a*sin(k*xl - w*t))
-#define W1t(x,t) (-a*w*cos(k*xl - w*t))
-#define W1x(x,t) (-k*a*cos(k*xl - w*t))
-#define W1tx(x,t) (a*k*w*sin(k*xl - w*t))
-
-// standing wave: 
-#define W(x,t) (a*sin(k*(x))*cos(w*(t)))
-#define Wt(x,t) (-w*a*sin(k*(x))*sin(w*(t)))
-#define Wx(x,t) (w*a*cos(k*(x))*cos(w*(t)))
-#define Wtx(x,t) (-w*a*cos(k*(x))*sin(w*(t)))
-
-
-      // wave speed c= w/k ,   c*dt/dx = cfl 
-      real dx=beamLength/nElem;
-      real dt= cfl*dx/(w/k); 
-      int numberOfSteps= int( tFinal/dt + .5);
-      dt = tFinal/numberOfSteps;  // adjust dt so we reach tFinal exactly
-      
-      real t=0.;
-   
-
-
-      for (int i = 0; i <= nElem; ++i)
-      {
-        real xl = ( (real)i /nElem) *  beamLength;
-
-        t=-dt;
-
-	x1(i*2)   = W(xl,t);     // w 
-	x1(i*2+1) = Wx(xl,t);    // w_x
-    
-	v1(i*2)   = Wt(xl,t);    // w_t 
-	v1(i*2+1) = Wtx(xl,t);   // w_xt 
-
-        t=0.;
-	
-	x2(i*2)   = W(xl,t);     // w 
-	x2(i*2+1) = Wx(xl,t);    // w_x
-    
-	v2(i*2)   = Wt(xl,t);    // w_t 
-	v2(i*2+1) = Wtx(xl,t);   // w_xt 
-
-      }
-
-      aString cNames[2]={"w","we"};  // 
-      psp.componentsToPlot.redim(2);
-      psp.componentsToPlot(0)=0;
-      psp.componentsToPlot(1)=1;
-      psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);     // set this to run in "movie" mode (after first plot)
-      
-      for( int step=1; step<=numberOfSteps; step++ )
-      {
-
-	bm.predictor(dt, x1,v1,x2,v2,x3,v3);
-
-	bm.corrector(dt, x3,v3);
-
-        t = (step)*dt;
-	
-        // compute the max error:
-	if( (step % 1) == 0 )
-	{
-	  real errMax=0.;
-	  for (int i = 0; i <= nElem; ++i)
-	  {
-	    real xl = ( (real)i /nElem) *  beamLength;
-	    real we = W(xl,t);
-
-	    real err = fabs( x3(i*2)-we );
-	    errMax=max(errMax,err);
-	  }
-	  printF("Max error t=%9.3e : %8.2e\n",t,errMax);
-
-          RealArray x(nElem+1), u(nElem+1,2);
-	  for (int i = 0; i <= nElem; ++i)
-	  {
-	    real xl = ( (real)i /nElem) *  beamLength;
-            x(i)=xl;
-	    u(i,0)=x3(i*2);
-            u(i,1)=W(xl,t);
-	  }
-	  
-          gi.erase();
-          // -- plot points to set plot bounds : fix me ---
-          RealArray points(2,2);
-	  points(0,0)=0.; points(0,1)=-a;
-	  points(1,0)=beamLength; points(1,1)=a;
-	  gi.plotPoints(points,psp);
-	  psp.set(GI_USE_PLOT_BOUNDS,true);
-	  PlotIt::plot(gi,x,u,"w, we","x",cNames,psp);
-
-
-          gi.redraw(true);
-	  usleep(100000);  // sleep in mirco-seconds
-	  
-	  // plot(GenericGraphicsInterface &gi, 
-	  //      const realArray & t, 
-	  //      const realArray & x, 
-	  //      const aString & title = nullString, 
-	  //      const aString & tName       = nullString,
-	  //      const aString *xName        = NULL,
-	  //      GraphicsParameters & parameters=Overture::defaultGraphicsParameters()  );
-
-
-
-
-	}
-	
-        x1=x2; v1=v2;
-        x2=x3; v2=v3;
-	
-      }
-      
-
-
-
-      if( false )
-      {
-	const RealArray & xBeam = bm.position();  // (x1,x2) coordinates of the beam
-	const RealArray & vBeam = bm.velocity();  // (v1,v2) components of the velocity of the beam
-      
-	::display(xBeam,"xBeam","%5.2f ");
-	::display(vBeam,"vBeam","%5.2f ");
-      }
-      
-
+      tbm.solve(gi,psp); 
 
 
 
@@ -387,6 +632,7 @@ main(int argc, char *argv[])
   
   gi.popGUI(); // restore the previous GUI
 
+  fclose(checkFile);
   Overture::finish(); 
   return 0;
 }

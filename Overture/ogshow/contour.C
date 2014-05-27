@@ -491,7 +491,8 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
   // use a local copy (we cannot use the default "parameters" because we may change it!)
   GraphicsParameters localParameters(true);  // true means this is gets default values
   GraphicsParameters & psp = parameters.isDefault() ? localParameters : parameters;
-
+  bool & adjustMappingForDisplacement = psp.dbase.get<bool>("adjustMappingForDisplacement");
+  
 
   real uMin=0.,uMax=1.;
   int  & component            = psp.componentForContours; // Can be fatal if this routine is called from
@@ -507,6 +508,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
                     ">choose a component",
                     "<wire frame (toggle)",
 		    "user defined output",
+		    "print solution info",
 //                    "wire frame without hidden lines (toggle)",
                     "toggle grids on and off",
                     ">contour line options",
@@ -667,7 +669,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
     dialog.setPushButtons( pbCommands, pbLabels, numRows ); 
 
     // *** specify toggle buttons ***
-    const int numberOfToggleButtons=5;
+    const int numberOfToggleButtons=6;
     aString tbCommands[numberOfToggleButtons];
     int tbState[numberOfToggleButtons];
 
@@ -683,6 +685,9 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
     
     tbCommands[i] = "adjust grid for displacement"; 
     tbState[i]=psp.adjustGridForDisplacement;  i++;
+
+    tbCommands[i] = "adjust mapping for displacement"; 
+    tbState[i]=adjustMappingForDisplacement;  i++;
     
     tbCommands[i] = "";
     tbState[i]=0;
@@ -1081,6 +1086,8 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
       minAndMaxContourLevelsSpecified(component)=false;
 
       dialog.setTextLabel("min max",sPrintF(answer,"%g %g",uMin,uMax));
+      printF("Resetting min and max to [%20.14e,%20.14e] for component%i (%s)\n",uMin,uMax,component,
+	     (const char*)uGCF.getName(component));
     }
     else if( len=answer.matches("min max") )
     {
@@ -1182,6 +1189,17 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
     {
       printF("contour:INFO:You must exit the contour plotter and re-enter to see the grid adjusted or not for the displacement\n");
     } 
+    else if( dialog.getToggleValue(answer,"adjust mapping for displacement",adjustMappingForDisplacement) )
+    {
+      printF("contour:INFO:Setting adjustMappingForDisplacement=%i\n",(int)adjustMappingForDisplacement);
+      if( adjustMappingForDisplacement && !adjustGridForDisplacementLocal )
+      {
+	adjustGridForDisplacementLocal=true;
+	printF("contour:INFO:Also setting adjustGridForDisplacementLocal=true.\n");
+        dialog.setToggleState("adjust grid for displacement",true);
+      }
+      printF("contour:INFO:You must exit the contour plotter and re-enter to see the grid adjusted or not for the displacement\n");
+    } 
     else if( answer=="line plots" )
     {
       int oldPBGG = gi.getPlotTheBackgroundGrid();
@@ -1276,6 +1294,14 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
     }
     else if( answer=="query values with mouse" )
     {
+      const bool & adjustMappingForDisplacement = psp.dbase.get<bool>("adjustMappingForDisplacement");
+      if( parameters.adjustGridForDisplacement && !adjustMappingForDisplacement )
+      {
+	printF("query values:ERROR: adjustGridForDisplacement=true but adjustMappingForDisplacement=false\n"
+	       " The query values will not be correct. You should choose option `adjust mapping for displacement'\n");
+	gi.stopReadingCommandFile();
+      }
+
       aString menu[]=
       {
 	"!pick points",
@@ -1474,6 +1500,15 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
              "See the comments in userDefinedOutput.C for how to output results in your favourite format\n");
       
       PlotIt::userDefinedOutput(uGCF,psp,"contour");
+    }
+    else if( answer=="print solution info" )
+    {
+      real minu,maxu;
+      for( int n=0; n<numberOfComponents; n++ )
+      {
+	getBounds(uGCF,minu,maxu,parameters,Range(n,n));
+	printF("Component %i (%s) [min,max]=[%20.14e,%20.14e].\n",n,(const char*)uGCF.getName(n),minu,maxu);
+      }
     }
     else if( answer=="erase" )
     {
@@ -1780,6 +1815,15 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
   IntegerArray lineInfo(5,1); lineInfo=0;
   Mapping *curveMapping=NULL;
   
+  const bool & adjustMappingForDisplacement = psp.dbase.get<bool>("adjustMappingForDisplacement");
+  if( parameters.adjustGridForDisplacement && !adjustMappingForDisplacement )
+  {
+    printF("contourCuts:ERROR: adjustGridForDisplacement=true but adjustMappingForDisplacement=false\n"
+	   " The line plots will not be correct. You should choose option `adjust mapping for displacement'\n");
+    gi.stopReadingCommandFile();
+  }
+
+
   // set default prompt
   gi.appendToTheDefaultPrompt("linePlot>");
 
@@ -2117,19 +2161,37 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
 	}
 	
 	// interpolate u at these points
-	if( false )
+	if( false &&  psp.adjustGridForDisplacement )
 	{
-	  interp.interpolatePoints(x, u, uI, C);
-	}
-	else
-	{ // Here we can specify which grids to use for interpolation:
-	  interp.buildInterpolationInfo(x,(CompositeGrid&)gc,NULL,&checkTheseGrids );
-	  interp.interpolatePoints(u,uI,C);
-	}
+          // Here is the old way that uses the grid points inly to invert --
+          // This should work when the grid is adjusted for displacements
+     	  printf("PlotIt::contourCuts:INFO:Use OLD interpolatePoints to handle .adjustGridForDisplacement\n");
+
+	  wasInterpolated.redim(R);
+	  interpolatePoints(x,u,uI,
+			    C,nullRange,
+			    nullRange,nullRange,nullRange,
+                            Overture::nullIntegerDistributedArray(),
+			    Overture::nullIntegerDistributedArray(),
+			    wasInterpolated );
+        }
+	else 
+	{
+	  if( false )
+	  {
+	    interp.interpolatePoints(x, u, uI, C);
+	  }
+	  else
+	  { // Here we can specify which grids to use for interpolation:
+	    interp.buildInterpolationInfo(x,(CompositeGrid&)gc,NULL,&checkTheseGrids );
+	    interp.interpolatePoints(u,uI,C);
+	  }
 	
 
-	wasInterpolated=interp.getStatus();
-	wasInterpolated=wasInterpolated>0; // ==int(InterpolatePoints::interpolated);
+	  wasInterpolated=interp.getStatus();
+	  wasInterpolated=wasInterpolated>0; // ==int(InterpolatePoints::interpolated);
+	}
+	
 //          interpolatePoints(x, u, uI, C,  // uI has same components are u!
 //  			  nullRange,
 //  			  nullRange,
@@ -2153,7 +2215,7 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
         // x.display("here is x");
 	// uInterpolated.display("uInterpolated");
 	
-        if( numberOfLines>1 )
+        if( numberOfLines>1 || bogusValueIsSet )
 	{ 
           // we do not mask out bad values if there are more than 1 line plotted --- put some
           // bogus values in
@@ -2170,10 +2232,14 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
 		uMin=min(uInterpolated(R,c+i*numberOfComponentsToPlot));
 	    }
 	    
+	    // printF("contourCuts: Setting bogus values to %e\n",uMin);
+	    // ::display(wasInterpolated,"wasInterpolated");
+	    
 	    where( !wasInterpolated(R) )
 	    {
 	      uInterpolated(R,c+i*numberOfComponentsToPlot)=uMin;
 	    }
+            // ::display(uInterpolated(R,c+i*numberOfComponentsToPlot),"uInterpolated(R,c+i*numberOfComponentsToPlot)");
 	  }
 	}
       }
@@ -2215,11 +2281,15 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
 	
       }
       
+
       DataPointMapping line;
       t.reshape(1,R);
       line.setDataPoints(t,0,1);  // 0=position of coordinates, 1=domain dimension
+      
       MappedGrid c(line);   // a grid
       c.update(MappedGrid::THEvertex | MappedGrid::THEmask);
+
+      // ::display(t,"Here is t -- parameterization");
 
       // *** we can only set the mask if there is 1 line plotted ***
       if( numberOfLines==1 )
@@ -2324,8 +2394,16 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
       else
 	gi.setAxesLabels("normalized distance");
 
+      //  We should not adjust for displacement 2 times for the same grid! *wdh* 2014/04/22
+      const bool adjustGridForDisplacementSave = parameters.adjustGridForDisplacement;
+      
+      parameters.adjustGridForDisplacement=false;
+      
       contour(gi,uu,psp);
+
       // reset
+      parameters.adjustGridForDisplacement=adjustGridForDisplacementSave;
+      
       psp.set(GI_TOP_LABEL_SUB_1,topLabel1);
       psp.set(GI_TOP_LABEL_SUB_2,topLabel2);
       psp.set(GI_TOP_LABEL_SUB_3,topLabel3);
@@ -2366,7 +2444,7 @@ contour1d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
   GridCollection & gc = *(uGCF.gridCollection);
   const int numberOfGrids = gc.numberOfComponentGrids();
 
-  gc.update(MappedGrid::THEcenter);
+  gc.update(MappedGrid::THEcenter | MappedGrid::THEvertex );
 
   char buff[80];
   aString answer,answer2;
@@ -2746,6 +2824,8 @@ contour1d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
         const IntegerDistributedArray & mask = gc[grid].mask();
         Index I1,I2,I3;
 	getIndex(gc[grid].gridIndexRange(),I1,I2,I3);
+
+	// ::display(x,"contour1d : Grid x for line plot");
 
 	intArray cMask(I1);
         // Watch out for no ghost points when plotting sequences mask(I1+1) is bad.

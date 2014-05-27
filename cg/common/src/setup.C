@@ -298,6 +298,7 @@ buildPlotOptionsDialog(DialogData & dialog )
                           "adjust grid for displacement",
                           "plot grid velocity", 
                           "plot body force mask surface",
+                          "plot structures",  // plot beams and shells
 			  ""};
   int tbState[10];
   tbState[0] = plotMode==1;
@@ -305,6 +306,7 @@ buildPlotOptionsDialog(DialogData & dialog )
   tbState[2] = parameters.dbase.get<int >("adjustGridForDisplacement"); 
   tbState[3] = parameters.dbase.get<int >("plotGridVelocity"); 
   tbState[4] = parameters.dbase.get<bool >("plotBodyForceMaskSurface");
+  tbState[5] = parameters.dbase.get<bool >("plotStructures");
   
 
   int numColumns=1;
@@ -410,6 +412,15 @@ getPlotOption(const aString & answer,
     printF("plotBodyForceMaskSurface=%i : You should choose `plot body force mask' to initialize the isosurface.\n",
            (int)parameters.dbase.get<bool >("plotBodyForceMaskSurface"));
   }
+  else if( dialog.getToggleValue(answer,"plot structures",parameters.dbase.get<bool >("plotStructures")) )
+  {
+    if( parameters.dbase.get<bool >("plotStructures") )
+    {
+      printF("Plotting the center lines of any beams or shells\n");
+    }
+  }
+  
+
   // -- these next options are handled in plot(..)
   //   else if( answer=="plot parallel dist." )
   //   }

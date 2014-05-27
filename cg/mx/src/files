@@ -18,6 +18,7 @@ SRC_FILES += Maxwell.C userDefinedInitialConditions.C userDefinedForcing.C  \
 CSRCO += forcing.C divergence.C getInitialConditions.C getErrors.C computeIntensity.C
 
 # advMxFiles: (always compile opt)
+# NOTE: gcc 4.4.7 has trouble with -O3 and advMx3dOrder4r.f
 FSRCO +=advMx2dOrder2r.f advMx3dOrder2r.f advMx2dOrder4r.f advMx3dOrder4r.f \
         advMx2dOrder2c.f advMx3dOrder2c.f advMx2dOrder4c.f advMx3dOrder4c.f 
 

@@ -556,16 +556,18 @@ interfaceRightHandSide( InterfaceOptionsEnum option,
 	{
 	  f(I1,I2,I3,Cd) -= xLocal(I1,I2,I3,D) + ue(I1,I2,I3,Dc); 
 
-          // *********************************************************************************** FIX ME ****************
-	  // ** do this for now: here is the position of the interface over time: 
-          // ***********************************************************************************************************
-          printP("interface:INFO: set TZ interface position for (grid,side,axis)=(%i,%i,%i) to be x0 + (a0,a1,a2)*t, t=%9.3e\n",grid,side,axis,t);
-          // const real av[3]={1.,0.,0.}; //
-          const real av[3]={0.,0.,0.}; //
+          const real *v0 = parameters.dbase.get<real [3]>("tzInterfaceVelocity");  // this should match vg0 in the Deforming body motion 
+          const real *a0 = parameters.dbase.get<real [3]>("tzInterfaceAcceleration");         // this should match ag0 in the Deforming body motion 
+	  if( t<3.*dt )
+	  {
+	    printP("interface:INFO: set TZ interface at t=%9.3e for (grid,side,axis)=(%i,%i,%i) to be x0 + v0*t + a0*t^2\n"
+                   " v0=(%g,%g,%g), a0=(%g,%g,%g) (NOTE: these should match the values for the DeformingBodyMotion)\n",t,grid,side,axis,
+		   v0[0],v0[1],v0[2], a0[0],a0[1],a0[2]);
+	  }
+	  
 	  for( int axis=0; axis<numberOfDimensions; axis++ )
 	  {
-	    f(I1,I2,I3,Cd.getBase()+axis) += xLocal(I1,I2,I3,axis) + av[axis]*t;
-	    // f(I1,I2,I3,Cd.getBase()+axis) = xLocal(I1,I2,I3,axis) + av[axis]*t;
+	    f(I1,I2,I3,Cd.getBase()+axis) += xLocal(I1,I2,I3,axis) + t*( v0[axis] + t*( a0[axis] ) );
 	  }
 	  
 

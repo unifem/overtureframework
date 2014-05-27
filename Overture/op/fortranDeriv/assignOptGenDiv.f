@@ -1,4 +1,5 @@
 ! This file automatically generated from assignBoundaryConditions.bf with bpp.
+! assignBoundaryConditionMacro(assignOptGenDiv,generalizedDivergence)
          subroutine assignOptGenDiv( nd,  n1a,n1b,n2a,n2b,n3a,n3b, 
      & ndu1a,ndu1b,ndu2a,ndu2b,ndu3a,ndu3b,ndu4a,ndu4b, ndv1a,ndv1b,
      & ndv2a,ndv2b,ndv3a,ndv3b,ndv4a,ndv4b, ndc1a,ndc1b,ndc2a,ndc2b,
@@ -96,6 +97,7 @@
         integer mGhost
         integer m21,m12,m22,m32,m23
         integer m221,m212,m122,m222,m322,m232,m223
+        integer varCoeff
         epsX=1.e-100  ! prevent division by zero when normalizing the normal vector  *FIX ME* -- this should be passed in
         if( side.lt.0 .or. side.gt.1 )then
           write(*,*) 'applyBoundaryConditions:ERROR: side=',side
@@ -134,6 +136,9 @@
         if1=im1*lineForForcing
         if2=im2*lineForForcing
         if3=im3*lineForForcing
+! #If "generalizedDivergence" eq "neumann"
+! #Elif "generalizedDivergence" eq "aDotGradU"
+! #Elif "generalizedDivergence" eq "generalizedDivergence"
        !**      else if( bcType.eq.generalizedDivergence )then
          if( bcType.ne.generalizedDivergence ) then
            write(*,'("ERROR")')
@@ -159,7 +164,9 @@
           twoDeltaY = par(4)
           twoDeltaZ = par(5)
           if( bcOption.eq.scalarForcing )then
+! generalizedDivergenceRectangular(scalarData)
             if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( scalarData ))
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -183,6 +190,7 @@
               end if
             else if( nd.eq.2 ) then
               if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( scalarData - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -207,6 +215,7 @@
                   end do
                 end if
               else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( scalarData-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -233,6 +242,7 @@
               end if
             else
               if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( scalarData - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -259,6 +269,7 @@
                   end do
                 end if
               else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( scalarData - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -285,6 +296,7 @@
                   end do
                 end if
               else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( scalarData - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -314,7 +326,9 @@
             end if
           else if( bcOption.eq.gfForcing )then
             if( nd.eq.2 )then
+! generalizedDivergenceRectangular(b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -338,6 +352,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -362,6 +377,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -388,6 +404,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -416,6 +433,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -444,6 +462,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -474,7 +493,9 @@
                 end if
               end if
             else if( nd.eq.3 )then
+! generalizedDivergenceRectangular(b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -500,6 +521,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -526,6 +548,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -554,6 +577,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -582,6 +606,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -610,6 +635,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -640,7 +666,9 @@
                 end if
               end if
             else
+! generalizedDivergenceRectangular(b1*gfData(i1,i2,i3,m1))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -664,6 +692,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -688,6 +717,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*gfData(i1,i2,i3,m1)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -714,6 +744,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*gfData(i1,i2,i3,m1) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -740,6 +771,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*gfData(i1,i2,i3,m1) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -766,6 +798,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*gfData(i1,i2,i3,m1) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -796,7 +829,9 @@
             end if
           else if( bcOption.eq.arrayForcing )then
             if( nd.eq.2 )then
+! generalizedDivergenceRectangular(b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -822,6 +857,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -848,6 +884,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -876,6 +913,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -904,6 +942,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -932,6 +971,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -962,7 +1002,9 @@
                 end if
               end if
             else if( nd.eq.3 )then
+! generalizedDivergenceRectangular(b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -988,6 +1030,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1014,6 +1057,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1042,6 +1086,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1070,6 +1115,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1098,6 +1144,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1128,7 +1175,9 @@
                 end if
               end if
             else
+! generalizedDivergenceRectangular(b1*fData(m1,side,axis,grid))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1152,6 +1201,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1176,6 +1226,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*fData(m1,side,axis,grid)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1202,6 +1253,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*fData(m1,side,axis,grid) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1228,6 +1280,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*fData(m1,side,axis,grid) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1254,6 +1307,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*fData(m1,side,axis,grid) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1284,7 +1338,9 @@
             end if
           else if( bcOption.eq.vectorForcing )then
             if( nd.eq.2 )then
+! generalizedDivergenceRectangular(b1*vData(m1)+b2*vData(m2))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*vData(m1)+b2*vData(m2) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1308,6 +1364,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*vData(m1)+b2*vData(m2) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1332,6 +1389,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*vData(m1)+b2*vData(m2)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1358,6 +1416,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*vData(m1)+b2*vData(m2) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1384,6 +1443,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*vData(m1)+b2*vData(m2) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1410,6 +1470,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*vData(m1)+b2*vData(m2) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1438,7 +1499,9 @@
                 end if
               end if
             else if( nd.eq.3 )then
+! generalizedDivergenceRectangular(b1*vData(m1)+b2*vData(m2)+b3*vData(m3))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*vData(m1)+b2*vData(m2)+b3*vData(m3) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1462,6 +1525,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*vData(m1)+b2*vData(m2)+b3*vData(m3) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1486,6 +1550,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*vData(m1)+b2*vData(m2)+b3*vData(m3)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1512,6 +1577,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*vData(m1)+b2*vData(m2)+b3*vData(m3) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1538,6 +1604,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*vData(m1)+b2*vData(m2)+b3*vData(m3) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1564,6 +1631,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*vData(m1)+b2*vData(m2)+b3*vData(m3) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1592,7 +1660,9 @@
                 end if
               end if
             else
+! generalizedDivergenceRectangular(b1*vData(m1))
               if( nd.eq.1 )then
+! loopsgt(u(i1+im1,i2,i3,n1)=u(i1+ip1,i2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*vData(m1) ))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1616,6 +1686,7 @@
                 end if
               else if( nd.eq.2 ) then
                 if( axis.eq.0 ) then
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+ip1,i2+ip2,i3,n1) +((2*side-1)*twoDeltaX/b1)*( b1*vData(m1) - (u(i1,i2+1,i3,n2)-u(i1,i2-1,i3,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1640,6 +1711,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3,n2)=u(i1+ip1,i2+ip2,i3,n2) +((2*side-1)*twoDeltaY/b2)*( b1*vData(m1)-(u(i1+1,i2,i3,n1)-u(i1-1,i2,i3,n1))*(b1/twoDeltaX) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1666,6 +1738,7 @@
                 end if
               else
                 if( axis.eq.0 ) then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n1)=u(i1+ip1,i2+ip2,i3+ip3,n1)+((2*side-1)*twoDeltaX/b1)*( b1*vData(m1) - (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) - (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1692,6 +1765,7 @@
                     end do
                   end if
                 else if( axis.eq.1 )then
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n2)=u(i1+ip1,i2+ip2,i3+ip3,n2) +((2*side-1)*twoDeltaY/b2)* ( b1*vData(m1) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2  ,i3+1,n3)-u(i1  ,i2  ,i3-1,n3))*(b3/twoDeltaZ) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1718,6 +1792,7 @@
                     end do
                   end if
                 else
+! loopsgt( u(i1+im1,i2+im2,i3+im3,n3)=u(i1+ip1,i2+ip2,i3+ip3,n3) +((2*side-1)*twoDeltaZ/b3)*( b1*vData(m1) - (u(i1+1,i2  ,i3  ,n1)-u(i1-1,i2  ,i3  ,n1))*(b1/twoDeltaX)- (u(i1  ,i2+1,i3  ,n2)-u(i1  ,i2-1,i3  ,n2))*(b2/twoDeltaY) ) )
                   if( useWhereMask.ne.0 )then
                     do i3=n3a,n3b
                     do i2=n2a,n2b
@@ -1751,6 +1826,9 @@
        !         **** Curvilinear generalized divergence ****
           if( bcOption.eq.scalarForcing )then
             if( nd.eq.2 )then
+! generalizedDivergenceCurvilinear2D(scalarData)
+! generalizedDivergenceCurvilinearLoops2D(((scalarData)- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2))
+! loopsgt4(temp=((scalarData)-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2),u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+b2*coeff(i1,i2,i3,1)*(temp), )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1783,6 +1861,9 @@
                   end do
                 end if
             else if( nd.eq.3 )then
+! generalizedDivergenceCurvilinear3D(scalarData)
+! generalizedDivergenceCurvilinearLoops3D(((scalarData)- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2))
+! loopsgt4(temp=((scalarData)-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+b2*coeff(i1,i2,i3,1)*(temp), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+b3*coeff(i1,i2,i3,2)*(temp))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1819,6 +1900,9 @@
                   end do
                 end if
             else
+! generalizedDivergenceCurvilinear1D(scalarData)
+! generalizedDivergenceCurvilinearLoops1D(((scalarData)- (b1*v(i1,i2,i3,n1)))/  ((b1*coeff(i1,i2,i3,0))**2))
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(((scalarData)-(b1*v(i1,i2,i3,n1)))/((b1*coeff(i1,i2,i3,0))**2)))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1845,6 +1929,9 @@
             end if
           else if( bcOption.eq.gfForcing )then
             if( nd.eq.2 )then
+! generalizedDivergenceCurvilinear2D(b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2))
+! generalizedDivergenceCurvilinearLoops2D(((b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2))- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2))
+! loopsgt4(temp=((b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2))-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2),u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+b2*coeff(i1,i2,i3,1)*(temp), )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1879,6 +1966,9 @@
                   end do
                 end if
             else if( nd.eq.3 )then
+! generalizedDivergenceCurvilinear3D(b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3))
+! generalizedDivergenceCurvilinearLoops3D(((b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3))- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2))
+! loopsgt4(temp=((b1*gfData(i1,i2,i3,m1)+b2*gfData(i1,i2,i3,m2)+b3*gfData(i1,i2,i3,m3))-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+b2*coeff(i1,i2,i3,1)*(temp), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+b3*coeff(i1,i2,i3,2)*(temp))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1917,6 +2007,9 @@
                   end do
                 end if
             else
+! generalizedDivergenceCurvilinear1D(b1*gfData(i1,i2,i3,m1))
+! generalizedDivergenceCurvilinearLoops1D(((b1*gfData(i1,i2,i3,m1))- (b1*v(i1,i2,i3,n1)))/  ((b1*coeff(i1,i2,i3,0))**2))
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(((b1*gfData(i1,i2,i3,m1))-(b1*v(i1,i2,i3,n1)))/((b1*coeff(i1,i2,i3,0))**2)))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1943,6 +2036,9 @@
             end if
           else if( bcOption.eq.arrayForcing )then
             if( nd.eq.2 )then
+! generalizedDivergenceCurvilinear2D(b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid))
+! generalizedDivergenceCurvilinearLoops2D(((b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid))- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2))
+! loopsgt4(temp=((b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid))-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2),u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+b2*coeff(i1,i2,i3,1)*(temp), )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -1977,6 +2073,9 @@
                   end do
                 end if
             else if( nd.eq.3 )then
+! generalizedDivergenceCurvilinear3D(b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid))
+! generalizedDivergenceCurvilinearLoops3D(((b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid))- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2))
+! loopsgt4(temp=((b1*fData(m1,side,axis,grid)+b2*fData(m2,side,axis,grid)+b3*fData(m3,side,axis,grid))-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+b2*coeff(i1,i2,i3,1)*(temp), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+b3*coeff(i1,i2,i3,2)*(temp))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -2015,6 +2114,9 @@
                   end do
                 end if
             else
+! generalizedDivergenceCurvilinear1D(b1*fData(m1,side,axis,grid))
+! generalizedDivergenceCurvilinearLoops1D(((b1*fData(m1,side,axis,grid))- (b1*v(i1,i2,i3,n1)))/  ((b1*coeff(i1,i2,i3,0))**2))
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(((b1*fData(m1,side,axis,grid))-(b1*v(i1,i2,i3,n1)))/((b1*coeff(i1,i2,i3,0))**2)))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -2041,6 +2143,9 @@
             end if
           else if( bcOption.eq.vectorForcing )then
             if( nd.eq.2 )then
+! generalizedDivergenceCurvilinear2D(b1*vData(m1)+b2*vData(m2))
+! generalizedDivergenceCurvilinearLoops2D(((b1*vData(m1)+b2*vData(m2))- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2))
+! loopsgt4(temp=((b1*vData(m1)+b2*vData(m2))-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2),u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+b2*coeff(i1,i2,i3,1)*(temp), )
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -2075,6 +2180,9 @@
                   end do
                 end if
             else if( nd.eq.3 )then
+! generalizedDivergenceCurvilinear3D(b1*vData(m1)+b2*vData(m2)+b3*vData(m3))
+! generalizedDivergenceCurvilinearLoops3D(((b1*vData(m1)+b2*vData(m2)+b3*vData(m3))- (b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/  ((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2))
+! loopsgt4(temp=((b1*vData(m1)+b2*vData(m2)+b3*vData(m3))-(b1*v(i1,i2,i3,n1)+b2*v(i1,i2,i3,n2)+b3*v(i1,i2,i3,n3)))/((b1*coeff(i1,i2,i3,0))**2+(b2*coeff(i1,i2,i3,1))**2+(b3*coeff(i1,i2,i3,2))**2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+b1*coeff(i1,i2,i3,0)*(temp), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+b2*coeff(i1,i2,i3,1)*(temp), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+b3*coeff(i1,i2,i3,2)*(temp))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -2113,6 +2221,9 @@
                   end do
                 end if
             else
+! generalizedDivergenceCurvilinear1D(b1*vData(m1))
+! generalizedDivergenceCurvilinearLoops1D(((b1*vData(m1))- (b1*v(i1,i2,i3,n1)))/  ((b1*coeff(i1,i2,i3,0))**2))
+! loopsgt(u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+b1*coeff(i1,i2,i3,0)*(((b1*vData(m1))-(b1*v(i1,i2,i3,n1)))/((b1*coeff(i1,i2,i3,0))**2)))
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b

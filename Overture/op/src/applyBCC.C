@@ -104,6 +104,17 @@ for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
+// loop over boundary and ghost: 
+#define FOR_4D_BG(m,i1,i2,i3,M,I1,I2,I3, i1m,i2m,i3m,I1m,I2m,I3m)	\
+int mBase=M.getBase(), mBound=M.getBound(); \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+int I1mBase =I1m.getBase(),   I2mBase =I2m.getBase(),  I3mBase =I3m.getBase();  \
+for(int i3=I3Base, i3m=I3mBase; i3<=I3Bound; i3++, i3m++)				\
+  for(int i2=I2Base, i2m=I2mBase; i2<=I2Bound; i2++, i2m++)			\
+    for(int i1=I1Base, i1m=I1mBase; i1<=I1Bound; i1++, i1m++)			\
+for(m=mBase; m<=mBound; m++)
+
 
 static real extrapCoeff[10][10] = 
                    {
@@ -343,6 +354,24 @@ applyBoundaryConditionCoefficients(realMappedGridFunction & uCoeff,
 			 bcType==BCTypes::extrapolateTangentialComponent1 ); 
 
 
+
+  const int spatiallyVaryingCoefficients = bcParams.getVariableCoefficientOption()==BoundaryConditionParameters::spatiallyVaryingCoefficients;
+  if( (bool)spatiallyVaryingCoefficients )
+  {
+    // printF("*** MGOP::applyBoundaryConditionCoefficients:spatiallyVaryingCoefficients\n");
+    assert( bcParams.getVariableCoefficientsArray()!=NULL );
+  }
+  // Variable Coefficients:
+  const realSerialArray & vc = spatiallyVaryingCoefficients ? *bcParams.getVariableCoefficientsArray() : coeff;
+
+  if( (bool)spatiallyVaryingCoefficients && bcType!=BCTypes::mixed )
+  {
+    printF("*** MGOP::applyBoundaryConditionCoefficients:ERROR spatiallyVaryingCoefficients "
+           "only implemented for the mixed BC, bcTtype=%i\n",(int)bcType);
+    OV_ABORT("error");
+  }
+  
+
   const bool useNewVersion=true;  // avoid use of the merge macro
 
   for( axis=axisStart; axis<=axisEnd; axis++ )
@@ -515,6 +544,13 @@ applyBoundaryConditionCoefficients(realMappedGridFunction & uCoeff,
         #undef OPZS
         #define OPZS(i0,i1,i2,i3) opZp[i0+opZDim0*(i1+opZDim1*(i2+opZDim2*(i3)))]
 
+        real *vcp = vc.Array_Descriptor.Array_View_Pointer3;
+        const int vcDim0=vc.getRawDataSize(0);
+        const int vcDim1=vc.getRawDataSize(1);
+        const int vcDim2=vc.getRawDataSize(2);
+        #undef VC
+        #define VC(i0,i1,i2,i3) vcp[i0+vcDim0*(i1+vcDim1*(i2+vcDim2*(i3)))]
+
         n=0;
         if( !isRectangular )
 	{ // multiply by the normal
@@ -568,7 +604,7 @@ applyBoundaryConditionCoefficients(realMappedGridFunction & uCoeff,
           coeff(ME,I1m,I2m,I3m)=0.;  // zero out boundary equation
 
 	if( bcType==BCTypes::neumann )
-	  { 
+	{ 
 	  if( numberOfDimensions==1 || rectangular )
   	    coeff(M0,I1m,I2m,I3m)=opX;
 	  else if( numberOfDimensions==2 )
@@ -584,9 +620,12 @@ applyBoundaryConditionCoefficients(realMappedGridFunction & uCoeff,
 	else
 	{
 	  // mixed BC: alpha*u + beta*u.n
-          real alpha, beta;
+          real alpha=0., beta=1.;
 	  //kkc 060816 sometimes alpha and beta are specified for each side
-	  if ( bcParams.a.getLength(1)>1 && bcParams.a.getLength(0)>=2 )
+	  if( spatiallyVaryingCoefficients )
+	  {
+	  }
+	  else if ( bcParams.a.getLength(1)>1 && bcParams.a.getLength(0)>=2 )
           {
 	    alpha = bcParams.a(0,side,axis);
 	    beta  = bcParams.a(1,side,axis);
@@ -598,19 +637,53 @@ applyBoundaryConditionCoefficients(realMappedGridFunction & uCoeff,
 	  }
 	  else
 	  {
-	    printf("MappedGridOperators::applyBoundaryConditionCoefficients ERROR applying mixed BC\n");
-	    printf(" The coefficients for `a' must be set in the BoundaryConditionParameters\n");
-	    exit(1);
+	    printF("MappedGridOperators::applyBoundaryConditionCoefficients ERROR applying mixed BC\n");
+	    printF(" The coefficients for `a' must be set in the BoundaryConditionParameters\n");
+	    OV_ABORT("error");
 	  }
 
           assignCoefficients(identityOperator,coeff,I1m,I2m,I3m,e0,c0);
-	  if( numberOfDimensions==1 || rectangular )
-	    coeff(M0,I1m,I2m,I3m)=beta*opX+alpha*coeff(M0,I1m,I2m,I3m);
-	  else if( numberOfDimensions==2 )
-	    coeff(M0,I1m,I2m,I3m)=beta*(opX+opY)+alpha*coeff(M0,I1m,I2m,I3m);
-	  else
-	    coeff(M0,I1m,I2m,I3m)=beta*(opX+opY+opZ)+alpha*coeff(M0,I1m,I2m,I3m);
+	  if( spatiallyVaryingCoefficients )
+	  {
+            // variable coefficients:
+	    if( numberOfDimensions==1 || rectangular )
+	    {
+              FOR_4D_BG(m,i1,i2,i3,M,I1,I2,I3, i1m,i2m,i3m,I1m,I2m,I3m)
+	      {
+		COEFF(m,i1m,i2m,i3m)=VC(i1,i2,i3,1)*OPXS(m,i1,i2,i3) 
+                                   + VC(i1,i2,i3,0)*COEFF(m,i1m,i2m,i3m);
+	      }
 
+	    }
+	    else if( numberOfDimensions==2 )
+	    {
+              FOR_4D_BG(m,i1,i2,i3,M,I1,I2,I3, i1m,i2m,i3m,I1m,I2m,I3m)
+	      {
+		COEFF(m,i1m,i2m,i3m)=VC(i1,i2,i3,1)*(OPXS(m,i1,i2,i3)+OPYS(m,i1,i2,i3))
+                                   + VC(i1,i2,i3,0)*COEFF(m,i1m,i2m,i3m);
+	      }
+	    }
+	    else
+	    {
+              FOR_4D_BG(m,i1,i2,i3,M,I1,I2,I3, i1m,i2m,i3m,I1m,I2m,I3m)
+	      {
+		COEFF(m,i1m,i2m,i3m)=VC(i1,i2,i3,1)*(OPXS(m,i1,i2,i3)+OPYS(m,i1,i2,i3)+OPZS(m,i1,i2,i3))
+                                   + VC(i1,i2,i3,0)*COEFF(m,i1m,i2m,i3m);
+	      }
+	    }
+	    
+	  }
+	  else
+	  {
+	    // constant coefficients 
+	    if( numberOfDimensions==1 || rectangular )
+	      coeff(M0,I1m,I2m,I3m)=beta*opX+alpha*coeff(M0,I1m,I2m,I3m);
+	    else if( numberOfDimensions==2 )
+	      coeff(M0,I1m,I2m,I3m)=beta*(opX+opY)+alpha*coeff(M0,I1m,I2m,I3m);
+	    else
+	      coeff(M0,I1m,I2m,I3m)=beta*(opX+opY+opZ)+alpha*coeff(M0,I1m,I2m,I3m);
+	  }
+	  
 	  for( c=C.getBase(); c<=C.getBound(); c++ )                        
 	    for( ee=E.getBase(); ee<=E.getBound(); ee++ )                        
               if( c!=c0 || ee!=e0 )

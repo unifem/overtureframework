@@ -30,15 +30,18 @@ $order=2; $factor=1; $interp="i"; $name=""; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $rgd="var";   
 $deltaRadius0=-1.;  # If set >0 then use this value instead of the default
+$numGhost=-1;  # if this value is set, then use this number of ghost points
 GetOptions( "order=i"=>\$order,"factor=f"=>\$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,\
             "angle=f"=> \$pipeAngle,"startAngle=f"=> \$pipeAngleStart,"interp=s"=> \$interp,\
-            "option=s"=> \$option,"rgd=s"=> \$rgd,"name=s"=> \$name,"deltaRadius0=f"=> \$deltaRadius0);
+            "option=s"=> \$option,"rgd=s"=> \$rgd,"name=s"=> \$name,"deltaRadius0=f"=> \$deltaRadius0,"numGhost=i"=>\$numGhost);
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 * 
 $suffix = ".order$order"; 
+if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
+if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 $prefix = "innerOuter"; 
 if( $option ne "" ){ $prefix = $option . "CurvedPipe"; }
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
@@ -150,7 +153,7 @@ generate an overlapping grid
       done
     ghost points 
       all 
-      2 2 2 2 
+      $ng $ng $ng $ng $ng $ng
     order of accuracy
      $orderOfAccuracy
     interpolation type

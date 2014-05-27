@@ -121,17 +121,7 @@ saveShow( GridFunction & gf0 )
 ---- */
 
 
-  // first count the number of variables we are going to save
-    int numberOfShowVariables=0;
-    int i;
-    for( i=0; showVariableName[i]!=""; i++ )
-        if( showVariable(i)>=0 )
-            numberOfShowVariables++;
-    Range all;
-    realCompositeGridFunction q(cg0,all,all,all,numberOfShowVariables);  
-    q.setOperators(*gf0.u.getOperators());
-
-  // save some parameters for a restart
+ // save some parameters for a restart
     if( putToDataBase )
     { 
         assert( dbp!=NULL );
@@ -189,80 +179,107 @@ saveShow( GridFunction & gf0 )
     }
     
 
-    aString solutionName[1] = { "u" }; // *******************************************
-    q.setName(solutionName[0]);                           // name grid function
 
-    bool ok;
-    const int includeGhost=1;
-
-    Index I1,I2,I3;
-    int grid;
-    i=-1;
-    for( int n=0; showVariableName[n]!=""; n++ )
+    const bool saveAugmentedSolutionToShowFile = parameters.dbase.get<bool>("saveAugmentedSolutionToShowFile");
+    realCompositeGridFunction q;
+    if( saveAugmentedSolutionToShowFile )
     {
-
-    // printF(" n=%i showVariableName=%s showVariable=%i\n",n,(const char*)(showVariableName[n]),showVariable(n));
+    // --  New default way  --
+    // Save variables that are in the augmented solution
+        printP("*** saveShow:   saveAugmentedSolutionToShowFile ***\n");
         
-        if( showVariable(n)< 0 )
-            continue;
+        realCompositeGridFunction & u = getAugmentedSolution(gf0,q);
 
-        i++;
+    }
+    else
+    {
+    // *** OLD WAY ***
+
+    // first count the number of variables we are going to save
+        int numberOfShowVariables=0;
+        int i;
+        for( i=0; showVariableName[i]!=""; i++ )
+            if( showVariable(i)>=0 )
+      	numberOfShowVariables++;
+        Range all;
+        q.updateToMatchGrid(cg0,all,all,all,numberOfShowVariables);  
+        q.setOperators(*gf0.u.getOperators());
+
+  
+        aString solutionName[1] = { "u" }; // *******************************************
+        q.setName(solutionName[0]);                           // name grid function
+
+        bool ok;
+        const int includeGhost=1;
+
+        Index I1,I2,I3;
+        int grid;
+        i=-1;
+        for( int n=0; showVariableName[n]!=""; n++ )
+        {
+
+      // printF(" n=%i showVariableName=%s showVariable=%i\n",n,(const char*)(showVariableName[n]),showVariable(n));
         
-        q.setName( showVariableName[n],i);
+            if( showVariable(n)< 0 )
+      	continue;
+
+            i++;
+        
+            q.setName( showVariableName[n],i);
 
 
 
 
-        if( showVariable(n) < parameters.dbase.get<int >("numberOfComponents") )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+            if( showVariable(n) < parameters.dbase.get<int >("numberOfComponents") )
             {
-        // q[grid](all,all,all,i)=u[grid](all,all,all,showVariable(n)); // *wdh* 061013
-                getIndex(cg0[grid].dimension(),I1,I2,I3);
-                    #ifdef USE_PPP
-                      realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
-                      realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
-                    #else
-                      realSerialArray & qg = q[grid];
-                      realSerialArray & ug = u[grid];
-                    #endif
-                  ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
-                  if( !ok ) continue;  
-                qg(I1,I2,I3,i)=ug(I1,I2,I3,showVariable(n));
-            }
-            
-        }
-        else if( showVariableName[n]=="p" )
-        {
-            if( tc>=0 && parameters.getDerivedFunction("pressure",u,q,i,gf0.t,parameters)==0 )
-            {
-	// we could compute it from a derived function implementation
-            }
-            else if ( pc>=0 ) 
-            { // the pc index actually marks the pressure variable
       	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
       	{
-	  // q[grid](all,all,all,i)=u[grid](all,all,all,pc);         
+	  // q[grid](all,all,all,i)=u[grid](all,all,all,showVariable(n)); // *wdh* 061013
         	  getIndex(cg0[grid].dimension(),I1,I2,I3);
-                    #ifdef USE_PPP
-                      realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
-                      realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
-                    #else
-                      realSerialArray & qg = q[grid];
-                      realSerialArray & ug = u[grid];
-                    #endif
-                  ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
-                  if( !ok ) continue;  
-        	  qg(I1,I2,I3,i)=ug(I1,I2,I3,pc);
+                #ifdef USE_PPP
+                            realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
+                            realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
+                #else
+                            realSerialArray & qg = q[grid];
+                            realSerialArray & ug = u[grid];
+                #endif
+                            ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;  
+        	  qg(I1,I2,I3,i)=ug(I1,I2,I3,showVariable(n));
       	}
-            }
-            else
-            {
-      	cout << "saveShow: I don't know how to compute the pressure from the variables being used\n";
-      	Overture::abort("error");
-            }
             
-    // kkc 070126 XXXX BILL : is it ok to comment these lines out... it is quite a special case
+            }
+            else if( showVariableName[n]=="p" )
+            {
+      	if( tc>=0 && parameters.getDerivedFunction("pressure",u,q,i,gf0.t,parameters)==0 )
+      	{
+	  // we could compute it from a derived function implementation
+      	}
+      	else if ( pc>=0 ) 
+      	{ // the pc index actually marks the pressure variable
+        	  for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+        	  {
+	    // q[grid](all,all,all,i)=u[grid](all,all,all,pc);         
+          	    getIndex(cg0[grid].dimension(),I1,I2,I3);
+                    #ifdef USE_PPP
+                                realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
+                                realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
+                    #else
+                                realSerialArray & qg = q[grid];
+                                realSerialArray & ug = u[grid];
+                    #endif
+                                ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
+                                if( !ok ) continue;  
+          	    qg(I1,I2,I3,i)=ug(I1,I2,I3,pc);
+        	  }
+      	}
+      	else
+      	{
+        	  cout << "saveShow: I don't know how to compute the pressure from the variables being used\n";
+        	  Overture::abort("error");
+      	}
+            
+	// kkc 070126 XXXX BILL : is it ok to comment these lines out... it is quite a special case
 //       if( cg0.numberOfComponentGrids()==1 && cg0.numberOfDimensions()==2 && !parameters.dbase.get<bool >("twilightZoneFlow") 
 //           && parameters.dbase.get<Parameters::PDE >("pde")==Parameters::incompressibleNavierStokes )
 //       {
@@ -289,37 +306,37 @@ saveShow( GridFunction & gf0 )
 //         printf("saveShow: mean(p) = %e, setting to zero \n",mean);
 // 	q[0](all,all,all,i)-=mean;
 //  }
-        }
-        else if( showVariableName[n]=="p.x" )
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-                q[grid](all,all,all,i)=u[grid].x()(all,all,all,pc);       
-        else if( showVariableName[n]=="p.y" )
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-                q[grid](all,all,all,i)=u[grid].y()(all,all,all,pc);       
-        else if( showVariableName[n]=="T" )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-            {
-      	getIndex(cg0[grid].dimension(),I1,I2,I3);
-                #ifdef USE_PPP
-                  realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
-                  realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
-                #else
-                  realSerialArray & qg = q[grid];
-                  realSerialArray & ug = u[grid];
-                #endif
-              ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
-              if( !ok ) continue;  
-                if( tc>= 0 )
-                    qg(I1,I2,I3,i)=ug(I1,I2,I3,tc);          // ***** may have to compute ****
-                else if( pc>=0 && rc>=0 )
-                    qg(I1,I2,I3,i)=ug(I1,I2,I3,pc)/(ug(I1,I2,I3,rc)*parameters.dbase.get<real >("Rg"));    
-                else
-      	{
-                    cout << "saveShow: unable to compute the temperature \n";
-                    Overture::abort("error");
-      	}
             }
+            else if( showVariableName[n]=="p.x" )
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+        	  q[grid](all,all,all,i)=u[grid].x()(all,all,all,pc);       
+            else if( showVariableName[n]=="p.y" )
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+        	  q[grid](all,all,all,i)=u[grid].y()(all,all,all,pc);       
+            else if( showVariableName[n]=="T" )
+            {
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+      	{
+        	  getIndex(cg0[grid].dimension(),I1,I2,I3);
+                #ifdef USE_PPP
+                            realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
+                            realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
+                #else
+                            realSerialArray & qg = q[grid];
+                            realSerialArray & ug = u[grid];
+                #endif
+                            ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;  
+        	  if( tc>= 0 )
+          	    qg(I1,I2,I3,i)=ug(I1,I2,I3,tc);          // ***** may have to compute ****
+        	  else if( pc>=0 && rc>=0 )
+          	    qg(I1,I2,I3,i)=ug(I1,I2,I3,pc)/(ug(I1,I2,I3,rc)*parameters.dbase.get<real >("Rg"));    
+        	  else
+        	  {
+          	    cout << "saveShow: unable to compute the temperature \n";
+          	    Overture::abort("error");
+        	  }
+      	}
             
 //       for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
 //         if( tc>= 0 )
@@ -331,94 +348,94 @@ saveShow( GridFunction & gf0 )
 //           cout << "saveShow: unable to compute the temperature \n";
 //           Overture::abort("error");
 // 	}
-        }
-        else if( showVariableName[n]=="Mach Number" )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+            }
+            else if( showVariableName[n]=="Mach Number" )
             {
-      	getIndex(cg0[grid].dimension(),I1,I2,I3);
-                #ifdef USE_PPP
-                  realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
-                  realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
-                #else
-                  realSerialArray & qg = q[grid];
-                  realSerialArray & ug = u[grid];
-                #endif
-              ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
-              if( !ok ) continue;  
-
-      	realSerialArray uSq;
-                if( cg0.numberOfDimensions()==1 ) 
-                    uSq=SQR(ug(all,all,all,uc));
-      	else if( cg0.numberOfDimensions()==2 )
-                    uSq=SQR(ug(all,all,all,uc))+SQR(ug(all,all,all,vc));
-      	else
-                    uSq=SQR(ug(all,all,all,uc))+SQR(ug(all,all,all,vc))+SQR(ug(all,all,all,wc));
-
-                if( tc>= 0 )
-                    qg(all,all,all,i)=SQRT(uSq/(parameters.dbase.get<real >("gamma")*parameters.dbase.get<real >("Rg")*ug(all,all,all,tc)));     
-                else if( pc>=0 && rc>=0 )
-                    qg(all,all,all,i)=SQRT(uSq/parameters.dbase.get<real >("gamma")*ug(all,all,all,pc)/ug(all,all,all,rc));    
-                else
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
       	{
-                    cout << "saveShow: unable to compute the Mach Number \n";
-                    Overture::abort("error");
+        	  getIndex(cg0[grid].dimension(),I1,I2,I3);
+                #ifdef USE_PPP
+                            realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
+                            realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
+                #else
+                            realSerialArray & qg = q[grid];
+                            realSerialArray & ug = u[grid];
+                #endif
+                            ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;  
+
+        	  realSerialArray uSq;
+        	  if( cg0.numberOfDimensions()==1 ) 
+          	    uSq=SQR(ug(all,all,all,uc));
+        	  else if( cg0.numberOfDimensions()==2 )
+          	    uSq=SQR(ug(all,all,all,uc))+SQR(ug(all,all,all,vc));
+        	  else
+          	    uSq=SQR(ug(all,all,all,uc))+SQR(ug(all,all,all,vc))+SQR(ug(all,all,all,wc));
+
+        	  if( tc>= 0 )
+          	    qg(all,all,all,i)=SQRT(uSq/(parameters.dbase.get<real >("gamma")*parameters.dbase.get<real >("Rg")*ug(all,all,all,tc)));     
+        	  else if( pc>=0 && rc>=0 )
+          	    qg(all,all,all,i)=SQRT(uSq/parameters.dbase.get<real >("gamma")*ug(all,all,all,pc)/ug(all,all,all,rc));    
+        	  else
+        	  {
+          	    cout << "saveShow: unable to compute the Mach Number \n";
+          	    Overture::abort("error");
+        	  }
       	}
             }
-        }
-        else if( showVariableName[n]=="divergence" )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+            else if( showVariableName[n]=="divergence" )
             {
-      	getIndex(cg0[grid].dimension(),I1,I2,I3);
-                #ifdef USE_PPP
-                  realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
-                  realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
-                #else
-                  realSerialArray & qg = q[grid];
-                  realSerialArray & ug = u[grid];
-                #endif
-              ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
-              if( !ok ) continue;  
-
-                RealArray div(I1,I2,I3);
-                Range V(uc,uc+cg0.numberOfDimensions()-1);
-                MappedGridOperators & op = *(u[grid].getOperators());
-      	op.derivative(MappedGridOperators::divergence,ug,div,I1,I2,I3,V);
-      	qg(I1,I2,I3,i)=div;
-
-      	if( cg0.numberOfDimensions()==2 && parameters.isAxisymmetric() )
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
       	{
-	  // div(u) = u.x + v.y + v/y for y>0   or u.x + 2 v.y at y=0
-                        #ifdef USE_PPP
-                          realSerialArray vertex; getLocalArrayWithGhostBoundaries(cg0[grid].vertex(),vertex);
-                        #else
-                          realSerialArray & vertex = cg0[grid].vertex();
-                        #endif
+        	  getIndex(cg0[grid].dimension(),I1,I2,I3);
+                #ifdef USE_PPP
+                            realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
+                            realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
+                #else
+                            realSerialArray & qg = q[grid];
+                            realSerialArray & ug = u[grid];
+                #endif
+                            ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;  
 
-        	  RealArray radiusInverse(I1,I2,I3);
-                    radiusInverse = 1./max(REAL_MIN,vertex(I1,I2,I3,axis2));
-        	  Index Ib1,Ib2,Ib3;
-        	  for( int axis=0; axis<cg0.numberOfDimensions(); axis++ )
+        	  RealArray div(I1,I2,I3);
+        	  Range V(uc,uc+cg0.numberOfDimensions()-1);
+        	  MappedGridOperators & op = *(u[grid].getOperators());
+        	  op.derivative(MappedGridOperators::divergence,ug,div,I1,I2,I3,V);
+        	  qg(I1,I2,I3,i)=div;
+
+        	  if( cg0.numberOfDimensions()==2 && parameters.isAxisymmetric() )
         	  {
-          	    for( int side=0; side<=1; side++ )
+	    // div(u) = u.x + v.y + v/y for y>0   or u.x + 2 v.y at y=0
+                    #ifdef USE_PPP
+                                realSerialArray vertex; getLocalArrayWithGhostBoundaries(cg0[grid].vertex(),vertex);
+                    #else
+                                realSerialArray & vertex = cg0[grid].vertex();
+                    #endif
+
+          	    RealArray radiusInverse(I1,I2,I3);
+          	    radiusInverse = 1./max(REAL_MIN,vertex(I1,I2,I3,axis2));
+          	    Index Ib1,Ib2,Ib3;
+          	    for( int axis=0; axis<cg0.numberOfDimensions(); axis++ )
           	    {
-            	      if( cg0[grid].boundaryCondition(side,axis)==Parameters::axisymmetric )
+            	      for( int side=0; side<=1; side++ )
             	      {
-            		getBoundaryIndex(cg0[grid].gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
-            		ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,Ib1,Ib2,Ib3,includeGhost);
-            		if( !ok ) continue;  
-            		radiusInverse(Ib1,Ib2,Ib3)=0.;
-                                RealArray uy(Ib1,Ib2,Ib3);
-            		op.derivative(MappedGridOperators::yDerivative,ug,uy,Ib1,Ib2,Ib3,vc);
-            		qg(Ib1,Ib2,Ib3,i)+=uy(Ib1,Ib2,Ib3);
+            		if( cg0[grid].boundaryCondition(side,axis)==Parameters::axisymmetric )
+            		{
+              		  getBoundaryIndex(cg0[grid].gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+              		  ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,Ib1,Ib2,Ib3,includeGhost);
+              		  if( !ok ) continue;  
+              		  radiusInverse(Ib1,Ib2,Ib3)=0.;
+              		  RealArray uy(Ib1,Ib2,Ib3);
+              		  op.derivative(MappedGridOperators::yDerivative,ug,uy,Ib1,Ib2,Ib3,vc);
+              		  qg(Ib1,Ib2,Ib3,i)+=uy(Ib1,Ib2,Ib3);
+            		}
             	      }
           	    }
+          	    qg(I1,I2,I3,i)+=ug(I1,I2,I3,vc)*radiusInverse;  // add v/y except on the axis of symmetry
         	  }
-        	  qg(I1,I2,I3,i)+=ug(I1,I2,I3,vc)*radiusInverse;  // add v/y except on the axis of symmetry
-      	}
       	
-            }
+      	}
             
 //       for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
 //         if( cg0.numberOfDimensions()==1 )
@@ -449,185 +466,188 @@ saveShow( GridFunction & gf0 )
 //         else
 //           q[grid](all,all,all,i)=u[grid].x()(all,all,all,uc)+u[grid].y()(all,all,all,vc)
 //                                 +u[grid].z()(all,all,all,wc);
-        }
-        else if( showVariableName[n]=="vorticity" || showVariableName[n]=="vorticityZ"  )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+            }
+            else if( showVariableName[n]=="vorticity" || showVariableName[n]=="vorticityZ"  )
             {
-      	getIndex(cg0[grid].dimension(),I1,I2,I3);
-                #ifdef USE_PPP
-                  realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
-                  realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
-                #else
-                  realSerialArray & qg = q[grid];
-                  realSerialArray & ug = u[grid];
-                #endif
-              ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
-              if( !ok ) continue;  
-
-                if( cg0.numberOfDimensions()==1 )
-                    qg(all,all,all,i)=0.;
-                else 
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
       	{
-        	  RealArray vx(I1,I2,I3),uy(I1,I2,I3);
-                    MappedGridOperators & op = *(u[grid].getOperators());
-            	  op.derivative(MappedGridOperators::xDerivative,ug,vx,I1,I2,I3,vc);
-            	  op.derivative(MappedGridOperators::yDerivative,ug,uy,I1,I2,I3,uc);
-                    qg(I1,I2,I3,i)=vx-uy;
-      	}
+        	  getIndex(cg0[grid].dimension(),I1,I2,I3);
+                #ifdef USE_PPP
+                            realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
+                            realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
+                #else
+                            realSerialArray & qg = q[grid];
+                            realSerialArray & ug = u[grid];
+                #endif
+                            ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;  
+
+        	  if( cg0.numberOfDimensions()==1 )
+          	    qg(all,all,all,i)=0.;
+        	  else 
+        	  {
+          	    RealArray vx(I1,I2,I3),uy(I1,I2,I3);
+          	    MappedGridOperators & op = *(u[grid].getOperators());
+          	    op.derivative(MappedGridOperators::xDerivative,ug,vx,I1,I2,I3,vc);
+          	    op.derivative(MappedGridOperators::yDerivative,ug,uy,I1,I2,I3,uc);
+          	    qg(I1,I2,I3,i)=vx-uy;
+        	  }
 //         if( cg0.numberOfDimensions()==1 )
 //           q[grid](all,all,all,i)=0.;
 //         else 
 //           q[grid](all,all,all,i)=u[grid].x()(all,all,all,vc)-u[grid].y()(all,all,all,uc); // flipped sign 030215
-            }
-            
-        }
-        else if( showVariableName[n]=="vorticityX" )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-                if( cg0.numberOfDimensions()<3 )
-                    q[grid](all,all,all,i)=0.;
-                else
-                    q[grid](all,all,all,i)=u[grid].y()(all,all,all,wc)-u[grid].z()(all,all,all,vc); // flipped sign 030215
-        }
-        else if( showVariableName[n]=="vorticityY" )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-                if( cg0.numberOfDimensions()<3 )
-                    q[grid](all,all,all,i)=0.;
-                else
-                    q[grid](all,all,all,i)=u[grid].z()(all,all,all,uc)-u[grid].x()(all,all,all,wc); // flipped sign 030215
-        }
-        else if( showVariableName[n]=="speed" )
-        {
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-            {
-      	getIndex(cg0[grid].dimension(),I1,I2,I3);
-                #ifdef USE_PPP
-                  realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
-                  realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
-                #else
-                  realSerialArray & qg = q[grid];
-                  realSerialArray & ug = u[grid];
-                #endif
-              ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
-              if( !ok ) continue;  
-                if( cg0.numberOfDimensions()==1 )
-                    qg(I1,I2,I3,i)=fabs(ug(I1,I2,I3,uc));
-                else if( cg0.numberOfDimensions()==2 )
-                    qg(I1,I2,I3,i)=SQRT( SQR(ug(I1,I2,I3,uc))+SQR(ug(I1,I2,I3,vc)) );
-                else
-                    qg(I1,I2,I3,i)=SQRT( SQR(ug(I1,I2,I3,uc))+SQR(ug(I1,I2,I3,vc))+SQR(ug(I1,I2,I3,wc)) );
-            }
-            
-        }
-        else if( showVariableName[n]=="minimumScale" )
-        {
-      // save the INVERSE of the scaled minimum scale: SQRT( |Du| / [nu *( 1/dr^2 + 1/ds^2 )] )
-            real nu = max(REAL_MIN,parameters.dbase.get<real >("nu"));
-            
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-            {
-                const RealArray & dr = cg0[grid].gridSpacing();
-                if( cg0.numberOfDimensions()==1 )
-                    q[grid](all,all,all,i)=SQRT(fabs(u[grid].x()(all,all,all,uc))* ((1./(nu*(1./SQR(dr(0)))))) );
-                else if( cg0.numberOfDimensions()==2 )
-      	{
-                    q[grid](all,all,all,i)=SQRT(
-          	    (fabs(u[grid].x()(all,all,all,uc))+fabs(u[grid].y()(all,all,all,uc))+
-           	     fabs(u[grid].x()(all,all,all,vc))+fabs(u[grid].y()(all,all,all,vc)))
-                                    *((1./(4.*.5*nu*( 1/SQR(dr(0)) + 1/SQR(dr(1)) ))))  ); // scale by number of terms in Du
       	}
-                else 
-      	{
-                    q[grid](all,all,all,i)=SQRT(
-          	    (fabs(u[grid].x()(all,all,all,uc))+fabs(u[grid].y()(all,all,all,uc))+fabs(u[grid].z()(all,all,all,uc))+
-           	     fabs(u[grid].x()(all,all,all,vc))+fabs(u[grid].y()(all,all,all,vc))+fabs(u[grid].z()(all,all,all,vc))+
-           	     fabs(u[grid].x()(all,all,all,wc))+fabs(u[grid].y()(all,all,all,wc))+fabs(u[grid].z()(all,all,all,wc)))
-          	    *((1./(9./3.*nu*( 1./SQR(dr(0)) + 1./SQR(dr(1)) +1./SQR(dr(2)) )))) );
-      	}
-        // printf(" **** grid=%i : max(min scale)=%e\n",grid,max(fabs(q[grid](all,all,all,i))));
-            }
-        }
-        else if( showVariableName[n]=="minimumScale1" || 
-                          showVariableName[n]=="minimumScale2" ||
-                          showVariableName[n]=="minimumScale3" )
-        {
-      // save the INVERSE of the scaled minimum scale: SQRT( |Du| / [nu *( 1/dr^2 + 1/ds^2 )] )
-            real nu = max(REAL_MIN,parameters.dbase.get<real >("nu"));
-            cg0.update(MappedGrid::THEvertexDerivative);
             
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+            }
+            else if( showVariableName[n]=="vorticityX" )
             {
-                const RealArray & dr = cg0[grid].gridSpacing();
-                const realMappedGridFunction & xr = cg0[grid].vertexDerivative();
-      	const realArray & v = u[grid];
-                const intArray & mask = cg0[grid].mask();
-      	
-                Index I1,I2,I3;
-
-                if( cg0.numberOfDimensions()==1 )
-      	{
-                    q[grid](all,all,all,i)=0.;
-      	}
-                else if( cg0.numberOfDimensions()==2 )
-      	{
-                    realArray du,uNorm,xr1Norm,dur1,xr2Norm,dur2;
-                    du =(fabs(u[grid].x()(all,all,all,uc))+fabs(u[grid].y()(all,all,all,uc))+
-                         				 fabs(u[grid].x()(all,all,all,vc))+fabs(u[grid].y()(all,all,all,vc)))*.25;
-                    
-                    const real eps = SQRT(REAL_MIN)*.01;
-        	  
-                    uNorm =max(eps,evaluate(SQRT( SQR(v(I1,I2,I3,uc))+SQR(v(I1,I2,I3,vc)))));
-        	  
-                    if( showVariableName[n]=="minimumScale1" )
-        	  {
-                        xr1Norm =max(eps,SQRT(SQRT(SQR(xr(I1,I2,I3,0,0))+SQR(xr(I1,I2,I3,1,0)))));
-                        dur1 = fabs( (v(I1,I2,I3,uc)*xr(I1,I2,I3,0,0)+v(I1,I2,I3,vc)*xr(I1,I2,I3,1,0))/(xr1Norm*uNorm) );
-
-            // display(v(I1,I2,I3,uc),"u");
-            // display(v(I1,I2,I3,vc),"v");
-	    // display(xr1Norm,"xr1Norm");
-	    // display(uNorm,"uNorm");
-	    // display(dur1,"dur1");
-	    // display(du,"du");
-          	    
-            // printf(" max(dur1)=%e, min(xr1Norm)=%e uNorm=%e\n",max(dur1),min(xr1Norm),min(uNorm));
-          	    
-                        q[grid](all,all,all,i)=SQRT( du*dur1*SQR(dr(0))/nu );
-        	  }
-        	  else if( showVariableName[n]=="minimumScale2" )
-        	  {
-                        xr2Norm =max(eps,SQRT(SQRT(SQR(xr(I1,I2,I3,0,1))+SQR(xr(I1,I2,I3,1,1)))));
-                        dur2 = fabs( (v(I1,I2,I3,uc)*xr(I1,I2,I3,0,1)+v(I1,I2,I3,vc)*xr(I1,I2,I3,1,1))/(xr2Norm*uNorm) );
-                        q[grid](all,all,all,i)=SQRT( du*dur2*SQR(dr(1))/nu );
-        	  }
-
-        	  where( mask(I1,I2,I3)==0 )
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+        	  if( cg0.numberOfDimensions()<3 )
           	    q[grid](all,all,all,i)=0.;
-          	    
-	  // display(q[grid](all,all,all,i),"q");
-        	  
-      	}
-                else 
+        	  else
+          	    q[grid](all,all,all,i)=u[grid].y()(all,all,all,wc)-u[grid].z()(all,all,all,vc); // flipped sign 030215
+            }
+            else if( showVariableName[n]=="vorticityY" )
+            {
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+        	  if( cg0.numberOfDimensions()<3 )
+          	    q[grid](all,all,all,i)=0.;
+        	  else
+          	    q[grid](all,all,all,i)=u[grid].z()(all,all,all,uc)-u[grid].x()(all,all,all,wc); // flipped sign 030215
+            }
+            else if( showVariableName[n]=="speed" )
+            {
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
       	{
-                    q[grid](all,all,all,i)=0.;
+        	  getIndex(cg0[grid].dimension(),I1,I2,I3);
+                #ifdef USE_PPP
+                            realSerialArray qg; getLocalArrayWithGhostBoundaries(q[grid],qg);
+                            realSerialArray ug; getLocalArrayWithGhostBoundaries(u[grid],ug);
+                #else
+                            realSerialArray & qg = q[grid];
+                            realSerialArray & ug = u[grid];
+                #endif
+                            ok = ParallelUtility::getLocalArrayBounds(q[grid],qg,I1,I2,I3,includeGhost);
+                            if( !ok ) continue;  
+        	  if( cg0.numberOfDimensions()==1 )
+          	    qg(I1,I2,I3,i)=fabs(ug(I1,I2,I3,uc));
+        	  else if( cg0.numberOfDimensions()==2 )
+          	    qg(I1,I2,I3,i)=SQRT( SQR(ug(I1,I2,I3,uc))+SQR(ug(I1,I2,I3,vc)) );
+        	  else
+          	    qg(I1,I2,I3,i)=SQRT( SQR(ug(I1,I2,I3,uc))+SQR(ug(I1,I2,I3,vc))+SQR(ug(I1,I2,I3,wc)) );
       	}
-        // printf(" **** grid=%i : max(min scale)=%e\n",grid,max(fabs(q[grid](all,all,all,i))));
+            
+            }
+            else if( showVariableName[n]=="minimumScale" )
+            {
+	// save the INVERSE of the scaled minimum scale: SQRT( |Du| / [nu *( 1/dr^2 + 1/ds^2 )] )
+      	real nu = max(REAL_MIN,parameters.dbase.get<real >("nu"));
+            
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+      	{
+        	  const RealArray & dr = cg0[grid].gridSpacing();
+        	  if( cg0.numberOfDimensions()==1 )
+          	    q[grid](all,all,all,i)=SQRT(fabs(u[grid].x()(all,all,all,uc))* ((1./(nu*(1./SQR(dr(0)))))) );
+        	  else if( cg0.numberOfDimensions()==2 )
+        	  {
+          	    q[grid](all,all,all,i)=SQRT(
+            	      (fabs(u[grid].x()(all,all,all,uc))+fabs(u[grid].y()(all,all,all,uc))+
+             	       fabs(u[grid].x()(all,all,all,vc))+fabs(u[grid].y()(all,all,all,vc)))
+            	      *((1./(4.*.5*nu*( 1/SQR(dr(0)) + 1/SQR(dr(1)) ))))  ); // scale by number of terms in Du
+        	  }
+        	  else 
+        	  {
+          	    q[grid](all,all,all,i)=SQRT(
+            	      (fabs(u[grid].x()(all,all,all,uc))+fabs(u[grid].y()(all,all,all,uc))+fabs(u[grid].z()(all,all,all,uc))+
+             	       fabs(u[grid].x()(all,all,all,vc))+fabs(u[grid].y()(all,all,all,vc))+fabs(u[grid].z()(all,all,all,vc))+
+             	       fabs(u[grid].x()(all,all,all,wc))+fabs(u[grid].y()(all,all,all,wc))+fabs(u[grid].z()(all,all,all,wc)))
+            	      *((1./(9./3.*nu*( 1./SQR(dr(0)) + 1./SQR(dr(1)) +1./SQR(dr(2)) )))) );
+        	  }
+	  // printf(" **** grid=%i : max(min scale)=%e\n",grid,max(fabs(q[grid](all,all,all,i))));
+      	}
+            }
+            else if( showVariableName[n]=="minimumScale1" || 
+             	       showVariableName[n]=="minimumScale2" ||
+             	       showVariableName[n]=="minimumScale3" )
+            {
+	// save the INVERSE of the scaled minimum scale: SQRT( |Du| / [nu *( 1/dr^2 + 1/ds^2 )] )
+      	real nu = max(REAL_MIN,parameters.dbase.get<real >("nu"));
+      	cg0.update(MappedGrid::THEvertexDerivative);
+            
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+      	{
+        	  const RealArray & dr = cg0[grid].gridSpacing();
+        	  const realMappedGridFunction & xr = cg0[grid].vertexDerivative();
+        	  const realArray & v = u[grid];
+        	  const intArray & mask = cg0[grid].mask();
+      	
+        	  Index I1,I2,I3;
+
+        	  if( cg0.numberOfDimensions()==1 )
+        	  {
+          	    q[grid](all,all,all,i)=0.;
+        	  }
+        	  else if( cg0.numberOfDimensions()==2 )
+        	  {
+          	    realArray du,uNorm,xr1Norm,dur1,xr2Norm,dur2;
+          	    du =(fabs(u[grid].x()(all,all,all,uc))+fabs(u[grid].y()(all,all,all,uc))+
+             		 fabs(u[grid].x()(all,all,all,vc))+fabs(u[grid].y()(all,all,all,vc)))*.25;
+                    
+          	    const real eps = SQRT(REAL_MIN)*.01;
+        	  
+          	    uNorm =max(eps,evaluate(SQRT( SQR(v(I1,I2,I3,uc))+SQR(v(I1,I2,I3,vc)))));
+        	  
+          	    if( showVariableName[n]=="minimumScale1" )
+          	    {
+            	      xr1Norm =max(eps,SQRT(SQRT(SQR(xr(I1,I2,I3,0,0))+SQR(xr(I1,I2,I3,1,0)))));
+            	      dur1 = fabs( (v(I1,I2,I3,uc)*xr(I1,I2,I3,0,0)+v(I1,I2,I3,vc)*xr(I1,I2,I3,1,0))/(xr1Norm*uNorm) );
+
+	      // display(v(I1,I2,I3,uc),"u");
+	      // display(v(I1,I2,I3,vc),"v");
+	      // display(xr1Norm,"xr1Norm");
+	      // display(uNorm,"uNorm");
+	      // display(dur1,"dur1");
+	      // display(du,"du");
+          	    
+	      // printf(" max(dur1)=%e, min(xr1Norm)=%e uNorm=%e\n",max(dur1),min(xr1Norm),min(uNorm));
+          	    
+            	      q[grid](all,all,all,i)=SQRT( du*dur1*SQR(dr(0))/nu );
+          	    }
+          	    else if( showVariableName[n]=="minimumScale2" )
+          	    {
+            	      xr2Norm =max(eps,SQRT(SQRT(SQR(xr(I1,I2,I3,0,1))+SQR(xr(I1,I2,I3,1,1)))));
+            	      dur2 = fabs( (v(I1,I2,I3,uc)*xr(I1,I2,I3,0,1)+v(I1,I2,I3,vc)*xr(I1,I2,I3,1,1))/(xr2Norm*uNorm) );
+            	      q[grid](all,all,all,i)=SQRT( du*dur2*SQR(dr(1))/nu );
+          	    }
+
+          	    where( mask(I1,I2,I3)==0 )
+            	      q[grid](all,all,all,i)=0.;
+          	    
+	    // display(q[grid](all,all,all,i),"q");
+        	  
+        	  }
+        	  else 
+        	  {
+          	    q[grid](all,all,all,i)=0.;
+        	  }
+	  // printf(" **** grid=%i : max(min scale)=%e\n",grid,max(fabs(q[grid](all,all,all,i))));
+      	}
+            }
+            else if( parameters.getDerivedFunction(showVariableName[n],u,q,i,gf0.t,parameters)==0 )
+            {
+	// the show file variable was found as a derived function
+            }
+            else 
+            {
+      	cout << "saveShow: unknown showVariableName = " << (const char*) showVariableName[n] << endl;
+      	for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
+        	  q[grid](all,all,all,i)=0.;
             }
         }
-        else if( parameters.getDerivedFunction(showVariableName[n],u,q,i,gf0.t,parameters)==0 )
-        {
-      // the show file variable was found as a derived function
-        }
-        else 
-        {
-            cout << "saveShow: unknown showVariableName = " << (const char*) showVariableName[n] << endl;
-            for( grid=0; grid<cg0.numberOfComponentGrids(); grid++ )
-                q[grid](all,all,all,i)=0.;
-        }
-    }
 
+
+    }   // ***** END OLD WAY *****
+    
   // fix this for parallel
     #ifndef USE_PPP
         q.interpolate();          // interpolate to get divergence correct  

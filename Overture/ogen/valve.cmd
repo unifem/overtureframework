@@ -7,6 +7,7 @@
 *                .12 tux231
 *                .063 tux291
 *                .047 (ansel)
+*                .033 (cg6)
 *
 create mappings
   *

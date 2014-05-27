@@ -16,9 +16,9 @@
 #     ogen noplot cicSplit -order=4 -factor=1
 #     ogen noplot cicSplit -order=4 -factor=2
 # 
-#     ogen noplot cicSplit -order=2 -interp=e -factor=2   ( creates cice2.order2.hdf)
-#     ogen noplot cicSplit -order=2 -interp=e -factor=3   ( creates cice3.order2.hdf)
-#     ogen noplot cicSplit -order=2 -interp=e -factor=4   ( creates cice4.order2.hdf)
+#     ogen noplot cicSplit -order=2 -interp=e -factor=2   ( creates cicSplite2.order2.hdf)
+#     ogen noplot cicSplit -order=2 -interp=e -factor=3   ( creates cicSplite3.order2.hdf)
+#     ogen noplot cicSplit -order=2 -interp=e -factor=4   ( creates cicSplite4.order2.hdf)
 #     ogen noplot cicSplit -order=2 -interp=e -factor=16    
 #     ogen noplot cicSplit -order=2 -interp=e -factor=32    
 #     ogen noplot cicSplit -order=2 -interp=e -factor=64   (6.2M pts)

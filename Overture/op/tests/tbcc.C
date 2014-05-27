@@ -804,6 +804,7 @@ main(int argc, char **argv)
     BCTypes::BCNames 
                                       dirichlet                  = BCTypes::dirichlet,
                                       neumann                    = BCTypes::neumann,
+                                      mixed                      = BCTypes::mixed,
                                       extrapolate                = BCTypes::extrapolate,
                                       normalComponent            = BCTypes::normalComponent,
                                       extrapolateNormalComponent = BCTypes::extrapolateNormalComponent,
@@ -897,7 +898,7 @@ main(int argc, char **argv)
             cout << "\n+++++++Checking component grid = " << grid 
                       << " (" << mg.getName() << ") +++++++" << endl;
 
-            mg.update(MappedGrid::THEcenter | MappedGrid::THEmask );
+            mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter | MappedGrid::THEmask );
             mg.update(MappedGrid::THEcenterBoundaryNormal | MappedGrid::THEcenterBoundaryTangent);
 
       // for derivativeScalarDerivative : **** fix this in the MGOP's
@@ -2121,9 +2122,9 @@ main(int argc, char **argv)
       	}
       	
 
-      // ****************************************************************
-      //       neumann
-      // ****************************************************************
+        // ****************************************************************
+        //       neumann
+        // ****************************************************************
                 int side,axis; 
       	
       	if( checkAll )
@@ -2132,9 +2133,9 @@ main(int argc, char **argv)
           	    mg.boundaryCondition()(all,all)=NEUMANN;
         	  time=CPU();
 
-//    coeff.updateToMatchGrid(mg,MappedGridFunction::updateCoefficientMatrix);
-//    realMappedGridFunction coeff(mg,stencilSize,all,all,all); 
-//  coeff.setIsACoefficientMatrix(TRUE,stencilSize);  
+          //    coeff.updateToMatchGrid(mg,MappedGridFunction::updateCoefficientMatrix);
+          //    realMappedGridFunction coeff(mg,stencilSize,all,all,all); 
+          //  coeff.setIsACoefficientMatrix(TRUE,stencilSize);  
         	  coeff=op.identityCoefficients();
         	  coeff.applyBoundaryConditionCoefficients(0,0,neumann,allBoundaries);
         	  coeff.finishBoundaryConditions();
@@ -2169,8 +2170,71 @@ main(int argc, char **argv)
         	  
       	}
       	
+        // ****************************************************************
+        //       mixed - variable coefficients
+        // ****************************************************************
+      	if( checkAll )
+      	{
+        	  where( mg.boundaryCondition() > 0 )
+          	    mg.boundaryCondition()(all,all)=NEUMANN;
+        	  time=CPU();
 
-	  // ****************************************************************
+        	  bcParams.setVariableCoefficientOption(  BoundaryConditionParameters::spatiallyVaryingCoefficients );
+
+        	  getIndex(mg.gridIndexRange(),I1,I2,I3);
+	  // varCoeff only needs to be allocated on the boundary but do this so we can assign all boundaries:
+        	  RealArray varCoeff(I1,I2,I3,2);  // holds variable coefficients
+        	  bcParams.setVariableCoefficientsArray( &varCoeff );        
+
+        	  OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+        	  varCoeff(I1,I2,I3,0)=1.+ .1*x(I1,I2,I3,0) - .1*x(I1,I2,I3,1);
+        	  varCoeff(I1,I2,I3,1)=2. + .1*SQR(x(I1,I2,I3,0)) + .05*SQR(x(I1,I2,I3,1));  // this value must not be zero
+
+
+        	  coeff=op.identityCoefficients();
+        	  coeff.applyBoundaryConditionCoefficients(0,0,mixed,allBoundaries,bcParams);
+        	  coeff.finishBoundaryConditions();
+        	  time=CPU()-time;
+
+        	  ForBoundary(side,axis)
+        	  {
+          	    if( mg.boundaryCondition()(side,axis) > 0 )
+          	    {
+            	      const realArray & normal = mg.centerBoundaryNormal(side,axis);
+            	      getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3);
+            	      if( mg.numberOfDimensions()==2 )
+            		f(Ig1,Ig2,Ig3)=varCoeff(Ib1,Ib2,Ib3,1)*(
+              		  normal(Ib1,Ib2,Ib3,0)*exact.x(mg,Ib1,Ib2,Ib3,0)
+              		  +normal(Ib1,Ib2,Ib3,1)*exact.y(mg,Ib1,Ib2,Ib3,0) )
+                                + varCoeff(Ib1,Ib2,Ib3,0)*exact(mg,Ib1,Ib2,Ib3,0);
+            	      else
+            		f(Ig1,Ig2,Ig3)=varCoeff(Ib1,Ib2,Ib3,1)*(
+              		  normal(Ib1,Ib2,Ib3,0)*exact.x(mg,Ib1,Ib2,Ib3,0)
+              		  +normal(Ib1,Ib2,Ib3,1)*exact.y(mg,Ib1,Ib2,Ib3,0)
+              		  +normal(Ib1,Ib2,Ib3,2)*exact.z(mg,Ib1,Ib2,Ib3,0) )
+                                  + varCoeff(Ib1,Ib2,Ib3,0)*exact(mg,Ib1,Ib2,Ib3,0) ;
+          	    }
+        	  }
+
+        	  res=123456789.;
+        	  residual(coeff,u,f,res);
+	  // display(res,"res after neumann");
+
+        	  error=getGhostError(mg,res);
+        	  worstError=max(worstError,error);
+	  // display(coeff,"coeff");
+	  // printf("Maximum error in neumann                           = %e, cpu=%e \n",error,time); 
+        	  checker.printMessage("mixed (var-coeff)", error, time );
+        	  
+	  // reset:
+        	  bcParams.setVariableCoefficientsArray( NULL ); 
+        	  bcParams.setVariableCoefficientOption( BoundaryConditionParameters::spatiallyConstantCoefficients );
+
+      	}
+      	
+
+	// ****************************************************************
 	//       normalDotScalarGrad
 	// ****************************************************************
 

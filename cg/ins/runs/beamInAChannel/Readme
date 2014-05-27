@@ -2,10 +2,18 @@ Incompressible flow past a beam
 
 
 (1) Build some  grids:
-    ogen -noplot beamInAChannelGrid -interp=e -factor=2
-    ogen -noplot beamInAChannelGrid -interp=e -factor=4
+    ogen -noplot beamInAChannelGrid -interp=e -xb=4 -yb=2 -factor=2
+    ogen -noplot beamInAChannelGrid -interp=e -xb=4 -yb=2 -factor=4
    
 
-(2) Run:
+(2) Run interactively:
 
 cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=1. -tp=.01
+
+(3) Run in batch and save a show file
+
+ cgins -noplot beamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show=beam4.show -go=go >! beam4.out
+
+(4) Plot results from the show file:
+
+  plotStuff plotBeamInAChannel.cmd -show=beam4.show

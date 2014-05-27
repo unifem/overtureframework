@@ -15,6 +15,7 @@
 #include "gridFunctionNorms.h"
 #include "AdvanceOptions.h"
 #include <stdarg.h>
+#include "OgmgParameters.h"
 
 //  --------------------------------------------------------------------------
 //     Base class functions for the DomainSolver
@@ -292,8 +293,19 @@ outputHeader()
       {
 	real tolerance;
 	int maximumNumberOfIterations;
-	pressureSolverParameters.get(OgesParameters::THErelativeTolerance,tolerance);
-	pressureSolverParameters.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+	if( poisson->parameters.getSolverType()!=OgesParameters::multigrid )
+	{
+	  pressureSolverParameters.get(OgesParameters::THErelativeTolerance,tolerance);
+	  pressureSolverParameters.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+	}
+	else
+	{
+	  OgmgParameters* ogmgPar = poisson->parameters.getOgmgParameters();
+	  assert( ogmgPar!=NULL );
+	  ogmgPar->get(OgmgParameters::THEresidualTolerance,tolerance);
+	  ogmgPar->get(OgmgParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+	}
+	
 	fPrintF(file,"                         : tolerance=%8.2e, max number of iterations=%i (0=choose default)\n",
 		tolerance,maximumNumberOfIterations);
       }
@@ -1227,9 +1239,20 @@ writeParameterSummary( FILE * file )
     {
       real tolerance;
       int maximumNumberOfIterations;
-      implicitTimeStepSolverParameters.get(OgesParameters::THEtolerance,tolerance);
-      implicitTimeStepSolverParameters.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
 	
+      if( implicitTimeStepSolverParameters.getSolverType()!=OgesParameters::multigrid )
+      {
+	implicitTimeStepSolverParameters.get(OgesParameters::THEtolerance,tolerance);
+	implicitTimeStepSolverParameters.get(OgesParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+      }
+      else
+      {
+	OgmgParameters* ogmgPar = implicitTimeStepSolverParameters.getOgmgParameters();
+	assert( ogmgPar!=NULL );
+	ogmgPar->get(OgmgParameters::THEresidualTolerance,tolerance);
+	ogmgPar->get(OgmgParameters::THEmaximumNumberOfIterations,maximumNumberOfIterations);
+      }
+
       fPrintF(file,"   Implicit solver =%s, tolerance=%e, max number of iterations=%s \n",
 	      (const char*)implicitTimeStepSolverParameters.getSolverName(),tolerance,
 	      maximumNumberOfIterations==0 ? "default" : 

@@ -6,7 +6,7 @@
 #  cgmx [-noplot] dielectricCyl  -g=<name> -tf=<tFinal> -tp=<tPlot> -kx=<num> -ky=<num> -kz=<num> -show=<name> ...
 #                                -eps1=<> -eps2=<> -interit=<> -diss=<> -filter=[0|1] -dissc=<> -debug=<num> ...
 #                                -cons=[0/1] -plotIntensity=[0|1] ...
-#                                -method=[nfdtd|Yee] -errorNorm=[0|1|2] -go=[run/halt/og]
+#                                -method=[nfdtd|Yee|sosup] -errorNorm=[0|1|2] -go=[run/halt/og]
 # Arguments:
 #  -kx= -ky= -kz= : integer wave numbers of the incident wave
 #  -interit : number of iterations to solve the interface equations 
@@ -43,6 +43,9 @@
 #   cgmx dielectricCyl -cyl=0 -g=bigBox1.order2 -kx=1 -eps1=.25 -eps2=1. -method=Yee -errorNorm=2 -tp=.01 -go=halt
 #   cgmx dielectricCyl -cyl=0 -g=bigBox2.order2 -kx=1 -eps1=.25 -eps2=1. -method=Yee -errorNorm=2 -tp=.01 -go=halt
 #   cgmx dielectricCyl -cyl=0 -g=bigBox8.order2 -kx=1 -eps1=.25 -eps2=1. -method=Yee -errorNorm=2 -cfl=.5 -tp=.01 -go=halt
+#
+# -- sosup
+#   cgmx dielectricCyl -g=innerOutere4.order4.hdf -kx=2 -eps1=.25 -eps2=1. -method=sosup -go=halt
 #
 # -- OLD: 
 #   cgmx dielectricCyl -g=innerOuter4.order2.hdf -kx=2 -eps1=.25 -eps2=1. -go=halt
@@ -96,6 +99,7 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"dissc=f"=>\$dissc,"
  "dtMax=f"=>\$dtMax,"kx=f"=>\$kx,"ky=f"=>\$ky,"kz=f"=>\$kz,"eps1=f"=>\$eps1,"eps2=f"=>\$eps2, "cons=i"=>\$cons,\
  "method=s"=>\$method,"dissOrder=i"=>\$dissOrder,"filter=i"=>\$filter );
 # -------------------------------------------------------------------------------------------------
+if( $method eq "sosup" ){ $diss=0.; }
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }
 if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
@@ -144,9 +148,9 @@ bc: all=dirichlet
 # NOTE: material interfaces have share>=100
 $cmd="#";
 if( $cyl eq 1 && $method ne "Yee" ){ $cmd = \
-  "coefficients $eps1 1. innerAnnulus (eps,mu,grid-name)\n" .\
+  "coefficients $eps1 1. innerAnnulus* (eps,mu,grid-name)\n" .\
   "coefficients $eps1 1. innerSquare (eps,mu,grid-name)\n" .\
-  "coefficients $eps2 1. outerAnnulus (eps,mu,grid-name)\n" .\
+  "coefficients $eps2 1. outerAnnulus* (eps,mu,grid-name)\n" .\
   "coefficients $eps2 1. outerSquare (eps,mu,grid-name)\n"; }
 if( $cyl eq 0 && $method ne "Yee" ){ $cmd = \
   "coefficients $eps1 1. inner* (eps,mu,grid-name)\n" .\

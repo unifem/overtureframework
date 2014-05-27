@@ -66,6 +66,7 @@
 <<square5/square/order=2/std/Dx1(sDx1)  >>                                                      : err = 0.0e+00
 <<square5/square/order=2/std/dirichlet>>                                                        : err = 0.0e+00
 <<square5/square/order=2/std/neumann>>                                                          : err = 0.0e+00
+<<square5/square/order=2/std/mixed (var-coeff)>>                                                : err = 0.0e+00
 <<square5/square/order=2/std/normalDotScalarGrad>>                                              : err = 0.0e+00
 <<square5/square/order=2/std/generalMixedDerivative>>                                           : err = 0.0e+00
 <<square5/square/order=2/std/normalComponent>>                                                  : err = 0.0e+00
@@ -172,6 +173,7 @@
 <<cic/square/order=2/std/Dx1(sDx1)  >>                                                          : err = 0.0e+00
 <<cic/square/order=2/std/dirichlet>>                                                            : err = 0.0e+00
 <<cic/square/order=2/std/neumann>>                                                              : err = 0.0e+00
+<<cic/square/order=2/std/mixed (var-coeff)>>                                                    : err = 0.0e+00
 <<cic/square/order=2/std/normalDotScalarGrad>>                                                  : err = 0.0e+00
 <<cic/square/order=2/std/generalMixedDerivative>>                                               : err = 0.0e+00
 <<cic/square/order=2/std/normalComponent>>                                                      : err = 0.0e+00
@@ -278,6 +280,7 @@
 <<cic/Annulus/order=2/std/Dx1(sDx1)  >>                                                         : err = 0.0e+00
 <<cic/Annulus/order=2/std/dirichlet>>                                                           : err = 0.0e+00
 <<cic/Annulus/order=2/std/neumann>>                                                             : err = 0.0e+00
+<<cic/Annulus/order=2/std/mixed (var-coeff)>>                                                   : err = 0.0e+00
 <<cic/Annulus/order=2/std/normalDotScalarGrad>>                                                 : err = 0.0e+00
 <<cic/Annulus/order=2/std/generalMixedDerivative>>                                              : err = 3.5e-02
 <<cic/Annulus/order=2/std/normalComponent>>                                                     : err = 0.0e+00
@@ -433,6 +436,7 @@
 <<sib/box/order=2/std/Dx2(sDx2)  >>                                                             : err = 0.0e+00
 <<sib/box/order=2/std/dirichlet>>                                                               : err = 0.0e+00
 <<sib/box/order=2/std/neumann>>                                                                 : err = 0.0e+00
+<<sib/box/order=2/std/mixed (var-coeff)>>                                                       : err = 0.0e+00
 <<sib/box/order=2/std/normalDotScalarGrad>>                                                     : err = 0.0e+00
 <<sib/box/order=2/std/generalMixedDerivative>>                                                  : err = 0.0e+00
 <<sib/box/order=2/std/normalComponent>>                                                         : err = 0.0e+00
@@ -604,6 +608,7 @@
 <<sib/north-pole/order=2/std/Dx2(sDx2)  >>                                                      : err = 0.0e+00
 <<sib/north-pole/order=2/std/dirichlet>>                                                        : err = 0.0e+00
 <<sib/north-pole/order=2/std/neumann>>                                                          : err = 0.0e+00
+<<sib/north-pole/order=2/std/mixed (var-coeff)>>                                                : err = 0.0e+00
 <<sib/north-pole/order=2/std/normalDotScalarGrad>>                                              : err = 0.0e+00
 <<sib/north-pole/order=2/std/generalMixedDerivative>>                                           : err = 1.2e-01
 <<sib/north-pole/order=2/std/normalComponent>>                                                  : err = 0.0e+00
@@ -775,6 +780,7 @@
 <<sib/south-pole/order=2/std/Dx2(sDx2)  >>                                                      : err = 0.0e+00
 <<sib/south-pole/order=2/std/dirichlet>>                                                        : err = 0.0e+00
 <<sib/south-pole/order=2/std/neumann>>                                                          : err = 0.0e+00
+<<sib/south-pole/order=2/std/mixed (var-coeff)>>                                                : err = 0.0e+00
 <<sib/south-pole/order=2/std/normalDotScalarGrad>>                                              : err = 0.0e+00
 <<sib/south-pole/order=2/std/generalMixedDerivative>>                                           : err = 1.8e-01
 <<sib/south-pole/order=2/std/normalComponent>>                                                  : err = 0.0e+00

@@ -115,6 +115,13 @@ initializeInterfaces()
   const int numberOfDimensions = cg.numberOfDimensions();
   const int numberOfComponentGrids = cg.numberOfComponentGrids();
 
+  int bcOrderOfAccuracy=orderOfAccuracyInSpace;
+  if( method==sosup && orderOfAccuracyInSpace==6 )
+  {
+    // NOTE: for now apply 4th order BC's for sosup order 6
+    bcOrderOfAccuracy=4;
+  }
+
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
   Index Jv[3], &J1=Jv[0], &J2=Jv[1], &J3=Jv[2];
 
@@ -266,7 +273,7 @@ initializeInterfaces()
 
     // allocate work-space
     int nrwk=0, niwk=0;
-    if( orderOfAccuracyInSpace==2 )
+    if( bcOrderOfAccuracy==2 )
     {
       if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
       {
@@ -274,7 +281,7 @@ initializeInterfaces()
 	niwk=  4*ndf;            // ipvt
       }
     }
-    else if( orderOfAccuracyInSpace==4 )
+    else if( bcOrderOfAccuracy==4 )
     {
                     
       nrwk= (8*8*2*ndf +       // a8, matrix at each point is (8,8), we need 2 copies
@@ -331,10 +338,10 @@ if( dir1!=dir2 )
 
 
 // stencil half width: (we copy points (-halfWidth,+halfWidth) 
-const int halfWidth= orderOfAccuracyInSpace/2;
+const int halfWidth= bcOrderOfAccuracy/2;
 // The total maximum extrapolation width is extrapWidth+1, e.g. extrapWidth=2 -> 1 3 3 1 extrapolation 
 // Here is the desired width for extrapolation: (we may not have enough room for this) (add 1 to get the order of extrapolation)
-const int extrapWidth=orderOfAccuracyInSpace;   
+const int extrapWidth=bcOrderOfAccuracy;   
 int extrapolationWidth1=extrapWidth;  // actual extrapolation width allowed for grid1 (changed below)
 int extrapolationWidth2=extrapWidth;  // actual extrapolation width allowed for grid2 (changed below)
 
@@ -615,7 +622,7 @@ realSerialArray & u2Local = u2;
 //    parallel1 : solve on grid 1 
 //    parallel2 : solve on grid 2
 // ============================================================================
-#beginMacro assignOptParameters(OPTION)
+#beginMacro assignOptParameters(OPTION,exa,eya,eza,hxa,hya,hza)
   int ipar[]={ //
     side1, dir1, grid1,         // keep side1,dir1 since we don't reverse the points.
     #If #OPTION eq "parallel2"
@@ -630,15 +637,15 @@ realSerialArray & u2Local = u2;
       m1a,m1b,m2a,m2b,m3a,m3b,
     #End
     gridType,            
-    orderOfAccuracyInSpace,    
+    bcOrderOfAccuracy,
     orderOfExtrapolation,
     useForcing,          
-    ex,                  
-    ey,                  
-    ez,                  
-    hx ,                 
-    hy,                  
-    hz,                  
+    exa,                  
+    eya,                  
+    eza,                  
+    hxa ,                 
+    hya,                  
+    hza,                  
     (int)solveForElectricField,          
     (int)solveForMagneticField,          
     useWhereMask,       
@@ -688,9 +695,9 @@ real rpar[]={ //
 //    parallel1 : solve on grid 1 
 //    parallel2 : solve on grid 2
 // ===============================================================================================
-#beginMacro assignOptInterface(OPTION)
+#beginMacro assignOptInterface(OPTION,ex,ey,ez,hx,hy,hz)
 
-assignOptParameters(OPTION);
+assignOptParameters(OPTION,ex,ey,ez,hx,hy,hz);
 
 // work space: 
 real *rwk=interface.rwk;
@@ -701,7 +708,7 @@ const int ndf = max(interface.ndf1,interface.ndf2);
 
 // assign pointers into the work spaces
 int pa2=0,pa4=0,pa8=0, pipvt2=0,pipvt4=0,pipvt8=0;
-if( orderOfAccuracyInSpace==2 )
+if( bcOrderOfAccuracy==2 )
 {
   if( !( mg1.numberOfDimensions()==3 ) )  // new 3D doesn't use work-space yet
   {
@@ -714,7 +721,7 @@ if( orderOfAccuracyInSpace==2 )
     pipvt8=0;
   }
 }
-else if( orderOfAccuracyInSpace==4 )
+else if( bcOrderOfAccuracy==4 )
 {
   pa2=0; // not used
   pa4=0;
@@ -845,6 +852,15 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
 
   bool interpolateThisDomain=false;  // set to true if we need to interpolate again after setting the interface values
   
+  bool reduceOrderOfAccuracyForSosup=true;
+
+  int bcOrderOfAccuracy=orderOfAccuracyInSpace;
+  if( reduceOrderOfAccuracyForSosup && method==sosup && orderOfAccuracyInSpace==6 )
+  {
+    // NOTE: for now apply 4th order BC's for sosup order 6
+    bcOrderOfAccuracy=4;
+  }
+
   //  ----------------------------
   //  --- loop over interfaces ---
   //  ----------------------------
@@ -1056,7 +1072,7 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
 //     };
 		  
 
-    if( orderOfAccuracyInSpace<6 )
+    if( bcOrderOfAccuracy<6 )
     { 
       // ------------------------------------
       // ----- order of accuracy <= 4 -------
@@ -1070,20 +1086,34 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
         if( ok1 )
 	{
           orderOfExtrapolation=extrapolationWidth1+1;
-	  assignOptInterface(parallel1);
+	  assignOptInterface(parallel1,ex,ey,ez,hx,hy,hz);
+	  if( method==sosup )
+	  { // for sosup we assign E.t
+	    assignOptInterface(parallel1,ext,eyt,ezt,hxt,hyt,hzt);
+	  }
 	  if( debug & 16 )
             ::display(u1Local,sPrintF("u1Local after assignOptInterface t=%8.2e",t),pDebugFile,"%5.2f ");
 	}
 	if( ok2 )
 	{
           orderOfExtrapolation=extrapolationWidth2+1;
-	  assignOptInterface(parallel2);
+	  assignOptInterface(parallel2,ex,ey,ez,hx,hy,hz);
+	  if( method==sosup )
+	  { // for sosup we assign E.t
+	    assignOptInterface(parallel2,ext,eyt,ezt,hxt,hyt,hzt);
+	  }
 	  if( debug & 16 )
             ::display(u1Local,sPrintF("u2Local after assignOptInterface t=%8.2e",t),pDebugFile,"%5.2f ");
 	}
       #else
         // serial
-        assignOptInterface(serial);
+        assignOptInterface(serial,ex,ey,ez,hx,hy,hz);
+        if( method==sosup )
+	{ // for sosup we assign E.t
+          // printF("Assign interface values for sosup: E.t at t=%9.3e\n",t);
+          assignOptInterface(serial,ext,eyt,ezt,hxt,hyt,hzt);
+	}
+	
       #endif
 
       
@@ -1092,10 +1122,12 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
     {
       // *** test the new interface routines for order of accuracy >= 6 
 
+      printF("Call new interface routines for order=%i at t=%9.3e\n",orderOfAccuracyInSpace,t);
+
       assert( mg1.numberOfDimensions()==2 );
 
       // macro: 
-      assignOptParameters(serial);
+      assignOptParameters(serial,ex,ey,ez,hx,hy,hz);
 
       newInterfaceMaxwell( mg1.numberOfDimensions(), 
 			   u1Local.getBase(0),u1Local.getBound(0),
@@ -1201,6 +1233,61 @@ assignInterfaceBoundaryConditions( int current, real t, real dt )
   
   } // end for inter
   
+
+  // This code is partially dupliated from assignBoundaryConditions.bC 
+  if( method==sosup )
+  {
+    // Extrapolate an extra ghost line for the wider upwind stencil in SOSUP
+    BoundaryConditionParameters extrapParams;
+
+    const int ghostEnd = (orderOfAccuracyInSpace/2)+1;  // last ghost line for sosup stencil
+
+    // NOTE: for now we impose at most 2 ghost lines with the 4th=order BC's 
+    // first ghost line for sosup stencil: 
+    //     ghostStart=2 for order=2
+    //     ghostStart=3 for order>2   *fix me* when 6'th order BC's are implemented
+    assert( !reduceOrderOfAccuracyForSosup || bcOrderOfAccuracy<=4 );
+    int ghostStart= min(3,ghostEnd);              
+    if( !reduceOrderOfAccuracyForSosup )
+      ghostStart=ghostEnd-1;
+
+    extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;  // what should this be ?
+
+    extrapParams.extraInTangentialDirections=ghostEnd;
+
+    Range Ca = cgfields[0][0].getLength(3); // all components
+
+    for( int grid=0; grid<numberOfComponentGrids; grid++ )
+    {
+      MappedGrid & mg = cg[grid];
+      realMappedGridFunction & u = cgfields[next][grid];
+      bool hasInterface=false;
+      for( int ghost=ghostStart; ghost<=ghostEnd; ghost++ )
+      {
+	extrapParams.ghostLineToAssign=ghost;
+	if( debug & 4 )
+	printF("assignInterface: sosup: extrap ghost-line %i to order %i\n",
+	       extrapParams.ghostLineToAssign,extrapParams.orderOfExtrapolation);
+
+	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	  for( int side=0; side<=1; side++ )
+	  {
+	    const int bc = mg.boundaryCondition(side,axis);
+	    if( bc==interfaceBoundaryCondition )
+	    {
+	      hasInterface=true;
+	      u.applyBoundaryCondition(Ca,BCTypes::extrapolate,BCTypes::boundary1+side+2*(axis),0.,t,extrapParams);
+	    }
+	  }
+      }
+
+      if( hasInterface && ( true || 
+               (bcOrderOfAccuracy==4 && orderOfAccuracyInSpace>4 ) || numberOfDimensions==3 ) )
+        cgfields[next][grid].periodicUpdate(); // This is needed for some reason
+    }
+    
+  }
+
 
   // **** NOTE: I think this is needed because we do not check the mask array when assigning
   //            interface points and thus over-write interpolation points.

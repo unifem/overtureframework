@@ -221,6 +221,11 @@ GraphicsParameters(bool default0)
   displacementComponent[1]=1;
   displacementComponent[2]=2;
 
+  // --- For Lagrangian solid-mechanics we can replace the Mapping with the Reference domain grid
+  //     to give the Physical space grid x = X + u 
+  dbase.put<bool>("adjustMappingForDisplacement");
+  dbase.get<bool>("adjustMappingForDisplacement")=false;
+
   colourTableFunction=&defaultColourTableFunction;
 
   showFileReader=NULL;  // pointer to an active ShowFileReader (if any)

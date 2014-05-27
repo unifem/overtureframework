@@ -15,6 +15,7 @@
 #   $ic : specify initial condition commands
 #   $bc : specify boundary condition commands
 #   $cnsGodunovOrder : 1 or 2
+#   $cnsSaveAugmented : if 1, save all augmented variables (those plotted interactively) to the show file.
 #   $slopeLimiter : 0=off, 1=on (default)
 #   $orderOfExtrapForOutflow :
 #   $orderOfExtrapForGhost2 :
@@ -24,6 +25,9 @@
 #   $moveCmds : commands for moving grids
 #   $extraCmds : extra commands
 #   $reduceInterpWidth : 2= reduce interpolation to 2, otherwise leave as is.
+#   $densityLowerBound : 
+#   $pressureLowerBound  :
+#   $velocityLimiterEps  :
 #   
 if( $cfl eq "" ){ $cfl=0.9; }
 if( $mu eq "" ){ $mu=0.; }
@@ -37,6 +41,7 @@ if( $errorNorm eq "" ){ $errorNorm="#"; }
 if( $moveCmds eq "" ){ $moveCmds="#"; }
 if( $extraCmds eq "" ){ $extraCmds="#"; }
 if( $cnsGodunovOrder eq "" ){ $cnsGodunovOrder=2;}
+if( $cnsSaveAugmented eq "" ){ $cnsSaveAugmented=0;}
 if( $degreex eq "" ){ $degreex=2;}
 if( $degreet eq "" ){ $degreet=2;}
 if( $cnsVariation eq "" ){ $cnsVariation="godunov";}  #
@@ -51,6 +56,7 @@ if( $orderOfExtrapForOutflow eq "" ){ $orderOfExtrapForOutflow=-1;  }  # -1 = de
 if( $orderOfExtrapForGhost2 eq "" ){  $orderOfExtrapForGhost2=1; }  
 if( $orderOfExtrapForInterpNeighbours eq "" ){ $orderOfExtrapForInterpNeighbours=1;  }  
 if( $checkForWallHeating eq "" ){ $checkForWallHeating=0; }
+if( $trigTzScaleFactor eq "" ){ $trigTzScaleFactor=1.; }
 # ------- start new domain ----------
 setup $domainName
  set solver Cgcns
@@ -81,9 +87,15 @@ $cnsts
 $tz
 degree in space $degreex
 degree in time $degreet
+OBTZ:trigonometric scale factor $trigTzScaleFactor
 frequencies (x,y,z,t)   $fx $fy $fz $ft
 $errorNorm
 $tzCmds
+# 
+show file options
+  save augmented variables $cnsSaveAugmented
+# pause
+exit
 #
 if( $reduceInterpWidth eq 2 ){ $cmd="reduce interpolation width\n 2"; }else{ $cmd="#"; }
 $cmd
@@ -100,7 +112,13 @@ $cmd
     OBPDE:boundary pressure offset $boundaryPressureOffset
     OBPDE:Godunov order of accuracy $cnsGodunovOrder
     check for wall heating $checkForWallHeating
-# pause
+    if( $densityLowerBound ne "" ){ $cmd="OBPDE:density lower bound $densityLowerBound"; }else{ $cmd="#"; }
+    $cmd
+    if( $pressureLowerBound ne "" ){ $cmd="OBPDE:pressure lower bound $pressureLowerBound"; }else{ $cmd="#"; }
+    $cmd
+    if( $velocityLimiterEps ne "" ){ $cmd="OBPDE:velocity limiter epsilon $velocityLimiterEps"; }else{ $cmd="#"; }
+    $cmd
+    # pause
   done
 ###############
 #   OBPDE:exact Riemann solver

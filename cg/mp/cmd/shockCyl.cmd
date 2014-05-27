@@ -9,8 +9,9 @@
 *  -ktcFluid -ktcSolid : thermal conductivities 
 *  -ts = time-stepping-method, be=backward-Euler, fe=forward-Euler, im=implicit-multistep
 *  -d1, -d2 : names for domains
-#  -godunovType : 0=linear, 2=SVK
-# 
+#  -godunovType : 0=linear, 1=LE(SVK-code) 2=SVK 4=neoHookean
+#  -piGhostOption : =extrap ghost, 1=compatibility for ghost at interfaces, 2=use exact, 3=use-domain solvers
+#  -piOption : 0=linear FSR, 1=nonlinear-FSR for the interface projection# 
 * Examples:
 * 
 *  --- shock hitting an elastic cylinder
@@ -46,6 +47,10 @@ $cnsEOS="ideal";
 $cnsGammaStiff=1.4; $cnsPStiff=0.;   # for stiffened EOS -- by default make it look like an ideal gas
 $lambdaSolid=1.; $muSolid=1.;
 $scf=1.; # solidScaleFactor : scale rho,mu and lambda by this amount 
+$tangentialStressDissipation=.5; $tangentialStressDissipation1=.5; # new 
+$displacementDissipation=.5; $displacementDissipation1=.5; 
+$tangentialDissipationSolid=-1.; # if >0 use this value for above 4 values
+#
 $thermalExpansivity=1.; $T0=1.; $Twall=1.;  $kappa=.01; $ktcSolid=-1.; $diss=.1;  $smVariation = "g";
 $tz="none"; $degreeSpace=1; $degreeTime=1;
 $gravity = "0 0. 0."; $boundaryPressureOffset=0.; $cnsGodunovOrder=2; 
@@ -55,7 +60,7 @@ $backGround="outerSquare"; $deformingGrid="interface";
 $ts="pc"; $numberOfCorrections=1;  # mp solver
 $coupled=0; $iTol=1.e-3; $iOmega=1.; $flushFrequency=400; $useNewInterfaceTransfer=0; 
 #
-$stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=0.; $tangentialStressDissipation=.5;
+$stressRelaxation=4; $relaxAlpha=.5; $relaxDelta=0.; 
 * 
 $solver="best"; 
 $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
@@ -63,7 +68,8 @@ $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
 #
 # ---- Shock Jump Conditions: ----
 #  (rho1,u1,T1) = state AHEAD of the shock
-$shockSpeed=1.5; 
+$shockSpeed=1.5;
+$Mshock=-1.; # specify shock Mach number if >0 , otherwise use $shockSpeed
 $gamma=1.4; $Rg=1.;
 $a1=1.; $rho1=1.; $u1=0.;  
 # For backward compatibility:
@@ -81,18 +87,21 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "cnsGodunovOrder=f"=>\$cnsGodunovOrder,"flushFrequency=i"=>\$flushFrequency,\
    "cnsEOS=s"=>\$cnsEOS,"cnsGammaStiff=f"=>\$cnsGammaStiff,"cnsPStiff=f"=>\$cnsPStiff,"adCns"=>\$adCns,\
    "useNewInterfaceTransfer=i"=>\$useNewInterfaceTransfer,"multiDomainAlgorithm=i"=>\$multiDomainAlgorithm,\
-   "pi=i"=>\$pi,"xShock=f"=>\$xShock,"uShock=f"=>\$uShock,"godunovType=i"=>\$godunovType,\
-   "shockSpeed=f"=>\$shockSpeed,"piOption=i"=>\$piOption,"piGhostOption=i"=>\$piGhostOption,"bcOption=i"=>\$bcOption );
+   "pi=i"=>\$pi,"xShock=f"=>\$xShock,"Mshock=f"=>\$Mshock,"uShock=f"=>\$uShock,"godunovType=i"=>\$godunovType,\
+   "shockSpeed=f"=>\$shockSpeed,"piOption=i"=>\$piOption,"piGhostOption=i"=>\$piGhostOption,"bcOption=i"=>\$bcOption,\
+   "a1=f"=>\$a1, "tangentialDissipationSolid=f"=>\$tangentialDissipationSolid );
 * -------------------------------------------------------------------------------------------------
 #  ---- Shock Jump Conditions: ----
 #  (rho1,u1,T1) = state BEHIND the shock
+if( $Mshock>0 ){ $shockSpeed=$Mshock*$a1; }else{ $Mshock=$shockSpeed/$a1; }
 $T1=$a1*$a1/($gamma*$Rg); $p1=$rho1*$Rg*$T1;
-$Mshock=$shockSpeed/$a1;
 $p2=$p1*( 1. +(2.*$gamma)/($gamma+1.)*( $Mshock*$Mshock -1. ));
 $rho2=$rho1/( 1. - 2./($gamma+1.)*(1. - 1./($Mshock*$Mshock) ) );
 $T2=$p2/($Rg*$rho2); 
 $u2=( $shockSpeed*($rho2-$rho1) + $rho1*$u1 )/$rho2;
 $pOffset=$p1; # NOTE
+#
+if( $tangentialDissipationSolid>0 ){ $tangentialStressDissipation=$tangentialDissipationSolid; $tangentialStressDissipation1=$tangentialDissipationSolid; $displacementDissipation=$tangentialDissipationSolid; $displacementDissipation1=$tangentialDissipationSolid; }
 #
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $ts eq "fe" ){ $ts="forward Euler"; }

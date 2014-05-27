@@ -189,6 +189,7 @@ getAugmentedSolution(int current, realCompositeGridFunction & v, const real t)
   // For the SVK model we compute the Cauchy stress
     const bool svkStressStrain = parameters.dbase.get<int >("pdeTypeForGodunovMethod")==2;
 
+    printF("*********** Cgsm:getAugmentedSolution t=%9.3e svkStressStrain=%i\n",t,svkStressStrain);
 
   // Determine the number of components to plot and the component numbers for the errors, etc.
   //    nErr : component where the error is stored

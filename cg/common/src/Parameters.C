@@ -250,6 +250,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("timeDependenceBoundaryConditionParameters")) dbase.put<RealArray>("timeDependenceBoundaryConditionParameters");
   if (!dbase.has_key("plotOption")) dbase.put<int>("plotOption");
   if (!dbase.has_key("tzDegreeSpace")) dbase.put<int>("tzDegreeSpace");
+  if (!dbase.has_key("trigonometricTwilightZoneScaleFactor")) dbase.put<real>("trigonometricTwilightZoneScaleFactor");
   if (!dbase.has_key("explicitMethod")) dbase.put<int>("explicitMethod");
   if (!dbase.has_key("useLocalTimeStepping")) dbase.put<int>("useLocalTimeStepping");
   if (!dbase.has_key("modelParameters")) dbase.put<DataBase>("modelParameters");
@@ -537,6 +538,8 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
 
   if (!dbase.has_key("showFileParams")) dbase.put<ListOfShowFileParameters>("showFileParams");
 
+  if( !dbase.has_key("saveAugmentedSolutionToShowFile") ) dbase.put<bool>("saveAugmentedSolutionToShowFile",0);
+
   // turn on the interactive grid generator (Ogen) for moving grids.
   if (!dbase.has_key("useInteractiveGridGenerator")) dbase.put<bool >("useInteractiveGridGenerator",false);
 
@@ -561,6 +564,9 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   dbase.get<realCompositeGridFunction* >("bodyForce")=NULL;
 
   if( !dbase.has_key("plotBodyForceMaskSurface") ) dbase.put<bool>("plotBodyForceMaskSurface",false);
+
+  // plot beams and shells
+  if( !dbase.has_key("plotStructures") ) dbase.put<bool>("plotStructures",false);
 
   // -- boundary forcing objects --
   if( !dbase.has_key("turnOnBoundaryForcing") ) dbase.put<bool >("turnOnBoundaryForcing",false);
@@ -809,6 +815,8 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   dbase.get<bool >("assignInitialConditionsWithTwilightZoneFlow")=true;
   dbase.get<bool >("userDefinedTwilightZoneCoefficients")=false;        // set to true if the user has assigned the coefficients
   
+  dbase.get<real>("trigonometricTwilightZoneScaleFactor")=1;  // scale factor for Trigonometric TZ
+
   dbase.get<int >("reducedInterpolationWidth")=0;  // set to  a positive value if width has been reduced.
   
   dbase.get<bool >("projectInitialConditions")=false;
@@ -2593,13 +2601,11 @@ updateShowFile(const aString & command /* = nullString */,
     addPrefix(label,prefix,cmd,maxCommands);
     dialog.addOptionMenu("mode", cmd, label, ( dbase.get<int >("useStreamMode")? 0 : 1));
 
-//     aString tbCommands[] = {"compressed",""};
-//     int tbState[10];
-//     tbState[0] = 0; // parameters.dbase.get<bool >("twilightZoneFlow");
-//     tbState[1] = 0; // parameters.dbase.get<bool >("projectInitialConditions");
-//     int numColumns=1;
-//     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
-
+    aString tbCommands[] = {"save augmented variables",""};
+    int tbState[10];
+    tbState[0] = dbase.get<bool>("saveAugmentedSolutionToShowFile");
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
     aString pbLabels[] = {"open","close",""};
     addPrefix(pbLabels,prefix,cmd,maxCommands);
@@ -2779,6 +2785,12 @@ updateShowFile(const aString & command /* = nullString */,
       }
       delete [] showMenu;
     }
+    else if( dialog.getToggleValue(answer,"save augmented variables",dbase.get<bool>("saveAugmentedSolutionToShowFile")) )
+    {
+      if( dbase.get<bool>("saveAugmentedSolutionToShowFile") )
+        printF("INFO: Saving all augmented solution variables (those plotted when running interactively) to the show file\n");
+    }
+
     else if( len=answer.matches("frequency to save sequences") )
     {
       sScanF(answer(len,answer.length()-1),"%i",& dbase.get<int >("frequencyToSaveSequenceInfo"));
@@ -3647,6 +3659,8 @@ setTwilightZoneParameters(CompositeGrid & cg,
     return 1;
 
   KnownSolutionsEnum & knownSolution = dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+  real & trigonometricTwilightZoneScaleFactor=
+         dbase.get<real>("trigonometricTwilightZoneScaleFactor");  // scale factor for Trigonometric TZ
 
   GUIState gui;
   gui.setWindowTitle("Twilight Zone Options");
@@ -3708,7 +3722,7 @@ setTwilightZoneParameters(CompositeGrid & cg,
     int numColumns=1;
     dialog.setToggleButtons(cmd, tbLabel, tbState, numColumns); 
 
-    const int numberOfTextStrings=7;
+    const int numberOfTextStrings=8;
     aString textLabels[numberOfTextStrings], textStrings[numberOfTextStrings];
 
     int nt=0;
@@ -3735,6 +3749,9 @@ setTwilightZoneParameters(CompositeGrid & cg,
 
     textLabels[nt] = "pulse velocity";
     sPrintF(textStrings[nt], "%g %g %g",pulseData[5],pulseData[6],pulseData[7]); nt++; 
+
+    textLabels[nt] = "trigonometric scale factor";
+    sPrintF(textStrings[nt], "%g",trigonometricTwilightZoneScaleFactor); nt++; 
 
 
     // null strings terminal list
@@ -3773,6 +3790,13 @@ setTwilightZoneParameters(CompositeGrid & cg,
       dbase.get<Parameters::TwilightZoneChoice >("twilightZoneChoice")=Parameters::polynomial;
       printF("use polynomial\n");
     }
+
+    else if( dialog.getTextValue(answer,"trigonometric scale factor","%e",trigonometricTwilightZoneScaleFactor) )
+    {
+      printF("Setting the scale factor for the trigonmetric TZ function to %9.3e\n",
+             trigonometricTwilightZoneScaleFactor);
+    }
+
     else if( answer.matches("trigonometric") )
     {
       dbase.get<Parameters::TwilightZoneChoice >("twilightZoneChoice")=Parameters::trigonometric;
@@ -3892,6 +3916,8 @@ setTwilightZoneParameters(CompositeGrid & cg,
       dialog.setTextLabel("pulse velocity",
                           sPrintF(answer2, "%g %g %g",pulseData[5],pulseData[6],pulseData[7]));
     }
+
+
     else if( answer=="assign polynomial coefficients" )
     {
       // printf(

@@ -46,6 +46,16 @@ applyBCgeneralMixedDerivative(realMappedGridFunction & u,
 
   RealDistributedArray uDotN(I1,I2,I3);
 
+  int spatiallyVaryingCoefficients = bcParameters.getVariableCoefficientOption()==BoundaryConditionParameters::spatiallyVaryingCoefficients;
+  if( (bool)spatiallyVaryingCoefficients )
+  {
+    printF("*** MGOP:applyBCgeneralMixedDerivative: ERROR: spatiallyVaryingCoefficients not implemented yet\n");
+    OV_ABORT("error");
+    assert( bcParameters.getVariableCoefficientsArray()!=NULL );
+  }
+
+
+
   n=uC.getBase(0); // ********* fix this ******
   Index M(0,int(pow(3,numberOfDimensions)+.5));
   if( bcParameters.a.getLength(0)<c.numberOfDimensions()+1 )

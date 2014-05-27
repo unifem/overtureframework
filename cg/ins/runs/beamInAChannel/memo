@@ -1,7 +1,7 @@
 ** 2014/05/23 -- fix bug in BeamModel.C 
 
 
-cgins -noplot beamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show=beam4.show -go=go >! beam4.out 
+nohup $cgins -noplot beamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show=beam4.show -go=go >! beam4.out 
 
     ogen -noplot beamInAChannelGrid -interp=e -factor=2
     ogen -noplot beamInAChannelGrid -interp=e -factor=4

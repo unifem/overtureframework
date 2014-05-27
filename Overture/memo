@@ -41,7 +41,10 @@ Changes:
                   and abort if any negative volumes are found.
    o 2013/11/22 - fixed the cgins AFS solver so that restarts can be made from a show file that has solutions
                   at a different grid resolution.
-   o 2013/11/30 - fixed a bug in Ogmg for singular problems with fourth-order accuracy - these did not well, if at all.
+   o 2013/11/30 - fixed a bug in Ogmg for singular problems with fourth-order accuracy - these did not converge 
+                  well, if at all.
+   o 2014/05/18 - added option for setting variable coefficient mixed boundary conditions with applyBoundaryConditions
+                  such as a0(x,y,z)*u + a1(x,y,z)*u.n = g(x). See the example in tbc.C and tbcc.C
 
 ==============================================================================================
 Overture.v25 - released  November 21, 2012

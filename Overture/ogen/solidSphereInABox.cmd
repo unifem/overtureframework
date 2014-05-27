@@ -36,10 +36,11 @@ $xa=-2.; $xb=2.; $ya=-2.; $yb=2.; $za=-2.; $zb=2.; $nrMin=3; $nrExtra=0; $rgd="v
 $order=2; $factor=1; $interp="i"; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids"; $dse=0.; 
 $deltaRadius0=.3; # do not make larger than .3 or troubles with cgmx
+$numGhost=-1;  # if this value is set, then use this number of ghost points
 * 
 * get command line arguments
 GetOptions( "order=i"=>\$order,"factor=i"=> \$factor,"nrExtra=i"=>\$nrExtra,"nrMin=i"=>\$nrMin,\
-            "interp=s"=> \$interp,"rgd=s"=> \$rgd,"deltaRadius0=f"=>\$deltaRadius0,"name=s"=>\$name );
+            "interp=s"=> \$interp,"rgd=s"=> \$rgd,"deltaRadius0=f"=>\$deltaRadius0,"name=s"=>\$name,"numGhost=i"=>\$numGhost );
 * 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
 elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
@@ -49,6 +50,8 @@ if( $interp eq "e" ){ $interpType = "explicit for all grids"; $dse=1.; }
 $prefix="solidSphereInABox";
 if( $rgd eq "fixed" ){ $prefix = $prefix . "Fixed"; }
 $suffix = ".order$order"; 
+if( $numGhost ne -1 ){ $ng = $numGhost; } # overide number of ghost
+if( $numGhost ne -1 ){ $suffix .= ".ng$numGhost"; } 
 if( $name eq "" ){ $name = $prefix . "$interp$factor" . $suffix . ".hdf";}
 * 
 $ds=.1/$factor;

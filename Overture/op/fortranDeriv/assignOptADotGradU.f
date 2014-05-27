@@ -1,4 +1,5 @@
 ! This file automatically generated from assignBoundaryConditions.bf with bpp.
+! assignBoundaryConditionMacro(assignOptADotGradU,aDotGradU)
          subroutine assignOptADotGradU( nd,  n1a,n1b,n2a,n2b,n3a,n3b, 
      & ndu1a,ndu1b,ndu2a,ndu2b,ndu3a,ndu3b,ndu4a,ndu4b, ndv1a,ndv1b,
      & ndv2a,ndv2b,ndv3a,ndv3b,ndv4a,ndv4b, ndc1a,ndc1b,ndc2a,ndc2b,
@@ -96,6 +97,7 @@
         integer mGhost
         integer m21,m12,m22,m32,m23
         integer m221,m212,m122,m222,m322,m232,m223
+        integer varCoeff
         epsX=1.e-100  ! prevent division by zero when normalizing the normal vector  *FIX ME* -- this should be passed in
         if( side.lt.0 .or. side.gt.1 )then
           write(*,*) 'applyBoundaryConditions:ERROR: side=',side
@@ -134,6 +136,8 @@
         if1=im1*lineForForcing
         if2=im2*lineForForcing
         if3=im3*lineForForcing
+! #If "aDotGradU" eq "neumann"
+! #Elif "aDotGradU" eq "aDotGradU"
          !  from pmb 080421
          if( bcType.ne.aDotGradU)then
            write(*,'("ERROR")')
@@ -153,6 +157,7 @@
        !          *** rectangular grid  ***
        !          *************************
             if( bcOption.eq.scalarForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(scalarData-b0*u(i1,i2,i3,c))*(twoDeltaX/b1));
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -183,6 +188,7 @@
                 end do
               end if
             else if( bcOption.eq.gfForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(gfData(i1+if1,i2+if2,i3+if3,f)-b0*u(i1,i2,i3,c))*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -215,6 +221,7 @@
                 end do
               end if
             else if( bcOption.eq.arrayForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(fData(f,side,axis,grid)-b0*u(i1,i2,i3,c))*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -247,6 +254,7 @@
                 end do
               end if
             else if( bcOption.eq.vectorForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(vData(f)-b0*u(i1,i2,i3,c))*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -296,6 +304,7 @@
               mGhost=m22+3*(2*side-1)
             end if
             ! first zero out ghost value
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=0.)
             if( useWhereMask.ne.0 )then
               do c0=ca,cb
                 c=uC(c0)  ! component of u
@@ -324,6 +333,8 @@
               end do
             end if
             if( bcOption.eq.scalarForcing )then
+! aDotGradULoops2D(scalarData)
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( scalarData - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -360,6 +371,8 @@
                 end do
               end if
             else if( bcOption.eq.gfForcing )then
+! aDotGradULoops2D(gfData(i1+if1,i2+if2,i3+if3,f))
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( gfData(i1+if1,i2+if2,i3+if3,f) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -396,6 +409,8 @@
                 end do
               end if
             else if( bcOption.eq.arrayForcing )then
+! aDotGradULoops2D(fData(f,side,axis,grid))
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( fData(f,side,axis,grid) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -432,6 +447,8 @@
                 end do
               end if
             else if( bcOption.eq.vectorForcing )then
+! aDotGradULoops2D(vData(f))
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( vData(f) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -484,6 +501,7 @@
               mGhost=m222+9*(2*side-1)
             end if
             ! first zero out ghost value
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=0.)
             if( useWhereMask.ne.0 )then
               do c0=ca,cb
                 c=uC(c0)  ! component of u
@@ -512,6 +530,8 @@
               end do
             end if
             if( bcOption.eq.scalarForcing )then
+! aDotGradULoops3D(scalarData)
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( scalarData - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -550,6 +570,8 @@
                 end do
               end if
             else if( bcOption.eq.gfForcing )then
+! aDotGradULoops3D(gfData(i1+if1,i2+if2,i3+if3,f))
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( gfData(i1+if1,i2+if2,i3+if3,f) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -588,6 +610,8 @@
                 end do
               end if
             else if( bcOption.eq.arrayForcing )then
+! aDotGradULoops3D(fData(f,side,axis,grid))
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( fData(f,side,axis,grid) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -626,6 +650,8 @@
                 end do
               end if
             else if( bcOption.eq.vectorForcing )then
+! aDotGradULoops3D(vData(f))
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( vData(f) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u

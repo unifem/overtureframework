@@ -144,7 +144,7 @@ extern "C"
               real & up, const int & mask, const int & ntau, real & tau, const real & ad, const int & nvar, real & var,
               const int & nparam, real & param, const int & niparam, const int & iparam,
               const int & nrwk, real & rwk, const int & niwk, int & iwk, 
-              const real & vert, const int & idebug, int & ier);
+              const real & xy2, const int & idebug, const DataBase *pdb, int & ier);
 
   void DUDR2DOLD(const int & m, const int & nd1a, const int & nd1b, const int & n1a, const int & n1b,
 		 const int & nd2a, const int & nd2b, const int & n2a, const int & n2b,
@@ -2218,7 +2218,7 @@ getUt(const realMappedGridFunction & v,
 
         if( parameters.dbase.get<bool >("twilightZoneFlow") )
 	{ // the vertex is used for TZ
-  	  mg.update(MappedGrid::THEvertex);
+  	  mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
 #ifdef USE_PPP
 	  xyPtr=mg.vertex().getLocalArray().getDataPointer();
 #else
@@ -2245,24 +2245,25 @@ getUt(const realMappedGridFunction & v,
 
 	  real *pgv = gridVelocityLocal.getDataPointer();
 	  real *pgv2 =pgv;  // use these if no gridVelocity2 is provided
-	  
+	  real *xyPtr2=xyPtr;
 	  if( gridIsMoving && pGridVelocity2 !=NULL )
 	  {
 	    const realMappedGridFunction & gridVelocity2 = *pGridVelocity2;
 	    MappedGrid & mg2 = (MappedGrid&) (*gridVelocity2.getMappedGrid());
-#ifdef USE_PPP 
-	    const realSerialArray & gridVelocity2Local = gridVelocity2.getLocalArray();
-#else
-	    const realSerialArray & gridVelocity2Local = gridVelocity2;
-#endif
-             
+            mg2.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+
+            // *wdh* 2014/05/09 -- we need to pass the xy coordinates at the new time for TZ
+            OV_GET_SERIAL_ARRAY_CONST(real,mg2.vertex(),xy2Local);
+            xyPtr2=xy2Local.getDataPointer();
+
+            OV_GET_SERIAL_ARRAY_CONST(real,gridVelocity2,gridVelocity2Local);
             pgv2=gridVelocity2Local.getDataPointer();
 
 	  }
 	  
 	  if( oldVersion && gridHasPointsOnThisProcessor )
 	  {
-	    DUDR2DOLD (numberOfComponents,
+	    DUDR2DOLD(numberOfComponents,
 		       d(0,0),d(1,0),nr(0,0),nr(1,0),
 		       d(0,1),d(1,1),nr(0,1),nr(1,1),
 		       dt,
@@ -2282,7 +2283,7 @@ getUt(const realMappedGridFunction & v,
           }
 	  else if( gridHasPointsOnThisProcessor )
 	  {
-	    DUDR2D (numberOfComponents,
+	    DUDR2D(numberOfComponents,
 		    d(0,0),d(1,0),nr(0,0),nr(1,0),
 		    d(0,1),d(1,1),nr(0,1),nr(1,1),
 		    dt,
@@ -2297,7 +2298,7 @@ getUt(const realMappedGridFunction & v,
 		    uLocal(uLocal.getBase(0),uLocal.getBase(1),uLocal.getBase(2),numberOfComponents),
 		    nrpu,*rpu.getDataPointer(), nipu,*ipu.getDataPointer(),
 		    nrwk,*rwk.getDataPointer(),niwk,*iwk.getDataPointer(),
-		    *xyPtr, idebug,ierr);
+		    *xyPtr2, idebug, pdb, ierr);
 
 	    if( checkNewVersion && gridHasPointsOnThisProcessor )
 	    {
@@ -2355,12 +2356,17 @@ getUt(const realMappedGridFunction & v,
 	  real *pgv2 =pgv;  // use these if no gridVelocity2 is provided
 	  real *pdet2=pdet;
 	  real *prx2 =prx;
-	  
+	  real *xyPtr2=xyPtr;
 	  if( gridIsMoving && pGridVelocity2 !=NULL )
 	  {
 	    const realMappedGridFunction & gridVelocity2 = *pGridVelocity2;
 	    MappedGrid & mg2 = (MappedGrid&) (*gridVelocity2.getMappedGrid());
 	    mg2.update(MappedGrid::THEinverseCenterDerivative | MappedGrid::THEcenterJacobian );
+            mg2.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+
+            // *wdh* 2014/05/09 -- we need to pass the xy coordinates at the new time for TZ
+            OV_GET_SERIAL_ARRAY_CONST(real,mg2.vertex(),xy2Local);
+            xyPtr2=xy2Local.getDataPointer();
 
 
 #ifdef USE_PPP
@@ -2384,7 +2390,7 @@ getUt(const realMappedGridFunction & v,
 	  
 	  if( oldVersion && gridHasPointsOnThisProcessor )
 	  {
-	    DUDR2DOLD (numberOfComponents,
+	    DUDR2DOLD(numberOfComponents,
 		       d(0,0),d(1,0),nr(0,0),nr(1,0),
 		       d(0,1),d(1,1),nr(0,1),nr(1,1),
 		       dt,
@@ -2407,7 +2413,7 @@ getUt(const realMappedGridFunction & v,
 	  }
 	  else if( gridHasPointsOnThisProcessor )
 	  {
-	    DUDR2D (numberOfComponents,
+	    DUDR2D(numberOfComponents,
 		    d(0,0),d(1,0),nr(0,0),nr(1,0),
 		    d(0,1),d(1,1),nr(0,1),nr(1,1),
 		    dt,
@@ -2422,7 +2428,7 @@ getUt(const realMappedGridFunction & v,
 		    uLocal(uLocal.getBase(0),uLocal.getBase(1),uLocal.getBase(2),numberOfComponents),
 		    nrpu,*rpu.getDataPointer(), nipu,*ipu.getDataPointer(),
 		    nrwk,*rwk.getDataPointer(),niwk,*iwk.getDataPointer(),
-		    *xyPtr, idebug,ierr);
+		    *xyPtr2, idebug, pdb, ierr);
 
 	    if( false )
 	    {

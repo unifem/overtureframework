@@ -9,6 +9,7 @@
 #include "GridStatistics.h"
 #include "MappingInformation.h"
 #include "Ogen.h"
+#include "DataPointMapping.h"
 
 // add to class: 
 static real boundaryLineWidth=3.;  // scale factor for drawing the lines on the boundary
@@ -944,11 +945,14 @@ adjustGrid( GridCollection & gc, const realGridCollectionFunction & v, GraphicsP
   // For now if the displacementScaleFactor < 0 then we just plot the displacement by itself
   const bool plotDisplacementOnly = dScale<0.;
 
+  const bool adjustMappingForDisplacement=parameters.dbase.get<bool>("adjustMappingForDisplacement");
+
   // printF("adjustGrid: psp.displacementScaleFactor=%9.3e plotDisplacementOnly=%i\n",dScale,(int)plotDisplacementOnly);
 
-  printF("adjustGrid: using displacement components = [%i,%i,%i]\n",parameters.displacementComponent[0],
-	 parameters.displacementComponent[1],parameters.displacementComponent[2]);
+  // printF("adjustGrid: using displacement components = [%i,%i,%i]\n",parameters.displacementComponent[0],
+  //   parameters.displacementComponent[1],parameters.displacementComponent[2]);
   
+
 
   if( plotDisplacementOnly && xSave==NULL )
     xSave = new realSerialArray[gc.numberOfComponentGrids()];
@@ -965,28 +969,100 @@ adjustGrid( GridCollection & gc, const realGridCollectionFunction & v, GraphicsP
     const realSerialArray & xLocal  =  mg.vertex();
 #endif
 
+    if( adjustMappingForDisplacement && !plotDisplacementOnly )
+    {
+      // keep track if the Mapping has be replaced 
+      DataBase & db = mg->dbase;
+      if( !db.has_key("mappingAdjustedForDisplacement") )
+      {
+	db.put<bool>("mappingAdjustedForDisplacement");
+	db.get<bool>("mappingAdjustedForDisplacement")=false;
+      }
+    }
+
+
+
     Index I1,I2,I3;
     getIndex(mg.dimension(),I1,I2,I3);
     int includeGhost=1;
     bool ok = ParallelUtility::getLocalArrayBounds(v[grid],vLocal,I1,I2,I3,includeGhost);
-    if( !ok ) continue;
 
     if( plotDisplacementOnly )
     {
+      if( !ok ) continue;
+
       xSave[grid]=xLocal;  // save the grid pts 
       for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
       {
 	xLocal(I1,I2,I3,dir)=vLocal(I1,I2,I3,parameters.displacementComponent[dir]);
-          
       }
     }
     else
     {
-      for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
-	xLocal(I1,I2,I3,dir)+=vLocal(I1,I2,I3,parameters.displacementComponent[dir])*dScale;
-    }
+      if( adjustMappingForDisplacement &&  mg->dbase.get<bool>("mappingAdjustedForDisplacement") )
+      {
+	printF("adjustGrid::INFO: Mapping has already been adjusted for the displacement\n");
+        continue;
+      }
       
-  }
+      // --- just over-write the vertex array ---
+      if( ok )
+      {
+	for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
+	  xLocal(I1,I2,I3,dir)+=vLocal(I1,I2,I3,parameters.displacementComponent[dir])*dScale;
+      }
+      
+      if( adjustMappingForDisplacement )
+      {
+        // Replace the mapping in the component grid
+        mg->dbase.get<bool>("mappingAdjustedForDisplacement")=true;
+
+	printF("adjustGrid::INFO: replace the Mapping to adjust the grid for displacement\n");
+        DataPointMapping & dpm = *new DataPointMapping; 
+        dpm.incrementReferenceCount();
+
+	const IntegerArray & dim = mg.dimension();
+	const IntegerArray & gid = mg.gridIndexRange();
+        int numberOfGhostLinesInData[2][3]={0,0,0,0,0,0};
+	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	{
+	  numberOfGhostLinesInData[0][axis]=gid(0,axis)-dim(0,axis);
+	  numberOfGhostLinesInData[1][axis]=dim(1,axis)-gid(1,axis);
+	}
+
+        dpm.setDataPoints(mg.vertex(),3,mg.numberOfDimensions(),numberOfGhostLinesInData,gid );
+ 
+        // we need to keep the mask to use with the new grid
+        intArray mask; 	mask = mg.mask();
+
+        // -- set BC's etc --
+	for( int axis=0; axis<mg.numberOfDimensions(); axis++ )
+	{
+	  dpm.setIsPeriodic(axis,mg.mapping().getIsPeriodic(axis));
+	  for( int side=0; side<=1; side++ )
+	  {
+	    dpm.setBoundaryCondition(side,axis,mg.boundaryCondition(side,axis));
+	  }
+	}
+
+        mg.reference(dpm); 
+        mg.update(MappedGrid::THEmask);
+        mg.mask()=mask;
+	mg.updateReferences();
+
+        dpm.decrementReferenceCount();
+
+        // gc.updateReferences();
+        // gc[grid].destroy(MappedGrid::THEcenter | MappedGrid::THEvertex );
+        // gc[grid].update(MappedGrid::THEcenter | MappedGrid::THEvertex );
+      }
+
+    }
+  } // end for grid
+
+  if( adjustMappingForDisplacement )
+    gc.updateReferences();
+
   return 0;
 }
 
@@ -1006,6 +1082,7 @@ unAdjustGrid( GridCollection & gc, const realGridCollectionFunction & v, Graphic
   const real dScale = displacementScaleFactor;
   // For now if the displacementScaleFactor < 0 then we just plot the displacement by itself
   const bool plotDisplacementOnly = dScale<0.;
+  const bool adjustMappingForDisplacement=parameters.dbase.get<bool>("adjustMappingForDisplacement");
 
   // printF("unAdjustGrid: psp.displacementScaleFactor=%9.3e plotDisplacementOnly=%i\n",dScale,(int)plotDisplacementOnly);
 
@@ -1033,9 +1110,14 @@ unAdjustGrid( GridCollection & gc, const realGridCollectionFunction & v, Graphic
     }
     else
     {
-      for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
-	xLocal(I1,I2,I3,dir)-=vLocal(I1,I2,I3,parameters.displacementComponent[dir])*dScale;
+      if( !mg->dbase.has_key("mappingAdjustedForDisplacement") || !mg->dbase.get<bool>("mappingAdjustedForDisplacement") )
+      {
+        // -- for now we do NOT return the Mapping to the originial (to save computation) -- this could be an option
+	for( int dir=0; dir<mg.numberOfDimensions(); dir++ )
+	  xLocal(I1,I2,I3,dir)-=vLocal(I1,I2,I3,parameters.displacementComponent[dir])*dScale;
+      }
     }
+    
   }
   if( xSave!=NULL )
   {

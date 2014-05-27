@@ -80,9 +80,30 @@ DerivedFunctions::
 /// \brief Supply a ShowFileReader 
 // ==================================================================================
 void DerivedFunctions::
-set( ShowFileReader & showFileReader_ )
+set( ShowFileReader & showFileReader_, GraphicsParameters *pgp /* =NULL */ )
 {
  showFileReader=&showFileReader_; 
+
+ // Note: the number of frames is zero if the showFile is really just a grid file with no solutions.
+ if( showFileReader->getNumberOfFrames()>0 && displacementComponent[0]<0 )
+ { // initialize any velocity and displacement components
+   int v1c,v2c,v3c;
+   getVelocityComponents(v1c,v2c,v3c);
+   int u1c,u2c,u3c;
+   getDisplacementComponents(u1c,u2c,u3c);
+   printF("DerivedFunctions:: (v1c,v2c,v3c)=(%i,%i,%i) (u1c,u2c,u3c)=(%i,%i,%i)\n",v1c,v2c,v3c,u1c,u2c,u3c);
+   if( pgp!=NULL )
+   {
+     pgp->set(GI_U_COMPONENT_FOR_STREAM_LINES,v1c);
+     pgp->set(GI_U_COMPONENT_FOR_STREAM_LINES,v2c);
+     pgp->set(GI_U_COMPONENT_FOR_STREAM_LINES,v3c);
+
+     pgp->set(GI_DISPLACEMENT_U_COMPONENT,u1c);
+     pgp->set(GI_DISPLACEMENT_V_COMPONENT,u2c);
+     pgp->set(GI_DISPLACEMENT_W_COMPONENT,u3c);
+   }
+ }
+ 
 }
 
 
@@ -1856,6 +1877,7 @@ update(GenericGraphicsInterface & gi,
       }
       aString answer2;
       int uc=displacementComponent[0], vc=displacementComponent[1], wc=displacementComponent[2];
+      if( uc<0 ) getDisplacementComponents(uc,vc,wc);
       gi.inputString(answer2,sPrintF("Enter the 3 components uc,vc,wc (default= %i,%i,%i)",uc,vc,wc));
       if( answer2!="" )
       {

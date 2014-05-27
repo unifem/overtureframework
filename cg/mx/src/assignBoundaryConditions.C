@@ -2372,9 +2372,20 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
     // Extrapolate an extra ghost line for the wider upwind stencil in SOSUP
         BoundaryConditionParameters extrapParams;
 
+        int bcOrderOfAccuracy=orderOfAccuracyInSpace;
+        if( method==sosup && orderOfAccuracyInSpace==6 )
+        {
+      // NOTE: for now apply 4th order BC's for sosup order 6
+            bcOrderOfAccuracy=4;
+        }
+
         const int ghostEnd = (orderOfAccuracyInSpace/2)+1;  // last ghost line for sosup stencil
     // NOTE: for now we impose at most 2 ghost lines with the 4th=order BC's 
-        const int ghostStart= min(3,ghostEnd);              // first ghost line for sosup stencil
+    // first ghost line for sosup stencil: 
+    //     ghostStart=2 for order=2
+    //     ghostStart=3 for order>2   *fix me* when 6'th order BC's are implemented
+        assert( bcOrderOfAccuracy<=4 );
+        const int ghostStart= min(3,ghostEnd);              
 
         extrapParams.orderOfExtrapolation=orderOfAccuracyInSpace+1;  // what should this be ?
 

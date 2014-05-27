@@ -24,8 +24,10 @@ create mappings
       $nx = int( ($xb-$xa)/$ds + 1.5 );
       $ny =5; 
       $nx $ny
+    boundary conditions
+     0 2 3 4
     share
-      0 0 2 3
+      0 0 3 4 
     mappingName
       square
     exit
@@ -43,9 +45,9 @@ create mappings
      * this IS currently needed to treat the corners properly
      * 1 0 101 101 
      *wdh* 101101 -- new way specify face by share flag
-      100 0 2 3 
+      1 0 3 4 
     share
-      100 0 2 3
+      100 0 3 4 
     mappingName
       plug-rectangular
     exit

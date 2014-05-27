@@ -17,7 +17,11 @@ MOTIF_LIB = $(MOTIF)/$(LIB64)
 OPENGL_LIB = $(OpenGL)/$(LIB64)
 
 XLIBS_LIB = $(XLIBS)/$(LIB64)
-OV_X_LIBRARIES = -L$(XLIBS_LIB) -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11
+
+# *wdh* libXpm does not seem to be needed anymore 2014/04/02
+# OV_X_LIBRARIES = -L$(XLIBS_LIB) -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11
+OV_X_LIBRARIES = -L$(XLIBS_LIB) -lXp -lXt -lXmu -lXi -lXext -lX11
+
 OV_MOTIF_LIBRARIES = $(OV_RPATH)$(MOTIF_LIB) -L$(MOTIF_LIB) -lXm
 
 # these next lines will be changed by the configure script

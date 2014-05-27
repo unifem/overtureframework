@@ -83,7 +83,7 @@ class DerivedFunctions
   
   int remove( int i );
 
-  void set( ShowFileReader & showFileReader );
+  void set( ShowFileReader & showFileReader, GraphicsParameters *pgp=NULL  );
 
   // A user can define new derived functions using these functions 
   int setupUserDefinedDerivedFunction(GenericGraphicsInterface & gi, 

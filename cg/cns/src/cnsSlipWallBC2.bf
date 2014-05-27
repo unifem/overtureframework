@@ -761,7 +761,7 @@ c.......local
       integer nr(0:1,0:2)
 
       integer ok,getInt,getReal
-      real densityLowerBound, pressureLowerBound
+      real densityLowerBound, pressureLowerBound,velocityLimiterEps
       integer checkForWallHeating
 
       real sxi,syi,szi,txi,tyi,tzi,rxi,ryi,rzi
@@ -1015,11 +1015,15 @@ c .............. end statement functions
       gm1=gamma-1.
       ad2=10.  ! artificial dissipation
 
-      uEps=1.e-4 !  
 
       ! Look up parameters from the data base,  *new way*
       getRealParameter(densityLowerBound)
       getRealParameter(pressureLowerBound)
+
+      uEps=1.e-4 !  
+      getRealParameter(velocityLimiterEps)
+      uEps=velocityLimiterEps
+   
 
       getIntParameter(checkForWallHeating)
 

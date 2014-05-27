@@ -87,7 +87,8 @@ BoundaryConditionParameters()
   interpolateHidden=true; 
 
   boundaryConditionForcingOption=unSpecifiedForcing; 
-  
+  variableCoefficientOption=spatiallyConstantCoefficients;  // coeff's do not vary by default
+
   extrapolationOption=polynomialExtrapolation;
   extrapolateWithLimiterParameters[0]=1.;  // coefficient for extrapolation limiter
   extrapolateWithLimiterParameters[1]=0.;  // coefficient for extrapolation limiter
@@ -471,14 +472,12 @@ setRefinementLevelToSolveFor( int level )
 }
 
 
-//\begin{>>BoundaryConditionParametersInclude.tex}{\subsubsection{setBoundaryConditionForcingOption}} 
 int BoundaryConditionParameters::
 setBoundaryConditionForcingOption( BoundaryConditionForcingOption option )
 // ===================================================================================
-// /Description:
-// /option (input) : specify the form of the right-hand-sde for the boundary condition.
-//
-//\end{BoundaryConditionParametersInclude.tex}
+/// \brief Set the boundary condition forcing option.
+/// \param option (input) : specify the form of the right-hand-sde for the boundary condition.
+///
 // ===================================================================================
 {
   boundaryConditionForcingOption=option;
@@ -490,11 +489,37 @@ setBoundaryConditionForcingOption( BoundaryConditionForcingOption option )
 BoundaryConditionParameters::BoundaryConditionForcingOption BoundaryConditionParameters::
 getBoundaryConditionForcingOption() const
 // ===================================================================================
-// /Description:
-//   /Return value: the form of the right-hand-sde for the boundary condition.
+/// \brief: Return the boundary condition forcing option.
+/// \return : the form of the right-hand-sde for the boundary condition.
 //
-//\end{BoundaryConditionParametersInclude.tex}
 // ===================================================================================
 {
   return boundaryConditionForcingOption;
 }
+
+
+int BoundaryConditionParameters::
+setVariableCoefficientOption( VariableCoefficientOptionEnum option )
+// ===================================================================================
+/// \brief Set the variable coefficient option for boundary condition.
+/// \param option (input) : coefficient option to use.
+///
+// ===================================================================================
+{
+  variableCoefficientOption=option;
+  return 0;
+}
+
+
+//\begin{>>BoundaryConditionParametersInclude.tex}{\subsubsection{getBoundaryConditionForcingOption}} 
+BoundaryConditionParameters::VariableCoefficientOptionEnum BoundaryConditionParameters::
+getVariableCoefficientOption() const
+// ===================================================================================
+/// \brief: Return the variable coefficient option for boundary condition.
+/// \return : variable coefficient option for boundary condition.
+//
+// ===================================================================================
+{
+  return variableCoefficientOption;
+}
+

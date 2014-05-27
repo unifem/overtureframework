@@ -2099,7 +2099,10 @@ writeParameterSummary( FILE * file )
   fPrintF(file,"\n");
 
   SmParameters::PDEVariation & pdeVariation = parameters.dbase.get<SmParameters::PDEVariation>("pdeVariation");
-  fPrintF(file," PDE Variation = %s\n\n",(const char*)SmParameters::PDEVariationName[pdeVariation]);
+  fPrintF(file," PDE Variation = %s\n",(const char*)SmParameters::PDEVariationName[pdeVariation]);
+  if( pdeVariation== SmParameters::godunov )
+    fPrintF(file,"  Godunov: order of accuracy = %i\n",parameters.dbase.get<int>("orderOfAccuracyForGodunovMethod"));
+  fPrintF(file,"\n");
 
   if( pdeVariation==SmParameters::godunov )
   {
@@ -2153,6 +2156,11 @@ writeParameterSummary( FILE * file )
   fPrintF(file," artificial diffusion: coefficient=%8.2e, order=%i\n",artificialDissipation,
 	  orderOfArtificialDissipation);
             
+  fPrintF(file," tangential stress dissipation coefficient: beta0+beta1/dt : beta0=%8.2e, beta1=%8.2e (order=%i)\n",
+       parameters.dbase.get<real>("tangentialStressDissipation"),
+       parameters.dbase.get<real>("tangentialStressDissipation1"),
+       parameters.dbase.get<int>("orderOfAccuracyForGodunovMethod")*2);
+
   fPrintF(file," Stress relaxation is %s, order=%i, alpha=%8.2e, delta=%8.2e\n",
 	  (parameters.dbase.get<int>( "stressRelaxation" )==0 ? "off" : "on" ),
 	  parameters.dbase.get<int>( "stressRelaxation" ), parameters.dbase.get<real>( "relaxAlpha" ),
@@ -2182,7 +2190,10 @@ writeParameterSummary( FILE * file )
   {
     const RealArray & artificialDiffusion = parameters.dbase.get<RealArray >("artificialDiffusion");
     const RealArray & artificialDiffusion4 = parameters.dbase.get<RealArray >("artificialDiffusion4");
-    if( max(artificialDiffusion)==0. && max(artificialDiffusion4)==0. )
+    const RealArray & ad2dt = parameters.dbase.get<RealArray >("artificialDiffusion2dt");
+    const RealArray & ad4dt = parameters.dbase.get<RealArray >("artificialDiffusion4dt");
+    if( max(artificialDiffusion)==0. && max(artificialDiffusion4)==0. &&
+        max(ad2dt)==0. && max(ad4dt)==0. )
     {
       fPrintF(file," Godunov: constant-coefficient artificial diffusion is OFF.\n");
     }
@@ -2191,8 +2202,9 @@ writeParameterSummary( FILE * file )
       fPrintF(file," Godunov: constant-coefficient artificial diffusion: \n");
       for( int m=0; m<parameters.dbase.get<int >("numberOfComponents"); m++ )
       {
-	fPrintF(file,"  ad2=%8.2e, ad4=%8.2e (%s) \n",
-		artificialDiffusion(m),artificialDiffusion4(m),(const char*) parameters.dbase.get<aString* >("componentName")[m]);
+	fPrintF(file,"  ad2=%8.2e, ad2dt=%8.2e,  ad4=%8.2e, ad4dt=%8.2e (%s) \n",
+		artificialDiffusion(m),ad2dt(m),artificialDiffusion4(m),ad4dt(m),
+                  (const char*) parameters.dbase.get<aString* >("componentName")[m]);
       }
     }
     

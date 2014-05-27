@@ -83,7 +83,7 @@ libCommon:=$(CGBUILDPREFIX)common/libCgCommon
 # test routine for the BeamModel class
 TESTS += $(BINDIR)tbm
 tbm : $(BINDIR)tbm
-$(BINDIR)tbm: $(OBJDIR)tbm.o 
+$(BINDIR)tbm: $(OBJDIR)tbm.o   $(libCommon)
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)tbm.o $(LIBS)
 
@@ -93,6 +93,9 @@ trb : $(BINDIR)trb
 $(BINDIR)trb: $(OBJDIR)trb.o  $(libCommon)
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)trb.o $(LIBS)
+
+# build the library in cg/common
+$(libCommon):; @cd ../common; $(MAKE) lib
 
 $(DEPDIR)depdep: $(DEPDIR) $(BINDIR) $(LIBDIR) $(OBJDIR)
 	touch $(DEPDIR)depdep

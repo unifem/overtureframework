@@ -1723,7 +1723,14 @@ c write(*,'("initializeBoundaryForcing slowStartInterval=",e10.2)') slowStartInt
      & tt)**3+113400*(tt)**4)
           ssftttt = (15120*(tt)-529200*(tt)**4+211680*(tt)**5-151200*(
      & tt)**2+453600*(tt)**3)
-        else
+        ! Here we turn off the plane wave after some time:
+        ! else if( t.gt.1.0 )then
+        !  ssf = 0.
+        !  ssft = 0. 
+        !  ssftt = 0. 
+        !  ssfttt = 0. 
+        !  ssftttt = 0. 
+         else
           ssf = 1.
           ssft = 0.
           ssftt = 0.

@@ -1,4 +1,5 @@
 ! This file automatically generated from assignBoundaryConditions.bf with bpp.
+! assignBoundaryConditionMacro(assignOptNormalComponent,normalComponent)
          subroutine assignOptNormalComponent( nd,  n1a,n1b,n2a,n2b,n3a,
      & n3b, ndu1a,ndu1b,ndu2a,ndu2b,ndu3a,ndu3b,ndu4a,ndu4b, ndv1a,
      & ndv1b,ndv2a,ndv2b,ndv3a,ndv3b,ndv4a,ndv4b, ndc1a,ndc1b,ndc2a,
@@ -96,6 +97,7 @@
         integer mGhost
         integer m21,m12,m22,m32,m23
         integer m221,m212,m122,m222,m322,m232,m223
+        integer varCoeff
         epsX=1.e-100  ! prevent division by zero when normalizing the normal vector  *FIX ME* -- this should be passed in
         if( side.lt.0 .or. side.gt.1 )then
           write(*,*) 'applyBoundaryConditions:ERROR: side=',side
@@ -134,6 +136,11 @@
         if1=im1*lineForForcing
         if2=im2*lineForForcing
         if3=im3*lineForForcing
+! #If "normalComponent" eq "neumann"
+! #Elif "normalComponent" eq "aDotGradU"
+! #Elif "normalComponent" eq "generalizedDivergence"
+! #Elif "normalComponent" eq "normalDerivative"
+! #Elif "normalComponent" eq "normalComponent"
        !**      else if( bcType.eq.normalComponent )then
           if( bcType.ne.normalComponent )then
            write(*,'("ERROR")')
@@ -158,6 +165,7 @@
           cm=m1+axis ! normal component for forcing arrays
           if( bcOption.eq.scalarForcing )then
             if( scalarData.eq.0. )then
+! loopsd(u(i1,i2,i3,cn)=0.)
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -178,6 +186,7 @@
                 end do
               end if
             else
+! loopsd(u(i1,i2,i3,cn)=scalarData*nsign)
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -200,6 +209,7 @@
             end if
           else if( bcOption.eq.gfForcing )then
             ! NOTE: There is no *nsign here since we set nsign*u = nsign*gfData *wdh* 040317
+! loopsd(u(i1,i2,i3,cn)=gfData(i1,i2,i3,cm))
             if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
@@ -220,6 +230,7 @@
               end do
             end if
           else if( bcOption.eq.arrayForcing )then
+! loopsd(u(i1,i2,i3,cn)=fData(cm,side,axis,grid))
             if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
@@ -240,6 +251,7 @@
               end do
             end if
           else if( bcOption.eq.vectorForcing )then
+! loopsd(u(i1,i2,i3,cn)=vData(cm))
             if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
@@ -269,38 +281,50 @@
        !          *************************
           if( bcOption.eq.scalarForcing )then
            if( scalarData.eq.0. )then
+! assignNormalComponent(NO_FORCING)
             if( useWhereMask.ne.0 )then
              if( nd.eq.2 )then
+! beginLoops()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
                   if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(2,NO_FORCING)
+! #If "2" == "2"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                 aNorm=an1**2+an2**2
+!  #If "NO_FORCING" == "NO_FORCING"
                   nDotU=nDotU/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoops()
                   end if
                 end do
                 end do
                 end do
              else if( nd.eq.3 )then
+! beginLoops()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
                   if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(3,NO_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 an3=rsxy(i1,i2,i3,axis,2)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,
      & i2,i3,n3)
                 aNorm=an1**2+an2**2+an3**2
+!  #If "NO_FORCING" == "NO_FORCING"
                   nDotU=nDotU/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                 u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoops()
                   end if
                 end do
                 end do
@@ -310,33 +334,44 @@
              end if
             else
              if( nd.eq.2 )then
+! beginLoopsNoMask()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
+! setNormalComponent(2,NO_FORCING)
+! #If "2" == "2"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                 aNorm=an1**2+an2**2
+!  #If "NO_FORCING" == "NO_FORCING"
                   nDotU=nDotU/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoopsNoMask()
                 end do
                 end do
                 end do
              else if( nd.eq.3 )then
+! beginLoopsNoMask()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
+! setNormalComponent(3,NO_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 an3=rsxy(i1,i2,i3,axis,2)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,
      & i2,i3,n3)
                 aNorm=an1**2+an2**2+an3**2
+!  #If "NO_FORCING" == "NO_FORCING"
                   nDotU=nDotU/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                 u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoopsNoMask()
                 end do
                 end do
                 end do
@@ -345,38 +380,52 @@
              end if
             end if
            else
+! assignNormalComponent(SCALAR_FORCING)
             if( useWhereMask.ne.0 )then
              if( nd.eq.2 )then
+! beginLoops()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
                   if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(2,SCALAR_FORCING)
+! #If "2" == "2"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                 aNorm=an1**2+an2**2
+!  #If "SCALAR_FORCING" == "NO_FORCING"
+!  #Elif "SCALAR_FORCING" == "SCALAR_FORCING"
                   nDotU=(nDotU - scalarData*nsign*sqrt(anorm) )/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoops()
                   end if
                 end do
                 end do
                 end do
              else if( nd.eq.3 )then
+! beginLoops()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
                   if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(3,SCALAR_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 an3=rsxy(i1,i2,i3,axis,2)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,
      & i2,i3,n3)
                 aNorm=an1**2+an2**2+an3**2
+!  #If "SCALAR_FORCING" == "NO_FORCING"
+!  #Elif "SCALAR_FORCING" == "SCALAR_FORCING"
                   nDotU=(nDotU - scalarData*nsign*sqrt(anorm) )/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                 u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoops()
                   end if
                 end do
                 end do
@@ -386,33 +435,46 @@
              end if
             else
              if( nd.eq.2 )then
+! beginLoopsNoMask()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
+! setNormalComponent(2,SCALAR_FORCING)
+! #If "2" == "2"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                 aNorm=an1**2+an2**2
+!  #If "SCALAR_FORCING" == "NO_FORCING"
+!  #Elif "SCALAR_FORCING" == "SCALAR_FORCING"
                   nDotU=(nDotU - scalarData*nsign*sqrt(anorm) )/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoopsNoMask()
                 end do
                 end do
                 end do
              else if( nd.eq.3 )then
+! beginLoopsNoMask()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
+! setNormalComponent(3,SCALAR_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
                 an3=rsxy(i1,i2,i3,axis,2)
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,
      & i2,i3,n3)
                 aNorm=an1**2+an2**2+an3**2
+!  #If "SCALAR_FORCING" == "NO_FORCING"
+!  #Elif "SCALAR_FORCING" == "SCALAR_FORCING"
                   nDotU=(nDotU - scalarData*nsign*sqrt(anorm) )/aNorm
                 u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                 u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                 u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoopsNoMask()
                 end do
                 end do
                 end do
@@ -422,40 +484,56 @@
             end if
            end if
           else if( bcOption.eq.gfForcing )then
+! assignNormalComponent(GF_FORCING)
            if( useWhereMask.ne.0 )then
             if( nd.eq.2 )then
+! beginLoops()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(2,GF_FORCING)
+! #If "2" == "2"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                aNorm=an1**2+an2**2
+!  #If "GF_FORCING" == "NO_FORCING"
+!  #Elif "GF_FORCING" == "SCALAR_FORCING"
+!  #Elif "GF_FORCING" == "GF_FORCING"
                  nDotU=(nDotU - (an1*gfData(i1,i2,i3,m1)+an2*gfData(i1,
      & i2,i3,m2)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoops()
                  end if
                end do
                end do
                end do
             else if( nd.eq.3 )then
+! beginLoops()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(3,GF_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                an3=rsxy(i1,i2,i3,axis,2)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,i2,
      & i3,n3)
                aNorm=an1**2+an2**2+an3**2
+!  #If "GF_FORCING" == "NO_FORCING"
+!  #Elif "GF_FORCING" == "SCALAR_FORCING"
+!  #Elif "GF_FORCING" == "GF_FORCING"
                  nDotU=(nDotU - (an1*gfData(i1,i2,i3,m1)+an2*gfData(i1,
      & i2,i3,m2)+an3*gfData(i1,i2,i3,m3)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoops()
                  end if
                end do
                end do
@@ -465,35 +543,50 @@
             end if
            else
             if( nd.eq.2 )then
+! beginLoopsNoMask()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
+! setNormalComponent(2,GF_FORCING)
+! #If "2" == "2"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                aNorm=an1**2+an2**2
+!  #If "GF_FORCING" == "NO_FORCING"
+!  #Elif "GF_FORCING" == "SCALAR_FORCING"
+!  #Elif "GF_FORCING" == "GF_FORCING"
                  nDotU=(nDotU - (an1*gfData(i1,i2,i3,m1)+an2*gfData(i1,
      & i2,i3,m2)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoopsNoMask()
                end do
                end do
                end do
             else if( nd.eq.3 )then
+! beginLoopsNoMask()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
+! setNormalComponent(3,GF_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                an3=rsxy(i1,i2,i3,axis,2)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,i2,
      & i3,n3)
                aNorm=an1**2+an2**2+an3**2
+!  #If "GF_FORCING" == "NO_FORCING"
+!  #Elif "GF_FORCING" == "SCALAR_FORCING"
+!  #Elif "GF_FORCING" == "GF_FORCING"
                  nDotU=(nDotU - (an1*gfData(i1,i2,i3,m1)+an2*gfData(i1,
      & i2,i3,m2)+an3*gfData(i1,i2,i3,m3)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoopsNoMask()
                end do
                end do
                end do
@@ -502,40 +595,58 @@
             end if
            end if
           else if( bcOption.eq.arrayForcing )then
+! assignNormalComponent(ARRAY_FORCING)
            if( useWhereMask.ne.0 )then
             if( nd.eq.2 )then
+! beginLoops()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(2,ARRAY_FORCING)
+! #If "2" == "2"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                aNorm=an1**2+an2**2
+!  #If "ARRAY_FORCING" == "NO_FORCING"
+!  #Elif "ARRAY_FORCING" == "SCALAR_FORCING"
+!  #Elif "ARRAY_FORCING" == "GF_FORCING"
+!  #Elif "ARRAY_FORCING" == "ARRAY_FORCING"
                  nDotU=(nDotU - (an1*fData(m1,side,axis,grid)+an2*
      & fData(m2,side,axis,grid)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoops()
                  end if
                end do
                end do
                end do
             else if( nd.eq.3 )then
+! beginLoops()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(3,ARRAY_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                an3=rsxy(i1,i2,i3,axis,2)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,i2,
      & i3,n3)
                aNorm=an1**2+an2**2+an3**2
+!  #If "ARRAY_FORCING" == "NO_FORCING"
+!  #Elif "ARRAY_FORCING" == "SCALAR_FORCING"
+!  #Elif "ARRAY_FORCING" == "GF_FORCING"
+!  #Elif "ARRAY_FORCING" == "ARRAY_FORCING"
                  nDotU=(nDotU - (an1*fData(m1,side,axis,grid)+an2*
      & fData(m2,side,axis,grid)+an3*fData(m3,side,axis,grid)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoops()
                  end if
                end do
                end do
@@ -545,35 +656,52 @@
             end if
            else
             if( nd.eq.2 )then
+! beginLoopsNoMask()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
+! setNormalComponent(2,ARRAY_FORCING)
+! #If "2" == "2"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                aNorm=an1**2+an2**2
+!  #If "ARRAY_FORCING" == "NO_FORCING"
+!  #Elif "ARRAY_FORCING" == "SCALAR_FORCING"
+!  #Elif "ARRAY_FORCING" == "GF_FORCING"
+!  #Elif "ARRAY_FORCING" == "ARRAY_FORCING"
                  nDotU=(nDotU - (an1*fData(m1,side,axis,grid)+an2*
      & fData(m2,side,axis,grid)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoopsNoMask()
                end do
                end do
                end do
             else if( nd.eq.3 )then
+! beginLoopsNoMask()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
+! setNormalComponent(3,ARRAY_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                an3=rsxy(i1,i2,i3,axis,2)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,i2,
      & i3,n3)
                aNorm=an1**2+an2**2+an3**2
+!  #If "ARRAY_FORCING" == "NO_FORCING"
+!  #Elif "ARRAY_FORCING" == "SCALAR_FORCING"
+!  #Elif "ARRAY_FORCING" == "GF_FORCING"
+!  #Elif "ARRAY_FORCING" == "ARRAY_FORCING"
                  nDotU=(nDotU - (an1*fData(m1,side,axis,grid)+an2*
      & fData(m2,side,axis,grid)+an3*fData(m3,side,axis,grid)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoopsNoMask()
                end do
                end do
                end do
@@ -582,39 +710,59 @@
             end if
            end if
           else if( bcOption.eq.vectorForcing )then
+! assignNormalComponent(VECTOR_FORCING)
            if( useWhereMask.ne.0 )then
             if( nd.eq.2 )then
+! beginLoops()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(2,VECTOR_FORCING)
+! #If "2" == "2"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                aNorm=an1**2+an2**2
+!  #If "VECTOR_FORCING" == "NO_FORCING"
+!  #Elif "VECTOR_FORCING" == "SCALAR_FORCING"
+!  #Elif "VECTOR_FORCING" == "GF_FORCING"
+!  #Elif "VECTOR_FORCING" == "ARRAY_FORCING"
+!  #Elif "VECTOR_FORCING" == "VECTOR_FORCING"
                  nDotU=(nDotU - (an1*vData(m1)+an2*vData(m2)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoops()
                  end if
                end do
                end do
                end do
             else if( nd.eq.3 )then
+! beginLoops()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
                  if( mask(i1,i2,i3).ne.0 )then
+! setNormalComponent(3,VECTOR_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                an3=rsxy(i1,i2,i3,axis,2)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,i2,
      & i3,n3)
                aNorm=an1**2+an2**2+an3**2
+!  #If "VECTOR_FORCING" == "NO_FORCING"
+!  #Elif "VECTOR_FORCING" == "SCALAR_FORCING"
+!  #Elif "VECTOR_FORCING" == "GF_FORCING"
+!  #Elif "VECTOR_FORCING" == "ARRAY_FORCING"
+!  #Elif "VECTOR_FORCING" == "VECTOR_FORCING"
                  nDotU=(nDotU - (an1*vData(m1)+an2*vData(m2)+an3*vData(
      & m3)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoops()
                  end if
                end do
                end do
@@ -624,34 +772,53 @@
             end if
            else
             if( nd.eq.2 )then
+! beginLoopsNoMask()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
+! setNormalComponent(2,VECTOR_FORCING)
+! #If "2" == "2"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
                aNorm=an1**2+an2**2
+!  #If "VECTOR_FORCING" == "NO_FORCING"
+!  #Elif "VECTOR_FORCING" == "SCALAR_FORCING"
+!  #Elif "VECTOR_FORCING" == "GF_FORCING"
+!  #Elif "VECTOR_FORCING" == "ARRAY_FORCING"
+!  #Elif "VECTOR_FORCING" == "VECTOR_FORCING"
                  nDotU=(nDotU - (an1*vData(m1)+an2*vData(m2)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
+! endLoopsNoMask()
                end do
                end do
                end do
             else if( nd.eq.3 )then
+! beginLoopsNoMask()
                do i3=n3a,n3b
                do i2=n2a,n2b
                do i1=n1a,n1b
+! setNormalComponent(3,VECTOR_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                an1=rsxy(i1,i2,i3,axis,0)
                an2=rsxy(i1,i2,i3,axis,1)
                an3=rsxy(i1,i2,i3,axis,2)
                nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,i2,
      & i3,n3)
                aNorm=an1**2+an2**2+an3**2
+!  #If "VECTOR_FORCING" == "NO_FORCING"
+!  #Elif "VECTOR_FORCING" == "SCALAR_FORCING"
+!  #Elif "VECTOR_FORCING" == "GF_FORCING"
+!  #Elif "VECTOR_FORCING" == "ARRAY_FORCING"
+!  #Elif "VECTOR_FORCING" == "VECTOR_FORCING"
                  nDotU=(nDotU - (an1*vData(m1)+an2*vData(m2)+an3*vData(
      & m3)) )/aNorm
                u(i1,i2,i3,n1)=u(i1,i2,i3,n1)-nDotU*an1
                u(i1,i2,i3,n2)=u(i1,i2,i3,n2)-nDotU*an2
                u(i1,i2,i3,n3)=u(i1,i2,i3,n3)-nDotU*an3
+! endLoopsNoMask()
                end do
                end do
                end do

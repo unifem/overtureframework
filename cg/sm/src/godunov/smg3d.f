@@ -163,6 +163,7 @@ c
 c.. compute real and imaginary parts of time stepping eigenvalues
       rparam(1) = 6.0*admax
       rparam(2) = almax(1)/ds1+almax(2)/ds2+almax(3)/ds3
+      rparam(3)=0. ! for 1/dt dissipation
 c
       if( idebug.gt.0 )then
         write(6,*)'*** Leaving smg3d ***'

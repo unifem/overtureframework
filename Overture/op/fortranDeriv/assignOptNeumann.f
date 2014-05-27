@@ -1,4 +1,5 @@
 ! This file automatically generated from assignBoundaryConditions.bf with bpp.
+! assignBoundaryConditionMacro(assignOptNeumann,neumann)
          subroutine assignOptNeumann( nd,  n1a,n1b,n2a,n2b,n3a,n3b, 
      & ndu1a,ndu1b,ndu2a,ndu2b,ndu3a,ndu3b,ndu4a,ndu4b, ndv1a,ndv1b,
      & ndv2a,ndv2b,ndv3a,ndv3b,ndv4a,ndv4b, ndc1a,ndc1b,ndc2a,ndc2b,
@@ -96,6 +97,7 @@
         integer mGhost
         integer m21,m12,m22,m32,m23
         integer m221,m212,m122,m222,m322,m232,m223
+        integer varCoeff
         epsX=1.e-100  ! prevent division by zero when normalizing the normal vector  *FIX ME* -- this should be passed in
         if( side.lt.0 .or. side.gt.1 )then
           write(*,*) 'applyBoundaryConditions:ERROR: side=',side
@@ -134,6 +136,7 @@
         if1=im1*lineForForcing
         if2=im2*lineForForcing
         if3=im3*lineForForcing
+! #If "neumann" eq "neumann"
          if( bcType.ne.neumann .and. bcType.ne.mixed )then
            write(*,'("ERROR")')
            stop 1145
@@ -145,13 +148,155 @@
         b0=par(0)
         b1=par(1)
         twoDeltaX=par(2)
+        varCoeff=ipar(1)
+        ! write(*,'(" BC:Neumann:varCoeff=",i4)') varCoeff
         if( gridType.eq.rectangular )then
        !          *************************
        !          *** rectangular grid  ***
        !          *************************
-          if( bcType.eq.neumann .or. b0.eq.0. )then
+          if( varCoeff.eq.1 )then
+            ! variable coefficients:
+            !   v(i1,i2,i3,0)*u + v(i1,i2,i3,1)*u.n = g 
+            if( bcOption.eq.scalarForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(scalarData-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)));
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(scalarData-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(
+     & i1,i2,i3,1))
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(scalarData-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(
+     & i1,i2,i3,1))
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+            else if( bcOption.eq.gfForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(gfData(i1+if1,i2+if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)))
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(gfData(i1+if1,i2+if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,
+     & i3,c))*(twoDeltaX/v(i1,i2,i3,1))
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(gfData(i1+if1,i2+if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,
+     & i3,c))*(twoDeltaX/v(i1,i2,i3,1))
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+            else if( bcOption.eq.arrayForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(fData(f,side,axis,grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)))
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(fData(f,side,axis,grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(
+     & twoDeltaX/v(i1,i2,i3,1))
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(fData(f,side,axis,grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(
+     & twoDeltaX/v(i1,i2,i3,1))
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+            else if( bcOption.eq.vectorForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(vData(f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)))
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(vData(f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,
+     & i2,i3,1))
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+
+     & ip3,c)+(vData(f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,
+     & i2,i3,1))
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+            else
+              write(*,*) 'assignBC:ERROR unknown bcOption=',bcOption
+              stop 21
+            end if
+          else if( bcType.eq.neumann .or. b0.eq.0. )then
        !            *** neumann ***
             if( bcOption.eq.scalarForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+scalarData*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -182,6 +327,7 @@
                 end do
               end if
             else if( bcOption.eq.gfForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+gfData(i1+if1,i2+if2,i3+if3,f)*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -212,6 +358,7 @@
                 end do
               end if
             else if( bcOption.eq.arrayForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+fData(f,side,axis,grid)*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -242,6 +389,7 @@
                 end do
               end if
             else if( bcOption.eq.vectorForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+vData(f)*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -273,11 +421,12 @@
               end if
             else
               write(*,*) 'assignBC:ERROR unknown bcOption=',bcOption
-              stop 2
+              stop 22
             end if
           else
        !           *** mixed ***
             if( bcOption.eq.scalarForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(scalarData-b0*u(i1,i2,i3,c))*(twoDeltaX/b1));
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -308,6 +457,7 @@
                 end do
               end if
             else if( bcOption.eq.gfForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(gfData(i1+if1,i2+if2,i3+if3,f)-b0*u(i1,i2,i3,c))*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -340,6 +490,7 @@
                 end do
               end if
             else if( bcOption.eq.arrayForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(fData(f,side,axis,grid)-b0*u(i1,i2,i3,c))*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -372,6 +523,7 @@
                 end do
               end if
             else if( bcOption.eq.vectorForcing )then
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(vData(f)-b0*u(i1,i2,i3,c))*(twoDeltaX/b1))
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -403,7 +555,7 @@
               end if
             else
               write(*,*) 'assignBC:ERROR unknown bcOption=',bcOption
-              stop 2
+              stop 23
             end if
           end if
         else
@@ -422,6 +574,7 @@
               mGhost=m22+3*(2*side-1)
             end if
             ! first zero out ghost value
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=0.)
             if( useWhereMask.ne.0 )then
               do c0=ca,cb
                 c=uC(c0)  ! component of u
@@ -450,6 +603,47 @@
               end do
             end if
             if( bcOption.eq.scalarForcing )then
+! neumannLoops2D(scalarData)
+              if( varCoeff.eq.1 )then
+               ! var coeff: 
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (scalarData - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((scalarData-v(i1,
+     & i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m21,i1,i2,i3)*u(
+     & i1,i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m22,i1,
+     & i2,i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(
+     & m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(mGhost,i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((scalarData-v(i1,i2,
+     & i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m21,i1,i2,i3)*u(i1,
+     & i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m22,i1,i2,
+     & i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(
+     & m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(mGhost,i1,i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( scalarData - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -485,7 +679,51 @@
                   end do
                 end do
               end if
+              end if
             else if( bcOption.eq.gfForcing )then
+! neumannLoops2D(gfData(i1+if1,i2+if2,i3+if3,f))
+              if( varCoeff.eq.1 )then
+               ! var coeff: 
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (gfData(i1+if1,i2+if2,i3+if3,f) - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((gfData(i1+if1,i2+
+     & if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(
+     & coeff(m21,i1,i2,i3)*u(i1,i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,
+     & i2,i3,c)+coeff(m22,i1,i2,i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*
+     & u(i1+1,i2,i3,c)+coeff(m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(
+     & mGhost,i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((gfData(i1+if1,i2+
+     & if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(
+     & coeff(m21,i1,i2,i3)*u(i1,i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,
+     & i2,i3,c)+coeff(m22,i1,i2,i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*
+     & u(i1+1,i2,i3,c)+coeff(m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(
+     & mGhost,i1,i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( gfData(i1+if1,i2+if2,i3+if3,f) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -521,7 +759,51 @@
                   end do
                 end do
               end if
+              end if
             else if( bcOption.eq.arrayForcing )then
+! neumannLoops2D(fData(f,side,axis,grid))
+              if( varCoeff.eq.1 )then
+               ! var coeff: 
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (fData(f,side,axis,grid) - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((fData(f,side,
+     & axis,grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(
+     & m21,i1,i2,i3)*u(i1,i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,i2,i3,
+     & c)+coeff(m22,i1,i2,i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*u(i1+
+     & 1,i2,i3,c)+coeff(m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(mGhost,
+     & i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((fData(f,side,axis,
+     & grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m21,i1,
+     & i2,i3)*u(i1,i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,i2,i3,c)+
+     & coeff(m22,i1,i2,i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*u(i1+1,
+     & i2,i3,c)+coeff(m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(mGhost,i1,
+     & i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( fData(f,side,axis,grid) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -557,7 +839,49 @@
                   end do
                 end do
               end if
+              end if
             else if( bcOption.eq.vectorForcing )then
+! neumannLoops2D(vData(f))
+              if( varCoeff.eq.1 )then
+               ! var coeff: 
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (vData(f) - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((vData(f)-v(i1,i2,
+     & i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m21,i1,i2,i3)*u(i1,
+     & i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m22,i1,i2,
+     & i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(
+     & m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(mGhost,i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((vData(f)-v(i1,i2,
+     & i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m21,i1,i2,i3)*u(i1,
+     & i2-1,i3,c)+coeff(m12,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m22,i1,i2,
+     & i3)*u(i1,i2,i3,c)+coeff(m32,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(
+     & m23,i1,i2,i3)*u(i1,i2+1,i3,c)))/coeff(mGhost,i1,i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( vData(f) - ( coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -593,6 +917,7 @@
                   end do
                 end do
               end if
+              end if
             end if
           else
             m221=4
@@ -610,6 +935,7 @@
               mGhost=m222+9*(2*side-1)
             end if
             ! first zero out ghost value
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=0.)
             if( useWhereMask.ne.0 )then
               do c0=ca,cb
                 c=uC(c0)  ! component of u
@@ -638,6 +964,51 @@
               end do
             end if
             if( bcOption.eq.scalarForcing )then
+! neumannLoops3D(scalarData)
+              if( varCoeff.eq.1 )then
+               ! var coeff:
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (scalarData - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((scalarData-v(i1,
+     & i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m221,i1,i2,i3)*u(
+     & i1,i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,i2-1,i3,c)+coeff(m122,
+     & i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,i2,i3)*u(i1,i2,i3,c)+
+     & coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(m232,i1,i2,i3)*u(i1,
+     & i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,i2,i3+1,c)))/coeff(mGhost,
+     & i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((scalarData-v(i1,i2,
+     & i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m221,i1,i2,i3)*u(i1,
+     & i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,i2-1,i3,c)+coeff(m122,i1,
+     & i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,i2,i3)*u(i1,i2,i3,c)+
+     & coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(m232,i1,i2,i3)*u(i1,
+     & i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,i2,i3+1,c)))/coeff(mGhost,
+     & i1,i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( scalarData - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -675,7 +1046,53 @@
                   end do
                 end do
               end if
+              end if
             else if( bcOption.eq.gfForcing )then
+! neumannLoops3D(gfData(i1+if1,i2+if2,i3+if3,f))
+              if( varCoeff.eq.1 )then
+               ! var coeff:
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (gfData(i1+if1,i2+if2,i3+if3,f) - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((gfData(i1+if1,i2+
+     & if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(
+     & coeff(m221,i1,i2,i3)*u(i1,i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,
+     & i2-1,i3,c)+coeff(m122,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,
+     & i2,i3)*u(i1,i2,i3,c)+coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+
+     & coeff(m232,i1,i2,i3)*u(i1,i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,
+     & i2,i3+1,c)))/coeff(mGhost,i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((gfData(i1+if1,i2+
+     & if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(
+     & coeff(m221,i1,i2,i3)*u(i1,i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,
+     & i2-1,i3,c)+coeff(m122,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,
+     & i2,i3)*u(i1,i2,i3,c)+coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+
+     & coeff(m232,i1,i2,i3)*u(i1,i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,
+     & i2,i3+1,c)))/coeff(mGhost,i1,i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( gfData(i1+if1,i2+if2,i3+if3,f) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -713,7 +1130,53 @@
                   end do
                 end do
               end if
+              end if
             else if( bcOption.eq.arrayForcing )then
+! neumannLoops3D(fData(f,side,axis,grid))
+              if( varCoeff.eq.1 )then
+               ! var coeff:
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (fData(f,side,axis,grid) - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((fData(f,side,
+     & axis,grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(
+     & m221,i1,i2,i3)*u(i1,i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,i2-1,
+     & i3,c)+coeff(m122,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,i2,i3)
+     & *u(i1,i2,i3,c)+coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(m232,
+     & i1,i2,i3)*u(i1,i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,i2,i3+1,c))
+     & )/coeff(mGhost,i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((fData(f,side,axis,
+     & grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m221,
+     & i1,i2,i3)*u(i1,i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,i2-1,i3,c)+
+     & coeff(m122,i1,i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,i2,i3)*u(i1,
+     & i2,i3,c)+coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(m232,i1,i2,
+     & i3)*u(i1,i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,i2,i3+1,c)))
+     & /coeff(mGhost,i1,i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( fData(f,side,axis,grid) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -751,7 +1214,53 @@
                   end do
                 end do
               end if
+              end if
             else if( bcOption.eq.vectorForcing )then
+! neumannLoops3D(vData(f))
+              if( varCoeff.eq.1 )then
+               ! var coeff:
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( (vData(f) - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
+              if( useWhereMask.ne.0 )then
+                do c0=ca,cb
+                  c=uC(c0)  ! component of u
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        if( mask(i1+im1,i2+im2,i3+im3).ne.0 )then
+                          u(i1+im1,i2+im2,i3+im3,c)=((vData(f)-v(i1,i2,
+     & i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m221,i1,i2,i3)*u(i1,
+     & i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,i2-1,i3,c)+coeff(m122,i1,
+     & i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,i2,i3)*u(i1,i2,i3,c)+
+     & coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(m232,i1,i2,i3)*u(i1,
+     & i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,i2,i3+1,c)))/coeff(mGhost,
+     & i1,i2,i3)
+                        end if
+                      end do
+                    end do
+                  end do
+                end do
+              else
+                do c0=ca,cb
+                  c=uC(c0)
+                  f=fC(c0) ! component of forcing
+                  do i3=n3a,n3b
+                    do i2=n2a,n2b
+                      do i1=n1a,n1b
+                        u(i1+im1,i2+im2,i3+im3,c)=((vData(f)-v(i1,i2,
+     & i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1)-(coeff(m221,i1,i2,i3)*u(i1,
+     & i2,i3-1,c)+coeff(m212,i1,i2,i3)*u(i1,i2-1,i3,c)+coeff(m122,i1,
+     & i2,i3)*u(i1-1,i2,i3,c)+coeff(m222,i1,i2,i3)*u(i1,i2,i3,c)+
+     & coeff(m322,i1,i2,i3)*u(i1+1,i2,i3,c)+coeff(m232,i1,i2,i3)*u(i1,
+     & i2+1,i3,c)+coeff(m223,i1,i2,i3)*u(i1,i2,i3+1,c)))/coeff(mGhost,
+     & i1,i2,i3)
+                      end do
+                    end do
+                  end do
+                end do
+              end if
+              else ! const coeff
+! loopsm(u(i1+im1,i2+im2,i3+im3,c)=( vData(f) - ( coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) ))/coeff(mGhost,i1,i2,i3) )
               if( useWhereMask.ne.0 )then
                 do c0=ca,cb
                   c=uC(c0)  ! component of u
@@ -788,6 +1297,7 @@
                     end do
                   end do
                 end do
+              end if
               end if
             end if
           end if

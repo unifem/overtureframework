@@ -1,5 +1,6 @@
 //                                   -*- c++ -*-
 #include "BeamModel.h"
+#include "display.h"
 
 #include <sstream>
 
@@ -24,6 +25,9 @@ printArray(const doubleSerialArray & u,
            int i5a, int i5b,   
            int i6a, int i6b) ;
 
+
+real BeamModel::exactSolutionScaleFactorFSI=.00001;  // scale factor for the exact FSI solution 
+int BeamModel::debug=0;
 
 // Constructor.
 //
@@ -84,6 +88,14 @@ BeamModel::BeamModel() {
   penalty = 1e2;
 
   leftCantileverMoment = 0.0;
+
+  // if( !dbase.has_key("exactSolutionScaleFactorFSI") ) 
+  // { // wdh: replaces 'what' factor 
+  //   dbase.put<real>("exactSolutionScaleFactorFSI");
+  //   dbase.get<real>("exactSolutionScaleFactorFSI")=0.00001; // scale FSI solution so linearized approximation is valid 
+  // }
+  
+
 }
 
 BeamModel::~BeamModel() {
@@ -120,6 +132,7 @@ void BeamModel::setParameters(real momOfInertia, real E,
 
   massPerUnitLength = totalMass / L;
 
+  // Bo=uoyance terms are used when there is a body force (gravity)
   buoyantMassPerUnitLength = (density - pnorm)*thickness;
 
   buoyantMass = buoyantMassPerUnitLength * L;
@@ -461,6 +474,28 @@ void BeamModel::multiplyByMassMatrix(const RealArray& w, RealArray& Mw) {
 
   
 }
+
+//
+// Return the (x,y) coordinates of the beam centerline
+// wdh 2014/05/22
+void BeamModel::
+getCenterLine( RealArray & xc ) const
+{
+  xc.redim(numElem+1,2);
+  for( int i=0; i<=numElem; i++ ) 
+  {
+    // (xl,yl) = beam position (un-rotated)
+    real xl = ((real)i /numElem) *  L;   // position along neutral axis 
+    real yl = myPosition(2*i);           // displacement 
+
+    xc(i,0) = beamX0 + initialBeamTangent[0]*xl - initialBeamTangent[1]*yl;
+    xc(i,1) = beamY0 - initialBeamNormal [0]*xl + initialBeamNormal [1]*yl;
+  }
+
+}
+
+
+
 
 void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v, 
 				    const RealArray& f,
@@ -839,9 +874,9 @@ void BeamModel::addForce(const real& x0_1, const real& y0_1,
 
   //std::cout << x0_1 << " " << p1 << std::endl;
   
-  if (p1 != p1/* || p1 > 100.0*/) {
-    //std::cout << "Found nan!" << std::endl;
-  }
+ // if (p1 != p1/* || p1 > 100.0*/) {
+ //   //std::cout << "Found nan!" << std::endl;
+ // }
 
   //std::cout << getExactPressure(t,x0_1) << " " << p1 << std::endl;
   //
@@ -905,10 +940,11 @@ void BeamModel::addForce(const real& x0_1, const real& y0_1,
     
     Index idx(i*2,4);
     RealArray lt;
-    //if (t1 > 0) {
-    //  pa = -pa;
-    //  pb = -pb;
-    //}
+    if (t1 > 0) 
+    { // *wdh* Turn this back on 2014/05/23
+      pa = -pa;
+      pb = -pb;
+    }
     
       
     //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << 
@@ -958,12 +994,33 @@ void BeamModel::recomputeNormalAndTangent() {
   tangent[1] = sin(angle);
 }
 
+// Return the current force of the structure.
+//
+const RealArray& BeamModel::force() const
+{
+  return myForce;
+}
+
+
+
+
 void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1, 
 			  const RealArray& x2, const RealArray& v2,
 			  RealArray& x3, RealArray& v3) {
 
   t += dt;
   //myForce = 0.0;
+
+  if( false && t<2.*dt )
+  { 
+    // wdh: debug info: 
+    printF("************** BeamModel::predictor: t=%9.3e ***********************\n",t);
+    ::display(x2,"x2","%8.2e ");
+    ::display(v2,"v2","%8.2e ");
+    
+  }
+  
+
 
   for (int i = 0; i < numElem; ++i) {
     Index idx(i*2,4);
@@ -973,6 +1030,12 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
 			  -1.0,1.0, lt);
     myForce(idx) += lt;
   }
+
+  if( debug & 1 )
+  {
+    ::display(myForce(Range(0,2*numElem,2)),"BeamModel::predictor: force (displacement)","%8.2e ");
+  }
+  
 
   //printArray(myForce,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
  
@@ -1301,7 +1364,7 @@ void BeamModel::corrector(real dt,
 
   ++numCorrectorIterations;
 
-  std::cout << "correction value = " << correction << std::endl;
+  // std::cout << "correction value = " << correction << std::endl;
   if (correction < initialResidual*convergenceTolerance || correction < 1e-8)
     correctionHasConverged = true;
 
@@ -1351,6 +1414,7 @@ bool BeamModel::hasCorrectionConverged() const {
 #include <complex>
 
 typedef ::real LocalReal;
+typedef ::real OV_real;
 
 static std::complex<LocalReal> phi1(std::complex<LocalReal> alpha, LocalReal k,
 				    LocalReal y) {
@@ -1383,9 +1447,12 @@ void BeamModel::exactSolutionVelocity(LocalReal x, LocalReal y,
 				      LocalReal k, LocalReal H, 
 				      LocalReal omega_real, LocalReal omega_imag,
 				      LocalReal omega0, LocalReal nu,
-				      LocalReal what,
+				      LocalReal what,   // not needed
 				      LocalReal& u, LocalReal& v) {
   
+  what=exactSolutionScaleFactorFSI;  // wdh 
+  //  printF("@@@BeamModel::exactSolutionVelocity what=%9.3e\n",what);
+
   std::complex<LocalReal> omega_tilde(omega_real, omega_imag);
   LocalReal beta = omega0/(k*k)/nu;
   std::complex<LocalReal> I(0.0,1.0);
@@ -1417,9 +1484,11 @@ void BeamModel::exactSolutionPressure(LocalReal x, LocalReal y,
 				      LocalReal k, LocalReal H, 
 				      LocalReal omega_real, LocalReal omega_imag,
 				      LocalReal omega0, LocalReal nu,
-				      LocalReal what,
+				      LocalReal what, // not needed
 				      LocalReal& p) {
   
+  what=exactSolutionScaleFactorFSI;  // wdh 
+
   std::complex<LocalReal> omega_tilde(omega_real, omega_imag);
   LocalReal beta = omega0/(k*k)/nu;
   std::complex<LocalReal> I(0.0,1.0);
@@ -1441,13 +1510,16 @@ void BeamModel::exactSolutionPressure(LocalReal x, LocalReal y,
 
 void BeamModel::setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a) {
   
+  // printF("@@@BeamModel::setExactSolution exactSolutionScaleFactorFSI=%9.3e\n", dbase.get<OV_real>("exactSolutionScaleFactorFSI"));
+
   double h=0.02;
   double Ioverb=6.6667e-7;
   double H=0.3;
   double k=2.0*3.141592653589/L;
   double omega0=sqrt(elasticModulus*Ioverb*k*k*k*k/(density*h));
    
-  double what = 0.00001;
+  // -- wHat determines the "amplitude" of the surface, scaled by some factor ...wdh
+  double what = exactSolutionScaleFactorFSI; // 0.00001;
   double omegar = 0.8907148069, omegai = -0.9135887123e-2;
   std::complex<LocalReal> omega_tilde(omegar, omegai);
   std::complex<LocalReal> I(0.0,1.0);
@@ -1461,8 +1533,8 @@ void BeamModel::setExactSolution(double t,RealArray& x, RealArray& v, RealArray&
     
 
     
-    x(i*2) = 2.0*(what*f).real();
-    x(i*2+1) = 2.0*(what*fp).real();
+    x(i*2) = 2.0*(what*f).real();      // displacement w ...wdh
+    x(i*2+1) = 2.0*(what*fp).real();   // slope w'  ...wdh
     
     v(i*2) = 2.0*(-what*f*I*omega_tilde*omega0).real();
     v(i*2+1) = 2.0*(-what*fp*I*omega_tilde*omega0).real();
@@ -1473,6 +1545,8 @@ void BeamModel::setExactSolution(double t,RealArray& x, RealArray& v, RealArray&
 }
 
 double BeamModel::getExactPressure(double t, double xl) {
+
+  printF("@@@BeamModel::getExactPressure exactSolutionScaleFactorFSI=%9.3e\n", dbase.get<OV_real>("exactSolutionScaleFactorFSI"));
 
   double h=0.02;
   double Ioverb=6.6667e-7;
@@ -1487,7 +1561,7 @@ double BeamModel::getExactPressure(double t, double xl) {
   LocalReal beta = omega0/(k*k)/nu;
   std::complex<LocalReal> alpha = k*sqrt(-I*beta*omega_tilde+1.0);
 
-  double what = 0.00001;
+  double what = exactSolutionScaleFactorFSI; // 0.00001;
   std::complex<LocalReal> omega = omega_tilde*omega0;
   
   

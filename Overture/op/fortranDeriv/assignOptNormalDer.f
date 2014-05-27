@@ -1,4 +1,5 @@
 ! This file automatically generated from assignBoundaryConditions.bf with bpp.
+! assignBoundaryConditionMacro(assignOptNormalDer,normalDerivative)
          subroutine assignOptNormalDer( nd,  n1a,n1b,n2a,n2b,n3a,n3b, 
      & ndu1a,ndu1b,ndu2a,ndu2b,ndu3a,ndu3b,ndu4a,ndu4b, ndv1a,ndv1b,
      & ndv2a,ndv2b,ndv3a,ndv3b,ndv4a,ndv4b, ndc1a,ndc1b,ndc2a,ndc2b,
@@ -96,6 +97,7 @@
         integer mGhost
         integer m21,m12,m22,m32,m23
         integer m221,m212,m122,m222,m322,m232,m223
+        integer varCoeff
         epsX=1.e-100  ! prevent division by zero when normalizing the normal vector  *FIX ME* -- this should be passed in
         if( side.lt.0 .or. side.gt.1 )then
           write(*,*) 'applyBoundaryConditions:ERROR: side=',side
@@ -134,6 +136,10 @@
         if1=im1*lineForForcing
         if2=im2*lineForForcing
         if3=im3*lineForForcing
+! #If "normalDerivative" eq "neumann"
+! #Elif "normalDerivative" eq "aDotGradU"
+! #Elif "normalDerivative" eq "generalizedDivergence"
+! #Elif "normalDerivative" eq "normalDerivative"
           if( .not.(bcType.eq.normalDerOfNormalComponent 
      & .or.bcType.eq.normalDerOfTangentialComponent0 
      & .or.bcType.eq.normalDerOfTangentialComponent1) )then
@@ -174,6 +180,7 @@
            end if
            if( bcOption.eq.scalarForcing ) then
              if( nd.eq.2 ) then
+! loopsd4(temp=scalarData*twoDeltaX+(u(i1+ip1,i2+ip2,i3,n1)-u(i1+im1,i2+im2,i3,n1))*vv(0) +(u(i1+ip1,i2+ip2,i3,n2)-u(i1+im1,i2+im2,i3,n2))*vv(1), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*vv(1), )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -208,6 +215,7 @@
                end do
              end if
              else if( nd.eq.3 ) then
+! loopsd4(temp=scalarData*twoDeltaX+(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1))*vv(0) +(u(i1+ip1,i2+ip2,i3+ip3,n2)-u(i1+im1,i2+im2,i3+im3,n2))*vv(1) +(u(i1+ip1,i2+ip2,i3+ip3,n3)-u(i1+im1,i2+im2,i3+im3,n3))*vv(2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*vv(1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*vv(2))
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -246,6 +254,7 @@
                end do
              end if
              else
+! loopsd4(temp=scalarData*twoDeltaX+(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1))*vv(0), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), , )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -277,7 +286,9 @@
              end if
              end if
            else if( bcOption.eq.gfForcing ) then
+! normalDerivativeRectangular(gfData(i1,i2,i3,m1),gfData(i1,i2,i3,m2),gfData(i1,i2,i3,m3))
              if( nd.eq.2 ) then
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3,n1)-u(i1+im1,i2+im2,i3,n1)+gfData(i1,i2,i3,m1)*twoDeltaX)*vv(0) +(u(i1+ip1,i2+ip2,i3,n2)-u(i1+im1,i2+im2,i3,n2)+gfData(i1,i2,i3,m2)*twoDeltaX)*vv(1), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*vv(1), )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -312,6 +323,7 @@
                end do
              end if
              else if( nd.eq.3 ) then
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1)+gfData(i1,i2,i3,m1)*twoDeltaX)*vv(0) +(u(i1+ip1,i2+ip2,i3+ip3,n2)-u(i1+im1,i2+im2,i3+im3,n2)+gfData(i1,i2,i3,m2)*twoDeltaX)*vv(1) +(u(i1+ip1,i2+ip2,i3+ip3,n3)-u(i1+im1,i2+im2,i3+im3,n3)+gfData(i1,i2,i3,m3)*twoDeltaX)*vv(2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*vv(1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*vv(2))
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -352,6 +364,7 @@
                end do
              end if
              else
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1)+gfData(i1,i2,i3,m1)*twoDeltaX)*vv(0), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), , )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -383,7 +396,9 @@
              end if
              end if
            else if( bcOption.eq.arrayForcing ) then
+! normalDerivativeRectangular(fData(m1,side,axis,grid),fData(m2,side,axis,grid),fData(m3,side,axis,grid))
              if( nd.eq.2 ) then
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3,n1)-u(i1+im1,i2+im2,i3,n1)+fData(m1,side,axis,grid)*twoDeltaX)*vv(0) +(u(i1+ip1,i2+ip2,i3,n2)-u(i1+im1,i2+im2,i3,n2)+fData(m2,side,axis,grid)*twoDeltaX)*vv(1), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*vv(1), )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -420,6 +435,7 @@
                end do
              end if
              else if( nd.eq.3 ) then
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1)+fData(m1,side,axis,grid)*twoDeltaX)*vv(0) +(u(i1+ip1,i2+ip2,i3+ip3,n2)-u(i1+im1,i2+im2,i3+im3,n2)+fData(m2,side,axis,grid)*twoDeltaX)*vv(1) +(u(i1+ip1,i2+ip2,i3+ip3,n3)-u(i1+im1,i2+im2,i3+im3,n3)+fData(m3,side,axis,grid)*twoDeltaX)*vv(2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*vv(1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*vv(2))
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -460,6 +476,7 @@
                end do
              end if
              else
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1)+fData(m1,side,axis,grid)*twoDeltaX)*vv(0), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), , )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -491,7 +508,9 @@
              end if
              end if
            else if( bcOption.eq.vectorForcing ) then
+! normalDerivativeRectangular(vData(m1),vData(m2),vData(m3))
              if( nd.eq.2 ) then
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3,n1)-u(i1+im1,i2+im2,i3,n1)+vData(m1)*twoDeltaX)*vv(0) +(u(i1+ip1,i2+ip2,i3,n2)-u(i1+im1,i2+im2,i3,n2)+vData(m2)*twoDeltaX)*vv(1), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*vv(1), )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -526,6 +545,7 @@
                end do
              end if
              else if( nd.eq.3 ) then
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1)+vData(m1)*twoDeltaX)*vv(0) +(u(i1+ip1,i2+ip2,i3+ip3,n2)-u(i1+im1,i2+im2,i3+im3,n2)+vData(m2)*twoDeltaX)*vv(1) +(u(i1+ip1,i2+ip2,i3+ip3,n3)-u(i1+im1,i2+im2,i3+im3,n3)+vData(m3)*twoDeltaX)*vv(2),u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*vv(1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*vv(2))
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -566,6 +586,7 @@
                end do
              end if
              else
+! loopsd4(temp=(u(i1+ip1,i2+ip2,i3+ip3,n1)-u(i1+im1,i2+im2,i3+im3,n1)+vData(m1)*twoDeltaX)*vv(0), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*vv(0), , )
              if( useWhereMask.ne.0 )then
                do i3=n3a,n3b
                do i2=n2a,n2b
@@ -632,7 +653,9 @@
             mGhost=m22+2*side-1
           end if
           if( bcOption.eq.scalarForcing ) then
+! normalDerivativeCurvilinear(scalarData)
             if( nd.eq.2 ) then
+! loopsd4(temp=((scalarData) -(coeff(m21,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3,n2)) +coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3,n2)) +coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3,n2)) +coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3,n2)) +coeff(m23,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3,n2)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*v(i1,i2,i3,v1), )
             if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
@@ -677,6 +700,7 @@
               end do
             end if
             else if( nd.eq.3 ) then
+! loopsd4(temp=( (scalarData) -(coeff(m221,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3-1,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3-1,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3-1,n3)) +coeff(m212,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2-1,i3  ,n3)) +coeff(m122,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1-1,i2  ,i3  ,n3)) +coeff(m222,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3  ,n3)) +coeff(m322,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1+1,i2  ,i3  ,n3)) +coeff(m232,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2+1,i3  ,n3)) +coeff(m223,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3+1,n1)      +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3+1,n2)      +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3+1,n3)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*v(i1,i2,i3,v1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*v(i1,i2,i3,v2))
             if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
@@ -737,6 +761,7 @@
               end do
             end if
             else
+! loopsd4(temp=( (scalarData) - (coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1))+coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1))+coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), , )
             if( useWhereMask.ne.0 )then
               do i3=n3a,n3b
               do i2=n2a,n2b
@@ -773,7 +798,9 @@
             end if
           else if( bcOption.eq.gfForcing ) then
             if( nd.eq.2 ) then
+! normalDerivativeCurvilinear(gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1))
               if( nd.eq.2 ) then
+! loopsd4(temp=((gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1)) -(coeff(m21,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3,n2)) +coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3,n2)) +coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3,n2)) +coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3,n2)) +coeff(m23,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3,n2)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*v(i1,i2,i3,v1), )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -820,6 +847,7 @@
                 end do
               end if
               else if( nd.eq.3 ) then
+! loopsd4(temp=( (gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1)) -(coeff(m221,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3-1,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3-1,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3-1,n3)) +coeff(m212,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2-1,i3  ,n3)) +coeff(m122,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1-1,i2  ,i3  ,n3)) +coeff(m222,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3  ,n3)) +coeff(m322,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1+1,i2  ,i3  ,n3)) +coeff(m232,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2+1,i3  ,n3)) +coeff(m223,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3+1,n1)      +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3+1,n2)      +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3+1,n3)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*v(i1,i2,i3,v1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*v(i1,i2,i3,v2))
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -882,6 +910,7 @@
                 end do
               end if
               else
+! loopsd4(temp=( (gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1)) - (coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1))+coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1))+coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), , )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -919,7 +948,9 @@
               end if
               end if
             else if( nd.eq.3 ) then
+! normalDerivativeCurvilinear(gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1)+gfData(i1,i2,i3,m3)*v(i1,i2,i3,v2))
               if( nd.eq.2 ) then
+! loopsd4(temp=((gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1)+gfData(i1,i2,i3,m3)*v(i1,i2,i3,v2)) -(coeff(m21,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3,n2)) +coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3,n2)) +coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3,n2)) +coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3,n2)) +coeff(m23,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3,n2)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*v(i1,i2,i3,v1), )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -968,6 +999,7 @@
                 end do
               end if
               else if( nd.eq.3 ) then
+! loopsd4(temp=( (gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1)+gfData(i1,i2,i3,m3)*v(i1,i2,i3,v2)) -(coeff(m221,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3-1,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3-1,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3-1,n3)) +coeff(m212,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2-1,i3  ,n3)) +coeff(m122,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1-1,i2  ,i3  ,n3)) +coeff(m222,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3  ,n3)) +coeff(m322,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1+1,i2  ,i3  ,n3)) +coeff(m232,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2+1,i3  ,n3)) +coeff(m223,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3+1,n1)      +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3+1,n2)      +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3+1,n3)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*v(i1,i2,i3,v1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*v(i1,i2,i3,v2))
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1032,6 +1064,7 @@
                 end do
               end if
               else
+! loopsd4(temp=( (gfData(i1,i2,i3,m1)*v(i1,i2,i3,v0)+gfData(i1,i2,i3,m2)*v(i1,i2,i3,v1)+gfData(i1,i2,i3,m3)*v(i1,i2,i3,v2)) - (coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1))+coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1))+coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), , )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1073,7 +1106,9 @@
             end if
           else if( bcOption.eq.arrayForcing ) then
             if( nd.eq.2 ) then
+! normalDerivativeCurvilinear(fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1))
               if( nd.eq.2 ) then
+! loopsd4(temp=((fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1)) -(coeff(m21,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3,n2)) +coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3,n2)) +coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3,n2)) +coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3,n2)) +coeff(m23,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3,n2)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*v(i1,i2,i3,v1), )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1120,6 +1155,7 @@
                 end do
               end if
               else if( nd.eq.3 ) then
+! loopsd4(temp=( (fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1)) -(coeff(m221,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3-1,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3-1,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3-1,n3)) +coeff(m212,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2-1,i3  ,n3)) +coeff(m122,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1-1,i2  ,i3  ,n3)) +coeff(m222,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3  ,n3)) +coeff(m322,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1+1,i2  ,i3  ,n3)) +coeff(m232,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2+1,i3  ,n3)) +coeff(m223,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3+1,n1)      +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3+1,n2)      +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3+1,n3)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*v(i1,i2,i3,v1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*v(i1,i2,i3,v2))
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1182,6 +1218,7 @@
                 end do
               end if
               else
+! loopsd4(temp=( (fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1)) - (coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1))+coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1))+coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), , )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1219,7 +1256,9 @@
               end if
               end if
            else if( nd.eq.3 ) then
+! normalDerivativeCurvilinear(fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1)+fData(m3,side,axis,grid)*v(i1,i2,i3,v2))
               if( nd.eq.2 ) then
+! loopsd4(temp=((fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1)+fData(m3,side,axis,grid)*v(i1,i2,i3,v2)) -(coeff(m21,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3,n2)) +coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3,n2)) +coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3,n2)) +coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3,n2)) +coeff(m23,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3,n2)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*v(i1,i2,i3,v1), )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1268,6 +1307,7 @@
                 end do
               end if
               else if( nd.eq.3 ) then
+! loopsd4(temp=( (fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1)+fData(m3,side,axis,grid)*v(i1,i2,i3,v2)) -(coeff(m221,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3-1,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3-1,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3-1,n3)) +coeff(m212,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2-1,i3  ,n3)) +coeff(m122,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1-1,i2  ,i3  ,n3)) +coeff(m222,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3  ,n3)) +coeff(m322,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1+1,i2  ,i3  ,n3)) +coeff(m232,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2+1,i3  ,n3)) +coeff(m223,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3+1,n1)      +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3+1,n2)      +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3+1,n3)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*v(i1,i2,i3,v1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*v(i1,i2,i3,v2))
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1332,6 +1372,7 @@
                 end do
               end if
               else
+! loopsd4(temp=( (fData(m1,side,axis,grid)*v(i1,i2,i3,v0)+fData(m2,side,axis,grid)*v(i1,i2,i3,v1)+fData(m3,side,axis,grid)*v(i1,i2,i3,v2)) - (coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1))+coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1))+coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), , )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1375,7 +1416,9 @@
            end if
           else if( bcOption.eq.vectorForcing ) then
             if( nd.eq.2 ) then
+! normalDerivativeCurvilinear(vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1))
               if( nd.eq.2 ) then
+! loopsd4(temp=((vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1)) -(coeff(m21,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3,n2)) +coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3,n2)) +coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3,n2)) +coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3,n2)) +coeff(m23,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3,n2)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*v(i1,i2,i3,v1), )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1422,6 +1465,7 @@
                 end do
               end if
               else if( nd.eq.3 ) then
+! loopsd4(temp=( (vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1)) -(coeff(m221,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3-1,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3-1,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3-1,n3)) +coeff(m212,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2-1,i3  ,n3)) +coeff(m122,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1-1,i2  ,i3  ,n3)) +coeff(m222,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3  ,n3)) +coeff(m322,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1+1,i2  ,i3  ,n3)) +coeff(m232,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2+1,i3  ,n3)) +coeff(m223,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3+1,n1)      +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3+1,n2)      +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3+1,n3)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*v(i1,i2,i3,v1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*v(i1,i2,i3,v2))
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1484,6 +1528,7 @@
                 end do
               end if
               else
+! loopsd4(temp=( (vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1)) - (coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1))+coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1))+coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), , )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1521,7 +1566,9 @@
               end if
               end if
             else if( nd.eq.3 ) then
+! normalDerivativeCurvilinear(vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1)+vData(m3)*v(i1,i2,i3,v2))
               if( nd.eq.2 ) then
+! loopsd4(temp=((vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1)+vData(m3)*v(i1,i2,i3,v2)) -(coeff(m21,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3,n2)) +coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3,n2)) +coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3,n2)) +coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1) +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3,n2)) +coeff(m23,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3,n1) +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3,n2)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3,n1)=u(i1+im1,i2+im2,i3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3,n2)=u(i1+im1,i2+im2,i3,n2)+temp*v(i1,i2,i3,v1), )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1568,6 +1615,7 @@
                 end do
               end if
               else if( nd.eq.3 ) then
+! loopsd4(temp=( (vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1)+vData(m3)*v(i1,i2,i3,v2)) -(coeff(m221,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3-1,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3-1,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3-1,n3)) +coeff(m212,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2-1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2-1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2-1,i3  ,n3)) +coeff(m122,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1-1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1-1,i2  ,i3  ,n3)) +coeff(m222,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3  ,n3)) +coeff(m322,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1+1,i2  ,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1+1,i2  ,i3  ,n3)) +coeff(m232,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2+1,i3  ,n1)             +v(i1,i2,i3,v1)*u(i1  ,i2+1,i3  ,n2)             +v(i1,i2,i3,v2)*u(i1  ,i2+1,i3  ,n3)) +coeff(m223,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3+1,n1)      +v(i1,i2,i3,v1)*u(i1  ,i2  ,i3+1,n2)      +v(i1,i2,i3,v2)*u(i1  ,i2  ,i3+1,n3)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), u(i1+im1,i2+im2,i3+im3,n2)=u(i1+im1,i2+im2,i3+im3,n2)+temp*v(i1,i2,i3,v1), u(i1+im1,i2+im2,i3+im3,n3)=u(i1+im1,i2+im2,i3+im3,n3)+temp*v(i1,i2,i3,v2))
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b
@@ -1630,6 +1678,7 @@
                 end do
               end if
               else
+! loopsd4(temp=( (vData(m1)*v(i1,i2,i3,v0)+vData(m2)*v(i1,i2,i3,v1)+vData(m3)*v(i1,i2,i3,v2)) - (coeff(m12,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1-1,i2  ,i3,n1))+coeff(m22,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1  ,i2  ,i3,n1))+coeff(m32,i1,i2,i3)*(v(i1,i2,i3,v0)*u(i1+1,i2  ,i3,n1)) ) )/coeff(mGhost,i1,i2,i3), u(i1+im1,i2+im2,i3+im3,n1)=u(i1+im1,i2+im2,i3+im3,n1)+temp*v(i1,i2,i3,v0), , )
               if( useWhereMask.ne.0 )then
                 do i3=n3a,n3b
                 do i2=n2a,n2b

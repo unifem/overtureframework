@@ -36,6 +36,8 @@ fortranCoeff = $(current)/../fortranCoeff
 bc = $(current)/../bc
 VPATH = $(opsrc):$(deriv):$(coeff):$(fortranDeriv):$(fortranCoeff):$(bc)
 
+bpp = ../../bpp/bpp
+
 all = tderivatives
 all: $(all);
 
@@ -59,17 +61,17 @@ coeffFiles = opcoeff.o laplacianCoeff2.o xCoeff2.o yCoeff2.o zCoeff2.o xxCoeff2.
               rtCoeff4.o ssCoeff4.o stCoeff4.o ttCoeff4.o
 
 
-# dsg.f : dsg.bf; bpp dsg.bf
+# dsg.f : dsg.bf; $(bpp) dsg.bf
 
 # dsg.o : dsg.f; $(FC) $(FFLAGSG) -c $*.f
 
 # *** test of new coefficient matrix macros ***
-# getcop.f : getcop.bf; bpp -quiet -clean -I$(Overture)/include -I../src $<
-getcop.f : getcop.bf ../src/conservativeCoefficientMacros.h; bpp -quiet -clean -I$(Overture)/include -I../src $<
+# getcop.f : getcop.bf; $(bpp) -quiet -clean -I$(Overture)/include -I../src $<
+getcop.f : getcop.bf ../src/conservativeCoefficientMacros.h; $(bpp) -quiet -clean -I$(Overture)/include -I../src $<
 # getcop.o : getcop.f; pgf77 -o getcop.o -c getcop.f
 
 
-tderivatives.C: tderivatives.bC; bpp tderivatives.bC
+tderivatives.C: tderivatives.bC; $(bpp) tderivatives.bC
 
 
 # test out all derivatives:
@@ -91,7 +93,7 @@ tderivatives: $(tderivatives)
 	$(CC) $(CCFLAGS) -o tderivatives $(tderivatives) $(CLIBS) $(FLIBS) $(GLIBS)
 
 # Test the Dx1( s Dx2) operator
-tdsd.C: tdsd.bC; bpp tdsd.bC
+tdsd.C: tdsd.bC; $(bpp) tdsd.bC
 tdsd= tdsd.o Checker.o ../src/MGOD.o derivativeScalarDerivativeNC.o dsg.o
 tdsd= tdsd.o Checker.o 
 tdsd: $(tdsd)
@@ -100,7 +102,7 @@ tdsd: $(tdsd)
 
 
 # Test the div(tensor grad) operator
-dtg.C: dtg.bC; bpp dtg.bC
+dtg.C: dtg.bC; $(bpp) dtg.bC
 dtg= dtg.o Checker.o ../fortranDeriv/dsg.o ../fortranDeriv/dsgc4.o ../fortranDeriv/dsgc6.o \
               ../fortranDeriv/dsgr.o ../fortranDeriv/dsg3.o
 dtg: $(dtg)
@@ -119,10 +121,11 @@ crop: $(crop)
 
 # %.o : %.C ; $(CC) $(CCFLAGS) -c $*.C
 
+
 # test the coefficient matrix OPERATORS AND boundary conditions.
 # perform timings too
-tbcc.C: tbcc.bC; bpp tbcc.bC
-finishBoundaryConditions.C : finishBoundaryConditions.bC; bpp finishBoundaryConditions.bC
+tbcc.C: tbcc.bC; $(bpp) tbcc.bC
+finishBoundaryConditions.C : finishBoundaryConditions.bC; $(bpp) finishBoundaryConditions.bC
 
 tbcc.o: tbcc.C 
 	$(CC) $(CCFLAGS) -c $<
@@ -131,6 +134,7 @@ tbcc= tbcc.o MGOC.o coeff.o applyBCC.o $(coeffFiles)
 tbcc= tbcc.o Checker.o ../fortranDeriv/fixBCOptEdge1.o ../fortranDeriv/fixBCOptEdge2.o ../fortranDeriv/fixBCOptEdge3.o ../src/finishBoundaryConditions.o
 tbcc= tbcc.o Checker.o setCoefficients.o getcop.o getCoeffOpOrder2Dim2.o getCoeffOpOrder2Dim3.o getCoeffOpOrder4Dim2.o getCoeffOpOrder4Dim3.o
 tbcc= tbcc.o Checker.o ../src/finishBoundaryConditions.o
+tbcc= tbcc.o Checker.o applyBCC.o
 tbcc: $(tbcc) 
 	$(CC) $(CCFLAGS) -o tbcc $(tbcc) \
         $(CLIBS) $(FLIBS) $(GLIBS)
@@ -192,10 +196,11 @@ bcgf= bcgf.o
 bcgf: $(bcgf)
 	$(CC) $(CCFLAGS) -o bcgf $(bcgf) $(CLIBS) $(FLIBS) $(GLIBS)
 
-applyBoundaryConditions.f : applyBoundaryConditions.bf; bpp applyBoundaryConditions.bf
+applyBoundaryConditions.f : applyBoundaryConditions.bf; $(bpp) applyBoundaryConditions.bf
 applyBoundaryConditions.o : applyBoundaryConditions.f; $(FC) $(FFLAGS) -c $<
 
-# assignBoundaryConditions.f : assignBoundaryConditions.bf; bpp assignBoundaryConditions.bf
+ABC:
+	cd ../fortranDeriv; $(BPP) assignBoundaryConditions.bf
 # assignBoundaryConditions.o : assignBoundaryConditions.f; $(FC) $(FFLAGS) -c $<
 
 # test the boundary conditions:
@@ -205,7 +210,8 @@ tbc= tbc.o Checker.o  ../src/applyBCC.o ../bc/normalDerivative.o ../fortranDeriv
 tbc= tbc.o Checker.o ../fortranDeriv/fixBCOptEdge1.o ../fortranDeriv/fixBCOptEdge2.o ../fortranDeriv/fixBCOptEdge3.o ../src/finishBoundaryConditions.o
 tbc= tbc.o Checker.o ../src/finishBoundaryConditions.o
 tbc= tbc.o Checker.o tangential.o assignBoundaryConditions.o assignOptTangentialComponent.o
-tbc: $(tbc) 
+tbc= tbc.o Checker.o neumann.o assignBoundaryConditions.o assignOptNeumann.o generalMixed.o aDotGradU.o
+tbc: ABC $(tbc) 
 	$(CC) $(CCFLAGS) -o tbc $(tbc) \
         $(CLIBS) $(FLIBS) $(GLIBS)
 
@@ -220,7 +226,7 @@ edge:   $(edge)
 	$(CC) $(CCFLAGS) -o edge $(edge) \
         $(dmgf) $(CLIBS) $(FLIBS) $(GLIBS)
 
-findInterpNeighbours.f : findInterpNeighbours.bf; bpp findInterpNeighbours.bf
+findInterpNeighbours.f : findInterpNeighbours.bf; $(bpp) findInterpNeighbours.bf
 
 testExtrapInterpNeighbours= testExtrapInterpNeighbours.o Checker.o AssignInterpNeighbours.o findInterpNeighbours.o ../fortranDeriv/extrapolateOpt.o BoundaryOperators.o
 testExtrapInterpNeighbours= testExtrapInterpNeighbours.o Checker.o ../fortranDeriv/extrapolateOpt.o

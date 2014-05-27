@@ -369,5 +369,8 @@ writeParameterSummary( FILE * file )
   fPrintF(file," slip-wall BC option=%i. 0=default, 1=slipWallPressureEntropySymmetry, 2=slipWallTaylor, 3=slipWallCharacteristic, 4=slipWallDerivative.\n",
           parameters.dbase.get<int >("slipWallBoundaryConditionOption"));
   
+  fPrintF(file," densityLowerBound=%8.2e, pressureLowerBound=%8.2e, velocityLimiterEpsilon=%8.2e\n",
+	  parameters.dbase.get<real >("densityLowerBound"),parameters.dbase.get<real >("pressureLowerBound"),parameters.dbase.get<real >("velocityLimiterEps"));
+
 }
 

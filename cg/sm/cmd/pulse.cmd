@@ -71,22 +71,25 @@
 $tFinal=10.; $tPlot=.05; $backGround="square"; $cfl=.9; $bc="sf"; $pv="nc";
 $ic="gaussianPulse";  $amp=.05; $dsf=1.; $exponent=50.; $x0=.5; $y0=.5; $z0=.5; $specialOption="default"; 
 $noplot=""; $grid="rectangle80.ar10"; $mu=1.; $lambda=1.; $godunovOrder=2;
-$debug = 0;  $tPlot=.1; $diss=0.; $dissOrder=2; $bc="d"; $cons=1; $dsf=0.4; 
+$debug = 0;  $tPlot=.1;  $bc="d"; $cons=1; $dsf=0.4; 
+$diss=0.; $dissOrder=2;  # for NC scheme
+$tsdiss=.1; $tsdissdt=0.; # Tangential stress dissipation for Godunov
 $filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2; 
 $tz = "poly"; $degreex=2; $degreet=2; $fx=.5; $fy=$fx; $fz=$fx; $ft=$fx;
-$ad=1.; # art. diss for Godunov
+$ad2=0.; # second-order art. diss for Godunov
+$ad4=1.;$ad4dt=0.;  # fourth-order art. diss for Godunov
 $order = 2; $go="halt"; $show=" "; $model="linear";
 $godunovType=0; 
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet,"diss=f"=>\$diss,\
- "dissOrder=i"=>\$dissOrder,"tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug, \
+"tp=f"=>\$tPlot, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"debug=i"=>\$debug, \
  "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bc=s"=>\$bc,"ic=s"=>\$ic,"go=s"=>\$go,"noplot=s"=>\$noplot,\
   "mu=f"=>\$mu,"lambda=f"=>\$lambda,"dtMax=f"=>\$dtMax, "cons=i"=>\$cons,"x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,\
   "pv=s"=>\$pv,"exponent=f"=>\$exponent,"godunovOrder=f"=>\$godunovOrder,"specialOption=s"=>\$specialOption,\
   "dsf=f"=>\$dsf,"filter=i"=>\$filter,"filterFrequency=i"=>\$filterFrequency,"filterOrder=i"=>\$filterOrder,\
-  "filterStages=i"=>\$filterStages,"ad=f"=>\$ad,"model=s"=>\$model,"godunovType=i"=>\$godunovType,\
-  "amp=f"=>\$amp,"dsf=f"=>\$dsf  );
+  "filterStages=i"=>\$filterStages,"ad2=f"=>\$ad2,"ad4=f"=>\$ad4,"ad4dt=f"=>\$ad4dt,"model=s"=>\$model,"godunovType=i"=>\$godunovType,\
+  "amp=f"=>\$amp,"dsf=f"=>\$dsf,"tsdiss=f"=>\$tsdiss,"tsdissdt=f"=>\$tsdissdt  );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="polynomial"; }else{ $tz="trigonometric"; }
@@ -159,9 +162,13 @@ boundary conditions
 done  
 *
 displacement scale factor $dsf
-dissipation $diss
-order of dissipation $dissOrder
-SMPDE:artificial diffusion $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad $ad
+# dissipation $diss
+# order of dissipation $dissOrder
+SMPDE:artificial diffusion $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2 $ad2
+SMPDE:fourth-order artificial diffusion $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4 $ad4
+SMPDE:fourth-order dt dissipation $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt $ad4dt
+SMPDE:tangential stress dissipation $tsdiss $tsdissdt
+SMPDE:displacement dissipation $tsdiss
 * 
 cfl $cfl
 use conservative difference $cons
@@ -189,6 +196,7 @@ plot errors $checkErrors
 * -- trouble saving show file in parallel with check errors -- sequences have trouble
 check errors 0
 plot errors 0
+plot stress 0
 *
 debug $debug
 *

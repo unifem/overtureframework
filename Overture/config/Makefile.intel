@@ -10,8 +10,8 @@ cc = gcc
 CC = g++
 # take this from the environment: FC = pgf77
 
-# on the 64 bit intel some lib's are in the lib64 directory
-ifeq ($(HARDWARE),x86_64)
+# on the 64 applyBCCbit intel some lib's are in the lib64 directory
+ifeq ($(MACHTYPE),x86_64)
  LIB64 = lib64
 else
  LIB64 = lib 
@@ -42,6 +42,8 @@ LibOverture= -lOverture -lOverture_static
 OvertureInclude=  $(Overture)/include
 OvertureLib=      $(Overture)/lib
 BOXLIB_DEFS = -DBL_USE_DOUBLE -DBL_Solaris
+
+OvertureFortranPrecision = -fdefault-real-8 -fdefault-double-8
 
 # these next flags are compiler dependent
 cc_FLAGS = -fPIC
@@ -135,11 +137,16 @@ LDFLAGS = -Wl,-rpath,$(Overture)/lib
 RANLIB = ranlib
 SOFLAGS = -shared
 OpenGLibs =$(GL_LIBS)
-GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXpm -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11 -lm
+GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11 -lm
+## GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXpm -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11 -lm
 #
 #
 CLIBS=   $(LDFLAGS) -L$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) -Wl,-rpath,$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS)
 FLIBS=   $(AppLibraries) $(FORTRAN_LIBS) 
+
+BPP = $(OvertureCheckout)/bpp/bpp
+
+
 
 .SUFFIXES:
 .SUFFIXES:.C .o .f .o .F .o .bf .f .c .o .cc .o
@@ -148,8 +155,8 @@ FLIBS=   $(AppLibraries) $(FORTRAN_LIBS)
 .c.o:; $(cc) $(CFLAGS) -c $<
 .f.o:; $(FC) $(FFLAGSO) -c $<
 .F.o:; $(FC) $(FFLAGSO) -c $<
-.bf.f:; bpp $*.bf
-.bC.C:; bpp $*.bC
+.bf.f:; $(BPP) $*.bf
+.bC.C:; $(BPP) $*.bC
 .bf.o: $*.f ; 
 .bC.o: $*.C ; 
 
@@ -158,7 +165,6 @@ FLIBS=   $(AppLibraries) $(FORTRAN_LIBS)
 # .C: $(LIB_DEPENDENCIES)
 #	 $(CC) $(CCFLAGS) -o $@ $< $(CLIBS) $(FLIBS)  $(GLIBS)
 
-BPP = bpp
 %.C : %.bC
 	$(BPP) -quiet -clean  $<
 %.f : %.bf

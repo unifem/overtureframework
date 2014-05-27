@@ -1428,7 +1428,7 @@ addFilter( int current, real t, real dt )
     }
 
     // ********************************************************
-    if( false )
+    if( false ) // *wdh* 2014/05/21 -- is this needed when grids overlap on a boundary ?
     {
       cgfields[current].interpolate();
     }

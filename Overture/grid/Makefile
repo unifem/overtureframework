@@ -1,4 +1,4 @@
-include ../config/Makefile.$(VENDOR)
+include ../config/Makefile.intel
 
 # over-ride defaults here
 # PURIFY  = purify $(PFLAGS) 

@@ -132,6 +132,7 @@ CnsParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   // Lower bounds for density and pressure
   if (!dbase.has_key("densityLowerBound")) dbase.put<real>("densityLowerBound",1.e-5);
   if (!dbase.has_key("pressureLowerBound")) dbase.put<real>("pressureLowerBound",1.e-6);
+  if (!dbase.has_key("velocityLimiterEps")) dbase.put<real>("velocityLimiterEps",1.e-4);
 
   // Add a fix for wall heating/cooling: 
   if (!dbase.has_key("checkForWallHeating")) dbase.put<int>("checkForWallHeating",0);
@@ -1304,8 +1305,14 @@ setTwilightZoneFunction(const TwilightZoneChoice & choice_,
     amplitude( tc)=.25;  cc( tc)=1.;  gy( tc)=.5/ omega[1];
     //kkc    amplitude( tc)=.25;  cc( tc)=10.;  gy( tc)=.5/ omega[1];
  
-
-     dbase.get<OGFunction* >("exactSolution") = new OGTrigFunction(fx,fy,fz,ft);
+    // Optionally scale amplitudes: 
+    const real & trigonometricTwilightZoneScaleFactor=
+      dbase.get<real>("trigonometricTwilightZoneScaleFactor");  // scale factor for Trigonometric TZ
+    printF("*** CnsParameters:INFO: scaling trig TZ by the factor %9.3e\n",trigonometricTwilightZoneScaleFactor);
+    amplitude *= trigonometricTwilightZoneScaleFactor;
+    cc*=trigonometricTwilightZoneScaleFactor;
+    
+    dbase.get<OGFunction* >("exactSolution") = new OGTrigFunction(fx,fy,fz,ft);
  
     ((OGTrigFunction*) dbase.get<OGFunction* >("exactSolution"))->setShifts(gx,gy,gz,gt);
     ((OGTrigFunction*) dbase.get<OGFunction* >("exactSolution"))->setAmplitudes(amplitude);
@@ -1491,6 +1498,8 @@ buildCompressibleDialog(DialogData & dialog,
   sPrintF(textStrings[nt], "%g",parameters.dbase.get<real >("densityLowerBound"));  nt++;
   textLabels[nt] = "pressure lower bound";  
   sPrintF(textStrings[nt], "%g",parameters.dbase.get<real >("pressureLowerBound"));  nt++;
+  textLabels[nt] = "velocity limiter epsilon";  
+  sPrintF(textStrings[nt], "%g",parameters.dbase.get<real >("velocityLimiterEps"));  nt++;
 
   // add on user defined variables
 
@@ -2352,6 +2361,8 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     else if( dialog.getTextValue(answer,"boundary pressure offset","%e", dbase.get<real>("boundaryForcePressureOffset")) ){}//
     else if( dialog.getTextValue(answer,"density lower bound","%e", dbase.get<real>("densityLowerBound")) ){}//
     else if( dialog.getTextValue(answer,"pressure lower bound","%e", dbase.get<real>("pressureLowerBound")) ){}//
+    else if( dialog.getTextValue(answer,"velocity limiter epsilon","%e", dbase.get<real>("velocityLimiterEps")) ){}//
+
     else if( len=answer.matches("ad21,ad22") )
     {
       sScanF(answer(len,answer.length()),"%e %e",& dbase.get<real >("ad21"),& dbase.get<real >("ad22"));

@@ -12,6 +12,7 @@
 #   $rhoSolid : 
 #   $smVariation : non-conservative, conservative, godunov, hemp
 #   $smCheckErrors : 1=check and plot errors
+#   $smPlotStress  : 1= plot Cauchy stress
 #   $cfl :
 #   $diss  : coeff. of artificial dissipation
 #   $dissOrder : order of artificial dissipation [2|4]
@@ -41,10 +42,14 @@ if( $smVariation eq "conservative" ){ $cons=1; }
 # if( $cons eq "1" ){ $smVariation = "conservative"; }else{ $smVariation = "non-conservative"; }
 if( $smVariation eq "hemp" ){ $tsSM="improvedEuler"; }
 if( $smCheckErrors eq "" ){ $smCheckErrors=0; }
+if( $smPlotStress eq "" ){ $smPlotStress=0; }
 if( $errorNorm eq "" ){ $errorNorm="*"; }
 if( $applyInterfaceConditions eq "" ){ $applyInterfaceConditions=1; }
 if( $stressRelaxation eq "" ){ $stressRelaxation=0; }
-if( $tangentialStressDissipation eq "" ){ $tangentialStressDissipation=0; }
+if( $tangentialStressDissipation eq "" ){ $tangentialStressDissipation=0.1; }
+if( $tangentialStressDissipation1 eq "" ){ $tangentialStressDissipation1=0.; }
+if( $displacementDissipation eq "" ){ $displacementDissipation=.5; }
+if( $displacementDissipation1 eq "" ){ $displacementDissipation1=.0; }
 if( $relaxAlpha eq "" ){ $relaxAlpha=.1; }
 if( $relaxDelta eq "" ){ $relaxDelta=.1; }
 #
@@ -62,6 +67,7 @@ if( $hempApr eq "" ){ $hempApr=0.0; }
 if( $hempBpr eq "" ){ $hempBpr=0.0; }
 if( $hempCpr eq "" ){ $hempCpr=0.0; }
 if( $hempDpr eq "" ){ $hempDpr=0.0; }
+if( $trigTzScaleFactor eq "" ){ $trigTzScaleFactor=1.; }
 if( $tzCmds eq "" ){ $tzCmds="#"; }
 # 
 # ------- start new domain ----------
@@ -89,7 +95,8 @@ SMPDE:PDE type for Godunov $godunovType
 SMPDE:stressRelaxation $stressRelaxation
 SMPDE:relaxAlpha $relaxAlpha
 SMPDE:relaxDelta $relaxDelta
-SMPDE:tangential stress dissipation $tangentialStressDissipation
+SMPDE:tangential stress dissipation $tangentialStressDissipation  $tangentialStressDissipation1
+SMPDE:displacement dissipation $displacementDissipation $displacementDissipation1
 # --- start hemp parameters ---
 SMPDE:Rg $hempRg
 SMPDE:yield stress $hempYield
@@ -109,6 +116,7 @@ OBTZ:$tzsmType
 OBTZ:twilight zone flow $tzsm
 OBTZ:degree in space $degreex
 OBTZ:degree in time $degreet
+OBTZ:trigonometric scale factor $trigTzScaleFactor
 OBTZ:frequencies (x,y,z,t) $fx $fy $fz $ft
 $errorNorm
 $tzCmds
@@ -144,6 +152,8 @@ if( $restart eq "" ){ $icCmds = $initialConditionCommands; }\
 close initial conditions options
 check errors $smCheckErrors
 plot errors $smCheckErrors
+# plot Cauchy stress: 
+plot stress $smPlotStress
 #
 debug $debug
 #

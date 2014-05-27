@@ -1,4 +1,5 @@
 ! This file automatically generated from assignBoundaryConditions.bf with bpp.
+! assignBoundaryConditionMacro(assignOptTangentialComponent,tangentialComponent)
          subroutine assignOptTangentialComponent( nd,  n1a,n1b,n2a,n2b,
      & n3a,n3b, ndu1a,ndu1b,ndu2a,ndu2b,ndu3a,ndu3b,ndu4a,ndu4b, 
      & ndv1a,ndv1b,ndv2a,ndv2b,ndv3a,ndv3b,ndv4a,ndv4b, ndc1a,ndc1b,
@@ -96,6 +97,7 @@
         integer mGhost
         integer m21,m12,m22,m32,m23
         integer m221,m212,m122,m222,m322,m232,m223
+        integer varCoeff
         epsX=1.e-100  ! prevent division by zero when normalizing the normal vector  *FIX ME* -- this should be passed in
         if( side.lt.0 .or. side.gt.1 )then
           write(*,*) 'applyBoundaryConditions:ERROR: side=',side
@@ -134,6 +136,12 @@
         if1=im1*lineForForcing
         if2=im2*lineForForcing
         if3=im3*lineForForcing
+! #If "tangentialComponent" eq "neumann"
+! #Elif "tangentialComponent" eq "aDotGradU"
+! #Elif "tangentialComponent" eq "generalizedDivergence"
+! #Elif "tangentialComponent" eq "normalDerivative"
+! #Elif "tangentialComponent" eq "normalComponent"
+! #Elif "tangentialComponent" eq "tangentialComponent"
         if( bcType.ne.tangentialComponent .and. 
      & bcType.ne.tangentialComponent0 .and. 
      & bcType.ne.tangentialComponent1 )then
@@ -168,6 +176,7 @@
           if( bcOption.eq.scalarForcing )then
             if( scalarData.eq.0. )then
               if( nd.eq.2 )then
+! loopsd(u(i1,i2,i3,ct1)=0.)
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -188,6 +197,7 @@
                   end do
                 end if
               else if( nd.eq.3 )then
+! loopsd4(u(i1,i2,i3,ct1)=0.,u(i1,i2,i3,ct2)=0.,,)
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -217,6 +227,7 @@
             else
               ! What should we do for scalar data?? Just copy what was done in tangentialComponent.C: 
               if( nd.eq.2 )then
+! loopsd(u(i1,i2,i3,ct1)=scalarData)
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -237,6 +248,7 @@
                   end do
                 end if
               else if( nd.eq.3 )then
+! loopsd4(u(i1,i2,i3,ct1)=scalarData,u(i1,i2,i3,ct2)=scalarData,,)
                 if( useWhereMask.ne.0 )then
                   do i3=n3a,n3b
                   do i2=n2a,n2b
@@ -282,12 +294,16 @@
        !          *************************
           if( bcOption.eq.scalarForcing )then
            if( scalarData.eq.0. )then
+! assignTangentialComponent(NO_FORCING)
             if( useWhereMask.ne.0 )then
              if( nd.eq.2 )then
+! beginLoops()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
                   if( mask(i1,i2,i3).ne.0 )then
+! setTangentialComponent(2,NO_FORCING)
+! #If "2" == "2"
                 ! NOTE: this normal is NOT always the outward normal but this doesn't matter here
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
@@ -295,19 +311,25 @@
                 an1=an1*aNormi
                 an2=an2*aNormi
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
+!  #If "NO_FORCING" == "NO_FORCING"
                   g1=0.
                   g2=0.
                 u(i1,i2,i3,n1)=nDotU*an1 +g1
                 u(i1,i2,i3,n2)=nDotU*an2 +g2
+! endLoops()
                   end if
                 end do
                 end do
                 end do
              else if( nd.eq.3 )then
+! beginLoops()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
                   if( mask(i1,i2,i3).ne.0 )then
+! setTangentialComponent(3,NO_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                 ! NOTE: this normal is NOT always the outward normal but this doesn't matter here
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
@@ -318,12 +340,14 @@
                 an3=an3*aNormi
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,
      & i2,i3,n3)
+!  #If "NO_FORCING" == "NO_FORCING"
                   g1=0.
                   g2=0.
                   g3=0.
                 u(i1,i2,i3,n1)=nDotU*an1 +g1
                 u(i1,i2,i3,n2)=nDotU*an2 +g2
                 u(i1,i2,i3,n3)=nDotU*an3 +g3
+! endLoops()
                   end if
                 end do
                 end do
@@ -333,9 +357,12 @@
              end if
             else
              if( nd.eq.2 )then
+! beginLoopsNoMask()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
+! setTangentialComponent(2,NO_FORCING)
+! #If "2" == "2"
                 ! NOTE: this normal is NOT always the outward normal but this doesn't matter here
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
@@ -343,17 +370,23 @@
                 an1=an1*aNormi
                 an2=an2*aNormi
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)
+!  #If "NO_FORCING" == "NO_FORCING"
                   g1=0.
                   g2=0.
                 u(i1,i2,i3,n1)=nDotU*an1 +g1
                 u(i1,i2,i3,n2)=nDotU*an2 +g2
+! endLoopsNoMask()
                 end do
                 end do
                 end do
              else if( nd.eq.3 )then
+! beginLoopsNoMask()
                 do i3=n3a,n3b
                 do i2=n2a,n2b
                 do i1=n1a,n1b
+! setTangentialComponent(3,NO_FORCING)
+! #If "3" == "2"
+! #Elif "3" == "3"
                 ! NOTE: this normal is NOT always the outward normal but this doesn't matter here
                 an1=rsxy(i1,i2,i3,axis,0)
                 an2=rsxy(i1,i2,i3,axis,1)
@@ -364,12 +397,14 @@
                 an3=an3*aNormi
                 nDotU=an1*u(i1,i2,i3,n1)+an2*u(i1,i2,i3,n2)+an3*u(i1,
      & i2,i3,n3)
+!  #If "NO_FORCING" == "NO_FORCING"
                   g1=0.
                   g2=0.
                   g3=0.
                 u(i1,i2,i3,n1)=nDotU*an1 +g1
                 u(i1,i2,i3,n2)=nDotU*an2 +g2
                 u(i1,i2,i3,n3)=nDotU*an3 +g3
+! endLoopsNoMask()
                 end do
                 end do
                 end do

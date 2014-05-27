@@ -2,3 +2,7 @@
 
 MEDIUM SOLID: scf=1, interface projection
 nohup $mp/bin/cgmp -noplot elasticShockCyl -method=cns -cnsVariation=godunov -smVariation=g -g=diskDeformBig4e -scf=1. -tp=.1 -tf=1.5 -nc=1 -fic=shock -pOffset=0.714285714286 -lambdaSolid=1. -muSolid=1. -diss=0. -cnsGodunovOrder=2 -debug=1 -pi=1 -multiDomainAlgorithm=1 -xShock=-10.0000000000001 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -stressRelaxation=4 -show="elasticShockCyl4Rho1p0.show" -go=go >! elasticShockCyl4Rho1p0.out &
+
+
+Run and plot: 
+$cgmp elasticShockCyl -method=cns -cnsVariation=godunov -smVariation=g -g=diskDeformBig4e -scf=1. -tp=.05 -tf=1.5 -nc=1 -fic=shock -pOffset=0.714285714286 -lambdaSolid=1. -muSolid=1. -diss=0. -cnsGodunovOrder=2 -debug=1 -pi=1 -multiDomainAlgorithm=1 -xShock=-10.0000000000001 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -stressRelaxation=4 -go=halt

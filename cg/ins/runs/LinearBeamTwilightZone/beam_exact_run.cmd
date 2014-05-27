@@ -85,7 +85,9 @@ $grid
         user defined deforming body
           elastic beam
           elastic beam parameters
-            6.6667e-7 1.4e6 1e4 0.3 0.02 1000.0 0.0 0.3 0.0
+            $scaleFactor=.00001;
+            $scaleFactor=.001;  # exact solution scale factor
+            6.6667e-7 1.4e6 1e4 0.3 0.02 1000.0 0.0 0.3 0.0 $scaleFactor
             30 1 1 1
            boundary parameterization
              1
@@ -156,7 +158,7 @@ $grid
 * 
   OBTZ:user defined known solution
   linear beam exact solution
-  0.0
+     0.
   done
   boundary conditions
     # all=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)

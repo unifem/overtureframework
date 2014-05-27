@@ -10,6 +10,10 @@
 #include "GenericGridFunction.h"
 #include "GenericDataBase.h"
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
 //
 //  Class for reference-counted data.
 //
@@ -62,6 +66,10 @@ class GenericGridData:
     virtual void destroy(const Integer what = NOTHING);
     virtual void geometryHasChanged(const Integer what = ~NOTHING);
     void initialize();
+
+    // Here is the new place to store parameters *wdh* 2014/04/22
+    DataBase dbase;
+
 //
 //  Virtual member functions used only through class ReferenceCounting:
 //

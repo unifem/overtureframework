@@ -55,6 +55,10 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
   {
     // *wdh* 080829 -- only apply some BC's for implicit time stepping grids
 
+    u.applyBoundaryCondition(C,BCTypes::dirichlet,Parameters::dirichletBoundaryCondition,bcData,pBoundaryData,t,
+			     bcParams,grid); 
+    u.applyBoundaryCondition(C,BCTypes::neumann,Parameters::neumannBoundaryCondition,bcData,pBoundaryData,t,bcParams,grid);
+
     // assigned extended boundaries: *wdh* 080829 -- treat the case when a dirichlet-BC is next to an interface
     if( false )
     {

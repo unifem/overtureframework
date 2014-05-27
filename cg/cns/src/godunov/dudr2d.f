@@ -2,14 +2,17 @@
      *                   dr,ds1,ds2,r,rx,gv,det,rx2,gv2,det2,xy,u,
      *                   up,mask,ntau,tau,ad,mdat,dat,nrprm,rparam,
      *                   niprm,iparam,nrwk,rwk,niwk,iwk,
-     *                   vert, idebug,ier)
+     *                   xy2, idebug, pdb, ier)
 c
       implicit real*8 (a-h,o-z)
       dimension rx(*),gv(*),det(*),rx2(*),gv2(*),det2(*),xy(*),
      *          u(nd1a:nd1b,nd2a:nd2b,md),up(nd1a:nd1b,nd2a:nd2b,md),
      *          mask(nd1a:nd1b,nd2a:nd2b),tau(ntau),ad(md),
      *          dat(nd1a:nd1b,nd2a:nd2b,*),rparam(nrprm),iparam(niprm),
-     *          rwk(nrwk),iwk(niwk),vert(nd1a:nd1b,nd2a:nd2b,2)
+     *          rwk(nrwk),iwk(niwk),xy2(nd1a:nd1b,nd2a:nd2b,2)
+
+      integer ok,getInt,getReal
+      double precision pdb  ! pointer to data base
 
       include 'tempSizes.h'
 c      dimension ds(2),almax(2),dp(10),vismax(4)
@@ -34,6 +37,10 @@ c
       include 'multiDat.h'
       include 'fourcomp.h'
       include 'tzcommon.h'
+
+      ! tolerences such as rhoMin are here:
+      include 'tolpar.h'
+
 c
       data isParallel / 0 /
 c
@@ -436,10 +443,16 @@ c
 c..check for negative density, limit reacting species (probably not necessary)
 
 c*wdh* 101213      rhoMin=1.d-3
-      rhoMin=1.d-5   ! fix me   -- pass this in -- also appears in other places
+      ! *** rhoMin=1.d-5   ! fix me   -- pass this in -- also appears in other places
 
-c*wdh      do j2=nd2a,nd2b
-c*wdh      do j1=nd1a,nd1b
+      ! *wdh* 2014/05/07 -- get lower bound new way: 
+      ok=getReal(pdb,'densityLowerBound',rhoMin) 
+      if( ok.eq.0 )then
+        write(*,'("*** dudr2d:ERROR: unable to find name")') 
+        stop 1133
+      end if
+      ! write(*,'("++ dudr2d: rhoMin=",e10.2)') rhoMin
+
       md1a=max(nd1a,n1a-2)
       md1b=min(nd1b,n1b+2)
       md2a=max(nd2a,n2a-2)
@@ -643,7 +656,7 @@ c   This includes possible real visosity terms
      *              rwk(lalpha),rwk(lu0),rwk(lfx),rwk(ldiv),
      *              rwk(lutemp),rwk(lwrkp),iwk(liacou),rwk(ldufix),
      *              rwk(lfxfxl),rwk(lfxfxr),rwk(lunew),rwk(lviswk),
-     *              vert,almax,mdat,dat,move,av,ad,maxnstep,vismax,
+     *              xy2,almax,mdat,dat,move,av,ad,maxnstep,vismax,
      *              icart,iorder,method,n1bm,n2bm,rparam,ier,
      *              rwk(luvis),nrvwk,rwk(lrvwk))
 c
@@ -1473,7 +1486,7 @@ c
      *                    dr,ds,r,rx,gv,det,rx2,gv2,det2,xy,u,mask,
      *                    du,du1,ul,ur,a0,a1,aj,da0,vaxi,h,al,el,
      *                    er,alpha,u0,fx,div,utemp,wrkp,iacoustic,
-     *                    dufix,fxfixl,fxfixr,unew,viswk,vert,almax,
+     *                    dufix,fxfixl,fxfixr,unew,viswk,xy2,almax,
      *                    mdat,dat,move,av,ad,maxnstep,vismax,icart,
      *                    iorder,method,n1bm,n2bm,rparam,ier,
      *                    uvis,nrwk,rwk)
@@ -1493,7 +1506,7 @@ c
      *          dat(nd1a:nd1b,nd2a:nd2b,*),
      *          utemp(nd1a:nd1b,3,md),wrkp(nd1a:nd1b,3,mr+3),
      *          dufix(nd1a:nd1b,2,md),fxfixl(md),fxfixr(md),unew(md),
-     *          viswk(3,nd1a:nd1b,3),vert(nd1a:nd1b,nd2a:nd2b,2),
+     *          viswk(3,nd1a:nd1b,3),xy2(nd1a:nd1b,nd2a:nd2b,2),
      *          rparam(2),
      *          uvis(nd1a:nd1b,nd2a:nd2b,md),rwk(nrwk),
      *          iacoustic(2,nd1a:nd1b)
@@ -1883,12 +1896,12 @@ c..compute s2 flux along j2-1/2, add it to up(j1,j2,.) and up(j1,j2-1,.)
 c
 c..gdflux2d handles input in conservative or primitive variables (depending on islope)
             if( itz.eq.1.and.iorder.eq.2 ) then
-              call tzsource( nd,iexactp,vert(j1,j2m1,1),
-     *                       vert(j1,j2m1,2), 0.d0, r,
+              call tzsource( nd,iexactp,xy(j1,j2m1,1),
+     *                       xy(j1,j2m1,2), 0.d0, r,
      *                       tzrhsl, mr )
 c     
-              call tzsource( nd,iexactp,vert(j1,j2,1),
-     *                       vert(j1,j2,2), 0.d0, r,
+              call tzsource( nd,iexactp,xy(j1,j2,1),
+     *                       xy(j1,j2,2), 0.d0, r,
      *                       tzrhsr, mr )
 c            else
 c              do i=1,m
@@ -2159,12 +2172,12 @@ c                ur(i)=u(j1p1,j2,i)
 c
 c..gdflux2d handles input in conservative or primitive variables (depending on islope)
               if( itz.eq.1.and.iorder.eq.2 ) then
-                call tzsource( nd,iexactp,vert(j1,j2,1),
-     *                         vert(j1,j2,2), 0.d0, r,
+                call tzsource( nd,iexactp,xy(j1,j2,1),
+     *                         xy(j1,j2,2), 0.d0, r,
      *                         tzrhsl, mr )
 c
-                call tzsource( nd,iexactp,vert(j1p1,j2,1),
-     *                         vert(j1p1,j2,2), 0.d0, r,
+                call tzsource( nd,iexactp,xy(j1p1,j2,1),
+     *                         xy(j1p1,j2,2), 0.d0, r,
      *                         tzrhsr, mr )
 c              else
 c                do i=1,m
@@ -2316,11 +2329,13 @@ c..bottom of main loop over lines
       end do
 c
 c add twilight zone stuff *JWB*
+      ! *wdh* 2014/05/09 -- for moving grids eval TZ at xy(t+dt/2)
+      ! Note: tzdt is set in cns.C
       if( itz.eq.1 ) then
         do j2=n2a,n2b
           do j1=n1a,n1b
-            call tzsource( nd,iexactp, vert(j1,j2,1),
-     *                     vert(j1,j2,2), 0.d0, r+.5d0*tzdt,
+            call tzsource( nd,iexactp, .5*(xy(j1,j2,1)+xy2(j1,j2,1)),
+     *            .5*(xy(j1,j2,2)+xy2(j1,j2,2)), 0.d0, r+.5d0*tzdt,
      *                     tzrhsl, mr )
              do i=1,m
                u(j1,j2,i)=u(j1,j2,i)+tzdt*tzrhsl(i)
@@ -3156,8 +3171,14 @@ c
 c      common / mvars / mh,mr,me,ieos,irxn,imult,islope,ifix
 c
       include 'multiDat.h'
-c      common / muldat / gami, gamr
-      data eps,rhoMin / 1.d-14,1.0d-5 /
+
+      ! tolerences such as rhoMin are here:
+      include 'tolpar.h'
+      ! *wdh* data eps,rhoMin / 1.d-14,1.0d-5 /
+      data eps / 1.d-14 /
+
+      ! write(*,'(" dudr2d: rhoMin=",e10.2)') rhoMin
+
 c
 c make temporary copy of primative states (if in primative correction)
 c  in case the second order correction fails
@@ -3381,7 +3402,10 @@ c
       include 'mvars.h'
 c      common / mvars / mh,mr,me,ieos,irxn,imult,islope,ifix
 c*wdh* 101213    data c2eps,rhoMin / 1.d-6,1.d-3 /
-      data c2eps,rhoMin / 1.d-6,1.d-5 /  ! FIX ME 
+      ! tolerences such as rhoMin are here:
+      include 'tolpar.h'
+      ! *wdh* data c2eps,rhoMin / 1.d-6,1.d-5 /  ! FIX ME 
+      data c2eps / 1.d-6 /
 c
 
       rad=dsqrt(a1**2+a2**2)
@@ -3582,7 +3606,10 @@ c
       include 'mvars.h'
 c      common / mvars / mh,mr,me,ieos,irxn,imult,islope,ifix
 c*wdh* 101213       data c2min, c2eps, rhoMin / -1.d-2, 1.d-6, 1.d-3 /
-      data c2min, c2eps, rhoMin / -1.d-2, 1.d-6, 1.d-5 /  ! FIX ME 
+      ! tolerences such as rhoMin are here:
+      include 'tolpar.h'
+      ! *wdh* data c2min, c2eps, rhoMin / -1.d-2, 1.d-6, 1.d-5 /  
+      data c2min, c2eps / -1.d-2, 1.d-6 /  ! FIX ME 
 c
       rad=dsqrt(a1**2+a2**2)
       an(1)=a1/rad

@@ -1136,6 +1136,12 @@ if( $parallel eq "parallel" )
     {
       $mpiLibDirs=$_;
       $mpiLibDirs =~ s/^MPILIBDIRS[ \t=]*//;
+
+      # add rpath to MPI libs  *wdh* 2014/04/04
+      $mpiLibraryDirectory = $mpiLibDirs;
+      $mpiLibraryDirectory =~ s/^.*-L//; # strip off "-L"
+      $mpiLibDirs = "\$\(OV\_RPATH\)$mpiLibraryDirectory $mpiLibDirs"; 
+
       print "mpi lib directory: $mpiLibDirs\n";
     }
     if( $_ =~ /^MPILIBS/ )

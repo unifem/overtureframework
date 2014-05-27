@@ -63,7 +63,21 @@ else
 end if
 #endMacro
 
+! Assign ghost point from a Neuman or Mixed BC
+! For variable coefficients we set ghost value from
+!   v(i1,i2,i3,0)*u + v(i1,i2,i3,1)*coeff*u = rhs 
 #beginMacro neumannLoops2D(rhs)
+if( varCoeff.eq.1 )then
+ ! var coeff: 
+loopsm(u(i1+im1,i2+im2,i3+im3,c)=( \
+  (rhs - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( \
+  coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) \
+ +coeff(m12,i1,i2,i3)*u(i1-1,i2  ,i3,c) \
+ +coeff(m22,i1,i2,i3)*u(i1  ,i2  ,i3,c) \
+ +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) \
+ +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) \
+ ))/coeff(mGhost,i1,i2,i3) )
+else ! const coeff
 loopsm(u(i1+im1,i2+im2,i3+im3,c)=( \
  rhs - ( \
   coeff(m21,i1,i2,i3)*u(i1  ,i2-1,i3,c) \
@@ -72,10 +86,24 @@ loopsm(u(i1+im1,i2+im2,i3+im3,c)=( \
  +coeff(m32,i1,i2,i3)*u(i1+1,i2  ,i3,c) \
  +coeff(m23,i1,i2,i3)*u(i1  ,i2+1,i3,c) \
  ))/coeff(mGhost,i1,i2,i3) )
+end if
 #endMacro
 
 
 #beginMacro neumannLoops3D(rhs)
+if( varCoeff.eq.1 )then
+ ! var coeff:
+loopsm(u(i1+im1,i2+im2,i3+im3,c)=( \
+ (rhs - v(i1,i2,i3,0)*u(i1,i2,i3,c))/v(i1,i2,i3,1) - ( \
+  coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) \
+ +coeff(m212,i1,i2,i3)*u(i1  ,i2-1,i3  ,c) \
+ +coeff(m122,i1,i2,i3)*u(i1-1,i2  ,i3  ,c) \
+ +coeff(m222,i1,i2,i3)*u(i1  ,i2  ,i3  ,c) \
+ +coeff(m322,i1,i2,i3)*u(i1+1,i2  ,i3  ,c) \
+ +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) \
+ +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) \
+ ))/coeff(mGhost,i1,i2,i3) )
+else ! const coeff
 loopsm(u(i1+im1,i2+im2,i3+im3,c)=( \
  rhs - ( \
   coeff(m221,i1,i2,i3)*u(i1  ,i2  ,i3-1,c) \
@@ -86,6 +114,7 @@ loopsm(u(i1+im1,i2+im2,i3+im3,c)=( \
  +coeff(m232,i1,i2,i3)*u(i1  ,i2+1,i3  ,c) \
  +coeff(m223,i1,i2,i3)*u(i1  ,i2  ,i3+1,c) \
  ))/coeff(mGhost,i1,i2,i3) )
+end if
 #endMacro
 
 ! from pmb 
@@ -622,7 +651,8 @@ end if
 ! lineForForcing : if 0 evaluate the forcing gfData on the boundary, if 1 evaluate forcing
 !    on the first ghost line, etc.
 !
-! v : for generalizedDiveregence v holds ux(i1,i2,i3,n1) uy(i1,i2,i3,n2) uz(i1,i2,i3,n3)
+! v : = variable coefficients 
+!   : for generalizedDivergence v holds ux(i1,i2,i3,n1) uy(i1,i2,i3,n2) uz(i1,i2,i3,n3)
 !======================================================================
       implicit none
       integer nd, n1a,n1b,n2a,n2b,n3a,n3b,
@@ -1014,7 +1044,7 @@ end if
  integer mGhost
  integer m21,m12,m22,m32,m23
  integer m221,m212,m122,m222,m322,m232,m223
-
+ integer varCoeff
 
  epsX=1.e-100  ! prevent division by zero when normalizing the normal vector  *FIX ME* -- this should be passed in 
 
@@ -1071,14 +1101,30 @@ end if
  b0=par(0)
  b1=par(1)
  twoDeltaX=par(2)
-
-
+ varCoeff=ipar(1)
+ ! write(*,'(" BC:Neumann:varCoeff=",i4)') varCoeff
 
  if( gridType.eq.rectangular )then   
 !          *************************
 !          *** rectangular grid  ***
 !          *************************
-   if( bcType.eq.neumann .or. b0.eq.0. )then
+   if( varCoeff.eq.1 )then
+     ! variable coefficients:
+     !   v(i1,i2,i3,0)*u + v(i1,i2,i3,1)*u.n = g 
+     if( bcOption.eq.scalarForcing )then
+       loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(scalarData-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)));
+     else if( bcOption.eq.gfForcing )then
+       loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(gfData(i1+if1,i2+if2,i3+if3,f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)))
+     else if( bcOption.eq.arrayForcing )then
+       loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(fData(f,side,axis,grid)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)))
+     else if( bcOption.eq.vectorForcing )then
+       loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(vData(f)-v(i1,i2,i3,0)*u(i1,i2,i3,c))*(twoDeltaX/v(i1,i2,i3,1)))
+     else
+       write(*,*) 'assignBC:ERROR unknown bcOption=',bcOption
+       stop 21
+     end if
+
+   else if( bcType.eq.neumann .or. b0.eq.0. )then
 !            *** neumann ***
      if( bcOption.eq.scalarForcing )then
        loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+scalarData*(twoDeltaX/b1))
@@ -1090,8 +1136,9 @@ end if
        loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+vData(f)*(twoDeltaX/b1))
      else
        write(*,*) 'assignBC:ERROR unknown bcOption=',bcOption
-       stop 2
+       stop 22
      end if
+
    else
 !           *** mixed ***
 
@@ -1105,7 +1152,7 @@ end if
        loopsm(u(i1+im1,i2+im2,i3+im3,c)=u(i1+ip1,i2+ip2,i3+ip3,c)+(vData(f)-b0*u(i1,i2,i3,c))*(twoDeltaX/b1))
      else
        write(*,*) 'assignBC:ERROR unknown bcOption=',bcOption
-       stop 2
+       stop 23
      end if
    end if
 

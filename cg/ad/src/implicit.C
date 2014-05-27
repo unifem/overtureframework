@@ -9,6 +9,7 @@
 #include "Oges.h"
 #include "SparseRep.h"
 #include "App.h"
+#include "ParallelUtility.h"
 
 void Cgad::
 buildImplicitSolvers(CompositeGrid & cg)

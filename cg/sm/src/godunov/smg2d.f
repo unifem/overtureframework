@@ -287,6 +287,7 @@ c is interpreted as u'=lambda*u
 c
       rparam(1)=4.d0*admax
       rparam(2)=almax(1)/ds1+almax(2)/ds2
+      rparam(3)=0. ! for 1/dt dissipation
 
 c      write(50,*)'alam ='
 c      write(6,*)ds1,ds2,almax(1),almax(2)

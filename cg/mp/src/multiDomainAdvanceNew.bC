@@ -286,8 +286,9 @@ multiDomainAdvanceNew( real &t, real & tFinal )
       }
       else if( interfaceProjectionGhostOption==3 )
       {
-	printF(">>>multiDomainAdvanceNew: Do not assign ghost with interfaceProjection. "
-               "Use domain solver BC routines\n");
+	if( debug() & 4 )
+	  printF(">>>multiDomainAdvanceNew: Do not assign ghost with interfaceProjection. "
+		 "Use domain solver BC routines\n");
       }
       
       

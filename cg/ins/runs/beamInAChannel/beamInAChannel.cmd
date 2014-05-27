@@ -12,17 +12,18 @@
 # Examples:
 #    cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=1. -tp=.01
 # 
-$grid="elastic_flag_uncouplede2.hdf"; $ts="adams PC"; $noplot=""; $backGround="square"; $uIn=1.0*1.5; $v0=0.; $T0=0.; $p0=0.; $cfl=.9; $useNewImp=1;
-$tFinal=20.; $tPlot=.05; $dtMax=.1; $degreeSpace=2; $degreeTime=2; $show="turek_hron_fsi2.show"; $debug=1; $go="halt";
+$grid="beamInAChannelGride2.order2.hdf"; $ts="adams PC"; $noplot=""; $backGround="square"; $uIn=1.0*1.5; $v0=0.; $T0=0.; $p0=0.; $cfl=.9; $useNewImp=1;
+$tFinal=20.; $tPlot=.05; $dtMax=.1; $degreeSpace=2; $degreeTime=2; $show=" "; $debug=1; $go="halt";
 $nu=1e-3; $Prandtl=.72; $thermalExpansivity=3.4e-3; $Tin=-10.;  $implicitFactor=.5; $implicitVariation="viscous"; 
 $tz=0; # turn on tz here
-$ad2=1; $ad21=1.; $ad22=1.; $ad4=0; $ad41=2.; $ad42=2.; $outflowOption="neumann";
+$ad2=1; $ad21=1.; $ad22=1.; $ad4=0; $ad41=2.; $ad42=2.;
+# $outflowOption="neumann"; causes wiggles at outflow
+$outflowOption="extrapolate"; 
 $gravity = "0 0.0 0."; $cdv=1.; $cDt=.25; $project=1; $restart=""; 
 * $solver="choose best iterative solver";
 $solver="yale";  $rtoli=1.e-5; $atoli=1.e-6; $idebug=0; 
 $psolver="yale"; $rtolp=1.e-5; $atolp=1.e-6; $pdebug=0; $dtolp=1.e20; 
 $pc="ilu"; $refactorFrequency=500; 
-$cpn=1.;
 * 
 *
 * ----------------------------- get command line arguments ---------------------------------------
@@ -131,7 +132,7 @@ $grid
    OBPDE:fourth-order artificial diffusion $ad4
    OBPDE:ad41,ad42 $ad41, $ad42
    # MG solver currently wants a Neumann BC at outflow
-   if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="use extrapolate BC at outflow"; }
+   if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="OBPDE:expect inflow at outflow\n use extrapolate BC at outflow"; }
      $cmd
    done
 * 
@@ -165,7 +166,8 @@ $grid
     $halfH=0.1;
     bcNumber1=inflowWithVelocityGiven, parabolic(d=$halfH, p=1.,u=$uIn,T=$Tin)
     #bcNumber1=inflowWithVelocityGiven, uniform(p=1.,u=$uIn,T=$Tin)
-    *bcNumber2=outflow, pressure(1.*p+$cpn*p.n=0.)
+    $cpn=1.;
+    bcNumber2=outflow, pressure(.1*p+$cpn*p.n=0.)
     bcNumber4=slipWall
   done
 * 

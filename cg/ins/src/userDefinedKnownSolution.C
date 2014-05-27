@@ -4,7 +4,7 @@
 #include "FluidPiston.h"
 #include "PistonMotion.h"
 #include "ParallelUtility.h"
-
+#include "DeformingBodyMotion.h"
 
 #include "BeamModel.h"
 
@@ -213,6 +213,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     const int & uc = dbase.get<int >("uc");   //  u velocity component =u(all,all,all,uc)
     const int & vc = dbase.get<int >("vc");  
     const int & pc = dbase.get<int >("pc");  
+
+    // --- these parameters must match those in BeamModel.C -- *fix me*
     double E=1.4e6;
     double rhos=10000.0;
     double h=0.02;
@@ -223,10 +225,11 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     double H=0.3;
     double k=2.0*3.141592653589/L;
     double omega0=sqrt(E*Ioverb*k*k*k*k/(rhos*h));
-    double what = 0.00001;
+    double what = 0.00001;  // not used 
+
     //double beta=1.0/nu*sqrt(E*Ioverb/(rhos*h));
     //std::complex<double> omegatilde(1.065048891,-5.642079778e-4);
-    std::cout << "t = " << t << std::endl;
+    // std::cout << "t = " << t << std::endl;
     double omegar = 0.8907148069, omegai = -0.9135887123e-2;
     for ( int i3=I3.getBase(); i3<=I3.getBound(); i3++ ) {
       for ( int i2=I2.getBase(); i2<=I2.getBound(); i2++ ) {
@@ -428,7 +431,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
     }
     
 
-    else if( answer=="linear beam exact solution" )
+    else if( answer=="linear beam exact solution" ) 
     {
 
       userKnownSolution="linearBeamExactSolution";
@@ -436,7 +439,26 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
       double omega;
       gi.inputString(answer,"Enter omega");
       sScanF(answer,"%e",&omega);
+
+
+      // double scale=.00001;
+      // gi.inputString(answer,"Enter the scale factor for the exact solution (0=use default)");
+      // sScanF(answer,"%e",&scale);
+      // if( scale==0 ){ scale=.00001; }  // 
+      // if( !db.has_key("exactSolutionScaleFactorFSI") ) 
+      // { 
+      // 	dbase.put<real>("exactSolutionScaleFactorFSI");
+      // 	dbase.get<real>("exactSolutionScaleFactorFSI")=scale; // scale FSI solution so linearized approximation is valid 
+      // }
+      // printF("INFO:Setting the exact FSI solution scale factor to %9.3e\n",scale);
+      // MovingGrids & move = dbase.get<MovingGrids >("movingGrids");
+      // assert( move.getNumberOfDeformingBodies()==1 );
+      // DeformingBodyMotion & deform = move.getDeformingBody(0);
+      // assert( deform.pBeamModel!=NULL );
+      // deform.pBeamModel->dbase.get<real>("exactSolutionScaleFactorFSI")=scale;
+
     }
+
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

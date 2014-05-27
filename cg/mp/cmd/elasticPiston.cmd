@@ -53,7 +53,7 @@ $nu=.1; $rhoSolid=1.; $prandtl=.72; $cnsVariation="godunov"; $ktcFluid=-1.; $u0=
 $scf=1.; # solidScaleFactor : scale rho,mu and lambda by this amount 
 $dsf=1.; # displacement scale factor (for plotting displacement)
 $thermalExpansivity=1.; $T0=1.; $Twall=1.;  $kappa=.01; $ktcSolid=-1.; $diss=.0;  $smVariation = "non-conservative";
-$tz="none"; $degreex=2; $degreet=2; $fx=2.; $fy=2.; $fz=2.; $ft=2.; $tzType=0;
+$tz="none"; $degreex=2; $degreet=2; $fx=2.; $fy=2.; $fz=2.; $ft=2.; $tzType=0; $trigTzScaleFactor=1.; 
 $gravity = "0 0. 0.";
 $en="max"; # "max", "l1", "l2"
 $fic = "uniform";  # fluid initial condition
@@ -88,7 +88,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"nu=f"=>\$nu,"muFluid=f"=>\$muFluid,"
    "useExactInterface=i"=>\$useExactInterface,"useExactVelocity=i"=>\$useExactVelocity,"pi=i"=>\$pi,"piOption=i"=>\$piOption,\
    "problem=i"=>\$problem,"applyInterfaceConditions=i"=>\$applyInterfaceConditions,"Mshock=f"=>\$Mshock,"angle=f"=>\$angle, \
    "stressRelaxation=f"=>\$stressRelaxation,"relaxAlpha=f"=>\$relaxAlpha,"relaxDelta=f"=>\$relaxDelta, \
-   "tangentialStressDissipation=f"=>\$tangentialStressDissipation,"piGhostOption=i"=>\$piGhostOption );
+   "tangentialStressDissipation=f"=>\$tangentialStressDissipation,"piGhostOption=i"=>\$piGhostOption,\
+   "trigTzScaleFactor=f"=>\$trigTzScaleFactor );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $ts eq "fe" ){ $ts="forward Euler"; }
@@ -187,6 +188,7 @@ $bc = "all=symmetry\n bcNumber100=slipWall\n bcNumber100=tractionInterface";
 # turn off the interface:
 #- $bc = "all=symmetry\n bcNumber100=slipWall";
 if( $tz ne "turn off twilight zone" ){ $bc = "all=dirichletBoundaryCondition\n bcNumber100=slipWall\n bcNumber100=tractionInterface"; }
+if( $problem eq 0 ){ $bc="all=symmetry\n bcNumber2=dirichletBoundaryCondition\n bcNumber100=slipWall\n bcNumber100=tractionInterface"; }
 $ic = "uniform flow\n r=$rhog T=$Tg"; 
 # 
 $app=-$ap/$pp; # fix me 
@@ -202,7 +204,9 @@ $extraCmds = " OBTZ:user defined known solution\n" \
            . "  $xShock $Mshock $gamma $rhoSolid $lambdaSolid $muSolid\n" \
            . "   done"; }
 # 
-if( $problem eq 0 ){ $extraCmds = "#"; }
+# *wdh* 2014/05/07 : specify lower bounds for fluid when using TZ
+if( $tz ne "turn off twilight zone" ){ $slopeLimiter=0; } # turn off slope-limter for TZ
+if( $problem eq 0 ){ $extraCmds = "#"; $densityLowerBound=1.e-16; $pressureLowerBound=1.e-16; $velocityLimiterEps=1.e-16; }
 if( $probeFile ne "" ){ $probeFileName = $probeFile . "Fluid.dat"; \
 $extraCmds .= \
     "\n frequency to save probes 1\n" . \
@@ -240,6 +244,8 @@ $domainName=$domain2; $solverName="solid";
 $lambda=$lambdaSolid; $mu=$muSolid; 
 $bcCommands="all=displacementBC\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
 #- $bcCommands="all=dirichletBoundaryCondition\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; 
+# *wdh* 2014/05/06 -- use symmetry BC's for solid  (to fix blips in corners for stress)
+if( $problem eq 0 ){ $bcCommands="all=symmetry\n bcNumber1=dirichletBoundaryCondition\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; }
 if( $problem eq 1 ){ $bcCommands="all=symmetry\n bcNumber1=dirichletBoundaryCondition\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; }
 # elastic shock tube: ************************
 if( $problem eq 2 ){ $bcCommands="all=symmetry\n bcNumber1=displacementBC\n bcNumber2=slipWall\n bcNumber100=tractionBC\n bcNumber100=tractionInterface"; }
@@ -294,6 +300,8 @@ if( $tzType eq 1 && $godunovType eq 2 ){ $tzCmds = \
    "ct(2,7)=1.4e-2\n " . \
    "done"; }else{ $tzCmds ="*"; }
 # 
+# FOR TZ we also need to tell the solid how to move the interface: 
+if( $problem eq 0 ){ $tzCmds="SMPDE:TZ interface velocity $vg0 $vg1 $vg2\n SMPDE:TZ interface acceleration $ag0 $ag1 $ag2"; }
 include $ENV{CG}/mp/cmd/smDomain.h
 # 
 continue

@@ -131,6 +131,9 @@ aString movingGridOptionName(MovingGridOption option) const;
 
 bool isMovingGridProblem() const;
 
+// --- plot things related to moving grids (e.g. the center lines of beams or shells)
+int plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp );
+
 // put to a data base file
 int put( GenericDataBase & dir, const aString & name) const;
 

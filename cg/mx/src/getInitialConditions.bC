@@ -2030,8 +2030,8 @@ initializeKnownSolution()
     {
       if( gridHasMaterialInterfaces )
       {
-	assert( (cg.numberOfDimensions()==2 && cg.numberOfComponentGrids()==4 ) ||
-                (cg.numberOfDimensions()==3 && (cg.numberOfComponentGrids()==6 || cg.numberOfComponentGrids()==8) ) );
+	//assert( (cg.numberOfDimensions()==2 && cg.numberOfComponentGrids()==4 ) ||
+        //        (cg.numberOfDimensions()==3 && (cg.numberOfComponentGrids()==6 || cg.numberOfComponentGrids()==8) ) );
 	option=1;
 	ipar[6]=option;
 	// rpar[2] = sqrt(epsGrid(2)/epsGrid(0)); // c1/c2 (c2=inside)
@@ -2040,7 +2040,7 @@ initializeKnownSolution()
 	{
           // -- dielectric cylinder --
   	  rpar[1] =.4;  // radius for dielectric cyl
-	  cr = cGrid(0)/cGrid(2); // c1/c2 (c2=inside)
+	  cr = cGrid(0)/cGrid(cg.numberOfComponentGrids()-1); // c1/c2 (c2=inside)
 	  rpar[2] = cr;
 	  if( cg.numberOfDomains()>1 )
             ipar[7]= cg.domainNumber(grid);    // new way 
@@ -2051,7 +2051,7 @@ initializeKnownSolution()
 	{
           // -- dielectric sphere --
 	  rpar[1] =1.;  // radius for dielectric sphere 
-	  cr = cGrid(0)/cGrid(4); // c1/c2 (c2=inside)
+	  cr = cGrid(0)/cGrid(cg.numberOfComponentGrids()-1); // c1/c2 (c2=inside)
 	  rpar[2] = cr;
           // ipar[7]= grid<=2 ? 0 : 1;       // assume 3 grids on the outside (fix me!)
           ipar[7]= cg.domainNumber(grid);    // new way domain=0 : outside, 1=inside 

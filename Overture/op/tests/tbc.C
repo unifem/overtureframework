@@ -369,7 +369,68 @@ main(int argc, char **argv)
 
       // u.display("Here is u after a neumann BC");
 
+
       BoundaryConditionParameters bcParams;
+
+      // ****************************************************************
+      //     VARIABLE COEFFICIENT NEUMANN or ROBIN
+      // ****************************************************************    
+
+      bcParams.setVariableCoefficientOption(  BoundaryConditionParameters::spatiallyVaryingCoefficients );
+
+      getIndex(mg.gridIndexRange(),I1,I2,I3);
+      // varCoeff only needs to be allocated on the boundary but do this so we can assign all boundaries:
+      RealArray varCoeff(I1,I2,I3,2);  // holds variable coefficients
+      bcParams.setVariableCoefficientsArray( &varCoeff );        
+
+      OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+      varCoeff(I1,I2,I3,0)=1.+ .1*x(I1,I2,I3,0) - .1*x(I1,I2,I3,1);
+      varCoeff(I1,I2,I3,1)=2. + .1*SQR(x(I1,I2,I3,0)) + .05*SQR(x(I1,I2,I3,1));  // this value must not be zero
+
+      u=-77.;
+      u(I1,I2,I3)=exact(mg,I1,I2,I3,0,0.);
+      value=-1.; // RHS
+      // u.display("Here is u before neumann BC");
+      time=CPU();
+      u.applyBoundaryCondition(component,mixed,allBoundaries,value,0.,bcParams);
+      time1=CPU()-time;
+      time=CPU();
+      u.applyBoundaryCondition(component,mixed,allBoundaries,value,0.,bcParams);
+      time=CPU()-time;
+      u.finishBoundaryConditions();
+      error=0.;
+      ForBoundary(side,axis)
+      {
+	if( mg.boundaryCondition()(side,axis) > 0 )
+	{
+	  realArray & normal = mg.vertexBoundaryNormal(side,axis);
+	  getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	  if( mg.numberOfDimensions()==1 )
+	    w(Ib1,Ib2,Ib3)=varCoeff(Ib1,Ib2,Ib3,1)*normal(Ib1,Ib2,Ib3,0)*u.x(Ib1,Ib2,Ib3)(Ib1,Ib2,Ib3)
+	      +varCoeff(Ib1,Ib2,Ib3,0)*u(Ib1,Ib2,Ib3) -value;
+	  else if( mg.numberOfDimensions()==2 )
+	    w(Ib1,Ib2,Ib3)= varCoeff(Ib1,Ib2,Ib3,1)*( normal(Ib1,Ib2,Ib3,0)*u.x(Ib1,Ib2,Ib3)(Ib1,Ib2,Ib3)
+						      +normal(Ib1,Ib2,Ib3,1)*u.y(Ib1,Ib2,Ib3)(Ib1,Ib2,Ib3))
+                      +varCoeff(Ib1,Ib2,Ib3,0)*u(Ib1,Ib2,Ib3) -value;
+	  else
+	    w(Ib1,Ib2,Ib3)= varCoeff(Ib1,Ib2,Ib3,1)*( normal(Ib1,Ib2,Ib3,0)*u.x(Ib1,Ib2,Ib3)(Ib1,Ib2,Ib3)
+	      +normal(Ib1,Ib2,Ib3,1)*u.y(Ib1,Ib2,Ib3)(Ib1,Ib2,Ib3)
+						      +normal(Ib1,Ib2,Ib3,2)*u.z(Ib1,Ib2,Ib3)(Ib1,Ib2,Ib3) )
+                    +varCoeff(Ib1,Ib2,Ib3,0)*u(Ib1,Ib2,Ib3) -value;
+
+	  where( mask(Ib1,Ib2,Ib3)>0 )
+	    error=max(error,max(abs(w(Ib1,Ib2,Ib3))));
+	}
+      }
+      worstError=max(worstError,error);
+      // printF("Maximum error in neumann (varcoeff)                  = %8.2e, cpu=%8.2e(init), %8.2e \n",error,time1,time);     
+      checker.printMessage("mixed (var-coeff)",error,time,time1);
+      timeForNeumannBC+=time+time1;
+
+
+      // reset:
+      bcParams.setVariableCoefficientsArray( NULL ); 
+      bcParams.setVariableCoefficientOption( BoundaryConditionParameters::spatiallyConstantCoefficients );
 
 
       // ****************************************************************

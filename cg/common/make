@@ -95,14 +95,15 @@ FORTRAN_INCLUDES += -I$(CG)/common/src
 FLIBS= $(CHEMKIN_LIBS) $(LAPACK_LIBRARIES) $(OV_FORTRAN_LIBRARIES)
 
 # 081231: put OpenGl libs after A++ libs to avoid conflict between PARTI function perm and one in OpenGL.
+# 2014/04/03 - move FIBS after OpenGL in case LAPACK is in /usr/lib64 which holds system OpenGL
 LIBS += $(OGMG_LIBS) \
 	$(OVERTURE_LIBRARIES) \
         $(OV_COMPILER_LIBS) \
         $(OV_HDF_LIBRARIES) \
         $(PETSC_LIBS) \
         $(APP_LIBRARIES) \
-        $(FLIBS) \
         $(OV_OPENGL_LIBRARIES) \
+        $(FLIBS) \
         $(OV_MOTIF_LIBRARIES) \
         $(OV_X_LIBRARIES) \
         $(OV_PERL_LIBRARIES) 

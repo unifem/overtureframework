@@ -85,6 +85,9 @@ bool isFirstOrderSystem() const;
 
 bool isSecondOrderSystem() const;
 
+int 
+readCoefficients( DialogData & dialog,const aString & answer, const aString & name, RealArray & coeff );
+
 virtual int
 saveParametersToShowFile();
 

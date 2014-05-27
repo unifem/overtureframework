@@ -1,6 +1,6 @@
       subroutine smg2dn (m,nd1a,nd1b,n1a,n1b,nd2a,nd2b,n2a,n2b,
-     *                   ds1,ds2,dt,t,xy,rx,det,u,up,f1,f2,ad,
-     *                   ad4,mask,nrprm,rparam,niprm,iparam,
+     *                   ds1,ds2,dt,t,xy,rx,det,u,up,f1,f2,ad2,ad2dt,
+     *                   ad4,ad4dt,mask,nrprm,rparam,niprm,iparam,
      *                   nrwk,rwk,niwk,iwk,idebug,ier)
 c
 c compute du/dt for 2d nonlinear elasticity (smg => solid mechanics, Godunov)
@@ -13,7 +13,8 @@ c
       dimension xy(*),rx(*),det(*),u(nd1a:nd1b,nd2a:nd2b,m),almax(2),
      *          up(nd1a:nd1b,nd2a:nd2b,m),mask(nd1a:nd1b,nd2a:nd2b),
      *          f1(*),f2(*),rparam(nrprm),iparam(niprm),rwk(nrwk),
-     *          iwk(niwk),ad(*),ad4(*)
+     *          iwk(niwk),ad2(*),ad2dt(*),ad4(*),ad4dt(*)
+      real*8 diseig,dseigdt,tsdiss,ad2Max,ad4Max
       dimension wtmp(10000)             ! used for testing slope correction
       common / smgdatn / amu,alam,rho0
       common / smrlxn / relaxAlpha,relaxDelta,irelax
@@ -44,6 +45,8 @@ c..parameters
       relaxAlpha=rparam(7)
       relaxDelta=rparam(8)
       tsdiss=rparam(9)
+      tsdissdt=rparam(10)
+
       iorder=iparam(1)
       icart=iparam(2)
       itz=iparam(3)
@@ -53,6 +56,7 @@ c..parameters
       itype=iparam(7)
       ifrc=iparam(8)
       irelax=iparam(9)
+
 c
 c      write(6,123)t,icart,n1a,n1b,n2a,n2b
 c  123 format(1x,1pe10.3,5(1x,i4))
@@ -259,21 +263,34 @@ c     *            ds1,ds2,dt,t,xy,u,up,mask)
 c
 c 2nd and 4th-order dissipation for components of stress on surfaces whose normal is
 c tangent to cell faces.
-        if (tsdiss.gt.1.d-12) then
+      diseig=0.     ! used for real-part of time-stepping eigenvalue
+      diseigdt=0.   ! holds coeff of (1/dt) dissipation eigenvalue 
+      dt0=dt
+      if( t.lt.0 )then
+        ! This is an initialization call, dt is not known yet so do this: (*FIX ME- do better)
+        dt0=max(dt,min(ds1,ds2))  
+      end if
 
-           if( t.le.2*dt )then
-            write(*,9000) iorder,tsdiss
- 9000   format(" smgSVK: stressDiss: iorder=",i2," tsdiss=",e8.2)
-          end if
-
-          if (iorder.eq.1) then
-            call stressDiss2 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
-     *                        ds1,ds2,tsdiss,rx,u,up,mask,diseig)
+      if (tsdiss.gt.1.d-12) then
+        if (iorder.eq.1) then
+          call stressDiss2 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
+     *            ds1,ds2,tsdiss,tsdissdt,rx,u,up,mask,diseig,diseigdt)
+        else
+          if( .true. )then
+           if( t.lt.2*dt )then
+             write(*,'("smgSVK:stressDiss4, tsdiss,tsdissdt=",2e10.2)')
+     &           tsdiss,tsdissdt
+             write(*,'("smgSVK:stressDiss4, dt,dt0=",2e10.2)') dt,dt0
+           end if
+           call stressDiss4 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
+     *        dt0,ds1,ds2,tsdiss,tsdissdt,rx,u,up,mask,diseig,diseigdt)
           else
-            call stressDiss4 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
-     *                        ds1,ds2,tsdiss,rx,u,up,mask,diseig)
-          end if
+           ! old: 
+          call stressDiss4_0 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
+     *           ds1,ds2,tsdiss,tsdissdt,rx,u,up,mask,diseig,diseigdt)
+         end if
         end if
+      end if
 c
 c add relaxation term to ensure compatibility of stress and position
       if (irelax.ne.0) then
@@ -282,14 +299,24 @@ c add relaxation term to ensure compatibility of stress and position
       end if
 c
 c artificial dissipation (bulk)
+      ad2Max=0. ! holds max of scaled ad2(i) 
+      ad4Max=0. ! holds max of scaled ad4(i)
+      ad2dtMax=0. ! holds max of scaled ad2dt(i) 
+      ad4dtMax=0. ! holds max of scaled ad4dt(i)
       do i=1,m
 c
 c second order
-        adi=ad(i)
-        ! *wdh* 2014/03/06 adi=0.d0   ! fix me
+
+        ! adi=ad2(i)/(2*4*dt0)
+        ! adi=ad2(i)  ! ***TEMP 
+        adi=( ad2(i)+ad2dt(i)/dt0 )/(2*4)  ! 2=number of dimensions, 4=1+2+1
         if (adi.gt.1.d-12) then
-          if( t.lt.2*dt )then
-            write(*,'(" smgSVK: ad2(",i2,")=",e10.2)') i,adi
+          ad2Max=max(ad2Max,ad2(i))
+          ad2dtMax=max(ad2dtMax,ad2dt(i))
+          if( iorder.eq.1 .and. i.ge.3 .and. i.le.6 )then
+            ! Stresses can have two contributions to the dissipation
+             ad2Max=max(ad2Max,diseig+ad2(i))
+             ad2dtMax=max(ad2dtMax,diseigdt+ad2dt(i))
           end if
           do j2=n2a,n2b
           do j1=n1a,n1b
@@ -301,12 +328,21 @@ c second order
           end do
         end if
 c
-c fourth order  (not well tested)
-        adi=ad4(i)
-        ! *wdh* 2014/03/06 adi=0.d0   ! fix me
+c fourth order
+
+        ! adi=ad4(i)/(2*16*dt0)
+        ! adi=ad4(i)    ! ***TEMP 
+        adi = (ad4(i)+ad4dt(i)/dt0 )/(2*16) ! 2=number of dimensions, 16=1+4+6+4+1 
         if (adi.gt.1.d-12) then
           if( t.lt.2*dt )then
-            write(*,'(" smgSVK: ad4(",i2,")=",e10.2)') i,adi
+            write(*,'(" smgSVK: ad4+ad4t/dt (",i2,")=",e10.2)') i,adi
+          end if
+          ad4Max=max(ad4Max,ad4(i))
+          ad4dtMax=max(ad4dtMax,ad4dt(i))
+          if( iorder.eq.2 .and. i.ge.3 .and. i.le.6 )then
+            ! Stresses can have two contributions to the dissipation
+             ad4Max=max(ad4Max,diseig+ad4(i))
+             ad4dtMax=max(ad4dtMax,diseigdt+ad4dt(i))
           end if
           do j2=n2a,n2b
           do j1=n1a,n1b
@@ -327,6 +363,7 @@ c fourth order  (not well tested)
           end do
         end if
       end do
+
 c
 c       upmax=0.d0
 c       do i=1,m
@@ -363,9 +400,10 @@ c
 c compute real and imaginary parts of lambda, where the time stepping
 c is interpreted as u'=lambda*u
 c
-      rparam(1)=diseig
+      rparam(1)= max(diseig,ad2Max + ad4Max) 
       rparam(2)=almax(1)/ds1+almax(2)/ds2
-c      rparam(2)=1.d0
+      rparam(3)=max( diseigdt,ad2dMax+ad4dtMax)
+      ! write(*,'("smg2dn diseigdt=",e10.2)') diseigdt
 
 c      write(50,*)'alam ='
 c      write(6,*)ds1,ds2,almax(1),almax(2)
@@ -3040,7 +3078,7 @@ c
 c+++++++++++++++++++++++
 c
       subroutine stressDiss2 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
-     *                        ds1,ds2,tsdiss,rx,u,up,mask,diseig)
+     *            ds1,ds2,tsdiss,tsdissdt,rx,u,up,mask,diseig,diseigdt)
 c
 c second-order dissipation on the components of stress belonging to surfaces whose
 c normals are tangent to cell faces.  The eigenvalues associated with these components
@@ -3055,7 +3093,6 @@ c
       common / smgprmn / method,iorder,ilimit,iupwind,icart,itype,ifrc
       common / smgdatn / amu,alam,rho0
       common / tzflow / eptz,itz
-
 c
 c wave speed (to provide a scale)
       cp=dsqrt((alam+2.d0*amu)/rho0)
@@ -3068,6 +3105,7 @@ c
 c Cartesian case
 c
         diseig=akap*max(1.d0/ds1,1.d0/ds2)   ! real part of timestepping eig
+        diseigdt=0.   ! for 1/dt dissipation
 c
         do j2=n2a,n2b
         do j1=n1a,n1b
@@ -3092,6 +3130,7 @@ c
 c Curvilinear case
 c
         diseig=0.d0   ! real part of timestepping eig (initialize to zero)
+        diseigdt=0.   ! for 1/dt dissipation
 c
         do j2=n2a,n2b
         do j1=n1a,n1b
@@ -3105,14 +3144,19 @@ c
               du2(i)=fact*(u(j1+1,j2,i)-2*u(j1,j2,i)+u(j1-1,j2,i))
      *                     /(4.d0*ds1)
             end do
-            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
-            beta= a1*(u(j1,j2,5)+du2(5))-a2*(u(j1,j2,3)+du2(3))
-            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
-            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
-            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
-            beta= a1*(u(j1,j2,6)+du2(6))-a2*(u(j1,j2,4)+du2(4))
-            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
-            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
+            up(j1,j2,3)=up(j1,j2,3)-a2*(-a2*du2(3)+a1*du2(5))
+            up(j1,j2,5)=up(j1,j2,5)+a1*(-a2*du2(3)+a1*du2(5))
+            up(j1,j2,4)=up(j1,j2,4)-a2*(-a2*du2(4)+a1*du2(6))
+            up(j1,j2,6)=up(j1,j2,6)+a1*(-a2*du2(4)+a1*du2(6))
+c original formulas below are equivalent to the simpler ones above
+c            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
+c            beta= a1*(u(j1,j2,5)+du2(5))-a2*(u(j1,j2,3)+du2(3))
+c            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
+c            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
+c            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
+c            beta= a1*(u(j1,j2,6)+du2(6))-a2*(u(j1,j2,4)+du2(4))
+c            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
+c            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
             rad=dsqrt(rx(j1,j2,2,1)**2+rx(j1,j2,2,2)**2)
             fact=akap*rad
             diseig=max(fact/ds2,diseig)
@@ -3122,14 +3166,19 @@ c
               du2(i)=fact*(u(j1,j2+1,i)-2*u(j1,j2,i)+u(j1,j2-1,i))
      *                     /(4.d0*ds2)
             end do
-            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
-            beta= a1*(u(j1,j2,5)+du2(5))-a2*(u(j1,j2,3)+du2(3))
-            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
-            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
-            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
-            beta= a1*(u(j1,j2,6)+du2(6))-a2*(u(j1,j2,4)+du2(4))
-            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
-            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
+            up(j1,j2,3)=up(j1,j2,3)-a2*(-a2*du2(3)+a1*du2(5))
+            up(j1,j2,5)=up(j1,j2,5)+a1*(-a2*du2(3)+a1*du2(5))
+            up(j1,j2,4)=up(j1,j2,4)-a2*(-a2*du2(4)+a1*du2(6))
+            up(j1,j2,6)=up(j1,j2,6)+a1*(-a2*du2(4)+a1*du2(6))
+c original formulas below are equivalent to the simpler ones above
+c            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
+c            beta= a1*(u(j1,j2,5)+du2(5))-a2*(u(j1,j2,3)+du2(3))
+c            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
+c            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
+c            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
+c            beta= a1*(u(j1,j2,6)+du2(6))-a2*(u(j1,j2,4)+du2(4))
+c            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
+c            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
           end if
         end do
         end do
@@ -3142,7 +3191,7 @@ c
 c+++++++++++++++++++++++
 c
       subroutine stressDiss4 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
-     *                        ds1,ds2,tsdiss,rx,u,up,mask,diseig)
+     *        dt,ds1,ds2,tsdiss,tsdissdt,rx,u,up,mask,diseig,diseigdt)
 c
 c fourth-order dissipation on the components of stress belonging to surfaces whose
 c normals are tangent to cell faces.  The eigenvalues associated with these components
@@ -3157,7 +3206,98 @@ c
       common / smgprmn / method,iorder,ilimit,iupwind,icart,itype,ifrc
       common / smgdatn / amu,alam,rho0
       common / tzflow / eptz,itz
+c
+c dissipation coeff (change 2 to 3 for 3D)
 
+      akap=(tsdiss+tsdissdt/dt)/(2*16.)
+      diseig=0.            ! real part of timestepping eig
+      diseigdt=tsdiss      ! coeff of 1/dt timestepping eig
+c
+      if (icart.eq.1) then
+c
+c Cartesian case
+c
+        do j2=n2a,n2b
+        do j1=n1a,n1b
+          if (mask(j1,j2).ne.0) then
+            du4(3)=akap*(-u(j1,j2+2,3)+4*u(j1,j2+1,3)
+     *                   -u(j1,j2-2,3)+4*u(j1,j2-1,3)-6*u(j1,j2,3))
+            du4(4)=akap*(-u(j1,j2+2,4)+4*u(j1,j2+1,4)
+     *                   -u(j1,j2-2,4)+4*u(j1,j2-1,4)-6*u(j1,j2,4))
+            du4(5)=akap*(-u(j1+2,j2,5)+4*u(j1+1,j2,5)
+     *                   -u(j1-2,j2,5)+4*u(j1-1,j2,5)-6*u(j1,j2,5))
+            du4(6)=akap*(-u(j1+2,j2,6)+4*u(j1+1,j2,6)
+     *                   -u(j1-2,j2,6)+4*u(j1-1,j2,6)-6*u(j1,j2,6))
+            do i=3,6
+              up(j1,j2,i)=up(j1,j2,i)+du4(i)
+            end do
+          end if
+        end do
+        end do
+c
+      else 
+c
+c Curvilinear case
+c
+        do j2=n2a,n2b
+        do j1=n1a,n1b
+          if (mask(j1,j2).ne.0) then
+c
+c r1 direction
+            rad=dsqrt(rx(j1,j2,1,1)**2+rx(j1,j2,1,2)**2)
+            a1=rx(j1,j2,1,1)/rad
+            a2=rx(j1,j2,1,2)/rad
+            do i=3,6
+              du4(i)=akap*(-u(j1+2,j2,i)+4*u(j1+1,j2,i)
+     *                     -u(j1-2,j2,i)+4*u(j1-1,j2,i)-6*u(j1,j2,i))
+            end do
+            up(j1,j2,3)=up(j1,j2,3)-a2*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,5)=up(j1,j2,5)+a1*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,4)=up(j1,j2,4)-a2*(-a2*du4(4)+a1*du4(6))
+            up(j1,j2,6)=up(j1,j2,6)+a1*(-a2*du4(4)+a1*du4(6))
+c
+c r2 direction
+            rad=dsqrt(rx(j1,j2,2,1)**2+rx(j1,j2,2,2)**2)
+            a1=rx(j1,j2,2,1)/rad
+            a2=rx(j1,j2,2,2)/rad
+            do i=3,6
+              du4(i)=akap*(-u(j1,j2+2,i)+4*u(j1,j2+1,i)
+     *                     -u(j1,j2-2,i)+4*u(j1,j2-1,i)-6*u(j1,j2,i))
+            end do
+            up(j1,j2,3)=up(j1,j2,3)-a2*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,5)=up(j1,j2,5)+a1*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,4)=up(j1,j2,4)-a2*(-a2*du4(4)+a1*du4(6))
+            up(j1,j2,6)=up(j1,j2,6)+a1*(-a2*du4(4)+a1*du4(6))
+          end if
+        end do
+        end do
+c
+      end if
+c
+      return
+      end
+c
+c+++++++++++++++++++++++
+c
+      subroutine stressDiss4_0 (m,nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
+     *         ds1,ds2,tsdiss,tsdissdt,rx,u,up,mask,diseig,diseigdt)
+
+c  *** ORIGINAL VERSION ***
+
+c
+c fourth-order dissipation on the components of stress belonging to surfaces whose
+c normals are tangent to cell faces.  The eigenvalues associated with these components
+c are zero and thus the Godunov methods provides no dissipation on its own.
+c
+c used when iorder=2
+c
+      implicit real*8 (a-h,o-z)
+      dimension rx(nd1a:nd1b,nd2a:nd2b,2,2),u(nd1a:nd1b,nd2a:nd2b,m),
+     *          up(nd1a:nd1b,nd2a:nd2b,m),mask(nd1a:nd1b,nd2a:nd2b)
+      dimension du4(6)
+      common / smgprmn / method,iorder,ilimit,iupwind,icart,itype,ifrc
+      common / smgdatn / amu,alam,rho0
+      common / tzflow / eptz,itz
 c
 c wave speed (to provide a scale)
       cp=dsqrt((alam+2.d0*amu)/rho0)
@@ -3170,6 +3310,7 @@ c
 c Cartesian case
 c
         diseig=akap*max(1.d0/ds1,1.d0/ds2)   ! real part of timestepping eig
+        diseigdt=0.                          ! for 1/dt dissipation
 c
         do j2=n2a,n2b
         do j1=n1a,n1b
@@ -3194,6 +3335,7 @@ c
 c Curvilinear case
 c
         diseig=0.d0   ! real part of timestepping eig (initialize to zero)
+        diseigdt=0.   ! for 1/dt dissipation
 c
         do j2=n2a,n2b
         do j1=n1a,n1b
@@ -3207,14 +3349,19 @@ c
               du4(i)=fact*(-u(j1+2,j2,i)+4*u(j1+1,j2,i)-6*u(j1,j2,i)
      *                      +4*u(j1-1,j2,i)-u(j1-2,j2,i))/(16.d0*ds1)
             end do
-            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
-            beta= a1*(u(j1,j2,5)+du4(5))-a2*(u(j1,j2,3)+du4(3))
-            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
-            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
-            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
-            beta= a1*(u(j1,j2,6)+du4(6))-a2*(u(j1,j2,4)+du4(4))
-            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
-            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
+            up(j1,j2,3)=up(j1,j2,3)-a2*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,5)=up(j1,j2,5)+a1*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,4)=up(j1,j2,4)-a2*(-a2*du4(4)+a1*du4(6))
+            up(j1,j2,6)=up(j1,j2,6)+a1*(-a2*du4(4)+a1*du4(6))
+c original formulas below are equivalent to the simpler ones above
+c            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
+c            beta= a1*(u(j1,j2,5)+du4(5))-a2*(u(j1,j2,3)+du4(3))
+c            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
+c            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
+c            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
+c            beta= a1*(u(j1,j2,6)+du4(6))-a2*(u(j1,j2,4)+du4(4))
+c            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
+c            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
             rad=dsqrt(rx(j1,j2,2,1)**2+rx(j1,j2,2,2)**2)
             fact=akap*rad
             diseig=max(fact/ds2,diseig)
@@ -3224,14 +3371,19 @@ c
               du4(i)=fact*(-u(j1,j2+2,i)+4*u(j1,j2+1,i)-6*u(j1,j2,i)
      *                      +4*u(j1,j2-1,i)-u(j1,j2-2,i))/(16.d0*ds2)
             end do
-            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
-            beta= a1*(u(j1,j2,5)+du4(5))-a2*(u(j1,j2,3)+du4(3))
-            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
-            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
-            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
-            beta= a1*(u(j1,j2,6)+du4(6))-a2*(u(j1,j2,4)+du4(4))
-            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
-            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
+            up(j1,j2,3)=up(j1,j2,3)-a2*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,5)=up(j1,j2,5)+a1*(-a2*du4(3)+a1*du4(5))
+            up(j1,j2,4)=up(j1,j2,4)-a2*(-a2*du4(4)+a1*du4(6))
+            up(j1,j2,6)=up(j1,j2,6)+a1*(-a2*du4(4)+a1*du4(6))
+c original formulas below are equivalent to the simpler ones above
+c            alpha=a1*u(j1,j2,3)+a2*u(j1,j2,5)
+c            beta= a1*(u(j1,j2,5)+du4(5))-a2*(u(j1,j2,3)+du4(3))
+c            up(j1,j2,3)=up(j1,j2,3)+(alpha*a1-beta*a2-u(j1,j2,3))
+c            up(j1,j2,5)=up(j1,j2,5)+(a1*beta+a2*alpha-u(j1,j2,5))
+c            alpha=a1*u(j1,j2,4)+a2*u(j1,j2,6)
+c            beta= a1*(u(j1,j2,6)+du4(6))-a2*(u(j1,j2,4)+du4(4))
+c            up(j1,j2,4)=up(j1,j2,4)+(alpha*a1-beta*a2-u(j1,j2,4))
+c            up(j1,j2,6)=up(j1,j2,6)+(a1*beta+a2*alpha-u(j1,j2,6))
           end if
         end do
         end do
@@ -3256,10 +3408,6 @@ c
       common / smgdatn / amu,alam,rho0
       common / tzflow / eptz,itz
 c
-      if( t.le.2*dt )then
-        write(*,9000) irelax,relaxAlpha,relaxDelta
- 9000   format(" smgSVK: irelax=",i2," alpha=",e8.2," delta=",e8.2)
-      end if
 c      write(6,*)'irelax,icart =',irelax,icart
 c      write(6,*)relaxAlpha,relaxDelta
 c      pause

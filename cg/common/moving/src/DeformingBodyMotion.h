@@ -139,6 +139,9 @@ int integrate( real t1, real t2, real t3,
 	       GridFunction & cgf1,GridFunction & cgf2,GridFunction & cgf3,
 	       realCompositeGridFunction & stress );
 
+// --- plot things related to moving grids (e.g. the center lines of beams or shells)
+int plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp );
+
 void printFilamentHyperbolicDimensions(CompositeGrid & cg00, int gridToMove00);
 
 int regenerateComponentGrids( const real newT, CompositeGrid & cg);

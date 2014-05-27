@@ -452,6 +452,14 @@ applyBCaDotGradU(realMappedGridFunction & u,
     const realSerialArray & normalLocal  = !rectangular_? mappedGrid.vertexBoundaryNormal(side,axis) : uLocal; 
   #endif
 
+  int spatiallyVaryingCoefficients = bcParameters.getVariableCoefficientOption()==BoundaryConditionParameters::spatiallyVaryingCoefficients;
+  if( (bool)spatiallyVaryingCoefficients )
+  {
+    printF("*** MGOP:applyBCaDotGradU: ERROR: spatiallyVaryingCoefficients not implemented yet\n");
+    OV_ABORT("error");
+    assert( bcParameters.getVariableCoefficientsArray()!=NULL );
+  }
+
 
   int n;
   real b0=1., b1=0., b2=0.;
