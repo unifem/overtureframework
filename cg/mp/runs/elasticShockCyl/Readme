@@ -1,0 +1,9 @@
+#
+# This directory holds runs for a shock hitting an elastic cylinder.
+#
+# Runs from the paper:
+#   Deforming Composite Grids for Solving Fluid Structure Problems
+#     J.W. Banks, W.D. Henshaw and D.W. Schwendeman JCP 2012
+
+
+Grid:

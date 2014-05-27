@@ -1,0 +1,18 @@
+include ../common/make
+
+# include additions to the version common/make
+
+INCLUDES := -I./src $(INCLUDES)
+ifeq ($(OS),Darwin)
+SHARED_LIBRARY_LOAD_LIBS += -L$(CGBUILDPREFIX)common/lib -lCgCommon
+endif
+ 
+ifneq ($(OV_RPATH),)
+LIBS := $(OV_RPATH)$(CGBUILDPREFIX)ins/lib -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
+        $(OV_RPATH)$(CGBUILDPREFIX)common/lib -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+else
+LIBS := -L$(CGBUILDPREFIX)ins/lib $(CginsStaticLib) -lCgins \
+        -L$(CGBUILDPREFIX)common/lib $(CgCommonStaticLib) -lCgCommon \
+        $(LIBS)
+endif

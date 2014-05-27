@@ -1,0 +1,11 @@
+Incompressible flow past a beam
+
+
+(1) Build some  grids:
+    ogen -noplot beamInAChannelGrid -interp=e -factor=2
+    ogen -noplot beamInAChannelGrid -interp=e -factor=4
+   
+
+(2) Run:
+
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=1. -tp=.01

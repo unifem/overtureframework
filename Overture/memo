@@ -1,0 +1,746 @@
+
+  o A++: configure --help=recursive : failed in a recursive loop 7.9d
+         shared libraries should be default
+         install in `pwd` should be default
+
+
+May 19, 2010:  
+   wc -l */* */*/* */*/*/* 
+Overture.v23e : 1.4M
+cg.v23d         1.1M 
+
+Nov 23, 2006:
+  Overture.v22 lineCount: 928,667
+  cg.v22                  519,121
+
+
+NOTE: remember to update Overture/Overture/CHANGES with these changes
+
+Doxygen source code documentation: 
+
+http://www.overtureframework.org/doxygen/Overture/index.html
+http://www.overtureframework.org/doxygen/CG/index.html
+
+==============================================================================================
+Overture.v26
+Changes:
+
+   o *NOTE* You may need to rebuild your overlapping grids and or show files with this new version.
+
+   o New ogen grid scripts:
+      - loftedShipHullGrid.cmd : grid for a Wigley ship hull.
+
+   o 2012/11/24 - fixed a bug in the Neumann BC with TZ when calling with multiple components. (neumann.C)
+   o 2013/08/03 - fixed bugs in ogen and the HyperbolicMapping when building grids on a periodic channel.
+   o 2013/09/09 - cgcns, cgins and cgsm now have their own versions of userDefinedInitialConditions.C and
+                  userDefinedKnownSolution.C found the cns/src, ins/src and sm/src, respectively) 
+                  (instead of using the version found in common/src). 
+   o 2013/09/11 - For the explicit hole cutters in Ogen: one can now specify which grids the explicit hole cutter
+                  can cut holes in. 
+   o 2013/09/27 - The CG solvers (Cgins, Cgcns, Cgsm, Cgmx, Cgasf) now check for grid with negative volumes
+                  and abort if any negative volumes are found.
+   o 2013/11/22 - fixed the cgins AFS solver so that restarts can be made from a show file that has solutions
+                  at a different grid resolution.
+   o 2013/11/30 - fixed a bug in Ogmg for singular problems with fourth-order accuracy - these did not well, if at all.
+
+==============================================================================================
+Overture.v25 - released  November 21, 2012
+Changes:
+
+   o The following documentation has been significantly updated:
+         Cgins User Guide.
+         Cgins Reference Manual.
+         Ogen User Guide.
+         Cgmx User Guide. 
+
+   o New ogen grid scripts:
+      - loftedBox, loftedHalfBox: grid for a "cube" or "half-cube" using the LoftedSurfaceMapping.
+      - flatPlateWingGrid.cmd : grid for a 3D flat-plate wing. 
+      - wingj.cmd : grid for 3D wing from Joukoswky airofil cross-sections.
+      - loftedJoukowskyFlatTip : grid for twisted 3D Joukowsky wing with a flattened tip.
+      - cylinderInAChannel.cmd : 3D cylinder in a channel.
+      - pump2dGrid.cmd : grid for a 2D centrifugal pump.
+      - flattenedTorusGrid.cmd : grid for a 3D "ring" (flattened torus). 
+      - pillInABoxGrid.cmd : grid for a "pill" (3D disk) in a box.
+
+   o 110605 - bug fixed in NurbsMappings when interpolating a NurbsMapping from another mapping
+              and specifying "number of ghost points to include". This option was broken for
+              surfaces and 3D volumes.
+   o 110624 - added an option to 3d contour plotter to base the colour table min/max values on
+              the min/max values of the solutions on the contour and coordinate planes, rather
+              than the global min/max.
+   o 110628 - fixed parallel grid plotter to plot interpolation points.
+   o 110713 - fixed a bug with AMR and moving grids. In rare cases, values on exposed points may
+              not have been assigned properly. 
+   o 110727 - fixed the moving grid generator so the vertex array is no longer built on Cartesian grids.
+              This will save memory for cgcns and cgins with moving grids.
+   o 110731 - fixed a bug in the SweepMapping in the way it computes the normal to the sweep surface.
+              If you have previously made a grid with the SweepMapping and it
+              no longer works you may need to set the 'orientation' to be -1 to change the direction
+              of the normal to the Sweep surface.
+   o 110806 - fixed two bugs in the hyperbolic grid generator: when marching in both directions the
+              forward direction needed to march one more line, and the stretching was wrong in the
+              backward direction. 
+   o 110817 - there is now an option in the grid plotter to save the composite grid to a file. This
+              grid can then, for example, be read back into ogen and changed or regenerated.
+   o 110828 - it should now be possible to use a hyperbolic grid (or DataPointMapping) for parallel
+              computations with cgins or cgcns. Previously I recommended that these mappings be
+              converted to Nurbs. The Nurbs mapping currently will use more memory in parallel
+              as all control points are duplicated on each processor. 
+   o 110828 - fixed a bug in the parallel line smoother for Ogmg.
+   o 111207 - There is a new option for saving hard copies. If the file name extension is ".pdf" as
+              in "myPlot.pdf" then a pdf output file will be created (using a system call to the 'convert'
+              program which is assumed to exist on your machine.)
+   o 111210 - There was a bug in the Integrate class if volume integrals were computed for an overlapping
+              grid before any surface integrals.
+   o 111210 - The default behaviour of getFromADataBase has changed -- the input "fileName" argument
+              now has a return value equal to the full path name of the grid file that was found.
+   o 111211 - There is now an option when generating an overlapping grid to compute and save the 
+              integration weights in the same file. These weights can be read by cgins, for example,
+              when running rigid body simulations (and thus the weights do not need to be recomputed).  
+              This option is especially useful in parallel since the weights can be pre-computed in serial.
+              (Computation of the weights in parallel currently may not work in all cases due to a 
+               problem with PETSc.)
+   o 120317 - Fixed a bug in ogen when checkOverlappingGrid would detect an invalid interpolation point even
+              though ogen did not detect it -- could occur when multiple shared surfaces were located in the
+              same area.
+   o 120325 - There is a new option in Ogen to define explicit hole cutters. These may be needed in some
+              cases when the physical boundary is not very well defined (see the Ogen documentation). 
+   o 120422 - Fixed some bugs in Ogen related to shared sides which could have caused grids to be made
+              with backup points where there shouldn't have been any, or could have resulted in grids
+              that failed the final checking step.
+   o 120422 - Fixed some problems related to generating grids on CAD for high-order accurate methods that
+              require 2 or more ghost points to lie on the surface (see the hyperbolic and ogen documentation
+              for the correct way to do this).
+   o 120501 - When interactively specifying the number of grid lines for a Mapping, a value of -1 now means keep
+              the current number of grid lines in that direction.
+   o 120601 - The "query a grid point" option from the grid plotter now works in parallel.
+   o 120601 - Fixed plotting in parallel of derived functions that require derivatives, such as vorticity, enstrophy etc.
+   o 120604 - Fixed some problems with the parallel coarse grid generation in the multigrid solver Ogmg.
+   o 120703 - The parallel interpolator now works with implicit interpolation so that CG solvers can be run
+              in parallel using grids generated with implicit interpolation. This is more expensive since the
+              equations are solved by a simple iteration and you should normally set the maximum number of
+              interations in CG command files to a value of 10 (or less):
+                    maximum number of iterations for implicit interpolation
+                       10
+   o 120914 - the Cgins inflow boundary condition inflowWithPressureAndTangentialVelocityGiven now works in
+              parallel and for fourth-order (for fourth-order one may need to avoid projecting the initial
+              conditions for now)
+   o 121921 - Kyle's nice in-memory "data-base" class DBase has been moved from cg into Overture so that Overture
+              classes can also use it. This is a very useful class.
+   o 121023 - The Overture check.p script now works with the parallel version.
+   o 121023 - the perl script Overture/bin/perlcmd can be used to substitute and replace all perl commands from 
+              an Overture or CG command file and turn it into a new command file that does not require perl.
+              This may be useful if you want to run on a machine where embedded perl commands do not work for
+              some reason.
+                # Example:
+                #  To remove perl from the ogen script cicArg.cmd use:
+                #     perlcmd cicNoPerl.cmd cicArg.cmd -order=2 -factor=1
+                #  Now ogen can be run without using the perl parser:
+                #     ogen -noplot cicNoPerl.cmd
+
+==============================================================================================
+Overture.v24
+Changes:
+   NOTE: Due to a bug fix in the HDF file output (100329 below) you will need to regenerate your grids and showfiles
+         for this new version.
+
+   o there is a new graphics option, "set home", (in the command window "File menu") that will make the 
+              current view the "home" view. The home view is the one that appears when using the "reset" 
+              command (the button with the "home" on it). The "reset" button (command GLOB:init view) 
+              will return the home view to the default.
+   o 090422 : fixed a bug in ogen that mainly applied to multi-domain grids -- sometimes interpolation
+              was allowed between grids from different domains. (classify.C l.2615)
+   o 090423 : added a check to mogl.C for NumLock being on -- a message is printed if it is.
+              You should turn off NumLock since the mouse buttons won't work properly.
+   o 090429 : fixed a bug in CompositeGrid.C for grids saved from parallel ogen, some of the 
+              interpolation info was not saved correctly (convertLocalInterpolationData).
+   o 090529 : fixed plotting of sequences in plotStuff with multi-domain problems. The sequences to plot
+              now appear on the main dialog.
+   o 090530 : NOTE: running remotely with the gnome window manager can be slow when running command files
+              interactively, (not sure why?), KDE seems less likely to have this problem. See note below 090809. 
+   o 090531 : fixed a problem with rubber-band zooming (with middle mouse button) with
+              extreme zooms (e.g. for fixing trim curves) and picking objects -- this works better now. 
+   o 090628 : contour2d, when picking values with the mouse, hidden grids will not be used.
+   o 090705 : now when a moving grid computation fails with an invalid grid, the program enters
+              the normal interactive update mode of Ogen so you can remake/query the grid (before the
+              program entered some funny update mode that was confusing). 
+   o 090705 : fixed bug with moving grids, the bounding box was not always computed correctly which
+              led to ogen failing when it should have worked (this bug was caused by some code added for parallel).
+   o 090804 : fixed a bug in the ogen's moving grid algorithm: the mask on ghost points was not always set
+              correctly (the problem occurs when a grid "slides" along a shared boundary).
+   o 090808 : there are new parallel copy routines to copy a serial array from one processor to another, see
+              ParallelUtility.h and CopyArray.bC
+   o 090809 : there is a new option for the .overturerc file:
+                showCommandHistory: 1    # set to 0 if interactive scripts are slow to display
+              Sometimes running scripts interactively is very slow when running over a network and
+              this may be fixed by setting this option to '0'. 
+   o 090913 : The new plot option 'set plot bounds' (from the grid or contour plotter) allows one to 
+              set fixed bounds on x, y and z. Useful when the grid deforms and changes size. 
+              Use 'reset plot bounds' to turn off.
+   o 091127 : The new InterpolatePointsOnAGrid class can be used to interpolate a set of points in space
+              from a composite grid function. This functionality works in parallel and supports higher order
+              interpolation. It replaces the old InterpolatePoints class and even older interpolatePoints function.
+   o 091127 : The ExposedPoints class now works in parallel (used to interpolate points that become "exposed"
+              during a moving grid computation).
+   o 091127 : Fixed some bugs for the parallel version of "extrapolate interpolation neighbours" that is used
+              to assign values to unused points next to interpolation points (allowing a wider stencil to be used).
+   o 091209 : there are new parallel copy functions in the CopyArray class for copying serial arrays into a 
+              single distributed array (see ParallelUtility.h and CopyArray.bC). This is more general than
+              the normal P++ copy since the serial arrays can be arbitrarily distributed. 
+   o 091209 : There are a variety of new grid generation examples in the sampleGrids directory including: 
+                 cubeInABox.cmd, slider.cmd, squareHole.cmd, sphere.cmd, rotatedBoxBesideBox.cmd 
+                 valveArg.cmd, plateWithHoles.cmd, plate3dWithHoles.cmd wing3d.cmd, backStepSmooth3d.cmd,
+                 divot.cmd, afm.cmd, lens.cmd, solidSphereInABox.cmd 
+   o 100226 : The Integrate class should now work in parallel. 
+   o 100309 : There is a new LoftedSurfaceMapping that can be used to define a lofted surface such as the
+              surface of a wing with a tip. This mapping was used to build some of the surfaces for 
+              the overlapping grid for the model wind-turbine with tower and nacelle.
+   o 100329 : Bug fixed in the HDF file output of parallel distributed arrays when using the multiple file output
+              option (which is the default). Space was being allocated in the main hdf file for the whole array 
+              even though no data was written there. This meant that the main hdf file was huge when it
+              should not have been. Thanks to Jeff Banks for noticing this. 
+  o 100424  : In cleaning up the MappedGrid the "min and max edge length" arrays were removed since these are
+              rarely used. 
+  o 100722  : There is a new "exponential to linear" stretching option which might be a good choice for
+              clustering grid points near boundaries. This function can be used to create very small grid
+              cells near boundaries if desired. 
+  o 110211  : There are two new functions in showFileFromDataFile.C that can be used to read and write a 
+              grid and solution from an 'ovText' data file. Use 'plotStuff -ovText' to read in a grid and
+              solution from an "ovText" data file (choose the menu item 'data file format' to
+              display the format of the file). From the plotStuff menu use 'save ovText file' to save 
+              a grid and solution from a show file into an ovText data file. This is a good way to 
+              import a grid and solution into Overture. The solution can subsequently be used as initial conditions 
+              for one of the CG solvers, for example. This format is better than the plot3d format since it 
+              has more information about boundary conditions, ghost points etc.
+  o 110515  : There is a new "transferSolution" program in Overture/bin that can be used to interpolate a
+              solution from one overlapping grid to another overlapping grid (e.g. a finer grid, or a grid
+              on a larger or smaller domain.). The program reads a solution from a "source" show file and outputs the
+              results to a new "target" show file.
+  o 110515  : Some improvements have been made for reading and writing plot3d files. There is a new   
+              option "save plot3d file" in the plotStuff menu that allows one to save a solution and grid
+              into plot3d files (these could then be shown in another graphics program for e.g.). 
+              plotStuff can read plot3d grid and solution ("q" or "f") files using the
+              command "plotStuff -plot3d".
+
+------------------------------ nanet announcement -------------------------------
+Re: Release of Overture v23, software for overlapping grids
+
+Announcing the release of Overture version 23.  Overture is a C++ framework for
+the solution of partial differential equations on composite overlapping grids. 
+Main features: 
+
+ - provides a high level C++ interface for rapid prototyping of PDE solvers. 
+ - built upon optimized C and fortran kernels.
+ - provides a library of finite-difference operators: conservative and non-conservative,
+   2nd, 4th, 6th and 8th order accurate approximations. 
+ - support for moving grids.
+ - support for block structured adaptive mesh refinement (AMR).
+ - extensive grid generation capabilities (analytic, algebraic, hyperbolic, elliptic, overlapping).
+ - CAD fixup tools (for CAD from IGES files).
+ - interactive graphics and data base support (using HDF5).
+ - command scripts with embedded perl commands.
+
+Also available are the CG (composite grid) suite of PDE solvers (built using Overture):
+ - cgad: advection diffusion 
+ - cgcns: compressible Navier-Stokes, reactive Euler equations. 
+ - cgins: incompressible Navier-Stokes with heat transfer. 
+ - cgmx: time domain Maxwell's equations solver.
+ - cgmp: multi-domain, multi-physics solver (e.g. conjugate heat transfer)
+
+Overture and CG are freely available at www.llnl.gov/casc/Overture. 
+
+
+leave off: 
+ - cgsm: solid mechanics (linear elasticity). 
+
+
+==============================================================================================
+Overture.v23 - released approx. March 13, 2009
+  To do:
+    Mixed derivatives: variable a0, a1, a2
+
+Changes:
+
+   o NOTE: Comments in command files can now begin with # or * 
+
+   o The new version of A++/P++ supports arrays that can have 2^63 = 9e18 elements, the previous version was 
+     limited to 2^31 = 2e9 elements. 
+
+   o ** Data base files now contain the Overture version number they were created with. If you are unable
+     to read an old file with a newer version of Overture, Overture will tell you which older version to use.
+   o fixed bug in plotting sequences in the show file.
+   o fixed a bug in Oges -- the initial guess for iterative solvers was not being assigned properly
+     for the case of systems of equations.
+   o there is a new example in Overture/primer/gridPrint.C that reads a grid from a data base and
+     outputs the grid information to a plain text file. 
+   o commands generated by perl in command files can now contain a comment line (starting with a '*' or '#')
+   o the 2d contour plotter now has an option for flat-shading (toggle button) where the colour of each
+     grid cell is constant (based on the average values at the 4 vertices)
+   o fixed a bug in ogen that caused the hole-cutting to fail in some special cases in 2D 
+     (cutHolesNew.bC, line 2241)
+   o fixed the hyperbolic grid generator so that it handles start curves that are "derivative" periodic
+   o fixed a bug in Oges.C for predefined equations with mixed-BC's in which sometimes the system was 
+     wrongly thought to be singular.
+   o fixed a bug in ReductionMapping.C -- the inverseMap was not correct.
+   o fixed a bug in the mixed/aDotGradu/generalized-mixed BC on curvilinear grids -- a matrix was built 
+     and saved to hold the BC but this matrix was not updated if the coefficents of the mixed BC changed.
+   o the option was added to the grid plotter to colour grids by domain number (for multi-domain grids)
+   o there is a coefficient matrix example in tests/tcmge.C, that shows how to fill in arbitrary equations.
+   o there is a new displayCoeff function to display elements in a coefficient matrix in a nice way. 
+   o the new version of Ogen can be used to generate grids in parallel for many cases (some hard cases
+     that require backup interpolation will not work yet). 
+
+==============================================================================================
+Overture.v22
+  To do:
+    Mixed derivatives: variable a0, a1, a2
+    Split up assignBoundaryConditions.f (for Kyle)
+
+Changes:
+
+   o There is a new version of the data base interface for HDF5. This will support parallel I/O.
+     No changes should be required to your code, but you will need to install hdf5 before building Overture.
+     The HDF4 version should still work, although eventually we may stop supporting it.
+     If you move to HDF5 then you will need to re-create all grids and show files, since the formats
+     are not compatible.
+
+   o the sample program amrHype.C has been renamed amrh.C -- this program has been improved upon as
+     a test of parallel or serial AMR.
+
+   o The LoadBalancer and GridDistribution classes have been added for parallel load balancing. 
+     See the example use in pwave.C and amrh.C
+
+   o There is a new perl script Overture/check.p that can be used to run a series of regressions tests.
+
+   o The definition of the vectorSymmetry boundary condition for coefficient matrices has been
+     changed to ensure that there is a diagonal element in the matrix. 
+
+   o There is a new plotting function "displacement" for plotting results from solid mechanics applications
+     where the computed solution represents the displacement of the grid points.
+
+   o There have been many changes to support parallel computations. These include changes
+     to the AMR routines. 
+
+   o The grid generator Ogen has been optimised to use less memory -- for Cartesian grids the
+     array of verticies is nolonger built at all. 
+
+   o I have added the new operator divergenceTensorGradient that approximates div( K grad ) u 
+     where K is a NxN tensor in N=1,2,3 space dimensions. This operator has been
+     implemented using conservative (symmetric) and non-conservative approximations to orders
+     of accuracy  2,4,6, and 8.
+     It is only available through the optimized interface (function MappedGridOperators::derivative).
+
+  o the divergence operator (obtained through the optimized interface) is now available
+    for conservative and non-conservative for orders 2,4,6,8
+
+  o The NurbsMapping has a new option to turn a 3d curve into a 2d curve by projecting onto a plane
+
+  o The files interpolatePoints.{h,C} were changed to interpPoints.{h,C}  (OSX fix)
+  o The files Triangle.{h,C} were changed to TriangleClass.{h,C}  (OSX fix)
+  o Renames oges.C to ogesFiles.C  (OSX fix)
+  o Removed fileOuptut.h --> use FileOutput.h instead.  (OSX fix)
+  o Renamed boxlib/List.H to BL_List.H and boxlib/Assert.H to BL_Assert.H (OSX fix)
+  o Removed Display.{h,C} (OSX fix)
+
+  o The FiniteVolumeOperators files are no longer distributed. Use the conservative finite 
+    difference operators instead.
+
+  o 3D contour: added "pick to query a grid point" to query values of a solution in 3D.
+  o 3D grid plotter: added "pick to add coordinate plane <dir>" to plot grid lines on a coordinate   
+     plane.  
+
+  o There is a new function userDefinedOutput (in Overture/Ogshow/userDefinedOutput.C) that can
+    be called from plotStuff and contour with the option "user defined output". This function can
+    be changed by a user and used, for example, to output results from the current solution into
+    a text file. The initial implementation shows how to save the results of a contour-cut when the
+    solution is determined on a line or curve that cuts through the domain.
+
+  o The NurbsMapping function to interpolate another Mapping now has the option to interpolate ghost
+    points from the source Mapping (to ensure the NurbsMapping has the same ghost points). 
+
+  o There is a new configure option "debug" to force all files to be compiled with debugging on.
+
+  o Kyle added to the option to show files to save multiple frame series (used for multi-physics 
+    applications to save different variables in different parts of the domains).
+
+  o A new option added to use block matrices when using Oges to solve equations with PETSc. This is
+    useful when solving systems of equations since the diagonal block will be inverted with pvioting.
+
+  o Some memory checking functions have been added to Overture to check the current memory being
+    used and the maximum used, see OvertureInit.h.
+
+  o There is a new graphics option "turn off graphics" to skip grid/contour/streamline etc. plotting.
+    This is useful in batch mode (and in parallel to avoid building a single processor copy of
+    the grid/grid-function). Use "turn on graphics" to reset. The corresponding command line 
+    argument is -nographics. Note that the command line option -noplot will itself not turn 
+    off all graphics as the grid/contour/streamline plotters will be still be called. 
+
+  o The default number of ghost lines for Ogen is now 2.
+
+  o The GenericDataBase/HDF_DataBase class now has separate calls for saving/reading distributed
+    arrays -- getDistributed and putDistributed. This allows the data base to distinguish between
+    serial and distributed arrays even when compiled in serial.
+
+  o There is a new parallel read/write mode in the hdf5 implementation of HDF5_DataBase.{h,C}. Different
+    processors will now write distributed array data to local serial files. This avoid problems using
+    HDF5's parallel IO. These extra files are treated in a transparent way to the user. 
+
+  o The AnnulusMapping can now define an elliptical annulus.
+
+  o The grid generator ogen can now build many types of grids in parallel. 
+
+  o The parallel plotting routines for plotting grids and contours have been changed to avoid copying
+    all the data to a single processor. This permits the plotting of larger problems. 
+
+
+================================================================================================
+050623 Overture.v21 
+   o added the option when building triangulations inside the "topology" routine
+     to specify (approximately) the maximum area of triangles. 
+
+   o added entity 104, conic arc to the iges reader and added a conic arc to the
+     NurbsMapping.
+   o added the ability to build a general cylinder (i.e. IGES tabulated cylinder) as a NurbsMapping
+     by extruding a 3D curve along a line
+
+   o added the option 
+         "resolution factor for triangulations" 
+     to the "create mappings" menu to adjust the number of triangles that are generated
+     on TrimmedMappings when they are plotted -- this can be used to speed up the plotting
+     of CAD geometries with very many patches.
+
+   o fixed the NurbsMapping to properly handle un-clamped Nurbs which can appear in some IGES files.
+   o added a picking option "refine plot" to the CompositeSurface update function to allow one to increase the
+     resolution of surfaces so that they are plotted with more grid points (or a finer triangulation)
+
+   o added a new ReorientMapping that is used by the ReparameterizationTransform to reorder
+     the domain (parameter space) coordinates. For example change a Mapping x(r,s) to x(s,r) 
+   o changed the NurbsMapping to represent domains in 2D in addition to curves in 2D. You can 
+     use the interpolation option to convert any 2D mapping into a NurbsMapping.
+   o fixed a problem with SmoothedPolygonMapping to improve the accuracy of the derivatives by 
+     adjusting the number of spline points that are used to approximate the smoothed polygon.
+
+   o added an option to the smooth polygon, "correct corners" to automatically adjust the
+     corners. This will cause the direction of the ends to match the normals to the polygon (i.e. not
+     the normals to the smoothed polygon which may be different).
+
+   o added new functions getToggleValue and getTextValue to the DailogData. These can be used
+     to parse an answer and look for changes to toggle states or text values. These can be used
+     to shorten a code that checks an answer from a Dialog.
+
+   o added a function insideOrOutside to the CompositeSurface and UnstructuredMapping that uses
+     ray-casting to determine if points are inside a triangulation (assumed to be water-tight).
+
+   o fixed the topology to handle the case when a patch is singular on two opposite ends; before
+     only one singular side was considered.
+
+   o added a userDerivedDefinedFunction.C that allows one to define new derived types for plotting
+     with plotStuff. There are many predefined derived types such as vorticity but sometimes one wants
+     to see some other variable. 
+
+   o the plotPoints function can now be used to plot spheres with different colours and different radii.
+
+   o The OverBlown initial condition and boundary condition menus have been updated, the new dialog versions
+     are now functional.
+
+   o fixed a problem in CrossSectionMapping get/put functions that prevented reading back from a data-base file.
+
+   o there is a new primer example, deform.C that shows how to treat a cylinder whose shape deforms over time.
+
+   o plotStuff has a new option -plot3d to read in a plot3d solution file and plot it -- this option is still
+     in a testing phase
+
+==================================================================================================
+
+--> $hen2/ov19/Overture.v19 : make minor fixes to this version to redistribute as v19a
+
+*********************************************************************************************
+CHANGES for the perl parser
+
+Changed module:
+# Here is where we can find the perl include files and library
+setenv OV_PERL_INCLUDE "/usr/lib/perl5/5.6.1/i386-linux/CORE"
+setenv OV_PERL_LIB     "/usr/lib/perl5/5.6.1/i386-linux/CORE"
+# Here are the perl libraries we need to link to
+setenv OV_PERL_LIBRARIES "-Wl,-rpath,${OV_PERL_LIB} -L${OV_PERL_LIB} -lperl -lcrypt"
+
+Changed GLIBS:
+   GLIBS=  $(OV_PERL_LIBRARIES)  -L$(OpenGL)/lib $(OpenGLibs) ....
+Some Ogshow files need to use -I$(OV_PERL_INCLUDE)
+*********************************************************************************************
+
+0208*** Overture.v20
+
+   o changed periodic check in IntersectionMapping.C -- determining whether the curves
+      of intersection are periodic should be more robust.
+   o added sub.cmd and filletTwoCyl.cmd to ogen checks
+   o Can now type `x+r 45' instead of `x+r:0 45' (default window is the current window)
+   o Can set the individual colour of each grid.
+   o Changed the meaning of the argument levelToInterpolate in InterpolateRefinements::interpolateCoarseFromFine
+     to be more meaningful. This could break code that currently uses it. (Using the default value allLevels
+     will still work fine)
+   o fixed various problems with the hyperbolic grid generator, especially for growing surface grids
+     on CAD surfaces. More robust marching across a surface that has a sharp bend (discontinuous normal).
+     - Normal blending is chosen automatically for surface grids based on the angle between the
+       start curve and boundary curves -- this value is only a guess.
+     - Fixed hype so that it does not crash if there is a grid point that cannot be projected
+       onto the triangulation
+   o new function in DialogData to set the toggle state by label so you don't have to remember the number:
+       int setToggleState(const aString & toggleButtonLabel, int trueFalse);  
+   o new configure option 'insure' : use this to build a version with insure.
+   o New option in GraphicsParameters to turn on/off the plotting of Nurbs curves as sub-curves.
+   o Changed plotCompositeSurface so that the colour of surfaces is taken from cs.getColour(s) but
+     the colours for volume-grids stored in a CS are done in the same way as for single volume grids.
+   o Fixed problems in MappingBuilder w.r.t. hiding grids, colouring boundaries by BC or share etc.
+   o fixed a problem when plotting MG levels for rectangular grids -- scaled wrong
+   o 021006 fixed a problem with ogmg for auto generation of levels with periodic grids (stir.mg.hdf)
+   o changed selection so that when a ID appears twice in the selection the z-buffers values returned
+     are the min and max over all selctions with that ID.
+     choosen (as opposed to the first occurence).
+   o allowed the picking selection buffer to grow even larger 
+   o Ogmg: fixed line smoothers to work with constant coefficient pre-defined equations.
+         : default line smoother is now under-relaxed Jacobi which is faster in practice than Zebra.
+   o fixed a problem calling the optimised divScalarGrad operator.
+   o optimised the tbcc.C test routine -- now 10X faster
+   o optimised InterpolatePoints and interpolateExposedPoints
+   o fixed a bug that interpolation points could would not be plotted in plotStuff when a solution was plotted first.
+   o optimised the boundaryDistance function for computing the distance of all grid points to solid walls.
+   o reworked contour plotter menu: created a dialog and added an option to hide grids by picking.
+   o added "abortOnEnd" option when running the check.p, heal.p and generate.p regression tests so that test
+     scripts do not hang waiting for input.
+   o added an option to the grid plotter to set the colour of grids on a given refinement level and base grid.
+   o changed output format options to "8bit" and "24bit" from "8 bit" and "24 bit" since the command parser 
+     does not like a space.
+   o added openGUI() call to GL_GraphicsInterface::stopReadingCommandFile() so that the GUI is opened whenever
+     the command file ends and the graphics window is open.
+   o Added option to hype for smoothing surface grids. 
+   o Negative volumes generated by hype are now highlighted in red.
+   o Added option to hype and MappingBuilder to specify the desired grid spacing -- this is used when initially
+     determining the number of grid points for the starting curve and for marching.
+   o Added a "frame" behind the colour bar and titles so that they always appears on top of the plot.
+   o 021109 : added a new contour "line plot" option to plot the solution along a curve such as the
+       boundary of a grid or any curve defined by the user.
+   o Re-organised and added new options to "hype". There are now options for "post" stretching of the 
+     grid lines -- i.e. stretching the grid after it has been generated with the marching algorithm.
+     There is a new dialog for specifying properties of the stretching that is performed while the grid is
+     geneated -- one can, for example, specify the initial grid spacing and have the distance to march be
+     automatically computed from the number of grid lines.
+   o IgesReader: added a check to see if the IGES file contains line feeds ^M instead of new lines. The line feeds 
+     cause problems and can be removed with dos2unix, for example.
+   o hype: I have added an option so that you can query a point on the screen and determine the location
+      of the point with respect to the current grid, starting curve and reference surface. This can be used for
+      example to determine where to stretch points.
+   o hype: fixed a problem generating surface grids where the marching direction was not chosen 
+     properly on a start curve. This should fix Kyle's bug and also some problems Anders was having 
+   o hype: added "print grid statistics" to display data about the grid spacing and cell volumes.
+   o IntersectionMapping: fixed a problem with intersect curves not converging when the curve had a sharp corner.
+   o MappingBuilder: One can now create a curve on a CAD surface by intersecting a plane with the surface.
+     The plane will be intersected with each trimmed-patched and the resulting segments joined together to
+     form a single curve.
+   o MappingBuilder: TFI grids created with 'build surface patch' can now be stretched and smoothed
+   o MappingBuilder: box grids built with `build box grid' can now be stretched.
+   o 021121: fixed a problem with 3D streamlines not being properly removed.
+   o added an option to the grid plotter to hide grids by picking and to set the colour of grids by picking
+   o added OptionMenu::setCurrentChoice(const aString & label) so you can set the current choice by the label
+     instead of a number
+   o added a function to call in BoundaryConditionParameters so that all points on mixed boundaries are assigned in
+    boundary conditions.  Boundary conditions on mixed boundaries are normally NOT assigned at 
+     points on the boundary that are actually interpolation or interior points (like a C-grid).
+   o fixed a a bug in the operators finish boundary conditions for coefficients matrices when the grid was
+     periodic along axis2 the extrapolation equations were not added
+   o fixed a bug with the matrix transform -- the coordinate singularity of the un-transformed mapping was
+     not transfered to the transformed mapping. One can now rotate a sphere and then use the orthographic projection.
+   o fixed bug in ogen for 3d grids, when holecutting the distance to the boundary was not computed correctly so that
+     specifying a maximum hole cutting distance did not work.
+   o added an option to the grid plotter to toggle off selected boundaries of grids using the mouse.
+   o MappedGridOperators: added a 4th order conservative and symmetric approximation for the 
+     laplace and divScalarGrad operators.
+--- cvs commit 030121 ---
+   o grid plotter: added the option to set the colour of individual grid `boundaries' and to choose the
+      colour using the mouse.
+   o added optimized overlapping interpolation for interpolation widths of 4-9 (used by higher order methods)
+     and fixed a bug in implicit interpolation for width>5.
+   o reworked the optimised overlapping-grid interpolation so that the coefficients of the interpolation
+     formula are NOT precomputed and stored. Instead the coefficients are computed (mainly) when a function
+     is interpolated. This saves storage (which can be substantial for a 3d higher-order interpolant) and
+     runs faster. A 3d sixth-order example ran 5 times faster with setup-time 100 times faster.
+   o I have added sixth and 8th order versions of all the standard "forward" derivative operators including
+     high order versions of the conservative laplacian and divScalarGrad operators.
+   o I have added a function to the DialogData to set the sensitivity for a widget with a given label.
+   o I have reworked the interface for stretching grid lines on mappings (option `stretch coordinates' from
+     the `create mappings' menu or the StretchTransform::update function). The new interface should be much
+     easier to use. One can now specify the desired minimum grid spacing and location of the stretching.
+     The correct values for the parameters will automatically be computed to achieve this grid spacing. 
+     This works for the inverse-tanh, tanh and exponential stretching types. One can also plot the stretching
+     function, it's derivative and the ratio of adjacent grid spacings in order to see the quality of the
+     stretching.
+   o added the cvs directories Overture/hype/cmd/slac and Overture/hype/cmd/truck
+--- cvs commit 030220? ---
+   o added option to toggle grid lines on the individual boundaries of grids in 3D
+   o added platform=intel.d.gcc.ifc to testDistribution which uses the Intel fortran compiler (used by
+     some of our users -- ifc has a limit of 99 continuation lines which I have a habit of exceeding)
+   o The TridiagonalSolver class can now solve systems of penta-diagonal matricies (including the
+     case of periodic and "extended" boundary conditions). These appear with fourth-order approximations.
+     Block penta-diagonal systems have NOT been implemented yet.
+   o added the "coarsening factor" option to 2d contour plotter to allow contours on fine grids to be
+     plotted at a lower resolution. Setting this coarsening-factor to "2", for example, will cause the
+     contour to use every other grid point (except near boundaries or interpolation points). Setting the
+     value to "-2" will cause the contour plotter to use every other grid point only when the colour
+     is uniform thus resulting the same looking contour plot as when the fine grid is used everywhere.
+   o The command files being saved in Overture are now flushed after every write to the file.
+   o Fixed some reference counting bugs in NormalMapping.C and RevolutionMapping.C
+   o Fixed a bug in specifying derivative BC's for the spline mapping
+   o fixed a reference counting bug in the SweepMapping
+   o fixed a problem in finishBoundaryConditions -- update of corner points in 3D was not done in the correct order
+   o I've enhanced the 3D contour plotter so that one can add and delete contour-planes, contour-surfaces and 
+     boundary-surfaces by clicking with the mouse.
+   o I've added some new options for setting the corner ghost points when finishBoundaryConditions is called.
+     There are evenSymmetryCorner, oddSymmetryCorner, taylor2ndOrderEvenCorner, taylor4thOrderEvenCorner
+     The taylor BC's are accurate to 2nd and 4th order for general functions but reduce to a even symmetry
+     condition for even functions. This is often a useful property for Neumann boundary conditions.
+   o I added the ability to plot the first and second derivatives of NURBS and spline curves.
+   o I added the new primer example, gridGenExample.C, which shows how to create an overlapping grid directly
+     in a program, rather than interactively.
+   o There is a *new* option in Oges which allows one to only solve on a sub-set of the grids. See the
+     Oges function setGridsToUse. Previously one would have to solve on all grids with the identity 
+     operator defined on in-active grids.
+   o fixed some bugs in compositeTopology related to periodic trimming curves. Fixed some memory leaks
+     in DialogData.
+   o I added a "print grid statistics" option to the grid plotter.
+   o I added an optimised version of the map and inverseMap for the fourth-order accurate version of the
+     DataPointMapping.
+   o It is now possible to read a command file from within another command file. Use the "read command file"
+     command or the new "include fileName.cmd" command.
+   o I have added the ability to embed perl statements into Overture command files. Any statement containing
+     a semi-colon, such as "$nx=2*11;", is treated as a perl statement. Any subsquent line containing "$nx"
+     (but no ";") will have "$nx" replaced by its value, "22". See the description in the GraphicsDoc document
+     for some examples.
+
+020801
+
+  o New files:
+       op/fortranDeriv/assignBoundaryConditions.f
+       op/fortranDeriv/findInterpolationNeighbours.f
+  o optimised Neumann BC, periodic BC and fixBoundaryCorners
+  o improved the accuracy of getCPU() for Linux from milli to micro-seconds
+
+  o added Overture::abort() and options for setting the action to take when aborting.
+
+     enum AbortEnum
+     {
+       abortOnAbort,
+       throwErrorOnAbort
+     };
+     static AbortEnum getAbortOption();
+     static void setAbortOption( AbortEnum action );
+     static void abort();
+     static void abort(aString message);
+
+
+
+020701:
+   o I have changed which machines/compilers are tested with testDistribution.
+     I have added the SGI (riptide) but haven't got the script to work yet -- for some
+     reason I can set up the path to find the compilers properly.
+
+   o the configure script will automatically look for the pgf77 compilers.
+
+   o There is no need to build or link to libGLw since I now compile these files in Overture/static
+     if libGLw is not found.
+
+   o added "nopause" option to turn off stopping at a pause, gi.setIgnorePause(true/false);
+   o added a function to abort the program if we stop reading a command file,
+          gi.abortIfCommandFileEnds(bool trueOrFalse=true);
+     This can be used in test scripts to prevent a code from hanging while waiting for input.
+
+   o I changed getGraphicsInterface to recognise the command line arguments noplot, nopause and abortOnEnd
+     (Anders: I changed rap.C to use this). Here is an example from mbuilder:
+
+       // Note: options "noplot", "nopause" and "abortOnEnd" are handled in the next call:
+       GenericGraphicsInterface & gi = *Overture::getGraphicsInterface("mbuilder",false,argc,argv);
+
+   o add some new tests to testDistribution in sampleGrids/gridsFromCad.p
+   o optimised plotUnstructured.C
+
+   o added infoLevel for selecting what information to output. 
+             infoLevel: 0=expert, 1=intermediate, 2=novice
+     New functions in GenericGraphicsInterface:
+         setInfoLevel(int level)
+         int getInfoLevel()
+         outputString(message, int messageLevel ) : print message if messageLevel <= infoLevel
+
+     Thus if you want to output a message only to novice users you should use messageLevel=2;
+     a message to novice and intermediate users use messageLevel=1; a message to all users messageLevel=0
+
+   o added 'wire frame rotation' toggle button to the pulldown Options menu so you can
+    toggle on and off the use of a "wire frame" model when rotating.
+   
+
+
+020410:
+  o In order to have the Makefile's in the CVS tree work on multiple machines I have
+     followed Petri's suggestion and added a new config directory that holds a Makefile.sun 
+     and Makefile.intel -- these are included into gf/Makefile, for example, so that one can develop
+     code on either the sun or linux box. Not all Makefile's have been changed and the Makefile.intel
+     has not been tested
+
+  o Removed many files from the gf directory (see list below), these were moved to the new op directory.
+     You will probably need to delete all these files or else "cvs update" will complain.
+
+  o Added the op directory and subdirectories (holds the operators)
+    Many new optimized fortran operators have been created. Type
+             cvs checkout Overture/op
+    from the directory above your Overture directory.
+    
+  o Added the doc directory: type 
+             cvs checkout Overture/doc
+
+  o Added the bpp directory: Holds the bpp preprocessor. You'll need to add bpp to your path
+    WARNING: Some .f and .C files are generated using bpp from the files with the same name but
+       extensions .bf or .bC. You should fix bugs in the .bf or .bC file. The first line of a bpp
+       generated file will say that it was automatically generated. Example: ogshow/grid3d.bC generates
+       the file ogshow/grid3d.C
+       Type
+              cvs checkout Overture/bpp
+
+  o New optimized plotting for rectangular grids: plotting grids/contours no longer requires
+     the creation of the array of vertices - look for problems
+
+  o New optimized fortran version of polynomial twilight zone functions supporting more general polynomials
+   with higher degrees, needed for testing 6th order methods.
+
+  o Added new tests to testDistribution -- testing all the new operators, coefficient matrices, boundary
+      conditions and tcm3. I also created the Checker.{h,C} classes and a smartDiff.p (smart "diff") program
+      for help in testing -- see their use in op/tests/tderivatives.C and op/tests/checkop.p
+
+  o I added a "noplot" option to "testDistribution" to run the rap tests without graphics; something I
+    want when running from home. Also added the option to a do a parallel make on the linux and dex machines.
+
+  o I have now set up OverBlown to be automatically tested in the same way as Overture. The same test scripts
+    are used except that one should specify the "package" to be "OverBlown" as this example shows:
+  
+      testDistribution package=OverBlown platform=dec.d.cxx cvs=true checkout=true dec=gps08
+
+
+Added
+   Overture/Overture/Mapping/hype
+   sped up contour 20X, plotStructured
+   sped up grid, grid3d, contour3d 25X, streamLine 8X
+
+
+
+
+Added
+    Overture/ogen/check.sp/
+                  check.dp/
+
+   and Overture/sampleGrids/check.{sp,dp}/
+
+   Overture/check/README
+                  testDistribution
+                  checkOverture.p
+                  displayBuildTestResults.html
+                  buildTestResults.js
+
+
