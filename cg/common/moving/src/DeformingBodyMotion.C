@@ -4444,7 +4444,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
     else
     {
-      printF("DeformingBodyMotion::update:ERRROR:unknown response=[%s]\n",(const char*)answer);
+      printF("DeformingBodyMotion::update:ERROR:unknown response=[%s]\n",(const char*)answer);
       gi.stopReadingCommandFile();
     }
     
