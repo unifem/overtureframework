@@ -3,6 +3,7 @@
      *                   ad4,ad4dt,mask,nrprm,rparam,niprm,iparam,
      *                   nrwk,rwk,niwk,iwk,idebug,ier)
 c
+c
 c compute du/dt for 2d nonlinear elasticity (smg => solid mechanics, Godunov)
 c
 c variables: u(j1,j2,1:2)=velocity
