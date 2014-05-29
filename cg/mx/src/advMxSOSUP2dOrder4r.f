@@ -44,6 +44,8 @@
      & dyz4,time0,time1
         real dxi4,dyi4,dzi4,dxdyi2,dxdzi2,dydzi2
         real c0,c1,csq,dtsq,cdtsq,cdtsq12,lap(0:20)
+        !! beta is the parameter for the modification for the 4th order scheme to extend the maximal dt
+        real beta
         integer rectangular,curvilinear
         parameter( rectangular=0, curvilinear=1 )
         integer timeSteppingMethod
@@ -90,6 +92,8 @@
         sigmaH=rpar(16)  ! magnetic conductivity
         divergenceCleaningCoefficient=rpar(17)
         t     =rpar(18)
+        beta = 0.8
+        !beta = 1.0
         rpar(20)=0.  ! return the time used for adding dissipation
         dy=dx(1)  ! Are these needed?
         dz=dx(2)
@@ -167,15 +171,15 @@
              call duWaveGen2d4rc( nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
      & ndf4a,ndf4b,ex,addForcing,u(nd1a,nd2a,nd3a,ex),u(nd1a,nd2a,
      & nd3a,ext),un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),f0,dx(0)
-     & ,dx(1),dt,cc,useWhereMask,mask )
+     & ,dx(1),dt,cc,beta,useWhereMask,mask )
              call duWaveGen2d4rc( nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
      & ndf4a,ndf4b,ey,addForcing,u(nd1a,nd2a,nd3a,ey),u(nd1a,nd2a,
      & nd3a,eyt),un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),f0,dx(0)
-     & ,dx(1),dt,cc,useWhereMask,mask )
+     & ,dx(1),dt,cc,beta,useWhereMask,mask )
              call duWaveGen2d4rc( nd1a,nd1b,nd2a,nd2b,n1a,n1b,n2a,n2b,
      & ndf4a,ndf4b,hz,addForcing,u(nd1a,nd2a,nd3a,hz),u(nd1a,nd2a,
      & nd3a,hzt),un(nd1a,nd2a,nd3a,hz),un(nd1a,nd2a,nd3a,hzt),f0,dx(0)
-     & ,dx(1),dt,cc,useWhereMask,mask )
+     & ,dx(1),dt,cc,beta,useWhereMask,mask )
         else
         end if
         return

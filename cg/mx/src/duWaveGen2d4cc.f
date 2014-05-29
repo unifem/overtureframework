@@ -4,7 +4,7 @@
      *   ndf4a,ndf4b,nComp,addForcing,
      *   u,ut,unew,utnew,
      *   rx,src,
-     *   dx,dy,dt,cc,
+     *   dx,dy,dt,cc,beta,
      *   useWhereMask,mask )
 c
       implicit real (t)
@@ -22,7 +22,7 @@ c.. declarations of incoming variables
       real utnew(nd1a:nd1b,nd2a:nd2b)
       real rx   (nd1a:nd1b,nd2a:nd2b,0:1,0:1)
       real src  (nd1a:nd1b,nd2a:nd2b,ndf4a:ndf4b,0:*)
-      real dx,dy,dt,cc
+      real dx,dy,dt,cc,beta
 c
 c.. declarations of local variables
       integer i,j,n
@@ -43,10 +43,16 @@ c
         do i = n1a,n1b
         if( mask(i,j).gt.0 ) then
 c
-          include 'fourthOrderCurvilinear2D.h'
+c          include 'fourthOrderCurvilinear2D.h'
+c          unew(i,j)  = cg(1,1)
+c          utnew(i,j) = cg(2,1)
 c     
-          unew(i,j)  = cg(1,1)
-          utnew(i,j) = cg(2,1)
+          call duStepWaveGen2d4cc( 
+     *         nd1a,nd1b,nd2a,nd2b,
+     *         n1a,n1b,n2a,n2b,
+     *         u,ut,unew,utnew,rx,
+     *         dx,dy,dt,cc,beta,
+     *         i,j,n )
 c
         end if
         end do
@@ -56,10 +62,15 @@ c
         do j = n2a,n2b
         do i = n1a,n1b
 c
-          include 'fourthOrderCurvilinear2D.h'
-
-          unew(i,j)  = cg(1,1)
-          utnew(i,j) = cg(2,1)
+c          include 'fourthOrderCurvilinear2D.h'
+c          unew(i,j)  = cg(1,1)
+c          utnew(i,j) = cg(2,1)
+          call duStepWaveGen2d4cc( 
+     *         nd1a,nd1b,nd2a,nd2b,
+     *         n1a,n1b,n2a,n2b,
+     *         u,ut,unew,utnew,rx,
+     *         dx,dy,dt,cc,beta,
+     *         i,j,n )
 
       end do
       end do
@@ -77,7 +88,7 @@ c
      *         ndf4a,ndf4b,nComp,
      *         u,ut,unew,utnew,
      *         rx,src,
-     *         dx,dy,dt,cc,
+     *         dx,dy,dt,cc,beta,
      *         i,j,n )
 c     
           end if
@@ -95,7 +106,7 @@ c
      *         ndf4a,ndf4b,nComp,
      *         u,ut,unew,utnew,
      *         rx,src,
-     *         dx,dy,dt,cc,
+     *         dx,dy,dt,cc,beta,
      *         i,j,n )
 c     
           end do

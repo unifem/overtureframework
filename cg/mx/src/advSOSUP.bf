@@ -58,6 +58,9 @@
 
  real c0,c1,csq,dtsq,cdtsq,cdtsq12,lap(0:20)
 
+ !! beta is the parameter for the modification for the 4th order scheme to extend the maximal dt
+ real beta 
+
  integer rectangular,curvilinear
  parameter( rectangular=0, curvilinear=1 )
 
@@ -111,6 +114,9 @@
  sigmaH=rpar(16)  ! magnetic conductivity
  divergenceCleaningCoefficient=rpar(17)
  t     =rpar(18)
+
+ beta = 0.8
+ !beta = 1.0
 
  rpar(20)=0.  ! return the time used for adding dissipation
 
@@ -276,7 +282,7 @@
                            u(nd1a,nd2a,nd3a,ex),u(nd1a,nd2a,nd3a,ext),\
                            un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),\
                            f0,\
-                           dx(0),dx(1),dt,cc,\
+                           dx(0),dx(1),dt,cc,beta,\
                            useWhereMask,mask )
 
       call duWaveGen2d4rc( nd1a,nd1b,nd2a,nd2b,\
@@ -285,7 +291,7 @@
                            u(nd1a,nd2a,nd3a,ey),u(nd1a,nd2a,nd3a,eyt),\
                            un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),\
                            f0,\
-                           dx(0),dx(1),dt,cc,\
+                           dx(0),dx(1),dt,cc,beta,\
                            useWhereMask,mask )
 
       call duWaveGen2d4rc( nd1a,nd1b,nd2a,nd2b,\
@@ -294,7 +300,7 @@
                            u(nd1a,nd2a,nd3a,hz),u(nd1a,nd2a,nd3a,hzt),\
                            un(nd1a,nd2a,nd3a,hz),un(nd1a,nd2a,nd3a,hzt),\
                            f0,\
-                           dx(0),dx(1),dt,cc,\
+                           dx(0),dx(1),dt,cc,beta,\
                            useWhereMask,mask )
 
    #Else
@@ -305,7 +311,7 @@
                            u(nd1a,nd2a,nd3a,ex),u(nd1a,nd2a,nd3a,ext),\
                            un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),\
                            f0,\
-                           dx(0),dx(1),dx(2),dt,cc,\
+                           dx(0),dx(1),dx(2),dt,cc,beta,\
                            useWhereMask,mask )
 
       call duWaveGen3d4rc( nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
@@ -314,7 +320,7 @@
                            u(nd1a,nd2a,nd3a,ey),u(nd1a,nd2a,nd3a,eyt),\
                            un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),\
                            f0,\
-                           dx(0),dx(1),dx(2),dt,cc,\
+                           dx(0),dx(1),dx(2),dt,cc,beta,\
                            useWhereMask,mask )
 
       call duWaveGen3d4rc( nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
@@ -323,7 +329,7 @@
                            u(nd1a,nd2a,nd3a,ez),u(nd1a,nd2a,nd3a,ezt),\
                            un(nd1a,nd2a,nd3a,ez),un(nd1a,nd2a,nd3a,ezt),\
                            f0,\
-                           dx(0),dx(1),dx(2),dt,cc,\
+                           dx(0),dx(1),dx(2),dt,cc,beta,\
                            useWhereMask,mask )
    #End
 
@@ -489,7 +495,7 @@ c      stop
                            un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),\
                            rsxy(nd1a,nd2a,nd3a,0,0), \
                            f0,\
-                           dr(0),dr(1),dt,cc,\
+                           dr(0),dr(1),dt,cc,beta,\
                            useWhereMask,mask )
       call duWaveGen2d4cc( nd1a,nd1b,nd2a,nd2b,\
                            n1a,n1b,n2a,n2b,\
@@ -498,7 +504,7 @@ c      stop
                            un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),\
                            rsxy(nd1a,nd2a,nd3a,0,0), \
                            f0,\
-                           dr(0),dr(1),dt,cc,\
+                           dr(0),dr(1),dt,cc,beta,\
                            useWhereMask,mask )
       call duWaveGen2d4cc( nd1a,nd1b,nd2a,nd2b,\
                            n1a,n1b,n2a,n2b,\
@@ -507,7 +513,7 @@ c      stop
                            un(nd1a,nd2a,nd3a,hz),un(nd1a,nd2a,nd3a,hzt),\
                            rsxy(nd1a,nd2a,nd3a,0,0), \
                            f0,\
-                           dr(0),dr(1),dt,cc,\
+                           dr(0),dr(1),dt,cc,beta,\
                            useWhereMask,mask )
     #Else
 ! 3D, fourth-order, curvilinear
@@ -518,7 +524,7 @@ c      stop
                            un(nd1a,nd2a,nd3a,ex),un(nd1a,nd2a,nd3a,ext),\
                            rsxy(nd1a,nd2a,nd3a,0,0), \
                            f0,\
-                           dr(0),dr(1),dr(2),dt,cc,\
+                           dr(0),dr(1),dr(2),dt,cc,beta,\
                            useWhereMask,mask )
 
       call duWaveGen3d4cc( nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
@@ -528,7 +534,7 @@ c      stop
                            un(nd1a,nd2a,nd3a,ey),un(nd1a,nd2a,nd3a,eyt),\
                            rsxy(nd1a,nd2a,nd3a,0,0), \
                            f0,\
-                           dr(0),dr(1),dr(2),dt,cc,\
+                           dr(0),dr(1),dr(2),dt,cc,beta,\
                            useWhereMask,mask )
 
       call duWaveGen3d4cc( nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,\
@@ -538,7 +544,7 @@ c      stop
                            un(nd1a,nd2a,nd3a,ez),un(nd1a,nd2a,nd3a,ezt),\
                            rsxy(nd1a,nd2a,nd3a,0,0), \
                            f0,\
-                           dr(0),dr(1),dr(2),dt,cc,\
+                           dr(0),dr(1),dr(2),dt,cc,beta,\
                            useWhereMask,mask )
     #End
 

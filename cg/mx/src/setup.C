@@ -144,12 +144,14 @@ computeTimeStep()
     //  4th order: sigma=2.175,  b=1.075
     //  6th order: sigma=1.6,    b=1.275
     sosupPower2d[2]=1.35;  sosupLambda2d[2]=.605;   // 2nd order 2D
-    sosupPower2d[4]=2.175; sosupLambda2d[4]=1.075;  // 4th order 2D  fixed, was .75, *wdh* 2014/05/21
+    //sosupPower2d[4]=2.175; sosupLambda2d[4]=1.075;  // 4th order 2D, beta = 1
+    sosupPower2d[4]=1.6;   sosupLambda2d[4]=1.4;    // 4th order 2D, beta = 0.8
     sosupPower2d[6]=1.6;   sosupLambda2d[6]=1.275;  // 6th order 2D
     
     // *finish me for 3D:*
     sosupPower3d[2]=1.35;  sosupLambda3d[2]=.605;   // 2nd order 3D
-    sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075;  // 4th order 3D
+    //sosupPower3d[4]=2.175; sosupLambda3d[4]=1.075;  // 4th order 3D, beta = 1
+    sosupPower3d[4]=1.6;   sosupLambda3d[4]=1.4;    // 4th order 3D, beta = 0.8
     sosupPower3d[6]=1.6;   sosupLambda3d[6]=1.275;  // 6th order 3D
 
     real dtg=REAL_MAX*.01;

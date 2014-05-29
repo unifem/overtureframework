@@ -4,7 +4,7 @@
      *   ndf4a,ndf4b,nComp,addForcing,
      *   u,ut,unew,utnew,
      *   rx,src,
-     *   dx,dy,dz,dt,cc,
+     *   dx,dy,dz,dt,cc,beta,
      *   useWhereMask,mask )
 c
       implicit none
@@ -22,7 +22,7 @@ c.. declarations of incoming variables
       real utnew(nd1a:nd1b,nd2a:nd2b,nd3a:nd3b)
       real rx   (nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,0:2,0:2)
       real src  (nd1a:nd1b,nd2a:nd2b,nd3a:nd3b,ndf4a:ndf4b,0:*)
-      real dx,dy,dz,dt,cc
+      real dx,dy,dz,dt,cc,beta
 c
 c.. declarations of local variables
       integer i,j,k,n
@@ -48,7 +48,7 @@ c
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         u,ut,unew,utnew,rx,
-     *         dx,dy,dz,dt,cc,
+     *         dx,dy,dz,dt,cc,beta,
      *         i,j,k,n )
 c
           end if
@@ -65,7 +65,7 @@ c
      *         nd1a,nd1b,nd2a,nd2b,nd3a,nd3b,
      *         n1a,n1b,n2a,n2b,n3a,n3b,
      *         u,ut,unew,utnew,rx,
-     *         dx,dy,dz,dt,cc,
+     *         dx,dy,dz,dt,cc,beta,
      *         i,j,k,n )
 c
           end do
@@ -89,7 +89,7 @@ c
      *         ndf4a,ndf4b,nComp,
      *         u,ut,unew,utnew,
      *         rx,src,
-     *         dx,dy,dz,dt,cc,
+     *         dx,dy,dz,dt,cc,beta,
      *         i,j,k,n )
 c
           end if
@@ -108,7 +108,7 @@ c
      *         ndf4a,ndf4b,nComp,
      *         u,ut,unew,utnew,
      *         rx,src,
-     *         dx,dy,dz,dt,cc,
+     *         dx,dy,dz,dt,cc,beta,
      *         i,j,k,n )
 c
           end do

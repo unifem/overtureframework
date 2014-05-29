@@ -44,6 +44,8 @@
      & dyz4,time0,time1
         real dxi4,dyi4,dzi4,dxdyi2,dxdzi2,dydzi2
         real c0,c1,csq,dtsq,cdtsq,cdtsq12,lap(0:20)
+        !! beta is the parameter for the modification for the 4th order scheme to extend the maximal dt
+        real beta
         integer rectangular,curvilinear
         parameter( rectangular=0, curvilinear=1 )
         integer timeSteppingMethod
@@ -90,6 +92,8 @@
         sigmaH=rpar(16)  ! magnetic conductivity
         divergenceCleaningCoefficient=rpar(17)
         t     =rpar(18)
+        beta = 0.8
+        !beta = 1.0
         rpar(20)=0.  ! return the time used for adding dissipation
         dy=dx(1)  ! Are these needed?
         dz=dx(2)
