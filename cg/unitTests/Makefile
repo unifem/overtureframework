@@ -44,10 +44,12 @@ SRC_FILES :=
 TESTS := 
 PKG_INCLUDE := $(foreach p, $(PKGS), $(p)/files)
 
-all: $(BINDIR)trb $(BINDIR)tbm
+all: $(BINDIR)trb $(BINDIR)tbm $(BINDIR)tblp
 
 tbm: $(BINDIR)tbm
 trb: $(BINDIR)trb
+tblp: $(BINDIR)tblp
+
 
 mytest: 
 	-@echo "CGBUILDPREFIX=$(CGBUILDPREFIX)"
@@ -72,13 +74,21 @@ include $(PKG_INCLUDE)
 include $(CONFIGDIR)/make.src
 
 # add dependencies for main programs that are not in the previous source file lists
-DEP += trb.d
+DEP += trb.d tblp.d tbm.d
 
 
-.PHONY: doc clean lib trb tbm
+.PHONY: doc clean lib trb tbm tblp
 
 # libCommon:=$(CGBUILDPREFIX)common/lib/libCgCommon.so
 libCommon:=$(CGBUILDPREFIX)common/libCgCommon
+
+# test routine for the Boundary Layer Profile  class
+TESTS += $(BINDIR)tblp
+tblp : $(BINDIR)tblp
+$(BINDIR)tblp: $(OBJDIR)tblp.o   $(libCommon)
+	-@mkdir -p $(BINDIR)
+	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)tblp.o $(LIBS)
+
 
 # test routine for the BeamModel class
 TESTS += $(BINDIR)tbm
@@ -93,6 +103,8 @@ trb : $(BINDIR)trb
 $(BINDIR)trb: $(OBJDIR)trb.o  $(libCommon)
 	-@mkdir -p $(BINDIR)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)trb.o $(LIBS)
+
+
 
 # build the library in cg/common
 $(libCommon):; @cd ../common; $(MAKE) lib

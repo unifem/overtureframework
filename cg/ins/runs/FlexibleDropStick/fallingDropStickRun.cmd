@@ -4,7 +4,7 @@
 #    cgins [-noplot] fallingDropStick -g=<name> -tf=<> -tp=<> -bodyDensity=<> 
 #           -vIn=<> 
 #
-#   cgins fallingDropStick -g=dropSticki1.order2.hdf -nu=1e-2 -bodyDensity=10.0 g=dropSticki2.order2 -tf=5. -tp=.1 -nc=10 -vIn=.3 -show=fallingStick.show
+#   cgins fallingDropStickRun -g=dropSticke2.order2.hdf -nu=1e-2 -bodyDensity=10.0 -tf=5. -tp=.1 -nc=10 -vIn=.3 -show=fallingStick.show
 # 
 # ============================================================================
 $grid="fallingStick.hdf";  $tFinal=1.; $tPlot=.05; $bodyDensity=3.;  $fluidDensity=1.; $go="halt"; $show=" "; $vIn=.1; $nu=.025; 
@@ -140,6 +140,7 @@ $beamY0 = -0.25*sin($angleradians);
     1  63
   continue
 #
+  plot structures 1
   plot:p
 # 
   $go

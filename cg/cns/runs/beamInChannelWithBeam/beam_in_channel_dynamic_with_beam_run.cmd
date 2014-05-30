@@ -155,4 +155,5 @@ $pdeVariation
   continue
 continue
 *
+plot structures 1
 $go

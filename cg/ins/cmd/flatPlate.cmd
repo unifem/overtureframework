@@ -5,7 +5,7 @@
 #    cgins [-noplot] flatPlate -g=<name> -tm=[bl|sa|ke|none] -nu=<val> -its=<tFinal> -pits=<tPlot> -ic=<uniform/tz>...
 #               -debug=<> -show=<name> -bg=<grid-name> -cfl=<num> -solver=<yale/best> -model=<ins/boussinesq> ...
 #               -ad2=[0/1] -ad21=<> -ad22=<> -iv=[viscous/adv/full] -imp=<val> -dtMax=<val> -rf=<val> ...
-#               -project=[0|1] -useNewImp=[0|1] -go=[run/halt/og]
+#               -project=[0|1] -useNewImp=[0|1] -inflow=[uniform|parabolic|blasius] -go=[run/halt/og]
 #
 #  -tm : bl=Bladwin-Lomax, sa=Spalart-Almaras, ke=K-Epsilon
 #  -ic = initial conditions 
@@ -50,6 +50,7 @@
 #
 # --- set default values for parameters ---
 $tFinal=1.; $tPlot=.1; $cfl=.9;  $nu=.01; $Prandtl=.72; $debug=1; $its=10000; $pits=100; $project=0; 
+$inflow="parabolic"; 
 $k0=1.e-4; $eps0=1.e-4; # inflow and initial conditions for k and eps
 $tz="poly"; $degreex=2; $degreet=2;  $fx=.5; $ft=0.; $rtol=1.e-8; $atol=1.e-6; $dtMax=.5; $refactorFrequency=100; 
 $show = " "; $solver="yale"; $model="ins"; $numberOfCorrections=1; $ts="line";
@@ -57,6 +58,7 @@ $bg=square; # back-ground grid
 $gravity = "0. 0. 0."; $ad2=1; $ad21=2.; $ad22=2.; $implicitFactor=.5; 
 $cDt=0.; # = .25; # cDt=0 -> turn this off
 $ic ="tz";  $go="halt"; $implicitVariation="full";
+$ReBlasius=-1.; % by default the Re for Blasius is 1/nu 
 # 
 $psolver="choose best iterative solver"; $solver="choose best iterative solver"; 
 $iluLevels=1; $ogesDebug=0; 
@@ -71,8 +73,8 @@ GetOptions("g=s"=>\$grid,"its=i"=> \$its,"pits=i"=> \$pits,"nu=f"=>\$nu,"cfl=f"=
            "solver=s"=>\$solver,"psolver=s"=>\$psolver,  "model=s"=>\$model, "gravity=s"=>\$gravity, \
            "dtMax=f"=>\$dtMax,"tp=f"=>\$tPlot,"tf=f"=>\$tFinal,"imp=f"=>\$implicitFactor,"cDt=f"=>\$cDt,\
            "ad2=i"=> \$ad2,"ad21=f"=> \$ad21,"ad22=f"=> \$ad22,"k0=f"=>\$k0,"eps0=f"=>\$eps0,\
-           "rf=i"=> \$refactorFrequency, "iv=s"=>\$implicitVariation,"tz=s"=>\$tz,"fx=f"=>\$fx,\
-           "ic=s"=>\$ic,"tm=s"=>\$tm,"useNewImp=i"=>\$useNewImp,"outflowOption=s"=>\$outflowOption,"go=s"=>\$go );
+           "rf=i"=> \$refactorFrequency, "iv=s"=>\$implicitVariation,"tz=s"=>\$tz,"fx=f"=>\$fx,"ReBlasius=f"=>\$ReBlasius,\
+           "ic=s"=>\$ic,"tm=s"=>\$tm,"useNewImp=i"=>\$useNewImp,"outflowOption=s"=>\$outflowOption,"inflow=s"=>\$inflow,"go=s"=>\$go );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -197,14 +199,17 @@ $grid
    all=noSlipWall, uniform(u=0.,v=0.,n=.0001,k=$k0,eps=$eps0)
  #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=.0001)
    $d = sqrt( $nu ); # do this for now 
+   # ReBlasius = U*x/nu -- determines the value of "x" for the inflow plane
+   if( $ReBlasius<0 ){ $ReBlasius= 1./$nu; }
    # -- TROUBLE: k and eps do not go to zero at the wall:
-   bcNumber1=inflowWithVelocityGiven, parabolic(d=$d,p=1.,u=1.,n=1.e-7,k=$k0,eps=$eps0)
-   # bcNumber1=inflowWithVelocityGiven, uniform(d=$d,p=1.,u=1.,n=1.e-7,k=$k0,eps=$eps0)
-   $Reynolds = 1./$nu; 
- #  bcNumber1=inflowWithVelocityGiven, blasius(R=$Reynolds,u=1.,n=1.e-7,k=$k0,eps=$eps0)
+   if( $inflow eq "parabolic" ){ $cmd="bcNumber1=inflowWithVelocityGiven, parabolic(d=$d,p=1.,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
+   if( $inflow eq "uniform" ){ $cmd="bcNumber1=inflowWithVelocityGiven, uniform(d=$d,p=1.,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
+   if( $inflow eq "blasius"){ $cmd="bcNumber1=inflowWithVelocityGiven, blasius(R=$ReBlasius,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
+   $cmd 
  #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=1.e-8)
    bcNumber2=outflow
-   bcNumber4=slipWall
+   # bcNumber4=slipWall
+   bcNumber4=outflow
   done
   # initial conditions: uniform flow or restart from a solution in a show file 
   if( $restart eq "" ){ $cmds = "uniform flow\n p=1., u=1., n=1.e-7, k=$k0, eps=$eps0"; }\

@@ -1130,60 +1130,64 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
 	// }
 	//
 
-	pBeamModel = new BeamModel;
+        assert( pBeamModel!=NULL );
 
-	real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
-	real & I = par[0];
-	real & Em   = par[1];
-	real & rho   = par[2];
-	real & L   = par[3];
-	real & thick =   par[4];
-	real & pnorm = par[5];
-	real & x0 = par[6];
-	real & y0 = par[7];
-	real & dec = par[8];
+	// *wdh* The next code is moved to the update function
+ 	// pBeamModel = new BeamModel;
 
-	int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
-	int& nelem = ipar[0];
-	int& bcl_ = ipar[1];
-	int& bcr_ = ipar[2];
-	int& exact = ipar[3];
+	// real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
+	// real & I = par[0];
+	// real & Em   = par[1];
+	// real & rho   = par[2];
+	// real & L   = par[3];
+	// real & thick =   par[4];
+	// real & pnorm = par[5];
+	// real & x0 = par[6];
+	// real & y0 = par[7];
+	// real & dec = par[8];
 
-	BeamModel::BoundaryCondition bcl,bcr;
-	switch (bcl_) {
-	case 0:
-	  bcl = BeamModel::Cantilevered;  break;
-	case 1:
-	  bcl = BeamModel::Pinned;  break;
-	case 2:
-	  bcl = BeamModel::Free;  break;
-	default:
-	  std::cout << "Error: unknown beam boundary condition " << bcl_ << "; " <<
-	    " setting to Cantilevered" << std::endl;
-	  bcl = BeamModel::Cantilevered; break;	  
-	}
+	// int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
+	// int& nelem = ipar[0];
+	// int& bcl_ = ipar[1];
+	// int& bcr_ = ipar[2];
+	// int& exact = ipar[3];
 
-	switch (bcr_) {
-	case 0:
-	  bcr = BeamModel::Cantilevered;  break;
-	case 1:
-	  bcr = BeamModel::Pinned;  break;
-	case 2:
-	  bcr = BeamModel::Free;  break;
-	default:
-	  std::cout << "Error: unknown beam boundary condition " << bcr_ << "; " <<
-	    " setting to Cantilevered" << std::endl;
-	  bcr = BeamModel::Cantilevered; break;	  
-	}
+	// BeamModel::BoundaryCondition bcl,bcr;
+	// switch (bcl_) {
+	// case 0:
+	//   bcl = BeamModel::Cantilevered;  break;
+	// case 1:
+	//   bcl = BeamModel::Pinned;  break;
+	// case 2:
+	//   bcl = BeamModel::Free;  break;
+	// default:
+	//   std::cout << "Error: unknown beam boundary condition " << bcl_ << "; " <<
+	//     " setting to Cantilevered" << std::endl;
+	//   bcl = BeamModel::Cantilevered; break;	  
+	// }
 
-	pBeamModel->setParameters(I, Em, rho, L, thick, pnorm, nelem, bcl, bcr,x0,y0,(exact==1));
+	// switch (bcr_) {
+	// case 0:
+	//   bcr = BeamModel::Cantilevered;  break;
+	// case 1:
+	//   bcr = BeamModel::Pinned;  break;
+	// case 2:
+	//   bcr = BeamModel::Free;  break;
+	// default:
+	//   std::cout << "Error: unknown beam boundary condition " << bcr_ << "; " <<
+	//     " setting to Cantilevered" << std::endl;
+	//   bcr = BeamModel::Cantilevered; break;	  
+	// }
+
+	// pBeamModel->setParameters(I, Em, rho, L, thick, pnorm, nelem, bcl, bcr,x0,y0,(exact==1));
+
         real & omega = deformingBodyDataBase.get<real>("added mass relaxation factor");
 	pBeamModel->setAddedMassRelaxation(omega);
         real & tol = deformingBodyDataBase.get<real>("sub iteration convergence tolerance");
 
 	pBeamModel->setSubIterationConvergenceTolerance(tol);
 
-	pBeamModel->setDeclination(dec*3.141592653589/180.0);
+	// pBeamModel->setDeclination(dec*3.141592653589/180.0);
 
 	if (deformingBodyDataBase.has_key("beam free motion")) {
 	  real * p = deformingBodyDataBase.get<real [3]>("beam free motion");
@@ -3957,17 +3961,11 @@ getElasticBeamOption(const aString & answer,
 
 
 
-//\begin{>>DeformingBodyMotionInclude.tex}{\subsection{update}} 
-  // interactive update
+// =================================================================================================
+/// \brief  Define deforming body properties interactively.
+// =================================================================================================
 int DeformingBodyMotion::
 update(CompositeGrid & cg, GenericGraphicsInterface & gi )
-// =================================================================================================
-// /Description:
-//    Define deforming grid properties interactively.
-// /Author:
-//    WDH
-//\end{DeformingBodyMotionInclude.tex}  
-// =================================================================================================
 {
   DeformingBodyType & deformingBodyType = 
                   deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType");
@@ -4016,6 +4014,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
     aString pbLabels[] = {"elastic shell options...",
 			  "grid evolution parameters...",
+                          "elastic beam parameters...",
 			  "help",
 			  ""};
     addPrefix(pbLabels,prefix,cmd,maxCommands);
@@ -4192,11 +4191,16 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       deformingBodyType=userDefinedDeformingBody; 
       userDefinedDeformingBodyMotionOption=elasticBeam;
+
+      if( pBeamModel==NULL );
+        pBeamModel = new BeamModel;
+
     }
     else if( answer=="nonlinear beam" )
     {
       deformingBodyType=userDefinedDeformingBody; 
       userDefinedDeformingBodyMotionOption=nonlinearBeam;
+
     }
     else if( answer=="user defined deforming surface" )
     {
@@ -4271,6 +4275,14 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       
 
     }
+    else if( answer=="elastic beam parameters..." )
+    {
+      // new way 
+      assert( pBeamModel!=NULL );
+      pBeamModel->update(cg,gi);
+      
+    }
+    
     else if( answer=="elastic beam parameters" )
     {
       if( !deformingBodyDataBase.has_key("elasticBeamParameters") )
@@ -4310,6 +4322,73 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       gi.inputString(answer,sPrintF("Enter nelem, bcl, bcr, exact (default=(%d,%d,%d,%d) (0=cantilevered, 1=pinned, 2=free)",ipar[0],ipar[1],ipar[2],ipar[3]));
       sScanF(answer,"%d %d %d %d",&ipar[0],&ipar[1],&ipar[2],&ipar[3]);
       printF("Setting nelem=%d, bcl=%d, bcr=%d, exact=%d for the elastic beam\n",ipar[0],ipar[1],ipar[2],ipar[3]);
+
+
+      assert( pBeamModel!=NULL );
+      // pBeamModel = new BeamModel;
+
+      // real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
+      real & I = par[0];
+      real & Em   = par[1];
+      real & rho   = par[2];
+      real & L   = par[3];
+      real & thick =   par[4];
+      real & pnorm = par[5];
+      real & x0 = par[6];
+      real & y0 = par[7];
+      real & dec = par[8];
+
+      // int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
+      int& nelem = ipar[0];
+      int& bcl_ = ipar[1];
+      int& bcr_ = ipar[2];
+      int& exact = ipar[3];
+
+      BeamModel::BoundaryCondition bcl,bcr;
+      switch (bcl_) {
+      case 0:
+	bcl = BeamModel::Cantilevered;  break;
+      case 1:
+	bcl = BeamModel::Pinned;  break;
+      case 2:
+	bcl = BeamModel::Free;  break;
+      default:
+	std::cout << "Error: unknown beam boundary condition " << bcl_ << "; " <<
+	  " setting to Cantilevered" << std::endl;
+	bcl = BeamModel::Cantilevered; break;	  
+      }
+
+      switch (bcr_) {
+      case 0:
+	bcr = BeamModel::Cantilevered;  break;
+      case 1:
+	bcr = BeamModel::Pinned;  break;
+      case 2:
+	bcr = BeamModel::Free;  break;
+      default:
+	std::cout << "Error: unknown beam boundary condition " << bcr_ << "; " <<
+	  " setting to Cantilevered" << std::endl;
+	bcr = BeamModel::Cantilevered; break;	  
+      }
+
+      pBeamModel->setParameters(I, Em, rho, L, thick, pnorm, nelem, bcl, bcr,x0,y0,(exact==1));
+
+      pBeamModel->setDeclination(dec*Pi/180.0);
+
+      // real & omega = deformingBodyDataBase.get<real>("added mass relaxation factor");
+      // pBeamModel->setAddedMassRelaxation(omega);
+      // real & tol = deformingBodyDataBase.get<real>("sub iteration convergence tolerance");
+
+      // pBeamModel->setSubIterationConvergenceTolerance(tol);
+
+
+      // if (deformingBodyDataBase.has_key("beam free motion")) {
+      // 	real * p = deformingBodyDataBase.get<real [3]>("beam free motion");
+
+      // 	pBeamModel->setupFreeMotion(p[0],p[1],p[2]);
+      // }
+
+
 
     }
     else if( answer=="boundary parameterization" )

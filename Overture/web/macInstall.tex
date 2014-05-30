@@ -1,6 +1,6 @@
 \section{Installing Overture on Mac OS/X}  \label{sec:installMac}
 
-\subsection{10.9 MAVERICKS} 
+\subsection{OS X 10.9 - Mavericks} 
 
 \vskip\baselineskip
 \noindent{\bf Stage I:}
@@ -11,8 +11,18 @@ The default compiler for Mavericks is {\em clang} which replaces gcc and g++. DO
     \begin{verbatim}
        xcode-select --install
     \end{verbatim}
-    This command will ask you whether you want to install the command lines tools.
-  \item Install gfortran from {\tt http://gcc.gnu.org/wiki/GFortranBinaries#MacOS}
+    This command will ask you whether you want to install the command lines tools. You will know if you have the
+    command lines tools if you can issue the command {\tt gcc --version}. 
+  \item Install gfortran from {\tt http://gcc.gnu.org/wiki/GFortranBinaries\#MacOS}
+  \item Install XQuartz (if you do not already have it). This should install X11 libraries in {\tt /opt/X11/lib}. This is needed
+                 so you can pop up X windows but since there is no Motif here we will need to install another version using Macports.
+  \item Install Macports
+  \item Use Macports to install Open Motif and OpenGL:
+     \begin{verbatim}
+         sudo port install openmotif
+         sudo port install mesa
+    \end{verbatim}
+    This will install another version of X11 in {\tt /opt/local/lib} in addition to the Open Motif and Mesa libraries. 
 \end{enumerate}
 
 
@@ -29,11 +39,17 @@ The default compiler for Mavericks is {\em clang} which replaces gcc and g++. DO
     \begin{verbatim}
        ./configure  --disable-SHARED_LIBS  --prefix=`pwd`
     \end{verbatim}
-  \item Install Overture and cg following the regular instructions.
+  \item Install Overture and cg following the regular instructions and using
+    \begin{verbatim}
+       setenv XLIBS /opt/local
+       setenv MOTIF /opt/local
+       setenv OpenGL /opt/local
+    \end{verbatim}
+    as the locations for X11, Motif and OpenGL  (do NOT accidently link to /opt/X11).
 \end{enumerate}
 
 \clearpage
-\section{Installing Overture on Mac OS/X -- *OLDER VERSIONS*}  
+\subsection{Installing Overture on Mac OS/X -- *OLDER VERSIONS*}  
 
 Overture and cg have been build on Mac OS/X. Thanks to Kyle for working this out.
 The installation process is very similar to the process for Linux after some

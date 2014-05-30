@@ -18,7 +18,7 @@
 # Examples:
 #    cgins turek_hron_fsi2_run -g=turek_hron_fsi2e4.hdf -tf=10. -tp=1e-2 -cfl=.5
 $grid="elastic_flag_uncouplede2.hdf"; $ts="adams PC"; $noplot=""; $backGround="square"; $uIn=1.0*1.5; $v0=0.; $T0=0.; $p0=0.; $cfl=.9; $useNewImp=1;
-$tFinal=20.; $tPlot=.05; $dtMax=.1; $degreeSpace=2; $degreeTime=2; $show="turek_hron_fsi2.show"; $debug=1; $go="halt";
+$tFinal=20.; $tPlot=.05; $dtMax=.1; $degreeSpace=2; $degreeTime=2; $show=" "; $debug=1; $go="halt";
 $nu=1e-3; $Prandtl=.72; $thermalExpansivity=3.4e-3; $Tin=-10.;  $implicitFactor=.5; $implicitVariation="viscous"; 
 $tz=0; # turn on tz here
 $ad2=1; $ad21=1.; $ad22=1.; $ad4=0; $ad41=2.; $ad42=2.; $outflowOption="neumann";

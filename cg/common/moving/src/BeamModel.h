@@ -239,6 +239,9 @@ class BeamModel {
   //
   void setDeclination(real dec);
 
+  // Set parameters interactively: 
+  int update(CompositeGrid & cg, GenericGraphicsInterface & gi );
+
   /// Here is a database to hold parameters (new way)
   mutable DataBase dbase; 
 
@@ -347,6 +350,10 @@ class BeamModel {
   //
   real density;
 
+  // Beam thickness
+  //
+  real thickness;
+
   // Beam mass per unit length (actually mass per unit length / b)
   //
   real massPerUnitLength;
@@ -376,7 +383,7 @@ class BeamModel {
   // Left end of the beam (undeformed),
   // and the initial angle of the beam
   //
-  real beamX0, beamY0, beamInitialAngle;
+  real beamX0, beamY0, beamZ0, beamInitialAngle;
 
   // Initial beam normal and tangent vectors.
   //

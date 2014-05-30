@@ -1,0 +1,13 @@
+Cgins: flexible stick falling in a flow.
+
+(1) Generate the grid, e.g.,
+  
+
+NOTE: stick by default is vertical before the counter-clockwise rotation -- 
+ogen -noplot fallingDropStickGrid -interp=e -angle=60. -factor=2 
+
+
+(2) Perform the run, e.g.,
+
+
+cgins fallingDropStickRun -g=fallingDropStickGride2.order2.hdf -nu=1e-2 -bodyDensity=10.0 -tf=5. -tp=.1 -nc=10 -vIn=.3 

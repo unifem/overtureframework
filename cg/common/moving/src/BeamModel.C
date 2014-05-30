@@ -41,6 +41,16 @@ BeamModel::BeamModel() {
   //setParameters(0.02*0.02*0.02/12.0,
   //		1.4e6,10000.0, 0.3,0.02, 15);
 
+  density=1.;
+  thickness=.1;
+  L = 1.;
+
+  areaMomentOfInertia = .1;
+  elasticModulus = 1;
+  L = 1.;
+  numElem = 11;
+
+
   newmarkBeta = 0.25;
   newmarkGamma = 0.5;
 
@@ -132,7 +142,7 @@ void BeamModel::setParameters(real momOfInertia, real E,
 
   massPerUnitLength = totalMass / L;
 
-  // Bo=uoyance terms are used when there is a body force (gravity)
+  // Buoyancy terms are used when there is a body force (gravity)
   buoyantMassPerUnitLength = (density - pnorm)*thickness;
 
   buoyantMass = buoyantMassPerUnitLength * L;
@@ -1593,4 +1603,282 @@ void BeamModel::setAddedMassRelaxation(double omega) {
 void BeamModel::setSubIterationConvergenceTolerance(double tol) {
 
   convergenceTolerance = tol;
+}
+
+
+
+// =================================================================================================
+/// \brief  Define the BeamModel parameters interactively.
+// =================================================================================================
+int BeamModel::
+update(CompositeGrid & cg, GenericGraphicsInterface & gi )
+{
+
+  // *********** FINISH ME ****************
+
+  // DeformingBodyType & deformingBodyType = 
+  //                 deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType");
+
+  // if( !deformingBodyDataBase.has_key("userDefinedDeformingBodyMotionOption") )
+  //   deformingBodyDataBase.put<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption",iceDeform);
+  // UserDefinedDeformingBodyMotionEnum & userDefinedDeformingBodyMotionOption = 
+  //                deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption");
+  
+
+  // // --- here are the parameters used by the surface smoother ---
+  // if( !deformingBodyDataBase.has_key("smoothSurface") )
+  // {
+  //   deformingBodyDataBase.put<bool>("smoothSurface",false);
+  //   deformingBodyDataBase.put<int>("numberOfSurfaceSmooths",3);
+  // }
+  // bool & smoothSurface = deformingBodyDataBase.get<bool>("smoothSurface");
+  // int & numberOfSurfaceSmooths = deformingBodyDataBase.get<int>("numberOfSurfaceSmooths");
+  // bool & changeHypeParameters = deformingBodyDataBase.get<bool>("changeHypeParameters");
+  
+  // // -- Boundary conditions ---
+  // if( !deformingBodyDataBase.has_key("boundaryCondition") )
+  // {
+  //   deformingBodyDataBase.put<BcArray>("boundaryCondition");
+  //   BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
+  //   for( int side=0; side<=1; side++ )for( int axis=0; axis<2; axis++ )
+  //   {
+  //     boundaryCondition(side,axis)=dirichletBoundaryCondition;
+  //   }
+  // }
+  // BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
+  
+  GUIState gui;
+  gui.setWindowTitle("Beam Model");
+  gui.setExitCommand("exit", "continue");
+  DialogData & dialog = (DialogData &)gui;
+
+  aString prefix = ""; // prefix for commands to make them unique.
+
+  bool buildDialog=true;
+  if( buildDialog )
+  {
+
+    const int maxCommands=40;
+    aString cmd[maxCommands];
+
+    // aString pbLabels[] = {"elastic shell options...",
+    // 			  "grid evolution parameters...",
+    // 			  "help",
+    // 			  ""};
+    // addPrefix(pbLabels,prefix,cmd,maxCommands);
+    // int numRows=4;
+    // dialog.setPushButtons( cmd, pbLabels, numRows ); 
+
+    dialog.setOptionMenuColumns(1);
+    aString bcOptions[] = { "cantilever",
+			    "pinned",
+			    "free",
+			    "" };
+    dialog.addOptionMenu("BC left:",bcOptions,bcOptions,bcLeft );
+
+    dialog.addOptionMenu("BC right:",bcOptions,bcOptions,bcRight );
+
+
+    // aString tbCommands[] = {"smooth surface",
+    //                         "change hype parameters",
+    // 			    ""};
+    // int tbState[10];
+    // tbState[0] = smoothSurface;
+    // tbState[1] = changeHypeParameters;
+    // int numColumns=1;
+    // dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
+
+    const int numberOfTextStrings=40;
+    aString textLabels[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+    
+    textLabels[nt] = "number of elements:"; sPrintF(textStrings[nt], "%i",numElem);  nt++; 
+    textLabels[nt] = "area moment of inertia:"; sPrintF(textStrings[nt], "%g",areaMomentOfInertia);  nt++; 
+    textLabels[nt] = "elastic modulus:"; sPrintF(textStrings[nt], "%g",elasticModulus);  nt++; 
+    textLabels[nt] = "density:"; sPrintF(textStrings[nt], "%g",density);  nt++; 
+    textLabels[nt] = "thickness:"; sPrintF(textStrings[nt], "%g",thickness);  nt++; 
+    textLabels[nt] = "length:"; sPrintF(textStrings[nt], "%g",L);  nt++; 
+    textLabels[nt] = "pressure norm:"; sPrintF(textStrings[nt], "%g",pressureNorm);  nt++; 
+    textLabels[nt] = "initial declination:"; sPrintF(textStrings[nt], "%g (degrees)",beamInitialAngle*180./Pi);  nt++; 
+    textLabels[nt] = "position:"; sPrintF(textStrings[nt], "%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0);  nt++; 
+
+    textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug);  nt++; 
+
+
+    // null strings terminal list
+    textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    // addPrefix(textLabels,prefix,cmd,maxCommands);
+    // dialog.setTextBoxes(cmd, textLabels, textStrings);
+    dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+  }
+  
+  aString answer,buff;
+
+  gi.pushGUI(gui);
+  gi.appendToTheDefaultPrompt("beam>");
+  int len=0;
+  for( ;; ) 
+  {
+	    
+    gi.getAnswer(answer,"");
+  
+    printF(answer,"answer=[answer]\n",(const char *)answer);
+
+    if( answer(0,prefix.length()-1)==prefix )
+      answer=answer(prefix.length(),answer.length()-1);
+
+
+    if( answer=="done" || answer=="exit" )
+    {
+      break;
+    }
+    else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
+    else if( dialog.getTextValue(answer,"number of elements:","%i",numElem) ){} //
+
+    else if( dialog.getTextValue(answer,"area moment of inertia:","%g",areaMomentOfInertia) ){} //
+
+    else if( dialog.getTextValue(answer,"elastic modulus:","%g",elasticModulus) ){} //
+    else if( dialog.getTextValue(answer,"density:","%g",density) ){} //
+    else if( dialog.getTextValue(answer,"thickness:","%g",thickness) ){} //
+    else if( dialog.getTextValue(answer,"length:","%g",L) ){} //
+    else if( dialog.getTextValue(answer,"pressure norm:","%g",pressureNorm) ){} //
+    else if( dialog.getTextValue(answer,"initial declination:","%g",beamInitialAngle) )
+    {  
+      setDeclination(beamInitialAngle*Pi/180.);
+      printF("INFO: The beam will be inclined %8.4f degrees from the left end\n",beamInitialAngle*180./Pi);
+      dialog.setTextLabel("initial declination:",sPrintF(buff,"%g, (degrees)",beamInitialAngle*180./Pi));
+    } 
+    else if( (len=answer.matches("position:")) )
+    {
+      sScanF(answer(len,answer.length()-1),"%e %en %e",&beamX0,&beamY0,&beamZ0);
+      printF("INFO: Setting the position of the left end of the beam to (%e,%e,%e)\n",beamX0,beamY0,beamZ0);
+      dialog.setTextLabel("position:",sPrintF(buff,"%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0));
+    }
+
+
+    // else if( answer=="elastic beam parameters" )
+    // {
+    //   if( !deformingBodyDataBase.has_key("elasticBeamParameters") )
+    //   {
+    // 	deformingBodyDataBase.put<real [10]>("elasticBeamParameters");
+
+    // 	real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
+    // 	par[0]=0.02*0.02*0.02/12.0; // area moment of inertia
+    // 	par[1]=1.4e6;  // elastic modulus
+    // 	par[2]=1e4;  // density 
+    // 	par[3]=0.35;  // length 
+    // 	par[4]=0.02;  // thickness
+    // 	par[5]=1000.0;  // pressure norm
+    // 	par[6]=0.0;  // x0
+    // 	par[7]=0.3;  // y0
+    // 	par[8]=0.0;  // declination
+
+    // 	deformingBodyDataBase.put<int [10]>("elasticBeamIntegerParameters");
+	
+    // 	int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
+    // 	ipar[0] = 15;
+    // 	ipar[1] = 0;
+    // 	ipar[2] = 0;
+    // 	ipar[3] = 0;
+    //   }
+
+    //   real *par = deformingBodyDataBase.get<real [10]>("elasticBeamParameters");
+
+    //   gi.inputString(answer,sPrintF("Enter I,E,rho,L,t,pnorm,x0,y0,dec, scaleFactor (default=(%g,%g,%g,%g,%g,%g,%g,%g,%g,%g)",
+    // 				    par[0],par[1],par[2],par[3],par[4],par[5],par[6],par[7],par[8],BeamModel::exactSolutionScaleFactorFSI));
+    //   sScanF(answer,"%e %e %e %e %e %e %e %e %e %e",&par[0],&par[1],&par[2],&par[3],&par[4],&par[5],&par[6],&par[7],&par[8],&BeamModel::exactSolutionScaleFactorFSI);
+    //   printF("Setting I=%g, E=%e, rho=%e, L=%e t=%e pnorm=%e x0=%e y0=%e dec=%e scaleFactor=%e for the elastic beam\n",
+    // 	     par[0],par[1],par[2],par[3],par[4],par[5],par[6],par[7],par[8],BeamModel::exactSolutionScaleFactorFSI);
+
+    //   int *ipar = deformingBodyDataBase.get<int [10]>("elasticBeamIntegerParameters");
+
+    //   gi.inputString(answer,sPrintF("Enter nelem, bcl, bcr, exact (default=(%d,%d,%d,%d) (0=cantilevered, 1=pinned, 2=free)",ipar[0],ipar[1],ipar[2],ipar[3]));
+    //   sScanF(answer,"%d %d %d %d",&ipar[0],&ipar[1],&ipar[2],&ipar[3]);
+    //   printF("Setting nelem=%d, bcl=%d, bcr=%d, exact=%d for the elastic beam\n",ipar[0],ipar[1],ipar[2],ipar[3]);
+
+    // }
+    // else if( answer=="sub iteration convergence tolerance" )
+    // {
+    //   if (!deformingBodyDataBase.has_key("sub iteration convergence tolerance")) {
+    // 	deformingBodyDataBase.put<real>("sub iteration convergence tolerance");
+    // 	real & tol = deformingBodyDataBase.get<real>("sub iteration convergence tolerance");
+    // 	tol = 1e-3;
+    //   }
+      
+    //   real & tol = deformingBodyDataBase.get<real>("sub iteration convergence tolerance");
+
+    //   gi.inputString(answer,sPrintF("Enter tol (default=%g)",tol));
+    //   sScanF(answer,"%e",&tol);
+    //   printF("Setting convergence tolerance = %g\n",tol);
+	
+    // }
+    // else if( answer=="added mass relaxation factor" )
+    // {
+    //   if (!deformingBodyDataBase.has_key("added mass relaxation factor")) {
+    // 	deformingBodyDataBase.put<real>("added mass relaxation factor");
+    // 	real & omega = deformingBodyDataBase.get<real>("added mass relaxation factor");
+    // 	omega = 1.0;
+    //   }
+      
+    //   real & omega = deformingBodyDataBase.get<real>("added mass relaxation factor");
+
+    //   gi.inputString(answer,sPrintF("Enter omega (default=%g)",omega));
+    //   sScanF(answer,"%e",&omega);
+    //   printF("Setting added mass relaxation factor = %g\n",omega);
+	
+    // }
+
+
+    // else if( answer=="beam free motion" )
+    // {
+    //   if (!deformingBodyDataBase.has_key("beam free motion")) {
+    // 	//real beamFreeMotionParams[] = {0.0,0.0,0.0};
+    // 	deformingBodyDataBase.put<real[3]>("beam free motion");
+    // 	real* p = deformingBodyDataBase.get<real [3]>("beam free motion");
+    // 	memset(p,0,sizeof(real)*3);
+    //   }
+
+    //   real* beamFreeMotionParams = deformingBodyDataBase.get<real [3]>("beam free motion");
+    //   gi.inputString(answer,sPrintF("Enter beam free motion parameters x0,y0,angle0 (default=%g,%g,%g)",
+    // 				    beamFreeMotionParams[0],beamFreeMotionParams[1],beamFreeMotionParams[2]));
+    //   sScanF(answer,"%e %e %e",
+    // 	     &beamFreeMotionParams[0],
+    // 	     &beamFreeMotionParams[1],
+    // 	     &beamFreeMotionParams[2]);
+    //   printF("Setting beam free motion parameters= x0=%g,y0=%g,angle0=%g\n",
+    // 	     beamFreeMotionParams[0],beamFreeMotionParams[1],beamFreeMotionParams[2]);
+    // }
+
+
+
+    // else if( dialog.getToggleValue(answer,"smooth surface",smoothSurface) )
+    // {
+    //   if( smoothSurface )
+    // 	printF("Surface smoothing is on. The deforming surface will be smoothed with a 4th-order filter.\n"
+    //            "  You may also set `number of surface smooths' to define the number of smoothing iterations\n");
+    //   else
+    // 	printF("Surface smoothing is off\n");
+    // }
+
+    else
+    {
+      printF("BeamModel::update:ERROR:unknown response=[%s]\n",(const char*)answer);
+      gi.stopReadingCommandFile();
+    }
+    
+  }
+    
+  gi.popGUI();
+  gi.unAppendTheDefaultPrompt();
+
+  //  pBeamModel->setParameters(I, Em, rho, L, thick, pnorm, nelem, bcl, bcr,x0,y0,(exact==1));
+
+
+  return 0;
+
 }

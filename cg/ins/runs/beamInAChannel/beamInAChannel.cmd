@@ -84,6 +84,8 @@ $grid
       deforming body
         user defined deforming body
           elastic beam
+          elastic beam parameters...
+
           elastic beam parameters
             # Enter I,E,rho,L,t,pnorm,x0,y0,dec, scaleFactor
             $angle=90.; # $Pi*.5; 
@@ -182,5 +184,6 @@ $grid
   continue
   #
   plot structures 1
+  plot:u
 * 
   $go

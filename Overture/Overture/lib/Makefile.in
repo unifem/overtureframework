@@ -46,6 +46,8 @@ RAP_DYNAMIC_LIBRARY = libRapsodi.so
 SO_LIB_DEPENDENCIES = 
 #darwin SO_LIB_DEPENDENCIES = lib_date
 
+# Ubuntu 13: need to include FORTRAN_LIBS when building the .so library
+LIBLIBS = $(FORTRAN_LIBS)
 # Here is the dynamic library
 libso_date: $(SO_LIB_DEPENDENCIES) $(DataBase)/DataBase_date \
           $(GridFunction)/GridFunction_date           \
@@ -59,7 +61,7 @@ libso_date: $(SO_LIB_DEPENDENCIES) $(DataBase)/DataBase_date \
 	  $(mapUtil)/mapUtil_date
 	  $(LD) -o $(DYNAMIC_LIBRARY) $(SOFLAGS) $(DataBase)/*.o $(GridFunction)/*.o $(templates)/*.o \
              $(Grid)/*.o $(Mapping)/*.o $(Oges)/*.o  $(GridGenerator)/*.o $(Ogshow)/*.o $(mapUtil)/*.o \
-	     $(otherStuff)/*.o $(LIBLIBS)
+	     $(otherStuff)/*.o $(LIBLIBS) 
 	  rm -rf libOverture.so.1.0
 	  ln -s $(DYNAMIC_LIBRARY) libOverture.so.1.0
 	  touch $@

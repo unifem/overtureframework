@@ -2,18 +2,19 @@
 # Grid for a falling "stick" a channel
 # 
 # Examples:
-#     ogen -noplot fallingDropStick -factor=1
-#     ogen -noplot fallingDropStick -factor=1 -angle=10.
+#     ogen -noplot fallingDropStickGrid -factor=1
+#     ogen -noplot fallingDropStickGrid -angle=10. -factor=1 
+#     ogen -noplot fallingDropStickGrid -interp=e -angle=30. -factor=2 
 #
 # -- bigger domain:
-#      ogen -noplot fallingDropStick -factor=1 -xa=-5. -xb=5. -ya=-1.5 -yb=1. -name="fallingDropStickBigDomain1.hdf" 
-#      ogen -noplot fallingDropStick -factor=2 -xa=-4. -xb=4. -ya=-1.5 -yb=1. -name="fallingDropStickBigDomain2.hdf" 
+#      ogen -noplot fallingDropStickGrid -factor=1 -xa=-5. -xb=5. -ya=-1.5 -yb=1. -name="fallingDropStickBigDomain1.hdf" 
+#      ogen -noplot fallingDropStickGrid -factor=2 -xa=-4. -xb=4. -ya=-1.5 -yb=1. -name="fallingDropStickBigDomain2.hdf" 
 # 
-#      ogen -noplot fallingDropStick -factor=2 -xa=-2.5 -xb=2.5 -ya=-1.5 -yb=2.0 -name="fallingDropStick2a.hdf" 
-#      ogen -noplot fallingDropStick -factor=2 -xa=-2.5 -xb=2.5 -ya=-2.5 -yb=2.0 -name="fallingDropStick2b.hdf" 
-#      ogen -noplot fallingDropStick -factor=2 -xa=-3.0 -xb=3.0 -ya=-2.5 -yb=2.0 -name="fallingDropStick2c.hdf" 
+#      ogen -noplot fallingDropStickGrid -factor=2 -xa=-2.5 -xb=2.5 -ya=-1.5 -yb=2.0 -name="fallingDropStick2a.hdf" 
+#      ogen -noplot fallingDropStickGrid -factor=2 -xa=-2.5 -xb=2.5 -ya=-2.5 -yb=2.0 -name="fallingDropStick2b.hdf" 
+#      ogen -noplot fallingDropStickGrid -factor=2 -xa=-3.0 -xb=3.0 -ya=-2.5 -yb=2.0 -name="fallingDropStick2c.hdf" 
 #
-$prefix="fallingDropStick";  
+$prefix="fallingDropStickGrid";  
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $xa =-1.; $xb=1.; $ya=-1.; $yb=1.; $angle=60.; 
@@ -106,6 +107,7 @@ SmoothedPolygon
     transform which mapping?
      unrotated-stick
     rotate
+     # angle in degrees (counter clockwise)
      $angle
      0 0 0
     mappingName

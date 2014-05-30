@@ -18,7 +18,7 @@ Perform the run, e.g.,
   cgcns beam_in_channel_dynamic_with_beam_run.cmd -g="beam_in_channel_dynamic_with_beam_gride4.hdf" -tp=1.e-5 -go=halt
 
 
-Run for movie:
+Runs for movie:
 
   ogen -noplot beam_in_channel_dynamic_with_beam_grid -interp=e -factor=8
   cgcns -noplot beam_in_channel_dynamic_with_beam_run.cmd -g="beam_in_channel_dynamic_with_beam_gride8.hdf" -tf=5.e-3 -tp=2.e-6 -show="beam8.show" -go=go >! beam8.out &

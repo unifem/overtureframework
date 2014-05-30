@@ -22,3 +22,8 @@ This simulation corresponds to the one labelled "FSI2" in their paper.
 
   finer: 
   cgins turek_hron_fsi2_run -g=turek_hron_fsi2e4.hdf -tf=10. -tp=1e-2 -cfl=.5
+
+
+(3) Run in batch and and save a show file:
+
+     cgins -noplot turek_hron_fsi2_run -g=turek_hron_fsi2e2.hdf -tf=10. -tp=.1 -cfl=.5 -show="fsi2.show" -go=go >! fsi2.out &
