@@ -2689,8 +2689,19 @@ regridAligned( GridCollection & gc,
       }
     }
     int newNumberOfGrids=gNew;
-    while( gridDistributionList.size()>newNumberOfGrids )  // remove any extra entries in the list
-      gridDistributionList.erase(gridDistributionList.end());
+
+    // remove any extra entries in the list
+    const int numToDelete=gridDistributionList.size()-newNumberOfGrids;
+    for( int k=0; k<numToDelete; k++ )
+      gridDistributionList.pop_back();
+    assert( gridDistributionList.size()==newNumberOfGrids );
+
+    // this caused a seg fault on the Mac: 
+    //  while( gridDistributionList.size()>newNumberOfGrids )  // remove any extra entries in the list
+    //	gridDistributionList.erase(gridDistributionList.end());
+
+    
+
 
     // load balance the refinement level grids, keeping the previous levels unchanged. 
     loadBalancer.determineLoadBalance( gridDistributionList,baseLevel+1 );
