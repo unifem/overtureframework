@@ -57,3 +57,6 @@ the master versions).
      git diff --cached
      git diff HEAD
      git diff --stat
+
+(2.8) Checkout:
+      git checkout fileName
