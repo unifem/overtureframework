@@ -1,0 +1,115 @@
+% ========================================================================================================
+\clearpage
+\subsection{Flow past a cube in a channel}\label{sec:boxInAChannel}
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigd{#3}{\figWidthd}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{7.5cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.05}{.13}{.20}{.20}}
+\newcommand{\figWidthd}{7.5cm}
+\newcommand{\trimfigd}[2]{\trimPlotb{#1}{#2}{.05}{.13}{.10}{.20}}
+% 
+\newcommand{\figWidthb}{6cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.05}}
+\newcommand{\figWidthc}{9cm}
+\newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.1}{.15}{.22}{.22}}
+% -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,13);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,6.)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigc{\ovFigures/loftedBoxInChannelGrid}{\figWidthc}};
+\draw (9.0,6.75)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\ovFigures/loftedBoxGrid}{\figWidthb}};
+%
+% \figWithCaption{5}{\cgDoc/ins/fig/loftedBox4Enstrophyt10p0}{\cgDoc/ins/fig/loftedBox4Enstrophyt10p0}{$t=10.0$}{$t=10.0$}
+\figWithCaption{0}{\cgDoc/ins/fig/loftedBox8Enstrophyt10p0}{\cgDoc/ins/fig/loftedBox8Enstrophyt10p0a}{$t=10$}{$t=10$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,13.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a cube in a channel. Top: Overlapping grid for the cube and channel. 
+   Bottom: contour plots of the enstrophy from a simulation on grid $\Gc^{(8)}$ (14M grid points), using the scheme AFS42.
+   Evident is the transition of the enstrophy midway in the wake onto the coarser background grid. }
+  \label{fig:boxInAChannel}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+
+We simulate the flow past the exterior of a cube (with rounded corners).
+
+The grid for this problem was generated from the ogen command file {\tt loftedBox.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/boxInAChannel.cmd}.
+
+The geometry for the problem consists of a cube with sides of length one in a channel $[-1,2.5]\times[-2,2]\times[-2,2]$. 
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=1/(10 j)$.
+The grid spacing is stretched in the normal direction to the box so that the boundary layer
+spacing is $\dsbl$. 
+The grid is shown in Figure~\ref{fig:boxInAChannel}. The grid for the cube consists three grids, a main patch
+covering four faces and all edges and two end {\em caps}. This grid was generated with the {\em LoftedSurfaceMapping}.
+We note that is quite difficult to make a high quality grid for this apparently simple geometry since the
+edges and corners must be sufficiently resolved. 
+The cube grid are embedded in a Cartesian refinement grid (block boundaries shown in green), which is 
+in turn located in a larger background
+Cartesian grid with grid spacing $2\ds$. 
+
+
+The incoming flow is in the $x$-direction with $u=1$.
+Figure~\ref{fig:boxInAChannel} shows the solution computed on grid $\Gc^{(8)}$, which had
+a total of approximately 14M grid points.
+Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=2\times10^{-5}$). 
+
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{6.5cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.10}{.15}{.15}}
+% -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,11);  % set the bounding box (so we have less surrounding white space)
+%
+\figWithCaption{6}{\cgDoc/ins/fig/loftedBox4MoveEnstrophyt5p0}{\cgDoc/ins/fig/loftedBox4MoveEnstrophyt6p0}{$t=5$}{$t=6$}
+\figWithCaption{0}{\cgDoc/ins/fig/loftedBox4MoveEnstrophyt7p0}{\cgDoc/ins/fig/loftedBox4MoveEnstrophyt8p0}{$t=7$}{$t=8$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,11.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a rotating cube in a channel. 
+   Contour plots of the enstrophy from a simulation on grid $\Gc^{(4)}$, using the scheme AFS42.
+%   Bottom: contour plots of the enstrophy from a simulation on grid $\Gc^{(8)}$ (14M grid points), using the scheme AFS42.
+%   Evident is the transition of the enstrophy midway in the wake onto the coarser background grid.
+ }
+  \label{fig:boxInAChannelMoving}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+Figure~\ref{fig:boxInAChannelMoving} shows results from flow past a rotating cube.

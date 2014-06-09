@@ -1,0 +1,536 @@
+%-----------------------------------------------------------------------
+% Reference Guide for CGMX -- Maxwell's Equation Solver
+% 
+%-----------------------------------------------------------------------
+\documentclass{article}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+
+\input homeHenshaw
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+% \usepackage{epsfig}    
+% This next section will allow graphics files to be ps or pdf  -- from Jeff via Jeff
+% \usepackage{ifpdf}
+% \ifpdf
+%     \usepackage[pdftex]{graphicx}
+%     \usepackage{epstopdf}
+%     \pdfcompresslevel=9
+%     \pdfpagewidth=8.5 true in
+%     \pdfpageheight=11 true in
+%     \pdfhorigin=1 true in
+%     \pdfvorigin=1.25 true in
+% \else
+%     \usepackage{graphicx}
+% \fi
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+% define the clipFig commands:
+\input trimFig.tex
+
+% --------------------------------------------
+\usepackage[usenames]{color} % e.g. \color{red}
+\newcommand{\red}{\color{red}}
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\jwb}[2]{{\color{red}(old: #1) }{\color{green} #2}}
+
+\usepackage{tikz}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+\newcommand{\primer}{/users/henshaw/res/primer}
+\newcommand{\GF}{/users/\-henshaw/\-res/\-gf}
+\newcommand{\gf}{/users/henshaw/res/gf}
+\newcommand{\mapping}{/users/henshaw/res/mapping}
+
+\newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+\newcommand{\maxDoc}{\homeHenshaw/res/maxwell/doc}
+
+\newcommand{\OVERTUREOVERTURE}{/users/\-henshaw/\-Overture/\-Overture}
+\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
+
+\newcommand{\Overture}{{\bf Overture\ }}
+\newcommand{\OverBlown}{{\bf OverBlown\ }}
+\newcommand{\overBlown}{{\bf overBlown\ }}
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\begin{document}
+
+
+% -----definitions-----
+\input wdhDefinitions.tex
+
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\dx}{{\Delta x}}
+\newcommand{\eps}{\epsilon}
+
+\newcommand{\Ic}{{\mathcal I}}
+\newcommand{\Lc}{{\mathcal L}}
+\newcommand{\Oc}{{\mathcal O}}
+
+\vglue 10\baselineskip
+\begin{flushleft}
+{\Large
+Cgmx Reference Manual: An {Overture} Solver for {Maxwell}'s Equations on Composite Grids\\
+}
+\vspace{2\baselineskip}
+William D. Henshaw  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+% UCRL-MA-134288
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+Cgmx is a program that can be used to solve the time-dependent Maxwell's equations
+of electromagnetics on composite overlapping grids in two and three space
+dimensions. This document is a companion to the Cgmx User Guide. 
+This reference guide provides additional details about the equations and approximations used along
+with additional examples and numerical results.
+
+\end{flushleft}
+
+\clearpage
+\tableofcontents
+% \listoffigures
+
+
+\vfill\eject
+
+\section{Introduction}
+
+   Cgmx is a program that can be used to solve Maxwell's equations of electromagnetics 
+on composite overlapping grids~\cite{max2006b}. It is built upon
+the \Overture framework~\cite{Brown97},\cite{Henshaw96a},\cite{iscope97}.
+
+For an introduction to Cgmx and its usage see the Cgmx User Guide~\cite{CgmxUserGuide}
+
+More information about
+{\bf Overture} can be found on the \Overture home page, {\tt http://www.llnl.gov/\-casc/\-Overture}.
+
+% =======================================================================================================
+\clearpage
+\section{Method NFDTD} \label{sec:nfdtd}
+
+
+% =======================================================================================================
+\clearpage
+\section{Method Yee} \label{sec:nfdtd}
+
+
+
+% =======================================================================================================
+\clearpage
+\section{Accuracy and convergence examples} \label{sec:examples}
+
+In this section we provide some examples that demonstrate the accuracy of the methods.
+
+% -------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{A comparison of far field boundary conditions for scattering from a PEC cylinder}
+
+In this example we compare the accuracy of different far-field boundary conditions for
+the scattering of a plane wave from a PEC cylinder.
+
+
+\noindent (1) Generate the grid using the command file {\tt cicArg.cmd} in {\tt Overture/sampleGrids}:
+\begin{verbatim}
+  ogen -noplot cicArg -order=4 -interp=e -factor=4
+\end{verbatim}
+
+\noindent (2) Run cgmx with the Engquist-Majda BC {\tt abcEM2} and the PML BC {\tt abcPML}: 
+\begin{verbatim}
+  cgmx -noplot cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcEM2 ...
+       -tp=1. -tf=100. -show="cylEM2.show"
+  cgmx -noplot cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcPML ...
+       -pmlWidth=21 -pmlStrength=50. -tp=1. -tf=100. -show="cylPML.show"
+\end{verbatim}
+
+\noindent (3) To plot errors use plotStuff to display the show file. Plot the ``sequence'' with the errors
+and then save to a matlab file. 
+\begin{verbatim}
+plot sequence:errors
+  add Ey_error
+  add Hz_error
+  save results to a matlab file
+    scatCyl.m 
+\end{verbatim}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,1.25) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/scatCylEM2EyErrT2}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/scatCylEM2EyErrT4}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/scatCylEM2EyErrT6}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{{\tt abcEM2} : scattering of a plane wave by a PEC cylinder. Errors in $E_y$ at $t=2.$, $4.$ and $6.0$. } 
+\label{fig:cyl2dScatEM2}
+\end{figure}
+}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,1.25) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/scatCylPMLEyErrT2}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/scatCylPMLEyErrT4}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/scatCylPMLEyErrT6}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{{\tt abcPML} : scattering of a plane wave by a PEC cylinder. Errors in $E_y$ $t=2$, $4$ and $6$. } 
+\label{fig:cyl2dScatPML}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{8.cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.}{0.0}{.0}{.0}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.5,6.25);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/scatCylEM2Errors}{\figWidth}};
+  \draw ( 8.0, 0) node[anchor=south west] {\trimfig{figures/scatCylPMLErrors}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave by a PEC cylinder. Errors over time for {\tt abcEM2} (left) and 
+   {\tt abcPML} (right). }
+\label{fig:cyl2dScatFarFieldComparison}
+\end{figure}
+}
+
+Figures~\ref{fig:cyl2dScatEM2}-\ref{fig:cyl2dScatPML} shows the errors in $E_y$ for the EM2 and PML 
+farfield conditions. Figure~\ref{fig:cyl2dScatFarFieldComparison} shows the maximum errors over
+time for the two conditions.
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item The initial conditions are taken as zero with inhomogeneous boundary conditions on the cylinder boundary.
+  \item The errors are initially large as the exact solution develops and propagates outward
+   from the cylinder. These initial large errors
+   can be seen in the plots at $t=2$.
+  \item The EM2 errors show a fast growth for long times, except for the error in $H_z$. The $H_z$ field seems to
+          propagate more strongly in the $x$- and $y$- directions (rather than along diagonals) and thus will be
+          treated more accurately by the far field conditions.
+      The PML errors do not grow as fast but eventually seem to start to grow.
+\end{enumerate}
+
+
+
+
+
+
+
+% =======================================================================================================
+\clearpage
+\section{Boundary Conditions} \label{sec:bc}
+
+% --------------------------------------------------------------------------------
+\subsection{Perfect electrical conductor boundary condition}\label{sec:perfectElectricalConductor}
+
+The perfect electrical conductor boundary condition sets the tangential components of the
+electric field to zero
+\begin{align}
+   \tauv_m\cdot\Ev &= 0, \qquad \text{for $\xv \in \partial\Omega_{\rm pec}$}. 
+\end{align}
+Here $\tauv_m$, $m=1,2$, denote the tangent vectors to the boundary surface, $\partial\Omega_{\rm pec}$.
+
+% --------------------------------------------------------------------------------
+\subsection{Engquist-Majda absorbing boundary conditions}\label{sec:EngquistMajdaABC}
+
+
+The boundary condition {\tt abcEM2} uses the Engquist-Majda absorbing boundary 
+condition (defined here of a boundary $x={\rm constant}$), 
+\begin{align}
+   \partial_t\partial_x u = \alpha \partial_x^2 u + \beta (\partial_y^2+\partial_z^2) u 
+\end{align}
+With $\alpha=c$ and $\beta=\half c$, this gives a {\em second-order accurate} approximation to 
+a pseudo-differential operator that absorbs outgoing traveling waves. 
+Here $u$ is any field which satisfies the second-order wave equation.
+
+Notes on the Engquist-Majda absorbing boundary conditions can be found in Appendix~\ref{sec:abc}.
+
+
+% --------------------------------------------------------------------------------
+\subsection{Perfectly matched layer boundary condition}\label{sec:PML}
+
+The boundary condition {\tt abcPML} imposes a perfectly matched layer boundary condition.
+With this boundary condition, auxillary equations are solved over a layer (of some number of
+specified grid points) next to the boundary. The PML equations we solve
+are those suggested in Hagstrom~\cite{Hagstrom1999} and given by (defined here of a boundary $x={\rm constant}$), (*check me*)
+\begin{align}
+  u_{tt} &= c^2 \Big( \Delta u - \partial_x v - w \Big), \label{eq:PMLa} \\
+   v_t &= \sigma(x)( -v + \partial_x u ) , \\
+   w_t &= \sigma(x) ( -w  - \partial_x v + \partial_x^2 u ). \label{eq:PMLc}
+\end{align}
+Here $u$ is any field which satisfies the second-order wave equation and $v$ and $w$ are auxillary variables
+that only live in the layer domain. 
+The PML damping function $\sigma_1(\xi)$ is given by 
+\begin{align}
+  \sigma(\xi) = a \xi^p
+\end{align}
+where $a$ is the strength, $p$ is the power and where $\xi$ varies from $0$ to $1$ through the layer.
+
+
+
+A second-order accurate approximation to equations~\eqref{eq:PMLa}-\eqref{eq:PMLc} is
+\begin{align}
+  {u_\iv^{n+1} - 2 u_\iv^n + u_\iv^{n-1} \over \dt} &= c^2 \Big( \Delta_{2h} u_\iv - D_{0x} v_\iv  - w_\iv \Big), \label{eq:PMLorder2a}\\
+  {v_\iv^{n+1} - v_\iv \over \dt} &= \frac{3}{2} f_\iv^{n} - \half f_\iv^{n-1} , \\
+  f_\iv^n  &= \sigma ( -v_\iv^n + D_{0x} u_\iv^n ) , \\
+  {w_\iv^{n+1} - w_\iv \over \dt} &= \frac{3}{2} g_\iv^{n} - \half g_\iv^{n-1} , \\
+  g_\iv^n  &= \sigma ( -w_\iv^n  - D_{0x} v_\iv^n + D_{+x}D_{-x} u_\iv^n ).   \label{eq:PMLorder2e}
+\end{align}
+Here we have used a centered in time approximation for the first equation and Adams-Bashforth for the $v$ and $w$ equations.
+
+\noindent{\bf Aside:} Since $\sigma(\xv)$ is large we could use an integrating factor for the $v$ and $w$ equations
+and instead solve 
+\begin{align}
+  \partial_t( e^{\sigma t} v) &= \sigma  e^{\sigma t} \partial_x u  , \\
+   \partial_t( e^{\sigma t} v) &= \sigma e^{\sigma t} ( \partial_x v + \partial_x^2 u ). 
+\end{align}
+
+
+A fourth-order accurate approximation to~\eqref{eq:PMLa}-\eqref{eq:PMLc} can be determined using the relations
+\begin{align}
+  {u_\iv^{n+1} - 2 u_\iv^n + u_\iv^{n-1} \over \dt^2} &= \partial_t^2 u + \frac{\dt^2}{12} \partial_t^4 u + \Oc(\dt^4) \label{eq:PMLorder4a} \\
+   &= c^2 \Big( \Delta u - \partial_x v - w \Big)
+    + \frac{\dt^2}{12}\Big( \Delta \partial_t^2 u - \partial_t^2\partial_x v - \partial_t^2 w \Big), \\
+   &= c^2 \Big( \Delta u - \partial_x v - w \Big)
+    + \frac{\dt^2}{12}\Big( c^2 \big( \Delta^2 u  -\partial_x\Delta v - \Delta w\big)  - \partial_t^2\partial_x v - \partial_t^2 w \Big), \\
+  v_\iv^{n+1} &= v_\iv^n + \dt\partial_t v + \frac{\dt^2}{2} \partial_t^2 v + \frac{\dt^3}{3!} \partial_t^3 v  
+                     + \frac{\dt^4}{4!} \partial_t^4 v + \Oc(\dt^5) \\
+  w_\iv^{n+1} &= w_\iv^n + \dt\partial_t w + \frac{\dt^2}{2} \partial_t^2 w + \frac{\dt^3}{3!} \partial_t^3 w  
+                     + \frac{\dt^4}{4!} \partial_t^4 w + \Oc(\dt^5)  \label{eq:PMLorder4e}
+\end{align}
+By taking derivatives of the governing equations ~\eqref{eq:PMLa}-\eqref{eq:PMLc} we can approximate the various
+terms in the previous expansions. For example, 
+\begin{align}
+     \partial_t^2 v &= \sigma(x)( -\partial_t v + \partial_t\partial_x u ) , \\
+     \partial_t^3 v &= \sigma(x)( -\partial_t^2 v + \partial_t^2\partial_x u ) , \\
+                   &= \sigma(x)\Big( -\partial_t^2 v + c^2 \partial_x (  \Delta u - \partial_x v - w )  \Big) \\
+     \partial_t\partial_x v &= \sigma(x)( -\partial_x v + \partial_x^2 u ) + \partial_x\sigma ( - v + \partial_x u ) , \\
+     \partial_t^2\partial_x v &= \sigma(x)( -\partial_t\partial_x v + \partial_t\partial_x^2 u )
+                                  + \partial_x\sigma ( - \partial_tv + \partial_t\partial_x u ) ,
+\end{align}
+
+
+We obtain second-order approximations for $\partial_t u$, $\partial_t\partial_x u$ and $\partial_t\partial_x^2 u$ from
+the follwing approximation to $\partial_t u$, 
+\begin{align}
+ \partial_t u &= { u_\iv^n - u_\iv^{n-1} \over \dt} - \frac{\dt}{2} \partial_t^2 u + \Oc(\dt^2) \\
+\end{align}
+
+
+% -----------------------------------------------------------------
+\subsubsection{PML edge regions} \label{sec:PMLedge}
+In the edge region outside an $x$ and $y$ boundary, we solve 
+\begin{align}
+  u_{tt} &= c^2 \Big( \Delta u - \partial_x v^x - w^x - \partial_y v^y - w^y \Big), \\
+   v^x_t &= \sigma(x)( -v^x + \partial_x u ) , \\
+   w^x_t &= \sigma(x) ( -w^x  - \partial_x v^x + \partial_x^2 u ), \\
+   v^y_t &= \sigma(y)( -v^y + \partial_y u ) , \\
+   w^y_t &= \sigma(y) ( -w^y  - \partial_y v^y + \partial_y^2 u ). 
+\end{align}
+Thus we require 4 auxillary variables in the edge region. 
+A second-order accurate approximation can be otained in a similar manner to~\eqref{eq:PMLorder2a}-\eqref{eq:PMLorder2e}.
+
+A fourth-order accurate approximation follows the procedure used to develop~\eqref{eq:PMLorder4a}-\eqref{eq:PMLorder4e}. 
+\begin{align}
+ & {u_\iv^{n+1} - 2 u_\iv^n + u_\iv^{n-1} \over \dt^2} = \partial_t^2 u + \frac{\dt^2}{12} \partial_t^4 u + \Oc(\dt^4)  \\
+   &\quad = c^2 \Big( \Delta u - \partial_x v^x - w^x - \partial_y v^y - w^y \Big)
+    + \frac{\dt^2}{12}\Big( \Delta \partial_t^2 u 
+                    - \partial_t^2\partial_x v^x - \partial_t^2w^x - \partial_t^2\partial_y v^y - \partial_t^2w^y \Big), \\
+   &\quad= c^2 \Big( \Delta u - \partial_x v^x - w^x - \partial_y v^y - w^y\Big) \\
+   &\quad + \frac{\dt^2}{12}\Big( c^2 \big( \Delta^2 u - \partial_x\Delta  v^x - \Delta w^x - \partial_y\Delta  v^y - w^y\big)  
+                - \partial_t^2\partial_x v^x - \partial_t^2w^x - \partial_t^2\partial_y v^y - \partial_t^2w^y \Big), 
+\end{align}
+
+
+\noindent{\bf NOTE:} Currently the PML edge and corner regions are only approximated to 2nd order for the 4th-order version.
+
+% -----------------------------------------------------------------
+\subsubsection{PML corner regions} \label{sec:PMLcorner}
+
+In the corner region outside an $x$, $y$ and $z$ 
+boundary we use 6 auxillary variables and solve
+\begin{align}
+  u_{tt} &= c^2 \Big( \Delta u - \partial_x v^x - w^x - \partial_y v^y - w^y - \partial_z v^z - w^z \Big), \\
+   v^x_t &= \sigma(x)( -v^x + \partial_x u ) , \\
+   w^x_t &= \sigma(x) ( -w^x  - \partial_x v^x + \partial_x^2 u ), \\
+   v^y_t &= \sigma(y)( -v^y + \partial_y u ) , \\
+   w^y_t &= \sigma(y) ( -w^y  - \partial_y v^y + \partial_y^2 u ), \\
+   v^z_t &= \sigma(z)( -v^z + \partial_z u ) , \\
+   w^z_t &= \sigma(z) ( -w^z  - \partial_z v^z + \partial_z^2 u ). 
+\end{align}
+
+
+
+%-------------------------------------------------------------------------------------------------
+\clearpage 
+\input magneticFromElectricField
+
+
+% =======================================================================================================
+\clearpage
+\section{Maxwell's Equations} \label{sec:equations}
+
+
+The time dependent Maxwell's equations for linear, isotropic and non-dispersive materials are
+\begin{align}
+  \partial_t \Ev &=  {1\over \eps} \grad\times\Hv - {1\over \eps}\Jv , \label{eq:FOS-Et}  \\
+  \partial_t \Hv &= - {1\over \mu} \grad\times\Ev ,  \label{eq:FOS-Ht} \\
+  \grad\cdot(\eps\Ev) &=\rho , ~~ \grad\cdot(\mu\Hv) = 0 , \label{eq:FOS-div}
+\end{align}
+Here $\Ev=\Ev(\xv,t)$ is the electric field, 
+$\Hv=\Hv(\xv,t)$ is the magnetic field, $\rho=\rho(\xv,t)$ is the electric charge density,
+$\Jv=\Jv(\xv,t)$ is the electric current density,
+$\eps=\eps(\xv)$ is the electric permittivity, and $\mu=\mu(\xv)$ is the magnetic permeability.
+This first-order system for Maxwell's equations can also be written in a
+second-order form. By taking the time derivatives of~(\ref{eq:FOS-Ht}) and
+(\ref{eq:FOS-Et}) and using (\ref{eq:FOS-div}) it follows that 
+\begin{align}
+ \eps\mu~\partial_t^2 \Ev &= \Delta \Ev + \grad\Big( \grad \ln\eps~\cdot\Ev \Big)
+        +\grad\ln\mu\times\Big(\grad\times\Ev\Big) 
+            -\grad(\frac{1}{\epsilon}\rho)- \mu \partial_t\Jv , \label{eq:waveEGen} \\
+ \eps\mu~\partial_t^2 \Hv &= \Delta \Hv + \grad\Big( \grad \ln\mu~\cdot\Hv \Big)
+                               +\grad\ln\eps\times\Big(\grad\times\Hv\Big) 
+                     + \eps\grad\times(\frac{1}{\epsilon}\Jv ) \label{eq:waveHGen}.
+\end{align}
+It is evident that the equations for the electric and magnetic field are decoupled with each 
+satisfying a vector wave equation with lower order terms.
+In the case of constant $\mu$ and $\eps$ and no charges, $\rho=\Jv=0$, 
+the equations simplify to the classical second-order wave equations,
+\begin{align}
+  \partial_t^2 \Ev = c^2~ \Delta \Ev , \qquad
+  \partial_t^2 \Hv = c^2~ \Delta \Hv \label{eq:waveE}
+\end{align}
+where $c^2=1/(\eps\mu)$.
+There are some advantages to solving the second-order form of the equations
+rather than the first-order system. One advantage is that in some cases it is
+only necessary to solve for one of the variables, say $\Ev$. 
+If the other variable, $\Hv$ is required, it can be
+determined by
+integrating equation~\eqref{eq:FOS-Ht} as an ordinary differential equation
+with known $\Ev$. Alternatively, as a post-processing step $\Hv$ can be computed from an
+elliptic boundary value problem formed by taking the curl of equation~\eqref{eq:FOS-Et}.
+Another advantage of the second-order form, which simplifies the implementation on
+an overlapping grid, is that there is no need to use a staggered grid formulation. 
+Many schemes approximating the first order system~(\ref{eq:FOS-Ht}-\ref{eq:FOS-div}) rely on a
+staggered arrangement of the components of $\Ev$ and $\Hv$ such as the
+popular Yee scheme~\cite{Yee66} for Cartesian grids. 
+
+
+
+% ===============================================================================================
+\input acknowledgments
+
+
+% ====================================================================
+\appendix
+\input abc
+
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}
+
+% ***************************************************************************************************
+
+
+
+

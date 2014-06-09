@@ -1,0 +1,24 @@
+\begin{figure}[hbt]
+%
+\renewcommand{\figWidth}{11cm}
+\renewcommand{\clipfig}[2]{\clipFig{#1}{#2}{.12}{.88}{.3}{.7}}
+% \renewcommand{\figWidth}{6.5cm}
+% \renewcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](.0,1.2)(6.55,5.2)}\epsfig{#1}\endpsclip}
+ \begin{center}
+ \begin{pspicture}(0,1.)(16.,10.3)
+  \rput(3.50, 7.75){\clipfig{\vpDir/vpCyleta5.ps}{\figWidth}}
+  \rput(11.5, 7.75){\clipfig{\vpDir/vpCyleta10.ps}{\figWidth}}
+  \rput(3.50, 2.75){\clipfig{\vpDir/vpCyleta30.ps}{\figWidth}}
+  \rput(11.5, 2.75){\clipfig{\vpDir/vpCyleta50.ps}{\figWidth}}
+% 
+\rput[l]( 0.,9.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=5$}}%
+\rput[l]( 8.,9.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=10$}}%
+\rput[l]( 0.,4.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=30$}}%
+\rput[l]( 8.,4.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=50$}}%
+% 
+% \psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{Flow past a cylinder computed with the visco-plastic model. Contours of $\eta$ are shown, $\eta_p=.5$, $\sigma_y=1$, $m=5,10,30,50$.}
+\label{fig:vpCyl}
+\end{figure}

@@ -1,0 +1,111 @@
+% ========================================================================================================
+\subsection{Flow past a rounded blade}\label{sec:roundedBlade}
+
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{6.0cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+% 
+\newcommand{\figWidthb}{5.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.1}}
+\newcommand{\figWidthc}{6cm}
+\newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.025}{.025}{.095}{.095}}
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,15.5);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,10.5)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigc{\ovFigures/roundedBladeGrid}{\figWidthc}};
+\draw (8.0,10.5)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\ovFigures/roundedBladeGridTip}{\figWidthb}};
+%
+\figWithCaption{5.25}{\ovFigures/roundedBlade4Enstrophyt7p0}{\ovFigures/roundedBlade4Enstrophyt8p0}{$t=7$}{$t=8$}
+\figWithCaption{0}{\ovFigures/roundedBlade4Enstrophyt9p0}{\ovFigures/roundedBlade4Enstrophyt10p0}{$t=9$}{$t=10$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,16.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a {\em rounded blade} in channel. Top: Overlapping grid for the blade and channel. 
+   Contour plots of the enstrophy on grid $\Gc^{(4)}$ (7M pts), using scheme AFS42. }
+  \label{fig:roundedBladeFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+
+We simulate the flow past a stationary and moving {\em rounded blade}.
+
+The grid for this problem was generated from the ogen command file {\tt roundedBladeGrid.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/roundedBlade.cmd}.
+
+The geometry for the problem, as shown in Figure~\ref{fig:roundedBladeFlow},
+consists of flattened cylinder with rounded ends.
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=1/(10 j)$.
+The grid spacing is stretched in the normal direction to the box so that the boundary layer
+spacing is $\dsbl$. 
+
+
+The incoming flow is in the $y$-direction with $v=1$.
+
+
+Figure~\ref{fig:roundedBladeFlow} shows the solution for a non-rotating blade while
+Figure~\ref{fig:rotatingRoundedBladeFlow} shows results for a rotating blade (one full rotation takes $4$ seconds).
+Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=10^{??}$). 
+
+
+
+% scp henshaw@hera:/p/lscratchd/henshaw/runs/cgins/roundedBlade/roundedBladeMove4Enstrophyt{7p0,7p25,7p5,7p75,8p0,8p25}.ps .
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{6.0cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+% 
+\newcommand{\figWidthb}{5.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.1}}
+\newcommand{\figWidthc}{6cm}
+\newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.025}{.025}{.095}{.095}}
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,10.5);  % set the bounding box (so we have less surrounding white space)
+%
+\figWithCaption{5.25}{\cgDoc/ins/fig/roundedBladeMove4Enstrophyt7p5}{\cgDoc/ins/fig/roundedBladeMove4Enstrophyt7p75}{$t=7.5$}{$t=7.75$}
+\figWithCaption{0}{\cgDoc/ins/fig/roundedBladeMove4Enstrophyt8p0}{\cgDoc/ins/fig/roundedBladeMove4Enstrophyt8p25}{$t=8.0$}{$t=8.25$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,10.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a rotating {\em rounded blade} in channel.
+   Contour plots of the enstrophy on grid $\Gc^{(4)}$ (7M pts), using scheme AFS42. }
+  \label{fig:rotatingRoundedBladeFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%

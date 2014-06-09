@@ -1,0 +1,94 @@
+% ========================================================================================================
+\newcommand{\Gt}{\Gc_{t}}
+\subsection{Flow over terrain}\label{sec:terrain}
+
+
+To run this example see {\tt cg/ins/runs/terrain/Readme}.
+
+
+We consider the flow over a terrain. The terrain elevation data is 
+obtained from the USGS web site ...
+
+The matlab script {\tt convertGIS.m} is used to convert the GIS data
+into Cartesian coordinates (from lat-long). This matlab script
+can also be used to optionally smooth the terrain, choose a sub-region,
+or choose a two-dimensional cross section. 
+
+The ogen script {\tt terrainGrid.cmd} takes the output from {\tt convertGIS.m}
+and constructs an overlapping grid for the terrain.
+
+Figure~\ref{fig:terrainGridAndFlow} shows a 2D and 3D grid and some preliminary
+solutions.
+
+
+
+
+{%%%
+\newcommand{\figWidthc}{8.0cm}
+\newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.2}{.2}}
+\newcommand{\figWidtha}{7.5cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.25}{.1}}
+% 
+\newcommand{\figWidthb}{7.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+% 
+% \newcommand{\figWidthb}{5.5cm}
+% \newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.1}}
+% \newcommand{\figWidthc}{6cm}
+% \newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.025}{.025}{.095}{.095}}
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,12);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,6.6)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigc{\cgDoc/ins/fig/site300Grid2de2}{\figWidthc}};
+\draw (8.2,6.5)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\cgDoc/ins/fig/site3002d32SL}{\figWidtha}};
+%
+\draw (0.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/site300Gride2}{\figWidthb}};
+\draw (8.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/site300f2u}{\figWidthb}};
+%
+
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,12.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow over terrain.}
+  \label{fig:terrainGridAndFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%
+
+Figure~\ref{fig:terrainFlow} shows some results from the fourth-order accurate scheme AFS24 on grid $\Gt^{(4)}$ (10M pts).
+The size the of the domain is approximately $1.5 km \times 1.5 km$ in the horizontal. 
+The grid spacing near the surface is approximately $5m$ in the 
+horizontal and $.5m$ for the grid cell next to the surface.
+
+{%%%
+\newcommand{\figWidthb}{7.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+% 
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,6);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/site300g4o4velt100}{\figWidthb}};
+\draw (8.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/site300g4o4vort100}{\figWidthb}};
+%
+
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,6.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow over site300 terrain using grid $\Gt^{(4)}$ (10M pts) and scheme AFS24. Left: speed, right: enstrophy.
+     The surface grid is coarsened by a factor of 2 for plotting purposes.}
+  \label{fig:terrainFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%

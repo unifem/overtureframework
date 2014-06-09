@@ -1,0 +1,77 @@
+% ========================================================================================================
+\clearpage
+\subsection{Flow past two spheres}\label{sec:twoSpheresFlow}
+
+
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{6.0cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+% 
+\newcommand{\figWidthb}{5.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.1}}
+\newcommand{\figWidthc}{6cm}
+\newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.025}{.025}{.095}{.095}}
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,15.5);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,10.5)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigc{\cgDoc/ins/fig/twoSpheresInAChannelGrid}{\figWidthc}};
+\draw (8.0,10.5)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/twoSpheresInAChannelGridZoom}{\figWidthb}};
+%
+\figWithCaption{5.25}{\cgDoc/ins/fig/twoSpheresO4G8t7}{\cgDoc/ins/fig/twoSpheresO4G8t9}{$t=7$, $\Gc^{(8)}$}{$t=9$, $\Gc^{(8)}$}
+\figWithCaption{0}{\cgDoc/ins/fig/twoSpheresO4G8t11}{\cgDoc/ins/fig/twoSpheresO4G8t13}{$t=11$, $\Gc^{(8)}$}{$t=13$, $\Gc^{(8)}$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,16.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past two spheres in channel. Top: Overlapping grid, $\Gc^{(3)}$ (fourth-order), for the spheres and channel. 
+   Contour plots of the enstrophy (max contour $\xi=40$) on Grid $\Gc^{(8)}$ ($41$M pts) using the fourth-order accurate scheme AFS42.
+   }
+  \label{fig:twoSpheresFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+We simulate the flow past two spheres in a channel.
+The grid for this problem was generated from the ogen command file {\tt twoSpheresInAChannelGrid.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/sib.cmd}.
+
+The geometry for the problem, as shown in Figure~\ref{fig:twoSpheresFlow},
+consists of two spheres in a channel. The radius of each sphere is $0.5$. 
+They are each covered by three overlapping patches. 
+The spheres are embedded in a refinement patch that extends a short distance into the wake. A coarser background grid
+covers the majority of the channel.
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=1/(10 j)$.
+The grid spacing is stretched in the normal direction to the body so that the boundary layer
+spacing is $\dsbl$. 
+% Grid $\Gc^{(10)}$  has 90M points.
+
+% movie twoSpheresO4G8.mpg G8=41M pts : -N4 -n64  cpu=24hours --> t=7.55
+% Start again -- output -tp=.05 ... reached t=7.55
+% /p/lscratchd/henshaw/runs/cgins/twoSpheres8/twoSpheresO4G8.out
+% submit.p -jobName="twoSpheres8" -bank=windpowr -out="twoSpheresO4G8.out" -walltime=24:00 -submit=0 -cmd='srun -N4 -n64 -ppbatch $cginsp -noplot sib -g=twoSpheresInAChannele8.order4.ml4.hdf -nu=2.e-5 -tf=20. -tp=.05 -ts=afs -psolver=mg -ad2=0 -ad4=1 -cfl=3.5 -slowStartCFL=3.5 -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -numberOfParallelGhost=4 -debug=1 -project=1 -show=twoSpheresO4G8.show -go=go'
+
+
+Figure~\ref{fig:twoSpheresFlow} shows the solution on grid $\Gc^{(8)}$.
+The incoming flow is in the $x$-direction with $u=1$.
+Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=2\times 10^{-5}$). 
+
+
+

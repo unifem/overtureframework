@@ -1,0 +1,40 @@
+\section{Results for the Visco-Plastic Model}
+
+\newcommand{\cDt}{{\rm cDt}}
+
+\input \vpDir/vpTZresults
+
+% ------------------------------------------------------------------------
+\clearpage
+\subsection{Visco-plastic flow past a cylinder}\label{sec:vpCyl}
+
+The visco-pastic flow past a cylinder in a channel is computed. 
+
+Figure~\ref{fig:vpCyl} show results for $\eta_p=.5$, $\sigma_y=1$, $m=5,10,30,50$.
+
+
+{\bf Notes:} 
+\begin{itemize}
+\item The solution was computed with {\tt vp.cmd} starting with $m=5$. After taking 
+some time steps the solution converges. The value of $m$ was then incremented by $5$ (from the "pde parameters" menu,
+variable {\tt viscoPlasticExponent}) and a few more steps were taken until convergence. This process was repeated.
+
+\item It seems that the grid needs to be sufficiently fine in order to get convergence for large values of $m$. In particular there
+      is a boundary layer near the cylinder that needs to be resolved. 
+
+\item It would be better to start with initial conditions that are read from a previously computed solution, using
+      the {\em read from a show file} option.
+
+\end{itemize}
+
+\input \vpDir/vpCylFig.tex
+
+
+
+% ------------------------------------------------------------------------------------------
+
+\input \vpDir/vpMovingCylinder
+
+% -----------------------------------------------------------------------------------------
+
+\input \vpDir/vpSphereInATube

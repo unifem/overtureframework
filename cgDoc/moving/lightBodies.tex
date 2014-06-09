@@ -1,0 +1,145 @@
+\section{Motion of ``Light'' Rigid Bodies}\label{sec:lightBodies}
+
+The coupling of fluid flow with ``light'' moving rigid bodies can cause 
+the standard time stepping algorithm to go unstable. In this section
+we discuss this issue.
+
+We first derive the expression that relates the acceleration of a point on the boundary
+of a rigid body to the force $\Fv$ and torque $\Gv$ on the body. 
+
+
+The motion of a point $\rv$ on the boundary of a rigid body is given 
+given by the sum of the position of the centre of mass, $\xv(t)$ plus a rotation,
+\[
+    \rv(t) = \xv(t) + R(t) (\rv(0)-\xv(0)) .
+\]
+The acceleration of this point is
+\begin{align*}
+   \av= \Fv/M +\sum_i (\dot{\omegav}\times\ev_i+(\omegav\cdot\ev_i)\omegav+|\omegav|^2\ev_i)(r_i(0)-x_i(0)) 
+\end{align*}
+where $M$ is the mass of the body and $\Fv$ is the force on the center of mass.
+
+
+Now if $E=[\ev_1~ \ev_2~ \ev_3]$ is the matrix of principal axes of inertia, $\ev_i$ then the angular momentum is
+\begin{align*}
+   \hv &= E(t) M_I \omegav, \\
+    M_I &= diag( I_1, I_2, I_3 ), \qquad \text{$I_i$ are the moments of inertia}, \\
+    R(t) &= E(t) E^{-1}(0)\\
+   \dot{\hv} &= \dot{E} M_I \omegav + E M_I \dot{\omegav} = \Gv  \\
+    \dot{E} &= \omegav^*\Ev , \quad (\text{$\omega^*$ is the matrix such that $\dot{\ev_i} = \omegav\times\ev_i, i=1,2,3$}), 
+\end{align*}
+and whence
+\begin{align*}
+   \dot{\omegav} &= M_I^{-1} E^{-1}\Big( \Gv - \omegav^*\Ev M_I \omegav\Big)
+\end{align*}
+Thus we arrive at the expression relating the acceleration of a point on the boundary to the force and 
+torque on the body
+\begin{align}
+   \av & = \Fv/M +\sum_i (\dot{\omegav}\times\ev_i+(\omegav\cdot\ev_i)\omegav+|\omegav|^2\ev_i)(r_i(0)-x_i(0)) , \label{eq:solidAccel}\\
+   \dot{\omegav} &= M_I^{-1} E^{-1}\Big( \Gv - \omegav^*\Ev M_I \omegav\Big).
+\end{align}
+
+Consider now a rigid body $B$ immersed in a fluid with density $\rho_f$ and velocity $\uv$ and pressure $p$,
+The momentum equation for the fluid in a reference frame moving with the body is 
+\begin{align*}
+  \rho_f \big( \dot{\uv} + (\uv-\dot{\gv})\cdot\grad\uv \big)+ \grad p &= \grad\cdot\tauv ,
+\end{align*}
+where $\gv$ is the ``grid'' velocity.
+If the fluid-solid boundary is taken as a  no-slip wall then $\uv=\dot{\gv}$ for $\xv \in \partial B$ and
+\begin{align}
+  \rho_f \dot{\uv} + \grad p = \grad\cdot\tauv ,\quad \xv\in\partial B .
+\end{align}
+In particular the following condition on the normal
+derivative of the pressure is satisfied
+\begin{align}
+  {\partial p\over\partial n} &= - \rho_f \big( \nv\cdot\dot{\uv} \big) + \nv\cdot\grad\cdot\tauv ,\quad \xv\in\partial B
+     \label{eq:pn}
+\end{align}
+On the boundary $\partial B$ the fluid acceleration $\dot{\uv}$ is equal to the solid acceleration $\av$ from~\eqref{eq:solidAccel}
+and thus 
+\begin{align}
+  {\partial p\over\partial n} &= - \rho_f \big( \nv\cdot\Big( \Fv/M +\sum_i  (M_I^{-1} E^{-1}\Gv)\times\ev_i (r_i(0)-x_i(0))
+             + ... \Big)    + \nv\cdot\grad\cdot\tauv ,\quad \xv\in\partial B
+     \label{eq:pn2}
+\end{align}
+Now
+\begin{align}
+  \Fv &= \int_{\partial B} p \nv ~ds + \text{viscous terms} \label{eq:F}\\
+  \Gv &= \int_{\partial B} (\rv-\xv)\times(p \nv) ~ds + \text{viscous terms} \label{eq:G}
+\end{align}
+Combining~\eqref{eq:pn2} and the expression for $\Fv$ from~\eqref{eq:F} and $\Gv$ from~\eqref{eq:G} we see that
+\begin{align}
+  {\partial p\over\partial n} &= - {\rho_f\over M} \nv(\xv) \cdot\Big( \int_{\partial B} p(s) \nv(s) ~ds \Big) \\
+          &-  \rho_f \nv\cdot\Big( \sum_i  (M_I^{-1} E^{-1}\int_{\partial B} (\rv-\xv)\times(p \nv) ~ds )\times\ev_i (r_i(0)-x_i(0))  + ...
+   \label{eq:pCoupled}
+\end{align}
+This expression gives us a clearer indication of interface condition on the pressure that couples the fluid and solid.
+
+In the FSI time stepping algorithm, the pressure in the fluid is computed using the boundary condition~\eqref{eq:pn}
+using a approximate (predicted) value for $\dot{\uv}=\av$. Corrector steps are then applied to the fluid and
+solid. This sequence of predictor and corrector steps would correspond roughly to evaluating equation~\eqref{eq:pCoupled}
+as 
+\begin{align}
+  {\partial p^{k}\over\partial n} &= - {\rho_f\over M} \nv(\xv) \cdot\Big( \int_{\partial B} p^{k-1}(s) \nv(s) ~ds \Big) + ...
+\end{align}
+In the case of an incompressible fluid the above interface BC would be used when solving 
+the Possion equation for the pressure, $\Delta p^{k}=...$.  We can see why
+``light'' bodies may pose difficulties as the coefficient ${\rho_f\over M}$ on
+the right-hand-side may be large and this iteration may not converge.
+
+
+
+\subsection{Model problem}
+
+Consider the one-dimensional FSI model problem
+\begin{align}
+   p_{xx} & = f, \qquad a < x < 0 , \quad \text{(fluid)}, \\
+   M_s \ddot{x} &= p(0,t)  A , \qquad \text{(solid)}, \\
+   p_x(0,t) &= -\rho_f \ddot{x} = -\rho_f p(0,t) A/M_s,  \qquad \text{(interface)},\\
+   p(a,t) &=0 
+\end{align}
+where the solid has height $A$. 
+The pressure in the fluid thus satisfies
+\begin{align}
+   p_{xx} & = f, \qquad a < x < 0 , \quad \text{(fluid)} ,\\
+   p_x(0,t) &= -\rho_f p(0,t) A/M_s , \quad p(a,t) =0 .
+\end{align}
+We solve this by iteration (to mimic the normal time stepping method for the general FSI problem) 
+\begin{align}
+   p^{k+1}_{xx} & = f, \qquad a < x < 0 , \quad \text{(fluid)}, \\
+   p^{k+1}_x(0,t) &= -\rho_f p^k(0,t) A/M_s , \quad p^{k+1}(a,t) =0 .
+\end{align}
+The difference $q^{k} = p^{k}-p^{k-1}$  satisfies $q^{k}_{xx}=0$ and thus
+\begin{align}
+   q^{k+1} = C^{k+1}(x-a)
+\end{align}
+Whence from the interface condition
+\begin{align}
+    C^{k+1} & = -\rho_f (-a)  A/M_s C^k , \\
+            &= \kappa C^k, \\
+   \kappa &\equiv \rho_f a A/M_s ,\\
+          &= - M_f/M_s ,
+\end{align}
+where $M_f = \rho_f (-a) A$ is the mass of the fluid (since $(-a) A = V_f$ is the volume of the fluid region). 
+The iteration will converge provided
+\begin{align}
+   \vert \kappa \vert = \vert M_f/M_s \vert <1 .
+\end{align}
+Note that $\kappa<0$ implying that $q^k$ will change signs at each iteration. This is consistent with 
+what is observed in practice.
+
+Consider the under-relaxed iteration
+\begin{align}
+   p^{k+1}_{xx} & = f, \qquad a < x < 0 ,  \\
+   p^{k+1}_x(0,t) &= (1-\alpha) p^k_x(0,t)  + \alpha  (-\rho_f  A/M_s  p^k(0,t) ) 
+\end{align}
+Then
+\begin{align}
+   C^{k+1} & = (1-\alpha) C^{k} - M_f/M_s  \alpha C^k, \\
+   C^{k+1} & = \kappa C^k , \\
+      \kappa &= 1- (1+M_f/M_s)\alpha 
+\end{align}
+The under-relaxed iteration converges provided
+\begin{align}
+   \alpha < {2\over 1+ M_f/M_s} 
+\end{align}

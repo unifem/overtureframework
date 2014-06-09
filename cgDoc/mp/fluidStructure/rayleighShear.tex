@@ -1,0 +1,47 @@
+\section{Elastic Rayleigh Wave in a Compressible Shear Flow}\label{sec:RayleighShear}
+
+The problem we consider is illustrated in Fig.~\ref{fig:RayleighShearCartoon}. 
+A solid domain $\Omega_s$ occupies the lower half plane $y<0$ and a fluid domain $\Omega_f$ occupies
+the upper half plane $y>0$. A Rayleigh surface wave propagates in the elastic solid. The profile of
+the Rayleigh wave is approximately the shape of a Gaussian.  The fluid domain contains a compressible Euler gas.
+
+\input RayleighShearCartoon.tex
+
+We investigate the
+behaviour of the Rayleigh as a function of the velocity in the gas. The shear flow at the fluid solid 
+interface will be modified by the interface shape and a nonuniform pressure distribution 
+will result. This pressure distribution will in turn apply a force to the solid interface and
+affect the motion of the elastic waves.
+
+Figure~\ref{fig:rayleighShear} shows initial results from three computations. The elastic solid
+has parameters $\rho^s=1$, $\mu=1$ and $\lambda=1$. 
+A Rayleigh wave in the shape
+of a Gaussian is located initially at $x=-.5$. The speed of the Rayeligh wave with a traction free
+surface would be $V_r \approx .919$ and its amplitude would be $u_2^s=0.1$ at the peak. 
+The fluid with $\gamma=1.4$ is chosen with an initial density of $\rho^f=.1$, 
+pressure $p^f=.1$ and velocity $v^f_1=V_f$. Results are shown for $V_f=-2$, $V_f=0$ and $V_f=2$. 
+
+The results at $t\approx 1.$ show that for $V_f=-2$ (head-wind) the elastic wave has a reduced amplitude, $u^s_2=.056$ and is maybe wider (?).
+For $V_f=2$ (tail-wind) the elastic wave has amplified, $u_s^2=.108$ and it's shape is clearly asymmetric.
+
+Questions: What happens for longer times? What are the steady state profiles and Rayleigh speeds?
+
+{
+\newcommand{\figWidth}{6.cm}
+\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{.0}{1.}}
+\begin{figure}[hbt]
+ \begin{center}
+ \begin{pspicture}(0,.0)(16.5,5.2)
+  \rput(2. , 2.3){\clipfig{rayleighUfm2.ps}{\figWidth}}
+  \rput(8.0 , 2.3){\clipfig{rayleighUf0.ps}{\figWidth}}
+  \rput(14., 2.3){\clipfig{rayleighUfp2.ps}{\figWidth}}
+%
+% \psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{Rayleigh wave in a compressible shear flow. The Rayleigh wave moves from left to right with initial
+position at $x=-.5$. Left: $V_f=-2$. Middle: $V_f=0$. Right: $V_f=2$. The vertical displacement $u_2^s$ is shown
+in the solid region and the pressure in the fluid region. }
+\label{fig:rayleighShear}
+\end{figure}
+}

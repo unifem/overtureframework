@@ -1,0 +1,143 @@
+\newcommand{\Gd}{\Gc_{CS}} 
+\subsection{Diffraction of a p-wave ``shock'' by a circular cavity}\label{sec:cylDiffract}
+
+% --------------------------------------------------------------------------
+% ----------------------- Diffraction --------------------------------------
+% --------------------------------------------------------------------------
+
+To illustrate the use of adaptive mesh refinement we consider the diffraction
+of a p-wave ``shock'' by a circular cavity.  The domain for this problem is taken to be the
+two-dimensional region interior to the square $[-3,3]\sp2$ and exterior to the circle of
+radius $R=0.5$.  The initial conditions are taken from 
+the exact traveling-wave solution for a planar p-wave with a piecewise constant velocity profile.
+The displacement and velocity for this solution are given by
+\[
+ \uv (\xi)  = \begin{cases}  -\xi(v_0/c_p)\kappav  & \mbox{for $\xi<0$}, \\
+                                0  & \mbox{for $\xi>0$,}  \end{cases} \qquad
+ \vv (\xi)  = \begin{cases}  v_0\,\kappav  & \mbox{for $\xi<0$}, \\
+                                0  & \mbox{for $\xi>0$},\end{cases}
+\]
+where
+\[
+\xi = \kappav\cdot(\xv-\xv_0) - c_p t ,\qquad c_p = \sqrt{{(\lambda+2\mu)}/{\rho}}.
+\]
+Here, $\kappav$ defines the direction of propagation of the planar wave and
+$\xv_0$ defines its position at $t=0$. For the computations presented, we take
+$\kappav=(1,\,0)$, $v_0=c_p$ and $\xv_0=(-1.25,\,0)$, and we assume that
+$\rho=\lambda=\mu=1$.  The boundary conditions on the
+bottom and top sides of the square are slip-wall conditions, and exact data from the planar p-wave
+solution is used as Dirichlet conditions on the left and right sides of the square.  A homogeneous
+traction condition is applied on the boundary of the circular cavity.
+
+Calculations are performed using the SOS and FOS schemes with one level of AMR grids
+using a refinement factor of $n_r=2$ or $4$.  The base-level composite grid for the two-dimensional domain
+is composed of a rectangular Cartesian grid defined previously in~(\ref{eq:rectGrid}) and an annular
+grid defined in~(\ref{eq:annulusGrid}).  This circle-in-a-square grid is defined by
+\[
+  \Gd^{(\gm)} = \Rc([-3,3]^2 ,N_{x}(\gm),N_{x}(\gm)) ~\union~ \AnnulusGrid([R,R+7\dsm], N_{\theta}(\gm),N_{r}),
+\]
+where $\dsm=1/(10 \gm)$ gives the approximate grid spacing, and the number of grid cells in the
+various coordinate directions are given by
+\[
+N_{x}(j)=\lfloor 6/\dsm+1.5\rfloor, \quad
+N_{\theta}(\gm)=\lfloor 2\pi(R+3.5\dsm)/\dsm+1.5\rfloor,\quad 
+N_{r}=7.
+\]
+We note that the composite grid uses a boundary-fitted annular grid with a fixed number of grid
+cells in the radial direction which is similar to the \lq\lq narrow'' grid, $\Gsic^{(\gm)}$, used
+in Section~\ref{sec:stabilityResults}.
+%This narrow grid construction is more difficult to handle in terms of stability, but is more efficient in terms of number of Cartesian grid cells.
+
+Figure~\ref{fig:cylDiffractEvolution} shows the elastic response of the planar p-wave as it
+is diffracted by the circular cavity.  The numerical solution is computed using the FOS scheme
+with the base-level composite grid given by $\Gd^{(8)}$ and the addition of one refinement level with $n_r=4$.  
+The plots show shaded contours of the magnitude of velocity
+at times $t=0$, $1.0$ and $1.6$.  When the p-wave meets the cavity, the boundary of the cavity is
+deformed and a reflected wave is created.  The reflected wave consists of both pressure and shear waves
+which travel at different velocities as seen clearly in the plot at $t=1.0$.  The cavity continues
+to deform as the diffracted waves travels around it, and ultimately the waves collide near the
+back of the cavity as seen in the plot at $t=1.6$.  The behavior of the refinement grids are shown
+in the figure, and these grids are well-positioned during the calculation to increase the grid resolution
+of the various waves as they move in time throughout the domain.
+
+\input cylDiffractFig
+
+%\medskip
+%\textcolor{red}{(I wonder if the shaded contours are saturated with pink at $t=0.8$?  Also, it might
+%be better to show the middle solution at a slightly later time so that the reflected waves are seen
+%more clearly.)}
+%\medskip
+
+% Figure~\ref{fig:cylDiffractAMR} compares the results at time $t=1.6$ for four
+% cases: coarse grid using the FOS scheme and no AMR (top left), fine grid using
+% the FOS scheme and no AMR (top right), SOS with AMR (bottom left) and FOS with
+% AMR (bottom right).  The results from the computations all generally agree with
+% the finer grids providing a a sharper representation of the discontinuous parts
+% of the solution.  The FOS results for the magnitude of the velocity are not as
+% noisy as the SOS results. Note, however, that the velocity is directly computed
+% by FOS while for the SOS scheme it is computed in a post-processing step by a
+% finite difference approximation in time, $\vv_\iv^n =
+% (\uv_\iv^{n}-\uv_\iv^{n-1})/\dt$. \textcolor{red}{(Do we now say that this
+% latter step may add a bit to the noise for SOS?)}
+% % This computed velocity for SOS-C 
+
+Figure~\ref{fig:cylDiffractAMR} compares the results for the SOS and FOS schemes for an AMR computation.
+For this comparison, we use the base grid $\Gc^{(8)}$ together with one
+level of $n_r=4$ refinement.  The magnitudes of the displacement
+and velocity at time $t=1.6$ are shown. 
+From the figures it can be seen that the results from both schemes are generally
+in good agreement. The FOS results are less noisy than the SOS results, particularly
+in $\vert \vv \vert$, 
+which might be expected from the FOS approach as it is an upwinding scheme. 
+Note, however, that the velocity is directly computed
+by FOS while for the SOS scheme it is computed in a post-processing step
+by a finite difference approximation in time, 
+$\vv_\iv^n = (\uv_\iv^{n}-\uv_\iv^{n-1})/\dt$, and this may contribute to some of the noise.  
+
+
+\input cylDiffractCompareFig
+
+The accuracy of the AMR computations for this example can be made more quantitative.
+Given a sequence of three grids of increasing resolution, a posteriori estimates
+of the errors and convergence rates can be computed using the procedure
+described in~\cite{pog2008a}. These self-convergence estimates assume that the
+numerical results are converging to some limiting solution.
+A posteriori estimates computed in this way are given in
+Table~\ref{tab:cylDiffractConvergence} for three grids of increasing resolution.
+The coarse grid computation used the base grid $\Gd^{(2)}$ together with one refinement level of factor 2.
+The medium resolution computation used the base grid $\Gd^{(2)}$ together with one refinement level of factor 4,
+while the finest resolution used the grid $\Gd^{(64)}$ with no AMR. 
+The parameters in the AMR error
+estimate~\eqref{eq:componentError} were chosen as $c_1=0$, $c_2=1$ and
+$s_k=1$.  The error tolerances for the SOS scheme were taken as $4\times
+10^{-3}$ and $1\times 10^{-3}$ for the coarse and medium resolutions
+respectively. The corresponding error tolerances for the FOS scheme were
+$10^{-2}$ and $2.5\times 10^{-3}$ respectively.
+
+The table provides estimates of the $L_1$-norm errors. Since the exact solution for the displacement 
+has discontinuous first derivatives, one cannot expect second-order accurate convergence. 
+We expect that the $L_1$-norm error in the displacement would converge at rate of $1$ in the limit of small~$h$, while the
+errors in velocity and stress would converge at a rate of $2/3$, see~\cite{BanksAslamRider2008}. 
+The results in the table indicate that the computed convergence rates are close to the expected rates.
+%
+{
+\renewcommand{\arraystretch}{\tablearraystretch}% increase the height of rows
+\newcommand{\rateLabelb}{\multicolumn{4}{|c|}{rate}}
+\begin{table}[hbt]\tableFontSize
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
+\multicolumn{4}{|c|}{ } & \multicolumn{2}{|c|}{SOS} & \multicolumn{6}{|c|}{FOS} \\ \hline 
+Grid &~levels~&~$n_r$~ &~~$h_j$~~& $\eem_u$ & $r$ & $\eem_u$ & $r$ & $\eem_v$ & $r$  & $\eem_\sigma$  & $r$ \\ \hline 
+~$\Gd^{(2)}$~ & 2  & 2  &~1/40  ~& ~$8.9\times10^{ -4}$~&         & ~$2.1\times10^{ -3}$~ &        & ~$1.0\times10^{ -2}$~ &        & ~$1.2\times10^{ -2}$~ &        \\ \hline 
+~$\Gd^{(2)}$~ & 2  & 4  &~1/80  ~& ~$4.7\times10^{ -4}$~&~$ 1.9$~ & ~$1.0\times10^{ -3}$~ &~$ 2.0$~& ~$6.4\times10^{ -3}$~ &~$ 1.6$~& ~$7.2\times10^{ -3}$~ &~$ 1.6$~\\ \hline 
+~$\Gd^{(64)}$~& -- & -- &~1/640 ~& ~$7.1\times10^{ -5}$~&~$ 6.7$~ & ~$1.2\times10^{ -4}$~ &~$ 8.5$~& ~$1.5\times10^{ -3}$~ &~$ 4.3$~& ~$1.7\times10^{ -3}$~ &~$ 4.3$~ \\ \hline 
+\rateLabelb                      &  $ 0.91$             &        &  $ 1.03$   &        &  $ 0.70$   &        &  $ 0.71$   &    \\ \hline                                        
+\end{tabular}
+\caption{A posteriori estimated errors ($L_1$-norm) and convergence rates at $t=1.0$ for diffraction of a p-wave ``shock''
+         by a circular cavity using AMR. Note that the finest grid is a factor $8$ times finer than the previous resolution. }
+\label{tab:cylDiffractConvergence}
+\end{center}
+\end{table}
+}
+
+

@@ -1,0 +1,306 @@
+
+
+
+
+
+===== 2011/12/29
+
+-- fixed Newton solve in dirk, changed torque to use exact Omega
+
+
+***** 4-stage 4th-order:
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -dirkOrder=4 -cfl=1.
+RigidBody: test=TZ=trigonometric, solver=DIRK4, tz=trigonometric, tf=1.00e+00, cfl= 1.00, steps=37, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (4.72e-06,2.02e-05,4.74e-05) [TZ=trigonometric].
+Max err in |h-A*omega| = 0.00e+00
+Max err in |R-Quaternion| = 2.38e-04
+
+RigidBody: test=TZ=trigonometric, solver=DIRK4, tz=trigonometric, tf=1.00e+00, cfl= 0.50, steps=73, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (3.29e-07,1.43e-06,3.17e-06) [TZ=trigonometric].
+Max err in |h-A*omega| = 0.00e+00
+Max err in |R-Quaternion| = 5.66e-05
+
+
+***** 2-stage 3rd-order:
+
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -dirkOrder=3 -cfl=1.
+
+RigidBody: test=TZ=trigonometric, solver=DIRK3, tz=trigonometric, tf=1.00e+00, cfl= 1.00, steps=48, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (2.43e-05,1.01e-04,7.99e-05) [TZ=trigonometric].
+Max err in |h-A*omega| = 0.00e+00
+Max err in |R-Quaternion| = 1.28e-04
+
+RigidBody: test=TZ=trigonometric, solver=DIRK3, tz=trigonometric, tf=1.00e+00, cfl= 0.50, steps=94, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (3.28e-06,1.36e-05,1.09e-05) [TZ=trigonometric].
+Max err in |h-A*omega| = 0.00e+00
+Max err in |R-Quaternion| = 3.29e-05
+
+
+****** 2nd order (midpoint)
+
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -dirkOrder=2 -cfl=1. 
+RigidBody: test=TZ=trigonometric, solver=DIRK2, tz=trigonometric, tf=1.00e+00, cfl= 1.00, steps=634, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (3.53e-06,1.11e-05,1.39e-05) [TZ=trigonometric].
+Max err in |h-A*omega| = 3.95e-14
+Max err in |R-Quaternion| = 3.16e-15
+
+RigidBody: test=TZ=trigonometric, solver=DIRK2, tz=trigonometric, tf=1.00e+00, cfl= 0.50, steps=1266, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (8.85e-07,2.77e-06,3.49e-06) [TZ=trigonometric].
+Max err in |h-A*omega| = 1.24e-14
+Max err in |R-Quaternion| = 2.05e-15
+
+--- 2011/12/28
+
+**** DIRK method
+
+Free rotation
+runRigidBody -itest=1 -tf=2. -solver=4 -plotOption=0 -freeRotationAxis=1 -dirkOrder=4 -cfl=1.
+RigidBody: test=free rotation(1), solver=DIRK4, tz=off, tf=2.00e+00, cfl= 1.00, steps=44, mass=1.000000, addedMass=0, rtol=1.00e-05, normalize=1
+Max err in |h-A*omega| = 1.62e-02
+Max err in |R-Quaternion| = 8.62e-03
+Free rotation(1): Max. error in omegaHat = 4.22e-02
+
+CFL+.5 
+RigidBody: test=free rotation(1), solver=DIRK4, tz=off, tf=2.00e+00, cfl= 0.50, steps=86, mass=1.000000, addedMass=0, rtol=1.00e-05, normalize=1
+Max err in |h-A*omega| = 6.25e-04
+Max err in |R-Quaternion| = 2.30e-03
+Free rotation(1): Max. error in omegaHat = 2.76e-03
+
+***** 4-stage 4th-order:
+
+mass=0. OK:
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -dirkOrder=4 -mass=.0 -cfl=1.
+
+
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -dirkOrder=4 -cfl=1.
+
+RigidBody: test=TZ=trigonometric, solver=DIRK4, tz=trigonometric, tf=1.00e+00, cfl= 1.00, steps=19, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (5.99e-05,2.73e-04,1.35e-03) [TZ=trigonometric].
+Max err in |h-A*omega| = 1.44e-03
+Max err in |R-Quaternion| = 1.06e-03
+
+RigidBody: test=TZ=trigonometric, solver=DIRK4, tz=trigonometric, tf=1.00e+00, cfl= 0.50, steps=37, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (4.67e-06,2.10e-05,5.72e-05) [TZ=trigonometric].
+Max err in |h-A*omega| = 5.05e-05
+Max err in |R-Quaternion| = 2.38e-04
+
+RigidBody: test=TZ=trigonometric, solver=DIRK4, tz=trigonometric, tf=1.00e+00, cfl= 0.25, steps=73, mass=1.000000, addedMass=1, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (3.30e-07,1.47e-06,3.50e-06) [TZ=trigonometric].
+Max err in |h-A*omega| = 1.56e-06
+Max err in |R-Quaternion| = 5.66e-05
+
+
+***** 2-stage 3rd-order:
+
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -dirkOrder=3 -cfl=1.
+Max. err in (x,v,h) = (2.29e-05,9.43e-05,1.45e-04) [TZ=trigonometric].
+Max err in |h-A*omega| = 1.09e-04
+Max err in |R-Quaternion| = 1.22e-04
+
+CFL=.5 
+Max. err in (x,v,h) = (3.18e-06,1.31e-05,1.95e-05) [TZ=trigonometric].
+Max err in |h-A*omega| = 1.44e-05
+Max err in |R-Quaternion| = 3.22e-05
+
+
+
+****** 2nd order (midpoint)
+
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -dirkOrder=2 -cfl=1. 
+Max. err in (x,v,h) = (3.35e-04,1.05e-03,1.35e-03) [TZ=trigonometric].
+Max err in |h-A*omega| = 2.22e-15
+Max err in |R-Quaternion| = 5.00e-16
+
+
+CFL=.5 
+Max. err in (x,v,h) = (8.63e-05,2.71e-04,3.47e-04) [TZ=trigonometric].
+Max err in |h-A*omega| = 5.77e-15
+Max err in |R-Quaternion| = 5.39e-03
+
+CFL=.25
+Max. err in (x,v,h) = (2.19e-05,6.87e-05,8.82e-05) [TZ=trigonometric].
+Max err in |h-A*omega| = 5.33e-15
+Max err in |R-Quaternion| = 2.71e-03
+
+
+******First-order:
+runRigidBody -itest=2 -twilightZone=2 -tf=1. -solver=4 -addedMass=1 -plotOption=3 -cfl=1.
+Max. err in (x,v,h) = (3.63e-02,5.88e-02,1.40e-01) [TZ=trigonometric].
+Max err in |h-A*omega| = 2.66e-02
+Max err in |R-Quaternion| = 3.20e-03
+
+CFL=.5 
+Max. err in (x,v,h) = (1.85e-02,3.00e-02,7.14e-02) [TZ=trigonometric].
+Max err in |h-A*omega| = 1.40e-02
+Max err in |R-Quaternion| = 1.67e-03
+
+CFL=.25
+Max. err in (x,v,h) = (9.31e-03,1.52e-02,3.61e-02) [TZ=trigonometric].
+Max err in |h-A*omega| = 7.15e-03
+Max err in |R-Quaternion| = 8.56e-04
+
+
+--- 2011/12/27
+
+*** Added mass implicit scheme:
+
+runRigidBody -itest=2 -twilightZone=2 -tf=2. -solver=3 -addedMass=1 -plotOption=3
+
+
+****** AMI LF-CN  Added mass
+
+****** AMI LF-CN  WITH Added mass 
+>> runRigidBody -itest=2 -twilightZone=2 -tf=2. -solver=3 -addedMass=1 -plotOption=3 -tf=.5 -cfl=1.
+Max. err in (x,v,h) = (8.68e-04,3.14e-03,3.28e-03) [TZ=trigonometric].
+Max err in |h-A*omega| = 1.21e-03
+Max err in |R-Quaternion| = 7.73e-05
+
+>> runRigidBody -itest=2 -twilightZone=2 -tf=2. -solver=3 -addedMass=1 -plotOption=3 -tf=.5 -cfl=.5
+Max. err in (x,v,h) = (2.73e-04,8.54e-04,8.21e-04) [TZ=trigonometric].
+Max err in |h-A*omega| = 2.25e-04
+Max err in |R-Quaternion| = 2.02e-05
+
+
+
+****** Leapfrog CN WITH Added mass : 
+>> runRigidBody -itest=2 -twilightZone=2 -solver=2 -addedMass=1 -plotOption=3 -tf=.5 -cfl=1.
+Max. err in (x,v,h) = (1.02e-03,3.55e-03,3.06e-03) [TZ=trigonometric].
+Max err in |h-A*omega| = 7.73e-04
+Max err in |R-Quaternion| = 7.77e-05
+
+
+
+
+****** AMI LF-CN  NO Added mass -- agrees with LF-CN
+>> runRigidBody -itest=2 -twilightZone=2 -tf=2. -solver=3 -addedMass=0 -plotOption=3 -tf=.5 -cfl=1.
+Max. err in (x,v,h) = (1.27e-03,4.46e-03,3.46e-03) [TZ=trigonometric].
+Max err in |h-A*omega| = 4.71e-04
+Max err in |R-Quaternion| = 7.77e-05
+
+
+****** Leapfrog CN NO Added mass : 
+>> runRigidBody -itest=2 -twilightZone=2 -solver=2 -addedMass=0 -plotOption=3 -tf=.5 -cfl=1.
+Max. err in (x,v,h) = (1.27e-03,4.46e-03,3.46e-03) [TZ=trigonometric].
+Max err in |h-A*omega| = 7.74e-04
+Max err in |R-Quaternion| = 7.77e-05
+
+--- 2011/12/25 : 
+
+*** test added Mass matrices
+
+runRigidBody -itest=2 -twilightZone=2 -tf=2. -solver=1 -addedMass=1
+
+
+--- 2011/12/24 
+
+
+**** add trig TZ
+
+
+**** Implement the leap-frog trapezodial scheme:
+
+>> runRigidBody -itest=0 -tf=2. -solver=2 -plotOption=1
+rigidBody: itest=0 [poly force], tf=2.00e+00, solver=2 [leapfrogTrapPC], freeRotationAxis=3, checkErrors=1, normalize=1 rtol=1.00e-05, plotOption=1, debug=0
+LeapfrogTrap: n=718, dt=2.79e-03
+LeapfrogTrap: done. t=2.000e+00
+RigidBody: test=poly force, solver=leapfrogTrapPC, tf=2.00e+00, cfl= 0.25, steps=718, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (1.42e-06,7.78e-07,9.08e-07) [polynomial forcing].
+Max err in |h-A*omega| = 3.23e-06
+Max err in |R-Quaternion| = 5.88e-07
+
+>> runRigidBody -itest=0 -tf=2. -solver=2 -plotOption=0 -cfl=.5
+rigidBody: itest=0 [poly force], tf=2.00e+00, solver=2 [leapfrogTrapPC], freeRotationAxis=3, checkErrors=1, normalize=1 rtol=1.00e-05, plotOption=0, debug=0
+LeapfrogTrap: n=360, dt=5.57e-03
+LeapfrogTrap: done. t=2.000e+00
+RigidBody: test=poly force, solver=leapfrogTrapPC, tf=2.00e+00, cfl= 0.50, steps=360, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (5.64e-06,3.10e-06,3.62e-06) [polynomial forcing].
+Max err in |h-A*omega| = 1.29e-05
+Max err in |R-Quaternion| = 2.27e-06
+
+
+
+
+--- 2011/12/23 - some results from the rigidBody code:
+
+
+*********** Polynomial **************
+
+
+RigidBody: solver=rk4, tf=2.00e+00, steps=172, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (1.07e-14,7.11e-15,1.27e-14) [polynomial forcing].
+Max err in |h-A*omega| = 3.14e-09
+Max err in |R-Quaternion| = 3.19e-10
+
+
+RigidBody: solver=ode45, tf=2.00e+00, steps=49, rtol=1.00e-05, normalize=1
+Max. err in (x,v,h) = (4.44e-16,4.44e-16,6.66e-16) [polynomial forcing].
+Max err in |h-A*omega| = 3.87e-06
+Max err in |R-Quaternion| = 1.02e-06
+
+
+************ free rotation ************
+
+=== RK4: 
+>> rigidBody
+RK4: n=172, dt=1.17e-02
+RK4: done. t=2.000e+00
+RigidBody: solver=rk4, tf=2.00e+00, steps=172, rtol=1.00e-05
+Max err in |h-A*omega| = 8.76e-07
+Max err in |R-Quaternion| = 1.24e-07
+Free rotation(2): Max. error in omegaHat = 7.85e-06
+
+
+=== matlab solver:
+RigidBody: solver=ode45, tf=2.00e+00, steps=177, rtol=1.00e-05
+Max err in |h-A*omega| = 2.27e-05
+Max err in |R-Quaternion| = 5.29e-07
+Free rotation(2): Max. error in omegaHat = 6.18e-05
+
+
+Note: tf=2
+
+freeRotationAxis=1
+Max err in |h-A*omega| = 2.30e-05
+Max err in |R-Quaternion| = 1.29e-05
+Free rotation(1): Max. error in omegaHat = 6.16e-05
+
+freeRotationAxis=2
+Max err in |h-A*omega| = 2.30e-05
+Max err in |R-Quaternion| = 1.28e-05
+Free rotation(2): Max. error in omegaHat = 6.15e-05
+
+freeRotationAxis=3
+Max err in |h-A*omega| = 2.31e-05
+Max err in |R-Quaternion| = 1.28e-05
+Free rotation(3): Max. error in omegaHat = 6.16e-05
+
+
+-- polynomial forcing:
+>> rigidBody
+Max. err in (x,v,h) = (4.44e-16,4.44e-16,6.66e-16) [polynomial forcing].
+Max err in |h-A*omega| = 4.12e-06
+Max err in |R-Quaternion| = 9.84e-07
+
+
+%    if debug > 1
+%      if 0==1 
+%       fprintf(' i=%d t=%9.3e dt=%9.3e v45=[%8.2e,%8.2e,%8.2e] vrk4=[%8.2e,%8.2e,%8.2e] err=[%8.2e,%8.2e,%8.2e]\n',...
+%             i,t,dt,wv(i,mv),wv(i,mv+1),wv(i,mv+2), yv(mv),yv(mv+1),yv(mv+2),...
+%             wv(i,mv)-yv(mv),wv(i,mv+1)-yv(mv+1),wv(i,mv+2)-yv(mv+2) );
+%     
+%      else
+%       fprintf(' i=%d t=%9.3e dt=%9.3e omega45=[%8.2e,%8.2e,%8.2e] omegark4=[%8.2e,%8.2e,%8.2e] err=[%8.2e,%8.2e,%8.2e]\n',...
+%             i,t,dt,wv(i,mo),wv(i,mo+1),wv(i,mo+2), yv(mo),yv(mo+1),yv(mo+2),...
+%             wv(i,mo)-yv(mo),wv(i,mo+1)-yv(mo+1),wv(i,mo+2)-yv(mo+2) );
+%     
+%       mm=me;
+%       for j=1:3
+%         eNorm = sqrt( wv(i,mm)^2 + wv(i,mm+1)^2 + wv(i,mm+2)^2 );
+%         fprintf(' i=%d t=%9.3e dt=%9.3e |e%d|=%8.2e, e(1:3,1)45=[%8.2e,%8.2e,%8.2e] e(1:3,1)4=[%8.2e,%8.2e,%8.2e] err=[%8.2e,%8.2e,%8.2e]\n',...
+%               i,t,dt,j,eNorm,wv(i,mm),wv(i,mm+1),wv(i,mm+2), yv(mm),yv(mm+1),yv(mm+2),...
+%               wv(i,mm)-yv(mm),wv(i,mm+1)-yv(mm+1),wv(i,mm+2)-yv(mm+2) );
+%         mm=mm+3;
+%       end;
+%      end;
+%    end;
+  

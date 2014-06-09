@@ -1,0 +1,428 @@
+
+In this section we compute the solution to a plane wave that scatters from a di-electric sphere.
+% 
+The exact solution to this problem can be determined as a Mie series. We first derive this solution. 
+The discussion here follows {\em Light Scattering by Small Particles} by van de Hulst~\cite{vanDeHulst57}. 
+It is assumed in this discussion that the magnetic permeability is one, $\mu=1$. 
+
+Let $k$ be the wave number of the incident field and $m$ the refractive index, $m=c_{\rm vacuum}/c_{medium}$.
+The incident field is (note signs), 
+\begin{align*}
+  \Ev = \hat{\iv}~ e^{-i k z+i\omega t} \\
+  \Hv = \hat{\jv}~ e^{-i k z+i\omega t} 
+\end{align*}
+Note that the solution for a perfectly conducting sphere follows from the limit $m\rightarrow \infty$.
+% 
+The scalar wave equation
+\begin{align*}
+  \Delta \psi + m^2 k^2  \psi &=0 
+\end{align*}
+has solutions of the form
+\begin{align*}
+  \psi_{ln} &= e^{i l \phi}~ P_n^l(cos(\theta))~z_n(m k r) , \\
+  P_n^l &= \text{Legendre polynomial}, \\
+  z_n(\rho) &= \sqrt{ \pi\over 2\rho}~Z_{n+1/2}(\rho), \qquad (\text{spherical Bessel function)}), \\
+  Z_{n+1/2}(\rho) &= \text{Bessel function}, 
+\end{align*}
+for integers $n\ge l\ge 0$. Note that $\omega=m_1 k_1$ in medium $1$ and $\omega=m_2 k_2$ in medium $2$.
+% 
+Solutions to the vector wave equations of Maxwell's equations can be found from solutions to the scalar
+wave equation as follows.
+If $\psi$ satisfies the scalar wave equation then vectors $\Mv_\psi$ and $\Nv_\psi$
+\begin{align*}
+  \Mv_\psi &\equiv \grad\times(r\psi), \\
+  m k  \Nv_\psi &\equiv \grad\times(\Mv_\psi)
+\end{align*}
+satisfy the vector wave equations
+\begin{align*}
+  \Delta \Mv_\psi + m^2 k^2 \Mv_\psi &=0, \\
+  \Delta \Nv_\psi + m^2 k^2 \Nv_\psi &=0,
+\end{align*}
+and
+\begin{align*}
+  m k \Nv_\psi &= \grad\times(\Mv_\psi), \\
+  m k  \Mv_\psi &\equiv \grad\times(\Nv_\psi) .
+\end{align*}
+% 
+The spherical polar components are given by
+\begin{alignat}{3}
+  M_r &=0 ,                                                    & m k N_r &= \partial_r^2 (r\psi) + m^2 k^2 r\psi, \label{eq:MNa} \\
+  M_\theta &= {1\over r\sin(\theta)}\partial_\phi(r\psi),\quad & m k N_\theta &= {1\over r}\partial_r\partial_\theta(r\psi), 
+                                      \label{eq:MNb} \\
+  M_\phi   &=-{1\over r}\partial_\theta(r\psi),\quad & m k N_\phi &= {1\over r\sin(\theta)}\partial_r\partial_\phi(r\psi).
+                                      \label{eq:MNc}
+\end{alignat}
+%
+Given two solutions $u$ and $v$ to the scalar wave equation, Maxell's equations 
+\begin{align*}
+  \grad\times \Ev &= -i k \Hv,\\
+  \grad\times\Hv &= i k m^2 \Ev, 
+\end{align*}
+are satisfied by
+\begin{align}
+  \Ev &= \Mv_v + i \Nv_u,            \label{eq:EfromMN} \\
+  \Hv &= m(-\Mv_u + i \Nv_v).         \label{eq:HfromMN}
+\end{align}
+
+Now consider a sphere with refractive index $m_1=m$ inside and $m_2=1$ outside.
+In terms of spherical harmonics, the incident wave is
+\begin{align*}
+  u^i &= e^{i\omega t} \cos(\phi) \sum_{n=1}^\infty (-i)^n {2n+1\over n(n+1)} P_n^1(\cos(\theta)) ~j_n(kr), \\
+  v^i &= e^{i\omega t} \sin(\phi) \sum_{n=1}^\infty (-i)^n {2n+1\over n(n+1)} P_n^1(\cos(\theta)) ~j_n(kr). \\
+\end{align*}
+The scattered field outside the sphere is 
+\begin{align*}
+  u^s &= e^{i\omega t} \cos(\phi) \sum_{n=1}^\infty -a_n (-i)^n {2n+1\over n(n+1)} P_n^1(\cos(\theta)) ~h_n^{(2)}(kr), \\
+  v^s &= e^{i\omega t} \sin(\phi) \sum_{n=1}^\infty -b_n (-i)^n {2n+1\over n(n+1)} P_n^1(\cos(\theta)) ~h_n^{(2)}(kr), 
+\end{align*}
+and the transmitted wave inside the dielectric sphere is 
+\begin{align*}
+  u^d &= e^{i\omega t} \cos(\phi) \sum_{n=1}^\infty m c_n (-i)^n {2n+1\over n(n+1)} P_n^1(\cos(\theta)) ~j_n(m k r), \\
+  v^d &= e^{i\omega t} \sin(\phi) \sum_{n=1}^\infty m d_n (-i)^n {2n+1\over n(n+1)} P_n^1(\cos(\theta)) ~j_n(m k r). 
+\end{align*}
+where
+\begin{align*}
+  h_n^{(1)} &= j_n + i y_n,\\
+  h_n^{(2)} &= j_n - i y_n . 
+\end{align*}
+Introduce the Riccati-Bessel functions, (*note* $\chi_n$ is the opposite sign to that used by van de Hulst)
+\begin{align*}
+  \psi_n(z) &= z j_n(z) = \sqrt{\pi z/2} ~J_{n+1/2}(z),\\ 
+  \chi_n(z) &= z y_n(z) = -\sqrt{\pi z/2} ~Y_{n+1/2}(z),\\ 
+  \zeta_n(z) &= z j h_n^{(2)}(z) = \psi_n(z) - i~\chi_n(z) . 
+\end{align*}
+Application of the interface equations gives
+\begin{align*}
+   a_n = { \psi_n'(mka)\psi_n(ka) - m~\psi_n(mka)\psi_n'(ka) \over
+           \psi_n'(mka)\zeta_n(ka) - m~\psi_n(mka)\zeta_n'(ka) } , \\ 
+   b_n = {m\psi_n'(mka)\psi_n(ka) -   \psi_n(mka)\psi_n'(ka) \over
+          m\psi_n'(mka)\zeta_n(ka) -   \psi_n(mka)\zeta_n'(ka) } , \\
+   c_n = { i                                                 \over
+           \psi_n'(mka)\zeta_n(ka) - m~\psi_n(mka)\zeta_n'(ka) } , \\ 
+   d_n = { i                                                 \over
+          m\psi_n'(mka)\zeta_n(ka) -   \psi_n(mka)\zeta_n'(ka) } .
+\end{align*}
+
+We can now determine expressins for the full field components of $\Ev$ from the solutions $u$ and $v$ by computing
+the sphere -polar components of the auxillary functions $\Nv_u$, $\Nv_v$, $\Mv_u$ and $\Mv_v$. 
+First note that the spherical Bessel equation for $R=R(r)$, 
+\begin{align*}
+   (r^2R')' + ( n(n+1) + m^2 k^2 r^2) R=0,
+\end{align*}
+has solutions $R(r) =j_n(m kr)$ and $R=y_n(m kr)$. 
+Noting that $(r^2R')' = r (rR)''$ it follows that
+\begin{align*}
+    r \Big[ (rR)'' + m^2 k^2 r R\Big] &=  r (rR)'' + m^2 k^2 r^2 R \\
+       &= -n(n+1) R
+\end{align*}
+and thus from~\eqref{eq:MNa},
+\begin{align*}
+  N_r( j_n(mkr) ) &= {-n(n+1)\over mk r} j_n(mkr)
+\end{align*}
+
+The components of the electric field can be determined from the expressions for $(u,v)$ along with
+\eqref{eq:EfromMN} and \eqref{eq:MNa}-\eqref{eq:MNa}. The total field outside the sphere is ***check me ***
+\begin{align}
+   E_r^t &= - e^{i\omega t} {i\cos(\phi)\over (kr)^2} 
+       \sum_{n=1}^\infty (-i)^n (2n+1)~P_n^1(\cos(\theta))~( \psi_n(kr)- a_n \zeta_n(kr) ),  \label{eq:ScatSpherea}\\
+   E_\theta^t &= e^{i\omega t}~{\cos(\phi)\over (kr)}
+              \sum_{n=1}^\infty (-i)^n {2n+1 \over n(n+1)} 
+                \Big\{ {P_n^1 \over \sin(\theta) }~\big[ \psi_n(kr)- b_n \zeta_n(kr) \big]
+                             + i \partial_\theta P_n^1 ~\big[ \psi_n'(kr)- a_n \zeta_n'(kr) \big]
+                \Big\}  
+                                   ,  \label{eq:ScatSphereb} \\
+   E_\phi^t &= -e^{i\omega t}{\sin(\phi)\over (kr)}
+               \sum_{n=1}^\infty (-i)^n {2n+1 \over n(n+1)}
+                 \Big\{ \partial_\theta P_n^1~\big[ \psi_n(kr)- b_n \zeta_n(kr) \big]
+                             +i~ {P_n^1 \over \sin(\theta)}~\big[ \psi_n'(kr)- a_n \zeta_n'(kr) \big]
+                 \Big\} .  \label{eq:ScatSpherec}
+\end{align}
+The field inside the sphere is 
+\begin{align}
+   E_r^d &= - e^{i\omega t} {i\cos(\phi)\over (m kr)^2} 
+       \sum_{n=1}^\infty (-i)^n (2n+1)~P_n^1(\cos(\theta))~m~ c_n~ \psi_n(mkr),  \label{eq:ScatSphereInsidea}\\
+   E_\theta^d &= e^{i\omega t}~{\cos(\phi)\over m k r}
+              \sum_{n=1}^\infty (-i)^n {2n+1 \over n(n+1)} 
+                \Big\{ {P_n^1 \over \sin(\theta) }~ m d_n \psi_n(mkr)
+                             + i \partial_\theta P_n^1 ~ m c_n \psi_n'(mkr)
+                \Big\}  
+                                   ,  \label{eq:ScatSphereInsideb} \\
+   E_\phi^d &= -e^{i\omega t}{\sin(\phi)\over mkr}
+               \sum_{n=1}^\infty (-i)^n {2n+1 \over n(n+1)}
+                 \Big\{ \partial_\theta P_n^1~ m d_n \psi_n(mkr) 
+                             +i~ {P_n^1 \over \sin(\theta)}~ m c_n \psi_n'(mkr) 
+                 \Big\} .  \label{eq:ScatSphereInsidec}
+\end{align}
+
+% ================================================================================
+\clearpage
+\subsection{Numerical results for scattering from a dielectric sphere}
+
+\input scatDielectricSphereFig
+
+
+
+The solution is computed numerically for a grid with radius $1$. The grids are generated
+with the {\tt solidSphereInABox.cmd} command file. 
+The initial conditions are taken as the exact solution at times $t=-\dt$ and $t=0$.  
+The exact solution is imposed on the
+outer boundaries of the domain. The solution is integrated to time $t=.5$. 
+% 
+Figure~\ref{fig:scatDielectricSphereFig} shows the computed solution.
+The wave number of the incident field was $k_x=1$, while $\eps_1=.25$ (inside), and $\eps_2=1$ (outside).
+
+
+Table~\ref{table:dielectricSphereOrder2} presents the maximum errors and estimated convergence rates
+for the second order method. The grid spacing for case $N$ was $.1/N$. 
+
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|} \hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+  solidSphereInABox1 &     1 & ~$3.4\times10^{ -1}$~ & ~$9.8\times10^{ -1}$~ & ~$1.4\times10^{ -1}$~ & ~$3.2\times10^{ -1}$~  \\ \hline
+  solidSphereInABox2 &     2 & ~$1.1\times10^{ -1}$~ & ~$1.8\times10^{ -1}$~ & ~$4.7\times10^{ -2}$~ & ~$7.1\times10^{ -2}$~  \\ \hline
+  solidSphereInABox4 &     4 & ~$2.2\times10^{ -2}$~ & ~$3.1\times10^{ -2}$~ & ~$9.0\times10^{ -3}$~ & ~$1.7\times10^{ -2}$~  \\ \hline
+    rate             &       &       $1.99$          &       $2.49$          &       $1.98$          &       $2.10$           \\ \hline
+\end{tabular}
+\caption{Cgmx, solidSphereInABoxNewe, order=$2$, $t=.5$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$0.8$, diss=$.5$, Thu May 21  6:55:16 2009}\label{table:dielectricSphereOrder2}
+\end{center}
+\end{table}
+
+
+% Table from mx/conv/dielectric.conv 
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|} \hline\hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+  solidSphereInABox1 &     1 & ~$1.5\times10^{ -1}$~ & ~$6.1\times10^{ -1}$~ & ~$9.1\times10^{ -2}$~ & ~$2.2\times10^{ -1}$~  \\ \hline
+  solidSphereInABox2 &     2 & ~$4.5\times10^{ -2}$~ & ~$1.8\times10^{ -1}$~ & ~$2.9\times10^{ -2}$~ & ~$8.5\times10^{ -2}$~  \\ \hline
+  solidSphereInABox4 &     4 & ~$1.2\times10^{ -2}$~ & ~$4.8\times10^{ -2}$~ & ~$8.3\times10^{ -3}$~ & ~$2.4\times10^{ -2}$~  \\ \hline
+    rate             &       &       $1.81$          &       $1.83$          &       $1.72$          &       $1.61$           \\ \hline\hline
+\end{tabular}
+\caption{OLD: Maximum errors for scattering of a plane wave by a dielectric sphere, order=$2$, $t=0.5$, diss=$0.5$}\label{table:dielectricSphere}
+%  Wed Nov 26  8:16:33 2008
+\end{center}
+\end{table}
+
+Table~\ref{table:dielectricSphereOrder4} shows results using the fourth-order accurate method.
+
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|} \hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+  solidSphereInABox2 &     2 & ~$9.3\times10^{ -3}$~ & ~$4.2\times10^{ -2}$~ & ~$7.2\times10^{ -3}$~ & ~$1.8\times10^{ -2}$~  \\ \hline
+  solidSphereInABox4 &     4 & ~$8.2\times10^{ -4}$~ & ~$2.8\times10^{ -3}$~ & ~$1.0\times10^{ -3}$~ & ~$1.1\times10^{ -2}$~  \\ \hline
+    rate             &       &       $3.50$          &       $3.92$          &       $2.80$          &       $0.68$           \\ \hline
+\end{tabular}
+\caption{Cgmx, solidSphereInABoxFixedi, max-norm, order=$4$, $t=.5$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$0.8$, diss=$.5$, Wed May 20  7:31:29 2009}\label{table:dielectricSphereOrder4}
+\end{center}
+\end{table}
+
+% --------------------- REDO: fourth-order explicit: 3 patches on the sphere --
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|} \hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+ solidSphereInABoxe2 &     2 & ~$3.6\times10^{ -2}$~ & ~$1.2\times10^{ -1}$~ & ~$1.4\times10^{ -2}$~ & ~$7.3\times10^{ -2}$~  \\ \hline
+ solidSphereInABoxe4 &     4 & ~$2.6\times10^{ -3}$~ & ~$3.0\times10^{ -3}$~ & ~$1.9\times10^{ -3}$~ & ~$1.9\times10^{ -2}$~  \\ \hline
+    rate             &       &       $3.79$          &       $5.29$          &       $2.87$          &       $1.91$           \\ \hline
+\end{tabular}
+\caption{Cgmx, solidSphereInABoxe, method=NFDTD, max norm, order=$4$, $t=.5$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$.9$, diss=$.5$, Mon May 25 19:18:45 2009}\label{table:dielectricSphereNFDTDOrder4max}
+\end{center}
+\end{table}
+
+% --------------------------- Finer grids but need diss=2 ---------------------------------------
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|} \hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+ solidSphereInABoxe2 &     2 & ~$1.2\times10^{ -1}$~ & ~$3.8\times10^{ -1}$~ & ~$4.9\times10^{ -2}$~ & ~$2.3\times10^{ -1}$~  \\ \hline
+ solidSphereInABoxe4 &     4 & ~$1.0\times10^{ -2}$~ & ~$1.2\times10^{ -2}$~ & ~$3.2\times10^{ -3}$~ & ~$8.8\times10^{ -3}$~  \\ \hline
+ solidSphereInABoxe8 &     4 & ~$1.1\times10^{ -3}$~ & ~$1.0\times10^{ -3}$~ & ~$1.7\times10^{ -3}$~ & ~$1.2\times10^{ -2}$~  \\ \hline
+    rate             &       &       $5.21$          &       $6.77$          &       $4.41$          &       $4.49$           \\ \hline
+\end{tabular}
+\caption{Cgmx, solidSphereInABoxe, method=NFDTD, max norm, order=$4$, $t=.5$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$0.8$, diss=$2.$, Tue Jun  2 13:03:53 2009}\label{table:dielectricSphereNFDTDOrder4max}
+\end{center}
+\end{table}
+
+
+
+% ------------- Implicit interpolation: 
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|} \hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+ solidSphereInABoxi2 &     2 & ~$4.0\times10^{ -2}$~ & ~$6.7\times10^{ -2}$~ & ~$1.3\times10^{ -2}$~ & ~$3.7\times10^{ -2}$~  \\ \hline
+ solidSphereInABoxi4 &     4 & ~$1.9\times10^{ -3}$~ & ~$2.1\times10^{ -3}$~ & ~$2.0\times10^{ -3}$~ & ~$1.7\times10^{ -2}$~  \\ \hline
+    rate             &       &       $4.38$          &       $5.02$          &       $2.72$          &       $1.11$           \\ \hline
+\end{tabular}
+\caption{Cgmx, solidSphereInABoxi, method=NFDTD, max norm, order=$4$, $t=.5$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$.9$, diss=$.5$, Mon May 25 20:45:15 2009}\label{table:dielectricSphereNFDTDOrder4max}
+\end{center}
+\end{table}
+
+\clearpage
+\subsubsection{Scattering from a dielectric sphere - results for the FDTD (Yee) scheme}
+% -------------------------------- Yee ----------------
+For comparison, tables~\ref{table:dielectricSphereYeeOrder2max}
+and~\ref{table:dielectricSphereYeeOrder2L1} show max-norm and $L_1$ norm errors from the Yee (FDTD) scheme.
+The grid spacing for case $N$ was $.1/N$. 
+The Yee scheme does not converge when measuring maximum norm errors. 
+
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|c|} \hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ &  $H_x$ &  $H_y$ & $H_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+             bigBox1 &     1 & ~$7.9\times10^{ -1}$~ & ~$9.5\times10^{ -1}$~ & ~$4.3\times10^{ -1}$~ & ~$1.3\times10^{ -1}$~ & ~$7.3\times10^{ -2}$~ & ~$1.3\times10^{ -1}$~ & ~$2.2\times10^{  0}$~  \\ \hline
+             bigBox2 &     2 & ~$9.2\times10^{ -1}$~ & ~$1.1\times10^{  0}$~ & ~$6.2\times10^{ -1}$~ & ~$9.1\times10^{ -2}$~ & ~$1.1\times10^{ -1}$~ & ~$1.2\times10^{ -1}$~ & ~$2.0\times10^{  0}$~  \\ \hline
+             bigBox4 &     4 & ~$1.1\times10^{  0}$~ & ~$1.2\times10^{  0}$~ & ~$7.7\times10^{ -1}$~ & ~$7.8\times10^{ -2}$~ & ~$9.8\times10^{ -2}$~ & ~$8.2\times10^{ -2}$~ & ~$1.8\times10^{  0}$~  \\ \hline
+    rate             &       &       $-0.21$          &       $-0.18$          &       $-0.42$          &       $0.37$          &       $-0.21$          &       $0.35$          &       $0.16$           \\ \hline
+\end{tabular}
+\caption{Cgmx, bigBox, method=Yee, max norm, order=$2$, $t=.5$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$.95$, diss=$0.5$, Tue Jun  2  7:44:51 2009}\label{table:dielectricSphereYeeOrder2max}
+\end{center}
+\end{table}
+
+
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|c|} \hline 
+grid  & N &  $E_x$ &  $E_y$ & $E_z$ &  $H_x$ &  $H_y$ & $H_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+             bigBox1 &     1 & ~$6.0\times10^{ -3}$~ & ~$2.6\times10^{ -2}$~ & ~$4.5\times10^{ -3}$~ & ~$6.0\times10^{ -3}$~ & ~$1.8\times10^{ -3}$~ & ~$2.5\times10^{ -2}$~ & ~$2.2\times10^{  0}$~  \\ \hline
+             bigBox2 &     2 & ~$2.9\times10^{ -3}$~ & ~$8.1\times10^{ -3}$~ & ~$2.5\times10^{ -3}$~ & ~$2.0\times10^{ -3}$~ & ~$8.1\times10^{ -4}$~ & ~$6.6\times10^{ -3}$~ & ~$2.0\times10^{  0}$~  \\ \hline
+             bigBox4 &     4 & ~$1.6\times10^{ -3}$~ & ~$3.0\times10^{ -3}$~ & ~$1.4\times10^{ -3}$~ & ~$8.1\times10^{ -4}$~ & ~$4.6\times10^{ -4}$~ & ~$1.9\times10^{ -3}$~ & ~$1.8\times10^{  0}$~  \\ \hline
+    rate             &       &       $0.94$          &       $1.54$          &       $0.83$          &       $1.45$          &       $0.97$          &       $1.83$          &       $0.16$           \\ \hline
+\end{tabular}
+\caption{Cgmx, bigBox, method=Yee, L1 norm, order=$2$, $t=.5$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$.95$, diss=$0.5$, Tue Jun  2  7:36:05 2009}\label{table:dielectricSphereYeeOrder2L1}
+\end{center}
+\end{table}
+
+\subsection{Timings}
+
+% =============== TIMING ============
+
+\begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|c|c|c|} \hline 
+Method  & Grid points &  sec/step/pt \\ \hline 
+order 4 &   5.1M      & 5.49e-07  \\
+order 2 &   5.1M      & 1.66e-07  \\
+Yee     &   4.5M      & 4.74e-07  \\\hline 
+\end{tabular}
+\caption{Timings for scattering from a dielectric sphere}\label{table:dielectricSphereTimings}
+\end{center}
+\end{table}
+
+%          sec/step/pt : 
+% order 4: 5.49e-07  (5.1M pts)
+% order 2: 1.66e-07  (5.1M pts)
+% Yee    : 4.74e-07  (4.5M pts)
+
+% *** Order 4 ***
+%               ---------Maxwell Summary------- 
+%                        Tue May 26 06:48:01 2009
+%                Grid:   solidSphereInABoxe4.order4 
+%   ==== numberOfStepsTaken =      125, grids=8, gridpts =5131173, interp pts=183748, processors=1 ==== 
+%   ==== memory per-proc: [min=905.633,ave=905.633,max=905.633](Mb), max-recorded=905.582 (Mb), total=905.633 (Mb)
+%    Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+% total time..........................  4.18e+02    3.35e+00    6.52e-07   100.000   4.182e+02   4.182e+02
+% setup and initialize................  2.16e+00    1.73e-02    3.37e-09     0.518   2.165e+00   2.165e+00
+% initial conditions..................  3.54e+01    2.83e-01    5.52e-08     8.462   3.538e+01   3.538e+01
+% advance.............................  3.52e+02    2.82e+00    5.49e-07    84.186   3.520e+02   3.520e+02
+%   advance rectangular grids.........  2.17e+02    1.74e+00    3.39e-07    51.921   2.171e+02   2.171e+02
+%   advance curvilinear grids.........  9.18e+01    7.35e-01    1.43e-07    21.964   9.185e+01   9.185e+01
+%    (advOpt).........................  2.22e+02    1.78e+00    3.47e-07    53.198   2.225e+02   2.225e+02
+%   add dissipation...................  4.25e+00    3.40e-02    6.62e-09     1.016   4.248e+00   4.248e+00
+%   boundary conditions...............  6.45e+00    5.16e-02    1.01e-08     1.542   6.446e+00   6.446e+00
+%   interface bc......................  1.11e+01    8.86e-02    1.73e-08     2.649   1.108e+01   1.108e+01
+%   interpolation.....................  2.48e+01    1.98e-01    3.86e-08     5.924   2.477e+01   2.477e+01
+% get errors..........................  1.73e+01    1.39e-01    2.70e-08     4.145   1.733e+01   1.733e+01
+% compute dt..........................  4.69e-02    3.75e-04    7.31e-11     0.011   4.689e-02   4.689e-02
+% plotting............................  1.19e+01    9.50e-02    1.85e-08     2.840   1.188e+01   1.188e+01
+
+% ************* Order 2 ***
+%               ---------Maxwell Summary------- 
+%                        Tue May 26 07:07:40 2009
+%                Grid:   solidSphereInABoxe4.order2 
+%   ==== numberOfStepsTaken =      105, grids=8, gridpts =5120565, interp pts=86018, processors=1 ==== 
+%   ==== memory per-proc: [min=876.609,ave=876.609,max=876.609](Mb), max-recorded=876.559 (Mb), total=876.609 (Mb)
+%    Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+% total time..........................  1.50e+02    1.43e+00    2.79e-07   100.000   1.499e+02   1.499e+02
+% setup and initialize................  1.63e+00    1.55e-02    3.04e-09     1.088   1.632e+00   1.632e+00
+% initial conditions..................  3.49e+01    3.33e-01    6.50e-08    23.302   3.494e+01   3.494e+01
+% advance.............................  8.91e+01    8.49e-01    1.66e-07    59.454   8.914e+01   8.914e+01
+%   advance rectangular grids.........  7.14e+01    6.80e-01    1.33e-07    47.634   7.142e+01   7.142e+01
+%   advance curvilinear grids.........  6.37e+00    6.07e-02    1.18e-08     4.249   6.371e+00   6.371e+00
+%    (advOpt).........................  7.12e+01    6.78e-01    1.32e-07    47.504   7.122e+01   7.122e+01
+%   add dissipation...................  4.42e+01    4.21e-01    8.22e-08    29.488   4.421e+01   4.421e+01
+%   boundary conditions...............  4.34e+00    4.13e-02    8.07e-09     2.895   4.340e+00   4.340e+00
+%   interface bc......................  3.61e+00    3.43e-02    6.71e-09     2.405   3.606e+00   3.606e+00
+%   interpolation.....................  2.88e+00    2.75e-02    5.36e-09     1.924   2.884e+00   2.884e+00
+% get errors..........................  1.30e+01    1.24e-01    2.41e-08     8.656   1.298e+01   1.298e+01
+% compute dt..........................  2.81e-02    2.68e-04    5.23e-11     0.019   2.812e-02   2.812e-02
+% plotting............................  1.17e+01    1.11e-01    2.17e-08     7.794   1.169e+01   1.169e+01
+
+
+% **************** Yee
+%               ---------Maxwell Summary------- 
+%                        Tue May 26 07:02:28 2009
+%                Grid:   bigBox4.order2 
+%   ==== numberOfStepsTaken =       80, grids=1, gridpts =4492125, interp pts=0, processors=1 ==== 
+%   ==== memory per-proc: [min=1415.58,ave=1415.58,max=1415.58](Mb), max-recorded=1895.35 (Mb), total=1415.58 (Mb)
+%    Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+% total time..........................  3.74e+02    4.68e+00    1.04e-06   100.000   3.744e+02   3.744e+02
+% setup and initialize................  8.85e-01    1.11e-02    2.46e-09     0.236   8.845e-01   8.845e-01
+% initial conditions..................  1.76e+02    2.20e+00    4.90e-07    47.034   1.761e+02   1.761e+02
+% advance.............................  1.70e+02    2.13e+00    4.74e-07    45.483   1.703e+02   1.703e+02
+%    (advOpt).........................  1.70e+02    2.13e+00    4.74e-07    45.483   1.703e+02   1.703e+02
+%   update ghost (parallel)...........  9.23e-04    1.15e-05    2.57e-12     0.000   9.230e-04   9.230e-04
+% get errors..........................  1.58e+01    1.97e-01    4.39e-08     4.218   1.579e+01   1.579e+01
+% compute dt..........................  2.19e-04    2.74e-06    6.09e-13     0.000   2.190e-04   2.190e-04
+% plotting............................  1.09e+01    1.36e-01    3.04e-08     2.915   1.091e+01   1.091e+01
+% waiting (not counted)...............  4.49e-04    5.61e-06    1.25e-12     0.000   4.490e-04   4.490e-04
+
+
+% \begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \begin{center}
+% \begin{tabular}{|l|c|c|c|c|c|} \hline 
+% grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+%   solidSphereInABox2 &     2 & ~$1.6\times10^{ -3}$~ & ~$9.6\times10^{ -3}$~ & ~$1.3\times10^{ -3}$~ & ~$4.7\times10^{ -3}$~  \\ \hline
+%   solidSphereInABox4 &     4 & ~$1.1\times10^{ -4}$~ & ~$6.3\times10^{ -4}$~ & ~$9.3\times10^{ -5}$~ & ~$3.4\times10^{ -4}$~  \\ \hline
+%     rate             &       &       $3.91$          &       $3.94$          &       $3.81$          &       $3.80$           \\ \hline
+% \end{tabular}
+% \caption{Cgmx, solidSphereInABoxFixedi, order=$4$, $t=.1$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, cfl=$0.8$, diss=$.5$, Wed May 20  7:10:05 2009}\label{table:dielectricSphereOrder4}
+% \end{center}
+% \end{table}
+
+
+% Table~\ref{table:dielectricSphereOrder4a} shows initial results for using the fourth-order method in the
+% interior and the second-order accurate interface method.  The divergence doesn't decrease in the
+% max norm but this seems to be related to the solution not being smooth at the interface. ** run this case
+% to t=.5 as above**
+% 
+% % \newcommand{\tableFont}{\footnotesize}
+% % mx/conv/solidSphereInABoxFixedOrder4ConvTable.tex
+% \begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \begin{center}
+% \begin{tabular}{|l|c|c|c|c|c|} \hline\hline 
+% grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+%   solidSphereInABox2 &     2 & ~$1.5\times10^{ -2}$~ & ~$9.1\times10^{ -2}$~ & ~$1.1\times10^{ -2}$~ & ~$2.6\times10^{ -2}$~  \\ \hline
+%   solidSphereInABox4 &     4 & ~$2.7\times10^{ -3}$~ & ~$2.0\times10^{ -2}$~ & ~$4.4\times10^{ -3}$~ & ~$4.0\times10^{ -2}$~  \\ \hline
+%     rate             &       &       $2.47$          &       $2.20$          &       $1.30$          &       $-0.65$           \\ \hline\hline
+% \end{tabular}
+% \caption{Cgmx, solidSphereInABoxFixed, order=$4$, $t=.1$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, diss=$5.$, Mon May  4 20:57:10 2009}\label{table:dielectricSphereOrder4a}
+% \end{center}
+% \end{table}
+% 
+% Table~\ref{table:dielectricSphereOrder4} shows results from the first implementation of the true fourth-order BC's.
+% 
+% 
+% \begin{table}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+% \begin{center}
+% \begin{tabular}{|l|c|c|c|c|c|} \hline\hline 
+% grid  & N &  $E_x$ &  $E_y$ & $E_z$ & $\grad\cdot\Ev/\grad\Ev$\\ \hline 
+%   solidSphereInABox2 &     2 & ~$2.3\times10^{ -4}$~ & ~$1.5\times10^{ -3}$~ & ~$2.1\times10^{ -4}$~ & ~$2.1\times10^{ -3}$~  \\ \hline
+%   solidSphereInABox4 &     4 & ~$1.0\times10^{ -5}$~ & ~$6.3\times10^{ -5}$~ & ~$9.8\times10^{ -6}$~ & ~$1.1\times10^{ -4}$~  \\ \hline
+%     rate             &       &       $4.48$          &       $4.61$          &       $4.44$          &       $4.24$           \\ \hline\hline
+% \end{tabular}
+% \caption{Cgmx, solidSphereInABoxFixed, order=$4$, $t=.01$, $k_x=1$, $\eps_1=0.25$, $\eps_2=1$, diss=$1.$, Wed May  6 15:36:09 2009}\label{table:dielectricSphereOrder4}
+% \end{center}
+% \end{table}

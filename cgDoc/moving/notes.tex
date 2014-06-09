@@ -1,0 +1,114 @@
+%-----------------------------------------------------------------------
+%  Moving Body Notes
+%-----------------------------------------------------------------------
+\documentclass[12pt]{article}
+% \usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\input documentationPageSize.tex
+\input homeHenshaw
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+% \newcommand{\obFigures}{../docFigures}  % note: local version for OverBlown
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+\newcommand{\Overture}{{\bf Over\-ture\ }}
+\newcommand{\OverBlown}{{\bf Over\-Blown\ }}
+\newcommand{\OverBlownINS}{{\bf Over\-Blown\-INS\ }}
+\newcommand{\OverBlownCNS}{{\bf Over\-Blown\-CNS\ }}
+\newcommand{\overBlown}{{\bf over\-Blown\ }}
+
+\newcommand{\obDir}{\homeHenshaw/res/OverBlown}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+\def\comma  {~~~,~~}
+\newcommand{\uvd}{\mathbf{U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+% \newcommand{\omegav}{\mathbf{\omega}}
+% \newcommand{\Omegav}{\mathbf{\Omega}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\cm}{{\rm cm}}
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+Moving Body Notes \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+henshaw@llnl.gov \\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+% UCRL-MA-134289
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+  This document contains various notes related to moving bodies.
+
+\end{flushleft}
+
+\clearpage
+% \tableofcontents
+% \listoffigures
+
+\vfill\eject
+
+
+\end{document}
+
+

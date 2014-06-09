@@ -1,0 +1,142 @@
+\input wdhDefinitions.tex
+
+\newcommand{\Bc}{{\mathcal B}}
+\newcommand{\Dc}{{\mathcal D}}
+\newcommand{\Ec}{{\mathcal E}}
+\newcommand{\Fc}{{\mathcal F}}
+\newcommand{\Gc}{{\mathcal G}}
+\newcommand{\Ic}{{\mathcal I}}
+\newcommand{\Jc}{{\mathcal J}}
+\newcommand{\Lc}{{\mathcal L}}
+\newcommand{\Nc}{{\mathcal N}}
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Rc}{{\mathcal R}}
+\newcommand{\Sc}{{\mathcal S}}
+
+\newcommand{\Ds}{{\mathcal D}}%
+\newcommand{\Gs}{{\mathcal G}}%
+\newcommand{\Hs}{{\mathcal H}}%
+\newcommand{\Is}{{\mathcal I}}%
+
+\newcommand{\bogus}[1]{}  % removes is argument completely
+
+\def\comma  {~~~,~~}
+% \newcommand{\uvd}{\mathbf{U}}
+% \def\ud     {{    U}}
+% \def\pd     {{    P}}
+% \def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+% \newcommand{\omegav}{\mathbf{\omega}}
+% \newcommand{\Omegav}{\mathbf{\Omega}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\cm}{{\rm cm}}
+
+\newcommand{\ds}{\Delta s}
+\newcommand{\dsbl}{\ds_{\rm bl}}
+
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+\newcommand{\s}{{\sigma}}
+\newcommand{\nd}{{n_d}} % number of space dimensions 
+
+\newcommand{\tnv}{\boldsymbol{\tau}} % here is the symbol for the tangent vector
+\newcommand{\tn}{\tau}    % here is the symbol for components of the the tangent vector
+
+\newcommand{\nc}{{n_c}} % number of components
+
+% from stability: 
+\newcommand{\pd}{d} % power in high-order filter
+\newcommand{\Ad}{\Ac_d} % Amplification factor for art-diss
+\newcommand{\Af}{\Ac_f} % Amplification factor for filter
+\newcommand{\Tf}{\Tc_f} % Transfer function, high-order filter
+
+\newcommand{\eps}{\epsilon}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\curl}{\grad\times}
+\newcommand{\kappav}{\boldsymbol{\kappa}}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\deltaT}{{\Delta t}}
+
+\newcommand{\Gsic}{\Gc_{Dn}}
+\newcommand{\Gsicf}{\Gc_{Df}}
+\newcommand{\Omegasic}{\Omega_{D}}
+\newcommand{\AnnulusGrid}{{\mathcal C}}
+
+\newcommand{\dsm}{h_{\gm}}
+%\newcommand{\dsm}{\ds^{(\gm)}}
+\newcommand{\bvert}{\big\vert}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+\newcommand{\Overture}{{\bf Over\-ture\ }}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+\newcommand{\cgDoc}{\homeHenshaw/cgDoc}
+\newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+
+\newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+\newcommand{\convDir}{\homeHenshaw/cgDoc/ins/tables}
+\newcommand{\smDocDir}{\homeHenshaw/cgDoc/sm}
+
+\newcommand{\OrthoSphere}{{\mathcal O}}
+\newcommand{\OrthoGrid}{\mathcal O}
+\newcommand{\SphereGrid}{\mathcal S}
+\newcommand{\sibGrid}{\mathcal{G}_{{\rm s}}}
+\newcommand{\solidSphereGrid}{\mathcal{G}_{{\rm ss}}}
+\newcommand{\BoxGrid}{\mathcal B}
+\newcommand{\RotatedBoxGrid}{\mathcal R}
+\newcommand{\bibGrid}{\mathcal{G}_{{\rm b}}}
+\newcommand{\CylGrid}{\mathcal C}
+\newcommand{\fullGrid}{\mathcal{G}_{{\rm c}}}
+\newcommand{\qsGrid}{\mathcal{G}_{{\rm q}}}
+
+\newcommand{\pipesGrid}{\mathcal{P}}
+\newcommand{\union}{\cup}
+
+\newcommand{\gm}{j}
+\newcommand{\eem}{e^{(\gm)}}
+% \newcommand{\dsm}{\ds^{(\gm)}}
+\newcommand{\rateLabel}{\multicolumn{2}{|c|}{rate}}
+% \newcommand{\bvert}{\big\vert}
+% 
+\newcommand{\rate}{{\rm rate}}
+
+\newcommand{\limiter}{{\mathcal{L}}}  % Godunov limiter
+
+\newcommand{\tableFontSize}{\scriptsize}  % Here is the font size for tables 
+\newcommand{\tableFont}{\tableFontSize}
+
+\newcommand{\tablearraystretch}{1.5}% increase the height of table rows
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+

@@ -1,0 +1,61 @@
+\subsection{Fluttering plate}\label{sec:flutteringPlate}
+
+This example shows the simulation of a light plate falling under the influence
+of gravity. There is an upward flow with speed approximately equal to the
+rate at which the plate falls. The plate starts to sway from side to side and
+eventually also tumbles.
+This example demonstrates the new time stepping scheme that has been developed
+to treat the motion of ``light'' rigid bodies (v24). 
+% The simulation used the command file {\tt cg/ins/wing2d.cmd}
+% and the grid was made with the ogen script {\tt Overture/sampleGrids/joukowsky2d.cmd}. 
+% \newcommand{\dropStickDir}{\homeHenshaw/runs/cgins/dropStick}
+
+% 
+{
+\newcommand{\figWidthd}{6.5cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.0}{.0}{.0}{.0}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (13.,19.5);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,13.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/dropStickVor2p0}{\figWidthd}};
+  \draw ( 0.0,6.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/dropStickVor4p0}{\figWidthd}};
+  \draw ( 0.0,  0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/dropStickVor6p0}{\figWidthd}};
+  \draw ( 6.5,13.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/dropStickVor16p0}{\figWidthd}};
+  \draw ( 6.5,6.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/dropStickVor18p0}{\figWidthd}};
+  \draw ( 6.5, .0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/dropStickVor20p0}{\figWidthd}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (13,19);
+\end{tikzpicture}
+\end{center}
+\caption{A fluttering plate computed with Cgins. A light plate falling due to the force of gravity in an incompressible flow.
+        Contour plots of the vorticity.}
+\end{figure}
+}
+
+
+%- \newcommand{\dropStickDir}{\ovFigures}
+%- {
+%- \begin{figure}[H]
+%- \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}%
+%- \newcommand{\figWidthd}{8cm}% 
+%- \newcommand{\clipfigd}[2]{\clipFig{#1}{#2}{.0}{1.}{0.2}{1.}}
+%- \begin{center}%
+%- \begin{pspicture}(0,0)(17.,18)%
+%-  %\psgrid[subgriddiv=2]
+%-  \rput(4.00,14.0){\clipfigd{\dropStickDir/dropStickVor2p0.ps}{\figWidthd}}
+%-  \rput(4.00, 8.0){\clipfigd{\dropStickDir/dropStickVor4p0.ps}{\figWidthd}}
+%-  \rput(4.00, 2.0){\clipfigd{\dropStickDir/dropStickVor6p0.ps}{\figWidthd}}
+%-  \rput(12.2,14.0){\clipfigd{\dropStickDir/dropStickVor16p0.ps}{\figWidthd}}
+%-  \rput(12.2, 8.0){\clipfigd{\dropStickDir/dropStickVor18p0.ps}{\figWidthd}}
+%-  \rput(12.2, 2.0){\clipfigd{\dropStickDir/dropStickVor20p0.ps}{\figWidthd}}
+%- \end{pspicture}%
+%- \end{center}%
+%- \caption{A fluttering plate computed with Cgins. A light plate falling due to the force of gravity in an incompressible flow.
+%-         Contour plots of the vorticity.}
+%- \end{figure}
+%- }
+% -----------------------------------------------------------------------------------

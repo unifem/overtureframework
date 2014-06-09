@@ -1,0 +1,95 @@
+\newcommand{\smTzDir}{\homeHenshaw/cgDoc/sm}
+% 
+% ----------------------------------------------------------------------------------------
+\section{The method of analytic solutions} \label{sec:MAS}
+
+The {\it method of analytic solutions} is a very useful technique for
+constructing exact solutions to check the accuracy of a numerical implementation.
+This method, also sometimes known as the {\it method of manufactured
+solutions}~\cite{Roache2002}, or {\it twilight-zone forcing}~\cite{CGNS}
+adds forcing functions to the governing equations and boundary
+conditions. These forcing functions are determined so that some given functions,
+$\bar{u}(\xv,t)$, will be the exact solution to the forced equations.
+With this approach, the error in the discrete solution can be easily determined.
+% 
+To illustate the technique, consider solving the IBVP for the equations of linear elasticity 
+in second-order form,
+\begin{alignat*}{3}
+    \rho \uv_{tt} &= (\lambda+\mu) \grad(\grad\cdot\uv) + \mu \Delta \uv + \fv , \quad && \mbox{for $\xv\in\Omega$}, \\
+   \uv(x,0) &= \uv_0(\xv),~~  \uv_t(x,0) = \uv_1(\xv),  &&\mbox{for $\xv\in\Omega$, at $t=0$}, \\
+   \uv(\xv,t) &= \gv(\xv,t),\qquad && \mbox{for $\xv\in\partial\Omega$}.
+\end{alignat*}
+Any given smooth function, $\bar \uv(\xv,t)$, will be an exact solution of the IBVP if we set
+the forcing function, initial conditions and boundary conditions as 
+\begin{align*}
+ \fv(\xv,t) &= \rho \bar\uv_{tt} - (\lambda+\mu) \grad(\grad\cdot\bar\uv) - \mu \Delta \bar\uv, \\
+ \uv_0(\xv) &= \bar \uv(\xv,0), ~~ \uv_1(\xv) = \bar \uv_t(\xv,0), ~~\mbox{and}~~ \gv(\xv,t) = \bar \uv(\xv,t). 
+\end{align*}
+In our numerical implementation, we have a number of choices available for $\bar
+\uv$, including polynomials, trigonometric functions, and exponential functions,
+among others. 
+% The exact form of the analytic solution we use in each case will be given
+% in subsequent sections. 
+
+% In this section we present convergence results using the 
+% method of analytic solutions. 
+
+For the two-dimensional results given in the tables we use a trigonometric exact solution given by
+\begin{align}
+\bar u_1 &=\half \cos(f_x \pi x) \cos(f_y \pi y ) \cos(f_t \pi t),  \\
+\bar u_2 &=\half \sin(f_x \pi x) \sin(f_y \pi y ) \cos(f_t \pi t).  \\
+\end{align}
+For the first-order system we also define exact solutions for the 
+velocities and stresses (**fix me : these are all currently the same function ***)
+\begin{align}
+\bar v_1 &=\half \cos(f_x \pi x) \cos(f_y \pi y ) \cos(f_t \pi t),  \\
+\bar v_2 &=\half \cos(f_x \pi x) \cos(f_y \pi y ) \cos(f_t \pi t),  \\
+\bar \sigma_{11} &=\half \cos(f_x \pi x) \cos(f_y \pi y ) \cos(f_t \pi t),  \\
+\bar \sigma_{12} &=\half \cos(f_x \pi x) \cos(f_y \pi y ) \cos(f_t \pi t),  \\
+\bar \sigma_{21} &=\half \cos(f_x \pi x) \cos(f_y \pi y ) \cos(f_t \pi t),  \\
+\bar \sigma_{22} &=\half \cos(f_x \pi x) \cos(f_y \pi y ) \cos(f_t \pi t),  
+\end{align}
+
+
+\clearpage
+\subsection{Results for the cic grid, trigonometric exact solution and displacement boundary conditions}
+These tables show results for SOS-NC, SOS-C and FOS-G.
+\input \smTzDir/tz/tz.cic.nc.d.trig.ConvTable.090519.tex
+\input \smTzDir/tz/tz.cic.nc.d.trig.ConvTable.tex
+\input \smTzDir/tz/tz.cic.c.d.trig.ConvTable.tex
+\input \smTzDir/tz/tz.cic.g.d.trig.ConvTable.tex
+
+\clearpage
+\subsection{Results for the cic grid, trigonometric exact solution and traction boundary conditions}
+These tables show results for SOS-NC, SOS-C and FOS-G.
+\input \smTzDir/tz/tz.cic.nc.sf.trig.ConvTable.tex
+\input \smTzDir/tz/tz.cic.c.sf.trig.ConvTable.tex
+\input \smTzDir/tz/tz.cic.g.sf.trig.ConvTable.tex
+
+
+% -----------------------------------------------------------------
+\clearpage
+\subsection{Results for the sphere grid, trigonometric exact solution and displacement boundary conditions}
+These tables show results for SOS-NC, SOS-C and FOS-G.
+\input \smTzDir/tz/tz.sphere.nc.d.trig.ConvTable.tex
+\input \smTzDir/tz/tz.sphere.c.d.trig.ConvTable.tex
+% \input \smTzDir/tz/tz.sphere.g.d.trig.ConvTable.tex
+
+
+% -----------------------------------------------------------------
+\clearpage
+\subsection{Results for the sphere in a box grid, trigonometric exact solution and displacement boundary conditions}
+These tables show results for SOS-NC, SOS-C and FOS-G.
+\input \smTzDir/tz/tz.sib.nc.d.trig.ConvTable.tex
+\input \smTzDir/tz/tz.sib.c.d.trig.ConvTable.tex
+\input \smTzDir/tz/tz.sib.g.d.trig.ConvTable.tex
+
+% -----------------------------------------------------------------
+\clearpage
+\subsection{Results for the sphere in a box grid, trigonometric exact solution and traction boundary conditions}
+These tables show results for SOS-NC, SOS-C and FOS-G.
+\input \smTzDir/tz/tz.sib.nc.sf.trig.ConvTable.tex
+\input \smTzDir/tz/tz.sib.c.sf.trig.ConvTable.tex
+\input \smTzDir/tz/tz.sib.g.sf.trig.ConvTable.tex
+
+

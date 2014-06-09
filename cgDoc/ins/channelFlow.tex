@@ -1,0 +1,58 @@
+\subsection{Flow in periodic channel}\label{sec:channelFlow}
+
+The flow through a periodic channel is simulated with the AFS24 scheme.
+Scripts for this case can be found in {\tt cg/ins/runs/periodicChannel}. 
+The flow is driven by a pressure gradient. An initial perturbation is
+added to excite the turbulence. The computations on finer
+grids use coarser grid solutions as initial conditions.
+The channel covers the domain $[-1,1]\times[0,2\pi]$. 
+The grid $G^{(j)}$ for the channel has $64 j$ grid points in the axial direction. The gridlines
+are stretched near the upper and lower walls by a factor of $5$. The viscosity is $\nu=10^{-5}$. 
+For grid $G^{(16)}$ the finest grid-spacing normal to wall is apprximately 1.22e-3. 
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{8.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0}{.21}{.45}{.40}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,-.75) rectangle (18,12.5);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,9.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel128Vorticity}{\figWidtha}};
+ \draw (9,9.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel128StreamLines}{\figWidtha}};
+ \draw (9,12.0) node[draw,fill=white,anchor=south] {\scriptsize Coarse grid: $G^{(2)}$};
+%
+ \draw (0,5.5) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel256Vorticity}{\figWidtha}};
+ \draw (9,5.5) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel256StreamLines}{\figWidtha}};
+ \draw (9,8.5) node[draw,fill=white,anchor=south] {\scriptsize Medium grid: $G^{(4)}$};
+%
+ \draw (0,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel512Vorticity}{\figWidtha}};
+ \draw (9,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel512StreamLines}{\figWidtha}};
+ \draw (9,5.0) node[draw,fill=white,anchor=south] {\scriptsize Fine grid: $G^{(8)}$};
+%
+\begin{scope}[yshift=-3.5cm]
+ \draw (0,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel1024Vorticity}{\figWidtha}};
+ \draw (9,2.0) node[anchor=south west] {\trimfig{\insDocDir/fig/pChannel1024StreamLines}{\figWidtha}};
+ \draw (9,5.0) node[draw,fill=white,anchor=south] {\scriptsize Finer grid: $G^{(16)}$};
+\end{scope}
+%
+%
+%   \draw[step=1cm,gray] (0,0) grid (18,12);
+%   \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Turbulent flow through a periodic channel on grids of increasing resolution. Left column: vorticity.
+    Right column: streamlines. The vorticity is shown on the scale $[-5,5]$.} 
+\label{fig:periodicChannelFlow}
+\end{figure}
+}
+
+Commands to generate grids:
+\begin{verbatim}
+   ogen -noplot channelArg -order=4 -factor=2 -ml=2
+   ogen -noplot channelArg -order=4 -factor=4 -ml=3
+   ogen -noplot channelArg -order=4 -factor=8 -ml=4
+   ogen -noplot channelArg -order=4 -factor=16 -ml=5
+   ogen -noplot channelArg -order=4 -factor=32 -ml=5
+   ogen -noplot channelArg -order=4 -factor=64 -ml=6
+\end{verbatim}

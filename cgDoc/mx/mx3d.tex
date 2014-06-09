@@ -1,0 +1,234 @@
+%-----------------------------------------------------------------------
+% Notes on elements of the 3D Maxwell Solver
+% --------------------------------------------
+\documentclass[11pt]{article} 
+
+\input documentationPageSize.tex
+%% \pagestyle{empty}
+
+% \addtolength{\oddsidemargin}{-.975in}
+% \addtolength {\textwidth} {2.0in}
+
+% \addtolength{\topmargin}{-1.0in}
+% \addtolength {\textheight} {1.5in}
+
+% \voffset=-1.25truein
+% \hoffset=-1.truein
+% \setlength{\textwidth}{6.75in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\input homeHenshaw
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+% or use the epsfig package if you prefer to use the old commands
+\usepackage{epsfig}
+\usepackage{calc}
+\input clipFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+
+\newcommand{\Gc}{{\mathcal G}}
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ec}{{\mathcal E}}
+\newcommand{\Ic}{{\mathcal I}}
+
+\newcommand{\eps}{\epsilon}
+\newcommand{\kappav}{{\boldsymbol\kappa}}
+
+\newcommand{\dt}{{\Delta t}}
+% \newcommand{\figWidth}{5cm}
+
+\newcommand{\ee}{{\rm e}}
+\newcommand{\maxNorm}[1]{\|#1\|_\infty} 
+\newcommand{\curl}{\grad\times}
+
+\newcommand{\bogus}[1]{}
+
+\newcommand{\tableFont}{\footnotesize}
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+
+\begin{document}
+ 
+\title{Notes On Solving Maxwell's Equations with Three-Dimensional Interfaces}
+
+\author{
+Bill Henshaw \\
+% \  \\
+% Centre for Applied Scientific Computing, \\
+% Lawrence Livermore National Laboratory, \\
+% henshaw@llnl.gov 
+}
+ 
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+These notes discuss the enhancements made to the cgmx solver for Maxwell's equations
+to solve three-dimensional problems with material interfaces in parallel. 
+The approach used in cgmx is described in detail in the paper~\cite{max2006b}.
+
+The main tasks of the current work are
+\begin{itemize}
+  \item implement the interface jump conditions for Maxwell's equations in three-dimensions.
+  \item parallelize the solution to the interface equations.
+  \item verify the 3D interface approximations by comparing to known solutions.
+  \item apply the new capabilities to modeling the transmission through a wavy interface between glass and air.
+  \item build surface grids for 3D AFM data (requires smoothing of the AFM data).
+\end{itemize}
+
+
+
+The initial conditions and boundary conditions often use the plane wave solution
+given by 
+\begin{align*}
+  \Ev &= \sin( 2\pi (\kv\cdot\xv - \omega t ))~\av, \\
+  \Hv &= \sin( 2\pi (\kv\cdot\xv - \omega t ))~\bv, \\
+  \omega & = c_m \vert \kv \vert, \\
+  c_m &= { 1 \over \sqrt{ \epsilon \mu}}   \qquad \text{(speed of light in the material)} ~.
+\end{align*}
+where $\kv=(k_x,k_y,k_z)$, $\vert \kv \vert = \sqrt{ k_x^2 + k_y^2 + k_z^2 }$,
+$\av=(a_x,a_y,a_z)$, and $\bv=(b_x,b_y,b_z)$ satisfy 
+\begin{align}
+  \kv\cdot\av &=0, ~~\kv\cdot\bv=0, ~~\mbox{(from $\grad\cdot\Ev=0$ and $\grad\cdot\Hv=0$)}, \\
+  \bv &= \sqrt{\frac{\epsilon}{\mu}}~{\kv\times\av \over \vert \kv \vert}, 
+       ~~\mbox{(from $\mu \Hv_t = -\grad\times\Ev$)} .  \label{eq:bvFromav} 
+\end{align}
+Thus given $\av$ with $\kv\cdot\av =0$, $\bv$ is determined by~\eqref{eq:bvFromav}.
+The intensity (defined below) for this plane wave solution is
+\begin{align*}
+  \Ic &= \frac{1}{4}~c_m~( \epsilon \vert \av\vert^2 + \mu \vert \bv\vert^2 ) 
+               ~= \frac{1}{2}~c_m~\epsilon \vert \av\vert^2. 
+\end{align*}
+
+
+% 
+The energy density $\Ec=\Ec(\xv,t)$ (energy per unit volume) is 
+\begin{equation}
+  \Ec = \half \epsilon \vert \Ev \vert^2  + \half \mu \vert \Hv \vert^2 ~.
+\end{equation}
+The intensity $\Ic=\Ic(\xv)$ is the time averaged energy density times $c$, 
+\begin{align*}
+  \Ic &= {1\over P} \int_0^P \half c\eps \vert \Ev \vert^2 + \half c \mu \vert \Hv \vert^2  ~dt ~~
+       = \half c \eps \overline{\vert \Ev \vert^2} + \half c \mu \overline{\vert \Hv \vert^2} ~~
+       = \half\sqrt{ \eps\over \mu}~ \overline{\vert \Ev \vert^2} + 
+         \half\sqrt{ \mu\over\eps}~ \overline{\vert \Hv \vert^2},
+\end{align*}
+where $P$ is the period. The units of intensity are power per unit area $[J/(s~m^2)]=[W/m^2]$.
+
+
+%-------------------------------------------------------------------------------------------------
+\section{Interface Jump Conditions}
+
+
+The basic jump conditions at a material interface are 
+\begin{alignat}{3}
+  [ \epsilon \nv\cdot\Ev] & =0 &\qquad& [\mu \nv\cdot\Hv] =0   \label{eq:jumpN0}\\
+  [ \tau\cdot \Ev] &=0         &\qquad& [ \tau\cdot\Hv ] =0    \label{eq:jumpT0}
+\end{alignat}
+Here $\tau$ represents a tangent to the material interface. Since there are two linearly independent
+tangents, $\tau_m$, $m=1,2$, there will be two linear independent conditions
+$[\tau_m\cdot \Ev]=0$, $m=1,2$.
+
+By taking time derivatives of the governing equations it follows that for $m=0,1,2,3,\ldots$, 
+\begin{alignat}{3}
+  [ \epsilon\nv\cdot\Delta^m \Ev/(\epsilon\mu)^m] & =0  
+          &\qquad& [\mu \nv\cdot\Delta^m\Hv/(\epsilon\mu)^m] =0 \label{eq:jumpNm}\\
+  [ \tau\cdot\Delta^m \Ev/(\mu\epsilon)^m] &=0 
+          &\qquad& [ \tau\cdot\Delta^m\Hv/(\mu\epsilon)^m ] =0    \label{eq:jumpTm} \\
+  [ \Div(\Delta^m\Ev)] & =0               &\qquad& [\Div(\Delta^m\Hv)] =0  \\
+  [ \mu^{-1}\tau\cdot\curl\Delta^m\Ev/(\mu\epsilon)^m] &=0    
+          &\qquad& [ \epsilon^{-1}\tau\cdot\curl\Delta^m\Hv/(\mu\epsilon)^m ] =0  \label{eq:jumpTmII}
+\end{alignat}
+These interface jump conditions impose conditions for each spatial derivative of the solution.
+
+Another way to write the jump conditions~\eqref{eq:jumpNm} through ~\eqref{eq:jumpTmII} that
+doesn't involve the tangent vectors $\tauv$ is as 
+\begin{align}
+  \Big[ \big(\Delta^m \Ev  + ( (\epsilon-1) \nv\cdot\Delta^m\Ev )~\nv\big)/(\epsilon\mu)^m \Big] &=0, \\
+  \Big[ \big(\mu^{-1}(\curl\Delta^m\Ev - (\nv\cdot \curl\Delta^m\Ev)~\nv)
+             + \Div(\Delta^m\Ev)~\nv  \big)/(\epsilon\mu)^m \Big] &=0,
+\end{align}
+and 
+\begin{align}
+  \Big[ \big(\Hv  + ( (\mu-1) \nv\cdot\Hv )~\nv\big)/(\epsilon\mu)^m \Big] &=0 , \\
+  \Big[ \big(\epsilon^{-1}(\curl\Delta^m\Hv - (\nv\cdot \curl\Delta^m\Hv)~\nv )
+             + \Div(\Delta^m\Hv)~\nv  \big)/(\epsilon\mu)^m \Big] &=0 ~.
+\end{align}
+The former equations~\eqref{eq:jumpNm}-\eqref{eq:jumpTmII} follow by taking the
+dot product of the above equations with $\nv$ or $\tauv$.  This latter form is 
+used when discretizing the equations since there is no need to define
+tangent vectors.
+
+
+%-------------------------------------------------------------------------------------------------
+\clearpage 
+\input magneticFromElectricField
+
+
+
+
+\clearpage
+\input scatPlaneInterface
+
+% ----------------------------------------------------------------------------------
+\clearpage
+\section{Scattering by a dielectric sphere}
+\input scatDielectricSphere
+
+\clearpage
+\input mx3dParallel
+
+
+\clearpage
+\input scatBump3d
+
+% -------------------------------------------------------------------------------
+\input ../nif/afm/afm3d
+
+
+\clearpage
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\end{document}
+
+
+% ----------------------------------------------------------------------------------------------------------
+
+
+

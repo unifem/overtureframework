@@ -1,0 +1,40 @@
+\subsection{Centrifugal pump}\label{sec:centrifugalPump}
+
+This example shows the simulation of a centrifugal pump.
+Fluid flows into the domain through the central core and is accelerated by the
+counter-clockwise rotating blades before exiting at the top outlet.
+The grid was constructed with the ogen command file {\tt pump2dGrid.cmd}. The
+command file for cgins was {\tt pump2d.cmd}. Thanks to Franck Monmont for help
+with the problem.
+
+
+{
+\newcommand{\figWidthp}{8.cm}
+\newcommand{\trimfig}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.0}{.0}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (16.,16.5);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0, 8) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/pump8i0p5SLt0p5}{\figWidthp}};
+  \draw ( 8.0, 8) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/pump8i0p5pt0p5}{\figWidthp}};
+  \draw ( 0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/pump8i0p5SLt4p0}{\figWidthp}};
+  \draw ( 8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/pump8i0p5pt4p0}{\figWidthp}};
+%%  \draw ( 5.5, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShock32Schlieren10}{\figWidth}};
+%%  \draw (11.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShockMassZero16l1r4Dirk3Av1Schlieren10}{\figWidth}};
+% 
+%   \draw ( 0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShock4l1r4Schlieren10}{\figWidth}};
+%   \draw ( 5.5, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShock8l1r4Schlieren10}{\figWidth}};
+%%  \draw (11.0,5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShockMassZero64Dirk3Av1Schlieren10}{\figWidth}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,16);
+\end{tikzpicture}
+\end{center}
+  \caption{Centrifugal pump. Streamlines and pressure at $t=0.5$ (top) and $t=4.0$ (bottom). }
+  \label{fig:centrifugalPump}
+\end{figure}
+}
+
+

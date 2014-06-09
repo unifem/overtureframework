@@ -1,0 +1,17 @@
+\subsection{Choosing parameters for the AFS scheme} \label{sec:AFSparameters}
+
+
+The AFS scheme has a number of parameters. Choosing 
+values for these parameters may require a little trial and error (at least for now).
+
+The AFS scheme uses an iteration to solve the factored equations on overlapping grids
+to some tolerance $\epsilon_{\rm AFS}$. 
+The number of iterations depends on a tolerance as well as the CFL number:
+\begin{description}
+  \item[\quad cfl] : The AFS scheme can run at CFL numbers greater than 1. A value of 
+      cfl=2 will usually always work, but sometimes values up to cfl=7 can be used.
+      range 1 to 7 can be used, depending on the problem. 
+  \item[\quad AF correction relative tol] : $\epsilon_{\rm AFS}$
+  \item[\quad max number of AF corrections] : maximum number of iterations allowed. The code
+     will intentionally halt if the iterations appear to be diverging.
+\end{description}

@@ -1,0 +1,122 @@
+\newcommand{\travelingDir}{\homeHenshaw/cgDoc/sm}
+% 
+\section{Traveling wave solutions}
+\newcommand{\kappavhat}{\hat{\kappav}}
+
+Consider the equations of linear elasticity, 
+\begin{align*}
+  \rho \uv_{tt} &= (\lambda+\mu) \grad(\grad\cdot\uv) + \mu \Delta \uv,
+\end{align*}
+which can be written as 
+\begin{align}
+   \uv_{tt}  &= A \uv_{xx} + B \uv_{xy} + C \uv_{yy} .  \label{eq:SOSabc}
+\end{align}
+Let us look for traveling wave solutions of the form
+\begin{align*}
+  \uv &= \fv( \kappav\cdot\xv - c t ) = \fv(\xi), \\
+  \xi &= \kappav\cdot\xv - c t ,
+\end{align*}
+where $\kappa=\vert\kappav\vert=1$.
+Subsituting the traveling wave solution into~\eqref{eq:SOSabc} gives the eigenvalue
+problem
+\begin{align*}
+  \Big[ -c^2 \Iv + \kappa_1^2 A + \kappa_1\kappa_2 B + \kappa_2^2 B \Big]\fv'' &=0 
+\end{align*}
+The eigenvalues are
+\begin{align*}
+  c_p^2 = \frac{(\lambda+2\mu)}{\rho}, ~~c_s^2 = \frac{\mu}{\rho},
+\end{align*}
+with corresponding eigenfunctions 
+\begin{align*}
+  \fv_m &= \phi_m(\xi) \ev^m, ~ m=p,s, \\
+  \ev^p &= \begin{bmatrix}  \kappa_1 \\ \kappa_2 \end{bmatrix} ~,~~
+  \ev^s = \begin{bmatrix}  \kappa_2 \\ -\kappa_1 \end{bmatrix} ~,
+\end{align*}
+where $\phi_m=\phi_m(\xi)$ are arbitrary functions of $\xi$.
+(Note that we also have the solution with $\fv''=0$, i.e. $\uv(x,t) = \av + \bv\xi$ for any $c$.)
+We thus have traveling wave solutions for p-waves and -s-waves
+\begin{align*}
+   \uv_p(x,t) &= \ev^p \phi_p(\xi), ~~\xi=\kappav\cdot\xv - c_p t, ~~
+   c_p = \sqrt{\frac{(\lambda+2\mu)}{\rho}},  \\
+   \uv_s(x,t) &= \ev^s \phi_s(\xi), ~~\xi=\kappav\cdot\xv - c_s t, ~~
+   c_s = \sqrt{\frac{\mu}{\rho}}.
+\end{align*}
+The velocity and stress tensor are given by 
+\begin{align*}
+  \vv_m &= \partial_t \uv_m = -c_m \phi'(\xi)~\ev^m, \\
+  \partial_{x_i} \uv_m &= \kappa_i \phi'(\xi)~\ev^m, \\
+  \sigma_{ij}^m &= \lambda \grad\cdot\uv_m \delta_{ij} + \mu (\partial_{x_j} u_i + \partial_{x_i} u_j ) \\
+    &= \Big\{ \lambda( \kappav\cdot\ev^m)\delta_{ij} + \mu( \kappa_j e^m_i + \kappa_i e^m_j )\Big\} \phi_m'
+\end{align*}
+%             &= \lambda (\kappa_1+\kappa_2)\delta_{ij} + \mu( \kappa_j e^m_i + \kappa_i e^m_j)\Big\} \phi_m'
+
+Let us now consider particular traveling wave solutions where the 
+velocity, $\vv_m=\partial_t \uv_m$ is piecewise constant. One such solution is given by 
+\begin{align*}
+  \uv_m (\xi)  &= \begin{cases}  -\xi ~v_0/c_m~\ev^m  & \mbox{for $\xi<0$}, \\
+                                 0  & \mbox{for $\xi>0$}  \end{cases}, \\
+  \vv_m (\xi)  &= \begin{cases}  v_0\ev^m  & \mbox{for $\xi<0$}, \\
+                                 0  & \mbox{for $\xi>0$},\end{cases}
+\end{align*}
+\newcommand{\Ht}{\widetilde{H}}
+Define
+\begin{align*}
+  \Ht(\xi) &= \begin{cases}  1  & \mbox{for $\xi<0$}, \\
+                             0 & \mbox{for $\xi>0$} \end{cases}, \\
+  G(\xi) &= \begin{cases}  \xi & \mbox{for $\xi<0$}, \\
+                          0  & \mbox{for $\xi>0$} \end{cases}, \\
+\end{align*}
+Here $\Ht(\xi)=1-H(\xi)$ where $H(\xi)$ is the Heaviside function and $G(\xi)=-\int_\xi^{\infty} \Ht(x)~dx$.
+Then
+\begin{align*}
+  \phi_m(\xi) &= -v_0/c_m~G(\xi), \\
+  \phi_m'(\xi) &= -v_0/c_m~\Ht(\xi), \\
+  \uv_m (\xi)  &= -v_0/c_m~\ev^m~G(\xi), \\
+  \vv_m (\xi)  &=  v_0\ev^m \Ht(\xi), 
+\end{align*}
+and the stress tensor is
+\begin{align*}
+  \sigma_{ij}^p &= \big\{ \lambda\delta_{ij} + 2\mu\kappa_i\kappa_j \big\}~\phi_p', \\
+  \sigma_{ij}^s &= \big\{                      \mu( \kappa_j e^s_i + \kappa_i e^s_j ) \big\}~\phi_s', \\
+\end{align*}
+or explicitly in two-dimensions
+\begin{align*}
+  \sigma_{ij}^p &=  \begin{bmatrix}  \lambda+2\mu\kappa_1^2 & 2\mu\kappa_1\kappa_2\\
+                                    2\mu\kappa_1\kappa_2 & \lambda+2\mu\kappa_2^2\\
+                    \end{bmatrix} ~\phi_p' , \\
+  \sigma_{ij}^s &=  \begin{bmatrix}  2\mu\kappa_1\kappa_2 & \mu(-\kappa_1^2+\kappa_2^2)\\
+                                    \mu(-\kappa_1^2+\kappa_2^2) &  -2\mu\kappa_1\kappa_2\\
+                    \end{bmatrix}~\phi_s' .
+\end{align*}
+
+% --------------------------------------------------------------------------
+\subsection{Traveling Wave Convergence Results}
+
+Here are some numerical results when solving for a traveling wave solution. The solution consisted
+of a p-wave and s-wave. 
+These tables computed using
+{\tt conv.p traveling.conv [args]} in the {\tt cg/sm/conv} dir. The errors and rates are to first order
+bascially the same for all the methods. 
+\begin{enumerate}
+  \item Table~\ref{table:traveling.nc.max} : SOS, non-conservative, max-norm : $\rate(\uv)=0.83$.
+  \item Table~\ref{table:traveling.nc.l1} : SOS, non-conservative, $L_1$-norm : $\rate(\uv)=1.57$.
+  \item Table~\ref{table:traveling.c.max} : SOS, conservative, max-norm : $\rate(\uv)=0.62$.
+  \item Table~\ref{table:traveling.c.l1} : SOS, conservative, $L_1$-norm : $\rate(\uv)=1.36$.
+  \item Table~\ref{table:traveling.g.max} : FOS, Godunov, max-norm : $\rate(\uv)=0.75$, $\rate(\vv)=0$, $\rate(\sigmav)=0$.
+  \item Table~\ref{table:traveling.g.l1} : FOS, Godunov, $L_1$-norm : $\rate(\uv)=1.37$, $\rate(\vv)=0.63$, $\rate(\sigmav)=0.64$.
+\end{enumerate}
+
+% \renewcommand{\tableFont}{\footnotesize}
+% \renewcommand{\tableFont}{\tiny}
+\clearpage
+Max-norm results for the traveling waves:
+\input \travelingDir/traveling/traveling.nc.max.ConvTable.tex
+%
+\input \travelingDir/traveling/traveling.c.max.ConvTable.tex
+\input \travelingDir/traveling/traveling.g.max.ConvTable.tex
+\clearpage
+$L_1$-norm results for the traveling waves:
+\input \travelingDir/traveling/traveling.nc.l1.ConvTable.tex
+\input \travelingDir/traveling/traveling.c.l1.ConvTable.tex
+\input \travelingDir/traveling/traveling.g.l1.ConvTable.tex
+

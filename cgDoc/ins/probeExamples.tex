@@ -1,0 +1,37 @@
+%
+% ==============================================================================================================
+\section{Probe examples} \label{sec:probeExamples}
+
+
+In this section we provide various examples of using probes
+to query the simulation.
+
+
+
+% -----------------------------------------------------------------
+\subsection{Temperature and heat flux probes}
+
+\newcommand{\kThermal}{\mathcal{K}}
+\subsubsection{Heated Square or Box}
+
+We consider heat square transfer in the 2D unit square $\Omega=[0,1]^2$ or 3D unit box, $\Omega=[0,1]^3$. 
+The Cgins command file {\tt heatFlux.cmd} can be used to run various cases.
+
+
+\paragraph{2D strip:} We solve on a strip (periodic in $y$), 
+\begin{align}
+ &   T_t = \kappa T_{xx} + f(x), \qquad 0<x<1, \\
+ &   T(0,y,t)=0, \quad T(1,y,t)=0.
+\end{align}
+For $f=f_0$ the exact steady state solution, boundary flux and average temperature are
+\begin{align}
+&   T = \frac{f_0}{2\kappa} x (1-x) , \\
+&  k T_n(0,y)= -k T_x(0,y) =  -\frac{k f_0}{2\kappa}, \\
+&  \bar{T} = \int_0^1\int_0^1 T(x,y) \, dx dy = -\frac{k f_0}{12\kappa}
+\end{align}
+% For $\kThermal=.1$, $\kappa=1.$ and $f_0=12$ we compute ...
+
+% probeRegion pr=0: t=1.000e+01, average = -6.000e-01
+% probeRegion pr=1: t=1.000e+01, average = -6.000e-01
+% probeRegion pr=2: t=1.000e+01, average = 1.000e+00
+

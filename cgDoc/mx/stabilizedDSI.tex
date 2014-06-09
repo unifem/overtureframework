@@ -1,0 +1,781 @@
+\documentclass[12pt]{article}
+
+%\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+%\setlength{\textheight}{9.5in}    % page height
+% \renewcommand{\baselinestretch}{1.5}    % "double" spaced
+
+\hbadness=10000 % \tolerance=10000
+\sloppy \hfuzz=30pt
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage[boxed]{algorithm2e}
+
+\newcommand{\edotn}{ $e$ }
+\newcommand{\half}{\frac{1}{2}}
+
+\begin{document}
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\LARGE A Stabilized DSI Scheme for Maxwell's Equations on Hybrid Grids} \\
+\vspace{2\baselineskip}
+% \vspace{\baselineskip}
+K.K. Chand and W.D. Henshaw\\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+% Livermore, CA, 94551.  \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+
+% \vspace{\baselineskip}
+% UCRL-MA-123456
+
+\vspace{2\baselineskip}
+\end{flushleft}
+
+\begin{abstract}
+\end{abstract}
+
+\tableofcontents
+\section{Introduction}\label{sec:intro}
+%% The discrete surface integral (DSI) scheme of Madsen~\cite{madsen:94}
+%% solves Maxwell's curl equations using a discrete approximation based
+%% on Stokes' theorem.  The {DSI} method is a generalization of the
+%% popular Yee scheme on Cartesian grids.  Stability of the DSI method
+%% (and related methods) has been studied by a number of authors
+%% including Brandon and Rambo~\cite{brandon:94} and Gedney and
+%% Rodin~\cite{gedney}.  It has been shown that the method is unstable for 
+%% nonorthogonal grids.  While Gedney has presented a method that is stable
+%% for hexahedral grids, a general stabilization method for mixed element
+%% unstructured meshes has yet to be developed~\cite{gedney}.  
+
+
+For linear, isotropic materials, Maxwell's curl equations
+\begin{eqnarray}
+E_t &=&\frac{1}{\epsilon}\nabla \times H + J \label{eq:mxe}\\
+H_t &=& -\frac{1}{\mu}\nabla \times E + F\label{eq:mxh}
+\end{eqnarray}
+model the time dependent behavior of electric, $E$, and magnetic, $H$,
+fields.  The electric and magnetic permeability coefficients,
+$\epsilon$ and $\mu$, are properties of the material in which the
+fields are applied.  $J$, the electric current, and $F$ represent
+forcing terms in the electric and magnetic fields respectively.
+To model the physical behavior of these fields, two constraints are
+neccessary
+\begin{eqnarray}
+\nabla\cdot H &=& 0,\\
+\nabla\cdot E &=& \rho
+\end{eqnarray}
+where $\rho$ is the charge density in the medium.  Of course, suitable
+boundary conditions are assumed.  For example the so-called
+``Perfect Electrical Conductor'', or PEC, condition
+\begin{eqnarray*}
+\left.\nabla\times E\right|_{\partial \Omega} = 0
+\end{eqnarray*}
+results in a dirichlet condition on the component of $E$ tangential to
+the boundary, $\partial\Omega$, and a Neumann condition on the normal
+component of $H$.
+
+
+\subsection{The Discrete Surface Integral (DSI) discretization}
+The derivation of the DSI discretization begins by rewritting Equations~\ref{eq:mxe} and ~\ref{eq:mxh}
+using Stokes' theorem to obtain
+\begin{eqnarray}
+\frac{\partial}{\partial t}\int_S (E\cdot{\bf n})~dS &=& \frac{1}{\epsilon}\int_S (\nabla \times H + \epsilon J)\cdot{\bf n}~dS \nonumber\\
+ &=&\frac{1}{\epsilon}\oint_{\partial S} H\cdot{\bf t}~ds+\int_S J\cdot{\bf n}~dS\label{eq:curlH}\\
+\frac{\partial}{\partial t}\int_S (H\cdot{\bf n})~dS &=& -\frac{1}{\mu}\int_S (\nabla \times E - \mu F)\cdot{\bf n}~dS\nonumber\\
+ &=&-\frac{1}{\mu}\oint_{\partial S} E\cdot{\bf t}~ds+\int_S F\cdot{\bf n}~dS\label{eq:curlE}
+\end{eqnarray}
+where $S$ is a surface, $\partial S$ its boundary, ${\bf n}$ the
+surface normal and ${\bf t}$ the tangent to $\partial S$.  As depicted
+by Figure~\ref{fig:dsigrid}, the DSI scheme introduces a staggered
+grid with $E\cdot{\bf n}$ centered on mesh edges and ${H\cdot{\bf n}}$
+located at faces.  For the $E$ field projections, a surface is formed
+around each edge using the centers of adjacent cells.  $H$ projections
+use cell faces.  The DSI method discretizes the line integrals
+on the right hand sides of ~\ref{eq:curlH} and ~\ref{eq:curlE} using
+the line segments that bound the edge and face surfaces; the time derivatives
+of the projections are approximated by centered differences with the
+$E$ and $H$ equations staggered in time:
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(0,0)(6,8.8)
+%\psgrid
+%\psgrid[subgriddiv=.5]
+%put this here to get the line overlaps right
+\psline[linewidth=1.5pt,linecolor=blue]{->}(2,1.5)(2.9,2.4)
+\psline[linewidth=1.5pt,linecolor=blue,linestyle=dashed]{-}(2.9,2.4)(2.9,3.9)
+\psline[linewidth=1.5pt,linecolor=blue,linestyle=dashed]{->}(2.9,3.9)(2.9,5.4)
+\psline[linewidth=1.5pt,linecolor=blue,linestyle=dashed]{-}(2.9,5.4)(2,4.5)
+
+% H centering and E.n integration path
+\psline[linewidth=1.5pt,linecolor=red,linestyle=dashed]{-}(1,4)(2,3)
+\psline[linewidth=1.5pt,linecolor=red]{->}(2,3)(3,2)
+\psline[linewidth=1.5pt,linecolor=red]{-}(3,2)(3,3.5)
+\psline[linewidth=1.5pt,linecolor=red]{->}(3,3.5)(3,5)
+\psline[linewidth=1.5pt,linecolor=red]{-}(3,5)(2,6)
+\psline[linewidth=1.5pt,linecolor=red]{->}(2,6)(1,7)
+\psline[linewidth=1.5pt,linecolor=red]{-}(1,7)(1,5.5)
+\psline[linewidth=1.5pt,linecolor=red]{->}(1,5.5)(1,4)
+
+\psline[linewidth=1pt,linecolor=darkgray](3,5)(5,7)(3,8.5)(1,7)
+\psline[linewidth=1pt,linecolor=darkgray](5,7)(5,4)(3,2)
+\psline[linewidth=1pt,linecolor=darkgray,linestyle=dashed](1,4)(3,5.75)(5,4)
+\psline[linewidth=1pt,linecolor=darkgray,linestyle=dashed](3,5.75)(3,8.5)
+\psdots*[dotstyle=+,dotsize=.8,dotangle=22.5,linecolor=blue](2,4.5)
+\rput(2.8,3.8){\makebox(0,0)[r]{\small ${\bf H}\cdot{\bf n}_f$}}
+\rput(1.6,6.8){\makebox(0,0)[c]{\red ${\bf t}_e$}}
+
+% E centering and H.n integration path
+\psline[linewidth=1.5pt,linecolor=blue]{-}(1,.5)(2,1.5)
+\psline[linewidth=1.5pt,linecolor=blue]{->}(2,4.5)(1,3.5)
+\psline[linewidth=1.5pt,linecolor=blue]{-}(1,3.5)(1,2)
+\psline[linewidth=1.5pt,linecolor=blue]{->}(1,2)(1,.5)
+\psdots*[dotstyle=+,dotsize=.8,dotangle=337.5,linecolor=red](2,3)
+\rput(2.4,2.2){\makebox(0,0)[r]{\small ${\bf E}\cdot{\bf n}_e$}}
+\rput(2.2,1.4){\makebox(0,0)[c]{\blue ${\bf t}_f$}}
+
+\psline[linewidth=1pt,linecolor=black]{->}(2,3)(2.8,1.8)
+\psline[linewidth=1pt,linecolor=black]{->}(2,4.5)(1.4,3.4)
+
+\end{pspicture}
+\end{center}
+\caption{The staggered grid used in the DSI scheme places $H$ projections at
+cell faces and $E$ projections at grid edges}
+\end{figure}\label{fig:dsigrid}
+
+\begin{eqnarray}
+%\int_S (E\cdot{\bf n})_t~dS &=& \frac{1}{\epsilon}\oint_{\partial S} {H\cdot{\bf t}}~ds + \int_S (J\cdot{\bf n})\nonumber\\
+e^{n+\frac{1}{2}}_e&=&e^{n-\frac{1}{2}}_e + \frac{\Delta t}{\epsilon}\sum_{edges} {H^n_i\cdot{\bf t}_i} + \Delta tA_e J^n\cdot{\hat {\bf n}}_e\label{eq:adve}\\
+h^{n+1}_f &=&h^{n}_f-\frac{\Delta t}{\mu}\sum_{faces} {E^{n+\frac{1}{2}}_i\cdot{\bf t}_i} + \Delta tA_f F^{n+\frac{1}{2}}\cdot{\hat {\bf n}}_f\label{eq:advh}\\
+e^{n-\frac{1}{2}}_e &=& (E\cdot{\bf n})^{n-\frac{1}{2}}_e\\
+h^n_f &=& (H\cdot{\bf n})^{n}_f.
+\end{eqnarray} 
+Equations~\ref{eq:adve} and~\ref{eq:advh} advance the $E$ and $H$
+projections, $e$ and $h$ respectively, from a previous time level,
+$n$.  $A_e$ is the area associated with an edge while $A_f$ is that of
+a face; $\Delta t$ is the timestep.  Since only the normal components
+of the fields are advanced, the method requires a reconstruction of the
+full field when evaluating the dot products in the summations that
+approximate the line integrals.  In the rare instance when the mesh is
+orthogonal, ${\hat n}_e\cdot{\hat t}_e = 1$, the additional components
+generated by the reconstruction are obviated by the dot product.  If
+the mesh is a Cartesian grid then the method reduces to the well known
+Yee scheme~\cite{yee}.  On general unstructured meshes orthogonality becomes an
+exception rather than the rule.  The standard reconstruction methods
+on such meshes lead to the low accuracy and instability exhibited by
+the DSI method.
+
+Once a reconstruction method has been chosen, we can write the DSI scheme as
+\begin{eqnarray}
+e^{n+\frac{1}{2}} = e^{n-\frac{1}{2}} + \frac{\Delta t}{\epsilon}C_H R_H h^n\label{eq:eop}\\
+h^{n+1} = h^n - \frac{\Delta t}{\mu}C_E R_E e^{n+\frac{1}{2}}\label{eq:hop}
+\end{eqnarray}
+where $R_H$ and $R_E$ are reconstruction operators for the magnetic and electric fields
+and $C_H$ and $C_E$ are the discrete approximations to the curl operator for the
+magnetic and electric fields respectively.   
+
+\subsection{The accuracy of typical DSI field reconstruction methods}
+Let $U_k$ be a field vector located at the centroid of a mesh entity
+(an edge if $U$ represents $E$, a face if $H$) and let $u_k=U_k\cdot{\bf
+n}_k$.  In order to evaluate the dot products in
+Equations~\ref{eq:adve} and~\ref{eq:advh}, $U_k$ must be reconstructed
+from $u_k$ and the values of $u$ at nearby mesh entities.  Typically, this reconstruction
+is expressed as a weighted average of nearby values for $U$ ~\cite{madsen,gedney}
+\begin{eqnarray}
+U_k = \frac{\sum_{j=1}^N w_j U_j}{\sum_j w_j}\label{eq:oldr}
+\end{eqnarray}
+where $w_j$ are weights (to be determined) and $N$ is the number of
+neighbors used in the reconstruction.  Each $U_j$ is determined by solving
+the system
+\begin{eqnarray*}
+\left[\begin{array}{c} {\bf n}_k^T\\
+                {\bf n}_j^T\\
+		{\bf n}_{j+1}^T\end{array}\right]U_j = \left\{\begin{array}{c}u_k\\u_j\\u_{j+1}\end{array}\right\}\\
+\end{eqnarray*}
+where the subscript $j+1$ is understood to mean an entity adjacent to both 
+$k$ and $j$.  Solving this system to determine each $U_j$ ensures that
+the reconstruction satisfies $U_k\cdot{\bf n}_k=u_k$ for any choice of 
+weighting function.  
+
+Ideally the weighting would make Equation~\ref{eq:oldr} into at least
+a linear interpolant of the field values.  Unfortunately, typical
+choices for $w$ do not meet this ideal.  Arithmetic averaging,
+$w_j=1$, remains the most simple method for computing $w_j$ found in
+the literature~\cite{gedney}. A more common choice,
+\begin{eqnarray*}
+w_j={\bf n}_k\cdot{\bf n}_j\times\cdot{\bf n}_{j+1},
+\end{eqnarray*}
+suggested in Madsen's original paper~\cite{madsen} and used by other
+researchers~\cite{gedney,roden}, weights $U_j$ by the volume of the
+parallelpiped formed by ${\bf n}_k$,${\bf n}_j$, and ${\bf n}_{j+1}$.
+On a uniform grid, both weighting methods reproduce the second order
+Yee scheme.  However, general unstructured and curvilinear grids are
+almost never uniform.  When the mesh is nonuniform, these weighting
+methods produce only a first order accurate interpolant.  As an
+example, consider a Cartesian grid stretched in one direction. In the
+stretched direction the reconstruction can be depicted as the 1D
+interpolation at $\alpha h$ in Figure~\ref{fig:interp}.
+\begin{figure}
+\begin{center}
+\begin{pspicture}(0,0)(4,2)
+%\psgrid[subgriddiv=.5]
+\psline{|-|}(0,1)(4,1)
+\psline[linewidth=1pt,linestyle=dashed](1.25,0.8)(1.25,1.2)
+\rput(.625,.8){\makebox(0,0)[c]{$\alpha h$}}
+\rput(2.625,.8){\makebox(0,0)[c]{$(1-\alpha) h$}}
+\rput(0,1.5){\makebox(0,0)[c]{$U_j$}}
+\rput(4,1.5){\makebox(0,0)[c]{$U_{j+1}$}}
+\rput(1.25,1.5){\makebox(0,0)[c]{$U_{k}$}}
+\end{pspicture}
+\caption{The reconstruction of $U_k$ using volume (area in 2D, line in
+1D) weighting is second order accurate in the special case of a
+uniform grid ($\alpha=.5$); otherwise it is only first order accurate.
+}\label{fig:interp}
+\end{center}
+\end{figure}
+Using volume weighting (which reduces to ``line'' weighting in 1D) produces
+\begin{eqnarray*}
+U_k \approx \alpha U_j + \left(1-\alpha\right) U_{j+1}.
+\end{eqnarray*}
+Substituting a Taylor's series expantion about $U_k$ for $U_j$ and $U_{j+1}$ in
+the right hand side 
+\begin{eqnarray*}
+\alpha U_j + \left(1-\alpha\right) U_{j+1} = U_k + h(1-2\alpha)\left.\frac{\partial U}{\partial x}\right|_k + {\cal O}(h^2)
+\end{eqnarray*}
+clearly shows only first order accuracy for this form of
+reconstruction.  While Gedney coyly suggests that corrections are used
+to make the volume weighting second order accurate~\cite{gedney} they
+are niether described nor apparently used in the much of the
+literature.  As will be seen with convergence studies, volume weighted
+reconstruction on a nonuniform mesh quickly increases the
+truncation error of the DSI scheme to ${\cal O}(h)$.  Note that even
+if the projections are advanced with a second order accurate
+discretization, reconstruction of the fields for error and engineering
+analyses will only be first order accurate.
+
+\input{../conv/results/std.rdsimv.quad.square.order2.table.tex}
+\input{../conv/results/std.rdsimv.tri.square.order2.table.tex}
+\input{../conv/results/std.rdsimv.tri.skewsquare.order2.table.tex}
+%\input{../conv/results/std.rdsimv..mb_disk.order2.table.tex}
+
+
+\subsection{Stability of the {DSI} scheme}
+We can attempt to derive an energy estimate for the first order system by considering
+the inner product 
+\begin{eqnarray}
+\left<h^{n+1}+h^n,h^{n+1}-h^n\right> = \left<h^{n+1}+h^n,-\frac{1}{\mu}S_Ee^{n+\frac{1}{2}}\right>.\label{eq:innprod}
+\end{eqnarray}
+where $S_E = \Delta t C_E R_E$ and $S_H =\Delta t C_H
+R_H$.  By writting $S_E = S_H^T + E^T$,
+Equation~\ref{eq:innprod}, 
+\begin{eqnarray}
+\left<h^{n+1}+h^n,h^{n+1}-h^n\right> &=& \left<h^{n+1}+h^n,-\frac{1}{\mu}(S_H^T + E^T)e^{n+\frac{1}{2}}\right>,
+\end{eqnarray}
+can be rewritten into
+\begin{eqnarray}
+|h^{n+1}|^2 - |h^n|^2  &=& -\frac{1}{\mu}\left<(S_H+E)h^{n+1},e^{n+\frac{1}{2}}\right> - \frac{1}{\mu}\left<(S_H+E)h^{n},e^{n+\frac{1}{2}}\right>\\
+                       &=&  -\frac{\epsilon}{\mu}\left<e^{n+\frac{3}{2}}-e^{n+\frac{1}{2}},e^{n+\frac{1}{2}}\right> - \frac{\epsilon}{\mu}\left<e^{n+\frac{1}{2}}-e^{n-\frac{1}{2}},e^{n+\frac{1}{2}}\right> \nonumber\\
+                       & & - \frac{1}{\mu}\left< E(h^{n+1}+h^n), e^{n+\frac{1}{2}}\right>\\
+\mu |h^{n+1}|^2 + \epsilon\left<e^{n+\frac{3}{2}},e^{n+\frac{1}{2}}\right> &=& \mu |h^n|^2 + \epsilon\left<e^{n+\frac{1}{2}},e^{n-\frac{1}{2}}\right> - \left< E(h^{n+1}+h^n), e^{n+\frac{1}{2}}\right>\\
+{\cal E}^{n+1} &=& {\cal E}^n - \left< E(h^{n+1}+h^n), e^{n+\frac{1}{2}}\right>.\label{eq:energy}
+\end{eqnarray}
+If $E=0$, i.e. $S_E = S_H^T$, then Equation~\ref{eq:energy} becomes an
+energy estimate for the system and stability follows by ensuring
+${\cal E}^n$ is positive definite (leading to a timestep restriction).
+In general, however, the reconstruction schemes used on general
+unstructured grids do not produce operators that satisfy $S_E=S_H^T$.
+Hence we cannot prove stability via an energy estimate.
+
+A little more algebra yields a single equation for one of the fields
+\begin{eqnarray}
+h^{n+1} - 2h^n + h^{n-1} = -c^2 \Delta t^2C_E R_E C_H R_H h^n = -c^2S_ES_Hh^n = M h^n.\label{eq:sys2}
+\end{eqnarray}
+Note that this form corresponds to the discretization of the continuous second order
+system 
+\begin{eqnarray}
+H_{tt} = c^2\nabla \times\nabla \times H\label{eq:sys2c}
+\end{eqnarray}
+which can be derived from Equations~\ref{eq:mxe} and~\ref{eq:mxh}.
+Upon the assumption that $M$ has a full set of linearly independent eigenvectors, 
+Equation~\ref{eq:sys2} can be diagonalized using the similarity transformation
+$M=S^{-1} \Lambda S$
+\begin{eqnarray}
+u^{n+1} - 2u^n + h^{n-1} = \Lambda u^n,\label{eq:sys2t}
+\end{eqnarray}
+where $u=Sh$.  Substituting the anasatz $u^n={\tilde u}\kappa^n$ for
+each equation in the system ~\ref{eq:sys2t} produces the
+characteristic equation
+\begin{eqnarray}
+\kappa^2 - (2+\lambda)\kappa +1 = 0\label{eq:kappa}
+\end{eqnarray}
+with $\lambda$ representing an eigenvalue of $M$.  Stability requires
+that $|\kappa|\le 1$.  We begin by considering the roots of
+~\ref{eq:kappa}, $\kappa = \frac{1}{2}(2+\lambda \pm
+\sqrt{(2+\lambda)^2-4})$, when $\lambda$ is real.  If value under
+the radical is negative, then we can write $\kappa =
+\frac{1}{2}(2+\lambda \pm i\sqrt{4-(2+\lambda)^2})$ resulting in
+$|\kappa| =1$; the corresponding condition on $M$ becomes
+$-4<\lambda<0$.  In other words, $M$ must be real and negative
+definite with the timestep controlled by $|\lambda|<4$.
+Unfortuantely, the reconstructions used when evaluating the line
+summations in Equations~\ref{eq:adve} and ~\ref{eq:advh} result in a
+non-symmetric $M$~\cite{gedney}.  When $M$ is non-symmetric we cannot
+show stability since the eigenvalues can have complex pairs in which case
+one of the complex eigenvalues always has a magnitude greater than one.
+
+If $\lambda$ is complex there are no roots of ~\ref{eq:kappa} with
+$|\kappa|=1$ and there is always one root with $|\kappa|>1$.  To show
+that there are no roots such that $|\kappa|=1$, assume that
+$\kappa=e^{i\theta}$ with $\lambda$ complex and substitute into
+~\ref{eq:kappa}.  This ansatz results in
+$\lambda=\sin^2\frac{\theta}{2}$ which is a contradition since
+$\lambda$ must have an imaginary part; hence there are no roots such
+that $|\kappa|=1$ if $\lambda$ is complex.  Noting that the two roots
+of ~\ref{eq:kappa}, $\kappa_1$ and $\kappa_2$ have the property
+\begin{eqnarray}
+|\kappa_1||\kappa_2| = 1
+\end{eqnarray} 
+shows that there is always one root inside the unit circle and one
+outside.  In other words, if $|\kappa_1|<1$ then we must have $|\kappa_2|=\frac{1}{|\kappa_1|}>1$.
+
+Unfortunately this condition usually exists in non-orthogonal grids.
+For example, for the special case of the so-called ``chevron'' grid,
+an arbitrary amount of non-orthognality (i.e. ${\hat n}\cdot{\hat
+t}\ne1$) results in an unstable scheme with an exponential growth rate
+related to the non-orthogality of the mesh~\cite{brandon}.
+
+\subsection{Stability of the DSI scheme in a special case : the Chevron grid}\label{sec:chev}
+\input{chevron.tex}
+
+\section{Improving DSI's accuracy: Least squares field reconstruction}
+We now present a method for accurately reconstructing field values
+by building a least squares interpolant of the field.   
+
+A least squares system can be built using $U_k\cdot{\bf n}_k=u_k$ in addition
+to the corresponding relations for $m$ neighbors to the entity for which the
+reconstruction is begin built.  Expanding $U$ in a Taylor's series about ${\bf x}_k$ 
+yields
+\begin{eqnarray}
+\left[\begin{array}{c|c|c}
+n_k^{1}{\bf v}_k & n_k^{2}{\bf v}_k & n_k^{3}{\bf v}_k\\
+n_1^{1}{\bf v}_1 & n_1^{2}{\bf v}_1 & n_1^{3}{\bf v}_1\\
+\vdots      & \vdots      & \vdots \\
+n_j^{1}{\bf v}_j & n_j^{2}{\bf v}_j & n_j^{3}{\bf v}_j\\
+\vdots      & \vdots      & \vdots \\
+n^{1}_{m}{\bf v}_{m} & n^{2}_{m}{\bf v}_{m} & n^{3}_{m}{\bf v}_{m}\end{array}\right]
+\left\{\begin{array}{c}  {\bf g}^1\\ \\ \hline \\ {\bf g}^2 \\ \\\hline\\ {\bf g}^3\end{array}\right\}
+= \left\{\begin{array}{c} u_k\\ u_1\\\vdots\\u_j\\\vdots\\u_{m}\end{array}\right\}\label{eq:lsq}
+\end{eqnarray}
+where
+\begin{eqnarray*}
+{\bf v}_j = \left\{1, x^1_j-x^1_k, x^2_j-x^2_k, x^3_j-x^3_k\right\}
+\end{eqnarray*}
+are displacements used in the expansion and 
+\begin{eqnarray*}
+{\bf g}^l = \left\{U^l_c,
+\frac{\partial U^l}{\partial x^1}, \frac{\partial U^l}{\partial x^2},\frac{\partial U^l}{\partial x^3}\right\}^T 
+\end{eqnarray*}
+is the vector of coefficients in the Taylor's series.  Gaussian elimination of
+the first row enforces $U_k\cdot{\bf n}_k=u_k$ and produces the system
+\begin{eqnarray}
+\left[\begin{array}{c|c}
+n_k^{1}&\begin{array}{cccccccc} 0& 0 & n_k^{2}& 0& 0 & n_k^{3}& 0& 0\end{array}\\
+\hline\begin{array}{c} 0\\\vdots\\0\end{array} & P
+\end{array}\right]
+\left\{\begin{array}{c} U^1_c\\ \hline\\{\bf g}\\ \\\end{array}\right\}
+= \left\{\begin{array}{c} u_k\\\hline n^1_k u_j-n^1_j u_k\\\vdots\\n^1_k u_{m}-n^1_{m} u_k\end{array}\right\}.
+\end{eqnarray}
+QR factorization is used to compute the pseudoinverse of $P$ which we denote
+$P^{-1}$.  The pseudoinverse provides the least squares solution for $g$ via
+\begin{eqnarray*}
+{\bf g} = P^{-1}\left\{\begin{array}{c}n^1_k u_j-n^1_j u_k\\\vdots\\n^1_k u_{m}-n^1_{m} u_k\end{array}\right\},
+\end{eqnarray*}
+and back substitution recovers the last coefficient, $U^1_c$.  
+
+\begin{figure}
+\begin{center}
+\begin{pspicture}(0,0)(11,6)
+%\psgrid[subgriddiv=.5pt]
+\rput(2.5,3){\epsfig{file=edgen.eps,width=5cm}}
+\rput(2.3,3.2){\makebox(0,0)[c]{$U_k$}}
+\rput(1,3.5){\makebox(0,0)[r]{$U_j$}}
+\rput(3.6,2){\makebox(0,0)[l]{$U_{m}$}}
+\rput(8.5,3){\epsfig{file=facen.eps,width=5cm}}
+\rput(8.3,2.8){\makebox(0,0)[c]{$U_k$}}
+\rput(8.5,4.5){\makebox(0,0)[c]{$U_{m}$}}
+\rput(9.9,2.2){\makebox(0,0)[r]{$U_j$}}
+\end{pspicture}
+\end{center}
+\caption{To gather equations for the least squares reconstruction of the fields,
+edges ($E$ field) use neighbors connected by vertices; faces ($H$ field)
+use neighbors connected via edges.}
+\end{figure}
+
+Once the Taylor's series coefficients have been determined, $U_k$ can
+be expressed by
+\begin{eqnarray}
+U_k = \left\{\begin{array}{c}U^1\\U^2\\U^3\end{array}\right\} &=&
+\left[ \begin{array}{c|c|c} \begin{array}{cccc} 1 & 0 & 0 &0\end{array} & {\bf 0} & {\bf 0}\\
+                            {\bf 0}& \begin{array}{cccc} 1 & 0 & 0&0\end{array} & {\bf 0}\\
+                            {\bf 0}& {\bf 0}&\begin{array}{cccc} 1 & 0 & 0&0\end{array}\end{array}\right]R
+\left\{\begin{array}{c} u_k\\u_1\\\vdots\\u_j\\\vdots\\u_m\end{array}\right\},\\
+R &=& \left[\begin{array}{c|c} \frac{1}{n_k^1} & -\frac{1}{n_k^1} \left\{0,0,1,0,0,1,0,0\right\}P^{-1}\\
+                              \hline\\
+                              -P^{-1}\left\{\begin{array}{c} n^1_1\\\vdots\\n^1_m\end{array}\right\} &
+                              n^1_k P^{-1}\end{array}\right].
+\end{eqnarray}
+
+Some details are required in order to make the method robust.  If
+${\bf n}_k$ happens to be aligned with a coordinate direction only one
+of its components will be nonzero.  In order to avoid having a zero
+value in the first element of the matrix in Equation~\ref{eq:lsq}, we
+permute the blocks of the matrix so that $n^1_k$ corresponds to the
+largest magnitude component of ${\bf n}_k$.  Rank deficiency of the
+least squares problem for $g$ can be prevented by collecting a
+sufficient number of neighboring mesh entities to use in the
+reconstruction.  While a more sophisticated method for computing
+$P^{-1}$ could be used, say a singular value decomposition or QR with
+column pivoting~\cite{matrixcomp}, collecting one additional neighbor
+than is required to form a square system produces an extremely robust
+algorithm.  Additionally, if the least squares problem is
+underdetermined then there is insufficient information to reconstruct
+a full linear interpolant; collecting additional reconstruction data
+prevents this loss of accuracy.
+
+
+
+
+\input{../conv/results/interp.dsimv.quad.square.order2.table.tex}
+\input{../conv/results/interp.dsimv.tri.square.order2.table.tex}
+\input{../conv/results/interp.dsimv.tri.skewsquare.order2.table.tex}
+
+\section{Improving DSI's stability: High order dissipation}
+High frequency, slow growing instabilities such as those exhibited by
+the DSI scheme are often damped by the addition of high order
+dissipative terms to the system~\cite{kbook}.  In wave equations
+expressed as systems with the divergence and gradient operators, the
+Laplacian (or powers of it) is the dissipative term of
+choice~\cite{kbook}.  While the Laplacian could be used to derive a
+dissipative operator for the DSI discretization we suggest the use of
+a method based on the $curl-curl$ operator instead.  In this section,
+we first motivate our choice of the $curl-curl$ operator by
+considering the effects of adding this dissipation to the continuous
+equations.  We also discuss the stabilizing nature of the dissipation
+when the $curl-curl$ operator is perturbed.  Finally, we show how to
+construct a discrete version of the dissipative operator using the
+existing DSI update matrices and examine the stability of the new
+method for the Chevron grid.
+
+\subsection{Dissipation in the continuous case}
+Consider the curl
+equations written with the addition of a dissipative term added to the $H$ equation
+\begin{eqnarray}
+E_t &=&\frac{1}{\epsilon}\nabla \times H \label{eq:mxed}\\
+H_t &=& -\frac{1}{\mu}\nabla \times E +\alpha(\nabla\times\nabla\times)^p H\label{eq:mxhd}
+\end{eqnarray}
+where $\alpha$ is some small constant and $p$ is the number of times
+the $curl-curl$ operator is applied to form the dissipative term
+(e.g. $p=2$ would form a fourth order dissipation).  To examine the
+dissipative effects of the new term, rewrite the system into 
+second order equations for $H$
+\begin{eqnarray}
+H_{tt} -\alpha(\nabla\times\nabla\times)^p H_t -c^2\nabla \times\nabla \times H = 0\label{eq:mxhhd}.
+\end{eqnarray}
+Assuming a periodic domain, Fourier transforming this equation in space yields 
+\begin{eqnarray}
+{\tilde H}_{tt} +\alpha{\tilde P}^p{\tilde H}_t +c^2{\tilde P}{\tilde H} = 0\label{eq:mxhhdf}
+\end{eqnarray}
+where ${\tilde P}$ is the Fourier transform of the $curl-curl$ operator.  
+${\tilde P}$ is symmetric and positive semi-definite, with eigenvalues
+$\lambda_{0,1,2}=\left\{0, |k|^2,|k|^2\right\}$ where $|k|^2=(\omega_x^2 + \omega_y^2 +\omega_z^2)$.
+Since ${\tilde P}$ is symmetric, we can diagonalize Equation~\ref{eq:mxhhdf} leading to the characteristic equations
+\begin{eqnarray}
+\kappa_{\pm i}^2 +\alpha\lambda_i^p\kappa_{\pm i} +c^2\lambda_i=0, i=0,1,2.
+\end{eqnarray}
+where we have used the similarity transformation ${\tilde P} =
+S^{-1}\Lambda S$ and the ansatz $S{\tilde H} = {\tilde u} = {\hat
+u}_ie^{t\kappa_{\pm i}}$. 
+The solution in Fourier space is 
+\begin{eqnarray}
+\kappa_{\pm i} &=& -\frac{1}{2}\alpha\lambda_i^p \pm\frac{1}{2}\sqrt{\alpha^2\lambda_i^{2p}-4c^2\lambda_i}, i=0,1,2\\
+{\tilde u(t)} &=& \left\{\begin{array}{c}A_0\\
+                                    \left(A_1e^{t\kappa_{+1}} + B_1e^{t\kappa_{-1}}\right)\\
+				    \left(A_2e^{t\kappa_{+2}} + B_2e^{t\kappa_{-2}}\right)\end{array}\right\}\\
+              &=& \left\{\begin{array}{c}A_0\\
+                                    e^{-\frac{1}{2}\alpha|k|^{2p} t}\left(A_1e^{t\frac{1}{2}\sqrt{\alpha^2|k|^{4p}-4c^2|k|^2}} +B_1e^{-t\frac{1}{2}\sqrt{\alpha^2|k|^{4p}-4c^2|k|^2}} \right)\\
+                                    e^{-\frac{1}{2}\alpha|k|^{2p} t}\left(A_2e^{t\frac{1}{2}\sqrt{\alpha^2|k|^{4p}-4c^2|k|^2}} +B_2e^{-t\frac{1}{2}\sqrt{\alpha^2|k|^{4p}-4c^2|k|^2}} \right)\end{array}\right\},
+\end{eqnarray}
+where suitable initial conditions specify $A_i$, and $B_i$.  The
+constant term arises from the nullspace of the $curl-curl$ operator.
+The other two terms are damped by $e^{-\frac{1}{2}\alpha|k|^{2p} t}$
+when the descriminant in the nonzero $\kappa$s is negative (leading to a
+complex exponent).  These complex values correspond to waves
+that are both traveling (the imaginary part) and damped.  This damping
+becomes very small for $|k|<1$ which would correspond to well resolved
+waves in a discretized version of the system.  High frequency waves
+are damped considerably since $\kappa_{-1,2}\rightarrow -\infty$ as
+$|k|\rightarrow\infty$ and $\kappa_{+1,2}$ asymptotes to
+$-\frac{c^2}{\alpha}$ for $p=1$ and $0$ for $p>1$, hence
+\begin{eqnarray}
+\lim_{|k|\to\infty}{\tilde u(t)} &=& \left\{\begin{array}{c}A_0\\
+                  A_1e^{-t\frac{c^2}{\alpha}}\\
+                  A_2e^{-t\frac{c^2}{\alpha}}\end{array}\right\}, p=1;\\
+\lim_{|k|\to\infty}{\tilde u(t)} &=& \left\{\begin{array}{c}A_0\\
+                  A_1\\
+                  A_2\end{array}\right\}, p>1
+\end{eqnarray}
+at high wave numbers.  In fact, for high $|k|$, the nonzero
+$\kappa$s are real and negative definite meaning that such waves
+only experience damping and are never transported in a ``wavelike''
+manner. These damping properties suggest that the ``curl-curl''
+operator may be an effective artificial dissipation mechanism for
+``curl'' based wave equations.  Interestingly, this dissipative
+operator preserves the divergence conditions on the curl equations
+since the divergence of $curl-curl$ is also zero; simply using the
+Laplacian operator on each component of $H$ would not have maintained
+this property.
+
+Now consider adding an imaginary perturbation to the non-zero eigenvalues, 
+\begin{eqnarray*}
+\lambda_{1,2} = |k|^2 + i\epsilon|k|,
+\end{eqnarray*}
+that models the lower order terms introduced by discretizing
+Equations~\ref{eq:mxed},~\ref{eq:mxhd} using the DSI scheme on an irregular
+grid.  In the fully discrete analysis, these eigenvalues would
+correspond to the complex eigenvalues resulting from the non-symmetric
+$M$ in Equation~\ref{eq:sys2}.
+
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(1,1)(18,9)
+%\psgrid[subgriddiv=1]
+\rput(4.5,5){\epsfig{file=reK_p1c.eps,width=9cm}}
+\rput(13.5,5){\epsfig{file=reK_p2c.eps,width=9cm}}
+\end{pspicture}
+\caption{In the perturbed continuous problem with dissipation, $Re(\kappa_\pm)<0$ for
+values of $|k|$ above a critical value, $|k|_c$ (denoted by the dashed lines).  This 
+property enables us to bound $\tilde u$ such that $\tilde u\le Ke^{\beta t}$ where
+$\beta>max(Re(\kappa_\pm))$.  Decreasing the dissipation parameter, $\alpha$, shifts
+$|k|_c$ to the right.  When $\alpha=0$, $Re(\kappa_+)$ is always greater than 0.
+For reference, $\alpha=1$ in both cases}
+\end{center}
+\end{figure}
+
+%%   It
+%% turns out that a similar, discrete, version of this operator can be
+%% constructed for the DSI scheme that both damps the high frequency
+%% instabilities while having little effect on well resolved waves and
+%% preserving the discrete divergence properties of the original scheme.
+
+%% Next, consider adding a perturbation,$\epsilon\tilde D H$, to
+%% Equation~\ref{eq:mxhhdf} in order to model the forcing 
+%% in the modified equation that results from discretizing
+%% Equation~\ref{eq:mxhd}.  To simplify the analysis, we assume that
+%% $\tilde D$ has the same null space as $\tilde P$ and that $\tilde D$'s
+%% non-zero eigenvalues are given by $i\epsilon|k|^{2m-1}\tilde H$ ($m\ge
+%% 1$), $\epsilon\ll 1$.  
+%% %In this modification, $\epsilon$ is a
+%% %coefficient representing the order of the leading term in the
+%% %truncation error.  
+%% %Since the DSI scheme is expected to be $2^{nd}$
+%% %order accurate, one would expect $\epsilon\sim h^2$ where $h$ is some
+%% %measure of the local grid spacing.  
+%% For the non-zero eigenvalues the
+%% characteristic equation of the new system is
+%% \begin{eqnarray}
+%% \kappa^2 +\alpha|k|^{2p}\kappa + c^2|k|^2 + i\epsilon|k|^{2m-1} = 0.
+%% \end{eqnarray}
+%% If we write
+%% \begin{eqnarray}
+%% \kappa &=& \frac{1}{2}\left( -\alpha|k|^{2p} \pm \sqrt{|z|}\left(\sigma + i\xi\right)\right)\\
+%%      z &=& \alpha^2|k|^{4p}-4c^2|k|^2-4i\epsilon|k|^{2m-1},
+%% \end{eqnarray}
+
+\subsection{Constructing a dissipative operator for DSI}
+A $curl-curl$ based dissipative operator for the DSI scheme can
+constructed utilizing the existing DSI $curl$ operators
+\begin{eqnarray}
+e^{n+\frac{1}{2}} &=& e^{n-\frac{1}{2}}+\frac{1}{\epsilon}S_H h^n\\
+h^{n+1} &=& h^{n} - \frac{1}{\mu}S_E e^{n+\frac{1}{2}} - \alpha\left(\frac{\xi^2}{\Delta t^2}S_ES_H \right)^ph^n.\label{eq:hdsi_disp}
+\end{eqnarray}
+In this modified DSI method, $\alpha$ is the dissipation coefficient,
+$\xi$ is a local measure of the mesh spacing and $p$ is the degree of
+the dissipation (e.g. $p=1$ yields a $2^{nd}$ order dissipative
+operator, $p=2$ a $4^{th}$ order, etc.).  At first glance it may seem
+that adding this dissipation at least doubles the cost of the
+algorithm since the dissipative operator will have a bandwidth of at
+least $2p$ times that of a single $curl$ operator.  However, most
+meshes have only local regions of poor quality; some grids may be
+Cartesian almost everywhere except near the boundary (EXAMPLE!).  In
+these cases, the dissipation can be added locally when the mesh is
+skewed while a ``locally-symmetric'' operator, that assumes $|\hat
+t\cdot\hat n|=1$, can be used elsewhere.  Algorithm~\ref{algo_curl}
+illustrates the steps used to constuct a curl operator and flag the
+locations where the dissipation should be activated.  Note that this
+pseudo-code works for both the edge (electric field) and face
+(magnetic field) centerings.
+\begin{algorithm}%[H]
+\SetKwFunction{Curl}{Curl}
+\SetKwFunction{adj}{adjacentTo}
+\SetKwFunction{lsc}{leastSquaresCoeff}
+\KwData{A mesh $M$; entity$=$face$|$edge; surface areas $A$; surface normals and tangents ${\bf n}$,${\bf t}$}
+\KwResult{$S=$~the discrete curl operator centered at entity; $V$ dissipation flag for each vertex ($1=$turn dissipation on)}
+\dontprintsemicolon
+%\SetLine
+\Begin { 
+\ForAll {$e=$entity~$\in M$} {
+\uIf { $1-|{\bf n}_e\cdot\hat{\bf t}_e|<\delta A_e$ }{
+  \tcc{~the angle is small, do not compute reconstruction, do not add dissipation}
+    \For {$j=$entity~$\in$~\adj$(e)$} {
+      $S_{ej} += \frac{|{\bf t}_e|}{A_e}sign({\hat{\bf t}_e\cdot\hat{\bf n}_e})$\;
+   }
+}\Else {
+  \tcc{~the angle is large, compute reconstruction}
+  \For{ $j=$~entity~$\in $\adj$(e)$}{
+        $S_{e} += {\bf t}_e\cdot$\lsc$(j)$\;
+  }
+  \tcc{~turn on dissipation}
+ \For {$v=$vertex~$\in e$}{
+         $V_v = 1$\;
+ }
+}
+}
+}
+\label{algo_curl}
+\caption{$curl$ operator for a either the faces or edges of the mesh}
+\end{algorithm}
+
+During the construction of the $curl$ coefficients for a single
+entity, a test is made to determine whether the grid is sufficiently
+orthogonal to skip the reconstruction of the full field.  If $1-|{\bf
+n}_e\cdot\hat{\bf t}_e|<\delta A_e$, where $A_e$ is the entity's
+surface area and $\delta$ is some tolerance, the coefficient for the
+line integral becomes $\frac{|{\bf t}_e|}{A_e}sign({\hat{\bf
+t}_e\cdot\hat{\bf n}_e})$.  The area weighting of the local field
+projection is replaced by the length of the line segment used in the
+line integral.  If this tolerance is violated, however, the full field
+reconstruction coefficients are computed for each field component and
+dotted with the line segment vector (${\bf t}_j$) to produce the
+integral coefficients.  When the full field is reconstructed, the
+vertices that compose the entity are marked for dissipation.  This
+marker is used in Algorithm~\ref{algo_disp} to compute the dissipation
+coefficient and to smoothly reduce the dissipation away from the
+skewed region. Finally, Algorithm~\ref{algo_advdsi} depicts the
+modified DSI update step with the dissipation added. To further reduce
+the amount of overhead incurred by the dissipative operator, the
+dissipation is added only every $N_{di}$ (typically $3$) timesteps.
+
+\begin{algorithm}%[H]
+\KwData{A mesh $M$; $S_H$, $S_E$, the curl operators for faces and edges; $V$, vertex dissipation flag}
+\KwResult{the dissipative operator $D$}
+\dontprintsemicolon
+%\SetLine
+\Begin {
+   \For {$f=$face~$\in M$}{
+      $N_{vf}=$~number of vertices in $f$\;
+      \delta = \frac{1}{N_{vf}}\sum_{v=1}^{N_{vf}} V_v\;
+
+      \tcc{~only add the dissipation on faces where it has been activated}
+      \If {$\delta>0$}{
+	$\xi^2 = A_f$\;
+         $CurlCurl_{fj} = \frac{N_{di}\xi^2\delta}{\Delta t^2} ( S_E S_H )_{fj}$\;
+      }
+   }
+   $pi=1$\;
+   $D = CurlCurl$\;
+   \tcc{~repeatedly perform $D\leftarrow\nabla\times\nabla\times D$ until the requested order is reached}
+   \While { $pi<p$}{
+      $D = CurlCurl*D$\;
+      $pi= pi+1$\;
+   }
+   $D = (\alpha\Delta t) D$\;
+}
+\label{algo_disp}
+\caption{Construction of the dissipative operator $D$ accomplished using the existing DSI operators $S_H$ and $S_E$}
+\end{algorithm}
+
+\begin{algorithm}
+\KwData{operators $S_H$, $S_E$ and $D$; current states $e^{n-\frac{1}{2}}$, $h^n$}
+\KwResult{new states $e^{n+\frac{1}{2}}$, $h^n$}
+\SetKwFunction{bc}{applyBoundaryConditions}
+\SetKwFunction{forcing}{addForcing}
+\dontprintsemicolon
+\Begin {
+    $ e^{n+\frac{1}{2}} = e^{n-\frac{1}{2}} + S_H h^n$\;
+    \forcing$(e^{n+\frac{1}{2}})$\;
+    \bc$(e^{n+\frac{1}{2}})$\;
+    \BlankLine
+    $h^{n+1} = h^n - S_E e^{n+\frac{1}{2}}$\;
+    \If {$n\% N_{di}==0$}{
+      \tcc{~add dissipation to the $h$ equations}
+      $h^{n+1} += D h^n$\;
+    }
+    \BlankLine
+    \forcing$(h^{n+1})$\;
+    \bc$(h^{n+1})$\;
+    \BlankLine
+    $n = n+1$\;
+    $t = t + \Delta t$;
+}
+\label{algo_advdsi}
+\caption{The DSI scheme is modified by adding the dissipation every $N_{di}$ steps to the magnetic field projection equations}
+\end{algorithm}
+  
+\subsection{Chevron grid analysis for the stabilized DSI method}
+As in Section~\ref{sec:chev}, the modified DSI scheme can be analyzed
+for the special case of a chevron grid.  The new scheme modifies
+Equation~\ref{eq:chevsys} by adding the disspative operator applied to
+the backward difference of $\tilde H$:
+\begin{eqnarray}
+D_{+t}D_{-t}\left\{\begin{array}{c} {\tilde H}^n\\{\tilde{\hat H}}^n\end{array}\right\} = A\left\{\begin{array}{c}{\tilde H}^n\\{\tilde{\hat H}}^n\end{array}\right\} + 
+\alpha h_x^{2p} A^p D_{-t}\left\{ \begin{array}{c} {\tilde H}^n\\{\tilde{\hat H}}^n\end{array}\right\},
+\end{eqnarray}
+where $\xi^2$ has been replaced by the grid spacing $h_x^2$.  Once
+again, the time differences can be expanded and the system
+diagonalized to form
+\begin{eqnarray*}
+{\tilde u}^{n+1}-2{\tilde u}^n+{\tilde u}^{n-1} = 
+(\Delta t^2\lambda + \alpha h_x^{2p}\Delta t\lambda^p){\tilde u}^n - \alpha h_x^{2p}\Delta t\lambda^p{\tilde u}^{n-1},
+\end{eqnarray*}
+whose characteristic equation is
+\begin{eqnarray}
+\kappa^2 - (2+\Delta t^2\lambda + \alpha h_x^{2p}\Delta t\lambda^p)\kappa + 1 + \alpha h_x^{2p}\Delta t\lambda^p = 0.
+\end{eqnarray}
+
+\begin{figure}[htb]
+\begin{center}
+\begin{pspicture}(1,1)(18,9)
+%\psgrid[subgriddiv=1]
+\rput(4.5,5){\epsfig{file=chev.kp.surf.eps,width=9cm}}
+\rput(13.5,5){\epsfig{file=chev.km.surf.eps,width=9cm}}
+\end{pspicture}
+\caption{The magnitude of the amplification factors, $\kappa_\pm$, for the chevron grid with
+$\theta=\frac{pi}{4}$,$\frac{\alpha}{ch}=.1$,$p=1$ and $\frac{c\Delta t}{h}=.25$ are below $1$ for all $(k_x,k_y)\in[0,\pi]\times[0,\pi]$.
+Critical curves in $k_x$ of these surfaces are shown in bold black. CHECK THESE PARAMS AFTER LATEXING EQS}\label{fig:chevamp}
+\end{center}
+\end{figure}
+
+\input{../conv/results/dsimv.quad.square.order2.table.tex}
+\input{../conv/results/dsimv.tri.square.order2.table.tex}
+\input{../conv/results/dsimv.tri.skewsquare.order2.table.tex}
+
+\section{Results}
+\subsection{Stability experiments}
+\subsection{Accuracy demonstrations}
+
+\end{document}
+
+

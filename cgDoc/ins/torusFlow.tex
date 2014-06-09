@@ -1,0 +1,74 @@
+% ========================================================================================================
+\clearpage
+\subsection{Flow past a rotating flattened torus}\label{sec:torusFlow}
+
+
+% movie rotatingFlattenedTorus8.mpg : 14M pts, -N4 -n64, approx 24-36(?) cpu-hours per rotation
+% G8 grid = 14M pts
+% submit.p -jobName="torus8" -bank=windpowr -out="torus8.out" -walltime=24:00 -submit=0 -cmd='srun -N4 -n64 -ppbatch $cginsp -noplot flattenedTorus -g=flattenedTorusGride8.order4.ml3 -nu=.5e-3 -tp=.05 -tf=8. -move=1 -motion=rotate -freq=.125 -cfl=5. -psolver=mg -ts=afs -ad2=0 -ad4=1 -debug=1 -freqFullUpdate=1 -numberOfParallelGhost=4 -restart="torus8.show" -show="torus8a.show" -go=go'
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{6.0cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+% 
+\newcommand{\figWidthb}{5.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.1}}
+\newcommand{\figWidthc}{6cm}
+\newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.025}{.025}{.095}{.095}}
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,15.5);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,10.5)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigc{\ovFigures/flattenedTorusGrid}{\figWidthc}};
+\draw (8.0,10.5)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\ovFigures/flattenedTorusGrid2}{\figWidthb}};
+%
+\figWithCaption{5.25}{\cgDoc/ins/fig/flattenedTorus8Enstrophyt5p0}{\cgDoc/ins/fig/flattenedTorus8Enstrophyt7p0}{$t=5$}{$t=7$}
+\figWithCaption{0}{\cgDoc/ins/fig/flattenedTorus8Enstrophyt6p0}{\cgDoc/ins/fig/flattenedTorus8Enstrophyt8p0}{$t=6$}{$t=8$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,16.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a rotating {\em flattened torus} in channel. Top: Overlapping grid for the torus and channel. 
+   Contour plots of the enstrophy on grid $\Gc^{(8)}$ (14M grid points), using scheme AFS42. }
+  \label{fig:torusFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+
+We simulate the flow past a moving {\em torus} (the cross section of the torus being a smoothed thin rectangle).
+The grid for this problem was generated from the ogen command file {\tt flattenedTorusGrid.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/flattenedTorus.cmd}.
+
+The geometry for the problem, as shown in Figure~\ref{fig:torusFlow},
+consists of toroidal shaped body of revolution with cross-section defined by 
+a smoothed polygon for the rectangle $[-.05,.05]\times[-.5,-5]$. This cross-section is rotated about the
+line through the point $(0,.5,0)$ with tangent along the y-axis. This toridal ring is placed
+in a channel with dimensions ??. 
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=1/(10 j)$.
+The grid spacing is stretched in the normal direction to the box so that the boundary layer
+spacing is $\dsbl$. 
+
+
+The incoming flow is in the $x$-direction with $u=1$.
+Figure~\ref{fig:torusFlow} shows the solution for ...
+Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=10^{??}$). 
+
+
+

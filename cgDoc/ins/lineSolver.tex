@@ -1,0 +1,79 @@
+\section{Steady state line solver}
+
+We first consider the case of a rectangular grid in two space dimensions.
+
+The implicit line solver uses local time stepping where the local time step $\Delta_\iv$
+is defined from 
+\begin{align*}
+   \Delta t_\iv &= ...
+\end{align*}
+
+\newcommand{\nuA}{\nu^{(2)}}
+
+We solve implicit scalar-tri-diagonal systems in each spatial direction. 
+Along the x-direction we solve a tridiagonal system for $U$, followed by a tridiagonal
+system for $V$ for the equations 
+\begin{align*}
+U_\iv^{n+1} - U_\iv^n \over \Delta t_\iv &=
+ -\Big\{ U^n D_{0x} U^{n+1} + V^n D_{0y} U^n + D_{0x} P^n \Big\} \\
+ &+ \nu\Big\{ D_{+x}D_{-x} U^{n+1} + (U_{j+1}^n -2U^{n+1} + U_{j-1}^n )/ h_y^2 \Big\} \\
+ &+ \nu_A(\Uv^n) \Big\{ \Delta_{+x}\Delta_{-x} U^{n+1} + (U_{j+1}^n -2U^{n+1} + U_{j-1}^n ) \Big\} \\
+V_\iv^{n+1} - V_\iv^n \over \Delta t_\iv &=
+ -\Big\{ U^n D_{0x} V^{n+1} + V^n D_{0y} V^n + D_{0y} P^n \Big\} \\
+ &+ \nu\Big\{ D_{+x}D_{-x} V^{n+1} + (V_{j+1}^n -2V^{n+1} + V_{j-1}^n )/ h_y^2 \Big\} \\
+ &+ \nuA(\Uv^n) \Big\{ \Delta_{+x}\Delta_{-x} V^{n+1} + (V_{j+1}^n -2V^{n+1} + V_{j-1}^n ) \Big\} \\
+\end{align*}
+Here $\nuA(\Uv^n)$ is the coefficient of the artificial dissipation.
+There is also a self-adjoint version of the artificial dissipation,
+\begin{align*}
+ \beta_{SA} &=   \Delta_{+x}\Big[\nuA_{i_1-\half} \Delta_{-x}\Big] U 
+               + \Delta_{+y}\Big[\nuA_{i_2-\half} \Delta_{-y}\Big] U \\
+            &= \nuA_{i_1+\half}(U_{i_1+1}-U) - \nuA_{i_1-\half}(U-U_{i_1-1}) \\
+            &  +\nuA_{i_2+\half}(U_{i_2+1}-U) - \nuA_{i_2-\half}(U-U_{i_2-1}) \\
+            &= \nuA_{i_1+\half}U_{i_1+1} + \nuA_{i_1-\half}U_{i_1-1} 
+                 + \nuA_{i_2+\half}U_{i_2+1} +\nuA_{i_2-\half}U_{i_2-1} \\
+            & - \Big(\nuA_{i_1+\half}+\nuA_{i_1-\half}+\nuA_{i_2+\half}+\nuA_{i_2-\half}\Big) U
+\end{align*}
+After solving in the x-direction we then solve along lines in the y-direction.
+
+
+On curvilinear grids the expressions are a bit more complicated.
+Before discretization the equations transformed to the unit-square are
+\begin{align*}
+ u_t &= -\Big\{ ( u r_x + v r_y ) u_r + ( u s_x + v s_y ) u_s + r_x p_r + s_x p_s \Big\}  \\
+     &   + \nu {1\over J}\Big\{ \partial_r(J(r_x u_x + r_y u_y) ) + \partial_s(J(s_x u_x + s_y u_y) ) \Big\} \\
+     u_x & = r_x u_r + s_x u_s \\
+     u_y & = r_y u_r + s_y u_s \\
+     J &= \vert \partial \xv/\partial \rv \vert = x_r y_s - x_s y_r
+\end{align*}
+We solve scalar-tridiagonal-systems in the r and s directions.
+
+\subsection{Fourth-order artificial dissipation}
+
+\newcommand{\nuAf}{\nu^{(4)}}
+A fourth-order artificial dissipation is 
+\begin{align*}
+ \nuAf(\Uv^n) \Big\{ (\Delta_{+x}\Delta_{-x})^2 U + (\Delta_{+y}\Delta_{-y})^2 U  \Big\} \\
+\end{align*}
+or in a self-adjoint form
+\begin{align*}
+ \beta_{SA}^{(4)}
+            &=   \Delta_{+x}\Delta_{-x}\Big[\nuAf_{\iv} \Delta_{+x}\Delta_{-x}\Big] U 
+               + \Delta_{+y}\Delta_{-y}\Big[\nuAf_{\iv} \Delta_{+y}\Delta_{-y}\Big] U \\
+            &=  \nuAf_{i_1+1}\Delta_{+x}\Delta_{-x} U_{i_1+1} 
+              -2\nuAf_{\iv}  \Delta_{+x}\Delta_{-x} U
+               +\nuAf_{i_1-1}\Delta_{+x}\Delta_{-x} U_{i_1-1}  \\
+            &+  \nuAf_{i_2+1}\Delta_{+y}\Delta_{-y} U_{i_2+1} 
+              -2\nuAf_{\iv}  \Delta_{+y}\Delta_{-y} U
+               +\nuAf_{i_2-1}\Delta_{+y}\Delta_{-y} U_{i_2-1} \\
+            &= \nuAf_{i_1+1}U_{i_1+2} -2 \big[\nuAf_{i_1+1}+\nuAf_\iv\big] U_{i_1+1}      
+             + \nuAf_{i_1-1}U_{i_1-2} -2 \big[\nuAf_{i_1-1}+\nuAf_\iv\big] U_{i_1-1}    \\
+            &+ \nuAf_{i_2+1}U_{i_2+2} -2 \big[\nuAf_{i_2+1}+\nuAf_\iv\big] U_{i_2+1}      
+             + \nuAf_{i_2-1}U_{i_2-2} -2 \big[\nuAf_{i_2-1}+\nuAf_\iv\big] U_{i_2-1}  \\  
+            & +\big[\nuAf_{i_1+1}+\nuAf_{i_2+1}+8\nuAf_\iv+\nuAf_{i_1-1}+\nuAf_{i_2-1}\big] U_\iv  \\
+\end{align*}
+
+
+
+
+

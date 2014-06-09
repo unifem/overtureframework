@@ -1,0 +1,75 @@
+% \subsection{Scattering by a dielectric sphere}
+\section{Scattering by a dielectric sphere}
+\input scatDielectricSphere
+
+\clearpage
+% -------------------------------------------------------
+\subsection{Scattering by a PEC sphere}
+
+\newcommand{\Gs}{{\mathcal G}}
+\input scatSphereFig
+
+The three-dimensional computation of the scattering of a plane wave by a sphere of
+radius $a$ is considered in this section.
+For an incident plane wave traveling in the $x$-direction,
+$\Ev^I = \Big( e^{i(kx-\omega t)}, 0, 0 \Big)$,
+the total field in spherical polar coordinates $(r,\theta,\phi)$
+is given by the series expansion~\cite{BowmanSeniorUslenghi1996}
+% (*** what is the radius of the sphere ?? ***)
+\begin{align}
+   E_r &= {i\cos(\phi)\over (kr)^2} 
+              \sum_{n=1}^\infty (-i)^n (2n+1)\big[ \psi_n(kr) - b_n \zeta_n^{(1)}(kr)\big] P_n^1(\cos(\theta))
+                           ~ e^{-i\omega t},  \label{eq:ScatSpherea}\\
+   E_\theta &= {\cos(\phi)\over kr}
+              \sum_{n=1}^\infty (-i)^n {2n+1 \over n(n+1)}
+                 \big[ A_n {P_n^1(\cos(\theta)) \over \sin(\theta)}
+                      +i B_n \partial_\theta P_n^1(\cos(\theta)) \big]~ e^{-i\omega t},  \label{eq:ScatSphereb} \\
+   E_\phi &= -{\sin(\phi)\over kr}
+              \sum_{n=1}^\infty (-i)^n {2n+1 \over n(n+1)}
+                 \big[ A_n \partial_\theta P_n^1(\cos(\theta))
+                      +i B_n {P_n^1(\cos(\theta)) \over \sin(\theta)} \big] ~ e^{-i\omega t},  \label{eq:ScatSpherec}
+\end{align}
+where $P_n^1$ are the Legendre polynomials and 
+\begin{align*}
+ A_n &= \psi_n(kr) - a_n \zeta_n^{(1)}(kr) ~~,  B_n = \psi_n'(kr) - b_n \zeta_n^{(1)'}(kr) , \\
+  j_n(z) &= \sqrt{\pi\over 2 z} J_{n+1/2}(z), ~~ h_n^{(1)}(z)= \sqrt{\pi\over 2 z} H_{n+1/2}(z),  \\
+  \psi(z) &= z j_n(z), ~~ \zeta_n^{(1)}(z)= z h_n^{(1)}(z), ~~ a_n={\psi_n(ka)\over \zeta_n^{(1)}(ka)}, ~~
+       b_n ={\psi_n'(ka)\over \zeta_n^{(1)'}(ka)} .
+\end{align*}
+The computed solution corresponds to the real part of equations~(\ref{eq:ScatSpherea}-\ref{eq:ScatSpherec}). 
+
+As for the case of scattering of a plane wave by a cylinder, 
+the known incident field can be subtracted out, leaving the solution to the
+scattered field, $\Ev^S$ to be determined. 
+A PEC boundary condition is imposed on the surface
+of the sphere, taking into account the incident field that has been removed. 
+The initial conditions are taken as the exact
+solution for the scattered field at times $t=-\dt$ and $t=0$.  
+The exact solution is imposed on the
+outer boundaries of the domain. The solution is integrated to time $t=3$. 
+% 
+The grids, $\Gs_1$, $\Gs_2$ and $\Gs_4$ used 
+for the sphere in a box are the same as those described in section~\ref{sec:MAS}.
+% 
+Table~\ref{table:mx.sibII} presents the maximum errors and estimated convergence rates.
+The computed values of $\Ev$ are converging at rates close to $4$. 
+Figure~\ref{fig:scatSphereFig} shows the scattered field for an incident wave with $k a =\pi$. 
+
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|} \hline\hline 
+grid  & $\maxNorm{\ee^{E_x}}$  & $\maxNorm{\ee^{E_y}}$ & $\maxNorm{\ee^{E_z}}$ & $\delta_\Ev$\\ \hline 
+$\Gs_1$ &$1.3 e{-2}$ &$8.1 e{-3}$ &$6.7 e{-3}$ &$3.9 e{-3}$  \\ \hline
+$\Gs_2$ &$9.3 e{-4}$ &$5.8 e{-4}$ &$4.8 e{-4}$ &$4.2 e{-4}$  \\ \hline
+$\Gs_4$ &$6.2 e{-5}$ &$3.9 e{-5}$ &$3.2 e{-5}$ &$5.4 e{-5}$  \\ \hline
+rate $\sigma$  & $3.86$ &   $3.86$ &       $3.85$ &       $3.09$  \\ \hline\hline
+\end{tabular}
+\caption{The maximum errors at $t=3$ for the computation of a plane wave scattering from
+  a perfectly conducting sphere. 
+%Errors in the scattering of a plane wave by a sphere, order=$4$, $t=2.$, sib, scattering, cfl=.95,
+%   Initial conditions and far field boundary conditions set to the exact solution
+}\label{table:mx.sibII}
+\end{center}
+\end{table}
+

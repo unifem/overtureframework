@@ -1,0 +1,67 @@
+% ========================================================================================================
+\clearpage
+\subsection{Flow past a moving sphere}\label{sec:movingSphere}
+
+
+We simulate the flow past a moving sphere.
+
+The grid for this problem was generated from the ogen command file {\tt sphereInABox.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/sphereMove.cmd}.
+
+The geometry for the problem consists of a sphere of radius $r=1.0$, centered at the 
+origin, in a channel $[-3,6]\times[-3,3]\times[-3,3]$. 
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=1/(10 j)$.
+The grid spacing is stretched in the normal direction to the cylinder so that the boundary layer
+spacing is $\dsbl$. 
+
+
+
+
+Figure~\ref{fig:sphereOscillate} shows the solution for a sphere that oscillates up and down
+in the y-direction with a sinusoidal motion given by 
+\begin{align*}
+   y(t) &= a_0 \sin( 2\pi f_0 t) ,
+\end{align*}
+where the amplitude is taken as $a_0=0.25$ and the frequency is $f_0=0.5$.
+The incoming flow is in the $x$-direction with $u=1$.
+%The grid is $\Gc^{(2)}$ and the boundary layer spacing is 5 times smaller than the target grid spacing, with $\dsbl/\ds=1/5$.
+%Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+%The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=10^{-3}$). 
+%The results show that the flow develops into a fully three-dimensional wake with vortices being shed.
+
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{7.5cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.1}{.05}{.1}{.15}}
+% -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,14);  % set the bounding box (so we have less surrounding white space)
+%
+\figWithCaption{7.0}{\ovFigures/sphereInABoxGrid}{\ovFigures/sphereMoveEnstrophyt14p0}{Grid $\Gc^{(2)}$}{$t=14$}
+%
+\figWithCaption{0}{\ovFigures/sphereMoveEnstrophyt15p0}{\ovFigures/sphereMoveEnstrophyt16p0}{$t=15$}{$t=16$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,14);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past an oscillating sphere using scheme IM2 on grid $\Gc^{(4)}$ with $\nu=2\times10^{-4}$. Contour plots of the enstrophy.
+  The contour levels are scaled to $[0,??]$. The cylinder is moving the $y-direction$. }
+  \label{fig:sphereOscillate}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%

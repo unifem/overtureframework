@@ -1,0 +1,143 @@
+%-----------------------------------------------------------------------
+% vp: notes on a visco plastic model
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+\usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\input documentationPageSize.tex
+
+\input homeHenshaw
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\Overture}{{\bf Over\-ture\ }}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+\newcommand{\cgDoc}{\homeHenshaw/cgDoc}
+\newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+\newcommand{\convDir}{.}
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+\def\comma  {~~~,~~}
+\newcommand{\uvd}{\mathbf{U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+% \newcommand{\omegav}{\mathbf{\omega}}
+% \newcommand{\Omegav}{\mathbf{\Omega}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\cm}{{\rm cm}}
+\newcommand{\Jc}{{\mathcal J}}
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+% define the clipFig commands:
+\input clipFig.tex
+
+\newcommand{\figWidth}{}
+\newcommand{\clipfig}{}
+
+\newcommand{\bogus}[1]{}  % removes is argument completely
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+A Visco-Plastic Flow Model in {\bf Cgins} \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+% UCRL-MA-134289
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This document describes the visco-plastic flow model that is available with 
+{\bf Cgins}, a solver written using the \Overture framework
+to solve the incompressible Navier-Stokes (INS).  
+
+\end{flushleft}
+
+\tableofcontents
+% \listoffigures
+
+\vfill\eject
+
+
+\section{Introduction}
+
+This document describes the visco-plastic model that is available with the {\bf Cgins} solver~\cite{CginsUserGuide}.
+The model described here is taken from the Ph.D. thesis of Graeme Thorn~\cite{Thorn2004}.
+
+\input \vpDir/viscoPlastic.tex
+
+\input vpDiscretization
+
+\input vpMoving
+
+\input vpAxisymmetric
+
+\input \vpDir/viscoPlasticResults.tex
+
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\end{document}

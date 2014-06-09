@@ -1,0 +1,191 @@
+\newcommand{\annulusEigenDir}{\homeHenshaw/cgDoc/sm}
+% ---------------------------------------------------------------------------------------------------
+\section{Eigenfunctions of an Annulus}
+
+\subsection{Exact Solutions in Polar Coordinates}
+
+For polar coordinates in two dimensions we have $r_1=r$, $r_2=\theta$, $h_1=1$, and $h_2=r$. 
+Then
+\begin{align*}
+   \grad\cdot\uv &= {1\over r} \partial_r( r u_r) + {1\over r}\partial_\theta( u_\theta), \\
+   \grad\times\uv &= 
+             \left\{ (1/r)\partial_r(r u_\theta)-(1/r)\partial_\theta(u_r) \right\} \hat{\rv}\times\hat{\thetav}.
+\end{align*}
+The components of the strain tensor are
+\begin{align*}
+    e_{rr} &= \partial_r u_r,~~ e_{\theta\theta}={1\over r}\partial_\theta u_\theta + u_r/r, ~~
+    e_{r\theta} = {r\over 2}\partial_r(u_\theta/r) + (1/2r)\partial_\theta u_r . 
+\end{align*}
+The components of the stress tensor are 
+\begin{align}
+  \sigma_{rr} & = \lambda \left( {1\over r} \partial_r( r u_r) + {1\over r}\partial_\theta( u_\theta)\right)
+              + 2\mu \partial_r u_r, \\
+              &= (\lambda+2\mu)\partial_r u_r + \lambda u_r/r + 
+                       \lambda \left({1\over r}\partial_\theta( u_\theta)\right) \label{eq:polarSigmarr} \\
+  \sigma_{\theta\theta} &= \lambda \left( {1\over r} \partial_r( r u_r) + {1\over r}\partial_\theta( u_\theta)\right)
+              + 2\mu \left({1\over r}\partial_\theta u_\theta + u_r/r\right),  \\
+  \sigma_{r\theta} &= 2\mu\left( {r\over 2}\partial_r(u_\theta/r) + (1/2r)\partial_\theta u_r \right)
+\end{align}
+
+Let us now look for solutions in an annular region with inner radius $r_0$ and 
+outer radius $r_1$ (tube) with no angular variations ($u_\theta=0$, $\partial_\theta f=0$).
+The equations of motion are
+\begin{align}
+  \rho \partial_t^2 u_r &= (\lambda+2\mu)\partial_r(\grad\cdot\uv), \label{eq:polarua}  \\
+            &= (\lambda+2\mu)\partial_r\left( {1\over r} \partial_r( r u_r) \right) \label{eq:polarub}. 
+\end{align}
+This form can be seem from using $\Delta \uv = \grad(\grad\cdot\uv)-\grad\times\grad\times\uv$ in 
+\begin{align*}
+  \rho \partial_t^2 \uv &= (\lambda+\mu)\grad(\grad\cdot\uv) + \mu \Delta \uv, \\
+                        &= (\lambda+2\mu)\grad(\grad\cdot\uv) -\mu \grad\times\grad\times\uv  . 
+\end{align*}
+
+
+% ----------------------------------------------------------------------------------
+\subsection{Steady Solutions on the Annulus}
+The time independent solution to~\eqref{eq:polarub} is of the form
+\begin{align*}
+  u_r &= A r + {B \over r}. 
+\end{align*}
+If we have a constant pressure $p_0$ on the inner surface at $r=r_0$ and a constant pressure $p_1$ on the
+outer surface at $r=r_1$ then the boundary conditions are 
+\begin{align*}
+  \sigma_{rr}= (\lambda+2\mu)\partial_r u_r + \lambda u_r/r &= - p_m, \qquad \text{for $r=r_m$, $m=0,1$}. 
+\end{align*}
+The solution is (see Love~\cite{Love1944}, page 144),
+\begin{align*}
+  A &= { p_1 r_1^2 - p_0 r_0^2 \over 2(\lambda+\mu)(r_0^2-r_1^2)}, \qquad
+         B = { (p_1-p_0)r_0^2 r_1^2 \over 2\mu(r_0^2-r_1^2)} . 
+\end{align*}
+
+We could also look for solutions with a specified displacement at each boundary, 
+\begin{align*}
+   u_r(r_a) = u_a, \quad u_r(r_b)=u_b, 
+\end{align*}
+with solution
+\begin{align*}
+  A &= ?? , \quad B= ?? 
+\end{align*}
+
+% ----------------------------------------------------------------------------------
+\subsection{Time-Harmonic Solution on the Annulus}
+
+We now look for time-harmonic eigenfunctions of the form $u_r = U e^{-i\omega t}$. These 
+will satisfy 
+\begin{align}
+ -\omega^2 \rho U &= (\lambda+2\mu)\partial_r(\grad\cdot\uv),  \\
+            &= (\lambda+2\mu)\partial_r\left( {1\over r} \partial_r( r U) \right) \label{eq:polarut}. 
+\end{align}
+or 
+\begin{align*}
+  r^2 U'' &+ r U' + (\alpha^2 r^2  - 1 ) U = 0,
+\end{align*}
+where $\alpha^2 = \omega^2\rho/(\lambda+2\mu)$. 
+The solution to this equation is 
+\begin{align*}
+   U &= A J_1(\alpha r) + B Y_1(\alpha r), 
+\end{align*}
+where $J_1$ and $Y_1$ are the Bessel functions of the first and second kind. 
+
+Let us first look for some solutions with $U(r_a)=U(r_b)=0$. 
+Then
+\begin{align*}
+   A J_1(\alpha r_a) + B Y_1(\alpha r_a) &= 0 , \\
+   A J_1(\alpha r_b) + B Y_1(\alpha r_b) &= 0 . 
+\end{align*}
+For non-trivial solutions we need $\alpha$ to satisfy 
+\begin{align*}
+   W_d(\alpha) &= J_1(\alpha r_a)Y_1(\alpha r_b) - J_1(\alpha r_b) Y_1(\alpha r_a) =0. 
+\end{align*}
+This equation has an infinite sequence of solutions $\{ \alpha_n \}_{n=1}^\infty$. Given the value of 
+$r_b/r_a$ the values for $\alpha_n$ can be computed. 
+Table~\ref{tab:annulusEigDisplacement} gives a few values
+for $\alpha$, $A$ and $B$ computed with the maple program annulusEigs.maple. 
+%
+% real alpha=6.39315676162127e+00, a1=3.70054796926959e-01, b1=-2.62717605998727e-01;   w(alpha)=-1.00e-21 
+% real alpha=1.26246990207465e+01, a1=-2.44533726961558e-01, b1=2.04902796341409e-01;   w(alpha)=-2.00e-21 
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|} \hline
+n & $\alpha_n$  & $A_n$ & $B_n$ \\ \hline 
+1 & 6.39315676162127e+00 & 3.70054796926959e-01  & -2.62717605998727e-01 \\
+2 & 1.26246990207465e+01 & -2.44533726961558e-01 & 2.04902796341409e-01 \\
+\hline
+\end{tabular}
+\caption{Eigenvalues for the annulus with displacement boundary conditions, $r_a=\half$, $r_b=1$}\label{tab:annulusEigDisplacement}
+\end{center}
+\end{table}
+
+Now consider using traction boundary conditions, $\sigma_{rr}(r)=0$ at $r=r_a$ and $r=r_b$ where 
+(using~\eqref{eq:polarSigmarr})
+\begin{align*}
+ r~\sigma_{rr} &= A\left[ (\lambda+2\mu) \alpha r J_1'(\alpha r) +\lambda J_1(\alpha r)\right]
+               + B\left[ (\lambda+2\mu) \alpha r Y_1'(\alpha r) +\lambda J_1(\alpha r)\right]  \\
+              &\equiv A G_J(\alpha r) + B G_Y(\alpha r)
+\end{align*}
+The condition for a non-trivial solution is 
+\begin{align*}
+   W_n(\alpha) &= G_J(\alpha r_a) G_Y(\alpha r_b) - G_J(\alpha r_b) G_Y(\alpha  r_a) =0. 
+\end{align*}
+Given the ratios $r_b/r_a$ and $\lambda/\mu$ we can compute the roots $\alpha_n$ to this
+equation, see table~\ref{tab:annulusEigTraction}. 
+% real alpha=1.31135301901399e+00, a1=1.86192468503469e+00, b1=-1.14016375430058e+00;   w(alpha)=-4.00e-19 
+% real alpha=6.46336546990778e+00, a1=2.10897392919530e+00, b1=3.67967002089678e+00;   w(alpha)= 1.00e-18 
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|c|c|c|c|} \hline
+n & $\alpha_n$  & $A_n$ & $B_n$ \\ \hline 
+1 & 1.31135301901399e+00 &1.86192468503469e+00 &-1.14016375430058e+00\\
+2 & 6.46336546990778e+00 &2.10897392919530e+00 &3.67967002089678e+00 \\ 
+\hline
+\end{tabular}
+\caption{Eigenvalues for the annulus with traction boundary conditions, $r_a=\half$, $r_b=1$, $\lambda/\mu=1$}\label{tab:annulusEigTraction}
+\end{center}
+\end{table}
+
+
+% --------------------------------------------------------------------
+\subsection{Annulus Eigenfunction Convergence Results}
+
+Here are some numerical results for when solving for the eigenfunctions of an annulus. 
+These tables computed using
+{\tt conv.p annulusEigen.conv [args]} in the {\tt cg/sm/conv} dir. Results are shown for mode 1 ($n=1$ in tables
+\ref{tab:annulusEigDisplacement} and \ref{tab:annulusEigTraction}.)
+% The errors and rates are to first order bascially the same for all the methods. 
+% Notes: the conservative method give the lowest errors for the traction BC case. The Godunov method gives the lowest errors
+% in the displacement for the dirichlet BC. 
+
+
+\renewcommand{\tableFont}{\footnotesize}
+% \renewcommand{\tableFont}{\tiny}
+\clearpage
+Results for displacement boundary conditions.
+\begin{enumerate}
+  \item Table~\ref{table:annulusEigen.nc.d.mode1} : SOS, non-conservative, dirichlet BC : $\rate(\uv)=1.79$.
+  \item Table~\ref{table:annulusEigen.c.d.mode1} : SOS, conservative, dirichlet BC : $\rate(\uv)=1.80$.
+  \item Table~\ref{table:annulusEigen.g.d.mode1} : FOS, Godunov, dirichlet BC : $\rate(\uv)=2.79$, $\rate(\vv)=2.52$, $\rate(\sigmav)=2.59$. 
+  \item Table~\ref{table:annulusEigen.h.d.mode1} : FOS, Hemp, dirichlet BC : $\rate(\uv)=1.88$, $\rate(\vv)=2.52$, $\rate(\sigmav)=1.88$. 
+\end{enumerate}
+\input \annulusEigenDir/annulusEigen/annulusEigen.nc.d.mode1.ConvTable.tex
+\vglue-.25in
+\input \annulusEigenDir/annulusEigen/annulusEigen.c.d.mode1.ConvTable.tex
+\vglue-.25in
+\input \annulusEigenDir/annulusEigen/annulusEigen.g.d.mode1.ConvTable.tex
+\vglue-.25in
+\input \annulusEigenDir/annulusEigen/annulusEigen.h.d.mode1.ConvTable.tex
+% 
+\clearpage
+Results for traction boundary conditions.
+\begin{enumerate}
+  \item Table~\ref{table:annulusEigen.nc.sf.mode1} : SOS, non-conservative, traction BC : $\rate(\uv)=1.85$.
+  \item Table~\ref{table:annulusEigen.c.sf.mode1} : SOS, conservative, traction BC : $\rate(\uv)=1.95$.
+  \item Table~\ref{table:annulusEigen.g.sf.mode1} : FOS, Godunov, traction BC : $\rate(\uv)=1.86$, $\rate(\vv)=1.86$, $\rate(\sigmav)=1.90$. 
+  \item Table~\ref{table:annulusEigen.h.sf.mode1} : FOS, Hemp, traction BC : $\rate(\uv)=2.21$, $\rate(\vv)=1.76$, $\rate(\sigmav)=2.05$. 
+\end{enumerate}
+\input \annulusEigenDir/annulusEigen/annulusEigen.nc.sf.mode1.ConvTable.tex
+\vglue-.25in
+\input \annulusEigenDir/annulusEigen/annulusEigen.c.sf.mode1.ConvTable.tex
+\vglue-.25in
+\input \annulusEigenDir/annulusEigen/annulusEigen.g.sf.mode1.ConvTable.tex
+\vglue-.25in
+\input \annulusEigenDir/annulusEigen/annulusEigen.h.sf.mode1.ConvTable.tex

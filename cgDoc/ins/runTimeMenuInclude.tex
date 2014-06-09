@@ -1,0 +1,43 @@
+
+ 
+\newlength{\runTimeMenuIncludeArgIndent}
+  \begin{description}
+    \item[plot component:] choose the solution component to plot.
+    \item[break] : If running in movie mode this command will cause the program to halt at the next
+                   time to plot.
+    \item[continue] : compute the solution to the next time to plot.
+    \item[movie mode] : compute the solution to the final time without waiting. The solution will be
+         plotted at each output time interval. 
+    \item[movie and save] : movie mode plus save each frame as a ppm file.
+    \item[contour] : enter the contour plotting function in {\tt PlotStuff}. Here you will more options
+       to change the plot.  
+    \item[streamlines] : enter the streamlines plotting function from {\tt PlotStuff}.
+    \item[grid] : enter the grid plotting function from {\tt PlotStuff}. If you don't first erase
+        the contour plot then both the contours and the grid will be shown.
+    \item[erase] : erase the screen.
+    \item[change the grid] : add, remove or change existing grids. (poor man's adaptive mesh refinement).
+    \item[adaptive grids...] : open up a new dialog to show parameters adaptive grids.
+    \begin{description}
+       \item[use adaptive grids] : turn adaptive grids on or off.
+       \item[error threshold] : specify the error threshold.
+    \end{description}
+    \item[show file options...] : choose show file options; e.g. open or close a show file.
+    \item[file output...] : specify options for saving solutions to an ascii file (for plotting with matlab for example).
+        There are a number of options available as to what data should be saved. See also the userDefinedOutput routine
+        where you can customize output.
+      \begin{description}
+         \item[output periodically to a file] : Open a file for output; specify how often to save data in the
+          file (every step, every second step...); specify what data to save in the file (only grid 1, only
+           values on some boundaries etc).  Each time this menu item is selected a new file is opened, allowing
+           one, for example, to save certain information every step and other information every tenth step.
+        \item[close an output file] : Close a file opened by the command `output periodically to a file'.
+       \item[save a restart file] : save the current solution as a restart file; usually I just use the
+         show file for restarts.
+    \end{description}
+    \item[pde parameters...] change PDE parameters at run time.
+    \item[final time] : change the value for the final time to integrate to.
+    \item[times to plot] : change the time interval between plotting (and output).
+    \item[debug] : enter an integer to turn on debugging info. This is a bit flag with debug=1 turning on just
+       a bit of info, debug=3 (1+2) showing more, debug=7 (1+2+4) even more etc.
+    \item[finish] : do not compute any further, exit and save the show files etc.
+  \end{description}

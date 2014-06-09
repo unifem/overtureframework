@@ -1,0 +1,71 @@
+% ========================================================================================================
+\clearpage
+\subsection{Flow past a moving 3D cylinder at different Reynolds numbers}\label{sec:oscillatingCyl3d}
+
+
+We simulate the flow past a moving three-dimensional cylinder using the second- and
+fourth-order accurate versions of the AFS scheme.  The second-order and
+fourth-order SSLES turbulence models are used. The results indicate how the flow
+character changes as the effective Reynolds number increases.
+
+The grid for this problem was generated from the ogen command file {\tt cylinderInAChannel.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/cyl3d.cmd}.
+
+The geometry for the problem consists of a cylinder of radius $r=0.25$ in a channel $[-1,3]\times[-1,1]\times[-1,1]$. 
+The axis of the cylinder is
+in the $z$-direction and the center of the cylinder is initially located at $(x,y)=(0,0)$. 
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=1/(10 j)$.
+The grid spacing is stretched in the normal direction to the cylinder so that the boundary layer
+spacing is $\dsbl$. 
+
+
+The incoming flow is in the $x$-direction with $u=1$.
+
+
+Figure~\ref{fig:cyl3d2Oscillate} shows the solution for a cylinder that oscillates up and down
+in the y-direction with a sinusoidal motion given by 
+\begin{align*}
+   y(t) &= a_0 \sin( 2\pi f_0 t) ,
+\end{align*}
+where the amplitude is taken as $a_0=0.25$ and the frequency is $f_0=0.25$.
+The grid is $\Gc^{(2)}$ and the boundary layer spacing is 5 times smaller than the target grid spacing, with $\dsbl/\ds=1/5$.
+Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=10^{-3}$). 
+The results show that the flow develops into a fully three-dimensional wake with vortices being shed.
+
+
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[5]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 8.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #4};
+  \draw ( 8.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{7.5cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.05}{.13}{.25}{.25}}
+% -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,10);  % set the bounding box (so we have less surrounding white space)
+%
+\figWithCaption{5.25}{\cgDoc/ins/fig/cyl3dMove2Vort3p5}{\cgDoc/ins/fig/cyl3dMove2Vort4p0}{$t=3.5$}{$t=4.0$}
+%
+\figWithCaption{0}{\cgDoc/ins/fig/cyl3dMove2Vort4p5}{\cgDoc/ins/fig/cyl3dMove2Vort5p0}{$t=4.5$}{$t=5.0$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,10.);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a 3D oscillating cylinder using Scheme AFS4 on grid $\Gc^{(2)}$. Contour plots of the enstrophy times $t=3.5$, $4.0$, $4.5$ and $5.0$.
+  The contour levels are scaled to $[0,20]$. The cylinder is moving the $y-direction$. }
+  \label{fig:cyl3d2Oscillate}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%

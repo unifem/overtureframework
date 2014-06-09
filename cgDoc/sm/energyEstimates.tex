@@ -1,0 +1,505 @@
+\newcommand{\ubar}{\overline{u}}
+\newcommand{\vbar}{\overline{v}}
+\section{Energy Estimates}
+
+\subsection{Summation by Parts Formulae}
+
+
+Define the discrete inner product and norm
+\begin{align}
+    (u,v)_{r,s} = \sum_{j=r}^s \ubar_j v_j h ,\\
+   \| u \|_{r,s} = (u,u)_{r,s} .
+\end{align}
+Here are some useful summation by parts formula: 
+(Some of these can be found in reference~\cite{GustafssonKreissOliger95}),
+\begin{align}
+   (u,D_+ v)_{r,s} &= -(D_-u,v)_{r+1,s+1} + \ubar_j v_j \vert_r^{s+1}   \label{eq:dpa} \\
+                   &= -(D_-u,v)_{r,s+1} + \ubar_{s+1} v_{s+1} - \ubar_{r-1} v_r \label{eq:dpb} \\
+         &= -(D_+ u,v)_{r,s} - h (D_+u, D_+v)_{r,s} + \ubar_j v_j\vert_r^{s+1} \label{eq:dpc}
+\end{align}
+
+\begin{align}
+   (u,D_- v)_{r,s} &= -(D_+u,v)_{r-1,s-1} + \ubar_j v_j \vert_{r-1}^{s} \label{eq:dma} \\
+                   &= -(D_+u,v)_{r-1,s  } + \ubar_{s+1} v_{s} - \ubar_{r-1} v_{r-1} \label{eq:dmb} \\
+         &= -(D_-u,v)_{r,s} + h (D_-u, D_-v)_{r,s} + \ubar_j v_j\vert_{r-1}^{s} \label{eq:dmc}
+\end{align}
+
+\begin{align}
+   (u,D_0 v)_{r,s} &= -(D_0 u,v)_{r,s} + \half( \ubar_j v_{j+1} + \ubar_{j+1} v_j ) \vert_{r-1}^{s} \label{eq:dza}
+\end{align}
+
+
+\subsection{Discrete Inner-Products}
+
+For now on we consider the semi-infinite interval $[0,\infty)$ so that we need only be concerned with
+the boundary at $x=0$. 
+
+Define the continuous inner product on 
+\begin{align}
+  (u,v ) = \int_0^\infty \ubar(x) v(x) d x .
+\end{align}
+
+Define the 2nd-order accurate discrete inner product
+\begin{align}
+  (u,v)_h  =   \half\ubar_0 v_0 h + (u,v)_{1,\infty}
+\end{align}
+
+To define high-order accurate discrete inner-products whose weights are
+$1$ except near the boundaries we can use the Euler-Maclaurin summation formula, described in section~\ref{sec:EulerMaclaurin}. 
+
+Here, for example, is a fourth-order accurate discrete inner product,
+\begin{align}
+  (u,v)_{4h}  =   {3\over 8}\ubar_0 v_0 h + {7\over6} \ubar_1 v_1 h + {23\over 24}\ubar_2 v_2 h + (u,v)_{3,\infty}
+\end{align}
+
+
+\subsubsection{Euler-Maclaurin Summation Formula}\label{sec:EulerMaclaurin}
+
+The Euler-Maclaurin summation formula relates the integral of a function to a trapezoial sum of values and
+the derivatives at the end-points of the interval, 
+\begin{align}
+  \int_0^n f(x) dx &= \Big[ \half f_0 + \sum_{i=1}^{N-1} f_i + \half f_N \Big]
+           - \sum_{k=1}^p {B_{2k} \over (2k)!} \big[ f^{(2k-1)}(x)\vert_0^N \big] ~~ + R_p \\
+   \vert R_p \vert &\le {2\over (2\pi)^{2p}} \int \vert f^{(2p)(x)} \vert dx 
+\end{align}    
+Here $B_m$ are the Bernouilli numbers with $B_2=1/6$, $B_4=-1/30$, $B_6=1/42$. 
+Note that the formula is exact for polynomials of degree $2p-1$ or less.
+The second Euler-Maclaurin summation formula (based on cell-centers) is
+\begin{align}
+  \int_0^n f(x) dx &= \sum_{i=0}^{N-1} f_{i+\half}
+           - \sum_{k=1}^p {B_{2k} \over (2k)!}\big(1-2^{-2k+1}\big)\big[ f^{(2k-1)}(x)\vert_0^N \big] ~~ + S_p 
+\end{align} 
+
+
+
+We can use the Euler-Maclaurin formula to determine higher-order approximations to the integral
+of the form
+\begin{align}
+  \int_0^n f(x) dx &= \sum_{i=0}^{m-1} w_i (f_i + f_{N-i})  + \sum_{i=m}^{N-m} f_i 
+\end{align}  
+where the quadrature weights are $1$ except near the boundary.
+
+
+For example, taking $p=1$ we obtain the {\em fourth-order accurate} approximation  
+\begin{align}
+\int_0^n f(x) dx &\approx\Big[ \half f_0 + \sum_{i=1}^{N-1} f_i + \half f_N \Big]
+  + {1\over 12} f'(0) -  {1\over 12}f'(N). 
+\end{align}  
+Making the second-order accurate approximation to $f'(0)$ of 
+\begin{align}
+   f'(0) = -{3\over2} f_0 + 2 f_1 - \half f_2 + O(h^2)
+\end{align}  
+gives the fourth-order accurate approximation to the integral (**check this**)
+\begin{align}
+\int_0^n f(x) dx &\approx 
+     {3\over 8} f_0 + {7\over6} f_1 + {23\over 24} f_2 + \sum_{i=3}^{N-3} f_i + ... 
+\end{align} 
+
+
+
+\subsection{Energy estimates for discrete operators}
+
+For now on we consider the semi-infinite interval $[0,\infty)$ so that we need only be concerned with
+the boundary at $x=0$. 
+
+
+Define the continuous inner product
+\begin{align}
+  (u,v ) = \int_0^\infty \ubar(x) v(x) d x .
+\end{align}
+
+Recall the continuous integration by parts formulae,
+\begin{align}
+  (u,v_x ) = -(u_x,v) - \ubar(0)~v(0) \\
+  (u,v_{xx}) = -(u_x,v_x) - \ubar(0)~v_x(0) \label{eq:ibp2}
+\end{align}
+From~\eqref{eq:ibp2} we see that the natural boundary conditions for $u_{xx}$ are
+$u=0$ or $u_x=0$. 
+
+Define the 2nd-order accurate discrete inner product
+\begin{align}
+  (u,v)_h  =   \half\ubar_0 v_0 h + (u,v)_{1,\infty}
+\end{align}
+
+
+Consider 
+\begin{align}
+  (u, D_+D_- v )_h  &=   \half \ubar_0 D_+D_- v_0 h + (u,D_+D_-v)_{1,\infty} \\
+        &= \half \ubar_0( D_- v_1 - D_-v_0 )  - (D_+ u, D_+ v)_{0,\infty} - u_0 D_- v_1 \\
+        &= - \half \ubar_0( D_- v_1 + D_-v_0 )  - (D_+ u, D_+ v)_{0,\infty} \\
+        &= - \ubar_0 D_0 v_0 - (D_+ u, D_+ v)_{0,\infty}  \label{eq:dpdmsbp}
+\end{align}
+Thus we see that the {\em natural boundary conditions} for the $D_+D_-$ operator are
+$u_0=0$ or $D_0 u_0 = 0$. Note that $(D_+ u, D_+ v)_{0,\infty}$ is a second-order accurate approximation
+to $\int_0^\infty u_x v_x dx$ since $D_+u$ and $D+v$ are cell centered quantities.
+
+
+Now consider
+\begin{align}
+  (u, D_0 v )_h  &=   \half \ubar_0 D_0 v_0 h + (u,D_0v)_{1,\infty} \\
+      &= \half \ubar_0 D_0 v_0 h  - (D_0 u,v)_{1,\infty} - \half( \ubar_0 v_1 + \ubar_1 v_0) \\
+      &= \half \ubar_0 D_0 v_0 h + \half D_0 \ubar_0 v_0 h  - (D_0 u,v)_h  - \half( \ubar_0 v_1 + \ubar_1 v_0)   \\   
+      &= - \half \Big( \ubar_0 \half(v_1+v_{-1}) + \half(\ubar_1+\ubar_{-1}) v_0 \Big)  - (D_0 u,v)_h  \label{eq:uD0v}
+%         &=   -\half \ubar_0 D_0 v_0 h + (u,D_0v)_{0,\infty} \\ 
+%      &=   -\half \ubar_0 D_0 v_0 h + -(D_0 u,v)_{0,\infty} + \half( \ubar_0 v_1 + \ubar
+\end{align}
+which implies
+\begin{align}
+  (u, D_0 v )_h + (D_0 u,  v )_h  &= -\half\Big( \ubar_0 \half(v_1+v_{-1}) + \half(\ubar_1+\ubar_{-1}) v_0 \Big) \\
+  (u, D_0 u )_h        &= -\frac{1}{4}\Big( \ubar_0 \half(u_1+u_{-1}) + \half(\ubar_1+\ubar_{-1}) u_0 \Big)   
+\end{align}
+% 
+% 
+A fourth-order approximation to $u_{xx}$ is $D_+D_-(1-{h^2\over 12}D_+D_-)u$.
+If we use the 2nd-order accurate inner-product with this operator we get 
+\begin{align}
+  (u, D_+D_-(1-{h^2\over 12}D_+D_-) v )_h  &= (u, D_+D_- v)_h - (h^2/12) (u,(D_+D_-)^2 v)_h
+\end{align}
+Now consider the term $(u,(D_+D_-)^2 v)_h$. 
+Using summation by parts, ((first use~\eqref{eq:dpdmsbp} with $v \rightarrow D_+D_-v$)
+\begin{align}
+  (u,(D_+D_-)^2 v)_h &= \half \ubar_0 (D_+D_-)^2 v_0 h + (u,(D_+D_)^2 v)_{1,\infty} \\
+       &= -\ubar_0 D_0 D_+D_- v_0 -(D_+u, D_+(D_+D_-)v)_{0,\infty} \\
+       &= -\ubar_0 D_0 D_+D_- v_0 + D_+\ubar_0 D_+D_- v_0 + (D_+D_- u, D_+D_- v)_{0,\infty} \\
+       &= -\ubar_0 D_0 D_+D_- v_0 + D_+\ubar_0 D_+D_- v_0 -\half D_+D_- \ubar_0  D_+D_- v_0 + (D_+D_- u, D_+D_- v)_h \\
+       &= -\ubar_0 D_0 D_+D_- v_0 + D_0\ubar_0 D_+D_- v_0  + (D_+D_- u, D_+D_- v)_h
+\end{align}
+Therefore  
+\begin{align}
+   (u, D_+D_-(1-{h^2\over 12}D_+D_-) v )_h  &= 
+       - \Big[ (D_+ u, D_+ v)_{0,\infty} + (h^2/12)(D_+D_-u,D_+D_-v)_h \Big] \\
+          & -  \ubar_0 D_0 \big( v_0 - (h^2/12)D_+D_-v_0\big) + (h^2/12)D_0\ubar_0 D_+D_-v_0 \label{eq:dpdmsq}
+\end{align}
+Question: How accurate is $(D_+ u, D_+ v)_{0,\infty} + (h^2/12)(D_+D_-u,D_+D_-v)_h$ ??
+
+From this last expression we see the {\em Dirichlet} natural-boundary-conditions are 
+\begin{align}
+   u_0 &= 0 ~~\text{and}~~~  D_+D_- u_0 =0  \label{eq:nbc4a} 
+\end{align}
+In the case when we also have $D_+D_-(1-{h^2\over 12}D_+D_-)u_0=0$ it would then follow that $(D_+D_-)^2u_0=0$,
+and this would be a fourth-order accurate aprpoxiamtion.
+
+% These are fourth-order accurate since the above two conditions imply $(D_+D_-)^2u_0=0$. 
+
+
+The {\em Neumann} natural-boundary-conditions from~\eqref{eq:dpdmsq} are
+\begin{align}
+   D_0 (1-(h^2/12)D_+D_-)u_0&=0 ~~\text{and}~~~   D_0 u_0=0 \label{eq:nbc4b}
+\end{align}
+Note, however, that a fourth-order approximation to $u_x\approx D_0 (1-(h^2/6)D_+D_-)u_0$, which differs
+from\eqref{eq:nbc4b}.
+However, the conditions~\eqref{eq:nbc4b} imply $D_0D_+D_-u_0=0$, which in turn
+implies that $D_0 (1-(h^2/6)D_+D_-)u_0=0$. (is this correct?)
+
+\clearpage % ----------------------------------------------------------------------------
+We now turn to consideration $(u,v_x)$ using a fourth-order approximation to $v_x\approx D_0 (1-(h^2/6)D_+D_-)u_0$,
+\begin{align}
+  (u,D_0 (1-(h^2/6)D_+D_-)v)_h &= (u,D_0 v)_h -(h^2/6) (u,D_0D_+D_-)v )_h
+\end{align}
+Now (using~\eqref{eq:uD0v}),
+\begin{align}
+   (u,D_0 D_+D_-)v )_h &= -\ubar_0 \frac{1}{4}((D_+D_-)v_1+(D_+D_-)v_{-1}) - \frac{1}{4}(\ubar_1+\ubar_{-1})(D_+D_-) v_0  \\
+                       & - (D_0 u,D_+D_- v)_h  \\
+\end{align}
+and
+\begin{align}
+   (D_0 u,D_+D_- v)_h  &= -D_0\ubar_0 D_0 v_0 - (D_0 D_+ u,D_+ v)_{0,\infty} \\
+            &= -D_0\ubar_0 D_0 v_0 + (D_0 D_+ D_- u, v)_{1,\infty} + D_0 D_+\ubar_0 v_0 \\
+            &= -D_0\ubar_0 D_0 v_0 + D_0 D_+\ubar_0 v_0 - \half D_0 D_+ D_- \ubar_0 v_0 + (D_0 D_+ D_- u, v)_h \\
+            &= -D_0\ubar_0 D_0 v_0 + D_0^2\ubar_0 v_0 + (D_0 D_+ D_- u, v)_h 
+\end{align}
+Therefore,
+\begin{align*}
+   (u,D_0 D_+D_-)v )_h + (D_0 D_+ D_- u, v)_h 
+     &= -\ubar_0 \frac{1}{4}((D_+D_-)v_1+(D_+D_-)v_{-1}) - \frac{1}{4}(\ubar_1+\ubar_{-1})(D_+D_-) v_0  \\
+        +D_0\ubar_0 D_0 v_0 - D_0^2\ubar_0 v_0 
+\end{align*}
+
+
+
+% ====================================================================================================
+\clearpage
+\newcommand{\Dz}{\widetilde{D}_0}
+\subsection{Integration by parts formulae for the second-order inner product}
+
+
+Here are some integration by parts formulae for the second-order inner product:
+\begin{align}
+  (u,v)_h  \equiv   \half\ubar_0 v_0 h + (u,v)_{1,\infty}
+\end{align}
+% 
+\begin{align}
+  (u, D_- v )_h  &=  -\half\Big( \ubar_0 v_{-1} + \ubar_1 v_0 \Big)  - (D_+ u,v)_h \label{eq:dmip}\\
+                 &=  -\ubar_0 \half\Big(v_{-1} + v_0 \Big) - (D_+ u,v)_{0,\infty}
+\end{align}
+\begin{align}
+  (u, D_+D_- v )_h  &= - \ubar_0 D_0 v_0 - (D_+ u, D_+ v)_{0,\infty}  \label{eq:dpdmip} \\
+                    &= -\half\Big( \ubar_0 D_+ v_{-1} + \ubar_1 D_+ v_0 \Big)  - (D_+ u, D_+ v)_h 
+\end{align}
+*check* these
+\begin{align}
+ (u, D_0 v )_h &= -\frac{1}{4}\Big( \ubar_0(v_1+v_{-1}) + (\ubar_1+\ubar_{-1}) v_0 \Big) 
+                      - (D_0 u,v)_h \label{eq:dzip} \\
+%                 &= -\half\Big( \ubar_0 v_{-1} + \ubar_{1} v_0 \Big)    - (D_0 u,v)_{1,\infty} \\
+%                &= - \ubar_0 \half\Big( v_{-1} + v_0 \Big)  - (\Dz u,v)_{1,\infty}
+\end{align}
+Using $\ubar_{1}=\ubar_0 + hD_+\ubar_0$ and $\ubar_{-1}=\ubar_0 - hD_- \ubar_0$
+implies 
+\begin{align*}
+\ubar_{-1}+\ubar_{1} &= 2 \ubar_0 + hD_+\ubar_0 - hD_- \ubar_0 \\
+                     &= 2 \ubar_0 + 2 h D_+\ubar_0 - 2h D_0 \ubar_0 
+\end{align*}
+whence
+\begin{align}
+ (u, D_0 v )_h &= -\frac{1}{4}\Big( \ubar_0(v_1+v_{-1}) )
+                  -\half \ubar_0 v_0 -\half h D_+\ubar_0 v_0 - (D_0 u,v)_{1,\infty}
+\end{align}
+
+% and $v_{-1}=v_0 + h D_-v_0$ in~\eqref{eq:dzip} gives
+% \begin{align}
+%  \half h\ubar_0 D_-v_0 + (u, D_0 v )_h  &= 
+%     -\half\Big( \ubar_0 v_0 + \ubar_0 v_0 \Big)  - \Big( \half h D_-\ubar_0 v_0 + (D_0 u,v)_h\Big)  \label{eq:dzip2}
+% \end{align}
+% or since $D_0 =\half( D_+ + D_-)$, 
+% \begin{align}
+%  \half h\ubar_0 D_+ v_0 + (u, D_0 v )_{1,\infty}  &= 
+%     -\half\Big( \ubar_0 v_0 + \ubar_0 v_0 \Big)  - \Big( \half h D_+\ubar_0 v_0 + (D_0 u,v)_{1,\infty} \Big)  \label{eq:dzip3}
+% \end{align}
+Define the operator $\Dz$ by 
+\begin{align}
+  \Dz u_i & =  D_0 u_i \qquad \text{for $i>0$}\\
+          & = D_+ u_i \qquad \text{for $i=0$}
+\end{align}
+and then
+\begin{align}
+  (u, \Dz v )_h &=  -\ubar_0 v_0 - (\Dz u, v)_h \label{eq:dzip3} 
+%  (u, D_0 v )_h &=  - \ubar_0 \half\Big( v_{-1} + v_0 \Big)  - (\Dz u,v)_h  \label{eq:dzip4}
+\end{align}
+
+% ------------------------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Stress free boundary conditions}
+
+
+\newcommand{\uy}{\partial_y u}
+\newcommand{\vy}{\partial_y v}
+\newcommand{\cp}{c_p}
+\newcommand{\ut}{\dot{u}}
+\newcommand{\vt}{\dot{v}}
+
+
+The stress free boundary conditions on a boundary $x=0$ are (with $\cp=\lambda+2\mu$)
+\begin{align*}
+   \cp u_x + \lambda v_y &=0 \\
+   \mu v_x + \mu u_y &=0 
+\end{align*}
+% 
+The energy estimate will involve (with $\ut=u_t$), 
+\begin{align*}
+   \Ec &= (\ut ,L^u) + (\vt ,L^v) \\
+   L^u & = \partial_x( \cp \partial_x u) + \partial_x(\lambda\partial_y v) \\
+   L^v &= \partial_x( \mu\partial_x v) + \partial_x( \mu\partial_y u ))
+\end{align*}
+
+Use the second-order accurate approximations
+\begin{align*}
+   L^u_h & = D_+( \cp D_- u) + D_0(\lambda\vy), \\
+   L^v_h &=  D_+( \mu D_- v) + D_0 ( \mu\partial_y u )).
+\end{align*}
+Using the summation by parts forumale~\eqref{eq:dpdmip} and~\eqref{eq:dzip4}
+\begin{align*}
+ (\ut,L^u_h)_h &=  \cp (\ut, D_+D_- u) + \lambda(\ut,D_0\vy)  \\
+           &   = -\ut_0( \cp D_0 u_0 ) - \ut_0 \half\lambda(\vy_{-1} + \vy_0 ) 
+                                - \cp (D_+\ut,D_+ u)_{1,\infty}^2 - \lambda (\Dz \ut,\vy)_h \\
+ (\vt,L^v_h)_h &=  \mu  (\vt, D_+D_- v) + \mu    (\vt,D_0\uy)  \\
+           &   = -\vt_0( \mu D_0 v_0 ) - \vt_0\half\mu( \uy_{-1}+ \uy_{0}) )
+                             -\mu (D_+\vt, D_+ v)_{1,\infty}^2  - \mu (\Dz \vt,\uy)_h
+\end{align*}
+We would like to have the boundary terms vanish,
+\begin{align*}
+ \ut_0\Big( \cp D_0 u_0 + \half\lambda(\vy_{-1} + \vy_0 )\Big) &=0 \\
+ \vt_0\Big( \mu D_0 v_0 + \half\mu( \uy_{-1}+ \uy_{0}) )\Big)&=0 
+\end{align*}
+% or
+% \begin{align*}
+%  u_0( \cp D_0 u_0 ) + \half\lambda(u_0\vy_{-1} + u_{0}\vy_0 + (u_{-1}-u_0)\vy_0) &=0 \\
+%  v_0(     D_0 v_0 ) +\half   ( v_0\uy_{-1}+ v_0\uy_{0} + (v_{-1}-v_0)\uy_{0})  &=0 
+% \end{align*}
+% or
+% \begin{align*}
+%     ( \cp D_0 u_0 ) + \half\lambda(   \vy_{-1} +      \vy_0 + (u_{-1}-u_0)\vy_0/u_0 ) &=0 \\
+%     (     D_0 v_0 ) +\half   (  \uy_{-1}+    \uy_{0} + (v_{-1}-v_0)\uy_{0}/v_0  ) &=0 
+% \end{align*}
+% This gives a condition for $u_{-1}$ and $v_{-1}$  (regarding $\uy_{-1}$ a function of $u_{-1}$)
+% At issue is the situation when $u_0\rightarrow 0$ or $v_0\rightarrow 0$. 
+% 
+% % 
+% 
+% \vskip2\baselineskip
+If instead we the operator $\Dz$ in the discretization
+\begin{align*}
+   L^u_h & = D_+( \cp D_- u) + \Dz(\lambda\vy), \\
+   L^v_h &=  D_+( \mu D_- v) + \Dz ( \mu\partial_y u )).
+\end{align*}
+then after summation by parts we get 
+\begin{align*}
+ (\ut,L^u_h)_h &=  \cp (\ut, D_+D_- u) + \lambda(\ut,\Dz\vy)  \\
+           &   = -\ut_0( \cp D_0 u_0 ) - \lambda(\ut_0\vy_{0} ) 
+                                - \cp (D_+\ut, D_+ u)_{1,\infty}^2 - \lambda (\Dz \ut,\vy)_h \\
+ (\vt,L^v_h)_h &=   \mu  (\vt, D_+D_- v) + \mu    (\vt,\Dz\uy)  \\
+           &   = -\vt_0( \mu D_0 v_0 ) - \mu( \vt_0\uy_{0}) )
+                             -\mu (D_+\vt, D_+ v )_{1,\infty}^2  - \mu (\Dz \vt,\uy)_h
+\end{align*}
+The boundary terms vanish if 
+\begin{align*}
+\ut_0\Big( \cp D_0 u_0 + \lambda \vy_{0} \Big) &=0 \\
+\vt_0\Big(  D_0 v_0 +  \uy_{0} \Big) &=0 
+\end{align*}
+which implies that 
+\begin{alignat*}{3}
+                   \ut_0 &= 0 \quad&\text{or}\quad  \cp D_0 u_0 + \lambda \vy_0 &= 0 \\
+\text{and}\quad    \vt_0 &= 0  \quad&\text{or}\quad   D_0 v_0 + \uy_0 &= 0 \\
+\end{alignat*}
+% One disadvantage of this approximation is that the ghost values are coupled along the boundary. The discrete
+% approximation to $\partial_x(\lambda\partial_y v)$ and $ \partial_x( \mu\partial_y u )$
+% can be altered to a one-side approximation at the boundary to remove this restriction and
+% remain second-order accurate. 
+
+
+
+% Summation by parts on the discrete approximation to 
+% the term $L_u = \partial_x( (\lambda+ 2\mu) \partial_x u) + \partial_x(\lambda\partial_y v)$
+% and $L_v = \partial_x( \mu\partial_x v) + \partial_x( \mu\partial_y u ))$ 
+% will give something like (** check this ** )
+\clearpage 
+{\bf Fourth-order} accuracy: (assume constant $\lambda$ and $\mu$)
+\begin{align*}
+   L^u_h & = (\lambda+ 2\mu) D_+D_-(1-h^2/12(D_+D_-) u + \lambda D_0(1-h^2/6(D_+D_-))\vy \\
+   L^v_h &=  \mu D_+D_-(1-h^2/12(D_+D_-)v  + \mu D_0(1-h^2/6(D_+D_-))\uy
+\end{align*}
+Summation by parts...
+\begin{align*}
+ E_1 =  (u, D_+D_-(1-h^2/12 D_+D_-)u)  &= -u_0( b_{11} ) + D_+D_- u_0 ( b_{12} )  + \\
+                                & ~~~ - \Big[ (D_+ u, D_+ v)_{0,\infty} + (h^2/12)(D_+D_-u,D_+D_-v)_h \Big] \\
+ E_2 =  (u, D_0(1-h^2/6D_+D_-)\vy) &= -u_0( b_{21} ) + D_+D_- u_0( b_{22} ) + c D_0 u_0 ~D_0 \vy_0 - c D_0^2 u_0 \vy_0 \\
+  b_{11} &= D_0 (1-(h^2/12)D_+D_-)u_0 \\
+  b_{12}&=  D_0 u_0 \\
+  b_{21} &= \half(\vy_1+\vy_{-1})  -c h^2 \half((D_+D_-)\vy_1+(D_+D_-)\vy_{-1}) \\
+  b_{22} &= 
+\end{align*}
+If we only had the first two terms on the right-hand-side of $E_2$, we could eliminate the 
+boundary terms in $(\lambda+ 2\mu) E_1 + \lambda E_2 $ by setting the coefficients of $u_0$ and $D_+D_- u_0$ to zero:
+\begin{align*}
+  (\lambda+ 2\mu) b_{11} + \lambda b_{21} &=0 \\
+  (\lambda+ 2\mu) b_{12} + \lambda b_{22} &=0 
+\end{align*}
+
+
+One possible way to remove the extra terms in $E_2$ would be to use one-sided difference approximations for
+$(\partial_x(\lambda\partial_y v)$ near the boundary. On the bounadry itself we could maybe use
+the fact that $v_{xy}= -u_{yy}$. 
+
+
+
+
+% It turns out that the Dirichlet conditions~\eqref{eq:nbc4a}
+% are fourth-order accurate. The Neumann conditions~\eqref{eq:nbc4b} are not fourth order. 
+\clearpage
+\subsection{Using higher-order discrete inner-products}
+
+% To get fourth-order accurate Neumann-boundary-conditions 
+We consider the use of a more accurate discrete inner-product given
+by 
+\begin{align}
+  (u,v)_{4h}  =   (\half+a)\ubar_0 v_0 h + (1+b)\ubar_1 v_1 h + (1+c)\ubar_2 v_2 h + (u,v)_{3,\infty}
+\end{align}
+With $a=b=c=0$ this reduces to the second-order accurate formula.
+
+\newcommand{\ac}{\tilde{a}}
+\newcommand{\bc}{\tilde{b}}
+\newcommand{\cc}{\tilde{c}}
+We also define a fourth-order accurate inner-product for cell-centred values (imagine that $u_j\approx U(x_j+h/2)$)
+\begin{align}
+% (u,v)_{4c} =  (1+\ac)\ubar_{1/2} v_{1/2} h + (1+\bc)\ubar_{3/2} v_{3/2} h + (1+\cc)\ubar_{5/2} v_{5/2} h 
+%            + \sum_{j=3}^\infty \ubar_{j+\half} v_{j+\half} h \\
+  (u,v)_{4c} =  (1+\ac)\ubar_{0} v_{0} h + (1+\bc)\ubar_{1} v_{1} h + (1+\cc)\ubar_{2} v_{2} h 
+             + \sum_{j=3}^\infty \ubar_{j} v_{j} h
+\end{align}
+
+\clearpage % ------------------------------------------------------------------------------------------------------
+Now using~\eqref{eq:dpdmsbp}
+\begin{align*}
+  (u,D_+D_- v)_{4h} & = (\half+a)\ubar_0 D_+D_- v_0 h + (1+b)\ubar_1 D_+D_- v_1 h + (1+c)\ubar_2 D_+D_- v_2 h \\
+            &   ~~~~~~~+ (u,D_+D_- v)_{3,\infty}\\
+          &= - \ubar_0 D_0 v_0 - (D_+ u, D_+ v)_{0,\infty}  \\
+            &   ~~~~~~  + a\ubar_0 D_+D_- v_0 h + b\ubar_1 D_+D_- v_1 h + c\ubar_2 D_+D_- v_2 h \\
+          &= - \ubar_0 D_0 v_0 - (D_+ u, D_+ v)_{4c}  \\
+            &~~~~~~   +\ac D_+ u_0 D_+ v_0 +\bc D_+ u_1 D_+ v_1 +\cc D_+ u_2 D_+ v_2 \\
+            & ~~~~~~ + a\ubar_0 D_+D_- v_0 h + b\ubar_1 D_+D_- v_1 h + c\ubar_2 D_+D_- v_2 h  
+\end{align*}
+
+
+Consider now (use the results from $(u,(D_+D_-)^2 v)_{h}$ )
+(Note target: $(u,v_{xxxx})= -u v_{xxx} + u_x v_{xx} + (u_{xx},v_{xx})$. 
+\begin{align*}
+  (u,(D_+D_-)^2 v)_{4h} & =
+     (\half+a)\ubar_0 (D_+D_-)^2 v_0 h + (1+b)\ubar_1 (D_+D_-)^2 v_1 h + (1+c)\ubar_2 (D_+D_-)^2 v_2 h \\
+            &   ~~~~~~~+ (u,(D_+D_-)^2 v)_{3,\infty}\\
+    &= - (u_0-u_{-1}) D_+D_-v_0 - u_0 D_0 D_+D_- v_0+ (D_+D_-u,D_+D_-v)_{0,\infty} \\
+    &   ~~~~~~~+ a\ubar_0 (D_+D_-)^2 v_0 h + b\ubar_1 (D_+D_-)^2 v_1 h + c\ubar_2 (D_+D_-)^2 v_2 h \\
+     &= - (u_0-u_{-1}) D_+D_- v_0 - u_0 D_0 D_+D_- v_0+ (D_+D_-u,D_+D_-v)_{4h??} \\
+    &   ~~~~~~~+ a\ubar_0 (D_+D_-)^2 v_0 h + b\ubar_1 (D_+D_-)^2 v_1 h + c\ubar_2 (D_+D_-)^2 v_2 h \\
+   &   ~~~~~~~ - \ac D_+D_- \ubar_0 D_+D_- v_0 h - \bc D_+D_- \ubar_1 D_+D_- v_1 h - \cc D_+D_- \ubar_2 D_+D_- v_2 h
+\end{align*}
+
+
+
+\clearpage
+% =====================================================================
+\subsection{A model problem}
+\newcommand{\vb}{\bar{v}}
+
+Following Nilsson et.al. we consider the model problem
+\begin{alignat}{3}
+   u_{tt} &= \grad\cdot\fv  && \text{for $x>0$}, \\
+   u_x+au_y &=0 && \text{at $x=0$}, \\
+    \fv &= ( u_x + a u_y, u_y + au_x).
+\end{alignat}
+After Fourier transforming in $y$ we get (still using $u$ for $\hat{u}$), 
+\begin{align*}
+   u_{tt} &= L u \equiv \partial_x( u_x + i\omega a u) - \omega^2 u + i \omega a u_x
+\end{align*}
+which we discretize as
+\begin{align*}
+    L_h u \equiv D_+D_- u + 2 i\omega a D_0 u - \omega^2 u 
+\end{align*}
+We look for discrete boundary conditions that will define a self-adjoint operator and thus consider
+the quantity
+\begin{align*}
+  B &= (v,  L_h u)_h - (L_h v,u)_h. 
+\end{align*}
+where $(u,v)_h$ is the second-order discrete inner product. 
+Noting that
+\begin{align*}
+   (v,D_+D_-u)_h - (D_+D_- v,u)_h &= -\frac{1}{2h}( \vb_{-1}u_0 - \vb_0 u_{-1}) -\frac{1}{2h}( \vb_{0}u_1 - \vb_1 u_{0}) \\
+                    &= u_0 D_0 \vb_0 - \vb_0 D_0 u_0
+\end{align*}
+and (defining the averaging operator $E u_i=\half(u_{i+1}+u_{i-1})$), 
+\begin{align*}
+   (v, i\omega D_0 u)_h - (i\omega D_0 v,u)_h &= i\omega\Big( (v, D_0 u) + (D_0 v,u) \Big) \\
+    &= - i\omega \frac{1}{2} \Big( \vb_0 E u_0 + (E\vb_0) u_0 \Big) \\
+    &=           \frac{1}{2} \Big( -\vb_0 E(i\omega u_0) + E(-i\omega\vb_0) u_0 \Big) 
+\end{align*}
+And thus
+\begin{align*}
+  B &= u_0 \Big( D_0 \vb_0 + a E(-i\omega\vb_0) \Big) - \vb_0 \Big( D_0 u_0 + a E(i\omega u_0)  \Big)
+\end{align*}
+This implies the operator is self-adjoint with the discrete boundary condition
+\begin{align*}
+   D_0 u_0 + a E(i\omega u_0) &=0 
+\end{align*}
+Note that the BC for $v$ is the same, $D_0 v_0 + a E(i\omega v_0) =0$, as required for self-adjointness. 
+In physical space this boundary condition is 
+\begin{align*}
+   D_0 u_0 + a E(\partial_y u_0) &=0 
+\end{align*}

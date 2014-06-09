@@ -1,0 +1,28 @@
+\section{Beam Equations} \label{sec:beams}
+
+
+Ref. Graff. 
+
+Euler-Bernoulli beam  (small deflections, low frequency respsonse)
+\[
+  \rho A \partial_t^2 y + \partial_x^2\big( E I \partial_x^2 y\big) = q(x,t) 
+\]
+
+
+Large rotation Euler-Bernoulli beam (using the von Karman strains, ref. wikipedia)
+\[
+  \rho A \partial_t^2 y + \partial_x^2\big( E I \partial_x^2 y\big) 
+           - \frac{3}{2} E A (\partial_x y)^2  \partial_x^2 y  = q(x,y) 
+\]
+
+
+Timoshenko beam theory (accounts for shearing effects, high frequency respsonse)
+\begin{align*}
+  \rho A \partial_t^2 y + G A \kappa\Big(  \partial_x \psi - \partial_x^2 y \Big)  &= q(x,y)  \\
+  \rho I \partial_t^2 \psi + G A \kappa\Big( \psi - \partial_x y \Big)  - E I \partial_x^2 \psi &= q(x,y) 
+\end{align*}
+or upon eliminating $\psi$
+\begin{align*}
+    \frac{EI}{\rho A}\partial_x^4 y - \frac{I}{A}\Big(1 +\frac{E}{G\kappa}\Big)\partial_x^2\partial_t^2 y + \partial_t^2 y 
+             + \frac{\rho I}{G A \kappa}\partial_t^4 y = ...
+\end{align*}

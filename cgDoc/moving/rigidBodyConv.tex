@@ -1,0 +1,126 @@
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, leapFrogTrap, TrigTZ}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 2.61e-02 &       & 2.47e-02 &       & 7.69e-03 &         \\ \hline
+0.025000 & 6.94e-03 &  3.8  & 6.36e-03 &  3.9  & 1.85e-03 &  4.1    \\ \hline
+0.012500 & 1.78e-03 &  3.9  & 1.60e-03 &  4.0  & 4.31e-04 &  4.3    \\ \hline
+ rate    &  1.94   &       &  1.97   &       &  2.08   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=leapFrogTrap, test=TrigTZ, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=0 }
+\label{tab:TestTrigTZ_SchemeleapFrogTrap}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, leapFrogTrap, freeRotation1}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 0.00e+00 &       & 0.00e+00 &       & 8.46e-02 &         \\ \hline
+0.025000 & 0.00e+00 &  0.0  & 0.00e+00 &  0.0  & 1.98e-02 &  4.3    \\ \hline
+0.012500 & 0.00e+00 &  0.0  & 0.00e+00 &  0.0  & 4.56e-03 &  4.3    \\ \hline
+ rate    &  0.00   &       &  0.00   &       &  2.11   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=leapFrogTrap, test=freeRotation1, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=0 }
+\label{tab:TestfreeRotation1_SchemeleapFrogTrap}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, leapFrogTrap, fallingSphere}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 9.33e-05 &       & 7.16e-05 &       & 0.00e+00 &         \\ \hline
+0.025000 & 2.24e-05 &  4.2  & 1.69e-05 &  4.3  & 0.00e+00 &  0.0    \\ \hline
+0.012500 & 5.47e-06 &  4.1  & 4.08e-06 &  4.1  & 0.00e+00 &  0.0    \\ \hline
+ rate    &  2.05   &       &  2.07   &       &  0.00   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=leapFrogTrap, test=fallingSphere, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=0 }
+\label{tab:TestfallingSphere_SchemeleapFrogTrap}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, DIRK2, TrigTZ}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 7.28e-03 &       & 6.45e-03 &       & 3.29e-03 &         \\ \hline
+0.025000 & 1.81e-03 &  4.0  & 1.61e-03 &  4.0  & 8.22e-04 &  4.0    \\ \hline
+0.012500 & 4.53e-04 &  4.0  & 4.02e-04 &  4.0  & 2.05e-04 &  4.0    \\ \hline
+ rate    &  2.00   &       &  2.00   &       &  2.00   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=DIRK2, test=TrigTZ, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=0 }
+\label{tab:TestTrigTZ_SchemeDIRK2}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, DIRK3, TrigTZ}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 7.65e-06 &       & 5.53e-06 &       & 2.00e-04 &         \\ \hline
+0.025000 & 4.76e-07 & 16.1  & 3.44e-07 & 16.1  & 2.49e-05 &  8.0    \\ \hline
+0.012500 & 2.97e-08 & 16.0  & 2.15e-08 & 16.0  & 3.05e-06 &  8.2    \\ \hline
+ rate    &  4.00   &       &  4.00   &       &  3.02   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=DIRK3, test=TrigTZ, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=0 }
+\label{tab:TestTrigTZ_SchemeDIRK3}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, DIRK4, TrigTZ}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 9.18e-06 &       & 6.64e-06 &       & 1.02e-04 &         \\ \hline
+0.025000 & 5.71e-07 & 16.1  & 4.13e-07 & 16.1  & 5.17e-06 & 19.7    \\ \hline
+0.012500 & 3.57e-08 & 16.0  & 2.58e-08 & 16.0  & 4.32e-07 & 12.0    \\ \hline
+ rate    &  4.00   &       &  4.00   &       &  3.94   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=DIRK4, test=TrigTZ, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=0 }
+\label{tab:TestTrigTZ_SchemeDIRK4}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, DIRK4, TrigTZ}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 3.12e-05 &       & 1.45e-04 &       & 3.95e-04 &         \\ \hline
+0.025000 & 2.46e-06 & 12.7  & 1.10e-05 & 13.1  & 2.54e-05 & 15.6    \\ \hline
+0.012500 & 1.73e-07 & 14.2  & 7.69e-07 & 14.4  & 1.58e-06 & 16.0    \\ \hline
+ rate    &  3.75   &       &  3.78   &       &  3.98   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=DIRK4, test=TrigTZ, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=1 }
+\label{tab:TestTrigTZ_SchemeDIRK4}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, DIRK4, freeRotation1}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 0.00e+00 &       & 0.00e+00 &       & 1.42e-02 &         \\ \hline
+0.025000 & 0.00e+00 &  0.0  & 0.00e+00 &  0.0  & 1.15e-03 & 12.4    \\ \hline
+0.012500 & 0.00e+00 &  0.0  & 0.00e+00 &  0.0  & 7.16e-05 & 16.0    \\ \hline
+ rate    &  0.00   &       &  0.00   &       &  3.82   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=DIRK4, test=freeRotation1, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=1 }
+\label{tab:TestfreeRotation1_SchemeDIRK4}
+\end{center}
+\end{figure} 
+\begin{figure}[hbt]\tableFont % you should set \tableFont to \footnotesize or other size
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline 
+\multicolumn{7}{|c|}{Rigid body, DIRK4, fallingSphere}     \\ \hline
+$\dt$    &  x-err   &   r   &  v-err   &   r   &  w-err   &   r   \\ \hline
+0.050000 & 2.21e-08 &       & 1.20e-08 &       & 0.00e+00 &         \\ \hline
+0.025000 & 1.40e-09 & 15.8  & 7.96e-10 & 15.1  & 0.00e+00 &  0.0    \\ \hline
+0.012500 & 8.80e-11 & 15.9  & 5.12e-11 & 15.6  & 0.00e+00 &  0.0    \\ \hline
+ rate    &  3.99   &       &  3.94   &       &  0.00   &          \\ \hline
+\end{tabular}
+\caption{Newton-Euler Equations: Scheme=DIRK4, test=fallingSphere, Max-norm errors at $t= 1.0$, mass=1.00e+00, addedMass=1 }
+\label{tab:TestfallingSphere_SchemeDIRK4}
+\end{center}
+\end{figure} 

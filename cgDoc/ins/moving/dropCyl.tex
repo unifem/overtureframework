@@ -1,0 +1,92 @@
+\section{Falling cylinder in a channel} \label{sec:dropCyl}
+
+
+We consider a solid cylinder that falls through an incompressible 
+viscous fluid in a two-dimensional channel.
+The terminal velocity of the cylinder can be compared to experimental
+and theoretical results as a means of validating the numerical scheme.
+
+The domain of interest $\Omega(t)$ consists of the
+region exterior to a cylinder of radius $a$, initially located at $\xv_0$, and interior to a rectangular
+channel $\Rc=[x_a,x_b]\times[y_a,y_b]$.
+
+
+We solve the problem in a coordinate system that translates at a uniform velocity $-V$ in the $y$-direction.
+The velocity $V$ will be chosen close to th expected terminal velocity and thus the cylinder will remain
+in the computation domain for a reasonably long time to allow a steady state to be reached (if one exists).
+
+
+For the computations we choose the cylinder to have radius $a=.5$,
+the channel to have width $2$ ($xa=-1$, $xb=1$) and assume that the density
+of the fluid is $\rho_f=1$. Acceleration due to gravity will be set to $9.81 m/s^2$. 
+
+We will vary the density of the cylinder $\rho_c$, the radius of the cylinder $a$ and
+the kinematic viscosity $\nu$.
+
+
+
+% We impose inflow conditions on the face at $y=y_a$ consisting of Pousieulle flow,
+% \begin{align*}
+%   v(x,y,z) &= 
+% \end{align*}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{4.cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.55}{0.55}{.0}{.32}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (15,7.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/dropCylNu0p1L5p}{\figWidth}};
+  \draw ( 3.5, 0) node[anchor=south west] {\trimfig{figures/dropCylNu0p1L5u}{\figWidth}};
+  \draw ( 7.0, 0) node[anchor=south west] {\trimfig{figures/dropCylNu0p1L5v}{\figWidth}};
+  \draw (10.5, 0) node[anchor=south west] {\trimfig{figures/dropCylNu0p1L5sl}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (15.0,8);
+\end{tikzpicture}
+\end{center}
+\caption{Falling cylinder results, $\nu=.1$, $a=.3$, $y_a=-2$, $y_b=3$. Left to right $p$, $u$, $v$ and stream lines.}
+\label{fig:dropCyl}
+\end{figure}
+}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.}{0.}{.0}{.0}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (10,6);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/cylDropNu0p1}{\figWidth}};
+%   \draw ( 4.5, 0) node[anchor=south west] {\trimfig{figures/dropCylNu0p1L5u}{\figWidth}};
+%   \draw ( 9.0, 0) node[anchor=south west] {\trimfig{figures/dropCylNu0p1L5v}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%   \draw[step=1cm,gray] (0,0) grid (10.0,6);
+\end{tikzpicture}
+\end{center}
+\caption{Falling cylinder results: Left: velocity of the cylinder center of mass versus time.}
+\label{fig:dropCylBody}
+\end{figure}
+}
+
+Figures~\ref{fig:dropCyl} and~\ref{fig:dropCylBody} show results for $a=.3$, $\nu=.1$, $\rho_c=.5/(\pi a^2)\approx 1.768 $.
+The vertical dimensions of the channel were $y_a=-2$, $y_b=3$.
+The translation velocity was $V=1.4$. 
+Figure~\ref{fig:dropCylBody} plots the velocity of the center of mass of the cylinder over time
+and indicates that the cylinder approaches a steady velocity of approximately $-3.754e-02$.
+The estimated terminal velocity is  $1.4 -3.754e-02 = 1.3625$.
+
+
+{\bf To do :} 
+\begin{enumerate}
+  \item Compare results when varying the length of the channel, varying the grid resolution.
+\end{enumerate}

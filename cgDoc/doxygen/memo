@@ -1,0 +1,14 @@
+Set the env variables: 
+
+CG_DOXYGEN : location of cg src for doxygen
+CGDOC_DOXYGEN : location of doxygen config file
+
+setenv CG_DOXYGEN "/home/henshaw.0/cg"
+setenv CGDOC_DOXYGEN "/home/henshaw.0/cgDoc/doxygen"
+
+To build an initial config file:
+doxygen -g cgDoxygen.config
+
+
+To build the doxygen source: 
+doxygen cgDoxygen.config

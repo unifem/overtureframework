@@ -1,0 +1,63 @@
+\clearpage
+\subsection{Corner compatibility conditions}
+
+Corner compatibility conditions are used to derive discrete boundary conditions for the
+ghost points near the corners.
+
+Consider a 2D rectangular domain with a corner at $\xv=0$,
+\begin{align}
+   u_x(0,y) &= - \alpha v_y(0,y) \\
+   v_x(0,y) &= - u_y(0,y) \\
+   u_y(x,0) &= -v_x(x,0) \\
+   v_y(x,0) &= - \alpha u_x(x,0)  \\
+   u_{tt}(x,y) &= (\lambda+\mu)(u_{xx} + v_{xy}) + \mu(u_{xx} + u_{yy}) \label{eq:utt} \\
+   v_{tt}(x,y) &= (\lambda+\mu)(u_{xy} + v_{yy}) + \mu(v_{xx} + v_{yy}) \label{eq:vtt} 
+\end{align}
+
+By using the above expressions and their derivatives, it follows that at the corner
+\begin{align}
+   u_x(0,0) &= - \alpha v_y(0,0) \\
+   v_y(0,0) &= - \alpha u_x(0,0) \\
+   u_{yy}(0,0) &= - v_{xy}(0,0) = \alpha u_{xx}(0,0) \\
+   v_{xx}(0,0)&=-u_{xy}(0,0) = \alpha v_{yy}(0,0) 
+\end{align}
+which implies 
+\begin{align}
+   u_x(0,0) &=0 \\
+   v_y(0,0) &=0 \\
+   u_{yy}(0,0) &= \alpha u_{xx}(0,0) \\
+   v_{xx}(0,0) &= \alpha v_{yy}(0,0) 
+\end{align}
+
+From $u_x(0,0,t)=0$, $v_y(0,0,t)=0$, ~\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{xtt}(0,0) &= (\lambda+\mu)(u_{xxx} + v_{xxy}) + \mu(u_{xxx} + u_{xyy}) =0 \\
+   v_{ytt}(0,0) &= (\lambda+\mu)(u_{xyy} + v_{yyy}) + \mu(v_{xxy} + v_{yyy}) =0
+\end{align}
+or
+\begin{align}
+   (\lambda+2\mu)u_{xxx}(0,0) &= -(\lambda+\mu)v_{xxy} - \mu u_{xyy} \\
+                         &= \alpha(\lambda+\mu)u_{xxx} +\alpha\mu v_{yyy} \\
+   (\lambda+2\mu)v_{yyy}(0,0) &= -(\lambda+\mu)u_{xyy}+\mu v_{xxy} \\
+                         &= \alpha(\lambda+\mu)v_{yyy} + \alpha \mu u_{xxx}
+\end{align}
+which implies
+\begin{align}
+   u_{xxx}(0,0) &=0 \\
+   v_{yyy}(0,0) &=0 
+\end{align}
+
+From $u_x(0,0,t)=0$, $v_y(0,0,t)=0$, ~\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{xtt}(0,0) &= (\lambda+\mu)(u_{xxx} + v_{xxy}) + \mu(u_{xxx} + u_{xyy}) =0 \\
+   v_{ytt}(0,0) &= (\lambda+\mu)(u_{xyy} + v_{yyy}) + \mu(v_{xxy} + v_{yyy}) =0
+\end{align}
+
+
+From $u_{yy}(0,0,t)=\alpha u_{xx}(0,0)$, $v_{xx}(0,0,t) = \alpha v_{yy}(0,0,t)$,
+\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{yytt}(x,y)-\alpha u_{xx} &= (\lambda+\mu)(u_{xxyy} + v_{xyyy}) + \mu(u_{xxyy} + u_{yyyy}) \\
+               & -\alpha\Big( (\lambda+\mu)(u_{xxxx} + v_{xxxy}) + \mu(u_{xxxx} + u_{xxyy}) \Big) 
+\end{align}
+

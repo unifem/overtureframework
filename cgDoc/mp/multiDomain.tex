@@ -1,0 +1,446 @@
+%-----------------------------------------------------------------------
+% Solving multi-domain problems
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+% \usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\input documentationPageSize.tex
+
+\input homeHenshaw
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+\newcommand{\Overture}{{\bf Over\-ture\ }}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+\newcommand{\cgDoc}{\homeHenshaw/cgDoc}
+\newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
+\newcommand{\convDir}{.}
+
+\begin{document}
+
+\input wdhDefinitions.tex
+
+\def\comma  {~~~,~~}
+\newcommand{\uvd}{\mathbf{U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+% \newcommand{\omegav}{\mathbf{\omega}}
+% \newcommand{\Omegav}{\mathbf{\Omega}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\cm}{{\rm cm}}
+\newcommand{\Jc}{{\mathcal J}}
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+% define the clipFig commands:
+\input clipFig.tex
+
+\newcommand{\bogus}[1]{}  % removes is argument completely
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+Notes on Solving Multi-Domain Problems \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+% UCRL-MA-134289
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This document holds notes and results on solving multi-domain problems.
+We consider iteration strategies for solving the interface equations without
+forming the full coupled implicit systems. 
+
+\end{flushleft}
+
+% \clearpage
+\tableofcontents
+% \listoffigures
+
+\vfill\eject
+
+
+\section{Solving Multi-Domain Problems by Iteration.}
+
+% \input /home/henshaw.0/papers/th/materialInterfaceFigure
+
+We are interested in solving multi-physics, multi-domain problems.
+% 
+One simple example is the solution to a problem of heat condition between
+solids with different thermal conductivities. Another example is coupling
+fluid flow with heat condition in adjacent solids.
+
+
+
+
+\newcommand{\kappam}{\kappa^{(m)}}
+\newcommand{\um}{u^{(m)}}
+\newcommand{\uI}{u^{(1)}}
+\newcommand{\uII}{u^{(2)}}
+\newcommand{\kappaI}{\kappa^{(1)}}
+\newcommand{\kappaII}{\kappa^{(2)}}
+\newcommand{\jump}[1]{\Big[#1\Big]}
+\newcommand{\up}{u^p}
+\newcommand{\vp}{v^p}
+\newcommand{\uh}{\hat{u}}
+\newcommand{\vh}{\hat{v}}
+
+\subsection{One-dimensional Interface Problem}
+
+We begin by considering the solution to the one-dimensional two-domain problem for Poisson's equation,
+on the domain $\Omega = [-a,b] = \Omega_1 \bigcup \Omega_2 $,  with $\Omega_1=[-a,0]$, $\Omega_2=[0,b]$,
+and with interface $\Omega_I$ at $x=0$,
+\begin{alignat}{3}
+  \partial_x( \kappam \partial_x \um ) &= f &&\qquad m=1,2, ~~\text{for $x\in \Omega_m$}, \\
+  \jump{ \um(0) } &= 0  &&\qquad \text{for $x\in \Omega_I$}, \\
+  \jump{ \kappam \partial_x \um(0) } &= 0 &&\qquad \text{for $x\in \Omega_I$},\\
+  \uI(-a)=g(a), \quad \uII(b) &=g(b)  ~.
+\end{alignat}
+Note that $\kappam>0$, $a>0$ and $b>0$. We also assume that $\kappam$ is constant. 
+
+
+Suppose that we have a good solution method for each sub-domain and that we do not want to
+solve the full coupled equations as a single system.
+We can define an iteration to solve the coupled equations. Let $u^j \approx\uI$ and $v^j\approx \uII$.
+Define the iteration
+\begin{alignat}{3}
+  \kappaI u_{xx}^j  &= f &  \kappaII v_{xx}^j &= f \\
+    u^j(-a)&=g(a)      &  v^j(b)&=g(b) \\
+  \kappaI u^j_x(0) &= \kappaII v^{j-1}_x(0)  \qquad  & v^j(0) &= u^{j}(0) 
+\end{alignat}
+where we have applied the {\em Neumann BC} on $u^j$ and the {\em Dirichlet} condition on $v^j$. 
+
+{\bf Note:} Another option would be to use a mixed interface condition
+\begin{align*}
+  a_{11} \kappaI u^j_x(0) + a_{12} u^{j}(0) &= a_{11} \kappaII v^{j-1}_x(0) + a_{12} v^j(0), \\
+  a_{21} \kappaII v^j_x(0) + a_{22} v^{j}(0) &= a_{21} \kappaI u^{j-1}_x(0) + a_{22} u^j(0), 
+\end{align*}
+where we require the coefficients $a_{ij}$ to form a non-singular matrix, $det(a_{ij})\ne 0$. 
+Upon convergence we will have satisfied both jump conditions. {\bf This option still needs to be analysed.}
+% 
+
+
+We can analyze the convergence properties of this iteration. We first construct particular solutions, $u^p(x)$ and
+$v^p(x)$ that satisfy the equations and boundary conditions, and satisfy some Dirichlet conditions
+at the interface, 
+\begin{alignat}{3}
+  \kappaI \up_{xx}  &= f \qquad&  \kappaII \vp_{xx} &= f ,\\
+    \up(-a)&=g(-a)      \qquad&  \vp(b)&=g(b) ,\\
+   \up(0) &= 0 \qquad& \vp(0) &= 0 ~.
+\end{alignat}
+Letting $\uh^j=u^j-\up$ and $\vh^j=u^j-\vp$ then $(\uh^j,\vh^j)$ satisfy 
+\begin{alignat}{3}
+  \kappaI \uh_{xx}^j  &= 0 \qquad&  \kappaII \vh_{xx}^j &= 0 \\
+    \uh^j(-a)&=0      \qquad&  \vh^j(b)&=0 \\
+  \kappaI \uh^j_x(0) &= \kappaII \vh^{j-1}_x(0) - \jump{\kappa_m\up_x(0)}   \qquad& \vh^j(0) &= \uh^{j}(0) 
+\end{alignat}
+The solutions to the interior equations and boundary conditions 
+are of the form 
+\[ 
+\uh^j = A_j (x+a) ~~,~~~~\text{and}~~ \vh^j = B_j(x-b),
+\]
+If we choose initial guesses as $u^0=\up$ and $v^0=\vp$ then $A_0=0$ and $B_0$=0. 
+Substitution into the interface conditions gives 
+\begin{align*}
+   \kappaI A_j &= \kappaII B_{j-1} - \jump{\kappa_m\up_x(0)} \\
+    B_j~(0-b) &= A_j~(0+a)
+\end{align*}
+and thus
+\begin{align*}
+   A_j &= - {a\over\kappaI}{\kappaII\over b} A_{j-1} - {1\over \kappaI} \jump{\kappa_m\up_x(0)} . 
+\end{align*}
+This iteration converges provided
+\begin{equation}
+   \left\vert  {a\over\kappaI}{\kappaII\over b} \right\vert <1 
+\end{equation}
+In general this is not a good situation since the iteration does not converge for general
+values of $\kappaI/a$ and $\kappaII/b$. It will work fine if $\kappaI/a \gg \kappaII/b$. 
+This result indicates that we should apply the {\em Neumann} interface BC on $\uI$ and the {\em Dirichlet} on $\uII$
+if $\kappaI/a >\kappaII/b$,
+but that we should apply the {\em Neumann} interface BC on $\uII$ and {\em Dirichlet} on $\uI$, if $\kappaI/a < \kappaII/b$. 
+
+We can define an under-relaxed iteration with relaxation parameter $\omega$ by 
+\begin{align*}
+    A_j &= (1-\omega)A_{j-1} + \omega {1\over \kappaI}\Big(\kappaII B_{j-1} - \jump{\kappa_m\up_x(0)}\Big) \\
+    B_j &= -{ a\over b} A_j
+\end{align*}
+in which case
+\begin{align*}
+   A_j &= \Big[ 1 -\omega\big(1+{a\over\kappaI}{\kappaII\over b}\big) \Big] A_{j-1} -
+                         \omega{ {1\over \kappaI} \jump{\kappa_m\up_x(0)} } . 
+\end{align*}
+This iteration will converge provided $0< \omega < 2\omega_{\rm opt}$ where
+the optimal value for $\omega$ is
+\begin{align*}
+   \omega_{\rm opt} &= {1 \over 1+{a\over\kappaI}{\kappaII\over b} }
+\end{align*}
+If $\omega=\omega_{\rm opt}$ then the iteration converges in one iteration to the solution
+\begin{align*}
+   A &=   - {a^{-1} \over \frac{\kappaI}{a} + \frac{\kappaII}{b} } \jump{\kappa_m\up_x(0)}, \\ 
+   B &=     {b^{-1} \over \frac{\kappaI}{a} + \frac{\kappaII}{b} } \jump{\kappa_m\up_x(0)} .
+\end{align*}
+
+% ========================================================================
+\clearpage 
+\subsection{One-dimensional Interface Problem with Mixed Interface Conditions}
+
+Consider now the situation when we use a mixture of the jump conditions on each side of the interface.
+In this case the interface conditions are
+\begin{align*}
+  \alpha \kappaI u^j_x(0) + \beta u^{j}(0) &= \alpha \kappaII v^{j-1}_x(0) + \beta v^j(0), \\
+  \beta \kappaII v^j_x(0) -\alpha v^{j}(0) &= \beta  \kappaI u^{j-1}_x(0) -\alpha u^j(0), 
+\end{align*}
+where $\beta=1-\alpha$. Proceeding as before we get 
+\begin{align*}
+   \alpha \kappaI A_j + \beta a A_j &= \alpha \kappaII B_{j-1} - b \beta B_{j-1} 
+                   - \alpha \jump{\kappa_m\up_x(0)} \\
+   \beta \kappaII B_j + \alpha b B_j &= \beta \kappaI A_j -\alpha a A_j +\beta \jump{\kappa_m\up_x(0)}
+\end{align*}
+and thus
+\begin{align*}
+   B_j &= \left[ {\beta\kappaI -\alpha a\over \beta\kappaII+\alpha b } \right] A_j + 
+                        {\beta\over \beta\kappaII+\alpha b } \jump{\kappa_m\up_x(0)} \\
+   A_j &= \left[ {\alpha\kappaII -\beta b \over \alpha\kappaI+\beta a } \right]
+          \left[ {\beta\kappaI -\alpha a  \over \beta\kappaII+\alpha b} \right] A_{j-1}  
+                   + \Big(  - \alpha  + \beta {\alpha\kappaII -\beta b \over \beta\kappaII+\alpha b}\Big)
+                    {1\over \alpha\kappaI+\beta a} \jump{\kappa_m\up_x(0)} \\
+       &= \left[ {\alpha\kappaII/b -\beta \over \beta\kappaII/b+\alpha}\right]
+             \left[ {\beta\kappaI/a -\alpha  \over \alpha\kappaI/a+\beta }\right]A_{j-1} 
+          - { (\alpha^2 + \beta^2) b \over [\alpha\kappaI+\beta a][\beta\kappaII+\alpha b] }\jump{\kappa_m\up_x(0)}
+\end{align*}
+Define the amplification factor
+\begin{align*}
+  \lambda &= \left[ {\alpha\kappaII/b -\beta \over \beta\kappaII/b+\alpha}\right]
+             \left[ {\beta\kappaI/a -\alpha  \over \alpha\kappaI/a+\beta }\right]
+\end{align*}
+This iteration converges provided
+\begin{equation}
+   \left\vert \lambda \right\vert <1 
+\end{equation}
+{\bf Note 1:} If $\alpha=\beta=\half$ then the iteration will converge since
+\begin{equation}
+   \left\vert \lambda \right\vert = 
+   \left\vert \left[ {\kappaII/b -1 \over \kappaII/b+1}\right]
+              \left[ {\kappaI/a - 1 \over \kappaI/a+ 1 }\right]  \right\vert <1 
+\end{equation}
+
+{\bf Note 2:} If $\kappaI/a \gg \kappaII/b$ then we probably want to choose $\alpha=1$, $\beta=0$  since
+\begin{equation}
+   \left\vert \lambda \right\vert = 
+   \left\vert \kappaII/b \over \kappaI/a  \right\vert \ll 1 
+\end{equation}
+
+{\bf Note 3:} If we use an under-relaxed iteration with parameter $\omega$ then the iteration 
+will converge for $0< \omega < 2\omega_{\rm opt}$ where (*check this*)
+\begin{equation}
+   \omega_{\rm opt} = { 1 \over 1 - \lambda }
+\end{equation}
+with amplification factor
+\begin{equation}
+   \lambda(\omega) = 1 -\omega( 1 - \lambda) 
+\end{equation}
+
+
+% ========================================================================
+\clearpage
+\subsection{Two-dimensional Interface Problem}
+
+
+Now consider a two dimension interface problem for two adjacent squares, $2\pi$-periodic in the $y$-direction,
+on the region $\Omega = [-a,b]\times[0,2\pi] = \Omega_1 \bigcup \Omega_2 $, $\Omega_1=[-a,0]\times[0,2\pi]$, 
+$\Omega_2=[0,b]\times[0,2\pi]$,
+ with interface $\Omega_I$ at $x=0$,
+\begin{alignat}{3}
+  \partial_x( \kappam \partial_x \um ) + \partial_y( \kappam \partial_y \um ) &= f &&\qquad m=1,2, ~~\text{for $x\in \Omega_m$}, \\
+  \jump{ \um(0,y) } &= 0  &&\qquad \text{for $x\in \Omega_I$}, \\
+  \jump{ \kappam \partial_x \um(0,y) } &= 0 &&\qquad \text{for $x\in \Omega_I$},
+  \uI(-a,y)=g(a), \quad \uII(b,y)=g(b)  ~.
+\end{alignat}
+If we Fourier transform in $y$, with dual variable $k$, and subtract out a particular solution, $(\up(x,y),\vp(x,y))$, ( as in
+the one-dimensional case) we are led to the iteration
+\begin{alignat}{3}
+  \kappaI u_{xx}^j - \kappaI k^2 u^j  &= 0 &  \kappaII v_{xx}^j - \kappaII k^2 v^j &= 0 \\
+    u^j(-a,y)&=0      &  v^j(b,y)&= 0 \\
+  \kappaI u^j_x(0,y) &= \kappaII v^{j-1}_x(0,y) + f_I(y)  \qquad  & v^j(0,y) &= u^{j}(0,y)  \\
+   f_I(y) &\equiv \jump{\kappa_m\up_x(0,y) }
+\end{alignat}
+The solution to these equations is of the form (for $k\ne 0$)
+\begin{align*}
+  u^j &= A_j(y)\half\big(e^{k(x+a)} - e^{-k(x+a)}\big) = A_j(y)\sinh(k(x+a)) \\
+  v^j &= B_j(y)\half\big(e^{k(x-b)} - e^{-k(x-b)}\big) = B_j(y)\sinh(k(x-b))
+\end{align*}
+For $k=0$ the solution is of the same form as the one-dimensional problem.
+
+Substitution into the interface conditions gives
+\begin{align*}
+   \kappaI A_j k \cosh(ka) &=   \kappaII B_{j-1} k \cosh(kb) +f_I(y)  \\
+    B_j~\sinh(-kb) &= A_j~\sinh(ka)
+\end{align*}
+giving
+\begin{align*}
+   B_j &= - {\sinh(ka)\over\sinh(kb)} A_j 
+\end{align*}
+and 
+\begin{align*}
+   A_j &= - {\tanh(ka)\over\kappaI}{\kappaII\over\tanh(kb)} A_{j-1} + {1\over  k~\cosh(ka)\kappaI} f_I(y)
+\end{align*}
+We can define an under-relaxed iteration with relaxation parameter $\omega$ by 
+\begin{align*}
+   A_j &= (1-\omega)A_{j-1} + 
+                  \omega \Big( - {\tanh(ka)\over\kappaI}{\kappaII\over\tanh(kb)} A_{j-1} + {1\over  k~\cosh(ka)\kappaI} f_I(y) \Big) \\
+    B_j &= - {\sinh(ka)\over\sinh(kb)} A_j 
+\end{align*}
+in which case
+\begin{align*}
+   A_j &= \Big[ 1 -\omega\big(1+{\tanh(ka)\over\kappaI}{\kappaII\over\tanh(kb)}\big) \Big] A_{j-1} -
+                         \omega{ {1\over  k~\cosh(ka)\kappaI} f_I(y) }.
+\end{align*}
+This iteration will converge provided $0< \omega < 2\omega_{\rm opt}$ where
+the optimal value for $\omega$ is
+\begin{align*}
+   \omega_{\rm opt} &= {1 \over 1+{\tanh(ka)\over\kappaI}{\kappaII\over\tanh(kb)} }.
+\end{align*}
+
+For $ka\gg 1 $ and $kb\gg 1$,  the optimal value tends to $\omega_{\rm opt} \rightarrow 1/(1+\frac{a}{b}\frac{\kappaII}{\kappaI})$.
+Thus the optimal $\omega$ becomes independent of $k$ for large enough $k$. 
+
+
+Since in general we don't know $a$ or $b$ we could choose
+\[
+   \omega_0 = {1 \over 1+\frac{\kappaII}{\kappaI} }.
+\]
+This is a safe value provided $\omega_0< 2\omega_{\rm opt}$.
+\begin{align*}
+   \omega_0 &< 2 \omega_{\rm opt}\\
+\Rightarrow {1 \over 1+\frac{\kappaII}{\kappaI} }   &< {2 \over 1+{\tanh(ka)\over\kappaI}{\kappaII\over\tanh(kb)} } \\
+% \Rightarrow 1+{\frac{\tanh(ka)}{\tanh(kb)}}{\kappaII\over\kappaI} &< 2 + 2 \frac{\kappaII}{\kappaI} \\
+% \Rightarrow\frac{\tanh(ka)}{\tanh(kb)}\frac{\kappaII}{\kappaI} &< 1 + 2 \frac{\kappaII}{\kappaI}\\
+\Rightarrow\frac{\tanh(ka)}{\tanh(kb)} &< \frac{\kappaI}{\kappaII} + 2 
+\end{align*}
+
+Thus $\omega_0$ should be a reasonable value to choose provided $\kappaI/a \ge \kappaII/b$  where $a$ and 
+$b$ are estimates of the linear size of the domain. 
+
+
+
+% The interface conditions~(\ref{eq:solidFluidInterfaceA}-\ref{eq:solidFluidInterfaceB}) define
+% the matching conditions at a solid interface. 
+% These conditions are valid for $t>0$ and thus the time derivatives of these conditions are
+% also valid. For a second-order accurate approximation we use the time derivative of~\eqref{eq:solidFluidInterfaceA},
+% combined with the interior equations for the temperature to give the three interface equations
+% \begin{align}
+%   (T - \TS )_\Ic &= 0 , \nonumber \\
+%   ( \kF \nv\cdot\grad T - \kS \nv\cdot\grad \TS)_\Ic &= 0, \nonumber \\
+%   \Big( \grad\cdot( \kF \grad T) + f_T\Big)_\Ic ~-~ \Big(\grad\cdot( \kS \grad \TS) + f_S \Big)_\Ic &=0 
+% \end{align}
+% where we have used the condition that $\uv=0$ on the interface. 
+% Note that these same conditions apply on a moving grid. 
+% {\bf I could write down all the higher-order matching conditions ?}
+
+
+%===============================================================================
+\clearpage
+\subsection{Iteration Strategy for Multiple Domains}
+
+\newcommand{\aI}{a^{(1)}}
+\newcommand{\aII}{a^{(2)}}
+
+The previous analyses suggest a iteration strategy for solving a problem with many sub-domains. 
+With multiple sub-domains we need to decide which interface conditions to apply on the two sides of each interface.
+
+{\bf Stratgey:} For an interface between domains $\Omega_1$ and $\Omega_2$ we apply a Neumann boundary condition 
+(discretizing the jump condition $[\kappa \partial_n u]=0$ ) on the side of the 
+interface with larger value for $\kappa$ (we really want the larger value of "$\kappa/a$" but "$a$" is
+not known). The other side of the interface should apply the Dirichlet condition (discretizing the
+jump condition $[u]=0$). The relaxation parameter can be chosen as 
+\[
+ \omega_{\rm opt} \approx \Big(1+\frac{\aI}{\kappaI}\frac{\kappaII}{\aII} \Big)^{-1} , 
+\]
+where $\aI$ and $\aII$ are rough estimates of the linear size of the domains $\Omega_1$ and $\Omega_2$, respectively. 
+
+
+
+Example: If we have heat conduction between a gas and a solid where $\kappa_{\rm gas} \ll \kappa_{\rm solid}$,
+then at the interface we will apply the Neumann BC on the solid and the Dirichlet BC on the gas.  Thus,
+during the iteration to solve the iterface equations, 
+the solid is given the heat-flux from the gas, while the gas is given the temperature from the solid. 
+
+Remark: The physical interpretation is that the heat flux condition ({\em Neumann} interface condition)
+ should be applied on the region where {\em the temperature equilibrates most quickly}.
+In the previous example with a gas and solid, if the gas region were tiny, $a_{\rm gas} \ll 1$, then it could be that 
+$\kappa_{\rm gas}/a_{\rm gas} \ll \kappa_{\rm solid}/a_{\rm solid}$. In this case, the temperature in the gase 
+would equilibrate most quickly and thus the heat-flux condition should be applied to the gas.
+
+\section{stuff}
+built upon the \Overture 
+framework~\cite{Brown97},\cite{Henshaw96a},\cite{iscope97}. 
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\printindex
+
+
+\end{document}

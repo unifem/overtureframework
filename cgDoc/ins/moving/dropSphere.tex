@@ -1,0 +1,56 @@
+\section{Falling sphere in a tube} \label{sec:sphereInATube}
+
+
+We consider a solid sphere that falls through a cylinder filled with an incompresible
+viscous fluid. The terminal velocity of the sphere can be compared to experimental
+and theoretical results as a means of validating the numerical scheme.
+
+The domain of interest $\Omega(t)$ consists of the region interior to a cylinder of radius $R_c$ (aligned along the
+$y$-axis that contains a sphere of radius $a$, initially located at $\xv_0$.
+
+Nunerically we truncate the cylinder to be of finite length, $y\in[y_a,y_b]$,
+\begin{align*}
+  \Cc = \{ \xv ~\vert~  r\le R_c,~ y\in[y_a,y_b] \}
+\end{align*}
+where $r^2=x^2+z^2$. 
+
+We solve the problem in a coordinate system that translates at a uniform velocity $-V$ in the $y$-direction.
+The velocity $V$ will be chosen close to th expected terminal velocity and thus the sphere will remain
+in the computation domain for a reasonable long time to allow a steady state to be reached (if one exists).
+
+
+For the computations we choose the cylinder to have radius $R_c=1$ and assume that the density
+of the fluid is $\rho_f=1$. Acceleration due to gravity will be set to $9.81 m/s^2$. 
+
+We will vary the density of the sphere $\rho_s$, the radius of the sphere $a$ and
+the kinematic viscosity $\nu$.
+
+
+
+% We impose inflow conditions on the face at $y=y_a$ consisting of Pousieulle flow,
+% \begin{align*}
+%   v(x,y,z) &= 
+% \end{align*}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (15,7.75);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/sphereTubeRho2Nu0p1}{\figWidth}};
+  \draw ( 7.5, 0) node[anchor=south west] {\trimfig{figures/sphereTubeRho2Nu0p1V2}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Falling sphere results...}
+\label{fig:dropSphere}
+\end{figure}
+}

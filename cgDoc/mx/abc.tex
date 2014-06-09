@@ -1,0 +1,243 @@
+\section{Absorbing Boundary Conditions}\label{sec:abc}
+
+In this section we discuss absorbing boundary conditions (ABC's).
+
+\subsection{Engquist-Majda one-way wave equations}
+
+
+
+Consider the wave equation
+\[
+   u_{tt} = u_{xx} + u_{yy}+ u_{zz}
+\]
+
+We consider a boundary at $x=0$. The wave equation can be formally factored using
+pseudo-differential operators
+\begin{align*}
+   ( D_x - D_t\sqrt{ 1-S^2} )( D_x + D_t\sqrt{ 1-S^2}) &=0 
+\end{align*}
+where
+\[
+        S^2  = (D_y^2 + D_z^2)/D_t^2
+\]
+The operator $G^{-} =D_x - D_t\sqrt{ 1-S^2}$ only supports waves moving to
+the left. Applying $G^{-}$ to a wave function $U$ will absorb waves
+moving to left (at any angle).
+To see this consider a wave that moves in the negative $x$-direction
+\[
+    U(\xv,t) = e^{ i(\kv\cdot\xv + \omega t)}
+\]
+with $k_x>0$ and $\omega=\sqrt{ \kv\cdot\kv}>0$.
+
+In Fourier space
+\begin{align*}
+   {\mathcal F}\{ G^{-} U \} &= ik_x - i\omega\sqrt{ 1 - (k_y^2+k_z^2)/\omega^2}  \\
+        &= i k_x - i\sqrt{ \omega^2 - {k_y^2+k_z^2} } \\
+        &= i k_x - i |k_x| \\
+        &= 0 
+\end{align*}
+thus giving $D_t G^{-} U=0$. 
+
+We will apply $G^{-} =D_x - D_t\sqrt{ 1-S^2}$ as a non-reflecting boundary condition. If applied
+exactly it will absorb (treat exactly without reflection) all outgoing plane waves. It will
+not handle evanescent modes. 
+
+{\bf Aside: Evanescent waves} When a plane wave hits a material interface there will be a reflected
+wave and a refracted wave ( transmitted wave). If the refracted ray bends toward the normal we have
+what is called external reflection. If it bends away from the normal it is called internal reflection.
+At a critical angle $\theta_c$ the refracted wave is parallel to the interface. For angles
+greater than $\theta_c$ there is no refracted wave 
+and we have total internal reflection. There is however an evanescent wave that
+travels parallel to the boundary and decays exponentially into the second medium. The evanescent wave
+ ensures that
+the tangential component of the electric field is continuous across the interface. 
+
+
+If the wave approaching the boundary is nearly normal incidence then $ k_x^2  \gg k_y^2 + k_z^2$
+and thus 
+\begin{align*}
+  \widehat{S^2} = (k_y^2 +  k_z^2)/\omega^2 = (k_y^2 +  k_z^2)/( k_x^2 + k_y^2 +  k_z^2) \ll 1 
+\end{align*}
+Thus $S^2$ is thought of as being small and we approximate
+\begin{align*}
+   \sqrt{ 1-S^2} \approx p_0 + p_2 S^2
+\end{align*}
+Whence
+\begin{align*}
+   D_t G^{-} &\approx D_tD_x - D_t^2(p_0 + p_2 S^2) \\
+              &\approx D_t D_x -p_0  D_t^2 - p_2 (D_y^2+D_z^2) \\
+              & = D_t D_x - p_0  D_x^2 - (p_0+p_2) (D_y^2+D_z^2)
+\end{align*}
+For $p_0=1$, $p_2=-1/2$ this gives the approximate (second-order) Engquist-Majda ABC,
+\begin{align}
+   L_{2}^{em}u  & = \partial_t\partial_x u -\partial_t^2 u + {1\over 2} (\partial_y^2+\partial_z^2)u = 0 \\
+                  &= \partial_t\partial_x u -\partial_x^2 u -{1\over 2} (\partial_y^2+\partial_z^2)u = 0 
+\end{align}
+which is exact for waves impinging on the boundary in the normal direction (angle of incidence of zero).
+Mur's scheme is a discretization of the above BC -- Mur centered his scheme at $t+\Delta/2$ and $\Delta x/2$
+to give a second order approximation using only two time levels.
+
+
+
+We can use a better approximation
+\begin{align*}
+   \sqrt{ 1-S^2} \approx { p_0 + p_2 S^2 \over q_0 + q_2 S^2 } 
+\end{align*}
+This give a third-order boundary condition
+\begin{align}
+   L_{3}^{em}u  & = \partial_x(q_0\partial_t^2 + q_2(\partial_y^2+\partial_z^2)) 
+                         - \partial_t( p_0\partial_t^2 + p_2(\partial_y^2+\partial_z^2))\\
+                & = q_0\partial_x \partial_t^2 + q_2 \partial_x(\partial_y^2+\partial_z^2)
+                       - p_0 \partial_t^3 - p_2 \partial_t(\partial_y^2+\partial_z^2)
+\end{align}
+Engquist and Majda suggested $p_0=q_0=1$ and $p_2=-3/4$, $q_2=-1/4$ which is the Pad\'e approximation (minimizing
+the error near $S=0$.
+
+Trefethen and Halpern considered other possibilities such as a Chebyshev or least squares.
+One could choose the coefficients
+to make the approximation exact at other angles.
+
+
+\newcommand{\Dxp}{D^{x}_+}
+\newcommand{\Dxm}{D^{x}_-}
+\newcommand{\Dxz}{D^{x}_0}
+\newcommand{\Dyp}{D^{y}_+}
+\newcommand{\Dym}{D^{y}_-}
+\newcommand{\Dyz}{D^{y}_0}
+\newcommand{\Dzp}{D^{z}_+}
+\newcommand{\Dzm}{D^{z}_-}
+\newcommand{\Dzz}{D^{z}_0}
+\newcommand{\Dtp}{D^{t}_+}
+\newcommand{\Dtm}{D^{t}_-}
+\newcommand{\Dtz}{D^{t}_0}
+\newcommand{\Avtp}{\mathcal{A}^t_+}
+\subsection{Second-order accurate discretization}
+
+
+Consider Engquist-Majda ABC,
+\begin{align}
+   \partial_t\partial_x u = \alpha \partial_x^2 u + \beta (\partial_y^2+\partial_z^2) u 
+\end{align}
+where, for example $\alpha=c$ and $\beta=\half c$, will give a second-order acuurate approximation. 
+We can discretize this equation with the centered second-order accurate approximation
+\begin{align}
+   \Dtz\Dxz U_{ij}^n = \alpha \Dxp\Dxm U_{ij}^n +\beta ( \Dyp\Dym + \Dzp\Dzm) U_{ij}^n 
+\end{align}
+This equation will give the ghost point value $U_{-1j}^{n+1}$ given interior and boundary values at time $t^{n+1}$
+and old values at time $t^n$. 
+
+Here is another second-order approximation, centred at $t^{n+\half}$ that uses only two time levels,
+\begin{align}
+   \Dtp\Dxz U_{ij}^n &= \Avtp\Big( \alpha\Dxp\Dxm U_{ij}^n +\beta( \Dyp\Dym + \Dzp\Dzm) U_{ij}^n\Big) \label{eq:ABCtwoLevel}  \\
+   \Avtp f^n &= \half( f^{n+1} + f^n) 
+\end{align}
+The value at the ghost point $U_{-1j}^{n+1}$ in equation~\eqref{eq:ABCtwoLevel} 
+can be explicitly solved for given interior and boundary values at time $t^{n+1}$
+and old values at time $t^n$. 
+
+This gives the approximation
+\begin{align}
+\Big({1\over 2\dt\dx} + {\alpha\over 2\dx^2}\Big) U_{-1j}^{n+1} &= 
+  \Dtp\Dxz U_{ij}^n + {1\over 2\dt\dx}U_{-1j}^{n+1}  \\
+           & - \Avtp\Big( \alpha \Dxp\Dxm U_{ij}^n - \beta ( \Dyp\Dym + \Dzp\Dzm) U_{ij}^n\Big)
+    + {\alpha\over 2\dx^2} U_{-1j}^{n+1}
+\end{align}
+or
+\begin{align}
+\Big( 1 + \alpha\frac{\dt}{\dx}\Big) U_{-1j}^{n+1} &= 2\dt\dx\Big[ 
+  \Dtp\Dxz U_{ij}^n + {1\over 2\dt\dx}U_{-1j}^{n+1}  \\
+           & - \Avtp\Big( \alpha \Dxp\Dxm U_{ij}^n - \beta ( \Dyp\Dym + \Dzp\Dzm) U_{ij}^n\Big)
+    + {\alpha\over 2\dx^2} U_{-1j}^{n+1} \Big]
+\end{align}
+Note: The right-hand-side of the above expression does not depend on $U_{-1j}^{n+1}$. 
+
+\subsection{Fourth-order accuracy}
+
+ For fourth-order accuracy we have two ghost points and need an additional numerical
+boundary condition.
+We could use the normal derivative of one of the above approximations,
+\begin{align*}
+    \partial_x L_{2}^{em}u  &= D_t D_x^2 - p_0  D_x^3 - (p_0+p_2) D_x(D_y^2+D_z^2) \\
+\end{align*}
+It might be appropriate to use the first order approximation $L_{1}^{em}=\partial_t -\partial_x$
+times the second-order
+ \begin{align*}
+    L_{1}^{em} L_{2}^{em}u  &= (\partial_t -\partial_x)\Big[D_t D_x - p_0  D_x^2 - (p_0+p_2) (D_y^2+D_z^2)\Big]
+\end{align*}   
+
+
+\subsection{Absorbing boundary conditions on a curvilinear grid}
+
+Consider a rotated rectangular grid. The wave equation in transformed coordinates is 
+\begin{align*}
+   u_{tt} &= (r_x^2 + r_y^2 + r_z^2) u_{rr} + (s_x^2 + s_y^2+s_z^2) u_{ss} + ...  \\
+          &= D_n^2 u + \Delta_\tau u \\
+    D_n & = \| \grad_\xv r \| \partial_r 
+\end{align*}   
+where $D_n$ is the normal derivative to a boundary $r={\rm const}$. 
+Following the same argument as before we can derive the (second-order) Engquist-Majda ABC as
+\begin{align*}
+  \partial_t D_n u &= \alpha D_n^2 u + \beta \Delta_\tau u
+\end{align*} 
+
+
+Now consider a general curvilinear grid. 
+The wave equation in transformed coordinates is 
+\begin{align*}
+   u_{tt} &= L u \\
+          &= (r_x^2 + r_y^2 + r_z^2) u_{rr} + (s_x^2 + s_y^2+s_z^2) u_{ss}  
+                       + 2(r_x s_x + r_y s_y + r_z s_z ) u_{rs} \\
+          &     ~~~        + (r_{xx}+r_{yy}+r_{zz})u_r + (s_{xx}+s_{yy}+s_{zz})u_s + ... \\
+          &= D_n^2 u + \Delta_\tau u \\
+    D_n & = \| \grad_\xv r \| \partial_r \\
+    \Delta_\tau &=  (L - D_n^2 )  u
+\end{align*} 
+where we have arbitrarily chosen $D_n$ to be an approximation to the normal derivative. 
+This gives the ABC
+\begin{align*}
+  \partial_t D_n u &= \alpha D_n^2 u + \beta \Delta_\tau u
+\end{align*}
+which may reasonably accurate for a nearly orthogonal grid. 
+
+A more accurate approximation for non-orthogonal grids 
+could be to set $D_n$ to the actual normal derivative:
+\begin{align*}
+D_n & = \nv\cdot\grad = { \grad_\xv r \over \vert \grad_\xv r \vert} \cdot\grad_\xv  \\
+    & = \vert \grad_\xv r \vert \partial_r + (\nv\cdot \grad s) \partial_s 
+\end{align*} 
+
+
+\subsection{Non-reflecting Boundary Conditions and Incident Fields}
+
+
+The non-reflecting boundary conditions were derived assuming that there are no incoming waves, just
+waves leaving the domain. We can treat the case of an incident field arriving from outside the computational
+domain in a couple of ways. 
+
+{\bf Approach I:} In this approach 
+ we write the total electric field in the neighbourhood of the boundary as the sum of a given incident
+field $\Ev^i(\xv,t)$ and a scattered field $\Ev^s(\xv,t)$,
+\[
+  \Ev(\xv,t) = \Ev^i(\xv,t) + \Ev^s(\xv,t) ~.
+\]
+We assume that the incident field is an exact solution of Maxwell's equations near the boundary. 
+We can apply the non-reflecting boundary condition to $\Ev^s(\xv,t)$ by subtracting $\Ev^i(\xv,t)$ from
+the total field. In the discrete case, at each time step we can subtract $\Ev^i(\xv,t)$ from $\Ev(\xv,t)$ 
+on a few points near the boundary, apply the NRBC, and then add back $\Ev^i(\xv,t)$. 
+
+{\bf Approach II:} In this approach we change the NRBC or ABC to account for the incident field.
+Given the NRBC,
+\begin{align}
+  \Lc \Ev^s = 0,
+\end{align}
+by substituting $ \Ev^s(\xv,t) = \Ev(\xv,t) - \Ev^i(\xv,t)$ 
+we get the new condition for the total field
+\begin{align}
+  \Lc \Ev &=  \Lc \Ev^i
+\end{align}
+For example, 
+\begin{align}
+ \partial_t\partial_x \Ev -\Big( \alpha \partial_x^2 \Ev + \beta (\partial_y^2+\partial_z^2) \Ev \Big) = 
+ \partial_t\partial_x \Ev^i -\Big( \alpha \partial_x^2 \Ev^i + \beta (\partial_y^2+\partial_z^2) \Ev^i  \Big)
+\end{align}
+Note: We could potentially set the RHS to $G^{-}\Ev^i$ if $\Lc \approx G^{-}$. 

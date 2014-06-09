@@ -1,0 +1,176 @@
+%
+%  Notes on the two-phase model 
+%
+\documentclass[11pt]{article} 
+
+\input documentationPageSize.tex
+% \addtolength{\oddsidemargin}{-.975in}
+% \addtolength {\textwidth} {2.0in}
+
+% \addtolength{\topmargin}{-1.0in}
+% \addtolength {\textheight} {1.5in}
+
+% \voffset=-1.25truein
+% \hoffset=-1.truein
+% \setlength{\textwidth}{6.75in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+% --------------------------------------------
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+% or use the epsfig package if you prefer to use the old commands
+\usepackage{epsfig}
+\usepackage{calc}
+\input clipFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+
+\begin{document}
+ 
+\title{Notes on the Incompressible Two-Phase Flow Model}
+
+\author{
+Bill Henshaw \\
+% \  \\
+%Centre for Applied Scientific Computing, \\
+%Lawrence Livermore National Laboratory, \\
+%henshaw@llnl.gov 
+}
+ 
+\maketitle
+
+% \tableofcontents
+
+\section{The coupled level-set volume-of-fluid method of Sussman et.al.}
+
+
+Sussman et.al~\cite{Sussman2007} describe a coupled level-set volume-of-fluid method method
+for modeling two phase flows with sharp interfaces.
+They solve
+\begin{align*}
+\rho {D\over Dt} \Uv &= -\grad p + \grad\cdot( 2\mu \Dv) + \rho \gv - \sigma \kappa \grad H \\
+\grad\cdot\Uv &= 0 \\
+{D\over Dt} \phi &= 0 \qquad\text{(level set function)} \\
+{D\over Dt} F = F_t + (\Uv\cdot\grad)F &= 0, ~~\text{or}~ F_t + \grad\cdot( F\Uv)=0, ~~ \qquad\text{(VOF function)}
+\end{align*}
+with 
+\begin{align*}
+   \Dv &= \half(\grad\Uv + \grad\Uv^T) \\
+   \rho &= \rho_L H(\phi) + \rho_G(1-H(\phi)) \\
+   \mu &= \mu_L H(\phi) + \mu_G(1-H(\phi)) \\
+   \kappa &= \grad\cdot( \grad\phi/\vert \grad\phi \vert) \qquad\text{(curvature term)} \\
+   H(\phi) &= sgn(\phi) \qquad\text{(Heavi-side function, $H=1$ in the liquid.)}  \\
+   \sigma & = \text{coefficient of surface tension}
+\end{align*} 
+Here the sub- or super-scripts $L$ and $G$ refer to the liquid and gas phases respectively.
+
+These equations implicitly satisfy the jump conditions 
+\begin{align*}
+  [ \Uv ] & = 0 \\
+  [ \nv\cdot( -p \Iv + 2\mu \Dv )\cdot \nv ] & = \sigma\kappa 
+\end{align*} 
+at the interface $\phi=0$. 
+
+
+\subsection{Notes on the implementation:}
+
+\begin{enumerate}
+  \item A liquid velocity $\Uv^L$ and total velocity $\Uv$ are stored so that values of $\Uv^L$ can be extrapolated
+        into the gas region.
+  \item Normals for the reconstruction of the piece-wise linear VOF interface are taken from $\phi$, $\nv=\grad\phi/\vert \grad\phi \vert$.
+  \item The interface curvature $\kappa$ is computed from $F$.
+  \item After each time step the level set function $\phi$ is re-initialized as the distance to the 
+        VOF interface.
+\end{enumerate} 
+
+
+\subsection{Pressure Poisson Formulation}
+
+\newcommand{\rhoi}{\frac{1}{\rho}}
+  The pressure-Poisson formulation for this problem is 
+\begin{align}
+{D\over Dt} \Uv + \rhoi \grad p &=  \rhoi\grad\cdot(2\mu \Dv) + \gv - \rhoi\sigma \kappa \grad H \label{eq:momentumEquation} \\
+\grad\cdot( \rhoi \grad p ) &= \grad\cdot( \Pv)  + \alpha_d \grad\cdot\Uv \label{eq:pressureEquation} \\
+ \Pv &= - (\Uv\cdot\grad) \Uv + \rhoi \grad\cdot( 2\mu \Dv) + \gv - \rhoi\sigma \kappa \grad H \\
+{D\over Dt} \phi &= 0 \label{eq:levelSetEquation} \\
+{D\over Dt} F &= 0  \label{eq:VOFEquation}
+\end{align}
+where $\alpha_d$ is the coefficient of the divergence damping term. 
+
+The pressure boundary condition at a no-slip wall is 
+\begin{align*}
+  {\partial\over\partial n}p &= \nv\cdot\Big( \grad\cdot( 2\mu \Dv) + \rho \gv - \sigma \kappa \grad H\Big) 
+\end{align*}
+
+{\bf Notes:}
+\begin{enumerate}
+  \item The equations\eqref{eq:levelSetEquation} and \eqref{eq:VOFEquation} 
+        for level set function $\phi$ and VOF function $F$ will need special time-marching schemes. 
+  \item The pressure equation~\eqref{eq:pressureEquation} changes at each time-step which increases the
+     cost of solving. The multigrid solver could potentially be used here but may need improvements to
+     handle discontinuous coefficients. 
+  \item If we have boundary layers then we will want to use an implicit time stepping method for at least 
+        the viscous terms in the momentum equations~\eqref{eq:momentumEquation}.
+  \item If we use slip-wall BC's and if the viscosity $\mu(\xv)$ is small then we could instead use
+        explicit time-stepping for~\eqref{eq:momentumEquation}.
+\end{enumerate} 
+
+
+\subsection{Preliminary model I}
+
+Here is a preliminary model I in which we solve for a single scalar advected quantity $\psi$ instead of
+$\phi$ and $F$, 
+\begin{align}
+{D\over Dt} \Uv + \rhoi \grad p &=  \rhoi\grad\cdot(2\mu \Dv) + \gv , \label{eq:momentumEquationI} \\
+\grad\cdot( \rhoi \grad p ) &= \grad\cdot( \Pv)  + \alpha_d \grad\cdot\Uv , \label{eq:pressureEquationI} \\
+ \Pv &= - (\Uv\cdot\grad) \Uv + \rhoi \grad\cdot( 2\mu \Dv) + \gv , \\
+{D\over Dt}\psi &= 0 \qquad\text{(scalar advected function, $0\le \psi \le 1$, $\psi=1$ for the pure liquid)}, \\
+   \rho &= \rho_L \psi + \rho_G(1-\psi)) , \\
+   \mu &= \mu_L \psi + \mu_G(1- \psi) . \\
+\end{align}
+
+
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{/home/henshaw.0/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\end{document}

@@ -1,0 +1,64 @@
+\subsection{Incompressible flow past a truck}\label{sec:truckFlow}
+
+Figure (\ref{fig:cabTender}) shows a computation of the incompressible Navier-Stokes
+equations for flow past the cab of a truck. The steady state line solver was used for this
+computation.
+
+
+
+{
+\newcommand{\figWidthd}{7.5cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.0}{.0}{.075}{.15}}
+\newcommand{\figWidtha}{10cm}
+\newcommand{\trimfiga}[2]{\trimPlot{#1}{#2}{.0}{.0}{.2}{.2}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (15.,13);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,6.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/truckCabCad}{\figWidthd}};
+  \draw ( 8.5,6.5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/cabTenderGrids}{\figWidthd}};
+  \draw (1.75,  0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\cgDoc/ins/fig/cabTenderTracers3}{\figWidtha}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%\draw[step=1cm,gray] (0,0) grid (15,13);
+\end{tikzpicture}
+\end{center}
+\caption{Incompressible flow past the cab of a truck. Shown are the CAD geometry, the grids and
+     some tracer particles.} \label{fig:cabTender}
+\end{figure}
+}
+
+
+%- 
+%- \renewcommand{\figWidth}{.45\linewidth}
+%- 
+%- \newcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](0.,.0)(8.1,7.0)}\epsfig{#1}\endpsclip}
+%- \newcommand{\clipfigb}[1]{\psclip{\psframe[linewidth=2pt](0.,2.5)(14.,10)}\epsfig{#1}\endpsclip}
+%- % \newcommand{\clipfigb}[1]{\psclip{\psframe[linecolor=white](0.,1.)(8.1,8.2)}\epsfig{#1}\endpsclip}
+%- % \newcommand{\clipfigb}[1]{\psclip{\psframe[linecolor=black](0.,1.)(8.1,8.2)}\epsfig{#1}\endpsclip}
+%- 
+%- \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+%- \begin{figure}[htb]
+%- \begin{center}
+%- \begin{pspicture}(0,-7.)(17.5,7.0)
+%- \rput( 4.5, 3.75){\clipfig{file=\obFigures/truckCabCad.ps,width=\figWidth}}
+%- \rput(13.25, 3.75){\clipfig{file=\obFigures/cabTenderGrids.ps,width=\figWidth}}
+%- \rput(9.,-3.5){\clipfigb{file=\obFigures/cabTenderTracers3.ps,width=.75\linewidth}}
+%- % turn on the grid for placement
+%- % \psgrid[subgriddiv=2]
+%- % \rput*(.5,-1.6){\makebox(0,0)[l]{Cut plane is used to generate starting curve.}}
+%- % \psline[linewidth=1.pt]{->}(2.,-1.5)(3.,1.)
+%- % \psline[linewidth=1.pt]{->}(7.25,-1.45)(12.1,3.)
+%- % \rput*(8.5,-3.5){\makebox(0,0)[r]{Stretching is added after marching.}}
+%- % \psline[linewidth=1.pt]{->}(8.6,-3.5)(10.6,-2.75)
+%- % \rput*(8.5,-4.5){\makebox(0,0)[r]{Bumper indentation smoothed.}}
+%- % % \psline[linewidth=1.pt]{->}(8.5,-4.5)(5.,2.5)
+%- % \psline[linewidth=1.pt]{->}(8.6,-4.5)(11.,-4.75)
+%- % %\rput(9.5, 5){\makebox(0,0)[c]{\small Pressure, $t=1.75$}}
+%- \end{pspicture}
+%- \end{center}
+%- \caption{Incompressible flow past the cab of a truck. Shown are the CAD geometry, the grids and
+%-      some tracer particles.} \label{fig:cabTender}
+%- \end{figure}

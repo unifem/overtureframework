@@ -1,0 +1,26 @@
+Dear Graeme:
+
+I hope that you are doing well.  I have heard from Professor Nikiforakis that
+you may be working again on the visco-plastic equations.
+
+Nikos suggested that it would be good to have a version of these equations in
+the current version of Overture. It has taken me some time to get around to it
+but I now have added a visco-plastic model from your thesis into the latest
+version of the Overture incompressible solver (now called cgins, formerly
+OverBlown).  The approach is implicit and much faster than using explicit time
+stepping.
+
+The attached pdf file gives a brief description of what I have implemented
+along with some initial results. Hopefully I have gotten the basic ideas correct. 
+
+I wonder if you might be interested in using this new version and perhaps
+collaborating on a paper?
+
+
+Regards,
+  Bill. 
+
+
+
+
+

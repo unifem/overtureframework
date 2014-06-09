@@ -1,0 +1,55 @@
+\subsection{Falling cylinders in an incompressible flow}\label{sec:fallingDrops}
+
+To run this example see {\tt cg/ins/runs/drops/Readme}.
+
+Figure (\ref{fig:fallingCyls}) shows multiple rigid bodies failing under the influence
+of gravity in an incompressible flow. 
+There is an upward flow that nearly matches the speed of the falling drops.
+This solution was computed using the multigrid solver for the pressure equation. 
+% 
+{
+\newcommand{\figWidthd}{4.2cm}
+\newcommand{\trimfig}[2]{\trimPlot{#1}{#2}{.24}{.22}{.02}{.085}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17.,7.);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/drops2t1p0}{\figWidthd}};
+  \draw ( 4.2, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/drops2t3p0}{\figWidthd}};
+  \draw ( 8.4, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/drops2t5p0}{\figWidthd}};
+  \draw (12.6, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/drops2t7p0}{\figWidthd}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (17,7);
+\end{tikzpicture}
+\end{center}
+\caption{Multiple cylinders falling in an incompressible flow, contour plots of the flow speed. Solution
+  at times $t=1$, $3$, $5$ and $7$.}
+\label{fig:fallingCyls}
+\end{figure}
+}
+
+
+%- {
+%- \newcommand{\fallingCylsDir}{\homeHenshaw/talks/figures}
+%- \begin{figure}[H]
+%- \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}%
+%- \newcommand{\figWidthd}{9cm}% 
+%- \newcommand{\clipfigd}[2]{\clipFig{#1}{#2}{.27}{.77}{0.0}{.92}}
+%- \begin{center}%
+%- \begin{pspicture}(0,0)(19.,8)%
+%-  %\psgrid[subgriddiv=2]
+%-  \rput( 2.0, 4.0){\clipfigd{\fallingCylsDir/drops2t1p0.ps}{\figWidthd}}
+%-  \rput( 6.7, 4.0){\clipfigd{\fallingCylsDir/drops2t3p0.ps}{\figWidthd}}
+%-  \rput(11.4, 4.0){\clipfigd{\fallingCylsDir/drops2t5p0.ps}{\figWidthd}}
+%-  \rput(16.1, 4.0){\clipfigd{\fallingCylsDir/drops2t7p0.ps}{\figWidthd}}
+%- \end{pspicture}%
+%- \end{center}%
+%- \caption{Multiple cylinders falling in an incompressible flow, contour plots of the flow speed. Solution
+%-   at times $t=1$, $3$, $5$ and $7$.}
+%- \label{fig:fallingCyls}
+%- \end{figure}
+%- }
+

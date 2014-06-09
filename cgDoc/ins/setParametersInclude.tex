@@ -1,0 +1,398 @@
+
+ 
+\newlength{\setParametersIncludeArgIndent}
+
+ Here is a desciption of the menu options available for changing parameters. This main parameter menu appears
+ when \OverBlown is run and is found in the {\tt OverBlown::\-set\-Parameters\-Interactively()} function.
+\begin{description}
+  \item[continue] choose this item to exit this menu and continue on to the run-time dialog.
+  \item[time stepping parameters...] : open the time stepping parameters dialog
+    \begin{description}
+      \item[time stepping method] : Not all schemes work for all PDEs. 
+        \begin{description}
+          \item[forwardEuler] : For CNS Godunov
+          \item[adamsBashforth2] : For INS.
+          \item[adamsPredictorCorrector2] : For INS.
+          \item[variableTimeStepAdamsPredictorCorrector] for CNS.
+          \item[midpoint] : For INS.
+          \item[implicit] : For INS. Treat the viscous terms implicitly. One may optinally specify that some
+             grids are integrated explicitly and some implicitly (see {\tt choose grids for implicit}).
+          \item[all speed implicit] : For All-speed-flow.
+          \item[linearized all speed implicit] :  For All-speed-flow. Linearize the implicit equations so that
+             the implicit matrix is only formed and factored every ?? steps.
+        \end{description}
+      \item[final time] : Integrate to this time.
+      \item[cfl] : Set the {\tt cfl} parameter. 
+         The maximum time step based on stability is scaled by this factor.
+         By default {\tt cfl=.9}. 
+      \item[dtMax] : Restrict the time step to be no larger than this value.
+      \item[implicit factor] :This value in $[0.,1.]$ is used with the implicit time-stepping. A value
+         of $.5$ will correspond to a 2nd-order Crank-Nicolson approach for the viscous terms,
+        a value of $1.$ will be backward-Euler and a value of $0.$ will be forward-Euler. See 
+        the the reference manual for more details.
+      \item[recompute dt every] : The time step, dt,  is recomputed every time the solution is plotted/saved.
+              In addition you may specify the maximum number of steps that will be taken
+              before dt is recomputed. Use this if the solution is not plotted very often.
+      \item[slow start time] : Ramp the time step $\Delta t$ from a small value (determined by slow start cfl)
+         to it maximum value (as  determined by the {\tt cfl} parameter over this time interval. 
+      \item[slow start cfl]: The initial time step for the slow start option is determined by this cfl value, default$=.25$..
+    \end{description}
+  
+ \item[pde options...] open the pde options menu. The dialog which opens depends on which PDE was chosen and is described below.
+ \item[initial conditions options...] open the initial conditions dialog. This dialog is under
+      construction.
+    \begin{description}
+      \item[read from a show file]: read initial conditions from a show file. This can either be
+        a show file generated from OverBlown or one that you have built yourself.
+      \item[read from a restart file]: read initial conditions from a restart file.  
+      \item[uniform state] : specify a uniform state.
+     \end{description}
+ \item[show file options...] open the showfile dialog.
+    \begin{description}
+        \item[show variables] : toggle on/off variables that should be saved in the show file.
+        \item[mode] : specify the mode as compressed or uncompressed. A compressed file will be
+         smaller (especially for AMR runs that create many grids) but a compressed file will not
+         be readable by future versions of OverBlown. 
+        \item[open] : open a show file. You will be prompted for the name.
+        \item[close] : close the show file.
+      \item[frequency to save] : By default the solution is saved in the show file
+          as often as it is plotted according to {\tt 'times to plot'}. To save the solution less
+          often set this integer value to be greater than 1. A value of 2 for example will save solutions
+          every 2nd time the solution is plotted.
+      \item[frequency to flush] : Save this many solutions in each show file so that multiple
+        show files will be created (these are automatically handled by plotStuff). See section~(\ref{sec:flush})
+        for why you might do this.  
+     \end{description}
+ \item[display parameters] : print current values for parameters.
+ \item[output options...] open the output options dialog.
+  \item[output options] : Here are the output options.
+    \begin{description}
+      \item[plot option-menu] :
+        \begin{description}
+          \item[plot and wait first time] :
+          \item[plot with no waiting] :
+          \item[plot and always wait] : 
+          \item[no plotting] : do not plot. If you want to turn off all graphics you must choose
+            this option and also run overBlown with the noplot option.
+        \end{description}
+      \item[output periodically to a file] : output data to a file at each time step
+      \item[times to plot] : Specify the time interval between plotting (and saving in a show file).
+      \item[show file options...] open the show file options dialog.
+      \item[save a restart file] : save or do not save a restart file.
+      \item[allow user defined output] : call the userDefinedOutput routine at every step.
+      \item[times to plot] : change the time interval between plotting (and output).
+      \item[check file cutoffs] : used internally for regression tests.
+ %     \item[read restart file] : read from a restart file.
+ %     \item[restart file name (rsf=)] : name of the restart file to read from.
+    \end{description}
+ \item[boundary conditions...] open the boundary condition options dialog.
+        This dialog is under construction
+  \item[twilight zone options...] : open the twilight zone (method of analytic solutions) dialog.
+    \begin{description}
+     \item[type] : specify the type of analytic solution
+     \begin{description}
+       \item[polynomial] : 
+         \begin{description}
+           \item[turn on polynomial] : Make the twilight-zone function be a polynomial.
+           \item[degree in space] : 0,1, or 2
+           \item[degree in time] : 0,1, or 2
+         \end{description}
+       \item[trigonometric]
+         \begin{description}
+           \item[turn on trigonometric] : Make the twilight-zone function be a trigonometric polymoinal.
+           \item[frequencies] : arguments to the trig functions are $\Pi$ ? times the frequency
+                specified here. 
+         \end{description}
+      \end{description}
+    \item[twilight zone flow] : toggle on or off. When this option is on the equations are forced so that the true solution is
+         equal to some analytically defined function. This is used to test the accuracy of the code.
+     \item[use 2D function in 3D] : use a 2D analytic function in 3D .
+     \item[compare 3D run to 2D] : make adjustments so that an extruded 3D geoemtry can be compared to a 3D computation.
+     \item[degree in space] : degree of the spatial polynomial
+     \item[degree in time] : degree of the temporal polynomial
+     \item[frequencies (x,y,z,t)] : frequencies to use with the trigonometric analytic solution.
+    \end{description}
+  \item[plot the grid] : plot the grid.
+  \item[project initial conditions] : (popup menu)
+    \begin{description}
+      \item[project initial conditions] : Project initial conditions to nearly satisfy $\grad\cdot\uv=0$. This
+        option applies to INS and ASF.
+      \item[do not project initial conditions] : (popup menu)
+    \end{description}
+
+  \item[time stepping options] : Here are options that affect the time step.
+    \begin{description}
+      \item[choose grids for implicit] : For use with the {\tt implicit} time stepping option. Choose 
+         which grids to integrate implicitly and which to integrate explicitly. Normally one should choose
+         thoses grids with fine grid spacing (such as in boundary layers) to be implicit while a back-ground
+       grid could be explicit. See section~(\ref{sec:implicitMenu}).
+    \end{description}
+  \item[boundary conditions] : Brings up a new menu described in section~(\ref{sec:bcMenu}).
+  \item[data for boundary conditions] : Brings up the sub-menu described in section~(\ref{sec:bcDataMenu}).
+  \item[initial conditions] : Brings up a new menu described in section~(\ref{sec:icMenu}).
+  \item[pde parameters] : This brings up a new menu described below in section~(\ref{sec:pdeParams}).
+  \item[axisymmetric flow] : solve an axisymmetric problem with cylindrical symmetry.
+    \begin{description}
+      \item[turn on axisymmetric flow] : The solution is assumed to have cylindrical symmetry about
+                 the axis $y=0$ with the grid defined only in the region $y\ge 0$.
+      \item[turn off axisymmetric flow] :
+      % \item[cylindrical axis is x axis] : axis of symmetry is x=0
+      % \item[cylindrical axis is y axis] : axis of symmetry is y=0
+    \end{description}
+   \item[adaptive grids] : use adaptive mesh refinement.
+     \begin{description}
+       \item[turn on adaptive grids] 
+       \item[turn off adaptive grids] 
+       \item[error threshold]
+       \item[truncation error coefficient] : 
+       \item[order of AMR interpolation] : 
+       \item[regrid frequency] : 
+       \item[change adaptive grid parameters] : change AMR regridding parameters (class Regrid).
+       \item[change error estimator parameters] : change parameters in the error estimator (class ErrorEstimator).
+       \item[show amr error function] : add the error function used for AMR regridding to the items that
+         can be plotted.
+     \end{description}
+  \item[Debugging] :
+    \begin{description}
+       \item[debug file options] : turn out various output to the debug file, ob.debug.
+         \begin{description}
+           \item[print solution/errors] : print solution (or errors if known) at each time.
+           \item[check error on ghost] : also check errors of ghost points.
+           \item[print classify array] : print the classify array for sparse coefficient matrixes.
+           \item[print sparse matrix] : print the sparse matrix generated by Oges (big).
+        \end{description}
+      \item[debug (debug=)] : This is a bit flag that turns on various messages. The more bits turned
+        on, the more detailed the messages that appear. Thus a value of debug=3 (1+2) would have the first
+        2 bits turned on and would display few messages. A value of debug=63 (1+2+4+8+16+32) would have 6
+        bits turned on and would results in a lot of information.
+      \item[Oges::debug (od=)] : bit flag debug variable for Oges.
+      \item[Reactions::debug (rd=)] :
+      \item[compare 3D run to 2D] : this option will adjust the equations and forcing so
+         that a 3D run on an extruded 2D grid can be compared to the 2D computation. This includes setting
+         the twilight-zone function to be 2D and changing the divergence damping (INS) to be two-dimensional 
+         (otherwise it is scaled in the wrong way).
+    \end{description}
+  \item[reduce interpolation width] : specify a new interpolation width. For example, when solving the
+      inviscid Navier-Stokes equations one may want to use linear interpolation (width=2) instead of
+      of quadratic interpolation (width=3) since this may reduce wiggles. 
+      If the grid was built with width=3 interpolation you can
+      reduce the order of interpolation with this option.
+  \item[sparse solver options] :
+    \begin{description}
+      \item[pressure solver options] : Choosing this item will allow you to change any {\tt Oges} related
+         parameters as they apply to the elliptic equation for the pressure. See the {\tt Oges} documentation
+         for a description of these parameters~\cite{OGES}.
+      \item[implicit time step solver options] :Choosing this item will allow you to change any {\tt Oges} related
+         parameters as they apply to the mplicit time stepping equations. See the {\tt Oges} documentation
+         for a description of these parameters~\cite{OGES}.
+    \end{description}
+  \item[moving grids] : Options related to moving grids.
+    \begin{description}
+      \item[turn on moving grids] : Allow grids to move.
+      \item[turn off moving grids] : do not allow grids to move.
+      \item[specify grids to move] : indicate which grids move and how. You must also choose 
+            {\tt`turn on moving grids'} if you really want these grids to move. See section~(\ref{sec:moveMenu}).
+      \item[detect collisions] : detect collisions for some types of rigid bodies (wip)
+      \item[do not detect collisions] : turn off collision detection.
+      \item[minimum separation for collisions] : minimum allowed distance between colliding bodies. 
+          This distance is in grid lines and should be chosen large enough so that a valid grid
+          can still be generated. Usually value will be from 2 to 3 but may need to be more for
+          some grids.
+    \end{description}
+  \item[plot the grid] : plot the grid. Useful to see if boundary conditions have been plotted correctly.
+  \item[erase] : erase the graphics screen.
+  \item[exit] : exit this menu and continue on (same as 'continue').
+ \end{description}
+
+ \subsubsection{Show file options}
+   Here are the options related to show files, these options are from the {\tt updateShowFile} function
+   in the {\tt OB\_Parameters} class.
+ 
+ \input ShowFileOptionsInclude.tex
+
+\subsubsection{Choosing grids for implicit time stepping.}\label{sec:implicitMenu}
+ 
+
+  When the option {\tt `choose grids for implicit'} is chosen from the main parameter menu one can
+  specify which grids should be treated implicitly or explicitly with the {\bf implicit} time stepping
+  option. Type a line of the form
+  \begin{verbatim}
+           <grid name>=[explicit][implicit] 
+  \end{verbatim}
+  where {\tt <grid name>} is the name of a grid or {\tt `all'}. Type {\tt `help'} to see the names.
+  Examples:
+  \begin{verbatim}
+       square=explicit
+       all=implicit
+       cylinder=implicit
+  \end{verbatim}
+  Type {\tt `done'} when finished.
+\subsubsection{Initial condition options}\label{sec:icMenu}
+ 
+
+ Here are the options for specifying initial conditions.
+ This menu appears when {\tt `initial conditions'} is chosen from main parameter menu.
+\begin{description}
+  \item[uniform flow] : specify a uniform flow. Enter values in the form {\tt `p=1., u=2., ...'}.
+     Variables not specified will get default values (usually zero).
+  \item[step function] : specify two uniform conditions separted by a step
+  \item[read from a show file] : read the initial conditions from a solution in a show file.
+  \item[read from a restart file] : read the initial conditions from a solution in a restart file.
+ \end{description}
+
+\subsubsection{PDE parameters for INS}\label{sec:pdeParams}
+ 
+
+ Here are the pde parameters that can be changed when solving the incompressible Navier-Stokes equations.
+ This menu appears when {\tt `pde parameters'} is chosen from main menu.
+\begin{description}
+  \item[nu] : kinematic viscosity (constant).
+  \item[divergence damping]
+  \item[artificial diffusion] : see section~(\ref{AD}) for a description of the artificial diffusion terms.
+    \begin{description}
+      \item[second order artifical diffusion]
+        \begin{description}
+          \item[turn on second order artificial diffusion]
+          \item[turn off second order artificial diffusion]
+          \item[ad21 : coefficient of linear term]
+          \item[ad22 : coefficient of non-linear term]
+        \end{description}
+      \item[fourth order artificial diffusion]
+        \begin{description}
+          \item[turn on fourth order artificial diffusion]
+          \item[turn off fourth order artificial diffusion]
+          \item[ad41 : coefficient of linear term]
+          \item[ad42 : coefficient of non-linear term]
+        \end{description}
+    \end{description}
+  \end{description}
+
+\subsubsection{PDE parameters for CNS}\label{sec:cnsPdeParams}
+ 
+
+ Here are the pde parameters that can be changed when solving the compressible Navier-Stokes equations.
+ This menu appears when {\tt `pde parameters'} is chosen from main menu and you are solving the compressible
+ Navier-Stokes equations. Normally one would specify either the {\tt Mach number} and {\tt Reynolds number}
+  or alternatively one could specify values for {\tt mu}, and ...
+\begin{description}
+  \item[Mach number] : global Mach number.
+  \item[Reynolds number] : global Reynolds number.
+  \item[mu] : viscosity (currently constant)
+  \item[Prandtl number] : 
+  \item[kThermal] : thermal conductivity (currently constant).
+  \item[Rg] : gas constant
+  \item[gamma] : ratio of specific heats.
+  \item[gravity] : a vector specifying the acceleration per unit mass due to gravity.
+  \item[algorithms] :
+    \begin{description}
+      \item[conservative with artificial dissipation]: Use conservative differencing with a Jameson style
+            artificial dissipation that mixes a second-order and fourth order dissipation.
+      \item[non-conservative]: use a centered non-conservative scheme, not recommended if you have un-resolved
+            shocks.
+      \item[conservative Godunov] : Use a conservative Godunov Scheme by Don Schwendeman
+    \end{description}
+  \end{description}
+
+\subsubsection{PDE parameters for ASF}\label{sec:asfPdeParams}
+ 
+
+ Here are the pde parameters that can be changed when solving the all-speed flow version of the
+  compressible Navier-Stokes equations.
+ This menu appears when {\tt `pde parameters'} is chosen from main menu and you are solving the 
+  {\tt allSpeedNavierStokes}. 
+ Normally one would specify either the {\tt Mach number} and {\tt Reynolds number}
+  or alternatively one could specify values for {\tt mu}, and ...
+\begin{description}
+  \item[Mach number] : global Mach number.
+  \item[Reynolds number] : global Reynolds number.
+  \item[mu] : viscosity (currently constant)
+  \item[Prandtl number] : 
+  \item[kThermal] : thermal conductivity (currently constant).
+  \item[Rg] : gas constant
+  \item[gamma] : ratio of specific heats.
+  \item[gravity] : a vector specifying the acceleration per unit mass due to gravity.
+  \item[nuRho] :
+  \item[pressure level] : the constant background level of the pressure, normally determined automatically
+     from the Mach number.
+  \item[remove fast pressure waves (toggle)] : remove the $p_{tt}$ term from the pressure equation to
+       eliminate sound waves with a fast time scale.
+ \end{description}
+
+\subsubsection{PDE parameters for INS}\label{sec:pdeParams}
+ 
+
+ Here are the pde parameters that can be changed when solving the incompressible Navier-Stokes equations.
+ This menu appears when {\tt `pde parameters'} is chosen from main menu.
+\begin{description}
+  \item[nu] : kinematic viscosity (constant).
+  \item[divergence damping]
+  \item[artificial diffusion] : see section~(\ref{AD}) for a description of the artificial diffusion terms.
+    \begin{description}
+      \item[second order artifical diffusion]
+        \begin{description}
+          \item[turn on second order artificial diffusion]
+          \item[turn off second order artificial diffusion]
+          \item[ad21 : coefficient of linear term]
+          \item[ad22 : coefficient of non-linear term]
+        \end{description}
+      \item[fourth order artificial diffusion]
+        \begin{description}
+          \item[turn on fourth order artificial diffusion]
+          \item[turn off fourth order artificial diffusion]
+          \item[ad41 : coefficient of linear term]
+          \item[ad42 : coefficient of non-linear term]
+        \end{description}
+    \end{description}
+  \end{description}
+
+\subsubsection{PDE parameters for CNS}\label{sec:cnsPdeParams}
+ 
+
+ Here are the pde parameters that can be changed when solving the compressible Navier-Stokes equations.
+ This menu appears when {\tt `pde parameters'} is chosen from main menu and you are solving the compressible
+ Navier-Stokes equations. Normally one would specify either the {\tt Mach number} and {\tt Reynolds number}
+  or alternatively one could specify values for {\tt mu}, and ...
+\begin{description}
+  \item[Mach number] : global Mach number.
+  \item[Reynolds number] : global Reynolds number.
+  \item[mu] : viscosity (currently constant)
+  \item[Prandtl number] : 
+  \item[kThermal] : thermal conductivity (currently constant).
+  \item[Rg] : gas constant
+  \item[gamma] : ratio of specific heats.
+  \item[gravity] : a vector specifying the acceleration per unit mass due to gravity.
+  \item[algorithms] :
+    \begin{description}
+      \item[conservative with artificial dissipation]: Use conservative differencing with a Jameson style
+            artificial dissipation that mixes a second-order and fourth order dissipation.
+      \item[non-conservative]: use a centered non-conservative scheme, not recommended if you have un-resolved
+            shocks.
+      \item[conservative Godunov] : Use a conservative Godunov Scheme by Don Schwendeman
+    \end{description}
+  \end{description}
+
+\subsubsection{PDE parameters for ASF}\label{sec:asfPdeParams}
+ 
+
+ Here are the pde parameters that can be changed when solving the all-speed flow version of the
+  compressible Navier-Stokes equations.
+ This menu appears when {\tt `pde parameters'} is chosen from main menu and you are solving the 
+  {\tt allSpeedNavierStokes}. 
+ Normally one would specify either the {\tt Mach number} and {\tt Reynolds number}
+  or alternatively one could specify values for {\tt mu}, and ...
+\begin{description}
+  \item[Mach number] : global Mach number.
+  \item[Reynolds number] : global Reynolds number.
+  \item[mu] : viscosity (currently constant)
+  \item[Prandtl number] : 
+  \item[kThermal] : thermal conductivity (currently constant).
+  \item[Rg] : gas constant
+  \item[gamma] : ratio of specific heats.
+  \item[gravity] : a vector specifying the acceleration per unit mass due to gravity.
+  \item[nuRho] :
+  \item[pressure level] : the constant background level of the pressure, normally determined automatically
+     from the Mach number.
+  \item[remove fast pressure waves (toggle)] : remove the $p_{tt}$ term from the pressure equation to
+       eliminate sound waves with a fast time scale.
+ \end{description}
+

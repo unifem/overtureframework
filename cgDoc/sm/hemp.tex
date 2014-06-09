@@ -1,0 +1,160 @@
+\section{Equations solved by the HEMP code}
+
+
+These notes are based on the discussion in {\em Computer Simulation of Dynamic Phenomena}
+by Mark Wilkins~\cite{Wilkins1999}. 
+
+
+HEMP: Hydrodynamic, Elastic, Magneto and Plastic
+
+Chapt. 3. Hooke's law (stress-strain relationship)
+\begin{align*}
+   \sigma_i &    \quad\text{(principal components of the stress tensor)}\\
+  \dot{\sigma}_{ii} &= \lambda {\dot{V} \over V} + 2\mu \dot{\epsilon}_{ii} \\
+                    &= (\lambda+2\mu/3){\dot{V} \over V} 
+                          + 2\mu \Big(\dot{\epsilon}_{ij} - \frac{1}{3}{\dot{V} \over V}\delta_{ij} \Big)
+\end{align*}
+We are using natural strain (referring to the current configuration rather than the original). 
+
+\begin{align*}
+  \dot{\sigma}_{ij} &= - \dot{P}\delta_{ij} + \dot{s}_{ij} \\
+  - \dot{P} &= K {\dot{V} \over V} \\
+  K &= \lambda + 2\mu/3 \quad\text{(bulk modulus)}\\
+\dot{s}_{ij} &= 2\mu \Big(\dot{\epsilon}_{ij} - \frac{1}{3}{\dot{V} \over V}\delta_{ij} \Big) \quad\text{(stress deviators)}\\
+  P &= - \frac{1}{3} \sum_i \sigma_{ii} \\
+  {\dot{V} \over V} &= \sum_i \dot{\epsilon}_{ii},  \qquad\text{(continuity: ${\dot{V} \over V}=\grad\cdot{\Uv}$)}\\
+  \sum_i s_{ii} &= 0 
+\end{align*}
+
+The strains should be corrected for the rigid body motion (which should not contribute to the strain): 
+\begin{align*}
+  \dot{s}_{ij} &= 2\mu \Big(\dot{\epsilon}_{ij} - \frac{1}{3}{\dot{V} \over V}\delta_{ij} \Big) + \dot{\delta}_{ij} 
+\end{align*}
+
+Section 3.1.2 Rigid body equations
+\begin{align*}
+  \dot{\delta}_{xx} &= -2\dot{\omega}_z s_{xy} + 2 \dot{\omega}_y s_{zx}  \\
+   \dot{\omega}_x &= \half\big[ \partial\dot{z}/\partial y - \partial\dot{y}/\partial z \big] \\
+ \text{etc.} 
+\end{align*}
+
+Section 3.2 Plastic Flow Region: 
+For a material undergoing a perfect plastic flow, the principal component of the stress deviator
+will satisfy 
+\begin{align}
+  f(s_1,s_2,s_3) &=0 , \qquad \text{principal stress deviators lie on this surface} \\
+  \dot{\epsilon}^p_i &= \dot{\lambda} s_i  , \qquad \text{the plastic strain proportional to $s_i$} \label{eq:plasticStrain} \\
+  \sum_i \epsilon^p_i &=0, \qquad \text{plastic incompressibility} \\
+  \epsilon_i &= \epsilon^e_i + \epsilon^p_i  \qquad \text{total strain a sum of elastic and plastic} 
+\end{align}
+
+
+Von Mises generalized condition for plastic flow
+\begin{align*}
+  \dot{\epsilon}^p_i &= \dot{\lambda} \partial f/\partial \sigma_i  , \qquad \text{when $f=\dot{f}=0$} 
+\end{align*}
+
+Section 3.2.2 Von Mises Yield Condition: 
+\begin{align*}
+  \sigma_{eq} &= Y^0 , \qquad \text{yield surface}\\
+  \sigma_{eq} &= \sqrt{\frac{3}{2}}\sqrt{ 2J_2 } = \sqrt{\frac{3}{2}}\sqrt{s_1^2 + s_2^2 + s_3^2 } \qquad \text{equivalent stress}\\
+  2 J_2 &= \sum_{ij} s_{ij}^2  = \sum_i s_i^2 \qquad \text{ $J_2$ is the second invariant of $s_{ij}$} 
+\end{align*}
+
+Implementing the plastic yield condition: If the updated equivalent stress exceeds the yield stress, then
+we scale the stress deviators so that the resulting equivalent stress lies on the yield surface: 
+\begin{align*}
+    \sigma_{eq}^* &=\sqrt{3/2}\sqrt{ (s_1^*)^2+(s_2^*)^2+(s_3^*)^2 } > Y^0  \qquad \text{(updated equivalent stress)}\\
+%   s_i^* &= s_i^n + \Delta s_i , \qquad \text{corresponding stress deviators} \\
+    s_i^{n+1} &= m s_i^* , \qquad \text{(scale the stress deviators)} \\ 
+     m&= Y^0/ \sigma_{eq}^* \\
+ \Rightarrow \sigma_{eq}^{n+1} &= \sqrt{3/2}\sqrt{ (s_1^{n+1})^2+(s_2^{n+1})^2+(s_3^{n+1})^2 } 
+              = m~\sigma_{eq}^* = Y^0 
+\end{align*}
+The plastic strain increment is then 
+\begin{align}
+  \Delta\epsilon^p_i &= {1\over 2\mu}( s_i^* -  s_i^{n+1}) = {1\over 2\mu} ({1\over m}-1) s_i^{n+1} 
+       \label{eq:plasticStrainII} \\
+   \sum_i \Delta\epsilon^p_i &= 0  , \qquad \text{plastic incompressibility}
+\end{align}
+Note that~\eqref{eq:plasticStrainII} follows the rule given by equation~\eqref{eq:plasticStrain}. 
+
+
+Section 3.3.1 Strain Hardening: The Yield stress $Y^0$ is more generally a function of the plastic strain,
+Temperature etc. Here is an example of a stress dependent yield, 
+\begin{align*}
+  Y &= Y^0( 1 + \beta \epsilon^p)^n 
+\end{align*}
+
+Section 3.4.1 Maxwell Solid model describes a visco-elastic-plastic material
+\begin{align*}
+  \dot{\epsilon}_{ij} &= \dot{\epsilon}^e_{ij} + \dot{\epsilon}^V_{ij} = 
+        {\dot{s}_{ij}\over 2\mu} + {s_{ij}\over 2\eta}, \qquad\text{$\eta$ = coefficient of viscosity}
+\end{align*}
+
+
+\clearpage
+\subsection{Hemp Equations}
+Here are the continuous form of the equations used by Hemp. 
+\begin{align}
+  \rho&=\text{actual density}, \quad \rho_0=\text{reference density of the EOS} \\
+  V &= \rho_0/\rho , \qquad\text{(relative volume, non-dimensional, see pressure EOS)} \\
+  M &= {\rho_0 \over V^0} V(0) ,~~  \qquad\text{(mass, $V^0$= initial relative volume)} \\
+  {d\over dt} M &= 0 , \qquad\text{(conservation of mass)} \\
+  \rho {d\over dt} \dot{x}_\alpha &= {\partial_\beta} \sigma_{\alpha\beta}, 
+         \quad {\partial_\beta}\equiv{\partial/\partial x_\beta},      \qquad\text{(conservation of momentum)} \\
+  {d\over dt} E &= -(P+q) \dot{V} + V \big[ s_{\alpha\beta} \dot{\epsilon}_{\alpha\beta} \big] , 
+                                            \qquad\text{(conservation of energy)}  \\
+  \sigma_{\alpha\beta} &= -(P+q)\delta_{\alpha\beta} + s_{\alpha\beta} \\
+  \dot{\epsilon}_{\alpha\beta} &= \half( \partial_\alpha \dot{x_\beta} + \partial_\beta \dot{x_\alpha}) \\
+  \dot{s}_{\alpha\beta} &= 2\mu \Big(\dot{\epsilon}_{\alpha\beta} - \frac{1}{3}{\dot{V} \over V}\delta_{\alpha\beta} \Big) \\
+  P &= a(\eta-1) + b(\eta-1)^2 + c(\eta-1)^3 + d \eta E,  \qquad\text{(pressure EOS)} \\
+  \eta=1/V &= \rho/\rho_0  \\
+  \sqrt{ 2 J} - \sqrt{2/3} ~Y &\le 0 , \qquad\text{(Von Mises Yield Condition)} \\
+   q &= C_0^2 \rho L^2 \dot{s}^2 + C_L \rho L a \vert \dot{s} \vert , \qquad\text{(artificial viscosity)} 
+\end{align}
+{\bf Note:} Wilkins defines $\dot{\epsilon}_{\alpha\beta}$ without the $\half$ for $i\ne j$. 
+
+\noindent {\bf Note:} $E$ is the internal energy per {\bf original} volume, $E=\rho_0 e$.
+The energy equation can be also written as 
+\begin{align}
+  \rho {d\over dt}(E/\rho_0) &= -(P+q) \dot{V}/V + \big[ s_{\alpha\beta} \dot{\epsilon}_{\alpha\beta} \big]\\
+      &=  - (P+q)\grad\cdot\Uv + \big[ s_{\alpha\beta} \dot{\epsilon}_{\alpha\beta} \big]
+\end{align}
+Compare this to the usual Eulerian equation for the internal energy,
+\begin{align}
+\rho {D e\over Dt} &= -P\grad\cdot\Uv + \tauv:\grad\Uv  - \grad\cdot\qv
+\end{align}
+or the conservation equation for the total energy 
+\begin{align}
+{\partial E^T \over\partial t} &= -\grad\cdot( (E^T+P)\Uv) + \grad\cdot(\Uv\cdot\tauv) -
+                                           \grad\cdot(\qv ) \\
+  E^T &= \rho e + \half\rho \Uv\cdot\Uv 
+\end{align}
+
+\subsection{Hemp Discretization}
+
+Here is the Hemp approximation in semi-discrete form 
+\begin{align}
+  U_{\alpha}^{n+\half} &=  U_{\alpha}^{n-\half} + {\dt \over \rho^n} \partial_\beta( \sigma_{\alpha\beta}^n ) \\
+  x_{\alpha}^{n+1} &= x_{\alpha}^{n} + \dt^{n+\half} U_{\alpha}^{n+\half} \\
+  v^{n+1} &= \text{Volume element from $x_{\alpha}^{n+1}$} \\
+  V^{n+1} &= ({\rho_0/M}) v^{n+1}, ~~ \rho^{n+1} = \rho_0/V^{n+1} \\
+  \dot{\epsilon}_{\alpha\beta}^{n+\half} &= 
+            \half( \partial_\beta U_{\alpha}^{n+\half} + \partial_\alpha U_{\beta}^{n+\half} ) \\
+  s_{\alpha\beta}^{n+1} &= s_{\alpha\beta}^{n} + \dt~ 2 \mu\Big( \dot{\epsilon}_{\alpha\beta}^{n+\half} 
+        -  \frac{1}{3}{\dot{V}^{n+\half}  \over V^{n+\half} }\delta_{\alpha\beta} \Big)  \label{eq:stressDeviators}\\
+  (E^{n+1} -E^{n})/\dt &= -\Big( \half( P^{n+1} + P^n) + \bar{q} \Big)(V^{n+1}-V^n)/\dt  + 
+               V^{n+\half}\big[ s_{\alpha\beta} \dot{\epsilon}_{\alpha\beta} \big]^{n+\half} \\
+    P^{n+1} &= A(\eta^{n+1}) + B(\eta^{n+1}) E^{n+1}, \quad \eta^{n+1}=1/V^{n+1} ~~\text{(coupled with $E^{n+1}$)}\\
+  \sigma_{\alpha\beta}^{n+1} &= -(P^{n+1}+q^{n+\half})\delta_{\alpha\beta} + s_{\alpha\beta}^{n+1}
+\end{align}
+
+When the plastic yield condition is taken into account, equation~\eqref{eq:stressDeviators} is replaced by 
+\begin{align}
+    s_{\alpha\beta}^{*} &= s_{\alpha\beta}^{n} + \dt~ 2 \mu\Big( \dot{\epsilon}_{\alpha\beta}^{n+\half} 
+        -  \frac{1}{3}{\dot{V}^{n+\half}  \over V^{n+\half} }\delta_{\alpha\beta} \Big)\\
+    2 J_2^* &= \sum_{\alpha\beta} (s_{\alpha\beta}^{*})^2  \\
+    m^* &= \sqrt{2/3} Y^0 /(2 J_2^*) \qquad\text{($m^*>1$ : elastic, $m^*<1$ : plastic)} \\
+    s_{\alpha\beta}^{n+1} &= \min(1,m^*) ~s_{\alpha\beta}^{*}
+\end{align}

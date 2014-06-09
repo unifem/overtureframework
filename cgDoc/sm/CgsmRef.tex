@@ -1,0 +1,248 @@
+%-----------------------------------------------------------------------
+% Cgsm: Solid Mechanics Solver
+%        REFERENCE MANUAL
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+\input trimFig.tex
+% define the clipFig commands:
+%% \input clipFig.tex
+
+
+\input defs
+
+
+\begin{document}
+
+
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\Large
+{\bf Cgsm} Reference Manual: An Overture Solver for the Solving the Equations of Solid Mechanics, \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw\footnote{This work was performed under the auspices of the U.S. Department of Energy (DOE) by
+Lawrence Livermore National Laboratory under Contract DE-AC52-07NA27344 and by 
+DOE contracts from the ASCR Applied Math Program.}  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+LLNL-SM-??????
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+This is the reference guide for {\bf Cgsm}. Cgsm is a program that can be
+used to solve the elastic wave equation and other equations of solid mechanics in two and 
+three dimensions using composite overlapping grids. It is built upon the
+\Overture object-oriented framework.  
+This reference guide describes in some detail the equations being solved,
+the discrete approximations, time-stepping methods, boundary conditions and convergence results. 
+The reference guide also contains various notes related to different aspects of the equations. 
+The reference guide concludes by providing a collection of interesting computations that
+have been performed with Cgsm. 
+
+
+\end{flushleft}
+
+\clearpage
+\tableofcontents
+% \listoffigures
+
+\vfill\eject
+
+
+\section{Introduction}
+
+This is the reference guide for {\bf Cgsm}. Cgsm is a program that can be
+used to solve the elastic wave equation and other equations of solid mechanics
+in two and three dimensions using composite overlapping grids. It is built upon the
+\Overture object-oriented framework~\cite{Brown97},\cite{Henshaw96a},\cite{iscope97}. 
+This reference guide describes in some detail the equations being solved,
+the discrete approximations, time-stepping methods, boundary conditions and convergence results. 
+The reference guide also contains various notes related to different aspects of the equations. 
+The reference guide concludes by providing a collection of interesting computations that
+have been performed with Cgsm.
+
+\section{Governing equations} \label{sec:governing}
+
+
+% {\bf Suggested Notation: }
+% \begin{itemize}
+%   \item Continuous functions: $\uv(\xv,t)$ has components $u_i(\xv,t)$, $\sigmav$ has components $\sigma_{ij}$. 
+%   \item Grid functions: $\uv_\iv^n$, components $u_{k,\iv}^n$ 
+% \end{itemize}
+% \vskip\baselineskip
+
+% Consider an elastic solid that occupies the space $\xv\in\Omega$ at time $t=0$.  
+Consider an elastic solid that at time $t=0$ occupies the domain $\Omega \subset \Real^{\nd}$ in $n_d=2$ or
+$n_d=3$ space dimensions. 
+Let $\uv(\xv,t)$, with components $u_i(\xv,t)$,
+denote the displacement of a material particle originally located at position $\xv\in\Real^\nd$,
+and let $\sigmav(\xv,t)$ denote the 
+Cauchy stress tensor with components $\sigma_{ij}(\xv,t)$. 
+It is assumed that the solid is a homogeneous isotropic material, and
+that the evolution of the displacement is governed by the equations of linear elasticity given
+by (with Einstein summation convention), 
+\begin{equation}
+\rho{\partial\sp2u_i\over\partial t\sp2}={\partial\s_{ij}\over\partial x_j}+\rho f_i,
+           \qquad \xv\in\Omega,\quad t>0,~~ i=1,2,\ldots,\nd,
+\label{eq:sm}
+\end{equation}
+where $\rho$ is the density of the material (taken to be constant), ${\bf f}$ is an acceleration due
+to an applied body force, and the components of stress are given by
+\begin{equation}
+\s_{ij}=\lambda\left(\epsilon_{kk}\right)\delta_{ij}+2\mu\epsilon_{ij},\qquad \epsilon_{ij}={1\over2}\left({\partial u_i\over\partial x_j}+{\partial u_j\over\partial x_i}\right).
+\label{eq:stress}
+\end{equation}
+Here, $\epsilon_{ij}$ and $\delta_{ij}$ are the components of the (linear) strain tensor and the identity tensor, respectively, $\epsilon_{kk}=\sum_k \epsilon_{kk}=\grad\cdot\uv$ is the divergence of the displacement, 
+and $\lambda$ and $\mu$ are Lam\'e parameters.  The latter are related to
+Young's modulus $E$ and Poisson's ratio $\nu$ by $\mu={E/(2(1+\nu))}$, and $\lambda={\nu E/((1+\nu)(1-2\nu))}$.
+%* \begin{equation}
+%* \mu={E\over 2(1+\nu)},\qquad \lambda={\nu E\over(1+\nu)(1-2\nu)}.
+%* \label{eq:lameConstants}
+%* \end{equation}
+% In general $\lambda$ and $\mu$ are functions of $\xv$ but for the purposes of this paper they
+% will be taken as constants. In this case the equations become
+% \begin{align}
+%   \rho {\partial^2 \uv \over \partial t^2} &= (\lambda+\mu) \grad(\grad\cdot\uv) + \mu \Delta \uv + \rho \fv \label{eq:sos}
+% \end{align}
+% 
+Initial conditions for the second-order system in (\ref{eq:sm}) are
+\begin{equation}
+\uv(\xv,0)=\uv_0(\xv),\qquad {\partial\uv\over\partial t}(\xv,0)=\vv_0(\xv),\qquad \xv\in\Omega,
+\label{eq:smICs}
+\end{equation}
+where $\uv_0(\xv)$ and $\vv_0(\xv)$ are the initial displacement and velocity of
+the solid, respectively.  Boundary conditions for (\ref{eq:sm}) are applied
+for $\xv\in\partial\Omega$ and take various forms.  The available boundary conditions
+are
+\begin{alignat}{3}
+& \uv=\gv_d(\xv,t),                  \quad && \hbox{displacement boundary condition}, \label{eq:dbc} \\
+& \nv\cdot\sigmav =\gv_t(\xv,t),     \quad && \hbox{traction boundary condition},  \label{eq:tbc}  \\
+& \!\!\!
+    \left.\begin{array}{l}
+        \nv\cdot\uv=g_s(\xv,t)  \\
+           \nv\cdot\s\cdot\tnv_\alpha=g_{s,\alpha}(\xv,t) 
+        \end{array}\right\}                       \qquad&& \hbox{slip-wall boundary conditions}.  \label{eq:sbc} 
+  % \label{eq:smBCs}
+\end{alignat}
+% {\bf Note: I removed the slip BC for now, but we may need to add it back.}
+Here, $\nv$ is the unit outward normal on the boundary and
+$\tnv_\alpha$, $\alpha=1,\ldots,\nd-1$, are unit tangent vectors (assumed to be mutually orthogonal).  The functions
+$\gv_d(\xv,t)$ and $\gv_t(\xv,t)$ give the displacement and traction at the
+boundary, respectively, while $g_s(\xv,t)$ and $g_{s,\alpha}(\xv,t)$ define the slip wall motion.
+The elastic wave equation~\eqref{eq:sm}-\eqref{eq:stress} with initial conditions~\eqref{eq:smICs} and
+boundary conditions~\eqref{eq:dbc}-\eqref{eq:sbc} is a well-posed problem, see, for example~\cite{Graff1991}.
+
+% \newcommand{\w}{{{\bf w}}}
+
+We also consider the equations in (\ref{eq:sm}) and (\ref{eq:stress}) written as a first-order system
+\begin{equation}
+\left.
+\begin{array}{l}
+\displaystyle{
+{\partial u_i\over\partial t}=v_i,
+}\smallskip\\
+\displaystyle{
+{\partial v_i\over\partial t}={1\over\rho}{\partial\s_{ij}\over\partial x_j}+f_i,
+}\smallskip\\
+\displaystyle{
+{\partial\s_{ij}\over\partial t}=\lambda\left(\dot\epsilon_{kk}\right)\delta_{ij}+2\mu\dot\epsilon_{ij},
+}
+\end{array}
+\right\}\qquad \xv\in\Omega,\quad t>0,~~ i=1,2,\ldots,\nd ~,
+\label{eq:smFOS}
+\end{equation}
+%\begin{align}
+%{\partial u_i\over\partial t}&=v_i,  \nonumber \\ 
+% {\partial v_i\over\partial t}&={1\over\rho_0}{\partial\s_{ij}\over\partial x_j}+f_i, \label{eq:smFOS} \\
+%{\partial\s_{ij}\over\partial t}&=\lambda\left(\dot\epsilon_{kk}\right)\delta_{ij}+2\mu\dot\epsilon_{ij},\nonumber
+%\end{align}
+where $\vv(\xv,t)$, with components $v_i(\xv,t)$, is the velocity and the components $\dot\epsilon_{ij}$ of the rate of strain tensor are given by
+\[
+\dot\epsilon_{ij}={1\over2}\left({\partial v_i\over\partial x_j}+{\partial v_j\over\partial x_i}\right).
+\]
+%
+Initial conditions for displacement and velocity are given by $\uv_0(\xv)$ and $\vv_0(\xv)$ as before, and initial conditions for the components of stress may be derived from (\ref{eq:stress}) applied at $t=0$.  Boundary conditions for the first-order system may be taken directly from those described in (\ref{eq:dbc}), (\ref{eq:tbc}) and (\ref{eq:sbc}) for the second-order system.
+Note that contrary to what is typically done, we retain the displacements in our formulation of the first order system. 
+The displacements are coupled with the velocity and stress through the boundary conditions as discussed in Section~\ref{bc:fos}.
+% 
+Retaining the displacements in the formulation allows the stress-strain relationship~\eqref{eq:stress} to be explicitly imposed
+at the boundary. In addition it will be useful to have the displacement field when solving fluid-structure interaction problems (to define the 
+fluid-solid interface for grid generation, for example).
+% -----------------------------------
+% -------------------------------
+
+The governing equations, whether written as a second-order or first-order system, are
+hyperbolic and represent the motion of elastic waves in the solid. For the second-order system, the characteristic 
+wave speeds
+are $\pm c_p$ and $\pm c_s$, where the pressure and shear wave speeds are given by
+\begin{equation}
+c_p=\sqrt{\lambda+2\mu\over\rho},\qquad c_s=\sqrt{\mu\over\rho}.
+\label{eq:pswaves}
+\end{equation}
+The first-order system has the wave speeds above as well as characteristics speeds equal to zero.  
+
+
+
+
+% ==============================================================================================================
+\clearpage
+\input sampleSimulations
+
+
+% -------------------------------------------------------------------------------------------------
+\clearpage
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\printindex
+
+
+\end{document}

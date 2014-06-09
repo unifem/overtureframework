@@ -1,0 +1,140 @@
+\section{Scattering from an 3D interface with a bump}\label{sec:scatBump3d}
+
+\newcommand{\ppw}{{\rm PPW}}
+% --------------------------------------------------------------------------
+\subsection{Results from the second-order accurate code CGFD2}
+
+\input scatBump3dFig
+
+
+In this section we present results for a plane wave traveling through an interface between glass and
+vacuum. The interface has a smooth bump.
+
+The equation for the bump height is defined in terms of a cosine, 
+\begin{align*}
+  h(x,y) &= \begin{cases}
+               \alpha ( 1 + \cos(2\pi r) ) & \text{if $\vert r\vert <.5$} \\
+                 0 & \text{otherwise}
+             \end{cases}, \\
+  r^2 &= ((x-x_0)/w_0)^2 + ((y-y_0)/w_0)^2. 
+\end{align*}
+where $w_0=1$ and $\alpha=.1$. 
+
+The overlapping grid for the domain is shown in figure~\ref{fig:scatBump3dGridFig}.
+
+The grid with resolution $m$, denoted by $\Gc^{(m)}$, has a grid spacing of about $\Delta s = 1/(20 m)$. 
+For a wave with wave-number $k_z$ the number of points per wavelength will thus be $\ppw=20 m/k_z$.
+
+
+Figure~\ref{fig:scatBump3dFig} shows results from a plane wave traveling from glass ($\eps=2.25$, bottom)
+to vacuum ($\eps=1.$, top) through an interface with a bump using the second-order method CGFD2. 
+Grid $\Gc^{(8)}$ was used so that $\ppw=32$ for $k_z=5$ and $\ppw=16$ for $k_z=5$. 
+Using only $\ppw=16$ for a second-order accurate scheme is probably somewhat under-resolved.
+
+The incident field was $\Ev=\av~e^{2\pi i(\kv\cdot\xv-\omega t)}$ with $\av=(\sqrt{2/3},\sqrt{2/3},0)$.
+Tne intensity of the incident field is $I=\half \sqrt{\eps/\mu} \vert \av \vert ^2 = 1.$ for $\eps=2.25$, $\mu=1$. 
+
+
+The wave can be seen to focus
+above the bump. 
+The grid for this problem had about $40$ million grid points. These results were run on
+a single processor and required about $4.2$ Gbytes of memory.
+
+
+
+% -----------------------------------------------------------------------------------
+% define an arrow from top to bottom with two labels
+\newcommand{\upArrow}[2]{%
+\psline[linewidth=1.pt]{->}(0,-1)(0,1)
+\rput[l](0.1,-1){\smallss #1}
+\rput[l](0.1,+1){\smallss #2}
+}
+% define an arrow from bottom to top with two labels
+\newcommand{\downArrow}[2]{%
+\psline[linewidth=1.pt]{<-}(0,-1)(0,1)
+\rput[l](0.1,-1){\smallss #2}
+\rput[l](0.1,+1){\smallss #1}
+}
+\clearpage
+\subsection{Results from the fourth-order accurate code CGFD4}
+
+
+In this section we present further results on the scattering of a plane wave
+by a three-dimensional material interface with a bump.
+
+
+We begin by considering the case when the materials are the same on both sides of the interface.
+In this case the plane wave should pass through the interface with no change. Numerically there
+will be some effects that result from the interface.
+Results are shown in figure~\ref{fig:bump3dFigEps1}. In both cases the intensity is nearly
+constant as it should be. For the fine grid case, apart from effects from the far field top boundary (these need to be fixed),
+the computed intensity is in the range $[.992,1.005]$. The fine grid case which uses $\ppw=32$ is
+thus quite accurate. For the coarse grid case the intensity is approximately in the range $[.977,1.006]$. 
+There is a general trend for the intensity to decrease as the wave propagates. This is caused by the artificial dissipation. 
+
+\input bump3dConvexFig
+
+Figure~\ref{fig:bump3dFigGlassToAirConvexKz20} shows results for $k_z=20$ on grid $\Gc^{(16)}$, which 
+has about 300M grid points. This computation was run on 32 nodes (256 processors) on zeus for 2400 steps 
+and took about 100 min.
+
+
+Figures~\ref{fig:bump3dFigGlassToAirConvex} and~\ref{fig:bump3dFigGlassToAirConvex} show results for a
+plane wave passing from glass to air through a convex glass bump. 
+The convex glass bump acts to focus the beam in the air along the axis of symmetry. The beam is also focussed, to
+a lesser degree, in the glass, along the axis, due to reflections from the interface which acts as a concave mirror. 
+Results are shown for different incident wave numbers $k_z$.
+
+
+
+Figure~\ref{fig:bump3dFigAirToGlassConvex} shows results for a plane wave passing from air to glass through a
+convex glass bump. The beam is focussed in the glass along the axis.
+
+
+We now consider the case when the glass acts as a concave lens.
+Figures~\ref{fig:bump3dFigGlassToAirConcave} and~\ref{fig:bump3dFigAirToGlassConcave} shows
+results for this case.
+
+
+\input bump3dConcaveFig
+
+% ----------------------------------------------------------------------------
+\clearpage
+\subsection{Results from a billion point computation}
+
+Figure~\ref{fig:bump3dFigGlassToAirConvexBig} shows result from a computation
+with 1 billion grid points. This computation was run on 
+256 processors (32 nodes, 8 processors per node) on the Zeus linux cluster
+(nodes are AMD Opteron with 8 cores (2.4 GHz) and 16 GB memory) . The computation took about
+$7$ seconds/step or 8.3 hours for 4160 steps.
+
+
+% results from runs/cgmx/bump3d/bump3dO4f24kz30Eps2p25.out
+{\footnotesize
+\begin{verbatim}
+              ---------Maxwell Summary------- 
+                       Sat Jul 11 21:33:29 2009
+               Grid:   interfaceBump3d1bumpe24.order4 
+  ==== numberOfStepsTaken =     4160, grids=4, gridpts =1.02195e+09, interp pts=8531528, processors=256 ==== 
+  ==== memory per-proc: [min=504.438,ave=592.309,max=707.031](Mb), max-recorded=870.312 (Mb), total=151631 (Mb)
+   Timings:         (ave-sec/proc:)   seconds    sec/step   sec/step/pt     %     [max-s/proc] [min-s/proc]
+total time..........................  2.96e+04    7.11e+00    6.96e-09   100.000   2.959e+04   2.959e+04
+setup and initialize................  2.24e+01    5.38e-03    5.26e-12     0.076   2.735e+01   1.847e+01
+initial conditions..................  2.02e+01    4.84e-03    4.74e-12     0.068   2.019e+01   2.014e+01
+advance.............................  2.89e+04    6.95e+00    6.80e-09    97.732   2.892e+04   2.892e+04
+  advance rectangular grids.........  7.31e+03    1.76e+00    1.72e-09    24.694   8.400e+03   4.804e+03
+  advance curvilinear grids.........  1.11e+03    2.68e-01    2.62e-10     3.765   2.701e+03   3.850e-01
+   (advOpt).........................  8.42e+03    2.02e+00    1.98e-09    28.448   1.085e+04   5.182e+03
+  add dissipation...................  3.70e+03    8.88e-01    8.69e-10    12.490   4.043e+03   3.089e+03
+  boundary conditions...............  2.77e+03    6.65e-01    6.51e-10     9.356   2.989e+03   2.117e+03
+  interface bc......................  6.81e+02    1.64e-01    1.60e-10     2.302   2.263e+03   1.399e+00
+  interpolation.....................  6.61e+03    1.59e+00    1.55e-09    22.331   7.701e+03   5.086e+03
+  update ghost (parallel)...........  6.05e+03    1.45e+00    1.42e-09    20.437   8.512e+03   4.036e+03
+compute intensity...................  3.04e+03    7.31e-01    7.15e-10    10.276   3.234e+03   2.836e+03
+compute dt..........................  3.53e-02    8.50e-06    8.31e-15     0.000   3.545e-02   3.528e-02
+plotting............................  1.27e+01    3.06e-03    2.99e-12     0.043   1.281e+01   1.267e+01
+showFile............................  6.11e+02    1.47e-01    1.44e-10     2.064   6.112e+02   6.105e+02
+\end{verbatim}
+}
+
+\input bump3dBigFig

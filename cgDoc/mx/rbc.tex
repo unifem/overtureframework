@@ -1,0 +1,83 @@
+\section{Radiation Boundary Conditions}
+
+In this section we discuss radiation boundary conditions. 
+
+
+\subsubsection{Non-local exact boundary conditions for a periodic strip}
+
+Consider the solution of a problem on the strip $[x_a,x_b]\times[y_a,y_b]$
+with an artificial boundary at $x=x_a$ and $x=x_b$ and periodic boundaries in $y$. 
+
+The non-local exact boundary conditions are imposed at $x=x_a$ and $x=x_b$ as
+\begin{align*}
+   u_t + u_n + H(u) = 0 
+\end{align*}
+where the kernel $H(u)$ is determined by routines supplied by Tom Hagstrom.
+
+
+
+To discretize this BC we use a Taylor series approximation to determine the
+ghost point value $u(h,t+\dt)$ in terms of derivatives centered at $u(0,t)$,
+\begin{align*}
+   u(h,t+dt) &= u(0,t) + \dt u_t(0,t) + h u_x(0,t) 
+              + {\dt^2\over 2} u_{tt}(0,t) + \dt h u_{tx}(0,t) + h^2 u_{xx}(0,t) \\
+             & + {\dt^3\over 3!} u_{ttt}(0,t) + {3\dt^2\over 3!} h u_{ttx}(0,t) 
+                    + {3\dt h^2\over 3!} u_{txx}(0,t) + {h^3\over 3!} u_{txx}(0,t) + ...
+\end{align*}
+The time derivatives in the Taylor series are determined from the boundary condition 
+and the equation,
+\begin{align*}
+   u_t & = -u_n - H(u) \\
+   u_{tt} &= \Delta u \\
+   u_{tn} + u_{nn} + H(u_n) & = 0
+\end{align*}
+Here we use the fact that $u_n=\pm u_x$ and that $u_x$, $u_{xx}$, ... are also solutions
+of the wave equation. 
+
+\subsubsection{Non-local exact boundary conditions for an annular boundary}
+
+
+Consider the solution of Maxwell's equation in the region $\Dv(R,\xv_0)$, a disk of radius R and centre $\xv_0$, 
+$$
+   \Dv(R,\xv_0) = \{ | \xv-\xv_0 | < R \}.
+$$
+
+
+The non-local exact boundary conditions imposed at $r\equiv|\xv-\xv_0|=R$ are of the form
+\begin{align*}
+   {1\over c} u_t + u_r + {1\over 2R} u  + H(u) = 0 
+\end{align*}
+where $u_r = u_n = \nv\cdot\grad u$ and where
+the kernel $H(u)$ is determined by routines supplied by Tom Hagstrom.
+
+
+To discretize this BC we use a Taylor series approximation to determine the
+ghost point value $u(x+\dx,y+\dy, t+dt)$ in terms of solution and its derivatives centered at 
+the boundary $u(\xv,t)$,
+\begin{align*}
+   u(x+\dx,y+\dy, t+dt) &= u(\xv,t) + \dt u_t(\xv,t) + \dx u_x(0,t) + \dy u_y(\xv,t) \\
+   & + {1\over 2}\Big( \dt^2 u_{tt} + 2\dt( \dx u_{tx} + \dy u_{ty} ) 
+                    + \dx^2 u_{xx} + 2\dx\dy u_{xy} + \dy^2 u_{yy} \Big)  \\
+   & + {1\over 3!} \Big( \dt^3 u_{ttt} + 3\dt^2( \dx u_{ttx} + \dy u_{tty} ) 
+                 + 3\dt( \dx^2 u_{txx} + 2\dx\dy u_{xy} \dy^2 u_{tyy} )  \\
+       &             + \dx^3 u_{xxx} + 3\dx^2\dy u_{xxy}+ 3\dx\dy^2 u_{xyy} + \dy^3 u_{yyy} \Big) + \ldots
+\end{align*}
+
+
+The terms with pure spatial derivatives at time $t$ can be computed directly using centred approximations.
+The terms that involve time derivatives are given by
+\begin{align*}
+    u_t  & = -c ( u_n + {1\over 2R} u  + H(u) )  \\
+    u_{tx} & = -c ( (u_x)_n + {1\over 2R} u_x  + H(u_x) )  \\
+    u_{ty} & = -c ( (u_y)_n + {1\over 2R} u_y  + H(u_y) )  \\
+    u_{tt} &= c^2( \Delta u ) \\
+    u_{txx} & = -c ( (u_xx)_n + {1\over 2R} u_{xx}  + H(u_{xx}) )  \\
+    u_{txy} & = -c ( (u_xy)_n + {1\over 2R} u_{xy}  + H(u_{xy}) )  \\
+    u_{tyy} & = -c ( (u_yy)_n + {1\over 2R} u_{yy}  + H(u_{yy}) )  \\
+    u_{ttt} &= c^2( u_{txx} + u_{tyy} ) \\
+     & \vdots 
+\end{align*}
+Here we use the fact that $u_x$, $u_y$, $u_{xx}$, $u_{xy}$ are also solutions to the wave equation.
+
+Note that $u_r$ is not a solution of the wave equation and so we cannot use a Taylor expansion
+in $r$ alone. 

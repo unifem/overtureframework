@@ -1,0 +1,99 @@
+\newcommand{\Ehv}{\widehat{\Ev}}
+\newcommand{\Hhv}{\widehat{\Hv}}
+\newcommand{\Ehrv}{\Ehv_r}
+\newcommand{\Ehiv}{\Ehv_i}
+\newcommand{\Hhrv}{\Hhv_r}
+\newcommand{\Hhiv}{\Hhv_i}
+\newcommand{\Etv}{\widetilde{\Ev}}
+\newcommand{\Htv}{\widetilde{\Hv}}
+\section{Computing the magnetic field and intensity from a time harmonic electric field}
+
+For time harmonic solutions we can easily compute the magnetic field given
+the electric field and its time derivative (or the electric field at two times).
+Thus we can compute the intensity given the electric field without having
+to explicitly solve Maxwell's equations for the magnetic field. 
+
+
+Consider a (complex valued) time harmonic solution to Maxwell's equations,
+\begin{align*}
+   \Etv(\xv,t) &= e^{-i\omega t}\Ehv(\xv),\\
+   \Htv(\xv,t) &= e^{-i\omega t}\Hhv(\xv),
+\end{align*}
+where the real and imaginary parts of $\Ehv$ and $\Hhv$ are denoted as
+\begin{align*}
+   \Ehv(\xv) &= \Ehrv(\xv) + i \Ehiv(\xv),\\
+   \Hhv(\xv) &= \Hhrv(\xv) + i \Hhiv(\xv) .
+\end{align*}
+We actually compute the real part of $\Etv$ and $\Htv$,
+\begin{align*}
+   \Ev(\xv,t) &= \Re\{ (\cos(\omega t)-i\sin(\omega t))(\Ehrv + i \Ehiv)  \}  \\
+               &= \cos(\omega t)\Ehrv + \sin(\omega t) \Ehiv\\
+   \Hv(\xv,t) &=\cos(\omega t)\Hhrv + \sin(\omega t) \Hhiv
+\end{align*}
+From the time harmonic form of Maxwell's equations
+\begin{align*}
+  -i\omega \eps\Ehv &= \grad\times \Hhv, \\
+  i\omega \mu \Hhv &=  \grad\times \Ehv, 
+\end{align*}
+we obtain the relation for $(\Hhrv,\Hhiv)$ in terms of $(\Ehrv,\Ehiv)$
+\begin{align}
+   \omega\mu \Hhrv &= \grad\times \Ehiv, \label{eq:HrfromE}\\
+  -\omega\mu \Hhiv &= \grad\times \Ehrv.\label{eq:HifromE}
+\end{align}
+Thus if we know $(\Ehrv,\Ehiv)$, we can determine $\Hv$.
+% 
+Given the computed solution for the electric field at two times,
+\begin{align*}
+\Ev(\xv,t_1) &= \cos(\omega t_1)\Ehrv + \sin(\omega t_1) \Ehiv, \\
+\Ev(\xv,t_2) &= \cos(\omega t_2)\Ehrv + \sin(\omega t_2) \Ehiv, 
+\end{align*}
+%\begin{align*}
+%\Ev(\xv,t) &= \cos(\omega t)\Ehrv + \sin(\omega t) \Ehiv, \\
+%\Ev(\xv,t+\dt) &= \cos(\omega t+\dt)\Ehrv + \sin(\omega t+\dt) \Ehiv 
+%\end{align*}
+we can solve for $(\Ehrv,\Ehiv)$,
+\begin{align}
+  \Ehrv(\xv) &= \Big(~~~\sin(\omega t_2)\Ev(\xv,t_1) -\sin(\omega t_1)\Ev(\xv,t_2) \Big)/\sin(\omega (t_2-t_1)),  \label{eq:Ehrv} \\
+  \Ehiv(\xv) &= \Big(  -\cos(\omega t_2)\Ev(\xv,t_1) +\cos(\omega t_1)\Ev(\xv,t_2) \Big)/\sin(\omega (t_2-t_1)) . \label{eq:Ehiv}
+\end{align}
+Given $(\Ehrv,\Ehiv)$ we can compute $(\Hhrv,\Hhiv)$ from~\eqref{eq:HrfromE}-\eqref{eq:HifromE}. 
+Thus we can compute $\Hv(\xv,t)$ given $\Ev$ at two times. 
+
+The intensity is given by 
+\begin{align*}
+  \Ic &= {1\over P} \int_0^P \half c\eps \vert \Ev \vert^2 + \half c \mu \vert \Hv \vert^2  ~dt , 
+\end{align*}
+where $P$ is the period.
+Now we could compute the intensity from the electric field and magnetic field values determined above,
+\begin{align*}
+   {1\over P} \int_0^P \vert \Ev \vert^2 ~dt &= 
+              {1\over P} \int_0^P \vert \cos(\omega t)\Ehrv + \sin(\omega t) \Ehiv\vert^2 ~dt \\
+            &= \half \Big( \vert\Ehrv\vert^2 +  \vert\Ehiv\vert^2 \Big)
+\end{align*}
+and thus the intensity can be computed using 
+\begin{align}
+  \Ic &= \frac{1}{4} c\eps \Big(  \vert\Ehrv\vert^2 +  \vert\Ehiv\vert^2 \Big) +
+         \frac{1}{4} c\mu  \Big(  \vert\Hhrv\vert^2 +  \vert\Hhiv\vert^2 \Big) ,    \label{eq:intensityEHri}     \\
+      &= \frac{1}{4} c\eps \Big(  \vert\Ehrv\vert^2 +  \vert\Ehiv\vert^2 \Big) +
+         \frac{1}{4} \frac{c}{\mu\omega^2}  \Big(  \vert \grad\times\Ehiv\vert^2 +  \vert\grad\times\Ehrv\vert^2 \Big) , \label{eq:intensityri}
+\end{align}
+%
+Alternatively, knowing $\Ev$ and $\grad\times\Ev$, we could compute the intensity by the time average
+\begin{align*}
+  \Ic &= {1\over P} \int_0^P \half c\eps \vert \Ev \vert^2 + \half c \mu \vert \Hv \vert^2  ~dt, \\
+      &= {1\over P} \int_0^P \half c\eps \vert \Ev \vert^2 + \half \frac{c}{\mu\omega^2} \vert \grad\times\Ev \vert^2  ~dt , \\
+\end{align*}
+which follows from~\eqref{eq:intensityri}.
+
+
+Here is the suggested approach for computing the intensity whenever it is needed for output.
+Given $\Ev(\xv,t)$ at times $t_2=t$, and the previous time $t_1=t-\dt$,
+\begin{enumerate}
+  \item Compute $\Ehrv(\xv)$ and $\Ehiv(\xv)$  from~\eqref{eq:Ehrv}-\eqref{eq:Ehiv}.
+  \item Compute $\grad\times \Ehrv(\xv)$ and $\grad\times\Ehiv(\xv)$ by difference approximation.
+  \item Compute $\Ic$ from~\eqref{eq:intensityri}.
+\end{enumerate}
+
+Approach 2: If we know $\Hv$ as well as $\Ev$ then we can can compute $\Hhrv(\xv)$ and $\Hhiv(\xv)$ (following ~\eqref{eq:Ehrv}-\eqref{eq:Ehiv})
+and then use~\eqref{eq:intensityEHri} without the need to compute $\grad\times\Ehrv(\xv)$ etc.
+

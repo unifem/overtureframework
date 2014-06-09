@@ -1,0 +1,143 @@
+% \subsection{A Visco-Plastic Flow Model}
+
+A model for visco-plastic flows (with possible temperature and buoyancy effects) is
+\begin{align}
+  \uv_t + (\uv\cdot\grad)\uv + \grad p - \grad\cdot \sigmav' +\alpha \gv T  -\fv &=0 , \label{eq:vpu} \\
+  \Delta p - \Jc(\grad\uv) -\grad\cdot(\grad\cdot \sigmav') 
+                -\alpha (\gv\cdot\grad) T - \grad\cdot\fv &=0, \label{eq:vpp} \\
+  T_t + (\uv\cdot\grad) T - \kappa \Delta T - f_T &=0 , \\
+  \Jc(\grad\uv) \equiv (\grad u\cdot\uv_x + \grad v\cdot\uv_y + \grad w\cdot \uv_z) &~.
+\end{align}
+Here $T$ represents a temperature perturbation, $\gv$ is the acceleration due to gravity,
+$\alpha$ is the coefficient of thermal expansivity and $\kappa$ is a coefficient of
+thermal diffusivity, $\kappa=\lambda/(\rho C_p)$. 
+
+% \newcommand{\esr}{\| \overline{ {\dot \ev} } \|}
+\newcommand{\esr}{\overline{ {\dot \ev} }}
+
+The quantity $\sigmav'$ is the stress deviator. One model for visco-plastic models with
+a yield stress $\sigma_y$ is given by
+\begin{align}
+   \sigmav' &= 2 \eta~ {\dot \ev}, \\
+   \eta &=  \eta_p(T) + {\sigma_y(T) \over \esr }( 1 - \exp(-m\esr) , \label{VP:etaModel} \\
+    {\dot \ev}_{ij} &= \half( {\partial u_i\over\partial x_j} + {\partial u_j\over\partial x_i}), \\
+    \esr &= \sqrt{ {2\over 3} {\dot \ev}_{ij}{\dot \ev}_{ij} } . 
+\end{align}
+
+
+Here $\eta=\eta(\esr,T)$ is the effective coefficient of viscosity that depends on
+the temperature and the effective strain rate, $\esr$. $\eta_p$ is the coefficient
+of viscosity in the plastic regime. 
+
+
+The limiting behaviours of the viscosity coefficient $\eta$ for high and low strain rates are
+\begin{alignat*}{3}
+\eta &\sim  \eta_p(T), &\qquad& \text{for $\esr \gg \sigma_y$}, \\
+\eta &\sim  \eta_p(T) + m \sigma_y(T) , &\qquad& \text{for $\esr \ll \sigma_y$ and $m\esr \ll 1$} . 
+\end{alignat*}
+The value of $m$ is choosen to be large and positive  % ($m \approx 100-1000$)
+so that $\eta$ is a large value when the strain rates are small (corresponding to a nearly solid state
+with almost no flow).
+When the strain rates become sufficiently large the fluid can flow with an effective
+coefficient of viscosity of $\eta_p$. 
+
+{\bf Note:} $m$ has dimensions of inverse time, $[1/T]$. Thus the statement that {\em $m$ is large} depends on how
+the problem is non-dimensionalized or not. 
+% It might be better to introduce a reference scale for $\esr$, say $\esr_0$
+% and instead use $\exp(-m~\esr/\esr_0)$ so that $m$ is non-dimensional (?).
+
+The full implicit time-stepping method and implicit line-solver time-stepping method
+discretize $\grad\cdot \sigmav'$ in ~\eqref{eq:vpu} using a conservative approximation, i.e. 
+a discrete form of 
+\begin{align*}
+  (\grad\cdot \sigmav')_{i} &= 
+     \partial_{x_j} \big( \eta ( \partial_{x_j} u_i + \partial_{x_i} u_j ) \big) 
+\end{align*}
+
+
+The term $\grad\cdot(\grad\cdot\sigmav')$ in the pressure equation~\eqref{eq:vpp} is not discretized
+in conservation form. By expanding $\grad\cdot(\grad\cdot\sigmav')$, the terms involving the highest
+derivatives of $\uv$ drop out since $\grad\cdot\uv=0$. This reduces the stencil size when discretizing
+this term. 
+Note that 
+\begin{align*}
+  (\grad\cdot \sigmav')_{i} &= 
+     \partial_{x_j} \big( \eta ( \partial_{x_j} u_i + \partial_{x_i} u_j ) \big) \\
+          &= \eta \partial_{x_j}\partial_{x_j} u_i + 
+                  (\partial_{x_j}\eta)(\partial_{x_j} u_i + \partial_{x_i} u_j )
+\end{align*}
+where the incompressibility condition, $\partial_{x_j} u_j = 0$, has been used.
+It also follows that
+\begin{align*}
+\grad\cdot(\grad\cdot \sigmav') &= 
+    \partial_{x_i}\Big( \eta \partial_{x_j}\partial_{x_j} u_i + 
+                  (\partial_{x_j}\eta)(\partial_{x_j} u_i + \partial_{x_i} u_j ) \Big) \\
+   &= (\partial_{x_i}\eta)\partial_{x_j}\partial_{x_j} u_i +
+         (\partial_{x_i}\partial_{x_j}\eta)(\partial_{x_j} u_i + \partial_{x_i} u_j )  +
+         (\partial_{x_j}\eta)(\partial_{x_i}\partial_{x_i} u_j ) \\ 
+   &= 2 (\partial_{x_i}\eta)\partial_{x_j}\partial_{x_j} u_i +
+         (\partial_{x_i}\partial_{x_j}\eta)(\partial_{x_j} u_i + \partial_{x_i} u_j )
+\end{align*}
+
+In two dimensions
+\begin{align*}
+ \esr^2 &=  {2\over 3} \Big( u_x^2 +  \half( u_y + v_x )^2 + v_y^2 \Big)  \\
+ (\grad\cdot \sigmav')_1 &= \eta\Delta u 
+         + \eta_x(2u_x) + \eta_y(u_y+v_x) \\
+ (\grad\cdot \sigmav')_2 &= \eta\Delta v 
+         + \eta_x(u_y+v_x) + \eta_y(2v_y) \\
+ \grad\cdot(\grad\cdot \sigmav') &= 2\left[ \eta_x\Delta u + \eta_y\Delta v +
+     \eta_{xx}u_x+ \eta_{xy}(u_y+v_x) + \eta_{yy}v_y \right]
+\end{align*}
+
+In three dimensions
+\begin{align*}
+ \esr^2 &=  {2\over 3} \Big( u_x^2 +  \half( u_y + v_x )^2 +  \half( u_z + w_x )^2 + v_y^2 +  \half( v_z + w_y )^2 + w_z^2 \Big)  \\
+\end{align*}
+
+
+\subsubsection{\bf Solution algorithms:}
+
+The visco-plastic equations can be solved in different ways:
+\begin{enumerate}
+  \item {\bf full implicit time-stepping} that treats the full system for $(\uv,T)$ as a coupled (linearized)
+        implicit system. The implicit matrix is refactored every some number of steps (user specified).
+        The pressure equation is currently solved as a separate implicit system, which seems to work reasonably
+        well. 
+        For steady state problems, the time-stepping parameters can be chosen so that the 
+        approach is basically backward Euler in time.
+        This is currently the suggested way to solve the equations. 
+  \item {\bf implicit line-solver} that solves scalar tridiagonal systems (still under-development). This could be
+        a more memory efficient solver than the full implicit method. 
+  \item {\bf explicit time stepping} : this requires a very small time step. 
+\end{enumerate}
+
+\subsubsection{\bf NOTES for developers:}
+
+\begin{enumerate}
+  \item The definition of the visco-plastic viscosity $\eta$ is defined in viscoPlastic.C (using viscoPlasticMacrosCpp.h).
+        This is the only file where the exact form for $\eta$ (equation~eqref{VP:etaModel}) is used. 
+  \item addForcing.C : defines the twilight-zone (manufactured solution) 
+        forcing to the momentum equations.
+  \item insImpVP.f (generated from insImpVP.bf and insImp.h) : defines the VP implicit equations for the ``full''-implicit method, along with the
+         right-hand-side and residual.
+  \item addForcingToPressureEquation in pressureEquation.C defines the TZ forcing for the pressure in the VP model. 
+  \item inspf.bf : defines the forcing for the pressure equation. Called from assignPressureRHS in pressureEquation.C
+  \item getDerivedFunction in InsParameters.C defines the extra VP variables that we plot: $\esr$
+    and the yield-surface.
+  \item lineSolveVP.h defines the VP equations for the line solver. This file is included
+        in insLineSolveNew.bf.
+  \item Support for moving grids has been mostly added for the full implicit method, but a few things remain.
+\end{enumerate}
+
+
+
+
+% Currently, the approximation in insdt.f (which was done earlier)
+% approximates this term using a non-conservative approximation
+% to the expanded form:
+% \begin{align*}
+%   (\grad\cdot \sigmav')_{i} &= 
+%            \eta \partial_{x_j}\partial_{x_j} u_i + 
+%                   (\partial_{x_j}\eta)(\partial_{x_j} u_i + \partial_{x_i} u_j )
+% \end{align*}

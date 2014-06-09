@@ -1,0 +1,47 @@
+\subsection{Flow in a heated room}\label{sec:heatedRoom}
+
+This example shows the simulation cool air entering a two-dimensional model of a room
+with a desk, computer and partition.
+Flow enters the domain through an inlet on the ceiling and leaves through an outlet
+on the ceiling. The computer under the desk is heated. We solve the INS equations with
+Boussinesq approximation (i.e. with gravity and buoyancy effects). 
+The grid was constructed with the ogen command file {\tt room2d.cmd}. The
+command file for cgins was {\tt heatedRoom.cmd}.
+
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidtha}{8cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0}{.0}{.33}{.325}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.75) rectangle (16,13.5);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,9.0) node[anchor=south west] {\trimfig{\insDocDir/fig/heatedRoom2dT2}{\figWidtha}};
+ \draw (0,4.5) node[anchor=south west] {\trimfig{\insDocDir/fig/heatedRoom2dT4}{\figWidtha}};
+ \draw (0,0.0) node[anchor=south west] {\trimfig{\insDocDir/fig/heatedRoom2dT8}{\figWidtha}};
+%
+ \draw (8,9.0) node[anchor=south west] {\trimfig{\insDocDir/fig/heatedRoom2dT12}{\figWidtha}};
+ \draw (8,4.5) node[anchor=south west] {\trimfig{\insDocDir/fig/heatedRoom2dT16}{\figWidtha}};
+ \draw (8,0.0) node[anchor=south west] {\trimfig{\insDocDir/fig/heatedRoom2dT20}{\figWidtha}};
+%
+\draw (7.9,12.8 ) node[draw,fill=white,anchor=east] {\scriptsize $t=2$};
+\draw (7.9, 8.3 ) node[draw,fill=white,anchor=east] {\scriptsize $t=4$};
+\draw (7.9, 3.80) node[draw,fill=white,anchor=east] {\scriptsize $t=8$};
+%
+\draw (15.9,12.8 ) node[draw,fill=white,anchor=east] {\scriptsize $t=12$};
+\draw (15.9, 8.3 ) node[draw,fill=white,anchor=east] {\scriptsize $t=16$};
+\draw (15.9, 3.80) node[draw,fill=white,anchor=east] {\scriptsize $t=20$};
+%
+% \draw[step=1cm,gray] (0,0) grid (16,13);
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Results from a high-resolution simulation of cool air entering a 2D model of a room.
+    Contours of the temperature are shown.}
+\label{fig:room2dFlow}
+\end{figure}
+}
+
+
+

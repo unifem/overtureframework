@@ -1,0 +1,158 @@
+% ========================================================================================================
+\subsection{Wind turbine and tower}\label{sec:windTurbineAndTower}
+
+As a demonstration, we simulate the flow past a model of a wind turbine. The turbine consists
+of a stationary tower and three rotating blades.
+
+
+{%%%
+% 
+{
+\newcommand{\figWidtha}{6.0cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+% 
+\newcommand{\figWidthb}{5.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.15}{.15}{.05}{.0}}
+\newcommand{\figWidthc}{6cm}
+\newcommand{\trimfigc}[2]{\trimPlotb{#1}{#2}{.1}{.1}{.0}{.05}}
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (13.,7.5);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/turbineAndTower3BladesGrid}{\figWidthb}};
+\draw (7.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigc{\cgDoc/ins/fig/turbineAndTower3BladesGridB}{\figWidthc}};
+%
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (13,7);
+\end{tikzpicture}
+\end{center}
+ \caption{Overlapping grid for a model wind turbine consisting of a tower and three blades. }
+  \label{fig:turbineAndTowerGrid}
+% \caption{Flow past a wind turbine with rotating blades. Top: Overlapping grid for tower and three blades.
+%   Contour plots of the enstrophy on grid $\Gc^{(2)}$ (2.5M pts), using scheme AFS22. }
+%  \label{fig:turbineAndTowerGridAndFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+
+
+%- Figure~\ref{fig:rotatingRoundedBladeFlow} shows results for a rotating blade (one full rotation takes $4$ seconds).
+%- Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+%- The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=10^{??}$). 
+%- 
+%- 
+%- 
+%- % scp henshaw@hera:/p/lscratchd/henshaw/runs/cgins/turbineAndTower/tower3Bladest{0,0p5,1,1p5,2}.ps .
+%- 
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[7]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 6.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw (12.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#4}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+  \draw ( 6.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #6};
+  \draw (12.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #7};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{5.75cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.15}}
+% 
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (18.,10.5);  % set the bounding box (so we have less surrounding white space)
+%
+\figWithCaption{5.25}{\cgDoc/ins/fig/tower3Bladest0p5}{\cgDoc/ins/fig/tower3Bladest1}{\cgDoc/ins/fig/tower3Bladest1p5}{$t=0.5$}{$t=1.0$}{$t=1.5$}
+\figWithCaption{0}{\cgDoc/ins/fig/tower3Bladest2}{\cgDoc/ins/fig/tower3Bladest2p5}{\cgDoc/ins/fig/tower3Bladest3}{$t=2.0$}{$t=2.5$}{$t=3.0$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17,10.);
+\end{tikzpicture}
+\end{center}
+\caption{Flow past a wind turbine with rotating blades. The blades rotated in a clockwise direction and 
+ make one full revolution every $2$ time units.
+ Contour plots of the enstrophy on grid $\Gc^{(2)}$ (2.5M pts), using scheme AFS22. }
+\label{fig:turbineAndTowerGridAndFlow}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+
+The grid for this problem was generated from the ogen command file {\tt turbineAndTower.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/turbineAndTower.cmd}.
+
+The geometry for the problem, as shown in Figure~\ref{fig:turbineAndTowerGrid},
+consists of tower and three blades.
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=1/(10 j)$.
+The grid spacing is stretched in the normal direction to the box so that the boundary layer
+spacing is $\dsbl$. 
+
+
+The incoming flow is in the $y$-direction with $v=2$.
+
+
+Figure~\ref{fig:turbineAndTowerGridAndFlow} shows the solution on the grid $\Gc^{(2)}$ (2.5M pts), using scheme AFS22.
+Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+
+% movie: towerAnd3BladesOrder4.mpg G2=3.5M pts, -N2 -n32  full-rotation=2s  ?? CPU
+% submit.p -jobName="tat3O4" -bank=windpowr -out="towerAnd3BladesOrder4Movingb.out" -walltime=16:00 -submit=0 -cmd='srun -N2 -n32 -ppbatch $cginsp -noplot turbineAndTower -g=turbineAndTower3Bladesi2.order4.ml1 -nu=1.e-3 -tf=4. -vIn=2. -freq=.5 -tp=.02 -freqFullUpdate=1  -ts=afs -ad2=0 -ad4=1 -cfl=3.  -slowStartCFL=3. -slowStartSteps=100 -slowStartRecomputeDt=10 -recomputeDt=50 -psolver=mg -ogesDebug=3 -debug=1 -project=0 -numberOfParallelGhost=4 -restart=towerAnd3BladesOrder4Movinga.show  -show=towerAnd3BladesOrder4Movingb.show -go=go'
+% 
+%  >>> t =  1.780e+00, dt = 2.86e-03, cpu = 4.13e+04 seconds (288 steps)
+%            p : (min,max)=(-1.580645e+01, 2.842999e+01) 
+%            u : (min,max)=(-8.420976e+00, 8.834952e+00) 
+%            v : (min,max)=(-1.778611e+00, 5.418898e+00) 
+%            w : (min,max)=(-8.185535e+00, 8.502480e+00) 
+
+
+Figure~\ref{fig:turbineAndTowerGridAndFlowII} shows the solution on the grid $\Gc^{(2)}$ (2.5M pts), using the
+fourth-order accurate scheme AFS42.
+Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+{%%%
+% 
+{
+\newcommand{\figWithCaption}[7]{
+\begin{scope}[yshift=#1cm]
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#2}{\figWidtha}};
+  \draw ( 6.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#3}{\figWidtha}};
+  \draw (12.0,.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{#4}{\figWidtha}};
+  \draw ( 0.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #5};
+  \draw ( 6.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #6};
+  \draw (12.0,0.3 ) node[draw,fill=white,anchor=south west,xshift=+1pt,yshift=-4pt] {\scriptsize #7};
+\end{scope}
+}% end figWithCaption
+\newcommand{\figWidtha}{5.75cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.05}{.05}{.05}{.15}}
+% 
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (18.,10.5);  % set the bounding box (so we have less surrounding white space)
+%
+\figWithCaption{5.25}{\cgDoc/ins/fig/towerAnd3BladesOrder4t0p5}{\cgDoc/ins/fig/towerAnd3BladesOrder4t1}{\cgDoc/ins/fig/towerAnd3BladesOrder4t1p5}{$t=0.5$}{$t=1.0$}{$t=1.5$}
+\figWithCaption{0}{\cgDoc/ins/fig/towerAnd3BladesOrder4t2}{\cgDoc/ins/fig/towerAnd3BladesOrder4t2p5}{\cgDoc/ins/fig/towerAnd3BladesOrder4t3}{$t=2.0$}{$t=2.5$}{$t=3.0$}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17,10.);
+\end{tikzpicture}
+\end{center}
+\caption{Flow past a wind turbine with rotating blades. The blades rotated in a clockwise direction and 
+ make one full revolution every $2$ time units.
+ Contour plots of the enstrophy on grid $\Gc^{(2)}$ (2.5M pts), using the fourth-order accurate scheme AFS42. }
+\label{fig:turbineAndTowerGridAndFlowII}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%

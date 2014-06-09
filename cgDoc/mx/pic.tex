@@ -1,0 +1,281 @@
+%-----------------------------------------------------------------------
+% Maxwell Solver
+%
+%-----------------------------------------------------------------------
+\documentclass[12pt]{article}
+\usepackage{times}  % for embeddable fonts, Also use: dvips -P pdf -G0
+
+\input documentationPageSize.tex
+
+% \voffset=-1.25truein
+% \hoffset=-1.truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+% \renewcommand{\baselinestretch}{1.5}    % "double" spaced
+
+\hbadness=10000 % \tolerance=10000
+\sloppy \hfuzz=30pt
+
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+% \usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\grad}{\nabla}
+
+\newcommand{\Overture}{{\bf Overture\ }}
+\newcommand{\OverBlown}{{\bf OverBlown\ }}
+\newcommand{\overBlown}{{\bf overBlown\ }}
+\newcommand{\maxDoc}{/home/henshaw/res/maxwell/doc}
+\newcommand{\maxDir}{/home/henshaw/papers/max}
+
+\newcommand{\figWidth}{\linewdith}
+
+\newcommand{\Ds}{{\mathcal D}}%
+\newcommand{\ra}{{r_1}}%
+\newcommand{\rb}{{r_2}}%
+\newcommand{\rc}{{r_3}}%
+\newcommand{\tc}{{t}}% time
+\newcommand{\dra}{{\Delta r_1}}%
+\newcommand{\drb}{{\Delta r_2}}%
+\newcommand{\drc}{{\Delta r_3}}%
+
+\begin{document}
+% \Large
+
+% -----definitions-----
+\input wdhDefinitions.tex
+
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\kappav}{\boldsymbol{\kappa}}
+\newcommand{\betav}{\boldsymbol{\beta}}
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\deltaT}{{\Delta t}}
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\eps}{\epsilon}
+
+\section{Maxwell's Equations}
+
+The time dependent Maxwell's equations for linear, isotropic and non-dispersive materials are
+\begin{align}
+  \eps\partial_t \Ev &=  \grad\times\Hv - \Jv , \label{eq:FOS-Et}  \\
+  \mu\partial_t \Hv &= - \grad\times\Ev ,  \label{eq:FOS-Ht} \\
+  \grad\cdot(\eps\Ev) &=\rho , ~~ \grad\cdot(\mu\Hv) = 0 , \label{eq:FOS-div}
+\end{align}
+Here $\Ev=\Ev(\xv,t)$ is the electric field, 
+$\Hv=\Hv(\xv,t)$ is the magnetic field, $\rho=\rho(\xv,t)$ is the electric charge density,
+$\Jv=\Jv(\xv,t)$ is the electric current density,
+$\eps=\eps(\xv)$ is the electric permittivity, and $\mu=\mu(\xv)$ is the magnetic permeability.
+This first-order system for Maxwell's equations can also be written in a
+second-order form. By taking the time derivatives of~(\ref{eq:FOS-Ht}) and
+(\ref{eq:FOS-Et}) and using (\ref{eq:FOS-div}) it follows that 
+% (see for example~\cite{BornAndWolf})
+% It follows that the electric and magnetic fields each satisfy a vector wave equation
+% with lower order terms,
+\begin{align}
+ \eps\mu~\partial_t^2 \Ev &= \Delta \Ev + \grad\Big( \grad \ln\eps~\cdot\Ev \Big)
+        +\grad\ln\mu\times\Big(\grad\times\Ev\Big) -\grad(\frac{1}{\epsilon}\rho)- \mu \partial_t\Jv , \\
+ \eps\mu~\partial_t^2 \Hv &= \Delta \Hv + \grad\Big( \grad \ln\mu~\cdot\Hv \Big)
+                               +\grad\ln\eps\times\Big(\grad\times\Hv\Big) 
+                     + \eps\grad\times(\frac{1}{\epsilon}\Jv ) .
+\end{align}
+For constant $\epsilon$ and $\mu$ these equations simplify to
+\begin{align}
+ \eps\mu~\partial_t^2 \Ev &= \Delta \Ev  
+                 -\grad(\frac{1}{\epsilon}\rho)- \mu \partial_t\Jv , \label{eq:Ett} \\
+ \eps\mu~\partial_t^2 \Hv &= \Delta \Hv + \grad\times( \Jv ) .
+\end{align}
+
+
+\subsection{Modified Equation time stepping and charge forcing}
+
+
+For the forced wave equation,
+\begin{align*}
+ \uv_{tt} &= c^2 ( \Delta \uv + \fv ), \\
+  \fv &= -\grad(\frac{1}{\epsilon}\rho)- \mu \partial_t\Jv 
+\end{align*}
+the fourth-order accurate modified equation approach is
+\begin{align*}
+  \Uv_\iv^{n+1} -2 \Uv_\iv ^n + \Uv_\iv^{n-1} &=
+    \textstyle (c\dt)^2 \big( \Delta_{4h} \Uv_\iv^n + \fv \big) % \nonumber \\
+          + {(c\dt)^4\over 12} \big( (\Delta^2)_{2h} \Uv_\iv^n + \Delta_{2h} \fv  + c^{-2}\fv_{tt} \big),
+\end{align*}
+Therefore
+\begin{align*}
+  \Uv_\iv^{n+1} -2 \Uv_\iv ^n + \Uv_\iv^{n-1} &=
+    \textstyle (c\dt)^2 \big( \Delta_{4h} \Uv_\iv^n 
+                -\grad(\frac{1}{\epsilon}\rho)- \mu \partial_t\Jv \big) \\
+    & + {(c\dt)^4\over 12} \big( (\Delta^2)_{2h} \Uv_\iv^n 
+          -\grad(\frac{1}{\epsilon} \Delta\rho)- \mu \partial_t \Delta\Jv 
+           + c^{-2}\big[ -\grad(\frac{1}{\epsilon}\rho_{tt})- \mu \partial_t^3\Jv \big] \big).
+\end{align*}
+
+% \begin{align}
+%   U_\iv^{n+1} -2 U_\iv ^n + U_\iv^{n-1} &=\textstyle \dt^2 \big(c^2 \Delta_{4h} U_\iv^n + f \big) % \nonumber \\
+%                    + {\dt^4\over 12} \big( c^4 (\Delta^2)_{2h} U_\iv^n + c^2 \Delta_{2h} f  + f_{tt} \big),
+% \end{align}
+
+
+% ===================================================================================
+\section{Charge Sources and Particle in Cell Methods}
+
+From~\eqref{eq:FOS-Et} it follows that
+\begin{align}
+  \partial_t(\grad\cdot(\eps\Ev)) &=   - \grad\cdot\Jv .
+\end{align}
+Since $\grad\cdot(\eps\Ev)=\rho$ then $\rho$  will satisfy the charge conservation law
+\begin{align}
+  \partial_t\rho + \grad\cdot\Jv &=0 \label{eq:chargeConservation}
+\end{align}
+Thus if we solve Maxwell's equations with initial conditions satisfying $\grad\cdot(\eps\Ev)=\rho$
+then~\eqref{eq:chargeConservation} will hold for all time.
+
+
+\newcommand{\uvc}{\uv^\rho}
+Suppose that we are given a charge density $\rho$ that moves through the domain 
+with a constant velocity $\uvc$, 
+\begin{align}
+  \rho(\xv,t) &= f(\xv-\uvc t)
+\end{align}
+For example $\rho$ might be a Gaussian pulse, 
+$\rho(\xv,t)=\rho_0 \exp(-\alpha \vert \xv-\uvc t \vert|^2 )$
+or a point charge $\rho(\xv,t)=\rho_0 \delta(\xv-\uvc t)$.
+
+In this case $\rho$ satisfies
+\begin{align}
+  \rho_t + \uvc\cdot\grad f &=0 \\
+  \rho_t + \grad\cdot( \uvc f ) &=0 
+\end{align}
+and we see that $\Jv=\rho\uvc$. 
+
+
+If we solve Maxwell's equations with a numerical method then we need to choose an
+approximation to $\Jv$ as it appears as a forcing function. Ideally we should choose
+$\Jv$ so that $\grad_h(\eps\Ev)=\rho$ for some discrete approximation $\grad_h\cdot$
+to the divergence operator. 
+
+Some methods are devised so that the discrete method exactly conserves the charge.
+
+Other approaches use an approximate method. 
+
+
+Projection methods can take an approximation to $\Ev(\xv,t)\approx \Uv_\iv^*$ and
+add a correction to ensure that $\grad_h(\eps\Uv_\iv^n)=\rho$ using
+\begin{align}
+  \Uv_\iv^n &= \Uv_\iv^* + \grad\phi  \\
+  \Delta_h \phi &= \rho - \grad_h\cdot(\eps\Uv_\iv^*)
+\end{align}
+This requires the solution to the elliptic equation for $\phi$.
+
+
+In another approach, we can add some extra terms to equation~\eqref{eq:Ett},
+\begin{align}
+ c^2\partial_t^2 \Ev &= \Delta \Ev  
+                 -\grad(\frac{1}{\epsilon}\rho)- \mu \partial_t\Jv 
+                 +\alpha \partial_t\grad( \grad\cdot(\eps\Ev)-\rho ) 
+                 -\beta \partial_t\grad\phi \\
+   \Delta \phi &= \grad\cdot(\eps\Ev)-\rho
+\end{align}
+which implies
+\begin{align}
+ \mu\partial_t^2 \grad\cdot\Ev &= \Delta(\grad\cdot\Ev-\frac{1}{\epsilon}\rho)
+                 - \mu \partial_t\grad\cdot\Jv 
+                 +\alpha \partial_t\Delta( \grad\cdot(\eps\Ev)-\rho ) 
+                 -\beta \partial_t(\grad\cdot(\eps\Ev)-\rho)
+\end{align}
+If $\grad\cdot\Jv=-\rho_t$ and letting $\delta=\grad\cdot(\eps\Ev)-\rho$, then $\delta$
+satisfies
+\begin{align}
+ \mu\partial_t^2 \delta &= \Delta(\delta)
+                 +\alpha \partial_t\Delta \delta
+                 -\beta \partial_t\delta
+\end{align}
+If $\delta$ is not zero then it will be diffused and damped by the two additional
+terms.
+
+
+
+For the first order system we could use
+\begin{align}
+   \eps\partial_t \Ev &=  \grad\times\Hv - \Jv +\alpha\grad( \grad\cdot(\eps\Ev)-\rho )
+                    -\beta\grad\phi \\
+    \Delta \phi &= \grad\cdot(\eps\Ev)-\rho
+\end{align}
+which leads to 
+\begin{align}
+ \partial_t \delta &= \grad\cdot(\grad\times\Hv) 
+                 +\alpha \Delta \delta
+                 -\beta \delta
+\end{align}
+
+% Alternatively we could solve
+% \begin{align}
+%    \eps\partial_t \Ev &=  \grad\times\Hv - \Jv  + \grad\phi \\
+%      \phi_t & = {1\over\beta}(\grad\cdot(\eps\Ev)-\rho) 
+% \end{align}
+
+% -------------------------------------------------------------------------
+\clearpage
+\section{Moving Point Charge}
+
+Consider a point charge with position $\rv(t)$ with charge $e$ and velocity $\vv$
+with $\betav(t)=\vv(t)/c$.
+
+
+The fields due to an accelerating point charge are~\cite{Jackson}
+\begin{align}
+ \Ev(\xv,t)&= e\Big[ {\nv-\betav \over \gamma^2(1-\betav\cdot\nv)^3 R^2 }\Big]_{\rm ret}
+    +{e\over c}\Big[ {\nv\times\{ (\nv-\betav)\times\dot{\betav}
+                  \over (1-\betav\cdot\nv)^3 R } \Big]_{\rm ret} \label{eq:movingPointChargeE}\\
+ \Bv&=\Big[ \nv\times\Ev \Big]_{\rm ret}
+\end{align}
+where the expression is to be evaluated at the retarded time $\tau$ and where
+\begin{align}
+  \tau &= t - \vert \xv-\rv(\tau)\vert/c , \qquad\mbox{** check this **} \\
+ \nv &= { \xv-\rv(\tau) \over \vert \xv-\rv(\tau) \vert} \\
+ R & =\vert \xv-\rv(\tau)\vert, \\
+%    & = x_0-r_0(\tau_0) ,\\
+ \beta &=\vert \betav \vert ,\\
+ \gamma &= {1\over \sqrt{ 1-\beta^2} }, \\
+ d\tau &= dt\sqrt{1-\beta^2(t)} = {dt\over \gamma(t)}
+\end{align}
+$\tau$ is the {\em proper time of the particle}.
+
+The corresponding potential is the Li\'enard-Wiechert potential
+\[
+   \phi(\xv,t) = e\Big[ {1\over (1-\betav\cdot\nv)R }\Big]_{\rm ret}
+\]
+
+The two terms in~\eqref{eq:movingPointChargeE} represent the {\em velocity fields}
+and {\em acceleration fields}. The former are like electrostatic fields and
+decay like $R^{-2}$ while the later are radiation fields that vary as $R^{-1}$.
+
+
+\end{document}

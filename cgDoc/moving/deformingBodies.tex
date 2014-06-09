@@ -1,0 +1,73 @@
+\newcommand{\rhos}{\bar{\rho}}
+\newcommand{\ds}{\Delta s}
+\newcommand{\xs}{\bar{x}}
+\newcommand{\vs}{\bar{v}}
+\newcommand{\xsv}{\mathbf{\xs}}
+\newcommand{\vsv}{\mathbf{\vs}}
+\section{DeformingBodyMotion Class}\label{sec:deformingBodies}
+
+
+The DeformingBodyMotion Class defines various types of deforming bodies.
+
+
+\begin{description}
+  \item[advect body]: advect the surface with the fluid velocity. Use this option for a free surface.
+  \item[elastic shell]: define a curve in 2D with properties of an elastic shell, see Section~\ref{sec:elasticShell}.
+\end{description}
+
+
+% --------------------------------------------------------------------------------
+\subsection{Elastic Shell} \label{sec:elasticShell}
+
+% // (rhoe*ds) dv/dt = p ds n - ke*( x-x0 ) + te*(x-x0).ss - be*v 
+
+Consider a two-dimensional elastic {\em shell} (represented as a curve in 2D) that is immersed in a fluid.
+Let $\xsv\in\Real^2$ with $\xsv=\xsv(s,t)$, $s\in[0,1]$  denote the position
+of a point on the shell and $\vsv=\vsv(s,t)=\xsv_t$ denote the velocity of the shell. Let $\xsv_0(s)=\xsv(s,0)$ denote the
+initial position of the shell. 
+
+The equations of motion for the elastic shell are
+\begin{align}
+  \rhos \vsv_{t} &= -K (\xsv - \xsv_0) + \partial_s( T_e \partial_s(\xsv - \xsv_0) ) 
+                   - \partial_s^2( B_e \partial_s^2 (\xsv-\xsv_0)) 
+                   + A_e \ds^2\vsv_{ss} 
+                   - D_e \vsv  
+                   + \Fv, \label{eq:elasticShell}\\
+    \xsv_t & = \vsv, 
+\end{align}
+where $\rhos$ is the line density of the shell (mass per unit length), 
+$K_e$ is the coefficient of stiffness, $T_e$ the coefficient of tension, 
+$B_e$ is the bending rigidity (NOT implemented yet), 
+$D_e$ the damping coefficient,
+$A_e$ the coefficient of artificial dissipation, $\Fv=\Fv(s,t)$ is the external forcing. 
+
+For example, if the shell were immersed in an incompressible fluid the forcing term could be $\Fv=p\nv - \mu(\grad\vv+\grad\vv^T)\nv$. 
+
+Note that the initial state of the shell, $\xsv(s,0)=\xsv_0(s)$,  is assumed to be in equilibirum (an un-stressed state)
+and this is why the term $\xsv-\xsv_0$ appears in the equations (Is this the correct thing to do??). 
+
+\paragraph{Elastic shell boundary conditions:} The available boundary conditions (for an end point $s_b=0$, or $s_b=1$), 
+\begin{alignat}{3}
+    \xsv(0,t) &= \xsv(1,t) ,  \qquad&& \text{periodic}, \\
+    \xsv(s_b,t) &= \gv_d(t) , \qquad&& \text{Dirichlet (pinned or specified motion)}, \\
+    \xsv_s(s_b,t) &= \gv_n(t) \qquad&& \text{Neumann, (given slope)}, \\  
+    \xsv_{ss}(s_b,t) &= 0,    \qquad&& \text{Neumann, (free boundary)}, \\
+    \nv_b\cdot\vsv(s_b,t) &= 0,    \qquad&& \text{Slide boundary, $\nv_b$=normal to boundary face)}, 
+\end{alignat}
+Note: In the case that $B_e\ne 0$, we will need an addition condition at the boundary in order to
+define a well-posed problem.
+
+
+Suppose that the elastic shell is periodic and defines a closed curve (e.g. ellipse or circle) that encloses some volume that
+is not part of the computation domain.
+If the gas or liquid inside this enclosed volume is assumed to be incompressible the the enclosed
+volume should remain constant over time. To enforce this we add an additional penalty term
+to~\eqref{eq:elasticShell} to conserve the enclosed volume, see~\cite{KimHuangShinSung2012}. 
+This forcing term is given by
+\begin{align}
+  \Fv_V &=  \frac{\beta_V}{\dt} (1-V(t)/V_0) + \frac{\beta_V}{\dt} \int_0^t (1-V(\tau)/V_0)\, d\tau
+\end{align}
+where $V(t)$ is the current volume and $V_0$ is the initial volume. These two terms can be viewed as a 
+a PI control function (P=proportional, I=integral). 
+
+

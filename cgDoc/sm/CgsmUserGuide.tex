@@ -1,0 +1,160 @@
+%
+%  User's Guide for cgsm : Solid Mechanics
+%
+\documentclass{article}
+% \usepackage[bookmarks=true]{hyperref} 
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[margin=1.in]{geometry}
+
+\input homeHenshaw
+
+% --------------------------------------------
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+% define the clipFig commands:
+% \input clipFig.tex
+\usepackage{tikz}
+\input trimFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+
+\newcommand{\mw}{W}  % molecular weight
+\newcommand{\mwBar}{\overline{W}}  % molecular weight of the mixture
+\newcommand{\Dc}{\mathcal{D}}
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+
+\begin{document}
+ 
+\title{Cgsm User's Guide : An Overture Solver for the Solving the Equations of Solid Mechanics,}
+
+\author{
+Bill Henshaw \\
+\  \\
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov }
+ 
+\maketitle
+
+\tableofcontents
+
+\section{Nomenclature}
+\begin{align}
+  \rho & \qquad \mbox{density} \\
+  u_i & \qquad \mbox{displacement vector} \\
+  \epsilon_{ij} & \qquad \mbox{strain tensor} \\
+%   \omega_{ij} & \qquad \mbox{rotation tensor} \\
+  \tau_{ij} & \qquad \mbox{stress tensor} \\
+  \lambda & \qquad \mbox{shear modulus, Lam\'e constant} \\
+  \mu & \qquad \mbox{Lam\'e constant}
+\end{align}
+
+% -----------------------------------------------------------------------------------------------
+\section{Introduction}  \label{sec:intro}
+
+\subsection{Basic steps}
+
+% -----------------------------------------------------------------------------------------------
+\section{Sample command files for running cgsm} \label{sec:sampleCommand}
+
+
+% -----------------------------------------------------------------------------------------------
+\section{Options and parameters} \label{sec:options}
+
+
+% -----------------------------------------------------------------------------------------------
+\section{User defined functions} \label{sec:userDefined}
+
+
+
+
+% -----------------------------------------------------------------------------------------------
+\section{Hints for running} \label{sec:hints}
+
+
+% -----------------------------------------------------------------------------------------------
+\section{Frequently ask questions} \label{sec:FAQ}
+
+
+
+% -----------------------------------------------------------------------------------------------
+\section{Governing Equations}
+See~\cite{smog2012}.
+
+The equations of linear elasticity for a homogeneous isotropic material are governed by
+\begin{align}
+  \rho \partial_t^2 u_i &= \partial_{x_j} \tau_{ij} + \rho f_i \\
+  \tau_{ij} &= \lambda \partial_{x_k} u_k \delta_{ij} + 2 \mu \epsilon_{ij} \\
+  \epsilon_{ij} &= \half( \partial_{x_j} u_i + \partial_{x_i} u_j )
+\end{align}
+or
+\begin{align}
+  \rho \partial_t^2 u_i &= (\lambda+\mu) \partial_{x_i} \partial_{x_k} u_k + \mu \partial_{x_k}^2 u_i  +\rho f_i \\
+  \rho \uv_{tt} &= (\lambda+\mu) \grad(\grad\cdot\uv) + \mu \Delta \uv + \rho \fv 
+\end{align}
+
+
+\subsection{Boundary conditions}
+
+
+%% \Appendix
+% --------------------------------------------------------------------------------------------------------
+%% \section{Implementation of Boundary Conditions} \label{sec:implementationOfBoundaryConditions}
+
+
+
+
+
+% -------------------------------------------------------------------------------------------------
+\clearpage
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\end{document}

@@ -1,0 +1,61 @@
+\clearpage
+\section{Axisymmetric Equations}
+
+\newcommand{\vr}{v_r}
+\newcommand{\vtheta}{v_\theta}
+\newcommand{\vz}{v_z}
+\newcommand{\twoThirds}{\frac{2}{3}}
+
+For axisymmetric computations we solve the equations in cylindrical coordinates. 
+Denote the cylindrical coordinates as $(r,\theta,z)$ with velocity vector $\vv = v_r \hat{r} + v_\theta \hat{\theta} + v_z \hat{z}$.
+
+
+From Panton\cite{Panton} the full compressible Navier-Stokes equations in cylindrical coordinates, 
+allowing for a variable coefficient of viscosity $\mu$, are 
+\begin{align*}
+\rho\Big[ \partial_t \vr + \vr\partial_r \vr + {\vtheta\over r}\partial_\theta \vr - {\vtheta^2\over r} + \vz\partial_z \vr\Big]
+    + \partial_r p
+   &= {1\over r}\partial_r( r\tau_{rr} ) + {1\over r}\partial_\theta(\tau_{\theta r}) + \partial_z(\tau_{zr} )
+               - {\tau_{\theta\theta}\over r} + \rho g_r \\
+\rho\Big[ \partial_t \vtheta + \vr\partial_r \vtheta + {\vtheta\over r}\partial_\theta \vtheta + {\vr \vtheta\over r} 
+           + \vz\partial_z \vtheta\Big]
+    + {1 \over r} \partial_\theta p
+   &= {1\over r^2}\partial_r( r^2 \tau_{r\theta} ) + {1\over r}\partial_\theta(\tau_{\theta\theta}) + \partial_z(\tau_{z\theta} )
+               + { \tau_{\theta r} - \tau_{r\theta} \over r} + \rho g_\theta \\
+\rho\Big[ \partial_t \vz + \vr\partial_r \vz + {\vtheta\over r}\partial_\theta \vz + \vz\partial_z \vz\Big]
+    + \partial_z p
+   &= {1\over r}\partial_r( r\tau_{rz} ) + {1\over r}\partial_\theta(\tau_{\theta z}) + \partial_z(\tau_{zz} )
+                                              + \rho g_z 
+\end{align*}
+where
+\begin{align*}
+ \tau_{rr} &= \mu \left[ 2\partial_r \vr - \twoThirds \grad\cdot\vv \right] , \quad
+\tau_{\theta\theta} = \mu \left[ 2\Big( {1\over r}\partial_\theta \vtheta + {\vr\over r}\Big) - \twoThirds \grad\cdot\vv \right], \quad 
+\tau_{zz} = \mu \left[ 2\partial_z \vz - \twoThirds \grad\cdot\vv \right] \\
+\tau_{r\theta} &= \tau_{\theta r} = \mu \left[  r\partial_r({\vtheta\over r}) + {1\over r}\partial_\theta \vr \right], \quad
+\tau_{\theta z} = \tau_{z\theta} = \mu \left[ \partial_z \vtheta +{1\over r}\partial_\theta \vz \right] , \quad
+\tau_{zr} = \tau_{rz} = \mu \left[ \partial_r \vz + \partial_z \vr \right] \\
+\grad\cdot\vv &= {1\over r}\partial_r( r\vr) + {1\over r}\partial_\theta \vtheta + \partial_z \vz 
+\end{align*}
+
+These equations are based on the viscous stress tensor
+\begin{align*}
+  \tau_{ij} &= \mu( \partial_j u_i + \partial_i u_j ) - \twoThirds \mu \grad\cdot\uv
+\end{align*}
+
+
+Now consider the case of axisymmetric, constant density, incompressible flow ($\grad\cdot\vv=0$) with
+no-swirl so that $\vtheta=0$ and partial derivatives with respect to $\theta$
+are zero. The equations for $(\vr,\vz)$ become 
+\begin{align}
+\partial_t \vr + \vr\partial_r \vr + \vz\partial_z \vr
+    + \partial_r p
+   &= {1\over r}\partial_r (2 \mu r\partial_r \vr ) + \partial_z( \mu (\partial_r \vz + \partial_z \vr ) )
+               - { 2\mu \vr \over r^2} + \rho g_r \\
+\partial_t \vz + \vr\partial_r \vz  + \vz\partial_z \vz
+     + \partial_z p
+    &= {1\over r}\partial_r( \mu r  (\partial_r \vz + \partial_z \vr ) ) 
+     + \partial_z( 2 \mu \partial_z \vz )  + \rho g_z \\
+   \tau_{ij} &= \mu( \partial_j u_i + \partial_i u_j )
+\end{align}
+In the code we make the association $u=\vz$ and $v=\vr$, taking the $x-axis$ as the axis of symmetry.

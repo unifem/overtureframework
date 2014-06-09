@@ -1,0 +1,99 @@
+% -------------------------------------------------------------------
+{
+\begin{figure*}[hbt]
+% \newcommand{\figWidth}{.45\linewidth}
+% \newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](0.,1.)(5.4,4.85)}\epsfig{#1}\endpsclip}
+\psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+% 
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.07}{1.}{0.07}{.9}}
+% 
+\begin{center}
+\begin{pspicture}(0,0)(14.2,12.2)
+\rput( 3.2,9.0){\clipfig{dielectricCyl/dieCylOrder4f4Ex.ps}{\figWidth}}
+\rput(10.5,9.0){\clipfig{dielectricCyl/dieCylOrder4f4Ey.ps}{\figWidth}}
+\rput( 3.2,2.6){\clipfig{dielectricCyl/dieCylOrder4f4Hz.ps}{\figWidth}}
+\rput(10.5,2.6){\clipfig{dielectricCyl/dieCylOrder4f4Intensity.ps}{\figWidth}}
+% 
+\rput[l](.70,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_x$}}
+\rput[l](8.0,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$}}
+\rput[l](.70,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$H_z$}}
+\rput[l](8.0,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{Intensity}}
+% 
+% \psline[linewidth=1.pt]{->}(7,-.8)(7.5,.9)
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+%
+\end{pspicture}
+\end{center}
+\caption{Scattering of a plane wave by a dielectric cylinder at $t=1.$ with $k_x=1.25$, $\eps_1=2.25$ (inside), $\eps_2=1$ (outside). Fourth-order accurate method CGFD4.}
+\label{fig:scatDielectricCylCGFD4Fig}
+\end{figure*}
+}
+% -------------------------------------------------------------------
+{
+\begin{figure*}[hbt]
+% \newcommand{\figWidth}{.45\linewidth}
+% \newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](0.,1.)(5.4,4.85)}\epsfig{#1}\endpsclip}
+\psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+% 
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.07}{1.}{0.07}{.9}}
+% 
+\begin{center}
+\begin{pspicture}(0,0)(14.2,12.2)
+\rput( 3.2,9.0){\clipfig{dielectricCyl/dieCylYeeEx.ps}{\figWidth}}
+\rput(10.5,9.0){\clipfig{dielectricCyl/dieCylYeeEy.ps}{\figWidth}}
+\rput( 3.2,2.6){\clipfig{dielectricCyl/dieCylYeeHz.ps}{\figWidth}}
+\rput(10.5,2.6){\clipfig{dielectricCyl/dieCylYeeEyErr}{\figWidth}}
+% 
+\rput[l](.70,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_x$}}
+\rput[l](8.0,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$}}
+\rput[l](.70,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$H_z$}}
+\rput[l](8.0,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$ error}}
+% 
+% \psline[linewidth=1.pt]{->}(7,-.8)(7.5,.9)
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+%
+\end{pspicture}
+\end{center}
+\caption{Scattering of a plane wave by a dielectric cylinder at $t=1.$ with $k_x=1.25$, $\eps_1=2.25$ (inside), $\eps_2=1$ (outside). Yee scheme (bigSquareSize1f8). The errors in the Yee scheme are large at the interface since the normal component of the
+electric field is discontinuous and the grid is not aligned with the interface. }
+\label{fig:scatDielectricCylCGFD4Fig}
+\end{figure*}
+}
+% -------------------------------------------------------------------
+{
+\begin{figure*}[hbt]
+% \newcommand{\figWidth}{.45\linewidth}
+% \newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](0.,1.)(5.4,4.85)}\epsfig{#1}\endpsclip}
+\psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+% 
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.07}{1.}{0.07}{.9}}
+% 
+\begin{center}
+\begin{pspicture}(0,0)(14.2,12.2)
+\rput( 3.2,9.0){\clipfig{dielectricCyl/dieCylOrder4f4Intensity.ps}{\figWidth}}
+\rput(10.5,9.0){\clipfig{dielectricCyl/dieCylOrder4f16kx2p5Intensity.ps}{\figWidth}}
+\rput( 3.2,2.6){\clipfig{dielectricCyl/dieCylOrder4f16kx5Intensity.ps}{\figWidth}}
+% \rput(10.5,2.6){\clipfig{dielectricCyl/dieCylYeeIntensity.ps}{\figWidth}}
+% 
+\rput[l](.70,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{Intensity $k_x=1.25$}}
+\rput[l](8.0,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{Intensity $k_x=2.5$}}
+\rput[l](.70,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{Intensity $k_x=5$}}
+% \rput[l](8.0,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{Intensity}}
+% 
+% \psline[linewidth=1.pt]{->}(7,-.8)(7.5,.9)
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+%
+\end{pspicture}
+\end{center}
+\caption{Scattering of a plane wave by a dielectric cylinder at $t=1.$ with $\eps_1=2.25$ (inside), $\eps_2=1$ (outside). 
+The intensity is shown for three different values of incident field wave number. 
+Results are from the fourth-order accurate method CGFD4.}
+\label{fig:scatDielectricCylCGFD4Fig}
+\end{figure*}
+}

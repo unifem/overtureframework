@@ -1,0 +1,20 @@
+/// \mainpage CG: A Suite of Composite Grid PDE Solvers - Source Code Documentation 
+///  
+/// 
+///  \section intro_sec Introduction
+///     This document contains the CG source code documentation. 
+///   CG is a suite of partial differential equation (PDE) solvers for composite overlapping grids.
+///   CG is built upon the Overture software framework. CG is written in C++ at the high level and uses
+///   Fortran kernels.  
+///
+///  \section summary_sec Available PDE Solvers
+///    Here is a summary of the various solvers in the CG suite. 
+///
+///      - Cgad : advection diffusion solver.  
+///      - Cgasf : all-speed flow solver (not mature).
+///      - Cgcns : compressible flow solver.
+///      - Cgins : incompressible flow solver.
+///      - Cgsm : solid mechanics solver.
+///      - Cgmx (Maxwell) : Maxwell's equation solver (electro-magnetics).
+///      - Cgmp : multi-physics, multi-domain solver. 
+///

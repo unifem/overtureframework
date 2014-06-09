@@ -1,0 +1,182 @@
+# =====================================================
+# Compute eigenvalues of a nonlinear Kirchoff solid
+# =====================================================
+#
+# restart; read "eigs.maple";
+clear;
+
+nd:=2:
+
+Iv := array( 1..nd, 1..nd):
+Iv[1,1]:=1: Iv[1,2]:=0: Iv[2,1]:=0: Iv[2,2]:=1: 
+
+F := array( 1..nd, 1..nd):
+F[1,1] := F11: F[1,2] := F12: F[2,1] := F21: F[2,2] := F22: 
+
+
+E := array( 1..nd, 1..nd):
+
+E := evalm( ( multiply(transpose(F),F) - Iv )/2 ):
+
+# print(E);
+
+S := array( 1..nd, 1..nd):
+
+S := evalm( lam*trace(E) * Iv + 2*mu * E ):
+
+
+P := evalm( S &* transpose(F) ):
+
+
+P11F11 := diff( P[1,1] , F[1,1] ):
+
+pause;
+
+fileName:="eigs.out":
+file := fopen( fileName,WRITE ):
+
+fprintf(file," Equations in quasi linear form:\n"):
+# fprintf(file," rho_0 (u_i)_{tt} = sum  A_{ijml} D_{X_j}D_{X_m} u_{l} \n"):
+
+A := array( 1..nd, 1..nd):
+
+kv := array (1..nd ):
+kv[1] := k1: kv[2]:=k2: 
+
+for i from 1 to nd do
+for j from 1 to nd do
+
+  A[i,j] := 0:
+  for m from 1 to nd do
+  for l from 1 to nd do
+
+   #   PF := diff( P[l,i] , F[j,m] ):
+   #  fprintf(file," A_{%d%d%d%d} = %s\n",i,j,m,l,convert(PF,string));
+
+#    A[i,j] := A[i,j] + diff( P[j,i] , F[l,m] )*kv[j]*kv[m]:
+    A[i,j] := A[i,j] + diff( P[l,i] , F[j,m] )*kv[l]*kv[m]:
+   
+  end do:
+  end do:
+
+  
+end do:
+end do:
+# -- Output A ---
+fprintf(file," Matrix A defines the eigenvalues\n");
+for i from 1 to nd do
+for j from 1 to nd do
+  fprintf(file," A[%d,%d]=%s\n",i,j,convert(A[i,j],string));
+end do:
+end do:
+fprintf(file,"\n"):
+fprintf(file,"\n -- check symmetry ---\n");
+i:=1: j:=2: 
+fprintf(file," A[%d,%d]-A[%d,%d] = %s\n",i,j,j,i,convert(simplify(A[i,j]-A[j,i]),string));
+
+fclose(file):
+
+# linear elasticity : 
+
+# F11 := 1: F12 :=0: F21:=0: F22:=1: 
+# Al := subs( F11=1, F12=0, F21=0, F22=1, A);
+Al := array( 1..nd, 1..nd):
+for i from 1 to nd do
+for j from 1 to nd do
+  Al[i,j] := subs( F11=1, F12=0, F21=0, F22=1, A[i,j]);
+end do:
+end do:
+printf(" **** Eigenvalues for linear elasticity *****\n");
+el := eigenvals(Al); 
+el1 := algsubs(k2^2=1-k1^2,el[1]);
+el2 := algsubs(k2^2=1-k1^2,el[2]);
+
+# B := evalm( A - rc*Iv ):
+
+# Rotation:
+Ar := array( 1..nd, 1..nd):
+for i from 1 to nd do
+for j from 1 to nd do
+  Ar[i,j] := subs( F11=c, F12=s, F21=-s, F22=c, A[i,j]);
+end do:
+end do:
+printf(" **** Eigenvalues for a SVK with pure rotation *****\n");
+er := eigenvals(Ar); 
+er1 := algsubs(s^2=1-c^2,algsubs(k2^2=1-k1^2,er[1]));
+er2 := algsubs(s^2=1-c^2,algsubs(k2^2=1-k1^2,er[2]));
+
+# Perturbed Rotation
+Arp := array( 1..nd, 1..nd):
+for i from 1 to nd do
+for j from 1 to nd do
+  Arp [i,j] := subs( F11=c+x*ux, F12=s+x*uy, F21=-s+x*vx, F22=c+x*vy, A[i,j]);
+end do:
+end do:
+printf(" **** Eigenvalues for a SVK with a perturbed rotation *****\n");
+erp := eigenvals(Arp):
+assume( lam>0 ):
+assume( mu>0 ):
+erp1 := simplify(algsubs(s^2=1-c^2,algsubs(k2^2=1-k1^2,series(erp[1],x=0,2))));
+erp2 := simplify(algsubs(s^2=1-c^2,algsubs(k2^2=1-k1^2,series(erp[2],x=0,2))));
+
+printf(" erp1 = %s\n",convert(simplify(erp1),string));
+printf(" erp2 = %s\n",convert(simplify(erp2),string));
+
+printf(" erp1(k1=1,k2=0) = %s\n",convert(simplify(subs(k1=1,k2=0,erp1)),string));
+printf(" erp2(k1=1,k2=0) = %s\n",convert(simplify(subs(k1=1,k2=0,erp2)),string));
+
+printf(" ** Here are values where the eigenvalue is negative:\n"):
+printf(" erp1(k1=1,k2=0,c=0,s=1,x=1,ux=0,vx=1,uy=0,vy=0)=%s\n",convert(simplify(subs(k1=1,k2=0,c=0,s=1,x=1,ux=0,vx=1,uy=0,vy=0,erp[1])),string)):
+
+
+# non-linear elasticity:
+
+An := array( 1..nd, 1..nd):
+for i from 1 to nd do
+for j from 1 to nd do
+  An [i,j] := subs( F11=1+x*ux, F12=x*uy, F21=x*vx, F22=1+x*vy, A[i,j]);
+end do:
+end do:
+printf(" **** Eigenvalues for a SVK general perturbation *****\n");
+en := eigenvals(An):
+en1 := simplify(algsubs(k2^2=1-k1^2,series(en[1],x=0,2)));
+en2 := simplify(algsubs(k2^2=1-k1^2,series(en[2],x=0,2)));
+
+# F11 := 1 + ux: 
+# F12 :=     uy:
+# F21 :=     vx:
+# F22 := 1 + vy:
+
+# printf(" **** Eigenvalues for non-linear elasticity *****\n");
+# en := eigenvals(A); 
+
+
+# s:= (1-c^2)^(1/2):
+# assume( lam>0 ):
+# assume( mu>0 ):
+# assume (c, 'real' ):
+# assume (s, 'real' ):
+# g1 := simplify(subs(s^2=1-c^2,series(erp[1],x=0,2)));
+# g2 := simplify(subs(s^2=1-c^2,series(erp[2],x=0,2)));
+
+# g1 := simplify(er[1]);
+# g2 := simplify(er[2]);
+
+# g1 := simplify(series(erp[1],x=0,2));
+# g2 := simplify(series(erp[2],x=0,2));
+
+# simplify:
+
+
+# printf(" g1 = %s\n",convert(simplify(g1),string));
+# printf(" g2 = %s\n",convert(simplify(g2),string));
+
+# -- results: 
+#g1 = series((2*mu+lam)+(lam*(1-c^2)^(1/2)*uy-3*lam*(1-c^2)^(1/2)*vx+3*lam*c*ux+lam*c*vy-6*mu*(1-c^2)^(1/2)*vx+6*mu*c*ux)*x+O(x^2),x,2)
+#g2 = series(mu+(lam*c*vy-lam*(1-c^2)^(1/2)*vx+lam*c*ux+lam*(1-c^2)^(1/2)*uy-2*mu*(1-c^2)^(1/2)*vx+2*mu*c*ux+2*mu*(1-c^2)^(1/2)*uy+2*mu*c*vy)*x+O(x^2),x,2)
+
+
+# series((1/2*lam+3/2*mu+1/2*csgn(lam+mu)*lam+1/2*csgn(lam+mu)*mu)+(lam*c*vy+lam*(1-c^2)^(1/2)*uy+lam*csgn(lam+mu)*c*ux-lam*csgn(lam+mu)*(1-c^2)^(1/2)*vx-2*lam*(1-c^2)^(1/2)*vx+2*lam*c*ux+mu*c*vy-4*mu*(1-c^2)^(1/2)*vx-csgn(lam+mu)*mu*c*vy-csgn(lam+mu)*mu*(1-c^2)^(1/2)*uy-2*csgn(lam+mu)*mu*(1-c^2)^(1/2)*vx+2*csgn(lam+mu)*mu*c*ux+4*mu*c*ux+mu*(1-c^2)^(1/2)*uy)*x+O(x^2),x,2)
+
+
+printf(" ******* Output written to file %s *********\n",fileName);

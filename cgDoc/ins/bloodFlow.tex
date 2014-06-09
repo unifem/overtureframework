@@ -1,0 +1,96 @@
+% -------------------------------------------------------------------
+\subsection{Simulation of flow past a blood clot filter}\label{sec:bloodFlow}
+
+Figure~\ref{fig:bloodFlow} shows results from computations of the incompressible
+flow in a three-dimensional cylindrical pipe (``vein'') with an embedded wire frame ``filter'' and 
+embedded blood clots. 
+The computations were performed with the pseudo steady-state solution algorithm. 
+
+Further details on these simulations can be found in 
+M.A. Singer, WDH, S.L. Wang, {\em Computational Modeling of Blood Flow in the Trapease Inferior Vena Cava Filter},
+       Journal of Vascular and Interventional Radiology, {\bf 20}, 2009.
+
+{
+\newcommand{\figWidthp}{7.5cm}
+\newcommand{\trimfig}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.0}{.0}}
+\newcommand{\figWidtha}{7.5cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.35}{.0}{.0}}
+\newcommand{\figWidthb}{4.5cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.940}{.03}{.09}{.09}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (16.,13.9);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/clotConeFinal}{\figWidthp}};
+  \draw ( 8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/clot050infFinal}{\figWidthp}};
+  \draw ( 8.0, 7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/clot200Final}{\figWidthp}};
+%
+  \draw ( 0.0,10.2) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{fig/trapeaseCompare02}{\figWidtha}};
+  \draw ( 3.0, 6.7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{fig/trapeaseCompare02}{\figWidthb}};
+%
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%\draw[step=1cm,gray] (0,0) grid (16,13);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a blood-clot filter using cgins.}\label{fig:bloodFlow}
+\end{figure}
+}
+
+
+\bogus{
+\newcommand{\blood}{\homeHenshaw/people/singer/bloodFlowFigures}
+\newcommand{\labelsize}{\footnotesize}
+% 
+\psset{xunit=1.0cm,yunit=1.0cm,runit=1.0cm,linewidth=1.pt}
+\renewcommand{\figWidth}{7.3333cm}
+\newcommand{\figWidthb}{16.0cm}
+%\\psset{xunit=0.75cm,yunit=0.75cm,runit=0.75cm,linewidth=1.pt}
+%\\newcommand{\figWidth}{5.5cm}
+%\\newcommand{\figWidthb}{12.0cm}
+%\psset{xunit=0.65cm,yunit=0.65cm,runit=0.65cm,linewidth=1.pt}
+%\newcommand{\figWidth}{4.7666cm}
+%\newcommand{\figWidthb}{10.4cm}
+% 
+\newcommand{\clipfig}[2]{\clipFig{#1}{#2}{-.05}{1.05}{0.07}{.80}}
+\newcommand{\clipfiga}[2]{\clipFig{#1}{#2}{.0}{.72}{-.04}{.38}}
+\newcommand{\clipfigb}[2]{\clipFig{#1}{#2}{.745}{.975}{.0775}{.25}}
+% 
+% \begin{frame}[label=blood]{Flow past a blood-clot filter using cgins}%{Mike Singer, LLNL}
+\begin{figure}[hbt]
+\begin{center}
+\begin{pspicture}(0,.25)(16.5,10.4)
+\rput(12.5,8.){\clipfig{\blood/clot200Final.eps}{\figWidth}}
+\rput( 3.5,2.5){\clipfig{\blood/clotConeFinal.eps}{\figWidth}}
+\rput(12.5,2.5){\clipfig{\blood/clot050infFinal.eps}{\figWidth}}
+% 
+\rput( 3.3,9.1){\clipfiga{\blood/trapeaseCompare02.eps}{\figWidth}}
+\rput(-0.1,6.7){\clipfigb{\blood/trapeaseCompare02.eps}{\figWidthb}}
+% 
+% \rput( 2.0,10){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\labelsize $\qsGrid\sp{(b=2,l=0,r=2)}$, $h=\frac{1}{20}$}}
+% \rput( 5.0,9.25){\tiny $h={\blue \frac{1}{40}}, {\green \frac{1}{80}}, {\red \frac{1}{160}}, {\frac{1}{320}}$}
+% 
+%
+\rput(2.75,10.5){\labelsize Overlapping grid for the filter}
+\rput(6.25,8.25){\labelsize Trap-ease wire filter}
+%
+%\rput(10.,10){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\labelsize Spherical clot}}
+%\rput( 2.0,4.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\labelsize Cone shaped clot}}
+%\rput(10.,4.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\labelsize Spherical clot}}
+\rput(11.5,10.2){\labelsize Spherical clot trapped in the filter}
+\rput( 2.0,4.6){\labelsize Cone shaped clot}
+\rput(11.45,4.7){\labelsize Spherical clot trapped near the front}
+% 
+% \rput(7.5,11.55){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\normalss\blue Flow past a blood-clot filter using cgins (Mike Singer, LLNL)}}
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+%
+\end{pspicture}
+\end{center}
+\caption{Flow past a blood-clot filter using cgins.}\label{fig:bloodFlow}
+% \vskip.5\baselineskip
+\end{figure}
+
+
+}

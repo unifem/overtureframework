@@ -1,0 +1,47 @@
+\section{Projecting the initial
+            conditions}  \label{sec:projectIC}
+ 
+In this section we discuss the {\tt ``project initial conditions''} option
+that is often used with Cgins in order to adjust the user specfied
+initial conditions. 
+
+ 
+The equation $\grad\cdot\uv=0$ imposes some compatibility constraints
+on the initial and boundary conditions. For example,
+the initial conditions should
+satisfy $\grad\cdot\uv_0=0$. Imposing the divergence free condition
+up to the boundary implies that
+ that the normal component of
+$\uv_0$ should equal the normal component of the velocity specified
+on the boundary, $\nv\cdot\uv_0=\nv\cdot\uv_{\partial\Omega}$,
+see~\cite{Gresho92}. A further constraint follows by integrating
+$\grad\cdot\uv$ over $\Omega$ and using the
+Gauss divergence theorem, giving
+$\int_{\partial \Omega} \nv\cdot\uv ds = 0$.
+ 
+In many cases it may not be easy to generate initial conditions that
+satisfy the compatibility conditions. It is, however, well known how
+to take a given function $\uv_I$ and to project this
+function so that it is divergence free.
+This projection is defined by
+\begin{eqnarray*}
+        \uv_0 &=& \uv_I + \grad \phi  ~~~\xv\in \Omega  \\
+        \uv_0 &=& \uv_I               ~~~\xv\in \partial\Omega  \\
+  \Delta \phi &=& - \grad\cdot\uv_I ~~~\xv\in\Omega\\
+   \nv\cdot\grad\phi &=& 0          ~~~\xv\in\partial\Omega
+\end{eqnarray*}
+The function $\uv_0$ will satisfy
+ $\grad\cdot\uv_0=0$ and $\nv\cdot\uv_0$
+will equal $\nv\cdot\uv_I$ on the boundary.
+Note, however, that this projection does not force the
+tangential components of $\uv_0$ to be continuous at the boundary.
+ 
+In the discrete case this projection is easy to compute since the
+function $\phi$ satisfies the same equation as the pressure, but with
+different data.  However, the discrete projection operator does not
+make the discrete divergence exactly zero for the same reason that the
+discrete divergence is not exactly zero in the overall scheme.  Thus
+if the initial function, $\uv_I$, is not smooth then it may be
+necessary to first smooth $\uv_I$ before applying the projection.  In
+practice a sequence of smoothing and projection steps is applied until
+the discrete divergence nolonger decreases significantly.

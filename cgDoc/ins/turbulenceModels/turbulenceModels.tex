@@ -1,0 +1,354 @@
+%-----------------------------------------------------------------------
+% Turbulence models - cheat sheet
+%
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+\voffset=-1.25truein
+\hoffset=-1.truein
+\setlength{\textwidth}{7in}      % page width
+\setlength{\textheight}{9.5in}    % page height
+% \renewcommand{\baselinestretch}{1.5}    % "double" spaced
+
+\hbadness=10000 % \tolerance=10000
+\sloppy \hfuzz=30pt
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+\usepackage{fancybox}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+
+\begin{document}
+
+
+% -----definitions-----
+\input wdhDefinitions.tex
+
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\vspace{5\baselineskip}
+\begin{flushleft}
+{\bf\Large
+Turbulence Models Cheat Sheet\\
+}
+\vspace{2\baselineskip}
+Bill Henshaw  \\
+% Centre for Applied Scientific Computing  \\
+% Lawrence Livermore National Laboratory      \\
+% Livermore, CA, 94551.  \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+% \vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+
+\end{flushleft}
+
+
+% \clearpage
+% \tableofcontents
+% \vfill\eject
+
+\section{Introduction}
+
+\newcommand{\eps}{\epsilon}
+
+\begin{description}
+  \item[$k$] : turbulent kinetic energy, $k=\sum_i u_i' u_i'$.
+  \item[$\eps$] : dissipation rate, $\eps \approx dk/dt$.
+\end{description}
+
+Dimensions
+\[
+  [ \nu ] = L^2/T , \qquad [k] = L^2/T^2,  \qquad [\eps ] = L^2/T^3, \qquad [\omega]= 1/T ,
+  \qquad [E] = L^3/T^2
+\]
+
+Kolmogorov scales
+\[
+   \eta = (\nu^3/\eps)^{1/4} ~,~ \tau = (\nu/\eps)^{1/2} ~,~ v=(\nu\eps)^{1/4}
+\]
+
+
+Energy spectral density (or energy spectrum function)
+\[
+   k = \int_0^\infty E(\kappa) d\kappa
+\]
+
+
+{\bf Integral length scale}  $l$ (measure large scale motion).
+
+{\bf Turbulence Reynolds number}
+\[
+     Re_{T} = {k^{1/2} l \over \nu}
+\]
+
+Kolmogorov universal equilibirum theory, $E(\kappa)$ only depends on $\eps$ and $\kappa$ implies
+\[
+   E(\kappa) = C_K \eps^{2/3} \kappa^{-5/3} \qquad ( {L^3\over T^2} = ({L^2\over T^3})^{2/3} ({1\over L})^{-5/3} )
+\]
+
+
+\begin{align*}
+     \tau_w = \nu ( \partial_i u_j + \partial_j u_i ) |_{w} &\qquad \mbox{surface shear stress} \\
+     u_\tau = \sqrt{ \tau_w \over \rho }  &\qquad  \mbox{Friction velocity} \\
+     u^+ = U/u_\tau    & \qquad \mbox{non-dimensional velocity for near wall region} \\
+     y^+ = y/(\nu/u_\tau) = y / \sqrt{ \nu/Du }  & \qquad \mbox{non-dimensional length for near wall region} \\
+  {U\over u_\tau} = {1\over\kappa} \ln {u_\tau y\over\nu} ~+C &\qquad 
+             \mbox{law of the wall, $\kappa$=K\'arm\'an's constant} \\
+  U = U_e - u_\tau g( y/\Delta) & \qquad \mbox{Clauser defect law} \\
+  k_s^+ = {u_\tau k_s \over \nu} &\qquad \mbox{normalized surface roughness}
+\end{align*}
+
+Incompressible Navier-Stokes
+\begin{align*}
+  \partial_i u_i &= 0 \\
+  \rho \partial_t u_i + \rho \partial_j( u_j u_i) + \partial_i p &= \partial_j t_{ji} \\
+  t_{ij} = 2 \mu s_{ij} & \qquad\mbox{viscous stress tensor} \\
+  s_{ij} = (1/2) ( \partial_i u_j + \partial_j u_i ) & \qquad\mbox{strain-rate tensor} \\
+\Omega_{ij} &= (1/2) ( \partial_i U_j - \partial_j U_i ) & \qquad\mbox{rotation tensor for the mean flow}
+\end{align*}
+
+{\bf Reynold's averaging}, $u = U + u'$,
+\begin{align*}
+   \rho \partial_t U_i + \rho U_j \partial_j(U_i) + \partial_i P &= \partial_j( t_{ji} - \rho \overline{u_i'u_j'})
+     \qquad\mbox{reynold's averaged equation}\\
+   \tau_{ij} \equiv  - \overline{u_i'u_j'} &  \qquad\mbox{specific Reynold's stress tensor}
+\end{align*}
+
+
+Reynolds stress equation
+\begin{align*}
+   \rho \partial_t \tau_{ij} + U_k \partial_k(\tau_{ij}) &=
+      -\tau_{ik}\partial_k(U_j) -\tau_{jk}\partial_k(U_i) + \eps_{ij} -\Pi_{ij} 
+      + \partial_k( \nu \partial_k \tau_{ij} + C_{ijk} ) \\
+   \eps_{ij} &= 2\nu \overline{\partial_k u_i' \partial_k u_j'} \\
+   \Pi_{ij} &= \overline{ {p'\over\rho}(  \partial_i u_j' + \partial_j u_i' ) }\\
+   \rho C_{ijk} &= \rho \overline{ u_i' u_j' u_k'} + \overline{ p' u_i'} \delta{jk} + \overline{p' u_j'} \delta_{ik}
+\end{align*}
+
+Exact equation for $k$, $2k = \overline{u_i' u_i'} = -\tau_{ii}$,
+\begin{align*}
+  \partial_t k + U_j\partial_j k  &= \tau_{ij} \partial_j U_i - \eps
+    + \partial_j[ \nu\partial_j k -{1\over2}\overline{u_i'u_i'u_j'} - {1\over\rho}\overline{p'u_j'} ] \\   
+   \eps &= 2\nu \overline{\partial_i u_i' \partial_i u_i'} \\
+\end{align*}
+Most models assume
+\[
+ {1\over2}\overline{u_i'u_i'u_j'}+ {1\over\rho}\overline{p'u_j'} \approx -{\nu_T\over\sigma_k} \partial_j k
+\]
+
+
+Exact equation for $\eps= 2\nu \overline{\partial_i u_i' \partial_i u_i'}$,
+\begin{align*}
+  \partial_t \eps + U_j\partial_j \eps  &= 
+        -2\nu[ \overline{ u_{i,k}' u_{j,k}'} + \overline{ u_{k,i}' u_{k,j}' }] \partial_j U_i
+        -2\nu  \overline{ u_k' u_{i,j}' } \partial_k\partial_j U_i \\
+     & -2\nu \overline{ u_{i,k}' u_{i,m}' u_{k,m}'} - 2\nu^2\overline{u_{i,km}' u_{i,km}'} \\
+    & + \partial_j[ \nu\partial_j \eps -\nu\overline{ u_j' u_{i,m}' u_{i,m}'} 
+                  - 2{\nu\over\rho} \overline{p_{,m}' u_{j,m}'} ]
+\end{align*}
+
+
+\section{Zero and One Equation Models}
+
+Mixing length hypothesis
+\begin{align*}
+  \tau_{xy} &= \nu_T U_y    \qquad\mbox{Boussinesq eddy viscosity approximation} \\
+  \nu_T &= l_{\rm mix}^2 | U_y | \qquad\mbox{Prandtl mixing length hypothesis}
+\end{align*}
+For a boundary layer $l_{\rm mix} = \kappa y$.
+
+Modifications
+\begin{align*}
+   l_{\rm mix} &= \kappa y [ 1 - e^{ - y^+/A_0^+} ] \qquad\mbox{Van Driest modification} \\
+  \nu_{T_o} &= \alpha U_e \delta_*  \qquad\mbox{Value in outer region of BL, Clauser}
+\end{align*}
+
+
+Cebeci-Smith {\bf Zero Equation Model} (1967)
+\begin{align*}
+   \nu_{T_i} &= l_{\rm mix}^2 ( U_y^2 + V_x^2 )  \qquad\mbox{Inner region, $y\le y_m$} \\
+    l_{\rm mix} &= \kappa y [ 1 - e^{ - y^+/A^+} ]  \\
+  \nu_{T_o} &= \alpha U_e \delta^*_v F_{\rm Kleb}(y;\delta) \qquad\mbox{outer region, $y>y_m$} \\
+  F_{\rm Kleb}(y;\delta) &= [ 1 + 5.5 (y/\delta)^6 ] ^{-1} \qquad \mbox{Klebanoff intermittency function} \\
+  \kappa=.4, \quad \alpha=0.0168, & \quad A^+ = 26[ 1 + y P_x /( \rho u_\tau^2) ]^{-1/2} \\
+  \delta^*_v &= \int_0^\delta (1- U/U_e) dy \qquad\mbox{velocity thickness} \\
+\end{align*}
+The matching point $y_m$ is the smallest value of $y$ where $\nu_{T_i}(y)=\nu_{T_o}$,
+$y_m^+ \approx .042 Re_{\delta^*}$,  $Re_{\delta^*}= U_e \delta^*/ \nu$.
+
+
+Spalart-Allmaras {\bf one equation model}
+\begin{align*}
+  \nu_T &= \tilde{\nu} f_{v1} \\
+\partial_t \tilde{\nu} + U_j \partial_j \tilde{\nu} &= c_{b1} \tilde{S} \tilde{\nu}
+   - c_{w1} f_w (\tilde{\nu}/d)^2 + {1\over\sigma}  \partial_k[ (\nu+\tilde{\nu})\partial_k\tilde{\nu}]
+   + c_{b2} \partial_k \tilde{\nu}\partial_k \tilde{\nu} \\
+ c_{b1}=.1355, c_{b2}=.622, & c_{v1}=7.1, \sigma=2/3 \\
+ c_{w1} = { c_{b1}\over\kappa^2} + {(1+c_{b2})\over\sigma},& \quad c_{w2}=0.3,\quad c_{w3}=2,\quad \kappa=.41\\
+ f_{v1} = {\chi^3 \over \chi^3 + c_{v1}^3} ,& \quad f_{v2} = 1 - {\chi\over 1+\chi f_{v1}}, 
+         f_w = g \left[ {1+ c_{w3}^6 \over g^6 +c_{w3}^6 }\right]^{1/6} \\
+   \chi = {\tilde{\nu}\over \nu},  g=r+c_{w2}(r^6-r), &\qquad r = {\tilde{\nu}\over \tilde{S}\kappa^2 d^2} \\
+ \tilde{S} = S + {\tilde{\nu}\over \kappa^2 d^2} f_{v2}, &\qquad S= \sqrt{ 2 \Omega_{ij}\Omega_{ij}}  \\
+\Omega_{ij} = (1/2) ( \partial_i U_j - \partial_j U_i ) & \qquad\mbox{rotation tensor}
+\end{align*}
+Depends on $d$, the distance to the nearest surface.
+            
+
+
+\section{Two equation models}
+
+The {\bf Boussinesq eddy viscosity approximation} will be used in this section,
+\begin{align*}
+   \tau_{ij} & = 2\nu_T S_{ij} - {2\over3} k \delta_{i,j} \\
+             & = \nu_T( \partial_i U_j + \partial_j U_i ) - {2\over d} k \delta_{i,j}
+\end{align*}  
+where $d$ is the number of dimensions. The last term is added so that $\tau_{ii} = -2k$.
+Then the Navier-Stokes equations become
+\begin{align*}
+   \rho \partial_t U_i + \rho U_j \partial_j(U_i) + \partial_i (P+{2\over d} k) 
+    &= \partial_j( (\mu+\nu_T) (\partial_i U_j + \partial_j U_i) ) \\
+  \partial_i U_i &= 0
+\end{align*}
+The extra term $- {2\over d} k \delta_{i,j}$ in $\tau_{ij}$ can thus be absorbed into 
+the kinematic pressure $\tilde{P}=P+{2\over d} k$.
+
+From dimensional analysis,
+\[
+   \nu_T \propto k/\omega\propto k^2/\eps , \qquad l \propto k^{1/2}/\omega, \qquad \eps \propto \omega k
+\]
+where $\omega\equiv k/\nu_T$ is the specific dissipation rate. 
+
+Here is the $k-\omega$ model (which basically makes up an equation for $\omega$),
+\begin{align*}
+   \nu_T &= k/\omega \\
+   \partial_t k + U_j\partial_j k  &= \tau_{ij} \partial_j U_i -\beta^* k \omega 
+                    + \partial_j[ (\nu+\sigma^* \nu_T)\partial_j k] \\
+    \partial_t \omega + U_j\partial_j \omega  &= \alpha{\omega\over k}\tau_{ij} \partial_j U_i 
+           -\beta \omega ^2 + \partial_j[ (\nu+\sigma \nu_T)\partial_j w] \qquad\mbox{Note: $\omega\approx y^{-2}$
+     as $y\rightarrow 0$}\\  
+\end{align*}
+with fudge factors
+\begin{align*}
+   \alpha=13/25, \quad \beta=\beta_0 f_\beta, & \quad \beta^*=\beta_0^* f_{\beta^*},
+               \quad \sigma=1/2, \quad \sigma^*=1/2\\
+    \beta_0 = 9/125, \quad f_\beta ={1+70\chi_w\over 1+80\chi_w}, &
+               \quad \chi_w=\left| {\Omega_{ij}\Omega_{jk}S_{ki}\over (\beta_0^*\omega)^3}\right| \\
+   \beta_0^*=9/100, \quad \chi_k = {1\over\omega^3} \partial_j k \partial_j \omega \\
+   f_{\beta^*} = {1+680 \chi_k^2 \over 1+400 \chi_k^2} \quad \mbox{if $\chi_k>0$, otherwise 1.} \\
+  \eps=\beta^*\omega k, \quad l=k^{1/2}/\omega
+\end{align*}
+
+
+Here we derive an equation for $\nu_T=k/\omega$  (use $\sigma=\sigma^*$) which might have better
+behaviour near the wall
+\begin{align*}
+  {D\over Dt} \nu_T &= {1\over\omega} D k/Dt - {k\over\omega^2} D\omega/Dt \\
+    &= {(1-\alpha)\over\omega} \tau_{ij} \partial_j U_i + (\beta-\beta^*)k 
+     + {1\over\omega} \partial_j[ (\nu+\sigma \nu_T)\partial_j k]
+     - {k\over\omega^2} \partial_j[ (\nu+\sigma \nu_T)\partial_j \omega] \\
+ {D\over Dt} \nu_T    &= {(1-\alpha) \nu_T \over k} \tau_{ij} \partial_j U_i + (\beta-\beta^*)k 
+     + \partial_j[ (\nu+\sigma \nu_T)\partial_j \nu_T] \\
+     + ... \\
+\end{align*}
+Note that 
+\begin{align*}
+  {1\over\omega} \tau_{ij} &= \nu_T {\tau_{ij}\over k} 
+             ~~=  {(\nu_T)^2 \over k} ( \partial_i U_j + \partial_j U_i ) - {2\over3} \nu_T\delta_{ij}
+\end{align*}
+with $(\nu_T)^2/k \sim C y^6$ as $y\rightarrow 0$ (see below).
+
+Here is the $k-\epsilon$ model
+\begin{align*}
+   \nu_T &= C_\mu k^2/\eps \\
+   \partial_t k + U_j\partial_j k & = \tau_{ij} \partial_j U_i -\eps
+                    + \partial_j[ (\nu+\nu_T/\sigma_k)\partial_j k] \\
+    \partial_t \eps + U_j\partial_j \eps  &= C_{\eps 1} {\eps\over k}\tau_{ij} \partial_j U_i 
+           -C_{\eps 2} \eps^2/k +  \partial_j[ (\nu+\nu_T/\sigma_\eps)\partial_j \eps] \\  
+   C_{\eps 1}=1.44, \quad C_{\eps 2}=1.92, &\quad C_\mu = .09, \quad \sigma_k=1, \quad \sigma_\eps=1.3
+\end{align*}
+
+
+\section{Boundary conditions}
+
+In the viscous sub-layer
+\begin{align*}
+   (\nu+\nu_T) U_y &= u_\tau^2 \qquad\mbox{implies $U \sim {u_\tau^2 \over\nu} y$}\\
+\end{align*}
+
+In the next layer $\nu_T \approx \kappa u_\tau y$,
+\[
+   \kappa u_\tau y U_y \approx u_\tau^2 
+\]
+implies the log-layer behaviour
+\[
+    U = {u_\tau\over\kappa} \ln y  ~+C
+\]
+
+
+Asymptotic behaviour as $y\rightarrow 0$
+\begin{align*}
+   u' &\sim A y \\
+   v' &\sim B y^2 \\
+   k &\sim C y^2 \quad\mbox{as $y\rightarrow 0$} \\
+  \omega &\sim C {\nu\over y^2} \quad\mbox{as $y\rightarrow 0$} \\
+   \eps &\sim C \nu \\
+  \nu_T &= k/\omega \sim C y^4 \\
+  \tau_{xy} &\sim C y^3
+\end{align*}
+
+
+Surface roughness model,
+\begin{align*}
+ \omega &= {u_\tau^2 \over \nu} S_R \qquad\mbox{at $y=0$} \\
+ S_R &=  (50/k_s^+)^2 \mbox{for $k_s^+ < 25$} \\
+ S_R &=  100/k_s \mbox{for $k_s^+ /ge 25$} 
+\end{align*}
+
+
+
+\vfill\eject
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\end{document}
+
+
+% ----------------------------------------------------------------------------------------------------------
+
+
+

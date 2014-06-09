@@ -1,0 +1,287 @@
+\section{Higher-order time stepping with the Modified Equation approach}
+
+The modified equation approach is based on the taylor series expression
+\[
+   u^{n\pm1}= u^n + \dt \partial_t u + {\dt^2\over 2} \partial_t^2 u
+                                     + {\dt^3\over 3!} \partial_t^3 u 
+                                     + {\dt^4\over 4!} \partial_t^4 u + \ldots
+\]
+giving
+\[
+   u^{n+1} -2 u ^n + u^{n-1}  =  2{\dt^2\over 2!} \partial_t^2 u + 2 {\dt^4\over 4!} \partial_t^4 u
+                    + 2 {\dt^6\over 6!} \partial_t^6 u + \ldots
+\]
+If we are solving the (forced) second-order wave equation
+\[
+    u_{tt} = c^2 \Delta u + f 
+\] 
+then
+\begin{align*}
+  \partial_t^4 u &= (c^2 \Delta )^2 u + c^2 \Delta f  + f_{tt} \\
+  \partial_t^6 u &= (c^2 \Delta )^3 u + (c^2 \Delta)^2 f + c^2 \Delta f_{tt} + \partial_t^4 f \\
+  \partial_t^6 u &= (c^2 \Delta )^4 u + (c^2 \Delta)^3 f + (c^2 \Delta)^2 f_{tt} 
+                 + c^2 \Delta \partial_t^4 f + \partial_t^6 f
+\end{align*}
+
+then we can derive the expression
+\begin{align*}
+  u^{n+1} -2 u ^n + u^{n-1} &= 2{\dt^2\over 2!} \big(c^2 \Delta u +f \big) \\
+   & + 2 {\dt^4\over 4!} \Big\{ (c^2 \Delta)^2 u + c^2 \Delta f + f_{tt}\Big\} \\
+   & + 2 {\dt^6\over 6!} \Big\{ (c^2 \Delta)^3 u + (c^2 \Delta)^2 f + c^2 \Delta f_{tt} + \partial_t^4 f \Big\} \\
+   & + 2 {\dt^8\over 8!} \Big\{ (c^2 \Delta )^4 u+ (c^2 \Delta)^3 f + (c^2 \Delta)^2 f_{tt} 
+                 + c^2 \Delta \partial_t^4 f + \partial_t^6 f \Big\}  + \ldots
+\end{align*}
+% Define the wave operator
+% \[
+%   \square = \partial_t^2 + \Delta
+% \]
+Here's a fourth-order accurate approximation
+\begin{align}
+  U^{n+1} -2 U ^n + U^{n-1} &= \dt^2 \big(c^2 \Delta_{4h} U + f \big) \\
+                   & + {\dt^4\over 12} \big( (c^2 \Delta_{2h})^2 U + c^2 \Delta f  + f_{tt} \big) \label{eq:modifiedOrder4}
+\end{align}
+where $\Delta_{mh}$ is a $m^{th}$-order approximation.
+
+Here's a sixth-order scheme,
+\begin{align*}
+  U^{n+1} -2 U ^n + U^{n-1} &= \dt^2 \big(c^2 \Delta_{6h} U + f \big) \\
+                 & + {\dt^4\over 12} \big( (c^2 \Delta_{4h})^2 U + c^2 \Delta f  + f_{tt} \big) \\
+                 & + {\dt^6\over 360} \big( (c^2 \Delta_{2h})^3 U + (c^2 \Delta)^2 f + c^2 \Delta f_{tt} + \partial_t^4 f \big)
+\end{align*}
+Here's a eighth-order scheme,
+\begin{align*}
+   U^{n+1} -2 U ^n + U^{n-1} & = \dt^2 \big(c^2 \Delta_{8h} U + f \big) \\
+                  &  + {\dt^4\over 12} \big( (c^2 \Delta_{6h})^2 U + c^2 \Delta f  + f_{tt}\big) \\
+                  & + {\dt^6\over 360} \big( (c^2 \Delta_{4h})^3 U + (c^2 \Delta)^2 f + c^2 \Delta f_{tt} + \partial_t^4 f \big) \\
+                  & + {\dt^8\over 20160}\big( (c^2 \Delta_{2h})^4 U + F_4 \big)
+\end{align*}
+
+% ----------------------------------------------------------------------------------------
+\subsection{Modified Equation Time Stepping and Complex Index of Refraction}
+
+Consider the case of Maxwell's equations in a lossy media (complex index of refraction)
+\begin{align*}
+    u_{tt} &= c^2 \Delta u - \sigma(\xv) u_t + f  ~,\\
+    u_{tt} + \sigma(\xv) u_t &= c^2 \Delta u + f  ~.
+\end{align*}
+where $\sigma u_t$ is the loss term with $\sigma$ the electric conductivity
+Let us derive a fourth-order accurate modified equation approximation.
+Using
+\begin{align*}
+  {u^{n+1} - u^{n-1} \over 2 \dt } &= u_t + {\dt^2\over 6} \partial_t^3 u + O( \dt^4 )
+\end{align*}
+it follows that (we will treat the $\sigma u_t$ term implicitly )
+\begin{align*}
+ {  u^{n+1} -2 u ^n + u^{n-1} \over \dt^2} + \sigma { u^{n+1} - u^{n-1} \over 2\dt } &=
+      \Big[ u_{tt} + \sigma u_t \Big] + \frac{\dt^2}{12}\Big[ \partial_t^4 u + 2\sigma \partial_t^3 u \Big] + O( \dt^4 ) \\
+   &= \Big[ c^2 \Delta u + f \Big] + 
+            \frac{\dt^2}{12}\Big[ (\partial_t^2 +\sigma\partial_t)^2 u - \sigma^2\partial_t^2 u \Big] + O( \dt^4) \\
+   & = \Big[c^2 \Delta u + f \Big] + 
+          \frac{\dt^2}{12}\Big[ (\partial_t^2 +\sigma\partial_t)^2 u - \sigma^2( c^2 \Delta u - \sigma u_t + f) \Big] + O( \dt^4) 
+\end{align*}
+Now (there will some extra terms here if $\sigma$ depends on $t$)
+\begin{align*}
+ (\partial_t^2 +\sigma\partial_t)^2 u &= (\partial_t^2 +\sigma\partial_t)\big[ c^2 \Delta u + f \big] \\
+       &= c^2 \Delta\big[ c^2 \Delta u +f \big] + f_{tt} +\sigma f_t \\
+       &= c^4 \Delta^2 u + c^2 \Delta f + f_{tt} +\sigma f_t
+\end{align*}
+and whence
+\begin{align}
+ {  u^{n+1} -2 u ^n + u^{n-1} \over \dt^2} + \sigma\Big[1-\frac{(\sigma\dt)^2}{12}\Big] { u^{n+1} - u^{n-1} \over 2\dt } &=
+    c^2 \Big[1-\frac{(\sigma\dt)^2}{12}\Big] \Delta u + \frac{\dt^2}{12} c^4 \Delta^2 u \\
+     & + \Big[1-\frac{(\sigma\dt)^2}{12}\Big] f + \frac{\dt^2}{12}\big[  c^2 \Delta f + f_{tt} +\sigma f_t \big]+ O( \dt^4) .
+\end{align}
+This approximation requires relatively simple changes to the method with $\sigma=0$, equation~\eqref{eq:modifiedOrder4}.
+%
+We probably need 
+\[
+  \sigma\dt < \sqrt{12}
+\]
+for this scheme to be stable, but maybe not (?). 
+
+\clearpage
+% ----------------------------------------------------------------------------------------
+\subsection{Modified Equation Time Stepping and Divergence Cleaning}\label{sec:modifiedDivergenceCleaning}
+
+
+A possible way to damp the divergence in the solution to Maxwell's equations is to solve the following
+coupled systems for $\Ev$ and $\Hv$
+\begin{align}
+   \Ev_{tt} & = c^2 \Delta \Ev + \fv_E -\alpha( \Ev_t - \eps^{-1} \grad\times \Hv -\gv_E ), \label{eq:Edamped}\\
+   \Hv_{tt} & = c^2 \Delta \Hv + \fv_H -\alpha( \Hv_t + \mu^{-1} \grad\times \Ev  -\gv_H ) , \label{eq:Hdamped}
+\end{align}
+where $\alpha>0$ is a positive damping constant.
+Then the divergence of the electric (or magnetic) field, $\delta = \grad\cdot\Ev$, satisfies the damped wave equation
+\begin{align*}
+   \delta_{tt} & = c^2 \Delta \delta - \alpha \delta_t. 
+\end{align*}
+Ignoring boundaries, this equation will damp all spatial modes (except the constant mode) to zero as $t\rightarrow \infty$.
+
+
+To approximate equations~\eqref{eq:Edamped}-\eqref{eq:Hdamped} with the modified equation method
+we can either proceed directly or instead start from modified equation approximations for the
+second-order and first order systems (which seems easier):
+\begin{align}
+   \Ev_{tt} & = c^2 \Delta \Ev + \fv_E , \\
+   \Hv_{tt} & = c^2 \Delta \Hv + \fv_H ,\\
+   \Ev_t &= \eps^{-1} \grad\times \Hv +\gv_E, \\
+   \Hv_t &= -\mu^{-1} \grad\times \Ev +\gv_H .
+\end{align}
+Fourth-order modified equation approximations are 
+\begin{align}
+ { \Ev^{n+1} -2 \Ev ^n + \Ev^{n-1}\over  \dt^2} &= c^2 \Delta_{4h} \Ev + \fv_E 
+                    + {\dt^2\over 12} \big( (c^2 \Delta_{2h})^2 \Ev + c^2 \Delta \fv_E  + \fv_{E,tt} \big), \\
+ {\Ev^{n+1} - \Ev^{n-1} \over 2\dt } &=  \partial_t \Ev + {\dt^2\over 6} \partial_t^3 \Ev \\
+          &= \eps^{-1}\grad\times\Hv + \eps^{-1} c^2 {\dt^2\over 6} \grad\times\Delta\Hv 
+        + \gv_E + \eps^{-1}{\dt^2\over 6}\Big[ c^2  \Big]   + ...(\fv_H,\gv_E) ...
+\end{align}
+which can be combined
+\begin{align}
+ { \Ev^{n+1} -2 \Ev ^n + \Ev^{n-1}\over  \dt^2} &+ \alpha {\Ev^{n+1} - \Ev^{n-1} \over 2\dt } = \\
+ & \big(c^2 \Delta_{4h} \Ev + \fv_E \big) + {\dt^2\over 12} \big( (c^2 \Delta_{2h})^2 \Ev 
+                                                     + c^2 \Delta \fv_E  + \fv_{E,tt} \big) \\
+ & + \alpha\Big[ \eps^{-1}\grad\times\Hv + \eps^{-1} c^2 {\dt^2\over 6} \grad\times\Delta\Hv + ... \Big] 
+\end{align}
+%
+For {\bf Cartesian grids} (or rectanglar tensor product grids), if we define the
+discrete divergence and discrete curl operators using the same fourth order
+approximations
+\begin{align}
+  {\rm div}_{4h} \Ev &= \grad_{4h} \cdot \Ev = (D_{4x},D_{4y},D_{4z})\cdot\Ev, \\
+  {\rm curl}_{4h} \Ev &= \grad_{4h} \times \Ev = (D_{4x},D_{4y},D_{4z})\times\Ev,
+\end{align}
+then it will follow that the divergence of the curl will be zero for the discrete operators
+\begin{align}
+   {\rm div}_{4h}{\rm curl}_{4h} \uv &= \grad_{4h} \cdot  \grad_{4h} \times \uv =0 ,
+\end{align}
+since all the discrete approximates commute, $D_{4x}D_{4y}=D_{4y}D_{4x}$.
+Unfortunately, 
+if we use the fourth order approximation ${\rm curl}_{4h}$ in the approximation to $c^2\grad\times\Delta\Hv$,
+we will end up with at least a 7 point stencil. If we a 5 point stencil to approximate $c^2\grad\times\Delta\Hv$
+then it will no longer be true that the discrete divergence of this approximation will be zero. The equation
+for the discrete divergence of the electric field, $\delta_{4h}=\grad_{4h} \cdot \Ev$, 
+would then have a source term in it and $\delta_{4h}$ would not 
+converge to zero in time. 
+
+To avoid this we can instead use the
+approximation 
+\begin{align}
+   \partial_t^3 \Ev &= c^2 \partial_t\Delta \Ev \\
+         &= c^2 \Big[ {\Delta \Ev^n -  \Delta\Ev^{n-1} \over \dt} + \dt \partial_t^2 \Delta \Ev \Big] +O(\dt^2) \\
+         &= c^2 \Big[ {\Delta \Ev^n -  \Delta\Ev^{n-1} \over \dt} + c^2 \dt \Delta^2 \Ev^n \Big] +O(\dt^2)
+\end{align}
+With this approximation the discrete divergence should go to zero.
+
+
+\newcommand{\xrmHat}{\widehat{\xv_{r_m}}}
+\newcommand{\rmHat}{\hat{r}_m}
+\newcommand{\rnHat}{\hat{r}_n}
+For {\bf curvilinear grids}, some care is required in approximating the divergence and curl so that
+the discrete div of the discrete curl is zero. 
+In this case it is important to approximate both the div and curl with consistent {\em conservative} approximations.
+At the continuous level the continuous approximations are
+\begin{align*}
+  \grad\cdot\fv &= {1\over J}\sum_{m=1}^{d} {\partial\over \partial r_m}\big( J\grad_\xv r_m \cdot \fv\big),\\
+  \grad\times\fv  &= \sum_m \frac{1}{J} {\partial\xv\over\partial r_{m}}
+                          \Big[ {\partial\over\partial r_{m+1}}\Big( {\partial\xv\over\partial r_{m+2}}\cdot\fv \Big) -
+                                {\partial\over\partial r_{m+2}}\Big( {\partial\xv\over\partial r_{m+1}}\cdot\fv \Big) \Big] ,
+%  \rmHat &= {\partial \xv \over \partial r_m} / \left\vert {\partial \xv \over \partial r_m} \right\vert
+\end{align*}
+% Here $\rmHat$ is the unit vector in the direction of increasing $r_m$ and 
+where the subscripts $m+1$, $m+2$ are
+to be taken modulo $d$. Note that
+\begin{align}
+   \grad_\xv r_m \cdot {\partial\xv\over\partial r_{n}} = 
+   \sum_k {\partial r_m \over\partial x_k}{\partial x_k \over\partial r_{n}} =
+   {\partial r_m \over\partial r_{n}} = \delta_{mn}. \label{eq:ortho}
+\end{align}
+% since $\grad_\xv r_m$ is orthogonal to the $\hat{r}_{m+1}$ and $\hat{r}_{m+2}$
+Thus
+\begin{align*}
+  \grad\cdot(\grad\times\fv) &= 
+           {1\over J}\sum_{m=1}^{d} {\partial\over \partial r_m}\Big( J\grad_\xv r_m \cdot (\grad\times\fv)\Big)\\
+   &= {1\over J}\sum_{m=1}^{d} 
+  {\partial\over \partial r_m}\Big[ {\partial\over\partial r_{m+1}}\Big( {\partial\xv\over\partial r_{m+2}}\cdot\fv \Big) -
+                                {\partial\over\partial r_{m+2}}\Big( {\partial\xv\over\partial r_{m+1}}\cdot\fv \Big) \Big] \\
+      &= 0 
+\end{align*}
+In the discrete case we define difference approximations for the unit cube derivatives
+\begin{align*}
+  D_{r_m} &\approx {\partial\over \partial r_m} 
+\end{align*}
+%           &= D_{0r_m}\Big( 1 - \alpha(\Delta r_m)^2 
+(say a centered second or fourth order accurate approximation) and
+then define discrete conservative approximations to div and curl as
+\begin{align*}
+  \grad_h\cdot\fv &\equiv {1\over J}\sum_{m=1}^{d} D_{r_m}\big( J\grad_\xv r_m \cdot \fv\big),\\
+  \grad_h\times\fv  &\equiv \sum_m \frac{1}{J} {\partial\xv\over\partial r_{m}}
+                           \Big[ D_{r_{m+1}} \Big( {\partial\xv\over\partial r_{m+2}} \cdot\fv \Big) -
+                                 D_{r_{m+2}} \Big( {\partial\xv\over\partial r_{m+1}} \cdot\fv \Big) \Big] ~.
+\end{align*}
+These approximations will satisfy $\grad_h\cdot(\grad_h\times\fv)=0$ provided~\eqref{eq:ortho} is
+satisfied at the discrete level since 
+\begin{align*}
+  \grad_h\cdot(\grad_h\times\fv) &= 
+           {1\over J}\sum_{m=1}^{d} D_{r_m}\Big( J\grad_\xv r_m \cdot (\grad_h\times\fv)\Big)\\
+   &= {1\over J}\sum_{m=1}^{d} 
+         D_{r_m}\Big[ D_{r_{m+1}}\Big( {\partial\xv\over\partial r_{m+2}}\cdot\fv \Big) -
+                      D_{r_{m+2}}\Big( {\partial\xv\over\partial r_{m+1}}\cdot\fv \Big) \Big] \\
+      &= 0 .
+\end{align*}
+Here we have used the fact that $D_{r_m}$ commutes with $D_{r_n}$, $D_{r_m}D_{r_n} = D_{r_n}D_{r_m}$. 
+
+For general {\bf curvilinear grids}, it will {\bf not} be true that the divergence of the Laplacian is equal to
+the Laplacian of the divergence. The equation for the discrete divergence of $\Ev$ for
+the second-order accurate scheme will be 
+\begin{align*}
+{\delta_{h}^{n+1} - 2\delta_{h}^{n} + \delta_{h}^{n-1} \over \dt^2 }
+  + \alpha {\delta_{h}^{n+1} -  \delta_{h}^{n-1} \over 2 \dt } &= 
+                c^2 \grad_{h}\cdot\Delta_{h} \Ev \\
+   & = c^2 \Delta_{h}\delta_{h} + c^2 (\grad_{h}\cdot\Delta_{h} \Ev - \Delta_{h}\grad_{h}\cdot \Ev), \\
+   & = c^2 \Delta_{h}\delta_{h} + c^2 O( h^2 ) .
+\end{align*}
+The divergence satisfies a damped wave equation with a forcing function of $O( h^2 )$.
+In this case we expect that $\delta_{h} = O(c^2 h^2/\alpha)$. We can thus reduce the divergence by increasing $\alpha$,
+although we likely want to keep $\alpha$ smaller than $O(1/\dt)$. 
+Note that if the term $\alpha\grad_{h}\cdot\grad_h\times\Hv$ had not been exactly zero then we could only expect
+ $\delta_{h} = O(h^2)$ (without the exact factor of $1/\alpha$) and there would have been less of a benefit of
+increasing $\alpha$ (This needs to be verified numerically).
+
+For the fourth-order accurate scheme we have
+\begin{align*}
+{\delta_{h}^{n+1} - 2\delta_{h}^{n} + \delta_{h}^{n-1} \over \dt^2 }
+  + \alpha {\delta_{h}^{n+1} -  \delta_{h}^{n-1} \over 2 \dt } &= 
+                c^2(1 +\alpha\dt/(6\epsilon))\grad_{h}\cdot\Delta_{h} \Ev^{n} 
+                + {c^4 \dt^2 \over 12}(1 +\alpha\dt/\epsilon)\grad_{h}\cdot\Delta_{2h}^2 \Ev^{n} \\
+                &- c^2 \alpha\dt/(6\epsilon) \grad_{h}\cdot\Delta_{2h}\Ev^{n-1}
+\end{align*}
+or 
+\begin{align*}
+{\delta_{h}^{n+1} - 2\delta_{h}^{n} + \delta_{h}^{n-1} \over \dt^2 }
+  + \alpha {\delta_{h}^{n+1} -  \delta_{h}^{n-1} \over 2 \dt } &= 
+                c^2(1 +\alpha\dt/(6\epsilon))\Delta_{h} \delta_h^{n} 
+                + {c^4 \dt^2 \over 12}(1 +\alpha\dt/\epsilon)\Delta_{2h}^2 \delta_h^{n} \\
+                &- c^2 \alpha\dt/(6\epsilon) \Delta_{2h}\delta_h^{n-1} + O( c^2 h^4+ c^4 \dt^2 h^2) (1+\alpha\dt)
+\end{align*}
+In this case we expect that $\delta_{h} = O( c^2 h^4+ c^4 \dt^2 h^2) (1+\alpha\dt)/\alpha$. 
+
+
+The divergence equation is of the form
+\begin{align*}
+  y_{tt} + \alpha y_t + k^2 y =  f 
+\end{align*}
+where $y \approx \delta$ and $k$ is the wave-number of a spatial mode. The solution of the homogenous ODE is
+\begin{align*}
+  y &= A e^{\lambda_1 t } + B e^{\lambda_2 t } , \\
+  \lambda_m &= -{\alpha\over2} \pm \sqrt{ (\alpha/2)^2 - k^2} , \\
+  \lambda_m & \sim -{\alpha\over2} \pm i \beta \qquad\text{if $\alpha < 2k$ (high frequencies)} , \\
+            & \sim -{\alpha\over2} \pm {\alpha\over2}(1-2k^2/\alpha^2) \qquad\text{if $\alpha > 2k$ (low frequencies)} .
+\end{align*}
+The general solution is 
+\begin{align*}
+  y &=  A e^{\lambda_1 t } + B e^{\lambda_2 t } 
+         + {1\over \lambda_2 -\lambda_1} \int_0^t \big( e^{\lambda_2(t-\tau)} - e^{\lambda_1(t-\tau)} \big) f(\tau) ~d\tau, \\
+    &= A e^{\lambda_1 t } + B e^{\lambda_2 t } 
+         + {1\over 2\sqrt{ (\alpha/2)^2 - k^2}} \int_0^t \big( e^{\lambda_2(t-\tau)} - e^{\lambda_1(t-\tau)} \big) f(\tau) ~d\tau.
+\end{align*}
+Thus high frequencies will be damped at a rate $e^{-(\alpha/2) t }$ while low frequencies should be $O(f/\alpha)$.

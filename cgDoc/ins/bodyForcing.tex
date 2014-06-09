@@ -1,0 +1,238 @@
+%
+% ==============================================================================================================
+\section{Specification of body forces and boundary forcing} \label{sec:bodyAndBoundaryForcing}
+
+
+In this section we describe how to define {\em body forces} and {\em boundary forcings}.
+{\em Body forces} are volume forcing terms that are added to the right-hand-side of
+the PDE's (momentum equations, temperature equation etc.). 
+{\em Boundary forcings} are right-hand-sides added to the boundary conditions.
+
+\noindent Examples of body forces are
+\begin{enumerate}
+   \item add a heat source to a given region of the domain.
+   \item add a drag force  to a given region of the domain.
+   \item define an immersed boundary over some region. This option provides an approximate way to add 
+         new geometry (e.g. small or complicated features) to a problem without having to build a proper overlapping grid 
+         for the features.
+   \item define a wake model such as an actuator disk (e.g. modeling a fan).
+   \item change material parameters such as thermal conductivity, heat capacity or viscosity over a given region (needs to be finished).
+\end{enumerate}
+
+\noindent Examples of boundary forcings are:
+\begin{enumerate}
+   \item specify the temperature or heat flux on a sub-region of a grid face.
+   \item add a local inflow region with parabolic profile to a portion of a grid face.
+   \item define a temperature boundary condition that varies from Dirichlet (isothermal) to Neumann (adiabatic) or mixed
+     over a given grid face.
+\end{enumerate}
+
+
+\noindent The construction of a body/boundary force requires the specification of
+\begin{description}
+   \item[\quad Region] : specify a region (e.g. box, cylinder, triangulated surface) over which the body force applies.
+   \item[\quad Parameters] : specify parameters that define the force (e.g. inflow velocity, temperature, heat flux)
+   \item[\quad Profile] : define a spatial profile for the force (e.g. parabolic inflow).
+   \item[\quad Time variation] : define the time variation of the force (e.g. define a time varying heat flux on
+        a sub-region of a boundary).
+\end{description}
+In addition, a given body force (e.g. drag force or actuator disk) will have parameters associated with it (e.q. drag law).
+
+
+{\bf Note:} If multiple forcings are defined for the same volume or boundary, the corresponding 
+forces are (by default) added together. 
+
+
+%
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.0cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.23}{.225}{.2}{.22}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.5) rectangle (15.,7.);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0) node[anchor=south west] {\trimfig{\insDocDir/fig/bodyForcingT}{\figWidth}};
+ \draw (8,0) node[anchor=south west] {\trimfig{\insDocDir/fig/bodyForcingSL}{\figWidth}};
+% \draw[step=1cm,gray] (0,0) grid (15,7);
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{This figure, temperature on left and stream-lines on the right, 
+    illustrates uses of various body-forces and boundary-forcings. 
+Boundary-forces are
+   used to define inflow regions on the left and bottom walls. Immersed-boundary body forces are used
+  to define a square obstacle and elliptical obstacle.}
+\end{figure}
+
+
+
+% ----------------------------------------------------------------------------------------
+\subsection{Defining body-force and boundary-force regions} \label{sec:bodyAndBoundaryForcingRegions}
+
+
+Forcing regions over which body/boundary forces are applied can be defined
+using one or more of the following 
+\begin{description}
+   \item[\quad Box] : a box (square in two-dimensions). 
+   \item[\quad Ellipse] : an ellipse (or circle).
+   \item[\quad mask from grid function]: the body is defined by a grid function {\em mask} that contains values
+        indicating whether a grid point is inside or outside the body. Ideally this should be a signed
+        distance function with negative values being inside the body. 
+   \item[\quad Mapping] : use this option to define an arbitrary curve in 2D or a surface in 3D (described in more detail below). 
+\end{description}
+
+{\bf Note:} when defining regions for boundary forcings, the actual boundary should be enclosed 
+in the region. Thus in two-dimensions, to define a boundary forcing on an interval $[x_a,x_b]$ of a horizontal
+wall at $y=y_w$ one should define a narrow box (square) to enclose the interval, $B = [x_a,x_b]\times[y_w-\epsilon,y_w+\epsilon]$.
+
+\paragraph{2D regions defined by a curve:} Very general body force regions in 2D can be defined
+  from Overture Mappings that can define closed curves in 2D (e.g. {\tt AirfoilMapping}, {\tt NurbsMapping}, {\tt SplineMapping}). 
+  The determination of whether a point is inside and outside the region is determined with a fast ray-tracing algorithm.
+  Figure~\ref{fig:bodyForceRegions2D} shows examples of 2D body force regions defined from Mappings.
+
+\paragraph{3D regions defined by surface triangulations:} Very general body force regions in 3D can be defined
+as an unstructured surface. The {\tt UnstructuredMapping} class can be used to
+represent these surfaces. Input formats include the popular STL file format
+(STereoLithography or Standard Tessellation Language) and PLY file format
+(Polygon File Format or the Stanford Triangle
+Format). Figure~\ref{fig:bodyForceRegions} shows examples of some surfaces. The
+{\tt UnstructuredMapping} has a fast algorithm for determining whether a given
+point in space is inside or outside of the surface (this requires the surface to
+be {\em water-tight}. The algorithm uses an alternating-digit-tree (ADT) and
+ray-tracing.
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.5) rectangle (16.5,6.25);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (  0,0) node[anchor=south west] {\trimfig{\insDocDir/fig/blob128T3p0}{\figWidth}};
+ \draw (5.5,0) node[anchor=south west] {\trimfig{\insDocDir/fig/starfish256T4p0}{\figWidth}};
+ \draw (11.,0) node[anchor=south west] {\trimfig{\insDocDir/fig/immersedHeatedAirfoilT5p0}{\figWidth}};
+% \draw[step=1cm,gray] (0,0) grid (16.5,6);
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Examples of 2D body force regions defined from a curve used as immersed boundaries and heat sources. 
+Left: buoyant incompressible flow past a heated {\em blob} - the curve was defined with the {\tt NurbsMapping}.
+Middle: buoyant incompressible flow past a heated {\em starfish} - the curve was defined with the {\tt NurbsMapping}.
+Right: buoyant incompressible flow past a heated {\em NACA airfoil} - the curve was defined with the {\tt AirfoilMapping}.
+}
+\label{fig:bodyForceRegions2D}
+\end{figure}
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.5) rectangle (16.5,6.25);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (  0,0) node[anchor=south west] {\trimfig{\insDocDir/fig/cowPlySurface}{\figWidth}};
+ \draw (5.5,0) node[anchor=south west] {\trimfig{\insDocDir/fig/candleStickPly}{\figWidth}};
+ \draw (11.,0) node[anchor=south west] {\trimfig{\insDocDir/fig/dolphinsPLY}{\figWidth}};
+% \draw[step=1cm,gray] (0,0) grid (16.5,6);
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Examples of unstructured surfaces create from PLY files. These can be used as immersed boundary regions and heat
+sources in a Cgins computation.}
+\label{fig:bodyForceRegionsPLY}
+\end{figure}
+
+
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.0cm}
+\newcommand{\trimfiga}[2]{\trimFigb{#1}{#2}{0.0}{.0}{.0}{.0}}
+\newcommand{\figWidthb}{7.0cm}
+\newcommand{\trimfigb}[2]{\trimFigb{#1}{#2}{0.1}{.25}{.15}{.2}}
+\begin{center}
+ \begin{tikzpicture}[scale=1]
+ \useasboundingbox (0,.5) rectangle (15.,7.25);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw (0,0) node[anchor=south west] {\trimfiga{\insDocDir/fig/lego1024Enstropy1p0b}{\figWidth}};
+ \draw (8,0) node[anchor=south west] {\trimfigb{\insDocDir/fig/bunnyU}{\figWidthb}};
+% \draw[step=1cm,gray] (0,0) grid (15,7);
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+ \end{tikzpicture}
+\end{center}
+\caption{Examples of 3D body force regions defined from a unstructured surface used as immersed boundaries and heat sources.
+ The UnstructuredMapping class is
+used to define the triangulated surface. Left: incompressible flow past a {\em LEGO} block - the surface was defined
+from an STL file. Right: incompressible flow past the the Stanford {\em bunny} - the surface was defined from a PLY file.}
+\label{fig:bodyForceRegions}
+\end{figure}
+
+
+% ----------------------------------------------------------------------------------------
+\subsection{Defining body forces} \label{sec:bodyForces}
+
+For the incompressible Navier-Stokes (with Boussinesq approximation), the body forcings, $\Fv_{\uv}$ and $F_T$ are
+added to the momentum and temperature equations as 
+\begin{align}
+  \uv_t + \uv\cdot\grad\uv + \grad p = \nu \Delta \uv + \alpha \gv (T-T_0)  + \Fv_{\uv}, \\
+  T_t + \uv\cdot\grad T  = \kappa \Delta T  + F_T. 
+\end{align}
+
+
+\noindent {\bf Drag force}: The drag force consists of the sum of a linear and quadratic drag law, 
+\begin{align}
+  \Fv_{\uv} & =  - \Big\{ \beta_1 ( \uv- \uv_d )  +-\beta_2 |\uv- \uv_d| ( \uv - \uv_d ) \Big\} \Pc(\xv,t), \\
+   F_T       & = - \frac{\beta_T}{\dt}\Pc(\xv,t)( T - T_d ), 
+\end{align}
+where $\Pc(\xv,t)$ is a profile function. The {\em target} velocity is $\uv_d$ and the target temperature is $T_d$. 
+In general (to-do) the target functions can be a function of space and time $\uv_d=\uv_d(\xv,t)$, $T_d=T_d(\xv,t)$.
+
+\noindent {\bf Immersed boundary}: The {\em immersed boundary} force takes the form
+\begin{align}
+  \Fv_{\uv} & =  - \frac{\beta}{\dt}\Pc(\xv,t)( \uv - \uv_d ), \\
+  F_T       & = - \frac{\beta_T}{\dt}\Pc(\xv,t)( T - T_d ), 
+\end{align}
+where $\Pc(\xv,t)$ is a profile function and $\dt$ is the time-step. 
+
+\noindent {\bf Heat source}: For the incompressible Navier-Stokes (with Boussinesq approximation) the heat source 
+    $F_T(\xv,t)$ is added to the right-hand-side of the temperature equation 
+\begin{align}
+  F_T =  \Pc(\xv,t) \frac{1}{C_p} F_T(\xv,t) . 
+\end{align}
+{\bf Question: should we scale the heat source by $C_p$ ?}
+
+
+% ----------------------------------------------------------------------------------------
+\subsection{Defining boundary forcing} \label{sec:boundaryForcing}
+
+The {\em body-force regions} defined in Section~\ref{sec:bodyAndBoundaryForcingRegions}
+can be used to construct boundary conditions that vary over a a given boundary.
+
+
+
+% ----------------------------------------------------------------------------------------
+\subsection{Defining body force profiles} \label{sec:bodyAndBoundaryForcingProfiles}
+
+
+% -------------------------------------------------------------------------------------------------------
+\subsubsection{Parabolic velocity profile} \label{sec:parabolic}
+
+  A `parabolic' profile can be specified for a body or boundary forcing.
+The parabolic profile can be useful, for example,
+in specifying the velocity profile at an inflow boundary.
+The parabolic profile is zero at the
+boundary of the body force region and increases to a specified value $U_{\rm max}$ at 
+a distance $d$ from the boundary:
+\[
+     u(\xv) = \begin{cases}
+               U_{\rm max} (2 -s/d ) s/d & \text{if $s\le d$ } \\
+               U_{\rm max} &     \text{if $s> d$ }
+              \end{cases}
+\]
+Here $s$ is the shortest distance between a point $\xv$ in the region to the 
+boundary of the region, 
+and $d$ is the user specified {\it parabolic depth}.
+
+% ----------------------------------------------------------------------------------------
+% \subsection{Defining body region material parameters} \label{sec:bodyForcingMaterialParameters}
+% 
+% 
+% The material parameters such as $\kappa$ and $C_p$ can vary in space. ... finish me ...

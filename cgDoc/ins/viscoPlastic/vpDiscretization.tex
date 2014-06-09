@@ -1,0 +1,95 @@
+\newcommand{\Es}{{\mathcal E}}
+\newcommand{\ac}{k}
+\newcommand{\Lrr}{{\mathcal L}_{rr}}
+\newcommand{\Lrs}{{\mathcal L}_{rs}}
+\newcommand{\dr}{{\Delta r}}
+\newcommand{\ds}{{\Delta s}}
+\newcommand{\hr}{h_r}
+\newcommand{\hs}{h_s}
+\newcommand{\Rand}{{\mathcal R}}
+\newcommand{\SDm}{SD$m$}
+\newcommand{\FDm}{FD$m$}
+\newcommand{\TnSDm}[2]{T$#1$SD$#2$}
+\newcommand{\TnFDm}[2]{T$#1$FD$#2$}
+\newcommand{\Vlambda}{V_\lambda}
+
+\clearpage
+\subsection{Notes on the discretization used for the visco-plastic equations.}
+
+% \sum_{j=1}^d
+
+The divergence of a function $\fv$ can be written in in {\em conservation} form, or {\em self-adjoint} form, 
+in general curvilinear coordinates as
+\begin{align}
+  \grad\cdot\fv &= \frac{1}{J} {\partial \over\partial r_m} \left( J~\grad_\xv r_m\cdot\fv \right) 
+                 \qquad\text{(implied sum)}
+     \label{eq:divCons} \\
+   {\partial\over\partial x_j} f_j &=  {\partial \over\partial r_m} 
+           \left(J~  {\partial r_m\over\partial x_j} f_j \right)
+\end{align}
+where $J$ denotes the determinant of the Jacobian matrix $[\partial x_i/\partial r_j]$.
+
+Consider the generalized Laplace operator, $L$ defined by 
+\begin{align}
+  L w &= \grad\cdot( \eta (\grad w + \grad w^T) ) ~, \\
+  L w_\mu &= {\partial \over \partial x_j}\left( \eta( \partial_j w_\mu + \partial_\mu w_j ) \right)
+\end{align}
+% 
+% \sum_{m=1}^d\sum_{j=1}^d \sum_{m=1}^d\sum_{j=1}^d\sum_{k=1}^d 
+The operator $L$ can be written in {\em conservation} form, or {\em self-adjoint} form, 
+in general curvilinear coordinates as
+\begin{align}
+  L w_\mu &= \frac{1}{J}  {\partial \over\partial r_m}\Big(
+                J~  {\partial r_m\over\partial x_j} ~\eta~[ \partial_j w_\mu + \partial_\mu w_j ]
+                \Big)  
+\end{align}
+From the chain rule
+\begin{align}
+  {\partial w_\mu \over \partial x_j} &= {\partial r_k \over\partial x_j} {\partial w_\mu \over\partial r_k}
+\end{align}
+and thus
+\begin{align}
+  L w_\mu &= \frac{1}{J} {\partial \over\partial r_m}\Big(
+                J~\eta~  {\partial r_m\over\partial x_j}
+          \left[  {\partial r_k \over\partial x_j} {\partial w_\mu \over\partial r_k}
+                    + {\partial r_k \over\partial x_\mu} {\partial w_j \over\partial r_k} \right]
+                \Big)  \label{eq:generalizedLaplacianCons}
+\end{align}
+% 
+Expression~\eqref{eq:generalizedLaplacianCons}
+contains two types of second-order deriavtive terms, those with un-mixed derivatives
+and those with mixed derivatives,
+\begin{align}
+   L_a w_\mu &= {\partial\over\partial r_m}\left( A {\partial w_\mu \over\partial r_m} \right), \qquad\text{(no implied sum)}, \\
+   L_b w_\mu &= {\partial\over\partial r_m}\left( B {\partial w_\mu \over\partial r_n} \right), \qquad\text{$m\ne n$}.
+\end{align}
+% 
+These terms are approximated to second-order as
+\begin{align}
+   L_a w_\mu &\approx D_{+m}\left( A_{i_m-\half} D_{-m} W^\mu_{\iv}\right), \label{eq:unMixedTerm} \\
+   L_b w_\mu &\approx D_{0m}\left( B_\iv D_{0n} W^\mu_\iv\right) ,         \label{eq:mixedTerm}
+\end{align}
+with 
+\begin{align}
+   A_{i_m-\half} &= \half\left( A_{i_m} + A_{i_m-1}  \right) ~. \label{eq:ave}
+\end{align}
+Discretizing all the terms in~\eqref{eq:generalizedLaplacianCons} in this way leads to a compact self-adjoint
+discrete approximation that is three points wide in each direction.
+
+Note, however, that $\eta$ depends on the derivatives of $u$.
+The approximations~\eqref{eq:unMixedTerm} and \eqref{eq:mixedTerm} will thus depend on 
+a stencil of values for $W_\iv$ that is five points wide.
+
+
+
+
+% \begin{align}
+%  L w_i &=      &= 
+%    \sum_{m=1}^d\sum_{n=1}^d\sum_{j=1}^d 
+%             {\partial\over\partial r_m}\left( A_j^{mn} {\partial w_j \over\partial r_n} \right)
+%            , \label{eq:LSymdef} \quad
+%  A_j^{mn} = J \sum_{\mu=1}^d\sum_{\nu=1}^d\sum_{j=1}^d  ????
+%             {\partial r_m \over\partial x_\mu}{\partial r_n \over\partial x_\nu} 
+% \end{align}
+
+

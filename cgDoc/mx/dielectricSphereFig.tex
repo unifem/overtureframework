@@ -1,0 +1,32 @@
+% -------------------------------------------------------------------
+{
+\begin{figure*}[hbt]
+% \newcommand{\figWidth}{.45\linewidth}
+% \newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](0.,1.)(5.4,4.85)}\epsfig{#1}\endpsclip}
+\psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+% 
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.07}{1.}{0.07}{.9}}
+% 
+\begin{center}
+\begin{pspicture}(0,0)(14.2,12.2)
+\rput( 3.2,9.0){\clipfig{dielectricSphere/sphereInASolidBox8Order4kx1Ex.ps}{\figWidth}}
+\rput(10.5,9.0){\clipfig{dielectricSphere/sphereInASolidBox8Order4kx1Ey.ps}{\figWidth}}
+\rput( 3.2,2.6){\clipfig{dielectricSphere/sphereInASolidBox8Order4kx1Ez.ps}{\figWidth}}
+\rput(10.5,2.6){\clipfig{dielectricSphere/sphereInASolidBox8Order4kx1Intensity.ps}{\figWidth}}
+% 
+\rput[l](.70,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_x$}}
+\rput[l](8.0,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_y$}}
+\rput[l](.70,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_z$}}
+\rput[l](8.0,5.1){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{Intensity}}
+% 
+% \psline[linewidth=1.pt]{->}(7,-.8)(7.5,.9)
+% turn on the grid for placement
+% \psgrid[subgriddiv=2]
+%
+\end{pspicture}
+\end{center}
+\caption{Scattering of a plane wave by a dielectric sphere of radius $r=1$ at $t=1.$ with $k_x=1.$, $\eps_1=2.25$ (inside), $\eps_2=1$ (outside). Fourth-order accurate method CGFD4.}
+\label{fig:scatDielectricSphereCGFD4Fig}
+\end{figure*}
+}

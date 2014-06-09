@@ -1,0 +1,37 @@
+\section{Scattering from a plane interface}\label{sec:scatPlaneInterface}
+
+\input scatPlaneInterfaceFig
+
+As a verification of the interface approximations in three dimensions,
+we consider a domain with two materials separated by the plane $x=0$.
+The exact solution for a plane wave hitting a plane interface in terms of 
+reflected and transmitted waves is known analytically.
+
+Figure~\ref{fig:scatPlaneInterfaceFig} shows the solution and error for a plane wave with incident
+field $k_x=2$, $k_y=1$
+hitting an interface between materials with $\eps_1=1.$ (left), $\eps_2=2$ (right).
+
+The computational domain is $[-1,1]\times[0,0.5]\times[0,0.5]$. The overlapping grid $\Gc^{(m)}$ 
+for the domain has a grid spacing of $0.1/m$. 
+
+
+Table~\ref{table:planeInterface3d} presents convergence results for this case for the second-order
+accurate method.
+The maximum errors are shown on a sequence of grids. The convergence rate is close
+to the expected rate of $2$. 
+
+
+\input twoBoxesInterfaceConvTable.tex
+
+Table~\ref{table:planeInterface3dOrder4} presents convergence results for this case for the fourth-order
+accurate method. The rates are close to $4$ in this case. The errors are significantly
+for the fourth-order method compared to the second-order.
+
+\input twoBoxesInterfaceOrder4ConvTable.tex
+
+\bogus{
+We first consider solving the equations with the method of analytic solutions.
+
+The exact solution is chosen as a polynomial with degree $2$ in space and time:
+
+}

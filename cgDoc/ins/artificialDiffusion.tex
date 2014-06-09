@@ -1,0 +1,115 @@
+\subsection{Artificial Diffusion} \label{AD}\index{artificial diffusion}
+
+% For the second-order accurate discretization 
+Cgins implements 
+artificial diffusions based either on a second-order undivided
+difference or a fourth-order undivided difference.
+
+The artificial diffusions are
+\begin{equation} \label{AD2}
+   \dv_{2,i} =
+    \left( {\ff ad21} + {\ff ad22} | \grad_h \Vv_i |_1
+    \right) \sum_{m=1}^{n_d} \Delta_{m+}\Delta_{m-} \Vv_i
+\end{equation}
+in the second-order case and
+\begin{equation} \label{AD4}
+   \dv_{4,i} =
+  - \left( {\ff ad41} + {\ff ad42} | \grad_h \Vv_i |_1
+    \right) \sum_{m=1}^{n_d} \Delta_{m+}^2\Delta_{m-}^2 \Vv_i
+\end{equation}
+in the fourth-order case. Here $|\grad_h \Vv_i |_1$ is the magnitude of the
+gradient of the velocity and $\Delta_{m\pm}$ are the forward and backward
+undivided difference operators in direction $m$
+$$
+\begin{array}{rcl}
+  | \grad_h \Vv_i |_1 &=& n_d^{-2}
+          \sum_{m=1}^{n_d} \sum_{n=1}^{n_d} | D_{m,h} V_{n i} | \\
+  \Delta_{1+}\Vv_i &=& \Vv_{i_1+1} - \Vv_i \\
+  \Delta_{1-}\Vv_i &=& \Vv_i - \Vv_{i_1+1}   \\
+  \Delta_{2+}\Vv_i &=& \Vv_{i_2+1} - \Vv_i \\
+  \Delta_{2-}\Vv_i &=& \Vv_i - \Vv_{i_2+1}  ~~~\mbox{etc.} \\
+\end{array}
+$$
+The artificial diffusion is added to the momentum equations
+$$
+  {d\over dt} \Vv_i + (\Vv_i\cdot\grad_h)\Vv_i + \grad_h \pd_i
+       - \nu \Delta_h \Vv_i -\fv(\xv_i,t) - \dv_{m,i}  = 0
+$$
+but does not change the pressure equation.
+Typical choices for the constants  ${\ff ad21}={\ff ad41}=1$
+and ${\ff ad22}={\ff ad42}=1.$. These artificial diffusions
+should not affect the order of accuracy of the method.
+With the artificial diffusion turned on to a sufficient degree, the
+real viscosity can be set at low as zero, ${\ff nu}=0$.
+% (See also the note about {\ff cdv} when ${\ff nu}=0$ in
+% section (\ref{Running}).)
+
+In difficult cases you may need to increase the coefficients 
+${\ff ad21}$ and ${\ff ad22}=1.$ to keep the solution stable. 
+I suggest trying ${\ff ad21}={\ff ad22}=2.$ then $4.$ etc. until
+the solution doesn't blow up. I don't think I have ever needed
+a value larger than $10.$. 
+
+This form of the artificial diffusion is based on a theoretical
+result~\cite{HKR1}\cite{HKR2}
+that states that the minimum scale,  $\lambda_{\rm min}$,
+ of solutions to the incompressible
+Navier-Stokes equations
+is proportional to the square
+root of the kinematic viscosity divided by the square root of the
+maximum velocity gradient:
+$$
+   \lambda_{\rm min} \propto \sqrt{ \nu \over | \grad\uv | + c} ~.
+$$
+This result is valid locally in space so that $|\grad\uv|$ measures
+the local value of the velocity gradient.
+The \Index{minimum scale} measures the
+size of the smallest eddy or width of the sharpest shear layer as a
+function of the viscosity and the size of the gradients of $\uv$.
+Scales smaller than the minimum scale are in the exponentially small
+part of the spectrum.
+
+This result can be used to tell us the smallest value that we
+can choose for the
+(artificial) viscosity, $\nu_A$, and still obtain a reasonable
+numerical  solution.
+We require that the artificial viscosity
+be large enough so that the smallest (but still significant)
+features of the flow are resolved
+on the given mesh. If the local grid spacing is $h$, then we need
+$$
+     h  \propto \sqrt{ \nu_A \over | \grad\uv | + c}  ~.
+$$
+This gives
+$$
+   \nu_A = (c_1 + c_2 |\grad\uv|) h^2
+$$
+and thus we can choose an artificial diffusion of
+$$
+      (c_1 + c_2 |\grad\uv|) h^2 \Delta \uv
+$$
+which is just the form (\ref{AD2}).
+% With this choice for the artificial diffusion
+% we are assured that the solution to the resulting equations will be
+
+
+In the fourth-order accurate case we wish to add an artificial
+diffusion of the form
+$$
+      - \nu_A \Delta^2  \uv
+$$
+since, as we will see, this will lead to $\nu_A \propto h^4$.
+In this case, if we consider solutions to the incompressible
+Navier-Stokes equations with the diffusion term $\nu\Delta\uv$ replaced
+by $ -\nu_A \Delta^2\uv$ then
+the minimum scale would be
+$$
+  \lambda_{\rm min} \propto \left( \nu_A \over | \grad\uv | \right)^{1/4}
+$$
+Following the previous argument leads us to choose
+an artificial diffusion of the form
+$$
+     -  (c_1 + c_2 |\grad\uv|) h^4 \Delta^2 \uv
+$$
+which is just like (\ref{AD4}).
+

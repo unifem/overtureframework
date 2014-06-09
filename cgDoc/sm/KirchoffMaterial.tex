@@ -1,0 +1,242 @@
+\section{Kirchoff material: large rotation, small strain}
+
+We consider the case of large rotations and small strains. 
+The most general Kirchoff material (or St. Venant- Kirchoff material),  is 
+\begin{align}
+   \Sv = \Cv : \Ev, ~~ S_{ij} = C_{ijkl} E_{kl},
+\end{align}
+where $\Cv$ is the fourth-order tensor of {\em elastic modulii} and $\Sv$ is the PKII stress.
+% 
+The corresponding rate equation is 
+\begin{align}
+   \dot{\Sv} = \Cv^{SE} : \dot{\Ev},
+\end{align}
+and $\Cv^{SE}=\Cv$ is called the {\em tangent modulus tensor}. 
+% 
+The strain energy is 
+\begin{align}
+   w = \half \Ev : \Cv : \Ev = \half E_{ij} C_{ijkl} E_{kl}, 
+\end{align}
+with
+\begin{align}
+   S_{ij} = {\partial w \over \partial E_{ij}}, ~~ C_{ijkl} = {\partial^2 w \over \partial E_{ij}\partial E_{kl}}.
+\end{align}
+% 
+The isotropic Kirchoff material is 
+\begin{align}
+   S_{ij} = \lambda E_{kk}\delta_{ij} + 2\mu E_{ij}, ~~\Sv = \lambda tr(\Ev) + 2\mu \Ev.
+\end{align}
+%
+Note that for a pure rotation and translation that  the PKII stress $\Sv$ is zero ($\Rv^T\Rv=\Iv$):
+\begin{align}
+   \xv &= \Rv (\Xv - \cv(t)) + \cv(t) ,\\
+   \Fv &= \partial \xv/\partial \Xv = \Rv ,\\
+   \Ev &= \half( \Fv^T \Fv - I) = 0,\\
+   \Sv &= 0 .
+\end{align}
+%
+The Eulerian equations of motion for a Kirchoff material are 
+ \begin{align}
+  \rho D_t \vv &= \grad\cdot( \sigmav)   ,\\
+  \sigmav &= J^{-1} \Fv\cdot\Sv\cdot\Fv^{T}, \\
+  \Sv &= \lambda tr(\Ev) I + 2\mu \Ev . 
+\end{align}
+The Lagrangian equations are
+ \begin{align}
+  \rho_0 \partial_t^2 \uv  &= \grad_{\Xv}\cdot( \Pv )   ,\\
+  \Pv &= \Sv \Fv^T, ~~
+  \Sv = \lambda tr(\Ev) + 2\mu \Ev . 
+\end{align}
+or since $F_{ij} = \delta_{ij} + \partial u_i / \partial X_j$
+\begin{align}
+  \rho_0 \partial_t^2 u_i  &= {\partial  P_{li}  \over\partial X_l} ~~ 
+    = {\partial P_{li} \over\partial F_{jm}} {\partial F_{jm} \over\partial X_l} ~~
+    = {\partial P_{li} \over\partial F_{jm}} {\partial^2 u_j \over\partial X_l \partial X_m}. 
+\end{align}
+
+{\bf In detail:}
+\begin{align}
+   E_{ij} &= \half\Big( \frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i} + 
+                       \frac{\partial u_k}{\partial x_i}\frac{\partial u_k}{\partial x_j} \Big) \\
+  E_{11} &= \frac{\partial u_1}{\partial x_1} + \half\Big\{  \Big(\frac{\partial u_1}{\partial x_1}\Big)^2 +
+                                                           \Big(\frac{\partial u_2}{\partial x_1}\Big)^2 \Big\} \\
+  E_{12} &= \half\Big( \frac{\partial u_1}{\partial x_2} + \frac{\partial u_2}{\partial x_1}
+              +   \frac{\partial u_1}{\partial x_1}\frac{\partial u_1}{\partial x_2}
+                            +\frac{\partial u_2}{\partial x_1}\frac{\partial u_2}{\partial x_2}   \Big) \\
+  E_{22} &= \frac{\partial u_2}{\partial x_2} + \half\Big\{  \Big(\frac{\partial u_1}{\partial x_2}\Big)^2 +
+                                                           \Big(\frac{\partial u_2}{\partial x_2}\Big)^2 \Big\} 
+\end{align}
+\begin{align}
+  S_{11} &=  \lambda \Big(  E_{11} + E_{22} + E_{33} \Big) + 2\mu\Big(  E_{11} \Big), \\
+  S_{12} &=   2\mu\Big( E_{12} \Big) 
+\end{align}
+
+We can linearize about a state $\uv^0$, $\Fv^0$ and look for solutions of the
+form $\uv = \exp( i(\kv\cdot\xv - \omega t)) \widehat{\uv}$,
+\begin{align}
+  -\rho_0 \omega^2 \hat{u}_i   &= {\partial P_{li} \over\partial F_{jm}} k_l k_m \hat{u}_j .
+\end{align}
+We can thus look for eigenvalues $c = \omega/k$ satisfying
+\begin{align}
+  \det( \Av- \rho_0 c^2 \Iv ) &=0 , \\
+  A_{ij} &= {\partial P_{li} \over\partial F_{jm}} \hat{k}_l \hat{k}_m .
+\end{align}
+Question: is $\Av$ symmetric ? Apparently yes in 2D (from the maple program eigs.maple). 
+This means the eigenvalues will always be real. But are they positive ? 
+
+% 
+Now 
+\begin{align}
+  P_{ij} &= S_{ik} F^T_{kj} = S_{ik}  F_{jk}, \\
+  P_{ji} &= S_{jk}  F_{ik}, \\
+  E_{ij} &= \half( F_{ki} F_{kj} - \delta_{ij}) \\
+  S_{jk} &= \lambda E_{nn}\delta_{jk} + 2\mu E_{jk},
+\end{align}
+and thus *check*
+\begin{align}
+ {\partial  E_{ij}\over\partial F_{lm}} &= \half( \delta_{im}F_{lj} + \delta_{jm}F_{li} ) , \\
+ {\partial S_{ij} \over\partial E_{lm}} &= \lambda \delta_{lm}\delta_{ij} + 2\mu \delta_{il}\delta_{jm}, 
+\end{align}
+We work out the eigenvalues with the maple program eigs.maple.
+
+The eigenvalues of $\Av$ for general small displacements, 
+or for large rotations with a small perturbation (see more below), are
+the same as for linear elasticity: 
+\begin{align}
+  \rho_0 c_1^2  &= \lambda+2\mu  +O( \uv_\Xv^2 ) \\
+  \rho_0 c_2^2  &= \mu +O( \uv_\Xv^2 )
+\end{align}
+
+
+\subsection{Perturbation of a rigid body motion}
+
+ Consider a small perturbation from a rigid body motion (translating-rotating state),
+\begin{align}
+ \xv &= \Rv(t) \Xv + \cv(t) + \uv , ~~ \uv \ll 1 , \\
+ \Fv & = \Rv + {\partial \uv\over\partial \Xv}, \\
+ \Ev &= \half( \Fv^T \Fv -\Iv) 
+         \approx \half( \Rv^T {\partial \uv\over\partial \Xv} + {\partial \uv\over\partial \Xv}^T \Rv), \\
+ \Sv & \approx \lambda tr(\Ev)\Iv + \mu( \Rv^T {\partial \uv\over\partial \Xv} + {\partial \uv\over\partial \Xv}^T \Rv ), \\
+ \sigmav & \approx J^{-1} \Rv \Sv \Rv^T,  \\
+         & \approx  J^{-1}\big( tr(\Ev)\Iv + 
+               \mu( {\partial \uv\over\partial \Xv}\Rv^T + \Rv {\partial \uv\over\partial \Xv}^T )\big), \\
+ \Pv &= \Sv \Fv^T \approx \Sv \Rv^T .
+\end{align}
+Note that from $\sigmav \approx J^{-1} \Rv \Sv \Rv^T$ it follows that 
+\begin{align}
+\dot{\sigmav} & \approx J^{-1} \dot{\Rv} \Sv \Rv^T + J^{-1} \Rv \Sv \dot{\Rv}^T  + J^{-1} \Rv \dot{\Sv} \Rv^T 
+              + \dot{J^{-1}} \Rv \Sv \Rv^T \\
+      &= \dot{\Rv}\Rv^T \sigmav + \sigmav ( \dot{\Rv}\Rv^T)^T + J^{-1} \Rv \dot{\Sv} \Rv^T + \dot{J^{-1}} \Rv \Sv \Rv^T\\
+      &=  \Wv \sigmav + \sigmav \Wv^T + J^{-1} \Rv \dot{\Sv} \Rv^T + \dot{J^{-1}} \Rv \Sv \Rv^T \\
+ \Wv &= \dot{\Rv}\Rv^T \approx \dot{\Fv}\Fv^{-1} 
+ \end{align}
+
+% These may be wrong: 
+% g1 = series((2*mu+lam)+(lam*(1-c^2)^(1/2)*uy-3*lam*(1-c^2)^(1/2)*vx+3*lam*c*ux+lam*c*vy-6*mu*(1-c^2)^(1/2)*vx+6*mu*c*ux)*x+O(x^2),x,2)
+% g2 = series(mu+(lam*c*vy-lam*(1-c^2)^(1/2)*vx+lam*c*ux+lam*(1-c^2)^(1/2)*uy-2*mu*(1-c^2)^(1/2)*vx+2*mu*c*ux+2*mu*(1-c^2)^(1/2)*uy+2*mu*c*vy)*x+O(x^2),x,2)
+If we consider a small perturbation from a rigid body motion (translating-rotating state),
+\begin{align}
+ \xv &= \Rv(t) \Xv + \cv(t) + \uv , ~~ \uv \ll 1 
+\end{align}
+Then the eigenvalues of the matrix $\Av$ for $(k_1,k_2)=(1,0)$ are (from cgDoc/sm/eigs.maple) (*check this*)
+\newcommand{\uX}{{u_{1X}}}
+\newcommand{\vX}{{u_{2X}}}
+\newcommand{\uY}{{u_{1Y}}}
+\newcommand{\vY}{{u_{2Y}}}
+\begin{align}
+% \rho_0 c_1^2 &\sim \lambda + 2 \mu +(\lambda s u_y-3 \lambda s v_x+3 \lambda c u_x+\lambda c v_y-6 \mu s v_x+6 \mu c u_x) \\
+% \rho_0 c_2^2 &\sim \mu+(\lambda c v_y-\lambda s v_x+\lambda c u_x+\lambda s u_y-2 \mu s v_x+2 \mu c u_x+2 \mu s u_y+2 \mu c v_y)
+ \rho_0 c_1^2 &= \lambda + 2 \mu + \big(\lambda( s \uY + c \vY) 
+                  + 3 (\lambda +2\mu)(c \uX-s\vX)  \big) +O( \uv_\Xv^2 ) \\
+ \rho_0 c_2^2 &= \mu + (\lambda+2\mu)\big[ (s \uY + c \vY) + (c\uX - s\vX) \big] +O( \uv_\Xv^2  )
+\end{align}
+where $c=\cos(w t)$ and $s=\sin(w t)$ define the entries in the rotation matrix $\Rv$. 
+
+The eigenvalues can be negative for large strains, for example
+\begin{align}
+ \rho_0 c_1^2 &= -\lambda/2 ~~\text{for}~~ k_1=1,~k_2=0,~c=0,~s=1,~\uX=0,\vX=1,\uY=0,\vY=0
+\end{align}
+This means the system is not hyperbolic anymore.
+
+
+
+% ---------------------------------------------------------------------------------
+\subsection{Invariance of the SVK model under a change of variables}
+
+
+The Eulerian equations of motion for a SVK (Kirchoff) material are 
+\begin{align}
+  \rho D_t \vv &= \grad_{\xv}\cdot( \sigmav)   ,\\
+  \sigmav &= J^{-1} \Fv\cdot\Sv\cdot\Fv^{T}, \\
+  \Sv &= \lambda tr(\Ev) + 2\mu \Ev , \\
+   \Ev & = \half( \Fv^T \Fv - I)  
+\end{align}
+
+{\bf NOTE:} in matrix-vector notation, $\grad_{\xv}\cdot( \sigmav)$, really means
+\begin{align}
+\grad_{\xv}\cdot( \sigmav) &= 
+         \begin{bmatrix} 
+           \partial_x \sigma_{11} + \partial_y \sigma_{21} +\partial_z \sigma_{31} \\
+           \partial_x \sigma_{12} + \partial_y \sigma_{22} +\partial_z \sigma_{32} \\
+           \partial_x \sigma_{13} + \partial_y \sigma_{23} +\partial_z \sigma_{33} 
+         \end{bmatrix} 
+          =  ((\grad_{\xv})^T \sigmav )^T  \label{eq:divSigma}
+\end{align}
+
+
+Consider a change of variables where we rotate the dependent and independent variables by
+a {\em constant} rotation matrix $\Rv$, (with $\Rv^T \Rv=I$)
+\newcommand{\xt}{\tilde{x}}
+\newcommand{\Xt}{\tilde{X}}
+\newcommand{\xvt}{\widetilde{\xv}}
+\newcommand{\Xvt}{\widetilde{\Xv}}
+\newcommand{\uvt}{\widetilde{\uv}}
+\newcommand{\vvt}{\widetilde{\vv}}
+\newcommand{\Fvt}{\widetilde{\Fv}}
+\newcommand{\Jt}{\widetilde{J}}
+\newcommand{\Evt}{\widetilde{\Ev}}
+\newcommand{\Svt}{\widetilde{\Sv}}
+\newcommand{\sigmavt}{\widetilde{\sigmav}}
+\begin{align}
+  \xvt &= \Rv \xv, \quad \Xvt = \Rv \Xv, \quad \uvt = \Rv \uv, \quad \vvt = \Rv \vv, \\
+\end{align}
+Claim:
+\begin{align}
+  \frac{\partial \xv}{\partial \Xv} &=  \Rv^T \frac{\partial \xvt}{\partial \Xvt} \Rv
+\end{align}
+Proof: Since
+\begin{align}
+    x_i &= (R^T)_{ik} \xt_k , \quad \Xt_l = R_{lp} X_p, \qquad\text{(implied sums)}, 
+\end{align}
+then by the chain rule
+\begin{align}
+   \frac{\partial x_i}{\partial X_j} &= (R^T)_{ik} \frac{\partial \xt_k}{\partial X_j} \quad
+         = (R^T)_{ik} \frac{\partial \xt_k}{\partial \Xt_l} \frac{\partial \Xt_l}{\partial X_j}  \quad
+         = (R^T)_{ik} \frac{\partial \xt_k}{\partial \Xt_l} R_{lj} 
+\end{align}
+and this last expression is the entry $ij$ in the matrix $\Rv^T \frac{\partial \xvt}{\partial \Xvt} \Rv$.
+
+Therefore we have (note that $J=\Jt$ since $\det(\Fv)=\det(\Fvt)$), 
+\begin{align}
+   \Fv &= \Rv^T \Fvt\Rv, \quad \Ev = \Rv^T \Evt\Rv, \quad  \Sv = \Rv^T \Svt\Rv,\\
+   \sigmav &= J^{-1} \Rv^T\Fv \Svt \Fvt^T \Rv = \Rv^T \sigmavt \Rv, \\
+   \sigmavt &= \Jt \Fvt\cdot\Svt\cdot\Fvt^{T} . 
+\end{align}
+Therefore
+\begin{align}
+  \Rv^T \rho D_t \vvt &= \grad_{\xv}\cdot( \Rv^T \sigmavt \Rv)  \quad
+                      = \grad_{\xvt}\cdot( |\Rv| \Rv \Rv^T \sigmavt \Rv) \quad
+                      = \grad_{\xvt}\cdot( \sigmavt \Rv) 
+\end{align}
+Multiplying through by $\Rv$ and using~\eqref{eq:divSigma} gives
+\begin{align}
+  \rho D_t \vvt &= \grad_{\xvt}\cdot( \sigmavt) 
+\end{align}
+and thus, since $\sigmavt = \Jt \Fvt\cdot\Svt\cdot\Fvt^{T}$,
+the equations are the same in the transformed variables. 
+
+% ----- general (k1,k2)
+%  erp1 = series((2*mu+lam)+(3*lam*s*uy+3*lam*c*vy-lam*s*vx-2*k1^2*lam*s*vx+2*k2*k1*lam*s*ux-2*k2*k1*lam*s*vy+2*k2*k1*lam*uy*c-2*k1^2*lam*s*uy+2*k2*k1*lam*vx*c-2*k1^2*lam*c*vy+2*k1^2*lam*c*ux+lam*c*ux-6*k1^2*mu*s*vx-6*k1^2*mu*s*uy+6*k2*k1*mu*s*ux-6*k1^2*mu*c*vy+6*k1^2*mu*c*ux+6*mu*c*vy+6*k2*k1*mu*uy*c-6*k2*k1*mu*s*vy+6*mu*s*uy+6*k2*k1*mu*vx*c)*x+O(x^2),x,2)
+%  erp2 = series(mu+(-lam*s*vx+lam*s*uy+lam*c*vy+lam*c*ux-2*mu*s*vx+2*mu*s*uy+2*mu*c*vy+2*mu*c*ux)*x+O(x^2),x,2)
+
+

@@ -1,0 +1,160 @@
+\documentclass[11pt]{article}
+% \voffset=.6truein
+
+\input homeHenshaw
+
+\usepackage{calc}
+
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{6.5in}  
+\setlength{\textheight}{9.25in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{-.0625in}
+\setlength{\topmargin}{(.25in}
+
+
+% margins
+% \setlength{\textheight}{9.0in}
+% \setlength{\marginparwidth}{0.0in}
+% \setlength{\marginparsep}{0.0in}
+% \setlength{\oddsidemargin}{0.0in}
+% \setlength{\evensidemargin}{0.0in}
+% \setlength{\textwidth}{6.4in}
+% \setlength{\headheight}{0.0in}
+% \setlength{\headsep}{0.0in}
+% \setlength{\topmargin}{0.in}
+
+\newlength{\figlinewidth}
+\setlength{\figlinewidth}{6.5in} % this was the width we used when making figures
+
+
+
+\usepackage{graphicx}
+\usepackage{alltt}
+
+\newcommand{\thDir}{\homeHenshaw/papers/th}
+
+\newcommand{\Largebfss}{\sffamily\bfseries\Large}
+\newcommand{\largebfss}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\largebf}{\sffamily\large}
+\newcommand{\smallss}{\sffamily\small}
+\newcommand{\normalss}{\sffamily}
+
+\newcommand{\figures}{/home/henshaw/OvertureFigures}
+\newcommand{\docFigures}{/home/henshaw/res/docFigures}
+\newcommand{\obFigures}{/home/henshaw/res/OverBlown/docFigures}
+\newcommand{\Overture}{{\bf Overture\ }}
+\newcommand{\OvertureNB}{{\bf Overture}}
+\newcommand{\OverBlown}{{\bf OverBlown\ }}
+\newcommand{\OverBlownNB}{{\bf OverBlown}}
+\newcommand{\Ogen}{{\bf Ogen\ }}
+\newcommand{\Oges}{{\bf Oges\ }}
+\newcommand{\Ogmg}{{\bf Ogmg\ }}
+\newcommand{\OgmgNB}{{\bf Ogmg}}
+\newcommand{\Mapping}{{\tt Mapping\ }}
+\newcommand{\MappingNB}{{\tt Mapping}}
+\newcommand{\Mappings}{{\tt Mapping}s\ }
+\newcommand{\codesize}{\small}
+\newcommand{\cmdSize}{\scriptsize}
+\newcommand{\ogmgFigures}{/home/henshaw/Overture/ogmg}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\automg}{/home/henshaw/papers/automg}
+\newcommand{\maxDoc}{/home/henshaw/res/maxwell/doc}
+\newcommand{\maxDir}{/home/henshaw/papers/max}
+\newcommand{\ncDir}{/home/henshaw/talks/nc04}
+\newcommand{\obDir}{/home/henshaw/res/OverBlown}
+\newcommand{\hfigures}{.}
+\newcommand{\kkcFigures}{.}
+
+% \newcommand{\figWidth}{9.cm}
+% \newcommand{\figWidthb}{8.cm}
+% \newcommand{\clipfig}{}
+\newcommand{\Gs}{{\mathcal G}}
+\newcommand{\Gc}{{\mathcal G}}
+\newcommand{\eps}{\epsilon}
+\newcommand{\OmegaF}{\Omega^F}
+\newcommand{\OmegaS}{\Omega^S}
+
+\newcommand{\maxNorm}[1]{\|#1\|_\infty} 
+\newcommand{\ee}{{\rm e}}
+\newcommand{\rateLabel}{\multicolumn{2}{|c|}{rate, $\sigma$}}
+\newcommand{\eem}{e^{(m)}}
+\newcommand{\ds}{{\Delta s}}
+\newcommand{\dsm}{\ds^{(m)}}
+\newcommand{\ppw}{{\rm PPW}}
+% -----------------------------------------------------------------------------------
+% define an arrow from top to bottom with two labels
+\newcommand{\upArrow}[2]{%
+\psline[linewidth=1.pt]{->}(0,-1)(0,1)
+\rput[l](0.1,-1){\smallss #1}
+\rput[l](0.1,+1){\smallss #2}
+}
+% define an arrow from bottom to top with two labels
+\newcommand{\downArrow}[2]{%
+\psline[linewidth=1.pt]{<-}(0,-1)(0,1)
+\rput[l](0.1,-1){\smallss #2}
+\rput[l](0.1,+1){\smallss #1}
+}
+
+% *wdh*
+\input wdhDefinitions
+% \input{defs}
+
+\usepackage{pstricks}
+%\input{pstricks}\input{pst-node}
+\input{colours}
+
+\usepackage{epsfig}
+\usepackage{amsmath} % for subequations
+\usepackage{amssymb}
+\usepackage{psfrag}
+\usepackage{subfigure}
+
+% define the clipFig commands:
+\input clipFig.tex
+
+\begin{document}
+
+% \input dielectricCylFig
+
+\input bump3dBigFig.tex
+
+% \input bump3dFig.tex
+% \input scatBump3dFig.tex
+
+% \input scatPlaneInterfaceFig
+% \input scatDielectricSphereFig
+
+% \input curvedPipeParallelSpeedupFig
+
+% \input hohlraumFig.tex
+
+% \input curvedPipeConvergenceFig.tex
+
+% \input cocentricConvergenceFig.tex
+
+% \input cocentricCylindersFig.tex
+
+% \input fuelAssemblyGridsFig.tex
+% \input fuelAssemblyFig.tex
+
+% \input hohlraumGridsFig.tex
+
+% \input fluidInACurvedPipeRealFig.tex
+% \input fluidInACurvedPipeFig.tex
+
+% \input multiDomainCartoon
+% \input cocentricCylindersGridsFig.tex
+% \input flatPlatesFig.tex
+
+
+blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah 
+
+% \input truck.tex
+
+blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah 
+
+\end{document}

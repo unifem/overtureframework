@@ -1,0 +1,92 @@
+\section{Rayleigh Surface Wave} \label{sec:RayleighSurfaceWave}
+
+
+The Rayleigh surface wave is a traveling surface wave that decays exponentially fast into the
+bulk of the solid. Consider the elastic half-space $y>0$. We look for traveling wave solutions
+of the form
+\begin{align}
+ u_1 &= A e^{-b y } e^{ik(x-ct)}, \\
+ u_2 &= B e^{-b y } e^{ik(x-ct)}, \\
+ u_3 & =0.
+\end{align} 
+where $b>0$ and $c$ is the speed of the wave. Substituting these forms into the elasticity equations gives
+\begin{align}
+ \big( c_s^2 b^2 +(c^2-c_p^2)k^2 \big) A - i(c_p^2-c_s^2) b k B &= 0 \\
+ -i\big( c_p^2-c_s^2\big) b k A + \big( c_p^2 b^2 + (c^2-c_s^2) k^2\big) B &= 0 .
+\end{align}
+The condition for non-trivial solutions implies
+\begin{align}
+   \big( c_p^2 b^2 - (c_p^2-c^2)k^2\big)~\big( c_s^2b^2 - (c_s^2-c^2) k^2 \big) &=0 ,
+\end{align}
+with solutions
+\begin{align}
+ b_1 &= k \big( 1 - \frac{c^2}{c_p^2} \big)^{1/2}, \quad \frac{B_1}{A_1} = -\frac{b_1}{ik},  \label{eq:RWb}  \\
+ b_2 &= k \big( 1 - \frac{c^2}{c_s^2} \big)^{1/2}, \quad \frac{B_2}{A_2} = \frac{ik}{b_2}. \nonumber 
+\end{align} 
+For $b$ to be real we require $c < c_s < c_p$. Thus the Rayeligh wave speed is less than the shear wave speed.
+The general solution is thus of the form 
+\begin{align}
+ u_1 &= \Big( A_1 e^{-b_1 y } + A_2 e^{-b_2 y } \Big) e^{ik(x-ct)} \\
+ u_2 &= \Big( - \frac{b_1}{ik} A_1 e^{-b_1 y } + \frac{i k}{b_2} A_2 e^{-b_2 y } \Big)e^{ik(x-ct)}.
+\end{align} 
+The traction boundary conditions at $y=0$ are
+\begin{align}
+  \partial_y u_1 + \partial_x u_2 &=0, \qquad \lambda(\partial_x u_1 + \partial_y u_2 ) + 2\mu \partial_y u_2 =0.
+\end{align} 
+Substituting the equations for $u_1$ and $u_2$ into the boundary conditions gives (using the expresssions~\eqref{eq:RWb} for $b_1$ and $b_2$)
+\begin{align}
+   2 b_1 A_1 + ( 2 - \chi) k^2 \frac{A_2}{b_2} &= 0,\\
+   (2-\chi) A_1 + 2 A_2 &= 0, 
+\end{align} 
+where
+\begin{align}
+   \chi& \equiv \frac{c^2}{c_s^2}. 
+\end{align} 
+The condition for non-trivial solutions results in the following equation for $\chi$, 
+\begin{align}
+  (2-\chi)^2 &= 4\sqrt{1-\chi}\sqrt{1-\gamma \chi}, \\
+  \gamma &= \frac{\mu}{\lambda+2\mu} = \frac{c_s^2}{c_p^2}.
+\end{align}
+The solution to this formula (giving the Rayleigh wave speed) can be written as (see 
+``On formulas for the Rayleigh wave speed'', by Pham Chi Vinh and R.W. Ogden, Wave Motion, {\bf 39} (2004), pp. 191-197.)
+\begin{align}
+  \frac{\rho c^2}{\mu} &= 4(1-\gamma)\big( 2 - \frac{4}{3}\gamma + \sqrt[3]{ R + \sqrt{D}} + \sqrt[3]{ R-\sqrt{D}} \Big)^{-1}, \label{eq:RWcr} \\
+  R &= \frac{2}{27} (27 - 90\gamma + 99\gamma^2 -32\gamma^3 ), \\
+  D &= \frac{4}{27}(1 -\gamma)^2 (11 - 62\gamma + 107\gamma^2 -64\gamma^3 ),
+\end{align} 
+where the principal roots must be taken. Note that the formula~\eqref{eq:RWcr} requires complex arithmetic. 
+In addition we have the relation
+ %  A_1 &= -( 2 - \chi) k^2 \frac{A_2}{2 b_1 b_2} .
+\begin{align}
+   A_2 &= (\frac{\chi}{2}-1) A_1 . 
+\end{align} 
+In summary the Rayleigh wave is of the form 
+\begin{align}
+ u_1 &= A \Big( e^{-b_1 y } + (\frac{\chi}{2}-1) e^{-b_2 y } \Big) e^{ik(x-ct)},  \\
+ u_2 &= A\Big( \frac{i b_1}{k} e^{-b_1 y } + \frac{i k}{b_2} (\frac{\chi}{2}-1) e^{-b_2 y } \Big) e^{ik(x-ct)}.
+\end{align} 
+or in the real form {\bf check me}
+\begin{align}
+ u_1 &=  \Big( e^{-b_1 y } + (\frac{\chi}{2}-1) e^{-b_2 y } \Big) (A\cos(k(x-ct)) +B\sin(k(x-ct)) ) \\
+ u_2 &=  \Big( \frac{b_1}{k} e^{-b_1 y } + \frac{k}{b_2} (\frac{\chi}{2}-1) e^{-b_2 y } \Big) (-A\sin(k(x-ct)) +B \cos(k(x-ct)) ) .
+\end{align} 
+with $b_1$ and $b_2$ given by~\eqref{eq:RWb}. Also note that for a solid in the lower half space $y<0$, 
+one makes the transformation $y\rightarrow -y$ and $u_2 \rightarrow -u_2$ as the equations and 
+boundary conditions are invariant under this transformation.
+
+{\bf Note:} Since the wave speed $c$ is independent of $k$ ($c$ only depends on $\gamma=\mu/(\lambda+2\mu)$), 
+  we can form a superposition of different wave numbers to find a Rayleigh wave for any surface shape.
+In particular, for a given surface shape $u_2(x,y=0,t=0)=f(x)$ with a discrete Fourier series 
+\begin{align}
+  f(x) &= \sum_k a_k e^{ikx} 
+\end{align} 
+we choose
+\begin{align}
+  A_k &= a_k \Big( \frac{b_1}{k}  - \frac{k}{b_2} (\frac{\chi}{2}-1) \Big)^{-1},
+\end{align}
+so that $u_2(x,y=0,t=0)=f(x)$, and the solution will be 
+\begin{align}
+ u_1 &= \sum_k \Big\{ A_k \Big( e^{-b_1 y } + (\frac{\chi}{2}-1) e^{-b_2 y } \Big) e^{ik(x-ct)} \Big\} ,  \\
+ u_2 &= \sum_k \Big\{ A_k \Big( \frac{i b_1}{k} e^{-b_1 y } + \frac{i k}{b_2} (\frac{\chi}{2}-1) e^{-b_2 y } \Big) e^{ik(x-ct)} \Big\}. 
+\end{align}
+with the height of the surface satisfying $u_2(x,y=0,t)=f(x-c t)$

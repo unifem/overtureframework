@@ -1,0 +1,39 @@
+% ---------------------------------------------------------------------------------------------------------------------------
+{
+\begin{figure*}[hbt]
+% \newcommand{\figWidth}{.45\linewidth}
+% \newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](0.,1.)(5.4,4.85)}\epsfig{#1}\endpsclip}
+\psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+% 
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.0}{1.}{0.05}{.95}}
+% 
+\begin{center}
+\begin{pspicture}(0,.25)(14.5,12.75)
+\rput( 3.2, 3.0){\clipfig{bump3d/bump3dO4f24kz30Eps2p25Ez.ps}{\figWidth}}
+\rput( 3.2,9.5){\clipfig{bump3d/bump3dO4f24kz30Eps2p25Ex.ps}{\figWidth}}
+%
+\rput(10.7, 3.0){\clipfig{bump3d/bump3dO4f24kz30Eps2p25Icloseup.ps}{\figWidth}}
+\rput(10.7,9.5){\clipfig{bump3d/bump3dO4f24kz30Eps2p25I.ps}{\figWidth}}
+% 
+% \rput[l](.70,11.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$E_X$}}
+\rput[l](.0,.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss $E_z$}}
+\rput[l](.0,6.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss $E_x$}}
+\rput[l](7.3,.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss Intensity }}
+\rput[l](7.3,6.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{\smallss Intensity}}
+% 
+\rput(0,9.5){\upArrow{glass}{air}}%
+% 
+% \psline[linewidth=1.pt]{->}(7,-.8)(7.5,.9)
+% turn on the grid for placement
+%\psgrid[subgriddiv=2]
+%
+\end{pspicture}
+\end{center}
+\caption{Scattering of a plane wave by an interface with a bump, glass-to-air. The lower region is glass ($\eps_1=2.25$) and the upper region air ($\eps_2=1$).
+         The wave number of the incident field is $k_z=30$. Results from 
+         CGFD4 for grid $\Gc^{(24)}$ (1B grid points, $\ppw=16$). 
+         } 
+\label{fig:bump3dFigGlassToAirConvexBig}
+\end{figure*}
+}

@@ -1,0 +1,362 @@
+%
+%  Nonlinear Solid Mechanics - Notes 
+%
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+% --------------------------------------------
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+\input trimFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\phiv}{\boldsymbol{\phi}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+\newcommand{\dt}{\Delta t}
+
+
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ec}{{\mathcal E}}
+
+\newcommand{\mw}{W}  % molecular weight
+\newcommand{\mwBar}{\overline{W}}  % molecular weight of the mixture
+\newcommand{\Dc}{\mathcal{D}}
+
+\newcommand{\tr}{\text{tr}}% trace
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+
+% ==========================================================================================================================
+\begin{document}
+ 
+\title{Notes on Nonlinear Solid Mechanics}
+
+\author{
+Bill Henshaw \\
+\  \\
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov }
+ 
+\maketitle
+
+\tableofcontents
+
+\section{Nomenclature}
+\begin{align}
+  \rho & \qquad \mbox{density} \\
+  u_i & \qquad \mbox{displacement vector} \\
+  \epsilon_{ij} & \qquad \mbox{strain tensor} \\
+%   \omega_{ij} & \qquad \mbox{rotation tensor} \\
+  \sigma_{ij} & \qquad \mbox{Cauchy stress tensor} \\
+  \lambda & \qquad \mbox{ Lam\'e constant} \\
+  \mu & \qquad \mbox{Lam\'e constant, shear modulus, $G$}\\
+  \nu = \lambda/(2(\lambda+\nu) &  \qquad \mbox{Poisson's ratio}\\
+  K  = \lambda + 2\mu/3 &  \qquad \mbox{Bulk modulus}
+\end{align}
+
+\clearpage 
+\section{Governing Equations}
+
+These notes are based on {\em Nonlinear Finite Elements for Continua and Structures} by
+T. Belytschko, W.K. Liu and B. Moran~\cite{Belytschko2005}.
+
+Deformation and Motion (Section 3.2)
+\begin{align}
+  \Omega_0 & \qquad \mbox{reference configuration} \\
+  \Omega   & \qquad \mbox{current configuration} \\
+  \Xv=\sum_i X_i \ev_i & \qquad \mbox{position of a material pt in $\Omega_0$} \\
+  \xv=\sum_i x_i \ev_i & \qquad \mbox{position of a pt in $\Omega$} \\
+  \xv=\phiv(\Xv,t) & \qquad \mbox{motion of the body} \\
+  \uv(\Xv,t) =\phiv(\Xv,t)-\Xv = \xv-\Xv &\qquad \mbox{displacement vector} \\
+  \vv(\Xv,t) = \partial_t \phiv(\Xv,t) = \partial_t \uv(\Xv,t) &\qquad \mbox{velocity of a material pt} \\
+  \av(\Xv,t) = \partial_t \vv(\Xv,t)  &\qquad \mbox{acceleration of a material pt} \\
+  D_t \vv(\xv,t) = \partial_t \vv(\xv,t) + \vv\cdot\grad \vv &\qquad \mbox{acceleration (Eulerian)} \\
+  \Fv = \partial \phiv/\partial \Xv = \partial x_i/ \partial X_j  &\qquad \mbox{deformation gradient} \\
+  d\xv = \Fv \cdot d\Xv , & \\
+  ~\Fv = \Iv + \partial \uv/\partial \Xv  & \\
+  J = \det(\Fv),~~ \partial_t J(\Xv,t) = J \grad\cdot\vv  &\qquad \mbox{Jacobian determinant} \\
+  \int_\Omega f(\xv,t)d\Omega = \int_{\Omega_0} f(\Xv,t) J d\Omega_0 &\qquad \mbox{integrals} 
+\end{align}
+
+
+Rigid Body Motion (3.2.8)
+\begin{align}
+  \xv_t(t) & \qquad \mbox{translation} \\
+  \Rv(t) & \qquad \mbox{rotation tensor, $\Rv^T\Rv = I$} \\
+  x_{RB}(\Xv,t) = \Rv(t) \Xv + \xv_t(t) & \qquad \mbox{rigid body motion} 
+\end{align}
+
+Strain Measures (3.3), use $d\xv = \Fv \cdot d\Xv$, $ds^2=d\xv\cdot d\xv$, $dS^2=d\Xv\cdot d\Xv$, 
+\begin{align}
+  ds^2 - dS^2 = 2 d\Xv \cdot \Ev \cdot d\Xv & \qquad \mbox{Green strain, $\Ev$} \\
+  \Ev = \half(\Fv^T \cdot \Fv - \Iv) & \qquad \mbox{Green strain} \\
+  \Cv = \Fv^T \cdot \Fv & \qquad \mbox{right Cauchy-Green deformation tensor} \\
+  \Bv = \Fv \cdot \Fv^T & \qquad \mbox{left Cauchy-Green deformation tensor} \\
+  \Ev = \half((\grad_0\uv)^T + \grad_0\uv + \grad_0\uv\cdot(\grad_0\uv)^T) & \qquad \mbox{Green strain} \\
+  \Ev = \half( \partial u_i/ \partial X_j +  \partial u_j/ \partial X_i 
+                       + \partial u_k/ \partial X_i \partial u_k/ \partial X_j) & \qquad \mbox{Green strain} \\
+  \grad_0 = \partial/\partial X_i & \qquad \mbox{(left) material gradient}
+\end{align}
+
+
+Rate of deformation (3.3.2)
+ \begin{align}
+  \Lv = \partial \vv(\xv,t) /\partial \xv = (\grad \vv)^T  = \Dv + \Wv & \qquad \mbox{velocity gradient, $\Lv$ (Eulerian)} \\
+  d\vv = \Lv \cdot d \xv \qquad \mbox{} \\ 
+  \Dv = \half( \Lv + \Lv^T) = \half( \partial v_i/ \partial x_j +  \partial v_j/ \partial x_i ) & \qquad \mbox{rate of deformation (velocity strain)} \\
+  \Wv = \half( \Lv - \Lv^T) = \half( \partial v_i/ \partial x_j -  \partial v_j/ \partial x_i ) & \qquad \mbox{spin tensor} \\
+  \partial_t ( ds^2) = 2~d\xv\cdot \Dv \cdot d\xv & \qquad \mbox{} \\
+  \Lv = \partial \vv(\xv,t) /\partial \Xv ~ \partial \Xv/\partial\xv = \dot{\Fv} \Fv^{-1} & \qquad \mbox{} \\
+  \dot{\Ev} = \Fv^T\cdot\Dv\cdot\Fv,  & \qquad \mbox{{\em pull back operation:} $\xv \rightarrow \Xv$} \\
+  \Dv =  \Fv^{-T}\cdot \dot{\Ev} \cdot\Fv^{-1} & \qquad \mbox{{\em push forward operation:} $\Xv \rightarrow \xv$} 
+\end{align}
+
+
+Stress Measures (3.4)
+ \begin{align}
+  \sigmav =  J^{-1} \Fv\cdot\Pv ~= J^{-1} \Fv\cdot\Sv\cdot\Fv^{T} & \qquad \mbox{Stress: Cauchy: $\sigmav$, PK2: $\Sv$, nominal: $\Pv$} \\
+  \Pv = \Sv \Fv^T & \qquad \mbox{$\Sv$ : 2nd Piola-Kirchhoff (PK2) stress} \\
+  \nv\cdot\sigmav d\Gamma =\tv d\Gamma = d\fv  & \qquad \mbox{ traction $\tv$} \\
+  \nv_0\cdot\Pv d\Gamma_0 =\tv_0 d\Gamma_0 = d\fv  & \qquad \mbox{} \\
+  \nv_0\cdot\Sv d\Gamma_0 = \Fv^{-1} \tv_0 d\Gamma_0 = \Fv^{-1}d\fv  & \qquad \mbox{} \\
+  \nv d\Gamma = J \nv_0 \cdot\Fv^{-1} d\Gamma_0 & \qquad \mbox{Nanson's relation} \\
+\end{align}
+
+
+Material time derivatives of integrals and Reynold's transport theorem (3.5.3) (for any material region $\Omega$)
+ \begin{align}
+  D_t \int_\Omega f d\Omega = \int_{\Omega_0}\partial_t( f(\Xv,t) J(\Xv,t) d\Omega_0 & \qquad \mbox{} \\
+  D_t \int_\Omega f d\Omega = \int_\Omega (f_t + \grad\cdot( f\vv) ) d\Omega  & \qquad \mbox{ Reynold's transport theorem} \\
+\end{align}
+
+
+
+Eulerian Conservation Equations (3.5)
+ \begin{align}
+  D_t \rho + \rho\grad\cdot(\vv)=0 & \qquad \mbox{Mass conservation} \\
+  \rho D_t \vv = \grad\cdot( \sigmav) + \rho \bv  & \qquad \mbox{Linear momentum} \\
+  \sigmav = \sigmav^T  & \qquad \mbox{Angular momentum} \\
+  \rho D_t w^{int} = \Dv:\sigmav -\grad\cdot q + \rho s  & \qquad \mbox{Energy} 
+\end{align}
+
+Lagrangian Conservation Equations (3.6) ($\tilde{q}=J^{-1}\Fv^T\cdot\qv$) **check these**
+ \begin{align}
+  \rho(\Xv,t) J(\Xv,t) = \rho_0(\Xv) & \qquad \mbox{Mass conservation} \\
+  \rho_0 \partial_t \vv(\Xv,t) = \grad_0\cdot \Pv + \rho_0 \bv  & \qquad \mbox{Linear momentum} \\
+  \Fv\Pv = \Pv^T\Fv^T & \qquad \mbox{Angular momentum} \\
+  \rho \partial_t w^{int}(\Xv,t) = \dot{\Fv}^T:\Pv -\grad_0\cdot\tilde{q} + \rho s  & \qquad \mbox{Energy} 
+\end{align}
+
+
+Constitutive Models (5)
+ \begin{align}
+    w=w(E)  & \qquad \mbox{$w$ : elastic strain energy (potential)} \\
+    w(E) = \psi(2\Ev+I) = \psi(\Cv)  & \qquad \mbox{$\psi$ : stored energy potential (Hyper-elastic materials), $\Cv=\Fv^T\Fv$)} \\
+\end{align}
+
+% ------------------------------------------------------------------------------------------------
+\subsection{Nanson's relation}
+
+Here is a derivation of Nanson's relation. 
+We start from the transformation between volume elements, 
+\begin{align*}
+  &   dv = J\, dV , 
+\end{align*}
+where $dv= d x_1 d x_2 d x_3$, $dV=d X_1 d X_2 d X_3$ and $J=\det(F)$.
+Suppose the volume element $dv$ is formed from the dot product of an oriented area $d\av= da\,\nv$ and
+a line element $d\lv$, (and similarly for $dV$), then
+\begin{align*}
+  & dv = d\av^T d\lv = da\,\nv^T d\lv, \qquad \text{(x-volume element in terms of area element and line element)}  \\
+  & dV = d\Av^T d\Lv = dA\, \Nv^T d\Lv,\qquad \text{(X-volume element in terms of area element and line element)}  
+\end{align*}
+Usng the transformation rule for line elements, 
+\begin{align*}
+  & d\lv = F d\Lv  \qquad\text{(transformation between line elements)}
+\end{align*}
+it follows that $dv = J dV $ implies
+\begin{align*}
+  & da\,\nv^T F \,d\Lv = J\, dA\, \Nv^T \,d\Lv
+\end{align*}
+and thus
+\begin{align*}
+  & da\,\nv^T F = J\, dA\, \Nv^T , 
+\end{align*}
+Defining $\beta=dA/da$ gives the relations
+\begin{align*}
+  & F^T \nv = \beta J\, \Nv , \\
+  & \beta = J^{-1}\,  \Nv^T F^T \nv = J^{-1}\, \nv^T F \Nv \\
+  & \nv = \beta J\, F^{-T} \Nv ,
+\end{align*}
+
+% ------------------------------------------------------------------------------------------------
+\subsection{Time derivatives of the Jacobian determinant}
+
+Consider an transformation $\xv=\gv(\rv,t)$ from $\Real^n\rightarrow \real^n$m and let $H=[h_{ij}]$, $h_{ij}=\partial g_i/\partial r_j$ be the Jacobian matrix and
+$J=\det(H)$ be the Jacobian (determinant). 
+We wish to compute $\partial J/\partial t$. 
+The determinant is given by the Leibnitz formula, 
+\begin{align*}
+    J =  \det(H) = \sum_{\sigma\in S_n} \text{sgn}(\sigma) \, h_{1,\sigma(1)}\, h_{2,\sigma(2)}\, \ldots \, h_{n,\sigma(n)} 
+\end{align*}
+where the sum is over all permutations $\sigma$ of $\{ 1,\, 2,\, 3,\ldots\, n\}$. 
+Thus the time derivative is 
+\begin{align}
+   \frac{\partial J}{\partial t} &=   
+        \sum_{\sigma\in S_n} \text{sgn}(\sigma) \, \partial_t h_{1,\sigma(1)}\, h_{2,\sigma(2)}\, \ldots \, h_{n,\sigma(n)}  \label{eq:detExpansion} \\
+      & +\sum_{\sigma\in S_n} \text{sgn}(\sigma) \,  h_{1,\sigma(1)}\, \partial_t h_{2,\sigma(2)}\, \ldots \, h_{n,\sigma(n)} \\
+      & \ldots \\
+      & + \sum_{\sigma\in S_n} \text{sgn}(\sigma) \,  h_{1,\sigma(1)}\, h_{2,\sigma(2)}\, \ldots \, \partial_t h_{n,\sigma(n)} . 
+\end{align}
+Letting $w_i=\partial g_i/\partial t$, then by the chain rule
+\begin{align*}
+  \frac{\partial h_{ij}}{\partial t} &= \frac{\partial w_i}{\partial r_j} ~
+                                     = \sum_k \frac{\partial w_i}{\partial x_k} \, \frac{\partial x_k}{\partial r_j} ~
+                                     = \sum_k \frac{\partial w_i}{\partial x_k} \, h_{kj}
+\end{align*}
+Use this last expression in the first term (other terms will be similiar) in the expansion~\eqref{eq:detExpansion}
+\begin{align}
+&    \sum_{\sigma\in S_n} \text{sgn}(\sigma) \, \frac{\partial h_{1,\sigma(1)}}{\partial t}\, h_{2,\sigma(2)}\, \ldots \, h_{n,\sigma(n)} 
+ = \sum_{\sigma\in S_n} \text{sgn}(\sigma) \, \big(\sum_k \frac{\partial w_1}{\partial x_k} \, h_{k\sigma(1)}\big) \, h_{2,\sigma(2)}\, \ldots \, h_{n,\sigma(n)} , \\
+&\qquad =  \sum_k \frac{\partial w_1}{\partial x_k} \Big\{ \sum_{\sigma\in S_n} \text{sgn}(\sigma) \, h_{k\sigma(1)} \, h_{2,\sigma(2)}\, \ldots \, h_{n,\sigma(n)} \Big\} , \label{eq:detSum} \\
+&\qquad = \frac{\partial w_1}{\partial x_1} \sum_{\sigma\in S_n} \text{sgn}(\sigma) \, h_{1\sigma(1)} \, h_{2,\sigma(2)}\, \ldots \, h_{n,\sigma(n)} . \\
+&\qquad = \frac{\partial w_1}{\partial x_1} J 
+\end{align}
+where we have used the fact that the determinant is zero when two rows are equal and thus only the term $k=1$ remains in ~\eqref{eq:detSum}. 
+Therefore
+\begin{align}
+\frac{\partial J}{\partial t} &= \Big(\sum_i \frac{\partial w_i}{\partial x_i} \Big) J  ~= (\grad_{\xv}\cdot\wv) \, J
+\end{align}
+% ------------------------------------------------------------------------------------------------
+\subsection{General transformation}
+
+Consider the continuity and momentum equations for the solid (we drop the bars here) in the Eulerian frame
+\begin{align*}
+  & \frac{\partial\rho}{\partial t} + v_j\frac{\partial\rho}{\partial x_j} + \rho \frac{\partial v_j}{\partial x_j} = 0 , \\
+  & \rho \Big[\frac{\partial v_i }{\partial t} + v_j\frac{\partial v_i}{\partial x_j}\Big] = 
+      \frac{\partial \sigma_{ji}}{\partial x_j} 
+\end{align*}
+with summation convention. Now we make a general moving coordinate transformation, $\xv=\gv(\rv,t)$. 
+Under this transformation the equations become
+\begin{align*}
+  & \frac{\partial\rho}{\partial t} + (v_j-w_j)\frac{\partial r_k}{\partial x_j}\frac{\partial\rho}{\partial r_k} 
+     + \frac{\rho}{J} \frac{\partial}{\partial r_j}\Big( J \frac{\partial r_j}{\partial x_k} v_k\Big) = 0 , \\
+  & \rho \Big[\frac{\partial v_i }{\partial t} 
+     + (v_j-w_j)\frac{\partial r_k}{\partial x_j}\frac{\partial v_i}{\partial r_k}\Big] =
+   \frac{1}{J}\frac{\partial}{\partial r_j}\Big( J \frac{\partial r_j}{\partial x_k} \sigma_{ki} \Big) 
+\end{align*}
+where $\wv=\partial \gv/\partial t$ is the grid velocity. We could also write this in fully
+conservative form ...
+
+
+
+We also have *CHECK*
+\begin{align*}
+   & \frac{\partial J(\rv,t)}{\partial t} = J \frac{\partial w_j(\rv,t)}{\partial x_j} \, = J \grad_{\xv}\cdot \wv, \\
+   & \frac{\partial J(\xv,t)}{\partial t} + w_j\frac{\partial J(\xv,t)}{\partial x_j}  = J \frac{\partial w_j(\xv,t)}{\partial x_j} , \\
+\end{align*}
+
+Let $G=\partial\xv/\partial \rv$, $G_{ij}=\partial x_i/\partial r_j$,  be the Jacobian matrix of the transformation, then
+{
+\newcommand{\mstrut}{\rule{0pt}{15pt}}% strutt to make table height bigger
+\newcommand{\ds}{\displaystyle}
+\newcommand{\dsm}{\displaystyle\mstrut}
+\begin{align*}
+    G &= \begin{bmatrix} \ds\frac{\partial\xv}{\partial r_1} &  \ds\frac{\partial\xv}{\partial r_2} &  \ds\frac{\partial\xv}{\partial r_3}\end{bmatrix}  \\
+ G^{-1} &= \begin{bmatrix} \ds\frac{\partial\rv}{\partial x_1} &  \ds\frac{\partial\rv}{\partial x_2} &  \ds\frac{\partial\rv}{\partial x_3}\end{bmatrix}
+   ~= \begin{bmatrix} \dsm\grad_{\xv} r_1^T \\ \dsm\grad_{\xv} r_2^T \\ \dsm\grad_{\xv} r_3^T \\ \end{bmatrix}
+   ~= \begin{bmatrix}  \dsm\alpha_1 \nv_1^T  \\ \dsm\alpha_2\nv_2^T \\ \dsm\alpha_3 \nv_3^T \\ \end{bmatrix}, \quad \alpha_i=1/|\grad_{\xv} r_i|.
+\end{align*}
+The columns of $G$, $\frac{\partial\xv}{\partial r_i}$ are vectors in the directions of the tangents, $\tv_i$, to the coordinate directions. 
+The rows of $G^{-1}$ are vectors in the directions of the normals, $\nv_i$, to the coordinate planes, i.e. $\grad_{\xv} r_i$ is
+proportional to the normal to the coordinate plane $r_i=\text{constant}$. 
+}
+
+% *NO* We also have $D J/Dt = J \grad_{\xv}\cdot\vv$, and $D(\rho J)/Dt=0$, 
+% \begin{align*}
+%    & \frac{\partial J}{\partial t} + v_j\frac{\partial J}{\partial x_j}  - J \frac{\partial v_j}{\partial x_j} = 0. 
+% \end{align*}
+% ------------------------------------------------------------------------------------------------
+\clearpage
+\input KirchoffMaterial
+
+% ------------------------------------------------------------------------------------------------
+\clearpage
+\input ConstituitiveModels
+
+
+% --------------------------------------------------------------------------------------------------
+\clearpage
+\input hemp.tex
+
+
+
+
+
+
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\end{document}
+

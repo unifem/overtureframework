@@ -1,0 +1,1363 @@
+%-----------------------------------------------------------------------
+% User's Guide for CGMX -- Maxwell's Equation Solver
+% 
+%-----------------------------------------------------------------------
+\documentclass{article}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+% \usepackage{epsfig}    
+% This next section will allow graphics files to be ps or pdf  -- from Jeff via Jeff
+% \usepackage{ifpdf}
+% \ifpdf
+%     \usepackage[pdftex]{graphicx}
+%     \usepackage{epstopdf}
+%     \pdfcompresslevel=9
+%     \pdfpagewidth=8.5 true in
+%     \pdfpageheight=11 true in
+%     \pdfhorigin=1 true in
+%     \pdfvorigin=1.25 true in
+% \else
+%     \usepackage{graphicx}
+% \fi
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+% define the clipFig commands:
+\input trimFig.tex
+
+% --------------------------------------------
+\usepackage[usenames]{color} % e.g. \color{red}
+\newcommand{\red}{\color{red}}
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\jwb}[2]{{\color{red}(old: #1) }{\color{green} #2}}
+
+\usepackage{tikz}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+\newcommand{\primer}{/users/henshaw/res/primer}
+\newcommand{\GF}{/users/\-henshaw/\-res/\-gf}
+\newcommand{\gf}{/users/henshaw/res/gf}
+\newcommand{\mapping}{/users/henshaw/res/mapping}
+
+\newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+\newcommand{\maxDoc}{\homeHenshaw/res/maxwell/doc}
+
+\newcommand{\OVERTUREOVERTURE}{/users/\-henshaw/\-Overture/\-Overture}
+\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
+
+\newcommand{\Overture}{{\bf Overture\ }}
+\newcommand{\OverBlown}{{\bf OverBlown\ }}
+\newcommand{\overBlown}{{\bf overBlown\ }}
+
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+
+\begin{document}
+
+
+% -----definitions-----
+\input wdhDefinitions.tex
+
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\eps}{\epsilon}
+
+\vglue 10\baselineskip
+\begin{flushleft}
+{\Large
+Cgmx User Guide: An Overture Solver for Maxwell's Equations on Composite Grids, \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+\vspace{\baselineskip}
+LLNL-SM-523971 \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+% UCRL-MA-134288
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+Cgmx is a program that can be used to solve the time-dependent Maxwell's equations
+of electromagnetics on composite overlapping grids in two and three space
+dimensions. This document explains how to run Cgmx. Numerous examples are
+given. The boundary conditions, initial conditions and forcing functions 
+are described.
+Cgmx solves Maxwell's equations in second-order form. Second-order
+accurate and fourth-order accurate approximations are available. Cgmx can
+accurately handle material interfaces.  Cgmx also implements a version of the
+Yee scheme for the first-order system form of Maxwell's equations. The Yee
+scheme can be run on a single Cartesian grid with material boundaries treated
+with a stair-step approximation.
+
+\end{flushleft}
+
+\clearpage
+\tableofcontents
+% \listoffigures
+
+
+\vfill\eject
+
+\section{Introduction}
+
+   Cgmx is a program that can be used to solve Maxwell's equations of electromagnetics 
+on composite overlapping grids~\cite{max2006b}. It is built upon
+the \Overture framework~\cite{Brown97},\cite{Henshaw96a},\cite{iscope97}.
+
+More information about
+{\bf Overture} can be found on the \Overture home page, {\tt http://www.llnl.gov/\-casc/\-Overture}.
+
+
+\noindent{\bf Cgmx features:}
+
+\begin{itemize}
+  \item solve the time-domain Maxwell equations on overlapping grids to second- and fourth-order accuracy in two and three space dimensions. 
+  \item solve material interface problems to second- and fourth-order accuracy in two and three space dimensions. 
+  \item solve the time-domain Maxwell equations on a Cartesian grid with variable $\mu$ and $\epsilon$ using the Yee scheme.
+\end{itemize}
+
+
+\noindent{\bf Installation:} To install cgmx you should follow the instructions for installing Overture and cg
+from the Overture web page. Note that cgmx is NOT built by default when building the cg solvers so that
+after installing cg you must go into the {\tt cg/mx} directory and type `make'. 
+If you only wish to build cgmx and not any of the other cg solvers, then
+after building Overture and unpacking cg, go to the {\tt cg/mx} and type make. 
+
+\noindent The cgmx solver is found in the {\tt mx} directory in the {\bf cg} distribution and has
+sub-directories
+\begin{description}
+ \item[{\tt bin}] : contains the executable, cgmx. You may want to put this directory in your path.
+ \item[{\tt check}] : contains regression tests.
+ \item[{\tt cmd}] : sample command files for running cgmx, see section (\ref{sec:demo}).
+ \item[{\tt doc}] : documentation.
+ \item[{\tt lib}] : contains the cgmx library, {\tt libCgmx.a}.
+ \item[{\tt src}] : source files 
+\end{description}
+
+
+\subsection{Basic steps}\index{basic steps}
+Here are the basic steps to solve a problem with cgmx.
+\begin{enumerate}
+  \item Generate an overlapping grid with ogen. 
+  \item Run cgmx (found in the {\tt bin/cgmx} directory).
+  \item Assign the boundary conditions and initial conditions.
+  \item Choose the parameters for the PDE (such as material properties such as $\mu$, $epsilon$))
+  \item Choose run time parameters, time to integrate to, time stepping method etc.
+  \item Compute the solution (optionally plotting the results as the code runs).
+  \item When the code is finished you can look at the results (provided you saved a
+     `show file') using {\tt plotStuff}.
+\end{enumerate}
+The commands that you enter to run cgmx can be saved in a \Index{command file} (by default
+they are saved in the file `cgmx.cmd'). This command file can be used to re-run
+the same problem by typing `cgmx file.cmd'. The command file can be edited to change parameters.
+
+To get started you can run one of the demo's that come with cgmx, these are 
+explained in section~(\ref{sec:demo}).
+% 
+For more information on the algorithms and approximations used in Cgmx see
+\begin{enumerate}
+  \item The {\sl Cgmx Reference Manual}~\cite{CgmxReferenceManual}.
+  \item {\sl A High-Order Accurate Parallel Solver for {Maxwell}'s Equations on Overlapping Grids}
+        \cite{max2006b}.
+\end{enumerate}
+
+  
+% \begin{figure}[hbt]
+% \begin{center}
+%   \epsfig{file=\obFigures/OverBlownScreen.ps,width=.95\linewidth}  \\
+% \caption{Snapshot of cgmx showing the run time dialog menu. 
+%     The figure shows two falling bodies in an incompressible flow,
+%     computed with the command file twoDrop.cmd.}
+%   \end{center} 
+%   \label{fig:screenDrops}
+% \end{figure}
+
+\clearpage
+\section{Sample command files for running cgmx} \label{sec:demo}
+
+Command files are supported throughout the Overture. They are files
+that contain lists of commands. These commands can initially be saved
+when the user is interactively choosing options.  The \Index{command files}
+can then be used to re-run the job. Command files can be edited and
+changed.
+
+In this section we present a number of command files that can be used
+to run cgmx.
+
+\subsection{Running a command file} \label{sec:runningCommandFiles} 
+
+Given a \Index{command file} for cgmx such as {\tt cyleigen.cmd}, found in {\tt
+cmd/cyleigen.cmd}, one can type `{\tt cgmx cyleigen.cmd}' to run this command
+file . You can also just type `{\tt cgmx cyleigen}, leaving off the {\tt
+.cmd} suffix. Typing `{\tt cgmx -noplot cyleigen}' will run without
+interactive graphics (unless the command file turns on graphics). Note that here
+I assume that the {\tt bin} directory is in your path so that the {\tt
+cgmx} command is found when you type it's name. The Cgmx sample
+command files will automatically look for an overlapping grid in the {\tt
+Overture/sampleGrids} directory, unless the grid is first found in the location
+specified in the command file.
+
+When you run a command file a graphics screen will appear and after some
+processing the run-time dialog should appear and the initial conditions will be
+plotted. The program will also print out some information about the problem
+being solved. At this point choose {\tt continue} or {\tt movie
+mode}. Section~(\ref{sec:runTimeDialog}) describes the options available in the
+run time dialog.
+
+When running in parallel it is convenient to define a shell variable for the parallel
+version of cgmx.
+For example in the tcsh shell you might use
+\begin{verbatim}
+  set cgmxp  = ${CGBUILDPREFIX}/mx/bin/cgmx
+\end{verbatim} % $
+An example of running the parallel version is then
+\begin{verbatim}
+  mpirun -np 2 $cgmxp cic.planeWaveBC -g=cice2.order4.hdf
+\end{verbatim} % $
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Scattering of a plane wave from a two-dimensional conducting cylinder} \label{sec:cyl2dScat}
+
+
+
+The command file {\tt cic.planeWaveBC.cmd} can be used to compute the scattering
+of a plane wave from a PEC (perfectly electric conducting) cylinder. The exact solution is known for this case
+and the errors in the numerical solution are determined while the solution
+is being computed.
+
+% \noindent Example:
+
+\noindent (1) Generate the grid using the command file {\tt cicArg.cmd} in {\tt Overture/sampleGrids}:
+\begin{verbatim}
+  ogen -noplot cicArg -order=4 -interp=e -factor=2
+\end{verbatim}
+
+\noindent (2) Run cgmx: 
+\begin{verbatim}
+  cgmx cic.planeWaveBC -g=cice2.order4.hdf
+\end{verbatim}
+
+\noindent Parallel: If you have built the parallel version then use 
+\begin{verbatim}
+  mpirun -np 2 $cgmxp cic.planeWaveBC -g=cice2.order4.hdf
+\end{verbatim} % $
+where {\tt \$cgmxp} is a variable that points to the parallel version of cgmx (see Section~\ref{sec:runningCommandFiles}).
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/scatCyl2dExT1p0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/scatCyl2dEyT1p0}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/scatCyl2dHzT1p0}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave by a PEC cylinder. Computed solution at $t=1.0$, $E_x$, $E_y$ and $H_z$.}
+\label{fig:cyl2dScat}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item See the comments at the top of the command file for command line arguments and further examples.
+  \item This case was run with fourth-order accuracy.
+\end{enumerate}
+
+
+% ------------------------------------------------------------------------------------------
+% \clearpage
+% \subsection{Eigenfunctions of a three-dimensional cylinder} \label{sec:cyl3d}
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Scattering from a three-dimensional conducting sphere} \label{sec:sphere3dScat}
+
+The command file {\tt sib.planeWaveBC.cmd} can be used to compute the scattering
+of a plane wave from a PEC sphere. The exact solution is known for this case
+and the errors in the numerical solution are determined while the solution
+is being computed.
+
+% \noindent Example:
+
+\noindent (1) Generate the grid using the command file {\tt sibArg.cmd} in {\tt Overture/sampleGrids}:
+\begin{verbatim}
+  ogen -noplot sibArg -order=4 -interp=e -factor=4
+\end{verbatim}
+
+\noindent (2) Run cgmx: 
+\begin{verbatim}
+  cgmx sib.planeWaveBC -g=sibe4.order4.hdf
+\end{verbatim}
+
+\noindent Parallel: If you have built the parallel version then use 
+\begin{verbatim}
+  mpirun -np 2 $cgmxp sib.planeWaveBC -g=sibe4.order4.hdf
+\end{verbatim} % $
+where {\tt \$cgmxp} is a variable that points to the parallel version of cgmx, e.g.,
+\begin{verbatim}
+  set cgmxp  = ${CGBUILDPREFIX\}/mx/bin/cgmx}
+\end{verbatim} % $
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/scatSphereExT1p0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/scatSphereEyT1p0}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/scatSphereEzT1p0}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave by a PEC sphere. Computed solution at $t=1.0$, $E_x$, $E_y$ and $E_z$.}
+\label{fig:cyl2dScat}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item See the comments at the top of the command file for command line arguments and further examples.
+  \item This case was run with fourth-order accuracy.
+\end{enumerate}
+
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Scattering of a plane wave from a two-dimensional dielectric cylinder} \label{sec:cyl2dDielectricScat}
+
+The command file {\tt dielectricCyl.cmd} can be used to compute the scattering
+of a plane wave from a dielectric cylinder. The exact solution is known for this case
+and the errors in the numerical solution are determined while the solution
+is being computed.
+
+% \noindent Example:
+
+\noindent (1) Generate the grid using the command file {\tt innerOuter.cmd} in {\tt Overture/sampleGrids}:
+{\small
+\begin{verbatim}
+  ogen -noplot innerOuter -factor=4 -order=4 -deltaRad=.5 -interp=e -name="innerOutere4.order4.hdf"
+\end{verbatim}
+}
+\noindent (2) Run cgmx: 
+\begin{verbatim}
+  cgmx dielectricCyl -g=innerOutere4.order4.hdf -kx=2 -eps1=.25 -eps2=1. -go=halt
+\end{verbatim}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/cyl2dDieExT1p0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/cyl2dDieEyT1p0}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/cyl2dDieHzT1p0}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave from a dielectric cylinder. Computed solution at $t=1.0$, $E_x$, $E_y$ and $H_z$.}
+\label{fig:cyl2dDielectricScat}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item See the comments at the top of the command file for command line arguments and further examples.
+  \item This case was run with fourth-order accuracy.
+\end{enumerate}
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Scattering of a plane wave from a two-dimensional dielectric cylinder - Yee scheme} \label{sec:cyl2dDielectricScat}
+
+The command file {\tt dielectricCyl.cmd} can be used to compute the scattering
+of a plane wave from a dielectric cylinder using the Yee scheme. The exact solution is known for this case
+and the errors in the numerical solution are determined while the solution
+is being computed.
+
+% \noindent Example:
+
+\noindent (1) Generate the grid using the command file {\tt bigSquare.cmd} in {\tt Overture/sampleGrids}:
+{\small
+\begin{verbatim}
+  ogen noplot bigSquare -factor=8 -xa=-1. -xb=1. -ya=-1. -yb=1. -name="bigSquareSize1f8.hdf"
+\end{verbatim}
+}
+\noindent (2) Run cgmx: 
+\begin{verbatim}
+  cgmx dielectricCyl -g=bigSquareSize1f8.hdf -kx=2 -eps1=.25 -eps2=1. -method=Yee -errorNorm=2 -go=halt
+\end{verbatim}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/cyl2dDieYeeExT1p0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/cyl2dDieYeeEyT1p0}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/cyl2dDieYeeHzT1p0}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave from a dielectric cylinder using the Yee scheme. The solution is
+computed on a single Cartesian grid and the cylinder is represented in a stair-step fashion. 
+Computed solution at $t=1.0$, $E_x$, $E_y$ and $H_z$.}
+\label{fig:cyl2dDielectricScatYee}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item The material parameters are chosen using ...
+\end{enumerate}
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Scattering of a plane wave from a three-dimensional dielectric sphere} \label{sec:sphere3dDielectricScat}
+
+The command file {\tt dielectricCyl.cmd} (yes, the same file as for the 2d dielectric cylinder) can be used to compute the scattering
+of a plane wave from a dielectric cylinder. The exact solution is known for this case
+and the errors in the numerical solution are determined while the solution
+is being computed.
+
+% \noindent Example:
+
+\noindent (1) Generate the grid using the command file {\tt solidSphereInABox.cmd} in {\tt Overture/sampleGrids}:
+{\small
+\begin{verbatim}
+  ogen noplot solidSphereInABox -order=4 -interp=e -factor=2
+\end{verbatim}
+}
+\noindent (2) Run cgmx: 
+{\small
+\begin{verbatim}
+  cgmx dielectricCyl -cyl=0 -g=solidSphereInABoxe2.order4 -kx=1 -eps1=.25 -eps2=1. -go=halt -tp=.01
+\end{verbatim}
+}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/scatDielectricSphereEx}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/scatDielectricSphereEy}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/scatDielectricSphereEz}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave from a dielectric sphere. Computed solution at $t=1.0$, $E_x$, $E_y$ and $H_z$.}
+\label{fig:cyl2dDielectricScat}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item See the comments at the top of the command file for command line arguments and further examples.
+  \item This case was run with fourth-order accuracy.
+\end{enumerate}
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Diffraction from a two-dimensional knife edge slit} \label{sec:knifeEdge2d}
+
+The command file {\tt knifeEdgel.cmd} can be used to compute the scattering
+of a plane wave from narrow slit.
+
+\noindent (1) Generate the grid using the command file {\tt innerOuter.cmd} in {\tt Overture/sampleGrids}:
+{\small
+\begin{verbatim}
+  ogen -noplot knifeEdge -interp=e -factor=2 -order=4 -yTop=1.1 -name="knifeSlit2.order4.hdf"
+\end{verbatim}
+}
+\noindent (2) Run cgmx: 
+\begin{verbatim}
+  cgmx knifeEdge -g=knifeSlit2.order4 -kx=8 -tp=.05 -tf=2. -plotIntensity=1 -go=halt
+\end{verbatim}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/knifeEdgeExT1p5}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/knifeEdgeEyT1p5}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/knifeEdgeIntensityT1p5}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave from a slit. Computed solution at $t=1.5$, $E_x$, $E_y$ and intensity.}
+\label{fig:knifeEdge2d}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item Comment on initial conditions and initial conditions bounding box ...
+  \item Adjust boundaries for incident field ...
+\end{enumerate}
+
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Scattering of a plane wave by a two-dimensional triangular body} \label{sec:scatTri}
+
+The command file {\tt scat.cmd} can be used to compute the scattering
+of a plane wave from a body.
+
+\noindent (1) Generate the grid using the command file {\tt triangleArg.cmd} in {\tt Overture/sampleGrids}:
+{\small
+\begin{verbatim}
+  ogen noplot triangleArg -factor=8 -order=4 -interp=e
+\end{verbatim}
+}
+\noindent (2) Run cgmx: 
+\begin{verbatim}
+  cgmx scat -g=trianglee8.order4.hdf -bg=backGround
+\end{verbatim}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/scatTriExT1p5}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/scatTriEyT1p5}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/scatTriHzT1p5}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave from a triangular body. Computed solution at $t=1.5$, $E_x$, $E_y$ and $H_z$. The initial startup wave-front can
+     be seen leaving the domain in the upper left and lower left.}
+\label{fig:scatTri2d}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item Computes the scattered field directly using the {\tt planeWaveBoundaryForcing} option.
+  \item Boundary conditions on the outer square use the {\tt abcEM2} far-field conditions.
+\end{enumerate}
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Comparing far-field boundary conditions} \label{sec:compareFarField}
+
+The command file {\tt rbc.cmd} can be used to compare far-field boundary conditions.
+A Gaussian source~\ref{sec:gaussianSource} is placed in the middle of square or box and far field boundary 
+conditions are applied to all boundaries. For comparison we also show results when the outer boundary
+is taken as a perfect electrical conductor (which results in large reflections).
+
+\noindent (1) Generate the grids (command files in Overture/sampleGrids)
+{\small
+\begin{verbatim}
+  ogen -noplot squareArg -order=4 -nx=128
+  ogen noplot boxArg -order=4 -xa=-1. -xb=1. -ya=-1. -yb=1. -za=-1. -zb=1. ...
+                     -factor=4 -name="boxLx2Ly2Lz2Factor4.order4.hdf"
+\end{verbatim}
+}
+\noindent (2a) Run cgmx with the square grid and different boundary conditions: 
+{\small
+\begin{verbatim}
+  cgmx rbc -g=square128.order4.hdf -x0=.5 -y0=.5 -rbc=abcEM2 -go=halt
+  cgmx rbc -g=square128.order4.hdf -x0=.5 -y0=.5 -rbc=abcPML -pmlWidth=21 -pmlStrength=50. -go=halt
+  cgmx rbc -g=square128.order4.hdf -x0=.5 -y0=.5 -rbc=perfectElectricalConductor -go=halt  
+\end{verbatim}
+}
+\noindent (2b) Run cgmx with the box grid and different boundary conditions: 
+{\small
+\begin{verbatim}
+  cgmx rbc -g=boxLx2Ly2Lz2Factor4.order4.hdf -rbc=abcEM2 -x0=0. -y0=0. -z0=0. -go=halt
+  cgmx rbc -g=boxLx2Ly2Lz2Factor4.order4.hdf -rbc=abcPML -x0=0. -y0=0. -z0=0. -pmlWidth=11 -go=halt
+  cgmx rbc -g=boxLx2Ly2Lz2Factor4.order4.hdf -rbc=perfectElectricalConductor -x0=0. -y0=0. -z0=0. -go=halt
+\end{verbatim}
+}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/rbcSquareAbcEm2ExT1p0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/rbcSquarePMLExT1p0}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/rbcSquarePECExT1p0}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Gaussian source in a square with different boundary conditions. $E_x$ at time $t=1.0$. Left bc={\tt abcEM2}, middle: bc={\tt abcPML} and
+right bc={\tt perfectElectricalConductor}. }
+\label{fig:rbcSquare}
+\end{figure}
+}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/rbcBoxAbcEM2ExT2p0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/rbcBoxPMLExT2p0}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/rbcBoxPECExT2p0}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Gaussian source in a box with different boundary conditions. $E_x$ at time $t=1.0$. Left bc={\tt abcEM2}, middle: bc={\tt abcPML} and
+right bc={\tt perfectElectricalConductor}. }
+\label{fig:rbcBox}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+ \item Note that for the PML boundary condition the solution is damped in a region 
+  next to the boundary (set by the option -pmlWidth={\em number-of-lines}). This explains why the solution decays near the boundaries.
+ % \item The PML region 
+ % \item The PML boundary condition seems to be broken (maybe only works in x-direction?)
+ % \item The PML boundary condition seems to need a smaller time-step (lower cfl). The reason for this needs to be sorted out.
+\end{enumerate}
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Transmission of a plane wave through a bumpy glass-air interface} \label{sec:scatBump2d}
+
+The command file {\tt afm.cmd} can be used compute the propagation of a plane wave through the 
+two-dimensional interface between two materials (air and glass).
+
+\noindent (1) Generate the grids (command files in Overture/sampleGrids)
+{\small
+\begin{verbatim}
+  ogen noplot afm -interp=e -order=4 -factor=4
+\end{verbatim}
+}
+\noindent (2) Run cgmx (specifying $\eps$ in the two domains and the wave number $k_y$ of the incident field), 
+{\small
+\begin{verbatim}
+  cgmx afm -g=afme4.order4.hdf -eps1=2.25 -eps2=1. -ky=20 -diss=4. -tf=1.4 -tp=.2 -go=halt
+\end{verbatim}
+}
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.0cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.25}{0.25}{.45}{.425}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (14.5,15.);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpExT0p0}{\figWidth}};
+  \draw ( 7.5, 0) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpEyT0p0}{\figWidth}};
+% 
+  \draw ( 0.0,3.8) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpExT0p2}{\figWidth}};
+  \draw ( 7.5,3.8) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpEyT0p2}{\figWidth}};
+% 
+  \draw ( 0.0,7.6) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpExT0p4}{\figWidth}};
+  \draw ( 7.5,7.6) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpEyT0p4}{\figWidth}};
+%
+  \draw ( 0.0,11.4) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpExT0p6}{\figWidth}};
+  \draw ( 7.5,11.4) node[anchor=south west] {\trimfig{figures/afm2dThreeBumpEyT0p6}{\figWidth}};
+%
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (14.0,11);
+\end{tikzpicture}
+\end{center}
+\caption{Transmission of a plane wave through a bumpy glass air interface. Left $E_x$ and right $E_y$ at times (bottom to top) 
+  $t=0$, $t=0.2$, $t=0.4$ and $t=0.6$}
+\label{fig:scatBump2d}
+\end{figure}
+}
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item This example uses the plane wave initial condition with the initial condition bounding box.
+  \item The speed of light in the lower glass region is $c_g =1/\sqrt{2.25} = 2/3$ compared to the speed of light $c_a=1$ in the
+      upper air domain. 
+\end{enumerate}
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{Scattering of plane wave from an array of dielectric cylinders} \label{sec:dielectricCylArray}
+
+The command file {\tt lattice.cmd} can be used to compute the scattering
+of a plane wave from an array of dielectric cylinders. A plane wave with wave number $k_x$ 
+moves from left to right past an
+array of dielectric cylinders. Periodic boundary conditions are imposed on the top and bottom. 
+
+% \noindent Example:
+
+\noindent (1) Generate the grid: (using the command file in {\tt Overture/sampleGrids}):
+{\small
+\begin{verbatim}
+  ogen -noplot lattice -order=4 -interp=e -nCylx=3 -nCyly=3 -factor=2 -name="lattice3x3yFactor2.order4.hdf"
+\end{verbatim}
+}
+\noindent (2) Run cgmx: 
+\begin{verbatim}
+  cgmx -noplot lattice -g=lattice3x3yFactor4.order4 -eps1=.25 -eps2=1. -kx=4 ...
+                       -plotIntensity=1 -xb=-2. -go=halt
+\end{verbatim}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.225}{0.295}{.475}{.475}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,11.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 8) node[anchor=south west] {\trimfig{figures/lattice3x3yExT6p0}{\figWidth}};
+  \draw ( 5.7, 8) node[anchor=south west] {\trimfig{figures/lattice3x3yEyT6p0}{\figWidth}};
+  \draw (11.4, 8) node[anchor=south west] {\trimfig{figures/lattice3x3yIntensityT6p0}{\figWidth}};
+% 
+  \draw ( 0.0, 4) node[anchor=south west] {\trimfig{figures/lattice3x3ykx8ExT6p0}{\figWidth}};
+  \draw ( 5.7, 4) node[anchor=south west] {\trimfig{figures/lattice3x3ykx8EyT6p0}{\figWidth}};
+  \draw (11.4, 4) node[anchor=south west] {\trimfig{figures/lattice3x3ykx8IntensityT6p0}{\figWidth}};
+% 
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/lattice33kx4Eps4ExT6p0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/lattice33kx4Eps4EyT6p0}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/lattice33kx4Eps4IntensityT6p0}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Scattering of a plane wave from an array of dielectric cylinders. Computed solution at $t=6.0$, $E_x$, $E_y$ and Intensity.
+  Top row: $k_x=4$, $eps_1=0.25$. Middle row: $k_x=8$, $eps_1=0.25$. Bottom row: $k_x=4$, $eps_1=4.0$.
+}
+\label{fig:dielectricCylArray}
+\end{figure}
+}
+
+% \noindent{\bf Notes:}
+% \begin{enumerate}
+%   \item See the comments at the top of the command file for command line arguments and further examples.
+%   \item This case was run with fourth-order accuracy.
+% \end{enumerate}
+
+
+
+% =======================================================================================================
+\clearpage
+\section{Boundary Conditions} \label{sec:bc}
+
+The general format for setting a boundary condition in a command file is
+\begin{verbatim}
+  bc: name=bcName
+\end{verbatim}
+where "name" specifies the name of a grid face, or grid and "bcName" is the name of the boundary
+condition (given below), 
+\begin{verbatim}
+  name = [all][gridName][gridName([0|1],[0|1|2])]
+  bcName=[dirichlet][perfectElectricalConductor][planeWaveBoundaryCondition][abcEM2]...
+\end{verbatim}
+Here are some examples of setting boundary conditions in a command file,
+\begin{verbatim}
+  bc: all=perfectElectricalConductor
+  bc: backGround=abcEM2
+  bc: backGround(0,0)=planeWaveBoundaryCondition
+  bc: square(1,0)=planeWaveBoundaryCondition
+\end{verbatim}
+\begin{enumerate}
+  \item Note that {\em backGround} and {\em square} are the names of the grids (specified when the grid was constructed with Ogen).
+  \item Note that {\em backGround(0,0)} specifies the {\em left} face of the  grid {\em backGround} using the standard Overture conventions for
+   specifying the face of a grid as {\em gridName(side,axis)}.
+  \item Note that the special name {\em all} means apply the boundary condition to all faces of all grids.
+  \item The last boundary condition given to a face is the one that will be used. 
+\end{enumerate}
+
+\noindent The following boundary conditions are (more or less) available with cgmx,
+\begin{description}
+  \item[periodic]: chosen automatically to match the grid created with Ogen.
+  \item[dirichlet]: a non-physical boundary condition where all components of the field are set to some known function.
+                    For example, the known function could be an exact solution or a twilight-zone function.
+  \item[perfectElectricalConductor]: PEC boundary condition, see Section~\ref{sec:perfectElectricalConductor}.
+  \item[perfectMagneticConductor]: PMC boundary condition (NOT implemented yet).
+  \item[planeWaveBoundaryCondition]: solution on the boundary is set equal to a plane wave solution, see Section~\ref{sec:planeWaveBoundaryCondition}. 
+  \item[symmetry]: apply a symmetry boundary condition. 
+  \item[interfaceBoundaryCondition]: for the interface between two regions with different properties
+  \item[abcEM2]: absorbing BC, Engquist-Majda order 2, see Section~\ref{sec:EngquistMajdaABC}.
+  \item[abcPML]: perfectly matched layer far field condition, see Section~\ref{sec:PML}.
+%  \item[abc3]: future absorbing BC
+%   \item[abc4]: future absorbing BC
+%   \item[abc5]: future absorbing BC
+  \item[rbcNonLocal]: radiation BC, non-local
+  \item[rbcLocal]: radiation BC, local
+\end{description}
+
+
+% --------------------------------------------------------------------------------
+\subsection{Perfect electrical conductor boundary condition}\label{sec:perfectElectricalConductor}
+
+The perfect electrical conductor boundary condition sets the tangential components of the
+electric field to zero
+\begin{align}
+   \tauv_m\cdot\Ev &= 0, \qquad \text{for $\xv \in \partial\Omega_{\rm pec}$}. 
+\end{align}
+Here $\tauv_m$, $m=1,2$, denote the tangent vectors to the boundary surface, $\partial\Omega_{\rm pec}$.
+
+% --------------------------------------------------------------------------------
+\subsection{Plane wave boundary condition}\label{sec:planeWaveBoundaryCondition}
+
+The plane wave boundary condition set the electric (and magnetic) fields on the boundary to the plane wave 
+solution~\eqref{eq:planeWaveE}-\eqref{eq:planeWaveH} defined in Section~\ref{sec:planeWaveIC},
+\begin{align}
+   \Ev(\xv,t) &= \Ev_{\rm pw}(\xv,t), \qquad \text{for $\xv \in \partial\Omega_{\rm pw}$}, \\
+   \Hv(\xv,t) &= \Hv_{\rm pw}(\xv,t), \qquad \text{for $\xv \in \partial\Omega_{\rm pw}$}. 
+\end{align}
+
+% --------------------------------------------------------------------------------
+\subsection{Engquist-Majda absorbing boundary conditions}\label{sec:EngquistMajdaABC}
+
+
+The boundary condition {\tt abcEM2} uses the Engquist-Majda absorbing boundary 
+condition (defined here of a boundary $x={\rm constant}$), 
+\begin{align}
+   \partial_t\partial_x u = \alpha \partial_x^2 u + \beta (\partial_y^2+\partial_z^2) u 
+\end{align}
+With $\alpha=c$ and $\beta=\half c$, this gives a {\em second-order accurate} approximation to 
+a pseudo-differential operator that absorbs outgoing traveling waves. 
+Here $u$ is any field which satisfies the second-order wave equation.
+
+% --------------------------------------------------------------------------------
+\subsection{Perfectly matched layer boundary condition}\label{sec:PML}
+
+The boundary condition {\tt abcPML} imposes a perfectly matched layer boundary condition.
+With this boundary condition, auxiliary equations are solved over a layer (of some number of
+specified grid points) next to the boundary. The PML equations we solve
+are those suggested in Hagstrom~\cite{Hagstrom1999} and given by (defined here of a boundary $x={\rm constant}$), (*check me*)
+\begin{align}
+  u_{tt} &= c^2 \Big( \Delta u - \partial_x v - w \Big), \\
+   v_t &= \sigma( -v + \partial_x u ) , \\
+   w_t &= \sigma ( -w  - \partial_x v + \partial_x^2 u ). 
+\end{align}
+Here $u$ is any field which satisfies the second-order wave equation and $v$ and $w$ are auxiliary variables
+that only live in the layer domain. 
+The PML damping function $\sigma_1(\xi)$ is given by 
+\begin{align}
+  \sigma(\xi) = a \xi^p
+\end{align}
+where $a$ is the strength, $p$ is the power and where $\xi$ varies from $0$ to $1$ through the layer.
+
+
+
+
+% ------------------------------------------------------------------------------
+% \subsection{Far field boundary conditions} \label{sec:farFieldBC}
+
+
+% =======================================================================================================
+\clearpage
+\section{Initial conditions} \label{sec:ic}
+
+\noindent The following initial conditions are currently available with cgmx,
+\begin{description}
+  \item[planeWaveInitialCondition]: See Section~\ref{sec:planeWaveIC}. 
+  \item[gaussianPlaneWave]:
+  \item[gaussianPulseInitialCondition]:
+  \item[squareEigenfunctionInitialCondition]:  
+  \item[annulusEigenfunctionInitialCondition]:
+  \item[zeroInitialCondition]:
+  \item[planeWaveScatteredFieldInitialCondition]:
+  \item[planeMaterialInterfaceInitialCondition]:
+  \item[gaussianIntegralInitialCondition]:   from Tom Hagstrom
+  \item[twilightZoneInitialCondition]: for use with twilight-zone forcing. 
+  \item[userDefinedInitialConditions] : see Section~\ref{sec:userDefinedInitialConditions}
+\end{description}
+
+{\bf To do:} The file {\tt userDefinedInitialConditions.C} can be used to define new initial conditions
+for use with cgmx. 
+
+% ------------------------------------------------------------------
+\subsection{The plane-wave initial condition} \label{sec:planeWaveIC}
+
+The plane wave initial condition is defined from the plane wave solution
+\begin{align}
+  \Ev &= \sin( 2\pi (\kv\cdot\xv - \omega t ))~\av, \label{eq:planeWaveE} \\
+  \Hv &= \sin( 2\pi (\kv\cdot\xv - \omega t ))~\bv, \label{eq:planeWaveH} \\
+  \omega & = c_m \vert \kv \vert, \\
+  c_m &= { 1 \over \sqrt{ \epsilon \mu}}   \qquad \text{(speed of light in the material)} ~.
+\end{align}
+where $\kv=(k_x,k_y,k_z)$, $\vert \kv \vert = \sqrt{ k_x^2 + k_y^2 + k_z^2 }$,
+$\av=(a_x,a_y,a_z)$, and $\bv=(b_x,b_y,b_z)$ satisfy 
+\begin{align}
+  \kv\cdot\av &=0, ~~\kv\cdot\bv=0, ~~\mbox{(from $\grad\cdot\Ev=0$ and $\grad\cdot\Hv=0$)}, \\
+  \bv &= \sqrt{\frac{\epsilon}{\mu}}~{\kv\times\av \over \vert \kv \vert}, 
+       ~~\mbox{(from $\mu \Hv_t = -\grad\times\Ev$)} .  \label{eq:bvFromav} 
+\end{align}
+Thus given $\av$ with $\kv\cdot\av =0$, $\bv$ is determined by~\eqref{eq:bvFromav}.
+% 
+% The plane wave initial condition is defined from the plane wave solution
+% \begin{align}
+%     \Ev_{\rm pw}(\xv,t) &= \av \sin( \kv\cdot\xv - c_{\rm pw} t ),  \label{eq:planeWaveE} \\
+%     \Hv_{\rm pw}(\xv,t) &= \bv \sin( \kv\cdot\xv - c_{\rm pw} t )   \label{eq:planeWaveH}
+% \end{align}
+% The coefficient $\av$ should satisfy $\kv\cdot\av=0$. Given $\av$, $\bv$ can be determined from
+% Maxwell's equations.
+The parameters in the plane wave initial condition can be set with the commands:
+\begin{verbatim}
+  kx,ky,kz $kx $ky $kz
+  plane wave coefficients $ax $ay $az $epsPW $muPW
+\end{verbatim}
+Here {\tt epsPW} and {\tt muPW} (which could be different from the values of $\eps$ and $\mu$ used
+for the simulation) are used to define $c_{\rm pw}=1/\sqrt{ \eps_{\rm pw}\cdot \eps_{\rm pw}}$.
+
+% -------------------------------------------------------------------
+\subsection{The initial condition bounding box}
+
+The initial condition bounding box can be used to restrict the region where the initial 
+condition is assigned (see the example in Section~\ref{sec:knifeEdge2d}).
+The command to define the box is 
+\begin{verbatim}
+  initial condition bounding box $xa $xb $ya $yb $za $zb
+\end{verbatim}
+This bounding box may only currently work with the plane wave initial condition.
+
+The plane-wave initial conditions are turned off in a smooth way at the boundary of the box using the
+function
+\begin{align}
+  g(\xv) = \half(1-\tanh(\beta 2\pi(k_x(x-x_0)+k_y(y-y_0)))).
+\end{align}
+where $x_0$ or $y_0$ a point on the edge of the box (usually the transition only happens on one face of the box and
+it is assumed here that the  plane wave is parallel to this face). 
+The coefficient $\beta$ in this function can be set with the command
+\begin{verbatim}
+  bounding box decay exponent $beta
+\end{verbatim} // $
+
+% -----------------------------------------------------------------------
+\subsection{User defined initial conditions} \label{sec:userDefinedInitialConditions}
+
+The file {\tt userDefinedInitialConditions.C} can be used to define new initial conditions
+for use with Cgmx. Here are the steps to take to add your own initial conditions:
+\begin{enumerate}
+  \item Edit the file  {\tt cg/mx/src/userDefinedInitialConditions.C}.
+  \item Add a new option to the function {\tt setupUserDefinedInitialConditions()}. Follow one of the previous
+         examples. 
+  \item Implement the initial condition option in the function {\tt userDefinedInitialConditions(...)}.
+  \item Type {\em make} from the {\tt cg/mx} directory to recompile Cgmx.
+  \item Run Cgmx and choose the {\em userDefinedInitalConditions} option from the {\em forcing options...} menu.
+    (see the example command file {\tt mx/cmd/userDefinedInitialConditions.cmd}).
+\end{enumerate}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.75);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/userDefinedInitialConditionGaussianPulsesBoxEx}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/userDefinedInitialConditionGaussianPulsesBoxEy}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/userDefinedInitialConditionGaussianPulsesBoxEz}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{User defined initial conditions. Results for two Gaussian pulses in a box.}
+\label{fig:userDefinedInitialConditionsGaussianPulses}
+\end{figure}
+}
+
+% =======================================================================================================
+\clearpage
+\section{Forcing functions} \label{sec:forcings}
+
+The forcing functions are added to the right-hand side of Maxwell's equations in
+second-order form,
+\begin{align}
+  \partial_t^2 \Ev &= c^2~ \Delta \Ev  + \Fv_\Ev(\xv,t), \\
+  \partial_t^2 \Hv &= c^2~ \Delta \Hv  + \Fv_\Hv(\xv,t).
+\end{align}
+
+
+\noindent The following forcing options are currently available with cgmx,
+\begin{description}
+  \item[noForcing]: the default is to have no forcing.
+ % \item[magneticSinusoidalPointSource]:
+  \item[gaussianSource]: See Section~\ref{sec:gaussianSource}.
+  \item[twilightZoneForcing]: The forcing to make the twilight-zone function an exact solution.
+  \item[planeWaveBoundaryForcing]: The scattered field from an incident plane wave can be computed directly using this forcing
+         which is added to the right-hand side of the PEC boundary condition.
+  \item[gaussianChargeSource]: See Section~\ref{sec:gaussianChargeSource}.
+  \item[userDefinedForcing] : See Section~\ref{sec:userDefinedForcing}.
+\end{description}
+
+
+
+% -----------------------------------------------------------------
+\subsection{Gaussian source} \label{sec:gaussianSource}
+
+The Gaussian source $\Fv_\Ev$ in three dimensions is defined by 
+\begin{align*}
+   g(\xv,t) & = \beta^2 \cos(2 \pi \omega(t-t_0)) ~\exp\{ -\beta |\xv-\xv_0|^2 \}, \\
+   F_{E_x} &= ((z-z_0) - (y-y_0) ) ~g(\xv,t), \\ 
+   F_{E_y} &= ((x-x_0) - (z-z_0) ) ~g(\xv,t), \\ 
+   F_{E_z} &= ((y-y_0) - (x-x_0) ) ~g(\xv,t). 
+\end{align*}
+Here $|\xv|$ denotes the usual length of a vector, $|\xv|^2= x_1^2 + x_2^2 + x_3^2$.
+
+\noindent The Gaussian source in two-dimensions is defined in a somewhat different fashion (for some reason?)
+\begin{align*}
+   g(\xv,t) & = 2 \beta \sin(2 \pi \omega(t-t_0)) ~\exp\{ -\beta |\xv-\xv_0|^2 \}, \\
+   F_{H_z} &= 2 \pi\omega \cos(2 \pi \omega(t-t_0)) ~\exp\{ -\beta |\xv-\xv_0|^2 \}, \\
+   F_{E_x} &= -(y-y_0)~g(\xv,t), \\ 
+   F_{E_y} &=  (x-x_0)~g(\xv,t) .
+\end{align*}
+
+
+% -----------------------------------------------------------------
+\subsection{Gaussian charge source} \label{sec:gaussianChargeSource}
+
+The Gaussian charge source is defined by a moving charge density 
+\begin{align}
+  \rho(\xv,t) &= a \exp\{ - \big[\beta| (\xv-\xv_0) - \vv t |\big]^p \}.
+\end{align}
+Here $\xv_0$ is the initial location of the charge, $\vv$ is the velocity of the charge, $a$ is the strength and $\beta$ and $p$ define the
+shape of the pulse in space.
+The forcing functions for Maxwell's equations are then defined from
+\begin{align}
+    \partial_t^2 \Ev &= c^2 [ \Delta \Ev - \grad(\rho/\eps) - \mu \Jv_t ], \\
+    \partial_t^2 \Hv &= c^2 [ \Delta \Hv + \grad\times\Jv ], \\
+     \Jv & = \rho \vv ,
+\end{align}
+which gives 
+\begin{align}
+   \Fv_\Ev &= c^2 [  - \grad(\rho/\eps) - \mu \Jv_t ].
+\end{align}
+
+% -----------------------------------------------------------------------
+\subsection{User defined forcing} \label{sec:userDefinedForcing}
+
+
+
+The file {\tt userDefinedForcing.C} can be used to define new forcing functions
+for use with Cgmx. Here are the steps to take to add your own forcing:
+\begin{enumerate}
+  \item Edit the file  {\tt cg/mx/src/userDefinedForcing.C}.
+  \item Add a new option to the function {\tt setupUserDefinedForcing()}. Follow one of the previous
+         examples. 
+  \item Implement the forcing option in the function {\tt userDefinedForcing(...)}.
+  \item Type {\em make} from the {\tt cg/mx} directory to recompile Cgmx.
+  \item Run Cgmx and choose the {\em userDefinedForcing} option from the {\em forcing options...} menu.
+    (see the example command file {\tt mx/cmd/userDefinedForcing.cmd}).
+\end{enumerate}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (15,7.75);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/userDefinedGaussianSourcesEx}{\figWidth}};
+  \draw ( 7.5, 0) node[anchor=south west] {\trimfig{figures/userDefinedGaussianSourcesEy}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{User defined forcing example showing results from specifying two Gaussian sources. Left $E_x$ and right $E_y$}
+\label{fig:userDefinedForcingGuassianSources}
+\end{figure}
+}
+
+% =======================================================================================================
+% \clearpage
+% \section{Variable material properties} \label{sec:varMat}
+% 
+% Finish me...
+
+
+
+
+% =======================================================================================================
+\clearpage
+\section{Options} \label{sec:option}
+
+% ---------------------------------------------------------------------------
+\subsection{Options affecting the scheme}
+
+\begin{description}
+  \item [\qquad cfl] $value$ : set the CFL number. The schemes are usually stable to CFL=1. The default is CFL=.9.
+  \item [\qquad order of dissipation] $[2|4|6]$ : set the order of the dissipation.
+  \item [\qquad dissipation] $value$ : set the coefficient of the dissipation (e.g. 1). Dissipation is usually needed on overlapping grids. 
+  \item [\qquad coefficients] $\eps~\mu~gridName$: specify the values of $\eps$ and $\mu$ on a grid.
+  \item [\qquad adjustFarFieldBoundariesForIncidentField] $[0|1]~[gridName|all]$ : subtract off the plane-wave solution before applying the
+         far-field boundary condition.
+\end{description}
+
+
+% ---------------------------------------------------------------------------
+\subsection{Run time options}
+
+\begin{description}
+  \item [\qquad tFinal] $value$ : solve the equations to this time.
+  \item [\qquad tPlot] $value$ : time increment to save results and/or plot the solution.
+  \item [\qquad debug] $value$ : an integer bit flag that turns on debugging information. For example, set debug=1 for some info, debug=3 (=1+2) for some
+    more, debug=7 (=1=2+4)for even more. 
+\end{description}
+
+% ---------------------------------------------------------------------------
+\subsection{Plotting options}
+
+\begin{description}
+  \item [\qquad error norm] $[0|1|2]$ : compute errors in the max-norm, $L_1$-norm or $L_2$-norm. (*check me*)
+  \item [\qquad plot scattered field] $[0|1]$ : when computing the scattered field directly use this option to plot the scattered field.
+  \item [\qquad plot total field] $[0|1]$ : when computing the scattered field directly use this option to plot the total field (i.e. add in the
+            plane wave solution before plotting).
+  \item [\qquad plot errors] $[0|1]$ :
+  \item [\qquad check errors] $[0|1]$ :
+  \item [\qquad plot intensity] $[0|1]$ : plot the intensity (really only make senses for fields that are time-harmonic). 
+  \item [\qquad plot harmonic E field] $[0|1]$ : plot the components of the complex harmonic fields (for problems that are time-harmonic).
+\end{description}
+
+% ---------------------------------------------------------------------------
+\subsection{Output options}
+
+\begin{description}
+  \item [\qquad specify probes] : specify a list of probe locations as $x$, $y$, $z$ values, one per line, finishing the
+         list with 'done'. The solution values at these locations (actually the closest grid point to each location, with these
+         values written to the screen) are
+    written to a text file whose default name is "probeFile.dat". 
+    In the following example we specify two probe locations, $(.2,.3,.1)$ and $(.4,.6,.3)$, 
+\begin{verbatim}
+specify probes
+  .2 .3 .1.
+  .4 .6 .3
+done
+\end{verbatim}
+    Each line of the probe file contains the time followed
+    by the three components of $\Ev$ (or in two-dimensions $E_x$, $E_y$ and $H_z$) for each probe location. For example,
+    with two probes specified the file in three dimensions would contain data of the form 
+\begin{verbatim}
+   t1 Ex11 Ey11 Ez11  Ex12 Ey12 Ez12 
+   t2 Ex21 Ey21 Ez21  Ex22 Ey22 Ez22 
+   ...
+\end{verbatim}
+  \item [\qquad probe file:] $name$ : specify the name of the probe file.
+  \item [\qquad probe frequency] $value$ : specify the frequency at which values are saved in the probe file. For example,
+      if the probe frequency is set to 2 then the solution will be saved every 2nd time step to the probe file. 
+\end{description}
+
+% =======================================================================================================
+\clearpage
+\section{Maxwell's Equations} \label{sec:equations}
+
+
+The time dependent Maxwell's equations for linear, isotropic and non-dispersive materials are
+\begin{align}
+  \partial_t \Ev &=  {1\over \eps} \grad\times\Hv - {1\over \eps}\Jv , \label{eq:FOS-Et}  \\
+  \partial_t \Hv &= - {1\over \mu} \grad\times\Ev ,  \label{eq:FOS-Ht} \\
+  \grad\cdot(\eps\Ev) &=\rho , ~~ \grad\cdot(\mu\Hv) = 0 , \label{eq:FOS-div}
+\end{align}
+Here $\Ev=\Ev(\xv,t)$ is the electric field, 
+$\Hv=\Hv(\xv,t)$ is the magnetic field, $\rho=\rho(\xv,t)$ is the electric charge density,
+$\Jv=\Jv(\xv,t)$ is the electric current density,
+$\eps=\eps(\xv)$ is the electric permittivity, and $\mu=\mu(\xv)$ is the magnetic permeability.
+This first-order system for Maxwell's equations can also be written in a
+second-order form. By taking the time derivatives of~(\ref{eq:FOS-Ht}) and
+(\ref{eq:FOS-Et}) and using (\ref{eq:FOS-div}) it follows that 
+\begin{align}
+ \eps\mu~\partial_t^2 \Ev &= \Delta \Ev + \grad\Big( \grad \ln\eps~\cdot\Ev \Big)
+        +\grad\ln\mu\times\Big(\grad\times\Ev\Big) 
+            -\grad(\frac{1}{\epsilon}\rho)- \mu \partial_t\Jv , \label{eq:waveEGen} \\
+ \eps\mu~\partial_t^2 \Hv &= \Delta \Hv + \grad\Big( \grad \ln\mu~\cdot\Hv \Big)
+                               +\grad\ln\eps\times\Big(\grad\times\Hv\Big) 
+                     + \eps\grad\times(\frac{1}{\epsilon}\Jv ) \label{eq:waveHGen}.
+\end{align}
+It is evident that the equations for the electric and magnetic field are decoupled with each 
+satisfying a vector wave equation with lower order terms.
+In the case of constant $\mu$ and $\eps$ and no charges, $\rho=\Jv=0$, 
+the equations simplify to the classical second-order wave equations,
+\begin{align}
+  \partial_t^2 \Ev = c^2~ \Delta \Ev , \qquad
+  \partial_t^2 \Hv = c^2~ \Delta \Hv \label{eq:waveE}
+\end{align}
+where $c^2=1/(\eps\mu)$.
+There are some advantages to solving the second-order form of the equations
+rather than the first-order system. One advantage is that in some cases it is
+only necessary to solve for one of the variables, say $\Ev$. 
+If the other variable, $\Hv$ is required, it can be
+determined by
+integrating equation~\eqref{eq:FOS-Ht} as an ordinary differential equation
+with known $\Ev$. Alternatively, as a post-processing step $\Hv$ can be computed from an
+elliptic boundary value problem formed by taking the curl of equation~\eqref{eq:FOS-Et}.
+Another advantage of the second-order form, which simplifies the implementation on
+an overlapping grid, is that there is no need to use a staggered grid formulation. 
+Many schemes approximating the first order system~(\ref{eq:FOS-Ht}-\ref{eq:FOS-div}) rely on a
+staggered arrangement of the components of $\Ev$ and $\Hv$ such as the
+popular Yee scheme~\cite{Yee66} for Cartesian grids. 
+
+
+% ===============================================================================================
+\input acknowledgments
+
+
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}
+
+% ***************************************************************************************************
+
+
+
+

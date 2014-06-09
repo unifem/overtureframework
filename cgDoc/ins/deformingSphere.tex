@@ -1,0 +1,68 @@
+% ========================================================================================================
+\clearpage
+\subsection{Flow past a deforming sphere}\label{sec:deformingSphere}
+
+
+{%%%
+% 
+\newcommand{\figWidtha}{5.75cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.15}{.15}{.12}{.12}}
+% 
+% % -----------------------------------------------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17.,6.5);  % set the bounding box (so we have less surrounding white space)
+%
+\draw (0.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\cgDoc/ins/fig/sibDeformSpeed2p0}{\figWidtha}};
+\draw (5.5,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\cgDoc/ins/fig/sibDeformSpeed2p5}{\figWidtha}};
+\draw (11.,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\cgDoc/ins/fig/sibDeformSpeed4p5}{\figWidtha}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (17,6.5);
+\end{tikzpicture}
+\end{center}
+ \caption{Flow past a deforming sphere.}
+  \label{fig:deformingSphere}
+\end{figure}
+% -----------------------------------------------------------------------------------------------------------------------------------------------
+%
+}%%%
+
+
+In this section the flow past a deforming sphere is simulated.
+The grid for this problem was generated from the ogen command file {\tt sibDeform.cmd}.
+The solution was computed with the Cgins command file {\tt cg/ins/cmd/deform.cmd}.
+
+The geometry for the problem, as shown in Figure~\ref{fig:deformingSphere},
+initially consists of a sphere of radius $0.5$ in a channel. 
+The sphere is covered by three overlapping patches. 
+Let $\Gc^{(j)}$ denote the composite grid for this geometry. The target grid spacing is $\ds=2/(10 j)$.
+
+The surface of the sphere is deformed over time into an ellipsoid and back again. The axes of the
+ellipse evolve according to 
+\begin{align*}
+     a(t) &= 1 + (a_0-1)\sin(\omega \pi t ), \\
+     b(t) &= 1 + (b_0-1)\sin(\omega \pi t ), \\
+     c(t) &= 1 + (c_0-1)\sin(\omega \pi t ),
+\end{align*}
+where $a_0=0.8\alpha$ and $b_0=c_0=1.2\alpha$ with $\alpha=1$. 
+The deformed surface is defined by 
+\[
+  \xv(\rv,t) = (a(t) x_0(\rv), b(t) y_0(\rv), c(t) z_0(\rv)), 
+\]
+where the initial surface
+of the sphere is $(x_0(\rv),y_0(\rv),z_0(\rv))$. 
+The grids near the surface are recomputed at each time step using the hyperbolic grid generator.
+
+
+
+
+Figure~\ref{fig:deformingSphere} shows the solution (magnitude of the velocity) at three times. 
+The incoming flow is in the $x$-direction with $u=1$.
+% Contours of the enstrophy $\xi$, (magnitude of the vorticity vector, $\xi=\| \grad\times \uv\|$) are shown.
+% The solution was computed with the scheme AFS4 and the SSLES4 turbulence model ($\nu=10^{??}$). 
+
+
+

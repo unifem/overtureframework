@@ -1,0 +1,195 @@
+%=======================================================================================================
+% Moving Bodies in Overture and CG
+%=======================================================================================================
+
+% -- article: 
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+\usepackage[lmargin=1.in,rmargin=1.in,tmargin=1.in,bmargin=1.in]{geometry}
+
+\input homeHenshaw
+
+
+\input wdhDefinitions.tex
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+\newcommand{\bogus}[1]{}  % begin a section that will not be printed
+
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{graphicx}
+
+% --------------------------------------------
+% NOTE: trouble with tikz and program package ??
+\usepackage{tikz}
+
+\input trimFig.tex
+
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% \usepackage{fancybox}
+
+% define the clipFig commands:
+% \input clipFig.tex
+
+\newcommand{\obDir}{\homeHenshaw/res/OverBlown}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+% \newcommand{\grad}{\nabla}
+% \newcommand{\half}{\frac{1}{2}}}
+
+\newcommand{\eps}{\epsilon}
+\newcommand{\zerov}{\mathbf{0}}
+
+\newcommand{\bc}[1]{\mbox{\bf#1}}   % bold name
+\newcommand{\cc}[1]{\mbox{  : #1}}  % comment
+
+\newcommand{\Overture}{{Overture}}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+\newcommand{\normalss}{\sffamily}
+\newcommand{\scriptsizess}{\sffamily\scriptsize}
+
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\cm}{{\rm cm}}
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+
+\newcommand{\Gc}{\mathcal{G}}
+\newcommand{\Fc}{\mathcal{F}}
+\newcommand{\sgn}{\operatorname{sgn}}
+
+\renewcommand{\url}[1]{Available from www.OvertureFramework.org}
+
+
+% \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+
+\begin{document}
+
+\vglue 5\baselineskip
+\begin{flushleft}
+{\Large Moving Bodies with Overture and CG} \\
+\vspace{2\baselineskip}
+William D. Henshaw\footnote{This work was performed under the auspices of the U.S. Department of Energy (DOE) by
+Lawrence Livermore National Laboratory under Contract DE-AC52-07NA27344 and by 
+DOE contracts from the ASCR Applied Math Program.}  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+LLNL-SM-455792
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:} This article provides background and documentation for
+the use of moving bodies with Overture and the CG suite of partial differential
+equation solvers. The topics covered include
+\begin{description}
+  \item[rigid body motion] : a description of the equations governing the motion of rigid bodies (i.e. bodies that move
+     under the influence of external forces such as fluid forces and gravity) and documentation
+      for the {\tt RigidBodyMotion} class.
+  \item[matrix motion] : a description of the {\tt MatrixMotion} and {\tt TimeFunction} classes that can be used to
+         define complex specified motions by composing together elemenray motions such as rotations and translations. For example
+         one can define the motion of an airfoil that pitches (i.e. rotates) and plunges (i.e. translates
+       up and down). 
+  \item[light bodies] : a discussion of issues related to the coupling of fluid motion with ``light bodies''. 
+  \item[deforming bodies] : a description of the deforming body equations.
+\end{description}
+
+\end{flushleft}
+
+% ----------------------------------------------------
+\clearpage
+\tableofcontents
+
+
+\section{Introduction}\label{sec:intro}
+
+  This article provides background and documentation for the use of moving bodies with Overture and the CG suite
+of partial differential equation solvers. The topics covered include
+\begin{description}
+  \item[rigid body motion] : a description of the equations governing the motion of rigid bodies (i.e. bodies that move
+     under the influence of external forces such as fluid forces and gravity) and documentation
+      for the {\tt RigidBodyMotion} class.
+  \item[matrix motion] : a description of the {\tt MatrixMotion} and {\tt TimeFunction} classes that can be used to
+         define complex specified motions by composing together elemenray motions such as rotations and translations. For example
+         one can define the motion of an airfoil that pitches (i.e. rotates) and plunges (i.e. translates
+       up and down). 
+  \item[light bodies] : a discussion of issues related to the coupling of fluid motion with ``light bodies''. 
+  \item[deforming bodies] : a description of the deforming body equations.
+\end{description}
+
+Other documents of interest are the Cgins User Guide~\cite{CginsUserGuide}, the Cgins Reference Manual~\cite{CginsReferenceManual},
+as well as~\cite{mog2006}. 
+
+
+
+% --------------  rigid body motion -----------------
+\clearpage
+\input RigidBodyMotion
+
+
+% -------------- matrix motion -----------------
+\clearpage
+\input matrixMotion
+
+% -------------- light bodies -----------------
+\clearpage
+\input lightBodies
+
+% -------------- deforming bodies -----------------
+\clearpage
+\input deformingBodies
+
+%\clearpage
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{plain}
+\end{document}

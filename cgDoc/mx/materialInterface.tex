@@ -1,0 +1,286 @@
+\section{Boundary conditions at material interfaces in 2D}
+
+
+In this section we derive conditions at a material interface that can be used to
+implement higher-order accurate centered discretizations.
+
+
+Consider the two-dimensional problem 
+\begin{align}
+  \epsilon(x) u_t & = w_y \label{eq:u} \\
+  \epsilon(x) v_t &= -w_x \label{eq:v} \\
+   w_t &= u_y - v_x  \label{eq:w} \\
+  (\epsilon(x) u)_x + (\epsilon(x) v)_y &= 0 \label{eq:div}
+\end{align}
+The permitivity, $\epsilon(x)$ is assumed to be piecewise constant with a possible jump at $x=0$.
+We assume that the solution to these equations remains bounded.
+
+
+The above equations can be combined to show that the following second-order wave equations are satisfied,
+\begin{align}
+  \epsilon(x) u_{tt} & = \partial_x\big( {1\over\epsilon} (\epsilon u)_x\big) + u_{yy} \label{eq:uwave} \\
+  \epsilon(x) v_{tt} &= v_{xx} + v_{yy} - {\epsilon_x\over\epsilon} u_y  \label{eq:vwave} \\
+  \epsilon(x) w_{tt} &= w_{yy} + \epsilon \partial_x\big( {1\over\epsilon} w_x \big) \label{eq:wwave} 
+\end{align}
+
+
+
+
+Integrating equations~\eqref{eq:div}, \eqref{eq:w} and~\eqref{eq:v} 
+from $x=0_-$ to $x=0_+$ implies the first three interface conditions,
+\begin{align}
+     [ \epsilon u ] &=0   \\
+     [ v ] & = 0  \\
+     [ w ] & = 0 
+\end{align}
+Here $[v] = v(0_+,y,t) - v(0_-,y,t)$ is the jump in $v$ across the interface.
+Thus the tangential component of the electric field is continuous but the normal component may jump.
+
+
+In the next step, conditions on the first (normal) derivative, $u_x$, $v_x$ are obtained.
+We use the fact that if $[v]=0$ then the jump in any time derivatives is also zero, $[\partial_t^m v]=0$.
+\begin{align}
+     [ (\epsilon u)_x + (\epsilon(x) v_y) ] &=0 \qquad\mbox{(from equation~\eqref{eq:div})}  \\
+     [ v_x - u_y ] &= 0  \qquad\mbox{(from equation~\eqref{eq:w} with $[w_t]=0$ )}  \\
+     [ w_x/\epsilon ] & = 0 \qquad\mbox{(from equation~\eqref{eq:v} with $[v_t]=0$ )}
+\end{align}
+Note that we could also use $[ u_x + v_y ]=0$ since when $\epsilon$ is piecewise constant, $u_x+v_y=0$
+for $x\ne 0$. Also note that we write the divergence equation, $(\epsilon u)_x + (\epsilon(x) v_y=0$,
+as a jump condition even though the divergence is identically zero on either side. The reason for this
+will be explained later.
+
+
+The jump conditions for $u_{xx}$, $v_{xx}$ and $w_{xx}$ are
+\begin{align}
+     [ u_{xx} + u_{yy} ] &=0 \qquad\mbox{(from equation~\eqref{eq:uwave} with $[\epsilon u_{tt}]=0$ )}    \\
+     [ (v_{xx} + v_{yy})/\epsilon ] &= 0  \qquad\mbox{(from equation~\eqref{eq:vwave} with $[v_{tt}]=0$ )}  \\
+     [ (w_{xx} + w_{yy})/\epsilon ] &= 0  \qquad\mbox{(from equation~\eqref{eq:wwave} with $[w_{tt}]=0$ )}
+\end{align}
+Note that $[\partial_x\big( {1\over\epsilon} (\epsilon u)_x\big) + u_{yy}]=0$ implies $[ u_{xx} + u_{yy} ]=0$
+if $\epsilon$ is piecewise constant.
+
+
+The jump conditions for $u_{xxx}$, $v_{xxx}$ and $w_{xxx}$ are
+\begin{align}
+     [ \Delta u_x + \Delta v_y ] &=0 \qquad\mbox{(from equation~\eqref{eq:div})}  \\
+     [ (v_{xxx}+v_{xyy} - u_{xxy} - u_{yyy})/\epsilon ] &= 0  \qquad\mbox{(from $[ v_{xtt} - u_{ytt} ]=0$)} \\
+     [ (w_{xxx}+ w_{xyy})/\epsilon^2 ] & = 0 \qquad\mbox{(from $[ w_{xtt}/\epsilon ]=0$)} 
+\end{align}
+
+The fourth derivatives are obtained from
+\begin{align}
+     [ \Delta^2 u /\epsilon ] &=0 \qquad\mbox{(from equation~\eqref{eq:uwave} with $[\epsilon u_{tttt}]=0$ )}    \\
+     [ \Delta^2 v/\epsilon^2] &= 0  \qquad\mbox{(from equation~\eqref{eq:vwave} with $[v_{tttt}]=0$ )}  \\
+     [ \Delta^2 w/\epsilon^2] &= 0  \qquad\mbox{(from equation~\eqref{eq:wwave} with $[w_{tttt}]=0$ )}
+\end{align}
+
+
+In general, for $m=0,1,2,\ldots$ the jump conditions on the even derivatives $\partial_x^{2m}$ are
+\begin{align}
+     [ \Delta^m u /\epsilon^{m-1} ] &=0  \\
+     [ \Delta^m v/\epsilon^m] &= 0  \\
+     [ \Delta^m w/\epsilon^m] &= 0  
+\end{align}
+while the conditions on the odd derivatives are, for $m=0,1,2,\ldots$,
+\begin{align}
+     [ \Delta^m (u_x + v_y) ] &=0 \\
+     [ (\Delta^m (v_x - u_y))/\epsilon^m ] &= 0  \\
+     [ (\Delta^m w_{x})/\epsilon^{m+1} ] & = 0 
+\end{align}
+
+
+For a general interface oriented with normal $\nv$ and tangent $\tauv$, 
+the jump conditions will be, for $m=0,1,2,\ldots$,
+\begin{align}
+     [ \nv\cdot\Delta^m \uv /\epsilon^{m-1} ] &=0  \\
+     [ \tauv\cdot\Delta^m \uv/\epsilon^m] &= 0  \\
+     [ \Delta^m w/\epsilon^m] &= 0  
+\end{align}
+and 
+\begin{align}
+     [ \Delta^m(u_x + v_y) ] &=0 \\
+     [ (\Delta^m (v_x - u_y))/\epsilon^m ] &= 0  \\
+     [ (\Delta^m w_{n})/\epsilon^{m+1} ] & = 0 
+\end{align}
+
+\newcommand{\curl}{\grad\times}
+% \newcommand{\Div}{\grad\cdot}
+
+% *****************************************************************************************
+\clearpage
+\section{Boundary conditions at material interfaces in 3D}
+Consider the three-dimensional problem 
+\begin{align}
+  \epsilon(\xv) \Ev_t & = \curl \Hv \label{eq:E} \\
+  \mu(\xv) \Hv_t &= -\curl \Ev \label{eq:H} \\
+  \Div(\epsilon(\xv) \Ev) &=0 \label{eq:divE} \\
+  \Div(\mu(\xv) \Hv) &=0 \label{eq:divH}
+\end{align}
+The dielectric permittivity, $\epsilon$, and magnetic permeability, $\mu$ are
+assumed to be piecewise constant with a possible jump across a smooth interface ${\mathcal S}$,
+with normal $\nv(\xv)$.
+It is assumed that the solution to these equations remains bounded.
+Note that our assumptions of piecewise constant coefficients
+imply that on each side of the interface the electric and magnetic fields
+satisfy
+\begin{align}
+  \Ev_{tt} & = {1\over\epsilon\mu}\Delta\Ev \label{eq:Ett} \\
+  \Hv_{tt} & = {1\over\epsilon\mu}\Delta\Hv \label{eq:Htt}  \\
+  \Div\Ev &=0 \label{eq:divE2}  \\
+  \Div\Hv &=0 \label{eq:divH2}
+\end{align}
+% 
+The basic jump conditions at a material interface are 
+\begin{alignat}{3}
+  [ \epsilon \nv\cdot\Ev] & =0 &\qquad& [\mu \nv\cdot\Hv] =0   \label{eq:jumpN0}\\
+  [ \tau\cdot \Ev] &=0         &\qquad& [ \tau\cdot\Hv ] =0    \label{eq:jumpT0}
+\end{alignat}
+Here $\tau$ represents a tangent to the material interface. Since there are two linearly independent
+tangents, $\tau_m$, $m=1,2$, there will be two linear independent conditions
+$[\tau_m\cdot \Ev]=0$, $m=1,2$.
+% 
+Jump conditions on the first spatial 
+derivatives are obtained from the divergence relations~(\ref{eq:divE}-\ref{eq:divH})
+and equations~(\ref{eq:E}-\ref{eq:H}) combined with $[\tau\cdot \Ev_t] =0$, $[\tau\cdot\Hv_t]=0$,
+\begin{alignat}{3}
+  [ \Div(\Ev)] & =0               &\qquad& [\Div(\Hv)] =0  \\
+  [ \mu^{-1}\tau\cdot\curl\Ev] &=0    &\qquad& [ \epsilon^{-1}\tau\cdot\curl\Hv ] =0
+\end{alignat}
+Note that it is also true that $[ \Div(\epsilon \Ev)] =0$ (or indeed for any piecewise constant 
+$\nu$, it is true that $[ \Div(\nu \Ev)] =0$) .
+
+Jump conditions on the second spatial derivatives follow from taking two time derivatives
+of equations~(\ref{eq:jumpN0}-\ref{eq:jumpT0}), and using the vector wave equations (\ref{eq:Ett}-\ref{eq:Htt})
+to replace the time derivatives by space derivatives,
+\begin{alignat}{3}
+  [ \epsilon\nv\cdot\Delta \Ev/(\epsilon\mu)] & =0 
+       &\qquad& [\mu \nv\cdot\Delta\Hv/(\epsilon\mu)] =0   \label{eq:jumpN2}\\
+  [ \tau\cdot\Delta \Ev/(\mu\epsilon)] &=0 &\qquad& [ \tau\cdot\Delta\Hv/(\mu\epsilon) ] =0    \label{eq:jumpT2}
+\end{alignat}
+% 
+By continuing to take time derivatives it follows that for $m=0,1,2,3,\ldots$, 
+\begin{alignat}{3}
+  [ \epsilon\nv\cdot\Delta^m \Ev/(\epsilon\mu)^m] & =0  
+          &\qquad& [\mu \nv\cdot\Delta^m\Hv/(\epsilon\mu)^m] =0 \label{eq:jumpNm}\\
+  [ \tau\cdot\Delta^m \Ev/(\mu\epsilon)^m] &=0 
+          &\qquad& [ \tau\cdot\Delta^m\Hv/(\mu\epsilon)^m ] =0    \label{eq:jumpTm} \\
+  [ \Div(\Delta^m\Ev)] & =0               &\qquad& [\Div(\Delta^m\Hv)] =0  \\
+  [ \mu^{-1}\tau\cdot\curl\Delta^m\Ev/(\mu\epsilon)^m] &=0    
+          &\qquad& [ \epsilon^{-1}\tau\cdot\curl\Delta^m\Hv/(\mu\epsilon)^m ] =0  \label{eq:jumpTmII}
+\end{alignat}
+These interface jump conditions impose conditions for each spatial derivative of the solution.
+
+Another way to write the jump conditions~\eqref{eq:jumpNm} through ~\eqref{eq:jumpTmII} that
+doesn't involve the tangent vectors $\tauv$ is as 
+\begin{align}
+  \Big[ \big(\Ev  + ( (\epsilon-1) \nv\cdot\Ev )~\nv\big)/(\epsilon\mu)^m \Big] &=0, \\
+  \Big[ \big(\mu^{-1}(\curl\Delta^m\Ev - (\nv\cdot \curl\Delta^m\Ev)~\nv)
+             + \Div(\Delta^m\Ev)~\nv  \big)/(\epsilon\mu)^m \Big] &=0,
+\end{align}
+and 
+\begin{align}
+  \Big[ \big(\Hv  + ( (\mu-1) \nv\cdot\Hv )~\nv\big)/(\epsilon\mu)^m \Big] &=0 , \\
+  \Big[ \big(\epsilon^{-1}(\curl\Delta^m\Hv - (\nv\cdot \curl\Delta^m\Hv)~\nv )
+             + \Div(\Delta^m\Hv)~\nv  \big)/(\epsilon\mu)^m \Big] &=0 ~.
+\end{align}
+The former equations follow by taking the dot product of the above equations with $\nv$ or $\tauv$. 
+This latter form may be convenient for discretizing the equations since there is no
+need to define tangent vectors. 
+
+\subsection{Discrete boundary conditions for material interfaces}
+
+
+The material interface is assumed to lie along the boundary between two grids
+as shown in figure ...
+
+
+All discrete approximations impose the basic interface condition
+\begin{align*}
+    [\epsilon \nv\cdot\Ev]&=0 \\
+    [\tauv\cdot\Ev]&=0 
+\end{align*}
+
+
+
+
+A second-order accurate approximation will use one ghost line on each side of the interface.
+The values of $\Ev$ at these two ghost line values are determined by imposing the following
+conditions:
+\begin{align*}
+    [ \grad_{2h}\cdot(\Ev)] & =0 \\
+    [ \mu^{-1}\tau\cdot\grad_{2h}\times\Ev] &=0 \\
+    [ \epsilon\nv\cdot\Delta_{2h} \Ev/(\epsilon\mu)] & =0 \\
+    [ \tau\cdot\Delta_{2h} \Ev/(\mu\epsilon)] &=0 
+\end{align*}
+Here $\Div_{2h}$, $\curl_{2h}$, and $\Delta_{2h}$ are second-order accurate centered difference
+approximations.
+
+
+A fourth-order accurate approximation will use two ghost lines on each side of the interface.
+The values at the ghost points can be determined using fourth-order accurate approximations
+to the interface conditions for the first and second derivatives 
+\begin{align*}
+    [ \grad_{4h}\cdot(\Ev)] & =0 \\
+    [ \mu^{-1}\tau\cdot\grad_{2h}\times\Ev] &=0 \\
+    [ \epsilon\nv\cdot\Delta_{2h} \Ev/(\epsilon\mu)] & =0 \\
+    [ \tau\cdot\Delta_{2h} \Ev/(\mu\epsilon)] &=0 
+\end{align*}
+together with second-order accurate approximations to the interface conditions for the
+third and fourth derivatives,
+\begin{align*}
+    [ (\Div\Delta)_{2h}(\Ev)] & =0 \\
+    [ \mu^{-1} \tau\cdot(\curl\Delta)_{2h}\Ev/(\epsilon\mu)] &=0 \\
+    [ \epsilon \nv\cdot(\Delta^2)_{2h} \Ev/(\epsilon\mu)^2 ] & =0 \\
+    [ \tau \cdot(\Delta^2)_{2h} \Ev/(\epsilon\mu)^2] &=0 
+\end{align*}
+
+
+% *********************************************************************************************
+\clearpage
+\subsection{Reflection and Transmission for a planar material interface}
+
+
+Consider an interface at $x=0$ between two materials.
+Assume that for $x<0$, $\eps=\eps_1$ and $c=c_1=\eps_1^{-1/2}$ while for $x>0$ 
+$\eps=\eps_2$ and $c=c_2=\eps_2^{-1/2}$.
+For an incident plane wave
+of the form
+\begin{align*}
+     \uv^I &= \av e^{ i (\kv\cdot\xv - \omega t)} \\
+      \av &= (-k_2,k_1)/\| \kv \| \qquad\mbox{(since $\grad\cdot\uv=0$)}
+\end{align*}
+the solution will consist of a reflected wave and refracted (transmitted) wave in addition to the incident wave.
+The solution is given by
+\begin{align*}
+  \uv(\xv,t) &= \av e^{ i (k_1 x + k_2 y - \omega t) } + R \bv e^{ i (-k_1 x + k_2 y - \omega t)} 
+                                                                     \qquad\mbox{for $x<0$} \\
+             &= \tau \dv e^{ i (\kappa_1 x + \kappa_2 y - \omega t)} \qquad\mbox{for $x>0$}
+\end{align*}
+where $R$ is the reflection coefficient, $\tau$ is the transmission coefficient and 
+where $\bv=(-k_2,-k_1)/\| \kv \| $ and $\dv=(-\kappa_2,\kappa_1)/\| \kappav \|$.
+
+We have the conditions, $[\eps u]=0$, $[v]=0$ and $\omega=c_1 \|\kv\|=c_2\|\kappav\|$.
+These imply that ** check these**
+\begin{align*}
+   \kappa_2 &= k_2 \\
+   \kappa_1 &= \sqrt{ (c_1/c_2)^2 (k_1^2+k_2^2) - k_2^2 } \\
+   \tau &= { 2 c_2 \cos(\theta_1) \over c_2 \cos(\theta_2) + c_1 \cos(\theta_1) } \\
+   R &= { c_1 \cos(\theta_1) - c_2 \cos(\theta_2) \over c_2 \cos(\theta_2) + c_1 \cos(\theta_1) } \\
+   \cos(\theta_1) & = k_1/\|\kv\| \qquad\mbox{($\theta_1$ is the angle of incidence)} \\
+  \cos(\theta_2) & = \kappa_1/\|\kappav\| \qquad\mbox{($\theta_2$ is the angle of reflection)} \\
+   \sin(\theta_1)/c_1 &= \sin(\theta_2)/c_2 \qquad\mbox{(Snell's law, from $\kappa_2 = k_2$)}
+\end{align*}  
+
+
+Note that when
+\[
+     {k_1^2\over k_2^2} < \left({c_2\over c_1}\right)^2 - 1 
+\]
+then $\kappa_1$ is imaginary. This corresponds to total internal reflection.
+This solution is still valid (check this!) provided we take the branch 
+of the square root with $Im(\kappa_1)\ge 0$. The solution has an evanescent wave that decays
+exponentially into the second region. If we take  $\kappa_1=i\alpha$ with $\alpha\ge 0$
+then the refracted wave is 
+\begin{align*}
+  \uv(\xv,t) &= \tau \dv e^{-\alpha x} e^{ i (\kappa_2 y - \omega t)} \qquad\mbox{for $x>0$}
+\end{align*}

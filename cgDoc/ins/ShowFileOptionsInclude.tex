@@ -1,0 +1,23 @@
+
+ 
+\newlength{\ShowFileOptionsIncludeArgIndent}
+
+ \begin{description} \index{show file!options}
+  \item[open] : open a new show file.
+  \item[close] : close any open show file.
+  \item[show file variables] : specify extra derived quantities, such as the divergence or vorticity, that
+      should be saved in the show file in addition to the standard variables.
+  \item[frequency to save] : By default the solution is saved in the show file
+          as often as it is plotted according to {\tt 'times to plot'}. To save the solution less
+          often set this integer value to be greater than 1. A value of 2 for example will save solutions
+          every 2nd time the solution is plot.
+  \item[frequency to flush] : Save this many solutions in each show file so that multiple
+        show files will be created (these are automatically handled by plotStuff). See section~(\ref{sec:flush})
+        for why you might do this.  
+  \item[properties]: \ 
+    \begin{description}
+    \item[uncompressed] : save the show file uncompressed. This is a more portable format
+     that can be read by newer versions of Overture.
+    \item[compressed] : save the show file compressed. This is a less portable format.
+   \end{description}
+ \end{description}

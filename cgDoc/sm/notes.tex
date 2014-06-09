@@ -1,0 +1,443 @@
+%
+%  Solid Mechanics - Notes 
+%
+\documentclass[11pt]{article} 
+\usepackage[bookmarks=true]{hyperref}  
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+\usepackage{calc}
+
+% set the page width and height for the paper 
+\setlength{\textwidth}{7in}  
+% \setlength{\textwidth}{6.5in}  
+% \setlength{\textwidth}{6.25in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1.in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .5in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1.25in  }
+
+
+\input homeHenshaw
+
+
+% --------------------------------------------
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+% or use the epsfig package if you prefer to use the old commands
+\usepackage{epsfig}
+\usepackage{calc}
+\input clipFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+\newcommand{\kappav}{\boldsymbol{\kappa}}
+\newcommand{\xiv}{\boldsymbol{\xi}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ec}{{\mathcal E}}
+
+\newcommand{\mw}{W}  % molecular weight
+\newcommand{\mwBar}{\overline{W}}  % molecular weight of the mixture
+\newcommand{\Dc}{\mathcal{D}}
+
+\newcommand{\rate}{{\rm rate}}
+\newcommand{\tableFont}{\footnotesize}% font size for tables
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+% tell TeX that is ok to have more floats/tables at the top, bottom and total
+\setcounter{bottomnumber}{5} % default 2
+\setcounter{topnumber}{5}    % default 1 
+\setcounter{totalnumber}{10}  % default 3
+\renewcommand{\textfraction}{.001}  % default .2
+
+\begin{document}
+ 
+\title{Notes on Solving the Equations of Solid Mechanics}
+
+\author{
+Bill Henshaw \\
+\  \\
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov }
+ 
+\maketitle
+
+\tableofcontents
+
+\section{Nomenclature}
+\begin{align}
+  \rho & \qquad \mbox{density} \\
+  u_i & \qquad \mbox{displacement vector} \\
+  \epsilon_{ij} & \qquad \mbox{strain tensor} \\
+%   \omega_{ij} & \qquad \mbox{rotation tensor} \\
+  \tau_{ij} & \qquad \mbox{stress tensor} \\
+  \lambda & \qquad \mbox{shear modulus, Lam\'e constant} \\
+  \mu & \qquad \mbox{Lam\'e constant}
+\end{align}
+
+
+
+% ------------------------------------------------------------------------
+\clearpage 
+\section{Introduction and Governing Equations}
+
+The equations of linear elasticity for a homogeneous isotropic material are governed by
+\begin{align}
+  \rho \partial_t^2 u_i &= \partial_{x_j} \tau_{ij} + \rho f_i \\
+  \tau_{ij} &= \lambda \partial_{x_k} u_k \delta_{ij} + 2 \mu \epsilon_{ij} \\
+  \epsilon_{ij} &= \half( \partial_{x_j} u_i + \partial_{x_i} u_j )
+\end{align}
+
+
+In two-dimensions,
+\begin{align}
+  \rho \partial_t^2 u &= \partial_x( \lambda( \partial_x u + \partial_y v) + 2\mu \partial_x u ) 
+                        +\partial_y( \mu( \partial_x v + \partial_y u )) \\
+   \rho \partial_t^2 v &= \partial_x( \mu( \partial_x v + \partial_y u )) 
+                        +\partial_y( \lambda( \partial_x u + \partial_y v) + 2\mu \partial_y v ) 
+\end{align}
+or
+\begin{align}
+  \rho \partial_t^2 u &= \partial_x( (\lambda+ 2\mu) \partial_x u) + \partial_x(\lambda\partial_y v)  
+                        +\partial_y( \mu \partial_x v)  +\partial_y( \mu \partial_y u )) \\
+   \rho \partial_t^2 v &= \partial_x( \mu\partial_x v) + \partial_x( \mu\partial_y u )) 
+                        +\partial_y( \lambda \partial_x u) +\partial_y( (\lambda+2\mu) \partial_y v ) 
+\end{align}
+
+
+
+
+
+For constant $\mu$ and $\lambda$ the equations become: 
+\begin{align}
+  \rho \partial_t^2 u_i &= (\lambda+\mu) \partial_{x_i} \partial_{x_k} u_k + \mu \partial_{x_k}^2 u_i  +\rho f_i \\
+  \rho \uv_{tt} &= (\lambda+\mu) \grad(\grad\cdot\uv) + \mu \Delta \uv + \rho \fv 
+\end{align}
+If the dilatation and curl are denoted by
+\begin{align}
+  \delta &= \grad\cdot\uv , \\
+  \omegav &= \grad\times\uv
+\end{align}
+then
+\begin{align}
+  \rho \delta_{tt} &= (\lambda+2\mu) \Delta \delta +\rho\grad\cdot\fv \\
+  \rho \omega_{tt} &= \mu \Delta \omegav + \rho \grad\times\fv 
+\end{align}
+
+
+% ===================================================================================================
+\subsection{Boundary conditions}
+
+% ---------------------------------------
+\subsection{Displacement boundary condition}
+A {\em displacement} boundary condition is one where the displacements are specified
+% is said to be {\em clamped} if the points on the boundary do not move
+\begin{alignat}{2}
+  \uv &= \gv(\xv,t) &&\qquad \xv\in\partial\Omega
+\end{alignat}
+If $\gv(\xv,t)=0$, the boundary is said to be {\em clamped}.
+
+% ---------------------------------------
+\subsection{Traction boundary condition}
+Stress or {\em traction} boundary conditions are
+\begin{alignat}{2}
+  \nv\cdot\tauv &= \gv(\xv,t) &&\qquad \xv\in\partial\Omega
+\end{alignat}
+or
+\begin{align}
+   \lambda (\grad\cdot\uv) n_i + \mu n_j[ u_{j,i} + u_{i,j} ] &= g_i 
+\end{align}
+or 
+\begin{align}
+  \begin{bmatrix} n_1 & n_2 & n_3 \end{bmatrix}
+     \begin{bmatrix} 
+        \lambda \grad\cdot\uv +2\mu u_x  & \mu(u_y+v_x) & \mu(u_z+w_x) \\
+        \mu(u_y+v_x) &  \lambda \grad\cdot\uv +2\mu v_y  & \mu(v_z+w_y) \\
+        \mu(u_z+w_x) & \mu(v_z+w_y) & \lambda \grad\cdot\uv +2\mu w_z   
+     \end{bmatrix} 
+   = 
+     \begin{bmatrix} g_1 \\ g_2 \\ g_3 \end{bmatrix} \label{eq:tractionBC}
+\end{align}
+
+For a straight wall at $x=0$ this becomes
+\begin{align}
+   u_x &= - {\lambda\over \lambda+2\mu} (v_y + w_z) + {n_1 \over \lambda+2\mu} g_1 \\
+   v_x &= - u_y + {n_1 \over \mu} g_2 \\
+   w_x &= -u_z + {n_1 \over \mu} g_3
+%   \alpha &\equiv {\lambda\over \lambda+2\mu}
+\end{align}
+For a straight wall at $y=0$, 
+\begin{align}
+   u_y &= -v_x + {n_2 \over \mu} g_1 \\
+   v_y &= - {\lambda\over \lambda+2\mu} (u_x + w_z)  + {n_2 \over \lambda+2\mu} g_2 \\
+   w_y &= -v_z + {n_2 \over \mu} g_3
+\end{align}
+For a straight wall at $z=0$, 
+\begin{align}
+   u_z &= -w_x + {n_1 \over \mu} g_1 \\
+   v_z &= -w_y + {n_2 \over \mu} g_2 \\
+   w_z &= - {\lambda\over \lambda+2\mu} (u_x + v_y ) + {n_3 \over \lambda+2\mu} g_3
+\end{align}
+
+\subsection{Slip-wall boundary condition}
+
+The slip-wall boundary condition imposes the normal-component of the displacement to
+be zero and the tangential component of the traction to be zero: 
+\begin{align}
+  \nv\cdot\uv &=0 ,  \label{eq:slipWallA} \\ 
+  \nv\cdot\tauv\cdot\hat{\tv}_m &= 0~.\label{eq:slipWallB}
+\end{align}
+Here $\hat{\tv}_m$, $m=1,2$ are the tangent vectors. 
+This can also be written as the vector equations (*check this*)
+\begin{align}
+   (\nv\cdot\uv)~\nv + \nv\cdot\tauv\times\nv &= 0 \label{eq:slipWallVector}
+\end{align}
+Note that taking the dot product of $\nv$ with~\eqref{eq:slipWallVector} gives~\eqref{eq:slipWallA}
+and taking cross-product of $\nv$ with~\eqref{eq:slipWallVector} gives~\eqref{eq:slipWallB}. 
+To see this recall $\av\times(\bv\times\cv)=\bv(\av\cdot\cv)-\bv(\av\cdot\bv)$ so that
+taking $\nv\times$ equation~\eqref{eq:slipWallVector} gives 
+\begin{align*}
+   \nv\times(\gv\times\nv) &= \gv - (\nv\cdot\gv)\nv 
+\end{align*}
+where $\gv=\nv\cdot\tauv$ is the traction vector. 
+This may be a convenient form since there is no need to explicitly form the tangent vectors. 
+
+% ==================================================================================
+\clearpage
+\subsection{Corner compatibility conditions}
+
+Corner compatibility conditions are used to derive discrete boundary conditions for the
+ghost points near the corners.
+
+% ------------------------------------
+\subsubsection{Traction-Traction corner} \label{sec:tractionTractionCorner}
+
+
+Consider a 2D rectangular domain with a traction-traction corner at $\xv=0$,
+\begin{align}
+   u_x(0,y) &= - \alpha v_y(0,y) \\
+   v_x(0,y) &= - u_y(0,y) \\
+   u_y(x,0) &= -v_x(x,0) \\
+   v_y(x,0) &= - \alpha u_x(x,0)  \\
+   u_{tt}(x,y) &= (\lambda+\mu)(u_{xx} + v_{xy}) + \mu(u_{xx} + u_{yy}) \label{eq:utt} \\
+   v_{tt}(x,y) &= (\lambda+\mu)(u_{xy} + v_{yy}) + \mu(v_{xx} + v_{yy}) \label{eq:vtt} 
+\end{align}
+
+By using the above expressions and their derivatives, it follows that at the corner
+\begin{align}
+   u_x(0,0) &= - \alpha v_y(0,0) \\
+   v_y(0,0) &= - \alpha u_x(0,0) \\
+   u_{yy}(0,0) &= - v_{xy}(0,0) = \alpha u_{xx}(0,0) \\
+   v_{xx}(0,0)&=-u_{xy}(0,0) = \alpha v_{yy}(0,0) 
+\end{align}
+which implies 
+\begin{align}
+   u_x(0,0) &=0 \\
+   v_y(0,0) &=0 \\
+   u_{yy}(0,0) &= \alpha u_{xx}(0,0) \\
+   v_{xx}(0,0) &= \alpha v_{yy}(0,0) 
+\end{align}
+
+From $u_x(0,0,t)=0$, $v_y(0,0,t)=0$, ~\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{xtt}(0,0) &= (\lambda+\mu)(u_{xxx} + v_{xxy}) + \mu(u_{xxx} + u_{xyy}) =0 \\
+   v_{ytt}(0,0) &= (\lambda+\mu)(u_{xyy} + v_{yyy}) + \mu(v_{xxy} + v_{yyy}) =0
+\end{align}
+or
+\begin{align}
+   (\lambda+2\mu)u_{xxx}(0,0) &= -(\lambda+\mu)v_{xxy} - \mu u_{xyy} \\
+                         &= \alpha(\lambda+\mu)u_{xxx} +\alpha\mu v_{yyy} \\
+   (\lambda+2\mu)v_{yyy}(0,0) &= -(\lambda+\mu)u_{xyy}+\mu v_{xxy} \\
+                         &= \alpha(\lambda+\mu)v_{yyy} + \alpha \mu u_{xxx}
+\end{align}
+which implies
+\begin{align}
+   u_{xxx}(0,0) &=0 \\
+   v_{yyy}(0,0) &=0 
+\end{align}
+
+From $u_x(0,0,t)=0$, $v_y(0,0,t)=0$, ~\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{xtt}(0,0) &= (\lambda+\mu)(u_{xxx} + v_{xxy}) + \mu(u_{xxx} + u_{xyy}) =0 \\
+   v_{ytt}(0,0) &= (\lambda+\mu)(u_{xyy} + v_{yyy}) + \mu(v_{xxy} + v_{yyy}) =0
+\end{align}
+
+
+From $u_{yy}(0,0,t)=\alpha u_{xx}(0,0)$, $v_{xx}(0,0,t) = \alpha v_{yy}(0,0,t)$,
+\eqref{eq:utt} and~\eqref{eq:vtt} it follows that
+\begin{align}
+   u_{yytt}(x,y)-\alpha u_{xx} &= (\lambda+\mu)(u_{xxyy} + v_{xyyy}) + \mu(u_{xxyy} + u_{yyyy}) \\
+               & -\alpha\Big( (\lambda+\mu)(u_{xxxx} + v_{xxxy}) + \mu(u_{xxxx} + u_{xxyy}) \Big) 
+\end{align}
+
+
+% ------------------------------------
+\newcommand{\dx}{{\Delta x}}
+\newcommand{\dy}{{\Delta y}}
+\subsubsection{Slip-wall traction corner} \label{sec:slipWallTractionCorner}
+
+Consider a 2D rectangular domain with a vertical slip-wall ($x=0$) next to a horizontal traction wall ($y=0$) and 
+a corner at $\xv=0$.
+The equations in 2D are: 
+\begin{align}
+  \rho u_{tt} &= \partial_x \sigma_{11} + \partial_y \sigma_{12},  \label{eq:uEqn} \\
+  \rho v_{tt} &= \partial_x \sigma_{21} + \partial_y \sigma_{22},  \label{eq:vEqn} \\
+     \begin{bmatrix} 
+        \sigma_{11} & \sigma_{12}  \\
+        \sigma_{21} & \sigma_{22} 
+     \end{bmatrix} 
+&= 
+     \begin{bmatrix} 
+        \alpha u_x +\lambda v_y          & \mu(u_y+v_x)  \\
+        \mu(u_y+v_x) &   \alpha v_y +\lambda u_x 
+     \end{bmatrix} 
+\end{align}
+where $\alpha=\lambda+2\mu$. We will assume that $\sigma_{12}=\sigma_{21}$. 
+ The boundary conditions are 
+\begin{align}
+   u(0,y) &= 0,                 \qquad \text{(slip wall)} \label{eq:Slip1} \\ 
+   v_x(0,y) &=0,                \qquad \text{(slip wall, $\sigma_{12}=0$)} \label{eq:Slip2} \\
+   u_y(x,0) &= -v_x(x,0) ,      \qquad \text{(traction, $\sigma_{21}=0$)}  \label{eq:Traction1}  \\
+  \alpha v_y(x,0) &= -\lambda u_x(x,0),  \qquad \text{(traction, $\sigma_{22}=0$)}   \label{eq:Traction2}  
+\end{align}
+These equations provide relations between the first derivatives at the corner. 
+% 
+From these equations we can determine relations between the second derivatives at the corner
+\begin{align}
+   u_{yy}(0,0) &= 0 , \qquad \text{(from $\partial_y^2$ of \eqref{eq:Slip1})} \\
+   u_{xy}(0,0) &= -v_{xx}(0,0) , \qquad \text{(from $\partial_x$ of \eqref{eq:Traction1})}  \label{eq:SlipTractionXY} \\ 
+   v_{xy}(0,0) &=0,            \qquad \text{(from $\partial_y$ of \eqref{eq:Slip2})}  \\
+   u_{xx}(0,0) &=0,    \qquad \text{(from $\partial_x$ of \eqref{eq:Traction2} and $v_{xy}(0,0)=0$)}
+\end{align}
+Suppose we have discretized the problem and we need to determine values the solution at the
+ghost points $\uv(-\dx,0)$, $\uv(0,-\dy)$ and $\uv(-\dx,-\dy)$ (what we write will also apply to $\uv(-2\dx,0)$, etc.)
+We can first determine the ghost values on the extended boundaries:
+\begin{align}
+  u(-\dx,0) & = 2u(0,0)-u(\dx,0) ,  \qquad \text{(from $u_{xx}(0,0) =0$)} \label{eq:slipTracion1} \\
+  v(-\dx,0) & = v(\dx,0) ,  \qquad \text{(from $v_{x}(0,0) =0$)} \\
+  u(0,-\dy) & = 0 , \qquad \text{(from $u(0,y) = 0$)} \\
+  v(0,-\dy) &= v(0,\dy) + (2\dy) (\lambda/\alpha) u_x(0,0)  ,  \qquad \text{(from $\alpha v_y(0,0)+\lambda u_x(0,0)=0$)}
+              \label{eq:slipTracion4}
+\end{align}
+where for the last equation we use $u_x(0,0)=(u(\dx,0)-u(-\dx,0))/(2\dx)$, using the value for $u(-\dx,0)$ that
+we have just computed from~\eqref{eq:slipTracion1} . 
+For the corner ghost points $\uv(-\dx,-\dy)$ we use Taylor series, 
+\begin{align}
+  \uv(-\dx,-\dy) & = \uv(0,0) -\dx~\uv_x(0,0) -\dy~ \uv_y(0,0) + \\
+               & (\dx^2/2)~ \uv_{xx}(0,0) + \dx\dy~ \uv_{xy}(0,0) + (\dy^2/2)~ \uv_{yy}(0,0) + O(\dx^3+\dy^3) 
+\end{align}
+and thus we can evaluate the corner ghost points from 
+\begin{align}
+  u(-\dx,-\dy) & \approx u(0,0) -\dx~ u_x(0,0) - \dx\dy~ v_{xx}(0,0),   \\
+  v(-\dx,-\dy) & \approx v(0,0) -\dy~ v_y(0,0) + (\dx^2/2) v_{xx}(0,0) + (\dy^2/2) v_{yy}(0,0),
+\end{align}
+where in these last expressions we discretize the terms on the RHS using central differences such
+as $u_x(0,0)=(u(\dx,0)-u(-\dx,0))/(2\dx)$, etc. and we use the values computed from~\eqref{eq:slipTracion1}-\eqref{eq:slipTracion4}.
+Note that we can use the Taylor series expression to also compute $\uv(-2\dx,-\dy)$, $\uv(-\dx,-2\dy)$ etc. 
+
+Now consider computation of the stress on the ghost points.
+Given the values for $(u,v)$ that we have determined above 
+we can then compute numerical approximations to $\sigmav(0,0)$, $\partial_x \sigmav(0,0)$ and $\partial_y\sigmav(0,0)$ from:
+\begin{align}
+ \partial_x \sigma_{11}(0,0) &=  \alpha u_{xx} +\lambda v_{xy} = 0 \\
+ \partial_y \sigma_{11}(0,0) &=  \alpha u_{xy} +\lambda v_{yy} = -\alpha v_{xx} +\lambda v_{yy}  \\
+ \partial_x \sigma_{22}(0,0) &=  \alpha v_{xy} +\lambda u_{xx} = 0 \\
+ \partial_y \sigma_{22}(0,0) &=  \alpha v_{yy} +\lambda u_{xy} =\alpha v_{yy} -\lambda v_{xx}  \\
+ \partial_x \sigma_{12}(0,0) &=  \mu( u_{xy} + v_{xx} ) = 0 \\
+ \partial_y \sigma_{12}(0,0) &=  \mu( u_{yy} + v_{xy} ) = 0 
+\end{align} 
+From these above expressions we can compute $\sigmav(-\dx,0)$ and $\sigmav(0,-\dy)$. For example
+\begin{align}
+  \sigma_{11}(-\dx,0) &= \sigma_{11}(\dx,0) , \\
+   \sigma_{22}(0,-\dy) &= \sigma_{22}(0,\dy) - (2\dy)( \alpha v_{yy}(0,0) -\lambda v_{xx} (0,0)) . 
+\end{align} 
+We can also say something about the mixed second derivatives of $\sigmav$:
+\begin{align}
+  \partial_x \partial_y \sigma_{11}(0,0) &= 0 , \qquad\text{(from $\partial_y$ of \eqref{eq:uEqn})} \\
+  \partial_x \partial_y \sigma_{22}(0,0) &= 0 , \qquad\text{(from $\partial_x$ of \eqref{eq:vEqn})} \\
+  (\lambda+\alpha) \partial_x \partial_y \sigma_{12}(0,0) &= -\lambda\partial_x^2\sigma_{11}(0,0)
+                              - \alpha \partial_y^2 \sigma_{22}(0,0) , 
+              \qquad\text{(from $\partial_t^2$ of $\alpha v_y +\lambda u_x=0$)} .
+\end{align} 
+From Taylor series, 
+\begin{align}
+  \sigmav(-\dx,-\dy) & \approx \sigmav(0,0) -\dx~\sigmav_x(0,0) -\dy~ \sigmav_y(0,0) + \\
+               & (\dx^2/2)~ \sigmav_{xx}(0,0) + \dx\dy~ \sigmav_{xy}(0,0) + (\dy^2/2)~ \sigmav_{yy}(0,0) ,
+\end{align}
+and we can use this expression to compute $\sigmav(-\dx,-\dy)$ since we can compute approximations
+to all the second derivatives of $\sigmav$. 
+
+
+
+% ======================================================================================================
+\input invariants
+
+% =====================================================================================================
+\clearpage
+\input traveling
+
+% ======================================================================================================
+\clearpage
+\input RayleighWave
+
+
+% ======================================================================================================
+\clearpage
+\input exactSolutions
+
+% ======================================================================================================
+\clearpage
+\input tz.tex
+
+% ======================================================================================================
+\clearpage
+\input energyEstimates
+
+% ======================================================================================================
+\clearpage
+\input beams
+
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\end{document}

@@ -1,0 +1,114 @@
+\subsection{Axisymmetric Problems}
+
+Here I describe the equations that are solved for \Index{axisymmetric} problems.
+
+Let the cylindrical coordinates be $(x,r,\theta)$ where $x$ is the axial variable,
+$r$ the radial variable and $\theta$ is the azimuthal angle
+about the axis $r=0$. Let the velocity be $\uv = U \hat{\xv} + V \hat{\rv} + W \hat{\thetav}$
+where $(U,V,W)$ are the components of axial, radial and azimuthal velocities and $(\hat{\xv},\hat{\rv},\hat{\thetav})$
+are the three unit vectors in the coordinate directions.
+
+In cylindrical coordinates we have the general relations
+\begin{align*}
+\Fv &= \hat{\xv} F^x + \hat{\rv} F^r + \hat{\thetav} F^\theta \\
+\grad V &= \hat{\xv} V_x + \hat{\rv} V_r + {\hat{\thetav}\over r} V_\theta \\
+\nv\cdot\grad \Fv &= \hat{\xv}( \nv\cdot\grad F^x ) + \hat{\rv}( \nv\cdot\grad F^r - {n^\theta F^\theta\over r})
+                 + \hat{\thetav}( \nv\cdot\grad F^\theta + {n^\theta F^r\over r}) \\
+\grad\cdot\Fv &= F^x_x + {1\over r}(rF^r)_r + {1\over r} F^\theta_\theta \\
+\Delta V &= V_{xx} + {1\over r}(rV_r)_r + {1\over r^2} V_{\theta\theta} \\
+\Delta \Fv &= \hat{\xv}( \Delta F^x ) + \hat{\rv}( \Delta F^r - {F^r\over r^2} - {2\over r^2} F^\theta_\theta)
+          + \hat{\thetav}( \Delta F^\theta + {2\over r^2} F^r_\theta - {F^\theta \over r^2} ) \\
+\grad\times\Fv &= \hat{\xv}( {1\over r} (rF^\theta)_r -{1\over r} F^r_\theta) +
+                  \hat{\rv}({1\over r} F^x_\theta - F^\theta_x) +
+                   \hat{\thetav}( F^r_x - F^x_r)
+\end{align*}
+
+The incompressible Navier-Stokes equations in cylindrical coordinates are (see Batchelor)
+\begin{align*}
+  U_t + U U_x + V U_r + {W \over r} U_\theta + p_x & = \nu( U_{xx} + {1\over r}( r U_r)_r +
+         {1\over r^2} U_{\theta\theta} ) \\
+  V_t + U V_x + V V_r + {W \over r} V_\theta -{ W^2\over r}  + p_r & = 
+         \nu( V_{xx} + {1\over r}( r V_r)_r +
+         {1\over r^2} V_{\theta\theta} - {V\over r^2} - {2\over r^2} W_\theta ) \\
+  W_t + U W_x + V W_r + {W \over r} W_\theta + {V W \over r} + {1\over r}p_\theta 
+     & = \nu( W_{xx} + {1\over r}( r  W_r)_r +
+         {1\over r^2} W_{\theta\theta} -{W\over r^2} + {2\over r^2} V_\theta ) \\
+  U_x + {1\over r}(r V)_r + {1\over r} W_{\theta\theta} &=0
+\end{align*}
+For axisymmetric problems with no swirl,  $W=0$ and all derivatives with respect to $\theta$ are zero,
+\begin{align}
+  U_t + U U_x + V U_r + p_x & = \nu( U_{xx} + {1\over r}( r U_r)_r \\
+  V_t + U V_x + V V_r + p_r & = \nu( V_{xx} + {1\over r}( r V_r)_r - {V\over r^2} )\\
+  U_x + {1\over r}(r V)_r  &=0  \label{divAxisymmetric} 
+\end{align}
+The divergence of the advection terms is
+\begin{align*}
+\grad\cdot (  U U_x + V U_r,  U V_x + V V_r ) &= (U U_x + V U_r)_x +{1\over r}[r( U V_x + V V_r)]_r \\
+             &= U_x^2 +2 V_x U_r + V_r^2 + U\{ (U_x)_x +{1\over r}[r( V_x )_r]  \}
+                + V\{ (U_r)_x +{1\over r}[r(V_r)]_r \} \\
+             &= U_x^2 +2 V_x U_r + V_r^2 + U (\grad\cdot\Uv)_x + V (\grad\cdot\Uv)_r 
+\end{align*}
+and thus pressure equation becomes
+\[
+  p_{xx} + {1\over r}( r p_r)_r = U_x^2 + 2 V_x U_r + V_r^2
+\]
+The boundary conditions on the axis of symmetry are (Note that although the normal component of the 
+velocity usually has even symmetry, $V = \Uv\cdot\hat{r}$ will have even symmetry at $r=0$ since $\hat{r}$ flips sign as we 
+cross the axis)
+\begin{align*}
+   U_r(x,0)&=0  \\
+  V(x,0) &=0 \comma V_{r}(x,0) = 0 \\
+  p_r(x,0) &= 0 
+\end{align*}
+In general all odd derivatives of $\Uv$ and $p$ with respect to $r$ will be zero at $r=0$.
+
+Note that for $r$ small, 
+\begin{align*}
+{1\over r}( r V_r)_r - {V\over r^2} &= V_{rr} +  {1\over r} V_r - {V\over r^2} \\
+      &= V_{rr} + {1\over r}( V_r(x,0) + r V_{rr}(x,0) + O(r^2) ) 
+     - {1\over r^2}( V(x,0) + r V_r(x,0) + {r^2\over 2} V_{rr}(x,0) + O(r^3) \\
+   &=  {3\over2} V_{rr}(x,0) + O(r) \\
+  &= O(r)
+\end{align*}
+and
+\begin{align*}
+{1\over r}( r U_r)_r &= U_{rr} + {1\over r} U_r = 2 U_{rr} + O(r)
+\end{align*}
+We can use these last two results to evaluate the viscous terms on the boundary $r=0$, (eliminating
+the removable singularity) although the dirichlet condition $V(x,0)=0$ obviates the need for the former
+equation on the boundary.
+
+Note that in inviscid flow the only difference between the axi-symmetric equations and the 2D equations
+is a change to the pressure equation (or to the incompressibility equation) with the addition 
+of the ${1\over r} p_r$ term. With viscosity there are also differences in the viscous terms.
+
+\subsubsection{The pressure boundary condition for the axisymmetric case}
+
+The pressure boundary condition is formed from the normal component of the momentum equations.
+For a no-slip wall this becomes
+\begin{align*}
+p_n &= \nu n_x\Big( U_{xx} + {1\over r}( r U_r)_r \Big) 
+     + \nu n_r\Big( V_{xx} + V_{rr} + {1\over r}V_r - {V\over r^2}\Big) 
+\end{align*}
+We can eliminate some of the normal derivatives in
+this last expression (forming the equivalent of the {\em curl-curl} boundary conditions
+described in~\cite{}) by taking derivative of the expression~\eqref{divAxisymmetric} 
+for the divergence, 
+\begin{align*}
+   U_x + V_r + {1\over r} V &=0 
+\end{align*}
+giving 
+\begin{align*}
+  U_{xx} = - V_{xr} - {1\over r} V_x &=0 \\
+  V_{rr} + {1\over r} V_r - {1\over r^2} V = -U_{xr}
+\end{align*}
+This leads to the pressure boundary condition
+\begin{align}
+p_n &= \nu n_x\Big( -V_{xr} + U_{rr} - {1\over r} V_x + {1\over r}U_r \Big) 
+     + \nu n_r\Big( V_{xx} - U_{xr}  \Big)   \label{axisSymmetricPressureBC}
+\end{align}
+On the axis, $r=0$, this becomes
+\begin{align*}
+p_n &= 2 \nu n_x\Big( -V_{xr} + U_{rr} \Big) 
+       + \nu n_r\Big( V_{xx} - U_{xr}  \Big),  \qquad\text{(for $r=0$)}. 
+\end{align*}

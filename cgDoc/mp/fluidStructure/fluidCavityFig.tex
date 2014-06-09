@@ -1,0 +1,24 @@
+{
+\newcommand{\figWidth}{10.cm}
+\newcommand{\clipfig}[2]{\clipFigb{#1}{#2}{.1}{.9}{.2}{.8}}
+\begin{figure}[hbt]
+ \begin{center}
+ \begin{pspicture}(0,-.5)(15.75,17.)
+  \rput(3.50,14.50){\clipfig{cavityDeform0p0.ps}{\figWidth}}
+  \rput(11.5,14.50){\clipfig{cavityDeform0p2.ps}{\figWidth}}
+  \rput(3.50, 8.50){\clipfig{cavityDeform0p4.ps}{\figWidth}}
+  \rput(11.5, 8.50){\clipfig{cavityDeform0p6.ps}{\figWidth}}
+  \rput(3.50, 2.00){\clipfig{cavityDeform0p8.ps}{\figWidth}}
+  \rput(11.5, 2.00){\clipfig{cavityDeform1p0.ps}{\figWidth}}
+%
+%\rput[l](5,11){\psframebox*{\smallss 1. sub-curves}}
+%\rput[l](5,5){\psframebox*{\smallss 2. cusp}}
+%\rput[l](12,11){\psframebox*{\smallss 3. split and hide.}}
+%\rput[l](12,5){\psframebox*{\smallss 4. join with line.}}
+%\psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{Deforming cavity}
+\label{fig:deformingCavity}
+\end{figure}
+}

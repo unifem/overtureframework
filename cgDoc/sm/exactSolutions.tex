@@ -1,0 +1,70 @@
+\newcommand{\rvh}{\hat{\rv}}
+\section{Orthogonal Coordinates}
+
+Given an orthogonal coordinate system $(r_1,r_2,r_3)$ with scale factors $h_i$, and
+unit coordinate vectors $\rvh_i=\rvh_i(r_1,r_2,r_3)$, 
+\begin{align*}
+    \delta \xv &= \sum_i h_i ~\delta r_i~ \rvh_i  ~,~~
+    {\partial \xv \over \partial r_i} = h_i \rvh_i ~,~~
+    \rvh_i = { {\partial \xv \over \partial r_i} / \left\vert {\partial \xv \over \partial r_i}\right\vert }
+\end{align*}
+then the gradient of a scalar function $F$ is given by (see for example Batchelor\cite{BatchelorFluidDynamicsBook})
+\begin{align*}
+   \grad F = \sum_i  {\rvh_i\over h_i}{\partial \over \partial r_i} . 
+\end{align*}
+Given a vector function
+\[
+  \Fv = \sum_i F_i \rvh_i, 
+\]
+the divergence of $\Fv$ is 
+\begin{align*}
+   \grad \cdot \Fv &= \sum_i { \rvh_i\over h_i}\cdot{\partial \over \partial r_i} \Fv ~~
+               = {1\over h_1 h_2 h_3} 
+                  \sum_i {\partial\over\partial r_i}\left( h_{i+1} h_{i+2} F_i \right) 
+\end{align*}
+where the subscript of $h_{i+1}$ is wrapped modulo 3. 
+The curl is
+\begin{align*}
+   \grad \times \Fv &= \sum_i ~{\rvh_i\over h_{i+1} h_{i+2}} \left\{ 
+            {\partial(h_{i+2}F_{i+2}) \over\partial r_{i+1}} - 
+            {\partial(h_{i+1}F_{i+1}) \over\partial r_{i+2}}  \right\}
+\end{align*}
+The Laplacian is
+\begin{align*}
+   \Delta F &= {1\over h_1 h_2 h_3} 
+      \sum_i {\partial\over\partial r_i}\left( {h_{i+1} h_{i+2}\over h_i}{\partial\over\partial r_i} F_i \right) 
+\end{align*}
+% 
+The infinitesimal strain tensor is 
+\begin{align*}
+    \ev = \half( \grad\uv + (\grad\uv)^T ) ,
+\end{align*}
+with curvilinear components 
+\begin{align*}
+    e_{ij} &= \rvh_i \cdot \ev \cdot \rvh_j ,
+\end{align*}
+This gives
+\begin{align*}
+  e_{ii} &= {1\over h_i} {\partial u_i\over \partial r_i} +
+                 \sum_{j\ne i} {u_{j}\over h_i h_{j}}{\partial h_i \over\partial r_j} , \\
+  e_{ij} &= {h_j\over 2 h_i}{\partial \over \partial r_j}\left({u_j\over h_j}\right) +
+            {h_i\over 2 h_j}{\partial \over \partial r_i}\left({u_i\over h_i}\right), \qquad\text{for $i\ne j$}. 
+\end{align*}
+% 
+The stress tensor for linear elasticity is
+\begin{align*}
+   \sigmav &= \lambda (\grad\cdot\uv) \Iv + 2\mu \ev, 
+\end{align*}
+with components
+\begin{align*}
+   \sigma_{ij} &= \lambda \grad\cdot\uv \delta_{ij} + 2\mu e_{ij}. 
+\end{align*}
+
+
+%
+% ---------------------------------------------------------------------
+\input \homeHenshaw/cgDoc/sm/annulusEigen.tex
+
+
+% ---------------------------------------------------------------------
+\input \homeHenshaw/cgDoc/sm/sphereEigen.tex

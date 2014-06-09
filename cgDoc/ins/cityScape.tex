@@ -1,0 +1,56 @@
+\subsection{Incompressible flow past a city scape}\label{sec:flowPastBuildings}
+
+Figure (\ref{fig:cityScape}) shows a computation of the incompressible Navier-Stokes
+equations for flow past a city scape. The steady state line solver was used for this
+computation. The command file for generating this grid is {\tt Overture/sampleGrids/multiBuildings.cmd}
+and the Cgins command file is {\tt ins/cmd/multiBuildings.cmd}.
+
+
+{
+\newcommand{\figWidthd}{8.0cm}
+\newcommand{\trimfig}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.000}{.00}}
+\newcommand{\figWidtha}{10cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.0}{.0}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,8.5);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/multiBuildingsTracersAndCut}{\figWidthd}};
+  \draw ( 8.5,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cgDoc/ins/fig/multiBuildings}{\figWidthd}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,8);
+\end{tikzpicture}
+\end{center}
+\caption{Incompressible flow through a city scape} \label{fig:cityScape}
+\end{figure}
+}
+
+
+
+Notes:
+\begin{flushleft}
+ $\blue\diamondsuit$ pseudo steady-state line implicit solver, 4th-order dissipation, \\
+ $\blue\diamondsuit$ local time-stepping (spatially varying dt)\\
+ $\blue\diamondsuit$ requires 1.4GB of memory, \\
+ $\blue\diamondsuit$ cpu = 29s/step, \\
+ $\blue\diamondsuit$ 2.2 GHz Xeon, 2 GB of memory
+\end{flushleft}
+
+
+%- 
+%- \renewcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](.2,-.2)(9.25,8.75)}\epsfig{#1}\endpsclip}
+%- \renewcommand{\figWidth}{.5\linewidth}
+%- \newcommand{\figWidthb}{.53\linewidth}
+%- \begin{center}
+%- \begin{pspicture}(0,-2.0)(10.,8.0)
+%- \rput(.5,3.50){\clipfig{file=\obFigures/multiBuildingsTracersAndCut.ps,width=\figWidth}}
+%- \rput(9.6,3.75){\clipfig{file=\obFigures/multiBuildings.ps,width=\figWidthb}}
+%- \rput*(1.0,-1.7){\makebox(0,0)[c]{\bf 3D flow past a city scape.}}
+%- \rput*(9.,-1.7){\makebox(0,0)[c]{\bf Overlapping grid for a city scape.}}
+%- % turn on the grid for placement
+%- % \psgrid[subgriddiv=2]
+%- \end{pspicture}
+%- \end{center}\label{fig:cityScape}

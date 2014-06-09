@@ -1,0 +1,245 @@
+%=======================================================================================================
+% MatrixMotions : describe the features of the MatrixMotion class that can be used to define
+%  rigid body motions
+%=======================================================================================================
+
+% -- article: 
+% \documentclass[10pt]{article}
+% 
+% \hbadness=10000 
+% \sloppy \hfuzz=30pt
+% \usepackage{calc}
+% 
+% % set the page width and height for the paper (The covers will have their own size)
+% \setlength{\textwidth}{7in}  
+% \setlength{\textheight}{9.5in} 
+% % here we automatically compute the offsets in order to centre the page
+% \setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1.in}
+% % \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .5in }
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1.25in + .8in }
+% 
+% \input homeHenshaw
+% 
+% \usepackage{color}
+% 
+% \input wdhDefinitions.tex
+% 
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+% 
+% \newcommand{\bogus}[1]{}  % begin a section that will not be printed
+% 
+% 
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% 
+% % \usepackage{verbatim}
+% % \usepackage{moreverb}
+% % \usepackage{graphics}    
+% \usepackage{epsfig}    
+% % \usepackage{calc}
+% % \usepackage{ifthen}
+% % \usepackage{float}
+% % \usepackage{fancybox}
+% 
+% % define the clipFig commands:
+% \input clipFig.tex
+% 
+% % \newcommand{\grad}{\nabla}
+% % \newcommand{\half}{\frac{1}{2}}}
+% 
+% \newcommand{\eps}{\epsilon}
+% 
+% \newcommand{\bc}[1]{\mbox{\bf#1}}   % bold name
+% \newcommand{\cc}[1]{\mbox{  : #1}}  % comment
+% 
+% \newcommand{\Overture}{{Overture}}
+% 
+% \newcommand{\Largebf}{\sffamily\bfseries\Large}
+% \newcommand{\largebf}{\sffamily\bfseries\large}
+% \newcommand{\largess}{\sffamily\large}
+% \newcommand{\Largess}{\sffamily\Large}
+% \newcommand{\bfss}{\sffamily\bfseries}
+% \newcommand{\smallss}{\sffamily\small}
+% \newcommand{\normalss}{\sffamily}
+% \newcommand{\scriptsizess}{\sffamily\scriptsize}
+% 
+% 
+% % -----definitions-----
+% 
+% \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+% 
+% 
+% % *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% % By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+% 
+% \renewcommand\floatpagefraction{.9}
+% \renewcommand\topfraction{.9}
+% \renewcommand\bottomfraction{.9}
+% \renewcommand\textfraction{.1}   
+% \setcounter{totalnumber}{50}
+% \setcounter{topnumber}{50}
+% \setcounter{bottomnumber}{50}
+% 
+% 
+% \begin{document}
+% 
+% % -----------------
+% \title{MatrixMotion and TimeFunction: Classes for Defining Rigid Motions of Bodies for Overture and Cg}
+% \author{William D. Henshaw\\
+% \small Centre for Applied Scientific Computing,\\[-0.8ex]
+% \small Lawrence Livermore National Laboratory, \\[-0.8ex]
+% \small Livermore, CA 94551.\\
+% \small \texttt{henshaw1@llnl.gov}
+% }
+% 
+% \maketitle
+% 
+% \begin{abstract}
+%    The {\tt MatrixMotion} C++ class can be used to define the motions of rigid bodies for use with the
+% Cg partial differentoal equation solvers such as Cgins for incompressible flow and Cgcns for compressible flow. 
+% The MatrixMotion class allows one to rotate an object around an arbitray line in space 
+% or to translate along a line. These motions can be composed together and thus one could
+% have a rotation followed by a translation followed by another rotation. The MatrixMotion
+% class uses the {\tt TimeFunction} C++ class to define how the rotation angle depends on time or how
+% the translation distance depends on time. 
+% 
+% \end{abstract}
+% 
+% \tableofcontents
+% 
+
+\section{MatrixMotion and TimeFunction: Classes for Defining Rigid Motions of Bodies}\label{sec:matrixMotion}
+
+
+   The {\tt MatrixMotion} C++ class can be used to define the motions of rigid bodies for use with the
+CG partial differential equation solvers such as Cgins for incompressible flow and Cgcns for compressible flow. 
+The MatrixMotion class allows one to rotate an object around an arbitray line in space 
+or to translate along a line. These motions can be composed together and thus one could
+have a rotation followed by a translation followed by another rotation. The MatrixMotion
+class uses the {\tt TimeFunction} C++ class to define how the rotation angle depends on time or how
+the translation distance depends on time. 
+
+The general motion of a solid body is defined by the matrix transformation
+\begin{align}
+  \xv(t) = R(t)\, \xv(0) + \gv(t),   \label{eq:matrixTransform}
+\end{align}
+where $\xv (t)\in \Real^3$ defines a point on the body at time $t$, 
+$R(t)\in \Real^{3\times3}$ is a $3\times3$ {\em rotation} matrix and
+$\gv\in\Real^3$ is a translation. Note that the matrix transformation~\eqref{eq:matrixTransform} is
+implemented in the {\tt MatrixTransform} Mapping class~\cite{MAPPINGS} which can be used to rotate
+and translate another Mapping. Also note that $R(t)$ can be any invertible matrix and thus does not
+necessarily need to be a rotation although we will often refer to it as the {\em rotation matrix}.
+
+
+\subsection{Elementary rigid motions}
+
+\newcommand{\ct}{\cos(\theta)}
+\newcommand{\st}{\sin(\theta)}
+\subsubsection{Rotation around a line}
+An elementary rigid motion is the rotation about an arbitrary line in space. Define a line by a point
+on the line, $\xv_0$, and a tangent $\vv=[v_0, v_1, v_2]^T$ to the line,
+\begin{align}
+  \yv(s) = \xv_0 + \vv\, s  . \qquad\text{(line)}
+\end{align}
+The equation to rotate a given point $\xv(0)$ around this line by an angle $\theta$ to the
+new point $\xv(\theta)$ is (for a derivation see the documentation of the {\tt RevolutionMapping} in~\cite{MAPPINGS}) 
+\begin{align}
+  \xv (\theta) &= R_l(\theta) (\xv(0)-\xv_0) + \xv_0,  \label{eq:lineRotationMotion} \\
+   R_l(\theta) &= \vv \vv^T + \cos(\theta) ( I -\vv \vv^T ) + \sin(\theta) ( \vv \times )(  I -\vv \vv^T),\\
+      &= \begin{bmatrix}
+             v_0 v_0 (1-\ct)+\ct      &  v_0 v_1 (1-\ct)-\st v_2  & v_0 v_2 (1-\ct)+\st v_1  \\
+             v_0 v_1 (1-\ct)+\st v_2  &  v_1 v_1 (1-\ct)+\ct      & v_1 v_2 (1-\ct)-\st v_0  \\
+             v_0 v_2 (1-\ct)-\st v_1  &  v_2 v_1 (1-\ct)+\st v_0  & v_2 v_2 (1-\ct)+\ct   .  
+         \end{bmatrix}
+\end{align}
+We can write~\eqref{eq:lineRotationMotion} in the form~\eqref{eq:matrixTransform} if we set
+$R=R_l$ and $\gv = (I-R_l)\xv_0$.
+
+
+\subsubsection{Translation along a line}
+Another elementary rigid motion is the translation motion,
+\begin{align}
+  \xv(t) &= \av_0 + \vv\, f(t), \qquad\text{(translation along a line)} \label{eq:translationMotion}
+\end{align}
+where $f(t)$ is some {\em time function} that defines the position of the point along the line. The
+translation motion~\eqref{eq:translationMotion} can also be put in the form~\eqref{eq:matrixTransform}
+by setting $R=I$ and $\gv=\av_0 + \vv\, f(t)$. 
+
+\subsection{Composition of motions}
+
+One can compose multiple elementary rigid motions to form more complex motions.
+If we apply the motion $\xv = R_1 \xv_0 + \gv_1$ followed by the motion $\xv = R_2 \xv_0 + \gv_2$
+then we get
+\begin{align}
+  \xv(t) &= R_2 \Big( R_1 \xv_0 + \gv_1 \Big) + \gv_2, \\
+         &= R_2 R_1 \xv_0 + R_2\gv_1 + \gv_2 ,
+\end{align}
+and thus the composed motion is defined by 
+\begin{align}
+  \xv(t) &= R \xv_0 + \gv, \\
+     R    &= R_2 R_1 , \\
+     \gv &= R_2\gv_1 + \gv_2. 
+\end{align}
+
+\subsection{Grid velocity and acceleration}
+
+When the matrix motions are used with a PDE solver, we may need to know the velocity and
+acceleration of a grid point. These are just the first and second time derivatives of the
+motion, 
+\begin{align}
+  \dot{\xv}(t) &= \dot{R} \xv_0 + \dot{\gv}, \qquad\text{(velocity)} \\
+  \ddot{\xv}(t) &= \ddot{R} \xv_0 + \ddot{\gv}, \qquad\text{(acceleration)}
+\end{align}
+where ``dot'' denotes a derivative with respect to time. 
+These expressions can also be rewritten using $\xv(0) = R^{-1}(\xv(t)-\gv(t))$
+to give the velocity and acceleration in terms of the current position
+\begin{align}
+  \dot{\xv}(t) &= \dot{R}R^{-1}(\xv(t)-\gv(t)) + \dot{\gv}, \\
+  \ddot{\xv}(t) &= \ddot{R}R^{-1}(\xv(t)-\gv(t))+ \ddot{\gv}. 
+\end{align}
+These last expressions are useful if we do not want to save the original grid positions. 
+
+\subsection{MatrixMotion class} \label{sec:MatrixMotion}
+
+The {\tt MatrixMotion} C++ class can be used to define elementary rigid motions. A MatrixMotion
+can be composed with another MatrixMotion and thus more general rigid motions can be defined.
+The {\tt MatrixMotion} holds a {\tt TimeFunction} object (see Section~\ref{sec:TimeFunction}) that
+defines the time function for the motion.
+
+
+
+\subsection{TimeFunction class} \label{sec:TimeFunction}
+
+The {\tt TimeFunction} C++ class is used to define functions of time that can be used with the
+{\tt MatrixMotion} class to define, for example, the rotation angle $\theta(t)$ as a function of time.
+The simplest time function is the {\tt linear function}
+\begin{align}
+  f(t) &= a_0 + a_1 t.
+\end{align}
+The {\tt sinusoidal function} is defined as
+\begin{align}
+  f(t) &= b_0 \sin( 2 \pi f_0( t-t_0)) .
+\end{align}
+
+
+
+
+\subsection{The `motion' program for building and testing motions} \label{sec:motion}
+
+The test program {\tt motion} (type `make motion' in {\tt cg/user} to build 
+{\tt cg/user/bin/motion} from {\tt cg/user/src/motion.C}) 
+can be used to build and test rigid motions. One can
+\begin{itemize}
+  \item Build multiple bodies (e.g. ellipse, cylinder).
+  \item Define a MatrixMotion and TimeFunction for each body.
+  \item Compose multiple MatrixMotion's to build more complicated motions.
+  \item Plot the motions of the bodies over time.
+  \item Check the time derivatives of the motions by finite differences. 
+  \item Evaluate the grid velocity and grid acceleration (as needed by {\tt Cgins} or {\tt Cgcns})
+        and check the accuracy of the velocity and acceleration by finite differencing the grid positions
+        in time. 
+\end{itemize}
+
+
+

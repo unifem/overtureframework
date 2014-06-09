@@ -1,0 +1,159 @@
+%
+% ==============================================================================================================
+\section{Probes: defining output quantities at points and on regions} \label{sec:probes}
+
+
+Probes can be used to output results during a simulation. 
+A {\em point-probe} can be used, for example, to record the value of the solution at a given location over time.
+A {\em region-probe} can be used, for example, to record the integrated heat flux over a surface covered by multiple
+overlapping grids.
+% 
+There are five different types of probes: 
+\begin{description}
+   \item[\quad grid point probe] : output the solution at a given grid point over time.
+   \item[\quad location probe] : output the solution at a given physical location over time.
+   \item[\quad region probe] : output the value(s) (e.g. average value) of a quantity over a region 
+      (e.g. a portion of the domain or boundary contained within a specified box) over time.
+   \item[\quad boundary surface probe] : output value(s) (e.g. integrated value) of a quantity over a specified boundary surface (e.g. surface
+        of a body that is covered by multiple overlapping grids).
+   \item[\quad bounding box probe] : output the values of the solution at all grid points that lie
+    on the faces of a {\em index box} (the box being in the index space of a grid),
+\end{description}
+The values of probes can be output at a specified {\em frequency} (e.g. every 10 time-steps).
+
+A probe is defined by its {\em type} (e.g. grid-point-probe, region-probe, ...) and its
+{\em quantity} (e.g. pressure, temperature, heat-flux). In addition,
+probes defined over regions or boundary surfaces are characterized 
+by a {\em quantity-measure} (i.e. whether to save point-values, the average-value, or the total integrated (or summed) value),
+and by a {\em measure-type} (e.g. whether to use a discrete-sum or an integral to compute the average-value or total-value).
+
+
+The probe output is saved to one or more output files (text files). Results from multiple region probes can
+be saved in the same file if desired. The
+results in these files can be plotted with the matlab scripts {\em plotProbes.m} for point-probes
+and {\em plotRegionProbe.m} for region-probes.
+
+
+% ----------------------------------------------------------------------------------
+\subsection{Point probes} \label{sec:pointProbes}
+
+
+Point probes are used to save solution values at specified positions within the domain.
+
+The position of a {\em location} probe is specified by a physical location $\xv$.
+The values at this location will be interpolated from the nearby values on the grid.
+
+The position of a grid-point point probe can be specified by
+\begin{enumerate}
+  \item inputing a grid point (i.e. by grid number and $(i_1,i_2,i_3)$).
+  \item specifying a grid point as the closest point to a given physical point $\xv$ (the code will determine the nearest grid point).
+\end{enumerate}
+
+
+% ----------------------------------------------------------------------------------
+\subsection{Region probes} \label{sec:regionProbes}
+
+
+Examples of {\em region probes} are
+\begin{enumerate}
+  \item output the average value of the velocity over a specified box enclosed in the domain, 
+  \item output the integral of the temperature over the entire domain,
+  \item output the integral of the fluid force over the face of a body covered by multiple overlapping grids,
+  \item output the average heat flux over a portion of a boundary that lies within a specified box.
+\end{enumerate}
+The region probe is defined by a {\em region}, a {\em quantity}, a {\em measure-type} 
+and a {\em quantity-measure}.
+
+\paragraph{Regions:} Each {\em region probe} is associated with a region (volume or surface) that can be 
+specified as one of the following types:
+\begin{description}
+   \item[\quad full domain region] : choose the full domain,
+   \item[\quad box region] : specify a box in physical space (that intersects the grid volume), 
+   \item[\quad boundary region] : choose a surface that is some portion of the boundary, 
+   \item[\quad box boundary region] : specify a box in physical space (that intersects grid boundaries), 
+\end{description}
+The region can be chosen by specifying the corners of a box. It can also
+be specified by choosing an existing {\bf body force region} (see Section~\ref{sec:bodyAndBoundaryForcing}),
+and using the region associated with that object.
+
+\noindent The {\em surface} for a {\bf boundary region} can be specified as
+\begin{enumerate}
+  \item a list of grid faces $(side,axis,grid)$,
+  \item all grid faces with a specified {\em shared boundary flag} value,
+  \item choosing an existing {\bf boundary force region} (see Section~\ref{sec:bodyAndBoundaryForcing}), 
+        and using the region associated with that object.
+\end{enumerate}
+
+\paragraph{Quantity:} The probe {\em quantity} defines the solution component(s) or derived quantity to be saved, 
+\begin{description}
+    \item[\quad all-components] : normally all components of the solution are saved for point probes,
+   \item[\quad density, velocity, temperature, pressure, ..] : save any component of the solution (the available components depend
+                on the equations being solved), 
+   \item[\quad heat flux] : $k\partial T/\partial n$ 
+   \item[\quad lift, drag, force] : finish me ...
+\end{description}
+
+\paragraph{Measure-type:} Region probes generally save an integrated value (sum or integral) over the probe {\em region} and
+the {\em measure-type} specifies whether to save the sum of discrete values or the integral,
+\begin{description}
+   \item[\quad sum] : sum discrete values, 
+   \item[\quad volume weighted sum] : (Vsum) sum discrete values weighted by cell {\em volume}. For boundary
+    regions the {\em volume} weighting becomes the cell area (3D) or cell arclength (2D).
+   \item[\quad integral] : integrate values.
+\end{description}
+
+
+\paragraph{Quantity measure:} The integrated value of a region probe can be normalized by the number of values or by
+    the volume (or surface area) of the region:
+\begin{description}
+   \item[\quad average] : provide the average of the quantity, i.e. sum of values divided by the number of values (if measure-type is
+ {\em sum}), or integral of values divide by area (if measure-type is {\em integral}), 
+   \item[\quad total] : provide the total (sum or integral). 
+\end{description}
+
+Here are mathematical descriptions of some of the probe options (MT=measure-type, QM=quantity-measure, R=region), 
+\begin{alignat}{3}
+   q_p  &= \sum_{\iv} \chi_R(\xv_\iv)\,q_{\iv}\, \delta_\iv ,                               \qquad && \text{MT=sum/Vsum, QM=total}, \\
+   q_p  &=\frac{1}{N} \sum_{\iv} \chi_R(\xv_\iv)~q_{\iv}\, \delta_\iv ,~~ N=\sum_{\iv} \chi_R(\xv_\iv)\, \delta_\iv,  \qquad && \text{MT=sum/Vsum, QM=average}, \\
+   q_p  &= \int_{\partial R} q ~dS                           \qquad && \text{MT=integral, QM=total, R=boundary}, \\
+   q_p  &= \frac{1}{A} \int_{\partial R} q(\xv) ~dS,~~ A=\int_{\partial R} 1 ~dS     \qquad && \text{MT=integral, QM=average, R=boundary}.\\
+   q_p  &= \int_{R} q ~d\xv                          \qquad && \text{MT=integral, QM=total, R=volume}, \\
+   q_p  &= \frac{1}{V} \int_{R} q(\xv) ~d\xv,~~ V=\int_{R} 1 ~d\xv     \qquad && \text{MT=integral, QM=average, R=volume}.
+\end{alignat}
+Here $q_\iv$ or $q(\xv)$ is the quantity to be evaluated (e.g. temperature or heat flux) and $q_p$ is the probe value. 
+The sum or integral is over
+the portion of the domain defined by the choice of region. $\chi_R(\xv)$ is the {\em characteristic} function
+for the region $R$, being $1$ inside the region and $0$ outside,
+\begin{align}
+   \chi_R(\xv) &= \begin{cases} 1, & \text{$\xv\in R$}, \\
+                                0, & \text{$\xv\notin R$} .
+                      \end{cases} 
+\end{align} 
+The value of $\delta_\iv$ is equal to $1$, the cell volume, cell area or cell arclength, depending on the measure-type, 
+and number of space dimensions,
+\begin{align}
+   \delta_\iv &= \begin{cases} 1, & \text{MT=sum}, \\
+                               \delta V_\iv, & \text{MT=Vsum, R=volume},  \\
+                               \delta S_\iv, & \text{MT=Vsum, R=boundary}.
+                      \end{cases}
+\end{align} 
+The integral is computed with the Integrate class~\cite{OTHERSTUFF}.
+% When the region is defined by intersection of a box with the full-domain or the boundary, the sums or integrals only include
+% grid points that lie inside the box. In this case the integrals are only first order accurate.
+
+% ----------------------------------------------------------------------------------
+\subsection{Bounding box probes} \label{sec:boundingBoxProbes}
+
+The bounding box probe can be used to output the solution on the faces (and ghost points) of a bounding
+box (in the index space of a grid). These values can be used, for example, to provide 
+time dependent boundary conditions for a refined calculation that only solves the equations within the
+bounding box.
+
+The bounding box is specified by 
+\begin{enumerate}
+  \item a component grid number, $g_{\rm bb}$, 
+  \item an index box: [i1a,i1b], [i2a,i2b], [i3a,i3b] (in the index space of grid $g_{\rm bb}$), 
+  \item number of layers $n_l$, (i.e. save this many lines of data on each face). For example, on the left
+   face save the points $i_1=i1a-n_l+1,\ldots,i1a$.
+\end{enumerate}
+

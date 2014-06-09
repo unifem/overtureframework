@@ -1,0 +1,67 @@
+\section{Invariants of the Motion}
+
+The equations of linear elasticity have certain invariants of the motion.
+These are special solutions that satisfy homogeneous boundary
+conditions and $\partial_t^2\uv=0$.
+
+For the case of constant $\lambda$ and $\mu$ we see that the function
+\begin{align*}
+   \uv &= (\av x + \bv y + \cv )( \dv + t \ev )
+\end{align*}
+with constant $\av$, $\bv$, $\cv$, $\dv$, and $\ev$, 
+will be a solution to the interior equations with $\partial_t^2\uv=0$.
+
+Of course there are many other solutions to the homogeneous equations
+but these cannot be made to satisfy the boundary conditions (why is this
+true?)
+
+
+% If any boundary has homogeneous displacement conditions, then the only solution
+% will be $\uv\equiv 0$. 
+
+Claim: for a given domain with traction boundary conditions it follows that 
+\begin{align}
+  \partial_y u_1 + \partial_x u_2 &=0 \\
+  \partial_z u_2 + \partial_y u_3 &=0 \\
+  \partial_x u_3 + \partial_z u_1 &=0 \\
+  \partial_x u_1 =  \partial_y u_2 = \partial_z u_3 &=0 
+\end{align}
+Note that the restricted solution that satisfies these
+conditions will also satisfy the equations with variable $\lambda$
+and $\mu$. 
+
+To see why these conditions are true consider different points on the boundary.
+The traction boundary condition is given by~\eqref{eq:tractionBC}.
+ As the normal varies
+over the boundary we see that $\lambda\grad\cdot\uv+2\mu \partial_x u_1 =0$ where $\nv=[1,0,0]$,
+and $\lambda\grad\cdot\uv+2\mu \partial_y u_2 =0$ where  $\nv=[0,1,0]$ and $\lambda\grad\cdot\uv+2\mu \partial_z u_3=0$
+where $\nv=[0,0,1]$. Note that the stress components are constant in space. We thus have 3 equations
+for the three unknowns $\partial_x u_1$,  $\partial_y u_2$, and  $\partial_z u_3$ and  it follows that 
+these must all be zero (assuming $\lambda>0$ and $\mu>0$).
+
+
+The general form of the invariant solutions for homogeneous traction
+boundaries in two-dimensions is then
+\begin{align*}
+   u_1 &= (a + cy)~(d+et),\\
+   u_2 &= (b - cx)~(d+et) .
+\end{align*}
+These motions consists of translations $c=0$ and the {\em scale-rotate} mode $a=b=0$, $c\ne 0$:
+\begin{align*}
+   u_1 &=  y~(d+et),\\
+   u_2 &= -x~(d+et) .
+\end{align*}
+The {\em scale-rotate} consists of a partial rotation and scaling. 
+
+
+Note that a rotation from the reference cooridinates is given by
+\[
+  \widetilde{\xv}=\xv +\uv = R \xv 
+\]
+where $\widetilde{\xv}$ are the physical space coordinates and $R$ is
+a rotation matrix. This gives the form
+\begin{align*}
+   u_1 &= (\cos(\theta)-1)x + \sin(\theta) y,\\
+   u_2 &= \sin(\theta) x + (\cos(\theta)-1) y
+\end{align*}
+and this is not an invariant when $\cos(\theta)\ne 0$.

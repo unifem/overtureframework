@@ -1,0 +1,139 @@
+%-----------------------------------------------------------------------
+% Cgins : Moving Grid Studies
+% 
+%-----------------------------------------------------------------------
+\documentclass{article}
+\usepackage[bookmarks=true]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+% set the page width and height for the paper (The covers will have their own size)
+\setlength{\textwidth}{7in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .8in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in -.2in }
+
+\input homeHenshaw
+
+% --------------------------------------------
+% NOTE: trouble with tikz and program package ??
+\usepackage{tikz}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+% \usepackage{moreverb}
+
+\usepackage{graphics}    
+% \usepackage{epsfig}    
+\usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% the next one cause the table of contents to disappear!
+% * \usepackage{fancybox}
+
+% *new* version of ``clipFig''
+\input trimFig.tex
+
+\newcommand{\bogus}[1]{}  % begin a section that will not be printed
+
+% \usepackage{makeidx} % index
+% \makeindex
+% \newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\ovFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+
+\newcommand{\Overture}{{\bf Overture\ }}
+
+% -------------  -------------------
+\newcommand{\Solver}{Cgins}
+\newcommand{\solver}{cgins}
+
+% ***************************************************************************
+\begin{document}
+
+
+% -----definitions-----
+\input wdhDefinitions.tex
+
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+\newcommand{\dt}{{\Delta t}}
+
+\newcommand{\Cc}{{\mathcal C}}
+\newcommand{\Rc}{{\mathcal R}}
+
+\vglue 5\baselineskip
+\begin{flushleft}
+{\Large
+Cgins : Moving Grid Studies \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw\footnote{This work was performed under the auspices of the U.S. Department of Energy (DOE) by
+Lawrence Livermore National Laboratory under Contract DE-AC52-07NA27344 and by 
+DOE contracts from the ASCR Applied Math Program.}  \\
+Centre for Applied Scientific Computing  \\
+Lawrence Livermore National Laboratory      \\
+Livermore, CA, 94551.  \\
+% henshaw@llnl.gov \\
+% http://www.llnl.gov/casc/people/henshaw \\
+% http://www.llnl.gov/casc/Overture\\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+LLNL-SM-455851
+
+\vspace{4\baselineskip}
+
+\noindent{\bf Abstract:}
+This document presents Cgins results for moving and falling bodies.
+
+
+\end{flushleft}
+
+\clearpage
+\tableofcontents
+% \listoffigures
+
+\clearpage
+\input dropCyl
+
+\clearpage
+\input dropSphere
+
+\clearpage
+\input collide
+
+%=================================================================================================
+%\vfill\eject
+%\bibliography{\homeHenshaw/papers/henshaw}
+%\bibliographystyle{siam}
+
+%\printindex
+
+\end{document}
+
+
+% ----------------------------------------------------------------------------------------------------------
+
+
+
