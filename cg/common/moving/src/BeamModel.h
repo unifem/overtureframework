@@ -27,7 +27,7 @@ class BeamModel {
   // Free:        x,y,theta are all free to move
   // XXX Periodic is unimplemented!
   //
-  enum BoundaryCondition { Pinned = 1 , Cantilevered = 2, Free = 4 , Periodic = 8 };
+  enum BoundaryCondition { UnknownBC=-1, Pinned = 1 , Cantilevered = 2, Free = 4 , Periodic = 8 };
 
   // constructor
   // sets the default parameters
@@ -36,6 +36,13 @@ class BeamModel {
   // destructor
   // 
   ~BeamModel();
+
+  // Return the beam ID (a unique ID for this beam)
+  int getBeamID() const{ return beamID; } // 
+
+  // Return the name of this beam
+  const aString & getName() const { return name; } // 
+
 
   // This function initializes the beam model.
   // momOfIntertia:    I/b (true area moment of inertia divided by the width of the beam
@@ -315,6 +322,9 @@ class BeamModel {
 			   int& elemNum, real& eta,
 			   real& displacement, real& slope);
 
+  // -- initialize the beam model given the current parameters --
+  void initialize();
+
   // Compute the third derivative, w'''(x), of the beam displacement w(x) at a given
   // element # and coordinate
   // X:       Beam solution (position)
@@ -458,16 +468,6 @@ class BeamModel {
   // solution from the documentation
   bool usesExactSolution;
 
-  // The relaxation parameter used in the fixed point iteration
-  // used to alleviate the added mass effect
-  //
-  double added_mass_relaxation;
-
-  // The (relative) convergence tolerance for the fixed point iteration
-  // tol: convergence tolerance (default is 1.0e-3)
-  //
-  double convergenceTolerance;
-
   // Initial residual of the fixed point iteration.  Converegence is 
   // reached when residual < tol*initialResidual
   //
@@ -539,6 +539,14 @@ class BeamModel {
   // Initial location of the right end of the beam
   //
   real initialEndRight[2];
+
+  // Name for the beam
+  aString name;
+
+  //  Unique ID for this beam
+  int beamID;
+  static int globalBeamCounter; // keeps track of number of beams that have been created
+
 };
 
 #endif

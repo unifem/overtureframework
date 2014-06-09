@@ -10,6 +10,8 @@ cc = gcc
 CC = g++
 # take this from the environment: FC = pgf77
 
+OvertureFortranPrecision = -fdefault-real-8 -fdefault-double-8
+
 # on the 64 bit intel some lib's are in the lib64 directory
 ifeq ($(HARDWARE),x86_64)
  LIB64 = lib64
@@ -20,6 +22,9 @@ endif
 # SPARSEKIT_LIB = -L/home/chand/temp/SPARSKIT2 -lskit
 # *wdh* here is a version we can see from the lc machines
 SPARSEKIT_LIB = -L/usr/casc/overture/Overture/sparsekit/SPARSKIT2.intel -lskit
+
+LAPACK_LIBRARIES = -llapack -lblas
+
 
 A++ = $(APlusPlus)
 A+++ = $(APlusPlus)
@@ -38,7 +43,7 @@ libApp = ${AppLibraries}
 
 Include= -I. -I$(Overture)/include $(PETSC_INCLUDE) -I$(APlusPlus)/include
 Lib=      $(Overture)/lib
-LibOverture= -lOverture -lOverture_static
+LibOverture= -lOverture -lOverture_static -lOgmg
 OvertureInclude=  $(Overture)/include
 OvertureLib=      $(Overture)/lib
 BOXLIB_DEFS = -DBL_USE_DOUBLE -DBL_Solaris
@@ -95,7 +100,7 @@ ifeq ($(FC),pgf77)
   FORTRAN_LIBS =-Wl,-rpath,$(PGI_LIB) -L$(PGI_LIB) -lpgftnrtl -lpgmp  -lpgc -lrt -lstd
 endif
 ifeq ($(FC),gfortran)
-  FORTRAN_LIBS =
+  FORTRAN_LIBS = -L/usr/local/gfortran/lib -lgfortran
 endif
 LIB_TARGETS= lib_date libso_date
 LIB_DEPENDENCIES= ../lib/lib_date

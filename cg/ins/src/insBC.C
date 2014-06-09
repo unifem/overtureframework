@@ -2123,13 +2123,31 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         	  }
       	
         	  int count=sum(mask);
+	  // printF("---> insBC: number of outflow points that are inflow = %i\n",count);
         	  if( count>0 )
         	  {
-          	    if( debug() & 4 )
-            	      printf("insBC: number of outflow points that are inflow = %i\n",count);
+          	    if( debug()& 2 || debug() & 4 )
+            	      printF("****insBC: number of outflow points that are inflow = %i\n",count);
           	    bcParams.setUseMask(TRUE);
-	    // u.applyBoundaryCondition(V,neumann,outflow,0.,t,bcParams);
-          	    u.applyBoundaryCondition(V,neumann,BCTypes::boundary(side,axis),0.,t,bcParams);
+
+                        if( false )  // add this as an option 
+          	    {
+              // *wdh* 2014/06/08 -- try a mixed BC
+            	      bcParams.a.redim(3);
+            	      bcParams.a(0)=1.;
+            	      bcParams.a(1)=.01;
+            	      bcParams.a(2)=0.;
+
+            	      u.applyBoundaryCondition(V,mixed,BCTypes::boundary(side,axis),0.,t,bcParams);
+              // real alpha=.1;
+	      // u.applyBoundaryCondition(V,normalComponent,BCTypes::boundary(side,axis),alpha,t);
+          	    }
+          	    else
+          	    {
+            	      u.applyBoundaryCondition(V,neumann,BCTypes::boundary(side,axis),0.,t,bcParams);
+          	    }
+          	    
+
           	    bcParams.setUseMask(FALSE);
         	  }
       	}
@@ -3254,6 +3272,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         	  
             Index Ibv[3], &Ib1=Ibv[0], &Ib2=Ibv[1], &Ib3=Ibv[2];
             Index Igv[3], &Ig1=Igv[0], &Ig2=Igv[1], &Ig3=Igv[2];
+            Index Ipv[3], &Ip1=Ipv[0], &Ip2=Ipv[1], &Ip3=Ipv[2];
             for( int axis=0; axis<numberOfDimensions; axis++ )
             {
       	for( int side=0; side<=1; side++ )
@@ -3268,10 +3287,16 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
           	    bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,1);
           	    for( int ghost=1; ghost<=numGhost; ghost++ )
           	    {
-            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3,ghost,extra);  
+            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3, ghost,extra);  
+            	      getGhostIndex(mg.gridIndexRange(),side,axis,Ip1,Ip2,Ip3,-ghost,extra);  
             	      ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,1);
+            	      ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ip1,Ip2,Ip3,1);
             	      if( ok )
-            		uLocal(Ig1,Ig2,Ig3,V)=uLocal(Ib1,Ib2,Ib3,V);
+            	      {
+		// uLocal(Ig1,Ig2,Ig3,V)=uLocal(Ib1,Ib2,Ib3,V);
+            		uLocal(Ig1,Ig2,Ig3,V)=2.*uLocal(Ib1,Ib2,Ib3,V)-uLocal(Ip1,Ip2,Ip3,V); // *wdh* 2014/06/02
+            	      }
+            	      
           	    }
             	      
         	  }

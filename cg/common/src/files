@@ -4,7 +4,7 @@ SRC_FILES += boundaryConditionPredictor.C Parameters.C readFromAShowFile.C Probe
 SRC_FILES += ProjectVelocity.C ogf.C boundaryDistance.C SurfaceEquation.C initialConditionsFromAProfile.C 
 SRC_FILES += memory.C chemistryPhoneyFiles.C applyFilter.C ExternalBoundaryData.C outputProbes.C
 
-SRC_FILES += FlowSolutions.C 
+SRC_FILES += FlowSolutions.C BoundaryLayerProfile.C
 
 #new files 
 SRC_FILES += setup.C initialConditions.C setBoundaryConditions.C solve.C setupPde.C timeSteppingDialog.C

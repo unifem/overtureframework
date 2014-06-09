@@ -146,7 +146,7 @@ FLIBS=   $(AppLibraries) $(FORTRAN_LIBS)
 
 BPP = $(OvertureCheckout)/bpp/bpp
 
-
+LAPACK_LIBRARIES = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
 
 .SUFFIXES:
 .SUFFIXES:.C .o .f .o .F .o .bf .f .c .o .cc .o

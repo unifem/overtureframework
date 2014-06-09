@@ -2160,6 +2160,9 @@ advanceElasticBeam(real t1, real t2, real t3,
 
   pBeamModel->resetForce(); // WDH: this should be outside loop over faces. 
 
+  const int beamID = pBeamModel->getBeamID();
+  aString beamDirName;  // name of the dbase sub-directory where we save info for this beam
+  
   // --------------------------------------
   // --- LOOP over faces on the surface ---
   // --------------------------------------
@@ -2189,24 +2192,29 @@ advanceElasticBeam(real t1, real t2, real t3,
     assert( face<surfaceArrayTime.size() );
     real & tx0= surfaceArrayTime[face][0];
 
+    sPrintF(beamDirName,"beam%iFace%i",beamID,face);
+
+
     const int numGhost=0;  // include ghost points 
     Range Rx=numberOfDimensions;
     // --- The current surface position and velocity are stored in the GridFunction data-base ---
     for( int m=0; m<3; m++ )
     {
       GridFunction & gf = m==0 ? cgf1 : m==1 ? cgf2 : cgf3;
-      if( !gf.dbase.has_key("xBeam") )
+      if( !gf.dbase.has_key(beamDirName) )
       {
+        gf.dbase.put<DataBase>(beamDirName);  // save beam arrays here 
+        DataBase & beamDataBase = gf.dbase.get<DataBase>(beamDirName);
+
 	// note: include ghost points:
 	getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
-	gf.dbase.put<RealArray>("xBeam");
-	gf.dbase.put<RealArray>("vBeam");
-	gf.dbase.put<RealArray>("beamBoundaryLocation");
+	beamDataBase.put<RealArray>("xBeam");
+	beamDataBase.put<RealArray>("vBeam");
+	beamDataBase.put<RealArray>("beamBoundaryLocation");
 
-	RealArray & x = gf.dbase.get<RealArray>("xBeam");
-	RealArray & v = gf.dbase.get<RealArray>("vBeam");
-
-	RealArray & xbb = gf.dbase.get<RealArray>("beamBoundaryLocation");
+	RealArray & x = beamDataBase.get<RealArray>("xBeam");
+	RealArray & v = beamDataBase.get<RealArray>("vBeam");
+	RealArray & xbb = beamDataBase.get<RealArray>("beamBoundaryLocation");
  
 	gf.cg[gridToMove].update(MappedGrid::THEvertex | MappedGrid::THEcenter); // do this for now 
 #ifdef USE_PPP
@@ -2224,17 +2232,17 @@ advanceElasticBeam(real t1, real t2, real t3,
 
     getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3);
 
-    RealArray & x1 = cgf1.dbase.get<RealArray>("xBeam");
-    RealArray & v1 = cgf1.dbase.get<RealArray>("vBeam");
+    RealArray & x1 = cgf1.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
+    RealArray & v1 = cgf1.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
 	
-    RealArray & x2 = cgf2.dbase.get<RealArray>("xBeam");
-    RealArray & v2 = cgf2.dbase.get<RealArray>("vBeam");
+    RealArray & x2 = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
+    RealArray & v2 = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
 	
-    RealArray & x3 = cgf3.dbase.get<RealArray>("xBeam");
-    RealArray & v3 = cgf3.dbase.get<RealArray>("vBeam");
+    RealArray & x3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
+    RealArray & v3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
 
-    RealArray & xbb = cgf2.dbase.get<RealArray>("beamBoundaryLocation");
-    RealArray & xbb3 = cgf3.dbase.get<RealArray>("beamBoundaryLocation");
+    RealArray & xbb = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
+    RealArray & xbb3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
     xbb3 = xbb;    
     // RealArray x1,x2,x3, v1,v2,v3;
 
@@ -4285,6 +4293,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     
     else if( answer=="elastic beam parameters" )
     {
+      // **** OLD WAY ****
+
+
       if( !deformingBodyDataBase.has_key("elasticBeamParameters") )
       {
 	deformingBodyDataBase.put<real [10]>("elasticBeamParameters");
@@ -4906,7 +4917,7 @@ int DeformingBodyMotion::put( GenericDataBase & dir, const aString & name) const
 
 
 // =================================================================================================
-/// \brief Plot things related to moving grids (e.g. the center lines of beams or shells)
+/// \brief Plot things related to deforming grids (e.g. the center lines of beams or shells)
 // =================================================================================================
 int DeformingBodyMotion::
 plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp )
@@ -4915,14 +4926,24 @@ plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp
   printF("DeformingBodyMotion::plot...\n");
 
 
-  if( pBeamModel!=NULL )
+  if( pBeamModel!=NULL || pNonlinearBeamModel!=NULL )
   {
     printF("DeformingBodyMotion::plot the beam model.\n");
 
 
     RealArray xc;
-    pBeamModel->getCenterLine(xc);
-    ::display(xc,"beam center line","%8.2e ");
+    aString buff;
+    if( pBeamModel!=NULL )
+    {
+      pBeamModel->getCenterLine(xc);
+      ::display(xc,sPrintF(buff,"%s: center line",(const char*)pBeamModel->getName()),"%8.2e ");
+    }
+    else
+    {
+      pNonlinearBeamModel->getCenterLine(xc);
+      // ::display(xc,sPrintF(buff,"%s: center line",(const char*)pBeamModel->getName()),"%8.2e ");
+      ::display(xc,"center line","%8.2e ");
+    }
     
     NurbsMapping map; 
     map.interpolate(xc);

@@ -45,6 +45,9 @@ Changes:
                   well, if at all.
    o 2014/05/18 - added option for setting variable coefficient mixed boundary conditions with applyBoundaryConditions
                   such as a0(x,y,z)*u + a1(x,y,z)*u.n = g(x). See the example in tbc.C and tbcc.C
+   o 2014/05/30 - changes were made so that Overture can be built on the Mac OS X 10.9 (Mavericks) which has new compilers.
+   o 2014/05/31 - changes were made so that PETSc can be called from the Mac. The main program should now call INIT_PETSC_SOLVER();
+   o 2014/06/02 - dues to changes for the Mac one now needs to always link to the multigrid library libOgmg in Overture/lib
 
 ==============================================================================================
 Overture.v25 - released  November 21, 2012

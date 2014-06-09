@@ -149,6 +149,9 @@ class PETScEquationSolver : public EquationSolver
 
   void dh_computeResidualReduction( double & residReduction );
   
+  static EquationSolver* newPETScEquationSolver(Oges &oges);
+
+
 private:
   int  ierr; 
 

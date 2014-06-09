@@ -81,6 +81,7 @@ int setPetscRunTimeParameters();
 int initializePETSc();
 int finalizePETSc();
 
+static EquationSolver* newPETScSolver(Oges &oges);
 
 static int debug;
 static int instancesOfPETSc;  // keeps count of how many different applications use PETSc 

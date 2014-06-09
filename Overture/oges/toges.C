@@ -14,9 +14,9 @@
 #include "SparseRep.h"
 #include "PlotStuff.h"
 
+
 #define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) \
                                  for( side=0; side<=1; side++ )
-
 bool measureCPU=TRUE;
 real
 CPU()
@@ -39,6 +39,8 @@ main(int argc, char *argv[])
   aString commandFileName="";
   bool plotOption=TRUE;
   
+  // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+  INIT_PETSC_SOLVER();
   
   int solverType=OgesParameters::yale; 
   if( argc > 1 )

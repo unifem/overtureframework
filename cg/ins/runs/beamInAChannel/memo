@@ -1,3 +1,26 @@
+** 2014/06/07 -- nonlinear beam
+
+
+cgins nonlinearBeamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -go=halt
+
+
+** 2014/06/05 -- clean up beam model to allow for multiple beams
+
+
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show="multiBeam4.show" -outflowOption=neumann -go=go > multiBeam4.out
+
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -outflowOption=neumann -go=halt
+
+
+
+    ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=2
+    ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=4
+
+
+
+cgins beamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -go=halt
+
+
 ** 2014/05/23 -- fix bug in BeamModel.C 
 
 

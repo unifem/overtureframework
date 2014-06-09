@@ -2109,7 +2109,7 @@ update( GenericGraphicsInterface & gi, CompositeGrid & cGrid )
         sScanF(line,"%i",&Oges::debug);
       printF("Setting Oges::debug=%i\n",Oges::debug);
     }
-    else if( len=answer.matches("define petscOption" ) )
+    else if( (len=answer.matches("define petscOption" )) )
     {
       const int length=answer.length();
       int iStart=len;

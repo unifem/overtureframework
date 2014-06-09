@@ -29,6 +29,9 @@ extern "C"
 
 }
 
+int Oges::petscIsAvailable=false;        // set to true if PETSc is available
+Oges::newPETScFunction Oges::createPETSc=NULL;  // pointer to a function that can "new" a PETSc instance
+
 //\begin{>OgesInclude.tex}{\subsection{default constructor}} 
 Oges::
 Oges()

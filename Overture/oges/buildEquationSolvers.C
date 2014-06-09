@@ -7,26 +7,16 @@
 //    o slap
 // We can optionally build by compiling with the flag -DOVERTURE_USE_PETSC
 //    o PETSc
-#ifdef OVERTURE_USE_PETSC
-#include "PETScEquationSolver.h"
-#include "PETScSolver.h"
-#endif
+// #ifdef OVERTURE_USE_PETSC
+// #include "PETScEquationSolver.h"
+// #include "PETScSolver.h"
+// #endif
 #include "YaleEquationSolver.h"
 #include "HarwellEquationSolver.h"
 #include "SlapEquationSolver.h"
 #include "MultigridEquationSolver.h"
 
 
-// =============================================================================
-//  Here is the function that Overture::finish() calls to shutdown PETSc
-// =============================================================================
-static void 
-finalizePETSc()
-{
-  #ifdef OVERTURE_USE_PETSC
-  int ierr = PetscFinalize(); 
-  #endif
-}
 
 //\begin{>>OgesParametersInclude.tex}{\subsection{isAvailable(SolverEnum) }} 
 int OgesParameters::
@@ -43,20 +33,13 @@ isAvailable( SolverEnum solverType )
   }
   else if( solverType==PETSc ) // we need to figure out a way to see if PETSc is available
   {
-#ifdef OVERTURE_USE_PETSC
-    return 1;
-#else
-    return 0;
-#endif
+    return Oges::petscIsAvailable;
   }
   else if( solverType==PETScNew )
   {
+    // parallel version of PETSc solver: 
    #ifdef USE_PPP
-    #ifdef OVERTURE_USE_PETSC
-      return 1;
-    #else
-      return 0;
-    #endif
+    return Oges::petscIsAvailable;
    #else
     return 0;
    #endif
@@ -104,7 +87,7 @@ buildEquationSolvers(OgesParameters::SolverEnum solver)
            " and then link the files to your application in order to get a non-standard solver\n"
            " See the Oges documentation for further details\n",
            (const char*)parameters.getSolverTypeName(solver));
-    Overture::abort("error");
+    OV_ABORT("error");
   }
   
   if( solver==OgesParameters::yale )
@@ -125,26 +108,36 @@ buildEquationSolvers(OgesParameters::SolverEnum solver)
     if( equationSolver[slapES]==NULL )
       equationSolver[slapES]=new SlapEquationSolver(*this);
   }
-#ifdef OVERTURE_USE_PETSC
   else if( solver==OgesParameters::PETSc )
   {
-    Overture::shutDownPETSc = &finalizePETSc;  // set the function that will shut down PETSc
-
     const int petsc = OgesParameters::PETSc;
+    // Overture::shutDownPETSc = &finalizePETSc;  // set the function that will shut down PETSc
+
+    assert( createPETSc!=NULL );
+
     if( equationSolver[petsc]==NULL )
-      equationSolver[petsc]=new PETScEquationSolver(*this);
+      equationSolver[petsc]=(*createPETSc)(*this);
+    
+
+    // if( equationSolver[petsc]==NULL )
+    //   equationSolver[petsc]=new PETScEquationSolver(*this);
+
   }
   #ifdef USE_PPP
   else if( solver==OgesParameters::PETScNew )
   {
-    Overture::shutDownPETSc = &finalizePETSc;  // set the function that will shut down PETSc
+    // Overture::shutDownPETSc = &finalizePETSc;  // set the function that will shut down PETSc
 
     const int petsc = OgesParameters::PETScNew;
+
     if( equationSolver[petsc]==NULL )
-      equationSolver[petsc]=new PETScSolver(*this);
+      equationSolver[petsc]=(*createPETSc)();
+
+    // if( equationSolver[petsc]==NULL )
+    //   equationSolver[petsc]=new PETScSolver(*this);
+
   }
   #endif
-#endif
   else if( solver==OgesParameters::multigrid )
   {
     const int multigridES = OgesParameters::multigrid;
@@ -156,9 +149,9 @@ buildEquationSolvers(OgesParameters::SolverEnum solver)
   }
   else
   {
-    printf("Oges::buildEquationSolvers:ERROR:Unknown solver %s to build\n",
+    printF("Oges::buildEquationSolvers:ERROR:Unknown solver %s to build\n",
          (const char*)parameters.getSolverTypeName(solver));
-    Overture::abort("error");
+    OV_ABORT("error");
   }
 
   return 0;

@@ -14,7 +14,7 @@ CCFLAGSO += $(SuperLU_Includes)/src
 # FLIBS=   -L$(LAPACK) -llapack -lblas $(FORTRAN_LIBS) 
 FFLAGSO = $(FFLAGSG)
 
-LAPACK_LIBRARIES = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
+# LAPACK_LIBRARIES = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
 PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include  -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)  -I$(PETSC_DIR)/src/sys/src/mpiuni
 # for version 2.2.1
 PETSC_INCLUDE = -DOVERTURE_USE_PETSC -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include/mpiuni
@@ -27,6 +27,7 @@ else
  PETSC_LIBS = -Wl,-rpath,$(PETSC_LIB) -L$(PETSC_LIB) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpiuni
 
 endif
+# PETSC_INCLUDE =
 
 # HYPRE = /home/henshaw.0/petsc/petsc-2.3.2-mpi/externalpackages/hypre-1.11.1b/linux-gnu-opt
 # HYPRE_LIBS -Wl,-rpath,$(HYPRE)/lib -L$(HYPRE)/lib -lHYPRE_DistributedMatrix -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_Euclid -lHYPRE_IJ_mv -lHYPRE_LSI -lHYPRE_MatrixMatrix -lHYPRE_ParaSails -lHYPRE_krylov -lHYPRE_parcsr_ls -lHYPRE_parcsr_mv -lHYPRE_seq_mv -lHYPRE_sstruct_ls -lHYPRE_sstruct_mv -lHYPRE_struct_ls -lHYPRE_struct_mv
@@ -90,7 +91,7 @@ PETScSolver.o: PETScSolver.C
 
 PETSC_SOLVER = PETScEquationSolver.o
 # parallel:
-PETSC_SOLVER = PETScEquationSolver.o PETScSolver.o
+# PETSC_SOLVER = PETScEquationSolver.o PETScSolver.o
 
 # Tests Overlapping Grid Equation Solver: oges
 
@@ -111,7 +112,7 @@ Oges= Oges.o ogesFiles.o OgesParameters.o formMatrix.o generateMatrix.o buildEqu
 toges= toges.o $(Oges) 
 toges: $(toges) 
 	$(CC) $(CCFLAGS) -o toges \
-        $(toges) $(CLIBS)  $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+        $(toges) $(CLIBS)  $(PETSC_LIBS) $(LAPACK_LIBRARIES) $(FLIBS) $(GLIBS)
 
 subset= $(Oges) subset.o 
 subset: $(subset) 

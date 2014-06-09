@@ -1,4 +1,4 @@
-include ../config/Makefile.intel
+include ../config/Makefile.$(VENDOR)
 
 # CC = insure
 
@@ -107,9 +107,16 @@ triDiagonal.f : triDiagonal.bf; bpp triDiagonal.bf
 TridiagonalFactor.o : TridiagonalFactor.C
 	$(CC) $(CCFLAGSF) -c TridiagonalFactor.C
 
+# Test the tridiagonal solver: 
 tri= tri.o TridiagonalSolver.o TridiagonalFactor.o pentaDiagonal.o
 tri: $(tri) 
 	$(CC) $(CCFLAGS) -o tri $(tri) \
+        $(CLIBS) $(FLIBS) $(GLIBS)
+
+# Test the PARALLEL tridiagonal solver: 
+trip= trip.o TridiagonalSolver.o TridiagonalFactor.o pentaDiagonal.o
+trip: $(trip) 
+	$(CC) $(CCFLAGS) -o trip $(trip) \
         $(CLIBS) $(FLIBS) $(GLIBS)
 
 # test templates

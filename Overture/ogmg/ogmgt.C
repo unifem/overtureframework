@@ -82,6 +82,9 @@ main(int argc, char *argv[])
   Overture::start(argc,argv);  // initialize Overture
   Optimization_Manager::setForceVSG_Update(Off);
 
+  // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+  INIT_PETSC_SOLVER();
+
   const int maxBuff=300;
   char buff[maxBuff];
     
@@ -130,23 +133,23 @@ main(int argc, char *argv[])
 	sScanF(line(len,length-1),"%i",&Ogmg::debug);
         printF("Ogmg::debug=%i \n",Ogmg::debug);
       }
-      else if( len=line.matches("-degreex=") )
+      else if( (len=line.matches("-degreex=")) )
       {
         int length=line.length();
 	sScanF(line(len,length-1),"%i",&degreex);
         printF("Ogmg::degree of the spatial polynomial is degreex=%i \n",degreex);
       }
-      else if( len=line.matches("-numParallelGhost=") )
+      else if( (len=line.matches("-numParallelGhost=")) )
       {
 	sScanF(line(len,line.length()-1),"%i",&numParallelGhost);
         printF("Ogmg::number of parallel ghost lines is=%i \n",numParallelGhost);
       }
-      else if( len=line.matches("-numberOfParallelGhost=") )
+      else if( (len=line.matches("-numberOfParallelGhost=")) )
       {
 	sScanF(line(len,line.length()-1),"%i",&numParallelGhost);
         printF("Ogmg::number of parallel ghost lines is=%i \n",numParallelGhost);
       }
-      else if( len=line.matches("-maxits=") )
+      else if( (len=line.matches("-maxits=")) )
       {
         int length=line.length();
 	sScanF(line(len,length-1),"%i",&maximumNumberOfIterations);
@@ -474,7 +477,7 @@ main(int argc, char *argv[])
       adjustSingularEquations=true;
       printF("adjustSingularEquations=true\n");
     }
-    else if( len=answer.matches("bcNumber") )
+    else if( (len=answer.matches("bcNumber")) )
     {
       // BC of the form
       //    bcNumber3=[d|n|m|e]

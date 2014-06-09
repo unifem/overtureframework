@@ -429,9 +429,15 @@ writeParameterSummary( FILE * file )
   
   const int outflowOption=parameters.dbase.get<int>("outflowOption");
   const int checkForInflowAtOutFlow = parameters.dbase.get<int >("checkForInflowAtOutFlow");
-  if( outflowOption==0 && checkForInflowAtOutFlow!=2 )
+  // NOTE: checkForInflowAtOutFlow=2: means expect inflow at outflow
+  // fPrintF(file," outflowOption=%i (0=extrap,1=neumann), checkForInflowAtOutFlow=%i (1=check, 2=expect)\n",outflowOption,checkForInflowAtOutFlow);
+  
+  if( outflowOption==0 ) // && checkForInflowAtOutFlow!=2 )
+  {
+    assert( checkForInflowAtOutFlow!=2 );
     fPrintF(file," Outflow boundary condition is extrapolation (order of extrap.=%i). (Other options: Neumann)\n",
 	    parameters.dbase.get<int >("orderOfExtrapolationForOutflow"));
+  }
   else
     fPrintF(file," Outflow boundary condition is Neumann. (Other options: extrapolation)\n");
 

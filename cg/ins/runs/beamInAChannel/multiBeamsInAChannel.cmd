@@ -10,9 +10,9 @@
 #  -psolver : pressure solver
 * 
 # Examples:
-#    cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=1. -tp=.01
+#    cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride2.order2.hdf -tf=1. -tp=.01
 # 
-$grid="beamInAChannelGride2.order2.hdf"; $ts="adams PC"; $noplot=""; $backGround="square"; $uIn=1.0*1.5; $v0=0.; $T0=0.; $p0=0.; $cfl=.9; $useNewImp=1;
+$grid="multiBeamsInAChannelGride2.order2.hdf"; $ts="adams PC"; $noplot=""; $backGround="square"; $uIn=1.0*1.5; $v0=0.; $T0=0.; $p0=0.; $cfl=.9; $useNewImp=1;
 $tFinal=20.; $tPlot=.05; $dtMax=.1; $degreeSpace=2; $degreeTime=2; $show=" "; $debug=1; $go="halt";
 $nu=1e-3; $Prandtl=.72; $thermalExpansivity=3.4e-3; $Tin=-10.;  $implicitFactor=.5; $implicitVariation="viscous"; 
 $tz=0; # turn on tz here
@@ -81,12 +81,14 @@ $grid
 *   
   turn on moving grids
   specify grids to move
+      # ----- BEAM 1 -----
       deforming body
         user defined deforming body
           elastic beam
           $I=1.; $E=10.; $rhoBeam=100.; $length=1.; $thick=.2; $pNorm=1.; 
           $angle=90.; # $Pi*.5; 
           elastic beam parameters...
+            name: beam1
             number of elements: 11
             area moment of inertia: $I
             elastic modulus: $E
@@ -100,15 +102,6 @@ $grid
             bc right:free
             debug: 0
           exit
-          # -- old way --
-#-          elastic beam parameters
-#-            # Enter I,E,rho,L,t,pnorm,x0,y0,dec, scaleFactor
-#-            # Area moment of inertia
-#-            #   I = b^4/12   (square cross section b )
-#-            #   I = 
-#-            $I $E $rhoBeam $length $thick $pNorm 0.0 0. $angle 0.
-#-            # Enter nelem, bcl, bcr, exact (0=cantilevered, 1=pinned, 2=free)
-#-            11 0 2 0
           # ----
           boundary parameterization
              1
@@ -121,7 +114,11 @@ $grid
         choose grids by share flag
           100
      done
-  done
+#
+    include $ENV{CG}/ins/runs/beamInAChannel/beam2.h
+#
+   done
+# 
 *
   # number of PC corrections 100
   $implicitVariation
@@ -149,7 +146,7 @@ $grid
    OBPDE:ad41,ad42 $ad41, $ad42
    # MG solver currently wants a Neumann BC at outflow
    ## if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="OBPDE:expect inflow at outflow\n use extrapolate BC at outflow"; }
-   if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="use extrapolate BC at outflow"; }
+   if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="OBPDE:check for inflow at outflow\n use extrapolate BC at outflow"; }
      $cmd
    done
 * 

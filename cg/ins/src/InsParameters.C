@@ -1692,14 +1692,13 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       int & outflowOption = dbase.get<int>("outflowOption");
       checkForInflowAtOutFlow=(answer=="check for inflow at outflow" ? 1 : 
 			       answer=="expect inflow at outflow" ? 2 : 0);
-
-      printF("Setting checkForInflowAtOutFlow=%i, and outflowOption=%i\n",checkForInflowAtOutFlow,outflowOption);
-      
        
       if( checkForInflowAtOutFlow==0 )
 	outflowOption=0;  // extrapolate at outflow
-      else
+      else if( checkForInflowAtOutFlow==2 ) // *wdh* 2014/06/02 
 	outflowOption=1;  // Neumann BC at outflow
+
+      printF("Setting checkForInflowAtOutFlow=%i, and outflowOption=%i\n",checkForInflowAtOutFlow,outflowOption);
 
     }
     else if( dialog.getTextValue(answer,"order of time extrapolation for p","%i", dbase.get<int >("orderOfTimeExtrapolationForPressure")) )
@@ -2167,6 +2166,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     }
     else if( answer=="use extrapolate BC at outflow" )
     {
+      printF("Setting outflowOption=0 : use extrapolate BC at outflow\n");
       dbase.get<int>("outflowOption")=0;
     }
     else if(  dbase.get<ListOfShowFileParameters >("pdeParameters").matchAndSetValue( answer ) )

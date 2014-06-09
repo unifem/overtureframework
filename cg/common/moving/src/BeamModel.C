@@ -26,13 +26,21 @@ printArray(const doubleSerialArray & u,
            int i6a, int i6b) ;
 
 
+// --- assign static class variables --
 real BeamModel::exactSolutionScaleFactorFSI=.00001;  // scale factor for the exact FSI solution 
 int BeamModel::debug=0;
+int BeamModel::globalBeamCounter=0; // keeps track of number of beams that have been created
+
 
 // Constructor.
 //
 BeamModel::BeamModel() {
 
+  name = "beam";
+
+  globalBeamCounter++;
+  beamID=globalBeamCounter; //  a unique ID 
+  
   elementK.redim(4,4);
   elementM.redim(4,4);
 
@@ -54,8 +62,6 @@ BeamModel::BeamModel() {
   newmarkBeta = 0.25;
   newmarkGamma = 0.5;
 
-  output.open("tip.txt");
-
   time_step_num = 1;
 
   pressureNorm = 1000.0;
@@ -65,11 +71,11 @@ BeamModel::BeamModel() {
   bcLeft = bcRight = Pinned;
   //bcLeft = bcRight = Cantilevered;
 
-  added_mass_relaxation = 1.0;
+//  added_mass_relaxation = 1.0;
 
   numCorrectorIterations = 0;
 
-  convergenceTolerance = 1e-3;
+  // convergenceTolerance = 1e-3;
 
   allowsFreeMotion = false;
 
@@ -99,7 +105,29 @@ BeamModel::BeamModel() {
 
   leftCantileverMoment = 0.0;
 
-  // if( !dbase.has_key("exactSolutionScaleFactorFSI") ) 
+  if( !dbase.has_key("saveProfileFile") ) 
+  {
+     dbase.put<bool>("saveProfileFile");
+     dbase.get<bool>("saveProfileFile")=false;
+  }
+
+  if( !dbase.has_key("saveTipFile") ) 
+  {
+     dbase.put<bool>("saveTipFile");
+     dbase.get<bool>("saveTipFile")=false;
+  }
+
+  usesExactSolution=false;
+
+
+  // The relaxation parameter used in the fixed point iteration
+  // used to alleviate the added mass effect
+  dbase.put<real>("addedMassRelaxationFactor",1.0);
+
+  // The (relative) convergence tolerance for the fixed point iteration
+  // tol: convergence tolerance (default is 1.0e-3)
+  dbase.put<real>("subIterationConvergenceTolerance",1.0e-3);
+  
   // { // wdh: replaces 'what' factor 
   //   dbase.put<real>("exactSolutionScaleFactorFSI");
   //   dbase.get<real>("exactSolutionScaleFactorFSI")=0.00001; // scale FSI solution so linearized approximation is valid 
@@ -113,26 +141,12 @@ BeamModel::~BeamModel() {
 }
 
 
-void BeamModel::setParameters(real momOfInertia, real E, 
-			      real rho,real beamLength,
-			      real thickness,real pnorm,
-			      int nElem,BoundaryCondition bcl,
-			      BoundaryCondition bcr,
-			      real x0, real y0,
-			      bool useExactSolution) {
-
-  bcLeft = bcl;
-  bcRight = bcr;
-
-  areaMomentOfInertia = momOfInertia;
-  elasticModulus = E;
-  density = rho;
-  numElem = nElem;
-
-  pressureNorm = pnorm;
-
-  L = beamLength;
-
+// ======================================================================================
+/// \brief initialize the beam model
+// ======================================================================================
+void BeamModel::
+initialize()
+{
   le = L / numElem;
 
   real le2 = le*le;
@@ -143,7 +157,7 @@ void BeamModel::setParameters(real momOfInertia, real E,
   massPerUnitLength = totalMass / L;
 
   // Buoyancy terms are used when there is a body force (gravity)
-  buoyantMassPerUnitLength = (density - pnorm)*thickness;
+  buoyantMassPerUnitLength = (density - pressureNorm)*thickness;
 
   buoyantMass = buoyantMassPerUnitLength * L;
 
@@ -151,7 +165,7 @@ void BeamModel::setParameters(real momOfInertia, real E,
 
   real EI = elasticModulus*areaMomentOfInertia;
 
-  std::cout << "EI = " << EI << std::endl;
+  // std::cout << "EI = " << EI << std::endl;
 
   elementK(0,0) = EI*12./le3; elementK(0,1) = EI*6./le2; 
   elementK(0,2) = -elementK(0,0); elementK(0,3) = elementK(0,1);
@@ -184,9 +198,8 @@ void BeamModel::setParameters(real momOfInertia, real E,
   myPosition = 0.0;
   myVelocity = 0.0;
 
-  usesExactSolution = useExactSolution;
 
-  if (useExactSolution) {
+  if (usesExactSolution) {
 
     setExactSolution(0.0,myPosition,myVelocity,myAcceleration);
     //    myAcceleration = 0.0;
@@ -230,8 +243,41 @@ void BeamModel::setParameters(real momOfInertia, real E,
   dtilde = myPosition;
   vtilde = myVelocity;
 
+
+
+}
+
+
+
+void BeamModel::setParameters(real momOfInertia, real E, 
+			      real rho,real beamLength,
+			      real thickness_,real pnorm,
+			      int nElem,BoundaryCondition bcl,
+			      BoundaryCondition bcr,
+			      real x0, real y0,
+			      bool useExactSolution) {
+
+
+  areaMomentOfInertia = momOfInertia;
+  elasticModulus = E;
+  density = rho;
+  L = beamLength;
+  thickness=thickness_;
+
+  pressureNorm = pnorm;
+
+  numElem = nElem;
+
+  bcLeft = bcl;
+  bcRight = bcr;
+
   beamX0 = x0;
   beamY0 = y0;
+
+  usesExactSolution = useExactSolution;
+
+  initialize();
+
 }
 
 
@@ -1180,13 +1226,19 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
   //x3 = 0.0;
   //v3 = 0.0;
 
-  output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  myAcceleration(numElem*2) << std::endl;
-
+  if( dbase.get<bool>("saveTipFile") )
+  {
+    output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  myAcceleration(numElem*2) << std::endl;
+  }
+  
   RealArray xtmp = x3;
   RealArray vtmp = v3;
   RealArray atmp = myAcceleration;
 
-  if (usesExactSolution) {
+  const bool & saveProfileFile = dbase.get<bool>("saveProfileFile");
+
+  if( usesExactSolution && saveProfileFile ) 
+  {
     setExactSolution(t,xtmp,vtmp,atmp);
 
     std::stringstream profname;
@@ -1209,15 +1261,16 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
       beam_profile << displacement <<  " ";
       
       //if (usesExactSolution) {
-	interpolateSolution(xtmp, elemNum, eta, displacement, slope);
-	beam_profile << displacement <<  " ";
-	interpolateSolution(vtmp, elemNum, eta, displacement, slope);
-	beam_profile << displacement <<  " ";
-	interpolateSolution(atmp, elemNum, eta, displacement, slope);
-	beam_profile << displacement <<  " ";
-	//}
+      interpolateSolution(xtmp, elemNum, eta, displacement, slope);
+      beam_profile << displacement <<  " ";
+      interpolateSolution(vtmp, elemNum, eta, displacement, slope);
+      beam_profile << displacement <<  " ";
+      interpolateSolution(atmp, elemNum, eta, displacement, slope);
+      beam_profile << displacement <<  " ";
+      //}
       
       beam_profile << std::endl;
+      
     }
 
     beam_profile.close();
@@ -1282,7 +1335,10 @@ void BeamModel::corrector(real dt,
     return;
   }
 
-  real omega = added_mass_relaxation;
+  real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
+  real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
+
+  real omega = addedMassRelaxationFactor;
 
   flocal = myForce;
 
@@ -1375,7 +1431,7 @@ void BeamModel::corrector(real dt,
   ++numCorrectorIterations;
 
   // std::cout << "correction value = " << correction << std::endl;
-  if (correction < initialResidual*convergenceTolerance || correction < 1e-8)
+  if (correction < initialResidual*subIterationConvergenceTolerance || correction < 1e-8)
     correctionHasConverged = true;
 
   //setExactSolution(t, x3, v3, myAcceleration);
@@ -1595,14 +1651,15 @@ double BeamModel::getExactPressure(double t, double xl) {
 }
 
 
-void BeamModel::setAddedMassRelaxation(double omega) {
+void BeamModel::setAddedMassRelaxation(double omega) 
+{
 
-  added_mass_relaxation = omega;
+  dbase.get<OV_real>("addedMassRelaxationFactor") = omega;
 }
 
-void BeamModel::setSubIterationConvergenceTolerance(double tol) {
-
-  convergenceTolerance = tol;
+void BeamModel::setSubIterationConvergenceTolerance(double tol) 
+{
+  dbase.get<OV_real>("subIterationConvergenceTolerance") = tol;
 }
 
 
@@ -1654,6 +1711,10 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
   aString prefix = ""; // prefix for commands to make them unique.
 
+  OV_real & subIterationConvergenceTolerance = dbase.get<OV_real>("subIterationConvergenceTolerance");
+  OV_real & addedMassRelaxationFactor = dbase.get<OV_real>("addedMassRelaxationFactor");
+
+
   bool buildDialog=true;
   if( buildDialog )
   {
@@ -1673,20 +1734,24 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     aString bcOptions[] = { "cantilever",
 			    "pinned",
 			    "free",
+                            "periodic",
 			    "" };
-    dialog.addOptionMenu("BC left:",bcOptions,bcOptions,bcLeft );
 
-    dialog.addOptionMenu("BC right:",bcOptions,bcOptions,bcRight );
+    GUIState::addPrefix(bcOptions,"bc left:",cmd,maxCommands);
+    dialog.addOptionMenu("BC left:",cmd,cmd,bcLeft );
+
+    GUIState::addPrefix(bcOptions,"bc right:",cmd,maxCommands);
+    dialog.addOptionMenu("BC right:",cmd,cmd,bcRight );
 
 
-    // aString tbCommands[] = {"smooth surface",
-    //                         "change hype parameters",
-    // 			    ""};
-    // int tbState[10];
-    // tbState[0] = smoothSurface;
-    // tbState[1] = changeHypeParameters;
-    // int numColumns=1;
-    // dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+    aString tbCommands[] = {"save profile file",
+                            "save tip file",
+    			    ""};
+    int tbState[10];
+    tbState[0] = dbase.get<bool>("saveProfileFile");
+    tbState[1] = dbase.get<bool>("saveTipFile");
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
 
     const int numberOfTextStrings=40;
@@ -1695,6 +1760,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
     int nt=0;
     
+    textLabels[nt] = "name:"; sPrintF(textStrings[nt], "%s",(const char*)name);  nt++; 
     textLabels[nt] = "number of elements:"; sPrintF(textStrings[nt], "%i",numElem);  nt++; 
     textLabels[nt] = "area moment of inertia:"; sPrintF(textStrings[nt], "%g",areaMomentOfInertia);  nt++; 
     textLabels[nt] = "elastic modulus:"; sPrintF(textStrings[nt], "%g",elasticModulus);  nt++; 
@@ -1704,6 +1770,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     textLabels[nt] = "pressure norm:"; sPrintF(textStrings[nt], "%g",pressureNorm);  nt++; 
     textLabels[nt] = "initial declination:"; sPrintF(textStrings[nt], "%g (degrees)",beamInitialAngle*180./Pi);  nt++; 
     textLabels[nt] = "position:"; sPrintF(textStrings[nt], "%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0);  nt++; 
+
+    textLabels[nt] = "added mass relaxation:"; sPrintF(textStrings[nt], "%g",addedMassRelaxationFactor);  nt++; 
+    textLabels[nt] = "added mass tol:"; sPrintF(textStrings[nt], "%g",subIterationConvergenceTolerance);  nt++; 
 
     textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug);  nt++; 
 
@@ -1727,7 +1796,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	    
     gi.getAnswer(answer,"");
   
-    printF(answer,"answer=[answer]\n",(const char *)answer);
+    // printF(answer,"answer=[answer]\n",(const char *)answer);
 
     if( answer(0,prefix.length()-1)==prefix )
       answer=answer(prefix.length(),answer.length()-1);
@@ -1738,6 +1807,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       break;
     }
     else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
+    else if( dialog.getTextValue(answer,"name:","%s",name) ){} //
     else if( dialog.getTextValue(answer,"number of elements:","%i",numElem) ){} //
 
     else if( dialog.getTextValue(answer,"area moment of inertia:","%g",areaMomentOfInertia) ){} //
@@ -1747,6 +1817,18 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     else if( dialog.getTextValue(answer,"thickness:","%g",thickness) ){} //
     else if( dialog.getTextValue(answer,"length:","%g",L) ){} //
     else if( dialog.getTextValue(answer,"pressure norm:","%g",pressureNorm) ){} //
+    else if( dialog.getTextValue(answer,"added mass relaxation:","%g",addedMassRelaxationFactor) )
+    {
+      printF("The relaxation parameter used in the fixed point iteration\n"
+             " used to alleviate the added mass effect\n");
+    }
+
+    else if( dialog.getTextValue(answer,"added mass tol:","%g",subIterationConvergenceTolerance) )
+    {
+      printF("The (relative) convergence tolerance for the fixed point iteration\n"
+	     " tol: convergence tolerance (default is 1.0e-3)\n");
+    }
+
     else if( dialog.getTextValue(answer,"initial declination:","%g",beamInitialAngle) )
     {  
       setDeclination(beamInitialAngle*Pi/180.);
@@ -1759,7 +1841,51 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       printF("INFO: Setting the position of the left end of the beam to (%e,%e,%e)\n",beamX0,beamY0,beamZ0);
       dialog.setTextLabel("position:",sPrintF(buff,"%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0));
     }
+    else if( answer.matches("bc left:") ||
+             answer.matches("bc right:") )
+    {
+      // Assign BC's 
 
+      aString bcOption;
+      int side=0;
+      if( (len=answer.matches("bc left:")) )
+	side=0;
+      else if( (len=answer.matches("bc right:")) )
+	side=1;
+      else
+      {
+	OV_ABORT("error");
+      }
+      
+      bcOption = answer(len,answer.length()-1);
+      BoundaryCondition & bcValue = side==0 ? bcLeft : bcRight;
+      
+      bcValue= (bcOption=="cantilever" ? Cantilevered :
+                bcOption=="pinned"     ? Pinned :
+                bcOption=="free"       ? Free : 
+                bcOption=="periodic"   ? Periodic : UnknownBC );
+
+      if( bcValue==UnknownBC )
+      {
+	printF("ERROR: unknown BC : answer=[%s], bcOption=[%s]\n",(const char*)answer,(const char*)bcOption);
+	gi.stopReadingCommandFile();
+      }
+
+      printF("BeamModel:INFO: setting %s = %s.\n",(side==0 ? "bcLeft" : "bcRight"),(const char*)bcOption);
+
+    }
+    else if( dialog.getToggleValue(answer,"save profile file",dbase.get<bool>("saveProfileFile")) ){} // 
+    else if( dialog.getToggleValue(answer,"save tip file",dbase.get<bool>("saveTipFile")) )
+    {
+      aString tipFileName = sPrintF(buff,"%s_tip.text",(const char*)name);
+      output.open(name);
+      printF("BeamModel: tip position info will be saved to file 'tip.txt'\n");
+    }
+    else
+    {
+      printF("BeamModel::update:ERROR:unknown response=[%s]\n",(const char*)answer);
+      gi.stopReadingCommandFile();
+    }
 
     // else if( answer=="elastic beam parameters" )
     // {
@@ -1865,14 +1991,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     // 	printF("Surface smoothing is off\n");
     // }
 
-    else
-    {
-      printF("BeamModel::update:ERROR:unknown response=[%s]\n",(const char*)answer);
-      gi.stopReadingCommandFile();
-    }
     
   }
     
+  // -- initialize the beam model given the current parameters --
+  initialize();
+
   gi.popGUI();
   gi.unAppendTheDefaultPrompt();
 

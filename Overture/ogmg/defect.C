@@ -87,7 +87,7 @@ defect(const int & level, const int & grid)
   if( Ogmg::debug & 4 )
   {
     display(defect,sPrintF("defect: Here is the defect, level=%i, grid=%i",level,grid),debugFile);
-    if( level>0 )
+    if( level>0 || Ogmg::debug & 8 )
     {
       display(u,sPrintF("defect: Here is the u level=%i, grid=%i",level,grid),debugFile);
       display(f,sPrintF("defect: Here is the f level=%i, grid=%i",level,grid),debugFile);

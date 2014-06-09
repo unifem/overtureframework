@@ -22,6 +22,19 @@
   typedef ListOfFloatSerialArray ListOfRealSerialArray;
 #endif
 
+// This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+#ifdef OVERTURE_USE_PETSC
+  #define INIT_PETSC_SOLVER() initPETSc();
+#else
+  #define INIT_PETSC_SOLVER() 
+#endif
+
+
+
+#ifdef OVERTURE_USE_PETSC
+  void initPETSc();  // function to initialize the PETSc solver
+#endif
+
 class GenericGraphicsInterface;
 class EquationSolver;
 
@@ -169,6 +182,8 @@ class Oges
   int update( GenericGraphicsInterface & gi, CompositeGrid & cg ); // update parameters interactively
 
 
+  typedef EquationSolver* (*newPETScFunction)(Oges & oges); 
+  
 
  public:
   // Here are the data and functions used by the EquationSolver classes
@@ -295,6 +310,9 @@ class Oges
 
  public:
   static int debug;
+
+  static int petscIsAvailable;  // set to true if PETSc is available
+  static newPETScFunction createPETSc;  // pointer to a function that can "new" a PETSc instance
 
  public:
 

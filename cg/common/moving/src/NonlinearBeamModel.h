@@ -100,6 +100,10 @@ class NonlinearBeamModel {
 
   bool hasCorrectionConverged() const;
 
+  // Return the (x,y) coordinates of the centerline
+  void getCenterLine( RealArray & xc ) const;
+
+
   void setAddedMassRelaxation(double);
   
   void setSubIterationConvergenceTolerance(double tol);

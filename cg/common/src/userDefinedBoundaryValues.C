@@ -24,7 +24,8 @@ enum UserDefinedBoundaryConditions
   inflowWithControl,
   normalComponentOfVelocity,    // specify the normal component of the velocity at the boundary
   cylindricalVelocity,          // specify cylindrical components of velocity (cr,vTheta,vPhi)
-  pressureProfile               // for cgins, outflow pressure profile
+  pressureProfile,              // for cgins, outflow pressure profile
+  knownSolutionValues           // use boundary values from the known solution
 };
  
 real Tcontrol=0., regionVolume=0.;  // **FIX ME**
@@ -89,6 +90,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     "normal component of velocity",
     "cylindrical velocity",
     "pressure profile",
+    "known solution",
     "done",
     ""
   };
@@ -548,6 +550,14 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       // save the parameters to be used when evaluating the BC's:
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
     }
+    else if( answer=="known solution" )
+    {
+      parameters.setUserBcType(side,axis,grid,knownSolutionValues);    // set the bcType to be a unique value.
+      parameters.setBcIsTimeDependent(side,axis,grid,true);            // *FIX* ME 
+
+      printF("***userDefinedBoundaryValues:set values according to the known solution\n");
+      
+    }
     else
     {
       printF("Unknown answer =[%s]\n",(const char*)answer2);
@@ -621,6 +631,24 @@ userDefinedBoundaryValues(const real & t,
  
   const int numberOfDimensions = mg.numberOfDimensions();
   
+  // -- Retrieve the known solution ----
+  const Parameters::KnownSolutionsEnum & knownSolution = 
+            parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+  
+  realArray *uKnownPointer=NULL;
+  if( knownSolution!=Parameters::noKnownSolution )
+  {
+    int extra=2;
+    Index I1,I2,I3;
+    getIndex(mg.gridIndexRange(),I1,I2,I3,extra);  
+
+    uKnownPointer = &parameters.getKnownSolution( t,grid,I1,I2,I3 );
+  }
+  realArray & uKnown = uKnownPointer!=NULL ? *uKnownPointer : u;
+
+  OV_GET_SERIAL_ARRAY(real,uKnown,uKnownLocal);
+
+
   int axis;
   Index Ib1,Ib2,Ib3;
   
@@ -1393,6 +1421,44 @@ userDefinedBoundaryValues(const real & t,
 	if( forcingType==computeForcing )
 	{
 	  bd(Ib1,Ib2,Ib3,pc)=(p0/(y0-y1))*(x(Ib1,Ib2,Ib3,1)-y1)+ (p1/(y1-y0))*(x(Ib1,Ib2,Ib3,1)-y0);
+	}
+	else
+	{
+	  // time derivative of the forcing 
+	  bd(Ib1,Ib2,Ib3,pc)=0.;
+	}
+	
+      }
+      else if( parameters.userBcType(side,axis,grid)==knownSolutionValues )
+      {
+	// -- assign boundary values from the known solution ----
+
+        // -- we could avoid building the vertex array on Cartesian grids ---
+	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+        OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+
+
+	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
+	numberOfSidesAssigned++;
+
+
+	// printF("userDefinedBoundaryValues: assign known solution values (t=%9.3e)\n",t);
+	// ::display(x(Ib1,Ib2,Ib3,1),"Here is x on the side");
+	
+        RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+
+	if( forcingType==computeForcing )
+	{
+	  bd(Ib1,Ib2,Ib3,pc)=uKnownLocal(Ib1,Ib2,Ib3,pc);
+	  bd(Ib1,Ib2,Ib3,uc)=uKnownLocal(Ib1,Ib2,Ib3,uc);
+	  bd(Ib1,Ib2,Ib3,vc)=uKnownLocal(Ib1,Ib2,Ib3,vc);
+	  if( numberOfDimensions==3 )
+	    bd(Ib1,Ib2,Ib3,wc)=uKnownLocal(Ib1,Ib2,Ib3,wc);
+	  
 	}
 	else
 	{

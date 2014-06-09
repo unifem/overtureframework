@@ -8,6 +8,8 @@
 #include "ParallelUtility.h"
 #include "display.h"
 #include "CgSolverUtil.h"
+#include "Oges.h"
+
 int 
 getLineFromFile( FILE *file, char s[], int lim);
 
@@ -20,6 +22,9 @@ main(int argc, char *argv[])
 
   Overture::start(argc,argv);  // initialize Overture and A++/P++
   const int myid=Communication_Manager::My_Process_Number;
+
+  // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+  INIT_PETSC_SOLVER();
 
   int plotOption=true;
   bool smartRelease=false;

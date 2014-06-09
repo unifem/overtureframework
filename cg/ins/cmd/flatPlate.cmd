@@ -50,15 +50,17 @@
 #
 # --- set default values for parameters ---
 $tFinal=1.; $tPlot=.1; $cfl=.9;  $nu=.01; $Prandtl=.72; $debug=1; $its=10000; $pits=100; $project=0; 
-$inflow="parabolic"; 
+$inflow="parabolic"; $tm="none"; 
 $k0=1.e-4; $eps0=1.e-4; # inflow and initial conditions for k and eps
 $tz="poly"; $degreex=2; $degreet=2;  $fx=.5; $ft=0.; $rtol=1.e-8; $atol=1.e-6; $dtMax=.5; $refactorFrequency=100; 
 $show = " "; $solver="yale"; $model="ins"; $numberOfCorrections=1; $ts="line";
 $bg=square; # back-ground grid
-$gravity = "0. 0. 0."; $ad2=1; $ad21=2.; $ad22=2.; $implicitFactor=.5; 
+$gravity = "0. 0. 0."; $implicitFactor=.5; 
+$ad2=1; $ad21=1.; $ad22=1.;  $ad4=0; $ad41=1.; $ad42=1.; 
 $cDt=0.; # = .25; # cDt=0 -> turn this off
-$ic ="tz";  $go="halt"; $implicitVariation="full";
-$ReBlasius=-1.; % by default the Re for Blasius is 1/nu 
+$ic ="tz";  $go="halt"; $implicitVariation="viscous"; $useFull=0; 
+$ReBlasius=-1.; # by default the Re for Blasius is 1/nu 
+$useKnown=1; 
 # 
 $psolver="choose best iterative solver"; $solver="choose best iterative solver"; 
 $iluLevels=1; $ogesDebug=0; 
@@ -66,6 +68,13 @@ $rtolp=1.e-4; $atolp=1.e-5;  # tolerances for the pressure solve
 $rtol=1.e-7; $atol=1.e-8;    # tolerances for the implicit solver
 $useNewImp=1; # use the new implicit method 
 $outflowOption="neumann"; $restart="";
+$xOffset=1.; # offset from leading edge for Blasius
+$newts=0; 
+# -- for Kyle's AF scheme:
+$afit = 10;  # max iterations for AFS
+$aftol=1e-2;
+$filter=0; $filterFrequency=1; $filterOrder=6; $filterStages=2; 
+$cdv=1;  $cDt=.25;
 #
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions("g=s"=>\$grid,"its=i"=> \$its,"pits=i"=> \$pits,"nu=f"=>\$nu,"cfl=f"=>\$cfl,"debug=i"=> \$debug, \
@@ -74,7 +83,8 @@ GetOptions("g=s"=>\$grid,"its=i"=> \$its,"pits=i"=> \$pits,"nu=f"=>\$nu,"cfl=f"=
            "dtMax=f"=>\$dtMax,"tp=f"=>\$tPlot,"tf=f"=>\$tFinal,"imp=f"=>\$implicitFactor,"cDt=f"=>\$cDt,\
            "ad2=i"=> \$ad2,"ad21=f"=> \$ad21,"ad22=f"=> \$ad22,"k0=f"=>\$k0,"eps0=f"=>\$eps0,\
            "rf=i"=> \$refactorFrequency, "iv=s"=>\$implicitVariation,"tz=s"=>\$tz,"fx=f"=>\$fx,"ReBlasius=f"=>\$ReBlasius,\
-           "ic=s"=>\$ic,"tm=s"=>\$tm,"useNewImp=i"=>\$useNewImp,"outflowOption=s"=>\$outflowOption,"inflow=s"=>\$inflow,"go=s"=>\$go );
+           "ic=s"=>\$ic,"tm=s"=>\$tm,"useNewImp=i"=>\$useNewImp,"outflowOption=s"=>\$outflowOption,"inflow=s"=>\$inflow,\
+           "useKnown=i"=>\$useKnown, "xOffset=f"=>\$xOffset,"ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42, "go=s"=>\$go );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -93,6 +103,8 @@ if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 if( $ts eq "line" ){ $ts="steady state RK-line"; }
 if( $ts eq "imp" ){ $ts="implicit"; }
 if( $ts eq "pc" ){ $ts="adams PC"; }
+if( $ts eq "afs"){ $ts="approximate factorization"; $newts = 1;}
+#
 if( $implicitVariation eq "viscous" ){ $implicitVariation = "implicitViscous"; }\
 elsif( $implicitVariation eq "adv" ){ $implicitVariation = "implicitAdvectionAndViscous"; }\
 elsif( $implicitVariation eq "full" ){ $implicitVariation = "implicitFullLinearized"; }\
@@ -101,6 +113,10 @@ if( $tm eq "bl" ){ $tm = "Baldwin-Lomax"; }\
 elsif( $tm eq "sa" ){ $tm = "SpalartAllmaras"; }\
 elsif( $tm eq "ke" ){ $tm = "k-epsilon"; }\
 else{ $tm = "#"; }
+#
+if( $newts eq "1" ){ $newts = "use new advanceSteps versions"; }else{ $newts = "#"; }
+#
+# if( $ogesDebug ne "-1" ){ $ogesDebug=$debug; }
 #
 $grid
 # flatPlate121
@@ -114,7 +130,16 @@ $grid
   exit
 # define the time-stepping method:
   $ts
-  first order predictor
+  # -- for the AFS scheme:
+  $newts
+  compact finite difference
+  # -- convergence parameters for the af scheme
+  max number of AF corrections $afit
+  AF correction relative tol $aftol
+  # optionally turn this on to improve stability of the high-order AF scheme by using 2nd-order dissipation at the boundary
+  OBPDE:use boundary dissipation in AF scheme 1
+  #
+  ## first order predictor
   number of PC corrections $numberOfCorrections
 # 
   dtMax $dtMax
@@ -122,14 +147,16 @@ $grid
 #
   max iterations $its
   plot iterations $pits
-  plot residuals 1
+  if( $useKnown eq 0 ){ $cmd="plot residuals 1"; }else{ $cmd="#"; }
+  $cmd
 # 
   final time $tFinal
   times to plot $tPlot
   cfl $cfl
 #
    show file options
- # uncompressed
+    # uncompressed
+    save augmented variables 1
     open
      $show 
      frequency to flush
@@ -145,7 +172,7 @@ $grid
     $cmd
     nu $nu
     # set cDt=0. to turn this limit off (Then the pressure RHS does not depend on dt)
-    cDt div damping $cDt
+    ## cDt div damping $cDt
   done  
   pde options...
 #  OBPDE:turbulence trip positions
@@ -154,7 +181,13 @@ $grid
 #*
   OBPDE:second-order artificial diffusion $ad2
   OBPDE:ad21,ad22  $ad21 $ad22
-#  OBPDE:ad21,ad22  0. 0. 
+  #  turn on 4th-order AD here:
+  OBPDE:fourth-order artificial diffusion $ad4
+  OBPDE:ad41,ad42 $ad41, $ad42
+#
+##  OBPDE:check for inflow at outflow
+#  OBPDE:expect inflow at outflow
+# 
 #  maybe the eddy viscosity needs a larger AD?
 #   OBPDE:ad21,ad22 2 2 10 10 5. 5. 1. 1. .5 .5  2. 0. 10. 10. 2. 2.  15. 15.
 #   OBPDE:ad21n,ad22n 2 2 10 10 5. 5. 1. 1. .5 .5  2. 0. 10. 10. 2. 2.  15. 15.
@@ -173,19 +206,21 @@ $grid
   refactor frequency $refactorFrequency
 # 
   implicit factor $implicitFactor 
-  use full implicit system 1
+  use full implicit system $useFull
   $implicitVariation
 #
+# --- choose the known solution: 
 #
-#   slow start time interval
-#     .25
-#   slow start cfl
-#     .25
-#  frequency to flush the show file
-#    1
-#
+  OBTZ:user defined known solution
+    flat plate boundary layer
+      $U=1.; 
+      $U $xOffset
+    done
+# 
   pressure solver options
-   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug; $ogmgCoarseGridSolver="best"; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp; $ogmgRtolcg=$rtolp; $ogmgAtolcg=$atolp;
+   $ogesSolver=$psolver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgDebug=$ogesDebug; $ogmgCoarseGridSolver="best"; 
+   $ogmgRtolcg=$rtolp*1.e-3; $ogmgAtolcg=$atolp*1.e-3;  # *** solve coarse grid equations more accurately
+   # $ogmgDebug=3; 
    include $ENV{CG}/ins/cmd/ogesOptions.h
   exit
 #
@@ -196,7 +231,8 @@ $grid
   exit
 # 
   boundary conditions
-   all=noSlipWall, uniform(u=0.,v=0.,n=.0001,k=$k0,eps=$eps0)
+   # all=noSlipWall, uniform(u=0.,v=0.,n=.0001,k=$k0,eps=$eps0)
+   all=noSlipWall
  #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=.0001)
    $d = sqrt( $nu ); # do this for now 
    # ReBlasius = U*x/nu -- determines the value of "x" for the inflow plane
@@ -205,20 +241,28 @@ $grid
    if( $inflow eq "parabolic" ){ $cmd="bcNumber1=inflowWithVelocityGiven, parabolic(d=$d,p=1.,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
    if( $inflow eq "uniform" ){ $cmd="bcNumber1=inflowWithVelocityGiven, uniform(d=$d,p=1.,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
    if( $inflow eq "blasius"){ $cmd="bcNumber1=inflowWithVelocityGiven, blasius(R=$ReBlasius,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
-   $cmd 
- #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=1.e-8)
-   bcNumber2=outflow
+   # if( $useKnown ne 0 ){ $cmd="bcNumber1=dirichletBoundaryCondition"; }
+   if( $useKnown ne 0 ){ $cmd="bcNumber1=inflowWithVelocityGiven, userDefinedBoundaryData\n known solution\n  done"; }
+    $cmd 
+  #
+  #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=1.e-8)
+   $ap=.1; $apn=1.; 
+   $ap=1.; $apn=0.;   # dirichlet at outflow
+   bcNumber2=outflow, pressure($ap*p+$apn*p.n=0.)
    # bcNumber4=slipWall
-   bcNumber4=outflow
+   bcNumber4=outflow, pressure($ap*p+$apn*p.n=0.)
+   # all=dirichletBoundaryCondition
   done
   # initial conditions: uniform flow or restart from a solution in a show file 
   if( $restart eq "" ){ $cmds = "uniform flow\n p=1., u=1., n=1.e-7, k=$k0, eps=$eps0"; }\
     else{ $cmds = "OBIC:show file name $restart\n use grid from show file 0\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
 # 
+  if( $useKnown ne 0 ){ $cmds="#"; }
   initial conditions
     $cmds
   exit
 # 
+  debug $debug
   if( $project eq "1" ){ $cmd="project initial conditions"; }else{ $cmd="#"; }
   $cmd
 #

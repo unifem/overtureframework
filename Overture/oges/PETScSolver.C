@@ -1,15 +1,47 @@
+#ifdef OVERTURE_USE_PETSC
+
 // **************************************************************************
 // *********** PETScSolver: Oges interface to parallel PETsc ****************
 // ***********         PARALLEL VERSION                      ****************
 // **************************************************************************
 
-
-#ifdef OVERTURE_USE_PETSC
-
-
 #include "PETScSolver.h"
 #include "display.h"
 #include "SparseRep.h"
+
+// =============================================================================
+//  \brief Here is the function that Overture::finish() calls to shutdown PETSc
+// =============================================================================
+static void 
+finalizePETSc()
+{
+  #ifdef OVERTURE_USE_PETSC
+  int ierr = PetscFinalize(); 
+  #endif
+}
+
+// ========================================================================================
+/// \brief Call this function (before using Oges) if you want to use the PETSc solvers
+// =======================================================================================
+void
+initPETSc()
+{
+  Oges::petscIsAvailable=true;                            // set to true if PETSc is available
+  Oges::createPETSc=PETScSolver::newPETScEquationSolver;  // pointer to a function that can "new" a PETSc instance
+  Overture::shutDownPETSc = &finalizePETSc;               // set the function that will shut down PETSc
+}
+
+
+// =======================================================================================
+/// \brief This function is called by buildEquationSolvers to create a PETScEquationSolver
+// =======================================================================================
+EquationSolver* PETScSolver::newPETScSolver(Oges &oges)
+{
+  return new PETScEquationSolver(oges);
+}
+
+
+
 
 int PETScSolver::debug=0;
 int PETScSolver::instancesOfPETSc=0;

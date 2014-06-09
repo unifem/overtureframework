@@ -7,6 +7,7 @@
 #include "DeformingBodyMotion.h"
 
 #include "BeamModel.h"
+#include "BoundaryLayerProfile.h"
 
 #define rotatingDiskSVK EXTERN_C_NAME(rotatingdisksvk)
 
@@ -255,6 +256,39 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     }   
   }
  
+  else if(  userKnownSolution=="flatPlateBoundaryLayer" )
+  {
+
+    const real & U = rpar[0];   
+    const real & xOffset = rpar[1];
+    
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+    if( !db.has_key("BoundaryLayerProfile") )
+    {
+      db.put<BoundaryLayerProfile*>("BoundaryLayerProfile");
+      db.get<BoundaryLayerProfile*>("BoundaryLayerProfile") = new BoundaryLayerProfile();  // who will delete ???
+
+      BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
+      const real nu = dbase.get<real>("nu");
+      profile.setParameters( nu,U );  // 
+
+    }
+    BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
+
+
+    // --- evaluate the boundary layer solution ----
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,I1,I2,I3)
+    {
+      uLocal(i1,i2,i3,pc)=0.;
+      profile.eval( xLocal(i1,i2,i3,0)+xOffset,xLocal(i1,i2,i3,1), uLocal(i1,i2,i3,uc), uLocal(i1,i2,i3,vc) );
+      if( numberOfDimensions==3 ) uLocal(i1,i2,i3,wc)=0.;
+    }
+
+  }
   else
   {
     printF("getUserDefinedKnownSolution:ERROR: unknown value for userDefinedKnownSolution=%s\n",
@@ -303,6 +337,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
       "exact solution from a file",
       "uniform flow INS", // for testing INS    
       "linear beam exact solution",
+      "flat plate boundary layer",
       "done",
       ""
     }; 
@@ -457,6 +492,27 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
       // assert( deform.pBeamModel!=NULL );
       // deform.pBeamModel->dbase.get<real>("exactSolutionScaleFactorFSI")=scale;
 
+    }
+
+    else if( answer=="flat plate boundary layer" )
+    {
+
+      userKnownSolution="flatPlateBoundaryLayer";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true; // false;  // known solution is NOT time dependent 
+
+      real & U        = rpar[0];
+      real & xOffset  = rpar[1];
+      U=1.;
+      xOffset=1.;
+      
+      printF("The flat plate boundary layer solution (Blasius) is a similiarity solution with\n"
+             "the flat plate starting at x=0, y=0. The free stream velocity is U.\n"
+             "To have a smooth inflow profile, enter an offset in x so the similiarity solution starts at this value\n"
+             "Note: the vertical velocity v only makes sense if sqrt(nu*U/x) is small. \n");
+      gi.inputString(answer,sPrintF("Enter U and xOffset xOffset (defaults U=%8.2e, xOffset=%8.2e)",U,xOffset));
+      sScanF(answer,"%e %e",&U,&xOffset);
+      printF("Setting U+%9.3e, xOffset=%9.3e\n",U,xOffset);
+      
     }
 
     else

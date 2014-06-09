@@ -129,6 +129,7 @@ if( $bc eq "dndd" ){ $bcmd = "bc(0,0,0)=1\n bc(1,0,0)=2"; }
 if( $bc eq "dnnd" ){ $bcmd = "bc(1,0,0)=2\n bc(0,1,0)=2"; }
 if( $bc eq "ndnn" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2"; }
 if( $bc eq "nmnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=3\n bc(0,1,0)=2\n bc(1,1,0)=2"; }
+if( $bc eq "nmnm" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=3\n bc(0,1,0)=2\n bc(1,1,0)=3"; }
 if( $bc eq "nmnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=3\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,1,1)=2"; }
 if( $bc eq "nmnnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(1,0,0)=3\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,2,0)=2\n bc(1,2,0)=2\n bc(0,1,1)=2\n bc(0,1,2)=2"; }
 if( $bc eq "ndnnn" ){ $bcmd = "bc(0,0,0)=2\n bc(0,1,0)=2\n bc(1,1,0)=2\n bc(0,1,1)=2"; }

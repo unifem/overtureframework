@@ -46,8 +46,6 @@ RAP_DYNAMIC_LIBRARY = libRapsodi.so
 SO_LIB_DEPENDENCIES = 
 #darwin SO_LIB_DEPENDENCIES = lib_date
 
-# Ubuntu 13: need to include FORTRAN_LIBS when building the .so library
-LIBLIBS = $(FORTRAN_LIBS)
 # Here is the dynamic library
 libso_date: $(SO_LIB_DEPENDENCIES) $(DataBase)/DataBase_date \
           $(GridFunction)/GridFunction_date           \

@@ -30,6 +30,39 @@ extern "C"
 // 
 //\end{PETScEquationSolverInclude.tex} 
 
+// =============================================================================
+//  \brief Here is the function that Overture::finish() calls to shutdown PETSc
+// =============================================================================
+static void 
+finalizePETSc()
+{
+  #ifdef OVERTURE_USE_PETSC
+  int ierr = PetscFinalize(); 
+  #endif
+}
+
+// =======================================================================================
+/// \brief This function is called by buildEquationSolvers to create a PETScEquationSolver
+// =======================================================================================
+EquationSolver* PETScEquationSolver::newPETScEquationSolver(Oges &oges)
+{
+  PETScEquationSolver *pETScEquationSolver =  new PETScEquationSolver(oges);
+  return pETScEquationSolver;
+}
+
+// ========================================================================================
+/// \brief Call this function (before using Oges) if you want to use the PETSc solvers
+// =======================================================================================
+void
+initPETSc()
+{
+  Oges::petscIsAvailable=true;                                    // set to true if PETSc is available
+  Oges::createPETSc=PETScEquationSolver::newPETScEquationSolver;  // pointer to a function that can "new" a PETSc instance
+  Overture::shutDownPETSc = &finalizePETSc;                       // set the function that will shut down PETSc
+}
+
+
+
 #undef __FUNC__
 #define __FUNC__ "PETScEquationSolver::PETScEquationSolver"
 //\begin{>>PETScEquationSolverInclude.tex}{\subsection{constructor}} 
@@ -533,7 +566,10 @@ setPetscParameters()
   //   optionsChanged=TRUE;
 
 //  PetscFunctionReturnVoid();
+
+  return 0;
 }
+
 
 int PETScEquationSolver::
 setPetscRunTimeParameters() 
@@ -563,6 +599,7 @@ setPetscRunTimeParameters()
   
   ierr = KSPSetTolerances(ksp, rtol, atol, dtol, maxits); CHKERRQ(ierr);
   
+  return ierr;
 }
 
 
@@ -937,9 +974,13 @@ buildPetscMatrix()
 
     if( !parameters.keepSparseMatrix )
     {
-      oges.ia.redim(0);       // these are no longer needed.
-      oges.ja.redim(0);
-      oges.a.redim(0);
+      #ifndef __clang__
+        // trouble here with clang on the Mac:
+        oges.ia.redim(0);       // these are no longer needed.
+	oges.ja.redim(0);
+	oges.a.redim(0);
+      #endif
+      
     }
   }
 
@@ -1004,23 +1045,23 @@ preallocRowStorage(int blockSize)
       // look at all the rows in this row-block b
       for ( int k=0; k<blockSize; k++ )
       {
-         assert( (ia_[i+k]<=nnz+1) && (ia_[i+k+1]<=nnz+1) );
+	assert( (ia_[i+k]<=nnz+1) && (ia_[i+k+1]<=nnz+1) );
 
-         int j1=ia_[i+k], j2=ia_[i+k+1]-1;
-         for( int j=j1; j<=j2; j++ )
-	 {
-	   int jblock = (ja_[j-1]-1)/blockSize;   // there is an entry in block "jblock" 
-	   blockIsUsed[jblock]=1;           // mark this block as used
+	int j1=ia_[i+k], j2=ia_[i+k+1]-1;
+	for( int j=j1; j<=j2; j++ )
+	{
+	  int jblock = (ja_[j-1]-1)/blockSize;   // there is an entry in block "jblock" 
+	  blockIsUsed[jblock]=1;           // mark this block as used
 
-           // printf(" block=%i row=i+k=%i j=%i ja-1=%i jblock=%i\n",b,i+k,j,ja_[j]-1,jblock);
+	  // printf(" block=%i row=i+k=%i j=%i ja-1=%i jblock=%i\n",b,i+k,j,ja_[j]-1,jblock);
 	   
-	 }
+	}
       }
       int numberOfBlocksThisRow=0;  // count blocks 
       for( int jb=0; jb<numBlocks; jb++ )
       {
 	numberOfBlocksThisRow+=blockIsUsed[jb];
-        blockIsUsed[jb]=0;  // reset for next row-block
+	blockIsUsed[jb]=0;  // reset for next row-block
       }
       
       nzzAlloc[b]=numberOfBlocksThisRow;
@@ -1079,7 +1120,7 @@ buildRhsAndSolVector(realCompositeGridFunction & u,
 {
   if( Oges::debug & 2 )
     printF("PETScEquationSolver::buildRhsAndSolVector:START: rescaleRowNorms=%i, copyOfSolutionNeeded=%i\n",
-      (int)parameters.rescaleRowNorms,(int)copyOfSolutionNeeded);
+	   (int)parameters.rescaleRowNorms,(int)copyOfSolutionNeeded);
 
   if (!isMatrixAllocated) 
   {

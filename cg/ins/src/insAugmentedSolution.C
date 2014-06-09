@@ -159,8 +159,8 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
     for( int n=0; n<numberOfComponents; n++ )
     {
       v.setName(u.getName(n),n);
-      v.setName(u.getName(n)+"-err",n+numberOfComponents);
-      v.setName(u.getName(n)+"-true",n+2*numberOfComponents);
+      v.setName(u.getName(n)+"_err",n+numberOfComponents);
+      v.setName(u.getName(n)+"_true",n+2*numberOfComponents);
     }
   }
   

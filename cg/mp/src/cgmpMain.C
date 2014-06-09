@@ -15,6 +15,8 @@
 #include "Cgsm.h"
 
 #include "CgSolverUtil.h"
+#include "Oges.h"
+
 
 //\begin{>>CgmpInclude.tex}{\subsection{getModelInfo}} 
 int Cgmp::
@@ -96,6 +98,9 @@ main(int argc, char *argv[])
   Overture::start(argc,argv);  // initialize Overture and A++/P++
   // Optimization_Manager::setForceVSG_Update(Off);
   const int myid=Communication_Manager::My_Process_Number;
+
+  // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+  INIT_PETSC_SOLVER();
 
   int plotOption=true;
   bool smartRelease=false;

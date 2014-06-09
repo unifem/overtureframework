@@ -7,6 +7,7 @@
 #include "Cgasf.h"
 
 #include "CgSolverUtil.h"
+#include "Oges.h"
 
 int 
 getLineFromFile( FILE *file, char s[], int lim);
@@ -20,10 +21,8 @@ main(int argc, char *argv[])
   // Optimization_Manager::setForceVSG_Update(Off);
   const int myid=Communication_Manager::My_Process_Number;
 
-//   #ifdef USE_PPP
-//     aString fileName = "asfInputFile";
-//     ParallelUtility::getArgsFromFile(fileName,argc,argv );
-//   #endif
+  // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+  INIT_PETSC_SOLVER();
 
   int plotOption=true;
   bool smartRelease=false;

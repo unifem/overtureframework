@@ -35,7 +35,7 @@ AppLibraries = $(OV_RPATH)$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static
 
 Include=  -I$(Overture)/include -I. 
 Lib=      $(Overture)/lib
-LibOverture= -lOverture -lOverture_static
+LibOverture= -lOverture -lOverture_static -lOgmg
 # Make 2 dynamic libs for ibm: 
 #xlc LibOverture= -lOverture1 -lOverture2 -lOverture_static
 LibRapsodi= -lRapsodi -lRapsodi_static 
@@ -166,5 +166,7 @@ GLIBS=  $(OV_PERL_LIBRARIES) $(OV_RPATH)$(OPENGL_LIB) -L$(OPENGL_LIB) $(OpenGLib
 # FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 
 FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) $(HDF_LIBS) $(AppLibraries) $(FORTRAN_LIBS)
 
+# Ubuntu 13 needs this: when loading the dynamic library
+LIBLIBS = $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)
 
 OGMGLIB = $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib -lOgmg

@@ -1,7 +1,7 @@
 //                                   -*- c++ -*-
 
 #include "NonlinearBeamModel.h"
-
+#include "display.h"
 #include <fstream>
 
 #include <sstream>
@@ -221,6 +221,9 @@ void NonlinearBeamModel::readBeamFile(const char* filename) {
   
   infile >> density >> nu >> Em >> omega_structure >> isSteady;
 
+  printF("NonlinearBeamModel: density=%g, nu=%g, Em=%g, omega_structure=%g isSteady=%i",
+	 density,nu,Em,omega_structure,isSteady);
+  
   int bc1,bc2;
   infile >> bc1 >> bc2;
   if (bc1 == 0)
@@ -237,11 +240,19 @@ void NonlinearBeamModel::readBeamFile(const char* filename) {
   if (bc2 == 2)
     bcRight = Free;
   
+  printF(" bcLeft=%s, ",(bcLeft==Cantilevered ? "Cantilevered" : bcLeft==Pinned ? "Pinned" : "Free"));
+  printF(" bcRight=%s\n",(bcRight==Cantilevered ? "Cantilevered" : bcRight==Pinned ? "Pinned" : "Free"));
+  
+
   infile >> pressureNorm;
 
   infile >> useExactSolution;
 
   infile >> rayleighAlpha >> rayleighBeta;
+
+  printF(" pressureNorm=%g, useExactSolution=%i, rayleighAlpha=%g, raleighBeta=%g\n",pressureNorm,
+	 useExactSolution,rayleighAlpha,rayleighBeta);
+  
 
   beamNodes = new BeamNode[numNodes];
   slaveStates = new SlaveState[numNodes];
@@ -259,6 +270,9 @@ void NonlinearBeamModel::readBeamFile(const char* filename) {
     infile >> beamNodes[i].X[0] >> beamNodes[i].X[1]  >> beamNodes[i].X[2];
 
     infile >> beamNodes[i].undeformedRotation >> beamNodes[i].thickness;
+
+    printF(" node i=%i X=(%g,%g) angle=%g, thick=%g",beamNodes[i].X[0],beamNodes[i].X[1],beamNodes[i].undeformedRotation,
+	   beamNodes[i].thickness);
 
     //memcpy(beamNodes[i].x, beamNodes[i].X, sizeof(beamNodes[i].x));
     memset(beamNodes[i].u, 0, sizeof(beamNodes[i].u));
@@ -315,6 +329,10 @@ void NonlinearBeamModel::readBeamFile(const char* filename) {
       0.5*beamNodes[i].thickness*beamNodes[i].p0[0];
     slaveStates[i].Xminus[1] = beamNodes[i].X[1]- 
       0.5*beamNodes[i].thickness*beamNodes[i].p0[1];
+
+    printF(" X+=(%g,%g), X-=(%g,%g)\n", slaveStates[i].Xplus[0],slaveStates[i].Xplus[1],
+	   slaveStates[i].Xminus[0],slaveStates[i].Xminus[1]);
+    
 
   }
 
@@ -1494,6 +1512,26 @@ void NonlinearBeamModel::projectAcceleration(int id, real& ax, real& ay) {
   ay = ayp;
   */
 }
+
+//
+// Return the (x,y) coordinates of the beam centerline
+// wdh 2014/05/22
+void NonlinearBeamModel::
+getCenterLine( RealArray & xc ) const
+{
+  const int numberOfDimensions=2;  // *fix me*
+
+  xc.redim(numNodes,numberOfDimensions);
+  for( int i = 0; i < numNodes; i++ ) 
+  {
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+      xc(i,axis)=beamNodes[i].X[axis]+ beamNodes[i].u[axis];
+  }
+  ::display(xc,"NonlinearBeamModel: xc","%6.3f ");
+  
+}
+
+
 
 void NonlinearBeamModel::reevaluateMassMatrix() {
 

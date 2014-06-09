@@ -34,7 +34,7 @@ VPATH = $(gf):$(grid):$(opsrc):$(mapping):$(ogshow):$(parallel)
 FLIBS=   -L$(LAPACK) -llapack -lblas $(FORTRAN_LIBS) $(AppLibraries) 
 ifeq ($(VENDOR),apple)
   # MAC: 
-  FLIBS=   -llapack -lblas $(FORTRAN_LIBS) $(AppLibraries) -Wl-framework,Accelerate  -lgfortran 
+  FLIBS=   -llapack -lblas $(FORTRAN_LIBS) $(AppLibraries) -Wl-framework,Accelerate  -L/usr/local/gfortran/lib -lgfortran 
 endif
 
 # apple:
@@ -171,7 +171,7 @@ bcOpt.f: bcOpt.bf; $(BPP) -quiet -clean -I$(Overture)/include bcOpt.bf
 bcOpt.o: bcOpt.f; $(FC) $(FFLAGSG) -c $<
 # bcOpt.o: bcOpt.f; $(FC) $(FFLAGSF) -c $<
 
-bc3dOrder4.f : bc3dOrder4.bf doc/neumannEquationBC3d.h neumannEquationForcing.h; $(BPP) -quiet -clean -I$(Overture)/include -Idoc bc3dOrder4.bf
+bc3dOrder4.f : bc3dOrder4.bf neumannEquationBC3d.h neumannEquationForcing.h; $(BPP) -quiet -clean -I$(Overture)/include -Idoc bc3dOrder4.bf
 bc3dOrder4.o: bc3dOrder4.f; $(FC) $(FFLAGSG) -c $<
 
 defect2dOrder2.f : defectOpt.bf; bpp defectOpt.bf
@@ -316,7 +316,7 @@ dep:;
 include depend
 
 
-lineSmoothOpt.f : neumannEquationBC.h neumannEquationForcing.h neumannEquationBC.new.h neumannEquationLineBC3d.h
+lineSmoothOpt.f : neumannEquationBC.h neumannEquationForcing.h neumannEquationBC.new.h doc/neumannEquationLineBC3d.h
 bcOpt.f : neumannEquationBC.h neumannEquationForcing.h neumannEquationBC.new.h
 
 
