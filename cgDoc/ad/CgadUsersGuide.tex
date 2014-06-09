@@ -1,0 +1,536 @@
+%-----------------------------------------------------------------------
+% User's Guide for CGAD -- Advection diffusion solver
+% 
+%-----------------------------------------------------------------------
+\documentclass[11pt]{article}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+% \usepackage{epsfig}    
+% This next section will allow graphics files to be ps or pdf  -- from Jeff via Jeff
+% \usepackage{ifpdf}
+% \ifpdf
+%     \usepackage[pdftex]{graphicx}
+%     \usepackage{epstopdf}
+%     \pdfcompresslevel=9
+%     \pdfpagewidth=8.5 true in
+%     \pdfpageheight=11 true in
+%     \pdfhorigin=1 true in
+%     \pdfvorigin=1.25 true in
+% \else
+%     \usepackage{graphicx}
+% \fi
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+% define the clipFig commands:
+\input trimFig.tex
+
+% --------------------------------------------
+\usepackage[usenames]{color} % e.g. \color{red}
+\newcommand{\red}{\color{red}}
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\jwb}[2]{{\color{red}(old: #1) }{\color{green} #2}}
+
+\usepackage{tikz}
+
+
+\usepackage{makeidx} % index
+\makeindex
+\newcommand{\Index}[1]{#1\index{#1}}
+
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+% \newcommand{\homeHenshaw}{/home/henshaw.0}
+
+\newcommand{\primer}{/users/henshaw/res/primer}
+\newcommand{\GF}{/users/\-henshaw/\-res/\-gf}
+\newcommand{\gf}{/users/henshaw/res/gf}
+\newcommand{\mapping}{/users/henshaw/res/mapping}
+
+\newcommand{\docFigures}{\homeHenshaw/OvertureFigures}
+\newcommand{\figures}{\homeHenshaw/res/OverBlown/docFigures}
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+\newcommand{\maxDoc}{\homeHenshaw/res/maxwell/doc}
+
+\newcommand{\OVERTUREOVERTURE}{/users/\-henshaw/\-Overture/\-Overture}
+\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
+
+\newcommand{\Overture}{{\bf Overture\ }}
+\newcommand{\OverBlown}{{\bf OverBlown\ }}
+\newcommand{\overBlown}{{\bf overBlown\ }}
+
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+
+\begin{document}
+
+
+% -----definitions-----
+\input wdhDefinitions.tex
+
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\Iv}{{\bf I}}
+% \newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\eps}{\epsilon}
+
+\vglue 10\baselineskip
+\begin{flushleft}
+{\Large
+Cgad User Guide: An Overture Solver for the Advection Diffusion Equations on Composite Grids \\
+}
+\vspace{2\baselineskip}
+William D. Henshaw,  \\
+Department of Mathematical Sciences,  \\
+Rensselaer Polytechnic Institute ,    \\
+Troy, NY, USA, 12180.  \\
+{\tt overtureFramework.org} \\
+\vspace{\baselineskip}
+\today\\
+\vspace{\baselineskip}
+% UCRL-MA-134288
+
+\vspace{4\baselineskip}
+
+\noindent{\bf\large Abstract:}
+
+Cgad is a program that can solve the advection diffusion (and reaction) equations on overlapping grids.
+Cgad can solve problems on moving and deforming domains.
+Cgad can also be used with Cgmp to solve the heat equation in solid regions, when performing conjugate heat
+transfer problems in conjuction with the Cgins flow solver.
+
+
+\end{flushleft}
+
+% \clearpage
+\tableofcontents
+% \listoffigures
+
+
+\vfill\eject
+
+\section{Introduction}
+
+   Cgad is a program that can solve the advection diffusion equations on overlapping grids and is based
+on the Overture framework\footnote{More information about
+{\bf Overture} can be found on the \Overture home page, {\tt www.overtureFramework.org}.}.
+Cgad can solve problems on moving and deforming domains.
+Cgad can also be used with Cgmp to solve the heat equation in solid regions, when performing conjugate heat
+transfer problems in conjuction with the Cgins flow solver.
+
+
+Cgad can solve for $m$ unknowns dependent variables $u_j=u_j(\xv,t)$, $j=1,2,\ldots,m$ where the {\em components}
+satisfy a potentially coupled system of {\em advection diffusion} (and reaction) equations of the form,
+\begin{align}
+&  \frac{\partial u_j}{\partial t} 
+       + a_1(\xv,t,\uv)\frac{\partial u_j}{\partial x}
+       + a_2(\xv,t,\uv)\frac{\partial u_j}{\partial y}
+       + a_3(\xv,t,\uv)\frac{\partial u_j}{\partial z}
+   =  \grad\cdot\big( \kappa_j(\xv,t,\uv) \grad u_j\big)  + f_j(\xv,t,\uv),     
+\end{align}
+where $a_k(\xv,t,\uv)$, $k=1,2,3$ are the advection coefficients, $\kappa_j=\kappa_j(\xv,t,\uv)$ are the diffusion
+coefficients, and $f_j=f_j(\xv,t,\uv)$ is a body forcing. Here $\uv=[u_1, u_2,\ldots, u_m]^T$ 
+denotes the vector with components $u_j$. 
+Boundary conditions take the form of Dirichlet, Neumann or mixed (Robin).
+
+
+\vskip\baselineskip
+\noindent{\bf Cgad features:}
+\begin{itemize}
+  \item supports multiple components,
+  \item variable diffusivity coefficients $\kappa_j(\xv,t,\uv)$ (that can depend on $\xv$, $t$ and the solution),
+  \item variable advection coefficients, $a_k(\xv,t,\uv)$,
+  \item 2D axisymmetric option,
+  \item user defined body forcing,
+  \item user defined moving and deforming surfaces.
+\end{itemize}
+The variable diffusivity and advection coefficents can be specified through a {\em userDefined} function.
+
+\vskip\baselineskip
+\noindent{\bf Installation:} To install cgad you should follow the instructions for installing Overture and cg
+from the Overture web page. Note that cgad is NOT built by default when building the cg solvers so that
+after installing cg you must go into the {\tt cg/ad} directory and type `make'. 
+If you only wish to build cgad and not any of the other cg solvers, then
+after building Overture and unpacking cg, go to the {\tt cg/ad} and type make. 
+
+\noindent The cgad solver is found in the {\tt ad} directory in the {\bf cg} distribution and has
+sub-directories
+\begin{description}
+ \item[{\tt bin}] : contains the executable, cgad. You may want to put this directory in your path.
+ \item[{\tt check}] : contains regression tests.
+ \item[{\tt cmd}] : sample command files for running cgad, see section (\ref{sec:demo}).
+ \item[{\tt doc}] : documentation.
+ \item[{\tt lib}] : contains the cgad library, {\tt libCgad.a}.
+ \item[{\tt src}] : source files 
+ \item[{\tt runs}] : sample demonstrations of using Cgad to solve various problems.
+\end{description}
+
+
+\subsection{Basic steps}\index{basic steps}
+Here are the basic steps to solve a problem with cgad.
+\begin{enumerate}
+  \item Generate an overlapping grid with ogen. 
+  \item Run cgad (found in the {\tt bin/cgad} directory).
+  \item Assign the boundary conditions and initial conditions.
+  \item Choose the parameters for the PDE (such as material properties).
+  \item Choose run time parameters, time to integrate to, time stepping method etc.
+  \item Compute the solution (optionally plotting the results as the code runs).
+  \item When the code is finished you can look at the results (provided you saved a
+     `show file') using {\tt plotStuff}.
+\end{enumerate}
+The commands that you enter to run cgad can be saved in a \Index{command file} (by default
+they are saved in the file `cgad.cmd'). This command file can be used to re-run
+the same problem by typing `cgad file.cmd'. The command file can be edited to change parameters.
+
+To get started you can run one of the examples in the {\tt cmd} directory or
+in the {\tt runs} directory.
+
+\clearpage
+\section{Sample command files for running cgad} \label{sec:demo}
+
+Command files are supported throughout the Overture. They are files
+that contain lists of commands. These commands can initially be saved
+when the user is interactively choosing options.  The \Index{command files}
+can then be used to re-run the job. Command files can be edited and
+changed.
+
+In this section we present a number of command files that can be used
+to run cgad.
+
+\subsection{Running a command file} \label{sec:runningCommandFiles} 
+
+Given a \Index{command file} for cgad such as {\tt heatSource.cmd}, found in {\tt
+cmd/heatSource.cmd}, one can type `{\tt cgad heatSource.cmd}' to run this command
+file . You can also just type `{\tt cgad heatSource}, leaving off the {\tt
+.cmd} suffix. Typing `{\tt cgad -noplot heatSource}' will run without
+interactive graphics (unless the command file turns on graphics). Note that here
+I assume that the {\tt bin} directory is in your path so that the {\tt
+cgad} command is found when you type it's name. The Cgad sample
+command files will automatically look for an overlapping grid in the {\tt
+Overture/sampleGrids} directory, unless the grid is first found in the location
+specified in the command file.
+
+When you run a command file a graphics screen will appear and after some
+processing the run-time dialog should appear and the initial conditions will be
+plotted. The program will also print out some information about the problem
+being solved. At this point choose {\tt continue} or {\tt movie
+mode}. Section~(\ref{sec:runTimeDialog}) describes the options available in the
+run time dialog.
+
+When running in parallel it is convenient to define a shell variable for the parallel
+version of cgad.
+For example in the tcsh shell you might use
+\begin{verbatim}
+  set cgadp  = ${CGBUILDPREFIX}/ad/bin/cgad
+\end{verbatim} % $
+An example of running the parallel version is then
+\begin{verbatim}
+  mpirun -np 2 $cgadp heatSource
+\end{verbatim} % $
+
+
+%------------------------------------------------------------------------------------------
+\clearpage
+\subsection{A deforming domain example} \label{sec:deform}
+
+
+The directory {\tt cg/ad/runs/deform} holds an example {\em run} that demonstrates using Cgad to solve 
+a problem on a deforming domain.
+
+
+
+\noindent \textbf{Sinusoid Deform Example}
+
+\noindent (1) Generate the grid using the command file {\tt freeSurfaceGrid2d.cmd} in {\tt Overture/sampleGrids}:
+\begin{verbatim}
+   ogen -noplot freeSurfaceGrid2d -interp=e -factor=4 -ml=1 
+\end{verbatim}
+
+\noindent (2) Run cgad: Advection diffusion (AD) of a Gaussian pulse with a sinusoidally deforming surface. 
+\begin{verbatim}
+  cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=sinusoid -kappa=.02 ...
+         -ampy=.05 -tf=2. -tp=.01 -ic=pulse -tz=none -go=halt
+\end{verbatim}
+Results from this run are shown in Figure~\ref{fig:pulseDeformSinusoid}.
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+  \item Note that the command line arguments are processed and used in the .cmd file (they are not directly passed
+to cgadMain, but only indirectly passed). 
+  \item The motion of the interface is defined in {\tt cg/ad/userDefinedDeformingSurface.C}
+  \item To support deforming motion, the grid to be deformed should be constructed using a NurbsMapping to define
+    the surface an the hyperbolic grid generator (as found in {\tt freeSurfaceGrid2d}).
+\end{enumerate}
+
+
+
+\noindent \textbf{Concentration Deform Example}
+This example demonstrates a simple case where the motion of the deforming surface depends on the solution.
+  Use the same grid as for the {\em  Sinusoid Deform Example}.
+\noindent (2) Run cgad: Advection diffusion (AD) of a Gaussian pulse with surface whose motion depends 
+  on the concentration.
+\begin{verbatim}
+cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=.05 ...
+         -tf=10. -tp=.05 -tz=none -ic=pulse -a=0 -b=0 -bc=n -ts=im -go=halt
+\end{verbatim}
+Results from this run are shown in Figure~\ref{fig:pulseDeformConcentration}.
+
+\noindent{\bf Notes:}
+\begin{enumerate}
+   \item the motion of the interface is defined in {\tt cg/ad/userDefinedDeformingSurface.C} and satisfies the equation
+\begin{align*}
+   \frac{\partial \eta(s,t)}{\partial t} = \alpha ( u(s,t) - u_e )  
+\end{align*}
+where $y=\eta(s,t)$ is the height of the interface, $s$ is the arclength variable (for the undeformed interface),
+$u(\xv(s),t)$ is the solution to the AD equations and where $\alpha$ and $u_e$ are some specified constants.
+For $\alpha>0$, the interface will move downward where the solution $u$ on the interface is less than $u_e$,
+and move upward where $u$ is greater than $u_e$. 
+  \item Note that Neumann boundary conditions are used (-bc=n). 
+  \item The option {\tt -ts=im} causes an implicit time-stepping algortihm to be chosen.
+\end{enumerate}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.75);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/cgadDeform_sinusoid0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/cgadDeform_sinusoid1}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/cgadDeform_sinusoid2}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Results from the {\em  Sinusoid Deform Example}. The top surface deforms over time with a sunusoidal motion as
+a pulse advects (upward and to the right) and diffuses.}
+\label{fig:pulseDeformSinusoid}
+\end{figure}
+}
+
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{5.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,5.75);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/cgadDeform_concentration0}{\figWidth}};
+  \draw ( 5.7, 0) node[anchor=south west] {\trimfig{figures/cgadDeform_concentration1}{\figWidth}};
+  \draw (11.4, 0) node[anchor=south west] {\trimfig{figures/cgadDeform_concentration2}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Results from the {\em  Concentration Deform Example}. The top surface deforms over time as a function of the
+current concentration on the interface.}
+\label{fig:pulseDeformConcentration}
+\end{figure}
+}
+
+
+
+\clearpage
+% -----------------------------------------------------------------------
+\subsection{User defined variable coefficients} \label{sec:userDefinedVariableCoefficients}
+
+A user can supply variable advection coefficients and variaable diffusion coefficients
+by editing the file {\tt cg/ad/src/getCoefficients.C} and using the appropriate
+run time options. 
+
+
+% \clearpage
+% -----------------------------------------------------------------------
+\subsection{User defined deforming surface} \label{sec:userDefinedDeformingSurface}
+
+To define the motion of a deforming surface, one can add a new option to the
+file {\tt cg/ad/src/userDefinedDeformingSurface.C}. 
+
+
+
+% \clearpage
+% -----------------------------------------------------------------------
+\subsection{User defined forcing} \label{sec:userDefinedForcing}
+
+
+The file {\tt cg/common/src/userDefinedForcing.C} can be used to define new forcing functions
+for use with Cgad. Here are the steps to take to add your own forcing:
+\begin{enumerate}
+  \item Edit the file  {\tt cg/common/src/userDefinedForcing.C}.
+  \item Add a new option to the function {\tt setupUserDefinedForcing()}. Follow one of the previous
+         examples. 
+  \item Implement the forcing option in the function {\tt userDefinedForcing(...)}.
+  \item Type {\em make} from the {\tt cg/ad} directory to recompile Cgad.
+  \item Run Cgad and choose the {\em userDefinedForcing} option from the {\em forcing options...} menu.
+    (see the example command file {\tt ad/cmd/userDefinedForcing.cmd}).
+\end{enumerate}
+
+%  {
+%  \begin{figure}[hbt]
+%  \newcommand{\figWidth}{7.5cm}
+%  \newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.05}{.05}}
+%  \begin{center}
+%  \begin{tikzpicture}[scale=1]
+%    \useasboundingbox (0,.5) rectangle (15,7.75);  % set the bounding box (so we have less surrounding white space)
+%    \draw ( 0.0, 0) node[anchor=south west] {\trimfig{figures/userDefinedGaussianSourcesEx}{\figWidth}};
+%    \draw ( 7.5, 0) node[anchor=south west] {\trimfig{figures/userDefinedGaussianSourcesEy}{\figWidth}};
+%   % - labels
+%   %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+%   %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+%   %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+%  %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+%  % grid:
+%  %  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+%  \end{tikzpicture}
+%  \end{center}
+%  \caption{User defined forcing example showing results from specifying two Gaussian sources. Left $E_x$ and right $E_y$}
+%  \label{fig:userDefinedForcingGuassianSources}
+%  \end{figure}
+%  }
+
+% =======================================================================================================
+% \clearpage
+% \section{Variable material properties} \label{sec:varMat}
+% 
+% Finish me...
+
+
+
+
+% =======================================================================================================
+% \clearpage
+\section{Options} \label{sec:option}
+
+% ---------------------------------------------------------------------------
+\subsection{Options affecting the scheme}
+
+\begin{description}
+  \item [\qquad cfl] $value$ : set the CFL number. The schemes are usually stable to CFL=1. The default is CFL=.9.
+\end{description}
+
+
+% ---------------------------------------------------------------------------
+\subsection{Run time options}
+
+** FINISH ME **
+
+\begin{description}
+  \item [\qquad tFinal] $value$ : solve the equations to this time.
+  \item [\qquad tPlot] $value$ : time increment to save results and/or plot the solution.
+  \item [\qquad debug] $value$ : an integer bit flag that turns on debugging information. For example, set debug=1 for some info, debug=3 (=1+2) for some
+    more, debug=7 (=1=2+4)for even more. 
+\end{description}
+
+% ---------------------------------------------------------------------------
+\subsection{Plotting options}
+
+** FINISH ME **
+
+\begin{description}
+  \item [\qquad plot errors] $[0|1]$ :
+  \item [\qquad check errors] $[0|1]$ :
+\end{description}
+
+% ---------------------------------------------------------------------------
+\subsection{Output options}
+
+** FINISH ME **
+
+\begin{description}
+  \item [\qquad specify probes] : specify a list of probe locations as $x$, $y$, $z$ values, one per line, finishing the
+         list with 'done'. The solution values at these locations (actually the closest grid point to each location, with these
+         values written to the screen) are
+    written to a text file whose default name is "probeFile.dat". 
+    In the following example we specify two probe locations, $(.2,.3,.1)$ and $(.4,.6,.3)$, 
+\begin{verbatim}
+specify probes
+  .2 .3 .1.
+  .4 .6 .3
+done
+\end{verbatim}
+%     Each line of the probe file contains the time followed
+%     by the three components of $\Ev$ (or in two-dimensions $E_x$, $E_y$ and $H_z$) for each probe location. For example,
+%     with two probes specified the file in three dimensions would contain data of the form 
+% \begin{verbatim}
+%    t1 Ex11 Ey11 Ez11  Ex12 Ey12 Ez12 
+%    t2 Ex21 Ey21 Ez21  Ex22 Ey22 Ez22 
+%    ...
+% \end{verbatim}
+  \item [\qquad probe file:] $name$ : specify the name of the probe file.
+  \item [\qquad probe frequency] $value$ : specify the frequency at which values are saved in the probe file. For example,
+      if the probe frequency is set to 2 then the solution will be saved every 2nd time step to the probe file. 
+\end{description}
+
+
+
+
+
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+\printindex
+
+\end{document}
+
+% ***************************************************************************************************
+
+
+
+
