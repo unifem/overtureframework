@@ -24,7 +24,7 @@ plot:u
   exit
 # 
 x-:0
-hardcopy rendering:0 frameBuffer
+# hardcopy rendering:0 frameBuffer
 #
 $plotName = $name . "_u.ps"; 
 hardcopy file name:0 $plotName
@@ -33,15 +33,19 @@ plot:v
 $plotName = $name . "_v.ps"; 
 hardcopy file name:0 $plotName
 hardcopy save:0
-plot:p-err
+plot:p
+$plotName = $name . "_p.ps"; 
+hardcopy file name:0 $plotName
+hardcopy save:0
+plot:p_err
 $plotName = $name . "_pErr.ps"; 
 hardcopy file name:0 $plotName
 hardcopy save:0
-plot:u-err
+plot:u_err
 $plotName = $name . "_uErr.ps"; 
 hardcopy file name:0 $plotName
 hardcopy save:0
-plot:v-true
+plot:v_err
 $plotName = $name . "_vErr.ps"; 
 hardcopy file name:0 $plotName
 hardcopy save:0

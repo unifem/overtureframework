@@ -46,7 +46,7 @@
 \newcommand{\Index}[1]{#1\index{#1}}
 
 \usepackage{tikz}
-\usepackage{pgfplots}
+% \usepackage{pgfplots}
 \input trimFig.tex
 
 
@@ -148,8 +148,8 @@ Some results for a flat plate boundary layer
 
 In this section we consider the computation of the flow over a flat plate.
 The plate is horizontal and starts at $(x,y)=(0,0)$.
-The boundary layer solution is an approximation solution to the laminar flow past a flat plate. The
-solution  is given by (derived by Prandtl's student Blasius)
+The boundary layer solution is an approximate solution for the problem of laminar flow past a flat plate. The
+solution is given by (derived by Prandtl's student Blasius)
 \begin{align*}
    & u = U f'(\eta), \\
    & v = \half \sqrt{\frac{\nu U}{x}} \Big( \eta f' - f \Big), 
@@ -158,36 +158,37 @@ where the similiarity variable $\eta$ is defined as
 \begin{align*}
    & \eta = y\, \sqrt{\frac{U}{\nu x}},
 \end{align*}
-and where $f$ satisfies the 3rd order ODE:
+and where $f$ satisfies the 3rd order ODE boundary value problem, 
 \begin{align*}
    & f f'' + 2 f ''' = 0, \qquad f(0)=0, ~ f'(0)=0, ~ f'(\infty)=1.
 \end{align*}
 This problem can be solved as a shooting problem with initial condition
 \begin{align*}
-   f''(0) \approx 0.3320573362151946
+   f''(0) \approx 0.3320573362151946 .
 \end{align*}
 Note that $v$ only makes sense if $\sqrt{\frac{\nu U}{x}}$ is small which implies $\nu$ is small
 and $x$ is not too small (i.e. we cannot evaluate the solution too close to the leading edge). 
-We thus start the computation at some offset value $x=x_0$
-
-The thickness of the boundary layer is
+We thus start the computation at some offset value $x=x_0$. 
+% 
+The approximate thickness of the boundary layer is
 \begin{align*}
    \delta(x) \approx C_\delta \sqrt{\frac{\nu x}{U}} , 
 \end{align*}
 where $C_\delta\approx 5$ for $u\approx .99 U$ on the edge of the boundary layer. 
-The thickness of the boundary layer at inflow will this be $\delta(x_0)$ and we should therefore have
-enough grid points to resolve this layer. 
+The thickness of the boundary layer at inflow will thus be $\delta(x_0)$ and we should therefore have
+enough grid points to resolve this inflow profile.
 
-This boundary solution is evaluated in the class {\tt BoundaryLayerProfile}.
+The boundary layer solution is evaluated in the class BoundaryLayerProfile (see {\tt cg/common/src/BoundaryLayerProfile.C}). 
 Since the solution is only approximate the errors will not go zero as the mesh is refined.
 The errors should become smaller, however, as $\sqrt{\frac{\nu U}{x_0}} \rightarrow 0$, e.g. 
 if $\nu\rightarrow 0$ or $x_0\rightarrow\infty$. 
 
 
-The cgins script {\tt flatPlate.cmd} can be used to solve for the flow past a flat plate.
+The Cgins script {\tt flatPlate.cmd} (in {\tt cg/ins/runs/flatPlate}) can be used to solve for the flow past a flat plate.
 
 Figure~\ref{fig:boundaryLayer} shows results for the flat plate boundary layer for the
-case $\nu=10^{-3}$, $x_0=5$. 
+case $\nu=10^{-3}$, $x_0=5$. These results were computed using grid {\tt flatPlate4.order4.dy.01.ml2.hdf} using the IM24 scheme (2nd-order
+in time, fourth-order in space). 
 
 
 {
@@ -199,20 +200,42 @@ case $\nu=10^{-3}$, $x_0=5$.
   \useasboundingbox (0,.5) rectangle (16.,16.5);  % set the bounding box (so we have less surrounding white space)
 %
   \draw ( 0.0, 8) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateProfilesOrder4Res4}{\figWidthp}};
-%  \draw ( 8.0, 8) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/pump8i0p5pt0p5}{\figWidthp}};
-%  \draw ( 0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/pump8i0p5SLt4p0}{\figWidthp}};
-%  \draw ( 8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/pump8i0p5pt4p0}{\figWidthp}};
- % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+  \draw ( 8.0, 8) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateOrder4Res4_u}{\figWidthp}};
+  \draw ( 0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateOrder4Res4_v}{\figWidthp}};
+  \draw ( 8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateOrder4Res4_p}{\figWidthp}};
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
 % grid:
- \draw[step=1cm,gray] (0,0) grid (16,16);
+%  \draw[step=1cm,gray] (0,0) grid (16,16);
 \end{tikzpicture}
 \end{center}
-  \caption{Flat plate boundary layer. Top left: Results from IM24, $\nu=10^{-3}$, grid $\Gc_{fp}^{(4)}$, profiles at $x=3$. }
+  \caption{Flat plate boundary layer. Results from IM24, $\nu=10^{-3}$, grid $\Gc_{fp}^{(4)}$. Top left: solution profiles and errors at $x=3$. }
   \label{fig:boundaryLayer}
 \end{figure}
 }
 
 
+
+{
+\newcommand{\figWidthp}{8.cm}
+\newcommand{\trimfig}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.0}{.0}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (16.,16.5);  % set the bounding box (so we have less surrounding white space)
+%
+%  \draw ( 0.0, 8) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateProfilesOrder4Res4}{\figWidthp}};
+  \draw ( 8.0, 8) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateOrder4Res4_uErr}{\figWidthp}};
+  \draw ( 0.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateOrder4Res4_vErr}{\figWidthp}};
+  \draw ( 8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/flatPlateOrder4Res4_pErr}{\figWidthp}};
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,16);
+\end{tikzpicture}
+\end{center}
+  \caption{Flat plate boundary layer. Results from IM24, $\nu=10^{-3}$, grid $\Gc_{fp}^{(4)}$. Solution errors. }
+  \label{fig:boundaryLayerErr}
+\end{figure}
+}
 
 
 

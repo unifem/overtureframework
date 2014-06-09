@@ -248,6 +248,7 @@ $grid
   #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=1.e-8)
    $ap=.1; $apn=1.; 
    $ap=1.; $apn=0.;   # dirichlet at outflow
+   $ap=1.; $apn=1.;   # mixed 
    bcNumber2=outflow, pressure($ap*p+$apn*p.n=0.)
    # bcNumber4=slipWall
    bcNumber4=outflow, pressure($ap*p+$apn*p.n=0.)
