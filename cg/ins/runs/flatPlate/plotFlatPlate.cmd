@@ -1,5 +1,8 @@
 #
-# plotStuff plotFlatPlate.cmd -show=flatPlateOrder2Res4.show
+# Order=2: 
+# plotStuff plotFlatPlate.cmd -show=flatPlateOrder2Res4.show -name=flatPlateOrder2Res4
+#
+# Order=4: 
 # plotStuff plotFlatPlate.cmd -show=flatPlateOrder4Res4.show -name=flatPlateOrder4Res4
 #
 #
