@@ -1,0 +1,144 @@
+*** 2014/06/02   -- MG has trouble with pressure solve
+
+TEST AFS:
+
+
+cgins flatPlate -g=flatPlate4.order2.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=5. -ts=afs -psolver=yale -ad2=1 -ad21=.1 -ad22=.1 -dtMax=.05 -xOffset=5 -outflowOption=extrapolate -useNew=0 -go=halt
+
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   4.000 8.64e-04 1.46e-03 3.83e-04 3.12e-03  1.00e+00 1.79e-02 6.31e+01 
+
+
+
+FIXED: solve coarse grid equations more accurately
+
+
+**SHOW FILE FOR PLOTS ***
+
+cgins -noplot flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=5. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=1 -ad41=.1 -ad42=.1 -dtMax=.05 -xOffset=5 -outflowOption=extrapolate -useNew=0 -show=flatPlateOrder4Res4.show -go=go >! flatPlateOrder4Res4.out
+
+cgins -noplot flatPlate -g=flatPlate4.order2.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=5. -ts=im -solver=mg -psolver=mg -ad2=1 -ad21=.1 -ad22=.1 -dtMax=.05 -xOffset=5 -outflowOption=extrapolate -useNew=0 -show=flatPlateOrder2Res4.show -go=go >! flatPlateOrder2Res4.out
+
+
+
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=0 -ad41=.1 -ad42=.1 -dtMax=.05 -go=halt -xOffset=30 -outflowOption=extrapolate -useNew=0
+
+outflow: p=0 : 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   4.000 5.41e-05 1.27e-03 7.30e-05 2.87e-04  9.98e-01 1.22e-02 3.25e+01 
+outflow: appp+p.n = : 
+    t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   1.000 7.37e-04 3.71e-04 1.37e-05 3.82e-04  9.98e-01 1.22e-02 9.95e+00 
+
+
+
+GIVE p at outflow:
+ORDER=4 IMPLICIT, solver=MG psolver=MG -- OK but div(u) large at inflow 
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=0 -ad41=.1 -ad42=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   4.000 8.60e-04 1.36e-03 3.85e-04 3.45e-04  1.00e+00 1.19e-02 2.19e+02 
+
+
+*** 2014/06/02   -- test new inflow BC with known solution RHS
+
+
+ORDER=4 IMPLICIT, solver=MG psolver=MG -- OK but div(u) large at inflow 
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=0 -ad41=.1 -ad42=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0
+
+EXTRAP-INFLOW GHOST
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   2.000 1.69e-03 8.14e-04 2.03e-04 2.89e-04  1.00e+00 1.19e-02 5.31e+01 
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   4.000 1.66e-03 1.49e-03 2.40e-04 2.87e-04  1.00e+00 1.19e-02 1.18e+02 
+
+
+****Ogmg::solve:WARNING: No convergence in 20 iterations defect=2.68e-05 ****
+determineErrors: t=4.000e+00, maxNorm errors: [rho,u,v,T]=[1.59e-03,1.51e-03,3.87e-04,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   4.000 1.59e-03 1.51e-03 3.87e-04 4.22e-02  1.00e+00 1.19e-02 2.67e+02 
+
+
+WORKS: 
+ORDER=2 IMPLICIT, solver=MG psolver=MG
+cgins flatPlate -g=flatPlate4.order2.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=mg -psolver=mg -ad21=.1 -ad22=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   4.000 1.48e-03 3.78e-03 4.25e-04 1.40e-03  1.00e+00 2.00e-02 2.11e+01
+
+
+ORDER=2 IMPLICIT *BETTER*  --> dtMax=.05 OK (dt=.02)
+cgins flatPlate -g=flatPlate4.order2.dy.01.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=yale -psolver=yale -ad21=.1 -ad22=.1 -dtMax=.01 -go=halt -xOffset=5 -outflowOption=extrapolate
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   4.000 1.48e-03 3.87e-03 4.32e-04 1.04e-03  1.00e+00 1.00e-02 2.52e+01 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+  10.000 1.43e-03 6.84e-03 7.57e-04 1.04e-03  1.00e+00 1.00e-02 5.93e+01 
+
+SOME wiggles at outflow -- outflowOption=Neumann: 
+
+ORDER=2 IMPLICIT *BETTER* 
+cgins flatPlate -g=flatPlate4.order2.dy.01.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=yale -psolver=yale -ad21=.1 -ad22=.1 -dtMax=.01 -go=halt -xOffset=5
+
+TS=PC:  OK
+cgins flatPlate -g=flatPlate4.order2.dy.01.hdf -tm=none -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=pc -psolver=yale -ad21=.1 -ad22=.1  -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+  10.000 1.09e-02 2.30e-02 3.03e-03 3.93e-02  1.00e+00 1.75e-02 7.24e+01 
+
+
+
+
+*** 2014/05/31  - test flat plate and new BoundaryLayerProfile solution
+
+
+cgins flatPlate -g=flatPlate4.order2.dy.01.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=yale -psolver=yale -ad21=.1 -ad22=.1 -dtMax=.01 -go=halt -xOffset=5 -outflowOption=extrapolate
+
+
+ORDER=2 IMPLICIT  ***ERRORS ARE LARGE WHY ?? ***
+cgins flatPlate -g=flatPlate4.order2.dy.01.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=yale -psolver=yale -ad21=.1 -ad22=.1 -dtMax=.01 -go=halt -xOffset=5
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   5.000 8.13e-03 5.49e-02 1.06e-02 1.10e+00  1.00e+00 1.00e-02 3.05e+01 
+
+
+ORDER=2: PC:
+cgins flatPlate -g=flatPlate4.order2.dy.01.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=pc -solver=yale -psolver=yale -ad21=.1 -ad22=.0 -go=halt -xOffset=5 
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   5.500 1.47e-03 5.02e-03 4.87e-04 6.13e-02  1.00e+00 5.00e-03 7.15e+01 
+
+
+
+
+ORDER=4 XOFFSET=5 
+cgins flatPlate -g=flatPlate4.order4.dy.01.hdf -tm=none -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=pc -psolver=yale -ad2=0 -useNewImp=0 -go=halt -xOffset=5
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+  10.000 1.51e-03 4.89e-03 6.93e-04 4.28e-02  1.00e+00 1.02e-02 4.10e+01 
+
+
+TS=PC: ORDER=4
+cgins flatPlate -g=flatPlate4.order4.dy.01.hdf -tm=none -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=pc -psolver=yale -ad2=0  -useNewImp=0 -go=halt
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+  10.000 1.09e-02 1.42e-02 3.06e-03 2.50e-01  1.01e+00 1.02e-02 4.78e+01 
+
+
+TS=PC: 
+cgins flatPlate -g=flatPlate4.order2.dy.01.hdf -tm=none -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=pc -psolver=yale -ad21=.1 -ad22=.1  -go=halt
+
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+  10.000 1.05e-02 1.55e-02 3.25e-03 3.00e-01  1.01e+00 1.28e-02 2.73e+01 
+
+
+cgins flatPlate -g=flatPlate2.order2.dy.01.hdf -tm=none -nu=1.e-3 -debug=1 -tp=.1 -tf=10. -ts=pc -imp=1. -dtMax=.05 -rf=2 -go=halt -ad21=.1 -ad22=.1
+
+
+determineErrors: t=2.000e+01, maxNorm errors: [rho,u,v,T]=[9.88e-03,2.86e-02,3.63e-03,0.00e+00]
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+  20.000 9.88e-03 2.86e-02 3.63e-03 1.51e-01  1.01e+00 1.43e-02 5.62e+01 
+
+
+
+
+TS=IM -- trouble 
+cgins flatPlate -g=flatPlate2.order2.dy.01.hdf -tm=none -nu=1.e-3 -debug=1 -tp=.1 -tf=10. -ts=imp -imp=1. -dtMax=.05 -rf=2 -go=halt
+
