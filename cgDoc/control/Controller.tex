@@ -1,0 +1,33 @@
+% ------------------------------------------------------------------------
+\section{Controller Class} \label{sec:ControllerClass}
+
+The {\tt Controller} C++  class is used to define and evaluate controls for fluid flow simulations for the
+CG solvers (e.g. Cgins).
+
+To initialize the Controller one should
+\begin{enumerate}
+  \item choose a controller and parameters (e.g. PID controller with gains).
+  \item choose a sensor (e.g. the average temperature in the domain or sub-domain).
+\end{enumerate}
+The Controller can be used to:
+\begin{enumerate}
+   \item provide the right-hand-side to boundary conditions (e.g. the temperature at an inflow boundary).
+   \item provide the right-hand-side to volume heat sources or sinks (to do...)
+\end{enumerate}
+
+
+% -------------------------------------------------------------------------------
+% \newcommand{\uc}{u_c}
+% \newcommand{\uSet}{u_{\rm set}}
+\newcommand{\uSensor}{u_{\rm sensor}}
+\subsection{PID Controller} \label{sec:PIDcontroller}
+
+
+The PID (proportional, integral, derivative controller) is defined by
+\begin{align}
+   u(t) &= u(0) + K_p~e(t)  +  K_i \int_0^t  e(\tau)  \,d\tau  + K_d \frac{d e}{dt},   \label{eq:PIDcontroller} \\
+   e(t) &= y_d(t) - y(t)
+\end{align}
+where $y(t)$ is the measured output (from a sensor), $y_d(t)$ is the desired output (set-point), 
+$e(t)$ is the error, and $K_p$, $K_i$ and $K_d$ are the gain coefficients.
+

@@ -1,0 +1,189 @@
+\mysection{Balanced Truncation}\label{sec:balancedTruncation}
+
+Balanced truncation is a common model reduction approach for control problems~\cite{ZhouDoyleGlover1996,DullerudPaganini2000,GugercinAntoulas2004}.
+Balanced truncation is focused on the output variable $\yv$ in a control problem (rather
+than the full state $\xv$) and approximates a balanced combination of the most controllable and observable components. 
+The notes in this section are partially based on the document {\em ``A Balanced Truncation Primer''}
+by B. Rahn, (Caltech) 2001. 
+
+
+Consider a time-invariant state space formulation for a control problem
+\begin{align}
+    \dot\xv &= A \xv + B \uv ,   \label{eq:StateSpaceControl} \\
+     \yv &= C \xv + D \uv , 
+\end{align}
+where the state $\xv(t)\in\Real^n$, the control $\uv(t)\in\Real^m$, and the output is $\yv(t)\in \Real^p$, with
+$A\in\Real^{n\times n}$, $B\in\Real^{n\times m}$, $C\in\Real^{p\times n}$, $D\in\Real^{p\times m}$.
+
+The goal of model reduction is to find a ROM of the form
+\begin{align}
+    \dot\xv_r &= A_r \xv_r + B_r \uv ,\\
+     \yv_r &= C \xv_r + D \uv 
+\end{align}
+where the reduced state is $\xv_r(t)\in\Real^r$ with $r\ll n$. The ROM should
+keep the error in the output small, $\| \yv - \yv_r \| < \epsilon$, be computationally
+efficient and possess appropriate stability properties. 
+
+
+The state-space problem implicitly defines the {\em input-output} map
+\begin{align}
+     \yv = \Psi(\uv) . 
+\end{align}
+For control problems the quantity of interest (QOI) is $\yv$ and thus we 
+are interested in the input-output map $\Psi$ rather than the full state $\xv$. 
+Note that the output and $\Psi$ may not depend on the full state $\xv$ and thus
+there could be a reduced state model that exactly reproduces $\Psi$. We thus
+first look for the lowest-order exact model. 
+
+% -------------------------------------------------------------------------
+\mysubsection{Lowest-order exact model} \label{sec:lowestOrderExactModel}
+
+Consider first how the state-space control 
+problem~\eqref{eq:StateSpaceControl} transforms under
+a change of bases, $\zv=T\xv$, 
+\begin{align}
+    \dot\zv &= T A T^{-1} \zv + T B \uv ,   \label{eq:StateSpaceControlTransformed} \\
+     \yv &= CT^{-1} \zv + D \uv , 
+\end{align}
+This is known as a similarity transformation. We will look for such a transformation
+that reduces the state space problem to a smaller problem that gives the same
+input-output map $\Psi$. To do this we consider the properties of controllability and
+observability.
+
+
+\newcommand{\At}{\tilde{A}}
+\newcommand{\Bt}{\tilde{B}}
+\newcommand{\Ct}{\tilde{C}}
+\noindent {\bf Controllability:} If $\xv(0)=0$ then integrating~\ref{eq:StateSpaceControl}
+gives
+\begin{align}
+    \xv(t) = \int_0^t e^{A(t-\tau)} B u (\tau) \,d\tau,
+\end{align}
+and this defines the map $\xv = \Psi_c(\uv)$. 
+The range (image) of this map defines the space of controllable states, $\Cc_{AB}$, 
+which is given by
+\begin{align}
+   \Cc_{AB} = Range[ B~ A B~ A^2 B~ \ldots ~A^{n-1} B].
+\end{align}
+Not all states are necessarily controllable but we can find a similarity transformation
+\begin{align}
+   \At = T A T^{-1} = \begin{bmatrix} \At_{11} & \At_{12} \\
+                                          0     & \At_{22} \end{bmatrix}, \quad
+             \Bt = T B = \begin{bmatrix} \Bt_1 \\ 0 \end{bmatrix}
+\end{align}
+so that the pair $(\At_{11},\Bt_1)$ is (fully) controllable. 
+Thus the input-output map $\Psi$ only depends on the reduced problem involving $(\At_{11},\Bt_1)$.
+
+\noindent {\bf Observability:} Consider the case $\xv(0)=\xv_0$ and $\uv\equiv 0$. Then
+\begin{align}
+    \yv(t) =  C e^{A t} \xv_0 , 
+\end{align}
+and this defines the observability map $\yv=\Psi_o(\xv_0)$ whose range is the space of 
+observable states, given by \begin{align}
+   \Cc_{CA} = Range[ C~ C A~ C A^2~ \ldots C A^{n-1}].
+\end{align}
+Not all states are necessarily observable but we can find a (different) similarity transformation
+\begin{align}
+   \At = T_o A T_o^{-1} = \begin{bmatrix} \At_{11} &  0  \\
+                                      \At_{21} & \At_{22} \end{bmatrix}, \quad
+             \Ct = C T_o^{-1} = \begin{bmatrix} \Ct_1 &  0 \end{bmatrix}
+\end{align}
+so that the pair $(\Ct_1, \At_{11})$ is (fully) observable.
+Thus the input-output map $\Psi$ also only depends on the reduced problem involving $(\Ct_1, \At_{11})$.
+
+The minimal exact model can be found by looking for the controllable and observable
+states by making the {\em Kalman decomposition}, 
+\begin{align}
+\begin{bmatrix}
+    T A T^{-1} & T B \\
+    C T^{-1}   &  D 
+\end{bmatrix}
+=
+\begin{bmatrix}
+    \At_{11} &     0    & \At_{13} & 0        & \Bt_1 \\
+    \At_{21} & \At_{22} & \At_{13} & \At_{24} & \Bt_2 \\
+       0     &    0     & \At_{33} &          &   0   \\
+       0     &    0     & \At_{43} & \At_{44} &   0   \\
+     \Ct_1   &    0     & \Ct_2    &   0      &   D 
+\end{bmatrix}
+\end{align}
+where $(\At_{11},\Bt_1)$ is controllable and $(\Ct_1,\At_{11})$ is observable.
+The reduced system,
+\begin{align}
+    \dot\xv_r &= \At_{11} \xv_r + \Bt_1 \uv ,\\
+     \yv &= \Ct_1 \xv_r + D \uv 
+\end{align}
+has the same input-output map $\Psi$ has the original model.
+
+% -------------------------------------------------------------------------
+\mysubsection{Balancing controllability and observability}
+
+To apply balanced truncation we assume that we have first constructed the 
+lowest-order exact model as described in Section~\ref{sec:lowestOrderExactModel}.
+(and that this model is stable so that all eigenvalues of A have negative real part).
+
+
+Consider the $L_2$-norm in time of the output $\yv$,
+\begin{align}
+    \| \yv \|^2 &= \int_0^t \yv(\tau)^* \yv(\tau) \,d\tau, \\
+                &= \xv_0^* G_o(t) \xv_0  , \label{eq:sensitivityObserve}  \\
+      G_o(t) &\equiv \int_0^t e^{A^*\tau} C^* C e^{A \tau} \,d\tau, 
+\end{align}
+where $G_o$ is a positive-definite (Hermitian) matrix known and the observability Grammian. 
+The sensitivity of the output on the input is thus
+\begin{align}
+    \frac{\| y \|^2}{\xv_0^*\xv_0} = \frac{\xv_0^* G_o(t) \xv_0}{\xv_0^*\xv_0}.
+\end{align}
+From this form we see that some states $\xv_0$ will be more sensitive than others depending 
+on the projection of $\xv_0$ onto the eigenvectors of $G_o$. The output $\yv$ will depend
+most strongly on states that have large projections onto the eigenvectors corresponding to the 
+largest eigenvalues of $G_c$. 
+From an observability standpoint, these states will be the most important to keep in our ROM. 
+
+
+The sensitivity of the controllability is measured in terms of the 
+controllability Grammian, $G_c$, (see the notes by Rahn for a derivation)
+\begin{align}
+  \frac{\xv_0^*\xv_0}{\| \uv_{\rm opt}\|}   &=  \frac{\xv_0^* G_c^{-1} \xv_0}{\xv_0^*\xv_0}, \label{eq:sensitivityControl} \\
+    G_c(t) &\equiv \int_0^t e^{A \tau} B B^* e^{A^*\tau} \,d\tau . 
+\end{align}
+The states that are most controllable correspond to the eigenvectors of $G_c$ with the
+largest eigenvalues.
+
+We have identified the states that are most important from the standpoint
+of observability and different states that are most important from the standpoint of controllability. 
+
+In order to account for both observability and 
+controllability we find a similarity transform that when applied to the state $\xv$ will simultaneously
+diagonalize the two Grammians to the same diagonal matrix! (But why is this a good thing?)
+Note that under a similarity transformation $\zv= T\xv$, the Grammians transform
+by $\Gc_o \rightarrow \big(T^{-1}\big)^* G_o T^{-1}$ and $G_c \rightarrow T G_c T^*$
+Also note the result from linear algebra that 
+given two $\Real^{n\times n}$ positive definite matrices $G_o$ and $G_c$, there exists
+an invertible matrix T such that
+\begin{align}
+   T G_c T^* = \big(T^{-1}\big)^* G_o T^{-1} = \Sigma = {\rm diag}(\sigma_1,\sigma_2,\ldots,\sigma_n),
+\end{align}
+where $\sigma_1\ge \sigma_2\ge \sigma_3\ge \ldots \ge \sigma_n>0$ are the {\em Hankel singular values}.
+These singular values measure both the controllability and observability of the
+input-output map $\Psi$. 
+Thus under this similarity transform the effects of controllability and
+observability have equal weights in the sensitivities~\ref{eq:sensitivityObserve} and~\ref{eq:sensitivityControl}. 
+
+
+
+Balanced truncation constructs a reduced order model by truncating the modes
+corresponding to the smaller singular values $\sigma_i$. 
+Under certain assumptions one can show that the error in the output variable $\yv_k$
+to the reduced order model that keeps the first $k$ singular values is bounded
+above and below by
+\begin{align}
+   \sigma_k \le \max_{\uv} \frac{\| \yv_k - \yv \|}{\| \uv \|} \le 2 \sum_{j=k}^n \sigma_j  .
+\end{align}
+% Similarly the $L_2$-norm of the control is
+% \begin{align}
+%     \| \yv \|^2 &= \int_0^t \yv(\tau)^* \yv(\tau) \,d\tau, \\
+%                 &= \xv_0^ G_c(t) \xv_0  , \\
+%       G_o(t) &\equiv \int_0^t e^{A^*\tau} C^* C e^{A \tau} \,d\tau, 
+% \end{align}
+% where $G_o$ is a positive semi-definite (Hermitian) matrix known and the observability Grammian. 

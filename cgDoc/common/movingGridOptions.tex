@@ -1,0 +1,27 @@
+\subsubsection{Moving Grid Options Dialog (moving grid options...)}\label{sec:movingGridOptions}\index{moving grid options}
+
+Here is a description of the {\em Moving Grid Options} dialog.
+
+\noindent The push button options are
+\begin{description}
+  \item[\qquad specify grids to move] : specify the grids that should move and the manner in which they move.
+\end{description}
+
+\noindent The toggle buttons are
+\begin{description}
+  \item[\qquad use moving grids] : turn on/off moving grids.
+  \item[\qquad detect collisions] : turn on/off collision detection.
+\end{description}
+
+\noindent The text commands are
+\begin{description}
+  \item[\qquad minimum separation for collisions] : specify the minimum separation (in grid lines) 
+           between grids during a collision. This separation is needed so that the overlapping grid remains valid.
+  \item[\qquad frequency for full grid gen update] : Specify how often the full grid generation algorithm is
+    called. For moving grids, the
+overlapping grid generator is called at every time step.  An optimized moving grid
+generation algorithm is used which does not minimize the overlap.  Once in a
+while the full algorithm is used -- you can change the frequency this occurs
+here. Choosing a value of 1 will mean the full update is always called.
+\end{description}
+

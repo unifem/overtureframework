@@ -1,0 +1,54 @@
+\newcommand{\Gmc}{\Gc_{\rm mc}}% grid for multi-cyl random
+\subsection{Shock hitting multiple rigid bodies}\label{sec:shockMultiCyl}
+
+To run this example see {\tt cg/cns/runs/multiCylRandom/Readme}.
+
+% This example shows the simulation of a shock hitting a collection of cylinders that can move.
+A shock moving from left to right impacts a collection of cylinders of random size. 
+The fluid
+forces cause the cylinders to move. The cylinders are modeled as rigid bodies with a given mass density.
+A complex pattern of reflected and transmitted shocks results. Eventually some semblence of the 
+incident shock appears to the right of the cylinders. 
+This computation illustrates the use of moving grids and AMR. Collision
+detection has been turned on.
+
+
+%+ This simulation can be run with (multiCylRandomGrid.cmd is in Overture/sampleGrids)
+%+ \begin{flushleft}\small\tt
+%+   ogen -noplot multiCylRandomGrid -factor=4 -name=multiCylRandom4.order2.hdf \\
+%+   cgcns -noplot multiCylRandomMove -g=multiCylRandom2.order2.hdf -tf=1. -tp=.05 -show="multiCylRandom2.show" -go=go 
+%+ \end{flushleft}
+%+ Results can be plotted with
+%+ \begin{flushleft}\small\tt
+%+   plotStuff plotMultiCylRandom -show=multiCylRandom2.show
+%+ \end{flushleft}
+
+
+{
+% 
+\newcommand{\figWidth}{6.5cm}
+\newcommand{\trimfig}[2]{\trimFigb{#1}{#2}{.05}{.05}{.25}{.25}}
+% 
+\begin{figure}[htb]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.7) rectangle (14.,10);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw ( 0, 5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/multiCylRandom4Schlieren0p5}{\figWidth}};
+ \draw (6.5,5) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/multiCylRandom4PressureAndAMR0p5}{\figWidth}};
+%
+ \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/multiCylRandom4Schlieren1p5}{\figWidth}};
+ \draw (6.5,0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/multiCylRandom4PressureAndAMR1p5}{\figWidth}};
+%
+% grid:
+%   \draw[step=1cm,gray] (0,0) grid (14,10);
+\end{tikzpicture}
+\end{center}
+  \caption{Shock hitting a collection of cylinders which move Schlieren images (left column) and pressure contours (right column)
+ at times $t=0.5$ (top) and $t=1.5$ (bottom) on grid $\Gmc^{(4\times 2)}$. The block boundaries of the refinement
+   grids are shown superimposed on the pressure contours.}% 
+  \label{fig:shockMultiCylRandom}
+\end{figure}
+}
+
+

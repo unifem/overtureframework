@@ -1,0 +1,38 @@
+\newcommand{\Gos}{\Gc_{\rm os}}% grid for multi-cyl one step
+\subsection{Detonation hitting multiple rigid bodies}\label{sec:detMultiCyl}
+
+To run this example see {\tt cg/cns/runs/multiCylOneStep/Readme}.
+
+A detonation moving from left to right impacts a collection of cylinders.
+The initial conditions for this computation are determined in the matlab script {\tt cg/cgcns/runs/multiCylOneStep/profile.m}.
+This script computes the steady ZND profile for a one-dimensional detonation for various equations of state.
+% The fluid
+% forces cause the cylinders to move. The cylinders are modeled as rigid bodies with a given mass density.
+% A complex pattern of reflected and transmitted shocks results. Eventually some semblence of the 
+% incident shock appears to the right of the cylinders. 
+% This computation illustrates the use of moving grids and AMR. Collision
+% detection has been turned on.
+
+
+{
+% 
+\newcommand{\figWidth}{12cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.05}{.05}{.24}{.28}}
+% 
+\begin{figure}[htb]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.7) rectangle (12.,7);  % set the bounding box (so we have less surrounding white space)
+%
+ \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/multiCylOneStepColourSchlieren1p0}{\figWidth}};
+%
+% grid:
+%   \draw[step=1cm,gray] (0,0) grid (12,7);
+\end{tikzpicture}
+\end{center}
+  \caption{Detonation (one-step reaction) hitting a collection of cylinders. Colour schlieren at $t=1.0$}
+  \label{fig:shockMultiCylOneStep}
+\end{figure}
+}
+
+

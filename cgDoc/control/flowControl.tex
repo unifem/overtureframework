@@ -1,0 +1,243 @@
+%
+%  Flow Control Notes
+%
+\documentclass[11pt]{article} 
+\usepackage[bookmarks=true]{hyperref}  
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+\usepackage{calc}
+
+% set the page width and height for the paper 
+\setlength{\textwidth}{7in}  
+% \setlength{\textwidth}{6.5in}  
+% \setlength{\textwidth}{6.25in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1.in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .5in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1.25in  }
+
+
+\input homeHenshaw
+
+% --------------------------------------------
+% NOTE: trouble with tikz and program package ??
+\usepackage{tikz}
+
+\input trimFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+\newcommand{\kappav}{\boldsymbol{\kappa}}
+\newcommand{\lambdav}{\boldsymbol{\lambda}}
+\newcommand{\xiv}{\boldsymbol{\xi}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ec}{{\mathcal E}}
+
+\newcommand{\mw}{W}  % molecular weight
+\newcommand{\mwBar}{\overline{W}}  % molecular weight of the mixture
+\newcommand{\Dc}{\mathcal{D}}
+
+\newcommand{\rate}{{\rm rate}}
+\newcommand{\tableFont}{\footnotesize}% font size for tables
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+% tell TeX that is ok to have more floats/tables at the top, bottom and total
+\setcounter{bottomnumber}{5} % default 2
+\setcounter{topnumber}{5}    % default 1 
+\setcounter{totalnumber}{10}  % default 3
+\renewcommand{\textfraction}{.001}  % default .2
+
+\begin{document}
+ 
+\title{Notes on Flow Control}
+
+\author{
+Bill Henshaw \\
+\  \\
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov }
+ 
+\maketitle
+
+\tableofcontents
+
+
+% ------------------------------------------------------------------------
+\clearpage 
+\newcommand{\Tinflow}{T_{\rm inflow}}
+\newcommand{\Tset}{T_{\rm set}}
+\newcommand{\Tave}{T_{\rm ave}}
+\section{Control of heated flow past a cylinder}
+
+In this example we consider the flow of an incompressible fluid past a cylinder. 
+An incompressible fluid flows from left to right past a cylinder in a square channel. The inflow velocity is $u=1$ and the
+inflow temperature is $T=\Tinflow(t)$. The channel walls on top and bottom are no-slip with fixed $T=0$. 
+The temperature
+of the inflow is controlled in order that the average temperature, $\Tave$ in the domain 
+obtains
+some specified (constant) set point temperature $\Tset$. 
+We use a PID controller~\ref{sec:PIDcontroller}. 
+% 
+Figure~\ref{fig:flowCyl} shows the steady state solution for $T$ and $u$.
+Figure~\ref{fig:flowCylControlVariables} shows the control variables $\Tinflow(t)$, $\Tave(t)$ and $\Tset$ as a function
+of time for various values of the PID parameters.
+
+
+% -----------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.25cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.0}{0.0}{.2}{.0}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.9) rectangle (16.,6.5);  % set the bounding box (so we have less surrounding white space)
+  \draw (  0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/flowCicT}{\figWidth}};
+  \draw (8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/flowCicU}{\figWidth}};
+%
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (16,7);
+\end{tikzpicture}
+\end{center}
+  \caption{Flow past a cylinder steady-state solution, temperature (left) and $u$ right. }
+  \label{fig:flowCyl}
+\end{figure}
+%---------------------------------------------------------------------------------------------------------
+
+% -----------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\newcommand{\figWidth}{6.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.0}{0.0}{.0}{.0}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,1.2) rectangle (17.,11.0);  % set the bounding box (so we have less surrounding white space)
+  \draw (  0,5.70) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/FlowCylGain1}{\figWidth}};
+  \draw (8.0,5.70) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/FlowCylGain2}{\figWidth}};
+  \draw (0.0, 0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/FlowCylGainKp1Ki1}{\figWidth}};
+%
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%\draw[step=1cm,gray] (0,0) grid (16,11);
+\end{tikzpicture}
+\end{center}
+  \caption{Flow past a cylinder results. Top left: $K_p=0$, $K_i=1$, $K_d=0$. Top right:  $K_p=0$, $K_i=2$, $K_d=0$.
+Bottom left:  $K_p=1$, $K_i=1$, $K_d=0$. }
+  \label{fig:flowCylControlVariables}
+\end{figure}
+%---------------------------------------------------------------------------------------------------------
+
+
+% ------------------------------------------------------------------------
+\clearpage 
+\section{Control of heated flow into a two-dimensional room}
+
+In this example we consider the flow in a two-dimensional model of a room containing
+a desk, hot computer and ceiling partition. Air flows from a vent on the ceiling and exits
+another vent on the ceiling. 
+
+
+
+
+{\bf Case 1:} We control the temperature of the air at the inlet. The room is
+initially at a temperature of $T=5$ and the control is chosen to drive the
+average temperature in the room to $\bar{T}=0$. The speed of the inlet flow is $.5$ m/s.
+We use a PID controller~\ref{sec:PIDcontroller}.
+Figure~\ref{fig:heatedRoomT} shows the solution at two
+times. Figure~\ref{fig:heatedRoomControlVariables} shows the control variables
+over time.
+
+
+% -----------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.25cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.0}{0.0}{.2}{.2}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.9) rectangle (16.,6.0);  % set the bounding box (so we have less surrounding white space)
+  \draw (  0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/heatedRoom2d4T10p0}{\figWidth}};
+  \draw (8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/heatedRoom2d4T300p0}{\figWidth}};
+%
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,6);
+\end{tikzpicture}
+\end{center}
+  \caption{Case 1: controlling a heated room.
+  Left: temperature at time $t=10$ when cool air is entering the initially warm room.
+  Right: temperature at $t=300$ which is near the steady-state with an average room temperature of $\bar{T}\approx 0$. }
+  \label{fig:heatedRoomT}
+\end{figure}
+%---------------------------------------------------------------------------------------------------------
+
+
+
+% HeatedRoom2d4.pdf
+% -----------------------------------------------------------------------------------------------------
+\begin{figure}[hbt]
+\newcommand{\figWidth}{7.25cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.0}{0.0}{.0}{.0}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,6.75);  % set the bounding box (so we have less surrounding white space)
+  \draw (  0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/HeatedRoom2d4}{\figWidth}};
+%%  \draw (8.0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{figures/FlowCylGain2}{\figWidth}};
+%
+% \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (16,7);
+\end{tikzpicture}
+\end{center}
+  \caption{Case 1: controlling a heated room. Left: $K_p=.5$, $K_i=.1$, $K_d=0$. These results correspond to the solution shown
+in Figure~\ref{fig:heatedRoomT}.}
+  \label{fig:heatedRoomControlVariables}
+\end{figure}
+%---------------------------------------------------------------------------------------------------------
+
+
+% -------------------------------------------------------------------------------------------------------
+\clearpage
+\input Controller
+
+
+% -------------------------------------------------------------------------------------------------
+% \vfill\eject
+% \bibliography{\homeHenshaw/papers/henshaw}
+% \bibliographystyle{siam}
+
+
+\end{document}

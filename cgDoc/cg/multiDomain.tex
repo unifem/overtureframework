@@ -1,0 +1,77 @@
+\section{Cgmp, Multi-domain Notes}\label{sec:cgmpMultiDomain}
+
+
+Here are notes on the structure of cgmp.
+{
+\small
+\begin{verbatim}
+multiDomainDvance.C:
+  Cgmp::multiDomainAdvance( real &t, real & tFinal )
+    if( init )
+      initializeInterfaceBoundaryConditions( t,dt,gfIndex );
+      //  Assign the RHS for the interface equations at t=0, so we can apply BC's
+      ForDomainOrdered(d) assignInterfaceRightHandSide( d, t, dt, correct, gfIndex );
+      ForDomainOrdered(d) domainSolver[d]->initializeTimeStepping( t,dt );
+
+    for( int i=0; i<numberOfSubSteps; i++ )
+      For(d) domainSolver[d]->startTimeStep( t,dt,gfIndexCurrent[d],gfIndexNext[d],... )
+
+      for( int correct=0; correct<=numberOfCorrectorSteps; correct++ )
+       ForDomainOrdered(d)
+        assignInterfaceRightHandSide( d, t+dt, dt, correct, gfIndex );
+        domainSolver[d]->takeTimeStep( t,dt,correct );
+        if( solveCoupled ) assignInterfaceBoundaryConditions(gfIndex, dt );
+
+      ForDomainOrdered(d) domainSolver[d]->endTimeStep( td,dt );
+\end{verbatim}
+}
+% ------------------
+{
+\small
+\begin{verbatim}
+assignInterfaceBoundaryConditions.C
+  Cgmp::initializeInterfaces(std::vector<int> & gfIndex) // locate all interfaces
+  assignInterfaceBoundaryConditions(gfIndex, dt ) // solve coupled
+
+  initializeInterfaceBoundaryConditions( t,dt,gfIndex ) // for interfaces solve by iteration
+    if( init ) initializeInterfaces(gfIndex);
+    for( int inter=0; inter < interfaceList.size(); inter++ )
+      if( interfaceType1(side1,dir1,grid1)==Parameters::heatFluxInterface ) 
+        // specify Dirichlet/Neumann/Mixed BC: 
+        domainSolver[d1]->setInterfaceBoundaryCondition( gridDescriptor1 );
+        domainSolver[d2]->setInterfaceBoundaryCondition( gridDescriptor2 );
+
+  assignInterfaceRightHandSide( int d, real t, real dt, int correct, std::vector<int> & gfIndex )
+    if( init ) initializeInterfaces(gfIndex);
+    for( int inter=0; inter < interfaceList.size(); inter++ )
+      // find out from the domain we are assigning values to which interface data it wants: 
+      domainSolver[da]->getInterfaceDataOptions( infoa,interfaceDataOptions );
+ 
+      domainSolver[db]->interfaceRightHandSide( getInterfaceRightHandSide,interfaceDataOptions,infob...)
+      // copy of u2 -> u1.
+      // Extrapolate the initial guess.
+      // Under-relax.
+      domainSolver[da]->interfaceRightHandSide( setInterfaceRightHandSide,interfaceDataOptions,infoa, ...)
+
+  getInterfaceResiduals( real t, real dt, std::vector<int> & gfIndex, ... )
+
+\end{verbatim}
+}
+% ------------------
+\noindent Each DomainSolver implements interface routines: 
+{
+\small
+\begin{verbatim}
+cns/src/interface.bC
+  Cgcns::getInterfaceDataOptions( info, interfaceDataOptions ) 
+
+  Cgcns::interfaceRightHandSide( option, interfaceDataOptions, info, gfd, gfIndex, t )
+    if( option==setInterfaceRightHandSide )
+      bd(I1,I2,I3,V)=f(..)
+    if( option==getInterfaceRightHandSide )
+      parameters.getNormalForce( gf[gfIndex].u,traction,ipar,rpar );
+      f(I1,I2,I3,V)=...
+\end{verbatim}
+}
+
+

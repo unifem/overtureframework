@@ -1,0 +1,71 @@
+\section{Moving Grids: Notes}\label{sec:movingGrids}
+
+
+Here are notes on how moving grids are implemented in cg.
+{
+\small
+\begin{verbatim}
+advanceEuler.bC: 
+  DomainSolver::eulerStep 
+    moveGrids( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );
+
+move.C:
+  DomainSolver::moveGrids(const real & t1, ... )
+    if( t3<t2 ) setInterfacesAtPastTimes( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );
+    parameters.dbase.get<MovingGrids >("movingGrids").moveGrids(t1,t2,t3,dt0,cgf1,cgf2,cgf3 );
+    gridGenerator->updateOverlap(cgf3.cg,cgf1.cg,hasMoved, ... )
+  setInterfacesAtPastTimes( t1,t2,t3,dt0,cgf1,cgf2,cgf3 )
+    bd(I1,I2,I3,Rx+uc) = x(I1,I2,I3,Rx) + gridVelocityLocal(I1,I2,I3,Rx)*dt;
+
+MovingGrids.C
+  MovingGrids::moveGrids(const real & t1, ... )
+    detectCollisions(cgf1);
+    rigidBodyMotion( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );
+    moveDeformingBodies( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );
+    userDefinedMotion( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );
+    // rigid bodies: replace Mapping with a MatrixTransform.
+    // move rigid bodies (shift, rotate, scale, rigidBody, userDefinedMotion ...).
+    deforming bodies: (deformingBodyList[b] == DeformingBodyMotion)
+      deformingBodyList[b]->regenerateComponentGrids(  newT, cgf3.cg );
+
+  MovingGrids::rigidBodyMotion(const real & t1, ... )
+    for( b )
+      parameters.getNormalForce( cgf2.u,stress[grid],ipar,rpar );
+      integrate->surfaceIntegral(stress,C,f,b);
+      body[b]->integrate( t2,f,g, t3,x,r  );
+
+  MovingGrids::moveDeformingBodies(const real & t1, ...)
+    for(b) deformingBodyList[b]->integrate( t1,t2,t3,cgf1,cgf2,cgf3, stress);
+\end{verbatim}
+}
+% ------------------------------
+{\small
+\begin{verbatim}
+DeformingBodyMotion.C
+  initialize( cg,t )
+    // get surface of the deforming grid
+    initializeGrid( cg,t )
+  initializeGrid( cg,t )
+    // build an HyperbolicMapping for the deforming grid if necessary
+    gridEvolution[face]->addGrid(dpm.getDataPoints(),t); // time history of grids
+  integrate( real t1, real t2, real t3, ...) // update the startCurve 
+    if( userDefinedDeformingBodyMotionOption==interfaceDeform )
+      RealArray & bd = parameters.getBoundaryData(sideToMove,axisToMove,gridToMove,cg[gridToMove]);
+      startCurve.interpolate(x0,...) 
+  regenerateComponentGrids( const real newT, CompositeGrid & cg)
+    hyp.generate();
+    gridEvolution[face]->addGrid(dpm.getDataPoints(),newT);// time history of grids
+  getVelocity( const real time0, ..)
+    if( time0<=0 )
+     getInitialState( ... )
+    else
+      gridEvolution[face]->getVelocity(time0,gridVelocity,I1,I2,I3);
+  getInitialState( InitialStateOptionEnum stateOption, ...)
+\end{verbatim}
+}
+% ------------------------------
+%{\small
+%\begin{verbatim}
+%   
+%\end{verbatim}
+%}

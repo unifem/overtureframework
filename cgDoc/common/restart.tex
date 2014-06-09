@@ -1,0 +1,21 @@
+\subsection{Restarts}
+
+ The easiest way to restart is to choose your initial conditions to come from
+the show file that you saved in a previous run, see section~\ref{sec:initialConditionsOptions}.
+The program will let one choose any solution in the show file as an initial
+condition.
+Remember to rename the show file from the previous run 
+so that it doesn't get over-written before
+you have a chance to read from it.
+
+You can also restart using an explicit {\bf restart file}. 
+To do this you need to turn on the saving of a restart file, see section~(\ref{sec:parameters}). 
+In this case
+cgins will write a restart file every time the solution is output. 
+Actually, to be safe, two files 
+are created named `ob1.restart' and `ob2.restart'. This is in case the
+program crashes while the restart file is being written.
+Usually both files will be valid as use for restart files.
+
+To {\bf read the restart file} you simply specify this option and the file
+to use when assigning initial conditions, see section~(\ref{sec:initialConditionsOptions}).

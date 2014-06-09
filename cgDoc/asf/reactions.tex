@@ -1,0 +1,850 @@
+\documentclass{article} 
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{multicol}
+\usepackage{verbatim}
+\usepackage{moreverb}
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{fancybox}    
+
+\addtolength{\oddsidemargin}{-.975in}
+\addtolength {\textwidth} {2.0in}
+
+\addtolength{\topmargin}{-1.0in}
+\addtolength {\textheight} {1.5in}
+
+% \voffset=-1.25truein
+% \hoffset=-1.truein
+% \setlength{\textwidth}{6.75in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+
+\newcommand{\homeHenshaw}{/home/henshaw.0}
+
+% \newcommand{\obFigures}{../docFigures}  % note: local version for OverBlown
+\newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % note: local version for OverBlown
+
+\newcommand{\primer}{\homeHenshaw/res/primer}
+
+\begin{document}
+ 
+\title{Combustion Cheat Sheet}
+
+\author{
+Bill Henshaw \\
+\  \\
+Scientific Computing Group \\
+Computing Information and Communications Division\\
+Los Alamos, NM, USA, 87545 \\
+henshaw@lanl.gov }
+ 
+\maketitle
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+\tableofcontents
+
+\section{General}
+
+\begin{align}
+   {\partial \rho  \over \partial t} + \grad\cdot(\rho \vv)&=0 \label{eq:continuity}\\
+   {\partial \vv  \over \partial t}  + (\vv\cdot\grad)\vv +{1\over\rho} \grad p 
+       &= {1\over\rho}\grad\cdot\tauv +\sum_i Y_i \fv_i\\
+       & = {1\over\rho} \grad\cdot( \mu [\grad \vv +(\grad\vv)^T] +(\kappa-{2\over3}\mu) (\grad\cdot\vv)I)
+          +\sum_i Y_i \fv_i\\
+   {\partial e  \over \partial t}  + (\vv\cdot\grad)e + {p\over\rho}\grad\cdot\vv
+           &= -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi    \\
+  {\partial Y_i \over \partial t} + (\vv\cdot\grad) Y_i &= {\sigma_i \over \rho}
+               -{1\over\rho}\grad\cdot\jv_i \qquad i=1,2,\ldots,n
+\end{align}
+\begin{align}
+  p &= \rho R_u T \sumi {Y_i\over\mbar_i} \qquad = \rho R T ,\qquad R_i = {R_u\over \mbar_i}\\
+  R & = \sumi R_i Y_i = R_u \sumi {Y_i\over\mbar_i} = {R_u \over \mbar}, \qquad \mbar=\sumi \mbar_i X_i   \\
+  e &= \sumi( h_i Y_i) - {p\over\rho} \quad = h - {p\over\rho} \quad = \sumi( h_i - R_i T )Y_i \\
+  \tau &= \mu[ \grad\vv + (\grad\vv)^T ] + (\kappa-{2\over3}\mu)(\grad\cdot\vv)\Iv , \\
+     \Phi&=\tau : \grad\vv \qquad \mbox{viscous heating term} \\
+  \mu &=\mu(T,Y_i), \qquad \lambda=\lambda(T,Y_i), \qquad D_i = D_i(p,T,Y_i) \\
+  h_i(T) &= \Delta h_i^0 + \int_{T^0}^T c_{p,i}(T) dT \qquad i=1,2,...,n \\
+  \qv &= - \lambda \grad T + \sumi h_i ~\jv_i  \quad  \\
+  \jv_i & = \rho Y_i \Vv_i \qquad\mbox{species flux} \\
+ \Vv_i &\approx -D_i \grad ln(X_i) \qquad\mbox{ (diffusion velocity, Fick's law)} \\
+  c_p &= \sumi c_{p,i} Y_i , \qquad   c_v = c_p - R = \sumi (c_{p,i}-R_i) Y_i,\qquad   
+        \gamma = \gamma(T,Y_i) = {c_p \over c_v} \\
+  c_v &= R/(\gamma-1)
+\end{align}
+\begin{itemize}
+\item {\bf Note 1}: the enthalpy appearing here, $h_i$, is the {\bf absolute enthalpy}, which includes 
+  the energy of formation $ \Delta h_i^0$
+  at the reference temperature, usually taken as $T_0=298.15$.
+\item \noindent {\bf Note 2}: The thermodynamic variables $c_{p,i}(T)$, $h_i(T)$ are assumed to be mass based instead
+  of mole based (to get the mass based version from the mole based version, divide by $\mbar_i$ ).
+\item {\bf Note 3:} The quantities $c_p$, $c_v$ and $\gamma$ are called the frozen specific heats and
+     gas constant (the non-frozen $c_p$ is $\partial h /\partial T$).
+\end{itemize}
+
+Other forms for the ``energy'' equation: Here is the temperature equation
+(derived in more detail in section (\ref{sec:temperature})
+\begin{align}
+  {D T\over Dt} + (\gamma-1) T \grad\cdot\vv & = 
+       {1\over \rho c_v}  \left\{ \sumi  (R_i T-h_i) \sigma_i + \grad\cdot(\lambda\grad T)
+      - T \sumi  R_i \grad\cdot\jv_i - \grad T \cdot\sumi c_{p,i} ~ \jv_i
+              + \Phi \right\} 
+           \label{eq:temperature} 
+\end{align}
+Taking $RT$ times the continuity equation (\ref{eq:continuity}) plus $\rho R$ 
+times the temperature equation (\ref{eq:temperature}) gives the pressure equation
+(derived in more detail in section (\ref{sec:pressure}))
+\begin{align}
+    {D p\over Dt} + \gamma p \grad\cdot\vv &= 
+        \sumi  (\gamma R_i T-(\gamma-1)h_i) \sigma_i + (\gamma-1) \grad\cdot(\lambda\grad T) \\
+    &  - \gamma T \grad\cdot \sumi R_i\jv_i - (\gamma-1) \grad T \cdot \sumi c_{p,i} ~\jv_i
+              + (\gamma-1) \Phi \label{eq:pressure}
+\end{align}
+
+Another equation that is often used for low mach number is a combination of the Temperature
+and pressure equations:
+\begin{align}
+  {D T\over Dt} - {1\over \rho c_p} {D p\over Dt} & = 
+       {1\over \rho c_p}  \left\{ -\sumi (h_i\sigma_i) + \grad\cdot(\lambda\grad T)
+      - \grad T \cdot\sumi c_{p,i} ~ \jv_i
+              + \Phi \right\} \label{eq:TP}
+\end{align}
+
+\subsection{Equations in conservation form}
+
+The equations in conservation form (see {\sl Numerical Simulation of Reactive Flow} by Oran and Boris)
+are
+\begin{align*}
+   {\partial \rho  \over \partial t} + \grad\cdot(\rho \vv)&=0 \\
+   {\partial (\rho\vv)  \over \partial t}  + \grad\cdot(\rho\vv\vv) + \grad p &= \grad\cdot\tauv
+              +  \sum_i \rho_i \av_i \\
+   {\partial E  \over \partial t}  + \grad\cdot( (E+p)\vv ) &= \grad\cdot( \vv\cdot\tauv )
+            - \grad\cdot(\qv+\qv_R) + \vv\cdot\sum m_i\av_i + \sum_i \Vv_i\cdot m_i \av_i    \\
+  {\partial (\rho Y_i) \over \partial t} + \grad\cdot(\rho Y_i\vv) &= \sigma_i 
+               -\grad\cdot\jv_i \qquad i=1,2,\ldots,n
+\end{align*}
+where the energy density E is
+\begin{align*}
+ E &= \half \rho \vv\cdot\vv + \rho e
+\end{align*}
+and the $\av_i$ are body forces acting on species $i$.
+
+\subsection{Diffusion velocities}
+
+In general the diffusion velocities, $\Vv_i$, are determined from the matrix equation
+\[
+    \sum_j \left( {X_i X_j \over D_{ij} }\right) (\Vv_j-\Vv_i) = \Gv_i
+\]
+where
+\[
+   \Gv_i = \grad X_i - (Y_i-X_i){\grad p \over p} - {\rho\over p} \sum_j Y_i Y_j (\fv_i-\fv_j)
+    - \sum_j\left( {X_i X_j \over \rho D_{ij}}\right)\left( {D_{T,j}\over Y_j} - {D_{T,i}\over Y_i}\right) 
+      {\grad T\over T}
+\]
+
+% ok \end{document} 
+
+
+\subsection{Entropy}
+\begin{align*}
+\tilde{S} &= \sumi Y_i \left(\phi_{0,i} (T) -R_i \ln(X_i)\right) - R \ln(p)  \\
+\phi_{0,i} (T) &= \int_{T_0}^T {c_{p,i}(\tau) \over \tau} d\tau 
+\end{align*}
+When the flow is frozen ($Y_i$=constant) and inviscid the entropy will be constant. This can be
+seen from
+\begin{align*}
+{D S\over Dt} &= \left\{ \sumi Y_i {c_{p,i}\over T}{D T\over Dt}
+         - R {1\over p} {D p\over Dt} \right\} \\
+ &= c_p [ -(\gamma-1)\grad\cdot\uv] - R [-\gamma\grad\cdot\uv] \\
+ & = 0
+\end{align*}
+This is also (supposedly true) in equilibrium flow.
+
+
+\subsection{enthalpy}
+An equation for the enthalpy is obtained by substituting $e=h-p/\rho$ into the energy equation
+\[
+   {D h  \over D t}  - {1\over \rho}{D p\over D t} + {p\over\rho^2}{D \rho\over D t}+ {p\over\rho}\grad\cdot\vv
+           = -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi   
+\]
+Use of the continuity equation gives
+\[
+   {D h  \over D t}  - {1\over \rho}{D p\over D t} 
+           = -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi  
+\]
+Replacing $\uv\cdot\grad p/\rho$ from the momentum equation gives
+\[
+   {D h  \over D t}  - {1\over \rho}{\partial p\over \partial t} 
+         - \vv\cdot\left[ - \vv_t -  (\vv\cdot\grad)\vv + \Div \tauv \right]
+           = -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi  
+\]
+or
+\newcommand{\halfo}{{1\over2}}
+\begin{equation}
+   {\partial h  \over \partial t}  
+  - {1\over \rho}{\partial p\over \partial t} 
+  + \halfo {\partial (\vv\cdot\vv)\over \partial t}
+   + \vv\cdot\left[ \grad h  +  (\vv\cdot\grad)\vv \right]
+           = -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi  + \vv\cdot(\Div\tauv)
+\end{equation}
+Thus in steady inviscid 1D flow we have
+\[
+     h_x + \halfo (u^2)_x = 0 \qquad \implies\qquad  h+\halfo u^2 = \text{constant}
+\]
+
+Another equation for the enthalpy is obtained by substituting $E=\rho h+\half\rho v^2-p$ into the conservative
+form of the energy equation giving
+\[
+    {\partial( \rho h+\half\rho v^2 ) \over \partial t} - {\partial p \over \partial t}
+ + \grad\cdot( (\rho h+\half\rho v^2)\vv ) =
+              \grad\cdot( \vv\cdot\tauv )
+            - \grad\cdot(\qv+\qv_R) + \vv\cdot\sum m_i\av_i + \sum_i \Vv_i\cdot m_i \av_i 
+\]
+Thus in steady inviscid flow 
+\begin{align*}
+   \grad\cdot(\rho\vv) &=0 \\
+   \grad\cdot( (h+\half v^2)\rho \vv ) &=0
+\end{align*}
+Whence
+\[
+   \grad(h+\half v^2)\cdot(\rho\vv) =0
+\]
+
+\subsection{Reactions:}
+\[
+    \sum_{i=1}^n \nu_{ij}' A_i \Leftrightarrow \sum_{i=1}^n \nu_{ij}''A_i  \qquad j=1,2,\ldots,m
+\]
+
+
+\begin{alignat}{3}
+   Y_i &= \mbox{mass fraction} &\qquad 
+      X_i &= \mbox{mole fraction} \\
+        [A] &= \mbox{molar concentration} = {\mbox{moles}\over\mbox{volume}}  &\quad R_u&=\mbox{Universal Gas constant} \\
+  \mbar_j &= \mbox{molecular weight} = {\mbox{grams}\over\mbox{mole}} &\qquad 
+   \rho &= {\mbox{mass}\over\mbox{volume}}
+\end{alignat}
+\begin{alignat}{2}
+   Le &= {\lambda\over \rho D c_p} & \qquad\mbox{Lewis number} 
+\end{alignat}
+
+% no \end{document} 
+
+\[
+    Y_i = { [A_i] \mbar_i \over \rho } = {\mbar_i X_i \over \sum_j \mbar_j X_j} = {\mbar_i X_i \over \mbar}
+    = { \rho_i \over \rho} = { m_i \over m}
+\]
+\[
+    X_j = { (Y_j /\mbar_j) \over \sumi (Y_i / \mbar_i) }
+\]
+\[
+    [A_i] = {\rho Y_i \over \mbar_i} = {p X_i \over R_u T}
+\]
+
+% \end{document} % no
+
+\section{Reaction equations}
+
+\begin{align*}
+  {\partial Y_i \over \partial t} + (\vv\cdot\grad) Y_i & = {1\over\rho}\sigma_i
+              - {1\over\rho}\grad\cdot \jv_i \qquad i=1,2,\ldots,n \\
+   \sigma_i \equiv \dot{w}_i &= \sigma_i(\rho,T,\Yv)   \\
+      \jv_i & = \rho Y_i \Vv_i \qquad\mbox{species flux} \\
+      \Vv_i &= - {1\over X_i} D_{im} \dv_i - {D_k^T\over \rho Y_i T} \grad T \qquad\mbox{diffusion velocity} \\
+      \dv_i &= \grad X_i + (X_i-Y_i) {1\over p} \grad p    \\
+      D_{im} = \mbox{mixture diffusion coefficient} & \quad D_k^T = \mbox{thermal diffusion coefficient}
+\end{align*}
+For the species flux we make the approximations
+\begin{align*}
+  \Vv_i & \approx - {1\over X_i} D_{im} \dv_i  \qquad \mbox{(the rest is expensive to compute)} \\
+  \dv_i & \approx \grad X_i        \qquad \mbox{ (valid for low Mach numbers)}           \\
+  \mbox{which gives}\quad \jv_i & \approx - \rho {Y_i \over X_i} D_{im}\grad X_i
+\end{align*}
+and thus the diffusion term on the right hand side of the species equation is
+\begin{align*}
+-{1\over\rho}\grad\cdot \jv_i &\approx  {1\over\rho}\grad\cdot(\rho {Y_i \over X_i} D_{im}\grad X_i) \\
+          &= {1\over\rho}\grad\cdot( \rho D_{im}\grad Y_i + \rho D_{im} Y_i {\grad \mbar \over \mbar_i} )
+\end{align*}
+
+The species source terms
+\begin{align}
+    \sigma_i & = \mbar_i \sum_{j=1}^m {d \over dt} [A_i]_j \\
+             & = \mbar_i \sum_{j=1}^m \Delta \nu_{ij} G_j
+\end{align}
+\begin{align}
+    G_i &=  K_{fi}(T)\prod_{k=1}^{m} [A_k]^{\nu_{ki}'} -  K_{bi}(T)\prod_{k=1}^{m} [A_k]^{\nu_{ki}''} \\
+        &=  K_{fi}(T)\prod_{k=1}^{m} \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}'}
+         -  K_{bi}(T)\prod_{k=1}^{m}  \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}''}
+\end{align}
+Reaction rate constants, 
+\begin{align}
+  K_{fj}(T) &=  B_{fj} T^{\alpha_{fj}} \exp({-E_{fj} \over \Ru T}) \\
+  K_{bj}(T) &=  B_{bj} T^{\alpha_{bj}} \exp({-E_{bj} \over \Ru T}) \\
+  {K_f(T)\over K_b(T)} &= K_p(T) (\Ru T)^{-\Delta \nu}
+\end{align}
+This next Jacobian depends on which dependent variables we use:
+\begin{align}
+    {\partial G_i \over \partial Y_j} &= 
+            K_{fi}(T) {\nu_{j,i}' \over Y_j}  \prod_{k=1}^{m} \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}'}
+         -  K_{bi}(T){\nu_{j,i}''\over Y_j}  \prod_{k=1}^{m}  \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}''}
+\end{align}
+% \begin{align}
+%     {\partial G_i \over \partial Y_j} &= 
+%             K_{fk}(T) {\nu_{j,i}' \over Y_j}  \prod_{k=1}^{m} \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}'}
+%          -  K_{bk}(T){\nu_{j,i}''\over Y_j}  \prod_{k=1}^{m}  \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}''} \\
+%    &  + {\partial K_{fk}(T) \over\partial T}{\partial T \over\partial Y_j} 
+%                      \prod_{k=1}^{m} \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}'}
+%       - {\partial K_{bk}(T) \over\partial T}{\partial T \over\partial Y_j} 
+%             \prod_{k=1}^{m}  \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}''}
+% \end{align}
+
+\section{Scaling}
+
+\newcommand{\rhot}{\tilde{\rho}}
+\newcommand{\jvt}{\tilde{\jv}}
+\newcommand{\vvt}{\tilde{\vv}}
+\newcommand{\sigmat}{\tilde{\sigma}}
+\newcommand{\pt}{\tilde{p}}
+\newcommand{\ttt}{\tilde{t}}
+\newcommand{\Tt}{\tilde{T}}
+\newcommand{\gradt}{\tilde{\grad}}
+\newcommand{\Deltat}{\tilde{\Delta}}
+\newcommand{\lambdat}{\tilde{\lambda}}
+\newcommand{\ct}{\tilde{c}}
+\newcommand{\hht}{\tilde{h}}
+\newcommand{\Rt}{\tilde{R}}
+\newcommand{\Dt}{\tilde{D}}
+\newcommand{\mut}{\tilde{\mu}}
+\newcommand{\Phit}{\tilde{\Phi}}
+
+We nondimensionalize the equations using the scales $L_0$, $u_0$, $\rho_0$, and $T_0$,
+\begin{alignat*}{4}
+  t_0 &:={L_0 \over U_0} & \qquad \vvt &:={\vv \over U_0}, &
+        \qquad    a & = b         &  \qquad \tilde{t} &= {t\over t_0} \\
+  \tilde{x} &= {x\over L_0}  &  \qquad  \tilde{T} &= { T \over T_0 } &
+       \qquad \tilde{\rho} &= { \rho \over \rho_0 } &    \qquad \tilde{\vv} &= {\vv\over u_0} \\
+  \mut &:={\mu \over \rho_o U_0 L_0 } & \qquad p_0 &:=\rho_0 u_0^2, &
+        \qquad R_0 & := {P_0 p_0\over \rho_0 T_0} &  \qquad \tilde{t} &= {t\over t_0} \\
+  \tilde{p} &= {p \over p_0} - P_0 &   \qquad \Rt_i&= { R_i \over R_0}   &
+        \qquad\tilde{\sigma} &= {\sigma \over {\rho_0 U_0/ L_0}} &  
+        \qquad \tilde{h}_i &= { h_i \over R_0 T_0} \\
+  \tilde{\lambda} &= {\lambda\over \rho_0 U_0 L_0 R_0} &  \qquad\Dt_i &= { D_i \over L_0 U_0} &
+      \qquad \ct_{p,i} &= { c_{p,i} \over R_0} & \qquad \ct_v &= { c_v \over R_0} = {\Rt \over \gamma-1}
+\end{alignat*}
+We have scaled the pressure using a scale for the static pressure and a scale for the dynamic pressure:
+\[
+   p = [ P_0 + \pt ] p_0 , \qquad P_{static} = P_0 p_0
+\]
+In general the spatially constant static pressure may vary with time,  $P_0=P_0(t)$. Note that $P_0$ is
+proportional to one over the square of the Mach number
+\[
+ P_0 = { \rho_0 R_0 T_0 \over \rho U_0^2 } = {1\over  \gamma } { \gamma R_0 T_0 \over U_0^2 } = {1\over \gamma M_0^2}
+  \qquad \mbox{ where } M_0 = {U_0 \over \sqrt{\gamma R_0 T_0}} = {U_0 \over a_0}.
+\]
+
+
+Here are the scaled equations
+\begin{align*}
+   {\partial \rhot  \over \partial \ttt} + \gradt\cdot(\rhot \vvt)&=0 \\
+   {\partial \vvt  \over \partial \ttt}  + (\vvt\cdot\gradt)\vvt +{1\over\rhot} \gradt \pt  
+            & = {1\over\rhot} \gradt\cdot( \mut [\gradt \vvt + (\gradt\vvt)^T] -{2\over3}\mut (\gradt\cdot\vvt)I) \\
+%   {\partial e  \over \partial t}  + (\vv\cdot\grad)e + {p\over\rho}\grad\cdot\vv
+%           &= -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi    \\
+  {\partial Y_i \over \partial \ttt} + (\vvt\cdot\gradt) Y_i &= {\sigmat_i \over \rhot}
+               +{1\over\rhot}\gradt\cdot(\rhot \Dt_i\grad Y_i) \qquad i=1,2,\ldots,n
+\end{align*}
+\begin{align*}
+  {D \Tt\over D\ttt} + (\gamma-1)\Tt\gradt\cdot\vvt & = 
+       {1\over \rhot \ct_v}  \left\{ \sumi  ( \Rt_i \Tt - \hht_i) \sigmat_i 
++ \gradt\cdot(\lambdat\gradt \Tt)
+- \Tt \sumi  \Rt_i \gradt\cdot\jvt_i - \gradt \Tt \cdot\sumi \ct_{p,i} ~\jvt_i
+              + {1\over P_0} \Phit \right\} 
+\end{align*}
+or the alternative form
+\begin{align*}
+  {D \Tt\over D\ttt} - {1\over P_0} {1\over \rhot \ct_p} {D \pt\over D\ttt} & = 
+       {1\over \rhot \ct_p}  \left\{ -\sumi (\hht_i\sigmat_i) + \gradt\cdot(\lambdat\gradt \Tt)
+       - \gradt \Tt \cdot\sumi \ct_{p,i}  ~\jvt_i
+               + {1\over P_0} \Phit \right\} 
+\end{align*}
+\begin{align*}
+     {D \pt\over D\ttt}+ {\partial P_0 \over \partial \ttt} + \gamma (P_0 + \pt) \gradt\cdot\vvt &= 
+    P_0 \left\{ \sumi  ({\gamma \Rt_i} \Tt - (\gamma-1) \hht_i) \sigmat_i 
+        + (\gamma-1) \gradt\cdot(\lambdat\gradt \Tt) \right. \\
+    &  \left. - \gamma \Tt \gradt\cdot( \sumi \Rt_i~\jvt_i) - (\gamma-1)\gradt \Tt\cdot\sumi \ct_{p,i}~\jvt_i
+              + {1\over P_0} (\gamma-1) \Phit \right\}
+\end{align*}
+where
+\begin{align*}
+  R_e &= {1\over \mut} = {\rho_0 U_0 L_0 \over \mu}  \qquad \text{Reynolds number} \\
+  P_r & =     blah                   \qquad \text{Prandtl number} \\
+  Le & = {\lambda \over \rho D c_p } \qquad \text{Lewis number}
+\end{align*}
+
+
+\section{Solution of the Reaction equations}
+
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\dY}{{\delta Y}}
+\newcommand{\dT}{{\delta T}}
+% \newcommand{\half}{{1\over 2}}
+
+The temperature and reactions equations
+\begin{align*}
+  {D T\over Dt} & = 
+       {1\over \rho c_p}  \left\{ -\sumi h_i\sigma_i + \grad\cdot(\lambda\grad T)
+      - \grad T \cdot\sumi c_{p,i} ~ \jv_i
+              + \Phi \right\} \\
+  {\partial Y_i \over \partial t} + (\vv\cdot\grad) Y_i &= {1\over\rho}{\sigma_i(\rho,T,Y_k) }
+               -{1\over\rho}\grad\cdot\jv_i \qquad i=1,2,\ldots,n
+\end{align*}
+are solved with a Backward Euler scheme (here we assume that we are given and $p^{n+1}$ and we must solve
+for $\rho^{n+1}$, $T^{n+1}$ and $Y_i^{n+1}$)
+\begin{align*}
+  p^{n+1} & = \rho^{n+1} R^{n+1} T^{n+1} \\
+  {T^{n+1}-T^n \over \dt} &- {1\over \rho^{n+1} c_p(\Yv^{n+1},T^{n+1})}  -\sumi h_i\sigma_i (\Yv^{n+1},T) =
+             \mbox{ stuff }\\
+  {\Yv^{n+1}-\Yv^n \over \dt} &- {1\over \rho^{n+1}} \sigmav(\Yv^{n+1},T) = \left\{ -\vv\cdot\grad \Yv 
+                    -{1\over\rho}\grad\cdot\jv_i \right\}^{n+\half}
+\end{align*}
+or
+\begin{align*}
+  p^{n+1} & = \rho^{n+1} R^{n+1} T^{n+1} \\
+  T_{n+1}  &- {\dt\over \rho^{n+1} c_p(\Yv^{n+1},T^{n+1})}  -\sumi h_i\sigmav_i (\Yv^{n+1},T) =
+      T^n + \dt\left\{ \mbox{ stuff } \right\} \\ 
+  \Yv^{n+1} & - {\dt \over \rho^{n+1}} \sigmav(\Yv^{n+1},T) = \Yv^n +\dt\left\{ -\vv\cdot\grad \Yv
+        - {1\over\rho}\grad\cdot\jv_i \right\}^{n+\half}
+\end{align*}
+We solve this nonlinear equation by Newton's method. 
+We write the system of equations for $T^{n+1}$ and $\Yv^{n+1}$ as
+\begin{align*}
+  \Zv^{n+1} - \dt \Sv(\Zv^{n+1}) & = \Gv \\
+  \Zv^{n+1} &= \Zv^n + \delta\Zv
+\end{align*}
+where
+\[
+  \Zv = \begin{bmatrix} T^{n+1} \\ \Yv^{n+1} \end{bmatrix} \qquad
+  \Sv = \begin{bmatrix} -{1\over \rho c_p}  \sum h_i\sigma_i \\
+                         {1\over \rho} \sigmav \end{bmatrix}
+\]
+
+Then a Newton step is
+\begin{align*}
+  \left[I - \dt {\partial \Sv \over\partial \Zv}(\Zv^n)\right] \delta\Zv & = -\Zv^n + \dt \Sv(\Zv^n) + \Gv
+\end{align*}
+
+% Denoting the Newton iterations by $(T^k,Y^k)$, 
+% and $(T^{k+1},Y^{k+1})=(T^k,Y^k)+(\dT^k,\dY^k)$, we have
+% \begin{align*}
+%   T^{k+1} - {\dt\over \rho^{n+1} c_p(Y^{n+1},T^{n+1})}  -\sumi h_i\sigma_i (Y^k+\dY^k,T^k+\dT^k) &= h \\
+%   Y^{k+1} - {\dt \over \rho^{n+1}} \sigma(Y^k + \dY^k,T+\dT^k) & =g 
+% \end{align*}
+% or
+% \begin{align*}
+%   T^{k+1} - {\dt\over \rho^{n+1} c_v}  \sumi  (R_i T-h_i) \sigma_i (Y^k+\dY^k,T^k+\dT^k) &= h \\
+%   Y^k+ \dY^k - {\dt \over \rho^{n+1}} 
+%        \left\{ \sigma(Y^k,T)  + {\partial\sigma \over \partial Y}(Y^k,T) \dY^k 
+%                               + {\partial\sigma \over \partial T}(Y^k,T) \dT^k    \right\} &= g 
+% \end{align*}
+% Thus the Newton iteration is 
+% \begin{align*}
+%   \left(I - {\dt \over \rho^{n+1}}{\partial\sigma \over \partial Y}(Y^k,T) \right)\dY^k
+%      &= -Y^k + {\dt \over \rho^{n+1}}  \sigma(Y^k,T) + g  \\
+%     Y^{k+1} &=Y^k+\dY^k \\
+%         g&=  Y^n +\dt\left\{ -\vv\cdot\grad Y - {1\over\rho}\grad\cdot\jv_i \right\}^{n+\half}
+% \end{align*}
+
+\section{Derivation of Some Equations}
+
+\subsection{Derivation of the Temperature Equation}\label{sec:temperature}
+
+Differentiating
+\begin{align*}
+  e &= \sumi( h_i - R_i T)Y_i 
+\end{align*}
+gives
+\begin{align*}
+  {D e\over Dt} &= \sumi\left\{ (c_{p,i}-R_i){D T\over Dt} Y_i + (h_i-R_i T){D Y_i\over Dt} \right\} \\
+                &= c_v {D T\over Dt} + \sumi  (h_i-R_i T){D Y_i\over Dt}  
+%                &= c_v {D T\over Dt} + \sumi  (h_i-R_i T)\left( {\sigma_i \over \rho}
+%               +{1\over\rho}\grad\cdot(\rho D_i\grad Y_i) \right)
+\end{align*}
+Substituting this last expression into the energy equation
+\begin{align*}
+   {\partial e  \over \partial t}  + (\vv\cdot\grad)e + {p\over\rho}\grad\cdot\vv
+           &= -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi 
+\end{align*}
+results in
+\begin{align*}
+  c_v {D T\over Dt} + {p\over\rho}\grad\cdot\vv & = \sumi  (R_i T-h_i){D Y_i\over Dt}
+                 -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi \label{eq:Ta}
+\end{align*}
+and thus
+\begin{align*}
+  {D T\over Dt} + {p\over\rho c_v}\grad\cdot\vv & = 
+       {1\over \rho c_v}  \left\{ \sumi  (R_i T-h_i)\left( \sigma_i -\grad\cdot \jv_i \right) 
+           - \grad\cdot\qv  + \Phi \right\} \\
+   & = {1\over \rho c_v}  \left\{ \sumi  (R_i T-h_i) \sigma_i + \grad\cdot(\lambda\grad T)
+      -\sumi  (R_i T-h_i) \grad\cdot\jv_i - \grad\cdot( \sumi h_i \jv_i)
+              + \Phi \right\} \\
+   & = {1\over \rho c_v}  \left\{ \sumi  (R_i T-h_i) \sigma_i + \grad\cdot(\lambda\grad T)
+      - T \sumi  R_i \grad\cdot\jv_i - \grad T \cdot\sumi c_{p,i} ~\jv_i
+              + \Phi \right\} 
+\end{align*}
+whence
+\begin{align*}
+  {D T\over Dt} + (\gamma-1) T \grad\cdot\vv & = 
+       {1\over \rho c_v}  \left\{ \sumi  (R_i T-h_i) \sigma_i + \grad\cdot(\lambda\grad T)
+      - T \sumi  R_i \grad\cdot\jv_i - \grad T \cdot\sumi c_{p,i} ~ \jv_i
+              + \Phi \right\} 
+\end{align*}
+
+
+\noindent {\bf Note:} An alternative form of the temperature equation retains the pressure as a variable in
+\begin{align*}
+  e &= \sumi( h_i Y_i ) - {p\over \rho}
+\end{align*}
+Then 
+\begin{align*}
+  {D e\over Dt} &= c_p {D T\over Dt} + \sumi(h_i{D Y_i\over Dt})
+            + {p\over \rho^2} {D \rho\over Dt} - {1\over \rho} {D p\over Dt}  \\
+                &= c_p {D T\over Dt} + \sumi(h_i{D Y_i\over Dt}) - {p\over \rho} \grad\cdot\vv - {1\over \rho} {D p\over Dt}
+\end{align*}
+Substituting this last expression into the energy equation gives
+\begin{align}
+  {D T\over Dt} - {1\over \rho c_p} {D p\over Dt} & = 
+       {1\over \rho c_p}  \left\{ -\sumi (h_i\sigma_i) + \grad\cdot(\lambda\grad T)
+      -  \grad T \cdot \sumi c_{p,i} ~\jv_i
+              + \Phi \right\} 
+\end{align}
+This last equation is useful if $p=\mbox{constant}$.
+
+\subsection{Derivation of the pressure equation}\label{sec:pressure}
+
+From $p=\rho R T$ it follows that
+\begin{align}
+    {D p\over Dt} &=  RT {D \rho\over Dt} + \rho R  {D T\over Dt} + \rho T  {D R\over Dt}
+\end{align}
+and
+\begin{align}
+   {D R\over Dt} &=  \sumi R_i {D Y_i \over Dt}
+%      &= \sumi R_i \left( {\sigma_i \over \rho}
+%               +{1\over\rho}\grad\cdot(\rho D_i\grad Y_i)  \right)
+\end{align}
+whence
+\begin{align}
+    {D p\over Dt} + \gamma p \grad\cdot\vv &= 
+       {R\over c_v}  \left\{ \sumi  (R_i T-h_i) (\rho{D Y_i \over Dt}) + \grad\cdot(\lambda\grad T)
+              + \Phi \right\}   + \rho T \sumi R_i ({D Y_i \over Dt}) \label{eq:pa}
+\end{align}
+or substituting for $DY_i/Dt$ 
+\begin{align}
+    {D p\over Dt} + \gamma p \grad\cdot\vv &= 
+       {R\over c_v}  \left\{ \sumi  (R_i T-h_i) \sigma_i + \grad\cdot(\lambda\grad T)
+      - T \grad\cdot( \sumi  R_i ~\jv_i) - \grad T \cdot ( \sumi c_{p,i} ~\jv_i )
+              + \Phi \right\} \\
+      & + \rho T \sumi R_i \left( {\sigma_i \over \rho} - {1\over\rho}\grad\cdot\jv_i  \right)
+\end{align}
+giving the pressure equation 
+\begin{align}
+    {D p\over Dt} + \gamma p \grad\cdot\vv &= 
+        \sumi  ({\gamma R_i} T- (\gamma-1)h_i) \sigma_i + (\gamma-1) \grad\cdot(\lambda\grad T) \\
+    &  - \gamma T \grad\cdot( \sumi R_i~\jv_i) - (\gamma-1)\grad T \cdot \sumi c_{p,i}~\jv_i
+              + (\gamma-1) \Phi 
+\end{align}
+where we have used
+\begin{align}
+   {R\over c_v} &= \gamma -1
+\end{align}
+
+
+\section{Frozen Flow}
+ The equations for frozen flow are determined by keeping the mass fractions $Y_i$ constant in space and
+time. Then $DY_i/Dt$ in equations (\ref{eq:Ta}) and (\ref{eq:pa}) is zero and thus
+\begin{align*}
+   {\partial \rho  \over \partial t} + \grad\cdot(\rho \vv)&=0 \\
+   {\partial \vv  \over \partial t}  + (\vv\cdot\grad)\vv +{1\over\rho} \grad p &= {1\over\rho}\grad\cdot\tauv \\
+  {D T\over Dt} + (\gamma-1) T \grad\cdot\vv & = 
+       {1\over \rho c_v}  \left\{ \grad\cdot(\lambda\grad T) + \Phi \right\} \\
+    {D p\over Dt} + \gamma p \grad\cdot\vv &=  \grad\cdot(\lambda\grad T) + (\gamma-1) \Phi  \\
+   {\partial Y_i  \over \partial t} & = 0 
+\end{align*}
+
+\section{Equilibrium Flow}
+
+In equilibrium flow the reactions are assumed to proceed infinitely fast so that $\sigma_i=0$. 
+In this case we retain the term $DY_i/Dt$ in equations (\ref{eq:Ta}) and (\ref{eq:pa})
+Note that we could not set $\sigma_i=0$ in the temperature and pressure equations as this
+would not conserve energy.
+
+% To conserve $h+u^2/2$ in steady flow we must replace $\sigma_i$ in the source terms for $T$ and $p$ with 
+% $\rho\vv\cdot\grad Y_i$ 
+
+\begin{align*}
+   {\partial \rho  \over \partial t} + \grad\cdot(\rho \vv)&=0 \\
+   {\partial \vv  \over \partial t}  + (\vv\cdot\grad)\vv +{1\over\rho} \grad p &= {1\over\rho}\grad\cdot\tauv \\
+  {D T\over Dt} + (\gamma-1) T \grad\cdot\vv & = 
+       {1\over \rho c_v}  \left\{ \sumi  (R_i T-h_i) (\rho{D Y_i\over Dt}) + \grad\cdot(\lambda\grad T)
+              + \Phi \right\}  \\
+    {D p\over Dt} + \gamma p \grad\cdot\vv &= 
+        \sumi  ({\gamma R_i} T- (\gamma-1)h_i) (\rho{D Y_i\over Dt}) + (\gamma-1) \grad\cdot(\lambda\grad T)
+              + (\gamma-1) \Phi \\
+   \sigma_i(Y_i,T,\rho) & = 0 
+\end{align*}
+
+\section{The Bomb problem: constant pressure combustion}
+
+A standard test for Chemkin is the constant pressure combustion problem for a gas mixture
+
+The equations that are solved are
+\begin{align*}
+   {\partial T\over \partial t} &= - {1\over \rho c_p} \sumi (h_i\sigma_i)   \\
+   {\partial Y_i\over \partial t} &= {1\over \rho }  \sigma_i \qquad i=1,2,\ldots,n \\
+   p_0 &= \rho R T
+\end{align*}
+
+NOTE that since the pressure is constant, the density will vary and thus $\grad\cdot(\rho\vv)$
+will not be zero. This would correspond to a reaction in a box that is allowed to expand to
+keep the pressure constant.
+
+{\bf Note:} that the equation for $T$ comes from the temperature/pressure equation (\ref{eq:TP})  rather than
+the temperature equation (\ref{eq:temperature}). Use of the latter would result in
+a different answer! 
+
+% This illustrates that the equations above for the bomb problem
+% are {\bf inconsistent} with the full set of equations. Another way to see this is that
+% $\rho$ will not be constant for the bomb problem even though it should be from 
+% $\rho_t=0$ (since $\grad\cdot(\rho\vv)=0$).
+
+
+\section{H-F reactions}
+
+Here is the H-F reaction taken from Zucrow and Hoffaman.
+
+Reaction mechanism:
+\begin{align*}
+  F_2 + M & \Leftrightarrow 2 F + M \\
+  H_2 + M & \Leftrightarrow 2H + M   \\
+  HF + M & \Leftrightarrow H + F + M \\
+  HF + F & \Leftrightarrow H + F_2   \\
+  HF + H & \Leftrightarrow H_2 + F   \\
+ 2HF     & \Leftrightarrow H_2 + F_2 \\
+\end{align*}
+
+Source terms:
+\begin{align*}
+   \sigma_{H_2} &= \mbar_{H_2} [ -G_1 + G_4 + G_5 ] \\
+   \sigma_{F_2} &= \mbar_{F_2} [ -G_0 + G_3 + G_5 ] \\
+   \sigma_{HF}  &= \mbar_{HF}  [ -G_2 -G_3-G_4-2G_5 ] \\
+   \sigma_{H}   &= \mbar_{H}   [ 2G_1+G_2+G_3-G_4 ] \\
+   \sigma_{F}   &= \mbar_{F}   [ 2G_0 + G_2 - G_3 + G_4 ] 
+\end{align*}
+
+Reaction step functions:
+\begin{alignat*}{2}
+  G_0 & = K_{f0}(T) [F_2] [M] &-& K_{b0}(T) [F]^2 [M] \\
+  G_1 & = K_{f1}(T) [H_2] [M] &-& K_{b1}(T) [H]^2 [M] \\
+  G_2 & = K_{f2}(T) [HF]  [M] &-& K_{b2}(T) [H][F][M] \\
+  G_3 & = K_{f3}(T) [HF]  [F] &-& K_{b3}(T) [H] [F_2] \\
+  G_4 & = K_{f4}(T) [HF]  [H] &-& K_{b4}(T) [H_2] [F] \\
+  G_5 & = K_{f5}(T) [HF]^2    &-& K_{b5}(T) [H_2][F_2] 
+\end{alignat*}
+
+Reaction rate constants, cm, Mole, K
+\begin{align*}
+   K_{b0} &=  1.10 \times 10^{18} T^{-3/2} \\
+   K_{b1} &=  7.50 \times 10^{18} T^{-1} \\
+   K_{b2} &=  7.50 \times 10^{18} T^{-1} \\
+   K_{b3} &=  5.28 \times 10^{12} T^{1/2} exp(-4000/T) \\
+   K_{b4} &=  5.00 \times 10^{12} exp(-5700/T) \\
+   K_{b5} &=  1.75 \times 10^{10} T^{1/2} exp(-19,997/T)\\
+\end{align*}   
+The forward rates are related to the backward rates through the equilibrium constants, $K_p$.
+\begin{align*}
+   K_{f0} &=  1.10 \times 10^{18} T^{-3/2} ~K_{p,F}^2 (A \Ru T)^{-1} \\
+   K_{f1} &=  7.50 \times 10^{18} T^{-1}~K_{p,H}^2 (A \Ru T)^{-1}  \\
+   K_{f2} &=  7.50 \times 10^{18} T^{-1}~K_{p,H} K_{p,F}/K_{p,HF} (A \Ru T)^{-1}  \\
+   K_{f3} &=  5.28 \times 10^{12} T^{1/2} K_{p,H}/(K_{p,HF} K_{p,F})exp(-4000/T)  \\
+   K_{f4} &=  5.00 \times 10^{12} K_{p,F}/(K_{p,HF} K_{p,H}) exp(-5700/T)  \\
+   K_{f5} &=  1.75 \times 10^{10} T^{1/2} 1/K_{p,HF}^2 exp(-19,997/T)
+\end{align*}   
+Since the values of $K_P$ from the JANNAF tables are based on a reference pressure of
+1 atmosphere, we need to convert some of the $K_p$ by the factor $A= atmospheres/(N m^2)=1./1.01325e5$ if
+we want to use MKS units.
+
+Eigenvalue of the jacobian
+\begin{align*}
+    {\partial G_i \over \partial Y_j} &= 
+            K_{fi}(T) {\nu_{j,i}' \over Y_j}  \prod_{k=1}^{m} \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}'}
+         -  K_{bi}(T){\nu_{j,i}''\over Y_j}  \prod_{k=1}^{m}  \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}''} \\
+    &=  K_{bi}(T) \left(
+            K_{pi}(T)(\Ru T)^{-\Delta \nu_j}
+                     {\nu_{j,i}' \over Y_j}  \prod_{k=1}^{m} \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}'}
+         -           {\nu_{j,i}''\over Y_j}  \prod_{k=1}^{m}  \left({\rho Y_k \over \mbar_k} \right)^{\nu_{ki}''}
+                  \right) \\
+\end{align*}
+
+\section{Coso: Combustion Solver}
+
+Coso is a program that solves the full time dependent equations with finite difference methods.
+
+Coso can be used to solve one dimensional reacting flow.
+
+\noindent Current features, limitations are
+\begin{itemize}
+ \item no transport terms yet, i.e. no real viscous, or diffusion terms
+ \item simple artificial viscosity
+ \item Dependent variables can be $\rho, u, p, Y_i$ or $\rho, u, T, Y_i$.
+ \item Species equations are integrated with backward Euler.
+ \item Chemistry comes Chemkin or an H-F reaction from from Zucrow and Hoffman
+ \item The class Reactions encapsulates the chemistry -- number of species, reaction mechanism etc.
+       This allows the reactions to be changed with no changes to Coso.
+\end{itemize}
+
+
+\subsection{Flow in a variable area channel}
+
+
+The equations of motion for flow in a channel with cross section $A(x)$ are
+\begin{align}
+{\partial \over \partial t} \begin{bmatrix} \rho \\ \rho u \\ \rho E \\ \rho Y \end{bmatrix}
++{1\over A} {\partial \over \partial x} 
+\begin{bmatrix} \rho u A \\ (\rho u^2 + p)A  \\ (\rho E u + p u)A  \\ \rho u Y A \end{bmatrix}
+= \begin{bmatrix} 0 \\ \mu \Delta u + ...  \\ -q_x  \\ \sigma + ... \end{bmatrix}
+\end{align}
+or 
+\begin{align}
+{\partial \over \partial t} \begin{bmatrix} \rho \\ \rho u \\ \rho E \\ \rho Y \end{bmatrix}
++{\partial \over \partial x} \begin{bmatrix} \rho u \\ \rho u^2 + p  \\ \rho E u + p u  \\ \rho u Y \end{bmatrix}
++{u\over A(x)} {d A(x) \over d x} \begin{bmatrix} \rho \\ \rho u  + p  \\ \rho E + p  \\ \rho  Y \end{bmatrix}
+= \begin{bmatrix} 0 \\ \mu \Delta u + ...  \\ -q_x  \\ \sigma + ... \end{bmatrix}
+\end{align}
+or 
+\begin{align}
+   \rho_t + (\rho u)_x  + \rho u {A' \over A}&=0 \qquad\mbox{or}\qquad \rho_t+(\rho u A)_x/A =0\\
+   u_t  + u u_x +{1\over\rho} p_x &= {1\over\rho}\grad\cdot\tauv \\
+   e_t  + u e_x + {p\over\rho} ( u_x + u {A' \over A})
+           &= -{1\over\rho} \grad\cdot\qv  + {1\over\rho}\Phi    \\
+   T_t  + u T_x + (\gamma-1) T ( u_x + u {A' \over A})
+           &= ...    \\
+   p_t  + u p_x + \gamma p ( u_x + u {A' \over A})
+           &= ...    \\
+   Y_t + u Y_x &= {\sigma_i \over \rho} +{1\over\rho}\grad\cdot(\rho D_i\grad Y_i) 
+\end{align}
+
+
+\section{Numerical Experiments}
+
+\subsection{Flow in a De Laval Nozzle with an H-F reaction}
+
+Here we attempt to reproduce the results from the Zucrow and Hoffman.
+
+We have two solution techniques. The first technique follows the method 
+proposed in the book, using significant analytical simplifications for steady
+flow. The results for frozen and equilibrium flow in a nozzle are shown in
+figures \ref{fig:ZH1} to \ref{fig:ZH3}. 
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/ZHfrozenTu.ps}
+  \caption{Frozen flow ala Zucrow and Hoffman, temperature and velocity}  \label{fig:ZH1}
+  \end{center}
+\end{figure}
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/ZHequilibriumTu.ps}
+  \caption{Equilibrium flow ala Zucrow and Hoffman, temperature and velocity}  \label{fig:ZH2}
+  \end{center}
+\end{figure}
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/ZHequilibriumSpecies.ps}
+  \caption{Equilibrium flow ala Zucrow and Hoffman, species}  \label{fig:ZH3}
+  \end{center}
+\end{figure}
+
+
+The second solution technique is el brute force, solving the full time dependent equations 
+(program Coso, COmbustion SOlver).
+The results for frozen, equilibrium and non-equilibrium flow are shown in 
+figures \ref{fig:frozen1} - \ref{fig:nonEquilibrium4}.
+In these figures we solve the pressure equation and get the temperature from the equation of state.
+
+In figure \ref{fig:nonEquilibrium4} the eigenvalues of the scaled species jacobian matrix,
+\[
+     {1\over \rho} {\partial \sigma_i \over \partial Y_j } {L_0\over U_0} 
+\]
+are shown. The eigenvalues are all real and less than or equal to zero. These values are
+indicative of the stiffness of the chemistry.
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/frozenTu.ps}
+  \caption{Frozen flow from Coso, temperature and velocity}  \label{fig:frozen1}
+  \end{center}
+\end{figure}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/frozenMEH.ps}
+  \caption{Frozen flow from Coso}  \label{fig:frozen2}
+  \end{center}
+\end{figure}
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/equilibriumTu.ps}
+  \caption{Equilibrium flow from Coso, temperature and velocity}  \label{fig:equilibrium1}
+  \end{center}
+\end{figure}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/equilibriumSpecies.ps}
+  \caption{Equilibrium flow from Coso, species}  \label{fig:equilibrium2}
+  \end{center}
+\end{figure}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/equilibriumMEH.ps}
+  \caption{Equilibrium flow from Coso}  \label{fig:equilibrium3}
+  \end{center}
+\end{figure}
+
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/nonEquilibriumTu.ps}
+  \caption{Non-equilibrium flow from Coso, temperature and velocity}  \label{fig:nonEquilibrium1}
+  \end{center}
+\end{figure}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/nonEquilibriumSpecies.ps}
+  \caption{Non-equilibrium flow from Coso, species}  \label{fig:nonEquilibrium2}
+  \end{center}
+\end{figure}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/nonEquilibriumMEH.ps}
+  \caption{Non-equilibrium flow from Coso}  \label{fig:nonEquilibrium3}
+  \end{center}
+\end{figure}
+\begin{figure}[htb]
+  \begin{center}
+   \epsfig{file=\obFigures/nonEquilibriumEigenvalues.ps}
+  \caption{Non-equilibrium flow from Coso, scaled eigenvalues of the Species Jacobian}  \label{fig:nonEquilibrium4}
+  \end{center}
+\end{figure}
+
+\end{document}
+

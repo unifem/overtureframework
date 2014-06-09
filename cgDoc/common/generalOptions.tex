@@ -1,0 +1,26 @@
+\subsubsection{General Options Dialog (general options...)}\label{sec:generalOptions}\index{general options}
+
+Here is a description of the {\em General Options} dialog.
+
+\noindent The push buttons are
+\begin{description}
+  \item[\qquad pressure solver options] : change the linear solver parameters for the pressure solver.
+  \item[\qquad implicit time step solver options] : change the linear solver parameters for implicit time stepping.
+\end{description}
+
+\noindent The toggle buttons are
+\begin{description}
+  \item[\qquad axisymmetric flow] : turn on/off axisymmetric flow. 
+  \item[\qquad iterative implicit interpolation] : if true, solve the implicit interpolation equations by iteration
+           rather than factoring the sparse matrix. This option should almost always be used in 3D since it 
+            can save memory and the time it takes to factor the matrix. 
+  \item[\qquad check for floating point errors] : if true, periodically check for floating point errors such as Nan's.
+\end{description}
+
+\noindent The text commands are
+\begin{description}
+  \item[\qquad maximum iterations for implicit interpolation] : specify the maximum number of iterations for implicit interpolation
+             (usually a value of 10 gives sufficient accuracy). 
+  \item[\qquad reduce interpolation width] : reduce the interpolation width from the value found in the grid. 
+\end{description}
+

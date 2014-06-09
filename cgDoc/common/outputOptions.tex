@@ -1,0 +1,30 @@
+\subsubsection{Output Options Dialog (output options...)}\label{sec:outputOptions}\index{output options}
+
+Here is a description of the {\em Output Options} dialog.
+
+\noindent The push buttons are
+\begin{description}
+  \item[\qquad output periodically to a file] : output solution info to a text file. 
+      % , see the     {\em file output dialog} description~\ref{sec:fileOutputOptions}.
+%     normally the results are saved to the show file corresponding to
+%     the {\em times to plot} variable. Increase this integer to save results less often.
+  \item[\qquad show file options...] : specify show file options (see~\ref{sec:showfileOptions}).
+\end{description}
+
+\noindent The toggle buttons are 
+\begin{description}
+  \item[\qquad save a restart file ] : (under development)
+  \item[\qquad allow user defined output] : allow user defined output (see~\ref{sec:userDefinedOutput}).
+\end{description}
+
+\noindent The text commands are 
+\begin{description}
+  \item[\qquad check file cutoffs] :  used internally for regression tests.
+  \item[\qquad debug] : This is a bit flag that turns on various messages. The more bits turned
+        on, the more detailed the messages that appear. Thus a value of debug=3 (1+2) would have the first
+        2 bits turned on and would display few messages. A value of debug=63 (1+2+4+8+16+32) would have 6
+        bits turned on and would results in a lot of information.
+  \item[\qquad info flag] : 
+  \item[\qquad output format] : specify the output format for printing solution values (e.g. $\%9.2e$). 
+\end{description}
+

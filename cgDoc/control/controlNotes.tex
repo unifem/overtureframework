@@ -1,0 +1,222 @@
+%
+%  Control Theory and Applications - Notes 
+%
+\documentclass[11pt]{article} 
+\usepackage[bookmarks=true]{hyperref}  
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+\usepackage{calc}
+
+% set the page width and height for the paper 
+\setlength{\textwidth}{7in}  
+% \setlength{\textwidth}{6.5in}  
+% \setlength{\textwidth}{6.25in}  
+\setlength{\textheight}{9.5in} 
+% here we automatically compute the offsets in order to centre the page
+\setlength{\oddsidemargin}{(\paperwidth-\textwidth)/2 - 1.in}
+% \setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1in + .5in }
+\setlength{\topmargin}{(\paperheight-\textheight -\headheight-\headsep-\footskip)/2 - 1.25in  }
+
+
+\input homeHenshaw
+
+
+% --------------------------------------------
+\input{pstricks}\input{pst-node}
+\input{colours}
+
+% or use the epsfig package if you prefer to use the old commands
+\usepackage{epsfig}
+\usepackage{calc}
+\input clipFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+
+\input wdhDefinitions.tex
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+% \newcommand{\grad}{\nabla}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+\newcommand{\kappav}{\boldsymbol{\kappa}}
+\newcommand{\lambdav}{\boldsymbol{\lambda}}
+\newcommand{\xiv}{\boldsymbol{\xi}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+
+
+\newcommand{\Pc}{{\mathcal P}}
+\newcommand{\Hc}{{\mathcal H}}
+\newcommand{\Ec}{{\mathcal E}}
+
+\newcommand{\mw}{W}  % molecular weight
+\newcommand{\mwBar}{\overline{W}}  % molecular weight of the mixture
+\newcommand{\Dc}{\mathcal{D}}
+
+\newcommand{\rate}{{\rm rate}}
+\newcommand{\tableFont}{\footnotesize}% font size for tables
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+% tell TeX that is ok to have more floats/tables at the top, bottom and total
+\setcounter{bottomnumber}{5} % default 2
+\setcounter{topnumber}{5}    % default 1 
+\setcounter{totalnumber}{10}  % default 3
+\renewcommand{\textfraction}{.001}  % default .2
+
+\begin{document}
+ 
+\title{Notes on Control}
+
+\author{
+Bill Henshaw \\
+\  \\
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov }
+ 
+\maketitle
+
+\tableofcontents
+
+% ------------------------------------------------------------------------
+\clearpage 
+\section{The control problem}
+
+We wish to solve the following system of ODEs
+\begin{align}
+    \dot{\xv} &= A \xv + B \uv ,   \label{eq:stateEquation} \\
+  \xv(0) &= \xv_0, 
+\end{align}
+where $\xv(t)$ is the state vector and $\uv(t)$ is the control vector and $A$ and $B$ are matrices with dimensions
+\begin{align}
+     \xv \in \Real^n, \quad A \in \Real^{n\times n}, \quad B \in \Real^{n\times m}, \quad \uv \in \Real^m .
+\end{align}
+
+The object is to determine a control $\uv$ to drive $\xv$ to some state $\xv_f$ by some time $t_f$ (the problem is usually arranged
+so the target state $\xv_f$ is zero.)
+
+The problem is said to be controllable if for any $\xv_f$ and time $t_f$ there is a control $\uv$ so that
+$\xv(t_f)=\xv_f$. For constant coefficient $A$ and $B$ a necessary condition for being controllable is that 
+the matrix $C$ given by 
+\begin{align}
+   C = \Big[ B ~ A B ~ A^2 B ~ \ldots A^{n-1} B] ,
+\end{align}
+has rank equal to $n$.
+
+% --------------------------------------------------------------------------------------------------
+\section{LQR: Linear Quadratic Regulator}
+
+
+In the LQR control problem we choose the control $\uv$ to minimize the functional
+\begin{align}
+    J(\xv,\uv) = \xv(t_f)^t P_f \xv(t_f) + \int_0^{t_f} \xv^t Q \xv + \uv^t R \uv ~dt , \label{eq:LQRfunctional}
+\end{align}
+subject to the constraint equation~\eqref{eq:stateEquation}. Here $Q\in \Real^{n\times n}$, $R\in \Real^{m\times m}$
+and $P_f \in \Real^{n\times n}$ are all symmetric positive definite matrices. 
+To this end we introduction the Lagrange multipler $\lambdav(t)\in\Real^n$
+and the Lagrangian
+\begin{align}
+    L(\xv,\uv,\lambdav) =  \half\xv(t_f)^t P_f \xv(t_f) + \int_0^{t_f} \half\xv^t Q \xv + \half\uv^t R \uv 
+           + \lambdav^t\Big( -\dot{\xv} + A \xv + B \uv \Big) ~dt . \label{eq:Lagrangian}
+\end{align}
+We first integrate by parts in time on the term $\lambdav^t\dot{\xv}$ to obtain
+\begin{align}
+    L(\xv,\uv,\lambdav) =  \half\xv(t_f)^t P_f \xv(t_f) - \lambdav^t\xv\Big\vert_0^{t_f}  
+     +  \int_0^{t_f} \half\xv^t Q \xv + \half\uv^t R \uv 
+           + \dot{\lambdav}^t\xv + \lambdav^t\Big( A \xv + B \uv \Big) ~dt . \label{eq:LagrangianII}
+\end{align}
+At a minimum of $J$ the variations of $L$ will be zero.
+This gives the Euler equations
+\begin{alignat}{3}
+   \uv^t R + \lambdav^t B &= 0 ,                    \qquad&& \text{from $\partial L/\partial \uv$}, \\
+   \xv^tQ + \dot{\lambdav}^t  + \lambdav^t A &= 0 , \qquad&& \text{from $\partial L/\partial \xv$},  \\
+   -\dot{\xv} + A \xv + B \uv &=0 ,                 \qquad&& \text{from $\partial L/\partial \lambdav$},  \\
+   \xv^t(t_f) P(t_f) - \lambdav^t(t_f) &= 0,          \qquad&& \text{from $\partial L/\partial \lambdav(t_f)$}. 
+\end{alignat}
+Thus 
+\begin{align}
+   \uv &= - R^{-1} B^t \lambdav , \\
+  \dot{\lambdav} &= -\lambdav A^t  - Q \xv, 
+\end{align}
+Note that $\lambdav$ solves the adjoint problem to $\xv$ but with forcing $-Q\xv$. 
+
+This leads to the $2n\times 2n$ system of ODEs 
+\begin{align}
+ \begin{bmatrix} \dot{\xv} \\ \dot{\lambdav} \end{bmatrix}
+   &= \begin{bmatrix} A  & -B R^{-1} B^T \\
+                      - Q & -A^t \end{bmatrix}
+      \begin{bmatrix} \xv \\ \lambdav \end{bmatrix}  ~\equiv S \begin{bmatrix} \xv \\ \lambdav \end{bmatrix} , \label{eq:Smatrix} \\
+  \xv(0)&=\xv_0, \quad \lambda(t_f) = P_f \xv_f . \label{eq:lambdaEndCondition}
+\end{align}
+Note that this is two point boundary value problem since $\lambdav$ has
+a end condition given at $t_f$.
+From the end condition~\eqref{eq:lambdaEndCondition} for $\lambdav$ we are led to introduce the symmetric
+positive definite matrix $P(t)\in \Real^{n\times n}$ which is defined by the condition $\lambdav = P \xv$. Thus since
+\begin{align}
+   \dot{\lambdav} &= \dot{P}\xv + P \dot{\xv}
+\end{align}
+it follows that $P$ satisfies the matrix Ricatti equation. a system of $n^2$ unknowns, (actually $n^2/2$ since $P$ is symmetric), 
+\begin{align}
+  & \dot{P} + P A + A^t P + Q - P B R^{-1} B^t P = 0 ,  \\ \label{eq:RE}
+  &  P(t_f) = P_f. 
+\end{align}
+If the system is controllable, $P$ will be the unique positive definite solution to~\eqref{eq:RE} -- there are
+many other non-positive definite solutions to these equations. 
+We also can define the {\em gain matrix} $K\in \Real^{m\times n}$ from 
+\begin{align}
+   u & = - K \xv, \\
+  K &= R^{-1} B^t P . \qquad \text{(gain matrix)} 
+\end{align}
+
+In summary, we can solve the LQR problem by first solving the matrix Ricatti equation~\eqref{eq:RE} backwards in time.
+Given $P(t)$ we then can solve
+\begin{align}
+    \dot{\xv} &= A \xv  - BR^{-1} B^t P\xv ,  \label{eq:stateEquationWithControlDefined} \\
+  \xv(0) &= \xv_0, 
+\end{align}
+forward in time for $\xv(t)$. 
+
+{\bf Note 1:} It is apparently true that usually the solution for $P(t)$ to the Ricatti equation~\eqref{eq:RE}
+will quickly approach the steady solution $\bar{P}$ (i.e. $P(t)\approx \bar{P}$ for $0\le t < t_f-\tau$ for some $\tau$ not so big), 
+which is a solution to the algebraic Ricatti equation (ARE),
+\begin{align}
+   P A + A^t P + Q - P B R^{-1} B^t P = 0 .  \label{eq:ARE}
+\end{align}
+Often $\bar{P}$ can be used instead of $P(t)$ in~\eqref{eq:stateEquationWithControlDefined} which simplifies
+the implementation. {\bf Note!}  $\bar{P}$ is independent of both $\xv_0$ and $t_f$. 
+
+
+{\bf Note 2:} The ARE can be solved directly by performing a Schur decomposition on the matrix $S$ defined
+in~\eqref{eq:Smatrix}. See paper by A.J. Laub (see citation in matlab docs for function CARE???). Thus the eigenvalues
+of $S$ effectively need to be found when computing $\bar{P}$. 
+
+% -------------------------------------------------------------------------------------------------
+\vfill\eject
+\bibliography{\homeHenshaw/papers/henshaw}
+\bibliographystyle{siam}
+
+
+\end{document}

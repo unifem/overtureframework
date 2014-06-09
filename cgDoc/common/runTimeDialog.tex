@@ -1,0 +1,62 @@
+\subsection{\Solver\ Run time dialog}\label{sec:runTimeDialog}\index{run time dialog}
+
+After the equations have been specified, parameters set and initial conditions chosen, 
+the run time dialog window will appear, see figure(\ref{fig:runTimeScreen}).
+Note that cgins is in the process of converting from popup menus (right mouse button) to
+dialog windows so sometimes you will need to look for the command in the popup menu
+if it is not in the dialog. 
+
+Normally one would choose {\bf continue} to integrate to the next output time or {\bf movie mode}
+to integrate until the final time.
+
+\noindent The {\em plot component} option menu allows one to choose the solution
+component to plot.
+
+
+\noindent The push button commands are 
+\begin{description}
+  \item[\qquad break] : If running in movie mode this command will cause the program to halt at the next
+                   time to plot.
+  \item[\qquad continue] : compute the solution to the next time to plot.
+  \item[\qquad movie mode] : compute the solution to the final time without waiting. The solution will be
+       plotted at each output time interval. 
+  \item[\qquad movie and save] : movie mode plus save each frame as a ppm file.
+  \item[\qquad contour] : enter the contour plotting function in {\tt PlotStuff}. Here you will more options
+     to change the plot.  
+  \item[\qquad streamlines] : enter the streamlines plotting function from {\tt PlotStuff}.
+  \item[\qquad grid] : enter the grid plotting function from {\tt PlotStuff}. If you don't first erase
+      the contour plot then both the contours and the grid will be shown.
+  \item[\qquad plot parallel dist.] plot the grid showing the parallel distribution. 
+  \item[\qquad erase] : erase the screen.
+  \item[\qquad change the grid] : add, remove or change existing grids. (poor man's adaptive mesh refinement).
+  \item[\qquad adaptive grids...] : open up a new dialog to show parameters adaptive grids.
+    \begin{description}
+       \item[\qquad use adaptive grids] : turn adaptive grids on or off.
+       \item[\qquad error threshold] : specify the error threshold.
+    \end{description}
+  \item[\qquad show file options...] : choose show file options; e.g. open or close a show file, see section~\ref{sec:showfileOptions}.
+  \item[\qquad file output...] : specify options for saving solutions to an ascii file (for plotting with matlab for example).
+      There are a number of options available as to what data should be saved. See also the userDefinedOutput routine
+      where you can customize output.
+    \begin{description}
+       \item[\qquad output periodically to a file] : Open a file for output; specify how often to save data in the
+        file (every step, every second step...); specify what data to save in the file (only grid 1, only
+         values on some boundaries etc).  Each time this menu item is selected a new file is opened, allowing
+         one, for example, to save certain information every step and other information every tenth step.
+      \item[\qquad close an output file] : Close a file opened by the command `output periodically to a file'.
+     \item[\qquad save a restart file] : save the current solution as a restart file; usually I just use the
+       show file for restarts.
+  \end{description}
+  \item[\qquad pde parameters...] change PDE parameters at run time, see section~\ref{sec:pdeOptions}.
+  \item[\qquad general options...] open the general options dialog (see section~\ref{sec:generalOptions}).
+\end{description}
+
+\noindent The text commands are 
+\begin{description}
+  \item[\qquad final time] : change the value for the final time to integrate to.
+  \item[\qquad times to plot] : change the time interval between plotting (and output).
+  \item[\qquad debug] : enter an integer to turn on debugging info. This is a bit flag with debug=1 turning on just
+     a bit of info, debug=3 (1+2) showing more, debug=7 (1+2+4) even more etc.
+\end{description}
+
+\noindent The {\bf finish} button means do not compute any further, exit and save the show files etc.

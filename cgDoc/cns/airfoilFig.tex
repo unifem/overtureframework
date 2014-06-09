@@ -1,0 +1,100 @@
+{
+\newcommand{\figWidth}{6cm}
+\newcommand{\trimfig}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.1}{.1}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (13.,10);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/airfoilInviscidMach0p8-p}{\figWidth}};
+  \draw ( 0.0,5.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/airfoilInviscidMach0p8-SL}{\figWidth}};
+%
+  \draw ( 7.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/airfoilViscousMach0p8-p}{\figWidth}};
+  \draw ( 7.0,5.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/airfoilViscousMach0p8-SL}{\figWidth}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (13,10.);
+\end{tikzpicture}
+\end{center}
+\caption{Compressible flow past an airfoil, showing the pressure and stream lines. The inflow
+Mach number is $0.8$. 
+Left: inviscid flow. Right: viscous flow. }
+\label{fig:airfoilCompressible}
+\end{figure}
+}
+
+{
+\newcommand{\figWidth}{6cm}
+\newcommand{\trimfig}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.1}{.1}}
+\begin{figure}[hbt]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (13.,5);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/airfoilInviscidMach0p8WithRefinement-p}{\figWidth}};
+  \draw ( 7.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{fig/airfoilInviscidMach0p8WithRefinement-grid}{\figWidth}};
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%\draw[step=1cm,gray] (0,0) grid (13,5);
+\end{tikzpicture}
+\end{center}
+\caption{Compressible inviscid flow past an airfoil, showing the pressure and the grid with refinements. 
+Mach number is $0.8$. }
+\label{fig:airfoilCompressibleAMR}
+\end{figure}
+}
+
+%- % -------------------------------------------------------------------
+%- \begin{figure*}[hbt]
+%- % \newcommand{\figWidth}{.45\linewidth}
+%- % \newcommand{\clipfig}[1]{\psclip{\psframe[linecolor=white](0.,1.)(5.4,4.85)}\epsfig{#1}\endpsclip}
+%- % \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+%- % 
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\clipfig}[2]{\clipFig{#1}{#2}{0}{1}{0}{1}}
+%- % 
+%- \begin{center}
+%- \begin{pspicture}(0,0)(16.5,16)
+%- \rput( 3.9,12.0){\clipfig{fig/airfoilInviscidMach0p8-p.ps}{\figWidth}}
+%- \rput(12.1,12.0){\clipfig{fig/airfoilViscousMach0p8-p.ps}{\figWidth}}
+%- % 
+%- \rput( 3.9,3.6){\clipfig{fig/airfoilInviscidMach0p8-SL.ps}{\figWidth}}
+%- \rput(12.1,3.6){\clipfig{fig/airfoilViscousMach0p8-SL.ps}{\figWidth}}
+%- % turn on the grid for placement
+%- % \rput[l](.25,12.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{Solid $T$}}
+%- % \rput[l](.25, 5.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{ $p$}}
+%- % \rput[l](8.5,12.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{ $T$}}
+%- % \rput[l](8.5, 5.5){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{ Stream-lines}}
+%- % \psgrid[subgriddiv=2]
+%- % 
+%- %
+%- \end{pspicture}
+%- \end{center}
+%- \caption{Compressible flow past an airfoil, showing the pressure and stream lines. The inflow
+%- Mach number is $0.8$. 
+%- Left: inviscid flow. Right: viscous flow. }
+%- \label{fig:airfoilCompressible}
+%- \end{figure*}
+%- 
+%- 
+%- 
+%- % -------------------------------------------------------------------
+%- \begin{figure*}[hbt]
+%- \newcommand{\figWidth}{8.cm}
+%- \newcommand{\clipfig}[2]{\clipFig{#1}{#2}{0}{1}{0}{1}}
+%- % 
+%- \begin{center}
+%- \begin{pspicture}(0,0)(16.5,8)
+%- \rput( 3.9,3.6){\clipfig{fig/airfoilInviscidMach0p8WithRefinement-p.ps}{\figWidth}}
+%- \rput(12.1,3.6){\clipfig{fig/airfoilInviscidMach0p8WithRefinement-grid.ps}{\figWidth}}
+%- % \psgrid[subgriddiv=2]
+%- % 
+%- %
+%- \end{pspicture}
+%- \end{center}
+%- \caption{Compressible inviscid flow past an airfoil, showing the pressure and the grid with refinements. 
+%- Mach number is $0.8$. }
+%- \label{fig:airfoilCompressibleAMR}
+%- \end{figure*}

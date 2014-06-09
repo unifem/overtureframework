@@ -1,0 +1,84 @@
+\subsubsection{Boundary conditions dialog (boundary conditions...)}\label{sec:boundaryConditionsOptions}\index{boundary conditions}
+
+The boundary conditions dialog can be used to construct commands that define the boundary conditions. 
+The form of the boundary condition commands are given in section~\ref{sec:bcMenu}. 
+It is often easiest to look at sample boundary conditions in existing command files and make changes to these.
+
+As one chooses options in this dialog, a BC command is constructed in the {\bf bc command} text command. 
+The command is not actually applied until one chooses the {\bf apply bc command} push button.
+
+
+\noindent The {\em boundary} options are
+\begin{description}
+  \item[\qquad all] : apply the BC to all grids. 
+  \item[\qquad "grid name"] : apply the BC to a particular grid (the grid names will appear here).
+\end{description}
+
+
+\noindent The {\em bc number} options allow one to apply a BC to all faces that have a particular boundary condition (assigned
+when the grid was made).
+\begin{description}
+  \item[\qquad "bc=value"] : assign the BC to all faces with this BC number (the list of BC values used on the grid are listed here).
+\end{description}
+
+\noindent The {\em set face} options allow one to apply the BC to a particular face (when assigning BCs to a given grid).
+\begin{description}
+  \item[\qquad all] : set all faces of the grid.
+  \item[\qquad left] :  set the face (side,axis)=(0,0). 
+  \item[\qquad right] : set the face (side,axis)=(1,0). 
+  \item[\qquad bottom] : set the face (side,axis)=(0,1). 
+  \item[\qquad top] : set the face (side,axis)=(1,1). 
+  \item[\qquad forward] : set the face (side,axis)=(0,2). 
+  \item[\qquad back] : set the face (side,axis)=(1,2). 
+\end{description}
+
+\noindent The {\em bc} options list all the available boundary conditions. For example, these might include 
+\begin{description}
+  \item[\qquad noSlipWall] : 
+  \item[\qquad inflowWithVelocityGiven] : 
+  \item[\qquad output] : 
+\end{description}
+
+\noindent The {\em option} options are available qualifiers that go with a boundary condition. These include
+\begin{description}
+  \item[\qquad no option] : 
+  \item[\qquad uniform] : define uniform conditions
+  \item[\qquad parabolic] : define a parabolic inflow, see section~\ref{sec:parabolic}.
+  \item[\qquad blasius] :  define a blasius profile
+  \item[\qquad pressure] : define a mixed BC on the pressure
+  \item[\qquad jet] : define a jet profile, see section~\ref{sec:jet}
+  \item[\qquad user defined] : use a user defined boundary value, see section~\ref{sec:userDefinedBoundaryValues}.
+\end{description}
+
+\noindent The {\em } option2 options are available second qualifiers that go with a boundary condition. These include
+\begin{description}
+  \item[\qquad no option2] : 
+  \item[\qquad oscillate] : define a time varying BC, see section~\ref{sec:oscillate}.
+  \item[\qquad ramp] : define a BC that turns on slowing, see section~\ref{sec:rampedInflow}.
+\end{description}
+
+
+\noindent The {\em extrap option} options are
+\begin{description}
+  \item[\qquad polynomial extrapolation] : where extrapolation is applied used normal polynomial based extrapolation.
+  \item[\qquad limited extrapolation] : use a limited extrapolation (for certain boundary conditions).
+\end{description}
+
+\noindent The push button commands are
+\begin{description}
+  \item[\qquad apply bc command] : apply the BC command that appears in the {\bf bc command} text command input box.
+  \item[\qquad help] : print help.
+  \item[\qquad plot grid] : plot the grid
+\end{description}
+
+\noindent The text commands are
+\begin{description}
+  \item[\qquad bc command] : the BC command is constructed here.
+  \item[\qquad default state] : set the default values for each component.
+  \item[\qquad order of extrap for interp neighours] : set the order of extrapolation when filling in unused points next
+         to interpolation neighbours (these points are needed in certain situations such as when a fourth-order dissipation is
+           added to a second-order scheme).
+  \item[\qquad order of extrap for 2nd ghost line] : set the order of extrapolation for assigning the 2nd ghost line (these
+        values are used in certain situations such as when a fourth-order dissipation is
+           added to a second-order scheme).
+\end{description}

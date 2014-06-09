@@ -1,0 +1,466 @@
+%
+%  Pseudo-code for CG routines
+%
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}  % this changes the page location !
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+% \voffset=-.25truein
+% \hoffset=-1.25truein
+% \setlength{\textwidth}{7in}      % page width
+% \setlength{\textheight}{9.5in}    % page height
+
+\usepackage{calc}
+\usepackage[lmargin=.75in,rmargin=.75in,tmargin=.75in,bmargin=.75in]{geometry}
+
+\input homeHenshaw
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+\newcommand{\blue}{\color{blue}}
+\newcommand{\green}{\color{green}}
+\newcommand{\red}{\color{red}}
+\newcommand{\black}{\color{black}}
+
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+
+% --------------------------------------------
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+% or use the epsfig package if you prefer to use the old commands
+% \usepackage{epsfig}
+% \usepackage{calc}
+% \input clipFig.tex
+
+% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\input wdhDefinitions.tex
+
+\newcommand{\tableFont}{\footnotesize}% font size for tables
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{fancybox}    
+
+% tell TeX that is ok to have more floats/tables at the top, bottom and total
+\setcounter{bottomnumber}{5} % default 2
+\setcounter{topnumber}{5}    % default 1 
+\setcounter{totalnumber}{10}  % default 3
+\renewcommand{\textfraction}{.001}  % default .2
+
+\begin{document}
+ 
+\title{Pseudo-code for CG routines and algorithms}
+
+\author{
+Bill Henshaw \\
+\  \\
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov }
+ 
+\maketitle
+
+\tableofcontents
+
+% 
+\newcommand{\bc}[1]{\mbox{\bfss#1}}   % bold name
+\newcommand{\cc}[1]{\mbox{$//$  #1}}  % comment
+%
+\newcommand{\ia}{\quad}        % indent level 1
+\newcommand{\ib}{\ia\quad}     % indent level 2
+\newcommand{\ic}{\ib\quad}     % indent level 3
+\newcommand{\id}{\ic\quad}     % indent level 4
+\newcommand{\ie}{\id\quad}     % indent level 5
+
+\newcommand{\FUNC}[1]{{\blue#1}}
+\newcommand{\IF}{{\blue if}}
+\newcommand{\ELSEIF}{{\blue else if}}
+\newcommand{\FOR}{{\blue for}}
+\newcommand{\COM}[1]{{\red\em #1}}
+
+% ------------------------------------------------------------------------
+\clearpage 
+\section{Time-stepping pseudo code}
+
+% ---------------------------------------------------------------------------------------------------------------------
+\subsection{DomainSolver::advanceAdamsPredictorCorrector}\label{sec:DomainSolver::advanceAdamsPredictorCorrector}
+
+Here is an overview of the {\tt DomainSolver::advanceAdamsPredictorCorrector} function (cg/common/src/advancePC.bC)
+This is an explicit Adams predictor-corrector time stepper.
+\begin{figure}[hbt]%
+\begin{flushleft}\tt\small
+DomainSolver::\FUNC{advanceAdamsPredictorCorrector}( ..., numberOfSubSteps, ..) \\
+\{  \\
+\ia initialize \\
+\ia \FOR( int mst=1; mst$\le$numberOfSubSteps; mst++ ) \COM{ take time steps} \\
+\ib   \IF {\em adapt grids} \\
+\ic   adaptGrids( ... ) \\
+\ib   \IF {\em move grids} \\
+\ic     moveGrids( ... );  \COM{(Sec.~\ref{sec:DomainSolver::moveGrids})}\\
+\ic     exposedPoints.interpolate(...) \\
+\ib \\
+\ib   \COM{ predictor step:} \\
+\ib   getUt( ... ) \\
+\ib   interpolateAndApplyBoundaryConditions( ... ); \\
+\ib   solveForTimeIndependentVariables( ... ) \\
+\ib   correctMovingGrids( ... ) \\
+\ib \\ 
+\ib   \FOR( int correction=0; correction$<$numberOfCorrections; correction++ ) \\
+\ic     \COM{ corrector step:} \\
+\ic     getUt( ... ) \\
+\ic     solveForTimeIndependentVariables( ... ) \\
+\ic     interpolateAndApplyBoundaryConditions( ... ); \\
+\ic     correctMovingGrids( ... ) \\
+\}
+\end{flushleft}
+\caption{Pseudo-code outline of the advanceAdamsPredictorCorrector function.}
+\label{alg:advancePC}
+\end{figure}
+
+% ------------------------------------------------------------------------
+\clearpage 
+\section{Moving grid  pseudo code}
+
+% ---------------------------------------------------------------------------------------------------------------------
+\subsection{DomainSolver::moveGrids}\label{sec:DomainSolver::moveGrids}
+
+Pseudo-code for {\tt DomainSolver::moveGrids} (cg/common/src/move.C)
+\begin{flushleft}\tt\small
+DomainSolver::\FUNC{moveGrids}( t1,t2,t3,dt0, cgf1,cgf2,cgf3 ) \\
+\{  \\
+\ia setInterfacesAtPastTimes( t1,t2,t3,dt0,cgf1,cgf2,cgf3 ); {\em initialize interfaces} \\
+\ia parameters.dbase.get<MovingGrids>("movingGrids").moveGrids(t1,t2,t3,dt0,cgf1,cgf2,cgf3 ); \\
+\ia gridGenerator->updateOverlap( cg, mapInfo ); \COM{ regenerate the grid with Ogen} \\
+\}
+\end{flushleft}
+
+% ---------------------------------------------------------------------------------------------------------------------
+\subsection{MovingGrids::moveGrids}\label{sec:MovingGrids::moveGrids}
+
+Pseudo-code for {\tt MovingGrids::moveGrids} (cg/common/moving/src/MovingGrids.C)
+\begin{flushleft}\tt
+MovingGrids::\FUNC{moveGrids}( t1,t2,t3,dt0, cgf1,cgf2,cgf3 ) \\
+\{  \\
+\ia  \COM{First move the bodies (but not the grids):}  \\
+\ia  detectCollisions(cgf1); \\
+\ia  rigidBodyMotion( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );\\
+\ia  moveDeformingBodies( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );\\
+\ia  userDefinedMotion( t1,t2,t3,dt0,cgf1,cgf2,cgf3 );\\
+\ia  \COM{Apply any matrix motions: rotate, shift, scale} \\
+\ia \\
+\ia  getGridVelocity( cgf2,t2 ); \\
+\ia  \COM{Now move the grids:}  \\
+\ia  \FOR( grid=0; grid<numberOfBaseGrids; grid++ )  \\
+\ib     MatrixTransform \& transform = *cgf3.transform[grid];  \\
+\ib     \IF( moveOption(grid)==matrixMotion ) \\
+\ic       \COM{apply specified rotation and/or shift}  \\
+\ic       transform.rotate(...)  \\
+\ib     \ELSEIF( moveOption(grid)==rigidBody ) \\
+\ic        \COM{rotate and shift the rigid body}        \\
+\ic       transform.rotate(...)  \\
+\ia  \FOR( int b=0; b<numberOfDeformingBodies; b++ ) \\
+\ib     deformingBodyList[b]->regenerateComponentGrids(  newT, cgf3.cg );   \\
+\ia   \\
+\ia  getGridVelocity( cgf3,t3 );  \\
+\}
+\end{flushleft}
+
+% ---------------------------------------------------------------------------------------------------------------------
+\subsection{MovingGrids::moveDeformingBodies}\label{sec:MovingGrids::moveDeformingBodies}
+
+Pseudo-code for {\tt MovingGrids::moveDeformingBodies} (cg/common/moving/src/MovingGrids.C)
+\begin{flushleft}\tt
+MovingGrids::\FUNC{moveDeformingBodies}( t1,t2,t3,dt0, cgf1,cgf2,cgf3 ) \\
+\{  \\
+\ia  \FOR( int b=0; b<numberOfDeformingBodies; b++ ) \\
+\ib    deformingBodyList[b]->integrate( t1,t2,t3,cgf1,cgf2,cgf3, stress); \\
+\}
+\end{flushleft}
+
+% ===========================================================================================
+\clearpage 
+\section{DeformingBodyMotion pseudo code}
+
+The {\tt DeformingBodyMotion} class handles deforming bodies. 
+
+
+
+% ---------------------------------------------------------------------------------------------------------------------
+\subsection{DeformingBodyMotion::integrate}\label{sec:DeformingBodyMotion::integrate}
+
+Pseudo-code for {\tt DeformingBodyMotion::integrate} (cg/common/moving/src/DeformingBodyMotion.C)
+This function is called by {\tt MovingGrids::movingGrids} to move the deforming body (but not the
+grid associated with the deforming body). 
+\begin{flushleft}\tt
+MovingGrids::\FUNC{integrate}( t1,t2,t3,dt0, cgf1,cgf2,cgf3, stress ) \\
+\{  \\
+\ia \IF( elasticShell )\\
+\ib    advanceElasticShell(t1,t2,t3,cgf1,cgf2,cgf3,stress,option); \\
+\ia \ELSEIF( ... ) \\
+\ia \\
+\ia \FOR( int face=0; face<numberOfFaces; face++ ) \\
+\ib   \IF( ... ) \\
+\ib   \ELSEIF( userDefinedDeformingBodyMotionOption==interfaceDeform )  \\
+\ic     \COM{The deformed surface is obtained from the boundaryData array:} \\
+\ic     RealArray \& bd = parameters.getBoundaryData(side,axis,grid,cg[grid]); \\
+\ic     x0 = bd; \\
+\ib \\
+\}
+\end{flushleft}
+
+% ---------------------------------------------------------------------------------------------------------------------
+\subsection{DeformingBodyMotion::regenerateComponentGrids}\label{sec:DeformingBodyMotion::regenerateComponentGrids}
+
+Pseudo-code for {\tt DeformingBodyMotion::regenerateComponentGrids} (cg/common/moving/src/DeformingBodyMotion.C)
+This function is called by {\tt MovingGrids::movingGrids} (after calling {\tt DeformingBodyMotion:;integrate})
+to actually generate the grid associated with the
+deforming body.
+\begin{flushleft}\tt
+DeformingBodyMotion::\FUNC{regenerateComponentGrids}( const real newT, CompositeGrid \& cg) \\
+\{  \\
+\ia \FOR( int face=0; face<numberOfFaces; face++ ) \\
+\ib    hyp.generate();  \COM{Call the hyperbolic grid generator.} \\
+\ib    \COM{Save the grid in the GridEvolution list:} \\
+\ib    gridEvolution[face]->addGrid(dpm.getDataPoints(),newT); \\
+\}
+\end{flushleft}
+
+% ---------------------------------------------------------------------------------------------------------------------
+\subsection{DeformingBodyMotion::correct}\label{sec:DeformingBodyMotion::correct}
+
+Pseudo-code for {\tt DeformingBodyMotion::correct} (cg/common/moving/src/DeformingBodyMotion.C)
+This function is called by {\tt MovingGrids::correctGrids}.
+\begin{flushleft}\tt
+DeformingBodyMotion::\FUNC{correct}( t1, t2, GridFunction \& cgf1,GridFunction \& cgf2 ) \\
+\{  \\
+\ia \COM{This function currently does nothing.} \\
+\}
+\end{flushleft}
+
+
+
+% ------------------------------------------------------------------------
+\clearpage 
+
+\section{Cgmp}
+
+% ---------------------------------------------------------------------------------------------------
+\subsection{Cgmp::solve}
+Pseudo-code for {\tt Cgmp::solve} (cg/mp/src/solve.C)
+
+\begin{flushleft}\tt\small
+Cgmp::\FUNC{solve}() \\
+\{  \\
+\ia  cycleZero(); \\
+\ia  buildRunTimeDialog(); \\
+\ia  \FOR( int step=0; step$<$maximumNumberOfSteps \&\& !finish;  ) \\
+\ib    \IF( t$\ge$ nextTimeToPrint ) \\
+\ic      printTimeStepInfo(step,t,cpuTime); \\
+\ic      saveShow( gf[current] );  \\
+\ic      finish=plot(t, optionIn, tFinal);   \\
+\ic      \IF( finish ) break; \\
+\ib    dtNew = getTimeStep( gf[current] ); \COM{choose time step}  \\
+\ib    computeNumberOfStepsAndAdjustTheTimeStep(t,tFinal,nextTimeToPrint,numberOfSubSteps,dtNew); \\
+\ib \\
+\ib    advance(tFinal); \COM{advance to t=nextTimeToPrint}  \\
+\ib  \\
+\}
+\end{flushleft}
+
+
+\clearpage
+% ---------------------------------------------------------------------------------------------------
+\subsection{Cgmp::multiDomainAdvance}\label{sec:Cgmp::multiDomainAdvance}
+
+Pseudo-code for {\tt Cgmp::multiDomainAdvance} (cg/mp/src/multiDomainAdvance.C)
+
+
+\begin{flushleft}\tt\small
+Cgmp::\FUNC{multiDomainAdvance}( real \&t, real \& tFinal ) \\
+\{  \\
+\ia  \IF( initialize ) \\
+\ib    initializeInterfaceBoundaryConditions( t,dt,gfIndex );\\
+\ib    ForDomain( d ) assignInterfaceRightHandSide( d, t, dt, correct, gfIndex );\\
+\ib    ForDomain( d ) domainSolver[d]->initializeTimeStepping( t,dt );\\
+\ia  \COM{Take some time steps:}\\
+\ia  \FOR( int i=0; i<numberOfSubSteps; i++ )\\
+\ib    ForDomain( d )\\
+\ic      domainSolver[d]->startTimeStep( t,dt,... );\\
+\ic      numberOfRequiredCorrectorSteps=...; gridHasChanged=...; \\ 
+\ib    \IF( gridHasChanged ) \\
+\ic     initializeInterfaces(gfIndex); initializeInterfaceBoundaryConditions(...); \\
+\ib \\
+\ib    \FOR( int correct=0; correct<=numberOfCorrectorSteps; correct++ ) \\
+\ic       ForDomain( d )\\
+\id        assignInterfaceRightHandSide( d, t+dt, dt, correct, gfIndex ); \COM{(Sec.~\ref{sec:Cgmp::assignInterfaceRightHandSide})} \\
+\id        domainSolver[d]->takeTimeStep( t,dt,correct,advanceOptions[d] );  \\
+\ic      \IF( hasConverged = checkInterfaceForConvergence( .. ) ) break; \\
+\ib \\
+\ib    ForDomain( d ) domainSolver[d]->endTimeStep( td,dt,advanceOptions[d] ); \\
+\ib    t+=dt;  \\
+\}
+\end{flushleft}
+
+\clearpage
+% ---------------------------------------------------------------------------------------------------
+\subsection{Cgmp::multiDomainAdvanceNew}\label{sec:Cgmp::multiDomainAdvanceNew}
+
+Pseudo-code for {\tt Cgmp::multiDomainAdvanceNew} (cg/mp/src/multiDomainAdvanceNew.bC). This is 
+the new versio of the multi-domain advance routine that supports more general time stepping and
+the use of AMR.
+
+
+\begin{flushleft}\tt\small
+Cgmp::\FUNC{multiDomainAdvanceNew}( real \&t, real \& tFinal ) \\
+\{  \\
+\ia  \IF( initialize ) \\
+\ib    initializeInterfaceBoundaryConditions( t,dt,gfIndex );\\
+\ib    ForDomain( d ) assignInterfaceRightHandSide( d, t, dt, correct, gfIndex );\\
+\ib    ForDomain( d ) domainSolver[d]->initializeTimeStepping( t,dt );\\
+\ia  \COM{Take some time steps:}\\
+\ia  \FOR( int i=0; i<numberOfSubSteps; i++ )\\
+\ib    ForDomain( d )\\
+\ic      domainSolver[d]->startTimeStep( t,dt,... );\\
+\ic      numberOfRequiredCorrectorSteps=...; gridHasChanged=...; \\ 
+\ib    \IF( gridHasChanged ) \\
+\ic      initializeInterfaces(gfIndex); initializeInterfaceBoundaryConditions(...); \\
+\ib    \COM{Get current interface residual and save current interface values :} \\
+\ib    getInterfaceResiduals( t, dt, gfIndex, maxResidual, saveInterfaceTimeHistoryValues ); \\
+\ib \\
+\ib    \FOR( int correct=0; correct<=numberOfCorrectorSteps; correct++ ) \\
+\ic       \COM{Stage I: advance the solution but do not apply BC's:} \\
+\ic       ForDomain( d )  \\
+\id         assignInterfaceRightHandSide( d, t+dt, dt, correct, gfIndex ); \\
+% \id         advanceOptions[d].takeTimeStepOption=takeStepButDoNotApplyBoundaryConditions; \\
+\id         domainSolver[d]->takeTimeStep( t,dt,correct,{\em\green step but no BC's} );  \\
+\ic \\
+\ic       \COM{Stage II: Project interface values part 1:} \\
+\ic       interfaceProjection( t+dt, dt, correct, gfIndex,{\em\green set interface values} ); \\
+\ic \\
+\ic       \COM{Stage III: evaluate the interface conditions and apply the boundary conditions:} \\
+\ic       ForDomain( d )\\
+\id        assignInterfaceRightHandSide( d, t+dt, dt, correct, gfIndex ); \COM{(Sec.~\ref{sec:Cgmp::assignInterfaceRightHandSide})} \\
+% \id        advanceOptions[d].takeTimeStepOption=applyBoundaryConditionsOnly; \\
+\id        domainSolver[d]->takeTimeStep( t,dt,correct,{\em\green apply BC's} );  \\
+\ic \\
+\ic       \COM{Stage IV: Project interface values part 2:} \\
+\ic       interfaceProjection( t+dt, dt, correct, gfIndex,{\em\green set interface ghost values} ); \\
+\ic \\
+\ic      \IF( hasConverged = checkInterfaceForConvergence( .. ) ) break; \\
+\ib \\
+\ib    ForDomain( d ) domainSolver[d]->endTimeStep( td,dt,advanceOptions[d] ); \\
+\ib    t+=dt;  \\
+\}
+\end{flushleft}
+
+% -------------------------------------------------------------------------
+\clearpage
+\section{Interfaces }
+
+% ---------------------------------------------------------------------------------------------------------
+\subsection{Cgmp::assignInterfaceRightHandSide} \label{sec:Cgmp::assignInterfaceRightHandSide}
+
+The {\tt Cgmp::assignInterfaceRightHandSide} function is used to get interface values from a source
+domain and set interface values on a target domain. It is used in the Cgmp::multiDomainAdvance routine~\ref{sec:Cgmp::multiDomainAdvance}.
+
+
+Here is {\tt Cgmp::assignInterfaceRightHandSide} (cg/mp/src/assignInterfaceBoundaryConditions.C)
+\begin{flushleft}\tt\small
+int Cgmp::\FUNC{assignInterfaceRightHandSide}( int d, real t, real dt, int correct, std::vector<int> \& gfIndex ) \\
+\COM{d : target domain, assign the interface RHS for this domain.} \\
+\{  \\
+\ia \IF( interfaceList.size()==0 ) \\
+\ib     initializeInterfaces(gfIndex); \COM{Create the list of interfaces.} \\
+\ib \\
+\ia \FOR( each interface on domain d )\\
+\ib    InterfaceDescriptor \& interfaceDescriptor = interfaceList[inter]; \\
+\ib    \COM{Target and source grid functions:} \\
+\ib    GridFunction \& gfTarget = domainSolver[domainTarget]->gf[gfIndex[domainTarget]]; \\
+\ib    GridFunction \& gfSource = domainSolver[domainSource]->gf[gfIndex[domainSource]]; \\
+\ib    \\
+\ib    \COM{Get source data:} \\
+\ib    for( int face=0; face<gridListSource.size(); face++ ) \\
+\ic      domainSolver[domainSource]->interfaceRightHandSide( getInterfaceRightHandSide, ... ); \\
+\ib     \\
+\ib    \COM{Transfer the source arrays to the target arrays:} \\
+\ib    interfaceTransfer.transferData(... );  \\
+\ib    \\
+\ib    \COM{Adjust the target data before assigning:} \\
+\ib    for( int face=0; face<gridListTarget.size(); face++ ) \\
+\ic      \COM{Extrapolate the initial guess.} \\
+\ic      \COM{Under-relaxed iteration.} \\
+\ib    \\
+\ib    \COM{Assign the target data:} \\
+\ib    for( int face=0; face<gridListTarget.size(); face++ ) \\
+\ic      domainSolver[domainTarget]->interfaceRightHandSide( setInterfaceRightHandSide,...); \\
+\ia \\
+\}
+\end{flushleft}
+
+
+
+
+% ---------------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{DomainSolver::interfaceRightHandSide} \label{sec:DomainSolver::interfaceRightHandSide}
+
+
+The {\tt DomainSolver::interfaceRightHandSide} function is used to get or set interface values.
+Each DomainSolver (cgad, cgcns, cgins, cgsm,...) has a version of this routine. The generic
+version appears in cg/common/src/interfaceBoundaryConditions.C. 
+
+
+Here is {\tt Cgcns::interfaceRightHandSide} (cg/cns/src/interface.bC)
+\begin{flushleft}\tt\small
+Cgcns::\FUNC{interfaceRightHandSide}( InterfaceOptionsEnum option, int interfaceDataOptions,  \\
+ \qquad\quad       GridFaceDescriptor \& info, GridFaceDescriptor \& gfd, int gfIndex, real t ) \\
+\{  \\
+\ia  RealArray \& bd = parameters.getBoundaryData(side,axis,grid,mg); \COM{Interface data on this domain.}\\
+\ia  RealArray \& f = *info.u; \COM{Interface data from another domain.} \\
+\ia \\
+\ia  \IF( interfaceType(side,axis,grid)==Parameters::heatFluxInterface ) \\
+\ib     \IF( option==setInterfaceRightHandSide ) \\
+\ic       bd(I1,I2,I3,tc)=f(I1,I2,I3,tc);  \COM{Set T (using values from another domain).}  \\
+\ib     \ELSEIF( option==getInterfaceRightHandSide )  \\
+\ic       \COM{Evaluate $a_0 T + a_1 T_n$ (to send to another domain).} \\
+\ic       f(I1,I2,I3,tc) = a[0]*uLocal(I1,I2,I3,tc) + a[1]*( normal(I1,I2,I2,0)*ux + ... ); \\
+\ia \\
+\ia  \ELSEIF( interfaceType(side,axis,grid)==Parameters::tractionInterface ) \\
+\ib     \IF( option==setInterfaceRightHandSide ) \\
+\ic       bd(I1,I2,I3,V)=f(I1,I2,I3,V);  \COM{Set positions of the interface.}  \\
+\ib     \ELSEIF( option==getInterfaceRightHandSide )  \\
+\ic       parameters.getNormalForce( gf[gfIndex].u,traction,ipar,rpar ); \\
+\ic       f(I1,I2,I3,V)=traction(I1,I2,I3,D); \\
+\ic       InterfaceDataHistory \& idh = gfd.interfaceDataHistory; \COM{Holds interface history.} \\
+\ic       \IF( interfaceDataOptions \& Parameters::tractionRateInterfaceData )\\
+\id         RealArray \& f0 = idh.interfaceDataList[prev].f;  \\
+\id         f(I1,I2,I3,Vt)= (f(I1,I2,I3,V) - f0(I1,I2,I3,V))/dt; \COM{Time derivative of the traction.} \\
+\ia   \\
+\}
+\end{flushleft}
+
+
+
+% -------------------------------------------------------------------------------------------------
+% \clearpage
+% \bibliography{\homeHenshaw/papers/henshaw}
+% \bibliographystyle{siam}
+
+
+\end{document}

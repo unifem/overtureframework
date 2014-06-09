@@ -1,0 +1,182 @@
+\subsection{Boundary Conditions} \label{sec:bcMenu}\index{boundary conditions!assigning}
+
+In order to compute the correct flow the user must choose the correct
+boundary conditions. Each physical boundary of each grid must be
+given a boundary condition.  
+
+The names of the available boundary conditions are 
+%
+\input boundaryConditionsEnum.tex
+%
+Not all boundary conditions can be used with all PDEs.
+Boundary conditions are specified interactively (or in a command file)
+by choosing the {\tt `boundary condition'} option from the main parameters menu
+and then typing a string that takes one of the following forms
+\begin{flushleft}
+\bf $<$grid name$>$(side,axis)=$<$ boundary condition name$>$ [,option] [,option] ...
+\end{flushleft}
+to change the boundary condition on a given side of a given grid, or  
+\begin{flushleft}
+\bf $<$grid name$>$=$<$boundary condition name$>$  [,option] [,option] ...  
+\end{flushleft}
+to change all boundaries on a given grid, or
+  \begin{flushleft}
+\bf bcNumber$<$num$>$=$<$boundary condition name$>$  [,option] [,option] ...  
+\end{flushleft}                             
+to change all boundaries that currently have a boundary condition value equal to 
+the integer `num'.
+Here {\bf $<$grid name$>$} is the name of the grid, side=0,1 and axis=0,1,2.  
+{\bf $<$grid name$>$} can also be `all'.
+The optional arguments specify data for the boundary conditions:      
+\begin{description}
+  \item[option = `uniform(p=1.,u=1.,...)'] : to specify a uniform inflow profile   
+  \item[option = `parabolic(d=2,p=1.,...)']     : to specify a parabolic inflow profile 
+  \item[option = `jet(r=1.,x=0.,y=0,z=0.,d=.1,p=1.,u=$U_{\rm max}$,v=$V_{\rm max}$,...)'] : 
+     specify a jet inflow profile.
+  \item[ option = `pressure(.1*p+1.*p.n=0.)']     : pressure boundary condition at outflow
+  \item[ option = `oscillate(t0=.5,omega=1.,a0=.5,a1=.5,u0=0.,v0=0.,w0=0.)']   : oscillating inflow parameters       
+  \item[ option = `ramp(ta=0.,tb=1.,ua=0.,ub=1.,...)']   : ramped inflow parameters       
+  \item[ option = `userDefinedBoundaryData'] : use a user defined boundary value option.
+  \item[ option = `mixedDerivative(1.*t+2.*t.n=3.)'] : Mixed derivative on the Temperature.
+\end{description}
+Examples: 
+\begin{flushleft}
+square(0,0)=inflowWithVelocityGiven , uniform(p=1.,u=1.) \\
+square(1,0)=outflow \\
+annulus=noSlipWall \\
+all=slipWall          \\             
+bcNumber1=noSlipWall \\
+square(0,1)=outflow , pressure(.1*p+1.*p.n=0.) \\
+square(0,0)=inflowWithVelocityGiven , parabolic(d=.25,p=1.,u=1.) , oscillate(t0=0.,omega=1.,a0=.5,a1=.5) \\
+square(0,0)=inflowWithVelocityGiven , userDefinedBoundaryData \\
+square(0,0)=inflowWithVelocityGiven , parabolic(d=.25,p=1.,u=1.) , userDefinedBoundaryData \\
+square(0,0)=noSlipWall,  uniform(u=2,v=0,T=1.), mixedDerivative(0.*t+1.*t.n=0)
+\end{flushleft}
+
+The first example, {\tt square(0,0)=inflowWithVelocityGiven}, will set the left edge of the square 
+to be an inflow BC, while {\tt square(1,0)=outflow} will set the right edge to be an outflow boundary.
+The line, {\tt annulus=noSlipWall}, will set all physical boundaries of the annulus to be no-slip walls.
+Note that an annulus will normally have a branch cut and possibly an interpolation boundary. The
+boundary conditions on these non-physical boundaries are never changed. The command, {\tt all=slipWall},
+will make all physical boundaries slip-walls (and thus over-ride any previous changes to boundary conditions).
+  
+
+% ----------------------------------------------------------------------------------------------------------------
+\subsection{Data for Boundary Conditions}\label{sec:bcDataMenu}\index{boundary conditions!optional data}
+
+Some boundary conditions require `data', such as an inflow
+boundary that requires values for certain quantities such as the velocity. 
+These data values are optionally specified when
+the boundary condition is given. Here are some examples:
+{\footnotesize
+\begin{verbatim}
+    square(0,0)=inflowWithVelocityGiven , uniform(p=1.,u=1.)
+    square(0,1)=outflow , pressure(.1*p+1.*p.n=0.)
+    square(0,0)=inflowWithVelocityGiven , parabolic(d=.2,p=1.,u=1.), oscillate(t0=.3,omega=2.5)
+\end{verbatim}
+}
+The available options are
+\begin{description}
+  \item[]{\bf uniform(component=value [,component=value]...)} Specify a uniform inflow profile and supply
+      values for some of the components (components not specified will have a value of zero). Here
+     {\tt component0} is the name of a component such as `p' or `u'.
+  \item[]{\bf parabolic([d=boundary layer width][,component=value]...)} Specify a parabolic inflow profile
+     with a given width. See section (\ref{sec:parabolic}) for more details.
+  \item[]{\bf pressure(a*p+b*p.n=c)} Specify the parameters a,b,c for a pressure outflow boundary condition.
+	   Here p=pressure and p.n=normal derivative of p. 
+	   {\bf Note that a and b should have the same sign or else the condition is unstable.}
+  \item[]{\bf mixedDerivative(a*t+b*t.n=c)} Specify the parameters a,b,c for a mixed boundary condition
+      on the Temperature. 
+  \item[]{\bf oscillate([t0=value][,omega=value])} Specify parameters for an oscillating inflow boundary condition.
+    See section (\ref{sec:oscillate}) for more details.
+  \item[]{\bf ramp([ta=value][,tb=value][,...])}  : specify values for a {\sl ramped} inflow. 
+    See section (\ref{sec:rampedInflow}).
+  \item[]{\bf userDefinedBoundaryData} : choose from the currently available user defined options. See
+      section (\ref{sec:userDefinedFunctions}) for how to define your own boundary conditions.
+\end{description}
+Note that not all options can be used with all boundary conditions. 
+
+% -------------------------------------------------------------------------------------------------------
+\subsubsection{Parabolic velocity profile} \label{sec:parabolic}
+
+  A `parabolic' profile can be specified as a Dirichlet type
+boundary condition. The parabolic profile is zero at the
+boundary and increases to a specified value $U_{\rm max}$ at 
+a distance $d$ from the boundary:
+\[
+     u(\xv) = \begin{cases}
+               U_{\rm max} (2 -s/d ) s/d & \text{if $s\le d$ } \\
+               U_{\rm max} &     \text{if $s> d$ }
+              \end{cases}
+\]
+Here $s$ is the shortest distance between the point $\xv$ on the inflow face to the 
+next nearest adjacent boundary.
+and $d$ is the user specified {\it boundary layer width}.
+The algorithm is quite smart at correctly determining the distance $s$ even if the 
+inflow boundary is covered by one or more overlapping grids (such as the
+pipe flow example or inlet-outlet grid).
+
+The parabolic profile can be useful, for example,
+in specifying the velocity profile at an inflow boundary that
+is adjacent to a no-slip wall. A uniform profile would have a
+discontinuity at the wall.
+
+% -------------------------------------------------------------------------------------------------------
+\subsubsection{Jet velocity profile} \label{sec:jet}
+
+The jet option is {\tt `jet(r=1.,x=0.,y=0,z=0.,d=.1,p=1.,u=$U_{\rm max}$,v=$V_{\rm max}$,w=$W_{\rm max}$,...)'}.
+
+A `jet' profile can be used to define inflow over
+a portion of a boundary. The jet has a a center, $(x_0,y_0,z_0)$, a radius $r$, 
+and a maximum value of $U_{\rm max}$ for $u$ (or $V_{\rm max}$ for $v$ or $W_{\rm max}$ for $w$) at $r=0$:
+\[
+     u(\xv) = \begin{cases}
+               U_{\rm max} & \text{if $|\xv-\xv_0| \le r$  } \\
+               0           & \text{if $|\xv-\xv_0| > r$ }
+              \end{cases}
+\]
+In 3D the jet will have a cylindrical cross section.
+The jet can also be defined to go to zero at it's boundary using the parameter
+$d$ which defines the width of the transition layer,
+\[
+     u(\xv) = \begin{cases}
+               U_{\rm max} & \text{if $|\xv-\xv_0| \le r-d $ } \\
+               U_{\rm max}[1-(\xi/d)^2]   & \text{if $r-d \le |\xv-\xv_0| < r$ }\\
+               0           & \text{if $|\xv-\xv_0| > r$ }
+              \end{cases}
+\]
+Here $\xi = |\xv-\xv_0| - (r-d)$.
+
+% -------------------------------------------------------------------------------------------------------
+\subsubsection{Oscillating values} \label{sec:oscillate}
+
+An inflow boundary condition, {\tt uniformInflow} or {\tt parabolicInflow}, 
+can be given an oscillating time dependence of the form
+\[
+   \{ a_0 + a_1 \cos[ 2 \pi \omega (t-t_0) ] \} \times \{ \mbox{uniform/parabolic profile} \} + \uv_0
+\]
+The parameters {\tt omega,t0,a0,a1,u0,v0,w0} are specified with the {\tt oscillate} option. Here
+$\uv_0=(u0,v0,w0)$.
+
+
+% -------------------------------------------------------------------------------------------------------
+\subsubsection{Ramped Inflow} \label{sec:rampedInflow}
+
+An inflow boundary condition can be ramped from one value (usually zero) to another value.
+The ramp function is a cubic polynomial on the interval $(t_a,t_b)$. The polynomial is
+monotone increasing on this interval with slope zero at the ends.
+ The variables $(u,v,w)$ vary from $(u_a,v_a,w_a)$ to $(u_b,v_b,w_b)$. Thus the $u$ boundary
+condition ramp function would be:
+\[
+     u(t) = \begin{cases} 
+             u_a  & \text{for $t\le t_a$} \\
+            (t-t_a)^2( -(t-t-a)/3+(t_b-t_a)/2 ) 6 {(u_b-u_a) \over (t_b-t_a)^3}  +ua  & \text{for $t_a<t<t_b$} \\
+            u_b & \text{for $t\ge t_b$}
+            \end{cases}
+\]
+
+The ramped inflow can also be combined with the parabolic profile as in 
+\begin{verbatim}
+square(0,0)=inflowWithVelocityGiven , parabolic(d=.25,p=1.,u=1.) , ramp(ta=0.,tb=1.,ua=0.,ub=2.)
+\end{verbatim}
+to give a ramped parabolic profile.

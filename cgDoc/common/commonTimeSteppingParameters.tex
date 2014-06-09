@@ -1,0 +1,49 @@
+\noindent The push buttons are
+\begin{description}
+  \item[\qquad choose grids for implicit] : For use with the {\tt implicit} time stepping option. Choose 
+         which grids to integrate implicitly and which to integrate explicitly. Normally one should choose
+         those grids with fine grid spacing (such as in boundary layers) to be implicit while a back-ground
+       grid could be explicit. 
+\end{description}
+
+\noindent The toggle buttons are 
+ \begin{description}
+  \item[\qquad use local time stepping] : for steady state solvers, use a different $\Delta t$ for each grid point.
+  \item[\qquad adjust dt for moving bodies] :
+  \item[\qquad use full implicit system] :
+  \item[\qquad apply explicit BCs to implicit grids] : 
+\end{description}
+
+\noindent The text strings are 
+ \begin{description}
+  \item[\qquad final time] : Integrate to this time.
+  \item[\qquad max iterations] : maximum number of iterations for steady state solvers.
+  \item[\qquad cfl] :Set the {\tt cfl} parameter. 
+         The maximum time step based on stability is scaled by this factor.
+         By default {\tt cfl=.9}.
+  \item[\qquad dtMax] : Restrict the time step to be no larger than this value.
+  \item[\qquad implicit factor] :This value in $[0.,1.]$ is used with the implicit time-stepping. A value
+         of $.5$ will correspond to a 2nd-order Crank-Nicolson approach for the viscous terms,
+        a value of $1.$ will be backward-Euler and a value of $0.$ will be forward-Euler. See 
+        the the reference manual for more details.
+  \item[\qquad recompute dt every] : The time step, dt,  is recomputed every time the solution is plotted/saved.
+              In addition you may specify the maximum number of steps that will be taken
+              before dt is recomputed. Use this if the solution is not plotted very often. See also `slow start steps' for
+             recomputing dt more often during a slow start.
+%
+  \item[\qquad slow start cfl] : The initial time step for the slow start option is determined by this cfl value, default$=0.25$.
+  \item[\qquad slow start steps] : Ramp the time step $\Delta t$ from a small value (determined by slow start cfl)
+         to its maximum value (as  determined by the {\tt cfl} parameter) {\em over this many steps} (over-rides `slow start' based
+         on the time interval). 
+  \item[\qquad slow start] : Ramp the time step $\Delta t$ from a small value (determined by slow start cfl)
+         to its maximum value (as  determined by the {\tt cfl} parameter) {\em over this time interval}.
+  \item[\qquad slow start recompute dt] : during the slow start interval, recompute the time-step every this many steps.
+% 
+  \item[\qquad fixup unused frequency] : specifies how often to fixup unused points (which may get very large values
+                over time that can eventually lead to the program crashing).
+  \item[\qquad cflMin, cflMax] :
+  \item[\qquad preconditioner frequency] :
+  \item[\qquad number of PC corrections] : specify how many correction iterations should be taken for
+             predictor correction time-stepping (default=1). 
+\end{description}
+

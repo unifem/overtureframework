@@ -1,0 +1,45 @@
+% boundary conditions for cgcns 
+%   inflowWithVelocityGiven=2,
+%   outflow=5,
+%   superSonicInflow=6,
+%   superSonicOutflow=7,
+%   subSonicInflow=8,
+%   subSonicOutflow=10,
+%   convectiveOutflow=14,  
+%   tractionFree=15,
+%   farField=16 // far field BC treats inflow and outflow cases 
+
+%   const BoundaryCondition & noSlipWall                = Parameters::noSlipWall;
+%   const BoundaryCondition & slipWall                  = Parameters::slipWall;
+%   const BoundaryCondition & superSonicOutflow         = CnsParameters::superSonicOutflow;
+%   const BoundaryCondition & superSonicInflow          = CnsParameters::superSonicInflow;
+%   const BoundaryCondition & subSonicOutflow           = CnsParameters::subSonicOutflow;
+%   const BoundaryCondition & subSonicInflow            = CnsParameters::subSonicInflow;
+%   const BoundaryCondition & symmetry                  = Parameters::symmetry;
+%   // const BoundaryCondition & inflowWithVelocityGiven   = CnsParameters::inflowWithVelocityGiven;
+%   const BoundaryCondition & outflow                   = CnsParameters::outflow;
+%   //  const BoundaryCondition & inflowWithPressureAndTangentialVelocityGiven 
+%   //                                                      = Parameters::inflowWithPressureAndTangentialVelocityGiven;
+%   const BoundaryCondition & dirichletBoundaryCondition= Parameters::dirichletBoundaryCondition;
+%   const BoundaryCondition & neumannBoundaryCondition  = Parameters::neumannBoundaryCondition;
+%   const BoundaryCondition & axisymmetric              = Parameters::axisymmetric;
+%   const BoundaryCondition & farField                  = CnsParameters::farField;
+
+ {\footnotesize
+ \begin{verbatim}
+   enum BoundaryCondition
+   {
+     interpolation=0,
+     noSlipWall,
+     slipWall,
+     superSonicOutflow,
+     superSonicInflow,
+     subSonicInflow,
+     symmetry,
+     dirichletBoundaryCondition,
+     neumannBoundaryCondition,
+     axisymmetric,
+     farField
+   };
+ \end{verbatim}
+ }

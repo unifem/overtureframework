@@ -1,0 +1,81 @@
+\subsubsection{Initial Conditions Options dialog (initial conditions options...)}\label{sec:initialConditionsOptions}\index{initial conditions options}
+
+
+\noindent The {\em plot component} option menu allows one to choose the solution
+component to plot when displaying the initial conditions.
+
+\noindent The {\em Forcing Options} options are
+\begin{description}
+  \item[\qquad no forcing] : 
+  \item[\qquad showfile forcing] : supply a forcing function from a show file.
+\end{description}
+
+
+\noindent The push buttons are
+\begin{description}
+  \item[\qquad uniform flow...] : open the {\em Uniform Flow Parameters} dialog:
+     \begin{description}
+         \item[]
+        \noindent The push button commands are
+       \begin{description}
+         \item[\qquad assign uniform state] : evaluate the initial conditions.
+       \end{description}
+
+       \noindent The text commands are
+       \begin{description}
+         \item[\qquad uniform state] : assign values to the components in the form {\tt p=0, u=1, v=2}.
+       \end{description}
+    \end{description}
+     
+  \item[\qquad step function...] : open the {\em Step Function Parameters} dialog.
+    \begin{description}
+         \item[]
+        \noindent The push button commands are
+       \begin{description}
+         \item[\qquad assign step function] : evaluate the initial conditions.
+       \end{description}
+
+       \noindent The text commands are
+       \begin{description}
+         \item[\qquad state behind] : assign values to the components in the form {\tt p=0, u=2, v=1}.
+         \item[\qquad state ahead] : assign values to the components in the form {\tt p=0, u=1, v=0}.
+         \item[\qquad step: a*x+b*y+c*z=d] : supply $a,b,c,d$ for the equation of the plane.
+         \item[\qquad step sharpness] : exponent in the $\tanh$ functions used to smooth out the step. Choose
+                       a value of $-1$ for a true step function.
+       \end{description}
+    \end{description}
+
+  \item[\qquad read from a show file...] : open the {\em Read From a Show File} dialog.
+    \begin{description}
+         \item[]
+        \noindent The push button commands are
+       \begin{description}
+         \item[\qquad assign solution from show file] : evaluate the initial conditions.
+         \item[\qquad choose file from menu...] : choose the show file from a file menu.
+       \end{description}
+
+        \noindent The toggle buttons are
+       \begin{description}
+         \item[\qquad use grid from show file] : if true (toggle on) then use the grid in the show file.
+               If false (toggle off) then interpolate the solution from the grid in the show file.
+       \end{description}
+
+       \noindent The text commands are
+       \begin{description}
+         \item[\qquad show file name] : choose the name of a show file.
+         \item[\qquad solution number] : choose a solution number in the show file.
+       \end{description}
+    \end{description}
+
+
+  \item[\qquad twilight zone...] : open the {\em twilight zone} dialog (see section~\ref{sec:twilightZoneOptions}).
+  \item[\qquad user defined...] : choose a user defined initial condition 
+                (see section~\ref{sec:userDefinedInitialConditions}. 
+  \item[\qquad change contour plot] : enter the contour plotter menu.
+\end{description}
+
+\noindent The text commands are
+\begin{description}
+  \item[\qquad initial time] : set the initial time. Normally the initial time is set to $t=0.$ unless a solution
+        is read from a show file (restart) in which case th initial time equals that from the show file.  
+\end{description}

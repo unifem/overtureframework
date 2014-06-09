@@ -1,0 +1,18 @@
+\subsubsection{Choosing grids for implicit time stepping.}\label{sec:implicitMenu}
+ 
+
+When the option {\tt `choose grids for implicit'} is chosen from the main parameter menu one can
+specify which grids should be treated implicitly or explicitly with the {\bf implicit} time stepping
+option. Type a line of the form
+\begin{verbatim}
+  <grid name>=[explicit][implicit] 
+\end{verbatim}
+where {\tt <grid name>} is the name of a grid or {\tt `all'}. Type {\tt `help'} to see the names.
+Examples:
+\begin{verbatim}
+  square=explicit
+  all=implicit
+  cylinder=implicit
+\end{verbatim}
+Type {\tt `done'} when finished.
+

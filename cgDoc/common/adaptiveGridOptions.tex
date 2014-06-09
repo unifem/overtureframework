@@ -1,0 +1,31 @@
+\subsubsection{Adaptive Grid Options Dialog (adaptive grid options...)}\label{sec:adaptiveGridOptions}\index{adaptive grid options}
+
+Here is a description of the {\em Adaptive Grid Options} dialog.
+
+\noindent The push button options are
+\begin{description}
+  \item[\qquad change adaptive grid parameters] : change adaptive grid parameters related to 
+                         regriding (enter the Regrid menu).
+  \item[\qquad change error estimator parameters] : change error estimator parameters (enter the ErrorEstimator menu).
+  \item[\qquad top hat parameters] : set parameters for the {\em top hat} error function (used for testing AMR). 
+\end{description}
+
+\noindent The toggle buttons are
+\begin{description}
+  \item[\qquad use adaptive grids] : turn on/off adpative grids
+  \item[\qquad show amr error function] : plot the amr error function with the other components.
+  \item[\qquad use user defined error estimator] : turn on the user defined error estimator, see section~\ref{sec:userDefinedErrorEstimator}.
+  \item[\qquad use default error estimator] : turn on/off the default error estimator.
+  \item[\qquad use front tracking] : (under development).
+\end{description}
+
+\noindent The text commands are
+\begin{description}
+  \item[\qquad error threshold] : set the error threshold. 
+  \item[\qquad regrid frequency] : specify how often to perform an AMR regrid. If you increase this value then
+             you should also increase the number of AMR buffer zones. 
+  \item[\qquad truncation error coefficient] : set the coefficient of the truncation term (this is defined with
+               certain problems such as when solving the reactive Euler equations).
+  \item[\qquad order of AMR interpolation] : set the order of interpolation for AMR.
+  \item[\qquad tracking frequency] : (under development).
+\end{description}

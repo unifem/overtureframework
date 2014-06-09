@@ -1,0 +1,90 @@
+\section{Material Properties: Notes}\label{sec:materialProperties}
+
+
+
+In this section we describe how variable material properties are
+handled. A variable material property (VMP) is a coefficient
+appearing in the governing equations that depends on its
+spatial location $\xv$. For example, in elasticity the 
+solid density, $\rho(\xv)$, and Lam\'e parameters  $\mu(\xv)$ and $\lambda(\xv)$ can be functions of
+space. For heat conduction, the solid density $\rho(x)$, heat capacity $C_p(\xv)$ and thermal conductivity
+$k(\xv)$ can also be functions of space.
+
+
+{\bf General notes:}
+\begin{enumerate}
+  \item The VMP's can be plotted from the run-time-dialog using the "plot material properties"
+  option.
+  \item The interface to setting VMP's should support adaptive mesh refinement. In this case
+      we need to dynamically re-evaluate the material properties as new grids are added.
+  \item The functions associated with the implementation of VMP's mainly appear in the files
+   {\tt GridMaterialProperties.C} and {\tt bodyForcing.C}.
+\end{enumerate}
+
+
+There are currently three ways to define VMP's. 
+\begin{enumerate}
+  \item User defined material
+properties can be assigned using the functions {\tt setupUserDefinedMaterialProperties()}
+and {\tt userDefinedMaterialProperties(...)}
+that are found in the file {\tt cg/common/src/userDefinedMaterialProperties.C}.
+You can edit these files to add new options. 
+
+  \item VMP's can also be defined through the "body forcing..." option. This
+option allows one to define one or more regions (e.g. currently boxes, but in the future more
+general geometry such as cylinders, spheres, etc.) 
+and to associate different material values with each region.
+
+  \item VMP's can be defined as twilight-zone functions for use with twilight-zone computations.
+\end{enumerate}
+
+
+
+Internally in the code, VMP's are stored in the {\tt GridMaterialProperty} class. There 
+is a separate {\tt GridMaterialProperty} object for each component grid. 
+Currently there are two ways that are used to store a VMP on a grid. The choice of
+storage option can be specified at run time (and will depend on whether the underyling
+implementation supports both options).
+The most general
+way is to save the material property at each point on the grid using a 4 dimensional array
+of real values:
+\begin{align*}
+    \rho_\iv &= \rm{matVal}(i_1,i_2,i_3,0), \\
+    \mu_\iv &= \rm{matVal}(i_1,i_2,i_3,1), \\
+    \lambda_\iv &= \rm{matVal}(i_1,i_2,i_3,2). 
+\end{align*}
+This storage option is known as {\tt GridMaterialProperties::variableMaterialProperties}. 
+An alternative approach that saves storage when the material properties consist
+of a few regions where the values are constant over each region is
+\begin{align*}
+    \rho_\iv &= \rm{matVal}(0,\rm{matIndex}(i_1,i_2,i_3)), \\
+    \mu_\iv &= \rm{matVal}(1,\rm{matIndex}(i_1,i_2,i_3)), \\
+    \lambda_\iv &= \rm{matVal}(2,\rm{matIndex}(i_1,i_2,i_3)). 
+\end{align*}
+This option is known as {\tt GridMaterialProperties::variableMaterialProperties}.
+Note that this second option only requires a single integer to be stored
+at each grid point. 
+The \rm{matIndex}  and \rm{matVal} arrays are accessed from the {\tt GridMaterialProperty} object
+using {\tt getMaterialIndexArray()} and {\tt getMaterialValuesArray()}.
+
+The available material properties for a given domain solver are specified in an vector of 
+strings. For example, for cgsm, the material properties are set in {\tt SmParameters.C} as
+\begin{verbatim}
+  std::vector<aString> & materialPropertyNames = 
+                         dbase.get<std::vector<aString> >("materialPropertyNames");
+  materialPropertyNames.push_back("rho");
+  materialPropertyNames.push_back("mu");
+  materialPropertyNames.push_back("lambda");
+\end{verbatim}
+The order of the names in the vector indicates how they are stored in the \rm{matVal} array above, i.e. rho 
+was added first in the {\tt materialPropertyNames} vector and also appears first in the \rm{matVal} array. 
+It is further assumed that the default value for each material property can be found in the
+Parameters class data base, for example,
+\begin{verbatim}
+  real & rho = parameters.dbase.get<real>("rho");
+  real & mu = parameters.dbase.get<real>("mu");
+  real & lambda = parameters.dbase.get<real>("lambda");
+\end{verbatim}
+
+
+

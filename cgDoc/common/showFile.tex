@@ -1,0 +1,31 @@
+\subsection{The show file}
+
+   The `show file' is a data base file of a particular format that
+contains the solutions from \Solver. The post-processing routine
+{\tt plotStuff}~\cite{PLOTSTUFF}
+ knows how to read this file and find all the solutions
+and the different grids if the grids are moving or adaptive. The show can
+be looked at by typing {\tt `plotStuff file.show'} or just {\tt `plotStuff file'},
+where {\tt file.show}
+is the name that you gave to the show file when running cgins.
+The program {\tt plotStuff} is found in {\tt Overture/bin}.
+
+\subsubsection{Flushing the show file} \label{sec:flush}\index{show file!flushing}
+  It is not possible to look at results in a show file while the program is 
+running and the show file
+is open and being written to. As a result, if the program crashes for some
+reason you will not be able to look at the results. To overcome this 
+problem it is possible to automatically save multiple show files, with each
+show file containing one or more solutions. The number of solutions saved
+in each show file is determined by the frequency the show file is flushed.
+Use the {\tt `frequency to flush'}
+option to specify how many solutions should be saved in each show file.
+The files are named `file.show', `file.show1', `file.show2' etc. where
+`file.show' was the name given to the show file.
+The plotStuff program will automatically read all these different files if
+you just type `plotStuff file.show'.
+
+It is thus possible to look at the solutions when cgins crashes or
+while it is still running. 
+Only the most recent solutions that
+belong to the most recent (open) show file will be unavailable.

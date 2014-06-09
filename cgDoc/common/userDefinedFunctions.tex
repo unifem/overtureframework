@@ -1,0 +1,52 @@
+\section{User defined functions}\label{sec:userDefinedFunctions}\index{user defined functions}
+
+Here is a list of functions that can be changed by a user. After rewriting any of these files,
+compile and link \solver\ with the new file.
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{User defined initial conditions}\label{sec:userDefinedInitialConditions} \index{user defined initial conditions}
+
+ The function {\bf userDefinedInitialConditions} in {\tt
+cg/common/src/userDefinedInitialConditions.C} defines initial conditions.
+Rewrite this function to define arbitrary initial conditions. This function is
+accessed when interactively setting parameters in the {\tt `initial conditions'}
+menu under {\tt `user defined'}.
+
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{User defined boundary values}\label{sec:userDefinedBoundaryValues}\index{user defined boundary values}
+
+  The functions {\bf choose\-User\-Defined\-Boundary\-Values, user\-Defined\-Boundary\-Values}
+in {\tt cg/\-common/\-src/\-userDefinedBoundaryValues.C} define values for boundary
+conditions. Change these functions in order to define new right-hand-side values
+for boundary conditions. For example, you may want to define the inflow velocity
+profile to have a certain shape and/or time dependence.  The {\tt
+chooseUserDefinedBoundaryValues} is accessed when you specify boundary
+conditions and choose the {\tt userDefinedBoundaryData} option.
+
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{User defined error estimator}\label{sec:userDefinedErrorEstimator}\index{user defined error estimator}
+
+Change the file {\tt cg/\-common/\-src/\-userDefinedErrorEstimator.C} to provide your own AMR error
+estimator. 
+You will need to {\tt ``use user defined error estimator''}, see section~\ref{sec:adaptiveGridOptions}.
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{User defined forcing}\label{sec:userDefinedForcing}\index{user defined forcing}
+
+Change the file {\tt cg/\-common/\-src/\-userDefinedForcing.C} to add forcing functions to the equations.
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{User defined output}\label{sec:userDefinedOutput}\index{user defined output}
+
+Change the file {\tt cg/\-common/\-src/\-userDefinedOutput.C} to output information at each time step.
+You will need to {\tt ``allow user defined output''}, see section~\ref{sec:plotAndOutputOptions}.
+
+% --------------------------------------------------------------------------------------------------------
+\subsection{User defined grid motion}\label{sec:userDefinedGridMotion}\index{user defined grid motion}
+
+Change the file {\tt cg/common/movingsrc/userDefinedMotion.C} to define a grid motion.
+
+Change the file {\tt cg/common/movingsrc/userDefinedDeformingSurface.C} to define a deforming surface motion.
+

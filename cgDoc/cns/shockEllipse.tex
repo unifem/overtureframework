@@ -1,0 +1,81 @@
+\newcommand{\Gre}{\Gc_{\rm re}}% grid for rotated ellipse
+\subsection{Shock hitting a light rigid-body (ellipse)}\label{sec:shockEllipse}
+
+
+% \newcommand{\dropStickDir}{\homeHenshaw/runs/cgins/dropStick}
+
+{
+% 
+\newcommand{\schlierenName}{ellipseShockMassZero16l1r4Schlieren}
+\newcommand{\amrName}{ellipseShockMassZero16l1r4AmrP}
+\newcommand{\figWidth}{6.5cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{.23}{.23}{.23}{.23}}
+% ----
+\newcommand{\cbHeight}{6.3cm}% colour bar height
+\newcommand{\xcb}{6.7cm}% colour bar lower left corner
+\newcommand{\ycb}{0.1cm}% colour bar lower left corner
+\newlength{\ycbTop}%
+\setlength{\ycbTop}{\ycb+\cbHeight}% colour bar top label position
+\newlength{\ycbMid}%
+\setlength{\ycbMid}{\ycb+\cbHeight*\real{.5}}% colour bar top label position
+\newcommand{\xLabel}{6.5cm}% label position
+\newcommand{\yLabel}{6.5cm}% label position
+\newcommand{\trimfigcb}[2]{\includegraphics[height=#2, clip, trim=17cm 2.35cm 1.65cm 2.35cm]{#1}}
+% -- Here is the command to plot a frame, time-label and colour bar:
+% \timeFrame{fileName}{t}{cbMin}{cbMax}{xShift}{yShift}
+\newcommand{\timeFrame}[6]{%
+ \begin{scope}[xshift=#5cm,yshift=#6cm]
+  \draw ( 0.0,0) node[anchor=south west] {\trimfig{#1}{\figWidth}};
+  % - labels
+  \draw (\xLabel,\yLabel) node[draw,fill=white,anchor=east,xshift=+1pt,yshift=-4pt] {\scriptsize $t=#2$};
+  % -- colour bar
+  \draw (\xcb,\ycb) node[anchor=south west,xshift= +0pt,yshift=+0pt] {\trimfigcb{\cnsDocDir/fig/colourBarLines}{\cbHeight}};
+  \draw (\xcb,\ycb) node[anchor=south west,xshift= +8pt,yshift=+1pt] {\scriptsize $#3$};
+  \draw (\xcb,\ycbTop) node[anchor=south west,xshift= +8pt,yshift=-6pt] {\scriptsize $#4$};
+  \draw (\xcb,\ycbMid) node[anchor=      west,xshift=+10pt,yshift=2pt] {\small $p$};
+ \end{scope}
+}
+%
+% *************************************************************************************************
+% 
+\begin{figure}[htb]
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.7) rectangle (14.,19.7);  % set the bounding box (so we have less surrounding white space)
+%
+  \draw ( 0,13.4) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/\schlierenName4}{\figWidth}};
+  \draw ( 0, 6.7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/\schlierenName6}{\figWidth}};
+  \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{\cnsDocDir/fig/\schlierenName10}{\figWidth}};
+%
+  \timeFrame{\cnsDocDir/fig/\amrName4}{0.4}{.07}{4.3}{7}{13.4}
+  \timeFrame{\cnsDocDir/fig/\amrName6}{0.6}{.12}{6.1}{7}{6.7}
+  \timeFrame{\cnsDocDir/fig/\amrName10}{1.0}{.3}{4.6}{7}{0}
+%
+%- %
+%-   \draw ( 0,13.4) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShock8l1r4Schlieren4}{\figWidth}};
+%-   \draw ( 0, 6.7) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShock8l1r4Schlieren6}{\figWidth}};
+%-   \draw ( 0, 0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfig{images/ellipseShock8l1r4Schlieren10}{\figWidth}};
+%- %
+%-   \timeFrame{images/ellipseShock8l1r4AmrP4}{0.4}{.25}{1.1}{7}{13.4}
+%-   \timeFrame{images/ellipseShock8l1r4AmrP6}{0.6}{.25}{1.1}{7}{6.7}
+%-   \timeFrame{images/ellipseShock8l1r4AmrP10}{1.0}{.25}{1.1}{7}{0}
+%
+ % \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+% \draw[step=1cm,gray] (0,0) grid (14,19);
+\end{tikzpicture}
+\end{center}
+  \caption{Shock driven zero mass ellipse. Schlieren images (left column) and pressure contours (right column)
+ at times $t=0.4$, $t=0.6$ and $=1.0$ using grid $\Gre^{(16\times 4)}$. The block boundaries of the refinement
+   grids are shown superimposed on the pressure contours.}%  {\bf Should we use the same colour bar bounds??.} }
+  \label{fig:shockDrivenEllipse}
+\end{figure}
+}
+
+
+This example shows the simulation of a shock hitting a rigid body in the shape of an ellipse.
+This example demonstrates the new time stepping scheme that has been developed
+to treat the motion of ``light'' rigid bodies~\cite{lrb2012}.
+
+The simulation used the command file {\tt cg/cns/rigidMotion.cmd}
+and the grid was made with the ogen script {\tt Overture/sampleGrids/ellipseArg.cmd}. 

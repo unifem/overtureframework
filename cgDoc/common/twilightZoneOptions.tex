@@ -1,0 +1,40 @@
+\subsubsection{Twilight Zone Options Dialog (twilight zone options...)}\label{sec:twilightZoneOptions}\index{twilight zone options}
+
+Here is a description of the {\em Twilight Zone Options Dialog}.
+
+\noindent The twilight zone {\em type} options are
+\begin{description}
+  \item[\qquad polynomial] : a polynomial function.
+  \item[\qquad trigonometric] : a trigonometric function.
+  \item[\qquad pulse] : a generalized Gaussian pulse.
+\end{description}
+
+\noindent The {\em Error Norm} options are (use this norm when reporting errors)
+\begin{description}
+  \item[\qquad maximum norm] : 
+  \item[\qquad l1 norm] : 
+  \item[\qquad l2 norm] : 
+\end{description}
+
+\noindent The push button options are
+\begin{description}
+  \item[\qquad assign polynomial coefficients] : specify the coefficients in the polynomial function.
+\end{description}
+
+\noindent The toggle button options are
+\begin{description}
+  \item[\qquad twilight zone flow] : turn on the twilight zone flow.
+  \item[\qquad use 2D function in 3D] : use the 2D twilight zone function even in 3D. 
+  \item[\qquad compare 3D run to 2D] : this option will adjust the equations and forcing so
+         that a 3D run on an extruded 2D grid can be compared to the 2D computation. This includes setting
+         the twilight-zone function to be 2D and changing the divergence damping (INS) to be two-dimensional 
+         (otherwise it is scaled in the wrong way).
+  \item[\qquad assign TZ initial conditions] : initial conditions are assigned the twilight zone solution.
+\end{description}
+
+\noindent The text commands are
+\begin{description}
+  \item[\qquad degree in space ] : set the degree in space of the polynomial function.
+  \item[\qquad degree in time ] : set the degree in time of the polynomial function.
+  \item[\qquad frequencies (x,y,z,t)] : set the frequencies in the trigonometric function.
+\end{description}

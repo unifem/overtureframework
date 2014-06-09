@@ -1,0 +1,38 @@
+\subsubsection{Show File Options Dialog (showfile options...)}\label{sec:showfileOptions}\index{showfile options}
+
+Here is a description of the {\em Show File Options} dialog.
+
+\noindent The pull down menu commands are
+\begin{description}
+  \item[\qquad show variables] : toggle on/off variables that should be saved in the show file.
+\end{description}
+
+\noindent The {\em mode} options are
+\begin{description}
+  \item[\qquad compressed] : a compressed file will be
+         smaller (especially for AMR runs that create many grids) but a compressed file may not
+         be readable by future versions. 
+  \item[\qquad uncompressed] : 
+\end{description}
+
+\noindent The push button commands are
+\begin{description}
+  \item[\qquad open] : open a show file. You will be prompted for the name.
+  \item[\qquad close] : close the show file.
+\end{description}
+
+\noindent The text commands are
+\begin{description}
+  \item[\qquad frequency to save] : By default the solution is saved in the show file
+        as often as it is plotted according to {\tt 'times to plot'}. To save the solution less
+        often set this integer value to be greater than 1. A value of 2 for example will save solutions
+        every 2nd time the solution is plotted.
+  \item[\qquad frequency to flush] : Save this many solutions in each show file so that multiple
+      show files will be created (these are automatically handled by plotStuff). See section~(\ref{sec:flush})
+      for why you might do this.  
+  \item[\qquad frequency to save sequences] : specify how often to save sequences (such as the residual for
+                steady state problems).
+  \item[\qquad maximum number of parallel sub-files] : On a parallel machine the show file is split into
+    parallel sub-files. If speed of the parallel writing depends on the number of processors and
+      this value. A good value may be about 8 or 16 (depends on the number of I/O channels). 
+\end{description}

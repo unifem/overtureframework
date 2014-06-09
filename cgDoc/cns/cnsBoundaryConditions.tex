@@ -1,0 +1,191 @@
+\section{Cgcns Boundary Conditions} \label{sec:cgcnsBC}\index{boundary conditions}
+
+Here is a description of the boundary conditions for Cgcns.
+
+{\bf Note:} Normally the boundary conditions assign the primitive variables:
+\begin{alignat}{3}
+  {\tt r} &= \rho , \qquad&&\text{(density)} \\
+  {\tt u} &= u,    &&\text{(x-component of the velocity)} \\
+  {\tt v} &= v ,   &&\text{(y-component of the velocity)}\\
+  {\tt w} &= w ,   &&\text{(z-component of the velocity)}\\
+  {\tt T} &= T,    &&\text{({\em Temperature})} \\
+  {\tt s} &= s,    &&\text{(species component)}
+\end{alignat}
+
+{\bf NOTE:} For the Godunov scheme ${\tt T}$ is defined to be $p/\rho = R_g T$, i.e. the Godunov scheme
+works with $R_g T$ instead of $T$.
+
+
+%      noSlipWall,
+%      slipWall,
+%      superSonicOutflow,
+%      superSonicInflow,
+%      subSonicInflow,
+%      symmetry,
+%      dirichletBoundaryCondition,
+%      neumannBoundaryCondition,
+%      axisymmetric,
+%      farField
+
+% -------------------------------------------------------------
+\subsection{superSonicInflow} \label{sec:bc:superSonicInflow}
+
+At a supersonic inflow all variables are given (since all charcteristics are entering the domain):
+\begin{align}
+   \begin{bmatrix}
+       \rho \\
+       \uv  \\
+       T    \\
+       \sv  
+   \end{bmatrix}
+  = 
+   \begin{bmatrix}
+       \rho_0(\xv,t) \\
+       \uv_0(\xv,t)  \\
+       T_0 (\xv,t)   \\
+       \sv_0(\xv,t)  
+   \end{bmatrix}.
+\end{align}
+
+Examples:
+\begin{enumerate}
+  \item Set the density (r), u component of velocity and total energy, e, (${\tt e} =\rho e + \half \rho |\uv|^2$) to a uniform
+       value on inflow:
+  \begin{flushleft}\tt
+    backGround(0,0)=superSonicInflow uniform(r=2.6667,u=1.25,e=10.119)
+  \end{flushleft}
+  \item Set the density (r), u component of velocity and total energy, temperature, and a species component (s) to a uniform
+       value on inflow:
+  \begin{flushleft}\tt
+    channel(1,0)=superSonicInflow uniform(r=1.0,u=-3.2,T=9.325417e-01,s=2.033854e-02)
+  \end{flushleft}
+\end{enumerate}
+
+% ------------------------------------------------------------------------------------------------
+\subsection{superSonicOutflow} \label{sec:bc:superSonicOutflow}
+
+At a supersonic outflow all variables are extrapolated (since all characteristics are exiting the domain)
+and thus nothing needs to be set.
+
+Example:
+\begin{enumerate}
+  \item Assign superSonicOutflow:
+  \begin{flushleft}\tt
+    backGround(0,1)=superSonicOutflow
+  \end{flushleft}
+\end{enumerate}
+
+% ------------------------------------------------------------------------------------------------
+\subsection{slipWall} \label{sec:bc:slipWall}
+
+At a slip wall the normal component of the velocity is specified (normally zero
+for a non-moving wall),
+\begin{align}
+   \nv\cdot\uv & = g(\xv,t) 
+\end{align}
+
+Example:
+\begin{enumerate}
+  \item Assign a slipWall boundary condition,
+  \begin{flushleft}\tt
+    annulus(0,1)=slipWall
+  \end{flushleft}
+\end{enumerate}
+
+There are different implementations of the slip wall BC. These are
+chosen using the following option:
+\begin{flushleft}\tt
+  OBPDE:slip wall boundary condition option [0|1|2|3|4]
+\end{flushleft}
+(** finish me**)
+
+% ------------------------------------------------------------------------------------------------
+\subsection{subSonicInflow} \label{sec:bc:subSonicInflow}
+
+At a subsonic inflow there is one characteristic leaving the domain so
+that all variables except one are specified. There are different possible options
+that one could apply for subsonic inflow. 
+Here we set the incoming velocity and apply mixed conditions on
+the density and temperature (**check me**)
+\begin{align}
+  \text{subSonicInflow:}\quad
+   \begin{bmatrix}
+   \alpha_\rho \rho + \beta_\rho \rho_n  = g_{\rho}(\xv,t) , \\
+       \uv  \\
+   \alpha_T T + \beta_T T_n  = g_T(\xv,t), \\
+       \sv  
+   \end{bmatrix}
+  = 
+   \begin{bmatrix}
+       \rho_0(\xv,t) \\
+       \uv_0(\xv,t)  \\
+       T_0(\xv,t) \\
+       \sv_0(\xv,t)  
+   \end{bmatrix}.
+\end{align}
+By default $(\alpha_\rho,\beta_\rho)=(1,1)$ and $(\alpha_T,\beta_T)=(1,1)$.
+The mixed derivative condition ($\beta>0$) is a softer condition that allows waves to exit
+the domain with fewer reflections. Note that if the flow is nearly uniform at inflow then
+$\rho_n\approx 0$ and $T_n \approx 0$ 
+and the condition reduces to a dirichlet condition. 
+
+Examples:
+\begin{enumerate}
+  \item Set the velocity $(u,v,w)=(1,0,0)$, $\rho+\rho_n=1$ and $T+T_n=300$:
+  \begin{flushleft}\tt
+    square(0,0)=subSonicInflow uniform(r=1.,u=1,v=0,w=0,T=300.)
+  \end{flushleft}
+\end{enumerate}
+
+
+% ------------------------------------------------------------------------------------------------
+\subsection{subSonicOutflow} \label{sec:bc:subSonicOutflow}
+
+
+At a subsonic outflow there is one characteristic entering the domain and thus one variable
+should be set and all others can be extrapolated. At a subsonic outflow we set the 
+temperature (i.e. $p/\rho$ for the Godunov scheme) at outflow or a mixed derivative on the
+temperature 
+\begin{align}
+   \alpha T + \beta T_n  = g(\xv,t).
+\end{align}
+The mixed derivative condition ($\beta>0$) is a softer condition that allows waves to exit
+the domain with fewer reflections. Note that if the flow is nearly uniform at outflow then
+$T_n \approx 0$ and the condition reduces to a dirichlet condition. Normally one might set
+$\alpha=1$ and $\beta$ a small value, e.g. $\beta=.1$ (but note that $\beta$ dimensional quantity
+and thus should scale with the domain size)
+\begin{align}
+   T + \beta T_n  = T_0(\xv,t). \label{eq:mixedOutflow}
+\end{align}
+Equation~\eqref{eq:mixedOutflow} will thus approximate $T \approx T_0(\xv,t)$ if $\beta T_n$ is small.
+
+Example:
+\begin{enumerate}
+  \item Set $T\approx 300$ and outflow:
+  \begin{flushleft}\tt
+    square(1,0)=subSonicOutflow mixedDerivative(1.*t+.1*t.n=300.)
+  \end{flushleft}
+\end{enumerate}
+
+
+% ------------------------------------------------------------------------------------------------
+\subsection{Axisymmetric} \label{sec:bc:axisymmetric}
+
+The axisymmetric boundary condition is used to specify an axisymmetric boundary
+for two-dimensional axisymmetric computations (see Section~\ref{sec:axisymmetricEquations}),
+The conditions on an axisymmetric boundary $y=0$ are (**CHECK ME**)
+\begin{align}
+   \rho_y(x,0) &=0 , \\
+   u_y(x,0) &=0 , \\
+   v(x,0) &=0, \\
+   T_y(x,0) &=0
+\end{align}
+
+
+Example:
+\begin{enumerate}
+  \item Assign superSonicOutflow:
+  \begin{flushleft}\tt
+    bcNumber3=axisymmetric
+  \end{flushleft}
+\end{enumerate}

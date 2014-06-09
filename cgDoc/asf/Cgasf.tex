@@ -1,0 +1,1159 @@
+%-----------------------------------------------------------------------
+% OverBlown -- the super de duper solver
+%
+%-----------------------------------------------------------------------
+\documentclass{article}
+
+\addtolength{\oddsidemargin}{-.975in}
+\addtolength {\textwidth} {2.0in}
+
+\addtolength{\topmargin}{-.25in}
+\addtolength {\textheight} {1.5in}
+
+\hbadness=10000 % \tolerance=10000
+\sloppy \hfuzz=30pt
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{verbatim}
+\usepackage{moreverb}
+
+\usepackage{graphics}    
+\usepackage{epsfig}    
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage{float}
+\usepackage{fancybox}
+
+% ---- we have lemmas and theorems in this paper ----
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+
+\newcommand{\primer}{/users/henshaw/res/primer}
+\newcommand{\GF}{/users/\-henshaw/\-res/\-gf}
+\newcommand{\gf}{/users/henshaw/res/gf}
+\newcommand{\mapping}{/users/henshaw/res/mapping}
+\newcommand{\ogshow}{/users/henshaw/res/ogshow}
+\newcommand{\oges}{/users/henshaw/res/oges}
+\newcommand{\cguser}{/users/henshaw/cgap/cguser}
+\newcommand{\figures}{../docFigures}
+\newcommand{\obFigures}{./docFigures}  % note: local version for OverBlown
+
+\newcommand{\OVERTUREOVERTURE}{/users/\-henshaw/\-Overture/\-Overture}
+\newcommand{\OvertureOverture}{/users/henshaw/Overture/Overture}
+
+\newcommand{\RA}{realArray}
+\newcommand{\MGF}{MappedGridFunction}
+\newcommand{\RMGF}{realMappedGridFunction}
+\newcommand{\RCGF}{realCompositeGridFunction}
+
+\newcommand{\DABO}{Differential\-And\-Boundary\-Operators}
+
+\newcommand{\MG}{Mapped\-Grid}
+\newcommand{\GC}{Grid\-Collection}
+\newcommand{\CG}{Composite\-Grid}
+\newcommand{\MGCG}{Multigrid\-Composite\-Grid}
+
+\newcommand{\MGO}{MappedGridOperators}
+\newcommand{\GCO}{Grid\-Collection\-Operators}
+\newcommand{\CGO}{Composite\-Grid\-Operators}
+\newcommand{\MGCGO}{Multigrid\-Composite\-Grid\-Operators}
+
+\newcommand{\Overture}{{\bf Overture\ }}
+\newcommand{\OverBlown}{{\bf OverBlown\ }}
+\newcommand{\overBlown}{{\bf overBlown\ }}
+
+
+\begin{document}
+
+
+% -----definitions-----
+\def\R      {{\bf R}}
+\def\Dv     {{\bf D}}
+\def\bv     {{\bf b}}
+\def\dv     {{\bf d}}
+\def\fv     {{\bf f}}
+\def\Fv     {{\bf F}}
+\def\gv     {{\bf g}}
+\def\Gv     {{\bf G}}
+\newcommand{\lv}{{\bf l}}
+\newcommand{\ev}{{\bf e}}
+\newcommand{\hv}{{\bf h}}
+\def\Hv     {{\bf H}}
+\def\iv     {{\bf i}}
+\def\jv     {{\bf j}}
+\def\Jv     {{\bf J}}
+\def\kv     {{\bf k}}
+\def\nv     {{\bf n}}
+\def\Pv     {{\bf P}}
+\def\rv     {{\bf r}}
+\def\tv     {{\bf t}}
+\def\uv     {{\bf u}}
+\def\Uv     {{\bf U}}
+\def\Rv     {{\bf R}}
+\def\vv     {{\bf v}}
+\def\Vv     {{\bf V}}
+\def\xv     {{\bf x}}
+\def\yv     {{\bf y}}
+\def\zv     {{\bf z}}
+\def\lt     {{<}}
+\def\grad    {\nabla}
+\def\comma  {~~~,~~}
+\def\uvd    {{\bf U}}
+\def\ud     {{    U}}
+\def\pd     {{    P}}
+\def\calo{{\cal O}}
+
+\newcommand{\mbar}{\bar{m}}
+\newcommand{\Rbar}{\bar{R}}
+\newcommand{\Ru}{R_u}         % universal gas constant
+\newcommand{\Iv}{{\bf I}}
+\newcommand{\qv}{{\bf q}}
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{{\bf \tau}}
+\newcommand{\sumi}{\sum_{i=1}^n}
+\newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+\def\ff {\tt} % font for fortran variables
+
+\vglue5\baselineskip
+\begin{flushleft}
+{ \Large A Solution Adaptive Solver for the Navier-Stokes Equations for All-Speed Flows 
+}
+\vskip2\baselineskip
+Bill Henshaw \\
+\vskip\baselineskip
+Centre for Applied Scientific Computing, \\
+Lawrence Livermore National Laboratory, \\
+henshaw@llnl.gov 
+ 
+\vskip4\baselineskip
+
+\noindent{\bf Abstract:}
+We describe a numerical approach for solving the Navier-Stokes equations
+at all speeds. For medium to large Mach number the scheme becomes a
+standard high-resolution shock-capturing method (any one of a number
+of possiblities). For small Mach numbers we use an implicit method that
+damps sounds waves and uses a time step determined by the convective
+velocity. The implicit method converges to a standard pressure-Poisson
+method for incompressible flows.
+
+
+\end{flushleft}
+
+\tableofcontents
+% \listoffigures
+
+\section{Introduction}
+
+\subsection{Conservative form} 
+The compressible Navier-Stokes equations can be written in
+conservation form
+$$
+   \uv_t + {\partial \Fv\over \partial x_1}
+         + {\partial \Gv\over \partial x_2}
+         + {\partial \Hv\over \partial x_3}    =  0 .
+$$
+The vector of conserved variables $\uv$ is
+$$
+ \uv = \left[ \begin{array}{c}
+    \rho \\ E \\ \rho v_1 \\ \rho v_2  \\  \rho v_3
+              \end{array}\right]  ~,~
+$$
+where $\rho$, $E$ and $\uv=[v_1,v_2,v_3]^T$ denote the density, energy and
+velocity vector with components parallel to the $x_1$, $x_2$, and $x_3$ axes, respectively.  The fluxes
+$$
+  \left[ \begin{array}{c}
+    \Fv \\ \Gv \\ \Hv
+              \end{array}\right]
+ =\left[ \begin{array}{c}
+    \Fv^C \\ \Gv^C \\ \Hv^C
+              \end{array}\right]
+ -\left[ \begin{array}{c}
+    \Fv^V \\ \Gv^V \\ \Hv^V
+              \end{array}\right]
+$$
+ are a combination of
+{\it convective} fluxes $[\Fv^C,\Gv^C,\Hv^C]^T$ and {\it viscous}
+fluxes $[\Fv^V,\Gv^V,\Hv^V]^T$.
+% $[\Fv,\Gv,\Hv]=[\Fv^C-\Fv^V,\Gv^C-\Gv^V,\Hv^C-\Hv^V]$
+The convective (or Euler) fluxes are given by
+$$
+ \Fv^C = \left[ \begin{array}{c}
+ \rho v_1 \\ v_1(E+p) \\ \rho v_1^2 + p \\ \rho v_2 v_1 \\ \rho v_3 v_1
+                \end{array}\right]  ~,~
+ \Gv^C = \left[ \begin{array}{c}
+ \rho v_2 \\ v_2(E+p) \\ \rho v_1 v_2 \\ \rho v_2^2+p \\ \rho v_3 v_2
+                \end{array}\right]  ~,~
+ \Hv^C = \left[ \begin{array}{c}
+ \rho v_3 \\ v_3(E+p) \\ \rho v_1 v_3 \\ \rho v_2 v_3 \\ \rho v_3^2+p
+                \end{array}\right]  ~,~
+$$
+and the viscous fluxes are
+$$
+ \Fv^V = \left[ \begin{array}{c}
+    0 \\ \sum_n v_n\tau_{1n}-q_1
+      \\ \tau_{11} \\  \tau_{12} \\ \tau_{13}
+                \end{array}\right]  ~,~
+ \Gv^V = \left[ \begin{array}{c}
+    0 \\ \sum_n v_n\tau_{2n}-q_2
+      \\ \tau_{21} \\  \tau_{22} \\ \tau_{23}
+                \end{array}\right] ~,~
+ \Hv^V = \left[ \begin{array}{c}
+    0 \\ \sum_n v_n\tau_{3n}-q_3
+      \\ \tau_{31} \\  \tau_{32} \\ \tau_{33}
+                \end{array}\right]   ~.
+$$
+The pressure, p, and temperature, $T$, are given by the relations
+\begin{eqnarray*}
+   p &=& (\gamma-1)[ E - {1\over2} \rho (v_1^2+v_2^2+v_3^2) ], \\
+   T &=& {p\over\rho R_g},
+\end{eqnarray*}
+where $R_g$ is the gas constant.
+The viscous stress terms, $\tau_{mn}$, and heat flux, $q_n$, are given by
+\begin{eqnarray*}
+  \tau_{mn} &=&  \mu( {\partial v_n \over\partial x_m}
+                     +{\partial v_m \over\partial x_n}     )
+            - {2\over3}\mu( \grad\cdot\uv ) \delta_{mn}, \\
+   q_n &=& -k {\partial T \over \partial x_n} \\
+%  =   -{k\over R_g} {\partial \over \partial x_n}
+%      \left({p\over\rho}\right)
+%  := -{\tilde{k}} {\partial \over \partial x_n}
+%      \left({p\over\rho}\right),
+\end{eqnarray*}
+where $\delta_{mn}$ is the Kronecker delta and $\tilde{k}=k/R_g$
+is a scaled thermal conductivity.
+
+
+
+\subsection{Non-conservative form} 
+
+The compressible Navier-Stokes equations for an ideal gas can be
+written in the the form
+\begin{align}
+   \rho_t + (\uv\cdot\grad)\rho + \rho( \grad\cdot\uv) &= 0           \label{eq:ncr} \\
+   \uv_t +(\uv\cdot\grad)\uv + {1\over \rho} \grad p
+  &= {\mu\over \rho}[\Delta \uv + {1\over 3}\grad(\grad\cdot\uv)]  \label{eq:ncu}\\
+   T_t + (\uv\cdot\grad) T +(\gamma-1) T \grad\cdot\uv
+       & = {1\over\rho c_v} \left\{ \grad\cdot( \lambda \grad T) + \Phi \right\}  \\
+       & = {\gamma-1\over \rho R}  \left\{ \grad\cdot( k \grad T) + \Phi \right\}   \label{eq:nct}
+\end{align}
+where $\rho$ is the density, $\uv=[v_1,v_2,v_3]^T$ is the velocity,
+ $p$ the pressure
+and $T$ the temperature.
+The equation of state for an ideal gas is
+$$
+     p = \rho R_g T
+$$
+and
+$$
+\Phi = \mu
+\sum_{ij} (v_i)_{x_j} ((v_j)_{x_i} + (v_i)_{x_j} )
++ \lambda (\grad\cdot\uv)^2
+$$
+with $\lambda=-{2\over3} \mu$.
+Also
+$$
+\begin{array}{rl}
+ \mu  &= \mbox{viscosity coefficient} \\
+ R_g  & = p/(\rho T), \mbox{ gas constant} \\
+   \gamma & = C_p/C_v, \mbox{ ratio of specific heats} \\
+\tilde{k}&=k/R_g,\mbox{ Coefficient of thermal conductivity over } R_g
+\end{array}
+$$
+In non-dimensional units ( with $\rho$,$\uv$,$T$ scaled to one) there are
+three nondimensional parameters, $Re$ (Reynolds number),
+$M$ (Mach number)
+and $Pr$ (Prandtl number). They are related to $\mu$,
+$\tilde{k}$, and $R_g$ as:
+$$
+           \mu    = {1\over Re}   \comma
+            R_g   = {1 \over \gamma M^2}   \comma
+      \tilde{k}   = {\gamma \over \gamma-1} {1\over Pr} {1\over Re}
+$$
+
+
+
+\section{The Low-Mach Number Algorithm}
+
+
+When the mach number is low we solve the Navier-Stokes equations in the following form
+\begin{align*}
+   \rho_t + \grad\cdot(\rho \uv) &= 0 \\
+   \uv_t + (\uv\cdot\grad)\uv + {1\over\rho}\grad p &= {1\over\rho} \mu [\Delta \uv + \grad(\grad\cdot\uv) ] \\
+   p_t + (\uv\cdot\grad) p + \gamma p \grad\cdot\uv &= 
+           (\gamma-1)\left\{  \grad\cdot( k \grad T) + \Phi \right\} 
+\end{align*}
+The equation for the energy has been rewritten as an equation for the pressure. This pressure equation can be 
+derived by multiplying equation (\ref{eq:ncr}) by $R_gT$ and adding this to equation (\ref{eq:nct}) times
+$R_g\rho$.
+
+We write the system as
+\[
+   \Uv_t = A \Uv + B \Uv 
+\]
+where $\Uv=[\rho, \Uv, p]^T$ and  $A$ holds the {\sl fast} part of the operator:
+\[
+  A = \left[ \begin{array}{ccc}
+                0 & 0 & 0 \\
+                0 & 0 & -{1\over\rho} \grad  \\
+                0 &  -\gamma p \grad  & 0 
+             \end{array} \right]
+\]
+The operator $A$ will be treated with an implicit time-stepping approach.  
+We use the a semi-implicit time-stepping method of the form
+\begin{equation}
+(I - \alpha_0 {\Delta t} A) \Uv^{n+1} = \alpha_1 \Uv^n + \alpha_2\Uv^{n-1}
+                  + \sum_{j=0}^2 \beta_j B \Uv^{n-j}  \label{eq:ts}
+\end{equation}
+One choice of method is
+\begin{alignat*}{3}
+ \alpha_0 &=2/3, &\quad \alpha_1&=4/3,  &\quad \alpha_2&=-1/3, \\
+ \beta_0&=16/9,  &\quad \beta_1&=-14/9, &\quad  \beta_2&=4/9 
+\end{alignat*}
+In this case he operator $A$ has been discretized in time with a 2nd order backward differentiation 
+formula while the
+operator $B$ is treated with a 3rd order accurate explicit time discretization. 
+
+Another choice is
+\begin{alignat*}{3}
+ \alpha_0 &=1, , &\quad \alpha_1 &=1, , &\quad \alpha_2&=0, \\
+ \beta_0 &=3/2,, &\quad  \beta_1 &=-1/2, , &\quad \beta_2&=0
+\end{alignat*}
+which is a combination of backward-Euler and Adams-Bashforth.
+
+As the Mach number goes to zero, both these  methods will damp the sound waves. The
+backward-Euler approach will damp the sound waves more rapidly than the second-order
+backward-differential scheme. (I think BE goes like $e^{-t/M}$ and the 2nd-order-BD like
+$e^{-t/\sqrt{M}}$).
+The time step $\Delta t$ will not be limited by the speed of sound.
+The method will be stable provided $\Delta t$ satisfies a condition of the form
+\[
+           c_0 |\uv| {\Delta t\over \Delta x} + c_1 \nu {\Delta t \over \Delta x ^2} < 1
+\]
+
+
+\newcommand{\dx}{{\Delta x}}
+\newcommand{\pf}{\tilde{p}}   
+To prevent the checker-board instability in the pressure we discretize and solve these
+equations in a particular manner. The implicit part of the equations look like
+\begin{align}
+   \uv^{n+1} + \alpha_0 \dt {1\over\rho^{n+1}}\grad p^{n+1} &= \fv_1  \label{eq:ui} \\
+   p^{n+1} + \alpha_0 \dt \gamma p^{n+1} \grad\cdot\uv^{n+1} &= f_2   \label{eq:pi}
+\end{align}
+where
+\begin{align}
+  \fv_1 & = \alpha_1 \uv^{n} + \alpha_2 \uv^{n-1} + \sum_{j=0}^2 \beta_j \hat{\fv}^{n-j} \\
+  \hat{\fv}^{j} &= -(\uv^j \cdot\grad)\uv^j  + {1\over\rho^j } \mu [\Delta \uv^j  + \grad(\grad\cdot\uv^j ) ] \\
+  f_2 &= \alpha_1 p^{n} + \alpha_2 p^{n-1} + \sum_{j=0}^2 \beta_j \hat{g}^{n-j} \\
+  \hat{g}^j &= -(\uv^j\cdot\grad) p^j + (\gamma-1)\tilde{k} \Delta({p^j\over \rho^j}) +(\gamma-1)\mu \Phi^j
+\end{align}
+Rather than discretize and solve the system (\ref{eq:ui})-(\ref{eq:pi}), we first eliminate $\uv^{n+1}$ and
+form an equation for $p^{n+1}$
+\begin{equation} \label{eqn:pressure}
+   p^{n+1} - (\alpha_0\dt)^2 \gamma p^{n+1} \grad\cdot( {1\over\rho^{n+1}}\grad p^{n+1} ) 
+          = f_2 -   \alpha_0\dt \gamma p^{n+1} \grad\cdot\fv_1
+\end{equation}
+In principle this is a horrible nonlinear equation for $p^{n+1}$. In practice, since
+$p^{n+1} \sim P_0(t)/M^2 + \pf/M$ as the Mach number goes to zero, this is basically
+a nice linear equation for the {\sl incompressible} part of the pressure.
+**Some problems with round-off errors may occur in computing the incompressible
+pressure when the Mach number is very small.
+
+We solve the pressure equation \ref{eqn:pressure} as follows:
+\begin{itemize}
+  \item Get $\rho^{n+1}$ by an explicit time step.
+  \item Make a guess for $p^{n+1}$ of $p^* = 2 p^n - p^{n-1}$
+  \item Solve the \underline{linear} system
+\begin{equation} \label{eqn:pressure2}
+   p^{n+1} - (\alpha_0\dt)^2 \gamma p^* \grad\cdot( {1\over\rho^{n+1}}\grad p^{n+1} ) 
+          = f_2 -   \alpha_0\dt \gamma p^{n+1} \grad\cdot\fv_1
+\end{equation}
+    Note that since $p^*$ is almost constant and appears only as a coefficient (no derivatives
+    of $p^*$ are used) then we expect this to give an accurate result.
+\end{itemize}
+
+
+% ------------------------------------------------------------------------------------------------------------------------
+\section{Motivation}
+
+Suppose that for low Mach numbers we are interested in computing solutions to
+the compressible N-S equations that converge to the solutions of the incompressible
+N-S equations. In this case we are not interested in the fast acoustic sound waves.
+
+If we scale the velocity and density to be order one then
+for low Mach numbers, $\epsilon=M$, the pressure will take the form
+\[
+    p = {1\over \epsilon^2} P_0(t) + {1\over\epsilon} \pf
+\]
+where the mean value of $\pf$ is zero??
+(Latter we will see that actually $\pf=O(\epsilon)$ in our case).
+The large, spatially constant, part of the pressure, $P_0(t)$ will statisfy the equation
+\[
+  {d P_0 \over dt} \int_{\Omega} d\xv + \gamma P_0(t) \int_{\partial \Omega} \partial_n \uv ds = 0
+\]
+
+Then the system becomes
+\begin{eqnarray*}
+   \rho_t + \grad\cdot(\rho \uv) &=& 0 \\
+   \uv_t + (\uv\cdot\grad)\uv + {1\over\epsilon\rho}\grad \pf &=& 0 \\
+   \pf_t + (\uv\cdot\grad) \pf + \gamma ({1\over \epsilon} P_0(t) + \pf) \grad\cdot\uv &=& 0 
+\end{eqnarray*}
+In this form we see more clearly why the time step for an explicit method must become small when
+$\epsilon$ is small.
+
+Solutions of this system converge, as $\epsilon\rightarrow 0$, 
+ to solutions of the incompressible NS equations under certain conditions on the initial data.
+For example by applying the bounded-derivative principle: assume that $\uv_t$ and $p_t$ are
+bounded at $t=0$ then for an order 1 time
+$\grad\pf=O(\epsilon)$ and $\grad\cdot\uv=O(\epsilon)$. Thus $\pf=O(\epsilon)$ and we see
+that we are almost solving the incompressible NS equations.
+
+
+\section{Some more details on the algorithm}
+
+\subsection{Subtracting off the mean pressure}
+
+When $M\ll 1$ the pressure becomes large and we can loose accuracy in the non-constant part of
+the pressure. For example if $M=.01$ then $p=10^4+\pf$ and if $\pf=O(1)$ then we loose 4 digits
+in the representation of $\pf$.
+To fix this difficulty we can subtract off a mean value from the pressure
+\[
+    \hat{p} = p - p_0
+\]
+and then we can solve for $\hat{p}$ instead of $p$. ***But what happens if $P_0$ depends on time???
+
+
+\subsection{linearization of the pressure equation}
+
+When the Mach number is small the pressure equation (\ref{eqn:pressure}) is basically constant coefficient.
+We can thus linearize the pressure equation so that the matrix does not change over time (this may
+be important if we have a sparse solver that factors the matrix or one that does substantial work
+to compute preconditionners). 
+
+We can still retain an accurate answer by putting the correction terms into the explicit
+part of the equations. Thus when we write the system as
+\[
+   \Uv_t = A \Uv + B \Uv 
+\]
+we can take 
+\[
+  A = \left[ \begin{array}{ccc}
+                0 & 0 & 0 \\
+                0 & 0 & -{1\over\rho_L}  \grad  \\
+                0 &  -\gamma p_L  \grad  & 0 
+             \end{array} \right]
+\]
+where $p_L$, $\rho_L$ are the states that we linearize about. The matrix $B$ will change so that
+we still solve the full system. Of course in this case the time step will depend on the fast time scale
+but this will be okay as long as $p-p_L$ is not too big. The time step restriction will be something like (??)
+$$
+      u + \sqrt{ \gamma {(p-p_L){{1\over\rho}- {1\over\rho_L}} } } {\Delta t \over \Delta x}
+$$
+
+\section{Choosing the time step}
+
+To determine the time step for the system
+\begin{align*}
+   \rho_t + \grad\cdot(\rho \uv) &= 0 \\
+   \uv_t + (\uv\cdot\grad)\uv + {1\over\rho}\grad p &= {1\over\rho} \mu [\Delta \uv + \grad(\grad\cdot\uv) ] \\
+   p_t + (\uv\cdot\grad) p + \gamma p \grad\cdot\uv &= 
+           (\gamma-1)\tilde{k} \Delta({p\over \rho}) +(\gamma-1) \Phi
+\end{align*}
+we first transform the equations to the unit square coordinates,
+\[
+  \Uv_t + A_i {\partial \over \partial r_i} \Uv 
+     + B_{ij} {\partial^2 \over \partial r_i \partial r_j} \Uv = 0
+\]
+here
+\[
+A_m =
+\begin{bmatrix} 
+            U_m & \rho \partial_x r_m & \rho \partial_y r_m & \rho \partial_z r_m & 0 \\
+            0   & U_m                 & 0                   & 0                   & (\partial_x r_m)/\rho \\ 
+            0   & 0                   & U_m                 & 0                   & (\partial_y r_m)/\rho \\
+            0   & 0                   & 0                   & U_m                 & (\partial_z r_m)/\rho \\
+            0   & (\gamma p/\rho)\partial_x r_m & (\gamma p/\rho)\partial_y r_m &(\gamma p/\rho)\partial_z r_m  & U_m
+\end{bmatrix}
+\]
+and
+\[
+    U_m =  \sum_i {\partial r_m \over \partial x_i} u_i 
+\]
+
+Next we discretize using central difference operators
+\[
+  \partial_ t \Vv_\nu + A_i D_{0,r_i} \Vv_\nu
+     + \sum_i B_{ii} D_{+,r_i} D_{-,r_i}\Vv_\nu + \sum_{ij,i\ne j} D_{0,r_i} D_{0,r_j} \Vv_\nu = 0
+\]
+Here $\Vv_\nu(t)\approx \Uv(\xv_\nu,t)$.
+
+
+\newcommand{\omegav}{{\bf\omega}}
+If we freeze coefficients and Fourier transform, $\Vv_\nu(t) = \hat{\Vv}(t)e^{2\pi i \omegav\cdot\xv_\nu}$ 
+ then we get a system
+\[
+   \hat{\Vv}_t + \sum_j A_j {i\sin(\xi_j) \over \Delta r_j} \hat{\Vv}
+     - \sum_j B_{jj} {4 \sin^2( \xi_j/2) \over {\Delta r_j}^2 } \hat{\Vv} + ...
+\]
+Here $\xv_j = j \Delta \rv$, $\xi_j = 2\pi\omega_j \Delta r_j$, with $-\pi \le \xi_j < \pi$, and the
+coefficient matrixes are parameterized by the frozen coefficients $\bar{\xv}$, $A_j=A_j(\bar{\xv})$
+
+\newcommand{\omegah}{{\hat{\omega}}}
+The eigenvalues of this system are
+\begin{align}
+  \lambda & = i ( \omegah_1 U + \omegah_2 V + \omegah_3 W ) \equiv i \hat{U} \\
+  \lambda & = i \hat{U} \pm i \sqrt{ {\gamma p \over \rho}
+         [ (\omegah_1 r_x + \omegah_2 s_x + \omegah_3 t_x)^2
+          +(\omegah_1 r_y + \omegah_2 s_y + \omegah_3 t_y)^2 + ... ] }   \\
+    &     - \sum_j B_{jj}  {4 \sin^2( \xi_j/2)\over {\Delta r_j}^2 }
+\end{align}
+where
+\[
+    \omegah_j = { \sin(\xi_j) \over \Delta r_j }
+\]
+For stability we require that
+\[
+     \lambda(\xi_j,\bar{\xv}) \dt \in \mathcal{S}
+\]
+for all $-\pi \le \xi_j < \pi$ , and all possible values for $\bar{\xv}$,
+where $\mathcal{S}$ is the 
+the stability region of the time stepping method.
+
+
+
+\subsection{Variable time step}
+
+When the time step changes we need to alter the parameters $\alpha_j$ and $\beta_j$
+that appear in the time stepping formula (\ref{eq:ts}).
+
+
+The formula for backward-Euler and Adams-Bashforth,
+\begin{alignat*}{3}
+ \alpha_0&=1, , &\quad \alpha_1&=1, , &\quad \alpha_2&=0, \\
+ \beta_0&=3/2,, &\quad  \beta_1&=-1/2, , &\quad \beta_2&=0
+\end{alignat*}
+becomes
+\begin{alignat}{3}
+\alpha_0&=1,  &\quad \alpha_1=1,   &\quad  \alpha_2=0, \\
+\beta_0&=1+{1\over 2\gamma},  &\quad \beta_1=-{1\over 2\gamma}, &\quad \beta_2=0
+\end{alignat}
+where
+\[
+   \gamma = { \Delta t_{n-1} \over \Delta t_{n} }
+\]
+
+The values for the 2nd-order backward-differentiation and 3rd-order Adams-Bashforth,
+\begin{alignat*}{3}
+ \alpha_0&=2/3, &\quad \alpha_1&=4/3,  &\quad \alpha_2&=-1/3, \\
+ \beta_0&=16/9,  &\quad \beta_1&=-14/9, &\quad  \beta_2&=4/9 
+\end{alignat*}
+become
+\begin{alignat}{3}
+ \alpha_0&={\gamma+1\over \gamma+2}, &\quad \alpha_1&={(\gamma+1)^2\over \gamma(\gamma+2)},  
+                                      &\quad \alpha_2&=-{1\over \gamma(\gamma+2)}, \\
+ \beta_0 &=1+\gamma\alpha_2-\beta_1-\beta_2,        &\quad 
+ \beta_1 &={ \mu/4 +{1\over 6} + \alpha_2\gamma^2/2(\gamma/3-\mu/2) \over \gamma/2(\gamma-\mu)}, &\quad 
+ \beta_2 &={\alpha_2\gamma^2-1\over 2\mu} -{\beta_1\gamma \over \mu}
+\end{alignat}
+where
+\begin{align*}
+   \gamma & = { \Delta t_{n-1} \over \Delta t_{n} } \\
+   \mu & = { \Delta t_{n-2} \over \Delta t_{n} } 
+\end{align*}
+
+\section{Boundary Conditions}
+
+
+For the compressible NS equations the boundary conditions at a no-slip wall usually are given as
+\begin{align}
+  \uv & = 0 \\
+  \alpha {\partial T \over \partial n} + \beta T &= g
+\end{align}
+
+For the incompressible equations (written in standard form with $\grad\cdot\uv=0$) the boundary conditions
+are
+\begin{align}
+  \uv & = 0 
+\end{align}
+while for the incompressible equations written in velocity-pressure form the boundary conditions
+are
+\begin{align}
+  \uv & = 0 \\
+  \grad\cdot\uv & = 0
+\end{align}
+with a numerical boundary condition obtained from the normal component of the momentum equations
+\[
+  {\partial p \over \partial n} = \nu \nv\cdot\Delta \uv
+\]
+
+For our semi-implicit method we would like ...
+
+
+Recall that the implicit equations are
+\begin{align}
+   \uv^{n+1} + \alpha_0 \dt {1\over\rho^{n+1}}\grad p^{n+1} &= \fv_1  \label{eq:ui} \\
+   p^{n+1} + \alpha_0 \dt \gamma p^{n+1} \grad\cdot\uv^{n+1} &= f_2   \label{eq:pi}
+\end{align}
+If we impose the normal component of the first equation and the second equation on the boundary 
+then we get equations for $p_n$ and $\grad\cdot\uv$ on
+the boundary, which, in the limit of the Mach number going to zero, reduce to the same boundary conditions
+used in the incompressible case.
+
+In the (most common) zero mach number limit, the temperature decouples from the other variables and can be
+solved independently (given $\rho$ and $\uv$)
+\begin{align}
+  T_t + \uv\cdot\grad T + ... = {\kappa\over\rho} \Delta T \\
+  \alpha {\partial T \over \partial n} + \beta T = g \qquad \mbox{on the boundary}
+\end{align}
+  
+
+% The equation of state is
+% \[
+%   p = \rho R T = {\rho T \over \gamma M^2}
+% \]
+% If the wall BC for $T$ is $T_n=0$ then
+% \[
+%   p_n = { \rho_n  T \over \gamma M^2}
+% \] 
+
+
+
+
+
+
+\section{Low Mach Number Asymptotics}
+
+
+Much can be learned about the behaviour of the solutions for low Mach number by considering 
+an asymptotic expansion.
+
+We consider the full equations. We write down the pressure equation, temperature equation
+and the equation of state, even though these are linearly dependent. After choosing non-dimensional
+variables the equations become
+\begin{align*}
+   \rho_t + \uv\cdot\grad\rho + \rho\grad\cdot\uv &= 0 \\
+   \uv_t + (\uv\cdot\grad)\uv + {1\over\rho}\grad p &= {1\over\rho} {1\over Re} [\Delta \uv + \grad(\grad\cdot\uv) ] \\
+   p_t + (\uv\cdot\grad) p + \gamma p \grad\cdot\uv &= 
+           {1 \over M^2 Pr Re}  \Delta{T} +{(\gamma-1)\over Re} \tilde{\Phi}    \\
+   T_t + (\uv\cdot\grad) T +(\gamma-1) T \grad\cdot\uv
+       &= {\gamma \over Pr Re} { 1 \over \rho } \Delta T
+       + (\gamma-1) { \gamma M^2 \over Re} {1\over \rho } \tilde{\Phi}               \\
+   p &= \rho R_g T
+\end{align*}
+
+
+\newcommand{\eps}{\epsilon}
+
+Now if we let $\eps = M^2$ and make the asymptotic expansion
+\begin{align*}
+    \rho &= \rho^I + \eps \rho^1 + \eps^2 \rho^2 \\
+    \uv  &= \uv^I  + \eps \uv^1  + \eps^2 \uv^2 \\
+    p   &= {p_0\over\eps} + p^I  + \eps p^1 \\
+    T   &= T^I + \eps T^1 
+\end{align*}
+where $p_0$ is a scalar which may depend on $t$.
+
+Substituting this exapansion into the equations and equating powers of $\eps$
+implies that to leading order
+\begin{align}
+    \rho^I_t + \uv^I\cdot\grad\rho^I  +\rho^I \grad\cdot\uv^I &= 0 \\
+   \uv^I_t + (\uv^I\cdot\grad)\uv^I + {1\over\rho^I}\grad p^I &= {1\over\rho^I} {1\over Re}[\Delta \uv^I + \grad(\grad\cdot\uv^I) ] \\
+   p_0 \grad\cdot\uv^I &=  {1 \over Pr Re} \Delta T^I  \label{eq:div} \\
+   T^I_t + (\uv^I\cdot\grad) T^I +(\gamma-1) T^I \grad\cdot\uv^I
+       &= {\gamma \over Pr Re} { 1 \over \rho^I } \Delta T^I \\
+   \gamma p_0 &= \rho^I T^I
+\end{align}
+Thus
+\[
+\grad\cdot\uv^I = {\gamma \over Pr Re} { 1 \over \rho^I T^I } \Delta T^I
+\]
+It is interesting that by replacing this expression for $\grad\cdot\uv^I$ in the first equation 
+that
+\[
+    \rho^I_t + \uv^I\cdot\grad\rho^I  =  {\gamma \rho^I \over Pr Re} \grad\cdot( {1\over (\rho^I)^2} \grad \rho^I )
+\]
+and thus we see that the density equation is diffusive. By a similar subsitution the temperature eqution becomes
+\[
+   T^I_t + (\uv^I\cdot\grad) T^I 
+       = {\gamma(2-\gamma) \over Pr Re} { 1 \over \rho^I } \Delta T^I
+\]
+
+If we can neglect the term ${1 \over p_0 Pr Re} \Delta T^I$ in equation (\ref{eq:div}), 
+then the equations reduce to the
+so-called variable density incompressible equations
+\begin{align*}
+    \rho^I_t + \uv^I\cdot\grad\rho^I  &= 0 \\
+   \uv^I_t + (\uv^I\cdot\grad)\uv^I + {1\over\rho^I}\grad p^I &= {1\over\rho^I} {1\over Re} \Delta \uv^I  \\
+   \grad\cdot\uv^I &=  0  \\
+   T^I_t + (\uv^I\cdot\grad) T^I  &= {\gamma \over Pr Re} { 1 \over \rho^I } \Delta T^I \\
+   \gamma p_0 &= \rho^I T^I
+\end{align*}
+The variables $(\rho^I,\uv^I,p^I)$ can be determined from the first three equations without needing $T^I$.
+Alternatively the variables $(\uv^I,p^I,T^I)$ can be determined from the first, second and fourth
+equations without needing to compute $\rho^I$ (using the fifth equation to eliminate $rho^I$ in terms
+of $T^I$). Using the variables $(\uv^I,p^I,T^I)$ may be preferable numerically since physical boundary
+conditions at a wall are given for $T$, but no boundary conditions are needed for $\rho$.
+
+
+\section{Background}
+
+\subsection{ICE method of Harlow and Amsden, 1968}
+
+Reference Harlow and Amsden\cite{Harlow68}.
+
+ICE = Implicit continuous Eulerian, continuous=all-speed?
+
+The method reduces essentially to the MAC method for incompressible flow as the Mach number
+goes to zero.
+
+\begin{align}
+   \rho_t + \grad\cdot( \rho\uv ) &= 0 \label{ice1} \\
+   (\rho\uv)_t + \grad\cdot( \rho \uv\otimes \uv ) + \grad p & = \grad\cdot \tauv \label{ice2} \\
+   (\rho E)_t + \grad\cdot( \rho E \uv ) + \grad\cdot( p \uv ) & = ... \label{ice2}
+\end{align}
+
+Combine the first equation with the divergence of the second equation to give
+\[
+    -\rho_{tt} + \Delta p + \grad\cdot\left\{\grad\cdot( \rho \uv\otimes \uv ) \right\} 
+                  = \grad\cdot\left\{ \grad\cdot \tauv \right\} 
+\]
+This equation is thought of as an equation for the density $\rho$ when we assume the the
+equation of state can be written as
+\[
+    p = a_0^2( \rho-\rho_0) + (\gamma-1) \rho I
+\]
+where $I$ is the specific internal energy, $\rho_0$ is a reference density and $a_0$ is the speed
+of sound at the reference density with $a_0 \rightarrow \infty$ as $M\rightarrow 0$. 
+Is this really $p-P_0$??
+
+Recall that for an ideal gas,
+\begin{align*}
+  p &= \rho R T \\
+  E &= I + {1\over 2}\uv\cdot\uv \\
+  I &= c_v T = {1\over \gamma-1} {p \over \rho } \\
+  p &= (\gamma-1) \rho I
+\end{align*}
+
+\newcommand{\rp}{\rho^{n+1}}
+The time discrete system for $\rp$ would look like  
+\[
+   - \left( \rp -2\rho^n + \rho^{n-1} \over \Delta t^2 \right)
+    + \Delta( a_0^2\rp + (\gamma-1)\rp I^n )  + \grad\cdot\left\{\grad\cdot( \rp \uv^n\otimes \uv^n ) \right\} 
+                  = \grad\cdot\left\{ \grad\cdot \tauv^n \right\} 
+\]
+After this equation is solved for $\rp$ then equation (\ref{ice2}) can be used to get $\uv^{n+1}$ and
+then the engery $E$ can be computed from equation (\ref{ice3}).
+For low mach number $\rho$ is nearly constant and the iteration has trouble so they replace $\rho$ by
+the new variable $\sigma$ with
+\[
+     \sigma \equiv a_0^2( \rho-\rho_0) + K \rho
+\]
+where $K$ is a constant, $K=U_0^2$ for some reference velocity $U_0$. This variable is sort of
+like the incompressible pressure I think.
+
+
+\subsection{ICE method of Harlow and Amsden, 1970}
+
+Reference Harlow and Amsden\cite{Harlow70}.
+
+
+The basic difference is that now the equation of state is written as
+\[
+    p^{n+1} = p^n + c^n( \rp -\rho^n)
+\]
+where $c= \partial p / \partial \rho$. ``Thus $p^{n+1}$ singles out from the equation
+of state its principle dependence upon the density...''
+
+Then the equation
+\[
+    -\rho_{tt} + \Delta p + \grad\cdot\left\{\grad\cdot( \rho \uv\otimes \uv ) \right\} 
+                  = \grad\cdot\left\{ \grad\cdot \tauv \right\} 
+\]
+is written in terms of the new time pressure
+\[
+   - {1\over c^n \Delta t^2} p^{n+1}  + \Delta p^{n+1} 
+       = {1\over c^n \Delta t^2} p^{n} - \grad\cdot\left\{\grad\cdot( \rho^n \uv^n\otimes \uv^n ) \right\}  + ...
+\]
+(There is no $\rho^{n-1}$ either.)
+
+The method is also changed to potentially center the pressure in time in the momentum equation and
+to center the continuity equation.
+
+
+\subsection{Casulli and Greenspan 1984}
+
+Reference \cite{Casulli84}.
+
+Starting from
+\begin{align*}
+   \uv_t + {1\over\rho}\grad p &= -\uv\cdot\grad\uv \\
+   e_t + \gamma e \grad\cdot\uv &= -  \uv\grad\cdot e  \qquad\mbox{(just the pressure equation since $p=(\gamma-1)e$)} \\
+   \rho_t + \grad\cdot(\rho\uv) &= 0 
+\end{align*}
+where  $p = (\gamma-1) \rho I = (\gamma-1)e$ and $e=I/\rho$ is the internal energy per unit volume ($I$ is the
+internal energy per unit mass). Thus $e$ is just the pressure times a constant. 
+
+
+Treating some terms implicitly gives
+\begin{align*}
+ {\uv^{n+1} - \uv^n \over \Delta t} + {1\over\rho^n}\grad p^{n+1} &= -\uv^n\cdot\grad\uv^n \\
+ {e^{n+1} - e^n \over \Delta t} + \gamma e^n \grad\cdot\uv^{n+1} &=  -\uv^n\cdot\grad e^n \\
+  {\rho^{n+1} - \rho^n \over \Delta t} &= - \grad\cdot(\rho^n\uv^n)   \\
+  p^{n+1} &= (\gamma-1) e^{n+1} 
+\end{align*}
+
+And thus we can derive an equation for $p^{n+1}$
+\[
+   {1\over \Delta t^2} p^{n+1} - \gamma[(\gamma-1)e^n]\grad\cdot( {1\over\rho^n}\grad p^{n+1} ) = ...
+\]
+
+\subsection{KIVA discretization, Amsden, O'Rourke, Butler}
+
+
+From the KIVA-II manual:
+
+
+\newcommand{\rhoDot}{\dot{\rho}}
+\newcommand{\Qdot}{\dot{Q}}
+\newcommand{\Wdot}{\dot{W}}
+\newcommand{\wDot}{\dot{w}}
+\newcommand{\sigmav}{{\bf\sigma}}
+\newcommand{\Tt}{\tilde{T}}
+
+Equations:
+
+Species $m$:
+\[
+   \partial_t \rho_m \grad\cdot( \rho_m \uv) = \grad\cdot\left[ \rho D \grad( {\rho_m \over \rho} )\right]
+      + \rhoDot_m^c + \rhoDot^s \delta_{m1}
+\]
+$\rhoDot_m^c$ : chemistry source. $\rhoDot^s$ : spray source.
+Spray droplets are from species one. 
+\[
+   \partial_t \rho +\grad\cdot( \rho \uv ) = \rhoDot^s.
+\]
+
+Momentum equations
+\[
+   \partial_t ( \rho \uv ) +\grad\cdot( \rho \uv \uv ) = {-1\over a^2 } \grad p 
+      -A_0 \grad( {2\over3} \rho k) + \grad\cdot\sigmav + \fv^s + \rho \gv
+\]
+$A_0=0$ for laminar computations and $1$ for turbulence models.
+\[
+  \sigmav = \mu \left[ \grad\uv + (\grad\uv)^T \right] + \lambda \grad\cdot\uv \Iv
+\]
+
+Specify interal energy equation
+\[
+  \partial_t (\rho I) + \grad\cdot( \rho\uv I) = -p \grad\cdot\uv + (1-A_0)\sigmav:\grad\uv
+                - \grad\cdot\Jv + A_0 \rho \epsilon + \Qdot^c + \Qdot^s
+\]
+Heat flux vector
+\[
+   \Jv = -K\grad T - \rho D\sum_m h_m \grad( \rho_m/\rho )
+\]
+
+$k-\epsilon$ model:
+\[
+   \partial_t (\rho k) + \grad\cdot( \rho \uv k) = - {2\over 3} \rho k \grad\cdot\uv 
+     + \grad\cdot \left[ ({\mu \over Pr_k }) \grad k\right] - \rho\epsilon + \Wdot^s
+\]
+\[
+  \partial(\rho\epsilon) + \grad\cdot( \rho \uv \epsilon) 
+      = -( {2\over 3} c_{epsilon_1} -c_{epsilon_3} ) \rho \epsilon\grad\cdot\uv 
+        +\grad\cdot \left[ ({\mu \over Pr_\epsilon }) \grad \epsilon \right] 
+       + {\epsilon\over k}\left[ c_{epsilon_1}\sigmav:\grad\uv - c_{epsilon_2}\rho\epsilon + c_s \Wdot^s\right]
+\]
+
+When the SGS turbulence model is used the value of $\epsilon$ is constrained to satisfy
+\[
+   \epsilon \ge \left[ c_\mu \over Pr_\epsilon (c_{epsilon_2} -c_{epsilon_1})\right]^{1/2}
+        {k^{3/2}\over L_{\rm SGS}}
+\]
+
+In regions where the length scale is $L_{SGS}$ the model reduces to the one-equation SGS model.
+
+State relations
+\begin{align*}
+   p &= R_0 T \sum_m (\rho_m/W_m) \\
+  I(T) &= \sum_m (\rho_m/\rho) I_m(T) \\
+  c_p(T) &= \sum_m (\rho_m/\rho) c_{pm}(T) \\
+  h_m(T) &= I_m(T) + R_0 T /W_m
+\end{align*}
+
+$h_m(T)$ and $c_{pm}$ come from the JANAF tables.
+
+$r$ reactions, some are assumed to be in equilibrium.
+\[
+  \rhoDot^c_m = W_m \sum_r  (b_{mr} - a_{mr}) \wDot_r 
+\]
+Chemical heat release term
+\[
+   \Qdot_c = \sum_r Q_r \wDot_r
+\]
+where $Q_r$ is the negative of the heat of reaction at absolute zero,
+\[
+ Q_r = \sum_r (a_{mr} -b_{mr}) (\Delta h_f^0)_m
+\]
+and $(\Delta h_f^0)_m$ is the heat of formation of species $m$ at absolute zero.
+
+Transport coefficients are
+\begin{align*}
+  \mu & = (1-A_0) \rho \nu_0 + \mu_{air} + A_0 c_\mu k^2/\epsilon \\
+  \lambda &= A_3 \mu \\
+  K &= {\mu c_p \over Pr} \\
+  D &= {\mu \over \rho Sc} \\
+  \mu_{air} &= { A_1 T^{3/2} \over T+A_2}
+\end{align*}
+
+
+\subsubsection{Discretization:}
+
+\begin{align}
+    { \rho^B - \rho^n \over \dt } 
+         & = \grad\cdot\left(  (\rho D)^n \grad\left[ \phi_D Y_m^B + (1-\phi_D) Y_m^A\right] \right)
+              + \rhoDot^c + \rhoDot^s \delta_{m,1}  \\ 
+   \phi_D &= \phi_D(C_d) \qquad C_d = {\mu\over \rho} {\dt \over \dx^2} \\
+   {\rho^A-\rho^n \over \dt} &= \rhoDot^c( \dot{\omega}_r^A ) + \rhoDot^s \delta_{m,1} 
+\end{align}
+which implies
+\[
+    \rho^B \left({ Y_m^B - Y_m^A \over d\dt}\right)
+         = \grad\cdot\left(  (\rho D)^n \grad\left[ \phi_D Y_m^b + (1-\phi_D) Y_m^A\right]\right)
+\]   
+
+
+Momentum equations
+\begin{align*}
+  {\rho^B \uv^B - \rho^n\uv^n \over \dt} &= {-1\over a^2} \grad\left[ \phi_p p^B + (1-\phi_p)p^n\right]
+       -A_0 \grad( {2\over 3} \rho^A k^A ) \\
+     & + \grad\cdot( \phi_D \sigmav(\uv^B) + (1-\phi)\sigmav(\uv^n) ) \\
+     & - {1\over \dt} ( \Rv + S \uv^B ) ~~~~~\mbox{coupling to gas and drop velocities}\\
+     & \gv \rho^n - \rho^n {1 \over \dt} (ANC)
+\end{align*}
+\begin{align*}
+   \phi_p & = \phi_p( {c\dt\over\dx} )
+\end{align*}
+
+Internal energy equation
+\begin{align*}
+  {\rho^B I^B - \rho^n I^n \over \dt} &= - ({p^B+p^n \over 2})\grad\cdot\uv^B  \\
+          & + (1-A_0)[ \phi_D \sigmav(\uv^B):\grad\uv^B + (1-\phi_D) \sigmav(\uv^n):\grad\uv^n] \\
+          & +\grad\cdot( K^n \grad[ \phi_D T^B + (1-\phi_D) \tilde{T} ] ) \\
+          & +\grad\dot( (\rho_D)^n \{ \sum_m h_m T^n \grad( \phi_D Y^B + (1-\phi_D)Y^A ) \} ) \\
+          & + A_0 \rho^A \epsilon^A + \Qdot^c + \Qdot^s 
+\end{align*}
+
+First solve
+\[
+   {\rho^A I^A - \rho^n I^n \over \dt } = \Qdot^c + \Qdot^s 
+\]
+Then define
+\begin{align*}
+  {\rho^B I^t - \rho^n I^A \over \dt} &= 
+               A_0 \rho^A \epsilon^A  +\grad\dot( (\rho_D)^n \{ \sum_m h_m T^n \grad( \phi_D Y^B + (1-\phi_D)Y^A ) \} )
+\end{align*}
+Then 
+\[
+  \Tt = T^n + {1\over c^n}[ I^t - I^n + p^n( {1\over \rho^A} - {1\over \rho^n} ) ]
+\]
+giving
+\begin{align*}
+\rho^B { I^B - I^t \over \dt} &= - ({p^B+p^n \over 2})\grad\cdot\uv^B \\
+          & + (1-A_0)[ \phi_D \sigmav(\uv^B):\grad\uv^B + (1-\phi_D) \sigmav(\uv^n):\grad\uv^n] \\
+  & +\grad\cdot( K^n \grad[ \phi_D T^B + (1-\phi_D) \tilde{T} ] )
+\end{align*}
+
+
+Turbulence models
+\begin{align*}
+  {\rho^B k^B - \rho^n k^n \over \dt} &= -{2\over3} \rho^B\grad\cdot(\uv^B)[(1-f)k^n + f k^B) 
+       + (VD)   \\
+       & + \grad\cdot( {\mu^n\over Pr_k} \grad[ \phi_D k^B + (1-\phi_D) k^A] )  \\
+       & - \rho^B {\epsilon^n\over k^n} k^B + \Wdot^s
+\end{align*}
+\begin{align*}
+  { \rho^B\epsilon^B -\rho^n\epsilon^n \over \dt} &=
+        -( {2\over 3} c_{epsilon_1} -c_{epsilon_3} )\rho^B \grad\cdot\uv^B ( (1-f)\epsilon^n + f \epsilon^B) \\
+      &   +\grad\cdot \left[ ({\mu^n \over Pr_\epsilon }) \grad ( \phi_D \epsilon^B+(1-\phi_D)\epsilon^n) \right] \\
+      & + {\epsilon^n\over k^n}\left[ c_{epsilon_1}(VD) - c_{epsilon_2}\rho^B\epsilon^B \right] \\
+      &  + c_s \Wdot^s{\epsilon^A \over k^A}
+\end{align*}
+
+
+\subsection{inner iteration}
+
+
+\subsection{outer iteration}
+
+The equations fo $Y_m^B$, $k^B$ and $\epsilon^B$ are weakly coupled to the flow
+field...
+Thus at the start of the outer iteration we solve for $Y^B$ from equation (77)
+
+
+Extrapolate the pressure,
+\[
+   p^p = p^n + {\dt^n\over \dt^{n-1}}( p^{n-1} - p^{n-2} )
+\]
+Solve the momentum equations using $p^p$ to give $\uv^p$.
+
+Solve for $T^p$ using the internal energy equation, the equation of state.
+Combining... gives an equation for $T^p$,
+\begin{align}
+T_p &= \big\{ T^t + \dt {p^p+p^n\over 2 c^t} {\grad\cdot\uv^B \over \rho^B}  \label{eq:kiva:te} \\
+    & + {\dt\over\rho^B c^t} \Big[\grad\cdot( K^n \grad[ \phi_D T^p + (1-\phi_D) \tilde{T} ] ) 
+       + (1-A_0)[ \phi_D \sigmav(\uv^p):\grad\uv^p + (1-\phi_D) \sigmav(\uv^n):\grad\uv^n]  \Big] \big\} \\
+ & / ( 1 + {p^p+p^n \over 2 c^t p^p } R_0 \sum_m ( Y_m^B/W_m )
+\end{align}
+
+Make consistent with the equation of state and the T equation ??
+
+Now solve for a corrected pressure from
+(86):
+\[
+ \rho^B { \uv^B-\uv^A \over \dt} = - {1\over a^2} \grad( \phi_p p^B + (1-\phi_p)\phi^n )
+          + A_0\grad( {2\over 3} \rho^A k^A) +...
+\]
+and the temperature equation (\label{eq:kiva:te})
+and a linearized equation of state ??
+\[
+   p = \rho R T
+\]
+and cell volume info ??
+\[
+  {\rho^B-\rho^n \over \dt} + \grad\cdot( \rho^B \uv^B ) =0   \qquad \mbox{guess??}
+\]
+
+
+\subsection{Projection Method of Pember et. al.}
+
+Reference 
+{\sl An Adaptive Projection Method for Unsteady, Low-Mach Number Combustion}
+and
+{\sl A Higher-Order projection Method for the Simulation of Unsteady Turbulent
+Nonpremixed Combustion in an Industrial Burner} \cite{Pember??}.
+
+The low Mach number algorithm involves the solution of the following (redeundant) equations 
+\begin{align}
+  \rho_t + \grad\cdot( \rho\uv ) &= 0 \\
+   P_0 & = \rho \Rbar T \\
+   \rho \uv_t + \rho (\uv\cdot\grad)\uv + \grad p & = \rho\gv + \grad\cdot \tauv  \\
+ \rho C_p {DT\over Dt} &= \grad\cdot( \lambda \grad T ) + 
+       \sum \rho D \grad Y_i\cdot\grad h_i - \sum \sigma_i h_i \\
+ {\partial \rho h \over \partial t} + \grad\cdot( \rho \uv h ) &= \grad\cdot( (\lambda/c_p) \grad h ) \\
+ {\partial \rho Y_i \over \partial t} + \grad\cdot(\rho\uv Y_i) &= \sigma_i +\grad\cdot(\rho D \grad Y_i ) \\
+   \grad\cdot\uv &= -{1\over\rho} {D\rho\over Dt} = {\rho \over P_0} ( {DT\over Dt} \Rbar + ...) \\
+          &\equiv S \\
+ S &= {1\over \rho c_p T} \left( \grad\cdot(\lambda\grad T) + \sum \rho D\grad Y_i\cdot\grad h_i \right) \\
+    & + {W\over \rho} \sum {1\over W_i}\grad\cdot(D\rho\grad Y_i) +
+          {1\over \rho} \sum_i( {W\over W_i} - {h_i\over c_p T})\sigma_i \\
+ \tilde{S} &= S + c (\tilde{p}-p_0) { c_p - R \over \Delta t c_p \tilde{p} }
+\end{align}
+
+\clearpage
+\section{The *NEW* low mach number algorithm}
+
+
+In this approach we solve the following equations:
+\begin{align}
+   \rho_t + \grad\cdot( \rho\uv ) &= 0 \label{eq:rho} \\
+   (\rho\uv)_t + \grad\cdot( \rho \uv\otimes \uv ) + \grad p & = \grad\cdot \tauv \label{eq:u} \\
+   T_t + (\uv\cdot\grad) T +(\gamma-1) T \grad\cdot\uv
+       - (\gamma-1) { \tilde{k} \over \rho } \Delta T
+       - (\gamma-1) { 1 \over R_g \rho } \Phi & = 0                 \label{eq:T}  \\
+   p &= \rho R T \label{eq:state}
+\end{align}
+The difference from the other approaches is that we first solve for the temperature and density
+using the temperature equation and the equation of state.
+
+
+We first solve equations (\ref{eq:T}) and (\ref{eq:state}) for $T^{n+1}$ and $\rho^{n+1}$
+given a guess for $p^{n+1}$ (recall that p is nearly constant for $M$ small):
+\begin{align*}
+{T^{n+1} - T^n \over \Delta t} &+ [(\uv\cdot\grad) T]^{n+\half} + [(\gamma-1)T \grad\cdot\uv]^{n+\half}
+       - [(\gamma-1) { \tilde{k} \over \rho } \Delta T]^{n+\half}
+       - [(\gamma-1) { 1 \over R_g \rho } \Phi]^{n+\half} = 0                  \\
+   p^* &= 2 p^n - p^{n-1} \qquad\mbox{guess for $p^{n+1}$, accurate to $O(M^2 \dt^2)$} \\
+   \rho^{n+1} &=  { p^* \over R T^{n+1} }
+\end{align*}
+Here the superscript $n+\half$ denotes some approximation to the solution at time $t=(n+\half)\dt$. The
+exact details are for now left unspecified.
+After solving these equations we obtain $T^{n+1}$ and $\rho^{n+1}$. 
+
+Discretize the conservative form of the momemtum equations, treating the pressure term in a fully
+implicit manner,
+\begin{align}
+  {(\rho\uv)^{n+1} - (\rho\uv)^{n} \over \dt }+ \grad p^{n+1} 
+         &= - \grad\cdot( \rho \uv\otimes \uv )]^{n+\half} +
+              \grad\cdot \tauv^{n+\half}  \\
+                          &\equiv -\Fv^{n+\half} \label{eq:ut} \\
+\end{align}
+where
+\begin{align}
+       \Fv &\equiv \grad\cdot( \rho \uv\otimes \uv ) -  \grad\cdot \tauv \\
+             &= (\rho u \uv )_x + (\rho v \uv)_y + (\rho w \uv )_z - \grad\cdot\tauv
+\end{align}
+
+Now we take the divergence of (\ref{eq:ut}) 
+\begin{align}
+  {\grad\cdot(\rho\uv)^{n+1} - \grad\cdot(\rho\uv)^{n} \over \dt }
+       + \Delta p^{n+1}  = -\grad\cdot\Fv^{n+\half}   \label{eq:gut}
+\end{align}
+This will be turned into a Poisson equation for $p^{n+1}$ by replacing the first 
+term $\grad\cdot(\rho\uv)^{n+1}$ from a discretization to (\ref{eq:rho}):
+\[
+  \rho_t^{n+\half}  + \alpha \grad\cdot( \rho\uv )^{n+1} + (1-\alpha) \grad\cdot( \rho\uv )^{n}= 0
+\]
+where $\alpha=\half$ will be a second-order Crank-Nicolson approximation. Substituting into (\ref{eq:gut})
+and re-arranging gives the pressure equation
+\begin{align*}
+   \Delta p^{n+1} & = { 1\over\alpha} { \rho_t^{n+\half} + \grad\cdot( \rho\uv )^{n} \over \dt} 
+                      - \grad\cdot\Fv ^{n+\half}   \label{eq:newp}
+\end{align*}
+The term $\grad\cdot( \rho\uv )^{n}$ 
+acts as the divergence damping term in the incompressible limit (see ??).
+
+Using a centred approximation for $\rho_t^{n+\half}$ gives 
+\begin{align}
+   \Delta p^{n+1} & = { 1\over \alpha  \dt} \left\{ {\rho^{n+1}-\rho^n \over \dt} + \grad\cdot( \rho\uv )^{n} \right\} 
+                      - \grad\cdot\Fv ^{n+\half}  
+\end{align}
+
+
+With $\alpha=1$ (backward-Euler on the density equation) 
+we could replace both of the first two terms in (\ref{eq:gut}) to give the alternative pressure
+equation
+\begin{align*}
+   \Delta p^{n+1} &= { \rho^{n+1} -2\rho^n + \rho^{n-1} \over \dt^2 }
+                         -  \grad\cdot\Fv^{n+\half}         
+\end{align*}
+This no longer has a divergence damping term. For $\rho$ nearly constant we can always
+add a multiple of the continuity equation to create this damping term,
+\begin{align*}
+   \Delta p^{n+1} & = { \rho^{n+1} -2\rho^n + \rho^{n-1} \over \dt^2 } -  \grad\cdot\Fv^{n+\half}  
+                + \delta[ \rho_t^{n} + \grad\cdot(\rho\uv)^n ]  \label{eq:newp2}
+\end{align*}
+We usually like to take $\delta\sim \mu/(\Delta x ^2)$.
+
+
+Now we can solve for $p^{n+1}$ from (\ref{eq:newp}) or (\ref{eq:newp2}).
+Given $p^{n+1}$ we can get $\uv^{n+1}$ from a discretization of (\ref{eq:u}) 
+\begin{align*}
+  {(\rho\uv)^{n+1} - (\rho\uv)^n \over \dt } + \grad p^{n+1} + \Fv^{n+\half} &= 0
+\end{align*}
+or of the momentum
+equation in non-conservative form:
+\begin{align*}
+  {\uv^{n+1} - \uv^n \over \dt } + [(\uv\cdot\grad)\uv]^{n+\half} + {1\over\rho^{n+1}} \grad p^{n+1}
+         &=  \grad\cdot \tauv^{n+\half} 
+\end{align*}
+We could also treat the viscous terms implicitly in this last equation.
+
+
+
+\bibliography{/home/henshaw/papers/henshaw}
+\bibliographystyle{siam}
+\end{document}

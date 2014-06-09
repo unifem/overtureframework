@@ -1,0 +1,57 @@
+% ===================================================================================================
+\mysection{Enforcing time dependent boundary conditions with particular functions} \label{sec:particularFunctions}
+
+
+In this section we discuss the use of {\em particular functions} (PF) to enforce time-dependent boundary
+conditions in a ROM. There seem to be a number of ways to enforce boundary conditions~\cite{Gunzburger}
+and here is one option.
+
+Let us assume that we are solving a PDE, $L\uv=\fv$ on some domain $\Omega$ and suppose that we 
+apply some boundary conditions $\Bc_m(\uv;\xv)=\gv_m(\xv,t)$, for $\xv\in\Gamma_m$ where $\Gamma_m \subset \partial\Omega$ denotes
+a portion of the boundary and $m=1,2,\ldots,N_b$ denotes the different boundary conditions. 
+
+
+We look for a ROM solution of the form 
+\begin{align}
+   \uv^K(\xv,t) = \sum_{i=1}^K q_i(t) \phiv_i  +  \sum_{m=1}^{N_p} g_m(t) \phiv_m^p , 
+\end{align}
+where $\phiv_i$ are the POD vectors (that satisfy homogeneous boundary conditions) 
+and $\phiv_m^p$ are the {\em particular functions}. The coefficients $g_m(t)$ are assumed
+to be {\em given} functions of time, chosen so that $\uv^K(\xv,t)$ satisfies the time-dependent boundary conditions.
+The particular functions are used to enforce the boundary conditions.
+
+
+Here is one way to choose the particular functions. Let $\phiv_i^p$ be a function that 
+satisfies time-invariant inhomogeneous boundary conditions on $\Gamma_i$ but homogeneous boundary 
+conditions on $\Gamma_j$ for $j\ne i$. For example, $\phiv_i^p$, may correspond to some steady 
+state solution.
+
+{\bf Question:} What does this mean when $\uv(\xv,t)$ is a vector of unknowns? We may need a different PF for each component.
+
+{\bf Question:} What does this mean when the boundary condition may have different spatial variation (e.g. uniform or parabolic profile?).
+   We may needed to have multiple PF's to span the space of spatial variations.
+
+
+Suppose that we are given a set snapshot vectors $\Wc = \big\{ \wv_n\big\}_{n=1}^N$, each $\wv_n \in \Real^M$.
+These snapshots may be taken from a set of simulations in which inhomogeneous and time-dependent
+boundary conditions are applied. Before constructing the POD vectors we first adjust the snapshots
+so that they satisfy homogeneous boundary conditions by subtracting off the appropriate combination
+of PF's, 
+\begin{align*}
+    \widehat{\wv}_n &= \wv_n - \sum_{m=1}^{N_p} \beta_m \phiv_m^p.
+\end{align*}
+For example if $\xv_m\in\Gamma_m$ is a point on one of the boundaries,
+in some cases we could choose $\beta_m=u(\xv_m,t^n)/\phi^p(\xv_m)$ (in the case when we are solving a PDE for a scalar unknown). 
+
+The POD vectors $\phiv_i$ are then determined as the left singular vectors from the snapshot matrix formed from 
+the adjusted snapshots $\widehat{\wv}_n$.
+
+The ROM will be formed from the Galerkin projection of the PDE, $L\uv=\fv$, 
+\begin{align}
+  <\phiv_i, L\uv^K(\xv,t)>  = <\phiv_i, L \sum_{j=1}^K q_j(t) \phiv_j>  +  <\phiv_i,L \sum_{m=1}^{N_p} g_m(t) \phiv_m^p > = <\phiv_i,\fv >, 
+\end{align}
+or 
+\begin{align}
+  <\phiv_i, L \sum_{j=1}^K q_j(t) \phiv_j>  = <\phiv_i,\fv > - <\phiv_i, L \sum_{m=1}^{N_p} g_m(t) \phiv_m^p >.
+\end{align}
+

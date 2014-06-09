@@ -1,0 +1,52 @@
+% ===================================================================================================
+\mysection{Choice of the inner product on an overlapping grid} \label{sec:InnerProduct}
+
+
+The POD vectors $\phiv_j$ computed from the SVD decomposition are orthogonal (orthonormal) with respect to the usual Euclidean inner product,
+\begin{align}
+   \phiv_j ^T \phiv_j = \delta_{ij} .
+\end{align}
+One advantage of using this inner product is that the mass matrix $M$ in~\eqref{eq:ROM_AD_I} is diagonal. 
+
+
+We could also choose an area-weighted inner product (volume-weighted in 3D),
+\begin{align}
+   (\phiv_i,\phiv_j)_h = \sum_k w_k \phiv_{j,k} \phiv_{i,k} 
+           = \phiv_i^T W \phiv_j \approx \int_\Omega u_i(\xv) u_j(\xv) \,d\xv.  \label{eq:areaInnerProduct}
+\end{align}
+where $u_i$ and $u_j$ are the continuous functions corresponding to $\phiv_i$ and $\phiv_j$ respectively.
+Here $w_k \ge 0$ are integration weights which are some approximation to the local element of area $d\xv$.
+$W$ is the diagonal matrix with entries $w_k$. 
+On an overlapping grid, the weights $w_k$ should be adjusted in regions where grids overlap to take into account
+the multi-valued nature of the discrete solution (i.e. we need to avoid double counting where two grids overlap).
+The mass matrix will no longer we diagonal using the area inner product~\eqref{eq:areaInnerProduct}
+
+
+{\bf Weighted snap-shot vectors:} Instead of using the area-weighted inner product, one could instead consider weighting the
+snap-shot vectors $\{ \wv_n \}$ used to form the SVD. Suppose we weight the snap-shot vectors by
+a matrix $D$, $\tilde{\wv}^n=D\wv^n$. The SVD for the new snap-shot matrix $D A =[ D\wv^1~D\wv^2~\ldots]$ is
+\begin{align}
+   D A = \tilde{U} \tilde{\Sigma} \tilde{V}^T.
+\end{align}
+If the columns of $\tilde{U}$ are denoted by $\tilde{\phiv}_i$ then 
+\begin{align}
+   \tilde{\phiv_i} ^T \tilde{\phiv}_j = \delta_{ij} . 
+\end{align}
+Note that the basis vectors we should 
+use to represent our solution $\uv(\xv,t)$ are $\hat{\phiv}_i = D^{-1} \tilde{\phiv_i}$,
+since we need to scale back to the original representation.
+In this case we look for a ROM solution to our PDE of the form
+\begin{align}
+   \uv^K(\xv,t) = \sum_{i=1}^K q_i(t) D^{-1} \tilde{\phiv_i} = \sum_{i=1}^K q_i(t) \hat{\phiv_i}. 
+\end{align}
+Note that 
+\begin{align}
+   \tilde{\phiv_i} ^T \tilde{\phiv}_j = \hat{\phiv_j} ^T D^T D \hat{\phiv_j} = \delta_{ij} .
+\end{align}
+Therefore if we choose $D$ to be the diagonal matrix $D=W^{1/2}$ then $\hat{\phiv_i}$ are orthogonal with respect to the area-weighted
+inner product,
+ \begin{align}
+   (\hat{\phiv}_i,\hat{\phiv}_j)_h = \sum_k w_k \hat{\phiv}_{j,k} \hat{\phiv}_{i,k} = \hat{\phiv_j} ^T W \hat{\phiv_j} = \delta_{ij} .
+\end{align}
+Thus the mass matrix will be diagonal w.r.t. the area-weighted inner product when we weight the snap-shot vectors 
+using $D=W^{1/2}$.

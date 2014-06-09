@@ -1,0 +1,69 @@
+% ------------------------------------------------------------------------
+\section{Reduced order models for the incompressible Navier-Stokes equations} \label{eq:romINS}
+
+Consider solving the velocity-pressure formulation of the INS equations
+\begin{align}
+  & \uv_t + (\uv\cdot\grad)\uv + \grad p = \nu \Delta \uv + \fv_b(\xv,t) , \quad \xv \in\Omega,  \label{eq:NSu}\\
+  & \Delta p = -\grad\uv : \grad\uv + \grad\cdot\fv_b , \quad \xv \in\Omega,  \\
+  & \text{ Boundary and initial conditions...}
+\end{align}
+on an overlapping grid with some body forcing $\fv_b(\xv,t)$.
+
+Given a reduced basis $(\phiv_i,\psiv_i)$, where $\phiv_j=[\phiv^u_i, \phiv^v_i, \phiv^w_i]$ and $\psiv_i$ are a global vectors
+representing $\uv=[u,v,w]$ and $p$ at the grid points.
+
+We look for a reduced order solution of the form
+\begin{align}
+   \uv^K(\xv,t) &= \uv^p(\xv,t) + \sum_{j=1}^K q_j(t)\phiv_j(\xv),  \label{eq:romSolution} \\ 
+    p^K(\xv,t) &=  p^p(\xv,t) + \sum_{j=1}^K \qp_j(t) \psiv_j(\xv), 
+\end{align}
+where the unknowns $q_j(t)$, $\qp_j(t)$ are to be determined, and 
+where $(\uv^p(\xv,t),p^p(\xv,t))$ is a divergence free {\em particular function} chosen to satisfy the boundary conditions 
+($\uv^p(\xv,t)$ is called a  {\em particular function} instead of a {\em particular solution} since it need not be
+a solution.)
+For example, we could take $\uv^p$ to be a steady state solution that satisfies the boundary
+conditions or we could use $\wvBar$ to define a function with a given value at inflow,
+\begin{align}
+   \uv^p(\xv,t) &= g(t)\wvBar(\xv),
+\end{align}
+where $g(t)$ is some given function. 
+More generally we may use more than one particular function to satisfy one or more boundary conditions,
+\begin{align}
+   \uv^K(\xv,t) &= \sum_m g_m(t)\uv^p_m(\xv,t)  + \sum_{j=1}^K q_j(t)\phiv_j(\xv)  . 
+\end{align}
+
+
+Substituting~\eqref{eq:romSolution} into the INS~\eqref{eq:NSu} gives
+\begin{align}
+  & \uv^K_t + (\uv^K\cdot\grad)\uv^K + \grad p^K = \nu \Delta \uv^K + \fv_b(\xv,t),  \label{eq:romEquation} \\
+  & \Delta p^K = -\grad\uv^K : \grad\uv^K + \grad\cdot\fv_b .
+\end{align}
+These last equations implicitly define (an over-determined) system of ODEs for the unknowns $(q_i(t),\qp_i(t))$. 
+
+
+Let $<\cdot,\cdot>$ denote some inner product on $\Real^M$. 
+Taking the inner product of $\phiv_i$ with~\eqref{eq:romEquation} gives (*CHECK ME*)
+\begin{align}
+  &   \sum_{j=1}^K M_{ij} \frac{d q_j}{dt}  + \sum_{j,k=1}^K N_{ijk} q_j q_k + \sum_j B_{ij} q_j 
+           + \sum_j P_{ij} \qp_j =  \sum_{j=1}^K K_{ij} q_j(t)  + f_i, \\
+  &   \sum_{j=1}^K L_{ij}  \qp_j  = - \sum_{j,k=1}^K N^p_{ijk} q_j q_k - \sum_j B^p_{ij} q_j  - f^p_i , 
+\end{align}
+where 
+\begin{align}
+&   M_{ij} = <\phiv_i,\phiv_j>, \qquad
+  N_{ijk} = <\phiv_i, (\phiv_j\cdot\grad)\phiv_k > , \qquad 
+  B_{ij}  = <\phiv_i, (\uv^p\cdot\grad)\phiv_j + (\phiv_j\cdot\grad)\uv^p >, \\
+&   P_{ij} = <\phiv_i,\grad\psiv_j> , \qquad
+  K_{ij} = <\phiv_i,\nu\Delta \phiv_j>, \\
+&   L_{ij} = <\psiv_i,\Delta \psiv_j>, \qquad  
+    N^p_{ijk} = <\psiv_i, \grad\phiv_j : \grad\phiv_k > , \qquad B^p_{ij}=<\psiv_i, \grad\uv^p:\grad\phi_j + \grad\phi_j:\grad\uv^p> ,   \\
+&  f_i =  - <\phiv_i, \partial_t \uv^p(\xv,t) + (\uv^p\cdot\grad) \uv^p - \nu\Delta\uv^p > + <\phiv_i,\fv_b(\xv,t)> 
+          - <\phiv_i,\grad p^p>   , \\
+&   f^p_i  = <\psiv_i,\grad\cdot\fv_b> - <\psiv_i,\Delta p^p> - <\psiv_i,\grad\uv^p:\grad\uv^p>
+% - <\phiv_i,  (\uv^p\cdot\grad) \uv^p >           + <\phiv_i, \nu\Delta\uv^p >
+\end{align}
+or
+\begin{align}
+  &  M \frac{d\qv}{dt} + \qv^T \Nv \qv + B \qv + P\qpv = K \qv + \fv , \label{eq:romEquationProjected} \\
+  &  L \qpv = - \qv^T \Nv^p \qv - B^p \qv + \fv^p 
+\end{align}
