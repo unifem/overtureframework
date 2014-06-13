@@ -8,12 +8,16 @@ $suffix = "";
 * $name = "rectangle160.ar5"; $nx=161; $ny=41; $yb=.2; $ng=2; 
 * 
 * $name = "rectangle40.ar10"; $nx=41; $ny=11; $yb=.1; $ng=2; 
-* $name = "rectangle80.ar10"; $nx=81; $ny=21; $yb=.1; $ng=2; 
+# $name = "rectangle80.ar10"; $nx=81; $ny=21; $yb=.1; $ng=2; 
 * $name = "rectangle160.ar10"; $nx=161; $ny=41; $yb=.1; $ng=2; 
+*
+* $name = "rectangle40.ar20"; $nx=41; $ny=11; $yb=.05; $ng=2; 
+$name = "rectangle80.ar20"; $nx=81; $ny=21; $yb=.05; $ng=2; 
+* $name = "rectangle160.ar20"; $nx=161; $ny=41; $yb=.05; $ng=2; 
 *
 * $name = "offsetNonSquare5"; $nx=6; $ny=$nx; $ya=.1; $yb=1.1;  # off axis square for testing axis-symmetric 
 * $name = "offsetSquare5"; $nx=6; $ny=$nx; $ya=.1; $yb=1.1;  # off axis square for testing axis-symmetric 
-$name = "offsetSquare20"; $nx=21; $ny=$nx; $ya=.1; $yb=1.1;  # off axis square for testing axis-symmetric 
+* $name = "offsetSquare20"; $nx=21; $ny=$nx; $ya=.1; $yb=1.1;  # off axis square for testing axis-symmetric 
 *
 * $name = "squareOnAxis5"; $nx=6; $ny=$nx; $ya=0.; $yb=1.;  # on axis square for testing axis-symmetric 
 * $name = "squareOnAxis20"; $nx=21; $ny=$nx; $ya=0.; $yb=1.;  # on axis square for testing axis-symmetric 
@@ -33,7 +37,8 @@ create mappings
       $nx $ny
     boundary conditions
       * set the singular axis to a BC=13
-      $bcCommand = $ya == 0. ? "1 1 13 1" : "1 1 1 1";
+      # $bcCommand = $ya == 0. ? "1 1 13 1" : "1 2 3 4";
+      $bcCommand = "1 2 3 4";
       $bcCommand
   exit
 *  -- make non-Cartesian

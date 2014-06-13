@@ -148,7 +148,7 @@ int setDefaultDataForABoundaryCondition(const int & side,
 					CompositeGrid & cg);
 
 virtual
-int updateUserDefinedKnownSolution(GenericGraphicsInterface & gi);
+int updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg);
 
 
 

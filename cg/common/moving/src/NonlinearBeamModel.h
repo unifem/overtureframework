@@ -22,7 +22,13 @@ class NonlinearBeamModel {
 
  public:
 
-  enum BoundaryCondition { Pinned = 1 , Cantilevered = 2, Free = 4 , Periodic = 8 };
+  enum BoundaryCondition { UnknownBC=-1, Pinned = 1 , Cantilevered = 2, Free = 4 , Periodic = 8 };
+
+  enum ExactSolutionEnum
+  {
+    fluidStructureTravelingWave=0,
+    standingWave
+  };
 
   struct BeamNode {
 
@@ -103,6 +109,10 @@ class NonlinearBeamModel {
   // Return the (x,y) coordinates of the centerline
   void getCenterLine( RealArray & xc ) const;
 
+  int getNumberOfNodes() const { return numNodes; } // 
+
+  // return the estimatimated *explicit* time step dt 
+  real getExplicitTimeStep() const;
 
   void setAddedMassRelaxation(double);
   
@@ -119,6 +129,18 @@ class NonlinearBeamModel {
   int put( GenericDataBase & dir, const aString & name) const;
 
   int get( const GenericDataBase & dir, const aString & name);
+
+  int plot(GenericGraphicsInterface & gi, GraphicsParameters & psp );
+
+  void setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a);
+  
+  // Set parameters interactively: 
+  int update(CompositeGrid & cg, GenericGraphicsInterface & gi );
+
+  static int debug;
+
+  /// Here is a database to hold parameters (new way)
+  mutable DataBase dbase; 
 
  private:
 
@@ -164,8 +186,8 @@ class NonlinearBeamModel {
 				 real Nxi, real Nyi,
 				 real Nxj, real Nyj) ;
 
-  void setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a);
-  
+  void initialize();
+
   double getExactPressure(double t, double xl);
   
   void computeExtraInertiaTerm(RealArray&) ;
@@ -190,7 +212,7 @@ class NonlinearBeamModel {
 
   real newmarkBeta,newmarkGamma;
 
-  real omega_structure;
+  real omegaStructure;
 
   BoundaryCondition bcLeft, bcRight;
 
@@ -207,6 +229,7 @@ class NonlinearBeamModel {
   real pressureNorm;
 
   int useExactSolution;
+  ExactSolutionEnum exactSolution;
 
   int time_step_num;
 
@@ -223,6 +246,12 @@ class NonlinearBeamModel {
   RealArray* elementMassMatrices;
 
   double rayleighAlpha, rayleighBeta;
+
+  double beamLength;
+  double beamThickness;
+
+  aString name;  // name of this object
+
 
 };
 

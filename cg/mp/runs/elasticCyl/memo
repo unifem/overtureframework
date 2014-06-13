@@ -1,0 +1,57 @@
+--- 2014/06/12 -- REVISIT befroe AMP
+
+OK:  NOTE -- WTACH OUT for INFLOW AT OUTFLOW at t=6 
+$cgmp elasticCyl -method=ins -g=diskDeformBig2e -scf=500. -u0=.1 -nu=.01 -tp=.01 -tf=5 -nc=1 -pOffset=.5 -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+BAD: 
+$cgmp elasticCyl -method=ins -g=diskDeformBig2e -scf=100. -u0=.1 -nu=.01 -tp=.01 -tf=5 -nc=1 -pOffset=.5 -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+
+
+--- 2013/08/06 -- REVISIT
+
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig2e -scf=500. -u0=.1 -nu=.01 -tp=.01 -tf=5 -nc=1 -pOffset=.5 -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+--- 2013/01/23 
+
+
+-- SMG : increase solid density -- ok for a while but still has trouble t=6 
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig2e -scf=1000. -u0=.1 -nu=.01 -tp=.01 -tf=5 -nc=1 -pOffset=1. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+
+--- 2013/01/22
+
+-- USE SmGod !! INFLOW WITH P given -- TROUBLE
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig2e -scf=100. -u0=.1 -nu=.01 -tp=.01 -tf=5 -nc=1 -pOffset=1. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+-- INFLOW WITH P given
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig2e -scf=100. -u0=.1 -nu=.01 -tp=.01 -tf=5 -nc=1 -pOffset=1. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+--- 2012/05/31 --------  START : FSI coupling with INS
+
+
+Reduce u0 so p decreases : OK
+
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig1e -scf=100. -u0=.1 -nu=.01 -tp=.01 -tf=1.4 -nc=1 -pOffset=1. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+
+
+
+THIS REMAINS STABLE SEEMS OK: nu=.1 -scf=1000
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig1e -scf=1000. -nu=.1 -tp=.01 -tf=1.4 -nc=1 -pOffset=1. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+
+CONSERVATIVE: 
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig1e -scf=100. -nu=.01 -tp=.001 -tf=1.4 -nc=1 -pOffset=1. -smVariation=c -lambdaSolid=1. -muSolid=1.  -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+COARSE GRID: 
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig1e -scf=100. -nu=.01 -tp=.001 -tf=1.4 -nc=1 -pOffset=1. -smVariation=g -lambdaSolid=1. -muSolid=1.  -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+$mp/bin/cgmp elasticCyl -method=ins -g=diskDeformBig4e -scf=100. -nu=.01 -tp=.001 -tf=1.4 -nc=1 -pOffset=1. -smVariation=g -lambdaSolid=1. -muSolid=1.  -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -go=halt

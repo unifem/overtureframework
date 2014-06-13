@@ -131,7 +131,7 @@ buildEquationSolvers(OgesParameters::SolverEnum solver)
     const int petsc = OgesParameters::PETScNew;
 
     if( equationSolver[petsc]==NULL )
-      equationSolver[petsc]=(*createPETSc)();
+      equationSolver[petsc]=(*createPETSc)(*this);
 
     // if( equationSolver[petsc]==NULL )
     //   equationSolver[petsc]=new PETScSolver(*this);

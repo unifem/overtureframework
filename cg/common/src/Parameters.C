@@ -4029,7 +4029,7 @@ setTwilightZoneParameters(CompositeGrid & cg,
       if( knownSolution==userDefinedKnownSolution )
       { // choose a user defined known solution:
 
-	int returnValue=updateUserDefinedKnownSolution(gi);
+	int returnValue=updateUserDefinedKnownSolution(gi,cg);
 	
         if( returnValue==0 )
 	{

@@ -1,0 +1,93 @@
+\clearpage
+\subsection{Vibrating Beam} \label{sec:beam}
+
+
+A beam can be modeled using the bulk Cgsm solvers. The results can be compared to the Euler-Bernoulli beam theory.
+See {\tt cg/sm/runs/beam}. 
+
+A standing wave solution to the Euler-Bernoulli beam equation is
+\begin{align*}
+ &  y(x) = a\, \sin( k x )\,\sin( \omega t) , 
+\end{align*} 
+where the frequency of vibration of an Euler-Bernoulli beam  is
+\begin{align*}
+ &  \omega = \sqrt{ \frac{E I k^4}{\rho b h} }
+\end{align*}
+We take
+\begin{align*}
+&  \rho=\lambda=\mu=1, \rightarrow \nu = \frac{\lambda}{2(\lambda+\mu)} =\frac{1}{4}, ~~E=2\mu(1+\nu) = \frac{5}{2}, \\
+&  \frac{I}{b} = \frac{h^3}{12} .
+\end{align*}
+For
+\begin{align*}
+  h=.04 ~~ T=\frac{2\pi}{\omega} \approx 17.43, \\
+  h=.02 ~~ T=\frac{2\pi}{\omega} \approx 8.717
+\end{align*}
+
+
+Figure~\ref{fig:beamEvolution} shows results from a calculation for $h=.04$ and $k=2\pi$. 
+Note that the {\em fibers} (lies normal to the neutral axis of the beam) remain nearly straight, of constant length and
+perpendicular to the neutral axis. These are consistent with the assumptions of Euler-Bernoulli beam theory.
+The approximate 
+period of vibrartion is $T=8.7$ which agrees well with the Euler-Bernoulli beam theory.
+
+
+{
+\newcommand{\figWidtha}{16.cm}
+\newcommand{\trimfiga}[2]{\trimPlotb{#1}{#2}{.0}{.125}{.4}{.4}}
+\newcommand{\figWidthb}{10.cm}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.05}{.1}{.05}{.1}}
+\begin{figure}[hbt]
+ \begin{center}
+%
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.75) rectangle (16.,12);  % set the bounding box (so we have less surrounding white spa  
+  \draw ( 0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\smDocDir/fig/beam_ar25_t0_u_wireFrame}{\figWidtha}};
+  \draw ( 0.0,4.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\smDocDir/fig/beam_ar25_t4p3_u_wireFrame}{\figWidtha}};
+  \draw ( 0.0,8.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfiga{\smDocDir/fig/beam_ar25_t8p7_u_wireFrame}{\figWidtha}};
+%
+ \draw ( 0.,4) node[anchor=north west,draw,fill=white,thick,xshift=5pt,yshift=-5pt] {\scriptsize $u_1$, $t=0.0$};
+ \draw ( 0.,8) node[anchor=north west,draw,fill=white,thick,xshift=5pt,yshift=-5pt] {\scriptsize $u_1$, $t=4.3$};
+ \draw ( 0.,12) node[anchor=north west,draw,fill=white,thick,xshift=5pt,yshift=-5pt] {\scriptsize $u_1$, $t=8.7$};
+% grid:
+  \draw[step=1cm,gray] (0,0) grid (16,12.);
+\end{tikzpicture}
+\end{center}
+\caption{Vibrating beam simulated using the bulk solid solvers.}
+\label{fig:beamEvolution}
+\end{figure}
+}
+
+
+
+
+
+\subsubsection{Beam theories}
+
+Here are some notes on beam theories. 
+
+Ref. Graff. 
+
+Euler-Bernoulli beam  (small deflections, low frequency respsonse)
+\[
+  \rho A \partial_t^2 y + \partial_x^2\big( E I \partial_x^2 y\big) = q(x,t) 
+\]
+
+
+Large rotation Euler-Bernoulli beam (using the von Karman strains, ref. wikipedia)
+\[
+  \rho A \partial_t^2 y + \partial_x^2\big( E I \partial_x^2 y\big) 
+           - \frac{3}{2} E A (\partial_x y)^2  \partial_x^2 y  = q(x,y) 
+\]
+
+
+Timoshenko beam theory (accounts for shearing effects, high frequency respsonse)
+\begin{align*}
+  \rho A \partial_t^2 y + G A \kappa\Big(  \partial_x \psi - \partial_x^2 y \Big)  &= q(x,y)  \\
+  \rho I \partial_t^2 \psi + G A \kappa\Big( \psi - \partial_x y \Big)  - E I \partial_x^2 \psi &= q(x,y) 
+\end{align*}
+or upon eliminating $\psi$
+\begin{align*}
+    \frac{EI}{\rho A}\partial_x^4 y - \frac{I}{A}\Big(1 +\frac{E}{G\kappa}\Big)\partial_x^2\partial_t^2 y + \partial_t^2 y 
+             + \frac{\rho I}{G A \kappa}\partial_t^4 y = ...
+\end{align*}

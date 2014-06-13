@@ -2167,6 +2167,7 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
           // This should work when the grid is adjusted for displacements
      	  printf("PlotIt::contourCuts:INFO:Use OLD interpolatePoints to handle .adjustGridForDisplacement\n");
 
+          #ifndef USE_PPP
 	  wasInterpolated.redim(R);
 	  interpolatePoints(x,u,uI,
 			    C,nullRange,
@@ -2174,6 +2175,7 @@ contourCuts(GenericGraphicsInterface &gi, const realGridCollectionFunction & u, 
                             Overture::nullIntegerDistributedArray(),
 			    Overture::nullIntegerDistributedArray(),
 			    wasInterpolated );
+          #endif
         }
 	else 
 	{

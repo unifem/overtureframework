@@ -16,6 +16,11 @@ ref: CgsmRef.tex
 #	makeindex CgsmRef.idx
 
 
+getBib:
+	ln -sf /data2/henshw/papers/henshaw.bib .
+	ln -sf /data2/henshw/papers/henshawPapers.bib .
+
+
 # Notes for Heinz:
 eeNotes : eeNotes.tex
 	latex eeNotes

@@ -157,7 +157,7 @@ virtual int
 updateUserDefinedEOS(GenericGraphicsInterface & gi);
 
 virtual int 
-updateUserDefinedKnownSolution(GenericGraphicsInterface & gi);
+updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg);
 
 virtual
 bool useConservativeVariables(int grid=-1) const;  // if true we are using a solver that uses conservative variables

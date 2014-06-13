@@ -1,0 +1,28 @@
+Use the cgsm "bulk" solid mechanics solver to simulate a beam
+
+(1) Generate the grids
+
+    ogen -noplot beamGrid -periodic=p -height=.04 -nx=81 -ny=21 
+
+    ogen -noplot beamGrid -periodic=p -height=.02 -nx=81 -ny=21 
+    ogen -noplot beamGrid -periodic=p -height=.02 -nx=161 -ny=41 
+
+(2) Run the code
+
+
+ (2a)  Beam height = .02 (aspect ratio=50)   Note: Period for Euler-Bernoulli beam T=17.43
+   SOS-C: 
+    cgsm beam -g=beamGridnx81ny21ar50p.order2.hdf -pv=c -diss=0 -tp=.1 -tf=20.   (period = 14.5)
+    cgsm beam -g=beamGridnx161ny41ar50p.order2.hdf -pv=c -diss=0 -tp=.1 -tf=20.  (period = 16 )
+    cgsm beam -g=beamGridnx321ny81ar50p.order2.hdf -pv=c -diss=0 -tp=.1 -tf=20.  (period = 17 )
+   FOS-G 
+    cgsm beam -g=beamGridnx81ny21ar50p.order2.hdf -pv=g -diss=0 -tp=.1 -tf=30    (period=17.)
+
+ (2b) Beam height = .04 (aspect ratio = 25 )  Note: Period for Euler-Bernoulli beam T=8.717
+   SOS-C  
+    cgsm beam -g=beamGridnx81ny21ar25p.order2.hdf -pv=c -diss=0 -tp=.1 -tf=20.   (period = 8 )
+    cgsm beam -g=beamGridnx161ny41ar25p.order2.hdf -pv=c -diss=0 -tp=.1 -tf=20.  (period = 8.7 )
+
+   FOS-G:
+    cgsm beam -g=beamGridnx81ny21ar25p.order2.hdf -pv=g -tp=.1 -tf=20.    (period=8.6)
+    cgsm beam -g=beamGridnx161ny41ar25p.order2.hdf -pv=g -tp=.1 -tf=20.    (period=8.7

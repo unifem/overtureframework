@@ -4,6 +4,7 @@
 #include "FluidPiston.h"
 #include "PistonMotion.h"
 #include "ParallelUtility.h"
+#include "TravelingWaveFsi.h"
 
 #include "../moving/src/BeamModel.h"
 
@@ -601,58 +602,14 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
      
 
   }
-  // else if( userKnownSolution=="linearBeamExactSolution" )
-  // {
- 
-  //   MappedGrid & mg = cg[grid];
-  //   mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+  else if( userKnownSolution=="travelingWaveFSI" )
+  {
+    // -- evaluate the FSI traveling wave solution ---
+    TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
 
-  //   OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),vertex);
+    travelingWaveFsi.getExactFluidSolution( ua, t, mg, I1, I2, I3 );
+  }
 
-  //   realArray & u = ua;
-
-  //   const int & uc = dbase.get<int >("uc");   //  u velocity component =u(all,all,all,uc)
-  //   const int & vc = dbase.get<int >("vc");  
-  //   const int & pc = dbase.get<int >("pc");  
-  //   double E=1.4e6;
-  //   double rhos=10000.0;
-  //   double h=0.02;
-  //   double Ioverb=6.6667e-7;
-  //   double rhof=1000;
-  //   double nu=0.001;
-  //   double L=0.3;
-  //   double H=0.3;
-  //   double k=2.0*3.141592653589/L;
-  //   double omega0=sqrt(E*Ioverb*k*k*k*k/(rhos*h));
-  //   double what = dbase.get<real>("exactSolutionScaleFactorFSI"); // 0.00001;
-  //   //double beta=1.0/nu*sqrt(E*Ioverb/(rhos*h));
-  //   //std::complex<double> omegatilde(1.065048891,-5.642079778e-4);
-  //   std::cout << "t = " << t << std::endl;
-  //   double omegar = 0.8907148069, omegai = -0.9135887123e-2;
-  //   for ( int i3=I3.getBase(); i3<=I3.getBound(); i3++ ) {
-  //     for ( int i2=I2.getBase(); i2<=I2.getBound(); i2++ ) {
-  // 	for ( int i1=I1.getBase(); i1<=I1.getBound(); i1++ ) {
-	  
-  // 	  double y = vertex(i1,i2,i3,1);
-  // 	  double x = vertex(i1,i2,i3,0);
-	  
-  // 	  BeamModel::exactSolutionVelocity(x,y,t,k,H,
-  // 					   omegar,omegai, 
-  // 					   omega0,nu,
-  // 					   what,u(i1,i2,i3,uc),
-  // 					   u(i1,i2,i3,vc));
-
-  // 	  BeamModel::exactSolutionPressure(x,y,t,k,H,
-  // 					   omegar,omegai, 
-  // 					   omega0,nu,
-  // 					   what,u(i1,i2,i3,pc));
-
-  // 	  //std::cout << x << " " << y << " " << u(i1,i2,i3,uc) << " " << u(i1,i2,i3,vc) << std::endl;
-  // 	}
-  //     }
-  //   }   
-  // }
- 
   else
   {
     printF("getUserDefinedKnownSolution:ERROR: unknown value for userDefinedKnownSolution=%s\n",
@@ -667,7 +624,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
 //\begin{>>MovingGridsSolverInclude.tex}{\subsection{updateUserDefinedMotion}} 
 int Parameters::
-updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
+updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg)
 // ==========================================================================================
 // /Description: 
 //   This function is called to set the user defined know solution.
@@ -706,8 +663,8 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
       "shock elastic piston",
       "rotating disk",  // for cgsm SVK model
       "uniform flow INS", // for testing INS    
-      // "linear beam exact solution", moved to ins/src/userDefinedKnownSolution
       "rotating elastic disk in a fluid", // FSI exact solution
+      "FSI traveling wave solution",
       "done",
       ""
     }; 
@@ -1143,27 +1100,33 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
     }
     
-    // else if( answer=="linear beam exact solution" ) {
+    else if( answer=="FSI traveling wave solution" )
+    {
+      userKnownSolution="travelingWaveFSI";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent 
 
-    //   userKnownSolution="linearBeamExactSolution";
-    //   dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent 
-    //   double scale=.00001;
-    //   gi.inputString(answer,"Enter the scale factor for the exact solution (0=use default)");
-    //   sScanF(answer,"%e",&scale);
-    //   if( scale==0 ){ scale=.00001; }  // 
-    //   if( !db.has_key("exactSolutionScaleFactorFSI") ) 
-    //   { 
-    // 	dbase.put<real>("exactSolutionScaleFactorFSI");
-    // 	dbase.get<real>("exactSolutionScaleFactorFSI")=scale; // scale FSI solution so linearized approximation is valid 
-    //   }
-    //   printF("INFO:Setting the exact FSI solution scale factor to %9.3e\n",scale);
-    //   MovingGrids & move = dbase.get<MovingGrids >("movingGrids");
-    //   assert( move.getNumberOfDeformingBodies()==1 );
-    //   DeformingBodyMotion & deform = move.getDeformingBody(0);
-    //   assert( deform.pBeamModel!=NULL );
-    //   deform.pBeamModel->dbase.get<real>("exactSolutionScaleFactorFSI")=scale;
+      printF("INFO:The FSI traveling wave solution is an exact solution for a solid (shell or bulk)\n"
+	     "coupled to a linearized incompressible fluid\n"
+	     "See: `An analysis of a new stable partitioned algorithm for FSI problems.\n"
+             "      Part I: Incompressible flow and elastic solids'. \n"
+	     "      J.W. Banks, W.D. Henshaw and D.W. Schwendeman, JCP 2014.\n");
+    
+      
+      if( !dbase.has_key("travelingWaveFsi") )
+	dbase.put<TravelingWaveFsi*>("travelingWaveFsi")=NULL;
 
-    // }
+      if( dbase.get<TravelingWaveFsi*>("travelingWaveFsi")==NULL )
+	dbase.get<TravelingWaveFsi*>("travelingWaveFsi")= new TravelingWaveFsi; // who will delete ???
+      TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+
+      travelingWaveFsi.update(gi );
+
+      // we also pass the grid for the solid:
+      CompositeGrid & cgSolid = cg; // do this for now  -- only used for number of grid points
+      travelingWaveFsi.setup(cg,cgSolid);
+  
+    }
+    
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

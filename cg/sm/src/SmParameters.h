@@ -108,7 +108,7 @@ virtual int
 updateToMatchGrid(CompositeGrid & cg, IntegerArray & sharedBoundaryCondition );
 
 virtual
-int updateUserDefinedKnownSolution(GenericGraphicsInterface & gi);
+int updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg);
 
 
 };

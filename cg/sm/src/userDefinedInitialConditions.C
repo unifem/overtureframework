@@ -9,6 +9,20 @@
 #include "GenericGraphicsInterface.h"
 #include "ParallelUtility.h"
 
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
 
 //\begin{>>CgsmInclude.tex}{\subsection{userDefinedInitialConditions}}
 int Cgsm::
@@ -270,6 +284,90 @@ userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u )
         }
       }
     } // end rotation option
+    else if( option=="beam" )
+    {
+      // -- we could avoid building the vertex array on Cartesian grids ---
+      mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+      OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+      // printF("The beam initial condition of sinusoidal form (lines normal to the neutral axis are straight)\n"
+      //        "     u1(x,y) =                   + y*sin(theta)\n"
+      //        "     u2(x,y) = amp*sin(2*pi*k*x) + y*cos(theta)\n"
+      //        " where tan(theta) = -2*pi*k*amp*cos(2*pi*k*x) \n");
+
+      RealArray & beamParameters = db.get<RealArray>("beamParameters");
+      real amp = beamParameters(0);
+      real k0=beamParameters(1);
+      real k = k0*2.*Pi;
+
+      int i1,i2,i3;
+      if( numberOfDimensions==2 )
+      {
+        // Displacements:
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  real x = xLocal(i1,i2,i3,0);
+	  real y = xLocal(i1,i2,i3,1);
+	  
+          // slope at x and y=0  is u2'(x)  with u2 = amp*sin(k*x)
+          real dy = amp*k*cos(k*x); // tangent = (1,dy)/sqrt(1+dy^2)
+     	  // normal:
+          real an=sqrt(1.+dy*dy);
+	  real nx = -dy/an, ny=1./an; 
+
+	  ug(i1,i2,i3,uc)=                 y*nx; 
+	  ug(i1,i2,i3,vc)=amp*sin(k*x)   + y*ny - y; 
+
+	}
+	
+	
+        if( assignVelocities )
+        { // Some solvers need the velocity:
+          // standing wave has zero velocity at t=0:
+	  ug(I1,I2,I3,v1c)=0.;  
+          ug(I1,I2,I3,v2c)=0.;
+        }
+        if( assignStress )
+        {  // Some solvers need the stress:
+	  FOR_3D(i1,i2,i3,I1,I2,I3)
+	  {
+	    real x = xLocal(i1,i2,i3,0);
+	    real y = xLocal(i1,i2,i3,1);
+	  
+	    real dy = amp*k*cos(k*x); // tangent = (1,dy)/sqrt(1+dy^2)
+	    real an=sqrt(1.+dy*dy);
+	    real nx = -dy/an, ny=1./an; 
+
+            real dyx = -amp*k*k*sin(k*x);        // d(dy)/dx 
+            real anx = dy*dyx/an;                //  d(an)/dx = .5/an * 2*dy*dyx
+	    real nxx = -dyx/an +dy*anx/(an*an);  // d(nx)/dx 
+	    real nyx = -anx/(an*an);             // d(ny)/dx 
+	    
+
+            real ux = y*nxx;
+	    real uy = nx;
+	    real vx = amp*k*cos(k*x) + y*nyx;
+	    real vy = ny-1.;
+	    real div=ux+vy;
+
+	    ug(i1,i2,i3,s11c)=lambda*div + 2.*mu*ux;
+	    ug(i1,i2,i3,s12c)=mu*(uy+vx);
+	    ug(i1,i2,i3,s21c)=ug(i1,i2,i3,s12c);
+	    ug(i1,i2,i3,s22c)=lambda*div + 2.*mu*vy;
+
+	  }
+        }
+      }
+      else
+      {
+        OV_ABORT("finish me");
+      }
+      
+
+
+    }
+    
+
     else
     {
       printF("Cgsm::userDefinedInitialConditions: Unknown option =[%s]",(const char*)option);
@@ -321,6 +419,7 @@ setupUserDefinedInitialConditions()
   {
     "pulse",
     "rotation",
+    "beam",
     "exit",
     ""
   };
@@ -393,6 +492,28 @@ setupUserDefinedInitialConditions()
 
       sScanF(answer2,"%e %e %e",&rotationParameters(0),&rotationParameters(1),&rotationParameters(2));
       printF("Rotation center = (%8.2e,%8.2e), rate=%8.2e\n",rotationParameters(0),rotationParameters(1),rotationParameters(2));
+
+    }
+    else if( answer=="beam" )
+    {
+      // Define initial conditions for a "beam"
+      option="beam";  // This name is used in the userDefinedInitialConditions function above when assigning the beam
+
+      if( !db.has_key("beamParameters") )
+	db.put<RealArray>("beamParameters");
+
+      RealArray & beamParameters = db.get<RealArray>("beamParameters");
+      beamParameters.redim(10);
+      beamParameters(0)=1.; beamParameters(1)=1.;
+
+      printF("The beam initial condition of sinusoidal form (lines normal to the neutral axis are straight)\n"
+             "     u1(x,y) =                   + y*sin(theta)\n"
+             "     u2(x,y) = amp*sin(2*pi*k*x) + y*cos(theta)\n"
+             " where tan(theta) = -2*pi*k*amp*cos(2*pi*k*x) \n");
+      gi.inputString(answer2,"Enter the beam amplitude and wave number: amp,k");
+
+      sScanF(answer2,"%e %e",&beamParameters(0),&beamParameters(1));
+      printF("Beam amp=%8.2e, k=%8.2e\n",beamParameters(0),beamParameters(1));
 
     }
     else

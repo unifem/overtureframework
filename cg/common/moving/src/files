@@ -3,4 +3,9 @@ SRC_FILES += TimeFunction.C MatrixMotion.C PistonMotion.C
 
 SRC_FILES += BeamModel.C DeformingBodyMotion.C DeformingGrid.C ElasticFilament.C GridEvolution.C NonlinearBeamModel.C
 
+SRC_FILES += getTravelingWave.C TravelingWaveFsi.C
+
+# fortran files the we always compile optimized
+FSRCO += dispersionBulkElasticViscous.f dispersionShellViscous.f dispersionBulkAcousticViscous.f dispersionBulkAcousticInviscid.f
+
 

@@ -10,6 +10,8 @@
 // #include "MatrixTransform.h"
 // #include "CrossSectionMapping.h"
 #include "BeamModel.h"
+#include "NonlinearBeamModel.h"
+
 #include "display.h"
 // #include "App.h"
 #include "NurbsMapping.h"
@@ -25,6 +27,12 @@
 #define Wx(x,t) (w*a*cos(k*(x))*cos(w*(t)))
 #define Wtx(x,t) (-w*a*cos(k*(x))*sin(w*(t)))
 
+
+enum BeamModelEnum
+{
+  linearBeamModel=0,
+  nonlinearBeamModel,
+} beamModelType=linearBeamModel;
 
 enum TestProblemEnum
 {
@@ -72,11 +80,11 @@ TestBeamModel();
 // Check the forcing routines in the Beam Model
 int checkForce();
 
-int getErrors();
+int getErrors( real t );
 
 int plot(GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
-int plot2(GenericGraphicsInterface & gi, GraphicsParameters & psp );
+int plot2(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
 int solve(GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
@@ -84,6 +92,7 @@ int solve(GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
 
 BeamModel beam;
+NonlinearBeamModel nlBeam;
 
 real t;
 
@@ -199,64 +208,130 @@ plot(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 /// \brief plot the beam solution.
 // ========================================================================================
 int TestBeamModel::
-plot2(GenericGraphicsInterface & gi, GraphicsParameters & psp )
+plot2(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
 {
 
   psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);     // set this to run in "movie" mode (after first plot)
-
-  RealArray xc;
-  beam.getCenterLine(xc);
-  ::display(xc,"beam center line","%8.2e ");
-    
-  NurbsMapping map; 
-  map.interpolate(xc);
-
-  real lineWidth=2;
-  // psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // default is 1
-  psp.set(GraphicsParameters::lineWidth,lineWidth);  
   gi.erase();
 
-  RealArray pb(2,3);  // plot bounds 
-  pb=-.1; pb(1,Range(0,2))=1.1;
-  psp.set(GI_PLOT_BOUNDS, pb);
-  psp.set(GI_USE_PLOT_BOUNDS, true);
-  // psp.set(GI_USE_PLOT_BOUNDS_OR_LARGER, true);
+  psp.set(GI_TOP_LABEL,sPrintF("beam model t=%9.3e",t));     // set this to run in "movie" mode (after first plot)
 
-  // // -- plot points to set plot bounds : fix me ---
-  // RealArray points(2,2);
-  // points(0,0)=0.; points(0,1)=-a;
-  // points(1,0)=beamLength; points(1,1)=a;
-  // gi.plotPoints(points,psp);
-  // psp.set(GI_USE_PLOT_BOUNDS,true);
+  RealArray xc;
+  if( beamModelType==linearBeamModel )
+  {
+    beam.getCenterLine(xc);
 
-  PlotIt::plot(gi, map,psp);      
+    ::display(xc,"beam center line","%8.2e ");
+    
+    NurbsMapping map; 
+    map.interpolate(xc);
+
+    real lineWidth=2;
+    // psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // default is 1
+    // psp.set(GraphicsParameters::lineWidth,lineWidth);  
+
+    RealArray pb(2,3);  // plot bounds 
+    pb=-.1; pb(1,Range(0,2))=1.1;
+    if( beamModelType==nonlinearBeamModel )
+    {
+      pb(0,0)=0.; pb(1,0)=1.;
+      pb(0,1)=-.2;  pb(1,1)=.2;
+    }
+
+    psp.set(GI_PLOT_BOUNDS, pb);
+    psp.set(GI_USE_PLOT_BOUNDS, true);
+    // psp.set(GI_USE_PLOT_BOUNDS_OR_LARGER, true);
+
+    // // -- plot points to set plot bounds : fix me ---
+    // RealArray points(2,2);
+    // points(0,0)=0.; points(0,1)=-a;
+    // points(1,0)=beamLength; points(1,1)=a;
+    // gi.plotPoints(points,psp);
+    // psp.set(GI_USE_PLOT_BOUNDS,true);
+
+    PlotIt::plot(gi, map,psp);      
+    psp.set(GraphicsParameters::lineWidth,1);  // reset
+
+  }
+  else if( beamModelType==nonlinearBeamModel )
+  {
+    // nlBeam.getCenterLine(xc);
+    nlBeam.plot(gi,psp);
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown beam model");
+  }
+  
   gi.redraw(true);
-  psp.set(GraphicsParameters::lineWidth,1);  // reset
   usleep(100000);  // sleep in mirco-seconds
 }
 
 
 
 int TestBeamModel::
-getErrors()
+getErrors( real t )
 {
-  RealArray x3,v3;
-  x3 = beam.position(); 
-  v3 = beam.velocity();
+  // RealArray x3,v3;
+  // x3 = beam.position(); 
+  // v3 = beam.velocity();
   
-  real errMax=0., l2Err=0.;
-  for (int i = 0; i <= nElem; ++i)
-  {
-    real xl = ( (real)i /nElem) *  beamLength;
-    real we = W(xl,t);
+  real errMax=0., l2Err=0., yNorm=0.;
 
-    real err = fabs( x3(i*2)-we );
-    errMax=max(errMax,err);
-    l2Err += SQR(err);
-	    
+  RealArray xc;
+  if( beamModelType==linearBeamModel )
+  {
+    beam.getCenterLine(xc);
+
+    for (int i = 0; i <= nElem; ++i)
+    {
+      real xl = ( (real)i /nElem) *  beamLength;
+      real we = W(xl,t);
+
+      real err = fabs( xc(i*2)-we );
+      errMax=max(errMax,err);
+      l2Err += SQR(err);
+      yNorm=yNorm+SQR(we);
+
+    }
+    l2Err=sqrt(l2Err/(nElem+1));
+    yNorm=sqrt(yNorm/(nElem+1));
   }
-  l2Err=sqrt(l2Err/(nElem+1));
-  printF("Error t=%9.3e : max=%8.2e, l2=%8.2e\n",t,errMax,l2Err);
+  else if( beamModelType==nonlinearBeamModel )
+  {
+    nlBeam.getCenterLine(xc);
+
+    int numNodes=nlBeam.getNumberOfNodes();
+
+    RealArray xe(numNodes*2),ve(numNodes*2),ae(numNodes*2);
+    
+    nlBeam.setExactSolution(t,xe,ve,ae );
+
+    printF("*** numNodes=%i\n",numNodes);
+    // display(xc,sPrintF("xc at t=%9.3e",t),"%6.3f ");
+    // display(xe,sPrintF("xe at t=%9.3e",t),"%6.3f ");
+    
+
+    printF("t=%9.3e: ",t);
+    for (int i = 0; i < numNodes; ++i)
+    {
+      real err = fabs( xc(i,1)-xe(i*2) );
+      errMax=max(errMax,err);
+      l2Err += SQR(err);
+      yNorm=yNorm+SQR(xe(i*2));
+      printF(" y=%9.3e (ye=%9.3e), ",xc(i,1),xe(2*i));
+    }
+    l2Err=sqrt(l2Err/numNodes);
+    yNorm=sqrt(yNorm/numNodes);
+    printF("\n");
+    
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown beam model");
+  }
+
+  printF("Error t=%9.3e : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,errMax,l2Err,l2Err/max(1.e-12,yNorm));
 
   return 0;
 }
@@ -270,64 +345,126 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   BeamModel::BoundaryCondition bcLeft=BeamModel::Pinned, bcRight=BeamModel::Pinned;
   // BeamModel::BoundaryCondition bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
   bool useExactSolution=false;
-  beam.setParameters(momOfIntertia, E, 
-		     rho,beamLength,
-		     thickness,pnorm,
-		     nElem, bcLeft,bcRight,
-		     x0, y0, useExactSolution);
-      
-  beam.setDeclination(beamAngle*Pi/180);
 
   RealArray x1,v1,x2,v2,x3,v3;
-  x1 = beam.position(); 
-  v1 = beam.velocity();
 
-  x2 = beam.position(); 
-  v2 = beam.velocity();
+  if( beamModelType==linearBeamModel )
+  {
+    beam.setParameters(momOfIntertia, E, 
+		       rho,beamLength,
+		       thickness,pnorm,
+		       nElem, bcLeft,bcRight,
+		       x0, y0, useExactSolution);
+      
+    beam.setDeclination(beamAngle*Pi/180);
 
-  x3 = beam.position(); 
-  v3 = beam.velocity();
+    x1 = beam.position(); 
+    v1 = beam.velocity();
+
+    x2 = beam.position(); 
+    v2 = beam.velocity();
+
+    x3 = beam.position(); 
+    v3 = beam.velocity();
+
+  }
+  else if( beamModelType==nonlinearBeamModel )
+  {
+    // aString beamFile = "mybeam.beam"; // *fix me* 
+    // nlBeam.readBeamFile((const char*)beamFile);
+
+    // real & omega = deformingBodyDataBase.get<real>("added mass relaxation factor");
+    real omega=.5;
+    nlBeam.setAddedMassRelaxation(omega);
+
+    // real & tol = deformingBodyDataBase.get<real>("sub iteration convergence tolerance");
+    real tol=1.e-5;
+    nlBeam.setSubIterationConvergenceTolerance(tol);
+
+    // do this for now:
+    RealArray xc;
+    nlBeam.getCenterLine(xc);
+    int nbl = xc.getLength(0);
+
+    nlBeam.initializeProjectedPoints(nbl);
+    for (int i = 0; i<nbl; i++ )
+    nlBeam.projectInitialPoint(i, xc(i,0),xc(i,1) );
+
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown beam model");
+  }
 
 
   // wave speed c= w/k ,   c*dt/dx = cfl 
   real dx=beamLength/nElem;
   real dt= cfl*dx/(w/k); 
+  if( beamModelType==nonlinearBeamModel )
+  {
+    dt = nlBeam.getExplicitTimeStep();
+
+    dt=dt*cfl;
+  }
+  
+
   int numberOfSteps= int( tFinal/dt + .5);
   dt = tFinal/numberOfSteps;  // adjust dt so we reach tFinal exactly
       
+  printF("+++ solve: dt=%9.3e, numberOfSteps=%i\n",dt,numberOfSteps);
+
+
   int nPlot = max(1,int( tPlot/dt+.5 ));
 
   t=0.;
 
-  for (int i = 0; i <= nElem; ++i)
+  if( beamModelType==linearBeamModel )
   {
-    real xl = ( (real)i /nElem) *  beamLength;
+    for (int i = 0; i <= nElem; ++i)
+    {
+      real xl = ( (real)i /nElem) *  beamLength;
 
-    t=-dt;
+      t=-dt;
 
-    x1(i*2)   = W(xl,t);     // w 
-    x1(i*2+1) = Wx(xl,t);    // w_x
+      x1(i*2)   = W(xl,t);     // w 
+      x1(i*2+1) = Wx(xl,t);    // w_x
     
-    v1(i*2)   = Wt(xl,t);    // w_t 
-    v1(i*2+1) = Wtx(xl,t);   // w_xt 
+      v1(i*2)   = Wt(xl,t);    // w_t 
+      v1(i*2+1) = Wtx(xl,t);   // w_xt 
 
-    t=0.;
+      t=0.;
 	
-    x2(i*2)   = W(xl,t);     // w 
-    x2(i*2+1) = Wx(xl,t);    // w_x
+      x2(i*2)   = W(xl,t);     // w 
+      x2(i*2+1) = Wx(xl,t);    // w_x
     
-    v2(i*2)   = Wt(xl,t);    // w_t 
-    v2(i*2+1) = Wtx(xl,t);   // w_xt 
+      v2(i*2)   = Wt(xl,t);    // w_t 
+      v2(i*2+1) = Wtx(xl,t);   // w_xt 
 
+    }
   }
-
+  
       
   for( int step=1; step<=numberOfSteps; step++ )
   {
 
-    beam.predictor(dt, x1,v1,x2,v2,x3,v3);
+    if( beamModelType==linearBeamModel )
+    {
+      beam.predictor(dt, x1,v1,x2,v2,x3,v3);
 
-    beam.corrector(dt, x3,v3);
+      beam.corrector(dt, x3,v3);
+    }
+    else if( beamModelType==nonlinearBeamModel )
+    {
+      nlBeam.predictor(dt);
+
+      nlBeam.corrector(dt);
+
+    }
+    else
+    {
+      OV_ABORT("ERROR: unknown beam model");
+    }
+
 
     t = (step)*dt;
 	
@@ -335,11 +472,11 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
     {
 
       // compute the max error:
-      getErrors();
+      getErrors( t );
       
       // plot solution
       // plot(gi,psp);
-      plot2(gi,psp);
+      plot2(t, gi,psp);
 
       // -- output results to the check file.
       // fprintf(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput+2); // print |\uv| and divergence too.
@@ -352,10 +489,13 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
       // }
 
     }
-	
-    x1=x2; v1=v2;  // rename solutions for next step
-    x2=x3; v2=v3;
-	
+
+    if( beamModelType==linearBeamModel )
+    {	
+      x1=x2; v1=v2;  // rename solutions for next step
+      x2=x3; v2=v3;
+    }
+    
   }
       
 
@@ -396,22 +536,34 @@ checkForce()
   // 		const real& x0_2, const real& y0_2,
   // 		real p2,const real& nx_2,const real& ny_2);
 
-  real h=thickness*.5;
-  real x0=.1, y0=h, x1=.5, y1=h;
-  real nx0=0., ny0=1.;
-  real nx1=0., ny1=1.;
+  if( beamModelType==linearBeamModel )
+  {
+    real h=thickness*.5;
+    real x0=.1, y0=h, x1=.5, y1=h;
+    real nx0=0., ny0=1.;
+    real nx1=0., ny1=1.;
   
-  real p0=1., p1=1.;
-  beam.resetForce();
-  beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
+    real p0=1., p1=1.;
+    beam.resetForce();
+    beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
 
-  const RealArray & force = beam.force();
-  ::display(force(Range(0,2*nElem,2)),"Top force","%8.2e ");
+    const RealArray & force = beam.force();
+    ::display(force(Range(0,2*nElem,2)),"Top force","%8.2e ");
 
-  beam.resetForce();
-  x0=.5, y0=-h, x1=.1, y1=-h;
-  beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
-  ::display(force(Range(0,2*nElem,2)),"Bottom force","%8.2e ");
+    beam.resetForce();
+    x0=.5, y0=-h, x1=.1, y1=-h;
+    beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
+    ::display(force(Range(0,2*nElem,2)),"Bottom force","%8.2e ");
+
+  }
+  else if( beamModelType==nonlinearBeamModel )
+  {
+    OV_ABORT("ERROR: finish me!");
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown beam model");
+  }
 
 
 
@@ -431,8 +583,11 @@ main(int argc, char *argv[])
 
 
   TestBeamModel tbm;
+  CompositeGrid cg;  // not currently used
 
   int & debug = BeamModel::debug;
+  NonlinearBeamModel::debug=3;
+
   debug=1;
 
   int & nElem= tbm.nElem;    // number of elements 
@@ -470,6 +625,11 @@ main(int argc, char *argv[])
         sScanF(line(len,line.length()-1),"%e",&tFinal);
 	printF("tFinal = %6.2f\n",tFinal);
       }
+      else if( len=line.matches("-nl") )
+      {
+	printF("Setting beamModelType=nonlinearBeamModel\n");
+        beamModelType=nonlinearBeamModel;
+      }
       else if( len=line.matches("-tp=") )
       {
         sScanF(line(len,line.length()-1),"%e",&tPlot);
@@ -494,7 +654,7 @@ main(int argc, char *argv[])
     }
   }
 
-  PlotStuff gi(plotOption,"Beam model tester");
+  GenericGraphicsInterface & gi = *Overture::getGraphicsInterface("tbm",plotOption,argc,argv);
   PlotStuffParameters psp;
   
   // By default start saving the command file called "tbm.cmd"
@@ -518,17 +678,27 @@ main(int argc, char *argv[])
   dialog.setWindowTitle("Beam model tester");
   dialog.setExitCommand("exit", "exit");
 
-  aString opCommand1[] = {"traveling wave",
+  aString opCommand1[] = {"linear beam model",
+			  "nonlinear beam model",
+			  ""};
+
+  dialog.setOptionMenuColumns(1);
+  dialog.addOptionMenu( "Type:", opCommand1, opCommand1, beamModelType );
+
+
+
+  aString opCommand2[] = {"traveling wave",
 			  "standing wave",
 			  ""};
 
   dialog.setOptionMenuColumns(1);
-  dialog.addOptionMenu( "Type:", opCommand1, opCommand1, testProblem );
+  dialog.addOptionMenu( "Type:", opCommand2, opCommand2, testProblem );
 
   aString cmds[] = {"solve",
                     "check force",
                     "convergence rate",
                     "leak check",
+                    "change beam parameters",
                     "exit",
 		    ""};
 
@@ -592,6 +762,32 @@ main(int argc, char *argv[])
     {
       break;
     }
+    else if( answer=="linear beam model" )
+    {
+      beamModelType=linearBeamModel;
+    }
+    else if( answer=="nonlinear beam model" )
+    {
+      beamModelType=nonlinearBeamModel;
+    }
+    
+    else if( answer=="change beam parameters" )
+    {
+      if( beamModelType==linearBeamModel )
+      {
+	tbm.beam.update(cg,gi);
+      }
+      else if(  beamModelType==nonlinearBeamModel )
+      {
+	tbm.nlBeam.update(cg,gi);
+      }
+      else
+      {
+	OV_ABORT("error");
+      }
+
+    }
+
     else if( dialog.getTextValue(answer,"tFinal:","%e",tFinal) ){} //
     else if( dialog.getTextValue(answer,"tPlot:","%e",tPlot) ){} //
     else if( dialog.getTextValue(answer,"cfl:","%e",cfl) ){} //

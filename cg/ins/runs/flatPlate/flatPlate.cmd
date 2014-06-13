@@ -5,14 +5,16 @@
 #    cgins [-noplot] flatPlate -g=<name> -tm=[bl|sa|ke|none] -nu=<val> -its=<tFinal> -pits=<tPlot> -ic=<uniform/tz>...
 #               -debug=<> -show=<name> -bg=<grid-name> -cfl=<num> -solver=<yale/best> -model=<ins/boussinesq> ...
 #               -ad2=[0/1] -ad21=<> -ad22=<> -iv=[viscous/adv/full] -imp=<val> -dtMax=<val> -rf=<val> ...
-#               -project=[0|1] -useNewImp=[0|1] -inflow=[uniform|parabolic|blasius] -go=[run/halt/og]
+#               -project=[0|1] -useNewImp=[0|1] -inflow=[uniform|parabolic|blasius|flatPlate|known] -go=[run/halt/og]
 #
-#  -tm : bl=Bladwin-Lomax, sa=Spalart-Almaras, ke=K-Epsilon
+#  -inflow= flatPlate : this is the *new* way (replaces blasius)
+#           known : use known solution 
 #  -ic = initial conditions 
 #  -go : run, halt, og=open graphics
 #  -iv : implicit variation : viscous=viscous terms implicit, adv=viscous + advection, full=full linearized version
 #  -imp : .5=CN, 1.=BE, 0.=FE
 #  -rf : refactor frequency
+#  -tm : bl=Bladwin-Lomax, sa=Spalart-Almaras, ke=K-Epsilon
 # 
 # Examples:
 #
@@ -50,7 +52,7 @@
 #
 # --- set default values for parameters ---
 $tFinal=1.; $tPlot=.1; $cfl=.9;  $nu=.01; $Prandtl=.72; $debug=1; $its=10000; $pits=100; $project=0; 
-$inflow="parabolic"; $tm="none"; 
+$inflow="flatPlate"; $tm="none"; 
 $k0=1.e-4; $eps0=1.e-4; # inflow and initial conditions for k and eps
 $tz="poly"; $degreex=2; $degreet=2;  $fx=.5; $ft=0.; $rtol=1.e-8; $atol=1.e-6; $dtMax=.5; $refactorFrequency=100; 
 $show = " "; $solver="yale"; $model="ins"; $numberOfCorrections=1; $ts="line";
@@ -242,7 +244,8 @@ $grid
    if( $inflow eq "uniform" ){ $cmd="bcNumber1=inflowWithVelocityGiven, uniform(d=$d,p=1.,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
    if( $inflow eq "blasius"){ $cmd="bcNumber1=inflowWithVelocityGiven, blasius(R=$ReBlasius,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
    # if( $useKnown ne 0 ){ $cmd="bcNumber1=dirichletBoundaryCondition"; }
-   if( $useKnown ne 0 ){ $cmd="bcNumber1=inflowWithVelocityGiven, userDefinedBoundaryData\n known solution\n  done"; }
+   if( $inflow eq "known" ){ $cmd="bcNumber1=inflowWithVelocityGiven, userDefinedBoundaryData\n known solution\n  done"; }
+   if( $inflow eq "flatPlate" ){  $cmd="bcNumber1=inflowWithVelocityGiven, userDefinedBoundaryData\n flat plate boundary layer profile\n  $U $xOffset\n done"; }
     $cmd 
   #
   #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=1.e-8)

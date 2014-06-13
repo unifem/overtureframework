@@ -1,0 +1,8 @@
+2014/06/12 -- beam tests 
+
+cgsm beam -g=beamGridnx81ny21ar25p.order2.hdf -pv=g -tp=.1 -tf=20. -show=beam_ar25.show
+
+SEE Readme
+
+
+

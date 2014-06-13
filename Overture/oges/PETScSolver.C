@@ -27,7 +27,7 @@ void
 initPETSc()
 {
   Oges::petscIsAvailable=true;                            // set to true if PETSc is available
-  Oges::createPETSc=PETScSolver::newPETScEquationSolver;  // pointer to a function that can "new" a PETSc instance
+  Oges::createPETSc=PETScSolver::newPETScSolver;  // pointer to a function that can "new" a PETSc instance
   Overture::shutDownPETSc = &finalizePETSc;               // set the function that will shut down PETSc
 }
 
@@ -37,7 +37,7 @@ initPETSc()
 // =======================================================================================
 EquationSolver* PETScSolver::newPETScSolver(Oges &oges)
 {
-  return new PETScEquationSolver(oges);
+  return new PETScSolver(oges);
 }
 
 

@@ -14,7 +14,7 @@
 #  -go : run, halt, og=open graphics
 #  -cons : 1= conservative difference 
 #  -pv : "pde-variation" : nc=non-conservative, c=conservative, g=godunov, h=hemp
-#  -godunovType : 0=linear, 2=SVK
+#  -godunovType : 0=linear, 1=LE with HMS code, 2=SVK 3=Rotated-linear, 4=MHS+NeoHookean
 #  -ts : time-stepping method, me=modified-equation, fe=forward-Euler, ie=improved-Euler, ab=adams-bashforth
 #  -checkGhostErr : optionally check the error on this many ghost points
 #  -stressRelaxation : turn on stress-strain relaxation, 2=2nd-order approx, 4=4th order

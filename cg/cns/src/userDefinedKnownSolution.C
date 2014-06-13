@@ -578,7 +578,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
 //\begin{>>MovingGridsSolverInclude.tex}{\subsection{updateUserDefinedMotion}} 
 int CnsParameters::
-updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
+updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg)
 // ==========================================================================================
 // /Description: 
 //   This function is called to set the user defined know solution.
@@ -641,7 +641,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
     else if( answer=="choose a common known solution" )
     {
       // Look for a known solution from the base class (in common/src)
-      Parameters::updateUserDefinedKnownSolution(gi);
+      Parameters::updateUserDefinedKnownSolution(gi,cg);
     }
     else if( answer=="piston motion" ) // *NEW WAY* using PistonMotion class
     {

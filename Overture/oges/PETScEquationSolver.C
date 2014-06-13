@@ -53,6 +53,7 @@ EquationSolver* PETScEquationSolver::newPETScEquationSolver(Oges &oges)
 // ========================================================================================
 /// \brief Call this function (before using Oges) if you want to use the PETSc solvers
 // =======================================================================================
+#ifndef USE_PPP
 void
 initPETSc()
 {
@@ -60,7 +61,7 @@ initPETSc()
   Oges::createPETSc=PETScEquationSolver::newPETScEquationSolver;  // pointer to a function that can "new" a PETSc instance
   Overture::shutDownPETSc = &finalizePETSc;                       // set the function that will shut down PETSc
 }
-
+#endif
 
 
 #undef __FUNC__

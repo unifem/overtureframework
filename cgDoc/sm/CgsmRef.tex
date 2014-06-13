@@ -20,8 +20,8 @@
 
 \input homeHenshaw
 
-\input{pstricks}\input{pst-node}
-\input{colours}
+% \input{pstricks}\input{pst-node}
+% \input{colours}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -42,7 +42,7 @@
 \newcommand{\Index}[1]{#1\index{#1}}
 
 \usepackage{tikz}
-\usepackage{pgfplots}
+% \usepackage{pgfplots}
 \input trimFig.tex
 % define the clipFig commands:
 %% \input clipFig.tex
@@ -58,19 +58,17 @@
 \vspace{5\baselineskip}
 \begin{flushleft}
 {\Large
-{\bf Cgsm} Reference Manual: An Overture Solver for the Solving the Equations of Solid Mechanics, \\
+Cgsm Reference Manual: An Overture Solver for the Solving the Equations of Solid Mechanics, \\
 }
 \vspace{2\baselineskip}
-William D. Henshaw\footnote{This work was performed under the auspices of the U.S. Department of Energy (DOE) by
-Lawrence Livermore National Laboratory under Contract DE-AC52-07NA27344 and by 
-DOE contracts from the ASCR Applied Math Program.}  \\
-Centre for Applied Scientific Computing  \\
-Lawrence Livermore National Laboratory      \\
-Livermore, CA, 94551.  \\
-\vspace{\baselineskip}
+William D. Henshaw \\
+\  \\
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute, \\
+Troy, NY, 12180,\\
+www.overtureFramework.org \\
+~~ \\
 \today\\
-\vspace{\baselineskip}
-LLNL-SM-??????
 
 \vspace{4\baselineskip}
 
@@ -238,7 +236,7 @@ The first-order system has the wave speeds above as well as characteristics spee
 
 % -------------------------------------------------------------------------------------------------
 \clearpage
-\bibliography{\homeHenshaw/papers/henshaw}
+\bibliography{henshaw,henshawPapers}
 \bibliographystyle{siam}
 
 

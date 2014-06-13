@@ -1,0 +1,48 @@
+--- 2014/06/12 -- RE-VISIT before AMP 
+
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1000. -u0=3. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+
+--- 2012/03/17 -- revisit deforming channel
+
+
+
+
+-- periodic channel: -->> this is not going to work since grids can move
+
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid4.order2p -scf=1000. -u0=3. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -solver=yale -psolver=yale -go=halt
+
+
+--- 2012/01/23
+
+
+Sm-Godunov --  very heavy solid ok: (but does not reach steady state even by t=15)
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1000. -u0=3. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+Sm-Godunov -- TROUBLE -- strong initial accelerations in the solid due to force imbalance
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid8.order2 -scf=100. -u0=3. -nu=.005 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+--- 2013/01/22 --------  START : FSI coupling with INS
+
+NOTE: Using smCONS !!
+
+OK- finer grid
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid8.order2 -scf=100. -u0=3. -nu=.005 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+PRESSURE INFLOW -- OK  (need to fix slipWall cgsm BC
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=100. -u0=.0 -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+PRESSURE INFLOW
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=100. -u0=.5 -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+PERIODIC In X: --> but solid can move to the right!
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid4.order2p -scf=100. -u0=.5 -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=100. -u0=.5 -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt
+
+
+OK:
+$mp/bin/cgmp deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=100. -u0=.1 -nu=.01 -tp=.01 -tf=1.4 -nc=1 -pOffset=0. -smVariation=c -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt

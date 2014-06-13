@@ -5,6 +5,7 @@
 #include "Integrate.h"
 #include "App.h"
 #include "Controller.h"
+#include "BoundaryLayerProfile.h"
 
 namespace
 {
@@ -25,7 +26,8 @@ enum UserDefinedBoundaryConditions
   normalComponentOfVelocity,    // specify the normal component of the velocity at the boundary
   cylindricalVelocity,          // specify cylindrical components of velocity (cr,vTheta,vPhi)
   pressureProfile,              // for cgins, outflow pressure profile
-  knownSolutionValues           // use boundary values from the known solution
+  knownSolutionValues,          // use boundary values from the known solution
+  flatPlateBoundaryLayerProfile          // use a flat plate boundary layer profile
 };
  
 real Tcontrol=0., regionVolume=0.;  // **FIX ME**
@@ -91,6 +93,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     "cylindrical velocity",
     "pressure profile",
     "known solution",
+    "flat plate boundary layer profile",
     "done",
     ""
   };
@@ -557,6 +560,27 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
 
       printF("***userDefinedBoundaryValues:set values according to the known solution\n");
       
+    }
+    else if( answer=="flat plate boundary layer profile" )
+    {
+      parameters.setUserBcType(side,axis,grid,flatPlateBoundaryLayerProfile);  // set the bcType to be a unique value.
+      parameters.setBcIsTimeDependent(side,axis,grid,false);      // this condition is NOT time dependent
+
+      real U=1., xOffset=1.;
+      printF("The flat plate boundary layer solution (Blasius) is a similiarity solution with\n"
+             "the flat plate starting at x=0, y=0. The free stream velocity is U.\n"
+             "To have a smooth inflow profile, enter an offset in x so the similiarity solution starts at this value\n"
+             "Note: the vertical velocity v only makes sense if sqrt(nu*U/x) is small. \n");
+      gi.inputString(answer,sPrintF("Enter U and xOffset xOffset (defaults U=%8.2e, xOffset=%8.2e)",U,xOffset));
+      sScanF(answer,"%e %e",&U,&xOffset);
+      printF("Setting U=%9.3e, xOffset=%9.3e\n",U,xOffset);
+
+      RealArray values(2);
+      values(0)=U;
+      values(1)=xOffset;
+      // save the parameters to be used when evaluating the BC's:
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
+
     }
     else
     {
@@ -1462,8 +1486,77 @@ userDefinedBoundaryValues(const real & t,
 	}
 	else
 	{
-	  // time derivative of the forcing 
+	  // time derivative of the forcing  *fix me for time-dependent known solutions*
 	  bd(Ib1,Ib2,Ib3,pc)=0.;
+	  bd(Ib1,Ib2,Ib3,uc)=0.;
+	  bd(Ib1,Ib2,Ib3,vc)=0.;
+	  if( numberOfDimensions==3 )
+	    bd(Ib1,Ib2,Ib3,wc)=0.;
+	}
+	
+      }
+      else if( parameters.userBcType(side,axis,grid)==flatPlateBoundaryLayerProfile )
+      {
+	// --- flat plat boundary layer profile ---
+
+        // -- we could avoid building the vertex array on Cartesian grids ---
+	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+        OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+
+
+	getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
+	numberOfSidesAssigned++;
+
+	RealArray values(2);
+	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+
+	const real U       =values(0);
+	const real xOffset =values(1);
+
+        DataBase & db = parameters.dbase;
+	if( !db.has_key("BoundaryLayerProfile") )
+	{
+	  // Create the BoundaryLayerProfile object 
+	  db.put<BoundaryLayerProfile*>("BoundaryLayerProfile");
+	  db.get<BoundaryLayerProfile*>("BoundaryLayerProfile") = new BoundaryLayerProfile();  // who will delete ???
+
+	  BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
+	  const real nu = parameters.dbase.get<real>("nu");
+	  profile.setParameters( nu,U );  // 
+
+	}
+	BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
+
+        // -- fill in the bd array: 
+        RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+
+	printF("\n &&&& userDefinedBoundaryValues: INFO: assign flat plate boundary layer profile at t=%8.2e\n\n",t);
+	
+	if( forcingType==computeForcing )
+	{
+	  int i1,i2,i3;
+	  FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+	  { // evaluate the boundary layer profile
+	    profile.eval( x(i1,i2,i3,0)+xOffset,x(i1,i2,i3,1), bd(i1,i2,i3,uc), bd(i1,i2,i3,vc) );
+	  }
+
+	  bd(Ib1,Ib2,Ib3,pc)=uKnownLocal(Ib1,Ib2,Ib3,pc);
+	  if( numberOfDimensions==3 )
+	    bd(Ib1,Ib2,Ib3,wc)=uKnownLocal(Ib1,Ib2,Ib3,wc);
+	  
+	}
+	else
+	{
+	  // time derivative of the forcing
+	  bd(Ib1,Ib2,Ib3,pc)=0.;
+	  bd(Ib1,Ib2,Ib3,uc)=0.;
+	  bd(Ib1,Ib2,Ib3,vc)=0.;
+	  if( numberOfDimensions==3 )
+	    bd(Ib1,Ib2,Ib3,wc)=0.;
 	}
 	
       }

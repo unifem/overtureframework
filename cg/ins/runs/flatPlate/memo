@@ -1,4 +1,19 @@
+*** 2014/06/10 -- test flat-plate-boundary-layer-profile opton for userDefinedfBoundaryValues
+
+
+mpiexec -n 2 $cginsp  flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=1 -ad41=.1 -ad42=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate
+
+
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad4=1 -ad41=.1 -ad42=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate
+
+
+
+
+
 *** 2014/06/02   -- MG has trouble with pressure solve
+
+MG: FIXED: solve coarse grid equations more accurately
+
 
 TEST AFS:
 
@@ -10,7 +25,6 @@ cgins flatPlate -g=flatPlate4.order2.dy.01.ml2.hdf -nu=1.e-3 -debug=1 -tp=.5 -tf
 
 
 
-FIXED: solve coarse grid equations more accurately
 
 
 **SHOW FILE FOR PLOTS ***

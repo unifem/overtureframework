@@ -256,7 +256,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     }   
   }
  
-  else if(  userKnownSolution=="flatPlateBoundaryLayer" )
+  else if( userKnownSolution=="flatPlateBoundaryLayer" )
   {
 
     const real & U = rpar[0];   
@@ -287,14 +287,20 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
       profile.eval( xLocal(i1,i2,i3,0)+xOffset,xLocal(i1,i2,i3,1), uLocal(i1,i2,i3,uc), uLocal(i1,i2,i3,vc) );
       if( numberOfDimensions==3 ) uLocal(i1,i2,i3,wc)=0.;
     }
-
   }
-  else
+  else 
   {
-    printF("getUserDefinedKnownSolution:ERROR: unknown value for userDefinedKnownSolution=%s\n",
-	   (const char*)userKnownSolution);
-    OV_ABORT("ERROR");
+    // look for a solution in the base class
+    Parameters::getUserDefinedKnownSolution( t, cg, grid, ua, I1,I2,I3 );
   }
+  
+
+  // else
+  // {
+  //   printF("getUserDefinedKnownSolution:ERROR: unknown value for userDefinedKnownSolution=%s\n",
+  // 	   (const char*)userKnownSolution);
+  //   OV_ABORT("ERROR");
+  // }
   
   return 0;
 }
@@ -302,7 +308,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
 
 int InsParameters::
-updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
+updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg)
 // ==========================================================================================
 /// \brief This function is called to set the user defined know solution.
 /// 
@@ -331,6 +337,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
   const aString menu[]=
     {
       "no known solution",
+      "choose a common known solution",
       "pipe flow",
       "rotating Couette flow",
       "Taylor Green vortex",
@@ -356,6 +363,12 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
     else if( answer=="no known solution" )
     {
       userKnownSolution="unknownSolution";
+    }
+
+    else if( answer=="choose a common known solution" )
+    {
+      // Look for a known solution from the base class (in common/src)
+      Parameters::updateUserDefinedKnownSolution(gi,cg);
     }
 
     else if( answer=="pipe flow" )
@@ -465,10 +478,9 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
     }
     
-
     else if( answer=="linear beam exact solution" ) 
     {
-
+      // ** OLD WAY ***
       userKnownSolution="linearBeamExactSolution";
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent 
       double omega;
@@ -511,7 +523,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi)
              "Note: the vertical velocity v only makes sense if sqrt(nu*U/x) is small. \n");
       gi.inputString(answer,sPrintF("Enter U and xOffset xOffset (defaults U=%8.2e, xOffset=%8.2e)",U,xOffset));
       sScanF(answer,"%e %e",&U,&xOffset);
-      printF("Setting U+%9.3e, xOffset=%9.3e\n",U,xOffset);
+      printF("Setting U=%9.3e, xOffset=%9.3e\n",U,xOffset);
       
     }
 

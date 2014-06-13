@@ -1,0 +1,11 @@
+INS flow in a deforming channel
+
+
+(1) Generate the grid
+
+   ogen -noplot deformingChannelGrid -factor=4 
+
+
+(2)  Run 
+
+$cgmpx deformingChannel -method=ins -g=deformingChannelGrid4.order2 -scf=1000. -u0=3. -nu=.01 -tp=.01 -tf=10 -nc=1 -pOffset=0. -smVariation=g -lambdaSolid=1. -muSolid=1. -debug=1 -pi=0 -multiDomainAlgorithm=1 -uShock=0. -ap=.1 -flushFrequency=2 -bcOption=4 -debug=3 -go=halt

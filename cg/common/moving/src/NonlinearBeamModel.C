@@ -2,6 +2,8 @@
 
 #include "NonlinearBeamModel.h"
 #include "display.h"
+#include "NurbsMapping.h"
+
 #include <fstream>
 
 #include <sstream>
@@ -159,12 +161,47 @@ static void solveBlockTridiagonal3(const RealArray& elementM, const RealArray& f
   }
   
 }
-NonlinearBeamModel::NonlinearBeamModel() {
+
+int NonlinearBeamModel::debug=0;
+
+
+
+//=======================================================================================
+/// \brief Constructor. Thi snonlinera model follows the 'continuum-based beam" model
+///    approach in the "Blue book".
+/// \note Initial development by Alex Main. Summer of 2013.
+/// \note
+//       density : 
+//       nu      : Poisson's ratio,   nu = lambda/( 2*(lambda+mu) )
+//       Em      : Young's modulus    E = mu*(3*lambda+2*mu)/( lambda+mu )
+//
+//     lambda = 2*mu*nu/( 1-2*nu ) = E*nu/( (1+nu)*(1-2*nu) )
+//     mu     = E/( 2*(1+nu) )
+//
+//   omegaStructure : relaxation parameter when solving the non-linear structural equations
+//
+//=======================================================================================
+NonlinearBeamModel::
+NonlinearBeamModel() 
+{
+  name="nlbeam1";
+
+  Em=1000.;
+  density=1000.;
+  nu=.25;
+
+  numNodes=11;
+  numElem=10;
+  isSteady=false;
+  
+  // for uniform beams: 
+  beamLength=1.;
+  beamThickness=.02;
 
   newmarkBeta = 0.25;
   newmarkGamma = 0.5;
 
-  omega_structure = 0.1;
+  omegaStructure = 1.; 
 
   bcLeft = Cantilevered;
   bcRight = Free;
@@ -192,9 +229,30 @@ NonlinearBeamModel::NonlinearBeamModel() {
 
   elementMassMatrices = NULL;
 
+  useExactSolution=false;
+  exactSolution=standingWave;
+  
+  if( !dbase.has_key("saveProfileFile") ) 
+  {
+     dbase.put<bool>("saveProfileFile");
+     dbase.get<bool>("saveProfileFile")=false;
+  }
+
+  if( !dbase.has_key("saveTipFile") ) 
+  {
+     dbase.put<bool>("saveTipFile");
+     dbase.get<bool>("saveTipFile")=false;
+  }
+
+
 }
 
-NonlinearBeamModel::~NonlinearBeamModel() {
+// ======================================================================================
+/// \brief Destructor.
+// ======================================================================================
+NonlinearBeamModel::
+~NonlinearBeamModel()
+{
 
   if (beamNodes)
     delete [] beamNodes;
@@ -209,7 +267,128 @@ NonlinearBeamModel::~NonlinearBeamModel() {
     delete [] elementMassMatrices;
 }
 
-void NonlinearBeamModel::readBeamFile(const char* filename) {
+// ======================================================================================
+/// \brief initialize the beam model
+// ======================================================================================
+void NonlinearBeamModel::
+initialize()
+{
+  printF("+++ NonlinearBeamModel:: initialize the model ++++\n");
+
+  assert( beamNodes!=NULL );
+  
+  delete [] slaveStates;
+  slaveStates = new SlaveState[numNodes];
+
+  RealArray xexact(numNodes*2), vexact(numNodes*2),
+    aexact(numNodes*2);
+
+  if (useExactSolution) 
+  {
+    setExactSolution(0.0,xexact,vexact,aexact);
+  }
+
+  for (int i = 0; i < numNodes; ++i) 
+  {
+
+    printF(" node i=%i X=(%g,%g) angle=%g, thick=%g",beamNodes[i].X[0],beamNodes[i].X[1],beamNodes[i].undeformedRotation,
+	   beamNodes[i].thickness);
+
+    //memcpy(beamNodes[i].x, beamNodes[i].X, sizeof(beamNodes[i].x));
+    memset(beamNodes[i].u, 0, sizeof(beamNodes[i].u));
+    if (useExactSolution)
+      beamNodes[i].u[1] = xexact(i*2);
+    
+    // convert to radians
+    // beamNodes[i].undeformedRotation *= 3.14159265358979323846264338/180.0;
+
+    beamNodes[i].rotation = beamNodes[i].undeformedRotation;
+    beamNodes[i].angletilde = beamNodes[i].undeformedRotation;
+
+    //beamNodes[i].rotation = beamNodes[i].angletilde = 0.0;
+
+    //beamNodes[i].u[0] = -(beamNodes[i].X[0] -0.25);
+    //beamNodes[i].u[1] = -(beamNodes[i].X[0] -0.25)*1.01;
+    
+    //beamNodes[i].u[1] = 0.0;//-(beamNodes[i].X[0] -0.25);
+    //beamNodes[i].u[0] = (beamNodes[i].X[0] -0.25)*0.01;
+
+    memcpy(beamNodes[i].utilde,beamNodes[i].u , sizeof(beamNodes[i].utilde));
+
+    beamNodes[i].angularVelocity = 0.0;
+
+    memset(beamNodes[i].v, 0, sizeof(beamNodes[i].v));
+    if (useExactSolution) {
+      beamNodes[i].v[1] = vexact(i*2);
+      beamNodes[i].angularVelocity = vexact(i*2+1);
+    }
+
+    memcpy(beamNodes[i].vtilde, beamNodes[i].v, sizeof(beamNodes[i].vtilde));
+
+    memset(beamNodes[i].a, 0, sizeof(beamNodes[i].a));
+
+    beamNodes[i].angularAcceleration = 0.0;
+
+    if (useExactSolution) 
+    {
+      beamNodes[i].a[1] = aexact(i*2);
+      beamNodes[i].angularAcceleration = aexact(i*2+1);
+    }
+      
+    beamNodes[i].angularVelocitytilde = beamNodes[i].angularVelocity;
+    
+
+    beamNodes[i].p0[0] = cos(beamNodes[i].undeformedRotation);
+    beamNodes[i].p0[1] = sin(beamNodes[i].undeformedRotation);
+        
+    slaveStates[i].Xplus[0] = beamNodes[i].X[0]+ 
+      0.5*beamNodes[i].thickness*beamNodes[i].p0[0];
+    slaveStates[i].Xplus[1] = beamNodes[i].X[1]+ 
+      0.5*beamNodes[i].thickness*beamNodes[i].p0[1];
+
+    slaveStates[i].Xminus[0] = beamNodes[i].X[0]- 
+      0.5*beamNodes[i].thickness*beamNodes[i].p0[0];
+    slaveStates[i].Xminus[1] = beamNodes[i].X[1]- 
+      0.5*beamNodes[i].thickness*beamNodes[i].p0[1];
+
+    printF(" X+=(%g,%g), X-=(%g,%g)\n", slaveStates[i].Xplus[0],slaveStates[i].Xplus[1],
+	   slaveStates[i].Xminus[0],slaveStates[i].Xminus[1]);
+    
+  }
+
+
+  M.redim(numElem,6,6);
+  K.redim(numElem,6,6);
+  Fext.redim(numNodes,3);
+
+  Fext = 0.0;
+
+  Ffluid.redim(numNodes,3);
+  Ffluid = 0.0;
+  
+  //Fext(numElem,0) = 100.0;
+
+  bodyForce[0] = bodyForce[1] = 0.0;
+
+  elementMassMatrices = new RealArray[numElem];
+
+  reevaluateMassMatrix();
+
+
+  t = 0.0;
+
+
+}
+
+
+
+
+// ================================================================================================================
+/// \brief 
+// ================================================================================================================
+void NonlinearBeamModel::
+readBeamFile(const char* filename) 
+{
 
   std::ifstream infile(filename);
 
@@ -219,10 +398,10 @@ void NonlinearBeamModel::readBeamFile(const char* filename) {
 
   infile >> numElem;
   
-  infile >> density >> nu >> Em >> omega_structure >> isSteady;
+  infile >> density >> nu >> Em >> omegaStructure >> isSteady;
 
-  printF("NonlinearBeamModel: density=%g, nu=%g, Em=%g, omega_structure=%g isSteady=%i",
-	 density,nu,Em,omega_structure,isSteady);
+  printF("NonlinearBeamModel: density=%g, nu=%g, Em=%g, omegaStructure=%g isSteady=%i",
+	 density,nu,Em,omegaStructure,isSteady);
   
   int bc1,bc2;
   infile >> bc1 >> bc2;
@@ -253,115 +432,56 @@ void NonlinearBeamModel::readBeamFile(const char* filename) {
   printF(" pressureNorm=%g, useExactSolution=%i, rayleighAlpha=%g, raleighBeta=%g\n",pressureNorm,
 	 useExactSolution,rayleighAlpha,rayleighBeta);
   
-
+  delete [] beamNodes;
   beamNodes = new BeamNode[numNodes];
-  slaveStates = new SlaveState[numNodes];
 
-  RealArray xexact(numNodes*2), vexact(numNodes*2),
-    aexact(numNodes*2);
-
-  if (useExactSolution) {
-
-    setExactSolution(0.0,xexact,vexact,aexact);
-  }
-
-  for (int i = 0; i < numNodes; ++i) {
-
+  for (int i = 0; i < numNodes; ++i) 
+  {
     infile >> beamNodes[i].X[0] >> beamNodes[i].X[1]  >> beamNodes[i].X[2];
-
     infile >> beamNodes[i].undeformedRotation >> beamNodes[i].thickness;
 
-    printF(" node i=%i X=(%g,%g) angle=%g, thick=%g",beamNodes[i].X[0],beamNodes[i].X[1],beamNodes[i].undeformedRotation,
-	   beamNodes[i].thickness);
-
-    //memcpy(beamNodes[i].x, beamNodes[i].X, sizeof(beamNodes[i].x));
-    memset(beamNodes[i].u, 0, sizeof(beamNodes[i].u));
-    if (useExactSolution)
-      beamNodes[i].u[1] = xexact(i*2);
-    
     // convert to radians
-    beamNodes[i].undeformedRotation *= 3.14159265358979323846264338/180.0;
-
-    beamNodes[i].rotation = beamNodes[i].undeformedRotation;
-    beamNodes[i].angletilde = beamNodes[i].undeformedRotation;
-
-    //beamNodes[i].rotation = beamNodes[i].angletilde = 0.0;
-
-    //beamNodes[i].u[0] = -(beamNodes[i].X[0] -0.25);
-    //beamNodes[i].u[1] = -(beamNodes[i].X[0] -0.25)*1.01;
-    
-    //beamNodes[i].u[1] = 0.0;//-(beamNodes[i].X[0] -0.25);
-    //beamNodes[i].u[0] = (beamNodes[i].X[0] -0.25)*0.01;
-
-    memcpy(beamNodes[i].utilde,beamNodes[i].u , sizeof(beamNodes[i].utilde));
-
-    beamNodes[i].angularVelocity = 0.0;
-
-    memset(beamNodes[i].v, 0, sizeof(beamNodes[i].v));
-    if (useExactSolution) {
-      beamNodes[i].v[1] = vexact(i*2);
-      beamNodes[i].angularVelocity = vexact(i*2+1);
-    }
-
-    memcpy(beamNodes[i].vtilde, beamNodes[i].v, sizeof(beamNodes[i].vtilde));
-
-    memset(beamNodes[i].a, 0, sizeof(beamNodes[i].a));
-
-    beamNodes[i].angularAcceleration = 0.0;
-
-    if (useExactSolution) {
-      beamNodes[i].a[1] = aexact(i*2);
-      beamNodes[i].angularAcceleration = aexact(i*2+1);
-    }
-      
-    beamNodes[i].angularVelocitytilde = beamNodes[i].angularVelocity;
-    
-
-    beamNodes[i].p0[0] = cos(beamNodes[i].undeformedRotation);
-    beamNodes[i].p0[1] = sin(beamNodes[i].undeformedRotation);
-        
-    slaveStates[i].Xplus[0] = beamNodes[i].X[0]+ 
-      0.5*beamNodes[i].thickness*beamNodes[i].p0[0];
-    slaveStates[i].Xplus[1] = beamNodes[i].X[1]+ 
-      0.5*beamNodes[i].thickness*beamNodes[i].p0[1];
-
-    slaveStates[i].Xminus[0] = beamNodes[i].X[0]- 
-      0.5*beamNodes[i].thickness*beamNodes[i].p0[0];
-    slaveStates[i].Xminus[1] = beamNodes[i].X[1]- 
-      0.5*beamNodes[i].thickness*beamNodes[i].p0[1];
-
-    printF(" X+=(%g,%g), X-=(%g,%g)\n", slaveStates[i].Xplus[0],slaveStates[i].Xplus[1],
-	   slaveStates[i].Xminus[0],slaveStates[i].Xminus[1]);
-    
-
+    beamNodes[i].undeformedRotation *= Pi/180.; // wdh 3.14159265358979323846264338/180.0;
   }
-
-
   infile.close();
 
-  M.redim(numElem,6,6);
-  K.redim(numElem,6,6);
-  Fext.redim(numNodes,3);
-
-  Fext = 0.0;
-
-  Ffluid.redim(numNodes,3);
-  Ffluid = 0.0;
+  initialize();
   
-  //Fext(numElem,0) = 100.0;
-
-  bodyForce[0] = bodyForce[1] = 0.0;
-
-  elementMassMatrices = new RealArray[numElem];
-
-  reevaluateMassMatrix();
-
-
-  t = 0.0;
 }
 
 
-void NonlinearBeamModel::computeSlaveStates() {
+// ==================================================================
+/// \brief return the estimatimated *explicit* time step dt 
+/// \auhtor WDH
+// ==================================================================
+real NonlinearBeamModel::
+getExplicitTimeStep() const
+{
+  // estimate the time step from the bulk model 
+
+  // Lame parameters: 
+  real lambda= Em*nu/( (1.+nu)*(1.-2.*nu) );
+  real mu = Em/( 2.*(1.+nu));
+  
+  real cp = sqrt( (lambda+2*mu)/density );
+  
+  real dx = beamLength/numNodes;  // *fix me for general case*
+  
+  real dt = dx/cp;
+  
+  printF("NonlinearBeamModel::getExplicitTimeStep: cp=%8.2e, dx=%8.2e, dt=%8.2e\n",cp,dx,dt);
+
+  return dt;
+}
+
+
+
+// ===================================================================================================================
+/// \brief 
+// ===================================================================================================================
+void NonlinearBeamModel::
+computeSlaveStates() 
+{
 
   for (int i = 0; i < numNodes; ++i) {
 
@@ -637,9 +757,14 @@ void NonlinearBeamModel::computeLaminarComponents(int elem,real xi, real eta, re
   Jeta = ej[0]*ej[3]-ej[1]*ej[2];
 }
 
-void NonlinearBeamModel::computeStressSVK(int elem,real xi, real eta, real R[4],
-					  real F[4], real E[4], real J,
-					  real sigma[4]) {
+// ===================================================================================================================
+/// \brief 
+// ===================================================================================================================
+void NonlinearBeamModel::
+computeStressSVK(int elem,real xi, real eta, real R[4],
+		 real F[4], real E[4], real J,
+		 real sigma[4]) 
+{
 
   real F21 = F[2], F12 = F[1], F22 = F[3], F11 = F[0];
   real r[2][2] = {{R[0],R[1]},{R[2],R[3]}};
@@ -806,11 +931,13 @@ void NonlinearBeamModel::computeInternalForce(int elem,RealArray& Fout,
     computeStressSVK(elem,0.0,  pQuadPoints[i], Rdef,
 		     F, E, J,sigma) ;
     
-    real h0 = (beamNodes[elem].thickness + beamNodes[elem+1].thickness)*0.5;
+    real h0 = (beamNodes[elem].thickness + beamNodes[elem+1].thickness)*0.5; // wdh : not used
 
     real hoverh0 = 0.5*sqrt((beamNodes[elem].p[0]+beamNodes[elem+1].p[0])*(beamNodes[elem].p[0]+beamNodes[elem+1].p[0]) + 
     	     (beamNodes[elem].p[1]+beamNodes[elem+1].p[1])*(beamNodes[elem].p[1]+beamNodes[elem+1].p[1]));
   
+    // printF("computeInternalForce: Jeta=%9.3e\n",Jeta);
+    
     //std::cout << "Jeta = " << Jeta << std::endl;
     
     real kmat[2][2],kgeo[2][2]={0,0,0,0},ktot[2][2];
@@ -1011,7 +1138,7 @@ void NonlinearBeamModel::computeBodyForce(int elem,RealArray& Fout) {
       
       computeShapeFunctions(pQuadPoints[i], pQuadPoints[j],  N);
       
-      real h0 = (beamNodes[elem].thickness + beamNodes[elem+1].thickness)*0.5;
+      real h0 = (beamNodes[elem].thickness + beamNodes[elem+1].thickness)*0.5; // wdh : not used 
 
       real hoverh0 = 0.5*sqrt((beamNodes[elem].p[0]+beamNodes[elem+1].p[0])*(beamNodes[elem].p[0]+beamNodes[elem+1].p[0]) + 
 			      (beamNodes[elem].p[1]+beamNodes[elem+1].p[1])*(beamNodes[elem].p[1]+beamNodes[elem+1].p[1]));
@@ -1080,7 +1207,7 @@ void NonlinearBeamModel::computeElementalMassMatrix(int elem, RealArray& Melem) 
 			       F,  E, J,
 			       Nx,Jeta);
 
-      real h0 = (beamNodes[elem].thickness + beamNodes[elem+1].thickness)*0.5;
+      real h0 = (beamNodes[elem].thickness + beamNodes[elem+1].thickness)*0.5;  // wdh : not used 
 
       real hoverh0 = 0.5*sqrt((beamNodes[elem].p[0]+beamNodes[elem+1].p[0])*(beamNodes[elem].p[0]+beamNodes[elem+1].p[0]) + 
 			      (beamNodes[elem].p[1]+beamNodes[elem+1].p[1])*(beamNodes[elem].p[1]+beamNodes[elem+1].p[1]));
@@ -1513,9 +1640,11 @@ void NonlinearBeamModel::projectAcceleration(int id, real& ax, real& ay) {
   */
 }
 
+// ================================================================================================================
 //
 // Return the (x,y) coordinates of the beam centerline
 // wdh 2014/05/22
+// ================================================================================================================
 void NonlinearBeamModel::
 getCenterLine( RealArray & xc ) const
 {
@@ -1527,7 +1656,7 @@ getCenterLine( RealArray & xc ) const
     for( int axis=0; axis<numberOfDimensions; axis++ )
       xc(i,axis)=beamNodes[i].X[axis]+ beamNodes[i].u[axis];
   }
-  ::display(xc,"NonlinearBeamModel: xc","%6.3f ");
+  // ::display(xc,"NonlinearBeamModel: xc","%6.3f ");
   
 }
 
@@ -1544,13 +1673,20 @@ void NonlinearBeamModel::reevaluateMassMatrix() {
   }
 }
 
-void NonlinearBeamModel::predictor(real dt) {
+// ================================================================================================================
+/// \brief Predictor step.
+// ================================================================================================================
+void NonlinearBeamModel::
+predictor(real dt)
+{
 
   tipfile << t << " " << beamNodes[numElem].u[0] << " " << 
     beamNodes[numElem].u[1] <<" " << 
     beamNodes[numElem].rotation << std::endl;
 
-  if (useExactSolution) {
+  if( debug & 4 &&  useExactSolution) 
+  {
+    // -- output info about the exact solution ---
 
     RealArray xtmp(numNodes*2), vtmp(numNodes*2), atmp(numNodes*2);
     setExactSolution(t,xtmp,vtmp,atmp);
@@ -1616,7 +1752,12 @@ void NonlinearBeamModel::predictor(real dt) {
   numCorrectorIterations = 0;
 }
 
-void NonlinearBeamModel::addForce(int i1, real p1, int i2, real p2) {
+// =========================================================================================
+/// \brief 
+// =========================================================================================
+void NonlinearBeamModel::
+addForce(int i1, real p1, int i2, real p2) 
+{
 
   int elem1,elem2;
   real eta1,eta2,t1,t2;
@@ -1771,7 +1912,9 @@ void printArray(RealArray& F) {
   printArray(F,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 }
 
-void NonlinearBeamModel::corrector(real dt) {
+void NonlinearBeamModel::
+corrector(real dt) 
+{
 
   RealArray Fint,u;
   u.redim(numNodes*3);
@@ -1819,7 +1962,8 @@ void NonlinearBeamModel::corrector(real dt) {
 
   int itcnt = 0;
   real r0 = diff;
-  while (diff > 1.0e-13 && r0*1.0e-4 < diff) {
+  while (diff > 1.0e-13 && r0*1.0e-4 < diff)   // wdh: *check me*
+  {
 
     computeSlaveStates();
 
@@ -1844,10 +1988,12 @@ void NonlinearBeamModel::corrector(real dt) {
     RealArray F = evaluate(Fint-Fext);
 
     //dt = 1.0;
-    if (isSteady) {
-
+    if (isSteady)
+    {
       F *= -1.0;
-    } else {
+    } 
+    else 
+    {
 
       RealArray extraInertiaF;
       computeExtraInertiaTerm(extraInertiaF);
@@ -1878,6 +2024,14 @@ void NonlinearBeamModel::corrector(real dt) {
     }
 
 
+    if( false )
+    {
+      display(M,sPrintF("Mass matrix"),"%8.2e ");
+      display(K,sPrintF("Stiffness matrix"),"%8.2e ");
+      OV_ABORT("temp");
+    }
+    
+
     //printArray(F);
     
     //printArray(Fint);
@@ -1893,7 +2047,8 @@ void NonlinearBeamModel::corrector(real dt) {
     Fint(numElem,1) = 0.0;
     Fint(numElem,2) = 0.0;
     */
-    for (int i = 0; i < numNodes; ++i) {
+    for (int i = 0; i < numNodes; ++i) 
+    {
       flocal(i*3) = F(i,0);
       flocal(i*3+1) = F(i,1);
       flocal(i*3+2) = F(i,2);
@@ -2006,10 +2161,10 @@ void NonlinearBeamModel::corrector(real dt) {
 	diff += fabs(r(i*3)) + fabs(r(i*3+1))+ fabs(r(i*3+2));
 	//}
       
-      beamNodes[i].u[0] = (1.0-omega_structure)*beamNodes[i].u[0] + omega_structure*u(i*3);
-      beamNodes[i].u[1] = (1.0-omega_structure)*beamNodes[i].u[1] + omega_structure*u(i*3+1);
+      beamNodes[i].u[0] = (1.0-omegaStructure)*beamNodes[i].u[0] + omegaStructure*u(i*3);
+      beamNodes[i].u[1] = (1.0-omegaStructure)*beamNodes[i].u[1] + omegaStructure*u(i*3+1);
       
-      beamNodes[i].rotation = (1.0-omega_structure)*beamNodes[i].rotation + omega_structure*u(i*3+2);
+      beamNodes[i].rotation = (1.0-omegaStructure)*beamNodes[i].rotation + omegaStructure*u(i*3+2);
       
       if (dt > 0.0) {
 	beamNodes[i].a[0] = dminusdtilde(i*3)/(newmarkBeta*dt*dt);
@@ -2034,8 +2189,11 @@ void NonlinearBeamModel::corrector(real dt) {
     if (isSteady)
       predictor(0.0);
 
-    if ((isSteady && (itcnt % 100) == 0) || (!isSteady) ) {
-      std::cout << "Structure error = " << diff << std::endl;
+    if ((isSteady && (itcnt % 100) == 0) || (debug & 4 && !isSteady && (itcnt % 5)==0 ) )
+    {
+
+      printF("NonlinearBeamModel: it=%i error = %8.2e\n",itcnt,diff);
+
       if (isSteady) {
 	for (int i = 0; i < numNodes; ++i) {
 	  
@@ -2094,20 +2252,35 @@ void NonlinearBeamModel::corrector(real dt) {
 
   ++numCorrectorIterations;
 
-  std::cout << "correction value = " << correction << std::endl;
+  if( debug & 1 )
+    printF("NonlinearBeamModel:correct: t=%9.3e, it=%i error = %8.2e\n",t,itcnt,diff);
+
+  // std::cout << "correction value = " << correction << std::endl;
+  if( debug & 4) 
+    printF("NonlinearBeamModel:correct:numCorrectorIterations=%i:  initialResidual=%8.2e, correction=%8.2e <? %8.2e\n",numCorrectorIterations,initialResidual,correction,initialResidual*convergenceTolerance);
+  
   if (correction < initialResidual*convergenceTolerance || correction < 1e-8)
     correctionHasConverged = true;
 }
 
 
-void NonlinearBeamModel::addBodyForce( const real bf[2]) {
+// ==================================================================================
+/// \brief 
+// ==================================================================================
+void NonlinearBeamModel::
+addBodyForce( const real bf[2]) 
+{
 
   bodyForce[0] = bf[0];
   bodyForce[1] = bf[1];
 }
 
-void NonlinearBeamModel::resetForce() {
-
+// ==================================================================================
+/// \brief 
+// ==================================================================================
+void NonlinearBeamModel::
+resetForce()
+{
   Ffluid = 0.0;
 }
 
@@ -2116,6 +2289,7 @@ void NonlinearBeamModel::resetForce() {
 #include <complex>
 
 typedef ::real LocalReal;
+typedef ::real OV_real;
 
 static std::complex<LocalReal> phi1(std::complex<LocalReal> alpha, LocalReal k,
 				    LocalReal y) {
@@ -2142,44 +2316,99 @@ static std::complex<LocalReal> phi2d(std::complex<LocalReal> alpha, LocalReal k,
 }
 
 
+// standing wave: 
+#define W(x,t) (a0*sin(k*(x))*cos(w*(t)))
+#define Wt(x,t) (-w*a0*sin(k*(x))*sin(w*(t)))
+#define Wx(x,t) (w*a0*cos(k*(x))*cos(w*(t)))
+#define Wtx(x,t) (-w*a0*cos(k*(x))*sin(w*(t)))
+#define Wtt(x,t) (-w*w*a0*sin(k*(x))*cos(w*(t)))
+#define Wttx(x,t) (-w*w*a0*k*cos(k*(x))*cos(w*(t)))
+
 void NonlinearBeamModel::
-setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a) {
+setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a) 
+{
   
-  double L = 0.30;
+  if( exactSolution==standingWave )
+  {
+    // --- parameters for the exact solution ---
+    OV_real a0=.1;  // amplitude 
+    OV_real k0=2.;
+    OV_real k=Pi*k0;
 
-  double elasticModulus = 1.4e6;
-
-  double h=0.02;
-  double Ioverb=6.6667e-7;
-  double H=0.3;
-  double k=2.0*3.141592653589/L;
-  double omega0=sqrt(elasticModulus*Ioverb*k*k*k*k/(density*h));
-   
-  double what = 0.00001;
-  double omegar = 0.8907148069, omegai = -0.9135887123e-2;
-  std::complex<LocalReal> omega_tilde(omegar, omegai);
-  std::complex<LocalReal> I(0.0,1.0);
-
-  omega_tilde = 1.0;
-
-  for (int i = 0; i <= numElem; ++i) {
-
-    double xl = (double)i / numElem*L;
+    // *** fix me : 
+    OV_real E=Em,  breadth=beamThickness, thickness=beamThickness;
+    OV_real rho=density; 
+    OV_real Ioverb= pow(thickness,3.)/12.;  // what should his be ?   Integral_{-h/2}^{h/2}  y^2 dydz  = (1/12) h^3 b 
     
-    std::complex<LocalReal> f = exp(I*k*xl-I*omega_tilde*omega0*t)-exp(-I*k*xl-I*omega_tilde*omega0*t);
-    std::complex<LocalReal> fp = I*k*(exp(I*k*xl-I*omega_tilde*omega0*t)+exp(-I*k*xl-I*omega_tilde*omega0*t));
-    
+    // real w = sqrt( E*momOfIntertia*pow(k,4)/( rho*thickness*breadth ) );
+    OV_real w = sqrt( E*Ioverb*pow(k,4)/( rho*thickness ) );  // note: breadth scales out 
 
+    printF("NonlinearBeamModel::setExactSolution: standing wave: k=%9.3e, w=%9.3e (rho=%8.2e, E=%8.2e, h=%8.2e, I/b=%8.2e)\n",
+           k,w,rho,E,thickness,Ioverb);
+
+    for (int i = 0; i <= numElem; ++i) 
+    {
+      double xl = (double)i / numElem*beamLength;
     
-    x(i*2) = 2.0*(what*f).real();
-    x(i*2+1) = 2.0*(what*fp).real();
+      x(i*2) = W(xl,t);
+      x(i*2+1) = Wx(xl,t);
     
-    v(i*2) = 2.0*(-what*f*I*omega_tilde*omega0).real();
-    v(i*2+1) = 2.0*(-what*fp*I*omega_tilde*omega0).real();
+      v(i*2) = Wt(xl,t);   // initial velocity is zero 
+      v(i*2+1) = Wtx(xl,t);
     
-    a(i*2) = 2.0*(-what*f*omega_tilde*omega0*omega_tilde*omega0).real();
-    a(i*2+1) = 2.0*(-what*fp*omega_tilde*omega0*omega_tilde*omega0).real();
+      // Acceleration: 
+      a(i*2) = Wtt(xl,t);
+      a(i*2+1) = Wttx(xl,t);
+    }
+
   }
+  else if( exactSolution==fluidStructureTravelingWave )
+  {
+    // "Exact" solution for a traveling wave between an incompressible fluid and a beam
+
+    double L = 0.30;
+
+    double elasticModulus = 1.4e6;
+
+    double h=0.02;
+    double Ioverb=6.6667e-7;  // wdh: I/b = h^3/12 = 6.6667e-7
+    double H=0.3;
+    double k=2.0*3.141592653589/L;
+    double omega0=sqrt(elasticModulus*Ioverb*k*k*k*k/(density*h));
+   
+    double what = 0.00001;
+    double omegar = 0.8907148069, omegai = -0.9135887123e-2;
+    std::complex<LocalReal> omega_tilde(omegar, omegai);
+    std::complex<LocalReal> I(0.0,1.0);
+
+    omega_tilde = 1.0;
+
+    for (int i = 0; i <= numElem; ++i) 
+    {
+
+      double xl = (double)i / numElem*L;
+    
+      std::complex<LocalReal> f = exp(I*k*xl-I*omega_tilde*omega0*t)-exp(-I*k*xl-I*omega_tilde*omega0*t);
+      std::complex<LocalReal> fp = I*k*(exp(I*k*xl-I*omega_tilde*omega0*t)+exp(-I*k*xl-I*omega_tilde*omega0*t));
+    
+
+    
+      x(i*2) = 2.0*(what*f).real();
+      x(i*2+1) = 2.0*(what*fp).real();
+    
+      v(i*2) = 2.0*(-what*f*I*omega_tilde*omega0).real();
+      v(i*2+1) = 2.0*(-what*fp*I*omega_tilde*omega0).real();
+    
+      a(i*2) = 2.0*(-what*f*omega_tilde*omega0*omega_tilde*omega0).real();
+      a(i*2+1) = 2.0*(-what*fp*omega_tilde*omega0*omega_tilde*omega0).real();
+    }
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown exact solution");
+  }
+  
+
 }
 
 double NonlinearBeamModel::getExactPressure(double t, double xl) {
@@ -2348,7 +2577,7 @@ get( const GenericDataBase & dir, const aString & name)
   subDir.get( newmarkBeta, "newmarkBeta");
   subDir.get( newmarkGamma, "newmarkGamma");
 
-  subDir.get(omega_structure, "omega_structure");
+  subDir.get(omegaStructure, "omegaStructure");
 
   int tv;
   subDir.get(tv, "bcLeft");
@@ -2489,7 +2718,7 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put( newmarkBeta, "newmarkBeta");
   subDir.put( newmarkGamma, "newmarkGamma");
 
-  subDir.put(omega_structure, "omega_structure");
+  subDir.put(omegaStructure, "omegaStructure");
 
   subDir.put((int)bcLeft, "bcLeft");
   subDir.put((int)bcRight, "bcRight");
@@ -2515,4 +2744,315 @@ put( GenericDataBase & dir, const aString & name) const
 
   delete &subDir;
   return 0;  
+}
+
+
+// =================================================================================================
+/// \brief Plot the beam
+// =================================================================================================
+int NonlinearBeamModel::
+plot(GenericGraphicsInterface & gi, GraphicsParameters & psp )
+{
+
+  printF("NonlinearBeamModel::plot...\n");
+
+  OV_real lineWidth=2;
+  // psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // default is 1
+  // psp.set(GraphicsParameters::lineWidth,lineWidth);  
+
+  // *** do this for now **
+  RealArray pb(2,3);  // plot bounds 
+  pb=-.1; pb(1,Range(0,2))=1.1;
+
+  pb(0,0)=0.; pb(1,0)=beamLength;
+  pb(0,1)=-.2;  pb(1,1)=.2;
+
+  psp.set(GI_PLOT_BOUNDS, pb);
+  psp.set(GI_USE_PLOT_BOUNDS, true);
+
+  for( int curve=0; curve<3; curve++ )
+  {
+    RealArray xc;
+    aString buff;
+    if( curve==0 )
+    {
+      getCenterLine(xc);
+      // ::display(xc,sPrintF(buff,"%s: center line",(const char*)pBeamModel->getName()),"%8.2e ");
+      // ::display(xc,"center line","%8.2e ");
+    }
+    else 
+    {
+      const int numberOfDimensions=2; // **FIX ME**
+      xc.redim(numNodes,numberOfDimensions);
+      for( int i = 0; i < numNodes; i++ ) 
+      {
+	for( int axis=0; axis<numberOfDimensions; axis++ )
+	{
+	  if( curve==1 )
+	    xc(i,axis)=slaveStates[i].xplus[axis];
+	  else
+	    xc(i,axis)=slaveStates[i].xminus[axis];
+	}
+      }
+    }
+    
+    NurbsMapping map; 
+    map.interpolate(xc);
+
+    PlotIt::plot(gi, map,psp);      
+  }
+  
+
+  psp.set(GraphicsParameters::lineWidth,1);  // reset
+
+
+  return 0;
+}
+
+
+// =================================================================================================
+/// \brief  Define the NonlinearBeamModel parameters interactively.
+// =================================================================================================
+int NonlinearBeamModel::
+update(CompositeGrid & cg, GenericGraphicsInterface & gi )
+{
+
+  // *********** FINISH ME ****************
+
+  GUIState gui;
+  gui.setWindowTitle("Nonlinear Beam Model");
+  gui.setExitCommand("exit", "continue");
+  DialogData & dialog = (DialogData &)gui;
+
+  aString prefix = ""; // prefix for commands to make them unique.
+
+  // OV_real & subIterationConvergenceTolerance = dbase.get<OV_real>("subIterationConvergenceTolerance");
+  // OV_real & addedMassRelaxationFactor = dbase.get<OV_real>("addedMassRelaxationFactor");
+
+  aString beamFileName = "mybeam.beam";
+
+  bool buildDialog=true;
+  if( buildDialog )
+  {
+
+    const int maxCommands=40;
+    aString cmd[maxCommands];
+
+    aString pbLabels[] = {"build beam",
+    			  ""};
+    GUIState::addPrefix(pbLabels,prefix,cmd,maxCommands);
+    int numRows=4;
+    dialog.setPushButtons( cmd, pbLabels, numRows ); 
+
+    dialog.setOptionMenuColumns(1);
+    aString bcOptions[] = { "cantilever",
+			    "pinned",
+			    "free",
+                            "periodic",
+			    "" };
+
+    GUIState::addPrefix(bcOptions,"bc left:",cmd,maxCommands);
+    dialog.addOptionMenu("BC left:",cmd,cmd,bcLeft );
+
+    GUIState::addPrefix(bcOptions,"bc right:",cmd,maxCommands);
+    dialog.addOptionMenu("BC right:",cmd,cmd,bcRight );
+
+
+    aString tbCommands[] = {"use exact solution",
+                            "steady state",
+                            "save profile file",
+                            "save tip file",
+    			    ""};
+    int tbState[10];
+    tbState[0] = useExactSolution; 
+    tbState[1] = isSteady; 
+    tbState[2] = dbase.get<bool>("saveProfileFile");
+    tbState[3] = dbase.get<bool>("saveTipFile");
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
+
+    const int numberOfTextStrings=40;
+    aString textLabels[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+    
+    textLabels[nt] = "name:"; sPrintF(textStrings[nt], "%s",(const char*)name);  nt++; 
+    textLabels[nt] = "beam file:"; sPrintF(textStrings[nt], "%s",(const char*)beamFileName);  nt++; 
+    textLabels[nt] = "number of elements:"; sPrintF(textStrings[nt], "%i",numElem);  nt++; 
+    // textLabels[nt] = "area moment of inertia:"; sPrintF(textStrings[nt], "%g",areaMomentOfInertia);  nt++; 
+    textLabels[nt] = "elastic modulus:"; sPrintF(textStrings[nt], "%g",Em);  nt++; 
+    textLabels[nt] = "density:"; sPrintF(textStrings[nt], "%g",density);  nt++; 
+    textLabels[nt] = "nu:"; sPrintF(textStrings[nt], "%g",nu);  nt++; 
+    textLabels[nt] = "thickness:"; sPrintF(textStrings[nt], "%g",beamThickness);  nt++; 
+    textLabels[nt] = "length:"; sPrintF(textStrings[nt], "%g",beamLength);  nt++; 
+    textLabels[nt] = "structure omega:"; sPrintF(textStrings[nt], "%g",omegaStructure);  nt++; 
+    // textLabels[nt] = "initial declination:"; sPrintF(textStrings[nt], "%g (degrees)",beamInitialAngle*180./Pi);  nt++; 
+    // textLabels[nt] = "position:"; sPrintF(textStrings[nt], "%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0);  nt++; 
+
+    // textLabels[nt] = "added mass relaxation:"; sPrintF(textStrings[nt], "%g",addedMassRelaxationFactor);  nt++; 
+    // textLabels[nt] = "added mass tol:"; sPrintF(textStrings[nt], "%g",subIterationConvergenceTolerance);  nt++; 
+
+    textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug);  nt++; 
+
+
+    // null strings terminal list
+    textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    // addPrefix(textLabels,prefix,cmd,maxCommands);
+    // dialog.setTextBoxes(cmd, textLabels, textStrings);
+    dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+  }
+  
+  aString answer,buff;
+
+  gi.pushGUI(gui);
+  gi.appendToTheDefaultPrompt("nlbeam>");
+  int len=0;
+  for( ;; ) 
+  {
+	    
+    gi.getAnswer(answer,"");
+  
+    // printF(answer,"answer=[answer]\n",(const char *)answer);
+
+    if( answer(0,prefix.length()-1)==prefix )
+      answer=answer(prefix.length(),answer.length()-1);
+
+
+    if( answer=="done" || answer=="exit" )
+    {
+      break;
+    }
+    else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
+    else if( dialog.getTextValue(answer,"name:","%s",name) ){} //
+    else if( dialog.getTextValue(answer,"beam file:","%s",beamFileName) )
+    {
+      readBeamFile((const char*)beamFileName);
+    }
+    else if( dialog.getTextValue(answer,"number of elements:","%i",numElem) ){} //
+
+    // else if( dialog.getTextValue(answer,"area moment of inertia:","%g",areaMomentOfInertia) ){} //
+
+    else if( dialog.getTextValue(answer,"elastic modulus:","%g",Em) ){} //
+    else if( dialog.getTextValue(answer,"density:","%g",density) ){} //
+    else if( dialog.getTextValue(answer,"nu:","%g",nu) ){} //
+    else if( dialog.getTextValue(answer,"thickness:","%g",beamThickness) ){} //
+    else if( dialog.getTextValue(answer,"length:","%g",beamLength) ){} //
+    else if( dialog.getTextValue(answer,"structure omega:","%g",omegaStructure) ){} //
+    // else if( dialog.getTextValue(answer,"pressure norm:","%g",pressureNorm) ){} //
+    // else if( dialog.getTextValue(answer,"added mass relaxation:","%g",addedMassRelaxationFactor) )
+    // {
+    //   printF("The relaxation parameter used in the fixed point iteration\n"
+    //          " used to alleviate the added mass effect\n");
+    // }
+
+    // else if( dialog.getTextValue(answer,"added mass tol:","%g",subIterationConvergenceTolerance) )
+    // {
+    //   printF("The (relative) convergence tolerance for the fixed point iteration\n"
+    // 	     " tol: convergence tolerance (default is 1.0e-3)\n");
+    // }
+
+    // else if( dialog.getTextValue(answer,"initial declination:","%g",beamInitialAngle) )
+    // {  
+    //   setDeclination(beamInitialAngle*Pi/180.);
+    //   printF("INFO: The beam will be inclined %8.4f degrees from the left end\n",beamInitialAngle*180./Pi);
+    //   dialog.setTextLabel("initial declination:",sPrintF(buff,"%g, (degrees)",beamInitialAngle*180./Pi));
+    // } 
+    // else if( (len=answer.matches("position:")) )
+    // {
+    //   sScanF(answer(len,answer.length()-1),"%e %en %e",&beamX0,&beamY0,&beamZ0);
+    //   printF("INFO: Setting the position of the left end of the beam to (%e,%e,%e)\n",beamX0,beamY0,beamZ0);
+    //   dialog.setTextLabel("position:",sPrintF(buff,"%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0));
+    // }
+    else if( answer.matches("bc left:") ||
+             answer.matches("bc right:") )
+    {
+      // Assign BC's 
+
+      aString bcOption;
+      int side=0;
+      if( (len=answer.matches("bc left:")) )
+	side=0;
+      else if( (len=answer.matches("bc right:")) )
+	side=1;
+      else
+      {
+	OV_ABORT("error");
+      }
+      
+      bcOption = answer(len,answer.length()-1);
+      BoundaryCondition & bcValue = side==0 ? bcLeft : bcRight;
+      
+      bcValue= (bcOption=="cantilever" ? Cantilevered :
+                bcOption=="pinned"     ? Pinned :
+                bcOption=="free"       ? Free : 
+                bcOption=="periodic"   ? Periodic : UnknownBC );
+
+      if( bcValue==UnknownBC )
+      {
+	printF("NonlinearBeamModel:ERROR: unknown BC : answer=[%s], bcOption=[%s]\n",(const char*)answer,(const char*)bcOption);
+	gi.stopReadingCommandFile();
+      }
+
+      printF("NonlinearBeamModel:INFO: setting %s = %s.\n",(side==0 ? "bcLeft" : "bcRight"),(const char*)bcOption);
+      if( side==0 )
+         dialog.getOptionMenu("BC left:").setCurrentChoice(answer);
+      else      
+         dialog.getOptionMenu("BC right:").setCurrentChoice(answer);
+    }
+    else if( dialog.getToggleValue(answer,"use exact solution",useExactSolution) ){} // 
+    else if( dialog.getToggleValue(answer,"steady state",isSteady) ){} // 
+    else if( dialog.getToggleValue(answer,"save profile file",dbase.get<bool>("saveProfileFile")) ){} // 
+    else if( dialog.getToggleValue(answer,"save tip file",dbase.get<bool>("saveTipFile")) )
+    {
+      aString tipFileName = sPrintF(buff,"%s_tip.text",(const char*)name);
+// *FIX ME*      output.open(name);
+      printF("NonlinearBeamModel: tip position info will be saved to file 'tip.txt'\n");
+    }
+    else if( answer=="build beam" )
+    { 
+      // --- construct a (horizontal) beam ---
+
+      numNodes=numElem+1;
+
+      delete [] beamNodes;
+      beamNodes = new BeamNode[numNodes];
+
+      OV_real angle =90.*Pi/180;
+      for (int i = 0; i < numNodes; ++i) 
+      {
+        OV_real xl = i*beamLength/(numNodes-1.);
+	
+	beamNodes[i].X[0]=xl; beamNodes[i].X[1]=0.; beamNodes[i].X[2]=0.;
+        beamNodes[i].thickness=beamThickness;
+
+	beamNodes[i].undeformedRotation=angle; 
+      }
+      initialize();
+
+      GraphicsParameters psp;
+      psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true); 
+      plot(gi,psp);
+      
+    }
+    
+    else
+    {
+      printF("NonlinearBeamModel::update:ERROR:unknown response=[%s]\n",(const char*)answer);
+      gi.stopReadingCommandFile();
+    }
+
+  }
+    
+  // -- initialize the beam model given the current parameters --
+  initialize();
+
+  gi.popGUI();
+  gi.unAppendTheDefaultPrompt();
+
+  return 0;
+
 }
