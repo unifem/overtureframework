@@ -18,7 +18,8 @@ class GridFunction;
 class Parameters;
 
 //................................
-class BeamModel {
+class BeamModel 
+{
 
  public:
 
@@ -37,12 +38,17 @@ class BeamModel {
   // 
   ~BeamModel();
 
+  // assign initial conditions
+  int assignInitialConditions( real t, RealArray & x, RealArray & v );
+
   // Return the beam ID (a unique ID for this beam)
   int getBeamID() const{ return beamID; } // 
 
   // Return the name of this beam
   const aString & getName() const { return name; } // 
 
+  // return the number of elements
+  int getNumberOfElements() const { return numElem; } // 
 
   // This function initializes the beam model.
   // momOfIntertia:    I/b (true area moment of inertia divided by the width of the beam
@@ -89,20 +95,7 @@ class BeamModel {
 			   const real& y0, real& ax, real& ay);
 
   
-  // Accumulate a pressure force to the beam from the fluid element whose 
-  // undeformed location is X1 = (x0_1, y0_1), X2 = (x0_2, y0_2).
-  // The pressure is p(X1) = p1, p(X2) = p2
-  // x0_1: undeformed location of the point on the surface of the beam (x1)  
-  // y0_1: undeformed location of the point on the surface of the beam (y1)
-  // p1:   pressure at the point (x1,y1)
-  // nx_1: normal at x1 (x) [unused]
-  // ny_1: normal at x1 (y) [unused]
-  // x0_2: undeformed location of the point on the surface of the beam (x2)  
-  // y0_2: undeformed location of the point on the surface of the beam (y2)  
-  // p2:   pressure at the point (x2,y2)
-  // nx_2: normal at x2 (x) [unused]
-  // ny_2: normal at x2 (y) [unused]
-  //
+  // Accumulate a pressure force to the beam from a fluid element.
   void addForce(const real& x0_1, const real& y0_1,
 		real p1,const real& nx_1,const real& ny_1,
 		const real& x0_2, const real& y0_2,
@@ -144,6 +137,9 @@ class BeamModel {
   // Return the (x,y) coordinates of the centerline
   //
   void getCenterLine( RealArray & xc ) const;
+
+  // evaluate the standing wavce solution
+  int getStandingWave( real t, RealArray & u, RealArray & v ) const;
 
   // Return the current force of the structure.
   //
@@ -258,6 +254,9 @@ class BeamModel {
 
  private:
 
+  // choose initial conditions
+  int chooseInitialConditions(CompositeGrid & cg, GenericGraphicsInterface & gi );
+
   // Compute the internal force in the beam, i.e., -K*u
   // u: position of the beam
   // f: internal force [out]
@@ -326,12 +325,6 @@ class BeamModel {
   void initialize();
 
   // Compute the third derivative, w'''(x), of the beam displacement w(x) at a given
-  // element # and coordinate
-  // X:       Beam solution (position)
-  // elemNum: element number on which the solution is desired
-  // eta:     element natural coordinate where the solution is desired
-  // deriv3:  Third derivative, w'''(x) at this point
-  //
   void interpolateThirdDerivative(const RealArray& X,
 				  int& elemNum, real& eta,
 				  real& deriv3);
@@ -466,7 +459,7 @@ class BeamModel {
 
   // True if the simulation is being done using the exact analytical
   // solution from the documentation
-  bool usesExactSolution;
+  bool useExactSolution;
 
   // Initial residual of the fixed point iteration.  Converegence is 
   // reached when residual < tol*initialResidual
@@ -539,6 +532,9 @@ class BeamModel {
   // Initial location of the right end of the beam
   //
   real initialEndRight[2];
+
+  // name for the initial conditions
+  aString initialConditionOption;
 
   // Name for the beam
   aString name;

@@ -196,13 +196,13 @@ c      alpha = 1d0/600d0
       write (*,'("              ",2(1x,i4))') igi(1,2), igi(2,2)
       write (*,'("              ",2(1x,i4))') igi(1,3), igi(2,3)
 
-      write (*,'("stencil size : ",i4))') iprm(11)
-      write (*,'("width        : ",i4))') iprm(12)
-      write (*,'("hwidth       : ",i4))') iprm(13)
-      write (*,'("num coeff.   : ",i4))') iprm(2)
-      write (*,'("num dim.     : ",i4))') iprm(1)
-      write (*,'("isaxi        : ",i2))') iprm(9)
-      write (*,'("isswirl      : ",i2))') iprm(10)
+      write (*,'("stencil size : ",i4)') iprm(11)
+      write (*,'("width        : ",i4)') iprm(12)
+      write (*,'("hwidth       : ",i4)') iprm(13)
+      write (*,'("num coeff.   : ",i4)') iprm(2)
+      write (*,'("num dim.     : ",i4)') iprm(1)
+      write (*,'("isaxi        : ",i2)') iprm(9)
+      write (*,'("isswirl      : ",i2)') iprm(10)
 
       write (*,'("Reynold`s #  : ",f10.5)') rprm(1)
       write (*,'("Prandtl   #  : ",f10.5)') rprm(2)
@@ -1295,9 +1295,9 @@ c     END OF STATEMENT FUNCTIONS
       write (*,'("              ",2(1x,i4))') igi(1,2), igi(2,2)
       write (*,'("              ",2(1x,i4))') igi(1,3), igi(2,3)
 
-      write (*,'("num dim.     : ",i4))') iprm(1)
-      write (*,'("isaxi        : ",i2))') iprm(9)
-      write (*,'("isswirl      : ",i2))') iprm(10)
+      write (*,'("num dim.     : ",i4)') iprm(1)
+      write (*,'("isaxi        : ",i2)') iprm(9)
+      write (*,'("isswirl      : ",i2)') iprm(10)
 
       write (*,'("Reynold`s #  : ",f10.5)') rprm(1)
       write (*,'("Prandtl   #  : ",f10.5)') rprm(2)

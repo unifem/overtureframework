@@ -1594,6 +1594,12 @@ applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int gri
       	ad21 = max( ad21,ad41 );
       	ad22 = max( ad22,ad42 );
 
+      	if( t<3.*dt )
+      	{
+        	  printF("BBB insBC4:INFO: second-order boundary dissipation is used: (ad21,ad22)=(%8.2e,%8.2e)\n",ad21,ad22);
+      	}
+      	
+
 	// ad22=0.;
 
 	// try this:

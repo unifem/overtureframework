@@ -117,7 +117,7 @@ BeamModel::BeamModel() {
      dbase.get<bool>("saveTipFile")=false;
   }
 
-  usesExactSolution=false;
+  useExactSolution=false;
 
 
   // The relaxation parameter used in the fixed point iteration
@@ -128,6 +128,11 @@ BeamModel::BeamModel() {
   // tol: convergence tolerance (default is 1.0e-3)
   dbase.put<real>("subIterationConvergenceTolerance",1.0e-3);
   
+  // For initial conditions: 
+  dbase.put<real>("amplitude")=0.1;
+  dbase.put<real>("waveNumber")=1.0;
+  
+
   // { // wdh: replaces 'what' factor 
   //   dbase.put<real>("exactSolutionScaleFactorFSI");
   //   dbase.get<real>("exactSolutionScaleFactorFSI")=0.00001; // scale FSI solution so linearized approximation is valid 
@@ -199,7 +204,7 @@ initialize()
   myVelocity = 0.0;
 
 
-  if (usesExactSolution) {
+  if (useExactSolution) {
 
     setExactSolution(0.0,myPosition,myVelocity,myAcceleration);
     //    myAcceleration = 0.0;
@@ -229,17 +234,21 @@ initialize()
     myVelocity(numElem*2+1) = 0.0;
   }
 
+  myPosition_nm1.redim(0); myVelocity_nm1.redim(0);
   
   myPosition_nm1 = myPosition;
   myVelocity_nm1 = myVelocity;
 
-  if (!usesExactSolution)
+  if (!useExactSolution)
     myAcceleration = 0.0;
 
+  aold.redim(0);
   aold = myAcceleration;
 
   myForce = 0.0;
 
+  dtilde.redim(0); vtilde.redim(0);
+  
   dtilde = myPosition;
   vtilde = myVelocity;
 
@@ -248,14 +257,18 @@ initialize()
 }
 
 
-
-void BeamModel::setParameters(real momOfInertia, real E, 
-			      real rho,real beamLength,
-			      real thickness_,real pnorm,
-			      int nElem,BoundaryCondition bcl,
-			      BoundaryCondition bcr,
-			      real x0, real y0,
-			      bool useExactSolution) {
+// ===================================================================================
+/// \brief Set the beam parameters.
+// ===================================================================================
+void BeamModel::
+setParameters(real momOfInertia, real E, 
+	      real rho,real beamLength,
+	      real thickness_,real pnorm,
+	      int nElem,BoundaryCondition bcl,
+	      BoundaryCondition bcr,
+	      real x0, real y0,
+	      bool useExactSolution_ ) 
+{
 
 
   areaMomentOfInertia = momOfInertia;
@@ -274,7 +287,7 @@ void BeamModel::setParameters(real momOfInertia, real E,
   beamX0 = x0;
   beamY0 = y0;
 
-  usesExactSolution = useExactSolution;
+  useExactSolution = useExactSolution_;
 
   initialize();
 
@@ -872,9 +885,26 @@ void BeamModel::projectPoint(const real& x0,const real& y0,
   thickness = yl;
 }
 
-void BeamModel::interpolateSolution(const RealArray& X,
-				    int& elemNum, real& eta,
-				    real& displacement, real& slope) {
+// ================================================================================
+/// \brief Compute the slope and displacement of the beam at a given element # and coordinate
+/// X:            Beam solution (position)
+/// elemNum:      element number on which the solution is desired
+/// eta:          element natural coordinate where the solution is desired
+/// displacement: displacement at this point [out]
+/// slope:        slope at this point [out]
+///
+// ================================================================================
+void BeamModel::
+interpolateSolution(const RealArray& X,
+		    int& elemNum, real& eta,
+		    real& displacement, real& slope) 
+{
+
+  // Hermite Shape functions are
+  //     f(y) = .25 * (1-y)^2 (y+2 )    : f(-1)=1,   f'(-1)=0,   f(1)=0,    f'(1)=0 
+  //     g(y) = .125*le (1-y)^2 (1+y)   : g(-1)=0,   g'(-1)=1,   g(1)=0,    g'(1)=0
+
+  //  le = L / numElem;
 
   // compute the shape functions.
   real eta1 = 1.-eta;
@@ -900,9 +930,20 @@ void BeamModel::interpolateSolution(const RealArray& X,
   
 }
 
-void BeamModel::interpolateThirdDerivative(const RealArray& X,
+// ======================================================================================
+/// \brief Compute the third derivative, w'''(x), of the beam displacement w(x) at a given
+//// element # and coordinate
+/// X:       Beam solution (position)
+/// elemNum: element number on which the solution is desired
+/// eta:     element natural coordinate where the solution is desired
+/// deriv3:  Third derivative, w'''(x) at this point
+///
+// ======================================================================================
+void BeamModel::
+interpolateThirdDerivative(const RealArray& X,
 					   int& elemNum, real& eta,
-					   real& deriv3) {
+					   real& deriv3) 
+{
 
   // compute the shape functions.
   real eta1 = 1.-eta;
@@ -918,10 +959,27 @@ void BeamModel::interpolateThirdDerivative(const RealArray& X,
   
 }
 
+// ======================================================================================
+// Accumulate a pressure force to the beam from the fluid element whose 
+// undeformed location is X1 = (x0_1, y0_1), X2 = (x0_2, y0_2).
+// The pressure is p(X1) = p1, p(X2) = p2
+// x0_1: undeformed location of the point on the surface of the beam (x1)  
+// y0_1: undeformed location of the point on the surface of the beam (y1)
+// p1:   pressure at the point (x1,y1)
+// nx_1: normal at x1 (x) [unused]
+// ny_1: normal at x1 (y) [unused]
+// x0_2: undeformed location of the point on the surface of the beam (x2)  
+// y0_2: undeformed location of the point on the surface of the beam (y2)  
+// p2:   pressure at the point (x2,y2)
+// nx_2: normal at x2 (x) [unused]
+// ny_2: normal at x2 (y) [unused]
+//
+// ======================================================================================
 void BeamModel::addForce(const real& x0_1, const real& y0_1,
 			 real p1,const real& nx_1,const real& ny_1,
 			 const real& x0_2, const real& y0_2,
-			 real p2,const real& nx_2,const real& ny_2) {
+			 real p2,const real& nx_2,const real& ny_2)
+{
 
   int elem1,elem2;
   real eta1,eta2,t1,t2;
@@ -1087,7 +1145,7 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
     myForce(idx) += lt;
   }
 
-  if( debug & 1 )
+  if( debug & 4 )
   {
     ::display(myForce(Range(0,2*numElem,2)),"BeamModel::predictor: force (displacement)","%8.2e ");
   }
@@ -1237,7 +1295,7 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
 
   const bool & saveProfileFile = dbase.get<bool>("saveProfileFile");
 
-  if( usesExactSolution && saveProfileFile ) 
+  if( useExactSolution && saveProfileFile ) 
   {
     setExactSolution(t,xtmp,vtmp,atmp);
 
@@ -1260,7 +1318,7 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
       interpolateSolution(myAcceleration, elemNum, eta, displacement, slope);
       beam_profile << displacement <<  " ";
       
-      //if (usesExactSolution) {
+      //if (useExactSolution) {
       interpolateSolution(xtmp, elemNum, eta, displacement, slope);
       beam_profile << displacement <<  " ";
       interpolateSolution(vtmp, elemNum, eta, displacement, slope);
@@ -1722,13 +1780,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     const int maxCommands=40;
     aString cmd[maxCommands];
 
-    // aString pbLabels[] = {"elastic shell options...",
-    // 			  "grid evolution parameters...",
-    // 			  "help",
-    // 			  ""};
-    // addPrefix(pbLabels,prefix,cmd,maxCommands);
-    // int numRows=4;
-    // dialog.setPushButtons( cmd, pbLabels, numRows ); 
+    aString pbLabels[] = {"initial conditions...",
+    			  "help",
+    			  ""};
+
+    int numRows=4;
+    dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
 
     dialog.setOptionMenuColumns(1);
     aString bcOptions[] = { "cantilever",
@@ -1744,12 +1801,14 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     dialog.addOptionMenu("BC right:",cmd,cmd,bcRight );
 
 
-    aString tbCommands[] = {"save profile file",
+    aString tbCommands[] = {"use exact solution",
+                            "save profile file",
                             "save tip file",
     			    ""};
     int tbState[10];
-    tbState[0] = dbase.get<bool>("saveProfileFile");
-    tbState[1] = dbase.get<bool>("saveTipFile");
+    tbState[0] = useExactSolution;
+    tbState[1] = dbase.get<bool>("saveProfileFile");
+    tbState[2] = dbase.get<bool>("saveTipFile");
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -1805,6 +1864,10 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     if( answer=="done" || answer=="exit" )
     {
       break;
+    }
+    else if( answer=="initial conditions..." )
+    {
+      chooseInitialConditions( cg,gi );
     }
     else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
     else if( dialog.getTextValue(answer,"name:","%s",name) ){} //
@@ -1874,6 +1937,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       printF("BeamModel:INFO: setting %s = %s.\n",(side==0 ? "bcLeft" : "bcRight"),(const char*)bcOption);
 
     }
+    else if( dialog.getToggleValue(answer,"use exact solution",useExactSolution) ){} // 
     else if( dialog.getToggleValue(answer,"save profile file",dbase.get<bool>("saveProfileFile")) ){} // 
     else if( dialog.getToggleValue(answer,"save tip file",dbase.get<bool>("saveTipFile")) )
     {

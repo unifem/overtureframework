@@ -261,6 +261,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
     const real & U = rpar[0];   
     const real & xOffset = rpar[1];
+    const real & nuBL = rpar[2];
     
     // -- we could avoid building the vertex array on Cartesian grids ---
     mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
@@ -272,8 +273,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
       db.get<BoundaryLayerProfile*>("BoundaryLayerProfile") = new BoundaryLayerProfile();  // who will delete ???
 
       BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
-      const real nu = dbase.get<real>("nu");
-      profile.setParameters( nu,U );  // 
+      // const real nu = dbase.get<real>("nu");
+      profile.setParameters( nuBL,U );  // 
 
     }
     BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
@@ -514,16 +515,19 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
 
       real & U        = rpar[0];
       real & xOffset  = rpar[1];
+      real & nuBL     = rpar[2];
       U=1.;
       xOffset=1.;
-      
+      nuBL = dbase.get<real>("nu");
+
       printF("The flat plate boundary layer solution (Blasius) is a similiarity solution with\n"
              "the flat plate starting at x=0, y=0. The free stream velocity is U.\n"
              "To have a smooth inflow profile, enter an offset in x so the similiarity solution starts at this value\n"
-             "Note: the vertical velocity v only makes sense if sqrt(nu*U/x) is small. \n");
-      gi.inputString(answer,sPrintF("Enter U and xOffset xOffset (defaults U=%8.2e, xOffset=%8.2e)",U,xOffset));
-      sScanF(answer,"%e %e",&U,&xOffset);
-      printF("Setting U=%9.3e, xOffset=%9.3e\n",U,xOffset);
+             "Note: the vertical velocity v only makes sense if sqrt(nu*U/x) is small.\n"
+             "NOTE: nu for the BL profile can be different than the actual nu.\n");
+      gi.inputString(answer,sPrintF("Enter U, xOffset and nu (defaults U=%8.2e, xOffset=%8.2e, nu=%8.2e)",U,xOffset,nuBL));
+      sScanF(answer,"%e %e %e",&U,&xOffset,&nuBL);
+      printF("Setting U=%9.3e, xOffset=%9.3e, nu=%8.2e\n",U,xOffset,nuBL);
       
     }
 

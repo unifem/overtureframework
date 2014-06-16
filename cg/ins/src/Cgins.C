@@ -447,9 +447,10 @@ writeParameterSummary( FILE * file )
   if( parameters.dbase.get<int>("orderOfAccuracy") ==4 )
   {
     if( parameters.dbase.get<bool >("stabilizeHighOrderBoundaryConditions") )
-    {
       fPrintF(file," Stabilize fourth order boundary conditions with second order dissipation.\n");
-    }
+    else
+      fPrintF(file," Do NOT stabilize fourth order boundary conditions with second order dissipation.\n");
+    
   }
 
 }

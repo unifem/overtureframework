@@ -133,7 +133,7 @@ TestBeamModel()
 
   // --- parameters for the exact solution ---
   a=.1;  // amplitude 
-  k0=3.;
+  k0=1.;
   k=2.*Pi*k0;
   w = sqrt( E*momOfIntertia*pow(k,4)/( rho*thickness*breadth ) );
 
@@ -221,7 +221,7 @@ plot2(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
   {
     beam.getCenterLine(xc);
 
-    ::display(xc,"beam center line","%8.2e ");
+    // ::display(xc,"beam center line","%8.2e ");
     
     NurbsMapping map; 
     map.interpolate(xc);
@@ -231,7 +231,9 @@ plot2(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
     // psp.set(GraphicsParameters::lineWidth,lineWidth);  
 
     RealArray pb(2,3);  // plot bounds 
-    pb=-.1; pb(1,Range(0,2))=1.1;
+    pb(0,0)=0.;  pb(1,0)=1.;
+    pb(0,1)=-.2; pb(1,1)=.2; 
+    pb(0,2)=0.;  pb(1,2)=1.;
     if( beamModelType==nonlinearBeamModel )
     {
       pb(0,0)=0.; pb(1,0)=1.;
@@ -283,12 +285,22 @@ getErrors( real t )
   {
     beam.getCenterLine(xc);
 
+    int nElem=beam.getNumberOfElements();
+
+    RealArray ue(2*nElem+2), ve(2*nElem+2);
+    beam.getStandingWave( t, ue, ve );
+    // ::display(xc,"getErrors: beam center line","%8.2e ");
+
     for (int i = 0; i <= nElem; ++i)
     {
       real xl = ( (real)i /nElem) *  beamLength;
-      real we = W(xl,t);
+      // real we = W(xl,t);
+      real we = ue(i*2);
 
-      real err = fabs( xc(i*2)-we );
+      real err = fabs( xc(i,1)- we );
+
+      // printF("t=%9.3e i=%i x=%9.3e w=%9.3e we=%9.3e\n",t,i,xl,xc(2*i),we);
+      
       errMax=max(errMax,err);
       l2Err += SQR(err);
       yNorm=yNorm+SQR(we);
@@ -408,7 +420,7 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   }
   
 
-  int numberOfSteps= int( tFinal/dt + .5);
+  int numberOfSteps= max(1, int( tFinal/dt + .5) );
   dt = tFinal/numberOfSteps;  // adjust dt so we reach tFinal exactly
       
   printF("+++ solve: dt=%9.3e, numberOfSteps=%i\n",dt,numberOfSteps);
@@ -416,60 +428,78 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
   int nPlot = max(1,int( tPlot/dt+.5 ));
 
+  int maximumNumberOfSteps=tFinal/dt+10;
+
   t=0.;
 
   if( beamModelType==linearBeamModel )
   {
-    for (int i = 0; i <= nElem; ++i)
-    {
-      real xl = ( (real)i /nElem) *  beamLength;
-
-      t=-dt;
-
-      x1(i*2)   = W(xl,t);     // w 
-      x1(i*2+1) = Wx(xl,t);    // w_x
+    beam.assignInitialConditions(-dt,x1,v1 );
+    beam.assignInitialConditions( 0.,x2,v2 );
     
-      v1(i*2)   = Wt(xl,t);    // w_t 
-      v1(i*2+1) = Wtx(xl,t);   // w_xt 
+    // for (int i = 0; i <= nElem; ++i)
+    // {
+    //   real xl = ( (real)i /nElem) *  beamLength;
 
-      t=0.;
+    //   t=-dt;
+
+    //   x1(i*2)   = W(xl,t);     // w 
+    //   x1(i*2+1) = Wx(xl,t);    // w_x
+    
+    //   v1(i*2)   = Wt(xl,t);    // w_t 
+    //   v1(i*2+1) = Wtx(xl,t);   // w_xt 
+
+    //   t=0.;
 	
-      x2(i*2)   = W(xl,t);     // w 
-      x2(i*2+1) = Wx(xl,t);    // w_x
+    //   x2(i*2)   = W(xl,t);     // w 
+    //   x2(i*2+1) = Wx(xl,t);    // w_x
     
-      v2(i*2)   = Wt(xl,t);    // w_t 
-      v2(i*2+1) = Wtx(xl,t);   // w_xt 
+    //   v2(i*2)   = Wt(xl,t);    // w_t 
+    //   v2(i*2+1) = Wtx(xl,t);   // w_xt 
 
-    }
+    // }
   }
   
-      
-  for( int step=1; step<=numberOfSteps; step++ )
+  GUIState dialog;
+  dialog.setWindowTitle("tbm run-time");
+  dialog.setExitCommand("exit", "exit");
+
+  aString cmds[] = {"continue",
+		    "movie mode",
+		    "contour",
+		    "" };
+  int numberOfPushButtons=0;  // number of entries in cmds
+  while( cmds[numberOfPushButtons]!="" ){numberOfPushButtons++;}; // 
+  int numRows=(numberOfPushButtons+1)/2;
+  dialog.setPushButtons( cmds, cmds, numRows ); 
+
+   const int numberOfTextStrings=15;  // max number allowed
+   aString textLabels[numberOfTextStrings];
+   aString textStrings[numberOfTextStrings];
+
+   int nt=0;
+   textLabels[nt] = "tFinal:";  sPrintF(textStrings[nt],"%g",tFinal);  nt++; 
+   textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  nt++; 
+
+   // null strings terminal list
+   textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+   dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+  gi.pushGUI(dialog);
+  gi.appendToTheDefaultPrompt("tbm>");
+
+  bool movieMode=false;
+  aString answer;
+  for( int step=0; step<maximumNumberOfSteps; step++ )
   {
 
-    if( beamModelType==linearBeamModel )
+    bool finished=t>tFinal-.5*dt;
+    int plotThisStep=(step % nPlot == 0) || finished;
+    if( plotThisStep )
     {
-      beam.predictor(dt, x1,v1,x2,v2,x3,v3);
-
-      beam.corrector(dt, x3,v3);
-    }
-    else if( beamModelType==nonlinearBeamModel )
-    {
-      nlBeam.predictor(dt);
-
-      nlBeam.corrector(dt);
-
-    }
-    else
-    {
-      OV_ABORT("ERROR: unknown beam model");
-    }
-
-
-    t = (step)*dt;
-	
-    if( (step % nPlot == 0)  || step==numberOfSteps )
-    {
+      if( finished )
+	movieMode=false;
 
       // compute the max error:
       getErrors( t );
@@ -490,6 +520,77 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
     }
 
+    if( !movieMode && plotThisStep )
+    {
+      for( ;; )
+      {
+	gi.getAnswer(answer,"");  
+ 
+	if( answer=="continue" )
+	{
+	  break;
+	}
+	else if( answer=="exit" || answer=="done" )
+	{
+	  gi.unAppendTheDefaultPrompt();
+	  gi.popGUI(); // restore the previous GUI
+	  return 0;
+	}
+	else if( answer=="movie mode" )
+	{
+	  movieMode=true;
+	  break;
+	}
+	else if( answer=="contour" )
+	{
+	  // gi.erase();
+	  // psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,false);
+	  // PlotIt::contour(gi,uPlot,psp);
+	  // psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);
+
+          // plot( t, ua[mCur],gi,psp ); // replot all
+	}
+	else if( dialog.getTextValue(answer,"tFinal:","%g",tFinal) )
+	{
+	  // for now we keep dt the same
+	  maximumNumberOfSteps=tFinal/dt+10;
+	}
+	else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
+	else
+	{
+	  printF("Unknown response=[%s]\n",(const char*)answer);
+	}
+      }
+    }
+
+
+    // --------------------------------
+    // ---- advance one time step -----
+    // --------------------------------
+
+
+    if( beamModelType==linearBeamModel )
+    {
+      beam.predictor(dt, x1,v1,x2,v2,x3,v3);
+
+      beam.corrector(dt, x3,v3);
+    }
+    else if( beamModelType==nonlinearBeamModel )
+    {
+      nlBeam.predictor(dt);
+
+      nlBeam.corrector(dt);
+
+    }
+    else
+    {
+      OV_ABORT("ERROR: unknown beam model");
+    }
+
+
+    t = (step+1)*dt;
+	
+
     if( beamModelType==linearBeamModel )
     {	
       x1=x2; v1=v2;  // rename solutions for next step
@@ -498,7 +599,8 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
     
   }
       
-
+  gi.unAppendTheDefaultPrompt();
+  gi.popGUI(); // restore the previous GUI
 
 
   if( false )

@@ -1,3 +1,32 @@
+*** 2014/06/14 -- test UNDER-RESOLVED test with BL profile using nuBL=1.e-3 but actual nu=1.e-6
+
+** OFFSET GRID with flatPlate BC on bottom
+ogen -noplot flatPlate -order=4 -factor=4 -dsMin=.01 -ml=2 -ya=.05 -name="flatPlate4.order4.dy.01.ml2.ya0p05.hdf"
+
+IM: OK
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.ya0p05.hdf -nuBL=1.e-3 -nu=1.e-6 -debug=1 -tp=.01 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad21=1 -ad22=1 -ad4=1 -ad41=.1 -ad42=.0 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate -wallbc=flatPlate
+
+AFS: OK
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.ya0p05.hdf -nuBL=1.e-3 -nu=1.e-6 -debug=1 -tp=.01 -tf=10. -ts=afs -solver=mg -psolver=mg -ad2=0 -ad21=1 -ad22=1 -ad4=1 -ad41=.1 -ad42=.0 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate -wallbc=flatPlate
+
+
+
+*** ORDER=4 : AFS ad21=1 ad22=0, ad41=.1 ad42=0 : OK (uses 2nd-order boundary dissipation)
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nuBL=1.e-3 -nu=1.e-6 -debug=1 -tp=.01 -tf=10. -ts=afs -solver=mg -psolver=mg -ad2=0 -ad21=1 -ad22=0 -ad4=1 -ad41=.0 -ad42=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate
+
+
+
+*** ORDER=4 : ad21=1 ad22=0, ad41=.1 ad42=0 : OK (uses 2nd-order boundary dissipation)
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nuBL=1.e-3 -nu=1.e-6 -debug=1 -tp=.01 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad21=1 -ad22=0 -ad4=1 -ad41=.1 -ad42=.0 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate
+
+
+*** ORDER=4 : OK (uses 2nd-order boundary dissipation)
+cgins flatPlate -g=flatPlate4.order4.dy.01.ml2.hdf -nuBL=1.e-3 -nu=1.e-6 -debug=1 -tp=.01 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad21=1 -ad22=1 -ad4=1 -ad41=.1 -ad42=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate
+
+*** ORDER=2 -- OK
+cgins flatPlate -g=flatPlate4.order2.dy.01.ml2.hdf -nuBL=1.e-3 -nu=1.e-6 -debug=1 -tp=.01 -tf=10. -ts=im -solver=mg -psolver=mg -ad2=0 -ad21=1 -ad22=1 -ad4=1 -ad41=.1 -ad42=.1 -dtMax=.05 -go=halt -xOffset=5 -outflowOption=extrapolate -useNew=0 -inflow=flatPlate
+
+
 *** 2014/06/10 -- test flat-plate-boundary-layer-profile opton for userDefinedfBoundaryValues
 
 

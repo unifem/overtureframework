@@ -15,6 +15,9 @@
 # Multigrid:
 #   ogen -noplot flatPlate -order=2 -factor=16 -dsMin=.001 -ml=3
 #
+# -- grid is offset from y=0: 
+#  ogen -noplot flatPlate -order=4 -factor=4 -dsMin=.01 -ml=2 -ya=.05 -name="flatPlate4.order4.dy.01.ml2.ya0p05.hdf"
+#
 $prefix="flatPlate";  
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2;

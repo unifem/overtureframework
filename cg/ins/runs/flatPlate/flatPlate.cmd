@@ -5,7 +5,8 @@
 #    cgins [-noplot] flatPlate -g=<name> -tm=[bl|sa|ke|none] -nu=<val> -its=<tFinal> -pits=<tPlot> -ic=<uniform/tz>...
 #               -debug=<> -show=<name> -bg=<grid-name> -cfl=<num> -solver=<yale/best> -model=<ins/boussinesq> ...
 #               -ad2=[0/1] -ad21=<> -ad22=<> -iv=[viscous/adv/full] -imp=<val> -dtMax=<val> -rf=<val> ...
-#               -project=[0|1] -useNewImp=[0|1] -inflow=[uniform|parabolic|blasius|flatPlate|known] -go=[run/halt/og]
+#               -project=[0|1] -useNewImp=[0|1] -inflow=[uniform|parabolic|blasius|flatPlate|known]...
+#               -wallbc=[noSlipWall|flatPlate] -go=[run/halt/og]
 #
 #  -inflow= flatPlate : this is the *new* way (replaces blasius)
 #           known : use known solution 
@@ -61,8 +62,9 @@ $gravity = "0. 0. 0."; $implicitFactor=.5;
 $ad2=1; $ad21=1.; $ad22=1.;  $ad4=0; $ad41=1.; $ad42=1.; 
 $cDt=0.; # = .25; # cDt=0 -> turn this off
 $ic ="tz";  $go="halt"; $implicitVariation="viscous"; $useFull=0; 
-$ReBlasius=-1.; # by default the Re for Blasius is 1/nu 
+$ReBlasius=-1.; # by default the Re for Blasius is 1/nu *** OLD WAY ***
 $useKnown=1; 
+$wallbc="noSlipWall";  # set to "flatPlate" for offset wall
 # 
 $psolver="choose best iterative solver"; $solver="choose best iterative solver"; 
 $iluLevels=1; $ogesDebug=0; 
@@ -71,6 +73,8 @@ $rtol=1.e-7; $atol=1.e-8;    # tolerances for the implicit solver
 $useNewImp=1; # use the new implicit method 
 $outflowOption="neumann"; $restart="";
 $xOffset=1.; # offset from leading edge for Blasius
+$nuBL="".; # if set, define BL profile using this nu, oterwise use $nu
+$boundaryDissipation=1; 
 $newts=0; 
 # -- for Kyle's AF scheme:
 $afit = 10;  # max iterations for AFS
@@ -83,11 +87,13 @@ GetOptions("g=s"=>\$grid,"its=i"=> \$its,"pits=i"=> \$pits,"nu=f"=>\$nu,"cfl=f"=
            "show=s"=>\$show, "bg=s"=>\$bg, "noplot=s"=>\$noplot,"ts=s"=>\$ts,"restart=s"=>\$restart, \
            "solver=s"=>\$solver,"psolver=s"=>\$psolver,  "model=s"=>\$model, "gravity=s"=>\$gravity, \
            "dtMax=f"=>\$dtMax,"tp=f"=>\$tPlot,"tf=f"=>\$tFinal,"imp=f"=>\$implicitFactor,"cDt=f"=>\$cDt,\
-           "ad2=i"=> \$ad2,"ad21=f"=> \$ad21,"ad22=f"=> \$ad22,"k0=f"=>\$k0,"eps0=f"=>\$eps0,\
+           "ad2=i"=> \$ad2,"ad21=f"=> \$ad21,"ad22=f"=> \$ad22,"k0=f"=>\$k0,"eps0=f"=>\$eps0,"nuBL=f"=>\$nuBL,\
            "rf=i"=> \$refactorFrequency, "iv=s"=>\$implicitVariation,"tz=s"=>\$tz,"fx=f"=>\$fx,"ReBlasius=f"=>\$ReBlasius,\
            "ic=s"=>\$ic,"tm=s"=>\$tm,"useNewImp=i"=>\$useNewImp,"outflowOption=s"=>\$outflowOption,"inflow=s"=>\$inflow,\
-           "useKnown=i"=>\$useKnown, "xOffset=f"=>\$xOffset,"ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42, "go=s"=>\$go );
+           "useKnown=i"=>\$useKnown, "xOffset=f"=>\$xOffset,"ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,\
+           "boundaryDissipation=i"=>\$boundaryDissipation,"wallbc=s"=>\$wallbc,"go=s"=>\$go  );
 # -------------------------------------------------------------------------------------------------
+#
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
 if( $psolver eq "best" ){ $psolver="choose best iterative solver"; }
@@ -139,7 +145,8 @@ $grid
   max number of AF corrections $afit
   AF correction relative tol $aftol
   # optionally turn this on to improve stability of the high-order AF scheme by using 2nd-order dissipation at the boundary
-  OBPDE:use boundary dissipation in AF scheme 1
+  OBPDE:use boundary dissipation in AF scheme $boundaryDissipation
+  OBPDE:stabilize high order boundary conditions $boundaryDissipation
   #
   ## first order predictor
   number of PC corrections $numberOfCorrections
@@ -215,8 +222,9 @@ $grid
 #
   OBTZ:user defined known solution
     flat plate boundary layer
+      if( $nuBL eq "" ){ $nuBL =$nu; }
       $U=1.; 
-      $U $xOffset
+      $U $xOffset $nuBL
     done
 # 
   pressure solver options
@@ -245,8 +253,11 @@ $grid
    if( $inflow eq "blasius"){ $cmd="bcNumber1=inflowWithVelocityGiven, blasius(R=$ReBlasius,u=1.,n=1.e-7,k=$k0,eps=$eps0)"; }
    # if( $useKnown ne 0 ){ $cmd="bcNumber1=dirichletBoundaryCondition"; }
    if( $inflow eq "known" ){ $cmd="bcNumber1=inflowWithVelocityGiven, userDefinedBoundaryData\n known solution\n  done"; }
-   if( $inflow eq "flatPlate" ){  $cmd="bcNumber1=inflowWithVelocityGiven, userDefinedBoundaryData\n flat plate boundary layer profile\n  $U $xOffset\n done"; }
+   if( $inflow eq "flatPlate" ){  $cmd="bcNumber1=inflowWithVelocityGiven, userDefinedBoundaryData\n flat plate boundary layer profile\n  $U $xOffset $nuBL\n done"; }
     $cmd 
+   # -- set the bottom wall equal to the flatPlate solution:
+   if( $wallbc eq "flatPlate" ){  $cmd="bcNumber3=noSlipWall, userDefinedBoundaryData\n flat plate boundary layer profile\n  $U $xOffset $nuBL\n done"; }else{ $cmd="#"; }
+   $cmd
   #
   #    square(0,0)=inflowWithVelocityGiven, uniform(p=1.,u=1.,n=1.e-8)
    $ap=.1; $apn=1.; 

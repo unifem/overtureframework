@@ -566,18 +566,20 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       parameters.setUserBcType(side,axis,grid,flatPlateBoundaryLayerProfile);  // set the bcType to be a unique value.
       parameters.setBcIsTimeDependent(side,axis,grid,false);      // this condition is NOT time dependent
 
-      real U=1., xOffset=1.;
+      real U=1., xOffset=1., nuBL=parameters.dbase.get<real>("nu");
       printF("The flat plate boundary layer solution (Blasius) is a similiarity solution with\n"
              "the flat plate starting at x=0, y=0. The free stream velocity is U.\n"
              "To have a smooth inflow profile, enter an offset in x so the similiarity solution starts at this value\n"
-             "Note: the vertical velocity v only makes sense if sqrt(nu*U/x) is small. \n");
-      gi.inputString(answer,sPrintF("Enter U and xOffset xOffset (defaults U=%8.2e, xOffset=%8.2e)",U,xOffset));
-      sScanF(answer,"%e %e",&U,&xOffset);
-      printF("Setting U=%9.3e, xOffset=%9.3e\n",U,xOffset);
+             "Note: the vertical velocity v only makes sense if sqrt(nu*U/x) is small.\n"
+             "NOTE: nu for the BL profile can be different than the actual nu\n");
+      gi.inputString(answer,sPrintF("Enter U, xOffset and nu (defaults U=%8.2e, xOffset=%8.2e, nu=%8.2e)",U,xOffset,nuBL));
+      sScanF(answer,"%e %e %e",&U,&xOffset,&nuBL);
+      printF("Setting U=%9.3e, xOffset=%9.3e, nuBL=%8.2e\n",U,xOffset,nuBL);
 
-      RealArray values(2);
+      RealArray values(3);
       values(0)=U;
       values(1)=xOffset;
+      values(2)=nuBL;
       // save the parameters to be used when evaluating the BC's:
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
@@ -1511,11 +1513,12 @@ userDefinedBoundaryValues(const real & t,
 
 	numberOfSidesAssigned++;
 
-	RealArray values(2);
+	RealArray values(3);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
 
 	const real U       =values(0);
 	const real xOffset =values(1);
+	const real nuBL    =values(2);
 
         DataBase & db = parameters.dbase;
 	if( !db.has_key("BoundaryLayerProfile") )
@@ -1525,8 +1528,8 @@ userDefinedBoundaryValues(const real & t,
 	  db.get<BoundaryLayerProfile*>("BoundaryLayerProfile") = new BoundaryLayerProfile();  // who will delete ???
 
 	  BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
-	  const real nu = parameters.dbase.get<real>("nu");
-	  profile.setParameters( nu,U );  // 
+	  // const real nu = parameters.dbase.get<real>("nu");
+	  profile.setParameters( nuBL,U );  // 
 
 	}
 	BoundaryLayerProfile & profile = *db.get<BoundaryLayerProfile*>("BoundaryLayerProfile");
