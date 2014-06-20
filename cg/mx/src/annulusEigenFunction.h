@@ -3,14 +3,14 @@
 // 
 // OPTION: solution, error
 //==================================================================================================
-#beginMacro annulusEigenFunction(OPTION)
+#beginMacro annulusEigenFunction(OPTION,J1,J2,J3)
 
 //   printF(" I1.getBase(),uLocal.getBase(0),I1.getBound(),uLocal.getBound(0)=%i %i %i %i \n",
 // 	 I1.getBase(),uLocal.getBase(0),I1.getBound(),uLocal.getBound(0));
 
- Index J1 = Range(max(I1.getBase(),uLocal.getBase(0)),min(I1.getBound(),uLocal.getBound(0)));
- Index J2 = Range(max(I2.getBase(),uLocal.getBase(1)),min(I2.getBound(),uLocal.getBound(1)));
- Index J3 = Range(max(I3.getBase(),uLocal.getBase(2)),min(I3.getBound(),uLocal.getBound(2)));
+//  Index J1 = Range(max(I1.getBase(),uLocal.getBase(0)),min(I1.getBound(),uLocal.getBound(0)));
+//  Index J2 = Range(max(I2.getBase(),uLocal.getBase(1)),min(I2.getBound(),uLocal.getBound(1)));
+//  Index J3 = Range(max(I3.getBase(),uLocal.getBase(2)),min(I3.getBound(),uLocal.getBound(2)));
 
  if( numberOfDimensions==2 )
  {
@@ -111,6 +111,18 @@
          uLocal(i1,i2,i3,eyt) = omega*uey*cost;
        }
        
+     #Elif #OPTION == "boundaryCondition"
+       // *check me*
+       uLocal(i1,i2,i3,hz)  = bj*cosn*cost;
+       uLocal(i1,i2,i3,ex) = uex*sint;  // Ex.t = Hz.y
+       uLocal(i1,i2,i3,ey) = uey*sint;  // Ey.t = - Hz.x
+     
+       if( method==sosup )
+       {
+         uLocal(i1,i2,i3,hzt) = -omega*bj*cosn*sint;
+         uLocal(i1,i2,i3,ext) = omega*uex*cost;
+         uLocal(i1,i2,i3,eyt) = omega*uey*cost;
+       }
 
      #Elif #OPTION == "error"
        ERRHZ(i1,i2,i3) = UHZ(i1,i2,i3) -bj*cosn*cos(omega*t);
@@ -224,6 +236,21 @@
        UMEY(i1,i2,i3) = uey*sinkz*cost;
        UMEZ(i1,i2,i3) = bj*cosn*coskz*cost;
      
+
+     #Elif #OPTION == "boundaryCondition"
+
+       // *check me*
+       uLocal(i1,i2,i3,ex) = uex*sinkz*cost;
+       uLocal(i1,i2,i3,ey) = uey*sinkz*cost;
+       uLocal(i1,i2,i3,ez) = bj*cosn*coskz*cost;
+     
+       if( method==sosup )
+       {
+         sint=sin(omega*(t-dt)); 
+         uLocal(i1,i2,i3,hzt) = -omega*uex*sinkz*sint;
+         uLocal(i1,i2,i3,ext) = -omega*uey*sinkz*sint;
+         uLocal(i1,i2,i3,eyt) = -omega*bj*cosn*coskz*sint;
+       }
 
      #Elif #OPTION == "error"
 

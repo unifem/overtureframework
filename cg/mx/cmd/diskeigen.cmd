@@ -2,7 +2,7 @@
 # cgmx example: compute eigenfunctions of a disk (and compare to the exact solution)
 # 
 #  Usage:
-#       cgmx diskeigen -g=<gridName> -m=[1|2|3..] -n=[1|2|3...]
+#       cgmx diskeigen -g=<gridName> -m=[1|2|3..] -n=[1|2|3...] -bcn=[p|d]
 #
 #      Jm cos(n*theta) : give m, n
 # 
@@ -15,6 +15,7 @@
 #  cgmx diskeigen -g=sice4.order2.hdf -method=sosup -m=2 -n=2             [OK
 #  cgmx diskeigen -g=sice4.order4.ng3.hdf -method=sosup -m=2 -n=2         [OK
 #  cgmx diskeigen -g=sice4.order6.ng4.hdf -method=sosup -m=2 -n=2         [Not yet
+#  cgmx diskeigen -g=sice4.order6.ng4.hdf -method=sosup -m=2 -n=2 -bcn=d  [ FAKE DIRICHLET BC's - 
 #
 #  ogen -noplot sicArg -order=4 -numGhost=3 -interp=e -factor=4
 #  cgmx diskeigen -g=sice4.order4.ng3 -method=sosup -m=2 -n=2 -cfl=1.
@@ -22,7 +23,7 @@
 # -- parallel
 #  mpirun -np 2 $cgmxp diskeigen
 # =======================================================================================
-$tFinal=5.; $tPlot=.25; $diss=.5; $cfl=.9; 
+$tFinal=5.; $tPlot=.25; $diss=.5; $cfl=.9; $bcn="p"
 $grid="sice8.order4.hdf";
 # 
 $grid="sice4.order4.hdf"; $eigenvalue="2 3";
@@ -32,7 +33,7 @@ $cons=0; $go="halt";
 $m=1; $n=1;  # defines the eigenfunction 
 # ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"diss=f"=>\$diss,"tp=f"=>\$tPlot,"show=s"=>\$show,"debug=i"=>\$debug, \
- "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,\
+ "cfl=f"=>\$cfl, "bg=s"=>\$backGround,"bcn=s"=>\$bcn,"go=s"=>\$go,"noplot=s"=>\$noplot,"bcn=s"=>\$bcn,\
   "dtMax=f"=>\$dtMax,"m=i"=>\$m,"n=i"=>\$n, "cons=i"=>\$cons,"dissOrder=i"=>\$dissOrder,\
   "filter=i"=>\$filter,"divClean=i"=>\$divClean,"divCleanCoeff=f"=>\$divCleanCoeff,\
   "x0=f"=>\$x0,"y0=f"=>\$y0,"z0=f"=>\$z0,"projectInterp=i"=>\$projectInterp,"method=s"=>\$method );
@@ -48,7 +49,9 @@ modifiedEquationTimeStepping
 $method
 #
 #***
-bc: all=perfectElectricalConductor
+if( $bcn eq "d" ){ $bcn = "bc: all=dirichlet"; }
+if( $bcn eq "p" ){ $bcn = "bc: all=perfectElectricalConductor"; }
+$bcn 
 #**
 #****
 annulusEigenfunctionInitialCondition

@@ -283,7 +283,7 @@ c #endMacro
 c This macro is for the BC on Hz in 2D
 
 c ===================================================================================
-c  BC's for curvilinear grids in 2D
+c  BCs for curvilinear grids in 2D
 c
 c  FORCING: none, twilightZone
 c ===================================================================================
@@ -341,7 +341,7 @@ c===============================================================================
 
 
 c=============================================================================================
-c  BC's for curvilinear grids in 3D
+c  BCs for curvilinear grids in 3D
 c
 c Note:
 c   The equations are generated assuming that r is the normal direction.

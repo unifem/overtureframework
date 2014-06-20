@@ -109,9 +109,9 @@ determineErrors(realCompositeGridFunction & u,
     const int errorNorm = parameters.dbase.get<int >("errorNorm");
     int numberOfNormsToPrint=1;
     if( errorNorm<10000 ) numberOfNormsToPrint+=errorNorm;
-    for( int norm=0; norm<numberOfNormsToPrint; norm++ )
-    { // norm==0 : max-norm, otherwise Lp-norm with p=norm
-      int pNorm = norm==0 ? INT_MAX : norm;
+    for( int inorm=0; inorm<numberOfNormsToPrint; inorm++ )
+    { // inorm==0 : max-norm, otherwise Lp-norm with p=norm
+      int pNorm = inorm==0 ? INT_MAX : inorm;
       err=0.;
       for( int n=0; n<parameters.dbase.get<int >("numberOfComponents"); n++ )
       {

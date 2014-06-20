@@ -567,7 +567,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if( !dbase.has_key("plotBodyForceMaskSurface") ) dbase.put<bool>("plotBodyForceMaskSurface",false);
 
   // plot beams and shells
-  if( !dbase.has_key("plotStructures") ) dbase.put<bool>("plotStructures",false);
+  if( !dbase.has_key("plotStructures") ) dbase.put<bool>("plotStructures",true);
 
   // -- boundary forcing objects --
   if( !dbase.has_key("turnOnBoundaryForcing") ) dbase.put<bool >("turnOnBoundaryForcing",false);

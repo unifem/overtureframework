@@ -130,6 +130,9 @@ for(i1=I1Base; i1<=I1Bound; i1++)
 // ==================================================
 #Include "forcing.h"
 
+// Macros for the annulus eigenfunction exact solution
+#Include "annulusEigenFunction.h"
+
 // Macros for the plane material interface:
 #Include "planeMaterialInterface.h"
  definePlaneMaterialInterfaceMacros(C)
@@ -937,6 +940,7 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
                            initialConditionOption==gaussianPlaneWave || 
                            initialConditionOption==planeWaveInitialCondition ||  // for ABC + incident field fix 
                            initialConditionOption==planeMaterialInterfaceInitialCondition ||
+                           initialConditionOption==annulusEigenfunctionInitialCondition  ||
                            method==yee || 
                            method==dsi );
   if( centerNeeded )
@@ -1105,7 +1109,8 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 	    if( initialConditionOption==planeWaveInitialCondition ||
                 mg.boundaryCondition(side,axis)==planeWaveBoundaryCondition ||
                 initialConditionOption==planeMaterialInterfaceInitialCondition ||
-                initialConditionOption==gaussianIntegralInitialCondition )
+                initialConditionOption==gaussianIntegralInitialCondition ||
+                initialConditionOption==annulusEigenfunctionInitialCondition  )
 	    {
 	      if( debug & 16 )
 	      {
@@ -1124,6 +1129,10 @@ assignBoundaryConditions( int option, int grid, real t, real dt, realMappedGridF
 	      else if( initialConditionOption==gaussianIntegralInitialCondition )
 	      {
 		getGaussianIntegralSolution(boundary,UEX,UEY,UHZ,t,I1,I2,I3);
+	      }
+	      else if( initialConditionOption==annulusEigenfunctionInitialCondition )
+	      {
+		annulusEigenFunction(boundaryCondition,I1,I2,I3);
 	      }
 	      else
 	      { //planeWaveInitialCondition or planeWaveBoundaryCondition

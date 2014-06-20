@@ -286,15 +286,17 @@ defineBody( int numberOfFaces_, IntegerArray & boundaryFaces_ )
 // return the initial state (position, velocity, acceleration)
 int DeformingBodyMotion::
 getInitialState( InitialStateOptionEnum stateOption, 
-		 const real time, const int grid, 
+		 const real time, const int grid, MappedGrid & mg,
 		 const Index &I1, const Index &I2, const Index &I3, 
 		 realSerialArray & state )
 {
-  DeformingBodyType & deformingBodyType = 
+  const DeformingBodyType & deformingBodyType = 
                   deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType");
+  const UserDefinedDeformingBodyMotionEnum & userDefinedDeformingBodyMotionOption = 
+      deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption");
 
   if( true || debug & 2 ) 
-    printF("DeformingBodyMotion::getInitialState: stateOption=%i, grid=%i, t=%9.3e\n",(int)stateOption,grid,time);
+    printF("-- DBM-- DeformingBodyMotion::getInitialState: stateOption=%i, grid=%i, t=%9.3e\n",(int)stateOption,grid,time);
 
   const int numberOfDimensions = parameters.dbase.get<int>("numberOfDimensions");
   Range Rx=numberOfDimensions;
@@ -311,21 +313,41 @@ getInitialState( InitialStateOptionEnum stateOption,
   }
   else if( deformingBodyType==userDefinedDeformingBody )
   {
-    // for now we only support constant initial grid velocity and grid acceleration
     if( stateOption==initialVelocity )
     {
-      if( !deformingBodyDataBase.has_key("initialVelocity") )
+      if( userDefinedDeformingBodyMotionOption==elasticBeam )
       {
-	deformingBodyDataBase.put<real [3]>("initialVelocity");
-        real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
-        v0[0]=v0[1]=v0[2]=0.;
-      }
-      real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
-      if( true || debug & 2 )
-	printF("DeformingBodyMotion::getInitialState: Setting grid velocity to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",v0[0],v0[1],v0[2],time);
+	printF("-- DBM --- DeformingBodyMotion::getInitialState: get initial velocity for the elasticBeam.\n");
 
-      for( int axis=0; axis<numberOfDimensions; axis++ )
-        state(I1,I2,I3,axis)=v0[axis];
+        mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+	OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+	int i1,i2,i3;
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+	  pBeamModel->projectVelocity(xLocal(i1,i2,i3,0), 
+				      xLocal(i1,i2,i3,1),
+				      state(i1,i2,i3,0),
+				      state(i1,i2,i3,1));
+	}
+      }
+      else
+      {
+        // -- for now we only support constant initial grid velocity and grid acceleration --
+
+	if( !deformingBodyDataBase.has_key("initialVelocity") )
+	{
+	  deformingBodyDataBase.put<real [3]>("initialVelocity");
+	  real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
+	  v0[0]=v0[1]=v0[2]=0.;
+	}
+	real *v0 = deformingBodyDataBase.get<real [3]>("initialVelocity");
+	if( true || debug & 2 )
+	  printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting grid velocity to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",v0[0],v0[1],v0[2],time);
+
+	for( int axis=0; axis<numberOfDimensions; axis++ )
+	  state(I1,I2,I3,axis)=v0[axis];
+      }
+      
     }
     else if( stateOption==initialAcceleration )
     {
@@ -340,7 +362,7 @@ getInitialState( InitialStateOptionEnum stateOption,
         state(I1,I2,I3,axis)=a0[axis];
 
       if( true || debug & 2 )
-	printF("DeformingBodyMotion::getInitialState: Setting grid acceleration to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",a0[0],a0[1],a0[2],time);
+	printF("-- DBM-- DeformingBodyMotion::getInitialState: Setting grid acceleration to (%9.3e,%9.3e,%9.3e) at t=%9.3e.\n",a0[0],a0[1],a0[2],time);
 
     }
     else
@@ -428,7 +450,7 @@ getVelocity( const real time0,
       else
       {
 	// For initial times, if we don't have a past history of grids,  we use the following function: 
-	getInitialState( initialVelocity,time0,grid,I1,I2,I3,gridVelocityLocal);
+	getInitialState( initialVelocity,time0,grid,cg[grid],I1,I2,I3,gridVelocityLocal);
       }
     }
     else
@@ -524,7 +546,7 @@ getVelocity( const real time0,
 /// \brief Return the grid velocity at specified points 
 // ===============================================================================================
 int DeformingBodyMotion::
-getVelocityBC( const real time0, const int grid, const Index &I1, const Index &I2, const Index &I3, 
+getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
 	       realSerialArray & bcVelocity)
 {
   DeformingBodyType & deformingBodyType = 
@@ -556,7 +578,7 @@ getVelocityBC( const real time0, const int grid, const Index &I1, const Index &I
       else
       {
 	// For initial times, if we don't have a past history of grids,  we use the following function: 
-	getInitialState( initialVelocity,time0,grid,I1,I2,I3,bcVelocity);
+	getInitialState( initialVelocity,time0,grid,mg, I1,I2,I3,bcVelocity);
       }
       
     }
@@ -585,7 +607,7 @@ getVelocityBC( const real time0, const int grid, const Index &I1, const Index &I
 /// \brief Return the grid acceleration on boundary points.
 // ===============================================================================================
 int DeformingBodyMotion::
-getAccelerationBC( const real time0, const int grid, const Index &I1, const Index &I2, const Index &I3, 
+getAccelerationBC( const real time0, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
 		   realSerialArray & bcAcceleration)
 {
   DeformingBodyType & deformingBodyType = 
@@ -606,8 +628,9 @@ getAccelerationBC( const real time0, const int grid, const Index &I1, const Inde
     UserDefinedDeformingBodyMotionEnum & userDefinedDeformingBodyMotionOption = 
       deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption");
 
-    if ( userDefinedDeformingBodyMotionOption==elasticBeam) {
-
+    if( userDefinedDeformingBodyMotionOption==elasticBeam )
+    {
+      printF("-- DBM --- DeformingBodyMotion::getAccelerationBC for the elasticBeam t=%9.3e\n",time0);
 
       vector<RealArray*> & surfaceArray = deformingBodyDataBase.get<vector<RealArray*> >("surfaceArray");
       vector<real*> & surfaceArrayTime = deformingBodyDataBase.get<vector<real*> >("surfaceArrayTime"); 
@@ -629,19 +652,22 @@ getAccelerationBC( const real time0, const int grid, const Index &I1, const Inde
       int dx[2] = {I1.getBound()-I1.getBase(),I2.getBound()-I2.getBase()};
       int start[4] = {I1.getBase(),!I1.getBase(),I2.getBase(),!I2.getBase()};
       
-      if (dx[axisToMove] == 0 && !start[axisToMove*2+sideToMove]) {
-	{ FOR_3D(i1,i2,i3,I1,I2,I3)
-	    {
+      if (dx[axisToMove] == 0 && !start[axisToMove*2+sideToMove]) 
+      {
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
 	      
-	      pBeamModel->projectAcceleration(x0(i1,i2,i3,0), 
-					      x0(i1,i2,i3,1),
-					      bcAcceleration(i1,i2,i3,0),
-					      bcAcceleration(i1,i2,i3,1));
-	    }}
-	    } else {
+	  pBeamModel->projectAcceleration(x0(i1,i2,i3,0), 
+					  x0(i1,i2,i3,1),
+					  bcAcceleration(i1,i2,i3,0),
+					  bcAcceleration(i1,i2,i3,1));
+	}
+      } 
+      else 
+      {
 	bcAcceleration(I1,I2,I3,0) = 0.0;
 	bcAcceleration(I1,I2,I3,1) = 0.0;
-        }
+      }
 	
       return 0;
     }
@@ -697,7 +723,7 @@ getAccelerationBC( const real time0, const int grid, const Index &I1, const Inde
       else
       {
 	// For initial times, if we don't have a past history of grids,  we use the following function:
-	getInitialState( initialAcceleration,time0,grid,I1,I2,I3,bcAcceleration );
+	getInitialState( initialAcceleration,time0,grid,mg, I1,I2,I3,bcAcceleration );
       }
       
     }
@@ -2208,23 +2234,28 @@ advanceElasticBeam(real t1, real t2, real t3,
 
 	// note: include ghost points:
 	getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3,numGhost);
-	beamDataBase.put<RealArray>("xBeam");
-	beamDataBase.put<RealArray>("vBeam");
+	// beamDataBase.put<RealArray>("xBeam");
+	// beamDataBase.put<RealArray>("vBeam");
 	beamDataBase.put<RealArray>("beamBoundaryLocation");
 
-	RealArray & x = beamDataBase.get<RealArray>("xBeam");
-	RealArray & v = beamDataBase.get<RealArray>("vBeam");
+	// // RealArray & x = beamDataBase.get<RealArray>("xBeam");
+	// // RealArray & v = beamDataBase.get<RealArray>("vBeam");
 	RealArray & xbb = beamDataBase.get<RealArray>("beamBoundaryLocation");
  
-	gf.cg[gridToMove].update(MappedGrid::THEvertex | MappedGrid::THEcenter); // do this for now 
-#ifdef USE_PPP
-	RealArray vertex; getLocalArrayWithGhostBoundaries(gf.cg[gridToMove].vertex(),vertex);
-#else
-	RealArray & vertex = gf.cg[gridToMove].vertex();
-#endif
-	x = pBeamModel->position();
+	// gf.cg[gridToMove].update(MappedGrid::THEvertex | MappedGrid::THEcenter); // do this for now 
+        // #ifdef USE_PPP
+  	//   RealArray vertex; getLocalArrayWithGhostBoundaries(gf.cg[gridToMove].vertex(),vertex);
+        // #else
+	//   RealArray & vertex = gf.cg[gridToMove].vertex();
+        // #endif
 
-	v = pBeamModel->velocity();                       // do this for now   ** fix me **
+        // printF("+++ DeformingBodyMotion::initialize: Assign beam conditions at t=%9.3e\n",gf.t);
+	
+        // RealArray a;
+        // pBeamModel->assignInitialConditions( gf.t, x,v,a  );
+
+	// x = pBeamModel->position();
+	// v = pBeamModel->velocity();                       // do this for now   ** fix me **
 
 	xbb = x0;
       }
@@ -2232,14 +2263,17 @@ advanceElasticBeam(real t1, real t2, real t3,
 
     getBoundaryIndex(cgf1.cg[gridToMove].gridIndexRange(),sideToMove,axisToMove,Ib1,Ib2,Ib3);
 
-    RealArray & x1 = cgf1.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
-    RealArray & v1 = cgf1.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
+    // RealArray & x1 = cgf1.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
+    // RealArray & v1 = cgf1.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
 	
-    RealArray & x2 = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
-    RealArray & v2 = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
+    // RealArray & x2 = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
+    // RealArray & v2 = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
 	
-    RealArray & x3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
-    RealArray & v3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
+    // RealArray & x3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("xBeam");
+    // RealArray & v3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("vBeam");
+
+    const RealArray & x3 = pBeamModel->position(); // current degree's of freedom **FIX ME**
+    
 
     RealArray & xbb = cgf2.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
     RealArray & xbb3 = cgf3.dbase.get<DataBase>(beamDirName).get<RealArray>("beamBoundaryLocation");
@@ -2299,8 +2333,9 @@ advanceElasticBeam(real t1, real t2, real t3,
         // p1 = u2(i1,i2,i3,pc);
 	// p2 = u2(i1p,i2p,i3p,pc);
 
-	pBeamModel->addForce(x0(i1,i2,i3,0), 
-			     x0(i1,i2,i3,1), p1,
+	pBeamModel->addForce(tForce,
+                             x0(i1,i2,i3,0), 
+                             x0(i1,i2,i3,1), p1,
 			     normal2(i1,i2,i3,0), normal2(i1,i2,i3,1),
 			     x0(i1p,i2p,i3p,0), 
 			     x0(i1p,i2p,i3p,1), p2,
@@ -2308,9 +2343,9 @@ advanceElasticBeam(real t1, real t2, real t3,
       }} // end for
 
       if (option == 0)
-	pBeamModel->predictor(dt, x1,v1,x2,v2,x3,v3);
+	pBeamModel->predictor(t3, dt );
       else if (option == 1)
-	pBeamModel->corrector(dt,x3,v3);
+	pBeamModel->corrector(t3, dt );
       if (option == 0) {
 
 	{ FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)

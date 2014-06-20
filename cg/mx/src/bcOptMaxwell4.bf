@@ -30,7 +30,7 @@ c This macro is for the BC on Hz in 2D
        )/(rsxy(i1,i2,i3,axis,0)**2+rsxy(i1,i2,i3,axis,1)**2)
 
 c ===================================================================================
-c  BC's for curvilinear grids in 2D
+c  BCs for curvilinear grids in 2D
 c
 c  FORCING: none, twilightZone
 c ===================================================================================
@@ -2243,7 +2243,7 @@ c===============================================================================
              -u(i1+3*n1,i2+3*n2,i3+3*n3,cc))/(drr**2) )
 
 c=============================================================================================
-c  BC's for curvilinear grids in 3D
+c  BCs for curvilinear grids in 3D
 c
 c Note:
 c   The equations are generated assuming that r is the normal direction.

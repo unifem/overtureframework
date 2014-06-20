@@ -1,6 +1,9 @@
 //                                   -*- c++ -*-
 #include "BeamModel.h"
 #include "display.h"
+#include "TravelingWaveFsi.h"
+#include "OGPolyFunction.h"
+#include "OGTrigFunction.h"
 
 #include <sstream>
 
@@ -32,15 +35,21 @@ int BeamModel::debug=0;
 int BeamModel::globalBeamCounter=0; // keeps track of number of beams that have been created
 
 
-// Constructor.
+// ======================================================================================================
+/// \brief Constructor.
 //
-BeamModel::BeamModel() {
+// ======================================================================================================
+BeamModel::BeamModel() 
+{
 
   name = "beam";
 
   globalBeamCounter++;
   beamID=globalBeamCounter; //  a unique ID 
   
+  domainDimension=1;        // domain dimension
+  numberOfDimensions=2;     // range dimension
+
   elementK.redim(4,4);
   elementM.redim(4,4);
 
@@ -58,6 +67,7 @@ BeamModel::BeamModel() {
   L = 1.;
   numElem = 11;
 
+  dbase.put<real>("tension")=0.;  // T : coefficient of w_xx
 
   newmarkBeta = 0.25;
   newmarkGamma = 0.5;
@@ -122,7 +132,7 @@ BeamModel::BeamModel() {
 
   // The relaxation parameter used in the fixed point iteration
   // used to alleviate the added mass effect
-  dbase.put<real>("addedMassRelaxationFactor",1.0);
+  dbase.put<real>("addedMassRelaxationFactor",1.0);  // 1 = no relaxation
 
   // The (relative) convergence tolerance for the fixed point iteration
   // tol: convergence tolerance (default is 1.0e-3)
@@ -131,13 +141,35 @@ BeamModel::BeamModel() {
   // For initial conditions: 
   dbase.put<real>("amplitude")=0.1;
   dbase.put<real>("waveNumber")=1.0;
-  
+
 
   // { // wdh: replaces 'what' factor 
   //   dbase.put<real>("exactSolutionScaleFactorFSI");
   //   dbase.get<real>("exactSolutionScaleFactorFSI")=0.00001; // scale FSI solution so linearized approximation is valid 
   // }
   
+  // --- variables for time stepping ---
+  dbase.put<int>("numberOfTimeLevels")=3;  // total number of time levels we store
+  dbase.put<real>("dt")=-1.;               // time step
+  dbase.put<int>("current")=0;             // current time level
+  dbase.put<RealArray>("time");
+  dbase.put<std::vector<RealArray> >("u"); // displacement 
+  dbase.put<std::vector<RealArray> >("v"); // velocity
+  dbase.put<std::vector<RealArray> >("a"); // acceleration
+  dbase.put<std::vector<RealArray> >("f"); // force
+  
+  // --- twilight-zone variables ---
+  if( !dbase.has_key("exactPointer") ) dbase.put<OGFunction*>("exactPointer")=NULL;
+  if( !dbase.has_key("degreeInTime") ) dbase.put<int>("degreeInTime",2);
+  if( !dbase.has_key("degreeInSpace") ) dbase.put<int>("degreeInSpace",2);
+
+  if( !dbase.has_key("twilightZone") ) dbase.put<bool>("twilightZone",false);
+  if( !dbase.has_key("twilightZoneOption") ) dbase.put<int>("twilightZoneOption",0);
+
+  // Frequencies for trig TZ: 
+  if( !dbase.has_key("trigFreq") ) dbase.put<real[4]>("trigFreq");   // ft, fx, fy, [fz]
+  real *trigFreq = dbase.get<real[4]>("trigFreq");
+  for( int i=0; i<4; i++ ){ trigFreq[i]=2.;  }
 
 }
 
@@ -170,19 +202,30 @@ initialize()
 
   real EI = elasticModulus*areaMomentOfInertia;
 
+  const real & T = dbase.get<real>("tension");
+  
   // std::cout << "EI = " << EI << std::endl;
 
-  elementK(0,0) = EI*12./le3; elementK(0,1) = EI*6./le2; 
-  elementK(0,2) = -elementK(0,0); elementK(0,3) = elementK(0,1);
+  // *wdh* 2014/06/17 -- tension term added
+  elementK(0,0) = EI*12./le3       + T*6./(5.*le);    
+  elementK(0,1) = EI*6./le2        + T/10.; 
+  elementK(0,2) = -elementK(0,0); 
+  elementK(0,3) = elementK(0,1);
 
-  elementK(1,0) = elementK(0,1); elementK(1,1) = EI*4./le; 
-  elementK(1,2) = -elementK(0,1); elementK(1,3) = EI*2./le;
+  elementK(1,0) = elementK(0,1);  
+  elementK(1,1) = EI*4./le         + T*le*2./15.; 
+  elementK(1,2) = -elementK(0,1); 
+  elementK(1,3) = EI*2./le         - T*le/30.;
 
-  elementK(2,0) = elementK(0,2); elementK(2,1) = elementK(1,2); 
-  elementK(2,2) = elementK(0,0); elementK(2,3) = elementK(1,2);
+  elementK(2,0) = elementK(0,2); 
+  elementK(2,1) = elementK(1,2); 
+  elementK(2,2) = elementK(0,0); 
+  elementK(2,3) = elementK(1,2);
   
-  elementK(3,0) = elementK(0,1); elementK(3,1) = elementK(1,3); 
-  elementK(3,2) = elementK(2,3); elementK(3,3) = elementK(1,1);
+  elementK(3,0) = elementK(0,1); 
+  elementK(3,1) = elementK(1,3); 
+  elementK(3,2) = elementK(2,3);
+  elementK(3,3) = elementK(1,1);
   
   elementM(0,0) = elementM(2,2) = 13./35.*le*density*thickness;
   elementM(0,1) = elementM(1,0) = 11./210.*le2*density*thickness;
@@ -193,69 +236,174 @@ initialize()
   elementM(0,3) = elementM(3,0) = -13./420.*le2*density*thickness;
   elementM(1,1) = elementM(3,3) = 1./105.*le3*density*thickness;
 
-  myPosition.redim(numElem*2+2);
-  myVelocity.redim(numElem*2+2);
-  myAcceleration.redim(numElem*2+2);
-  myForce.redim(numElem*2+2);
+  // initialize TZ
+  initTwilightZone();
 
-  tmp.redim(numElem*2+2);
+  // --- time stepping arrays ----
 
-  myPosition = 0.0;
-  myVelocity = 0.0;
-
-
-  if (useExactSolution) {
-
-    setExactSolution(0.0,myPosition,myVelocity,myAcceleration);
-    //    myAcceleration = 0.0;
+  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+  while( u.size()<numberOfTimeLevels )
+  {
+    u.push_back(RealArray());
+    v.push_back(RealArray());
+    a.push_back(RealArray());
+    f.push_back(RealArray());
   }
-
-  if (bcLeft == Pinned || bcLeft == Cantilevered) {
-
-    myPosition(0) = 0.0;
-    myVelocity(0) = 0.0;
+  for( int n=0; n<numberOfTimeLevels; n++ )
+  {
+    u[n].redim(2*numElem+2); u[n]=0.;
+    v[n].redim(2*numElem+2); v[n]=0.;
+    a[n].redim(2*numElem+2); a[n]=0.;
+    f[n].redim(2*numElem+2); f[n]=0.;
   }
+  int & current = dbase.get<int>("current"); 
+  RealArray & time = dbase.get<RealArray>("time");
+  // const real & dt = dbase.get<real>("dt");
+  // assert( dt>0 );
+  time.redim(numberOfTimeLevels);
+  time=0.;
+  current=0;
+  assignInitialConditions( time(current), u[current],v[current],a[current] ); 
 
-  if (bcLeft == Cantilevered) {
-
-    myPosition(1) = 0.0;
-    myVelocity(1) = 0.0;
-  }
-
-  if (bcRight == Pinned || bcRight == Cantilevered) {
-
-    myPosition(numElem*2) = 0.0;
-    myVelocity(numElem*2) = 0.0;
-  }
-
-  if (bcRight == Cantilevered) {
-
-    myPosition(numElem*2+1) = 0.0;
-    myVelocity(numElem*2+1) = 0.0;
-  }
-
-  myPosition_nm1.redim(0); myVelocity_nm1.redim(0);
+  dtilde.redim(0); vtilde.redim(0);  // holds predicted values 
   
-  myPosition_nm1 = myPosition;
-  myVelocity_nm1 = myVelocity;
+  dtilde = u[current];
+  vtilde = v[current];
 
-  if (!useExactSolution)
-    myAcceleration = 0.0;
-
-  aold.redim(0);
-  aold = myAcceleration;
-
-  myForce = 0.0;
-
-  dtilde.redim(0); vtilde.redim(0);
-  
-  dtilde = myPosition;
-  vtilde = myVelocity;
 
 
 
 }
 
+// ====================================================================================================
+/// \brief Initialize the twilight zone 
+// ====================================================================================================
+int BeamModel::
+initTwilightZone()
+{
+
+    // -- twilight zone ---
+  const bool & twilightZone = dbase.get<bool>("twilightZone");
+
+  printF("-- BM -- initTwilightZone twilightZone=%i\n",(int)twilightZone);
+
+  if( !twilightZone )
+    return 0;
+
+  const int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
+  const int & degreeInTime = dbase.get<int>("degreeInTime");
+  const int & degreeInSpace = dbase.get<int>("degreeInSpace");
+  // const aString & exactSolution = dbase.get<aString>("exactSolution");
+
+  // create a twilight-zone function for checking the errors
+  OGFunction *& exactPointer = dbase.get<OGFunction*>("exactPointer");
+
+  const int numberOfTZComponents = 1;
+  
+  if( twilightZoneOption==1 )
+  {
+    printF("-- BM -- TwilightZone: trigonometric.\n");
+
+    real *trigFreq = dbase.get<real[4]>("trigFreq");  // ft, fx, fy, [fz]
+    const real omega[4]={trigFreq[1],trigFreq[2],trigFreq[3],trigFreq[0]};
+
+    RealArray fx( numberOfTZComponents),fy( numberOfTZComponents),fz( numberOfTZComponents),ft( numberOfTZComponents);
+    RealArray gx( numberOfTZComponents),gy( numberOfTZComponents),gz( numberOfTZComponents),gt( numberOfTZComponents);
+    gx=0.; gy=0.; gz=0.; gt=0.;
+    RealArray amplitude( numberOfTZComponents), cc( numberOfTZComponents);
+    amplitude=1.;
+    cc=0.;
+
+    fx = omega[0];
+    fy = domainDimension>1 ?  omega[1] : 0.;
+    fz = domainDimension>2 ?  omega[2] : 0.;
+    ft = omega[3];
+
+    exactPointer = new OGTrigFunction(fx,fy,fz,ft);
+    OGTrigFunction & trig = (OGTrigFunction&)(*exactPointer);
+    trig.setShifts(gx,gy,gz,gt);
+    trig.setAmplitudes(amplitude);
+    trig.setConstants(cc);
+      
+  }
+  else
+  {
+    printF("--- BM --- TwilightZone: algebraic polynomial\n");
+    int degreeOfSpacePolynomial = degreeInSpace;
+    int degreeOfTimePolynomial = degreeInTime;
+
+    Range R5(0,4);
+    RealArray spatialCoefficientsForTZ(5,5,5, numberOfTZComponents);  
+    spatialCoefficientsForTZ=0.;
+    RealArray timeCoefficientsForTZ(5, numberOfTZComponents);      
+    timeCoefficientsForTZ=0.;
+
+    const int wc=0;  // component for w
+    if( degreeInSpace==1 )
+    {
+      spatialCoefficientsForTZ(0,0,0, wc)=-.5;      // w=-.5+x
+      spatialCoefficientsForTZ(1,0,0, wc)= 1.;
+    }
+    else if( degreeInSpace==2 )
+    {
+      spatialCoefficientsForTZ(0,0,0, wc)= 0;      // w = x(1-x) = x - x^2 
+      spatialCoefficientsForTZ(1,0,0, wc)= 1.; 
+      spatialCoefficientsForTZ(2,0,0, wc)=-1.; 
+
+    }
+    else if( degreeInSpace==0 )
+    {
+      spatialCoefficientsForTZ(0,0,0, wc)=1.;
+    }
+    else if( degreeInSpace==3 )
+    {
+      spatialCoefficientsForTZ(0,0,0, wc)=-1.; 
+      spatialCoefficientsForTZ(1,0,0, wc)=.5; 
+      spatialCoefficientsForTZ(2,0,0, wc)=-.25; 
+      spatialCoefficientsForTZ(3,0,0, wc)=.125;
+
+    }
+    else if( degreeInSpace==4 )
+    {
+      spatialCoefficientsForTZ(0,0,0, wc)=-1.; 
+      spatialCoefficientsForTZ(1,0,0, wc)=.5; 
+      spatialCoefficientsForTZ(2,0,0, wc)=-.25; 
+      spatialCoefficientsForTZ(3,0,0, wc)=.125;
+      spatialCoefficientsForTZ(4,0,0, wc)=-.3;
+
+    }
+    else
+    {
+      printF("-- BM -- not implemented for degree in space =%i \n",degreeInSpace);
+      OV_ABORT("error");
+    }
+
+    for( int n=0; n< numberOfTZComponents; n++ )
+    {
+      for( int i=0; i<=4; i++ )
+      {
+	timeCoefficientsForTZ(i,n)= i<=degreeInTime ? 1./(i+1) : 0. ;
+      }
+	  
+    }
+
+
+
+    exactPointer = new OGPolyFunction(degreeOfSpacePolynomial,domainDimension,numberOfTZComponents,
+				      degreeOfTimePolynomial);
+
+    ((OGPolyFunction*)exactPointer)->setCoefficients( spatialCoefficientsForTZ,timeCoefficientsForTZ );
+
+  }
+
+  assert( dbase.get<OGFunction*>("exactPointer") !=NULL );
+
+  return 0;
+}
 
 // ===================================================================================
 /// \brief Set the beam parameters.
@@ -293,10 +441,49 @@ setParameters(real momOfInertia, real E,
 
 }
 
+// ==================================================================
+/// \brief return the estimatimated *explicit* time step dt 
+/// \auhtor WDH
+// ==================================================================
+real BeamModel::
+getExplicitTimeStep() const
+{
+  // estimate the expliciit time step 
 
-void BeamModel::computeProjectedForce(real p1, real p2, 
-				      real a, real b,
-				      RealArray& fe) {
+  real beamLength=L;
+  int numNodes=numElem+1;
+  
+  real dx = beamLength/numNodes; 
+  
+  real EI = elasticModulus*areaMomentOfInertia;
+  const real & T = dbase.get<real>("tension");
+
+  //  ( E*I*dt^2/dx^4 + T*dt^2/dx^2 )/( rho*h*b ) < 1 
+
+  real breadth=1.;  // fix me 
+  
+  real dt = sqrt(  (density*thickness*breadth) /(  EI/pow(dx,4) + T/(dx*dx) ) );
+  
+  printF("BeamModel::getExplicitTimeStep: EI=%g, T=%g, dx=%8.2e, dt=%8.2e\n",EI,T,dx,dt);
+
+  return dt;
+}
+
+// ======================================================================================================
+/// \brief Compute the integral of N(eta)*p, that is, the rhs of the FEM model, for a particular element
+// p1:   pressure at the first point within the element
+// p2:   pressure at the second point within the element
+// a=eta1: location (natural coordinate)
+// b=eta2: location (natural coordinate)
+// fe:   element external force vector [out]
+//
+///    fe = (N,p)_[a,b] = int_a^b N(xi) p(xi) J dxi 
+// ======================================================================================================
+void BeamModel::
+computeProjectedForce(real p1, real p2, 
+		      real a, real b,
+		      RealArray& fe) 
+{
 
   real le2 = le*le;
   real le3 = le2*le;
@@ -335,7 +522,9 @@ void BeamModel::computeProjectedForce(real p1, real p2,
   
 }
 
-void BeamModel::setupFreeMotion(real x0,real y0, real angle0) {
+void BeamModel::
+setupFreeMotion(real x0,real y0, real angle0) 
+{
 
   centerOfMass[0] = x0;
   centerOfMass[1] = y0;
@@ -381,18 +570,24 @@ static void inverse2x2(const RealArray& A, RealArray& inv) {
   inv(1,1) = odet*A(0,0);
 }
 
-// The last 6 arguments are for periodic boundary conditions.  
-static void solveBlockTridiagonal(const RealArray& elementM, const RealArray& f,
-				  RealArray& u,
-				  BeamModel::BoundaryCondition bcLeft,
-				  BeamModel::BoundaryCondition bcRight,
-				  bool allowsFreeMotion,
-				  bool augmented = false,
-				  RealArray* augmentedRow = NULL,
-				  RealArray* augmentedCol = NULL,
-				  real* augmentedDiagonal = NULL,
-				  real* augmentedRHS = NULL,
-				  real* augmentedSolution = NULL) {
+// ================================================================================
+/// \brief Solve A u = f
+/// 
+/// The last 6 arguments are for periodic boundary conditions.  
+// ================================================================================
+static void 
+solveBlockTridiagonal(const RealArray& elementM, const RealArray& f,
+		      RealArray& u,
+		      BeamModel::BoundaryCondition bcLeft,
+		      BeamModel::BoundaryCondition bcRight,
+		      bool allowsFreeMotion,
+		      bool augmented = false,
+		      RealArray* augmentedRow = NULL,
+		      RealArray* augmentedCol = NULL,
+		      real* augmentedDiagonal = NULL,
+		      real* augmentedRHS = NULL,
+		      real* augmentedSolution = NULL) 
+{
 
   RealArray ftmp;
   ftmp.redim(2);
@@ -498,17 +693,23 @@ static void solveBlockTridiagonal(const RealArray& elementM, const RealArray& f,
   
 }
 
-void BeamModel::computeInternalForce(const RealArray& u,RealArray& f) {
 
-  RealArray elementU;
-  RealArray elementForce;
+// =======================================================================================
+/// /brief  Compute the internal force in the beam, i.e., -K*u
+/// u: position of the beam
+/// f: internal force [out]
+// =======================================================================================
+void BeamModel::
+computeInternalForce(const RealArray& u,RealArray& f) 
+{
 
-  elementU.redim(4);
- 
+  RealArray elementU(4);
+  RealArray elementForce(4);
+
   f = 0.0;
-
-  for (int i = 0; i < numElem; ++i) {
-  
+  for (int i = 0; i < numElem; ++i)
+  {
+    // elementU = [ u_i, ux_i, u_{i+1} ux_{i+1} ]
     for (int k = 0; k < 4; ++k)
       elementU(k) = u(i*2+k);
     
@@ -519,24 +720,30 @@ void BeamModel::computeInternalForce(const RealArray& u,RealArray& f) {
 
 }
 
-void BeamModel::multiplyByMassMatrix(const RealArray& w, RealArray& Mw) {
+//==============================================================================================
+/// \brief Multiply a vector w by the mass matrix
+/// w:  vector
+/// Mw: M*w [out]
+///
+//==============================================================================================
+void BeamModel::
+multiplyByMassMatrix(const RealArray& w, RealArray& Mw)
+{
 
-  RealArray elementU;
-  RealArray tmpv;
+  RealArray elementU(4);
+  RealArray tmpv(4);
 
-  elementU.redim(4);
-
-  tmpv.redim(4);
- 
   Mw = w;
   Mw = 0.0;
 
-  for (int i = 0; i < numElem; ++i) {
-  
+  for (int i = 0; i < numElem; ++i) 
+  {
+    // elementu = [ w_i wx_i w_{i+1} wx_{i+1} ]  
     for (int k = 0; k < 4; ++k)
       elementU(k) = w(i*2+k);
     
     tmpv = mult(elementM, elementU);
+
     for (int k = 0; k < 4; ++k)
       Mw(i*2+k) += tmpv(k);
   }
@@ -544,18 +751,23 @@ void BeamModel::multiplyByMassMatrix(const RealArray& w, RealArray& Mw) {
   
 }
 
-//
-// Return the (x,y) coordinates of the beam centerline
-// wdh 2014/05/22
+//==============================================================================================
+/// \brief Return the (x,y) coordinates of the current beam centerline
+/// \author wdh 2014/05/22
+//==============================================================================================
 void BeamModel::
 getCenterLine( RealArray & xc ) const
 {
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  RealArray & uc = u[current];
+
   xc.redim(numElem+1,2);
   for( int i=0; i<=numElem; i++ ) 
   {
     // (xl,yl) = beam position (un-rotated)
     real xl = ((real)i /numElem) *  L;   // position along neutral axis 
-    real yl = myPosition(2*i);           // displacement 
+    real yl = uc(2*i);           // displacement 
 
     xc(i,0) = beamX0 + initialBeamTangent[0]*xl - initialBeamTangent[1]*yl;
     xc(i,1) = beamY0 - initialBeamNormal [0]*xl + initialBeamNormal [1]*yl;
@@ -564,44 +776,102 @@ getCenterLine( RealArray & xc ) const
 }
 
 
+//================================================================================================
+/// \brief Provide the TravelingWaveFsi object that defines an exact solution.
+///
+/// \param tw (input) : use this object for computing the TravelingWaveFsi solution
+//================================================================================================
+int BeamModel::
+setTravelingWaveSolution( TravelingWaveFsi & tw )
+{
+  if( !dbase.has_key("travelingWaveFsi") ) dbase.put<TravelingWaveFsi*>("travelingWaveFsi")=NULL;
+ 
+  dbase.get<TravelingWaveFsi*>("travelingWaveFsi")=&tw;
+
+  return 0;
+}
 
 
-void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v, 
-				    const RealArray& f,
-				    const RealArray& A,
-				    RealArray& a,
-				    real linAcceleration[2],
-				    real& omegadd,
-				    real dt,
-				    real loc_beta,
-				    real loc_gamma) {
+//================================================================================================
+/// \brief Compute the acceleration.
+///
+// Compute the acceleration of the beam.
+// u:               current beam position
+// v:               current beam velocity
+// f:               external force on the beam
+// A:               matrix by which the acceleration is multiplied
+//                  (e.g., in the newmark beta correction step it is 
+//                   M+beta*dt^2*K)
+// a:               beam acceleration [out]
+// linAcceleration: acceleration of the CoM of the beam (for free motion) [out]
+// omegadd:         angular acceleration of the beam (for free motion) [out]
+// dt:              time step
+// locbeta:         [unused]
+// locgamma:        [unused]
+//
+//================================================================================================
+void BeamModel::
+computeAcceleration(const RealArray& u, const RealArray& v, 
+		    const RealArray& f,
+		    const RealArray& A,
+		    RealArray& a,
+		    real linAcceleration[2],
+		    real& omegadd,
+		    real dt,
+		    real loc_beta,
+		    real loc_gamma)
+{
 
-  computeInternalForce(u, tmp);
+  if( debug & 2 )
+    printF("--BM-- BeamModel::computeAcceleration, dt=%8.2e\n",dt);
+  
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & ua = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+  RealArray & uc = ua[current];  // current displacement 
 
-  tmp += f;
+  RealArray rhs(numElem*2+2); // *wdh* 2014/06/19
 
-  if (!allowsFreeMotion) {
+  // Compute:   rhs = -K*u 
+  computeInternalForce(u, rhs);
 
-    if (bcLeft == BeamModel::Cantilevered) {
-      tmp(0) = 0.0;
-      tmp(1) = 0.0;
+  rhs += f;
+
+  if( debug & 1 )
+  {
+    rhs.reshape(2,numElem+1);
+    ::display(rhs,"-- BM -- computeAcceleration: rhs after computeInternalForce","%9.2e ");
+    rhs.reshape(numElem*2+2);
+  }
+  
+
+  if( !allowsFreeMotion ) 
+  {
+    // --- Apply boundary conditions to f - Ku  *wdh* Why do we do this ??
+
+    if (bcLeft == BeamModel::Cantilevered) 
+    {
+      rhs(0) = 0.0;
+      rhs(1) = 0.0;
     }
     
     if (bcLeft == BeamModel::Pinned) {
-      tmp(0) = 0.0;
+      rhs(0) = 0.0;
     }
     
     if (bcRight == BeamModel::Cantilevered) {
-      tmp(numElem*2) = 0.0;
-      tmp(numElem*2+1) = 0.0;
+      rhs(numElem*2) = 0.0;
+      rhs(numElem*2+1) = 0.0;
     }
     
     if (bcRight == BeamModel::Pinned) {
-      tmp(numElem*2) = 0.0;
+      rhs(numElem*2) = 0.0;
     }
   }
 
-  if (allowsFreeMotion) {
+  if( allowsFreeMotion ) 
+  {
+    // --- free body motion ---
+
     
     //std::cout << "Total pressure force = " << totalPressureForce << std::endl;
     linAcceleration[0] = totalPressureForce*normal[0] / totalMass + bodyForce[0] * buoyantMass / totalMass;
@@ -614,7 +884,7 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
       real wend,wendslope;
       int elem = 0;
       real eta = -1.0;
-      interpolateSolution(myPosition, elem,eta, wend, wendslope);
+      interpolateSolution(uc, elem,eta, wend, wendslope);
       
       
       real end[2] = {centerOfMass[0] + normal[0]*wend - tangent[0]*L*0.5,
@@ -630,7 +900,7 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
       real shear = penalty*((end[0]-initialEndLeft[0])*(-normal[0])+
 			    (end[1]-initialEndLeft[1])*(-normal[1]));
       
-      tmp(0) += shear;
+      rhs(0) += shear;
     }
     
     if (bcRight == BeamModel::Pinned ||
@@ -639,7 +909,7 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
       real wend,wendslope;
       int elem = numElem-1;
       real eta = 1.0;
-      interpolateSolution(myPosition, elem,eta, wend, wendslope);
+      interpolateSolution(uc, elem,eta, wend, wendslope);
       
       
       real end[2] = {centerOfMass[0] + normal[0]*wend - tangent[0]*L*0.5,
@@ -655,7 +925,7 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
       real shear = penalty*((end[0]-initialEndRight[0])*(normal[0])+
 			    (end[1]-initialEndRight[1])*(normal[1]));
       
-      tmp(numElem*2) += shear;
+      rhs(numElem*2) += shear;
     }
 
     if (bcLeft == BeamModel::Cantilevered) {
@@ -663,7 +933,7 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
       real wend,wendslope;
       int elem = 0;
       real eta = -1.0;
-      interpolateSolution(myPosition, elem,eta, wend, wendslope);
+      interpolateSolution(uc, elem,eta, wend, wendslope);
       
       
       real slopeend[2] = {normal[0]*wendslope+tangent[0],
@@ -683,7 +953,7 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
 
       std::cout << "End slope error = " << err << std::endl;
       
-      //tmp(1) += mom; 
+      //rhs(1) += mom; 
     }
 
     RealArray ones = f,res;
@@ -695,10 +965,10 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
     
     multiplyByMassMatrix(ones, res);
     //res *= 1.0/massPerUnitLength*totalMass;
-    tmp -= res;
+    rhs -= res;
 
     multiplyByMassMatrix(u, res);
-    tmp += angularVelocityTilde*angularVelocityTilde*res;
+    rhs += angularVelocityTilde*angularVelocityTilde*res;
 
     for (int i = 0; i < numElem*2+2; i+=2) {
       ones(i) = -0.5*L+le*(i/2);
@@ -719,15 +989,30 @@ void BeamModel::computeAcceleration(const RealArray& u, const RealArray& v,
 
     //std::cout << "inertias = " << mult(evaluate(transpose(ones)),res)(0) << " " << totalInertia << std::endl;
 
-    tmp -= res*omegadd;
-  }
+    rhs -= res*omegadd;
 
-  solveBlockTridiagonal(A, tmp,a,bcLeft,bcRight,allowsFreeMotion);
+  } // end if allows free motion
+  
+
+  // Solve M a = rhs 
+  solveBlockTridiagonal(A, rhs, a, bcLeft,bcRight,allowsFreeMotion);
   
 }
 
-void BeamModel::projectDisplacement(const RealArray& X, const real& x0,
-				    const real& y0, real& x, real& y) {
+// ====================================================================================
+/// /brief Determine points on the beam surface
+  // Return the displacement of the point on the surface (not the neutral axis)
+  // of the beam of the point whose undeformed location is (x0,y0).
+  // This function is used to update the boundary of the CFD grid.
+  // X:       current beam solution vector
+  // x0:      undeformed location of the point on the surface of the beam (x)
+  // y0:      undeformed location of the point on the surface of the beam (y)
+  // x [out]: deformed location of the point on the surface of the beam (x)
+  // y [out]: deformed location of the point on the surface of the beam (y)
+// ====================================================================================
+void BeamModel::
+projectDisplacement(const RealArray& X, const real& x0, const real& y0, real& x, real& y) 
+{
 
   int elemNum;
   real eta, thickness;
@@ -740,18 +1025,19 @@ void BeamModel::projectDisplacement(const RealArray& X, const real& x0,
   real omag = 1./sqrt(slope*slope+1.0);
   real normall[2] = {-slope*omag, omag};
 
-  if (!allowsFreeMotion) {
-    real dxt = (x0-beamX0)*initialBeamTangent[0] + 
-      (y0-beamY0)*initialBeamTangent[1];
-    real dyt = (x0-beamX0)*initialBeamNormal[0] + 
-      (y0-beamY0)*initialBeamNormal[1];
+  if (!allowsFreeMotion) 
+  {
+    real dxt = (x0-beamX0)*initialBeamTangent[0] + (y0-beamY0)*initialBeamTangent[1];
+    real dyt = (x0-beamX0)*initialBeamNormal[0] +  (y0-beamY0)*initialBeamNormal[1];
 
     real xl = dxt+normall[0]*thickness;
     real yl = normall[1]*thickness+displacement;
     
     x = beamX0 + initialBeamTangent[0]*xl-initialBeamTangent[1]*yl;
     y = beamY0 - initialBeamNormal[0]*xl + initialBeamNormal[1]*yl;
-  } else {
+  }
+  else 
+  {
 
     real xbar = ((x0-beamX0)*initialBeamTangent[0]+
 		 (y0-beamY0)*initialBeamTangent[1]-L*0.5);
@@ -765,8 +1051,40 @@ void BeamModel::projectDisplacement(const RealArray& X, const real& x0,
     
 }
 
-void BeamModel::projectAcceleration(const real& x0,
-				    const real& y0, real& ax, real& ay) {
+
+
+// ==============================================================================================
+/// /brief Return the acceleration of the point on the surface (not the neutral axis)
+/// of the beam of the point whose undeformed location is (x0,y0).
+/// This function is used to enforce the pressure boundary condition for the fluid
+/// x0:       undeformed location of the point on the surface of the beam (x)
+/// y0:       undeformed location of the point on the surface of the beam (y)
+/// ax [out]: acceleration of the point on the surface of the beam (x)
+/// ay [out]: acceleration of the point on the surface of the beam (y)
+///
+// ==============================================================================================
+void BeamModel::
+projectAcceleration(const real& x0,
+		    const real& y0, real& ax, real& ay) 
+{
+
+  // A point on the beam surface is equal to the point on the neutral surface plus an offset in the normal direction
+  //       p  = x(eta) + (0,w) + nv(eta)*thickness
+
+  // The velocity of the point is 
+  //       vp = (0,w_t) + d(nv)/(dt)*thickness
+
+  // The acceleration of the point is 
+  //       ap = (0,w_tt) + d^2(nv)/(dt^2)*thickness
+
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration DOF
+  RealArray & uc = u[current];  // current displacement 
+  RealArray & vc = v[current];  // current velocity 
+  RealArray & ac = a[current];  // current acceleration
+
 
   int elemNum;
   real eta, thickness;
@@ -776,13 +1094,17 @@ void BeamModel::projectAcceleration(const real& x0,
   //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << thickness << std::endl;
   
   real displacement, slope;
-  interpolateSolution(myPosition, elemNum, eta, displacement, slope);
+  interpolateSolution(uc, elemNum, eta, displacement, slope);
 
   real Ddisplacement, Dslope;
-  interpolateSolution(myVelocity, elemNum, eta, Ddisplacement, Dslope);
+  interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);
 
   real DDdisplacement, DDslope;
-  interpolateSolution(myAcceleration, elemNum, eta, DDdisplacement, DDslope);
+  interpolateSolution(ac, elemNum, eta, DDdisplacement, DDslope);
+
+  if( debug & 2 )
+    printF(" -- BM -- projectAcceleration: x=(%g,%g) DDdisplacement=%g (beam accel)\n",x0,y0,DDdisplacement);
+  
   
   real omag = 1./sqrt(slope*slope+1.0);
   real omag3 = omag*omag*omag;
@@ -792,13 +1114,17 @@ void BeamModel::projectAcceleration(const real& x0,
   real normaldd[2] = {3.0*slope*Dslope*omag5*Dslope - omag3*DDslope,
 		      3.0*slope*Dslope*omag5*slope*Dslope-omag3*(Dslope*Dslope+slope*DDslope)};
 
-  if (!allowsFreeMotion) {
+  if (!allowsFreeMotion) 
+  {
     real axl = normaldd[0]*thickness;
     real ayl = normaldd[1]*thickness+DDdisplacement;
     
     ax = initialBeamTangent[0]*axl-initialBeamTangent[1]*ayl;
     ay = initialBeamNormal[0]*axl + initialBeamNormal[1]*ayl;
-  } else {
+  }
+  else 
+  {
+    // --- free motion ---
 
     real xbar = ((x0-beamX0)*initialBeamTangent[0]+
 		 (y0-beamY0)*initialBeamTangent[1]-L*0.5);
@@ -824,15 +1150,104 @@ void BeamModel::projectAcceleration(const real& x0,
  
     //std::cout << "x0 = " << x0 << " y0 = " << y0 << " ax = " << ax << " ay = " << ay << std::endl;
   }
+
+  // if( true && initialConditionOption=="travelingWaveFSI" )
+  // {
+  //   // -- for testing set acceleration to the true value
+  //   RealArray x(1,1,1,2), ue(1,1,1,2), ve(1,1,1,2);
+  //   x(0,0,0,0)=x0;
+  //   x(0,0,0,1)=0.;
+  //   travelingWaveFsi.getExactShellSolution( x,ue,ve,t, I1,I2,I3 );
+
+  // }
+  
+
+
   /*
-  if (fabs(ax) >= 1e-12) {
+    if (fabs(ax) >= 1e-12) {
     std::cout << "ax = " << ax << " ay = " << ay << std::endl;
     std::cout << centerOfMassAcceleration[0] << " " << centerOfMassAcceleration[1] << std::endl;
     std::cout << angularAcceleration << " " << displacement << " " << Ddisplacement << " " << DDdisplacement << std::endl;
     }*/
 }
 
-void BeamModel::setDeclination(real dec) {
+// ==============================================================================================
+/// /brief Return the velocity of the point on the surface (not the neutral axis)
+/// of the beam of the point whose undeformed location is (x0,y0).
+/// x0:       undeformed location of the point on the surface of the beam (x)
+/// y0:       undeformed location of the point on the surface of the beam (y)
+/// vx [out]: velocity of the point on the surface of the beam (x)
+/// vy [out]: velocity of the point on the surface of the beam (y)
+///
+/// /author WDH
+// ==============================================================================================
+void BeamModel::
+projectVelocity( const real& x0, const real& y0, real& vx, real& vy ) 
+{
+
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+  RealArray & uc = u[current];  // current displacement DOF
+  RealArray & vc = v[current];  // current velocity DOF
+
+  int elemNum;
+  real eta, thickness;
+  
+  projectPoint(x0,y0, elemNum, eta,thickness);
+
+  //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << thickness << std::endl;
+  
+  real displacement, slope;
+  interpolateSolution(uc, elemNum, eta, displacement, slope);
+
+  real Ddisplacement, Dslope;
+  interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);
+
+  if( debug & 2 )
+    printF(" -- BM -- projectVelocity: x=(%g,%g) Ddisplacement=%g (beam velocity)\n",x0,y0,Ddisplacement);
+  
+  
+  // A point on the beam surface is equal to the point on the neutral surface plus an offset in the normal direction
+  //       p  = x(eta) + (0,w) + nv(eta)*thickness
+
+  // The velocity of the point is 
+  //       vp = (0,w_t) + d(nv)/(dt)*thickness
+
+  real omag = 1./sqrt(slope*slope+1.0);
+  real omag3 = omag*omag*omag;
+  // real omag5 = omag*omag*omag3;
+  // real normall[2] = {-slope*omag, omag};
+  real normald[2] = {-Dslope*omag3,-slope*Dslope*omag3};
+
+  if( !allowsFreeMotion ) 
+  {
+    real vxl =                 normald[0]*thickness;
+    real vyl = Ddisplacement + normald[1]*thickness;   // v = w_t + (ny)_t * thick
+    
+    vx = initialBeamTangent[0]*vxl - initialBeamTangent[1]*vyl;
+    vy = initialBeamNormal[0] *vxl + initialBeamNormal[1] *vyl;
+  }
+  else 
+  {
+    // --- free motion ---
+
+    OV_ABORT("finish me");
+    
+  }
+
+}
+
+
+
+// ==============================================================================
+/// \brief Set the initial angle of the beam, from the x axis
+/// dec: angle in radians
+//
+// ==============================================================================
+void BeamModel::
+setDeclination(real dec) 
+{
 
   beamInitialAngle = dec;
 
@@ -963,6 +1378,7 @@ interpolateThirdDerivative(const RealArray& X,
 // Accumulate a pressure force to the beam from the fluid element whose 
 // undeformed location is X1 = (x0_1, y0_1), X2 = (x0_2, y0_2).
 // The pressure is p(X1) = p1, p(X2) = p2
+/// \param tf : add force at this time 
 // x0_1: undeformed location of the point on the surface of the beam (x1)  
 // y0_1: undeformed location of the point on the surface of the beam (y1)
 // p1:   pressure at the point (x1,y1)
@@ -975,11 +1391,22 @@ interpolateThirdDerivative(const RealArray& X,
 // ny_2: normal at x2 (y) [unused]
 //
 // ======================================================================================
-void BeamModel::addForce(const real& x0_1, const real& y0_1,
-			 real p1,const real& nx_1,const real& ny_1,
-			 const real& x0_2, const real& y0_2,
-			 real p2,const real& nx_2,const real& ny_2)
+void BeamModel::
+addForce( const real & tf,
+	  const real& x0_1, const real& y0_1,
+	  real p1,const real& nx_1,const real& ny_1,
+	  const real& x0_2, const real& y0_2,
+	  real p2,const real& nx_2,const real& ny_2)
 {
+
+  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  const int & current = dbase.get<int>("current"); 
+
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  RealArray & fc = f[current];  // force at current time
+  assert( fabs(time(current)-tf) < 1.e-10*tf );
 
   int elem1,elem2;
   real eta1,eta2,t1,t2;
@@ -1036,7 +1463,9 @@ void BeamModel::addForce(const real& x0_1, const real& y0_1,
   real dx = fabs(myx0-myx1);
 
   
-  for (int i = elem1; i <= elem2; ++i) {
+  RealArray lt(4);
+  for (int i = elem1; i <= elem2; ++i) 
+  {
 
     real a = eta1,b = eta2;
     real pa = p11, pb = p22;
@@ -1053,7 +1482,6 @@ void BeamModel::addForce(const real& x0_1, const real& y0_1,
     }
     
     Index idx(i*2,4);
-    RealArray lt;
     if (t1 > 0) 
     { // *wdh* Turn this back on 2014/05/23
       pa = -pa;
@@ -1065,11 +1493,12 @@ void BeamModel::addForce(const real& x0_1, const real& y0_1,
     //  p1 << " " << p2 << std::endl;
   
 
-    lt.redim(4);
-    if (fabs(b-a) > 1.0e-10) {
+    if (fabs(b-a) > 1.0e-10)
+    {
+      // -- compute (N,p)_[a,b] = int_a^b N(xi) p(xi) J dxi 
       computeProjectedForce(pa,pb, a,b, lt);
-    //    std::cout << "a = " << a << " b = " << b << std::endl;
-      myForce(idx) += lt;
+      //    std::cout << "a = " << a << " b = " << b << std::endl;
+      fc(idx) += lt;
 
       real gradp = 1.0;
       totalPressureForce += (lt(0)+lt(2));
@@ -1080,24 +1509,20 @@ void BeamModel::addForce(const real& x0_1, const real& y0_1,
   }
 }
 
-void BeamModel::resetForce() {
+void BeamModel::resetForce()
+{
 
-  myForce = 0.0;
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+  RealArray & fc = f[current];
+
+
+  fc=0.;
 
   totalPressureForce = 0.0;
   totalPressureMoment = 0.0;
 }
 
-  /*
-  myForce = 0.0;
-  for (int i = 0; i < numElem; ++i) {
-    Index idx(i*2,4);
-    RealArray lt;
-    lt.redim(4);
-    computeProjectedForce(-2.0*0.02*1000.0,-2.0*0.02*1000.0,-1.0,1.0, lt);
-    myForce(idx) += lt;
-  }
-  */
 
 void BeamModel::recomputeNormalAndTangent() {
 
@@ -1112,18 +1537,131 @@ void BeamModel::recomputeNormalAndTangent() {
 //
 const RealArray& BeamModel::force() const
 {
-  return myForce;
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  return f[current];  // force at current time
+}
+
+
+//  =========================================================================================
+/// \brief Assign boundary conditions
+/// 
+//  =========================================================================================
+int BeamModel::
+assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
+{
+
+  if( bcLeft == Cantilevered && !allowsFreeMotion ) 
+  {
+    // Set u=0, u_x=0 
+    u(0) = u(1) = 0.0;
+    v(0) = v(1) = 0.0;
+    a(0) = a(1) = 0.0;
+  }
+  
+  if( bcRight == Cantilevered && !allowsFreeMotion ) 
+  {
+    // Set u=0, u_x=0 
+    u(numElem*2) = u(numElem*2+1) = 0.0;
+    v(numElem*2) = v(numElem*2+1) = 0.0;
+    a(numElem*2) = a(numElem*2+1) = 0.0;
+  }
+
+  if( bcLeft == Pinned && !allowsFreeMotion )
+  {
+    // Set u=0
+    u(0) = 0.0;
+    v(0) = 0.0;
+    a(0) = 0.0;
+  }
+
+  if( bcRight == Pinned && !allowsFreeMotion )
+  {
+    // Set u=0
+    u(numElem*2) = 0.0;
+    v(numElem*2) = 0.0;
+    a(numElem*2) = 0.0;
+  }
+
+  const bool & twilightZone = dbase.get<bool>("twilightZone");
+  if( twilightZone && !allowsFreeMotion )
+  {
+    OGFunction & exact = *dbase.get<OGFunction*>("exactPointer");
+    const real y=0, z=0;
+    const int wc=0;
+    for( int side=0; side<=1; side++ )
+    {
+      BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+      int ia = side==0 ? 0 : numElem*2;
+      real x = side==0 ? 0 : L;
+      if( bc==Pinned || bc == Cantilevered ) 
+      {
+	u(ia  ) = exact(x,y,z,wc,t);
+	v(ia  ) = exact.t(x,y,z,wc,t);            // w.t 
+	a(ia  ) = exact.gd(2,0,0,0, x,y,z,wc,t);  // w.tt
+      }
+      if( bc == Cantilevered ) 
+      {
+	u(ia+1) = exact.x(x,y,z,wc,t);
+	v(ia+1) = exact.gd(1,1,0,0, x,y,z,wc,t);  // w.tx
+	a(ia+1) = exact.gd(2,1,0,0, x,y,z,wc,t);  // w.ttx
+      }
+
+    }
+  }
+  
+  return 0;
 }
 
 
 
+// =========================================================================================
+/// \brief Predict the structural state at t^{n+1} = tn + dt, using the Newmark beta predictor.
+/// The predictor is only first order accurate.
+/// tnp1:  new time
+/// dt:  current time step
+/// x1:  solution state (position) at t^{n-1} [unused]
+/// v1:  solution state (velocity) at t^{n-1} [unused]
+/// x2:  solution state (position) at t^n
+/// v2:  solution state (velocity) at t^n
+/// x3:  solution state (position) at t^{n+1} [out]
+/// v3:  solution state (velocity) at t^{n+1} [out]
+///
+// =========================================================================================
+void BeamModel::
+predictor(real tnp1, real dt )
+{
 
-void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1, 
-			  const RealArray& x2, const RealArray& v2,
-			  RealArray& x3, RealArray& v3) {
+  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  int & current = dbase.get<int>("current"); 
 
-  t += dt;
-  //myForce = 0.0;
+  // -- set current to point to the new time level t^{n+1}
+  const int prev = current; //  prev points to solutions at t^n
+  current = ( current + 1 ) % numberOfTimeLevels;
+  const int prev2 = ( prev -1 + numberOfTimeLevels) % numberOfTimeLevels; // points to solution at t^{n-1} 
+
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  RealArray & x2 = u[prev];
+  RealArray & v2 = v[prev];
+  RealArray & a2 = a[prev];
+  RealArray & f2 = f[prev];
+  
+  RealArray & x3 = u[current];
+  RealArray & v3 = v[current];
+  RealArray & a3 = a[current];
+  RealArray & f3 = f[current];
+  
+  t += dt;  // new time 
+  time(current)=t;
+
+  assert( fabs(time(current)-tnp1) < dt*1.e-6 );
+
 
   if( false && t<2.*dt )
   { 
@@ -1131,30 +1669,27 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
     printF("************** BeamModel::predictor: t=%9.3e ***********************\n",t);
     ::display(x2,"x2","%8.2e ");
     ::display(v2,"v2","%8.2e ");
-    
   }
-  
 
-
-  for (int i = 0; i < numElem; ++i) {
+  RealArray lt(4);
+  for (int i = 0; i < numElem; ++i) 
+  {
     Index idx(i*2,4);
-    RealArray lt;
-    lt.redim(4);
+    // -- compute (N_i, . )
     computeProjectedForce(projectedBodyForce*buoyantMassPerUnitLength,projectedBodyForce*buoyantMassPerUnitLength,
 			  -1.0,1.0, lt);
-    myForce(idx) += lt;
+    f2(idx) += lt;
   }
 
   if( debug & 4 )
   {
-    ::display(myForce(Range(0,2*numElem,2)),"BeamModel::predictor: force (displacement)","%8.2e ");
+    ::display(f2(Range(0,2*numElem,2)),"BeamModel::predictor: force (displacement)","%8.2e ");
   }
   
 
-  //printArray(myForce,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
- 
-  if (!hasAcceleration) {
-    computeAcceleration(x2,v2,myForce, elementM, myAcceleration,
+  if( !hasAcceleration ) 
+  {
+    computeAcceleration(x2,v2,f2, elementM, a2,
 			centerOfMassAcceleration, angularAcceleration,
 			dt);
     hasAcceleration = true;
@@ -1162,10 +1697,23 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
 
   RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
 
-  dtilde = x2+dt*v2+dt*dt*0.5*(1.0-2.0*newmarkBeta)*myAcceleration;
-  vtilde = v2+dt*(1.0-newmarkGamma)*myAcceleration;
+  if( debug & 1 )
+  {
+    int nn=numElem+1;
+    v2.reshape(2,nn); x2.reshape(2,nn); a2.reshape(2,nn); f2.reshape(2,nn);
+    ::display(f2,"-- BM -- predictor: f2","%8.2e ");
+    ::display(x2,"-- BM -- predictor: u2","%8.2e ");
+    ::display(v2,"-- BM -- predictor: v2","%8.2e ");
+    ::display(a2,"-- BM -- predictor: a2","%8.2e ");
+    v2.reshape(2*nn); x2.reshape(2*nn); a2.reshape(2*nn); f2.reshape(2*nn);
+  }
+  
+  // -- here are the predicted u and v: 
+  dtilde = x2+dt*v2+dt*dt*0.5*(1.0-2.0*newmarkBeta)*a2;
+  vtilde = v2+dt*(1.0-newmarkGamma)*a2;
 
-  if (allowsFreeMotion) {
+  if (allowsFreeMotion) 
+  {
     
     comXtilde[0] = centerOfMass[0] + dt*centerOfMassVelocity[0] +
       dt*dt*0.5*(1.0-2.0*newmarkBeta)*centerOfMassAcceleration[0];
@@ -1192,12 +1740,13 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
     std::cout << "Angle = " << angle << " ang. velocity = " << angularVelocity << 
       " angularAcceleration = " << angularAcceleration << std::endl;
 
-    if (bcLeft == Pinned || bcLeft == Cantilevered) {
+    if (bcLeft == Pinned || bcLeft == Cantilevered) 
+    {
 
       real wend,wendslope;
       int elem = 0;
       real eta = -1.0;
-      interpolateSolution(myPosition, elem,eta, wend, wendslope);
+      interpolateSolution(x2, elem,eta, wend, wendslope);
       
       
       real end[2] = {centerOfMass[0] + normal[0]*wend - tangent[0]*L*0.5,
@@ -1207,96 +1756,34 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
     }
   }
 
-  aold = 0.0;
-
+  // *wdh* aold = 0.0;
+  aold = a2;   // set aold to previous acceleration *wdh* 2014/06/19 
+  
   memset(old_rb_acceleration,0,sizeof(old_rb_acceleration));
 
   //printArray(x2,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 
-  //setExactSolution(t, dtilde, vtilde, myAcceleration);
-
-  //x3 = x2+dt*v2+dt*dt*0.5*(1.0-2.0*newmarkBeta)*myAcceleration;
-  //v3 = v2+(1.0-newmarkGamma)*dt*myAcceleration;
-  //x3 = x2+dt*v2+dt*dt*0.5*myAcceleration;
-
-  //v3 = v2+dt*myAcceleration;
-  /*
-  computeAcceleration(dtilde,v3,myForce, A, myAcceleration, dt);
-  v3 = vtilde+newmarkGamma*dt*myAcceleration;
-  x3 = dtilde+newmarkBeta*dt*dt*myAcceleration;
-  
-  if (bcLeft == Cantilevered) {
-    x3(0) = x3(1) = 0.0;
-    v3(0) = v3(1) = 0.0;
-  }
-
-  if (bcRight == Cantilevered) {
-    x3(numElem*2) = x3(numElem*2+1) = 0.0;
-    v3(numElem*2) = v3(numElem*2+1) = 0.0;
-  }
-
-  if (bcLeft == Pinned) {
-    x3(0) = 0.0;
-    v3(0) =  0.0;
-  }
-
-  if (bcRight == Pinned) {
-    x3(numElem*2) = 0.0;
-    v3(numElem*2) = 0.0;
-  }
-  
-  //output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << std::endl;
-    
-  std::cout << "Tip displacement: " << x3(numElem*2) << std::endl;
-  std::cout << "Tip acceleration: " << myAcceleration(numElem*2) << std::endl;
-
-  myPosition = x3;
-  myVelocity = v3;
-
-  myPosition_nm1 = x2;
-  myVelocity_nm1 = v2;*/
 
   v3 = vtilde;
   x3 = dtilde;
+  a3 = a2;     // predicted acceleration
+  assignBoundaryConditions( tnp1, x3,v3,a3 );
   
-  if (bcLeft == Cantilevered && !allowsFreeMotion) {
-    x3(0) = x3(1) = 0.0;
-    v3(0) = v3(1) = 0.0;
-  }
-
-  if (bcRight == Cantilevered && !allowsFreeMotion) {
-    x3(numElem*2) = x3(numElem*2+1) = 0.0;
-    v3(numElem*2) = v3(numElem*2+1) = 0.0;
-  }
-
-  if (bcLeft == Pinned && !allowsFreeMotion) {
-    x3(0) = 0.0;
-    v3(0) =  0.0;
-  }
-
-  if (bcRight == Pinned && !allowsFreeMotion) {
-    x3(numElem*2) = 0.0;
-    v3(numElem*2) = 0.0;
-  }
-  
-  //myAcceleration = 0.0;
-
-  //x3 = 0.0;
-  //v3 = 0.0;
-
+ 
   if( dbase.get<bool>("saveTipFile") )
   {
-    output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  myAcceleration(numElem*2) << std::endl;
+    output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  a3(numElem*2) << std::endl;
   }
   
-  RealArray xtmp = x3;
-  RealArray vtmp = v3;
-  RealArray atmp = myAcceleration;
 
   const bool & saveProfileFile = dbase.get<bool>("saveProfileFile");
 
   if( useExactSolution && saveProfileFile ) 
   {
+    RealArray xtmp = x3;
+    RealArray vtmp = v3;
+    RealArray atmp = a2;
+
     setExactSolution(t,xtmp,vtmp,atmp);
 
     std::stringstream profname;
@@ -1315,7 +1802,7 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
       beam_profile << x << " " << displacement <<  " ";
       interpolateSolution(v3, elemNum, eta, displacement, slope);
       beam_profile << displacement <<  " ";
-      interpolateSolution(myAcceleration, elemNum, eta, displacement, slope);
+      interpolateSolution(a3, elemNum, eta, displacement, slope);
       beam_profile << displacement <<  " ";
       
       //if (useExactSolution) {
@@ -1336,57 +1823,59 @@ void BeamModel::predictor(real dt, const RealArray& x1, const RealArray& v1,
     std::cout << "Wrote location for time " << t << " to " << profname.str() << std::endl;
 
   }
+
   time_step_num++;
-    /*
-    
-  }
-
-  /*
-  std::cout << "End angle displacement: " << x3(1) << std::endl;
-  std::cout << "End angle velocity: " << v3(1) << std::endl;
-  std::cout << "End angle acceleration: " << myAcceleration(1) << std::endl;
-
-  std::cout << "Tip angle displacement: " << x3(numElem*2+1) << std::endl;
-  std::cout << "Tip angle velocity: " << v3(numElem*2+1) << std::endl;
-  std::cout << "Tip angle acceleration: " << myAcceleration(numElem*2+1) << std::endl;
-
-  std::cout << "End displacement: " << x3(0) << std::endl;
-  std::cout << "End acceleration: " << myAcceleration(0) << std::endl;
-
-  std::cout << "Tip displacement: " << x3(numElem*2) << std::endl;
-  std::cout << "Tip acceleration: " << myAcceleration(numElem*2) << std::endl;
-  */
-  myPosition_nm1 = x2;
-  myVelocity_nm1 = v2;
-
-  myPosition = x3;
-  myVelocity = v3;
 
   numCorrectorIterations = 0;
+
 }
 
-void BeamModel::corrector(real dt,
-			  RealArray& x3, RealArray& v3) {
+// ===================================================================================
+/// \brief Apply the corrector at t^{n+1}
+// tnp1: new time t^{n+1} 
+// dt:  current time step
+// x3:  solution state (position) at t^{n+1} [out]
+// v3:  solution state (velocity) at t^{n+1} [out]
+//
+// ===================================================================================
+void BeamModel::
+corrector(real tnp1, real dt )
+{
   
+  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  const int & current = dbase.get<int>("current"); 
+
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  RealArray & x3 = u[current];
+  RealArray & v3 = v[current];
+  RealArray & a3 = a[current];
+
+  RealArray & f3 = f[current];  // force at new time
+
+
+  assert( fabs(time(current)-tnp1) < dt*1.e-6 );
+
+
   RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
     
-  //myForce = 0.0;
-    for (int i = 0; i < numElem; ++i) {
+  RealArray lt(4);
+  for (int i = 0; i < numElem; ++i) 
+  {
     Index idx(i*2,4);
-    RealArray lt;
-    lt.redim(4);
     computeProjectedForce(projectedBodyForce*buoyantMassPerUnitLength,projectedBodyForce*buoyantMassPerUnitLength,
 			  -1.0,1.0, lt);
     //printArray(lt,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
-    myForce(idx) += lt;
-    }
+    f3(idx) += lt;
+  }
   
-  //myForce = 0.0;
-
-  if (time_step_num == 1) {
+  if (time_step_num == 1)  // *wdh* -- what is this ?
+  {
     correctionHasConverged = true;
-    x3 = myPosition;
-    v3 = myVelocity;
     centerOfMassAcceleration[0] = buoyantMass / totalMass * bodyForce[0];
     centerOfMassAcceleration[1] = buoyantMass / totalMass * bodyForce[1];
 
@@ -1398,21 +1887,17 @@ void BeamModel::corrector(real dt,
 
   real omega = addedMassRelaxationFactor;
 
-  flocal = myForce;
-
-  //if (t == 0.0)
-  //  flocal = 0.0;
   real linaccel[2],omegadd;
-  computeAcceleration(dtilde,v3,flocal, A, myAcceleration,
-		      linaccel,omegadd,dt, newmarkBeta, newmarkGamma);
+  computeAcceleration(dtilde,v3,f3, A, a3,  linaccel,omegadd,dt, newmarkBeta, newmarkGamma);
 
   //v3 = vtilde+newmarkGamma*dt*(myAcceleration-aold)*omega;
   //x3 = dtilde+newmarkBeta*dt*dt*(myAcceleration-aold)*omega;
 
-  v3 = vtilde+newmarkGamma*dt*myAcceleration;
-  x3 = dtilde+newmarkBeta*dt*dt*myAcceleration;
+  v3 = vtilde+newmarkGamma*dt*a3;
+  x3 = dtilde+newmarkBeta*dt*dt*a3;
 
-  if (allowsFreeMotion) {
+  if( allowsFreeMotion ) 
+  {
 
     centerOfMassAcceleration[0] = linaccel[0];
     centerOfMassAcceleration[1] = linaccel[1];
@@ -1433,18 +1918,19 @@ void BeamModel::corrector(real dt,
 
   //printArray(x3,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 
-  tmp = evaluate(myAcceleration-aold);
 
   correctionHasConverged = false;
+
+  RealArray tmp;
+  tmp = a3-aold;
   double correction = 0.0;
-  for (int i = 0; i < numElem; ++i) {
-    
-    correction += tmp(i*2)*tmp(i*2)/(le*le)+
-      tmp(i*2+1)*tmp(i*2+1);
+  for (int i = 0; i < numElem; ++i) 
+  {
+    correction += tmp(i*2)*tmp(i*2)/(le*le)+ tmp(i*2+1)*tmp(i*2+1);  // norm of | a3 - aold |   *wdh: should we scale by dx ?  
   }
   
-  if (allowsFreeMotion) {
-
+  if (allowsFreeMotion) 
+  {
     real tmpp[3];
     tmpp[0] = old_rb_acceleration[0]-centerOfMassAcceleration[0];
     tmpp[1] = old_rb_acceleration[1]-centerOfMassAcceleration[1];
@@ -1455,22 +1941,17 @@ void BeamModel::corrector(real dt,
       correction += tmpp[k]*tmpp[k];
   }
 
-  myAcceleration = omega*myAcceleration+(1.0-omega)*aold;
-  /*
-  myAcceleration = 0.0;
-  x3 = 0.0;
-  v3 = 0.0;
-  */
-  if (allowsFreeMotion) {
-    
-    centerOfMassAcceleration[0] = omega*centerOfMassAcceleration[0]+
-      (1.0-omega)*old_rb_acceleration[0];
-    
-    centerOfMassAcceleration[1] = omega*centerOfMassAcceleration[1]+
-      (1.0-omega)*old_rb_acceleration[1];
+  // under-relax the acceleration 
+  a3 = omega*a3+(1.0-omega)*aold;    
 
-    angularAcceleration = omega*angularAcceleration + 
-      (1.0-omega)*old_rb_acceleration[2];
+  if( allowsFreeMotion ) 
+  {
+    // -- under-relax the rigid body motion --
+    centerOfMassAcceleration[0] = omega*centerOfMassAcceleration[0]+(1.0-omega)*old_rb_acceleration[0];
+    
+    centerOfMassAcceleration[1] = omega*centerOfMassAcceleration[1]+(1.0-omega)*old_rb_acceleration[1];
+
+    angularAcceleration = omega*angularAcceleration + (1.0-omega)*old_rb_acceleration[2];
     
     old_rb_acceleration[0] = centerOfMassAcceleration[0];
     old_rb_acceleration[1] = centerOfMassAcceleration[1];
@@ -1479,7 +1960,7 @@ void BeamModel::corrector(real dt,
     
   
 
-  aold = myAcceleration;
+  aold = a3; // aold holds current value of acceleration
   
   correction = sqrt(correction);
 
@@ -1492,40 +1973,33 @@ void BeamModel::corrector(real dt,
   if (correction < initialResidual*subIterationConvergenceTolerance || correction < 1e-8)
     correctionHasConverged = true;
 
-  //setExactSolution(t, x3, v3, myAcceleration);
-
-  if (bcLeft == Cantilevered && !allowsFreeMotion) {
-    x3(0) = x3(1) = 0.0;
-    v3(0) = v3(1) = 0.0;
-  }
+  assignBoundaryConditions( t,x3,v3,a3 );
   
-  if (bcRight == Cantilevered && !allowsFreeMotion) {
-    x3(numElem*2) = x3(numElem*2+1) = 0.0;
-    v3(numElem*2) = v3(numElem*2+1) = 0.0;
-  }
-
-  if (bcLeft == Pinned && !allowsFreeMotion) {
-    x3(0) = 0.0;
-    v3(0) =  0.0;
-  }
-
-  if (bcRight == Pinned && !allowsFreeMotion) {
-    x3(numElem*2) = 0.0;
-    v3(numElem*2) = 0.0;
-  }
-  
-  myPosition = x3;
-  myVelocity = v3;
 }
 
-const RealArray& BeamModel::position() const  {
+// ====================================================================================
+/// \brief Return current position DOF's
+// ====================================================================================
+const RealArray& BeamModel::
+position() const  
+{
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
 
-  return myPosition;
+  return u[current];
 }
 
-const RealArray& BeamModel::velocity() const  {
+// ====================================================================================
+/// \brief Return current velocity DOF's
+// ====================================================================================
+const RealArray& BeamModel::
+velocity() const  
+{
 
-  return myVelocity;
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+
+  return v[current];
 }
 
 bool BeamModel::hasCorrectionConverged() const {
@@ -1534,190 +2008,19 @@ bool BeamModel::hasCorrectionConverged() const {
   return correctionHasConverged;
 }
 
-// Include complex down here to minimize name conflicts
-#include <complex>
-
-typedef ::real LocalReal;
-typedef ::real OV_real;
-
-static std::complex<LocalReal> phi1(std::complex<LocalReal> alpha, LocalReal k,
-				    LocalReal y) {
-
-  return 0.5*(cosh(alpha*y)-cosh(k*y));
-}
-
-static std::complex<LocalReal> phi2(std::complex<LocalReal> alpha, LocalReal k,
-				    LocalReal y) {
-
-  return 0.5*(k*sinh(alpha*y)-alpha*sinh(k*y));
-}
-
-static std::complex<LocalReal> phi1d(std::complex<LocalReal> alpha, LocalReal k,
-				    LocalReal y) {
-
-  return 0.5*(alpha*sinh(alpha*y)-k*sinh(k*y));
-}
-
-static std::complex<LocalReal> phi2d(std::complex<LocalReal> alpha, LocalReal k,
-				    LocalReal y) {
-
-  return 0.5*k*alpha*(cosh(alpha*y)-cosh(k*y));
-}
 
 
-
-void BeamModel::exactSolutionVelocity(LocalReal x, LocalReal y,
-				      LocalReal t,
-				      LocalReal k, LocalReal H, 
-				      LocalReal omega_real, LocalReal omega_imag,
-				      LocalReal omega0, LocalReal nu,
-				      LocalReal what,   // not needed
-				      LocalReal& u, LocalReal& v) {
-  
-  what=exactSolutionScaleFactorFSI;  // wdh 
-  //  printF("@@@BeamModel::exactSolutionVelocity what=%9.3e\n",what);
-
-  std::complex<LocalReal> omega_tilde(omega_real, omega_imag);
-  LocalReal beta = omega0/(k*k)/nu;
-  std::complex<LocalReal> I(0.0,1.0);
-  std::complex<LocalReal> alpha = k*sqrt(-I*beta*omega_tilde+1.0);
-
-  std::complex<LocalReal> a = phi2d(alpha,k,H),b = phi1d(alpha,k,H);
-  std::complex<LocalReal> vhat = -what*I*omega_tilde*omega0*
-    (-a*phi1(alpha,k,y)+b*phi2(alpha,k,y))/
-    (-a*phi1(alpha,k,H)+b*phi2(alpha,k,H));
-
-  std::complex<LocalReal> uhat = what*omega_tilde*omega0/k*
-    (-a*phi1d(alpha,k,y)+b*phi2d(alpha,k,y))/
-    (-a*phi1(alpha,k,H)+b*phi2(alpha,k,H));
-
-  std::complex<LocalReal> U = uhat*(exp(I*k*x-I*omega_tilde*omega0*t)+exp(-I*k*x-I*omega_tilde*omega0*t));
-  std::complex<LocalReal> V = vhat*(exp(I*k*x-I*omega_tilde*omega0*t)-exp(-I*k*x-I*omega_tilde*omega0*t));
-
-  //std::cout << y << " " << V << std::endl;
-
-  u = 2.0*U.real();
-  v = 2.0*V.real();
-
-  
-}
-
-
-void BeamModel::exactSolutionPressure(LocalReal x, LocalReal y,
-				      LocalReal t,
-				      LocalReal k, LocalReal H, 
-				      LocalReal omega_real, LocalReal omega_imag,
-				      LocalReal omega0, LocalReal nu,
-				      LocalReal what, // not needed
-				      LocalReal& p) {
-  
-  what=exactSolutionScaleFactorFSI;  // wdh 
-
-  std::complex<LocalReal> omega_tilde(omega_real, omega_imag);
-  LocalReal beta = omega0/(k*k)/nu;
-  std::complex<LocalReal> I(0.0,1.0);
-  std::complex<LocalReal> alpha = k*sqrt(-I*beta*omega_tilde+1.0);
-
-  std::complex<LocalReal> a = phi2d(alpha,k,H),b = phi1d(alpha,k,H);
-  std::complex<LocalReal> phat = what*omega_tilde*omega0*omega_tilde*omega0*1.0/(2.0*k)*
-    (a*sinh(k*y)-alpha*b*cosh(k*y))/
-    (-a*phi1(alpha,k,H)+b*phi2(alpha,k,H));
-
-  std::complex<LocalReal> P = phat*(exp(I*k*x-I*omega_tilde*omega0*t)-exp(-I*k*x-I*omega_tilde*omega0*t));
-
-  //if (y == H)
-  // std::cout <<x << " " <<2.0*P.real() << " " <<  getExactPressure(t, x);
-
-  p = 2.0*P.real();
-  
-}
-
-void BeamModel::setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a) {
-  
-  // printF("@@@BeamModel::setExactSolution exactSolutionScaleFactorFSI=%9.3e\n", dbase.get<OV_real>("exactSolutionScaleFactorFSI"));
-
-  double h=0.02;
-  double Ioverb=6.6667e-7;
-  double H=0.3;
-  double k=2.0*3.141592653589/L;
-  double omega0=sqrt(elasticModulus*Ioverb*k*k*k*k/(density*h));
-   
-  // -- wHat determines the "amplitude" of the surface, scaled by some factor ...wdh
-  double what = exactSolutionScaleFactorFSI; // 0.00001;
-  double omegar = 0.8907148069, omegai = -0.9135887123e-2;
-  std::complex<LocalReal> omega_tilde(omegar, omegai);
-  std::complex<LocalReal> I(0.0,1.0);
-
-  for (int i = 0; i <= numElem; ++i) {
-
-    double xl = (double)i / numElem*L;
-    
-    std::complex<LocalReal> f = exp(I*k*xl-I*omega_tilde*omega0*t)-exp(-I*k*xl-I*omega_tilde*omega0*t);
-    std::complex<LocalReal> fp = I*k*(exp(I*k*xl-I*omega_tilde*omega0*t)+exp(-I*k*xl-I*omega_tilde*omega0*t));
-    
-
-    
-    x(i*2) = 2.0*(what*f).real();      // displacement w ...wdh
-    x(i*2+1) = 2.0*(what*fp).real();   // slope w'  ...wdh
-    
-    v(i*2) = 2.0*(-what*f*I*omega_tilde*omega0).real();
-    v(i*2+1) = 2.0*(-what*fp*I*omega_tilde*omega0).real();
-    
-    a(i*2) = 2.0*(-what*f*omega_tilde*omega0*omega_tilde*omega0).real();
-    a(i*2+1) = 2.0*(-what*fp*omega_tilde*omega0*omega_tilde*omega0).real();
-  }
-}
-
-double BeamModel::getExactPressure(double t, double xl) {
-
-  printF("@@@BeamModel::getExactPressure exactSolutionScaleFactorFSI=%9.3e\n", dbase.get<OV_real>("exactSolutionScaleFactorFSI"));
-
-  double h=0.02;
-  double Ioverb=6.6667e-7;
-  double nu = 0.001;
-  double H=0.3;
-  std::complex<LocalReal> I(0.0,1.0);
-  double omegar = 0.8907148069, omegai = -0.9135887123e-2;
-  std::complex<LocalReal> omega_tilde(omegar, omegai);
-  double k=2.0*3.141592653589/L;
-  double omega0=sqrt(elasticModulus*Ioverb*k*k*k*k/(density*h));
-   
-  LocalReal beta = omega0/(k*k)/nu;
-  std::complex<LocalReal> alpha = k*sqrt(-I*beta*omega_tilde+1.0);
-
-  double what = exactSolutionScaleFactorFSI; // 0.00001;
-  std::complex<LocalReal> omega = omega_tilde*omega0;
-  
-  
-  std::complex<LocalReal> f = exp(I*k*xl-I*omega_tilde*omega0*t)-exp(-I*k*xl-I*omega_tilde*omega0*t);
-
-  std::complex<LocalReal> a = phi2d(alpha,k,H),b = phi1d(alpha,k,H);
-  std::complex<LocalReal> A = -1.0*what*omega*omega*alpha*0.5/k;
-  std::complex<LocalReal> c = a/b;
-  A /= (-c*phi1(alpha,k,H)+phi2(alpha,k,H));
-  std::complex<LocalReal> phat = A*(cosh(k*H)-c/alpha*sinh(k*H));
-
-  std::cout << xl << " " << 2.0*(f*phat).real() << std::endl;
-
-  LocalReal result = 2.0*(f*phat).real();
-
-  std::complex<LocalReal> r1 = (elasticModulus*Ioverb*k*k*k*k-density*h*omega*omega)*what, r2 = phat*1000.0 ;
-  std::cout << r1 << " " << r2 << std::endl;
-
-  return result;
-
-}
 
 
 void BeamModel::setAddedMassRelaxation(double omega) 
 {
 
-  dbase.get<OV_real>("addedMassRelaxationFactor") = omega;
+  dbase.get<real>("addedMassRelaxationFactor") = omega;
 }
 
 void BeamModel::setSubIterationConvergenceTolerance(double tol) 
 {
-  dbase.get<OV_real>("subIterationConvergenceTolerance") = tol;
+  dbase.get<real>("subIterationConvergenceTolerance") = tol;
 }
 
 
@@ -1729,39 +2032,14 @@ int BeamModel::
 update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 {
 
-  // *********** FINISH ME ****************
+  real & tension = dbase.get<real>("tension");
 
-  // DeformingBodyType & deformingBodyType = 
-  //                 deformingBodyDataBase.get<DeformingBodyType>("deformingBodyType");
+  bool & twilightZone = dbase.get<bool>("twilightZone");
+  int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
+  int & degreeInTime = dbase.get<int>("degreeInTime");
+  int & degreeInSpace = dbase.get<int>("degreeInSpace");
+  real *trigFreq = dbase.get<real[4]>("trigFreq");
 
-  // if( !deformingBodyDataBase.has_key("userDefinedDeformingBodyMotionOption") )
-  //   deformingBodyDataBase.put<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption",iceDeform);
-  // UserDefinedDeformingBodyMotionEnum & userDefinedDeformingBodyMotionOption = 
-  //                deformingBodyDataBase.get<UserDefinedDeformingBodyMotionEnum>("userDefinedDeformingBodyMotionOption");
-  
-
-  // // --- here are the parameters used by the surface smoother ---
-  // if( !deformingBodyDataBase.has_key("smoothSurface") )
-  // {
-  //   deformingBodyDataBase.put<bool>("smoothSurface",false);
-  //   deformingBodyDataBase.put<int>("numberOfSurfaceSmooths",3);
-  // }
-  // bool & smoothSurface = deformingBodyDataBase.get<bool>("smoothSurface");
-  // int & numberOfSurfaceSmooths = deformingBodyDataBase.get<int>("numberOfSurfaceSmooths");
-  // bool & changeHypeParameters = deformingBodyDataBase.get<bool>("changeHypeParameters");
-  
-  // // -- Boundary conditions ---
-  // if( !deformingBodyDataBase.has_key("boundaryCondition") )
-  // {
-  //   deformingBodyDataBase.put<BcArray>("boundaryCondition");
-  //   BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
-  //   for( int side=0; side<=1; side++ )for( int axis=0; axis<2; axis++ )
-  //   {
-  //     boundaryCondition(side,axis)=dirichletBoundaryCondition;
-  //   }
-  // }
-  // BcArray & boundaryCondition = deformingBodyDataBase.get<BcArray>("boundaryCondition");
-  
   GUIState gui;
   gui.setWindowTitle("Beam Model");
   gui.setExitCommand("exit", "continue");
@@ -1769,8 +2047,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
   aString prefix = ""; // prefix for commands to make them unique.
 
-  OV_real & subIterationConvergenceTolerance = dbase.get<OV_real>("subIterationConvergenceTolerance");
-  OV_real & addedMassRelaxationFactor = dbase.get<OV_real>("addedMassRelaxationFactor");
+  real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
+  real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
 
 
   bool buildDialog=true;
@@ -1801,14 +2079,22 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     dialog.addOptionMenu("BC right:",cmd,cmd,bcRight );
 
 
+    aString twilightZoneOptions[] = {"polynomial",
+				     "trigonometric",
+				     ""};
+    GUIState::addPrefix(twilightZoneOptions,"Twilight-zone: ",cmd,maxCommands);
+    dialog.addOptionMenu( "Twilight-zone:", cmd, twilightZoneOptions, (int)twilightZoneOption );
+
     aString tbCommands[] = {"use exact solution",
                             "save profile file",
                             "save tip file",
+                            "twilight-zone",
     			    ""};
     int tbState[10];
     tbState[0] = useExactSolution;
     tbState[1] = dbase.get<bool>("saveProfileFile");
     tbState[2] = dbase.get<bool>("saveTipFile");
+    tbState[3] = twilightZone;
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -1823,6 +2109,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     textLabels[nt] = "number of elements:"; sPrintF(textStrings[nt], "%i",numElem);  nt++; 
     textLabels[nt] = "area moment of inertia:"; sPrintF(textStrings[nt], "%g",areaMomentOfInertia);  nt++; 
     textLabels[nt] = "elastic modulus:"; sPrintF(textStrings[nt], "%g",elasticModulus);  nt++; 
+    textLabels[nt] = "tension:"; sPrintF(textStrings[nt], "%g",tension);  nt++; 
     textLabels[nt] = "density:"; sPrintF(textStrings[nt], "%g",density);  nt++; 
     textLabels[nt] = "thickness:"; sPrintF(textStrings[nt], "%g",thickness);  nt++; 
     textLabels[nt] = "length:"; sPrintF(textStrings[nt], "%g",L);  nt++; 
@@ -1832,6 +2119,11 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
     textLabels[nt] = "added mass relaxation:"; sPrintF(textStrings[nt], "%g",addedMassRelaxationFactor);  nt++; 
     textLabels[nt] = "added mass tol:"; sPrintF(textStrings[nt], "%g",subIterationConvergenceTolerance);  nt++; 
+
+    textLabels[nt] = "degree in space:";  sPrintF(textStrings[nt],"%i",degreeInSpace);  nt++; 
+    textLabels[nt] = "degree in time:";  sPrintF(textStrings[nt],"%i",degreeInTime);  nt++; 
+    textLabels[nt] = "trig frequencies:";  sPrintF(textStrings[nt],"%g, %g, %g, %g (ft,fx,fy,fz)",
+						 trigFreq[0],trigFreq[1],trigFreq[2],trigFreq[3]); nt++;
 
     textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug);  nt++; 
 
@@ -1876,6 +2168,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     else if( dialog.getTextValue(answer,"area moment of inertia:","%g",areaMomentOfInertia) ){} //
 
     else if( dialog.getTextValue(answer,"elastic modulus:","%g",elasticModulus) ){} //
+    else if( dialog.getTextValue(answer,"tension:","%g",tension) ){} //
     else if( dialog.getTextValue(answer,"density:","%g",density) ){} //
     else if( dialog.getTextValue(answer,"thickness:","%g",thickness) ){} //
     else if( dialog.getTextValue(answer,"length:","%g",L) ){} //
@@ -1937,7 +2230,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       printF("BeamModel:INFO: setting %s = %s.\n",(side==0 ? "bcLeft" : "bcRight"),(const char*)bcOption);
 
     }
-    else if( dialog.getToggleValue(answer,"use exact solution",useExactSolution) ){} // 
+    else if( dialog.getToggleValue(answer,"use exact solution",useExactSolution) )
+    {
+      // *old way*
+      if( useExactSolution )
+       initialConditionOption="oldTravelingWaveFsi";
+    }
     else if( dialog.getToggleValue(answer,"save profile file",dbase.get<bool>("saveProfileFile")) ){} // 
     else if( dialog.getToggleValue(answer,"save tip file",dbase.get<bool>("saveTipFile")) )
     {
@@ -1945,6 +2243,37 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       output.open(name);
       printF("BeamModel: tip position info will be saved to file 'tip.txt'\n");
     }
+    else if( dialog.getToggleValue(answer,"twilight-zone",twilightZone) ){}//
+    else if( len=answer.matches("Twilight-zone: ") )
+    {
+      aString name=answer(len,answer.length()-1);
+      if( name=="polynomial" )
+      {
+	twilightZoneOption=0;
+      }
+      else if( name=="trigonometric" )
+      {
+	twilightZoneOption=1;
+      }
+      else
+      {
+	printF("Error: unexpected TZ=[%s]\n",(const char*)name);
+	gi.stopReadingCommandFile();
+        continue;
+      }
+      dialog.getOptionMenu("Twilight-zone:").setCurrentChoice(name);
+    }
+    else if( len=answer.matches("trig frequencies:") )
+    {
+      sScanF(answer(len,answer.length()-1),"%e %e %e %e",&trigFreq[0],&trigFreq[1],&trigFreq[2],&trigFreq[3]);
+      printF("Setting trigonometric TZ frequencies to ft=%g, fx=%g, fy=%g, fz=%g.\n",
+	     trigFreq[0],trigFreq[1],trigFreq[2],trigFreq[3]);
+
+      dialog.setTextLabel("trig frequencies:",sPrintF(buff,"%g, %g, %g, %g (ft,fx,fy,fz)",
+                                                      trigFreq[0],trigFreq[1],trigFreq[2],trigFreq[3]));
+    }
+    else if( dialog.getTextValue(answer,"degree in space:","%i",degreeInSpace) ){} //
+    else if( dialog.getTextValue(answer,"degree in time:","%i",degreeInTime) ){} //
     else
     {
       printF("BeamModel::update:ERROR:unknown response=[%s]\n",(const char*)answer);
@@ -2070,3 +2399,187 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   return 0;
 
 }
+
+
+
+// ********************************************************************************************************************
+// ********************************************************************************************************************
+// ********************************************************************************************************************
+
+
+// Include complex down here to minimize name conflicts
+#include <complex>
+
+typedef ::real LocalReal;
+typedef ::real OV_real;
+
+static std::complex<LocalReal> phi1(std::complex<LocalReal> alpha, LocalReal k,
+				    LocalReal y) {
+
+  return 0.5*(cosh(alpha*y)-cosh(k*y));
+}
+
+static std::complex<LocalReal> phi2(std::complex<LocalReal> alpha, LocalReal k,
+				    LocalReal y) {
+
+  return 0.5*(k*sinh(alpha*y)-alpha*sinh(k*y));
+}
+
+static std::complex<LocalReal> phi1d(std::complex<LocalReal> alpha, LocalReal k,
+				    LocalReal y) {
+
+  return 0.5*(alpha*sinh(alpha*y)-k*sinh(k*y));
+}
+
+static std::complex<LocalReal> phi2d(std::complex<LocalReal> alpha, LocalReal k,
+				    LocalReal y) {
+
+  return 0.5*k*alpha*(cosh(alpha*y)-cosh(k*y));
+}
+
+
+
+void BeamModel::exactSolutionVelocity(LocalReal x, LocalReal y,
+				      LocalReal t,
+				      LocalReal k, LocalReal H, 
+				      LocalReal omega_real, LocalReal omega_imag,
+				      LocalReal omega0, LocalReal nu,
+				      LocalReal what,   // not needed
+				      LocalReal& u, LocalReal& v) {
+  
+  what=exactSolutionScaleFactorFSI;  // wdh 
+  //  printF("@@@BeamModel::exactSolutionVelocity what=%9.3e\n",what);
+
+  std::complex<LocalReal> omega_tilde(omega_real, omega_imag);
+  LocalReal beta = omega0/(k*k)/nu;
+  std::complex<LocalReal> I(0.0,1.0);
+  std::complex<LocalReal> alpha = k*sqrt(-I*beta*omega_tilde+1.0);
+
+  std::complex<LocalReal> a = phi2d(alpha,k,H),b = phi1d(alpha,k,H);
+  std::complex<LocalReal> vhat = -what*I*omega_tilde*omega0*
+    (-a*phi1(alpha,k,y)+b*phi2(alpha,k,y))/
+    (-a*phi1(alpha,k,H)+b*phi2(alpha,k,H));
+
+  std::complex<LocalReal> uhat = what*omega_tilde*omega0/k*
+    (-a*phi1d(alpha,k,y)+b*phi2d(alpha,k,y))/
+    (-a*phi1(alpha,k,H)+b*phi2(alpha,k,H));
+
+  std::complex<LocalReal> U = uhat*(exp(I*k*x-I*omega_tilde*omega0*t)+exp(-I*k*x-I*omega_tilde*omega0*t));
+  std::complex<LocalReal> V = vhat*(exp(I*k*x-I*omega_tilde*omega0*t)-exp(-I*k*x-I*omega_tilde*omega0*t));
+
+  //std::cout << y << " " << V << std::endl;
+
+  u = 2.0*U.real();
+  v = 2.0*V.real();
+
+  
+}
+
+
+void BeamModel::exactSolutionPressure(LocalReal x, LocalReal y,
+				      LocalReal t,
+				      LocalReal k, LocalReal H, 
+				      LocalReal omega_real, LocalReal omega_imag,
+				      LocalReal omega0, LocalReal nu,
+				      LocalReal what, // not needed
+				      LocalReal& p) {
+  
+  what=exactSolutionScaleFactorFSI;  // wdh 
+
+  std::complex<LocalReal> omega_tilde(omega_real, omega_imag);
+  LocalReal beta = omega0/(k*k)/nu;
+  std::complex<LocalReal> I(0.0,1.0);
+  std::complex<LocalReal> alpha = k*sqrt(-I*beta*omega_tilde+1.0);
+
+  std::complex<LocalReal> a = phi2d(alpha,k,H),b = phi1d(alpha,k,H);
+  std::complex<LocalReal> phat = what*omega_tilde*omega0*omega_tilde*omega0*1.0/(2.0*k)*
+    (a*sinh(k*y)-alpha*b*cosh(k*y))/
+    (-a*phi1(alpha,k,H)+b*phi2(alpha,k,H));
+
+  std::complex<LocalReal> P = phat*(exp(I*k*x-I*omega_tilde*omega0*t)-exp(-I*k*x-I*omega_tilde*omega0*t));
+
+  //if (y == H)
+  // std::cout <<x << " " <<2.0*P.real() << " " <<  getExactPressure(t, x);
+
+  p = 2.0*P.real();
+  
+}
+
+void BeamModel::
+setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a) 
+{
+  
+  // printF("@@@BeamModel::setExactSolution exactSolutionScaleFactorFSI=%9.3e\n", dbase.get<OV_real>("exactSolutionScaleFactorFSI"));
+
+  double h=0.02;
+  double Ioverb=6.6667e-7;
+  double H=0.3;
+  double k=2.0*3.141592653589/L;
+  double omega0=sqrt(elasticModulus*Ioverb*k*k*k*k/(density*h));
+   
+  // -- wHat determines the "amplitude" of the surface, scaled by some factor ...wdh
+  double what = exactSolutionScaleFactorFSI; // 0.00001;
+  double omegar = 0.8907148069, omegai = -0.9135887123e-2;
+  std::complex<LocalReal> omega_tilde(omegar, omegai);
+  std::complex<LocalReal> I(0.0,1.0);
+
+  for (int i = 0; i <= numElem; ++i) {
+
+    double xl = (double)i / numElem*L;
+    
+    std::complex<LocalReal> f = exp(I*k*xl-I*omega_tilde*omega0*t)-exp(-I*k*xl-I*omega_tilde*omega0*t);
+    std::complex<LocalReal> fp = I*k*(exp(I*k*xl-I*omega_tilde*omega0*t)+exp(-I*k*xl-I*omega_tilde*omega0*t));
+    
+
+    
+    x(i*2) = 2.0*(what*f).real();      // displacement w ...wdh
+    x(i*2+1) = 2.0*(what*fp).real();   // slope w'  ...wdh
+    
+    v(i*2) = 2.0*(-what*f*I*omega_tilde*omega0).real();
+    v(i*2+1) = 2.0*(-what*fp*I*omega_tilde*omega0).real();
+    
+    a(i*2) = 2.0*(-what*f*omega_tilde*omega0*omega_tilde*omega0).real();
+    a(i*2+1) = 2.0*(-what*fp*omega_tilde*omega0*omega_tilde*omega0).real();
+  }
+}
+
+double BeamModel::getExactPressure(double t, double xl) {
+
+  printF("@@@BeamModel::getExactPressure exactSolutionScaleFactorFSI=%9.3e\n", dbase.get<OV_real>("exactSolutionScaleFactorFSI"));
+
+  double h=0.02;
+  double Ioverb=6.6667e-7;
+  double nu = 0.001;
+  double H=0.3;
+  std::complex<LocalReal> I(0.0,1.0);
+  double omegar = 0.8907148069, omegai = -0.9135887123e-2;
+  std::complex<LocalReal> omega_tilde(omegar, omegai);
+  double k=2.0*3.141592653589/L;
+  double omega0=sqrt(elasticModulus*Ioverb*k*k*k*k/(density*h));
+   
+  LocalReal beta = omega0/(k*k)/nu;
+  std::complex<LocalReal> alpha = k*sqrt(-I*beta*omega_tilde+1.0);
+
+  double what = exactSolutionScaleFactorFSI; // 0.00001;
+  std::complex<LocalReal> omega = omega_tilde*omega0;
+  
+  
+  std::complex<LocalReal> f = exp(I*k*xl-I*omega_tilde*omega0*t)-exp(-I*k*xl-I*omega_tilde*omega0*t);
+
+  std::complex<LocalReal> a = phi2d(alpha,k,H),b = phi1d(alpha,k,H);
+  std::complex<LocalReal> A = -1.0*what*omega*omega*alpha*0.5/k;
+  std::complex<LocalReal> c = a/b;
+  A /= (-c*phi1(alpha,k,H)+phi2(alpha,k,H));
+  std::complex<LocalReal> phat = A*(cosh(k*H)-c/alpha*sinh(k*H));
+
+  std::cout << xl << " " << 2.0*(f*phat).real() << std::endl;
+
+  LocalReal result = 2.0*(f*phat).real();
+
+  std::complex<LocalReal> r1 = (elasticModulus*Ioverb*k*k*k*k-density*h*omega*omega)*what, r2 = phat*1000.0 ;
+  std::cout << r1 << " " << r2 << std::endl;
+
+  return result;
+
+}
+

@@ -52,7 +52,7 @@ int
 getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 );
 
 int 
-getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, real t, 
+getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, realArray & ae, real t, 
 		       const Index & I1, const Index & I2, const Index & I3 );
 real 
 getTimeStep( real t );

@@ -82,6 +82,7 @@ TravelingWaveFsi()
   if( !dbase.has_key("be") ) dbase.put<real>("be",0.);    // elastic shell damping parameter  
   if( !dbase.has_key("ad") ) dbase.put<real>("ad",.1);    // elastic shell artificial dissipation.
   if( !dbase.has_key("normalMotionOnly") ) dbase.put<bool>("normalMotionOnly",false);
+  if( !dbase.has_key("standingWaveSolution") ) dbase.put<bool>("standingWaveSolution",false);
 
   if( !dbase.has_key("cfl") ) dbase.put<real>("cfl",.9);        // fluid density 
 
@@ -122,14 +123,14 @@ TravelingWaveFsi()
   omegav[0]=0.; omegav[1]=0.;
   
 
-  // Traveling-wave (exact solution) parameters:
-  if( !dbase.has_key("TravelingWaveParameters") ) dbase.put<real[10]>("TravelingWaveParameters"); 
-  real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
-  fwp[0]=.1; // amp
-  fwp[1]=1.; // kx 
-  fwp[2]=1.; // ky 
-  fwp[3]=0.; // x0
-  fwp[4]=0.; // t0 
+  // // Traveling-wave (exact solution) parameters:
+  // if( !dbase.has_key("TravelingWaveParameters") ) dbase.put<real[10]>("TravelingWaveParameters"); 
+  // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+  // fwp[0]=.1; // amp
+  // fwp[1]=1.; // kx 
+  // fwp[2]=1.; // ky 
+  // fwp[3]=0.; // x0
+  // fwp[4]=0.; // t0 
 
   if( !dbase.has_key("exactSolution") ) dbase.put<aString>("exactSolution","twilightZone");
   if( !dbase.has_key("exactPointer") ) dbase.put<OGFunction*>("exactPointer",NULL);
@@ -208,8 +209,10 @@ getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
   real & x0  = dbase.get<real>("x0");
   real & t0  = dbase.get<real>("t0");
 
-  // Traveling wave parameters
-  real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+  const bool & standingWaveSolution = dbase.get<bool>("standingWaveSolution");
+
+  // // Traveling wave parameters
+  // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
 
     
   uLocal=0.;
@@ -219,12 +222,12 @@ getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
   {
     // --- TravelingWave: inviscid fluid + Elastic SHELL ----
 
-    real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
-    const real amp = fwp[0];
-    const real kx  = fwp[1];
-    const real ky  = fwp[2];
-    const real x0  = fwp[3];
-    const real t0  = fwp[4];
+    // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+    // const real amp = fwp[0];
+    // const real kx  = fwp[1];
+    // const real ky  = fwp[2];
+    // const real x0  = fwp[3];
+    // const real t0  = fwp[4];
 
     const real kxHat=twoPi*kx/length;
 
@@ -233,40 +236,48 @@ getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
 
     // eta = x(Ib1,Ib2,Ib3,1) + amp*sin(kxHat*x(Ib1,Ib2,Ib3,0)+x0)*cos(omegaHat*t+t0);
 
-    // *new* traveling wave 
-    RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
-    coskxwt=cos(kxHat*xLocal(I1,I2,I3,0)-omegaHat*t);
-    sinkxwt=sin(kxHat*xLocal(I1,I2,I3,0)-omegaHat*t);
+    if( !standingWaveSolution )
+    {
+      // -- traveling wave --
+      RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
+      coskxwt=cos(kxHat*xLocal(I1,I2,I3,0)-omegaHat*t);
+      sinkxwt=sin(kxHat*xLocal(I1,I2,I3,0)-omegaHat*t);
 
-    RealArray coshkxy(I1,I2,I3), sinhkxy(I1,I2,I3); 
-    coshkxy=cosh(kxHat*(xLocal(I1,I2,I3,1)));
-    sinhkxy=sinh(kxHat*(xLocal(I1,I2,I3,1)));
+      RealArray coshkxy(I1,I2,I3), sinhkxy(I1,I2,I3); 
+      coshkxy=cosh(kxHat*(xLocal(I1,I2,I3,1)));
+      sinhkxy=sinh(kxHat*(xLocal(I1,I2,I3,1)));
 
-    // Exact solution for the fluid pressure: (p.y=0 at y=0 )
-    real factor = 1./(kxHat*sinh(kxHat*height));
+      // Exact solution for the fluid pressure: (p.y=0 at y=0 )
+      real factor = 1./(kxHat*sinh(kxHat*height));
 
-    real pAmp = amp*rho*SQR(omegaHat)/(kxHat*sinh(kxHat*height));
+      real pAmp = amp*rho*SQR(omegaHat)/(kxHat*sinh(kxHat*height));
 
-    // pressure
-    uLocal(I1,I2,I3,pc) = pAmp*coshkxy*coskxwt;
+      // pressure
+      uLocal(I1,I2,I3,pc) = pAmp*coshkxy*coskxwt;
 
 
-    // Exact solution for the fluid velocity:
-    real vAmp = amp*(omegaHat/sinh(kxHat*height));
-    uLocal(I1,I2,I3,v1c) = vAmp*coshkxy*coskxwt;
-    uLocal(I1,I2,I3,v2c) = vAmp*sinhkxy*sinkxwt;
+      // Exact solution for the fluid velocity:
+      real vAmp = amp*(omegaHat/sinh(kxHat*height));
+      uLocal(I1,I2,I3,v1c) = vAmp*coshkxy*coskxwt;
+      uLocal(I1,I2,I3,v2c) = vAmp*sinhkxy*sinkxwt;
+    }
+    else
+    {
+      // --- standing wave ---
+      OV_ABORT("finish me");
+    }
     
   }
   else if( true || mu>0. )
   {
     // --- TravelingWave: inviscid OR viscous fluid + Elastic SHELL OR Acoustic Solid  ----
 
-    real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
-    const real amp = fwp[0];
-    const real kx  = fwp[1];
-    const real ky  = fwp[2];
-    const real x0  = fwp[3];
-    const real t0  = fwp[4];
+    // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+    // const real amp = fwp[0];
+    // const real kx  = fwp[1];
+    // const real ky  = fwp[2];
+    // const real x0  = fwp[3];
+    // const real t0  = fwp[4];
 
     const real kxHat=twoPi*kx/length;
 
@@ -279,118 +290,127 @@ getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
     const real wr=omegav[0], wi=omegav[1];
     printF("getExactFluidSolution: w=(%9.3e,%9.3e)\n",wr,wi);
 
-    RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
-    coskxwt=cos(kxHat*xLocal(I1,I2,I3,0)-wr*t);
-    sinkxwt=sin(kxHat*xLocal(I1,I2,I3,0)-wr*t);
-
-    if( false )
+    RealArray coskxwt, sinkxwt; 
+    if( !standingWaveSolution )
     {
-      // ** OLD WAY **
-
-      // Real part of vHat*exp( i( kx-w*t) )
-      for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
-      {
-	uLocal(I1,i2,I3,pc)  = amp*( twf(i2,0)*coskxwt(I1,i2,I3) - twf(i2,1)*sinkxwt(I1,i2,I3) )*exp(wi*t);
-
-	uLocal(I1,i2,I3,v1c) = amp*( twf(i2,2)*coskxwt(I1,i2,I3) - twf(i2,3)*sinkxwt(I1,i2,I3) )*exp(wi*t);
-
-	uLocal(I1,i2,I3,v2c) = amp*( twf(i2,4)*coskxwt(I1,i2,I3) - twf(i2,5)*sinkxwt(I1,i2,I3) )*exp(wi*t);
+      coskxwt.redim(I1,I2,I3); sinkxwt.redim(I1,I2,I3); 
+      coskxwt=cos(kxHat*xLocal(I1,I2,I3,0)-wr*t);
+      sinkxwt=sin(kxHat*xLocal(I1,I2,I3,0)-wr*t);
     }
     
+    const int nf=1, ns=1;
+    RealArray yf(nf), ys(max(1,ns));
+    // printF("***** twf.getLength(1)=%i\n",twf.getLength(1));
+
+    RealArray twfa(2*nf,twf.getLength(1)), twsa(2*ns,tws.getLength(1));
+    // RealArray twfa(2*nf,max(10,twf.getLength(1))), twsa(2*ns,tws.getLength(1));
+    // RealArray twfa(Range(2*nf),100), twsa(Range(2*ns),100);
+
+    int pdeOption=0;
+    if( pde=="InsShell" )
+    {
+      pdeOption=0;
+    }
+    else if( pde=="InsAcousticSolid" )
+    {
+      pdeOption=1;
+    }
+    else if( pde=="InsElasticSolid" )
+    {
+      pdeOption=2;
     }
     else
     {
-      const int nf=1, ns=1;
-      RealArray yf(nf), ys(max(1,ns));
-      // printF("***** twf.getLength(1)=%i\n",twf.getLength(1));
+      OV_ABORT("error");
+    }
+    
+    const bool & normalMotionOnly = dbase.get<bool>("normalMotionOnly");
+    int option;
+    if( normalMotionOnly )
+      option=0; // eta1=0,  eta2 varies
+    else
+      option=2;  // eta1 and eta2 vary
 
-      RealArray twfa(2*nf,twf.getLength(1)), twsa(2*ns,tws.getLength(1));
-      // RealArray twfa(2*nf,max(10,twf.getLength(1))), twsa(2*ns,tws.getLength(1));
-      // RealArray twfa(Range(2*nf),100), twsa(Range(2*ns),100);
+    real solidHeight=hs;  // shell
+    int ipar[]={option,pdeOption};  //
+    real rpar[]={kxHat,hs,rho,mu, rhoe,hs,ke,te,0.,0.};  //
 
-      int pdeOption=0;
-      if( pde=="InsShell" )
+    if( pde!="InsShell" )
+    {
+      // --- bulk solid ---
+      if( pde=="InsAcousticSolid" ||
+	  pde=="InsElasticSolid" )
       {
-	pdeOption=0;
+	rpar[5]=Hs;
+	rpar[6]=cp;
+	rpar[7]=cs;
+	solidHeight=Hs;
       }
-      else if( pde=="InsAcousticSolid" )
-      {
-	pdeOption=1;
-      }
-      else if( pde=="InsElasticSolid" )
-      {
-	pdeOption=2;
-      }
-      else
+      else 
       {
 	OV_ABORT("error");
       }
-    
-      const bool & normalMotionOnly = dbase.get<bool>("normalMotionOnly");
-      int option;
-      if( normalMotionOnly )
-	option=0; // eta1=0,  eta2 varies
-      else
-	option=2;  // eta1 and eta2 vary
-
-      real solidHeight=hs;  // shell
-      int ipar[]={option,pdeOption};  //
-      real rpar[]={kxHat,hs,rho,mu, rhoe,hs,ke,te,0.,0.};  //
-
-      if( pde!="InsShell" )
-      {
-	// --- bulk solid ---
-	if( pde=="InsAcousticSolid" ||
-	    pde=="InsElasticSolid" )
-	{
-	  rpar[5]=Hs;
-	  rpar[6]=cp;
-	  rpar[7]=cs;
-	  solidHeight=Hs;
-	}
-	else 
-	{
-	  OV_ABORT("error");
-	}
-      }
+    }
     
 
-      // Real part of vHat*exp( i( kx-w*t) )
-      int i3=I3.getBase();
-      for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+    // Real part of vHat*exp( i( kx-w*t) )
+    int i3=I3.getBase();
+    for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+    {
+      for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
       {
-	for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
-	{
-	  real x=xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
+	real x=xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
 
-	  yf(0)=-height + y;
-	  ys(0)=0.;  // not needed
+	yf(0)=-height + y;
+	ys(0)=0.;  // not needed
 
-	  const int b0=twfa.getBase(0);
-	  evalTravelingWave( wr, wi, rpar, ipar, 
-			     nf, yf.getDataPointer(), 
-			     &twfa(b0,0), &twfa(b0,1), &twfa(b0,2), &twfa(b0,3), &twfa(b0,4), &twfa(b0,5), 
-			     ns, ys.getDataPointer(), &twsa(b0,0), &twsa(b0,1), &twsa(b0,2), &twsa(b0,3),
-			     &twsa(b0,4), &twsa(b0,5), &twsa(b0,6), &twsa(b0,7) );
+	const int b0=twfa.getBase(0);
+	evalTravelingWave( wr, wi, rpar, ipar, 
+			   nf, yf.getDataPointer(), 
+			   &twfa(b0,0), &twfa(b0,1), &twfa(b0,2), &twfa(b0,3), &twfa(b0,4), &twfa(b0,5), 
+			   ns, ys.getDataPointer(), &twsa(b0,0), &twsa(b0,1), &twsa(b0,2), &twsa(b0,3),
+			   &twsa(b0,4), &twsa(b0,5), &twsa(b0,6), &twsa(b0,7) );
 
-	  //  printF(" b0=%i, tfa=(%g,%g,%g,%g,%g,%g) \n",b0, twfa(b0,0), twfa(b0,1), twfa(b0,2), twfa(b0,3), twfa(b0,4), twfa(b0,5));
+	//  printF(" b0=%i, tfa=(%g,%g,%g,%g,%g,%g) \n",b0, twfa(b0,0), twfa(b0,1), twfa(b0,2), twfa(b0,3), twfa(b0,4), twfa(b0,5));
 	  
 
-	  int i2a=b0;
+	int i2a=b0;
       
+	if( !standingWaveSolution )
+	{
 	  uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*coskxwt(i1,i2,i3) - twfa(i2a,1)*sinkxwt(i1,i2,i3) )*exp(wi*t);
 
 	  uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*coskxwt(i1,i2,i3) - twfa(i2a,3)*sinkxwt(i1,i2,i3) )*exp(wi*t);
 
 	  uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*coskxwt(i1,i2,i3) - twfa(i2a,5)*sinkxwt(i1,i2,i3) )*exp(wi*t);
-
-	  // printF(" twfa(i2a,4)=%g, twfa(i2a,5)=%g, coskxwt(i1,i2,i3)=%g sinkxwt(i1,i2,i3)=%g\n",
-	  //  twfa(i2a,4),twfa(i2a,5),coskxwt(i1,i2,i3),sinkxwt(i1,i2,i3));
-	  // printF(" (x,y)=(%g,%g) (p,v1,v2)=(%g,%g,%g)\n",x,y,uLocal(i1,i2,i3,pc) ,uLocal(i1,i2,i3,v1c),uLocal(i1,i2,i3,v2c) );
-
-	  
-	  
 	}
+	else
+	{
+          // -- standing wave ---  
+          //   From one traveling wave solution (p,v1,v2) another solution is obtained by x -> -x and v1 -> -v1
+          // Subtract these two (and divide by 2) to get a standing wave 
+          //   v1 <- [ v1(x,y,t) + v1(-x,y,t) ) ]/2
+          //   v2 <- [ v2(x,y,t) - v2(-x,y,t) ) ]/2
+          //   p  <- [ p(x,y,t) - p(-x,y,t) ) ]/2
+
+
+	  real cwt = cos(wr*t)*exp(wi*t), swt = sin(wr*t)*exp(wi*t);
+	  real sinkx=sin(kxHat*x), coskx=cos(kxHat*x);
+
+	  uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*swt - twfa(i2a,1)*cwt )*sinkx;
+
+	  uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*cwt + twfa(i2a,3)*swt )*coskx;  
+
+	  uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*swt - twfa(i2a,5)*cwt )*sinkx;
+
+	}
+	
+	// printF(" twfa(i2a,4)=%g, twfa(i2a,5)=%g, coskxwt(i1,i2,i3)=%g sinkxwt(i1,i2,i3)=%g\n",
+	//  twfa(i2a,4),twfa(i2a,5),coskxwt(i1,i2,i3),sinkxwt(i1,i2,i3));
+	// printF(" (x,y)=(%g,%g) (p,v1,v2)=(%g,%g,%g)\n",x,y,uLocal(i1,i2,i3,pc) ,uLocal(i1,i2,i3,v1c),uLocal(i1,i2,i3,v2c) );
+
+	  
+	  
       }
     }
     
@@ -463,8 +483,10 @@ getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
   real & x0  = dbase.get<real>("x0");
   real & t0  = dbase.get<real>("t0");
 
-  // Traveling wave parameters
-  real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+  const bool & standingWaveSolution = dbase.get<bool>("standingWaveSolution");
+
+  // // Traveling wave parameters
+  // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
 
     
   const real csq = (lambdae+2.0*mue)/rhoe;  // solid sound speed squared
@@ -477,12 +499,12 @@ getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
   {
     // --- TravelingWave: viscous fluid + Elastic SHELL OR Acoustic Solid  ----
 
-    real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
-    const real amp = fwp[0];
-    const real kx  = fwp[1];
-    const real ky  = fwp[2];
-    const real x0  = fwp[3];
-    const real t0  = fwp[4];
+    // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+    // const real amp = fwp[0];
+    // const real kx  = fwp[1];
+    // const real ky  = fwp[2];
+    // const real x0  = fwp[3];
+    // const real t0  = fwp[4];
 
     const real kxHat=twoPi*kx/length;
 
@@ -493,66 +515,77 @@ getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
     real *omegav =  dbase.get<real[2]>("omegav");
     const real wr=omegav[0], wi=omegav[1];
 
-    RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
-    // printF(" TravelingWave: kxHat=%e, wr=%e, t=%e\n",kxHat,wr,t);
-    
-    coskxwt=cos(kxHat*xLocal(I1,I2,I3,0)-wr*t);
-    sinkxwt=sin(kxHat*xLocal(I1,I2,I3,0)-wr*t);
-
-    // Real part of vHat*exp( i( kx-w*t) )
-    bool acoustic=pde=="InsAcousticSolid";
-    for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
+    if( !standingWaveSolution )
     {
-      if( u1c>=0 )
-	uLocal(I1,i2,I3,u1c) = amp*( tws(i2,0)*coskxwt(I1,i2,I3) - tws(i2,1)*sinkxwt(I1,i2,I3) )*exp(wi*t);
+      // --- traveling wave solution ---
+      RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
+      // printF(" TravelingWave: kxHat=%e, wr=%e, t=%e\n",kxHat,wr,t);
+    
+      coskxwt=cos(kxHat*xLocal(I1,I2,I3,0)-wr*t);
+      sinkxwt=sin(kxHat*xLocal(I1,I2,I3,0)-wr*t);
 
-      uLocal(I1,i2,I3,u2c) = amp*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) )*exp(wi*t);
-
-      // 
-      if( v1c>=0 )
-	uLocal(I1,i2,I3,v1c) = ( (amp*wr)*( tws(i2,0)*sinkxwt(I1,i2,I3) + tws(i2,1)*coskxwt(I1,i2,I3) )+
-				 (wi*amp)*( tws(i2,0)*coskxwt(I1,i2,I3) - tws(i2,1)*sinkxwt(I1,i2,I3) ))*exp(wi*t);
-      
-      
-      uLocal(I1,i2,I3,v2c) = ( (amp*wr)*( tws(i2,2)*sinkxwt(I1,i2,I3) + tws(i2,3)*coskxwt(I1,i2,I3) )+
-			       (wi*amp)*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) ))*exp(wi*t);
-
-      if( s21c>=0 && s22c>=0 )
+      // Real part of vHat*exp( i( kx-w*t) )
+      bool acoustic=pde=="InsAcousticSolid";
+      for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
       {
-	// s21 = rhoe*csq* u2_x    
-	// s22 = rhoe*csq* u2_y
-	if( acoustic )
+	if( u1c>=0 )
+	  uLocal(I1,i2,I3,u1c) = amp*( tws(i2,0)*coskxwt(I1,i2,I3) - tws(i2,1)*sinkxwt(I1,i2,I3) )*exp(wi*t);
+
+	uLocal(I1,i2,I3,u2c) = amp*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) )*exp(wi*t);
+
+	// 
+	if( v1c>=0 )
+	  uLocal(I1,i2,I3,v1c) = ( (amp*wr)*( tws(i2,0)*sinkxwt(I1,i2,I3) + tws(i2,1)*coskxwt(I1,i2,I3) )+
+				   (wi*amp)*( tws(i2,0)*coskxwt(I1,i2,I3) - tws(i2,1)*sinkxwt(I1,i2,I3) ))*exp(wi*t);
+      
+      
+	uLocal(I1,i2,I3,v2c) = ( (amp*wr)*( tws(i2,2)*sinkxwt(I1,i2,I3) + tws(i2,3)*coskxwt(I1,i2,I3) )+
+				 (wi*amp)*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) ))*exp(wi*t);
+
+	if( s21c>=0 && s22c>=0 )
 	{
-	  uLocal(I1,i2,I3,s21c) = (rhoe*csq*kxHat*amp)*((-tws(i2,2))*sinkxwt(I1,i2,I3) - tws(i2,3)*coskxwt(I1,i2,I3) )*exp(wi*t);
-	  // u2y appears in tws(i,6:7)
-	  uLocal(I1,i2,I3,s22c) = (rhoe*csq*amp)*( tws(i2,6)*coskxwt(I1,i2,I3) - tws(i2,7)*sinkxwt(I1,i2,I3) )*exp(wi*t);
-	}
-	else
-	{
-	  // Elastic wave equation
-          // s11 = lamp2mu*u1x + lam*u2y
-          // s12=s21 = mu*( u1y+u2x )
-          // s22 = lamp2mu*u2y + lam*u1x
-	  int i3=I3.getBase();
-	  for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+	  // s21 = rhoe*csq* u2_x    
+	  // s22 = rhoe*csq* u2_y
+	  if( acoustic )
 	  {
-	    real u1x=(amp*kxHat)*((-tws(i2,0))*sinkxwt(i1,i2,i3) - tws(i2,1)*coskxwt(i1,i2,i3) )*exp(wi*t);
-	    real u2x=(amp*kxHat)*((-tws(i2,2))*sinkxwt(i1,i2,i3) - tws(i2,3)*coskxwt(i1,i2,i3) )*exp(wi*t);
-
-	    real u1y=amp*( tws(i2,4)*coskxwt(i1,i2,i3) - tws(i2,5)*sinkxwt(i1,i2,i3) )*exp(wi*t);
-	    real u2y=amp*( tws(i2,6)*coskxwt(i1,i2,i3) - tws(i2,7)*sinkxwt(i1,i2,i3) )*exp(wi*t);
-	  
-
-	    uLocal(i1,i2,i3,s11c) =lamp2mu*u1x + lambdae*u2y;
-	    uLocal(i1,i2,i3,s12c) =mue*( u1y+u2x );
-	    uLocal(i1,i2,i3,s21c) =uLocal(i1,i2,i3,s12c);
-	    uLocal(i1,i2,i3,s22c) =lamp2mu*u2y + lambdae*u1x;
+	    uLocal(I1,i2,I3,s21c) = (rhoe*csq*kxHat*amp)*((-tws(i2,2))*sinkxwt(I1,i2,I3) - tws(i2,3)*coskxwt(I1,i2,I3) )*exp(wi*t);
+	    // u2y appears in tws(i,6:7)
+	    uLocal(I1,i2,I3,s22c) = (rhoe*csq*amp)*( tws(i2,6)*coskxwt(I1,i2,I3) - tws(i2,7)*sinkxwt(I1,i2,I3) )*exp(wi*t);
 	  }
+	  else
+	  {
+	    // Elastic wave equation
+	    // s11 = lamp2mu*u1x + lam*u2y
+	    // s12=s21 = mu*( u1y+u2x )
+	    // s22 = lamp2mu*u2y + lam*u1x
+	    int i3=I3.getBase();
+	    for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+	    {
+	      real u1x=(amp*kxHat)*((-tws(i2,0))*sinkxwt(i1,i2,i3) - tws(i2,1)*coskxwt(i1,i2,i3) )*exp(wi*t);
+	      real u2x=(amp*kxHat)*((-tws(i2,2))*sinkxwt(i1,i2,i3) - tws(i2,3)*coskxwt(i1,i2,i3) )*exp(wi*t);
+
+	      real u1y=amp*( tws(i2,4)*coskxwt(i1,i2,i3) - tws(i2,5)*sinkxwt(i1,i2,i3) )*exp(wi*t);
+	      real u2y=amp*( tws(i2,6)*coskxwt(i1,i2,i3) - tws(i2,7)*sinkxwt(i1,i2,i3) )*exp(wi*t);
 	  
-	}
+
+	      uLocal(i1,i2,i3,s11c) =lamp2mu*u1x + lambdae*u2y;
+	      uLocal(i1,i2,i3,s12c) =mue*( u1y+u2x );
+	      uLocal(i1,i2,i3,s21c) =uLocal(i1,i2,i3,s12c);
+	      uLocal(i1,i2,i3,s22c) =lamp2mu*u2y + lambdae*u1x;
+	    }
+	  
+	  }
 	
 
+	}
       }
+    }
+    else
+    {
+      // --- standing wave ---
+      OV_ABORT("finish me");
+
+
     }
     
   }
@@ -570,14 +603,15 @@ getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
 /// \brief Compute the exact solution in the solid shell at time t.
 ///
 /// \param x (input) : coordinates
-/// \param ue (output) : exact solution for displacement
-/// \param ve (output) : exact solution for velocity     
+/// \param ue (output) : exact solution for the displacement
+/// \param ve (output) : exact solution for the velocity     
+/// \param ve (output) : exact solution for the acceleration
 /// \param t (input) : evaluate the solution at this time.
 /// \param I1,I2,I3 (input) : evaluate at these points.
 ///
 //================================================================================================
 int TravelingWaveFsi::
-getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, real t, 
+getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, realArray & ae, real t, 
 		       const Index & I1, const Index & I2, const Index & I3 )
 {
   const aString & pde = dbase.get<aString>("pde"); // pde we are solving
@@ -622,19 +656,21 @@ getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, real
   real & x0  = dbase.get<real>("x0");
   real & t0  = dbase.get<real>("t0");
 
-  // Traveling wave parameters
-  real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+  const bool & standingWaveSolution = dbase.get<bool>("standingWaveSolution");
+
+  // // Traveling wave parameters
+  // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
 
     
   if( pde=="InsShell" && mu==0. )
   {
     // --- inviscid Traveling Wave Solution, Elastic Shell Solid ---
-    real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
-    const real amp = fwp[0];
-    const real kx  = fwp[1];
-    const real ky  = fwp[2];
-    const real x0  = fwp[3];
-    const real t0  = fwp[4];
+    // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+    // const real amp = fwp[0];
+    // const real kx  = fwp[1];
+    // const real ky  = fwp[2];
+    // const real x0  = fwp[3];
+    // const real t0  = fwp[4];
 
     const real kxHat=twoPi*kx/length;
 
@@ -645,9 +681,9 @@ getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, real
       printF("\n++getExactShellSolution : kxHat=%e, rhos=%8.2e ke=%8.2e te=%8.2e rho=%8.2e "
 	     "mu=%8.2e H=%8.2e omegaHat=%18.14e\n",kxHat,rhoe,ke,te,rho,mu,height,omegaHat);
 
-    if( true )
+    if( !standingWaveSolution )
     {
-      // *new* traveling wave 
+      // traveling wave 
       RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
       coskxwt=cos(kxHat*x(I1,I2,I3,0)-omegaHat*t);
       sinkxwt=sin(kxHat*x(I1,I2,I3,0)-omegaHat*t);
@@ -659,28 +695,37 @@ getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, real
       ve(I1,I2,I3,0)= 0.;
       ve(I1,I2,I3,1)= (amp*omegaHat)*sinkxwt;
 
+      ae(I1,I2,I3,0)= 0.;
+      ae(I1,I2,I3,1)= (-amp*omegaHat*omegaHat)*coskxwt;
+
 
     }
     else
     {
-      // *old* standing wave
+      // standing wave
+      RealArray sinkx;
+      sinkx=sin(kxHat*x(I1,I2,I3,0)+x0);
+
       ue(I1,I2,I3,0)= x(I1,I2,I3,0);
-      ue(I1,I2,I3,1)= x(I1,I2,I3,1) + amp*sin(kxHat*x(I1,I2,I3,0)+x0)*cos(omegaHat*t+t0);
+      ue(I1,I2,I3,1)= x(I1,I2,I3,1) + (amp*cos(omegaHat*t+t0))*sinkx;
     
       ve(I1,I2,I3,0)= 0.;
-      ve(I1,I2,I3,1)= (-amp*omegaHat)*sin(kxHat*x(I1,I2,I3,0)+x0)*sin(omegaHat*t+t0);
+      ve(I1,I2,I3,1)= (-amp*omegaHat*sin(omegaHat*t+t0))*sinkx;
+
+      ae(I1,I2,I3,0)= 0.;
+      ae(I1,I2,I3,1)= (-amp*omegaHat*omegaHat*cos(omegaHat*t+t0))*sinkx;
     }
     
   }
   else if( pde=="InsShell" && mu>0. )
   {
     // --- Viscous Traveling Wave Solution, Elastic Shell Solid ---
-    real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
-    const real amp = fwp[0];
-    const real kx  = fwp[1];
-    const real ky  = fwp[2];
-    const real x0  = fwp[3];
-    const real t0  = fwp[4];
+    // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+    // const real amp = fwp[0];
+    // const real kx  = fwp[1];
+    // const real ky  = fwp[2];
+    // const real x0  = fwp[3];
+    // const real t0  = fwp[4];
 
     const real kxHat=twoPi*kx/length;
 
@@ -694,18 +739,65 @@ getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, real
     real *omegav =  dbase.get<real[2]>("omegav");
     const real wr=omegav[0], wi=omegav[1];
 
-    RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
-    coskxwt=cos(kxHat*x(I1,I2,I3,0)-wr*t);
-    sinkxwt=sin(kxHat*x(I1,I2,I3,0)-wr*t);
+    if( !standingWaveSolution )
+    {
+      RealArray coskxwt(I1,I2,I3), sinkxwt(I1,I2,I3); 
+      coskxwt=cos(kxHat*x(I1,I2,I3,0)-wr*t);
+      sinkxwt=sin(kxHat*x(I1,I2,I3,0)-wr*t);
 
-    // eta1, and eta2:
-    ue(I1,I2,I3,0)= x(I1,I2,I3,0) + amp*( tws(0,0)*coskxwt - tws(0,1)*sinkxwt )*exp(wi*t);
-    ue(I1,I2,I3,1)= x(I1,I2,I3,1) + amp*( tws(0,2)*coskxwt - tws(0,3)*sinkxwt )*exp(wi*t);
+      const real ewit = exp(wi*t);
+      const real a1=amp*tws(0,0)*ewit, a2=-amp*tws(0,1)*ewit;
+      const real b1=amp*tws(0,2)*ewit, b2=-amp*tws(0,3)*ewit;
+      
+      const real a1t = wi*a1, a2t=wi*a2;
+      const real b1t = wi*b1, b2t=wi*b2;
+
+      const real a1tt = wi*wi*a1, a2tt=wi*wi*a2;
+      const real b1tt = wi*wi*b1, b2tt=wi*wi*b2;
+
+      // eta1, and eta2:
+      ue(I1,I2,I3,0)= x(I1,I2,I3,0) + a1*coskxwt + a2*sinkxwt;
+      ue(I1,I2,I3,1)= x(I1,I2,I3,1) + b1*coskxwt + b2*sinkxwt;
     
-    // shell velocities:
-    ve(I1,I2,I3,0)= amp*( (wr*tws(0,0)-wi*tws(0,1))*sinkxwt - (-wr*tws(0,1)-wi*tws(0,0))*coskxwt )*exp(wi*t);
-    ve(I1,I2,I3,1)= amp*( (wr*tws(0,2)-wi*tws(0,3))*sinkxwt - (-wr*tws(0,3)-wi*tws(0,2))*coskxwt )*exp(wi*t);
+      // shell velocities:
+      ve(I1,I2,I3,0)= (-wr*a2 +a1t)*coskxwt + (wr*a1 + a2t)*sinkxwt;
+      ve(I1,I2,I3,1)= (-wr*b2 +b1t)*coskxwt + (wr*b1 + b2t)*sinkxwt;
 
+      // shell acceleration:
+      ae(I1,I2,I3,0)= (-wr*wr*a1 -2.*wr*a2t +a1tt)*coskxwt + (-wr*wr*a2 + 2.*wr*a1t + a2tt)*sinkxwt;
+      ae(I1,I2,I3,1)= (-wr*wr*b1 -2.*wr*b2t +b1tt)*coskxwt + (-wr*wr*b2 + 2.*wr*b1t + b2tt)*sinkxwt;
+    }
+    else
+    {
+      // --- standing wave ---   ***THIS IS WRONG ***
+      //OV_ABORT("finish me");
+      printF("TravelingWaveFsi::getExactShellSolution t=%8.2e, amp=%8.2e\n",t,amp);
+      
+      real cwt = cos(wr*t)*exp(wi*t), swt = sin(wr*t)*exp(wi*t);
+      real cwtp = -wr*swt + wi*cwt;  // d(cwt)/dt 
+      real swtp =  wr*cwt + wi*swt;  // d(swt)/dt 
+
+      real cwtpp = -wr*wr*cwt - 2.*wr*wi*swt + wi*wi*cwt;  // d^2(cwt)/dt^2 
+      real swtpp = -wr*wr*swt + 2.*wr*wi*cwt + wi*wi*swt;  // d^2(swt)/dt^2 
+
+      RealArray sinkx(I1,I2,I3); 
+      sinkx=sin(kxHat*x(I1,I2,I3,0));
+
+      // eta1, and eta2:
+      ue(I1,I2,I3,0)= x(I1,I2,I3,0) + amp*( tws(0,0)*swt - tws(0,1)*cwt )*sinkx;
+      ue(I1,I2,I3,1)= x(I1,I2,I3,1) + amp*( tws(0,2)*swt - tws(0,3)*cwt )*sinkx;
+    
+      // shell velocities:
+      ve(I1,I2,I3,0)= amp*( tws(0,0)*swtp - tws(0,1)*cwtp )*sinkx;
+      ve(I1,I2,I3,1)= amp*( tws(0,2)*swtp - tws(0,3)*cwtp )*sinkx;
+
+      // shell acceleration:
+      ae(I1,I2,I3,0)= amp*( tws(0,0)*swtpp - tws(0,1)*cwtpp )*sinkx;
+      ae(I1,I2,I3,1)= amp*( tws(0,2)*swtpp - tws(0,3)*cwtpp )*sinkx;
+
+
+    }
+    
   }
   else
   {
@@ -2110,6 +2202,7 @@ update( GenericGraphicsInterface & gi )
   int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
   real *trigFreq = dbase.get<real[4]>("trigFreq");
   bool & normalMotionOnly = dbase.get<bool>("normalMotionOnly");
+  bool & standingWaveSolution = dbase.get<bool>("standingWaveSolution");
 
   int & degreeInTime = dbase.get<int>("degreeInTime");
   int & degreeInSpace = dbase.get<int>("degreeInSpace");
@@ -2140,8 +2233,8 @@ update( GenericGraphicsInterface & gi )
   real & x0  = dbase.get<real>("x0");
   real & t0  = dbase.get<real>("t0");
 
-  // Traveling wave parameters
-  real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
+  // // Traveling wave parameters
+  // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
 
 //   // -- Boundary conditions ---
 //   if( !dbase.has_key("boundaryCondition") )
@@ -2233,11 +2326,14 @@ update( GenericGraphicsInterface & gi )
 //   dialog.addOptionMenu("BC top:",bcCmd,bcNames,boundaryCondition(1,1) );
 
 
-  aString tbCommands[] = {"twilight-zone",
+  aString tbCommands[] = {"normal motion only",
+                          "standing wave solution",
+                          "twilight-zone",
                           ""};
   int tbState[10];
-  tbState[1] = normalMotionOnly;
-  tbState[0] = twilightZone;
+  tbState[0] = normalMotionOnly;
+  tbState[1] = standingWaveSolution;
+  tbState[2] = twilightZone;
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -2257,7 +2353,7 @@ update( GenericGraphicsInterface & gi )
 
   int nt=0;
   textLabels[nt] = "cfl:";  sPrintF(textStrings[nt],"%g",cfl); nt++;
-  textLabels[nt] = "Traveling wave:";  sPrintF(textStrings[nt],"%g, %g, %g, %g, %g (amp,kx,ky,x0,t0)",fwp[0],fwp[1],fwp[2],fwp[3],fwp[4]); nt++;
+//  textLabels[nt] = "Traveling wave:";  sPrintF(textStrings[nt],"%g, %g, %g, %g, %g (amp,kx,ky,x0,t0)",fwp[0],fwp[1],fwp[2],fwp[3],fwp[4]); nt++;
 // 
   textLabels[nt] = "height:";  sPrintF(textStrings[nt],"%g",height); nt++;
   textLabels[nt] = "length:";  sPrintF(textStrings[nt],"%g",length); nt++;
@@ -2309,10 +2405,11 @@ update( GenericGraphicsInterface & gi )
     }
     else if( dialog.getToggleValue(answer,"twilight-zone",twilightZone) ){}//
     else if( dialog.getToggleValue(answer,"normal motion only",normalMotionOnly) ){}//
+    else if( dialog.getToggleValue(answer,"standing wave solution",standingWaveSolution) ){}//
 
     else if( dialog.getTextValue(answer,"cfl:","%g",cfl) ){} // 
-    else if( dialog.getTextValue(answer,"height","%g",height) ){} // 
-    else if( dialog.getTextValue(answer,"length","%g",length) ){} // 
+    else if( dialog.getTextValue(answer,"height:","%g",height) ){} // 
+    else if( dialog.getTextValue(answer,"length:","%g",length) ){} // 
     else if( dialog.getTextValue(answer,"kx:","%g",kx) ){} // 
 
     else if( dialog.getTextValue(answer,"elastic shell density:","%g",rhoe) ){} // 
@@ -2325,7 +2422,6 @@ update( GenericGraphicsInterface & gi )
     else if( dialog.getTextValue(answer,"elastic solid density:","%g",rhoe) ){} // 
     else if( dialog.getTextValue(answer,"elastic solid lambda:","%g",lambdae) ){}// 
     else if( dialog.getTextValue(answer,"elastic solid mu:","%g",mue) ){}// 
-    else if( dialog.getTextValue(answer,"elastic solid height:","%g",Hs) ){}// 
 
     else if( dialog.getTextValue(answer,"fluid density:","%g",rho) ){}// 
     else if( dialog.getTextValue(answer,"fluid viscosity:","%g",mu) ){}// 
@@ -2358,20 +2454,20 @@ update( GenericGraphicsInterface & gi )
                                                       trigFreq[0],trigFreq[1],trigFreq[2],trigFreq[3]));
     }
 
-    else if( len=answer.matches("Traveling wave:") )
-    {
-      sScanF(answer(len,answer.length()-1),"%e %e %e %e %e",&fwp[0],&fwp[1],&fwp[2],&fwp[3],&fwp[4]);
-      // ** FIX ME **
-      printF("**FIX ME* The Traveling wave solution is:\n",
-             " solid: us(x,y,t) = amp sin(kxHat*x+x0) [ a sin(kyHat(y-H)) + b cos(kyHat(y-H)) ] cos(omegaHat*t+t0)\n"
-             "           where: kxHat = 2*pi*kx/L, kyHat=2*pi*ky\n, omegaHat = 2*pi*omega\n" );
+    // else if( len=answer.matches("Traveling wave:") )
+    // {
+    //   sScanF(answer(len,answer.length()-1),"%e %e %e %e %e",&fwp[0],&fwp[1],&fwp[2],&fwp[3],&fwp[4]);
+    //   // ** FIX ME **
+    //   printF("**FIX ME* The Traveling wave solution is:\n",
+    //          " solid: us(x,y,t) = amp sin(kxHat*x+x0) [ a sin(kyHat(y-H)) + b cos(kyHat(y-H)) ] cos(omegaHat*t+t0)\n"
+    //          "           where: kxHat = 2*pi*kx/L, kyHat=2*pi*ky\n, omegaHat = 2*pi*omega\n" );
       
-      printF("Setting Traveling-wave parameters to amp=%g, kx=%g, ky=%g, x0=%g, t0=%g\n",
-              fwp[0],fwp[1],fwp[2],fwp[3],fwp[4]);
+    //   printF("Setting Traveling-wave parameters to amp=%g, kx=%g, ky=%g, x0=%g, t0=%g\n",
+    //           fwp[0],fwp[1],fwp[2],fwp[3],fwp[4]);
 
-      dialog.setTextLabel("Traveling wave:",sPrintF("%g, %g, %g, %g, %g (amp,kx,ky,x0,t0)",
-                          fwp[0],fwp[1],fwp[2],fwp[3],fwp[4]));
-    }
+    //   dialog.setTextLabel("Traveling wave:",sPrintF("%g, %g, %g, %g, %g (amp,kx,ky,x0,t0)",
+    //                       fwp[0],fwp[1],fwp[2],fwp[3],fwp[4]));
+    // }
     else if( len=answer.matches("PDE: ") )
     {
       aString name=answer(len,answer.length()-1);

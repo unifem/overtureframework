@@ -16,6 +16,7 @@ class MappingInformation;
 class DeformingGrid;
 class GridFunction; 
 class Parameters;
+class TravelingWaveFsi;
 
 //................................
 class BeamModel 
@@ -38,8 +39,11 @@ class BeamModel
   // 
   ~BeamModel();
 
+  // assign boundary conditions
+  int assignBoundaryConditions( real t, RealArray & x, RealArray & v, RealArray & a );
+
   // assign initial conditions
-  int assignInitialConditions( real t, RealArray & x, RealArray & v );
+  int assignInitialConditions( real t, RealArray & x, RealArray & v, RealArray & a );
 
   // Return the beam ID (a unique ID for this beam)
   int getBeamID() const{ return beamID; } // 
@@ -70,6 +74,9 @@ class BeamModel
 		     real x0, real y0,
 		     bool useExactSolution);
 
+  // Provide the TravelingWaveFsi object that defines an exact solution.
+  int setTravelingWaveSolution( TravelingWaveFsi & tw );
+
   // Return the displacement of the point on the surface (not the neutral axis)
   // of the beam of the point whose undeformed location is (x0,y0).
   // This function is used to update the boundary of the CFD grid.
@@ -85,18 +92,15 @@ class BeamModel
 
   // Return the acceleration of the point on the surface (not the neutral axis)
   // of the beam of the point whose undeformed location is (x0,y0).
-  // This function is used to enforce the pressure boundary condition for the fluid
-  // x0:       undeformed location of the point on the surface of the beam (x)
-  // y0:       undeformed location of the point on the surface of the beam (y)
-  // ax [out]: acceleration of the point on the surface of the beam (x)
-  // ay [out]: acceleration of the point on the surface of the beam (y)
-  //
   void projectAcceleration(const real& x0,
 			   const real& y0, real& ax, real& ay);
 
-  
+  // Return the velocity of the point on the surface (not the neutral axis)
+  void projectVelocity( const real& x0, const real& y0, real& vx, real& vy );
+
+
   // Accumulate a pressure force to the beam from a fluid element.
-  void addForce(const real& x0_1, const real& y0_1,
+  void addForce(const real & tf, const real& x0_1, const real& y0_1,
 		real p1,const real& nx_1,const real& ny_1,
 		const real& x0_2, const real& y0_2,
 		real p2,const real& nx_2,const real& ny_2);
@@ -108,27 +112,11 @@ class BeamModel
   //
   void resetForce();
 
-  // Predict the structural state at t^{n+1}, using the Newmark beta predictor.
-  // The predictor is only first order accurate.
-  // dt:  current time step
-  // x1:  solution state (position) at t^{n-1} [unused]
-  // v1:  solution state (velocity) at t^{n-1} [unused]
-  // x2:  solution state (position) at t^n
-  // v2:  solution state (velocity) at t^n
-  // x3:  solution state (position) at t^{n+1} [out]
-  // v3:  solution state (velocity) at t^{n+1} [out]
-  //
-  void predictor(real dt, const RealArray& x1, const RealArray& v1, 
-		 const RealArray& x2, const RealArray& v2,
-		 RealArray& x3, RealArray& v3);
+  // Predict the structural state at t^{n+1} = t + dt, using the Newmark beta predictor.
+  void predictor(real tnp1, real dt );
 
-  // Apply the corrector at t^{n+1}
-  // dt:  current time step
-  // x3:  solution state (position) at t^{n+1} [out]
-  // v3:  solution state (velocity) at t^{n+1} [out]
-  //
-  void corrector(real dt,
-		 RealArray& x3, RealArray& v3);
+  // Apply the Newmark scheme corrector at t^{n+1}
+  void corrector(real tnp1, real dt );
 
   // Return the current position of the structure.
   //
@@ -138,8 +126,11 @@ class BeamModel
   //
   void getCenterLine( RealArray & xc ) const;
 
+  // return the estimated *explicit* time step dt 
+  real getExplicitTimeStep() const;
+
   // evaluate the standing wavce solution
-  int getStandingWave( real t, RealArray & u, RealArray & v ) const;
+  int getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const;
 
   // Return the current force of the structure.
   //
@@ -196,6 +187,9 @@ class BeamModel
 				    real what,
 				    real& p);
 
+  // Return the exact solution (if any)
+  int getExactSolution( real t, RealArray & u, RealArray & v, RealArray & a ) const;
+
   // Get the exact position, velocity, and acceleration of the beam
   // from the analytical solution derived in the documentation
   // t: Time at which to compute the exact solution
@@ -237,9 +231,7 @@ class BeamModel
   //
   void addBodyForce(const real bf[2]);
 
-  // Set the initial angle of the beam, from the x axis
-  // dec: angle
-  //
+  // Set the initial angle of the beam, from the x axis (in radians)
   void setDeclination(real dec);
 
   // Set parameters interactively: 
@@ -258,37 +250,14 @@ class BeamModel
   int chooseInitialConditions(CompositeGrid & cg, GenericGraphicsInterface & gi );
 
   // Compute the internal force in the beam, i.e., -K*u
-  // u: position of the beam
-  // f: internal force [out]
-  //
-  void computeInternalForce(const RealArray& u,RealArray& f);
+  void computeInternalForce( const RealArray& u,RealArray& f );
 
-  // Compute the integral of N(eta)*p, that is, the rhs
-  // of the FEM model, for a particular element
-  // p1:   pressure at the first point within the element
-  // p2:   pressure at the second point within the element
-  // eta1: location (natural coordinate)
-  // eta2: location (natural coordinate)
-  // fe:   element external force vector [out]
-  //
+  // Compute the integral of N(eta)*p, that is, the rhs of the FEM model, for a particular element
   void computeProjectedForce(real p1, real p2, 
 			     real eta1, real eta2,
 			     RealArray& fe);
 
   // Compute the acceleration of the beam.
-  // u:               current beam position
-  // v:               current beam velocity
-  // f:               external force on the beam
-  // A:               matrix by which the acceleration is multiplied
-  //                  (e.g., in the newmark beta correction step it is 
-  //                   M+beta*dt^2*K)
-  // a:               beam acceleration [out]
-  // linAcceleration: acceleration of the CoM of the beam (for free motion) [out]
-  // omegadd:         angular acceleration of the beam (for free motion) [out]
-  // dt:              time step
-  // locbeta:         [unused]
-  // locgamma:        [unused]
-  //
   void computeAcceleration(const RealArray& u, const RealArray& v, 
 			   const RealArray& f,
 			   const RealArray& A,
@@ -321,6 +290,9 @@ class BeamModel
 			   int& elemNum, real& eta,
 			   real& displacement, real& slope);
 
+  // initialize TZ
+  int initTwilightZone();
+
   // -- initialize the beam model given the current parameters --
   void initialize();
 
@@ -335,10 +307,10 @@ class BeamModel
   void recomputeNormalAndTangent();
 
   // Multiply a vector w by the mass matrix
-  // w:  vector
-  // Mw: M*w [out]
-  //
   void multiplyByMassMatrix(const RealArray& w, RealArray& Mw);
+
+  int domainDimension;     // domain dimension
+  int numberOfDimensions;  // number of space dimensions (range)
 
   // This is actually I/b, that is the true area moment of inertia
   // divided by the width of the beam
@@ -406,27 +378,12 @@ class BeamModel
   //
   int time_step_num;
 
-  // Arrays used to store the forces on the beam
-  //
-  RealArray myForce,tmp,flocal;
-
-  // Acceleration of the beam (current), and the last computed
-  // acceleration of the beam
-  //
-  RealArray myAcceleration, aold;
+  RealArray aold; // holds old acceleration for under-relaxed iteration
 
   // Current time
   //
   real t;
 
-  // Current Position and velocity of the beam
-  //
-  RealArray myPosition, myVelocity;
-
-  // Position and velocity of the beam at the previous time step
-  //
-  RealArray myPosition_nm1, myVelocity_nm1;
-  
   // Predicted position/velocity of the beam
   //
   RealArray dtilde,vtilde;

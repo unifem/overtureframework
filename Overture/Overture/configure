@@ -33,6 +33,7 @@ if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
   printf(" options: (any combinations of) \n");
   printf("   opt     : compile with optimization (by default most important files are compiled opt). \n");
   printf("   debug   : compile with all files with debug.\n");
+  printf("   distribution=[blank|ubuntu] : specify the Linux distribution (currently only needed for Ubuntu). \n");
   printf("   debugFlag=<value> : specify the flag to use for compiling with debugging. \n");
   printf("   CC=<value>  : use this C++ compiler (instead of the default). e.g. CC=g++, CC=xlC, CC=mpiCC \n");
   printf("   cc=<value>  : use this C compiler (instead of the default). e.g. CC=gcc \n");
@@ -42,7 +43,7 @@ if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
   printf("   bFC=<value>  : base Fortran compiler (actual compiler if FC is a script)\n");
   printf("   precision=[double][single]  : compile Overture in double(default) or single precision\n");
   printf("   multigrid: build the ogmg multigrid solver\n");
-  printf("   parallel: compile the parallel version using P++ (NOT yet available for general use)\n");
+  printf("   parallel: compile the parallel version using P++ \n");
   printf("   headers: only create the configuration dependent header files (OvertureDefine.h)\n");
   printf("   useHDF4: configure for hdf4 instead of hdf5 \n");
   printf("   noX11: build without X11 graphics (for machines without X11 libraries) \n");
@@ -55,7 +56,10 @@ if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
   exit;
 }
 
-# read some command line args here:
+#
+# read some command line args here: (others are processed below)
+#
+$distribution="";  # currently only used for ubuntu
 foreach $arg ( @ARGV )
 {
   if ( $arg =~ "noX11" )
@@ -63,6 +67,12 @@ foreach $arg ( @ARGV )
     $useX11 = 0;
     printf("Do NOT use X11.\n");
   }
+  elsif( $arg =~ /distribution=(.*)/ )
+  {
+    $distribution = $1; 
+    printf("Setting distribution=[$distribution]\n");
+  }
+
 }
 
 # should use : *** these are NOT supported yet ****
@@ -135,9 +145,13 @@ $machineType = `uname -m`;
 chop($machineType);
 printf(" *** machineType = [$machineType] **** \n");
 $LIB64="lib"; 
-if( $machineType eq "x86_64" && $arch ne "darwin" )
+if( $machineType eq "x86_64" && $arch ne "darwin" && $distribution ne "ubuntu" )
 {
   $LIB64="lib64"; 
+}
+if( $distribution eq "ubuntu" )
+{
+  $LIB64 = "lib/x86_64-linux-gnu"; # Ubuntu libraries are here (for Ubuntu v 13 and later)
 }
 
 printf("First checking for proper definition of Overture environmental variables:\n");
@@ -1317,6 +1331,7 @@ $mc = "^#$machine";  # uncomment lines that start with #$machine (#sun or #hpux.
 $ccc = "^#$bcc";     # uncomment lines that start with #$cc (#gcc ...)"
 $CCC = "^#$bCC";     # uncomment lines that start with #$CC (#KCC ...)"
 $CCC =~ s/\+/\\+/g;  # replace + by \+ in the string
+$distributionc = "^#$distribution"; # uncomment lines that start with #$distribution (e.g. #ubuntu)
 
 $cppFlags="-fPIC";    # Flags needed for C++
 $ccFlags="-fPIC";     # Flags needs for C
@@ -1464,6 +1479,11 @@ foreach $dir ( @directories )
         if( $bFC eq "ifort" && $machineType eq "x86_64" ){  $line =~ s/\#ifort64 //g;  } 
 
         $line =~ s/^#$bFC //g;  # uncomment lines that start with #$FC  (to get fort77 too)
+
+        if( $distribution ne "" && $distribution ne " " )
+        {
+          $line =~ s/$distributionc //g;   # uncomment lines that start with #$distribution
+        }
 
         $line =~ s/^PGI_LIB.*/PGI_LIB = $pgiLibDirectory/;  # set the location of the PGI fortran libraries
         $line =~ s/^IFC_LIB.*/IFC_LIB = $ifortLibDirectory/;  # set the location of the ifc fortran libraries

@@ -1385,7 +1385,7 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 	      //getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3);
 	      realSerialArray boundaryVelocity(Ib1,Ib2,Ib3, c.numberOfDimensions());
 	      boundaryVelocity  =  0.;
-	      deformingBodyList[b]->getVelocityBC( tGV, grid, Ib1,Ib2,Ib3, boundaryVelocity  );
+	      deformingBodyList[b]->getVelocityBC( tGV, grid, c, Ib1,Ib2,Ib3, boundaryVelocity  );
 
 	      gridVelocityLocal(Ib1,Ib2,Ib3,Icoord) = boundaryVelocity(Ib1,Ib2,Ib3,Icoord); //uses analytic VEL for bc **pf
 
@@ -1719,7 +1719,7 @@ gridAccelerationBC(const int & grid,
     // I1,I2,I3 from : getBoundaryIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3);     // boundary line    
     realSerialArray boundaryAcceleration(I1,I2,I3, c.numberOfDimensions());
     boundaryAcceleration  =  0.;
-    deformingBodyList[b]->getAccelerationBC( t0, grid,I1,I2,I3, boundaryAcceleration  );
+    deformingBodyList[b]->getAccelerationBC( t0, grid, c ,I1,I2,I3, boundaryAcceleration  );
     //Display dd;
     //vertex(I1,I2,I3).display("vertex at the boundary"); //DEBUG
     //boundaryAcceleration(I1,I2,I3).display("acceleration at the boundary"); //DEBUG
@@ -2154,7 +2154,7 @@ getBoundaryAcceleration( MappedGrid & c, realSerialArray & gtt, int grid, real t
 
 	  if( computeTwoTimeDerivatives )
 	  {
-            deformingBodyList[b]->getAccelerationBC( t0, grid, I1,I2,I3, gtt );
+            deformingBodyList[b]->getAccelerationBC( t0, grid, c, I1,I2,I3, gtt );
 	  }
 	  if( computeThreeTimeDerivatives )
 	  {
@@ -3419,6 +3419,10 @@ put( GenericDataBase & dir, const aString & name) const
 int MovingGrids::
 plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp )
 {
+  // turn off plotting of titles and labels
+  int plotTitleLabels;
+  psp.get(GI_PLOT_LABELS, plotTitleLabels);
+  psp.set(GI_PLOT_LABELS, false);
 
   for( int b=0; b<numberOfDeformingBodies; b++ )
   {
@@ -3427,6 +3431,7 @@ plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp
 
   }
 
+  psp.set(GI_PLOT_LABELS, plotTitleLabels); // reset 
   
 
   return 0;

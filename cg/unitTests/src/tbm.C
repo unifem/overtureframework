@@ -16,16 +16,16 @@
 // #include "App.h"
 #include "NurbsMapping.h"
 
-#define W1(x,t) (a*sin(k*xl - w*t))
-#define W1t(x,t) (-a*w*cos(k*xl - w*t))
-#define W1x(x,t) (-k*a*cos(k*xl - w*t))
-#define W1tx(x,t) (a*k*w*sin(k*xl - w*t))
+// #define W1(x,t) (a*sin(k*xl - w*t))
+// #define W1t(x,t) (-a*w*cos(k*xl - w*t))
+// #define W1x(x,t) (-k*a*cos(k*xl - w*t))
+// #define W1tx(x,t) (a*k*w*sin(k*xl - w*t))
 
-// standing wave: 
-#define W(x,t) (a*sin(k*(x))*cos(w*(t)))
-#define Wt(x,t) (-w*a*sin(k*(x))*sin(w*(t)))
-#define Wx(x,t) (w*a*cos(k*(x))*cos(w*(t)))
-#define Wtx(x,t) (-w*a*cos(k*(x))*sin(w*(t)))
+// // standing wave: 
+// #define W(x,t) (a*sin(k*(x))*cos(w*(t)))
+// #define Wt(x,t) (-w*a*sin(k*(x))*sin(w*(t)))
+// #define Wx(x,t) (w*a*cos(k*(x))*cos(w*(t)))
+// #define Wtx(x,t) (-w*a*cos(k*(x))*sin(w*(t)))
 
 
 enum BeamModelEnum
@@ -77,14 +77,14 @@ public:
 TestBeamModel();
 ~TestBeamModel();
 
+int addForcing( real t );
+
 // Check the forcing routines in the Beam Model
 int checkForce();
 
 int getErrors( real t );
 
-int plot(GenericGraphicsInterface & gi, GraphicsParameters & psp );
-
-int plot2(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp );
+int plot(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
 int solve(GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
@@ -145,70 +145,12 @@ TestBeamModel::
 {
 }
     
-// ========================================================================================
-/// \brief plot the beam solution.
-// ========================================================================================
-int TestBeamModel::
-plot(GenericGraphicsInterface & gi, GraphicsParameters & psp )
-{
-
-  aString cNames[3]={"w","w_e","err-w"};  // 
-  psp.componentsToPlot.redim(3);
-  psp.componentsToPlot(0)=0;
-  psp.componentsToPlot(1)=1;
-  psp.componentsToPlot(2)=2;
-  psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);     // set this to run in "movie" mode (after first plot)
-
-
-  RealArray x3,v3;
-  x3 = beam.position(); 
-  v3 = beam.velocity();
-
-  RealArray x(nElem+1), u(nElem+1,3);
-  for (int i = 0; i <= nElem; ++i)
-  {
-    real xl = ( (real)i /nElem) *  beamLength;
-    x(i)=xl;
-    u(i,0)=x3(i*2);
-    u(i,1)=W(xl,t);
-    u(i,2)=u(i,1)-u(i,0); // error 
-  }
-	  
-  gi.erase();
-
-  RealArray pb(2,3);
-  pb=0; pb(1,Range(0,2))=1.;
-  psp.set(GI_PLOT_BOUNDS, pb);
-  psp.set(GI_USE_PLOT_BOUNDS, true);
-
-  // -- plot points to set plot bounds : fix me ---
-  // RealArray points(2,2);
-  // points(0,0)=0.; points(0,1)=-a;
-  // points(1,0)=beamLength; points(1,1)=a;
-  // gi.plotPoints(points,psp);
-  // psp.set(GI_USE_PLOT_BOUNDS,true);
-  PlotIt::plot(gi,x,u,sPrintF("Linear Beam Model, t=%9.3e",t),"x",cNames,psp);
-
-
-  gi.redraw(true);
-  usleep(100000);  // sleep in mirco-seconds
-	  
-  // plot(GenericGraphicsInterface &gi, 
-  //      const realArray & t, 
-  //      const realArray & x, 
-  //      const aString & title = nullString, 
-  //      const aString & tName       = nullString,
-  //      const aString *xName        = NULL,
-  //      GraphicsParameters & parameters=Overture::defaultGraphicsParameters()  );
-
-  return 0;
-}
 
 // ========================================================================================
 /// \brief plot the beam solution.
 // ========================================================================================
 int TestBeamModel::
-plot2(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
+plot(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
 {
 
   psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);     // set this to run in "movie" mode (after first plot)
@@ -230,15 +172,15 @@ plot2(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp )
     // psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // default is 1
     // psp.set(GraphicsParameters::lineWidth,lineWidth);  
 
+    Range I=xc.dimension(0);
+    real xMin = min(xc(I,0)), xMax=max(xc(I,0));
+    real yMin = min(xc(I,1)), yMax=max(xc(I,1));
+    
+
     RealArray pb(2,3);  // plot bounds 
-    pb(0,0)=0.;  pb(1,0)=1.;
-    pb(0,1)=-.2; pb(1,1)=.2; 
+    pb(0,0)=xMin;  pb(1,0)=xMax;
+    pb(0,1)=min(yMin,-yMax)-.1; pb(1,1)=max(yMax,-yMin)+.1;
     pb(0,2)=0.;  pb(1,2)=1.;
-    if( beamModelType==nonlinearBeamModel )
-    {
-      pb(0,0)=0.; pb(1,0)=1.;
-      pb(0,1)=-.2;  pb(1,1)=.2;
-    }
 
     psp.set(GI_PLOT_BOUNDS, pb);
     psp.set(GI_USE_PLOT_BOUNDS, true);
@@ -287,8 +229,12 @@ getErrors( real t )
 
     int nElem=beam.getNumberOfElements();
 
-    RealArray ue(2*nElem+2), ve(2*nElem+2);
-    beam.getStandingWave( t, ue, ve );
+    RealArray ue(2*nElem+2), ve(2*nElem+2), ae;
+
+
+    // beam.getStandingWave( t, ue, ve, ae );
+    beam.getExactSolution( t, ue, ve, ae );
+
     // ::display(xc,"getErrors: beam center line","%8.2e ");
 
     for (int i = 0; i <= nElem; ++i)
@@ -299,7 +245,7 @@ getErrors( real t )
 
       real err = fabs( xc(i,1)- we );
 
-      // printF("t=%9.3e i=%i x=%9.3e w=%9.3e we=%9.3e\n",t,i,xl,xc(2*i),we);
+      printF("t=%9.3e i=%3i x=%9.3e w=%9.3e we=%9.3e err=%9.2e\n",t,i,xl,xc(i,1),we,err);
       
       errMax=max(errMax,err);
       l2Err += SQR(err);
@@ -348,7 +294,20 @@ getErrors( real t )
   return 0;
 }
 
+// ==================================================================================================================
+/// \brief Add forcing at time t 
+// ==================================================================================================================
+int TestBeamModel::
+addForcing( real t )
+{
+  // finish me 
 
+  return 0;
+}
+
+// ==================================================================================================================
+/// \brief Main time-stepping routine
+// ==================================================================================================================
 int TestBeamModel::
 solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 {
@@ -358,29 +317,7 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   // BeamModel::BoundaryCondition bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
   bool useExactSolution=false;
 
-  RealArray x1,v1,x2,v2,x3,v3;
-
-  if( beamModelType==linearBeamModel )
-  {
-    beam.setParameters(momOfIntertia, E, 
-		       rho,beamLength,
-		       thickness,pnorm,
-		       nElem, bcLeft,bcRight,
-		       x0, y0, useExactSolution);
-      
-    beam.setDeclination(beamAngle*Pi/180);
-
-    x1 = beam.position(); 
-    v1 = beam.velocity();
-
-    x2 = beam.position(); 
-    v2 = beam.velocity();
-
-    x3 = beam.position(); 
-    v3 = beam.velocity();
-
-  }
-  else if( beamModelType==nonlinearBeamModel )
+  if( beamModelType==nonlinearBeamModel )
   {
     // aString beamFile = "mybeam.beam"; // *fix me* 
     // nlBeam.readBeamFile((const char*)beamFile);
@@ -403,63 +340,38 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
     nlBeam.projectInitialPoint(i, xc(i,0),xc(i,1) );
 
   }
-  else
-  {
-    OV_ABORT("ERROR: unknown beam model");
-  }
-
 
   // wave speed c= w/k ,   c*dt/dx = cfl 
-  real dx=beamLength/nElem;
-  real dt= cfl*dx/(w/k); 
-  if( beamModelType==nonlinearBeamModel )
+  real dx=-1, dt=-1;
+  if( beamModelType==linearBeamModel )
+  {
+    dt = beam.getExplicitTimeStep();
+    dt=dt*cfl;
+  }
+  else if( beamModelType==nonlinearBeamModel )
   {
     dt = nlBeam.getExplicitTimeStep();
-
     dt=dt*cfl;
+  }
+  else
+  {
+    OV_ABORT("error");
   }
   
 
   int numberOfSteps= max(1, int( tFinal/dt + .5) );
-  dt = tFinal/numberOfSteps;  // adjust dt so we reach tFinal exactly
-      
-  printF("+++ solve: dt=%9.3e, numberOfSteps=%i\n",dt,numberOfSteps);
-
-
   int nPlot = max(1,int( tPlot/dt+.5 ));
+
+  dt = tPlot/nPlot;  // adjust dt so we reach tPlot exactly
+      
+  printF("+++ solve: dt=%9.3e, numberOfSteps=%i (cfl=%9.3e)\n",dt,numberOfSteps,cfl);
+
+
 
   int maximumNumberOfSteps=tFinal/dt+10;
 
   t=0.;
 
-  if( beamModelType==linearBeamModel )
-  {
-    beam.assignInitialConditions(-dt,x1,v1 );
-    beam.assignInitialConditions( 0.,x2,v2 );
-    
-    // for (int i = 0; i <= nElem; ++i)
-    // {
-    //   real xl = ( (real)i /nElem) *  beamLength;
-
-    //   t=-dt;
-
-    //   x1(i*2)   = W(xl,t);     // w 
-    //   x1(i*2+1) = Wx(xl,t);    // w_x
-    
-    //   v1(i*2)   = Wt(xl,t);    // w_t 
-    //   v1(i*2+1) = Wtx(xl,t);   // w_xt 
-
-    //   t=0.;
-	
-    //   x2(i*2)   = W(xl,t);     // w 
-    //   x2(i*2+1) = Wx(xl,t);    // w_x
-    
-    //   v2(i*2)   = Wt(xl,t);    // w_t 
-    //   v2(i*2+1) = Wtx(xl,t);   // w_xt 
-
-    // }
-  }
-  
   GUIState dialog;
   dialog.setWindowTitle("tbm run-time");
   dialog.setExitCommand("exit", "exit");
@@ -505,8 +417,7 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
       getErrors( t );
       
       // plot solution
-      // plot(gi,psp);
-      plot2(t, gi,psp);
+      plot(t, gi,psp);
 
       // -- output results to the check file.
       // fprintf(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput+2); // print |\uv| and divergence too.
@@ -571,9 +482,11 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
     if( beamModelType==linearBeamModel )
     {
-      beam.predictor(dt, x1,v1,x2,v2,x3,v3);
+      addForcing( t );
+      beam.predictor(t+dt, dt );
 
-      beam.corrector(dt, x3,v3);
+      addForcing( t+dt );
+      beam.corrector(t+dt, dt );
     }
     else if( beamModelType==nonlinearBeamModel )
     {
@@ -590,13 +503,6 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
     t = (step+1)*dt;
 	
-
-    if( beamModelType==linearBeamModel )
-    {	
-      x1=x2; v1=v2;  // rename solutions for next step
-      x2=x3; v2=v3;
-    }
-    
   }
       
   gi.unAppendTheDefaultPrompt();
@@ -640,6 +546,8 @@ checkForce()
 
   if( beamModelType==linearBeamModel )
   {
+    real tf=0.;  // time to apply force
+
     real h=thickness*.5;
     real x0=.1, y0=h, x1=.5, y1=h;
     real nx0=0., ny0=1.;
@@ -647,14 +555,14 @@ checkForce()
   
     real p0=1., p1=1.;
     beam.resetForce();
-    beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
+    beam.addForce(tf, x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
 
     const RealArray & force = beam.force();
     ::display(force(Range(0,2*nElem,2)),"Top force","%8.2e ");
 
     beam.resetForce();
     x0=.5, y0=-h, x1=.1, y1=-h;
-    beam.addForce(x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
+    beam.addForce(tf, x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
     ::display(force(Range(0,2*nElem,2)),"Bottom force","%8.2e ");
 
   }

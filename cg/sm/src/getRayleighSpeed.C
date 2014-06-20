@@ -22,7 +22,7 @@ getRayleighSpeed( double rho, double mu, double lambda )
 
   complex<double> crc = sqrt( (mu/rho)*cb );
 
-  printf("getRayleighSpeed: mu=%e, lambda=%e, rho=%e\n",mu,lambda,rho,gamma);
+  // printf("getRayleighSpeed: mu=%e, lambda=%e, rho=%e\n",mu,lambda,rho,gamma);
   cout << "Complex Rayleigh speed: crc=" << crc << endl;
   return real(crc);
 }

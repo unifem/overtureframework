@@ -1,3 +1,29 @@
+=== 2014/06/19 -- add dirichlet BC for annulusEigenFunction for JWB
+
+**** SOSUP6:
+    cgmx diskeigen -g=sice4.order6.ng4.hdf -method=sosup -m=2 -n=2 -bcn=d
+
+-->t=1.0000e-01 dt=1.7e-02 maxNorm errors:[6.2735e-08,6.2681e-08,3.1588e-07,1.1537e-06,1.1572e-06,5.7869e-06,], maxNorm (u):[2.91e-01,2.91e-01,2.64e-01,1.88e+00,1.88e+00,4.07e+00,]
+>>> Cgmx:SOSUP: t=1.00e-01, dt=1.7e-02 TS=ME order(X,T)=(6,6) |div(E)|=1.03e-06, |div(E)|/|grad(E)|=4.27e-07, |grad(E)|=2.40e+00 (6 steps)
+-->t=1.0000e+00 dt=1.7e-02 maxNorm errors:[2.3980e-06,2.3953e-06,1.8462e-06,6.0788e-06,6.0547e-06,2.4909e-05,], maxNorm (u):[1.80e-01,1.80e-01,4.16e-01,2.96e+00,2.96e+00,2.51e+00,]
+
+    cgmx diskeigen -g=sice2.order6.ng4.hdf -method=sosup -m=2 -n=2 -bcn=d
+-->t=1.0000e+00 dt=3.3e-02 maxNorm errors:[1.4306e-04,1.4300e-04,9.0770e-05,3.4570e-04,3.4339e-04,1.7287e-03,], maxNorm (u):[1.79e-01,1.79e-01,4.16e-01,2.96e+00,2.96e+00,2.51e+00,]
+
+
+**** SOSUP4:
+    cgmx diskeigen -g=sice4.order4.ng3.hdf -method=sosup -m=2 -n=2 -bcn=d
+-->t=1.0000e-01 dt=2.0e-02 maxNorm errors:[3.3699e-06,3.3699e-06,2.0792e-05,1.0697e-04,1.0697e-04,3.6671e-04,], maxNorm (u):[2.91e-01,2.91e-01,2.64e-01,1.88e+00,1.88e+00,4.07e+00,]
+>>> Cgmx:SOSUP: t=1.00e-01, dt=2.0e-02 TS=ME order(X,T)=(4,4) |div(E)|=8.54e-05, |div(E)|/|grad(E)|=3.56e-05, |grad(E)|=2.40e+00 (5 steps)
+
+
+
+cgmx diskeigen -g=sice4.order4.ng3.hdf -method=sosup -m=2 -n=2
+
+-->t=1.0000e-01 dt=2.0e-02 maxNorm errors:[3.3699e-06,3.3699e-06,2.0792e-05,1.0697e-04,1.0697e-04,3.6671e-04,], maxNorm (u):[2.91e-01,2.91e-01,2.64e-01,1.88e+00,1.88e+00,4.07e+00,]
+>>> Cgmx:SOSUP: t=1.00e-01, dt=2.0e-02 TS=ME order(X,T)=(4,4) |div(E)|=8.54e-05, |div(E)|/|grad(E)|=3.56e-05, |grad(E)|=2.40e+00 (5 steps)
+
+
 ==== 2014/0301 -- test for Alex F.
 
 cgmx cic.planeWaveBC -g=cice4.order4.hdf -diss=.5 -ic=zero -rbc=abcEM2 -tp=.5 -tf=10

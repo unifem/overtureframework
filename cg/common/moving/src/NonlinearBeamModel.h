@@ -111,7 +111,7 @@ class NonlinearBeamModel {
 
   int getNumberOfNodes() const { return numNodes; } // 
 
-  // return the estimatimated *explicit* time step dt 
+  // return the estimated *explicit* time step dt 
   real getExplicitTimeStep() const;
 
   void setAddedMassRelaxation(double);

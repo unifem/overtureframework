@@ -91,7 +91,7 @@ int correct( real t1, real t2,
 // define faces and grids that form the deforming body 
 int defineBody( int numberOfFaces, IntegerArray & boundaryFaces );
 
-int getAccelerationBC( const real time0, const int grid,
+int getAccelerationBC( const real time0, const int grid, MappedGrid & mg, 
 		       const Index &I1, const Index &I2, const Index &I3, 
 		       realSerialArray & bcAcceleration);
 
@@ -106,7 +106,7 @@ int getElasticBeamOption(const aString & answer, DialogData & dialog );
 // return the initial state (position, velocity, acceleration)
 int getInitialState( InitialStateOptionEnum stateOption, 
 		     const real time, 
-                     const int grid, const Index &I1, const Index &I2, const Index &I3, 
+                     const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
 		     realSerialArray & state );
 
 int getNumberOfGrids(); 
@@ -118,7 +118,7 @@ int getVelocity( const real time0,
 		 realArray & gridVelocity);
 
 
-int getVelocityBC( const real time0, const int grid, const Index &I1, const Index &I2, const Index &I3, 
+int getVelocityBC( const real time0, const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
 		   realSerialArray & bcVelocity);
 
 // return the order of accuracy used to compute the velocity 
