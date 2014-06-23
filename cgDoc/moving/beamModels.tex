@@ -1,0 +1,232 @@
+%=======================================================================================================
+% Beam Models for Overture and cg 
+%=======================================================================================================
+
+% -- article: 
+\documentclass[11pt]{article}
+% \usepackage[bookmarks=true]{hyperref}
+\usepackage[bookmarks=true,colorlinks=true,linkcolor=blue]{hyperref}
+
+% \input documentationPageSize.tex
+\hbadness=10000 
+\sloppy \hfuzz=30pt
+
+\usepackage{calc}
+\usepackage[lmargin=1.in,rmargin=1.in,tmargin=1.in,bmargin=1.in]{geometry}
+
+\input homeHenshaw
+
+
+\input wdhDefinitions.tex
+
+% \input{pstricks}\input{pst-node}
+% \input{colours}
+
+\newcommand{\bogus}[1]{}  % begin a section that will not be printed
+
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{graphicx}
+
+% --------------------------------------------
+% NOTE: trouble with tikz and program package ??
+\usepackage{tikz}
+
+\input trimFig.tex
+
+
+% \usepackage{verbatim}
+% \usepackage{moreverb}
+% \usepackage{graphics}    
+% \usepackage{epsfig}    
+% \usepackage{calc}
+% \usepackage{ifthen}
+% \usepackage{float}
+% \usepackage{fancybox}
+
+% define the clipFig commands:
+% \input clipFig.tex
+
+\newcommand{\obDir}{\homeHenshaw/res/OverBlown}
+\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+
+% \newcommand{\grad}{\nabla}
+% \newcommand{\half}{\frac{1}{2}}}
+
+\newcommand{\eps}{\epsilon}
+\newcommand{\zerov}{\mathbf{0}}
+
+\newcommand{\bc}[1]{\mbox{\bf#1}}   % bold name
+\newcommand{\cc}[1]{\mbox{  : #1}}  % comment
+
+\newcommand{\Overture}{{Overture}}
+
+\newcommand{\Largebf}{\sffamily\bfseries\Large}
+\newcommand{\largebf}{\sffamily\bfseries\large}
+\newcommand{\largess}{\sffamily\large}
+\newcommand{\Largess}{\sffamily\Large}
+\newcommand{\bfss}{\sffamily\bfseries}
+\newcommand{\smallss}{\sffamily\small}
+\newcommand{\normalss}{\sffamily}
+\newcommand{\scriptsizess}{\sffamily\scriptsize}
+
+\newcommand{\Div}{\grad\cdot}
+\newcommand{\tauv}{\boldsymbol{\tau}}
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+\newcommand{\omegav}{\boldsymbol{\omega}}
+\newcommand{\cm}{{\rm cm}}
+
+\newcommand{\sumi}{\sum_{i=1}^n}
+% \newcommand{\half}{{1\over2}}
+\newcommand{\dt}{{\Delta t}}
+
+
+\newcommand{\Gc}{\mathcal{G}}
+\newcommand{\Fc}{\mathcal{F}}
+\newcommand{\sgn}{\operatorname{sgn}}
+
+\renewcommand{\url}[1]{Available from www.OvertureFramework.org}
+
+
+% \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
+
+
+% *** See http://www.eng.cam.ac.uk/help/tpl/textprocessing/squeeze.html
+% By default, LaTeX doesn't like to fill more than 0.7 of a text page with tables and graphics, nor does it like too many figures per page. This behaviour can be changed by placing lines like the following before \begin{document}
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+
+\begin{document}
+
+\vglue 5\baselineskip
+\begin{flushleft}
+{\LARGE Beam Models for Overture and CG} \\
+\vspace{2\baselineskip}
+William D. Henshaw, \\
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute,     \\
+Troy, NY, 12180.  \\
+
+www.overtureFramework.org \\
+\vspace{2\baselineskip}
+\today
+\vspace{4\baselineskip}
+% 
+\end{flushleft}
+%
+%
+\noindent{\bf Abstract:} This article provides background and documentation for
+the beam models that have been developed for use with Overture and the CG suite of partial differential
+equation solvers. The topics covered include
+\begin{description}
+  \item[BeamModel] : a class that implements an Euler-Bernoulli beam.
+  \item[NonLinearBeamModel] : a non-linear beam model.
+\end{description}
+
+
+% ----------------------------------------------------
+\clearpage
+\tableofcontents
+\section{Acknowledgements}
+
+Thanks to Dr. Alex Main for developing the first version of the BeamModel and NonLinearBeamModel classes while
+a summer student at LLNL in 2013.
+
+% --------------------------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------------------------
+\section{Class BeamModel}\label{sec:BeamModel}
+
+The BeamModel class defines a generalized Euler-Bernoulli (EB) beam,
+
+\newcommand{\rhos}{\bar{\rho}}
+\newcommand{\hs}{\bar{h}}
+\newcommand{\bs}{\bar{b}}
+\newcommand{\As}{\bar{A}}
+\newcommand{\Ts}{\bar{T}}
+\newcommand{\Ls}{\bar{L}}
+\begin{align}
+  \rhos \As \frac{\partial^2 w}{\partial t^2} = 
+                   \frac{\partial}{\partial x}\left( T \frac{\partial w}{\partial x}\right)
+                   - \frac{\partial^2}{\partial x^2}\left( E I \frac{\partial^2 w}{\partial x^2}\right)
+                   + f(x,t), \qquad x\in[0,\Ls], \quad t\ge 0,
+\end{align}
+where $y=w(x,t)$ is the displacement of the beam, 
+$\As$ is the cross-sectional area of the beam ($\As=\hs\bs$ for a beam of constant thickness, $\hs$ and constant breadth $\bs$ in the z-direction), 
+$\rhos$ is the beam density, $\Ls$ is the length of the beam, 
+$E$ is Young's modulus, $I$ is the area-moment of inertial (e.g. $I=\frac{1}{12} h^3 b$ for a rectangular beam),
+and $\Ts$ is the {\em tension} coefficient. 
+% 
+The EB beam is generally consider valid for thin beams and small slopes,  $|w_x| \ll 1$.
+
+
+A variational form of the problem is found by multiplying by $v$ and integrating over the domain with inner product,
+\begin{align}
+   (v,w)_B = \int_0^{\Ls} v \, w \, dx. 
+\end{align}
+After integration by parts the result is 
+\begin{align}
+ \left( v,  \rhos \As \frac{\partial^2 w}{\partial t^2} \right)_B  &= 
+                  - \left( \frac{\partial v}{\partial x} , T \frac{\partial w}{\partial x} \right)_B
+                  -\left(\frac{\partial^2 v}{\partial x^2}, E I \frac{\partial^2 w}{\partial x^2}\right)_B  + ( v, f(x,t))_B \\
+% boundary terms
+             &\quad  +   \left[ v T \frac{\partial w}{\partial x} ~ -v \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w}{\partial x^2}\Big) 
+                      ~ + \frac{\partial v}{\partial x}E I \frac{\partial^2 w}{\partial x^2}\Big)  
+                      \right]_0^{\Ls}   \label{eq:beamBoundaryTerms}
+\end{align}
+
+The boundary terms in~\eqref{eq:beamBoundaryTerms} indicate some valid combinations of boundary conditions that will given an energy estimate
+when $v=w$ (e.g. if all the boundary terms vanish when the forcing functions $g_m$, $h_m$, $M$ and $S$, given below, are all zero). 
+For example, the following three options are common boundary conditions (BC's), 
+\begin{align}
+   \text{clamped BC:}\quad & \quad w(x_m,t)=g_m(t),\quad  w_x(x_m,t)=h_m(t),  \\
+   \text{pinned BC:} \quad & \quad w(x_m,t)=g_m(t), \quad E I w_{xx}(x_m,t)=M(t), \\
+   \text{free BC:}   \quad & \quad  E I w_{xx}(x_m,t)=M(t), \quad \partial_x( E I w_{xx})(x_m,t)=S(t),
+\end{align}
+where $x_0=0$ and $x_1=\Ls$ for $m=0,1$, and 
+where $M(t)$ is the imposed moment and $S(t)$ the imposed shear force. 
+We also see there is a possible fourth choice (not so common ?) which we call a {\em slope} BC, since
+the end slope and shear are specified, 
+\begin{align}
+   \text{slope BC:}\quad & \quad w_x(x_m,t)=g_m(t),\quad  \partial_x( E I w_{xx})(x_m,t)=S(t). 
+\end{align}
+
+
+% --------------------------------------------------------------------------------------------------------------------
+\newcommand{\Ne}{N_e}
+\section{FEM approximation}\label{sec:BeamModelFEM}
+
+We define a FEM approximation for the EB-beam using Hermite polynomials and the Newmark-beta time stepping scheme.
+
+The FEM representation is of the form
+\begin{align}
+  w(x,t) = \sum_{j=1}^{\Ne} w_j(t) \phi_j(x) + w_j'(t) \psi_j(x)  = \sum_{j=1}^{\Ne} [ \phi_j(x)\, \psi_j(x)] \begin{bmatrix} w_j(t)\\w_j'(t)\end{bmatrix}
+\end{align}
+where the degrees of freedom are nodal displacement $w_j(t)$ and the nodal slope $w'_j(t)$, and where $\phi_j(x)$ and $\psi_j(x)$ are 
+the cubic Hermite polynomials 
+that are non-zero only on $[x_{j-1},x_{j+1}]$,  and
+that satisfy,
+\begin{align}
+  \phi_j(x_i)=\delta_{ij}, ~ \phi_i'(x_j)=0, \\
+  \psi_j(x_i)=0, ~ \psi_i'(x_j)=\delta_{ij}.
+\end{align}
+
+
+
+
+
+%\clearpage
+%\bibliography{\homeHenshaw/papers/henshaw}
+%\bibliographystyle{plain}
+\end{document}
