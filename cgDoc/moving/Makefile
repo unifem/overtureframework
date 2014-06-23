@@ -1,5 +1,9 @@
 # Makefile moving body documentation
 
+beamModels: beamModels.tex
+	pdflatex beamModels.tex
+
+
 movingBodies: movingBodies.tex
 	pdflatex movingBodies.tex
 
