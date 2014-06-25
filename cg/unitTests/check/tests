@@ -1,0 +1,14 @@
+# See the Readme file for instructions
+# Here is the executable:
+CGBUILDPREFIX/unitTests/bin/tbm
+# here is the name of the check file
+tbm.check
+# -- to test one or more cases, put them here followed by "exit"
+# box.ins
+# exit
+# 
+# -- test Euler-Bernoulli beam with trig TZ and different BC's 
+lbeamClamped.check ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=c -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+lbeamPinned.check  ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=p -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+lbeamFree.check    ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=f -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+

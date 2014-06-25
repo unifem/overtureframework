@@ -42,6 +42,9 @@ class TridiagonalSolver
 
   virtual real sizeOf( FILE *file=NULL ) const ; // return number of bytes allocated, print info to a file
 
+  // For backward compatibility one can set the block solves to use the transpose of the blocks
+  void setBlockOrdering( bool useTransposeOfBlocks = true );
+
  protected:
 
   int tridiagonalFactor();
@@ -70,6 +73,15 @@ class TridiagonalSolver
   int scalarBlockPeriodicFactor(int i1, int i2, int i3);
   int scalarBlockPeriodicSolve(RealArray & r, int i1, int i2, int i3);
   
+
+  // *** old versions using transpose -- keep for now 
+  int scalarBlockPeriodicFactorOld(int i1, int i2, int i3);
+  int scalarBlockPeriodicSolveOld(RealArray & r, int i1, int i2, int i3);
+
+  int scalarBlockFactorOld(int i1, int i2, int i3 );
+  int scalarBlockSolveOld(RealArray & r, int i1, int i2, int i3);
+
+
   SystemType systemType;
   int axis;
   RealArray a,b,c,d,e,w1,w2;
@@ -81,6 +93,8 @@ class TridiagonalSolver
 
   bool useOptimizedC;
   
+  bool useOldBlockOrdering;  // original block solves used the transpose of the blocks!
+
 };
 
 #endif

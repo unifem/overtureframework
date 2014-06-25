@@ -1,3 +1,196 @@
+*** 2014/06/25  -- add in FSI traveling wave solution to beam
+
+
+***FINISH ME***
+tbm tzbeam.cmd -nElem=20 -tz=twfsi -bc=p -Em=0. -tension=1. -tf=2 -useNewTri=1 -go=halt -tp=.1
+
+-ne=10: Error t=5.000e-01 : max=3.63e-04, l2=2.57e-04, l2-rel=4.20e-03
+-ne=20: Error t=5.000e-01 : max=3.18e-04, l2=2.20e-04, l2-rel=3.50e-03
+
+
+tbm tzbeam.cmd -nElem=10 -tz=twfsi -bc=p -Em=0. -tension=1. -tf=.2 -useNewTri=1 -go=halt
+
+
+---- PERIODIC BC's
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=per -Em=1. -tension=0. -tf=.1 -useNewTri=1 -go=halt
+
+-ne=5  Error t=1.000e-01 : max=1.89e-02, l2=1.44e-02, l2-rel=2.33e-01
+-ne=10 Error t=1.000e-01 : max=4.88e-03, l2=3.60e-03, l2-rel=6.03e-02
+-ne=20 Error t=1.000e-01 : max=1.23e-03, l2=8.91e-04, l2-rel=1.52e-02
+-ne=40 Error t=1.000e-01 : max=3.08e-04, l2=2.21e-04, l2-rel=3.81e-03
+
+
+*** 2014/06/21-24 -- fix BC's for Em=0, T ne 0 
+
+
+-- standing wave again
+tbm tzbeam.cmd -nElem=10 -tz=sw -bc=p -Em=1. -tension=0. -tf=.2 -useNewTri=1 -go=halt
+
+
+XXXX FIXED Block tridiagonal solver 
+
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=p -Em=1. -tension=1. -tf=.1 -useNewTri=1 -go=go
+
+
+
+XXXX BLOCK tridiagonal solver is broken !! --> uses transposes of blocks!!
+
+
+**** TEST FREEBC 
+Free+free: 
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=1 -bc=f -tension=1. -tf=.05   [exact 
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=1 -bc=cf -tension=1. -tf=.05   [exact 
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=2 -degreet=1 -bc=cf -tension=1. -tf=.05   [exact 
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=1 -degreet=1 -bc=cf -tension=1. -tf=.05   [  exact
+
+
+** -E=0, -T=1
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=c -Em=0. -tension=1. -tf=.1 -go=run
+
+
+** STRING : -E=0, -T=1 TZ=POLY : SECOND-ORDER degree(2,2) not exact ? --> utte = quadratic in x 
+    STRING : exact (2,1), (1,2) 
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=2 -degreet=1 -bc=p -Em=0. -tension=1. -tf=.1 -go=run [exact
+
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=2 -degreet=2 -bc=p -Em=0. -tension=1. -tf=.1 -go=run 
+ 5 : Error t=1.000e-01 : max=1.05e-05, l2=8.05e-06, l2-rel=4.02e-05
+10 : Error t=1.000e-01 : max=2.78e-06, l2=2.43e-06, l2-rel=1.28e-05
+20 : Error t=1.000e-01 : max=6.94e-07, l2=6.57e-07, l2-rel=3.55e-06
+
+** STRING: -E=0, -T=1  TRIG **FIRST ORDER ?? --> helps to decrease CFL
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=c -Em=0. -tension=1. -tf=.1 -go=run
+-ne=5: 
+Error t=1.000e-01 : max=1.45e-03, l2=8.57e-04, l2-rel=1.39e-02
+10 : Error t=1.000e-01 : max=8.06e-04, l2=4.71e-04, l2-rel=7.88e-03
+     Error t=1.000e+00 : max=8.78e-03, l2=6.22e-03, l2-rel=8.42e-02
+     Error t=1.000e+00 : max=6.83e-03, l2=4.70e-03, l2-rel=6.37e-02 -cfl=.1
+
+-ne=20 
+20 : Error t=1.000e-01 : max=4.48e-04, l2=2.91e-04, l2-rel=4.97e-03
+     Error t=1.000e+00 : max=5.89e-03, l2=3.34e-03, l2-rel=4.62e-02
+     Error t=1.000e+00 : max=2.35e-03, l2=1.32e-03, l2-rel=1.82e-02  cfl=.125
+
+
+*** BEAM+STRING+PINNED -E=1, -T=1 **SECOND ORDER**
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=p -tension=1. -tf=.1 -go=run
+ 5: Error t=1.000e-01 : max=4.08e-03, l2=2.38e-03, l2-rel=3.86e-02
+10: Error t=1.000e-01 : max=1.46e-03, l2=7.03e-04, l2-rel=1.18e-02
+20: Error t=1.000e-01 : max=3.72e-04, l2=1.83e-04, l2-rel=3.13e-03
+
+
+*** BEAM+STRING -E=1, -T=1 **SECOND ORDER**
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=c -tension=1. -tf=.1 -go=run
+-ne=5
+Error t=1.000e-01 : max=4.15e-03, l2=2.41e-03, l2-rel=3.91e-02
+-ne=10:
+Error t=1.000e-01 : max=1.34e-03, l2=6.92e-04, l2-rel=1.16e-02
+-ne=20
+Error t=1.000e-01 : max=3.40e-04, l2=1.80e-04, l2-rel=3.07e-03
+
+
+tbm -noplot -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=c -useNewTri=1 -tf=.1 -go=run
+Error t=1.000e-01 : max=4.02e-03, l2=2.34e-03, l2-rel=3.79e-02
+
+
+*** 2014/06/21 -- more clean up 
+
+
+TRIG:
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=c -useNewTri=1 [ OK
+Error t=5.000e-02 : max=1.17e-03, l2=6.81e-04, l2-rel=9.37e-03
+
+-nElem=5
+Error t=1.000e-01 : max=4.02e-03, l2=2.34e-03, l2-rel=3.79e-02
+
+-ne=10: -cfl=.25
+Error t=1.000e-01 : max=1.31e-01, l2=6.12e-02, l2-rel=1.03e+00
+
+
+--- ft=0, fx=2
+-ne=5
+-ne=10
+Error t=5.000e-02 : max=6.21e-04, l2=2.93e-04, l2-rel=3.97e-03
+Error t=5.000e-01 : max=1.21e-02, l2=7.29e-03, l2-rel=9.87e-02
+-ne=20
+Error t=5.000e-02 : max=1.62e-04, l2=7.63e-05, l2-rel=1.05e-03
+Error t=5.000e-01 : max=3.06e-03, l2=1.88e-03, l2-rel=2.60e-02
+
+---- fx=0
+
+-cfl=.5: 
+Error t=1.000e-01 : max=3.21e-04, l2=2.42e-04, l2-rel=2.99e-03
+-cfl=.25: 
+Error t=5.000e-02 : max=2.03e-05, l2=1.60e-05, l2-rel=1.68e-04
+
+
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=2 -bc=c -useNewTri=1
+Error t=5.000e-02 : max=2.92e-06, l2=2.12e-06, l2-rel=1.09e-05
+Error t=3.000e-01 : max=2.31e-03, l2=1.21e-03, l2-rel=5.41e-03
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=2 -bc=c -useNewTri=0
+Error t=5.000e-02 : max=2.92e-06, l2=2.12e-06, l2-rel=1.09e-05
+
+
+
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=2 -bc=c [TROUBLE
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=2 -bc=c -useNewTri=0 [OK
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=3 -degreet=1 -bc=c [exact
+
+
+-- test tension
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=3 -degreet=2 -tension=1. -Em=0. -bc=c [Trouble 
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=3 -degreet=2 -tension=0. -Em=1. -bc=c [Trouble 
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=3 -degreet=1 -tension=1. -Em=0. -bc=c [exact
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=1 -degreet=1 -tension=1. -Em=0. -bc=c [exact 
+
+
+--TEST periodic: **FINISH ME*
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=trig -bc=periodic
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=3 -degreet=1 -bc=c 
+
+*** 2014/06/20 -- 
+
+**FIXES made for non-zero BC's 
+
+=== pinned:
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=0 -bc=p [ *fix me*
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=1 -degreet=2 -bc=p [ exact 
+
+
+==== clamped BC's : 
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=2 -bc=c  [not exact due to force integration
+    
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=3 -degreet=1 -bc=c [exact
+
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=1 -degreet=2 -bc=c [exact
+
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=3 -degreet=1 -bc=c [exact
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=1 -bc=c [ exact 
+
+
+*** 2014/06/19 -- rework beam model to internal save state
+
+*** TZ:
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=2 -degreet=1 -bc=c [ exact 
+
+tbm -cmd=tzbeam.cmd -nElem=5 -degreex=1 -degreet=1 -bc=c [ exact 
+
+
 *** 2014/06/19 -- rework beam model to internal save state
 
 *** TZ:

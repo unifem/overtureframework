@@ -1,1 +1,14 @@
-This directory cotains regression tests for the unit tests
+This directory contains regression tests for the unit tests
+
+Type "make" to run the regression tests.
+
+The file "tests" holds the list of tests to run.
+
+To run one check:
+  check.p sis.ins
+
+To replace one check file:
+  check.p replace sis.ins
+
+To replace all check files
+  check.p replace

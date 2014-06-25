@@ -1,9 +1,12 @@
 //                                   -*- c++ -*-
+// #define BOUNDS_CHECK
+
 #include "BeamModel.h"
 #include "display.h"
 #include "TravelingWaveFsi.h"
 #include "OGPolyFunction.h"
 #include "OGTrigFunction.h"
+#include "TridiagonalSolver.h"
 
 #include <sstream>
 
@@ -50,6 +53,9 @@ BeamModel::BeamModel()
   domainDimension=1;        // domain dimension
   numberOfDimensions=2;     // range dimension
 
+  exactSolutionOption="none";
+  initialConditionOption="none";
+
   elementK.redim(4,4);
   elementM.redim(4,4);
 
@@ -74,12 +80,12 @@ BeamModel::BeamModel()
 
   time_step_num = 1;
 
-  pressureNorm = 1000.0;
+  pressureNorm = 1.; // 1000.0;  // scale pressure forces by this factor
 
   hasAcceleration = false;
 
-  bcLeft = bcRight = Pinned;
-  //bcLeft = bcRight = Cantilevered;
+  bcLeft = bcRight = pinned;
+  //bcLeft = bcRight = clamped;
 
 //  added_mass_relaxation = 1.0;
 
@@ -89,6 +95,8 @@ BeamModel::BeamModel()
 
   allowsFreeMotion = false;
 
+  beamX0=beamY0=beamZ0=0.;
+  
   centerOfMass[0] = 0.0;
   centerOfMass[1] = 0.0;
 
@@ -158,6 +166,14 @@ BeamModel::BeamModel()
   dbase.put<std::vector<RealArray> >("a"); // acceleration
   dbase.put<std::vector<RealArray> >("f"); // force
   
+  if( !dbase.has_key("useSecondOrderNewmarkPredictor") ) dbase.put<bool>("useSecondOrderNewmarkPredictor")=true;
+  if( !dbase.has_key("useNewTridiagonalSolver") ) dbase.put<bool>("useNewTridiagonalSolver")=true;
+
+  // Here is the tri-diagonal solver class:
+  if( !dbase.has_key("tridiagonalSolver") ) dbase.put<TridiagonalSolver*>("tridiagonalSolver")=NULL;
+  // The variable refactor is set to true when the implicit system chenges (e.g. when dt changes)
+  if( !dbase.has_key("refactor") ) dbase.put<bool>("refactor")=true;
+
   // --- twilight-zone variables ---
   if( !dbase.has_key("exactPointer") ) dbase.put<OGFunction*>("exactPointer")=NULL;
   if( !dbase.has_key("degreeInTime") ) dbase.put<int>("degreeInTime",2);
@@ -173,9 +189,76 @@ BeamModel::BeamModel()
 
 }
 
-BeamModel::~BeamModel() {
+// ======================================================================================================
+/// \brief Destructor.
+// ======================================================================================================
+BeamModel::~BeamModel() 
+{
+  TridiagonalSolver *& pTri = dbase.get<TridiagonalSolver*>("tridiagonalSolver");
+  if( pTri!=NULL )
+  {
+    delete pTri;
+  }
+  
 
 }
+
+// ======================================================================================================
+/// \brief Write a summary of the Beam model parameters and boundary conditions etc.
+// ======================================================================================================
+void BeamModel::
+writeParameterSummary( FILE *file /* = stdout */ )
+{
+  const real & T = dbase.get<real>("tension");
+  const real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
+  const real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
+  const bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
+
+  fPrintF(file," --------------------------------------------------------------------------------\n");
+  fPrintF(file,"        Beam Model\n");
+  fPrintF(file," Type: Euler-Bernoulli beam. beamID=%i, name=%s\n",beamID,(const char*)name);
+  fPrintF(file,"     (density*thickness*b)*w_tt = T w_xx + EI w_xxxx\n");
+  fPrintF(file," E=%9.3e, I=%9.3e, T=%8.2e, \n"
+               " density=%9.3e, length=%9.3e, thickness=%9.3e, initial-angle=%7.3f (degrees) \n"
+               " numElem=%i, allowsFreeMotion=%i, initial left end=(%g,%g,%g)\n"
+               " Newmark time-stepping, beta=%g, gamma=%g\n"
+               " pressureNormalization = %8.2e (scale pressure forces by this factor)\n"
+               " added-mass relaxation factor=%g, sub-iteration tol=%9.3e\n"
+               " useNewTridiagonalSolver=%i\n"
+	  , elasticModulus,areaMomentOfInertia,T,density,L,thickness,beamInitialAngle*180./Pi,
+	  numElem,(int)allowsFreeMotion,beamX0,beamY0,beamZ0,
+          newmarkBeta,newmarkGamma,
+	  pressureNorm,addedMassRelaxationFactor,subIterationConvergenceTolerance,
+          (int)useNewTridiagonalSolver);
+
+  aString bcName;
+  for( int side=0; side<=1; side++ )
+  {
+    BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+    bcName = (bc==pinned ? "pinned" : 
+              bc==clamped ? "clamped" :
+              bc==periodic ? "periodic" : 
+              bc==freeBC ? "free" : "unknown");
+    
+    fPrintF(file," %s=%s, ",(side==0 ? "bcLeft" : "bcRight"),(const char*)bcName);
+  }
+  fPrintF(file,"\n");
+
+  const bool & twilightZone = dbase.get<bool>("twilightZone");
+  const int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
+  const int & degreeInTime = dbase.get<int>("degreeInTime");
+  const int & degreeInSpace = dbase.get<int>("degreeInSpace");
+  fPrintF(file," twilightZone=%i, option=%s. Poly: degreeT=%i, degreeX=%i\n",(int)twilightZone,
+          (twilightZoneOption==0 ? "polynomial" : "trigonometric"),
+	  degreeInTime,degreeInSpace );
+  fPrintF(file," Exact solution option: %s\n",(const char*)exactSolutionOption);
+  fPrintF(file," Initial condition option: %s\n",(const char*)initialConditionOption);
+  
+
+  fPrintF(file," --------------------------------------------------------------------------------\n");
+
+}
+
 
 
 // ======================================================================================
@@ -207,6 +290,7 @@ initialize()
   // std::cout << "EI = " << EI << std::endl;
 
   // *wdh* 2014/06/17 -- tension term added
+  // Tension term from -T(v_x,w_x)
   elementK(0,0) = EI*12./le3       + T*6./(5.*le);    
   elementK(0,1) = EI*6./le2        + T/10.; 
   elementK(0,2) = -elementK(0,0); 
@@ -274,10 +358,10 @@ initialize()
   dtilde = u[current];
   vtilde = v[current];
 
+  bool & refactor = dbase.get<bool>("refactor");  // et to true when we need to refactor the implicit time-stepping matrix
+  refactor=true;
 
-
-
-}
+  }
 
 // ====================================================================================================
 /// \brief Initialize the twilight zone 
@@ -286,7 +370,7 @@ int BeamModel::
 initTwilightZone()
 {
 
-    // -- twilight zone ---
+  // -- twilight zone ---
   const bool & twilightZone = dbase.get<bool>("twilightZone");
 
   printF("-- BM -- initTwilightZone twilightZone=%i\n",(int)twilightZone);
@@ -315,7 +399,7 @@ initTwilightZone()
     RealArray gx( numberOfTZComponents),gy( numberOfTZComponents),gz( numberOfTZComponents),gt( numberOfTZComponents);
     gx=0.; gy=0.; gz=0.; gt=0.;
     RealArray amplitude( numberOfTZComponents), cc( numberOfTZComponents);
-    amplitude=1.;
+    amplitude= dbase.get<real>("amplitude");
     cc=0.;
 
     fx = omega[0];
@@ -332,7 +416,7 @@ initTwilightZone()
   }
   else
   {
-    printF("--- BM --- TwilightZone: algebraic polynomial\n");
+    printF("--- BM --- TwilightZone: algebraic polynomial : degreeInSpace=%i, degreeInTime=%i \n",degreeInSpace,degreeInTime);
     int degreeOfSpacePolynomial = degreeInSpace;
     int degreeOfTimePolynomial = degreeInTime;
 
@@ -350,9 +434,9 @@ initTwilightZone()
     }
     else if( degreeInSpace==2 )
     {
-      spatialCoefficientsForTZ(0,0,0, wc)= 0;      // w = x(1-x) = x - x^2 
+      spatialCoefficientsForTZ(0,0,0, wc)=-.25;      // w = x(1-x) = -.25 + x - .75*x^2 
       spatialCoefficientsForTZ(1,0,0, wc)= 1.; 
-      spatialCoefficientsForTZ(2,0,0, wc)=-1.; 
+      spatialCoefficientsForTZ(2,0,0, wc)=-.75; 
 
     }
     else if( degreeInSpace==0 )
@@ -361,10 +445,10 @@ initTwilightZone()
     }
     else if( degreeInSpace==3 )
     {
-      spatialCoefficientsForTZ(0,0,0, wc)=-1.; 
-      spatialCoefficientsForTZ(1,0,0, wc)=.5; 
-      spatialCoefficientsForTZ(2,0,0, wc)=-.25; 
-      spatialCoefficientsForTZ(3,0,0, wc)=.125;
+      spatialCoefficientsForTZ(0,0,0, wc)=-.1; 
+      spatialCoefficientsForTZ(1,0,0, wc)=2.; 
+      spatialCoefficientsForTZ(2,0,0, wc)=-2.5;
+      spatialCoefficientsForTZ(3,0,0, wc)=1.;
 
     }
     else if( degreeInSpace==4 )
@@ -392,8 +476,9 @@ initTwilightZone()
     }
 
 
-
-    exactPointer = new OGPolyFunction(degreeOfSpacePolynomial,domainDimension,numberOfTZComponents,
+    int numberOfDimensions=2; // domainDimension;
+    
+    exactPointer = new OGPolyFunction(degreeOfSpacePolynomial,numberOfDimensions,numberOfTZComponents,
 				      degreeOfTimePolynomial);
 
     ((OGPolyFunction*)exactPointer)->setCoefficients( spatialCoefficientsForTZ,timeCoefficientsForTZ );
@@ -407,6 +492,17 @@ initTwilightZone()
 
 // ===================================================================================
 /// \brief Set the beam parameters.
+// momOfIntertia:    I/b (true area moment of inertia divided by the width of the beam
+// E:                Elastic modulus
+// rho:              beam density
+// thickness:        beam thickness (assumed to be constant)
+// pnorm:            value used to scale the pressure (i.e., the fluid density)
+// bcleft:           beam boundary condition on the left
+// x0:               initial location of the left end of the beam (x)
+// y0:               initial location of the left end of the beam (y)
+// useExactSolution: This flag sets the beam model to use the initial conditions
+//                   from the exact solution (FSI) in the documentation.
+// 
 // ===================================================================================
 void BeamModel::
 setParameters(real momOfInertia, real E, 
@@ -455,14 +551,17 @@ getExplicitTimeStep() const
   
   real dx = beamLength/numNodes; 
   
-  real EI = elasticModulus*areaMomentOfInertia;
+  const real EI = elasticModulus*areaMomentOfInertia;
   const real & T = dbase.get<real>("tension");
 
-  //  ( E*I*dt^2/dx^4 + T*dt^2/dx^2 )/( rho*h*b ) < 1 
+  // Guess the explicit time step: 
+  //  ( c4*E*I*dt^2/dx^4 + C2*T*dt^2/dx^2 )/( rho*h*b ) < 1 
 
   real breadth=1.;  // fix me 
   
-  real dt = sqrt(  (density*thickness*breadth) /(  EI/pow(dx,4) + T/(dx*dx) ) );
+  const real c4=1., c2=4.;
+  // const real c4=1., c2=1.;
+  real dt = sqrt(  (density*thickness*breadth) /(  c4*EI/pow(dx,4) + c2*T/(dx*dx) ) );
   
   printF("BeamModel::getExplicitTimeStep: EI=%g, T=%g, dx=%8.2e, dt=%8.2e\n",EI,T,dx,dt);
 
@@ -508,6 +607,8 @@ computeProjectedForce(real p1, real p2,
 
   real invde = 1./de;
   
+  
+
   fe(0) = 1./40.*x1+1./32.*x2-1./8.*x3-3./16.*x4+1./8.*x5+1./4.*x6;
   fe(1) = 1./80.*x1+1./64.*x2-1./64.*x7-1./48.*x8-1./48.*x3-1./32.*x4+1./32.*x5+1./16.*x6;
   
@@ -520,6 +621,8 @@ computeProjectedForce(real p1, real p2,
   fe(1) *= invde*le;
   fe(3) *= invde*le;
   
+  // printF("computeProjectedForce: p1=%e p2=%e fe=[%e,%e,%e,%e]\n",p1,p2,fe(0),fe(1),fe(2),fe(3));
+
 }
 
 void BeamModel::
@@ -552,7 +655,9 @@ setupFreeMotion(real x0,real y0, real angle0)
 
 }
 
-void BeamModel::addBodyForce(const real bf[2]) {
+void BeamModel::
+addBodyForce(const real bf[2]) 
+{
 
   bodyForce[0] = bf[0];
   bodyForce[1] = bf[1];
@@ -560,7 +665,9 @@ void BeamModel::addBodyForce(const real bf[2]) {
   projectedBodyForce = normal[0]*bodyForce[0] + normal[1]*bodyForce[1];
 }
 
-static void inverse2x2(const RealArray& A, RealArray& inv) {
+static void 
+inverse2x2(const RealArray& A, RealArray& inv) 
+{
 
   inv.redim(2,2);
   real odet = 1./(A(0,0)*A(1,1) - A(0,1)*A(1,0));
@@ -573,125 +680,406 @@ static void inverse2x2(const RealArray& A, RealArray& inv) {
 // ================================================================================
 /// \brief Solve A u = f
 /// 
-/// The last 6 arguments are for periodic boundary conditions.  
+/// \param Ae (input) : "element" matrix for A 
+//
+//     Ae = Me + alpha*Ke 
+//     Me = element mass matrix 
+//     Ke = element stiffness matrix 
 // ================================================================================
-static void 
-solveBlockTridiagonal(const RealArray& elementM, const RealArray& f,
-		      RealArray& u,
-		      BeamModel::BoundaryCondition bcLeft,
-		      BeamModel::BoundaryCondition bcRight,
-		      bool allowsFreeMotion,
-		      bool augmented = false,
-		      RealArray* augmentedRow = NULL,
-		      RealArray* augmentedCol = NULL,
-		      real* augmentedDiagonal = NULL,
-		      real* augmentedRHS = NULL,
-		      real* augmentedSolution = NULL) 
+void BeamModel::
+solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, const real alpha )
 {
 
-  RealArray ftmp;
-  ftmp.redim(2);
-  u = f;
-  RealArray upper;  upper.redim(2,2);
-  RealArray diag1;  diag1.redim(2,2);
-  RealArray diag2;  diag2.redim(2,2);
+  const bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
+  bool & refactor = dbase.get<bool>("refactor");
 
-  int numElem = f.getLength(0)/2-1;
 
-  upper(0,0) = elementM(0,2); upper(0,1) = elementM(0,3);
-  upper(1,0) = elementM(1,2); upper(1,1) = elementM(1,3);
 
-  RealArray upperT = trans(upper);
-
-  diag1(0,0) = elementM(0,0); diag1(0,1) = elementM(0,1);
-  diag1(1,0) = elementM(1,0); diag1(1,1) = elementM(1,1);
-
-  diag2(0,0) = elementM(2,2); diag2(0,1) = elementM(2,3);
-  diag2(1,0) = elementM(3,2); diag2(1,1) = elementM(3,3);
-  
-  RealArray dd = evaluate(diag1+diag2);
-
-  std::vector< RealArray > diagonal(numElem+1,dd),
-    superdiagonal(numElem,upper),subdiagonal(numElem, upperT);
-  
-  diagonal[0] = diag1;
-  diagonal[numElem] = diag2;
-
-  if (bcLeft == BeamModel::Cantilevered && !allowsFreeMotion) {
-    diagonal[0](0,0) = diagonal[0](1,1) = 1.0;
-    diagonal[0](0,1) = diagonal[0](1,0) = 0.0;
-    superdiagonal[0](0,0) = superdiagonal[0](0,1) = 0.0;
-    superdiagonal[0](1,1) = superdiagonal[0](1,0) = 0.0;
+  const bool isPeriodic = bcLeft==periodic;
+  if( isPeriodic ) 
+  { // consistency check:
+    assert( bcRight==periodic );
   }
-  if (bcLeft == BeamModel::Pinned && !allowsFreeMotion) {
-    diagonal[0](0,0) = 1.0;
-    diagonal[0](0,1) = 0.0;
-    superdiagonal[0](0,0) = 0.0;
-    superdiagonal[0](0,1) = 0.0;
+  
+  bool checkResidual=true && refactor;  // for testing block tridiagonal solver 
+  bool useBoth=useNewTridiagonalSolver && !isPeriodic;  // check new solver with old
+
+
+  // refactor=true;  // *********************************
+
+  const real & T = dbase.get<real>("tension");
+  RealArray lower(2,2), upper(2,2), diag1(2,2), diag2(2,2);
+
+  // int numElem = f.getLength(0)/2-1;
+
+  //  Ae = [ a00 a01 | a02 a03 ]
+  //       [ a10 a11 | a12 a13 ]
+  //       [ -------- ---------]  
+  //       [ a20 a21 | a22 a23 ]
+  //       [ a30 a31 | a32 a33 ]
+
+  // upper = upper right quad
+  upper(0,0) = Ae(0,2); upper(0,1) = Ae(0,3);
+  upper(1,0) = Ae(1,2); upper(1,1) = Ae(1,3);
+
+  // lower = lower left quad (= upper^T  since Me = Me^T
+  lower(0,0) = Ae(2,0); lower(0,1) = Ae(2,1);
+  lower(1,0) = Ae(3,0); lower(1,1) = Ae(3,1);
+
+  // RealArray upperT(2,2);
+  // upperT = trans(upper);
+
+  // ::display(upper ,"--BM-- solveBlockTridiagonal: upper","%8.2e ");
+  // ::display(upperT,"--BM-- solveBlockTridiagonal: upperT","%8.2e ");
+
+  diag1(0,0) = Ae(0,0); diag1(0,1) = Ae(0,1);
+  diag1(1,0) = Ae(1,0); diag1(1,1) = Ae(1,1);
+
+  diag2(0,0) = Ae(2,2); diag2(0,1) = Ae(2,3);
+  diag2(1,0) = Ae(3,2); diag2(1,1) = Ae(3,3);
+  
+  RealArray dd(2,2);
+  dd = diag1+diag2;
+
+  // Solve the block tridiagonal system: 
+  //     [ D2[0] D3[0]                         ]
+  //     [ D1[0] D2[1] D3[1]                   ]
+  //     [       D1[1] D2[2] D3[2]             ]
+  //     [                                     ]
+  //     [                  ...    ...         ]
+  //     [          D1[ne-1] D2[ne-1] D3[ne-1] ]
+  //     [                   D1[ne-1] D2[ne]   ]
+
+  RealArray uNew;
+  
+  if( useBoth || useNewTridiagonalSolver )
+  {
+    // -- For periodic systems we do not include the last point in the system --
+    //       x----+----+----+   ... ----+----x
+    //       0    1    2               nTri  numElem
+    //                                  
+    //    u(0) = u(numElem)
+    // 
+    int nTri = numElem;
+    if( isPeriodic ) nTri=numElem-1;
+
+    Index  I1=Range(0,nTri), I2=Range(0,0);
+    // Range I1=Range(0,numElem), I2=Range(0,0);
+    // Range I1(0,numElem), I2(0,0);
+    const int ndof=2;  // number of degrees of freedom per node 
+
+    // TridiagonalSolver::periodic
+    const TridiagonalSolver::SystemType systemType = isPeriodic ? TridiagonalSolver::periodic : TridiagonalSolver::normal;
+    
+    TridiagonalSolver *& pTri = dbase.get<TridiagonalSolver*>("tridiagonalSolver");
+    if( pTri==NULL )
+      pTri = new TridiagonalSolver();
+
+    assert( pTri!=NULL );
+
+    TridiagonalSolver & tri = *pTri;
+
+    RealArray at0(ndof,ndof,I1,I2), bt0(ndof,ndof,I1,I2), ct0(ndof,ndof,I1,I2); // save for checking
+    if( refactor )
+    {
+      printF("-- BM -- solveBlockTridiagonal : form block tridiagonal system and factor, isPeriodic=%i\n",(int)isPeriodic);
+      
+      RealArray at(ndof,ndof,I1,I2), bt(ndof,ndof,I1,I2), ct(ndof,ndof,I1,I2);
+
+      Index D=Range(0,1); // =ndof;
+      for( int i=0; i<=nTri; i++ ) 
+      {
+	if( i>0 || isPeriodic )
+	  at(D,D,i,0) = lower;  // lower diagonal 
+	else 
+	  at(D,D,i,0)=0.;   
+
+	// diagonal :
+	if( i==0 && !isPeriodic )
+	{
+	  bt(D,D,i,0) = diag1;
+	}
+	else if( i==nTri && !isPeriodic )
+	{
+	  bt(D,D,i,0) = diag2;
+	}
+	else
+	{
+	  bt(D,D,i,0) = dd;      
+	}
+	
+	if( i<nTri || isPeriodic )
+	  ct(D,D,i,0) = upper;   // upper diagonal 
+	else 
+	  ct(D,D,i,0) = 0.;     
+
+
+      }  // end for i 
+      
+      // -- Boundary fixup ---
+      if( !allowsFreeMotion )
+      {
+	// --- Boundary conditions ---
+	// Adjust the matrix for essential BC's -- these will set the DOF's at boundaries
+	for( int side=0; side<=1; side++ )
+	{
+	  BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+	  int ia = side==0 ? 0 : numElem;
+
+	  // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
+	  const real EI = elasticModulus*areaMomentOfInertia;
+	  if( bc==clamped && EI==0. ) bc=pinned;
+	  
+	  if( bc == clamped ) 
+	  {
+	    // Replace first block of equations by the identity
+	    bt(0,0,ia,0)=1.; bt(0,1,ia,0)=0.;
+	    bt(1,0,ia,0)=0.; bt(1,1,ia,0)=1.; 
+	    if( side==0 )
+	      ct(D,D,ia,0)=0.;
+	    else
+	      at(D,D,ia,0)=0.;
+	  }
+	  if( bc == pinned ) 
+	  {
+	    // replace first equation in first 2x2 block by the identity
+	    if( side==0 )
+	      ct(0,D,ia,0)=0.; 
+	    else
+	      at(0,D,ia,0)=0.;
+	    
+	    bt(0,0,ia,0)=1.; bt(0,1,ia,0)=0.; 
+	  }
+	  if( bc == freeBC )
+	  {
+	    // --- correct the stiffnes matrix for a free BC
+            // The boundary term T*v*w_x is only non-zero for v=N_1, and w_x = Np_1_x
+            //  T*N1(0)*Np_1_x(0)*w'_1
+            
+            // -- freeBC is not allowed with string model ---
+            if(  EI==0. )
+	    {
+	      printF("--BM-- ERROR: A `free' BC is no allowed with the string model for a beam, EI=0\n");
+	      OV_ABORT("ERROR");
+	    }
+	    
+
+	    bt(0,1,ia,0) +=  (1-2*side)*T*alpha;
+	  }
+	  
+
+	}
+      }
+
+      at0=at; bt0=bt; ct0=ct;
+      
+      // Factor the block tridiagonal system:
+      tri.factor(at,bt,ct,systemType,axis1,ndof);
+
+    } // end factor
+    
+      // -- rhs --
+
+    RealArray xTri(ndof,I1,I2);
+    for( int i=0; i<=nTri; i++ ) 
+    {
+      xTri(0,i,0)=f(i*2);
+      xTri(1,i,0)=f(i*2+1);
+    }
+      
+    // solve the block tridiagonal system: 
+    tri.solve(xTri);
+
+    // assign the solution 
+    for( int i = 0; i<=nTri; i++ ) 
+    {
+      u(i*2) = xTri(0,i,0);
+      u(i*2+1)=xTri(1,i,0);
+    }
+    if( isPeriodic )
+    { // -- assign values on last node
+      int i=numElem;
+      u(i*2) = u(0); u(i*2+1) = u(1);
+    }
+    
+
+    if( useBoth )
+      uNew=u;
+    
+    if( refactor && checkResidual )
+    {
+      // double check solution:
+      real resid=0.;
+      for( int i = 0; i<=nTri; i++ ) 
+      {
+	// resid = at*u[i-1] + bt*u[i] + ct*u[i+1];
+	int im1=max(0,i-1), ip1=min(i+1,numElem);
+	if( i==0       && isPeriodic ){ im1=numElem-1; } // perioidic case : i=0 <-> i=numElem
+	if( i==numElem && isPeriodic ){ ip1=1; }         // perioidic case : i=0 <-> i=numElem
+
+	real r=0.;
+	r += at0(0,0,i)*u(2*im1) + at0(0,1,i)*u(2*im1+1) + bt0(0,0,i)*u(2*i) + bt0(0,1,i)*u(2*i+1) + ct0(0,0,i)*u(2*ip1) + ct0(0,1,i)*u(2*ip1+1) -f(2*i);
+	r += at0(1,0,i)*u(2*im1) + at0(1,1,i)*u(2*im1+1) + bt0(1,0,i)*u(2*i) + bt0(1,1,i)*u(2*i+1) + ct0(1,0,i)*u(2*ip1) + ct0(1,1,i)*u(2*ip1+1) -f(2*i+1);
+
+	// printF("BT: i=%i resid=%e\n",i,r);
+	
+	resid=max(resid,r);
+      }
+      printF("--BM-- BLOCK-TRI : max-residual =%8.2e\n",resid);
+      if( resid > REAL_EPSILON*1000.*SQR(numElem) )
+      {
+	OV_ABORT("error");
+      }
+      
+
+    }
+    
+    refactor=false;
+
   }
+
+  if( useBoth || !useNewTridiagonalSolver )
+  {
+    // ** old way ***
+
+    u = f;
+
+    std::vector< RealArray > diagonal(numElem+1,dd),
+      superdiagonal(numElem,upper),subdiagonal(numElem, lower);
+  
+    diagonal[0] = diag1;
+    diagonal[numElem] = diag2;
+
+    if( !allowsFreeMotion )
+    {
+      // --- Boundary conditions ---
+      const real EI = elasticModulus*areaMomentOfInertia;
+      BoundaryCondition bc = bcLeft;
+      if( bc==clamped && EI==0. ) bc=pinned;
+
+      if (bc == BeamModel::clamped )
+      {
+	diagonal[0](0,0) = diagonal[0](1,1) = 1.0;
+	diagonal[0](0,1) = diagonal[0](1,0) = 0.0;
+	superdiagonal[0](0,0) = superdiagonal[0](0,1) = 0.0;
+	superdiagonal[0](1,1) = superdiagonal[0](1,0) = 0.0;
+
+      }
+      if (bc == BeamModel::pinned ) 
+      {
+	// replace first equation in first 2x2 block by the identity
+	diagonal[0](0,0) = 1.0;
+	diagonal[0](0,1) = 0.0;
+	superdiagonal[0](0,0) = 0.0;
+	superdiagonal[0](0,1) = 0.0;
+      }
+      if( bc == freeBC )
+      {
+	// --- correct the stiffnes matrix for a free BC
+	// The boundary term T*v*w_x is only non-zero for v=N_1, and w_x = Np_1_x
+	//  T*N1(0)*Np_1_x(0)*w'_1
+            
+	diagonal[0](0,1) +=  T*alpha;
+      }
  
-  if (bcRight == BeamModel::Cantilevered && !allowsFreeMotion) {
-    diagonal[numElem](0,0) = diagonal[numElem](1,1) = 1.0;
-    diagonal[numElem](0,1) = diagonal[numElem](1,0) = 0.0;
-    subdiagonal[numElem-1](0,0) = subdiagonal[numElem-1](0,1) = 0.0;
-    subdiagonal[numElem-1](1,1) = subdiagonal[numElem-1](1,0) = 0.0;
-  }
-  if (bcRight == BeamModel::Pinned && !allowsFreeMotion) {
-    diagonal[numElem](0,0) = 1.0;
-    diagonal[numElem](0,1) = 0.0;
-    subdiagonal[numElem-1](0,0) = 0.0;
-    subdiagonal[numElem-1](0,1) = 0.0;
-  }
+      bc = bcRight;
+      if( bc==clamped && EI==0. ) bc=pinned;
+
+      if (bc == BeamModel::clamped ) 
+      {
+	diagonal[numElem](0,0) = diagonal[numElem](1,1) = 1.0;
+	diagonal[numElem](0,1) = diagonal[numElem](1,0) = 0.0;
+	subdiagonal[numElem-1](0,0) = subdiagonal[numElem-1](0,1) = 0.0;
+	subdiagonal[numElem-1](1,1) = subdiagonal[numElem-1](1,0) = 0.0;
+
+      }
+      if (bc == pinned ) 
+      {
+	// replace "first" equation in last 2x2 block by the identity
+	diagonal[numElem](0,0) = 1.0;
+	diagonal[numElem](0,1) = 0.0;
+	subdiagonal[numElem-1](0,0) = 0.0;
+	subdiagonal[numElem-1](0,1) = 0.0;
+      }
+      if( bc == freeBC )
+      {
+	// --- correct the stiffnes matrix for a free BC
+	// The boundary term T*v*w_x is only non-zero for v=N_1, and w_x = Np_1_x
+	//  T*N1(0)*Np_1_x(0)*w'_1
+
+	// printF("-- BM -- solveBlock : add correction term, alpha=%g,  T*alpha = %8.2e\n",alpha, -T*alpha);
+	
+	diagonal[numElem](0,1) +=  -T*alpha;
+      }
 
 
-  RealArray inv;
-
-  Index i2x2(0,2);
+    }
   
-  for (int i = 0; i < numElem; ++i) {
 
-    inverse2x2(diagonal[i], inv);
-    superdiagonal[i] = mult(inv, superdiagonal[i]);
+    RealArray inv;
+
+    Index i2x2(0,2);
+  
+    for (int i = 0; i < numElem; ++i) 
+    {
+
+      inverse2x2(diagonal[i], inv);
+      superdiagonal[i] = mult(inv, superdiagonal[i]);
+      u(i2x2) = mult(inv, u(i2x2) );
+      u(i2x2+2) -= mult(subdiagonal[i],u(i2x2));
+      diagonal[i+1] -= mult(subdiagonal[i],superdiagonal[i]);   
+
+      //   if (augmented) {
+
+      // 	(*augmentedCol)(i2x2) = mult(inv , (*augmentedCol)(i2x2));
+      // 	(*augmentedCol)(i2x2+2) -= mult(subdiagonal[i], (*augmentedCol)(i2x2));
+
+      // 	(*augmentedRow)(i2x2+2) -= mult((*augmentedRow)(i2x2),superdiagonal[i]);
+
+      // 	*augmentedDiagonal -= mult( (*augmentedRow)(i2x2), (*augmentedCol)(i2x2) )(0);
+      // 	*augmentedRHS -= mult( (*augmentedRow)(i2x2), u(i2x2))(0);
+      // }
+
+      i2x2 += 2;
+    }
+    // if (augmented) {
+    //   *augmentedSolution = *augmentedRHS / *augmentedDiagonal;
+
+    //   for (int i = numElem*2+1; i >= 0; --i) {
+
+    // 	u(i) -= (*augmentedCol)(i)*(*augmentedSolution);
+    //   }
+    //  }
+
+    inverse2x2(diagonal[numElem], inv);
     u(i2x2) = mult(inv, u(i2x2) );
-    u(i2x2+2) -= mult(subdiagonal[i],u(i2x2));
-    diagonal[i+1] -= mult(subdiagonal[i],superdiagonal[i]);   
-
-    if (augmented) {
-
-      (*augmentedCol)(i2x2) = mult(inv , (*augmentedCol)(i2x2));
-      (*augmentedCol)(i2x2+2) -= mult(subdiagonal[i], (*augmentedCol)(i2x2));
-
-      (*augmentedRow)(i2x2+2) -= mult((*augmentedRow)(i2x2),superdiagonal[i]);
-
-      *augmentedDiagonal -= mult( (*augmentedRow)(i2x2), (*augmentedCol)(i2x2) )(0);
-      *augmentedRHS -= mult( (*augmentedRow)(i2x2), u(i2x2))(0);
-    }
-
-    i2x2 += 2;
-  }
-
-  if (augmented) {
-    *augmentedSolution = *augmentedRHS / *augmentedDiagonal;
-
-    for (int i = numElem*2+1; i >= 0; --i) {
-
-      u(i) -= (*augmentedCol)(i)*(*augmentedSolution);
-    }
-  }
-
-  inverse2x2(diagonal[numElem], inv);
-  u(i2x2) = mult(inv, u(i2x2) );
   
-  i2x2 -= 2;
-
-  for (int i = numElem-1; i >= 0; --i) {
-
-    u(i2x2) -= mult(superdiagonal[i], u(i2x2+2));
-
     i2x2 -= 2;
+
+    for (int i = numElem-1; i >= 0; --i) {
+
+      u(i2x2) -= mult(superdiagonal[i], u(i2x2+2));
+
+      i2x2 -= 2;
+    }
+  }
+
+  if( useBoth )
+  {
+    real err = max(fabs(u-uNew));
+    printF("--BM-- Block tridiagonal |new - old|=%8.2e\n",err);
+    
+    if( err >  REAL_EPSILON*1000.*SQR(numElem) )
+    {
+      printF("*********** ERROR: old and new are different! ***************\n");
+      OV_ABORT("error");
+    }
   }
   
+
+
 }
+
 
 
 // =======================================================================================
@@ -716,6 +1104,14 @@ computeInternalForce(const RealArray& u,RealArray& f)
     elementForce = mult(elementK, elementU);
     for (int k = 0; k < 4; ++k)
       f(i*2+k) -= elementForce(k);
+  }
+
+  const bool isPeriodic = bcLeft==periodic;
+  if( isPeriodic )
+  {
+    Index Is(0,2), Ie(2*numElem,2);
+    f(Is) += f(Ie);
+    f(Ie) = f(Is);
   }
 
 }
@@ -811,19 +1207,21 @@ setTravelingWaveSolution( TravelingWaveFsi & tw )
 //
 //================================================================================================
 void BeamModel::
-computeAcceleration(const RealArray& u, const RealArray& v, 
+computeAcceleration(const real t,
+		    const RealArray& u, const RealArray& v, 
 		    const RealArray& f,
 		    const RealArray& A,
 		    RealArray& a,
 		    real linAcceleration[2],
 		    real& omegadd,
 		    real dt,
+                    const real alpha,
 		    real loc_beta,
 		    real loc_gamma)
 {
 
   if( debug & 2 )
-    printF("--BM-- BeamModel::computeAcceleration, dt=%8.2e\n",dt);
+    printF("--BM-- BeamModel::computeAcceleration, t=%8.2e, dt=%8.2e\n",t,dt);
   
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & ua = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
@@ -834,7 +1232,6 @@ computeAcceleration(const RealArray& u, const RealArray& v,
   // Compute:   rhs = -K*u 
   computeInternalForce(u, rhs);
 
-  rhs += f;
 
   if( debug & 1 )
   {
@@ -843,29 +1240,70 @@ computeAcceleration(const RealArray& u, const RealArray& v,
     rhs.reshape(numElem*2+2);
   }
   
+  rhs += f;
 
   if( !allowsFreeMotion ) 
   {
-    // --- Apply boundary conditions to f - Ku  *wdh* Why do we do this ??
+    // --- Apply boundary conditions to f - Ku  ----
 
-    if (bcLeft == BeamModel::Cantilevered) 
+    // --- If the boundary degrees of freedom are given  (e.g. w(0,t)=g0(t) or wx(0,t)=h0(t))
+    //     then we eliminate the corresponding equation from the matrix equation (by setting it to the indentity)
+
+    // Get two time derivatives of the boundary functions for "acceleration BC"
+    RealArray gtt;
+    int ntd=2;  
+    getBoundaryValues( t, gtt, ntd );
+
+    // For natural BC's we need EI*wxx(0,t) 
+    const real EI = elasticModulus*areaMomentOfInertia;
+    const real & T = dbase.get<real>("tension");
+    RealArray g;
+    getBoundaryValues( t, g );
+
+    for( int side=0; side<=1; side++ )
     {
-      rhs(0) = 0.0;
-      rhs(1) = 0.0;
+      BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+      const int ia = side==0 ? 0 : numElem*2;
+      const int ib = side==0 ? ia+2 : ia-2;
+
+      // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
+      if( bc==clamped && EI==0. ) bc=pinned;
+
+      // real x = side==0 ? 0 : L;
+      if( bc == clamped ) 
+      {
+	rhs(ia)=gtt(0,side);   // w_tt is given
+	rhs(ia+1)=gtt(1,side);   // wxtt is given 
+      }
+      else if( bc==pinned )
+      {
+	rhs(ia)=gtt(0,side);   // w_tt is given
+      }
+      if( bc == pinned && EI != 0.) 
+      {
+	// Boundary term is of the form:  -EI* v_x*w_xx
+	// -- correct for natural BC:  E*I*w_xx = +/- g(2,side)
+	printF("-- BM -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",g(2,side),EI);
+	rhs(ia+1) += -(1-2*side)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
+      }
+      if( bc==freeBC )
+      {
+	// Boundary terms are of the form:  T*v*w_x  -EI* v*w_xxx - EI* v_x*w_xx
+	// Free BC: wxx=EI* g(2,side), w_xxx= EI*g(3,side)
+
+	// printF("-- BM -- set rhs for free BC, g(2)=%e, g(3)=%e, T*u(ia+1)=%8.2e \n",g(2,side),g(3,side),T*u(ia+1));
+
+	rhs(ia  ) +=  (1-2*side)*EI*g(3,side);   // add : -E*I*wxxx(0,t) * N(0)
+	rhs(ia+1) += -(1-2*side)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
+
+	// The boundary term T*v*w_x is only non-zero for v=N_1, and w_x = Np_1_x
+	rhs(ia  ) += -(1-2*side)*T*u(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
+
+      }
+      
+      
     }
-    
-    if (bcLeft == BeamModel::Pinned) {
-      rhs(0) = 0.0;
-    }
-    
-    if (bcRight == BeamModel::Cantilevered) {
-      rhs(numElem*2) = 0.0;
-      rhs(numElem*2+1) = 0.0;
-    }
-    
-    if (bcRight == BeamModel::Pinned) {
-      rhs(numElem*2) = 0.0;
-    }
+
   }
 
   if( allowsFreeMotion ) 
@@ -878,8 +1316,8 @@ computeAcceleration(const RealArray& u, const RealArray& v,
     linAcceleration[1] = totalPressureForce*normal[1] / totalMass + bodyForce[1] * buoyantMass / totalMass;
     omegadd = totalPressureMoment / totalInertia;
 
-    if (bcLeft == BeamModel::Pinned ||
-	bcLeft == BeamModel::Cantilevered) {
+    if (bcLeft == BeamModel::pinned ||
+	bcLeft == BeamModel::clamped) {
 
       real wend,wendslope;
       int elem = 0;
@@ -903,8 +1341,8 @@ computeAcceleration(const RealArray& u, const RealArray& v,
       rhs(0) += shear;
     }
     
-    if (bcRight == BeamModel::Pinned ||
-	bcRight == BeamModel::Cantilevered) {
+    if (bcRight == BeamModel::pinned ||
+	bcRight == BeamModel::clamped) {
 
       real wend,wendslope;
       int elem = numElem-1;
@@ -928,7 +1366,7 @@ computeAcceleration(const RealArray& u, const RealArray& v,
       rhs(numElem*2) += shear;
     }
 
-    if (bcLeft == BeamModel::Cantilevered) {
+    if (bcLeft == BeamModel::clamped) {
 
       real wend,wendslope;
       int elem = 0;
@@ -970,7 +1408,8 @@ computeAcceleration(const RealArray& u, const RealArray& v,
     multiplyByMassMatrix(u, res);
     rhs += angularVelocityTilde*angularVelocityTilde*res;
 
-    for (int i = 0; i < numElem*2+2; i+=2) {
+    for (int i = 0; i < numElem*2+2; i+=2) 
+    {
       ones(i) = -0.5*L+le*(i/2);
       ones(i+1) = 1.0;
     }
@@ -994,21 +1433,37 @@ computeAcceleration(const RealArray& u, const RealArray& v,
   } // end if allows free motion
   
 
+  if( debug & 1 )
+  {
+    rhs.reshape(2,numElem+1);
+    ::display(rhs,"-- BM -- computeAcceleration: rhs before solve Ma=rhs","%11.4e ");
+    rhs.reshape(numElem*2+2);
+  }
+
   // Solve M a = rhs 
-  solveBlockTridiagonal(A, rhs, a, bcLeft,bcRight,allowsFreeMotion);
+  solveBlockTridiagonal(A, rhs, a, alpha );
+
+  if( false && debug & 1 )
+  {
+    a.reshape(2,numElem+1);
+    ::display(a,"-- BM -- computeAcceleration: solution a after solve","%11.4e ");
+    a.reshape(numElem*2+2);
+  }
+
+  // solveBlockTridiagonal(A, rhs, a, bcLeft,bcRight,allowsFreeMotion);
   
 }
 
 // ====================================================================================
 /// /brief Determine points on the beam surface
-  // Return the displacement of the point on the surface (not the neutral axis)
-  // of the beam of the point whose undeformed location is (x0,y0).
-  // This function is used to update the boundary of the CFD grid.
-  // X:       current beam solution vector
-  // x0:      undeformed location of the point on the surface of the beam (x)
-  // y0:      undeformed location of the point on the surface of the beam (y)
-  // x [out]: deformed location of the point on the surface of the beam (x)
-  // y [out]: deformed location of the point on the surface of the beam (y)
+/// Return the displacement of the point on the surface (not the neutral axis)
+/// of the beam of the point whose undeformed location is (x0,y0).
+/// This function is used to update the boundary of the CFD grid.
+/// X:       current beam solution vector
+/// x0:      undeformed location of the point on the surface of the beam (x)
+/// y0:      undeformed location of the point on the surface of the beam (y)
+/// x [out]: deformed location of the point on the surface of the beam (x)
+/// y [out]: deformed location of the point on the surface of the beam (y)
 // ====================================================================================
 void BeamModel::
 projectDisplacement(const RealArray& X, const real& x0, const real& y0, real& x, real& y) 
@@ -1509,13 +1964,16 @@ addForce( const real & tf,
   }
 }
 
-void BeamModel::resetForce()
+void BeamModel::
+resetForce()
 {
 
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
   RealArray & fc = f[current];
 
+  printF("-- BM -- resetForce current=%i \n",current);
+  
 
   fc=0.;
 
@@ -1545,43 +2003,132 @@ const RealArray& BeamModel::force() const
 
 
 //  =========================================================================================
+/// \brief Return the RHS values for the boundary conditions.
+/// \param ntd (input) number of time derivatives 
+/// \param g(0:3,0:1) (output) : g(i,side), i=0,1,2,3, and side=0,1 (left or right)
+///   Example, for side=0:
+///     u(0,t)     = g(0,0)   (or = ut(0,t) if ntd=1 , etc, )
+///     ux(0,t)    = g(1,0)   (or = uxt(0,t), if ntd=1, etc. )
+///     uxx(0,t)   = g(2,0)   (or = uxxt ...
+///     uxxx(0,t)  = g(3,0)   (or = uxxxt ...
+/// /Note: Only some vaues apply, depending on the BC
+//  =========================================================================================
+int BeamModel::
+getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
+{
+
+  const bool & twilightZone = dbase.get<bool>("twilightZone");
+  OGFunction & exact = *dbase.get<OGFunction*>("exactPointer");
+
+  if( g.getLength(0)==0 ) g.redim(4,2);
+  
+  g=0.;
+  
+  if( !allowsFreeMotion )
+  {
+    const real y=0, z=0;
+    const int wc=0;
+    for( int side=0; side<=1; side++ )
+    {
+      BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+      int ia = side==0 ? 0 : numElem*2;
+      real x = side==0 ? 0 : L;
+
+      if( bc == clamped ) 
+      {
+        // --- clamped BC ---
+	if( twilightZone )
+	{
+	  g(0,side) = exact.gd(ntd,0,0,0, x,y,z,wc,t);  // Give w 
+          g(1,side) = exact.gd(ntd,1,0,0, x,y,z,wc,t);  // Give w.x 
+	}
+	else
+	{
+          g(0,side)=0.;
+          g(1,side)=0.;
+	}
+      }
+
+      else if( bc==pinned ) 
+      {
+        // --- pinned BC ---
+	if( twilightZone )
+	{
+	  g(0,side) = exact.gd(ntd,0,0,0, x,y,z,wc,t);  // Give w 
+          g(2,side) = exact.gd(ntd,2,0,0, x,y,z,wc,t);  // give EI*w.xx 
+	}
+	else
+	{
+          g(0,side)=0.;
+          g(2,side)=0.;
+	}
+      }
+
+      else if( bc==freeBC ) 
+      {
+        // --- free BC ---
+	if( twilightZone )
+	{
+	  g(2,side) = exact.gd(ntd,2,0,0,  x,y,z,wc,t);   // Give EI*w_xx 
+	  g(3,side) = exact.gd(ntd,3,0,0,  x,y,z,wc,t);   // Give EI*w_xxx
+	}
+	else
+	{
+          g(2,side)=0.;
+          g(3,side)=0.;
+	}
+      }
+
+      else if( bc==periodic )
+      {
+      }
+      else
+      {
+	OV_ABORT("ERROR - unknown bc");
+      }
+      
+    }
+  }
+
+  
+  return 0;
+}
+
+
+//  =========================================================================================
 /// \brief Assign boundary conditions
 /// 
 //  =========================================================================================
 int BeamModel::
 assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 {
+  const real EI = elasticModulus*areaMomentOfInertia;
 
-  if( bcLeft == Cantilevered && !allowsFreeMotion ) 
+  if( !allowsFreeMotion )
   {
-    // Set u=0, u_x=0 
-    u(0) = u(1) = 0.0;
-    v(0) = v(1) = 0.0;
-    a(0) = a(1) = 0.0;
-  }
-  
-  if( bcRight == Cantilevered && !allowsFreeMotion ) 
-  {
-    // Set u=0, u_x=0 
-    u(numElem*2) = u(numElem*2+1) = 0.0;
-    v(numElem*2) = v(numElem*2+1) = 0.0;
-    a(numElem*2) = a(numElem*2+1) = 0.0;
-  }
+    for( int side=0; side<=1; side++ )
+    {
+      BoundaryCondition bc = side==0 ? bcLeft : bcRight;
+      int ia = side==0 ? 0 : numElem*2;
 
-  if( bcLeft == Pinned && !allowsFreeMotion )
-  {
-    // Set u=0
-    u(0) = 0.0;
-    v(0) = 0.0;
-    a(0) = 0.0;
-  }
+      // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
+      if( bc==clamped && EI==0. ) bc=pinned;
 
-  if( bcRight == Pinned && !allowsFreeMotion )
-  {
-    // Set u=0
-    u(numElem*2) = 0.0;
-    v(numElem*2) = 0.0;
-    a(numElem*2) = 0.0;
+      if( bc == clamped || bc==pinned ) 
+      {
+	// Set u=0
+	u(ia) = 0.0;
+	v(ia) = 0.0;
+	a(ia) = 0.0;
+      }
+      if( bc==clamped )
+      {
+	// Set u_x=0
+	u(ia+1) = 0.0;
+	v(ia+1) = 0.0;
+	a(ia+1) = 0.0;
+      }
+    }
   }
 
   const bool & twilightZone = dbase.get<bool>("twilightZone");
@@ -1595,13 +2142,17 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
       BoundaryCondition bc = side==0 ? bcLeft : bcRight;
       int ia = side==0 ? 0 : numElem*2;
       real x = side==0 ? 0 : L;
-      if( bc==Pinned || bc == Cantilevered ) 
+
+      // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
+      if( bc==clamped && EI==0. ) bc=pinned;
+
+      if( bc==pinned || bc == clamped ) 
       {
 	u(ia  ) = exact(x,y,z,wc,t);
 	v(ia  ) = exact.t(x,y,z,wc,t);            // w.t 
 	a(ia  ) = exact.gd(2,0,0,0, x,y,z,wc,t);  // w.tt
       }
-      if( bc == Cantilevered ) 
+      if( bc == clamped ) 
       {
 	u(ia+1) = exact.x(x,y,z,wc,t);
 	v(ia+1) = exact.gd(1,1,0,0, x,y,z,wc,t);  // w.tx
@@ -1614,7 +2165,131 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
   return 0;
 }
 
+// =========================================================================================
+/// \brief Add internal forces such as buoyancy and TZ forces
+///
+/// Compute the element force vectors 
+// =========================================================================================
+int BeamModel::
+addInternalForces( const real t, RealArray & f )
+{
+  if( true )
+  { 
+    f=0.; // ******************************************************* TEST 
+  }
 
+  const real beamLength=L;
+
+  if( exactSolutionOption=="travelingWaveFSI" )
+  {
+    // add forces for the FSI traveling wave solution
+    Index I1,I2,I3;
+    I1=Range(0,numElem); I2=0; I3=0;
+
+    RealArray x(I1,I2,I3,2);  // beam axis (undeformed)
+    const real beamLength=L;
+    const real dx=beamLength/numElem;
+    real heightFluidRegion=1.;
+    for( int i1 = I1.getBase(); i1<=I1.getBound(); i1++ )
+    {
+      x(i1,0,0,0) = i1*dx; 
+      x(i1,0,0,1) = heightFluidRegion;    // should match value in travelingWaveFsi
+    }
+
+    assert( dbase.get<TravelingWaveFsi*>("travelingWaveFsi")!=NULL );
+    TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+
+    RealArray ufe(I1,I2,I3,3);  // holds (p,v1f,v2f)
+
+    // Evaluate the exact fluid solution on the interface
+    travelingWaveFsi.getExactFluidSolution( ufe, t, x, I1,I2,I3 );
+
+    ::display(ufe(I1,0,0,0),sPrintF(" Exact fluid pressure at t=%8.2e",t),"%8.2e ");
+
+    RealArray lt(4); // local traction
+    const int pc=0;
+    for ( int i = 0; i<numElem; i++ )
+    {
+      real p0=ufe(i,0,0,pc), p1=ufe(i+1,0,0,pc);
+      computeProjectedForce( p0,p1, -1.0,1.0, lt);
+      Index idx(i*2,4);
+      f(idx) += lt;
+    }
+
+  }
+  
+
+  const bool & twilightZone = dbase.get<bool>("twilightZone");
+  if( twilightZone )
+  {
+    OGFunction & exact = *dbase.get<OGFunction*>("exactPointer");
+    Index I1,I2,I3;
+    I1=Range(0,numElem); I2=0; I3=0;
+
+    RealArray x(I1,I2,I3,2);  // beam axis (undeformed)
+    const real dx=beamLength/numElem;
+    for( int i1 = I1.getBase(); i1<=I1.getBound(); i1++ )
+    {
+      x(i1,0,0,0) = i1*dx; 
+      x(i1,0,0,1) = 0.;    // should this be y0 ?
+    }
+
+    const real EI = elasticModulus*areaMomentOfInertia;
+    const real & T = dbase.get<real>("tension");
+
+    RealArray utte(I1,I2,I3,1), uxxe(I1,I2,I3,1), uxxxxe(I1,I2,I3,1);
+    int isRectangular=0;
+    const int wc=0;
+    exact.gd( utte   ,x,domainDimension,isRectangular,2,0,0,0,I1,I2,I3,wc,t );
+    exact.gd( uxxe   ,x,domainDimension,isRectangular,0,2,0,0,I1,I2,I3,wc,t );
+    exact.gd( uxxxxe ,x,domainDimension,isRectangular,0,4,0,0,I1,I2,I3,wc,t );
+
+    // exact.gd( ve ,x,domainDimension,isRectangular,1,0,0,0,I1,I2,I3,wc,t );
+    // exact.gd( ae ,x,domainDimension,isRectangular,2,0,0,0,I1,I2,I3,wc,t );
+
+    // exact.gd( uxe,x,domainDimension,isRectangular,0,1,0,0,I1,I2,I3,wc,t );
+    // exact.gd( vxe,x,domainDimension,isRectangular,1,1,0,0,I1,I2,I3,wc,t );
+    // exact.gd( axe,x,domainDimension,isRectangular,2,1,0,0,I1,I2,I3,wc,t );
+
+    printF("-- BM -- addInternalForce: t=%9.3e max(fabs(f))=%8.2e, |utte|=%8.2e |u_xxxxe|=%8.2e\n",
+	   t,max(fabs(f)),max(fabs(utte)),max(fabs(uxxxxe)));
+
+    RealArray ftz(I1,I2,I3,1); 
+    ftz = (density*thickness)*utte - (T)*uxxe + (EI)*uxxxxe;
+    RealArray lt(4); // local traction
+    for ( int i = 0; i<numElem; i++ )
+    {
+      computeProjectedForce( ftz(i),ftz(i+1), -1.0,1.0, lt);
+      Index idx(i*2,4);
+      f(idx) += lt;
+    }
+   
+  }
+
+  if( projectedBodyForce*buoyantMassPerUnitLength!=0. )
+  {
+    // --- add buyouncy force
+    RealArray lt(4);
+    for (int i = 0; i < numElem; ++i) 
+    {
+      // -- compute (N_i, . )
+      computeProjectedForce(projectedBodyForce*buoyantMassPerUnitLength,projectedBodyForce*buoyantMassPerUnitLength,
+			    -1.0,1.0, lt);
+      Index idx(i*2,4);
+      f(idx) += lt;
+    }
+  }
+  
+  const bool isPeriodic = bcLeft==periodic;
+  if( isPeriodic )
+  {
+    Index Is(0,2), Ie(2*numElem,2);
+    f(Is) += f(Ie);
+    f(Ie) = f(Is);
+  }
+  
+
+}
 
 // =========================================================================================
 /// \brief Predict the structural state at t^{n+1} = tn + dt, using the Newmark beta predictor.
@@ -1632,7 +2307,10 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 void BeamModel::
 predictor(real tnp1, real dt )
 {
-
+  const bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor");
+  const bool & twilightZone = dbase.get<bool>("twilightZone");
+  bool & refactor = dbase.get<bool>("refactor");
+  
   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
   int & current = dbase.get<int>("current"); 
 
@@ -1662,6 +2340,13 @@ predictor(real tnp1, real dt )
 
   assert( fabs(time(current)-tnp1) < dt*1.e-6 );
 
+  real & dtOld = dbase.get<real>("dt"); 
+  if( fabs(dt-dtOld) > REAL_EPSILON*10.*dt )
+  {
+    refactor=true;
+    printF("-- BM -- predictor: dt has changed, dt=%9.3e, dtOld=%9.e3, will refactor.\n",dt,dtOld);
+  }
+  dtOld=dt;
 
   if( false && t<2.*dt )
   { 
@@ -1671,27 +2356,37 @@ predictor(real tnp1, real dt )
     ::display(v2,"v2","%8.2e ");
   }
 
-  RealArray lt(4);
-  for (int i = 0; i < numElem; ++i) 
-  {
-    Index idx(i*2,4);
-    // -- compute (N_i, . )
-    computeProjectedForce(projectedBodyForce*buoyantMassPerUnitLength,projectedBodyForce*buoyantMassPerUnitLength,
-			  -1.0,1.0, lt);
-    f2(idx) += lt;
-  }
+  // add internalforces such as buoyancy and TZ forcing
+  addInternalForces( t-dt, f2 );
+  
+  // RealArray lt(4);
+  // for (int i = 0; i < numElem; ++i) 
+  // {
+  //   // -- compute (N_i, . )
+  //   computeProjectedForce(projectedBodyForce*buoyantMassPerUnitLength,projectedBodyForce*buoyantMassPerUnitLength,
+  // 			  -1.0,1.0, lt);
+  //   Index idx(i*2,4);
+  //   f2(idx) += lt;
+  // }
 
-  if( debug & 4 )
+  if( debug & 1 )
   {
-    ::display(f2(Range(0,2*numElem,2)),"BeamModel::predictor: force (displacement)","%8.2e ");
+    ::display(f2(Range(0,2*numElem  ,2)),"BeamModel::predictor: RHS force f2(0:2:)","%8.2e ");
+    ::display(f2(Range(1,2*numElem+1,2)),"BeamModel::predictor: RHS force f2(1:2:)","%8.2e ");
   }
   
 
   if( !hasAcceleration ) 
   {
-    computeAcceleration(x2,v2,f2, elementM, a2,
+    // On the very first time-step we may not know the acceleration at t=0.
+
+
+    // compute acceleration at time tn=t-dt 
+    const real alpha=0.;  // coeff of K 
+    computeAcceleration(t-dt, x2,v2,f2, elementM, a2,
 			centerOfMassAcceleration, angularAcceleration,
-			dt);
+			dt, alpha );
+    refactor=true;          
     hasAcceleration = true;
   }
 
@@ -1701,19 +2396,39 @@ predictor(real tnp1, real dt )
   {
     int nn=numElem+1;
     v2.reshape(2,nn); x2.reshape(2,nn); a2.reshape(2,nn); f2.reshape(2,nn);
+    ::display(a2,"-- BM -- predictor: a2","%8.2e ");
     ::display(f2,"-- BM -- predictor: f2","%8.2e ");
     ::display(x2,"-- BM -- predictor: u2","%8.2e ");
     ::display(v2,"-- BM -- predictor: v2","%8.2e ");
-    ::display(a2,"-- BM -- predictor: a2","%8.2e ");
     v2.reshape(2*nn); x2.reshape(2*nn); a2.reshape(2*nn); f2.reshape(2*nn);
   }
   
-  // -- here are the predicted u and v: 
+  //  -- first order predictor --
   dtilde = x2+dt*v2+dt*dt*0.5*(1.0-2.0*newmarkBeta)*a2;
   vtilde = v2+dt*(1.0-newmarkGamma)*a2;
 
+  // -- here are the predicted u and v: 
+  if( useSecondOrderNewmarkPredictor )
+  {
+    x3 = x2 + dt*v2+ (.5*dt*dt)*a2;
+    v3 = v2 + dt*a2;
+  }
+  else
+  { //  -- use first order predictor
+    x3 = dtilde;
+    v3 = vtilde;
+  }
+  a3 = a2;     // predicted acceleration
+  
+  // *wdh* aold = 0.0;
+  aold = a2;   // set aold to previous acceleration *wdh* 2014/06/19 
+
+  if( false ) // do not apply BC's to first-order predictor 
+    assignBoundaryConditions( tnp1, dtilde,vtilde,a3 );
+
   if (allowsFreeMotion) 
   {
+    assert( !useSecondOrderNewmarkPredictor );
     
     comXtilde[0] = centerOfMass[0] + dt*centerOfMassVelocity[0] +
       dt*dt*0.5*(1.0-2.0*newmarkBeta)*centerOfMassAcceleration[0];
@@ -1740,7 +2455,7 @@ predictor(real tnp1, real dt )
     std::cout << "Angle = " << angle << " ang. velocity = " << angularVelocity << 
       " angularAcceleration = " << angularAcceleration << std::endl;
 
-    if (bcLeft == Pinned || bcLeft == Cantilevered) 
+    if (bcLeft == pinned || bcLeft == clamped) 
     {
 
       real wend,wendslope;
@@ -1756,20 +2471,20 @@ predictor(real tnp1, real dt )
     }
   }
 
-  // *wdh* aold = 0.0;
-  aold = a2;   // set aold to previous acceleration *wdh* 2014/06/19 
   
   memset(old_rb_acceleration,0,sizeof(old_rb_acceleration));
 
   //printArray(x2,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 
-
-  v3 = vtilde;
-  x3 = dtilde;
-  a3 = a2;     // predicted acceleration
-  assignBoundaryConditions( tnp1, x3,v3,a3 );
   
- 
+  if( debug & 1 )
+  {
+    aString buff;
+    getErrors( tnp1, x3,v3,a3,sPrintF(buff,"-- BM : after %s predict t=%9.3e",
+				      (useSecondOrderNewmarkPredictor ? "2nd-order" : "first-order"),tnp1));
+  }
+  
+
   if( dbase.get<bool>("saveTipFile") )
   {
     output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  a3(numElem*2) << std::endl;
@@ -1832,15 +2547,24 @@ predictor(real tnp1, real dt )
 
 // ===================================================================================
 /// \brief Apply the corrector at t^{n+1}
-// tnp1: new time t^{n+1} 
-// dt:  current time step
-// x3:  solution state (position) at t^{n+1} [out]
-// v3:  solution state (velocity) at t^{n+1} [out]
-//
+/// /param tnp1 (input): new time t^{n+1} 
+/// /param dt (input) :  current time step
+///
+/// /notes: The Newmark beta scheme for
+///          u_t = v
+///          v_t = a 
+///         M a = f - K u 
+///  is    
+///        unp1 = un + dt*vn + (dt^2/2)*( (1-2*beta) an + 2*beta*anp1 )
+///       M anp1 = fnp1 - Kunp1
+///  The acceleration is computed from 
+///      ( M + dt^2*beta*K ) anp1 = fnp1 - K*[ un + dt*vn + (dt^2/2)*(1-2*beta)*an ]
+///      
 // ===================================================================================
 void BeamModel::
 corrector(real tnp1, real dt )
 {
+  const bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor");
   
   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
   const int & current = dbase.get<int>("current"); 
@@ -1863,15 +2587,21 @@ corrector(real tnp1, real dt )
 
   RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
     
-  RealArray lt(4);
-  for (int i = 0; i < numElem; ++i) 
-  {
-    Index idx(i*2,4);
-    computeProjectedForce(projectedBodyForce*buoyantMassPerUnitLength,projectedBodyForce*buoyantMassPerUnitLength,
-			  -1.0,1.0, lt);
-    //printArray(lt,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
-    f3(idx) += lt;
-  }
+  // add internalforces such as buoyance and TZ forcing
+  addInternalForces( tnp1, f3 );
+
+  // if( projectedBodyForce*buoyantMassPerUnitLength != 0. )
+  // {
+  //   RealArray lt(4);
+  //   for (int i = 0; i < numElem; ++i) 
+  //   {
+  //     Index idx(i*2,4);
+  //     computeProjectedForce(projectedBodyForce*buoyantMassPerUnitLength,projectedBodyForce*buoyantMassPerUnitLength,
+  // 			    -1.0,1.0, lt);
+  //     //printArray(lt,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
+  //     f3(idx) += lt;
+  //   }
+  // }
   
   if (time_step_num == 1)  // *wdh* -- what is this ?
   {
@@ -1888,13 +2618,27 @@ corrector(real tnp1, real dt )
   real omega = addedMassRelaxationFactor;
 
   real linaccel[2],omegadd;
-  computeAcceleration(dtilde,v3,f3, A, a3,  linaccel,omegadd,dt, newmarkBeta, newmarkGamma);
+  // compute acceleration at time t^{n+1}
+  const real alpha=newmarkBeta*dt*dt;  // coeff of K in A
+  computeAcceleration(tnp1, dtilde,v3,f3, A, a3,  linaccel,omegadd,dt, alpha, newmarkBeta, newmarkGamma);
 
   //v3 = vtilde+newmarkGamma*dt*(myAcceleration-aold)*omega;
   //x3 = dtilde+newmarkBeta*dt*dt*(myAcceleration-aold)*omega;
 
   v3 = vtilde+newmarkGamma*dt*a3;
   x3 = dtilde+newmarkBeta*dt*dt*a3;
+
+  if( debug & 4 )
+  {
+    int nn=numElem+1;
+    v3.reshape(2,nn); x3.reshape(2,nn); a3.reshape(2,nn); f3.reshape(2,nn);
+    printF("-- BM -- corrector: tnp1=%9.3e, dt=%9.3e\n",tnp1,dt);
+    ::display(f3,"-- BM -- corrector: f3","%8.2e ");
+    ::display(x3,"-- BM -- corrector: u3","%8.2e ");
+    ::display(v3,"-- BM -- corrector: v3","%8.2e ");
+    ::display(a3,"-- BM -- corrector: a3","%8.2e ");
+    v3.reshape(2*nn); x3.reshape(2*nn); a3.reshape(2*nn); f3.reshape(2*nn);
+  }
 
   if( allowsFreeMotion ) 
   {
@@ -1975,6 +2719,11 @@ corrector(real tnp1, real dt )
 
   assignBoundaryConditions( t,x3,v3,a3 );
   
+  if( debug & 1 )
+  {
+    aString buff;
+    getErrors( tnp1, x3,v3,a3,sPrintF(buff,"-- BM : after correct t=%9.3e",tnp1));
+  }
 }
 
 // ====================================================================================
@@ -2023,6 +2772,44 @@ void BeamModel::setSubIterationConvergenceTolerance(double tol)
   dbase.get<real>("subIterationConvergenceTolerance") = tol;
 }
 
+// =================================================================================================
+/// \brief  Compute errors in the solution (when the solution is known).
+// =================================================================================================
+int BeamModel::
+getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,const aString & label )
+{
+
+  const real beamLength = L;
+  
+  RealArray ue, ve, ae;
+  getExactSolution( t, ue, ve, ae );
+
+  printF("-- BM -- %s: Errors at t=%9.3e:\n",(const char*)label,t);
+  real errMax=0., l2Err=0., yNorm=0.;
+  for( int i = 0; i <= numElem; ++i )
+  {
+    real xl = ( (real)i /numElem) *  beamLength;
+
+    real we = ue(i*2);  // exact solution
+    real err = fabs( u(i*2) - we );
+
+    real verr = fabs( v(i*2) - ve(i*2) );
+
+    printF("-- BM -- t=%8.2e i=%3i u=%9.2e ue=%9.2e err=%9.2e, v=%9.2e ve=%9.2e err=%8.2e\n",t,i,u(2*i),we,err, v(2*i),ve(2*i),verr);
+      
+    errMax=max(errMax,err);
+    l2Err += SQR(err);
+    yNorm=yNorm+SQR(we);
+
+  }
+  l2Err=sqrt(l2Err/(numElem+1));
+  yNorm=sqrt(yNorm/(numElem+1));
+
+  printF("-- BM -- Suumary: Error t=%9.3e : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,errMax,l2Err,l2Err/max(1.e-12,yNorm));
+
+  return 0;
+}
+
 
 
 // =================================================================================================
@@ -2033,7 +2820,9 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 {
 
   real & tension = dbase.get<real>("tension");
-
+  bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor");
+  bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
+  
   bool & twilightZone = dbase.get<bool>("twilightZone");
   int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
   int & degreeInTime = dbase.get<int>("degreeInTime");
@@ -2085,16 +2874,31 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     GUIState::addPrefix(twilightZoneOptions,"Twilight-zone: ",cmd,maxCommands);
     dialog.addOptionMenu( "Twilight-zone:", cmd, twilightZoneOptions, (int)twilightZoneOption );
 
+    aString exactOptions[] = { "none",
+			       "standing wave",
+			       "traveling wave FSI",
+			       "" };
+
+    GUIState::addPrefix(exactOptions,"Exact solution:",cmd,maxCommands);
+    dialog.addOptionMenu("Exact solution:",cmd,cmd,(exactSolutionOption=="none" ? 0 : 
+                          exactSolutionOption=="standingWave" ? 1 : 2) );
+
+
     aString tbCommands[] = {"use exact solution",
                             "save profile file",
                             "save tip file",
                             "twilight-zone",
+                            "use second order Newmark predictor",
+                            "use new tridiagonal solver",
     			    ""};
     int tbState[10];
     tbState[0] = useExactSolution;
     tbState[1] = dbase.get<bool>("saveProfileFile");
     tbState[2] = dbase.get<bool>("saveTipFile");
     tbState[3] = twilightZone;
+    tbState[4] = useSecondOrderNewmarkPredictor;
+    tbState[5] = useNewTridiagonalSolver;
+    
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
 
@@ -2216,12 +3020,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       bcOption = answer(len,answer.length()-1);
       BoundaryCondition & bcValue = side==0 ? bcLeft : bcRight;
       
-      bcValue= (bcOption=="cantilever" ? Cantilevered :
-                bcOption=="pinned"     ? Pinned :
-                bcOption=="free"       ? Free : 
-                bcOption=="periodic"   ? Periodic : UnknownBC );
+      bcValue= (bcOption=="clamped"  ? clamped :
+                bcOption=="pinned"   ? pinned :
+                bcOption=="free"     ? freeBC : 
+                bcOption=="periodic" ? periodic : unknownBC );
 
-      if( bcValue==UnknownBC )
+      if( bcValue==unknownBC )
       {
 	printF("ERROR: unknown BC : answer=[%s], bcOption=[%s]\n",(const char*)answer,(const char*)bcOption);
 	gi.stopReadingCommandFile();
@@ -2229,6 +3033,14 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
       printF("BeamModel:INFO: setting %s = %s.\n",(side==0 ? "bcLeft" : "bcRight"),(const char*)bcOption);
 
+    }
+    else if( dialog.getToggleValue(answer,"use new tridiagonal solver",useNewTridiagonalSolver) ){} // 
+    else if( dialog.getToggleValue(answer,"use second order Newmark predictor",useSecondOrderNewmarkPredictor) )
+    {
+      if(  useSecondOrderNewmarkPredictor )
+	printF("-- BM -- use SECOND order Newmark predictor\n");
+      else
+	printF("-- BM -- use FIRST order Newmark predictor\n");
     }
     else if( dialog.getToggleValue(answer,"use exact solution",useExactSolution) )
     {
@@ -2262,6 +3074,23 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
         continue;
       }
       dialog.getOptionMenu("Twilight-zone:").setCurrentChoice(name);
+    }
+    else if( len=answer.matches("Exact solution:") )
+    {
+      aString option = answer(len,answer.length()-1);
+      if( option=="none" )
+	exactSolutionOption="none";
+      else if( option=="standing Wave" )
+        exactSolutionOption="standingWave";
+      else if( option=="traveling wave FSI" )
+        exactSolutionOption="travelingWaveFSI";
+      else
+      {
+	printF("ERROR: unknown exact solution=[%s]\n",(const char*)option);
+	gi.stopReadingCommandFile();
+      }
+      printF("Setting exactSolutionOption=[%s]\n",(const char*)exactSolutionOption);
+      
     }
     else if( len=answer.matches("trig frequencies:") )
     {
@@ -2439,6 +3268,22 @@ static std::complex<LocalReal> phi2d(std::complex<LocalReal> alpha, LocalReal k,
 
 
 
+// =================================================================================
+  // Return the exact velocity of the FLUID for the FSI analytical solution
+  // derived in the documentation
+  // (x,y):      point in the fluid grid where the exact velocity is desired
+  // t:          Time at which to compute the exact solution
+  // k:          Wave number for the exact solution being computed
+  // H:          Height of the fluid domain
+  // omega_real: real part of the angular frequency (see documentation)
+  // omega_imag: imaginary part of the angular frequency (see documentation)
+  // omega0:     Natural (free) frequency of the beam
+  // nu:         fluid kinematic viscosity
+  // what:       magnitude of the beam deformation
+  // u:          fluid velocity (x) [out]
+  // v:          fluid velocity (y) [out]
+  //
+// =================================================================================
 void BeamModel::exactSolutionVelocity(LocalReal x, LocalReal y,
 				      LocalReal t,
 				      LocalReal k, LocalReal H, 
@@ -2476,6 +3321,19 @@ void BeamModel::exactSolutionVelocity(LocalReal x, LocalReal y,
 }
 
 
+  // Return the exact pressure of the FLUID for the FSI analytical solution
+  // derived in the documentation
+  // (x,y):      point in the fluid grid where the exact velocity is desired
+  // t:          Time at which to compute the exact solution
+  // k:          Wave number for the exact solution being computed
+  // H:          Height of the fluid domain
+  // omega_real: real part of the angular frequency (see documentation)
+  // omega_imag: imaginary part of the angular frequency (see documentation)
+  // omega0:     Natural (free) frequency of the beam
+  // nu:         fluid kinematic viscosity
+  // what:       magnitude of the beam deformation
+  // p:          fluid pressure (x) [out]
+  //
 void BeamModel::exactSolutionPressure(LocalReal x, LocalReal y,
 				      LocalReal t,
 				      LocalReal k, LocalReal H, 

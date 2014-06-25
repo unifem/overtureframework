@@ -48,6 +48,11 @@ Changes:
    o 2014/05/30 - changes were made so that Overture can be built on the Mac OS X 10.9 (Mavericks) which has new compilers.
    o 2014/05/31 - changes were made so that PETSc can be called from the Mac. The main program should now call INIT_PETSC_SOLVER();
    o 2014/06/02 - dues to changes for the Mac one now needs to always link to the multigrid library libOgmg in Overture/lib
+   o 2014/06/02 - fixed a bug with some of the OGPolyFunction (twilight-zone) functions that fill in array values. Some
+                  time derivatives where not computed properly. 
+   o 2014/06/24 - Fixed a bug in the block Tridiagonal solver -- the transpose of the blocks were being used. 
+   o 2014/06/24 - There is a new cg/unitTests directory that has test routines for some of the stand-alone classes such
+                  as the BeamModel class. 
 
 ==============================================================================================
 Overture.v25 - released  November 21, 2012

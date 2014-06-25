@@ -95,6 +95,7 @@ BeamModel beam;
 NonlinearBeamModel nlBeam;
 
 real t;
+real dt;
 
 int nElem;    // number of elements 
 real cfl;
@@ -111,13 +112,19 @@ real a;  // amplitude
 real k0;
 real k;
 real w;
+
+int globalStepNumber;
+
+FILE *checkFile;
+
 };
 
 TestBeamModel::
 TestBeamModel()
 {
   t=0.;
-
+  globalStepNumber=0;
+  
   nElem=11;    // number of elements 
   cfl=.9;
   tFinal=.5; 
@@ -137,12 +144,14 @@ TestBeamModel()
   k=2.*Pi*k0;
   w = sqrt( E*momOfIntertia*pow(k,4)/( rho*thickness*breadth ) );
 
+  checkFile = fopen("tbm.check","w" );   // Here is the check file for regression tests
 
 }
 
 TestBeamModel::
 ~TestBeamModel()
 {
+  fclose(checkFile);
 }
     
 
@@ -289,7 +298,12 @@ getErrors( real t )
     OV_ABORT("ERROR: unknown beam model");
   }
 
-  printF("Error t=%9.3e : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,errMax,l2Err,l2Err/max(1.e-12,yNorm));
+  printF("Error t=%9.3e, dt=%8.2e, numSteps=%i : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,dt,globalStepNumber,errMax,l2Err,l2Err/max(1.e-12,yNorm));
+
+  const int numberOfComponentsToOutput=1;
+  fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
+  fPrintF(checkFile,"%i %9.2e %10.3e  ",0,errMax,yNorm);
+  fPrintF(checkFile,"\n");
 
   return 0;
 }
@@ -313,9 +327,15 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 {
 
 
-  BeamModel::BoundaryCondition bcLeft=BeamModel::Pinned, bcRight=BeamModel::Pinned;
+  BeamModel::BoundaryCondition bcLeft=BeamModel::pinned, bcRight=BeamModel::pinned;
   // BeamModel::BoundaryCondition bcLeft=BeamModel::Periodic, bcRight=BeamModel::Periodic;
   bool useExactSolution=false;
+
+  if( beamModelType==linearBeamModel )
+  {
+    beam.writeParameterSummary();
+  }
+  
 
   if( beamModelType==nonlinearBeamModel )
   {
@@ -342,7 +362,8 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   }
 
   // wave speed c= w/k ,   c*dt/dx = cfl 
-  real dx=-1, dt=-1;
+  real dx=-1;
+  dt=-1;
   if( beamModelType==linearBeamModel )
   {
     dt = beam.getExplicitTimeStep();
@@ -358,6 +379,9 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
     OV_ABORT("error");
   }
   
+  // output to check file
+  fPrintF(checkFile,"\\caption{tbm: test beam model: %s}\n",(beamModelType==linearBeamModel ? "linear beam model" : "nonlinear beam model"));
+
 
   int numberOfSteps= max(1, int( tFinal/dt + .5) );
   int nPlot = max(1,int( tPlot/dt+.5 ));
@@ -405,7 +429,8 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   aString answer;
   for( int step=0; step<maximumNumberOfSteps; step++ )
   {
-
+    globalStepNumber=step;
+    
     bool finished=t>tFinal-.5*dt;
     int plotThisStep=(step % nPlot == 0) || finished;
     if( plotThisStep )
@@ -439,6 +464,11 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
  
 	if( answer=="continue" )
 	{
+	  if( finished )
+	  {
+	    printF("-- tbm-- Final time has been reached. Increase tFinal to continue.\n");
+	    continue;
+	  }
 	  break;
 	}
 	else if( answer=="exit" || answer=="done" )
@@ -465,6 +495,7 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 	{
 	  // for now we keep dt the same
 	  maximumNumberOfSteps=tFinal/dt+10;
+	  finished=t>tFinal-.5*dt;
 	}
 	else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
 	else
@@ -618,7 +649,7 @@ main(int argc, char *argv[])
     for( int i=1; i<argc; i++ )
     {
       line=argv[i];
-      if( line=="-noplot" )
+      if( line=="-noplot" || line=="noplot" )
         plotOption=false;
       else if( len=line.matches("-cfl=") )
       {
@@ -661,6 +692,12 @@ main(int argc, char *argv[])
         commandFileName=line(len,line.length()-1);
         printF("tbm: reading commands from file [%s]\n",(const char*)commandFileName);
       }
+      else if( commandFileName=="" )
+      {
+	commandFileName=line;
+	printF("tbm: setting command file to [$s]\n",(const char*)commandFileName);
+      }
+      
     }
   }
 
@@ -678,8 +715,6 @@ main(int argc, char *argv[])
     printF("read command file =%s\n",(const char*)commandFileName);
     gi.readCommandFile(commandFileName);
   }
-
-  FILE *checkFile = fopen("tbm.check","w" );   // Here is the check file for regression tests
 
   aString answer;
 
@@ -838,7 +873,6 @@ main(int argc, char *argv[])
   
   gi.popGUI(); // restore the previous GUI
 
-  fclose(checkFile);
   Overture::finish(); 
   return 0;
 }

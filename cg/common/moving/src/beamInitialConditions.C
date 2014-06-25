@@ -34,7 +34,11 @@ getExactSolution( real t, RealArray & u, RealArray & v, RealArray & a ) const
 
   if( initialConditionOption=="standingWave" )
   {
-    return getStandingWave(t,u,v,a);
+    return getStandingWave( t,u,v,a );
+  }
+  else if( initialConditionOption=="travelingWaveFSI" )
+  {
+    getTravelingWaveFSI( t,u,v,a  );
   }
   else if( twilightZone ) // ****************************************** this is copied from below -- FIX ME --
   {
@@ -71,6 +75,10 @@ getExactSolution( real t, RealArray & u, RealArray & v, RealArray & a ) const
     
       v(i*2)   = ve(i,0,0,0);     // w_t 
       v(i*2+1) = vxe(i,0,0,0);    // w_xt
+
+      // real uxt = exact.gd(1,1,0,0, x(i,0,0,0),0.,0.,wc,t);
+      // printF("Exact: u=%9.3e, ux=%9.3e, v=%9.3e, vx=%9.3e uxt=%9.3e\n",u(i*2),u(i*2+1),v(i*2),v(i*2+1),uxt);
+      
 
       a(i*2)   = ae(i,0,0,0);     // w_tt 
       a(i*2+1) = axe(i,0,0,0);    // w_xtt
@@ -128,6 +136,55 @@ getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const
   return 0;
 }
 
+// =====================================================================================
+/// \brief Evaluate the FSi traveling wave solution
+/// \param t (input) : assign values at this time.
+/// \param u,v (output) : displacement and velocity
+// =====================================================================================
+int BeamModel::
+getTravelingWaveFSI( real t, RealArray & u, RealArray & v, RealArray & a ) const
+{
+  if( u.getLength(0)==0 )
+    u.redim(2*numElem+2);
+  if( v.getLength(0)==0 )
+    v.redim(2*numElem+2);
+  if( a.getLength(0)==0 )
+    a.redim(2*numElem+2);
+
+  assert( dbase.get<TravelingWaveFsi*>("travelingWaveFsi")!=NULL );
+  TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+
+  real beamLength=L;
+
+  int numGhost=1;
+  Index I1,I2,I3;
+  I1=Range(-numGhost,numElem+numGhost); I2=0; I3=0;
+
+  RealArray x(I1,I2,I3,2), ue(I1,I2,I3,2), ve(I1,I2,I3,2), ae(I1,I2,I3,2);
+  const real dx=beamLength/numElem;
+  for( int i1 = I1.getBase(); i1<=I1.getBound(); i1++ )
+  {
+    x(i1,0,0,0) = i1*dx; 
+    x(i1,0,0,1) = 0.;    // should this be y0 ?
+  }
+  travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
+
+  for (int i = 0; i <= numElem; ++i)
+  {
+    u(i*2)   = ue(i,0,0,1);     // w 
+    u(i*2+1) = (ue(i+1,0,0,1)-ue(i-1,0,0,1))/(2.*dx);  // w_x   *** DO THIS FOR NOW **
+    
+    v(i*2)   = ve(i,0,0,1);     // w_t 
+    v(i*2+1) = (ve(i+1,0,0,1)-ve(i-1,0,0,1))/(2.*dx);      // w_xt *** DO THIS FOR NOW **
+
+    a(i*2)   = ae(i,0,0,1);     // w_tt 
+    a(i*2+1) = (ae(i+1,0,0,1)-ae(i-1,0,0,1))/(2.*dx);      // w_xtt *** DO THIS FOR NOW **
+
+  }
+
+  return 0;
+}
+
 
 // =====================================================================================
 /// \brief Assign initial conditions
@@ -161,36 +218,7 @@ assignInitialConditions( real t, RealArray & u, RealArray & v, RealArray & a )
   }
   else if( initialConditionOption=="travelingWaveFSI" )
   {
-    
-    assert( dbase.get<TravelingWaveFsi*>("travelingWaveFsi")!=NULL );
-    TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
-
-    int numGhost=1;
-    Index I1,I2,I3;
-    I1=Range(-numGhost,numElem+numGhost); I2=0; I3=0;
-
-    RealArray x(I1,I2,I3,2), ue(I1,I2,I3,2), ve(I1,I2,I3,2), ae(I1,I2,I3,2);
-    const real dx=beamLength/numElem;
-    for( int i1 = I1.getBase(); i1<=I1.getBound(); i1++ )
-    {
-      x(i1,0,0,0) = i1*dx; 
-      x(i1,0,0,1) = 0.;    // should this be y0 ?
-    }
-    travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
-
-    for (int i = 0; i <= numElem; ++i)
-    {
-      u(i*2)   = ue(i,0,0,1);     // w 
-      u(i*2+1) = (ue(i+1,0,0,1)-ue(i-1,0,0,1))/(2.*dx);  // w_x   *** DO THIS FOR NOW **
-    
-      v(i*2)   = ve(i,0,0,1);     // w_t 
-      v(i*2+1) = (ve(i+1,0,0,1)-ve(i-1,0,0,1))/(2.*dx);      // w_xt *** DO THIS FOR NOW **
-
-      a(i*2)   = ae(i,0,0,1);     // w_tt 
-      a(i*2+1) = (ae(i+1,0,0,1)-ae(i-1,0,0,1))/(2.*dx);      // w_xtt *** DO THIS FOR NOW **
-
-    }
-
+    getTravelingWaveFSI( t, u, v, a  );
   }
   else if( initialConditionOption=="oldTravelingWaveFsi" )
   {
@@ -368,7 +396,9 @@ chooseInitialConditions(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
       // we also pass the grid for the solid:
       CompositeGrid & cgSolid = cg; // do this for now  -- only used for number of grid points
-      travelingWaveFsi.setup(cg,cgSolid);
+
+      int numberOfFluidGridPoints=21, numberOfSolidGridPoints=21;  // I don't think these matter
+      travelingWaveFsi.setup( numberOfFluidGridPoints, numberOfSolidGridPoints );
 
 
     }

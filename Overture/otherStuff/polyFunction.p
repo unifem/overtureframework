@@ -62,11 +62,12 @@ if( ($dx==2 && $dy+$dz==0) || ($dy==2 && $dx+$dz==0) || ($dz==2 && $dx+$dy==0) )
 }
 if( $dx==0 && $dy==0 && $dz==0 )
 {
-  printf(FILE "if( dx.eq.$dx.and.dy.eq.$dy.and.dz.eq.$dz.and.dt.eq.0 )then\n");
+  printf(FILE "if( dx.eq.$dx.and.dy.eq.$dy.and.dz.eq.$dz )then\n");
+  # printf(FILE "if( dx.eq.$dx.and.dy.eq.$dy.and.dz.eq.$dz.and.dt.eq.0 )then\n");
 }
 else
 {
- printf(FILE "else if( dx.eq.$dx.and.dy.eq.$dy.and.dz.eq.$dz.and.dt.eq.0  )then\n");
+ printf(FILE "else if( dx.eq.$dx.and.dy.eq.$dy.and.dz.eq.$dz )then\n");
 }
 # output time polynomial
 #print FILE "time=a(0,n)+t*(a(1,n)+t*(a(2,n)+t*(a(3,n)+t*(a(4,n)))))\n";
@@ -209,20 +210,20 @@ else
 print FILE "$poly\)*time" . "\n";
 printf(FILE "endLoops()\n");
 
-# output time derivative
-if( $dx==0 && $dy==0 && $dz==0 )
-{
- printf(FILE "else if( dx.eq.$dx.and.dy.eq.$dy.and.dz.eq.$dz.and.dt.ge.1 )then\n");
-# print FILE "time=(a(1,n)+t*(2.*a(2,n)+t*(3.*a(3,n)+t*(4.*a(4,n)))))\n";  # this is the first time derivative
- printf(FILE "beginLoops(\$defineTimeDerivative())\n");
- for( $ii=0; $ii<=$#assignX; $ii++ )
- {
-   print FILE "$assignX[$ii]\n";
- #  print "$assignX[$ii]\n";
- }
- print FILE "$poly\)*time" . "\n";
- printf(FILE "endLoops()\n");
-}
+#- # output time derivative
+#- if( $dx==0 && $dy==0 && $dz==0 )
+#- {
+#-  printf(FILE "else if( dx.eq.$dx.and.dy.eq.$dy.and.dz.eq.$dz.and.dt.ge.1 )then\n");
+#- # print FILE "time=(a(1,n)+t*(2.*a(2,n)+t*(3.*a(3,n)+t*(4.*a(4,n)))))\n";  # this is the first time derivative
+#-  printf(FILE "beginLoops(\$defineTimeDerivative())\n");
+#-  for( $ii=0; $ii<=$#assignX; $ii++ )
+#-  {
+#-    print FILE "$assignX[$ii]\n";
+#-  #  print "$assignX[$ii]\n";
+#-  }
+#-  print FILE "$poly\)*time" . "\n";
+#-  printf(FILE "endLoops()\n");
+#- }
 
 
 } # dz

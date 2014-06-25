@@ -237,3 +237,6 @@ cleano:;  rm -rf A++
 cleangg:; rm -rf GridGenerator/Templates.DB
 	  rm GridGenerator/*.o
 
+# run regression tests 
+check:; ./check.p
+

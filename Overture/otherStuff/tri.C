@@ -10,7 +10,8 @@ main(int argc, char **argv)
 {
   Overture::start(argc,argv);  // initialize Overture
 
-  real worstError=0.;
+  real worstError=0.;      // worst error over a class of tests 
+  real veryWorstError=0.;  // worst error over all tests 
 
   TridiagonalSolver tri;
 
@@ -81,8 +82,24 @@ main(int argc, char **argv)
   worstError=max(worstError,error);
   printf(" ****maximum error=%8.2e in the periodic case.\n",error);
 
+  if( worstError < REAL_EPSILON*1000. )
+  {
+    printf("\n======== Test 1 successful. Worst error = %e ============\n",worstError);
+  }
+  else
+  {
+    printf("\n******** Test 1 apparently FAILED Worst error = %e ***************\n",worstError);
+  }
 
   // r.display("Here is the solution from the periodic system, should be 1");
+
+  printf("\n\n"
+         "******************************************************************************\n"
+         "**********************  tridiagonal BLOCK systems **********************************\n"
+         "******************************************************************************\n\n");
+
+  veryWorstError=max(veryWorstError,worstError);
+  worstError=0.;
 
   // ---------- test the block tridiagonal solvers ------------------
   for( int ii=0; ii<4; ii++ )  
@@ -209,29 +226,60 @@ main(int argc, char **argv)
 	is[axis]=1;
 	for( int n=0; n<block; n++ )
 	{
-	  if( block==2 )
+	  if( true )
 	  {
-	    r(n,0,I1,I2,I3)=(a(0,n,I1,I2,I3)*x(0,0,I1-is[0],I2-is[1],I3-is[2])+
-			     a(1,n,I1,I2,I3)*x(1,0,I1-is[0],I2-is[1],I3-is[2]) + 
-			     b(0,n,I1,I2,I3)*x(0,0,I1  ,I2,I3)+
-			     b(1,n,I1,I2,I3)*x(1,0,I1  ,I2,I3) + 
-			     c(0,n,I1,I2,I3)*x(0,0,I1+is[0],I2+is[1],I3+is[2])+
-			     c(1,n,I1,I2,I3)*x(1,0,I1+is[0],I2+is[1],I3+is[2]));
+	    if( block==2 )
+	    {
+	      r(n,0,I1,I2,I3)=(a(n,0,I1,I2,I3)*x(0,0,I1-is[0],I2-is[1],I3-is[2])+
+			       a(n,1,I1,I2,I3)*x(1,0,I1-is[0],I2-is[1],I3-is[2]) + 
+			       b(n,0,I1,I2,I3)*x(0,0,I1  ,I2,I3)+
+			       b(n,1,I1,I2,I3)*x(1,0,I1  ,I2,I3) + 
+			       c(n,0,I1,I2,I3)*x(0,0,I1+is[0],I2+is[1],I3+is[2])+
+			       c(n,1,I1,I2,I3)*x(1,0,I1+is[0],I2+is[1],I3+is[2]));
+	    }
+	    else
+	    {
+	      r(n,0,I1,I2,I3)=
+		(a(n,0,I1,I2,I3)*x(0,0,I1-is[0],I2-is[1],I3-is[2])+
+		 a(n,1,I1,I2,I3)*x(1,0,I1-is[0],I2-is[1],I3-is[2])+
+		 a(n,2,I1,I2,I3)*x(2,0,I1-is[0],I2-is[1],I3-is[2]) + 
+		 b(n,0,I1,I2,I3)*x(0,0,I1  ,I2,I3)+
+		 b(n,1,I1,I2,I3)*x(1,0,I1  ,I2,I3)+
+		 b(n,2,I1,I2,I3)*x(2,0,I1  ,I2,I3) + 
+		 c(n,0,I1,I2,I3)*x(0,0,I1+is[0],I2+is[1],I3+is[2])+
+		 c(n,1,I1,I2,I3)*x(1,0,I1+is[0],I2+is[1],I3+is[2])+
+		 c(n,2,I1,I2,I3)*x(2,0,I1+is[0],I2+is[1],I3+is[2]));
+	    }
 	  }
 	  else
 	  {
-	    r(n,0,I1,I2,I3)=
-	      (a(0,n,I1,I2,I3)*x(0,0,I1-is[0],I2-is[1],I3-is[2])+
-	       a(1,n,I1,I2,I3)*x(1,0,I1-is[0],I2-is[1],I3-is[2])+
-	       a(2,n,I1,I2,I3)*x(2,0,I1-is[0],I2-is[1],I3-is[2]) + 
-	       b(0,n,I1,I2,I3)*x(0,0,I1  ,I2,I3)+
-	       b(1,n,I1,I2,I3)*x(1,0,I1  ,I2,I3)+
-	       b(2,n,I1,I2,I3)*x(2,0,I1  ,I2,I3) + 
-	       c(0,n,I1,I2,I3)*x(0,0,I1+is[0],I2+is[1],I3+is[2])+
-	       c(1,n,I1,I2,I3)*x(1,0,I1+is[0],I2+is[1],I3+is[2])+
-	       c(2,n,I1,I2,I3)*x(2,0,I1+is[0],I2+is[1],I3+is[2]));
+
+	    // **old way -- used tranpose !!
+	    if( block==2 )
+	    {
+	      r(n,0,I1,I2,I3)=(a(0,n,I1,I2,I3)*x(0,0,I1-is[0],I2-is[1],I3-is[2])+
+			       a(1,n,I1,I2,I3)*x(1,0,I1-is[0],I2-is[1],I3-is[2]) + 
+			       b(0,n,I1,I2,I3)*x(0,0,I1  ,I2,I3)+
+			       b(1,n,I1,I2,I3)*x(1,0,I1  ,I2,I3) + 
+			       c(0,n,I1,I2,I3)*x(0,0,I1+is[0],I2+is[1],I3+is[2])+
+			       c(1,n,I1,I2,I3)*x(1,0,I1+is[0],I2+is[1],I3+is[2]));
+	    }
+	    else
+	    {
+	      r(n,0,I1,I2,I3)=
+		(a(0,n,I1,I2,I3)*x(0,0,I1-is[0],I2-is[1],I3-is[2])+
+		 a(1,n,I1,I2,I3)*x(1,0,I1-is[0],I2-is[1],I3-is[2])+
+		 a(2,n,I1,I2,I3)*x(2,0,I1-is[0],I2-is[1],I3-is[2]) + 
+		 b(0,n,I1,I2,I3)*x(0,0,I1  ,I2,I3)+
+		 b(1,n,I1,I2,I3)*x(1,0,I1  ,I2,I3)+
+		 b(2,n,I1,I2,I3)*x(2,0,I1  ,I2,I3) + 
+		 c(0,n,I1,I2,I3)*x(0,0,I1+is[0],I2+is[1],I3+is[2])+
+		 c(1,n,I1,I2,I3)*x(1,0,I1+is[0],I2+is[1],I3+is[2])+
+		 c(2,n,I1,I2,I3)*x(2,0,I1+is[0],I2+is[1],I3+is[2]));
+	    }
+
 	  }
-	   
+	  
 	}
 	r.reshape(B,I1,I2,I3);
 	x.reshape(B,I1e,I2e,I3e);
@@ -265,13 +313,12 @@ main(int argc, char **argv)
 
   if( worstError < REAL_EPSILON*1000. )
   {
-    printf("\n======== Test successful. Worst error = %e ============\n",worstError);
+    printf("\n======== BLOCK Test successful. Worst error = %e ============\n",worstError);
   }
   else
   {
-    printf("\n******** Test apparently FAILED Worst error = %e ***************\n",worstError);
+    printf("\n******** BLOCK test apparently FAILED Worst error = %e ***************\n",worstError);
   }
-  
 
   // Peform some timings:
 
@@ -284,7 +331,9 @@ main(int argc, char **argv)
 
   if( true )
   {
-
+    veryWorstError=max(veryWorstError,worstError);
+    worstError=0.;
+    
     Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
     Index Jv[3], &J1=Jv[0], &J2=Jv[1], &J3=Jv[2];
 
@@ -348,6 +397,15 @@ main(int argc, char **argv)
       
     }
     
+    if( worstError < REAL_EPSILON*1000. )
+    {
+      printf("\n======== Test successful. Worst error = %e ============\n",worstError);
+    }
+    else
+    {
+      printf("\n******** Test apparently FAILED Worst error = %e ***************\n",worstError);
+    }
+
   }
   
 
@@ -356,6 +414,9 @@ main(int argc, char **argv)
   // **********************************************************************************
 
 
+  veryWorstError=max(veryWorstError,worstError);
+  worstError=0.;
+  
   printf("\n\n"
          "******************************************************************************\n"
          "********************** pentadiagonal systems**********************************\n"
@@ -476,6 +537,30 @@ main(int argc, char **argv)
     }
     
   }
+
+  if( worstError < REAL_EPSILON*1000. )
+  {
+    printf("\n======== Test successful. Worst error = %e ============\n",worstError);
+  }
+  else
+  {
+    printf("\n******** Test apparently FAILED Worst error = %e ***************\n",worstError);
+  }
+
+  if( veryWorstError < REAL_EPSILON*1000. )
+  {
+    printf("\n================================================================\n");
+    printf("\n======== ALL Test passed! success! Worst error = %e ============\n",veryWorstError);
+    printf("\n================================================================\n");
+  }
+  else
+  {
+    printf("\n================================================================\n");
+    printf("\n******** SOME tests failed :( error = %e ***************\n",veryWorstError);
+    printf("\n================================================================\n");
+  }
+
+
 
 //  axis=0;
   

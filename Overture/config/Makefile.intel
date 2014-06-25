@@ -141,7 +141,7 @@ GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) 
 ## GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXpm -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11 -lm
 #
 #
-CLIBS=   $(LDFLAGS) -L$(Overture)/lib $(LibOverture) $(OV_COMPILER_LIBS) -Wl,-rpath,$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS)
+CLIBS=   $(LDFLAGS) -L$(Overture)/lib $(LibOverture) -lOgmg $(OV_COMPILER_LIBS) -Wl,-rpath,$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS)
 FLIBS=   $(AppLibraries) $(FORTRAN_LIBS) 
 
 BPP = $(OvertureCheckout)/bpp/bpp

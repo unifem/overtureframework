@@ -129,7 +129,6 @@ cleandep:
 clean: 
 	-rm -f *~ */*~ $(DEPPREFIX)*.d $(OBJPREFIX)*.o $(BINDIR)cgins $(BINDIR)checkCheckFiles $(LIBDIR)*.a \
          cmd/*.show* cmd/*.debug cmd/*.check cmd/*.log cmd/*.move cmd/trb.cmd
-	-@cd doc; $(MAKE) clean
 	@cd src; $(MAKE) clean
 
 # remove all c and c++ .o files, dependencies and executables (but leave fortran .o files)

@@ -607,7 +607,9 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     // -- evaluate the FSI traveling wave solution ---
     TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
 
-    travelingWaveFsi.getExactFluidSolution( ua, t, mg, I1, I2, I3 );
+    OV_GET_SERIAL_ARRAY(real,ua,uaLocal);
+    
+    travelingWaveFsi.getExactFluidSolution( uaLocal, t, mg, I1, I2, I3 );
   }
 
   else

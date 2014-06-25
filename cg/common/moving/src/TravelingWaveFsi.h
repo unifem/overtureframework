@@ -46,13 +46,16 @@ int
 computeErrors( real t );
 
 int 
-getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 );
+getExactFluidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 );
 
 int 
-getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 );
+getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & I1, const Index & I2, const Index & I3 );
 
 int 
-getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, realArray & ae, real t, 
+getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 );
+
+int 
+getExactShellSolution( const RealArray & x, RealArray & ue, RealArray & ve, RealArray & ae, real t, 
 		       const Index & I1, const Index & I2, const Index & I3 );
 real 
 getTimeStep( real t );
@@ -71,8 +74,11 @@ plot( GenericGraphicsInterface & gi, realCompositeGridFunction & uPlot, Graphics
 int 
 rungeKutta4(real t, 
 	    real dt,
-	    realArray & us1, realArray & uf1,
-	    realArray & usNew, realArray & ufNew );
+	    RealArray & us1, RealArray & uf1,
+	    RealArray & usNew, RealArray & ufNew );
+
+int 
+setup( int numberOfFluidGridPointsY, int numberOfSolidGridPointsY );
 
 int 
 setup( CompositeGrid & cg, CompositeGrid & cgSolid );

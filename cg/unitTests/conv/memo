@@ -1,0 +1,74 @@
+**** 2014/06/24 -- periodic tests
+
+-- trig -- periodic  -- second-order (due to force integration)
+
+  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=per -tf=1. -cg=line -ng=4
+                grid  & N &  $\vert w \vert$   & r
+               Line5 &     5 & 1.88e-02 &
+              Line10 &    10 & 5.31e-03 &  3.5
+              Line20 &    20 & 1.35e-03 &  3.9
+              Line40 &    40 & 3.39e-04 &  4.0
+Convergence rates: c0=1.94
+
+
+**** 2014/06/24 -- create the conv tests for tbm
+
+=== Standing wave:
+
+conv.p tbm.conv -model=linearBeam -tz=sw -bcn=p -tf=1. -Em=1. -T=0. -cg=line -ng=5
+
+
+
+=== Test the "string" Em=0, T=1
+
+String model needs a smaller cfl (??)
+conv.p tbm.conv -model=linearBeam -tz=trig -bcn=p -tf=1. -Em=0. -T=1. -cg=line -cfl=.25 -suffix=string -ng=4
+
+                grid  & N &  $\vert w \vert$   & r
+               Line5 &     5 & 2.66e-02 &
+              Line10 &    10 & 7.33e-03 &  3.6
+              Line20 &    20 & 2.55e-03 &  2.9
+              Line40 &    40 & 6.43e-04 &  4.0
+              Line80 &    80 & 1.61e-04 &  4.0
+Convergence rates: c0=1.82
+
+
+-- trig -- freeBC
+  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=f -tf=1. -cg=line -ng=4
+
+                grid  & N &  $\vert w \vert$   & r
+               Line5 &     5 & 5.28e-02 &
+              Line10 &    10 & 1.60e-02 &  3.3
+              Line20 &    20 & 4.09e-03 &  3.9
+              Line40 &    40 & 1.03e-03 &  4.0
+Convergence rates: c0=1.90
+
+
+ -- trig -- pinned
+  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=p -tf=1. -cg=line -ng=4
+
+convRate: numberOfComponents=1 (from header)
+                grid  & N &  $\vert w \vert$   & r
+               Line5 &     5 & 3.82e-02 &
+              Line10 &    10 & 1.06e-02 &  3.6
+              Line20 &    20 & 2.70e-03 &  3.9
+              Line40 &    40 & 6.78e-04 &  4.0
+Convergence rates: c0=1.94
+
+
+ -- trig -- clamped Steady state -- should be 4th-order (?) but force integration is ony 2nd-order
+  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=c -tf=1. -cg=line -fx=2. -ft=0. -ng=4
+
+ -- trig -- clamped
+  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=c -tf=1. -cg=line -ng=4
+
+                grid  & N &  $\vert w \vert$   & r
+               Line5 &     5 & 2.19e-02 &
+              Line10 &    10 & 7.31e-03 &  3.0
+              Line20 &    20 & 1.88e-03 &  3.9
+              Line40 &    40 & 4.73e-04 &  4.0
+Convergence rates: c0=1.86
+
+
+#    -- poly(2,1)
+#    conv.p tbm.conv -model=linearBeam -tz=poly -bcn=c -tf=.1 -cg=line -degreeX=2 -degreeT=1 -ng=2   [exact 

@@ -4393,28 +4393,28 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       BeamModel::BoundaryCondition bcl,bcr;
       switch (bcl_) {
       case 0:
-	bcl = BeamModel::Cantilevered;  break;
+	bcl = BeamModel::clamped;  break;
       case 1:
-	bcl = BeamModel::Pinned;  break;
+	bcl = BeamModel::pinned;  break;
       case 2:
-	bcl = BeamModel::Free;  break;
+	bcl = BeamModel::freeBC;  break;
       default:
 	std::cout << "Error: unknown beam boundary condition " << bcl_ << "; " <<
-	  " setting to Cantilevered" << std::endl;
-	bcl = BeamModel::Cantilevered; break;	  
+	  " setting to clamped" << std::endl;
+	bcl = BeamModel::clamped; break;	  
       }
 
       switch (bcr_) {
       case 0:
-	bcr = BeamModel::Cantilevered;  break;
+	bcr = BeamModel::clamped;  break;
       case 1:
-	bcr = BeamModel::Pinned;  break;
+	bcr = BeamModel::pinned;  break;
       case 2:
-	bcr = BeamModel::Free;  break;
+	bcr = BeamModel::freeBC;  break;
       default:
 	std::cout << "Error: unknown beam boundary condition " << bcr_ << "; " <<
-	  " setting to Cantilevered" << std::endl;
-	bcr = BeamModel::Cantilevered; break;	  
+	  " setting to clamped" << std::endl;
+	bcr = BeamModel::clamped; break;	  
       }
 
       pBeamModel->setParameters(I, Em, rho, L, thick, pnorm, nelem, bcl, bcr,x0,y0,(exact==1));

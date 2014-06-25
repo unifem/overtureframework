@@ -5,7 +5,7 @@
 # setenv CGBUILDPREFIX /some/other/dir will put the obj/lib/bin in /some/other/dir/{common,cgad...}/{lib,obj,dep,bin}
 #
 
-all : libCommon cgad cgcns cgins cgasf cgsm cgmp message
+all : libCommon cgad cgcns cgins cgasf cgsm cgmp unitTests message
 
 everything: all cgmx 
 
@@ -44,8 +44,13 @@ cgmx:
 cgsm: libCommon
 	@cd sm;     $(MAKE) 
 
+# Unit tests
+unitTests: libCommon
+	@cd unitTests;     $(MAKE) 
+
 # run regression tests:
 check:
+	-@cd unitTests/check;  $(MAKE)  check
 	-@cd ad/check;  $(MAKE)  check
 	-@cd asf/check; $(MAKE)  check
 	-@cd cns/check; $(MAKE)  check
@@ -55,6 +60,7 @@ check:
 
 # run regression tests with minimal output:
 check-quiet:
+	-@cd unitTests/check;  $(MAKE) -s  check-quiet
 	-@cd ad/check;  $(MAKE) -s check-quiet
 	-@cd asf/check; $(MAKE) -s  check-quiet
 	-@cd cns/check; $(MAKE) -s  check-quiet
@@ -75,4 +81,5 @@ clean:
 	-@cd mx;            $(MAKE) clean
 	-@cd sm;            $(MAKE) clean
 	-@cd user;          $(MAKE) clean
+	-@cd unitTests;     $(MAKE) clean
 

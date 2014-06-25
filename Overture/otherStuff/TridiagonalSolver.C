@@ -65,6 +65,7 @@ TridiagonalSolver()
 #endif
 
   bandWidth=3;
+  useOldBlockOrdering=false;  // original block solves used the transpose of the blocks!
   
 }
 
@@ -72,6 +73,16 @@ TridiagonalSolver::
 ~TridiagonalSolver()
 {
 }
+
+// ============================================================================================================
+/// \brief For backward compatibility one can set the block solves to use the transpose of the blocks
+// ============================================================================================================
+void TridiagonalSolver::
+setBlockOrdering( bool useTransposeOfBlocks /* = true */ )
+{
+  useOldBlockOrdering=useTransposeOfBlocks;  // original block solves used the transpose of the blocks!
+}
+
 
 #define pentaFactor EXTERN_C_NAME(pentafactor)
 #define pentaSolve  EXTERN_C_NAME(pentasolve)
@@ -731,32 +742,65 @@ RealArray TridiagonalSolver::
 multiply( const RealArray & d, const int & i1, const RealArray & e, const int & j1)
 {
   RealArray r(blockSize,blockSize);
-  if( blockSize==2 )
-  {
-    r(0,0) = d(0,0,i1)*e(0,0,j1)+d(1,0,i1)*e(0,1,j1);
-    r(1,0) = d(0,0,i1)*e(1,0,j1)+d(1,0,i1)*e(1,1,j1);
-    r(0,1) = d(0,1,i1)*e(0,0,j1)+d(1,1,i1)*e(0,1,j1);
-    r(1,1) = d(0,1,i1)*e(1,0,j1)+d(1,1,i1)*e(1,1,j1);
-  }
-  else if( blockSize==3 )
-  {
-    r(0,0) = d(0,0,i1)*e(0,0,j1)+d(1,0,i1)*e(0,1,j1)+d(2,0,i1)*e(0,2,j1);
-    r(1,0) = d(0,0,i1)*e(1,0,j1)+d(1,0,i1)*e(1,1,j1)+d(2,0,i1)*e(1,2,j1);
-    r(2,0) = d(0,0,i1)*e(2,0,j1)+d(1,0,i1)*e(2,1,j1)+d(2,0,i1)*e(2,2,j1);
+  if( useOldBlockOrdering )
+  { // *old way* -- used transpose 
+    if( blockSize==2 )
+    {
+      r(0,0) = d(0,0,i1)*e(0,0,j1)+d(1,0,i1)*e(0,1,j1);
+      r(1,0) = d(0,0,i1)*e(1,0,j1)+d(1,0,i1)*e(1,1,j1);
+      r(0,1) = d(0,1,i1)*e(0,0,j1)+d(1,1,i1)*e(0,1,j1);
+      r(1,1) = d(0,1,i1)*e(1,0,j1)+d(1,1,i1)*e(1,1,j1);
+    }
+    else if( blockSize==3 )
+    {
+      r(0,0) = d(0,0,i1)*e(0,0,j1)+d(1,0,i1)*e(0,1,j1)+d(2,0,i1)*e(0,2,j1);
+      r(1,0) = d(0,0,i1)*e(1,0,j1)+d(1,0,i1)*e(1,1,j1)+d(2,0,i1)*e(1,2,j1);
+      r(2,0) = d(0,0,i1)*e(2,0,j1)+d(1,0,i1)*e(2,1,j1)+d(2,0,i1)*e(2,2,j1);
 
-    r(0,1) = d(0,1,i1)*e(0,0,j1)+d(1,1,i1)*e(0,1,j1)+d(2,1,i1)*e(0,2,j1);
-    r(1,1) = d(0,1,i1)*e(1,0,j1)+d(1,1,i1)*e(1,1,j1)+d(2,1,i1)*e(1,2,j1);
-    r(2,1) = d(0,1,i1)*e(2,0,j1)+d(1,1,i1)*e(2,1,j1)+d(2,1,i1)*e(2,2,j1);
+      r(0,1) = d(0,1,i1)*e(0,0,j1)+d(1,1,i1)*e(0,1,j1)+d(2,1,i1)*e(0,2,j1);
+      r(1,1) = d(0,1,i1)*e(1,0,j1)+d(1,1,i1)*e(1,1,j1)+d(2,1,i1)*e(1,2,j1);
+      r(2,1) = d(0,1,i1)*e(2,0,j1)+d(1,1,i1)*e(2,1,j1)+d(2,1,i1)*e(2,2,j1);
 
-    r(0,2) = d(0,2,i1)*e(0,0,j1)+d(1,2,i1)*e(0,1,j1)+d(2,2,i1)*e(0,2,j1);
-    r(1,2) = d(0,2,i1)*e(1,0,j1)+d(1,2,i1)*e(1,1,j1)+d(2,2,i1)*e(1,2,j1);
-    r(2,2) = d(0,2,i1)*e(2,0,j1)+d(1,2,i1)*e(2,1,j1)+d(2,2,i1)*e(2,2,j1);
+      r(0,2) = d(0,2,i1)*e(0,0,j1)+d(1,2,i1)*e(0,1,j1)+d(2,2,i1)*e(0,2,j1);
+      r(1,2) = d(0,2,i1)*e(1,0,j1)+d(1,2,i1)*e(1,1,j1)+d(2,2,i1)*e(1,2,j1);
+      r(2,2) = d(0,2,i1)*e(2,0,j1)+d(1,2,i1)*e(2,1,j1)+d(2,2,i1)*e(2,2,j1);
 
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
   else
   {
-    Overture::abort("error");
+    if( blockSize==2 )
+    {
+      r(0,0) = d(0,0,i1)*e(0,0,j1)+d(0,1,i1)*e(1,0,j1);
+      r(0,1) = d(0,0,i1)*e(0,1,j1)+d(0,1,i1)*e(1,1,j1);
+      r(1,0) = d(1,0,i1)*e(0,0,j1)+d(1,1,i1)*e(1,0,j1);
+      r(1,1) = d(1,0,i1)*e(0,1,j1)+d(1,1,i1)*e(1,1,j1);
+    }
+    else if( blockSize==3 )
+    {
+      r(0,0) = d(0,0,i1)*e(0,0,j1)+d(0,1,i1)*e(1,0,j1)+d(0,2,i1)*e(2,0,j1);
+      r(0,1) = d(0,0,i1)*e(0,1,j1)+d(0,1,i1)*e(1,1,j1)+d(0,2,i1)*e(2,1,j1);
+      r(0,2) = d(0,0,i1)*e(0,2,j1)+d(0,1,i1)*e(1,2,j1)+d(0,2,i1)*e(2,2,j1);
+
+      r(1,0) = d(1,0,i1)*e(0,0,j1)+d(1,1,i1)*e(1,0,j1)+d(1,2,i1)*e(2,0,j1);
+      r(1,1) = d(1,0,i1)*e(0,1,j1)+d(1,1,i1)*e(1,1,j1)+d(1,2,i1)*e(2,1,j1);
+      r(1,2) = d(1,0,i1)*e(0,2,j1)+d(1,1,i1)*e(1,2,j1)+d(1,2,i1)*e(2,2,j1);
+
+      r(2,0) = d(2,0,i1)*e(0,0,j1)+d(2,1,i1)*e(1,0,j1)+d(2,2,i1)*e(2,0,j1);
+      r(2,1) = d(2,0,i1)*e(0,1,j1)+d(2,1,i1)*e(1,1,j1)+d(2,2,i1)*e(2,1,j1);
+      r(2,2) = d(2,0,i1)*e(0,2,j1)+d(2,1,i1)*e(1,2,j1)+d(2,2,i1)*e(2,2,j1);
+
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
+  
   return r;
 }
 
@@ -765,21 +809,44 @@ RealArray TridiagonalSolver::
 matrixVectorMultiply( const RealArray & d, const int & i1, const RealArray & e, const int & j1)
 {
   RealArray r(blockSize);
-  if( blockSize==2 )
-  {
-    r(0) = d(0,0,i1)*e(0,j1)+d(1,0,i1)*e(1,j1);
-    r(1) = d(0,1,i1)*e(0,j1)+d(1,1,i1)*e(1,j1);
-  } 
-  else if( blockSize==3 )
-  {
-    r(0) = d(0,0,i1)*e(0,j1)+d(1,0,i1)*e(1,j1)+d(2,0,i1)*e(2,j1);
-    r(1) = d(0,1,i1)*e(0,j1)+d(1,1,i1)*e(1,j1)+d(2,1,i1)*e(2,j1);
-    r(2) = d(0,2,i1)*e(0,j1)+d(1,2,i1)*e(1,j1)+d(2,2,i1)*e(2,j1);
+  if( useOldBlockOrdering )
+  { // *old way* -- used transpose 
+    if( blockSize==2 )
+    {
+      r(0) = d(0,0,i1)*e(0,j1)+d(1,0,i1)*e(1,j1);
+      r(1) = d(0,1,i1)*e(0,j1)+d(1,1,i1)*e(1,j1);
+    } 
+    else if( blockSize==3 )
+    {
+      r(0) = d(0,0,i1)*e(0,j1)+d(1,0,i1)*e(1,j1)+d(2,0,i1)*e(2,j1);
+      r(1) = d(0,1,i1)*e(0,j1)+d(1,1,i1)*e(1,j1)+d(2,1,i1)*e(2,j1);
+      r(2) = d(0,2,i1)*e(0,j1)+d(1,2,i1)*e(1,j1)+d(2,2,i1)*e(2,j1);
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
   else
   {
-    Overture::abort("error");
+    if( blockSize==2 )
+    {
+      r(0) = d(0,0,i1)*e(0,j1)+d(0,1,i1)*e(1,j1);
+      r(1) = d(1,0,i1)*e(0,j1)+d(1,1,i1)*e(1,j1);
+    } 
+    else if( blockSize==3 )
+    {
+      r(0) = d(0,0,i1)*e(0,j1)+d(0,1,i1)*e(1,j1)+d(0,2,i1)*e(2,j1);
+      r(1) = d(1,0,i1)*e(0,j1)+d(1,1,i1)*e(1,j1)+d(1,2,i1)*e(2,j1);
+      r(2) = d(2,0,i1)*e(0,j1)+d(2,1,i1)*e(1,j1)+d(2,2,i1)*e(2,j1);
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
+
   }
+  
   return r;
 }
 
@@ -787,21 +854,43 @@ RealArray TridiagonalSolver::
 matrixVectorMultiply( const RealArray & d, const int & i1, const RealArray & e)
 {
   RealArray r(blockSize);
-  if( blockSize==2 )
-  {
-    r(0) = d(0,0,i1)*e(0)+d(1,0,i1)*e(1);
-    r(1) = d(0,1,i1)*e(0)+d(1,1,i1)*e(1);
-  }
-  else if( blockSize==3 )
-  {
-    r(0) = d(0,0,i1)*e(0)+d(1,0,i1)*e(1)+d(2,0,i1)*e(2);
-    r(1) = d(0,1,i1)*e(0)+d(1,1,i1)*e(1)+d(2,1,i1)*e(2);
-    r(2) = d(0,2,i1)*e(0)+d(1,2,i1)*e(1)+d(2,2,i1)*e(2);
+  if( useOldBlockOrdering )
+  { // *old way* -- used transpose 
+    if( blockSize==2 )
+    {
+      r(0) = d(0,0,i1)*e(0)+d(1,0,i1)*e(1);
+      r(1) = d(0,1,i1)*e(0)+d(1,1,i1)*e(1);
+    }
+    else if( blockSize==3 )
+    {
+      r(0) = d(0,0,i1)*e(0)+d(1,0,i1)*e(1)+d(2,0,i1)*e(2);
+      r(1) = d(0,1,i1)*e(0)+d(1,1,i1)*e(1)+d(2,1,i1)*e(2);
+      r(2) = d(0,2,i1)*e(0)+d(1,2,i1)*e(1)+d(2,2,i1)*e(2);
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
   else
   {
-    Overture::abort("error");
+    if( blockSize==2 )
+    {
+      r(0) = d(0,0,i1)*e(0)+d(0,1,i1)*e(1);
+      r(1) = d(1,0,i1)*e(0)+d(1,1,i1)*e(1);
+    }
+    else if( blockSize==3 )
+    {
+      r(0) = d(0,0,i1)*e(0)+d(0,1,i1)*e(1)+d(0,2,i1)*e(2);
+      r(1) = d(1,0,i1)*e(0)+d(1,1,i1)*e(1)+d(1,2,i1)*e(2);
+      r(2) = d(2,0,i1)*e(0)+d(2,1,i1)*e(1)+d(2,2,i1)*e(2);
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
+  
   return r;
 }
 
@@ -810,32 +899,65 @@ multiply(const RealArray & d, const Index & K1, const Index & K2, const Index & 
          const RealArray & e, const Index & J1, const Index & J2, const Index & J3)
 {
   RealArray r(blockSize,blockSize,K1,K2,K3);
-  if( blockSize==2 )
-  {
-    r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(0,1,J1,J2,J3);
-    r(1,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,1,J1,J2,J3);
-    r(0,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(0,1,J1,J2,J3);
-    r(1,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,1,J1,J2,J3);
-  }
-  else if( blockSize==3 )
-  {
-    r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(0,1,J1,J2,J3)+d(2,0,K1,K2,K3)*e(0,2,J1,J2,J3);
-    r(1,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,1,J1,J2,J3)+d(2,0,K1,K2,K3)*e(1,2,J1,J2,J3);
-    r(2,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(2,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(2,1,J1,J2,J3)+d(2,0,K1,K2,K3)*e(2,2,J1,J2,J3);
+  if( useOldBlockOrdering )
+  { // *old way* -- used transpose 
+    if( blockSize==2 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(0,1,J1,J2,J3);
+      r(1,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,1,J1,J2,J3);
+      r(0,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(0,1,J1,J2,J3);
+      r(1,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,1,J1,J2,J3);
+    }
+    else if( blockSize==3 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(0,1,J1,J2,J3)+d(2,0,K1,K2,K3)*e(0,2,J1,J2,J3);
+      r(1,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,1,J1,J2,J3)+d(2,0,K1,K2,K3)*e(1,2,J1,J2,J3);
+      r(2,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(2,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(2,1,J1,J2,J3)+d(2,0,K1,K2,K3)*e(2,2,J1,J2,J3);
 
-    r(0,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(0,1,J1,J2,J3)+d(2,1,K1,K2,K3)*e(0,2,J1,J2,J3);
-    r(1,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,1,J1,J2,J3)+d(2,1,K1,K2,K3)*e(1,2,J1,J2,J3);
-    r(2,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(2,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(2,1,J1,J2,J3)+d(2,1,K1,K2,K3)*e(2,2,J1,J2,J3);
+      r(0,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(0,1,J1,J2,J3)+d(2,1,K1,K2,K3)*e(0,2,J1,J2,J3);
+      r(1,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,1,J1,J2,J3)+d(2,1,K1,K2,K3)*e(1,2,J1,J2,J3);
+      r(2,1,K1,K2,K3) = d(0,1,K1,K2,K3)*e(2,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(2,1,J1,J2,J3)+d(2,1,K1,K2,K3)*e(2,2,J1,J2,J3);
 
-    r(0,2,K1,K2,K3) = d(0,2,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(0,1,J1,J2,J3)+d(2,2,K1,K2,K3)*e(0,2,J1,J2,J3);
-    r(1,2,K1,K2,K3) = d(0,2,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(1,1,J1,J2,J3)+d(2,2,K1,K2,K3)*e(1,2,J1,J2,J3);
-    r(2,2,K1,K2,K3) = d(0,2,K1,K2,K3)*e(2,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(2,1,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,2,J1,J2,J3);
+      r(0,2,K1,K2,K3) = d(0,2,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(0,1,J1,J2,J3)+d(2,2,K1,K2,K3)*e(0,2,J1,J2,J3);
+      r(1,2,K1,K2,K3) = d(0,2,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(1,1,J1,J2,J3)+d(2,2,K1,K2,K3)*e(1,2,J1,J2,J3);
+      r(2,2,K1,K2,K3) = d(0,2,K1,K2,K3)*e(2,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(2,1,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,2,J1,J2,J3);
 
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
   else
   {
-    Overture::abort("error");
+    if( blockSize==2 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3);
+      r(1,0,K1,K2,K3) = d(1,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3);
+      r(0,1,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,1,J1,J2,J3)+d(0,1,K1,K2,K3)*e(1,1,J1,J2,J3);
+      r(1,1,K1,K2,K3) = d(1,0,K1,K2,K3)*e(0,1,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,1,J1,J2,J3);
+    }
+    else if( blockSize==3 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(0,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+      r(0,1,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,1,J1,J2,J3)+d(0,1,K1,K2,K3)*e(1,1,J1,J2,J3)+d(0,2,K1,K2,K3)*e(2,1,J1,J2,J3);
+      r(0,2,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,2,J1,J2,J3)+d(0,1,K1,K2,K3)*e(1,2,J1,J2,J3)+d(0,2,K1,K2,K3)*e(2,2,J1,J2,J3);
+
+      r(1,0,K1,K2,K3) = d(1,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+      r(1,1,K1,K2,K3) = d(1,0,K1,K2,K3)*e(0,1,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,1,J1,J2,J3)+d(1,2,K1,K2,K3)*e(2,1,J1,J2,J3);
+      r(1,2,K1,K2,K3) = d(1,0,K1,K2,K3)*e(0,2,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,2,J1,J2,J3)+d(1,2,K1,K2,K3)*e(2,2,J1,J2,J3);
+
+      r(2,0,K1,K2,K3) = d(2,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(2,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+      r(2,1,K1,K2,K3) = d(2,0,K1,K2,K3)*e(0,1,J1,J2,J3)+d(2,1,K1,K2,K3)*e(1,1,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,1,J1,J2,J3);
+      r(2,2,K1,K2,K3) = d(2,0,K1,K2,K3)*e(0,2,J1,J2,J3)+d(2,1,K1,K2,K3)*e(1,2,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,2,J1,J2,J3);
+
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
+  
   return r;
 }
 
@@ -846,21 +968,43 @@ matrixVectorMultiply(const RealArray & d, const Index & K1, const Index & K2, co
 {
   RealArray r(blockSize,1,K1,K2,K3);
   e.reshape(e.dimension(0),1,e.dimension(1),e.dimension(2),e.dimension(3));
-  if( blockSize==2 )
-  {
-    r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,0,J1,J2,J3);
-    r(1,0,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3);
-  } 
-  else if( blockSize==3 )
-  {
-    r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,0,K1,K2,K3)*e(2,0,J1,J2,J3);
-    r(1,0,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,1,K1,K2,K3)*e(2,0,J1,J2,J3);
-    r(2,0,K1,K2,K3) = d(0,2,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+  if( useOldBlockOrdering )
+  { // *old way* -- used transpose 
+    if( blockSize==2 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,0,J1,J2,J3);
+      r(1,0,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3);
+    } 
+    else if( blockSize==3 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,0,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,0,K1,K2,K3)*e(2,0,J1,J2,J3);
+      r(1,0,K1,K2,K3) = d(0,1,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,1,K1,K2,K3)*e(2,0,J1,J2,J3);
+      r(2,0,K1,K2,K3) = d(0,2,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
   else
   {
-    Overture::abort("error");
+    if( blockSize==2 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3);
+      r(1,0,K1,K2,K3) = d(1,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3);
+    } 
+    else if( blockSize==3 )
+    {
+      r(0,0,K1,K2,K3) = d(0,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(0,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(0,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+      r(1,0,K1,K2,K3) = d(1,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(1,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(1,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+      r(2,0,K1,K2,K3) = d(2,0,K1,K2,K3)*e(0,0,J1,J2,J3)+d(2,1,K1,K2,K3)*e(1,0,J1,J2,J3)+d(2,2,K1,K2,K3)*e(2,0,J1,J2,J3);
+    }
+    else
+    {
+      OV_ABORT("error");
+    }
   }
+  
   r.reshape(blockSize,K1,K2,K3);
   e.reshape(e.dimension(0),e.dimension(2),e.dimension(3),e.dimension(4));
   return r;
@@ -1726,6 +1870,941 @@ scalarBlockPeriodicFactor(int i1, int i2, int i3)
 // 
 // ======================================================================================================
 {
+  if( useOldBlockOrdering )
+  { // *old way* (wrong -- used transpose)
+    return scalarBlockPeriodicFactorOld( i1, i2, i3 );
+  }
+
+  // block tridiagonal system
+  Range N(0,blockSize-1);
+  int base =Iv[axis].getBase();
+  int bound=Iv[axis].getBound();
+
+
+  // *** assume a,b,c are the same size ?? ****
+  const int aDim0=a.getRawDataSize(0);
+  const int aDim1=a.getRawDataSize(1);
+  const int aDim2=a.getRawDataSize(2);
+  const int aDim3=a.getRawDataSize(3);
+  const int aDim4=a.getRawDataSize(4);
+  const int stride = axis==0 ? aDim0*aDim1 : axis==1 ? aDim0*aDim1*aDim2 : aDim0*aDim1*aDim2*aDim3;
+  const int offset = aDim0*aDim1*(i1+aDim2*(i2+aDim3*(i3)));
+
+  const int wDim0=w1.getRawDataSize(0);
+  const int wDim1=w1.getRawDataSize(1);
+  const int wDim2=w1.getRawDataSize(2);
+  const int wDim3=w1.getRawDataSize(3);
+  const int wDim4=w1.getRawDataSize(4);
+  const int wStride = axis==0 ? wDim0*wDim1 : axis==1 ? wDim0*wDim1*wDim2 : wDim0*wDim1*wDim2*wDim3;
+  const int wOffset = wDim0*wDim1*(i1+wDim2*(i2+wDim3*(i3)));
+
+  real *ap = a.Array_Descriptor.Array_View_Pointer1;  
+  real *bp = b.Array_Descriptor.Array_View_Pointer1;
+  real *cp = c.Array_Descriptor.Array_View_Pointer1;
+  real *w1p= w1.Array_Descriptor.Array_View_Pointer1;
+  real *w2p= w2.Array_Descriptor.Array_View_Pointer1;
+
+  ap+=offset;
+  bp+=offset;
+  cp+=offset;
+  w1p+=wOffset;
+  w2p+=wOffset;
+  
+  if( useOptimizedC && blockSize==2 )
+  {
+    // printf("optimised scalar blockPeriodicFactor, base=%i\n",base);
+      
+#define A(m,i) ap[m+stride*(i)]
+#define B(m,i) bp[m+stride*(i)]
+#define C(m,i) cp[m+stride*(i)]
+#define W1(m,i) w1p[m+wStride*(i)]
+#define W2(m,i) w2p[m+wStride*(i)]
+
+#define INVERT(B,i) \
+      deti = 1./(B(0,i)*B(3,i)-B(2,i)*B(1,i)); \
+      temp= B(0,i)*deti; \
+      B(0,i)=B(3,i)*deti; \
+      B(1,i)*=-deti; \
+      B(2,i)*=-deti; \
+      B(3,i)=temp; 
+
+    real deti,temp,a0,a1,a2,a3, b0,b1,b2,b3, c0,c1,c2,c3, d0,d1,d2,d3, e0,e1,e2,e3;
+
+    // w2(N,N,base)=a(N,N,base);
+    int i=0,j;
+    W2(0,i)=A(0,i); W2(1,i)=A(1,i); W2(2,i)=A(2,i); W2(3,i)=A(3,i); 
+    //  invert( b,base ); // invert b0
+
+    INVERT(B,i);
+
+    const int ib=bound-base;
+
+    // A = [ a0  a2 ]  B=[ b0 b2 ]
+    //     [ a1  a3 ]    [ b1 b3 ]
+
+    for( i=1; i<=ib-1; i++ )
+    {
+      j=i-1;
+      a0=A(0,i); a1=A(1,i); a2=A(2,i); a3=A(3,i);
+      b0=B(0,j); b1=B(1,j); b2=B(2,j); b3=B(3,j);
+
+	// a(N,N,i1) =multiply(a,i1, b,i1-1); // save in a: a*b^{-1}
+      A(0,i) = a0*B(0,j)+a2*B(1,j);  // A00
+      A(1,i) = a1*B(0,j)+a3*B(1,j);  // A10
+      A(2,i) = a0*B(2,j)+a2*B(3,j);  // A01
+      A(3,i) = a1*B(2,j)+a3*B(3,j);  // A11
+
+      a0=A(0,i); a1=A(1,i); a2=A(2,i); a3=A(3,i);
+      c0=C(0,j); c1=C(1,j); c2=C(2,j); c3=C(3,j);
+      // b(N,N,i1)-=multiply(a,i1, c,i1-1);
+      B(0,i) -= a0*c0+a2*c1;
+      B(1,i) -= a1*c0+a3*c1;
+      B(2,i) -= a0*c2+a2*c3;
+      B(3,i) -= a1*c2+a3*c3;
+
+      d0=W2(0,j); d1=W2(1,j); d2=W2(2,j); d3=W2(3,j);
+      // w2(N,N,i1)=-multiply(a,i1, w2,i1-1);
+      W2(0,i) =- (a0*d0+a2*d1);
+      W2(1,i) =- (a1*d0+a3*d1);
+      W2(2,i) =- (a0*d2+a2*d3);
+      W2(3,i) =- (a1*d2+a3*d3);
+
+      // w1(N,N,i1)= multiply(c,bound, b,i1-1); // save c*b^{-1}
+      e0=C(0,ib); e1=C(1,ib); e2=C(2,ib); e3=C(3,ib);
+      W1(0,i) = (e0*b0+e2*b1);
+      W1(1,i) = (e1*b0+e3*b1);
+      W1(2,i) = (e0*b2+e2*b3);
+      W1(3,i) = (e1*b2+e3*b3);
+
+      // c(N,N,bound)=-multiply(w1,i1, c,i1-1);
+      e0=W1(0,i); e1=W1(1,i); e2=W1(2,i); e3=W1(3,i);
+      C(0,ib) =- (e0*c0+e2*c1);
+      C(1,ib) =- (e1*c0+e3*c1);
+      C(2,ib) =- (e0*c2+e2*c3);
+      C(3,ib) =- (e1*c2+e3*c3);
+
+      // b(N,N,bound)-=multiply(w1,i1, w2,i1-1);
+      B(0,ib) -= e0*d0+e2*d1;
+      B(1,ib) -= e1*d0+e3*d1;
+      B(2,ib) -= e0*d2+e2*d3;
+      B(3,ib) -= e1*d2+e3*d3;
+
+	// invert(b,i1);
+      INVERT(B,i);
+    }
+    // w2(N,N,bound-1)+=c(N,N,bound-1);
+    W2(0,ib-1)+=C(0,ib-1), W2(1,ib-1)+=C(1,ib-1), W2(2,ib-1)+=C(2,ib-1), W2(3,ib-1)+=C(3,ib-1);
+    // a(N,N,bound)+=c(N,N,bound);
+    A(0,ib)+=C(0,ib), A(1,ib)+=C(1,ib), A(2,ib)+=C(2,ib), A(3,ib)+=C(3,ib);
+
+    // a(N,N,bound)=multiply(a,bound, b,bound-1);
+    i=ib, j=ib-1;
+    a0=A(0,i); a1=A(1,i); a2=A(2,i); a3=A(3,i);
+    b0=B(0,j); b1=B(1,j); b2=B(2,j); b3=B(3,j);
+    A(0,i) = a0*b0+a2*b1;
+    A(1,i) = a1*b0+a3*b1;
+    A(2,i) = a0*b2+a2*b3;
+    A(3,i) = a1*b2+a3*b3;
+
+    // b(N,N,bound)-=multiply(a,bound, w2,bound-1);
+    a0=A(0,i); a1=A(1,i); a2=A(2,i); a3=A(3,i);
+    d0=W2(0,j); d1=W2(1,j); d2=W2(2,j); d3=W2(3,j);
+    B(0,ib) -= a0*d0+a2*d1;
+    B(1,ib) -= a1*d0+a3*d1;
+    B(2,ib) -= a0*d2+a2*d3;
+    B(3,ib) -= a1*d2+a3*d3;
+
+      // invert(b,bound);
+    INVERT(B,ib);
+
+#undef INVERT
+
+  }
+  else if( useOptimizedC && blockSize==3 )
+  {
+    // printf("optimised scalar 3x3 blockPeriodicFactor, base=%i\n",base);
+    real deti;
+    real a00,a10,a20,a01,a11,a21,a02,a12,a22;
+    real b00,b10,b20,b01,b11,b21,b02,b12,b22;
+    real c00,c10,c20,c01,c11,c21,c02,c12,c22;
+    real d00,d10,d20,d01,d11,d21,d02,d12,d22;
+    real e00,e10,e20,e01,e11,e21,e02,e12,e22;
+      
+    // w2(N,N,base)=a(N,N,base);
+    int i=0,j;
+      
+    int k;
+    for( k=0; k<9; k++ )
+      W2(k,i)=A(k,i); 
+
+    // invert( b,base ); // invert b0
+
+#define INVERT( B,i ) \
+      b00=B(0,i), b10=B(1,i), b20=B(2,i);   \
+      b01=B(3,i), b11=B(4,i), b21=B(5,i);   \
+      b02=B(6,i), b12=B(7,i), b22=B(8,i);   \
+      deti = 1./(b00*(b11*b22-b12*b21)+   \
+		 b10*(b21*b02-b22*b01)+   \
+		 b20*(b01*b12-b02*b11)  );   \
+      d00= (b11*b22-b12*b21)*deti;   \
+      d01= (b21*b02-b22*b01)*deti;   \
+      d02= (b01*b12-b02*b11)*deti;   \
+      d10= (b12*b20-b10*b22)*deti;   \
+      d11= (b22*b00-b20*b02)*deti;   \
+      d12= (b02*b10-b00*b12)*deti;   \
+      d20= (b10*b21-b11*b20)*deti;   \
+      d21= (b20*b01-b21*b00)*deti;   \
+      d22= (b00*b11-b01*b10)*deti;   \
+      B(0,i)=d00;   \
+      B(1,i)=d10;   \
+      B(2,i)=d20;   \
+      B(3,i)=d01;   \
+      B(4,i)=d11;   \
+      B(5,i)=d21;   \
+      B(6,i)=d02;   \
+      B(7,i)=d12;   \
+      B(8,i)=d22;
+
+    INVERT(B,i);
+
+    const int ib=bound-base;
+    i=1;
+//    for( int i1=base+1; i1<=bound-1; i1++,i++ )
+    for( i=1; i<=ib-1; i++ )
+    {
+      j=i-1;
+      a00=A(0,i), a10=A(1,i), a20=A(2,i); 
+      a01=A(3,i), a11=A(4,i), a21=A(5,i); 
+      a02=A(6,i), a12=A(7,i), a22=A(8,i); 
+
+      b00=B(0,j), b10=B(1,j), b20=B(2,j); 
+      b01=B(3,j), b11=B(4,j), b21=B(5,j); 
+      b02=B(6,j), b12=B(7,j), b22=B(8,j); 
+
+      // a(N,N,i1) =multiply(a,i1, b,i1-1); // save in a: a*b^{-1}
+      A(0,i) = a00*b00+a01*b10+a02*b20;  // A00 
+      A(1,i) = a10*b00+a11*b10+a12*b20;  // A10
+      A(2,i) = a20*b00+a21*b10+a22*b20;  // A20
+
+      A(3,i) = a00*b01+a01*b11+a02*b21;  // A01
+      A(4,i) = a10*b01+a11*b11+a12*b21;  // A11
+      A(5,i) = a20*b01+a21*b11+a22*b21;  // A21
+
+      A(6,i) = a00*b02+a01*b12+a02*b22;  // A02 
+      A(7,i) = a10*b02+a11*b12+a12*b22;  // A12 
+      A(8,i) = a20*b02+a21*b12+a22*b22;  // A22 
+
+      // A(0,i) = a00*b00+a10*b01+a20*b02;  
+      // A(1,i) = a00*b10+a10*b11+a20*b12;
+      // A(2,i) = a00*b20+a10*b21+a20*b22;
+      // A(3,i) = a01*b00+a11*b01+a21*b02;
+      // A(4,i) = a01*b10+a11*b11+a21*b12;
+      // A(5,i) = a01*b20+a11*b21+a21*b22;
+      // A(6,i) = a02*b00+a12*b01+a22*b02;
+      // A(7,i) = a02*b10+a12*b11+a22*b12;
+      // A(8,i) = a02*b20+a12*b21+a22*b22;
+
+      a00=A(0,i), a10=A(1,i), a20=A(2,i); 
+      a01=A(3,i), a11=A(4,i), a21=A(5,i); 
+      a02=A(6,i), a12=A(7,i), a22=A(8,i); 
+
+      c00=C(0,j), c10=C(1,j), c20=C(2,j); 
+      c01=C(3,j), c11=C(4,j), c21=C(5,j); 
+      c02=C(6,j), c12=C(7,j), c22=C(8,j); 
+
+      // b(N,N,i1)-=multiply(a,i1, c,i1-1);
+      B(0,i) -= ( a00*c00+a01*c10+a02*c20); // B00
+      B(1,i) -= ( a10*c00+a11*c10+a12*c20); // B10
+      B(2,i) -= ( a20*c00+a21*c10+a22*c20); // B20
+					            
+      B(3,i) -= ( a00*c01+a01*c11+a02*c21); // B01
+      B(4,i) -= ( a10*c01+a11*c11+a12*c21); // B11
+      B(5,i) -= ( a20*c01+a21*c11+a22*c21); // B21
+					            
+      B(6,i) -= ( a00*c02+a01*c12+a02*c22); // B02
+      B(7,i) -= ( a10*c02+a11*c12+a12*c22); // B12
+      B(8,i) -= ( a20*c02+a21*c12+a22*c22); // B22
+
+
+      // B(0,i) -= ( a00*c00+a10*c01+a20*c02);
+      // B(1,i) -= ( a00*c10+a10*c11+a20*c12);
+      // B(2,i) -= ( a00*c20+a10*c21+a20*c22);
+      // B(3,i) -= ( a01*c00+a11*c01+a21*c02);
+      // B(4,i) -= ( a01*c10+a11*c11+a21*c12);
+      // B(5,i) -= ( a01*c20+a11*c21+a21*c22);
+      // B(6,i) -= ( a02*c00+a12*c01+a22*c02);
+      // B(7,i) -= ( a02*c10+a12*c11+a22*c12);
+      // B(8,i) -= ( a02*c20+a12*c21+a22*c22);
+
+      d00=W2(0,j), d10=W2(1,j), d20=W2(2,j); 
+      d01=W2(3,j), d11=W2(4,j), d21=W2(5,j); 
+      d02=W2(6,j), d12=W2(7,j), d22=W2(8,j); 
+
+      // w2(N,N,i1)=-multiply(a,i1, w2,i1-1);
+      W2(0,i) = -( a00*d00+a01*d10+a02*d20); // W200
+      W2(1,i) = -( a10*d00+a11*d10+a12*d20); // W210
+      W2(2,i) = -( a20*d00+a21*d10+a22*d20); // W220
+					            
+      W2(3,i) = -( a00*d01+a01*d11+a02*d21); // W201
+      W2(4,i) = -( a10*d01+a11*d11+a12*d21); // W211
+      W2(5,i) = -( a20*d01+a21*d11+a22*d21); // W221
+					            
+      W2(6,i) = -( a00*d02+a01*d12+a02*d22); // W202
+      W2(7,i) = -( a10*d02+a11*d12+a12*d22); // W212
+      W2(8,i) = -( a20*d02+a21*d12+a22*d22); // W222
+
+      // W2(0,i) =-( a00*d00+a10*d01+a20*d02);
+      // W2(1,i) =-( a00*d10+a10*d11+a20*d12);
+      // W2(2,i) =-( a00*d20+a10*d21+a20*d22);
+      // W2(3,i) =-( a01*d00+a11*d01+a21*d02);
+      // W2(4,i) =-( a01*d10+a11*d11+a21*d12);
+      // W2(5,i) =-( a01*d20+a11*d21+a21*d22);
+      // W2(6,i) =-( a02*d00+a12*d01+a22*d02);
+      // W2(7,i) =-( a02*d10+a12*d11+a22*d12);
+      // W2(8,i) =-( a02*d20+a12*d21+a22*d22);
+
+      e00=C(0,ib), e10=C(1,ib), e20=C(2,ib); 
+      e01=C(3,ib), e11=C(4,ib), e21=C(5,ib); 
+      e02=C(6,ib), e12=C(7,ib), e22=C(8,ib); 
+
+      // w1(N,N,i1)= multiply(c,bound, b,i1-1); // save c*b^{-1}
+      W1(0,i) = ( e00*b00+e01*b10+e02*b20); // W100
+      W1(1,i) = ( e10*b00+e11*b10+e12*b20); // W110
+      W1(2,i) = ( e20*b00+e21*b10+e22*b20); // W120
+					            
+      W1(3,i) = ( e00*b01+e01*b11+e02*b21); // W101
+      W1(4,i) = ( e10*b01+e11*b11+e12*b21); // W111
+      W1(5,i) = ( e20*b01+e21*b11+e22*b21); // W121
+					            
+      W1(6,i) = ( e00*b02+e01*b12+e02*b22); // W102
+      W1(7,i) = ( e10*b02+e11*b12+e12*b22); // W112
+      W1(8,i) = ( e20*b02+e21*b12+e22*b22); // W122
+
+      // W1(0,i) =( e00*b00+e10*b01+e20*b02);
+      // W1(1,i) =( e00*b10+e10*b11+e20*b12);
+      // W1(2,i) =( e00*b20+e10*b21+e20*b22);
+      // W1(3,i) =( e01*b00+e11*b01+e21*b02);
+      // W1(4,i) =( e01*b10+e11*b11+e21*b12);
+      // W1(5,i) =( e01*b20+e11*b21+e21*b22);
+      // W1(6,i) =( e02*b00+e12*b01+e22*b02);
+      // W1(7,i) =( e02*b10+e12*b11+e22*b12);
+      // W1(8,i) =( e02*b20+e12*b21+e22*b22);
+
+      e00=W1(0,i), e10=W1(1,i), e20=W1(2,i); 
+      e01=W1(3,i), e11=W1(4,i), e21=W1(5,i); 
+      e02=W1(6,i), e12=W1(7,i), e22=W1(8,i); 
+
+      //	c(N,N,bound)=-multiply(w1,i1, c,i1-1);
+      C(0,ib) = -( e00*c00+e01*c10+e02*c20); // C00
+      C(1,ib) = -( e10*c00+e11*c10+e12*c20); // C10
+      C(2,ib) = -( e20*c00+e21*c10+e22*c20); // C20
+					            
+      C(3,ib) = -( e00*c01+e01*c11+e02*c21); // C01
+      C(4,ib) = -( e10*c01+e11*c11+e12*c21); // C11
+      C(5,ib) = -( e20*c01+e21*c11+e22*c21); // C21
+					            
+      C(6,ib) = -( e00*c02+e01*c12+e02*c22); // C02
+      C(7,ib) = -( e10*c02+e11*c12+e12*c22); // C12
+      C(8,ib) = -( e20*c02+e21*c12+e22*c22); // C22
+
+      // C(0,ib) =-( e00*c00+e10*c01+e20*c02);
+      // C(1,ib) =-( e00*c10+e10*c11+e20*c12);
+      // C(2,ib) =-( e00*c20+e10*c21+e20*c22);
+      // C(3,ib) =-( e01*c00+e11*c01+e21*c02);
+      // C(4,ib) =-( e01*c10+e11*c11+e21*c12);
+      // C(5,ib) =-( e01*c20+e11*c21+e21*c22);
+      // C(6,ib) =-( e02*c00+e12*c01+e22*c02);
+      // C(7,ib) =-( e02*c10+e12*c11+e22*c12);
+      // C(8,ib) =-( e02*c20+e12*c21+e22*c22);
+
+      // b(N,N,bound)-=multiply(w1,i1, w2,i1-1);
+      B(0,ib) -=( e00*d00+e01*d10+e02*d20); // B00
+      B(1,ib) -=( e10*d00+e11*d10+e12*d20); // B10
+      B(2,ib) -=( e20*d00+e21*d10+e22*d20); // B20
+					            
+      B(3,ib) -=( e00*d01+e01*d11+e02*d21); // B01
+      B(4,ib) -=( e10*d01+e11*d11+e12*d21); // B11
+      B(5,ib) -=( e20*d01+e21*d11+e22*d21); // B21
+					            
+      B(6,ib) -=( e00*d02+e01*d12+e02*d22); // B02
+      B(7,ib) -=( e10*d02+e11*d12+e12*d22); // B12
+      B(8,ib) -=( e20*d02+e21*d12+e22*d22); // B22
+
+      // B(0,ib) -=( e00*d00+e10*d01+e20*d02);
+      // B(1,ib) -=( e00*d10+e10*d11+e20*d12);
+      // B(2,ib) -=( e00*d20+e10*d21+e20*d22);
+      // B(3,ib) -=( e01*d00+e11*d01+e21*d02);
+      // B(4,ib) -=( e01*d10+e11*d11+e21*d12);
+      // B(5,ib) -=( e01*d20+e11*d21+e21*d22);
+      // B(6,ib) -=( e02*d00+e12*d01+e22*d02);
+      // B(7,ib) -=( e02*d10+e12*d11+e22*d12);
+      // B(8,ib) -=( e02*d20+e12*d21+e22*d22);
+
+      // invert(b,i1);
+      INVERT(B,i);
+    }
+    i=ib, j=ib-1;
+    // w2(N,N,bound-1)+=c(N,N,bound-1);
+    // a(N,N,bound)+=c(N,N,bound);
+    for( k=0; k<9; k++ )
+    {
+      W2(k,j)+=C(k,j);
+      A(k,i)+=C(k,i);
+    }
+
+    a00=A(0,i), a10=A(1,i), a20=A(2,i); 
+    a01=A(3,i), a11=A(4,i), a21=A(5,i); 
+    a02=A(6,i), a12=A(7,i), a22=A(8,i); 
+    b00=B(0,j), b10=B(1,j), b20=B(2,j); 
+    b01=B(3,j), b11=B(4,j), b21=B(5,j); 
+    b02=B(6,j), b12=B(7,j), b22=B(8,j); 
+
+    // a(N,N,bound)=multiply(a,bound, b,bound-1);
+
+    A(0,i) = a00*b00+a01*b10+a02*b20;  // A00 
+    A(1,i) = a10*b00+a11*b10+a12*b20;  // A10
+    A(2,i) = a20*b00+a21*b10+a22*b20;  // A20
+
+    A(3,i) = a00*b01+a01*b11+a02*b21;  // A01
+    A(4,i) = a10*b01+a11*b11+a12*b21;  // A11
+    A(5,i) = a20*b01+a21*b11+a22*b21;  // A21
+
+    A(6,i) = a00*b02+a01*b12+a02*b22;  // A02 
+    A(7,i) = a10*b02+a11*b12+a12*b22;  // A12 
+    A(8,i) = a20*b02+a21*b12+a22*b22;  // A22 
+
+    // A(0,i) = a00*b00+a10*b01+a20*b02;
+    // A(1,i) = a00*b10+a10*b11+a20*b12;
+    // A(2,i) = a00*b20+a10*b21+a20*b22;
+    // A(3,i) = a01*b00+a11*b01+a21*b02;
+    // A(4,i) = a01*b10+a11*b11+a21*b12;
+    // A(5,i) = a01*b20+a11*b21+a21*b22;
+    // A(6,i) = a02*b00+a12*b01+a22*b02;
+    // A(7,i) = a02*b10+a12*b11+a22*b12;
+    // A(8,i) = a02*b20+a12*b21+a22*b22;
+
+    a00=A(0,i), a10=A(1,i), a20=A(2,i); 
+    a01=A(3,i), a11=A(4,i), a21=A(5,i); 
+    a02=A(6,i), a12=A(7,i), a22=A(8,i); 
+    d00=W2(0,j), d10=W2(1,j), d20=W2(2,j); 
+    d01=W2(3,j), d11=W2(4,j), d21=W2(5,j); 
+    d02=W2(6,j), d12=W2(7,j), d22=W2(8,j); 
+
+    // b(N,N,bound)-=multiply(a,bound, w2,bound-1);
+
+    B(0,i) -= ( a00*d00+a01*d10+a02*d20); // B00
+    B(1,i) -= ( a10*d00+a11*d10+a12*d20); // B10
+    B(2,i) -= ( a20*d00+a21*d10+a22*d20); // B20
+					            
+    B(3,i) -= ( a00*d01+a01*d11+a02*d21); // B01
+    B(4,i) -= ( a10*d01+a11*d11+a12*d21); // B11
+    B(5,i) -= ( a20*d01+a21*d11+a22*d21); // B21
+					            
+    B(6,i) -= ( a00*d02+a01*d12+a02*d22); // B02
+    B(7,i) -= ( a10*d02+a11*d12+a12*d22); // B12
+    B(8,i) -= ( a20*d02+a21*d12+a22*d22); // B22
+
+    // B(0,i) -=( a00*d00+a10*d01+a20*d02);
+    // B(1,i) -=( a00*d10+a10*d11+a20*d12);
+    // B(2,i) -=( a00*d20+a10*d21+a20*d22);
+    // B(3,i) -=( a01*d00+a11*d01+a21*d02);
+    // B(4,i) -=( a01*d10+a11*d11+a21*d12);
+    // B(5,i) -=( a01*d20+a11*d21+a21*d22);
+    // B(6,i) -=( a02*d00+a12*d01+a22*d02);
+    // B(7,i) -=( a02*d10+a12*d11+a22*d12);
+    // B(8,i) -=( a02*d20+a12*d21+a22*d22);
+
+    // invert(b,bound);
+    INVERT(B,ib);
+
+#undef A
+#undef B
+#undef C
+#undef W1
+#undef W2
+#undef INVERT
+
+  }
+  else
+  { // general case
+    w2(N,N,base)=a(N,N,base);
+    invert( b,base ); // invert b0
+    for( int i1=base+1; i1<=bound-1; i1++ )
+    {
+      a(N,N,i1) =multiply(a,i1, b,i1-1); // save in a: a*b^{-1}
+      b(N,N,i1)-=multiply(a,i1, c,i1-1);
+      w2(N,N,i1)=-multiply(a,i1, w2,i1-1);
+      w1(N,N,i1)= multiply(c,bound, b,i1-1); // save c*b^{-1}
+      c(N,N,bound)=-multiply(w1,i1, c,i1-1);
+      b(N,N,bound)-=multiply(w1,i1, w2,i1-1);
+
+      invert(b,i1);
+    }
+    w2(N,N,bound-1)+=c(N,N,bound-1);
+    a(N,N,bound)+=c(N,N,bound);
+    a(N,N,bound)=multiply(a,bound, b,bound-1);
+    b(N,N,bound)-=multiply(a,bound, w2,bound-1);
+    invert(b,bound);
+  }
+  return 0;
+}
+
+
+int TridiagonalSolver::
+blockPeriodicSolve(RealArray & r)
+// =====================================================================================================
+// =====================================================================================================
+{
+
+  Range N(0,blockSize-1);
+  int base =Iv[axis].getBase();
+  int bound=Iv[axis].getBound();
+  int i1;
+  if( scalarSystem )
+  {
+    // forward elimination
+    int i1Base=I1.getBase();
+    int i2Base=I2.getBase();
+    int i3Base=I3.getBase();
+    return scalarBlockPeriodicSolve(r,i1Base,i2Base,i3Base);
+  }
+  else if( axis==axis1 )
+  {
+    if( true )
+    {
+      int i1Base=I1.getBase();
+      int i2Base=I2.getBase(), i2Bound=I2.getBound();
+      int i3Base=I3.getBase(), i3Bound=I3.getBound();
+      const int i3Stride=I3.getStride();
+      const int i2Stride=I2.getStride();
+      for( int i3=i3Base; i3<=i3Bound; i3+=i3Stride )
+      {
+	for( int i2=i2Base; i2<=i2Bound; i2+=i2Stride )
+	{
+	  scalarBlockPeriodicSolve( r,i1Base,i2,i3 );
+	}
+      }
+    }
+    else
+    {
+      // forward elimination
+      for( i1=base+1; i1<bound; i1++ )
+      {
+	r(N,i1,I2,I3)-=matrixVectorMultiply(a,i1,I2,I3, r,i1-1,I2,I3);
+	r(N,bound,I2,I3)-=matrixVectorMultiply(w1,i1,I2,I3, r,i1-1,I2,I3);
+      }
+      RealArray t(N,1,I2,I3);
+      t=r(N,bound,I2,I3)-matrixVectorMultiply(a,bound,I2,I3, r,bound-1,I2,I3);
+      r(N,bound,I2,I3)=matrixVectorMultiply(b,bound,I2,I3, t,0,I2,I3);
+  
+
+      i1=bound-1;
+      t=r(N,i1,I2,I3)-matrixVectorMultiply(w2,i1,I2,I3, r,bound,I2,I3);
+      r(N,i1,I2,I3)=matrixVectorMultiply(b,i1,I2,I3, t,0,I2,I3);
+      for( i1=bound-2; i1>=base; i1-- )
+      { 
+	t=r(N,i1,I2,I3)-
+	  matrixVectorMultiply(c,i1,I2,I3, r,i1+1,I2,I3)-
+	  matrixVectorMultiply(w2,i1,I2,I3, r,bound,I2,I3);
+      
+	r(N,i1,I2,I3)=matrixVectorMultiply(b,i1,I2,I3, t,0,I2,I3);  
+      }
+    }
+  }
+  else if( axis==axis2 )
+  {
+    if( true )
+    {
+      int i1Base=I1.getBase(), i1Bound=I1.getBound();
+      int i2Base=I2.getBase();
+      int i3Base=I3.getBase(), i3Bound=I3.getBound();
+      const int i1Stride=I1.getStride();
+      const int i3Stride=I3.getStride();
+      for( int i3=i3Base; i3<=i3Bound; i3+=i3Stride )
+      {
+	for( int i1=i1Base; i1<=i1Bound; i1+=i1Stride )
+	{
+	  scalarBlockPeriodicSolve( r,i1,i2Base,i3 );
+	}
+      }
+    }
+    else
+    {
+      int i2;
+      // forward elimination
+      for( i2=base+1; i2<bound; i2++ )
+      {
+	r(N,I1,i2,I3)-=matrixVectorMultiply(a,I1,i2,I3, r,I1,i2-1,I3);
+	r(N,I1,bound,I3)-=matrixVectorMultiply(w1,I1,i2,I3, r,I1,i2-1,I3);
+      }
+      RealArray t(N,I1,1,I3);
+      t=r(N,I1,bound,I3)-matrixVectorMultiply(a,I1,bound,I3, r,I1,bound-1,I3);
+      r(N,I1,bound,I3)=matrixVectorMultiply(b,I1,bound,I3, t,I1,0,I3);
+  
+
+      i2=bound-1;
+      t=r(N,I1,i2,I3)-matrixVectorMultiply(w2,I1,i2,I3, r,I1,bound,I3);
+      r(N,I1,i2,I3)=matrixVectorMultiply(b,I1,i2,I3, t,I1,0,I3);
+      for( i2=bound-2; i2>=base; i2-- )
+      { 
+	t=r(N,I1,i2,I3)-
+	  matrixVectorMultiply(c,I1,i2,I3, r,I1,i2+1,I3)-
+	  matrixVectorMultiply(w2,I1,i2,I3, r,I1,bound,I3);
+      
+	r(N,I1,i2,I3)=matrixVectorMultiply(b,I1,i2,I3, t,I1,0,I3);  
+      }
+    }
+  }
+  else if( axis==axis3 )
+  {
+    if(  true )
+    {
+      int i1Base=I1.getBase(), i1Bound=I1.getBound();
+      int i2Base=I2.getBase(), i2Bound=I2.getBound();
+      int i3Base=I3.getBase();
+      const int i1Stride=I1.getStride();
+      const int i2Stride=I2.getStride();
+      for( int i2=i2Base; i2<=i2Bound; i2+=i2Stride )
+      {
+	for( int i1=i1Base; i1<=i1Bound; i1+=i1Stride )
+	{
+	  scalarBlockPeriodicSolve( r,i1,i2,i3Base );
+	}
+      }
+    }
+    else
+    {
+      int i3;
+      // forward elimination
+      for( i3=base+1; i3<bound; i3++ )
+      {
+	r(N,I1,I2,i3)-=matrixVectorMultiply(a,I1,I2,i3, r,I1,I2,i3-1);
+	r(N,I1,I2,bound)-=matrixVectorMultiply(w1,I1,I2,i3, r,I1,I2,i3-1);
+      }
+      RealArray t(N,I1,I2,1);
+      t=r(N,I1,I2,bound)-matrixVectorMultiply(a,I1,I2,bound, r,I1,I2,bound-1);
+      r(N,I1,I2,bound)=matrixVectorMultiply(b,I1,I2,bound, t,I1,I2,0);
+  
+
+      i3=bound-1;
+      t=r(N,I1,I2,i3)-matrixVectorMultiply(w2,I1,I2,i3, r,I1,I2,bound);
+      r(N,I1,I2,i3)=matrixVectorMultiply(b,I1,I2,i3, t,I1,I2,0);
+      for( i3=bound-2; i3>=base; i3-- )
+      { 
+	t=r(N,I1,I2,i3)-
+	  matrixVectorMultiply(c,I1,I2,i3, r,I1,I2,i3+1)-
+	  matrixVectorMultiply(w2,I1,I2,i3, r,I1,I2,bound);
+      
+	r(N,I1,I2,i3)=matrixVectorMultiply(b,I1,I2,i3, t,I1,I2,0);  
+      }
+    }
+  }
+  return 0;
+}
+#undef A
+#undef B
+#undef C
+#undef R
+#undef W1
+#undef W2
+
+
+int TridiagonalSolver::
+scalarBlockPeriodicSolve(RealArray & r, int i1, int i2, int i3)
+// =====================================================================================================
+// =====================================================================================================
+{
+  if( useOldBlockOrdering )
+  { // *old way* (wrong -- used transpose)
+    return scalarBlockPeriodicSolveOld( r, i1, i2, i3 );
+  }
+
+  Range N(0,blockSize-1);
+  int base =Iv[axis].getBase();
+  int bound=Iv[axis].getBound();
+
+  // *** assume a,b,c are the same size ?? ****
+  const int aDim0=a.getRawDataSize(0);
+  const int aDim1=a.getRawDataSize(1);
+  const int aDim2=a.getRawDataSize(2);
+  const int aDim3=a.getRawDataSize(3);
+  const int aDim4=a.getRawDataSize(4);
+  const int stride = axis==0 ? aDim0*aDim1 : axis==1 ? aDim0*aDim1*aDim2 : aDim0*aDim1*aDim2*aDim3;
+  const int offset = aDim0*aDim1*(i1+aDim2*(i2+aDim3*(i3)));
+
+  const int wDim0=w1.getRawDataSize(0);
+  const int wDim1=w1.getRawDataSize(1);
+  const int wDim2=w1.getRawDataSize(2);
+  const int wDim3=w1.getRawDataSize(3);
+  const int wDim4=w1.getRawDataSize(4);
+  const int wStride = axis==0 ? wDim0*wDim1 : axis==1 ? wDim0*wDim1*wDim2 : wDim0*wDim1*wDim2*wDim3;
+  const int wOffset = wDim0*wDim1*(i1+wDim2*(i2+wDim3*(i3)));
+
+  real *ap = a.Array_Descriptor.Array_View_Pointer1;
+  real *bp = b.Array_Descriptor.Array_View_Pointer1;
+  real *cp = c.Array_Descriptor.Array_View_Pointer1;
+  real *w1p= w1.Array_Descriptor.Array_View_Pointer1;
+  real *w2p= w2.Array_Descriptor.Array_View_Pointer1;
+  ap+=offset;
+  bp+=offset;
+  cp+=offset;
+  w1p+=wOffset;
+  w2p+=wOffset;
+  
+  const int rDim0=r.getRawDataSize(0);
+  const int rDim1=r.getRawDataSize(1);
+  const int rDim2=r.getRawDataSize(2);
+  const int rDim3=r.getRawDataSize(3);
+  const int rStride = axis==0 ? rDim0 : axis==1 ? rDim0*rDim1 : rDim0*rDim1*rDim2;
+  const int rOffset = rDim0*(i1+rDim1*(i2+rDim2*(i3)));
+
+  real *rp = r.Array_Descriptor.Array_View_Pointer1;
+  rp+=rOffset;
+
+  // forward elimination
+  if( useOptimizedC && blockSize==2 )
+  {
+    // printf("optimised scalar blockPeriodicFactor, base=%i\n",base);
+
+#define A(m,i) ap[m+stride*(i)]
+#define B(m,i) bp[m+stride*(i)]
+#define C(m,i) cp[m+stride*(i)]
+#define R(m,i) rp[m+rStride*(i)]
+#define W1(m,i) w1p[m+wStride*(i)]
+#define W2(m,i) w2p[m+wStride*(i)]
+
+
+    real a0,a1,a2,a3, d0,d1,d2,d3,  r0,r1;
+    int i=1,j;
+    const int ib=bound-base;
+
+    // A = [ a0  a2 ]  B=[ b0 b2 ]
+    //     [ a1  a3 ]    [ b1 b3 ]
+
+    for( i=1; i<ib; i++ )
+    {
+      j=i-1;
+      a0=A(0,i); a1=A(1,i); a2=A(2,i); a3=A(3,i);
+      r0=R(0,j); r1=R(1,j);
+      // r(N,i)-=matrixVectorMultiply(a,i, r,i-1);
+      R(0,i) -= ( a0*r0+a2*r1 );
+      R(1,i) -= ( a1*r0+a3*r1 );
+
+      // r(N,bound)-=matrixVectorMultiply(w1,i, r,i-1);
+      d0=W1(0,i); d1=W1(1,i); d2=W1(2,i); d3=W1(3,i);
+      R(0,ib) -= ( d0*r0+d2*r1 );
+      R(1,ib) -= ( d1*r0+d3*r1 );
+       
+    }
+    // r(N,bound)=matrixVectorMultiply(b,bound, evaluate(r(N,bound)-matrixVectorMultiply(a,bound, r,bound-1)));
+    i=ib, j=ib-1;
+    a0=A(0,i); a1=A(1,i); a2=A(2,i); a3=A(3,i);
+    real b0=B(0,i), b1=B(1,i), b2=B(2,i), b3=B(3,i);
+
+    r0=R(0,j); r1=R(1,j);
+    d0=R(0,i) - ( a0*r0+a2*r1 );
+    d1=R(1,i) - ( a1*r0+a3*r1 );
+
+    R(0,i) = ( b0*d0+b2*d1 );
+    R(1,i) = ( b1*d0+b3*d1 );
+
+    // i1=bound-1;
+    // r(N,i1)=matrixVectorMultiply(b,i1, evaluate(r(N,i1)-matrixVectorMultiply(w2,i1, r,bound)));
+    i=ib-1;
+    a0=W2(0,i); a1=W2(1,i); a2=W2(2,i); a3=W2(3,i);
+    b0=B(0,i); b1=B(1,i); b2=B(2,i); b3=B(3,i);
+    r0=R(0,ib); r1=R(1,ib);
+    d0=R(0,i) - ( a0*r0+a2*r1 );
+    d1=R(1,i) - ( a1*r0+a3*r1 );
+
+    R(0,i) = ( b0*d0+b2*d1 );
+    R(1,i) = ( b1*d0+b3*d1 );
+
+    i=ib-2;
+    for( i=ib-2; i>=0; i-- )
+    { 
+      j=i+1;
+// 	r(N,i1)=matrixVectorMultiply(b,i1,evaluate(r(N,i1)
+// 		  			   -matrixVectorMultiply(c,i1, r,i1+1)-matrixVectorMultiply(w2,i1, r,bound)));  
+      a0=W2(0,i); a1=W2(1,i); a2=W2(2,i); a3=W2(3,i);
+
+      d0=( a0*r0+a2*r1 );
+      d1=( a1*r0+a3*r1 );
+          
+      a0=C(0,i); a1=C(1,i); a2=C(2,i); a3=C(3,i);
+      d2 = a0*R(0,j)+a2*R(1,j);
+      d3 = a1*R(0,j)+a3*R(1,j);
+	
+      d0 = R(0,i)-d2-d0;
+      d1 = R(1,i)-d3-d1;
+
+      b0=B(0,i); b1=B(1,i); b2=B(2,i); b3=B(3,i);
+	
+      R(0,i) = ( b0*d0+b2*d1 );
+      R(1,i) = ( b1*d0+b3*d1 );
+
+
+    }
+      
+  }
+  else if( useOptimizedC && blockSize==3 )
+  {
+    // printf("optimised scalar blockPeriodicFactor, base=%i\n",base);
+    real a00,a10,a20,a01,a11,a21,a02,a12,a22;
+    real b00,b10,b20,b01,b11,b21,b02,b12,b22;
+    real c00,c10,c20,c01,c11,c21,c02,c12,c22;
+    real d00,d10,d20,d01,d11,d21,d02,d12,d22;
+    real e00,e10,e20,e01,e11,e21,e02,e12,e22;
+    real r0,r1,r2;
+      
+    int i=1,j;
+    const int ib=bound-base;
+
+    for( i=1; i<ib; i++ )
+    {
+      j=i-1;
+      a00=A(0,i), a10=A(1,i), a20=A(2,i); 
+      a01=A(3,i), a11=A(4,i), a21=A(5,i); 
+      a02=A(6,i), a12=A(7,i), a22=A(8,i); 
+
+      r0=R(0,j); r1=R(1,j); r2=R(2,j);
+	
+      // r(N,i1)-=matrixVectorMultiply(a,i1, r,i1-1);
+      R(0,i) -= a00*r0+a01*r1+a02*r2;
+      R(1,i) -= a10*r0+a11*r1+a12*r2;
+      R(2,i) -= a20*r0+a21*r1+a22*r2;
+
+      // r(N,bound)-=matrixVectorMultiply(w1,i1, r,i1-1);
+      d00=W1(0,i), d10=W1(1,i), d20=W1(2,i); 
+      d01=W1(3,i), d11=W1(4,i), d21=W1(5,i); 
+      d02=W1(6,i), d12=W1(7,i), d22=W1(8,i); 
+
+      R(0,ib) -= d00*r0+d01*r1+d02*r2;
+      R(1,ib) -= d10*r0+d11*r1+d12*r2;
+      R(2,ib) -= d20*r0+d21*r1+d22*r2;
+
+    }
+    i=ib, j=ib-1;
+    // r(N,bound)=matrixVectorMultiply(b,bound, evaluate(r(N,bound)-matrixVectorMultiply(a,bound, r,bound-1)));
+    a00=A(0,i), a10=A(1,i), a20=A(2,i); 
+    a01=A(3,i), a11=A(4,i), a21=A(5,i); 
+    a02=A(6,i), a12=A(7,i), a22=A(8,i); 
+    b00=B(0,i), b10=B(1,i), b20=B(2,i); 
+    b01=B(3,i), b11=B(4,i), b21=B(5,i); 
+    b02=B(6,i), b12=B(7,i), b22=B(8,i); 
+    r0=R(0,j); r1=R(1,j); r2=R(2,j);
+    d00 = R(0,i) - (a00*r0+a01*r1+a02*r2);
+    d10 = R(1,i) - (a10*r0+a11*r1+a12*r2);
+    d20 = R(2,i) - (a20*r0+a21*r1+a22*r2);
+
+    R(0,i) = b00*d00+b01*d10+b02*d20;
+    R(1,i) = b10*d00+b11*d10+b12*d20;
+    R(2,i) = b20*d00+b21*d10+b22*d20;
+
+
+    // i1=bound-1;
+    // r(N,i1)=matrixVectorMultiply(b,i1, evaluate(r(N,i1)-matrixVectorMultiply(w2,i1, r,bound)));
+
+    i=ib-1; j=ib;
+    a00=W2(0,i), a10=W2(1,i), a20=W2(2,i); 
+    a01=W2(3,i), a11=W2(4,i), a21=W2(5,i); 
+    a02=W2(6,i), a12=W2(7,i), a22=W2(8,i); 
+    b00=B(0,i), b10=B(1,i), b20=B(2,i); 
+    b01=B(3,i), b11=B(4,i), b21=B(5,i); 
+    b02=B(6,i), b12=B(7,i), b22=B(8,i); 
+    r0=R(0,j); r1=R(1,j); r2=R(2,j);
+    d00 = R(0,i) - (a00*r0+a01*r1+a02*r2);
+    d10 = R(1,i) - (a10*r0+a11*r1+a12*r2);
+    d20 = R(2,i) - (a20*r0+a21*r1+a22*r2);
+
+    R(0,i) = b00*d00+b01*d10+b02*d20;
+    R(1,i) = b10*d00+b11*d10+b12*d20;
+    R(2,i) = b20*d00+b21*d10+b22*d20;
+
+    for( i=ib-2; i>=0; i-- )
+    { 
+      // r(N,i1)=matrixVectorMultiply(b,i1,evaluate(r(N,i1)
+      //  			   -matrixVectorMultiply(c,i1, r,i1+1)-matrixVectorMultiply(w2,i1, r,bound)));  
+      j=i+1;
+	
+      a00=W2(0,i), a10=W2(1,i), a20=W2(2,i); 
+      a01=W2(3,i), a11=W2(4,i), a21=W2(5,i); 
+      a02=W2(6,i), a12=W2(7,i), a22=W2(8,i); 
+      d00 = (a00*r0+a01*r1+a02*r2);
+      d10 = (a10*r0+a11*r1+a12*r2);
+      d20 = (a20*r0+a21*r1+a22*r2);
+
+      a00=C(0,i), a10=C(1,i), a20=C(2,i); 
+      a01=C(3,i), a11=C(4,i), a21=C(5,i); 
+      a02=C(6,i), a12=C(7,i), a22=C(8,i); 
+      d01 = (a00*R(0,j)+a01*R(1,j)+a02*R(2,j));
+      d11 = (a10*R(0,j)+a11*R(1,j)+a12*R(2,j));
+      d21 = (a20*R(0,j)+a21*R(1,j)+a22*R(2,j));
+
+      d00 = R(0,i)-d01-d00;
+      d10 = R(1,i)-d11-d10;
+      d20 = R(2,i)-d21-d20;
+      b00=B(0,i), b10=B(1,i), b20=B(2,i); 
+      b01=B(3,i), b11=B(4,i), b21=B(5,i); 
+      b02=B(6,i), b12=B(7,i), b22=B(8,i); 
+      R(0,i) = b00*d00+b01*d10+b02*d20;
+      R(1,i) = b10*d00+b11*d10+b12*d20;
+      R(2,i) = b20*d00+b21*d10+b22*d20;
+
+    }
+
+  }
+  else
+  { // general case
+    int i1;
+    for( i1=base+1; i1<bound; i1++ )
+    {
+      r(N,i1)-=matrixVectorMultiply(a,i1, r,i1-1);
+      r(N,bound)-=matrixVectorMultiply(w1,i1, r,i1-1);
+    }
+    r(N,bound)=matrixVectorMultiply(b,bound, evaluate(r(N,bound)-matrixVectorMultiply(a,bound, r,bound-1)));
+  
+
+    i1=bound-1;
+    r(N,i1)=matrixVectorMultiply(b,i1, evaluate(r(N,i1)-matrixVectorMultiply(w2,i1, r,bound)));
+    for( i1=bound-2; i1>=base; i1-- )
+    { 
+      r(N,i1)=matrixVectorMultiply(b,i1,evaluate(r(N,i1)
+			     -matrixVectorMultiply(c,i1, r,i1+1)-matrixVectorMultiply(w2,i1, r,bound)));  
+    }
+  }
+  return 0;
+}
+
+
+#undef A
+#undef B
+#undef C
+#undef R
+#undef W1
+#undef W2
+
+
+
+
+
+
+
+
+// ********************************************************************************************
+// ****************************** OLD VERSIONS *************************************************
+// ********************************************************************************************
+
+
+
+
+
+int TridiagonalSolver::
+scalarBlockPeriodicFactorOld(int i1, int i2, int i3)
+// ======================================================================================================
+// 
+// ======================================================================================================
+{
   // block tridiagonal system
   Range N(0,blockSize-1);
   int base =Iv[axis].getBase();
@@ -2101,167 +3180,10 @@ scalarBlockPeriodicFactor(int i1, int i2, int i3)
 }
 
 
-int TridiagonalSolver::
-blockPeriodicSolve(RealArray & r)
-// =====================================================================================================
-// =====================================================================================================
-{
-
-  Range N(0,blockSize-1);
-  int base =Iv[axis].getBase();
-  int bound=Iv[axis].getBound();
-  int i1;
-  if( scalarSystem )
-  {
-    // forward elimination
-    int i1Base=I1.getBase();
-    int i2Base=I2.getBase();
-    int i3Base=I3.getBase();
-    return scalarBlockPeriodicSolve(r,i1Base,i2Base,i3Base);
-  }
-  else if( axis==axis1 )
-  {
-    if( true )
-    {
-      int i1Base=I1.getBase();
-      int i2Base=I2.getBase(), i2Bound=I2.getBound();
-      int i3Base=I3.getBase(), i3Bound=I3.getBound();
-      const int i3Stride=I3.getStride();
-      const int i2Stride=I2.getStride();
-      for( int i3=i3Base; i3<=i3Bound; i3+=i3Stride )
-      {
-	for( int i2=i2Base; i2<=i2Bound; i2+=i2Stride )
-	{
-	  scalarBlockPeriodicSolve( r,i1Base,i2,i3 );
-	}
-      }
-    }
-    else
-    {
-      // forward elimination
-      for( i1=base+1; i1<bound; i1++ )
-      {
-	r(N,i1,I2,I3)-=matrixVectorMultiply(a,i1,I2,I3, r,i1-1,I2,I3);
-	r(N,bound,I2,I3)-=matrixVectorMultiply(w1,i1,I2,I3, r,i1-1,I2,I3);
-      }
-      RealArray t(N,1,I2,I3);
-      t=r(N,bound,I2,I3)-matrixVectorMultiply(a,bound,I2,I3, r,bound-1,I2,I3);
-      r(N,bound,I2,I3)=matrixVectorMultiply(b,bound,I2,I3, t,0,I2,I3);
-  
-
-      i1=bound-1;
-      t=r(N,i1,I2,I3)-matrixVectorMultiply(w2,i1,I2,I3, r,bound,I2,I3);
-      r(N,i1,I2,I3)=matrixVectorMultiply(b,i1,I2,I3, t,0,I2,I3);
-      for( i1=bound-2; i1>=base; i1-- )
-      { 
-	t=r(N,i1,I2,I3)-
-	  matrixVectorMultiply(c,i1,I2,I3, r,i1+1,I2,I3)-
-	  matrixVectorMultiply(w2,i1,I2,I3, r,bound,I2,I3);
-      
-	r(N,i1,I2,I3)=matrixVectorMultiply(b,i1,I2,I3, t,0,I2,I3);  
-      }
-    }
-  }
-  else if( axis==axis2 )
-  {
-    if( true )
-    {
-      int i1Base=I1.getBase(), i1Bound=I1.getBound();
-      int i2Base=I2.getBase();
-      int i3Base=I3.getBase(), i3Bound=I3.getBound();
-      const int i1Stride=I1.getStride();
-      const int i3Stride=I3.getStride();
-      for( int i3=i3Base; i3<=i3Bound; i3+=i3Stride )
-      {
-	for( int i1=i1Base; i1<=i1Bound; i1+=i1Stride )
-	{
-	  scalarBlockPeriodicSolve( r,i1,i2Base,i3 );
-	}
-      }
-    }
-    else
-    {
-      int i2;
-      // forward elimination
-      for( i2=base+1; i2<bound; i2++ )
-      {
-	r(N,I1,i2,I3)-=matrixVectorMultiply(a,I1,i2,I3, r,I1,i2-1,I3);
-	r(N,I1,bound,I3)-=matrixVectorMultiply(w1,I1,i2,I3, r,I1,i2-1,I3);
-      }
-      RealArray t(N,I1,1,I3);
-      t=r(N,I1,bound,I3)-matrixVectorMultiply(a,I1,bound,I3, r,I1,bound-1,I3);
-      r(N,I1,bound,I3)=matrixVectorMultiply(b,I1,bound,I3, t,I1,0,I3);
-  
-
-      i2=bound-1;
-      t=r(N,I1,i2,I3)-matrixVectorMultiply(w2,I1,i2,I3, r,I1,bound,I3);
-      r(N,I1,i2,I3)=matrixVectorMultiply(b,I1,i2,I3, t,I1,0,I3);
-      for( i2=bound-2; i2>=base; i2-- )
-      { 
-	t=r(N,I1,i2,I3)-
-	  matrixVectorMultiply(c,I1,i2,I3, r,I1,i2+1,I3)-
-	  matrixVectorMultiply(w2,I1,i2,I3, r,I1,bound,I3);
-      
-	r(N,I1,i2,I3)=matrixVectorMultiply(b,I1,i2,I3, t,I1,0,I3);  
-      }
-    }
-  }
-  else if( axis==axis3 )
-  {
-    if(  true )
-    {
-      int i1Base=I1.getBase(), i1Bound=I1.getBound();
-      int i2Base=I2.getBase(), i2Bound=I2.getBound();
-      int i3Base=I3.getBase();
-      const int i1Stride=I1.getStride();
-      const int i2Stride=I2.getStride();
-      for( int i2=i2Base; i2<=i2Bound; i2+=i2Stride )
-      {
-	for( int i1=i1Base; i1<=i1Bound; i1+=i1Stride )
-	{
-	  scalarBlockPeriodicSolve( r,i1,i2,i3Base );
-	}
-      }
-    }
-    else
-    {
-      int i3;
-      // forward elimination
-      for( i3=base+1; i3<bound; i3++ )
-      {
-	r(N,I1,I2,i3)-=matrixVectorMultiply(a,I1,I2,i3, r,I1,I2,i3-1);
-	r(N,I1,I2,bound)-=matrixVectorMultiply(w1,I1,I2,i3, r,I1,I2,i3-1);
-      }
-      RealArray t(N,I1,I2,1);
-      t=r(N,I1,I2,bound)-matrixVectorMultiply(a,I1,I2,bound, r,I1,I2,bound-1);
-      r(N,I1,I2,bound)=matrixVectorMultiply(b,I1,I2,bound, t,I1,I2,0);
-  
-
-      i3=bound-1;
-      t=r(N,I1,I2,i3)-matrixVectorMultiply(w2,I1,I2,i3, r,I1,I2,bound);
-      r(N,I1,I2,i3)=matrixVectorMultiply(b,I1,I2,i3, t,I1,I2,0);
-      for( i3=bound-2; i3>=base; i3-- )
-      { 
-	t=r(N,I1,I2,i3)-
-	  matrixVectorMultiply(c,I1,I2,i3, r,I1,I2,i3+1)-
-	  matrixVectorMultiply(w2,I1,I2,i3, r,I1,I2,bound);
-      
-	r(N,I1,I2,i3)=matrixVectorMultiply(b,I1,I2,i3, t,I1,I2,0);  
-      }
-    }
-  }
-  return 0;
-}
-#undef A
-#undef B
-#undef C
-#undef R
-#undef W1
-#undef W2
 
 
 int TridiagonalSolver::
-scalarBlockPeriodicSolve(RealArray & r, int i1, int i2, int i3)
+scalarBlockPeriodicSolveOld(RealArray & r, int i1, int i2, int i3)
 // =====================================================================================================
 // =====================================================================================================
 {

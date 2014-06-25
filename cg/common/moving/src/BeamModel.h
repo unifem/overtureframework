@@ -24,12 +24,21 @@ class BeamModel
 
  public:
 
-  // Pinned:      x,y are fixed, theta is free
-  // Cantilever:  x,y,theta are fixed
-  // Free:        x,y,theta are all free to move
-  // XXX Periodic is unimplemented!
+  // Boundary conditions:
+  // clamped: w=g, w_x=h
+  // pinned:  w=g, w_xx=h   (simply supported)
+  // freeBC:  EI*w_xx = M , EI*w_xxx = S , M=moment, S=transverse shear force
+  // fourthBC:  w_x=g, EI*w_xxx = S  (this is possible but not implemented)
+  // periodic: 
   //
-  enum BoundaryCondition { UnknownBC=-1, Pinned = 1 , Cantilevered = 2, Free = 4 , Periodic = 8 };
+  enum BoundaryCondition
+  { 
+    unknownBC=-1, 
+    pinned = 1 , 
+    clamped = 2, 
+    freeBC = 4 , 
+    periodic = 8 
+  };
 
   // constructor
   // sets the default parameters
@@ -55,17 +64,6 @@ class BeamModel
   int getNumberOfElements() const { return numElem; } // 
 
   // This function initializes the beam model.
-  // momOfIntertia:    I/b (true area moment of inertia divided by the width of the beam
-  // E:                Elastic modulus
-  // rho:              beam density
-  // thickness:        beam thickness (assumed to be constant)
-  // pnorm:            value used to scale the pressure (i.e., the fluid density)
-  // bcleft:           beam boundary condition on the left
-  // x0:               initial location of the left end of the beam (x)
-  // y0:               initial location of the left end of the beam (y)
-  // useExactSolution: This flag sets the beam model to use the initial conditions
-  //                   from the exact solution (FSI) in the documentation.
-  // 
   void setParameters(real momOfIntertia, real E, 
 		     real rho,real beamLength,
 		     real thickness,real pnorm,
@@ -79,13 +77,6 @@ class BeamModel
 
   // Return the displacement of the point on the surface (not the neutral axis)
   // of the beam of the point whose undeformed location is (x0,y0).
-  // This function is used to update the boundary of the CFD grid.
-  // X:       current beam solution vector
-  // x0:      undeformed location of the point on the surface of the beam (x)
-  // y0:      undeformed location of the point on the surface of the beam (y)
-  // x [out]: deformed location of the point on the surface of the beam (x)
-  // y [out]: deformed location of the point on the surface of the beam (y)
-  //
   void projectDisplacement(const RealArray& X, const real& x0,
 			   const real& y0, real& x, real& y);
 
@@ -129,8 +120,11 @@ class BeamModel
   // return the estimated *explicit* time step dt 
   real getExplicitTimeStep() const;
 
-  // evaluate the standing wavce solution
+  // evaluate the standing wave solution
   int getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const;
+
+  // evaluate the FSI traveling wave solution
+  int getTravelingWaveFSI( real t, RealArray & u, RealArray & v, RealArray & a ) const;
 
   // Return the current force of the structure.
   //
@@ -146,20 +140,8 @@ class BeamModel
   //
   bool hasCorrectionConverged() const;
 
-  // Return the exact velocity of the FLUID for the analytical solution
+  // Return the exact velocity of the FLUID for the FSI analytical solution
   // derived in the documentation
-  // (x,y):      point in the fluid grid where the exact velocity is desired
-  // t:          Time at which to compute the exact solution
-  // k:          Wave number for the exact solution being computed
-  // H:          Height of the fluid domain
-  // omega_real: real part of the angular frequency (see documentation)
-  // omega_imag: imaginary part of the angular frequency (see documentation)
-  // omega0:     Natural (free) frequency of the beam
-  // nu:         fluid kinematic viscosity
-  // what:       magnitude of the beam deformation
-  // u:          fluid velocity (x) [out]
-  // v:          fluid velocity (y) [out]
-  //
   static void exactSolutionVelocity(real x, real y,real t,
 				    real k, real H, 
 				    real omega_real, real omega_imag,
@@ -167,25 +149,17 @@ class BeamModel
 				    real what,
 				    real& u, real& v);
 
-  // Return the exact pressure of the FLUID for the analytical solution
+  // Return the exact pressure of the FLUID for the FSI analytical solution
   // derived in the documentation
-  // (x,y):      point in the fluid grid where the exact velocity is desired
-  // t:          Time at which to compute the exact solution
-  // k:          Wave number for the exact solution being computed
-  // H:          Height of the fluid domain
-  // omega_real: real part of the angular frequency (see documentation)
-  // omega_imag: imaginary part of the angular frequency (see documentation)
-  // omega0:     Natural (free) frequency of the beam
-  // nu:         fluid kinematic viscosity
-  // what:       magnitude of the beam deformation
-  // p:          fluid pressure (x) [out]
-  //
   static void exactSolutionPressure(real x, real y,real t,
 				    real k, real H, 
 				    real omega_real, real omega_imag,
 				    real omega0, real nu,
 				    real what,
 				    real& p);
+
+  // Compute errors in the solution (when the solution is known)
+  int getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,const aString & label );
 
   // Return the exact solution (if any)
   int getExactSolution( real t, RealArray & u, RealArray & v, RealArray & a ) const;
@@ -237,6 +211,9 @@ class BeamModel
   // Set parameters interactively: 
   int update(CompositeGrid & cg, GenericGraphicsInterface & gi );
 
+  // Write information about the beam
+  void writeParameterSummary( FILE *file= stdout );
+
   /// Here is a database to hold parameters (new way)
   mutable DataBase dbase; 
 
@@ -244,7 +221,11 @@ class BeamModel
   static int debug;
 
 
+ //  ---------------------------------- PRIVATE ---------------------------------------------------------
  private:
+
+  // add internalforces such as buoyance and TZ forcing 
+  int addInternalForces( const real t, RealArray & f );
 
   // choose initial conditions
   int chooseInitialConditions(CompositeGrid & cg, GenericGraphicsInterface & gi );
@@ -258,14 +239,19 @@ class BeamModel
 			     RealArray& fe);
 
   // Compute the acceleration of the beam.
-  void computeAcceleration(const RealArray& u, const RealArray& v, 
+  void computeAcceleration(const real t,
+                           const RealArray& u, const RealArray& v, 
 			   const RealArray& f,
 			   const RealArray& A,
 			   RealArray& a,
 			   real linAcceleration[2],
 			   real& omegadd,real dt,
+                           const real alpha,
 			   real locbeta = 0.0,
 			   real locgamma = 0.0);
+
+  //  Return the RHS values for the boundary conditions.
+  int getBoundaryValues( const real t, RealArray & g, const int ntd=0 );
 
   // Return the element, thickness, and natural coordinate for
   // a point (x0,y0) on the undeformed surface of the beam
@@ -308,6 +294,9 @@ class BeamModel
 
   // Multiply a vector w by the mass matrix
   void multiplyByMassMatrix(const RealArray& w, RealArray& Mw);
+
+  //  Solve A*u = f 
+  void solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, const real alpha );
 
   int domainDimension;     // domain dimension
   int numberOfDimensions;  // number of space dimensions (range)
@@ -489,6 +478,10 @@ class BeamModel
   // Initial location of the right end of the beam
   //
   real initialEndRight[2];
+
+
+  // exact solution option
+  aString exactSolutionOption;
 
   // name for the initial conditions
   aString initialConditionOption;

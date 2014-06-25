@@ -67,14 +67,14 @@ SRC = tz.C OGFunction.C OGPolyFunction.C OGTrigFunction.C OGPulseFunction.C \
       cut.C CutCells.C Polygon.C dice.C triangulate.C buildCutCells.C cutBoundary.C 
 
 
-BodyForce.C : BodyForce.bC; bpp -quiet -clean $<
+BodyForce.C : BodyForce.bC; $(BPP) -quiet -clean $<
 
 # 
-polyFunction1D.f : polyFunction.bf; bpp polyFunction.bf
+polyFunction1D.f : polyFunction.bf; $(BPP) polyFunction.bf
 
-polyEvaluate1D.F : polyFunction.bf; bpp polyFunction.bf
-OGPolyFunction.C : OGPolyFunction.bC; bpp OGPolyFunction.bC
-displayMask.C    : displayMask.bC; bpp displayMask.bC
+polyEvaluate1D.F : polyFunction.bf; $(BPP) polyFunction.bf
+OGPolyFunction.C : OGPolyFunction.bC; $(BPP) OGPolyFunction.bC
+displayMask.C    : displayMask.bC; $(BPP) displayMask.bC
 
 
 # test out the twilight-zone functions
@@ -83,7 +83,7 @@ tz = tz.o OGFunction.o OGPolyFunction.o OGTrigFunction.o OGPulseFunction.o \
      polyFunction.o polyFunction1D.o polyFunction2D.o polyFunction2D5.o polyFunction2D6.o \
      polyFunction3D.o polyFunction3D4.o polyFunction3D5.o polyFunction3D6.o 
 # tz = tz.o 
-tz = tz.o OGFunction.o OGPolyFunction.o OGTrigFunction.o OGPulseFunction.o 
+# tz = tz.o OGFunction.o OGPolyFunction.o OGTrigFunction.o OGPulseFunction.o 
 tz: $(tz)
 	$(CC) $(CCFLAGS) -o tz $(tz) \
         $(CLIBS) $(FLIBS) $(GLIBS)
@@ -101,8 +101,8 @@ tfio: $(tfio)
         $(CLIBS) $(FLIBS) $(GLIBS)
 
 # test Bill's tridiagonal solver
-pentaDiagonal.f : pentaDiagonal.bf; bpp pentaDiagonal.bf
-triDiagonal.f : triDiagonal.bf; bpp triDiagonal.bf
+pentaDiagonal.f : pentaDiagonal.bf; $(BPP) pentaDiagonal.bf
+triDiagonal.f : triDiagonal.bf; $(BPP) triDiagonal.bf
 
 TridiagonalFactor.o : TridiagonalFactor.C
 	$(CC) $(CCFLAGSF) -c TridiagonalFactor.C

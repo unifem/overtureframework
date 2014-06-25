@@ -4,6 +4,7 @@
 #include "GenericGraphicsInterface.h"
 #include "display.h"
 #include "NurbsMapping.h"
+#include "ParallelUtility.h"
 
 int 
 getTravelingWave( double & wr, double & wi , double *rpar, int *ipar, 
@@ -158,7 +159,17 @@ TravelingWaveFsi()
 ///
 //================================================================================================
 int TravelingWaveFsi::
-getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 )
+getExactFluidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 )
+{
+  mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
+
+  OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
+
+  return getExactFluidSolution( u, t,  xLocal, I1,I2,I3 );
+}
+
+int TravelingWaveFsi::
+getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & I1, const Index & I2, const Index & I3 )
 {
   const aString & pde = dbase.get<aString>("pde"); // pde we are solving
   const int & debug = dbase.get<int>("debug");
@@ -169,11 +180,6 @@ getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
 
   RealArray & time = dbase.get<RealArray>("time");
   real tc = time(current);
-
-  mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
-
-  OV_GET_SERIAL_ARRAY(real,u,uLocal);
-  OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
 
   int & pc = dbase.get<int >("pfc");
   int & v1c = dbase.get<int >("v1fc");
@@ -214,6 +220,8 @@ getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
   // // Traveling wave parameters
   // real *fwp =  dbase.get<real[10]>("TravelingWaveParameters");
 
+  // OV_GET_SERIAL_ARRAY(real,u,uLocal);
+  RealArray & uLocal =u;
     
   uLocal=0.;
   // printF("++++++TravelingWaveFsi: pde=[%s]\n",(const char*)pde);
@@ -435,7 +443,7 @@ getExactFluidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
 ///
 //================================================================================================
 int TravelingWaveFsi::
-getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 )
+getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 )
 {
   const aString & pde = dbase.get<aString>("pde"); // pde we are solving
   const int & debug = dbase.get<int>("debug");
@@ -447,7 +455,8 @@ getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
   RealArray & time = dbase.get<RealArray>("time");
   real tc = time(current);
 
-  OV_GET_SERIAL_ARRAY(real,u,uLocal);
+  // OV_GET_SERIAL_ARRAY(real,u,uLocal);
+  RealArray & uLocal =u;
   OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
 
 
@@ -611,7 +620,7 @@ getExactSolidSolution( realArray & u, real t, MappedGrid & mg, const Index & I1,
 ///
 //================================================================================================
 int TravelingWaveFsi::
-getExactShellSolution( const realArray & x, realArray & ue, realArray & ve, realArray & ae, real t, 
+getExactShellSolution( const RealArray & x, RealArray & ue, RealArray & ve, RealArray & ae, real t, 
 		       const Index & I1, const Index & I2, const Index & I3 )
 {
   const aString & pde = dbase.get<aString>("pde"); // pde we are solving
@@ -836,6 +845,33 @@ TravelingWaveFsi::
 int TravelingWaveFsi::
 setup( CompositeGrid & cg, CompositeGrid & cgSolid )
 {
+  int & numberOfSolidGridPoints = dbase.get<int>("numberOfSolidGridPoints");
+  int & numberOfFluidGridPoints = dbase.get<int>("numberOfFluidGridPoints");
+
+  // -- for now the number of fluid grid points matches those in cg ---
+  MappedGrid & mg = cg[0];
+  const IntegerArray & gid = mg.gridIndexRange();
+  numberOfFluidGridPoints = gid(1,axis2)-gid(0,axis2)+1;
+
+  MappedGrid & mgSolid = cgSolid[0];
+  const IntegerArray & gidSolid = mgSolid.gridIndexRange();
+  numberOfSolidGridPoints = gidSolid(1,axis2)-gidSolid(0,axis2)+1;
+
+  return setup( numberOfFluidGridPoints, numberOfSolidGridPoints );
+}
+
+// =========================================================================================
+/// \brief Setup routine. Allocate arrays etc.
+// =========================================================================================
+int TravelingWaveFsi::
+setup( int numberOfFluidGridPointsY, int numberOfSolidGridPointsY )
+{
+  int & numberOfSolidGridPoints = dbase.get<int>("numberOfSolidGridPoints");
+  int & numberOfFluidGridPoints = dbase.get<int>("numberOfFluidGridPoints");
+
+  numberOfFluidGridPoints=numberOfFluidGridPointsY;
+  numberOfSolidGridPoints=numberOfSolidGridPointsY;
+
   const int & debug = dbase.get<int>("debug");
   const aString & pde = dbase.get<aString>("pde");
 
@@ -843,9 +879,6 @@ setup( CompositeGrid & cg, CompositeGrid & cgSolid )
 
   const int & numberOfSolidComponents = dbase.get<int>("numberOfSolidComponents");
   const int & numberOfFluidComponents = dbase.get<int>("numberOfFluidComponents");
-
-  int & numberOfSolidGridPoints = dbase.get<int>("numberOfSolidGridPoints");
-  int & numberOfFluidGridPoints = dbase.get<int>("numberOfFluidGridPoints");
 
   const int & numberOfSolidGhostPoints = dbase.get<int>("numberOfSolidGhostPoints");
   const int & numberOfFluidGhostPoints = dbase.get<int>("numberOfFluidGhostPoints");
@@ -856,14 +889,14 @@ setup( CompositeGrid & cg, CompositeGrid & cgSolid )
   const int & numberOfWorkSpaceVectors = dbase.get<int>("numberOfWorkSpaceVectors");
   assert( numberOfWorkSpaceVectors>0 );
   
-  // -- for now the number of fluid grid points matches those in cg ---
-  MappedGrid & mg = cg[0];
-  const IntegerArray & gid = mg.gridIndexRange();
-  numberOfFluidGridPoints = gid(1,axis2)-gid(0,axis2)+1;
+  // // -- for now the number of fluid grid points matches those in cg ---
+  // MappedGrid & mg = cg[0];
+  // const IntegerArray & gid = mg.gridIndexRange();
+  // numberOfFluidGridPoints = gid(1,axis2)-gid(0,axis2)+1;
 
-  MappedGrid & mgSolid = cgSolid[0];
-  const IntegerArray & gidSolid = mgSolid.gridIndexRange();
-  numberOfSolidGridPoints = gidSolid(1,axis2)-gidSolid(0,axis2)+1;
+  // MappedGrid & mgSolid = cgSolid[0];
+  // const IntegerArray & gidSolid = mgSolid.gridIndexRange();
+  // numberOfSolidGridPoints = gidSolid(1,axis2)-gidSolid(0,axis2)+1;
 
   
   printF("****FW setting numberOfFluidGridPoints=%i, numberOfSolidGridPoints=%i (y-direction) ***\n",
@@ -1399,8 +1432,8 @@ assignInitialConditions( const real t, const real dt )
 int TravelingWaveFsi::
 rungeKutta4(real t, 
 	    real dt,
-	    realArray & us1, realArray & uf1,
-	    realArray & usNew, realArray & ufNew )
+	    RealArray & us1, RealArray & uf1,
+	    RealArray & usNew, RealArray & ufNew )
 // ================================================================================
 /// \brief Advance a time step using Fourth Order Runge-Kutta
 ///
@@ -1423,13 +1456,13 @@ rungeKutta4(real t,
   const int & numberOfWorkSpaceVectors = dbase.get<int>("numberOfWorkSpaceVectors");
   assert( numberOfWorkSpaceVectors>=3 );
 
-  realArray & us2 = wsa[0];
-  realArray & us3 = wsa[1];
-  realArray & us4 = wsa[2];   // NOTEL us4,uf4 can probably be replaced with usNew, ufNew
+  RealArray & us2 = wsa[0];
+  RealArray & us3 = wsa[1];
+  RealArray & us4 = wsa[2];   // NOTEL us4,uf4 can probably be replaced with usNew, ufNew
   
-  realArray & uf2 = wfa[0];
-  realArray & uf3 = wfa[1];
-  realArray & uf4 = wfa[2];
+  RealArray & uf2 = wfa[0];
+  RealArray & uf3 = wfa[1];
+  RealArray & uf4 = wfa[2];
   
 
   real dtb2=dt*.5;
@@ -1565,11 +1598,11 @@ advanceInsShell( real tFinal )
   for( int step=0; step<maxNumberOfSteps; step++ )
   {
 
-    realArray & usCurrent = usa[current];
-    realArray & ufCurrent = ufa[current];
+    RealArray & usCurrent = usa[current];
+    RealArray & ufCurrent = ufa[current];
     
-    realArray & usNext = usa[next];
-    realArray & ufNext = ufa[next];
+    RealArray & usNext = usa[next];
+    RealArray & ufNext = ufa[next];
     
 
     rungeKutta4( t ,dt, usCurrent, ufCurrent, usNext,ufNext );
@@ -2002,8 +2035,8 @@ computeErrors( real t )
   RealArray *& usa = dbase.get<RealArray*>("usa");
   RealArray *& ufa = dbase.get<RealArray*>("ufa");
 
-  realArray & us = usa[current];
-  realArray & uf = ufa[current];
+  RealArray & us = usa[current];
+  RealArray & uf = ufa[current];
 
   Range Js=us.dimension(0);
   Range Jf=uf.dimension(0);
@@ -2103,8 +2136,8 @@ plot( GenericGraphicsInterface & gi, realCompositeGridFunction & uPlot, Graphics
   RealArray *& ufa = dbase.get<RealArray*>("ufa");
   RealArray *& ffa = dbase.get<RealArray*>("ffa");
 
-  realArray & us = usa[current];
-  realArray & uf = ufa[current];
+  RealArray & us = usa[current];
+  RealArray & uf = ufa[current];
 
   const real & x0 = dbase.get<real>("x0"); // phase in x
   const real & t0 = dbase.get<real>("t0"); // phase in t
