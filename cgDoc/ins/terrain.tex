@@ -3,11 +3,14 @@
 \subsection{Flow over terrain}\label{sec:terrain}
 
 
+NOTE: For more details see the document {\tt cg/ins/runs/terrin/terrain.pdf}.
+
+
 To run this example see {\tt cg/ins/runs/terrain/Readme}.
 
 
 We consider the flow over a terrain. The terrain elevation data is 
-obtained from the USGS web site ...
+obtained from the USGS web site.
 
 The matlab script {\tt convertGIS.m} is used to convert the GIS data
 into Cartesian coordinates (from lat-long). This matlab script
@@ -66,29 +69,46 @@ The size the of the domain is approximately $1.5 km \times 1.5 km$ in the horizo
 The grid spacing near the surface is approximately $5m$ in the 
 horizontal and $.5m$ for the grid cell next to the surface.
 
+
 {%%%
 \newcommand{\figWidthb}{7.5cm}
-\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.05}{.1}}
+\newcommand{\trimfigb}[2]{\trimPlotb{#1}{#2}{.0}{.0}{.11}{.25}}
 % 
 % % -----------------------------------------------------------------------------------------------------------------------------------------
 \begin{figure}[hbt]
 \begin{center}
 \begin{tikzpicture}[scale=1]
-  \useasboundingbox (0,.75) rectangle (16.,6);  % set the bounding box (so we have less surrounding white space)
+  \useasboundingbox (0,.75) rectangle (16.,10);  % set the bounding box (so we have less surrounding white space)
 %
-\draw (0.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/site300g4o4velt100}{\figWidthb}};
-\draw (8.0,0.0)  node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDoc/ins/fig/site300g4o4vort100}{\figWidthb}};
+%\draw (0.0,10.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{fig/site300O4G4gvelT100}{\figWidthb}};
+%\draw (8.0,10.) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{fig/site300O4G4gvorT100}{\figWidthb}};
+%\draw (0.0,10.) node[draw,fill=white,anchor=south west,xshift=+2pt,yshift=+4pt] {\scriptsize $t=100$, $\vert\vv\vert$};
+%\draw (8.0,10.) node[draw,fill=white,anchor=south west,xshift=+2pt,yshift=+4pt] {\scriptsize $t=100$, $\xi$};
+%
+%
+\draw (0.0,5.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDir/ins/runs/terrain/fig/site300O8G4gvelT100}{\figWidthb}};
+\draw (8.0,5.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDir/ins/runs/terrain/fig/site300O8G4gvorT100}{\figWidthb}};
+\draw (0.0,5.0) node[draw,fill=white,anchor=south west,xshift=+2pt,yshift=+4pt] {\scriptsize $t=100$, $\vert\vv\vert$};
+\draw (8.0,5.0) node[draw,fill=white,anchor=south west,xshift=+2pt,yshift=+4pt] {\scriptsize $t=100$, $\xi$};
+%
+\draw (0.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDir/ins/runs/terrain/fig/site300O8G4gvelT200}{\figWidthb}};
+\draw (8.0,0.0) node[anchor=south west,xshift=-4pt,yshift=+0pt] {\trimfigb{\cgDir/ins/runs/terrain/fig/site300O8G4gvorT200}{\figWidthb}};
+\draw (0.0,0.0) node[draw,fill=white,anchor=south west,xshift=+2pt,yshift=+4pt] {\scriptsize $t=200$, $\vert\vv\vert$};
+\draw (8.0,0.0) node[draw,fill=white,anchor=south west,xshift=+2pt,yshift=+4pt] {\scriptsize $t=200$, $\xi$};
 %
 
 % \draw (current bounding box.south west) rectangle (current bounding box.north east);
 % grid:
-% \draw[step=1cm,gray] (0,0) grid (16,6.);
+% \draw[step=1cm,gray] (0,0) grid (16,10.);
 \end{tikzpicture}
 \end{center}
- \caption{Flow over site300 terrain using grid $\Gt^{(4)}$ (10M pts) and scheme AFS24. Left: speed, right: enstrophy.
-     The surface grid is coarsened by a factor of 2 for plotting purposes.}
-  \label{fig:terrainFlow}
+ \caption{Flow over site300 terrain using grid $\Gt^{(8)}$ (60M pts) and scheme AFS24. The flow speed, $\vert\vv\vert$ and 
+     enstrophy, $\xi$, ($\xi\in[0,2]$), are shown.
+     The contour planes do not extend to the full height of the computational domain.
+     The surface grid is coarsened by a factor of 4 for plotting purposes. }
+  \label{fig:terrainFlowG8}
 \end{figure}
 % -----------------------------------------------------------------------------------------------------------------------------------------------
 %
 }%
+

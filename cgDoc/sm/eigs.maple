@@ -2,7 +2,9 @@
 # Compute eigenvalues of a nonlinear Kirchoff solid
 # =====================================================
 #
-# restart; read "eigs.maple";
+# restart; read "/Users/henshaw/overtureFramework/cgDoc/sm/eigs.maple";
+with(LinearAlgebra);
+
 clear;
 
 nd:=2:
@@ -16,9 +18,9 @@ F[1,1] := F11: F[1,2] := F12: F[2,1] := F21: F[2,2] := F22:
 
 E := array( 1..nd, 1..nd):
 
-E := evalm( ( multiply(transpose(F),F) - Iv )/2 ):
+E := evalm( (transpose(F) &*F - Iv )/2 ):
 
-# print(E);
+print(E);
 
 S := array( 1..nd, 1..nd):
 
@@ -28,11 +30,11 @@ S := evalm( lam*trace(E) * Iv + 2*mu * E ):
 P := evalm( S &* transpose(F) ):
 
 
-P11F11 := diff( P[1,1] , F[1,1] ):
+P11F11 := diff( P[1,1] , F[1,1] );
 
 pause;
 
-fileName:="eigs.out":
+fileName:="/Users/henshaw/overtureFramework/cgDoc/sm/eigs.out":
 file := fopen( fileName,WRITE ):
 
 fprintf(file," Equations in quasi linear form:\n"):

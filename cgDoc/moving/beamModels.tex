@@ -19,6 +19,13 @@
 
 \input wdhDefinitions.tex
 
+\newcommand{\tableFont}{\footnotesize}
+\newcommand{\num}[2]{#1e#2} % Use this macro to define the format of the numbers in the table
+\newcommand{\eem}{e^{(j)}}
+\newcommand{\rateLabel}{rate}
+
+
+
 % \input{pstricks}\input{pst-node}
 % \input{colours}
 
@@ -117,7 +124,6 @@ William D. Henshaw, \\
 Department of Mathematical Sciences, \\
 Rensselaer Polytechnic Institute,     \\
 Troy, NY, 12180.  \\
-
 www.overtureFramework.org \\
 \vspace{2\baselineskip}
 \today
@@ -166,14 +172,14 @@ where $y=w(x,t)$ is the displacement of the beam,
 $\As$ is the cross-sectional area of the beam ($\As=\hs\bs$ for a beam of constant thickness, $\hs$ and constant breadth $\bs$ in the z-direction), 
 $\rhos$ is the beam density, $\Ls$ is the length of the beam, 
 $E$ is Young's modulus, $I$ is the area-moment of inertial (e.g. $I=\frac{1}{12} h^3 b$ for a rectangular beam),
-and $\Ts$ is the {\em tension} coefficient. 
+and $T$ is the {\em tension} coefficient. 
 % 
 The EB beam is generally consider valid for thin beams and small slopes,  $|w_x| \ll 1$.
 
 
 A variational form of the problem is found by multiplying by $v$ and integrating over the domain with inner product,
 \begin{align}
-   (v,w)_B = \int_0^{\Ls} v \, w \, dx. 
+   (v,w)_B \equiv \int_0^{\Ls} v \, w \, dx. 
 \end{align}
 After integration by parts the result is 
 \begin{align}
@@ -204,14 +210,20 @@ the end slope and shear are specified,
 
 
 % --------------------------------------------------------------------------------------------------------------------
-\newcommand{\Ne}{N_e}
-\section{FEM approximation}\label{sec:BeamModelFEM}
+\newcommand{\Ne}{N_e}% number of elements 
+\newcommand{\Nn}{N_n}% number of nodes
+\newcommand{\dx}{\Delta x}
+\newcommand{\Mt}{\tilde{M}}
+\newcommand{\Kt}{\tilde{K}}
+\newcommand{\Bc}{\mathcal{B}}
+\subsection{FEM approximation}\label{sec:BeamModelFEM}
 
 We define a FEM approximation for the EB-beam using Hermite polynomials and the Newmark-beta time stepping scheme.
+Let $\Ne$ denote the number of elements and $\Nn=\Ne+1$ the number of nodes. 
 
-The FEM representation is of the form
+The FEM representation is taken as 
 \begin{align}
-  w(x,t) = \sum_{j=1}^{\Ne} w_j(t) \phi_j(x) + w_j'(t) \psi_j(x)  = \sum_{j=1}^{\Ne} [ \phi_j(x)\, \psi_j(x)] \begin{bmatrix} w_j(t)\\w_j'(t)\end{bmatrix}
+  w^h(x,t) = \sum_{j=1}^{\Nn} w_j(t) \phi_j(x) + w_j'(t) \psi_j(x)  = \sum_{j=1}^{\Ne} [ \phi_j(x)\, \psi_j(x)] \begin{bmatrix} w_j(t)\\w_j'(t)\end{bmatrix}
 \end{align}
 where the degrees of freedom are nodal displacement $w_j(t)$ and the nodal slope $w'_j(t)$, and where $\phi_j(x)$ and $\psi_j(x)$ are 
 the cubic Hermite polynomials 
@@ -221,8 +233,304 @@ that satisfy,
   \phi_j(x_i)=\delta_{ij}, ~ \phi_i'(x_j)=0, \\
   \psi_j(x_i)=0, ~ \psi_i'(x_j)=\delta_{ij}.
 \end{align}
+% 
+The Galerkin FEM approximation is defined by the $2\Nn$ equations
+\begin{align}
+ \left( \chi_i,  \rhos \As \frac{\partial^2 w^h}{\partial t^2} \right)_B  &= 
+                  - \left( \frac{\partial v^h_i}{\partial x} , T \frac{\partial w^h}{\partial x} \right)_B
+                  -\left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 w^h}{\partial x^2}\right)_B  + ( \chi_i, f(x,t))_B \\
+% boundary terms
+             &\quad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} ~ -\chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+                      ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
+                      \right]_0^{\Ls} ,  \label{eq:beamFEM_I}
+\end{align}
+with $\chi_i=\phi_i$ or $\chi_i=\psi$, $i=1,2,\ldots,\Nn$. Written out,
+\begin{align}
+\sum_{j=1}^{\Nn} \left\{ M_{ij} \partial_t^2 w_j 
+                + \Mt_{ij} \partial_t^2 w'_j \right\}  &= 
+     - \sum_{j=1}^{\Nn} \left\{  K_{ij} w_j + \Kt_{ij} w'_j \right\} 
+                  ~+ ( \phi_i, f(x,t))_B \\
+% boundary terms
+             &\quad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+                      ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
+                      \right]_0^{\Ls}  ,  \label{eq:beamFEM_II}
+\end{align}
+where 
+\begin{align}
+  M_{ij} &= \left( \chi_i,  \rhos \As \frac{\partial^2 \phi_j}{\partial t^2} \right)_B , \\
+  \Mt_{ij} &= \left( \chi_i,  \rhos \As \frac{\partial^2 \psi_j}{\partial t^2} \right)_B , \\
+  K_{ij} &= \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \phi_j}{\partial x} \right)_B
+               + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \phi_j}{\partial x^2}\right)_B \\
+  \Kt{ij} &= \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \phi_j}{\partial x} \right)_B
+                + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \psi_j}{\partial x^2}\right)_B 
+\end{align}
+with $\chi_i = \phi_i$ or $\chi_i=\psi_i$.
+This can be written as the matrix differential equation
+\begin{align}
+   M \ddot\uv = - K \uv + \fv , \label{eq:beamODE}
+\end{align}
+where $\uv$ is the vector of the degrees of freedom and 
+$M$ and $K$ are $2\times2$-block tridiagonal matrices , 
+\begin{align}
+   \uv = \begin{bmatrix} w_1 \\ w'_1 \\ w_2 \\ w'_2 \\ \vdots \\ w_{\Nn} \\ w'_{\Nn} \end{bmatrix} , 
+\quad 
+   M = \begin{bmatrix} 
+          B^M_1 & C^M_1 &     &      &     &     \\ 
+          A^M_2 & B^M_2 & C^M_2 &      &     &     \\
+              & A^M_3 & B^M_3 & C^M_3  &     &     \\
+              &     & \ddots & \ddots  & \ddots  & \\
+              &     &     &     & A^M_{\Nn} & B^M_{\Nn}
+           \end{bmatrix} 
+\quad               
+   K = \begin{bmatrix} 
+          B^K_1 & C^K_1 &     &      &     &     \\ 
+          A^K_2 & B^K_2 & C^K_2 &      &     &     \\
+              & A^K_3 & B^K_3 & C^K_3  &     &     \\
+              &     & \ddots & \ddots  & \ddots  & \\
+              &     &     &     & A^K_{\Nn} & B^K_{\Nn}
+           \end{bmatrix} 
+\end{align}
+The matrices $A^M_i$, $B^M_i$, $C^M_i$,  $A^K_i$, $B^K_i$, and $C^K_i$ are two-by-two matricies, $\Real^{2\times2}$.
+
+{\bf Note:} The FEM approximation using Hermite polynomials also solves for $\ddot w'$ and thus is effectively
+an Hermite scheme (i.e. solving the PDE and the x-derivative of the PDE).
+
+% -----------------------------------------------------------------------------------------
+\subsubsection{Element matrices}
+
+The global mass matrix, $M$, and stiffness matrix $K$, can be computed by summing the contributions
+from the element mass matrices and stiffness matrices, respectively. The entries in the global matrices are
+integrals over the entire domain while the element matrices are just integrals of the same quantities but over a single element.
+
+The solution $w$ on an element $\Omega_i=[x_i,x_{i+1}]$ can be written as
+\begin{align}
+&  w(x(\xi)) =  \wv^T \Nv(\xi), \qquad \xi\in[-1,1], \\
+&  \wv_i = \begin{bmatrix} 
+               w_i \\  w'_i \\ w_{i+1} \\ w'_{i+1}
+              \end{bmatrix},
+\qquad 
+\Nv(\xi) = \begin{bmatrix} 
+               \frac{1}{4} (1-\xi)^2 (2+\xi) \\
+               \frac{\dx}{8} (1-\xi)^2 (1+\xi) \\
+               \frac{1}{4} (1+\xi)^2 (2-\xi) \\
+               \frac{\dx}{8} (1+\xi)^2 (\xi-1) 
+              \end{bmatrix}
+  ~= \begin{bmatrix} \phi(\xi) \\ \psi(\xi) \\ \phi(-\xi) \\ -\psi(-\xi) \end{bmatrix}, \\
+&  x(\xi) = x_i (1-\xi)/2 + x_{i+1}( \xi+1)/2 = x_i + \half(\xi+1)\dx , 
+\end{align} 
+where $\dx=x_{i+1}-x_i$ is the element length. 
+% 
+The $4\times 4$ element mass matrix is symmetric and given by (assuming $\rhos\As$ is constant)
+\begin{align}
+   M_e = \int_0^{\dx} \rhos \As \Nv \Nv^T \, dx = 
+% 
+\begin{bmatrix}
+13\dx/35 & 11\dx^2/210 & 9\dx/70      & -13\dx^2/420 \\
+         & \dx^3/105   & 13\dx^2/420  & -\dx^3/420   \\
+         &             & 13\dx/35     & -11\dx^2/210 \\
+         &             &              & \dx^3/105
+\end{bmatrix}.
+%
+\end{align} 
+The element stiffness matrix is also symmetric and given by  (assuming $EI$ is constant)
+\begin{align}
+   K_e = \int_0^{\dx} EI \, \partial_x^2\Nv \, \partial_x^2\Nv^T \, dx = 
+\begin{bmatrix}
+12/\dx^3 & 6/\dx^2 & -12/\dx^3 & 6/\dx^2 \\
+         & 4/\dx   & -6/\dx^2  & 2/\dx   \\
+         &         & 12/\dx^3  &-6/\dx^2 \\
+         &         &           &4/\dx
+\end{bmatrix}.
+\end{align} 
+% 
+The element force vector is 
+\begin{align}
+ \fv_e = \int_0^{\dx} f(x,t) \Nv dx
+\end{align} 
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsection{Force computation} \label{eq:BeamModel_ForceComputation}
+
+The integrals defining the contribution of the external force are
+\begin{align}
+& F_i^\phi  = ( \phi_i, f(x,t) )_B  = \int_0^{\Ls} \phi_i(x) f(x,t) \, dx, \\
+& F_i^\psi =  ( \psi_i, f(x,t) )_B  = \int_0^{\Ls} \psi_i(x) f(x,t) \, dx.
+\end{align}
+or in element form
+\begin{align}
+ \fv_e = \int_0^{\dx} f(x(\xi),t) \Nv(\xi) (\half \dx) \, d\xi
+\end{align} 
+These can be approximated to second-order accuracy by representing $f(x,t)$ as a linear
+function of $x$ over the element $\Omega_i$,
+\begin{align}
+   f(x,t) = f_i\frac{x_{i+1}-x}{\dx}  + f_{i+1} \frac{x-x_i}{\dx} ,
+\end{align}
+and performing the resulting integrals exactly. 
+
+For an FSI computation the external force (e.g. pressure) is defined on a different grid. In this case we need
+to sum the contributions from partial segments of the element,
+\begin{align}
+ \fv_e(a,b) = \int_a^{b} f(x(\xi),t) \Nv(\xi) (\half \dx) \, d\xi, \\
+   f(x(\xi),t) = f_a\frac{b-\xi}{b-a}  + f_b \frac{\xi-a}{b-a} .
+\end{align} 
+Here $-1\le a \le b \le 1$. 
+
+\paragraph{More accurate force computation.} If we had approximations to $f$ and $\partial_x f$ at the nodes we
+could represent $f$ as an Hermite interpolant,
+\begin{align}
+&  f(x(\xi)) =  \fv^T \Nv(\xi) = \Nv^T\fv , \\
+&  \fv_i = \begin{bmatrix} 
+ f_i \\  f'_i \\ f_{i+1} \\ f'_{i+1}
+              \end{bmatrix},
+\end{align} 
+In this case 
+\begin{align}
+ \fv_e &= \int_0^{\dx} \Nv(\xi) \Nv^T(\xi)  (\half \dx) \, d\xi ~\fv, \\
+       &= \frac{1}{\rhos\As} \, M_e \, \fv
+\end{align} 
+The formulae are a bit more complicated when $f$ is defined on a sub-interval $[a,b]$. 
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsection{Time-stepping}
+The Newmark-beta scheme for the matrix ODE 
+\begin{align*}
+   M \ddot\uv = - K \uv + \fv ,
+\end{align*}
+is an implicit scheme defined by
+\begin{align*}
+ &  \uv^{n+1} = \uv^n + \dt\vv^n + \frac{\dt^2}{2}\Big[ (1-2\beta) \av^n + 2\beta \av^{n+1} \Big],  \\
+ &  \vv^{n+1} = \vv^n + \dt\Big[  (1-\gamma) \av^n + \gamma \av^{n+1} \Big]    , \\
+ &  M \av^{n+1} =  -K \uv^{n+1} + \fv^{n+1} .
+\end{align*}
+where $\uv^n$ is the displacement, $\vv^n$ the velocity and $\av^n$ the acceleration at time $t^n$. 
+Each time step requires the solution of the implicit system
+\begin{align}
+ &  \Big[ M +\beta\dt^2 K \Big] \av^{n+1} = \fv^{n+1} - K\Big[ \uv^n + \dt\vv^n + \frac{\dt^2}{2} (1-2\beta) \av^n \Big] 
+   \label{eq:NewmarkMatrix}
+\end{align}
+to determine the acceleration $\av^{n+1}$. 
+The scheme is second-order accurate and unconditionally stable for $2\beta=\half$ and $\gamma=\half$. 
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsection{Implementing the boundary conditions} \label{eq:BeamModel_FEM_BC}
+
+We describe some of the details involved in implementing the BC's. We consider the 
+boundary at $x=0$, the case of $x=L$ is similar. 
+
+\paragraph{Clamped boundary condition.} For clamped BC's at $x=0$ we set the two degrees of
+freedom at $j=1$ to be given
+\begin{align}
+  w_1 = g_0(t), \qquad w'_1(t)=h_0(t).
+\end{align}
+The {\em second-time derivative} of these equations replace the first two equations in the system~\eqref{eq:beamODE}. 
+Thus we set 
+\begin{align*}
+&  B_1^M=I, \quad C_1^M=0, \quad B^F_1=0, \quad C^F_1=0 , \\
+&  [f_1, ~f_2]=[\partial_t^2g_0(t), ~\partial_t^2 h_0(t)].
+\end{align*}
+The boundary terms in~\eqref{eq:beamFEM_II} at $x=0$ will vanish for equations $i=2,3,\ldots$ 
+since $\chi_i(0)=0$ and $\partial_x\chi_i(0)=0$
+for $i\ne 1$.
+
+\paragraph{Pinned boundary condition.} For pinned BC's at $x=0$ we set one degree of
+freedom at $j=1$ to be given
+\begin{align}
+  w_1 = g_0(t) .
+\end{align}
+The {\em second-time derivative} of this equation will replace the first equation in the system~\eqref{eq:beamODE} (as for
+the clamped BC).  
+We also need to impose
+\begin{align}
+  EI \partial_x^2 w_1 = M(t). 
+\end{align}
+This condition is a natural boundary condition and appears in the boundary terms in~\eqref{eq:beamFEM_II}, 
+\begin{align}
+   \Bc(\chi_i) = -\left[ \chi_i T \frac{\partial w^h}{\partial x} ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+                      ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
+                      \right]_0 ~.
+\end{align}
+The boundary term will contribute to the second equation, 
+\begin{align}
+   \Bc(\psi_1) &= -\left[ \psi_1 T \frac{\partial w^h}{\partial x} ~ - \psi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+                      ~ + \frac{\partial \psi_1}{\partial x} M(t)  
+                      \right]_0, \\
+        &= -M(t) 
+\end{align}
+since $\psi_1(0)=0$, and $\partial_x\psi_1(0)=1$. 
+
+\paragraph{Free boundary condition.} For a free BC we impose
+\begin{align}
+&    E I w_{xx}(0,t)=M(t), \\
+&   \partial_x( E I w_{xx})(0,t)=S(t) .
+\end{align}
+These two natural BC's contribute to the boundary terms.
+The first equation will have the contribution (using $\phi_1(0)=1$, $\partial_x\phi_1(0)=0$)
+\begin{align}
+   \Bc(\phi_1) &= -\left[ \phi_1 T \frac{\partial w^h}{\partial x} ~ - \phi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+                      ~ + \frac{\partial \phi_1}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
+                      \right]_0  \\
+     &=  -T w'_1   + S(t) . \label{eq:beam:pinned}
+\end{align}
+since $\phi_1(0)=1$, $\partial_x\phi_1(0)=0$.
+Note that the term $T w'_1$ in equation~\eqref{eq:beam:pinned} will contribute an adjustment to the stiffness matrix
+and will thus change the implicit matrix~\eqref{eq:NewmarkMatrix} in the Newmark scheme.
 
 
+The second equation in our system will have the contribution 
+\begin{align}
+   \Bc(\psi_1) &= -\left[\psi_1 T \frac{\partial w^h}{\partial x} ~ - \psi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+                      ~ + \frac{\partial \psi_1}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
+                      \right]_0 \\
+        &= - M(t) , 
+\end{align}
+since $\psi_1(0)=0$, $\partial_x\psi_1(0)=1$.
+
+{\bf Note:} The case of $E I= 0$ (i.e. the wave equaiton for a {\em string}) 
+is a special case since the order of the PDE in space goes from four to two. In this
+case there is only one BC applied at each end -- currently only the Dirichlet case
+is implemented usng the {\em pinned} BC. 
+
+
+
+% --------------------------------------------------------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------------------------
+\clearpage
+\subsection{BeamModel Numerical results} \label{eq:BeamModel_Results}
+
+
+Here are some numerical results for the BeamModel.
+
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsubsection{Twilight-zone} 
+
+Tables ?? show results for a trigonometric TZ solution for different boundary conditions, c=clamped, p=pinned, f=free.
+The results show that the scheme is second-order accurate. 
+The scheme is 4th-order (?) in space but the force integration is only done to second-order.
+
+{
+\input results/tbm.linearBeam.c.trig.ConvTable.tex 
+\input results/tbm.linearBeam.p.trig.ConvTable.tex 
+\input results/tbm.linearBeam.f.trig.ConvTable.tex 
+}
+
+\clearpage
+% --------------------------------------------------------------------------------------------------------------------
+\subsubsection{Standing wave} 
+
+An exact standing wave solution is given by
+\begin{align*}
+   w(x,t) = \alpha \sin(k x)\cos(\omega t) .
+\end{align*}
+Given $k$, $\omega$ is 
+\begin{align*}
+   \omega =\sqrt{ \frac{E I k^4 + T k^2}{\rhos\As} } .
+\end{align*}
+Convergence results are given in Table~\ref{table:tbm.linearBeam.p.sw} for $k=2\pi$, $E I=1$, $\rhos\As=10$.
+The errors converge close to fourth-order accuracy. The time-stepping scheme is second-order but 
+we choose $\dt \propto \dx^2$, which leads to the fourth-order convergence.
+
+\input results/tbm.linearBeam.p.sw.ConvTable.tex
 
 
 
