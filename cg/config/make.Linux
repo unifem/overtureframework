@@ -36,6 +36,9 @@ profile:=off
 # OV_PARALLEL_INCLUDE = 
 # -- end over-ride --
 
+# -dynamic flag need for Bluegene so that it looks for dynamic librraies
+LIBS += -dynamic
+
 # *wdh* 100115 -- fudge for f90:
 FC90 = $(FC)
 ifeq ($(FC),pgf77)

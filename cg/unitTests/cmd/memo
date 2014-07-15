@@ -1,12 +1,49 @@
+*** 2014/07/09 -- implicit predictor
+
+ 
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=1 -bc=f -tension=1. -tf=.2 [exact 
+
+
+*** 2014/06/30 -- 
+
+*** Traveling-wave-FSI with pinned BC's
+
+tbm tzbeam.cmd -nElem=10 -tz=twfsi -bc=p -Em=0. -tension=1. -tf=1 -useNewTri=1 -go=halt -rhos=10. -standingFSI=0 -tp=.1
+
+Error Ne=10, t=1.000e+00, dt=2.50e-02, numSteps=40 : max=7.85e-03, l2=4.71e-03, l2-rel=6.78e-02
+Error Ne=20, t=1.000e+00, dt=1.25e-02, numSteps=80 : max=1.98e-03, l2=1.27e-03, l2-rel=1.83e-02
+
 *** 2014/06/25  -- add in FSI traveling wave solution to beam
 
 
-***FINISH ME***
-tbm tzbeam.cmd -nElem=20 -tz=twfsi -bc=p -Em=0. -tension=1. -tf=2 -useNewTri=1 -go=halt -tp=.1
+=== TRAVELING WAVE FSI 
 
--ne=10: Error t=5.000e-01 : max=3.63e-04, l2=2.57e-04, l2-rel=4.20e-03
--ne=20: Error t=5.000e-01 : max=3.18e-04, l2=2.20e-04, l2-rel=3.50e-03
+LIGHT, STANDING --OK 
+tbm tzbeam.cmd -nElem=10 -tz=twfsi -bc=per -Em=0. -tension=1. -tf=2 -useNewTri=1 -go=halt -rhos=10. -standingFSI=1 -tp=.1
 
+Error Ne=10, t=3.000e-01, dt=2.50e-02, numSteps=12 : max=3.01e-04, l2=2.13e-04, l2-rel=3.19e-03
+Error Ne=20, t=3.000e-01, dt=1.25e-02, numSteps=24 : max=6.20e-05, l2=4.28e-05, l2-rel=6.26e-04
+Error Ne=40, t=3.000e-01, dt=6.25e-03, numSteps=48 : max=1.32e-05, l2=9.25e-06, l2-rel=1.34e-04
+
+
+LIGHT: OK 
+tbm tzbeam.cmd -nElem=10 -tz=twfsi -bc=per -Em=0. -tension=1. -tf=2 -useNewTri=1 -go=halt -rhos=10. -tp=.1
+
+Error Ne=10, t=2.000e-01, dt=2.50e-02, numSteps=8 : max=4.26e-04, l2=3.04e-04, l2-rel=4.38e-03
+Error Ne=20, t=2.000e-01, dt=1.25e-02, numSteps=16 : max=6.75e-05, l2=4.80e-05, l2-rel=6.88e-04
+Error Ne=40, t=2.000e-01, dt=6.25e-03, numSteps=32 : max=1.36e-05, l2=9.63e-06, l2-rel=1.37e-04
+Error Ne=80, t=2.000e-01, dt=3.13e-03, numSteps=64 : max=3.35e-06, l2=2.37e-06, l2-rel=3.38e-05
+
+
+WATCH OUT for which root omega is found
+
+HEAVY: 
+tbm tzbeam.cmd -nElem=10 -tz=twfsi -bc=per -Em=0. -tension=1. -tf=2 -useNewTri=1 -go=halt -rhos=100 -tp=.1
+
+Error Ne=10, t=2.000e-01, dt=1.00e-01, numSteps=2 : max=3.18e-04, l2=2.43e-04, l2-rel=3.36e-03
+Error Ne=20, t=2.000e-01, dt=3.33e-02, numSteps=6 : max=1.67e-05, l2=1.20e-05, l2-rel=1.67e-04
+Error Ne=40, t=2.000e-01, dt=2.00e-02, numSteps=10 : max=5.13e-06, l2=3.61e-06, l2-rel=5.08e-05
+Error Ne=80, t=2.000e-01, dt=1.00e-02, numSteps=20 : max=1.24e-06, l2=8.77e-07, l2-rel=1.24e-05
 
 tbm tzbeam.cmd -nElem=10 -tz=twfsi -bc=p -Em=0. -tension=1. -tf=.2 -useNewTri=1 -go=halt
 

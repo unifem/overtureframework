@@ -98,8 +98,11 @@ $grid
             pressure norm: $pNorm
             initial declination: $angle (degrees)
             position: 0, 0, 0 (x0,y0,z0)
-            bc left:cantilever
+            bc left:clamped
             bc right:free
+            initial conditions... 
+              zero initial conditions
+            exit
             debug: 0
           exit
           # ----

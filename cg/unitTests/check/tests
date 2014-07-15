@@ -8,7 +8,9 @@ tbm.check
 # exit
 # 
 # -- test Euler-Bernoulli beam with trig TZ and different BC's 
-lbeamClamped.check ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=c -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
-lbeamPinned.check  ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=p -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
-lbeamFree.check    ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=f -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+lbeamClamped.check  ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=c -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+lbeamPinned.check   ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=p -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+lbeamFree.check     ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=f -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+lbeamPeriodic.check ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=per -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
+lbeamTWFSI.check    ../cmd/tzbeam.cmd -nElem=5 -tz=twfsi -bc=per -Em=0. -tension=1. -tf=.1 -rhos=10. -standingFSI=1 -tp=.1 -go=go
 

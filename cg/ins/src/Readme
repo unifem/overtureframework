@@ -33,6 +33,9 @@ InsParameters.C :
   - setPdeParameters(const aString & command /* = nullString */,  DialogData *interface /* =NULL */ )
   - displayPdeParameters(FILE *file /* = stdout */ )
     setDefaultDataForABoundaryCondition
+  - saveParametersToShowFile()
+  - getDerivedFunction( ... )
+  - getNormalForce( realCompositeGridFunction & u, realArray & normalForce, int *ipar, real *rpar )
 
 
 implicit.C:
@@ -56,16 +59,6 @@ insp.C
 
 insAugmentedSolution.C : 
     getAugmentedSolution : computes residuals for plotting
-
-InsParameters.C
-  InsParameters(const int & numberOfDimensions0)
-  setPdeParameters(const aString & command /* = nullString */, DialogData *interface /* =NULL */ )
-  displayPdeParameters(FILE *file /* = stdout */ )
-  saveParametersToShowFile()
-  getDerivedFunction( const aString & name, const realMappedGridFunction & uIn,
-                    realMappedGridFunction & vIn, 
-                    const int grid, const int component, Parameters & parameters)
-  getNormalForce( realCompositeGridFunction & u, realArray & normalForce, int *ipar, real *rpar )
 
 printTimeStepInfo.C:
   - printTimeStepInfo( const int & step, const real & t, const real & cpuTime )

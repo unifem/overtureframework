@@ -594,8 +594,9 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
         else  
         {
       // ****** Initialize for NOT twilightZoneFlow ***********
-            printF(" **************** implicitPC: still need correct initial values for du/dt(t-dt)  ****** \n");
-            printF(" **************** use values from du/dt(t)                                  ****** \n");
+      // printF(" **************** implicitPC: still need correct initial values for du/dt(t-dt)  ****** \n");
+      // printF(" **************** use values from du/dt(t)                                  ****** \n");
+            printF("--implicitPC-- Initialize past time values for scheme ---\n");
             if( parameters.useConservativeVariables() )
                 gf[mCur].primitiveToConservative();
       // if( parameters.isAdaptiveGridProblem() )
@@ -607,7 +608,18 @@ advanceImplicitMultiStep( real & t0, real & dt0, int & numberOfSubSteps, int & i
                 printF(" PC: init: gf[mCur].u.numberOfGrids=%i \n",gf[mCur].u.numberOfGrids());
                 printF(" PC: init: gf[mCur].cg.numberOfComponentGrids=%i \n",gf[mCur].cg.numberOfComponentGrids());
             }
-            assign(gf[mOld].u,gf[mCur].u);  // 990903 give initial values to avoid NAN's at ghost points for CNS
+            if( !parameters.dbase.get<bool>("useNewTimeSteppingStartup") )
+            {
+                assign(gf[mOld].u,gf[mCur].u);  // 990903 give initial values to avoid NAN's at ghost points for CNS
+            }
+            else
+            {
+        // *new* way to initialize past time solution  // *wdh* 2014/06/28 
+                gf[mOld].t=t0-dt0;
+                int numberOfPast=1;
+                int previous[1]={mOld};  // 
+                getPastTimeSolutions( mCur, numberOfPast, previous  ); 
+            }
             gf[mOld].form=gf[mCur].form;
             for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
             {
@@ -1455,11 +1467,28 @@ applyBoundaryConditionsForImplicitTimeStepping(GridFunction & cgf )
 //\end{CompositeGridSolverInclude.tex}  
 // ==========================================================================================
 {
-    int grid;
-
-    for( grid=0; grid<cgf.cg.numberOfComponentGrids(); grid++ )
+    for( int grid=0; grid<cgf.cg.numberOfComponentGrids(); grid++ )
     {
-    // clean this up 
+        if( true )
+        {
+      // ---- Revaluate any time-dependent boundary conditions ----
+      // *wdh* 2014/06/26 
+
+      // determine time dependent conditions:
+            getTimeDependentBoundaryConditions( cgf.cg[grid],cgf.t,grid ); 
+
+      // Variable boundary values:
+            setVariableBoundaryValues( cgf.t,cgf,grid );
+
+            if( parameters.thereAreTimeDependentUserBoundaryConditions(nullIndex,nullIndex,grid)>0 )
+            {
+	// there are user defined boundary conditions
+      	userDefinedBoundaryValues( cgf.t,cgf,grid);
+            }
+        }
+        
+
+
         if( parameters.getGridIsImplicit(grid) )
         {
             applyBoundaryConditionsForImplicitTimeStepping(cgf.u[grid],

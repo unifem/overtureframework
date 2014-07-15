@@ -2,6 +2,10 @@
 #include "App.h"
 #include "ParallelUtility.h"
 
+#define mixedRHS(component,side,axis,grid)         bcData(component+numberOfComponents*(0),side,axis,grid)
+#define mixedCoeff(component,side,axis,grid)       bcData(component+numberOfComponents*(1),side,axis,grid)
+#define mixedNormalCoeff(component,side,axis,grid) bcData(component+numberOfComponents*(2),side,axis,grid)
+
 // void Cgins::
 // gridAccelerationBC(const int & grid,
 // 		   const real & t0,
@@ -61,13 +65,38 @@ gridAccelerationBC(const int & grid,
   if( parameters.gridIsMoving(grid) 
       && parameters.dbase.get<real >("advectionCoefficient")!=0. )  // this is needed by project for some reason? )
   {
-    parameters.dbase.get<MovingGrids >("movingGrids").gridAccelerationBC(grid,t0,c,u,f,gridVelocity,normal,I1,I2,I3,I1g,I2g,I3g);
+
+    // -- get the grid acceleration from the MovingGrid's class ---
+
+    const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+    if( useAddedMassAlgorithm )
+    {
+      // For the added-mass (beam) pressure BC, we scaled by rhos*As/rho 
+
+      // mixedNormalCoeff(pc,side,axis,grid)=beamMassPerUnitLength[side][axis]/fluidDensity;
+      const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+      RealArray & bcData = parameters.dbase.get<RealArray>("bcData");      
+      const int & pc = parameters.dbase.get<int >("pc");
+      if( mixedCoeff(pc,side,axis,grid)==1. )  // FIX ME 
+      {
+	printF("--INS-- gridAccelerationBC: t=%8.2e, scale pressure BC by rhos*As/rho =%8.2e grid=%i, (side,axis)=(%i,%i)\n",
+               t0,mixedNormalCoeff(pc,side,axis,grid),grid,side,axis);
+	f(I1g,I2g,I3g) *= mixedNormalCoeff(pc,side,axis,grid);
+      }
+      
+    }
+    
+    // -- Note: For the added-mass case the "acceleration" of does not include the sigma*n term 
+    MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+    movingGrids.gridAccelerationBC(grid,side,axis,t0,c,u,f,gridVelocity,normal,I1,I2,I3,I1g,I2g,I3g);
+
+
   }
 
   // if( parameters.dbase.get< >("timeDependentBoundaryConditions") ) // ********** fix this *****
   if( parameters.bcIsTimeDependent(side,axis,grid) )
   {
-    // add grid acceleration from time dependent boundary conditions
+    // add grid acceleration from time dependent boundary conditions (e.g. user defined)
     // if( getTimeDependentBoundaryConditions(t0,grid,side,axis,computeTimeDerivativeOfForcing) )
     if( getTimeDerivativeOfBoundaryValues( gf0, t0, grid,side,axis) )
     {

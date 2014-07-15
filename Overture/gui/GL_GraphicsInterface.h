@@ -28,8 +28,15 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <math.h>
+
+#ifdef OV_USE_GL
 #include <GL/gl.h>
 #include <GL/glu.h>
+#else
+#include "nullgl.h"
+#include "nullglu.h"
+#endif
+
 #include "mogl.h"
 #include "GUIState.h"
 #include "ColourBar.h"

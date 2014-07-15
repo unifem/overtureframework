@@ -1431,12 +1431,13 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     }
       
     const int numberOfUserVariables= dbase.get<ListOfShowFileParameters >("pdeParameters").size();
-    const int numberOfTextStrings=11+numberOfUserVariables;
+    const int numberOfTextStrings=12+numberOfUserVariables;
     aString *textLabels  = new aString [numberOfTextStrings];
     aString *textStrings = new aString [numberOfTextStrings];
 
     int nt=0;
     textLabels[nt] = "nu";  sPrintF(textStrings[nt], "%g", dbase.get<real >("nu"));  nt++; 
+    textLabels[nt] = "density";  sPrintF(textStrings[nt], "%g", dbase.get<real >("fluidDensity"));  nt++; 
     textLabels[nt] = "divergence damping";  sPrintF(textStrings[nt], "%g", dbase.get<real >("cdv"));  nt++; 
     textLabels[nt] = "cDt div damping";  sPrintF(textStrings[nt], "%g", dbase.get<real >("cDt"));  nt++; 
     textLabels[nt] = "ad21,ad22";  sPrintF(textStrings[nt], "%g,%g", dbase.get<real >("ad21"), dbase.get<real >("ad22"));  nt++; 
@@ -2038,6 +2039,7 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
       dialog.getOptionMenu("Interpolation Type:").setCurrentChoice( dbase.get<Parameters::InterpolationTypeEnum >("interpolationType"));
     }
     else if( dialog.getTextValue(answer,"nu","%e", dbase.get<real >("nu")) ){}//
+    else if( dialog.getTextValue(answer,"density","%e", dbase.get<real >("fluidDensity")) ){}//
     else if( dialog.getTextValue(answer,"divergence damping","%e", dbase.get<real >("cdv")) ){}//
     else if( dialog.getTextValue(answer,"cDt div damping","%e", dbase.get<real >("cDt")) ){}//
     // to add eventually else if( dialog.getTextValue(answer,"LES option","%i", dbase.get<int >("largeEddySimulationOption")) ){}//

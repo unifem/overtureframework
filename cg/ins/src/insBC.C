@@ -5,6 +5,8 @@
 #include "Insbc4WorkSpace.h"
 #include "App.h"
 #include "ParallelUtility.h"
+#include "DeformingBodyMotion.h"
+#include "BeamModel.h"
 
 #define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) for( side=0; side<=1; side++ )
 
@@ -228,8 +230,14 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     BoundaryConditionParameters extrapParams;
     BoundaryConditionParameters bcParams;
 
-    BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid);
+  // BoundaryData : this class holds info about the boundary data, such as the RHS to BC's and
+  //                variable coefficients.
+  //  typedef RealArray *BoundaryDataArray[2][3];
+  //  pBoundaryData : RealArray *pBoundaryData[2][3];
+  //  I think bd.boundaryData == pBoundaryData
+    BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
     BoundaryData & bd = parameters.dbase.get<std::vector<BoundaryData> >("boundaryData")[grid];
+    assert( bd.boundaryData == pBoundaryData );
     
     const InsParameters::PDEModel & pdeModel = parameters.dbase.get<InsParameters::PDEModel >("pdeModel");
     
@@ -270,6 +278,88 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     #else
         const realSerialArray & uKnownLocal = uKnown;
     #endif  
+
+
+  // =======================================================================================================
+  //  ** added mass algorithm **   -- put his here to start  2014/07/09
+  // =======================================================================================================
+    const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+    const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
+    if( useAddedMassAlgorithm && projectAddedMassVelocity && parameters.gridIsMoving(grid) )
+    {
+        printF("--INS-- insBC: ADDED MASS ALGORITHM - project velocity at t=%8.2e\n",t);
+        BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
+        std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
+        BoundaryData & bd = boundaryDataArray[grid];
+            
+    // -- extract parameters from any deforming solids ---
+
+        MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+            
+        if( bd.dbase.has_key("deformingBodyNumber") )
+        {
+            const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
+            assert( fluidDensity>0. );
+
+            int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
+            Index Ib1,Ib2,Ib3;
+            for( int side=0; side<=1; side++ )
+            {
+      	for( int axis=0; axis<numberOfDimensions; axis++ )
+      	{
+        	  if( deformingBodyNumber[side][axis]>=0 )
+        	  {
+          	    int body=deformingBodyNumber[side][axis];
+          	    printF("--INS-- grid=%i, (side,axis)=(%i,%i) belongs to deforming body %i\n",grid,side,axis,body);
+
+          	    DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
+          	    real alpha=-1.;
+          	    if( deform.isBeamModel() )
+          	    {
+                                  
+            	      BeamModel & beamModel = deform.getBeamModel();
+
+            	      real beamMassPerUnitLength=-1.;
+            	      beamModel.getMassPerUnitLength( beamMassPerUnitLength );
+
+            	      real hf=10.; // fluid length scale -- Fix me 
+
+            	      alpha = 1./( 1. + beamMassPerUnitLength/(fluidDensity*hf) );
+
+            	      printF("--INSBC-- alpha=%8.2e, beamMassPerUnitLength = %8.2e, fluidDensity=%8.2e hf=%8.2e\n",
+                 		     alpha,beamMassPerUnitLength,fluidDensity,hf);
+            	      
+          	    }
+          	    else
+          	    {
+            	      OV_ABORT("finish me");
+          	    }
+          	    assert( alpha>0. );
+          	    getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+          	    Range Rx=numberOfDimensions;
+          	    RealArray vSolid(Ib1,Ib2,Ib3,Rx); // holds velocity of solid on the boundary
+          	    deform.getVelocityBC( t, grid, mg, Ib1,Ib2,Ib3, vSolid );
+
+	    // Below the velocity on the boundary is set equal to the gridVelocity: 
+            // Therefore we adjust the grid velocity
+
+	    // alpha=0.;  // *TESTING*
+          	    
+          	    gridVelocity(Ib1,Ib2,Ib3,Rx) = alpha*u(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolid(Ib1,Ib2,Ib3,Rx);
+
+
+        	  }
+      	}
+            }
+      	
+
+        } // end if bd.dbase.has_key("deformingBodyNumber") )
+            
+    } // end if useAddedMass 
+  // =======================================================================================================
+  // =======================================================================================================
+
+
 
 
 
@@ -830,7 +920,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
     char buff[200];
 
-  // the dirichletBoundaryCondition is for testing TZ flow.
+  // ----  the dirichletBoundaryCondition is for testing TZ flow. ----
+    bool applyExactSolutionAtGhost=true;  // if true apply exact solution at ghost points, this sometimes gives bad results
+    bool applyDivOnDirichletBoundaryCondition=false;  // try this 
     if( assignDirichletBoundaryCondition )
     {
         if( debug() & 32  )
@@ -874,7 +966,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
                     parameters.dbase.get<FILE* >("debugFile"),"%5.2f ");
         }
 
-        if( true )
+        if( applyExactSolutionAtGhost )
         {
       // Assign ghost values with exact solution
             BoundaryConditionParameters extrapParams;
@@ -911,7 +1003,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
         }
         else
         {
-      // ** OLD WAY 
+      // *** EXTRAPOLATE GHOST FOR dirichletBoundaryCondition ****
+
       // kkc 100521 adjust the order of extrapolation at the ghost lines for the accuracy of the scheme
             BoundaryConditionParameters extrapParams;
             const int discretizationHalfWidth = orderOfAccuracy/2;
@@ -921,6 +1014,11 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
       	extrapParams.lineToAssign = ghostLineToAssign;
       	u.applyBoundaryCondition(Rt,dirichlet,dirichletBoundaryCondition,0.,t,extrapParams);
             }
+        }
+        
+        if( applyDivOnDirichletBoundaryCondition && orderOfAccuracy==2 ) // *try this *wdh* 2014/06/30
+        {
+            u.applyBoundaryCondition(V,generalizedDivergence,dirichletBoundaryCondition,0.,t);
         }
         
         

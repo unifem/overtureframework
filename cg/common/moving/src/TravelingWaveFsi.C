@@ -135,7 +135,7 @@ TravelingWaveFsi()
 
   if( !dbase.has_key("exactSolution") ) dbase.put<aString>("exactSolution","twilightZone");
   if( !dbase.has_key("exactPointer") ) dbase.put<OGFunction*>("exactPointer",NULL);
-  if( !dbase.has_key("twilightZone") ) dbase.put<bool>("twilightZone",true);
+  if( !dbase.has_key("twilightZone") ) dbase.put<bool>("twilightZone",false);
   if( !dbase.has_key("twilightZoneOption") ) dbase.put<int>("twilightZoneOption",0);
 
   // Frequencies for trig TZ: 
@@ -156,20 +156,32 @@ TravelingWaveFsi()
 /// \param t (input) : evaluate the solution at this time.
 /// \param mg (input) : MappedGrid
 /// \param I1,I2,I3 (input) : evaluate at these points.
+/// \param numberOfTimeDerivatives (input) : evaluate this many time-derivatives of the solution.
 ///
 //================================================================================================
 int TravelingWaveFsi::
-getExactFluidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 )
+getExactFluidSolution( RealArray & u, const real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, 
+                       const int numberOfTimeDerivatives /* =0 */ )
 {
   mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter );
 
   OV_GET_SERIAL_ARRAY(real,mg.vertex(),xLocal);
 
-  return getExactFluidSolution( u, t,  xLocal, I1,I2,I3 );
+  return getExactFluidSolution( u, t,  xLocal, I1,I2,I3,numberOfTimeDerivatives );
 }
 
+//================================================================================================
+/// \brief Compute the exact solution in the fluid at time t.
+///
+/// \param u (output) : exact solution 
+/// \param t (input) : evaluate the solution at this time.
+/// \param mg (input) : MappedGrid
+/// \param I1,I2,I3 (input) : evaluate at these points.
+/// \param numberOfTimeDerivatives (input) : evaluate this many time-derivatives of the solution.
+///
+//================================================================================================
 int TravelingWaveFsi::
-getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & I1, const Index & I2, const Index & I3 )
+getExactFluidSolution( RealArray & u, const real t, const RealArray & xLocal, const Index & I1, const Index & I2, const Index & I3, const int numberOfTimeDerivatives /* =0 */ )
 {
   const aString & pde = dbase.get<aString>("pde"); // pde we are solving
   const int & debug = dbase.get<int>("debug");
@@ -260,6 +272,8 @@ getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & 
 
       real pAmp = amp*rho*SQR(omegaHat)/(kxHat*sinh(kxHat*height));
 
+      assert( numberOfTimeDerivatives==0 );
+      
       // pressure
       uLocal(I1,I2,I3,pc) = pAmp*coshkxy*coskxwt;
 
@@ -296,7 +310,8 @@ getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & 
 
     real *omegav =  dbase.get<real[2]>("omegav");
     const real wr=omegav[0], wi=omegav[1];
-    printF("getExactFluidSolution: w=(%9.3e,%9.3e)\n",wr,wi);
+    if( t==0. )
+      printF("getExactFluidSolution: w=(%9.3e,%9.3e)\n",wr,wi);
 
     RealArray coskxwt, sinkxwt; 
     if( !standingWaveSolution )
@@ -380,17 +395,37 @@ getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & 
 			   &twsa(b0,4), &twsa(b0,5), &twsa(b0,6), &twsa(b0,7) );
 
 	//  printF(" b0=%i, tfa=(%g,%g,%g,%g,%g,%g) \n",b0, twfa(b0,0), twfa(b0,1), twfa(b0,2), twfa(b0,3), twfa(b0,4), twfa(b0,5));
-	  
+	
 
 	int i2a=b0;
       
 	if( !standingWaveSolution )
 	{
-	  uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*coskxwt(i1,i2,i3) - twfa(i2a,1)*sinkxwt(i1,i2,i3) )*exp(wi*t);
+          if( numberOfTimeDerivatives==0 )
+	  {
+	    uLocal(i1,i2,i3,pc)  = (amp*exp(wi*t))*( twfa(i2a,0)*coskxwt(i1,i2,i3) - twfa(i2a,1)*sinkxwt(i1,i2,i3) );
+	    // printF("-- TWFSI -- t=%g x=%g, y=%g, yf=%g, p=%g\n",t, x,y,yf(0),uLocal(i1,i2,i3,pc));
+	    uLocal(i1,i2,i3,v1c) = (amp*exp(wi*t))*( twfa(i2a,2)*coskxwt(i1,i2,i3) - twfa(i2a,3)*sinkxwt(i1,i2,i3) );
+	    uLocal(i1,i2,i3,v2c) = (amp*exp(wi*t))*( twfa(i2a,4)*coskxwt(i1,i2,i3) - twfa(i2a,5)*sinkxwt(i1,i2,i3) );
+	  }
+	  else if( numberOfTimeDerivatives==1 )
+	  {
+            // -- first time derivative --
+            // coskxwt=cos(kxHat*xLocal(I1,I2,I3,0)-wr*t);
+            // sinkxwt=sin(kxHat*xLocal(I1,I2,I3,0)-wr*t);
+	    uLocal(i1,i2,i3,pc)  = ( (amp*wi*exp(wi*t))*(  twfa(i2a,0)*coskxwt(i1,i2,i3) - twfa(i2a,1)*sinkxwt(i1,i2,i3) )+
+				     (amp*wr*exp(wi*t))*( +twfa(i2a,0)*sinkxwt(i1,i2,i3) + twfa(i2a,1)*coskxwt(i1,i2,i3) ) );
+	    
+	    uLocal(i1,i2,i3,v1c) = ( (amp*wi*exp(wi*t))*(  twfa(i2a,2)*coskxwt(i1,i2,i3) - twfa(i2a,3)*sinkxwt(i1,i2,i3) )+
+				     (amp*wr*exp(wi*t))*( +twfa(i2a,2)*sinkxwt(i1,i2,i3) + twfa(i2a,3)*coskxwt(i1,i2,i3) ) );
 
-	  uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*coskxwt(i1,i2,i3) - twfa(i2a,3)*sinkxwt(i1,i2,i3) )*exp(wi*t);
-
-	  uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*coskxwt(i1,i2,i3) - twfa(i2a,5)*sinkxwt(i1,i2,i3) )*exp(wi*t);
+	    uLocal(i1,i2,i3,v2c) = ( (amp*wi*exp(wi*t))*(  twfa(i2a,4)*coskxwt(i1,i2,i3) - twfa(i2a,5)*sinkxwt(i1,i2,i3) )+
+				     (amp*wr*exp(wi*t))*( +twfa(i2a,4)*sinkxwt(i1,i2,i3) + twfa(i2a,5)*coskxwt(i1,i2,i3) ) );
+	  }
+	  else
+	  {
+	    OV_ABORT("finish me");
+	  }
 	}
 	else
 	{
@@ -404,13 +439,32 @@ getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & 
 
 	  real cwt = cos(wr*t)*exp(wi*t), swt = sin(wr*t)*exp(wi*t);
 	  real sinkx=sin(kxHat*x), coskx=cos(kxHat*x);
+	  if( numberOfTimeDerivatives==0 )
+	  {
+	    uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*swt - twfa(i2a,1)*cwt )*sinkx;
+	    uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*cwt + twfa(i2a,3)*swt )*coskx;  
+	    uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*swt - twfa(i2a,5)*cwt )*sinkx;
+	    // uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*cwt + twfa(i2a,1)*swt )*sinkx;
+	    // uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*swt - twfa(i2a,3)*cwt )*coskx;  
+	    // uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*swt - twfa(i2a,5)*cwt )*sinkx;
+	  }
+	  else if( numberOfTimeDerivatives==1 )
+	  {
+            // -- first time derivative --
+            real cwtp=  -wr*swt+wi*cwt, swtp=wr*cwt+wi*swt;
+	    uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*swtp - twfa(i2a,1)*cwtp )*sinkx;
+	    uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*cwtp + twfa(i2a,3)*swtp )*coskx;  
+	    uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*swtp - twfa(i2a,5)*cwtp )*sinkx;
 
-	  uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*swt - twfa(i2a,1)*cwt )*sinkx;
-
-	  uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*cwt + twfa(i2a,3)*swt )*coskx;  
-
-	  uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*swt - twfa(i2a,5)*cwt )*sinkx;
-
+	    // uLocal(i1,i2,i3,pc)  = amp*( twfa(i2a,0)*cwtp + twfa(i2a,1)*swtp )*sinkx;
+	    // uLocal(i1,i2,i3,v1c) = amp*( twfa(i2a,2)*swtp - twfa(i2a,3)*cwtp )*coskx;  
+	    // uLocal(i1,i2,i3,v2c) = amp*( twfa(i2a,4)*swtp - twfa(i2a,5)*cwtp )*sinkx;
+	  }
+	  else
+	  {
+	    OV_ABORT("finish me");
+	  }
+	  
 	}
 	
 	// printF(" twfa(i2a,4)=%g, twfa(i2a,5)=%g, coskxwt(i1,i2,i3)=%g sinkxwt(i1,i2,i3)=%g\n",
@@ -440,10 +494,11 @@ getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & 
 /// \param t (input) : evaluate the solution at this time.
 /// \param mg (input) : MappedGrid
 /// \param I1,I2,I3 (input) : evaluate at these points.
+/// \param numberOfTimeDerivatives (input) : evaluate this many time-derivatives of the solution.
 ///
 //================================================================================================
 int TravelingWaveFsi::
-getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 )
+getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, int numberOfTimeDerivatives /* =0 */ )
 {
   const aString & pde = dbase.get<aString>("pde"); // pde we are solving
   const int & debug = dbase.get<int>("debug");
@@ -470,6 +525,8 @@ getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1,
   int & s12c = dbase.get<int >("s12c");
   int & s21c = dbase.get<int >("s21c");
   int & s22c = dbase.get<int >("s22c");
+
+  // assert( u1c>=0 && u2c>=0 && v1c>=0 && v2c>=0 );
 
   real & cfl = dbase.get<real>("cfl");
   real & rhoe = dbase.get<real>("rhoe");
@@ -501,9 +558,12 @@ getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1,
   const real csq = (lambdae+2.0*mue)/rhoe;  // solid sound speed squared
   const real lamp2mu = lambdae+2.0*mue;
 
+  assert( numberOfTimeDerivatives==0 ); // finish me 
+
   uLocal=0.;
   // printF("++++++TravelingWaveFsi: pde=[%s]\n",(const char*)pde);
   
+
   if( true || mu>0. )
   {
     // --- TravelingWave: viscous fluid + Elastic SHELL OR Acoustic Solid  ----
@@ -524,6 +584,9 @@ getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1,
     real *omegav =  dbase.get<real[2]>("omegav");
     const real wr=omegav[0], wi=omegav[1];
 
+    if( t==0. )
+      printF("-TW-- getExactSolidSolution: w=(%9.3e,%9.3e), u1c=%i, u2c=%i, v1c=%i, v2c=%i\n",wr,wi,u1c,u2c,v1c,v2c);
+
     if( !standingWaveSolution )
     {
       // --- traveling wave solution ---
@@ -540,16 +603,17 @@ getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1,
 	if( u1c>=0 )
 	  uLocal(I1,i2,I3,u1c) = amp*( tws(i2,0)*coskxwt(I1,i2,I3) - tws(i2,1)*sinkxwt(I1,i2,I3) )*exp(wi*t);
 
-	uLocal(I1,i2,I3,u2c) = amp*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) )*exp(wi*t);
+        if( u2c>=0 )
+   	  uLocal(I1,i2,I3,u2c) = amp*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) )*exp(wi*t);
 
 	// 
 	if( v1c>=0 )
 	  uLocal(I1,i2,I3,v1c) = ( (amp*wr)*( tws(i2,0)*sinkxwt(I1,i2,I3) + tws(i2,1)*coskxwt(I1,i2,I3) )+
 				   (wi*amp)*( tws(i2,0)*coskxwt(I1,i2,I3) - tws(i2,1)*sinkxwt(I1,i2,I3) ))*exp(wi*t);
       
-      
-	uLocal(I1,i2,I3,v2c) = ( (amp*wr)*( tws(i2,2)*sinkxwt(I1,i2,I3) + tws(i2,3)*coskxwt(I1,i2,I3) )+
-				 (wi*amp)*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) ))*exp(wi*t);
+        if( v2c>=0 )
+	  uLocal(I1,i2,I3,v2c) = ( (amp*wr)*( tws(i2,2)*sinkxwt(I1,i2,I3) + tws(i2,3)*coskxwt(I1,i2,I3) )+
+	   			   (wi*amp)*( tws(i2,2)*coskxwt(I1,i2,I3) - tws(i2,3)*sinkxwt(I1,i2,I3) ))*exp(wi*t);
 
 	if( s21c>=0 && s22c>=0 )
 	{
@@ -592,7 +656,67 @@ getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1,
     else
     {
       // --- standing wave ---
-      OV_ABORT("finish me");
+
+      RealArray coskx(I1,I2,I3), sinkx(I1,I2,I3); 
+      coskx=cos(kxHat*xLocal(I1,I2,I3,0));
+      sinkx=sin(kxHat*xLocal(I1,I2,I3,0));
+
+      real cwt = cos(wr*t)*exp(wi*t), swt = sin(wr*t)*exp(wi*t);
+      real cwtp=  -wr*swt+wi*cwt, swtp=wr*cwt+wi*swt;
+
+      // Real part of vHat*exp( i( kx-w*t) )
+      bool acoustic=pde=="InsAcousticSolid";
+      for( int i2=I2.getBase(); i2<=I2.getBound(); i2++ )
+      {
+	if( u1c>=0 )
+	  uLocal(I1,i2,I3,u1c) = amp*( tws(i2,0)*cwt + tws(i2,1)*swt )*coskx(I1,i2,I3);
+
+        if( u2c>=0 )
+   	  uLocal(I1,i2,I3,u2c) = amp*( tws(i2,2)*swt - tws(i2,3)*cwt )*sinkx(I1,i2,I3);
+
+	// 
+	if( v1c>=0 )
+	  uLocal(I1,i2,I3,v1c) = amp*( tws(i2,0)*cwtp + tws(i2,1)*swtp )*coskx(I1,i2,I3);
+        if( v2c>=0 )
+	  uLocal(I1,i2,I3,v2c) = amp*( tws(i2,2)*swtp - tws(i2,3)*cwtp )*sinkx(I1,i2,I3);
+
+	if( s21c>=0 && s22c>=0 )
+	{
+	  // s21 = rhoe*csq* u2_x    
+	  // s22 = rhoe*csq* u2_y
+	  if( acoustic )
+	  {
+	    uLocal(I1,i2,I3,s21c) = (rhoe*csq*kxHat*amp)*( tws(i2,2)*swt - tws(i2,3)*cwt )*coskx(I1,i2,I3);
+	    // u2y appears in tws(i,6:7)
+	    uLocal(I1,i2,I3,s22c) =(rhoe*csq*amp)*( tws(i2,6)*swt - tws(i2,7)*cwt )*sinkx(I1,i2,I3);
+	  }
+	  else
+	  {
+	    // Elastic wave equation
+	    // s11 = lamp2mu*u1x + lam*u2y
+	    // s12=s21 = mu*( u1y+u2x )
+	    // s22 = lamp2mu*u2y + lam*u1x
+	    int i3=I3.getBase();
+	    for( int i1=I1.getBase(); i1<=I1.getBound(); i1++ )
+	    {
+	      real u1x=(-amp*kxHat)*( tws(i2,0)*cwt + tws(i2,1)*swt )*sinkx(i1,i2,i3);
+	      real u2x=( amp*kxHat)*( tws(i2,2)*swt - tws(i2,3)*cwt )*coskx(i1,i2,i3);
+
+	      real u1y=amp*( tws(i2,4)*cwt + tws(i2,5)*swt )*coskx(i1,i2,i3);
+	      real u2y=amp*( tws(i2,6)*swt - tws(i2,7)*cwt )*sinkx(i1,i2,i3);
+	  
+
+	      uLocal(i1,i2,i3,s11c) =lamp2mu*u1x + lambdae*u2y;
+	      uLocal(i1,i2,i3,s12c) =mue*( u1y+u2x );
+	      uLocal(i1,i2,i3,s21c) =uLocal(i1,i2,i3,s12c);
+	      uLocal(i1,i2,i3,s22c) =lamp2mu*u2y + lambdae*u1x;
+	    }
+	  
+	  }
+	
+
+	}
+      }
 
 
     }
@@ -780,7 +904,7 @@ getExactShellSolution( const RealArray & x, RealArray & ue, RealArray & ve, Real
     {
       // --- standing wave ---   ***THIS IS WRONG ***
       //OV_ABORT("finish me");
-      printF("TravelingWaveFsi::getExactShellSolution t=%8.2e, amp=%8.2e\n",t,amp);
+      // printF("TravelingWaveFsi::getExactShellSolution t=%8.2e, amp=%8.2e\n",t,amp);
       
       real cwt = cos(wr*t)*exp(wi*t), swt = sin(wr*t)*exp(wi*t);
       real cwtp = -wr*swt + wi*cwt;  // d(cwt)/dt 
@@ -2455,6 +2579,7 @@ update( GenericGraphicsInterface & gi )
     else if( dialog.getTextValue(answer,"elastic solid density:","%g",rhoe) ){} // 
     else if( dialog.getTextValue(answer,"elastic solid lambda:","%g",lambdae) ){}// 
     else if( dialog.getTextValue(answer,"elastic solid mu:","%g",mue) ){}// 
+    else if( dialog.getTextValue(answer,"elastic solid height:","%g",Hs) ){}// 
 
     else if( dialog.getTextValue(answer,"fluid density:","%g",rho) ){}// 
     else if( dialog.getTextValue(answer,"fluid viscosity:","%g",mu) ){}// 

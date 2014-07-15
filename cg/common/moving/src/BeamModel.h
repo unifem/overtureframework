@@ -48,47 +48,16 @@ class BeamModel
   // 
   ~BeamModel();
 
-  // assign boundary conditions
-  int assignBoundaryConditions( real t, RealArray & x, RealArray & v, RealArray & a );
+  // Add a constant body force to the beam.  This body
+  // "force" has units of acceleration, e.g., g
+  // i.e., it is not scaled by the density
+  // bf: body force
+  //
+  void addBodyForce(const real bf[2]);
 
-  // assign initial conditions
-  int assignInitialConditions( real t, RealArray & x, RealArray & v, RealArray & a );
-
-  // Return the beam ID (a unique ID for this beam)
-  int getBeamID() const{ return beamID; } // 
-
-  // Return the name of this beam
-  const aString & getName() const { return name; } // 
-
-  // return the number of elements
-  int getNumberOfElements() const { return numElem; } // 
-
-  // This function initializes the beam model.
-  void setParameters(real momOfIntertia, real E, 
-		     real rho,real beamLength,
-		     real thickness,real pnorm,
-		     int nElem,BoundaryCondition bcleft,
-		     BoundaryCondition bcright, 
-		     real x0, real y0,
-		     bool useExactSolution);
-
-  // Provide the TravelingWaveFsi object that defines an exact solution.
-  int setTravelingWaveSolution( TravelingWaveFsi & tw );
-
-  // Return the displacement of the point on the surface (not the neutral axis)
-  // of the beam of the point whose undeformed location is (x0,y0).
-  void projectDisplacement(const RealArray& X, const real& x0,
-			   const real& y0, real& x, real& y);
-
-
-  // Return the acceleration of the point on the surface (not the neutral axis)
-  // of the beam of the point whose undeformed location is (x0,y0).
-  void projectAcceleration(const real& x0,
-			   const real& y0, real& ax, real& ay);
-
-  // Return the velocity of the point on the surface (not the neutral axis)
-  void projectVelocity( const real& x0, const real& y0, real& vx, real& vy );
-
+  // Add to the force on the beam
+  void addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,
+		const Index & Ib1, const Index & Ib2,  const Index & Ib3 );
 
   // Accumulate a pressure force to the beam from a fluid element.
   void addForce(const real & tf, const real& x0_1, const real& y0_1,
@@ -96,49 +65,15 @@ class BeamModel
 		const real& x0_2, const real& y0_2,
 		real p2,const real& nx_2,const real& ny_2);
 
-  // Set the current force on the beam to zero.  Typical usage is to call
-  // resetForce() to zero the force, then call addForce() for every fluid
-  // element to accumulate the pressure load, then call predictor()/corrector()
-  // to recompute the acceleration.
-  //
-  void resetForce();
 
-  // Predict the structural state at t^{n+1} = t + dt, using the Newmark beta predictor.
-  void predictor(real tnp1, real dt );
+  // assign boundary conditions
+  int assignBoundaryConditions( real t, RealArray & x, RealArray & v, RealArray & a );
+
+  // assign initial conditions
+  int assignInitialConditions( real t, RealArray & x, RealArray & v, RealArray & a );
 
   // Apply the Newmark scheme corrector at t^{n+1}
   void corrector(real tnp1, real dt );
-
-  // Return the current position of the structure.
-  //
-  const RealArray& position() const;
-
-  // Return the (x,y) coordinates of the centerline
-  //
-  void getCenterLine( RealArray & xc ) const;
-
-  // return the estimated *explicit* time step dt 
-  real getExplicitTimeStep() const;
-
-  // evaluate the standing wave solution
-  int getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const;
-
-  // evaluate the FSI traveling wave solution
-  int getTravelingWaveFSI( real t, RealArray & u, RealArray & v, RealArray & a ) const;
-
-  // Return the current force of the structure.
-  //
-  const RealArray& force() const;
-
-
-  // Return the current velocity of the structure.
-  //
-  const RealArray& velocity() const;
-
-  // Returns true if the fixed point iteration to alleviate
-  // the added mass effect has converged.
-  //
-  bool hasCorrectionConverged() const;
 
   // Return the exact velocity of the FLUID for the FSI analytical solution
   // derived in the documentation
@@ -158,11 +93,118 @@ class BeamModel
 				    real what,
 				    real& p);
 
+  // Return the current force of the structure.
+  //
+  const RealArray& force() const;
+
+  // Return the beam ID (a unique ID for this beam)
+  int getBeamID() const{ return beamID; } // 
+
+  // Return the (x,y) coordinates of the centerline
+  //
+  void getCenterLine( RealArray & xc ) const;
+
+  // return the estimated *explicit* time step dt 
+  real getExplicitTimeStep() const;
+
   // Compute errors in the solution (when the solution is known)
   int getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,const aString & label );
 
   // Return the exact solution (if any)
   int getExactSolution( real t, RealArray & u, RealArray & v, RealArray & a ) const;
+
+  // Get the exact pressure to be applied to the beam
+  // from the analytical solution derived in the documentation
+  // t: Time at which to compute the exact pressure
+  // x: Location on the beam to get the pressure
+  //
+  double getExactPressure(double t, double x);
+
+  // Get the beam's mass per unit length ( rho*A = rho*h*b in  2D)
+  int getMassPerUnitLength( real & rhoA ) const;
+
+  // Return the name of this beam
+  const aString & getName() const { return name; } // 
+
+  // return the number of elements
+  int getNumberOfElements() const { return numElem; } // 
+
+  // Obtain a past time solution (e.g. needed by deforming grids)
+  int getPastTimeState( const real pastTime, RealArray & xPast, const real t0, const RealArray x0 );
+
+
+  // evaluate the standing wave solution
+  int getStandingWave( real t, RealArray & u, RealArray & v, RealArray & a ) const;
+
+  // Get points on the beam surface
+  void getSurface( const real t, const RealArray & x0,  const RealArray & xs, 
+                   const Index & Ib1, const Index & Ib2,  const Index & Ib3 );
+
+  // evaluate the FSI traveling wave solution
+  int getTravelingWaveFSI( real t, RealArray & u, RealArray & v, RealArray & a ) const;
+
+  // Get the acceleration of points on the beam surface
+  void getSurfaceAcceleration( const real t, const RealArray & x0,  const RealArray & as, 
+                                const Index & Ib1, const Index & Ib2,  const Index & Ib3 );
+
+  // Get the velocity of points on the beam surface
+  void getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs, 
+                           const Index & Ib1, const Index & Ib2,  const Index & Ib3 );
+
+  // Get the 'internal force' on the beam surface (used by added mass algorithms)
+  void getSurfaceInternalForce( const real t, const RealArray & x0,  const RealArray & fs, 
+                                const Index & Ib1, const Index & Ib2,  const Index & Ib3 );
+
+  // Returns true if the fixed point iteration to alleviate
+  // the added mass effect has converged.
+  //
+  bool hasCorrectionConverged() const;
+
+  // Return the displacement of the point on the surface (not the neutral axis)
+  // of the beam of the point whose undeformed location is (x0,y0).
+  void projectDisplacement(const real t, const RealArray& X, const real& x0, const real& y0, real& x, real& y);
+
+  // Return the acceleration of the point on the surface (not the neutral axis)
+  // of the beam of the point whose undeformed location is (x0,y0).
+  void projectAcceleration(const real t, const real& x0, const real& y0, real& ax, real& ay);
+
+  // Return the "interal force" of a point on the surface of the beam of the point whose undeformed location is (x0,y0).
+  void projectInternalForce( const RealArray & internalForce, const real t, const real& x0, const real& y0, real& ax, real& ay);
+
+  // Return the velocity of the point on the surface (not the neutral axis)
+  void projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& vy );
+
+
+  // Predict the structural state at t^{n+1} = t + dt, using the Newmark beta predictor.
+  void predictor(real tnp1, real dt );
+
+  // Return the current position of the structure.
+  //
+  const RealArray& position() const;
+
+
+  // Set the current force on the beam to zero.  Typical usage is to call
+  // resetForce() to zero the force, then call addForce() for every fluid
+  // element to accumulate the pressure load, then call predictor()/corrector()
+  // to recompute the acceleration.
+  //
+  void resetForce();
+
+  // Set the relaxation parameter used in the fixed point iteration
+  // used to alleviate the added mass effect
+  // omega: relaxation factor (default is 1.0)
+  //
+  void setAddedMassRelaxation(double omega);
+
+  // This function initializes the beam model.
+  void setParameters(real momOfIntertia, real E, 
+		     real rho,real beamLength,
+		     real thickness,real pnorm,
+		     int nElem,BoundaryCondition bcleft,
+		     BoundaryCondition bcright, 
+		     real x0, real y0,
+		     bool useExactSolution);
+
 
   // Get the exact position, velocity, and acceleration of the beam
   // from the analytical solution derived in the documentation
@@ -173,18 +215,6 @@ class BeamModel
   //
   void setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a);
 
-  // Get the exact pressure to be applied to the beam
-  // from the analytical solution derived in the documentation
-  // t: Time at which to compute the exact pressure
-  // x: Location on the beam to get the pressure
-  //
-  double getExactPressure(double t, double x);
-
-  // Set the relaxation parameter used in the fixed point iteration
-  // used to alleviate the added mass effect
-  // omega: relaxation factor (default is 1.0)
-  //
-  void setAddedMassRelaxation(double omega);
   
   // Set the (relative) convergence tolerance for the fixed point iteration
   // tol: convergence tolerance (default is 1.0e-3)
@@ -198,18 +228,18 @@ class BeamModel
   //
   void setupFreeMotion(real x0,real y0, real angle0);
 
-  // Add a constant body force to the beam.  This body
-  // "force" has units of acceleration, e.g., g
-  // i.e., it is not scaled by the density
-  // bf: body force
-  //
-  void addBodyForce(const real bf[2]);
-
   // Set the initial angle of the beam, from the x axis (in radians)
   void setDeclination(real dec);
 
+  // Provide the TravelingWaveFsi object that defines an exact solution.
+  int setTravelingWaveSolution( TravelingWaveFsi & tw );
+
   // Set parameters interactively: 
   int update(CompositeGrid & cg, GenericGraphicsInterface & gi );
+
+  // Return the current velocity of the structure.
+  //
+  const RealArray& velocity() const;
 
   // Write information about the beam
   void writeParameterSummary( FILE *file= stdout );
@@ -254,15 +284,9 @@ class BeamModel
   int getBoundaryValues( const real t, RealArray & g, const int ntd=0 );
 
   // Return the element, thickness, and natural coordinate for
-  // a point (x0,y0) on the undeformed surface of the beam
-  // x0:        undeformed location of the point on the surface of the beam (x)
-  // y0:        undeformed location of the point on the surface of the beam (y)
-  // elemNum:   element corresponding to this point [out]
-  // eta:       natural coordinate corresponding to this point [out]
-  // thickness: thickness of the beam at this point [out]
-  //
+  // a point (x0,y0) on the undeformed SURFACE of the beam
   void projectPoint(const real& x0,const real& y0,
-		    int& elemNum, real& eta, real& thickness);
+		    int& elemNum, real& eta, real& halfThickness);
 
   // Compute the slope and displacement of the beam at a given
   // element # and coordinate
@@ -314,9 +338,8 @@ class BeamModel
   //
   real density;
 
-  // Beam thickness
-  //
-  real thickness;
+  // Beam thickness and breadth
+  real thickness, breadth;
 
   // Beam mass per unit length (actually mass per unit length / b)
   //

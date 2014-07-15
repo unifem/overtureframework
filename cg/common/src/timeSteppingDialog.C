@@ -101,7 +101,7 @@ buildTimeSteppingDialog(DialogData & dialog )
 //     delete [] initialState;
 //   }
 
-  const int maxNumberOfToggleButtons=15;
+  const int maxNumberOfToggleButtons=20;
   aString tbCommands[maxNumberOfToggleButtons]; 
   int tbState[maxNumberOfToggleButtons];
   int ntb=0;
@@ -140,6 +140,14 @@ buildTimeSteppingDialog(DialogData & dialog )
   tbState[ntb]=parameters.dbase.get<bool>("applyAFBCLimiter");
   ntb++;
 
+  tbCommands[ntb]="use added mass algorithm";
+  tbState[ntb]=parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  ntb++;
+
+  tbCommands[ntb]="project added mass velocity";
+  tbState[ntb]=parameters.dbase.get<bool>("projectAddedMassVelocity");
+  ntb++;
+
   assert( ntb<maxNumberOfToggleButtons );
   tbCommands[ntb]="";  // null termination string
 
@@ -148,7 +156,7 @@ buildTimeSteppingDialog(DialogData & dialog )
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
 
   // ----- Text strings ------
-  const int numberOfTextStrings=20;
+  const int numberOfTextStrings=30;
   aString textCommands[numberOfTextStrings];
   aString textLabels[numberOfTextStrings];
   aString textStrings[numberOfTextStrings];
@@ -212,7 +220,6 @@ buildTimeSteppingDialog(DialogData & dialog )
   textCommands[nt] = "AF correction relative tol"; textLabels[nt] =textCommands[nt];
   sPrintF(textStrings[nt],"%e",parameters.dbase.get<real>("AFcorrectionRelTol")); nt++;
 
-
   // null strings terminal list
   textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
   dialog.setTextBoxes(textCommands, textLabels, textStrings);
@@ -239,6 +246,9 @@ getTimeSteppingOption(const aString & answer,
   assert( parameters.dbase.get<GenericGraphicsInterface* >("ps") !=NULL );
   GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
   GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
+
+  bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
 
   int found=true; 
   char buff[180];
@@ -571,8 +581,8 @@ getTimeSteppingOption(const aString & answer,
     dialog.setTextLabel("final time",sPrintF(answer2,"%9.3e", parameters.dbase.get<real >("tFinal")));   // ***** 0 may not be the correct position
   }
   else if( dialog.getToggleValue(answer,"use AF BC Limiter",parameters.dbase.get<bool >("applyAFBCLimiter") ) )
-    {
-    }
+  {
+  }
   else if( dialog.getToggleValue(answer,"apply filter",applyFilter) )
   {
     if( applyFilter )
@@ -599,6 +609,21 @@ getTimeSteppingOption(const aString & answer,
       }
     }
   }
+  else if( dialog.getToggleValue(answer,"use added mass algorithm",useAddedMassAlgorithm) )
+  {
+    if( useAddedMassAlgorithm )
+      printF("Use the added mass algorithm\n");
+    else
+      printF("Do NOT use the added mass algorithm\n");
+  }
+  else if( dialog.getToggleValue(answer,"project added mass velocity",projectAddedMassVelocity) )
+  {
+    if( projectAddedMassVelocity )
+      printF("PROJECT the added mass velocity.\n");
+    else
+      printF("Do NOT project the added mass velocity.\n");
+  }
+  
   else if ( dialog.getTextValue(answer,"preconditioner frequency", "%i", 
                                         parameters.dbase.get<int>("preconditionerFrequency"))){}
   else if ( dialog.getTextValue(answer,"number of PC corrections", "%i", 

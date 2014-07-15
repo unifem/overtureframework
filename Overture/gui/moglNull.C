@@ -28,7 +28,12 @@ typedef double real;
 // * #include <X11/IntrinsicP.h>
 // * #include <X11/cursorfont.h>
 // * #include <GL/gl.h>
+#ifdef OV_USE_GL
 #include <GL/glu.h>
+#else
+#include "nullgl.h"
+#include "nullglu.h"
+#endif
 // * #include <GL/glx.h>
 // * 
 // * #include <Xm/BulletinB.h>
@@ -138,17 +143,18 @@ moglAppendCommandHistory(const aString &item){};
 // is used to zoom in
 void 
 moglSetViewFunction( MOGL_VIEW_FUNCTION viewFunction ){};
+
 int
 makeGraphicsWindow(const aString &windowTitle, 
 		   aString fileMenuItems[],
 		   aString helpMenuItems[],
 		   ClippingPlaneInfo & clippingPlaneInfo,
 		   ViewCharacteristics & viewChar,
-		   DialogData & hardCopyDialog,
-		   DialogData & movieDialog,
+		   DialogData &hardCopyDialog,
 		   PullDownMenu &optionMenu,
-		   WindowProperties &wProp,
-                   int directRendering ){ return 0; };
+		   WindowProperties &wProp, 
+                   int directRendering /* = 1 */  ){ return 0; };
+
 int
 destroyGraphicsWindow(int win_number){ return 0; };
 int
@@ -161,12 +167,16 @@ int
 moglSetTitle(int win_number, const aString &windowTitle){return 0;};
 void
 moglPollEvents(){};
+
 void 
-moglPrintRotPnt(float x, float y, float z, int win_number){};
+moglPrintRotPnt(real x, real y, real z, int win_number){};
+
 void 
-moglPrintLineWidth(float lw, int win_number){};
+moglPrintFractionOfScreen(real fraction, int win_number){};
+
 void 
-moglPrintFractionOfScreen(float fraction, int win_number){};
+moglPrintLineWidth(real lw, int win_number){};
+
 bool
 moglRotationKeysPressed(int win_number){return false;};
 

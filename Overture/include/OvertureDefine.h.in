@@ -19,6 +19,9 @@
 #undef OV_NO_DEFAULT_TEMPL_ARGS
 #undef OV_USE_HDF5
 #undef OV_USE_X11
+#undef OV_USE_PERL
+#undef OV_USE_GL
+
 #ifndef __sgi
 #define OV_USINGNAMESPACE(x)
 #else

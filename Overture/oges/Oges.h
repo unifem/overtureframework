@@ -12,6 +12,10 @@
 #include "OgesParameters.h"
 #include "MultigridCompositeGrid.h"
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
 #include "ListOfIntSerialArray.h"
 #include "ListOfFloatSerialArray.h"
 #include "ListOfDoubleSerialArray.h"
@@ -37,6 +41,7 @@
 
 class GenericGraphicsInterface;
 class EquationSolver;
+class BoundaryData;
 
 class Oges 
 {
@@ -71,6 +76,8 @@ class Oges
                                             const IntegerArray & boundaryConditions,
 					    const RealArray & bcData );
 
+  // specify boundary data: 
+  int setBoundaryData( std::vector<BoundaryData> & boundaryData );
 
   void determineErrors(realCompositeGridFunction & u,  // is this needed?
                        OGFunction & exactSolution,
@@ -274,6 +281,9 @@ class Oges
   // Here is where we keep the objects that interface to various solvers: yale, harwell, slap, petsc..
   EquationSolver *equationSolver[maximumNumberOfEquationSolvers];
   
+  // Here is the new place to store parameters:
+  DataBase dbase;
+
 // -----------Here are protected member functions-------------------
  protected:
 

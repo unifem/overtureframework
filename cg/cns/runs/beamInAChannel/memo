@@ -1,0 +1,16 @@
+2014/07/10 *** shock hitting one or more beams
+
+
+cgcns -noplot beamInAChannel -g=beamInAChannelGride32.order2.hdf -delta=10. -tf=5. -tp=.02 -show="beam32.show" -go=go >! beam32.out 
+
+cgcns beamInAChannel -g=beamInAChannelGride8.order2.hdf -delta=10. -tf=5. -tp=.02
+
+cgcns beamInAChannel -g=beamInAChannelGride4.order2.hdf -delta=10. -tf=5. -tp=.02
+
+cgcns beamInAChannel -g=beamInAChannelGride4.order2.hdf -delta=20. -tf=5. -tp=.01
+
+cgcns beamInAChannel -g=beamInAChannelGride2.order2.hdf -delta=20. -tf=5. -tp=.01
+
+
+cgcns beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=1. -tp=.01
+

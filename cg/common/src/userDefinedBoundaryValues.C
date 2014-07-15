@@ -27,7 +27,8 @@ enum UserDefinedBoundaryConditions
   cylindricalVelocity,          // specify cylindrical components of velocity (cr,vTheta,vPhi)
   pressureProfile,              // for cgins, outflow pressure profile
   knownSolutionValues,          // use boundary values from the known solution
-  flatPlateBoundaryLayerProfile          // use a flat plate boundary layer profile
+  flatPlateBoundaryLayerProfile,          // use a flat plate boundary layer profile
+  pressurePulse                 // for flow in a flexible channel
 };
  
 real Tcontrol=0., regionVolume=0.;  // **FIX ME**
@@ -94,6 +95,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     "pressure profile",
     "known solution",
     "flat plate boundary layer profile",
+    "pressure pulse",
     "done",
     ""
   };
@@ -584,6 +586,29 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
     }
+    else if( answer=="pressure pulse" )
+    {
+      parameters.setUserBcType(side,axis,grid,pressurePulse);  // set the bcType to be a unique value.
+      parameters.setBcIsTimeDependent(side,axis,grid,true);      // this condition is time dependent
+
+      printF("The pressure pulse is p = .5*pMax*[ 1 - cos(2*pi*t/tMax) ],  for 0 <=t<=tMax, p=0 other-wise\n");
+      gi.inputString(answer2,"Enter pMax, tMax");
+      real pMax=1., tMax=1.;
+      if( answer2!="" )
+      {
+	sScanF(answer2,"%e %e",&pMax,&tMax);
+      }
+      printF("***userDefinedBoundaryValues: pressure pulse: setting pMax=%8.2e, tMax=%8.2e for"
+             " (side,axis,grid)=(%i,%i,%i)\n",pMax,tMax,side,axis,grid);
+
+      RealArray values(2);
+      values(0)=pMax;
+      values(1)=tMax;
+      // save the parameters to be used when evaluating the time dependent BC's:
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
+
+    }    
+
     else
     {
       printF("Unknown answer =[%s]\n",(const char*)answer2);
@@ -627,6 +652,7 @@ userDefinedBoundaryValues(const real & t,
   realMappedGridFunction & u = gf0.u[grid];
   // realMappedGridFunction & gridVelocity = gf0.getGridVelocity(grid);
 
+  CompositeGrid & cg = gf0.cg;
   MappedGrid & mg = *u.getMappedGrid();
 
   assert( side0>=-1 && side0<2 );
@@ -1477,6 +1503,10 @@ userDefinedBoundaryValues(const real & t,
 	
         RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 
+	if( debug() & 4 || t<2*dt )
+	  printF("--UBV-- userDefinedBoundaryValues:knownSolutionValues: eval solution: t=%8.2e (side,axis,grid)=(%i,%i,%i) forcingType=%i\n",t,
+		 side,axis,grid,(int)forcingType);
+
 	if( forcingType==computeForcing )
 	{
 	  bd(Ib1,Ib2,Ib3,pc)=uKnownLocal(Ib1,Ib2,Ib3,pc);
@@ -1489,11 +1519,24 @@ userDefinedBoundaryValues(const real & t,
 	else
 	{
 	  // time derivative of the forcing  *fix me for time-dependent known solutions*
-	  bd(Ib1,Ib2,Ib3,pc)=0.;
-	  bd(Ib1,Ib2,Ib3,uc)=0.;
-	  bd(Ib1,Ib2,Ib3,vc)=0.;
-	  if( numberOfDimensions==3 )
-	    bd(Ib1,Ib2,Ib3,wc)=0.;
+
+
+	  int numberOfTimeDerivatives=1; //
+          const Parameters::KnownSolutionsEnum & knownSolution = parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
+	  if( knownSolution==Parameters::userDefinedKnownSolution )
+	  {
+	    parameters.getUserDefinedKnownSolution( t,cg, grid, bd, Ib1,Ib2,Ib3, numberOfTimeDerivatives );
+	  }
+	  else
+	  {
+	    // finish me 
+	    bd(Ib1,Ib2,Ib3,pc)=0.;
+	    bd(Ib1,Ib2,Ib3,uc)=0.;
+	    bd(Ib1,Ib2,Ib3,vc)=0.;
+	    if( numberOfDimensions==3 )
+	      bd(Ib1,Ib2,Ib3,wc)=0.;
+	  }
+	  
 	}
 	
       }
@@ -1563,6 +1606,48 @@ userDefinedBoundaryValues(const real & t,
 	}
 	
       }
+
+      else if( parameters.userBcType(side,axis,grid)==pressurePulse )
+      {
+
+        RealArray values(2);
+	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+	real pMax=values(0);
+	real tMax=values(1);
+
+        printF("--UBV-- t=%8.2e, assign (side,axis,grid)=(%i,%i,%i) pressure pulse force=%i, "
+               " pMax=%f, tMax=%f\n",t,side,axis,grid,(int)forcingType,pMax,tMax);
+
+        getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
+	numberOfSidesAssigned++;
+
+	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+        real factor=0.;
+	if( forcingType==computeForcing )
+	{
+          if( t>=0. && t<=tMax ) factor=.5*pMax*( 1.-cos(twoPi*t/tMax) );
+	}
+	else 
+	{
+          // supply the time derivative -- p.t is probably not needed 
+          if( t>=0. && t <= tMax ){  factor=.5*pMax*twoPi/tMax*sin(twoPi*t/tMax); }
+	}
+	
+        bd(Ib1,Ib2,Ib3,pc)= factor;  // pressure 
+	
+	bd(Ib1,Ib2,Ib3,uc)=0.;
+	bd(Ib1,Ib2,Ib3,vc)=0.;
+	if( numberOfDimensions>2 )
+	  bd(Ib1,Ib2,Ib3,wc)=0.;
+
+	  
+	//	}
+      }
+
       else
       {
 	// printF(" userDefinedBoundaryValues: mg.boundaryCondition(side,axis)=%i \n",mg.boundaryCondition(side,axis));

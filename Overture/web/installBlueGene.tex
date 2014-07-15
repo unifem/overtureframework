@@ -1,0 +1,52 @@
+\section{Installing Overture on the Blue Gene}  \label{sec:installBlueGene}
+
+Here are  notes on installing Overture on a Blue Gene/Q at RPI.
+
+I used the gnu compilers:
+\begin{verbatim}
+  module load gnu
+\end{verbatim}
+
+\subsection{Installing parallel HDF}
+
+Set {\tt RUNSERIAL} to be the command to run a program on the Blue Gene.
+
+\begin{verbatim}
+tar -xzf hdf5-1.8.8.tar.gz
+mv hdf5-1.8.8 hdf5-1.8.8-parallel
+cd hdf5-1.8.8-parallel
+
+unsetenv CC
+unsetenv cc
+
+./bin/yodconfigure configure
+
+setenv RUNSERIAL "srun -N1 -n1 --time 1 --partition debug"
+setenv LDFLAGS "-dynamic"
+
+configure --prefix=`pwd` --enable-parallel
+
+
+make
+make install
+\end{verbatim}
+
+
+\subsection{Installing P++} 
+
+\begin{verbatim}
+tar xzf AP-0.8.2.tar.gz
+mv A++P++-0.8.2 A++P++-0.8.2-gcc.4.4.6-parallel
+
+./configure --enable-PXX --enable-SHARED_LIBS --prefix=`pwd` \
+             --with-CC=mpicc --with-CXX=mpicxx --disable-mpirun-check --without-PADRE
+\end{verbatim}
+
+\subsection{Installing Overture} 
+
+Overture was built without graphics and without support for Perl. 
+
+\begin{verbatim}
+configure bg  parallel CC=mpicxx bCC=g++ cc=mpicc bcc=gcc FC=mpif90 bFC=gfortran\
+          --disable-X11 --disable-perl --disable-gl
+\end{verbatim}

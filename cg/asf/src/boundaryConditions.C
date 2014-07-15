@@ -44,7 +44,7 @@ gridAccelerationBC(const int & grid,
 
   if( parameters.gridIsMoving(grid) 
       && parameters.dbase.get<real >("advectionCoefficient")!=0. )  // this is needed by project for some reason? )
-    parameters.dbase.get<MovingGrids >("movingGrids").gridAccelerationBC(grid,t0,c,u,f,gridVelocity,normal,I1,I2,I3,I1g,I2g,I3g);
+    parameters.dbase.get<MovingGrids >("movingGrids").gridAccelerationBC(grid,side,axis,t0,c,u,f,gridVelocity,normal,I1,I2,I3,I1g,I2g,I3g);
 
   // if( parameters.dbase.get< >("timeDependentBoundaryConditions") ) // ********** fix this *****
   if( parameters.bcIsTimeDependent(side,axis,grid) )

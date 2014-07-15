@@ -36,12 +36,13 @@ hasVariableCoefficientBoundaryCondition(int side, int axis) const{
 RealArray& 
 getVariableCoefficientBoundaryConditionArray( VariableCoefficientBoundaryConditionEnum option, int side, int axis );
 
+// Here is a dbase where we can save additional parameters
+DataBase dbase;
+
 protected:
 
 // This is a bit flag indicating which variable coefficient boundary conditions exist on a face:
 int pHasVariableCoefficientBoundaryCondition[6];
-
-DataBase dbase;
 
 };
 

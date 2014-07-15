@@ -10,6 +10,22 @@
 
 #include <sstream>
 
+#define  FOR_3(i1,i2,i3,I1,I2,I3)\
+  I1Base=I1.getBase(); I2Base=I2.getBase(); I3Base=I3.getBase();\
+  I1Bound=I1.getBound(); I2Bound=I2.getBound(); I3Bound=I3.getBound();\
+  for( i3=I3Base; i3<=I3Bound; i3++ )  \
+  for( i2=I2Base; i2<=I2Bound; i2++ )  \
+  for( i1=I1Base; i1<=I1Bound; i1++ )
+
+#define  FOR_3D(i1,i2,i3,I1,I2,I3)\
+  int I1Base,I2Base,I3Base;\
+  int I1Bound,I2Bound,I3Bound;\
+  I1Base=I1.getBase(); I2Base=I2.getBase(); I3Base=I3.getBase();\
+  I1Bound=I1.getBound(); I2Bound=I2.getBound(); I3Bound=I3.getBound();\
+  for( i3=I3Base; i3<=I3Bound; i3++ )  \
+  for( i2=I2Base; i2<=I2Bound; i2++ )  \
+  for( i1=I1Base; i1<=I1Bound; i1++ )
+
 // Forward declarations of utility matrix functions on A++ arrays
 //
 RealArray 
@@ -66,6 +82,7 @@ BeamModel::BeamModel()
 
   density=1.;
   thickness=.1;
+  breadth=1.;
   L = 1.;
 
   areaMomentOfInertia = .1;
@@ -137,6 +154,7 @@ BeamModel::BeamModel()
 
   useExactSolution=false;
 
+  dbase.put<bool>("useImplicitPredictor")=true;
 
   // The relaxation parameter used in the fixed point iteration
   // used to alleviate the added mass effect
@@ -213,21 +231,23 @@ writeParameterSummary( FILE *file /* = stdout */ )
   const real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
   const real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
   const bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
+  const bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor");
 
   fPrintF(file," --------------------------------------------------------------------------------\n");
-  fPrintF(file,"        Beam Model\n");
+  fPrintF(file,"                        Beam Model\n");
+  fPrintF(file," --------------------------------------------------------------------------------\n");
   fPrintF(file," Type: Euler-Bernoulli beam. beamID=%i, name=%s\n",beamID,(const char*)name);
   fPrintF(file,"     (density*thickness*b)*w_tt = T w_xx + EI w_xxxx\n");
   fPrintF(file," E=%9.3e, I=%9.3e, T=%8.2e, \n"
                " density=%9.3e, length=%9.3e, thickness=%9.3e, initial-angle=%7.3f (degrees) \n"
-               " numElem=%i, allowsFreeMotion=%i, initial left end=(%g,%g,%g)\n"
-               " Newmark time-stepping, beta=%g, gamma=%g\n"
+               " numElem=%i, allowsFreeMotion=%i, initial left end=(%12.8e,%12.8e,%12.8e)\n"
+               " Newmark time-stepping, beta=%g, gamma=%g, (useImplicitPredictor=%i),\n"
                " pressureNormalization = %8.2e (scale pressure forces by this factor)\n"
                " added-mass relaxation factor=%g, sub-iteration tol=%9.3e\n"
                " useNewTridiagonalSolver=%i\n"
 	  , elasticModulus,areaMomentOfInertia,T,density,L,thickness,beamInitialAngle*180./Pi,
 	  numElem,(int)allowsFreeMotion,beamX0,beamY0,beamZ0,
-          newmarkBeta,newmarkGamma,
+          newmarkBeta,newmarkGamma,(int)useImplicitPredictor,
 	  pressureNorm,addedMassRelaxationFactor,subIterationConvergenceTolerance,
           (int)useNewTridiagonalSolver);
 
@@ -248,13 +268,15 @@ writeParameterSummary( FILE *file /* = stdout */ )
   const int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
   const int & degreeInTime = dbase.get<int>("degreeInTime");
   const int & degreeInSpace = dbase.get<int>("degreeInSpace");
-  fPrintF(file," twilightZone=%i, option=%s. Poly: degreeT=%i, degreeX=%i\n",(int)twilightZone,
+  real *trigFreq = dbase.get<real[4]>("trigFreq");
+  fPrintF(file," twilightZone=%s, option=%s. Poly: degreeT=%i, degreeX=%i, Trig: ft=%g, fx=%g\n",(twilightZone ? "on" : "off"),
           (twilightZoneOption==0 ? "polynomial" : "trigonometric"),
-	  degreeInTime,degreeInSpace );
+	  degreeInTime,degreeInSpace,trigFreq[0],trigFreq[1] );
   fPrintF(file," Exact solution option: %s\n",(const char*)exactSolutionOption);
   fPrintF(file," Initial condition option: %s\n",(const char*)initialConditionOption);
   
 
+  fPrintF(file," --------------------------------------------------------------------------------\n");
   fPrintF(file," --------------------------------------------------------------------------------\n");
 
 }
@@ -361,7 +383,7 @@ initialize()
   bool & refactor = dbase.get<bool>("refactor");  // et to true when we need to refactor the implicit time-stepping matrix
   refactor=true;
 
-  }
+}
 
 // ====================================================================================================
 /// \brief Initialize the twilight zone 
@@ -373,7 +395,8 @@ initTwilightZone()
   // -- twilight zone ---
   const bool & twilightZone = dbase.get<bool>("twilightZone");
 
-  printF("-- BM -- initTwilightZone twilightZone=%i\n",(int)twilightZone);
+  if( debug & 1 )
+    printF("-- BM -- initTwilightZone twilightZone=%i\n",(int)twilightZone);
 
   if( !twilightZone )
     return 0;
@@ -390,7 +413,7 @@ initTwilightZone()
   
   if( twilightZoneOption==1 )
   {
-    printF("-- BM -- TwilightZone: trigonometric.\n");
+    // printF("-- BM -- TwilightZone: trigonometric.\n");
 
     real *trigFreq = dbase.get<real[4]>("trigFreq");  // ft, fx, fy, [fz]
     const real omega[4]={trigFreq[1],trigFreq[2],trigFreq[3],trigFreq[0]};
@@ -416,7 +439,7 @@ initTwilightZone()
   }
   else
   {
-    printF("--- BM --- TwilightZone: algebraic polynomial : degreeInSpace=%i, degreeInTime=%i \n",degreeInSpace,degreeInTime);
+    // printF("--- BM --- TwilightZone: algebraic polynomial : degreeInSpace=%i, degreeInTime=%i \n",degreeInSpace,degreeInTime);
     int degreeOfSpacePolynomial = degreeInSpace;
     int degreeOfTimePolynomial = degreeInTime;
 
@@ -466,6 +489,8 @@ initTwilightZone()
       OV_ABORT("error");
     }
 
+    // printF("OGPolyFunction: degreeInTime=%i\n",degreeInTime);
+    
     for( int n=0; n< numberOfTZComponents; n++ )
     {
       for( int i=0; i<=4; i++ )
@@ -557,16 +582,58 @@ getExplicitTimeStep() const
   // Guess the explicit time step: 
   //  ( c4*E*I*dt^2/dx^4 + C2*T*dt^2/dx^2 )/( rho*h*b ) < 1 
 
-  real breadth=1.;  // fix me 
-  
   const real c4=1., c2=4.;
-  // const real c4=1., c2=1.;
   real dt = sqrt(  (density*thickness*breadth) /(  c4*EI/pow(dx,4) + c2*T/(dx*dx) ) );
   
-  printF("BeamModel::getExplicitTimeStep: EI=%g, T=%g, dx=%8.2e, dt=%8.2e\n",EI,T,dx,dt);
+  if( debug & 1 )
+    printF("BeamModel::getExplicitTimeStep: EI=%g, T=%g, dx=%8.2e, dt=%8.2e\n",EI,T,dx,dt);
 
   return dt;
 }
+
+// ======================================================================================================
+/// \brief Obtain a past time solution (e.g. needed by deforming grids)
+/// \param pastTime (input) : obtain solution at this time in the past.
+/// \param xPast (output) : points on the beam surface
+/// \param t0,x0 (input) : known state at initial time t0
+// ======================================================================================================
+int BeamModel::
+getPastTimeState( const real pastTime, RealArray & xPast, const real t0, const RealArray x0 )
+{
+
+  RealArray u,v,a;
+  assignInitialConditions( pastTime,u,v,a );
+
+  for( int i3=x0.getBase(2); i3<=x0.getBound(2); i3++ )
+  {
+    for( int i2=x0.getBase(1); i2<=x0.getBound(1); i2++ )
+    {
+      for( int i1=x0.getBase(0); i1<=x0.getBound(0); i1++ )
+      {
+        // u : current beam DOF's
+        // x0 : undeformed surface points
+        // xPast (output) : current points on beam surface
+	projectDisplacement( pastTime, u, x0(i1,i2,i3,0),x0(i1,i2,i3,1),xPast(i1,i2,i3,0), xPast(i1,i2,i3,1));
+      }
+    }
+  }
+
+  return 0;
+}
+
+// ======================================================================================================
+/// \brief Get the beam's mass per unit length (rho*A = rho*h*b). This value is assumed constant here.
+/// \param rhoA (output) 
+// ======================================================================================================
+int BeamModel::
+getMassPerUnitLength( real & rhoA ) const
+{
+  rhoA=density*thickness*breadth;
+
+  return 0;
+}
+
+
 
 // ======================================================================================================
 /// \brief Compute the integral of N(eta)*p, that is, the rhs of the FEM model, for a particular element
@@ -701,8 +768,8 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
     assert( bcRight==periodic );
   }
   
-  bool checkResidual=true && refactor;  // for testing block tridiagonal solver 
-  bool useBoth=useNewTridiagonalSolver && !isPeriodic;  // check new solver with old
+  bool checkResidual= (debug & 1 ) && refactor;  // for testing block tridiagonal solver 
+  bool useBoth=(debug & 1 ) && useNewTridiagonalSolver && !isPeriodic;  // check new solver with old
 
 
   // refactor=true;  // *********************************
@@ -782,7 +849,8 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
     RealArray at0(ndof,ndof,I1,I2), bt0(ndof,ndof,I1,I2), ct0(ndof,ndof,I1,I2); // save for checking
     if( refactor )
     {
-      printF("-- BM -- solveBlockTridiagonal : form block tridiagonal system and factor, isPeriodic=%i\n",(int)isPeriodic);
+      if( debug & 1 )
+        printF("-- BM -- solveBlockTridiagonal : form block tridiagonal system and factor, isPeriodic=%i\n",(int)isPeriodic);
       
       RealArray at(ndof,ndof,I1,I2), bt(ndof,ndof,I1,I2), ct(ndof,ndof,I1,I2);
 
@@ -859,7 +927,7 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
             // -- freeBC is not allowed with string model ---
             if(  EI==0. )
 	    {
-	      printF("--BM-- ERROR: A `free' BC is no allowed with the string model for a beam, EI=0\n");
+	      printF("--BM-- ERROR: A `free' BC is not allowed with the string model for a beam, EI=0\n");
 	      OV_ABORT("ERROR");
 	    }
 	    
@@ -1192,8 +1260,8 @@ setTravelingWaveSolution( TravelingWaveFsi & tw )
 /// \brief Compute the acceleration.
 ///
 // Compute the acceleration of the beam.
-// u:               current beam position
-// v:               current beam velocity
+// u:               current beam position (For Newmark this is un + dt*vn + .5*dt^2*(1-2*beta)*an )
+// v:               current beam velocity (NOT USED CURRENTLY)
 // f:               external force on the beam
 // A:               matrix by which the acceleration is multiplied
 //                  (e.g., in the newmark beta correction step it is 
@@ -1233,7 +1301,7 @@ computeAcceleration(const real t,
   computeInternalForce(u, rhs);
 
 
-  if( debug & 1 )
+  if( debug & 2 )
   {
     rhs.reshape(2,numElem+1);
     ::display(rhs,"-- BM -- computeAcceleration: rhs after computeInternalForce","%9.2e ");
@@ -1283,7 +1351,7 @@ computeAcceleration(const real t,
       {
 	// Boundary term is of the form:  -EI* v_x*w_xx
 	// -- correct for natural BC:  E*I*w_xx = +/- g(2,side)
-	printF("-- BM -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",g(2,side),EI);
+        if( debug & 1 )	printF("-- BM -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",g(2,side),EI);
 	rhs(ia+1) += -(1-2*side)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
       }
       if( bc==freeBC )
@@ -1433,7 +1501,7 @@ computeAcceleration(const real t,
   } // end if allows free motion
   
 
-  if( debug & 1 )
+  if( debug & 2 )
   {
     rhs.reshape(2,numElem+1);
     ::display(rhs,"-- BM -- computeAcceleration: rhs before solve Ma=rhs","%11.4e ");
@@ -1443,7 +1511,7 @@ computeAcceleration(const real t,
   // Solve M a = rhs 
   solveBlockTridiagonal(A, rhs, a, alpha );
 
-  if( false && debug & 1 )
+  if( debug & 2 )
   {
     a.reshape(2,numElem+1);
     ::display(a,"-- BM -- computeAcceleration: solution a after solve","%11.4e ");
@@ -1453,6 +1521,42 @@ computeAcceleration(const real t,
   // solveBlockTridiagonal(A, rhs, a, bcLeft,bcRight,allowsFreeMotion);
   
 }
+
+// ====================================================================================
+/// \brief Get points on the beam surface
+///
+/// \param x0 (input) :  location of surface points on the undeformed beam 
+/// \param xs (output) : current position of beam boundary 
+/// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+///
+// ====================================================================================
+void BeamModel::
+getSurface( const real t, const RealArray & x0,  const RealArray & xs, 
+	    const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+{
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+  RealArray & uc = u[current];  // current displacement 
+
+  // ::display(x0,sPrintF("x0: getSurface (undeformed beam), t=%8.2e",t),"%9.2e ");
+
+  RealArray & time = dbase.get<RealArray>("time");
+  if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+  {
+    printF("--BM-- BeamModel::getSurface:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+        t,time(current),current);
+    OV_ABORT("ERROR");
+  }
+
+  int i1,i2,i3;
+  FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  {
+    projectDisplacement(t, uc, x0(i1,i2,i3,0),x0(i1,i2,i3,1),xs(i1,i2,i3,0),xs(i1,i2,i3,1));
+  }
+
+}
+
+
 
 // ====================================================================================
 /// /brief Determine points on the beam surface
@@ -1466,13 +1570,13 @@ computeAcceleration(const real t,
 /// y [out]: deformed location of the point on the surface of the beam (y)
 // ====================================================================================
 void BeamModel::
-projectDisplacement(const RealArray& X, const real& x0, const real& y0, real& x, real& y) 
+projectDisplacement(const real t, const RealArray& X, const real& x0, const real& y0, real& wx, real& wy) 
 {
 
   int elemNum;
-  real eta, thickness;
+  real eta, halfThickness;
   
-  projectPoint(x0,y0, elemNum, eta,thickness);
+  projectPoint(x0,y0, elemNum, eta,halfThickness);
   
   real displacement, slope;
   interpolateSolution(X, elemNum, eta, displacement, slope);
@@ -1485,11 +1589,11 @@ projectDisplacement(const RealArray& X, const real& x0, const real& y0, real& x,
     real dxt = (x0-beamX0)*initialBeamTangent[0] + (y0-beamY0)*initialBeamTangent[1];
     real dyt = (x0-beamX0)*initialBeamNormal[0] +  (y0-beamY0)*initialBeamNormal[1];
 
-    real xl = dxt+normall[0]*thickness;
-    real yl = normall[1]*thickness+displacement;
+    real xl = dxt+normall[0]*halfThickness;
+    real yl = normall[1]*halfThickness+displacement;
     
-    x = beamX0 + initialBeamTangent[0]*xl-initialBeamTangent[1]*yl;
-    y = beamY0 - initialBeamNormal[0]*xl + initialBeamNormal[1]*yl;
+    wx = beamX0 + initialBeamTangent[0]*xl-initialBeamTangent[1]*yl;
+    wy = beamY0 - initialBeamNormal[0]*xl + initialBeamNormal[1]*yl;
   }
   else 
   {
@@ -1497,13 +1601,37 @@ projectDisplacement(const RealArray& X, const real& x0, const real& y0, real& x,
     real xbar = ((x0-beamX0)*initialBeamTangent[0]+
 		 (y0-beamY0)*initialBeamTangent[1]-L*0.5);
     assert(xbar >= -L*0.6 && xbar <= L*0.6);
-    x = centerOfMass[0] + normal[0] * displacement + xbar*tangent[0];
-    y = centerOfMass[1] + normal[1] * displacement + xbar*tangent[1];
+    wx = centerOfMass[0] + normal[0] * displacement + xbar*tangent[0];
+    wy = centerOfMass[1] + normal[1] * displacement + xbar*tangent[1];
 
-    x += (tangent[0] * normall[0] + normal[0]*normall[1])*thickness;
-    y += (tangent[1] * normall[0] + normal[1]*normall[1])*thickness;
+    wx += (tangent[0] * normall[0] + normal[0]*normall[1])*halfThickness;
+    wy += (tangent[1] * normall[0] + normal[1]*normall[1])*halfThickness;
   }
     
+  if( debug & 4 && initialConditionOption=="travelingWaveFSI" )
+  {
+    // -- compare to exact ---
+    TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+
+    // -- for testing set displacement to the true value
+    Index I1(0,1),I2(0,1),I3(0,1);
+    RealArray x(1,1,1,2), ue(1,1,1,2), ve(1,1,1,2), ae(1,1,1,2);
+    x(0,0,0,0)=x0;
+    x(0,0,0,1)=0.;
+    travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
+
+    if( debug & 4 )
+      printF(" -- BM -- projectDisplacement: t=%8.2e, x0=%8.2e computed w=(%9.2e,%9.2e) exact=(%9.2e,%9.2e) err=(%9.2e,%9.2e)\n",
+	     t,x0,wx,wy-y0,ue(0,0,0,0),ue(0,0,0,1),wx-ue(0,0,0,0),(wy-y0)-ue(0,0,0,1));
+    if( false )
+    {
+      // use exact 
+      wx=ue(0,0,0,0);
+      wy=y0+ue(0,0,0,1);
+    }
+    
+  }
+
 }
 
 
@@ -1519,18 +1647,19 @@ projectDisplacement(const RealArray& X, const real& x0, const real& y0, real& x,
 ///
 // ==============================================================================================
 void BeamModel::
-projectAcceleration(const real& x0,
+projectAcceleration(const real t, 
+                    const real& x0,
 		    const real& y0, real& ax, real& ay) 
 {
 
   // A point on the beam surface is equal to the point on the neutral surface plus an offset in the normal direction
-  //       p  = x(eta) + (0,w) + nv(eta)*thickness
+  //       p  = x(eta) + (0,w) + nv(eta)*halfThickness
 
   // The velocity of the point is 
-  //       vp = (0,w_t) + d(nv)/(dt)*thickness
+  //       vp = (0,w_t) + d(nv)/(dt)*halfThickness
 
   // The acceleration of the point is 
-  //       ap = (0,w_tt) + d^2(nv)/(dt^2)*thickness
+  //       ap = (0,w_tt) + d^2(nv)/(dt^2)*halfThickness
 
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
@@ -1542,11 +1671,11 @@ projectAcceleration(const real& x0,
 
 
   int elemNum;
-  real eta, thickness;
+  real eta, halfThickness;
   
-  projectPoint(x0,y0, elemNum, eta,thickness);
+  projectPoint(x0,y0, elemNum, eta,halfThickness);
 
-  //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << thickness << std::endl;
+  //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << halfThickness << std::endl;
   
   real displacement, slope;
   interpolateSolution(uc, elemNum, eta, displacement, slope);
@@ -1571,8 +1700,8 @@ projectAcceleration(const real& x0,
 
   if (!allowsFreeMotion) 
   {
-    real axl = normaldd[0]*thickness;
-    real ayl = normaldd[1]*thickness+DDdisplacement;
+    real axl = normaldd[0]*halfThickness;
+    real ayl = normaldd[1]*halfThickness+DDdisplacement;
     
     ax = initialBeamTangent[0]*axl-initialBeamTangent[1]*ayl;
     ay = initialBeamNormal[0]*axl + initialBeamNormal[1]*ayl;
@@ -1587,9 +1716,9 @@ projectAcceleration(const real& x0,
       (normal[0]*DDdisplacement + (-tangent[0]*angularVelocity)*Ddisplacement + 
        (-tangent[0]*angularAcceleration-normal[0]*angularVelocity*angularVelocity)*displacement);
     ax += xbar*(normal[0]*angularAcceleration - tangent[0]*angularVelocity*angularVelocity);
-    ax += thickness*(tangent[0]*normaldd[0] + normald[0]*normal[0]*angularVelocity+
+    ax += halfThickness*(tangent[0]*normaldd[0] + normald[0]*normal[0]*angularVelocity+
 		     (normal[0]*angularAcceleration - tangent[0]*angularVelocity*angularVelocity)*normall[0]);
-    ax += thickness*(normal[0]*normaldd[1] - normald[1]*tangent[0]*angularVelocity+
+    ax += halfThickness*(normal[0]*normaldd[1] - normald[1]*tangent[0]*angularVelocity+
 		     (-tangent[0]*angularAcceleration - normal[0]*angularVelocity*angularVelocity)*normall[1]);
  
    
@@ -1598,23 +1727,39 @@ projectAcceleration(const real& x0,
        (-tangent[1]*angularAcceleration-normal[1]*angularVelocity*angularVelocity)*displacement);
     ay += xbar*(normal[1]*angularAcceleration - tangent[1]*angularVelocity*angularVelocity);
 
-    ay += thickness*(tangent[1]*normaldd[0] + normald[0]*normal[1]*angularVelocity+
+    ay += halfThickness*(tangent[1]*normaldd[0] + normald[0]*normal[1]*angularVelocity+
 		     (normal[1]*angularAcceleration - tangent[1]*angularVelocity*angularVelocity)*normall[0]);
-    ay += thickness*(normal[1]*normaldd[1] - normald[1]*tangent[1]*angularVelocity+
+    ay += halfThickness*(normal[1]*normaldd[1] - normald[1]*tangent[1]*angularVelocity+
 		     (-tangent[1]*angularAcceleration - normal[1]*angularVelocity*angularVelocity)*normall[1]);
  
     //std::cout << "x0 = " << x0 << " y0 = " << y0 << " ax = " << ax << " ay = " << ay << std::endl;
   }
 
-  // if( true && initialConditionOption=="travelingWaveFSI" )
-  // {
-  //   // -- for testing set acceleration to the true value
-  //   RealArray x(1,1,1,2), ue(1,1,1,2), ve(1,1,1,2);
-  //   x(0,0,0,0)=x0;
-  //   x(0,0,0,1)=0.;
-  //   travelingWaveFsi.getExactShellSolution( x,ue,ve,t, I1,I2,I3 );
+  bool useExact=false;
+  if(( useExact || debug & 4 ) && initialConditionOption=="travelingWaveFSI" )
+  {
+    // -- compare to exact ---
+    TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
 
-  // }
+    // -- for testing set acceleration to the true value
+    Index I1(0,1),I2(0,1),I3(0,1);
+    RealArray x(1,1,1,2), ue(1,1,1,2), ve(1,1,1,2), ae(1,1,1,2);
+    x(0,0,0,0)=x0;
+    x(0,0,0,1)=0.;
+    travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
+
+    if( ( useExact || debug & 4 ) )
+      printF(" -- BM -- projectAcceleration: t=%8.2e, x0=%8.2e computed a=(%9.2e,%9.2e) exact=(%9.2e,%9.2e) err=(%9.2e,%9.2e)\n",
+	     t,x0,ax,ay,ae(0,0,0,0),ae(0,0,0,1),ax-ae(0,0,0,0),ay-ae(0,0,0,1));
+    
+    if( useExact )
+    {
+      // use exact
+      ax=ae(0,0,0,0);
+      ay=ae(0,0,0,1);
+    }
+    
+  }
   
 
 
@@ -1627,6 +1772,297 @@ projectAcceleration(const real& x0,
 }
 
 // ==============================================================================================
+/// /brief Return the "internal force" of the point on the surface (not the neutral axis)
+/// of the beam of the point whose undeformed location is (x0,y0).
+///
+/// This function is used to as part of the added-mass algorithm
+/// 
+/// /param internalForce (input) : internal force solution of the beam
+/// /paramx0:       undeformed location of the point on the surface of the beam (x)
+/// /param y0:       undeformed location of the point on the surface of the beam (y)
+/// /paramax [out]: acceleration of the point on the surface of the beam (x)
+/// /paramay [out]: acceleration of the point on the surface of the beam (y)
+///
+// ==============================================================================================
+void BeamModel::
+projectInternalForce(const RealArray & internalForce,
+		     const real t, 
+		     const real& x0,
+		     const real& y0, real& ax, real& ay) 
+{
+
+  // A point on the beam surface is equal to the point on the neutral surface plus an offset in the normal direction
+  //       p  = x(eta) + (0,w) + nv(eta)*halfThickness   (NOTE: halfThickness here is THE half halfThickness)
+
+  // The velocity of the point is 
+  //       vp = (0,w_t) + d(nv)/(dt)*halfThickness
+
+  // The acceleration of the point is 
+  //       ap = (0,w_tt) + d^2(nv)/(dt^2)*halfThickness
+
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration DOF
+  RealArray & uc = u[current];  // current displacement 
+  RealArray & vc = v[current];  // current velocity 
+  // RealArray & ac = a[current];  // current acceleration
+
+
+  int elemNum;
+  real eta, halfThickness;
+  
+  projectPoint(x0,y0, elemNum, eta,halfThickness);
+
+  //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << halfThickness << std::endl;
+  
+  real displacement, slope;
+  interpolateSolution(uc, elemNum, eta, displacement, slope);
+
+  real Ddisplacement, Dslope;
+  interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);
+
+  real DDdisplacement, DDslope;
+
+  // *** Here is the only difference between projectAcceleration and projectInternalForce ***
+  interpolateSolution(internalForce, elemNum, eta, DDdisplacement, DDslope);
+  // interpolateSolution(ac, elemNum, eta, DDdisplacement, DDslope);
+
+  
+  // *************************************************
+  // **************** CHECK ME ***********************
+  // *************************************************
+
+
+  // --- compute the correction for finite thickness ---
+  //   correction is 
+  //            +density*hs*hs/2 * n_tt 
+  // Note the extra factor of density*hs compared to projectAcceleration 
+
+  const real thicknessFactor = density*(2.*halfThickness)*halfThickness;
+
+  real omag = 1./sqrt(slope*slope+1.0);
+  real omag3 = omag*omag*omag;
+  real omag5 = omag*omag*omag3;
+  real normall[2] = {-slope*omag, omag};
+  real normald[2] = {-Dslope*omag3,-slope*Dslope*omag3};
+  real normaldd[2] = {3.0*slope*Dslope*omag5*Dslope - omag3*DDslope,
+		      3.0*slope*Dslope*omag5*slope*Dslope-omag3*(Dslope*Dslope+slope*DDslope)};
+
+  if (!allowsFreeMotion) 
+  {
+    real axl = normaldd[0]*thicknessFactor;
+    real ayl = normaldd[1]*thicknessFactor+DDdisplacement;
+    
+    ax = initialBeamTangent[0]*axl-initialBeamTangent[1]*ayl;
+    ay = initialBeamNormal[0]*axl + initialBeamNormal[1]*ayl;
+  }
+  else 
+  {
+    // --- free motion ---
+
+    real xbar = ((x0-beamX0)*initialBeamTangent[0]+
+		 (y0-beamY0)*initialBeamTangent[1]-L*0.5);
+    ax = centerOfMassAcceleration[0] + 
+      (normal[0]*DDdisplacement + (-tangent[0]*angularVelocity)*Ddisplacement + 
+       (-tangent[0]*angularAcceleration-normal[0]*angularVelocity*angularVelocity)*displacement);
+    ax += xbar*(normal[0]*angularAcceleration - tangent[0]*angularVelocity*angularVelocity);
+    ax += thicknessFactor*(tangent[0]*normaldd[0] + normald[0]*normal[0]*angularVelocity+
+		     (normal[0]*angularAcceleration - tangent[0]*angularVelocity*angularVelocity)*normall[0]);
+    ax += thicknessFactor*(normal[0]*normaldd[1] - normald[1]*tangent[0]*angularVelocity+
+		     (-tangent[0]*angularAcceleration - normal[0]*angularVelocity*angularVelocity)*normall[1]);
+ 
+   
+    ay = centerOfMassAcceleration[1] + 
+      (normal[1]*DDdisplacement + (-tangent[1]*angularVelocity)*Ddisplacement + 
+       (-tangent[1]*angularAcceleration-normal[1]*angularVelocity*angularVelocity)*displacement);
+    ay += xbar*(normal[1]*angularAcceleration - tangent[1]*angularVelocity*angularVelocity);
+
+    ay += thicknessFactor*(tangent[1]*normaldd[0] + normald[0]*normal[1]*angularVelocity+
+		     (normal[1]*angularAcceleration - tangent[1]*angularVelocity*angularVelocity)*normall[0]);
+    ay += thicknessFactor*(normal[1]*normaldd[1] - normald[1]*tangent[1]*angularVelocity+
+		     (-tangent[1]*angularAcceleration - normal[1]*angularVelocity*angularVelocity)*normall[1]);
+ 
+    //std::cout << "x0 = " << x0 << " y0 = " << y0 << " ax = " << ax << " ay = " << ay << std::endl;
+  }
+
+}
+
+// ====================================================================================
+/// \brief Get the acceleration of points on the beam surface
+///
+/// \param x0 (input) :  location of surface points on the undeformed beam 
+/// \param as (output) : current acceleration of the beam boundary 
+/// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+///
+// ====================================================================================
+void BeamModel::
+getSurfaceAcceleration( const real t, const RealArray & x0,  const RealArray & as, 
+			const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+{
+  int i1,i2,i3;
+  FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  {
+    projectAcceleration(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),as(i1,i2,i3,0),as(i1,i2,i3,1) );
+  }
+}
+
+
+// ====================================================================================
+/// \brief Get the velocity of points on the beam surface
+///
+/// \param x0 (input) :  location of surface points on the undeformed beam 
+/// \param vs (output) : current velocity of the beam boundary 
+/// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+///
+// ====================================================================================
+void BeamModel::
+getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs, 
+		    const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+{
+  int i1,i2,i3;
+  FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  {
+    projectVelocity(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),vs(i1,i2,i3,0),vs(i1,i2,i3,1) );
+  }
+}
+
+
+// ====================================================================================
+/// \brief Get the 'internal force' on the beam surface (used by added mass algorithms)
+///
+/// \param x0 (input) :  location of surface points on the undeformed beam 
+/// \param fs (output) : current internal-force of the beam boundary 
+/// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+///
+// ====================================================================================
+void BeamModel::
+getSurfaceInternalForce( const real t, const RealArray & x0,  const RealArray & fs, 
+			const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+{
+  
+  int & current = dbase.get<int>("current"); 
+
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  RealArray & xc = u[current];
+  RealArray & vc = v[current];
+  RealArray & ac = a[current];
+  RealArray & fc = f[current];
+
+  if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+  {
+    printF("--BM-- BeamModel::getSurfaceInternalForce:ERROR: t=%10.3e != time(current)=%10.3e, current=%i\n",
+        t,time(current),current);
+    OV_ABORT("ERROR");
+  }
+
+  // Governing equation:
+  //      ms* v_t = L(u) + fe
+  //      ms=rho*h*b 
+  // The internal force is L(u), if fe=0 then L(u) = ms*v_t = ms*a 
+  // 
+  // FEM approximation:
+  //       ms Ms a = K u + Fe 
+  //  where M= ms*Ms is the mass matrix and Ms is the mass matrix without the factor of ms.
+  // 
+  // To solve for the internal force we set Fe=0 and solve
+  //
+  //     L(u) =  ms*a = Ms^{-1} Ku         
+  //  
+
+
+  // compute internal force at time t
+  if( true )
+  {
+    RealArray Me(4,4);  // Element mass matrix without the factor of ms=rhos*hs*bs
+
+    // le = L / numElem;
+
+    const real le2 = le*le;
+    const real le3 = le2*le;
+
+    Me(0,0) = Me(2,2) = 13./35.*le;
+    Me(0,1) = Me(1,0) = 11./210.*le2;
+    Me(0,2) = Me(2,0) = 9./70.*le;
+    Me(1,3) = Me(3,1) = -1./140.*le3;
+    Me(3,2) = Me(2,3) = -11./210.*le2;
+    Me(1,2) = Me(2,1) = 13./420.*le2;
+    Me(0,3) = Me(3,0) = -13./420.*le2;
+    Me(1,1) = Me(3,3) = 1./105.*le3;
+
+
+    RealArray internalForce(2*numElem+2), fe(2*numElem+2);
+    fe=0.;  // set external force to zero
+
+    bool & refactor = dbase.get<bool>("refactor"); 
+    refactor=true;          
+
+    const real alpha=0.;  // coeff of K in  (M+alpha*K)*a = RHS
+    const real dt=0.;
+    computeAcceleration( t, xc,vc,fe, Me, internalForce, centerOfMassAcceleration, angularAcceleration, dt, alpha );
+
+    refactor=true;          
+
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+    {
+      projectInternalForce( internalForce, t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),fs(i1,i2,i3,0),fs(i1,i2,i3,1) );
+    }
+
+    // ::display(ac,"--BM-- internalForce : ac -- acceleration","%8.2e ");
+    // ::display(internalForce,"--BM-- internalForce : internalForce ","%8.2e ");
+
+
+    // ::display(fs,"--BM-- internalForce from projectInternalForce","%8.2e ");
+    
+  }
+  
+  bool useExact=false;
+  if( useExact && initialConditionOption=="travelingWaveFSI" )
+  {
+    // -- compare to exact ---
+    TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+
+    // -- for testing set internal force to the true value
+    Range Rx=numberOfDimensions;
+    RealArray ue(Ib1,Ib2,Ib3 ,Rx),ve(Ib1,Ib2,Ib3 ,Rx),ae(Ib1,Ib2,Ib3 ,Rx);
+    travelingWaveFsi.getExactShellSolution( x0,ue,ve,ae, t, Ib1,Ib2,Ib3 );
+
+    RealArray uf(Ib1,Ib2,Ib3,numberOfDimensions+1); // hold fluid solution (p,v1,v2)
+    real t0=t;
+    travelingWaveFsi.getExactFluidSolution( uf, t0, x0, Ib1,Ib2,Ib3 );
+
+    // *TESTING* -- use exact: 
+    
+    real ms=density*thickness*breadth;
+    
+    fs(Ib1,Ib2,Ib3,Rx)=ms*ae(Ib1,Ib2,Ib3,Rx);
+    fs(Ib1,Ib2,Ib3,1) -= uf(Ib1,Ib2,Ib3,0);  // Lu = rhos*As*v_t - p 
+    
+    printF("--BM--getSurfaceInternalForce *TEST* set internal force to exact, t=%8.2e\n",t);
+
+    ::display(fs,"--BM-- internalForce from EXACT","%8.2e ");
+
+  }
+  
+
+  // int i1,i2,i3;
+  // FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  // {
+  //   projectAcceleration(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),as(i1,i2,i3,0),as(i1,i2,i3,1) );
+  // }
+
+  
+}
+
+
+
+// ==============================================================================================
 /// /brief Return the velocity of the point on the surface (not the neutral axis)
 /// of the beam of the point whose undeformed location is (x0,y0).
 /// x0:       undeformed location of the point on the surface of the beam (x)
@@ -1637,7 +2073,7 @@ projectAcceleration(const real& x0,
 /// /author WDH
 // ==============================================================================================
 void BeamModel::
-projectVelocity( const real& x0, const real& y0, real& vx, real& vy ) 
+projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& vy ) 
 {
 
   const int & current = dbase.get<int>("current"); 
@@ -1691,6 +2127,31 @@ projectVelocity( const real& x0, const real& y0, real& vx, real& vy )
     
   }
 
+  if( debug & 4  && initialConditionOption=="travelingWaveFSI" )
+  {
+    // -- compare to exact ---
+
+    TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
+
+    // -- for testing set acceleration to the true value
+    Index I1(0,1),I2(0,1),I3(0,1);
+    RealArray x(1,1,1,2), ue(1,1,1,2), ve(1,1,1,2), ae(1,1,1,2);
+    x(0,0,0,0)=x0;
+    x(0,0,0,1)=0.;
+    travelingWaveFsi.getExactShellSolution( x,ue,ve,ae, t, I1,I2,I3 );
+
+    if( debug & 4 )
+      printF(" -- BM -- projectVelocity: t=%8.2e, x0=%8.2e computed v=(%9.2e,%9.2e) exact=(%9.2e,%9.2e) err=(%9.2e,%9.2e)\n",
+	     t,x0,vx,vy,ve(0,0,0,0),ve(0,0,0,1),vx-ve(0,0,0,0),vy-ve(0,0,0,1));
+
+    if( false )
+    {
+      vx=ve(0,0,0,0);
+      vy=ve(0,0,0,1);
+    }
+    
+  }
+
 }
 
 
@@ -1720,8 +2181,33 @@ setDeclination(real dec)
   }
 }
 
-void BeamModel::projectPoint(const real& x0,const real& y0,
-			     int& elemNum, real& eta, real& thickness) {
+
+// =================================================================================
+/// /brief Return the element, thickness, and natural coordinate for
+/// a point (x0,y0) on the undeformed SURFACE of the beam
+/// 
+/// x0:        undeformed location of the point on the surface of the beam (x)
+/// y0:        undeformed location of the point on the surface of the beam (y)
+/// elemNum:   element corresponding to this point [out]
+/// eta:       natural coordinate corresponding to this point [out]
+/// halfThickness: half-thickness of the beam at this point (i.e. approximate
+///                normal distance from centerline to surface) [out]
+//
+// =================================================================================
+void BeamModel::
+projectPoint(const real& x0,const real& y0,
+	     int& elemNum, real& eta, real& halfThickness) 
+{
+
+  //                  x0
+
+  //   x--------------|--------------   beam surface
+  //   
+  //   +-----+-----+--|----+-----+
+  //   0     1     2       3   
+  // 
+  //               +--|----+
+  //              -1  eta  1
 
   real xll = x0-beamX0;
   real yll = y0-beamY0;
@@ -1740,19 +2226,20 @@ void BeamModel::projectPoint(const real& x0,const real& y0,
   else if (eta > 1.0)
     eta = 1.0;
 
-  if (elemNum >= numElem) {
+  if( elemNum >= numElem )
+  {
     elemNum = numElem-1;
     eta = 1.0;
   }
 
-  if (elemNum < 0) {
-
+  if( elemNum < 0 )
+  {
     elemNum = 0;
     eta = -1.0;
   }
      
  
-  thickness = yl;
+  halfThickness = yl;
 }
 
 // ================================================================================
@@ -1829,6 +2316,60 @@ interpolateThirdDerivative(const RealArray& X,
   
 }
 
+// =================================================================================================
+/// /brief Assign the force on the beam
+/// /param x0 (input) : array of (undeformed) locations on the beam surface
+/// /param traction (input) : traction on the deformed surface
+/// /param normal (input) : normal to the deformed surface
+/// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+// =================================================================================================
+void BeamModel::
+addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,  
+         const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+{
+  // Jb1, Jb2, Jb3 : for looping over cells instead of grid points -- decrease by 1 along active axis
+  Index Jb1=Ib1, Jb2=Ib2, Jb3=Ib3;
+  int axis=-1, is1=0, is2=0, is3=0;
+  if( Jb1.getLength()>1 )
+  { // grid points on boundary are along axis=0
+    axis=0; is1=1;
+    Jb1=Range(Jb1.getBase(),Jb1.getBound()-1); // decrease length by 1
+    assert( Jb2.getLength()==1 );
+  }
+  else
+  { // grid points on boundary are along axis=1
+    axis=1; is2=1;
+    Jb2=Range(Jb2.getBase(),Jb2.getBound()-1); // decrease length by 1
+    assert( Jb1.getLength()==1 );
+  }
+  assert( axis>=0 );
+  
+  
+  int i1,i2,i3;
+  FOR_3D(i1,i2,i3,Jb1,Jb2,Jb3)
+  {
+    int i1p=i1+is1, i2p=i2+is2, i3p=i3+is3;
+    
+    real p1 = (traction(i1,i2,i3,0)*normal(i1,i2,i3,0)+
+	       traction(i1,i2,i3,1)*normal(i1,i2,i3,1) );
+
+    real p2 = (traction(i1p,i2p,i3p,0)*normal(i1p,i2p,i3p,0)+
+	       traction(i1p,i2p,i3p,1)*normal(i1p,i2p,i3p,1) );
+
+
+    addForce(tf,
+	     x0(i1,i2,i3,0), 
+	     x0(i1,i2,i3,1), p1,
+	     normal(i1,i2,i3,0), normal(i1,i2,i3,1),
+	     x0(i1p,i2p,i3p,0), 
+	     x0(i1p,i2p,i3p,1), p2,
+	     normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1));
+  }
+  
+}
+
+
+
 // ======================================================================================
 // Accumulate a pressure force to the beam from the fluid element whose 
 // undeformed location is X1 = (x0_1, y0_1), X2 = (x0_2, y0_2).
@@ -1861,7 +2402,12 @@ addForce( const real & tf,
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
 
   RealArray & fc = f[current];  // force at current time
-  assert( fabs(time(current)-tf) < 1.e-10*tf );
+  if( fabs(time(current)-tf) > 1.e-10*(1.+tf) )
+  {
+    printF("--BM-- BeamModel::addForce:ERROR: tf=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+        tf,time(current),current);
+    OV_ABORT("ERROR");
+  }
 
   int elem1,elem2;
   real eta1,eta2,t1,t2;
@@ -1972,7 +2518,7 @@ resetForce()
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
   RealArray & fc = f[current];
 
-  printF("-- BM -- resetForce current=%i \n",current);
+  // printF("-- BM -- resetForce current=%i \n",current);
   
 
   fc=0.;
@@ -2106,6 +2652,14 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 
   if( !allowsFreeMotion )
   {
+    RealArray ue,ve,ae;
+    bool assignExact=false;
+    if( bcLeft!=periodic && initialConditionOption=="travelingWaveFSI" )
+    {
+      assignExact=true;
+      getTravelingWaveFSI( t, ue, ve, ae  );  // this is inefficient
+    }
+
     for( int side=0; side<=1; side++ )
     {
       BoundaryCondition bc = side==0 ? bcLeft : bcRight;
@@ -2114,20 +2668,32 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
       // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
       if( bc==clamped && EI==0. ) bc=pinned;
 
+      real u0=0.,  v0=0.,  a0=0.;
+      real ux0=0., vx0=0., ax0=0.;
+      if( assignExact )
+      {
+	u0=ue(ia); ux0=ue(ia+1);
+	v0=ve(ia); vx0=ve(ia+1);
+	a0=ae(ia); ax0=ae(ia+1);
+      }
+	
       if( bc == clamped || bc==pinned ) 
       {
-	// Set u=0
-	u(ia) = 0.0;
-	v(ia) = 0.0;
-	a(ia) = 0.0;
+	// Set u=g
+	u(ia) = u0;
+	v(ia) = v0;
+	a(ia) = a0;
       }
       if( bc==clamped )
       {
-	// Set u_x=0
-	u(ia+1) = 0.0;
-	v(ia+1) = 0.0;
-	a(ia+1) = 0.0;
+	// Set u_x=h
+	u(ia+1) = ux0;
+	v(ia+1) = vx0;
+	a(ia+1) = ax0;
       }
+
+
+
     }
   }
 
@@ -2173,10 +2739,10 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 int BeamModel::
 addInternalForces( const real t, RealArray & f )
 {
-  if( true )
-  { 
-    f=0.; // ******************************************************* TEST 
-  }
+  // if( false )
+  // { 
+  //   f=0.; // ******************************************************* TEST 
+  // }
 
   const real beamLength=L;
 
@@ -2204,7 +2770,7 @@ addInternalForces( const real t, RealArray & f )
     // Evaluate the exact fluid solution on the interface
     travelingWaveFsi.getExactFluidSolution( ufe, t, x, I1,I2,I3 );
 
-    ::display(ufe(I1,0,0,0),sPrintF(" Exact fluid pressure at t=%8.2e",t),"%8.2e ");
+    // ::display(ufe(I1,0,0,0),sPrintF(" Exact fluid pressure at t=%8.2e",t),"%8.2e ");
 
     RealArray lt(4); // local traction
     const int pc=0;
@@ -2251,11 +2817,16 @@ addInternalForces( const real t, RealArray & f )
     // exact.gd( vxe,x,domainDimension,isRectangular,1,1,0,0,I1,I2,I3,wc,t );
     // exact.gd( axe,x,domainDimension,isRectangular,2,1,0,0,I1,I2,I3,wc,t );
 
-    printF("-- BM -- addInternalForce: t=%9.3e max(fabs(f))=%8.2e, |utte|=%8.2e |u_xxxxe|=%8.2e\n",
-	   t,max(fabs(f)),max(fabs(utte)),max(fabs(uxxxxe)));
+    // printF("-- BM -- addInternalForce: t=%9.3e max(fabs(f))=%8.2e, |utte|=%8.2e |u_xxxxe|=%8.2e\n",
+    //        t,max(fabs(f)),max(fabs(utte)),max(fabs(uxxxxe)));
 
     RealArray ftz(I1,I2,I3,1); 
     ftz = (density*thickness)*utte - (T)*uxxe + (EI)*uxxxxe;
+
+    // ::display(utte,"utte","%8.2e ");
+    // ::display(uxxe,"uxxe","%8.2e ");
+    // ::display(ftz,"ftz","%8.2e ");
+    
     RealArray lt(4); // local traction
     for ( int i = 0; i<numElem; i++ )
     {
@@ -2310,6 +2881,7 @@ predictor(real tnp1, real dt )
   const bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor");
   const bool & twilightZone = dbase.get<bool>("twilightZone");
   bool & refactor = dbase.get<bool>("refactor");
+  const bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor");
   
   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
   int & current = dbase.get<int>("current"); 
@@ -2338,13 +2910,18 @@ predictor(real tnp1, real dt )
   t += dt;  // new time 
   time(current)=t;
 
-  assert( fabs(time(current)-tnp1) < dt*1.e-6 );
+  if( fabs(time(current)-tnp1) > 1.e-10*(1.+tnp1) )
+  {
+    printF("--BM-- BeamModel::predictor:ERROR: tnp1=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+        tnp1,time(current),current);
+    OV_ABORT("ERROR");
+  }
 
   real & dtOld = dbase.get<real>("dt"); 
   if( fabs(dt-dtOld) > REAL_EPSILON*10.*dt )
   {
     refactor=true;
-    printF("-- BM -- predictor: dt has changed, dt=%9.3e, dtOld=%9.e3, will refactor.\n",dt,dtOld);
+    printF("-- BM -- predictor: dt has changed, dt=%9.3e, dtOld=%9.3e, will refactor.\n",dt,dtOld);
   }
   dtOld=dt;
 
@@ -2369,7 +2946,7 @@ predictor(real tnp1, real dt )
   //   f2(idx) += lt;
   // }
 
-  if( debug & 1 )
+  if( debug & 4 )
   {
     ::display(f2(Range(0,2*numElem  ,2)),"BeamModel::predictor: RHS force f2(0:2:)","%8.2e ");
     ::display(f2(Range(1,2*numElem+1,2)),"BeamModel::predictor: RHS force f2(1:2:)","%8.2e ");
@@ -2379,10 +2956,10 @@ predictor(real tnp1, real dt )
   if( !hasAcceleration ) 
   {
     // On the very first time-step we may not know the acceleration at t=0.
-
+    refactor=true;          
 
     // compute acceleration at time tn=t-dt 
-    const real alpha=0.;  // coeff of K 
+    const real alpha=0.;  // coeff of K in  (M+alpha*K)*a = RHS
     computeAcceleration(t-dt, x2,v2,f2, elementM, a2,
 			centerOfMassAcceleration, angularAcceleration,
 			dt, alpha );
@@ -2390,9 +2967,8 @@ predictor(real tnp1, real dt )
     hasAcceleration = true;
   }
 
-  RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
 
-  if( debug & 1 )
+  if( debug & 4 )
   {
     int nn=numElem+1;
     v2.reshape(2,nn); x2.reshape(2,nn); a2.reshape(2,nn); f2.reshape(2,nn);
@@ -2404,21 +2980,77 @@ predictor(real tnp1, real dt )
   }
   
   //  -- first order predictor --
-  dtilde = x2+dt*v2+dt*dt*0.5*(1.0-2.0*newmarkBeta)*a2;
-  vtilde = v2+dt*(1.0-newmarkGamma)*a2;
+  dtilde = x2 + dt*v2 + (dt*dt*0.5*(1.0-2.0*newmarkBeta))*a2;
+  vtilde = v2 + dt*(1.0-newmarkGamma)*a2;
 
   // -- here are the predicted u and v: 
   if( useSecondOrderNewmarkPredictor )
   {
-    x3 = x2 + dt*v2+ (.5*dt*dt)*a2;
-    v3 = v2 + dt*a2;
+    if( useImplicitPredictor )
+    {
+      // -- The implicit predictor makes a guess for the forcing at time tnp1 = t+dt  ---
+
+      if( debug & 2 )
+	printF("--BM-- use implicit predictor tnp1=%8.2e\n",tnp1);
+
+      RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
+
+      real linaccel[2],omegadd;
+      // compute acceleration at time t^{n+1}
+      const real alpha=newmarkBeta*dt*dt;  // coeff of K in A
+
+      if( false ) // apply BC's to first-order predictor 
+        assignBoundaryConditions( tnp1, dtilde,vtilde,a3 );
+
+      if( t>= .5*dt )
+      {
+        RealArray & f1 = f[prev2];
+        f3=2.*f2-f1;            // extrapolate in time ** FIX ME for variable dt **
+      }
+      else
+      {
+        f3=f2; 
+      }
+      
+      computeAcceleration(tnp1, dtilde,vtilde,f3, A, a3,  linaccel,omegadd,dt, alpha, newmarkBeta, newmarkGamma);
+
+      v3 = vtilde + (newmarkGamma*dt)*a3;
+      x3 = dtilde + (newmarkBeta*dt*dt)*a3;
+
+      if( false )
+      { // --- debug output ---
+        RealArray xpe, vpe;
+	xpe = x2 + dt*v2+ (.5*dt*dt)*a2;
+	vpe = v2 + dt*a2;
+	printF("--BM-- t=%8.2e: predicted: |vpi-vpe|=%8.2e, |xpi-xpe|=%8.2e |a2-a3|=%8.2e\n",
+	       t,max(fabs(v3-vpe)), max(fabs(x3-xpe)), max(fabs(a3-a2)));
+      
+        getErrors( tnp1, xpe,vpe,a3,sPrintF("-- BM : xpe,vp,a3, after predict t=%9.3e",tnp1));
+        getErrors( tnp1, x3,v3,a3,sPrintF("-- BM : x3,v3,a3, after predict t=%9.3e",tnp1));
+	// ::display(f3,"f3","%8.2e ");
+	// ::display(a3,"a3","%8.2e ");
+	// ::display(f2,"f2","%8.2e ");
+	// ::display(a2,"a2","%8.2e ");
+
+	::display(vpe,"vpe","%8.2e ");
+	::display(v3,"v3","%8.2e ");
+      }
+      
+    }
+    else
+    {
+      x3 = x2 + dt*v2+ (.5*dt*dt)*a2;
+      v3 = v2 + dt*a2;
+      a3 = a2;     // predicted acceleration
+    }
+    
   }
   else
   { //  -- use first order predictor
     x3 = dtilde;
     v3 = vtilde;
+    a3 = a2;     // predicted acceleration
   }
-  a3 = a2;     // predicted acceleration
   
   // *wdh* aold = 0.0;
   aold = a2;   // set aold to previous acceleration *wdh* 2014/06/19 
@@ -2477,7 +3109,7 @@ predictor(real tnp1, real dt )
   //printArray(x2,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 
   
-  if( debug & 1 )
+  if( debug & 2 )
   {
     aString buff;
     getErrors( tnp1, x3,v3,a3,sPrintF(buff,"-- BM : after %s predict t=%9.3e",
@@ -2581,9 +3213,12 @@ corrector(real tnp1, real dt )
 
   RealArray & f3 = f[current];  // force at new time
 
-
-  assert( fabs(time(current)-tnp1) < dt*1.e-6 );
-
+  if( fabs(time(current)-tnp1) > 1.e-10*(1.+tnp1) )
+  {
+    printF("--BM-- BeamModel::corrector:ERROR: tnp1=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+        tnp1,time(current),current);
+    OV_ABORT("ERROR");
+  }
 
   RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
     
@@ -2719,7 +3354,7 @@ corrector(real tnp1, real dt )
 
   assignBoundaryConditions( t,x3,v3,a3 );
   
-  if( debug & 1 )
+  if( debug & 2 )
   {
     aString buff;
     getErrors( tnp1, x3,v3,a3,sPrintF(buff,"-- BM : after correct t=%9.3e",tnp1));
@@ -2795,7 +3430,8 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
 
     real verr = fabs( v(i*2) - ve(i*2) );
 
-    printF("-- BM -- t=%8.2e i=%3i u=%9.2e ue=%9.2e err=%9.2e, v=%9.2e ve=%9.2e err=%8.2e\n",t,i,u(2*i),we,err, v(2*i),ve(2*i),verr);
+    if( debug & 2 )
+      printF("-- BM -- t=%8.2e i=%3i u=%9.2e ue=%9.2e err=%9.2e, v=%9.2e ve=%9.2e err=%8.2e\n",t,i,u(2*i),we,err, v(2*i),ve(2*i),verr);
       
     errMax=max(errMax,err);
     l2Err += SQR(err);
@@ -2805,7 +3441,7 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
   l2Err=sqrt(l2Err/(numElem+1));
   yNorm=sqrt(yNorm/(numElem+1));
 
-  printF("-- BM -- Suumary: Error t=%9.3e : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,errMax,l2Err,l2Err/max(1.e-12,yNorm));
+  printF("-- BM -- Summary: Error t=%9.3e : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,errMax,l2Err,l2Err/max(1.e-12,yNorm));
 
   return 0;
 }
@@ -2838,7 +3474,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
   real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
   real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
-
+  bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor");
 
   bool buildDialog=true;
   if( buildDialog )
@@ -2855,7 +3491,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
 
     dialog.setOptionMenuColumns(1);
-    aString bcOptions[] = { "cantilever",
+    aString bcOptions[] = { "clamped",
 			    "pinned",
 			    "free",
                             "periodic",
@@ -2890,6 +3526,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
                             "twilight-zone",
                             "use second order Newmark predictor",
                             "use new tridiagonal solver",
+                            "use implicit predictor",
     			    ""};
     int tbState[10];
     tbState[0] = useExactSolution;
@@ -2898,6 +3535,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     tbState[3] = twilightZone;
     tbState[4] = useSecondOrderNewmarkPredictor;
     tbState[5] = useNewTridiagonalSolver;
+    tbState[6] = useImplicitPredictor;
     
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -2997,7 +3635,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     } 
     else if( (len=answer.matches("position:")) )
     {
-      sScanF(answer(len,answer.length()-1),"%e %en %e",&beamX0,&beamY0,&beamZ0);
+      sScanF(answer(len,answer.length()-1),"%e %e %e",&beamX0,&beamY0,&beamZ0);
       printF("INFO: Setting the position of the left end of the beam to (%e,%e,%e)\n",beamX0,beamY0,beamZ0);
       dialog.setTextLabel("position:",sPrintF(buff,"%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0));
     }
@@ -3021,6 +3659,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       BoundaryCondition & bcValue = side==0 ? bcLeft : bcRight;
       
       bcValue= (bcOption=="clamped"  ? clamped :
+                bcOption=="cantilever"  ? clamped : // for backward compatibility
                 bcOption=="pinned"   ? pinned :
                 bcOption=="free"     ? freeBC : 
                 bcOption=="periodic" ? periodic : unknownBC );
@@ -3056,6 +3695,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       printF("BeamModel: tip position info will be saved to file 'tip.txt'\n");
     }
     else if( dialog.getToggleValue(answer,"twilight-zone",twilightZone) ){}//
+    else if( dialog.getToggleValue(answer,"use implicit predictor",useImplicitPredictor) ){}//
+
     else if( len=answer.matches("Twilight-zone: ") )
     {
       aString name=answer(len,answer.length()-1);
@@ -3080,7 +3721,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       aString option = answer(len,answer.length()-1);
       if( option=="none" )
 	exactSolutionOption="none";
-      else if( option=="standing Wave" )
+      else if( option=="standing wave" )
         exactSolutionOption="standingWave";
       else if( option=="traveling wave FSI" )
         exactSolutionOption="travelingWaveFSI";
@@ -3222,6 +3863,11 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   gi.popGUI();
   gi.unAppendTheDefaultPrompt();
 
+  if( true )
+  {
+    writeParameterSummary();
+  }
+  
   //  pBeamModel->setParameters(I, Em, rho, L, thick, pnorm, nelem, bcl, bcr,x0,y0,(exact==1));
 
 

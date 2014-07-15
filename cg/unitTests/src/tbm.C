@@ -232,16 +232,17 @@ getErrors( real t )
   real errMax=0., l2Err=0., yNorm=0.;
 
   RealArray xc;
+  int numNodes=0;
   if( beamModelType==linearBeamModel )
   {
     beam.getCenterLine(xc);
 
     int nElem=beam.getNumberOfElements();
+    numNodes=nElem+1;
 
     RealArray ue(2*nElem+2), ve(2*nElem+2), ae;
 
 
-    // beam.getStandingWave( t, ue, ve, ae );
     beam.getExactSolution( t, ue, ve, ae );
 
     // ::display(xc,"getErrors: beam center line","%8.2e ");
@@ -254,7 +255,8 @@ getErrors( real t )
 
       real err = fabs( xc(i,1)- we );
 
-      printF("t=%9.3e i=%3i x=%9.3e w=%9.3e we=%9.3e err=%9.2e\n",t,i,xl,xc(i,1),we,err);
+      if( beam.debug & 2 )
+	printF("t=%9.3e i=%3i x=%9.3e w=%9.3e we=%9.3e err=%9.2e\n",t,i,xl,xc(i,1),we,err);
       
       errMax=max(errMax,err);
       l2Err += SQR(err);
@@ -268,13 +270,13 @@ getErrors( real t )
   {
     nlBeam.getCenterLine(xc);
 
-    int numNodes=nlBeam.getNumberOfNodes();
+    numNodes=nlBeam.getNumberOfNodes();
 
     RealArray xe(numNodes*2),ve(numNodes*2),ae(numNodes*2);
     
     nlBeam.setExactSolution(t,xe,ve,ae );
 
-    printF("*** numNodes=%i\n",numNodes);
+    // printF("*** numNodes=%i\n",numNodes);
     // display(xc,sPrintF("xc at t=%9.3e",t),"%6.3f ");
     // display(xe,sPrintF("xe at t=%9.3e",t),"%6.3f ");
     
@@ -298,7 +300,7 @@ getErrors( real t )
     OV_ABORT("ERROR: unknown beam model");
   }
 
-  printF("Error t=%9.3e, dt=%8.2e, numSteps=%i : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,dt,globalStepNumber,errMax,l2Err,l2Err/max(1.e-12,yNorm));
+  printF("Error Ne=%i, t=%9.3e, dt=%8.2e, numSteps=%i : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",numNodes-1,t,dt,globalStepNumber,errMax,l2Err,l2Err/max(1.e-12,yNorm));
 
   const int numberOfComponentsToOutput=1;
   fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
@@ -513,9 +515,11 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
     if( beamModelType==linearBeamModel )
     {
+      beam.resetForce();
       addForcing( t );
       beam.predictor(t+dt, dt );
 
+      beam.resetForce();
       addForcing( t+dt );
       beam.corrector(t+dt, dt );
     }

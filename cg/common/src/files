@@ -1,4 +1,4 @@
-SRC_FILES += Controller.C userDefinedMaterialProperties.C
+SRC_FILES += getPastTimeSolutions.C regenerateOverlappingGrid.C Controller.C userDefinedMaterialProperties.C 
 SRC_FILES += GridMaterialProperties.C bodyForcing.C defineVariableBoundaryValues.C FluidPiston.C 
 SRC_FILES += boundaryConditionPredictor.C Parameters.C readFromAShowFile.C ProbeInfo.C Moving.C getBounds.C LineSolve.C
 SRC_FILES += ProjectVelocity.C ogf.C boundaryDistance.C SurfaceEquation.C initialConditionsFromAProfile.C 
@@ -24,7 +24,7 @@ SRC_FILES += advanceEuler.C advancePC.C advance.C applyBoundaryConditions.C \
              advanceNewton.C timeStep.C steadyState.C Interface.C interfaceBoundaryConditions.C \
              InterfaceTransfer.C AdvanceOptions.C
 
-SRC_FILES += DomainSolver.C AdamsPCData.C BoundaryData.C GridFunction.C 
+SRC_FILES += DomainSolver.C AdamsPCData.C GridFunction.C 
 
 SRC_FILES += readOrBuildTheGrid.C ogenFunction.C GridFunctionFilter.C
 

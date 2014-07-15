@@ -762,11 +762,28 @@ applyBoundaryConditionsForImplicitTimeStepping(GridFunction & cgf )
 //\end{CompositeGridSolverInclude.tex}  
 // ==========================================================================================
 {
-  int grid;
-
-  for( grid=0; grid<cgf.cg.numberOfComponentGrids(); grid++ )
+  for( int grid=0; grid<cgf.cg.numberOfComponentGrids(); grid++ )
   {
-    // clean this up 
+    if( true )
+    {
+      // ---- Revaluate any time-dependent boundary conditions ----
+      // *wdh* 2014/06/26 
+
+      // determine time dependent conditions:
+      getTimeDependentBoundaryConditions( cgf.cg[grid],cgf.t,grid ); 
+
+      // Variable boundary values:
+      setVariableBoundaryValues( cgf.t,cgf,grid );
+
+      if( parameters.thereAreTimeDependentUserBoundaryConditions(nullIndex,nullIndex,grid)>0 )
+      {
+	// there are user defined boundary conditions
+	userDefinedBoundaryValues( cgf.t,cgf,grid);
+      }
+    }
+    
+
+
     if( parameters.getGridIsImplicit(grid) )
     {
       applyBoundaryConditionsForImplicitTimeStepping(cgf.u[grid],

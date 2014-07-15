@@ -1,5 +1,5 @@
 #
-# cgmp: incompressible flow through a defomring channel
+# cgmp: incompressible flow through a deforming channel
 # 
 # Usage:
 #    cgmp [-noplot] elasticCyl -g=<name> -method=[ins|cns] -nu=<> -mu=<> -kappa=<num> -tf=<tFinal> -tp=<tPlot> ...

@@ -4,8 +4,8 @@
 #endif
 #include <string.h>
 #include "mogl.h"
-#include <GL/gl.h>
-#include <GL/glu.h>
+// #include <GL/gl.h>
+// #include <GL/glu.h>
 #include "xColours.h"
 
 #ifdef NO_APP

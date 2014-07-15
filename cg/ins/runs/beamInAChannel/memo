@@ -1,3 +1,92 @@
+************ July 9, 2014  
+
+*** ADDED implicit predictor in BEAM -- HELPS!
+
+DELTA=5:  TROUBLE WITH ampProjectVelocity=1 --> lower CFL!
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=5. -addedMass=1 -ampProjectVelocity=1 -go=halt -nu=.05 -cfl=.25
+
+
+OK:
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=5. -addedMass=1 -ampProjectVelocity=0 -go=halt -nu=.05 
+
+
+
+DELTA=10.
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=1 -go=halt -nu=.05
+
+AM=1: OK 
+AM=0: FAILS
+
+
+
+
+CFL=.1 nu=.05 -- better to t=.4 BUT we may need to project the solid velocity 
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=0 -go=halt -nu=.05 -cfl=.1
+
+
+*** July 7, 2014 
+
+
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=100. -addedMass=0 -go=haltx
+
+
+
+MOVIE:
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=10. -tp=.025 -show="multiBeam16m.show" -outflowOption=neumann -nu=5.e-4 -go=go > multiBeam16m.out &
+
+
+
+
+RUNS/BEAM: TEST added -mass - single beam
+
+AMP + LIGHTER: better but velocity develops wiggles near surface
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=1 -go=halt
+
+
+LIGHTER: TROUBLE: after 50 steps:
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=10. -addedMass=0 -go=halt
+
+OK
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.01 -delta=100. -addedMass=0 -go=halt
+
+
+
+
+
+FINER MULTI_BEAM
+nohup $cginsx -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride32.order2.hdf -tf=20. -tp=.02 -show="multiBeam32.show" -outflowOption=neumann -nu=1.e-4 -go=go > multiBeam32.out &
+
+
+
+*** July 3, 2014 -- revisit beam with latest version of BeamModel class
+
+Broken.... fixed ...
+
+
+OK: 
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride16.order2.hdf -tf=10. -tp=.1 -show="multiBeam16.show" -outflowOption=neumann -nu=5.e-4 -go=go > multiBeam16.out &
+
+
+-- WIDEN space between beams
+
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.1 -show="multiBeam8.show" -outflowOption=neumann -go=go > multiBeam8.out &
+
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show="multiBeam4.show" -outflowOption=neumann -go=go > multiBeam4.out &
+
+
+----
+cgins -noplot multiBeamsInAChannel -g=multiBeamsInAChannelGride8.order2.hdf -tf=10. -tp=.1 -show="multiBeam8.show" -outflowOption=neumann -go=go > multiBeam8.out &
+
+cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=.1 -outflowOption=neumann -go=halt
+
+OK: 
+cgins beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=10. -tp=.05 -debug=1
+
+Broken... OK: 
+cgins beamInAChannel -g=beamInAChannelGride1.order2.hdf -tf=10. -tp=.001 -debug=3
+
+
+
 ** 2014/06/07 -- nonlinear beam
 
 
@@ -15,6 +104,7 @@ cgins multiBeamsInAChannel -g=multiBeamsInAChannelGride4.order2.hdf -tf=10. -tp=
 
     ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=2
     ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=4
+    ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=8
 
 
 

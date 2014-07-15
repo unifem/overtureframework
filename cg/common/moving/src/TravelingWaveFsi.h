@@ -46,13 +46,13 @@ int
 computeErrors( real t );
 
 int 
-getExactFluidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 );
+getExactFluidSolution( RealArray & u, const real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, const int numberOfTimeDerivatives=0 );
 
 int 
-getExactFluidSolution( RealArray & u, real t, RealArray & xLocal, const Index & I1, const Index & I2, const Index & I3 );
+getExactFluidSolution( RealArray & u, const real t, const RealArray & xLocal, const Index & I1, const Index & I2, const Index & I3, const int numberOfTimeDerivatives=0 );
 
 int 
-getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3 );
+getExactSolidSolution( RealArray & u, real t, MappedGrid & mg, const Index & I1, const Index & I2, const Index & I3, int numberOfTimeDerivatives=0 );
 
 int 
 getExactShellSolution( const RealArray & x, RealArray & ue, RealArray & ve, RealArray & ae, real t, 

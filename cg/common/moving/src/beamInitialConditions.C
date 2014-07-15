@@ -195,7 +195,9 @@ int BeamModel::
 assignInitialConditions( real t, RealArray & u, RealArray & v, RealArray & a )
 {
 
-  printF("BeamModel::assignInitialConditions for %s, t=%9.3e\n",(const char*)initialConditionOption,t);
+  if( debug & 1 )
+    printF("BeamModel::assignInitialConditions for %s, t=%9.3e\n",(const char*)initialConditionOption,t);
+
   real beamLength=L;
   
   if( u.getLength(0)==0 )
@@ -206,7 +208,7 @@ assignInitialConditions( real t, RealArray & u, RealArray & v, RealArray & a )
     a.redim(2*numElem+2);
   
 
-  if( initialConditionOption=="zeroInitialConditions" )
+  if( initialConditionOption=="zeroInitialConditions" || initialConditionOption=="none" )
   {
     u=0.;
     v=0.;
@@ -353,7 +355,7 @@ chooseInitialConditions(CompositeGrid & cg, GenericGraphicsInterface & gi )
     }
     else if( answer=="zero initial conditions" )
     {
-      initialConditionOption="zero";
+      initialConditionOption="zeroInitialConditions";
       printF("Setting initialConditionOption=[%s]\n",(const char*)initialConditionOption);
     }
     else if( answer=="twilight zone initial conditions" )

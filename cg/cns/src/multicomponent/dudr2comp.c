@@ -17,6 +17,10 @@
 #include <math.h>
 #include "macros.h"
 
+#include "OvertureDefine.h"
+#define second EXTERN_C_NAME(second)
+// #define second second_
+
 void twilightSource(void *exactP, double *rp, 
 		    void *mgP, double x, double y,
 		    double t, double h[5]);
@@ -150,7 +154,7 @@ int dudr2comp (double *u,
    */
   for (i = 1; i < n1-1; i++)
     {
-      second_(&t0);
+      second(&t0);
       j = 1;
       /* first row of ghost cells */
       for (k = 0; k < 5; k++)
@@ -234,11 +238,11 @@ int dudr2comp (double *u,
 	    cr, cs, a1, b1, a2, b2, J, order, slopeCorr, 
 	    dt, rp, twilightZone, h,
 	    move, gu, gv, acm);
-      second_(&t1);
+      second(&t1);
       tslope += t1-t0;
 
       /* Find first row of fluxes */
-      second_(&t0);
+      second(&t0);
       j = 2;
       if (move == 0)
 	{
@@ -273,7 +277,7 @@ int dudr2comp (double *u,
 	  printf ("Method not known ... aborting\n");
 	  exit (0);
 	}
-      second_(&t1);
+      second(&t1);
       tflux += t1-t0;
 
       /* set the divergence of the first line of ghost cells */
@@ -309,7 +313,7 @@ int dudr2comp (double *u,
       /* get the "plus" row of slope corrections */
       for (i = 1; i < n1-1; i++)
 	{
-	  second_(&t0);
+	  second(&t0);
 	  for (k = 0; k < 5; k++)
 	    {
 	      u0[k] = u[ind3(i,j+1,k,n1,n2,5)];
@@ -348,7 +352,7 @@ int dudr2comp (double *u,
 		&upn[5*i], &ups[5*i], &upe[5*i], &upw[5*i], 
 		cr, cs, a1, b1, a2, b2, J, order, slopeCorr, 
 		dt, rp, twilightZone, h, move, gu, gv, acm);
-	  second_(&t1);
+	  second(&t1);
 	  tslope += t1-t0;
 
 	  /* calculate divergence of the next row up */ 
@@ -364,7 +368,7 @@ int dudr2comp (double *u,
 	  max_vis = max(max_vis, -divp[i]);
 	}
       /* get the westmost flux */
-      second_(&t0);
+      second(&t0);
       if (move == 0)
 	{
 	  J4 = (det[ind2(2,j,n1,n2)]+det[ind2(1,j,n1,n2)])/2.0;
@@ -398,13 +402,13 @@ int dudr2comp (double *u,
 	  printf ("Method not known ... aborting\n");
 	  exit (0);
 	}
-      second_(&t1);
+      second(&t1);
       tflux += t1-t0;
       
       /* now loop over columns to get fluxes and update grid */
       for (i = 2; i < n1-2; i++)
 	{
-	  second_(&t0);
+	  second(&t0);
 	  if (move == 0)
 	    {
 	      /* get east flux */
@@ -458,7 +462,7 @@ int dudr2comp (double *u,
 	      printf ("Method not known ... aborting\n");
 	      exit (0);
 	    }
-	  second_(&t1);
+	  second(&t1);
 	  tflux += t1-t0;
 
 	  for (k = 0; k < 5; k++)
@@ -569,7 +573,7 @@ int dudr2comp (double *u,
 	  /* add pressure fix onto solution */
 	  if (fix == 1)
 	    {
-	      second_(&t0);
+	      second(&t0);
 	      for (k = 0; k < 5; k++)
 		{
 		  u0[k] = u[ind3(i,j,k,n1,n2,5)];
@@ -634,7 +638,7 @@ int dudr2comp (double *u,
 	      Yt = u[ind3(i,j,4,n1,n2,5)]+dt*du[ind3(i,j,4,n1,n2,5)];
 	      du[ind3(i,j,3,n1,n2,5)] += dp/(dt*(gamma(Yt/rhot)-1.0));
 
-	      second_(&t1);
+	      second(&t1);
 	      tsource += t1-t0;
 	    }
 	  J4 = J3;

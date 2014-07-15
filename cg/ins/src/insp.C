@@ -8,6 +8,9 @@
 #include "ParallelUtility.h"
 #include "SparseRep.h"
 
+#include "DeformingBodyMotion.h"
+#include "BeamModel.h"
+
 #include <float.h>
 
 #include "turbulenceParameters.h"
@@ -46,6 +49,9 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
   int & updateTimeIndependentVariables = parameters.dbase.get<int>("updateTimeIndependentVariables");
   updateTimeIndependentVariables=false;
   
+  // *new* 2014/06/30 
+  const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+
 
   CompositeGridOperators & cgop = *cgf.u.getOperators();
   
@@ -102,6 +108,57 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
       pde = equationDomain.getPDE();
     }
 
+    real beamMassPerUnitLength[2][3]={-1.,-1.,-1.,-1.,-1.,-1.};  // For beam models
+    if( useAddedMassAlgorithm && parameters.gridIsMoving(grid) )
+    {
+      printF("Cgins::updatePressureEquation: USE ADDED MASS ALGORITHM\n");
+
+      BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
+      std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
+      BoundaryData & bd = boundaryDataArray[grid];
+      
+      // -- extract parameters from any deforming solids ---
+
+      MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
+      
+      if( bd.dbase.has_key("deformingBodyNumber") )
+      {
+	int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
+        for( int side=0; side<=1; side++ )
+	{
+	  for( int axis=0; axis<cg0.numberOfDimensions(); axis++ )
+	  {
+	    if( deformingBodyNumber[side][axis]>=0 )
+	    {
+              int body=deformingBodyNumber[side][axis];
+	      printF("--UPE-- grid=%i, (side,axis)=(%i,%i) belongs to deforming body %i\n",grid,side,axis,body);
+
+	      DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
+	      if( deform.isBeamModel() )
+	      {
+                 
+		BeamModel & beamModel = deform.getBeamModel();
+
+		real rhosHs=-1.;
+		beamModel.getMassPerUnitLength( beamMassPerUnitLength[side][axis] );
+		printF("--UPE-- BeamModel: beamMassPerUnitLength = %8.2e\n",beamMassPerUnitLength[side][axis]);
+
+	      }
+	      
+
+	    }
+	  }
+	}
+	
+
+      } // end if bd.dbase.has_key("deformingBodyNumber") )
+      
+      
+      // *** FINISH ME ***
+
+    }  // end if useAddedMassAlgorithm
+    
+
     ForBoundary( side,axis )
     {
       boundaryConditions(side,axis,grid)=OgesParameters::neumann;  // default
@@ -121,6 +178,26 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
       case Parameters::penaltyBoundaryCondition:
       case Parameters::noSlipWall:
       case Parameters::slipWall:
+      {
+	if( useAddedMassAlgorithm && beamMassPerUnitLength[side][axis]>=0. )
+	{
+	  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
+	  assert( fluidDensity>0. );
+	  
+	  printF("--UPE-- grid=%i (side,axis)=(%i,%i) Apply added mass pressure BC, t=%8.2e\n",grid,side,axis,cgf.t);
+	  printF("--UPE-- Boundary is a beam, beamMassPerUnitLength = %8.2e. fluidDensity=%8.2e\n",beamMassPerUnitLength[side][axis],fluidDensity);
+
+	    
+	  boundaryConditions(side,axis,grid)=OgesParameters::mixed;  
+	  mixedNormalCoeff(pc,side,axis,grid)=beamMassPerUnitLength[side][axis]/fluidDensity;
+	  mixedCoeff(pc,side,axis,grid)=1.;
+
+	  boundaryConditionData(0,side,axis,grid)=mixedCoeff(pc,side,axis,grid);
+	  boundaryConditionData(1,side,axis,grid)=mixedNormalCoeff(pc,side,axis,grid);
+	  singularPressureEquation=false;
+	}
+
+        // *** Is this next option used??
         if( (parameters.gridIsMoving(grid) && (bool)parameters.dbase.get<int>("movingBodyPressureBC")) ||
              parameters.dbase.get<int>("movingBodyPressureBC")==2 )
 	{
@@ -143,6 +220,8 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	  }
 	}
         break;
+      }
+      
       case InsParameters::inflowWithVelocityGiven:
       case Parameters::symmetry:
       case Parameters::interfaceBoundaryCondition:

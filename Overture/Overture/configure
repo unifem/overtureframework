@@ -13,7 +13,8 @@ $machine  = $ARGV[0];
 $buildOgmg = "true";  # this is now always built
 $buildRapsodi = "";
 $useX11 = 1;  #   set to 0 to build without X11 graphics (for machines without X11 libraries)
-
+$usePerl =1 ; #   set to 0 to build without perl.
+$useGL =1 ;   #   set to 0 to build without OpenGL
 
 if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
 {
@@ -46,7 +47,9 @@ if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
   printf("   parallel: compile the parallel version using P++ \n");
   printf("   headers: only create the configuration dependent header files (OvertureDefine.h)\n");
   printf("   useHDF4: configure for hdf4 instead of hdf5 \n");
-  printf("   noX11: build without X11 graphics (for machines without X11 libraries) \n");
+  printf("   --disable-X11: build without X11 graphics (for machines without X11 libraries) \n");
+  printf("   --disable-gl: build without OpenGL graphics (for machines without OpegnGL libraries) \n");
+  printf("   --disable-perl: build without perl (for machines without the perl libraries) \n");
   printf(" \n");
   printf(" Example: to compile with optimization: `configure opt`\n");
   printf(" Example: to compile with optimization and single precision: `configure opt precision=single`\n");
@@ -62,10 +65,20 @@ if( $machine eq "help" || $machine eq "-help" || $machine eq "--help" )
 $distribution="";  # currently only used for ubuntu
 foreach $arg ( @ARGV )
 {
-  if ( $arg =~ "noX11" )
+  if ( $arg =~ "--disable-X11" || $arg =~ "noX11" )
   {
     $useX11 = 0;
     printf("Do NOT use X11.\n");
+  }
+  elsif ( $arg =~ "--disable-perl" )
+  {
+    $usePerl = 0;
+    printf("Do NOT use Perl.\n");
+  }
+  elsif ( $arg =~ "--disable-gl" )
+  {
+    $useGL = 0;
+    printf("Do NOT use OpenGL.\n");
   }
   elsif( $arg =~ /distribution=(.*)/ )
   {
@@ -167,6 +180,7 @@ $numberOfErrors =0;
 foreach $ev ( @environmentalVariables )
 {
   next if $ev eq "XLIBS" && !$useX11 ; # skip XLIBS if we don''t use X11
+  next if $ev eq "OpenGL" && !$useGL ; # skip GL if we don''t use OpenGL
   $eev = $ENV{$ev};
   if( -e $eev )
   {
@@ -179,196 +193,209 @@ foreach $ev ( @environmentalVariables )
   }
 }
 
-
-$OpenGL = $ENV{"OpenGL"};
 $Overture = $ENV{"Overture"};
-if( $useX11 ){ $XLIBS = $ENV{"XLIBS"}; }else{ $XLIBS="";} #
 
-
-# check for the Mesa or native OpenGL libraries.
-# Note in the latest version of Mesa the libraries no longer include the name MESA
-# $OpenGLibs = "-lMesaGL -lMesaGLU -lGLw";
-$OpenGLibs = "-lMesaGL -lMesaGLU";   # we no longer look for -lGLw
-
-# library locations for OpenGL and XLIBS (lib or lib64):
-$OpenGLibPath = "$OpenGL/$LIB64";
-if( $useX11 ){ $XLIBSLibPath = "$XLIBS/$LIB64";}else{ $XLIBSLibPath ="";} #
-
-@libGLNames = <$OpenGLibPath/libGL.*>;
-$length = @libGLNames;
-$useMesa = "";
-$buildOSMesa = "";
-if( $length ne 0 )
+# ----------------------------------------------------------------------
+# ----------------- START OPENGL ---------------------------------------
+# ----------------------------------------------------------------------
+if( $useGL )
 {
-   if( $useX11 )
-   {
-     $OpenGLibs = "-lGL -lGLU";  # we no longer look for -lGLw
-   }
-   else
-   {
-     $OpenGLibs = "-lGLU";  # we don't use libGL if we don't have X11
-   } 
-  # we now check the gl.h file for the word mesa to see if we are really using Mesa.
-  $rt = open(OPENGL_FILE,"$OpenGL/include/GL/gl.h");
-  if( $rt ne 1 )
-  {
-    print "Unable to find the OpenGL file $OpenGL/include/GL/gl.h\n";
-    print "Check your OpenGL environmental variable, OpenGL=[$OpenGL]. Is seems to be incorrect.\n";
-    exit 1;
-  }
-
-  $useMesa="";
-  while( <OPENGL_FILE> )
-  {
-    if( /Mesa/ )
-    {
-      $useMesa = "newMesa";
-      break;
-    }
-    elsif ( /NVIDIA/ )
-    {
-	$useMesa = 2
-    }
-  }
-  close(OPENGL_FILE);
-  if( $useMesa eq "newMesa" )
-  {
-    printf("Using Mesa `OpenGL' libraries since gl.h contains the word Mesa\n");
-
-    # For Mesa off-screen rendering we need both the OSMesa library and we need access to the context.h file
-    @OSMesaNames = <$OpenGLibPath/libOSMesa.*>;
-    $length = @OSMesaNames;
-    if( $length ne 0 || $machine ne "darwin" )
-    {
-      # kkc: on Macs the following file finds context.h but the include in osRender.C does not match so
-      #    the context.h header file is still not found at compile time
-      # @ContextHeader = <$OpenGLibPath/../src/context.h>;
-      # $length = @ContextHeader;
-      # wdh: this should work now:
-      $contextFile = "$OpenGLibPath/../src/mesa/main/context.h";
-      if( -e $contextFile )
-      {
-        printf("Mesa off-screen rendering library and $contextFile found. Will build Mesa OS rendering.\n");
-        $OpenGLibs = "$OpenGLibs -lOSMesa";
-      }
-      else
-      {
-        printf("Mesa file: $contextFile NOT found. Off-screen rendering is disabled\n");
-        $length=0;
-      }
-    }
-    # if( $length eq 0 || $machine eq "darwin" ) # *wdh* 081212 -- hopefully this is not needed anymore
-    if( $length eq 0 )
-    {
-      printf("Mesa off-screen will not be supported since I couldn't find the library and files I need.\n");
-      printf("Using Mesa `OpenGL' but treating it as native OpenGL. (no off-screen rendering)\n");
-      $useMesa="2";
-    }
-    # osRender.C needs to be changed for the new version
-   
-    # *** we compile the off-screen rendering capabilities of Mesa ****
-
-#     printf("I am going to copy the OSMesa off-screen rendering files to be built in the Overture/static directory\n"); 
-#     printf("*** this could be wrong if I have the wrong version of these files. You may have to replace them.\n");
-#     $buildOSMesa = "true";
-#     @OSMesaFiles=( "osmesa.c","osmesa.h","context.h");
-#     foreach $file (@OSMesaFiles) 
-#     {
-#       system("cp static/$file.backup static/$file");
-#     }
-
-  }
-  elsif ( $useMesa eq "glwOnly" )
-  {
-      
-  }
-  else
-  {
-    print "Using native OpenGL libraries since gl.h does not contain the word Mesa\n";
-  }
-}
-else
-{
-  @libGLNames = <$OpenGLibPath/libMesaGL.*>;
+  $OpenGL = $ENV{"OpenGL"};
+  if( $useX11 ){ $XLIBS = $ENV{"XLIBS"}; }else{ $XLIBS="";} #
+  
+  
+  # check for the Mesa or native OpenGL libraries.
+  # Note in the latest version of Mesa the libraries no longer include the name MESA
+  # $OpenGLibs = "-lMesaGL -lMesaGLU -lGLw";
+  $OpenGLibs = "-lMesaGL -lMesaGLU";   # we no longer look for -lGLw
+  
+  # library locations for OpenGL and XLIBS (lib or lib64):
+  $OpenGLibPath = "$OpenGL/$LIB64";
+  if( $useX11 ){ $XLIBSLibPath = "$XLIBS/$LIB64";}else{ $XLIBSLibPath ="";} #
+  
+  # @libGLNames = <$OpenGLibPath/libGL.*>;  # this is not used if no X
+  @libGLNames = <$OpenGLibPath/libGLU.*>;  # this should alwsy be there
   $length = @libGLNames;
+  $useMesa = "";
+  $buildOSMesa = "";
   if( $length ne 0 )
   {
-    $useMesa="oldMesa";
-    printf("Using Mesa `OpenGL' libraries since libMesaGL found in $OpenGLibPath \n");
+     if( $useX11 )
+     {
+       $OpenGLibs = "-lGL -lGLU";  # we no longer look for -lGLw
+     }
+     else
+     {
+       $OpenGLibs = "-lGLU";  # we don't use libGL if we don't have X11
+     } 
+    # we now check the gl.h file for the word mesa to see if we are really using Mesa.
+    $rt = open(OPENGL_FILE,"$OpenGL/include/GL/gl.h");
+    if( $rt ne 1 )
+    {
+      print "Unable to find the OpenGL file $OpenGL/include/GL/gl.h\n";
+      print "Check your OpenGL environmental variable, OpenGL=[$OpenGL]. Is seems to be incorrect.\n";
+      exit 1;
+    }
+  
+    $useMesa="";
+    while( <OPENGL_FILE> )
+    {
+      if( /Mesa/ )
+      {
+        $useMesa = "newMesa";
+        break;
+      }
+      elsif ( /NVIDIA/ )
+      {
+  	$useMesa = 2
+      }
+    }
+    close(OPENGL_FILE);
+    if( $useMesa eq "newMesa" )
+    {
+      printf("Using Mesa `OpenGL' libraries since gl.h contains the word Mesa\n");
+  
+      # For Mesa off-screen rendering we need both the OSMesa library and we need access to the context.h file
+      @OSMesaNames = <$OpenGLibPath/libOSMesa.*>;
+      $length = @OSMesaNames;
+      if( $length ne 0 || $machine ne "darwin" )
+      {
+        # kkc: on Macs the following file finds context.h but the include in osRender.C does not match so
+        #    the context.h header file is still not found at compile time
+        # @ContextHeader = <$OpenGLibPath/../src/context.h>;
+        # $length = @ContextHeader;
+        # wdh: this should work now:
+        $contextFile = "$OpenGLibPath/../src/mesa/main/context.h";
+        if( -e $contextFile )
+        {
+          printf("Mesa off-screen rendering library and $contextFile found. Will build Mesa OS rendering.\n");
+          $OpenGLibs = "$OpenGLibs -lOSMesa";
+        }
+        else
+        {
+          printf("Mesa file: $contextFile NOT found. Off-screen rendering is disabled\n");
+          $length=0;
+        }
+      }
+      # if( $length eq 0 || $machine eq "darwin" ) # *wdh* 081212 -- hopefully this is not needed anymore
+      if( $length eq 0 )
+      {
+        printf("Mesa off-screen will not be supported since I couldn't find the library and files I need.\n");
+        printf("Using Mesa `OpenGL' but treating it as native OpenGL. (no off-screen rendering)\n");
+        $useMesa="2";
+      }
+      # osRender.C needs to be changed for the new version
+     
+      # *** we compile the off-screen rendering capabilities of Mesa ****
+  
+  #     printf("I am going to copy the OSMesa off-screen rendering files to be built in the Overture/static directory\n"); 
+  #     printf("*** this could be wrong if I have the wrong version of these files. You may have to replace them.\n");
+  #     $buildOSMesa = "true";
+  #     @OSMesaFiles=( "osmesa.c","osmesa.h","context.h");
+  #     foreach $file (@OSMesaFiles) 
+  #     {
+  #       system("cp static/$file.backup static/$file");
+  #     }
+  
+    }
+    elsif ( $useMesa eq "glwOnly" )
+    {
+        
+    }
+    else
+    {
+      print "Using native OpenGL libraries since gl.h does not contain the word Mesa\n";
+    }
   }
   else
   {
-    printf("ERROR: Unable to find OpenGL library libGL or libMesaGL in  $OpenGLibPath \n");
-    printf("Check the OpenGL environmental variable and try again\n");
-    $numberOfErrors++;  
+    @libGLNames = <$OpenGLibPath/libMesaGL.*>;
+    $length = @libGLNames;
+    if( $length ne 0 )
+    {
+      $useMesa="oldMesa";
+      printf("Using Mesa `OpenGL' libraries since libMesaGL found in $OpenGLibPath \n");
+    }
+    else
+    {
+      printf("ERROR: Unable to find OpenGL library libGL or libMesaGL in  $OpenGLibPath \n");
+      printf("Check the OpenGL environmental variable and try again\n");
+      $numberOfErrors++;  
+    }
   }
-}
-
-# check for the libGLw.a or .so library **** we nolonger require this to be built ****
-#@libAGLwNames = <$OpenGLibPath/libGLw.a>;
-#@libSOGLwNames = <$OpenGLibPath/libGLw.so>;
-#$length = @libAGLwNames;
-#my $ln2 = @libSOGLwNames;
-#$length += $ln2;
-
-$buildGlw = "true";
-if( $useMesa ne "" )
-{
-  # *wdh* 050327 : For Mesa we need to check for libGLw and the include files (the system versions may be inconsistent)
-  # kkc 060405 : check for non-mesa locations for these things in the paths we already have, just in case they are there
-  if( (-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" || -e "$XLIBSLibPath/libGLw.a" || -e "$XLIBSLibPath/libGLw.so" ) ){ printf(" Mesa has libGLw\n"); }
-  if( ( -e "$OpenGL/include/GLwDrawA.h" || -e "$XLIBS/include/GLwDrawA.h" || -e "$OpenGL/include/GL/GLwDrawA.h") )
-    { printf(" Mesa has GLwDrawA.h in the include dir\n"); }
-  else 
-    { printf(" Mesa does not have GLwDrawA.h in the include dir\n"); }
-
-#  if (  (-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so") && ( -e "$OpenGL/include/GLwDrawA.h" ) )
-  if ((-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" || -e "$XLIBSLibPath/libGLw.a" || -e "$XLIBSLibPath/libGLw.so") &&
-      ( -e "$OpenGL/include/GLwDrawA.h" || -e "$XLIBS/include/GLwDrawA.h" || -e "$OpenGL/include/GL/GLwDrawA.h") )
+  
+  # check for the libGLw.a or .so library **** we nolonger require this to be built ****
+  #@libAGLwNames = <$OpenGLibPath/libGLw.a>;
+  #@libSOGLwNames = <$OpenGLibPath/libGLw.so>;
+  #$length = @libAGLwNames;
+  #my $ln2 = @libSOGLwNames;
+  #$length += $ln2;
+  
+  $buildGlw = "true";
+  if( $useMesa ne "" )
   {
-    $buildGlw="";
+    # *wdh* 050327 : For Mesa we need to check for libGLw and the include files (the system versions may be inconsistent)
+    # kkc 060405 : check for non-mesa locations for these things in the paths we already have, just in case they are there
+    if( (-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" || -e "$XLIBSLibPath/libGLw.a" || -e "$XLIBSLibPath/libGLw.so" ) ){ printf(" Mesa has libGLw\n"); }
+    if( ( -e "$OpenGL/include/GLwDrawA.h" || -e "$XLIBS/include/GLwDrawA.h" || -e "$OpenGL/include/GL/GLwDrawA.h") )
+      { printf(" Mesa has GLwDrawA.h in the include dir\n"); }
+    else 
+      { printf(" Mesa does not have GLwDrawA.h in the include dir\n"); }
+  
+  #  if (  (-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so") && ( -e "$OpenGL/include/GLwDrawA.h" ) )
+    if ((-e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" || -e "$XLIBSLibPath/libGLw.a" || -e "$XLIBSLibPath/libGLw.so") &&
+        ( -e "$OpenGL/include/GLwDrawA.h" || -e "$XLIBS/include/GLwDrawA.h" || -e "$OpenGL/include/GL/GLwDrawA.h") )
+    {
+      $buildGlw="";
+    }
+  
   }
-
-}
-else
-{
-  if ( -e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" ||  
-       -e "$XLIBSLibPath/libGLw.a" ||  -e "$XLIBSLibPath/libGLw.so" ){
-    $buildGlw="";
-  }
-}  
-#kkc 050128 $length = 0;  # *******   For now always copy and build the GLw files so users don't need to ****
-if( $buildGlw )
-{
-  # printf("INFO: unable to find the libGLW.a or libGLW.so library in $OpenGLibPath \n");
-  printf("INFO: I am going to copy my version of the GLw files into Overture/static directory\n"); 
-
-  $buildGLw = "true";
-  @glwFiles=( "GLwDrawA.c","GLwDrawA.h","GLwDrawAP.h","GLwMDrawA.c","GLwMDrawA.h","GLwMDrawAP.h");
-  foreach $file (@glwFiles) 
+  else
   {
-    system("cp static/$file.backup static/$file");
+    if ( -e "$OpenGLibPath/libGLw.a" ||  -e "$OpenGLibPath/libGLw.so" ||  
+         -e "$XLIBSLibPath/libGLw.a" ||  -e "$XLIBSLibPath/libGLw.so" ){
+      $buildGlw="";
+    }
+  }  
+  #kkc 050128 $length = 0;  # *******   For now always copy and build the GLw files so users don't need to ****
+  if( $useX11 eq 0 ){ $buildGlw=""; }
+  if( $buildGlw )
+  {
+    # printf("INFO: unable to find the libGLW.a or libGLW.so library in $OpenGLibPath \n");
+    printf("INFO: I am going to copy my version of the GLw files into Overture/static directory\n"); 
+  
+    $buildGLw = "true";
+    @glwFiles=( "GLwDrawA.c","GLwDrawA.h","GLwDrawAP.h","GLwMDrawA.c","GLwMDrawA.h","GLwMDrawAP.h");
+    foreach $file (@glwFiles) 
+    {
+      system("cp static/$file.backup static/$file");
+    }
   }
-}
-else
-{
-    # -lGLw is there, we will use it.
-    printf("INFO: I am going to use the system's GLw library\n");
-  $OpenGLibs = "$OpenGLibs -lGLw";
-}
-# # check for GLwMDrawA.h
-# $GLwMDrawAInclude="GL";
-# @name = <$OpenGL/include/GL/GLwMDrawA.h>;
-# $length= @name;
-# if( $length == 0 )
-# { 
-#   @GLwMDrawAInclude = <$OpenGL/include/X11/GLw/GLwMDrawA.h>;
-#   if( $length == 0 )
-#   {
-#   }
-#   $GLwMDrawAInclude="X11/GLw";  
-# }
+  else
+  {
+      # -lGLw is there, we will use it.
+      printf("INFO: I am going to use the system's GLw library\n");
+    $OpenGLibs = "$OpenGLibs -lGLw";
+  }
+  # # check for GLwMDrawA.h
+  # $GLwMDrawAInclude="GL";
+  # @name = <$OpenGL/include/GL/GLwMDrawA.h>;
+  # $length= @name;
+  # if( $length == 0 )
+  # { 
+  #   @GLwMDrawAInclude = <$OpenGL/include/X11/GLw/GLwMDrawA.h>;
+  #   if( $length == 0 )
+  #   {
+  #   }
+  #   $GLwMDrawAInclude="X11/GLw";  
+  # }
+} # end if useGL 
+# ----------------- END OPENGL ---------------------------------------
 
+
+# ----------------------------------------------------------------------
+# ----------------- START MOTIF ----------------------------------------
+# ----------------------------------------------------------------------
 # check for Lesstif or Motif (if we are using X11)
 if( $useX11 )
 {
@@ -394,6 +421,9 @@ if( $useX11 )
   close(MOTIF_FILE);
   printf("Using $motif. \n");
 }
+# ----------------- END MOTIF ----------------------------------------
+
+
 if( $useX11 )
 { # use mog.C.backup if we use X11
   system("cp static/mogl.C.backup static/mogl.C");
@@ -403,46 +433,53 @@ else
   system("cp static/moglNull.C static/mogl.C");
 }
 
-# Find the location of the perl CORE libraries for the Overture parser
-system("perl -V > config/perl-V");
-open(PERLMV,"config/perl-V") || die print "unable to open config/perl-V\n";
-$perllibs="";
-
-# Get the location of the perl core libraries this way:
-use Config; 
-$perlloc="$Config{archlib}/CORE";
-printf("perlloc = [$perlloc]\n");
-
-while( <PERLMV> )
+# ----------------------------------------------------------------------
+# ----------------- START PERL ------------------------------------------
+# ----------------------------------------------------------------------
+if( $usePerl )
 {
-  if( /perllibs=/ )
+  # Find the location of the perl CORE libraries for the Overture parser
+  system("perl -V > config/perl-V");
+  open(PERLMV,"config/perl-V") || die print "unable to open config/perl-V\n";
+  $perllibs="";
+  
+  # Get the location of the perl core libraries this way:
+  use Config; 
+  $perlloc="$Config{archlib}/CORE";
+  printf("perlloc = [$perlloc]\n");
+  
+  while( <PERLMV> )
   {
-    $perllibs = $_;
-    chop($perllibs);
-    $perllibs =~ s/[ \t]*perllibs=//;
-    $perllibs = "-lperl $perllibs";
-    # printf(" perllibs=[$perllibs]\n");
+    if( /perllibs=/ )
+    {
+      $perllibs = $_;
+      chop($perllibs);
+      $perllibs =~ s/[ \t]*perllibs=//;
+      $perllibs = "-lperl $perllibs";
+      # printf(" perllibs=[$perllibs]\n");
+    }
+  #   if( /\@INC:/ )
+  #   {
+  #     $perlloc = <PERLMV>;  
+  #     chop($perlloc);
+  #     $perlloc =~ s/[ \t]*//g;
+  #     $perlloc = $perlloc . "\/CORE";
+  #     # printf("perlloc = [$perlloc]\n");
+  #  }
   }
-#   if( /\@INC:/ )
-#   {
-#     $perlloc = <PERLMV>;  
-#     chop($perlloc);
-#     $perlloc =~ s/[ \t]*//g;
-#     $perlloc = $perlloc . "\/CORE";
-#     # printf("perlloc = [$perlloc]\n");
-#  }
+  close(PERLMV);
+  if( $perllibs ne "" && $perlloc ne "" )
+  {
+    printf("Using perl headers and lib from perllibs=[$perlloc]\n");
+    printf("Will link to the libraries perllibs=[$perllibs]\n");
+  }
+  else
+  {
+    printf("configure:ERROR: searching for the location of the perl headers and lib! Will use the\n");
+    printf("                 info supplied in config/MakeDef.$machine\n");
+  }
 }
-close(PERLMV);
-if( $perllibs ne "" && $perlloc ne "" )
-{
-  printf("Using perl headers and lib from perllibs=[$perlloc]\n");
-  printf("Will link to the libraries perllibs=[$perllibs]\n");
-}
-else
-{
-  printf("configure:ERROR: searching for the location of the perl headers and lib! Will use the\n");
-  printf("                 info supplied in config/MakeDef.$machine\n");
-}
+# ----------------- END PERL ------------------------------------------
 
 # By default we now use HDF5
 $useHDF5 = "useHDF5";
@@ -601,7 +638,7 @@ foreach $arg ( @ARGV )
   {
 #   
   }
-  elsif ( $arg eq "noX11" )
+  elsif ( $arg eq "--disable-X11"  ||  $arg eq "--disable-gl" ||  $arg eq "--disable-perl"  ||  $arg eq "noX11" )
   {
 #   
   }
@@ -1206,8 +1243,9 @@ while( <OVERTURE_DEFINE_IN> )
   if( $arch eq "aix" ){ $line =~ s/^#undef OV_ARCH/#define OV_ARCH_AIX/; }
   if( $arch eq "darwin" ){ $line =~ s/^#undef OV_ARCH/#define OV_ARCH_DARWIN/; }
   if( $arch eq "linux" ){ $line =~ s/^#undef OV_ARCH/#define OV_ARCH_LINUX/; }
+  if( $arch eq "bg" ){ $line =~ s/^#undef OV_ARCH/#define OV_ARCH_BG/; }
 
-  if( $bFC eq "xlf" )
+  if( $machine eq "bg" || $bFC eq "xlf" )
   { # IBM xlf compiler does not add an underscore to fortran names:
     $line =~ s/^#define OV_USE_UNDERSCORE/#undef OV_USE_UNDERSCORE/;
   }
@@ -1231,6 +1269,14 @@ while( <OVERTURE_DEFINE_IN> )
   if( $useX11 )
   {
     $line =~ s/^#undef OV_USE_X11/#define OV_USE_X11/g;
+  }
+  if( $usePerl )
+  {
+    $line =~ s/^#undef OV_USE_PERL/#define OV_USE_PERL/g;
+  }
+  if( $useGL )
+  {
+    $line =~ s/^#undef OV_USE_GL/#define OV_USE_GL/g;
   }
   if( $exceptionsSupported==0 )
   {
@@ -1749,6 +1795,8 @@ else
 }
 print OUTFILE "USE_HDF5=$useHDF5\n";
 print OUTFILE "useX11=$useX11\n";
+print OUTFILE "useGL=$useGL\n";
+print OUTFILE "usePerl=$usePerl\n";
 
 close(OUTFILE);
 

@@ -91,6 +91,11 @@ int correct( real t1, real t2,
 // define faces and grids that form the deforming body 
 int defineBody( int numberOfFaces, IntegerArray & boundaryFaces );
 
+const IntegerArray & getBoundaryFaces() const;
+
+// Construct a grid from the past time, needed to start some PC schemes.
+int getPastTimeGrid(  real pastTime , CompositeGrid & cg );
+
 int getAccelerationBC( const real time0, const int grid, MappedGrid & mg, 
 		       const Index &I1, const Index &I2, const Index &I3, 
 		       realSerialArray & bcAcceleration);
@@ -99,6 +104,9 @@ int getAccelerationBC( const real time0, const int grid, MappedGrid & mg,
 int getAccelerationOrderOfAccuracy() const;
 
 int getBodyVolumeAndSurfaceArea( CompositeGrid & cg, real & volume, real & area );
+
+// Return the beamModel (if it exists)
+BeamModel& getBeamModel();
 
 int getElasticShellOption(const aString & answer, DialogData & dialog );
 int getElasticBeamOption(const aString & answer, DialogData & dialog );
@@ -133,6 +141,9 @@ int initialize(CompositeGrid & cg, real t=0. );
 int initializeGrid(CompositeGrid & cg, real t=0. ); 
 
 int initializePast( real time00, real dt00, CompositeGrid & cg);
+
+// return true if the deforming body is a beam model
+bool isBeamModel() const;
 
 // integrate the BODY to a new time
 int integrate( real t1, real t2, real t3, 

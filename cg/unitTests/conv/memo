@@ -2,7 +2,7 @@
 
 -- trig -- periodic  -- second-order (due to force integration)
 
-  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=per -tf=1. -cg=line -ng=4
+  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=per -tf=1. -rhos=10. -cg=line -cfl=.25 -ng=4
                 grid  & N &  $\vert w \vert$   & r
                Line5 &     5 & 1.88e-02 &
               Line10 &    10 & 5.31e-03 &  3.5

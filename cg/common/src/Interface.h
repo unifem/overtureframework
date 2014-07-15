@@ -73,7 +73,7 @@ class InterfaceTransfer;  // forward declaration
 
 class InterfaceDescriptor
 // ===========================================================================================
-//  This class holds information about and interface such as the 
+//  This class holds information about an interface such as the 
 //  the lists of grid faces that are adjacent to a particular interface.
 //
 // /gridList1: list of GridFaceDescriptor's for grid faces adjacent to side 1 of this interface

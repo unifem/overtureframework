@@ -1,0 +1,35 @@
+**** 2014/07/09 -- more runs 
+
+Set E=.01 -> clamped BC 
+cgins flexibleChannel -g=flexibleChannelGrid4.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=4. -thick=.05 -tens
+ion=1. -E=0.01 -tMax=.2
+
+
+OK: finer grid 
+cgins flexibleChannel -g=flexibleChannelGrid4.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=5. -tension=1. -E=0. -tMax=.1 -pMax=2.
+
+OK:
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=10. -tension=1. -E=0. -tMax=.2
+
+
+LIGHTER, increase tension *TROUBLE NEAR INLET CORNER **
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=1. -tension=100.
+
+
+LIGHTER, increase tension 
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1 -delta=10. -tension=10.
+AM=0 : fails right away
+
+
+AMP:  -- OK
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05 -addedMass=1
+
+**** 2014/07/09 -- initial runs
+
+cgins flexibleChannel -g=flexibleChannelGrid2.order2.hdf -nu=.05 -tf=20. -tp=.05
+
+
+
+ogen -noplot flexibleChannelGrid -factor=2
+ogen -noplot flexibleChannelGrid -factor=4
+ogen -noplot flexibleChannelGrid -factor=8

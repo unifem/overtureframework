@@ -27,7 +27,7 @@
 $model="linearBeam"; 
 $tz="trig"; $bcn = "c"; $cg="line"; $suffix=""; 
 $en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=2.; $ft=2.; $order=2; $nd=2; $cfl=.5; 
-$Em=1.; $T=1.; $debug=0; 
+$Em=1.; $T=1.; $rhos=100.; $debug=0; 
 $CGBUILDPREFIX=$ENV{CGBUILDPREFIX};
 $tbmCmd = "$CGBUILDPREFIX/unitTests/bin/tbm";  # command we run
 $cmdDir="$ENV{CG}/unitTests/cmd"; 
@@ -38,7 +38,7 @@ GetOptions( "model=s"=>\$model,"en=s"=>\$en,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"cg=s"=>
             "Em=f"=>\$Em,"T=f"=>\$T,"tz=s"=>\$tz,"fx=f"=>\$fx,"ft=f"=>\$ft,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,\
             "showAllComponents=i"=>\$showAllComponents,\
             "cfl=f"=>\$cfl,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
-            "tbmCmd=s"=>\$tbmCmd,"ngStart=i"=>\$ngStart,"suffix=s"=>\$suffix );
+            "tbmCmd=s"=>\$tbmCmd,"ngStart=i"=>\$ngStart,"rhos=f"=>\$rhos,"suffix=s"=>\$suffix );
 # 
 # Name of the check file created by tbm:
 $check="tbm.check";
@@ -57,10 +57,10 @@ if( $model eq "linearBeam" )\
 }
 # 
 if( $tz eq "poly" ){ $tzLabel = "$tz TZ, degreeX=$degreeX, degreeT=$degreeT"; }else{ $tzLabel = "$tz TZ, fx=$fx, ft=$ft"; }
-$caption= "\\caption\{tbm, $model, $name, bcn=$bcn, \$ t=$tf\$, \$ E=$Em\$, \$ T=$T\$,  $tzLabel, cfl=$cfl, $date}\\label\{table:$name}"; 
+$caption= "\\caption\{tbm, $model, $name, bcn=$bcn, \$ t=$tf\$, \$ E=$Em\$, \$ rhos=$rhos\$, \$ T=$T\$,  $tzLabel, cfl=$cfl, $date}\\label\{table:$name}"; 
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
-$options = "-tz=$tz -degreex=$degreeX -degreet=$degreeT -bc=$bcn -Em=$Em -tension=$T -fx=$fx -ft=$ft -tf=$tf -tp=$tp -cfl=$cfl -go=go";
+$options = "-tz=$tz -degreex=$degreeX -degreet=$degreeT -bc=$bcn -Em=$Em -tension=$T -rhos=$rhos -fx=$fx -ft=$ft -tf=$tf -tp=$tp -cfl=$cfl -go=go";
 # 
 if( $cg eq "line" ){\
 $grid1="Line5";  $gName1 = "Line5";\

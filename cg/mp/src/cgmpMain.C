@@ -86,6 +86,9 @@ buildModel( const aString & modelName,
 
   // Tell the domain solver that this is a multi-domain problem.
   solver->parameters.dbase.get<int>("multiDomainProblem")=1;
+
+  // Provide the domain solver with a pointer to Cgmp
+  solver->parameters.dbase.get<DomainSolver*>("multiDomainSolver")=this;
   
   return solver;
 }

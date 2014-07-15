@@ -13,6 +13,34 @@ if 0;
 #     ogen -noplot cicNoPerl.cmd
 #
 
+@inputStack = (); # stack of lines created from macros to read first before reading from the file
+
+# --- Main routine to read from the inputStack or FILE ---
+sub readFile #
+{
+  if( $#inputStack >=0 )  # remember $#array gives the last index value -- not the length
+  {
+    $_ = pop(@inputStack);
+  }
+  else
+  {
+    $_ = <FILE>;
+
+    while( /\\$/ )
+    {
+      # printf("***** readFile: continuation line found\n");
+      $cc = <FILE>;
+      $cc =~ s/^[ ]*//; # remove leading blanks
+      chop($_); chop($_);
+      $_ = $_ . $cc;
+    }
+  }
+  $_;
+}
+
+$quiet=0; 
+
+
 if( $#ARGV <1 )
 {
   printf("perlcmd: WARNING: expecting at least two command lines arguments.\n");
@@ -34,26 +62,37 @@ printf("perlcmd: expand perl commands in the Overture command file=[$inputFile].
 open(FILE,"$inputFile") || die "cannot open file $inputFile!" ;
 open(OUTFILE,">$outputFile") || die "cannot open output file $outputFile!" ;
 
-while( <FILE> )
+while( !eof(FILE) || $#inputStack >=0 )
 {
+  &readFile;
   $line = $_;
-  #  printf("line = [$line]\n");
   chop($line);
 
-  # Concatentate continuation lines
-  while( $line =~ "\\\\\$" )
-  {
-    # printf("+++ continuation line found..\n");
-    chop($line);
-    $line .= <FILE>;
-    chop($line);
-    # printf(">> line = [$line]\n");
-  }
+  #  printf("line = [$line]\n");
+
+#-   # Concatentate continuation lines
+#-   while( $line =~ "\\\\\$" )
+#-   {
+#-     # printf("+++ continuation line found..\n");
+#-     chop($line);
+#-     $line .= <FILE>;
+#-     chop($line);
+#-     # printf(">> line = [$line]\n");
+#-   }
   
 
   # print "line=" . $line . "\n";
 
-  if( $line =~ ';' )
+  if( $line =~ /^[ \t]*#/ )
+  {
+     # line is a comment starting with "#"
+  }
+  elsif( $line =~ /^[ \t]*\*/ )
+  {
+     # line is a comment starting with "*"
+  }
+
+  elsif( $line =~ ';' )
   {
     # print "Line contains a ';' \n";
     # if( $line =~ "GetOpt" )
@@ -71,8 +110,58 @@ while( <FILE> )
     # print "after eval: " . $line . "\n";
   }
 
+  # --- check for include's ---
+  if( $line =~ /^[ \t]*include/ )
+  {
+    # This is an include statement
+    # if( $quiet==0 ){ printf("--perlcmd-- Include found: line=[$line]\n"); }
+    print OUTFILE "# $line\n";  # output the original line as a comment
 
-  print OUTFILE $line . "\n";
+    $includeFile=$line;
+    # chop($includeFile);
+    $includeFile =~ s/^[ \t]*include[ \t]*(.*)/\1/;
+    $includeFile =~ s/[\"\']//g;  # remove quotes "
+    $includeFile =~ s/[ \t]*$//; # remove trailing blanks
+      
+    if( -e "$includeFile" )
+    {
+      $includeFile="$includeFile";
+      if( $quiet==0 ){ printf("perlcmd: include file found [$includeFile]\n"); }
+    }
+    else
+    {
+      printf("perlcmd:ERROR: include file [$includeFile] NOT FOUND \n"); 
+    }
+
+    open(INCLUDE,"$includeFile") || die "perlcmd: cannot open include file $includeFile!" ;
+
+    @block =();
+    while( <INCLUDE> )
+    { 
+      if( /^[ \t]*$/ ){ next; }  # skip blanks lines
+
+      while( /\\$/ )
+      { # concatentate continuation lines
+	  $cc = <INCLUDE>;
+	  $cc =~ s/^[ ]*//; # remove leading blanks
+	  chop($_); chop($_);
+	  $_ = $_ . $cc;
+      }
+
+      push(@block,$_);
+    }          
+    # now push onto the input stack in reverse order
+    for( $ii=$#block; $ii>=0; $ii-- )  
+    {
+      # printf("****push [$block[$ii]]");
+     push(@inputStack,$block[$ii]);
+    }
+    close(INCLUDE);
+  }
+  else
+  {
+    print OUTFILE $line . "\n";
+  }
 }
 
 close(OUTFILE);

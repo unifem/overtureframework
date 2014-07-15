@@ -7,6 +7,8 @@
 #include "ParallelUtility.h"
 #include "MultigridCompositeGrid.h"
 
+#include "BoundaryData.h"
+
 #undef ForBoundary
 #define ForBoundary(side,axis)   for( axis=0; axis<cg.numberOfDimensions(); axis++ ) \
                                  for( side=0; side<=1; side++ )
@@ -189,6 +191,27 @@ setCommandLineArguments( int argc_, char **argv_ )
   return 0;
 }
 
+
+
+// ======================================================================================
+///  /brief Supply boundary data (these specify coefficients in boundary conditions)
+// ======================================================================================
+int Oges::
+setBoundaryData( std::vector<BoundaryData> & boundaryData )
+{
+  // *new* 2014/06/30 -- this has as yet to be used ---
+
+  if( !dbase.has_key("pBoundaryDataArray") )
+  {
+    dbase.put<std::vector<BoundaryData>* >("pBoundaryDataArray")=NULL;
+  }
+  
+  // Keep a pointer to the array of BoundaryData
+  dbase.get<std::vector<BoundaryData>* >("pBoundaryDataArray") = &boundaryData;
+
+
+  return 0;
+}
 
 
 //\begin{>>OgesInclude.tex}{\subsection{setGridsToUse}} 

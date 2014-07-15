@@ -34,6 +34,7 @@ cp src/{Generic}{MappedGrid,GridCollection,CompositeGrid}Operators.C            
 cp src/{fixBoundaryCorners,GridCollectionOperators,CompositeGridOperators}.C           $gff
 cp src/{UnstructuredOperators,UnstructuredBoundaryOperators}.C                         $gff
 cp src/{finishBoundaryConditions}.bC                                                   $gff
+cp src/{BoundaryData}.C                                                                $gff
 
 cp include/{defineFDerivatives.h}                                                      $gff
 
@@ -72,7 +73,7 @@ cp src/{SparseRep,BoundaryConditionParameters,BCTypes,AssignInterpNeighbours}.h 
 cp src/{MappedGridOperators.h,MappedGridOperatorsInclude.h,FourierOperators.h}           $gfi
 cp src/{Generic}{MappedGrid,GridCollection,CompositeGrid}Operators.h                     $gfi
 cp src/{GenericCollectionOperators,GridCollectionOperators,CompositeGridOperators}.h     $gfi
-cp src/{UnstructuredOperators.h}                                                         $gfi
+cp src/{UnstructuredOperators.h,BoundaryData.h}                                          $gfi
 
 cp src/defineDiffOrder{2,4,6,8}f.h                                                       $gfi
 cp src/declareDiffOrder{2,4,6,8}f.h                                                      $gfi

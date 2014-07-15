@@ -49,7 +49,8 @@ Source1= \
 	  ArrayUtil.C                            \
           App.C                                  \
 	  GridDistribution.C                     \
-          LoadBalancer.C
+          LoadBalancer.C                         \
+	  BoundaryData.C
 
 Source2= \
           MGOD.C                                \

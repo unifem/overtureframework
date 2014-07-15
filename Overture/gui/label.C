@@ -1,5 +1,4 @@
 #include "GL_GraphicsInterface.h"
-#include <GL/glu.h>
 
 #ifdef NO_APP
 using GUITypes::real;

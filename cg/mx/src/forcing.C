@@ -12,6 +12,12 @@
 #include "App.h"
 
 #define forcingOptMaxwell EXTERN_C_NAME(forcingoptmaxwell)
+#define ogf EXTERN_C_NAME(ogf)
+#define ogf2d EXTERN_C_NAME(ogf2d)
+#define ogderiv EXTERN_C_NAME(ogderiv)
+#define ogderiv3 EXTERN_C_NAME(ogderiv3)
+#define ogf3d EXTERN_C_NAME(ogf3d)
+#define exx EXTERN_C_NAME(exx)
 
 extern "C"
 {
@@ -23,14 +29,16 @@ extern "C"
 }
 
 
+
 extern "C"
 {
 
 /* Here are functions for TZ flow that can be called from fortran */
 
 
+
 real
-ogf_(OGFunction *&ep, const real &x, const real &y,const real &z, const int & c, const real & t )
+ogf(OGFunction *&ep, const real &x, const real &y,const real &z, const int & c, const real & t )
 {
     return (*ep)(x,y,z,c,t);
 }
@@ -38,7 +46,7 @@ ogf_(OGFunction *&ep, const real &x, const real &y,const real &z, const int & c,
 
 /* return (u,v,w) = (Ex,Ey,Hz) */
 void
-ogf2d_(OGFunction *&ep, const real &x, const real &y, const real & t, real & u, real & v, real & w )
+ogf2d(OGFunction *&ep, const real &x, const real &y, const real & t, real & u, real & v, real & w )
 {
     /* assumes ex=0, ey=1, hz=2 */
     u=(*ep)(x,y,0.,0,t);
@@ -48,7 +56,7 @@ ogf2d_(OGFunction *&ep, const real &x, const real &y, const real & t, real & u, 
 
 /* return a general derivative */
 void
-ogderiv_(OGFunction *&ep, const int & ntd, const int & nxd, const int & nyd, const int & nzd, 
+ogderiv(OGFunction *&ep, const int & ntd, const int & nxd, const int & nyd, const int & nzd, 
                   const real &x, const real &y, const real &z, const real & t, const int & n, real & ud )
 {
     ud=(*ep).gd(ntd,nxd,nyd,nzd,x,y,z,n,t);
@@ -56,7 +64,7 @@ ogderiv_(OGFunction *&ep, const int & ntd, const int & nxd, const int & nyd, con
 
 /* return a general derivative for 3 components */
 void
-ogderiv3_(OGFunction *&ep, const int & ntd, const int & nxd, const int & nyd, const int & nzd, 
+ogderiv3(OGFunction *&ep, const int & ntd, const int & nxd, const int & nyd, const int & nzd, 
                   const real &x, const real &y, const real &z, const real & t, 
                   const int & n1, real & ud1, const int & n2, real & ud2, const int & n3, real & ud3 )
 {
@@ -67,7 +75,7 @@ ogderiv3_(OGFunction *&ep, const int & ntd, const int & nxd, const int & nyd, co
 
 /* return (u,v,w) = (Ex,Ey,Ez) */
 void
-ogf3d_(OGFunction *&ep, const real &x, const real &y, const real &z, const real & t, real & u, real & v, real & w )
+ogf3d(OGFunction *&ep, const real &x, const real &y, const real &z, const real & t, real & u, real & v, real & w )
 {
     /* assumes ex=0, ey=1, hz=2 */
     u=(*ep)(x,y,z,0,t);
@@ -76,7 +84,7 @@ ogf3d_(OGFunction *&ep, const real &x, const real &y, const real &z, const real 
 }
 
 real
-exx_(OGFunction *&ep, const real &x, const real &y,const real &z, const int & c, const real & t )
+exx(OGFunction *&ep, const real &x, const real &y,const real &z, const int & c, const real & t )
 {
     real value=(*ep).xx(x,y,z,c,t);
   // printF("exx: x=(%8.2e,%8.2e,%8.2e) c=%i t=%8.2e ...exx=%8.2e \n",x,y,z,c,t,value);

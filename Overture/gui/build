@@ -33,4 +33,4 @@ cp {ColourBar,DialogData,GenericGraphicsInterface,GL_GraphicsInterface,GraphicsP
 
 # wdh: mathutil.h and wdhdefs.h were moved to ../include
 cp {GUIInit,GUIState,GUITypes,OvertureParser,PlotStuff,PlotStuffParameters,xColours,DialogState}.h $OvertureInclude
-cp {mogl}.h $OvertureInclude
+cp {mogl,nullgl,nullglu}.h $OvertureInclude

@@ -204,6 +204,31 @@ MovingGrids::
 
 }
 
+// =================================================================================
+/// \brief Assign initial conditions and past time state.
+/// \details This function is called by DomainSolver::initializeSolution()
+///   The initial and past state for some deforming grids may depend on the
+//    initial conditions and/or known solution and so we delay evaluation until now.
+//
+// New: 2014/07/11
+// =================================================================================
+int MovingGrids::
+assignInitialConditions( GridFunction & cgf )
+{
+  // INITIALIZE THE GRIDS at past time levels
+  if( TRUE || debug() & 4 )
+     printF("--MvG--assignInitialConditions: INITIALIZING deformingGrid, past time levels.\n"); 
+
+  for( int b=0; b<numberOfDeformingBodies; b++ )
+  {
+    real dt0=1.e-4;  // this should not be used 
+    deformingBodyList[b]->initializePast( cgf.t, dt0, cgf.cg);
+  }
+
+  return 0;
+}
+
+
 
 // =================================================================================
 /// \brief Return a pointer to the Integrate object.
@@ -492,8 +517,330 @@ getRamp(real t, real rampInterval, real & ramp, real & rampSpeed, real & rampAcc
 }
 
 
+//=======================================================================================================
+/// /brief Construct a grid in the past (used for starting a multi-step scheme for e.g.)
+/// /param cgf (input/output) : on output, this holds the grid at time cgf.t
+//=======================================================================================================
+int MovingGrids::
+getPastTimeGrid( GridFunction & cgf  )
+{
+
+  if( true || debug() & 2 )
+    printF("--MvG-- getPastTimeGrid at t=%8.2e\n",cgf.t);
+
+
+  // ---------------------------------------------------------------------------------------------
+  // ---- First time through generate the MatrixTransforms used by non-deforming moving grids ----
+  // ---------------------------------------------------------------------------------------------
+  initializeMovingGridTransforms( cgf );
+
+  CompositeGrid & cg = cgf.cg;
+
+  const real t0=parameters.dbase.get<real >("tInitial"); // *wdh* 040503 
+  const real pastTime =cgf.t;
+  const real deltaT = pastTime-t0;
+  
+  for( int grid=0; grid<cg.numberOfBaseGrids(); grid++ )  
+  {
+    if( movingGrid(grid) )
+    {
+      MatrixTransform & transform = *cgf.transform[grid];
+      if( moveOption(grid)==notMoving )
+      { 
+        // nothing to do in this case
+      }
+      else if( moveOption(grid)==matrixMotion )
+      {
+        // MatrixMotion body : pre-defined matrix motions (rigid and scaling motions)
+        const int b=int(moveParameters(0,grid)+.5);
+        assert( b>=0 && b<numberOfMatrixMotionBodies );
+        
+	MatrixMotion & matMotion = *matrixMotionBody[b];
+	
+	// printF("moveGrids: matrixMotion: grid=%i, body: b=%i\n",grid,b);
+	RealArray rMatrix(4,4);  // holds "rotation" matrix and shift 
+	matMotion.getMotion( pastTime, rMatrix );
+	transform.reset();
+	transform.rotate( rMatrix );  
+	transform.shift( rMatrix(0,3),rMatrix(1,3),rMatrix(2,3));
+
+      }
+      else if( moveOption(grid)==shift )
+      {
+	const RealArray & vector = moveParameters(Range(0,2),grid); // shift vector
+	// shift = t*vector
+        const real speed = deltaT*moveParameters(3,grid);
+
+        if( debug() & 2 )
+	{
+          fprintf(parameters.dbase.get<FILE* >("moveFile")," **moveGrids:getPastTimeGrid: shift grid %i (%s) vector=(%8.2e,%8.2e,%8.2e) speed=%8.2e tStart=%8.2e, t3=%8.2e, deltaT=%9.3e\n",
+		  grid,(const char*)cg[grid].getName(),vector(0),vector(1),vector(2),speed,t0,pastTime,deltaT);
+
+          display(transform.matrix->matrix,"matrix from transform",parameters.dbase.get<FILE* >("moveFile"),"%5.3f ");
+	}
+	
+	transform.shift(vector(0)*speed,vector(1)*speed,vector(2)*speed);
+      
+      }
+      else if(  moveOption(grid)==rotate )
+      {
+	const RealArray & x0 =moveParameters(Range(0,2),grid); // centre of rotation
+	// tn has base 3 here: const RealArray & tn =moveParameters(Range(3,5),grid); // tangent to rotation axis
+        RealArray tn(3); tn = moveParameters(Range(3,5),grid); // tangent to rotation axis
+        const Real rampInterval=moveParameters(7,grid);
+	
+        // static real deltaTheta=180.* (4.*atan(1.)/180); 
+
+        real rampOld, rampNew, rampSpeed, rampAcceleration ;
+        getRamp(t0,rampInterval, rampOld,rampSpeed,rampAcceleration );
+        getRamp(pastTime,rampInterval, rampNew,rampSpeed,rampAcceleration );
+
+        // const real angularSpeed = deltaT*moveParameters(6,grid)*2.*Pi;
+        const real omega=moveParameters(6,grid);
+        const real angularSpeed = 2.*Pi*omega*( rampNew*pastTime-rampOld*t0);
+        
+        if( debug() & 2 )
+  	  printF("--MvG--:getPastTimeGrid: rotate grid: %s,  rotation rate =%e, center=(%e,%e,%e) ramp=[%8.2e,%8.2e,%8.2e]\n",
+	       (const char *)cg[grid].mapping().getName(Mapping::mappingName) ,
+	       moveParameters(6,grid),x0(0),x0(1),x0(2),rampNew,rampSpeed,rampAcceleration);
+      
+	// shift to centre, rotate and shift back
+	transform.shift(-x0(0),-x0(1),-x0(2));
+        if( cg.numberOfDimensions()==2 )
+	{
+  	  transform.rotate(axis3,angularSpeed);
+	}
+	else if( tn(0)>0. && tn(1)==0. && tn(2)==0. )
+	{
+  	  transform.rotate(axis1,angularSpeed);
+	}
+	else if( tn(0)==0. && tn(1)>0. && tn(2)==0. )
+	{
+  	  transform.rotate(axis2,angularSpeed);
+	}
+	else if( tn(0)==0. && tn(1)==0. && tn(2)>0. )
+	{
+  	  transform.rotate(axis3,angularSpeed);
+	}
+        else
+	{
+	    printF("MovingGrids::getPastTimeGrid::ERROR: can only rotate about the positive x, y or z-axis for now\n"
+                   " tangent=(%8.2e,%8.2e,%8.2e)\n"
+                   " rotation-point=(%8.2e,%8.2e,%8.2e)\n",tn(0),tn(1),tn(2),x0(0),x0(1),x0(2));
+	    OV_ABORT("Error");
+	}
+	transform.shift( x0(0), x0(1), x0(2));
+      
+      }
+      else if(  moveOption(grid)==scale )
+      { 
+        // scale grid like x(r,t) = (1+scale*t)*x(r,t=0)
+
+	real sx=moveParameters(0,grid);
+	real sy=moveParameters(1,grid);
+	real sz=moveParameters(2,grid);
+
+        if( debug() & 4 )
+  	  printF("moveGrids:getPastTimeGrid: scale grid%i sx=%e sy=%e sz=%e at t=%9.3e\n",grid,sx,sy,sz,pastTime);
+
+	real xFactor=(1.+sx*pastTime);
+	real yFactor=(1.+sy*pastTime);
+	real zFactor=(1.+sz*pastTime);
+	bool incremental=false;  // perform an absolute scaling from the original mapping
+	transform.scale(xFactor,yFactor,zFactor,incremental);
+      
+      }
+      else if( moveOption(grid)==oscillate )
+      {
+	// x(t) = (1-cos([t-tOrigin]*omega/(2 pi)))*amplitude
+	const RealArray & vector = moveParameters(Range(0,2),grid); // tangent
+        const real omega         = moveParameters(3,grid)*2.*Pi;    // oscillation rate
+        const real amplitude     = moveParameters(4,grid);          // amplitude
+        const real tOrigin       = moveParameters(5,grid);                  
+
+        // compute the shift from time t=0 to avoid accumulation of round-off.
+	const real deltaX=amplitude*(cos(omega*(t0-tOrigin))-cos(omega*(pastTime-tOrigin)));
+        if( debug() & 2 )
+  	  printF("moveGrids:getPastTimeGrid: oscillate grid: %s, t=%8.1e, delta = (%8.1e,%8.1e,%8.1e)\n",
+		 (const char*)cg[grid].mapping().getName(Mapping::mappingName),
+                 pastTime,vector(0)*deltaX,vector(1)*deltaX,vector(2)*deltaX);
+
+        transform.reset();
+	transform.shift(vector(0)*deltaX,vector(1)*deltaX,vector(2)*deltaX);
+      
+      }
+      else if( moveOption(grid)==rigidBody )
+      {
+	// rigid body motion consists of a translation and a rotation
+        RealArray x1(3),x3(3),r(3,3);
+        int b=int(moveParameters(0,grid)+.5);
+        assert( b>=0 && b<numberOfRigidBodies );
+        
+        body[b]->getInitialConditions(x1);
+        body[b]->getPosition(pastTime,x3);
+	
+        if( debug() & 2 )
+	{
+          fprintf(parameters.dbase.get<FILE* >("moveFile"),"getPastTimeGrid: transform rigid body: t0=%7.2e x1=xCM(t=0)=(%6.1e,%6.1e,%6.1e) pastTime=%7.2e"
+		  " x3=(%6.1e,%6.1e,%6.1e)\n",t0,x1(0),x1(1),x1(2),pastTime,x3(0),x3(1),x3(2),pastTime);
+	}
+	
+        body[b]->getRotationMatrix( pastTime,r );
+        transform.reset();
+
+        transform.shift(-x1(0),-x1(1),-x1(2));   // move xCM(0) to the origin
+        bool incremental=true;
+   	transform.rotate( r,incremental );     // rotate about origin (which is really xCM(0))
+
+        // transform.shift(x1(0),x1(1),x1(2));   // shift back
+   	// transform.shift(x3(0)-x1(0),x3(1)-x1(1),x3(2)-x1(2));   // absolute move to current position
+        // replace above two shifts by one shift
+   	transform.shift(x3(0),x3(1),x3(2));
+      }
+      else if ( moveOption(grid) == deformingBody ) 
+      {  
+        // done below ---
+      }
+      else if( moveOption(grid)==userDefinedMovingGrid )
+      {
+	printF("--MvG:getPastTimeGrid: WARNING: finish me formoveOption(grid)==userDefinedMovingGrid\n");
+
+        //  userDefinedTransformMotion( t1,t2,pastTime,dt0,cgf1,cgf2,cgf3,grid );
+
+      }
+      else
+      {
+	printF("moveGrids: unknown movingGridOption = %i\n",(int)moveOption(grid));
+      }
+      
+    } // end if (movingGrid(grid)) ...
+  }
+
+  // ***********************************************
+  // ** Move DeformingBodyGrids          ***********
+  // ***********************************************
+
+  if ( numberOfDeformingBodies != 0) 
+  {
+    for( int b=0; b<numberOfDeformingBodies; b++ )
+    {
+      deformingBodyList[b]->getPastTimeGrid(  pastTime,cg );
+
+    }
+  }
+  
+  return 0;
+}
 
 typedef MatrixTransform *MatrixTransformPointer;
+
+
+// =================================================================================================
+/// /brief Initialize the MatrixTransforms that are used for (non-deforming) moving grids
+// =================================================================================================
+int MovingGrids::
+initializeMovingGridTransforms( GridFunction & cgf3 )
+{
+  if( cgf3.transform==NULL )// should check if Bodies have been initialized
+  { 
+    // -----------------------------------------------------------
+    // ---- First time through we generate the transformation ----
+    // -----------------------------------------------------------
+
+    CompositeGrid & cg = cgf3.cg;
+    
+    const int numberOfDimensions = cgf3.cg.numberOfDimensions();
+    const int numberOfBaseGrids = cgf3.cg.numberOfBaseGrids();  // *wdh* use base grids 040314
+    const int numberOfComponentGrids = cgf3.cg.numberOfComponentGrids(); 
+
+    cgf3.numberOfTransformMappings=numberOfBaseGrids; 
+    cgf3.transform= new MatrixTransformPointer [numberOfBaseGrids]; // allocate transforms for all grids **wasteful?
+    //--> yes it is especially in 3D with few rigidBodies. DeformingBodies don't need transforms
+
+    for( int grid=0; grid<cg.numberOfBaseGrids(); grid++ )  
+    {
+      cgf3.transform[grid]= NULL;
+      if( movingGrid(grid) ) 
+      {
+	if ( moveOption(grid)==deformingBody ) 
+        {
+          // deforming grids do not use a MatrixTransform 
+	} 
+	else  //  moving, nondeforming, grid
+	{
+
+	  Mapping *mapPointer =cgf3.cg[grid].mapping().mapPointer;
+	  // *** watch out -- bc's are reset to those in *mapPointer
+
+	  
+          if( (parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption")==Parameters::readInitialConditionFromShowFile ||
+               parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption")==Parameters::readInitialConditionFromRestartFile  ) && 
+              mapPointer->getClassName()=="MatrixTransform" )
+	  {
+            // This is a restart -- we can use the existing matrix transform
+            // **** we need to do this otherwise the grid will not move to the correct position 
+            //      once it starts to move ****
+            printF(" ****** MovingGrids: re-using existing transform for grid=%i ****\n",grid);
+	    
+	    cgf3.transform[grid]=(MatrixTransform*)mapPointer;
+	  }
+	  else
+	  {
+	    cgf3.transform[grid]= new MatrixTransform(*mapPointer);
+	  }
+	  
+	  MatrixTransform & transform = *cgf3.transform[grid];
+	  
+	  transform.setName(Mapping::mappingName,sPrintF("transform[grid=%i]",grid));
+	  
+	  transform.incrementReferenceCount();   // *wdh 961203 -- set reference count
+
+          // We need to set the number of grid points since this may have changed due to AMR *wdh* 040314
+          const IntegerArray & gid = cgf3.cg[grid].gridIndexRange();
+	  for( int axis=0; axis<numberOfDimensions; axis++ )
+	  {
+	    transform.setGridDimensions(axis,gid(1,axis)-gid(0,axis)+1);
+	  }
+	  
+	  cgf3.cg[grid].reference(transform);               // move grid 1 *************
+	  cgf3.cg[grid].update(MappedGrid::THEvertex);   // ** 000308 only update vertex
+
+          if( true )
+	  {
+	    const IntegerArray & d = cgf3.cg[grid].dimension();
+	    printF(" ***moveGrids: build transform: cfg3: grid=%i dimension=[%i,%i][%i,%i], t3=%9.3e\n",
+                   grid,d(0,0),d(1,0),d(0,1),d(1,1),cgf3.t);
+	  }
+	  
+	  // display(cgf3.cg[0].boundaryCondition(),"moveGrids:after boundary conditions");
+	}
+      }
+      //else //not moving grid
+
+      // ** cgf3.cg.updateReferences();   // *wdh 961204
+    }
+
+    // We need to adjust any refinement grids of rectangular base grids that are moving -- the
+    // refinement grids are no longer considered to be rectangular  *wdh* 040316
+    for( int grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ ) 
+    {
+      if( cgf3.cg.refinementLevelNumber(grid)>0 )
+      {
+	const int base = cgf3.cg.baseGridNumber(grid);
+	if( cgf3.cg[grid].isRectangular() && movingGrid(base) )
+	{
+	  cgf3.cg[grid].mapping().getMapping().setMappingCoordinateSystem( Mapping::general ); 
+	}
+      }
+    }
+    
+
+    cgf3.cg.updateReferences();   // *wdh* 040221 
+    
+  }
+
+  return 0;
+}
 
 
 //=======================================================================================================
@@ -580,96 +927,100 @@ moveGrids(const real & t1,
   const int numberOfBaseGrids = cg.numberOfBaseGrids();  // *wdh* use base grids 040314
   const int numberOfComponentGrids = cg.numberOfComponentGrids(); 
 
-  if( cgf3.transform==NULL )// should check if Bodies have been initialized
-  { 
-    // first time through we generate the transformation
+  // ---------------------------------------------------------------------------------------------
+  // ---- First time through generate the MatrixTransforms used by non-deforming moving grids ----
+  // ---------------------------------------------------------------------------------------------
+  initializeMovingGridTransforms( cgf3 );
 
-    cgf3.numberOfTransformMappings=numberOfBaseGrids; 
-    cgf3.transform= new MatrixTransformPointer [numberOfBaseGrids]; // allocate transforms for all grids **wasteful?
-    //--> yes it is especially in 3D with few rigidBodies. DeformingBodies don't need transforms
 
-    int grid;
-    for( grid=0; grid<cg.numberOfBaseGrids(); grid++ )  
-    {
-      cgf3.transform[grid]= NULL;
-      if( movingGrid(grid) ) 
-      {
-	if ( moveOption(grid)==deformingBody ) 
-        {
-          // deforming grids do not use a MatrixTransform 
-	} 
-	else  //  moving, nondeforming, grid
-	{
+  // if( cgf3.transform==NULL )// should check if Bodies have been initialized
+  // { 
 
-	  Mapping *mapPointer =cgf3.cg[grid].mapping().mapPointer;
-	  // *** watch out -- bc's are reset to those in *mapPointer
+  //   cgf3.numberOfTransformMappings=numberOfBaseGrids; 
+  //   cgf3.transform= new MatrixTransformPointer [numberOfBaseGrids]; // allocate transforms for all grids **wasteful?
+  //   //--> yes it is especially in 3D with few rigidBodies. DeformingBodies don't need transforms
+
+  //   for( int grid=0; grid<cg.numberOfBaseGrids(); grid++ )  
+  //   {
+  //     cgf3.transform[grid]= NULL;
+  //     if( movingGrid(grid) ) 
+  //     {
+  // 	if ( moveOption(grid)==deformingBody ) 
+  //       {
+  //         // deforming grids do not use a MatrixTransform 
+  // 	} 
+  // 	else  //  moving, nondeforming, grid
+  // 	{
+
+  // 	  Mapping *mapPointer =cgf3.cg[grid].mapping().mapPointer;
+  // 	  // *** watch out -- bc's are reset to those in *mapPointer
 
 	  
-          if( (parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption")==Parameters::readInitialConditionFromShowFile ||
-               parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption")==Parameters::readInitialConditionFromRestartFile  ) && 
-              mapPointer->getClassName()=="MatrixTransform" )
-	  {
-            // This is a restart -- we can use the existing matrix transform
-            // **** we need to do this otherwise the grid will not move to the correct position 
-            //      once it starts to move ****
-            printF(" ****** MovingGrids: re-using existing transform for grid=%i ****\n",grid);
+  //         if( (parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption")==Parameters::readInitialConditionFromShowFile ||
+  //              parameters.dbase.get<Parameters::InitialConditionOption >("initialConditionOption")==Parameters::readInitialConditionFromRestartFile  ) && 
+  //             mapPointer->getClassName()=="MatrixTransform" )
+  // 	  {
+  //           // This is a restart -- we can use the existing matrix transform
+  //           // **** we need to do this otherwise the grid will not move to the correct position 
+  //           //      once it starts to move ****
+  //           printF(" ****** MovingGrids: re-using existing transform for grid=%i ****\n",grid);
 	    
-	    cgf3.transform[grid]=(MatrixTransform*)mapPointer;
-	  }
-	  else
-	  {
-	    cgf3.transform[grid]= new MatrixTransform(*mapPointer);
-	  }
+  // 	    cgf3.transform[grid]=(MatrixTransform*)mapPointer;
+  // 	  }
+  // 	  else
+  // 	  {
+  // 	    cgf3.transform[grid]= new MatrixTransform(*mapPointer);
+  // 	  }
 	  
-	  MatrixTransform & transform = *cgf3.transform[grid];
+  // 	  MatrixTransform & transform = *cgf3.transform[grid];
 	  
-	  transform.setName(Mapping::mappingName,sPrintF(buff,"transform[grid=%i]",grid));
+  // 	  transform.setName(Mapping::mappingName,sPrintF(buff,"transform[grid=%i]",grid));
 	  
-	  transform.incrementReferenceCount();   // *wdh 961203 -- set reference count
+  // 	  transform.incrementReferenceCount();   // *wdh 961203 -- set reference count
 
-          // We need to set the number of grid points since this may have changed due to AMR *wdh* 040314
-          const IntegerArray & gid = cgf3.cg[grid].gridIndexRange();
-	  for( int axis=0; axis<numberOfDimensions; axis++ )
-	  {
-	    transform.setGridDimensions(axis,gid(1,axis)-gid(0,axis)+1);
-	  }
+  //         // We need to set the number of grid points since this may have changed due to AMR *wdh* 040314
+  //         const IntegerArray & gid = cgf3.cg[grid].gridIndexRange();
+  // 	  for( int axis=0; axis<numberOfDimensions; axis++ )
+  // 	  {
+  // 	    transform.setGridDimensions(axis,gid(1,axis)-gid(0,axis)+1);
+  // 	  }
 	  
-	  cgf3.cg[grid].reference(transform);               // move grid 1 *************
-	  cgf3.cg[grid].update(MappedGrid::THEvertex);   // ** 000308 only update vertex
+  // 	  cgf3.cg[grid].reference(transform);               // move grid 1 *************
+  // 	  cgf3.cg[grid].update(MappedGrid::THEvertex);   // ** 000308 only update vertex
 
-          if( true )
-	  {
-	    const IntegerArray & d = cgf3.cg[grid].dimension();
-	    printF(" ***moveGrids: build transform: cfg3: grid=%i dimension=[%i,%i][%i,%i], t3=%9.3e\n",
-                   grid,d(0,0),d(1,0),d(0,1),d(1,1),t3);
-	  }
+  //         if( true )
+  // 	  {
+  // 	    const IntegerArray & d = cgf3.cg[grid].dimension();
+  // 	    printF(" ***moveGrids: build transform: cfg3: grid=%i dimension=[%i,%i][%i,%i], t3=%9.3e\n",
+  //                  grid,d(0,0),d(1,0),d(0,1),d(1,1),t3);
+  // 	  }
 	  
-	  // display(cgf3.cg[0].boundaryCondition(),"moveGrids:after boundary conditions");
-	}
-      }
-      //else //not moving grid
+  // 	  // display(cgf3.cg[0].boundaryCondition(),"moveGrids:after boundary conditions");
+  // 	}
+  //     }
+  //     //else //not moving grid
 
-      // ** cgf3.cg.updateReferences();   // *wdh 961204
-    }
+  //     // ** cgf3.cg.updateReferences();   // *wdh 961204
+  //   }
 
-    // We need to adjust any refinement grids of rectangular base grids that are moving -- the
-    // refinement grids are no longer considered to be rectangular  *wdh* 040316
-    for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ ) 
-    {
-      if( cgf3.cg.refinementLevelNumber(grid)>0 )
-      {
-	const int base = cgf3.cg.baseGridNumber(grid);
-	if( cgf3.cg[grid].isRectangular() && movingGrid(base) )
-	{
-	  cgf3.cg[grid].mapping().getMapping().setMappingCoordinateSystem( Mapping::general ); 
-	}
-      }
-    }
+  //   // We need to adjust any refinement grids of rectangular base grids that are moving -- the
+  //   // refinement grids are no longer considered to be rectangular  *wdh* 040316
+  //   for( int grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ ) 
+  //   {
+  //     if( cgf3.cg.refinementLevelNumber(grid)>0 )
+  //     {
+  // 	const int base = cgf3.cg.baseGridNumber(grid);
+  // 	if( cgf3.cg[grid].isRectangular() && movingGrid(base) )
+  // 	{
+  // 	  cgf3.cg[grid].mapping().getMapping().setMappingCoordinateSystem( Mapping::general ); 
+  // 	}
+  //     }
+  //   }
     
 
-    cgf3.cg.updateReferences();   // *wdh* 040221 
+  //   cgf3.cg.updateReferences();   // *wdh* 040221 
     
-  }
+  // }
 
   //
   // ....... Move the grids surrounding the moving bodies .....
@@ -1365,44 +1716,68 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 
 	deformingBodyList[b]->getVelocity( tGV, grid, gf0.cg, gridVelocity  );
 
-        if( false )
-	  ::display(gridVelocity,"MOVING GRIDS(deformingBody): gridVelocity","%5.2f ");  // *************************************
 	
-        // *wdh* 100602 -- turn this next section off - is there any need to separately get the boundary velocity??
-        //              -- we could always add this back as on option. 
-	if( false ) // *wdh* 100602
+	// NOTE: It seems NB to make the grid-velocity on the boundary, match the value
+        //       returned by deformingBodyList[b]->getVelocityBC  so that the advection boundary
+        //       terms in the pressure BC will cancel:
+        //         p.n = n.(  -rho*v_t + (v-g_t).grad(v) + nu*\Delta(v)
+        // *wdh* 2014/06/26 -- turn this back on 
+	if( true ) 
 	{
-	  int side,axis;
-	  Index Icoord(0,c.numberOfDimensions());
+          // -- For each grid face that is on the deforming body we get the grid velocity ---
+          //       boundaryFaces(0:2,f) = (side,axis,grid) for face f 
 	  Index Ib1,Ib2,Ib3;
-	  //Index Ig1,Ig2,Ig3;
-	  //..find a physical boundary & set the velocity there,
-	  ForBoundary(side,axis)   
-	  { 
-	    if( c.boundaryCondition()(side,axis) > 0  )    
+	  Range Rx=c.numberOfDimensions();
+
+          const IntegerArray & boundaryFaces = deformingBodyList[b]->getBoundaryFaces();
+	  const int numberOfFaces = boundaryFaces.getLength(1);
+          for( int f=0; f<numberOfFaces; f++ )
+	  {
+	    if( boundaryFaces(2,f)==grid ) // this face of the deforming body is on this grid 
 	    {
+	      int side=boundaryFaces(0,f), axis=boundaryFaces(1,f);
+              assert( c.boundaryCondition(side,axis) > 0 );
+	      
 	      getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
-	      //getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3);
 	      realSerialArray boundaryVelocity(Ib1,Ib2,Ib3, c.numberOfDimensions());
 	      boundaryVelocity  =  0.;
 	      deformingBodyList[b]->getVelocityBC( tGV, grid, c, Ib1,Ib2,Ib3, boundaryVelocity  );
 
-	      gridVelocityLocal(Ib1,Ib2,Ib3,Icoord) = boundaryVelocity(Ib1,Ib2,Ib3,Icoord); //uses analytic VEL for bc **pf
+	      gridVelocityLocal(Ib1,Ib2,Ib3,Rx) = boundaryVelocity(Ib1,Ib2,Ib3,Rx); 
 
-	      //..DEBUG code
-	      //realArray boundaryGridVel(Ib1,Ib2,Ib3, c.numberOfDimensions());
-	      //boundaryGridVel(Ib1,Ib2,Ib3, Icoord) = gridVelocity( Ib1, Ib2, Ib3, Icoord);
-	      //realArray bcVelocityError(Ib1,Ib2,Ib3, c.numberOfDimensions());
-	      //bcVelocityError = boundaryGridVel - boundaryVelocity;
-	      //realArray vertex =c.vertex(); // DEBUG **pf
-	      //vertex(I1,I2,I3).display("vertex at the boundary"); //DEBUG **pf
-	      //boundaryVelocity.display("analytic velocity at the boundary"); //DEBUG **pf
-	      //boundaryGridVel.display("fdifferenced velocity at the boundary"); //DEBUG **pf
-	      //bcVelocityError.display("ERROR in the BOUNDARY VELOCITY"); //DEBUG **pf
+	    }
+	  }
+	  if( false )
+	  {
+	    // *** OLD WAY -- THIS IS WRONG -- checks too many faces ---
+
+	    int side,axis;
+	    Index Icoord(0,c.numberOfDimensions());
+	    Index Ib1,Ib2,Ib3;
+	    //Index Ig1,Ig2,Ig3;
+	    //..find a physical boundary & set the velocity there,
+	    ForBoundary(side,axis)   
+	    { 
+	      if( c.boundaryCondition()(side,axis) > 0  )    
+	      {
+		getBoundaryIndex(c.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+		realSerialArray boundaryVelocity(Ib1,Ib2,Ib3, c.numberOfDimensions());
+		boundaryVelocity  =  0.;
+		deformingBodyList[b]->getVelocityBC( tGV, grid, c, Ib1,Ib2,Ib3, boundaryVelocity  );
+
+		gridVelocityLocal(Ib1,Ib2,Ib3,Icoord) = boundaryVelocity(Ib1,Ib2,Ib3,Icoord);
+
+	      }
 	    }
 	  } 
+
 	}
 	
+        if( false )
+	  ::display(gridVelocity,sPrintF("--MvG-- MovingGrids(deformingBody): gridVelocity, t=%8.2e",tGV),"%6.3f ");  // *************************************
+
+
+
       } //end if deformingBody
     }
   } //end for -- deformingBodyGrids
@@ -1420,8 +1795,8 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 ///              = ... -g(x,t).tt  where g is the postion of the moving grid  
 //=================================================================================
 int MovingGrids::
-gridAccelerationBC(const int & grid,
-                    const real & t0,
+gridAccelerationBC(const int grid, const int side, const int axis,
+                    const real t0,
                     MappedGrid & c,
                     realMappedGridFunction & u ,
                     realMappedGridFunction & f ,
@@ -1706,39 +2081,57 @@ gridAccelerationBC(const int & grid,
   }
   else if( moveOption(grid)==deformingBody )    // gridAccelerationBC for deformingBodies
   {
+    // **NOTE** 2014/07/01 -- there is a new way to get the correct deforming body number from the boundaryData
+
     int b=int(moveParameters(0,grid)+.5);  // deformingBodyNumber
     assert( b>=0 && b< numberOfDeformingBodies );
     
     int numThisBodyGrids=deformingBodyList[b]->getNumberOfGrids(); 
     assert(numThisBodyGrids!=0); // should have at least the present component='grid'
-    // assert(numThisBodyGrids==1); // Full case (several grids) not impl. yet
-    if( debug() & 2 )     
-       printF("++MOVING GRIDS(deformingBody): gridAccelerationBC, grid = %i, def body = %i\n", grid, b);
 
-    // *wdh* getAccelerationBC should return the acceleration of the boundary on the boundary nodes,
-    // I1,I2,I3 from : getBoundaryIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3);     // boundary line    
-    realSerialArray boundaryAcceleration(I1,I2,I3, c.numberOfDimensions());
-    boundaryAcceleration  =  0.;
-    deformingBodyList[b]->getAccelerationBC( t0, grid, c ,I1,I2,I3, boundaryAcceleration  );
-    //Display dd;
-    //vertex(I1,I2,I3).display("vertex at the boundary"); //DEBUG
-    //boundaryAcceleration(I1,I2,I3).display("acceleration at the boundary"); //DEBUG
-    //cout << "@@@ Accel BC -- VERTICES AT THE BOUNDARY\n";
-    //dd.display(vertex(I1,I2,I3));
-
-    if( c.numberOfDimensions()==2 ) {
-      fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*boundaryAcceleration(I1,I2,I3,0)+ 
-		            normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,1));
-      //cout << "@@@ NORMAL ACCELERATION AT THE BOUNDARY!!\n";
-      //dd.display( normal(I1,I2,I3,0)*boundaryAcceleration(I1,I2,I3,0)+ 
-      //		       normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,1) );
-    }
-    else 
+    // *** July 3, 2014 : FIXED -- NOT ALL faces lie on the deforming body surface --
+    const IntegerArray & boundaryFaces = deformingBodyList[b]->getBoundaryFaces();
+    const int numberOfFaces = boundaryFaces.getLength(1);
+    for( int f=0; f<numberOfFaces; f++ ) 
     {
-      fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*boundaryAcceleration(I1,I2,I3,0)+ 
-		            normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,1)+
-		            normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,2));
-    }  
+      if( boundaryFaces(2,f)==grid  && // this face of the deforming body is on this grid 
+          boundaryFaces(0,f)==side  &&
+          boundaryFaces(1,f)==axis )
+      {
+
+	if( debug() & 2 )     
+	  printF("++MOVING GRIDS(deformingBody): gridAccelerationBC, grid = %i, def body = %i\n", grid, b);
+
+	// *wdh* getAccelerationBC should return the acceleration of the boundary on the boundary nodes,
+	// I1,I2,I3 from : getBoundaryIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3);     // boundary line    
+	realSerialArray boundaryAcceleration(I1,I2,I3, c.numberOfDimensions());
+	boundaryAcceleration  =  0.;
+	deformingBodyList[b]->getAccelerationBC( t0, grid, c ,I1,I2,I3, boundaryAcceleration  );
+
+	if( false )
+	  ::display(boundaryAcceleration(I1,I2,I3,Range(0,1)),sPrintF("--MVG-- bcAcceleration t=%g ",t0),"%9.2e ");
+
+	if( c.numberOfDimensions()==2 ) 
+	{
+	  fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*boundaryAcceleration(I1,I2,I3,0)+ 
+				normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,1));
+
+	  if( false )
+	    ::display(fLocal(I1g,I2g,I3g),sPrintF("--MVG-- f = f - n.boundaryAcceleration (rhs for pressure) t=%g",t0),"%9.2e ");
+
+	  //cout << "@@@ NORMAL ACCELERATION AT THE BOUNDARY!!\n";
+	  //dd.display( normal(I1,I2,I3,0)*boundaryAcceleration(I1,I2,I3,0)+ 
+	  //		       normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,1) );
+	}
+	else 
+	{
+	  fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*boundaryAcceleration(I1,I2,I3,0)+ 
+				normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,1)+
+				normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,2));
+	}  
+      }
+    }
+    
   }
   else if( moveOption(grid)==userDefinedMovingGrid ) 
   {
@@ -3426,9 +3819,8 @@ plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp
 
   for( int b=0; b<numberOfDeformingBodies; b++ )
   {
-    printF("MovingGrids::plot deforming body %i\n",b);
+    // printF("MovingGrids::plot deforming body %i\n",b);
     deformingBodyList[b]->plot( gi,cgf,psp );
-
   }
 
   psp.set(GI_PLOT_LABELS, plotTitleLabels); // reset 
@@ -3456,7 +3848,7 @@ plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp
 ///     - "user defined motion" are motions defined by the user in the file UserDefinedMotion.C
 // =================================================================================================
 int MovingGrids::
-update(CompositeGrid & cg, GenericGraphicsInterface & gi )
+update( CompositeGrid & cg, GenericGraphicsInterface & gi )
 {
 
   if( ! isInitialized )
@@ -3479,55 +3871,150 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     moveParameters=false;
   }
 
+  bool & improveQualityOfInterpolation = parameters.dbase.get<bool >("improveQualityOfInterpolation");
+  real & interpolationQualityBound = parameters.dbase.get<real >("interpolationQualityBound");
+  real & maximumAngleDifferenceForNormalsOnSharedBoundaries = parameters.dbase.get<real >("maximumAngleDifferenceForNormalsOnSharedBoundaries");;
+  MovingGridOption movingGridOption=notMoving;
+  
+  GUIState gui;
+  gui.setWindowTitle("Moving Grids");
+  gui.setExitCommand("exit", "continue");
+  DialogData & dialog = (DialogData &)gui;
+
+  aString prefix = ""; // prefix for commands to make them unique.
+
+  bool buildDialog=true;
+  if( buildDialog )
+  {
+
+    const int maxCommands=40;
+    aString cmd[maxCommands];
+
+    aString pbLabels[] = {"added mass options..."
+                          "help",
+    			  ""};
+
+    int numRows=4;
+    dialog.setPushButtons( pbLabels, pbLabels, numRows ); 
+
+    dialog.setOptionMenuColumns(1);
+    aString motionOptions[] = {"no motion",
+                               "matrix motion",  
+			       "rigid body",
+			       "deforming body",
+			       "user defined",
+			       "unknown or deprecated",
+			       "" };
+
+    dialog.addOptionMenu("Motion:",motionOptions,motionOptions, (movingGridOption==notMoving             ? 0 :
+								 movingGridOption==matrixMotion          ? 1 :
+								 movingGridOption==rigidBody             ? 2 :  
+								 movingGridOption==deformingBody         ? 3 :  
+								 movingGridOption==userDefinedMovingGrid ? 4 : 5
+			   ));
+    // GUIState::addPrefix(motionOptions,"Motion:",cmd,maxCommands);
+    // dialog.addOptionMenu("Motion:",cmd,cmd,movingGridOption );
+
+
+    aString tbCommands[] = {"use hybrid grid for surface integrals",
+                            "improve quality of interpolation",
+			    // "limit forces",
+    			    ""};
+    int tbState[10];
+    tbState[0] = useHybridGridsForSurfaceIntegrals;
+    tbState[1] = improveQualityOfInterpolation;
+    
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
+
+
+    const int numberOfTextStrings=40;
+    aString textLabels[numberOfTextStrings];
+    aString textStrings[numberOfTextStrings];
+
+    int nt=0;
+    
+    textLabels[nt] = "interpolation quality:"; sPrintF(textStrings[nt], "%g",interpolationQualityBound);  nt++; 
+    textLabels[nt] = "shared normal tolerance:"; sPrintF(textStrings[nt], "%g",maximumAngleDifferenceForNormalsOnSharedBoundaries);  nt++; 
+    textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug0);  nt++; 
+
+
+    // null strings terminal list
+    textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
+    // addPrefix(textLabels,prefix,cmd,maxCommands);
+    // dialog.setTextBoxes(cmd, textLabels, textStrings);
+    dialog.setTextBoxes(textLabels, textLabels, textStrings);
+
+
+  }
+
+
   aString answer,answer2;
   int grid;
   
-  aString *gridMenu = new aString [cg.numberOfComponentGrids()+6];
+  aString *gridMenu = new aString [cg.numberOfComponentGrids()+3];
   for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
     gridMenu[grid]=cg[grid].getName();
   gridMenu[cg.numberOfComponentGrids()+0]="all";
   gridMenu[cg.numberOfComponentGrids()+1]="none";
-  gridMenu[cg.numberOfComponentGrids()+2]="specify faces";
-  gridMenu[cg.numberOfComponentGrids()+3]="choose grids by share flag";
-  gridMenu[cg.numberOfComponentGrids()+4]="done";
-  gridMenu[cg.numberOfComponentGrids()+5]="";
+//  gridMenu[cg.numberOfComponentGrids()+2]="specify faces";
+//  gridMenu[cg.numberOfComponentGrids()+3]="choose grids by share flag";
+//  gridMenu[cg.numberOfComponentGrids()+4]="done";
+  gridMenu[cg.numberOfComponentGrids()+2]="";
 
-  gi.appendToTheDefaultPrompt("moving>");
-  for( ;; ) // Pick MovingGrid type
-  {
-	    
-    const aString moveMenu[]=
+  // -- add *old* popup menu
+  const aString moveMenu[]=
     {
-      "matrix motion",   // new general way 
+      // "matrix motion",   // new general way 
       "oscillate",       // old - deprecate at some point
       "rotate",          // old - deprecate at some point
       "translate",       // old - deprecate at some point
       "scale",           // old - deprecate at some point
-      "rigid body",
-      "deforming body",
-      "user defined",
+      // "rigid body",
+      // "deforming body",
+      // "user defined",
       ">options",
-        "use hybrid grid for surface integrals",
-        "do not use hybrid grid for surface integrals",
-        "improve quality of interpolation",               // *fix me* these should be saved with the grid by Ogen
-        "interpolation quality bound",
-        "default shared boundary normal tolerance",
-        "limit forces",
-        "debug",
+      // "use hybrid grid for surface integrals",
+      // "do not use hybrid grid for surface integrals",
+      // "improve quality of interpolation",               // *fix me* these should be saved with the grid by Ogen
+      // "interpolation quality bound",
+      // "default shared boundary normal tolerance",
+      "limit forces",
+      // "debug",
       "<done",
       ""
     }; 
 
-    int response=gi.getMenuItem(moveMenu,answer2,"Choose the movement");
+  gui.buildPopup(moveMenu);
+
+  gi.pushGUI(gui);
+  gi.appendToTheDefaultPrompt("move>");
+
+  int len=0;
+  for( ;; ) // Pick MovingGrid type
+  {
+	    
+    // int response=gi.getMenuItem(moveMenu,answer2,"Choose the movement");
+
+    gi.getAnswer(answer2,"");
+  
+    // printF(answer2,"answer=[answer]\n",(const char *)answer2);
+
+    if( answer(0,prefix.length()-1)==prefix )
+      answer=answer(prefix.length(),answer.length()-1);
 
     RealArray par(moveParameters.getLength(0));
     par=0.;
-    MovingGridOption movingGridOption=notMoving;
     
     if( answer2=="done" || answer2=="exit" )
     {
       break;
     }
+    else if( answer2=="no motion" )
+    {
+      movingGridOption=notMoving;
+    }
+    
     else if( answer2=="matrix motion" )
     {
       // --- matrix motion ---
@@ -3784,8 +4271,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     }
     else if( answer2=="improve quality of interpolation" )
     {
-      parameters.dbase.get<bool >("improveQualityOfInterpolation")=true;
-      printF("improveQualityOfInterpolation=%i\n",parameters.dbase.get<bool >("improveQualityOfInterpolation"));
+      improveQualityOfInterpolation=true;
+      printF("improveQualityOfInterpolation=%i\n",improveQualityOfInterpolation);
       continue;   // skip choosing a grid below
     }
     else if( answer2=="interpolation quality bound" )
@@ -3833,6 +4320,62 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       sScanF(answer2,"%i",&debug0);
       continue;   // skip choosing a grid below
     }
+
+    // ********************* new way ****************************
+
+    else if( answer2=="help" )
+    {
+      printF("INFO: To specify a moving or deforming body one first must choose the motion type of the body (e.g. rigid).\n"
+             "  One then chooses the grids that have boundary faces adjacent to body. In general there are multiple\n"
+             "  grid faces adjacent to the body (i.e. from multiple overlapping grids). Perhaps the easiest way to choose the different grids\n"
+             "  is choose a `shared flag' value (assuming the overlapping grid was constructed with a unique share flag for boundaries\n"
+             "  adjacent to the body).\n");
+      continue;   // skip choosing a grid below
+    }
+    else if( dialog.getTextValue(answer2,"interpolation quality:","%g",interpolationQualityBound) )
+    {
+      if( interpolationQualityBound>1. )
+      {
+	printF("--MVG-- Setting interpolationQualityBound=%5.2f .\n",interpolationQualityBound);
+      }
+      else
+      {
+	interpolationQualityBound=2.;
+        printF("--MVG-- Setting interpolationQualityBound=%g (default).\n",interpolationQualityBound);
+      }
+      continue;   // skip choosing a grid below
+    }
+    else if( dialog.getTextValue(answer2,"shared normal tolerance:","%g",maximumAngleDifferenceForNormalsOnSharedBoundaries) )
+    {
+      printF("--MVG-- This tolerance should be between 0 and 1, and is a relative measure of the maximum angle difference between\n"
+             " normals on two shared boundaries. A value of zero means the normals must match exactly.\n");
+      printF("--MVG-- Setting default shared boundary normal tolerance=%5.2f\n",maximumAngleDifferenceForNormalsOnSharedBoundaries);
+      continue;   // skip choosing a grid below
+    }
+    else if( dialog.getTextValue(answer2,"debug:","%i",debug0) )
+    {
+      continue;   // skip choosing a grid below
+    } 
+
+    else if( dialog.getToggleValue(answer2,"use hybrid grid for surface integrals",useHybridGridsForSurfaceIntegrals) )
+    {
+      if( useHybridGridsForSurfaceIntegrals )
+      {
+	printF("--MVG-- useHybridGridsForSurfaceIntegrals=%i\n",(int)useHybridGridsForSurfaceIntegrals);
+	if( integrate!=NULL )
+	  integrate->useHybridGrids(useHybridGridsForSurfaceIntegrals);
+      }
+      
+      continue;   // skip choosing a grid below
+    }
+    else if( dialog.getToggleValue(answer2,"improve quality of interpolation",improveQualityOfInterpolation) )
+    {
+      if( improveQualityOfInterpolation )
+        printF("--MVG-- improveQualityOfInterpolation=%i\n",improveQualityOfInterpolation);
+      continue;   // skip choosing a grid below
+    }
+
+
     else
     {
       printF("MovingGrids:update: unknown response=[%s]\n",(const char*)answer2);
@@ -3841,11 +4384,36 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
 
 
-    // ------------------------------------------------------------------------
-    // -----   Given the motion type --> choose the grids to move -------------
-    // ------------------------------------------------------------------------
+    // *********************************************************************************************
+    // *********************************************************************************************
+    // ************  Given the motion type --> choose the grids to move ****************************
+    // *********************************************************************************************
+    // *********************************************************************************************
+
     //
     // NOTE: multiple grids can contribute faces to the same rigid/deforming body, e.g. a sphere with two patches
+
+
+    // ********************* choose grids dialog ********************************
+    GUIState chooseGridsGui;
+    chooseGridsGui.setWindowTitle("Choose grids for body");
+    chooseGridsGui.setExitCommand("close choose grids", "close");
+    DialogData & chooseGridsDialog = (DialogData &)chooseGridsGui;
+
+    if( buildDialog )
+    {
+      aString pbCommands[] = {"specify faces",
+			      "choose grids by share flag",
+			      "done",
+			      ""};
+      aString *pbLabels = pbCommands;
+      int numRows=3;
+      chooseGridsDialog.setPushButtons( pbCommands, pbLabels, numRows ); 
+    }
+    chooseGridsGui.buildPopup(gridMenu);
+    gi.pushGUI(chooseGridsGui);
+    gi.appendToTheDefaultPrompt("choose grids>");
+
 
     aString motionName;
     if( movingGridOption==rigidBody ) 
@@ -3879,12 +4447,13 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       Range G; // moved here to be accessible from def body init code
 
-      grid=gi.getMenuItem(gridMenu,answer,"Move which grid(s)?");
+      grid=gi.getAnswer(answer,"Move which grid(s)?");
+      // grid=gi.getMenuItem(gridMenu,answer,"Move which grid(s)?");
 
       if( grid<cg.numberOfComponentGrids() )
         printF("MovingGrids:: choosing moving grid = %i\n",grid);
 
-      if( answer=="none" || answer=="done" )
+      if( answer=="none" || answer=="done" ||  answer=="close choose grids" )
       {
 	break;
       }
@@ -3996,6 +4565,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 	if( answer=="all" )
 	{
 	  G=Range( 0,cg.numberOfComponentGrids()-1);
+	  printF("Choosing all %i grids to move.\n",cg.numberOfComponentGrids());
 	}
 	else
 	{
@@ -4083,6 +4653,10 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     } // end for(;;) -- choosing grid names
 
 
+    gi.popGUI();
+    gi.unAppendTheDefaultPrompt();
+
+
     if( movingGridOption == deformingBody ) 
     {
       // ----------------------------------------------------
@@ -4092,13 +4666,30 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       int b= numberOfDeformingBodies-1;   // deformingBodyNumber
       assert( deformingBodyList[b] != NULL );
 	    
-      if( debug() & 4 )
+      for( int f=0; f<numberOfFaces; f++ )
       {
-        for( int f=0; f<numberOfFaces; f++ )
+	const int side=boundary(0,f);
+	const int axis=boundary(1,f);
+	const int grid=boundary(2,f);
+	printF(" Add face (side,axis,grid)=(%i,%i,%i) to deforming body %i\n",side,axis,grid);
+
+	// --- save the deforming body number in the BoundaryData so that we can look up information such 
+	//     as added-mass information
+
+        BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
+	std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
+
+	BoundaryData & bd = boundaryDataArray[grid];
+
+	if( !bd.dbase.has_key("deformingBodyNumber") )
 	{
-          printF(" Add face (side,axis,grid)=(%i,%i,%i) to deforming body %i\n",
-		 boundary(0,f),boundary(1,f),boundary(2,f));
+	  int (&deformingBodyNumber)[2][3] = bd.dbase.put<int[2][3]>("deformingBodyNumber");
+	  for( int s=0; s<=1; s++) for( int a=0; a<3; a++ ){ deformingBodyNumber[s][a]=-1; } // 
+	    
 	}
+	int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
+	deformingBodyNumber[side][axis]=b;
+
       }
 	    
       deformingBodyList[b]->defineBody( numberOfFaces,boundary );
@@ -4115,9 +4706,14 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       // 	  assert(numThisBodyGrids==1); // Full case (several grids) not impl. yet
 	    
       // INITIALIZE THE GRIDS at past time levels
-      if( debug() & 4 ){ printF("INITIALIZING deformingGrid, past time levels\n"); }
+      if( FALSE )
+      {
+	// *** THIS HAS BEEN MOVED TO assignInitialConditions ****
+	if( debug() & 4 ){ printF("INITIALIZING deformingGrid, past time levels\n"); }
 
-      deformingBodyList[b]->initializePast( time00, dt00, cg);
+	deformingBodyList[b]->initializePast( time00, dt00, cg);
+      }
+      
     }
       
 
@@ -4275,6 +4871,7 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     
     
   }
+  
   if( numberOfRigidBodies>0 )
   {
     rigidBodyInfo.redim(200,numberOfRigidBodyInfoNames,numberOfRigidBodies);
@@ -4283,6 +4880,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
   }
     
   delete [] gridMenu;
+
+  gi.popGUI();
   gi.unAppendTheDefaultPrompt();
 
   return 0;

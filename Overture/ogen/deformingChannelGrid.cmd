@@ -30,7 +30,7 @@ $name=""; $t=0; $per=0;
 $xa=0.; $xb=1.; $ya=0.; $yb=.5; $yc=.75; 
 # 
 # get command line arguments
-GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,\
+GetOptions( "order=i"=>\$order,"factor=f"=> \$factor,"xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,"yc=f"=> \$yc,\
             "t=f"=> \$t,"interp=s"=> \$interp,"name=s"=> \$name,"per=i"=>\$per );
 # 
 if( $order eq 4 ){ $orderOfAccuracy="fourth order"; $ng=2; }\
@@ -53,7 +53,7 @@ $nx = int( ($xb-$xa)/$ds +1.5 );
 #
 $degree=3;
 $n=$nx;      # *** For now this much match the number of grid points
-$h=1./($n-1);
+$h=($xb-$xa)/($n-1);
 #
 $cmd0="";
 $cmd1="";

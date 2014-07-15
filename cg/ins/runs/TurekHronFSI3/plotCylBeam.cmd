@@ -23,7 +23,11 @@ contour
 DISPLAY AXES:0 0
 DISPLAY COLOUR BAR:0 0
 # ---
-DISPLAY LABELS:0 0
+# DISPLAY LABELS:0 0
+save movie files 1
+movie file name: cylBeam
+show movie
+
 
 hardcopy vertical resolution:0 2048
 hardcopy horizontal resolution:0 2048

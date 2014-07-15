@@ -491,7 +491,7 @@ int getUserBoundaryConditionParameters(int side, int axis, int grid, RealArray &
 
 virtual
 int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
-				const Index & I1, const Index &I2, const Index &I3 );
+				const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
 virtual
 bool gridIsMoving(int grid) const;
 
@@ -547,6 +547,9 @@ readFromAShowFile(ShowFileReader & showFileReader,
                   CompositeGrid & cg,
                   realCompositeGridFunction & u,
                   int & solutionNumber );
+
+int 
+regenerateOverlappingGrid( CompositeGrid & cg , CompositeGrid & cgOld, bool resetToFirstPriority= false );
 
 // return true if we save the linearized solution for implicit methods.
 virtual 

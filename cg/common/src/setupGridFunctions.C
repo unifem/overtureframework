@@ -308,6 +308,49 @@ initializeSolution()
       cg[grid].displayComputedGeometry();
   }
 
+  const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+  
+  if( !twilightZoneFlow && movingGridProblem() && gf[current].t==0. )
+  {
+    // --- Initialize current and past time grids for moving and deforming grids ---*NEW* 2014/06/28 
+    // The original grid from the file may have been changed (e.g. to match an initial deformation)
+    // and we need to regenerate the grid.
+
+    if( TRUE )
+    {
+      // Initialize moving grids -- put his here since deforming grids may depend on the
+      // initial conditions and/or known solution *wdh* 2014/07/11: 
+      parameters.dbase.get<MovingGrids >("movingGrids").assignInitialConditions( gf[current] );
+
+      if( FALSE )
+      {
+	GenericGraphicsInterface & ps = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
+	printF("*********** Grid after movingGrids.assignInitialConditions\n");
+	ps.erase();
+	PlotIt::plot(ps,gf[current].cg);
+      }
+      
+      // int numberOfPast=1;
+      // int previous[1]={current};  // 
+      // printF("\n ---DomainSolver::initializeSolution: REGENERATE THE INITIAL OVERLAPPING GRID  ---\n\n");
+      // getPastTimeSolutions( current, numberOfPast, previous  ); 
+    }
+
+    if( true )
+    {
+      printF("\n ---DomainSolver::initializeSolution: REGENERATE THE INITIAL OVERLAPPING GRID  ---\n\n");
+      parameters.regenerateOverlappingGrid( gf[current].cg , gf[current].cg, true );
+    }
+    
+    // Note: below the initial conditions will be interpolated and BC's applied.
+
+    // int numberOfPast=1;
+    // for( int i=0; i<
+    //  getPastTimeSolutions( int current, int numberOfPast, int *previous  )
+
+  }
+      
+
   
   // --- Evaluate variable material properties --- *wdh* 2011/10/26 -- is this the right place
   printF("**** DomainSolver::initializeSolution setVariableMaterialProperties****\n");

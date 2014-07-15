@@ -148,7 +148,11 @@ solveForTimeIndependentVariables( GridFunction & cgf, bool updateSolutionDepende
   
 
   cpu1=getCPU();
+  // ---------------------------------------------------------
+  // --------------- Evaluate the pressure RHS ----------------
+  // ---------------------------------------------------------
   assignPressureRHS( cgf,pressureRightHandSide );
+
   parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAssignPressureRHS"))+=getCPU()-cpu1;
 
   if( debug() & 8 )
@@ -1016,7 +1020,19 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
     display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, after assignOPT",grid),debugFile,"%12.9f ");
   }
    
-  if( parameters.gridIsMoving(grid) &&
+  bool boundaryConditionsAreTimeDependent=false;
+  ForBoundary(side,axis)
+  {
+    if( parameters.bcIsTimeDependent(side,axis,grid) )
+    {
+      boundaryConditionsAreTimeDependent=true;
+      break;
+    }
+  }
+
+  if( (parameters.gridIsMoving(grid) || 
+       boundaryConditionsAreTimeDependent )  // *wdh* 2014/06/
+      &&
       !parameters.dbase.get<bool >("twilightZoneFlow")  )  // *wdh* 040914 
   {
     // add grid acceleration 
@@ -1042,14 +1058,6 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
 	default:
 	{
 	  // add n.( -u.t) for moving grids or time dependent BC's
-          // #ifdef USE_PPP
-          //  realSerialArray & normal = c.vertexBoundaryNormalArray(side,axis);
-          // #else
-          //  realSerialArray & normal = c.vertexBoundaryNormal(side,axis);
-          // #endif  
-	  // gridAccelerationBC(grid, t0, c, u0, f, gridVelocity,normal,
-	  //		     I1,I2,I3, I1g,I2g,I3g,side,axis  );
-
 	  gridAccelerationBC( grid, t0, gf0, f0, side,axis );
 	}
 	
@@ -1058,6 +1066,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
     } // end forBoundary
   }
     
+  // **** THIS NEXT OPTION MAY BE NO LONGER USED *****
   if( (parameters.gridIsMoving(grid) && (bool)parameters.dbase.get<int>("movingBodyPressureBC")) ||
       parameters.dbase.get<int>("movingBodyPressureBC")==2 )
   {

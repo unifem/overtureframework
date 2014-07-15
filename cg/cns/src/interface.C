@@ -110,7 +110,7 @@ enum UserDefinedKnownSolutionEnum
 ///                         option=setInterfaceRightHandSide : set the RHS
 /// \param interfaceDataOptions (input) : a list of items from Parameters::InterfaceDataEnum that define
 ////                    which data to get (or which data were set).  Multiple items are
-///                     chosen by bit-wise or of the different options   
+///                     chosen by bit-wise "or" of the different options   
 /// \param info (input) : contains the GridFaceDescriptor info used to set the right-hand-side.
 /// \param gfd (input) : the master GridFaceDescriptor. 
 /// \param gfIndex (input) : use the solution from gf[gfIndex]

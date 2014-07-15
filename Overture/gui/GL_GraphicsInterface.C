@@ -1,7 +1,7 @@
 #include "GL_GraphicsInterface.h"
 #include <string.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
+// #include <GL/gl.h>
+// #include <GL/glu.h>
 #include "xColours.h"
 
 #ifndef NO_APP
@@ -1933,6 +1933,10 @@ generateNewDisplayList(bool lit /* = false */, bool plotIt /* = true */, bool hi
 //\end{GL_GraphicsInterfaceInclude.tex} 
 // ===================================================================================================
 {
+  #ifndef OV_USE_GL
+    return 123;
+  #endif
+
 // first look among all the allocated lists
   int i;
   for( i=getFirstUserRotableDL(currentWindow); i<getMaxNOfDL(currentWindow); i++ )

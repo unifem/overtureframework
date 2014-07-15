@@ -1,6 +1,12 @@
 #include "Point.h"
+
+#ifdef OV_USE_GL
 #include <GL/gl.h>
 #include <GL/glu.h>
+#else
+#include "nullgl.h"
+#include "nullglu.h"
+#endif
 
 Point::
 Point() // constructor

@@ -6,6 +6,9 @@ using namespace std;
 // abort is in here:
 #include <stdlib.h>
 
+// We need OvertureDefine.h for EXTERN_C_NAME
+#include "OvertureDefine.h"
+#undef OV_ABORT
 #define OV_ABORT(label){\
 printf("Error occured in file %s line %d.\n",__FILE__,__LINE__);	\
    ::abort(); }
@@ -47,14 +50,15 @@ cmplx z = (-0.1e1 / 0.2e1*i) * pow( (k*k + (-i) * rho * omega / mu),(-0.1e1 / 0.
   
 }
 
-#define dispersionShell2 dispersionshell2_
-#define dispersionShell2deriv dispersionshell2deriv_
-#define dispersionInviscidAcoustic dispersioninviscidacoustic_
-#define dispersionInviscidAcousticDeriv dispersioninviscidacousticderiv_
-#define dispersionViscousAcoustic dispersionviscousacoustic_
-#define dispersionViscousAcousticDeriv dispersionviscousacousticderiv_
-#define dispersionViscousElastic dispersionviscouselastic_
-#define dispersionViscousElasticDeriv dispersionviscouselasticderiv_
+
+#define dispersionShell2 EXTERN_C_NAME(dispersionshell2)
+#define dispersionShell2deriv EXTERN_C_NAME(dispersionshell2deriv)
+#define dispersionInviscidAcoustic EXTERN_C_NAME(dispersioninviscidacoustic)
+#define dispersionInviscidAcousticDeriv EXTERN_C_NAME(dispersioninviscidacousticderiv)
+#define dispersionViscousAcoustic EXTERN_C_NAME(dispersionviscousacoustic)
+#define dispersionViscousAcousticDeriv EXTERN_C_NAME(dispersionviscousacousticderiv)
+#define dispersionViscousElastic EXTERN_C_NAME(dispersionviscouselastic)
+#define dispersionViscousElasticDeriv EXTERN_C_NAME(dispersionviscouselasticderiv)
 
 extern "C"
 {
@@ -671,6 +675,7 @@ getTravelingWave( double & wr, double & wi , double *rpar, int *ipar,
                   const int & ns, double *ys, double *us1r, double *us1i,  double *us2r, double *us2i,
                   double *us1yr, double *us1yi,  double *us2yr, double *us2yi )
 {
+  int debug =0 ;
   
   int option    = ipar[0];
   int pdeOption = ipar[1];
@@ -805,6 +810,8 @@ getTravelingWave( double & wr, double & wi , double *rpar, int *ipar,
 
       if( eq3>1.e-3 )
       {
+	printf("ERROR in computing traveling wave ROOT: residual in eq3 =abs( A*rho*w*w + B*(rho*w*w*Ck-k*G*Sk)-k*G*Sa*D ) = %8.2e is too BIG!\n",eq3);
+
         OV_ABORT("ERROR");
       }
 
@@ -1502,34 +1509,37 @@ getTravelingWave( double & wr, double & wi , double *rpar, int *ipar,
       // u1x=I*k*u1;
       // u2x=I*k*u2;
        
-      if( y==0. )
+      if( debug & 4 )
       {
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
-	       y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
-        printf("     : traction: |s22 -( -p+2*mu*v2y)|=%8.2e, |s12 -mu*(v1y+v2x)|=%9.3e \n",
-               abs((lambdas+2.*mus)*u2y +lambdas*u1x - (-p+2.*mu*v2y)),
-	       abs(mus*(u1y+u2x) - mu*(v1y+v2x))
-	  );
-      }
-      else
-      {
-	// printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e, |rho*v1_t+i*k*p-mu*|, |rho*v2_t+p.y|\n",
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e |v1_momenutum|=%8.2e |v2_momenutum|=%8.2e\n",
-	       y,abs(v1),abs(v2),
-               abs(-I*w*rho*v1+I*k*p-mu*(v1xx+v1yy)),
-               abs(-I*w*rho*v2+py   -mu*(v2xx+v2yy))
-	  );
-      }
+	if( y==0. )
+	{
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
+		 y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
+	  printf("     : traction: |s22 -( -p+2*mu*v2y)|=%8.2e, |s12 -mu*(v1y+v2x)|=%9.3e \n",
+		 abs((lambdas+2.*mus)*u2y +lambdas*u1x - (-p+2.*mu*v2y)),
+		 abs(mus*(u1y+u2x) - mu*(v1y+v2x))
+	    );
+	}
+	else
+	{
+	  // printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e, |rho*v1_t+i*k*p-mu*|, |rho*v2_t+p.y|\n",
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e |v1_momenutum|=%8.2e |v2_momenutum|=%8.2e\n",
+		 y,abs(v1),abs(v2),
+		 abs(-I*w*rho*v1+I*k*p-mu*(v1xx+v1yy)),
+		 abs(-I*w*rho*v2+py   -mu*(v2xx+v2yy))
+	    );
+	}
 
 
-      if( y==0. )
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
-	       y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
-      else
-      {
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e\n",
-	       y,abs(v1),abs(v2));
-      }
+	if( y==0. )
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
+		 y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
+	else
+	{
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e\n",
+		 y,abs(v1),abs(v2));
+	}
+      } // end if debug 
       
     }
     
@@ -2494,35 +2504,37 @@ evalTravelingWave(const double & wr, const double & wi , double *rpar, int *ipar
       // u1x=I*k*u1;
       // u2x=I*k*u2;
        
-      if( y==0. )
+      if( debug & 4 )
       {
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
-	       y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
-        printf("     : traction: |s22 -( -p+2*mu*v2y)|=%8.2e, |s12 -mu*(v1y+v2x)|=%9.3e \n",
-               abs((lambdas+2.*mus)*u2y +lambdas*u1x - (-p+2.*mu*v2y)),
-	       abs(mus*(u1y+u2x) - mu*(v1y+v2x))
-	  );
-      }
-      else
-      {
-	// printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e, |rho*v1_t+i*k*p-mu*|, |rho*v2_t+p.y|\n",
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e |v1_momenutum|=%8.2e |v2_momenutum|=%8.2e\n",
-	       y,abs(v1),abs(v2),
-               abs(-I*w*rho*v1+I*k*p-mu*(v1xx+v1yy)),
-               abs(-I*w*rho*v2+py   -mu*(v2xx+v2yy))
-	  );
-      }
+	if( y==0. )
+	{
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
+		 y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
+	  printf("     : traction: |s22 -( -p+2*mu*v2y)|=%8.2e, |s12 -mu*(v1y+v2x)|=%9.3e \n",
+		 abs((lambdas+2.*mus)*u2y +lambdas*u1x - (-p+2.*mu*v2y)),
+		 abs(mus*(u1y+u2x) - mu*(v1y+v2x))
+	    );
+	}
+	else
+	{
+	  // printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e, |rho*v1_t+i*k*p-mu*|, |rho*v2_t+p.y|\n",
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e |v1_momenutum|=%8.2e |v2_momenutum|=%8.2e\n",
+		 y,abs(v1),abs(v2),
+		 abs(-I*w*rho*v1+I*k*p-mu*(v1xx+v1yy)),
+		 abs(-I*w*rho*v2+py   -mu*(v2xx+v2yy))
+	    );
+	}
 
 
-      if( y==0. )
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
-	       y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
-      else
-      {
-	printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e\n",
-	       y,abs(v1),abs(v2));
-      }
-      
+	if( y==0. )
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |I*w*u1|=%8.2e, |v1-u1_t|=%9.3e, |v2|=%8.2e, |v2-u2_t|=%9.3e\n",
+		 y,abs(v1),abs(I*w*u1),abs(v1+I*omega*u1),abs(v2),abs(v2+I*omega*u2));
+	else
+	{
+	  printf("CHECK: y=%8.2e: |v1|=%9.3e, |v2|=%9.3e\n",
+		 y,abs(v1),abs(v2));
+	}
+      } // end if debug
     }
     
     // ---- evaluate the solid ----

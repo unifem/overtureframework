@@ -210,7 +210,9 @@ namespace {
   inline real_t delta_f(const int &i, const int &j) { return i==j ? 1 : 0; }
 }
 
-#define DGESV dgesv_
+#include "OvertureDefine.h"
+
+#define DGESV EXTERN_C_NAME(dgesv)
 extern "C" void DGESV(int &N, int &NRHS, double *A, int &LDA, int *IPIV, double *B, int &LDB, int &INFO);
 
 void

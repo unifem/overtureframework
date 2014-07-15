@@ -49,13 +49,16 @@ for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
+// ==========================================================================================
+/// \brief  Evaluate a user defined known solution.
+///
+/// \param numberOfTimeDerivatives (input) : evaluate this many time-derivatives of the solution.
+///     Normally  numberOfTimeDerivatives=0, but it can be 1 when the known solution is used
+//      to define boundary conditions for cgins.
+// ==========================================================================================
 int Parameters::
 getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
-			    const Index & I1, const Index &I2, const Index &I3 )
-// ==========================================================================================
-//  /Description:
-//     Evaluate a user defined known solution.
-// ==========================================================================================
+			    const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives /* = 0 */ )
 {
   MappedGrid & mg = cg[grid];
 
@@ -73,6 +76,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
   
   if( userKnownSolution=="pistonMotion" ) // *NEW WAY*
   {
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
+
     FlowSolutions flowSolutions;
     int ipar[]={  dbase.get<int >("rc"), dbase.get<int >("uc"), dbase.get<int >("vc"), dbase.get<int >("tc"),-1,-1 };
     real rpar2[]={ dbase.get<real >("gamma"), dbase.get<real >("Rg"),t  };  // 
@@ -128,6 +133,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
   }
   else if( userKnownSolution=="forcedPiston" )  // *OLD WAY*
   {
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
+
     FlowSolutions flowSolutions;
 
     int ipar[]={  dbase.get<int >("rc"), dbase.get<int >("uc"), dbase.get<int >("vc"), dbase.get<int >("tc"),-1,-1 }; // 
@@ -153,6 +160,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
   else if( userKnownSolution=="obliqueShockFlow" )
   {
     // *** Oblique Shock Solution ***
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
 
     FlowSolutions flowSolutions;
 
@@ -165,6 +173,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
   else if( userKnownSolution=="superSonicExpandingFlow" )
   {
     // evaluate the known solution for the supersonic expanding flow
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
 
     FlowSolutions flowSolutions;
 
@@ -196,6 +205,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 //   }
   else if( userKnownSolution=="shockElasticPiston" )
   {
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
 
     int debug = t<=0.;
 
@@ -378,6 +388,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
   {
     // ---- return the exact solution for the rotating disk ---
     printF(" userDefinedKnownSolution: rotatingDisk: t=%9.3e\n",t);
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
 
     // Here are the comopnents for displacement velocity and stress
     int v1c = dbase.get<int >("v1c");
@@ -521,6 +532,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     // ---------------------------------------------------------------------------
     // ---- return the exact solution for the rotating elastic disk in a fluid ---
     // ---------------------------------------------------------------------------
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
 
     const int domain = ipar[0];   // 1=solid, 2=fluid
 
@@ -587,6 +599,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
   else if( userKnownSolution=="uniformFlowINS" )
   {
     // for testing with INS
+    assert( numberOfTimeDerivatives==0 );  // only this case implemented so far
+
     const int pc = dbase.get<int >("pc");
     const int uc = dbase.get<int >("uc");
     const int vc = dbase.get<int >("vc");
@@ -602,14 +616,22 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
      
 
   }
-  else if( userKnownSolution=="travelingWaveFSI" )
+  else if( userKnownSolution=="travelingWaveFSIfluid" ||
+           userKnownSolution=="travelingWaveFSIsolid" )
   {
     // -- evaluate the FSI traveling wave solution ---
     TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
 
     OV_GET_SERIAL_ARRAY(real,ua,uaLocal);
+    if( userKnownSolution=="travelingWaveFSIfluid" )
+    {
+      travelingWaveFsi.getExactFluidSolution( uaLocal, t, mg, I1, I2, I3, numberOfTimeDerivatives );
+    }
+    else
+    {
+      travelingWaveFsi.getExactSolidSolution( uaLocal, t, mg, I1, I2, I3, numberOfTimeDerivatives );
+    }
     
-    travelingWaveFsi.getExactFluidSolution( uaLocal, t, mg, I1, I2, I3 );
   }
 
   else
@@ -665,8 +687,9 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "shock elastic piston",
       "rotating disk",  // for cgsm SVK model
       "uniform flow INS", // for testing INS    
-      "rotating elastic disk in a fluid", // FSI exact solution
-      "FSI traveling wave solution",
+      "rotating elastic disk in a fluid",   // FSI exact solution
+      "FSI traveling wave solution fluid",
+      "FSI traveling wave solution solid",
       "done",
       ""
     }; 
@@ -1102,9 +1125,15 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent
     }
     
-    else if( answer=="FSI traveling wave solution" )
+    else if( answer=="FSI traveling wave solution fluid" || 
+             answer=="FSI traveling wave solution solid" || 
+             answer=="FSI traveling wave solution" ) // for backward compatibility
     {
-      userKnownSolution="travelingWaveFSI";
+      if( answer=="FSI traveling wave solution fluid" || answer=="FSI traveling wave solution" )
+        userKnownSolution="travelingWaveFSIfluid";
+      else
+        userKnownSolution="travelingWaveFSIsolid";
+
       dbase.get<bool>("knownSolutionIsTimeDependent")=true;  // known solution IS time dependent 
 
       printF("INFO:The FSI traveling wave solution is an exact solution for a solid (shell or bulk)\n"
@@ -1126,7 +1155,22 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       // we also pass the grid for the solid:
       CompositeGrid & cgSolid = cg; // do this for now  -- only used for number of grid points
       travelingWaveFsi.setup(cg,cgSolid);
-  
+      if( userKnownSolution=="travelingWaveFSIsolid" )
+      {
+        // -- set the component numbers ---
+	travelingWaveFsi.dbase.get<int>("u1c") =dbase.get<int>("u1c") ;
+	travelingWaveFsi.dbase.get<int>("u2c") =dbase.get<int>("u2c") ;
+						                      
+	travelingWaveFsi.dbase.get<int>("v1c") =dbase.get<int>("v1c") ;
+	travelingWaveFsi.dbase.get<int>("v2c") =dbase.get<int>("v2c") ;
+						                      
+	travelingWaveFsi.dbase.get<int>("s11c")=dbase.get<int>("s11c");
+	travelingWaveFsi.dbase.get<int>("s12c")=dbase.get<int>("s12c");
+	travelingWaveFsi.dbase.get<int>("s21c")=dbase.get<int>("s21c");
+	travelingWaveFsi.dbase.get<int>("s22c")=dbase.get<int>("s22c");
+      }
+      
+
     }
     
     else

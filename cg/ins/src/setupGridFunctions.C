@@ -101,8 +101,10 @@ initializeSolution()
 
   DomainSolver::initializeSolution();
 
-  if( !parameters.dbase.get<bool >("twilightZoneFlow") )
+  const bool & twilightZoneFlow = parameters.dbase.get<bool >("twilightZoneFlow");
+  if( !twilightZoneFlow )
   {
+
     // define initial forces on moving bodies -- we really should iterate here since the 
     // forces depend on the pressure and the pressure depends on the forces.
     if( movingGridProblem() && gf[current].t==0. )

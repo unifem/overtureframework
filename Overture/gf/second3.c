@@ -54,12 +54,12 @@ void second( time ) Float *time;
 
 void secondf( time ) Float *time;
 {
-  second_( time );
+  second( time );
 }
 
 void ovtime( time ) Float *time;
 {
-  second_( time );
+  second( time );
 }
 
 

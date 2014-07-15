@@ -408,8 +408,9 @@ else
 {
   // ****** Initialize for NOT twilightZoneFlow ***********
 
-  printF(" **************** METHOD: still need correct initial values for du/dt(t-dt)  ****** \n");
-  printF(" **************** use values from du/dt(t)                                  ****** \n");
+  // printF(" **************** METHOD: still need correct initial values for du/dt(t-dt)  ****** \n");
+  // printF(" **************** use values from du/dt(t)                                  ****** \n");
+  printF("--METHOD-- Initialize past time values for scheme ---\n");
   
   if( parameters.useConservativeVariables() )
     gf[mCur].primitiveToConservative();
@@ -426,8 +427,19 @@ else
     printF(" PC: init: gf[mCur].cg.numberOfComponentGrids=%i \n",gf[mCur].cg.numberOfComponentGrids());
   }
   
-  assign(gf[mOld].u,gf[mCur].u);  // 990903 give initial values to avoid NAN's at ghost points for CNS
-
+  if( !parameters.dbase.get<bool>("useNewTimeSteppingStartup") )
+  {
+    assign(gf[mOld].u,gf[mCur].u);  // 990903 give initial values to avoid NAN's at ghost points for CNS
+  }
+  else
+  {
+    // *new* way to initialize past time solution  // *wdh* 2014/06/28 
+    gf[mOld].t=t0-dt0;
+    int numberOfPast=1;
+    int previous[1]={mOld};  // 
+    getPastTimeSolutions( mCur, numberOfPast, previous  ); 
+  }
+  
   gf[mOld].form=gf[mCur].form;
  
   for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )

@@ -77,12 +77,15 @@ extern "C"
 
 static FILE *localDebugFile=NULL;
 
+#define updateghostboundaries EXTERN_C_NAME(updateghostboundaries)
+#define updateghostandperiodic EXTERN_C_NAME(updateghostandperiodic)
+
 extern "C"
 {
 
 /* This function is used to update ghost boundaries of a P++ array from fortran  */
 void
-updateghostboundaries_(realArray *&pu )
+updateghostboundaries(realArray *&pu )
 {
   // cfprintf(localDebugFile,"**** updateGhostBoundaries called from fortran pu=%i...\n",pu);
   // const realSerialArray & uu = (*pu).getLocalArrayWithGhostBoundaries();
@@ -96,7 +99,7 @@ updateghostboundaries_(realArray *&pu )
 }
 
 void
-updateghostandperiodic_(realMappedGridFunction *&pu )
+updateghostandperiodic(realMappedGridFunction *&pu )
 {
   // cfprintf(localDebugFile,"**** updateGhostBoundaries called from fortran pu=%i...\n",pu);
   // const realSerialArray & uu = (*pu).getLocalArrayWithGhostBoundaries();

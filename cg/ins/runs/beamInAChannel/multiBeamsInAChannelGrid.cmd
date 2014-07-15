@@ -24,6 +24,8 @@ $interp="i"; $interpType = "implicit for all grids";
 $order=2; $orderOfAccuracy = "second order"; $ng=2; $ml=0;
 $xa=-1.; $xb=6.; $ya=0; $yb=1.5; $nExtra=0; 
 $refineInner=0; $refineOuter=0; $fixedRadius=-1; 
+#
+$xoffset2=2.;   # offset for beam 2
 # 
 # get command line arguments
 GetOptions("name=s"=> \$name,"order=i"=>\$order,"factor=f"=> \$factor,"interp=s"=> \$interp,"case=s"=> \$case,\
@@ -156,8 +158,7 @@ SmoothedPolygon
 * start on a side so that the polygon is symmetric
   vertices 
     $w=$beamThickness*.5; # beam half thickness
-    $xoffset=1.; 
-    $x1=$xoffset+$w;  $x2=$xoffset-$w; 
+    $x1=$xoffset2+$w;  $x2=$xoffset2-$w; 
     $y2=$beamLength*1.1;  # increase beam length a bit since smoothed polygon may shorten
     $y1=.5*($ya+$y2); 
     6

@@ -61,7 +61,7 @@ IntDescriptor&
 FPC::NativeLongDescriptor ()
 {
 // *wdh* if defined(__alpha) || defined(__i486__) || defined(__i386__)
-#if defined(__alpha) || defined(__i486__) || defined(__i386__) || defined(__x86_64__)
+#if defined(__alpha) || defined(__i486__) || defined(__i386__) || defined(__x86_64__) || defined(__PPC64__)
     static const IntDescriptor nld(sizeof(long), IntDescriptor::ReverseOrder);
 #endif
 
@@ -84,7 +84,7 @@ const
 RealDescriptor&
 FPC::NativeRealDescriptor ()
 {
-#if defined(__alpha) || defined(__i486__) || defined(__i386__) || defined(__x86_64__)
+#if defined(__alpha) || defined(__i486__) || defined(__i386__) || defined(__x86_64__) || defined(__PPC64__)
 #ifdef BL_USE_FLOAT
     static const RealDescriptor nrd(ieee_float, reverse_float_order, 4);
 #else
@@ -145,6 +145,7 @@ FPC::Ieee64NormalRealDescriptor ()
       defined(__sun)    || \
       defined(__i386__) || /* wdh */ \
       defined(__x86_64__) || /* wdh */ \
+      defined(__PPC64__) || /* wdh: BG/Q */ \
       defined(__i486__) || \
       defined(__hpux)   || \
       defined(_AIX)     || \

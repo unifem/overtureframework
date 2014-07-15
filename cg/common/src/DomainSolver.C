@@ -21,6 +21,10 @@
 //     Base class functions for the DomainSolver
 //  --------------------------------------------------------------------------
 
+int DomainSolver::totalNumberOfArrays=0;
+
+
+
 extern DomainSolver *pDomainSolver;  // temporary
 
 #define FOR_3D(i1,i2,i3,I1,I2,I3) \
@@ -94,7 +98,6 @@ DomainSolver(Parameters & par,
   
   pLineSolve=NULL;
   gridHasMaterialInterfaces=true; // true by default unless we find none
-  totalNumberOfArrays=0;
   pdtVar=NULL;
 
   movieFrame=-1;
@@ -1358,6 +1361,12 @@ writeParameterSummary( FILE * file )
     fPrintF(file," Order of adaptive grid interpolation=%i \n",
             parameters.dbase.get<int >("orderOfAdaptiveGridInterpolation"));
   }
+
+  const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
+  fPrintF(file," useAddedMassAlgorithm=%i. projectAddedMassVelocity=%i.\n",(int) useAddedMassAlgorithm,
+	  (int)projectAddedMassVelocity);
+
 }
 
 

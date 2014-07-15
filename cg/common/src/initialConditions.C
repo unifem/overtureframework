@@ -453,6 +453,7 @@ getInitialConditions(const aString & command /* = nullString */,
 			    "step function...",
 			    "read from a show file...",
                             "twilight zone...",
+                            "known solution",
 			    "user defined...",
                             "change contour plot",
 			    ""};
@@ -737,7 +738,13 @@ getInitialConditions(const aString & command /* = nullString */,
     {
       uniformFlowDialog.hideSibling();
     }
-
+    else if( answer=="known solution" )
+    {
+      printF("--IC--Setting the initial condition to the known solution.\n");
+      initialConditionOption=Parameters::knownSolutionInitialCondition;
+      newInitialConditionsChosen=true;
+    }
+    
     else if( answer=="twilight zone..." )
     {
       tzOptionsDialog.showSibling();

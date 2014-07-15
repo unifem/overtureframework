@@ -350,29 +350,31 @@ setSensitivity( GUIState & dialog,
 }
 
 
-//\begin{>>CompositeGridSolverInclude.tex}{\subsection{plot}} 
 int DomainSolver::
 plot(const real & t, 
      const int & optionIn,
-     real & tFinal )
+     real & tFinal,
+     int solutionToPlot /* = -1 */ )
 // ========================================================================================
-// /Description:
-//
-//     Plot the solution at user requested times. Query for changes to the parameters.
-// 
-//  optionIn :  0 - wait for a response
-//              1 - plot and wait for a response
-//              2 - do not wait for response after plotting
-// /Notes:
-//    plotMode=1 : changes to plotting are disabled. This normally means we are running in "noplot" mode.
-// /Return values: 0=normal exit. 1=user has requested "finish".
-//\end{CompositeGridSolverInclude.tex}  
+/// \brief Plot the solution at user requested times. Query for changes to the parameters.
+/// 
+///  optionIn :  0 - wait for a response
+///              1 - plot and wait for a response
+///              2 - do not wait for response after plotting
+/// /param solutionToPlot (input) : by default plot the "current" solution
+/// \Notes:
+///    plotMode=1 : changes to plotting are disabled. This normally means we are running in "noplot" mode.
+/// \Return values: 0=normal exit. 1=user has requested "finish".
 // ========================================================================================
 {
   // *wdh* 030916 if( parameters.dbase.get<GenericGraphicsInterface* >("ps")==NULL || option==0 )
 //   if( parameters.dbase.get<int >("myid")==0 ) 
 //     printf(" OB_CGS:INFO: plotMode=%i plotOption=%i\n",parameters.dbase.get<int >("plotMode"),parameters.dbase.get<int >("plotOption"));
   
+  if( solutionToPlot<0 )
+    solutionToPlot=current;
+  
+
   int & plotOption = parameters.dbase.get<int >("plotOption");
   int & plotMode = parameters.dbase.get<int >("plotMode");
 
@@ -405,7 +407,7 @@ plot(const real & t,
 
   char buff[100];
 
-  GridFunction & solution = gf[current];
+  GridFunction & solution = gf[solutionToPlot];
   // get any extra components such as errors for tz flow or the pressure for CNS.
 
   // **** no need to compute extra components if we are in movie mode and we are not

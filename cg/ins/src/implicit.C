@@ -2291,6 +2291,7 @@ applyBoundaryConditionsForImplicitTimeStepping(realMappedGridFunction & u,
     // ===============================================
     // === assign dirichlet BC's for the velocity ====
     // ===============================================
+
     if( parameters.gridIsMoving(grid) )
     {
       u.applyBoundaryCondition(V,dirichlet,noSlipWall,gridVelocity,t);

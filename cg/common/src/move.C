@@ -73,148 +73,165 @@ moveGrids(const real & t1,
   parameters.dbase.get<MovingGrids >("movingGrids").moveGrids(t1,t2,t3,dt0,cgf1,cgf2,cgf3 );
 
 
+  // -------------------------------------------------
+  // -------- Regenerate the overlapping grid --------
+  // -------------------------------------------------
 
-  Ogen *gridGenerator = parameters.dbase.get<Ogen* >("gridGenerator");
-  // Now regenerate the grid
-  IntegerArray hasMoved(cgf3.cg.numberOfComponentGrids()); 
-  int grid;
-  for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
-    hasMoved(grid)=parameters.gridIsMoving(grid);
-  
-  if( debug() & 2 )
-    printF("moveGrids: call the grid generator to updateOverlap...\n");
-
-  real time0 = getCPU();
-
-  const int fullUpdateFreq=max(1,parameters.dbase.get<int >("frequencyToUseFullUpdateForMovingGridGeneration"));
-  bool resetToFirstPriority = (numberOfMoves % fullUpdateFreq) == (fullUpdateFreq-1); 
-
-  if( resetToFirstPriority )
+  if( true )
   {
+    // -- new way --
+    const int fullUpdateFreq=max(1,parameters.dbase.get<int >("frequencyToUseFullUpdateForMovingGridGeneration"));
+    bool resetToFirstPriority = (numberOfMoves % fullUpdateFreq) == (fullUpdateFreq-1); 
+
+    parameters.regenerateOverlappingGrid( cgf3.cg , cgf1.cg,resetToFirstPriority);
+  }
+  else
+  {
+    // -- old way --
+
+    Ogen *gridGenerator = parameters.dbase.get<Ogen* >("gridGenerator");
+    // Now regenerate the grid
+    IntegerArray hasMoved(cgf3.cg.numberOfComponentGrids()); 
+    int grid;
+    for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+      hasMoved(grid)=parameters.gridIsMoving(grid);
+  
     if( debug() & 2 )
-      printF("\n +++++++++ moveGrids: use resetToFirstPriority (full update) in Ogen::updateOverlap +++++++++++++ \n");
-  }
-  //  GridGenerator.updateOverlap(cgf3.cg);  // use full algorithm
-  if( debug() & 128 )
-  {
-    display(cgf3.cg.interpolationWidth,"before move: cgf3.cg.interpolationWidth",parameters.dbase.get<FILE* >("debugFile"));
-    for( int grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
-      display(cgf3.cg.interpolationCoordinates[grid],"beforer move: interpolationCoordinates",parameters.dbase.get<FILE* >("debugFile"));
-  }
+      printF("--MV-- moveGrids: call the grid generator to updateOverlap cgf3.t=%8.2e...\n",cgf3.t);
 
-  //  enum MovingGridOption
-  //  {
-  //    useOptimalAlgorithm=0,
-  //    minimizeOverlap=1,
-  //    useFullAlgorithm
-  //  };
+    real time0 = getCPU();
 
-  // resetToFirstPriority=true;  // *** uncomment this line to force a full update ***
-  
-  if( false ) 
-    printf(" ***move:BEFORE updateOverlap  cgf3.cg-> computedGeometry & THErefinementLevel=%i \n",
-	   cgf3.cg->computedGeometry & CompositeGrid::THErefinementLevel);
+    const int fullUpdateFreq=max(1,parameters.dbase.get<int >("frequencyToUseFullUpdateForMovingGridGeneration"));
+    bool resetToFirstPriority = (numberOfMoves % fullUpdateFreq) == (fullUpdateFreq-1); 
 
-  // No need for Ogen to invalidate the geometry because we now do this in MovingGrids::moveGrid
-  gridGenerator->set(Ogen::THEcomputeGeometryForMovingGrids,false);
-
-  // output the grid if the algorithm fails. 
-  gridGenerator->set(Ogen::THEoutputGridOnFailure,true);
-  // abort the program if we are not running interactively
-  bool abortOnAlgorithmFailure = true;
-  if( parameters.dbase.get<GenericGraphicsInterface* >("ps")!=NULL && 
-      parameters.dbase.get<GenericGraphicsInterface* >("ps")->graphicsIsOn() )
-    abortOnAlgorithmFailure=false;
-  gridGenerator->set(Ogen::THEabortOnAlgorithmFailure,abortOnAlgorithmFailure);
-
-
-  checkArrays(" moveGrids: before gridGenerator->updateOverlap");
-
-  if( false ) // ******************** TEMP *********************
-  {
-    aString gridFileName; sPrintF(gridFileName,"gridStep%i.hdf",numberOfMoves);
-    aString gridName="gridFileName";
-    printF("Saving the current grid in the file %s.\n",(const char*)gridFileName);
-    Ogen::saveGridToAFile( cgf3.cg,gridFileName,gridName );
-  }
-
-  // This next param is set in the "general options..." dialog
-  bool useInteractiveGridGenerator=parameters.dbase.get<bool >("useInteractiveGridGenerator");
-  if( parameters.dbase.get<int>("simulateGridMotion")<=1 ) // simulateGridMotion>1 : do not call ogen
-  {
-    if( !useInteractiveGridGenerator )
+    if( resetToFirstPriority )
     {
-
-      // normal way: 
-      if( true )
-      {
-	gridGenerator->updateOverlap(cgf3.cg,cgf1.cg,hasMoved,
-				     resetToFirstPriority ? Ogen::useFullAlgorithm : Ogen::useOptimalAlgorithm);
-      }
-      else
-      { // ** TRY creating a new ogen at each step ***
-	printF("MOVE: create a new Ogen!\n");
-	Ogen ogen(*parameters.dbase.get<GenericGraphicsInterface* >("ps"));
-        ogen.updateOverlap(cgf3.cg,cgf1.cg,hasMoved,
-				     resetToFirstPriority ? Ogen::useFullAlgorithm : Ogen::useOptimalAlgorithm);
-      }
-
-      if( false )
-      {
-	aString gridFileName="gridFailed.hdf", gridName="gridFailed";
-	printF("Saving the current grids in the file %s (option outputGridOnFailure=true)\n",(const char*)gridFileName);
-	printF("To see what went wrong, use ogen to generate this grid using the commands: \n"
-	       "ogen\ngenerate an overlapping grid\n read in an old grid\n  %s\n  reset grid"
-	       "\n display intermediate results\n compute overlap\n",
-	       (const char*)gridFileName); 
-	Ogen::saveGridToAFile( cgf3.cg,gridFileName,gridName );
-      }
+      if( debug() & 2 )
+	printF("\n +++++++++ moveGrids: use resetToFirstPriority (full update) in Ogen::updateOverlap +++++++++++++ \n");
     }
-    else 
-    { // *** for debugging we call the grid generator interactively -- trouble here in parallel, interp pts?
-      // new way: 
-      printF("DomainSolver::moveGrids: Entering the interactive update so you can step through the grid computation\n");
-      MappingInformation mapInfo;
-      mapInfo.graphXInterface=NULL; // This means that we do not provide Mappings 
-      gridGenerator->updateOverlap( cgf3.cg, mapInfo );
+    //  GridGenerator.updateOverlap(cgf3.cg);  // use full algorithm
+    if( debug() & 128 )
+    {
+      display(cgf3.cg.interpolationWidth,"before move: cgf3.cg.interpolationWidth",parameters.dbase.get<FILE* >("debugFile"));
+      for( int grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+	display(cgf3.cg.interpolationCoordinates[grid],"beforer move: interpolationCoordinates",parameters.dbase.get<FILE* >("debugFile"));
     }
-  }
+
+    //  enum MovingGridOption
+    //  {
+    //    useOptimalAlgorithm=0,
+    //    minimizeOverlap=1,
+    //    useFullAlgorithm
+    //  };
+
+    // resetToFirstPriority=true;  // *** uncomment this line to force a full update ***
   
-  parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForGridGeneration"))+=getCPU()-cpu0;
+    if( false ) 
+      printf(" ***move:BEFORE updateOverlap  cgf3.cg-> computedGeometry & THErefinementLevel=%i \n",
+	     cgf3.cg->computedGeometry & CompositeGrid::THErefinementLevel);
 
-  checkArrays(" moveGrids: after gridGenerator->updateOverlap");
+    // No need for Ogen to invalidate the geometry because we now do this in MovingGrids::moveGrid
+    gridGenerator->set(Ogen::THEcomputeGeometryForMovingGrids,false);
 
-  if( false ) 
-   printf(" ***move:AFTER updateOverlap  cgf3.cg-> computedGeometry & THErefinementLevel=%i \n",
-	   cgf3.cg->computedGeometry & CompositeGrid::THErefinementLevel);
+    // output the grid if the algorithm fails. 
+    gridGenerator->set(Ogen::THEoutputGridOnFailure,true);
+    // abort the program if we are not running interactively
+    bool abortOnAlgorithmFailure = true;
+    if( parameters.dbase.get<GenericGraphicsInterface* >("ps")!=NULL && 
+	parameters.dbase.get<GenericGraphicsInterface* >("ps")->graphicsIsOn() )
+      abortOnAlgorithmFailure=false;
+    gridGenerator->set(Ogen::THEabortOnAlgorithmFailure,abortOnAlgorithmFailure);
+
+
+    checkArrays(" moveGrids: before gridGenerator->updateOverlap");
+
+    if( false ) // ******************** TEMP *********************
+    {
+      aString gridFileName; sPrintF(gridFileName,"gridStep%i.hdf",numberOfMoves);
+      aString gridName="gridFileName";
+      printF("Saving the current grid in the file %s.\n",(const char*)gridFileName);
+      Ogen::saveGridToAFile( cgf3.cg,gridFileName,gridName );
+    }
+
+    // This next param is set in the "general options..." dialog
+    bool useInteractiveGridGenerator=parameters.dbase.get<bool >("useInteractiveGridGenerator");
+    if( parameters.dbase.get<int>("simulateGridMotion")<=1 ) // simulateGridMotion>1 : do not call ogen
+    {
+      if( !useInteractiveGridGenerator )
+      {
+
+	// normal way: 
+	if( true )
+	{
+	  gridGenerator->updateOverlap(cgf3.cg,cgf1.cg,hasMoved,
+				       resetToFirstPriority ? Ogen::useFullAlgorithm : Ogen::useOptimalAlgorithm);
+	}
+	else
+	{ // ** TRY creating a new ogen at each step ***
+	  printF("MOVE: create a new Ogen!\n");
+	  Ogen ogen(*parameters.dbase.get<GenericGraphicsInterface* >("ps"));
+	  ogen.updateOverlap(cgf3.cg,cgf1.cg,hasMoved,
+			     resetToFirstPriority ? Ogen::useFullAlgorithm : Ogen::useOptimalAlgorithm);
+	}
+
+	if( false )
+	{
+	  aString gridFileName="gridFailed.hdf", gridName="gridFailed";
+	  printF("Saving the current grids in the file %s (option outputGridOnFailure=true)\n",(const char*)gridFileName);
+	  printF("To see what went wrong, use ogen to generate this grid using the commands: \n"
+		 "ogen\ngenerate an overlapping grid\n read in an old grid\n  %s\n  reset grid"
+		 "\n display intermediate results\n compute overlap\n",
+		 (const char*)gridFileName); 
+	  Ogen::saveGridToAFile( cgf3.cg,gridFileName,gridName );
+	}
+      }
+      else 
+      { // *** for debugging we call the grid generator interactively -- trouble here in parallel, interp pts?
+	// new way: 
+	printF("DomainSolver::moveGrids: Entering the interactive update so you can step through the grid computation\n");
+	MappingInformation mapInfo;
+	mapInfo.graphXInterface=NULL; // This means that we do not provide Mappings 
+	gridGenerator->updateOverlap( cgf3.cg, mapInfo );
+      }
+    }
+  
+    parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForGridGeneration"))+=getCPU()-cpu0;
+  
+    checkArrays(" moveGrids: after gridGenerator->updateOverlap");
+
+    if( false ) 
+      printf(" ***move:AFTER updateOverlap  cgf3.cg-> computedGeometry & THErefinementLevel=%i \n",
+	     cgf3.cg->computedGeometry & CompositeGrid::THErefinementLevel);
+  }
+
   numberOfMoves++;
     
   // *** Mark refinement level grids to indicate that the geometry has changed *wdh* 040315
-  if( false )
-  {
-    for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
-    {
-      if( cgf3.cg.refinementLevelNumber(grid)>0 )
-      {
-	const int base = cgf3.cg.baseGridNumber(grid);
-	if( hasMoved(grid) )
-	{
-	  printf("\n===> mark AMR grid %i geometryHasChanged\n");
-	  cgf3.cg[grid].geometryHasChanged(~MappedGrid::THEmask);  // is this needed?
+  // if( false )
+  // {
+  //   for( grid=0; grid<cgf3.cg.numberOfComponentGrids(); grid++ )
+  //   {
+  //     if( cgf3.cg.refinementLevelNumber(grid)>0 )
+  //     {
+  // 	const int base = cgf3.cg.baseGridNumber(grid);
+  // 	if( hasMoved(grid) )
+  // 	{
+  // 	  printf("\n===> mark AMR grid %i geometryHasChanged\n");
+  // 	  cgf3.cg[grid].geometryHasChanged(~MappedGrid::THEmask);  // is this needed?
 
-	  Mapping & map = cgf3.cg[grid].mapping().getMapping();
-	  Mapping & mapBase = cgf3.cg[base].mapping().getMapping();
+  // 	  Mapping & map = cgf3.cg[grid].mapping().getMapping();
+  // 	  Mapping & mapBase = cgf3.cg[base].mapping().getMapping();
 
-	  assert( map.getClassName()=="ReparameterizationTransform" );
-	  ReparameterizationTransform & transform = (ReparameterizationTransform&)map;
-	  Mapping & map2 = transform.map2.getMapping();
+  // 	  assert( map.getClassName()=="ReparameterizationTransform" );
+  // 	  ReparameterizationTransform & transform = (ReparameterizationTransform&)map;
+  // 	  Mapping & map2 = transform.map2.getMapping();
 	
-	  printf("===>  AMR grid =%i has mapping ptr=%i, base grid=%i has mapping ptr=%i\n",
-		 grid,&map2,base,&mapBase);
-	}
-      }
-    }
-  }
+  // 	  printf("===>  AMR grid =%i has mapping ptr=%i, base grid=%i has mapping ptr=%i\n",
+  // 		 grid,&map2,base,&mapBase);
+  // 	}
+  //     }
+  //   }
+  // }
   
 
   if( debug() & 128 )

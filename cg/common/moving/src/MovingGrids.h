@@ -46,6 +46,9 @@ MovingGrids(const MovingGrids & mg);
 virtual ~MovingGrids();
 
 
+// Assign initial conditions and past time state
+int assignInitialConditions( GridFunction & cgf );
+
 // correction step: 
 virtual int correctGrids(const real t1,
 			 const real t2, 
@@ -79,6 +82,9 @@ MatrixMotion & getMatrixMotionBody(const int bodyNumber);
 
 int getNumberOfRigidBodies() const;
 
+// Construct a grid in the past (used for starting a multi-step scheme for e.g.)
+int getPastTimeGrid( GridFunction & cgf );
+
 RigidBodyMotion & getRigidBody(const int bodyNumber);
 
 real getTimeStepForRigidBodies() const; 
@@ -91,8 +97,8 @@ int getUserDefinedGridVelocity( GridFunction & gf0, const real & t0, const int g
 // get from a data base file
 int get( const GenericDataBase & dir, const aString & name);
 
-virtual int gridAccelerationBC(const int & grid,
-			       const real & t0,
+virtual int gridAccelerationBC(const int grid, const int side, const int axis,
+			       const real t0,
 			       MappedGrid & c,
 			       realMappedGridFunction & u ,
 			       realMappedGridFunction & f ,
@@ -195,9 +201,11 @@ int updateUserDefinedMotion(CompositeGrid & cg, GenericGraphicsInterface & gi);
 
 protected:
 
-int initialize();
 int getRamp(real t, real rampInterval, real & ramp, real & rampSpeed, real & rampAcceleration );
+
+int initialize();
   
+int initializeMovingGridTransforms( GridFunction & cgf );
 
 Parameters & parameters;
 

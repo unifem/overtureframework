@@ -25,6 +25,7 @@ $solver="yale";  $rtoli=1.e-5; $atoli=1.e-6; $idebug=0;
 $psolver="yale"; $rtolp=1.e-5; $atolp=1.e-6; $pdebug=0; $dtolp=1.e20; 
 $pc="ilu"; $refactorFrequency=500; 
 * 
+$addedMass=0; $ampProjectVelocity=0;  $delta=100.; $E=10.; $bdebug=0; 
 *
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor, "model=s"=>\$model,\
@@ -33,7 +34,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"implicitFactor=f"=>\$implicitFactor,
  "go=s"=>\$go,"dtMax=f"=>\$dtMax,"cDt=f"=>\$cDt,"iv=s"=>\$implicitVariation,"Tin=f"=>\$Tin,"ad2=i"=>\$ad2,\
  "solver=s"=>\$solver,"psolver=s"=>\$psolver,"pc=s"=>\$pc,"outflowOption=s"=>\$outflowOption,"ad4=i"=>\$ad4,\
  "debug=i"=>\$debug,"pdebug=i"=>\$pdebug,"idebug=i"=>\$idebug,"project=i"=>\$project,"cfl=f"=>\$cfl,\
- "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0 );
+ "restart=s"=>\$restart,"useNewImp=i"=>\$useNewImp,"p0=f"=>\$p0,"addedMass=i"=>\$addedMass,"delta=f"=>\$delta,\
+ "bdebug=i"=>\$bdebug,"E=f"=>\$E,"ampProjectVelocity=i"=>\$ampProjectVelocity );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -78,13 +80,16 @@ $grid
 * 
 * choose time stepping method:
   $ts
+# -- for added mass algorithm:
+  use added mass algorithm $addedMass
+  project added mass velocity $ampProjectVelocity
 *   
   turn on moving grids
   specify grids to move
       deforming body
         user defined deforming body
           elastic beam
-          $I=1.; $E=10.; $rhoBeam=100.; $length=1.; $thick=.2; $pNorm=1.; 
+          $I=1.;  $rhoBeam=$delta; $length=1.; $thick=.2; $pNorm=1.; 
           $angle=90.; # $Pi*.5; 
           elastic beam parameters...
             number of elements: 11
@@ -96,9 +101,12 @@ $grid
             pressure norm: $pNorm
             initial declination: $angle (degrees)
             position: 0, 0, 0 (x0,y0,z0)
-            bc left:cantilever
+            bc left:clamped
             bc right:free
-            debug: 0
+            debug: $bdebug
+            #
+            use implicit predictor 1
+            #
           exit
           # -- old way --
 #-          elastic beam parameters
@@ -138,6 +146,7 @@ $grid
   dtMax $dtMax
   pde parameters
     nu  $nu
+    density 1.
     kThermal $kThermal
     gravity
       $gravity
@@ -150,6 +159,7 @@ $grid
    # MG solver currently wants a Neumann BC at outflow
    ## if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="OBPDE:expect inflow at outflow\n use extrapolate BC at outflow"; }
    if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="use extrapolate BC at outflow"; }
+   if( $outflowOption eq "neumann" ){ $cmd = "use Neumann BC at outflow"; }else{ $cmd="OBPDE:check for inflow at outflow\n use extrapolate BC at outflow"; }
      $cmd
    done
 * 

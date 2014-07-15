@@ -233,7 +233,7 @@ virtual int
 buildTimeSteppingDialog(DialogData & dialog );
 
 
-void checkArrays(const aString & label);
+static void checkArrays(const aString & label);
 
 int checkProbes();
 
@@ -406,6 +406,9 @@ getOriginalBoundaryConditions(CompositeGrid & cg, IntegerArray & originalBoundar
 
 virtual int 
 getOutputOption(const aString & command, DialogData & dialog );
+
+virtual int
+getPastTimeSolutions( int current, int numberOfPast, int *previous );
 
 // name of the PDE (e.g. advection-diffusion)
 const aString & 
@@ -584,7 +587,7 @@ virtual int
 parabolicInflow(GridFunction & cgf );
 
 virtual int
-plot(const real & t, const int & optionIn, real & tFinal );
+plot(const real & t, const int & optionIn, real & tFinal, int solutionToPlot=-1 );
 
 
 virtual int 
@@ -866,7 +869,7 @@ aString movieFileName;
 
 int numberOfGridFunctionsToUse;   // number of entries in gf[] that we use
 int numberOfExtraFunctionsToUse;  // number of entries in fn[] that we use
-int totalNumberOfArrays; // keep a count of the number of A++ arrays; used to check for leaks
+static int totalNumberOfArrays; // keep a count of the number of A++ arrays; used to check for leaks
 realCompositeGridFunction fn[maximumNumberOfExtraFunctionsToUse];  // work arrays for time stepping
 
 // These next arrays are for variable time stepping

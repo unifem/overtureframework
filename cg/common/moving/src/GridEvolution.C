@@ -17,6 +17,7 @@ GridEvolution::GridEvolution()
   velocityOrderOfAccuracy=1;      // order of accurcy for the velocity computation
 
   time.redim(maximumNumberOfTimeLevels);
+  time=0.;
 
   specifiedMotion=noSpecifiedMotion;
   
@@ -108,31 +109,69 @@ addGrid( const realArray & x, real t )
       // NOTE: We should generalize this to  adding any number of previous grids
       // NOTE: What happens if we want to replace a grid with an improved one ??
          
-
-      if( t <time(current) && time(current)==0.  && numberOfTimeLevels==1 && current==0 )
+      if( numberOfTimeLevels==maximumNumberOfTimeLevels )
       {
-        gridList.addElement(x,0); // insert into the start of the list
+	printF("--GE-- addGrid:ERROR: attempting to add past a time grid at t=%8.2e but numberOfTimeLevels==maximumNumberOfTimeLevels=%i\n",
+	       t,numberOfTimeLevels);
+        return 1;
+      }
+      else if( t <time(current) && time(current)==0. ) //  && numberOfTimeLevels==1 && current==0 )
+      {
+        // find where to put the next past time level 
+        // we will insert the past time level at position=prev
+        int prev=current;    //  start here and check backwards..
+        for( int i=0; i<numberOfTimeLevels-1; i++ )
+	{
+          int prevm1 = (prev -1 + maximumNumberOfTimeLevels) % maximumNumberOfTimeLevels;
+	  if( t<time(prevm1) )
+            prev= prevm1;
+	  else
+	    break;
+	}
+	
+	printF("--GE-- addGrid: add past time grid at t=%8.2e to position prev=%i\n",t,prev);
+        gridList.addElement(x,prev); // insert into the list here 
+
+        // Shift the times:
+        int prev0=prev;  // save insertion position 
+	while( prev!=current )
+	{
+          int next=(prev +1 + maximumNumberOfTimeLevels) % maximumNumberOfTimeLevels;
+          time(next)=time(prev);
+	  prev=next;
+  	}
+        time(prev0)=t;
 
 	current = (current +1) % maximumNumberOfTimeLevels;
-
-        time(current)=time(0);
-        time(0)=t;
-	
+        
         numberOfTimeLevels=min(numberOfTimeLevels+1,maximumNumberOfTimeLevels);
 
 	if( true || debug & 4 )
-	  printF("GridEvolution::addGrid:INFO: adding a grid for t<0, t=%9.3e, "
-                 "(current=%i, t=%9.3e, numberOfTimeLevels=%i)\n",t,
+	  printF("GridEvolution::addGrid:INFO: adding a grid for t<0 in the list at position=%i, t=%9.3e, "
+                 "(current=%i, t=%9.3e, numberOfTimeLevels=%i)\n", prev0,t,
 		 current,time(current),numberOfTimeLevels);
+	
+	::display(time,"---GE-- times","%8.2e ");
 	
         return 1;
       }
+      else if( t==time(current) && time(current)==0. )
+      {
+        if( true || debug & 4 )
+          printF("--GE-- addGrid: REPLACING current grid at t=%8.2e\n",t);
+	gridList[current]=x;
+
+	return 1;
+      }
+      
 
       printF("GridEvolution::addGrid:ERROR: t=%10.4e is less than or equal to time(current)=%10.4e \n",
             t,time(current));
       printF("GridEvolution::addGrid:... skipping this grid...\n");
       return 0;
-    }
+
+    } // end if t <= time(current)
+    
   }
 
   current = (current +1) % maximumNumberOfTimeLevels;
@@ -168,6 +207,64 @@ addGrid( const realArray & x, real t )
 
   return 0;
 }
+
+// ==================================================================================================
+/// \brief Display properties of the class.
+// ==================================================================================================
+int GridEvolution::
+display( FILE *file /* = stdout */ ) const
+{
+
+  fPrintF(file,"\n --------------------------------------------------------------------------------------\n");
+  fPrintF(file,"--- Grid Evolution: numberOfTimeLevels=%i, maximumNumberOfTimeLevels=%i, current=%i\n",
+	  numberOfTimeLevels,  maximumNumberOfTimeLevels,  current);
+  
+  for( int level=0; level<gridList.getLength(); level++ )
+  {
+    ::display(gridList[level],sPrintF("Grid evolution: gridList[%i] time=%9.3e",level,time(level)),file,"%9.2e ");
+  }
+  fPrintF(file," --------------------------------------------------------------------------------------\n\n");
+
+  return 0;
+}
+
+
+
+// ===========================================================================================
+/// \brief Get the grid from time t
+/// \para,m x (output) : a reference to the grid at tine t (if return = 0)
+/// \Return 0=success, 1=not found
+// ==================================================================================================
+int GridEvolution::
+getGrid( RealArray & x, const real t ) const
+{
+  int level=-1;
+  for(int j=0; j<numberOfTimeLevels; j++ )
+  {
+    int l = (current - j + maximumNumberOfTimeLevels) % maximumNumberOfTimeLevels;
+    if( fabs(time(l)-t) <= REAL_EPSILON*100.*(1+fabs(t)) )
+    {
+      level=l;
+      break;
+    }
+  }
+  if( level>=0 )
+  {
+    printF("GridEvolution::getGrid: grid at t=%8.2e found: level=%i\n",t,level);
+    x.redim(0);
+    x.reference(gridList[level]);
+    return 0;
+  }
+  else
+  {
+    printF("GridEvolution::getGrid: WARNING - no grid for time t=%8.2e was found\n",t);
+    return 1;
+  }
+
+}
+
+
+
 
 // ===========================================================================================
 /// \brief Compute the grid velocity from a set of grids over time.

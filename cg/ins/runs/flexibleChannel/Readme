@@ -1,0 +1,19 @@
+Incompressible flow trhough a channel with a flexible (beam) boundary
+
+
+(1) Build some  grids:
+   ogen -noplot flexibleChannelGrid -factor=2
+   ogen -noplot flexibleChannelGrid -factor=4
+   
+
+(2) Run interactively:
+
+cgins flexibleChannel -g=flexibleChannelGride2.order2.hdf -tf=1. -tp=.01
+
+(3) Run in batch and save a show file
+
+
+
+(4) Plot results from the show file:
+
+

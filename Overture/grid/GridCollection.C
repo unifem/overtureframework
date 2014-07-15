@@ -2359,7 +2359,7 @@ initialize(const Integer& numberOfDimensions_,
   {
     if( !interpolant->uncountedReferencesMayExist() && interpolant->decrementReferenceCount()==0 )
     {
-      printF("GridCollectionData::initialize: delete an old Interpolant\n");
+      if( Mapping::debug & 4 ) printF("GridCollectionData::initialize: delete an old Interpolant\n");
       delete interpolant;
     }
   }

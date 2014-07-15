@@ -55,6 +55,7 @@ real Parameters::spalartAllmarasDistanceScale=1.e-10;
 
 int Parameters::checkForFloatingPointErrors=0;  // =1 : check for floating point errors such as nan's and inf's
 
+class DomainSolver; // forward declaration
 
 //===================================================================================
 //\begin{>ParametersInclude.tex}{\subsection{Variables in Parameters}} 
@@ -246,7 +247,11 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("pEquationDomainList")) dbase.put<ListOfEquationDomains*>("pEquationDomainList");
   if (!dbase.has_key("userDefinedTwilightZoneCoefficients")) dbase.put<bool>("userDefinedTwilightZoneCoefficients");
   if (!dbase.has_key("ad62")) dbase.put<real>("ad62");
+
   if (!dbase.has_key("assignInitialConditionsWithTwilightZoneFlow")) dbase.put<bool>("assignInitialConditionsWithTwilightZoneFlow");
+  // Use the new way to compute starting values for PC schemes:
+  if (!dbase.has_key("useNewTimeSteppingStartup")) dbase.put<bool>("useNewTimeSteppingStartup")=false;
+
   if (!dbase.has_key("plotMode")) dbase.put<int>("plotMode");
   if (!dbase.has_key("timeDependenceBoundaryConditionParameters")) dbase.put<RealArray>("timeDependenceBoundaryConditionParameters");
   if (!dbase.has_key("plotOption")) dbase.put<int>("plotOption");
@@ -505,6 +510,9 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("multiDomainProblem")) dbase.put<int>("multiDomainProblem");
   dbase.get<int>("multiDomainProblem")=0; 
 
+  // multiDomainSolver - pointer to the multiDomainSolver Cgmp (for multi-domain solvers
+  if (!dbase.has_key("multiDomainSolver")){ dbase.put<DomainSolver*>("multiDomainSolver")=NULL; } // 
+
   if (!dbase.has_key("referenceFrame")) dbase.put<ReferenceFrameEnum>("referenceFrame");
   dbase.get<ReferenceFrameEnum>("referenceFrame")=fixedReferenceFrame; 
 
@@ -539,7 +547,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
 
   if (!dbase.has_key("showFileParams")) dbase.put<ListOfShowFileParameters>("showFileParams");
 
-  if( !dbase.has_key("saveAugmentedSolutionToShowFile") ) dbase.put<bool>("saveAugmentedSolutionToShowFile",0);
+  if( !dbase.has_key("saveAugmentedSolutionToShowFile") ) dbase.put<bool>("saveAugmentedSolutionToShowFile")=false;
 
   // turn on the interactive grid generator (Ogen) for moving grids.
   if (!dbase.has_key("useInteractiveGridGenerator")) dbase.put<bool >("useInteractiveGridGenerator",false);
@@ -593,6 +601,14 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
 
   // -- Controls --
   if( !dbase.has_key("turnOnController") ) dbase.put<bool >("turnOnController",false);
+
+  // -- added mass parameters --
+  //  useAddedMassAlgorithm : turn on the added mass algorithm
+  //  projectAddedMassVelocity : perform the added mass velocity projection (if useAddedMassAlgorithm=true)
+  if( !dbase.has_key("useAddedMassAlgorithm") ) dbase.put<bool>("useAddedMassAlgorithm")=false;
+  if( !dbase.has_key("projectAddedMassVelocity") ) dbase.put<bool>("projectAddedMassVelocity")=true;
+
+
 
   // -----------------------------------------------------------------
   // ---- Assign initial values to those variables not already set ----

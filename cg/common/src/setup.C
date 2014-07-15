@@ -598,6 +598,7 @@ buildGeneralOptionsDialog(DialogData & dialog )
                           "iterative implicit interpolation",
                           "check for floating point errors",
                           "use interactive grid generator",
+                          "use new time-stepping startup",
 			  ""};
   int tbState[10];
   tbState[0] = parameters.dbase.get<bool >("axisymmetricProblem"); 
@@ -605,6 +606,8 @@ buildGeneralOptionsDialog(DialogData & dialog )
                cg.rcData->interpolant->getImplicitInterpolationMethod()==Interpolant::iterateToInterpolate  : 0;
   tbState[2] = Parameters::checkForFloatingPointErrors;
   tbState[3] = parameters.dbase.get<bool >("useInteractiveGridGenerator");
+  tbState[4] = parameters.dbase.get<bool>("useNewTimeSteppingStartup");
+  
   
   int numColumns=1;
   dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -681,6 +684,9 @@ getGeneralOption(const aString & answer,
     printF("For moving grids I will use the interactive Ogen grid generator so that you\n"
            "can interactively step through the grid generation steps.\n");
   }
+  else if( dialog.getToggleValue(answer,"use new time-stepping startup",
+           parameters.dbase.get<bool>("useNewTimeSteppingStartup")) ){} //
+
   else if( dialog.getTextValue(answer,"maximum iterations for implicit interpolation","%i",
                                parameters.dbase.get<int >("maximumNumberOfIterationsForImplicitInterpolation")) ){}//
   else if( dialog.getTextValue(answer,"velocity scale","%e",parameters.dbase.get<real>("velocityScale")) )

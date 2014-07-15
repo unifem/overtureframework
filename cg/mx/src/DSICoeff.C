@@ -44,10 +44,12 @@ namespace {
   UnstructuredMapping::EntityTypeEnum hAdj, eAdj;
 }
 
+#define LSCOEFF EXTERN_C_NAME(lscoeff)
+
 extern int 
 getCenters( MappedGrid &mg, UnstructuredMapping::EntityTypeEnum cent, realArray &xe );
 
-extern "C" void F90_ID(lscoeff,LSCOEFF) ( 
+extern "C" void LSCOEFF ( 
 				     F90_REAL8 *a,
 				     F90_INTEGER *m,
 				     F90_INTEGER *n,
@@ -693,7 +695,7 @@ namespace {
 	      
 	      ierr=0;
 	      real t0l = getCPU();
-	      F90_ID(lscoeff, LSCOEFF) ( Psend_to_lscoeff.ptr(), &neqFound, &ncol, qri.ptr(), &rcond, wrk.ptr(), &ierr);
+	      LSCOEFF( Psend_to_lscoeff.ptr(), &neqFound, &ncol, qri.ptr(), &rcond, wrk.ptr(), &ierr);
 	      lscTime += getCPU()-t0l;
 	      real t02 = getCPU();
 
@@ -814,7 +816,7 @@ namespace {
     
     int ierr=0;
     real t0l = getCPU();
-    F90_ID(lscoeff, LSCOEFF) ( Psend_to_lscoeff.ptr(), &neqFound, &ncol, qri.ptr(), &rcond, wrk.ptr(), &ierr);
+    LSCOEFF ( Psend_to_lscoeff.ptr(), &neqFound, &ncol, qri.ptr(), &rcond, wrk.ptr(), &ierr);
     lscTime += getCPU()-t0l;
 #endif
     real t02 = getCPU();
@@ -1311,9 +1313,9 @@ namespace {
 	  
 	  int ierr=0;
 	  real rcond;
-	  //	  F90_ID(lscoeff, LSCOEFF) ( mn.ptr()/*Msub.ptr()*/, &neqFound, &n, qri.ptr(), wrk.ptr(), &ierr);
+	  //	  LSCOEFF ( mn.ptr()/*Msub.ptr()*/, &neqFound, &n, qri.ptr(), wrk.ptr(), &ierr);
 	  real t0l=getCPU();
-	  F90_ID(lscoeff, LSCOEFF) ( Msub.ptr(), &neqFound, &n, qri.ptr(), &rcond,wrk.ptr(), &ierr);
+	  LSCOEFF ( Msub.ptr(), &neqFound, &n, qri.ptr(), &rcond,wrk.ptr(), &ierr);
 	  lscTime += getCPU()-t0l;
 	  
 	  real t02 = getCPU();

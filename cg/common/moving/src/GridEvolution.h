@@ -17,6 +17,12 @@ GridEvolution();
 // add a new grid at time t
 int addGrid( const realArray & x, real t );
 
+// Display properties of the class.
+int display( FILE *file = stdout ) const;
+
+// get the grid from time t
+int getGrid( RealArray & x, const real t ) const;
+
 int getNumberOfTimeLevels() const;
 
 int getVelocity( real t, realSerialArray & gridVelocity, 

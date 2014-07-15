@@ -1,13 +1,14 @@
-
 #include "OvertureParser.h"
 
 // On the dec: these next includes seem to mess with bool -- causes problems if we include Overture stuff
+#ifdef OV_USE_PERL
 extern "C"
 {
 #include <EXTERN.h>
 #include <perl.h>
 #include <XSUB.h>
 }
+#endif
 
 int OvertureParser::debug=1;
 
@@ -19,6 +20,7 @@ OvertureParser(int argc, char **argv) : parserPointer(0) // kkc 031230 added cto
 //  are replaced.
 //===============================================================================================
 {
+#ifdef OV_USE_PERL
   PerlInterpreter *const& my_perl_c = (PerlInterpreter *)parserPointer;
 
   PerlInterpreter *& my_perl = (PerlInterpreter *&)my_perl_c;
@@ -58,11 +60,13 @@ OvertureParser(int argc, char **argv) : parserPointer(0) // kkc 031230 added cto
 
   parserPointer = my_perl;  // *wdh* 2012/06/17 -- this was not being set and thus my_perl was not being destroyed
   delete [] embedding;
+#endif
 }
 
 OvertureParser::
 ~OvertureParser()
 {
+#ifdef OV_USE_PERL
   PerlInterpreter *const& my_perl_c = (PerlInterpreter *)parserPointer;
 
   PerlInterpreter *& my_perl = (PerlInterpreter *&)my_perl_c;
@@ -73,6 +77,7 @@ OvertureParser::
   }
 
   PERL_SYS_TERM(); // 2013/11/06 - fix from Andrew Glassby
+#endif
 }
 
 int OvertureParser::
@@ -92,7 +97,9 @@ parse(aString & answer )
 // ===============================================================================
 {
   int returnValue=0;
-  
+
+#ifdef OV_USE_PERL  
+
   const char * canswer=answer.c_str();
       
   if( strchr(canswer,';')!=NULL )
@@ -126,6 +133,7 @@ parse(aString & answer )
     }
     answer=result;
   }
+#endif
   return returnValue;
 }
 

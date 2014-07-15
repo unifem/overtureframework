@@ -1,0 +1,19 @@
+Compressible flow past a beam
+
+
+(1) Build some  grids: (beamInAChannelGrid.cmd is in cg/ins/runs/beamInAChannelGrid.cmd)
+    ogen -noplot beamInAChannelGrid -interp=e -xb=2 -yb=2 -factor=2
+    ogen -noplot beamInAChannelGrid -interp=e -xb=2 -yb=2 -factor=4
+   
+
+(2) Run interactively:
+
+cgcns beamInAChannel -g=beamInAChannelGride2.order2.hdf -tf=1. -tp=.01
+
+(3) Run in batch and save a show file
+
+ cgicns -noplot beamInAChannel -g=beamInAChannelGride4.order2.hdf -tf=10. -tp=.1 -show=beam4.show -go=go >! beam4.out
+
+(4) Plot results from the show file:
+
+  plotStuff plotBeamInAChannel.cmd -show=beam4.show

@@ -3,8 +3,6 @@
 
 #include "ReferenceCounting.h"
 #include "GenericGraphicsInterface.h"
-//  #include <GL/gl.h>
-//  #include <GL/glu.h>
 
 class Point: public ReferenceCounting
 {

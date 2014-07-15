@@ -2,6 +2,14 @@
 #include "Point.h"
 #include "ArraySimple.h"
 
+#ifdef OV_USE_GL
+#include <GL/gl.h>
+#include <GL/glu.h>
+#else
+#include "nullgl.h"
+#include "nullglu.h"
+#endif
+
 static int
 plotPickingSquare(GenericGraphicsInterface & gi, real *pxb);
 
@@ -1640,8 +1648,6 @@ assembleSubCurves(int & currentCurve,
 
 // ******************** move these to GL_GraphicsInterface ********************
 
-#include <GL/gl.h>
-#include <GL/glu.h>
 
 static int
 plotPickingSquare(GenericGraphicsInterface & gi, real *pxb) // draw a white square and make it pickable
