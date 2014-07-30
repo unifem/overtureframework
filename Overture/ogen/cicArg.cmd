@@ -252,7 +252,7 @@ generate an overlapping grid
       $ngp = $ng;
       $ng $ng $ng $ngp $ng $ng
   exit
-#  display intermediate results
+#   display intermediate results
   compute overlap
 # plot
 #   query a point 

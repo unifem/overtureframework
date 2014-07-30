@@ -20,5 +20,7 @@ square20
 continue
 continue
 * 
+debug 
+  3
 movie mode
 finish
