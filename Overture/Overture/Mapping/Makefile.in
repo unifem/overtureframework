@@ -33,11 +33,11 @@ Source1 = Bound.C BoundingBox.C Fraction.C Mapping.C MappingRC.C MappingP.C \
 # We make a separate list of files in hype since the Makefile dependencies are braindead
 HypeFiles =  hype/HyperbolicMapping.C hype/update.C hype/startCurve.C hype/util.C hype/implicitSolve.C \
              hype/generate.C hype/project.C hype/applyBoundaryConditions.C hype/plot.C  \
-             hype/stretch.C hype/GridSmoother.C hype/MatchingCurve.C hype/ellipticSmooth.f
+             hype/stretch.C hype/GridSmoother.C hype/MatchingCurve.C hype/ellipticSmooth.f hype/generateParallel.C
 
 HypeObjectFiles=HyperbolicMapping.o update.o startCurve.o util.o implicitSolve.o \
                 generate.o project.o applyBoundaryConditions.o plot.o stretch.o GridSmoother.o \
-                GridStretcher.o MatchingCurve.o ellipticSmooth.o
+                GridStretcher.o MatchingCurve.o ellipticSmooth.o generateParallel.o
 
 HyperbolicMapping.o       : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
 update.o                  : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
@@ -45,6 +45,7 @@ startCurve.o              : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
 implicitSolve.o           : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
 util.o                    : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
 generate.o                : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
+generateParallel.o        : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
 project.o                 : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
 applyBoundaryConditions.o : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
 plot.o                    : hype/${@:.o=.C}; $(CC) $(CCFLAGS) -c hype/${@:.o=.C}
@@ -85,12 +86,13 @@ CCFLAGSOPT = $(CCFLAGSF)
 filesOpt = stencilWalk.C Inverse.C NurbsMapping.C TrimmedMapping.C nurbsEvaluation.C \
            dpmInverse.C dpmScalar.C dpmMap.C mappingUtil.C AnnulusMapping.C \
            unstructuredProject.C compositeTopology.C findNearestGridPoint.C \
-           StretchMapping.C
+           StretchMapping.C nurbsInterpolate.C
 Mapping_Opt_date: ${filesOpt:.C=.o}
 	  touch $@
 stencilWalk.o          : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
 Inverse.o              : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
 NurbsMapping.o         : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
+nurbsInterpolate       : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
 TrimmedMapping.o       : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
 nurbsEvaluation.o      : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}
 dpmInverse.o           : ${@:.o=.C}; $(CC) $(CCFLAGSOPT) $(CC_SUN5_TEMPLATEFLAG) -c ${@:.o=.C}

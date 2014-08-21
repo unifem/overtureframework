@@ -12,39 +12,39 @@
 //    INT_2D means the domain dimension is 2
 // *************************************
 #define INT_1D_ORDER_2(dr,x111,x211)  \
-      ( (1.-dr)*(x111)+dr*(x211) )
+      ( (1.-(dr))*(x111)+(dr)*(x211) )
 
 #define INT_1D_ORDER_2_R(dr,x111,x211)  \
       ( delta[0]*( (x211)-(x111) ) )
 
 #define INT_2D_ORDER_2(dr,ds,x111,x211,x121,x221)  \
-      ( (1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221)) )
+      ( (1.-(ds))*((1.-(dr))*(x111)+(dr)*(x211))+(ds)*((1.-(dr))*(x121)+(dr)*(x221)) )
 
 #define INT_2D_ORDER_2_R(dr,ds,x111,x211,x121,x221)  \
-      ( ((1.-ds)*( (x211)-(x111) ) +ds*( (x221)-(x121) ))*delta[0] )
+      ( ((1.-(ds))*( (x211)-(x111) ) +(ds)*( (x221)-(x121) ))*delta[0] )
 
 #define INT_2D_ORDER_2_S(dr,ds,x111,x211,x121,x221)  \
-      ( ((1.-dr)*( (x121)-(x111) ) +dr*( (x221)-(x211) ))*delta[1] )
+      ( ((1.-(dr))*( (x121)-(x111) ) +(dr)*( (x221)-(x211) ))*delta[1] )
 
 #define INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
   (                                                    \
-     (1.-dt)*((1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221))) \
-     +    dt*((1.-ds)*((1.-dr)*(x112)+dr*(x212))+ds*((1.-dr)*(x122)+dr*(x222))) )
+     (1.-(dt))*((1.-(ds))*((1.-(dr))*(x111)+(dr)*(x211))+(ds)*((1.-(dr))*(x121)+(dr)*(x221))) \
+     +    (dt)*((1.-(ds))*((1.-(dr))*(x112)+(dr)*(x212))+(ds)*((1.-(dr))*(x122)+(dr)*(x222))) )
 
 #define INT_3D_ORDER_2_R(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
   (                                                    \
-     ((1.-dt)*((1.-ds)*((x211)-(x111))+ds*((x221)-(x121))) \
-   +      dt* ((1.-ds)*((x212)-(x112))+ds*((x222)-(x122))))*delta[0] )
+     ((1.-(dt))*((1.-(ds))*((x211)-(x111))+(ds)*((x221)-(x121))) \
+   +      (dt)* ((1.-(ds))*((x212)-(x112))+(ds)*((x222)-(x122))))*delta[0] )
 
 #define INT_3D_ORDER_2_S(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
   (  \
-     ((1.-dt)*((1.-dr)*((x121)-(x111))+dr*((x221)-(x211))) \
-   +      dt *((1.-dr)*((x122)-(x112))+dr*((x222)-(x212))))*delta[1] )
+     ((1.-(dt))*((1.-(dr))*((x121)-(x111))+(dr)*((x221)-(x211))) \
+   +      (dt) *((1.-(dr))*((x122)-(x112))+(dr)*((x222)-(x212))))*delta[1] )
 
 #define INT_3D_ORDER_2_T(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
   (                                                    \
-    ( (1.-dr)*((1.-ds)*((x112)-(x111))+ds*((x122)-(x121))) \
-  +       dr *((1.-ds)*((x212)-(x211))+ds*((x222)-(x221))) )*delta[2] )
+    ( (1.-(dr))*((1.-(ds))*((x112)-(x111))+(ds)*((x122)-(x121))) \
+  +       (dr) *((1.-(ds))*((x212)-(x211))+(ds)*((x222)-(x221))) )*delta[2] )
 
 // ***************************************
 // Define jacobian entries by differencing
@@ -162,11 +162,13 @@ mapScalar(const RealArray & r, RealArray & x, RealArray & xr, MappingParameters 
   real *xrp = xr.Array_Descriptor.Array_View_Pointer2;
 #define XR(i,m,n) xrp[(i)+xrDim0*(m+xrDim1*(n))]
 
+  // NOTE: in parallel dpmScalar requires parallel ghost points to work properly 
   #ifdef USE_PPP
-    realSerialArray xyLocal; getLocalArrayWithGhostBoundaries(xy,xyLocal);
-  #else
-    realSerialArray & xyLocal=xy;
+    assert( xy.getGhostBoundaryWidth(0)>0 );
   #endif
+
+  OV_GET_SERIAL_ARRAY(real,xy,xyLocal);
+
   const int xyDim0 = xyLocal.getRawDataSize(0);
   const int xyDim1 = xyLocal.getRawDataSize(1);
   const int xyDim2 = xyLocal.getRawDataSize(2);
@@ -239,7 +241,7 @@ mapScalar(const RealArray & r, RealArray & x, RealArray & xr, MappingParameters 
 	r0*=delta[0];
 
       i11=int( floor(r0) );
-      i11=min(dim(End,axis1)-2,max(dim(Start,axis1)+1,i11+GIR(Start,axis1)) );
+      i11=min(dim(End,axis1)-2,max(dim(Start,axis1)+1,i11+GIR(Start,axis1)) );  // NOTE +1, +2 for eval of derivs
       i12=i11+1;
 
       dr=r0-(i11-GIR(Start,axis1));
@@ -254,7 +256,7 @@ mapScalar(const RealArray & r, RealArray & x, RealArray & xr, MappingParameters 
 
 	// *wdh* r1=delta[axis2]*R(i,1); // *wdh* bug found 030918
 	i21=int( floor(r1) );
-	i21=min(dim(End,axis2)-2,max(dim(Start,axis2)+1,i21+GIR(Start,axis2)) );
+	i21=min(dim(End,axis2)-2,max(dim(Start,axis2)+1,i21+GIR(Start,axis2)) ); // NOTE +1, +2 for eval of derivs
 	i22=i21+1;
 	ds=r1-(i21-GIR(Start,axis2));
       }
@@ -281,6 +283,17 @@ mapScalar(const RealArray & r, RealArray & x, RealArray & xr, MappingParameters 
 				     ,XY(i11,i21,i30,axis),XY(i12,i21,i30,axis)
 				     ,XY(i11,i22,i30,axis),XY(i12,i22,i30,axis));
 	  }
+	  if( false && (bound-base)<6 )
+	  {
+            ::display(xyLocal,"dpmScalar: xyLocal",pDebugFile,"%6.3f ");
+	    fprintf(pDebugFile,"dpmScalar: (r0,r1)=(%e,%e) (dr,ds)=(%e,%e) (i11,i21,i30)=(%i,%i,%i) x=(%e,%e)\n",r0,r1,dr,ds,i11,i21,i30,X(i,0),X(i,1));
+	    fprintf(pDebugFile,"dpmScalar: X=[%e, %e, %e, %e]\n",XY(i11,i21,i30,0),XY(i12,i21,i30,0)
+		    ,XY(i11,i22,i30,0),XY(i12,i22,i30,0));
+	    fprintf(pDebugFile,"dpmScalar: X=[%e, %e, %e, %e]\n",XY(i11,i21,i30,1),XY(i12,i21,i30,1)
+		    ,XY(i11,i22,i30,1),XY(i12,i22,i30,1));
+            fflush(0);
+	  }
+	  
 	}
 	else if( domainDimension==3 )
 	{

@@ -1,0 +1,35 @@
+Notes on turbulence models 
+-------------------------
+ 
+   (1) CginsRef.pdf : Look for the remarks in Section 13(?) on the k-eps model in these notes.
+
+   (2) CginsRef.pdf :  Has a a description of some of the files in ins/src that are used to 
+       implement the turbulence models.
+
+   (3) Here is an example to run the k-epsilon model for flow over a horizontal flat plate:
+
+      3.1  Build a grid:
+        ogen -noplot flatPlate -order=2 -factor=1 -dsMin=.01  
+      3.2 Solve the k-eps :
+        cgins flatPlate -g=flatPlate1.order2.dy.01.hdf -tm=ke -nu=1.e-3 -debug=1 -tp=.01 -tf=10. -ts=imp -imp=1. -dtMax=1.e-4 -rf=10 -go=halt
+
+   (4) The current values of y+ are printed to the terminal :
+          t=2.000e-02, grid 0 (plate) (side,axis)=(0,1) yPlus[min,max] = [2.61e+00,2.87e+00], tauw[min,max]=[6.68e-02,8.05e-02].
+
+   (4b) Important parameters are -dtMax=<> and -rf=<> (frequency to refactor the implicit matrix).
+
+   (5) Usually one must start with a small time-step but then the time step can be increased as the solution convergences.
+       You can change the value of dtMax while the program is running (in "time stepping params...").
+
+   (6) There is also a Baldwin Lomax model : (not sure if this works)
+
+      cgins flatPlate -g=flatPlate1.order2.dy.01.hdf -tm=bl -nu=1.e-3 -debug=1 -tp=.5 -tf=10.  -ts=imp -imp=1. -project=0 -dtMax=.05 -rf=50 -go=halt 
+
+   (7) The k-eps model can also be tested with twilight-zone forcing (manufactured solutions):
+
+       cgins kEpsilon -g=square20.hdf -ic=tz -tz=trig -ts=imp -dtMax=.1 -tp=.5 -tf=10. -iv=full -debug=1 -go=halt 
+
+   (8) Once a solution is found on a coarse grid you can use this as an initial guess for a finer grid by
+      using the "restart" option:
+
+      cgins -noplot flatPlate -g=flatPlate2.order2.dy.01.hdf -tm=ke -nu=1.e-3 -debug=1 -tp=.1 -tf=100. -ts=imp -imp=1. -dtMax=1.e-3 -rf=100 -restart=flatePlate1Converged.show -go=og

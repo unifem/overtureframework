@@ -23,7 +23,7 @@ echo "Copy otherStuff files into the $ovDir directory..."
 
 
 cp {OGgetIndex,OGFunction,OGTrigFunction,OGPolyFunction,Integrate}.C                      $otherStuff
-cp {arrayGetIndex,TridiagonalSolver,TridiagonalFactor}.C                                  $otherStuff
+cp {arrayGetIndex,TridiagonalSolver,TridiagonalFactor,ParallelTridiagonalSolver}.C        $otherStuff
 cp {getFromADataBase,displayMask,OGPulseFunction,helpOverture}.C                          $otherStuff
 cp {floatDisplay.C,intDisplay.C,doubleDisplay.C,displayMask.C,DisplayParameters.C}        $otherStuff
 cp {floatSerialDisplay.C,intSerialDisplay.C,doubleSerialDisplay.C,printArray.C}           $otherStuff

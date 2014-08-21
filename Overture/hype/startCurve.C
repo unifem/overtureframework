@@ -66,7 +66,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
                                     mpParams.getIntArray(MappingProjectionParameters::subSurfaceIndex);
   const RealDistributedArray & rP = mpParams.getRealArray(MappingProjectionParameters::r);
       
-  realArray xSelected(1,3), rSelected(1,3);
+  RealArray xSelected(1,3), rSelected(1,3);
   if ( xCoord!=NULL )
   {
     xSelected(0,0)=xCoord[0]; xSelected(0,1)=xCoord[1]; xSelected(0,2)=xCoord[2];
@@ -215,7 +215,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
     
       printf("World coordinates: %e, %e, %e\n", select.x[0], select.x[1], select.x[2]);
 
-      realArray xOld;
+      RealArray xOld;
       xSelected(0,0)=select.x[0]; xSelected(0,1)=select.x[1]; xSelected(0,2)=select.x[2];
       xOld=xSelected;
       
@@ -300,11 +300,11 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
       // build a curve from points specified on the surface.
       printf("adding point to a spline curve on the surface\n");
 	
-      realArray xSpline; 
+      RealArray xSpline; 
       if( append )
       {
 	// xSpline=spline.getGrid(); *wdh* 021102 : get old knots -- otherwise curve moves off the surface
-	xSpline=spline.getKnots();
+	xSpline=spline.getKnotsS();
       }
       
       numberOfPointsOnStartCurve++;
@@ -340,7 +340,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
 
       int numberOfPoints=numberOfPointsOnStartCurve;
       Range I=numberOfPoints;
-      realArray r(I,2), x(I,3);   // save knots for the spline in here
+      RealArray r(I,2), x(I,3);   // save knots for the spline in here
 
       real dr=1./(numberOfPoints-1);
       int axis= initialCurveOption==initialCurveFromCoordinateLine0 ? 0 : 1;
@@ -349,7 +349,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
       r(I,axis)=rSelected(0,axis);
       r(I,axisp1).seqAdd(0.,dr);
              
-      subSurface.map(r,x);
+      subSurface.mapS(r,x);
       spline.setPoints( x(I,0),x(I,1),x(I,2) );
 
       printf("Choosing an initial curve from a coordinate line r%i=%5.2f: subSurface.getIsPeriodic(%i)=%i\n",
@@ -368,7 +368,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
 
       int numberOfPoints=numberOfPointsOnStartCurve;
       Range I=numberOfPoints;
-      realArray r, x(I,3);   // save knots for the spline in here
+      RealArray r, x(I,3);   // save knots for the spline in here
           
 
       if( initialCurveOption==initialCurveFromEdges && !checkForEdgeCurves )
@@ -380,7 +380,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
           Mapping *mapPointer;
 
           TrimmedMapping & trim = (TrimmedMapping&)subSurface;
-          realArray r(1,3), r2(1,3), xx(1,3);
+          RealArray r(1,3), r2(1,3), xx(1,3);
 	  r(0,0)=rSelected(0,0); r(0,1)=rSelected(0,1);
 	  int numberOfTrimCurves = trim.getNumberOfTrimCurves();
           int cMin=-1;
@@ -390,8 +390,8 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
 	  {
 	    Mapping & curve = *trim.getTrimCurve(c0);
 
-            curve.inverseMapC(r,r2); 
-	    curve.map(r2,xx);
+            curve.inverseMapCS(r,r2); 
+	    curve.mapS(r2,xx);
 
             real dist = SQR(r(0,0)-xx(0,0)) + SQR(r(0,1)-xx(0,1));
             printf(" trim curve %i : dist=%e \n",c0,dist);
@@ -414,8 +414,8 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
 	    {
 	      NurbsMapping & curve = nurb.subCurve(c0);
 	      
-	      curve.inverseMapC(r,r2); 
-	      curve.map(r2,xx);
+	      curve.inverseMapCS(r,r2); 
+	      curve.mapS(r2,xx);
 	      real dist = SQR(r(0,0)-xx(0,0)) + SQR(r(0,1)-xx(0,1));
 	      printf(" trim sub-curve %i : dist=%e \n",c0,dist);
 	      if( dist<distMin) 
@@ -434,16 +434,16 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
 	  }
 	  
 
-          realArray rr(I,2);
+          RealArray rr(I,2);
 	  r.redim(I,1);
 	  real dr = 1./max(1,(I.getBound()-I.getBase()));
 	  r.seqAdd(0.,dr);
-          mapPointer->map(r,rr);
+          mapPointer->mapS(r,rr);
 	  // ::display(r,"r");
 	  // ::display(rr,"rr");
 
 	  x=-1;
-	  trim.map(rr,x);
+	  trim.mapS(rr,x);
 	  // ::display(x,"x");
 	  
 	}
@@ -470,7 +470,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
 	  int axisp1=(axis+1)%2;
 	  r(I,axisp1).seqAdd(0.,dr);
 	}
-        subSurface.map(r,x);
+        subSurface.mapS(r,x);
 
       }
       else
@@ -493,15 +493,15 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
           x.redim(I,rangeDimension);
 	  real dr = 1./max(1,(I.getBound()-I.getBase()));
 	  r.seqAdd(0.,dr);
-	  subSurface.map(r,x);
+	  subSurface.mapS(r,x);
 
-          // ::display(x,"new curve x after subSurface.map(r,x);","%22.16e ");
+          // ::display(x,"new curve x after subSurface.mapS(r,x);","%22.16e ");
 	}
 	else
 	{
           // use the grid *wdh* 010425
           x.redim(0);
-          x = subSurface.getGrid();
+          x = subSurface.getGridSerial();
 	  I=x.dimension(0);
 	  x.reshape(I,x.dimension(3));
 	}
@@ -514,14 +514,14 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
         // ****************************************
         // **** Append the new curve to the old ***
         // ****************************************
-	realArray xSpline; 
+	RealArray xSpline; 
         if( true )
 	{
-	  xSpline = spline.getKnots();  // wdh 011021 : use existing knots
+	  xSpline = spline.getKnotsS();  // wdh 011021 : use existing knots
 	}
 	else
 	{
-	  xSpline=spline.getGrid();
+	  xSpline=spline.getGridSerial();
 	  xSpline.reshape(xSpline.dimension(0),xSpline.dimension(3));
 	}
 	
@@ -540,7 +540,7 @@ createCurveOnSurface( GenericGraphicsInterface & gi,
 	{
 	  // we reverse the direction of the points in these cases
 	  Range R1(xBase,xBound);
-	  realArray y(R1,3);
+	  RealArray y(R1,3);
 	  for( int i=xBase; i<=xBound; i++ )
 	    y(i,R3)=x(xBound-i+xBase,R3);
 	  x=y;
@@ -797,12 +797,12 @@ buildEdgeCurves( Mapping & map,
 	  Mapping & trimCurve = *c;
           if( FALSE )
 	  {
-	    realArray r; 
-	    r = trimCurve.getGrid(); // .getLocalArrayWithGhostBoundaries();
+	    RealArray r; 
+	    r = trimCurve.getGridSerial(); // .getLocalArrayWithGhostBoundaries();
 	    r.reshape(r.dimension(0),2);
-	    realArray x(r.dimension(0),3);
+	    RealArray x(r.dimension(0),3);
 	    assert( trim.surface!=0 );
-	    trim.surface->map(r,x);
+	    trim.surface->mapS(r,x);
 	    assert(numberOfEdgeCurves< maximumNumberOfEdgeCurves);
 	    edgeCurve[numberOfEdgeCurves]=new NurbsMapping;
             edgeCurve[numberOfEdgeCurves]->incrementReferenceCount();
@@ -1173,8 +1173,8 @@ buildEdgeCurves( Mapping & map,
 //         if( lineDefined )
 // 	{
 // 	  Range I(0,numberOfPoints-1);
-// 	  // realArray r(I,2),x;
-// 	  realArray x;
+// 	  // RealArray r(I,2),x;
+// 	  RealArray x;
 // 	  x=line.getGrid(); // .getLocalArrayWithGhostBoundaries();
 // 	  x.reshape(I,3);
       
@@ -1248,7 +1248,7 @@ buildEdgeCurves( Mapping & map,
 //         else if( answer=="change the points" )
 // 	{
 //           const int numberOfSplinePoints=initialSpline.getNumberOfKnots();
-// 	  realArray knots(numberOfSplinePoints,3);
+// 	  RealArray knots(numberOfSplinePoints,3);
 // 	  for( int i=0; i<numberOfSplinePoints; i++ )
 // 	  {
 // 	    gi.inputString(answer,sPrintF(buff,"Enter x,y,z for point %i",i));
@@ -1270,7 +1270,7 @@ buildEdgeCurves( Mapping & map,
 // 	}
       
 // 	// project the points onto the surface 
-//         realArray x; 
+//         RealArray x; 
 //         SplineMapping & sp = answer!="change the projected spline" ? initialSpline : spline;
 
 //         x = sp.getGrid(); // .getLocalArrayWithGhostBoundaries();
@@ -1400,7 +1400,7 @@ buildEdgeCurves( Mapping & map,
 //             // turn the curve into a spline so that it can be reparameterized
 //             SplineMapping & spline = *new SplineMapping;  // ************* need to reference count this *****
 	    
-//             realArray x = curve->getGrid(); // .getLocalArrayWithGhostBoundaries();
+//             RealArray x = curve->getGrid(); // .getLocalArrayWithGhostBoundaries();
 //             Range R=Range(0,x.getLength(0)*x.getLength(1)*x.getLength(2)-1);
             
 // 	    x.reshape(R,3);
@@ -1619,10 +1619,10 @@ buildEdgeCurves( Mapping & map,
 //             // **** build a spline to hold the union of the chosen curves. ****
 //             SplineMapping & spline = *(new SplineMapping);
 //             spline.setShapePreserving();
-//             realArray xSpline;   // save knots for the spline in here
+//             RealArray xSpline;   // save knots for the spline in here
 
 //             // First evaluate all chosen edge curves and save in the arrays xEdge[j]
-//             realArray *xEdge = new realArray [numberOfEdgeCurvesSelected];
+//             RealArray *xEdge = new RealArray [numberOfEdgeCurvesSelected];
 	    
 // 	    for( int j=0; j<numberOfEdgeCurvesSelected; j++ )
 // 	    {
@@ -1666,7 +1666,7 @@ buildEdgeCurves( Mapping & map,
 // 	          newEdge=j;
 
 // 		  assert( newEdge>=0 && newEdge<numberOfEdgeCurvesSelected);
-// 		  realArray & x =xEdge[newEdge];
+// 		  RealArray & x =xEdge[newEdge];
 // 		  const int xBase=x.getBase(0);
 // 		  const int xBound=x.getBound(0);
 
@@ -1680,7 +1680,7 @@ buildEdgeCurves( Mapping & map,
 // 		  {
 // 		    // we reverse the direction of the points in these cases
 // 		    Range R1(xBase,xBound);
-// 		    realArray y(R1,3);
+// 		    RealArray y(R1,3);
 // 		    for( int i=xBase; i<=xBound; i++ )
 // 		      y(i,xAxes)=x(xBound-i+xBase,xAxes);
 // 		    x=y;

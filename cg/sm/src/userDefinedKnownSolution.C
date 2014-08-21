@@ -25,7 +25,7 @@ for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
 int SmParameters::
-getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 			    const Index & I1, const Index &I2, const Index &I3 )
 // ==========================================================================================
 ///  \brief Evaluate a user defined known solution.
@@ -371,7 +371,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
 
     const realArray & center = mg.center();
-    realArray & u = ua;
+    RealArray & u = ua;
 
     
     // tDisk : solution has been computed at this time
@@ -515,7 +515,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
     OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),vertex);
 
-    realArray & u = ua;
+    RealArray & u = ua;
 
     const int & uc = dbase.get<int >("uc");   //  u velocity component =u(all,all,all,uc)
     const int & vc = dbase.get<int >("vc");  

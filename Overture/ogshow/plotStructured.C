@@ -1,6 +1,7 @@
 #include "GL_GraphicsInterface.h"
 #include "Mapping.h"
 #include "PlotIt.h"
+#include "display.h"
 
 #define ForBoundary(side,axis)   for( axis=0; axis<domainDimension; axis++ ) \
                                  for( side=0; side<=1; side++ )
@@ -482,7 +483,7 @@ plotStructured(GenericGraphicsInterface &gi, Mapping & map,
       }
 
       if( Mapping::debug & 16 )
-	x.display("plotStructuredMapping: Here is x");
+	::display(x,"plotStructuredMapping: Here is x","%5.2f ");
 
       // get Bounds on the Mapping that we plot
 

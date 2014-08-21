@@ -90,7 +90,7 @@ main(int argc, char *argv[])
   // By default start saving the command file called "mbuilder.cmd"
   aString logFile="mbuilder.cmd";
   gi.saveCommandFile(logFile);
-  cout << "User commands are being saved in the file `" << (const char *)logFile << "'\n";
+  printF("--MB-- User commands are being saved in the file [%s]\n",(const char*)logFile);
 
   if( commandFileName!="" )
     gi.readCommandFile(commandFileName);

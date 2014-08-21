@@ -3,6 +3,11 @@
 
 #include "MappingRC.h"
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
+
 class GenericGraphicsInterface;
 class GraphicsParameters;
 
@@ -33,6 +38,13 @@ public:
 		    const int numberOfGhostLinesInData[2][3],
                     const IntegerArray & xGridIndexRange = Overture::nullIntArray() );
   int setDataPoints(const aString & fileName );  // set data points from a file of data
+
+  // This next version can also be used in parallel: 
+  int setDataPoints(const realSerialArray & x, 
+		    const int domainDimension, const int rangeDimension,
+		    const IntegerArray & xDimension,
+		    const IntegerArray & xGridIndexRange  );
+
   int setMapping( Mapping & map );               // acquire data points from this mapping.
 
   const realArray& getDataPoints();           // return the array of data points
@@ -77,6 +89,11 @@ public:
   virtual const realArray& getGrid(MappingParameters & params=Overture::nullMappingParameters(),
                                    bool includeGhost=false);    // grid for plotting
 
+  virtual int mappingHasChanged();      // call this function if the mapping has changed
+
+  int useNurbsToEvaluate( bool trueOrFalse );
+  int setDegreeOfNurbs( int degree );
+
   virtual int setNumberOfGhostLines( IndexRangeType & numberOfGhostLinesNew ); // set the number of ghost lines.
 
   int projectGhostPoints(MappingInformation & mappingInfo);
@@ -92,7 +109,10 @@ public:
 
   int computeGhostPoints( IndexRangeType & numberOfGhostLinesOld, IndexRangeType & numberOfGhostLinesNew );
 
+  int generateNurbs();
+
 private:
+
   aString className;
   int orderOfInterpolation;
   friend class HyperbolicMapping;
@@ -104,7 +124,13 @@ private:
   bool mappingInitialized;
   bool useScalarIndexing;
 
-  private:
+  // This database contains parameters (new way)
+  bool evalAsNurbs;
+  bool nurbsOutOfDate;
+  int nurbsDegree;
+  DataBase dbase;
+
+private:
 
   //
   //  Virtual member functions used only through class ReferenceCounting:

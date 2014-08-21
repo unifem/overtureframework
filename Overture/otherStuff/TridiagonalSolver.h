@@ -35,10 +35,38 @@ class TridiagonalSolver
 	      const int & axis=0,
               const int & block=1 );
 
+  // solve the system (after factor)
   int solve( const RealArray & r,        // this is not really const
              const Range & R1=nullRange, 
              const Range & R2=nullRange, 
              const Range & R3=nullRange );
+
+  #ifdef USE_PPP
+  // factor a tri-diagonal system (parallel)
+  int factor( realArray & a, 
+	      realArray & b, 
+	      realArray & c, 
+	      const SystemType & type=normal, 
+	      const int & axis=0,
+              const int & block=1 );
+
+  // factor a penta-diagonal system: (parallel)
+  int factor( realArray & a, 
+	      realArray & b, 
+	      realArray & c, 
+	      realArray & d, 
+	      realArray & e, 
+	      const SystemType & type=normal, 
+	      const int & axis=0,
+              const int & block=1 );
+
+  // solve the system (after factor) (parallel)
+  int solve( realArray & r, 
+             const Range & R1=nullRange, 
+             const Range & R2=nullRange, 
+             const Range & R3=nullRange );
+  #endif
+
 
   virtual real sizeOf( FILE *file=NULL ) const ; // return number of bytes allocated, print info to a file
 
@@ -81,6 +109,7 @@ class TridiagonalSolver
   int scalarBlockFactorOld(int i1, int i2, int i3 );
   int scalarBlockSolveOld(RealArray & r, int i1, int i2, int i3);
 
+  void openDebugFiles();
 
   SystemType systemType;
   int axis;
@@ -94,6 +123,9 @@ class TridiagonalSolver
   bool useOptimizedC;
   
   bool useOldBlockOrdering;  // original block solves used the transpose of the blocks!
+
+  FILE *debugFile;
+  static int debug;
 
 };
 

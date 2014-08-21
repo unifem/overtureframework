@@ -156,6 +156,30 @@ update(aString & answer, DialogData & dialog, MappingInformation & mapInfo,
                  &x,&gridIndexRange,&projectIndexRange,&dpm,surface,NULL );
 }
 
+#ifdef USE_PPP
+// version taking a RealArray 
+int GridStretcher::
+update(aString & answer, DialogData & dialog, MappingInformation & mapInfo,
+       RealArray & x,  // source grid points including ghost points
+       const IntegerArray & gridIndexRange,     // identifies boundaries
+       const IntegerArray & projectIndexRange,  // identifies which points to project for surface grids
+       DataPointMapping & dpm,   // the resulting stretched grid
+       Mapping *surface /* =NULL */ // for projecting onto surface grids
+  )
+// ==========================================================================================================
+// /Description: Stretch grid points defined in the array "x" and return in the DataPointMapping dpm
+// /answer (input) : check this answer to see if it is a stretching parameter.
+// /Return value: A non-zero value if an answer was processed. The return value is one of the values
+//   in the ReturnValueEnum:
+//                0=answerNotProcessed, 1=parametersChanged, 2=gridWasChanged
+// ==========================================================================================================
+{
+  printF("GridStretcher::WARNING - stretching does not work in parallel yet\n");
+  return update( answer, dialog, mapInfo,
+                 NULL,&gridIndexRange,&projectIndexRange,&dpm,surface,NULL );
+}
+#endif
+
 
 int GridStretcher::
 update(aString & answer, DialogData & dialog, MappingInformation & mapInfo, StretchTransform & stretchedMapping )

@@ -3,21 +3,36 @@
 #include "NurbsMapping.h"
 #include "HyperbolicMapping.h"
 #include "Ogshow.h"
+#include "ParallelUtility.h"
 
+// =============================================================================================
 //
-// Deforming Grid Example: 
-//   o 
+// Deforming Grid Demo:
+//   
 //   o interpolate a grid function, update the interpolant for the new grid
 //   o save solutions in a show file
 //
+// Example:
+//  (1) Generate the grid ( Overture/sampleGrids/iceDefrom.cmd )
+//     ogen -noplot iceDeform.cmd
+//  (2) Run: 
+//     deform -numSteps=11
+//
+// Parallel:
+//     mpiexec -n 1 deform -numSteps=11
+//
+// =============================================================================================
 int 
 main(int argc, char *argv[])
 {
   Overture::start(argc,argv);  // initialize Overture
 
+  printF("Usage: deform [-noplot] [-numSteps=<i>]\n");
+
   Mapping::debug=0; 
 
   int numberOfSteps=5; // 80;
+  int numberOfParallelGhost=2;
 
   int plotOption=true;
   if( argc > 1 )
@@ -27,7 +42,7 @@ main(int argc, char *argv[])
     for( int i=1; i<argc; i++ )
     {
       line=argv[i];
-      if( line=="noplot" )
+      if( line=="-noplot" || line=="noplot" )
         plotOption=false;
       else if( len=line.matches("-numSteps=") )
       {
@@ -38,13 +53,24 @@ main(int argc, char *argv[])
     }
   }
 
+  #ifdef USE_PPP
+    // Set the default number of parallel ghost lines. This can be changed in the ogen menu.
+    // On Parallel machines always add at least this many ghost lines on local arrays
+    Mapping::setMinimumNumberOfDistributedGhostLines(numberOfParallelGhost);
+    MappedGrid::setMinimumNumberOfDistributedGhostLines(numberOfParallelGhost);
+  #endif
+
   aString nameOfOGFile="iceCircle.hdf"; // use this grid to start
 //  cout << "Enter the name of the (old) overlapping grid file:" << endl;
 //  cin >> nameOfOGFile;
 
   // Create two CompositeGrid objects, cg[0] and cg[1]
   CompositeGrid cg[2];                             
-  getFromADataBase(cg[0],nameOfOGFile);             // read cg[0] from a data-base file
+  // read cg[0] from a data-base file
+  //  getFromADataBase(cg[0],nameOfOGFile);             
+  bool loadBalance=true;
+  getFromADataBase(cg[0],nameOfOGFile,loadBalance);     
+
   cg[1]=cg[0];                                      // copy cg[0] into cg[1]
 
   // Deform component grid 2 (do this by changing the mapping)
@@ -56,7 +82,7 @@ main(int argc, char *argv[])
   NurbsMapping *startCurve = new NurbsMapping [2]; // start curve representing the ice surface
   
   const int n0=13;
-  realArray x0(n0,2), x1(n0,2), x2(n0,2);
+  RealArray x0(n0,2), x1(n0,2), x2(n0,2);
 
   real rad=.5, theta; 
 
@@ -98,7 +124,11 @@ main(int argc, char *argv[])
     transform[i].setParameters(HyperbolicMapping::distanceToMarch,.25);
     transform[i].setParameters(HyperbolicMapping::linesInTheNormalDirection,9);
     transform[i].setShare(0,1,1);
+    transform[i].useNurbsToEvaluate( true );
+
     transform[i].generate();
+
+    // -- 
   }
   
   // Replace the mapping of the component grid that we want to move:
@@ -174,7 +204,11 @@ main(int argc, char *argv[])
     }
     gridGenerator.updateOverlap(cg[newCG], cg[oldCG], hasMoved, option );
 
-    interpolant.updateToMatchGrid(cg[newCG]);
+    #ifndef USE_PPP
+      // we need to link toi PETScNew in parallel -- todo --
+      interpolant.updateToMatchGrid(cg[newCG]);
+    #endif
+
     u.updateToMatchGrid(cg[newCG]);
 
     // Make sure the vertex array is built:
@@ -188,9 +222,22 @@ main(int argc, char *argv[])
       const realArray & vertex = mg.vertex();
       getIndex(mg.dimension(),I1,I2,I3);
       real freq = 2.*i/numberOfSteps;
-      u[grid](I1,I2,I3)=cos(freq*vertex(I1,I2,I3,axis1))*sin(freq*vertex(I1,I2,I3,axis2));  
+
+      OV_GET_SERIAL_ARRAY(real,u[grid],uLocal);
+      OV_GET_SERIAL_ARRAY_CONST(real,vertex,xLocal);
+
+      bool ok = ParallelUtility::getLocalArrayBounds(u[grid],uLocal,I1,I2,I3);
+      
+      if( ok )
+      {
+	uLocal(I1,I2,I3)=cos(freq*xLocal(I1,I2,I3,axis1))*sin(freq*xLocal(I1,I2,I3,axis2));  
+      }
+      
     }
-    u.interpolate();
+    #ifndef USE_PPP
+      // we need to link toi PETScNew in parallel -- todo --
+      u.interpolate();
+    #endif
     // save the result in a show file, every fourth step
     if( (i % 4) == 1 )
     {
@@ -207,6 +254,8 @@ main(int argc, char *argv[])
     printF("deform: delete Interpolant\n");
     delete &interpolant;
   }
+
+  show.close();
 
   Overture::finish();          
   return 0;

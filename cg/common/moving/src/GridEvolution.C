@@ -236,7 +236,7 @@ display( FILE *file /* = stdout */ ) const
 /// \Return 0=success, 1=not found
 // ==================================================================================================
 int GridEvolution::
-getGrid( RealArray & x, const real t ) const
+getGrid( realArray & x, const real t ) const
 {
   int level=-1;
   for(int j=0; j<numberOfTimeLevels; j++ )

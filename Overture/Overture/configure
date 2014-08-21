@@ -174,7 +174,8 @@ printf("First checking for proper definition of Overture environmental variables
               "OpenGL",
               "HDF",
               "Overture",
-              "XLIBS"
+              "XLIBS",
+              "LAPACK"
                  );
 $numberOfErrors =0;
 foreach $ev ( @environmentalVariables )

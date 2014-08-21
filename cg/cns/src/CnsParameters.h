@@ -108,7 +108,7 @@ virtual
 int getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce, int *ipar, real *rpar );
 
 virtual
-int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 				const Index & I1, const Index &I2, const Index &I3 );
 virtual bool 
 isMixedBC( int bc );

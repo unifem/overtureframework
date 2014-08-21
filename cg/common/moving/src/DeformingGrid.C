@@ -638,7 +638,7 @@ regenerateGrid( HyperbolicMapping *pHyper,
   //..Use HyperbMapping parameters in *pHyper for the generator
 
   assert( pHyper != NULL );
-  pHyper->generateNew();
+  pHyper->generate();
 
   //cg[grid].reference( *pHyper ); BUG!! 001002 **pf
   //cg[grid].update();             --> done by caller 001002 **pf

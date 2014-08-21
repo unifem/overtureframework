@@ -4324,12 +4324,13 @@ getKnownSolution(real t, int grid, const Index & I1, const Index &I2, const Inde
 
   MappedGrid & mg = cg[grid];
   realArray & ua = uKnown[grid]; 
+  OV_GET_SERIAL_ARRAY(real,ua,uaLocal);
 
   const KnownSolutionsEnum & knownSolution = dbase.get<KnownSolutionsEnum >("knownSolution");
 
   if( knownSolution==userDefinedKnownSolution )
   {
-    getUserDefinedKnownSolution(t,cg,grid,ua,I1,I2,I3);
+    getUserDefinedKnownSolution(t,cg,grid,uaLocal,I1,I2,I3);
   }
   else if( knownSolution==knownSolutionFromAShowFile )
   {

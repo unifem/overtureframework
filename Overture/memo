@@ -26,6 +26,9 @@ Overture.v26
 Changes:
 
    o *NOTE* You may need to rebuild your overlapping grids and or show files with this new version.
+   o *NOTE* Overture now requires the Lapack and Blas libraries (previously only CG required these)
+   o *NOTE* For Apple Mac's running Mavericks there are new install instructions since gcc is nolonger
+            supported. You will also need to use the latest version of A++/P++ (AP-0.8.2.tar.gz)
 
    o New ogen grid scripts:
       - loftedShipHullGrid.cmd : grid for a Wigley ship hull.
@@ -53,6 +56,11 @@ Changes:
    o 2014/06/24 - Fixed a bug in the block Tridiagonal solver -- the transpose of the blocks were being used. 
    o 2014/06/24 - There is a new cg/unitTests directory that has test routines for some of the stand-alone classes such
                   as the BeamModel class. 
+   o 2014/08/06 - an initial version of a parallel tridiagonal solver has been added to the TridiagonalSolver class,
+                  for tridiagonal and block tridiagonal systems (not yet for penta-diagonal). This version is
+                  not particularly scalable. 
+   o 2014/08/17 - The DataPointMapping now has an option to be evaluated underneath with a NurbsMapping - this
+                  allows higher order accurate representations of the mapping.
 
 ==============================================================================================
 Overture.v25 - released  November 21, 2012

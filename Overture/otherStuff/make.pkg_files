@@ -1,7 +1,7 @@
 PKGDIR := $(OvertureCheckout)/otherStuff
 
 SRC_FILES += OGgetIndex.C OGFunction.C OGTrigFunction.C OGPolyFunction.C \
-	Integrate.C arrayGetIndex.C TridiagonalSolver.C \
+	Integrate.C arrayGetIndex.C TridiagonalSolver.C ParallelTridiagonalSolver.C \
 	TridiagonalFactor.C getFromADataBase.C OGPulseFunction.C \
 	helpOverture.C floatDisplay.C intDisplay.C doubleDisplay.C \
 	displayMask.C DisplayParameters.C \

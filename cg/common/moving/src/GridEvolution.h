@@ -21,7 +21,7 @@ int addGrid( const realArray & x, real t );
 int display( FILE *file = stdout ) const;
 
 // get the grid from time t
-int getGrid( RealArray & x, const real t ) const;
+int getGrid( realArray & x, const real t ) const;
 
 int getNumberOfTimeLevels() const;
 

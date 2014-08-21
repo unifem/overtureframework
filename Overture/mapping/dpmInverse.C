@@ -7,6 +7,7 @@
 #include "display.h"
 #include "Inverse.h"
 #include "ParallelUtility.h"
+#include "NurbsMapping.h"
 
 // *************************************
 //  tri-linear interpolant: 
@@ -92,6 +93,21 @@ basicInverseS( const RealArray & x, RealArray & r, RealArray & rx, MappingParame
 {
 
     real time0=getCPU();
+
+    if( evalAsNurbs )
+    {
+      // --- Use a Nurbs to evaluate the mapping ---
+        if( nurbsOutOfDate )
+            generateNurbs();
+
+	if( true )
+	  printF("--DPM-- basicInverseS: eval as a NurbsMapping\n");
+
+        NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
+        nurbs.basicInverseS( x,r,rx,params );
+        return;
+    }
+
 
     if( false )
     {

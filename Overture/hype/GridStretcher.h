@@ -49,6 +49,18 @@ update(aString & answer, DialogData & dialog, MappingInformation & mapInfo,
   );
 
 
+#ifdef USE_PPP
+int 
+// version taking a RealArray 
+update(aString & answer, DialogData & dialog, MappingInformation & mapInfo,
+       RealArray & x,  // source grid points including ghost points
+       const IntegerArray & gridIndexRange,     // identifies boundaries
+       const IntegerArray & projectIndexRange,  // identifies which points to project for surface grids
+       DataPointMapping & dpm,   // the resulting stretched grid
+       Mapping *surface=NULL // for projecting onto surface grids
+  );
+#endif
+
 //    int update(aString & answer, DialogData & dialog, MappingInformation & mapInfo,
 //  	     realArray & x,  // source grid points including ghost points
 //  	     const IntegerArray & gridIndexRange,     // identifies boundaries

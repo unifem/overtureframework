@@ -10,10 +10,11 @@ endif
 
 current = .
 mapping = $(current)/../mapping
-mapping = $(current)/../hype
+hype = $(current)/../hype
+otherStuff = $(current)/../otherStuff
 # ogshow = $(current)/../ogshow
 
-VPATH = $(mapping):$(ogshow):$(hype)
+VPATH = $(mapping):$(hype):$(otherStuff)
 
 
 # For use with fort77:
@@ -160,7 +161,8 @@ ogen=    ogenDriver.o $(ogenFiles) LoftedSurfaceMapping.o
 ogen=    ogenDriver.o $(ogenFiles) ../grid/MappedGridGeometry2.o ../mapping/dpmInverse.o ../hype/update.o
 ogen=    ogenDriver.o $(ogenFiles) $(ovjunk)/mapping/stencilWalk.o $(ovjunk)/mapping/dpmInverse.o $(ovjunk)/mapping/MappingBuilder.o
 ogen=    ogenDriver.o $(ogenFiles) ../mapping/stretchUpdate.o
-ogen=    ogenDriver.o $(ogenFiles) 
+ogen=    ogenDriver.o $(ogenFiles) TridiagonalSolver.o TridiagonalFactor.o
+ogen=    ogenDriver.o $(ogenFiles) GridStretcher.o generateParallel.o DataPointMapping.o
 ogen: $(ogen) ; $(CC) $(CCFLAGS) -o $@ $(ogen) $(PETSC_LIBS) $(CLIBS)  $(FLIBS) $(FORTRAN_LIBS_FORT77) $(GLIBS) 
 
 # **************************************************************************************

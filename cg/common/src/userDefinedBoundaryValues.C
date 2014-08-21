@@ -1525,7 +1525,11 @@ userDefinedBoundaryValues(const real & t,
           const Parameters::KnownSolutionsEnum & knownSolution = parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution");
 	  if( knownSolution==Parameters::userDefinedKnownSolution )
 	  {
+#ifndef USE_PPP
 	    parameters.getUserDefinedKnownSolution( t,cg, grid, bd, Ib1,Ib2,Ib3, numberOfTimeDerivatives );
+#else
+	    OV_ABORT("FIX ME FOR PARALLEL");
+#endif
 	  }
 	  else
 	  {

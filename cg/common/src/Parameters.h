@@ -490,7 +490,7 @@ virtual
 int getUserBoundaryConditionParameters(int side, int axis, int grid, RealArray & values) const;
 
 virtual
-int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 				const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
 virtual
 bool gridIsMoving(int grid) const;

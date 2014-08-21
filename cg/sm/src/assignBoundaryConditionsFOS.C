@@ -446,13 +446,8 @@ assignBoundaryConditionsFOS( int option, int grid, real t, real dt, realMappedGr
             real dx[3]={0.,0.,0.}; //
             if( isRectangular )
                 mg.getDeltaX(dx);
-    #ifdef USE_PPP
-            realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u,uLocal);
-            realSerialArray xLocal; getLocalArrayWithGhostBoundaries(x,xLocal);
-    #else
-            const realSerialArray & uLocal = u;
-            const realSerialArray & xLocal = x;
-    #endif
+            OV_GET_SERIAL_ARRAY(real,u,uLocal);
+            OV_GET_SERIAL_ARRAY_CONST(real,x,xLocal);
             const IntegerArray & bcg = mg.boundaryCondition();
             IntegerArray gid, dim, bc;
             getLocalBoundsAndBoundaryConditions( u, gid, dim, bc );
@@ -1311,7 +1306,7 @@ assignBoundaryConditionsFOS( int option, int grid, real t, real dt, realMappedGr
                         else if( initialConditionOption == knownSolutionInitialCondition )
             	  {
               // Assign dirichlet BC from know solution *wdh* 2014/01/09 
-              	    parameters.getUserDefinedKnownSolution(t,cg, grid, u, I1,I2,I3 );
+              	    parameters.getUserDefinedKnownSolution(t,cg, grid, uLocal, I1,I2,I3 );
             	  }
             	  else
             	  {

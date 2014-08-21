@@ -104,20 +104,29 @@ tfio: $(tfio)
 pentaDiagonal.f : pentaDiagonal.bf; $(BPP) pentaDiagonal.bf
 triDiagonal.f : triDiagonal.bf; $(BPP) triDiagonal.bf
 
+# TridiagonalFactor.o : TridiagonalFactor.C
+# 	$(CC) $(CCFLAGSF) -c TridiagonalFactor.C
+
 TridiagonalFactor.o : TridiagonalFactor.C
-	$(CC) $(CCFLAGSF) -c TridiagonalFactor.C
+	$(CC) $(CCFLAGSG) -c TridiagonalFactor.C
+
+ParallelTridiagonalSolver.o : ParallelTridiagonalSolver.C
+	$(CC) $(CCFLAGSG) -c ParallelTridiagonalSolver.C
 
 # Test the tridiagonal solver: 
 tri= tri.o TridiagonalSolver.o TridiagonalFactor.o pentaDiagonal.o
 tri: $(tri) 
-	$(CC) $(CCFLAGS) -o tri $(tri) \
-        $(CLIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o tri $(tri) $(CLIBS) $(FLIBS) $(GLIBS)
 
-# Test the PARALLEL tridiagonal solver: 
+# Test the (TEMP) PARALLEL tridiagonal solver: 
+parallelTri= parallelTri.o ParallelTridiagonalSolver.o TridiagonalSolver.o TridiagonalFactor.o pentaDiagonal.o
+parallelTri: $(parallelTri) 
+	$(CC) $(CCFLAGS) -o parallelTri $(parallelTri) $(CLIBS) $(FLIBS) $(GLIBS)
+
+# Test the NESTED DISECTION PARALLEL tridiagonal solver: FINISH ME
 trip= trip.o TridiagonalSolver.o TridiagonalFactor.o pentaDiagonal.o
 trip: $(trip) 
-	$(CC) $(CCFLAGS) -o trip $(trip) \
-        $(CLIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o trip $(trip) $(CLIBS) $(FLIBS) $(GLIBS)
 
 # test templates
 tm= tm.o

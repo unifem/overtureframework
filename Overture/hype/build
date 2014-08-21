@@ -29,6 +29,7 @@ mkdir -p $OvertureHype
 cp {HyperbolicMapping,update,startCurve,util,generate,project,applyBoundaryConditions,plot}.{C} $OvertureHype
 cp {stretch,GridSmoother,GridStretcher,MatchingCurve,implicitSolve}.{C} $OvertureHype
 cp {ellipticSmooth.f} $OvertureHype
+cp {generateParallel.C} $OvertureHype
 
 
 # copy include files

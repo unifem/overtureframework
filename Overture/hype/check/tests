@@ -8,9 +8,12 @@ hype.check
 #
 bump2d.check ../cmd/bump2d.cmd 
 bumpp.check ../cmd/bumpp.cmd 
+naca.check ../cmd/naca.hype.cmd 
+mastSail2d.check ../cmd/mastSail2d.cmd 
 #
 # --- 3D ---
 #
+filletTwoCyl.check ../cmd/filletTwoCyl.cmd
 planeMatchToCylinder.check ../cmd/planeMatchToCylinder.cmd
 cubeInABoxHypeGrids.check ../cmd/cubeInABoxHypeGrids.cmd
 loftedBoxHypeGrids.check ../cmd/loftedBoxHypeGrids.cmd

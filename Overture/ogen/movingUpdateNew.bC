@@ -477,7 +477,7 @@ movingUpdateNew(CompositeGrid & cg,
 
     if( !isRectangular ) // *wdh* 110727 -- fixed : only build the vertex if not rectangular
      c.update( MappedGrid::THEvertex | MappedGrid::THEcenter );
-    const realArray & center = c.center();
+    realArray & center = c.center();
 
     intArray & mask = c.mask();
     intSerialArray & ia = iInterp[grid];

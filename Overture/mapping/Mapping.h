@@ -272,8 +272,7 @@ class Mapping : public ReferenceCounting
   // project points onto the Mapping, usually used for curves or surfaces.
   virtual int project( realArray & x, MappingProjectionParameters & mpParams );
   #ifdef USE_PPP
-  // todo: 
-  //   virtual int project( RealArray & x, MappingProjectionParameters & mpParams );
+    virtual int project( RealArray & x, MappingProjectionParameters & mpParams );
   #endif
 
   virtual void display( const aString & label=blankString) const;
@@ -524,7 +523,7 @@ protected:
   #endif
 
   void initializePartition();   // initialize the parallel partition for grid
-  int mappingHasChanged();      // call this function if the mapping has changed
+  virtual int mappingHasChanged();      // call this function if the mapping has changed
   void setGridIsValid();        // set remakeGrid=false
 
   mappingSpace domainSpace;    // space of the domain

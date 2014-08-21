@@ -68,6 +68,9 @@ class MappingProjectionParameters
 
   RealDistributedArray & getRealArray(const RealArrayName & name);
 
+  intSerialArray & getIntSerialArray(const IntegerArrayName & name);
+  realSerialArray & getRealSerialArray(const RealArrayName & name);
+
   real searchBoundingBoxSize, searchBoundingBoxMaximumSize;
 
  private:

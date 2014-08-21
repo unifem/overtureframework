@@ -337,6 +337,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
           	    assert( alpha>0. );
           	    getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
           	    Range Rx=numberOfDimensions;
+#ifndef USE_PPP
           	    RealArray vSolid(Ib1,Ib2,Ib3,Rx); // holds velocity of solid on the boundary
           	    deform.getVelocityBC( t, grid, mg, Ib1,Ib2,Ib3, vSolid );
 
@@ -346,6 +347,9 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 	    // alpha=0.;  // *TESTING*
           	    
           	    gridVelocity(Ib1,Ib2,Ib3,Rx) = alpha*u(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolid(Ib1,Ib2,Ib3,Rx);
+#else
+                        OV_ABORT("FINISH ME FOR PARALLEL");
+#endif
 
 
         	  }

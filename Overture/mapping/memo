@@ -1,3 +1,21 @@
+2014/08/17 -- new Nurbs interpolate functions
+
+Compare old routine to new + banded solves
+
+
+OLD : Cylinder [101,31,21] interpolate cpu=5.828e-02
+NEW : Cylinder [101,31,21] interpolate cpu=3.508e-02
+
+OLD : Cylinder [61,11,11] interpolate cpu=6.401e-03
+NEW : Cylinder [61,11,11] interpolate cpu=4.783e-03
+
+OLD : Annulus [501,101] interpolate cpu=6.825e-02
+NEW : Annulus [501,101] interpolate cpu=1.231e-02
+
+
+
+
+
 
 Files for doxygen:
 

@@ -4,7 +4,7 @@
 #include "Inverse.h"          
 #include "DistributedInverse.h"
 #include "SparseArray.h"
-
+#include "NurbsMapping.h"
 
 // ====================================================================================================
 /// \brief Evaluate a DataPointMapping Mapping (in parallel)
@@ -15,6 +15,22 @@
 void DataPointMapping::
 mapS( const RealArray & r, RealArray & x, RealArray & xr, MappingParameters & params )
 {
+  if( evalAsNurbs )
+  {
+    // --- Use a Nurbs to evaluate the mapping ---
+    if( nurbsOutOfDate )
+      generateNurbs();
+
+    if( false )
+      printF("--DPM-- mapS : eval as a NurbsMapping\n");
+    
+    NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
+    nurbs.mapS(r,x,xr,params);
+    return;
+  }
+
+
+
   if( params.coordinateType != cartesian )
     cerr << "DataPointMapping::map - coordinateType != cartesian " << endl;
 
@@ -411,9 +427,18 @@ mapS( const RealArray & r, RealArray & x, RealArray & xr, MappingParameters & pa
   // ****** Evaluate the Mapping ******
   // **********************************
   if( numberOfQueries>0 )
+  {
     mapScalar( rc,xc,xrc,params, 0,numberOfQueries-1,computeMapAnswer,computeMapDerivativeAnswer );
 //    mapScalar( rc,xc,xrc,params, 0,numberOfQueries-1,computeMapAnswer,computeMapDerivativeAnswer );
 
+    if( false )
+    {
+      ::display(rc,"--DPM-- rc INPUT for mapScalar",pDebugFile,"%6.3f ");
+      ::display(xc,"--DPM-- xc OUTPUT from mapScalar",pDebugFile,"%6.3f ");
+    }
+    
+  }
+  
 
 
   if( debug & 1 )
@@ -567,6 +592,12 @@ mapS( const RealArray & r, RealArray & x, RealArray & xr, MappingParameters & pa
     fprintf(pDebugFile,"DPM:mapS:DONE: myid=%i\n",myid);
     fflush(pDebugFile);
   }
+  if( false )
+  {
+    ::display(r,"--DPM-- dpmMap: r","%6.3f ");
+    ::display(x,"--DPM-- dpmMap: x","%6.3f ");
+  }
+  
       
   // wait for ALL sends to finish on this processor before we can clean up
   MPI_Waitall(nps,sendRequest,sendStatus);

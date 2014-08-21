@@ -199,16 +199,16 @@ hexVolume( real *v000, real *v100, real *v010, real *v110, real *v001, real *v10
 
 
 int HyperbolicMapping::
-getNormalAndSurfaceArea(const realArray & x, 
+getNormalAndSurfaceArea(const RealArray & x, 
 			const int & firstStep, 
-			realArray & normal, 
-			realArray & s,
-			realArray & xr, 
-			realArray & xrr,
+			RealArray & normal, 
+			RealArray & s,
+			RealArray & xr, 
+			RealArray & xrr,
                         const real & dSign,
-                        realArray & normXr,
-                        realArray & normXs,
-                        realArray & ss,
+                        RealArray & normXr,
+                        RealArray & normXs,
+                        RealArray & ss,
                         const int & marchingDirection,
 			int stepNumber /* =0 */ )
 // ================================================================================================
@@ -230,7 +230,7 @@ getNormalAndSurfaceArea(const realArray & x,
 /// 
 // ================================================================================================
 {
-// @PD realArray4[x,xr,xr0,xrr0,normalCC,norm,normal,s,ss,normXr] Range[I1,I2,xAxes,Ig1,Ig2]
+// @PD RealArray4[x,xr,xr0,xrr0,normalCC,norm,normal,s,ss,normXr] Range[I1,I2,xAxes,Ig1,Ig2]
   if( debug & 1 )
     fprintf(debugFile,"\n>>>>>Entering getNormalAndSurfaceArea\n");
     
@@ -253,8 +253,8 @@ getNormalAndSurfaceArea(const realArray & x,
   {
     is[axis]=1;
 
-    const realArray & xr1 = xr(I1,I2,0,xAxes,axis);  // do this for gcc
-    realArray & xr0 = (realArray&)xr1;
+    const RealArray & xr1 = xr(I1,I2,0,xAxes,axis);  // do this for gcc
+    RealArray & xr0 = (RealArray&)xr1;
     
     if( domainDimension==2 )
       xr0=.5*(x(I1+is1,I2+is2,i3,xAxes)-x(I1,I2,i3,xAxes));                     // @PANS
@@ -296,7 +296,7 @@ getNormalAndSurfaceArea(const realArray & x,
 //     normalCC(I1,I2,0,2)=(xr(I1,I2,0,0)*xr(I1,I2,0,4)-xr(I1,I2,0,1)*xr(I1,I2,0,3)); // PANS
     
   }
-  realArray norm(I1,I2);
+  RealArray norm(I1,I2);
   if( rangeDimension==2 )
     norm=max(REAL_MIN,SQRT(SQR(normalCC(I1,I2,0,0))+SQR(normalCC(I1,I2,0,1))));  // @PANS
   else
@@ -384,7 +384,7 @@ getNormalAndSurfaceArea(const realArray & x,
     if( false )
     {
       // average in two steps so the normal at a corner is better (see cube.cmd)
-      realArray n(I1,I2,1,xAxes);
+      RealArray n(I1,I2,1,xAxes);
       n=normal(I1-1,I2  ,0,xAxes)+normal(I1,I2  ,0,xAxes);
       norm(I1,I2) = 1./max(REAL_MIN,SQRT(SQR(n(I1,I2,0,0))+SQR(n(I1,I2,0,1))+SQR(n(I1,I2,0,2))));
       for( axis=0; axis<rangeDimension; axis++ )
@@ -423,10 +423,10 @@ getNormalAndSurfaceArea(const realArray & x,
   for( axis=0; axis<domainDimension-1; axis++ )
   {
     is[axis]=1;
-    const realArray & xr1 =xr(I1,I2,0,xAxes,axis); 
-    realArray & xr0 =(realArray&)xr1;
-    const realArray & xrr1 =xrr(I1,I2,0,xAxes,axis);
-    realArray & xrr0 =(realArray&)xrr1;
+    const RealArray & xr1 =xr(I1,I2,0,xAxes,axis); 
+    RealArray & xr0 =(RealArray&)xr1;
+    const RealArray & xrr1 =xrr(I1,I2,0,xAxes,axis);
+    RealArray & xrr0 =(RealArray&)xrr1;
 
     xr0=.5*(x(I1+is1,I2+is2,i3,xAxes)-x(I1-is1,I2-is2,i3,xAxes));   // @PANS
     xrr0=(x(I1+is1,I2+is2,i3,xAxes)-2.*x(I1      ,I2      ,i3,xAxes)+   // @PANS
@@ -463,7 +463,7 @@ getNormalAndSurfaceArea(const realArray & x,
 	  getBoundaryIndex(gridIndexRange,Start,axis,Ib1,Ib2,Ib3);
 	  // ::display(xr(Ib1,Ib2,0,xAxes,0),"xr(Ib1,Ib2,0,xAxes,0)");
 	  
-          realArray tangent(1,1,1,rangeDimension);
+          RealArray tangent(1,1,1,rangeDimension);
 	  tangent(0,0,0,xAxes)=x(Ib1+1,Ib2,0,xAxes)-x(Ib1,Ib2,0,xAxes);
 
 	  // trailingEdgeDirection(0,0,0,xAxes)=-normalize( xr(Ib1,Ib2,0,xAxes,0) ); // note minus
@@ -495,7 +495,7 @@ getNormalAndSurfaceArea(const realArray & x,
           bcValue==floatCollapsed )
         continue;
 
-      realArray normInverse(Ib1,Ib2);
+      RealArray normInverse(Ib1,Ib2);
       int dir;
       if( bcValue==matchToMapping || bcValue==matchToABoundaryCurve )
       {
@@ -509,13 +509,18 @@ getNormalAndSurfaceArea(const realArray & x,
         //      been projected onto the BC Mapping's.  ******
 
 	MappingProjectionParameters & mpParams = boundaryConditionMappingProjectionParameters[side][direction];
-	realArray & n = mpParams.getRealArray(MappingProjectionParameters::normal);
+        #ifndef USE_PPP
+	  RealArray & n = mpParams.getRealArray(MappingProjectionParameters::normal);
+        #else
+  	  OV_ABORT("finish me");
+   	  RealArray n;
+        #endif
 
         const int numberOfPoints=Ib1.getLength()*Ib2.getLength();
         if( n.getLength(0)!=numberOfPoints )
           continue;
 
-	realArray nDot(Ib1,Ib2);
+	RealArray nDot(Ib1,Ib2);
 
         projectNormalsToMatchCurve(*boundaryConditionMapping[side][direction], mpParams,Ib1,Ib2,normal,nDot );
 	
@@ -637,7 +642,7 @@ getNormalAndSurfaceArea(const realArray & x,
 //         fprintf(debugFile,"getNormal.. projectNormalsToMatchCurve.. gridLine=%i\n",gridLine);
 
         // printf("****getNormalAndSurfaceArea.. projectNormalsToMatchCurve.. gridLine=%i\n",gridLine);
-        realArray nDot(Ib1,Ib2);
+        RealArray nDot(Ib1,Ib2);
         projectNormalsToMatchCurve(matchingMap, mpParams,Ib1,Ib2,normal,nDot );
 
         int numberToBlend=match.numberOfLinesForNormalBlend;
@@ -702,7 +707,7 @@ getNormalAndSurfaceArea(const realArray & x,
     if( curvatureWeight!=0. )
     {
       // compute the tangential component of the curvature xrr*tangent
-      realArray curvature(I1,I2);
+      RealArray curvature(I1,I2);
       if( domainDimension==2 )
       {
 	curvature(I1,I2)=fabs(xrr(I1,I2,0,axis1,0)*xr(I1,I2,0,axis1,0)+
@@ -715,7 +720,7 @@ getNormalAndSurfaceArea(const realArray & x,
     if( normalCurvatureWeight!=0. && rangeDimension==3 )
     {
       // compute the normal component of the curvature xrr*(normal to surface)
-      realArray curvature(I1,I2);
+      RealArray curvature(I1,I2);
       if( domainDimension==2 )
       {
 	curvature(I1,I2)=fabs(xrr(I1,I2,0,axis1,0)*xrr(I1,I2,0,axis1,1)+
@@ -808,8 +813,8 @@ getNormalAndSurfaceArea(const realArray & x,
   /side : 0,1 -- blend the boundary (left or right), -1 -- blend an interior line
   */
 int HyperbolicMapping::
-blendNormals(realArray & normal, 
-             realArray & xr,
+blendNormals(RealArray & normal, 
+             RealArray & xr,
 	     int numberToBlend,
 	     Index Iv[3],
 	     int axis, int side)
@@ -873,7 +878,7 @@ blendNormals(realArray & normal,
     // blend the normal on this line with the normal on the boundary
     normal(Ig1,Ig2,0,xAxes)=omega*normal(Ig1,Ig2,0,xAxes)+(1.-omega)*normal(I1,I2,0,xAxes);
 
-    realArray normInverse;
+    RealArray normInverse;
     if( rangeDimension==2 )
       normInverse=1./max(REAL_MIN,SQRT(SQR(normal(Ig1,Ig2,0,0))+SQR(normal(Ig1,Ig2,0,1))));
     else
@@ -904,7 +909,7 @@ blendNormals(realArray & normal,
 
 
 int HyperbolicMapping::
-formBlockTridiagonalSystem(const int & direction, realArray & f )
+formBlockTridiagonalSystem(const int & direction, RealArray & f )
 //===========================================================================
 /// \param Access: protected.
 /// \brief  
@@ -916,7 +921,7 @@ formBlockTridiagonalSystem(const int & direction, realArray & f )
 {
   real time0=getCPU();
   
-// @PD realArray4[at,bt,ct,c,lambda,lambdaP,lambdaM] Range[I1,I2]
+// @PD RealArray4[at,bt,ct,c,lambda,lambdaP,lambdaM] Range[I1,I2]
 
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
   int is[3] = {0,0,0};
@@ -959,8 +964,8 @@ formBlockTridiagonalSystem(const int & direction, realArray & f )
 
     is[direction]=1;
  
-    const realArray & lambdaP = lambda(0,I1,I2);
-    const realArray & lambdaM = lambda(0,I1-is[0],I2-is[1]);
+    const RealArray & lambdaP = lambda(0,I1,I2);
+    const RealArray & lambdaM = lambda(0,I1-is[0],I2-is[1]);
  
     at(0,I1,I2)=-.5*( c(0,I1,I2,0)+lambdaM ); // @PANS
     at(3,I1,I2)=-.5*( c(0,I1,I2,1) );         // @PANS
@@ -1112,14 +1117,14 @@ formBlockTridiagonalSystem(const int & direction, realArray & f )
 
 
 int HyperbolicMapping::
-jacobiSmooth( realArray & u,  const int & numberOfSmooths )
+jacobiSmooth( RealArray & u,  const int & numberOfSmooths )
 //===========================================================================
 /// \param Access: protected.
 /// \brief  
 ///     Perform some smoothing steps.
 //===========================================================================
 {    
-// @PD realArray2[u] Range[I1,I2,I3,J1,J2,J3,K1,K2,K3]
+// @PD RealArray2[u] Range[I1,I2,I3,J1,J2,J3,K1,K2,K3]
   real time0=getCPU();
   
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
@@ -1193,11 +1198,11 @@ jacobiSmooth( realArray & u,  const int & numberOfSmooths )
 }
 
 int HyperbolicMapping::
-formCMatrix(realArray & xr, 
-	    realArray & xt, 
+formCMatrix(RealArray & xr, 
+	    RealArray & xt, 
             const int & i3Mod2,
-	    realArray & normal, 
-	    realArray & normXr,
+	    RealArray & normal, 
+	    RealArray & normXr,
             const int & direction )
 //===========================================================================
 /// \param Access: protected.
@@ -1243,18 +1248,18 @@ formCMatrix(realArray & xr,
   Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
   ::getIndex(indexRange,I1,I2,I3); 
 
-// @PD realArray2[xrDotXr,normXr] Range[I1,I2]
+// @PD RealArray2[xrDotXr,normXr] Range[I1,I2]
   if( rangeDimension==2 )
   {
-    realArray xrDotXr(I1,I2);
+    RealArray xrDotXr(I1,I2);
     xrDotXr=1./(normXr(I1,I2)*normXr(I1,I2));    // @PANS
     c(I1,I2,0)=(xr(I1,I2,0,0)*xt(I1,I2,i3Mod2,0)-xr(I1,I2,0,1)*xt(I1,I2,i3Mod2,1))*xrDotXr;  // c_{0,0} = -c_{1,1}
     c(I1,I2,1)=(xr(I1,I2,0,0)*xt(I1,I2,i3Mod2,1)+xr(I1,I2,0,1)*xt(I1,I2,i3Mod2,0))*xrDotXr;  // c_{1,0} =  c_{0,1}
   }
   else
   {
-// @PD realArray5[jac,xr,normal,cInverse,a,c,xt] Range[I1,I2]
-    realArray cInverse(I1,I2,3,3), jac(I1,I2), xrxt(I1,I2,3);
+// @PD RealArray5[jac,xr,normal,cInverse,a,c,xt] Range[I1,I2]
+    RealArray cInverse(I1,I2,3,3), jac(I1,I2), xrxt(I1,I2,3);
       
     jac(I1,I2)=(xr(I1,I2,0,0,0)*(xr(I1,I2,0,1,1)*normal(I1,I2,0,2)-xr(I1,I2,0,2,1)*normal(I1,I2,0,1))+ // @PANS
 		xr(I1,I2,0,1,0)*(xr(I1,I2,0,2,1)*normal(I1,I2,0,0)-xr(I1,I2,0,0,1)*normal(I1,I2,0,2))+

@@ -67,7 +67,7 @@ otherStuff_fs_date: $(files)
 	  touch $@
 
 # Here are the C++ files that Bill always likes to optimize 
-filesOpt = TridiagonalSolver.C TridiagonalFactor.C arrayGetIndex.C
+filesOpt = TridiagonalSolver.C TridiagonalFactor.C arrayGetIndex.C ParallelTridiagonalSolver.C
 otherStuff_Opt_date: $(filesOpt)
 	 $(CC) $(CCFLAGSO) -c $?
 	  touch $@

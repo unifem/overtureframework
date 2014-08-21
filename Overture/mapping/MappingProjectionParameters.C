@@ -106,6 +106,30 @@ getRealArray(const RealArrayName & name)
   return *realArrayParameter[name];
 }
 
+intSerialArray & MappingProjectionParameters::
+getIntSerialArray(const IntegerArrayName & name)
+{
+ #ifndef USE_PPP
+  if( integerArrayParameter[name]==NULL )
+    integerArrayParameter[name]=new intArray;
+  return *integerArrayParameter[name];
+ #else
+  OV_ABORT("finish me");
+ #endif
+}
+
+realSerialArray & MappingProjectionParameters::
+getRealSerialArray(const RealArrayName & name)
+{
+ #ifndef USE_PPP
+  if( realArrayParameter[name]==NULL )
+    realArrayParameter[name]=new realArray;
+  return *realArrayParameter[name];
+ #else
+  OV_ABORT("finish me");
+ #endif
+}
+
 int MappingProjectionParameters:: 
 setIsAMarchingAlgorithm(const bool & trueOrFalse /* =TRUE */ )
 // ===============================================================================

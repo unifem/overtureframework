@@ -9,8 +9,10 @@ include ../config/Makefile.$(VENDOR)
 current = .
 mapping = $(current)/../mapping
 ogshow = $(current)/../ogshow
+hype = $(current)/../hype
+ogen = $(current)/../ogen
 
-VPATH = $(mapping):$(ogshow)
+VPATH = $(mapping):$(ogshow):$(hype):$(ogen)
 
 all = mappedGridExample1 mappedGridExample2 mappedGridExample3 mappedGridExample4 mappedGridExample5 mappedGridExample6 \
       example1 example2 example3 example4 example5 example6 example7 example8 example9  example10 wave \
@@ -229,7 +231,9 @@ move1: $(move1)
 	$(CC) $(CCFLAGS) -o move1 $(move1) $(CLIBS) $(FLIBS) $(GLIBS)
 
 # A deforming grid example
-deform = deform.o 
+deform = deform.o generateParallel.o project.o generate.o
+deform = deform.o generateParallel.o DataPointMapping.o cutHolesNewer.o classify.o lastChance.o
+deform = deform.o DataPointMapping.o
 deform: $(deform) 
 	$(CC) $(CCFLAGS) -o deform $(deform) $(CLIBS) $(FLIBS) $(GLIBS)
 

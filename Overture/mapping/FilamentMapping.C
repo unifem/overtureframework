@@ -809,19 +809,19 @@ regenerateBodyFittedMapping( HyperbolicMapping *pHyper00 )
 
   if (debug&4) {
     cout << "\n\n@@ FilamMapping::regenBFM -- "
-	 << "before pHyper->generateNew()\n\n";
+	 << "before pHyper->generate()\n\n";
     printHyperbolicDimensions(); //**pf DEBUG
   }
-  pHyper00->generateNew(); // we assume params for HyperbMap are OK
+  pHyper00->generate(); // we assume params for HyperbMap are OK
 
   // **pf**  setSurf changes pHyper's axis1 -dimension
-  // **pf**  generateNew changes pHyper's axis2 dimension (=linesToMarch)
+  // **pf**  generate changes pHyper's axis2 dimension (=linesToMarch)
   pHyper00->setGridDimensions(axis1, axisKeep1);
   pHyper00->setGridDimensions(axis2, axisKeep2);
 
   if (debug&4) {
     cout << "\n\n@@ FilamMapping::regenBFM -- "
-	 << "*AFTER* pHyper->generateNew()\n\n";
+	 << "*AFTER* pHyper->generate()\n\n";
     printHyperbolicDimensions(); //**pf DEBUG
   }
 

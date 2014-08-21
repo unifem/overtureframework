@@ -2947,7 +2947,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
 	// hyp.display();
 	hyp.setBoundaryCurves( numberOfBoundaryCurves,boundaryCurves );
 	
-	hyp.generateNew();
+	hyp.generate();
 
 	// hyp.display();
         surfaceGrids.add(hyp);

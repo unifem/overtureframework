@@ -1232,7 +1232,7 @@ assignMarchingParametersDialog(DialogData & marchingParametersDialog, aString bc
 }
 
 int HyperbolicMapping::
-findNormalsToStartCurve(realArray & r, realArray & normal, int directionToMarch)
+findNormalsToStartCurve(RealArray & r, RealArray & normal, int directionToMarch)
 // ========================================================================================
 // /Description:
 //    Determine the marching direction vector (normal) to the start curve.
@@ -1250,10 +1250,10 @@ findNormalsToStartCurve(realArray & r, realArray & normal, int directionToMarch)
 
   assert( n>1 );  // project needs n>1 in order to fix corners.
   
-  realArray x(I,3), xr(I,3,2);
+  RealArray x(I,3), xr(I,3,2);
   xr=0.;  // needed for dec
   
-  startCurve->map(r,x,xr);
+  startCurve->mapS(r,x,xr);
 
 
   x.reshape(n,1,1,3);
@@ -1279,7 +1279,7 @@ findNormalsToStartCurve(realArray & r, realArray & normal, int directionToMarch)
   normal(I,2)=(xr(I,0,1)*xr(I,1,0)-xr(I,1,1)*xr(I,0,0));
 
   // scale by the average length
-  realArray norm; 
+  RealArray norm; 
   norm= (-marchingDirection)/max( REAL_MIN, SQRT( SQR(normal(I,0))+SQR(normal(I,1))+SQR(normal(I,2)) ));
   
   normal(I,0)*=norm;
@@ -1323,8 +1323,8 @@ findMatchingBoundaryCurve(int side, int axis, int directionToMarch,
   const int direction = directionToMarch; // !surfaceGrid || growthOption==1 ? axis : axis+1;
 
   // look for the boundary curve to match to.
-  realArray x(2,3);
-  const realArray & startCurveGrid = startCurve->getGrid();
+  RealArray x(2,3);
+  const RealArray & startCurveGrid = startCurve->getGridSerial();
   if( side==0 )
   {
     for( int dir=0; dir<3; dir++ )
@@ -1345,8 +1345,8 @@ findMatchingBoundaryCurve(int side, int axis, int directionToMarch,
 	
   // find the normal to the start curve 
   // (we need to evaluate at two points for the projection+corner correction to work)
-  realArray normal;
-  realArray rn(2,1);
+  RealArray normal;
+  RealArray rn(2,1);
   if( side==0 )
   {
     rn(0,0)=0.;
@@ -1370,7 +1370,7 @@ findMatchingBoundaryCurve(int side, int axis, int directionToMarch,
   // const real distanceToBoundaryCurveTolerance=1.e-3; // now in class
 
   int curve=-1;
-  realArray r(2,2), rr(1,1), x2(2,3), xx(1,3), xr1(1,3,1), xr2(1,3,1);
+  RealArray r(2,2), rr(1,1), x2(2,3), xx(1,3), xr1(1,3,1), xr2(1,3,1);
   real distMin=REAL_MAX;  // distance to closest boundary curve
   real marchingDistanceAlongBoundaryCurve=0.;  // estimated distance we can march along the closest boundary curve.
    
@@ -1398,7 +1398,7 @@ findMatchingBoundaryCurve(int side, int axis, int directionToMarch,
       real xb=map.getRangeBound(End,dir);
       if( xa>REAL_MAX*.001 || xb>REAL_MAX*.001 )
       {
-	map.getGrid();
+	map.getGridSerial();
 	xa=map.getRangeBound(Start,dir);
 	xb=map.getRangeBound(End,dir);
       }
@@ -1417,8 +1417,8 @@ findMatchingBoundaryCurve(int side, int axis, int directionToMarch,
     if( nearby )
     {
       r=-1;
-      map.inverseMap(x,r);
-      map.map(r,x2);
+      map.inverseMapS(x,r);
+      map.mapS(r,x2);
 
       real dist1 = SQRT( SQR(x(0,0)-x2(0,0))+SQR(x(0,1)-x2(0,1))+SQR(x(0,2)-x2(0,2)) );
       real dist2 = SQRT( SQR(x(1,0)-x2(1,0))+SQR(x(1,1)-x2(1,1))+SQR(x(1,2)-x2(1,2)) );
@@ -1459,12 +1459,12 @@ findMatchingBoundaryCurve(int side, int axis, int directionToMarch,
         //                             |
    
         rr = side==0 ? 0. : 1.;
-	startCurve->map(rr,xx,xr1);
+	startCurve->mapS(rr,xx,xr1);
         // evaluate tangent a bit off the ends to avoid problems with NURBS that may have been split at
         // internal corners.
         rr(0,0)=min(.975,max(.025,r(0,0)));  
         xr2=-1.;
-	map.map(rr,xx,xr2);
+	map.mapS(rr,xx,xr2);
 	
 	real norm1=sqrt(xr1(0,0,0)*xr1(0,0,0)+xr1(0,1,0)*xr1(0,1,0)+xr1(0,2,0)*xr1(0,2,0));
 	real norm2=sqrt(xr2(0,0,0)*xr2(0,0,0)+xr2(0,1,0)*xr2(0,1,0)+xr2(0,2,0)*xr2(0,2,0));
@@ -2252,7 +2252,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
     // change the current grid if it has been built
     if( dpm!=NULL )
     {
-      realArray & x = xHyper;
+      RealArray & x = xHyper;
 
       IntegerArray gid(2,3);
       gid=0;
@@ -2268,6 +2268,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
       
       Range xAxes(0,rangeDimension-1);
     
+      #ifndef USE_PPP
       if( domainDimension==2 )
       {
 	x.reshape(x.dimension(0),x.dimension(2),1,xAxes);
@@ -2278,6 +2279,10 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
       }
       else
 	dpm->setDataPoints(x,3,domainDimension,0,gid);
+      #else
+        OV_ABORT("finish me for parallel");
+      #endif
+
     }
     plotObject=true;
     mappingHasChanged();
@@ -2311,10 +2316,10 @@ getArcLength( Mapping &curve, real & arcLength )
   assert( curve.getDomainDimension()==1 && curve.getRangeDimension()==3 );
 
   int n= 100;
-  realArray r(n,1),x(n,3);
+  RealArray r(n,1),x(n,3);
   real dr=1./(n-1);
   r.seqAdd(0.,dr);
-  curve.map(r,x);
+  curve.mapS(r,x);
 
   arcLength=0.;
   for ( int nn=0; nn<n-1; nn++ )
@@ -2692,8 +2697,8 @@ measureQuality( Mapping & map, int numberOfGhostLines=1 )
     }
   }
   
-  realArray x(Ig1,Ig2,Ig3,rangeDimension);
-  realArray r(Ig1,Ig2,Ig3,domainDimension);
+  RealArray x(Ig1,Ig2,Ig3,rangeDimension);
+  RealArray r(Ig1,Ig2,Ig3,domainDimension);
   int i1,i2,i3;
   for( i3=Ig3.getBase(); i3<=Ig3.getBound(); i3++ )
   {
@@ -2711,7 +2716,7 @@ measureQuality( Mapping & map, int numberOfGhostLines=1 )
       for( i1=Ig1.getBase(); i1<=Ig1.getBound(); i1++ )
 	r(i1,i2,Ig3,2).seqAdd(dr[2]*Ig3.getBase(),dr[2]);
   }
-  map.mapGrid(r,x);
+  map.mapGridS(r,x);
 
 
   if( map.getDomainDimension()==3 && map.getRangeDimension()==3 )
@@ -2973,7 +2978,6 @@ update( MappingInformation & mapInfo,
   plotNegativeCells=false;   // set to true in generate if there are negative cells detected
 
   numberOfPointsOnStartCurve=21;
-
 
   aString answer,line,answer2; 
 
@@ -3313,6 +3317,17 @@ update( MappingInformation & mapInfo,
     dialog.setSensitive(surfaceGrid==true,DialogData::pushButtonWidget,3);
     
 
+    aString tbCommands[] = {"evaluate as nurbs",
+			    ""
+                           };
+    
+
+    int tbState[5];
+    tbState[0] = (int)evalAsNurbs;
+    int numColumns=1;
+    dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns);
+
+
     const int numberOfTextStrings=8;
     aString textLabels[numberOfTextStrings], textStrings[numberOfTextStrings];
 
@@ -3344,6 +3359,10 @@ update( MappingInformation & mapInfo,
 
     textLabels[nt] = "target grid spacing"; 
     sPrintF(textStrings[nt], "%g, %g (tang,normal, <0 : use default)",targetGridSpacing,initialSpacing); 
+    nt++; 
+
+    textLabels[nt] = "degree of nurbs"; 
+    sPrintF(textStrings[nt], "%i",nurbsDegree); 
     nt++; 
 
     textLabels[nt] = "name"; 
@@ -3533,7 +3552,7 @@ update( MappingInformation & mapInfo,
     if( dpm!=NULL )
     {
       // compute gid for the gridStretcher
-      realArray & x = xHyper;
+      RealArray & x = xHyper;
       Range Rx=rangeDimension;
       if( domainDimension==2 )
 	x.reshape(x.dimension(0),x.dimension(2),1,Rx);
@@ -3668,6 +3687,14 @@ update( MappingInformation & mapInfo,
 	printf("print grid statistics:WARNING:There is no grid made yet\n");
       }
     }
+    else if( dialog.getToggleValue( answer,"evaluate as nurbs",evalAsNurbs) )
+    {
+      useNurbsToEvaluate(evalAsNurbs);
+    }
+    else if( dialog.getTextValue(answer,"degree of nurbs","%i",nurbsDegree) )
+    {
+      setDegreeOfNurbs(nurbsDegree);
+    }
     else if( answer=="plot grid quality" )
     {
       if( dpm!=NULL )
@@ -3791,7 +3818,7 @@ update( MappingInformation & mapInfo,
 	reinitialize();  // *wdh* 000503
       
         const realArray & xdpm = dpm->getDataPoints();
-        realArray & x = xHyper;
+        RealArray & x = xHyper;
 	
 
         Index I1,I2,I3;
@@ -3817,6 +3844,7 @@ update( MappingInformation & mapInfo,
 	}
 	else
 	{
+          #ifndef USE_PPP
 	  if( domainDimension==2 )
 	  {
 	    x.reshape(I1,I3,1,x.dimension(3));
@@ -3825,6 +3853,9 @@ update( MappingInformation & mapInfo,
 	  }
 	  else	  
 	    x(J1,I2,I3,xAxes)=xdpm(J1,I2,I3,xAxes);
+          #else
+	  OV_ABORT("finish me");
+          #endif
 	}
 	
 
@@ -3915,14 +3946,14 @@ update( MappingInformation & mapInfo,
              "   Selected point: x=(%e,%e,%e)\n", xSelect[0],xSelect[1],xSelect[2]);
 
       MappingProjectionParameters mpParams;
-      realArray x(1,3),r(1,3);
+      RealArray x(1,3),r(1,3);
       int iv[3]={0,0,0}; //
       if( dpm!=NULL )
       {
         x(0,0)=xSelect[0]; x(0,1)=xSelect[1]; x(0,2)=xSelect[2]; 
 	r=-1.; 
-	dpm->inverseMap(x,r);
-	dpm->map(r,x);
+	dpm->inverseMapS(x,r);
+	dpm->mapS(r,x);
         for( int axis=0; axis<domainDimension; axis++ )
 	{
 	  real dr=1./max(1,dpm->getGridDimensions(axis)-1);
@@ -3947,8 +3978,8 @@ update( MappingInformation & mapInfo,
       { 
 	x(0,0)=xSelect[0]; x(0,1)=xSelect[1]; x(0,2)=xSelect[2]; 
 	r=-1.;
-	startCurve->inverseMap(x,r);
-	startCurve->map(r,x);
+	startCurve->inverseMapS(x,r);
+	startCurve->mapS(r,x);
         iv[0]=int(r(0,0)*(numberOfPointsOnStartCurve-1)+.5);  // closest point
 	printf(" ...closest point on start curve: x=(%e,%e,%e) r=(%e) i=(%i)\n",x(0,0),x(0,1),x(0,2),r(0,0),iv[0]);
       }
@@ -3977,8 +4008,8 @@ update( MappingInformation & mapInfo,
 		Mapping & edge = compositeTopology.getEdgeCurve(e);
 		x(0,0)=xSelect[0]; x(0,1)=xSelect[1]; x(0,2)=xSelect[2]; 
 		r=-1.;
-		edge.inverseMap(x,r);
-		edge.map(r,x);
+		edge.inverseMapS(x,r);
+		edge.mapS(r,x);
 		printf(" ...point is close to edge curve %i, x=(%e,%e,%e) r=(%e)\n",e,x(0,0),x(0,1),x(0,2),r(0,0));
 	      }
 	    }
@@ -3993,8 +4024,8 @@ update( MappingInformation & mapInfo,
 	    {
 	      x(0,0)=xSelect[0]; x(0,1)=xSelect[1]; x(0,2)=xSelect[2]; 
 	      r=-1.;
-	      boundaryCurves[b]->inverseMap(x,r);
-	      boundaryCurves[b]->map(r,x);
+	      boundaryCurves[b]->inverseMapS(x,r);
+	      boundaryCurves[b]->mapS(r,x);
 	      printf(" ...point is close to boundary curve %i, x=(%e,%e,%e) r=(%e)\n",b,x(0,0),x(0,1),x(0,2),r(0,0));
 	    }
 	  } // end for b
@@ -4162,11 +4193,11 @@ update( MappingInformation & mapInfo,
 	  
           // *** intersect the matching curve with the initial curve to determine which grid point to project. ***
 
-          const realArray & matchingCurveGrid = newMatchingCurve->getGrid();
-          const realArray & startCurveGrid = startCurve->getGrid();
+          const RealArray & matchingCurveGrid = newMatchingCurve->getGridSerial();
+          const RealArray & startCurveGrid = startCurve->getGridSerial();
 
 	  assert( rangeDimension==3 );
-	  realArray x(1,3),r(1,1), xp(1,3), xr(1,3,1);
+	  RealArray x(1,3),r(1,1), xp(1,3), xr(1,3,1);
 
           // *wdh* new way 081102
           // --  find the closest point between the start curve and matching curve : use brute force for now --
@@ -4209,7 +4240,7 @@ update( MappingInformation & mapInfo,
 	    x(0,axis)=xi[axis];
 	  
 	  r=rs; // initial guess
-	  startCurve->inverseMap(x,r);
+	  startCurve->inverseMapS(x,r);
 
 	  if( fabs(r(0,0)-.5)>.55 )
 	  {
@@ -4220,7 +4251,7 @@ update( MappingInformation & mapInfo,
 	  else
 	  {
 	    xp=0.;
-	    startCurve->map(r,xp);
+	    startCurve->mapS(r,xp);
 	    rp=r(0,0);
 	    xi[0]=xp(0,0); xi[1]=xp(0,1); xi[2]=xp(0,2); 
 
@@ -4288,7 +4319,7 @@ update( MappingInformation & mapInfo,
 	  {
 	    SplineMapping & spline = (SplineMapping&) (*startCurve);
 	    int ns = spline.getNumberOfKnots();
-	    // realArray s(ns);
+	    // RealArray s(ns);
 
 	    printF("match: start curve has %i points, %i knots\n",numberOfPointsOnStartCurve,ns);
 	  }
@@ -4300,7 +4331,7 @@ update( MappingInformation & mapInfo,
 
           // get tangent to startCurve at intersection point
           r=rs;
-	  startCurve->map(r,xp,xr);
+	  startCurve->mapS(r,xp,xr);
 
           // project the first point inward on the matching curve in order to get the normal to
           // the surface (we don't project the end point since we may be on a corner where
@@ -4351,7 +4382,12 @@ update( MappingInformation & mapInfo,
 	  {
 	    
 	    MappingProjectionParameters mpParams;
-	    realArray & surfaceNormal= mpParams.getRealArray(MappingProjectionParameters::normal);
+            #ifndef USE_PPP
+	    RealArray & surfaceNormal= mpParams.getRealArray(MappingProjectionParameters::normal);
+            #else
+  	      RealArray surfaceNormal;
+              OV_ABORT("finishe me");
+            #endif
 	    surfaceNormal.redim(1,3);
 
 	    surface->project(x,mpParams);
@@ -4496,7 +4532,7 @@ update( MappingInformation & mapInfo,
 	const IntegerDistributedArray & subSurfaceIndex = 
 	  mpParams.getIntArray(MappingProjectionParameters::subSurfaceIndex);
 
-	realArray x(1,3);
+	RealArray x(1,3);
 	x(0,0)=select.x[0]; x(0,1)=select.x[1]; x(0,2)=select.x[2];
 
 	// project the points onto the surface 
@@ -5130,7 +5166,7 @@ update( MappingInformation & mapInfo,
     else if( answer=="check" )
     {
       Mapping::debug=7;
-      realArray x(1,3),r(1,3),xr(1,3,3);
+      RealArray x(1,3),r(1,3),xr(1,3,3);
       x=0.;
       Range Rx(0,2);
       for( int i=0;;i++ )
@@ -5139,7 +5175,7 @@ update( MappingInformation & mapInfo,
         if( answer!="" )
 	{
           sScanF(answer,"%e %e %e",&r(0,0),&r(0,1),&r(0,2));
-	  map(r,x,xr);
+	  mapS(r,x,xr);
           printf(" x=(%6.2e,%6.2e,%6.2e), r=(%6.2e,%6.2e), xr=(%6.2e,%6.2e,%6.2e,%6.2e)\n",
 		 x(0,0),x(0,1),x(0,2), r(0,0),r(0,1), xr(0,0,0),xr(0,1,0),xr(0,0,1),xr(0,1,1));
 	  gi.erase();
@@ -5157,7 +5193,7 @@ update( MappingInformation & mapInfo,
     {
       Mapping::debug=7;
 
-      realArray x(2,3),r(1,3),xx(1,3);
+      RealArray x(2,3),r(1,3),xx(1,3);
       x=0.;
       Range Rx(0,rangeDimension-1);
       for( int i=0;;i++ )
@@ -5167,8 +5203,8 @@ update( MappingInformation & mapInfo,
 	{
           sScanF(answer,"%e %e %e",&x(0,0),&x(0,1),&x(0,2));
           r=-1.;
-          inverseMap(x(0,Rx),r);
-	  map(r,xx);
+          inverseMapS(x(0,Rx),r);
+	  mapS(r,xx);
           x(1,Rx)=xx(0,Rx);
           printf(" x=(%6.2e,%6.2e,%6.2e), r=(%6.2e,%6.2e), projected x=(%6.2e,%6.2e,%6.2e)\n",
 		 x(0,0),x(0,1),x(0,2), r(0,0),r(0,1), x(1,0),x(1,1),x(1,2));
@@ -6432,19 +6468,26 @@ updateOld(aString & answer,
 	::getIndex(gid,I1,I2,I3);
 	Range xAxes(0,rangeDimension-1);
     
-	realArray & x = xHyper;
+	RealArray & x = xHyper;
+        #ifndef USE_PPP
 	if( domainDimension==2 )
 	{
 	  gid(Range(0,1),axis2)=gid(Range(0,1),axis3);
 	  gid(Range(0,1),axis3)=0;
 	  x.reshape(x.dimension(0),x.dimension(2),1,xAxes);
-	  dpm->setDataPoints(x(I1,I3,0,xAxes),3,domainDimension,0,gid);
+
+	    dpm->setDataPoints(x(I1,I3,0,xAxes),3,domainDimension,0,gid);
+
 	  x.reshape(x.dimension(0),1,x.dimension(1),xAxes);
 	  gid(Range(0,1),axis3)=gid(Range(0,1),axis2);
 	  gid(Range(0,1),axis2)=0;
 	}
 	else
 	  dpm->setDataPoints(x(I1,I2,I3,xAxes),3,domainDimension,0,gid);
+        #else
+          OV_ABORT("finish me");
+        #endif
+
       }
       plotObject=true;
       mappingHasChanged();

@@ -105,7 +105,13 @@ main(int argc, char **argv)
   for( int ii=0; ii<4; ii++ )  
   {
     const int axis=max(0,ii-1);
-    const int m=6;
+
+    const int m=6;  // number of equations in the tridiag system
+    // const int m1a=0, m1b=2;  // number of tridiag systems in the first tangential direction
+    const int m1a=3, m1b=4;  // number of tridiag systems in the first tangential direction
+    // const int m2a=0, m2b=1;  // number of tridiag systems in the first tangential direction
+    const int m2a=2, m2b=3;  // number of tridiag systems in the first tangential direction
+
     Range I1(0,0),I2(0,0),I3(0,0), I1e(0,0),I2e(0,0),I3e(0,0);
     int is[3]={0,0,0};
     if( ii==0 )
@@ -117,21 +123,21 @@ main(int argc, char **argv)
     {
       // system, axis==axis1
       I1=Range(0,m); I1e=Range(-1,m+1);
-      I2=Range(0,2); I2e=I2;
-      I3=Range(0,1); I3e=I3;
+      I2=Range(m1a,m1b); I2e=I2;
+      I3=Range(m2a,m2b); I3e=I3;
     }
     else if( ii==2 )
     {
       // system, axis==axis2
-      I1=Range(0,2); I1e=I1;
+      I1=Range(m1a,m1b); I1e=I1;
       I2=Range(0,m); I2e=Range(-1,m+1);
-      I3=Range(0,1); I3e=I3;
+      I3=Range(m2a,m2b); I3e=I3;
     }
     else 
     {
       // system, axis==axis3
-      I1=Range(0,2); I1e=I1;
-      I2=Range(0,1); I2e=I2;
+      I1=Range(m1a,m1b); I1e=I1;
+      I2=Range(m2a,m2b); I2e=I2;
       I3=Range(0,m); I3e=Range(-1,m+1);
     }
       
@@ -287,7 +293,7 @@ main(int argc, char **argv)
 	  display(r,"Here is the rhs");
 
 //	tri.factor(a(B,B,I1,I2,I3),b(B,B,I1,I2,I3),c(B,B,I1,I2,I3),systemType,axis,block);
-        realArray aa,bb,cc;
+        realArray aa(B,B,I1,I2,I3),bb(B,B,I1,I2,I3),cc(B,B,I1,I2,I3);
 	aa=a(B,B,I1,I2,I3);
 	bb=b(B,B,I1,I2,I3);
 	cc=c(B,B,I1,I2,I3);

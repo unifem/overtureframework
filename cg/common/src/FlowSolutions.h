@@ -38,45 +38,45 @@ getFlowSolution( const KnownSolutionsEnum knownSolution,
 
 int 
 getFlowSolution( const KnownSolutionsEnum knownSolution,
-		 CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+		 CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
 		 const Index & I1, const Index &I2, const Index &I3  );
 
 int 
 getFlowSolution( PistonMotion & pistonMotion,
-		 CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+		 CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
 		 const Index & I1, const Index &I2, const Index &I3  );
 
 int 
 getDeformingDiffuser( const KnownSolutionsEnum knownSolution,
-		      CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+		      CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
 		      const Index & I1, const Index &I2, const Index &I3  );
 
 
 int 
 getObliqueShockFlow( const KnownSolutionsEnum knownSolution,
-		     CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+		     CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
 		     const Index & I1, const Index &I2, const Index &I3  );
 
 int 
 getPistonFlow( const KnownSolutionsEnum knownSolution,
-               CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+               CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
 	       const Index & I1, const Index &I2, const Index &I3  );
 
 int 
 getShockElasticPistonFlow( const KnownSolutionsEnum knownSolution,
-			   CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+			   CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
 			   const Index & I1, const Index &I2, const Index &I3  );
 
 int 
 getSupersonicExpandingFlow( realCompositeGridFunction & ua, int *ipar, real *rpar );
 
 int 
-getSupersonicExpandingFlow( CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+getSupersonicExpandingFlow( CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
                             const Index & I1, const Index &I2, const Index &I3  );
 
 int 
 getRotatingElasticDiskInFluid( const KnownSolutionsEnum knownSolution,
-			       CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+			       CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
 			       const Index & I1, const Index &I2, const Index &I3 );
 
 

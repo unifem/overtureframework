@@ -100,7 +100,7 @@ buildVolumeGrid( HyperbolicMapping *& hypeVolume, Mapping & edgeSurface,
   // hypeVolume->setParameters(HyperbolicMapping::growInTheReverseDirection,ipar,rpar);
 
   
-  hypeVolume->generateNew();
+  hypeVolume->generate();
   
   return 0;
 }

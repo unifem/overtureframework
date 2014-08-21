@@ -13,9 +13,9 @@
 #include "MatchingCurve.h"
 
 int HyperbolicMapping::
-project( const realArray & x, 
+project( const RealArray & x, 
          const int & marchingDirection,
-         realArray & xr, 
+         RealArray & xr, 
          const bool & setBoundaryConditions /* = true */,
          bool initialStep,  /* =false */
          int stepNumber /* = 0 */ )
@@ -68,7 +68,7 @@ project( const realArray & x,
   if( Mapping::debug & 4 )
     ::display(x(I1,I2,i3,xAxes),"project: x before project");
 
-  realArray xx(R,3);
+  RealArray xx(R,3);
   
   for( axis=0; axis<rangeDimension; axis++ )
     xx(R,axis)=x(R,0,i3,axis);
@@ -79,7 +79,7 @@ project( const realArray & x,
     marchingDirection==-1 ? surfaceMappingProjectionParameters[0] :surfaceMappingProjectionParameters[1];
 
   typedef MappingProjectionParameters MPP;
-  realArray & surfaceNormal= mpParams.getRealArray(MPP::normal);
+  RealArray & surfaceNormal= mpParams.getRealSerialArray(MPP::normal);
   
   if( surfaceNormal.dimension(0)!=R ) 
   {
@@ -90,9 +90,9 @@ project( const realArray & x,
 
   }
 
-  intArray & subSurfaceIndex = mpParams.getIntArray(MPP::subSurfaceIndex);
-  intArray & elementIndex = mpParams.getIntArray(MPP::elementIndex);
-  realArray & xOld      = mpParams.getRealArray(MPP::x);
+  intSerialArray & subSurfaceIndex = mpParams.getIntSerialArray(MPP::subSurfaceIndex);
+  intSerialArray & elementIndex = mpParams.getIntSerialArray(MPP::elementIndex);
+  RealArray & xOld      = mpParams.getRealSerialArray(MPP::x);
   if( initialStep ) 
   {
     // if we are starting from a corner we force the project function to start from no initial guess
@@ -121,7 +121,11 @@ project( const realArray & x,
 	
         // ***** project onto the triangulation *****
         mpParams.setOnlyChangePointsAdjustedForCornersWhenMarching(true);
-	uns->project(xx,mpParams);
+        #ifndef USE_PPP
+	  uns->project(xx,mpParams);
+        #else
+          OV_ABORT("finish me");
+        #endif
         mpParams.setOnlyChangePointsAdjustedForCornersWhenMarching(false);
 
 	
@@ -172,7 +176,7 @@ project( const realArray & x,
 	  CompositeSurface & cs = *((CompositeSurface*)surface);
 	  const int numberOfSubSurfaces = cs.numberOfSubSurfaces();
 	  const int rBound=R.getBound();
-	  realArray x0(1,3), r0(1,2), xr0(1,3,2);
+	  RealArray x0(1,3), r0(1,2), xr0(1,3,2);
 	  r0=-1;
 	  for( int i=R.getBase(); i<=rBound; i++ )
 	  {
@@ -227,11 +231,11 @@ project( const realArray & x,
 
 	      Mapping & subSurface = *mapPointer;
 
-	      subSurface.inverseMap(x0,r0);
+	      subSurface.inverseMapS(x0,r0);
 	      if( max(fabs(r0)) < 2. )
 	      {
 
-		subSurface.map(r0,x0,xr0);
+		subSurface.mapS(r0,x0,xr0);
                 
 		
 		    // ::display(r0, "r0, before project");
@@ -247,7 +251,7 @@ project( const realArray & x,
 		surfaceNormal(J,axis2)=xr0(J0,2,0)*xr0(J0,0,1)-xr0(J0,0,0)*xr0(J0,2,1);
 		surfaceNormal(J,axis3)=xr0(J0,0,0)*xr0(J0,1,1)-xr0(J0,1,0)*xr0(J0,0,1);
 
-		realArray norm;
+		RealArray norm;
 		norm = SQRT( SQR(surfaceNormal(J,0))+SQR(surfaceNormal(J,1))+SQR(surfaceNormal(J,2))  ) ;
 
 		norm=cs.getSignForNormal(s)/max(REAL_MIN,norm);
@@ -342,8 +346,8 @@ project( const realArray & x,
 }
 
 int HyperbolicMapping::
-correctProjectionOfInitialCurve(realArray & x, 
-                                realArray & xr,
+correctProjectionOfInitialCurve(RealArray & x, 
+                                RealArray & xr,
                                 CompositeSurface & cs,
                                 const int & marchingDirection,
                                 MappingProjectionParameters & mpParams)
@@ -382,7 +386,7 @@ correctProjectionOfInitialCurve(realArray & x,
   typedef MappingProjectionParameters MPP;
   const intArray & elementIndex = mpParams.getIntArray(MPP::elementIndex);
   // const intArray & subSurfaceIndex = mpParams.getIntArray(MPP::subSurfaceIndex);
-  realArray & surfaceNormal= mpParams.getRealArray(MPP::normal);
+  RealArray & surfaceNormal= mpParams.getRealSerialArray(MPP::normal);
 
   const intArray & elementSurface = uns.getTags();
   const int numberOfElements = uns.getNumberOfElements();
@@ -745,8 +749,8 @@ correctProjectionOfInitialCurve(realArray & x,
 
 
 
-realArray HyperbolicMapping::
-normalize( const realArray & u )
+RealArray HyperbolicMapping::
+normalize( const RealArray & u )
 // ================================================================================================
 // /Description:
 //   Normalize the vector u(I1,I2,I3,R) over the dimension(3)=R
@@ -756,9 +760,9 @@ normalize( const realArray & u )
   const int dim = u.getLength(3);
   assert( dim==2 || dim==3 );
   
-  realArray n(u);
+  RealArray n(u);
   
-  realArray normInverse;
+  RealArray normInverse;
   if( dim==2 )
     normInverse= 1./(max(REAL_MIN,SQRT( SQR(u(all,all,all,0))+SQR(u(all,all,all,1)) ) ));
   else
@@ -774,7 +778,7 @@ normalize( const realArray & u )
 
 
 int HyperbolicMapping::
-getDistanceToStep(const int & i3Delta, realArray & ds, const int & growthDirection )
+getDistanceToStep(const int & i3Delta, RealArray & ds, const int & growthDirection )
 //===========================================================================
 /// \param Access: protected.
 /// \brief  
@@ -823,11 +827,11 @@ getDistanceToStep(const int & i3Delta, realArray & ds, const int & growthDirecti
   else if( spacingType==oneDimensionalMappingSpacing )
   {
     assert( normalDistribution!=0 );
-    realArray r(1,1),t(1,1),t2(1,1);
+    RealArray r(1,1),t(1,1),t2(1,1);
     r=(i3Delta-1)/max(1.,linesToMarch[growthDirection]-1.);
-    normalDistribution->map(r,t);
+    normalDistribution->mapS(r,t);
     r=i3Delta/max(1.,linesToMarch[growthDirection]-1.);
-    normalDistribution->map(r,t2);
+    normalDistribution->mapS(r,t2);
     if( initialSpacing>0. )
       ds=(t2(0,0)-t(0,0))*initialSpacing*(linesToMarch[growthDirection]-1);
     else
@@ -883,9 +887,9 @@ adjustDistanceToMarch(const int & numberOfAdditionalSteps, const int & growthDir
 
 
 int HyperbolicMapping::
-computeNonlinearDiffussionCoefficient(const realArray & normXr, 
-				      const realArray & normXs, 
-				      const realArray & normXt, 
+computeNonlinearDiffussionCoefficient(const RealArray & normXr, 
+				      const RealArray & normXs, 
+				      const RealArray & normXt, 
                                       const int & direction,
                                       int stepNumber )
 //===========================================================================
@@ -953,12 +957,12 @@ computeNonlinearDiffussionCoefficient(const realArray & normXr,
 
 
 int HyperbolicMapping::
-getCurvatureDependentSpeed(realArray & ds, 
-                           realArray & kappa,
-			   const realArray & xrr, 
-			   const realArray & normal, 
-			   const realArray & normXr, 
-			   const realArray & normXs)
+getCurvatureDependentSpeed(RealArray & ds, 
+                           RealArray & kappa,
+			   const RealArray & xrr, 
+			   const RealArray & normal, 
+			   const RealArray & normXr, 
+			   const RealArray & normXs)
 //===========================================================================
 /// \param Access: protected.
 /// \brief  
@@ -1018,14 +1022,14 @@ getCurvatureDependentSpeed(realArray & ds,
 }
 
 int HyperbolicMapping::
-implicitSolve(realArray & xTri, 
+implicitSolve(RealArray & xTri, 
               const int & i3Mod2,
-              realArray & xr,
-              realArray & xt,
-	      realArray & normal,
-	      realArray & normXr,
-	      realArray & normXs,
-	      realArray & normXt,
+              RealArray & xr,
+              RealArray & xt,
+	      RealArray & normal,
+	      RealArray & normXr,
+	      RealArray & normXs,
+	      RealArray & normXt,
               TridiagonalSolver & tri,
               int stepNumber )
 //===========================================================================
@@ -1037,7 +1041,6 @@ implicitSolve(realArray & xTri,
 /// \param xTri (input/output) : on input the RHS to the implicit solve.
 //===========================================================================
 {
-#ifndef USE_PPP
   real time0=getCPU();
 
   // **** if implicit coefficient==0 then we do not need to create the c matrix.
@@ -1077,15 +1080,12 @@ implicitSolve(realArray & xTri,
   }
 
   timing[timeForImplicitSolve]+=getCPU()-time0;
-#else
-  Overture::abort("HyperbolicMapping:ERROR:finish me for parallel Bill!");  // Tridiagonal:: factor/solve
-#endif
   
   return 0;
 }
 
 int HyperbolicMapping::
-equidistributeAndStretch( const int & i3, const realArray & x, const real & weight, 
+equidistributeAndStretch( const int & i3, const RealArray & x, const real & weight, 
                           const int marchingDirection, bool stretchGrid /*= true */  )
 //===========================================================================
 /// \param Access: protected.
@@ -1117,17 +1117,17 @@ equidistributeAndStretch( const int & i3, const realArray & x, const real & weig
   if( (bool)getIsPeriodic(axis1) )
     x(I1.getBound(),0,i3,xAxes)=x(I1.getBase(),0,i3,xAxes);
     
-  realArray xe(I1,xAxes);
+  RealArray xe(I1,xAxes);
 
   // *** stretching ***
-  realArray r(I1,1);
-  realArray rs;
+  RealArray r(I1,1);
+  RealArray rs;
   if( stretchGrid && startCurveStretchMapping!=NULL ) 
   {
     const real dr = 1./max(1,I1.getBound()-I1.getBase());
     r.seqAdd(0.,dr);
     rs.redim(I1,1);
-    startCurveStretchMapping->map(r,rs);  // rs = stretched grid locations
+    startCurveStretchMapping->mapS(r,rs);  // rs = stretched grid locations
   }
 
   const int numberOfMatchingCurves=matchingCurves.size();
@@ -1162,7 +1162,14 @@ equidistributeAndStretch( const int & i3, const realArray & x, const real & weig
           curveDirection==marchingDirection ) 
       {
         Range J1(gridLineOld,gridLine);
+
+        #ifndef USE_PPP
 	dp.setDataPoints( x(J1,0,i3,xAxes),3,domainDimension-1);
+        #else
+	OV_ABORT("error");
+        #endif
+
+
 	ReparameterizationTransform rt(dp,ReparameterizationTransform::equidistribution);
 	for( int axis=0; axis<domainDimension-1; axis++ )
 	  rt.setIsPeriodic(axis,getIsPeriodic(axis));
@@ -1172,7 +1179,7 @@ equidistributeAndStretch( const int & i3, const realArray & x, const real & weig
         printf("Equidistribute with interior match curve: equidistribute the interval J1=[%i,%i]\n",
 	       J1.getBase(),J1.getBound());
 	
-	realArray r(J1,1);
+	RealArray r(J1,1);
 	if( stretchGrid && startCurveStretchMapping!=NULL ) // add stretching here
 	{
           real ra=rs(J1.getBase()), rb=rs(J1.getBound());
@@ -1185,7 +1192,7 @@ equidistributeAndStretch( const int & i3, const realArray & x, const real & weig
 	  const real dr = 1./max(1,J1.getBound()-J1.getBase());
 	  r.seqAdd(0.,dr);
 	}
-	rt.mapC(r,xe(J1,xAxes));
+	rt.mapCS(r,xe(J1,xAxes));
 	
       }
       gridLineOld=gridLine;
@@ -1193,7 +1200,12 @@ equidistributeAndStretch( const int & i3, const realArray & x, const real & weig
   }
   else
   {
-    dp.setDataPoints( x(I1,0,i3,xAxes),3,domainDimension-1);
+    #ifndef USE_PPP
+      dp.setDataPoints( x(I1,0,i3,xAxes),3,domainDimension-1);
+    #else
+      OV_ABORT("finish me");
+    #endif
+
     ReparameterizationTransform rt(dp,ReparameterizationTransform::equidistribution);
     for( int axis=0; axis<domainDimension-1; axis++ )
       rt.setIsPeriodic(axis,getIsPeriodic(axis));
@@ -1202,14 +1214,14 @@ equidistributeAndStretch( const int & i3, const realArray & x, const real & weig
 
     if( stretchGrid && startCurveStretchMapping!=NULL ) // add stretching here
     {
-      rt.map(rs,xe);
+      rt.mapS(rs,xe);
     }
     else
     {
       const real dr = 1./max(1,I1.getBound()-I1.getBase());
       r.seqAdd(0.,dr);
 
-      rt.map(r,xe);
+      rt.mapS(r,xe);
     }
   }
   
@@ -1223,7 +1235,7 @@ equidistributeAndStretch( const int & i3, const realArray & x, const real & weig
 } 
 
 int HyperbolicMapping::
-computeCellVolumes(const realArray & xt, const int & i3Mod2,
+computeCellVolumes(const RealArray & xt, const int & i3Mod2,
                    real & minCellVolume, real & maxCellVolume, 
                    const real & dSign )
 //===========================================================================
@@ -1243,7 +1255,7 @@ computeCellVolumes(const realArray & xt, const int & i3Mod2,
 
   Range xAxes(0,rangeDimension-1);
 
-  realArray volume(I1,I2);
+  RealArray volume(I1,I2);
   // *** this is not exactly the cell volume but close enough **
   // For dir==0 we compute the `forward cell volume' and for dir==1 the reverse cell volume.
   // if the grid turns inside out then one of these should change sign.
@@ -1285,7 +1297,7 @@ computeCellVolumes(const realArray & xt, const int & i3Mod2,
 
 /* -------------
 int HyperbolicMapping::
-inspectInitialSurface( realArray & xSurface, realArray & normal )
+inspectInitialSurface( RealArray & xSurface, RealArray & normal )
 //===========================================================================
 /// \brief  
 ///       Inspect the initial surface for corners etc.
@@ -1294,7 +1306,7 @@ inspectInitialSurface( realArray & xSurface, realArray & normal )
 
   // find the min and max angles between normals to adjacent cells.
 
-  realArray cosAngle;
+  RealArray cosAngle;
   cosAngle = normal(I1,I2,0,axis1)*normal(I1+1,I2,0,axis1);
   minCosAngle=min(cosAngle);
   //

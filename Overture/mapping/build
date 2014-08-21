@@ -45,7 +45,7 @@ cp {OffsetShell,MappingGeometry,LoftedSurfaceMapping,findNearestGridPoint}.C    
 cp {equi.C,hyperNull.C}                                                                    $OvertureMapping
 cp {NurbsMapping,IgesReader,TrimmedMapping,CompositeSurface,MappingProjectionParameters}.C $OvertureMapping
 cp {compositeTopology,nurbsEvaluation,mappingUtil,FaceInfo,refineTriangulation}.C          $OvertureMapping
-cp {refineCurve,readMappings,DataFormats,DataFormatsMG}.C                                  $OvertureMapping
+cp {refineCurve,readMappings,DataFormats,DataFormatsMG,nurbsInterpolate}.C                 $OvertureMapping
 
 cp {QuadTree,RocketMapping,ReferenceCountingList}.C                   $OvertureMapping 
 

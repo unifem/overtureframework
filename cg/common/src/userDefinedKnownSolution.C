@@ -57,7 +57,7 @@ for(i1=I1Base; i1<=I1Bound; i1++)
 //      to define boundary conditions for cgins.
 // ==========================================================================================
 int Parameters::
-getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 			    const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives /* = 0 */ )
 {
   MappedGrid & mg = cg[grid];
@@ -408,7 +408,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
 
     const realArray & center = mg.center();
-    realArray & u = ua;
+    RealArray & u = ua;
 
     
     // tDisk : solution has been computed at this time
@@ -622,14 +622,13 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     // -- evaluate the FSI traveling wave solution ---
     TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
 
-    OV_GET_SERIAL_ARRAY(real,ua,uaLocal);
     if( userKnownSolution=="travelingWaveFSIfluid" )
     {
-      travelingWaveFsi.getExactFluidSolution( uaLocal, t, mg, I1, I2, I3, numberOfTimeDerivatives );
+      travelingWaveFsi.getExactFluidSolution( ua, t, mg, I1, I2, I3, numberOfTimeDerivatives );
     }
     else
     {
-      travelingWaveFsi.getExactSolidSolution( uaLocal, t, mg, I1, I2, I3, numberOfTimeDerivatives );
+      travelingWaveFsi.getExactSolidSolution( ua, t, mg, I1, I2, I3, numberOfTimeDerivatives );
     }
     
   }

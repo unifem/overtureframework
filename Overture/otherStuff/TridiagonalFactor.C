@@ -1725,9 +1725,15 @@ scalarBlockFactor( int i1, int i2, int i3 )
 //          "a.getLength(2)=%i a.getLength(3)=%i,\n",
 //            stride,offset,a.getBase(2),a.getDataBase(2),a.getLength(2),a.getLength(3) );
   
-  real *ap = a.Array_Descriptor.Array_View_Pointer2;
-  real *bp = b.Array_Descriptor.Array_View_Pointer2;
-  real *cp = c.Array_Descriptor.Array_View_Pointer2;
+  // real *ap = a.Array_Descriptor.Array_View_Pointer2;
+  // real *bp = b.Array_Descriptor.Array_View_Pointer2;
+  // real *cp = c.Array_Descriptor.Array_View_Pointer2;
+
+  // *wdh* 2014/08/06
+  real *ap = a.Array_Descriptor.Array_View_Pointer4;
+  real *bp = b.Array_Descriptor.Array_View_Pointer4;
+  real *cp = c.Array_Descriptor.Array_View_Pointer4;
+
   ap+=offset;
   bp+=offset;
   cp+=offset;
@@ -1962,9 +1968,15 @@ scalarBlockSolve(RealArray & r, int i1, int i2, int i3)
   const int stride = axis==0 ? aDim0*aDim1 : axis==1 ? aDim0*aDim1*aDim2 : aDim0*aDim1*aDim2*aDim3;
   const int offset = aDim0*aDim1*(i1+aDim2*(i2+aDim3*(i3)));
 
-  real *ap = a.Array_Descriptor.Array_View_Pointer2;
-  real *bp = b.Array_Descriptor.Array_View_Pointer2;
-  real *cp = c.Array_Descriptor.Array_View_Pointer2;
+  // real *ap = a.Array_Descriptor.Array_View_Pointer2;
+  // real *bp = b.Array_Descriptor.Array_View_Pointer2;
+  // real *cp = c.Array_Descriptor.Array_View_Pointer2;
+
+  // *wdh* 2014/08/06
+  real *ap = a.Array_Descriptor.Array_View_Pointer4;
+  real *bp = b.Array_Descriptor.Array_View_Pointer4;
+  real *cp = c.Array_Descriptor.Array_View_Pointer4;
+
   ap+=offset;
   bp+=offset;
   cp+=offset;
@@ -1976,7 +1988,8 @@ scalarBlockSolve(RealArray & r, int i1, int i2, int i3)
   const int rStride = axis==0 ? rDim0 : axis==1 ? rDim0*rDim1 : rDim0*rDim1*rDim2;
   const int rOffset = rDim0*(i1+rDim1*(i2+rDim2*(i3)));
 
-  real *rp = r.Array_Descriptor.Array_View_Pointer2;
+  // real *rp = r.Array_Descriptor.Array_View_Pointer2;
+  real *rp = r.Array_Descriptor.Array_View_Pointer4; // *wdh* 2014/08/06
   rp+=rOffset;
 
   if( useOptimizedC && blockSize==2 )

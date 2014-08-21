@@ -20,6 +20,8 @@ OV_X_LIBRARIES = -L$(XLIBS_LIB) -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11
 # Daniel make this change for his Mac: 
 # OV_X_LIBRARIES = -L$(XLIBS_LIB) -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11 -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
 
+LAPACK_LIBRARIES = -L$(LAPACK) -llapack -lblas
+
 # these next lines will be changed by the configure script
 USE_DOUBLE_OR_SINGLE = -DOV_USE_FLOAT
 #xlc USE_DOUBLE_OR_SINGLE = -WF,-DOV_USE_FLOAT
@@ -142,7 +144,7 @@ OpenGLibs=
 
 OGMGLIB = $(LDFLAGS)$(Overture)/lib -lOgmg
 
-GLIBS=  $(OV_PERL_LIBRARIES) -L$(OPENGL_LIB) $(OpenGLibs) -L$(MOTIF_LIB) -lXm  $(OV_X_LIBRARIES) -lm
+GLIBS=  $(OV_PERL_LIBRARIES) -L$(OPENGL_LIB) $(OpenGLibs) -L$(MOTIF_LIB) -lXm  $(OV_X_LIBRARIES) $(LAPACK_LIBRARIES) -lm
 
 FLIBS= $(LDFLAGS)$(Overture)/lib $(LibOverture) $(OGMGLIB) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) -Wl-weak-framework,vecLib 
 # SOFLAGS = -dynamiclib -single_module -Wl-bind_at_load $(LDFLAGS)$(Overture)/lib  $(GLIBS) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)

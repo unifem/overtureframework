@@ -50,7 +50,7 @@ hexIsBad( real *v000, real *v100, real *v010, real *v110, real *v001, real *v101
 //    real vol3=tetVolume6(v101,v001,v111, v100);
 //    real vol4=tetVolume6(v011,v111,v001, v010);
   
-//    printf(" tetVolume = %8.2e,%8.2e,%8.2e,%8.2e,\n",vol1,vol2,vol3,vol4);
+//    printF(" tetVolume = %8.2e,%8.2e,%8.2e,%8.2e,\n",vol1,vol2,vol3,vol4);
   
   // *** for now we just check the volumes of 4 tetrahedra
   if( tetVolume6(v000,v100,v010, v001)*orientation <=0. ) return true;
@@ -81,7 +81,7 @@ drawReferenceSurface(GenericGraphicsInterface & gi,
 //        referenceSurfaceParameters.set(GI_SURFACE_OFFSET, initialOffset);  
   referenceSurfaceParameters.set(GI_SURFACE_OFFSET,surfaceOffset);  
   // referenceSurfaceParameters.get(GI_SURFACE_OFFSET, offSet);  
-  // printf("hypeUpdate: offset for reference surface: %f\n", offSet);
+  // printF("hypeUpdate: offset for reference surface: %f\n", offSet);
 	
 
   referenceSurfaceParameters.set(GI_MAPPING_COLOUR,referenceSurfaceColour);
@@ -132,7 +132,7 @@ drawReferenceSurface(GenericGraphicsInterface & gi,
     int numberOfEdgeCurves=compositeTopology.getNumberOfEdgeCurves();
     for( int e=0; e<numberOfEdgeCurves; e++ )
     {
-      // printf(" edge=%i status=%i\n",e,int(compositeTopology.getEdgeCurveStatus(e)));
+      // printF(" edge=%i status=%i\n",e,int(compositeTopology.getEdgeCurveStatus(e)));
       // if( int(compositeTopology.getEdgeCurveStatus(e)) <= 2 )
       Mapping & edge = compositeTopology.getEdgeCurve(e);
 	    
@@ -227,7 +227,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
     parameters.set(GI_SURFACE_OFFSET,(real).5);  // offset the surface so we can see it better
     //        parameters.set(GI_SURFACE_OFFSET,initialOffset);  // reset
     // parameters.get(GI_SURFACE_OFFSET, offSet);  
-    // printf("offset for hyperbolic grid: %f\n", offSet);
+    // printF("offset for hyperbolic grid: %f\n", offSet);
 
     if( plotGhostPoints )
     {
@@ -236,7 +236,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
     else
       parameters.set(GI_NUMBER_OF_GHOST_LINES_TO_PLOT,0); 
 
-    printf("drawHyperbolicGrid: plot grid\n");
+    printF("drawHyperbolicGrid: plot grid\n");
     
     PlotIt::plot(gi,*this,parameters);  
 
@@ -248,7 +248,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
       // Draw cells with a negative jacobian in red
       // We draw the edges of the cell in redn
 
-      realArray & x = xHyper;
+      RealArray & x = xHyper;
     
       Index Iv[3], &I1=Iv[0], &I2=Iv[1], &I3=Iv[2];
       ::getIndex(indexRange,I1,I2,I3); 
@@ -259,7 +259,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
 
      
       int maxNumberOfNegativeCells=1000;  // This will be increased below if needed.
-      realArray line(maxNumberOfNegativeCells,3,2);
+      RealArray line(maxNumberOfNegativeCells,3,2);
 
       const bool growBothDirections = fabs(growthOption) > 1;
       const int growthDirection = (growthOption==1 || growBothDirections) ? 0 : 1;
@@ -277,9 +277,9 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
 
         Range Rx=rangeDimension;
 	
-	realArray a(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
+	RealArray a(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
 	a=x(I1+1,I2  ,I3  ,Rx)-x(I1,I2,I3,Rx);
-	realArray cc(I1,I2,I3,Rx);
+	RealArray cc(I1,I2,I3,Rx);
 	b=x(I1  ,I2  ,I3+1,Rx)-x(I1,I2,I3,Rx);
 
 	cc(I1,I2,I3,0)=a(I1,I2,I3,1)*b(I1,I2,I3,2)-a(I1,I2,I3,2)*b(I1,I2,I3,1);
@@ -288,7 +288,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
     
 	a=x(I1+1,I2  ,I3+1,Rx)-x(I1,I2,I3+1,Rx);
 
-	realArray vol(I1,I2,I3);
+	RealArray vol(I1,I2,I3);
 	vol=(( a(I1,I2,I3,1)*b(I1,I2,I3,2)-a(I1,I2,I3,2)*b(I1,I2,I3,1) )*cc(I1,I2,I3,0)+
 	     ( a(I1,I2,I3,2)*b(I1,I2,I3,0)-a(I1,I2,I3,0)*b(I1,I2,I3,2) )*cc(I1,I2,I3,1)+
 	     ( a(I1,I2,I3,0)*b(I1,I2,I3,1)-a(I1,I2,I3,1)*b(I1,I2,I3,0) )*cc(I1,I2,I3,2));
@@ -298,7 +298,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
 	const int m1b[4] = {1,1,0,1}; //
 	const int m2b[4] = {0,1,1,1}; //
 
-        printf("Checking for bad quads on the surface: [%i,%i][%i,%i][%i,%i] orientation=%8.2e\n",I1.getBase(),I1.getBound(),
+        printF("Checking for bad quads on the surface: [%i,%i][%i,%i][%i,%i] orientation=%8.2e\n",I1.getBase(),I1.getBound(),
 	       I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),orientation);
 	
         real v[2][2][3];  // hold the 4 vertices of the quad
@@ -307,7 +307,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
         int i1,i2,i3;
 	FOR_3D(i1,i2,i3,I1,I2,I3)
 	{
-          // printf(" i=(%i,%i,%i)",i1,i2,i3);
+          // printF(" i=(%i,%i,%i)",i1,i2,i3);
 	  if( vol(i1,i2,i3)<= 0. )
 	  {
 	    for( int axis=0; axis<3; axis++ )
@@ -348,7 +348,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
 	const int m2b[12] = {0,1,1,1, 0,1,1,1, 0,0,1,1}; //
 	const int m3b[12] = {0,0,0,0, 1,1,1,1, 1,1,1,1}; //
 
-        printf("Checking for bad cells: [%i,%i][%i,%i][%i,%i] orientation=%8.2e\n",I1.getBase(),I1.getBound(),
+        printF("Checking for bad cells: [%i,%i][%i,%i][%i,%i] orientation=%8.2e\n",I1.getBase(),I1.getBound(),
 	       I2.getBase(),I2.getBound(),I3.getBase(),I3.getBound(),orientation);
 	
         real v[2][2][2][3];  // hold the 8 vertices of the hex
@@ -357,7 +357,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
         int i1,i2,i3;
 	FOR_3D(i1,i2,i3,I1,I2,I3)
 	{
-          // printf(" i=(%i,%i,%i)",i1,i2,i3);
+          // printF(" i=(%i,%i,%i)",i1,i2,i3);
 	  
 	  for( int axis=0; axis<3; axis++ )
 	  {
@@ -397,7 +397,7 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
       }
       if( numberOfBadCells>0 )
       {
-	printf("*** Plotting %i cells with negative volumes\n",numberOfBadCells/12);
+	printF("*** Plotting %i cells with negative volumes\n",numberOfBadCells/12);
 	Range R=numberOfBadCells;
 	Range all;
       
@@ -407,7 +407,11 @@ drawHyperbolicGrid(GenericGraphicsInterface & gi,
 	parameters.get(GraphicsParameters::curveLineWidth,oldCurveLineWidth);
 	parameters.set(GraphicsParameters::curveLineWidth,4.);
 
-	gi.plotLines(line(R,all,all),parameters);
+        #ifndef USE_PPP
+	  gi.plotLines(line(R,all,all),parameters);
+        #else
+  	  printF("FINISH ME: gi.plotLines(line(R,all,all),parameters);\n");
+        #endif
 
 	parameters.set(GraphicsParameters::curveLineWidth,oldCurveLineWidth);
       }
@@ -446,7 +450,7 @@ drawBoundariesAndCurves(GenericGraphicsInterface & gi,
     parameters.set(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,FALSE);
     parameters.set(GI_SURFACE_OFFSET,surfaceOffset);  // offset the surface so we can see it better
     // parameters.get(GI_SURFACE_OFFSET, offSet);  
-    // printf("offset for boundary condition mappings: %f\n", offSet);
+    // printF("offset for boundary condition mappings: %f\n", offSet);
 
     parameters.set(GI_MAPPING_COLOUR,boundaryConditionMappingColour);
     for( int axis=0; axis<domainDimension-1; axis++ )
@@ -481,7 +485,7 @@ drawBoundariesAndCurves(GenericGraphicsInterface & gi,
   if( plotDirectionArrowsOnInitialCurve && surfaceGrid && startCurve!=NULL  )
   {
     // plot arrows in the marching direction
-    // printf("plot direction arrows on start curve\n");
+    // printF("plot direction arrows on start curve\n");
     parameters.set(GI_MAPPING_COLOUR,"green");
     plotDirectionArrows(gi, parameters);
   }
@@ -519,7 +523,7 @@ drawBoundariesAndCurves(GenericGraphicsInterface & gi,
 	}
 	parameters.set(GI_MAPPING_COLOUR,colour);
       }
-      // printf("draw boundary curve b=%i\n",b);
+      // printF("draw boundary curve b=%i\n",b);
 
       PlotIt::plot(gi,*boundaryCurves[b],parameters);
       col++;
@@ -630,8 +634,8 @@ plotDirectionArrows(GenericGraphicsInterface & gi, GraphicsParameters & params)
 
 //    // compute the arrow vector
 //    int numberOfArrows=max(5,numberOfPointsOnStartCurve);
-//    realArray arrow(numberOfArrows,3,2);
-//    realArray r(numberOfArrows,1), x(numberOfArrows,3), xr(numberOfArrows,3,2);
+//    RealArray arrow(numberOfArrows,3,2);
+//    RealArray r(numberOfArrows,1), x(numberOfArrows,3), xr(numberOfArrows,3,2);
   
 //    real dr=1./max(1,numberOfArrows-1);
 //    r.seqAdd(0,dr);  // r =0, dr, 2*dr, ...
@@ -657,8 +661,8 @@ plotDirectionArrows(GenericGraphicsInterface & gi, GraphicsParameters & params)
   Index D1,D2,D3;
   ::getIndex(dimension,D1,D2,D3);
 
-  realArray x(D1,1,1,rangeDimension),xr(D1,1,1,rangeDimension,2);
-  realArray arrow(numberOfArrows,3,2);
+  RealArray x(D1,1,1,rangeDimension),xr(D1,1,1,rangeDimension,2);
+  RealArray arrow(numberOfArrows,3,2);
   xr=1.;  // to avoid UMR
 
   Range all;
@@ -679,19 +683,19 @@ plotDirectionArrows(GenericGraphicsInterface & gi, GraphicsParameters & params)
   // real lengthOfArrow=-sign(growthOption)*.025;
   const real arrowLengthScalingFactor=.05;
   real lengthOfArrow=-sign(growthOption)*arrowLengthScalingFactor;
-  // printf("plotDirectionArrows: lengthOfArrow=%e \n",lengthOfArrow);
+  // printF("plotDirectionArrows: lengthOfArrow=%e \n",lengthOfArrow);
     
   // ::display(xr,"plotArrows: xr","%8.2e ");
 
   // direction = normal X tangent  
   // starting points
-  realArray normal(I,3);
+  RealArray normal(I,3);
   normal(I,0)=(xr(I,1,1)*xr(I,2,0)-xr(I,2,1)*xr(I,1,0));
   normal(I,1)=(xr(I,2,1)*xr(I,0,0)-xr(I,0,1)*xr(I,2,0));
   normal(I,2)=(xr(I,0,1)*xr(I,1,0)-xr(I,1,1)*xr(I,0,0));
 
   // scale by the average length
-  realArray norm; 
+  RealArray norm; 
   norm= SQRT( SQR(normal(I,0))+SQR(normal(I,1))+SQR(normal(I,2)) );
   RealArray xBound;
   xBound = gi.getGlobalBound();
@@ -705,13 +709,13 @@ plotDirectionArrows(GenericGraphicsInterface & gi, GraphicsParameters & params)
       startCurveLength+=sqrt( SQR(x(i+1,0)-x(i,0))+SQR(x(i+1,1)-x(i,1))+SQR(x(i+1,2)-x(i,2)) );
     startCurve->setArcLength(startCurveLength);
   }
-//  printf(" Plot arrows: model scale=%8.2e, startCurveLength=%8.2e\n",scale,startCurveLength);
+//  printF(" Plot arrows: model scale=%8.2e, startCurveLength=%8.2e\n",scale,startCurveLength);
   
   real normalScale=min(scale,startCurveLength*.25/arrowLengthScalingFactor); // sum(norm)/numberOfArrows;
   
-//   printf(" > arrows: normal r=0: normal=(%8.2e,%8.2e,%8.2e)\n",
+//   printF(" > arrows: normal r=0: normal=(%8.2e,%8.2e,%8.2e)\n",
 //              normal(0,0)/norm(0),normal(0,1)/norm(0),normal(0,2)/norm(0));
-//   printf(" > arrows: normal r=1: normal=(%8.2e,%8.2e,%8.2e)\n",
+//   printF(" > arrows: normal r=1: normal=(%8.2e,%8.2e,%8.2e)\n",
 //              normal(numberOfArrows-1,0)/norm(numberOfArrows-1),normal(numberOfArrows-1,1)/norm(numberOfArrows-1),
 //              normal(numberOfArrows-1,2)/norm(numberOfArrows-1));
 
@@ -743,7 +747,11 @@ plotDirectionArrows(GenericGraphicsInterface & gi, GraphicsParameters & params)
   // gp.set(GI_POINT_COLOUR, mappingColour);
   gp.set(GI_POINT_COLOUR, gi.getColour(GenericGraphicsInterface::textColour));
   
-  gi.plotLines(arrow, gp);
+  #ifndef USE_PPP
+    gi.plotLines(arrow, gp);
+  #else
+     printF("FINISH ME: gi.plotLines(arrow, gp);\n");
+  #endif
 
   // draw coloured squares to indicate the direction of increasing r
 
@@ -779,19 +787,19 @@ plotCellQuality(GenericGraphicsInterface & gi,
   if( domainDimension==3 )
     I2=Range(I2.getBase()-1,I2.getBound()); // include a ghost cell on bottom.
     
-  realArray & x = xHyper;
+  RealArray & x = xHyper;
 
   real dSign = growthOption==1 ? 1. : -1.;
 
   Range Rx(0,rangeDimension-1);
-  realArray vol(I1,I2,I3);
+  RealArray vol(I1,I2,I3);
 
   if( domainDimension==3 && rangeDimension==3 )  // **** finish this ********************
   {
-    realArray a(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
+    RealArray a(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
     a=x(I1+1,I2  ,I3  ,Rx)-x(I1,I2,I3,Rx);
     b=x(I1  ,I2+1,I3  ,Rx)-x(I1,I2,I3,Rx);
-    realArray cc(I1,I2,I3,Rx);
+    RealArray cc(I1,I2,I3,Rx);
     cc=x(I1  ,I2  ,I3+1,Rx)-x(I1,I2,I3,Rx);
     vol=(a(I1,I2,I3,0)*(b(I1,I2,I3,1)*cc(I1,I2,I3,2)-b(I1,I2,I3,2)*cc(I1,I2,I3,1))+
 	 a(I1,I2,I3,1)*(b(I1,I2,I3,2)*cc(I1,I2,I3,0)-b(I1,I2,I3,0)*cc(I1,I2,I3,2))+
@@ -806,7 +814,7 @@ plotCellQuality(GenericGraphicsInterface & gi,
   }
   else if( domainDimension==2 && rangeDimension==2 )
   {
-    realArray a0(I1,I2,I3,Rx),a1(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
+    RealArray a0(I1,I2,I3,Rx),a1(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
     a0=x(I1+1,I2  ,I3  ,Rx)-x(I1,I2,I3+1,Rx);
     a1=x(I1+1,I2  ,I3+1,Rx)-x(I1,I2,I3+1,Rx);
     b =x(I1  ,I2  ,I3+1,Rx)-x(I1,I2,I3,Rx);
@@ -817,9 +825,9 @@ plotCellQuality(GenericGraphicsInterface & gi,
   else if( domainDimension==2 && rangeDimension==3 ) 
   {
     // (a0 X b) . ( a1 X b )
-    realArray a(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
+    RealArray a(I1,I2,I3,Rx),b(I1,I2,I3,Rx);
     a=x(I1+1,I2  ,I3  ,Rx)-x(I1,I2,I3,Rx);
-    realArray cc(I1,I2,I3,Rx);
+    RealArray cc(I1,I2,I3,Rx);
     b=x(I1  ,I2  ,I3+1,Rx)-x(I1,I2,I3,Rx);
 
     cc(I1,I2,I3,0)=a(I1,I2,I3,1)*b(I1,I2,I3,2)-a(I1,I2,I3,2)*b(I1,I2,I3,1);
@@ -839,7 +847,7 @@ plotCellQuality(GenericGraphicsInterface & gi,
   
   
   int maximumNumberToPlot=100;
-  realArray point(maximumNumberToPlot,rangeDimension);
+  RealArray point(maximumNumberToPlot,rangeDimension);
   
   int numberOfCells=0,axis,i1,i2,i3;
   for( i3=I3.getBase(); i3<=I3.getBound(); i3++)
@@ -859,7 +867,7 @@ plotCellQuality(GenericGraphicsInterface & gi,
     }
   }
 
-  printf("Number of negative volumes=%i, min(vol)=%9.2e, max(vol)=%9.2e \n",numberOfCells,min(vol),max(vol));
+  printF("Number of negative volumes=%i, min(vol)=%9.2e, max(vol)=%9.2e \n",numberOfCells,min(vol),max(vol));
   
   if( numberOfCells>0 )
   {

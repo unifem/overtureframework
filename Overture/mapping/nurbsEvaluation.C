@@ -1341,7 +1341,7 @@ basicInverseS( const RealArray & x,
 
   if( true )
   {
-    printf(" NurbsMapping::basicInverse called *****\n");
+    // printf(" NurbsMapping::basicInverse called *****\n");
     
     setBasicInverseOption(canDoNothing);  
 

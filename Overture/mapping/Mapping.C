@@ -1760,7 +1760,7 @@ initializePartition()
       int numGhost=max(Mapping::minimumNumberOfDistributedGhostLines,numberOfDistributedGhostLines);
       // set partition axes and number of ghost line boundaries
       if( debug & 1 )
-        printf("****Mapping::initializePartition(): myid=%i, numGhost=%i ***\n",myid,numGhost);
+        printF("****Mapping::initializePartition(): myid=%i, axis=%i numGhost=%i ***\n",myid,axis,numGhost);
       
       partition.partitionAlongAxis(axis, true, numGhost ); 
     }
@@ -3425,6 +3425,16 @@ periodicShift( RealArray & r, const Index & I )
 // }
 // #endif
 
+
+#ifdef USE_PPP
+int Mapping:: 
+project( RealArray & x, 
+	 MappingProjectionParameters & mpParams )
+{
+  OV_ABORT("finish me for parallel");
+  return 0;
+}
+#endif
 
 int Mapping:: 
 project( realArray & x, 

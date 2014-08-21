@@ -9,7 +9,7 @@
 #include "PlotStuff.h"
 #include "display.h"
 #include "BoundaryLayerProfile.h"
-
+#include "ParallelUtility.h"
 
 #define  FOR_3(i1,i2,i3,I1,I2,I3)\
   I1Base=I1.getBase(); I2Base=I2.getBase(); I3Base=I3.getBase();\
@@ -194,7 +194,12 @@ main(int argc, char *argv[])
       // psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true); 
 
       gi.erase();
+#ifndef USE_PPP
       PlotIt::plot(gi,eta,w,sPrintF("Blasius profile, nu=%9.3e",nu),"eta",cNames,psp);
+#else
+      printF("plot Blasius profile: FINISH ME FOR PARALLEL\n");
+      
+#endif
 
 
     }

@@ -260,6 +260,10 @@ testNurbs: $(testNurbs)
 	$(CC) $(CCFLAGS) -o testNurbs $(testNurbs) \
          $(CLIBS) $(FLIBS) $(GLIBS)
 
+testNurbsInterpolate = testNurbsInterpolate.o NurbsMapping.o nurbsInterpolate.o
+testNurbsInterpolate: $(testNurbsInterpolate)
+	$(CC) $(CCFLAGS) -o testNurbsInterpolate $(testNurbsInterpolate) $(CLIBS)  $(FLIBS) $(GLIBS) 
+
 sunil = hyperbolic.step1.o
 sunil: $(sunil)
 	$(CC) $(CCFLAGS) -o sunil $(sunil) \
@@ -426,6 +430,7 @@ mbuilder= mbuilder.o createMappings.o checkMapping.o StretchMapping.o stretchUpd
 mbuilder= mbuilder.o createMappings.o checkMapping.o NurbsMapping.o 
 mbuilder= mbuilder.o createMappings.o checkMapping.o StretchMapping.o
 mbuilder= mbuilder.o createMappings.o MappingBuilder.o LoftedSurfaceMapping.o
+mbuilder= mbuilder.o createMappings.o MappingBuilder.o NurbsMapping.o nurbsInterpolate.o
 mbuilder: $(mbuilder) 
 	$(CC) $(CCFLAGS) -o $@ $(mbuilder) $(CLIBS) $(FLIBS) $(GLIBS) $(ChimeraLib)
 

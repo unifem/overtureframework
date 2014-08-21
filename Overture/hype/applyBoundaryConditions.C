@@ -16,10 +16,10 @@
 
 
 int HyperbolicMapping::
-applyBoundaryConditions(const realArray & x, const realArray & x0,
+applyBoundaryConditions(const RealArray & x, const RealArray & x0,
                         const int & marchingDirection,
-           		realArray & normal, 
-			realArray & xr,
+           		RealArray & normal, 
+			RealArray & xr,
                         bool initialStep,  /* =false */
                         int stepNumber /* = 0 */ )
 //===========================================================================
@@ -95,7 +95,7 @@ applyBoundaryConditions(const realArray & x, const realArray & x0,
 	  //  x_{-1} = 
 	  getGhostIndex(gridIndexRange,side,axis,I1,I2,I3,1,extra);
 	  is[axis]=1-2*side;
-	  realArray dx(I1,I2,1,xAxes), dist, norm;
+	  RealArray dx(I1,I2,1,xAxes), dist, norm;
 	  dx= x(I1+is[0],I2+is[1],i3p,xAxes)-x(I1+2*is[0],I2+2*is[1],i3p,xAxes);
 	  if( rangeDimension==2 )
 	  {
@@ -140,7 +140,7 @@ applyBoundaryConditions(const realArray & x, const realArray & x0,
 	  getBoundaryIndex(indexRange,side,axis,I1,I2,I3,extra);
 	  is[axis]=1-2*side;
 	  assert( rangeDimension==3 );
-	  realArray xNorm(I1,I2,1,xAxes);
+	  RealArray xNorm(I1,I2,1,xAxes);
 	  xNorm = x(I1,I2,i3p,xAxes)-x0(I1,I2,i3,xAxes);
 	  xNorm(I1,I2,0,0) = SQRT( SQR(xNorm(I1,I2,0,0))+SQR(xNorm(I1,I2,0,1))+SQR(xNorm(I1,I2,0,2)) );
 	  int dir;
@@ -150,7 +150,7 @@ applyBoundaryConditions(const realArray & x, const realArray & x0,
 	  // extrapolate tangential components (do all)
 	  x(I1-is[0],I2-is[1],i3p,xAxes)=2.*x(I1,I2,i3p,xAxes)-x(I1+is[0],I2+is[1],i3p,xAxes);
 	  // normal component equals first line in
-	  const realArray & nDot = evaluate(
+	  const RealArray & nDot = evaluate(
 	    (x(I1+is[0],I2+is[1],i3p,axis1)-x(I1-is[0],I2-is[1],i3p,axis1))*normal(I1,I2,0,axis1)+
 	    (x(I1+is[0],I2+is[1],i3p,axis2)-x(I1-is[0],I2-is[1],i3p,axis2))*normal(I1,I2,0,axis2)+
 	    (x(I1+is[0],I2+is[1],i3p,axis3)-x(I1-is[0],I2-is[1],i3p,axis3))*normal(I1,I2,0,axis3) );
@@ -428,10 +428,10 @@ applyBoundaryConditions(const realArray & x, const realArray & x0,
 
 
 int HyperbolicMapping::
-applyBoundaryConditionMatchToMapping(const realArray & x, 
+applyBoundaryConditionMatchToMapping(const RealArray & x, 
 				     const int & marchingDirection,
-				     realArray & normal, 
-				     realArray & xr,
+				     RealArray & normal, 
+				     RealArray & xr,
 				     bool initialStep /* = false */ ,
 				     int option /* =0 */ )
 // ==============================================================================================================
@@ -525,7 +525,7 @@ applyBoundaryConditionMatchToMapping(const realArray & x,
 	}
 	else
 	{
-	  realArray xx(1,3);
+	  RealArray xx(1,3);
 	  int axis;
 	  for( axis=0; axis<3; axis++ )
 	    xx(0,axis)=x(gridLine,i2,i3p,axis);
@@ -567,10 +567,10 @@ matchToCurve( bool projectBoundary,
               MappingProjectionParameters & mpParams,
               int i1Shift, 
               int i2Shift, 
-              const realArray & x, 
+              const RealArray & x, 
 	      const int & marchingDirection,
-	      realArray & normal, 
-	      realArray & xr,
+	      RealArray & normal, 
+	      RealArray & xr,
               const int sideBlend, const int axisBlend, // side axis for numberOfLinesForNormalBlend
 	      bool initialStep /* = false */ ,
 	      int option /* =0 */
@@ -579,7 +579,7 @@ matchToCurve( bool projectBoundary,
   const int i3p=x.getBase(2);
   Range xAxes(0,rangeDimension-1);
   
-  realArray & n = mpParams.getRealArray(MappingProjectionParameters::normal);
+  RealArray & n = mpParams.getRealSerialArray(MappingProjectionParameters::normal);
   const int numberOfPoints=I1.getLength()*I2.getLength();
 
   if( n.getLength(0)!=numberOfPoints || initialStep )
@@ -592,7 +592,7 @@ matchToCurve( bool projectBoundary,
     n.reshape(numberOfPoints,rangeDimension);
   }
 	
-  realArray xx(I1,I2,1,rangeDimension);
+  RealArray xx(I1,I2,1,rangeDimension);
 
   // is[axis]=1-2*side;
 
@@ -642,14 +642,14 @@ matchToCurve( bool projectBoundary,
   // On output the array "n" will hold the normal to the BC surface (for 3D volume grids) or the tangent
   // to the BC mapping for 3D surface grids ( ?? 2D grids ?? )
 
-  //   realArray xSave;
+  //   RealArray xSave;
   //   xSave=xx;
 
   mpParams.setAdjustForCornersWhenMarching(false);
 
   if( false )  // *wdh* 081102 -- for testing 
   {
-    realArray & r  = mpParams.getRealArray(MappingProjectionParameters::r);
+    RealArray & r  = mpParams.getRealSerialArray(MappingProjectionParameters::r);
     if( r.getLength(0)>0 )
       r=-1;
   }
@@ -683,7 +683,7 @@ matchToCurve( bool projectBoundary,
     //   3) project x_m onto the surface (adjusting for corners) -> xp and get normal to surface nv
     //   4) marchingDirection = +/-  (tv X nv) dot (xp-x_b)
 
-    realArray xb(1,3), xp(1,3);
+    RealArray xb(1,3), xp(1,3);
     real tv[3], mv[3];
     
     const int ib =numberOfPoints/2;        // check this point
@@ -707,7 +707,7 @@ matchToCurve( bool projectBoundary,
     MappingProjectionParameters mpParams2;
     mpParams2.setAdjustForCornersWhenMarching(true);
     
-    realArray & n2 = mpParams2.getRealArray(MappingProjectionParameters::normal);
+    RealArray & n2 = mpParams2.getRealSerialArray(MappingProjectionParameters::normal);
     n2.redim(1,rangeDimension);
 
     xp=xb;
@@ -827,7 +827,7 @@ matchToCurve( bool projectBoundary,
   // finally renormalize
   // printf("********* applyBC: adjust normals on (side,axis)=(%i,%i) onto a Mapping\n",side,axis); 
 
-  realArray nDot(I1,I2);
+  RealArray nDot(I1,I2);
 
   // mpParams.n holds tangent to the BC mapping
   projectNormalsToMatchCurve(matchingMapping, mpParams,I1,I2,normal,nDot );
@@ -940,14 +940,14 @@ int HyperbolicMapping::
 projectNormalsToMatchCurve(Mapping & matchingMapping,
                            MappingProjectionParameters & mpParams,
                            Index & I1, Index & I2,
-                           realArray & normal, realArray & nDot )
+                           RealArray & normal, RealArray & nDot )
 {
   if( !projectNormalsOnMatchingBoundaries )  // *wdh* 081102
     return 0;
 
   Range xAxes(0,rangeDimension-1);
   
-  realArray & n = mpParams.getRealArray(MappingProjectionParameters::normal);
+  RealArray & n = mpParams.getRealSerialArray(MappingProjectionParameters::normal);
 
   const int numberOfPoints=I1.getLength()*I2.getLength();
   if( n.getLength(0)!=numberOfPoints )

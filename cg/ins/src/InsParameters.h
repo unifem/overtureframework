@@ -95,7 +95,7 @@ getDerivedFunction( const aString & name, const realMappedGridFunction & u,
                     const int component, const real t, Parameters & parameters);
 
 virtual
-int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 				const Index & I1, const Index &I2, const Index &I3 );
 int 
 getViscoPlasticVariables( const aString & name, const GridFunction & cgf, realCompositeGridFunction & r, const int component );

@@ -13,6 +13,10 @@ OV_USINGNAMESPACE(std);
 #include <vector.h>
 #endif
 
+#define KK_DEBUG
+#include "DBase.hh"
+using namespace DBase;
+
 class TridiagonalSolver;
 class DialogData;
 class MatchingCurve;
@@ -205,8 +209,10 @@ int setPlotOption( PlotOptionEnum option, int value );
 
 int generateOld();  // uses hypegen
 int generate(const int & numberOfAdditionalSteps = 0 );
-int generateNew(const int & numberOfAdditionalSteps = 0 );  // same as above.
   
+int generateSerial( const int & numberOfAdditionalSteps = 0 );
+int generateParallel( const int & numberOfAdditionalSteps = 0 );
+
 virtual void useRobustInverse(const bool trueOrFalse=TRUE );
 
 virtual void map( const realArray & r, realArray & x, realArray & xr = Overture::nullRealDistributedArray(),
@@ -236,6 +242,9 @@ int update( MappingInformation & mapInfo );
 int update( MappingInformation & mapInfo,
 	    const aString & command,
 	    DialogData *interface  =NULL  ) ;
+
+int useNurbsToEvaluate( bool trueOrFalse );
+int setDegreeOfNurbs( int degree );
 
 const Mapping * getSurface() const { return surface; }
 
@@ -297,59 +306,59 @@ int initializeHyperbolicGridParameters();
 int hypgen(GenericGraphicsInterface & gi, GraphicsParameters & parameters);
 int smooth(GenericGraphicsInterface & gi, GraphicsParameters & parameters);
 
-int evaluateStartCurve( realArray & xStart );
+int evaluateStartCurve( RealArray & xStart );
 
 int initializeMarchingParameters(int numberOfAdditionalSteps, int & i3Start );
-int initializeMarchingArrays( int i3Start, int numberOfAdditionalSteps, realArray & x, realArray & xt,
-			      realArray & xr, realArray & normal, realArray & xrr,
-			      realArray & s, realArray & ss, realArray & xrrDotN,
-			      realArray & kappa);
+int initializeMarchingArrays( int i3Start, int numberOfAdditionalSteps, RealArray & x, RealArray & xt,
+			      RealArray & xr, RealArray & normal, RealArray & xrr,
+			      RealArray & s, RealArray & ss, RealArray & xrrDotN,
+			      RealArray & kappa);
   
 int initializeSurfaceGrid(int direction,
 			  int numberOfAdditionalSteps, int i3Start, int i3Begin,
-			  realArray & x, realArray & xt,
-			  realArray & xr, 
-			  realArray & normal, realArray & ds, realArray & s, realArray & ss, realArray & xrr, 
-			  realArray & normXr, realArray & normXs,
-			  realArray & xrSave );
+			  RealArray & x, RealArray & xt,
+			  RealArray & xr, 
+			  RealArray & normal, RealArray & ds, RealArray & s, RealArray & ss, RealArray & xrr, 
+			  RealArray & normXr, RealArray & normXs,
+			  RealArray & xrSave );
   
 int removeNormalComponentOfSmoothing(int axis, const Index & I1, const Index & I2, const Index & I3,
-				     realArray & xrr, realArray & xrrDotN, 
-				     realArray & normal, realArray & xte );
+				     RealArray & xrr, RealArray & xrrDotN, 
+				     RealArray & normal, RealArray & xte );
   
-int getNormalAndSurfaceArea(const realArray & x, 
+int getNormalAndSurfaceArea(const RealArray & x, 
 			    const int & i3, 
-			    realArray & normal, 
-			    realArray & s,
-			    realArray & xr, 
-			    realArray & xrr,
+			    RealArray & normal, 
+			    RealArray & s,
+			    RealArray & xr, 
+			    RealArray & xrr,
 			    const real & dSign,
-			    realArray & normXr,
-			    realArray & normXs,
-			    realArray & ss,
+			    RealArray & normXr,
+			    RealArray & normXs,
+			    RealArray & ss,
 			    const int & marchingDirection,
 			    int stepNumber=0  );
 
-int getCurvatureDependentSpeed(realArray & ds, 
-			       realArray & kappa,
-			       const realArray & xrr, 
-			       const realArray & normal, 
-			       const realArray & normXr, 
-			       const realArray & normXs);
+int getCurvatureDependentSpeed(RealArray & ds, 
+			       RealArray & kappa,
+			       const RealArray & xrr, 
+			       const RealArray & normal, 
+			       const RealArray & normXr, 
+			       const RealArray & normXs);
   
-int getDistanceToStep(const int & i3Delta, realArray & ds, const int & growthDirection );
+int getDistanceToStep(const int & i3Delta, RealArray & ds, const int & growthDirection );
 int adjustDistanceToMarch(const int & numberOfAdditionalSteps, const int & growthDirection );
-int applyBoundaryConditions( const realArray & x, const realArray & x0,
+int applyBoundaryConditions( const RealArray & x, const RealArray & x0,
 			     const int & marchingDirection,
-			     realArray & normal,
-			     realArray & xr,
+			     RealArray & normal,
+			     RealArray & xr,
 			     bool initialStep = false,
 			     int stepNumber=0 );
 
-int applyBoundaryConditionMatchToMapping(const realArray & x, 
+int applyBoundaryConditionMatchToMapping(const RealArray & x, 
 					 const int & marchingDirection,
-					 realArray & normal, 
-					 realArray & xr,
+					 RealArray & normal, 
+					 RealArray & xr,
 					 bool initialStep = false,
 					 int option=0 );
 
@@ -359,10 +368,10 @@ int matchToCurve( bool projectBoundary,
 		  MappingProjectionParameters & mpParams,
 		  int i1Shift, 
 		  int i2Shift, 
-		  const realArray & x, 
+		  const RealArray & x, 
 		  const int & marchingDirection,
-		  realArray & normal, 
-		  realArray & xr,
+		  RealArray & normal, 
+		  RealArray & xr,
 		  const int sideBlend, const int axisBlend, // side axis for numberOfLinesForNormalBlend
 		  bool initialStep = false,
 		  int option  =0   );
@@ -370,38 +379,38 @@ int matchToCurve( bool projectBoundary,
 int projectNormalsToMatchCurve(Mapping & matchingMapping,
 			       MappingProjectionParameters & mpParams,
 			       Index & I1, Index & I2,
-			       realArray & normal, realArray & nDot );
+			       RealArray & normal, RealArray & nDot );
   
-int blendNormals(realArray & normal, realArray & xr,
+int blendNormals(RealArray & normal, RealArray & xr,
 		 int numberOfLinesToBlend,
 		 Index Iv[3],
 		 int axis, int side);
   
 
-int jacobiSmooth( realArray & ss, const int & numberOfSmooths );
-int formCMatrix(realArray & xr, 
-		realArray & xt,
+int jacobiSmooth( RealArray & ss, const int & numberOfSmooths );
+int formCMatrix(RealArray & xr, 
+		RealArray & xt,
 		const int & i3Mod2,
-		realArray & normal, 
-		realArray & normXr,
+		RealArray & normal, 
+		RealArray & normXr,
 		const int & direction );
   
-int computeNonlinearDiffussionCoefficient(const realArray & normXr, 
-					  const realArray & normXs, 
-					  const realArray & normXt, 
+int computeNonlinearDiffussionCoefficient(const RealArray & normXr, 
+					  const RealArray & normXs, 
+					  const RealArray & normXt, 
 					  const int & direction,
 					  int stepNumber );
   
-int formBlockTridiagonalSystem(const int & direction, realArray & xTri);
+int formBlockTridiagonalSystem(const int & direction, RealArray & xTri);
 
-int implicitSolve(realArray & xTri, 
+int implicitSolve(RealArray & xTri, 
 		  const int & i3Mod2,
-		  realArray & xr,
-		  realArray & xt,
-		  realArray & normal,
-		  realArray & normXr,
-		  realArray & normXs,
-		  realArray & normXt,
+		  RealArray & xr,
+		  RealArray & xt,
+		  RealArray & normal,
+		  RealArray & normXr,
+		  RealArray & normXs,
+		  RealArray & normXt,
 		  TridiagonalSolver & tri,
 		  int stepNumber);
   
@@ -420,26 +429,26 @@ int buildCurve( GenericGraphicsInterface & gi, GraphicsParameters & parameters, 
 		aString & answer, SelectionInfo & select, Mapping *&newCurve, const aString & buildCurveColour,
 		bool resetBoundaryConditions = true );
 
-int computeCellVolumes(const realArray & xt, const int & i3Mod2,
+int computeCellVolumes(const RealArray & xt, const int & i3Mod2,
 		       real & minCellVolume, real & maxCellVolume, 
 		       const real & dSign );
 
-int equidistributeAndStretch( const int & i3, const realArray & x, const real & weight, 
+int equidistributeAndStretch( const int & i3, const RealArray & x, const real & weight, 
 			      const int marchingDirection=1, bool stretchGrid = true );
   
-realArray normalize( const realArray & u );
+RealArray normalize( const RealArray & u );
   
-int project( const realArray & x, 
+int project( const RealArray & x, 
 	     const int & marchingDirection,
-	     realArray & xr, 
+	     RealArray & xr, 
 	     const bool & setBoundaryConditions= TRUE,
 	     bool initialStep = false,
 	     int stepNumber = 0);
 
-virtual int project( realArray & x, 
+virtual int project( RealArray & x, 
 		     MappingProjectionParameters & mpParams ){ return Mapping::project(x,mpParams); }
 
-int correctProjectionOfInitialCurve(realArray & x,  realArray & xr,
+int correctProjectionOfInitialCurve(RealArray & x,  RealArray & xr,
 				    CompositeSurface & cs,
 				    const int & marchingDirection,
 				    MappingProjectionParameters & mpParams);
@@ -456,7 +465,7 @@ int printStatistics(FILE *file=stdout );
 int findMatchingBoundaryCurve(int side, int axis, int directionToMarch, 
 			      GenericGraphicsInterface & gi, bool promptForChanges=false );  
 
-int findNormalsToStartCurve(realArray & r, realArray & normal, int directionToMarch);
+int findNormalsToStartCurve(RealArray & r, RealArray & normal, int directionToMarch);
   
 // this next function is only intended to be called by the update function
 int drawReferenceSurface(GenericGraphicsInterface & gi, 
@@ -499,7 +508,7 @@ void updateLinesAndDistanceToMarch();
 // old:  int chooseBoundaryConditionMappings(MappingInformation & mapInfo );
   
 bool evaluateTheSurface;   // if TRUE the surface is re-evaluated
-realArray xSurface;        // holds the surface grid 
+RealArray xSurface;        // holds the surface grid 
 
 // parameters for Bill's generator
 int growthOption;  // +1, -1 or 2=grow in both directions
@@ -550,11 +559,11 @@ enum GhostLineOptions
 } ghostLineOption;  
 
 // why are these all here??
-realArray gridDensityWeight;   // holds the inverse of the desired grid spacing (relative values only)
-realArray xHyper;              // holds the hyperbolic grid.
-realArray xtHyper;             
-realArray normalCC;            // normal at cell centre.
-realArray at,bt,ct,c,lambda;  
+RealArray gridDensityWeight;   // holds the inverse of the desired grid spacing (relative values only)
+RealArray xHyper;              // holds the hyperbolic grid.
+RealArray xtHyper;             
+RealArray normalCC;            // normal at cell centre.
+RealArray at,bt,ct,c,lambda;  
   
 
 SpacingType spacingType;
@@ -585,6 +594,9 @@ bool projectInitialCurve;  // true if we project starting curve onto the surface
 bool projectNormalsOnMatchingBoundaries; // if true, project both points and normals to matching boundary curves/surfaces
 bool correctProjectionOfInitialCurves; // if true correct the projection of the initial curve to match edges on the triangluation
 
+bool evalAsNurbs;
+int nurbsDegree;
+
 bool useTriangulation;      // if true, use the triangulation of a CompositeSurface for marching.
 bool projectOntoReferenceSurface;  // if true, project points found using the triangulation onto the actual surface
 bool stopOnNegativeCells;   // stop the generation when a negative cell is detected
@@ -610,7 +622,7 @@ InitialCurveEnum initialCurveOption;
 real edgeCurveMatchingTolerance; // for deciding when edge curves should be joined.
 real distanceToBoundaryCurveTolerance; // for deciding if boundary curves match to the start curve
 
-realArray trailingEdgeDirection;   // for airfoil like trailing edge singularities.
+RealArray trailingEdgeDirection;   // for airfoil like trailing edge singularities.
 
 // variables for the surface grid stuff
 bool smoothAndProject; // if true smooth and project onto original surface definition.
@@ -652,6 +664,11 @@ Mapping *surface;       // here is the mapping that we start with
 DataPointMapping *dpm;  // Here is where the mapping is defined.
 
 static FILE *debugFile;
+static FILE *pDebugFile;
+static FILE *checkFile;
+
+// This database contains parameters (new way)
+DataBase dbase;
 
 private:
 

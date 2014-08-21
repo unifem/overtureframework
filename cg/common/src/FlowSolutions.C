@@ -3,6 +3,7 @@
 #include "PistonMotion.h"
 #include "GridStatistics.h"
 #include "display.h"
+#include "ParallelUtility.h"
 
 FlowSolutions::
 FlowSolutions()
@@ -34,7 +35,8 @@ getFlowSolution( const KnownSolutionsEnum knownSolution,
     {
         MappedGrid & mg = cg[grid];
         getIndex(mg.dimension(),I1,I2,I3);
-        getFlowSolution( knownSolution,cg,grid,ua[grid],ipar,rpar,I1,I2,I3);
+        OV_GET_SERIAL_ARRAY(real,ua[grid],uaLocal);
+        getFlowSolution( knownSolution,cg,grid,uaLocal,ipar,rpar,I1,I2,I3);
     }
     
     return 0;
@@ -43,7 +45,7 @@ getFlowSolution( const KnownSolutionsEnum knownSolution,
 
 int FlowSolutions::
 getFlowSolution( const KnownSolutionsEnum knownSolution,
-             		 CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+             		 CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
              		 const Index & I1, const Index &I2, const Index &I3  )
 // ========================================================================================
 // /Description:
@@ -468,7 +470,7 @@ getSupersonicExpandingFlow( realCompositeGridFunction & ua, int *ipar, real *rpa
 }
 
 int FlowSolutions::
-getSupersonicExpandingFlow( CompositeGrid & cg, int grid, realArray & ua, int *ipar, real *rpar, 
+getSupersonicExpandingFlow( CompositeGrid & cg, int grid, RealArray & ua, int *ipar, real *rpar, 
                                                         const Index & I1, const Index &I2, const Index &I3  )
 // =====================================================================================================
 //  Determine the solution to supersonic flow around an expanding corner
@@ -553,7 +555,7 @@ getSupersonicExpandingFlow( CompositeGrid & cg, int grid, realArray & ua, int *i
   // ***********
 
     const realArray & center = mg.center();
-    realArray & u = ua;
+    RealArray & u = ua;
 
 
     u(I1,I2,I3,rc)=rho0;
@@ -692,7 +694,7 @@ extern "C"
 
 int FlowSolutions::
 getPistonFlow( const KnownSolutionsEnum knownSolution,
-                              CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+                              CompositeGrid & cg, int grid, RealArray & u, int *ipar, real *rpar, 
              	       const Index & I1, const Index &I2, const Index &I3  )
 // =======================================================================================
 // /Description: Define the exact solution for a piston moving with a specified motion
@@ -866,7 +868,7 @@ getPistonFlow( const KnownSolutionsEnum knownSolution,
 // =========================================================================================
 int FlowSolutions::
 getFlowSolution( PistonMotion & pistonMotion,
-             		 CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+             		 CompositeGrid & cg, int grid, RealArray & u, int *ipar, real *rpar, 
              		 const Index & I1, const Index &I2, const Index &I3  )
 {
     MappedGrid & mg = cg[grid];
@@ -929,7 +931,7 @@ getFlowSolution( PistonMotion & pistonMotion,
 // =======================================================================================
 int FlowSolutions::
 getObliqueShockFlow( const KnownSolutionsEnum knownSolution,
-                 		     CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+                 		     CompositeGrid & cg, int grid, RealArray & u, int *ipar, real *rpar, 
                  		     const Index & I1, const Index &I2, const Index &I3  )
 {
 
@@ -1054,7 +1056,7 @@ getObliqueShockFlow( const KnownSolutionsEnum knownSolution,
 // ==========================================================================================
 int FlowSolutions::
 getDeformingDiffuser( const KnownSolutionsEnum knownSolution,
-                 		     CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+                 		     CompositeGrid & cg, int grid, RealArray & u, int *ipar, real *rpar, 
                  		     const Index & I1, const Index &I2, const Index &I3  )
 {
 
@@ -1159,7 +1161,7 @@ getDeformingDiffuser( const KnownSolutionsEnum knownSolution,
 
 int FlowSolutions::
 getShockElasticPistonFlow( const KnownSolutionsEnum knownSolution,
-                     			   CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+                     			   CompositeGrid & cg, int grid, RealArray & u, int *ipar, real *rpar, 
                      			   const Index & I1, const Index &I2, const Index &I3  )
 // =======================================================================================
 // /Description: Define the exact solution for a shock hitting an elastic piston 
@@ -1421,7 +1423,7 @@ void rotatingDiskInFluid( const int & nSolid, real & uSolid,
 
 int FlowSolutions::
 getRotatingElasticDiskInFluid( const KnownSolutionsEnum knownSolution,
-                         			       CompositeGrid & cg, int grid, realArray & u, int *ipar, real *rpar, 
+                         			       CompositeGrid & cg, int grid, RealArray & u, int *ipar, real *rpar, 
                          				 const Index & I1, const Index &I2, const Index &I3 )
 // =======================================================================================
 /// \brief: Define the exact solution for a rotating elastic (SVK) disk in a 

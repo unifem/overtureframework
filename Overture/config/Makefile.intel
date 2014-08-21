@@ -103,7 +103,8 @@ LIB_TARGETS= lib_date libso_date
 LIB_DEPENDENCIES= ../lib/lib_date
 TEMPLATES=  
 
-LAPACK_LIBRARIES = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
+# LAPACK_LIBRARIES = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
+LAPACK_LIBRARIES = -Wl,-rpath,/usr/lib64 -L/usr/lib64 -llapack -lblas
 
 usePPP = $(USE_PPP_FLAG)
 ifneq ($(strip $(usePPP)),)
@@ -137,8 +138,8 @@ LDFLAGS = -Wl,-rpath,$(Overture)/lib
 RANLIB = ranlib
 SOFLAGS = -shared
 OpenGLibs =$(GL_LIBS)
-GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11 -lm
-## GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXpm -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11 -lm
+GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11  $(LAPACK_LIBRARIES) -lm
+## GLIBS=  $(OV_PERL_LIBRARIES) -Wl,-rpath,$(OpenGL)/$(LIB64) -L$(OpenGL)/$(LIB64) $(OpenGLibs)  -Wl,-rpath,$(MOTIF)/$(LIB64) -L$(MOTIF)/$(LIB64) -lXm  -lXpm -lXp -Wl,-rpath,$(XLIBS)/$(LIB64) -L$(XLIBS)/$(LIB64) -lXt -lXmu -lXi -lXext -lX11  $(LAPACK_LIBRARIES) -lm
 #
 #
 CLIBS=   $(LDFLAGS) -L$(Overture)/lib $(LibOverture) -lOgmg $(OV_COMPILER_LIBS) -Wl,-rpath,$(HDF)/lib -L$(HDF)/lib $(HDF_LIBS)
@@ -146,7 +147,6 @@ FLIBS=   $(AppLibraries) $(FORTRAN_LIBS)
 
 BPP = $(OvertureCheckout)/bpp/bpp
 
-LAPACK_LIBRARIES = -Wl,-rpath,/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -L/nfs/apps/pgi/6.1-3/linux86-64/6.1/lib -llapack -lblas
 
 .SUFFIXES:
 .SUFFIXES:.C .o .f .o .F .o .bf .f .c .o .cc .o

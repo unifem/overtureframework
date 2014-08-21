@@ -7,6 +7,7 @@
 #include "DataFormats.h"
 #include "Inverse.h"
 #include "ParallelUtility.h"
+#include "NurbsMapping.h"
 
 // #define CANINVERT canInvert
 #define CANINVERT canInvertWithGoodGuess
@@ -42,102 +43,102 @@
 extern "C"
 {
 
-  void DPM1(char filename[], int & idata, int & nd, int & ndrsab, int & nrsab, int & bc, int & share, 
-            int & per, int & ndr, const int & fileform, const int & dataform, char errmes[], int & ierr,
-            const int len_filename, const int len_errmes );
+void DPM1(char filename[], int & idata, int & nd, int & ndrsab, int & nrsab, int & bc, int & share, 
+	  int & per, int & ndr, const int & fileform, const int & dataform, char errmes[], int & ierr,
+	  const int len_filename, const int len_errmes );
 
-  void DPM2(int & ndra, int & ndrb, int & ndsa, int & ndsb, int & ndta, int & ndtb, int & ndr, 
-            int & ndrsab, int & nrsab, int & nd, real & xy, int & per, int & idata, char errmes[], 
-            const int & fileform, const int & dataform, int & ierr,
-            const int len_errmes );
+void DPM2(int & ndra, int & ndrb, int & ndsa, int & ndsb, int & ndta, int & ndtb, int & ndr, 
+	  int & ndrsab, int & nrsab, int & nd, real & xy, int & per, int & idata, char errmes[], 
+	  const int & fileform, const int & dataform, int & ierr,
+	  const int len_errmes );
   
-  void OPPLT3D(char  filename[], int & iunit,int & fileFormat,int & ngd, int & ng,
-               int & nx,int & ny,int & nz, const int len_filename);
+void OPPLT3D(char  filename[], int & iunit,int & fileFormat,int & ngd, int & ng,
+	     int & nx,int & ny,int & nz, const int len_filename);
 
-  void RDPLT3D(int & fileFormat,int & iunit, const int & grid, int & nx, int & ny, int & nz,
-	       int & nd, int & ndra, int & ndrb, int & ndsa, int & ndsb, int & ndta, int & ndtb, real & xy,
-               int & ierr );
+void RDPLT3D(int & fileFormat,int & iunit, const int & grid, int & nx, int & ny, int & nz,
+	     int & nd, int & ndra, int & ndrb, int & ndsa, int & ndsb, int & ndta, int & ndtb, real & xy,
+	     int & ierr );
 
-  void CLOSEPLT3D(const int & iunit);
+void CLOSEPLT3D(const int & iunit);
 }
 
 // *************************************
 //  tri-linear interpolant: 
 //    INT_2D means the domain dimension is 2
 // *************************************
-#define INT_1D_ORDER_2(dr,x111,x211)  \
-      ( (1.-dr)*(x111)+dr*(x211) )
+#define INT_1D_ORDER_2(dr,x111,x211)		\
+( (1.-dr)*(x111)+dr*(x211) )
 
-#define INT_1D_ORDER_2_R(dr,x111,x211)  \
-      ( delta[0]*( (x211)-(x111) ) )
+#define INT_1D_ORDER_2_R(dr,x111,x211)		\
+( delta[0]*( (x211)-(x111) ) )
 
-#define INT_2D_ORDER_2(dr,ds,x111,x211,x121,x221)  \
-      ( (1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221)) )
+#define INT_2D_ORDER_2(dr,ds,x111,x211,x121,x221)			\
+( (1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221)) )
 
-#define INT_2D_ORDER_2_R(dr,ds,x111,x211,x121,x221)  \
-      ( ((1.-ds)*( (x211)-(x111) ) +ds*( (x221)-(x121) ))*delta[0] )
+#define INT_2D_ORDER_2_R(dr,ds,x111,x211,x121,x221)		\
+( ((1.-ds)*( (x211)-(x111) ) +ds*( (x221)-(x121) ))*delta[0] )
 
-#define INT_2D_ORDER_2_S(dr,ds,x111,x211,x121,x221)  \
-      ( ((1.-dr)*( (x121)-(x111) ) +dr*( (x221)-(x211) ))*delta[1] )
+#define INT_2D_ORDER_2_S(dr,ds,x111,x211,x121,x221)		\
+( ((1.-dr)*( (x121)-(x111) ) +dr*( (x221)-(x211) ))*delta[1] )
 
-#define INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (                                                    \
-     (1.-dt)*((1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221))) \
-     +   dt *((1.-ds)*((1.-dr)*(x112)+dr*(x212))+ds*((1.-dr)*(x122)+dr*(x222))) )
+#define INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222) \
+(									\
+  (1.-dt)*((1.-ds)*((1.-dr)*(x111)+dr*(x211))+ds*((1.-dr)*(x121)+dr*(x221))) \
+  +   dt *((1.-ds)*((1.-dr)*(x112)+dr*(x212))+ds*((1.-dr)*(x122)+dr*(x222))) )
 
-#define INT_3D_ORDER_2_R(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (                                                    \
-     ( (1.-dt)*((1.-ds)*((x211)-(x111))+ds*((x221)-(x121))) \
-   +       dt *((1.-ds)*((x212)-(x112))+ds*((x222)-(x122))) )*delta[0])
+#define INT_3D_ORDER_2_R(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222) \
+(									\
+  ( (1.-dt)*((1.-ds)*((x211)-(x111))+ds*((x221)-(x121)))		\
+    +       dt *((1.-ds)*((x212)-(x112))+ds*((x222)-(x122))) )*delta[0])
 
-#define INT_3D_ORDER_2_S(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (  \
-     ( (1.-dt)*((1.-dr)*((x121)-(x111))+dr*((x221)-(x211))) \
-   +       dt *((1.-dr)*((x122)-(x112))+dr*((x222)-(x212))) )*delta[1] )
+#define INT_3D_ORDER_2_S(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222) \
+(									\
+  ( (1.-dt)*((1.-dr)*((x121)-(x111))+dr*((x221)-(x211)))		\
+    +       dt *((1.-dr)*((x122)-(x112))+dr*((x222)-(x212))) )*delta[1] )
 
-#define INT_3D_ORDER_2_T(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (                                                    \
-     ( (1.-dr)*((1.-ds)*((x112)-(x111))+ds*((x122)-(x121))) \
-  +        dr *((1.-ds)*((x212)-(x211))+ds*((x222)-(x221))) )*delta[2] )
+#define INT_3D_ORDER_2_T(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222) \
+(									\
+  ( (1.-dr)*((1.-ds)*((x112)-(x111))+ds*((x122)-(x121)))		\
+    +        dr *((1.-ds)*((x212)-(x211))+ds*((x222)-(x221))) )*delta[2] )
 
 /* ---
 
- define INT_1D_ORDER_2(dr,x111,x211)  \
-      ( (1.-dr)*(x111)+dr*(x211) )
+   define INT_1D_ORDER_2(dr,x111,x211)  \
+   ( (1.-dr)*(x111)+dr*(x211) )
 
- define INT_1D_ORDER_2_R(dr,x111,x211)  \
-      ( delta[0]*( (x211)-(x111) ) )
+   define INT_1D_ORDER_2_R(dr,x111,x211)  \
+   ( delta[0]*( (x211)-(x111) ) )
 
- define INT_2D_ORDER_2(dr,ds,x111,x211,x121,x221)  \
-      ( (1.-ds)*(1.-dr)*(x111)+(1.-ds)*dr*(x211)+ds*(1.-dr)*(x121)+ds*dr*(x221) )
+   define INT_2D_ORDER_2(dr,ds,x111,x211,x121,x221)  \
+   ( (1.-ds)*(1.-dr)*(x111)+(1.-ds)*dr*(x211)+ds*(1.-dr)*(x121)+ds*dr*(x221) )
 
- define INT_2D_ORDER_2_R(dr,ds,x111,x211,x121,x221)  \
-      ( (1.-ds)*delta[0]*( (x211)-(x111) ) +ds*delta[0]*( (x221)-(x121) ) )
+   define INT_2D_ORDER_2_R(dr,ds,x111,x211,x121,x221)  \
+   ( (1.-ds)*delta[0]*( (x211)-(x111) ) +ds*delta[0]*( (x221)-(x121) ) )
 
- define INT_2D_ORDER_2_S(dr,ds,x111,x211,x121,x221)  \
-      ( (1.-dr)*delta[1]*( (x121)-(x111) ) +dr*delta[1]*( (x221)-(x211) ) )
+   define INT_2D_ORDER_2_S(dr,ds,x111,x211,x121,x221)  \
+   ( (1.-dr)*delta[1]*( (x121)-(x111) ) +dr*delta[1]*( (x221)-(x211) ) )
 
- define INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (                                                    \
-     (1.-dt)*(1.-ds)*(1.-dr)*(x111)+(1.-dt)*(1.-ds)*dr*(x211)+(1.-dt)*ds*(1.-dr)*(x121)+(1.-dt)*ds*dr*(x221) \
-     +   dt*(1.-ds)*(1.-dr)*(x112)+dt*(1.-ds)*dr*(x212)+dt*ds*(1.-dr)*(x122)+dt*ds*dr*(x222) )
+   define INT_3D_ORDER_2(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
+   (                                                    \
+   (1.-dt)*(1.-ds)*(1.-dr)*(x111)+(1.-dt)*(1.-ds)*dr*(x211)+(1.-dt)*ds*(1.-dr)*(x121)+(1.-dt)*ds*dr*(x221) \
+   +   dt*(1.-ds)*(1.-dr)*(x112)+dt*(1.-ds)*dr*(x212)+dt*ds*(1.-dr)*(x122)+dt*ds*dr*(x222) )
 
- define INT_3D_ORDER_2_R(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (                                                    \
-     delta[0]*(1.-dt)*(1.-ds)*((x211)-(x111))+delta[0]*(1.-dt)*ds*((x221)-(x121)) \
+   define INT_3D_ORDER_2_R(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
+   (                                                    \
+   delta[0]*(1.-dt)*(1.-ds)*((x211)-(x111))+delta[0]*(1.-dt)*ds*((x221)-(x121)) \
    + delta[0]*    dt* (1.-ds)*((x212)-(x112))+delta[0]*    dt *ds*((x222)-(x122)) )
 
- define INT_3D_ORDER_2_S(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (  \
-     delta[1]*(1.-dt)*(1.-dr)*((x121)-(x111))+delta[1]*(1.-dt)*dr*((x221)-(x211)) \
+   define INT_3D_ORDER_2_S(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
+   (  \
+   delta[1]*(1.-dt)*(1.-dr)*((x121)-(x111))+delta[1]*(1.-dt)*dr*((x221)-(x211)) \
    + delta[1]*    dt *(1.-dr)*((x122)-(x112))+delta[1]*    dt *dr*((x222)-(x212)) )
 
- define INT_3D_ORDER_2_T(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
-  (                                                    \
-    delta[2]*(1.-dr)*(1.-ds)*((x112)-(x111))+ delta[2]*(1.-dr)*ds*((x122)-(x121)) \
-  + delta[2]*    dr *(1.-ds)*((x212)-(x211))+ delta[2]*    dr *ds*((x222)-(x221)) )
+   define INT_3D_ORDER_2_T(dr,ds,dt,x111,x211,x121,x221,x112,x212,x122,x222)  \
+   (                                                    \
+   delta[2]*(1.-dr)*(1.-ds)*((x112)-(x111))+ delta[2]*(1.-dr)*ds*((x122)-(x121)) \
+   + delta[2]*    dr *(1.-ds)*((x212)-(x211))+ delta[2]*    dr *ds*((x222)-(x221)) )
 
------ */
+   ----- */
 // // ***************************************
 // // Define jacobian entries by differencing
 // // ***************************************
@@ -229,7 +230,7 @@ extern "C"
 
 DataPointMapping::
 DataPointMapping() 
-: Mapping(2,2,parameterSpace,cartesianSpace) 
+  : Mapping(2,2,parameterSpace,cartesianSpace) 
 //===========================================================================
 /// \brief  Default Constructor. 
 //===========================================================================
@@ -261,6 +262,11 @@ DataPointMapping()
   setNumberOfDistributedGhostLines( 2 );   // in parallel we want two ghost lines for 4th order interpolation
 
   useScalarIndexing=true;
+
+  evalAsNurbs=false; // if true, fit the DPM to a Nurbs and eval the Nurbs.
+  nurbsDegree=3;     // degree of the NURBS
+  nurbsOutOfDate=true;
+
   mappingHasChanged();
 }
 
@@ -282,13 +288,54 @@ DataPointMapping( const DataPointMapping & map, const CopyType copyType )
   }
 
   printF("DPM::Copy constructor for mapping %s, numGhost=[%i,%i]\n",
-            (const char*)getName(mappingName),numberOfGhostPoints(0,0),numberOfGhostPoints(1,0));
+	 (const char*)getName(mappingName),numberOfGhostPoints(0,0),numberOfGhostPoints(1,0));
 }
 
 DataPointMapping::~DataPointMapping()
-{ if( debug & 4 )
-  cout << " DataPointMapping::Desctructor called" << endl;
+{ 
+  if( debug & 4 )
+    printF(" --DPM-- DataPointMapping::Destructor called\n");
+
+  if( dbase.has_key("nurbs") )
+  {
+    delete dbase.get<NurbsMapping*>("nurbs");
+  }
 }
+
+// ===========================================================================================
+/// \brief Internally convert DPM to a Nurbs for evaluation
+// ===========================================================================================
+int DataPointMapping::
+useNurbsToEvaluate( bool trueOrFalse )
+{
+  evalAsNurbs=trueOrFalse;
+  if( evalAsNurbs )
+  {
+    mapIsDistributed=false;    // for now the NurbsMapping is NOT distributed
+    inverseIsDistributed=false;    
+    printF("---DPM--INFO: setting evalAsNurbs=true : internally convert the DPM to a Nurbs for evaluation.\n");  
+  }
+  else
+  {
+    printF("---DPM--INFO: setting evalAsNurbs=false\n");
+    
+    mapIsDistributed=true;  
+    inverseIsDistributed=true;
+  }
+  
+}
+
+// ===========================================================================================
+/// \brief Set the degree of the Nurbs used to (optionally) evaluate the DPM. 
+// ===========================================================================================
+int DataPointMapping::
+setDegreeOfNurbs( int degree )
+{
+  nurbsDegree=degree;
+  return 0;
+}
+
+
 
 const realArray& DataPointMapping::
 getGrid(MappingParameters & params /* =Overture::nullMappingParameters() */,
@@ -385,7 +432,7 @@ getDimension()
 
 
 #define ForBoundary(side,axis)   for( axis=0; axis<domainDimension; axis++ ) \
-                                 for( side=0; side<=1; side++ )
+for( side=0; side<=1; side++ )
 
 int DataPointMapping::
 setDataPoints(const realArray & xd,
@@ -403,16 +450,22 @@ setDataPoints(const realArray & xd,
 ///       <li>  xd(I,J,K,0:r-1) if positionOfCoordinates==3 $\rightarrow$ domainDimension=domainDimension\_
 ///     </ul>
 ///    where r=number of dimensions (range dimension)
+///
 /// \param xd (input): An array of values defining the coordinates of a grid of points. This routine make a COPY
 ///    of this array.
+///
 /// \param positionOfCoordinates (input): indicates the "shape" of the input array xd.
+// 
 /// \param domainDimension_ (input): As indicated above this parameter defines the domainDimension when
 ///     positionOfCoordinates is 0 or 3.
+///
 /// \param numberOfGhostLinesInData (input) : The data includes the coordinates of this many ghost lines (for all sides).
-///     These values are over-ridden by the index array argument.
+///     NOTE: these values are NOT USED if the xGridIndexRange arguement is provided. 
+///
 /// \param xGridIndexRange (input): If this array is not null and size (2,0:r-1) then these values indicate the 
-///     points in the array xd that represent the boundary points on the grid. Use this option to specify
-///     arbitrary number of ghost points on any side.
+///     points in the array xd that represent the boundary points on the grid. OTHER values of the xd array
+///     will be used as ghost points
+///
 /// \param Remarks:
 ///    Note that by default the DataPointMapping will have the properties
 ///    <ul>
@@ -506,6 +559,7 @@ setDataPoints(const realArray & xd,
   int offset = positionOfCoordinates == 0 ? 1 : 0;
   if( xGridIndexRange.getLength(0)>=2 && xGridIndexRange.getLength(1)>=domainDimension )
   {
+    // -- If xGridIndexRange is provided then we use any existing ghost points in the xd array ---
     for( int axis=axis1; axis<domainDimension; axis++ )
     {
       ngid(0,axis)=xGridIndexRange(0,axis)-xd.getBase(axis+offset);
@@ -585,13 +639,13 @@ setDataPoints(const realArray & xd,
            Range(dimension(Start,1),dimension(End,1)),
            Range(dimension(Start,2),dimension(End,2)),
            rangeDimension);
-  #ifdef USE_PPP
-    realSerialArray xyLocal; getLocalArrayWithGhostBoundaries(xy,xyLocal);
-    realSerialArray xdLocal; getLocalArrayWithGhostBoundaries(xd,xdLocal);
-  #else
-    realSerialArray & xyLocal = xy;
-    const realSerialArray & xdLocal = xd;
-  #endif
+#ifdef USE_PPP
+  realSerialArray xyLocal; getLocalArrayWithGhostBoundaries(xy,xyLocal);
+  realSerialArray xdLocal; getLocalArrayWithGhostBoundaries(xd,xdLocal);
+#else
+  realSerialArray & xyLocal = xy;
+  const realSerialArray & xdLocal = xd;
+#endif
   
   xyLocal=0.; // to avoid UMRs when extrapolating ghost points.
   
@@ -602,10 +656,10 @@ setDataPoints(const realArray & xd,
   if( positionOfCoordinates==0 )
   {
     for( int axis=0; axis<rangeDimension; axis++ )
-    for( int i3=gridIndexRange(Start,axis3)-ngid(0,2); i3<=gridIndexRange(End,axis3)+ngid(1,2); i3++ )
-    for( int i2=gridIndexRange(Start,axis2)-ngid(0,1); i2<=gridIndexRange(End,axis2)+ngid(1,1); i2++ )
-    for( int i1=gridIndexRange(Start,axis1)-ngid(0,0); i1<=gridIndexRange(End,axis1)+ngid(1,0); i1++ )
-      xyLocal(i1,i2,i3,axis)=xdLocal(axis,i1+xdBase1,i2+xdBase2,i3+xdBase3);
+      for( int i3=gridIndexRange(Start,axis3)-ngid(0,2); i3<=gridIndexRange(End,axis3)+ngid(1,2); i3++ )
+	for( int i2=gridIndexRange(Start,axis2)-ngid(0,1); i2<=gridIndexRange(End,axis2)+ngid(1,1); i2++ )
+	  for( int i1=gridIndexRange(Start,axis1)-ngid(0,0); i1<=gridIndexRange(End,axis1)+ngid(1,0); i1++ )
+	    xyLocal(i1,i2,i3,axis)=xdLocal(axis,i1+xdBase1,i2+xdBase2,i3+xdBase3);
   }
   else if( positionOfCoordinates==1 )
   {
@@ -654,7 +708,7 @@ setDataPoints(const realArray & xd,
   I3=Range(gridIndexRange(Start,axis3),gridIndexRange(End,axis3));
   for( int axis=0; axis<rangeDimension; axis++ )
   {
-    setRangeBound(Start,axis,min(xy(I1,I2,I3,axis)));
+    setRangeBound(Start,axis,min(xy(I1,I2,I3,axis))); // *** FIX ME FOR PARALLEL ***
     setRangeBound(End  ,axis,max(xy(I1,I2,I3,axis)));
   }
 
@@ -730,6 +784,217 @@ setDataPoints(const realArray & xd,
 //  xy.display("\n\n xy after extrap");
   mappingInitialized=TRUE;
   mappingHasChanged();
+  return 0;
+}
+
+
+int DataPointMapping::
+setDataPoints(const realSerialArray & x, 
+              const int domainDimension_, const int rangeDimension_,
+              const IntegerArray & xDimension,
+	      const IntegerArray & xGridIndexRange  )
+// ===========================================================================================
+/// /brief: (Parallel version)  Supply data points in a serial array (for ech processor).
+///
+/// /param x(I1,I2,I3,0:rangeDimension-1) (input) : serial array holding (at least)
+///      the data points on this processor include parallel ghost.
+/// 
+/// /param domainDimension (input): 
+/// /param rangeDimension (input): 
+/// /param xDimension(2,3) (input) : global dimension array (includes ghost points)
+/// /param xGridIndexRange(2,3) (input) : gridIndexRange
+// ===========================================================================================
+{
+
+  int positionOfCoordinates=3;
+  
+  setDomainDimension(domainDimension_);
+  setRangeDimension(rangeDimension_);
+
+  if( domainDimension==2 || domainDimension==3 )
+  {
+    // printf(" **** DPM basicInverse available ******\n");
+    setBasicInverseOption(CANINVERT);  // basicInverse is available with a good guess
+  }
+  else
+    setBasicInverseOption(canDoNothing);
+  
+  dimension.redim(2,3);       dimension=xDimension;
+  gridIndexRange.redim(2,3);  gridIndexRange=xGridIndexRange;
+  delta[0]=delta[1]=delta[2]=1.;
+  deltaByTwo[0]=deltaByTwo[1]=deltaByTwo[2]=.5;
+
+  IndexRangeType ngid; // number of ghost in data
+  for( int axis=0; axis<3; axis++ ) for( int side=0; side<=1; side++ ) ngid(side,axis)=0;
+
+  int minGhost=INT_MAX, maxGhost=-1;
+  for( int axis=0; axis<domainDimension; axis++ )
+  {
+    ngid(0,axis)=gridIndexRange(0,axis)-dimension(0,axis);
+    ngid(1,axis)=dimension(1,axis)-gridIndexRange(1,axis);
+
+    minGhost=min(minGhost,ngid(0,axis),ngid(1,axis));
+    maxGhost=max(maxGhost,ngid(0,axis),ngid(1,axis));
+  }
+
+  for( int axis=0; axis<domainDimension; axis++ )
+  {
+    setGridDimensions(axis,gridIndexRange(1,axis)-gridIndexRange(0,axis)+1);
+  }
+  
+//     printF("DPM:setDataPoints: num-ghost-in-data: ngid=[%i,%i][%i,%i][%i,%i]\n",ngid(0,0),ngid(1,0),
+// 	   ngid(0,1),ngid(1,1),ngid(0,2),ngid(1,2));
+  
+
+  // *** NOTE: WE MAY NEED TO INCREASE THE NUMBER OF GHOST FROM THOSE SUPPLIED **** -- see comments in above routine
+  // *** FIX ME ***
+
+  const int defaultNumberOfGhostLines=2; 
+
+  IndexRangeType numberOfGhostLinesOld; // *wdh* 2012/03/21 -- increase ghost lines to match ngid
+  numberOfGhostLinesOld=0;
+  for( int axis=axis1; axis<domainDimension; axis++ )
+  {
+    numberOfGhostLinesOld(0,axis)=ngid(0,axis); 
+    numberOfGhostLinesOld(1,axis)=ngid(1,axis);
+    
+    // --- make sure there are at least defaultNumberOfGhostLines ---
+    int nga = max(defaultNumberOfGhostLines,ngid(Start,axis));
+    int ngb = max(defaultNumberOfGhostLines,ngid(End  ,axis));
+    if( orderOfInterpolation==2 )
+    {
+      // When the orderOfInterpolation==2 the last ghost line is not used in evaluating the mapping (so that the
+      //   derivative of the mapping (which does use the last line) is consistent. (I think)
+      // When the user provides 2 or more ghost lines of data we add an additional ghost line --
+      // this is used for grids from hype that specify a large boundary offset. (we don't always do this
+      // for backward compatibility)
+      if( ngid(Start,axis)>=2 )
+	nga = max(defaultNumberOfGhostLines,ngid(Start,axis)+1);
+      if( ngid(End  ,axis)>=2 )
+        ngb = max(defaultNumberOfGhostLines,ngid(End  ,axis)+1);
+    }
+    dimension(Start,axis)=gridIndexRange(Start,axis)-nga;  
+    dimension(End  ,axis)=gridIndexRange(End  ,axis)+ngb;
+
+    delta[axis]=gridIndexRange(End,axis)-gridIndexRange(Start,axis);
+    deltaByTwo[axis]=.5*max(1.,delta[axis]);
+  }
+
+  if( true )
+  {
+    printF("DPM:setDataPoints: domainDimension=%i, rangeDimension=%i\n",domainDimension,rangeDimension);
+    printF("DPM:setDataPoints: gridIndexRange=[%i,%i][%i,%i][%i,%i]\n",gridIndexRange(0,0),gridIndexRange(1,0),
+ 	   gridIndexRange(0,1),gridIndexRange(1,1),gridIndexRange(0,2),gridIndexRange(1,2));
+    printF("DPM:setDataPoints: dimension=[%i,%i][%i,%i][%i,%i]\n",dimension(0,0),dimension(1,0),
+ 	   dimension(0,1),dimension(1,1),dimension(0,2),dimension(1,2));
+  }
+  
+  if( evalAsNurbs )
+  {
+    // -- If we evaluate as a Nurbs there is no need to save the grid points
+    //    in the "xy" array -- we can just generate the NurbsMapping directly 
+
+    // **** NOTE*** THIS MAY NOT BE CONSISTENT WITH OLD WAY SINCE WE DO NOT GENERATE EXTRA GHOST 
+
+
+    xy.redim(0);
+
+    if( !dbase.has_key("nurbs") )
+    {
+      dbase.put<NurbsMapping*>("nurbs")=new NurbsMapping;
+    }
+    NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
+    
+    // printF("--DPM-- setDataPoints -- minGhost=%i, maxGhost=%i\n",minGhost,maxGhost);
+
+    // -- what about extra ghost ??
+    // here is the new interpolate: 
+    int xDegree[3] ={ nurbsDegree,nurbsDegree,nurbsDegree };  // 
+    nurbs.interpolate(x,domainDimension,rangeDimension,xDimension,xGridIndexRange,
+		      NurbsMapping::parameterizeByIndex,xDegree);
+    
+    reinitialize();            // we have to re-initialize the inverse -- is this needed with nurbs?
+    mappingInitialized=true;
+    mappingHasChanged();
+
+    nurbsOutOfDate=false;
+  }
+  else
+  {
+    // --- Create the xy array ---
+
+
+    // save points in the local array
+    initializePartition();
+    xy.partition(partition);
+    xy.redim(Range(dimension(Start,0),dimension(End,0)),
+	     Range(dimension(Start,1),dimension(End,1)),
+	     Range(dimension(Start,2),dimension(End,2)),
+	     rangeDimension);
+
+    OV_GET_SERIAL_ARRAY(real,xy,xyLocal);
+  
+    xyLocal=0.; // to avoid UMRs when extrapolating ghost points.
+  
+    // --- copy all points from input array "x" ---
+    Index I1,I2,I3, R(0,rangeDimension);
+    ::getIndex(xDimension,I1,I2,I3);
+    bool ok=ParallelUtility::getLocalArrayBounds(xy,xyLocal, I1,I2,I3, 1);//include parallel ghost
+    if(ok)
+    {
+      xyLocal(I1,I2,I3,R)=x(I1,I2,I3,R);
+    }
+  
+    if( false )
+    {
+      ::display(x,"--DPM-- x","%5.2f ");
+      ::display(xyLocal,"--DPM-- xyLocal","%5.2f ");
+    }
+  
+    // --- set bounds on the range ---
+    ::getIndex(gridIndexRange,I1,I2,I3);
+    ok=ParallelUtility::getLocalArrayBounds(xy,xyLocal, I1,I2,I3,0 ); // no parallel ghost
+    real bigValue=.1*REAL_MAX;
+    real xMin[3]={bigValue,bigValue,bigValue}, xMax[3]={-bigValue,-bigValue,-bigValue};
+    if( ok )
+    {
+      for( int axis=0; axis<rangeDimension; axis++ )
+      {
+	xMin[axis]=min(xyLocal(I1,I2,I3,axis));
+	xMax[axis]=max(xyLocal(I1,I2,I3,axis));
+      }
+    }
+  
+    ParallelUtility::getMinValues(xMin,xMin,rangeDimension);
+    ParallelUtility::getMaxValues(xMax,xMax,rangeDimension);
+  
+    for( int axis=0; axis<rangeDimension; axis++ )
+    {   
+      setRangeBound(Start,axis,xMin[axis]);
+      setRangeBound(End  ,axis,xMax[axis]);
+    }
+
+    //   Determine values at ghost points that have not been user set:  extrapolate or use periodicity
+    // computeGhostPoints( ngid,numberOfGhostPoints );
+    computeGhostPoints( numberOfGhostLinesOld,numberOfGhostPoints );
+
+    if( true )
+      xy.updateGhostBoundaries();
+
+    if( debug & 8 )
+    {
+      ::display(xy,"--DPM-- xy","%7.4f ");
+    }
+  
+
+    reinitialize();  // we have to re-initialize the inverse
+   
+    mappingInitialized=true;
+    mappingHasChanged();
+
+  } // end create the xy array
+
+  
   return 0;
 }
 
@@ -1519,20 +1784,110 @@ operator =( const DataPointMapping & X )
   orderOfInterpolation=X.orderOfInterpolation;
 
   // Is this what we should do?
-  xy.redim(0); xy.partition(X.xy.getPartition()); xy.redim(X.xy);
-  xy=X.xy;
-
+  xy.redim(0); 
+  if( X.xy.elementCount()>0 )
+  {
+    xy.partition(X.xy.getPartition()); xy.redim(X.xy);
+    // xy=X.xy;
+    // *wdh* 2014/08/18 -- copy local arrays
+    OV_GET_SERIAL_ARRAY(real,xy,xyLocal);
+    OV_GET_SERIAL_ARRAY_CONST(real,X.xy,XxyLocal);
+    
+    xyLocal=XxyLocal;
+  }
+  
   dimension=X.dimension;
   gridIndexRange=X.gridIndexRange;
 
   delta[0]=X.delta[0]; delta[1]=X.delta[1]; delta[2]=X.delta[2];
   deltaByTwo[0]=X.deltaByTwo[0]; deltaByTwo[1]=X.deltaByTwo[1]; deltaByTwo[2]=X.deltaByTwo[2];
 
+  mapIsDistributed=X.mapIsDistributed;
+  inverseIsDistributed=X.inverseIsDistributed;
+  evalAsNurbs=X.evalAsNurbs;
+  nurbsDegree=X.nurbsDegree;
+  nurbsOutOfDate=X.nurbsOutOfDate;
+ 
+  bool nurbsExists = X.dbase.has_key("nurbs");
+  if( nurbsExists &&  X.dbase.get<NurbsMapping*>("nurbs")!=NULL )
+  {
+    // --- copy the NurbsMapping from "X" ---
+    if( !dbase.has_key("nurbs") )
+      dbase.put<NurbsMapping*>("nurbs");
+    NurbsMapping *& pNurbs = dbase.get<NurbsMapping*>("nurbs");
+    if( pNurbs==NULL )
+       pNurbs =new NurbsMapping;
+    NurbsMapping & nurbs = *pNurbs;
+    nurbs=*X.dbase.get<NurbsMapping*>("nurbs");
+  }
+  else
+  {
+    // "X" has no NurbsMapping -- delete any existing NurbsMapping
+    if( dbase.has_key("nurbs") )
+    {
+      NurbsMapping *&pNurbs=dbase.get<NurbsMapping*>("nurbs");
+      delete pNurbs;
+      pNurbs=NULL;
+    }
+    
+  }
+  
+
+  // bool nurbsExists = dbase.has_key("nurbs");
+  // NurbsMapping *pNurbs=dbase.get<NurbsMapping*>("nurbs");
+  // nurbsExists = nurbsExists && pNurbs!=NULL;
+  // subDir.put( nurbsExists,"nurbsExists" );
+  // if( nurbsExists )
+  // {
+  //   pNurbs->put(subDir,"Nurbs");
+  // }
+  
   printF("DPM::operator = for mapping %s, numGhost=[%i,%i]\n",
             (const char*)getName(mappingName),numberOfGhostPoints(0,0),numberOfGhostPoints(1,0));
 
   return *this;
 }
+
+// ====================================================================================================
+/// \brief Mark the Mapping as out of date.
+// ===================================================================================================
+int DataPointMapping::
+mappingHasChanged()
+{
+  nurbsOutOfDate=true;
+  return Mapping::mappingHasChanged();
+}
+
+// ====================================================================================================
+/// \brief Generate the Nurbs (if it is out of date) that will be used to evaluate the
+///   DataPointMapping and it's inverse.
+// ===================================================================================================
+int DataPointMapping::
+generateNurbs()
+{
+  if( nurbsOutOfDate )
+  {
+    if( !dbase.has_key("nurbs") )
+    {
+      dbase.put<NurbsMapping*>("nurbs")=new NurbsMapping;
+    }
+    NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
+    
+    printF("--DPM-- generateNurbs\n");
+
+    bool evalAsNurbsSave=evalAsNurbs;
+    evalAsNurbs=false; // this must be off while we interpolate this mapping (otherwise recursive loop)
+
+    // --- do this for now : we could be more efficient to use the xy array -- also fix for parallel --
+    int numberOfGhostPoint=2;
+    nurbs.interpolate(*this,nurbsDegree,NurbsMapping::parameterizeByIndex,numberOfGhostPoint);
+
+    evalAsNurbs=evalAsNurbsSave; // reset 
+    nurbsOutOfDate=false;
+  }
+  return 0;
+}
+
 
 void DataPointMapping::
 map( const realArray & r, realArray & x, realArray & xr, MappingParameters & params )
@@ -1541,6 +1896,24 @@ map( const realArray & r, realArray & x, realArray & xr, MappingParameters & par
 //    Evaluate the Mapping.
 // ===================================================================================================
 {
+
+  if( evalAsNurbs )
+  {
+    printF("--DPM-- map called evalAsNurbs=%i\n",(int)evalAsNurbs);
+
+    // --- Use a Nurbs to evaluate the mapping ---
+    if( nurbsOutOfDate )
+      generateNurbs();
+
+    if( true )
+      printF("--DPM-- map : eval as a NurbsMapping\n");
+
+    NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
+    nurbs.map(r,x,xr,params);
+    return;
+  }
+
+
   if( params.coordinateType != cartesian )
     cerr << "DataPointMapping::map - coordinateType != cartesian " << endl;
 
@@ -1640,6 +2013,27 @@ get( const GenericDataBase & dir, const aString & name)
   subDir.get( gridIndexRange,"gridIndexRange" );
   subDir.get( delta,"delta",3 );
   subDir.get( deltaByTwo,"deltaByTwo",3 );
+  subDir.get( evalAsNurbs,"evalAsNurbs" );
+  subDir.get( nurbsDegree,"nurbsDegree" );
+  subDir.get( nurbsOutOfDate,"nurbsOutOfDate" );
+
+  bool nurbsExists=false;
+  subDir.get( nurbsExists,"nurbsExists" );
+
+  printF("--DPM-- get: nurbsExists=%i nurbsOutOfDate=%i\n",(int)nurbsExists,(int)nurbsOutOfDate);
+  
+
+  if( nurbsExists )
+  {
+    if( !dbase.has_key("nurbs") )
+    {
+      dbase.put<NurbsMapping*>("nurbs")=new NurbsMapping;
+    }
+    NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
+
+    nurbs.get(subDir,"Nurbs");
+  }
+
   Mapping::get( subDir, "Mapping" );
   delete &subDir;
 
@@ -1648,6 +2042,9 @@ get( const GenericDataBase & dir, const aString & name)
   inverseIsDistributed=true;
 
   mappingHasChanged();
+
+  nurbsOutOfDate=!nurbsExists;
+  
   return 0;
 }
 int DataPointMapping::
@@ -1663,6 +2060,20 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put( gridIndexRange,"gridIndexRange" );
   subDir.put( delta,"delta",3 );
   subDir.put( deltaByTwo,"deltaByTwo",3 );
+  subDir.put( evalAsNurbs,"evalAsNurbs" );
+  subDir.put( nurbsDegree,"nurbsDegree" );
+  subDir.put( nurbsOutOfDate,"nurbsOutOfDate" );
+
+  bool nurbsExists = dbase.has_key("nurbs");
+  NurbsMapping *pNurbs=dbase.get<NurbsMapping*>("nurbs");
+  nurbsExists = nurbsExists && pNurbs!=NULL;
+  subDir.put( nurbsExists,"nurbsExists" );
+  if( nurbsExists )
+  {
+    pNurbs->put(subDir,"Nurbs");
+  }
+
+
   Mapping::put( subDir, "Mapping" );
   delete & subDir;
   return 0;
@@ -1972,6 +2383,8 @@ update( MappingInformation & mapInfo )
       "do not use robust inverse",
       "check",
       "check inverse",
+      "eval as nurbs",
+      "degree of nurbs",
       "show parameters",
       "help",
       "exit", 
@@ -1999,6 +2412,7 @@ update( MappingInformation & mapInfo )
 //      "c-grid             : indicate that this is a C grid",
       "check              : check properties of this mapping",
       "check inverse      : input points to check the inverse",
+      "eval as nurbs      : internally convert DPM to a Nurbs for evaluation",
       "show parameters    : print current values for parameters",
       "help        : Print this list",
       "exit        : Finished with parameters, construct grid",
@@ -2365,7 +2779,7 @@ update( MappingInformation & mapInfo )
 #ifndef USE_PPP      
         setDataPoints(x,3,domainDimension);
 #else
-        throw "error";
+        OV_ABORT("error");
 #endif
       }
       else
@@ -2382,6 +2796,17 @@ update( MappingInformation & mapInfo )
       PlotIt::plot(gi,*this,parameters);
       parameters.set(GI_PLOT_THE_OBJECT_AND_EXIT,TRUE);
 
+    }
+    else if( answer=="eval as nurbs" )
+    {
+      useNurbsToEvaluate( true );
+    }
+    else if( answer=="degree of nurbs" )
+    {
+      gi.inputString(line,sPrintF(buff,"Enter the degree of the nurbs (current=%i)",nurbsDegree));
+      if( line!="" ) sScanF(line,"%i",&nurbsDegree);
+      printF("--DPM-- setting nurbsDegree=%i\n",nurbsDegree);
+      setDegreeOfNurbs(nurbsDegree);
     }
     else if( answer=="use old inverse" )
     {

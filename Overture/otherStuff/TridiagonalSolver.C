@@ -2,6 +2,9 @@
 #include "OvertureInit.h"
 #include "mathutil.h"
 
+int TridiagonalSolver::debug = 0;
+
+
 //\begin{>TridiagonalSolverInclude.tex}{\subsection{constructor}}
 TridiagonalSolver::
 TridiagonalSolver() 
@@ -61,18 +64,44 @@ TridiagonalSolver()
 #ifndef USE_PPP
   useOptimizedC=true;
 #else
-  useOptimizedC=false;
+  // NOTE: TROUBLE with useOptimizedC=false + Parallel + block solve  --> TridiagonalFactor line 1905 --
+  // general case does not work for multiple systems of equations
+  useOptimizedC=true; // *wdh* 2014/08/05 -- false;
 #endif
 
   bandWidth=3;
   useOldBlockOrdering=false;  // original block solves used the transpose of the blocks!
-  
+  debugFile=NULL;
+  if( debug !=0 )
+    openDebugFiles();
 }
 
 TridiagonalSolver::
 ~TridiagonalSolver()
 {
+  if( debugFile!=NULL )
+    fclose(debugFile);
 }
+
+// ============================================================================================================
+/// \brief Open debug files.
+// ============================================================================================================
+void TridiagonalSolver::
+openDebugFiles()
+{
+  if( debugFile==NULL )
+  {
+  #ifndef USE_PPP
+    debugFile=fopen("tridiag.debug","w");
+  #else
+    const int myid = Communication_Manager::My_Process_Number;
+    const int numberOfProcessors=Communication_Manager::Number_Of_Processors;
+    debugFile=fopen(sPrintF("tridiag%i.debug",myid),"w"); // open a different file on each proc.
+  #endif
+  }
+  
+}
+
 
 // ============================================================================================================
 /// \brief For backward compatibility one can set the block solves to use the transpose of the blocks
@@ -1898,11 +1927,17 @@ scalarBlockPeriodicFactor(int i1, int i2, int i3)
   const int wStride = axis==0 ? wDim0*wDim1 : axis==1 ? wDim0*wDim1*wDim2 : wDim0*wDim1*wDim2*wDim3;
   const int wOffset = wDim0*wDim1*(i1+wDim2*(i2+wDim3*(i3)));
 
-  real *ap = a.Array_Descriptor.Array_View_Pointer1;  
-  real *bp = b.Array_Descriptor.Array_View_Pointer1;
-  real *cp = c.Array_Descriptor.Array_View_Pointer1;
-  real *w1p= w1.Array_Descriptor.Array_View_Pointer1;
-  real *w2p= w2.Array_Descriptor.Array_View_Pointer1;
+  // real *ap = a.Array_Descriptor.Array_View_Pointer1;  
+  // real *bp = b.Array_Descriptor.Array_View_Pointer1;
+  // real *cp = c.Array_Descriptor.Array_View_Pointer1;
+  // real *w1p= w1.Array_Descriptor.Array_View_Pointer1;
+  // real *w2p= w2.Array_Descriptor.Array_View_Pointer1;
+
+  real *ap = a.Array_Descriptor.Array_View_Pointer4;  
+  real *bp = b.Array_Descriptor.Array_View_Pointer4;
+  real *cp = c.Array_Descriptor.Array_View_Pointer4;
+  real *w1p= w1.Array_Descriptor.Array_View_Pointer4;
+  real *w2p= w2.Array_Descriptor.Array_View_Pointer4;
 
   ap+=offset;
   bp+=offset;
@@ -2540,11 +2575,17 @@ scalarBlockPeriodicSolve(RealArray & r, int i1, int i2, int i3)
   const int wStride = axis==0 ? wDim0*wDim1 : axis==1 ? wDim0*wDim1*wDim2 : wDim0*wDim1*wDim2*wDim3;
   const int wOffset = wDim0*wDim1*(i1+wDim2*(i2+wDim3*(i3)));
 
-  real *ap = a.Array_Descriptor.Array_View_Pointer1;
-  real *bp = b.Array_Descriptor.Array_View_Pointer1;
-  real *cp = c.Array_Descriptor.Array_View_Pointer1;
-  real *w1p= w1.Array_Descriptor.Array_View_Pointer1;
-  real *w2p= w2.Array_Descriptor.Array_View_Pointer1;
+  // real *ap = a.Array_Descriptor.Array_View_Pointer1;
+  // real *bp = b.Array_Descriptor.Array_View_Pointer1;
+  // real *cp = c.Array_Descriptor.Array_View_Pointer1;
+  // real *w1p= w1.Array_Descriptor.Array_View_Pointer1;
+  // real *w2p= w2.Array_Descriptor.Array_View_Pointer1;
+
+  real *ap = a.Array_Descriptor.Array_View_Pointer4;
+  real *bp = b.Array_Descriptor.Array_View_Pointer4;
+  real *cp = c.Array_Descriptor.Array_View_Pointer4;
+  real *w1p= w1.Array_Descriptor.Array_View_Pointer4;
+  real *w2p= w2.Array_Descriptor.Array_View_Pointer4;
   ap+=offset;
   bp+=offset;
   cp+=offset;
@@ -2558,7 +2599,8 @@ scalarBlockPeriodicSolve(RealArray & r, int i1, int i2, int i3)
   const int rStride = axis==0 ? rDim0 : axis==1 ? rDim0*rDim1 : rDim0*rDim1*rDim2;
   const int rOffset = rDim0*(i1+rDim1*(i2+rDim2*(i3)));
 
-  real *rp = r.Array_Descriptor.Array_View_Pointer1;
+//  real *rp = r.Array_Descriptor.Array_View_Pointer1;
+  real *rp = r.Array_Descriptor.Array_View_Pointer4;
   rp+=rOffset;
 
   // forward elimination

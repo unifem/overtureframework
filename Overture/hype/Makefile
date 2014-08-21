@@ -7,7 +7,7 @@ FFLAGSO = $(FFLAGSG)
 
 current = .
 mapping = $(current)/../mapping
-# ogshow = $(current)/../ogshow
+ogshow = $(current)/../ogshow
 rapDir = $(current)/../rap
 VPATH = .:$(mapping):$(ogshow):$(rapDir)
 
@@ -93,7 +93,8 @@ hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBound
 hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
           plot.o stretch.o GridSmoother.o GridStretcher.o MatchingCurve.o ../mapping/DataPointMapping.o
 hype= hype.o generate.o update.o HyperbolicMapping.o util.o project.o applyBoundaryConditions.o startCurve.o \
-          plot.o stretch.o GridSmoother.o GridStretcher.o MatchingCurve.o 
+          plot.o stretch.o GridSmoother.o GridStretcher.o MatchingCurve.o generateParallel.o \
+          DataPointMapping.o plotStructured.o dpmMap.o dpmScalar.o Mapping.o
 hype: $(hype) 
 	$(CC) $(CCFLAGS) -o $@ $(hype) $(CLIBS) $(FLIBS) $(GLIBS)
 

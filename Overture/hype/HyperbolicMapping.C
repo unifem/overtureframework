@@ -40,10 +40,11 @@ hyper(
       int & JMAX, int & KMAX,
       int & JDIM,int & KDIM,int & LMAX,
       real & X, real & Y, real & Z,
-      realArray & XW, realArray & YW, realArray & ZW );
+      RealArray & XW, RealArray & YW, RealArray & ZW );
 
 FILE* HyperbolicMapping::debugFile=NULL;
-
+FILE* HyperbolicMapping::pDebugFile=NULL;
+FILE* HyperbolicMapping::checkFile=NULL;
 
 HyperbolicMapping::
 HyperbolicMapping() : Mapping(2,2,parameterSpace,cartesianSpace)   
@@ -55,10 +56,25 @@ HyperbolicMapping() : Mapping(2,2,parameterSpace,cartesianSpace)
 { 
 
   if( (Mapping::debug !=0) && (debugFile==NULL) )
+  {
+   #ifdef USE_PPP
+    const int np= max(1,Communication_Manager::numberOfProcessors());
+    const int myid=max(0,Communication_Manager::My_Process_Number);
+    debugFile = fopen(sPrintF("hypeNP%i.debug",np),"w" ); 
+    pDebugFile= fopen(sPrintF("hypeNP%i.%i.debug",np,myid),"w" ); 
+    fprintf(pDebugFile,
+	    " ******************************************************************************* \n"
+	    " *********** Hype debug file, processor=%i, number of processors=%i ************ \n"
+	    " ******************************************************************************* \n\n",
+	    myid,np);
+   #else
     debugFile = fopen("hype.debug","w" );      // Here is the debug file, who closes this?
-
-  initialize();
+    pDebugFile=debugFile;
+   #endif
+  }
   
+  initialize();
+
   initializeHyperbolicGridParameters();
   mappingHasChanged();
 }
@@ -124,6 +140,11 @@ initialize()
   HyperbolicMapping::className="HyperbolicMapping";
   setName( Mapping::mappingName,"hyperbolicMapping");
 
+  if( checkFile==NULL )
+  {
+    checkFile = fopen("hype.check","w" );      // Here is the check file, who closes this?
+  }
+
   // *wdh* 2011/10/01  
   // We should always set this to be true: (in case the grid is created in serial but read back in parallel)
   mapIsDistributed=true;  
@@ -160,6 +181,8 @@ initialize()
   distanceToBoundaryCurveTolerance=1.e-3; // for deciding if boundary curves match to the start curve
   
   smoothAndProject=false; // if true smooth and project onto original surface definition.
+  evalAsNurbs=false;      // if true, evaluate the DataPointMapping as Nurbs
+  nurbsDegree=3;        // degree of Nurbs
 
   // choosePlotBoundsFromGlobalBounds: if true use global bounds for plotting, allows calling program to set the view
   choosePlotBoundsFromGlobalBounds=false;  
@@ -208,6 +231,44 @@ initialize()
   totalNumberOfSteps=0;
   return 0;
 }
+
+// ===========================================================================================
+/// \brief Internally convert DPM to a Nurbs for evaluation
+// ===========================================================================================
+int HyperbolicMapping::
+useNurbsToEvaluate( bool trueOrFalse )
+{
+  evalAsNurbs=trueOrFalse;
+  if( evalAsNurbs )
+    printF("--HYPE--INFO: setting evalAsNurbs=true : internally convert the DPM to a Nurbs for evaluation.\n");
+
+  if( dpm!=NULL )
+  {
+    dpm->useNurbsToEvaluate(evalAsNurbs);
+    dpm->setDegreeOfNurbs(nurbsDegree);
+
+    mapIsDistributed=dpm->mapIsDistributed;
+    inverseIsDistributed=dpm->mapIsDistributed;
+  }
+  
+}
+
+
+// ===========================================================================================
+/// \brief Set the degree of the Nurbs used to (optionally) evaluate the DPM. 
+// ===========================================================================================
+int HyperbolicMapping::
+setDegreeOfNurbs( int degree )
+{
+  nurbsDegree=degree;
+  if( dpm!=NULL )
+  {
+    dpm->setDegreeOfNurbs(nurbsDegree);
+  }
+  
+  return 0;
+}
+
 
 bool HyperbolicMapping::
 isDefined() const
@@ -686,6 +747,9 @@ HyperbolicMapping::
   if( startCurveStretchMapping!=NULL && startCurveStretchMapping->decrementReferenceCount()==0 )
     delete startCurveStretchMapping;
   
+  // do not close checkFile -- this way multiple runs can go in the same checkFile
+  // fclose( checkFile );
+
 }
 
 
@@ -783,6 +847,9 @@ operator=( const HyperbolicMapping & X )
   trailingEdgeDirection.redim(0);
   trailingEdgeDirection              = X.trailingEdgeDirection;
   smoothAndProject                   = X.smoothAndProject;
+  evalAsNurbs                        = X.evalAsNurbs;
+  nurbsDegree                        = X.nurbsDegree;
+  
   //..END Copy parameters **pf
 
   if( true )
@@ -1108,15 +1175,15 @@ hypgen(GenericGraphicsInterface & gi, GraphicsParameters & parameters)
       parameters.set(GI_TOP_LABEL,getName(mappingName));
       PlotIt::plot(gi,*this,parameters); 
     }
-    else if( answer=="new generate" )
-    {
-      int returnValue = generateNew();
-      if( returnValue!=0 )
-        break;
-      gi.erase();
-      parameters.set(GI_TOP_LABEL,getName(mappingName));
-      PlotIt::plot(gi,*this,parameters); 
-    }
+    // else if( answer=="new generate" )
+    // {
+    //   int returnValue = generateNew();
+    //   if( returnValue!=0 )
+    //     break;
+    //   gi.erase();
+    //   parameters.set(GI_TOP_LABEL,getName(mappingName));
+    //   PlotIt::plot(gi,*this,parameters); 
+    // }
     else if( answer=="grow grid in opposite direction" )
     {
       growthOption=-growthOption;
@@ -1331,7 +1398,8 @@ smooth(GenericGraphicsInterface & gi, GraphicsParameters & parameters)
     Index I1,I2,I3;
     Range xAxes(0,rangeDimension-1);
     ::getIndex(gridIndexRange,I1,I2,I3);
-    realArray & x = xHyper;
+    RealArray & x = xHyper;
+    #ifndef USE_PPP
     if( domainDimension==2 )
     {
       x.reshape(x.dimension(0),x.dimension(2),1,xAxes);
@@ -1344,6 +1412,9 @@ smooth(GenericGraphicsInterface & gi, GraphicsParameters & parameters)
       x(I1,I2,I3,xAxes)=dpm2.getGrid()(I1,I2,I3,xAxes);
       dpm->setDataPoints(x(I1,I2,I3,xAxes),3,domainDimension);
     }
+    #else
+      OV_ABORT("finish me");
+    #endif
     mappingHasChanged();
   }
   return 0;
@@ -1354,7 +1425,7 @@ smooth(GenericGraphicsInterface & gi, GraphicsParameters & parameters)
 
 /* -------------
 int HyperbolicMapping::
-inspectInitialSurface( realArray & xSurface, realArray & normal )
+inspectInitialSurface( RealArray & xSurface, RealArray & normal )
 //===========================================================================
 /// \brief  
 ///       Inspect the initial surface for corners etc.
@@ -1363,7 +1434,7 @@ inspectInitialSurface( realArray & xSurface, realArray & normal )
 
   // find the min and max angles between normals to adjacent cells.
 
-  realArray cosAngle;
+  RealArray cosAngle;
   cosAngle = normal(I1,I2,0,axis1)*normal(I1+1,I2,0,axis1);
   minCosAngle=min(cosAngle);
   //
@@ -1416,7 +1487,7 @@ generateOld()
 
   int iform=1, jdim,kdim,lmax;
   
-  realArray xw,yw,zw,xyz;
+  RealArray xw,yw,zw,xyz;
 
   int jmax,kmax;
   jmax=getGridDimensions(axis1);
@@ -1431,7 +1502,7 @@ generateOld()
     
     evaluateTheSurface=false;
     xSurface.redim(jdim,kdim,3);
-    realArray r(jdim,kdim,domainDimension-1);
+    RealArray r(jdim,kdim,domainDimension-1);
     // -- evaluate the surface ---
     // first compute r:
     r=0.;
@@ -1470,7 +1541,7 @@ generateOld()
   else
     xyz.resize(jdim-2,kdim-2,gridLines,rangeDimension);
     
-  realArray x0;
+  RealArray x0;
   for( int dir=0; dir<numberOfDirectionsToGrow; dir++ )
   {
     lmax = sum(npzreg(Range(0,nzreg-1),dir));
@@ -1666,6 +1737,8 @@ map( const realArray & r, realArray & x, realArray & xr, MappingParameters & par
   else 
   {
     // call DataPointMapping map function
+    // printF("---HYPE-- map called\n");
+    
     dpm->map(r,x,xr );
   }
   
@@ -1817,8 +1890,10 @@ get( const GenericDataBase & dir, const aString & name)
   subDir.get(saveReferenceSurface,"saveReferenceSurface");
   subDir.get(startCurveStart,"startCurveStart");
   subDir.get(startCurveEnd,"startCurveEnd");
-  subDir.getDistributed(trailingEdgeDirection,"trailingEdgeDirection");
+  subDir.get(trailingEdgeDirection,"trailingEdgeDirection");
   subDir.get(smoothAndProject,"smoothAndProject");
+  subDir.get(evalAsNurbs,"evalAsNurbs");
+  subDir.get(nurbsDegree,"nurbsDegree");
 
   int exists=0;
   dpm=NULL;
@@ -1985,9 +2060,10 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put(startCurveStart,"startCurveStart");
   subDir.put(startCurveEnd,"startCurveEnd");
 
-  subDir.putDistributed(trailingEdgeDirection,"trailingEdgeDirection");
+  subDir.put(trailingEdgeDirection,"trailingEdgeDirection");
   subDir.put(smoothAndProject,"smoothAndProject");
-
+  subDir.put(evalAsNurbs,"evalAsNurbs");
+  subDir.put(nurbsDegree,"nurbsDegree");
 
   int exists=dpm!=NULL;
   subDir.put(exists,"dpmExists");

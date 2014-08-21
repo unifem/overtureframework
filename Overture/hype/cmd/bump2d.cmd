@@ -19,6 +19,8 @@ hyperbolic
     bump
     backward
     spacing: geometric
+    # TEST: 
+    # points on initial curve 21
     generate
 pause
 #

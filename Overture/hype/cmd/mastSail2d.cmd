@@ -1,3 +1,15 @@
+create mappings
+*
+rectangle
+  specify corners
+    -2. -1.5 4. 1.5
+  lines
+    61 31 
+  boundary conditions
+    1 1 1 1
+  mappingName
+  square
+exit
   * Here is the sail
   spline
     enter spline points
@@ -17,13 +29,13 @@
       41
     * pause
     exit
+*
   reparameterize
     equidistribution
     curvature weight
       20
     curvature weight
       10
-* pause
     re-evaluate equidistribution
     re-evaluate equidistribution
     re-evaluate equidistribution
@@ -46,17 +58,19 @@
       -.25  .25
       -.05  .2
       0.    .05
-     * pause
+      * pause
+      lines 
+        51
     exit
 *
 * create the mast grid
 *
   hyperbolic
     distance to march
-      1.
+      .4
     grow grid in opposite direction
     lines to march 
-      11
+      9
 *
     BC: left match to a mapping
       sail
@@ -64,15 +78,33 @@
       sail
     geometric stretching, specified ratio
       1.15
-debug
- 3
     generate
-    pause
     share
       1 1 0 0
     mappingName
       mast-grid
+    * pause
     exit
+*
+* stretch the mast grid
+*
+  stretch coordinates
+    transform which mapping?
+      mast-grid
+    mappingName
+      stretched-mast-grid
+    stretch
+      specify stretching along axis=0
+* choose a layer stretching a*tanh(b*(r-c))     
+        layers
+          2
+*         give a,b,c in above formula
+          .25 20. 0.
+          .25 20. 1.
+        exit
+      exit
+    * pause
+  exit
 *
 * create the sail grid
 *
@@ -86,14 +118,9 @@ debug
     geometric stretching, specified ratio
       1.15
     generate
-
-pause
     mappingName
       sail-grid
     share
       0 0 1 0
     exit
-*
- view mappings
-  mast-grid
-  sail-grid
+exit

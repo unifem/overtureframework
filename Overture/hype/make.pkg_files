@@ -2,7 +2,7 @@ PKGDIR := $(OvertureCheckout)/hype
 
 SRC_FILES += $(addsuffix .C, \
 	HyperbolicMapping update startCurve util generate project applyBoundaryConditions plot \
-	stretch GridSmoother GridStretcher MatchingCurve) \
+	stretch GridSmoother GridStretcher MatchingCurve generateParallel ) \
 	ellipticSmooth.f
 
 L_HDRS := $(addsuffix .h, HyperbolicMapping GridSmoother GridStretcher MatchingCurve)

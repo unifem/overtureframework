@@ -26,7 +26,7 @@ for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
 int InsParameters::
-getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua, 
+getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 			    const Index & I1, const Index &I2, const Index &I3 )
 // ==========================================================================================
 ///  \brief Evaluate a user defined known solution.
@@ -55,8 +55,6 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
   const int wc = dbase.get<int >("wc");
   const real dt = dbase.get<real>("dt");
   
-  OV_GET_SERIAL_ARRAY_CONST(real,ua,uLocal);
-
   if( userKnownSolution=="pipeFlow" )
   {
     // --- Circular pipe flow (Hagen-Poiseuille flow) ---
@@ -82,20 +80,20 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     const int axisp1 = (axialAxis+1)%3, axisp2=(axialAxis+2)%3;
     const int uca=uc+axialAxis, ucb=uc + (axialAxis+1)%3, ucc=uc + (axialAxis+2)%3;
 
-    uLocal(I1,I2,I3,pc)=pInflow + ((pOutflow-pInflow)/length)*(x(I1,I2,I3,axialAxis)-s0);
+    ua(I1,I2,I3,pc)=pInflow + ((pOutflow-pInflow)/length)*(x(I1,I2,I3,axialAxis)-s0);
     if( mg.numberOfDimensions()==2 )
     {
       // Poiseulle-Couette flow: 
-      uLocal(I1,I2,I3,uca)=( (-(pOutflow-pInflow)/length/(2.*nu))*( radius*radius - SQR(x(I1,I2,I3,axisp1)) ) 
+      ua(I1,I2,I3,uca)=( (-(pOutflow-pInflow)/length/(2.*nu))*( radius*radius - SQR(x(I1,I2,I3,axisp1)) ) 
 			 + Ua + ((Ub-Ua)/(2.*radius))*(x(I1,I2,I3,axisp1)+radius) );
-      uLocal(I1,I2,I3,ucb)=0.;
+      ua(I1,I2,I3,ucb)=0.;
     }
     else
     {
       // Hagen-Poiseuille flow: 
-      uLocal(I1,I2,I3,uca)= (-(pOutflow-pInflow)/length/(4.*nu))*( radius*radius - SQR(x(I1,I2,I3,axisp1)) - SQR(x(I1,I2,I3,axisp2)) );
-      uLocal(I1,I2,I3,ucb)=0.;
-      uLocal(I1,I2,I3,ucc)=0.;
+      ua(I1,I2,I3,uca)= (-(pOutflow-pInflow)/length/(4.*nu))*( radius*radius - SQR(x(I1,I2,I3,axisp1)) - SQR(x(I1,I2,I3,axisp2)) );
+      ua(I1,I2,I3,ucb)=0.;
+      ua(I1,I2,I3,ucc)=0.;
     }
 
   }
@@ -112,7 +110,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
     OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
 
-    // uLocal(I1,I2,I3,pc)=pInflow + ((pOutflow-pInflow)/length)*(x(I1,I2,I3,0)-x0);
+    // ua(I1,I2,I3,pc)=pInflow + ((pOutflow-pInflow)/length)*(x(I1,I2,I3,0)-x0);
     RealArray r(I1,I2,I3), uTheta(I1,I2,I3);
     
     const int axisp1 = numberOfDimensions==2 ? 0 : (axialAxis+1) % numberOfDimensions;
@@ -132,13 +130,13 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     // dp/dr = rho*uTheta^2/r 
     //       =  A^2/r^3 + 2*A*B/r + B^2*r 
     // thetaHat = (-sin(theta),cos(theta))
-    uLocal(I1,I2,I3,uc+axisp1)=-uTheta*x(I1,I2,I3,axisp2)/r;
-    uLocal(I1,I2,I3,uc+axisp2)= uTheta*x(I1,I2,I3,axisp1)/r;
-    uLocal(I1,I2,I3,pc)= ( (-A*A/2.)*( 1./(SQR(r)) - 1./(SQR(r1)) ) + 
+    ua(I1,I2,I3,uc+axisp1)=-uTheta*x(I1,I2,I3,axisp2)/r;
+    ua(I1,I2,I3,uc+axisp2)= uTheta*x(I1,I2,I3,axisp1)/r;
+    ua(I1,I2,I3,pc)= ( (-A*A/2.)*( 1./(SQR(r)) - 1./(SQR(r1)) ) + 
 		       (2.*A*B)*( log(r)-log(r1) ) + (.5*B*B)*( SQR(r)-SQR(r1) ) );
 
     if( numberOfDimensions==3 )
-      uLocal(I1,I2,I3,uc+axialAxis)=0.;
+      ua(I1,I2,I3,uc+axialAxis)=0.;
     
   }
   else if( userKnownSolution=="TaylorGreenVortex" )
@@ -159,9 +157,9 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
     if( numberOfDimensions==2 )
     {
-      uLocal(I1,I2,I3,uc) = sin(k*x(I1,I2,I3,0))*cos(k*x(I1,I2,I3,1))*f; 
-      uLocal(I1,I2,I3,vc) =-cos(k*x(I1,I2,I3,0))*sin(k*x(I1,I2,I3,1))*f; 
-      uLocal(I1,I2,I3,pc) = (f*f/4.)*( cos((2.*k)*x(I1,I2,I3,0)) + cos( (2.*k)*x(I1,I2,I3,1)) ); 
+      ua(I1,I2,I3,uc) = sin(k*x(I1,I2,I3,0))*cos(k*x(I1,I2,I3,1))*f; 
+      ua(I1,I2,I3,vc) =-cos(k*x(I1,I2,I3,0))*sin(k*x(I1,I2,I3,1))*f; 
+      ua(I1,I2,I3,pc) = (f*f/4.)*( cos((2.*k)*x(I1,I2,I3,0)) + cos( (2.*k)*x(I1,I2,I3,1)) ); 
     }
     else  if( numberOfDimensions==3 )
     {
@@ -169,11 +167,11 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
       int axisp1 = (axialAxis+1) % 3;
       int axisp2 = (axialAxis+2) % 3;
     
-      uLocal(I1,I2,I3,uc+axisp1) = sin(k*x(I1,I2,I3,axisp1))*cos(k*x(I1,I2,I3,axisp2))*f; 
-      uLocal(I1,I2,I3,uc+axisp2) =-cos(k*x(I1,I2,I3,axisp1))*sin(k*x(I1,I2,I3,axisp2))*f; 
-      uLocal(I1,I2,I3,uc+axialAxis)=0.;
+      ua(I1,I2,I3,uc+axisp1) = sin(k*x(I1,I2,I3,axisp1))*cos(k*x(I1,I2,I3,axisp2))*f; 
+      ua(I1,I2,I3,uc+axisp2) =-cos(k*x(I1,I2,I3,axisp1))*sin(k*x(I1,I2,I3,axisp2))*f; 
+      ua(I1,I2,I3,uc+axialAxis)=0.;
 
-      uLocal(I1,I2,I3,pc) = (f*f/4.)*( cos((2.*k)*x(I1,I2,I3,axisp1)) + cos( (2.*k)*x(I1,I2,I3,axisp2)) ); 
+      ua(I1,I2,I3,pc) = (f*f/4.)*( cos((2.*k)*x(I1,I2,I3,axisp1)) + cos( (2.*k)*x(I1,I2,I3,axisp2)) ); 
 
       
     }
@@ -193,11 +191,11 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
     assert( pc>=0 && uc>=0 && vc>=0 );
     
-    uLocal(I1,I2,I3,pc)=0.;
-    uLocal(I1,I2,I3,uc)=1.+t;
-    uLocal(I1,I2,I3,vc)=2.+t;
+    ua(I1,I2,I3,pc)=0.;
+    ua(I1,I2,I3,uc)=1.+t;
+    ua(I1,I2,I3,vc)=2.+t;
     if( mg.numberOfDimensions()==3 )
-      uLocal(I1,I2,I3,wc)=3.+t;
+      ua(I1,I2,I3,wc)=3.+t;
      
   }
 
@@ -209,7 +207,7 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
 
     OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),vertex);
 
-    realArray & u = ua;
+    RealArray & u = ua;
 
     const int & uc = dbase.get<int >("uc");   //  u velocity component =u(all,all,all,uc)
     const int & vc = dbase.get<int >("vc");  
@@ -284,9 +282,9 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, realArray & ua
     int i1,i2,i3;
     FOR_3D(i1,i2,i3,I1,I2,I3)
     {
-      uLocal(i1,i2,i3,pc)=0.;
-      profile.eval( xLocal(i1,i2,i3,0)+xOffset,xLocal(i1,i2,i3,1), uLocal(i1,i2,i3,uc), uLocal(i1,i2,i3,vc) );
-      if( numberOfDimensions==3 ) uLocal(i1,i2,i3,wc)=0.;
+      ua(i1,i2,i3,pc)=0.;
+      profile.eval( xLocal(i1,i2,i3,0)+xOffset,xLocal(i1,i2,i3,1), ua(i1,i2,i3,uc), ua(i1,i2,i3,vc) );
+      if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
     }
   }
   else 

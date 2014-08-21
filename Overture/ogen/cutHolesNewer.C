@@ -1661,27 +1661,30 @@ cutHolesNewer(CompositeGrid & cg)
                                     else if( r2(i,axis)==Mapping::bogus )  // NOT invertible
                                     {
             	// if the point was NOT invertible then we double check to see it is outside of the boundary
+                    // *wdh* 2014/08/14 -- THIS IS WRONG IN PARALLEL for Mappings with a distributed inverse **** FIX ME 
                     // checkHolePointWithBogusInverse();
-                      // if the point was NOT invertible then we double check to see it is outside of the boundary
-                      // Estimate the r location for the point using
-                      //        r = r(boundary) + dr
-                      //        dr = [ dr/dx ] * dx       
-                      //        dx = vector from boundary point jv to the point on the other grid, x2
-                      //
-                      // We compute: re[0:2] : the estimated r location for the pt in the cutting grid=grid 
-                      // 
-                      // the point (j1,j2,j3) was used to cut this hole -- we need the closest bndry pt.
-                                            jv[0]=ia(i,4); jv[1]=ia(i,5); jv[2]=ia(i,6);
-                                            real distToBndry=REAL_MAX;
-                                            real xv[3]={0.,0.,0.};
-                                            int ax;
-                                            for( int ax=0; ax<numberOfDimensions; ax++ )
-                                                xv[ax]=x2(i,ax);
-                                            if( map.usesDistributedInverse() )
-                                            {
-                                                printF("checkHolePointWithBogusInverse: grid %s : map.usesDistributedInverse()=%i\n",(const char*)g.getName(),
-                                                              map.usesDistributedInverse());
-                                            }
+                     // if the point was NOT invertible then we double check to see it is outside of the boundary
+                     // Estimate the r location for the point using
+                     //        r = r(boundary) + dr
+                     //        dr = [ dr/dx ] * dx       
+                     //        dx = vector from boundary point jv to the point on the other grid, x2
+                     //
+                     // We compute: re[0:2] : the estimated r location for the pt in the cutting grid=grid 
+                     // 
+                     // the point (j1,j2,j3) was used to cut this hole -- we need the closest bndry pt.
+                                          jv[0]=ia(i,4); jv[1]=ia(i,5); jv[2]=ia(i,6);
+                                          real distToBndry=REAL_MAX;
+                                          real xv[3]={0.,0.,0.};
+                                          int ax;
+                                          for( int ax=0; ax<numberOfDimensions; ax++ )
+                                              xv[ax]=x2(i,ax);
+                                          if( map.usesDistributedInverse() )
+                                          {
+                                              printF("---OGEN-- checkHolePointWithBogusInverse: grid %s : WARNING NOT CHECKING since map.usesDistributedInverse()=%i -- FIX ME BILL\n",
+                                                            (const char*)g.getName(), map.usesDistributedInverse());
+                                          }
+                                          else
+                                          {
                       // this next search IS wrong in parallel if the inverse is distributed: 
                                             if( !map.usesDistributedInverse() )
                                             {
@@ -1809,7 +1812,7 @@ cutHolesNewer(CompositeGrid & cg)
                                             real dr[3]={g.gridSpacing(0),g.gridSpacing(1),g.gridSpacing(2)}; //
                                             int jva[3]={g.gridIndexRange(0,0),g.gridIndexRange(0,1),g.gridIndexRange(0,2)};
                                             RealArray rr(1,3), xx(1,3), xxr(1,3,3);
-                                            for(ax=0; ax<numberOfDimensions; ax++ )
+                                            for( int ax=0; ax<numberOfDimensions; ax++ )
                                             {
                                                 rr(0,ax)=(jv[ax]-jva[ax])*dr[ax];
                                             }
@@ -1895,7 +1898,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 real xra[2][2];
                                                 if( (j1+1) <= g.dimension(End,0) )
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[0][ax]=(vertex(j1+1,j2,j3,ax)-xvj[ax])/g.gridSpacing(0);
@@ -1908,7 +1911,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 else
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[0][ax]=(xvj[ax]-vertex(j1-1,j2,j3,ax))/g.gridSpacing(0);
@@ -1921,7 +1924,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 if( (j2+1) <= g.dimension(End,1) )
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[1][ax]=(vertex(j1,j2+1,j3,ax)-xvj[ax])/g.gridSpacing(1);
@@ -1934,7 +1937,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 else
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[1][ax]=(xvj[ax]-vertex(j1,j2-1,j3,ax))/g.gridSpacing(1);
@@ -1947,7 +1950,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                         // assert( (j1+1) <= g.dimension(End,0) );
                         // assert( (j2+1) <= g.dimension(End,1) );
-                        // for(ax=0; ax<numberOfDimensions; ax++ ) 
+                        // for(int ax=0; ax<numberOfDimensions; ax++ ) 
                         // {
                         //   xra[0][ax]=(xb(j1+1,j2,j3,ax)-xvj[ax])/g.gridSpacing(0);
                         //   xra[1][ax]=(xb(j1,j2+1,j3,ax)-xvj[ax])/g.gridSpacing(1);
@@ -1988,7 +1991,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 real xra[3][3];
                                                 if( (j1+1) <= g.dimension(End,0) )
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[0][ax]=(xb(j1+1,j2,j3,ax)-xvj[ax])/g.gridSpacing(0);
@@ -2001,7 +2004,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 else
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[0][ax]=(xvj[ax]-xb(j1-1,j2,j3,ax))/g.gridSpacing(0);
@@ -2014,7 +2017,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 if(  (j2+1) <= g.dimension(End,1) )
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[1][ax]=(xb(j1,j2+1,j3,ax)-xvj[ax])/g.gridSpacing(1);
@@ -2027,7 +2030,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 else
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[1][ax]=(xvj[ax]-xb(j1,j2-1,j3,ax))/g.gridSpacing(1);
@@ -2040,7 +2043,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 if( (j3+1) <= g.dimension(End,2) )
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[2][ax]=(xb(j1,j2,j3+1,ax)-xvj[ax])/g.gridSpacing(2);
@@ -2053,7 +2056,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                 }
                                                 else
                                                 {
-                                                    for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                                    for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                                     {
                                               	if( !isRectangular )
                                                 	  xra[2][ax]=(xvj[ax]-xb(j1,j2,j3-1,ax))/g.gridSpacing(2);
@@ -2068,7 +2071,7 @@ cutHolesNewer(CompositeGrid & cg)
                                               assert( (j1+1) <= g.dimension(End,0) );
                                               assert( (j2+1) <= g.dimension(End,1) );
                                               assert( (j3+1) <= g.dimension(End,2) );
-                                              for(ax=0; ax<numberOfDimensions; ax++ ) 
+                                              for( int ax=0; ax<numberOfDimensions; ax++ ) 
                                               {
                                               xra[0][ax]=(xb(j1+1,j2,j3,ax)-xvj[ax])/g.gridSpacing(0);
                                               xra[1][ax]=(xb(j1,j2+1,j3,ax)-xvj[ax])/g.gridSpacing(1);
@@ -2218,6 +2221,7 @@ cutHolesNewer(CompositeGrid & cg)
                                                     mask2(ia(i,0),ia(i,1),ia(i,2))=ia(i,3);   // reset these values. Do not cut a hole.
                                                 }
                                             }
+                                          }  // end if distributed inverse
                                     } 
                                     if( debug & 16 && numberOfDimensions==3 )
                                     {

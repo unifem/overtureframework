@@ -24,6 +24,8 @@ OV_X_LIBRARIES = -L$(XLIBS_LIB) -lXp -lXt -lXmu -lXi -lXext -lX11
 
 OV_MOTIF_LIBRARIES = $(OV_RPATH)$(MOTIF_LIB) -L$(MOTIF_LIB) -lXm
 
+LAPACK_LIBRARIES = $(OV_RPATH)$(LAPACK) -L$(LAPACK) -llapack -lblas
+
 # these next lines will be changed by the configure script
 USE_DOUBLE_OR_SINGLE = -DOV_USE_FLOAT
 #xlc USE_DOUBLE_OR_SINGLE = -WF,-DOV_USE_FLOAT
@@ -160,7 +162,7 @@ SOFLAGS = -shared
 #xlc SOFLAGS = -qmkshrobj -qnostaticlink
 # the next line is changed by the configure script
 OpenGLibs=
-GLIBS=  $(OV_PERL_LIBRARIES) $(OV_RPATH)$(OPENGL_LIB) -L$(OPENGL_LIB) $(OpenGLibs) $(OV_MOTIF_LIBRARIES) $(OV_X_LIBRARIES) -lm
+GLIBS=  $(OV_PERL_LIBRARIES) $(OV_RPATH)$(OPENGL_LIB) -L$(OPENGL_LIB) $(OpenGLibs) $(OV_MOTIF_LIBRARIES) $(OV_X_LIBRARIES) $(LAPACK_LIBRARIES) -lm
 
 # On Don's machine the pgi libraries need to follow the mpi libraries : 
 # FLIBS= $(OV_RPATH)$(Overture)/lib $(LDFLAGS)$(Overture)/lib $(LibOverture) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 

@@ -101,12 +101,6 @@ public:
   // Build a general cylinder (tabulated cylnder) by interpolating two curves
   int generalCylinder( const Mapping & curve1, const Mapping & curve2 );
 
-  // build a lofted surface by interpolation from a list of mappings
-  int interpolateLoftedSurface(std::vector<Mapping *>&, int degree1=3, 
-			       int degree2=3,
-			       ParameterizationTypeEnum  parameterizationType=parameterizeByChordLength,
-			       int numberOfGhostPoints=0 );
-
   const RealArray & getControlPoints() const;
 
   // get uKnot or vKnot, the knots in the first or second direction.
@@ -149,6 +143,16 @@ public:
                    ParameterizationTypeEnum parameterizationType=parameterizeByChordLength,
                    int numberOfGhostPoints=0 );
 
+  // Interpolate an array of points -- specify which points to utilize using the xDimension 
+  // and xGridIndexRange arrays
+  void interpolate(const RealArray & x, 
+                   int domainDimension, int rangeDimension,
+		   const IntegerArray & xDimension, const IntegerArray & xGridIndexRange, 
+                   ParameterizationTypeEnum parameterizationType=parameterizeByChordLength,
+		   int *degree = NULL );
+
+
+
   #ifdef USE_PPP
   // obsolete method -- keep for now for backward compatibility
   void interpolate(const realArray & x, 
@@ -158,6 +162,12 @@ public:
                    ParameterizationTypeEnum parameterizationType=parameterizeByChordLength,
                    int numberOfGhostPoints=0 );
   #endif 
+
+  // build a lofted surface by interpolation from a list of mappings
+  int interpolateLoftedSurface(std::vector<Mapping *>&, int degree1=3, 
+			       int degree2=3,
+			       ParameterizationTypeEnum  parameterizationType=parameterizeByChordLength,
+			       int numberOfGhostPoints=0 );
 
   // make a nurb surface that passes through given points. Accessed through the above routine
   void interpolateSurface(const RealArray & x, 
