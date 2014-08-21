@@ -35,13 +35,6 @@ buildStaticLib := off
 # =======================================================
 
 
-OS := $(OS)
-
-ifeq ($(OS),)
-OS := Linux
-endif
-
-
 include configFile
 include $(CONFIGDIR)/make.dirs
 include $(CONFIGDIR)/make.$(OS)

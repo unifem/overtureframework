@@ -7,11 +7,11 @@
 common = ../../common
 check: buildGrids
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgsm
+	./check.p -solver=cgsm
 
 check-quiet: buildGrids
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgsm -verbose=0
+	./check.p -solver=cgsm -verbose=0
 
 square10.order2.hdf:
 	${Overture}/bin/ogen noplot ${Overture}/sampleGrids/squareArg -order=2 -nx=10 

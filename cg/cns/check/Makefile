@@ -4,10 +4,10 @@
 common = ../../common
 check: buildGrids
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgcns
+	./check.p -solver=cgcns
 check-quiet: buildGrids
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgcns -verbose=0
+	./check.p -solver=cgcns -verbose=0
 
 cgcns:
 	@cd ..;      $(MAKE) -$(MAKEFLAGS) cgcns

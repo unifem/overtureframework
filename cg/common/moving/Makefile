@@ -9,12 +9,6 @@ NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)
 
 # ==== optional capabilities: use on/off ===
 
-OS := $(OS)
-
-ifeq ($(OS),)
-OS := Linux
-endif
-
 include configFile
 include $(CONFIGDIR)/make.dirs
 include $(CONFIGDIR)/make.$(OS)

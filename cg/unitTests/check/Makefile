@@ -5,11 +5,11 @@ common = ../../common
 
 check: 
 	ln -sf $(common)/src/check.p .
-	check.p -solver=tbm
+	./check.p -solver=tbm
 
 check-quiet:  
 	ln -sf $(common)/src/check.p .
-	check.p -solver=tbm -verbose=0
+	./check.p -solver=tbm -verbose=0
 
 tbm:
 	@cd ..;      $(MAKE) -$(MAKEFLAGS) tbm

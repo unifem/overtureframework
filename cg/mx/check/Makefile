@@ -3,11 +3,11 @@ common = ../../common
 
 check:  buildGrids
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgmx
+	./check.p -solver=cgmx
 
 check-quiet:  buildGrids
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgmx -verbose=0
+	./check.p -solver=cgmx -verbose=0
 
 tube1.order4.hdf:
 	$(Overture)/bin/ogen noplot $(Overture)/sampleGrids/tube1.order4.cmd

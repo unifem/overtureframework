@@ -12,14 +12,6 @@ NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)
 
 # =======================================================
 
-
-OS := $(OS)
-
-ifeq ($(OS),)
-OS := Linux
-endif
-
-
 include configFile
 include $(CONFIGDIR)/make.dirs
 include $(CONFIGDIR)/make.$(OS)

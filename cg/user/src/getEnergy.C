@@ -268,7 +268,7 @@ main(int argc, char *argv[])
     }
     else
     {
-      cout << "Inavlid answer :" << answer << endl;
+      cout << "Invalid answer :" << answer << endl;
     }
   }
   

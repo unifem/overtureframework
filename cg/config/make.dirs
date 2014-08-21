@@ -1,3 +1,18 @@
+# -- set the operating type --
+OS := $(OS)
+
+ifeq ($(OS),)
+  ifeq ($(OSTYPE),darwin)
+    OS := Darwin
+  endif
+endif
+
+# By Default use Linux: 
+ifeq ($(OS),)
+  OS := Linux
+endif
+
+
 ifneq ($(CGBUILDPREFIX),)
 
   # Append a '/' to the end of CGBUILDPREFIX: 

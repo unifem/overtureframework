@@ -4,11 +4,11 @@
 common = ../../common
 check:
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgasf
+	./check.p -solver=cgasf
 
 check-quiet:
 	ln -sf $(common)/src/check.p .
-	check.p -solver=cgasf -verbose=0
+	./check.p -solver=cgasf -verbose=0
 
 cgasf:
 	@cd ..;      $(MAKE) -$(MAKEFLAGS) cgasf

@@ -50,7 +50,7 @@ help:
 	@echo "   "
 	@echo "Then type make"
 	@echo "               "
-	@echo "(When finished making you can run the perl script check.p to run regression tests)"
+	@echo "(When finished making you can type 'make check' to run the regression tests)"
 	@echo "======================================================================================="
 
 
@@ -78,6 +78,7 @@ all:
 #buildOgmg	  @if [ -d Ogmg   ]  ; then cd Ogmg    ; $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" ; fi
 	  @cd lib;           $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
 	  @cd bin;           $(MAKE) -$(MAKEFLAGS) Overture="`pwd`/.." FLAGS1="$(FLAGS)"
+	  @echo "INFO: type \"make check\" to run the regression tests"
 
 rapsodi:
 	@echo "----------------------------------------------------------------------- "
