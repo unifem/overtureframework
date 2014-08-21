@@ -2064,16 +2064,16 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put( nurbsDegree,"nurbsDegree" );
   subDir.put( nurbsOutOfDate,"nurbsOutOfDate" );
 
-  bool nurbsExists = dbase.has_key("nurbs");
-  NurbsMapping *pNurbs=dbase.get<NurbsMapping*>("nurbs");
-  nurbsExists = nurbsExists && pNurbs!=NULL;
+  bool nurbsExists = dbase.has_key("nurbs") && dbase.get<NurbsMapping*>("nurbs")!=NULL;
   subDir.put( nurbsExists,"nurbsExists" );
   if( nurbsExists )
   {
-    pNurbs->put(subDir,"Nurbs");
+    NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
+    nurbs.put(subDir,"Nurbs");
   }
 
-
+  
+  
   Mapping::put( subDir, "Mapping" );
   delete & subDir;
   return 0;
