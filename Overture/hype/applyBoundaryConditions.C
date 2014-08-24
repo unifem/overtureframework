@@ -215,7 +215,7 @@ applyBoundaryConditions(const RealArray & x, const RealArray & x0,
 	  const real blend = min(1.,max(0.,ortho*2.)); 
 
           if( debug & 2  )
-	    printf("fixBC: matchToMappingOrthogonalFactor, ortho=%8.2e blend=%8.2e\n",matchToMappingOrthogonalFactor,
+	    printf("fixBC: matchToMappingOrthogonalFactor=%8.2e, ortho=%8.2e blend=%8.2e\n",matchToMappingOrthogonalFactor,
                        ortho,blend);
 
 	  x(I1,I2,i3p,xAxes)=blend*x(I1+2*is[0],I2+2*is[1],i3p,xAxes)+

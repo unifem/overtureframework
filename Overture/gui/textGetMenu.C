@@ -229,7 +229,7 @@ processSpecialMenuItems(aString & answer)
     readCommandFile(); 
     answerFound=TRUE;
   }
-  else if( len=str_matches(answer,"include ") )
+  else if( (len=str_matches(answer,"include ")) )
   { // *new* 030919 
     aString newCommandFileName=answer.substr(len,answer.length()-len);
     readCommandFile(newCommandFileName); 

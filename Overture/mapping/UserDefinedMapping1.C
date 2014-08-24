@@ -1376,7 +1376,7 @@ update( MappingInformation & mapInfo )
       mappingHasChanged();
       
     }
-    else if( len=answer.matches("ra,rb:") )
+    else if( (len=answer.matches("ra,rb:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&ra,&rb);
       if( !gi.isGraphicsWindowOpen() )
@@ -1385,7 +1385,7 @@ update( MappingInformation & mapInfo )
       rp(1)=rb;
       mappingHasChanged();
     }
-    else if( len=answer.matches("za,zb:") )
+    else if( (len=answer.matches("za,zb:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&za,&zb);
       if( !gi.isGraphicsWindowOpen() )
@@ -1394,7 +1394,7 @@ update( MappingInformation & mapInfo )
       rp(3)=zb;
       mappingHasChanged();
     }
-    else if( len=answer.matches("x0,y0,rh:") )
+    else if( (len=answer.matches("x0,y0,rh:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e",&x0,&y0,&rh);
       if( !gi.isGraphicsWindowOpen() )
@@ -1404,7 +1404,7 @@ update( MappingInformation & mapInfo )
       rp(6)=rh;
       mappingHasChanged();
     }
-    else if( len=answer.matches("hfreq,arg0:") )
+    else if( (len=answer.matches("hfreq,arg0:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&hfreq,&arg0);
       if( !gi.isGraphicsWindowOpen() )

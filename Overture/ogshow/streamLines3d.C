@@ -346,14 +346,14 @@ streamLines3d(GenericGraphicsInterface &gi, GridCollection & gc,
       plotStreamLines=true;
       seedsHaveChanged=true;
     }
-    else if( len=answer.matches("max number of steps") )
+    else if( (len=answer.matches("max number of steps")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&maximumNumberOfSteps);
 
       dialog.setTextLabel("max number of steps",sPrintF(answer2,"%i",maximumNumberOfSteps));
       seedsHaveChanged=true;  // recompute
     }
-    else if( len=answer.matches("xScale, yScale, zScale") )
+    else if( (len=answer.matches("xScale, yScale, zScale")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e",&psp.xScaleFactor,&psp.yScaleFactor,&psp.zScaleFactor);
       printF("New values are xScale = %g, yScale = %g, zScale = %g \n",psp.xScaleFactor,psp.yScaleFactor,
@@ -536,7 +536,7 @@ streamLines3d(GenericGraphicsInterface &gi, GridCollection & gc,
       }
       seedsHaveChanged=TRUE; 
     }
-    else if( len=answer.matches("cfl") )
+    else if( (len=answer.matches("cfl")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&cfl);
       dialog.setTextLabel("cfl",sPrintF(answer2,"%g",cfl));

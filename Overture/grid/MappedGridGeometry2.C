@@ -134,7 +134,7 @@ computeGeometryFromMapping(const Integer& what_,
 
   // No need to compute the vertex derivative if it is already there: 
   bool vertexDerivativeIsComputed = ( (computedGeometry & THEvertexDerivative) ||
-				      isAllVertexCentered && (computedGeometry & THEcenterDerivative) );
+				      (isAllVertexCentered && (computedGeometry & THEcenterDerivative)) );
 
   bool computeVertexDerivative = vertexDerivativeIsNeeded && !vertexDerivativeIsComputed;
 

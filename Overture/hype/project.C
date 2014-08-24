@@ -185,7 +185,7 @@ project( const RealArray & x,
 	    int e = elementIndex(i);  // this is the element we are in!
 	    if( e<0 || e>numberOfElements ) //assert( e>=0 && e<numberOfElements );
             {
-	      printf("hype:project:ERROR: element number e=%i is not valid to project onto a CompositeSurface\n");
+	      printf("hype:project:ERROR: element number e=%i is not valid to project onto a CompositeSurface\n",e);
 	      printf(" i=%i, xx(i,.)=(%8.2e,%8.2e,%8.2e) \n",i,xx(i,0),xx(i,1),xx(i,2));
               return 1;
 	      // Overture::abort();

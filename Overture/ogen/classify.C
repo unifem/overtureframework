@@ -2251,11 +2251,13 @@ classifyPoints(CompositeGrid & cg,
 	}
 	
         if( useBoundaryAdjustment )
+	{
           if( numberToCheck>0 )
             adjustBoundary(cg,grid,grid2,ia(R,Rx),x);    // adjust boundary points on shared sides *** only do at end?
           else
             adjustBoundary(cg,grid,grid2,Overture::nullIntArray(),Overture::nullRealArray());
-
+	}
+	
         #ifdef USE_PPP
           if( numberToCheck>0 )
            map2.inverseMapS(x(R,Rx),r);
@@ -4562,11 +4564,13 @@ interpolateAll(CompositeGrid & cg, IntegerArray & numberOfInterpolationPoints,Co
 	}
 	
 	if( useBoundaryAdjustment )
+	{
 	  if( numberToCheck>0 )
             adjustBoundary(cg,grid,grid2,ia2(R,Rx),x);    // adjust boundary points on shared sides
           else
              adjustBoundary(cg,grid,grid2,Overture::nullIntArray(),Overture::nullRealArray());
-
+	}
+	
         int maxNumberToCheck=ParallelUtility::getMaxValue(numberToCheck); 
         int sumNumberToCheck=ParallelUtility::getSum(numberToCheck); 
 

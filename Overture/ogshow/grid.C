@@ -2281,7 +2281,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
     {
       numberOfGridCoordinatePlanes=0;
     }
-    else if( len=answer.matches("add coordinate plane") )
+    else if( (len=answer.matches("add coordinate plane")) )
     {
       int grid=-1,dir=0,index=0;
       sScanF(answer(len,answer.length()-1),"%i %i %i",&grid,&dir,&index);
@@ -2682,13 +2682,13 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 	}
       }
     }
-    else if( len=answer.matches("toggle boundary") )
+    else if( (len=answer.matches("toggle boundary")) )
     {
       int faceIsShown, gridToToggle=-1, side=-1, axis=-1;
       sScanF(&answer[len],"%i %i %i %i", &side, &axis, &gridToToggle, &faceIsShown );
       if( gridToToggle>=0 && gridToToggle<numberOfGrids && side>=0 && side<=1 && axis>=0 && axis<numberOfDimensions )
       {
-        if( !(gridOptions(gridToToggle)&faceToToggle[side+2*axis]) != faceIsShown )
+        if( (!(gridOptions(gridToToggle)&faceToToggle[side+2*axis])) != faceIsShown )
   	  gridOptions(gridToToggle) ^= faceToToggle[side+2*axis];
       }
       else
@@ -2697,7 +2697,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 	gi.stopReadingCommandFile();
       }
     }
-    else if( len=answer.matches("toggle grid lines on boundary") )
+    else if( (len=answer.matches("toggle grid lines on boundary")) )
     {
       int faceIsShown, gridToToggle=-1, side=-1, axis=-1;
       sScanF(&answer[len],"%i %i %i %i", &side, &axis, &gridToToggle, &faceIsShown );
@@ -2707,7 +2707,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 
       if( gridToToggle>=0 && gridToToggle<numberOfGrids && side>=0 && side<=1 && axis>=0 && axis<numberOfDimensions )
       {
-        if( !(gridOptions(gridToToggle)&toggleGridLinesOnFace[side+2*axis]) != faceIsShown )
+        if( (!(gridOptions(gridToToggle)&toggleGridLinesOnFace[side+2*axis])) != faceIsShown )
   	  gridOptions(gridToToggle) ^= toggleGridLinesOnFace[side+2*axis];
       }
       else
@@ -2717,7 +2717,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 	gi.stopReadingCommandFile();
       }
     }
-    else if( len=answer.matches("toggle grid") )
+    else if( (len=answer.matches("toggle grid")) )
     {
       // this needs to go after "toggle grid lines on boundary"
 
@@ -2749,7 +2749,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
       for(int grid=0; grid<numberOfGrids; grid++ )
         gridOptions(grid) ^=GraphicsParameters::plotInterpolation;
     }
-    else if( len=answer.matches("toggle interpolation") )
+    else if( (len=answer.matches("toggle interpolation")) )
     {
       int onOff, gridToToggle=-1;
       sScanF(&answer[len],"%i %i", &gridToToggle, &onOff);
@@ -3066,7 +3066,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
       psp.keepAspectRatio=false;
       gi.setKeepAspectRatio(psp.keepAspectRatio); 
     }
-    else if( len=answer.matches("point size") )
+    else if( (len=answer.matches("point size")) )
     {
       real value;
       sScanF(answer(len,answer.length()-1),"%f",&value);
@@ -3093,7 +3093,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
       if( answer2!="" )
         sScanF(answer2,"%e",&boundaryVerticalOffset);
     }
-    else if( len=answer.matches("coarsening factor") ) 
+    else if( (len=answer.matches("coarsening factor")) ) 
     {
       sScanF(answer(len,answer.length()-1),"%i",&gi.gridCoarseningFactor);
       dialog.setTextLabel("coarsening factor",sPrintF(answer,"%i",gi.gridCoarseningFactor));
@@ -3111,7 +3111,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
       psp.computeCoarseningFactor=false;  // do not recompute the coarsening factor
       dialog.setToggleState("compute coarsening factor",(int)psp.computeCoarseningFactor);
     }
-    else if( len=answer.matches("xScale, yScale, zScale") )
+    else if( (len=answer.matches("xScale, yScale, zScale")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e",&psp.xScaleFactor,&psp.yScaleFactor,&psp.zScaleFactor);
       printF("New values are xScale = %g, yScale = %g, zScale = %g \n",psp.xScaleFactor,psp.yScaleFactor,
@@ -3287,7 +3287,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 	}
       }
     }
-//      else if( len=answer.matches("pick colour") )
+//      else if( (len=answer.matches("pick colour")) )
 //      {
 //        aString colour;
 //        colour=answer(len,answer.length()-1);
@@ -3308,11 +3308,11 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 
       int side=-1, axis=-1, grid=-100;
       char colour[100];
-      if( len=answer.matches("grid colour") )
+      if( (len=answer.matches("grid colour")) )
       {
 	sScanF(answer(len,answer.length()-1),"%i %s",&grid,colour);
       }
-      else if( len=answer.matches("grid boundary colour (side,axis,grid,colour):") )
+      else if( (len=answer.matches("grid boundary colour (side,axis,grid,colour)):")) )
       {
         sScanF( &answer[len],"%i %i %i %s",&side,&axis,&grid,colour);
 	if( side<0 || side>1 || axis<0 || axis>=gc.numberOfDimensions() )
@@ -3568,7 +3568,7 @@ plotGrid(GenericGraphicsInterface &gi, GridCollection & gc,
 	    ForBoundary(side,axis)
 	    {
 	      thisBC = gcl[grid].boundaryCondition()(side,axis);
-	      if( thisBC== 0 && plotNonPhysicalBoundaries ||
+	      if( (thisBC== 0 && plotNonPhysicalBoundaries) ||
 		  thisBC>0)
 	      {
 		if( boundaryColourOption==GraphicsParameters::colourByBoundaryCondition ||

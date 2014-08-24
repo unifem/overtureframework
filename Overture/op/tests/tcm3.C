@@ -331,44 +331,44 @@ main(int argc, char *argv[])
       aString arg = argv[i];
       if( arg=="-noTiming" )
 	measureCPU=FALSE;
-      else if( len=arg.matches("-debug=") )
+      else if( (len=arg.matches("-debug=")) )
       {
 	sScanF(arg(len,arg.length()-1),"%i",&Oges::debug);
 	printF("Setting Oges::debug=%i\n",Oges::debug);
       }
-      else if( len=arg.matches("-tol=") )
+      else if( (len=arg.matches("-tol=")) )
       {
 	sScanF(arg(len,arg.length()-1),"%e",&tol);
 	printF("Setting tol=%e\n",tol);
       }
-      else if( len=arg.matches("-freq=") )
+      else if( (len=arg.matches("-freq=")) )
       {
 	sScanF(arg(len,arg.length()-1),"%e",&fx);
 	fy=fx; fz=fx;
 	printF("Setting fx=fy=fz=%e\n",fx);
       }
-      else if( len=arg.matches("-ilu=") )
+      else if( (len=arg.matches("-ilu=")) )
       {
 	sScanF(arg(len,arg.length()-1),"%i",&iluLevels);
 	printF("Setting ilu levels =%i\n",iluLevels);
       }
-      else if( len=arg.matches("-gmres") )
+      else if( (len=arg.matches("-gmres")) )
       {
 	iterativeSolverType="gmres";
       }
-      else if( len=arg.matches("-outputMatrix") )
+      else if( (len=arg.matches("-outputMatrix")) )
       {
 	outputMatrix=true;
       }
-      else if( len=arg.matches("-dirichlet") )
+      else if( (len=arg.matches("-dirichlet")) )
       {
 	problemsToSolve=1; // just solve dirichlet problem
       }
-      else if( len=arg.matches("-neumann") )
+      else if( (len=arg.matches("-neumann")) )
       {
 	problemsToSolve=2; // just solve neumann problem
       }
-      else if( len=arg.matches("-order=") )
+      else if( (len=arg.matches("-order=")) )
       {
 	sScanF(arg(len,arg.length()-1),"%i",&orderOfAccuracy);
 	if( orderOfAccuracy!=2 && orderOfAccuracy!=4 )

@@ -857,7 +857,7 @@ parallelSetup( CompositeGrid & cg,
       	#ifdef POGIP_DEBUG
                   if( debug )
         	  fprintf(debugFile,"receive: j=%i grid=%i, p=%i sp=%i n=%i width=%i il=[%i,%i]\n",j,grid,pp,spp,n,
-                                    width,ILA(n,axis1+1,sp),ILA(n,axis2+1,sp) );
+                                    width[0],ILA(n,axis1+1,sp),ILA(n,axis2+1,sp) );
                 #endif
       	n++;
 
@@ -1541,7 +1541,7 @@ parallelInternalInterpolate( RealArray & ui,                       // save resul
                     {
                         numberOfInvalidPoints++;
                         printf("InterpolatePointsOnAGrid::internalInterpolate:ERROR donor stencil is INVALID. mask==0 at some pts.\n"
-                                      "    : myid=%i, grid=%i, j=%i, width=%i, il=(%i,%i,%i)\n",myid,grid,j,width,i1a,i2a,i3a);
+                                      "    : myid=%i, grid=%i, j=%i, width=%i, il=(%i,%i,%i)\n",myid,grid,j,width[0],i1a,i2a,i3a);
                     }
               }
             } 
@@ -2656,7 +2656,7 @@ internalInterpolate( RealArray & ui,                       // save results here
                     {
                         numberOfInvalidPoints++;
                         printf("InterpolatePointsOnAGrid::internalInterpolate:ERROR donor stencil is INVALID. mask==0 at some pts.\n"
-                                      "    : myid=%i, grid=%i, j=%i, width=%i, il=(%i,%i,%i)\n",myid,grid,j,width,i1a,i2a,i3a);
+                                      "    : myid=%i, grid=%i, j=%i, width=%i, il=(%i,%i,%i)\n",myid,grid,j,width[0],i1a,i2a,i3a);
                     }
               }
         } 

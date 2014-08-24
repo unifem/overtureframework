@@ -37,6 +37,7 @@ getLocalInterpolationData( CompositeGrid & cg, InterpolationData *&interpData )
 #ifndef USE_PPP
 
   OV_ABORT("ERROR: getLocalInterpolationData called in serial");
+  return 0;
 
 #else
 
@@ -603,4 +604,5 @@ getLocalInterpolationData( CompositeGrid & cg, InterpolationData *&interpData )
   return 0;
 
 #endif
+
 }

@@ -2655,11 +2655,18 @@ fileContents( aString fileName, IgesReader * &iges_, int & numberOfNurbs, int & 
     const bool listThisItem = (readInvisibleItems || iges.isVisible(i)) && 
       ( listDependentItems || iges.isIndependent(i) );
 
+    // *wdh* 2014/08/22 -- add ( ) to remove warnings 
+    // if( listThisItem &&
+    // 	(readUntrimmedSurface && isUntrimmedSurface(iges,i) )   ||
+    // 	(readTrimmedSurface && iges.entity(i)==IgesReader::trimmedSurface) ||
+    // 	(readBoundedSurface && iges.entity(i)==IgesReader::boundedSurface) ||
+    // 	(readTrimmedSurface && iges.entity(i)==IgesReader::plane) )
+
     if( listThisItem &&
-	(readUntrimmedSurface && isUntrimmedSurface(iges,i) )   ||
-	(readTrimmedSurface && iges.entity(i)==IgesReader::trimmedSurface) ||
-	(readBoundedSurface && iges.entity(i)==IgesReader::boundedSurface) ||
-	(readTrimmedSurface && iges.entity(i)==IgesReader::plane) )
+	((readUntrimmedSurface && isUntrimmedSurface(iges,i) )   ||
+	 (readTrimmedSurface && iges.entity(i)==IgesReader::trimmedSurface) ||
+	 (readBoundedSurface && iges.entity(i)==IgesReader::boundedSurface) ||
+	 (readTrimmedSurface && iges.entity(i)==IgesReader::plane)) )
     {
       numberOfNurbs++;
       if( iges.entity(i)==IgesReader::trimmedSurface || iges.entity(i)==IgesReader::plane)
@@ -4074,9 +4081,9 @@ readMappings( MappingInformation & mapInfo, aString fileName /* = nullString */,
 	  ( listDependentItems || iges.isIndependent(i) );
 
 	if( listThisItem &&
-	    (readUntrimmedSurface && isUntrimmedSurface(iges,i) )   ||
-	    (readTrimmedSurface && iges.entity(i)==IgesReader::trimmedSurface) ||
-	    (readBoundedSurface && iges.entity(i)==IgesReader::boundedSurface) )
+	    ((readUntrimmedSurface && isUntrimmedSurface(iges,i) )   ||
+	     (readTrimmedSurface && iges.entity(i)==IgesReader::trimmedSurface) ||
+	     (readBoundedSurface && iges.entity(i)==IgesReader::boundedSurface)) )
         {
 	  numberOfNurbss++;
 	  if( iges.entity(i)==IgesReader::trimmedSurface )

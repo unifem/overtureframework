@@ -181,11 +181,17 @@ applyBCsymmetry(realMappedGridFunction & u,
       }
       
 
-      WHERE_MASK( uA(I1m,I2m,I3m,nc)=2.*uA(I1,I2,I3,nc)-uA(I1p,I2p,I3p,nc); )
+      WHERE_MASK( uA(I1m,I2m,I3m,nc)=2.*uA(I1,I2,I3,nc)-uA(I1p,I2p,I3p,nc); );
+
       if( numberOfDimensions>=2 )
-        WHERE_MASK( uA(I1m,I2m,I3m,tc1)=uA(I1p,I2p,I3p,tc1); )
+      {
+        WHERE_MASK( uA(I1m,I2m,I3m,tc1)=uA(I1p,I2p,I3p,tc1); );
+      }
       if( numberOfDimensions>=3 )
-        WHERE_MASK( uA(I1m,I2m,I3m,tc2)=uA(I1p,I2p,I3p,tc2); )
+      {
+        WHERE_MASK( uA(I1m,I2m,I3m,tc2)=uA(I1p,I2p,I3p,tc2); );
+      }
+      
 
       if( twilightZoneFlow ) 
       {  
@@ -203,21 +209,26 @@ applyBCsymmetry(realMappedGridFunction & u,
 	{
 	  (*e).gd( um,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1m,I2m,I3m,m2c,t);
 	  (*e).gd( up,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1p,I2p,I3p,m2c,t);
-          WHERE_MASK( uA(I1m,I2m,I3m,tc1)+=um-up; )
+          WHERE_MASK( uA(I1m,I2m,I3m,tc1)+=um-up; );
 	}
 	if( numberOfDimensions>=3 )
 	{
 	  (*e).gd( um,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1m,I2m,I3m,m3c,t);
 	  (*e).gd( up,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1p,I2p,I3p,m3c,t);
-          WHERE_MASK( uA(I1m,I2m,I3m,tc2)+=um-up; )
+          WHERE_MASK( uA(I1m,I2m,I3m,tc2)+=um-up; );
 	}
 
        #else
-	WHERE_MASK( uA(I1m,I2m,I3m,nc)+=(*e)(c,I1m,I2m,I3m,m1c,t)-2.*(*e)(c,I1,I2,I3,m1c,t)+(*e)(c,I1p,I2p,I3p,m1c,t); )
+	WHERE_MASK( uA(I1m,I2m,I3m,nc)+=(*e)(c,I1m,I2m,I3m,m1c,t)-2.*(*e)(c,I1,I2,I3,m1c,t)+(*e)(c,I1p,I2p,I3p,m1c,t); );
 	if( numberOfDimensions>=2 )
-	  WHERE_MASK( uA(I1m,I2m,I3m,tc1)+=(*e)(c,I1m,I2m,I3m,m2c,t)-(*e)(c,I1p,I2p,I3p,m2c,t); )
+	{
+	  WHERE_MASK( uA(I1m,I2m,I3m,tc1)+=(*e)(c,I1m,I2m,I3m,m2c,t)-(*e)(c,I1p,I2p,I3p,m2c,t); );
+	}
 	if( numberOfDimensions>=3 )
-	  WHERE_MASK( uA(I1m,I2m,I3m,tc2)+=(*e)(c,I1m,I2m,I3m,m3c,t)-(*e)(c,I1p,I2p,I3p,m3c,t); )
+	{
+	  WHERE_MASK( uA(I1m,I2m,I3m,tc2)+=(*e)(c,I1m,I2m,I3m,m3c,t)-(*e)(c,I1p,I2p,I3p,m3c,t); );
+	}
+	
        #endif
       }
     }
@@ -226,12 +237,16 @@ applyBCsymmetry(realMappedGridFunction & u,
       // ******************** curvilinear case **********************
 
       // first make all ALL components even
-      WHERE_MASK( uA(I1m,I2m,I3m,n1)=uA(I1p,I2p,I3p,n1); )
+      WHERE_MASK( uA(I1m,I2m,I3m,n1)=uA(I1p,I2p,I3p,n1); );
       if( numberOfDimensions>1 )
       {
-        WHERE_MASK( uA(I1m,I2m,I3m,n2)=uA(I1p,I2p,I3p,n2); )
+        WHERE_MASK( uA(I1m,I2m,I3m,n2)=uA(I1p,I2p,I3p,n2); );
+	
         if( numberOfDimensions==3 )
-            WHERE_MASK( uA(I1m,I2m,I3m,n3)=uA(I1p,I2p,I3p,n3); )
+	{
+	  WHERE_MASK( uA(I1m,I2m,I3m,n3)=uA(I1p,I2p,I3p,n3); );
+	}
+	
       }
 
       if( twilightZoneFlow ) 
@@ -249,13 +264,16 @@ applyBCsymmetry(realMappedGridFunction & u,
 	{
 	  (*e).gd( um,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1m,I2m,I3m,m2,t);
 	  (*e).gd( up,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1p,I2p,I3p,m2,t);
-          WHERE_MASK( uA(I1m,I2m,I3m,n2)+=um-up; )
+
+          WHERE_MASK( uA(I1m,I2m,I3m,n2)+=um-up; );
+	  
 	}
 	if( numberOfDimensions>=3 )
 	{
 	  (*e).gd( um,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1m,I2m,I3m,m3,t);
 	  (*e).gd( up,xLocal,c.numberOfDimensions(),isRectangular,0,0,0,0,I1p,I2p,I3p,m3,t);
-          WHERE_MASK( uA(I1m,I2m,I3m,n3)+=um-up; )
+
+          WHERE_MASK( uA(I1m,I2m,I3m,n3)+=um-up; );
 	}
 
        #else
@@ -263,9 +281,11 @@ applyBCsymmetry(realMappedGridFunction & u,
 	WHERE_MASK( uA(I1m,I2m,I3m,n1)+=(*e)(c,I1m,I2m,I3m,m1,t)-(*e)(c,I1p,I2p,I3p,m1,t); )
 	if( numberOfDimensions>1 )
 	{
-	  WHERE_MASK( uA(I1m,I2m,I3m,n2)+=(*e)(c,I1m,I2m,I3m,m2,t)-(*e)(c,I1p,I2p,I3p,m2,t); )
+	  WHERE_MASK( uA(I1m,I2m,I3m,n2)+=(*e)(c,I1m,I2m,I3m,m2,t)-(*e)(c,I1p,I2p,I3p,m2,t); );
 	  if( numberOfDimensions==3 )
-	    WHERE_MASK( uA(I1m,I2m,I3m,n3)+=(*e)(c,I1m,I2m,I3m,m3,t)-(*e)(c,I1p,I2p,I3p,m3,t); )
+	  {
+	    WHERE_MASK( uA(I1m,I2m,I3m,n3)+=(*e)(c,I1m,I2m,I3m,m3,t)-(*e)(c,I1p,I2p,I3p,m3,t); );
+	  }
 	}
        #endif
       }
@@ -349,7 +369,9 @@ applyBCsymmetry(realMappedGridFunction & u,
 	WHERE_MASK( uA(I1m,I2m,I3m,n1)+=uDotN(I1,I2,I3)*normal(I1,I2,I3,0); );
 	WHERE_MASK( uA(I1m,I2m,I3m,n2)+=uDotN(I1,I2,I3)*normal(I1,I2,I3,1); );
 	if( numberOfDimensions==3 ) 
+	{
 	  WHERE_MASK( uA(I1m,I2m,I3m,n3)+=uDotN(I1,I2,I3)*normal(I1,I2,I3,2); );
+	}
       }
       else
       {

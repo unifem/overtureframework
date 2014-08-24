@@ -129,7 +129,7 @@ update( GenericGraphicsInterface & gi , MappingInformation & mapInfo, CompositeG
       break;
     }
     else if( dialog.getTextValue(answer,"name:","%s",name) ){} 
-    else if( len=answer.matches("Hole cutter:") )
+    else if( (len=answer.matches("Hole cutter:")) )
     {
       aString name=answer(len,answer.length()-1);
       const int num=mapInfo.mappingList.getLength();

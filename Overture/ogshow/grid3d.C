@@ -529,9 +529,9 @@ grid3d(GenericGraphicsInterface &gi,
         	  int bcIndex = bcNumber(c.boundaryCondition(side,axis), boundaryConditionList, numberOfBoundaryConditions);
         	  if( (gridOptions(grid) & GraphicsParameters::plotShadedSurfaces) && 
             	      (c.boundaryCondition(side,axis)>0 || 
-             	       psp.plotNonPhysicalBoundaries && c.boundaryCondition(side,axis)==0) &&
-            	      gridBoundaryConditionOptions(bcIndex) & 1  &&
-	      !(gridOptions(grid)&faceToToggle[side+2*axis]) ) 
+             	       (psp.plotNonPhysicalBoundaries && c.boundaryCondition(side,axis)==0)) &&
+            	      (gridBoundaryConditionOptions(bcIndex) & 1)  &&
+            	      (!(gridOptions(grid)&faceToToggle[side+2*axis])) ) 
         	  {
                         const IntegerArray & egir = extendedGridIndexRange(c);
           	    getBoundaryIndex(egir,side,axis,I1a,I2a,I3a);
@@ -1997,7 +1997,7 @@ surfaceGrid3d(GenericGraphicsInterface &gi, const GridCollection & gc,
       //	      gi.setColour(gi.getColourName(min(max(0,psp.boundaryColourValue),
       //						GenericGraphicsInterface::numberOfColourNames-1)));
                       	    }
-                      	    else if( psp.boundaryColourOption==psp.boundaryColourOption==GraphicsParameters::colourBlack )
+                      	    else if( psp.boundaryColourOption==GraphicsParameters::colourBlack )
                       	    {
       //	      gi.setColour(GenericGraphicsInterface::textColour);
                       	    }
@@ -2197,7 +2197,7 @@ surfaceGrid3d(GenericGraphicsInterface &gi, const GridCollection & gc,
       //	      gi.setColour(gi.getColourName(min(max(0,psp.boundaryColourValue),
       //						GenericGraphicsInterface::numberOfColourNames-1)));
                       	    }
-                      	    else if( psp.boundaryColourOption==psp.boundaryColourOption==GraphicsParameters::colourBlack )
+                      	    else if( psp.boundaryColourOption==GraphicsParameters::colourBlack )
                       	    {
       //	      gi.setColour(GenericGraphicsInterface::textColour);
                       	    }

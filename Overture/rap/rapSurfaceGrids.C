@@ -281,7 +281,7 @@ rapSurfaceGrids(MappingInformation &mapInfo, CompositeSurface & model, Composite
       }
     }
     
-    else if( len = answer.matches("selection function") )
+    else if( (len=answer.matches("selection function")) )
     {
       while( len < answer.length() && answer(len,len) == " ")
 	len++;
@@ -323,7 +323,7 @@ rapSurfaceGrids(MappingInformation &mapInfo, CompositeSurface & model, Composite
       }
     }
 // replay commands
-    else if (len=answer.matches("edit surface grid"))
+    else if ( (len=answer.matches("edit surface grid")))
     {
       int s=-1;
       if (sScanF(answer(len,answer.length()-1),"%i", &s) == 1 && s>=0)
@@ -334,7 +334,7 @@ rapSurfaceGrids(MappingInformation &mapInfo, CompositeSurface & model, Composite
 	gi.setView(loc); // reset the view point
       }
     }
-    else if (len=answer.matches("delete surface grid"))
+    else if( (len=answer.matches("delete surface grid")))
     {
       int s=-1;
       if (sScanF(answer(len,answer.length()-1),"%i", &s) == 1 && s>=0)
@@ -345,7 +345,7 @@ rapSurfaceGrids(MappingInformation &mapInfo, CompositeSurface & model, Composite
 	sGrids.remove(s);
       }
     }
-    else if (len=answer.matches("hide surface grid"))
+    else if( (len=answer.matches("hide surface grid")))
     {
       int s=-1;
       if (sScanF(answer(len,answer.length()-1),"%i", &s) == 1 && s>=0)
@@ -353,7 +353,7 @@ rapSurfaceGrids(MappingInformation &mapInfo, CompositeSurface & model, Composite
 	sGrids.setIsVisible(s, false);
       }
     }
-    else if (len=answer.matches("show surface grid"))
+    else if( (len=answer.matches("show surface grid")))
     {
       int s=-1;
       if (sScanF(answer(len,answer.length()-1),"%i", &s) == 1 && s>=0)

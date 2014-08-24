@@ -2278,7 +2278,7 @@ cgCanInterpolate(
       	if (kd < numberOfDimensions) 
       	{
 	  // *wdh if (invalid = r_(i,kd) < a || r_(i,kd) > b) break;
-        	  if (invalid = r_(i,kd) < rBound[kd][0] || r_(i,kd) > rBound[kd][1]) break;
+        	  if( (invalid = r_(i,kd) < rBound[kd][0] || r_(i,kd) > rBound[kd][1]) ) break;
         	  Real rr = r_(i,kd) / g_gridSpacing(kd) + g_indexRange(0,kd);
 
 	  // real overlap=ov0_(kd); // *wdh*
@@ -2298,7 +2298,7 @@ cgCanInterpolate(
           	    if (iab(0,kd) < validRange(0,kd)) 
                         {
               // Check if point is too close to an interpolated side.
-            	      if (invalid = !g_boundaryCondition(0,kd)) break;
+            	      if( (invalid = !g_boundaryCondition(0,kd)) ) break;
               // One-sided interpolation is used close to a boundary.
             	      isOneSided = oneSided[kd][0] = LogicalTrue;
             	      iab(0,kd) = validRange(0,kd);
@@ -2307,7 +2307,7 @@ cgCanInterpolate(
           	    if (iab(1,kd) > validRange(1,kd)) 
                         {
               // Check if point is too close to an interpolated side.
-            	      if (invalid = !g_boundaryCondition(1,kd)) break;
+            	      if( (invalid = !g_boundaryCondition(1,kd)) ) break;
               //  One-sided interpolation is used close to a boundary.
             	      isOneSided = oneSided[kd][1] = LogicalTrue;
             	      iab(1,kd) = validRange(1,kd);
@@ -2362,7 +2362,7 @@ cgCanInterpolate(
 	  // if (invalid = invalid ||
 	  //     !(g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & CompositeGrid::ISusedPoint)) break;
 
-        	  if (invalid = invalid || !(g_mask(i1,i2,i3) & CompositeGrid::ISusedPoint)) break;
+        	  if( (invalid = invalid || !(g_mask(i1,i2,i3) & CompositeGrid::ISusedPoint)) ) break;
       	}
 
 //         if (!invalid) 
@@ -2436,7 +2436,7 @@ cgCanInterpolate(
 
             	      COMPOSITE_GRID_FOR_3(iab2__, i1, i2, i3)
             	      {
-            		if (invalid = invalid || g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & CompositeGrid::ISinteriorBoundaryPoint)
+            		if( (invalid = invalid || g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & CompositeGrid::ISinteriorBoundaryPoint) )
             		{
 		  // Make sure that we are not too close to an the interpolation point
               		  real rDist=0.;

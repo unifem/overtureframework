@@ -718,19 +718,19 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
       getPlotBounds(gc,psp, xBound);
       
     }
-    else if( len=answer.matches("shaded surfaces") )
+    else if( (len=answer.matches("shaded surfaces")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotShadedSurface=value;
       dialog.setToggleState("shaded surfaces",plotShadedSurface);
     }
-    else if( len=answer.matches("contour lines") )
+    else if( (len=answer.matches("contour lines")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotContourLines=value;
       dialog.setToggleState("contour lines",plotContourLines);
     }
-    else if( len=answer.matches("colour lines") )
+    else if( (len=answer.matches("colour lines")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); colourLineContours=value;
@@ -791,7 +791,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
       recomputeVelocityMinMax=true;
       recomputeContourPlanes=true;
     }
-    else if( len=answer.matches("plot:") )
+    else if( (len=answer.matches("plot:")) )
     {
       // plot a new component
       aString name = answer(len,answer.length()-1);
@@ -823,7 +823,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
       }
     }
 
-    else if( len=answer.matches("component") )  // *wdh* 080710 -- old way, keep for backward compatibility **
+    else if( (len=answer.matches("component")) )  // *wdh* 080710 -- old way, keep for backward compatibility **
     { // new way from dialog
       sScanF(answer(len,answer.length()-1),"%i",&component); 
       component=max(0,min(numberOfComponents-1,component));
@@ -851,7 +851,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
 
       dialog.setTextLabel("min max",sPrintF(answer,"%g %g",uMin,uMax));
     }
-    else if( len=answer.matches("min max") )
+    else if( (len=answer.matches("min max")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&uMin,&uMax);
       dialog.setTextLabel("min max",sPrintF(answer,"%g %g",uMin,uMax));
@@ -875,12 +875,12 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
     {
       parameters.usePlotBounds=false;
     }
-    else if( len=answer.matches("contour shift") )
+    else if( (len=answer.matches("contour shift")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&contourShift); 
       dialog.setTextLabel("contour shift",sPrintF(answer,"%.2g",contourShift));
     }
-    else if( len=answer.matches("number of levels") )  // new way
+    else if( (len=answer.matches("number of levels")) )  // new way
     {
       sScanF(answer(len,answer.length()-1),"%i",&numberOfContourLevels);
       dialog.setTextLabel("number of contour levels",sPrintF(answer,"%i",numberOfContourLevels));
@@ -890,7 +890,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
 	numberOfContourLevels=11;
       }
     }
-    else if( len=answer.matches("ghost lines") )  // new way
+    else if( (len=answer.matches("ghost lines")) )  // new way
     {
       sScanF(answer(len,answer.length()-1),"%i",&numberOfGhostLinesToPlot);
       dialog.setTextLabel("ghost lines",sPrintF(answer,"%i",numberOfGhostLinesToPlot));
@@ -1091,7 +1091,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
 	  }
 	}
       }
-      else if( len=answer.matches("colour iso-surface") )
+      else if( (len=answer.matches("colour iso-surface")) )
       {
 	int isoSurfaceNumber=-1;
         sScanF(answer(len,answer.length()-1),"%i %s",&isoSurfaceNumber,buff);
@@ -1205,17 +1205,17 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
 	}
       
       }
-      else if( len=answer.matches("add coordinate surface") )
+      else if( (len=answer.matches("add coordinate surface")) )
       {
 	sScanF(answer(len,answer.length()-1),"%i %i %i",&grid,&axis,&index);
         option=axis==0 ? pickToAddCoordinateSurface1 : axis==1 ? pickToAddCoordinateSurface2 : pickToAddCoordinateSurface3;
       }
-      else if( len=answer.matches("add boundary surface") )
+      else if( (len=answer.matches("add boundary surface")) )
       {
 	sScanF(answer(len,answer.length()-1),"%i %i %i",&grid,&side,&axis);
         option=pickToAddBoundarySurface;
       }
-      else if( len=answer.matches("delete boundary surface") )
+      else if( (len=answer.matches("delete boundary surface")) )
       {
 	sScanF(answer(len,answer.length()-1),"%i %i %i",&grid,&side,&axis);
         option=pickToDeleteBoundarySurface;
@@ -1312,7 +1312,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
     {
       real x[3]={select.x[0],select.x[1], select.x[2]}; //
       real n[3]={0.,0.,0.};
-      if( len=answer.matches("add contour plane") )
+      if( (len=answer.matches("add contour plane")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e %e %e %e %e %e ",&n[0],&n[1],&n[2],&x[0],&x[1],&x[2]);
       }
@@ -1376,7 +1376,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
 #endif
 
       int iPlane=-1;
-      if( len=answer.matches("delete contour plane") )
+      if( (len=answer.matches("delete contour plane")) )
       {
         sScanF(answer(len,answer.length()-1),"%i",&iPlane);
       }
@@ -1490,11 +1490,11 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
     {
       int iPlane=-1;
       int sideFace=-1, axisFace=-1, gridFace=-1;
-      if( len=answer.matches("delete coordinate plane") )
+      if( (len=answer.matches("delete coordinate plane")) )
       {
         sScanF(answer(len,answer.length()-1),"%i",&iPlane);
       }
-      else if( len=answer.matches("delete grid boundary") )
+      else if( (len=answer.matches("delete grid boundary")) )
       {
         sScanF(answer(len,answer.length()-1),"%i %i %i",&sideFace,&axisFace,&gridFace);
       }
@@ -1629,7 +1629,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
 	     (select.active || select.nSelect || answer.matches("query value") ) )
     {
       RealArray x0(1,3);
-      if( len=answer.matches("query value") )
+      if( (len=answer.matches("query value")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e %e %e",&x0(0,0),&x0(0,1),&x0(0,2));
       }
@@ -1654,7 +1654,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
       i1=0; i2=0; i3=0;
       
       printF("\n ----------------------------------------------------------------------------------\n");
-      if( len=answer.matches("query grid point") )
+      if( (len=answer.matches("query grid point")) )
       {
 	sScanF(answer(len,answer.length()-1),"%i %i %i %i",&grid,&i1,&i2,&i3);
         dialog.setTextLabel("query grid point",sPrintF("%i %i %i %i (grid, i1,i2,i3)",grid,i1,i2,i3));
@@ -1773,7 +1773,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
       }
       printF(" ----------------------------------------------------------------------------------\n");
     }
-    else if( len=answer.matches("xScale, yScale, zScale") )
+    else if( (len=answer.matches("xScale, yScale, zScale")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e",&psp.xScaleFactor,&psp.yScaleFactor,&psp.zScaleFactor);
       printF("New values are xScale = %g, yScale = %g, zScale = %g \n",psp.xScaleFactor,psp.yScaleFactor,
@@ -1786,7 +1786,7 @@ contour3d( GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF
     {
       int oldNumber=numberOfIsoSurfaces; // isoSurfaceValue.getLength(0);
       
-      if( len=answer.matches("iso-surface values") )
+      if( (len=answer.matches("iso-surface values")) )
       {
         const int maxNumberOfValues=10;
         real v[maxNumberOfValues]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};

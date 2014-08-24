@@ -1173,7 +1173,7 @@ plot()
     {
       // plot a sequence
       int sequenceNumber=-1;
-      if( len=answer.matches("plot sequence:") )
+      if( (len=answer.matches("plot sequence:")) )
       {
 	// new way 
         aString sname = answer(len,answer.length()-1);
@@ -1304,7 +1304,7 @@ plot()
       delete [] menu2;
       plotNewComponent=true;
     }
-    else if( len=answer.matches("plot:") )
+    else if( (len=answer.matches("plot:")) )
     {
       // plot a new component
       aString name = answer(len,answer.length()-1);
@@ -1327,7 +1327,7 @@ plot()
       dialog.getOptionMenu("component:").setCurrentChoice(component[cfs]);
       plotNewComponent=true;
     }
-    else if( len=answer.matches("solution:") )
+    else if( (len=answer.matches("solution:")) )
     { // new way from text box
       int newSolution=solutionNumber[cfs];
       sScanF(answer(len,answer.length()-1),"%i",&newSolution);
@@ -1345,7 +1345,7 @@ plot()
       plotNewFunction=true;
       printF("Choosing solution %i\n",solutionNumber[cfs]);
     }
-    else if( len=answer.matches("solution") )
+    else if( (len=answer.matches("solution")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&solutionNumber[cfs]);
       solutionNumber[cfs]=max(0,min(solutionNumber[cfs],numberOfSolutions[cfs]-1));
@@ -1449,7 +1449,7 @@ plot()
 				     movieFileNameNumberingLength));
       sScanF(answer2,"%i ",&movieFileNameNumberingLength);
     }
-    else if( len=answer.matches("frame series:") )
+    else if( (len=answer.matches("frame series:")) )
     {
       aString name=answer(len,answer.length()-1);
       int frameSeries=-1;

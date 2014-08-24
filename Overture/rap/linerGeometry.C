@@ -298,6 +298,7 @@ computeParticleVelocity(SphereLoading & sphereLoading,
   timea=getCPU()-timea;
   printf("Time for computing sphere velocities = %8.2e \n",timea);
 
+  return 0;
 }
 
 
@@ -643,7 +644,7 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
    {
      linearLinerOptionsDialog.hideSibling();
    }
-   else if( len=answer.matches("quadratic liner...") )
+   else if( (len=answer.matches("quadratic liner...")) )
    {
      linerType=quadraticLiner;
      linerCurve = &quadraticLinerCurve;  
@@ -653,13 +654,13 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
    {
      quadraticLinerOptionsDialog.hideSibling();
    }
-   else if( len=answer.matches("free form liner...") )
+   else if( (len=answer.matches("free form liner...")) )
    {
      linerType=freeFormLiner;
      linerCurve = &freeFormLinerCurve; 
      freeFormLinerOptionsDialog.showSibling();
    }
-   else if( len=answer.matches("close free form liner") )
+   else if( (len=answer.matches("close free form liner")) )
    {
      freeFormLinerOptionsDialog.hideSibling();
    }
@@ -715,16 +716,16 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
      // mapInfo.graphXInterface= &gi;
      // lightingSpeed.update(mapInfo);
    }
-//     else if( len=answer.matches("radius for spheres") )
+//     else if( (len=answer.matches("radius for spheres")) )
 //     {
 //        sScanF(answer(len,answer.length()-1),"%e",&sphereRadius);
 //        dialog.setTextLabel(answer(0,len-1),sPrintF(line, "%8.2e",sphereRadius));
 //     }
-   else if ( len=answer.matches("name") )
+   else if ( (len=answer.matches("name")) )
    {
        name = answer(len, answer.length()-1);
    }
-   else if( len=answer.matches("radius for spheres") )
+   else if( (len=answer.matches("radius for spheres")) )
    {
      nsr=sScanF(answer(len, answer.length()-1),
                 "%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e",
@@ -734,7 +735,7 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
 
      dialog.setTextLabel(answer(0,len-1),answer(len,answer.length()));
    }
-   else if( len=answer.matches("probability for spheres") )
+   else if( (len=answer.matches("probability for spheres")) )
    {
      nsp=sScanF(answer(len, answer.length()-1),
                 "%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e",
@@ -744,17 +745,17 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
 
      dialog.setTextLabel(answer(0,len-1),answer(len,answer.length()));
    }
-   else if( len=answer.matches("total volume fraction") )
+   else if( (len=answer.matches("total volume fraction")) )
    {
       sScanF(answer(len,answer.length()-1),"%e",&volumeFraction);
       dialog.setTextLabel(answer(0,len-1),sPrintF(line, "%8.2e",volumeFraction));
    }
-   else if( len=answer.matches("RNG seed") )
+   else if( (len=answer.matches("RNG seed")) )
    {
       sScanF(answer(len,answer.length()-1),"%d",&RNGSeed);
       dialog.setTextLabel(answer(0,len-1),sPrintF(line, "%d",RNGSeed));
    }
-   else if( len=answer.matches("ll point ") )
+   else if( (len=answer.matches("ll point ")) )
    {
      // change a point of the linear liner
 
@@ -776,7 +777,7 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
      linerVolumeIsValid=false;
      
    }
-   else if( len=answer.matches("ql point ") )
+   else if( (len=answer.matches("ql point ")) )
    {
      // change a point of the quadratic liner
 
@@ -1012,7 +1013,7 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
      
      
    }
-   else if( len=answer.matches("rotate spheres to z-axis") )
+   else if( (len=answer.matches("rotate spheres to z-axis")) )
    {
      // rotate results to align along the z-axis
 
@@ -1036,7 +1037,7 @@ linerGeometry( CompositeSurface & model, GenericGraphicsInterface& gi, PointList
      velocity(I,2)=temp;
      
    }
-   else if( len=answer.matches("project a point") )
+   else if( (len=answer.matches("project a point")) )
    {
      // Mapping::debug=15;
 

@@ -35,20 +35,20 @@ RCVector_STATIC_MEMBER_DATA(MappedGrid)
 MappedGrid::
 MappedGrid(const Integer numberOfDimensions_) :   GenericGrid() 
 {
-    className = "MappedGrid";
-    if( false )
-    {
-      rcData=NULL;
-      isCounted=false;
-    }
-    else
-    {
-      rcData = new MappedGridData(numberOfDimensions_);
-      isCounted = LogicalTrue;
-      rcData->incrementReferenceCount();
-      updateReferences();
-    }
-    parentChildSiblingInfo = NULL;
+  className = "MappedGrid";
+  if( false )
+  {
+    rcData=NULL;
+    isCounted=false;
+  }
+  else
+  {
+    rcData = new MappedGridData(numberOfDimensions_);
+    isCounted = LogicalTrue;
+    rcData->incrementReferenceCount();
+    updateReferences();
+  }
+  parentChildSiblingInfo = NULL;
 }
 
 // *wdh* This function could be used to delay the creation of the rcData.
@@ -69,51 +69,51 @@ MappedGrid::MappedGrid(
   const MappedGrid& x,
   const CopyType    ct):
   GenericGrid(x, ct) {
-    className = "MappedGrid";
-    switch (ct) {
-      case DEEP:
-      case NOCOPY:
-        rcData = (MappedGridData*)
-          ((ReferenceCounting*)x.rcData)->virtualConstructor(ct);
-        isCounted = LogicalTrue;
-        rcData->incrementReferenceCount();
-      break;
-      case SHALLOW:
-        rcData = x.rcData;
-        isCounted = x.isCounted;
-        if (isCounted) rcData->incrementReferenceCount();
-      break;
-    } // end switch
-    updateReferences();
-    parentChildSiblingInfo = x.parentChildSiblingInfo;
+  className = "MappedGrid";
+  switch (ct) {
+  case DEEP:
+  case NOCOPY:
+    rcData = (MappedGridData*)
+      ((ReferenceCounting*)x.rcData)->virtualConstructor(ct);
+    isCounted = LogicalTrue;
+    rcData->incrementReferenceCount();
+    break;
+  case SHALLOW:
+    rcData = x.rcData;
+    isCounted = x.isCounted;
+    if (isCounted) rcData->incrementReferenceCount();
+    break;
+  } // end switch
+  updateReferences();
+  parentChildSiblingInfo = x.parentChildSiblingInfo;
 }
 //
 // Constructor from a mapping.
 //
 MappedGrid::MappedGrid(Mapping& x):
   GenericGrid() {
-    className = "MappedGrid";
-    rcData = new MappedGridData;
-    isCounted = LogicalTrue;
-    rcData->incrementReferenceCount();
+  className = "MappedGrid";
+  rcData = new MappedGridData;
+  isCounted = LogicalTrue;
+  rcData->incrementReferenceCount();
 
-    rcData->gridType=x.getClassName()=="UnstructuredMapping" ? unstructuredGrid : structuredGrid;
+  rcData->gridType=x.getClassName()=="UnstructuredMapping" ? unstructuredGrid : structuredGrid;
 
-    updateReferences();
-    parentChildSiblingInfo = NULL;
-    reference(x);
+  updateReferences();
+  parentChildSiblingInfo = NULL;
+  reference(x);
 }
 MappedGrid::
 MappedGrid(MappingRC& x) 
 {
-    className = "MappedGrid";
-    rcData = new MappedGridData;
-    isCounted = LogicalTrue;
-    rcData->incrementReferenceCount();
-    rcData->gridType=x.getClassName()=="UnstructuredMapping" ? unstructuredGrid : structuredGrid;
-    updateReferences();
-    parentChildSiblingInfo = NULL;
-    reference(x);
+  className = "MappedGrid";
+  rcData = new MappedGridData;
+  isCounted = LogicalTrue;
+  rcData->incrementReferenceCount();
+  rcData->gridType=x.getClassName()=="UnstructuredMapping" ? unstructuredGrid : structuredGrid;
+  updateReferences();
+  parentChildSiblingInfo = NULL;
+  reference(x);
 }
 //
 // Destructor.
@@ -224,7 +224,7 @@ reference(MappedGridData& x)
 MappedGrid::BoundaryFlagEnum MappedGrid::
 boundaryFlag(int side, int axis ) const
 {
- return (BoundaryFlagEnum)rcData->boundaryFlag[side][axis]; 
+  return (BoundaryFlagEnum)rcData->boundaryFlag[side][axis]; 
 }
 
 //\begin{>>MappedGridInclude.tex}{\subsubsection{setMapping}}
@@ -369,7 +369,7 @@ setIsPeriodic( const Integer& axis, const Mapping::periodicType& isPeriodic_)
   if( isPeriodic_==Mapping::functionPeriodic )
     rcData->boundaryFlag[0][axis]=rcData->boundaryFlag[1][axis]=MappedGridData::branchCutPeriodicBoundary;
   else if( isPeriodic_==Mapping::derivativePeriodic )
-   rcData->boundaryFlag[0][axis]=rcData->boundaryFlag[1][axis]=MappedGridData::periodicBoundary;
+    rcData->boundaryFlag[0][axis]=rcData->boundaryFlag[1][axis]=MappedGridData::periodicBoundary;
   else if(  isPeriodic_==Mapping::notPeriodic )
   {
     for( int side=Start; side<=End; side++ )
@@ -413,12 +413,16 @@ reference(Mapping& x, bool forceIncompatible/*=false*/ )
   Integer kd, ks;
   for (kd=0; kd<mapping().getRangeDimension(); kd++) 
   {
-    if ( /*incompatible = incompatible*/ incompatible =   (incompatible                                    ||
-	x.getGridDimensions(kd)       != mapping().getGridDimensions(kd)    ||
-	x.getIsPeriodic(kd)           != mapping().getIsPeriodic(kd) )) break;
-    for (ks=0; ks<2; ks++) if ( /*incompatible = incompatible*/ incompatible = (incompatible               ||
-			       x.getBoundaryCondition(ks,kd)!= mapping().getBoundaryCondition(ks,kd)||
-			       mapping().getShare(ks,kd)      != x.getShare(ks,kd) )) break;
+    if( ( incompatible =   (incompatible                                    ||
+			    x.getGridDimensions(kd)       != mapping().getGridDimensions(kd)    ||
+			    x.getIsPeriodic(kd)           != mapping().getIsPeriodic(kd) )) ) break;
+    for (ks=0; ks<2; ks++) 
+    {
+      if ( (incompatible = (incompatible               ||
+			    x.getBoundaryCondition(ks,kd)!= mapping().getBoundaryCondition(ks,kd)||
+			    mapping().getShare(ks,kd)      != x.getShare(ks,kd) ) ) ) break;
+    }
+    
   } // end for, end if
   mapping().reference(x);
   if (incompatible) 
@@ -2467,9 +2471,9 @@ initializePartition()
     assert( numberOfDimensions>0 );
 
     const int myid=max(0,Communication_Manager::My_Process_Number);
-    if( debug & 1 )
-      printf("***** myid=%i MappedGrid:: initialize the partition with (internal) address %d ***** \n",
-              myid,partition.getInternalPartitioningObject());
+    // if( debug & 1 )
+    //   printf("***** myid=%i MappedGrid:: initialize the partition with (internal) address %d ***** \n",
+    //           myid,partition.getInternalPartitioningObject());
     partitionInitialized=true;
 
 

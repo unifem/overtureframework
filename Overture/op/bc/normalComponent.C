@@ -362,13 +362,20 @@ applyBCnormalComponent(realMappedGridFunction & u,
 
   if( numberOfDimensions>1 )
   {
-    WHERE_MASK( uA(I1,I2,I3,n1)-=uDotN(I1,I2,I3)*normal(I1,I2,I3,0); )
-    WHERE_MASK( uA(I1,I2,I3,n2)-=uDotN(I1,I2,I3)*normal(I1,I2,I3,1); )
+    WHERE_MASK( uA(I1,I2,I3,n1)-=uDotN(I1,I2,I3)*normal(I1,I2,I3,0); );
+    
+    WHERE_MASK( uA(I1,I2,I3,n2)-=uDotN(I1,I2,I3)*normal(I1,I2,I3,1); );
+    
     if( numberOfDimensions==3 )
-      WHERE_MASK( uA(I1,I2,I3,n3)-=uDotN(I1,I2,I3)*normal(I1,I2,I3,2); )
+    {
+      WHERE_MASK( uA(I1,I2,I3,n3)-=uDotN(I1,I2,I3)*normal(I1,I2,I3,2); );
+    }
+    
   }
   else
-    WHERE_MASK( uA(I1,I2,I3,n1)-=uDotN(I1,I2,I3)*(2*side-1); )
+  {
+    WHERE_MASK( uA(I1,I2,I3,n1)-=uDotN(I1,I2,I3)*(2*side-1); );
+  }
 
 
   timeForNormalComponent+=getCPU()-time;

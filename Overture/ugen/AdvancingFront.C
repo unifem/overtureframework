@@ -2278,6 +2278,7 @@ computeVertexCandidates(const ArraySimple<real> &currentFaceVerticesTrans,
 	      
 		  real tg0 = getCPU();
 		  if ( get_circle_center(exCandTrans, p1,p2, newVertex) < 0 ) 
+		  {
 		    if ( debug_af )
 		      abort();
 		    else
@@ -2287,7 +2288,8 @@ computeVertexCandidates(const ArraySimple<real> &currentFaceVerticesTrans,
 			newVertex[1] = .5*(p1[1]+p2[1]);
 			//			throw AdvancingFrontError();
 		      }
-
+		  }
+		  
 		  timing[getCircleCent] += getCPU()-tg0;
 	      
 		  newVertexDistance(cand) = 0.0;

@@ -146,13 +146,19 @@ OGMGLIB = $(LDFLAGS)$(Overture)/lib -lOgmg
 
 GLIBS=  $(OV_PERL_LIBRARIES) -L$(OPENGL_LIB) $(OpenGLibs) -L$(MOTIF_LIB) -lXm  $(OV_X_LIBRARIES) $(LAPACK_LIBRARIES) -lm
 
-FLIBS= $(LDFLAGS)$(Overture)/lib $(LibOverture) $(OGMGLIB) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) -Wl-weak-framework,vecLib 
+FLIBS= $(LDFLAGS)$(Overture)/lib $(LibOverture) $(OGMGLIB) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) 
 # SOFLAGS = -dynamiclib -single_module -Wl-bind_at_load $(LDFLAGS)$(Overture)/lib  $(GLIBS) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)
-SOFLAGS = -dynamiclib -single_module -undefined suppress -flat_namespace $(LDFLAGS)$(Overture)/lib  $(GLIBS) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)
+# *wdh* 2014/08/23 SOFLAGS = -dynamiclib -single_module -undefined suppress -flat_namespace $(LDFLAGS)$(Overture)/lib  $(GLIBS) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)
+# wdh: NOTE: do NOT link to libApp when building dylibs as this can create duplicate versions of static class members such as Where_Statement_Mask
+# in A++ which causes where statements to fail
+## SOFLAGS = -dynamiclib -single_module -undefined suppress -flat_namespace
+SOFLAGS = -dynamiclib -shared -undefined dynamic_lookup 
 
 OLIBS = $(LDFLAGS)$(Overture)/lib $(LibOverture)
 RLIBS = $(LDFLAGS)$(Overture)/lib $(LibRapsodi)
-LIBLIBS = $(GLIBS) $(LDFLAGS)$(Overture)/lib -lOverture_static $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) -Wl-weak-framework,vecLib 
+# *wdh* 2014/08/23  LIBLIBS = $(GLIBS) $(LDFLAGS)$(Overture)/lib -lOverture_static $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) -Wl-weak-framework,vecLib 
+# *wdh* 2014/08/23  -- remove AppLibraries
+LIBLIBS = $(GLIBS) $(LDFLAGS)$(Overture)/lib -lOverture_static $(HDF_LIBS) $(FORTRAN_LIBS) 
 # RLIBLIBS = $(GLIBS) $(LDFLAGS)$(Overture)/lib -lOverture -lOverture_static $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) -Wl-weak-framework,vecLib 
-RLIBLIBS = $(GLIBS) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries) -Wl-weak-framework,vecLib 
+RLIBLIBS = $(GLIBS) $(HDF_LIBS) $(FORTRAN_LIBS) $(AppLibraries)
 

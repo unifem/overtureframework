@@ -10,18 +10,6 @@
 #include "LineMapping.h"
 #include "Inverse.h"
 
-int display( realArray & x )
-{
-  ::display(x);
-  return 0;
-}
-
-int display( intArray & x )
-{
-  ::display(x);
-  return 0;
-}
-
 // MemoryManagerType memoryManager;  // This will delete A++ allocated memory at the end
 // Here are some private mappings
 #include "AirfoilMapping.h"
@@ -54,7 +42,7 @@ main(int argc, char *argv[])
       if( line=="-noplot" || line=="-nopause" || line=="-abortOnEnd" ||
           line=="noplot" || line=="nopause" || line=="abortOnEnd" )
         continue;
-      else if( len=line.matches("-numParallelGhost=") )
+      else if( (len=line.matches("-numParallelGhost=")) )
       {
         sScanF(line(len,line.length()-1),"%i",&numberOfParallelGhost);
 	printF("ogenDriver: will use %i parallel ghost points.\n",numberOfParallelGhost);
@@ -103,6 +91,8 @@ main(int argc, char *argv[])
     mapInfo.mappingList.addElement(*mapPointer);
   }
 
+  IntegerArray dimension(2,3);
+   
   int domainDimension=2;
   int rangeDimension=2;
 

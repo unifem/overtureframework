@@ -88,7 +88,7 @@ openFile(const aString &fileName,
  	      printf ("   %i items of type <%s> \n",  num_elems, elem_name);
  	    } else {
  	      printf ("   ERROR: Unknown item type <%s>, cannot proceed! \n",
- 		      num_elems, elem_name);
+ 		      elem_name);
  	    }
  	}
       };

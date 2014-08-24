@@ -3384,14 +3384,23 @@ buildFromAMapping( Mapping & map, intArray &maskin /* = Overture::nullIntArray()
       string bdyvTag = string("boundary ")+EntityTypeStrings[Vertex];
       
       if ( includeGhostElements )
+      {
 	for ( int v=0; v<startOfNonBdyVerts; v++ )
+	{
 	  if ( !isGhost(Vertex,v) )
 	    setAsGhost(Vertex,v);
+	}
+      }
       else
+      {
 	for ( int v=0; v<startOfNonBdyVerts; v++ )
+	{
 	  if ( !hasTag(Vertex,v,bdyvTag) )
 	    addTag(Vertex,v,bdyvTag,0);
-
+	}
+	
+      }
+      
       tagBoundaryEntities(*this);
 
 
@@ -3612,7 +3621,7 @@ checkConnectivity( bool printResults /* =true */,
           if( isPeriodic[0]==notPeriodic && isPeriodic[1]==notPeriodic )
 	  {
 	    printf("checkConnectivity:ERROR in faceElements for face f=%i, element=%i does not have a face f\n",
-		   f,e, numberOfElements);
+		   f,e);
 	    numberOfErrors++;
 	  }
 	  

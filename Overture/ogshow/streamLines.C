@@ -656,7 +656,7 @@ streamLines2d(GenericGraphicsInterface &gi, GridCollection & gc,
       else
         minAndMaxStreamLinesSpecified=false;
     }
-    else if( len=answer.matches("min max") ) // new way
+    else if( (len=answer.matches("min max")) ) // new way
     {
       gi.outputString("Min and max stream line values only change how the stream lines are coloured");
 
@@ -674,20 +674,20 @@ streamLines2d(GenericGraphicsInterface &gi, GridCollection & gc,
       minAndMaxStreamLinesSpecified=false;
       recomputeVelocityMinMax=true;
     }
-    else if( len=answer.matches("xScale, yScale") )
+    else if( (len=answer.matches("xScale, yScale")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&psp.xScaleFactor,&psp.yScaleFactor);
       printF("New values are xScale = %g, yScale = %g \n",psp.xScaleFactor,psp.yScaleFactor);
       dialog.setTextLabel("xScale, yScale",sPrintF(answer,"%g %g",psp.xScaleFactor,psp.yScaleFactor));
     }
-    else if( len=answer.matches("ghost lines") ) // does this work ??
+    else if( (len=answer.matches("ghost lines")) ) // does this work ??
     {
       sScanF(answer(len,answer.length()-1),"%i",&numberOfGhostLinesToPlot);
       dialog.setTextLabel("ghost lines",sPrintF(answer,"%i",numberOfGhostLinesToPlot));
       gi.outputString(sPrintF(buff,"Plot %i ghost lines\n",numberOfGhostLinesToPlot));
     }
 
-    else if(  len=answer.matches("plot bounds") )
+    else if(  (len=answer.matches("plot bounds")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e %e",&plotBound(Start,0),&plotBound(End,0),&plotBound(Start,1),
 	     &plotBound(End,1));
@@ -702,7 +702,7 @@ streamLines2d(GenericGraphicsInterface &gi, GridCollection & gc,
       gi.setGlobalBound(plotBound);
 			  
     }
-    else if( len = answer.matches("streamline density") )
+    else if( (len=answer.matches("streamline density")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&nxgMax);
 

@@ -1238,19 +1238,19 @@ update( MappingInformation & mapInfo )
 
       uninitialized=TRUE; // no need to recompute
     }
-    else if( len=answer.matches("width") )
+    else if( (len=answer.matches("width")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&filletWidth);
       dialog.setTextLabel(0,sPrintF(answer2,"%g",filletWidth));
       uninitialized=TRUE;
     }
-    else if( len=answer.matches("overlap") )
+    else if( (len=answer.matches("overlap")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&filletOverlap);
       dialog.setTextLabel(1,sPrintF(answer2,"%g",filletOverlap));
       uninitialized=TRUE;
     }
-    else if( len=answer.matches("blending factor") )
+    else if( (len=answer.matches("blending factor")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&blendingFactor);
       printf(" blending factor =%e\n",blendingFactor);
@@ -1352,7 +1352,7 @@ update( MappingInformation & mapInfo )
     {
       plotSurfaces=!plotSurfaces;
     }
-    else if( len=answer.matches("plot initial curves") )
+    else if( (len=answer.matches("plot initial curves")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       

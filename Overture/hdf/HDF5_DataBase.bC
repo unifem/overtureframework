@@ -1292,7 +1292,10 @@ closeStream() const
     throw "error";
   }
   if( HDF_DataBase::debug & 1 )
-    printf("HDF_DataBase::closeStream: close the stream buffers: db.dataBaseBuffer=%d \n",db.dataBaseBuffer);
+  {
+    cout << "HDF_DataBase::closeStream: close the stream buffers: db.dataBaseBuffer=" << db.dataBaseBuffer << endl;
+  }
+  
   // close and de-allocate buffers
   db.mode=bufferMode;
   db.dataBaseBuffer->closeBuffer(db); 
@@ -1906,7 +1909,7 @@ putDistributed ( const type & x, const aString &name )
 
     if( debug & 4  )
     {
-      printf(" put(type): sizeof(ArrayDistributionInfo) = %i \n",sizeof(ArrayDistributionInfo));
+      printf(" put(type): sizeof(ArrayDistributionInfo) = %i \n",(int)sizeof(ArrayDistributionInfo));
       const int numDim=MAX_DISTRIBUTED_DIMENSIONS; // min(u.numberOfDimensions(),MAX_DISTRIBUTED_DIMENSIONS);
       printf(" put: baseProc=%i, nProcs=%i\n",adi.baseProc,adi.nProcs);
       for( int d=0; d<numDim; d++ )
@@ -2192,7 +2195,7 @@ get( type &x, const aString &name, Index *Iv /* =NULL */ ) const
 	printf("HDF5_DataBase:get(type):ERROR: invalid sub-array requested, name=%s\n",
               (const char*)name);
         printf(" array dimension %i, array-[base,bound]=[%i,%i], requested [%i,%i]\n",
-	       a,arrayBase[ndims-1-a],arrayBase[ndims-1-a]+dims[ndims-1-a]-1,Iv[a].getBase(),
+	       a,(int)arrayBase[ndims-1-a],int(arrayBase[ndims-1-a]+dims[ndims-1-a]-1),Iv[a].getBase(),
                Iv[a].getBound());
         printf("... will choose largest available sub-array.\n");
       }

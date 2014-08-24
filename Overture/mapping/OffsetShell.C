@@ -788,7 +788,7 @@ createOffsetMappings( MappingInformation & mapInfo )
     {
       break;
     }
-    if( len=answer.matches("Reference Surface:") )
+    if( (len=answer.matches("Reference Surface:")) )
     {
       aString name=answer(len,answer.length()-1);
       const int num=mapInfo.mappingList.getLength();
@@ -855,13 +855,13 @@ createOffsetMappings( MappingInformation & mapInfo )
       generateVolumeGrids( gi, parameters, mapInfo );
       volumeGridsAreValid=true;
     }
-    else if( len=answer.matches("offset vector") )
+    else if( (len=answer.matches("offset vector")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e",&shift[0],&shift[1],&shift[2]);
       dialog.setTextLabel(0,sPrintF(line,"%g, %g, %g",shift[0],shift[1],shift[2]));
       volumeGridsAreValid=false;
     }
-    else if( len=answer.matches("number of matching points") )
+    else if( (len=answer.matches("number of matching points")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&numberOfMatchingPoints);
       printf("number of matching points=%i\n",numberOfMatchingPoints);
@@ -869,7 +869,7 @@ createOffsetMappings( MappingInformation & mapInfo )
       dialog.setTextLabel(1,sPrintF(line,"%i ",numberOfMatchingPoints));
       volumeGridsAreValid=false;
     }
-    else if( len=answer.matches("relative offset from edge") )
+    else if( (len=answer.matches("relative offset from edge")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e %e",&rOffset[0][0],&rOffset[1][0],
                 &rOffset[0][1],&rOffset[1][1]);
@@ -878,31 +878,31 @@ createOffsetMappings( MappingInformation & mapInfo )
 
       volumeGridsAreValid=false;
     }
-    else if( len=answer.matches("normal distance") )
+    else if( (len=answer.matches("normal distance")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&normalDistance);
       dialog.setTextLabel(3,sPrintF(line,"%g",normalDistance));
       volumeGridsAreValid=false;
     }
-    else if( len=answer.matches("lines in normal direction") )
+    else if( (len=answer.matches("lines in normal direction")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&numberOfEdgeLines[2]);
       dialog.setTextLabel(4,sPrintF(line,"%i ",numberOfEdgeLines[2]));
       volumeGridsAreValid=false;
     }
-    else if( len=answer.matches("lines on edge surface") )
+    else if( (len=answer.matches("lines on edge surface")) )
     {
       sScanF(answer(len,answer.length()-1),"%i %i",&numberOfEdgeLines[0],&numberOfEdgeLines[1]);
       dialog.setTextLabel(5,sPrintF(line,"%i, %i",numberOfEdgeLines[0],numberOfEdgeLines[1]));
       volumeGridsAreValid=false;
     }
-    else if( len=answer.matches("offset distance") )
+    else if( (len=answer.matches("offset distance")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&offsetDistance);
       dialog.setTextLabel(6,sPrintF(line,"%g",offsetDistance));
       volumeGridsAreValid=false;
     }
-    else if( len=answer.matches("corner stretch exponent") )
+    else if( (len=answer.matches("corner stretch exponent")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e %e",&cornerStretchExponent[0],&cornerStretchExponent[1],
 	     &cornerStretchExponent[2],&cornerStretchExponent[3]);

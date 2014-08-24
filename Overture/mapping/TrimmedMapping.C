@@ -4786,7 +4786,7 @@ update( MappingInformation & mapInfo )
     {
       viewTrimmed = false;
     }
-    else if( len=answer.matches("edit trim curve") )
+    else if( (len=answer.matches("edit trim curve")) )
     {
       int currentCurve=-1;
       sScanF(answer(len,answer.length()-1),"%i",&currentCurve);
@@ -4838,7 +4838,7 @@ update( MappingInformation & mapInfo )
       currentSelectOp = s;
       interface.getRadioBox(mouseRadioBox).setCurrentChoice(s);
     }
-    else if( len=answer.matches("query trim curve") )
+    else if( (len=answer.matches("query trim curve")) )
     {
       int curve;
       sScanF(answer(len,answer.length()-1), "%i", &curve);
@@ -4856,7 +4856,7 @@ update( MappingInformation & mapInfo )
         gi.outputString("Error in applying `query trim curve': invalid trim curve number.");
       }
     }
-    else if( len=answer.matches("edit trim curve") )
+    else if( (len=answer.matches("edit trim curve")) )
     {
       int curve;
       sScanF(answer(len,answer.length()-1), "%i", &curve);
@@ -4868,7 +4868,7 @@ update( MappingInformation & mapInfo )
 
       }
     }
-    else if( len=answer.matches("reverse trim curve") )
+    else if( (len=answer.matches("reverse trim curve")) )
     {
       int curve;
       sScanF(answer(len,answer.length()-1), "%i", &curve);
@@ -4894,7 +4894,7 @@ update( MappingInformation & mapInfo )
       setUnInitialized();
       validateTrimming();
     }
-    else if( len=answer.matches("delete trim curve") )
+    else if( (len=answer.matches("delete trim curve")) )
     {
       int curvesToDelete[1];
       sScanF(answer(len,answer.length()-1), "%i", &curvesToDelete[0]);
@@ -5716,7 +5716,7 @@ editNurbsTrimCurve( NurbsMapping &trimCurve, MappingInformation & mapInfo )
 //  	 plotAxes = !plotAxes;
 //  	 interface.setToggleState(4, plotAxes);
 //         }
-   else if( len=answer.matches("snap to intersection") )
+   else if( (len=answer.matches("snap to intersection")) )
    {
      // int curve1,curve2,curve1End,curve2End;
      real c2click[2];
@@ -5738,14 +5738,14 @@ editNurbsTrimCurve( NurbsMapping &trimCurve, MappingInformation & mapInfo )
      }
        
    }
-   else if( len=answer.matches("hide curve") )
+   else if( (len=answer.matches("hide curve")) )
    {
      int c=-1;
      sScanF(answer(len,answer.length()-1),"%i",&c);
      if( c>=0 && c<trimCurve.numberOfSubCurves() )
        hiddenSubCurve = trimCurve.toggleSubCurveVisibility(c);
    }
-   else if( len=answer.matches("join with line segment") )
+   else if( (len=answer.matches("join with line segment")) )
    {
      int c=-1;
      sScanF(answer(len,answer.length()-1),"%e %e %e %e",&linePts1(0,0),&linePts1(0,1),&linePts2(0,0),&linePts2(0,1));
@@ -5755,7 +5755,7 @@ editNurbsTrimCurve( NurbsMapping &trimCurve, MappingInformation & mapInfo )
      bool added = false;
      trimCurve.addSubCurve(newLine);
    }
-   else if( len=answer.matches("move end point") )
+   else if( (len=answer.matches("move end point")) )
    {
      RealArray xa(2);
      sScanF(answer(len,answer.length()-1),"%i %i %e %e",&moveCurve,&moveEnd,&xa(0),&xa(1));
@@ -5769,7 +5769,7 @@ editNurbsTrimCurve( NurbsMapping &trimCurve, MappingInformation & mapInfo )
        gi.outputString("Invalid arguments to `move end point'");
      }
    }
-   else if( len=answer.matches("split curve") )
+   else if( (len=answer.matches("split curve")) )
    {
      int curve;
      real rp;    // split curve at this r value
@@ -5796,7 +5796,7 @@ editNurbsTrimCurve( NurbsMapping &trimCurve, MappingInformation & mapInfo )
        gi.outputString("Invalid arguments to `split curve'");
      }
    }
-   else if( len=answer.matches("assemble trim curve") )
+   else if( (len=answer.matches("assemble trim curve")) )
    {
      int curve;
      sScanF(answer(len,answer.length()-1),"%i",&curve);
@@ -6249,7 +6249,7 @@ editNurbsTrimCurve( NurbsMapping &trimCurve, MappingInformation & mapInfo )
        trimCurve.subCurveFromList(selectedCurve).update(mapInfo);
      }
    }
-   else if( len=answer.matches("update trim curve") )
+   else if( (len=answer.matches("update trim curve")) )
    {
      int selectedCurve=-1;
      sScanF(answer(len,answer.length()-1),"%i",&selectedCurve);
@@ -6542,7 +6542,7 @@ editNurbsTrimCurve( NurbsMapping &trimCurve, MappingInformation & mapInfo )
      } while(curveWasHidden);
      
    }
-   else if ( len=answer.matches("show last hidden") )
+   else if ( (len=answer.matches("show last hidden")) )
    {
      if (hiddenSubCurve >= trimCurve.numberOfSubCurves() && 
 	 hiddenSubCurve < trimCurve.numberOfSubCurvesInList())

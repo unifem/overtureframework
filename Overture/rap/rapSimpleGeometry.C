@@ -160,7 +160,7 @@ simpleGeometry(MappingInformation &mapInfo, CompositeSurface & model, ListOfMapp
     {
       break;
     }
-    else if ( (len = answer.matches("Mouse Mode")) )
+    else if ( (len=answer.matches("Mouse Mode")) )
     {
       aString mode= (answer.length() > len+1)? answer(len+1,answer.length()-1): (aString)"";
 	 
@@ -368,7 +368,7 @@ simpleGeometry(MappingInformation &mapInfo, CompositeSurface & model, ListOfMapp
 	
       }
     }
-    else if( (len = answer.matches("extrude in z")) ) // make an arc
+    else if( (len=answer.matches("extrude in z")) ) // make an arc
     {
       aString curveString = "";
       
@@ -381,7 +381,7 @@ simpleGeometry(MappingInformation &mapInfo, CompositeSurface & model, ListOfMapp
 
 	gi.getAnswer(answer, "");
 
-	if (len = answer.matches("zBounds"))
+	if( (len=answer.matches("zBounds")))
 	{
 	  SweepMapping *extrusion_ = new SweepMapping(curve_, NULL, NULL, 2);
 	  extrusion_->incrementReferenceCount();
@@ -428,7 +428,7 @@ simpleGeometry(MappingInformation &mapInfo, CompositeSurface & model, ListOfMapp
       }
     } // end "extrude in z"...
     
-    else if( (len = answer.matches("newPoint")) ) // read the point coordinates
+    else if( (len=answer.matches("newPoint")) ) // read the point coordinates
     {
       aString pointString = "";
       if (answer.length() > len+1)
@@ -451,7 +451,7 @@ simpleGeometry(MappingInformation &mapInfo, CompositeSurface & model, ListOfMapp
       
       interface.setTextLabel(ptIndex, pointString); // (re)set the textlabel
     }
-    else if( (len = answer.matches("split revolving")) ) // read the point coordinates
+    else if( (len=answer.matches("split revolving")) ) // read the point coordinates
     {
       aString splitString = "";
       if (answer.length() > len+1)
@@ -585,7 +585,7 @@ simpleGeometry(MappingInformation &mapInfo, CompositeSurface & model, ListOfMapp
       }
 
     }
-    else if ((len = answer.matches("point for plane")))
+    else if ((len=answer.matches("point for plane")))
     {
       if (nPlanePoints<3)
       {
@@ -805,7 +805,7 @@ simpleGeometry(MappingInformation &mapInfo, CompositeSurface & model, ListOfMapp
        for(;;)
        {
 	 gi.getAnswer(answer, "", select);
-	 if (len = answer.matches("zBounds"))
+	 if( (len=answer.matches("zBounds")) )
 	 {
 	   aString newBounds = "";
 	   if (answer.length() > len+1)

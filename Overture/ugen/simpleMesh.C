@@ -683,7 +683,7 @@ int main(int argc, char *argv[])
 		sc->setNumberOfPoints(np);
 	    }
 	}
-      else if ( len=answer.matches("uniform points on curve") )
+      else if ( (len=answer.matches("uniform points on curve")) )
 	{
 	  int c=-1;
 	  sScanF(answer(len+1,answer.length()-1),"%d",&c);
@@ -706,7 +706,7 @@ int main(int argc, char *argv[])
 		sc->deleteStretching();
 	    }
 	}
-      else if ( len=answer.matches("stretch points on curve") )
+      else if ( (len=answer.matches("stretch points on curve")) )
 	{
 	  int c=-1;
 	  sScanF(answer(len+1,answer.length()-1),"%d",&c);

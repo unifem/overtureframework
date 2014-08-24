@@ -4534,7 +4534,7 @@ Logical CompositeGridData::canInterpolate(
             if (kd < numberOfDimensions) 
             {
 	      // *wdh if (invalid = r_(i,kd) < a || r_(i,kd) > b) break;
-	        if (invalid = r_(i,kd) < rBound[kd][0] || r_(i,kd) > rBound[kd][1]) break;
+	      if( (invalid = (r_(i,kd) < rBound[kd][0] || r_(i,kd) > rBound[kd][1])) ) break;
                 Real rr = r_(i,kd) / g_gridSpacing(kd) + g_indexRange(0,kd);
 
                 // real overlap=ov0_(kd); // *wdh*
@@ -4546,7 +4546,7 @@ Logical CompositeGridData::canInterpolate(
                 if (!g_isPeriodic(kd)) {
                     if (iab(0,kd) < g.extendedRange(0,kd)) {
 //                      Check if point is too close to an interpolated side.
-                        if (invalid = !g_boundaryCondition(0,kd)) break;
+		      if( (invalid = !g_boundaryCondition(0,kd)) ) break;
 //                      One-sided interpolation is used close to a boundary.
                         isOneSided = oneSided[kd][0] = LogicalTrue;
                         iab(0,kd) = g.extendedRange(0,kd);
@@ -4555,7 +4555,7 @@ Logical CompositeGridData::canInterpolate(
                     } // end if
                     if (iab(1,kd) > g.extendedRange(1,kd)) {
 //                      Check if point is too close to an interpolated side.
-                        if (invalid = !g_boundaryCondition(1,kd)) break;
+		      if( (invalid = !g_boundaryCondition(1,kd)) ) break;
 //                      One-sided interpolation is used close to a boundary.
                         isOneSided = oneSided[kd][1] = LogicalTrue;
                         iab(1,kd) = g.extendedRange(1,kd);
@@ -4573,10 +4573,16 @@ Logical CompositeGridData::canInterpolate(
 //      or interpolation points.  Backup discretization points and backup
 //      interpolation points are also allowed.
 //
-        if (!invalid) COMPOSITE_GRID_FOR_3(iab_, i1, i2, i3)
-          if (invalid = invalid ||
-            !(g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & ISusedPoint)) break;
-
+        if (!invalid) 
+	{
+	  COMPOSITE_GRID_FOR_3(iab_, i1, i2, i3)
+	  {
+	    if( (invalid = invalid ||
+		 !(g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & ISusedPoint)) ) break;
+	  }
+	  
+	}
+	
         if (!invalid && checkForOneSided && isOneSided) {
 //
 //          Check for one-sided interpolation from BC points
@@ -4631,7 +4637,7 @@ Logical CompositeGridData::canInterpolate(
 ------- */
                     COMPOSITE_GRID_FOR_3(iab2__, i1, i2, i3)
 		    {
-                      if (invalid = invalid || g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & ISinteriorBoundaryPoint)
+                      if( (invalid = invalid || g_mask(g_I1[i1],g_I2[i2],g_I3[i3]) & ISinteriorBoundaryPoint) )
 		      {
                         // Make sure that we are not too close to an the interpolation point
 			real rDist=0.;

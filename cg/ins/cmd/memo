@@ -1,3 +1,14 @@
+**** MAC: check where mask bug
+
+cgins noplot tz -g=square10 -degreex=2 -degreet=2 -go=go
+
+
+g++ -fpic  -g -w -I./src -I/Users/henshaw/overtureFramework/cg/common/src -I/Users/henshaw/overtureFramework/cg/common/shared -I/Users/henshaw/overtureFramework/cg/common/moving/src -I/Users/henshaw/overtureFramework/cg/common/multiComponent/src -I/Users/henshaw/overtureFramework/cg/common/chemistry -I/Users/henshaw/overtureFramework/cg/common/dataBase -I/Users/henshaw/overtureFramework/cg/src -I/Users/henshaw/Overture.g/include -I/Users/henshaw/res/software/A++P++-0.8.2-clang_5.1/A++/install/include  -I/Users/henshaw/res/software/hdf5-1.6.5/include -I/Users/henshaw/software/petsc-2.3.2/include  -I/Users/henshaw/software/petsc-2.3.2/bmake/darwin-opt -DOVERTURE_USE_PETSC -I/Users/henshaw/software/petsc-2.3.2/lib/darwin-opt/include -I/Users/henshaw/software/petsc-2.3.2/include/mpiuni -o /Users/henshaw/cg.g/ins/obj/determineErrors.o -c src/determineErrors.C
+
+
+g++ -o libOverture.dylib -dynamiclib -undefined suppress -flat_namespace -L/Users/henshaw/Overture.g/lib -L/opt/local/lib/perl5/5.8.9/darwin-2level/CORE -lperl -ldl -lm -lutil -lc -L/opt/local/lib -lGL -lGLU -L/opt/local/lib -lXm -L/opt/local/lib -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11 -L/usr/lib -llapack -lblas -lm -L/Users/henshaw/res/software/hdf5-1.6.5/lib -lhdf5 -ljpeg -lz -L/usr/local/gfortran/lib -lgfortran -L/Users/henshaw/res/software/A++P++-0.8.2-clang_5.1_debug/A++/install/lib -lApp_static ../DataBase/*.o ../GridFunction/*.o ../templates/*.o ../Grid/*.o ../Mapping/*.o ../Oges/*.o ../GridGenerator/*.o ../Ogshow/*.o ../mapUtil/*.o ../otherStuff/*.o -L/opt/local/lib/perl5/5.8.9/darwin-2level/CORE -lperl -ldl -lm -lutil -lc -L/opt/local/lib -lGL -lGLU -L/opt/local/lib -lXm -L/opt/local/lib -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11 -L/usr/lib -llapack -lblas -lm -L/Users/henshaw/Overture.g/lib -lOverture_static -L/Users/henshaw/res/software/hdf5-1.6.5/lib -lhdf5 -ljpeg -lz -L/usr/local/gfortran/lib -lgfortran -L/Users/henshaw/res/software/A++P++-0.8.2-clang_5.1_debug/A++/install/lib -Wl-weak-framework,vecLib
+
+
 ********** 2013/12/01 -- check pressure profile for outflow
 
 cgins cicPressureOutflow -g=cice2.order2 -wall=slip

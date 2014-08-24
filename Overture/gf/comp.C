@@ -111,7 +111,7 @@ computeRate( const int & n, const RealArray & h, const RealArray & e, real & sig
       real dRatio = (e(m0) - e(m1) )/e(m1);
       real logr = log( r12*r23 );
       const int maxIterations=50;
-      for( int it=0; it=maxIterations; it++ )
+      for( int it=0; it<=maxIterations; it++ )
       {
 	real rp = pow(r12,s0);
 	s = log( (rp-1.)*dRatio + rp )/logr;
@@ -206,7 +206,7 @@ computeRateOld( const int & n, const RealArray & h, const RealArray & e, real & 
     if( fabs(ds)>eps )
     {
       printF("computeRate:ERROR in estimating the convergence rate! Will try alternate method...\n");
-      printf(" e(%i)=%e, e(m1)=%e \n",m0,e(m0),m1,e(m1));
+      printf(" e(%i)=%e, e(%i)=%e \n",m0,e(m0),m1,e(m1));
     }
     else
     {

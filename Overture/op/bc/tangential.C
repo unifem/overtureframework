@@ -407,7 +407,9 @@ applyBCtangentialComponent(realMappedGridFunction & u,
     WHERE_MASK( uA(I1,I2,I3,n1)-=uDotN(I1,I2,I3)*tangent(Ib1,Ib2,Ib3,0+ndt); )
     WHERE_MASK( uA(I1,I2,I3,n2)-=uDotN(I1,I2,I3)*tangent(Ib1,Ib2,Ib3,1+ndt); )
     if( numberOfDimensions==3 )
-      WHERE_MASK( uA(I1,I2,I3,n3)-=uDotN(I1,I2,I3)*tangent(Ib1,Ib2,Ib3,2+ndt); )
+    {
+      WHERE_MASK( uA(I1,I2,I3,n3)-=uDotN(I1,I2,I3)*tangent(Ib1,Ib2,Ib3,2+ndt); );
+    }
 
     break;
 	
@@ -445,13 +447,20 @@ applyBCtangentialComponent(realMappedGridFunction & u,
 
       if( numberOfDimensions>1 )
       {
-	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+(*e)(c,I1,I2,I3,m1,t); )
-	WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+(*e)(c,I1,I2,I3,m2,t); )
+	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+(*e)(c,I1,I2,I3,m1,t); );
+	
+	WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+(*e)(c,I1,I2,I3,m2,t); );
+	
 	if( numberOfDimensions==3 )
-	  WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+(*e)(c,I1,I2,I3,m3,t); )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+(*e)(c,I1,I2,I3,m3,t); );
+	}
+	
       }
       else
-	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+(*e)(c,I1,I2,I3,m1,t); )
+      {
+	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+(*e)(c,I1,I2,I3,m1,t); );
+      }
     }
     else if( bcOption==scalarForcing )
     {
@@ -459,10 +468,13 @@ applyBCtangentialComponent(realMappedGridFunction & u,
       {
 	if( numberOfDimensions>1 )
 	{
-	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0); )
-	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1); )
+	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0); );
+	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1); );
+	  
 	  if( numberOfDimensions==3 )
-	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2); )
+	  {
+	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2); );
+	  }
 	}
 	else
 	  uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1);
@@ -471,13 +483,17 @@ applyBCtangentialComponent(realMappedGridFunction & u,
       {
 	if( numberOfDimensions>1 )
 	{
-	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+scalarData; )
-	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+scalarData; )
+	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+scalarData; );
+	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+scalarData; );
 	  if( numberOfDimensions==3 )
-	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+scalarData; )
+	  {
+	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+scalarData; );
+	  }
 	}
 	else
-	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+scalarData; )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+scalarData; );
+	}
       }
     }
     else if( bcOption==arrayForcing )
@@ -486,39 +502,53 @@ applyBCtangentialComponent(realMappedGridFunction & u,
       {
 	if( numberOfDimensions>1 )
 	{
-	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+arrayData(0,side,axis,grid); )
-	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+arrayData(1,side,axis,grid); )
+	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+arrayData(0,side,axis,grid); );
+	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+arrayData(1,side,axis,grid); );
 	  if( numberOfDimensions==3 )
-	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+arrayData(2,side,axis,grid); )
+	  {
+	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+arrayData(2,side,axis,grid); );
+	  }
+	  
 	}
 	else
-	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+arrayData(0,side,axis,grid); )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+arrayData(0,side,axis,grid); );
+	}
       }
       else
       {
 	if( numberOfDimensions>1 )
 	{
-	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+arrayData(0); )
-	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+arrayData(1); )
+	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+arrayData(0); );
+	  
+	  WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+arrayData(1); );
+	  
 	  if( numberOfDimensions==3 )
-	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+arrayData(2); )
+	  {
+	    WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+arrayData(2); );
+	  }
 	}
 	else
-	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+arrayData(0); )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+arrayData(0); );
+	}
       }
     }
     else if( bcOption==gridFunctionForcing )
     {  // use user supplied variable values
       if( numberOfDimensions>1 )
       {
-	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+gfData(I1,I2,I3,m1); )
-	WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+gfData(I1,I2,I3,m2); )
+	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,0)+gfData(I1,I2,I3,m1); );
+	WHERE_MASK( uA(I1,I2,I3,n2)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,1)+gfData(I1,I2,I3,m2); );
 	if( numberOfDimensions==3 )
-	  WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+gfData(I1,I2,I3,m3); )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,n3)=uDotN(I1,I2,I3)*normal(Ib1,Ib2,Ib3,2)+gfData(I1,I2,I3,m3); );
+	}
       }
       else
-	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+gfData(I1,I2,I3,m1); )
-
+      {
+	WHERE_MASK( uA(I1,I2,I3,n1)=uDotN(I1,I2,I3)*(2*side-1)+gfData(I1,I2,I3,m1); );
+      }
     }
     else
       {throw "Invalid value for bcOption! (tangentialComponent)";}

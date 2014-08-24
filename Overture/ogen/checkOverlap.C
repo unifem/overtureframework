@@ -1899,7 +1899,7 @@ checkInterpolationOnBoundaries(CompositeGrid & cg)
 		    if( x0 >= boundingBox(Start,axis1) && x0 <= boundingBox(End,axis1) &&
 			x1 >= boundingBox(Start,axis2) && x1 <= boundingBox(End,axis2) &&
 			( cg.numberOfDimensions()==2 || 
-			  x2 >= boundingBox(Start,axis3) && x2 <= boundingBox(End,axis3) ) )
+			  (x2 >= boundingBox(Start,axis3) && x2 <= boundingBox(End,axis3)) ) )
 		    {
 		      ia(i,0)=i1;
 		      ia(i,1)=i2;
@@ -2707,38 +2707,38 @@ queryAPoint(CompositeGrid & cg)
       PlotIt::plot(gi,cg,psp);
       psp.set(GI_PLOT_THE_OBJECT_AND_EXIT,true);      
     }
-    else if( len=answer.matches("pt: grid,i1,i2,i3:") )
+    else if( (len=answer.matches("pt: grid,i1,i2,i3:")) )
     {
       sScanF(answer(len,answer.length()-1),"%i %i %i %i",&grid,&i1,&i2,&i3);
       checkPoint=true;
     }
-    else if( len=answer.matches("pt colour:") )
+    else if( (len=answer.matches("pt colour:")) )
     {
       pickedPointColour=answer(len+1,answer.length());
       printF("pickedPointColour=[%s]\n",(const char*)pickedPointColour);
       
     }
-    else if( len=answer.matches("pt size:") )
+    else if( (len=answer.matches("pt size:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&pickedPointSize);
       dialog.setTextLabel(2,sPrintF(buff, "%3.0f pixels",pickedPointSize));      
     }
-    else if( len=answer.matches("info level:") )
+    else if( (len=answer.matches("info level:")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&infoLevel);
       printF("Setting infoLevel=%i\n",infoLevel);
     }
-    else if( len=answer.matches("Mapping::debug:") )
+    else if( (len=answer.matches("Mapping::debug:")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&Mapping::debug);
       printF("Setting Mapping::debug=%i\n",Mapping::debug);
     }
-    else if( len=answer.matches("interpolate point") )
+    else if( (len=answer.matches("interpolate point")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&value); interpolatePickedPoint=value;
       dialog.setToggleState(0,interpolatePickedPoint);
     }
-    else if( len=answer.matches("check interpolation coords") )
+    else if( (len=answer.matches("check interpolation coords")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&value); checkInterpolationCoords=value;
       dialog.setToggleState(1,checkInterpolationCoords);
@@ -2747,7 +2747,7 @@ queryAPoint(CompositeGrid & cg)
     {
       printOrphanPoints(cg);
     }
-    else if( len=answer.matches("change the point") )
+    else if( (len=answer.matches("change the point")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&value); changePoint=value;
       dialog.setToggleState(2,changePoint);

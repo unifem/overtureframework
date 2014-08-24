@@ -240,7 +240,7 @@ plotUM(GenericGraphicsInterface &gi, UnstructuredMapping & map,
     {
       plotNodes=FALSE;
     }
-    else if( len=answer.matches("plot faces") )
+    else if( (len=answer.matches("plot faces")) )
     {
       int value=plotFaces;
       sScanF(answer(len,answer.length()-1),"%i",&value);
@@ -314,13 +314,13 @@ plotUM(GenericGraphicsInterface &gi, UnstructuredMapping & map,
 
 	if ( useCutPlane ) map.eraseUnstructuredMapping(gi);
       }
-    else if ( len = answer.matches("Cut Plane Vertex") )
+    else if ( (len=answer.matches("Cut Plane Vertex")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e %e %e",&cutplaneVertex(0),&cutplaneVertex(1),&cutplaneVertex(2));
 	cutplaneVertex.display("cutplaneVertex");
 	if ( useCutPlane ) map.eraseUnstructuredMapping(gi);
       }
-    else if ( len = answer.matches("Cut Plane Normal") )
+    else if ( (len=answer.matches("Cut Plane Normal")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e %e %e",&cutplaneNormal(0),&cutplaneNormal(1),&cutplaneNormal(2));
 	cutplaneNormal.display("cutplaneNormal");
@@ -898,12 +898,16 @@ plotUnstructured(GenericGraphicsInterface &gi, const UnstructuredMapping & um_, 
     glBegin(GL_POINTS);  
 
     if( rangeDimension==2 )
+    {
       for( int i=0; i<nNodes; i++ )
 	if ( plotGhost || !um.isGhost(UnstructuredMapping::Vertex,i) ) glVertex3(x(i,0),x(i,1),zLev2D);
+    }
     else if ( rangeDimension==3 )
+    {
       for( int i=0; i<nNodes; i++ )
 	if ( plotGhost || !um.isGhost(UnstructuredMapping::Vertex,i) ) glVertex3(x(i,0),x(i,1),x(i,2));
-
+    }
+    
     glEnd();
   }
 
@@ -1009,12 +1013,14 @@ plotUnstructured(GenericGraphicsInterface &gi, const UnstructuredMapping & um_, 
 	  const real z0 = rangeDimension==3 ? x(m1,2) : zLev2D;
 	  const real z1 = rangeDimension==3 ? x(m2,2) : zLev2D;
 	  if ( bcColor )
+	  {
 	    if ( !plotFaces && um.hasBC(UnstructuredMapping::Vertex,m1) )
 	      gi.setColour(gi.getColourName(min(max((long)0,um.getBC(UnstructuredMapping::Vertex,m1)),
 						GenericGraphicsInterface::numberOfColourNames-1)));
 	    else
 	      gi.setColour("black");
-
+	  }
+	  
 	  glVertex3(x(m1,0),x(m1,1),z0);
 	  glVertex3(x(m2,0),x(m2,1),z1);
 	}

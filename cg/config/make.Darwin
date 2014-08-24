@@ -38,7 +38,8 @@ LAPACK_LIBRARIES =  -llapack -lblas -Wl-framework,Accelerate
 CHEMKIN_LIBRARIES=  $(CHEMKIN)/cklib.o $(CHEMKIN)/tranlib.o
 
 ## ## C++ Compiler options
-CXX_FLAGS_REQ = -fpic -fno-common -I/usr/include/c++/4.0.0/backward
+## *wdh* 2014/08/23 CXX_FLAGS_REQ = -fpic -fno-common -I/usr/include/c++/4.0.0/backward
+CXX_FLAGS_REQ = -fpic -DGNU
 
 ifeq ($(mode),concise)
 CXX_FLAGS_DBG = -g -w
@@ -66,7 +67,8 @@ CC_FLAGS_FIXFP = -ffloat-store -mno-sse -mno-sse2
 
 ## ## Fortran Compiler options
 
-FC_FLAGS_REQ = -fpic $(OV_AUTO_DOUBLE_FLAGS) $(OV_FORTRAN_FLAGS) -fno-common  -fdefault-double-8
+## *wdh* 2014/08/23 FC_FLAGS_REQ = -fpic $(OV_AUTO_DOUBLE_FLAGS) $(OV_FORTRAN_FLAGS) -fno-common  -fdefault-double-8
+FC_FLAGS_REQ = -fpic $(OV_AUTO_DOUBLE_FLAGS) $(OV_FORTRAN_FLAGS) -fdefault-double-8
 # FC_FLAGS_DBG = -g -fbounds-check 
 ifneq ($(FC),fort77)
   FC_FLAGS_DBG = -g 
@@ -78,7 +80,8 @@ FC_FLAGS_PROF = -pg
 
 ## ## Fortran Compiler options (compiled without auto double)
 
-FC_FLAGSS_REQ = -fpic $(OV_FORTRAN_FLAGS) -fno-common 
+## *wdh* 2014/08/23 FC_FLAGSS_REQ = -fpic $(OV_FORTRAN_FLAGS) -fno-common 
+FC_FLAGSS_REQ = -fpic $(OV_FORTRAN_FLAGS) 
 ifneq ($(FC),fort77)
   FC_FLAGSS_DBG = -g 
 else
@@ -117,11 +120,13 @@ AR_FLAGS_PROF =
 # command to build the shared library:
 SHARED_LIBRARY_COMMAND = $(CXX)
 # flags to use when building the shared library: 
-SHARED_LIBRARY_FLAGS = -dynamiclib -single_module -Wl-bind_at_load 
+# *wdh* 2014/08/23 SHARED_LIBRARY_FLAGS = -dynamiclib -single_module -Wl-bind_at_load 
+SHARED_LIBRARY_FLAGS = -dynamiclib -single_module -undefined suppress -flat_namespace
 # extension for shared libs:
 SHARED_LIBRARY_EXT = .dylib
 # addtional libraries to link to when building the shared library:
-SHARED_LIBRARY_LOAD_LIBS = -L$(Overture)/lib -lOverture -lOverture_static $(OV_FORTRAN_LIBRARIES) $(LAPACK_LIBRARIES)
+# *wdh* 2014/08/23 SHARED_LIBRARY_LOAD_LIBS = -L$(Overture)/lib -lOverture -lOverture_static $(OV_FORTRAN_LIBRARIES) $(LAPACK_LIBRARIES)
+SHARED_LIBRARY_LOAD_LIBS = 
 
 ## ## bpp options
 

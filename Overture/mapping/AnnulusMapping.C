@@ -4,6 +4,7 @@
 #include <float.h>
 
 
+//\begin{>AnnulusMappingInclude.tex}{\subsection{Constructor}}
 AnnulusMapping::
 AnnulusMapping(const real innerRadius_ /* =.5 */, 
              	       const real outerRadius_ /* =1. */, 
@@ -14,21 +15,22 @@ AnnulusMapping(const real innerRadius_ /* =.5 */,
                               const real aOverB_ /* =1. */ )
 : Mapping(2,2,parameterSpace,cartesianSpace)   
 //===========================================================================
-/// \brief  Create an annulus with a circular or elliptical boundary.
-///  
-///  The annulus is defined by 
-///  \begin{align*}  
-///         x(r,s) &= x0 + {\rm aOverB}~ R(s)\cos(\theta(r)) \cr
-///         y(r,s) &= y0 +        R(s)\sin(\theta(r))    \cr   
-///         R(s) &= {\rm innerRadius} + s ({\rm outerRadius}-{\rm innerRadius})  \cr
-///         \theta(r) &= 2 \pi [{\rm startAngle} + r ({\rm endAngle}-{\rm startEngle})] 
-///  \end{align*} 
-/// \param innerRadius,outerRadius (input):  inner and outer radii.
-/// \param x0,y0 (input): centre for the annulus.
-/// \param startAngle, endAngle (input): The initial and final "angle" (in the range [0,1]).
-/// \param aOverB (input): The ratio of the length of the horizontal-radius ("a") to the vertical-radius ("b")
-///   for an elliptical boundary. A value of aOverB=1 defines a circular boundary. 
-///  
+// /Purpose: Create an annulus with a circular or elliptical boundary.
+// 
+// The annulus is defined by 
+// \begin{align*}  
+//        x(r,s) &= x0 + {\rm aOverB}~ R(s)\cos(\theta(r)) \cr
+//        y(r,s) &= y0 +        R(s)\sin(\theta(r))    \cr   
+//        R(s) &= {\rm innerRadius} + s ({\rm outerRadius}-{\rm innerRadius})  \cr
+//        \theta(r) &= 2 \pi [{\rm startAngle} + r ({\rm endAngle}-{\rm startEngle})] 
+// \end{align*} 
+// /innerRadius,outerRadius (input):  inner and outer radii.
+// /x0,y0 (input): centre for the annulus.
+// /startAngle, endAngle (input): The initial and final "angle" (in the range [0,1]).
+// /aOverB (input): The ratio of the length of the horizontal-radius ("a") to the vertical-radius ("b")
+//  for an elliptical boundary. A value of aOverB=1 defines a circular boundary. 
+// 
+//\end{AnnulusMappingInclude.tex}
 //===========================================================================
 {
     AnnulusMapping::className="AnnulusMapping";
@@ -1276,16 +1278,18 @@ make( const aString & mappingClassName )
     return retval;
 }
 
+//\begin{>>AnnulusMappingInclude.tex}{\subsection{setRadii}}
 int AnnulusMapping::
 setRadii(const real & innerRadius_ /* =.5 */, 
        	 const real & outerRadius_ /* =1. */,
                   const real aOverB_ /* =1. */  )
 //===========================================================================
-/// \brief  Define the radii of the annulus.
-/// \param innerRadius,outerRadius (input): inner and outer radii of the annulus.
-///     There is NO restriction that ${\tt innerRadius} < {\tt outerRadius}$.
-/// \param aOverB (input): The ratio of the length of the horizontal-radius ("a") to the vertical-radius ("b")
-///   for an elliptical boundary. A value of aOverB=1 defines a circular boundary. 
+// /Purpose: Define the radii of the annulus.
+// /innerRadius,outerRadius (input): inner and outer radii of the annulus.
+//    There is NO restriction that ${\tt innerRadius} < {\tt outerRadius}$.
+// /aOverB (input): The ratio of the length of the horizontal-radius ("a") to the vertical-radius ("b")
+//  for an elliptical boundary. A value of aOverB=1 defines a circular boundary. 
+//\end{AnnulusMappingInclude.tex}
 //===========================================================================
 {
     innerRadius=innerRadius_;
@@ -1300,15 +1304,17 @@ setRadii(const real & innerRadius_ /* =.5 */,
     return 0;
 }
 
+//\begin{>>AnnulusMappingInclude.tex}{\subsection{setOrigin}}
 int AnnulusMapping::
 setOrigin(const real & x0_ /* =0. */, 
         	  const real & y0_ /* =0. */, 
         	  const real & z0_ /* =0. */ )
 //===========================================================================
-/// \brief  Set the centre of the annulus. Choosing a non-zero value for
-///   {\tt z0} will cause the {\tt rangeDimension} of the Mapping to become 3.
-///   
-/// \param x0,y0,z0 (input): centre of the annulus.
+// /Purpose: Set the centre of the annulus. Choosing a non-zero value for
+//  {\tt z0} will cause the {\tt rangeDimension} of the Mapping to become 3.
+//  
+// /x0,y0,z0 (input): centre of the annulus.
+//\end{AnnulusMappingInclude.tex}
 //===========================================================================
 {
     x0=x0_;
@@ -1319,12 +1325,14 @@ setOrigin(const real & x0_ /* =0. */,
     return 0;
 }
 
+//\begin{>>AnnulusMappingInclude.tex}{\subsection{setAngleBounds}}
 int AnnulusMapping::
 setAngleBounds(const real & startAngle_ /* =0. */, 
              	       const real & endAngle_ /* =1. */ )
 //===========================================================================
-/// \brief  Set the angular bounds on the annulus.
-/// \param startAngle, endAngle (input): The initial and final "angle" (in the range [0,1]).
+// /Purpose: Set the angular bounds on the annulus.
+// /startAngle, endAngle (input): The initial and final "angle" (in the range [0,1]).
+//\end{AnnulusMappingInclude.tex}
 //===========================================================================
 {
     startAngle=startAngle_;
@@ -1507,14 +1515,14 @@ update( MappingInformation & mapInfo )
               gi.getAnswer(answer,"");  // gi.getMenuItem(menu,answer);
   
 
-        if( len=answer.matches("center:") )
+        if( (len=answer.matches("center:")) )
         {
             sScanF(answer(len,answer.length()-1),"%e %e",&x0,&y0);
             if( !gi.isGraphicsWindowOpen() )
                 dialog.setTextLabel("center:",sPrintF(answer,"%g, %g",x0,y0));
             mappingHasChanged();
         }
-        else if( len=answer.matches("radii:") )
+        else if( (len=answer.matches("radii:")) )
         {
             sScanF(answer(len,answer.length()-1),"%e %e",&innerRadius,&outerRadius);
             if( !gi.isGraphicsWindowOpen() )
@@ -1522,7 +1530,7 @@ update( MappingInformation & mapInfo )
             setRadii(innerRadius,outerRadius,aOverB);
             mappingHasChanged();
         }
-        else if( len=answer.matches("angles:") )
+        else if( (len=answer.matches("angles:")) )
         {
             sScanF(answer(len,answer.length()-1),"%e %e",&startAngle,&endAngle);
             if( !gi.isGraphicsWindowOpen() )
@@ -1535,7 +1543,7 @@ update( MappingInformation & mapInfo )
 
             mappingHasChanged();
         }
-        else if( len=answer.matches("ellipse ratio:") )
+        else if( (len=answer.matches("ellipse ratio:")) )
         {
             sScanF(answer(len,answer.length()-1),"%e",&aOverB);
             if( !gi.isGraphicsWindowOpen() )

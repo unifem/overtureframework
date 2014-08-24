@@ -122,7 +122,7 @@ put(GenericDataBase & dir, const aString & name, CompositeSurface & cs)
            "   surfaceLoop->numberOfSubCurves()=%i\n", surfaceLoop->numberOfSubCurves());
     for (scNumber = 0; scNumber < surfaceLoop->numberOfSubCurves(); scNumber++)
     {
-      printf(" subCurve=%i ==? surfaceLoop->subCurve(%i) = %i \n",subCurve,scNumber,surfaceLoop->numberOfSubCurves());
+      cout << " subCurve =" << subCurve; printf(" surfaceLoop->subCurve(%i) = %i \n",scNumber,surfaceLoop->numberOfSubCurves());
     }
     Overture::abort("CurveSegment::put:ERROR");
     // assert(scNumber < surfaceLoop->numberOfSubCurves());

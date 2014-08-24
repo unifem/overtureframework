@@ -2512,7 +2512,7 @@ update( GenericGraphicsInterface & gi, CompositeGrid & cg )
     { 
       problemIsSingular=false;
     }//
-    else if( len=answer.matches("null vector option:") )
+    else if( (len=answer.matches("null vector option:")) )
     {
       aString cmd = answer(len,answer.length()-1);
       if( cmd=="compute" ) nullVectorOption=computeNullVector;

@@ -59,12 +59,12 @@ main(int argc, char *argv[])
       {
         continue; // these commands are processed by getGraphicsInterface below
       }
-      else if( len=line.matches("-numberOfParallelGhost=") )
+      else if( (len=line.matches("-numberOfParallelGhost=")) )
       {
         sScanF(line(len,line.length()-1),"%i",&numberOfParallelGhost);
 	printF("ogenDriver: will use %i parallel ghost points.\n",numberOfParallelGhost);
       }
-      else if( len=line.matches("-numParallelGhost=") )
+      else if( (len=line.matches("-numParallelGhost=")) )
       {
         sScanF(line(len,line.length()-1),"%i",&numberOfParallelGhost);
 	printF("ogenDriver: will use %i parallel ghost points.\n",numberOfParallelGhost);

@@ -206,7 +206,7 @@ checkForStretchCommands(const aString & answer, GenericGraphicsInterface & gi, D
   bool returnValue=true;
   aString line;
   int len;
-  if( len=answer.matches("stretch r") )
+  if( (len=answer.matches("stretch r")) )
   {
     int axis = (len=answer.matches("stretch r1")) ? 0 :
                (len=answer.matches("stretch r2")) ? 1 : (len=answer.matches("stretch r3")) ? 2 : -1;
@@ -342,7 +342,7 @@ update(aString & answer_, DialogData & dialog, MappingInformation & mapInfo,
   else if( checkForStretchCommands(answer,gi,dialog ) )
   {
   }
-//    else if( len=answer.matches("stretch r") )
+//    else if( (len=answer.matches("stretch r")) )
 //    {
 //      int axis = (len=answer.matches("stretch r1")) ? 0 :
 //                 (len=answer.matches("stretch r2")) ? 1 : (len=answer.matches("stretch r3")) ? 2 : -1;
@@ -388,7 +388,7 @@ update(aString & answer_, DialogData & dialog, MappingInformation & mapInfo,
 //      }
     
 //    }
-  else if( len=answer.matches("project stretched grid onto reference surface") )
+  else if( (len=answer.matches("project stretched grid onto reference surface")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&projectStretchedGridOntoReferenceSurface);
     dialog.setToggleState("project stretched grid onto reference surface",
@@ -453,12 +453,12 @@ update(aString & answer_, DialogData & dialog, MappingInformation & mapInfo,
       else if( checkForStretchCommands(answer,gi,dialog ) )
       {
       }
-      else if( len=answer.matches("default weight") )
+      else if( (len=answer.matches("default weight")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e",&defaultWeight);
 	pickDialog.setTextLabel("default weight",sPrintF(line, "%g (used with picking)",defaultWeight));
       }
-      else if( len=answer.matches("default exponent") )
+      else if( (len=answer.matches("default exponent")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e",&defaultExponent);
 	pickDialog.setTextLabel("default exponent",sPrintF(line, "%g (used with picking)",defaultExponent));
@@ -593,7 +593,7 @@ update(aString & answer_, DialogData & dialog, MappingInformation & mapInfo,
     }
     returnValue=gridWasChanged;
   }
-  else if( len=answer.matches("stretch grid") )
+  else if( (len=answer.matches("stretch grid")) )
   {
     gridIsStretched=true;
     if( stretchedMapping!=NULL )

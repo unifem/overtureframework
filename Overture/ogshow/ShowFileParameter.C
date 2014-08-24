@@ -297,7 +297,7 @@ matchAndSetValue( const aString & answer )
   int len=0;
   for( iter=begin(); iter!=end(); iter++ )
   {
-    if( len=matches(answer,iter->getName()) )
+    if( (len=matches(answer,iter->getName())) )
       break;
   }
   if( iter==end() )
@@ -356,7 +356,7 @@ setParameter(const aString & name, const int value )
   int len=0;
   for( iter=begin(); iter!=end(); iter++ )
   {
-    if( len=matches(name,iter->getName()) )
+    if( (len=matches(name,iter->getName())) )
       break;
   }
   if( iter==end() )
@@ -390,7 +390,7 @@ setParameter(const aString & name, const real value )
   int len=0;
   for( iter=begin(); iter!=end(); iter++ )
   {
-    if( len=matches(name,iter->getName()) )
+    if( (len=matches(name,iter->getName())) )
       break;
   }
   if( iter==end() )
@@ -424,7 +424,7 @@ setParameter(const aString & name, const aString & value )
   int len=0;
   for( iter=begin(); iter!=end(); iter++ )
   {
-    if( len=matches(name,iter->getName()) )
+    if( (len=matches(name,iter->getName())) )
       break;
   }
   if( iter==end() )

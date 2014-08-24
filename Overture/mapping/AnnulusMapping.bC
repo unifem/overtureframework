@@ -816,14 +816,14 @@ update( MappingInformation & mapInfo )
        gi.getAnswer(answer,"");  // gi.getMenuItem(menu,answer);
  
 
-    if( len=answer.matches("center:") )
+    if( (len=answer.matches("center:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&x0,&y0);
       if( !gi.isGraphicsWindowOpen() )
         dialog.setTextLabel("center:",sPrintF(answer,"%g, %g",x0,y0));
       mappingHasChanged();
     }
-    else if( len=answer.matches("radii:") )
+    else if( (len=answer.matches("radii:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&innerRadius,&outerRadius);
       if( !gi.isGraphicsWindowOpen() )
@@ -831,7 +831,7 @@ update( MappingInformation & mapInfo )
       setRadii(innerRadius,outerRadius,aOverB);
       mappingHasChanged();
     }
-    else if( len=answer.matches("angles:") )
+    else if( (len=answer.matches("angles:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&startAngle,&endAngle);
       if( !gi.isGraphicsWindowOpen() )
@@ -844,7 +844,7 @@ update( MappingInformation & mapInfo )
 
       mappingHasChanged();
     }
-    else if( len=answer.matches("ellipse ratio:") )
+    else if( (len=answer.matches("ellipse ratio:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&aOverB);
       if( !gi.isGraphicsWindowOpen() )

@@ -197,7 +197,7 @@ plot3dToOverture(GenericGraphicsInterface & gi, aString & showFileName )
              "=============================================================================================\n"
 	);
     }
-    else if( len=answer.matches("grid file") )
+    else if( (len=answer.matches("grid file")) )
     {
       gridName = answer(len+1,answer.length()-1);
       getGrid=true;
@@ -213,13 +213,13 @@ plot3dToOverture(GenericGraphicsInterface & gi, aString & showFileName )
 
     else if( dialog.getTextValue(answer,"show file label 1:","%s",showFileLabel[0]) ){}//
     else if( dialog.getTextValue(answer,"show file label 2:","%s",showFileLabel[1]) ){}//
-    else if( len=answer.matches("q file") )
+    else if( (len=answer.matches("q file")) )
     {
       qName = answer(len+1,answer.length()-1);
       getQFile=true;
       printf(" Looking for plot3d q file (solution file) = [%s]\n",(const char*)qName);
     }
-    else if( len=answer.matches("f file") )
+    else if( (len=answer.matches("f file")) )
     {
       fName = answer(len+1,answer.length()-1);
       getFFile=true;

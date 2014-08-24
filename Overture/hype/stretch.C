@@ -122,19 +122,19 @@ updateMarchingSpacingOptions(aString & answer, DialogData & dialog, MappingInfor
   }
   else if( answer.matches("spacing:") )
   {
-    if( len=answer.matches("spacing: constant")>0 )
+    if( (len=answer.matches("spacing: constant"))>0 )
     {
       spacingType=constantSpacing;
     }
-    else if( len=answer.matches("spacing: geometric")>0 )
+    else if( (len=answer.matches("spacing: geometric"))>0 )
     {
       spacingType=geometricSpacing;
     }
-    else if( len=answer.matches("spacing: inverse hyperbolic")>0 )
+    else if( (len=answer.matches("spacing: inverse hyperbolic"))>0 )
     {
       spacingType=inverseHyperbolicSpacing;
     }
-    else if( len=answer.matches("spacing: stretch Mapping")>0 )
+    else if( (len=answer.matches("spacing: stretch Mapping"))>0 )
     {
       spacingType=oneDimensionalMappingSpacing;
 
@@ -146,7 +146,7 @@ updateMarchingSpacingOptions(aString & answer, DialogData & dialog, MappingInfor
       stretch.update(mapInfo);
 
     }
-    else if( len=answer.matches("spacing: user defined")>0 )
+    else if( (len=answer.matches("spacing: user defined"))>0 )
     {
       spacingType=userDefinedSpacing;
       printf("User defined spacing not implemented yet\n");
@@ -162,7 +162,7 @@ updateMarchingSpacingOptions(aString & answer, DialogData & dialog, MappingInfor
 		   linesFromDistanceAndSpacing );
     dialog.getOptionMenu(1).setCurrentChoice((int)spacingOption);
   }
-  else if( len=answer.matches("initial spacing") )  // keep here for backward compatibility
+  else if( (len=answer.matches("initial spacing")) )  // keep here for backward compatibility
   {
     sScanF(answer(len,answer.length()-1),"%e",&initialSpacing);
 //    dialog.setTextLabel("initial spacing",sPrintF(line, "%g (<0 means choose default)",initialSpacing));
@@ -174,7 +174,7 @@ updateMarchingSpacingOptions(aString & answer, DialogData & dialog, MappingInfor
                       "      You could also set the spacingOption to `lines from distance and initial spacing'");
     }
   }
-  else if( len=answer.matches("geometric stretch factor") )
+  else if( (len=answer.matches("geometric stretch factor")) )
   {
     sScanF( answer(len,answer.length()-1),"%e",&geometricFactor);
     if( geometricFactor==1. )
@@ -187,7 +187,7 @@ updateMarchingSpacingOptions(aString & answer, DialogData & dialog, MappingInfor
     dialog.getOptionMenu(0).setCurrentChoice(spacingType);
 
   }
-  else if( len=answer.matches("inv hyp stretch factor") )
+  else if( (len=answer.matches("inv hyp stretch factor")) )
   {
     real exponent=10.;
     sScanF( answer(len,answer.length()-1),"%e",&exponent);
@@ -341,7 +341,7 @@ updateStartCurveSpacingOptions(aString & answer, DialogData & dialog, MappingInf
                     "    stretch r2 2 1. 5. .5     (id=2 : stretch at r2=.5\n"
                     "-----------------------------------------------------------------------------------------\n" );
   }
-  else if( len=answer.matches("use stretching while marching") )
+  else if( (len=answer.matches("use stretching while marching")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); useStartCurveStretchingWhileMarching=value;
@@ -353,7 +353,7 @@ updateStartCurveSpacingOptions(aString & answer, DialogData & dialog, MappingInf
       equidistributionWeight=0.;
     }
   }
-  else if( len=answer.matches("SC:stretch r") )
+  else if( (len=answer.matches("SC:stretch r")) )
   {
     int axis = (len=answer.matches("SC:stretch r1")) ? 0 :
                (len=answer.matches("SC:stretch r2")) ? 1 : 2;
@@ -429,7 +429,7 @@ updateStartCurveSpacingOptions(aString & answer, DialogData & dialog, MappingInf
     plotObject=true; 
 
   }
-  else if( len=answer.matches("stretch start curve") )
+  else if( (len=answer.matches("stretch start curve")) )
   {
     // *************************************
     // ***** Stretch the start curve *******

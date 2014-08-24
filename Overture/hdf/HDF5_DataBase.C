@@ -1293,7 +1293,10 @@ closeStream() const
         throw "error";
     }
     if( HDF_DataBase::debug & 1 )
-        printf("HDF_DataBase::closeStream: close the stream buffers: db.dataBaseBuffer=%d \n",db.dataBaseBuffer);
+    {
+        cout << "HDF_DataBase::closeStream: close the stream buffers: db.dataBaseBuffer=" << db.dataBaseBuffer << endl;
+    }
+    
   // close and de-allocate buffers
     db.mode=bufferMode;
     db.dataBaseBuffer->closeBuffer(db); 
@@ -1906,7 +1909,7 @@ getArrayDistributionInfo( const intArray & u, ArrayDistributionInfo & adi )
         adi.dimVecL[d]   = uDArray->dimVecL[d];    // center
         adi.dimVecL_R[d] = uDArray->dimVecL_R[d];  // right
     }
-    for( int d=numDim; d<MAX_DISTRIBUTED_DIMENSIONS; d++ )
+    for( int d=numDim; d<MAX_ARRAY_DIMENSION; d++ )
     {
         adi.dimProc[d] = 1;
         adi.dimVecL_L[d] = 1;  // left
@@ -1975,7 +1978,7 @@ getArrayDistributionInfo( const floatArray & u, ArrayDistributionInfo & adi )
         adi.dimVecL[d]   = uDArray->dimVecL[d];    // center
         adi.dimVecL_R[d] = uDArray->dimVecL_R[d];  // right
     }
-    for( int d=numDim; d<MAX_DISTRIBUTED_DIMENSIONS; d++ )
+    for( int d=numDim; d<MAX_ARRAY_DIMENSION; d++ )
     {
         adi.dimProc[d] = 1;
         adi.dimVecL_L[d] = 1;  // left
@@ -2044,7 +2047,7 @@ getArrayDistributionInfo( const doubleArray & u, ArrayDistributionInfo & adi )
         adi.dimVecL[d]   = uDArray->dimVecL[d];    // center
         adi.dimVecL_R[d] = uDArray->dimVecL_R[d];  // right
     }
-    for( int d=numDim; d<MAX_DISTRIBUTED_DIMENSIONS; d++ )
+    for( int d=numDim; d<MAX_ARRAY_DIMENSION; d++ )
     {
         adi.dimProc[d] = 1;
         adi.dimVecL_L[d] = 1;  // left
@@ -2292,7 +2295,7 @@ putDistributed ( const floatArray & x, const aString &name )
         getArrayDistributionInfo( x, adi );
         if( debug & 4  )
         {
-            printf(" put(floatArray): sizeof(ArrayDistributionInfo) = %i \n",sizeof(ArrayDistributionInfo));
+            printf(" put(floatArray): sizeof(ArrayDistributionInfo) = %i \n",(int)sizeof(ArrayDistributionInfo));
             const int numDim=MAX_DISTRIBUTED_DIMENSIONS; // min(u.numberOfDimensions(),MAX_DISTRIBUTED_DIMENSIONS);
             printf(" put: baseProc=%i, nProcs=%i\n",adi.baseProc,adi.nProcs);
             for( int d=0; d<numDim; d++ )
@@ -2546,7 +2549,7 @@ putDistributed ( const doubleArray & x, const aString &name )
         getArrayDistributionInfo( x, adi );
         if( debug & 4  )
         {
-            printf(" put(doubleArray): sizeof(ArrayDistributionInfo) = %i \n",sizeof(ArrayDistributionInfo));
+            printf(" put(doubleArray): sizeof(ArrayDistributionInfo) = %i \n",(int)sizeof(ArrayDistributionInfo));
             const int numDim=MAX_DISTRIBUTED_DIMENSIONS; // min(u.numberOfDimensions(),MAX_DISTRIBUTED_DIMENSIONS);
             printf(" put: baseProc=%i, nProcs=%i\n",adi.baseProc,adi.nProcs);
             for( int d=0; d<numDim; d++ )
@@ -2800,7 +2803,7 @@ putDistributed ( const intArray & x, const aString &name )
         getArrayDistributionInfo( x, adi );
         if( debug & 4  )
         {
-            printf(" put(intArray): sizeof(ArrayDistributionInfo) = %i \n",sizeof(ArrayDistributionInfo));
+            printf(" put(intArray): sizeof(ArrayDistributionInfo) = %i \n",(int)sizeof(ArrayDistributionInfo));
             const int numDim=MAX_DISTRIBUTED_DIMENSIONS; // min(u.numberOfDimensions(),MAX_DISTRIBUTED_DIMENSIONS);
             printf(" put: baseProc=%i, nProcs=%i\n",adi.baseProc,adi.nProcs);
             for( int d=0; d<numDim; d++ )
@@ -3043,7 +3046,7 @@ get( floatSerialArray &x, const aString &name, Index *Iv /* =NULL */ ) const
       	printf("HDF5_DataBase:get(floatSerialArray):ERROR: invalid sub-array requested, name=%s\n",
                             (const char*)name);
                 printf(" array dimension %i, array-[base,bound]=[%i,%i], requested [%i,%i]\n",
-             	       a,arrayBase[ndims-1-a],arrayBase[ndims-1-a]+dims[ndims-1-a]-1,Iv[a].getBase(),
+             	       a,(int)arrayBase[ndims-1-a],int(arrayBase[ndims-1-a]+dims[ndims-1-a]-1),Iv[a].getBase(),
                               Iv[a].getBound());
                 printf("... will choose largest available sub-array.\n");
             }
@@ -3224,7 +3227,7 @@ get( doubleSerialArray &x, const aString &name, Index *Iv /* =NULL */ ) const
       	printf("HDF5_DataBase:get(doubleSerialArray):ERROR: invalid sub-array requested, name=%s\n",
                             (const char*)name);
                 printf(" array dimension %i, array-[base,bound]=[%i,%i], requested [%i,%i]\n",
-             	       a,arrayBase[ndims-1-a],arrayBase[ndims-1-a]+dims[ndims-1-a]-1,Iv[a].getBase(),
+             	       a,(int)arrayBase[ndims-1-a],int(arrayBase[ndims-1-a]+dims[ndims-1-a]-1),Iv[a].getBase(),
                               Iv[a].getBound());
                 printf("... will choose largest available sub-array.\n");
             }
@@ -3405,7 +3408,7 @@ get( intSerialArray &x, const aString &name, Index *Iv /* =NULL */ ) const
       	printf("HDF5_DataBase:get(intSerialArray):ERROR: invalid sub-array requested, name=%s\n",
                             (const char*)name);
                 printf(" array dimension %i, array-[base,bound]=[%i,%i], requested [%i,%i]\n",
-             	       a,arrayBase[ndims-1-a],arrayBase[ndims-1-a]+dims[ndims-1-a]-1,Iv[a].getBase(),
+             	       a,(int)arrayBase[ndims-1-a],int(arrayBase[ndims-1-a]+dims[ndims-1-a]-1),Iv[a].getBase(),
                               Iv[a].getBound());
                 printf("... will choose largest available sub-array.\n");
             }

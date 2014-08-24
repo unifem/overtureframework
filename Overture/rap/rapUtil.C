@@ -235,7 +235,7 @@ closestEdgeOnSurface(real x, real y, real z, CompositeSurface &model, int s, boo
       }
       else
       {
-	printf("trimCurve #%i is NOT a nurb!");
+	printf("trimCurve #%i is NOT a nurb!",i);
 // get the closest point on the trimCurve
 	tSc=-1;
 	trimCurve.inverseMap(rp, tSc);

@@ -59,6 +59,7 @@ allocate()
     rcData->pcg->incrementReferenceCount();
   }
   
+  return 0;
 }
 
 
@@ -153,7 +154,7 @@ MultigridCompositeGridData()
 MultigridCompositeGrid::MultigridCompositeGridData::
 ~MultigridCompositeGridData()
 {
-  if( pcg!=NULL && pcg->decrementReferenceCount()==0 );
+  if( pcg!=NULL && pcg->decrementReferenceCount()==0 )
     delete pcg;
   
 }
@@ -171,4 +172,7 @@ MultigridCompositeGrid::MultigridCompositeGridData::operator=(const MultigridCom
   if( pcg!=NULL ) pcg->incrementReferenceCount();
 
   isUpToDate=rcc.isUpToDate;
+
+  return *this;
+  
 }

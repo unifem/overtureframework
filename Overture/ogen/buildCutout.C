@@ -65,7 +65,7 @@ buildCutout(CompositeGrid & cg, MappingInformation & cutMapInfo2 )
 	      if( x0 >= boundingBox(Start,axis1) && x0 <= boundingBox(End,axis1) &&
 		  x1 >= boundingBox(Start,axis2) && x1 <= boundingBox(End,axis2) &&
 		  ( cg.numberOfDimensions()==2 || 
-		    x2 >= boundingBox(Start,axis3) && x2 <= boundingBox(End,axis3) ) )
+		    (x2 >= boundingBox(Start,axis3) && x2 <= boundingBox(End,axis3)) ) )
 	      {
 		ia(numberToCheck,0)=i1;
 		ia(numberToCheck,1)=i2;

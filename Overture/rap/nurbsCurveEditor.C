@@ -259,7 +259,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
    }
    
    int len;
-   if ( (len = answer.matches("Mouse Mode")) )
+   if ( (len=answer.matches("Mouse Mode")) )
    {
      aString mode= (answer.length() > len+2)? answer(len+1,answer.length()-1): (aString)"";
 	 
@@ -307,7 +307,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
      }
 
    }
-   else if( len=answer.matches("plot bounds") )
+   else if( (len=answer.matches("plot bounds")) )
    {
      sScanF(answer(len,answer.length()-1),"%e %e %e %e",&xBound(0,0),&xBound(1,0),&xBound(0,1),&xBound(1,1));
      
@@ -324,7 +324,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
      plotAllSubcurves = !plotAllSubcurves;
      interface.setToggleState("SubCurves", plotAllSubcurves);
    }
-   else if( len=answer.matches("snap to intersection") )
+   else if( (len=answer.matches("snap to intersection")) )
    {
      // int curve1,curve2,curve1End,curve2End;
      real c2click[2];
@@ -346,14 +346,14 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
      }
        
    }
-   else if( len=answer.matches("hide curve") )
+   else if( (len=answer.matches("hide curve")) )
    {
      int c=-1;
      sScanF(answer(len,answer.length()-1),"%i",&c);
      if( c>=0 && c<curve.numberOfSubCurves() )
        hiddenSubCurve = curve.toggleSubCurveVisibility(c);
    }
-   else if( len=answer.matches("Edit SubCurve") )
+   else if( (len=answer.matches("Edit SubCurve")) )
    {
      int c=-1;
      sScanF(answer(len,answer.length()-1),"%i",&c);
@@ -362,7 +362,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
      if( c>=0 && c<curve.numberOfSubCurves() )
        curve.subCurve(c).update(mapInfo);
    }
-   else if( len=answer.matches("join with line segment") )
+   else if( (len=answer.matches("join with line segment")) )
    {
      int c=-1;
      sScanF(answer(len,answer.length()-1),"%e %e %e %e",&linePts1(0,0),&linePts1(0,1),&linePts2(0,0),&linePts2(0,1));
@@ -372,7 +372,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
      bool added = false;
      curve.addSubCurve(newLine);
    }
-   else if( len=answer.matches("move end point") )
+   else if( (len=answer.matches("move end point")) )
    {
      RealArray xa(2);
      sScanF(answer(len,answer.length()-1),"%i %i %e %e",&moveCurve,&moveEnd,&xa(0),&xa(1));
@@ -386,7 +386,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
        gi.outputString("Invalid arguments to `move end point'");
      }
    }
-   else if( len=answer.matches("split curve") )
+   else if( (len=answer.matches("split curve")) )
    {
      int crv;
      real rp;    // split curve at this r value
@@ -413,7 +413,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
        gi.outputString("Invalid arguments to `split curve'");
      }
    }
-   else if( len=answer.matches("assemble curve") )
+   else if( (len=answer.matches("assemble curve")) )
    {
      int crv;
      sScanF(answer(len,answer.length()-1),"%i",&crv);
@@ -436,7 +436,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
        gi.outputString("Invalid arguments to `assemble curve'");
      }
    }
-    else if( (len = answer.matches("new point")) ) // read the point coordinates
+    else if( (len=answer.matches("new point")) ) // read the point coordinates
     {
       aString pointString = "";
       Point newPoint;
@@ -490,7 +490,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
        gi.outputString(sPrintF(buf,"Selected point %i", p1));
      }
    }
-   else if( (len = answer.matches("arc segment")) ) // make an arc
+   else if( (len=answer.matches("arc segment")) ) // make an arc
    {
      aString arcString = "";
       
@@ -507,7 +507,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
        d = sqrt(SQR(x2-x1) + SQR(y2-y1));
 
        gi.getAnswer(answer, "");
-       if (len = answer.matches("radius of curvature"))
+       if ((len=answer.matches("radius of curvature")))
        {
 	 aString newRadius = "";
 	 if (answer.length() > len+1)
@@ -686,7 +686,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
        for(;;)
        {
 	 gi.getAnswer(answer, "");
-	 if (len = answer.matches("radius of curvature"))
+	 if ((len=answer.matches("radius of curvature")))
 	 {
 	   aString newRadius = "";
 	   if (answer.length() > len+1)
@@ -1155,7 +1155,7 @@ nurbsCurveEditor( NurbsMapping &curve, GenericGraphicsInterface& gi, PointList &
      } while(curveWasHidden);
      
    }
-   else if ( len=answer.matches("show last hidden") )
+   else if ( (len=answer.matches("show last hidden")) )
    {
      if (hiddenSubCurve >= curve.numberOfSubCurves() && 
 	 hiddenSubCurve < curve.numberOfSubCurvesInList())

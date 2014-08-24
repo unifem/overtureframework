@@ -250,7 +250,7 @@ useNurbsToEvaluate( bool trueOrFalse )
     mapIsDistributed=dpm->mapIsDistributed;
     inverseIsDistributed=dpm->mapIsDistributed;
   }
-  
+  return 0;
 }
 
 

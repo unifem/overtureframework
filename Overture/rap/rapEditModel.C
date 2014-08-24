@@ -196,7 +196,7 @@ projectPointsOnSurface(realArray & x, int s, CompositeSurface &model,
   else if (nTrim > 0)
   {
     printf("Sorry, but the last trim curve (#%d) is a %s. Can't add the intersection curve!\n",
-	   SC trim_->trimCurves[nTrim-1]->getClassName());
+	   nTrim, SC trim_->trimCurves[nTrim-1]->getClassName());
   }
   else
   {
@@ -1680,7 +1680,7 @@ editModel(MappingInformation &mapInfo, CompositeSurface & model, CompositeSurfac
 	plotObject=true;
       }
     }
-    else if( len = answer.matches("surface for intersection") )
+    else if( (len = answer.matches("surface for intersection")) )
     {
       int s;
       if (sScanF(answer(len,answer.length()-1), "%i", &s) == 1 && s>=0)
@@ -1698,7 +1698,7 @@ editModel(MappingInformation &mapInfo, CompositeSurface & model, CompositeSurfac
 	nIMap = 0;
       }
     }
-    else if( len = answer.matches("surface edge") )
+    else if( (len = answer.matches("surface edge")) )
     {
       int s=-1;
       real x, y, z;
@@ -1715,7 +1715,7 @@ editModel(MappingInformation &mapInfo, CompositeSurface & model, CompositeSurfac
 	gi.outputString("Made a NEW curve");
       }
     }
-    else if( len = answer.matches("select curve") )
+    else if( (len = answer.matches("select curve")) )
     {
       int c=-1;
       if (sScanF(answer(len,answer.length()-1),"%i", &c) == 1 && c>=0 && nEdges<4)
@@ -1728,7 +1728,7 @@ editModel(MappingInformation &mapInfo, CompositeSurface & model, CompositeSurfac
 	gi.outputString(sPrintF(buf,"Error: Cannot select curve %i (nEdges = %i)", c, nEdges));
       }
     }
-    else if( len = answer.matches("project edge") )
+    else if( (len = answer.matches("project edge")) )
     {
       int s=-1, e=-1;
       if (sScanF(answer(len,answer.length()-1),"%i %i", &e, &s) == 2 && s>=0 && e>=0 && e<nEdges)
@@ -1748,7 +1748,7 @@ editModel(MappingInformation &mapInfo, CompositeSurface & model, CompositeSurfac
 	gi.outputString(sPrintF(buf,"Error: Cannot project edge %i onto subSurface %i, nEdges=%i", e, s, nEdges));
       }
     }
-    else if( len = answer.matches("project surface") )
+    else if( (len = answer.matches("project surface")) )
     {
       int s=-1;
       if (sScanF(answer(len,answer.length()-1),"%i", &s) == 1 && s>=0 && s<model.numberOfSubSurfaces())
@@ -1761,7 +1761,7 @@ editModel(MappingInformation &mapInfo, CompositeSurface & model, CompositeSurfac
 	gi.outputString(sPrintF(buf,"Error: Cannot project surface %i onto the model", s));
       }
     }
-    else if( len = answer.matches("point for plane") )
+    else if( (len = answer.matches("point for plane")) )
     {
       if (nPlanePoints<3)
       {

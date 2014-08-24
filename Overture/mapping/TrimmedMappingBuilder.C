@@ -678,7 +678,7 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
       const bool splitPeriodic = pickOption==pickToSplitPeriodicSurface || answer.matches("split periodic surface");
 
       Mapping *mapPointer=NULL;
-      if( len=answer.matches("split periodic surface") )
+      if( (len=answer.matches("split periodic surface")) )
       {
 	aString name;
         name = answer(len+1,answer.length()-1);
@@ -792,11 +792,11 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
       const bool createInner = pickOption==pickToBuildAnInnerTrimCurve  || answer.matches("inner trim curve");
 
       int curveFound=-1;
-      if( len=answer.matches("outer trim curve") )
+      if( (len=answer.matches("outer trim curve")) )
       {
         sScanF(answer(len,answer.length()-1),"%i",&curveFound);
       }
-      else if( len=answer.matches("inner trim curve") )
+      else if( (len=answer.matches("inner trim curve")) )
       {
         sScanF(answer(len,answer.length()-1),"%i",&curveFound);
       }
@@ -885,11 +885,11 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
 		    (createInner && answer.matches("add inner trim curve")) ) )
 	  {
 	    int curveFound=-1;
-	    if( len=answer.matches("add outer trim curve") )
+	    if( (len=answer.matches("add outer trim curve")) )
 	    {
 	      sScanF(answer(len,answer.length()-1),"%i",&curveFound);
 	    }
-	    else if( len=answer.matches("add inner trim curve") )
+	    else if( (len=answer.matches("add inner trim curve")) )
 	    {
 	      sScanF(answer(len,answer.length()-1),"%i",&curveFound);
 	    }
@@ -954,7 +954,7 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
 	
       } // end if curveFound>=0
     }
-    else if( len=answer.matches("Surface to trim:") )
+    else if( (len=answer.matches("Surface to trim:")) )
     {
       aString name=answer(len,answer.length()-1);
       const int num=mapInfo.mappingList.getLength();
@@ -981,7 +981,7 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
 	}
       }
     }
-    else if( len=answer.matches("Trim with:") )
+    else if( (len=answer.matches("Trim with:")) )
     {
       // A surface has been chosen to trim the reference surface with ...
       aString name=answer(len,answer.length()-1);
@@ -1021,7 +1021,7 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
       pCurve->decrementReferenceCount();
       curve->decrementReferenceCount();
     }
-    else if( len=answer.matches("surface colour") )
+    else if( (len=answer.matches("surface colour")) )
     {
       referenceSurfaceColour=answer(len+1,answer.length()-1);
       cout << "answer=[" << answer << "]" << endl;
@@ -1061,13 +1061,13 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
         printf("INFO:Sorry, there is no reference surface to set the colour for\n");
       }
     }
-    else if( len=answer.matches("plot reference surface") )
+    else if( (len=answer.matches("plot reference surface")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotReferenceSurface=value;
       dialog.setToggleState("plot reference surface",plotReferenceSurface);
     }
-    else if( len=answer.matches("plot shaded on reference surface") )
+    else if( (len=answer.matches("plot shaded on reference surface")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value);
@@ -1075,7 +1075,7 @@ buildTrimmedMapping( MappingInformation & mapInfo, Mapping *surface /* = NULL */
       referenceSurfaceParameters.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,value);
       referenceSurfaceParameters.set(GI_PLOT_UNS_FACES,value);
     }
-    else if( len=answer.matches("plot lines on reference surface") )
+    else if( (len=answer.matches("plot lines on reference surface")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); 

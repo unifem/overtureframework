@@ -1149,7 +1149,7 @@ updateBoundaryAdjustment( CompositeGrid & cg,
 		      if(x1(i1,i2,i3,0)>= boundingBox(Start,axis1) && x1(i1,i2,i3,0)<= boundingBox(End,axis1) &&
 			 x1(i1,i2,i3,1)>= boundingBox(Start,axis2) && x1(i1,i2,i3,1)<= boundingBox(End,axis2) &&
 			 ( cg.numberOfDimensions()==2 || 
-			   x1(i1,i2,i3,2)>= boundingBox(Start,axis3) && x1(i1,i2,i3,2)<= boundingBox(End,axis3) ) )
+			   (x1(i1,i2,i3,2)>= boundingBox(Start,axis3) && x1(i1,i2,i3,2)<= boundingBox(End,axis3)) ) )
 		      {
 			ia(i,0)=i1;
 			ia(i,1)=i2;

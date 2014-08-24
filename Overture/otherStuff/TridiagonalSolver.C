@@ -1999,10 +1999,10 @@ scalarBlockPeriodicFactor(int i1, int i2, int i3)
 
       d0=W2(0,j); d1=W2(1,j); d2=W2(2,j); d3=W2(3,j);
       // w2(N,N,i1)=-multiply(a,i1, w2,i1-1);
-      W2(0,i) =- (a0*d0+a2*d1);
-      W2(1,i) =- (a1*d0+a3*d1);
-      W2(2,i) =- (a0*d2+a2*d3);
-      W2(3,i) =- (a1*d2+a3*d3);
+      W2(0,i) = -(a0*d0+a2*d1);
+      W2(1,i) = -(a1*d0+a3*d1);
+      W2(2,i) = -(a0*d2+a2*d3);
+      W2(3,i) = - (a1*d2+a3*d3);
 
       // w1(N,N,i1)= multiply(c,bound, b,i1-1); // save c*b^{-1}
       e0=C(0,ib); e1=C(1,ib); e2=C(2,ib); e3=C(3,ib);
@@ -2013,10 +2013,10 @@ scalarBlockPeriodicFactor(int i1, int i2, int i3)
 
       // c(N,N,bound)=-multiply(w1,i1, c,i1-1);
       e0=W1(0,i); e1=W1(1,i); e2=W1(2,i); e3=W1(3,i);
-      C(0,ib) =- (e0*c0+e2*c1);
-      C(1,ib) =- (e1*c0+e3*c1);
-      C(2,ib) =- (e0*c2+e2*c3);
-      C(3,ib) =- (e1*c2+e3*c3);
+      C(0,ib) = -(e0*c0+e2*c1);
+      C(1,ib) = -(e1*c0+e3*c1);
+      C(2,ib) = -(e0*c2+e2*c3);
+      C(3,ib) = - (e1*c2+e3*c3);
 
       // b(N,N,bound)-=multiply(w1,i1, w2,i1-1);
       B(0,ib) -= e0*d0+e2*d1;
@@ -2933,10 +2933,10 @@ scalarBlockPeriodicFactorOld(int i1, int i2, int i3)
 
       d0=W2(0,j); d1=W2(1,j); d2=W2(2,j); d3=W2(3,j);
       // w2(N,N,i1)=-multiply(a,i1, w2,i1-1);
-      W2(0,i) =- (a0*d0+a1*d2);
-      W2(1,i) =- (a0*d1+a1*d3);
-      W2(2,i) =- (a2*d0+a3*d2);
-      W2(3,i) =- (a2*d1+a3*d3);
+      W2(0,i) = -(a0*d0+a1*d2);
+      W2(1,i) = -(a0*d1+a1*d3);
+      W2(2,i) = -(a2*d0+a3*d2);
+      W2(3,i) = -(a2*d1+a3*d3);
 
       // w1(N,N,i1)= multiply(c,bound, b,i1-1); // save c*b^{-1}
       e0=C(0,ib); e1=C(1,ib); e2=C(2,ib); e3=C(3,ib);
@@ -2947,10 +2947,10 @@ scalarBlockPeriodicFactorOld(int i1, int i2, int i3)
 
       // c(N,N,bound)=-multiply(w1,i1, c,i1-1);
       e0=W1(0,i); e1=W1(1,i); e2=W1(2,i); e3=W1(3,i);
-      C(0,ib) =- (e0*c0+e1*c2);
-      C(1,ib) =- (e0*c1+e1*c3);
-      C(2,ib) =- (e2*c0+e3*c2);
-      C(3,ib) =- (e2*c1+e3*c3);
+      C(0,ib) = -(e0*c0+e1*c2);
+      C(1,ib) = -(e0*c1+e1*c3);
+      C(2,ib) = -(e2*c0+e3*c2);
+      C(3,ib) = -(e2*c1+e3*c3);
 
       // b(N,N,bound)-=multiply(w1,i1, w2,i1-1);
       B(0,ib) -= e0*d0+e1*d2;

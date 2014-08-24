@@ -769,28 +769,37 @@ void cutcell(SquareMapping &square, real dx_, real dy_,
 			jz1--;
 
 		      if ( mask(iz1,jz1)<0 )
+		      {
 			if ( a1<=0. )
 			  mask(iz1,jz1) = blankedNode;
 			else
 			  mask(iz1,jz1) = activeNode;
-
+		      }
+		      
 		      if ( mask(iz1+1,jz1)<0 )
+		      {
 			if ( a2<=0. )
 			  mask(iz1+1,jz1) = blankedNode;
 			else
 			  mask(iz1+1,jz1) = activeNode;
-
+		      }
+		      
 		      if ( mask(iz1+1,jz1+1)<0 )
+		      {
 			if ( a3<=0. )
 			  mask(iz1+1,jz1+1) = blankedNode;
 			else
 			  mask(iz1+1,jz1+1) = activeNode;
-
+		      }
+		      
 		      if ( mask(iz1,jz1+1)<0 )
+		      {
 			if ( a4<=0. )
 			  mask(iz1,jz1+1) = blankedNode;
 			else
 			  mask(iz1,jz1+1) = activeNode;
+		      }
+		      
 		    }
 //  		  cout<<"FINISHED?"<<endl;
 		  //		  abort();

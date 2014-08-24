@@ -390,12 +390,12 @@ nt++;
     {
       break;
     }
-    else if( len=answer.matches("project pick to nearest object") )
+    else if( (len=answer.matches("project pick to nearest object")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&projectToNearest);
       dialog.setToggleState("project pick to nearest object",projectToNearest);
     }
-    else if( len=answer.matches("x bounds:" ) )
+    else if( (len=answer.matches("x bounds:" )) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&xa,&xb);
       dialog.setTextLabel("x bounds:",sPrintF(line, "%.6g, %.6g",xa,xb));
@@ -403,7 +403,7 @@ nt++;
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;  // fix this
     }
-    else if( len=answer.matches("y bounds:" ) )
+    else if( (len=answer.matches("y bounds:" )) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&ya,&yb);
       dialog.setTextLabel("y bounds:",sPrintF(line, "%.6g, %.6g",ya,yb));
@@ -411,7 +411,7 @@ nt++;
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;  // fix this
     }
-    else if( len=answer.matches("z bounds:" ) )
+    else if( (len=answer.matches("z bounds:" )) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&za,&zb);
       dialog.setTextLabel("z bounds:",sPrintF(line, "%.6g, %.6g",za,zb));
@@ -419,7 +419,7 @@ nt++;
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;  // fix this
     }
-    else if( len=answer.matches("lines:" ) )
+    else if( (len=answer.matches("lines:" )) )
     {
       userHasSetGridLines=true;
       
@@ -432,7 +432,7 @@ nt++;
       volumeGrids[numberOfVolumeGrids-1].setGridDimensions(2,nz);
       boxHasChanged=true;  // fix this
     }
-    else if( len=answer.matches("bc") )
+    else if( (len=answer.matches("bc")) )
     {
       int bc[2][3];
       int side,axis;
@@ -455,7 +455,7 @@ nt++;
 				       volumeGrids[numberOfVolumeGrids-1].getBoundaryCondition(1,2)));
       boxHasChanged=true;  // fix this
     }
-    else if( len=answer.matches("share") )
+    else if( (len=answer.matches("share")) )
     {
       int share[2][3];
       int side,axis;
@@ -479,14 +479,14 @@ nt++;
 				       volumeGrids[numberOfVolumeGrids-1].getShare(1,2)));
       boxHasChanged=true;  // fix this
     }
-    else if( len=answer.matches("name") )
+    else if( (len=answer.matches("name")) )
     {
       aString name = answer(len+1,answer.length()-1);
       volumeGrids[numberOfVolumeGrids-1].setName(Mapping::mappingName,name);
       dialog.setTextLabel("name",name);
     }
     
-    else if( len=answer.matches("box details..." ) )
+    else if( (len=answer.matches("box details..." )) )
     {
       box.update(mapInfo);
       boxHasChanged=true;
@@ -497,43 +497,43 @@ nt++;
     else if( answer.matches("y max") ) pickOption=pickYmax;
     else if( answer.matches("z min") ) pickOption=pickZmin;
     else if( answer.matches("z max") ) pickOption=pickZmax;
-    else if( len=answer.matches("set x min") )
+    else if( (len=answer.matches("set x min")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&xa);
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;
     }
-    else if( len=answer.matches("set x max") )
+    else if( (len=answer.matches("set x max")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&xb);
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;
     }
-    else if( len=answer.matches("set y min") )
+    else if( (len=answer.matches("set y min")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&ya);
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;
     }
-    else if( len=answer.matches("set y max") )
+    else if( (len=answer.matches("set y max")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&yb);
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;
     }
-    else if( len=answer.matches("set z min") )
+    else if( (len=answer.matches("set z min")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&za);
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;
     }
-    else if( len=answer.matches("set z max") )
+    else if( (len=answer.matches("set z max")) )
     {
       sScanF(answer(len,answer.length()-1),"%e",&zb);
       box.setVertices(xa,xb,ya,yb,za,zb);
       boxHasChanged=true;
     }
-//     else if( len=answer.matches("select box point") ) 
+//     else if( (len=answer.matches("select box point")) ) 
 //     {
 //       real x[3];
 //       sScanF(answer(len,answer.length()-1),"%e %e %e",&x[0],&x[1],&x[2]);
@@ -559,7 +559,7 @@ nt++;
       stretchDialog.hideSibling();
       continue;
     }
-    else if( stretchReturnValue=gridStretcher.update(answer,stretchDialog,mapInfo,stretchedBox) )
+    else if( (stretchReturnValue=gridStretcher.update(answer,stretchDialog,mapInfo,stretchedBox)) )
     {
       // NOTE: in the call to gridStretcher.update: 
       //               gridIndexRange: marks the actual boundaries
@@ -850,7 +850,7 @@ assignBoundaryConditions(MappingInformation & mapInfo )
     {
       break;
     }
-    else if( len=answer.matches("boundary condition:") )
+    else if( (len=answer.matches("boundary condition:")) )
     {
       // printf("answer=[%s]\n",(const char*)answer);
 	  
@@ -860,7 +860,7 @@ assignBoundaryConditions(MappingInformation & mapInfo )
       dialog.setTextLabel(0,sPrintF(line, "%i",bc));
       continue;
     }
-    else if( len=answer.matches("shared boundary flag:" ) )
+    else if( (len=answer.matches("shared boundary flag:" )) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&share);
       printf("Current share=%i\n",share);
@@ -888,7 +888,7 @@ assignBoundaryConditions(MappingInformation & mapInfo )
       parameters.getBoundaryColourOption()=GraphicsParameters::colourByGrid;
       volumeGrids.eraseCompositeSurface(gi);
     }
-    else if( len=answer.matches("set BC and share") )
+    else if( (len=answer.matches("set BC and share")) )
     {
       // this command will normally only appear in a command file.
       int grid=-1,side=-1,axis=-1,bc=-1,share=-1;
@@ -978,7 +978,7 @@ assignBoundaryConditions(MappingInformation & mapInfo )
       dialog.getRadioBox(0).setCurrentChoice(pickingOption);
       continue;
     }
-    else if( len=answer.matches("plot lines on non-physical boundaries") )
+    else if( (len=answer.matches("plot lines on non-physical boundaries")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotNonPhysicalBoundaries=value;
@@ -1322,12 +1322,12 @@ buildCurveOnSurface(MappingInformation & mapInfo)
     {
       break;
     }
-    else if( len=answer.matches("plot plane") )
+    else if( (len=answer.matches("plot plane")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&plotPlane);
       dialog.setToggleState("plot plane",plotPlane);       
     }
-    else if( len=answer.matches("plane point") ) // handles all 3 cases
+    else if( (len=answer.matches("plane point")) ) // handles all 3 cases
     {
       int ipt=answer.matches("plane point 1") ? 0 : answer.matches("plane point 2") ? 1 : 2;
       
@@ -1342,7 +1342,7 @@ buildCurveOnSurface(MappingInformation & mapInfo)
 		      xp[0][1],xp[1][1],xp[2][1],
 		      xp[0][2],xp[1][2],xp[2][2]);
     }
-    else if( len=answer.matches("plane grid points") )
+    else if( (len=answer.matches("plane grid points")) )
     {
       sScanF(answer(len,answer.length()-1),"%i %i",&planeGridPoints[0],&planeGridPoints[1]);
       dialog.setTextLabel("plane grid points", sPrintF(line,"%i %i",planeGridPoints[0],planeGridPoints[1]));
@@ -1785,13 +1785,13 @@ buildSurfacePatch(MappingInformation & mapInfo)
     {
       break;
     }
-    else if( len=answer.matches("plot reference surface") )
+    else if( (len=answer.matches("plot reference surface")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotReferenceSurface=value;
       dialog.setToggleState("plot reference surface",plotReferenceSurface);
     }
-    else if( len=answer.matches("plot patch curves") )
+    else if( (len=answer.matches("plot patch curves")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotPatchCurves=value;
@@ -1827,25 +1827,25 @@ buildSurfacePatch(MappingInformation & mapInfo)
       dialog.getRadioBox(0).setCurrentChoice(pickingOption);
       continue;
     }
-    else if( len=answer.matches("project patch onto surface") )
+    else if( (len=answer.matches("project patch onto surface")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&projectPatchOntoSurface); 
       dialog.setToggleState("project patch onto surface",(bool)projectPatchOntoSurface);
       continue;
     }
-    else if( len=answer.matches("plot boundary curves") )
+    else if( (len=answer.matches("plot boundary curves")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotBoundaryCurves=value;
       dialog.setToggleState("plot boundary curves",(bool)plotBoundaryCurves);
     }
-    else if( len=answer.matches("plot edge curves") )
+    else if( (len=answer.matches("plot edge curves")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotEdgeCurves=value;
       dialog.setToggleState("plot edge curves",(bool)plotEdgeCurves);
     }
-    else if( len=answer.matches("lines") )
+    else if( (len=answer.matches("lines")) )
     {
       sScanF(answer(len,answer.length()-1),"%i %i",&numberOfGridLines[0],&numberOfGridLines[1]); 
       dialog.setTextLabel("lines",sPrintF(answer,"%i %i",numberOfGridLines[0],numberOfGridLines[1]));
@@ -1855,7 +1855,7 @@ buildSurfacePatch(MappingInformation & mapInfo)
 	patch->setGridDimensions(1,numberOfGridLines[1]);
       }
     }
-    else if( len=answer.matches("explicit ghost lines") )
+    else if( (len=answer.matches("explicit ghost lines")) )
     {
       sScanF(answer(len,answer.length()-1),"%i %i %i %i",&explicitGhostLines[0][0],&explicitGhostLines[1][0],
 	     &explicitGhostLines[0][1],&explicitGhostLines[1][1]);
@@ -1890,8 +1890,8 @@ buildSurfacePatch(MappingInformation & mapInfo)
 //          printf(" x:  [%i,%i][%i,%i]\n",x.getBase(0),x.getBound(0),x.getBase(1),x.getBound(1));
 	
         
-        printf("INFO: Setting number of grid lines to %i,%i to match new explicit ghost lines\n",
-               numberOfGridLines[0],numberOfGridLines[1],targetGridSpacing[0]);
+        printf("INFO: Setting number of grid lines to %i,%i to match new explicit ghost lines.\n",
+               numberOfGridLines[0],numberOfGridLines[1]);
 	
         dialog.setTextLabel("lines",sPrintF(answer,"%i %i",numberOfGridLines[0],numberOfGridLines[1]));
 
@@ -1899,7 +1899,7 @@ buildSurfacePatch(MappingInformation & mapInfo)
         dpm->setDataPoints(xGrid,3,domainDimension,0,gridIndexRange);         
       }
     }
-    else if( len=answer.matches("name") )
+    else if( (len=answer.matches("name")) )
     {
       name = answer(len,answer.length()-1);
       dialog.setTextLabel("name",(const char*)name);
@@ -2957,7 +2957,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       }
       
     }
-    else if( len=answer.matches("Start curve:") )
+    else if( (len=answer.matches("Start curve:")) )
     {
       aString name=answer(len,answer.length()-1);
       const int num=mapInfo.mappingList.getLength();
@@ -3079,7 +3079,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       dialog.setToggleState("plot reference surface",plotReferenceSurface);
       updateActiveGridMenu( mapInfo,dialog,surfaceGrids,numberOfSurfaceGrids-1 );
     }
-    else if( len=answer.matches("surface colour") )
+    else if( (len=answer.matches("surface colour")) )
     {
       referenceSurfaceColour=answer(len+1,answer.length()-1);
       cout << "answer=[" << answer << "]" << endl;
@@ -3119,7 +3119,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
         printf("INFO:Sorry, there is no reference surface to set the colour for\n");
       }
     }
-    else if( len=answer.matches("target grid spacing") )
+    else if( (len=answer.matches("target grid spacing")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&targetGridSpacing[0],&targetGridSpacing[1]);
       dialog.setTextLabel("target grid spacing",sPrintF(answer,"%g, %g (tang,norm)(<0 : use default)",targetGridSpacing[0],
@@ -3160,13 +3160,13 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       assignBoundaryConditions( mapInfo );
 
     }
-    else if( len=answer.matches("plot reference surface") )
+    else if( (len=answer.matches("plot reference surface")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotReferenceSurface=value;
       dialog.setToggleState("plot reference surface",plotReferenceSurface);
     }
-    else if( len=answer.matches("plot shaded on reference surface") )
+    else if( (len=answer.matches("plot shaded on reference surface")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value);
@@ -3174,7 +3174,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       referenceSurfaceParameters.set(GI_PLOT_SHADED_MAPPING_BOUNDARIES,value);
       referenceSurfaceParameters.set(GI_PLOT_UNS_FACES,value);
     }
-    else if( len=answer.matches("plot lines on reference surface") )
+    else if( (len=answer.matches("plot lines on reference surface")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); 
@@ -3182,21 +3182,21 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       referenceSurfaceParameters.set(GI_PLOT_LINES_ON_MAPPING_BOUNDARIES,value);
       referenceSurfaceParameters.set(GI_PLOT_UNS_EDGES,value);
     }
-    else if( len=answer.matches("plot surface grids") )
+    else if( (len=answer.matches("plot surface grids")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value);
       dialog.setToggleState("plot surface grids",value);
       plotSurfaceGrids=value;
     }
-    else if( len=answer.matches("plot volume grids") )
+    else if( (len=answer.matches("plot volume grids")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value);
       dialog.setToggleState("plot volume grids",value);
       plotVolumeGrids=value;
     }
-    else if( len=answer.matches("plot lines on non-physical") )
+    else if( (len=answer.matches("plot lines on non-physical")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotNonPhysicalBoundaries=value;
@@ -3205,7 +3205,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       volumeGrids.eraseCompositeSurface(gi);
       plotObject=true;
     }
-    else if( len=answer.matches("plot ghost points") )
+    else if( (len=answer.matches("plot ghost points")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotGhostPoints=value;
@@ -3214,7 +3214,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       volumeGrids.eraseCompositeSurface(gi);
       plotObject=true;
     }
-    else if( len=answer.matches("plot block boundaries") )
+    else if( (len=answer.matches("plot block boundaries")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotBlockBoundaries=value;
@@ -3222,7 +3222,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       volumeGrids.eraseCompositeSurface(gi);
       plotObject=true;
     }
-    else if( len=answer.matches("plot grid lines") )
+    else if( (len=answer.matches("plot grid lines")) )
     {
       int value;
       sScanF(answer(len,answer.length()-1),"%i",&value); plotGridLines=value;
@@ -3511,7 +3511,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
 	printf("ERROR: unknown response = [%s]\n",(const char*)answer);
       }
     }
-    else if( len=answer.matches("Starting curve bounds") )
+    else if( (len=answer.matches("Starting curve bounds")) )
     {
       real ra,rb;
       sScanF(answer(len,answer.length()-1),"%e %e",&ra,&rb);
@@ -3522,7 +3522,7 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
       }
       
     }
-    else if( len=answer.matches("active grid:") )
+    else if( (len=answer.matches("active grid:")) )
     {
       aString name = answer(len,answer.length());
       int i;
@@ -3603,19 +3603,19 @@ build(  MappingInformation & mapInfo, Mapping *surface /* = NULL */ )
 	{
 	  break;
 	}
-	else if( len=answer.matches("save volume grids") )
+	else if( (len=answer.matches("save volume grids")) )
 	{
           int value;
 	  sScanF(answer(len,answer.length()-1),"%i",&value);
 	  saveVolumeGrids=value;
 	}
-	else if( len=answer.matches("save surface grids") )
+	else if( (len=answer.matches("save surface grids")) )
 	{
           int value;
 	  sScanF(answer(len,answer.length()-1),"%i",&value);
 	  saveSurfaceGrids=value;
 	}
-	else if( len=answer.matches("file name: ") )
+	else if( (len=answer.matches("file name: ")) )
 	{
 	  fileName=answer(len,answer.length()-1);
           dialog.setTextLabel("file name:",fileName);

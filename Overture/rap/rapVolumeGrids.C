@@ -280,7 +280,7 @@ rapVolumeGrids(MappingInformation &mapInfo, CompositeSurface & model, CompositeS
 	}
       }
     }
-    else if( (len = answer.matches("new volume grid")) )
+    else if( (len=answer.matches("new volume grid")) )
     {
       int s=-1;
       if (sScanF(answer(len,answer.length()-1),"%i", &s) == 1 && s>=0)
@@ -408,7 +408,7 @@ rapVolumeGrids(MappingInformation &mapInfo, CompositeSurface & model, CompositeS
       }
     }
     
-    else if( len = answer.matches("selection function") )
+    else if( (len=answer.matches("selection function")) )
     {
       while( len < answer.length() && answer(len,len) == " ")
 	len++;

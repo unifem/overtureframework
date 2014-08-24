@@ -499,7 +499,7 @@ displayDistribution(const aString & label, FILE *file /* =stdout */ )
     GridCollection & gc = *this;
     fprintf(file,
 	    " ======== Parallel Distribution for %s (np=%i)============\n",(const char*)label,np);
-    fprintf(file," numberOfGrids=%i, gridDistributionList.size()=%i \n",gc.numberOfGrids(),
+    fprintf(file," numberOfGrids=%i, gridDistributionList.size()=%ul \n",gc.numberOfGrids(),
 	    gc->gridDistributionList.size());
     for( int grid=0; grid<gc.numberOfComponentGrids(); grid++ )
     {
@@ -1712,7 +1712,10 @@ replaceRefinementLevels(int level0, int numberOfRefinementLevels0, IntegerArray 
 	       refinementLevelNumber(p) != level - 1         ||
 		 baseGridNumber(p)      != baseGridNumber(gNew) ||
 		 multigridLevelNumber(p)!= multigridLevelNumber(gNew);
-	       p++);
+	       p++)
+	  {
+	  }
+	  
           parent[bg][level-1]=p;
 	}
 	assert( p<numberOfComponentGrids && p>=0 );

@@ -407,37 +407,37 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
                     "           during sub-smooths (since this is expensive) but other BC's are applied.\n"
                     " ---------------------------------------------------------------------------\n");
   }
-  else if( len=answer.matches("number of iterations") )
+  else if( (len=answer.matches("number of iterations")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&numberOfIterations);
     dialog.setTextLabel("number of iterations",sPrintF(line, "%i",numberOfIterations));
   }
-  else if( len=answer.matches("number of equidistribution iterations") )
+  else if( (len=answer.matches("number of equidistribution iterations")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&numberOfEquidistributionIterations);
     dialog.setTextLabel("number of equidistribution iterations",sPrintF(line, "%i",numberOfEquidistributionIterations));
   }
-  else if( len=answer.matches("number of laplacian smooths") )
+  else if( (len=answer.matches("number of laplacian smooths")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&numberOfLaplacianSmooths);
     dialog.setTextLabel("number of laplacian smooths",sPrintF(line, "%i",numberOfLaplacianSmooths));
   }
-  else if( len=answer.matches("number of elliptic smooths") )
+  else if( (len=answer.matches("number of elliptic smooths")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&numberOfEllipticSmooths);
     dialog.setTextLabel("number of elliptic smooths",sPrintF(line, "%i",numberOfEllipticSmooths));
   }
-  else if( len=answer.matches("number of control function smooths") )
+  else if( (len=answer.matches("number of control function smooths")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&numberOfControlFunctionSmooths);
     dialog.setTextLabel("number of control function smooths",sPrintF(line, "%i",numberOfControlFunctionSmooths));
   }
-  else if( len=answer.matches("number of weight smooths") )
+  else if( (len=answer.matches("number of weight smooths")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&numberOfWeightSmooths);
     dialog.setTextLabel("number of weight smooths",sPrintF(line, "%i (for equidistribution)",numberOfWeightSmooths));
   }
-  else if( len=answer.matches("project smoothed grid onto reference surface") )
+  else if( (len=answer.matches("project smoothed grid onto reference surface")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&projectSmoothedGridOntoReferenceSurface);
     dialog.setToggleState("project smoothed grid onto reference surface",
@@ -456,7 +456,7 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
 			sPrintF(line, "%i, %i %i %i %i (id, l r b t)", regionsNotToProject(0,0),regionsNotToProject(0,1),
 				regionsNotToProject(0,2),regionsNotToProject(0,3),regionsNotToProject(0,4)));
   }
-  else if( len=answer.matches("do not project") )
+  else if( (len=answer.matches("do not project")) )
   {
     printf("INFO: For surface grids, specify one or more rectangles where the points should not be projected after smoothing.\n"
            "    : For each rectangle specify an id(>=0) and the range of points:  id, i1a i1b i2a i2b\n");
@@ -489,7 +489,7 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
             sPrintF(line, "%i, %i %i %i %i (id, l r b t)", regionsNotToProject(0,0),regionsNotToProject(0,1),
              regionsNotToProject(0,2),regionsNotToProject(0,3),regionsNotToProject(0,4)));
   }
-  else if( len=answer.matches("smoothing offset") )
+  else if( (len=answer.matches("smoothing offset")) )
   {
     printf("INFO: Setting the smoothing offset to a positive value will restrict the smoothing to a smaller domain\n"
            "    : For example, setting left side value to '1' will prevent smoothing on the left boundary\n");
@@ -512,7 +512,7 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
           sPrintF(line,"%i %i %i %i %i %i (l r b t b f)",smoothingOffset[0][0],smoothingOffset[1][0],
 		  smoothingOffset[0][1],smoothingOffset[1][1],smoothingOffset[0][2],smoothingOffset[1][2]));
   }
-//    else if( len=answer.matches("smoothing region") )
+//    else if( (len=answer.matches("smoothing region")) )
 //    {
 //      printf("INFO: The smoothing region defines the sub-set of points to smooth.\n"
 //             "    : If ghost points are smooth theses will be the points adjacent to the smoothing region\n");
@@ -523,42 +523,42 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
 //            sPrintF(line,"%i %i %i %i %i %i (l r b t b f)",smoothingRegion[0][0],smoothingRegion[1][0],
 //  		  smoothingRegion[0][1],smoothingRegion[1][1],smoothingRegion[0][2],smoothingRegion[1][2]));
 //    }
-  else if( len=answer.matches("relaxation coeff") )
+  else if( (len=answer.matches("relaxation coeff")) )
   {
     sScanF(answer(len,answer.length()-1),"%e",&omega);
     dialog.setTextLabel("relaxation coeff",sPrintF(line, "%g (for laplacian smooths)",omega));
   }
-  else if( len=answer.matches("blending factor") )
+  else if( (len=answer.matches("blending factor")) )
   {
     sScanF(answer(len,answer.length()-1),"%e",&blendingFactor);
     dialog.setTextLabel("blending factor",sPrintF(line, "%g (for blended projection)",blendingFactor));
   }
-  else if( len=answer.matches("arclength weight") )
+  else if( (len=answer.matches("arclength weight")) )
   {
     sScanF(answer(len,answer.length()-1),"%e",&arclengthWeight);
     dialog.setTextLabel("arclength weight",sPrintF(line, "%g (for equidistribution)",arclengthWeight));
   }
-  else if( len=answer.matches("curvature weight") )
+  else if( (len=answer.matches("curvature weight")) )
   {
     sScanF(answer(len,answer.length()-1),"%e",&curvatureWeight);
     dialog.setTextLabel("curvature weight",sPrintF(line, "%g (for equidistribution)",curvatureWeight));
   }
-  else if( len=answer.matches("area weight") )
+  else if( (len=answer.matches("area weight")) )
   {
     sScanF(answer(len,answer.length()-1),"%e",&areaWeight);
     dialog.setTextLabel("area weight",sPrintF(line, "%g (for equidistribution)",areaWeight));
   }
-  else if( len=answer.matches("smooth ghost points") )
+  else if( (len=answer.matches("smooth ghost points")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&smoothGridGhostPoints);
     dialog.setToggleState("smooth ghost points",smoothGridGhostPoints);
   }
-  else if( len=answer.matches("smooth normals") )
+  else if( (len=answer.matches("smooth normals")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&smoothNormals);
     dialog.setToggleState("smooth normals",smoothNormals);
   }
-  else if( len=answer.matches("use initial grid as control grid") )
+  else if( (len=answer.matches("use initial grid as control grid")) )
   {
     sScanF(answer(len,answer.length()-1),"%i",&useInitialGridAsControlGrid);
     dialog.setToggleState("use initial grid as control grid",useInitialGridAsControlGrid);
@@ -567,27 +567,27 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
   else if( answer.matches("BC:") )
   {
     int side=0,axis=0;
-    if( len=answer.matches("BC: left ") )
+    if( (len=answer.matches("BC: left ")) )
     {
       side=0;  axis=0;
     }
-    else if( len=answer.matches("BC: right ") )
+    else if( (len=answer.matches("BC: right ")) )
     {
       side=1;  axis=0;
     }
-    else if( len=answer.matches("BC: bottom" ) )
+    else if( (len=answer.matches("BC: bottom" )) )
     {
       side=0;  axis=1;
     }
-    else if( len=answer.matches("BC: top" ) )
+    else if( (len=answer.matches("BC: top" )) )
     {
       side=1;  axis=1;
     }
-    else if( len=answer.matches("BC: back" ) )
+    else if( (len=answer.matches("BC: back" )) )
     {
       side=0;  axis=2;
     }
-    else if( len=answer.matches("BC: front" ) )
+    else if( (len=answer.matches("BC: front" )) )
     {
       side=1;  axis=2;
     }
@@ -624,7 +624,7 @@ updateOptions(aString & answer_, DialogData & dialog, MappingInformation & mapIn
       dialog.getOptionMenu(optionMenuNumber).setCurrentChoice(bc(side,axis)+1);
     }
   }
-  else if( len=answer.matches("line attraction r") )
+  else if( (len=answer.matches("line attraction r")) )
   {
     int axis = (len=answer.matches("line attraction r1")) ? 0 :
                (len=answer.matches("line attraction r2")) ? 1 : 2;

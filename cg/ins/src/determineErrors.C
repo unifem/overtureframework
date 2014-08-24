@@ -3,6 +3,21 @@
 #include "gridFunctionNorms.h"
 #include "Oges.h"
 
+#define FOR_3D(i1,i2,i3,I1,I2,I3) \
+int I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+int I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+#define FOR_3(i1,i2,i3,I1,I2,I3) \
+I1Base =I1.getBase(),   I2Base =I2.getBase(),  I3Base =I3.getBase();  \
+I1Bound=I1.getBound(),  I2Bound=I2.getBound(), I3Bound=I3.getBound(); \
+for(i3=I3Base; i3<=I3Bound; i3++) \
+for(i2=I2Base; i2<=I2Bound; i2++) \
+for(i1=I1Base; i1<=I1Bound; i1++)
+
+  
 //\begin{>>CompositeGridSolverInclude.tex}{\subsection{determineErrors(GridFunction)}} 
 void Cgins::
 determineErrors(GridFunction & cgf,
@@ -46,6 +61,8 @@ determineErrors(realCompositeGridFunction & u,
 //\end{CompositeGridSolverInclude.tex}  
 //===================================================================
 {
+  // checkWhere("determineErrors: START");
+
   assert( u.getCompositeGrid()!=NULL );
   CompositeGrid & cg = *u.getCompositeGrid();
   const int numberOfComponentGrids = cg.numberOfComponentGrids();
@@ -207,7 +224,7 @@ determineErrors(realCompositeGridFunction & u,
       #else
         const realSerialArray & uLocal = uu; 
         const realSerialArray & xLocal = x;
-        const intSerialArray & maskLocal = mask; 
+        intSerialArray & maskLocal = mask; 
       #endif 
 
 
@@ -250,6 +267,7 @@ determineErrors(realCompositeGridFunction & u,
 	  // ::display(uLocal(I1,I2,I3,n),sPrintF("determineErrors: solution: n=%i",n),pDebugFile,"%5.2f ");
 	  // ::display(ee(I1,I2,I3,n),sPrintF("determineErrors: exact: n=%i",n),pDebugFile,"%5.2f ");
 	  
+	  // ::display(fabs(uLocal(I1,I2,I3,n)-ee(I1,I2,I3)),sPrintF("determineErrors: errors: n=%i",n),pDebugFile,"%5.2f ");
 
 	}
 	else
@@ -258,6 +276,15 @@ determineErrors(realCompositeGridFunction & u,
 	  {
             // get the time derivative of the exact solution
 	    e.gd( ee,xLocal,c.numberOfDimensions(),isRectangular,1,0,0,0,I1,I2,I3,n,t);
+
+	    if( false )
+	    {
+	      ::display(uLocal(I1,I2,I3,n),sPrintF("determineErrors: ut: n=%i",n),pDebugFile,"%5.2f ");
+	      ::display(ee(I1,I2,I3,n),sPrintF("determineErrors: ut_exact: n=%i",n),pDebugFile,"%5.2f ");
+	  
+	      ::display(fabs(uLocal(I1,I2,I3,n)-ee(I1,I2,I3)),sPrintF("determineErrors: errors ut: n=%i",n),pDebugFile,"%5.2f ");
+	    }
+	    
 
 	    // ee=e.t(c,I1,I2,I3,n,t);
 	  }
@@ -375,23 +402,61 @@ determineErrors(realCompositeGridFunction & u,
 	}
       
 
-        realSerialArray es;
+	realSerialArray es(I1,I2,I3,Range(n,n));
 	es=ee;
 	
 	um=max(abs(ee));
 
 	ee=abs(ee-uLocal(I1,I2,I3,n));
-	if( options==0 )
-	{
-	  where( maskLocal(I1,I2,I3)==0 )
-	    ee=0.;
+	if( true )
+	{ // *wdh* 2014/08/22 -- There was some trouble with the "where" statements below giving the wrong answer with the clang MAC compiler
+	  int i1,i2,i3;
+	  if( options==0 )
+	  {
+	    FOR_3D(i1,i2,i3,I1,I2,I3)
+	    {
+	      if( maskLocal(i1,i2,i3)==0 )
+		ee(i1,i2,i3,n)=0.;
+	    }
+	    
+	  }
+	  else
+	  {
+	    FOR_3D(i1,i2,i3,I1,I2,I3)
+	    {
+	      if( maskLocal(i1,i2,i3)<=0 )
+		ee(i1,i2,i3,n)=0.;
+	    }
+	  }
 	}
 	else
-	{
-	  where( maskLocal(I1,I2,I3)<=0 )
-	    ee=0.;
-	}
+	{ 
+	  if( options==0 )
+	  {
+	    where( maskLocal(I1,I2,I3)==0 )
+	    {
+	      ee(I1,I2,I3,n)=0.;
+	    }
+	    
+	  }
+	  else
+	  {
+            intSerialArray m(I1,I2,I3);
+	    m=maskLocal(I1,I2,I3)<=0;
+	    ::display(maskLocal(I1,I2,I3),"maskLocal(I1,I2,I3)",pDebugFile);
+	    ::display(m,"m: maskLocal(I1,I2,I3)<=0",pDebugFile);
+	    ::display(ee(I1,I2,I3,n),"ee(I1,I2,I3,n) BEFORE",pDebugFile);
+	    
+	    where( maskLocal(I1,I2,I3)<=0 )
+	    {
+	      ee(I1,I2,I3,n)=0.;
+	    }
 
+	    ::display(ee(I1,I2,I3,n),"ee(I1,I2,I3,n) AFTER",pDebugFile);
+	    
+	  }
+	}
+	
       
 	/// These next loops need to be fixed for parallel
 	for( int i3=n3a; i3<=n3b; i3++ )
@@ -404,7 +469,7 @@ determineErrors(realCompositeGridFunction & u,
 	  {
 	    for( int i1=n1a; i1<=n1b; i1++ )
 	    {
-	      error=ee(i1,i2,i3);
+	      error=ee(i1,i2,i3,n);
 	      if( fabs(error) > er )
 	      {
 		er=fabs(error);

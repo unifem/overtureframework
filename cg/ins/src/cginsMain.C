@@ -10,6 +10,7 @@
 #include "CgSolverUtil.h"
 #include "Oges.h"
 
+
 int 
 getLineFromFile( FILE *file, char s[], int lim);
 
@@ -197,7 +198,9 @@ main(int argc, char *argv[])
 #ifdef OV_HAVE_GOOGLE_PROFILE
   ProfilerStop();
 #endif  
+
   return 0;
+
 }
 
 

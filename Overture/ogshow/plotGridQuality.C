@@ -209,12 +209,12 @@ plotGridQuality( GenericGraphicsInterface & gi,
     else if( dialog.getTextValue(answer,"degree in space","%i",degreeInSpace) ){}// 
     else if( dialog.getTextValue(answer,"ghost points to check","%i",numberOfGhostPointsToCheck) ){}// 
     // else if( dialog.getTextValue(answer,"fx, fy, fz","%e %e %e",fx,fy,fz) ){}// 
-    else if( len=answer.matches("fx, fy, fz") )
+    else if( (len=answer.matches("fx, fy, fz")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e",&fx,&fy,&fz);
       dialog.setTextLabel("fx, fy, fz",sPrintF("%f %f %f",fx,fy,fz));
     }
-    else if( len=answer.matches("plot quality for grid") )
+    else if( (len=answer.matches("plot quality for grid")) )
     {
       int gridToPlot=-1;
       sScanF(answer(len,answer.length()-1),"%i",&gridToPlot);
@@ -563,7 +563,7 @@ plotGridQuality( GenericGraphicsInterface & gi,
 
         numGhost=min(numGhost,numberOfGhostPointsToCheck);
 	
-	printf("--> grid=%i, evaluate derivatives at %i ghost points\n",numGhost);
+	printf("--> grid=%i, evaluate derivatives at %i ghost points\n",grid,numGhost);
 
 	// compute derivatives at ghost points where possible
 	getIndex(mg.gridIndexRange(),I1,I2,I3,numGhost); // include ghost if possible

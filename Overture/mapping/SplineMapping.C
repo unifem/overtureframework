@@ -496,11 +496,13 @@ setDomainInterval(const real & rStart_ /* =0. */,
     rStart=0., rEnd=1.;
   }
   if( splineIsPeriodic )
+  {
     if( fabs(rEnd-rStart)!=1. )
       setIsPeriodic(axis1,notPeriodic);
     else
       setIsPeriodic(axis1,splineIsPeriodic);
-
+  }
+  
   mappingHasChanged();  // *wdh* 021004
   return 0;
 }
@@ -1368,7 +1370,7 @@ update( MappingInformation & mapInfo )
 
       if( rangeDimension==1 )
       {
-	printf(" Current derivatives at ends: x'(0)=(%9.3e,%9.3e) x'(1)=%9.3e \n",
+	printf(" Current derivatives at ends: x'(0)=%9.3e x'(1)=%9.3e \n",
 	       xr(0,0,0),xr(1,0,0));
 
         gi.inputString(line,sPrintF(buff,"Enter x'(0), x'(1)"));

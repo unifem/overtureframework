@@ -2031,7 +2031,7 @@ buildFromACompositeSurface( CompositeSurface & cs )
 
     if( numberConnected[s]==0 )
     {
-      if( debugs & 2) printf("WARNING: no points are connected to surface s=%i\n");
+      if( debugs & 2) printf("WARNING: no points are connected to surface s=%i\n",s);
       continue;
     }
     

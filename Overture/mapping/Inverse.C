@@ -1585,11 +1585,17 @@ inverse(const RealArray & x1,
 	  }
 	}
 	if( computeMapDerivative )  
+	{
 	  if( domainDimension==rangeDimension )
+	  {
 	    rx1(index0(i0),Axes,xAxes)=rx(i0,Axes,xAxes); 
+	  }
 	  else
+	  {
 	    rx1(index0(i0),Axes,xAxes)=0.;  // what to return in this case??
-
+	  }
+	}
+	
 	i++;
       }
     }
@@ -2468,17 +2474,23 @@ inverse(const RealArray & x1,
       -- */
     }
     if( computeMapDerivative )  
+    {
       if( domainDimension==rangeDimension )
       {
         where( status(I)==0 )
         {
 	  for( int d=0; d<domainDimension; d++ )
 	    for( int r=0; r<domainDimension; r++ )
+	    {
 	      rx1(workSpace.index0(I),d,r)=ry(I,d,r)/det(I); 
+	    }
 	}
       }
       else
+      {
         rx1(I1,Axes,xAxes)=0.;  // what to return in this case??
+      }
+    }
   }
   else // workspace is sequential
   {

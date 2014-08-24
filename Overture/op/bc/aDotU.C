@@ -170,10 +170,15 @@ applyBCaDotU(realMappedGridFunction & u,
   else
     {throw "Invalid value for bcOption in aDotU!";}
 
-  WHERE_MASK( uA(I1,I2,I3,n1)-=uDotN(I1,I2,I3)*a1; )
+  WHERE_MASK( uA(I1,I2,I3,n1)-=uDotN(I1,I2,I3)*a1; );
+  
   if( numberOfDimensions>1 )
-    WHERE_MASK( uA(I1,I2,I3,n2)-=uDotN(I1,I2,I3)*a2;  )
+  {
+    WHERE_MASK( uA(I1,I2,I3,n2)-=uDotN(I1,I2,I3)*a2;  );
+  }
   if( numberOfDimensions==3 )
-    WHERE_MASK( uA(I1,I2,I3,n3)-=uDotN(I1,I2,I3)*a3; )
-
+  {
+    WHERE_MASK( uA(I1,I2,I3,n3)-=uDotN(I1,I2,I3)*a3; );
+  }
+  
 }

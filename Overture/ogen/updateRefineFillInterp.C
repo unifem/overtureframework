@@ -755,7 +755,7 @@ updateRefinementFillInterpolationData(CompositeGrid & cg, UpdateRefinementData &
       	printf(" myid=%i isDonorGrid[%i]=%i local-mask=[%i,%i][%i,%i][%i,%i]\n",myid,gg,isDonorGrid[gg],
                                 m.getBase(0),m.getBound(0),m.getBase(1),m.getBound(1),m.getBase(2),m.getBound(2));
                 IndexBox & box = donorBox[gg];
-                printf(" myid=%i grid=%i, donorBox[%i] = [%i,%i][%i,%i][%i,%i]\n",
+                printf(" myid=%i grid=%i, donorBox[%i] = [%i,%i][%i,%i][%i,%i][%i,%i]\n",
                               myid,gg,gg,
              	       box.base(0),box.bound(0),
              	       box.base(1),box.bound(1),
@@ -789,7 +789,7 @@ updateRefinementFillInterpolationData(CompositeGrid & cg, UpdateRefinementData &
             if( debug & 2 )
             {
       	IndexBox & box = maskrLocalBox;
-      	printf(" myid=%i l=%i grid=%i maskrLocal=[%i,%i][%i,%i], coarsened-box=[%i,%i][%i,%i][%i,%i]\n",
+      	printf(" myid=%i l=%i grid=%i maskrLocal=[%i,%i][%i,%i], coarsened-box=[%i,%i][%i,%i][%i,%i][%i,%i]\n",
              	       myid,l,grid,
                               maskrLocal.getBase(0),maskrLocal.getBound(0),
                               maskrLocal.getBase(1),maskrLocal.getBound(1),
@@ -807,7 +807,7 @@ updateRefinementFillInterpolationData(CompositeGrid & cg, UpdateRefinementData &
       	{
         	  IndexBox & box = donorBox[grid];
         	  printf(" myid=%i l=%i grid=%i(g=%i) intersects base grid bg=%i donorBox:\n"
-             		 "       intersection box = [%i,%i][%i,%i][%i,%i]\n",
+             		 "       intersection box = [%i,%i][%i,%i][%i,%i][%i,%i]\n",
              		 myid,l,grid,g,bg,
              		 box.base(0),box.bound(0),
              		 box.base(1),box.bound(1),
@@ -822,8 +822,8 @@ updateRefinementFillInterpolationData(CompositeGrid & cg, UpdateRefinementData &
       	{
         	  IndexBox & box = maskrLocalBox;
         	  printf(" myid=%i l=%i grid=%i(g=%i) box does NOT intersect base grid bg=%i \n"
-                                  "    donorBox[bg] = [%i,%i][%i,%i][%i,%i]\n"
-             		 "       box[grid] = [%i,%i][%i,%i][%i,%i]\n",
+                                  "    donorBox[bg] = [%i,%i][%i,%i][%i,%i][%i,%i]\n"
+             		 "       box[grid] = [%i,%i][%i,%i][%i,%i][%i,%i]\n",
              		 myid,l,grid,g,bg,
              		 donorBox[bg].base(0),donorBox[bg].bound(0),
              		 donorBox[bg].base(1),donorBox[bg].bound(1),

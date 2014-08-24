@@ -205,7 +205,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
     surfaceGridParametersDialog.getOptionMenu("initial curve from:").setCurrentChoice(initialCurveOption);
     plotObject=false;
   }
-  else if( len=answer.matches("project initial curve") )
+  else if( (len=answer.matches("project initial curve")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); projectInitialCurve=value;
@@ -217,7 +217,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
 
     plotObject=false;
   }
-  else if( len=answer.matches("edit an interior matching curve") )
+  else if( (len=answer.matches("edit an interior matching curve")) )
   {
     const int numberOfMatchingCurves=matchingCurves.size();
     if( numberOfMatchingCurves<=0 )
@@ -243,7 +243,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
     }
     
   }
-  else if( len=answer.matches("use triangulation of the reference surface") )
+  else if( (len=answer.matches("use triangulation of the reference surface")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); useTriangulation=value;
@@ -256,7 +256,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
     referenceSurfaceHasChanged=true;
     plotObject=false;
   }
-  else if( len=answer.matches("project points onto reference surface") )
+  else if( (len=answer.matches("project points onto reference surface")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); projectOntoReferenceSurface=value;
@@ -268,7 +268,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
 
     plotObject=false;
   }
-  else if( len=answer.matches("adjust for corners when marching") )
+  else if( (len=answer.matches("adjust for corners when marching")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); 
@@ -366,7 +366,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
       printf("HyperbolicMapping:ERROR:There is no reference surface to edit\n");
     }
   }
-  else if( len=answer.matches("Start curve parameter bounds") )
+  else if( (len=answer.matches("Start curve parameter bounds")) )
   {
     sScanF(answer(len,answer.length()-1),"%e %e",&startCurveStart,&startCurveEnd);
     if( startCurve!=NULL )
@@ -504,7 +504,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
       printf("Sorry, only know how to set the start curve parameter bounds for a spline\n");
     }
   }
-  else if( len=answer.matches("boundary curve matching tolerance") )
+  else if( (len=answer.matches("boundary curve matching tolerance")) )
   {
     sScanF(answer(len,answer.length()-1),"%e",&distanceToBoundaryCurveTolerance);
     surfaceGridParametersDialog.setTextLabel("boundary curve matching tolerance",
@@ -515,7 +515,7 @@ updateSurfaceGridParameters(aString & answer, DialogData & surfaceGridParameters
     // destroyInteriorMatchingCurves();
     matchingCurves.resize(0);
   }
-  else if( len=answer.matches("edge curve tolerance") )
+  else if( (len=answer.matches("edge curve tolerance")) )
   {
     sScanF(answer(len,answer.length()-1),"%e",&edgeCurveMatchingTolerance);
     surfaceGridParametersDialog.setTextLabel("edge curve tolerance",sPrintF(line, "%g",edgeCurveMatchingTolerance));
@@ -605,7 +605,7 @@ updatePlotOptions(aString & answer, DialogData & plotOptionsDialog,
   const bool plotObjectSave=plotObject;
   plotObject=true;  // most things here require a redraw
 
- if( len=answer.matches("plot reference surface") )
+  if( (len=answer.matches("plot reference surface")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); plotReferenceSurface=value;
@@ -616,26 +616,26 @@ updatePlotOptions(aString & answer, DialogData & plotOptionsDialog,
     choosePlotBoundsFromGlobalBounds=true;
 	
   }
-  else if( len=answer.matches("plot grid points on start curve") )
+  else if( (len=answer.matches("plot grid points on start curve")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); plotGridPointsOnStartCurve=value;
     plotOptionsDialog.setToggleState("plot grid points on start curve",plotGridPointsOnStartCurve);
   }
-  else if( len=answer.matches( "plot ghost points" ) )
+  else if( (len=answer.matches( "plot ghost points" )) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&plotGhostPoints);
     plotOptionsDialog.setToggleState("plot ghost points",plotGhostPoints==true);
     plotObject=true;  // replot 
   }
-  else if( len=answer.matches("plot triangulation") )
+  else if( (len=answer.matches("plot triangulation")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); plotTriangulation=value;
     plotOptionsDialog.setToggleState("plot triangulation",plotTriangulation);
     referenceSurfaceHasChanged=true;
   }
-  else if( len=answer.matches("plot shaded boundaries on reference surface") )
+  else if( (len=answer.matches("plot shaded boundaries on reference surface")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value);
@@ -644,7 +644,7 @@ updatePlotOptions(aString & answer, DialogData & plotOptionsDialog,
     referenceSurfaceParameters.set(GI_PLOT_UNS_FACES,value);
     referenceSurfaceHasChanged=true;
   }
-  else if( len=answer.matches("plot boundary lines on reference surface") )
+  else if( (len=answer.matches("plot boundary lines on reference surface")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value);
@@ -653,7 +653,7 @@ updatePlotOptions(aString & answer, DialogData & plotOptionsDialog,
     referenceSurfaceParameters.set(GI_PLOT_UNS_EDGES,value);
     referenceSurfaceHasChanged=true;
   }
-  else if( len=answer.matches("plot bounds derived from reference surface") )
+  else if( (len=answer.matches("plot bounds derived from reference surface")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value);
@@ -661,7 +661,7 @@ updatePlotOptions(aString & answer, DialogData & plotOptionsDialog,
     plotOptionsDialog.setToggleState("plot bounds derived from reference surface",value);
     referenceSurfaceHasChanged=true;
   }
-  else if( len=answer.matches("plot boundary curves") )
+  else if( (len=answer.matches("plot boundary curves")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); plotBoundaryCurves=value;
@@ -790,7 +790,7 @@ updateBoundaryConditionMappings(aString & answer,
     
 
   int len=0;
-  if( answer=="left BC (forward)" )
+  if( answer=="left BC (forward))" )
   {
     bcOption=leftForward;
   }
@@ -808,7 +808,7 @@ updateBoundaryConditionMappings(aString & answer,
   }
   else if( answer.matches("boundary condition mapping:") )
   {
-    if( len=answer.matches("boundary condition mapping: select boundary curve") )
+    if( (len=answer.matches("boundary condition mapping: select boundary curve")) )
     {
       int b=-1;
       sScanF( answer(len,answer.length()-1),"%i %i %i",&b,&side,&direction);    
@@ -823,7 +823,7 @@ updateBoundaryConditionMappings(aString & answer,
 	gi.stopReadingCommandFile();
       }
     }
-    else if( len=answer.matches("boundary condition mapping: select edge curve") )
+    else if( (len=answer.matches("boundary condition mapping: select edge curve")) )
     {
       int e=-1;
       sScanF( answer(len,answer.length()-1),"%i %i %i",&e,&side,&direction);    
@@ -1753,11 +1753,11 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 	axis=1;
       }
     }
-    else if( len=answer.matches("BC: bottom" ) )
+    else if( (len=answer.matches("BC: bottom" )) )
     {
       side=0;  axis=1;
     }
-    else if( len=answer.matches("BC: top" ) )
+    else if( (len=answer.matches("BC: top" )) )
     {
       side=1;  axis=1;
     }
@@ -2002,33 +2002,33 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 //   {
 //     ghostLineOption=useLastLineAsGhostLine;
 //   }
-  else if( len=answer.matches("project ghost left") )
+  else if( (len=answer.matches("project ghost left")) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&projectGhostPoints(0,0));
     marchingParametersDialog.setToggleState("project ghost left",projectGhostPoints(0,0)==1);
   }
-  else if( len=answer.matches("project ghost right") )
+  else if( (len=answer.matches("project ghost right")) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&projectGhostPoints(1,0));
     marchingParametersDialog.setToggleState("project ghost right",projectGhostPoints(1,0)==1);  // these are in a funny order
   }
-  else if( len=answer.matches("project ghost bottom") )
+  else if( (len=answer.matches("project ghost bottom")) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&projectGhostPoints(0,1));
     marchingParametersDialog.setToggleState("project ghost bottom",projectGhostPoints(0,1)==1);
   }
-  else if( len=answer.matches("project ghost top") )
+  else if( (len=answer.matches("project ghost top")) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&projectGhostPoints(1,1));
     marchingParametersDialog.setToggleState("project ghost top",projectGhostPoints(1,1)==1);
   }
-  else if( len=answer.matches("plot BC mappings") )
+  else if( (len=answer.matches("plot BC mappings")) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&plotBoundaryConditionMappings);
     marchingParametersDialog.setToggleState("plot BC mappings",plotBoundaryConditionMappings);
     plotObject=true;// replot
   }
-  else if( len=answer.matches( "stop on negative cells" ) )
+  else if( (len=answer.matches( "stop on negative cells" )) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&stopOnNegativeCells);
     marchingParametersDialog.setToggleState("stop on negative cells",stopOnNegativeCells==true);
@@ -2039,7 +2039,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
                                                     correctProjectionOfInitialCurves) ){} // 
   else if( marchingParametersDialog.getToggleValue( answer,"apply boundary conditions to start curve",
                                                     applyBoundaryConditionsToStartCurve) ){} // 
-  else if( len=answer.matches("project points onto reference surface") )
+  else if( (len=answer.matches("project points onto reference surface")) )
   {
     int value;
     sScanF(answer(len,answer.length()-1),"%i",&value); projectOntoReferenceSurface=value;
@@ -2052,7 +2052,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 
     printF(" (this option is used when a matching boundary surface is a composite surface.)\n");
   }
-  else if( len=answer.matches("march along normals" ) )
+  else if( (len=answer.matches("march along normals" )) )
   {
     int marchAlongNormals;
     sScanF( answer(len,answer.length()-1),"%i",&marchAlongNormals);
@@ -2073,32 +2073,32 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
     marchingParametersDialog.setTextLabel("volume smooths",sPrintF(line, "%i", numberOfVolumeSmoothingIterations));
     
   }
-  else if( len=answer.matches("uniform dissipation") )
+  else if( (len=answer.matches("uniform dissipation")) )
   {
     sScanF( answer(len,answer.length()-1),"%e",&uniformDissipationCoefficient);
     marchingParametersDialog.setTextLabel("uniform dissipation",sPrintF(line, "%g", uniformDissipationCoefficient));
   }
-  else if( len=answer.matches("boundary dissipation") )
+  else if( (len=answer.matches("boundary dissipation")) )
   {
     sScanF( answer(len,answer.length()-1),"%e",&boundaryUniformDissipationCoefficient);
     marchingParametersDialog.setTextLabel("boundary dissipation",sPrintF(line, "%g", boundaryUniformDissipationCoefficient));
   }
-  else if( len=answer.matches("dissipation transition") )
+  else if( (len=answer.matches("dissipation transition")) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&dissipationTransition);
     marchingParametersDialog.setTextLabel("dissipation transition",sPrintF(line, "%i (>0 : use boundary dissipation)", dissipationTransition));
   }
-  else if( len=answer.matches("volume smooths") )
+  else if( (len=answer.matches("volume smooths")) )
   {
     sScanF( answer(len,answer.length()-1),"%i",&numberOfVolumeSmoothingIterations);
     marchingParametersDialog.setTextLabel("volume smooths",sPrintF(line, "%i", numberOfVolumeSmoothingIterations));
   }
-  else if( len=answer.matches("implicit coefficient")  )
+  else if( (len=answer.matches("implicit coefficient"))  )
   {
     sScanF( answer(len,answer.length()-1),"%e",&implicitCoefficient);
     marchingParametersDialog.setTextLabel("implicit coefficient",sPrintF(line, "%g", implicitCoefficient));
   }
-  else if( len=answer.matches("equidistribution")  )
+  else if( (len=answer.matches("equidistribution"))  )
   {
     sScanF( answer(len,answer.length()-1),"%e",&equidistributionWeight);
     if( arcLengthWeight==0. && curvatureWeight==0. )
@@ -2113,22 +2113,22 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
     marchingParametersDialog.setTextLabel("equidistribution",sPrintF(line, "%g (in [0,1])",equidistributionWeight));
 
   }
-  else if( len=answer.matches("arclength weight") )
+  else if( (len=answer.matches("arclength weight")) )
   {
     sScanF( answer(len,answer.length()-1),"%e",&arcLengthWeight);
     marchingParametersDialog.setTextLabel("arclength weight",sPrintF(line, "%g (for equidistribution)",arcLengthWeight)); 
   }
-  else if( len=answer.matches("curvature weight") )
+  else if( (len=answer.matches("curvature weight")) )
   {
     sScanF( answer(len,answer.length()-1),"%e",&curvatureWeight);
     marchingParametersDialog.setTextLabel("curvature weight",sPrintF(line, "%g (for equidistribution)",curvatureWeight)); 
   }
-  else if( len=answer.matches("curvature speed coefficient") )
+  else if( (len=answer.matches("curvature speed coefficient")) )
   {
     sScanF( answer(len,answer.length()-1),"%e",&curvatureSpeedCoefficient);
 //    marchingParametersDialog.setTextLabel("curvature speed coefficient",sPrintF(line, "%g (in [0,1])",curvatureSpeedCoefficient));
   }
-//    else if( len=answer.matches("geometric stretch factor") )
+//    else if( (len=answer.matches("geometric stretch factor")) )
 //    {
 //      sScanF( answer(len,answer.length()-1),"%e",&geometricFactor);
 //      if( geometricFactor==1. )
@@ -2142,7 +2142,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 //      marchingParametersDialog.getOptionMenu(0).setCurrentChoice(spacingType);
 
 //    }
-//    else if( len=answer.matches("inv hyp stretch factor") )
+//    else if( (len=answer.matches("inv hyp stretch factor")) )
 //    {
 //      real exponent=10.;
 //      sScanF( answer(len,answer.length()-1),"%e",&exponent);
@@ -2162,7 +2162,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 //      stretch.setLayerParameters(0,1.,exponent,0.);
 
 //    }
-  else if( len=answer.matches("normal blending") )
+  else if( (len=answer.matches("normal blending")) )
   {
     if( domainDimension==2 )
     {
@@ -2183,7 +2183,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 				      numberOfLinesForNormalBlend[0][1],numberOfLinesForNormalBlend[1][1]));
     }
   }
-  else if( len=answer.matches("outward splay") )
+  else if( (len=answer.matches("outward splay")) )
   {
     if( domainDimension==2 )
     {
@@ -2204,7 +2204,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
     }
     
   }
-  else if( len=answer.matches("boundary offset") )
+  else if( (len=answer.matches("boundary offset")) )
   {
     if( domainDimension==2 )
     {
@@ -3578,7 +3578,7 @@ update( MappingInformation & mapInfo,
     }
     
     bool curveWasChosen=false;
-    if( len=answer.matches("Start curve:") )
+    if( (len=answer.matches("Start curve:")) )
     {
       aString name=answer(len,answer.length()-1);
       const int num=mapInfo.mappingList.getLength();
@@ -3931,7 +3931,7 @@ update( MappingInformation & mapInfo,
     {
       // *********** Query a Point *******************
       real xSelect[3];
-      if( len=answer.matches("query a point") )
+      if( (len=answer.matches("query a point")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e %e %e",&xSelect[0],&xSelect[1],&xSelect[2]);
       }
@@ -4128,7 +4128,7 @@ update( MappingInformation & mapInfo,
              || answer.matches("delete boundary curve") ))
     {
       IntegerArray curveToDelete(1); curveToDelete=-1;
-      if( len=answer.matches("delete boundary curve") )
+      if( (len=answer.matches("delete boundary curve")) )
       {
 	sScanF(answer(len,answer.length()-1),"%i",&curveToDelete(0));
 	if( curveToDelete(0)<0 || curveToDelete(0)>numberOfBoundaryCurves )
@@ -4460,7 +4460,7 @@ update( MappingInformation & mapInfo,
       // printf(" select.active=%i, select.nSelect=%i\n",select.active,select.nSelect);
       bool curveFound=false;
       Mapping *mapPointer;
-      if( len=answer.matches("edit curve") )
+      if( (len=answer.matches("edit curve")) )
       {
 	int b=-1;
 	sScanF(answer(len,answer.length()-1),"%i",&b);
@@ -4515,7 +4515,7 @@ update( MappingInformation & mapInfo,
       }
 
       int subSurface=-1;
-      if( len=answer.matches("hide surface") )
+      if( (len=answer.matches("hide surface")) )
       {
         sScanF(answer(len,answer.length()-1),"%i",&subSurface);
       }
@@ -4838,13 +4838,13 @@ update( MappingInformation & mapInfo,
       // printStatistics();
       
     }
-    else if( len=answer.matches("lines to step") )
+    else if( (len=answer.matches("lines to step")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&linesToStep);
       printf("linesToStep=%i\n",linesToStep);
       dialog.setTextLabel("lines to step",sPrintF(line,"%i ",linesToStep));
     }
-    else if( len=answer.matches("step") )
+    else if( (len=answer.matches("step")) )
     {
       int growthDirection = growthOption==-1 ? 1 : 0;
       int numberOfAdditionalSteps=0;
@@ -4890,7 +4890,7 @@ update( MappingInformation & mapInfo,
       // printStatistics();
 
     }
-    else if( len=answer.matches("distance to march") )
+    else if( (len=answer.matches("distance to march")) )
     {
       line=answer(len,answer.length()-1);
       if( abs(growthOption)==1 )
@@ -4909,7 +4909,7 @@ update( MappingInformation & mapInfo,
       updateLinesAndDistanceToMarch();
       setLinesAndDistanceLabels(dialog);
     }
-    else if( len=answer.matches("lines to march") )
+    else if( (len=answer.matches("lines to march")) )
     {
        line=answer(14,answer.length()-1);
       if( abs(growthOption)==1 )
@@ -4925,7 +4925,7 @@ update( MappingInformation & mapInfo,
       updateLinesAndDistanceToMarch();
       setLinesAndDistanceLabels(dialog);
     }
-    else if( len=answer.matches("points on initial curve") )
+    else if( (len=answer.matches("points on initial curve")) )
     {
       int n1=getGridDimensions(0); 
 
@@ -4955,7 +4955,7 @@ update( MappingInformation & mapInfo,
         plotObject=true;
       }
     }
-    else if( len=answer.matches("target grid spacing") )
+    else if( (len=answer.matches("target grid spacing")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&targetGridSpacing,&initialSpacing);
       dialog.setTextLabel("target grid spacing",sPrintF(line,"%g, %g (tang,normal, <0 : use default)",
@@ -4979,12 +4979,12 @@ update( MappingInformation & mapInfo,
       setLinesAndDistanceLabels(dialog);
 
     }
-    else if( len=answer.matches("name ") )
+    else if( (len=answer.matches("name ")) )
     {
       setName(mappingName,answer(len,answer.length()-1));
       dialog.setTextLabel("name",sPrintF(line, "%s", (const char*)getName(mappingName))); 
     }
-    else if( len=answer.matches("edit data point mapping...") )
+    else if( (len=answer.matches("edit data point mapping...")) )
     {
       gi.outputString("The hyperbolic mapping is represented as a DataPointMapping");
       if( dpm!=NULL )
@@ -5000,7 +5000,7 @@ update( MappingInformation & mapInfo,
       }
       plotObject=true;
     }
-    else if( len=answer.matches("change plot parameters") )
+    else if( (len=answer.matches("change plot parameters")) )
     {
       parameters.set(GI_TOP_LABEL,getName(mappingName));
       gi.erase();
@@ -5011,7 +5011,7 @@ update( MappingInformation & mapInfo,
       referenceSurfaceHasChanged=true;
       plotObject=true;
     }
-    else if( len=answer.matches("check grid quality") )
+    else if( (len=answer.matches("check grid quality")) )
     {
       if( dpm!=NULL )
       {
@@ -5140,7 +5140,7 @@ update( MappingInformation & mapInfo,
 //       if( answer=="mappingName" )
 //         plotObject=false;
 //     }
-//     else if( len=answer.matches("lines" )>0 )
+//     else if( (len=answer.matches("lines" ))>0 )
 //     {
 //       int n1,n2;
 //       sScanF(answer(len,answer.length()-1),"%i %i",&n1,&n2);
@@ -5551,7 +5551,6 @@ buildCurve( GenericGraphicsInterface & gi,
   parameters.get(GraphicsParameters::curveLineWidth,oldCurveLineWidth);
   parameters.set(GraphicsParameters::curveLineWidth,5.);
   int len=0;
-  
   IntegerArray boundaryCurvesChosen(max(1,numberOfBoundaryCurves));
   boundaryCurvesChosen=-1;
   int numberOfBoundaryCurvesChosen=0;
@@ -5718,7 +5717,7 @@ buildCurve( GenericGraphicsInterface & gi,
 	dialog.setTextLabel("points on initial curve",sPrintF( "%i, %i",getGridDimensions(0), getGridDimensions(1)));
 
     }
-    else if( len=answer.matches("choose point on surface") )
+    else if( (len=answer.matches("choose point on surface")) )
     {
       int subSurface=-1;
       real xSelected[3], rSelected[2];

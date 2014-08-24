@@ -589,42 +589,42 @@ update()
     //
     //------------ processing for advanced options
     //
-    else if(  len=matches(answer,"center (x,y)") )
+    else if( (len=matches(answer,"center (x,y))")) )
     {
       sScanF(substring(answer,len,answer.length()),"%e %e", &colourBarCenter[0], &colourBarCenter[1] );
       cout << "..center   x=" << colourBarCenter[0] << ",   y=" << colourBarCenter[1] << endl;
       dialog.setTextLabel(0,(const aString)sPrintF(answer, "%g,%g",colourBarCenter[0],colourBarCenter[1])); 
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"width"))
+    else if( (len=matches(answer,"width")) )
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarWidth);
       cout << "..width = " << colourBarWidth << endl;
       dialog.setTextLabel(1,(const aString)sPrintF(answer, "%g", colourBarWidth)); 
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"length"))
+    else if(  (len=matches(answer,"length")))
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarLength);
       cout << "..length = " << colourBarLength << endl;
       dialog.setTextLabel(2,(const aString)sPrintF(answer, "%g", colourBarLength));
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"offset from plot"))
+    else if(  (len=matches(answer,"offset from plot")))
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarOffsetFromPlot);
       cout << "..offset from plot = " << colourBarOffsetFromPlot << endl;
       dialog.setTextLabel(3,(const aString)sPrintF(answer, "%g",colourBarOffsetFromPlot));
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"angle"))
+    else if(  (len=matches(answer,"angle")))
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarAngle);
       cout << "..angle = " << colourBarAngle << endl;
       dialog.setTextLabel(4,(const aString)sPrintF(answer, "%g",colourBarAngle));
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"curvature"))
+    else if(  (len=matches(answer,"curvature")))
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarCurvature);
       cout << "..curvature = " << colourBarCurvature;
@@ -633,28 +633,28 @@ update()
       dialog.setTextLabel(5,(const aString)sPrintF(answer, "%g",colourBarCurvature));
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"label angle"))
+    else if(  (len=matches(answer,"label angle")))
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarLabelAngle);
       cout << "..label angle = " << colourBarLabelAngle << endl;
       dialog.setTextLabel(6,(const aString)sPrintF(answer, "%g",colourBarLabelAngle));
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"label normal offset"))
+    else if(  (len=matches(answer,"label normal offset")))
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarLabelNormalOffset);
       cout << "..label normal offset = " << colourBarLabelNormalOffset << endl;
       dialog.setTextLabel(7,(const aString)sPrintF(answer, "%g",colourBarLabelNormalOffset));
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"label tangential offset"))
+    else if(  (len=matches(answer,"label tangential offset")))
     {
       sScanF(substring(answer,len,answer.length()),"%e", &colourBarLabelTangentialOffset);
       cout << "..label tangential offset = " << colourBarLabelTangentialOffset << endl;
       dialog.setTextLabel(8,(const aString)sPrintF(answer, "%g",colourBarLabelTangentialOffset));
       plotObject = TRUE;
     }
-    else if(  len=matches(answer,"number of intervals")) // integer
+    else if(  (len=matches(answer,"number of intervals"))) // integer
     {
       sScanF(substring(answer,len,answer.length()),"%i", &colourBarNumberOfIntervals);
       cout << "..number of intervals = " << colourBarNumberOfIntervals << endl;
@@ -867,7 +867,7 @@ drawBarLines()
     glBegin(GL_LINES);
     glVertex3( xa, ya, barZOffset );
     glVertex3( xb, yb, barZOffset );
-    printf("   i= %5i xa= %6.2g,  ya= %6.2g,  xb= %6.2g,  yb= %6.2g,  colour=  %6.2g\n",
+    printf("   i= %5i xa= %6.2g,  ya= %6.2g,  xb= %6.2g,  yb= %6.2g,  colour=  %6.2g width=%g \n",
 	   i,xa,ya,xb,yb, r, width);
     glEnd();
   }

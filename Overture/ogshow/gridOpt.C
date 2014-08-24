@@ -234,6 +234,7 @@ collectInterpolationData( int srcProcessor, int destProcessor, int grid, Composi
 #else
   // serial case
     OV_ABORT("ERROR: collectInterpolationData not expected to be called in serial");
+    return 0;
 #endif
 }
 

@@ -103,7 +103,9 @@ makeMapping( const aString & className )
   else
   {
     for( MappingItem *ptr=Mapping::staticMapList().start; ptr; ptr=ptr->next )
-      if( map = ptr->val->make( className ) ) break;
+    {
+      if( (map = ptr->val->make( className )) ) break;
+    }
   }
 
 //  if( map!=NULL )                     // add this ** but then remove from all files!

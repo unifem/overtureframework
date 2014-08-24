@@ -283,7 +283,7 @@ plot(GL_GraphicsInterface &gi)
       else
 	{
 	  i++;
-	  answer=="";
+	  answer="";
 	}
       
       if ( answer.matches("Exit") )

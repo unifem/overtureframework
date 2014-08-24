@@ -133,25 +133,33 @@ sovGetVisualInfo(Display *display, long lvinfo_mask,
         }
     }
     if (lvinfo_mask & VisualLayerMask)
+    {
       if (overlayInfo == NULL) {
         if (lvinfo_template->layer != 0)
           continue;
       } else if (lvinfo_template->layer != overlayInfo->layer)
         continue;
+    }
+    
     if (lvinfo_mask & VisualTransparentType)
+    {
       if (overlayInfo == NULL) {
         if (lvinfo_template->type != None)
           continue;
       } else if (lvinfo_template->type !=
         overlayInfo->transparent_type)
         continue;
+    }
+    
     if (lvinfo_mask & VisualTransparentValue)
+    {
       if (overlayInfo == NULL)
         /* non-overlay visuals have no sense of
            TransparentValue */
         continue;
       else if (lvinfo_template->value != overlayInfo->value)
         continue;
+    }
     layerInfo[count].vinfo = *pVinfo;
     if (overlayInfo == NULL) {
       layerInfo[count].layer = 0;

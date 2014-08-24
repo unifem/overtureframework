@@ -455,12 +455,12 @@ getInterpolationStencil(CompositeGrid & cg1,
 	    else
 	      status=canInterpolateWithExtrapolation;
 
-	    printf("INFO: one point interpolation, pt=(%i,(from a discretization pt\n");
-	    printf("    : i=%i : grid2=%i interp:i=(%i,%i,%i) interpolee:kv=(%i,%i,%i)\n",
+	    printf("INFO: one point interpolation, (from a discretization pt)\n");
+	    printf("    : i=%i : grid2=%i interp:i=(%i,%i,%i) interpolee:kv=(%i,%i,%i), mask=%i\n",
 		   i,grid2,i1,i2,i3,k1,k2,k3,MASK2D(k1,k2,k3));
 	    if( debug & 2 )
 	    {
-	      fprintf(debugFile,"INFO: one point interpolation, pt=(%i,(from a discretization pt\n");
+	      fprintf(debugFile,"INFO: one point interpolation, (from a discretization pt)\n");
 	      fprintf(debugFile,"    : i=%i : grid2=%i interp:i=(%i,%i,%i) interpolee:kv=(%i,%i,%i)\n"
 		      "    : mask2 = %i %i %i %i\n",
 		      i,grid2,i1,i2,i3,k1,k2,k3,MASK2D(k1,k2,k3),MASK2D(k1+1,k2,k3),MASK2D(k1,k2+1,k3),

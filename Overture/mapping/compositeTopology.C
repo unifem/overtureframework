@@ -5218,7 +5218,7 @@ cleanup()
 // free any unused edges
 //  printf("Deleting unused edges...\n");
   EdgeInfo *e;
-  while (e=unusedEdges.pop())
+  while( (e=unusedEdges.pop()) )
   {
     delete e;
   }
@@ -6042,8 +6042,9 @@ findBoundaryCurves(int & numberOfBoundaryCurves, Mapping **& boundaryCurves )
 
       }
       if( debug & 4 )
-	printf(" ADT: insert edge curve: %i boundingBox=[%e,%e]x[%e,%e]x[%e,%e]\n",
-	       e,bb(0,0),bb(1,0),bb(0,1),bb(1,1),bb(0,2),bb(1,2));
+	printf(" ADT: insert edge curve: boundingBox=[%e,%e]x[%e,%e]x[%e,%e]\n",
+	       bb(0,0),bb(1,0),bb(0,1),bb(1,1),bb(0,2),bb(1,2));
+
       if( bb(0,0)>=boundingBox(0,0) && bb(1,0)<=boundingBox(1,0) &&
 	  bb(0,1)>=boundingBox(0,1) && bb(1,1)<=boundingBox(1,1) &&
 	  bb(0,2)>=boundingBox(0,2) && bb(1,2)<=boundingBox(1,2)  )
@@ -6052,9 +6053,9 @@ findBoundaryCurves(int & numberOfBoundaryCurves, Mapping **& boundaryCurves )
       }
       else
       {
-	printf("ADT:ERROR: boundingBox of edge %i is out of bounds for the box for the entire surface! \n"
+	printf("ADT:ERROR: boundingBox of edge is out of bounds for the box for the entire surface! \n"
 	       "edge boundingBox=[%e,%e]x[%e,%e]x[%e,%e]\n",
-	       e,bb(0,0),bb(1,0),bb(0,1),bb(1,1),bb(0,2),bb(1,2));
+	       bb(0,0),bb(1,0),bb(0,1),bb(1,1),bb(0,2),bb(1,2));
       }
     }
 
@@ -7637,7 +7638,7 @@ update()
 	    }
 	    break;
 	  }
-	  else if ( len=answer.matches("file format") )
+	  else if ( (len=answer.matches("file format")) )
 	  {
 	    aString fstr=answer(len+1,answer.length()-1);
 	    if (fstr.matches("ingrid"))
@@ -7658,7 +7659,7 @@ update()
             // set the text in the widget
 	    saveGUI.setTextLabel(fnIndex, fname); // (re)set the textlabel
 	  }
-	  else if ( len=answer.matches("file name") )
+	  else if ( (len=answer.matches("file name")) )
 	  {
 // read the new file name off the end of the string...
 	    aString newName = "";
@@ -7815,7 +7816,7 @@ update()
 	triangulationIsValid=true;
       }
     }
-    else if( len=answer.matches("merge two edge curves") )
+    else if( (len=answer.matches("merge two edge curves")) )
     {
       if( !faceInfoArray )
       {
@@ -7840,7 +7841,7 @@ update()
 	gi.outputString(sPrintF(buf, "Could not find edges %i AND %i", eNumber1, eNumber2));
       mergedCurvesAreValid=true;
     }
-    else if( len=answer.matches("un-merge edge curves") )
+    else if( (len=answer.matches("un-merge edge curves")) )
     {
       int eNumber=-1;
       sScanF(answer(len,answer.length()-1), "%i", &eNumber);       
@@ -7858,7 +7859,7 @@ update()
       triangulationIsValid=false;
       mergedCurvesAreValid=false;
     }
-    else if( len=answer.matches("join edge curve") )
+    else if( (len=answer.matches("join edge curve")) )
     {
       int eNumber=-1, toNext=0;
       sScanF(answer(len, answer.length()-1),"%i %i",&eNumber, &toNext);
@@ -7879,7 +7880,7 @@ update()
 	gi.outputString(sPrintF(buf, "Cannot find edge %i!", eNumber));
       }
     }
-    else if( len=answer.matches("split an edge") )
+    else if( (len=answer.matches("split an edge")) )
     {
       int eNumber=-1;
       real rSplit=0.;
@@ -7898,7 +7899,7 @@ update()
 	gi.outputString(sPrintF(buf, "Cannot find edge %i!", eNumber));
       }
     }
-    else if( len=answer.matches("edit edge curve") )
+    else if( (len=answer.matches("edit edge curve")) )
     {
 // Anders' new version not implemented yet
     }
@@ -8278,7 +8279,7 @@ update()
       dialog.getRadioBox(0).setCurrentChoice(pickingOption);
       continue;
     }
-    else if( len=answer.matches("plot reference surface") )
+    else if( (len=answer.matches("plot reference surface")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
@@ -8287,7 +8288,7 @@ update()
       printf(" plotReferenceSurface=%i\n",plotReferenceSurface);
       
     }
-    else if( len=answer.matches("plot triangulated surface") )
+    else if( (len=answer.matches("plot triangulated surface")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
@@ -8296,7 +8297,7 @@ update()
       printf(" plotTriangulatedSurface=%i\n",plotTriangulatedSurface);
       
     }
-    else if( len=answer.matches("plot edge curves") )
+    else if( (len=answer.matches("plot edge curves")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
@@ -8308,35 +8309,35 @@ update()
 //      params.set(GI_PLOT_UNS_BOUNDARY_EDGES,plotEdgeCurves);
       
     }
-    else if( len=answer.matches("plot green merged curves") )
+    else if( (len=answer.matches("plot green merged curves")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
       plotMergedCurves=toggle;
       dialog.setToggleState("plot green merged curves", toggle);
     }
-    else if( len=answer.matches("plot blue unmerged curves") )
+    else if( (len=answer.matches("plot blue unmerged curves")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
       plotUnMergedCurves=toggle;
       dialog.setToggleState("plot blue unmerged curves", toggle);
     }
-    else if( len=answer.matches("plot blue/red unmerged curves") ) // for backward compatibility
+    else if( (len=answer.matches("plot blue/red unmerged curves")) ) // for backward compatibility
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
       plotUnMergedCurves=toggle;
       dialog.setToggleState("plot blue unmerged curves", toggle);
     }
-    else if( len=answer.matches("plot bad elements") )
+    else if( (len=answer.matches("plot bad elements")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
       plotBadElements=toggle;
       dialog.setToggleState("plot bad elements", toggle);
     }
-    else if( len=answer.matches("plot normals") )
+    else if( (len=answer.matches("plot normals")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
@@ -8344,7 +8345,7 @@ update()
       params.set(GI_PLOT_MAPPING_NORMALS, plotNormals);
       dialog.setToggleState("plot normals", toggle);
     }
-    else if( len=answer.matches("flat shading") )
+    else if( (len=answer.matches("flat shading")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
@@ -8354,7 +8355,7 @@ update()
 // need to erase the faces in the triangulation      
       if (globalTriangulation) globalTriangulation->eraseUnstructuredMapping(gi);
     }
-    else if( len=answer.matches("improve triangulation") )
+    else if( (len=answer.matches("improve triangulation")) )
     {
       int toggle;
       sScanF(answer(len,answer.length()-1),"%i",&toggle);       
@@ -8362,14 +8363,14 @@ update()
       dialog.setToggleState("improve triangulation", toggle);
       rePlot = false;
     }
-    else if( len=answer.matches("debug") )
+    else if( (len=answer.matches("debug")) )
     {
       sScanF(answer(len,answer.length()),"%i",&debug);
       dialog.setTextLabel("debug",sPrintF(answer,"%i",debug));
       printf("debug=%i\n",debug);
       rePlot = false;
     }
-    else if( len=answer.matches("merge tolerance") )
+    else if( (len=answer.matches("merge tolerance")) )
     {
       real oldMergeTolerance=mergeTolerance;
       sScanF(answer(len,answer.length()),"%e",&mergeTolerance);
@@ -8388,7 +8389,7 @@ update()
       mergedCurvesAreValid=false;
       rePlot = false;
     }
-    else if( len=answer.matches("split tolerance factor") )
+    else if( (len=answer.matches("split tolerance factor")) )
     {
       real newSplitToleranceFactor=0;
       sScanF(answer(len,answer.length()),"%e",&newSplitToleranceFactor);
@@ -8405,7 +8406,7 @@ update()
 
       rePlot = false;
     }
-    else if( len=answer.matches("deltaS") )
+    else if( (len=answer.matches("deltaS")) )
     {
       real oldDeltaS=deltaS;
       sScanF(answer(len,answer.length()),"%e",&deltaS);
@@ -8424,7 +8425,7 @@ update()
       }
       rePlot = false;
     }
-//      else if( len=answer.matches("curvatureTolerance") )
+//      else if( (len=answer.matches("curvatureTolerance")) )
 //      {
 //        sScanF(answer(len,answer.length()),"%e",&curvatureTolerance);
 //        dialog.setTextLabel("curvatureTolerance",sPrintF(answer,"%g",curvatureTolerance));
@@ -8432,7 +8433,7 @@ update()
 //  //      dialog.setSensitive(true,DialogData::pushButtonWidget,buildEdgeCurvesPushButton);
 
 //      }
-    else if( len=answer.matches("minNumberOfPointsOnAnEdge") )
+    else if( (len=answer.matches("minNumberOfPointsOnAnEdge")) )
     {
       int newNumber=0;
       if (sScanF(answer(len,answer.length()),"%i",&newNumber) == 1)
@@ -8462,7 +8463,7 @@ update()
       }
       rePlot = false;
     }
-//      else if( len=answer.matches("curveResolutionTolerance") )
+//      else if( (len=answer.matches("curveResolutionTolerance")) )
 //      {
 //        sScanF(answer(len,answer.length()),"%e",&curveResolutionTolerance);
 //        dialog.setTextLabel("curveResolutionTolerance",sPrintF(answer,"%g",curveResolutionTolerance));
@@ -8470,7 +8471,7 @@ update()
 
 //  //      dialog.setSensitive(true,DialogData::pushButtonWidget,buildEdgeCurvesPushButton);
 //      }
-    else if( len=answer.matches("maximum area") )
+    else if( (len=answer.matches("maximum area")) )
     {
       sScanF(answer(len,answer.length()),"%e",&maximumArea);
       dialog.setTextLabel("maximum area",sPrintF(answer,"%g",maximumArea));
@@ -8480,7 +8481,7 @@ update()
       
     //      dialog.setSensitive(false,DialogData::pushButtonWidget,mergeEdgeCurvesPushButton);
     }
-    else if( len=answer.matches("max edge distance") )
+    else if( (len=answer.matches("max edge distance")) )
     {
       real oldMaxDist=maxDist;
       sScanF(answer(len,answer.length()),"%e",&maxDist);

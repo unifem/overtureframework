@@ -340,7 +340,7 @@ showFileFromDataFile( GenericGraphicsInterface & gi, aString & showFileName )
        int i=0;
        while( i<numRead && line[i]==' ' ) i++; // skip leading blanks
        answer=answer(i,numRead-1);
-       if( len=answer.matches("define") )
+       if( (len=answer.matches("define")) )
        {
 	 // printF("define a parameter: [%s]\n",(const char*)answer);
 

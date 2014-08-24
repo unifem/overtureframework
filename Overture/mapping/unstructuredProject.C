@@ -1219,8 +1219,8 @@ insideOrOutside( realArray & x, IntegerArray & inside )
 	    real alpha1,alpha2;
 	    int ok = tri.getRelativeCoordinates(xi,alpha1,alpha2);   // get "triangle" parameter coordinates
 	    if( ok!=0 )
-	      printf(" ERROR from getRelativeCoordinates, x=(%e,%e,%e), xi=(%e,%e,%e) \n",
-		     x0,x1,x2,xi[0],xi[1],xi[2]);
+	      printf(" ERROR from getRelativeCoordinates, x0=(%e,%e,%e), xi=(%e,%e,%e) \n",
+		     x0[0],x0[1],x0[2],xi[0],xi[1],xi[2]);
 			
 	    if( fabs(alpha2)<epsEdge || fabs(alpha1)<epsEdge || fabs(alpha1+alpha2-1.)<epsEdge )
 	    {
@@ -1307,7 +1307,7 @@ insideOrOutside( realArray & x, IntegerArray & inside )
 	  {
 	    if( debug & 4 )
 	      printf("INFO:countCrossings: EXACTLY the same point appears more"
-		     " than once. I am NOT going to remove it, x=(%e,%e,%e)\n",x0,x1,x2);
+		     " than once. I am NOT going to remove it, x0=(%e,%e,%e)\n",x0[0],x0[1],x0[2]);
 	    // cross--;
 	  }
 	  //	  else if( fabs(xx(i,0,k)-xi[0])< epsX &&
@@ -1318,7 +1318,7 @@ insideOrOutside( realArray & x, IntegerArray & inside )
                    fabs(xx(0,2,k)-xi[2])< epsZ )
 	  {
 	    printf("INFO:countCrossings: NEARLY the same point appears more"
-		   " than once. I am NOT going to remove it, x=(%e,%e,%e)\n",x0,x1,x2);
+		   " than once. I am NOT going to remove it, x=(%e,%e,%e)\n",x0[0],x0[1],x0[2]);
 	    // cross--;
 	    break;
 	  }

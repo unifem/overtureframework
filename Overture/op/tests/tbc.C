@@ -109,7 +109,7 @@ main(int argc, char **argv)
       aString arg = argv[i];
       if( arg=="-noTiming" )
         measureCPU=FALSE;
-      else if( len=arg.matches("-degreex=") )
+      else if( (len=arg.matches("-degreex=")) )
       {
         sScanF(arg(len,arg.length()-1),"%i",&degreex);
 	printf("Setting degree of polynomial to %i\n",degreex);

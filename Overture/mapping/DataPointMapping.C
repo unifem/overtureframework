@@ -322,7 +322,7 @@ useNurbsToEvaluate( bool trueOrFalse )
     mapIsDistributed=true;  
     inverseIsDistributed=true;
   }
-  
+  return 0;
 }
 
 // ===========================================================================================

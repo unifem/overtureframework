@@ -1750,9 +1750,9 @@ initializePartition()
     partitionInitialized=true;
 
     const int myid=max(0,Communication_Manager::My_Process_Number);
-    if( debug & 1 )
-      printf("***** myid=%i Mapping:: initialize the partition with (internal) address %d ***** \n",
-              myid,partition.getInternalPartitioningObject());
+    // if( debug & 1 )
+    //   printf("***** myid=%i Mapping:: initialize the partition with (internal) address %d ***** \n",
+    // 	     myid,partition.getInternalPartitioningObject());
 
     partition.SpecifyDecompositionAxes(domainDimension);
     for( int axis=0; axis<domainDimension; axis++)
@@ -4839,7 +4839,7 @@ update( MappingInformation & mapInfo )
 	gi.stopReadingCommandFile();
       }
     }
-    else if( len=option.matches("lines") )
+    else if( (len=option.matches("lines")) )
     {
       mappingHasChanged();
       int gd[3];
@@ -5778,7 +5778,7 @@ getMappingParametersOption( const aString & answer,
   {
     dialog.hideSibling();  // close sibling dialog
   }
-  else if( len=answer.matches("lines:") )
+  else if( (len=answer.matches("lines:")) )
   {
     int n[3]={-1,-1,-1}; 
     sScanF(answer(len+1,answer.length()-1),"%i %i %i",&n[0],&n[1],&n[2]);
@@ -5804,7 +5804,7 @@ getMappingParametersOption( const aString & answer,
 
     // map.mappingHasChanged();
   }
-  else if( len=answer.matches("boundary conditions:") )
+  else if( (len=answer.matches("boundary conditions:")) )
   {
     gi.outputString("Boundary conditions: positive=physical boundary, negative=periodic, 0=interpolation");
     gi.outputString("        bc(0,0)=left side, bc(1,0)=right side");
@@ -5873,7 +5873,7 @@ getMappingParametersOption( const aString & answer,
     updatePeriodicText=true;
 
   }
-  else if( len=answer.matches("shared boundary flag:") )
+  else if( (len=answer.matches("shared boundary flag:")) )
   {
     int pshare[6]={0,0,0,0,0,0}; 
     #define share(side,axis) pshare[(side)+2*(axis)]
@@ -5902,7 +5902,7 @@ getMappingParametersOption( const aString & answer,
 
 
   }
-  else if( len=answer.matches("periodicity:") )
+  else if( (len=answer.matches("periodicity:")) )
   {
     printF("Periodic boundaries are labeled with 0,1 or 2: \n"
 	   " 0=not periodic, 1=derivative periodic, 2=function(=branch cut)\n"
@@ -5954,7 +5954,7 @@ getMappingParametersOption( const aString & answer,
     updateBoundaryConditionText=true;
     updatePeriodicText=true;
   }
-  else if( len=answer.matches("name:") )
+  else if( (len=answer.matches("name:")) )
   {
     map.setName(Mapping::mappingName,answer(len,answer.length()-1));
     dialog.setTextLabel("name:",sPrintF(line, "%s", (const char*)map.getName(Mapping::mappingName))); 
@@ -5965,7 +5965,7 @@ getMappingParametersOption( const aString & answer,
       map.approximateGlobalInverse->useRobustInverse(useRobustInverse);
   } 
   // *** finish me: ***
-//   else if( len=answer.matches("periodicity: axis") 
+//   else if( (len=answer.matches("periodicity: axis")) 
 //   {
 //   }
   else

@@ -1724,7 +1724,7 @@ updateRefinementNew(CompositeGrid & cg,
                                 myid,grid,numberOfInterpolationPoints);
       	for( i=0; i<numberOfInterpolationPoints; i++ )
       	{
-                    fprintf(plogFile,"ip(%i)=(%i,%i,%i), ",i,IP(i,0),IP(i,1),(numberOfDimensions==2 ? 0. : IP(i,2)));
+                    fprintf(plogFile,"ip(%i)=(%i,%i,%i), ",i,IP(i,0),IP(i,1),(numberOfDimensions==2 ? 0 : IP(i,2)));
         	  if( i % 5 == 4 ) fprintf(plogFile,"\n");
       	}
       	fprintf(plogFile,"\n");
@@ -1745,7 +1745,7 @@ updateRefinementNew(CompositeGrid & cg,
               		  grid,numInterp,np); 
         	  for( i=0; i<numInterp; i++ )
         	  {
-          	    fprintf(logFile,"ip(%i)=(%i,%i,%i), ",i,ipp(i,0),ipp(i,1),(numberOfDimensions==2 ? 0. : ipp(i,2)));
+          	    fprintf(logFile,"ip(%i)=(%i,%i,%i), ",i,ipp(i,0),ipp(i,1),(numberOfDimensions==2 ? 0 : ipp(i,2)));
           	    if( i % 5 == 4 ) fprintf(logFile,"\n");
         	  }
                     fprintf(logFile,"\n");
@@ -2005,7 +2005,7 @@ updateRefinementNew(CompositeGrid & cg,
             if( debug & 4 )
             {
                 fprintf(plogFile,"\n ==== Assign base grid mask with interp pts grid=%i (g=%i,bg=%i) at level=%i ====\n",
-            		grid,g,l);
+            		grid,g,bg,l);
             }
             
       // printf(" interpoleeGridBG: bg=%i, min=%i, max=%i (before update)\n",bg,min(interpoleeGridBG),max(interpoleeGridBG));

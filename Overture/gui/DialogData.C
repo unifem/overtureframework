@@ -506,6 +506,8 @@ deleteOptionMenus()
     opMenuData[i].optionList=NULL;
   }
   n_optionMenu=0;
+
+  return 0;
 }
 
 
@@ -1012,7 +1014,7 @@ getToggleValue( const aString & answer, const aString & label, bool & target )
 // -----------------------------------------------------------------------------
 {
   int len=0;
-  if( len=str_matches(answer,label) )
+  if( (len=str_matches(answer,label)) )
   {
     int value = target;
     sScanF(answer.substr(len,answer.length()-len),"%i",&value); target=value;
@@ -1054,7 +1056,7 @@ getTextValue( const aString & answer, const aString & label, const aString & for
 // -----------------------------------------------------------------------------
 {
   int len=0;
-  if( len=str_matches(answer,label) )
+  if( (len=str_matches(answer,label)) )
   {
     aString line;
     sScanF(answer.substr(len,answer.length()-len),"%e",&target); 
@@ -1083,7 +1085,7 @@ getTextValue( const aString & answer, const aString & label, const aString & for
 // -----------------------------------------------------------------------------
 {
   int len=0;
-  if( len=str_matches(answer,label) )
+  if( (len=str_matches(answer,label)) )
   {
     aString line;
     sScanF(answer.substr(len,answer.length()-len),"%i",&target); 
@@ -1112,7 +1114,7 @@ getTextValue( const aString & answer, const aString & label, const aString & for
 // -----------------------------------------------------------------------------
 {
   int len=0;
-  if( len=str_matches(answer,label) )
+  if( (len=str_matches(answer,label)) )
   {
     target=answer.substr(len,answer.length()-len);
 

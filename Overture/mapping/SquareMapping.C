@@ -566,7 +566,7 @@ update( MappingInformation & mapInfo )
       gi.getAnswer(answer,"");  // gi.getMenuItem(menu,answer);
  
 
-    if( len=answer.matches("set corners:") )
+    if( (len=answer.matches("set corners:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e %e",&xa,&xb,&ya,&yb);
       if( !gi.isGraphicsWindowOpen() )

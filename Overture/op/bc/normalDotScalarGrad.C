@@ -113,21 +113,29 @@ applyBCnormalDotScalarGrad(realMappedGridFunction & u,
       for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
       {
 	if( numberOfDimensions==2 )
+	{
 	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=s(I1,I2,I3)*(e->x(c,I1,I2,I3,fC(n),t)*normal(I1,I2,I3,axis1)
-				  +e->y(c,I1,I2,I3,fC(n),t)*normal(I1,I2,I3,axis2))*(twoDeltaX)/a11m; )
+							  +e->y(c,I1,I2,I3,fC(n),t)*normal(I1,I2,I3,axis2))*(twoDeltaX)/a11m; );
+	}
 	else if( numberOfDimensions==3 )
+	{
 	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=s(I1,I2,I3)*(e->x(c,I1,I2,I3,fC(n),t)*normal(I1,I2,I3,axis1)
 				  +e->y(c,I1,I2,I3,fC(n),t)*normal(I1,I2,I3,axis2)
-				  +e->z(c,I1,I2,I3,fC(n),t)*normal(I1,I2,I3,axis3))*(twoDeltaX)/a11m; )
+							  +e->z(c,I1,I2,I3,fC(n),t)*normal(I1,I2,I3,axis3))*(twoDeltaX)/a11m; );
+	}
 	else
-	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=s(I1,I2,I3)*e->x(c,I1,I2,I3,fC(n),t)*((2*side-1)*twoDeltaX)/a11m; )
+	{
+	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=s(I1,I2,I3)*e->x(c,I1,I2,I3,fC(n),t)*((2*side-1)*twoDeltaX)/a11m; );
+	}
       }
     }
     else if( bcOption==scalarForcing )
     {
       if( scalarData != 0. )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=(scalarData*twoDeltaX)/a11m; )
+	{
+	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=(scalarData*twoDeltaX)/a11m; );
+	}
     }
     else if( bcOption==arrayForcing )
     {
@@ -140,20 +148,28 @@ applyBCnormalDotScalarGrad(realMappedGridFunction & u,
 	  arrayDataD.getBase(3)<=min(fC(uC.dimension(0))) && arrayDataD.getBound(3)>=max(fC(uC.dimension(0))) )
       {
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
+	{
 	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=(arrayDataD(I1,I2,I3,fC(n))*twoDeltaX)/a11m; );
+	}
       }
       else if( side<=arrayData.getBound(1) && axis<=arrayData.getBound(2) && grid<=arrayData.getBound(3) )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=(arrayData(fC(n),side,axis,grid)*twoDeltaX)/a11m; )
+	{
+	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=(arrayData(fC(n),side,axis,grid)*twoDeltaX)/a11m; );
+	}
       else
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=(arrayData(fC(n))*twoDeltaX)/a11m; )
+	{
+	  WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=(arrayData(fC(n))*twoDeltaX)/a11m; );
+	}
       #endif
     }
     else if( bcOption==gridFunctionForcing )
     {
       for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=gfData(I1,I2,I3,fC(n))*twoDeltaX/a11m; )
+      {
+	WHERE_MASK( uA(I1m,I2m,I3m,uC(n))+=gfData(I1,I2,I3,fC(n))*twoDeltaX/a11m; );
+      }
     }
     else
       {throw "Invalid value for bcOption! (neumann)";}
@@ -214,8 +230,10 @@ applyBCnormalDotScalarGrad(realMappedGridFunction & u,
     }
 	  
     for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-      WHERE_MASK( uA(I1m,I2m,I3m,uC(n))=0.; )// zero this out so we can use it in the rhs of the expressions below
-
+    {
+      WHERE_MASK( uA(I1m,I2m,I3m,uC(n))=0.; ); // zero this out so we can use it in the rhs of the expressions below
+    }
+    
     uA.reshape(1,uA.dimension(0),uA.dimension(1),uA.dimension(2),uA.dimension(3));
     mask.reshape(1,mask.dimension(0),mask.dimension(1),mask.dimension(2));
     for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
@@ -254,7 +272,7 @@ applyBCnormalDotScalarGrad(realMappedGridFunction & u,
 	    nmCoeff(M2( 0, 0),I1,I2,I3)*uA(0,I1  ,I2  ,I3,uC(n))+
 	    nmCoeff(M2(+1, 0),I1,I2,I3)*uA(0,I1+1,I2  ,I3,uC(n))+
 	    nmCoeff(M2( 0,+1),I1,I2,I3)*uA(0,I1  ,I2+1,I3,uC(n))
-	    ))/nmCoeff(mGhost,I1,I2,I3); )
+	    ))/nmCoeff(mGhost,I1,I2,I3); );
       }
       else
       {
@@ -267,7 +285,7 @@ applyBCnormalDotScalarGrad(realMappedGridFunction & u,
 	     nmCoeff(M3(+1, 0, 0),I1,I2,I3)*uA(0,I1+1,I2  ,I3  ,uC(n))+
 	     nmCoeff(M3( 0,+1, 0),I1,I2,I3)*uA(0,I1  ,I2+1,I3  ,uC(n))+
 	     nmCoeff(M3( 0, 0,+1),I1,I2,I3)*uA(0,I1  ,I2  ,I3+1,uC(n))
-	    ))/nmCoeff(mGhost,I1,I2,I3); )
+	    ))/nmCoeff(mGhost,I1,I2,I3); );
       }
       rhs.reshape(rhs.dimension(1),rhs.dimension(2),rhs.dimension(3),rhs.dimension(4));
     }

@@ -1385,7 +1385,7 @@ processSpecialMenuItems(aString & answer)
   }
   else if( answer.substr(0,9)=="clear all" ) /* OLD "erase" */
     erase(win_number, false); // false only deletes non-hideable lists. Hideable lists are just not shown
-  else if ( len=str_matches(answer,"force redraw, wait") )
+  else if ( (len=str_matches(answer,"force redraw, wait")) )
   {
     real timeToWait = 0.0;
     if (answer.length() > len+1)
@@ -2034,7 +2034,7 @@ processSpecialMenuItems(aString & answer)
       
     }
   }
-  else if( len=str_matches(answer,"fraction of screen") ) 
+  else if( (len=str_matches(answer,"fraction of screen")) ) 
   { 
     const char *ans=answer.c_str();
     const char *lsString=strpbrk(&ans[len]," "); // look after the colon
@@ -2056,7 +2056,7 @@ processSpecialMenuItems(aString & answer)
       
     }
   }
-  else if( len=str_matches(answer,"include ") )
+  else if( (len=str_matches(answer,"include ")) )
   {      
     aString newCommandFileName=nullString;
     if( len>0 )

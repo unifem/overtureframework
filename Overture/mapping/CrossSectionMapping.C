@@ -417,7 +417,7 @@ initialize()
     centroid(Rx,numberOfCrossSections)=(1.-alpha)*centroid(Rx,numberOfCrossSections-2)+
                                            alpha *centroid(Rx,numberOfCrossSections-1);
 
-    if( Mapping::debug && 2 )
+    if( Mapping::debug & 2 )
       ::display(s,"CrossSectionMapping::initialize: arclength s");
 
     if( parameterization==arcLength )

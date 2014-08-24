@@ -998,7 +998,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
 	}
       }
     }
-    else if( len=answer.matches("number of levels") )  // new way
+    else if( (len=answer.matches("number of levels")) )  // new way
     {
       sScanF(answer(len,answer.length()-1),"%i",&numberOfContourLevels);
       dialog.setTextLabel("number of levels",sPrintF(answer,"%i",numberOfContourLevels));
@@ -1014,12 +1014,12 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
 				     contourSurfaceVerticalScaleFactor));
       sScanF(answer2,"%e",&contourSurfaceVerticalScaleFactor); 
     }
-    else if( len=answer.matches("vertical scale factor") )  // new way
+    else if( (len=answer.matches("vertical scale factor")) )  // new way
     {
       sScanF(answer(len,answer.length()-1),"%e",&contourSurfaceVerticalScaleFactor);
       dialog.setTextLabel("vertical scale factor",sPrintF(answer,"%g",contourSurfaceVerticalScaleFactor));
     }
-    else if( len=answer.matches("plot:") )
+    else if( (len=answer.matches("plot:")) )
     {
       // plot a new component
       aString name = answer(len,answer.length()-1);
@@ -1070,7 +1070,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
       printF("INFO: You will have to exit this menu and replot to see the new displacement scale factor"
              " take effect. displacementScaleFactor=%9.3e\n",psp.displacementScaleFactor);
     }
-    else if( len=answer.matches("xScale, yScale") )
+    else if( (len=answer.matches("xScale, yScale")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e",&psp.xScaleFactor,&psp.yScaleFactor);
       printF("New values are xScale = %g, yScale = %g \n",psp.xScaleFactor,psp.yScaleFactor);
@@ -1089,7 +1089,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
       printF("Resetting min and max to [%20.14e,%20.14e] for component%i (%s)\n",uMin,uMax,component,
 	     (const char*)uGCF.getName(component));
     }
-    else if( len=answer.matches("min max") )
+    else if( (len=answer.matches("min max")) )
     {
 
       sScanF(answer(len,answer.length()-1),"%e %e",&uMin,&uMax);
@@ -1280,7 +1280,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
     {
       parameters.usePlotBounds=false;
     }
-    else if( len=answer.matches("toggle grid") )
+    else if( (len=answer.matches("toggle grid")) )
     {
       int onOff, gridToToggle=-1;
       sScanF(&answer[len],"%i %i", &gridToToggle, &onOff);
@@ -1370,7 +1370,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
 	    }
             else
 	    {
-              printf("ERROR: Invalid values for (i1,i2,i3)=(%,%i,%i) \n",i1,i2,i3);
+              printf("ERROR: Invalid values for (i1,i2,i3)=(%i,%i,%i) \n",i1,i2,i3);
 	    }
 	  }
           else
@@ -1449,7 +1449,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
 	     (select.active || select.nSelect || answer.matches("query value") ) )
     {
       RealArray x0(1,3);
-      if( len=answer.matches("query value") )
+      if( (len=answer.matches("query value")) )
       {
 	sScanF(answer(len,answer.length()-1),"%e %e %e",&x0(0,0),&x0(0,1),&x0(0,2));
       }
@@ -1557,7 +1557,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
         computePlotBounds=true;
       }
     }
-    else if( len=answer.matches("ghost lines") )  // new way
+    else if( (len=answer.matches("ghost lines")) )  // new way
     {
       sScanF(answer(len,answer.length()-1),"%i",&numberOfGhostLinesToPlot);
       dialog.setTextLabel("ghost lines",sPrintF(answer,"%i",numberOfGhostLinesToPlot));
@@ -1571,7 +1571,7 @@ contour2d(GenericGraphicsInterface &gi, const realGridCollectionFunction & uGCF,
       }
       
     }
-    else if( len=answer.matches("coarsening factor") ) 
+    else if( (len=answer.matches("coarsening factor")) ) 
     {
       sScanF(answer(len,answer.length()-1),"%i",&gi.gridCoarseningFactor);
       dialog.setTextLabel("coarsening factor",sPrintF(answer,"%i (<0 : adaptive)",gi.gridCoarseningFactor));

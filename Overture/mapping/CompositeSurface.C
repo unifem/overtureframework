@@ -2222,7 +2222,7 @@ eraseCompositeSurface(GenericGraphicsInterface &gi, int surface /* = -1 */)
   }
   else
   {
-    printf("eraseCompositeSurface: surface = %i out of bounds\n");
+    printf("eraseCompositeSurface: surface = %i out of bounds\n",surface);
     return;
   }
   int s;
@@ -3056,7 +3056,7 @@ update( MappingInformation & mapInfo )
       selectFunction=pickToQueryPoint;
       selectOption_->setCurrentChoice(selectFunction);
     }
-    else if( len=answer.matches("add a mapping") )
+    else if( (len=answer.matches("add a mapping")) )
     {
       aString rest = answer(len+1,answer.length()-1);
       if (rest == "none")
@@ -3207,7 +3207,7 @@ update( MappingInformation & mapInfo )
 	}
       }
     }
-    else if( len=answer.matches("refine surface") )
+    else if( (len=answer.matches("refine surface")) )
     {
       int s=-1;
       sScanF(answer(len,answer.length()-1),"%i",&s);
@@ -3432,7 +3432,7 @@ update( MappingInformation & mapInfo )
              answer.matches("query surface point") )
     {
       // find the selected point 
-      if( len=answer.matches("query surface point") )
+      if( (len=answer.matches("query surface point")) )
       {
         // reading from a command file:
 	sScanF(answer(len,answer.length()-1)," %i %e %e %e\n",&select.globalID,
@@ -3541,7 +3541,7 @@ update( MappingInformation & mapInfo )
       }
       
     }//                                          012345678901234567890123456789
-    else if( len=answer.matches("debug") )
+    else if( (len=answer.matches("debug")) )
     {
       sScanF(answer(len,answer.length()-1),"%i",&Mapping::debug);
       printF("Setting debug=%i\n",debug);

@@ -547,7 +547,7 @@ plotForcingRegions( GenericGraphicsInterface &gi, DataBase & dbase, CompositeGri
       	}
             }
         }
-        else if( len=answer.matches("forcing region colour (bf,colour):") )
+        else if( (len=answer.matches("forcing region colour (bf,colour):")) )
         {
       // here we process the command line that changes a body colour
             char colour[100];

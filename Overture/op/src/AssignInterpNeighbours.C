@@ -79,6 +79,8 @@ setup()
   // list of points to recieve/send from other processors
   nar=NULL; iar=NULL; 
   nas=NULL; ias=NULL;  
+
+  return 0;
 }
 
 
@@ -141,6 +143,8 @@ gridHasChanged()
 {
   isInitialized=false;
   // we could delete existing arrays here -- otherwise they are destroyed at re-initialization
+
+  return 0;
 }
 
 // =====================================================================================

@@ -394,9 +394,9 @@ findNearestValidGridPoint( CompositeGrid & cg, const RealArray & x, IntegerArray
     for( int i=0; i<numberOfPointsToInterpolate; i++ )
     {
       fprintf(plogFile," pt %i x=(%8.2e,%8.2e,%8.2e) closest: donor=%i il=(%i,%i,%i) ci=(%8.2e,%8.2e,%8.2e)\n",
-              i,IL(i,0),
+              i,
               X(i,0),X(i,1),(numberOfDimensions==2 ? 0. : X(i,2)),
-	      IL(i,1),IL(i,2),(numberOfDimensions==2 ? 0 : IL(i,3)),
+	      IL(i,0),IL(i,1),IL(i,2),(numberOfDimensions==2 ? 0 : IL(i,3)),
               CI(i,0),CI(i,1),(numberOfDimensions==2 ? 0. : CI(i,2)));
     }
     fprintf(plogFile,"------------------------------------------------\n");

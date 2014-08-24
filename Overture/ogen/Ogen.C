@@ -278,7 +278,7 @@ set(const OgenParameterEnum option, const int value)
     if( qualityBound<=1. )
     {
       qualityBound=2.;
-      printf("Ogen:set:ERROR: invalide value for THEqualityBound=%e, setting to the default value=%e\n",
+      printf("Ogen:set:ERROR: invalide value for THEqualityBound=%i, setting to the default value=%e\n",
 	     value,qualityBound);
     }
     break;

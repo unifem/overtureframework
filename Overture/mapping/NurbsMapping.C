@@ -701,7 +701,7 @@ circle(RealArray & o,
     printf("NurbsMapping::circle:WARNING: trying to make a circular arc with angle theta=%e -- too small!\n"
            "     radius=%e,  startAngle=%e, endAngle=%e, theta=endAngle-startAngle=%e \n"
            "     *** I am going to make theta small but finite\n",
-	   theta,r,theta,startAngle,endAngle,theta);
+	   theta,r,startAngle,endAngle,theta);
 
     dtheta=1.e-3; // REAL_EPSILON*100.;
   }
@@ -938,7 +938,7 @@ conic( const real a, const real b, const real c, const real d, const real e, con
     conicType=parabola;
   else
   {
-    printf("NurbsMapping::conic: ERROR unknown conic type: a,b,c,d,e,f=%f,%f,%f,%f,%f,%f, q1=%e, q2=%e q3=5e\n",
+    printf("NurbsMapping::conic: ERROR unknown conic type: a,b,c,d,e,f=%f,%f,%f,%f,%f,%f, q1=%e, q2=%e q3=%e\n",
 	   a,b,c,d,e,f,q1,q2,q3);
     Overture::abort("error");
   }
@@ -999,7 +999,7 @@ conic( const real a, const real b, const real c, const real d, const real e, con
     }
     else
     {
-      printf("NurbsMapping::conic:ERROR: parabola but x1,x2,y1,y2,a,e,c,d=%e,%e,%e,%e,%e\n",x1,x2,y1,y2,a,e,c,d);
+      printf("NurbsMapping::conic:ERROR: parabola but x1,x2,y1,y2,a,e,c,d=%e,%e, %e,%e, %e,%e,%e,%e\n",x1,x2,y1,y2,a,e,c,d);
       Overture::abort("error");
     }
   }
@@ -1174,7 +1174,7 @@ conic( const RealArray &pt0, const RealArray &t0, const RealArray &pt2, const Re
   int nsegs;
   if( w1<= -1. ) // parabola or hyperbola
   {
-    printf("NurbsMapping::conic:ERROR: computing weight w1=%e -- could be half an ellipse \n");
+    printf("NurbsMapping::conic:ERROR: computing weight w1=%e -- could be half an ellipse \n",w1);
     return 1;  // error: outside the convex hull  *** fix this ***
   }
   if( w1>= 1. ) // classify type and number of segments
@@ -1290,7 +1290,7 @@ generalCylinder( const Mapping & curve, real d[3] )
 {
   if( curve.getDomainDimension()!=1 || curve.getRangeDimension()!=3 )
   {
-    printf("NurbsMapping::generalCylinder:ERROR: curve to be extruded is not a 3d curve\n",
+    printf("NurbsMapping::generalCylinder:ERROR: curve to be extruded is not a 3d curve\n"
            "    curve.getDomainDimension()=%i curve.getRangeDimension()=%i \n",curve.getDomainDimension(),
            curve.getRangeDimension());
     return 1;
@@ -1385,14 +1385,14 @@ generalCylinder( const Mapping & curve1, const Mapping & curve2 )
 {
   if( curve1.getDomainDimension()!=1 || curve1.getRangeDimension()!=3 )
   {
-    printf("NurbsMapping::generalCylinder:ERROR: curve1 to be extruded is not a 3d curve\n",
+    printf("NurbsMapping::generalCylinder:ERROR: curve1 to be extruded is not a 3d curve\n"
            "    curve1.getDomainDimension()=%i curve1.getRangeDimension()=%i \n",curve1.getDomainDimension(),
            curve1.getRangeDimension());
     return 1;
   }
   if( curve2.getDomainDimension()!=1 || curve2.getRangeDimension()!=3 )
   {
-    printf("NurbsMapping::generalCylinder:ERROR: curve2 to be extruded is not a 3d curve\n",
+    printf("NurbsMapping::generalCylinder:ERROR: curve2 to be extruded is not a 3d curve\n"
            "    curve2.getDomainDimension()=%i curve2.getRangeDimension()=%i \n",curve2.getDomainDimension(),
            curve2.getRangeDimension());
     return 1;
@@ -3261,10 +3261,16 @@ setDomainInterval(const real & r1Start /* =0. */,
       rStart[axis]=0., rEnd[axis]=1.;
     }
     if( nurbsIsPeriodic[axis] )
+    {
       if( fabs(rEnd[axis]-rStart[axis])!=1. )
+      {
 	setIsPeriodic(axis,notPeriodic);
+      }
       else
+      {
 	setIsPeriodic(axis,(periodicType)nurbsIsPeriodic[axis]);
+      }
+    }
   }
   
   return 0;
@@ -7587,25 +7593,25 @@ update( MappingInformation & mapInfo )
 	
 	int len=0;
 	for( ;; )
+	{
+	  gi.getMenuItem(menu2,answer2,"choose an option");
+	  if( answer2=="done" )
 	  {
-	    gi.getMenuItem(menu2,answer2,"choose an option");
-	    if( answer2=="done" )
-	      {
-		break;
-	      }
-	    else if( answer2=="parameterize by chord length" )
-	      {
-		parameterizationType=parameterizeByChordLength;
-	      }
-	    else if( answer2=="parameterize by index (uniform)" )
-	      {
-		parameterizationType=parameterizeByIndex;
-	      }
-	    else if ( len=answer2.matches("degree") )
-	      {
-		sScanF(answer2(len,answer2.length()-1),"%i %i",&degree1, &degree2);
-	      }
+	    break;
 	  }
+	  else if( answer2=="parameterize by chord length" )
+	  {
+	    parameterizationType=parameterizeByChordLength;
+	  }
+	  else if( answer2=="parameterize by index (uniform)" )
+	  {
+	    parameterizationType=parameterizeByIndex;
+	  }
+	  else if ( (len=answer2.matches("degree")) )
+	  {
+	    sScanF(answer2(len,answer2.length()-1),"%i %i",&degree1, &degree2);
+	  }
+	}
       }
       interpolateLoftedSurface(curves, degree1,degree2,parameterizationType, numberOfGhostPoints
 );

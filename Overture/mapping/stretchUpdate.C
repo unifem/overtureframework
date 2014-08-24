@@ -407,11 +407,11 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
       answer.matches("stretch r2 ") ||
       answer.matches("stretch r3 ") )
   {
-    if( len=answer.matches("stretch r1 ") )
+    if( (len=answer.matches("stretch r1 ")) )
       direction=0;
-    else if( len=answer.matches("stretch r2 ") )
+    else if( (len=answer.matches("stretch r2 ")) )
       direction=1;
-    else if( len=answer.matches("stretch r3 ") )
+    else if( (len=answer.matches("stretch r3 ")) )
       direction=2;
 
   }
@@ -422,7 +422,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
   }
   answer=answer(len,answer.length()-1); // remove the prefix
 
-  if( len=answer.matches("itanh: layer") )
+  if( (len=answer.matches("itanh: layer")) )
   {
     int id=-1;
     real a=1., b=10., c=0.;
@@ -438,7 +438,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
     stretchParametersDialog[direction]->setTextLabel("layer",
                sPrintF(line,"%i %.2g %.2g %.2g (id>=0,weight,exponent,position)",id,a,b,c));
   }
-  else if( len=answer.matches("itanh: interval") )
+  else if( (len=answer.matches("itanh: interval")) )
   {
     int id=-1;
     real d=1., e=10., f=0.;
@@ -456,7 +456,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
     stretchParametersDialog[direction]->setTextLabel("interval",
                sPrintF(line,"%i %.2g %.2g %.2g (id>=0,weight,exponent,position)",id,d,e,f));
   }
-  else if( len=answer.matches("itanh: position and min dx") )
+  else if( (len=answer.matches("itanh: position and min dx")) )
   {
     printF("INFO: itanh: position and min dx: This option currently only works with one layer\n");
     int id=0;
@@ -575,7 +575,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
 
     stretchParametersDialog[direction]->setTextLabel("position and min dx",sPrintF(line,"%.2g %.2g",c,dx));
   }
-  else if( len=answer.matches("tanh: position and min dx") )
+  else if( (len=answer.matches("tanh: position and min dx")) )
   {
     // Note: the fraction of points in the layer is determined by "b" !
     //       b=2 seems to give about 1/2 points in the layer
@@ -609,7 +609,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
      
     stretchParametersDialog[direction]->setTextLabel("position and min dx",sPrintF(line,"%.2g %.2g",c,dx));
   }
-  else if( len=answer.matches("tanh: parameters") )
+  else if( (len=answer.matches("tanh: parameters")) )
   {
     real a0=0., ar=1., b=5., a=-.9*ar/b, c=.5;   // choose a0 > a1*b1 to be invertible
     sScanF(&answer[len],"%e %e %e %e %e",&a0,&ar,&a,&b,&c);
@@ -625,7 +625,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
                                    sPrintF(line,"%.2g %.2g %.2g %.2g %.2g (a0,ar,a,b,c)",a0,ar,a,b,c));
     
   }
-//    else if( len=answer.matches("tanh") )
+//    else if( (len=answer.matches("tanh")) )
 //    {
 //      if( answer(len,len+5)=="linear" )
 //      {
@@ -644,7 +644,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
 //      }
     
 //    }
-  else if( len=answer.matches("exp: cluster at ") )
+  else if( (len=answer.matches("exp: cluster at ")) )
   {
     if( answer(len,len+2)=="r=0" )
     {
@@ -663,7 +663,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
     stretchParametersDialog[direction]->getOptionMenu("cluster points at:").setCurrentChoice(ipar[direction](0,0));
 
   }
-  else if( len=answer.matches("exp: exponent") )
+  else if( (len=answer.matches("exp: exponent")) )
   {
     real b;
     sScanF(&answer[len],"%e",&b);
@@ -671,7 +671,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
 
     stretchParametersDialog[direction]->setTextLabel("exponent",sPrintF(line,"%.2g",b));
   }
-  else if( len=answer.matches("exp: parameters") )
+  else if( (len=answer.matches("exp: parameters")) )
   {
     real a0=0., ar=1.;
     real a=1., b=10., c=0.;
@@ -685,7 +685,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
     stretchParametersDialog[direction]->setTextLabel("parameters",
                                    sPrintF(line,"%.2g %.2g %.2g %.2g %.2g (a0,ar,a,b,c)",a0,ar,a,b,c));
   }
-  else if( len=answer.matches("exp: min dx") )
+  else if( (len=answer.matches("exp: min dx")) )
   {
     real dx=.1;
     sScanF(&answer[len],"%e",&dx);
@@ -776,7 +776,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
     stretchParametersDialog[direction]->setTextLabel("min dx",sPrintF(line,"%.2g",dx));
   }
 
-  else if( len=answer.matches("expl: parameters") )
+  else if( (len=answer.matches("expl: parameters")) )
   {
     real a=1., b=5., c=0.;
     sScanF(&answer[len],"%e %e %e",&a,&b,&c);
@@ -795,7 +795,7 @@ updateStretchingParameters(aString & answer_, IntegerArray *ipar, RealArray *rpa
   else if( dialog.getTextValue(answer,"expl: linear weight","%e",rpar[direction](3,0)) )
   {
   }
-  else if( len=answer.matches("expl: min dx, max dx") )
+  else if( (len=answer.matches("expl: min dx, max dx")) )
   {
     // Choose parameters to set :
     //    dxMin : min grid spacing
@@ -1459,7 +1459,7 @@ update( MappingInformation & mapInfo,
       }
       plotObject=true;
     }
-    else if( len=answer.matches("Stretch r") )
+    else if( (len=answer.matches("Stretch r")) )
     { 
       int direction=-1;
       sScanF(&answer[len],"%i",&direction);
@@ -1614,7 +1614,7 @@ update( MappingInformation & mapInfo,
       RealArray gridStats;
       gridStatistics( *this,gridStats,stdout );
     }
-    else if( len=answer.matches("name ") )
+    else if( (len=answer.matches("name ")) )
     {
       setName(mappingName,answer(len,answer.length()-1));
       dialog.setTextLabel("name",sPrintF(line, "%s", (const char*)getName(mappingName))); 

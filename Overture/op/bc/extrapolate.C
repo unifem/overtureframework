@@ -265,7 +265,9 @@ applyBCextrapolate(realMappedGridFunction & u,
 	WHERE_MASK( uA(I1e,I2e,I3e,uC(n))=uA(I1e+is1,I2e+is2,I3e+is3,uC(n)); )
       if( twilightZoneFlow==2 )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))+=(*e)(c,I1e,I2e,I3e,fC(n),t)-(*e)(c,I1e+is1,I2e+is2,I3e+is3,fC(n),t); )
+	{
+	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))+=(*e)(c,I1e,I2e,I3e,fC(n),t)-(*e)(c,I1e+is1,I2e+is2,I3e+is3,fC(n),t); );
+	}
       break;
     case 2:
       for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
@@ -273,49 +275,66 @@ applyBCextrapolate(realMappedGridFunction & u,
 	  -uA(I1e+2*is1,I2e+2*is2,I3e+2*is3,uC(n)); )
       if( twilightZoneFlow==2 )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
+	{
 	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))+=(*e)(c,I1e,I2e,I3e,fC(n),t)-2.*(*e)(c,I1e+is1,I2e+is2,I3e+is3,fC(n),t)
-	    +(*e)(c,I1e+2*is1,I2e+2*is2,I3e+2*is3,fC(n),t); )
+		      +(*e)(c,I1e+2*is1,I2e+2*is2,I3e+2*is3,fC(n),t); );
+	}
       break;
     case 3:
       for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
+      {
 	WHERE_MASK( uA(I1e,I2e,I3e,uC(n))=3.*uA(I1e+  is1,I2e+  is2,I3e+  is3,uC(n))
 	  -3.*uA(I1e+2*is1,I2e+2*is2,I3e+2*is3,uC(n))
-	  +   uA(I1e+3*is1,I2e+3*is2,I3e+3*is3,uC(n)); )
-	  
+		    +   uA(I1e+3*is1,I2e+3*is2,I3e+3*is3,uC(n)); );
+      }
       if( twilightZoneFlow==2 )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
+	{
 	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))+=(*e)(c,I1e,I2e,I3e,fC(n),t)-3.*(*e)(c,I1e+is1,I2e+is2,I3e+is3,fC(n),t)
 	    +3.*(*e)(c,I1e+2*is1,I2e+2*is2,I3e+2*is3,fC(n),t)
-	    -   (*e)(c,I1e+3*is1,I2e+3*is2,I3e+3*is3,fC(n),t); )
+		      -   (*e)(c,I1e+3*is1,I2e+3*is2,I3e+3*is3,fC(n),t); );
+	}
       break;
     case 4:
       for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
+      {
 	WHERE_MASK( uA(I1e,I2e,I3e,uC(n))=4.*uA(I1e+  is1,I2e+  is2,I3e+  is3,uC(n))
 	  -6.*uA(I1e+2*is1,I2e+2*is2,I3e+2*is3,uC(n))
 	  +4.*uA(I1e+3*is1,I2e+3*is2,I3e+3*is3,uC(n))
-	  -   uA(I1e+4*is1,I2e+4*is2,I3e+4*is3,uC(n)); )
+		    -   uA(I1e+4*is1,I2e+4*is2,I3e+4*is3,uC(n)); );
+      }
       if( twilightZoneFlow==2 )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
+	{
 	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))+=(*e)(c,I1e,I2e,I3e,fC(n),t)-4.*(*e)(c,I1e+is1,I2e+is2,I3e+is3,fC(n),t)
 	    +6.*(*e)(c,I1e+2*is1,I2e+2*is2,I3e+2*is3,fC(n),t)
 	    -4.*(*e)(c,I1e+3*is1,I2e+3*is2,I3e+3*is3,fC(n),t) 
-	    +   (*e)(c,I1e+4*is1,I2e+4*is2,I3e+4*is3,fC(n),t); )
+		      +   (*e)(c,I1e+4*is1,I2e+4*is2,I3e+4*is3,fC(n),t); );
+	}
       break;
     default:  // general case:
       binomial= orderOfExtrap;
       if( twilightZoneFlow==2 )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))=(*e)(c,I1e,I2e,I3e,uC(n),t); )
+	{
+	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))=(*e)(c,I1e,I2e,I3e,uC(n),t); );
+	}
       else
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))=0.; )
+	{
+	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))=0.; );
+	}
       for( m=1; m<=orderOfExtrap; m++ )
       {
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))+=binomial*uA(I1e+m*is1,I2e+m*is2,I3e+m*is3,uC(n)); )
+	{
+	  WHERE_MASK( uA(I1e,I2e,I3e,uC(n))+=binomial*uA(I1e+m*is1,I2e+m*is2,I3e+m*is3,uC(n)); );
+	}
 	if( twilightZoneFlow==2 )
 	  for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	    WHERE_MASK( uA(I1e,I2e,I3e,uC(n))-=binomial*(*e)(c,I1e+m*is1,I2e+m*is2,I3e+m*is3,fC(n),t); )
+	  {
+	    WHERE_MASK( uA(I1e,I2e,I3e,uC(n))-=binomial*(*e)(c,I1e+m*is1,I2e+m*is2,I3e+m*is3,fC(n),t); );
+	  }
 	binomial*=(m- orderOfExtrap)/real(m+1);
       }
 	  
@@ -327,7 +346,9 @@ applyBCextrapolate(realMappedGridFunction & u,
     {
       if( scalarData !=0. )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1,I2,I3,uC(n))+=scalarData; )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,uC(n))+=scalarData; );
+	}
     }
     else if( bcOption==arrayForcing )
     {
@@ -340,20 +361,28 @@ applyBCextrapolate(realMappedGridFunction & u,
 	  Overture::abort("MappedGridOperators::applyBCextrapolate:ERROR finish me Bill!");
         #else
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
+	{
 	  WHERE_MASK( uA(I1,I2,I3,uC(n))+=arrayDataD(I1,I2,I3,fC(n)); );
+	}
         #endif
       }
       else if( side<=arrayData.getBound(1) && axis<=arrayData.getBound(2) && grid<=arrayData.getBound(3) )
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1,I2,I3,uC(n))+=arrayData(fC(n),side,axis,grid); )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,uC(n))+=arrayData(fC(n),side,axis,grid); );
+	}
       else
 	for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	  WHERE_MASK( uA(I1,I2,I3,uC(n))+=arrayData(fC(n)); )
+	{
+	  WHERE_MASK( uA(I1,I2,I3,uC(n))+=arrayData(fC(n)); );
+	}
     }
     else if( bcOption==gridFunctionForcing )
     {  
       for( n=uC.getBase(0); n<=uC.getBound(0); n++ )
-	WHERE_MASK( uA(I1,I2,I3,uC(n))+=gfData(I1,I2,I3,fC(n)); )
+      {
+	WHERE_MASK( uA(I1,I2,I3,uC(n))+=gfData(I1,I2,I3,fC(n)); );
+      }
     }
     else
     {
@@ -491,13 +520,21 @@ applyBCextrapolate(realMappedGridFunction & u,
     // now "project" the ghost line value
     if( numberOfDimensions>1 )
     {
-      WHERE_MASK( uA(I1e,I2e,I3e,n1)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v0); )
-      WHERE_MASK( uA(I1e,I2e,I3e,n2)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v1); )
+      WHERE_MASK( uA(I1e,I2e,I3e,n1)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v0); );
+      
+      WHERE_MASK( uA(I1e,I2e,I3e,n2)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v1); );
+
       if( numberOfDimensions==3 )
-	WHERE_MASK( uA(I1e,I2e,I3e,n3)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v2); )
+      {
+	WHERE_MASK( uA(I1e,I2e,I3e,n3)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v2); );
+      }
+      
     }
     else
-      WHERE_MASK( uA(I1e,I2e,I3e,n1)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v0); )
+    {
+      WHERE_MASK( uA(I1e,I2e,I3e,n1)+=uDotN(I1,I2,I3)*vector(I1,I2,I3,v0); );
+    }
+    
 
 
     timeForExtrapolateNormalComponent+=getCPU()-time;
