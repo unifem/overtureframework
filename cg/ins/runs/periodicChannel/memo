@@ -1,3 +1,55 @@
+2014/09/02 -- Re-run test cases for Kyle:
+
+*** KYLE TEST CASE
+srun -n 1 cgins noplot nopause -numberOfParallelGhost=4 periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=1 -ystr=14 -ad2=0 -ad4=1 -ad4l=1 -ad4n=1 -debug=1 -wallModelNoSlip=1 -wallModel=slipWall -za=0 -zb=1 -Nz=81  -solver=mg -show=pChannel.3d.ns.show -tp=1 -tf=1000 -debug=3 -ts="afs" -bc=noSlipWall
+
+
+3D parallel build null-vector **TROUBLE** --> BAD null-vector??
+mpiexec -n 4 $cginsp -noplot -numberOfParallelGhost=4 periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=1 -ystr=14 -ad2=0 -ad4=1 -ad4l=1 -ad4n=1 -debug=1 -wallModelNoSlip=1 -wallModel=slipWall -za=0 -zb=1 -Nz=81  -solver=mg -show=pChannel3d.show -tp=1 -tf=100 -debug=3 -ts="afs" -bc=noSlipWall  -nopause >! pChannel3d.out &
+
+3D parallel: OK
+mpiexec -n 4 $cginsp -numberOfParallelGhost=4 periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=1 -ystr=14 -ad2=0 -ad4=1 -ad4l=1 -ad4n=1 -debug=1 -wallModelNoSlip=1 -wallModel=slipWall -za=0 -zb=1 -Nz=81  -solver=mg -show=pChannel3d.show -tp=1 -tf=1000 -debug=3 -ts="afs" -bc=noSlipWall
+
+
+3D serial: 
+cgins -numberOfParallelGhost=4 periodicChannel.cmd -nu=1e-5 -Ny=81 -Nx=101 -order=4 -cfl=1 -ystr=14 -ad2=0 -ad4=1 -ad4l=1 -ad4n=1 -debug=1 -wallModelNoSlip=1 -wallModel=slipWall -za=0 -zb=1 -Nz=81  -solver=mg -nullVector=channel3d_NullVector.hdf -show=pChannel.3d.ns.show -tp=1 -tf=1000 -debug=3 -ts="afs" -bc=noSlipWall
+
+
+
+**** parallel MG 2D
+
+mpiexec -n 2 $cginsp pChannel.cmd -numberOfParallelGhost=4 -g=channel2.order4.ml2.hdf -nu=1e-5 -order=4 -cfl=2 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=mg -nullVector=channel2ml2_NullVector.hdf -show=pChannel2dc.show -tp=1 -tf=200 -debug=3 
+
+
+**** TRY MG solver:
+
+
+**** COARSE: -solver=mg -- OK
+cgins -noplot pChannel.cmd -g=channel2.order4.ml2.hdf -nu=1e-5 -order=4 -cfl=2 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=mg -nullVector=channel2ml2_NullVector.hdf -show=pChannel2dc.show -tp=1 -tf=200 -debug=3 -nopause >! pChannelc.out &
+
+plotStuff plotChannel -show="pChannel2dc.show" -vorMin=-5. -vorMax=5.
+
+
+
+
+******2D channel -- OK:
+
+
+(1) Coarse grid run: 
+     cgins -noplot pChannel.cmd -g=channel2.order4.ml2.hdf -nu=1e-5 -order=4 -cfl=2 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel2ml2_NullVector.hdf -show=pChannel2da.show -tp=1 -tf=200 -debug=3 -nopause >! pChannela.out &
+
+(1a) Plot results: 
+      plotStuff plotChannel -show="pChannel2da.show" -vorMin=-5. -vorMax=5.
+
+(2) Finer grid (restart from coarse grid)
+cgins -noplot pChannel.cmd -g=channel4.order4.ml3.hdf -nu=1e-5 -order=4 -cfl=2 -ad2=0 -ad4=1 -ad4l=0.5 -ad4n=0.5 -debug=3 -bc=noSlipWall -solver=yale -nullVector=channel4ml3_NullVector.hdf -restart=pChannel2da.show -show=pChannel2db.show -tp=1 -tf=300 -debug=3 -nopause >! pChannelb.out &
+
+(2a) Plot results:
+      plotStuff plotChannel -show="pChannel2db.show" -vorMin=-10. -vorMax=10.
+
+
+
+
 2013/11/30 -- test fixes to Ogmg for periodic-singular
 
 

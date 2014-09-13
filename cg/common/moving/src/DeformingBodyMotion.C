@@ -1177,9 +1177,14 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
 	  const int axisp = (axisToMove+1) % 2;  // tangential direction (2D)
 	  if( mg.isPeriodic(axisp)!=Mapping::notPeriodic )
 	  {
-	    printF("DeformingBodyMotion::initialize:INFO: Setting boundary conditions to PERIODIC.\n");
+	    printF("--DBM--:initialize:INFO: Setting boundary conditions to PERIODIC.\n");
 	    boundaryCondition(0,axisp)=periodicBoundaryCondition;
 	    boundaryCondition(1,axisp)=periodicBoundaryCondition;
+
+            // *wdh* 2014/09/12
+	    printF("--DBM--:initialize:INFO: Setting startCurve to PERIODIC.\n");
+    	    NurbsMapping & startCurve = *((NurbsMapping*) surface[face]);
+   	    startCurve.setIsPeriodic(axisp, (Mapping::periodicType)mg.isPeriodic(axisp));
 	  }
 
 	  Index I1=x0.dimension(0), I2=x0.dimension(1);
@@ -1268,9 +1273,15 @@ initialize( CompositeGrid & cg, real t /* = 0. */ )
 	const int axisp = (axisToMove+1) % 2;  // tangential direction (2D)
         if( mg.isPeriodic(axisp)!=Mapping::notPeriodic )
 	{
-	  printF("DeformingBodyMotion::initialize:INFO: Setting boundary conditions to PERIODIC.\n");
+	  printF("--DBM--::initialize:INFO: Setting boundary conditions to PERIODIC.\n");
           boundaryCondition(0,axisp)=periodicBoundaryCondition;
           boundaryCondition(1,axisp)=periodicBoundaryCondition;
+
+	  // *wdh* 2014/09/12
+	  printF("--DBM--:initialize:INFO: Setting startCurve to PERIODIC.\n");
+	  NurbsMapping & startCurve = *((NurbsMapping*) surface[face]);
+	  startCurve.setIsPeriodic(axisp, (Mapping::periodicType)mg.isPeriodic(axisp));
+
 	}
 	
 

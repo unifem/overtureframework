@@ -169,7 +169,8 @@ $grid
     #- all=noSlipWall , mixedDerivative(1.*t+1.*t.n=0.)
     # bcNumber1=inflowWithVelocityGiven, parabolic(p=1.,u=$uIn,T=$Tin)
     bcNumber1=inflowWithVelocityGiven, uniform(p=1.,u=$uIn,T=$Tin)
-    bcNumber2=outflow
+    bcNumber2=outflow , pressure(1.*p+.1*p.n=0.)
+    # *wdh* 2014/08/31     bcNumber2=outflow
     bcNumber3=slipWall
     bcNumber4=slipWall
     bcNumber5=slipWall

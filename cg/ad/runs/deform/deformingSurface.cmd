@@ -5,7 +5,7 @@
 *   
 *  cgad [-noplot] deformingSurface -g=<name> -tz=[poly|trig|none] -degreex=<> -degreet=<> -tf=<tFinal> -tp=<tPlot> ...
 *         -go=<go/halt/og> -kappa=<value> -kapVar=[] -solver=<yale/best> -order=<2/4> -ts=[pc2|fe|im] ...
-*         -gridToMove=<name> -a=<val> -b=<val> -ic=[tz|pulse] -bc=[d|n] -motion=[sinusoid|concentration]
+*         -gridToMove=<name> -a=<val> -b=<val> -ic=[tz|pulse] -bc=[d|n] -motion=[sinusoid|concentration|deformingEye]
 * 
 *   -ts : time-stepping, euler, adams2, implicit. 
 * 
@@ -34,6 +34,7 @@ $tz = "poly"; $degreex=2; $degreet=2; $fx=1.; $fy=1.; $fz=1.; $ft=1.;
 $order = 2; $ic="tz"; $bc="d"; $motion="sinusoid"; 
 * 
 $solver="yale"; $ogesDebug=0; $ksp="bcgs"; $pc="bjacobi"; $subksp="preonly"; $subpc="ilu"; $iluLevels=3;
+$rtol=1.e-3; $atol=1.e-5;    # tolerances for the implicit solver
 * $ksp="gmres"; 
 *
 $deformingGrid="share=100"; 
@@ -45,13 +46,15 @@ $pi=atan2(1.,1.)*4.;
 $ampx=.0; $ampy=.0; $freqx=2.*$pi; $freqt=2.*$pi; 
 $x0=.5; $y0=-.5; $z0=0.; $ampPulse=1.; $alphaPulse=40.;   # pulse parameters
 $alpha=1.; $ue=.1;  # parameters for concentration dependent motion
+$ampb=.1; # amplitude of the deforming eye motion
 # 
 * ----------------------------- get command line arguments ---------------------------------------
 GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>\$degreet, "kappa=f"=>\$kappa,\
  "tp=f"=>\$tPlot, "solver=s"=>\$solver, "tz=s"=>\$tz, "show=s"=>\$show,"order=i"=>\$order,"move=s"=>\$move, \
  "ts=s"=>\$ts, "noplot=s"=>\$noplot, "go=s"=>\$go,"debug=i"=>\$debug,"a=f"=>\$a,"b=f"=>\$b,\
   "dg=s"=>\$deformingGrid,"dt=s"=>\$deformationType,"ampx=f"=>\$ampx,"ampy=f"=>\$ampy,"ic=s"=>\$ic,"bc=s"=>\$bc,\
-  "motion=s"=>\$motion,"ampPulse=f"=>\$ampPulse,"ue=f"=>\$ue );
+  "motion=s"=>\$motion,"ampPulse=f"=>\$ampPulse,"ue=f"=>\$ue,"x0=f"=>\$x0,"y0=f"=>\$y0,"ampb=f"=>\$ampb,\
+  "rtol=f"=>\$rtol,"atol=f"=>\$atol,"alphaPulse=f"=>\$alphaPulse );
 * -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $tz eq "poly" ){ $tz="turn on polynomial"; }
@@ -101,6 +104,12 @@ $grid
     OBPDE:variable diffusivity 0 
     OBPDE:variable advection 0
   done
+#
+#
+  implicit time step solver options
+   $ogesSolver=$solver; $ogesRtol=$rtol; $ogesAtol=$atol;
+   include $ENV{CG}/ins/cmd/ogesOptions.h
+  exit
 * 
 *****************************
   turn on moving grids
@@ -112,6 +121,8 @@ $grid
         $cmd="#"; 
         if( $motion eq "sinusoid" ){ $cmd="sinusoidal\n $ampx $ampy 0. $freqx $freqt"; }
         if( $motion eq "concentration" ){ $cmd="concentration motion\n $alpha $ue"; }
+        $b0=.5;
+        if( $motion eq "deformingEye" ){ $cmd="deforming eye\n $freqt $b0 $ampb"; }
         $cmd
         exit
         #

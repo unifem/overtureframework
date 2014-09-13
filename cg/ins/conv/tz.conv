@@ -67,7 +67,7 @@
 # Set default parameters: 
 $model="ins"; 
 $tz="trig"; $bcn = "d"; $bcn="#"; $bc1="#"; $bc2="#"; $bc3="#"; $bc4="#"; $bc5="#"; $bc6="#"; 
-$en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=1.; $order=2; $nd=2; $cfl=.9; 
+$en="max"; $ngStart=1; $ng=4; $tf=.5;  $tp=.1; $degreeX=2; $degreeT=2; $fx=1.; $ft=-1.; $order=2; $nd=2; $cfl=.9; 
 $numberOfParallelGhost=2; $amr=0; $nu=.05; $debug=0; 
 $cdv=1.; $solver="yale";  $rtol=1.e-4; $atol=1.e-6; $psolver="yale"; $rtolp=1.e-4; $atolp=1.e-6; 
 $useNewImp=0; $iv="viscous"; 
@@ -78,19 +78,20 @@ $cg = "square"; $alwaysCompute=1; $ts="pc";
 $showAllComponents=1;  # set to 1 to include all components in the table.
 #
 GetOptions( "model=s"=>\$model,"cg=s"=>\$cg,"en=s"=>\$en,"mode=i"=>\$mode,"ng=i"=>\$ng,"bcn=s"=>\$bcn,"ts=s"=>\$ts,"tf=f"=>\$tf,"tp=f"=>\$tp,\
-            "nu=f"=>\$nu,"tz=s"=>\$tz,"fx=f"=>\$fx,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,"useNewImp=i"=>\$useNewImp,\
+            "nu=f"=>\$nu,"tz=s"=>\$tz,"fx=f"=>\$fx,"ft=f"=>\$ft,"order=i"=>\$order,"alwaysCompute=i"=>\$alwaysCompute,"useNewImp=i"=>\$useNewImp,\
             "showAllComponents=i"=>\$showAllComponents,"solver=s"=>\$solver,"psolver=s"=>\$psolver,"iv=s"=>\$iv,\
             "cfl=f"=>\$cfl,"cdv=f"=>\$cdv,"degreeX=f"=>\$degreeX,"degreeT=f"=>\$degreeT,"debug=i"=>\$debug,\
             "rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,\
             "bc1=s"=>\$bc1,"bc2=s"=>\$bc2,"bc3=s"=>\$bc3,"bc4=s"=>\$bc4,"bc5=s"=>\$bc5,"bc6=s"=>\$bc6,\
             "cginsCmd=s"=>\$cginsCmd,"numberOfParallelGhost=i"=>\$numberOfParallelGhost,"ngStart=i"=>\$ngStart );
 # 
+if( $ft < 0 ){ $ft=$fx; }
 # Name of the check file created by cgins:
 $check="ins.check";
 #
 if( $cg eq "sphere" ){ $nd=3; } # 3D 
 #
-$caseName="tz.$cg.$model.order$order.$bcn"; 
+$caseName="tz.$cg.$model.$ts.order$order.$bcn"; 
 $name="$caseName.$tz"; 
 # if( $amr eq 1 ){ $name .= ".AMRl$nrl" . "r$ratio"; $caseName.=".AMRl$nrl" . "r$ratio"; }
 #
@@ -123,13 +124,13 @@ if( $model eq "ins" )\
   }\
 }
 # 
-if( $tz eq "poly" ){ $tzLabel = "$tz TZ, degreeX=$degreeX, degreeT=$degreeT"; }else{ $tzLabel = "$tz TZ, fx=$fx"; }
+if( $tz eq "poly" ){ $tzLabel = "$tz TZ, degreeX=$degreeX, degreeT=$degreeT"; }else{ $tzLabel = "$tz TZ, fx=$fx, ft=$ft"; }
 $amrCaption=""; 
 if( $amr eq 1 ){ $amrCaption = "amr, tol=$tol, l=$nrl, ratio=$ratio, "; }
-$caption= "\\caption\{Cgins, $model, $name, bcn=$bcn, \$t=$tf\$, \$nu=$nu\$, $tzLabel, fx=$fx, $clabel, cfl=$cfl, $amrCaption $date}\\label\{table:$name}"; 
+$caption= "\\caption\{Cgins, $model, $name, bcn=$bcn, \$t=$tf\$, \$nu=$nu\$, $tzLabel, $clabel, cfl=$cfl, $amrCaption $date}\\label\{table:$name}"; 
 $outputFile="$name" . ".ConvTable.tex"; 
 # 
-$options = "-model=$model -nu=$nu -tf=$tf -tp=$tp -cfl=$cfl -ts=$ts -iv=$iv -tz=$tz -solver=$solver -rtol=$rtol -atol=$atol -psolver=$psolver -rtolp=$rtolp -atolp=$atolp -useNewImp=$useNewImp -cdv=$cdv -bcn=$bcn -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -bc5=$bc5 -bc6=$bc6 -degreex=$degreeX -degreet=$degreeT -fx=$fx -fy=$fx -fz=$fx -ft=$fx -debug=$debug -go=go"; 
+$options = "-model=$model -nu=$nu -tf=$tf -tp=$tp -cfl=$cfl -ts=$ts -iv=$iv -tz=$tz -solver=$solver -rtol=$rtol -atol=$atol -psolver=$psolver -rtolp=$rtolp -atolp=$atolp -useNewImp=$useNewImp -cdv=$cdv -bcn=$bcn -bc1=$bc1 -bc2=$bc2 -bc3=$bc3 -bc4=$bc4 -bc5=$bc5 -bc6=$bc6 -degreex=$degreeX -degreet=$degreeT -fx=$fx -fy=$fx -fz=$fx -ft=$ft -debug=$debug -go=go"; 
 # 
 if( $cg eq "square" ){\
 $grid1="sq20";  $gName1 = "square20.order$order";\

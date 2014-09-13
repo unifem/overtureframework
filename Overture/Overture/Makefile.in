@@ -78,6 +78,7 @@ all:
 #buildOgmg	  @if [ -d Ogmg   ]  ; then cd Ogmg    ; $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" ; fi
 	  @cd lib;           $(MAKE) -$(MAKEFLAGS) FLAGS1="$(FLAGS)" 
 	  @cd bin;           $(MAKE) -$(MAKEFLAGS) Overture="`pwd`/.." FLAGS1="$(FLAGS)"
+	  @echo "--------------- FINISHED----------------------------"
 	  @echo "INFO: type \"make check\" to run the regression tests"
 
 rapsodi:

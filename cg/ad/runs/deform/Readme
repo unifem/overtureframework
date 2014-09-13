@@ -13,3 +13,11 @@
     ogen -noplot freeSurfaceGrid2d -amp=0. -interp=e -factor=4 -ml=1 
   Cgad:
     cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pulse -a=0 -b=0 -bc=n -ts=im -go=halt
+
+
+==== Deforming eye : specified motion =======
+
+  Grid: 
+    ogen -noplot deformingEyeGrid -interp=e -factor=4 
+  Cgad:
+    cgad deformingSurface -g=eyeGride4.order2 -motion=deformingEye -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pulse  -x0=0 -y0=0 -bc=n -ts=im -go=halt

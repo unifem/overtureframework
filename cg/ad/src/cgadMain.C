@@ -3,7 +3,7 @@
 #include "Ogshow.h"
 #include "ParallelUtility.h"
 #include "display.h"
-
+#include "Oges.h"
 #include "Cgad.h"
 #include "CgSolverUtil.h"
 
@@ -23,6 +23,9 @@ main(int argc, char *argv[])
   Overture::start(argc,argv);  // initialize Overture and A++/P++
   // Optimization_Manager::setForceVSG_Update(Off);
   const int myid=Communication_Manager::My_Process_Number;
+
+  // This macro will initialize the PETSc solver if OVERTURE_USE_PETSC is defined.
+  INIT_PETSC_SOLVER();
 
 //   #ifdef USE_PPP
 //     aString fileName = "adInputFile";

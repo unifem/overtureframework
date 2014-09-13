@@ -261,6 +261,72 @@ userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
       }
 
     }
+
+    else if( userDefinedDeformingSurfaceOption=="deformingEye" )
+    {
+      // ----------------------------------------
+      // -------- Deforming eye motion ----------
+      // ----------------------------------------
+      RealArray & par = deformingBodyDataBase.get<RealArray>("userDefinedDeformingSurfaceParams");
+      real freqt=par(0), b0=par(1), ampb=par(2);
+      if( t3<2.*dt )
+	printF("userDefinedDeformingSurface:deformingEye: t1=%9.3e, t2=%9.3e, t=t3=%9.3e, b0=%g, ampb=%g, freqt=%g\n",
+               t1,t2,t3, b0,ampb,freqt);
+
+      if( true )
+      {
+	// ----- move the top eyelid using an analytic formula ---
+
+
+	const int i1a=Ib1.getBase(), i2a=Ib2.getBase(), i3a=Ib3.getBase();
+        const real xa =x0(i1a,i2a,i3a,0);
+	const real ya =x0(i1a,i2a,i3a,1);
+        real hTop=.3;                      // *** fix me ***
+        real beta=10.;                     // *** fix me ***
+        real h = hTop  + ampb*.5*(1.-cos(freqt*t1)); // new height of top eye-lid
+	
+        real offset = ya - h*exp(-beta*xa*xa);  // offset so end points remain fixed at y=ya
+	FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+	{
+	  // y(x) = offset + h*exp( -beta*x^2 )
+          real x = x0(i1,i2,i3,0);  // parameterize by x0
+          real y = offset + h*exp(-beta*x*x);
+	  x2(i1,i2,i3,0) = x;
+	  x2(i1,i2,i3,1) = y;
+
+        }
+
+	
+      }
+      else
+      {
+	// ---- deform the elliptical eye ----
+
+	FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+	{
+	  // position at old time t1 (use these to get theta at old time
+	  real x = x1(i1,i2,i3,0);
+	  real y = x1(i1,i2,i3,1);
+	
+	  // ellipse at time t1
+	  real a1=1.;
+	  real b1 = b0+ampb*sin(freqt*t1);
+	  // x = a1*cos(theta)
+	  // y = b1*sin(theta)
+        
+	  // ellipse at time t3
+	  real a3=1.;
+	  real b3 = b0+ampb*sin(freqt*t3);
+        
+	  // -- do this for now: (this will NOT keep points equally spaced by arclength)
+	  x2(i1,i2,i3,0) = a3*(x/a1);  // a2*cos(theta1)
+	  x2(i1,i2,i3,1) = b3*(y/b1);  // b2*sin(theta1)
+	
+	}
+      }
+      
+    }
+
     else
     {
       OV_ABORT("ERROR: unknown user defined deforming surface option");
@@ -293,6 +359,8 @@ userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
       x2.reshape(x2.dimension(axisp1),Rx);
     else
       x2.reshape(x2.dimension(axisp1),x2.dimension(axisp2),Rx);
+
+    // NOTE: the startCurve periodicity should be set in DeformingBodyMotion.C    
 
     int interpOption=0, degree=3;
     // Note: Choose parameterizeByChordLength instead of parameterizeByIndex to redistribute the
@@ -335,6 +403,7 @@ userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody )
     "sinusoidal",
     // "advection", // this does not work yet
     "concentration motion",
+    "deforming eye",
     "exit",
     ""
   };
@@ -415,6 +484,29 @@ userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody )
       gi.inputString(answer,"Enter alpha,ue");
       sScanF(answer,"%e %e",&par(0),&par(1));
       printf("Setting alpha=%e, ue=%e\n",par(0),par(1));
+
+      
+    }
+    else if( answer=="deforming eye" )
+    {
+      // Deform the eye with a sinusoidal motion.
+      //       x= a*cos(theta) 
+      //       y= b(t)*sin(theta)
+
+      userDefinedDeformingSurfaceOption="deformingEye";
+
+      if( !deformingBodyDataBase.has_key("userDefinedDeformingSurfaceParams") )
+      {
+         deformingBodyDataBase.put<RealArray>("userDefinedDeformingSurfaceParams");
+      }
+      RealArray & par = deformingBodyDataBase.get<RealArray>("userDefinedDeformingSurfaceParams");
+      par.redim(5);   par=0.;
+      printF("The sinusoidal eye motion is defined as\n"
+             "   b(t) = b0 + ampb*sin(freqt*t) )\n");
+             
+      gi.inputString(answer,"Enter freqt,b0,ampb");
+      sScanF(answer,"%e %e %e",&par(0),&par(1),&par(2));
+      printf("Setting freqt=%g, b0=%g, ampb=%g\n",par(0),par(1),par(2));
 
       
     }

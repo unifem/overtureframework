@@ -6,6 +6,12 @@ THISPKG:=ad
 # checkf or targets that do not need source file dependencies:
 NODEP := $(strip $(filter usage doc clean cleano cleanc cleandep,$(MAKECMDGOALS)))
 
+# ==== optional capabilities: use on/off =================
+
+# sparse solver packages:
+usePETSc   := on
+useSuperLU := off
+useOgmg    := on
 
 include configFile
 include $(CONFIGDIR)/make.dirs
@@ -17,8 +23,12 @@ include make
 # List of packages to build
 PKGS := src 
 
-vpath % $(PKGS) $(GUIDIR)/src
-VPATH = $(PKGS) $(GUIDIR)/src
+# include the src directory in path to search for files, also include Overture/Oges to get the PETSc solver 
+# and Ogmg files
+vpath % $(PKGS) $(GUIDIR)/src $(Overture)/Oges $(OvertureCheckout)/op/bc $(OvertureCheckout)/oges 
+VPATH = $(PKGS) $(GUIDIR)/src $(Overture)/Oges $(OvertureCheckout)/op/bc $(OvertureCheckout)/oges
+# vpath % $(PKGS) $(GUIDIR)/src
+# VPATH = $(PKGS) $(GUIDIR)/src
 
 SRC_FILES := 
 TESTS := 
@@ -56,9 +66,16 @@ DEP += cgadMain.d
 # libCommon:=$(CGBUILDPREFIX)common/lib/libCgCommon.so
 libCommon:=$(CGBUILDPREFIX)common/libCgCommon
 
+#  optionally link in PETSc and/or Ogmg (these are setup common/make)
+PETSC_FILES_OBJ := $(addprefix $(OBJPREFIX),$(PETSC_FILES))
+# compile PETSc files optimized
+$(PETSC_FILES_OBJ) : $(OBJPREFIX)%.o : %.C
+	$(CXX) $(CXX_FLAGSO) -o $@ -c $<
+
 # make cgad in the bin dir:
-$(BINDIR)cgad: $(LIBDIR)libCgad.a $(OBJDIR)cgadMain.o $(OBJ) $(libCommon)
-	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgadMain.o $(LIBS)
+CGAD_EXTRA_FILES = $(PETSC_FILES_OBJ) 
+$(BINDIR)cgad: $(LIBDIR)libCgad.a $(OBJDIR)cgadMain.o $(OBJ)  $(CGAD_EXTRA_FILES) $(libCommon)
+	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgadMain.o  $(CGAD_EXTRA_FILES) $(LIBS)
 
 lib_build: $(LIBDIR)libCgad.a
 	touch lib_build

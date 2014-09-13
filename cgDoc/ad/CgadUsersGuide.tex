@@ -384,6 +384,31 @@ current concentration on the interface.}
 \end{figure}
 }
 
+{
+\begin{figure}[hbt]
+\newcommand{\figWidth}{8.cm}
+\newcommand{\trimfig}[2]{\trimFig{#1}{#2}{0.1}{0.05}{.3}{.4}}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+  \useasboundingbox (0,.5) rectangle (17,11.5);  % set the bounding box (so we have less surrounding white space)
+  \draw ( 0.0,4.0) node[anchor=south west] {\trimfig{figures/deformingEye0p0}{\figWidth}};
+  \draw ( 8.0,4.0) node[anchor=south west] {\trimfig{figures/deformingEye0p1}{\figWidth}};
+  \draw ( 0.0,  0) node[anchor=south west] {\trimfig{figures/deformingEye0p25}{\figWidth}};
+  \draw ( 8.0,  0) node[anchor=south west] {\trimfig{figures/deformingEye0p5}{\figWidth}};
+ % - labels
+ %   \draw (\txa,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=0.5$};
+ %   \draw (\txb,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.0$};
+ %   \draw (\txc,4.75) node[draw,fill=white,anchor=east] {\scriptsize $t=1.5$};
+ %  \draw (current bounding box.south west) rectangle (current bounding box.north east);
+% grid:
+%  \draw[step=1cm,gray] (0,0) grid (17.0,5);
+\end{tikzpicture}
+\end{center}
+\caption{Results from the {\em  deforming eye}. The top surface deforms over time by a specified motion.}
+\label{fig:deformingEye}
+\end{figure}
+}
+
 
 
 \clearpage

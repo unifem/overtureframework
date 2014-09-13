@@ -34,6 +34,8 @@ main(int argc, char *argv[])
   addToMappingList(airfoil);
 #endif
 
+  IntegerArray ia(1,1); // put this here for now to fix load problem on Mac's *wdh* 2014/08/29
+
   plotStuff(argc,argv);
 
   Overture::finish();
