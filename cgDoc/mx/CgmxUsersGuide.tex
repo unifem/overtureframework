@@ -126,11 +126,14 @@ Cgmx User Guide: An Overture Solver for Maxwell's Equations on Composite Grids, 
 }
 \vspace{2\baselineskip}
 William D. Henshaw  \\
-Centre for Applied Scientific Computing  \\
-Lawrence Livermore National Laboratory      \\
-Livermore, CA, 94551.  \\
-\vspace{\baselineskip}
-LLNL-SM-523971 \\
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute, \\
+Troy, NY, USA, 12180.
+% Centre for Applied Scientific Computing  \\
+% Lawrence Livermore National Laboratory      \\
+% Livermore, CA, 94551.  \\
+% \vspace{\baselineskip}
+% LLNL-SM-523971 \\
 % henshaw@llnl.gov \\
 % http://www.llnl.gov/casc/people/henshaw \\
 % http://www.llnl.gov/casc/Overture\\
@@ -171,7 +174,7 @@ on composite overlapping grids~\cite{max2006b}. It is built upon
 the \Overture framework~\cite{Brown97},\cite{Henshaw96a},\cite{iscope97}.
 
 More information about
-{\bf Overture} can be found on the \Overture home page, {\tt http://www.llnl.gov/\-casc/\-Overture}.
+{\bf Overture} can be found on the \Overture home page, {\tt overtureFramework.org}.
 
 
 \noindent{\bf Cgmx features:}
@@ -207,7 +210,7 @@ Here are the basic steps to solve a problem with cgmx.
   \item Generate an overlapping grid with ogen. 
   \item Run cgmx (found in the {\tt bin/cgmx} directory).
   \item Assign the boundary conditions and initial conditions.
-  \item Choose the parameters for the PDE (such as material properties such as $\mu$, $epsilon$))
+  \item Choose the parameters for the PDE (such as material properties such as $\mu$, $\epsilon$))
   \item Choose run time parameters, time to integrate to, time stepping method etc.
   \item Compute the solution (optionally plotting the results as the code runs).
   \item When the code is finished you can look at the results (provided you saved a
@@ -970,7 +973,7 @@ Here $u$ is any field which satisfies the second-order wave equation.
 The boundary condition {\tt abcPML} imposes a perfectly matched layer boundary condition.
 With this boundary condition, auxiliary equations are solved over a layer (of some number of
 specified grid points) next to the boundary. The PML equations we solve
-are those suggested in Hagstrom~\cite{Hagstrom1999} and given by (defined here of a boundary $x={\rm constant}$), (*check me*)
+are those suggested in Hagstrom~\cite{Hagstrom1999} and given by (defined here for a boundary $x={\rm constant}$), (*check me*)
 \begin{align}
   u_{tt} &= c^2 \Big( \Delta u - \partial_x v - w \Big), \\
    v_t &= \sigma( -v + \partial_x u ) , \\
@@ -1243,7 +1246,7 @@ for use with Cgmx. Here are the steps to take to add your own forcing:
 
 
 % ---------------------------------------------------------------------------
-\subsection{Run time options}
+\subsection{Run time options} \label{sec:runTimeDialog}
 
 \begin{description}
   \item [\qquad tFinal] $value$ : solve the equations to this time.
@@ -1349,7 +1352,7 @@ popular Yee scheme~\cite{Yee66} for Cartesian grids.
 
 
 \vfill\eject
-\bibliography{\homeHenshaw/papers/henshaw}
+\bibliography{\homeHenshaw/papers/henshaw,\homeHenshaw/papers/henshawPapers}
 \bibliographystyle{siam}
 
 \printindex

@@ -5956,6 +5956,7 @@ getMappingParametersOption( const aString & answer,
   }
   else if( (len=answer.matches("name:")) )
   {
+    while( len<answer.length() && answer[len]==' ' ) len++;  // remove leading blanks
     map.setName(Mapping::mappingName,answer(len,answer.length()-1));
     dialog.setTextLabel("name:",sPrintF(line, "%s", (const char*)map.getName(Mapping::mappingName))); 
   }

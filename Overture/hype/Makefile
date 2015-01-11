@@ -18,11 +18,11 @@ all: $(all)
 
 doc: hyperbolic
 
-HyperbolicMappingInclude.tex: HyperbolicMapping.C
-	extract.p HyperbolicMapping.C
+# HyperbolicMappingInclude.tex: HyperbolicMapping.C
+# 	extract.p HyperbolicMapping.C
 
 
-hyperbolic:  HyperbolicMappingInclude.tex 
+hyperbolic: 
 	pdflatex hyperbolic
 	makeindex hyperbolic.idx
 	bibtex hyperbolic

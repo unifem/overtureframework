@@ -98,6 +98,17 @@
 
 \renewcommand{\url}[1]{Available from www.OvertureFramework.org}
 
+\newcommand{\rhos}{\bar{\rho}}
+\newcommand{\hs}{\bar{h}}
+\newcommand{\bs}{\bar{b}}
+\newcommand{\As}{\bar{A}}
+\newcommand{\Ts}{\bar{T}}
+\newcommand{\Ls}{\bar{L}}
+\newcommand{\wt}{\dot{w}}
+
+\newcommand{\xbv}{\xv_b}
+\newcommand{\nsv}{\nv_b}
+\newcommand{\sigmav}{\boldsymbol{\sigma}}
 
 % \psset{xunit=1.cm,yunit=1.cm,runit=1.cm}
 
@@ -155,24 +166,22 @@ a summer student at LLNL in 2013.
 \section{Class BeamModel}\label{sec:BeamModel}
 
 The BeamModel class defines a generalized Euler-Bernoulli (EB) beam,
-
-\newcommand{\rhos}{\bar{\rho}}
-\newcommand{\hs}{\bar{h}}
-\newcommand{\bs}{\bar{b}}
-\newcommand{\As}{\bar{A}}
-\newcommand{\Ts}{\bar{T}}
-\newcommand{\Ls}{\bar{L}}
 \begin{align}
   \rhos \As \frac{\partial^2 w}{\partial t^2} = 
+                    & -K_0 w +
                    \frac{\partial}{\partial x}\left( T \frac{\partial w}{\partial x}\right)
-                   - \frac{\partial^2}{\partial x^2}\left( E I \frac{\partial^2 w}{\partial x^2}\right)
-                   + f(x,t), \qquad x\in[0,\Ls], \quad t\ge 0,
+                   - \frac{\partial^2}{\partial x^2}\left( E I \frac{\partial^2 w}{\partial x^2}\right) \\
+              &    - K_{t} \wt
+                   + K_{xxt} \frac{\partial^2 \wt}{\partial x^2}
+                   + f(x,t), 
+                  \qquad\qquad x\in[0,\Ls], \quad t\ge 0,  \label{eq:BeamModel}
 \end{align}
-where $y=w(x,t)$ is the displacement of the beam, 
+where $y=w(x,t)$ is the displacement of the beam, $\wt=\partial w/\partial t$ is the beam velocity,  
 $\As$ is the cross-sectional area of the beam ($\As=\hs\bs$ for a beam of constant thickness, $\hs$ and constant breadth $\bs$ in the z-direction), 
 $\rhos$ is the beam density, $\Ls$ is the length of the beam, 
 $E$ is Young's modulus, $I$ is the area-moment of inertial (e.g. $I=\frac{1}{12} h^3 b$ for a rectangular beam),
-and $T$ is the {\em tension} coefficient. 
+ $T$ is the {\em tension} coefficient and $K_0$ is the linear stiffiness coefficient.
+The term with coefficient $K_{xxt}$ is a {\em visco-elastic} damping term. 
 % 
 The EB beam is generally consider valid for thin beams and small slopes,  $|w_x| \ll 1$.
 
@@ -184,10 +193,16 @@ A variational form of the problem is found by multiplying by $v$ and integrating
 After integration by parts the result is 
 \begin{align}
  \left( v,  \rhos \As \frac{\partial^2 w}{\partial t^2} \right)_B  &= 
+                  - \left( v , K_0 w \right)_B
                   - \left( \frac{\partial v}{\partial x} , T \frac{\partial w}{\partial x} \right)_B
-                  -\left(\frac{\partial^2 v}{\partial x^2}, E I \frac{\partial^2 w}{\partial x^2}\right)_B  + ( v, f(x,t))_B \\
+                  -\left(\frac{\partial^2 v}{\partial x^2}, E I \frac{\partial^2 w}{\partial x^2}\right)_B  \\
+            & - K_{t} \left( v ,\wt \right)_B
+              - K_{xxt} \left( \frac{\partial v}{\partial x} ,\frac{\partial \wt}{\partial x} \right)_B
+             + ( v, f(x,t))_B \\
 % boundary terms
-             &\quad  +   \left[ v T \frac{\partial w}{\partial x} ~ -v \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w}{\partial x^2}\Big) 
+             &\quad  +   \left[ v T \frac{\partial w}{\partial x} 
+                      ~ + K_{xxt}v  \frac{\partial \wt}{\partial x}
+                      ~ -v \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w}{\partial x^2}\Big) 
                       ~ + \frac{\partial v}{\partial x}E I \frac{\partial^2 w}{\partial x^2}\Big)  
                       \right]_0^{\Ls}   \label{eq:beamBoundaryTerms}
 \end{align}
@@ -215,6 +230,7 @@ the end slope and shear are specified,
 \newcommand{\dx}{\Delta x}
 \newcommand{\Mt}{\tilde{M}}
 \newcommand{\Kt}{\tilde{K}}
+\newcommand{\Bt}{\tilde{B}}
 \newcommand{\Bc}{\mathcal{B}}
 \subsection{FEM approximation}\label{sec:BeamModelFEM}
 
@@ -237,21 +253,31 @@ that satisfy,
 The Galerkin FEM approximation is defined by the $2\Nn$ equations
 \begin{align}
  \left( \chi_i,  \rhos \As \frac{\partial^2 w^h}{\partial t^2} \right)_B  &= 
-                  - \left( \frac{\partial v^h_i}{\partial x} , T \frac{\partial w^h}{\partial x} \right)_B
-                  -\left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 w^h}{\partial x^2}\right)_B  + ( \chi_i, f(x,t))_B \\
+                  - \left( \chi_i , K_0 w^h \right)_B
+                  - \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial w^h}{\partial x} \right)_B
+                  -\left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 w^h}{\partial x^2}\right)_B  \\
+              &\quad   
+         - K_{t} \left( \chi_i , \wt^h \right)_B
+         - K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial}{\partial t}\frac{\partial w^h}{\partial x} \right)_B
+         + ( \chi_i, f(x,t))_B \\
 % boundary terms
-             &\quad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} ~ -\chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+             &\quad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} 
+                      ~ + K_{xxt} \chi_i \frac{\partial}{\partial t}\frac{\partial w^h}{\partial x} 
+                      ~ -\chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
                       \right]_0^{\Ls} ,  \label{eq:beamFEM_I}
 \end{align}
-with $\chi_i=\phi_i$ or $\chi_i=\psi$, $i=1,2,\ldots,\Nn$. Written out,
+with $\chi_i=\phi_i$ or $\chi_i=\psi_i$, $i=1,2,\ldots,\Nn$. Written out,
 \begin{align}
-\sum_{j=1}^{\Nn} \left\{ M_{ij} \partial_t^2 w_j 
-                + \Mt_{ij} \partial_t^2 w'_j \right\}  &= 
-     - \sum_{j=1}^{\Nn} \left\{  K_{ij} w_j + \Kt_{ij} w'_j \right\} 
+& \sum_{j=1}^{\Nn} \left\{ M_{ij} \partial_t^2 w_j 
+                + \Mt_{ij} \partial_t^2 w'_j \right\}  = 
+     - \sum_{j=1}^{\Nn} \left\{  K_{ij} w_j + \Kt_{ij} w'_j 
+            ~ + B_{ij} \dot w_j + \Bt_{ij} \dot w'_j \right\} 
                   ~+ ( \phi_i, f(x,t))_B \\
 % boundary terms
-             &\quad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+             &\qquad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} 
+                      ~ + \chi_i K_{xxt} \frac{\partial \dot w^h}{\partial x} 
+                      ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
                       \right]_0^{\Ls}  ,  \label{eq:beamFEM_II}
 \end{align}
@@ -259,18 +285,27 @@ where
 \begin{align}
   M_{ij} &= \left( \chi_i,  \rhos \As \frac{\partial^2 \phi_j}{\partial t^2} \right)_B , \\
   \Mt_{ij} &= \left( \chi_i,  \rhos \As \frac{\partial^2 \psi_j}{\partial t^2} \right)_B , \\
-  K_{ij} &= \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \phi_j}{\partial x} \right)_B
-               + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \phi_j}{\partial x^2}\right)_B \\
-  \Kt{ij} &= \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \phi_j}{\partial x} \right)_B
-                + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \psi_j}{\partial x^2}\right)_B 
+% 
+  K_{ij} &= 
+             \left( \chi_i , K_0 \phi_j \right)_B
+            + \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \phi_j}{\partial x} \right)_B
+               + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \phi_j}{\partial x^2}\right)_B, \\
+  \Kt_{ij} &= \left( \chi_i , K_0 \psi_j \right)_B
+                + \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \psi_j}{\partial x} \right)_B
+                + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \psi_j}{\partial x^2}\right)_B, \\
+% 
+  B_{ij} &=  K_t \left( \chi_i , \dot\phi_j \right)_B, 
+            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\phi_j}{\partial x} \right)_B, \\
+  \Bt_{ij} &=  K_t \left( \chi_i , \dot\psi_j \right)_B, 
+            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\psi_j}{\partial x} \right)_B, 
 \end{align}
-with $\chi_i = \phi_i$ or $\chi_i=\psi_i$.
+with $\chi_i=\phi_i$ or $\chi_i=\psi_i$, $i=1,2,\ldots,\Nn$.
 This can be written as the matrix differential equation
 \begin{align}
-   M \ddot\uv = - K \uv + \fv , \label{eq:beamODE}
+   M \ddot\uv = - B \dot\uv - K \uv + \fv , \label{eq:beamODE}
 \end{align}
 where $\uv$ is the vector of the degrees of freedom and 
-$M$ and $K$ are $2\times2$-block tridiagonal matrices , 
+$M$, $B$ and $K$ are $2\times2$-block tridiagonal matrices , 
 \begin{align}
    \uv = \begin{bmatrix} w_1 \\ w'_1 \\ w_2 \\ w'_2 \\ \vdots \\ w_{\Nn} \\ w'_{\Nn} \end{bmatrix} , 
 \quad 
@@ -292,15 +327,32 @@ $M$ and $K$ are $2\times2$-block tridiagonal matrices ,
 \end{align}
 The matrices $A^M_i$, $B^M_i$, $C^M_i$,  $A^K_i$, $B^K_i$, and $C^K_i$ are two-by-two matricies, $\Real^{2\times2}$.
 
-{\bf Note:} The FEM approximation using Hermite polynomials also solves for $\ddot w'$ and thus is effectively
+{\bf Note:} The FEM approximation using Hermite polynomials also solves for $w'$ and thus is effectively
 an Hermite scheme (i.e. solving the PDE and the x-derivative of the PDE).
 
 % -----------------------------------------------------------------------------------------
+% Mass matrix:
+%  [        13/35*le     11/210*le^2         9/70*le    -13/420*le^2]
+%  [     11/210*le^2      1/105*le^3     13/420*le^2     -1/140*le^3]
+%  [         9/70*le     13/420*le^2        13/35*le    -11/210*le^2]
+%  [    -13/420*le^2     -1/140*le^3    -11/210*le^2      1/105*le^3]
+% Tension Matrix (v_x,w_x):
+%  [          6/5/le            1/10         -6/5/le            1/10]
+%  [            1/10         2/15*le           -1/10        -1/30*le]
+%  [         -6/5/le           -1/10          6/5/le           -1/10]
+%  [            1/10        -1/30*le           -1/10         2/15*le]
+% Stiffness Matrix (v_xx,w_xx):
+%  [         12/le^3          6/le^2        -12/le^3          6/le^2]
+%  [          6/le^2            4/le         -6/le^2            2/le]
+%  [        -12/le^3         -6/le^2         12/le^3         -6/le^2]
+%  [          6/le^2            2/le         -6/le^2            4/le]
+
 \subsubsection{Element matrices}
 
 The global mass matrix, $M$, and stiffness matrix $K$, can be computed by summing the contributions
 from the element mass matrices and stiffness matrices, respectively. The entries in the global matrices are
 integrals over the entire domain while the element matrices are just integrals of the same quantities but over a single element.
+(See {\tt cgDoc/moving/codes/beam/beam.maple}).
 
 The solution $w$ on an element $\Omega_i=[x_i,x_{i+1}]$ can be written as
 \begin{align}
@@ -326,7 +378,7 @@ The $4\times 4$ element mass matrix is symmetric and given by (assuming $\rhos\A
 % 
 \begin{bmatrix}
 13\dx/35 & 11\dx^2/210 & 9\dx/70      & -13\dx^2/420 \\
-         & \dx^3/105   & 13\dx^2/420  & -\dx^3/420   \\
+         & \dx^3/105   & 13\dx^2/420  & -\dx^3/140   \\
          &             & 13\dx/35     & -11\dx^2/210 \\
          &             &              & \dx^3/105
 \end{bmatrix}.
@@ -342,6 +394,17 @@ The element stiffness matrix is also symmetric and given by  (assuming $EI$ is c
          &         &           &4/\dx
 \end{bmatrix}.
 \end{align} 
+The element tension matrix is also symmetric and given by 
+\begin{align}
+   T_e = \int_0^{\dx} T \, \partial_x\Nv \, \partial_x\Nv^T \, dx = 
+T 
+\begin{bmatrix}
+\frac{6}{5}/\dx & \frac{1}{10} & -\frac{6}{5}/\dx & \frac{1}{10} \\
+         & \frac{2}{15}\dx   & -\frac{1}{10}  & -\frac{1}{30}\dx   \\
+         &         & \frac{6}{5}/\dx  &-\frac{1}{10} \\
+         &         &           &\frac{2}{15}\dx
+\end{bmatrix}.
+\end{align} 
 % 
 The element force vector is 
 \begin{align}
@@ -351,7 +414,8 @@ The element force vector is
 % --------------------------------------------------------------------------------------------------------------------
 \subsection{Force computation} \label{eq:BeamModel_ForceComputation}
 
-The integrals defining the contribution of the external force are
+The integrals defining the contribution of the external force are 
+(see subsection~\ref{sec:projectForces} for a discussion of projecting external forces on the beam surface onto the neutral axis)
 \begin{align}
 & F_i^\phi  = ( \phi_i, f(x,t) )_B  = \int_0^{\Ls} \phi_i(x) f(x,t) \, dx, \\
 & F_i^\psi =  ( \psi_i, f(x,t) )_B  = \int_0^{\Ls} \psi_i(x) f(x,t) \, dx.
@@ -391,21 +455,144 @@ In this case
 The formulae are a bit more complicated when $f$ is defined on a sub-interval $[a,b]$. 
 
 % --------------------------------------------------------------------------------------------------------------------
+\subsection{Computing the position, velocity and acceleration of points on the beam surface}
+
+For finite width beams we need to be able to compute the position, velocity and acceleration
+of points on the beam surfaces (as oppposed to the neutral curve). These values are used, for example,
+in FSI simulations.
+We also need to be able to project a force on the beam surface to a corresponding force on the
+neutral curve. 
+
+Let $\xbv(s,t)=(x(s),w(s,t))$ denote the beam neutral curve, parameterized by $s$, $0\le s \le L$.
+let $\nsv(s,t)$ denote the unit normal vector to the curve. If 
+\begin{align*}
+   \tv(s,t)= \frac{[ x_s,w_s]^T}{\sqrt{x_s^2+w_2^2}} = \frac{[ 1,w_x]^T}{\sqrt{1+w_x^2}}
+\end{align*}
+is the unit tangent vector then
+\begin{align*}
+   \nv(s,t)= \frac{[ -w_x, 1]^T}{\sqrt{1+w_x^2}}. 
+\end{align*}
+Under the EB assumption the plane (curve in 2D) orthogonal to the neutral curve remains straight as the beam deforms.
+In this case the curves defining the upper and lower beam surfaces $\xv_\pm$ are given by
+\begin{align*}
+   \xv_\pm(s,t) = \xbv(s,t) \pm \frac{\hs}{2} \nsv(s,t)
+\end{align*}
+The velocity of a point on the beam surface is then 
+\begin{align}
+   \vv_\pm(s,t) = \frac{\partial}{\partial t}\xv_\pm(s,t) =  \vv(s,t) \pm \frac{\hs}{2} \frac{\partial}{\partial t}\nsv(s,t),
+       \label{eq:beamSurfaceVelocity}
+\end{align}
+where the time derivative of the beam normal is 
+\begin{align*}
+   \frac{\partial}{\partial t}\nsv(s,t) = \frac{[ -w_{xt}, 0]^T}{\sqrt{1+w_x^2}} + 
+                 \frac{-w_x w_{xt} [-w_x, 1]^T}{(1+w_x^2)^{3/2}} = \frac{[ -w_{xt}, -w_x w_{xt}]^T}{(1+w_x^2)^{3/2}}
+\end{align*}
+where $w_{xt}=\partial_x v_2$ .
+The acceleration of a point on the beam surface is
+\begin{align}
+   \av_\pm(s,t) = \frac{\partial}{\partial t}\vv_\pm(s,t) =  \av(s,t) \pm \frac{\hs}{2} \frac{\partial^2}{\partial t^2}\nsv(s,t),
+   \label{eq:beamSurfaceAcceleration}
+\end{align}
+where 
+\begin{align*}
+   \frac{\partial^2}{\partial t^2}\nsv(s,t) % &= \frac{\partial}{\partial t} \frac{[ -w_{xt}, -w_x w_{xt}]^T}{(1+w_x^2)^{3/2}}, \\
+        & = \frac{[ -w_{xtt}, -w_x w_{xtt} -w_{xt}^2 ]^T}{(1+w_x^2)^{3/2}} 
+           - 3 w_x w_{xt} \frac{[ -w_{xt}, -w_x w_{xt}]^T}{(1+w_x^2)^{5/2}} .
+\end{align*}
+Equations~\eqref{eq:beamSurfaceVelocity} and~\eqref{eq:beamSurfaceAcceleration} can be used to compute
+the velocity and acceleration of points on the beam's upper and lower surfaces.
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsection{Transfering surface forces onto the neutral axis} \label{sec:projectForces}
+
+    When the external force on the beam arises from an FSI simulation, the fluid traction $\sigmav\nv$ will be applied
+at some point $\xv_p$ on the surface of the beam. In this case we need to project the force onto the beam neutral axis. 
+
+Given a point $\xv_p$ on the top beam surface, 
+and fluid force $\fv_p$ at this point, we determine $s$ so that $\xv_p = \xv_+(s,t)$ and then
+the force on the neutral axis is applied at this value of $s$, i.e. at the point $\xbv(s,t)$ on the neutral axis.
+Similarly for a point on the lower beam surface $\xv_-$. 
+
+The force on the beam, as appears in the EB beam equation~\eqref{eq:BeamModel} is then taken as as the normal component of the fluid force, 
+CHECK THIS
+\begin{align*}
+    f(s,t) = \nv(s,t)^T\fv_p
+\end{align*}
+ -- or do we use
+\begin{align*}
+    f(s,t) = \nv_+(s,t)^T\fv_p
+\end{align*}
+where $\nv_+(s,t)$ is the normal to the top beam surface. 
+
+QUESTION: Since the beam acceleration is related to the surface acceleration by~\eqref{eq:beamSurfaceAcceleration}
+should we adjust the fluid force by some factor of $(\hs/2)\partial_t^2\nv$ ??
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsection{Transfering and projecting surface velocities onto the neutral axis} \label{sec:projectVelocity}
+
+In FSI simulations we may want to assign the beam velocity $\vv(s,t)$ on the neutral axis to match
+given values of the velocity on the beam surface (e.g. for the velocity projection step of the AMP scheme). 
+%
+The velocity of a point on the beam surface is related to the velocity of the neutral axis by
+\begin{align}
+   \vv_\pm(s,t) =  \vv(s,t) \pm \frac{\hs}{2} \frac{\partial}{\partial t}\nsv(s,t).
+\end{align}
+Given the values of the positions, $\xv_\pm^0(s)$, and velocity $\vv_\pm^0(s)$, 
+on the beam surface (e.g. from the AMP velocity projection step) , we can compute estimated velocities on the neutral
+surface $\vv_\pm^b$ from
+\begin{align}
+   \vv_\pm^b   = \vv_\pm^0 \mp \frac{\hs}{2} \frac{\partial}{\partial t}\nsv(s,t).
+\end{align}
+and then set
+\begin{align}
+   \vv(s,t)   = \half( \vv_+^b + \vv_-^b ). 
+\end{align}
+If the beam only has fluid on one side then we would set $\vv(s,t)=\vv_+^b$ or $\vv(s,t)=\vv_-^b$.
+
+The projection of pointwise values of the velocity on the beam neutral surface
+onto the Hermite FEM representation follows the steps discussed in Section~\ref{eq:BeamModel_ForceComputation}.
+
+Given a representation of the normal component of the 
+velocity on the neutral surface as a function $v=v(x)$ a Galerkin projection can be used to determine the
+coefficients in the FEM representation,
+\begin{align}
+  v(x) \approx v^h(x,t) = \sum_{j=1}^{\Nn} v_j \phi_j(x) + v_j' \psi_j(x) 
+\end{align}
+by computing the coefficients $v_j$ and $v_j'$ from the equations 
+\begin{align}
+  \sum_{j=1}^{\Nn} v_j (\phi_i(x),\phi_j(x))_B + v_j' (\phi_i(x),\psi_j(x))_B &= (\phi_i,v)_B \equiv f_i , \\
+  \sum_{j=1}^{\Nn} v_j (\psi_i(x),\phi_j(x))_B + v_j' (\psi_i(x),\psi_j(x))_B &=  (\psi_i,v)_B  \equiv f_i',
+\end{align}
+i.e. from the matrix system
+\begin{align}
+   M_0 \begin{bmatrix} v_1 \\ v_1' \\ v_2 \\ v_2' \\ \vdots \end{bmatrix}
+       =  \begin{bmatrix} f_1 \\ f_1' \\ f_2 \\ f_2' \\ \vdots \end{bmatrix} .
+\end{align}
+
+
+QUESTION: If the beam has a rounded end, what should we do with the velocities on the rounded end? Maybe just ignore
+these. 
+
+
+% --------------------------------------------------------------------------------------------------------------------
 \subsection{Time-stepping}
 The Newmark-beta scheme for the matrix ODE 
 \begin{align*}
-   M \ddot\uv = - K \uv + \fv ,
+   M \ddot\uv = -B \dot\uv - K \uv + \fv ,
 \end{align*}
 is an implicit scheme defined by
 \begin{align*}
  &  \uv^{n+1} = \uv^n + \dt\vv^n + \frac{\dt^2}{2}\Big[ (1-2\beta) \av^n + 2\beta \av^{n+1} \Big],  \\
  &  \vv^{n+1} = \vv^n + \dt\Big[  (1-\gamma) \av^n + \gamma \av^{n+1} \Big]    , \\
- &  M \av^{n+1} =  -K \uv^{n+1} + \fv^{n+1} .
+ &  M \av^{n+1} = -B \vv^{n+1} -K \uv^{n+1} + \fv^{n+1} .
 \end{align*}
 where $\uv^n$ is the displacement, $\vv^n$ the velocity and $\av^n$ the acceleration at time $t^n$. 
 Each time step requires the solution of the implicit system
 \begin{align}
- &  \Big[ M +\beta\dt^2 K \Big] \av^{n+1} = \fv^{n+1} - K\Big[ \uv^n + \dt\vv^n + \frac{\dt^2}{2} (1-2\beta) \av^n \Big] 
+ &  \Big[ M + \gamma\dt B + \beta\dt^2 K \Big] \av^{n+1} =
+      \fv^{n+1} 
+      - B \Big[ \vv^n + (1-\gamma) \dt \av^n \Big] 
+      - K\Big[ \uv^n + \dt\vv^n + \frac{\dt^2}{2} (1-2\beta) \av^n \Big] 
    \label{eq:NewmarkMatrix}
 \end{align}
 to determine the acceleration $\av^{n+1}$. 
@@ -445,13 +632,17 @@ We also need to impose
 \end{align}
 This condition is a natural boundary condition and appears in the boundary terms in~\eqref{eq:beamFEM_II}, 
 \begin{align}
-   \Bc(\chi_i) = -\left[ \chi_i T \frac{\partial w^h}{\partial x} ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+   \Bc(\chi_i) = -\left[ \chi_i T \frac{\partial w^h}{\partial x} 
+                     ~ + \chi_i K_{xxt} \frac{\partial \dot w^h}{\partial x}
+                     ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
                       \right]_0 ~.
 \end{align}
 The boundary term will contribute to the second equation, 
 \begin{align}
-   \Bc(\psi_1) &= -\left[ \psi_1 T \frac{\partial w^h}{\partial x} ~ - \psi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+   \Bc(\psi_1) &= -\left[ \psi_1 T \frac{\partial w^h}{\partial x} 
+                      ~ + \psi_1 K_{xxt} \frac{\partial \dot w^h}{\partial x}
+                      ~ - \psi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \psi_1}{\partial x} M(t)  
                       \right]_0, \\
         &= -M(t) 
@@ -466,26 +657,31 @@ since $\psi_1(0)=0$, and $\partial_x\psi_1(0)=1$.
 These two natural BC's contribute to the boundary terms.
 The first equation will have the contribution (using $\phi_1(0)=1$, $\partial_x\phi_1(0)=0$)
 \begin{align}
-   \Bc(\phi_1) &= -\left[ \phi_1 T \frac{\partial w^h}{\partial x} ~ - \phi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+   \Bc(\phi_1) &= -\left[ \phi_1 T \frac{\partial w^h}{\partial x} 
+                      ~ + \phi_1 K_{xxt} \frac{\partial \dot w^h}{\partial x}  
+                      ~ - \phi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \phi_1}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
                       \right]_0  \\
-     &=  -T w'_1   + S(t) . \label{eq:beam:pinned}
+     &=  -T w'_1 - K_{xxt} \dot w'_1  + S(t) . \label{eq:beam:pinned}
 \end{align}
 since $\phi_1(0)=1$, $\partial_x\phi_1(0)=0$.
-Note that the term $T w'_1$ in equation~\eqref{eq:beam:pinned} will contribute an adjustment to the stiffness matrix
+Note that the terms $T w'_1$ and $- K_{xxt} \dot w'_1$
+in equation~\eqref{eq:beam:pinned} will contribute an adjustment to the stiffness matrix
 and will thus change the implicit matrix~\eqref{eq:NewmarkMatrix} in the Newmark scheme.
 
 
 The second equation in our system will have the contribution 
 \begin{align}
-   \Bc(\psi_1) &= -\left[\psi_1 T \frac{\partial w^h}{\partial x} ~ - \psi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+   \Bc(\psi_1) &= -\left[\psi_1 T \frac{\partial w^h}{\partial x} 
+                      ~ + \psi_1 K_{xxt} \frac{\partial \dot w^h}{\partial x} 
+                      ~ - \psi_1 \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \psi_1}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
                       \right]_0 \\
         &= - M(t) , 
 \end{align}
 since $\psi_1(0)=0$, $\partial_x\psi_1(0)=1$.
 
-{\bf Note:} The case of $E I= 0$ (i.e. the wave equaiton for a {\em string}) 
+{\bf Note:} The case of $E I= 0$ (i.e. the wave equation for a {\em string}) 
 is a special case since the order of the PDE in space goes from four to two. In this
 case there is only one BC applied at each end -- currently only the Dirichlet case
 is implemented usng the {\em pinned} BC. 

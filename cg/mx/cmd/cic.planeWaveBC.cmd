@@ -16,6 +16,7 @@
 #  -plotHarmonicComponents : plot the harmonic components of the E field
 # 
 # Examples:
+#    Generate grid:  ogen -noplot cicArg -order=4 -interp=e -factor=2   ( creates cice2.order4.hdf)
 #   cgmx cic.planeWaveBC -g=cice2.order4.hdf 
 #   cgmx cic.planeWaveBC -g=cice3.order4.hdf
 #   cgmx cic.planeWaveBC -g=cice16.order4.hdf

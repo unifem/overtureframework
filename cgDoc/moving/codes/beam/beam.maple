@@ -1,0 +1,174 @@
+# restart; read "/Users/henshaw/overtureFramework/cgDoc/moving/codes/beam/beam.maple";
+#
+#  Calculations related to the BeamModel class
+# 
+
+# with(LinearAlgebra);
+# with(CodeGeneration):
+
+kernelopts(printbytes=false): # turn off memory used messages
+
+
+
+# Hermite polynomials on [-1,1]
+
+N1 := (1/4)*(1-xi)^2*(2+xi):
+
+N2 := (le/8)*(1-xi)^2*(1+xi):
+
+N3 := (1/4)*(1+xi)^2*(2-xi):
+
+N4 := (le/8)*(1+xi)^2*(xi-1):
+
+# x(xi)  = x_i + .5*le*( xi+1 )
+dxdxi := le/2:
+dxidx := 1/dxdxi;
+
+# Mass matrix:
+
+M11 := int(N1*N1,xi=-1..1)*dxdxi:
+M12 := int(N1*N2,xi=-1..1)*dxdxi:
+M13 := int(N1*N3,xi=-1..1)*dxdxi:
+M14 := int(N1*N4,xi=-1..1)*dxdxi:
+
+M21 := int(N2*N1,xi=-1..1)*dxdxi:
+M22 := int(N2*N2,xi=-1..1)*dxdxi:
+M23 := int(N2*N3,xi=-1..1)*dxdxi:
+M24 := int(N2*N4,xi=-1..1)*dxdxi:
+
+M31 := int(N3*N1,xi=-1..1)*dxdxi:
+M32 := int(N3*N2,xi=-1..1)*dxdxi:
+M33 := int(N3*N3,xi=-1..1)*dxdxi:
+M34 := int(N3*N4,xi=-1..1)*dxdxi:
+
+M41 := int(N4*N1,xi=-1..1)*dxdxi:
+M42 := int(N4*N2,xi=-1..1)*dxdxi:
+M43 := int(N4*N3,xi=-1..1)*dxdxi:
+M44 := int(N4*N4,xi=-1..1)*dxdxi:
+
+
+printf("Mass matrix:\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n",
+convert(M11,string),convert(M12,string),convert(M13,string),convert(M14,string),
+convert(M21,string),convert(M22,string),convert(M23,string),convert(M24,string),
+convert(M31,string),convert(M32,string),convert(M33,string),convert(M34,string),
+convert(M41,string),convert(M42,string),convert(M43,string),convert(M44,string));
+
+
+# Tension term:   T*w_xx --> -T*(v_x,w_x)
+
+N1x := diff(N1,xi)*dxidx:
+N2x := diff(N2,xi)*dxidx:
+N3x := diff(N3,xi)*dxidx:
+N4x := diff(N4,xi)*dxidx:
+
+T11 := int(N1x*N1x,xi=-1..1)*dxdxi:
+T12 := int(N1x*N2x,xi=-1..1)*dxdxi:
+T13 := int(N1x*N3x,xi=-1..1)*dxdxi:
+T14 := int(N1x*N4x,xi=-1..1)*dxdxi:
+
+T21 := int(N2x*N1x,xi=-1..1)*dxdxi:
+T22 := int(N2x*N2x,xi=-1..1)*dxdxi:
+T23 := int(N2x*N3x,xi=-1..1)*dxdxi:
+T24 := int(N2x*N4x,xi=-1..1)*dxdxi:
+
+T31 := int(N3x*N1x,xi=-1..1)*dxdxi:
+T32 := int(N3x*N2x,xi=-1..1)*dxdxi:
+T33 := int(N3x*N3x,xi=-1..1)*dxdxi:
+T34 := int(N3x*N4x,xi=-1..1)*dxdxi:
+
+T41 := int(N4x*N1x,xi=-1..1)*dxdxi:
+T42 := int(N4x*N2x,xi=-1..1)*dxdxi:
+T43 := int(N4x*N3x,xi=-1..1)*dxdxi:
+T44 := int(N4x*N4x,xi=-1..1)*dxdxi:
+
+printf("Tension Matrix (v_x,w_x):\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n",
+convert(T11,string),convert(T12,string),convert(T13,string),convert(T14,string),
+convert(T21,string),convert(T22,string),convert(T23,string),convert(T24,string),
+convert(T31,string),convert(T32,string),convert(T33,string),convert(T34,string),
+convert(T41,string),convert(T42,string),convert(T43,string),convert(T44,string));
+
+
+
+# Stiffness for EI*w_xxxx
+
+N1xx := diff(N1,xi,xi)*dxidx^2:
+N2xx := diff(N2,xi,xi)*dxidx^2:
+N3xx := diff(N3,xi,xi)*dxidx^2:
+N4xx := diff(N4,xi,xi)*dxidx^2:
+
+
+K11 := int(N1xx*N1xx,xi=-1..1)*dxdxi:
+K12 := int(N1xx*N2xx,xi=-1..1)*dxdxi:
+K13 := int(N1xx*N3xx,xi=-1..1)*dxdxi:
+K14 := int(N1xx*N4xx,xi=-1..1)*dxdxi:
+
+K21 := int(N2xx*N1xx,xi=-1..1)*dxdxi:
+K22 := int(N2xx*N2xx,xi=-1..1)*dxdxi:
+K23 := int(N2xx*N3xx,xi=-1..1)*dxdxi:
+K24 := int(N2xx*N4xx,xi=-1..1)*dxdxi:
+
+K31 := int(N3xx*N1xx,xi=-1..1)*dxdxi:
+K32 := int(N3xx*N2xx,xi=-1..1)*dxdxi:
+K33 := int(N3xx*N3xx,xi=-1..1)*dxdxi:
+K34 := int(N3xx*N4xx,xi=-1..1)*dxdxi:
+
+K41 := int(N4xx*N1xx,xi=-1..1)*dxdxi:
+K42 := int(N4xx*N2xx,xi=-1..1)*dxdxi:
+K43 := int(N4xx*N3xx,xi=-1..1)*dxdxi:
+K44 := int(N4xx*N4xx,xi=-1..1)*dxdxi:
+
+
+printf("Stiffness Matrix (v_xx,w_xx):\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n [ %15s %15s %15s %15s]\n",
+convert(K11,string),convert(K12,string),convert(K13,string),convert(K14,string),
+convert(K21,string),convert(K22,string),convert(K23,string),convert(K24,string),
+convert(K31,string),convert(K32,string),convert(K33,string),convert(K34,string),
+convert(K41,string),convert(K42,string),convert(K43,string),convert(K44,string));
+
+
+# ALTERNATE Tension term:   T*w_xx --> T*(v,w_xx) **BUT NOT SYMMETRIC ***
+# 
+# T11a := int(N1*N1xx,xi=-1..1)*dxdxi;
+# T12a := int(N1*N2xx,xi=-1..1)*dxdxi;
+# T13a := int(N1*N3xx,xi=-1..1)*dxdxi;
+# T14a := int(N1*N4xx,xi=-1..1)*dxdxi;
+# 
+# T21a := int(N2*N1xx,xi=-1..1)*dxdxi;
+# T22a := int(N2*N2xx,xi=-1..1)*dxdxi;
+# T23a := int(N2*N3xx,xi=-1..1)*dxdxi;
+# T24a := int(N2*N4xx,xi=-1..1)*dxdxi;
+# 
+# T31a := int(N3*N1xx,xi=-1..1)*dxdxi;
+# T32a := int(N3*N2xx,xi=-1..1)*dxdxi;
+# T33a := int(N3*N3xx,xi=-1..1)*dxdxi;
+# T34a := int(N3*N4xx,xi=-1..1)*dxdxi;
+# 
+# T41a := int(N4*N1xx,xi=-1..1)*dxdxi;
+# T42a := int(N4*N2xx,xi=-1..1)*dxdxi;
+# T43a := int(N4*N3xx,xi=-1..1)*dxdxi;
+# T44a := int(N4*N4xx,xi=-1..1)*dxdxi;
+# 
+# printf(" Ta = [ %s  %s  %s  %s]\n",convert(T11a,string),convert(T12a,string),convert(T13a,string),convert(T14a,string));
+# printf(" Ta = [ %s  %s  %s  %s]\n",convert(T21a,string),convert(T22a,string),convert(T23a,string),convert(T24a,string));
+# printf(" Ta = [ %s  %s  %s  %s]\n",convert(T31a,string),convert(T32a,string),convert(T33a,string),convert(T34a,string));
+# printf(" Ta = [ %s  %s  %s  %s]\n",convert(T41a,string),convert(T42a,string),convert(T43a,string),convert(T44a,string));
+
+
+# Force integration
+
+# fl = fa at x=a
+#    = fb at x=b
+fl := fa*(b-xi)/(b-a) + fb*(xi-a)/(b-a); 
+
+f1 := simplify(int(N1*fl,xi=a..b)*dxdxi);
+f2 := simplify(int(N2*fl,xi=a..b)*dxdxi);
+f3 := simplify(int(N3*fl,xi=a..b)*dxdxi);
+f4 := simplify(int(N4*fl,xi=a..b)*dxdxi);
+
+
+# C(f1, defaulttype = float, deducetypes = false, output = string, resultname = "f1");
+
+# C(f1, optimize, defaulttype = float, deducetypes = false, output = string, resultname = "f1");
+
+C([g1 = f1, g2 = f2, g3 = f3, g4 = f4], defaulttype = float, deducetypes = false);
+
+C([g1 = f1, g2 = f2, g3 = f3, g4 = f4], optimize, defaulttype = float, deducetypes = false);

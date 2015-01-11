@@ -153,6 +153,61 @@ userDefinedForcing( realArray & f, int iparam[], real rparam[] )
       }
     }
   }
+  else if( option=="my source" )
+  {
+    int & numberOfGaussianSources = db.get<int>("numberOfGaussianSources");
+    RealArray & gaussianParameters = db.get<RealArray>("gaussianParameters");
+
+    // Add the Gaussian source terms to fLocal
+    for( int m=0; m<numberOfGaussianSources; m++ )
+    {
+      real a    = gaussianParameters(0,m);
+      real beta = gaussianParameters(1,m); 
+      real omega= gaussianParameters(2,m); 
+      real p    = gaussianParameters(3,m);
+      real x0   = gaussianParameters(4,m); 
+      real y0   = gaussianParameters(5,m); 
+      real z0   = gaussianParameters(6,m);
+      real t0   = gaussianParameters(7,m);
+
+      if( false )
+	printF("Gaussian source %i: setting a=%8.2e, beta=%8.2e, omega=%8.2e, p=%8.2e, x0=%8.2e, y0=%8.2e, "
+               "z0=%8.2e, t0=%8.2e\n", m,a,beta,omega,p,x0,y0,z0,t0);
+
+      const real cost=cos(2.*Pi*omega*(t-t0));
+      const real sint=sin(2.*Pi*omega*(t-t0));
+
+      if( mg.numberOfDimensions()==2 )
+      {
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+          real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1);
+	  real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0), p ) );
+
+	  fLocal(i1,i2,i3,ex)+= -(y-y0)*g;
+	  fLocal(i1,i2,i3,ey)+=  (x-x0)*g;
+	  fLocal(i1,i2,i3,hz)+=         g;
+
+	  fLocal(i1,i2,i3,ey)=0.; // *****************
+	  
+	}
+      }
+      else
+      {
+	// -- 3D ---
+	FOR_3D(i1,i2,i3,I1,I2,I3)
+	{
+          real x= xLocal(i1,i2,i3,0), y=xLocal(i1,i2,i3,1), z=xLocal(i1,i2,i3,2);
+	  real g = a*cost*exp( -beta*pow( SQR(x-x0)+SQR(y-y0)+SQR(z-z0), p ) );
+
+	  fLocal(i1,i2,i3,ex)+= ((z-z0)-(y-y0))*g;
+	  fLocal(i1,i2,i3,ey)+= ((x-x0)-(z-z0))*g;
+	  fLocal(i1,i2,i3,ez) =0.;  // *****************
+	  // fLocal(i1,i2,i3,ez)+= ((y-y0)-(x-x0))*g;
+	}
+      }
+    }
+  }
   else
   {
     printF("Maxwell::userDefinedForcing:ERROR: unknown option =[%s]\n",(const char*)option);
@@ -183,6 +238,7 @@ setupUserDefinedForcing()
   {
     "no forcing",
     "gaussian sources",
+    "my source",
     "exit",
     ""
   };
@@ -222,7 +278,16 @@ setupUserDefinedForcing()
     {
       option="none";
     }
+    else if( answer=="my source" )
+    {
+
+      option="my source";
+
+      // Query user for parameters
+
+    }
     else if( answer=="gaussian sources" )
+
     {
       // define a Gaussian forcing
       option="gaussianSources";

@@ -9,11 +9,13 @@ all: $(all);
 user: CgmxUsersGuide
 CgmxUsersGuide: CgmxUsersGuide.tex 
 	pdflatex CgmxUsersGuide
+	bibtex CgmxUsersGuide
 
 
 ref: CgmxReferenceGuide
 CgmxReferenceGuide: CgmxReferenceGuide.tex 
 	pdflatex CgmxReferenceGuide
+	bibtex CgmxUsersGuide
 
 
 CgmxUsersGuideOld: CgmxUsersGuide.tex 
