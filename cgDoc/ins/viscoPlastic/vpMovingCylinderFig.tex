@@ -1,0 +1,25 @@
+\begin{figure}[hbt]
+%
+\renewcommand{\figWidth}{10cm}
+\renewcommand{\clipfig}[2]{\clipFig{#1}{#2}{.12}{1.0}{.1}{1.}}
+% \renewcommand{\figWidth}{6.5cm}
+% \renewcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](.0,1.2)(6.55,5.2)}\epsfig{#1}\endpsclip}
+ \begin{center}
+ \begin{pspicture}(0,.7)(16.,17.)
+  \rput(3.20,12.75){\clipfig{\vpDir/vpCylMovingWallU.ps}{\figWidth}}
+  \rput(3.20, 3.75){\clipfig{\vpDir/vpCylMovingWallEta.ps}{\figWidth}}
+  \rput(11.8,12.75){\clipfig{\vpDir/vpCylMovingU.ps}{\figWidth}}
+  \rput(11.8, 3.75){\clipfig{\vpDir/vpCylMovingEta.ps}{\figWidth}}
+% 
+%\rput[l]( 0.,9.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=5$}}%
+%\rput[l]( 8.,9.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=10$}}%
+%\rput[l]( 0.,4.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=30$}}%
+%\rput[l]( 8.,4.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=50$}}%
+% 
+%\psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{Flow past a moving cylinder computed with the visco-plastic model. Left: flow computed with non-moving grids and a specified inflow velocity and specified wall velocity. Right: solution computed with moving grids. The cylinder
+translates to the left with speed $1$, starting at $x=2$.}
+\label{fig:movingCyl}
+\end{figure}

@@ -1,0 +1,35 @@
+\clearpage
+\subsection{Moving Cylinder in a Channel}
+
+
+This example tests the moving grid capabilities of the visco-plastic solver. 
+
+
+The flow past a cylinder translating through a channel was computed in two ways:
+
+1. The solution was computed without moving grids by fixing the position of the
+cylinder and specifying the inflow velocity and velocity along the upper and
+lower walls of the channel to a value of $V=1$.
+
+
+2. The solution can be computed with moving grids by translating the cylinder 
+through the channel with speed $V=-1$ into a fluid at rest.
+
+Figure~\ref{fig:movingCyl} compares the results for these two cases. 
+
+
+
+
+% Figure~\ref{fig:vpSIT} show results for $\eta_p=.5$, $\sigma_y=1$, $m=5$
+% for the grid vpSphereInATubei2.order2. This grid had $2.9\times 10^5$ grid points. 
+% The full implicit method required about $3.6G$ of memory for this case. 
+
+
+\noindent {\bf Notes:} 
+\begin{itemize}
+\item The solution was computed with {\tt vp.cmd}. 
+\item The grid was generated with {\tt cg/ins/cmd/vpCylGrid.cmd}.
+\item Using $\Delta t=.025$ gave better results (especially for $\eta$) than $\Delta t=.05$
+\end{itemize}
+
+\input \vpDir/vpMovingCylinderFig.tex

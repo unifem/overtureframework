@@ -8,6 +8,8 @@
 
 \input homeHenshaw
 
+\newcommand{\url}[1]{}
+
 \input{pstricks}\input{pst-node}
 \input{colours}
 
@@ -36,10 +38,10 @@
 \newtheorem{definition}{Definition}
 
 \newcommand{\Overture}{{\bf Over\-ture\ }}
-\newcommand{\ogenDir}{\homeHenshaw/Overture/ogen}
+\newcommand{\ogenDir}{\homeHenshaw/overtureFramework/Overture/ogen}
 
-\newcommand{\cgDoc}{\homeHenshaw/cgDoc}
-\newcommand{\vpDir}{\homeHenshaw/cgDoc/ins/viscoPlastic}
+\newcommand{\cgDoc}{\homeHenshaw/overtureFramework/cgDoc}
+\newcommand{\vpDir}{\homeHenshaw/overtureFramework/cgDoc/ins/viscoPlastic}
 
 \newcommand{\obFigures}{\homeHenshaw/res/OverBlown/docFigures}  % for figures
 \newcommand{\convDir}{.}
@@ -88,14 +90,19 @@
 \vspace{5\baselineskip}
 \begin{flushleft}
 {\Large
-A Visco-Plastic Flow Model in {\bf Cgins} \\
+A Visco-Plastic Flow Model in Cgins \\
 }
 \vspace{2\baselineskip}
-William D. Henshaw  \\
-Centre for Applied Scientific Computing  \\
-Lawrence Livermore National Laboratory      \\
-Livermore, CA, 94551.  \\
-henshaw@llnl.gov \\
+William D. Henshaw,\\
+Department of Mathematical Sciences, \\
+Rensselaer Polytechnic Institute, \\
+Troy, NY, USA, 12180.
+%- \vspace{2\baselineskip}
+%- William D. Henshaw  \\
+%- Centre for Applied Scientific Computing  \\
+%- Lawrence Livermore National Laboratory      \\
+%- Livermore, CA, 94551.  \\
+%- henshaw@llnl.gov \\
 % http://www.llnl.gov/casc/people/henshaw \\
 % http://www.llnl.gov/casc/Overture\\
 \vspace{\baselineskip}
@@ -137,7 +144,7 @@ The model described here is taken from the Ph.D. thesis of Graeme Thorn~\cite{Th
 
 % -------------------------------------------------------------------------------------------------
 \vfill\eject
-\bibliography{\homeHenshaw/papers/henshaw}
+\bibliography{\homeHenshaw/papers/common/journalISI,\homeHenshaw/papers/common/henshaw,\homeHenshaw/papers/common/henshawPapers}
 \bibliographystyle{siam}
 
 \end{document}

@@ -1,0 +1,24 @@
+\begin{figure}[hbt]
+%
+\renewcommand{\figWidth}{9cm}
+\renewcommand{\clipfig}[2]{\clipFig{#1}{#2}{.0}{1.}{.05}{.9}}
+% \renewcommand{\figWidth}{6.5cm}
+% \renewcommand{\clipfig}[1]{\psclip{\psframe[linewidth=2pt](.0,1.2)(6.55,5.2)}\epsfig{#1}\endpsclip}
+ \begin{center}
+ \begin{pspicture}(0,.5)(16.,15)
+%   \rput(3.50, 7.75){\clipfig{vpCyleta5.ps}{\figWidth}}
+%   \rput(11.5, 7.75){\clipfig{vpCyleta10.ps}{\figWidth}}
+  \rput(7.5,4.){\clipfig{\vpDir/sit2Um5.ps}{\figWidth}}
+  \rput(7.5,11.5){\clipfig{\vpDir/sit2Etam5.ps}{\figWidth}}
+% 
+% \rput[l]( 0.,9.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=5$}}%
+% \rput[l]( 8.,9.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=10$}}%
+% \rput[l]( 0.,4.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=30$}}%
+% \rput[l]( 8.,4.50){\psframebox*[fillstyle=solid,fillcolor=mediumgoldenrod]{$\eta$, $m=50$}}%
+% 
+% \psgrid[subgriddiv=2]
+\end{pspicture}
+\end{center}
+\caption{Flow past a sphere in a tube, $\eta_p=.5$, $\sigma_y=1$, $m=5$. Top: $\eta$. Bottom $u$.}
+\label{fig:vpSIT}
+\end{figure}

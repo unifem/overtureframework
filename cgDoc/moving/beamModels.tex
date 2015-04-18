@@ -173,6 +173,7 @@ The BeamModel class defines a generalized Euler-Bernoulli (EB) beam,
                    - \frac{\partial^2}{\partial x^2}\left( E I \frac{\partial^2 w}{\partial x^2}\right) \\
               &    - K_{t} \wt
                    + K_{xxt} \frac{\partial^2 \wt}{\partial x^2}
+                   - K_{xxxxt} \frac{\partial^4 \wt}{\partial x^4}
                    + f(x,t), 
                   \qquad\qquad x\in[0,\Ls], \quad t\ge 0,  \label{eq:BeamModel}
 \end{align}
@@ -181,7 +182,8 @@ $\As$ is the cross-sectional area of the beam ($\As=\hs\bs$ for a beam of consta
 $\rhos$ is the beam density, $\Ls$ is the length of the beam, 
 $E$ is Young's modulus, $I$ is the area-moment of inertial (e.g. $I=\frac{1}{12} h^3 b$ for a rectangular beam),
  $T$ is the {\em tension} coefficient and $K_0$ is the linear stiffiness coefficient.
-The term with coefficient $K_{xxt}$ is a {\em visco-elastic} damping term. 
+The terms with coefficients $K_{xxt}$ and $K_{xxxxt}$ are so-called {\em visco-elastic} damping terms;
+these terms can also be added to provide artificial dissipation to smooth the numerical solution.  
 % 
 The EB beam is generally consider valid for thin beams and small slopes,  $|w_x| \ll 1$.
 
@@ -198,13 +200,16 @@ After integration by parts the result is
                   -\left(\frac{\partial^2 v}{\partial x^2}, E I \frac{\partial^2 w}{\partial x^2}\right)_B  \\
             & - K_{t} \left( v ,\wt \right)_B
               - K_{xxt} \left( \frac{\partial v}{\partial x} ,\frac{\partial \wt}{\partial x} \right)_B
+              - K_{xxxxt} \left( \frac{\partial^2 v}{\partial x^2} ,\frac{\partial^2 \wt}{\partial x^2} \right)_B
              + ( v, f(x,t))_B \\
 % boundary terms
-             &\quad  +   \left[ v T \frac{\partial w}{\partial x} 
+             &\quad  +   \Big[ v T \frac{\partial w}{\partial x} 
                       ~ + K_{xxt}v  \frac{\partial \wt}{\partial x}
-                      ~ -v \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w}{\partial x^2}\Big) 
+                      ~ -K_{xxxxt} v \frac{\partial^3 \wt}{\partial x^3} 
+                      ~ + K_{xxxxt} \frac{\partial v}{\partial x}\frac{\partial^2 \wt}{\partial x^2}\Big)  \\
+              &\qquad\quad -v \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w}{\partial x^2}\Big) 
                       ~ + \frac{\partial v}{\partial x}E I \frac{\partial^2 w}{\partial x^2}\Big)  
-                      \right]_0^{\Ls}   \label{eq:beamBoundaryTerms}
+                      \Big]_0^{\Ls}   \label{eq:beamBoundaryTerms}
 \end{align}
 
 The boundary terms in~\eqref{eq:beamBoundaryTerms} indicate some valid combinations of boundary conditions that will given an energy estimate
@@ -259,13 +264,17 @@ The Galerkin FEM approximation is defined by the $2\Nn$ equations
               &\quad   
          - K_{t} \left( \chi_i , \wt^h \right)_B
          - K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial}{\partial t}\frac{\partial w^h}{\partial x} \right)_B
-         + ( \chi_i, f(x,t))_B \\
+      - K_{xxt} \left( \frac{\partial \chi_i}{\partial x} ,\frac{\partial \wt^h}{\partial x} \right)_B \\
+        &\quad   + ( \chi_i, f(x,t))_B \\
 % boundary terms
-             &\quad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} 
+             &\quad  +   \Big[ \chi_i T \frac{\partial w^h}{\partial x} 
                       ~ + K_{xxt} \chi_i \frac{\partial}{\partial t}\frac{\partial w^h}{\partial x} 
+                      ~ -K_{xxxxt} \chi_i \frac{\partial^3 \wt^h}{\partial x^3} 
+                      ~ + K_{xxxxt} \frac{\partial \chi_i}{\partial x}\frac{\partial^2 \wt^h}{\partial x^2}\Big)  \\
+             &\qquad\quad
                       ~ -\chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
-                      \right]_0^{\Ls} ,  \label{eq:beamFEM_I}
+                      \Big]_0^{\Ls} ,  \label{eq:beamFEM_I}
 \end{align}
 with $\chi_i=\phi_i$ or $\chi_i=\psi_i$, $i=1,2,\ldots,\Nn$. Written out,
 \begin{align}
@@ -275,11 +284,15 @@ with $\chi_i=\phi_i$ or $\chi_i=\psi_i$, $i=1,2,\ldots,\Nn$. Written out,
             ~ + B_{ij} \dot w_j + \Bt_{ij} \dot w'_j \right\} 
                   ~+ ( \phi_i, f(x,t))_B \\
 % boundary terms
-             &\qquad  +   \left[ \chi_i T \frac{\partial w^h}{\partial x} 
+             &\qquad  +   \Big[ \chi_i T \frac{\partial w^h}{\partial x} 
                       ~ + \chi_i K_{xxt} \frac{\partial \dot w^h}{\partial x} 
-                      ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
+%
+                      ~ -K_{xxxxt} \chi_i \frac{\partial^3 \wt^h}{\partial x^3} 
+                      ~ + K_{xxxxt} \frac{\partial \chi_i}{\partial x}\frac{\partial^2 \wt^h}{\partial x^2}\Big) \\
+%
+             &\qquad\quad  ~ - \chi_i \frac{\partial}{\partial x}\Big( E I \frac{\partial^2 w^h}{\partial x^2}\Big) 
                       ~ + \frac{\partial \chi_i}{\partial x}E I \frac{\partial^2 w^h}{\partial x^2}\Big)  
-                      \right]_0^{\Ls}  ,  \label{eq:beamFEM_II}
+                      \Big]_0^{\Ls}  ,  \label{eq:beamFEM_II}
 \end{align}
 where 
 \begin{align}
@@ -294,10 +307,13 @@ where
                 + \left( \frac{\partial \chi_i}{\partial x} , T \frac{\partial \psi_j}{\partial x} \right)_B
                 + \left(\frac{\partial^2 \chi_i}{\partial x^2}, E I \frac{\partial^2 \psi_j}{\partial x^2}\right)_B, \\
 % 
-  B_{ij} &=  K_t \left( \chi_i , \dot\phi_j \right)_B, 
-            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\phi_j}{\partial x} \right)_B, \\
-  \Bt_{ij} &=  K_t \left( \chi_i , \dot\psi_j \right)_B, 
-            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\psi_j}{\partial x} \right)_B, 
+  B_{ij} &=  K_t \left( \chi_i , \dot\phi_j \right)_B
+            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\phi_j}{\partial x} \right)_B 
+            + K_{xxxxt} \left(\frac{\partial^2 \chi_i}{\partial x^2}, \frac{\partial^2 \dot\phi_j}{\partial x^2}\right)_B, \\
+% 
+  \Bt_{ij} &=  K_t \left( \chi_i , \dot\psi_j \right)_B
+            + K_{xxt} \left( \frac{\partial \chi_i}{\partial x} , \frac{\partial \dot\psi_j}{\partial x} \right)_B
+            + K_{xxxxt} \left(\frac{\partial^2 \chi_i}{\partial x^2}, \frac{\partial^2 \dot\psi_j}{\partial x^2}\right)_B ,  
 \end{align}
 with $\chi_i=\phi_i$ or $\chi_i=\psi_i$, $i=1,2,\ldots,\Nn$.
 This can be written as the matrix differential equation
@@ -417,8 +433,8 @@ The element force vector is
 The integrals defining the contribution of the external force are 
 (see subsection~\ref{sec:projectForces} for a discussion of projecting external forces on the beam surface onto the neutral axis)
 \begin{align}
-& F_i^\phi  = ( \phi_i, f(x,t) )_B  = \int_0^{\Ls} \phi_i(x) f(x,t) \, dx, \\
-& F_i^\psi =  ( \psi_i, f(x,t) )_B  = \int_0^{\Ls} \psi_i(x) f(x,t) \, dx.
+& F_i^\phi  = ( \phi_i, f(x,t) )_B  = \int_0^{\Ls} \phi_i(x) f(x,t) \, dx, \label{eq:elementForcePhi} \\
+& F_i^\psi =  ( \psi_i, f(x,t) )_B  = \int_0^{\Ls} \psi_i(x) f(x,t) \, dx. \label{eq:elementForcePsi}
 \end{align}
 or in element form
 \begin{align}
@@ -452,7 +468,9 @@ In this case
  \fv_e &= \int_0^{\dx} \Nv(\xi) \Nv^T(\xi)  (\half \dx) \, d\xi ~\fv, \\
        &= \frac{1}{\rhos\As} \, M_e \, \fv
 \end{align} 
-The formulae are a bit more complicated when $f$ is defined on a sub-interval $[a,b]$. 
+The formulae are a bit more complicated when $f$ is defined on a sub-interval $[a,b]$ (see the Maple
+code in cgDoc/moving/codes/beam/beam.maple which generates the file {\tt elementIntegrationHermiteOrder4.h} 
+used by BeamModel.C)  .
 
 % --------------------------------------------------------------------------------------------------------------------
 \subsection{Computing the position, velocity and acceleration of points on the beam surface}
@@ -466,7 +484,7 @@ neutral curve.
 Let $\xbv(s,t)=(x(s),w(s,t))$ denote the beam neutral curve, parameterized by $s$, $0\le s \le L$.
 let $\nsv(s,t)$ denote the unit normal vector to the curve. If 
 \begin{align*}
-   \tv(s,t)= \frac{[ x_s,w_s]^T}{\sqrt{x_s^2+w_2^2}} = \frac{[ 1,w_x]^T}{\sqrt{1+w_x^2}}
+   \tv(s,t)= \frac{[ x_s,w_s]^T}{\sqrt{x_s^2+w_s^2}} = \frac{[ 1,w_x]^T}{\sqrt{1+w_x^2}}
 \end{align*}
 is the unit tangent vector then
 \begin{align*}
@@ -599,6 +617,72 @@ to determine the acceleration $\av^{n+1}$.
 The scheme is second-order accurate and unconditionally stable for $2\beta=\half$ and $\gamma=\half$. 
 
 % --------------------------------------------------------------------------------------------------------------------
+\newcommand{\uHat}{\hat{u}}
+\newcommand{\vHat}{\hat{v}}
+\newcommand{\Ahat}{\hat{A}}
+\newcommand{\Bhat}{\hat{B}}
+\newcommand{\lambdaHat}{\hat{\lambda}}
+\subsection{Time-step determination}
+
+
+We start by considering the time-step determination for a method-of-lines time-stepping
+algorithm such as Runge-Kutta.
+After Fourier transforming in space the beam equations are
+\begin{align*}
+ \rhos\As \vHat_{t} &= - (K_0 + k^2\Ts + k^4 E I )\uHat - (K_t+ k^2 K_{xxt}) \vHat, \\
+  \uHat_t &= \vHat
+\end{align*}
+or
+\begin{align*}
+ \begin{bmatrix} \uHat\\ \vHat \end{bmatrix}_t = 
+      \begin{bmatrix}
+            0 & 1 \\
+           -A & -B
+      \end{bmatrix}
+ \begin{bmatrix} \uHat\\ \vHat\end{bmatrix}     = C \begin{bmatrix} \uHat\\ \vHat\end{bmatrix} , 
+\end{align*}
+where
+\begin{align*}
+  A &= (K_0 + k^2\Ts + k^4 E I)/(\rhos\As), \\
+  B &= (K_t+ k^2 K_{xxt})/(\rhos\As). 
+\end{align*}
+The eigenvalues of the matrix $C$ are 
+\begin{align*}
+  \lambda = \frac{B}{2} \pm \sqrt{ \left(\frac{B}{2}\right)^2 - A} .
+\end{align*}
+\noindent{\bf Case 1 (under-damped):} When $\left(\frac{B}{2}\right)^2 - A <0$ the eigenvalues are complex and
+\begin{align*}
+  \lambda = \frac{B}{2} \pm i \sqrt{ A - \left(\frac{B}{2}\right)^2} .
+\end{align*}
+
+\noindent{\bf Case 1 (over-damped):} When $\left(\frac{B}{2}\right)^2 - A >0$ the eigenvalues are real
+\begin{align*}
+  \lambda = \frac{B}{2} \pm \sqrt{ \left(\frac{B}{2}\right)^2 - A}.
+\end{align*}
+
+In the discrete case the time-stepping eigenvalues are of the same form
+\begin{align*}
+  \lambdaHat = \frac{\Bhat}{2} \pm \sqrt{ \left(\frac{\Bhat}{2}\right)^2 - \Ahat} ,
+\end{align*}
+where for a second-order accurate central finite difference approximation we could choose
+\begin{align*}
+  \Ahat &= K_0 + \Ts\frac{4}{\dx^2} + E I\frac{16}{\dx^4}, \\
+  \Bhat &= K_t+ K_{xxt}\frac{4}{\dx^2} ,
+\end{align*}
+assuming the plus-minus mode is the worst case.
+
+For stability we require $\lambdaHat\dt$ to be in the region of absolute stability of the time-stepping
+algorithm.
+If we approximate the region of absolute stability by the ellipse
+\begin{align*}
+   \left(\frac{\Re\lambdaHat\dt}{\alpha}\right)^2  + \left(\frac{\Im\lambdaHat\dt}{\beta}\right)^2 \le 1,
+\end{align*}
+then we arrive at the time-step restriction
+\begin{align*}
+   \dt \le \frac{C_\text{cfl}}{\sqrt{ \left(\frac{\Re\lambdaHat}{\alpha}\right)^2  + \left(\frac{\Im\lambdaHat}{\beta}\right)^2}}. 
+\end{align*}
+where $C_\text{cfl}$ is the CFL number. In practice we might choose $C_\text{cfl}=0.9$. 
+% --------------------------------------------------------------------------------------------------------------------
 \subsection{Implementing the boundary conditions} \label{eq:BeamModel_FEM_BC}
 
 We describe some of the details involved in implementing the BC's. We consider the 
@@ -698,17 +782,38 @@ Here are some numerical results for the BeamModel.
 
 
 % --------------------------------------------------------------------------------------------------------------------
-\subsubsection{Twilight-zone} 
+\subsubsection{Twilight-zone with second-order accurate force integration} 
 
 Tables ?? show results for a trigonometric TZ solution for different boundary conditions, c=clamped, p=pinned, f=free.
 The results show that the scheme is second-order accurate. 
-The scheme is 4th-order (?) in space but the force integration is only done to second-order.
+The scheme is 4th-order in space but the force integration (used to compute the element
+force integrals~\eqref{eq:elementForcePhi}-\eqref{eq:elementForcePsi} )is only done to second-order.
 
 {
 \input results/tbm.linearBeam.c.trig.ConvTable.tex 
 \input results/tbm.linearBeam.p.trig.ConvTable.tex 
 \input results/tbm.linearBeam.f.trig.ConvTable.tex 
 }
+
+
+% --------------------------------------------------------------------------------------------------------------------
+\subsubsection{Twilight-zone with fourth-order accurate force integration} 
+
+Tables ?? show results for a trigonometric TZ solution for different boundary conditions, c=clamped, p=pinned, f=free.
+The results show that the scheme is fourth-order accurate when computing the
+element
+force integrals~\eqref{eq:elementForcePhi}-\eqref{eq:elementForcePsi} to 4-th order.
+The scheme is second-order in time but we take $\dt \propto \dx^2$. 
+
+NOTE: The scheme is exact for degreeX=4, degreeT=1, when $T \ne 0$, $E\ne 0$, since the TZ forcing is a quadratic in space
+and the fouth-order force integration will be exact.
+
+{
+\input results/tbm.linearBeam.c.beamOGP4.trig.ConvTable.tex
+\input results/tbm.linearBeam.p.beamOGP4.trig.ConvTable.tex
+\input results/tbm.linearBeam.f.beamOGP4.trig.ConvTable.tex
+}
+
 
 \clearpage
 % --------------------------------------------------------------------------------------------------------------------

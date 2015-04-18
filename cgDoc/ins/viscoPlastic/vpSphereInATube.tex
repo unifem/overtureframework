@@ -1,0 +1,20 @@
+% ------------------------------------------------------------------------
+\clearpage
+\subsection{Visco-plastic flow past a sphere in a tube}\label{sec:vpSIT}
+
+The visco-pastic flow past a sphere in a tube is computed. 
+
+Figure~\ref{fig:vpSIT} show results for $\eta_p=.5$, $\sigma_y=1$, $m=5$
+for the grid vpSphereInATubei2.order2. This grid had $2.9\times 10^5$ grid points. 
+The full implicit method required about $3.6G$ of memory for this case. 
+The solution converged in about 20 steps. 
+
+\noindent{\bf Notes:} 
+\begin{itemize}
+\item The solution was computed with {\tt vp.cmd}. Note: it was important to take the convergence
+    criteria for the iterative solvers small enough or else the solution converged very slowly.
+\item The grid was generated with {\tt cg/ins/cmd/vpSphereInATube.cmd}.
+
+\end{itemize}
+
+\input \vpDir/vpSITFig.tex

@@ -255,6 +255,8 @@ main(int argc, char *argv[])
     for( int grid=0; grid<cg[newCG].numberOfComponentGrids(); grid++ )
     {
       MappedGrid & mg = cg[newCG][grid];
+      mg.update(MappedGrid::THEvertex);  // create the vertex array
+      
       getIndex(mg.dimension(),I1,I2,I3);
       realSerialArray vertexLocal; getLocalArrayWithGhostBoundaries(mg.vertex(),vertexLocal);
       realSerialArray uLocal; getLocalArrayWithGhostBoundaries(u[grid],uLocal);

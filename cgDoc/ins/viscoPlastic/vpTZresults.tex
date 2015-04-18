@@ -1,0 +1,546 @@
+\subsection{Twilight-zone results}
+
+Table~\ref{table:vp.square} shows results from solving the visco-plastic model on a square using
+the method of analytic solutions. The exact solution is a trigonometric polynomial. In 
+two-dimensions this function is given by (*check this*)
+%      // u=cos(pi x) cos( pi y ) + .5
+%      // v=sin(pi x) sin( pi y ) + .5 
+%      // p=cos(    ) sin(      ) + .5
+\begin{align}
+   u_e(\xv,t) &=  \half\cos(f_x \pi x )\cos(f_y \pi y)  , \\
+   v_e(\xv,t) &=  \half\sin(f_x \pi x )\sin(f_y \pi y)  , \\
+   p_e(\xv,t) &= \cos(f_x \pi x )\sin(f_y \pi y) ~.
+\label{eq:vpTrig2D}
+\end{align}
+%      // u=   cos(pi x) cos( pi y ) cos( pi z)  // **** fix ***
+%      // v=.5 sin(pi x) sin( pi y ) cos( pi z)
+%      // w=.5 sin(pi x) cos( pi y ) sin( pi z)
+while in three-dimensions it is given by
+\begin{align}
+   u_e(\xv,t) &=       \cos(f_x \pi x )\cos(f_y \pi y)\cos(f_z \pi z)  , \\
+   v_e(\xv,t) &=  \half\sin(f_x \pi x )\sin(f_y \pi y)\cos(f_z \pi z)  , \\
+   v_e(\xv,t) &=  \half\sin(f_x \pi x )\cos(f_y \pi y)\sin(f_z \pi z)  , \\
+   p_e(\xv,t) &=       \cos(f_x \pi x )\sin(f_y \pi y)\cos(f_z \pi z) ~.
+\label{eq:vpTrig3D}
+\end{align}
+The exact solution has divergence zero, $\grad\cdot\uv_e=0$. 
+The results given below were computed using $f_x=f_y=f_z=\half$. 
+
+These steady state results were computed with the full implicit method using the Adams predictor-corrector
+time-stepping method with parameters set so that it was effectively backward-Euler.
+Convergence to the steady state was obtained in about $30$ iterations (maximum residuals of about $10^{-10})$.
+An accurate solution was obtained after only about $10$ iterations. The implicit matrix was refactored
+every $20$ steps. 
+
+
+Table~\ref{table:vp.square} shows results for a square.
+The boundary conditions were inflow on the left face, , outflow on the right face and no-slip walls on
+the top and bottom. The errors are converging at close to 2nd-order.
+
+Table~\ref{table:vp.cic} shows results for a circle in a channel. 
+The boundary conditions were inflow on the left face, , outflow on the right face and no-slip walls otherwise.
+The errors are converging at close to 2nd-order.
+
+Note: The coefficient of
+the divergence damping term $\grad\cdot\uv$ in the pressure equation is at most $\cDt/\dt$.
+The errors are somewhat sensitive to the value of $\cDt$. 
+
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline
+grid     & N       &  p      &  u       & v        &  T       & $\grad\cdot\uv$\\ \hline 
+square20 &  20    & 9.66e-03 & 2.80e-04 & 2.61e-05 & 4.00e-04 & 8.94e-04 \\
+square40 &  40    & 2.06e-03 & 7.03e-05 & 8.42e-06 & 1.00e-04 & 2.56e-04 \\ 
+square80 &  80    & 4.06e-04 & 1.77e-05 & 2.98e-06 & 2.51e-05 & 7.78e-05 \\ \hline 
+\end{tabular}
+\caption{Square. Maximum errors, Visco-plastic, trigonometric, $\eta_p=1$, $\sigma_y=1$, $m=2$, $\dt=.1$,
+$\cDt=4$.}
+\label{table:vp.square}
+\end{center}
+\end{table}
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|} \hline
+grid     & N       &  p      &  u       & v        &  T       & $\grad\cdot\uv$\\ \hline 
+cice1    & 40    & 4.58e-02 & 2.73e-03 & 2.19e-03 & 2.14e-03  & 1.11e-02  \\
+cice2    & 80    & 1.61e-02 & 6.22e-04 & 4.63e-04 & 5.31e-04  & 4.48e-03  \\
+cice4    & 160   & 4.81e-03 & 4.71e-05 & 9.37e-05 & 1.43e-04  & 8.49e-04  \\ \hline 
+\end{tabular}
+\caption{Circle-in-a-channel. Maximum errors, Visco-plastic, trigonometric, $\eta_p=1$, $\sigma_y=1$, 
+$m=2$, $\dt=.1$, $\cDt=2$.}
+\label{table:vp.cic}
+\end{center}
+\end{table}
+
+Tables~\ref{table:vp.rotatedBox}, \ref{table:vp.quarterCyl} and
+\ref{table:vp.orthoSphere} show some three-dimensional results for a rotated
+box, a quarter cylinder, and orthographic spherical patch, respectively. The
+convergence rates seem close to second order.
+
+The boundary conditions for the three-dimensional results were
+inflow on one face, outflow on a second face and no-slip walls otherwise.
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|} \hline
+grid        & N       &  p      &  u       & v        & w        &  T       & $\grad\cdot\uv$\\ \hline 
+rotatedBox1 & 10    & 1.25e-01 & 1.58e-03 & 9.80e-04 & 1.13e-03 & 1.44e-03 &  6.24e-03 \\
+rotatedBox2 & 20    & 4.32e-02 & 4.35e-04 & 2.48e-04 & 3.07e-04 & 3.72e-04 &  2.07e-03 \\
+rotatedBox4 & 40    & 1.39e-02 & 1.19e-04 & 5.81e-05 & 7.82e-05 & 9.40e-05 &  6.90e-04 \\\hline 
+\end{tabular}
+\caption{Rotated-box. Maximum errors, Visco-plastic, trigonometric, $\eta_p=1$, $\sigma_y=1$, $m=2$, $\dt=.1$,
+$\cDt=2$}
+\label{table:vp.rotatedBox}
+\end{center}
+\end{table}
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|} \hline
+grid        & N       &  p      &  u       & v        & w        &  T       & $\grad\cdot\uv$\\ \hline 
+quarterCyl2 & 10    & 4.64e-01 & 5.70e-03 & 2.51e-03 & 9.10e-04 & 8.04e-04 & 6.18e-03 \\
+quarterCyl4 & 20    & 1.34e-01 & 1.63e-03 & 6.97e-04 & 3.03e-04 & 2.09e-04 & 1.85e-03 \\
+quarterCyl8 & 40    & 3.56e-02 & 4.18e-04 & 1.77e-04 & 9.18e-05 & 5.30e-05 & 5.26e-04 \\ \hline 
+\end{tabular}
+\caption{Quarter-cylinder. Maximum errors, Visco-plastic, trigonometric, $\eta_p=1$, $\sigma_y=1$, $m=2$, $\dt=.1$, 
+$\cDt=2$}
+\label{table:vp.quarterCyl}
+\end{center}
+\end{table}
+
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|} \hline
+grid         & N       &  p      &  u       & v        & w        &  T       & $\grad\cdot\uv$\\ \hline 
+orthoSphere2 & 1  & 1.12e-02 & 2.19e-03 & 1.15e-03 & 1.47e-03 & 2.61e-03 &  5.28e-02  \\
+orthoSphere4 & 2  & 3.18e-03 & 6.12e-04 & 3.17e-04 & 3.96e-04 & 6.82e-04 &  1.46e-02  \\
+orthoSphere8 & 4  & 8.11e-04 & 1.55e-04 & 8.04e-05 & 1.00e-04 & 1.72e-04 &  3.71e-03  \\\hline
+\end{tabular}
+\caption{Orthographic sphere. Maximum errors, Visco-plastic, trigonometric, $\eta_p=1$, $\sigma_y=1$, $m=2$, 
+$\dt=.1$, $\cDt=2$}
+\label{table:vp.orthoSphere}
+\end{center}
+\end{table}
+
+
+
+\bogus{
+
+%=================== Nov 02 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+orthoSphereN.order2 -- real BC's (inflow,outflow,noSlip)
+       N=1 : 14x14x5
+        t    err(p)   err(u)   err(v)   err(w)   err(T)   err(eta)    div       uMax     dt       cpu
+N=1   1.100 4.50e-01 6.42e-03 1.62e-03 6.34e-03 2.63e-03 2.37e+00 1.87e-02  2.56e+00 1.00e-01 3.58e+01
+N=2   1.500 1.46e-01 2.22e-03 4.94e-04 1.78e-03 6.88e-04 2.37e+00 5.24e-03  2.57e+00 1.00e-01 8.26e+01
+N=4   1.600 4.29e-02 6.36e-04 1.29e-04 4.53e-04 1.74e-04 2.37e+00 1.47e-03  2.57e+00 1.00e-01 6.51e+02
+
+
+orthoSphereN.order2 -- dirichlet BC's
+       N=1 : 14x14x5
+        t    err(p)   err(u)   err(v)   err(w)   err(T)   err(eta)    div       uMax     dt       cpu
+N=1   0.600 1.12e-02 2.19e-03 1.15e-03 1.47e-03 2.61e-03 2.34e+00 5.28e-02  2.54e+00 1.00e-01 3.33e+01
+N=2   0.600 3.18e-03 6.12e-04 3.17e-04 3.96e-04 6.82e-04 2.36e+00 1.46e-02  2.56e+00 1.00e-01 2.93e+01
+N=4   0.400 8.11e-04 1.55e-04 8.04e-05 1.00e-04 1.72e-04 2.37e+00 3.71e-03  2.56e+00 1.00e-01 1.32e+02
+
+%=================== Nov 02 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+                t    err(p)   err(u)   err(v)   err(w)   err(T)   err(eta)    div       uMax     dt       cpu
+quarterCyl2   1.500 4.64e-01 5.70e-03 2.51e-03 9.10e-04 8.04e-04 4.00e+00 6.18e-03  3.00e+00 1.00e-01 5.49e+01
+quarterCyl4   1.500 1.34e-01 1.63e-03 6.97e-04 3.03e-04 2.09e-04 4.00e+00 1.85e-03  3.00e+00 1.00e-01 1.43e+02
+quarterCyl8   1.100 3.56e-02 4.18e-04 1.77e-04 9.18e-05 5.30e-05 4.00e+00 5.26e-04  3.00e+00 1.00e-01 1.09e+03
+
+%=================== Nov 01 2007 ============================================== 
+**** 3D version ***
+
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+    t    err(p)   err(u)   err(v)   err(w)   err(T)   err(eta)    div       uMax     dt       cpu
+box10:   2.000 7.19e-02 1.85e-03 5.14e-04 5.15e-04 9.96e-04 3.00e+00 6.10e-03  3.00e+00 1.00e-01 8.51e+00
+box20:   2.000 2.84e-02 5.30e-04 1.25e-04 1.25e-04 2.57e-04 3.00e+00 1.73e-03  3.00e+00 1.00e-01 4.55e+01
+
+               t    err(p)   err(u)   err(v)   err(w)   err(T)   err(eta)    div       uMax     dt       cpu
+rotatedBox1: 1.000 1.25e-01 1.58e-03 9.80e-04 1.13e-03 1.44e-03 2.73e+00 6.24e-03  2.76e+00 1.00e-01 7.56e+00
+rotatedBox2: 2.000 4.32e-02 4.35e-04 2.48e-04 3.07e-04 3.72e-04 2.73e+00 2.07e-03  2.78e+00 1.00e-01 5.90e+01 
+rotatedBox4: 1.000 1.39e-02 1.19e-04 5.81e-05 7.82e-05 9.40e-05 2.73e+00 6.90e-04  2.78e+00 1.00e-01 3.71e+02
+
+%=================== Oct 28 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+square20  2.000 5.68e-03 3.77e-04 3.83e-05 4.08e-04 3.00e+00 9.39e-04  3.00e+00 1.00e-01 1.67e+01
+square40  2.000 1.06e-03 9.58e-05 1.20e-05 1.02e-04 3.00e+00 2.73e-04  3.00e+00 1.00e-01 8.22e+00
+square80  2.000 3.88e-04 2.42e-05 3.98e-06 2.56e-05 3.00e+00 8.33e-05  3.00e+00 1.00e-01 9.52e+00
+
+%=================== Oct 27 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+            t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+square20 2.000 5.68e-03 3.77e-04 3.83e-05 4.08e-04 3.00e+00 9.39e-04  3.00e+00 1.00e-01 5.18e+00
+square40 2.000 1.06e-03 9.58e-05 1.20e-05 1.02e-04 3.00e+00 2.73e-04  3.00e+00 1.00e-01 5.64e+00
+
+
+cgins noplot viscoPlasticModel -g=square5.hdf -degreex=2 -degreet=1 -eta=1. -yield=0. -ic=tz -ts=imp -tp=.1 -tf=.2 -iv=full -debug=1 -go=go -dtMax=.005 -imp=.5 -rf=20000
+
+*bug found* div(nu(ul)grad)ul -> div(nu(ul)grad)u
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   0.200 3.04e-03 1.29e-03 1.03e-03 5.64e-05 1.00e+00 9.61e-03  4.40e+00 1.00e-01 3.76e-02
+   0.200 4.57e-04 1.90e-04 1.69e-04 7.20e-06 1.00e+00 2.21e-03  4.40e+00 5.00e-02 5.37e-02
+
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   0.200 3.78e-02 3.01e-02 7.49e-03 1.88e-03 1.00e+00 2.22e-01  4.40e+00 1.00e-01 3.61e-02
+   0.200 1.00e-02 7.95e-03 1.61e-03 6.03e-05 1.00e+00 4.05e-02  4.40e+00 5.00e-02 5.41e-02
+
+   0.200 5.25e-03 4.93e-03 3.40e-04 1.86e-04 1.00e+00 2.33e-02  4.40e+00 1.00e-02 1.92e-01
+   0.200 5.20e-03 4.89e-03 3.37e-04 1.86e-04 1.00e+00 2.31e-02  4.40e+00 5.00e-03 3.65e-01
+
+
+-rf=1 : 
+   0.200 3.97e-04 3.78e-04 2.96e-05 1.25e-05 1.00e+00 1.84e-03  4.40e+00 1.00e-02 2.91e-01
+   0.200 2.02e-04 1.94e-04 1.55e-05 8.18e-06 1.00e+00 9.39e-04  4.40e+00 5.00e-03 5.53e-01
+
+%=================== Oct 26 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+square20
+     6.000 5.42e-03 3.25e-04 3.11e-05 4.04e-04 3.00e+00 8.94e-04  3.00e+00 1.00e-01 2.90e+01
+
+
+
+%=================== Oct 26 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+cice1 : 40   8.000 4.58e-02 2.73e-03 2.19e-03 2.14e-03 4.00e+00 1.11e-02  3.00e+00 1.00e-01 2.37e+01 cDt=2.
+cice2 : 80   8.000 1.61e-02 6.22e-04 4.63e-04 5.31e-04 4.00e+00 4.48e-03  3.00e+00 1.00e-01 2.50e+01
+cice2 : 160  6.000 4.81e-03 4.71e-05 9.37e-05 1.43e-04 4.00e+00 8.49e-04  3.00e+00 1.00e-01 9.10e+01
+
+           t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+square20  6.000 9.66e-03 2.80e-04 2.61e-05 4.00e-04 3.00e+00 8.94e-04  3.00e+00 1.00e-01 1.89e+00 cDt=4.
+square40  6.000 2.06e-03 7.03e-05 8.42e-06 1.00e-04 3.00e+00 2.56e-04  3.00e+00 1.00e-01 4.54e+00
+square80 10.000 4.06e-04 1.77e-05 2.98e-06 2.51e-05 3.00e+00 7.78e-05  3.00e+00 1.00e-01 2.67e+01
+
+%=================== Oct 25 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+% cice1.order2.hdf :
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   8.000 9.31e-02 4.89e-03 3.07e-03 2.16e-03 4.00e+00 1.30e-02  3.00e+00 1.00e-01 1.30e+01 *real BCs* cDt=1.
+   8.000 4.58e-02 2.73e-03 2.19e-03 2.14e-03 4.00e+00 1.11e-02  3.00e+00 1.00e-01 1.38e+01 *real BCs* cDt=2.
+
+% cice2.order2.hdf :
+   6.000 2.75e-02 1.18e-03 6.53e-04 4.62e-04 4.00e+00 5.12e-03  3.00e+00 1.00e-01 2.30e+01 *real BCs* cDt=1.
+   7.000 1.61e-02 6.22e-04 4.63e-04 5.31e-04 4.00e+00 4.48e-03  3.00e+00 1.00e-01 2.37e+01 *real BCs* cDt=2.
+
+% cice4.order2.hdf :
+   6.000 4.81e-03 4.71e-05 9.37e-05 1.43e-04 4.00e+00 8.49e-04  3.00e+00 1.00e-01 9.65e+01 *real BCs* cDt=2. 
+
+% square 20
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   3.000 1.21e-02 5.57e-04 5.55e-05 4.22e-04 3.00e+00 9.95e-04  3.00e+00 5.00e-02 8.49e+00  *real BCs*
+% square40
+   3.000 3.77e-03 1.44e-04 1.67e-05 1.06e-04 3.00e+00 2.94e-04  3.00e+00 5.00e-02 7.91e+00  *real BCs*
+   3.000 2.59e-03 1.21e-04 1.47e-05 1.05e-04 3.00e+00 2.84e-04  3.00e+00 1.00e-01 6.08e+00  *real BCs* dtMax=.1 cDt=1. 
+   5.000 1.06e-03 9.57e-05 1.20e-05 1.02e-04 3.00e+00 2.73e-04  3.00e+00 1.00e-01 1.86e+01  *real BCs* dtMax=.1 cDt=2.
+
+
+
+                err(p)      err(u)         err(v)       err(T)        eta
+% square20
+     t    err(p)   err(u)   err(v)   err(T)   err(eta)    div       uMax     dt       cpu
+   4.000 1.03e-03 7.60e-05 5.48e-05 6.75e-05 3.00e+00 2.75e-03  3.00e+00 5.00e-02 9.62e+00
+
+Max errors:  1.027e-03  &  7.592e-05  &  5.480e-05  &  6.749e-05  &  2.998e+00  & new eval of nuT
+Max errors:  1.027e-03  &  7.592e-05  &  5.480e-05  &  6.749e-05  &  2.998e+00  & *new addForcing
+% square40
+Max errors:  2.940e-04  &  1.905e-05  &  1.377e-05  &  1.694e-05  &  2.998e+00  & *new addForcing
+% square80
+Max errors:  7.956e-05  &  4.768e-06  &  3.449e-06  &  4.238e-06  &  2.998e+00  &
+
+% square20
+Max errors:  1.015e-03  &  4.712e-05  &  2.792e-05  &  6.897e-05  &  2.998e+00  & before new addForcing
+
+
+%=================== Oct 24 2007 ============================================== 
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+% square40
+                err(p)      err(u)         err(v)       err(T)        eta
+Max errors:  2.899e-04  &  1.250e-05  &  1.975e-05  &  1.868e-05  &  2.998e+00  & redo rhs-p (TZ)
+
+Max errors:  2.915e-04  &  1.673e-05  &  2.398e-05  &  1.892e-05  &  2.998e+00  & RHS to p fixed 
+
+% square20 
+Max errors:  9.951e-04  &  4.913e-05  &  2.842e-05  &  6.877e-05  &  2.998e+00  &
+
+
+%=================== Oct 23 2007 ============================================== 
+
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+cgins viscoPlasticModel -g=rsis2.hdf -eta=1. -yield=1. -expVP=2. -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=tz -dtMax=.05 -rf=21 -tz=trig
+
+   5.000 1.07e-04 1.41e-04 1.03e-04 4.04e-04 1.80e-03  1.00e+00 5.00e-02 4.45e+01
+
+% ******** large errors here where eDot=0 *************
+% cice1.order2.hdf :
+     t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+   5.000 2.29e-01 9.44e-03 4.93e-03 2.33e-03 3.31e-02  1.02e+00 1.00e-01 5.70e+01  *BC=dirichlet*
+% cice2.order2.hdf :
+   6.000 1.04e-01 4.65e-03 2.39e-03 3.76e-04 1.45e-02  1.01e+00 1.00e-01 6.56e+01  *BC=dirichlet*
+
+%=================== Oct 22 2007 ============================================== 
+
+*** VP - nonlinear viscosity -eta=1. -yield=1. -expVP=2
+
+
+quarterAnnulus
+
+   4.000 1.75e-03 6.64e-04 4.13e-04 9.07e-04 1.21e-02  1.00e+00 5.00e-02 2.35e+01  Delta(p)=Delta(pe)
+
+quarterAnnulus2.hdf
+
+   3.000 4.38e-04 1.56e-04 1.80e-04 2.38e-04 3.14e-03  1.00e+00 5.00e-02 2.34e+01  Delta(p)=Delta(pe)
+   4.000 4.38e-04 1.57e-04 1.80e-04 2.38e-04 3.14e-03  1.00e+00 5.00e-02 3.23e+01  cDt=.5
+
+% ---> the lack of convergence here might be a problem with troubles as eta -> 0 (using epsViscoPlastic = 1.e-3 )
+
+% square20
+     t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+   3.000 9.95e-04 4.91e-05 2.84e-05 6.88e-05 2.77e-03  1.00e+00 5.00e-02 7.23e+00
+
+   6.000 9.25e-05 6.14e-05 3.11e-05 6.80e-05 2.69e-03  1.00e+00 5.00e-02 9.07e+00 Delta(p)=Delta(pe)
+% nonSquare20:
+   3.000 9.95e-04 4.91e-05 2.84e-05 6.88e-05 2.77e-03  1.00e+00 5.00e-02 5.44e+00
+% square40: 
+   4.000 2.89e-04 1.21e-05 1.90e-05 1.86e-05 7.10e-04  1.00e+00 5.00e-02 1.37e+01
+   9.000 2.88e-04 1.20e-05 1.89e-05 1.86e-05 7.10e-04  1.00e+00 5.00e-02 1.69e+01 cDt=.5 
+
+   3.000 2.32e-05 1.17e-05 1.83e-05 1.85e-05 6.90e-04  1.00e+00 5.00e-02 8.96e+00   Delta(p)=Delta(pe), epsVP=1.e-3
+   4.000 2.32e-05 2.05e-05 1.27e-05 1.68e-05 6.83e-04  1.00e+00 5.00e-02 6.79e+00   Delta(p)=Delta(pe), epsVP=1.e-4
+   4.000 2.32e-05 3.10e-04 3.11e-04 3.74e-05 1.57e-03  1.00e+00 5.00e-02 7.13e+00   Delta(p)=Delta(pe), epsVP=1.e-2
+
+% square80
+
+   4.000 7.81e-05 2.70e-05 2.83e-05 6.12e-06 1.90e-04  1.00e+00 5.00e-02 2.88e+01
+   5.000 9.51e-05 2.64e-05 2.77e-05 6.07e-06 1.90e-04  1.00e+00 5.00e-02 2.69e+01 cDt=1
+
+   4.000 5.79e-06 2.88e-05 3.01e-05 6.20e-06 1.87e-04  1.00e+00 5.00e-02 2.28e+01  Delta(p)=Delta(pe)
+
+% cice1.order2.hdf :
+     t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+   9.000 2.49e-01 8.44e-03 1.06e-02 2.29e-03 3.96e-02  1.02e+00 5.00e-02 2.00e+01  *BC=dirichlet*
+   6.000 2.23e-01 6.99e-03 9.79e-03 2.26e-03 3.88e-02  1.02e+00 2.50e-02 3.12e+01
+% cice2.order2.hdf :
+   7.000 1.17e-01 1.23e-02 1.46e-02 6.66e-04 6.97e-02  1.01e+00 5.00e-02 4.33e+01  *BC=dirichlet* dtMax=.05
+   4.000 1.14e-01 1.21e-02 1.43e-02 6.58e-04 6.82e-02  1.01e+00 2.50e-02 5.34e+01  *BC=dirichlet* dtMax=.025
+%=================== Oct 22 2007 ============================================== 
+
+*** VP - nu = constant
+% cice1.order2.hdf :
+     t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+   3.000 1.03e-02 2.05e-03 2.01e-03 2.19e-03 1.28e-02  1.01e+00 1.00e-01 2.25e+01  *real BC*
+   4.000 6.79e-03 1.54e-03 1.81e-03 2.18e-03 1.18e-02  1.01e+00 5.00e-02 1.62e+01  *real BC* dtMax=.05
+   3.000 6.79e-03 1.54e-03 1.81e-03 2.18e-03 1.18e-02  1.01e+00 1.00e-01 9.58e+00  *real BC* cDt=.5 
+
+% cice2.order2.hdf :
+   3.000 2.66e-03 3.47e-04 4.64e-04 5.57e-04 4.14e-03  1.00e+00 1.00e-01 1.61e+01 *real BC* cDt=.5 
+   4.000 1.26e-03 2.17e-04 3.98e-04 5.73e-04 3.77e-03  1.00e+00 1.00e-01 2.00e+01 *real BC* cDt=1.
+
+% cice4.order2.hdf :
+   2.000 1.96e-03 1.88e-04 1.30e-04 1.34e-04 1.25e-03  1.00e+00 1.00e-01 4.49e+01 *real BC* cDt=.25
+   6.000 1.20e-03 1.13e-04 1.19e-04 2.96e-04 1.18e-03  1.00e+00 1.00e-01 1.05e+02 *real BC* cDt=.5?
+   3.000 6.09e-04 6.30e-05 1.03e-04 1.53e-04 1.09e-03  1.00e+00 1.00e-01 5.17e+01 *real BC* cDt=1.
+   2.000 2.85e-04 3.43e-05 8.42e-05 1.50e-04 9.91e-04  1.00e+00 1.00e-01 3.09e+01 *real BC* cDt=2.
+% =================== Oct 21,22 2007 ==============================================
+
+NOTE: old way and new way now agree if the dt agree --> damping term in the p eqn is the difference
+
+** INS: full-implicit: nu=1. (implicit.cmd) -- The outflow BC is Neumann here for all variables
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+% cice1.order2.hdf : 
+   5.000 4.02e-03 2.07e-03 1.46e-03 1.16e-02  1.00e+00 1.00e-01 1.35e+00  *all dirichlet*  --- agrees ---
+
+   5.000 1.13e-02 2.26e-03 1.85e-03 8.73e-03  1.01e+00 1.00e-01 1.49e+00  *real BC* --- agrees ---
+
+% cice2.order2.hdf :
+   5.000 3.30e-03 3.31e-04 3.75e-04 1.81e-03  1.00e+00 1.00e-01 3.67e+00 *real BC* cDt=1. 
+   5.000 4.33e-03 4.13e-04 4.42e-04 2.17e-03  1.00e+00 5.00e-02 7.79e+00 *real BC* dtMax=.05 --- agrees ---
+ 
+   5.000 6.19e-03 5.50e-04 4.78e-04 2.51e-03  1.00e+00 1.00e-01 3.68e+00 *real BC* dtMax=.1
+
+% cice4.order2.hdf :
+   5.000 2.18e-03 1.76e-04 1.25e-04 8.39e-04  1.00e+00 1.00e-01 1.79e+01  *real BC* dtMax=.1
+   5.000 1.58e-03 1.06e-04 1.15e-04 7.64e-04  1.00e+00 5.00e-02 4.20e+01  *real BC* dtMax=.05
+
+
+** INS: OLD implicit method: nu=1. (imp.cmd)  -- the outflow BC is extrapolation
+% BC: Inflow,outflow,ns,ns
+% cice1.order2.hdf : real BC's
+     t    err(p)   err(u)   err(v)    div       uMax     dt       cpu
+   6.000 4.02e-03 2.07e-03 1.46e-03 1.16e-02  1.00e+00 1.00e-01 1.10e+00  *all dirichlet*
+
+   6.000 1.13e-02 2.26e-03 1.85e-03 8.73e-03  1.01e+00 1.00e-01 1.26e+00  *real BC* --- agrees ---
+
+   6.000 1.20e-02 2.38e-03 1.90e-03 8.90e-03  1.01e+00 1.18e-01 1.12e+01
+   8.000 1.25e-02 2.38e-03 1.86e-03 8.90e-03  1.01e+00 1.18e-01 8.42e+01  outflow=neumann
+% cice2.order2.hdf :
+   6.000 4.33e-03 4.13e-04 4.42e-04 2.17e-03  1.00e+00 5.00e-02 4.35e+00  *real BC* dtMax=.05
+
+   6.000 4.96e-03 4.50e-04 4.60e-04 2.30e-03  1.00e+00 6.45e-02 3.56e+00  *real BC*
+
+   6.000 4.88e-03 4.50e-04 4.65e-04 2.30e-03  1.00e+00 6.45e-02 8.49e+00
+   6.000 4.96e-03 4.50e-04 4.60e-04 2.30e-03  1.00e+00 6.45e-02 3.55e+00  outflow=neumann
+% cice4.order2.hdf :
+   6.000 1.33e-03 9.14e-05 1.08e-04 7.24e-04  1.00e+00 3.51e-02 5.08e+01
+   6.000 1.34e-03 9.14e-05 1.07e-04 7.24e-04  1.00e+00 3.51e-02 2.13e+01  outflow=neumann
+------------------------------
+
+
+
+VP : Full linearized:
+% ** pressure errors are large near corners ***
+% BC: Inflow,outflow,ns,ns
+% cgins viscoPlasticModel -g=nonSquare20.hdf -eta=1. -yield=0. -ic=tz -ts=imp -tp=1. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -dtMax=.1 -rf=20 -tz=trig -fx=2.
+   4.000 3.05e-01 7.79e-03 4.78e-03 1.01e-02 2.34e-02  1.22e+00 1.00e-01 9.55e+00
+square20:
+   4.000 3.05e-01 7.79e-03 4.78e-03 1.01e-02 2.34e-02  1.22e+00 1.00e-01 7.49e+00
+
+square40: 
+   2.000 4.53e-02 1.00e-03 1.45e-03 2.56e-03 7.88e-03  1.03e+00 1.00e-01 5.70e+00
+
+------------------------
+Full linearized:
+
+% cice1.order2.hdf : real BC's
+     t    err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+  10.000 1.08e-02 2.04e-03 2.00e-03 2.19e-03 1.28e-02  1.01e+00 1.00e-01 1.68e+01
+ ----> t=1.000e+01, dt=1.00e-01: step=99 |u.t|[max,l2]: all=[4.6e-07, 1.6e-07] u=[6.75e-12, 2.97e-12] v=[3.68e-12, 1.28e-12] T=[4.59e-07, 1.62e-07]
+
+
+% cice2.order2.hdf : real BC's
+  10.000 5.25e-03 5.97e-04 5.04e-04 5.34e-04 4.43e-03  1.00e+00 1.00e-01 4.22e+01
+ ----> t=1.000e+01, dt=1.00e-01: step=99 |u.t|[max,l2]: all=[4.7e-07, 1.7e-07] u=[3.73e-12, 1.20e-12] v=[3.30e-12, 6.48e-13] T=[4.71e-07, 1.66e-07]
+
+% cice4.order2.hdf : real BC's
+  5.000 1.95e-03 1.89e-04 1.29e-04 1.40e-04 1.25e-03  1.00e+00 1.00e-01 1.23e+02
+ ----> t=5.000e+00, dt=1.00e-01: step=49 |u.t|[max,l2]: all=[1.5e-07, 5.1e-08] u=[2.91e-09, 1.03e-09] v=[2.08e-09, 6.74e-10] T=[1.49e-07, 5.09e-08]
+
+-----------------
+Full linearized:
+% cice1.order2.hdf : real BC's, Annulus=dirichlet
+  15.000 6.45e-03 2.08e-03 1.90e-03 2.17e-03 1.94e-02  1.00e+00 1.00e-01 5.70e+01
+ ----> t=1.500e+01, dt=1.00e-01: step=149 |u.t|[max,l2]: all=[2.3e-09, 7.9e-10] u=[1.26e-12, 4.76e-13] v=[6.44e-13, 1.02e-13] T=[2.27e-09, 7.95e-10]
+% cice2.order2.hdf : real BC's, Annulus=dirichlet
+  10.000 1.42e-03 2.86e-04 4.70e-04 5.08e-04 5.57e-03  1.00e+00 1.00e-01 4.69e+01
+ ----> t=1.000e+01, dt=1.00e-01: step=99 |u.t|[max,l2]: all=[5.7e-07, 2.0e-07] u=[2.69e-09, 1.06e-09] v=[3.89e-10, 1.42e-10] T=[5.69e-07, 2.01e-07]
+
+
+
+% cice1.order2.hdf : dirichlet BCs
+cgins viscoPlasticModel -g=cice1.order2.hdf -degreex=2 -eta=1. -yield=0. -ic=tz -ts=imp -tp=5. -tf=100. -imp=1. -iv=full -debug=1 -go=halt -ic=uniform -dtMax=.1 -rf=10 -tz=trig
+
+  10.000 4.45e-03 1.74e-03 1.56e-03 2.18e-03 1.89e-02  1.00e+00 1.00e-01 1.90e+01
+ ----> t=1.000e+01, dt=1.00e-01: step=99 |u.t|[max,l2]: all=[5.5e-13, 1.3e-13] u=[3.79e-13, 4.89e-14] v=[4.45e-13, 5.38e-14] T=[5.49e-13, 1.28e-13]
+
+
+% cice2.order2.hdf: dirichlet BCs
+   6.000 8.52e-04 2.18e-04 2.49e-04 2.73e-04 5.52e-03  1.00e+00 1.00e-01 5.40e+01
+ ----> t=6.000e+00, dt=1.00e-01: step=59 |u.t|[max,l2]: all=[1.8e-08, 1.0e-08] u=[1.28e-10, 6.58e-11] v=[4.78e-11, 1.72e-11] T=[1.76e-08, 1.04e-08]
+
+
+% ==============================================================================================================
+ % sq20, trig, yield=0. real BCs (no outflow)
+----> t=2.873e+01: step=399 resid[max, l2]: all=[2.9e-12, 1.4e-12] u=[2.22e-12, 1.01e-12] v=[5.16e-13, 1.71e-13] T=[2.92e-12, 1.37e-12]
+        it   err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+       400 7.86e-04 4.45e-05 9.74e-06 5.24e-05 2.34e-03  1.00e+00 7.20e-02 6.99e+00 
+
+% sq40, trig, yield=0. real BCs (no outflow)
+ ----> t=2.156e+01: step=599 resid[max, l2]: all=[6.4e-08, 3.1e-08] u=[6.37e-08, 3.06e-08] v=[1.16e-08, 4.83e-09] T=[4.01e-08, 1.93e-08]
+       600 1.49e-04 9.04e-06 2.22e-06 1.27e-05 5.96e-04  1.00e+00 3.60e-02 2.36e+01 
+
+
+
+% sq20, trig, real BCs (no outflow)
+ ----> t=4.708e+00: step=399 resid[max, l2]: all=[1.1e-11, 5.2e-12] u=[1.20e-12, 2.30e-13] v=[1.22e-12, 2.19e-13] T=[1.12e-11, 5.22e-12]
+       400 5.78e-03 7.20e-05 6.11e-05 3.57e-05 3.00e-03  1.00e+00 1.18e-02 7.01e+00 
+
+% sq40, trig, real BCs (no outflow)
+ ----> t=3.429e+00: step=599 resid[max, l2]: all=[3.1e-07, 1.4e-07] u=[3.07e-07, 1.43e-07] v=[3.02e-07, 1.40e-07] T=[2.69e-07, 1.29e-07]
+       600 3.99e-03 5.70e-05 5.33e-05 1.18e-05 1.01e-03  1.00e+00 5.72e-03 2.36e+01
+
+
+
+% sq20, trig, real BCs
+ ----> t=4.705e+00: step=399 resid[max, l2]: all=[1.8e-08, 8.2e-09] u=[8.51e-09, 3.67e-09] v=[1.38e-09, 6.46e-10] T=[1.82e-08, 8.20e-09]
+       400 1.87e-02 3.18e-04 1.93e-04 3.30e-04 1.54e-03  1.01e+00 1.18e-02 7.08e+00 
+
+% sq40, trig, real BCs
+ ----> t=3.428e+00: step=599 resid[max, l2]: all=[5.9e-05, 2.5e-05] u=[5.86e-05, 2.48e-05] v=[2.03e-05, 1.04e-05] T=[9.90e-06, 4.54e-06]
+       600 1.22e-02 2.22e-04 1.27e-04 3.41e-05 1.06e-03  1.01e+00 5.72e-03 2.36e+01
+
+
+% sq20, trig, dirichlet-BCs
+ ----> t=4.711e+00: step=399 resid[max, l2]: all=[3.2e-11, 1.5e-11] u=[1.68e-12, 5.16e-13] v=[1.45e-12, 2.24e-13] T=[3.21e-11, 1.49e-11]
+        it   err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+       400 9.92e-04 4.79e-05 2.81e-05 5.43e-05 2.77e-03  1.00e+00 1.18e-02 6.24e+00 
+
+% sq40 , trig, dirichlet-BCs
+ ----> t=2.287e+00: step=399 resid[max, l2]: all=[4.0e-06, 1.9e-06] u=[2.17e-06, 1.09e-06] v=[3.96e-06, 1.92e-06] T=[4.50e-07, 2.15e-07]
+       400 2.86e-04 1.14e-05 1.77e-05 7.53e-06 7.10e-04  1.00e+00 5.73e-03 1.48e+01
+ ----> t=3.433e+00: step=599 resid[max, l2]: all=[2.1e-07, 1.0e-07] u=[1.16e-07, 5.82e-08] v=[2.12e-07, 1.03e-07] T=[6.18e-08, 2.96e-08]
+       600 2.86e-04 1.15e-05 1.78e-05 7.45e-06 7.10e-04  1.00e+00 5.73e-03 2.24e+01
+
+
+
+
+% -------------- Trig TZ ----------------
+% 
+% cice1.order2:
+ ----> t=1.004e+01: step=499 resid[max, l2]: all=[2.1e-05, 6.0e-06] u=[1.37e-05, 3.06e-06] v=[6.93e-06, 1.32e-06] T=[2.07e-05, 6.00e-06]
+        it   err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+       500 3.29e-01 1.04e-02 1.99e-02 1.46e-02 4.46e-02  1.08e+00 2.02e-02 3.25e+01
+
+
+% cice2.order2:
+----> t=5.544e+00: step=499 resid[max, l2]: all=[6.4e-03, 1.9e-03] u=[6.43e-03, 1.87e-03] v=[1.73e-03, 3.98e-04] T=[1.73e-03, 5.37e-04]
+       500 1.59e-01 5.35e-03 3.26e-03 5.44e-03 2.80e-02  1.11e+00 1.10e-02 8.66e+01
+ ----> t=1.108e+01: step=999 resid[max, l2]: all=[9.9e-04, 3.1e-04] u=[7.61e-04, 2.29e-04] v=[2.18e-04, 4.80e-05] T=[9.94e-04, 3.12e-04]
+      1000 1.55e-01 6.19e-03 3.37e-03 1.14e-02 2.72e-02  1.11e+00 1.11e-02 1.73e+02 
+ ----> t=2.216e+01: step=1999 resid[max, l2]: all=[1.9e-04, 6.0e-05] u=[1.13e-05, 3.41e-06] v=[3.25e-06, 7.14e-07] T=[1.91e-04, 6.01e-05]
+      2000 1.55e-01 6.30e-03 3.39e-03 1.56e-02 2.71e-02  1.11e+00 1.11e-02 3.49e+02 
+
+% cice4.order2:
+ ----> t=5.458e+00: step=999 resid[max, l2]: all=[6.2e-03, 1.6e-03] u=[6.16e-03, 1.64e-03] v=[2.98e-03, 1.13e-03] T=[6.21e-04, 1.57e-04]
+      1000 5.26e-02 1.69e-03 1.66e-03 9.01e-04 6.28e-03  1.02e+00 5.41e-03 6.33e+02 
+ ----> t=1.089e+01: step=1999 resid[max, l2]: all=[1.6e-03, 4.7e-04] u=[1.63e-03, 4.67e-04] v=[5.98e-04, 2.12e-04] T=[3.79e-04, 1.23e-04]
+      2000 4.95e-02 1.71e-03 1.69e-03 2.17e-03 5.83e-03  1.02e+00 5.44e-03 1.25e+03 
+
+% -------------- poly TZ ----------------
+% 
+% 
+% % cgins noplot viscoPlasticModel -g=cice2.order2.hdf -degreex=2 -eta=1. -yield=1. -expVP=2. -ic=tz -pits=100 -its=200 -go=run
+% 
+% cice1.order2:
+%  ----> t=5.958e-01: step=199 resid[max, l2]: all=[1.3e-05, 2.3e-06] u=[1.27e-05, 2.28e-06] v=[8.77e-06, 1.21e-06] T=[2.57e-06, 4.08e-07]
+%        it   err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+%        200 2.66e-02 5.99e-03 5.20e-03 1.52e-03 4.72e-02  1.60e+01 2.99e-03 5.86e+00
+% 
+% 
+% cice2.order2:
+% grid     name       gridIndexRange(0:1,0:2)           gridPoints   hmx      hmn
+%    0:  square   ([ 0:   80],[ 0:   80],[ 0:    0])      5936    5.00e-02 5.00e-02
+%    1: Annulus   ([ 0:   82],[ 0:    6],[ 0:    0])       664    6.13e-02 3.83e-02
+%  total number of grid points =6600 (egir), min(hmn)=3.83e-02, max(hmn)=5.00e-02, max(hmx)=6.13e-02,
+% 
+%  ----> t=2.979e-01: step=199 resid[max, l2]: all=[1.6e-04, 3.8e-05] u=[1.61e-04, 3.81e-05] v=[1.27e-04, 2.71e-05] T=[1.92e-05, 3.76e-06]
+%        it   err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+%        200 4.80e-03 6.66e-04 6.41e-04 9.36e-05 1.38e-02  1.60e+01 1.50e-03 1.42e+01
+% 
+% cice4.order2: 
+%  ----> t=1.489e-01: step=199 resid[max, l2]: all=[3.9e-04, 8.3e-05] u=[3.91e-04, 8.32e-05] v=[2.10e-04, 5.10e-05] T=[3.20e-05, 4.52e-06]
+%        it   err(p)   err(u)   err(v)   err(T)    div       uMax     dt       cpu
+%        200 1.59e-03 5.71e-05 7.73e-05 1.06e-05 3.49e-03  1.60e+01 7.48e-04 5.59e+01
+
+
+} % end bogus
