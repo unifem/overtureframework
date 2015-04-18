@@ -174,9 +174,11 @@ setSides(Mapping *left   /* =NULL */,
 
 // make sure the curves stay around for as long as we need them
   int i, j;
-  for (i=0; i<2; i++)
-    for (j=0; j<3; j++)
-      if (curve[i][j]) curve[i][j]->incrementReferenceCount();
+  for( int i=0; i<2; i++)
+    for( int j=0; j<3; j++)
+      if( curve[i][j] && 
+          !(curve[i][j]->uncountedReferencesMayExist()) )   // *wdh* 2015/04/08 check for non-reference counted Mapping's
+        curve[i][j]->incrementReferenceCount();
 
   numberOfSidesSpecified=0;
   for( int axis=0; axis<=2; axis++ )

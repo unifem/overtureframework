@@ -470,6 +470,97 @@ buildMainMenu( aString *menu0,
   return 0;
 }
 
+// ===============================================================================================
+/// \brief Get body info (structures, forcing regions) etc. from the show file
+/// \param fs (input) : frame series to get body info for 
+// ===============================================================================================
+int ShowFilePlotter::
+getBodyInfo( const int fs )  // get bodies (structures, forcing regions)
+{
+  DataBase & dbase = dbaseArray[fs];  // data-base for the current frame series
+
+  if( !dbase.has_key("numberOfBodyForceRegions") || showFileReader.isAMovingGrid() )
+  {
+    // look for body/boundary forcings
+
+    // Regions are in frame 1 for non-moving grids (this may change if body force regions change in time)
+    // For movibg grids regions are in the current solution
+    const int solutionForForcingRegions= showFileReader.isAMovingGrid() ? solutionNumber[fs] :  1;  
+
+    HDF_DataBase *pdb = showFileReader.getFrame(solutionForForcingRegions);
+    assert( pdb!=NULL );
+    HDF_DataBase & db  = *pdb;
+    if( !dbase.has_key("numberOfBodyForceRegions") ) dbase.put<int>("numberOfBodyForceRegions",0);
+    if( !dbase.has_key("numberOfBoundaryForceRegions") ) dbase.put<int>("numberOfBoundaryForceRegions",0);
+    int & numberOfBodyForceRegions = dbase.get<int>("numberOfBodyForceRegions");
+    int & numberOfBoundaryForceRegions = dbase.get<int>("numberOfBoundaryForceRegions");
+	
+    // -- read body force info from the show file --
+    db.get(numberOfBodyForceRegions,"numberOfBodyForceRegions");
+    db.get(numberOfBoundaryForceRegions,"numberOfBoundaryForceRegions");
+
+    printF("ShowFileReader:INFO: numberOfBodyForceRegions=%i, numberOfBoundaryForceRegions=%i\n",
+	   numberOfBodyForceRegions,numberOfBoundaryForceRegions);
+	
+
+    if( !dbase.has_key("turnOnBodyForcing") ) dbase.put<bool>("turnOnBodyForcing",false);
+    bool & turnOnBodyForcing = dbase.get<bool>("turnOnBodyForcing"); 
+
+    if( !dbase.has_key("turnOnBoundaryForcing") ) dbase.put<bool>("turnOnBoundaryForcing",false);
+    bool & turnOnBoundaryForcing = dbase.get<bool>("turnOnBoundaryForcing"); 
+
+    if( numberOfBodyForceRegions>0 )
+    {
+      // -- Get the the array of body forcings ---
+      turnOnBodyForcing=true;
+      if( !dbase.has_key("bodyForcings") ) dbase.put<std::vector<BodyForce*> >("bodyForcings");
+      std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
+      // clear any current entries from the vector:
+      for( int bf=0; bf<bodyForcings.size(); bf++ )
+	delete bodyForcings[bf];
+      bodyForcings.clear();
+	  
+      for( int bf=0; bf<numberOfBodyForceRegions; bf++ )
+      {
+	if( bf >= bodyForcings.size() )
+	{
+	  BodyForce *pbf = new BodyForce;
+	  bodyForcings.push_back(pbf);
+	}
+	    
+	BodyForce & bodyForce = *bodyForcings[bf];
+	bodyForce.get(db,sPrintF("BodyForce%i",bf));
+      }
+    }
+    if( numberOfBoundaryForceRegions>0 )
+    {
+      // -- Get the the array of boundary forcings ---
+      turnOnBoundaryForcing=true;
+      if( !dbase.has_key("boundaryForcings") ) dbase.put<std::vector<BodyForce*> >("boundaryForcings");
+      std::vector<BodyForce*> & boundaryForcings =  dbase.get<std::vector<BodyForce*> >("boundaryForcings");
+      // clear any current entries from the vector:
+      for( int bf=0; bf<boundaryForcings.size(); bf++ )
+	delete boundaryForcings[bf];
+      boundaryForcings.clear();
+
+      for( int bf=0; bf<numberOfBoundaryForceRegions; bf++ )
+      {
+	if( bf >= boundaryForcings.size() )
+	{
+	  BodyForce *pbf = new BodyForce;
+	  boundaryForcings.push_back(pbf);
+	}
+	BodyForce & boundaryForce = *boundaryForcings[bf];
+	boundaryForce.get(db,sPrintF("BoundaryForce%i",bf));
+      }
+    }
+
+	
+  }
+
+  return 0;
+}
+
 int ShowFilePlotter::
 plotAll(DialogData & dialog)
 // ===============================================================================================
@@ -538,7 +629,11 @@ plotAll(DialogData & dialog)
     }
     
     if( plotOptions[fs] & 16 )
+    {
+      getBodyInfo( fs );  // get bodies (structures, forcing regions)
       BodyForce::plotForcingRegions( ps, dbase0,cg0,psp0 );
+    }
+	    
     if( plotOptions[fs] & 1 )
       PlotIt::plot( ps, cg0, psp0 );
     if( plotOptions[fs] & 2 )
@@ -1032,88 +1127,24 @@ plot()
     {
        // change options for plotting body/boundary forcing regions
 
+      getBodyInfo( cfs );
+
       DataBase & dbase = dbaseArray[cfs];  // data-base for the current frame series
-
-      if( !dbase.has_key("numberOfBodyForceRegions") )
-      {
-        // look for body/boundary forcings
-
-        int solutionForForcingRegions=1;  // regions are in frame 1 for now
-	HDF_DataBase *pdb = showFileReader.getFrame(solutionForForcingRegions);
-        assert( pdb!=NULL );
-	HDF_DataBase & db  = *pdb;
-	if( !dbase.has_key("numberOfBodyForceRegions") ) dbase.put<int>("numberOfBodyForceRegions",0);
-	if( !dbase.has_key("numberOfBoundaryForceRegions") ) dbase.put<int>("numberOfBoundaryForceRegions",0);
-	int & numberOfBodyForceRegions = dbase.get<int>("numberOfBodyForceRegions");
-	int & numberOfBoundaryForceRegions = dbase.get<int>("numberOfBoundaryForceRegions");
-	
-	db.get(numberOfBodyForceRegions,"numberOfBodyForceRegions");
-	db.get(numberOfBoundaryForceRegions,"numberOfBoundaryForceRegions");
-
-	printF("ShowFileReader:INFO: numberOfBodyForceRegions=%i, numberOfBoundaryForceRegions=%i\n",
-               numberOfBodyForceRegions,numberOfBoundaryForceRegions);
-	
-
-	if( !dbase.has_key("turnOnBodyForcing") ) dbase.put<bool>("turnOnBodyForcing",false);
-        bool & turnOnBodyForcing = dbase.get<bool>("turnOnBodyForcing"); 
-
-	if( !dbase.has_key("turnOnBoundaryForcing") ) dbase.put<bool>("turnOnBoundaryForcing",false);
-        bool & turnOnBoundaryForcing = dbase.get<bool>("turnOnBoundaryForcing"); 
-
-	if( numberOfBodyForceRegions>0 )
-	{
-	  // -- Get the the array of body forcings ---
-	  turnOnBodyForcing=true;
-	  if( !dbase.has_key("bodyForcings") ) dbase.put<std::vector<BodyForce*> >("bodyForcings");
-	  std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
-
-	  for( int bf=0; bf<numberOfBodyForceRegions; bf++ )
-	  {
-	    if( bf >= bodyForcings.size() )
-	    {
-	      BodyForce *pbf = new BodyForce;
-	      bodyForcings.push_back(pbf);
-	    }
-	    
-	    BodyForce & bodyForce = *bodyForcings[bf];
-	    bodyForce.get(db,sPrintF("BodyForce%i",bf));
-	  }
-	}
-	if( numberOfBoundaryForceRegions>0 )
-	{
-	  // -- Get the the array of boundary forcings ---
-	  turnOnBoundaryForcing=true;
-	  if( !dbase.has_key("boundaryForcings") ) dbase.put<std::vector<BodyForce*> >("boundaryForcings");
-	  std::vector<BodyForce*> & boundaryForcings =  dbase.get<std::vector<BodyForce*> >("boundaryForcings");
-
-	  for( int bf=0; bf<numberOfBoundaryForceRegions; bf++ )
-	  {
-	    if( bf >= boundaryForcings.size() )
-	    {
-	      BodyForce *pbf = new BodyForce;
-	      boundaryForcings.push_back(pbf);
-	    }
-	    BodyForce & boundaryForce = *boundaryForcings[bf];
-	    boundaryForce.get(db,sPrintF("BoundaryForce%i",bf));
-	  }
-	}
-
-	
-      }
       if( dbase.get<int>("numberOfBodyForceRegions")==0 && 
-          dbase.get<int>("numberOfBoundaryForceRegions")==0 )
+	  dbase.get<int>("numberOfBoundaryForceRegions")==0 )
       {
 	printF("ShowFilePlotter:INFO: there are no `forcing regions' to be plotted.\n");
 	continue;
       }
 	  
-
+      // Is this next line needed: ?
       psp[cfs].showFileSolutionNumber=solutionNumber[cfs]; // used by userDefinedOutput (for e.g.)
 
+      // --- Now plot the bodies and forcing regions and allow the user to make changes ----
       setPlotTitles(cfs,false);
       ps.erase();
       // Plot body/boundary forcing regions and immersed boundaries. 
-      BodyForce::plotForcingRegions(ps, dbase,cg[cfs], psp[cfs]);
+      BodyForce::plotForcingRegions(ps,dbaseArray[cfs],cg[cfs], psp[cfs]);
       if( psp[cfs].getObjectWasPlotted() ) 
       {
 	plotOptions[cfs] |= 16;
@@ -1745,15 +1776,8 @@ plot()
 	    showFileReader.setCurrentFrameSeries(fs);
 	    derivedFunctions[fs].getASolution(solutionNumber[fs],cg[fs],u[fs]);
             getHeaderComments(fs);
-
-//             const aString *header;
-//             header=showFileReader.getHeaderComments(numberOfHeaderComments);    
-// 	    headerComment[fs]=header;
-	    
-// 	    for( int fs2=0; fs2<numberOfFrameSeries; fs2++ )
-// 	      printF("plotNewFunction: fs=%i : fs2=%i, headerComment=%s, header=%s\n",fs,fs2,(const char*)headerComment[fs2][0],
-//                     (const char*)header[0]);
-
+            if( plotOptions[fs] & 16 ) // plot bodies 
+              getBodyInfo( fs );  // get bodies (structures, forcing regions)
 	  }
 	}
 	showFileReader.setCurrentFrameSeries(cfs);

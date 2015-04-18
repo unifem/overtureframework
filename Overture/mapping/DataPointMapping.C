@@ -313,11 +313,11 @@ useNurbsToEvaluate( bool trueOrFalse )
   {
     mapIsDistributed=false;    // for now the NurbsMapping is NOT distributed
     inverseIsDistributed=false;    
-    printF("---DPM--INFO: setting evalAsNurbs=true : internally convert the DPM to a Nurbs for evaluation.\n");  
+    // printF("---DPM--INFO: setting evalAsNurbs=true : internally convert the DPM to a Nurbs for evaluation.\n");  
   }
   else
   {
-    printF("---DPM--INFO: setting evalAsNurbs=false\n");
+    // printF("---DPM--INFO: setting evalAsNurbs=false\n");
     
     mapIsDistributed=true;  
     inverseIsDistributed=true;
@@ -1813,12 +1813,14 @@ operator =( const DataPointMapping & X )
   {
     // --- copy the NurbsMapping from "X" ---
     if( !dbase.has_key("nurbs") )
-      dbase.put<NurbsMapping*>("nurbs");
+    {
+      dbase.put<NurbsMapping*>("nurbs")=NULL;
+    }
     NurbsMapping *& pNurbs = dbase.get<NurbsMapping*>("nurbs");
     if( pNurbs==NULL )
        pNurbs =new NurbsMapping;
     NurbsMapping & nurbs = *pNurbs;
-    nurbs=*X.dbase.get<NurbsMapping*>("nurbs");
+    nurbs=*(X.dbase.get<NurbsMapping*>("nurbs"));
   }
   else
   {
@@ -1899,13 +1901,13 @@ map( const realArray & r, realArray & x, realArray & xr, MappingParameters & par
 
   if( evalAsNurbs )
   {
-    printF("--DPM-- map called evalAsNurbs=%i\n",(int)evalAsNurbs);
+    // printF("--DPM-- map called evalAsNurbs=%i\n",(int)evalAsNurbs);
 
     // --- Use a Nurbs to evaluate the mapping ---
     if( nurbsOutOfDate )
       generateNurbs();
 
-    if( true )
+    if( false )
       printF("--DPM-- map : eval as a NurbsMapping\n");
 
     NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
@@ -2020,7 +2022,7 @@ get( const GenericDataBase & dir, const aString & name)
   bool nurbsExists=false;
   subDir.get( nurbsExists,"nurbsExists" );
 
-  printF("--DPM-- get: nurbsExists=%i nurbsOutOfDate=%i\n",(int)nurbsExists,(int)nurbsOutOfDate);
+  // printF("--DPM-- get: nurbsExists=%i nurbsOutOfDate=%i\n",(int)nurbsExists,(int)nurbsOutOfDate);
   
 
   if( nurbsExists )

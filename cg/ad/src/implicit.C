@@ -82,6 +82,33 @@ formMatrixForImplicitSolve(const real & dt0,
   
   assert( implicitSolver!=NULL );
 
+  const Parameters::TimeSteppingMethod & timeSteppingMethod = 
+                    parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod");
+  const Parameters::ImplicitMethod & implicitMethod = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
+  const bool & implicitAdvection = parameters.dbase.get<bool >("implicitAdvection");
+
+  if( !implicitAdvection && implicitMethod==Parameters::backwardDifferentiationFormula )
+  {
+    const bool & variableAdvection = parameters.dbase.get<bool >("variableAdvection");
+    std::vector<real> & a = parameters.dbase.get<std::vector<real> >("a");
+    std::vector<real> & b = parameters.dbase.get<std::vector<real> >("b");
+    std::vector<real> & c = parameters.dbase.get<std::vector<real> >("c");    
+    if( variableAdvection ||
+	a[0]!=0. || b[0]!=0. || c[0]!=0. )
+    {
+      printF("--AD--formMatrixForImplicitSolve: BDF timeStepping requires implicitAdvection=true for advection.\n");
+      OV_ABORT("ERROR");
+    }
+    if( parameters.isMovingGridProblem() )
+    {
+      printF("--AD--formMatrixForImplicitSolve: BDF timeStepping requires implicitAdvection=true for moving grids.\n");
+      OV_ABORT("ERROR");
+    }
+    
+  }
+
+  
+
   if( parameters.dbase.get<int >("initializeImplicitTimeStepping") )
   {
     // *******************************************
@@ -89,10 +116,7 @@ formMatrixForImplicitSolve(const real & dt0,
     // *******************************************
     FILE *debugFile = parameters.dbase.get<FILE* >("debugFile");
     
-    if( debug() & 4 )
-      printF(" *** Cgad:formMatrixForImplicitSolve: form the implicit time stepping matrix, t=%9.3e dt0=%8.2e *** \n",
-              cgf1.t,dt0);
-
+    const int numberOfDimensions = cg.numberOfDimensions();
     const int numberOfComponents = parameters.dbase.get<int >("numberOfComponents")-
       parameters.dbase.get<int >("numberOfExtraVariables");
 
@@ -103,6 +127,13 @@ formMatrixForImplicitSolve(const real & dt0,
 
     const bool variableDiffusivity = parameters.dbase.get<bool >("variableDiffusivity");
     const bool variableAdvection = parameters.dbase.get<bool >("variableAdvection");
+    const real implicitFactor = parameters.dbase.get<real >("implicitFactor");
+
+    
+    if( true || debug() & 4 )
+      printF("--AD--formMatrixForImplicitSolve: form implicit time stepping matrix, "
+             "t=%9.3e dt0=%8.2e implicitFactor=%9.3e *** \n",
+	     cgf1.t,dt0,implicitFactor);
 
     // ***** Use predefined equations *****
 
@@ -137,7 +168,115 @@ formMatrixForImplicitSolve(const real & dt0,
 	::display(boundaryConditions,"boundaryConditions for Oges",debugFile);
       }
 
-      if( variableDiffusivity )
+      if( implicitAdvection )
+      {
+        // ---- treat advection terms implicitly ----
+
+	// --- For now we need to build grid functions that hold the advection and diffusion coefficients ---
+
+	printF("--AD-- INFO: form implicit matrix including the ADVECTION terms cgf1.t=%9.3e\n",cgf1.t);
+
+        // create a work space to hold the diffusion coefficients (times dt etc.)
+	if( !parameters.dbase.has_key("varCoeff") )
+	{
+	  realCompositeGridFunction *& pVarCoeff=parameters.dbase.put<realCompositeGridFunction*>("varCoeff"); 
+	  pVarCoeff = new realCompositeGridFunction(cg);
+	}
+        realCompositeGridFunction & varCoeff = *parameters.dbase.get<realCompositeGridFunction*>("varCoeff");
+
+        // create a work space to hold the advection coefficients (times dt etc.)
+	if( !parameters.dbase.has_key("advectionCoeff") )
+	{
+	  realCompositeGridFunction *& pAdvectionCoeff=parameters.dbase.put<realCompositeGridFunction*>("advectionCoeff"); 
+   	  Range all;
+	  pAdvectionCoeff = new realCompositeGridFunction(cg,all,all,all,numberOfDimensions);
+	}
+        realCompositeGridFunction & advectionCoeff = *parameters.dbase.get<realCompositeGridFunction*>("advectionCoeff");
+        // realCompositeGridFunction advectionCoeff(cg,all,all,all,numberOfDimensions);
+	
+	realCompositeGridFunction*& pKappaVar= parameters.dbase.get<realCompositeGridFunction*>("kappaVar");
+	if( variableDiffusivity && pKappaVar==NULL )
+	{
+	  OV_ABORT("--AD-- formMatrixForImplicitSolve:ERROR:kappaVar not created! ");
+	}
+        realCompositeGridFunction & kappaVar = *pKappaVar;
+
+	// -- look for variable advection velocity ---
+	realCompositeGridFunction*& pAdvectVar= parameters.dbase.get<realCompositeGridFunction*>("advectVar");
+	if( variableAdvection && pAdvectVar==NULL )
+	{
+	  OV_ABORT("--AD-- formMatrixForImplicitSolve:ERROR:advectVar not created! ");
+	}
+
+
+	std::vector<real> & a = parameters.dbase.get<std::vector<real> >("a");
+	std::vector<real> & b = parameters.dbase.get<std::vector<real> >("b");
+	std::vector<real> & c = parameters.dbase.get<std::vector<real> >("c");    
+	
+        // The Operator is 
+        //    I + advectionCoeff.grad + div( varCoeff grad() )
+        //
+        // Note: we need to include dt in the coefficients
+        Index I1,I2,I3;
+	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ ) 
+	{
+          getIndex(cg[grid].dimension(),I1,I2,I3);
+
+          OV_GET_SERIAL_ARRAY(real,varCoeff[grid],varCoeffLocal);
+          OV_GET_SERIAL_ARRAY(real,advectionCoeff[grid],advectionCoeffLocal);
+
+	  bool ok = ParallelUtility::getLocalArrayBounds(advectionCoeff[grid],advectionCoeffLocal,I1,I2,I3);
+	  if( !ok ) continue;
+  
+	  if( !variableDiffusivity )
+	  {
+	    // -- constant coefficient of diffusivity --
+	    varCoeffLocal = (-implicitFactor*dt0)*kappa[imp];  
+	  }
+	  else
+	  {
+            // -- variable coefficient of diffusivity --
+	    OV_GET_SERIAL_ARRAY_CONST(real,kappaVar[grid],kappaVarLocal);
+	    varCoeffLocal = (-implicitFactor*dt0)*kappaVarLocal;
+	  }	 
+	  // if we do no have variableAdvection, set advectVar to varCoeff[grid] (unused)
+	  realArray & advectVar = variableAdvection ? (*pAdvectVar)[grid] : varCoeff[grid]; 
+	  OV_GET_SERIAL_ARRAY_CONDITIONAL(real,advectVar,advectVarLocal,variableAdvection);
+	
+	  for( int axis=0; axis<numberOfDimensions; axis++ )
+	  {
+	    if( !variableAdvection )
+	    {
+	      // -- constant coefficient of advection --
+	      real adv = axis==0 ? a[imp] : axis==1 ? b[imp] : c[imp];
+	      advectionCoeffLocal(I1,I2,I3,axis)= (implicitFactor*dt0)*adv;
+	    }
+	    else
+	    {
+	      // -- variable coefficient of advection --
+	      advectionCoeffLocal(I1,I2,I3,axis)= (implicitFactor*dt0)*advectVarLocal(I1,I2,I3,axis);
+	    }
+	    
+
+	    const bool & gridIsMoving = parameters.gridIsMoving(grid);
+	    const Parameters::ReferenceFrameEnum referenceFrame = parameters.getReferenceFrame();
+	    const bool adjustForMovingGrids = gridIsMoving && referenceFrame==Parameters::fixedReferenceFrame;
+
+	    if( adjustForMovingGrids )
+	    {
+	      realArray & gridVelocity = *cgf1.gridVelocity[grid];  // is this the right gridVelocity ? or use the one in cgf0?
+	      OV_GET_SERIAL_ARRAY(real,gridVelocity,gvLocal);
+	      advectionCoeffLocal(I1,I2,I3,axis) += (-implicitFactor*dt0)*gvLocal(I1,I2,I3,axis);
+	    }
+
+	  }
+	}
+
+        OgesParameters::EquationEnum equation = OgesParameters::advectionDiffusionEquationOperator;
+	implicitSolver[imp].setEquationAndBoundaryConditions(equation,op,boundaryConditions, boundaryConditionData,
+							     equationCoefficients,&varCoeff,&advectionCoeff );
+      }
+      else if( variableDiffusivity )
       {
         // --- variable kappa  ---
 	printF("--Cgad::formMatrixForImplicitSolve: form matrix for variable diffusivity at t=%9.3e\n",cgf1.t);
@@ -150,7 +289,7 @@ formMatrixForImplicitSolve(const real & dt0,
         realCompositeGridFunction & kappaVar = *pKappaVar;
 	
         // *fix me: 
-	realCompositeGridFunction & varCoeff = poissonCoefficients;  // work space 
+	realCompositeGridFunction & varCoeff = poissonCoefficients;
         Range all;
         varCoeff.updateToMatchGrid(cg,all,all,all,numberOfComponents);
 	
@@ -159,7 +298,6 @@ formMatrixForImplicitSolve(const real & dt0,
         //       I + div( scalar grad ) 
         // We set:
         //    scalar = (-implicitFactor*dt)*kappaVar : 
-	const real implicitFactor = parameters.dbase.get<real >("implicitFactor");
 	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ ) // *wdh* 040910 
 	{
    	  OV_GET_SERIAL_ARRAY_CONST(real,kappaVar[grid],kappaVarLocal);
@@ -178,7 +316,7 @@ formMatrixForImplicitSolve(const real & dt0,
  
         OgesParameters::EquationEnum equation = OgesParameters::heatEquationOperator;
 
-	real kappaDt = parameters.dbase.get<real >("implicitFactor")*kappa[imp]*dt0;
+	real kappaDt = implicitFactor*kappa[imp]*dt0;
 	equationCoefficients(0,G)= 1.;  // for heat equation solve I - alpha*nu*dt* Delta
 	for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ ) // *wdh* 040910 
 	{

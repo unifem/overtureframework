@@ -51,7 +51,7 @@ getSingularParameter(int level)
   {
     getIndex(cg[grid].dimension(),I1,I2,I3);
 
-    if( debug & 4 )
+    if( debug & 8 )
       ::display(f[grid],"getSingularParameter: compute l.f, here is f","%6.2f ");
 
     if( useOpt )
@@ -227,7 +227,7 @@ readLeftNullVector()
     printF("Ogmg::readLeftNullVector:left null vector was successfully read from the file [%s]\n",
 	   (const char*)parameters.nullVectorFileName);
 
-  if( false )
+  if(  Ogmg::debug & 8 )
   {
     for( int level=0; level<numLevels; level++ )  
     {
@@ -289,7 +289,7 @@ computeLeftNullVector()
      }
      else
      {
-       RealCompositeGridFunction f(cg);   // **** could probablu use some other work space
+       RealCompositeGridFunction f(cg);   // **** could probably use some other work space
 
        const int numberOfDimensions = cg.numberOfDimensions();
        int grid;
@@ -325,10 +325,16 @@ computeLeftNullVector()
 	 solver.set(OgesParameters::THEtolerance,REAL_EPSILON*numberOfGridPoints);
        }    
 
-       // solver.set(OgesParameters::THErescaleRowNorms,false);  // turn this off for debugging
+       const int maxit=1000;  // this should depend on the number of points on the coarse grid!
+       solver.set(OgesParameters::THEmaximumNumberOfIterations,maxit);
+
+       // *wdh* 2012/12/23
+       solver.set(OgesParameters::THEnumberOfIncompleteLULevels,5);
 
        solver.set(OgesParameters::THEsolveForTranspose,true); // solve the transpose system (we want the left null vector)
        solver.set(OgesParameters::THEfixupRightHandSide,false);     // no need to zero out equations at special points.
+
+       solver.set(OgesParameters::THErescaleRowNorms,false);  // *wdh* 2014/12/22 do NOT rescale rows! fix for parallel
 
        bool solveSingularProblem=true;
 
@@ -416,7 +422,7 @@ computeLeftNullVector()
 	 if( debug & 4 ) // && orderOfAccuracy==4 )
 	 {
 	   ::display(classify,"Here is the classify array","%3i ");
-	   ::display(nullVector[grid],"Here is the nulVector from solve","%5.2f ");
+	   ::display(nullVector[grid],"Here is the (unscaled) nullVector from solve","%5.2f ");
 	 }
 
 	 getIndex(c.dimension(),I1,I2,I3);
@@ -482,7 +488,7 @@ computeLeftNullVector()
 	 
        }
        if( debug & 4 ) // true && orderOfAccuracy==4  )
-	 nullVector.display(sPrintF("Here is the leftNullVector level=%i",level),"%5.2f ");
+	 nullVector.display(sPrintF("Here is the (scaled) leftNullVector level=%i",level),"%5.2f ");
      
      }
      

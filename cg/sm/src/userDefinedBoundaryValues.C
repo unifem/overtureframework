@@ -19,23 +19,6 @@ for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
-namespace
-{
-enum UserDefinedBoundaryConditions
-{
-  ellipseDeform,
-  testDeform,
-  tractionForcing,
-  pressureForce,    
-  piston,
-  GaussianForcing,
-  tractionFromDataPoints,
-  pressureFromDataPoints,
-  superseismicShock
-};
- 
-}
-
 // =========================================================================================
 /// \brief Interactively define user specific values for boundary conditions. 
 /// \details This function will be called when interactively choosing boundary conditions and the
@@ -59,9 +42,15 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
   assert( parameters.dbase.get<GenericGraphicsInterface* >("ps") !=NULL );
   GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
 
+  // *new* way *wdh* 2015/03/2
+  const aString userDefinedBoundaryValueName=sPrintF("userBV_G%i_S%i_A%i",grid,side,axis); // unique name for this (grid,side,axis)
+  if( !parameters.dbase.has_key(userDefinedBoundaryValueName) )
+    parameters.dbase.put<aString>(userDefinedBoundaryValueName)="none";
 
-  printF("Choose boundary values for (side,axis,grid)=(%i,%i,%i) gridName=%s\n",side,axis,grid,
-	 (const char*)cg[grid].getName());
+  aString & userDefinedBoundaryValue = parameters.dbase.get<aString>(userDefinedBoundaryValueName);
+
+  printF("Choose boundary values for (side,axis,grid)=(%i,%i,%i) gridName=%s (userDefinedBoundaryValueName=%s)\n",side,axis,grid,
+	 (const char*)cg[grid].getName(),(const char*)userDefinedBoundaryValueName);
 
   aString menu[]=
   {
@@ -95,7 +84,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="ellipse deform" )
     {
-      parameters.setUserBcType(side,axis,grid,ellipseDeform);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,ellipseDeform);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="ellipseDeform";
+      
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition IS time dependent
 
 
@@ -119,13 +110,15 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="test deform" )
     {
-      parameters.setUserBcType(side,axis,grid,testDeform);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,testDeform);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="testDeform";
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition IS time dependent
 
     }
     else if( answer=="traction forcing" )
     {
-      parameters.setUserBcType(side,axis,grid,tractionForcing);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,tractionForcing);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="tractionForcing";
       parameters.setBcIsTimeDependent(side,axis,grid,false);  // this condition is NOT time dependent
 
       RealArray values(3);
@@ -142,7 +135,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="pressure force" )
     {
-      parameters.setUserBcType(side,axis,grid,pressureForce);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,pressureForce);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="pressureForce";
       parameters.setBcIsTimeDependent(side,axis,grid,false);  // this condition is NOT time dependent
 
       RealArray values(1);
@@ -159,7 +153,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="piston" )
     {
-      parameters.setUserBcType(side,axis,grid,piston);    // set the bcType to be a unique value
+      // parameters.setUserBcType(side,axis,grid,piston);    // set the bcType to be a unique value
+      userDefinedBoundaryValue="piston";
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition IS time dependent
 
       RealArray values(2);
@@ -187,7 +182,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
              "     (scale is chosen so the integral of ft(t) from [0,.5*t0] is 1. \n"
              "   Note that the mean in time of ft(t)=0)\n");
 
-      parameters.setUserBcType(side,axis,grid,GaussianForcing);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,GaussianForcing);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="GaussianForcing";
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition IS time dependent
 
       RealArray values(7);
@@ -212,7 +208,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
 
     else if( answer=="traction from data points" )
     {
-      parameters.setUserBcType(side,axis,grid,tractionFromDataPoints);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,tractionFromDataPoints);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="tractionFromDataPoints";
       parameters.setBcIsTimeDependent(side,axis,grid,false);              // this condition is NOT time dependent
 
       printF("Define the traction on a boundary from data points.\n");
@@ -266,7 +263,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="pressure from data points" )
     {
-      parameters.setUserBcType(side,axis,grid,pressureFromDataPoints);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,pressureFromDataPoints);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="pressureFromDataPoints";
       parameters.setBcIsTimeDependent(side,axis,grid,false);              // this condition is NOT time dependent
 
       printF("Define the pressure on a boundary from data points.\n");
@@ -323,7 +321,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="superseismic shock" )
     {
-      parameters.setUserBcType(side,axis,grid,superseismicShock);    // set the bcType to be a unique value
+      // parameters.setUserBcType(side,axis,grid,superseismicShock);    // set the bcType to be a unique value
+      userDefinedBoundaryValue="superseismicShock";
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition IS time dependent
 
       RealArray values(4);
@@ -454,6 +453,13 @@ userDefinedBoundaryValues(const real & t,
   {
     for( int side=sideStart; side<=sideEnd; side++ )
     {
+      const aString userDefinedBoundaryValueName=sPrintF("userBV_G%i_S%i_A%i",grid,side,axis); // unique name for this (grid,side,axis)
+      if( !parameters.dbase.has_key(userDefinedBoundaryValueName) )
+	continue; // no user defined option
+
+      const aString & userDefinedBoundaryValue = parameters.dbase.get<aString>(userDefinedBoundaryValueName);
+
+
        #ifdef USE_PPP
 	 realSerialArray & normal = *(mg.rcData->pVertexBoundaryNormal[axis][side]); 
        #else
@@ -461,7 +467,7 @@ userDefinedBoundaryValues(const real & t,
        #endif
 
 
-      if( parameters.userBcType(side,axis,grid)==ellipseDeform )
+      if( userDefinedBoundaryValue=="ellipseDeform" )
       {
         RealArray values(2);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
@@ -513,7 +519,7 @@ userDefinedBoundaryValues(const real & t,
  	}
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==testDeform )
+      else if( userDefinedBoundaryValue=="testDeform" )
       {
         getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 	
@@ -534,7 +540,7 @@ userDefinedBoundaryValues(const real & t,
 	// ::display(bd(Ib1,Ib2,Ib3,Range(uc,vc)),"bd: boundary data");
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==tractionForcing )
+      else if( userDefinedBoundaryValue=="tractionForcing" )
       {
         RealArray values(3);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
@@ -575,7 +581,7 @@ userDefinedBoundaryValues(const real & t,
  	}
 
       }
-      else if( parameters.userBcType(side,axis,grid)==pressureForce )
+      else if( userDefinedBoundaryValue=="pressureForce" )
       {
         RealArray values(1);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
@@ -613,7 +619,7 @@ userDefinedBoundaryValues(const real & t,
  	}
 
       }
-      else if( parameters.userBcType(side,axis,grid)==piston )
+      else if( userDefinedBoundaryValue=="piston" )
       {
         RealArray values(2);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
@@ -651,7 +657,7 @@ userDefinedBoundaryValues(const real & t,
         // bd(Ib1,Ib2,Ib3,vc)=p0*normal(Ib1,Ib2,Ib3,1);
 
       }
-      else if( parameters.userBcType(side,axis,grid)==GaussianForcing )
+      else if( userDefinedBoundaryValue=="GaussianForcing" )
       {
 
         RealArray values(7);
@@ -750,7 +756,7 @@ userDefinedBoundaryValues(const real & t,
 	
       }
 
-      else if( parameters.userBcType(side,axis,grid)==tractionFromDataPoints )
+      else if( userDefinedBoundaryValue=="tractionFromDataPoints" )
       {
         // --- traction on the boundary is defined by a set of  data points ---
         //  A curve has been fit to the data points and we evaluate this curve at
@@ -817,7 +823,7 @@ userDefinedBoundaryValues(const real & t,
 
       }
 
-      else if( parameters.userBcType(side,axis,grid)==pressureFromDataPoints )
+      else if( userDefinedBoundaryValue=="pressureFromDataPoints" )
       {
 
         // --- pressure on the boundary is defined by a set of  data points ---
@@ -886,7 +892,7 @@ userDefinedBoundaryValues(const real & t,
 
       }
 
-      else if( parameters.userBcType(side,axis,grid)==superseismicShock )
+      else if( userDefinedBoundaryValue=="superseismicShock" )
       {
 
         RealArray values(4);

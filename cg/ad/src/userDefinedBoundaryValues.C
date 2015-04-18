@@ -19,16 +19,6 @@ for(i3=I3Base; i3<=I3Bound; i3++) \
 for(i2=I2Base; i2<=I2Bound; i2++) \
 for(i1=I1Base; i1<=I1Bound; i1++)
 
-namespace
-{
-enum UserDefinedBoundaryConditions
-{
-  polynomialTimeVariation,
-  specifiedNeumannValues
-};
- 
-}
-
 // =========================================================================================
 /// \brief Interactively define user specific values for boundary conditions. 
 /// \details This function will be called when interactively choosing boundary conditions and the
@@ -55,6 +45,12 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
   const int numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
   
 
+  const aString userDefinedBoundaryValueName=sPrintF("userBV_G%i_S%i_A%i",grid,side,axis); // unique name for this (grid,side,axis)
+  if( !parameters.dbase.has_key(userDefinedBoundaryValueName) )
+    parameters.dbase.put<aString>(userDefinedBoundaryValueName)="none";
+
+  aString & userDefinedBoundaryValue = parameters.dbase.get<aString>(userDefinedBoundaryValueName);
+
   printF("Choose boundary values for (side,axis,grid)=(%i,%i,%i) gridName=%s\n",side,axis,grid,
 	 (const char*)cg[grid].getName());
 
@@ -78,7 +74,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="specified Neumann values" )
     {
-      parameters.setUserBcType(side,axis,grid,specifiedNeumannValues);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="specifiedNeumannValues";
+      
       parameters.setBcIsTimeDependent(side,axis,grid,true);               // this condition IS time dependent by default
 
       // Query for parameters : for now just input an "option" number
@@ -95,7 +92,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="polynomial time variation" )
     {
-      parameters.setUserBcType(side,axis,grid,polynomialTimeVariation);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue="polynomialTimeVariation";
+
       parameters.setBcIsTimeDependent(side,axis,grid,true);                // this condition IS time dependent by default
 
 
@@ -206,6 +204,13 @@ userDefinedBoundaryValues(const real & t,
   {
     for( int side=sideStart; side<=sideEnd; side++ )
     {
+      const aString userDefinedBoundaryValueName=sPrintF("userBV_G%i_S%i_A%i",grid,side,axis); // unique name for this (grid,side,axis)
+      if( !parameters.dbase.has_key(userDefinedBoundaryValueName) )
+	continue; // no user defined option
+
+      const aString & userDefinedBoundaryValue = parameters.dbase.get<aString>(userDefinedBoundaryValueName);
+
+
        #ifdef USE_PPP
 	 realSerialArray & normal = *(mg.rcData->pVertexBoundaryNormal[axis][side]); 
        #else
@@ -213,7 +218,7 @@ userDefinedBoundaryValues(const real & t,
        #endif
 
 
-      if( parameters.userBcType(side,axis,grid)==specifiedNeumannValues )
+      if( userDefinedBoundaryValue=="specifiedNeumannValues" )
       {
         RealArray values(2);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
@@ -238,7 +243,7 @@ userDefinedBoundaryValues(const real & t,
 
 
       }
-      else if( parameters.userBcType(side,axis,grid)==polynomialTimeVariation )
+      else if( userDefinedBoundaryValue=="polynomialTimeVariation" )
       {
         RealArray values(5*numberOfComponents);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);

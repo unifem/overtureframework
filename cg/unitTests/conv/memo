@@ -1,3 +1,40 @@
+**** 2015/01/13 MORE TESTS -- new force computation
+
+TEST 4th-order projection
+
+BEAM looks fourth-order -- dt = C dx^4 
+conv.p tbm.conv -model=linearBeam -tz=trig -bcn=f -tf=1. -Em=1. -T=1. -cg=line -cfl=1. -suffix=beamOGP4 -orderOfProjection=4 -ng=4
+conv.p tbm.conv -model=linearBeam -tz=trig -bcn=c -tf=1. -Em=1. -T=1. -cg=line -cfl=1. -suffix=beamOGP4 -orderOfProjection=4 -ng=4
+conv.p tbm.conv -model=linearBeam -tz=trig -bcn=p -tf=1. -Em=1. -T=1. -cg=line -cfl=1. -suffix=beamOGP4 -orderOfProjection=4 -ng=4
+
+convRate: numberOfComponents=1 (from header)                                                                                                                                                                                                                           
+                grid  & N &  $\vert w \vert$   & r  
+               Line5 &     5 & 6.94e-04 &                                                                                                              Line10 &    10 & 1.15e-04 &  6.0                                                                                                         Line20 &    20 & 5.65e-06 & 20.4                                                                                                         Line40 &    40 & 3.32e-07 & 17.0                                                                                                                                                                                                                         
+Convergence rates: c0=3.74         
+
+String model
+conv.p tbm.conv -model=linearBeam -tz=trig -bcn=p -tf=1. -Em=0. -T=1. -cg=line -cfl=.5 -suffix=string -orderOfProjection=4 -ng=4
+
+
+--- CFL=.9 
+conv.p tbm.conv -model=linearBeam -tz=trig -bcn=per -tf=1. -rhos=10. -cg=line -cfl=.9 -ng=4 
+               grid  & N &  $\vert w \vert$   & r
+               Line5 &     5 & 2.16e-02 &
+              Line10 &    10 & 4.14e-03 &  5.2
+              Line20 &    20 & 1.33e-03 &  3.1
+              Line40 &    40 & 3.38e-04 &  3.9
+Convergence rates: c0=1.96
+
+-- trig -- periodic  -- second-order (due to force integration)
+  conv.p tbm.conv -model=linearBeam -tz=trig -bcn=per -tf=1. -rhos=10. -cg=line -cfl=.25 -ng=4
+
+               grid  & N &  $\vert w \vert$   & r
+               Line5 &     5 & 1.66e-02 &
+              Line10 &    10 & 5.28e-03 &  3.1
+              Line20 &    20 & 1.35e-03 &  3.9
+              Line40 &    40 & 3.39e-04 &  4.0
+Convergence rates: c0=1.88
+
 **** 2014/06/24 -- periodic tests
 
 -- trig -- periodic  -- second-order (due to force integration)

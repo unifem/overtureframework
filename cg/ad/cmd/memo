@@ -1,3 +1,95 @@
+**** April 8, 2014 --  
+
+Test implicit advection:
+
+IM: Exact: degree=(2,2)
+cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=im -tp=.01 -tf=.05 -bc=d -a=1. -b=1 -implicitAdvection=1 -go=go
+
+
+**** April 7, 2014 --  BDF solver + implicit advection
+
+ADVECTION: BDF2 : exact for (2,2)
+cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bdfOrder=2 -bc=d -a=1. -b=1 -implicitAdvection=1 -go=go
+
+BDF2 : exact for (2,2)
+cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bdfOrder=2 -bc=d -a=0 -b=0 -go=go
+
+
+**** April 5, 2014 --  BDF solver
+
+NOTE: NEED TO turn OFF advection
+
+What about moving:
+
+BDF4: exact for degree(2,2)
+cgad -noplot tzMove -g=square5 -gridToMove="square" -move=shift -ref=rigid -ts=bdf -a=0 -b=0 -bdfOrder=4 -dtMax=.01 -tp=.01 -tf=.01 -debug=3 -degreex=2 -degreet=2 -go=go
+
+BDF3,4: exact
+cgad -noplot tzMove -g=square5 -gridToMove="square" -move=shift -ref=rigid -ts=bdf -a=0 -b=0 -bdfOrder=3 -dtMax=.01 -tp=.01 -tf=.01 -debug=3 -degreex=1 -degreet=2 -go=go
+
+
+BDF2:
+cgad -noplot tzMove -g=square5 -gridToMove="square" -move=shift -ref=rigid -ts=bdf -a=0 -b=0 -bdfOrder=2 -dtMax=.01 -tp=.01 -tf=.01 -debug=3 -degreex=1 -degreet=2 -go=go
+     t    err(T)    uMax     dt       cpu    mem (Mb) (1 steps)
+   0.010 4.44e-07 3.53e+00 1.00e-02 6.49e-03        0
+
+
+
+
+BDF3: 
+cgad -noplot tzMove -g=square20 -gridToMove="square" -move=shift -ref=rigid -ts=bdf -a=0 -b=0 -bdfOrder=3 -dtMax=.01 -tp=.01 -tf=.01 -debug=3 -degreex=0 -degreet=1 -go=go
+
+TEST: (bug here)
+cgad tzMove -g=square20 -gridToMove="square" -move=shift -ref=rigid -ts=bdf -a=0 -b=0 -bdfOrder=2 -dtMax=.01 -tp=.01
+     t    err(T)    uMax     dt       cpu    mem (Gb)
+   0.010 1.28e-04 4.29e+00 1.00e-02 3.22e+00        0
+     t    err(T)    uMax     dt       cpu    mem (Gb)
+   0.020 2.97e-04 4.33e+00 1.00e-02 2.81e+01        0
+
+**** PC2:  ******
+cgad -noplot tzMove -g=square20 -gridToMove="square" -move=shift -ref=rigid -ts=pc2 -a=0 -b=0 -bdfOrder=2 -dtMax=.01 -tp=.01 -tf=1 -debug=3 -degreex=1 -degreet=2 -go=go
+     t    err(T)    uMax     dt       cpu    mem (Gb)
+   0.010 7.31e-08 3.53e+00 5.00e-03 9.08e-03        0
+     t    err(T)    uMax     dt       cpu    mem (Gb)
+   1.000 2.64e-06 8.25e+00 5.00e-03 6.24e-01        0
+
+
+PC: 
+cgad tzMove -g=square20 -gridToMove="square" -move=shift -ref=rigid
+    t    err(T)    uMax     dt       cpu    mem (Gb)
+   0.100 9.75e-07 4.69e+00 4.76e-03 5.78e+00        0
+
+
+BDF4 : exact for (2,4)
+cgad -noplot tz -g=square5 -degreex=2 -degreet=4 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bdfOrder=4 -bc=d -a=0 -b=0 -go=go
+
+
+BDF3 : exact for (2,3)
+cgad -noplot tz -g=square5 -degreex=2 -degreet=3 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bdfOrder=3 -bc=d -a=0 -b=0 -go=go
+
+BDF2 : exact for (2,2)
+cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bdfOrder=2 -bc=d -a=0 -b=0 -go=go
+
+
+degree=(0,1) : exact 
+cgad -noplot tz -g=square5 -degreex=0 -degreet=1 -kappa=.1 -ts=bdf -tp=.01 -tf=.01 -bdfOrder=1 -bc=d -a=0 -b=0 -go=go
+
+
+Dirichlet BC
+cgad tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bdfOrder=1 -bc=d -go=halt
+
+cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bdfOrder=2 -go=go
+
+**** April 4, 2014 -- start on BDF solver
+
+-- "BDF" solver version 1 -- really just CN
+cgad -noplot tz -g=square5 -degreex=2 -degreet=2 -kappa=.1 -ts=bdf -tp=.01 -tf=.05 -bc=dm -go=og
+
+     t    err(T)    uMax     dt       cpu    mem (Gb)
+   0.010 1.19e-09 4.27e+00 1.00e-02 7.34e+00        0
+
+
+
 
 
 

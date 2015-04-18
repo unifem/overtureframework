@@ -14,7 +14,7 @@
 #     ogen -noplot deformingEyeGrid.cmd -radY=.2 -factor=32
 #     ogen -noplot deformingEyeGrid.cmd -radY=.15 -factor=32
 # 
-$prefix="eyeGrid";  $rgd="var"; $angle=0.; $branch=0; 
+$prefix="deformingEyeGrid";  $rgd="var"; $angle=0.; $branch=0; 
 $order=2; $factor=1; $interp="i"; $ml=0; # default values
 $orderOfAccuracy = "second order"; $ng=2; $interpType = "implicit for all grids";
 $name=""; 
@@ -75,6 +75,7 @@ rectangle
     0 0 0 0 
   mappingName
     backGround
+# pause
 exit
 # ---
  $nr = intmg( 7 );
@@ -87,7 +88,8 @@ exit
 # --- make the ellipse as a Nurbs
 #
 $npts=$nTheta; 
-$pts="$npts";
+$nurbsDegree=5; # degree of nurbs
+$pts="$npts $nurbsDegree";
 for( $i=0; $i<$npts; $i++ ){ $theta=2.*$pi*$i/($npts-1)-$pi*.5; $x=$radX*cos($theta); $y=$radY*sin($theta); $pts .= "\n $x $y"; }
 nurbs
   set domain dimension
@@ -110,6 +112,7 @@ nurbs
  #  $ra $rb 
  mappingName
   eyeBoundary
+# pause
 exit
 # ----- hyperbolic grid -----
   hyperbolic
@@ -131,6 +134,10 @@ exit
        0  0 100 0
     mappingName
       eyeGrid
+#
+    degree of nurbs $nurbsDegree
+   ## evaluate as nurbs 1
+# pause
   exit
 #
 exit
@@ -151,6 +158,7 @@ generate an overlapping grid
       $ng $ng $ng $ngp $ng $ng
   exit
 #  display intermediate results
+# pause
    compute overlap
    # open graphics
   exit

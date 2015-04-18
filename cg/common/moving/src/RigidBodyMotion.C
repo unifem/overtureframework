@@ -125,6 +125,8 @@ RigidBodyMotion(int numberOfDimensions_ /* = 3 */)
 
   bodyForceType=timePolynomialBodyForce;
 
+  if( !dbase.has_key("bodyName") ) dbase.put<aString>("bodyName")="rigidBody";  // *add me* 
+
   // Set the order of accuracy (currently only works with the the implicit RK methods)
   if( !dbase.has_key("orderOfAccuracy") ) dbase.put<int>("orderOfAccuracy",2);
 
@@ -158,6 +160,26 @@ RigidBodyMotion::
   if( logFile!=NULL )
     fclose(logFile);
 }
+
+// =================================================================================
+/// \brief Write information about the deforming body
+// =================================================================================
+void RigidBodyMotion::
+writeParameterSummary( FILE *file /* =stdout */ )
+{
+  fPrintF(file,"------------------- Rigid body : %s -----------------------\n",(const char*)dbase.get<aString>("bodyName"));
+  fPrintF(file," mass=%9.3e, (I1,I2,I3)=(%8.2e,%8.2e,%8.2e)\n",mass,mI(0),mI(1),mI(2));
+  if( density>=0 ) fPrintF(file," density=%9.3e\n",density);
+  fPrintF(file," includeAddedMass=%i, relaxCorrectionSteps=%i, \n"
+               " useExtrapolationInPredictor=%i, orderOfExtrapolationPredictor=%i\n",
+	  (int)dbase.get<bool>("includeAddedMass"),
+	  (int)relaxCorrectionSteps,
+          (int)dbase.get<bool>("useExtrapolationInPredictor"),
+          dbase.get<int>("orderOfExtrapolationPredictor"));
+  fPrintF(file,"--------------------------------------------------------------------\n");
+  
+}
+
 
 // // ================================================================================================
 // /// \brief Initialize the class. This is a protected routine.
@@ -340,6 +362,14 @@ solve( const RealArray & a, const RealArray & b )
 // ===========================================================================================
 // ===========================================================================================
 
+// =================================================================================
+/// \brief Print time step info
+// =================================================================================
+void RigidBodyMotion::
+printTimeStepInfo( FILE *file /* =stdout */ )
+{
+  // ***FINISH ME****
+}
 
 // ================================================================================================
 /// \brief Choose the time stepping method. Optionally set the order of accuracy.
@@ -4043,6 +4073,7 @@ get( const GenericDataBase & dir, const aString & name)
   subDir.get(temp,"bodyForceType");   bodyForceType=(BodyForceTypeEnum)temp;
 
   subDir.get(temp,"timeSteppingMethod");   timeSteppingMethod=(TimeSteppingMethodEnum)temp;
+  subDir.get( dbase.get<aString>("bodyName"),"bodyName");
   
   // printf(" >>>RigidBodyMotion::get: current=%i\n",current);
 
@@ -4127,6 +4158,8 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put((int)bodyForceType,"bodyForceType"); 
 
   subDir.put(timeSteppingMethod,"timeSteppingMethod"); 
+
+  subDir.put( dbase.get<aString>("bodyName"),"bodyName");
 
   delete &subDir;
   return 0;  
@@ -4325,6 +4358,7 @@ update( GenericGraphicsInterface & gi )
 //\end{RigidBodyMotionInclude.tex}  
 //=========================================================================================
 {
+  aString & bodyName = dbase.get<aString>("bodyName");
   bool & useExtrapolationInPredictor = dbase.get<bool>("useExtrapolationInPredictor");
   int & orderOfExtrapolationPredictor = dbase.get<int>("orderOfExtrapolationPredictor");
 
@@ -4406,6 +4440,9 @@ update( GenericGraphicsInterface & gi )
 
 
   int nt=0;
+  textLabels[nt] = "body name:";  sPrintF(textStrings[nt],"%s",bodyName);  
+  nt++; 
+
   textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  
   nt++; 
 
@@ -4771,6 +4808,7 @@ update( GenericGraphicsInterface & gi )
              "  using the equations of motion but rather finite differences of the velocity (or angular velocity\n");
     }
 
+    else if( dialog.getTextValue(answer,"body name:","%s",bodyName) ){}//
     else if( dialog.getTextValue(answer,"debug:","%i",debug) ){}//
     else if( dialog.getTextValue(answer,"force relaxation parameter:","%g",correctionRelaxationParameterForce) ){}//
     else if( dialog.getTextValue(answer,"force relative tol:","%g",correctionRelativeToleranceForce) ){}//

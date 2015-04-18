@@ -56,11 +56,19 @@ generate(const int & numberOfAdditionalSteps /* = 0 */)
 ///   the grid.   
 //===========================================================================
 {
+  const bool evalAsNurbsSave = evalAsNurbs;
+  if( evalAsNurbs )
+    useNurbsToEvaluate( false ); // turn off Nurbs eval during generation
+
   #ifndef USE_PPP
     return generateSerial(numberOfAdditionalSteps);
   #else
     return generateParallel(numberOfAdditionalSteps);
   #endif
+
+  if( evalAsNurbsSave )
+    useNurbsToEvaluate( evalAsNurbsSave ); // reset 
+
 }
 
 

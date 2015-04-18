@@ -1,5 +1,5 @@
-# include ../config/Makefile.$(VENDOR)
-include ../config/Makefile.intel
+include ../config/Makefile.$(VENDOR)
+# include ../config/Makefile.intel
 
 # over-ride defaults
 # === use these for opt ===== (setenv compile opt)
@@ -162,8 +162,9 @@ ogen=    ogenDriver.o $(ogenFiles) ../grid/MappedGridGeometry2.o ../mapping/dpmI
 ogen=    ogenDriver.o $(ogenFiles) $(ovjunk)/mapping/stencilWalk.o $(ovjunk)/mapping/dpmInverse.o $(ovjunk)/mapping/MappingBuilder.o
 ogen=    ogenDriver.o $(ogenFiles) ../mapping/stretchUpdate.o
 ogen=    ogenDriver.o $(ogenFiles) TridiagonalSolver.o TridiagonalFactor.o
-ogen=    ogenDriver.o $(ogenFiles) GridStretcher.o generateParallel.o DataPointMapping.o
-ogen: $(ogen) ; $(CC) $(CCFLAGS) -o $@ $(ogen) $(PETSC_LIBS) $(CLIBS)  $(FLIBS) $(FORTRAN_LIBS_FORT77) $(GLIBS) 
+ogen=    ogenDriver.o $(ogenFiles) GridStretcher.o generateParallel.o DataPointMapping.o ../hype/update.o
+ogen=    ogenDriver.o $(ogenFiles) ../hype/update.o
+ogen: $(ogen) ; $(CC) $(CCFLAGS) -o $@ $(ogen) $(PETSC_LIBS) $(CLIBS) $(FLIBS) $(FORTRAN_LIBS_FORT77) $(GLIBS)  
 
 # **************************************************************************************
 

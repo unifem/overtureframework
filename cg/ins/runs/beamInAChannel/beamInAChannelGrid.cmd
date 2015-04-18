@@ -7,16 +7,24 @@
 # where options are
 #     -factor=<num>     : grid spacing is .1 divided by this factor
 #     -interp=[e/i]     : implicit or explicit interpolation
+#     -prefix=<string>  : over-ride the default prefix
 #     -name=<string>    : over-ride the default name  
-#     -case=[inner|outer] : only build a grid for the inner or outer domain
 #     -nExtra          : add extra lines in the normal direction on the boundary fitted grids
-#     -ae=<>, -be=<>   : scale factors for major and minor axes (default 1 for a circle)
+#     -sharp=>f>       : controls sharpness of the beam end 
 #
 # Examples:
 #
+#      ogen -noplot beamInAChannelGrid -interp=e -factor=1
 #      ogen -noplot beamInAChannelGrid -interp=e -factor=2 
 #      ogen -noplot beamInAChannelGrid -interp=e -factor=4 
+#  -- larger channel
+#      ogen -noplot beamInAChannelGrid -interp=e -xa=-2. -xb=15. -yb=2. -prefix=beamInAChannelGridBig -factor=1
+#      ogen -noplot beamInAChannelGrid -interp=e -xa=-2. -xb=15. -yb=2. -prefix=beamInAChannelGridBig -factor=2
+#  -- new larger channel
+#      ogen -noplot beamInAChannelGrid -interp=e -xa=-3. -xb=8. -yb=2. -prefix=beamInAChannelGridBigger -factor=1
+#      ogen -noplot beamInAChannelGrid -interp=e -xa=-3. -xb=8. -yb=2. -prefix=beamInAChannelGridBigger -factor=2
 #
+$prefix = "beamInAChannelGrid"; 
 $beamLength=1.; $beamThickness=.2; 
 $factor=1; $name=""; $case=""; 
 $factor2=-1;   # by default factor2=factor
@@ -24,12 +32,13 @@ $interp="i"; $interpType = "implicit for all grids";
 $order=2; $orderOfAccuracy = "second order"; $ng=2; $ml=0;
 $xa=-1.; $xb=2.; $ya=0; $yb=1.5; $nExtra=0; 
 $refineInner=0; $refineOuter=0; $fixedRadius=-1; 
-# 
+$sharp=20.;  # controls sharpness of the beam end 
 # get command line arguments
 GetOptions("name=s"=> \$name,"order=i"=>\$order,"factor=f"=> \$factor,"interp=s"=> \$interp,"case=s"=> \$case,\
            "xa=f"=> \$xa,"xb=f"=> \$xb,"ya=f"=> \$ya,"yb=f"=> \$yb,"nExtra=i"=>\$nExtra,"factor2=f"=> \$factor2,\
            "refineInner=i"=>\$refineInner,"refineOuter=i"=>\$refineOuter,"fixedRadius=f"=>\$fixedRadius,\
-           "beamLength=f"=>\$beamLength,"beamThickness=f"=>\$beamThickness,"ml=i"=>\$ml );
+            "beamLength=f"=>\$beamLength,"beamThickness=f"=>\$beamThickness,"ml=i"=>\$ml,"prefix=s"=> \$prefix,\
+          "sharp=f"=> \$sharp );
 #
 if( $factor2 < 0 ){ $factor2=$factor; }
 # 
@@ -38,7 +47,6 @@ elsif( $order eq 6 ){ $orderOfAccuracy="sixth order"; $ng=4; }\
 elsif( $order eq 8 ){ $orderOfAccuracy="eighth order"; $ng=6; }
 if( $interp eq "e" ){ $interpType = "explicit for all grids"; }
 $suffix = ".order$order"; 
-$prefix = "beamInAChannelGrid"; 
 if( $fixedRadius ne -1 ){ $prefix .= "Fixed"; }
 if( $name eq "" ){$name = $prefix . "$interp$factor" . $suffix . ".hdf";}
 #
@@ -85,7 +93,7 @@ SmoothedPolygon
 * start on a side so that the polygon is symmetric
   vertices 
     $w=$beamThickness*.5; # beam half thickness
-    $y2=$beamLength*1.1;  # increase beam length a bit since smoothed polygon may shorten
+    $y2=$beamLength*(1.+ 1.25/$sharp);  # increase beam length a bit since smoothed polygon may shorten
     $y1=.5*($ya+$y2); 
     6
      $w $ya
@@ -103,7 +111,6 @@ SmoothedPolygon
     0. 1.
     0. 1.
   # set sharpness of corners
-  $sharp=10.; 
   sharpness
     $sharp
     $sharp
@@ -140,10 +147,10 @@ exit
     share
        3  3  100 0 
     # -- set the order of data point interpolation: 
-    fourth order
+    # fourth order
     # second order
     name beam
- # pause
+#  pause
     exit
 #
   exit this menu

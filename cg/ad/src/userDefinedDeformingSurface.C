@@ -269,11 +269,12 @@ userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,
       // ----------------------------------------
       RealArray & par = deformingBodyDataBase.get<RealArray>("userDefinedDeformingSurfaceParams");
       real freqt=par(0), b0=par(1), ampb=par(2);
+      int option  = par(3)+.5;
       if( t3<2.*dt )
 	printF("userDefinedDeformingSurface:deformingEye: t1=%9.3e, t2=%9.3e, t=t3=%9.3e, b0=%g, ampb=%g, freqt=%g\n",
                t1,t2,t3, b0,ampb,freqt);
 
-      if( true )
+      if( option==0 )
       {
 	// ----- move the top eyelid using an analytic formula ---
 
@@ -504,9 +505,9 @@ userDefinedDeformingSurfaceSetup( DeformingBodyMotion & deformingBody )
       printF("The sinusoidal eye motion is defined as\n"
              "   b(t) = b0 + ampb*sin(freqt*t) )\n");
              
-      gi.inputString(answer,"Enter freqt,b0,ampb");
-      sScanF(answer,"%e %e %e",&par(0),&par(1),&par(2));
-      printf("Setting freqt=%g, b0=%g, ampb=%g\n",par(0),par(1),par(2));
+      gi.inputString(answer,"Enter freqt,b0,ampb, option");
+      sScanF(answer,"%e %e %e %e",&par(0),&par(1),&par(2),&par(3));
+      printf("Setting freqt=%g, b0=%g, ampb=%g, option=%g\n",par(0),par(1),par(2),par(3));
 
       
     }

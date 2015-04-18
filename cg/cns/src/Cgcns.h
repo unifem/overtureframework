@@ -145,6 +145,13 @@ virtual int
 updateToMatchGrid(CompositeGrid & cg);
 
 virtual int
+userDefinedBoundaryValues(const real & t, 
+                          GridFunction & gf0,
+			  const int & grid,
+			  int side0 = -1,
+			  int axis0 = -1,
+			  ForcingTypeEnum forcingType =computeForcing );
+virtual int
 userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u );
 
 virtual void 

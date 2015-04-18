@@ -184,7 +184,7 @@ c To include derivatives of rx use OPTION=RX
 !******************************************************************************
 
 ! *******************************************************************************
-!   Macro to assign the free surface BC on the pressure
+!   Macro to assign the TRACTION (including free surface) BC on the pressure
 ! *******************************************************************************
 
 

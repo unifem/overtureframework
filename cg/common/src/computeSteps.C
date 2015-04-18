@@ -117,8 +117,8 @@ computeNumberOfStepsAndAdjustTheTimeStep(const real & t,
   {
     dtNew=timeInterval/numberOfSubSteps;
 
-    if( debug & 2 )
-      printF(" ---- adjust time step: timeInterval=%e, numberOfSubSteps=%i, dtNew=%e\n",
+    if( true || debug & 2 )
+      printF(" ---- adjust time step to reach tprint: timeInterval=%e, numberOfSubSteps=%i, dtNew=%10.4e\n",
 	     timeInterval,numberOfSubSteps,dtNew);
   }
 

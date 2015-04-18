@@ -70,7 +70,7 @@
 
 /* Abort macro that prints file and line number where the error occured. */
 #define OV_ABORT(label){\
-printf("Error occured in file %s line %d.\n",__FILE__,__LINE__);	\
+printf("Error occured in file %s, function %s, line %d.\n",__FILE__,__func__,__LINE__);	\
 Overture::abort(label);}
 
 #endif

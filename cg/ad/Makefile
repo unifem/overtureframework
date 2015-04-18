@@ -73,7 +73,9 @@ $(PETSC_FILES_OBJ) : $(OBJPREFIX)%.o : %.C
 	$(CXX) $(CXX_FLAGSO) -o $@ -c $<
 
 # make cgad in the bin dir:
-CGAD_EXTRA_FILES = $(PETSC_FILES_OBJ) 
+# CGAD_EXTRA_FILES = $(PETSC_FILES_OBJ) /home/henshw/overtureFramework/Overture/mapping/DataPointMapping.o \
+#           /home/henshw/overtureFramework/Overture/mapping/NurbsMapping.o
+CGAD_EXTRA_FILES = $(PETSC_FILES_OBJ)
 $(BINDIR)cgad: $(LIBDIR)libCgad.a $(OBJDIR)cgadMain.o $(OBJ)  $(CGAD_EXTRA_FILES) $(libCommon)
 	$(CXX) $(CXX_FLAGS) -o $@ $(OBJDIR)cgadMain.o  $(CGAD_EXTRA_FILES) $(LIBS)
 

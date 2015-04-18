@@ -5,16 +5,13 @@
 
 
 #include "Overture.h"
-// #include "SquareMapping.h"
 #include "PlotStuff.h"
-// #include "MatrixTransform.h"
-// #include "CrossSectionMapping.h"
 #include "BeamModel.h"
 #include "NonlinearBeamModel.h"
-
 #include "display.h"
-// #include "App.h"
 #include "NurbsMapping.h"
+#include "OGPolyFunction.h"
+#include "OGTrigFunction.h"
 
 // #define W1(x,t) (a*sin(k*xl - w*t))
 // #define W1t(x,t) (-a*w*cos(k*xl - w*t))
@@ -82,6 +79,12 @@ int addForcing( real t );
 // Check the forcing routines in the Beam Model
 int checkForce();
 
+// Check the internal forcing routines in the Beam Model
+int checkInternalForce();
+
+// Check the velocity projection
+int checkVelocityProjection();
+
 int getErrors( real t );
 
 int plot(real t, GenericGraphicsInterface & gi, GraphicsParameters & psp );
@@ -113,6 +116,8 @@ real k0;
 real k;
 real w;
 
+int forceDegreeX;  // degree of forcing polynmial for checkForce
+
 int globalStepNumber;
 
 FILE *checkFile;
@@ -137,6 +142,8 @@ TestBeamModel()
   // -- beam parameters: *FIX ME*
   momOfIntertia=1., E=1., rho=100., beamLength=1., thickness=.1, pnorm=10.,  x0=0., y0=0.;
   breadth=1.;
+
+  forceDegreeX=1;  // degree of forcing polynmial for checkForce
 
   // --- parameters for the exact solution ---
   a=.1;  // amplitude 
@@ -335,12 +342,16 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
 
   if( beamModelType==linearBeamModel )
   {
+    beam.setParameter("cfl",cfl);
+
     beam.writeParameterSummary();
   }
   
 
   if( beamModelType==nonlinearBeamModel )
   {
+    nlBeam.setParameter("cfl",cfl);
+
     // aString beamFile = "mybeam.beam"; // *fix me* 
     // nlBeam.readBeamFile((const char*)beamFile);
 
@@ -369,12 +380,12 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   if( beamModelType==linearBeamModel )
   {
     dt = beam.getExplicitTimeStep();
-    dt=dt*cfl;
+    // dt=dt*cfl;
   }
   else if( beamModelType==nonlinearBeamModel )
   {
     dt = nlBeam.getExplicitTimeStep();
-    dt=dt*cfl;
+    // dt=dt*cfl;
   }
   else
   {
@@ -557,48 +568,105 @@ solve(GenericGraphicsInterface & gi, GraphicsParameters & psp )
   return 0;
 }
 
-// Check the forcing routines in the Beam Model
+// =======================================================================================
+/// \brief Check the forcing routines in the Beam Model
+// =======================================================================================
 int TestBeamModel::
 checkForce()
 {
 
+
+  const int numberOfDimensions=2;
   
-  // The pressure is p(X1) = p1, p(X2) = p2
-  // x0_1: undeformed location of the point on the surface of the beam (x1)  
-  // y0_1: undeformed location of the point on the surface of the beam (y1)
-  // p1:   pressure at the point (x1,y1)
-  // nx_1: normal at x1 (x) [unused]
-  // ny_1: normal at x1 (y) [unused]
-  // x0_2: undeformed location of the point on the surface of the beam (x2)  
-  // y0_2: undeformed location of the point on the surface of the beam (y2)  
-  // p2:   pressure at the point (x2,y2)
-  // nx_2: normal at x2 (x) [unused]
-  // ny_2: normal at x2 (y) [unused]
-  // beam.addForce(const real& x0_1, const real& y0_1,
-  // 		real p1,const real& nx_1,const real& ny_1,
-  // 		const real& x0_2, const real& y0_2,
-  // 		real p2,const real& nx_2,const real& ny_2);
+  const int nElem=beam.getNumberOfElements();
+  int numElem=nElem;
 
   if( beamModelType==linearBeamModel )
   {
     real tf=0.;  // time to apply force
 
     real h=thickness*.5;
-    real x0=.1, y0=h, x1=.5, y1=h;
+    real x0=.0, y0=h, x1=1., y1=h;
     real nx0=0., ny0=1.;
     real nx1=0., ny1=1.;
   
-    real p0=1., p1=1.;
-    beam.resetForce();
-    beam.addForce(tf, x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
 
+#define FORCE(x) (p0+pow(x,forceDegreeX)*(p1-p0))
+#define FORCEX(x) (forceDegreeX*pow(x,forceDegreeX-1)*(p1-p0))
+    real p0=0., p1=1.;
+    beam.resetForce();
+
+    // --- exact force on beam nodes ---
+    real dxe=1./numElem; // assumes Beam length of 1
+    RealArray xe(numElem+1), fe(numElem+1);
+    for( int i=0; i<=numElem; i++ )
+    {
+      xe(i) = x0 + i*dxe;  fe(i) = FORCE(xe(i));   // exact solution on beam nodes
+    }
+
+    // Assign force at a different number of points: 
+    int numForce=numElem+7; // +1;    // number of forcing grid points 
+    real dxf = (x1-x0)/(numForce-1);
+    Index Ib1=Range(numForce), Ib2=Range(0,0), Ib3=Range(0,0);
+
+    RealArray xi(Ib1,Ib2,Ib3,numberOfDimensions), fi(Ib1,Ib2,Ib3,numberOfDimensions), normal(Ib1,Ib2,Ib3,numberOfDimensions);
+    for( int i=0; i<numForce; i++ )
+    {
+      xi(i,0,0,0) = x0 + i*dxf; 
+      xi(i,0,0,1) = +h;  // top of beam
+      fi(i,0,0,0) = 0.; fi(i,0,0,1) = FORCE(xi(i)); 
+    }
+    // do this: (should match force vector above)
+    normal(Ib1,Ib2,Ib3,0)=0.;
+    normal(Ib1,Ib2,Ib3,1)=1.;
+      
+    // Assign forces to points on the beam 
+   
+    beam.addForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
+      
     const RealArray & force = beam.force();
-    ::display(force(Range(0,2*nElem,2)),"Top force","%8.2e ");
+    ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");
+    ::display(fe,"Exact force","%8.2e ");
+
+    RealArray fc;
+    beam.getForceOnBeam( tf, fc );  // point-wise force values on the center-line
+    ::display(fc,"Force on center-line","%8.2e ");
+    real signForNormal=-1.;
+    real maxErr1 = max(fabs(fc-fe*signForNormal));
+    printF("\n +++ Max error in center-line force = %8.2e (degreeForce=%i) \n\n",maxErr1,forceDegreeX );
 
     beam.resetForce();
-    x0=.5, y0=-h, x1=.1, y1=-h;
-    beam.addForce(tf, x0,y0,p1,nx0,ny0,  x1,y1,p1, nx1,ny1 );
+    for( int i=0; i<numForce; i++ )
+    {
+      xi(i,0,0,0) = x0 + i*dxf; 
+      xi(i,0,0,1) = -h;  // bottom of beam
+      fi(i,0,0,0) = 0.; fi(i,0,0,1) = FORCE(xi(i)); 
+    }
+
+    beam.addForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
+      
     ::display(force(Range(0,2*nElem,2)),"Bottom force","%8.2e ");
+
+    beam.getForceOnBeam( tf, fc );  // point-wise force values on the center-line
+    ::display(fc,"Force on center-line","%8.2e ");
+
+    signForNormal=1.;
+    real maxErr2 = max(fabs(fc-fe*signForNormal));
+    printF("\n +++ Max error in center-line force = %8.2e (degreeForce=%i) \n\n",maxErr2,forceDegreeX );
+
+    // output results to the check file 
+    // output to check file
+    int orderOfGalerkinProjection;
+    beam.getParameter( "orderOfGalerkinProjection",orderOfGalerkinProjection);
+      
+    fPrintF(checkFile,"\\caption{tbm: test beam model: %s, CHECK FORCE, forceDegreeX=%i, orderOfGalerkinProjection=%i}\n",
+	    (beamModelType==linearBeamModel ? "linear beam model" : "nonlinear beam model"),forceDegreeX,orderOfGalerkinProjection);
+
+    const int numberOfComponentsToOutput=2;
+    real fNorm=1.;
+    fPrintF(checkFile,"%9.2e %i  ",tf,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e  %i %9.2e %10.3e  ",0,maxErr1,fNorm,1,maxErr2,fNorm);
+    fPrintF(checkFile,"\n");
 
   }
   else if( beamModelType==nonlinearBeamModel )
@@ -614,6 +682,412 @@ checkForce()
 
   return 0;
 }
+
+
+// =======================================================================================
+/// \brief Check the internal forcing routines in the Beam Model
+// =======================================================================================
+int TestBeamModel::
+checkInternalForce()
+{
+
+  
+  // void getSurfaceInternalForce( const real t, const RealArray & x0,  const RealArray & fs, 
+  //                               const Index & Ib1, const Index & Ib2,  const Index & Ib3,
+  //                               const bool addExternalForcing );
+
+  beam.getParameter("thickness",thickness);
+
+  const int numberOfDimensions=2;
+  
+  const int nElem=beam.getNumberOfElements();
+  int numElem=nElem;
+  real beamLength;
+  beam.getParameter("length",beamLength);
+
+  if( beamModelType==linearBeamModel )
+  {
+    real tf=0.;  // time to apply force
+    t=tf;
+
+    real h=thickness*.5;
+    real density = beam.density;
+
+    printF("---- checkInternalForce thickness=%8.2e -----\n",thickness);
+    
+    RealArray u,v,a;
+    beam.getExactSolution( tf, u,v,a );
+    Range N=numElem+1, N2=2*(numElem+1);
+    if( false )
+    {
+      u.reshape(2,N); v.reshape(2,N);
+      ::display(u,"exact solution: u","%6.3f ");
+      ::display(v,"exact solution: v","%6.3f ");
+      u.reshape(N2); v.reshape(N2);
+    }
+    
+    real x0=.0, y0=h, x1=1., y1=h;
+    int numForce=numElem+1; // +7;    // number of forcing grid points 
+    real dxf = (x1-x0)/(numForce-1);
+    Index Ib1=Range(numForce), Ib2=Range(0,0), Ib3=Range(0,0);
+
+    real signForNormal=-1.;  // beam on top 
+
+    RealArray xi(Ib1,Ib2,Ib3,numberOfDimensions), fs(Ib1,Ib2,Ib3,numberOfDimensions);
+    for( int i=0; i<numForce; i++ )
+    {
+      xi(i,0,0,0) = x0 + i*dxf; 
+      xi(i,0,0,1) = +h;  // top of beam
+      // fi(i,0,0,0) = 0.; fi(i,0,0,1) = FORCE(xi(i)); 
+    }
+    RealArray normal(Ib1,Ib2,Ib3,numberOfDimensions);
+    // do this: (should match force vector)
+    normal(Ib1,Ib2,Ib3,0)=0.;
+    normal(Ib1,Ib2,Ib3,1)=1.;
+
+    bool addExternalForcing=false;
+    beam.getSurfaceInternalForce(tf,xi,fs, normal,Ib1,Ib2,Ib3,addExternalForcing);
+
+    ::display(fs,"surface  force L(u,v)","%9.2e ");
+
+    if( false )
+    {
+      RealArray fi(nElem+1,2);
+
+      const int & current = beam.dbase.get<int>("current"); 
+      std::vector<RealArray> & ua = beam.dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+      std::vector<RealArray> & va = beam.dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+      RealArray & uc = ua[current];  // current displacement 
+      RealArray & vc = va[current];  // current velocity 
+
+      beam.computeInternalForce(uc,vc,fi);
+
+      uc.reshape(2,N); vc.reshape(2,N); fi.reshape(2,N);
+      ::display(uc,"u[current]","%9.2e ");
+      ::display(vc,"v[current]","%9.2e ");
+      ::display(fi,"internal force L(uc,vc)","%9.2e ");
+      uc.reshape(N2); vc.reshape(N2); fi.reshape(N2);
+    }
+    
+    // exact.gd( uxe,x,domainDimension,isRectangular,0,1,0,0,I1,I2,I3,wc,t );
+
+    assert( beam.exactSolutionOption=="twilightZone" ) ;
+    
+    // ---- Compute the EXACT internal force on the beam reference line ----
+
+    bool & twilightZone =  beam.dbase.get<bool>("twilightZone");
+    assert( twilightZone );
+    assert(  beam.dbase.get<OGFunction*>("exactPointer")!=NULL );
+    OGFunction & exact = * beam.dbase.get<OGFunction*>("exactPointer");
+
+    Index I1,I2,I3;
+    I1=Range(0,numElem); I2=0; I3=0;
+
+    RealArray x(I1,I2,I3,2);  // beam axis (undeformed)
+    const real dx=beamLength/numElem;
+    for( int i1 = I1.getBase(); i1<=I1.getBound(); i1++ )
+    {
+      x(i1,0,0,0) = i1*dx; 
+      x(i1,0,0,1) = 0.;    // should this be y0 ?
+    }
+
+    RealArray ue(I1,I2,I3,1), ve(I1,I2,I3,1),  uxxe(I1,I2,I3,1), uxxte(I1,I2,I3,1), uxxxxe(I1,I2,I3,1);
+    const int isRectangular=0;
+    const int wc=0;
+    const int domainDimension=1;
+    exact.gd( ue    ,x,domainDimension,isRectangular,0,0,0,0,I1,I2,I3,wc,tf );
+    exact.gd( ve    ,x,domainDimension,isRectangular,1,0,0,0,I1,I2,I3,wc,tf );
+    exact.gd( uxxe  ,x,domainDimension,isRectangular,0,2,0,0,I1,I2,I3,wc,tf );
+    exact.gd( uxxte ,x,domainDimension,isRectangular,1,2,0,0,I1,I2,I3,wc,tf );
+    exact.gd( uxxxxe,x,domainDimension,isRectangular,0,4,0,0,I1,I2,I3,wc,tf );
+
+    RealArray beamOp(I1,I2,I3,1);
+    const real EI = beam.elasticModulus*beam.areaMomentOfInertia;
+    const real & T = beam.dbase.get<real>("tension");
+    const real & K0 = beam.dbase.get<real>("K0");
+    const real & Kt = beam.dbase.get<real>("Kt");
+    const real & Kxxt = beam.dbase.get<real>("Kxxt");
+    printF(" K0=%g, Kt=%g, Kxxt=%g\n",K0,Kt,Kxxt);
+
+    beamOp= signForNormal*( -K0*ue -Kt*ve + Kxxt*uxxte + T*uxxe - EI*uxxxxe );
+    ::display(beamOp,"exact internal force: L(u,v)","%9.2e ");
+
+    real err = max(fabs(beamOp(I1,I2,I3)-fs(Ib1,Ib2,Ib3,1)));
+    printF("\n +++ numElem = %i, maximum err in beam operator L(u,v) = %8.2e\n",numElem,err);
+
+    // output results to the check file 
+    int degreeInSpace, degreeInTime;
+    beam.getParameter( "degreeInSpace",degreeInSpace);
+    beam.getParameter( "degreeInTime",degreeInTime);
+      
+    fPrintF(checkFile,"\\caption{tbm: test beam model: %s, CHECK INTERNAL FORCE, degreeInSpace=%i}\n",
+	    (beamModelType==linearBeamModel ? "linear beam model" : "nonlinear beam model"),degreeInSpace);
+
+    const int numberOfComponentsToOutput=1;
+    real fNorm=1.;
+    fPrintF(checkFile,"%9.2e %i  ",tf,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e ",0,err,fNorm);
+    fPrintF(checkFile,"\n");
+
+
+    // -- Now apply a force 
+    printF("\n --- Apply a force : density=%e, thickness=%e\n",density,thickness);
+
+    RealArray utte(I1,I2,I3,1);
+    exact.gd( utte   ,x,domainDimension,isRectangular,2,0,0,0,I1,I2,I3,wc,tf );
+    RealArray ftz(I1,I2,I3,2);
+    ftz=0.;
+    ftz(I1,I2,I3,1) = signForNormal*( (density*thickness)*utte + K0*ue +Kt*ve - Kxxt*uxxte - (T)*uxxe + (EI)*uxxxxe );
+
+
+
+    // Assign force at a different number of points: 
+    // int numForce=numElem+7; // +1;    // number of forcing grid points 
+    // real dxf = (x1-x0)/(numForce-1);
+    Ib1=Range(numForce), Ib2=Range(0,0), Ib3=Range(0,0);
+
+    for( int i=0; i<numForce; i++ )
+    {
+      xi(i,0,0,0) = x0 + i*dxf; 
+      xi(i,0,0,1) = +h;  // top of beam
+    }
+	
+
+      
+    // Assign forces to points on the beam
+    beam.resetForce();
+    beam.addForce(  tf,xi,ftz,normal,Ib1,Ib2,Ib3 );
+
+    const RealArray & force = beam.force();
+    ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");
+    ::display(ftz(I1,I2,I3,1),"Exact force","%8.2e ");
+
+    RealArray fc;
+    beam.getForceOnBeam( tf, fc );  // point-wise force values on the center-line
+    ::display(fc,"Force on center-line","%8.2e ");
+    real maxErr1 = max(fabs(fc-ftz(I1,I2,I3,1)*signForNormal));
+    printF("\n +++ Max error in center-line force = %8.2e (degreeX=%i, degreeT=%i) \n\n",maxErr1,degreeInSpace,degreeInTime );
+
+    addExternalForcing=true;
+    beam.getSurfaceInternalForce(tf,xi,fs, normal,Ib1,Ib2,Ib3,addExternalForcing);
+
+    ::display(fs,"surface  force = L(u,v) + f ","%9.2e ");
+
+    RealArray ft(Ib1,Ib2,Ib3);
+    ft =  (density*thickness)*utte;
+
+    // ::display(utte,"utte ","%9.2e ");
+    ::display(ft," rho*h*utte ","%9.2e ");
+
+    real maxErr = max(fabs(fs(Ib1,Ib2,Ib3,1)-ft));
+    printF("\n +++  numElem = %i, Max error in L(u,v)+f = %8.2e +++\n",numElem,maxErr);
+
+/* -----
+    // RealArray fi(Ib1,Ib2,Ib3,numberOfDimensions
+    // beam.addInternalForces( tf, fa )
+
+
+    real p0=0., p1=1.;
+    beam.resetForce();
+
+    // --- exact force on beam nodes ---
+    real dxe=1./numElem; // assumes Beam length of 1
+    RealArray xe(numElem+1), fe(numElem+1);
+    for( int i=0; i<=numElem; i++ )
+    {
+      xe(i) = x0 + i*dxe;  fe(i) = FORCE(xe(i));   // exact solution on beam nodes
+    }
+
+    // Assign force at a different number of points: 
+    // int numForce=numElem+7; // +1;    // number of forcing grid points 
+    // real dxf = (x1-x0)/(numForce-1);
+    Ib1=Range(numForce), Ib2=Range(0,0), Ib3=Range(0,0);
+
+    RealArray fi(Ib1,Ib2,Ib3,numberOfDimensions), normal(Ib1,Ib2,Ib3,numberOfDimensions);
+    for( int i=0; i<numForce; i++ )
+    {
+      xi(i,0,0,0) = x0 + i*dxf; 
+      xi(i,0,0,1) = +h;  // top of beam
+      fi(i,0,0,0) = 0.; fi(i,0,0,1) = FORCE(xi(i)); 
+    }
+    // do this: (should match force vector above)
+    normal(Ib1,Ib2,Ib3,0)=0.;
+    normal(Ib1,Ib2,Ib3,1)=1.;
+      
+    // Assign forces to points on the beam 
+   
+    beam.addForce(  tf,xi,fi,normal,Ib1,Ib2,Ib3 );
+      
+    const RealArray & force = beam.force();
+    ::display(force(Range(0,2*nElem,2)),"Top (element) force","%8.2e ");
+    ::display(fe,"Exact force","%8.2e ");
+
+    RealArray fc;
+    beam.getForceOnBeam( tf, fc );  // point-wise force values on the center-line
+    ::display(fc,"Force on center-line","%8.2e ");
+    real signForNormal=-1.;
+    real maxErr1 = max(fabs(fc-fe*signForNormal));
+    printF("\n +++ Max error in center-line force = %8.2e (degreeForce=%i) \n\n ",maxErr1,forceDegreeX );
+
+    addExternalForcing=true;
+    beam.getSurfaceInternalForce(tf,xi,fs,Ib1,Ib2,Ib3,addExternalForcing);
+
+    ::display(fs,"surface  force = L(u,v) + f ","%9.2e ");
+
+   ---- */
+
+
+  }
+  else if( beamModelType==nonlinearBeamModel )
+  {
+    OV_ABORT("ERROR: finish me!");
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown beam model");
+  }
+
+
+
+  return 0;
+}
+
+
+// ===========================================================================================
+/// \brief Check the velocity projection
+// ===========================================================================================
+int TestBeamModel::
+checkVelocityProjection()
+{
+
+  // Given a velocity defined on the beam surface(s) project these values
+  // onto the beam neutral surface. 
+  if( beamModelType==linearBeamModel )
+  {
+
+    printF("---- CHECK VELOCITY PROJECTION ----\n");
+
+    real thickness;
+    beam.getParameter("thickness",thickness);
+    const real halfThickness= thickness*.5;
+
+    real t=0.;
+
+    RealArray xc;
+    // beam.getCenterLine( xc );
+    // ::display(xc,"Beam centerline");
+
+    // Extract the velocity on the surface of the beam
+
+    int numElem=beam.getNumberOfElements();
+
+    // Evaluate the surface velocity at a different number of nodes from the beam
+    int numVelocityNodes =  numElem + 7;
+
+    Index Ib1,Ib2,Ib3;
+    Ib1=Range(numVelocityNodes); Ib2=Range(0,0); Ib3=Range(0,0);
+    int numberOfDimensions=2;
+    Range Rx=numberOfDimensions;
+    RealArray x0Plus(Ib1,Ib2,Ib3,Rx), x0Minus(Ib1,Ib2,Ib3,Rx), vPlus(Ib1,Ib2,Ib3,Rx), vMinus(Ib1,Ib2,Ib3,Rx),
+              normalPlus(Ib1,Ib2,Ib3,Rx), normalMinus(Ib1,Ib2,Ib3,Rx);
+
+    // --- evaluate the beam centerline on a different number of points:
+    real beamLength;
+    beam.getParameter("length",beamLength);
+    real dxv=beamLength/(numVelocityNodes-1);
+    for( int i1=Ib1.getBase(); i1<=Ib1.getBound(); i1++ )
+      x0Plus(i1,0,0)=i1*dxv;
+    x0Plus(Ib1,Ib2,Ib3,1) = 0.;   // y value 
+    xc.redim(Ib1,Ib2,Ib3,Rx);
+    beam.getSurface( t,x0Plus,xc,Ib1,Ib2,Ib3 );
+    ::display(xc,"Beam centerline (with a different number of points");
+
+    // x0Plus : initial locations of points on the beam upper surface
+    x0Plus(Ib1,Ib2,Ib3,0) =xc(Ib1,Ib2,Ib3,0); x0Plus(Ib1,Ib2,Ib3,1) = halfThickness;
+    x0Minus(Ib1,Ib2,Ib3,0)=xc(Ib1,Ib2,Ib3,0); x0Minus(Ib1,Ib2,Ib3,1)=-halfThickness;
+
+    RealArray xsPlus(Ib1,Ib2,Ib3,Rx), xsMinus(Ib1,Ib2,Ib3,Rx), norm(Ib1,Ib2,Ib3);
+    beam.getSurface( t,x0Plus,xsPlus,Ib1,Ib2,Ib3 );
+    beam.getSurface( t,x0Minus,xsMinus,Ib1,Ib2,Ib3 );
+
+    // Here are the normals (inward to the beam)
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+      normalPlus(Ib1,Ib2,Ib3,axis)=-(xsPlus(Ib1,Ib2,Ib3,axis)-xc(Ib1,Ib2,Ib3,axis));
+    norm = sqrt( SQR(normalPlus(Ib1,Ib2,Ib3,0))+SQR(normalPlus(Ib1,Ib2,Ib3,1)));
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+      normalPlus(Ib1,Ib2,Ib3,axis)/=norm;
+    
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+      normalMinus(Ib1,Ib2,Ib3,axis)= -(xsMinus(Ib1,Ib2,Ib3,axis)-xc(Ib1,Ib2,Ib3,axis));
+    norm = sqrt( SQR(normalMinus(Ib1,Ib2,Ib3,0))+SQR(normalMinus(Ib1,Ib2,Ib3,1)));
+    for( int axis=0; axis<numberOfDimensions; axis++ )
+      normalMinus(Ib1,Ib2,Ib3,axis)/=norm;
+    
+    ::display(xsPlus,"Beam top surface x+");
+    ::display(xsMinus,"Beam bottom surface x-");
+
+    ::display(normalPlus,"Beam top surface normal+");
+    ::display(normalMinus,"Beam bottom surface normal-");
+
+    beam.getSurfaceVelocity( t,x0Plus,vPlus,Ib1,Ib2,Ib3 );
+    beam.getSurfaceVelocity( t,x0Minus,vMinus,Ib1,Ib2,Ib3 );
+
+    ::display(vPlus,"Beam top surface velocity v+");
+    ::display(vMinus,"Beam bottom surface velocity v-");
+
+    // Now assign the surface velocity
+    beam.resetSurfaceVelocity();
+    
+    beam.setSurfaceVelocity( t,x0Plus,vPlus,normalPlus,Ib1,Ib2,Ib3 );
+    beam.setSurfaceVelocity( t,x0Minus,vMinus,normalMinus,Ib1,Ib2,Ib3 );
+
+    RealArray vc;
+    vc = beam.velocity();  // current beam velocity DOF's
+
+    // Project the surface velocity onto the beam and over-write beam velocity
+    beam.projectSurfaceVelocityOntoBeam( t );
+
+    const RealArray & surfaceVelocity = beam.getSurfaceVelocity();
+    const RealArray & vcNew =  beam.velocity();  // new beam velocity DOF's
+
+    real maxDiff =max(fabs(vcNew-surfaceVelocity)); // this should be zero 
+    
+    real maxErr = max(fabs(vc-surfaceVelocity));
+    printF("--TBM-- projectSurfaceVelocityOntoBeam: maxDiff=%8.3e,  max-err=%8.2e\n",maxDiff,maxErr);
+
+    // output results to the check file 
+    // output to check file
+    int orderOfGalerkinProjection;
+    beam.getParameter( "orderOfGalerkinProjection",orderOfGalerkinProjection);
+    int degreeInSpace;
+    beam.getParameter("degreeInSpace",degreeInSpace);
+    fPrintF(checkFile,"\\caption{tbm: test beam model: %s, CHECK VELOCITY PROJECTION, degreeInSpace=%i,"
+            " orderOfGalerkinProjection=%i}\n", 
+           (beamModelType==linearBeamModel ? "linear beam model" : "nonlinear beam model"),
+            degreeInSpace,orderOfGalerkinProjection);
+
+    const int numberOfComponentsToOutput=2;
+    real fNorm=1.;
+    fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e  %i %9.2e %10.3e  ",0,maxDiff,fNorm,1,maxErr,fNorm);
+    fPrintF(checkFile,"\n");
+
+
+  }
+  else if( beamModelType==nonlinearBeamModel )
+  {
+    OV_ABORT("ERROR: finish me!");
+  }
+  else
+  {
+    OV_ABORT("ERROR: unknown beam model");
+  }
+
+
+
+  return 0;
+}
+
 
 
 
@@ -744,15 +1218,19 @@ main(int argc, char *argv[])
   dialog.addOptionMenu( "Type:", opCommand2, opCommand2, testProblem );
 
   aString cmds[] = {"solve",
+                    "change beam parameters",
+                    "print beam parameters",
                     "check force",
+                    "check velocity projection",
+                    "check internal force",
                     "convergence rate",
                     "leak check",
-                    "change beam parameters",
                     "exit",
 		    ""};
 
-  int numberOfPushButtons=3;  // number of entries in cmds
-  int numRows=numberOfPushButtons; // (numberOfPushButtons+1)/2;
+  int numberOfPushButtons=0;  // number of entries in cmds
+  while( cmds[numberOfPushButtons]!="" ){numberOfPushButtons++;}; // 
+  int numRows=(numberOfPushButtons+1)/2;
   dialog.setPushButtons( cmds, cmds, numRows ); 
 
   aString tbCommands[] = {"added mass",
@@ -786,8 +1264,8 @@ main(int argc, char *argv[])
   textLabels[nt] = "order of accuracy:"; 
   sPrintF(textStrings[nt],"%i",orderOfAccuracy);  nt++; 
 
-  // textLabels[nt] = "numResolutions:"; 
-  // sPrintF(textStrings[nt],"%i",numResolutions);  nt++; 
+  textLabels[nt] = "force polynomial degree x:"; 
+  sPrintF(textStrings[nt],"%g",tbm.forceDegreeX);  nt++; 
 
   textLabels[nt] = "debug:"; 
   sPrintF(textStrings[nt],"%i",debug);  nt++; 
@@ -836,13 +1314,30 @@ main(int argc, char *argv[])
       }
 
     }
+    else if( answer=="print beam parameters" )
+    {
+      if( beamModelType==linearBeamModel )
+      {
+	tbm.beam.writeParameterSummary();
+      }
+      else if(  beamModelType==nonlinearBeamModel )
+      {
+	tbm.nlBeam.writeParameterSummary();
+      }
+      else
+      {
+	OV_ABORT("error");
+      }
+
+    }
 
     else if( dialog.getTextValue(answer,"tFinal:","%e",tFinal) ){} //
     else if( dialog.getTextValue(answer,"tPlot:","%e",tPlot) ){} //
     else if( dialog.getTextValue(answer,"cfl:","%e",cfl) ){} //
     else if( dialog.getTextValue(answer,"beam angle:","%e",beamAngle) ){ } //
-    else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
+    else if( dialog.getTextValue(answer,"force polynomial degree x:","%e",tbm.forceDegreeX) ){} //
     // else if( dialog.getTextValue(answer,"mass:","%e",trb.mass) ){} //
+
     else if( dialog.getTextValue(answer,"order of accuracy:","%i",orderOfAccuracy) ){} //
     // else if( dialog.getTextValue(answer,"numResolutions:","%i",numResolutions) ){} //
     // else if( dialog.getTextValue(answer,"output file:","%s",outputFileName) ){} //
@@ -856,6 +1351,16 @@ main(int argc, char *argv[])
     {
       tbm.checkForce();
     }
+    else if( answer=="check internal force" )
+    {
+      tbm.checkInternalForce();
+    }
+
+    else if( answer=="check velocity projection" )
+    {
+      tbm.checkVelocityProjection();
+    }
+
     else if( answer=="solve" )
     {
       // ------------ Solve for the beam motion ----------------

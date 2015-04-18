@@ -50,6 +50,9 @@ int get( const GenericDataBase & dir, const aString & name);
 // put to a data base file
 int put( GenericDataBase & dir, const aString & name) const;
 
+// Write information about the moving grids
+void writeParameterSummary( FILE *file= stdout );
+
 private:
 
   virtual ReferenceCounting& operator=( const ReferenceCounting & x)

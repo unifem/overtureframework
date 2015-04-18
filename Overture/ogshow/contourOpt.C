@@ -531,6 +531,7 @@ contourOpt2d(GenericGraphicsInterface &gi,
                 #define COORD1(i0,i1,i2) YSCALE((ya+dy0*(i1-i1a)))
                 #define COORD2(i0,i1,i2) ZSCALE((za+dz0*(i2-i2a)))
                       	glPushName(gc[grid].getGlobalID()); // assign a name for picking
+                                glLineWidth(psp.size(GraphicsParameters::lineWidth)*gi.getLineWidthScaleFactor()); // *wdh* 2014/12/27
                       	if( plotShadedSurface )
                       	{
                         	  const real delta255 = deltaUInverse*255;
@@ -1160,6 +1161,7 @@ contourOpt2d(GenericGraphicsInterface &gi,
                 #define COORD1(i0,i1,i2) YSCALE(coordp[i0+coordDim0*(i1+coordDim1*(i2+coordDim2*(1)))])
                 #define COORD2(i0,i1,i2) ZSCALE(coordp[i0+coordDim0*(i1+coordDim1*(i2+coordDim2*(2)))])
                       	glPushName(gc[grid].getGlobalID()); // assign a name for picking
+                                glLineWidth(psp.size(GraphicsParameters::lineWidth)*gi.getLineWidthScaleFactor()); // *wdh* 2014/12/27
                       	if( plotShadedSurface )
                       	{
                         	  const real delta255 = deltaUInverse*255;

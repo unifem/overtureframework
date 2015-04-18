@@ -91,51 +91,61 @@ class NonlinearBeamModel {
   ~NonlinearBeamModel();
 
 
-  void projectDisplacement(int id, real& x, real& y);
 
-
-  void projectAcceleration(int id, real& ax, real& ay);
+  void addBodyForce(const real[2]);
 
   void addForce(int i1, real p1, int i2, real p2);
 
-  void resetForce();
-
-  void predictor(real dt);
-
   void corrector(real dt);
 
-  bool hasCorrectionConverged() const;
+  int get( const GenericDataBase & dir, const aString & name);
 
   // Return the (x,y) coordinates of the centerline
   void getCenterLine( RealArray & xc ) const;
 
-  int getNumberOfNodes() const { return numNodes; } // 
-
   // return the estimated *explicit* time step dt 
   real getExplicitTimeStep() const;
 
-  void setAddedMassRelaxation(double);
-  
-  void setSubIterationConvergenceTolerance(double tol);
+  int getNumberOfNodes() const { return numNodes; } // 
 
-  void addBodyForce(const real[2]);
+  // return an estimate of the time-step dt
+  real getTimeStep() const;
 
-  void readBeamFile(const char* filename);
+  bool hasCorrectionConverged() const;
 
   void initializeProjectedPoints(int sz);
+
+  void predictor(real dt);
+
+  void projectAcceleration(int id, real& ax, real& ay);
+
+  void projectDisplacement(int id, real& x, real& y);
 
   void projectInitialPoint(int id, real x, real y);
   
   int put( GenericDataBase & dir, const aString & name) const;
 
-  int get( const GenericDataBase & dir, const aString & name);
 
   int plot(GenericGraphicsInterface & gi, GraphicsParameters & psp );
 
+  void readBeamFile(const char* filename);
+
+  void resetForce();
+
+  void setAddedMassRelaxation(double);
+
   void setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a);
-  
+
+  // Set a real beam parameter (in the dbase). 
+  int setParameter( const aString & name, real & value );
+
+  void setSubIterationConvergenceTolerance(double tol);
+
   // Set parameters interactively: 
   int update(CompositeGrid & cg, GenericGraphicsInterface & gi );
+
+  // Output model parameters 
+  void writeParameterSummary( FILE *file= stdout );
 
   static int debug;
 

@@ -1,0 +1,83 @@
+***** 2015/03/06 -- RERUN:
+
+BUG FOUND: beam must be shorter than fluid grid or else velocity projection is zero on the end
+
+
+COMPARE PIV to IV=0
+
+PIV=1 -- ndo NOT project ends  (or may need more smoothing)
+nohup $cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1  -projectVelocityOnBeamEnds=0 -rhoBeam=10. -E=3. -cfls=2. -show="cbRhos10E3PIV.show" -go=go  >! cbRhos10E3PIV.out
+
+$cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -projectVelocityOnBeamEnds=0 -rhoBeam=10. -E=3. -cfls=2. -go=og
+
+PIV=0
+nohup $cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=3. -cfls=2. -show="cbRhos10E3.show" -go=go  >! cbRhos10E3.out
+
+
+PIV - WORKS NOW:  SHORTEN BEAM
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=1. -cfls=2. -projectBeamVelocity=1 -projectVelocityOnBeamEnds=1 -go=og
+
+
+
+E=4: -- 
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=4. -cfls=2. -show="cbRhos10E4.show" -go=go  >! cbRhos10E4.out
+
+E=5: -- relatively small movment
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=5. -cfls=2. -show="cbRhos10E5.show" -go=go  >! cbRhos10E5.out
+
+Less stiff: Movie
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=2. -cfls=2. -show="cbRhos10E2.show" -go=go  >! cbRhos10E2.out
+
+
+
+APPROX-AMP PIV - ALL COMPONENTS
+cgins cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -projectNormalComponent=0 -useApproximateAMPcondition=1 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=1. -cfls=2. -go=halt
+
+
+
+
+NOTE: DO NOT project velocity on beam ends -- otherwise beam is pinned at the right
+cgins cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=1. -cfls=2. -go=halt
+
+
+Less stiff: Movie
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=1. -cfls=2. -show="cbRhos10E1.show" -go=go  >! cbRhos10E1.out
+
+Less stiff: PIV=0
+cgins cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=0 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=1. -cfls=2. -go=halt
+
+Less stiff: OK (AMP=0 fails right away)
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=50. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=1. -cfls=2.
+
+
+Very light: trouble cfls=10 --> cfls=2 OK
+cgins cylBeam -g=cylBeamGride2.order2 -tf=200. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=1. -E=10. -cfls=2 
+
+
+Lighter beam: OK
+cgins cylBeam -g=cylBeamGride2.order2 -tf=200. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=10. -E=10. -cfls=10.
+
+OK:
+cgins cylBeam -g=cylBeamGride2.order2 -tf=200. -tp=.1 -nu=.005 -addedMass=1 -ampProjectVelocity=1 -useApproximateAMPcondition=0 -smoothInterfaceVelocity=1 -rhoBeam=20. -E=10. -cfls=10.
+
+
+**** 2015/01/01 -- initial runs
+
+STiffer: 
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=200. -tp=1. -nu=.005 -addedMass=1 -rhoBeam=20. -E=100. -show=cb2a.show -go=go >! cb2a.out
+
+OK: but large amplitude oscillations form:
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=200. -tp=1. -nu=.005 -addedMass=1 -rhoBeam=20. -E=20. -show=cb2.show -go=go >! cb2.out
+
+TROUBLE: AMP=0, AMP=1 OK
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=200. -tp=1. -nu=.005 -addedMass=1 -rhoBeam=20. -E=10.
+
+# initial large amplitude motion then settles into a small amp oscillation
+# AMP NOT needed:
+cgins -noplot cylBeam -g=cylBeamGride2.order2 -tf=200. -tp=1. -nu=.005 -addedMass=1 -rhoBeam=50. -E=10. -show=cb2.show -go=go >! cb2.out
+
+OK: 
+cgins cylBeam -g=cylBeamGride2.order2 -tf=1. -tp=.01 -nu=.005 -addedMass=1 -rhoBeam=100.
+
+
+ogen -noplot cylBeamGrid -interp=e -factor=2

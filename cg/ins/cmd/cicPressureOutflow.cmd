@@ -1,4 +1,6 @@
 #
+#  **** TEST SETTING PRESSURE PROFILE AT OUTFLOW ****
+#
 # cgins command file for flow past a cylinder
 #
 # Usage:

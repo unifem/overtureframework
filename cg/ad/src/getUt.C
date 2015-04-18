@@ -64,6 +64,8 @@ getUt(const realMappedGridFunction & v,
   const bool variableDiffusivity = parameters.dbase.get<bool >("variableDiffusivity");
   const bool variableAdvection = parameters.dbase.get<bool >("variableAdvection");
 
+  const bool & implicitAdvection = parameters.dbase.get<bool >("implicitAdvection");
+
   MappedGrid & mg = *(v.getMappedGrid());
   MappedGridOperators & op = *(v.getOperators());
   
@@ -101,7 +103,7 @@ getUt(const realMappedGridFunction & v,
   {
     OV_ABORT(" Cgad::getUt:ERROR:advectVar not created! ");
   }
-  realArray & advectVar = variableDiffusivity ? (*pAdvectVar)[grid] : dvdt; 
+  realArray & advectVar = variableAdvection ? (*pAdvectVar)[grid] : dvdt; 
   OV_GET_SERIAL_ARRAY_CONDITIONAL(real,advectVar,advectVarLocal,variableAdvection);
   
   if( debug() & 4 && adjustForMovingGrids )
@@ -226,25 +228,54 @@ getUt(const realMappedGridFunction & v,
 	  {
 	    // Here are the terms that we treat explicitly:
             // utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m);
-	    if( variableAdvection )
+	    if( !implicitAdvection )
 	    {
-	      utLocal(I1,I2,I3,m)=
-		- ( advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3,m) );
+	      // --- advection terms: explicit
+              // --- diffusion terms: implicit
+	      if( variableAdvection )
+	      {
+		utLocal(I1,I2,I3,m)=
+		  - ( advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3,m) );
+	      }
+	      else
+	      {
+		utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m);
+	      }
+
+	      if( implicitOption==Parameters::computeImplicitTermsSeparately )
+	      {
+		// Here are the terms for the part treated implicitly
+              
+		// real nuE = kappa[m]*(1.-implicitFactor);   // This is no longer done here *wdh* 0711122
+		// utiLocal(I1,I2,I3,m)=nuE*uLap(I1,I2,I3,m);
+		utiLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
+	      }
 	    }
-            else
+	    else
 	    {
-	      utLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m);
+	      // --- advection terms: implicit
+              // --- diffusion terms: implicit
+	      utLocal(I1,I2,I3,m)=0.;  // no terms are entirely explicit 
+
+	      if( implicitOption==Parameters::computeImplicitTermsSeparately )
+	      {
+		// Here are the terms for the part treated implicitly
+              
+		if( variableAdvection )
+		{
+		  utiLocal(I1,I2,I3,m)=
+		    - ( advectVarLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + advectVarLocal(I1,I2,I3,1)*uy(I1,I2,I3,m) ) + uLap(I1,I2,I3,m);
+		}
+		else
+		{
+		  utiLocal(I1,I2,I3,m)=(-a[m])*ux(I1,I2,I3,m)+(-b[m])*uy(I1,I2,I3,m) + uLap(I1,I2,I3,m);
+		}
+	      }
+
 	    }
 
-	    if( implicitOption==Parameters::computeImplicitTermsSeparately )
-	    {
-              // Here are the terms for the part treated implicitly
-              
-	      // real nuE = kappa[m]*(1.-implicitFactor);   // This is no longer done here *wdh* 0711122
-	      // utiLocal(I1,I2,I3,m)=nuE*uLap(I1,I2,I3,m);
-              utiLocal(I1,I2,I3,m)=uLap(I1,I2,I3,m);
-	    }
 	  }
+
           if( adjustForMovingGrids )
 	  {
 	    utLocal(I1,I2,I3,m) += gvLocal(I1,I2,I3,0)*ux(I1,I2,I3,m) + gvLocal(I1,I2,I3,1)*uy(I1,I2,I3,m);

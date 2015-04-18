@@ -27,7 +27,7 @@ class Parameters;
 class ElasticFilament;
 class BeamModel;
 class NonlinearBeamModel;
-
+class BodyForce;
 
 //................................
 class DeformingBodyMotion
@@ -41,6 +41,7 @@ friend class AsfParameters;
 friend class CnsParameters;
 friend class InsParameters;
 friend class SmParameters;
+friend class Cgins;
 
 enum DeformingBodyType
 {
@@ -81,8 +82,13 @@ DeformingBodyMotion(Parameters & params,
 
 ~DeformingBodyMotion();
 
+int buildBeamFluidInterfaceData( CompositeGrid & cg );
+
 int buildElasticShellOptionsDialog(DialogData & dialog );
+
 int buildElasticBeamOptionsDialog(DialogData & dialog );
+
+int buildFreeSurfaceOptionsDialog(DialogData & dialog );
 
 // apply correction at time t using new values of the forces at time t.
 int correct( real t1, real t2, 
@@ -96,12 +102,15 @@ const IntegerArray & getBoundaryFaces() const;
 // Construct a grid from the past time, needed to start some PC schemes.
 int getPastTimeGrid(  real pastTime , CompositeGrid & cg );
 
-int getAccelerationBC( const real time0, const int grid, MappedGrid & mg, 
-		       const Index &I1, const Index &I2, const Index &I3, 
+int getAccelerationBC( const real time0, const int grid, const int side, const int axis,
+                       MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
 		       realSerialArray & bcAcceleration);
 
 // return the order of accuracy used to compute the acceleration 
 int getAccelerationOrderOfAccuracy() const;
+
+// return body as a BodyForce object for plotting 
+int getBody( BodyForce & body );
 
 int getBodyVolumeAndSurfaceArea( CompositeGrid & cg, real & volume, real & area );
 
@@ -109,7 +118,10 @@ int getBodyVolumeAndSurfaceArea( CompositeGrid & cg, real & volume, real & area 
 BeamModel& getBeamModel();
 
 int getElasticShellOption(const aString & answer, DialogData & dialog );
+
 int getElasticBeamOption(const aString & answer, DialogData & dialog );
+
+int getFreeSurfaceOption(const aString & answer, DialogData & dialog );
 
 // return the initial state (position, velocity, acceleration)
 int getInitialState( InitialStateOptionEnum stateOption, 
@@ -117,8 +129,11 @@ int getInitialState( InitialStateOptionEnum stateOption,
                      const int grid, MappedGrid & mg, const Index &I1, const Index &I2, const Index &I3, 
 		     realSerialArray & state );
 
+real getMaximumRelativeCorrection() const;
+
 int getNumberOfGrids(); 
 
+real getTimeStep() const;
 
 int getVelocity( const real time0, 
 		 const int grid, 
@@ -145,6 +160,9 @@ int initializePast( real time00, real dt00, CompositeGrid & cg);
 // return true if the deforming body is a beam model
 bool isBeamModel() const;
 
+// return true if this is a beam model with fluid on two sides
+bool beamModelHasFluidOnTwoSides() const;
+
 // integrate the BODY to a new time
 int integrate( real t1, real t2, real t3, 
 	       GridFunction & cgf1,GridFunction & cgf2,GridFunction & cgf3,
@@ -154,6 +172,12 @@ int integrate( real t1, real t2, real t3,
 int plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp );
 
 void printFilamentHyperbolicDimensions(CompositeGrid & cg00, int gridToMove00);
+
+// print time step info
+void printTimeStepInfo( FILE *file=stdout );
+
+// Project the interface velocity (for added mass schemes)
+int projectInterfaceVelocity( GridFunction & cgf );
 
 int regenerateComponentGrids( const real newT, CompositeGrid & cg);
 
@@ -184,6 +208,9 @@ bool hasCorrectionConverged() const;
 int get( const GenericDataBase & dir, const aString & name);
 
 int put( GenericDataBase & dir, const aString & name) const;
+
+// Write information about the moving grids
+void writeParameterSummary( FILE *file= stdout );
 
 protected: 
 

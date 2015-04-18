@@ -1,0 +1,21 @@
+Incompressible flow past a deforming circle that mimics the growth of ice
+
+
+(1) Build some  grids:
+    ogen -noplot circleDeformGrid -interp=e -factor=2
+    ogen -noplot circleDeformGrid -interp=e -factor=2
+    ogen -noplot circleDeformGrid -interp=e -factor=4
+    ogen -noplot circleDeformGrid -interp=e -xb=5 -factor=5
+   
+
+(2) Run interactively:
+
+cgins deform -g=circleDeformGride2.order2.hdf -dg=ice -nu=.02 -tf=2. -tp=.1 -model=ins -go=halt
+
+(3) Run in batch and save a show file
+
+cgins -noplot circleDeform -g=circleDeformGride5.order2.hdf -dg=ice -deformFrequency=.5 -nu=.002 -tf=20. -tp=.01 -model=ins -show=iceDeform5.show -go=go > iceDeform5.out & 
+
+(4) Plot results from the show file:
+
+  plotStuff plotCircleDeform.cmd -show=iceDeform5.show

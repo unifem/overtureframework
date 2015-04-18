@@ -136,7 +136,7 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
   assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 ||
           parameters.dbase.get<int >("orderOfPredictorCorrector")==4 );
 
-  // *wdh* 090804
+  const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy"); 
   const int predictorOrder = parameters.dbase.get<int >("orderOfPredictorCorrector"); // is this correct? 
 
   if( parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::adamsBashforth2 )
@@ -192,6 +192,8 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
     // **** To initialize the method we need to compute du/dt at times t and t-dt *****
 
     // this is a macro (pcMacros.h):
+    const int numberOfPastTimes=1;                            // PC needs u(t-dt)
+    const int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
     initializePredictorCorrector(adamsPC,gf[mab0].u);
     
   }
@@ -438,6 +440,8 @@ advanceSecondOrderSystem( real & t0, real & dt0, int & numberOfSubSteps, int & i
     // ----------------- Moving Grids -----------------------
     // ------------------------------------------------------
     real tb=gf[mCur].t-dt1, tc=tb-dt2, td=tc-dt3; // check me 
+    const int numberOfPastTimes=0;
+    const int numberOfPastTimeDerivatives=predictorOrder-1; 
     moveTheGridsMacro(adamsPC,gf[mCur].u, predictorOrder,tb,ub,tc,uc,td,ud);
 
     // coefficients for the 4th-order AdamsBashforth predictor for variable dt (from ab.maple)

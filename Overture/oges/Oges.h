@@ -69,7 +69,8 @@ class Oges
                                         const IntegerArray & boundaryConditions,
                                         const RealArray & bcData, 
                                         RealArray & constantCoeff=Overture::nullRealArray(),
-                                        realCompositeGridFunction *variableCoeff=NULL );
+                                        realCompositeGridFunction *variableCoeff=NULL,
+				        realCompositeGridFunction *advectionCoeff=NULL );
 
   // supply matrix coefficients and boundary conditions
   int setCoefficientsAndBoundaryConditions( realCompositeGridFunction & coeff,
@@ -152,7 +153,7 @@ class Oges
 
   void reference(const Oges &); 
 
-  // Supply the coefficient matrix (and optionnally boundary conditions, needed buy multigrid for e.g.): 
+  // Supply the coefficient matrix (and optionally boundary conditions, needed buy multigrid for e.g.): 
   int setCoefficientArray( realCompositeGridFunction & coeff,
 			   const IntegerArray & boundaryConditions=Overture::nullIntArray(),
                            const RealArray & bcData=Overture::nullRealArray() );

@@ -110,9 +110,7 @@ applyBoundaryConditions(GridFunction & cgf,
     }
   }
 
-
-
-  // Assign any interface boundary conditions
+  // Assign some interface boundary conditions here: 
   assignInterfaceBoundaryConditions(cgf,option,grid_,puOld,dt);
 
   checkArrayIDs(" applyBoundaryConditions (after applyBC's)"); 
@@ -387,6 +385,7 @@ getTimeDependentBoundaryConditions( MappedGrid & mg,
                "factor=%6.2e u0=%8.2e v0=%8.2e w0=%8.2e\n",
 	       t,(int)forcingType,t0,a0,a1,omega,factor,u0[0],u0[1],u0[2]);
 
+        // **FIX ME FOR pressure info ***
 	for( int n=0; n<numberOfDimensions; n++ )
 	{
 	  int c = parameters.dbase.get<int >("uc")+n;

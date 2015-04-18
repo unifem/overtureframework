@@ -146,6 +146,8 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
 
   /// \li <b> showResdiuals (int) </b> : if true show the residuals
   if (!dbase.has_key("showResiduals")) dbase.put<int>("showResiduals");
+  /// \li <b> pResidual (realCompositeGridFunction*) </b> : pointer to the current residual grid function (if not NULL)
+  if (!dbase.has_key("pResidual")) dbase.put<realCompositeGridFunction*>("pResidual")=NULL;
   /// \li <b> statistics (RealArray) </b> : an array to hold statistics.
   if (!dbase.has_key("statistics")) dbase.put<RealArray>("statistics");
   /// \li <b> timeSequence (RealArray) </b> : array to hold time sequences such as the residual norm over time.
@@ -195,7 +197,12 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("twilightZoneChoice")) dbase.put<Parameters::TwilightZoneChoice>("twilightZoneChoice");
   if (!dbase.has_key("divDampingImplicitTimeStepReductionFactor")) dbase.put<real>("divDampingImplicitTimeStepReductionFactor");
   if (!dbase.has_key("nuRho")) dbase.put<real>("nuRho");
+
+  // predictedPressureNeeded: sometimes we need a predicted value for the pressure at the new time which can
+  //  be obtained by extrapolation in time.
+  if (!dbase.has_key("predictedPressureNeeded")) dbase.put<bool>("predictedPressureNeeded")=false;
   if (!dbase.has_key("orderOfTimeExtrapolationForPressure")) dbase.put<int>("orderOfTimeExtrapolationForPressure");
+
   if (!dbase.has_key("reducedInterpolationWidth")) dbase.put<int>("reducedInterpolationWidth");
   if (!dbase.has_key("bcInfo")) dbase.put<IntegerArray>("bcInfo");
   if (!dbase.has_key("bcData")) dbase.put<RealArray>("bcData");
@@ -366,6 +373,7 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   if (!dbase.has_key("ad42n")) dbase.put<real>("ad42n");
   if (!dbase.has_key("useNewFourthOrderBoundaryConditions")) dbase.put<int>("useNewFourthOrderBoundaryConditions");
   if (!dbase.has_key("orderOfPredictorCorrector")) dbase.put<int>("orderOfPredictorCorrector");
+  if (!dbase.has_key("orderOfBDF")) dbase.put<int>("orderOfBDF")=2;
   if (!dbase.has_key("numberOfShowVariables")) dbase.put<int>("numberOfShowVariables");
   if (!dbase.has_key("cornerExtrapolationOption")) dbase.put<int>("cornerExtrapolationOption");
   if (!dbase.has_key("cflOpt")) dbase.put<real>("cflOpt");
@@ -605,9 +613,21 @@ Parameters(const int & numberOfDimensions0) : pdeName("unknown"), numberOfBCName
   // -- added mass parameters --
   //  useAddedMassAlgorithm : turn on the added mass algorithm
   //  projectAddedMassVelocity : perform the added mass velocity projection (if useAddedMassAlgorithm=true)
-  if( !dbase.has_key("useAddedMassAlgorithm") ) dbase.put<bool>("useAddedMassAlgorithm")=false;
-  if( !dbase.has_key("projectAddedMassVelocity") ) dbase.put<bool>("projectAddedMassVelocity")=true;
+  // *** ALL these parameters should be in the DeformingBody ****  FIX ME **
 
+  if( !dbase.has_key("useAddedMassAlgorithm") ) dbase.put<bool>("useAddedMassAlgorithm")=false;
+  if( !dbase.has_key("useApproximateAMPcondition") ) dbase.put<bool>("useApproximateAMPcondition")=false;
+  if( !dbase.has_key("projectAddedMassVelocity") ) dbase.put<bool>("projectAddedMassVelocity")=true;
+  if( !dbase.has_key("projectNormalComponentOfAddedMassVelocity") )
+     dbase.put<bool>("projectNormalComponentOfAddedMassVelocity")=false;
+  if( !dbase.has_key("projectBeamVelocity") ) dbase.put<bool>("projectBeamVelocity")=true;
+  if( !dbase.has_key("projectVelocityOnBeamEnds") ) dbase.put<bool>("projectVelocityOnBeamEnds")=true;
+  if( !dbase.has_key("smoothInterfaceVelocity") ) dbase.put<bool>("smoothInterfaceVelocity")=true;
+  if( !dbase.has_key("numberOfInterfaceVelocitySmooths") ) dbase.put<int>("numberOfInterfaceVelocitySmooths")=1;
+  if( !dbase.has_key("fluidAddedMassLengthScale") ) dbase.put<real>("fluidAddedMassLengthScale")=1.;
+
+  // For the traditional FSI scheme we sometimes perform sub-iterations for FSI problems
+  if( !dbase.has_key("useMovingGridSubIterations") ) dbase.put<bool>("useMovingGridSubIterations")=false;
 
 
   // -----------------------------------------------------------------
@@ -1726,7 +1746,9 @@ thereAreTimeDependentUserBoundaryConditions(const Index & Side,
     {
       for(int grid=G.getBase(); grid<=G.getBound(); grid++ )
       {
-	if(  dbase.get<IntegerArray >("bcInfo")(0,side,axis,grid)>=numberOfPredefinedBoundaryConditionTypes && bcIsTimeDependent(side,axis,grid) )
+	// if(  dbase.get<IntegerArray >("bcInfo")(0,side,axis,grid)>=numberOfPredefinedBoundaryConditionTypes && bcIsTimeDependent(side,axis,grid) )
+        // *wdh* 2015/03/27 -- do this for now *fix me*
+	if( bcIsTimeDependent(side,axis,grid) )
 	{
 	  return true;
 	}
@@ -1752,34 +1774,36 @@ setBcType(int side, int axis, int grid, BoundaryConditionType bc)
 }
 
 
-// ===================================================================================================================
-/// \brief Return the user defined boundary condition type.
-/// \param side (input) : side
-/// \param axis (input) : axis
-/// \param grid (input) : grid
-/// \return return the boundary condition type for a given face of a grid.
-// ===================================================================================================================
-int Parameters::
-userBcType(int side, int axis, int grid) const
-{
-  return  dbase.get<IntegerArray >("bcInfo")(0,side,axis,grid)-numberOfPredefinedBoundaryConditionTypes;
-}
+// OLD *wdh* 2015/03/27 
+// // ===================================================================================================================
+// /// \brief Return the user defined boundary condition type.
+// /// \param side (input) : side
+// /// \param axis (input) : axis
+// /// \param grid (input) : grid
+// /// \return return the boundary condition type for a given face of a grid.
+// // ===================================================================================================================
+// int Parameters::
+// userBcType(int side, int axis, int grid) const
+// {
+//   return  dbase.get<IntegerArray >("bcInfo")(0,side,axis,grid)-numberOfPredefinedBoundaryConditionTypes;
+// }
 
 
-// ===================================================================================================================
-/// \brief Set the user defined boundary condition type for a particular side.
-/// \param side (input) : side
-/// \param axis (input) : axis
-/// \param grid (input) : grid
-/// \param bc (input) : boundary condition number.
-// ==================================================================================================================
-int Parameters::
-setUserBcType(int side, int axis,int grid, int bc)
-{
+// OLD *wdh* 2015/03/27 
+// // ===================================================================================================================
+// /// \brief Set the user defined boundary condition type for a particular side.
+// /// \param side (input) : side
+// /// \param axis (input) : axis
+// /// \param grid (input) : grid
+// /// \param bc (input) : boundary condition number.
+// // ==================================================================================================================
+// int Parameters::
+// setUserBcType(int side, int axis,int grid, int bc)
+// {
   
-  dbase.get<IntegerArray >("bcInfo")(0,side,axis,grid)=bc+numberOfPredefinedBoundaryConditionTypes;
-  return 0;
-}
+//   dbase.get<IntegerArray >("bcInfo")(0,side,axis,grid)=bc+numberOfPredefinedBoundaryConditionTypes;
+//   return 0;
+// }
 
 // ===================================================================================================================
 /// \brief Return true if the boundary face has a boundary condition that varies in space.
@@ -3036,6 +3060,7 @@ saveParametersToShowFile()
   subDir.GP( dbase.get<IntegerArray >("gridIsImplicit"),"gridIsImplicit");\
   subDir.GP( dbase.get<IntegerArray >("timeStepType"),"timeStepType");\
   subDir.GP( dbase.get<int >("orderOfPredictorCorrector"),"orderOfPredictorCorrector");\
+  subDir.GP( dbase.get<int >("orderOfBDF"),"orderOfBDF");\
 \
   subDir.GP( dbase.get<int >("initializeImplicitTimeStepping"),"initializeImplicitTimeStepping");  \
   subDir.GP( dbase.get<int >("scalarSystemForImplicitTimeStepping"),"scalarSystemForImplicitTimeStepping");\
@@ -4250,10 +4275,11 @@ updateKnownSolutionToMatchGrid(CompositeGrid & cg )
 /// \brief Return a known solution.
 /// \param cg (input) : match to this grid.
 /// \param t (input) : time to evaluate the known solution.
+/// \param numberOfTimeDerivatives (input) : number of time derivatives to evaluate (0 means evaluate the solution).
 /// \return Return a reference to the known solution.
 // ===================================================================================================================
 realCompositeGridFunction& Parameters::
-getKnownSolution( CompositeGrid & cg, real t )
+getKnownSolution( CompositeGrid & cg, real t, int numberOfTimeDerivatives /* =0 */ )
 {
   bool initialCall=false;
   realCompositeGridFunction *& pKnownSolution = dbase.get<realCompositeGridFunction* >("pKnownSolution");
@@ -4276,7 +4302,7 @@ getKnownSolution( CompositeGrid & cg, real t )
   {
     MappedGrid & mg = cg[grid];
     getIndex(mg.dimension(),I1,I2,I3);
-    getKnownSolution( t,grid,I1,I2,I3,initialCall);
+    getKnownSolution( t,grid,I1,I2,I3,initialCall,numberOfTimeDerivatives);
   }
   return *pKnownSolution;
 }
@@ -4289,11 +4315,14 @@ getKnownSolution( CompositeGrid & cg, real t )
 /// \param I2 (input) :
 /// \param I3 (input) :
 /// \param initialCall (input) : true if this is the initial call. 
+/// \param numberOfTimeDerivatives (input) : number of time derivatives to evaluate (0 means evaluate the solution).
 /// \return Return a reference to the known solution.
 /// \note This routine assumes that getKnownSolution(cg,t) has been intially called to allocate space. 
 // ===================================================================================================================
 realMappedGridFunction& Parameters::
-getKnownSolution(real t, int grid, const Index & I1, const Index &I2, const Index &I3, bool initialCall /* =false */  )
+getKnownSolution(real t, int grid, const Index & I1, const Index &I2, const Index &I3, 
+                 bool initialCall /* =false */, 
+                 int numberOfTimeDerivatives /* = 0 */  )
 {
   realCompositeGridFunction *& pKnownSolution = dbase.get<realCompositeGridFunction* >("pKnownSolution");
   if( pKnownSolution==NULL )
@@ -4330,7 +4359,10 @@ getKnownSolution(real t, int grid, const Index & I1, const Index &I2, const Inde
 
   if( knownSolution==userDefinedKnownSolution )
   {
-    getUserDefinedKnownSolution(t,cg,grid,uaLocal,I1,I2,I3);
+    getUserDefinedKnownSolution(t,cg,grid,uaLocal,I1,I2,I3,numberOfTimeDerivatives);
+
+    if( dbase.get<int >("debug") & 16 ) 
+      ::display(uaLocal,sPrintF("getKnownSolution: grid=%i, t=%9.3e",grid,t),dbase.get<FILE* >("pDebugFile"),"%4.2f ");
   }
   else if( knownSolution==knownSolutionFromAShowFile )
   {

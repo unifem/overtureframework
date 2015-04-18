@@ -112,6 +112,26 @@ operator=(const BoundaryData & x)
     } // end for axis 
   } // end for side
   
+  // --- copy info about deforming bodies ---
+  if( x.dbase.has_key("deformingBodyNumber") )
+  {
+    if( !dbase.has_key("deformingBodyNumber") )
+      dbase.put<int[2][3]>("deformingBodyNumber");
+
+    int  (&deformingBodyNumber)[2][3] =   dbase.get<int[2][3]>("deformingBodyNumber");
+    const int (&xDeformingBodyNumber)[2][3] = x.dbase.get<int[2][3]>("deformingBodyNumber");
+    for( int s=0; s<=1; s++) for( int a=0; a<3; a++ ){ deformingBodyNumber[s][a]=xDeformingBodyNumber[s][a]; } //
+  }
+  else
+  {
+    // -- x does not have deforming body info, reset any existing deforming body info --
+    if( dbase.has_key("deformingBodyNumber") )
+    {
+      int (&deformingBodyNumber)[2][3] = dbase.get<int[2][3]>("deformingBodyNumber");
+      for( int s=0; s<=1; s++) for( int a=0; a<3; a++ ){ deformingBodyNumber[s][a]=-1; } //
+    }
+  }
+  
   return *this;
 }
 

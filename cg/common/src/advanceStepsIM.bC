@@ -150,6 +150,7 @@ initializeTimeSteppingIM( real & t0, real & dt0 )
   int &ndt0=adamsData.ndt0;
   real *dtp = adamsData.dtp;
 
+  const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
   const int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
   if( predictorOrder<0 || predictorOrder>2 )
   {
@@ -204,6 +205,8 @@ initializeTimeSteppingIM( real & t0, real & dt0 )
 
   // this is a macro (pcMacros.h):
   int numberOfExtraPressureTimeLevels=0;
+  const int numberOfPastTimes=1;                            // PC needs u(t-dt)
+  const int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
   initializePredictorCorrector(implicitPC,uti);
 
   return 0;
@@ -397,6 +400,8 @@ takeTimeStepIM( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 
     real tb=gf[mCur].t-dtb, tc=tb-dtb, td=tc-dtb; // tc,td not used
     assert( predictorOrder<=2 );
+    const int numberOfPastTimes=0;
+    const int numberOfPastTimeDerivatives=predictorOrder-1; 
     moveTheGridsMacro(adamsPC,uti, predictorOrder,tb,ub,tc,ub,td,ub);
 
     // we need to rebuild the implicit time stepping matrix.
@@ -557,6 +562,18 @@ takeTimeStepIM( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
   }
 
   // extrapolate p in time as an initial guess for iterative solvers
+  if( correction==0 )  // *new way* 2015/01/22
+  { 
+    // --- for some reason the implicit scheme always extrapolates p in time ---
+    if( parameters.dbase.has_key("extrapolatePoissonSolveInTime") )
+      parameters.dbase.get<bool>("predictedPressureNeeded")= parameters.dbase.get<bool>("extrapolatePoissonSolveInTime");
+    const int numberOfTimeLevels=3;
+    const int gfIndex[numberOfTimeLevels]={mNew,mCur,mOld}; // 
+    predictTimeIndependentVariables( numberOfTimeLevels,gfIndex );
+  }
+
+
+/*  -- OLD
   if( correction==0 && 
       ( parameters.dbase.has_key("extrapolatePoissonSolveInTime") && 
 	poisson->isSolverIterative() ) )
@@ -584,6 +601,8 @@ takeTimeStepIM( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
       // gf[mNew].u[grid](I1,I2,I3,pc)=(ab1/dt0)*gf[mCur].u[grid](I1,I2,I3,pc)+(ab2/dt0)*gf[mOld].u[grid](I1,I2,I3,pc);
     }
   }
+  --- */ 
+
     
   solveForTimeIndependentVariables( gf[mNew] ); 
 
@@ -593,22 +612,27 @@ takeTimeStepIM( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     determineErrors( gf[mNew],label );
   }
 
-  // correct for forces on moving bodies  *wdh* 040913
-  if( movingGridProblem() )  // may only need to do this for correction<numberOfCorrections
-  {
-    correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+  // -- Correct for forces on moving bodies if we have more corrections --
+  //  *wdh* use macro: 2015/03/08
+  correctForMovingGridsMacro(IMS);
+  advanceOptions.correctionIterationsHaveConverged=movingGridCorrectionsHaveConverged;  // we have converged 
 
-    // Check if the correction step has converged
-    bool isConverged = getMovingGridCorrectionHasConverged();
-    real delta = getMovingGridMaximumRelativeCorrection();
-    if( debug() & 1 )
-    {
-      printF("ImplicitMS: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
-	     delta,correction+1,(int)isConverged);
-    }
-    if( isConverged && correction >=minimumNumberOfPCcorrections )  
-      advanceOptions.correctionIterationsHaveConverged=true;  // we have converged 
-  }
+  // // correct for forces on moving bodies  *wdh* 040913
+  // if( movingGridProblem() )  // may only need to do this for correction<numberOfCorrections
+  // {
+  //   correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+
+  //   // Check if the correction step has converged
+  //   bool isConverged = getMovingGridCorrectionHasConverged();
+  //   real delta = getMovingGridMaximumRelativeCorrection();
+  //   if( debug() & 1 )
+  //   {
+  //     printF("ImplicitMS: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+  // 	     delta,correction+1,(int)isConverged);
+  //   }
+  //   if( isConverged && correction >=minimumNumberOfPCcorrections )  
+  //     advanceOptions.correctionIterationsHaveConverged=true;  // we have converged 
+  // }
 
   return 0;
 }

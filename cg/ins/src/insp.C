@@ -111,7 +111,8 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
     real beamMassPerUnitLength[2][3]={-1.,-1.,-1.,-1.,-1.,-1.};  // For beam models
     if( useAddedMassAlgorithm && parameters.gridIsMoving(grid) )
     {
-      printF("Cgins::updatePressureEquation: USE ADDED MASS ALGORITHM\n");
+      if( cgf.t <= dt )
+        printF("Cgins::updatePressureEquation: USE AMP ADDED MASS ALGORITHM grid=%i t=%8.2e\n",grid,cgf.t);
 
       BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
       std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
@@ -121,6 +122,8 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 
       MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
       
+      // printF("--UPE-- grid=%i has_key  deformingBodyNumber = %i\n",grid,(int)bd.dbase.has_key("deformingBodyNumber"));
+      
       if( bd.dbase.has_key("deformingBodyNumber") )
       {
 	int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
@@ -128,10 +131,13 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	{
 	  for( int axis=0; axis<cg0.numberOfDimensions(); axis++ )
 	  {
+            // printF("--UPE- deformingBodyNumber[side=%i][axis=%i]=%i\n",side,axis,deformingBodyNumber[side][axis]);
+	    
 	    if( deformingBodyNumber[side][axis]>=0 )
 	    {
               int body=deformingBodyNumber[side][axis];
-	      printF("--UPE-- grid=%i, (side,axis)=(%i,%i) belongs to deforming body %i\n",grid,side,axis,body);
+	      if( cgf.t <= dt )
+		printF("--UPE-- AMP: grid=%i, (side,axis)=(%i,%i) belongs to deforming body %i\n",grid,side,axis,body);
 
 	      DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
 	      if( deform.isBeamModel() )
@@ -141,7 +147,8 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 
 		real rhosHs=-1.;
 		beamModel.getMassPerUnitLength( beamMassPerUnitLength[side][axis] );
-		printF("--UPE-- BeamModel: beamMassPerUnitLength = %8.2e\n",beamMassPerUnitLength[side][axis]);
+  	        if( cgf.t <= dt )
+		  printF("--UPE-- AMP: BeamModel: beamMassPerUnitLength = %8.2e\n",beamMassPerUnitLength[side][axis]);
 
 	      }
 	      
@@ -184,9 +191,14 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 	  const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
 	  assert( fluidDensity>0. );
 	  
-	  printF("--UPE-- grid=%i (side,axis)=(%i,%i) Apply added mass pressure BC, t=%8.2e\n",grid,side,axis,cgf.t);
-	  printF("--UPE-- Boundary is a beam, beamMassPerUnitLength = %8.2e. fluidDensity=%8.2e\n",beamMassPerUnitLength[side][axis],fluidDensity);
-
+	  if( cgf.t <= dt )
+	  {
+		
+	    printF("--UPE-- grid=%i (side,axis)=(%i,%i) Apply AMP pressure BC, t=%8.2e\n",grid,side,axis,cgf.t);
+	    printF("--UPE-- Boundary is a beam, beamMassPerUnitLength = %8.2e. fluidDensity=%8.2e\n",
+                    beamMassPerUnitLength[side][axis],fluidDensity);
+	  }
+	  
 	    
 	  boundaryConditions(side,axis,grid)=OgesParameters::mixed;  
 	  mixedNormalCoeff(pc,side,axis,grid)=beamMassPerUnitLength[side][axis]/fluidDensity;
@@ -469,6 +481,15 @@ updatePressureEquation(CompositeGrid & cg0, GridFunction & cgf )
 // 					RealArray & constantCoeff,
 // 					realCompositeGridFunction *varCoeff /* =NULL */ )
 
+      if( useAddedMassAlgorithm )
+      {
+        // Make any adjustments to the equations needed for the added mass algorithm
+        adjustPressureCoefficients( cg0, cgf );
+      }
+      
+
+
+
       if( false )
       {
 	realCompositeGridFunction & coeff = poisson->coeff;
@@ -621,6 +642,7 @@ updateDivergenceDamping( CompositeGrid & cg0, const int & geometryHasChanged )
       assert( grid < hMin.size() && hMin[grid]>=0 );  // this needs to be computed
       
       const int nd=parameters.dbase.get<int >("compare3Dto2D") ? min(2,cg0.numberOfDimensions()) : cg0.numberOfDimensions();
+      // *** FIX ME 2015/03/22 : Not dimensionally correct to compare nu to hMin !!
       real cdvnu=cdv*max(nu,hMin[grid])*4/nd;
 
       #ifdef USE_PPP

@@ -608,9 +608,9 @@ setBoundaryConditionValues(const aString & answer,
       }
     }
   }
-  // int code=0;
-  if( userDefinedBoundaryData!=NULL ||
-      variableBoundaryData!=NULL )
+
+  // *wdh* 2015/03/27 if( userDefinedBoundaryData!=NULL || variableBoundaryData!=NULL )
+  if( variableBoundaryData!=NULL )
   {
     numRead=0;
     //             char *pos;
@@ -637,6 +637,9 @@ setBoundaryConditionValues(const aString & answer,
     value(dc)=parabolicBoundaryLayerWidth;  // give a default value
     assignParameterValues("boundary conditions",value,numRead,c,val, "d",dc ); 
     parabolicBoundaryLayerWidth=value(dc);  // here we use the value extracted for "d"
+
+    // printf("PARABOLIC: value=[%e,%e,%e,%e]\n",value(0),value(1),value(2),value(3));
+    
   }
   else if ( blasius!=NULL )
   {
@@ -818,6 +821,7 @@ if ( mixedDerivative!=NULL  || isMixedBC(bc) )
 
           // *** assign parameter values for this face:
           const bool printBcDataValues=false; 
+
 	  if( printBcDataValues ) printF("Assign bcData values : \n");
 	  for( n=0; n<=value.getBound(0); n++ )
 	  {
@@ -870,11 +874,18 @@ if ( mixedDerivative!=NULL  || isMixedBC(bc) )
 	    }
 	    else if( userDefinedBoundaryData!=NULL )
 	    {
-	      setBcType(side,axis,grid,Parameters::parabolicInflowOscillating );
+	      // setBcType(side,axis,grid,Parameters::parabolicInflowOscillating );
+	      setBcType(side,axis,grid,Parameters::parabolicInflowUserDefinedTimeDependence ); // *wdh* 2015/03/27 
 	      setBcIsTimeDependent(side,axis,grid,true);
 
+	      printF("--SBC-- set bcType=%i (parabolicInflowUserDefinedTimeDependence) bcData=[%e,%e,%e]\n",bcType(side,axis,grid),
+		     bcData(0,side,axis,grid),bcData(1,side,axis,grid),bcData(2,side,axis,grid));
+	      
 	      setBcVariesInSpace(side,axis,grid,true);  // always assume this for user BC's
 	      chooseUserDefinedBoundaryValues(side,axis,grid,cg);
+
+	      printF("--SBC-- after chooseUserDefinedBoundaryValues bcType=%i (parabolicInflowUserDefinedTimeDependence)\n",bcType(side,axis,grid));
+
 	    }
 	    else
 	      setBcType(side,axis,grid,Parameters::parabolicInflow);

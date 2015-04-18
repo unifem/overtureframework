@@ -102,7 +102,7 @@ assignInitialConditions(int gfIndex)
   }
   else if( initialConditionOption==Parameters::knownSolutionInitialCondition )
   {
-    printF("\n*** assignInitialConditions t=%9.3e\n",t);
+    printF("\n*** assignInitialConditions from knownSolutionInitialCondition t=%9.3e\n",t);
     
     // realCompositeGridFunction & uKnown = parameters.getKnownSolution( cg, parameters.dbase.get<real >("tInitial") );
     realCompositeGridFunction & uKnown = parameters.getKnownSolution( cg, t );

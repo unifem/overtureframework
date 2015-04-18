@@ -16,6 +16,7 @@
 #include "gridFunctionNorms.h"
 #include "ParallelUtility.h"
 #include "InterpolatePointsOnAGrid.h"
+#include <time.h>
 
 #include OV_STD_INCLUDE(vector)
 
@@ -96,9 +97,20 @@ computeRate( const int & n, const RealArray & h, const RealArray & e, real & sig
     if( fabs( r0-r1 )< rtol )
     {
       // Constant refinement factor:
-      s= log( (e(m0) - e(m1) )/e(m1) )/log( r1 );
+      real eRatio = (e(m0) - e(m1) )/e(m1);
+      if( eRatio>0. )
+      {
+        s= log( eRatio )/log( r1 );
+      }
+      else
+      {
+	s=-1;
+	printF("++computeRate: WARNING: component n=%i, errors are not decreasing! Setting convergence rate to -1\n",n);
+      }
+      
 
-      printF("++computeRate: there is a constant refinement factor r=%4.2f: rate=%8.2e\n",r0,s);
+      printF("++computeRate: there is a constant refinement factor r=%4.2f: e0=%8.2e, e1=%5.2e rate=%8.2e\n",
+	     r0,e(m0),e(m1),s);
     }
     else
     {
@@ -260,17 +272,28 @@ outputLatexTable( const std::vector<aString> gridName,
   else 
     fprintf(file,"%% -------------- l1 norm results -------------\n");
 
-  fprintf(file,"%% \\newcommand{\\num}[2]{#1e#2} %% Use this macro to define the format of the numbers in the table\n");
   if( assumeFineGridHoldsExactSolution )
     fprintf(file,"%% NOTE: the errors were computed assuming the fine grid holds the exact solution.\n");
 
+  fprintf(file,"\\begin{table}[hbt]\\tableFont %% you should set \\tableFont to \\footnotesize or other size\n");
+  fprintf(file,"%% \\newcommand{\\num}[2]{#1e{#2}} %% use this command to set the format of numbers in the table.\n");
+  fprintf(file,"%% \\newcommand{\\errFormat}[1]{#1}} %% use this command to set the format of the error label.\n");
+  fprintf(file,"\\begin{center}\n");
+
+  const int numberOfComponents=cName.size();
+  
+  fprintf(file,"\\begin{tabular}{|l|");
+  for( int j=0; j<numberOfComponents; j++ )
+    fprintf(file,"c|c|");
+  fprintf(file,"} \\hline \n");
+
   fprintf(file,"   grid             ");
   for( int c=0; c<cName.size(); c++ )
-    fprintf(file," &   err-%s   &  r  ",(const char*)cName[c]);
+    fprintf(file," & \\errFormat{%s} &  r  ",(const char*)cName[c]);
   fprintf(file,"\\\\ \\hline\n");
   for( int grid=0; grid<gridName.size(); grid++ )
   {
-    fprintf(file," grid=%s : ",(const char*)gridName[grid]);
+    fprintf(file," %s ",(const char*)gridName[grid]);
     
     for( int c=0; c<cName.size(); c++ )
     {
@@ -289,6 +312,22 @@ outputLatexTable( const std::vector<aString> gridName,
   for( int c=0; c<cName.size(); c++ )
     fprintf(file," &    %5.2f      &     ",cSigma(c));
   fprintf(file,"\\\\ \\hline\n");
+
+  fprintf(file,"\\end{tabular}\n");
+  // fprintf(file,"\\hfill\n");
+
+  // Get the current date
+  time_t *tp= new time_t;
+  time(tp);
+  // const char *dateString = ctime(tp);
+  aString dateString = ctime(tp);
+  delete tp;
+    
+  fprintf(file,"\\caption{%s-norm self convergence results, %s. }\n",
+	  (norm==0 ? "Max" : norm==1 ? "L2" : "L1"),(const char*)dateString(0,dateString.length()-2) );   // caption
+
+  fprintf(file,"\\end{center}\n");
+  fprintf(file,"\\end{table}\n");
 
   return 0;
 }
@@ -550,7 +589,7 @@ main(int argc, char *argv[])
       aString line;
       if( answer=="choose a solution" )
       {
-	ps.inputString(line,sPrintF(buff,"Enter the solution number to read, in [1,%i] \n",maxSolution[0]));
+	ps.inputString(line,sPrintF(buff,"Enter the solution number to read, in [1,%i] (-1=choose last) \n",maxSolution[0]));
 	sScanF(line,"%i",&solutionNumber[0]);
         for( int i=1; i<maxNumberOfFiles; i++ ) solutionNumber[i]=solutionNumber[0];
       }
@@ -578,6 +617,14 @@ main(int argc, char *argv[])
 
 	}
 	real timea=getCPU();
+	if( solutionNumber[i]<=0 )
+	{
+          // solutionNumber[i] = -1 : means choose last solution
+	  const int numberOfSolutions = showFileReader[i].getNumberOfSolutions();
+	  solutionNumber[i]=numberOfSolutions;
+	  printF("INFO: Setting solution=%i (last in file) since solutionNumber[i]<=0\n",solutionNumber[i]);
+	}
+	  
         showFileReader[i].getASolution(solutionNumber[i],cg[i],u[i]);        // read in a grid and solution
         timea=getCPU()-timea; timea=ParallelUtility::getMaxValue(timea);
 	
@@ -890,7 +937,8 @@ main(int argc, char *argv[])
 	  FILE *file = io==0 ? stdout : outFile;
 	  fPrintF(file,"h(%i)=%e, h(%i)=%e: \n",i,h(i),i+1,h(i+1));
 	  for( int c=v.getComponentBase(0); c<=v.getComponentBound(0); c++ )
-	    fPrintF(file," maxDiff(%i)=%e, l2Diff(%i)=%e , l1Diff(%i)=%e \n",c,maxDiff(i,c),c,l2Diff(i,c),c,l1Diff(i,c));
+	    fPrintF(file,"coarse=%i : ud = coarse -fine: component=%s : maxDiff(%i)=%e, l2Diff(%i)=%e , l1Diff(%i)=%e \n",
+		    i,(const char*)u[0].getName(c),c,maxDiff(i,c),c,l2Diff(i,c),c,l1Diff(i,c));
 	}
 	fflush(outFile);
       } // end for i 

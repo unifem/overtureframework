@@ -155,6 +155,7 @@ initializeTimeSteppingPC( real & t0, real & dt0 )
    int &ndt0=adamsData.ndt0;
    real *dtp = adamsData.dtp;
 
+  const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
   int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
   if( predictorOrder==0 )
     predictorOrder=2; // default
@@ -202,6 +203,8 @@ initializeTimeSteppingPC( real & t0, real & dt0 )
   }
   
   // this is a macro (pcMacros.h):
+  const int numberOfPastTimes=1;                            // PC needs u(t-dt)
+  const int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
   initializePredictorCorrector(adamsPC,gf[mab0].u);
     
   return 0;
@@ -294,8 +297,10 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 
   parameters.dbase.get<real >("dt")=dt0; // *wdh* 101106 this is the dt used in getUt (cns)
 
-  assert( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 ||
-          parameters.dbase.get<int >("orderOfPredictorCorrector")==4 );
+  const int orderOfPredictorCorrector = parameters.dbase.get<int >("orderOfPredictorCorrector");
+
+  assert( orderOfPredictorCorrector==2 ||
+          orderOfPredictorCorrector==4 );
 
   const int & predictorOrder = parameters.dbase.get<int>("predictorOrder");
 
@@ -374,7 +379,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
   realCompositeGridFunction & ua = fn[nab0];   // pointer to du/dt
   realCompositeGridFunction & ub = fn[nab1];   // pointer to du(t-dt)/dt
 
-  if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 ) 
+  if( orderOfPredictorCorrector==2 ) 
   {
     nab2 =  nab0;
     nab3 =  nab1;
@@ -579,6 +584,8 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     // ------------------------------------------------------
 
     real tb=gf[mCur].t-dt1, tc=tb-dt2, td=tc-dt3; // check me 
+    const int numberOfPastTimes=0;
+    const int numberOfPastTimeDerivatives=predictorOrder-1; 
     moveTheGridsMacro(adamsPC,gf[mCur].u, predictorOrder,tb,ub,tc,uc,td,ud);
 
 
@@ -716,13 +723,13 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 	const int maskOption=0; // assign pts where mask>0
 	int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
 	real rpar[5]={0.,0.,0.,0.,0.};
-	if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+	if( orderOfPredictorCorrector==2 )
 	{
 	  // u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab1*uta(I1,I2,I3,N) + ab2*utb(I1,I2,I3,N);
 	  ipar[0]=2;
 	  rpar[0]=ab1; rpar[1]=ab2;
 	}
-	else if( parameters.dbase.get<int >("orderOfPredictorCorrector")==4 )
+	else if( orderOfPredictorCorrector==4 )
 	{
 	  // here is the 4th-order predictor
 	  //  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
@@ -750,14 +757,14 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
       }
       else
       {
-	if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 ) 
+	if( orderOfPredictorCorrector==2 ) 
 	{
 	  // gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
 	  //   ab1*ua[grid](I1,I2,I3,N) + ab2*ub[grid](I1,I2,I3,N);
 
 	  u1(I1,I2,I3,N)=u0(I1,I2,I3,N) + ab1*uta(I1,I2,I3,N) + ab2*utb(I1,I2,I3,N);
 	}
-	else if( parameters.dbase.get<int >("orderOfPredictorCorrector")==4 )
+	else if( orderOfPredictorCorrector==4 )
 	{
 	  // here is the 4th-order predictor
 	  //  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N) + 
@@ -790,6 +797,11 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     }
 
 
+    // --- predict values for boundary conditions -- ( e.g. for fractional-step methods) ---
+    const int orderOfExtrapolation = orderOfPredictorCorrector==2 ? 3 : 4;
+    boundaryConditionPredictor( predictPressureAndVelocity,adamsData,orderOfExtrapolation,
+                                mNew,mCur,mOld,&ua,&ub,&uc,&ud );
+/* ---- OLD 
     if( parameters.dbase.get<int >("orderOfAccuracy")==4 )
     {
       // ******************************************
@@ -871,7 +883,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 	  }
 	
 	
-	if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+	if( orderOfPredictorCorrector==2 )
 	{
 	  if( false )
 	  {
@@ -984,7 +996,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 	      else
 		Iv[axis]=Range(gridIndexRange(side,axis)+1,gridIndexRange(side,axis)+2);
 		
-	      if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+	      if( orderOfPredictorCorrector==2 )
 	      {
 		if( false )
 		{
@@ -1109,6 +1121,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 	
       }
     }
+ -- */
 
     if( debug() & 16  )
     {
@@ -1140,6 +1153,15 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     }
 
     cpu0=getCPU();
+    if( true )
+    {  // extrapolate p in time as an initial guess for iterative solvers
+      // *new way* *wdh* 2015/01/21 
+      const int numberOfTimeLevels=3;
+      const int gfIndex[numberOfTimeLevels]={mNew,mCur,mOld}; // 
+      predictTimeIndependentVariables( numberOfTimeLevels,gfIndex );
+    }
+
+/* -- OLD
     if( poisson!=NULL && poisson->isSolverIterative() && parameters.dbase.get<int >("orderOfAccuracy")!=4 )
     {
       // extrapolate p in time as an initial guess for iterative solvers
@@ -1177,6 +1199,8 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 // **	gf[mNew].u[grid](I1,I2,I3,pc)=gf[mCur].u[grid](I1,I2,I3,pc);
       }
     }
+    -- */
+
     parameters.dbase.get<RealArray>("timing")(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
 
     
@@ -1272,7 +1296,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
       determineErrors( uNew,gf[mNew].gridVelocity, gf[mNew].t, 1, error,
 		       sPrintF(" takeTimeStepPC:corrector: errors in ut (uNew) at t=%e \n",gf[mNew].t) );
 
-      if( parameters.dbase.get<int >("orderOfPredictorCorrector")==4 )
+      if( orderOfPredictorCorrector==4 )
       {
 	if( parameters.isMovingGridProblem() )
 	  determineErrors( uc,gf[mNew].gridVelocity, t0-2.*dtb, 1, error,
@@ -1323,7 +1347,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 	int ipar[]={0,maskOption,n1a,n1b,n2a,n2b,n3a,n3b,N.getBase(),N.getBound()}; //
 	real rpar[5]={0.,0.,0.,0.,0.};
 	real *ut1p, *ut2p, *ut3p, *ut4p;
-	if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+	if( orderOfPredictorCorrector==2 )
 	{
 	  ipar[0]=2;
 	  rpar[0]=am1; rpar[1]=am2;
@@ -1332,7 +1356,7 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
 	  ut3p=ut2p;  // not used
 	  ut4p=ut2p;  // not used
 	}
-	else if( parameters.dbase.get<int >("orderOfPredictorCorrector")==4 )
+	else if( orderOfPredictorCorrector==4 )
 	{
 	  ipar[0]=4;
 	  rpar[0]=am41; rpar[1]=am42; rpar[2]=am43; rpar[3]=am44;
@@ -1355,12 +1379,12 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
       }
       else
       {
-	if( parameters.dbase.get<int >("orderOfPredictorCorrector")==2 )
+	if( orderOfPredictorCorrector==2 )
 	{
 	  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N)+am1*ub[grid](I1,I2,I3,N) 
 	    + am2*ua[grid](I1,I2,I3,N);
 	}
-	else if( parameters.dbase.get<int >("orderOfPredictorCorrector")==4 )
+	else if( orderOfPredictorCorrector==4 )
 	{
 	  gf[mNew].u[grid](I1,I2,I3,N)=gf[mCur].u[grid](I1,I2,I3,N)+am41*ud[grid](I1,I2,I3,N) 
 	    +am42*ua[grid](I1,I2,I3,N) 
@@ -1401,22 +1425,31 @@ takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceO
     bool updateSolutionDependentEquations=false;  // e.g. for variable density, do not update p eqn here 
     solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
 
-    // correct for forces on moving bodies if we have more corrections.
-    if( movingGridProblem() && (correction+1)<numberOfCorrections)
-    {
-      correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+    // -- Correct for forces on moving bodies if we have more corrections --
+    //  *wdh* use macro: 2015/03/08
+    correctForMovingGridsMacro(PC);
+    advanceOptions.correctionIterationsHaveConverged=movingGridCorrectionsHaveConverged;  // we have converged 
 
-      // Check if the correction step has converged
-      bool isConverged = getMovingGridCorrectionHasConverged();
-      real delta = getMovingGridMaximumRelativeCorrection();
-      if( debug() & 1 )
-      {
-	printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
-	       delta,correction+1,(int)isConverged);
-      }
-      if( isConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
-        advanceOptions.correctionIterationsHaveConverged=true;  // we have converged 
-    }
+    // // correct for forces on moving bodies if we have more corrections.
+    // if( movingGridProblem() && (correction+1)<numberOfCorrections)
+    // {
+    //   correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+
+    //   // Check if the correction step has converged
+    //   bool isConverged = getMovingGridCorrectionHasConverged();
+    //   real delta = getMovingGridMaximumRelativeCorrection();
+    //   if( debug() & 2 )
+    // 	printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+    // 	       delta,correction+1,(int)isConverged);
+    //   if( isConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
+    //   {
+    // 	if( debug() & 1 )
+    // 	  printF("PC: moving grid correction step : sub-iterations converged after %i corrections, rel-err =%8.2e\n",
+    // 		 correction+1,delta);
+    //     advanceOptions.correctionIterationsHaveConverged=true;  // we have converged 
+    //   }
+      
+    // }
     
     if( debug() & 4 )
       printf("takeTimeStepPC: After correction: max(fabs(gf[mNew]))=%e, max(fabs(gf[mCur]))=%e \n",
@@ -1492,9 +1525,16 @@ endTimeStepPC( real & t0, real & dt0, AdvanceOptions & advanceOptions )
   dtb=dt0;
   t0+=dt0;
 
-  if( parameters.dbase.get<int >("globalStepNumber") % parameters.dbase.get<int >("frequencyToSaveSequenceInfo") == 0 )
-    saveSequenceInfo(t0,fn[nab1]);
 
+   // -- Save a pointer to the residual:  fn[nab1] is assumed to hold the latest "residual" (i.e. du/dt) ---
+  realCompositeGridFunction *& pResidual  = parameters.dbase.get<realCompositeGridFunction*>("pResidual"); // current residual
+  pResidual = &fn[nab1];
+  if( parameters.dbase.get<int >("globalStepNumber") % parameters.dbase.get<int >("frequencyToSaveSequenceInfo") == 0 )
+  { // save residual in the sequence info (also output residual info if requested)
+    saveSequenceInfo(t0,*pResidual);
+    // saveSequenceInfo(t0,fn[nab1]);
+  }
+  
   output( gf[mab0],parameters.dbase.get<int >("globalStepNumber") ); // output to files, user defined output
 
 

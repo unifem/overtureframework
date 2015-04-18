@@ -345,9 +345,9 @@ parabolicInflow(GridFunction & cgf )
                 else
                   bd.redim(0);
 
-                if( debug() & 4 )
+                if( true || debug() & 4 )
 		{
-		  printF("*** allocate more space for parabolicInflowRamp or oscillate\n"
+		  printF("*** PARBOLIC allocate more space for parabolicInflowRamp or oscillate\n"
 			 "bd =[%i,%i][%i,%i][%i,%i][%i,%i]\n",
 			 bd.getBase(0),bd.getBound(0),bd.getBase(1),bd.getBound(1),
 			 bd.getBase(2),bd.getBound(2),bd.getBase(3),bd.getBound(3));
@@ -881,7 +881,7 @@ parabolicInflow(GridFunction & cgf )
 		    bd(Ig1,Ig2,Ig3,C)=bd(I1,I2,I3,C);
 		  }
 		  
-		  if( false ) 
+		  if( false )  // ***** 
 		  {
 		    display(bd,sPrintF(buff,"parabolicInflow: Here is the bd array for inflowFace=%i, (grid=%s,side=%i,axis=%i)",
 				       i,(const char *)c.mapping().getName(Mapping::mappingName),side,axis),pDebugFile);

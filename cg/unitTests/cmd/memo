@@ -1,3 +1,155 @@
+**** 2015/02/26
+
+tbm -noplot beamComputeForce -E=1. -tension=1. -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=2 -degreeT=1
+
+
+
+**** 2015/02/22 ** TEST beam internal force
+
+tbm -noplot beamComputeForce -E=1. -tension=1. -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=4 -K0=1. -Kt=1. -Kxxt=1.
+
+All beam terms -- exact
+tbm -noplot beamComputeForce -E=1. -tension=1. -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=3 -K0=1. -Kt=1. -Kxxt=1.
+numElem = 10, maximum err = 3.51e-11
+
+
+degree 4: 2nd order
+numElem = 10, maximum err = 8.95e-03
+numElem = 20, maximum err = 2.24e-03
+numElem = 40, maximum err = 5.59e-04
+
+EXACT: degreeX=1,2,3
+tbm -noplot beamComputeForce -E=1. -tension=1. -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=2
+
+
+tbm -noplot beamComputeForce -numElem=5 -E=0. -tension=1 -orderOfProjection=4 -option=internalForce
+
+tbm -noplot beamComputeForce -numElem=5 -forceDegreeX=3 -orderOfProjection=4 -option=internalForce
+
+
+*** 2015/02/10 -- TEST: exact for degreex=4 ? .. YES
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=4 -degreet=1 -bc=c -tension=1. -tf=.5 -orderOfProjection=4 [ exact
+
+
+*** 2015/01/10-13 *** velocity projection in the beam + fourth-order Galerkin projection
+
+=== FIXED check-velocity-projection to use a different number of nodes
+
+Exact: degree=3: (not exact for degree=4)
+tbm -noplot beamProjectVelocity -thick=1.e-2 -degreex=3 -degreet=1 -orderOfprojection=4
+--TBM-- projectSurfaceVelocityOntoBeam: maxDiff=0.000e+00,  max-err=1.87e-05
+
+
+tbm -noplot beamProjectVelocity  -thick=1.e-2 -degreex=2 -degreet=1 -orderOfprojection=4
+
+**** REDO - compute force 
+EXACT for degree=3 
+tbm -noplot beamComputeForce -numElem=10 -forceDegreeX=3 -orderOfProjection=4
+
+tbm -noplot beamComputeForce -numElem=10
+
+EXACT : 
+tbm -noplot beamProjectVelocity -thick=1.e-2 -degreex=4 -degreet=1 -orderOfprojection=4 -numElem=5
+--BM-- projectSurfaceVelocityOntoBeam:END: : v[current] at t=0.000e+00
+    (      0) (      1) (      2) (      3) (      4) (      5) (      6) (      7) (      8) (      9) (     10) (     11)
+(0) -5.00e-01 2.50e-01 -4.55e-01 2.03e-01 -4.20e-01 1.42e-01 -4.01e-01 3.79e-02 -4.09e-01 -1.37e-01 -4.63e-01 -4.12e-01
+--BM-- projectSurfaceVelocityOntoBeam: surfaceVelocity at t=0.000e+00
+    (      0) (      1) (      2) (      3) (      4) (      5) (      6) (      7) (      8) (      9) (     10) (     11)
+(0) -5.00e-01 2.50e-01 -4.55e-01 2.03e-01 -4.20e-01 1.42e-01 -4.01e-01 3.79e-02 -4.09e-01 -1.37e-01 -4.63e-01 -4.12e-01
+--BM-- projectSurfaceVelocityOntoBeam max-err=2.55e-15
+FINISH ME
+
+
+
+degree=(3,1)
+
+
+degree=(2,1) -- exact for orderOfprojection=4 
+degree=(1,1) -- exact
+
+tbm -noplot beamProjectVelocity  -thick=1.e-5 -degreex=2 -degreet=1 -orderOfprojection=4
+
+tbm -noplot beamProjectVelocity  -thick=1.e-5 -degreex=2 -degreet=1 -orderOfprojection=2
+
+tbm beamProjectVelocity
+
+
+============   ORDER OF PROJECTION = 4
+
+Projection ORDER=4:  *CHECK ME*
+
+--BM-- setSurfaceVelocity:END: : v[current] at t=0.000e+00
+    (     0) (     1) (     2) (     3) (     4) (     5) (     6) (     7) (     8) (     9) (    10) (    11) (    12) (    13) (    14) (    15) (    16) (    17) (    18) (    19) (    20) (    21) 
+(0) 0.00e+00 -2.48e+00 -2.32e-01 -2.01e+00 -3.75e-01 -7.67e-01 -3.75e-01 7.67e-01 -2.32e-01 2.01e+00 -4.83e-17 2.48e+00 2.32e-01 2.01e+00 3.75e-01 7.67e-01 3.75e-01 -7.67e-01 2.32e-01 -2.01e+00 0.00e+00 -2.48e+00 
+--BM-- projectSurfaceVelocityOntoBeam: surfaceVelocity at t=0.000e+00
+    (     0) (     1) (     2) (     3) (     4) (     5) (     6) (     7) (     8) (     9) (    10) (    11) (    12) (    13) (    14) (    15) (    16) (    17) (    18) (    19) (    20) (    21) 
+(0) 0.00e+00 -3.04e+00 -2.32e-01 -2.07e+00 -3.75e-01 -7.89e-01 -3.75e-01 7.89e-01 -2.32e-01 2.07e+00 -1.04e-17 2.55e+00 2.32e-01 2.07e+00 3.75e-01 7.89e-01 3.75e-01 -7.89e-01 2.32e-01 -2.07e+00 0.00e+00 -3.04e+00 
+FINISH ME
+
+
+============   ORDER OF PROJECTION = 2
+
+--BM-- setSurfaceVelocity:END: : v[current] at t=0.000e+00
+    (     0) (     1) (     2) (     3) (     4) (     5) (     6) (     7) (     8) (     9) (    10) (    11) (    12) (    13) (    14) (    15) (    16) (    17) (    18) (    19) (    20) (    21) 
+(0) 0.00e+00 -2.48e+00 -2.32e-01 -2.01e+00 -3.75e-01 -7.67e-01 -3.75e-01 7.67e-01 -2.32e-01 2.01e+00 -4.83e-17 2.48e+00 2.32e-01 2.01e+00 3.75e-01 7.67e-01 3.75e-01 -7.67e-01 2.32e-01 -2.01e+00 0.00e+00 -2.48e+00 
+--BM-- projectSurfaceVelocityOntoBeam: surfaceVelocity at t=0.000e+00
+    (     0) (     1) (     2) (     3) (     4) (     5) (     6) (     7) (     8) (     9) (    10) (    11) (    12) (    13) (    14) (    15) (    16) (    17) (    18) (    19) (    20) (    21) 
+(0) 0.00e+00 -2.01e+00 -2.26e-01 -1.63e+00 -3.65e-01 -6.23e-01 -3.65e-01 6.23e-01 -2.26e-01 1.63e+00 -1.04e-17 2.01e+00 2.26e-01 1.63e+00 3.65e-01 6.23e-01 3.65e-01 -6.23e-01 2.26e-01 -1.63e+00 0.00e+00 -2.01e+00 
+
+
+
+
+*** 2014/12/26  ADD -Kt*w_t + Kxxt*w_xxt terms
+
+
+FREE BC needs corrections for w_xxt term: : looks 2nd-order:
+tbm -cmd=tzbeam.cmd -nElem=10 -tz=poly -degreex=3 -degreet=2 -bc=f -tension=1. -tf=.2 -Kxxt=1.
+
+Error Ne=10, t=2.000e-01, dt=1.25e-02, numSteps=16 : max=9.83e-05, l2=5.45e-05, l2-rel=1.43e-04
+Error Ne=20, t=2.000e-01, dt=3.57e-03, numSteps=56 : max=2.59e-05, l2=1.40e-05, l2-rel=3.67e-05
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=1 -bc=f -tension=1. -tf=.2 [exact
+
+
+
+Kxxt*w_xxt : looks 2nd-order:
+tbm -cmd=tzbeam.cmd -nElem=10 -tz=poly -degreex=3 -degreet=2 -bc=c -tension=1. -tf=.2 -Kxxt=1
+
+Error Ne=10, t=2.000e-01, dt=1.25e-02, numSteps=16 : max=4.38e-05, l2=2.65e-05, l2-rel=6.98e-05
+Error Ne=20, t=2.000e-01, dt=3.57e-03, numSteps=56 : max=1.10e-05, l2=6.74e-06, l2-rel=1.76e-05
+Error Ne=40, t=2.000e-01, dt=9.43e-04, numSteps=212 : max=2.80e-06, l2=1.73e-06, l2-rel=4.50e-06
+
+-- -Kt*w_t : looks 2nd-order:
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=2 -bc=c -tension=1. -tf=.2 -Kt=1
+
+Error Ne=10, t=2.000e-01, dt=1.25e-02, numSteps=16 : max=3.07e-05, l2=1.84e-05, l2-rel=4.84e-05
+Error Ne=20, t=2.000e-01, dt=3.57e-03, numSteps=56 : max=7.78e-06, l2=4.74e-06, l2-rel=1.24e-05
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=1 -bc=c -tension=1. -tf=.2 [exact
+
+
+
+
+*** 2014/12/25 -- add linear stiffness term : -K0*w
+
+-K0*w term looks 2nd-order --> likely due to computeProjectedForce being 2nd-order
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=1 -bc=c -tension=1. -K0=1 -tf=.2
+
+K0: 2nd-order  -- WHY?
+Error Ne=5, t=5.000e-02, dt=5.00e-02, numSteps=1 : max=1.26e-06, l2=7.48e-07, l2-rel=2.15e-06
+
+Error Ne=10, t=5.000e-02, dt=1.25e-02, numSteps=4 : max=3.80e-07, l2=2.04e-07, l2-rel=5.82e-07
+Error Ne=10, t=2.000e-01, dt=1.25e-02, numSteps=16 : max=3.95e-06, l2=2.34e-06, l2-rel=6.22e-06
+
+Error Ne=20, t=5.000e-02, dt=3.57e-03, numSteps=14 : max=9.95e-08, l2=5.24e-08, l2-rel=1.49e-07
+Error Ne=20, t=2.000e-01, dt=3.57e-03, numSteps=56 : max=9.88e-07, l2=5.98e-07, l2-rel=1.58e-06
+
+tbm -cmd=tzbeam.cmd -nElem=5 -tz=poly -degreex=3 -degreet=1 -bc=f -tension=1. -K0=1 -tf=.2
+
+
+
 *** 2014/07/09 -- implicit predictor
 
  

@@ -29,6 +29,9 @@ addForcingToPressureEquation( const int & grid,
 			      realMappedGridFunction & gridVelocity, 
 			      const real & t );
 
+// Make adjustments to the pressure coefficient matrix (e.g. for the added mass algorithm)
+void adjustPressureCoefficients( CompositeGrid & cg0, GridFunction & cgf );
+
 virtual int 
 advanceLineSolve(LineSolve & lineSolve,
 		 const int grid, const int direction, 
@@ -77,6 +80,13 @@ applyBoundaryConditionsForImplicitTimeStepping(realMappedGridFunction & u,
 void 
 applyFourthOrderBoundaryConditions( realMappedGridFunction & u0, real t, int grid,
                                     realMappedGridFunction & gridVelocity );
+
+virtual int 
+assignInterfaceBoundaryConditions(GridFunction & cgf, 
+				  const int & option=-1,
+				  int grid_ =-1,
+				  GridFunction *puOld =NULL, 
+				  const real & dt=-1.);
 
 int
 assignLineSolverBoundaryConditions(const int grid, const int direction, 
@@ -219,6 +229,11 @@ getLineSolverBoundaryConditions(const int grid, const int direction,
 				int & numberOfDifferentLineSolverBoundaryConditions );
 
 
+// Project the velocity on FSI interfaces
+int projectInterfaceVelocity(const real & t, realMappedGridFunction & u, 
+			     realMappedGridFunction & gridVelocity,
+			     const int & grid,
+			     const real & dt =-1. );
 virtual void 
 outputSolution( realCompositeGridFunction & u, const real & t,
 		const aString & label =nullString,
@@ -315,6 +330,13 @@ virtual
 int setOgesBoundaryConditions( GridFunction &cgf, IntegerArray & boundaryConditions, RealArray &boundaryConditionData,
                                const int imp );
 
+virtual int
+userDefinedBoundaryValues(const real & t, 
+                          GridFunction & gf0,
+			  const int & grid,
+			  int side0 = -1,
+			  int axis0 = -1,
+			  ForcingTypeEnum forcingType =computeForcing );
 virtual int
 userDefinedInitialConditions(CompositeGrid & cg, realCompositeGridFunction & u );
 

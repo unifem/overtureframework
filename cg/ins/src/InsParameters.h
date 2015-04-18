@@ -53,6 +53,9 @@ static aString PDEModelName[InsParameters::numberOfPDEModels+1];
 InsParameters(const int & numberOfDimensions0=3);
 ~InsParameters();
 
+virtual int
+chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg);
+
 virtual int 
 displayPdeParameters(FILE *file = stdout );
 
@@ -96,7 +99,7 @@ getDerivedFunction( const aString & name, const realMappedGridFunction & u,
 
 virtual
 int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
-				const Index & I1, const Index &I2, const Index &I3 );
+				const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
 int 
 getViscoPlasticVariables( const aString & name, const GridFunction & cgf, realCompositeGridFunction & r, const int component );
 

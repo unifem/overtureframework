@@ -13,4 +13,11 @@ lbeamPinned.check   ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=p -Em=1 -tension=1 -
 lbeamFree.check     ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=f -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
 lbeamPeriodic.check ../cmd/tzbeam.cmd -nElem=5 -tz=trig -bc=per -Em=1 -tension=1 -fx=2 -ft=2 -tf=.1 -tp=0.1 -cfl=0.5 -go=go
 lbeamTWFSI.check    ../cmd/tzbeam.cmd -nElem=5 -tz=twfsi -bc=per -Em=0. -tension=1. -tf=.1 -rhos=10. -standingFSI=1 -tp=.1 -go=go
-
+#
+# check force and Galerkin projection in BeamModel
+lbeamCheckForce2.check ../cmd/beamComputeForce.cmd -numElem=10 -forceDegreeX=1 -orderOfProjection=2 
+lbeamCheckForce4.check ../cmd/beamComputeForce.cmd -numElem=10 -forceDegreeX=3 -orderOfProjection=4 
+lbeamCheckVelocityProjection2.check ../cmd/beamProjectVelocity.cmd -thick=1.e-2 -degreex=1 -degreet=1 -orderOfprojection=2
+lbeamCheckVelocityProjection4.check ../cmd/beamProjectVelocity.cmd -thick=1.e-2 -degreex=3 -degreet=1 -orderOfprojection=4
+# check internal force evaluation (beam operator)
+lbeamCheckInternalForce.check ../cmd/beamComputeForce.cmd -E=1. -tension=1. -orderOfProjection=4 -option=internalForce -thickness=1.e-7 -numElem=10 -degreeX=3 -K0=1. -Kt=1. -Kxxt=1.

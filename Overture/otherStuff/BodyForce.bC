@@ -70,6 +70,10 @@ initialize()
   int *linesToPlot= dbase.get<int[3]>("linesToPlot"); 
   linesToPlot[0]=linesToPlot[1]=linesToPlot[2]=11;
   
+  if( !dbase.has_key("colour") ) dbase.put<int>("colour");
+  dbase.get<int>("colour")=getXColour("DARKTURQUOISE"); // default colout
+
+
 }
 
 
@@ -118,6 +122,7 @@ get( const GenericDataBase & dir, const aString & name)
   subDir.get( dbase.get<bool>("forcingIsTimeDependent"),"forcingIsTimeDependent" );            
   subDir.get( dbase.get<bool>("forcingHasBeenAssigned"),"forcingHasBeenAssigned" );       
   subDir.get( dbase.get<bool>("visible"),"visible" );            
+  subDir.get( dbase.get<int>("colour"),"colour" );            
 
   aString & regionType = dbase.get<aString>("regionType");
   subDir.get( regionType,"regionType" );            
@@ -171,6 +176,7 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put( dbase.get<bool>("forcingIsTimeDependent"),"forcingIsTimeDependent" );            
   subDir.put( dbase.get<bool>("forcingHasBeenAssigned"),"forcingHasBeenAssigned" );            
   subDir.put( dbase.get<bool>("visible"),"visible" );            
+  subDir.put( dbase.get<int>("colour"),"colour" );            
 
   // This may not aways exist: *fix me*      
   const aString & regionType = dbase.get<aString>("regionType");
@@ -383,14 +389,25 @@ BodyForceRegionParameters::
       Mapping & map = bodyForceMapping->getMapping();
       globalID=map.getGlobalID();  // save ID for picking 
 
+      real lineWidthSave, pointSizeSave;
       if( numberOfDimensions==2 )
+      {
+	psp.get(GraphicsParameters::lineWidth,lineWidthSave);  // save current line width
 	psp.set(GraphicsParameters::lineWidth,lineWidth);  // default is 1
+
+	psp.get(GI_POINT_SIZE,pointSizeSave); // save current point size
+        real pointSize=lineWidth*2;
+	psp.set(GI_POINT_SIZE,pointSize); 
+      }
       
       PlotIt::plot(gi,map,psp);  
 
       if( numberOfDimensions==2 )
-	psp.set(GraphicsParameters::lineWidth,1.);  // default is 1
-
+      {
+	psp.set(GraphicsParameters::lineWidth,lineWidthSave);  // reset 
+	psp.set(GI_POINT_SIZE,pointSizeSave);    // reset 
+      }
+      
     }
     else
     {
@@ -506,6 +523,7 @@ plotForcingRegions( GenericGraphicsInterface &gi, DataBase & dbase, CompositeGri
   {
     pickingOff,
     pickToColourBlocks,
+    pickToEditRegion,
   } pickingOption=pickingOff;
 
   bool pickClosest=false;  // if true only pick the closest of the chosen items, other use all
@@ -537,9 +555,11 @@ plotForcingRegions( GenericGraphicsInterface &gi, DataBase & dbase, CompositeGri
     // --- Here are the picking options ---
     aString opcmd[] = {"pick off",
                        "pick to colour blocks",
+                       "pick to edit region",
                        ""};
     aString opLabel[] = {"off",
                          "colour blocks",
+                         "edit region",
                          ""};
     dialog.addOptionMenu("Pick to:", opcmd,opLabel,pickingOption);
 
@@ -611,14 +631,16 @@ plotForcingRegions( GenericGraphicsInterface &gi, DataBase & dbase, CompositeGri
     }
     else if( dialog.getTextValue(answer,"line width:","%e",lineWidth) ){}  //
     else if( answer=="pick to colour blocks" || 
+             answer=="pick to edit region"   ||
              answer=="pick off" )
     {
       pickingOption= (answer=="pick to colour blocks"  ? pickToColourBlocks :
+                      answer=="pick to edit region"    ? pickToEditRegion : 
                       pickingOff);
       
       dialog.getOptionMenu("Pick to:").setCurrentChoice((int)pickingOption);
     }
-    else if( (pickingOption==pickToColourBlocks ) && 
+    else if( (pickingOption==pickToColourBlocks || pickingOption==pickToEditRegion ) && 
 	     (select.active || select.nSelect ) )
     {
       // --- the user has picked an item ---
@@ -679,7 +701,30 @@ plotForcingRegions( GenericGraphicsInterface &gi, DataBase & dbase, CompositeGri
 
          	gi.erase();
 		plotObject=true;
+	      } // end pickToColourBlocks
+              else if(  pickingOption==pickToEditRegion )
+	      {
+                // --- edit the region ---
+                // For now this means edit the mapping associated with the region
+
+		const aString & bodyForcingName= bodyForce.dbase.get<aString > ("bodyForcingName");
+		printF("Edit mapping for forcing region %i (%s).\n",bf,(const char*)bodyForcingName);
+
+		gi.outputToCommandFile(sPrintF(answer,"edit forcing region: %i\n",bf));
+
+		if( bodyForce.dbase.get<aString>("regionType")=="mapping" )
+		{
+                  MappingRC *& bodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+                  Mapping & map = bodyForceMapping->getMapping();
+            	  gi.erase();
+                  map.interactiveUpdate(gi) ;
+		}
+  
+         	gi.erase();
+		plotObject=true;
 	      }
+	      
+	      
 	    }
 	  }
 	}
@@ -737,7 +782,41 @@ plotForcingRegions( GenericGraphicsInterface &gi, DataBase & dbase, CompositeGri
       }
       
     }
+    else if( (len=answer.matches("edit forcing region:")) )
+    {
+      // -- edit a body forcing region --
+      int bf=-1;
+      sScanF( &answer[len],"%i",&bf);
+      if( dbase.get<bool >("turnOnBodyForcing") )
+      {
+	// Here is the array of body forcings:
+	std::vector<BodyForce*> & bodyForcings =  dbase.get<std::vector<BodyForce*> >("bodyForcings");
+        
+	const int numberOfBodyForcingRegions=bodyForcings.size();
+	
+	if( bf<0 || bf>=numberOfBodyForcingRegions )
+	{
+	  printF("plotForcingRegions::ERROR:edit region: body forcing region %i is invalid! numberOfBodyForcingRegions=%i\n",
+                 bf,numberOfBodyForcingRegions);
+	  gi.stopReadingCommandFile();
+	  continue;
+	}
+        BodyForce & bodyForce = *bodyForcings[bf];
 
+	if( bodyForce.dbase.get<aString>("regionType")=="mapping" )
+	{
+	  MappingRC *& bodyForceMapping = bodyForce.dbase.get<MappingRC*>("bodyForceMapping");
+	  Mapping & map = bodyForceMapping->getMapping();
+	  gi.erase();
+	  map.interactiveUpdate(gi) ;
+	}
+  
+	gi.erase();
+	plotObject=true;
+      }
+      
+    }
+    
     else if( answer=="plot" )
     {
       // plotting is done below

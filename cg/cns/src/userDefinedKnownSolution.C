@@ -26,7 +26,8 @@ for(i1=I1Base; i1<=I1Bound; i1++)
 
 int CnsParameters::
 getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
-			    const Index & I1, const Index &I2, const Index &I3 )
+			    const Index & I1, const Index &I2, const Index &I3, 
+                            int numberOfTimeDerivatives /* = 0 */ )
 // ==========================================================================================
 ///  \brief Evaluate a user defined known solution.
 // ==========================================================================================

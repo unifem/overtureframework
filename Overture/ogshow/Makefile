@@ -429,6 +429,8 @@ axes: $(axes)
 plotStuff= plotStuffDriver.o plotStuffFunction.o DerivedFunctions.o 
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o ../otherStuff/BodyForce.o
 plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o contour.o grid.o DerivedFunctions.o DataPointMapping.o
+plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o contourOpt.o
+plotStuff= plotStuffDriver.o plotStuffFunction.o ShowFilePlotter.o  ../otherStuff/BodyForce.o
 plotStuff: $(plotStuff) 
 	$(CC) $(CCFLAGS) -DADD_USER_MAPPINGS -o $@ $(plotStuff) \
         $(CLIBS) $(FLIBS) $(GLIBS)

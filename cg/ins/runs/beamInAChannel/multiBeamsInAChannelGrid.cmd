@@ -16,6 +16,9 @@
 #
 #      ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=2 
 #      ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=4 
+#      ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=8
+#      ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=16 
+#      ogen -noplot multiBeamsInAChannelGrid -interp=e -factor=32
 #
 $beamLength=1.; $beamThickness=.2; 
 $factor=1; $name=""; $case=""; 

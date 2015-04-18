@@ -17,7 +17,8 @@ SRC_FILES +=  userDefinedInitialConditions.C  \
              userDefinedErrorEstimator.C userDefinedGrid.C userDefinedKnownSolution.C \
              checkSolution.C setupGridFunctions.C update.C computeSteps.C getAugmentedSolution.C \
              plot.C errors.C printTimeStepInfo.C edsUtil.C userDefinedForcing.C \
-             advanceSteps.C advanceStepsFE.C advanceStepsIM.C advanceStepsPC.C advanceFactored.C
+             advanceSteps.C advanceStepsFE.C advanceStepsIM.C advanceStepsPC.C advanceFactored.C\
+             predictTimeIndependentVariables.C advanceStepsBDF.C
 
 SRC_FILES += advanceEuler.C advancePC.C advance.C applyBoundaryConditions.C \
              bcForcing.C userDefinedBoundaryValues.C ims.C advanceTrapezoidal.C \
@@ -59,6 +60,7 @@ src/advanceStepsFE.C : src/advanceStepsFE.bC; $(BPP) -quiet -clean $<
 src/advanceStepsIM.C : src/advanceStepsIM.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
 src/advanceStepsPC.C : src/advanceStepsPC.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
 src/advanceFactored.C : src/advanceFactored.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
+src/advanceStepsBDF.C : src/advanceStepsBDF.bC $(COMMON_SRC)/pcMacros.h; $(BPP) -quiet -clean $<
 
 src/boundaryConditionPredictor.C : src/boundaryConditionPredictor.bC; $(BPP) -quiet -clean $<
 

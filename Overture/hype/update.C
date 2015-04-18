@@ -1900,7 +1900,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 		  if( map.getBoundaryCondition(side2,dir)>0 )
 		  {
 		    subListNumbering(j)=i;
-		    menu2[j++]=sPrintF(line,"%s (side2=%i,axis=%i)",(const char *)map.getName(mappingName),
+		    menu2[j++]=sPrintF(line,"%s (side=%i,axis=%i)",(const char *)map.getName(mappingName),
 				       side2,dir);
 		  }
 		}
@@ -1916,8 +1916,8 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 	menu2[j++]="none"; 
 	menu2[j]="";   // null string terminates the menu
 	  
-       // replace menu with a new cascading menu if there are too many items. (see viewMappings.C)
-       gi.buildCascadingMenu( menu2,mappingListStart,mappingListEnd );
+        // replace menu with a new cascading menu if there are too many items. (see viewMappings.C)
+        gi.buildCascadingMenu( menu2,mappingListStart,mappingListEnd );
 
 	int mapNumber = gi.getMenuItem(menu2,line,sPrintF("Match side=%i,axis=%i to which mapping?",
 							  side,axis));
@@ -1937,6 +1937,7 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 	}
          
 	Mapping & map = *mapPointer;
+        printF("--HGG-- map chosen = [%s]\n",(const char*)map.getName(Mapping::mappingName));
 
 	if( map.getDomainDimension()==map.getRangeDimension()-1 )
 	{
@@ -1957,25 +1958,31 @@ updateMarchingParameters(aString & answer, DialogData & marchingParametersDialog
 	      sScanF(line(j,length-1),"(side=%i axis=%i",&side2,&dir); // remember that commas are removed
 	      if( side2<0 || dir<0 )
 	      {
-		cout << "Error getting (side,axis) from choice!\n";
-		Overture::abort("error");
+		printF("Error getting (side,axis) from choice!\n");
+		OV_ABORT("error");
 	      }
-	      if( boundaryConditionMappingWasNewed[side2][dir] )
-		delete boundaryConditionMapping[side2][dir];
-	      boundaryConditionMapping[side2][dir]= new ReductionMapping(map,dir,side2);
-	      boundaryConditionMappingWasNewed[side2][dir]=true;
+	      if( boundaryConditionMappingWasNewed[side][axis] )
+		delete boundaryConditionMapping[side][axis];
+	      boundaryConditionMapping[side][axis]= new ReductionMapping(map,dir,side2);
+	      boundaryConditionMappingWasNewed[side][axis]=true;
+	      // set number of grid lines for plotting
+              for( int d=0; d<map.getDomainDimension()-1; d++ )
+		boundaryConditionMapping[side][axis]->setGridDimensions(d,51); // what should this be?
+		
 		      
-	      // printf(" create a mapping for (side,axis)=(%i,%i) for curve[%i] \n",side2,dir,i);
+	      printF("--HGG-- Create a mapping for (side,axis)=(%i,%i) of map=[%s], \n"
+                     "        to use as a boundary condition for (side,axis)=(%i,%i)\n",
+		     side2,dir,(const char*)map.getName(Mapping::mappingName),side,axis);
 	      break;
 	    }
 	  }
 	  if( side2<0 || dir<0 )
 	  {
 	    // printf("Setting curve[%i] \n",i);
-	    if( boundaryConditionMappingWasNewed[side2][dir] )
-	      delete boundaryConditionMapping[side2][dir];
-	    boundaryConditionMapping[side2][dir]=mapInfo.mappingList[mapNumber].mapPointer; 
-	    boundaryConditionMappingWasNewed[side2][dir]=false;
+	    if( boundaryConditionMappingWasNewed[side][axis] )
+	      delete boundaryConditionMapping[side][axis];
+	    boundaryConditionMapping[side][axis]=mapInfo.mappingList[mapNumber].mapPointer; 
+	    boundaryConditionMappingWasNewed[side][axis]=false;
 	  }
 	}
 	else

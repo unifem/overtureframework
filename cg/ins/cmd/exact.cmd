@@ -31,8 +31,8 @@
 #   cgins exact -g=pipee2.order2.hdf -ts=pc -nu=.1 -ad2=0 -tf=20. -tp=.1  -go=halt 
 #
 #  --- Taylor-Green vortex
-#   cgins pipe -g=square32p.order2 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
-#   cgins pipe -g=square32p.order4 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+#   cgins exact -g=square32p.order2 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
+#   cgins exact -g=square32p.order4 -option=tg -ts=pc -nu=.01 -tf=1.5 -tp=.1 -cfl=1. -psolver=yale -go=halt
 #
 # -- assign default values for all parameters: 
 $option="pipe"; $nd=2; # set nd=3 for 3D

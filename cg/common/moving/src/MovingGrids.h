@@ -14,7 +14,7 @@ class Ogshow;
 
 class DeformingBodyMotion;
 class MatrixMotion;
-
+class BodyForce;
 
 // ========================================================================
 //    This class coordinates the movement of grids for CG
@@ -60,6 +60,9 @@ int debug() const {return debug0;}
 
 int detectCollisions(GridFunction & cgf1);
   
+// for plotting purposes return moving bodies as BodyForce objects (these are saved to the show file)
+int getBodies( std::vector<BodyForce*> & movingBodies );
+
 virtual int getBoundaryAcceleration( MappedGrid & c, realSerialArray & gtt, int grid, real t0, int option );
 
 bool getCorrectionHasConverged();
@@ -70,7 +73,8 @@ Integrate* getIntegrate() const;
 
 const RealArray & getMoveParameters() const;
 
-real getMaximumRelativeCorrection();
+// return maximum relative correction for sub-iterations
+real getMaximumRelativeCorrection() const;
 
 int getNumberOfDeformingBodies() const;
 
@@ -86,6 +90,8 @@ int getNumberOfRigidBodies() const;
 int getPastTimeGrid( GridFunction & cgf );
 
 RigidBodyMotion & getRigidBody(const int bodyNumber);
+
+real getTimeStepForMovingBodies() const;
 
 real getTimeStepForRigidBodies() const; 
 
@@ -139,6 +145,12 @@ bool isMovingGridProblem() const;
 
 // --- plot things related to moving grids (e.g. the center lines of beams or shells)
 int plot(GenericGraphicsInterface & gi, GridFunction & cgf, GraphicsParameters & psp );
+
+// print time step info
+void printTimeStepInfo( FILE *file=stdout );
+
+// Project the interface velocity (for added mass schemes)
+int projectInterfaceVelocity( GridFunction & cgf );
 
 // put to a data base file
 int put( GenericDataBase & dir, const aString & name) const;
@@ -197,7 +209,8 @@ int userDefinedGridAccelerationBC(const int & grid,
 
 int updateUserDefinedMotion(CompositeGrid & cg, GenericGraphicsInterface & gi);
 
-
+// Write information about the moving grids
+void writeParameterSummary( FILE *file= stdout );
 
 protected:
 

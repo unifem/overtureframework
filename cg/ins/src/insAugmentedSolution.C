@@ -38,6 +38,8 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
   realCompositeGridFunction & u = gf0.u;
 
   const int numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
+  const int & showResiduals = parameters.dbase.get<int >("showResiduals");
+  const Parameters::TimeSteppingMethod & timeSteppingMethod = parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod");
   
 
   bool plotMoreComponents = FALSE;
@@ -51,8 +53,8 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
   if( parameters.isAdaptiveGridProblem() && parameters.dbase.get<int >("showAmrErrorFunction") )
     extra+=1;
 
-  if( parameters.dbase.get<int >("showResiduals") || 
-      parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::steadyStateRungeKutta )
+  if( showResiduals || 
+      timeSteppingMethod==Parameters::steadyStateRungeKutta )
   {
     // plot residuals too
     extra+=numberOfComponents;
@@ -332,8 +334,8 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
     v.setName("error estimate",ec);
   }
   
-  if( true && (parameters.dbase.get<int >("showResiduals") || 
-      parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")==Parameters::steadyStateRungeKutta) )
+  if( true && (showResiduals || 
+      timeSteppingMethod==Parameters::steadyStateRungeKutta) )
   {
     const Parameters::ImplicitMethod & implicitMethod = 
       parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
@@ -368,13 +370,17 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
     if( parameters.dbase.get<bool >("twilightZoneFlow") )
       offset+=numberOfComponents;
 
-    // ******** fix this ***********
-    realCompositeGridFunction * pResidual= &fn[0];  // default location for the residual
+    // --- Here is a pointer to the current residual (for some schemes) --
+    realCompositeGridFunction *pResidual = parameters.dbase.get<realCompositeGridFunction*>("pResidual"); // *wdh* 2015/03/20
+    // printF("--INS-AUG-- pResidual=%li\n",pResidual);
+    
+    if( pResidual==NULL )
+      pResidual= &fn[0];  // default location for the residual
     
     // if( true && 
     //    parameters.dbase.get<int>("useNewImplicitMethod")==1 &&  //  ** fix this **
     //    parameters.dbase.get<Parameters::TimeSteppingMethod>("timeSteppingMethod")==Parameters::implicit )
-    if( parameters.dbase.get<Parameters::TimeSteppingMethod>("timeSteppingMethod")==Parameters::implicit )
+    if( timeSteppingMethod==Parameters::implicit )
     {
 	
       pResidual = &fn[2]; //  uti;  // save residual here -- check this **************
@@ -388,7 +394,13 @@ getAugmentedSolution( GridFunction & gf0, realCompositeGridFunction & v )
       real maximumResidual, maximuml2;
       getResidualInfo( gf0.t, *pResidual, maximumResidual, maximuml2, stdout );
     }
+    else if( timeSteppingMethod!=Parameters::steadyStateRungeKutta )
+    {
+      // set residuals to zero on boundaries (where du/dt may not be valid)  -- *wdh* 2015/03/20
+      (*pResidual).applyBoundaryCondition(N,BCTypes::dirichlet,BCTypes::allBoundaries,0.);
 
+    }
+    
     realCompositeGridFunction & residual = * pResidual;
   
     // printf(" getAug: *** residual.numberOfComponentGrids=%i **\n",residual.numberOfComponentGrids());

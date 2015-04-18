@@ -1,0 +1,59 @@
+#include "DomainSolver.h"
+#include "Cgad.h"
+#include "CompositeGridOperators.h"
+// #include "GridCollectionOperators.h"
+// #include "interpPoints.h"
+// #include "SparseRep.h"
+// #include "ExposedPoints.h"
+// #include "Ogen.h"
+// #include "App.h"
+// #include "ParallelUtility.h"
+// #include "Oges.h"
+// #include "OgesParameters.h"
+// #include "AdamsPCData.h"
+// #include "gridFunctionNorms.h"
+// #include "updateOpt.h"
+#include "AdvanceOptions.h"
+
+// here are some bpp macros that are used for the explicit and implicit predictor-corrector methods
+#Include ../common/src/pcMacros.h
+
+#define ForBoundary(side,axis)   for( axis=0; axis<mg.numberOfDimensions(); axis++ ) \
+                                 for( side=0; side<=1; side++ )
+
+
+
+// ===================================================================================================================
+/// \brief Advance the time dependent variables one time step for the BDF scheme.
+/// \details This routine is called by the takeTimeStep routine which handles details of moving
+///     and adaptive grids.
+/// 
+/// \param t0 (input) : current time
+/// \param dt0 (input) : current time step
+///
+// ===================================================================================================================
+int Cgad::
+implicitTimeStep(  real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions )
+{
+   
+  if( pdeName=="advection diffusion" )
+  {
+    // call base class version 
+    DomainSolver::implicitTimeStep(  t0,dt0, correction, advanceOptions );
+  }
+  else if( pdeName=="thinFilmEquations" )
+  {
+    // --- solve the thin film equations ---
+    thinFilmSolver(  t0,dt0, correction, advanceOptions ); 
+
+  }
+  else
+  {
+    OV_ABORT("--AD-- implicitTimeStep: ERROR: unknown pdeName!");
+  }
+  
+  
+
+  return 0;
+}
+

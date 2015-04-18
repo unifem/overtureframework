@@ -14,6 +14,7 @@ enum UserDefinedForcingOptions
   constantForcing,
   gaussianForcing,
   dragForcing,
+  dragForcingSpecial,
   soapfilmForcing,  // for Alessandro
   trigonometricForcing,  // for heat transfer test
   polynomialForcing,     // for heat transfer test
@@ -199,6 +200,31 @@ userDefinedForcing( realCompositeGridFunction & f, GridFunction & gf, const real
       }
     }
     else if( option==dragForcing )
+    {
+      RealArray & dragForcingParameters = db.get<RealArray>("dragForcingParameters");
+
+      const real dragCoeff[3]={dragForcingParameters(0), dragForcingParameters(1),dragForcingParameters(2)}; 
+
+      if( grid==0 && debug() & 1 )
+        printF("userDefinedForcing:INFO: compute a drag forcing at time tForce=%9.3e drag=[%g,%g,%g]\n",tForce,
+               dragCoeff[0],dragCoeff[1],dragCoeff[2]);
+
+      // add a drag forcing:
+      //    Du/Dt + ... = -dragCoeff[0]*u
+      //    Dv/Dt + ... = -dragCoeff[1]*v
+      assert( uc>=0 );
+      assert( vc>=0 );
+    
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+	for( int axis=0; axis<numberOfDimensions; axis++ )
+	{
+	  fLocal(i1,i2,i3,uc+axis) =  -dragCoeff[axis]*uLocal(i1,i2,i3,uc+axis);  // add damping terms to velocity equations
+	}
+	  
+      }    
+    }
+    else if( option==dragForcingSpecial )
     {
       const real & dt = parameters.dbase.get<real >("dt");  // here is the current dt
 
@@ -497,6 +523,7 @@ setupUserDefinedForcing()
     "constant forcing",
     "gaussian forcing",
     "drag forcing",
+    "drag forcing special",
     "soapfilm forcing",
     "trigonmetric forcing",
     "polynomial forcing",
@@ -646,6 +673,26 @@ setupUserDefinedForcing()
     {
       // define a drag forcing ... finish me ...
       option=dragForcing;
+      userDefinedForcingIsTimeDependent=true;  // this forcing is time dependent
+
+      if( !db.has_key("dragForcingParameters") )
+      {
+	RealArray & dragForcingParameters = db.put<RealArray>("dragForcingParameters");
+        dragForcingParameters.redim(3);
+	dragForcingParameters=0.;
+      }
+      
+      RealArray & dragForcingParameters = db.get<RealArray>("dragForcingParameters");
+      printF("--UDF-- INFO: Add a linear drag term to the velocity equations.\n");
+      gi.inputString(answer2,sPrintF("Enter drag coefficients: uDrag,vDrag,wDrag"));
+      sScanF(answer2,"%e %e %e",&dragForcingParameters(0),&dragForcingParameters(1),&dragForcingParameters(2));  
+      printF("Setting uDrag=%g, vDrag=%g, wDrag=%g\n",dragForcingParameters(0),dragForcingParameters(1),dragForcingParameters(2));  
+
+    }
+    else if( answer=="drag forcing special" )
+    {
+      // define a drag forcing ... finish me ...
+      option=dragForcingSpecial;
       userDefinedForcingIsTimeDependent=true;  // this forcing is time dependent
 
     }

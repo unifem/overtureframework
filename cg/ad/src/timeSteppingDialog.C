@@ -25,6 +25,7 @@ buildTimeSteppingDialog(DialogData & dialog )
   cmd[nt]="steady state RK";  nt++;
   cmd[nt]="steady state RK-line";  nt++;
   cmd[nt]="adi";  nt++;
+  cmd[nt]="BDF";  nt++;
 
   assert( nt<maxNumberOfTimeSteppingMethods );
   cmd[nt]="";
@@ -153,6 +154,13 @@ getTimeSteppingOption(const aString & answer,
     parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")=Parameters::adi;
     parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::crankNicolson;
     parameters.setGridIsImplicit();  // by default all grids are implicit for the adi time stepping method
+  }
+  else if( answer=="BDF" )
+  {
+    parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod")=Parameters::implicit;
+    parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")=Parameters::backwardDifferentiationFormula;
+    parameters.dbase.get<int>("numberOfPCcorrections")=0;
+    parameters.setGridIsImplicit();   // by default all grids are implicit for the implicit time stepping method
   }
   else if( answer=="implicit factor" )
   {

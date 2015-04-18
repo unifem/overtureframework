@@ -124,6 +124,8 @@ init()
   v=NULL;
   leftNullVector=NULL;
   leftNullVectorIsComputed=false;
+  rightNullVectorIsComputed=false;
+
   equationToSolve=OgesParameters::userDefined;
   varCoeff=NULL;
   // for timings
@@ -820,7 +822,9 @@ updateToMatchGrid( CompositeGrid & mg_ )
   }  
 
   lineSmoothIsInitialized=false;  // assume that all grids have changed
-
+  rightNullVectorIsComputed=false; // *wdh* 2014/12/22
+  leftNullVectorIsComputed=false;  // *wdh* 2014/12/22
+  
   // *wdh* 100409 mgcg.reference(mg);
 
 
@@ -1579,7 +1583,7 @@ solve( realCompositeGridFunction & u, realCompositeGridFunction & f)
     directSolver.set(OgesParameters::THEcompatibilityConstraint,true);
     parameters.ogesParameters.set(OgesParameters::THEcompatibilityConstraint,true);
 
-    createNullVector();
+    createRightNullVector();
 
     // alpha and v are used for trying out a different way to project singular problems
     // in addAdjustmentForSingularProblem
@@ -3860,7 +3864,7 @@ setOrderOfAccuracy(const int & orderOfAccuracy_)
 
 
 int Ogmg:: 
-createNullVector()
+createRightNullVector()
 // =====================================================================
 // /Description:
 //   Create the right null vector. This grid function is 1 at all interior
@@ -3869,10 +3873,15 @@ createNullVector()
 //
 // =====================================================================
 {
+  // first check if the right null vector has already been computed:
+  if( rightNullVectorIsComputed ) return 0;
+  
+  rightNullVectorIsComputed=true;
+
   const bool useOpt=true;
   
   if( Ogmg::debug & 2 )
-    printF("Ogmg: create the right null vectors...\n");
+    printF("Ogmg: create the right null vector...\n");
 
   CompositeGrid & mgcg = multigridCompositeGrid();
   rightNullVector.updateToMatchGrid(mgcg);
@@ -3932,7 +3941,7 @@ createNullVector()
     norm=ParallelUtility::getSum(norm);
     if( norm==0. )
     {
-      printF("Ogmg::createNullVector:WARNING: The norm of the null vector is zero on level=%i\n",l);
+      printF("Ogmg::createRightNullVector:WARNING: The norm of the null vector is zero on level=%i\n",l);
       norm=1.;
     }
     // normalize so that l2 norm is 1

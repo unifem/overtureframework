@@ -396,7 +396,8 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   if( debug & 1 )
     printF("PETScSolver:: build matrix... Oges::debug=%i\n",Oges::debug);
 
-  // printF("*********** PETScSolver:: build matrix : parameters.rescaleRowNorms=%i ****************\n",parameters.rescaleRowNorms);
+  if( false ) 
+    printF("*********** PETScSolver:: build matrix : parameters.rescaleRowNorms=%i ****************\n",parameters.rescaleRowNorms);
   
 
   if( debug & 4 )
@@ -839,7 +840,7 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
   }
 
   if( false )
-  { // save the matrix in a file that can me read in matalb by typing 'petscMatrix'
+  { // save the matrix in a file that can me read in matlab by typing 'petscMatrix'
     printF("Saving matrix in matlab format file=`petscMatrix.m'\n");
     PetscViewer viewer;
     PetscViewerASCIIOpen(PETSC_COMM_WORLD,"petscMatrix.m",&viewer);
@@ -954,8 +955,23 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 
   if( parameters.solveForTranspose )
   {
+    if( debug & 16 )
+    {
+      printF("============= PETScSolver: Here is A BEFORE TRANSPOSE ==============\n");
+      ierr = MatView(A,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+
+    }
+
     // Transpose the matrix
     printF("--- PETScSolver: TRANSPOSE the matrix ...\n");
+    if( parameters.rescaleRowNorms )
+    {
+      printF("--- PETScSolver: ERROR: solve for transpose but rescaleRowNorms=true\n"
+             "    This is very likely an error. To turn off row scaling use: \n"
+             " solver.set(OgesParameters::THErescaleRowNorms,false);\n" );
+      OV_ABORT("error");
+    }
+    
     real cpu0=getCPU();
     
     // PetscErrorCode  MatTranspose(Mat mat,MatReuse reuse,Mat *B)
@@ -967,6 +983,13 @@ buildMatrix( realCompositeGridFunction & coeff, realCompositeGridFunction & uu )
 #else
     MatTranspose( A, &A );
 #endif
+
+    if( debug & 16 )
+    {
+      printF("============= PETScSolver: Here is A AFTER TRANSPOSE ==============\n");
+      ierr = MatView(A,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+
+    }
 
     printF("--- PETScSolver: .... done TRANSPOSE. cpu=%8.2e(s) ----\n",getCPU()-cpu0);
 

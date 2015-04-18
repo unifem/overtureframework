@@ -651,6 +651,9 @@ contourOpt2d(GenericGraphicsInterface &gi,
 #End
 	glPushName(gc[grid].getGlobalID()); // assign a name for picking
 
+        glLineWidth(psp.size(GraphicsParameters::lineWidth)*gi.getLineWidthScaleFactor()); // *wdh* 2014/12/27
+
+
 	if( plotShadedSurface )
 	{
 	  const real delta255 = deltaUInverse*255;

@@ -111,13 +111,14 @@ determineErrors(realCompositeGridFunction & u,
   {
     // ***** Compute the errors for a knownSolution ********
 
+    const int numberOfTimeDerivatives = options == 0 ? 0 : 1;
     RealArray errk(numberOfComponentGrids,numberOfComponents);
-    realCompositeGridFunction & uKnown = parameters.getKnownSolution( cg, t );
+    realCompositeGridFunction & uKnown = parameters.getKnownSolution( cg, t, numberOfTimeDerivatives );
     
 
-    realCompositeGridFunction v;
+    realCompositeGridFunction v;   // holds error *FIX ME*
     v=u-uKnown;
-    const int maskOption=0;  // check points where mask != 0
+    const int maskOption= options == 0 ? 0 : 1;  // maskOption==0 : check points where mask != 0, otherwise mask>0
     err=0.;
     for( int n=0; n<parameters.dbase.get<int >("numberOfComponents"); n++ )
     {
@@ -145,15 +146,30 @@ determineErrors(realCompositeGridFunction & u,
       err(pc)=pErrMax;
     }
     
+    fPrintF(parameters.dbase.get<FILE* >("debugFile"),(const char*)label);
+    fPrintF(parameters.dbase.get<FILE* >("pDebugFile"),(const char*)label);
+
+    aString dlabel = numberOfTimeDerivatives==0 ? "" : "(dv/dt)";
     aString norm;
     if( parameters.dbase.get<int >("errorNorm")<1000 )
       sPrintF(norm,"l%i-norm",parameters.dbase.get<int >("errorNorm"));
     else
       norm="maxNorm";
-    printf("determineErrors: t=%9.3e, %s errors: [rho,u,v,T]=[%8.2e,%8.2e,%8.2e,%8.2e]\n",t,(const char*)norm,
-     	   err(0),err(1),err(2),err(3));
+    printf("--INS-- determineErrors: t=%9.3e, %s errors%s: [p,u,v,T]=[%8.2e,%8.2e,%8.2e,%8.2e]\n",t,
+           (const char*)norm,(const char*)dlabel,err(0),err(1),err(2),err(3));
+    fPrintF(parameters.dbase.get<FILE* >("debugFile"),"--INS-- determineErrors: t=%9.3e, %s "
+            "errors%s: [p,u,v,T]=[%8.2e,%8.2e,%8.2e,%8.2e]\n",t,(const char*)norm,(const char*)dlabel,err(0),err(1),err(2),err(3));
 
-
+    if( debug() & 4 )
+    {
+      for( int grid=0; grid<numberOfComponentGrids; grid++ )
+      {
+        aString buff;
+	::display(v[grid],sPrintF(buff,"determine-errors: errors%s, grid=%i, t=%9.3e",(const char*)dlabel,grid,t),
+                  parameters.dbase.get<FILE* >("debugFile"),"%8.2e ");
+      }
+    }
+    
 //     errk=0.;
 //     err=0.;
 //     for( int grid=0; grid<cg.numberOfComponentGrids(); grid++ )

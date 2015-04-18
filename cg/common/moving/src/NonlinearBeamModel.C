@@ -381,7 +381,36 @@ initialize()
 }
 
 
+// ======================================================================================================
+/// \brief Write a summary of the Beam model parameters and boundary conditions etc.
+// ======================================================================================================
+void NonlinearBeamModel::
+writeParameterSummary( FILE *file /* = stdout */ )
+{
+  printF("NonlinearBeamModel::writeParameterSummary: FINISH ME\n");
+}
 
+
+
+// ======================================================================================================
+/// \brief Set a real beam parameter (that is in the class DataBase)
+/// \param name (input) : name of a parameter in the dbase 
+/// \param value (input) : value to assign
+/// \return value : 0=success, 1=name not found 
+// ======================================================================================================
+int NonlinearBeamModel::
+setParameter( const aString & name, real & value ) 
+{
+  if( dbase.has_key(name) )
+    dbase.get<real>(name)=value;
+  else
+  {
+    printF("NonlinearBeamModel::setParameter:ERROR: there is no real parameter named [%s]\n",(const char*)name);
+    return 1;
+  }
+  
+  return 0;
+}
 
 // ================================================================================================================
 /// \brief 
@@ -474,7 +503,16 @@ getExplicitTimeStep() const
   return dt;
 }
 
+// ======================================================================================================
+/// \brief Return an estimate of the time-step dt. 
+// ======================================================================================================
+real NonlinearBeamModel::
+getTimeStep() const
+{
+  real dt = getExplicitTimeStep();
 
+  return dt;
+}
 
 // ===================================================================================================================
 /// \brief 

@@ -1,0 +1,22 @@
+
+       Free Surface Examples
+       ---------------------
+
+*************** Flow over a submerged cylinder **********************
+
+(1) Generate some grids:
+
+  ogen -noplot submergedCylinderGrid -interp=e -factor=2 -ml=1
+  ogen -noplot submergedCylinderGrid -interp=e -factor=4 -ml=1
+
+(2) Run the code interactively: 
+
+   cgins submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=20. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5.-project=1 -ad2=1 -go=halt
+
+(3) Run without plotting:
+
+   cgins -noplot submergedCylinder -g=submergedCylinderGride2.order2.ml1.hdf -dg="share=100" -nu=.005 -tf=20. -tp=.1 -model=ins -numberOfSurfaceSmooths=5 -surfaceTension=.005 -pGrad=-5.-project=1 -ad2=1 -show="submergedCyl.show" -go=go
+
+(4) Plot results from the show file:
+
+   plotStuff plotSubmergedCylinder.cmd -show=submergedCyl.show -vorMin=-10. -vorMax=10.

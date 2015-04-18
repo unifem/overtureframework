@@ -101,7 +101,7 @@ buildTimeSteppingDialog(DialogData & dialog )
 //     delete [] initialState;
 //   }
 
-  const int maxNumberOfToggleButtons=20;
+  const int maxNumberOfToggleButtons=30;
   aString tbCommands[maxNumberOfToggleButtons]; 
   int tbState[maxNumberOfToggleButtons];
   int ntb=0;
@@ -144,8 +144,37 @@ buildTimeSteppingDialog(DialogData & dialog )
   tbState[ntb]=parameters.dbase.get<bool>("useAddedMassAlgorithm");
   ntb++;
 
+  tbCommands[ntb]="use approximate AMP condition";
+  tbState[ntb]=parameters.dbase.get<bool>("useApproximateAMPcondition");
+  ntb++;
+
   tbCommands[ntb]="project added mass velocity";
   tbState[ntb]=parameters.dbase.get<bool>("projectAddedMassVelocity");
+  ntb++;
+
+  tbCommands[ntb]="project normal component";
+  tbState[ntb]=parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
+  ntb++;
+
+  tbCommands[ntb]="project beam velocity";
+  tbState[ntb]=parameters.dbase.get<bool>("projectBeamVelocity");
+  ntb++;
+
+  tbCommands[ntb]="smooth interface velocity";
+  tbState[ntb]=parameters.dbase.get<bool>("smoothInterfaceVelocity");
+  ntb++;
+
+  tbCommands[ntb]="project velocity on beam ends";
+  tbState[ntb]=parameters.dbase.get<bool>("projectVelocityOnBeamEnds");
+  ntb++;
+
+  // Put this here for now: We should be a able to compute this based on other parameters
+  tbCommands[ntb]="predicted pressure needed";
+  tbState[ntb]=parameters.dbase.get<bool>("predictedPressureNeeded");
+  ntb++;
+
+  tbCommands[ntb]="use moving grid sub-iterations";
+  tbState[ntb]=parameters.dbase.get<bool>("useMovingGridSubIterations");
   ntb++;
 
   assert( ntb<maxNumberOfToggleButtons );
@@ -220,6 +249,12 @@ buildTimeSteppingDialog(DialogData & dialog )
   textCommands[nt] = "AF correction relative tol"; textLabels[nt] =textCommands[nt];
   sPrintF(textStrings[nt],"%e",parameters.dbase.get<real>("AFcorrectionRelTol")); nt++;
 
+  textCommands[nt] = "number of interface velocity smooths"; textLabels[nt] =textCommands[nt];
+  sPrintF(textStrings[nt],"%i",parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths")); nt++;
+
+  textCommands[nt] = "BDF order"; textLabels[nt] =textCommands[nt];
+  sPrintF(textStrings[nt],"%i",parameters.dbase.get<int>("orderOfBDF")); nt++;
+
   // null strings terminal list
   textCommands[nt]="";   textLabels[nt]="";   textStrings[nt]="";  assert( nt<numberOfTextStrings );
   dialog.setTextBoxes(textCommands, textLabels, textStrings);
@@ -248,7 +283,13 @@ getTimeSteppingOption(const aString & answer,
   GraphicsParameters & psp = parameters.dbase.get<GraphicsParameters >("psp");
 
   bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
   bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
+  bool & projectNormalComponentOfAddedMassVelocity = parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
+  bool & projectBeamVelocity = parameters.dbase.get<bool>("projectBeamVelocity");
+  bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
+  bool & projectVelocityOnBeamEnds = parameters.dbase.get<bool>("projectVelocityOnBeamEnds");
+  bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
 
   int found=true; 
   char buff[180];
@@ -609,12 +650,27 @@ getTimeSteppingOption(const aString & answer,
       }
     }
   }
+  else if( dialog.getToggleValue(answer,"use moving grid sub-iterations",useMovingGridSubIterations) )
+  {
+    if( useMovingGridSubIterations )
+      printF("Use multiple sub-iterations per time-step for moving grid problems with light bodies.\n");
+    else
+      printF("Do NOT use multiple sub-iterations per time-step for moving grid problems with light bodies.\n");
+  }
+
   else if( dialog.getToggleValue(answer,"use added mass algorithm",useAddedMassAlgorithm) )
   {
     if( useAddedMassAlgorithm )
-      printF("Use the added mass algorithm\n");
+      printF("Use the added mass algorithm.\n");
     else
-      printF("Do NOT use the added mass algorithm\n");
+      printF("Do NOT use the added mass algorithm.\n");
+  }
+  else if( dialog.getToggleValue(answer,"use approximate AMP condition",useApproximateAMPcondition) )
+  {
+    if( useApproximateAMPcondition )
+      printF("Use the approximate AMP condition.\n");
+    else
+      printF("Do NOT use the approximate AMP condition.\n");
   }
   else if( dialog.getToggleValue(answer,"project added mass velocity",projectAddedMassVelocity) )
   {
@@ -623,6 +679,43 @@ getTimeSteppingOption(const aString & answer,
     else
       printF("Do NOT project the added mass velocity.\n");
   }
+  else if( dialog.getToggleValue(answer,"project normal component",projectNormalComponentOfAddedMassVelocity) )
+  {
+    if( projectNormalComponentOfAddedMassVelocity )
+      printF("project the NORMAL component only of the added mass velocity.\n");
+    else
+      printF("project all components of the added mass velocity.\n");
+  }
+
+  else if( dialog.getToggleValue(answer,"project beam velocity",projectBeamVelocity) )
+  {
+    if( projectBeamVelocity )
+      printF("PROJECT the beam velocity (if we are projected the added mass velocity too).\n");
+    else
+      printF("Do NOT project the beam velocity.\n");
+  }
+  else if( dialog.getToggleValue(answer,"project velocity on beam ends",projectVelocityOnBeamEnds) )
+  {
+    if( projectVelocityOnBeamEnds )
+      printF("project the velocity on the ends of beam for the AMP algorithm.\n");
+    else
+      printF("do NOT project the velocity on the ends of beam for the AMP algorithm.\n");
+  }
+
+  else if( dialog.getToggleValue(answer,"smooth interface velocity",smoothInterfaceVelocity) )
+  {
+    if( smoothInterfaceVelocity )
+      printF("SMOOTH the interface velocity.\n");
+    else
+      printF("Do NOT smooth the interface velocity.\n");
+  }
+  else if ( dialog.getTextValue(answer,"number of interface velocity smooths", "%i", 
+                                parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths"))){ }
+
+  else if ( dialog.getTextValue(answer,"BDF order", "%i", 
+                                parameters.dbase.get<int>("orderOfBDF"))){ }
+
+  else if( dialog.getToggleValue(answer,"predicted pressure needed",parameters.dbase.get<bool>("predictedPressureNeeded")) ){}  // 
   
   else if ( dialog.getTextValue(answer,"preconditioner frequency", "%i", 
                                         parameters.dbase.get<int>("preconditionerFrequency"))){}
@@ -632,6 +725,8 @@ getTimeSteppingOption(const aString & answer,
                                 parameters.dbase.get<int>("numberOfAFcorrections"))){ }
   else if ( dialog.getTextValue(answer,"AF correction relative tol", "%e", 
                                 parameters.dbase.get<real>("AFcorrectionRelTol"))){ }
+
+
   else if( answer=="default order predictor" ||
            answer=="first order predictor" || 
            answer=="second order predictor" ||

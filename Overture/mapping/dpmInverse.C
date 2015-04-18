@@ -96,18 +96,18 @@ basicInverseS( const RealArray & x, RealArray & r, RealArray & rx, MappingParame
 
     if( evalAsNurbs )
     {
-      // --- Use a Nurbs to evaluate the mapping ---
+    // --- Use a Nurbs to evaluate the mapping ---
         if( nurbsOutOfDate )
             generateNurbs();
 
-	if( true )
-	  printF("--DPM-- basicInverseS: eval as a NurbsMapping\n");
+        if( false )
+            printF("--DPM-- basicInverseS: eval as a NurbsMapping\n");
+
 
         NurbsMapping & nurbs = *dbase.get<NurbsMapping*>("nurbs");
         nurbs.basicInverseS( x,r,rx,params );
         return;
     }
-
 
     if( false )
     {

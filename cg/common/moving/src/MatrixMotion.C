@@ -92,6 +92,22 @@ operator =( const MatrixMotion & mm )
   return *this;
 }
 
+// =================================================================================
+/// \brief Write information about the deforming body
+// =================================================================================
+void MatrixMotion::
+writeParameterSummary( FILE *file /* =stdout */ )
+{
+  fPrintF(file,"------------------- MatrixMotion body -----------------------\n");
+  fPrintF(file," motionType=%s\n",
+	  (motionType==rotateAroundALine ? "rotate around a line" : "translate along a line"));
+  fPrintF(file,"Point on the line   = (%g,%g,%g)",x0[0],x0[1],x0[2]);
+  fPrintF(file,"Tangent to the line = (%g,%g,%g)",v[0],v[1],v[2]);
+  fPrintF(file,"--------------------------------------------------------------------\n");
+  
+}
+
+
 // =============================================================================
 /// \brief Set the type of the motion.
 /// \param moition (input) : set the motion type to this value.

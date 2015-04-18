@@ -55,6 +55,8 @@ int buildPlotStuffDialog(DialogData & dialog, realCompositeGridFunction & u0, co
 
 int getHeaderComments( int cfs );
 
+int getBodyInfo( const int fs );
+
 int plotAll(DialogData & dialog);
 
 bool setFrameSeriesTitles(int cfs );

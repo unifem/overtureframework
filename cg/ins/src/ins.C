@@ -121,6 +121,9 @@ getUt(const realMappedGridFunction & v,
     if( debug() & 4 )
     {
       printF(" ***** Cgins::getUt --> call insimp to eval the RHS ***********\n");
+      fPrintF(debugFile," ***** Cgins::getUt --> call insimp to eval the RHS ***********\n");
+
+      ::display(v,sPrintF("getUt: v BEFORE insimp for grid=%i",grid),pDebugFile,"%4.2f ");
     
       printF(" implicitOption = %i (0=all, 1=no implicit, 2=implicit-separate), useNewImplicitMethod=%i\n",
 	     parameters.dbase.get<Parameters::ImplicitOption >("implicitOption"),
@@ -140,8 +143,9 @@ getUt(const realMappedGridFunction & v,
     real dt0=1.;  // not used 
     insImplicitMatrix(InsParameters::evalRightHandSide,coeffg,dt0,v,dvdt,dvdtImplicit,gridVelocity_,grid);
 
-    if( debug() & 8 )
+    if( debug() & 4 )
     {
+      ::display(v,sPrintF("getUt: v after insimp for grid=%i",grid),pDebugFile,"%4.2f ");
       ::display(dvdt,sPrintF("getUt: dvdt after insimp for grid=%i",grid),pDebugFile,"%3.1f ");
       ::display(dvdtImplicit,sPrintF("getUt: dvdtImplicit after insimp for grid=%i",grid),pDebugFile,"%3.1f ");
     }

@@ -76,6 +76,7 @@ setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBound
   setupDialog.setOptionMenuColumns(1);
 
   aString pdeCommands[] =  {"advection diffusion", 
+                            "thin film equations",
 			    ""     };
   setupDialog.addOptionMenu("pde", pdeCommands, pdeCommands, 0);//(int)parameters.dbase.get<Parameters::PDE >("pde"));
 
@@ -217,6 +218,12 @@ setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBound
       pdeChosen=true;
       //      parameters.dbase.get<Parameters::PDE >("pde")=Parameters::convectionDiffusion;
       pdeName=answer;
+    }
+    else if( answer=="thin film equations"  )
+    {
+      pdeChosen=true;
+      //      parameters.dbase.get<Parameters::PDE >("pde")=Parameters::convectionDiffusion;
+      pdeName="thinFilmEquations";
     }
     else if( answer=="fixed reference frame" ||
              answer=="rigid body reference frame" ||
@@ -496,6 +503,9 @@ setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBound
   return 0;
 }
 
+// ================================================================================================================
+/// \brief Set the title for plotting the solution.
+// ================================================================================================================
 int Cgad::
 setPlotTitle(const real &t, const real &dt)
 {
@@ -507,7 +517,53 @@ setPlotTitle(const real &t, const real &dt)
   std::vector<real> & b = parameters.dbase.get<std::vector<real> >("b");
   std::vector<real> & c = parameters.dbase.get<std::vector<real> >("c");   
 
-  psp.set(GI_TOP_LABEL,sPrintF(buff,"convectionDiffusion: t=%6.2e ",t));
+  Parameters::TimeSteppingMethod &timeSteppingMethod = 
+             parameters.dbase.get<Parameters::TimeSteppingMethod>("timeSteppingMethod");
+  const Parameters::ImplicitMethod implicitMethod = 
+    parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");  
+
+  const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
+  const int orderOfTimeAccuracy  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+
+  aString name="AD";
+  if( pdeName=="thinFilmEquations" )
+  {
+    name="ThinFilm";
+  }
+  
+  if( timeSteppingMethod==Parameters::implicit )
+  {
+    // if( implicitMethod==Parameters::approximateFactorization )
+    // {
+    //   name = name + "-AF";
+    //   const InsParameters::DiscretizationOptions & discretizationOption =
+    // 	parameters.dbase.get<Parameters::DiscretizationOptions>("discretizationOption") = Parameters::compactDifference;
+    //   if( discretizationOption==Parameters::compactDifference )
+    // 	name = name + "C";
+    //   else
+    // 	name = name + "S"; // standard finite difference
+    // }
+    if( implicitMethod==Parameters::backwardDifferentiationFormula )
+    {
+      const int & orderOfBDF = parameters.dbase.get<int>("orderOfBDF");      
+      name = name + sPrintF("-BDF%i",orderOfBDF);
+    }
+    else
+      name = name + "-IM";
+  }
+  else if( timeSteppingMethod==Parameters::adamsBashforth2 || 
+	   timeSteppingMethod==Parameters::adamsPredictorCorrector2 || 
+	   timeSteppingMethod==Parameters::adamsPredictorCorrector4 || 
+	   timeSteppingMethod==Parameters::variableTimeStepAdamsPredictorCorrector )
+  {
+    name = name + sPrintF("-PC%i%i",orderOfTimeAccuracy,orderOfAccuracy);
+  }
+  
+
+  psp.set(GI_TOP_LABEL,sPrintF(buff,"%s: t=%6.2e,",(const char*)name,t));
+  // psp.set(GI_TOP_LABEL,sPrintF(buff,"%s: t=%6.2e,",(const char*)name,orderOfAccuracyInTime,orderOfAccuracy,t));
+
+  // psp.set(GI_TOP_LABEL,sPrintF(buff,"convectionDiffusion: t=%6.2e ",t));
   if( parameters.dbase.get<int>("numberOfDimensions")==2 )
     psp.set(GI_TOP_LABEL_SUB_1,sPrintF(buff,"a=%4.1g, b=%4.1g, kappa=%6.1g, dt=%4.1g",
 				       a[0],b[0],kappa[0],dt));

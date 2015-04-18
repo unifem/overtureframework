@@ -841,7 +841,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
 
             
 
-    if( debug() & 4 || debug() & 8 )
+    if( debug() & 16 )
     {
         display(u,sPrintF("assignPressureRHS: sol u  grid=%i, before assignOPT",grid),debugFile,"%12.9f ");
         display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, before assignOPT",grid),debugFile,"%8.5f ");
@@ -1060,7 +1060,7 @@ assignPressureRHS( const int grid, GridFunction & gf0, realCompositeGridFunction
 
     } // end if ok 
         
-    if( debug() & 4 || debug() & 8 )
+    if( debug() & 16 )
     {
         display(u,sPrintF("assignPressureRHS: sol u  grid=%i, after assignOPT",grid),debugFile,"%12.9f ");
         display(f,sPrintF("assignPressureRHS: rhs f, grid=%i, after assignOPT",grid),debugFile,"%12.9f ");

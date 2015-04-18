@@ -1,3 +1,9 @@
+
+*** 2015/04/17:
+
+NOTE: unstable if nu is too small. -nu=1. OK
+cgins tz -g=square16.order4 -degreex=4 -degreet=3 -ts=pc4 -useNewImp=0 -bcn=noSlip -bc3=outflow -tp=.05 -tf=10 -nu=1 -go=halt 
+
 ****** example for PC4 
 
 

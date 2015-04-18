@@ -91,11 +91,18 @@ BeamModel::BeamModel()
   numElem = 11;
 
   dbase.put<real>("tension")=0.;  // T : coefficient of w_xx
+  dbase.put<real>("K0")=0.;       //  coefficient of -w
+  dbase.put<real>("Kt")=0.;       //  coefficient of -w_t
+  dbase.put<real>("Kxxt")=0.;     //  coefficient of w_{xxt} 
+  dbase.put<real>("ADxxt")=0.;    //  artificial dissipation coefficient
 
   newmarkBeta = 0.25;
   newmarkGamma = 0.5;
 
-  time_step_num = 1;
+  // newmarkBeta = 0.5;
+  // newmarkGamma = 1.;
+
+  numberOfTimeSteps = 1;
 
   pressureNorm = 1.; // 1000.0;  // scale pressure forces by this factor
 
@@ -114,19 +121,27 @@ BeamModel::BeamModel()
 
   beamX0=beamY0=beamZ0=0.;
   
+  // -- free motion parameters ---
   centerOfMass[0] = 0.0;
   centerOfMass[1] = 0.0;
-
-  angle = 0.0;
-
+  angle = 0.0;   // angle of beam for free motion
   bodyForce[0] = bodyForce[1] = 0.0;
   
-  beamInitialAngle = 0.0;
+
+  // -- beam is by default horizontal --
+  beamInitialAngle = 0.0;  // angle of undeformed beam 
+
+  initialBeamTangent[0] = 1.0;
+  initialBeamTangent[1] = 0.0;
 
   initialBeamNormal[0] = 0.0;
   initialBeamNormal[1] = 1.0;
-  initialBeamTangent[0] = 1.0;
-  initialBeamTangent[1] = 0.0;
+
+  dbase.put<real>("signForNormal") = 1.;  // flip sign of normal using this parameter
+
+  // useSmallDeformationApproximation : adjust the beam surface acceleration and surface "internal force"
+  //    assuming small deformations
+  dbase.put<bool>("useSmallDeformationApproximation")=true;
 
   projectedBodyForce = 0.0;
 
@@ -140,34 +155,51 @@ BeamModel::BeamModel()
 
   leftCantileverMoment = 0.0;
 
-  if( !dbase.has_key("saveProfileFile") ) 
-  {
-     dbase.put<bool>("saveProfileFile");
-     dbase.get<bool>("saveProfileFile")=false;
-  }
+  RealArray & elementB = dbase.put<RealArray>("elementB");  // holds "damping element matrix"
+  elementB.redim(4,4);
 
-  if( !dbase.has_key("saveTipFile") ) 
-  {
-     dbase.put<bool>("saveTipFile");
-     dbase.get<bool>("saveTipFile")=false;
-  }
+  if( !dbase.has_key("saveProfileFile") ) 
+     dbase.put<bool>("saveProfileFile")=false;
+
+  if( !dbase.has_key("saveProbeFile") ) 
+     dbase.put<bool>("saveProbeFile")=false;
+
+  // save probe file results every this many time-steps:
+  dbase.put<int>("probeFileSaveFrequency")=5;
 
   useExactSolution=false;
 
+  dbase.put<real>("cfl")=10.;  // scale explicit dt by this cfl number (scheme is implicit)
+
   dbase.put<bool>("useImplicitPredictor")=true;
 
+  dbase.put<bool>("relaxForce")=true;
+  dbase.put<RealArray>("fOld");
+  dbase.put<RealArray>("fOlder");
+
+  // Set relaxCorrectionSteps to true for iterating for added mass effects
+  dbase.put<bool>("relaxCorrectionSteps")=false;
   // The relaxation parameter used in the fixed point iteration
   // used to alleviate the added mass effect
-  dbase.put<real>("addedMassRelaxationFactor",1.0);  // 1 = no relaxation
+  dbase.put<real>("addedMassRelaxationFactor",1.0); 
 
   // The (relative) convergence tolerance for the fixed point iteration
   // tol: convergence tolerance (default is 1.0e-3)
   dbase.put<real>("subIterationConvergenceTolerance",1.0e-3);
-  
+  dbase.put<real>("subIterationAbsoluteTolerance",1.e-8);
+  dbase.put<real>("maximumRelativeCorrection")=0.;
+  dbase.put<bool>("useAitkenAcceleration")=false;
+
+  // We can optionally smooth the solution with a fourth-order filter
+  dbase.put<bool>("smoothSolution")=false;
+  dbase.put<int>("numberOfSmooths")=2;
+
   // For initial conditions: 
   dbase.put<real>("amplitude")=0.1;
   dbase.put<real>("waveNumber")=1.0;
 
+  // For scaling displacement when plotting
+  dbase.put<real>("displacementScaleFactorForPlotting")=1.;
 
   // { // wdh: replaces 'what' factor 
   //   dbase.put<real>("exactSolutionScaleFactorFSI");
@@ -187,8 +219,16 @@ BeamModel::BeamModel()
   if( !dbase.has_key("useSecondOrderNewmarkPredictor") ) dbase.put<bool>("useSecondOrderNewmarkPredictor")=true;
   if( !dbase.has_key("useNewTridiagonalSolver") ) dbase.put<bool>("useNewTridiagonalSolver")=true;
 
-  // Here is the tri-diagonal solver class:
+  // Here is the tri-diagonal solver for the time advance 
   if( !dbase.has_key("tridiagonalSolver") ) dbase.put<TridiagonalSolver*>("tridiagonalSolver")=NULL;
+
+  // Tridiagonal solver for the Galerkin projection:
+  if( !dbase.has_key("galerkinProjection") ) dbase.put<TridiagonalSolver*>("galerkinProjection")=NULL;
+
+  // Tridiagonal solver for computing the right-hand-side in getSurfaceInternalForce (used by the AMP scheme)
+  if( !dbase.has_key("rhsSolver") ) dbase.put<TridiagonalSolver*>("rhsSolver")=NULL;
+  if( !dbase.has_key("rhsSolverAddExternalForcing") ) dbase.put<bool>("rhsSolverAddExternalForcing",0);
+
   // The variable refactor is set to true when the implicit system chenges (e.g. when dt changes)
   if( !dbase.has_key("refactor") ) dbase.put<bool>("refactor")=true;
 
@@ -205,6 +245,21 @@ BeamModel::BeamModel()
   real *trigFreq = dbase.get<real[4]>("trigFreq");
   for( int i=0; i<4; i++ ){ trigFreq[i]=2.;  }
 
+  dbase.put<real>("standingWaveTimeOffset")=0.; // time offset for standing wave solution
+
+  dbase.put<bool>("fluidOnTwoSides")=true; // The beam has fluid on both sides (for projecting the velocity)
+
+  dbase.put<int>("orderOfGalerkinProjection")=2; // order of accuracy of the Galerkin projection (force and velocity)
+
+  // File to which the probe data (e.g. tip displacement, velocity etc.) is written
+  dbase.put<FILE*>("probeFile")=NULL;
+  dbase.put<aString>("probeFileName")="beamProbeFile.text";
+  
+  // check file:
+  FILE *& checkFile = dbase.put<FILE*>("checkFile");
+  checkFile = fopen("BeamModel.check","w" );   // Here is the check file for regression tests
+
+
 }
 
 // ======================================================================================================
@@ -212,14 +267,80 @@ BeamModel::BeamModel()
 // ======================================================================================================
 BeamModel::~BeamModel() 
 {
+  if( dbase.get<FILE*>("checkFile")!=NULL )
+    fclose(dbase.get<FILE*>("checkFile"));
+
+  if( dbase.get<bool>("saveProbeFile") &&  dbase.get<FILE*>("probeFile")!=NULL )
+    fclose(dbase.get<FILE*>("probeFile"));
+
   TridiagonalSolver *& pTri = dbase.get<TridiagonalSolver*>("tridiagonalSolver");
   if( pTri!=NULL )
-  {
     delete pTri;
-  }
+  
+  pTri = dbase.get<TridiagonalSolver*>("galerkinProjection");
+  if( pTri!=NULL )
+    delete pTri;
+  
+  pTri = dbase.get<TridiagonalSolver*>("rhsSolver");
+  if( pTri!=NULL )
+    delete pTri;
   
 
 }
+
+// ======================================================================================================
+/// \brief return the value of a integer parameter
+/// \return value : 0=success, 1=not found
+// ======================================================================================================
+int BeamModel::
+getParameter( const aString & name, int & value ) const
+{
+  if( dbase.has_key(name) )
+  {
+    value=dbase.get<int>(name);
+  }
+  else
+  {
+    printF("BeamModel::getParameter: ERROR: did not find parameter with name=[%s]\n",(const char*)name);
+    return 1;
+  }
+  
+  return 0;
+}
+
+// ======================================================================================================
+/// \brief return the value of a real parameter
+/// \return value : 0=success, 1=not found
+// ======================================================================================================
+int BeamModel::
+getParameter( const aString & name, real & value ) const
+{
+  if( dbase.has_key(name) )
+  {
+    value=dbase.get<real>(name);
+  }
+  else if( name=="thickness" )
+  {
+    value=thickness;
+  }
+  else if( name=="density" )
+  {
+    value=density;
+  }
+  else if( name=="length" )
+  {
+    value=L;
+  }
+  else
+  {
+    printF("BeamModel::getParameter: ERROR: did not find parameter with name=[%s]\n",(const char*)name);
+    return 1;
+  }
+  
+  return 0;
+}
+
+
 
 // ======================================================================================================
 /// \brief Write a summary of the Beam model parameters and boundary conditions etc.
@@ -228,27 +349,49 @@ void BeamModel::
 writeParameterSummary( FILE *file /* = stdout */ )
 {
   const real & T = dbase.get<real>("tension");
+  const bool & relaxForce = dbase.get<bool>("relaxForce");
+  const bool & relaxCorrectionSteps=dbase.get<bool>("relaxCorrectionSteps");
   const real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
+  const real & subIterationAbsoluteTolerance = dbase.get<real>("subIterationAbsoluteTolerance");
   const real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
   const bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
   const bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor");
+  const bool & useSmallDeformationApproximation = dbase.get<bool>("useSmallDeformationApproximation");
+  const bool & useAitkenAcceleration = dbase.get<bool>("useAitkenAcceleration");
+  const bool & smoothSolution = dbase.get<bool>("smoothSolution");
+  const int & numberOfSmooths = dbase.get<int>("numberOfSmooths");
+  
 
   fPrintF(file," --------------------------------------------------------------------------------\n");
   fPrintF(file,"                        Beam Model\n");
   fPrintF(file," --------------------------------------------------------------------------------\n");
   fPrintF(file," Type: Euler-Bernoulli beam. beamID=%i, name=%s\n",beamID,(const char*)name);
-  fPrintF(file,"     (density*thickness*b)*w_tt = T w_xx + EI w_xxxx\n");
-  fPrintF(file," E=%9.3e, I=%9.3e, T=%8.2e, \n"
-               " density=%9.3e, length=%9.3e, thickness=%9.3e, initial-angle=%7.3f (degrees) \n"
+  fPrintF(file,"     (density*thickness*b)*w_tt = -K0 w + T w_xx - EI w_xxxx -Kt w_t + Kxxt w_xxt \n");
+  fPrintF(file," E=%9.3e, I=%9.3e, T=%8.2e, K0=%8.2e, Kt=%8.2e Kxxt=%8.2e  ADxxt=%8.2e \n"
+               " density=%9.3e, length=%9.3e, thickness=%9.3e, b=breadth=1, initial-angle=%7.3f (degrees) \n"
                " numElem=%i, allowsFreeMotion=%i, initial left end=(%12.8e,%12.8e,%12.8e)\n"
-               " Newmark time-stepping, beta=%g, gamma=%g, (useImplicitPredictor=%i),\n"
+               " Newmark time-stepping, beta=%g, gamma=%g, cfl=%g,\n"
+               "     useSecondOrderNewmarkPredictor=%i, useImplicitPredictor=%i,\n"
                " pressureNormalization = %8.2e (scale pressure forces by this factor)\n"
-               " added-mass relaxation factor=%g, sub-iteration tol=%9.3e\n"
-               " useNewTridiagonalSolver=%i\n"
-	  , elasticModulus,areaMomentOfInertia,T,density,L,thickness,beamInitialAngle*180./Pi,
+               " useSmallDeformationApproximation = %i (adjust surface accelerations assuming small deformations)\n"
+               " relaxCorrectionSteps=%i, relaxForce=%i, use-Aitken-acceleration=%i\n"
+               " relaxation factor=%g, sub-iteration tol=%8.2e, absolute-tol=%8.2e\n"
+               " smooth solution=%i, number of smooths=%i (4th-order filter)\n"
+               " fluidOnTwoSides=%i, orderOfGalerkinProjection=%i, useNewTridiagonalSolver=%i\n"
+	  , elasticModulus,areaMomentOfInertia,T,dbase.get<real>("K0"),dbase.get<real>("Kt"),dbase.get<real>("Kxxt"),
+          dbase.get<real>("ADxxt"),
+          density,L,thickness,beamInitialAngle*180./Pi,
 	  numElem,(int)allowsFreeMotion,beamX0,beamY0,beamZ0,
-          newmarkBeta,newmarkGamma,(int)useImplicitPredictor,
-	  pressureNorm,addedMassRelaxationFactor,subIterationConvergenceTolerance,
+          newmarkBeta,newmarkGamma,dbase.get<real>("cfl"),
+	  (int)dbase.get<bool>("useSecondOrderNewmarkPredictor"),
+          (int)useImplicitPredictor,
+	  pressureNorm,(int)useSmallDeformationApproximation,
+          (int)relaxCorrectionSteps,(int)relaxForce,(int)useAitkenAcceleration,
+          addedMassRelaxationFactor,subIterationConvergenceTolerance,
+          subIterationAbsoluteTolerance,
+          (int)smoothSolution,numberOfSmooths,
+          (int)dbase.get<bool>("fluidOnTwoSides"), 
+          dbase.get<int>("orderOfGalerkinProjection"),
           (int)useNewTridiagonalSolver);
 
   aString bcName;
@@ -268,6 +411,7 @@ writeParameterSummary( FILE *file /* = stdout */ )
   const int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
   const int & degreeInTime = dbase.get<int>("degreeInTime");
   const int & degreeInSpace = dbase.get<int>("degreeInSpace");
+  const real & signForNormal = dbase.get<real>("signForNormal");
   real *trigFreq = dbase.get<real[4]>("trigFreq");
   fPrintF(file," twilightZone=%s, option=%s. Poly: degreeT=%i, degreeX=%i, Trig: ft=%g, fx=%g\n",(twilightZone ? "on" : "off"),
           (twilightZoneOption==0 ? "polynomial" : "trigonometric"),
@@ -275,6 +419,9 @@ writeParameterSummary( FILE *file /* = stdout */ )
   fPrintF(file," Exact solution option: %s\n",(const char*)exactSolutionOption);
   fPrintF(file," Initial condition option: %s\n",(const char*)initialConditionOption);
   
+   fPrintF(file," Initial beam normal=[%6.4f,%6.4f], tangent=[%6.4f,%6.4f], signForNormal=%g.\n",
+	   initialBeamNormal[0],initialBeamNormal[1],initialBeamTangent[0],initialBeamTangent[1],
+         signForNormal );
 
   fPrintF(file," --------------------------------------------------------------------------------\n");
   fPrintF(file," --------------------------------------------------------------------------------\n");
@@ -308,20 +455,50 @@ initialize()
   real EI = elasticModulus*areaMomentOfInertia;
 
   const real & T = dbase.get<real>("tension");
+  const real & K0 = dbase.get<real>("K0");
+  const real & Kt = dbase.get<real>("Kt");
+  const real & Kxxt = dbase.get<real>("Kxxt");
+  if( false && Kxxt!=0. )
+  {
+    OV_ABORT("--BeamModel: ERROR: Kt!=0 or Kxxt!=0 -- this term not implemented yet");
+  }
   
+
   // std::cout << "EI = " << EI << std::endl;
 
   // *wdh* 2014/06/17 -- tension term added
-  // Tension term from -T(v_x,w_x)
-  elementK(0,0) = EI*12./le3       + T*6./(5.*le);    
-  elementK(0,1) = EI*6./le2        + T/10.; 
+
+  // Tension matrix from (v_x,w_x)
+  RealArray elementT(4,4);
+  elementT(0,0) = 6./(5.*le);    
+  elementT(0,1) = 1./10.; 
+  elementT(0,2) = -elementT(0,0); 
+  elementT(0,3) = elementT(0,1);
+  elementT(1,0) = elementT(0,1);  
+  elementT(1,1) = le*2./15.; 
+  elementT(1,2) = -elementT(0,1); 
+  elementT(1,3) = - le/30.;
+  elementT(2,0) = elementT(0,2); 
+  elementT(2,1) = elementT(1,2); 
+  elementT(2,2) = elementT(0,0); 
+  elementT(2,3) = elementT(1,2);
+  
+  elementT(3,0) = elementT(0,1); 
+  elementT(3,1) = elementT(1,3); 
+  elementT(3,2) = elementT(2,3);
+  elementT(3,3) = elementT(1,1);
+
+
+  // Stiffness element matrix from beam term: (v_xx, EI w_xx) 
+  elementK(0,0) = EI*12./le3;
+  elementK(0,1) = EI*6./le2;
   elementK(0,2) = -elementK(0,0); 
   elementK(0,3) = elementK(0,1);
 
   elementK(1,0) = elementK(0,1);  
-  elementK(1,1) = EI*4./le         + T*le*2./15.; 
+  elementK(1,1) = EI*4./le;
   elementK(1,2) = -elementK(0,1); 
-  elementK(1,3) = EI*2./le         - T*le/30.;
+  elementK(1,3) = EI*2./le;
 
   elementK(2,0) = elementK(0,2); 
   elementK(2,1) = elementK(1,2); 
@@ -333,14 +510,31 @@ initialize()
   elementK(3,2) = elementK(2,3);
   elementK(3,3) = elementK(1,1);
   
-  elementM(0,0) = elementM(2,2) = 13./35.*le*density*thickness;
-  elementM(0,1) = elementM(1,0) = 11./210.*le2*density*thickness;
-  elementM(0,2) = elementM(2,0) = 9./70.*le*density*thickness;
-  elementM(1,3) = elementM(3,1) = -1./140.*le3*density*thickness;
-  elementM(3,2) = elementM(2,3) = -11./210.*le2*density*thickness;
-  elementM(1,2) = elementM(2,1) = 13./420.*le2*density*thickness;
-  elementM(0,3) = elementM(3,0) = -13./420.*le2*density*thickness;
-  elementM(1,1) = elementM(3,3) = 1./105.*le3*density*thickness;
+  // Scaled element mass matrix (v,w):
+  elementM(0,0) = elementM(2,2) = 13./35.*le;
+  elementM(0,1) = elementM(1,0) = 11./210.*le2;
+  elementM(0,2) = elementM(2,0) = 9./70.*le;
+  elementM(0,3) = elementM(3,0) = -13./420.*le2;
+  elementM(1,1) = elementM(3,3) = 1./105.*le3;
+  elementM(1,2) = elementM(2,1) = 13./420.*le2;
+  elementM(1,3) = elementM(3,1) = -1./140.*le3;
+  elementM(3,2) = elementM(2,3) = -11./210.*le2;
+
+  // Add linear stiffness term : K0*(v,w) 
+  // *wdh* 2014/12/25 -- Stiffness term -K0*w added,
+  //    Stiffness matrix entries from :  -K0*(v,w)   (like Mass matrix)
+  elementK += K0*elementM;
+
+  // Element damping matrix B:
+  RealArray & elementB = dbase.get<RealArray>("elementB");
+  elementB = Kt*elementM + Kxxt*elementT;
+
+  // Actual mass matrix: 
+  const real Abar =density*thickness*breadth;
+  elementM *= Abar;
+
+  // Stiffness element matrix including "tension term":
+  elementK += T*elementT;
 
   // initialize TZ
   initTwilightZone();
@@ -562,8 +756,41 @@ setParameters(real momOfInertia, real E,
 
 }
 
+// ======================================================================================================
+/// \brief Set a real beam parameter (that is in the class DataBase)
+/// \param name (input) : name of a parameter in the dbase 
+/// \param value (input) : value to assign
+/// \return value : 0=success, 1=name not found 
+// ======================================================================================================
+int BeamModel::
+setParameter( const aString & name, real & value ) 
+{
+  if( dbase.has_key(name) )
+    dbase.get<real>(name)=value;
+  else
+  {
+    printF("BeamModel::setParameter:ERROR: there is no real parameter named [%s]\n",(const char*)name);
+    return 1;
+  }
+  
+  return 0;
+}
+
+
+// ======================================================================================================
+/// \brief Return an estimate of the time-step dt. 
+// ======================================================================================================
+real BeamModel::
+getTimeStep() const
+{
+  real dt = getExplicitTimeStep();
+
+  return dt;
+}
+
+
 // ==================================================================
-/// \brief return the estimatimated *explicit* time step dt 
+/// \brief return the estimated *explicit* time step dt 
 /// \auhtor WDH
 // ==================================================================
 real BeamModel::
@@ -571,22 +798,73 @@ getExplicitTimeStep() const
 {
   // estimate the expliciit time step 
 
+  // int numNodes=numElem+1;
   real beamLength=L;
-  int numNodes=numElem+1;
-  
-  real dx = beamLength/numNodes; 
+  real dx = beamLength/numElem; 
   
   const real EI = elasticModulus*areaMomentOfInertia;
   const real & T = dbase.get<real>("tension");
-
+  const real & K0 = dbase.get<real>("K0");
+  const real & Kt = dbase.get<real>("Kt");
+  const real & Kxxt = dbase.get<real>("Kxxt");
+  
   // Guess the explicit time step: 
   //  ( c4*E*I*dt^2/dx^4 + C2*T*dt^2/dx^2 )/( rho*h*b ) < 1 
 
-  const real c4=1., c2=4.;
-  real dt = sqrt(  (density*thickness*breadth) /(  c4*EI/pow(dx,4) + c2*T/(dx*dx) ) );
+  const real cfl = dbase.get<real>("cfl");
+  const real rhosAs= density*thickness*breadth;
+  real dt, dtOld;
+  if( true )
+  {
+    // *OLD WAY*
+    const real c4=1., c2=4.;
+    // ***fix me for Kt and Kxxt ***
+    // if( Kt!=0. )
+    //   printF("--BM-- WARNING: dt has NOT been adjusted for -Kt*w_t\n");
+    // if( Kxxt!=0. )
+    //   printF("--BM-- WARNING: dt has NOT been adjusted for Kxxt*w_xxt\n");
+
+    dtOld = cfl*sqrt(  rhosAs /(  K0 + c4*EI/pow(dx,4) + c2*T/(dx*dx) ) );
   
-  if( debug & 1 )
-    printF("BeamModel::getExplicitTimeStep: EI=%g, T=%g, dx=%8.2e, dt=%8.2e\n",EI,T,dx,dt);
+  }
+
+  if( true )
+  {
+    // **NEW WAY**
+    // 
+    // Compute the time stepping eigenvalue from the first order system
+    //     u' = v 
+    //   rhos*As*v' = - K0*u - Kt*v + T*uxx + Kxxt*vxxt - EI*uxxxx
+    // 
+    real dx2=dx*dx, dx4=dx2*dx2;
+    real Bhat = ( Kt + Kxxt*(4./dx2) )/rhosAs;               // damping coefficient
+    real Ahat = ( K0 + T*(4./dx2) + EI*(16./dx4 ))/rhosAs;   // 
+
+    // Guess: explicit stability region goes to -1 on the real axis and 1 on the imaginary
+    const real alpha=1., beta=1;   
+  
+    real lambdaReal=0, lambdaIm=0.;
+    if( Bhat < 2*sqrt(Ahat) )
+    {
+      lambdaReal = -Bhat*.5;
+      lambdaIm   =  sqrt( Ahat - SQR(Bhat*.5) );
+
+      dt = cfl/sqrt( SQR(lambdaReal/alpha) + SQR(lambdaIm/beta) );
+    }
+    else
+    {
+      lambdaReal = Bhat*.5 + sqrt( SQR(Bhat*.5) - Ahat );
+
+      dt = cfl*alpha/lambdaReal;
+    }
+  
+  }
+  
+
+
+  if( true || debug & 1 )
+    printF("BeamModel::getExplicitTimeStep: rho=%g, rho*A=%g, EI=%g, T=%g, K0=%g, Kt=%g, Kxxt=%g, dx=%8.2e, dt=%8.2e (dt-oldway=%8.2e) (cfl=%g).\n",
+	   density,density*thickness*breadth,EI,T,K0,Kt,Kxxt, dx,dt,dtOld,cfl);
 
   return dt;
 }
@@ -636,7 +914,7 @@ getMassPerUnitLength( real & rhoA ) const
 
 
 // ======================================================================================================
-/// \brief Compute the integral of N(eta)*p, that is, the rhs of the FEM model, for a particular element
+/// \brief *OLD* Compute the integral of N(eta)*p, that is, the rhs of the FEM model, for a particular element
 // p1:   pressure at the first point within the element
 // p2:   pressure at the second point within the element
 // a=eta1: location (natural coordinate)
@@ -692,6 +970,38 @@ computeProjectedForce(real p1, real p2,
 
 }
 
+// ======================================================================================================
+/// \brief Compute the local contribution to the Galerkin projection of a function f(x) 
+///   onto the Hermite FEM representation.
+/// f(x) is represented as an Hermite polynomial on the interval [a,b]:
+///     f(xi) = fa*N1(yi) + fap*N2(yi) + fb*N3(yi) + fbp*N4(yi);
+///     yi := xi*(b-a)/2 + (b+a)/2; # map N to the interval [a,b] 
+///  
+/// /param fa,fap : f and f' at xi=a
+/// /param fb,fbp : f and f' at xi=b
+/// /param a,b : sub-interval fo xi=[-1,1]
+/// /param f (output): 
+///    f(k)= int_a^b f(xi) N_{k+1} J dxi 
+// ======================================================================================================
+void BeamModel::
+computeGalerkinProjection(real fa, real fap, real fb, real fbp, 
+			  real a, real b,
+			  realArray &  f ) 
+{
+  real g1,g2,g3,g4;
+  real le = L / numElem;    // length of an element 
+  real dxab = le*(b-a)*.5;  // length of xi sub-interval [a,b]
+   
+  // File generated by cgDoc/moving/codes/beam/beam.maple :
+  #include "elementIntegrationHermiteOrder4.h"
+
+  f(0)=g1;
+  f(1)=g2;
+  f(2)=g3;
+  f(3)=g4;
+
+}
+
 void BeamModel::
 setupFreeMotion(real x0,real y0, real angle0) 
 {
@@ -738,23 +1048,27 @@ inverse2x2(const RealArray& A, RealArray& inv)
 
   inv.redim(2,2);
   real odet = 1./(A(0,0)*A(1,1) - A(0,1)*A(1,0));
-  inv(0,0) = odet*A(1,1);
+  inv(0,0) =  odet*A(1,1);
   inv(0,1) = -odet*A(0,1);
   inv(1,0) = -odet*A(1,0);
-  inv(1,1) = odet*A(0,0);
+  inv(1,1) =  odet*A(0,0);
 }
 
 // ================================================================================
 /// \brief Solve A u = f
 /// 
 /// \param Ae (input) : "element" matrix for A 
+/// \param alpha (input) coefficient of Ke in A (used in adjusting the matrix for boundary terms)
+/// \param alphaB (input) coefficient of Be in A (used in adjusting the matrix for boundary terms)
+/// \param tridiagonalSolverName (input) : name of the tridiagonal solver in the base
 //
-//     Ae = Me + alpha*Ke 
+//     Ae = Me + alphaB*Be + alpha*Ke 
 //     Me = element mass matrix 
 //     Ke = element stiffness matrix 
 // ================================================================================
 void BeamModel::
-solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, const real alpha )
+solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, 
+                      const real alpha, const real alphaB, const aString & tridiagonalSolverName )
 {
 
   const bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
@@ -771,10 +1085,9 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
   bool checkResidual= (debug & 1 ) && refactor;  // for testing block tridiagonal solver 
   bool useBoth=(debug & 1 ) && useNewTridiagonalSolver && !isPeriodic;  // check new solver with old
 
-
-  // refactor=true;  // *********************************
-
   const real & T = dbase.get<real>("tension");
+  const real & Kxxt = dbase.get<real>("Kxxt");
+
   RealArray lower(2,2), upper(2,2), diag1(2,2), diag2(2,2);
 
   // int numElem = f.getLength(0)/2-1;
@@ -838,10 +1151,14 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
     // TridiagonalSolver::periodic
     const TridiagonalSolver::SystemType systemType = isPeriodic ? TridiagonalSolver::periodic : TridiagonalSolver::normal;
     
-    TridiagonalSolver *& pTri = dbase.get<TridiagonalSolver*>("tridiagonalSolver");
+    // TridiagonalSolver *& pTri = dbase.get<TridiagonalSolver*>("tridiagonalSolver");
+    TridiagonalSolver *& pTri = dbase.get<TridiagonalSolver*>(tridiagonalSolverName);
     if( pTri==NULL )
+    {
       pTri = new TridiagonalSolver();
-
+      refactor=true;
+    }
+    
     assert( pTri!=NULL );
 
     TridiagonalSolver & tri = *pTri;
@@ -849,8 +1166,9 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
     RealArray at0(ndof,ndof,I1,I2), bt0(ndof,ndof,I1,I2), ct0(ndof,ndof,I1,I2); // save for checking
     if( refactor )
     {
-      if( debug & 1 )
-        printF("-- BM -- solveBlockTridiagonal : form block tridiagonal system and factor, isPeriodic=%i\n",(int)isPeriodic);
+      if( true || debug & 1 )
+        printF("-- BM -- solveBlockTridiagonal : name=[%s] form block tridiagonal system and factor, isPeriodic=%i\n",
+	       (const char*)tridiagonalSolverName, (int)isPeriodic);
       
       RealArray at(ndof,ndof,I1,I2), bt(ndof,ndof,I1,I2), ct(ndof,ndof,I1,I2);
 
@@ -931,8 +1249,11 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
 	      OV_ABORT("ERROR");
 	    }
 	    
-
 	    bt(0,1,ia,0) +=  (1-2*side)*T*alpha;
+
+            // The boundary term K_xxt*v*w_xt also contributes
+            bt(0,1,ia,0) +=  (1-2*side)*Kxxt*alphaB;
+
 	  }
 	  
 
@@ -1048,6 +1369,7 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
 	//  T*N1(0)*Np_1_x(0)*w'_1
             
 	diagonal[0](0,1) +=  T*alpha;
+	diagonal[0](0,1) +=  Kxxt*alphaB;
       }
  
       bc = bcRight;
@@ -1078,6 +1400,7 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
 	// printF("-- BM -- solveBlock : add correction term, alpha=%g,  T*alpha = %8.2e\n",alpha, -T*alpha);
 	
 	diagonal[numElem](0,1) +=  -T*alpha;
+	diagonal[numElem](0,1) +=  -Kxxt*alphaB;
       }
 
 
@@ -1140,6 +1463,8 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
     if( err >  REAL_EPSILON*1000.*SQR(numElem) )
     {
       printF("*********** ERROR: old and new are different! ***************\n");
+      printF(" NOTE: this difference could be due to the boundary conditions not being\n"
+             "       fully implemented in the old scheme\n");
       OV_ABORT("error");
     }
   }
@@ -1151,28 +1476,50 @@ solveBlockTridiagonal(const RealArray& Ae, const RealArray& f, RealArray& u, con
 
 
 // =======================================================================================
-/// /brief  Compute the internal force in the beam, i.e., -K*u
-/// u: position of the beam
-/// f: internal force [out]
+/// /brief  Compute the internal force in the beam, f = -B*v -K*u
+/// /param u (input) : position of the beam 
+/// /param v (input) : velocity of the beam
+/// /param f (output) :internal force [out]
 // =======================================================================================
 void BeamModel::
-computeInternalForce(const RealArray& u,RealArray& f) 
+computeInternalForce(const RealArray& u, const RealArray& v, RealArray& f) 
 {
 
   RealArray elementU(4);
   RealArray elementForce(4);
 
   f = 0.0;
-  for (int i = 0; i < numElem; ++i)
+  for( int i = 0; i < numElem; ++i )
   {
     // elementU = [ u_i, ux_i, u_{i+1} ux_{i+1} ]
     for (int k = 0; k < 4; ++k)
       elementU(k) = u(i*2+k);
     
     elementForce = mult(elementK, elementU);
-    for (int k = 0; k < 4; ++k)
+    for( int k = 0; k < 4; ++k )
       f(i*2+k) -= elementForce(k);
   }
+
+  const real & Kt = dbase.get<real>("Kt");
+  const real & Kxxt = dbase.get<real>("Kxxt");
+  if( Kt!=0. || Kxxt!=0. )
+  {
+    // add damping terms to internal force
+    RealArray & elementB = dbase.get<RealArray>("elementB");
+    RealArray & elementV = elementU; // reuse space
+    for( int i = 0; i < numElem; ++ i)
+    {
+      // elementV = [ v_i, vx_i, v_{i+1} vx_{i+1} ]
+      for (int k = 0; k < 4; ++k )
+	elementV(k) = v(i*2+k);
+    
+      elementForce = mult(elementB, elementV);
+      for( int k = 0; k < 4; ++k )
+	f(i*2+k) -= elementForce(k);
+    }
+
+  }
+  
 
   const bool isPeriodic = bcLeft==periodic;
   if( isPeriodic )
@@ -1217,27 +1564,70 @@ multiplyByMassMatrix(const RealArray& w, RealArray& Mw)
 
 //==============================================================================================
 /// \brief Return the (x,y) coordinates of the current beam centerline
+/// \param xc (output) : center line coordinates
+/// \param scaleDisplacementForPlotting (input) : if true, scale the displacement of the beam for
+///      plotting purposes by the factor "displacementScaleFactorForPlotting"
 /// \author wdh 2014/05/22
 //==============================================================================================
 void BeamModel::
-getCenterLine( RealArray & xc ) const
+getCenterLine( RealArray & xc, bool scaleDisplacementForPlotting /* =false */ ) const
 {
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
   RealArray & uc = u[current];
 
+  // Optionally scale the displacement for plotting purposes:
+  real scaleFactor=1.;
+  if( scaleDisplacementForPlotting )
+    scaleFactor= dbase.get<real>("displacementScaleFactorForPlotting");
+
   xc.redim(numElem+1,2);
   for( int i=0; i<=numElem; i++ ) 
   {
     // (xl,yl) = beam position (un-rotated)
-    real xl = ((real)i /numElem) *  L;   // position along neutral axis 
-    real yl = uc(2*i);           // displacement 
+    real xl = ((real)i /numElem) *  L;       // position along neutral axis 
+    real yl = uc(2*i)*scaleFactor;           // displacement 
 
-    xc(i,0) = beamX0 + initialBeamTangent[0]*xl - initialBeamTangent[1]*yl;
-    xc(i,1) = beamY0 - initialBeamNormal [0]*xl + initialBeamNormal [1]*yl;
+    // *wdh* 2018/02/28 xc(i,0) = beamX0 + initialBeamTangent[0]*xl - initialBeamTangent[1]*yl;
+    // *wdh* 2018/02/28 xc(i,1) = beamY0 - initialBeamNormal [0]*xl + initialBeamNormal [1]*yl;
+    xc(i,0) = beamX0 + initialBeamTangent[0]*xl + initialBeamNormal[0]*yl;
+    xc(i,1) = beamY0 + initialBeamTangent[1]*xl + initialBeamNormal[1]*yl;
   }
 
 }
+
+
+//==============================================================================================
+/// \brief Get beam reference coordinates and direction array (indicates which side of the beam)
+/// \param x0(i) (input) : coordinates on the surface of the UNDEFORMED beam.
+/// \param s0(i) (output) : beam reference coordinates in [-1,1]
+/// \param elementNumber(i) (output) : element number
+/// \param signedDistance(i) (output) : signed distance to x0(i)
+//==============================================================================================
+int BeamModel::
+getBeamReferenceCoordinates( const RealArray & x0, RealArray & s0, IntegerArray & elementNumber,
+                             RealArray & signedDistance )
+{
+  const real beamLength=L;
+  const real dx = le/beamLength;
+  Range I=x0.dimension(0);
+  for( int i=I.getBase(); i<=I.getBound(); i++ )
+  {
+    real eta; // natural coordinate on the element [-1,1]
+    projectPoint( x0(i,0),x0(i,1), elementNumber(i),eta,signedDistance(i));
+
+    // // elemNum : closest node less than point xl:
+    // elemNum = (int)(xl / le);
+    // eta = 2.0*(xl-le*elemNum)/le-1.0;
+
+    s0(i) = (elementNumber(i)+ (eta+1.)*.5)*dx; // parameter coordinate on whole beam unit interval [0,1]
+    
+    // printF("--BM-- getBeamReferenceCoordinates: i=%i, x0=%g y0=%g s0=%g\n",i,x0(i,0),x0(i,1),s0(i));
+  }
+
+  return 0;
+}
+
 
 
 //================================================================================================
@@ -1255,23 +1645,22 @@ setTravelingWaveSolution( TravelingWaveFsi & tw )
   return 0;
 }
 
-
 //================================================================================================
-/// \brief Compute the acceleration.
+/// \brief Compute the acceleration of the beam.
 ///
-// Compute the acceleration of the beam.
-// u:               current beam position (For Newmark this is un + dt*vn + .5*dt^2*(1-2*beta)*an )
-// v:               current beam velocity (NOT USED CURRENTLY)
-// f:               external force on the beam
-// A:               matrix by which the acceleration is multiplied
-//                  (e.g., in the newmark beta correction step it is 
-//                   M+beta*dt^2*K)
-// a:               beam acceleration [out]
-// linAcceleration: acceleration of the CoM of the beam (for free motion) [out]
-// omegadd:         angular acceleration of the beam (for free motion) [out]
-// dt:              time step
-// locbeta:         [unused]
-// locgamma:        [unused]
+/// \param u (input):               current beam position (For Newmark this is un + dt*vn + .5*dt^2*(1-2*beta)*an )
+/// \param  (input)v:               current beam velocity (NOT USED CURRENTLY)
+/// \param f (input):               external force on the beam
+/// \param A (input):               matrix by which the acceleration is multiplied
+///                  (e.g., in the newmark beta correction step it is 
+///                   M+beta*dt^2*K)
+/// \param a (input):               beam acceleration [out]
+/// \param linAcceleration (input): acceleration of the CoM of the beam (for free motion) [out]
+/// \param omegadd (input):         angular acceleration of the beam (for free motion) [out]
+/// \param dt (input):              time step
+/// \param alpha (input) :  coeff of K in  (M + alphaB*B + alpha*K)*a = RHS
+/// \param alphaB (input) : coeff of B in  (M + alphaB*B + alpha*K)*a = RHS
+/// \param tridiagonalSolverName (input) : 
 //
 //================================================================================================
 void BeamModel::
@@ -1283,9 +1672,8 @@ computeAcceleration(const real t,
 		    real linAcceleration[2],
 		    real& omegadd,
 		    real dt,
-                    const real alpha,
-		    real loc_beta,
-		    real loc_gamma)
+                    const real alpha, const real alphaB,
+                    const aString & tridiagonalSolverName )
 {
 
   if( debug & 2 )
@@ -1297,8 +1685,8 @@ computeAcceleration(const real t,
 
   RealArray rhs(numElem*2+2); // *wdh* 2014/06/19
 
-  // Compute:   rhs = -K*u 
-  computeInternalForce(u, rhs);
+  // Compute:   rhs = -B*v -K*u 
+  computeInternalForce(u, v, rhs);
 
 
   if( debug & 2 )
@@ -1325,34 +1713,53 @@ computeAcceleration(const real t,
     // For natural BC's we need EI*wxx(0,t) 
     const real EI = elasticModulus*areaMomentOfInertia;
     const real & T = dbase.get<real>("tension");
+    const real & Kxxt = dbase.get<real>("Kxxt");
+
     RealArray g;
     getBoundaryValues( t, g );
 
+    real accelerationScaleFactor=1.;
+    if( tridiagonalSolverName=="rhsSolver" )
+    {
+      // when we compute the RHS directly we are solving for rho*hs*b utt (not utt )
+      accelerationScaleFactor=density*thickness*breadth;
+    }
+    
     for( int side=0; side<=1; side++ )
     {
       BoundaryCondition bc = side==0 ? bcLeft : bcRight;
       const int ia = side==0 ? 0 : numElem*2;
       const int ib = side==0 ? ia+2 : ia-2;
-
+      const int is = 1-2*side;
+      
       // Special case when EI=0 : (we only have 1 BC for clamped instead of 2)
       if( bc==clamped && EI==0. ) bc=pinned;
 
       // real x = side==0 ? 0 : L;
       if( bc == clamped ) 
       {
-	rhs(ia)=gtt(0,side);   // w_tt is given
-	rhs(ia+1)=gtt(1,side);   // wxtt is given 
+        // First two equations in the matrix are
+        //       w_tt = given
+        //       wx_tt = given 
+	if( false )
+	{
+	  printF("--BM-- side=%i set clamped BC gtt=%e, gttx=%e, accelerationScaleFactor=%8.2e\n",
+		 gtt(0,side),gtt(1,side),accelerationScaleFactor);
+	}
+	
+	rhs(ia  )=gtt(0,side)*accelerationScaleFactor;   // w_tt is given
+	rhs(ia+1)=gtt(1,side)*accelerationScaleFactor;   // wxtt is given 
       }
       else if( bc==pinned )
       {
-	rhs(ia)=gtt(0,side);   // w_tt is given
+	rhs(ia)=gtt(0,side)*accelerationScaleFactor;   // w_tt is given
       }
       if( bc == pinned && EI != 0.) 
       {
 	// Boundary term is of the form:  -EI* v_x*w_xx
 	// -- correct for natural BC:  E*I*w_xx = +/- g(2,side)
         if( debug & 1 )	printF("-- BM -- set rhs for pinned BC wxx = g(2,side)=%8.2e, EI=%g\n",g(2,side),EI);
-	rhs(ia+1) += -(1-2*side)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
+	rhs(ia+1) += -(is)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
       }
       if( bc==freeBC )
       {
@@ -1361,14 +1768,61 @@ computeAcceleration(const real t,
 
 	// printF("-- BM -- set rhs for free BC, g(2)=%e, g(3)=%e, T*u(ia+1)=%8.2e \n",g(2,side),g(3,side),T*u(ia+1));
 
-	rhs(ia  ) +=  (1-2*side)*EI*g(3,side);   // add : -E*I*wxxx(0,t) * N(0)
-	rhs(ia+1) += -(1-2*side)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
+	rhs(ia  ) +=  (is)*EI*g(3,side);   // add : -E*I*wxxx(0,t) * N(0)
+	rhs(ia+1) += -(is)*EI*g(2,side);   // add : -E*I*wxx(0,t) * Np_x(0)
 
 	// The boundary term T*v*w_x is only non-zero for v=N_1, and w_x = Np_1_x
-	rhs(ia  ) += -(1-2*side)*T*u(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
+	rhs(ia  ) += -(is)*T*u(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
+	rhs(ia  ) += -(is)*Kxxt*v(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
 
       }
       
+      if( bc==internalForceBC )
+      { // BC used when computing the "internal force"  F = L(u,v) + f , given (u,v)
+	rhs(ia  ) += -(is)*T*u(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
+	rhs(ia  ) += -(is)*Kxxt*v(ia+1);      // add : T*N1(0)*Np_1_x(0)*w'_1
+
+        // evaluate wxx and wxxx on the boundary
+	const real beamLength=L;
+	const real dx = beamLength/numElem;  
+	real wxxx, wxx;
+	if( false )
+	{
+	  const real dxidx = 2./dx;  // d(xi)/dx
+	  // find the 2nd and third derivatives of the basis functions at the ends
+	  real phijxx = -1.5*dxidx*dxidx, phijxxx=1.5*dxidx*dxidx*dxidx;
+	  real psijxx = -dx*dxidx*dxidx,  psijxxx=.75*dx*dxidx*dxidx*dxidx;
+	
+	  // Here is wxx to 2nd-order and wxxx to first order accuracy
+	  // This formula is the same as found from Taylor series
+	  wxx  = (u(ia)- u(ib))*phijxx  + (is)*( u(ia+1) +.5*u(ib+1) )*psijxx;
+	  wxxx = (is)*(u(ia)- u(ib) )*phijxxx + (u(ia+1)+u(ib+1))*psijxxx;
+
+	  printF(" side=%i: phijxx=%9.3e, phijxxx=%9.3e  dx=%8.2e, 1/dx=%8.2e\n",side,phijxx,phijxxx,dx,1/dx);
+	  printF(" side=%i: psijxx=%9.3e, psijxxx=%9.3e\n",side,psijxx,psijxxx);
+	  printF(" side=%i: (u,u')(ia)=(%e,%e) (u,u')(ib)=%e,%e)\n",u(ia),u(ia+1),u(ib),u(ib+1));
+	  printF(" side=%i: wxx=%9.3e, wxxx=%9.3e\n",side,wxx,wxxx);
+	}
+	
+        // From cgDoc/moving/codes/beam/interp.maple
+        // 4-order in upp, 2nd-order in uppp: 
+        const int ic = ib+2*is; // 2nd point inside
+        real h = is*dx, h2=h*h, h3=h2*h;
+	real u0=u(ia),     u1=u(ib),    u2=u(ic);
+	real up0=u(ia+1), up1=u(ib+1), up2=u(ic+1);
+	// wxx =-1/50.*(244*h*up0+176*h*up1-6*h*up2+407*u0-400*u1-7*u2)/h2;
+        // wxxx=3/50.*(189*h*up0+256*h*up1-11*h*up2+417*u0-400*u1-17*u2)/h3;
+        wxx =-1/2.*(12*h*up0+16*h*up1+2*h*up2+23*u0-16*u1-7*u2)/h2;
+        wxxx=3/2.*(13*h*up0+32*h*up1+5*h*up2+33*u0-16*u1-17*u2)/h3;
+	
+	// printF(" side=%i: wxx=%9.3e, wxxx=%9.3e\n",side,wxx,wxxx);	
+
+	rhs(ia  ) +=  (is)*EI*wxxx;   // add : -E*I*wxxx(0,t) * N(0)
+	rhs(ia+1) += -(is)*EI*wxx;    // add : -E*I*wxx(0,t) * Np_x(0)
+	
+      }
+      
+
       
     }
 
@@ -1509,7 +1963,7 @@ computeAcceleration(const real t,
   }
 
   // Solve M a = rhs 
-  solveBlockTridiagonal(A, rhs, a, alpha );
+  solveBlockTridiagonal(A, rhs, a, alpha, alphaB,tridiagonalSolverName );
 
   if( debug & 2 )
   {
@@ -1528,11 +1982,15 @@ computeAcceleration(const real t,
 /// \param x0 (input) :  location of surface points on the undeformed beam 
 /// \param xs (output) : current position of beam boundary 
 /// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+/// /param adjustEnds (input) : if true then adjust the ends of the beam surface for 
+///     clamped/pinned end conditions so that the end points on the beam surface do not move --
+///     This is needed if we are generating a fluid grid exterior to the beam.
 ///
 // ====================================================================================
 void BeamModel::
 getSurface( const real t, const RealArray & x0,  const RealArray & xs, 
-	    const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+	    const Index & Ib1, const Index & Ib2,  const Index & Ib3,
+            const bool adjustEnds /* = false */ )
 {
   const int & current = dbase.get<int>("current"); 
   std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
@@ -1548,52 +2006,102 @@ getSurface( const real t, const RealArray & x0,  const RealArray & xs,
     OV_ABORT("ERROR");
   }
 
+  bool clipToBounds=false; // To handle rounded ends that lie outside [0,L] do not clip points to beam length [0,L]
+  
   int i1,i2,i3;
   FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
   {
-    projectDisplacement(t, uc, x0(i1,i2,i3,0),x0(i1,i2,i3,1),xs(i1,i2,i3,0),xs(i1,i2,i3,1));
+    projectDisplacement(t, uc, x0(i1,i2,i3,0),x0(i1,i2,i3,1),xs(i1,i2,i3,0),xs(i1,i2,i3,1),clipToBounds);
   }
+
+  if( adjustEnds )
+  {
+    // **FIX ME if beam has overlapping grids on a single side ***
+    if( bcLeft == pinned || bcLeft == clamped ) 
+    {
+      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+      int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
+      xs(i1,i2,i3,0)=x0(i1,i2,i3,0); // set ends equal to initial position
+      xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+    }
+    if( bcRight == pinned || bcRight == clamped ) 
+    {
+      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+      int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
+      xs(i1,i2,i3,0)=x0(i1,i2,i3,0);
+      xs(i1,i2,i3,1)=x0(i1,i2,i3,1);
+    }
+    
+  }
+  
 
 }
 
 
 
 // ====================================================================================
-/// /brief Determine points on the beam surface
+/// \brief Determine points on the beam surface
 /// Return the displacement of the point on the surface (not the neutral axis)
 /// of the beam of the point whose undeformed location is (x0,y0).
 /// This function is used to update the boundary of the CFD grid.
-/// X:       current beam solution vector
-/// x0:      undeformed location of the point on the surface of the beam (x)
-/// y0:      undeformed location of the point on the surface of the beam (y)
-/// x [out]: deformed location of the point on the surface of the beam (x)
-/// y [out]: deformed location of the point on the surface of the beam (y)
+/// \param X:       current beam solution vector
+/// \param x0:      undeformed location of the point on the surface of the beam (x)
+/// \param y0:      undeformed location of the point on the surface of the beam (y)
+/// \param wx [out]: deformed location of the point on the surface of the beam (x)
+/// \param wy [out]: deformed location of the point on the surface of the beam (y)
+/// \param clipToBounds (input) : if true, clip points to the beam length [0,L]
 // ====================================================================================
 void BeamModel::
-projectDisplacement(const real t, const RealArray& X, const real& x0, const real& y0, real& wx, real& wy) 
+projectDisplacement(const real t, const RealArray& X, const real& x0, const real& y0, real& wx, real& wy,
+                    bool clipToBounds /* =true */ ) 
 {
 
   int elemNum;
   real eta, halfThickness;
   
-  projectPoint(x0,y0, elemNum, eta,halfThickness);
+  // Compute the half-thickness at this point (needed for rounded ends)
+  projectPoint(x0,y0, elemNum, eta,halfThickness, clipToBounds);
+
+  real eta0=eta;    // may be outside [-1,1] if clipToBounds=false
+  if( !clipToBounds )
+    eta=max(-1.,min(1.,eta));  // evaluate the displacement and slope on clipped bounds 
   
   real displacement, slope;
-  interpolateSolution(X, elemNum, eta, displacement, slope);
+  interpolateSolution(X, elemNum, eta, displacement, slope); // compute the displacement and slope
   
+  if( !clipToBounds && eta!=eta0 )
+  { // If point is off the end of the beam then adjust the displacement on the beam ends by the constant slope at the end
+    // Note: evaluating the solution at points outside [0,L] did not work well
+    const real dx = L/numElem;  
+    displacement += slope*.5*(eta0-eta)*dx;
+  }
+
   real omag = 1./sqrt(slope*slope+1.0);
-  real normall[2] = {-slope*omag, omag};
+  real normall[2] = {-slope*omag, omag};  // normal to beam center-line
 
   if (!allowsFreeMotion) 
   {
+    // Compute position along beam: 
+    //    dxt = (x0,y0)*tangent
+    //    dyt = (x0,y0)*normal
     real dxt = (x0-beamX0)*initialBeamTangent[0] + (y0-beamY0)*initialBeamTangent[1];
-    real dyt = (x0-beamX0)*initialBeamNormal[0] +  (y0-beamY0)*initialBeamNormal[1];
+    real dyt = (x0-beamX0)* initialBeamNormal[0] + (y0-beamY0)* initialBeamNormal[1];
 
     real xl = dxt+normall[0]*halfThickness;
-    real yl = normall[1]*halfThickness+displacement;
+    real yl =     normall[1]*halfThickness + displacement;
     
-    wx = beamX0 + initialBeamTangent[0]*xl-initialBeamTangent[1]*yl;
-    wy = beamY0 - initialBeamNormal[0]*xl + initialBeamNormal[1]*yl;
+    // *wdh* 2015/02/28 wx = beamX0 + initialBeamTangent[0]*xl-initialBeamTangent[1]*yl;
+    // *wdh* 2015/02/28  wy = beamY0 -  initialBeamNormal[0]*xl +  initialBeamNormal[1]*yl;
+    wx = beamX0 + initialBeamTangent[0]*xl + initialBeamNormal[0]*yl;
+    wy = beamY0 + initialBeamTangent[1]*xl + initialBeamNormal[1]*yl;
+
+    // if( eta0>1.001 )
+    // {
+    //   printF(" ---BM-- projDispl: (x0,y0)=(%9.2e,%9.2e) eta=%5.2f eta0=%5.2f slope=%5.2f u=%6.3f nb=[%5.2f,%5.2f] (wx,wy)=(%6.3f,%6.3f) h/2=%9.3e\n",
+    // 	     x0,y0,eta,eta0,slope,displacement, normall[0],normall[1], wx,wy,halfThickness);
+    // }
+    
+
   }
   else 
   {
@@ -1608,7 +2116,7 @@ projectDisplacement(const real t, const RealArray& X, const real& x0, const real
     wy += (tangent[1] * normall[0] + normal[1]*normall[1])*halfThickness;
   }
     
-  if( debug & 4 && initialConditionOption=="travelingWaveFSI" )
+  if( debug & 4 && exactSolutionOption=="travelingWaveFSI" )
   {
     // -- compare to exact ---
     TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
@@ -1703,8 +2211,11 @@ projectAcceleration(const real t,
     real axl = normaldd[0]*halfThickness;
     real ayl = normaldd[1]*halfThickness+DDdisplacement;
     
-    ax = initialBeamTangent[0]*axl-initialBeamTangent[1]*ayl;
-    ay = initialBeamNormal[0]*axl + initialBeamNormal[1]*ayl;
+    // convert vector to rotated beam:
+    ax = initialBeamTangent[0]*axl + initialBeamNormal[0]*ayl;
+    ay = initialBeamTangent[1]*axl + initialBeamNormal[1]*ayl;
+    // *wdh* 2015/02/28 ax = initialBeamTangent[0]*axl-initialBeamTangent[1]*ayl;
+    // *wdh* 2015/02/2 ay =  initialBeamNormal[0]*axl +  initialBeamNormal[1]*ayl;
   }
   else 
   {
@@ -1736,7 +2247,7 @@ projectAcceleration(const real t,
   }
 
   bool useExact=false;
-  if(( useExact || debug & 4 ) && initialConditionOption=="travelingWaveFSI" )
+  if(( useExact || debug & 4 ) && exactSolutionOption=="travelingWaveFSI" )
   {
     // -- compare to exact ---
     TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
@@ -1852,10 +2363,13 @@ projectInternalForce(const RealArray & internalForce,
   if (!allowsFreeMotion) 
   {
     real axl = normaldd[0]*thicknessFactor;
-    real ayl = normaldd[1]*thicknessFactor+DDdisplacement;
+    real ayl = normaldd[1]*thicknessFactor + DDdisplacement;
     
-    ax = initialBeamTangent[0]*axl-initialBeamTangent[1]*ayl;
-    ay = initialBeamNormal[0]*axl + initialBeamNormal[1]*ayl;
+    // rotate vector along beam axis 
+    ax = initialBeamTangent[0]*axl + initialBeamNormal[0]*ayl;
+    ay = initialBeamTangent[1]*axl + initialBeamNormal[1]*ayl;
+    // *wdh* 2015/02/28 ax = initialBeamTangent[0]*axl-initialBeamTangent[1]*ayl;
+    // *wdh* 2015/02/28ay =  initialBeamNormal[0]*axl +  initialBeamNormal[1]*ayl;
   }
   else 
   {
@@ -1893,18 +2407,58 @@ projectInternalForce(const RealArray & internalForce,
 ///
 /// \param x0 (input) :  location of surface points on the undeformed beam 
 /// \param as (output) : current acceleration of the beam boundary 
+/// \param normal (input) : normal to the surface
 /// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+/// /param adjustEnds (input) : if true then adjust the ends of the beam velocity for 
+///     clamped/pinned end conditions so that the end points on the beam surface do not move --
+///     This is needed if we are generating a fluid grid exterior to the beam.
 ///
 // ====================================================================================
 void BeamModel::
-getSurfaceAcceleration( const real t, const RealArray & x0,  const RealArray & as, 
-			const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+getSurfaceAcceleration( const real t, const RealArray & x0, RealArray & as, const RealArray & normal, 
+			const Index & Ib1, const Index & Ib2,  const Index & Ib3,
+                        const bool adjustEnds /* = false */ )
 {
-  int i1,i2,i3;
-  FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  if( true )
   {
-    projectAcceleration(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),as(i1,i2,i3,0),as(i1,i2,i3,1) );
+    // *wdh* 2015/01/05 *new* way
+    const bool addExternalForcing=true;
+    getSurfaceInternalForce(t, x0, as, normal, Ib1,Ib2,Ib3,addExternalForcing );
+
+    const real Abar =density*thickness*breadth;
+    as *= 1./Abar;
+    
   }
+  else
+  {
+    int i1,i2,i3;
+    FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+    {
+      projectAcceleration(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),as(i1,i2,i3,0),as(i1,i2,i3,1) );
+    }
+
+  }
+
+  if( adjustEnds )
+  {
+    // **FIX ME if beam has overlapping grids on a single side ***
+    if( bcLeft == pinned || bcLeft == clamped ) 
+    {
+      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+      int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
+      as(i1,i2,i3,0)=0.;
+      as(i1,i2,i3,1)=0.;
+    }
+    if( bcRight == pinned || bcRight == clamped ) 
+    {
+      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+      int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
+      as(i1,i2,i3,0)=0.;
+      as(i1,i2,i3,1)=0.;
+    }
+    
+  }
+
 }
 
 
@@ -1914,16 +2468,40 @@ getSurfaceAcceleration( const real t, const RealArray & x0,  const RealArray & a
 /// \param x0 (input) :  location of surface points on the undeformed beam 
 /// \param vs (output) : current velocity of the beam boundary 
 /// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+/// /param adjustEnds (input) : if true then adjust the ends of the beam velocity for 
+///     clamped/pinned end conditions so that the end points on the beam surface do not move --
+///     This is needed if we are generating a fluid grid exterior to the beam.
 ///
 // ====================================================================================
 void BeamModel::
 getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs, 
-		    const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+		    const Index & Ib1, const Index & Ib2,  const Index & Ib3,
+                    const bool adjustEnds /* = false */ )
 {
   int i1,i2,i3;
   FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
   {
     projectVelocity(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),vs(i1,i2,i3,0),vs(i1,i2,i3,1) );
+  }
+
+  if( adjustEnds )
+  {
+    // **FIX ME if beam has overlapping grids on a single side ***
+    if( bcLeft == pinned || bcLeft == clamped ) 
+    {
+      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+      int i1=Ib1.getBase(), i2=Ib2.getBase(), i3=Ib3.getBase();
+      vs(i1,i2,i3,0)=0.;
+      vs(i1,i2,i3,1)=0.;
+    }
+    if( bcRight == pinned || bcRight == clamped ) 
+    {
+      // -- force the end points of the beam surface to remain fixed -- **COULD DO BETTER**
+      int i1=Ib1.getBound(), i2=Ib2.getBound(), i3=Ib3.getBound();
+      vs(i1,i2,i3,0)=0.;
+      vs(i1,i2,i3,1)=0.;
+    }
+    
   }
 }
 
@@ -1933,12 +2511,16 @@ getSurfaceVelocity( const real t, const RealArray & x0,  const RealArray & vs,
 ///
 /// \param x0 (input) :  location of surface points on the undeformed beam 
 /// \param fs (output) : current internal-force of the beam boundary 
+/// \param normal (input) : normal to the surface
 /// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+/// /param addExternalForcing (input) : if true add the external forcing to the RHS
 ///
 // ====================================================================================
 void BeamModel::
-getSurfaceInternalForce( const real t, const RealArray & x0,  const RealArray & fs, 
-			const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+getSurfaceInternalForce( const real t, const RealArray & x0, RealArray & fs, 
+                         const RealArray & normal, 
+			 const Index & Ib1, const Index & Ib2,  const Index & Ib3,
+                         const bool addExternalForcing )
 {
   
   int & current = dbase.get<int>("current"); 
@@ -1964,66 +2546,104 @@ getSurfaceInternalForce( const real t, const RealArray & x0,  const RealArray & 
   // Governing equation:
   //      ms* v_t = L(u) + fe
   //      ms=rho*h*b 
-  // The internal force is L(u), if fe=0 then L(u) = ms*v_t = ms*a 
+  // The internal force is L(u) + fe     
   // 
   // FEM approximation:
   //       ms Ms a = K u + Fe 
   //  where M= ms*Ms is the mass matrix and Ms is the mass matrix without the factor of ms.
   // 
-  // To solve for the internal force we set Fe=0 and solve
+  // To solve for the internal force we solve
   //
-  //     L(u) =  ms*a = Ms^{-1} Ku         
+  //     L(u) =  ms*a = Ms^{-1} ( K u + Fe )
   //  
 
+  RealArray Me(4,4);  // Element mass matrix without the factor of ms=rhos*hs*bs
 
-  // compute internal force at time t
-  if( true )
+  // le = L / numElem;
+  const real le2 = le*le;
+  const real le3 = le2*le;
+
+  Me(0,0) = Me(2,2) = 13./35.*le;
+  Me(0,1) = Me(1,0) = 11./210.*le2;
+  Me(0,2) = Me(2,0) = 9./70.*le;
+  Me(1,3) = Me(3,1) = -1./140.*le3;
+  Me(3,2) = Me(2,3) = -11./210.*le2;
+  Me(1,2) = Me(2,1) = 13./420.*le2;
+  Me(0,3) = Me(3,0) = -13./420.*le2;
+  Me(1,1) = Me(3,3) = 1./105.*le3;
+
+
+  RealArray internalForce(2*numElem+2), fe(2*numElem+2);
+
+  if( addExternalForcing ) 
   {
-    RealArray Me(4,4);  // Element mass matrix without the factor of ms=rhos*hs*bs
-
-    // le = L / numElem;
-
-    const real le2 = le*le;
-    const real le3 = le2*le;
-
-    Me(0,0) = Me(2,2) = 13./35.*le;
-    Me(0,1) = Me(1,0) = 11./210.*le2;
-    Me(0,2) = Me(2,0) = 9./70.*le;
-    Me(1,3) = Me(3,1) = -1./140.*le3;
-    Me(3,2) = Me(2,3) = -11./210.*le2;
-    Me(1,2) = Me(2,1) = 13./420.*le2;
-    Me(0,3) = Me(3,0) = -13./420.*le2;
-    Me(1,1) = Me(3,3) = 1./105.*le3;
-
-
-    RealArray internalForce(2*numElem+2), fe(2*numElem+2);
+    fe=fc;  // *wdh* 2015/01/04  -- include external force
+  }
+  else
+  {
     fe=0.;  // set external force to zero
-
-    bool & refactor = dbase.get<bool>("refactor"); 
-    refactor=true;          
-
-    const real alpha=0.;  // coeff of K in  (M+alpha*K)*a = RHS
-    const real dt=0.;
-    computeAcceleration( t, xc,vc,fe, Me, internalForce, centerOfMassAcceleration, angularAcceleration, dt, alpha );
-
-    refactor=true;          
-
-    int i1,i2,i3;
-    FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
-    {
-      projectInternalForce( internalForce, t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),fs(i1,i2,i3,0),fs(i1,i2,i3,1) );
-    }
-
-    // ::display(ac,"--BM-- internalForce : ac -- acceleration","%8.2e ");
-    // ::display(internalForce,"--BM-- internalForce : internalForce ","%8.2e ");
-
-
-    // ::display(fs,"--BM-- internalForce from projectInternalForce","%8.2e ");
+  }
     
+  if( false )
+    ::display(fe,sPrintF("--BM-- getSurfaceInternalForce: external force fe at t=%8.2e",t),"%8.2e ");  
+
+  // We need to refactor if the addExternalForcing optin has changed (as this changes the BC's)
+  bool & refactor = dbase.get<bool>("refactor"); 
+  if( addExternalForcing != dbase.get<bool>("rhsSolverAddExternalForcing") )
+  {
+    refactor=true;          
+  }
+  dbase.get<bool>("rhsSolverAddExternalForcing") =addExternalForcing; // save current option
+  
+ // ---- Boundary Conditions ----
+  BoundaryCondition bcLeftSave =bcLeft;  // save current 
+  BoundaryCondition bcRightSave=bcRight;
+
+  // NOTE: When the forcing is included we can use the regular BC's for u
+  //       When the forcing is not included we CANNOT use the regular BC's for u
+  if( false   
+       ||  !addExternalForcing   // ***TEST*** 2015/02/21
+     )
+  {
+    // bcLeft=unknownBC;
+    // bcRight=unknownBC;
+
+    // -- BC's used when computing the "internal force"  F = L(u,v) + f , given (u,v) 
+    bcLeft=internalForceBC;
+    bcRight=internalForceBC;
   }
   
+  const real alpha =0.;  // coeff of K in  (M + alphaB*B + alpha*K)*a = RHS
+  const real alphaB=0.;  // coeff of B in  (M + alphaB*B + alpha*K)*a = RHS
+  const real dt=0.;
+  computeAcceleration( t, xc,vc,fe, Me, internalForce, centerOfMassAcceleration, angularAcceleration, dt,
+		       alpha,alphaB,"rhsSolver" );
+
+  refactor=false;
+  
+  if( false )
+    ::display(internalForce,sPrintF("--BM-- getSurfaceInternalForce: internalForce at t=%8.2e",t),"%8.2e ");  
+
+  // refactor=true;          
+
+  bcLeft =bcLeftSave;   // reset 
+  bcRight=bcRightSave; 
+
+  int i1,i2,i3;
+  FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  {
+    // NOTE: this function will add the rotation term due to finite thickness
+    projectInternalForce( internalForce, t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),fs(i1,i2,i3,0),fs(i1,i2,i3,1) );
+  }
+
+  if( false )
+    ::display(fs,"--BM-- getSurfaceInternalForce : fs after projectInternalForce","%8.2e ");
+
+
+  // ::display(fs,"--BM-- internalForce from projectInternalForce","%8.2e ");
+    
   bool useExact=false;
-  if( useExact && initialConditionOption=="travelingWaveFSI" )
+  if( useExact && exactSolutionOption=="travelingWaveFSI" )
   {
     // -- compare to exact ---
     TravelingWaveFsi & travelingWaveFsi = *dbase.get<TravelingWaveFsi*>("travelingWaveFsi");
@@ -2051,13 +2671,50 @@ getSurfaceInternalForce( const real t, const RealArray & x0,  const RealArray & 
   }
   
 
-  // int i1,i2,i3;
-  // FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
-  // {
-  //   projectAcceleration(t, x0(i1,i2,i3,0),x0(i1,i2,i3,1),as(i1,i2,i3,0),as(i1,i2,i3,1) );
-  // }
+  // -- Adjust the surface force to match the surface normals ---
+  // -- THE AMP scheme want a beam force Fs that satisfies
+  //      nv.Fs = +/- nbv.fs
+  //      tv.Fs = +/- tbv.fs  
+  //  where nv = fluid normal, tv = fluid tangent
+  //  where nbv, tv = beam normal and tangent (undeformed beam)
+  //
+  //   Normal component of force = fs(Ib1,Ib2,Ib3,1)
+  //   Tangential component of force = fs(Ib1,Ib2,Ib3,0)
+  //   Tangent = ( n1, -n0 )
+  // 
+  //     F = fs(0)*tangent + fs(1)*normal 
+  // 
+  const bool & useSmallDeformationApproximation = dbase.get<bool>("useSmallDeformationApproximation");
+  if( useSmallDeformationApproximation )
+  {
+    RealArray normalBeamForce(Ib1,Ib2,Ib3), tangentialBeamForce(Ib1,Ib2,Ib3);
+    // beam reference normal and tangential components of force:
+    normalBeamForce     = fs(Ib1,Ib2,Ib3,0)*initialBeamNormal[0]  + fs(Ib1,Ib2,Ib3,1)*initialBeamNormal[1];
+    tangentialBeamForce = fs(Ib1,Ib2,Ib3,0)*initialBeamTangent[0] + fs(Ib1,Ib2,Ib3,1)*initialBeamTangent[1];
+    
+    fs(Ib1,Ib2,Ib3,0) =  tangentialBeamForce*normal(Ib1,Ib2,Ib3,1) + normalBeamForce*normal(Ib1,Ib2,Ib3,0);
+    // fluid tangent = (-nv0, nv1)
+    fs(Ib1,Ib2,Ib3,1) = -tangentialBeamForce*normal(Ib1,Ib2,Ib3,0) + normalBeamForce*normal(Ib1,Ib2,Ib3,1);
 
+    // Now adjust the sign depending on whether the beam has fluid on the top or bottom:
+    const bool fluidOnTwoSides =dbase.get<bool>("fluidOnTwoSides");
+    if( true || fluidOnTwoSides ) // I think we always need to do this 
+    {
+      RealArray & normalSign = normalBeamForce;// reuse
+      normalSign = ( (x0(Ib1,Ib2,Ib3,0)- beamX0)*initialBeamNormal[0] + 
+		     (x0(Ib1,Ib2,Ib3,1)- beamY0)*initialBeamNormal[1] );
+      where( normalSign > 0. )
+      {
+	fs(Ib1,Ib2,Ib3,0)=-fs(Ib1,Ib2,Ib3,0);
+	fs(Ib1,Ib2,Ib3,1)=-fs(Ib1,Ib2,Ib3,1);
+      }
+    }
   
+  }
+  
+  
+  // FINISH ME -- add on rotation term 
+
 }
 
 
@@ -2083,27 +2740,27 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
   RealArray & vc = v[current];  // current velocity DOF
 
   int elemNum;
-  real eta, thickness;
+  real eta, halfThickness;
   
-  projectPoint(x0,y0, elemNum, eta,thickness);
+  projectPoint(x0,y0, elemNum, eta,halfThickness);  // halfThickness will be computed here
 
-  //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << thickness << std::endl;
+  //std::cout << x0 << " " << y0 << " " << elemNum << " " << eta << " " << halfThickness << std::endl;
   
   real displacement, slope;
-  interpolateSolution(uc, elemNum, eta, displacement, slope);
+  interpolateSolution(uc, elemNum, eta, displacement, slope);       // displacement=u, slope = u_x 
 
   real Ddisplacement, Dslope;
-  interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);
+  interpolateSolution(vc, elemNum, eta, Ddisplacement, Dslope);     //  Ddisplacement = v, Dslope=v_x 
 
   if( debug & 2 )
     printF(" -- BM -- projectVelocity: x=(%g,%g) Ddisplacement=%g (beam velocity)\n",x0,y0,Ddisplacement);
   
   
   // A point on the beam surface is equal to the point on the neutral surface plus an offset in the normal direction
-  //       p  = x(eta) + (0,w) + nv(eta)*thickness
+  //       p  = x(eta) + (0,w) + nv(eta)*halfThickness
 
   // The velocity of the point is 
-  //       vp = (0,w_t) + d(nv)/(dt)*thickness
+  //       vp = (0,w_t) + d(nv)/(dt)*halfThickness
 
   real omag = 1./sqrt(slope*slope+1.0);
   real omag3 = omag*omag*omag;
@@ -2113,11 +2770,14 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
 
   if( !allowsFreeMotion ) 
   {
-    real vxl =                 normald[0]*thickness;
-    real vyl = Ddisplacement + normald[1]*thickness;   // v = w_t + (ny)_t * thick
+    real vxl =                 normald[0]*halfThickness;
+    real vyl = Ddisplacement + normald[1]*halfThickness;   // v = w_t + (ny)_t * thick
     
-    vx = initialBeamTangent[0]*vxl - initialBeamTangent[1]*vyl;
-    vy = initialBeamNormal[0] *vxl + initialBeamNormal[1] *vyl;
+    // convert vector to rotated beam 
+    vx = initialBeamTangent[0]*vxl + initialBeamNormal[0]*vyl;
+    vy = initialBeamTangent[1]*vxl + initialBeamNormal[1]*vyl;
+    // *wdh* 2015/02/28 vx = initialBeamTangent[0]*vxl - initialBeamTangent[1]*vyl;
+    // *wdh* 2015/02/28 vy = initialBeamNormal[0] *vxl + initialBeamNormal[1] *vyl;
   }
   else 
   {
@@ -2127,7 +2787,7 @@ projectVelocity( const real t, const real& x0, const real& y0, real& vx, real& v
     
   }
 
-  if( debug & 4  && initialConditionOption=="travelingWaveFSI" )
+  if( debug & 4  && exactSolutionOption=="travelingWaveFSI" )
   {
     // -- compare to exact ---
 
@@ -2167,8 +2827,9 @@ setDeclination(real dec)
 
   beamInitialAngle = dec;
 
-  initialBeamNormal[0] = -sin(dec);
-  initialBeamNormal[1] = cos(dec);
+  const real & signForNormal = dbase.get<real>("signForNormal");  // flip sign of normal using this parameter
+  initialBeamNormal[0] = -sin(dec) *signForNormal;
+  initialBeamNormal[1] =  cos(dec) *signForNormal;
 
   initialBeamTangent[0] = cos(dec);
   initialBeamTangent[1] = sin(dec);
@@ -2183,20 +2844,24 @@ setDeclination(real dec)
 
 
 // =================================================================================
-/// /brief Return the element, thickness, and natural coordinate for
+/// \brief Return the element, half-thickness, and natural coordinate for
 /// a point (x0,y0) on the undeformed SURFACE of the beam
 /// 
-/// x0:        undeformed location of the point on the surface of the beam (x)
-/// y0:        undeformed location of the point on the surface of the beam (y)
-/// elemNum:   element corresponding to this point [out]
-/// eta:       natural coordinate corresponding to this point [out]
-/// halfThickness: half-thickness of the beam at this point (i.e. approximate
+/// \param x0:        undeformed location of the point on the surface of the beam (x)
+/// \param y0:        undeformed location of the point on the surface of the beam (y)
+/// \param elemNum:   element corresponding to this point (closest node <= x0) [out]
+/// \param eta:       natural (element) coordinate corresponding to this point: 
+///                  eta is in [-1,1] on element elemNum [out]
+/// \param  halfThickness: half-thickness of the beam at this point (i.e. approximate
 ///                normal distance from centerline to surface) [out]
+/// \param clipToBounds (input) : if true, clip points to the beam length [0,L]
 //
+/// \note: Points off the end of the beam are pointed onto the end if clipToBounds=true .
 // =================================================================================
 void BeamModel::
 projectPoint(const real& x0,const real& y0,
-	     int& elemNum, real& eta, real& halfThickness) 
+	     int& elemNum, real& eta, real& halfThickness,
+             bool clipToBounds /* =true */) 
 {
 
   //                  x0
@@ -2212,33 +2877,32 @@ projectPoint(const real& x0,const real& y0,
   real xll = x0-beamX0;
   real yll = y0-beamY0;
 
-  real xl = xll*initialBeamTangent[0]+yll*initialBeamTangent[1];
-  real yl = xll*initialBeamNormal[0]+yll*initialBeamNormal[1];
+  // Compute position along beam: 
+  //    xl = (x0,y0)*tangent
+  //    yl = (x0,y0)*normal
+  real xl = xll*initialBeamTangent[0] + yll*initialBeamTangent[1];
+  real yl = xll* initialBeamNormal[0] + yll*initialBeamNormal[1];
 
   //std::cout << "(" << x0 << ", " << y0 << ") " << xl << "--" << yl << " " << le << std::endl;
 
-  // Assume the beam is oriented along the x axis.
-  elemNum = (int)(xl / le);
+  // elemNum : closest node less than point xl:
+  elemNum = min(numElem-1,max(0, (int)(xl / le)));  // closest active node 
   eta = 2.0*(xl-le*elemNum)/le-1.0;
 
-  if (eta < -1.0)
-    eta = -1.0;
-  else if (eta > 1.0)
-    eta = 1.0;
-
-  if( elemNum >= numElem )
+  // Project points off the end back onto the end-point:
+  if( clipToBounds )
   {
-    elemNum = numElem-1;
-    eta = 1.0;
+    if (eta < -1.0)
+      eta = -1.0;
+    else if (eta > 1.0)
+      eta = 1.0;
   }
-
-  if( elemNum < 0 )
+  else
   {
-    elemNum = 0;
-    eta = -1.0;
+    // if( fabs(eta)>1. )
+    //   printF("--BM-- INFO: projectPoint (x0,y0)=(%g,%g) : elemNum=%i eta=%g\n",x0,y0,elemNum,eta);
   }
-     
- 
+  
   halfThickness = yl;
 }
 
@@ -2298,8 +2962,8 @@ interpolateSolution(const RealArray& X,
 // ======================================================================================
 void BeamModel::
 interpolateThirdDerivative(const RealArray& X,
-					   int& elemNum, real& eta,
-					   real& deriv3) 
+			   int& elemNum, real& eta,
+			   real& deriv3) 
 {
 
   // compute the shape functions.
@@ -2320,52 +2984,171 @@ interpolateThirdDerivative(const RealArray& X,
 /// /brief Assign the force on the beam
 /// /param x0 (input) : array of (undeformed) locations on the beam surface
 /// /param traction (input) : traction on the deformed surface
-/// /param normal (input) : normal to the deformed surface
+/// /param normal (input) : normal to the deformed surface 
 /// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
 // =================================================================================================
 void BeamModel::
 addForce(const real & tf, const RealArray & x0, const RealArray & traction, const RealArray & normal,  
-         const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+	 const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
 {
-  // Jb1, Jb2, Jb3 : for looping over cells instead of grid points -- decrease by 1 along active axis
-  Index Jb1=Ib1, Jb2=Ib2, Jb3=Ib3;
-  int axis=-1, is1=0, is2=0, is3=0;
-  if( Jb1.getLength()>1 )
-  { // grid points on boundary are along axis=0
-    axis=0; is1=1;
-    Jb1=Range(Jb1.getBase(),Jb1.getBound()-1); // decrease length by 1
-    assert( Jb2.getLength()==1 );
-  }
-  else
-  { // grid points on boundary are along axis=1
-    axis=1; is2=1;
-    Jb2=Range(Jb2.getBase(),Jb2.getBound()-1); // decrease length by 1
-    assert( Jb1.getLength()==1 );
-  }
-  assert( axis>=0 );
-  
-  
-  int i1,i2,i3;
-  FOR_3D(i1,i2,i3,Jb1,Jb2,Jb3)
+
+
+  // *new way* 2015/01/13
+  const int & current = dbase.get<int>("current"); 
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+  RealArray & fc = f[current];  // force at current time
+
+  RealArray fDotN(Ib1,Ib2,Ib3);
+
+  // --- transfer the normal component of the force -- here we use the current fluid normal
+  // NOTE: we could alternatively have used:
+  //              (1) current beam normal
+  //              (2) initial beam normal
+  fDotN(Ib1,Ib2,Ib3)= (traction(Ib1,Ib2,Ib3,0)*normal(Ib1,Ib2,Ib3,0)+
+		       traction(Ib1,Ib2,Ib3,1)*normal(Ib1,Ib2,Ib3,1) );
+  if( false )
   {
-    int i1p=i1+is1, i2p=i2+is2, i3p=i3+is3;
-    
-    real p1 = (traction(i1,i2,i3,0)*normal(i1,i2,i3,0)+
-	       traction(i1,i2,i3,1)*normal(i1,i2,i3,1) );
-
-    real p2 = (traction(i1p,i2p,i3p,0)*normal(i1p,i2p,i3p,0)+
-	       traction(i1p,i2p,i3p,1)*normal(i1p,i2p,i3p,1) );
-
-
-    addForce(tf,
-	     x0(i1,i2,i3,0), 
-	     x0(i1,i2,i3,1), p1,
-	     normal(i1,i2,i3,0), normal(i1,i2,i3,1),
-	     x0(i1p,i2p,i3p,0), 
-	     x0(i1p,i2p,i3p,1), p2,
-	     normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1));
+    ::display(traction(Ib1,Ib2,Ib3,Range(0,1)),sPrintF("--BM-- addForce: input traction t=%9.3e",tf),"%9.2e ");
+    ::display(fDotN,sPrintF("--BM-- addForce: input fDotN t=%9.3e",tf),"%9.2e ");
   }
   
+
+  bool addToForce=true;
+  addToElementIntegral( tf,x0,fDotN,normal,Ib1,Ib2,Ib3,fc, addToForce );
+
+  if( false )
+  {
+    ::display(fc,sPrintF("--BM-- addForce : fc after addToElementIntegral, t=%9.3e\n",t),"%9.2e ");
+  }
+  
+
+  return;
+
+
+  // // ** old way**
+
+  // // Jb1, Jb2, Jb3 : for looping over cells instead of grid points -- decrease by 1 along active axis
+  // Index Jb1=Ib1, Jb2=Ib2, Jb3=Ib3;
+  // Index Jg1=Ib1, Jg2=Ib2, Jg3=Ib3;
+  // int ia, ib; // index for boundary points
+  // int iga, igb; // index for ghost points
+  // int axis=-1, is1=0, is2=0, is3=0;
+  // if( Jb1.getLength()>1 )
+  // { // grid points on boundary are along axis=0
+  //   axis=0; is1=1;
+  //   ia=Ib1.getBase(); ib=Ib1.getBound();
+  //   Jb1=Range(Jb1.getBase(),Jb1.getBound()-1); // decrease length by 1
+  //   assert( Jb2.getLength()==1 );
+  //   Jg1=Range(Jg1.getBase()-1,Jg1.getBound()+1); // add ghost
+  //   iga = Jg1.getBase(); igb=Jg1.getBound();
+  // }
+  // else
+  // { // grid points on boundary are along axis=1
+  //   axis=1; is2=1;
+  //   ia=Ib2.getBase(); ib=Ib2.getBound();
+  //   Jb2=Range(Jb2.getBase(),Jb2.getBound()-1); // decrease length by 1
+  //   assert( Jb1.getLength()==1 );
+  //   Jg2=Range(Jg2.getBase()-1,Jg2.getBound()+1); // add ghost
+  //   iga = Jg2.getBase(); igb=Jg2.getBound();
+  // }
+  // assert( axis>=0 );
+  
+  
+  // const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+  // const int orderOfAccuracyForDerivative=orderOfGalerkinProjection;
+
+  // RealArray fDotN(Jg1,Jg2,Jg3); // add ghost
+
+  // int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+  // FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  // {
+  //   fDotN(iv[axis])= (traction(i1,i2,i3,0)*normal(i1,i2,i3,0)+
+  // 	              traction(i1,i2,i3,1)*normal(i1,i2,i3,1) );
+  // }
+  // // extrapolate ghost
+  // if( orderOfAccuracyForDerivative==4 && igb > iga+5 )
+  // { // this is needed for fourth-order accuracy 
+  //   fDotN(iga)=5.*fDotN(iga+1)-10.*fDotN(iga+2)+10.*fDotN(iga+3)-5.*fDotN(iga+4)+fDotN(iga+5);
+  //   fDotN(igb)=5.*fDotN(igb-1)-10.*fDotN(igb-2)+10.*fDotN(igb-3)-5.*fDotN(igb-4)+fDotN(igb-5);
+  // }
+  // else if( orderOfAccuracyForDerivative==4 &&  igb > iga+4 )
+  // {
+  //   fDotN(iga)=4.*fDotN(iga+1)-6.*fDotN(iga+2)+4.*fDotN(iga+3)-fDotN(iga+4);
+  //   fDotN(igb)=4.*fDotN(igb-1)-6.*fDotN(igb-2)+4.*fDotN(igb-3)-fDotN(igb-4);
+  // }
+  // else if( igb > iga+3 )
+  // {
+  //   fDotN(iga)=3.*fDotN(iga+1)-3.*fDotN(iga+2)+fDotN(iga+3);
+  //   fDotN(igb)=3.*fDotN(igb-1)-3.*fDotN(igb-2)+fDotN(igb-3);
+  // }
+  // else
+  // {
+  //   assert( igb> iga+2 );
+  //   fDotN(iga)=2.*fDotN(iga+1)-fDotN(iga+2);
+  //   fDotN(igb)=2.*fDotN(igb-1)-fDotN(igb-2);
+  // }
+ 
+  //   // printF("--BM-- addForce : tf=%9.3e (p1,p2)=(%8.2e,%8.2e)\n",tf,p1,p2);
+  // real beamLength=L;
+  // const real dx = beamLength/numElem;  
+  // FOR_3(i1,i2,i3,Jb1,Jb2,Jb3)
+  // {
+  //   int i1p=i1+is1, i2p=i2+is2, i3p=i3+is3;
+  //   real f1x, f2x;
+  //   if( orderOfAccuracyForDerivative==2 )
+  //   {
+  //     f1x = (fDotN(iv[axis]+1)-fDotN(iv[axis]-1))/(2.*dx);
+  //     f2x = (fDotN(iv[axis]+2)-fDotN(iv[axis]  ))/(2.*dx);
+  //   }
+  //   else
+  //   {
+  //     int i=iv[axis];
+  //     if( i-2 >= iga && i+2 <= igb )
+  //       f1x = ( 8.*(fDotN(i+1)-fDotN(i-1)) - fDotN(i+2) +fDotN(i-2) )/(12.*dx);
+  //     else if( i==ia && i+4 <=igb )
+  //     { // fourth-order one-sided
+  //       f1x = ( -(25./12.)*fDotN(i) + 4.*fDotN(i+1) -3.*fDotN(i+2) + (4./3.)*fDotN(i+3) -.25*fDotN(i+4) )/dx;
+  //     }
+  //     else
+  // 	f1x = (fDotN(i+1)-fDotN(i-1))/(2.*dx);
+      
+  //     i=iv[axis]+1;
+  //     if( i-2 >= iga && i+2 <= igb )
+  //       f2x = ( 8.*(fDotN(i+1)-fDotN(i-1)) - fDotN(i+2) +fDotN(i-2) )/(12.*dx);
+  //     else if( i==ib && i-4 >=iga )
+  //     { // fourth-order one-sided
+  //       f2x = -( -(25./12.)*fDotN(i) + 4.*fDotN(i-1) -3.*fDotN(i-2) + (4./3.)*fDotN(i-3) -.25*fDotN(i-4) )/dx;
+  //     }
+  //     else
+  // 	f2x = (fDotN(i+1)-fDotN(i-1))/(2.*dx);
+  //   }
+    
+  //   printF("--BM-- addForce: x0=[%8.2e,%8.2e] f1=%8.2e f1x=%8.2e, x0=[%8.2e,%8.2e] f2=%8.2e f2x=%8.2e\n",
+  // 	   x0(i1,i2,i3,0),x0(i1,i2,i3,1),  fDotN(iv[axis]), f1x, 
+  //          x0(i1p,i2p,i3p,0),x0(i1p,i2p,i3p,1), fDotN(iv[axis]+1), f2x );    
+
+  //   addForce(tf,
+  // 	     x0(i1,i2,i3,0), 
+  // 	     x0(i1,i2,i3,1),  fDotN(iv[axis]), f1x,
+  // 	     normal(i1,i2,i3,0), normal(i1,i2,i3,1),
+  // 	     x0(i1p,i2p,i3p,0), 
+  // 	     x0(i1p,i2p,i3p,1), fDotN(iv[axis]+1), f2x, 
+  // 	     normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1));
+  // }
+  
+  // if( false )
+  // {
+  //   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  //   const int & current = dbase.get<int>("current"); 
+
+  //   RealArray & time = dbase.get<RealArray>("time");
+  //   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  //   RealArray & fc = f[current];  // force at current time
+  //   ::display(fc,sPrintF("--BM-- addForce:END: : fc at t=%9.3e",tf),"%8.2e ");
+  // }
+  
+
 }
 
 
@@ -2390,120 +3173,562 @@ addForce(const real & tf, const RealArray & x0, const RealArray & traction, cons
 void BeamModel::
 addForce( const real & tf,
 	  const real& x0_1, const real& y0_1,
-	  real p1,const real& nx_1,const real& ny_1,
+	  real p1, real p1x, const real& nx_1,const real& ny_1,
 	  const real& x0_2, const real& y0_2,
-	  real p2,const real& nx_2,const real& ny_2)
+	  real p2, real p2x, const real& nx_2,const real& ny_2)
 {
 
-  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
-  const int & current = dbase.get<int>("current"); 
+  // new way *wdh* 2015/01/13
+  real x1[2]={ x0_1,y0_1}, nv1[2]={nx_1,ny_1}; //
+  real x2[2]={ x0_2,y0_2}, nv2[2]={nx_2,ny_2}; //
 
-  RealArray & time = dbase.get<RealArray>("time");
   std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
-
+  const int & current = dbase.get<int>("current"); 
   RealArray & fc = f[current];  // force at current time
+  bool addToForce=true;
+  
+  addToElementIntegral( tf,x1,p1,p1x,nv1, x2,p2,p2x,nv2,fc,addToForce );
+
+
+  return;
+    
+  //  // * OLD WAY **
+
+  //  const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  //  const int & current = dbase.get<int>("current"); 
+
+  //  RealArray & time = dbase.get<RealArray>("time");
+  //  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force
+
+  //  RealArray & fc = f[current];  // force at current time
+  //  if( fabs(time(current)-tf) > 1.e-10*(1.+tf) )
+  //  {
+  //    printF("--BM-- BeamModel::addForce:ERROR: tf=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+  //        tf,time(current),current);
+  //    OV_ABORT("ERROR");
+  //  }
+
+  //  int elem1,elem2;
+  //  real eta1,eta2,t1,t2;
+
+  //  real p11, p22, p11x, p22x;
+
+  //  //std::cout << x0_1 << " " << p1 << std::endl;
+  
+  // // if (p1 != p1/* || p1 > 100.0*/) {
+  // //   //std::cout << "Found nan!" << std::endl;
+  // // }
+
+  //  //std::cout << getExactPressure(t,x0_1) << " " << p1 << std::endl;
+  //  //
+  
+  //  //p1 = getExactPressure(t,x0_1)*1000.0;
+  //  //p2 = getExactPressure(t,x0_2)*1000.0;
+  
+  
+  //  // (xll,yll) = point_1 - beam_0 
+  //  real xll = x0_1-beamX0;
+  //  real yll = y0_1-beamY0;
+
+  //  // (xl,yl) = relative coordinates along (rotated) beam 
+  //  real xl = xll*initialBeamTangent[0]+yll*initialBeamTangent[1];
+  //  real yl = xll*initialBeamNormal[0]+yll*initialBeamNormal[1];
+
+  //  // myx0 = relative beam coordinate in [0,L] of point_1
+  //  real myx0 = xl;
+
+  //  // (xll,yll) = point_2 - beam_0
+  //  xll = x0_2-beamX0;
+  //  yll = y0_2-beamY0;
+  //  //  // (xl,yl) = relative coordinates along (rotated) beam 
+  //  xl = xll*initialBeamTangent[0]+yll*initialBeamTangent[1];
+  //  yl = xll*initialBeamNormal[0]+yll*initialBeamNormal[1];
+
+  //  // myx1 = relative beam coordinate in [0,L] of point_2
+  //  real myx1 = xl;
+
+  //  // point_1 lies in elem1, offset eta1
+  //  // point_2 lies in elem2, offset eta2
+  //  if (myx1 > myx0) 
+  //  {
+  //    projectPoint(x0_1,y0_1,elem1, eta1,t1); 
+  //    projectPoint(x0_2,y0_2,elem2, eta2,t2);   
+  //    p11 = p1*pressureNorm;  p11x = p1x*pressureNorm; 
+  //    p22 = p2*pressureNorm;  p22x = p2x*pressureNorm;
+  //  } 
+  //  else 
+  //  {
+  //    projectPoint(x0_1,y0_1,elem2, eta2,t2); 
+  //    projectPoint(x0_2,y0_2,elem1, eta1,t1);  
+  //    p22 = p1*pressureNorm; p22x = p1x*pressureNorm;
+  //    p11 = p2*pressureNorm; p11x = p2x*pressureNorm; 
+  //    std::swap<real>(myx0,myx1);
+  //  }
+
+  //  //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << p1 << " " << p2 << std::endl;
+
+  //  const real dx12 = max(fabs(myx0-myx1),REAL_MIN*100.); // distance between point_1 and point_2
+
+  //  const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+  
+  //  //                 elem1            elem2
+  //  //        +----------+--X------+-----X--+-----
+  //  //                      myx0        myx1
+  //  RealArray lt(4);
+  //  for (int i = elem1; i <= elem2; ++i) 
+  //  {
+
+  //    real a = eta1, b = eta2;
+  //    real pa = p11, pax=p11x, pb = p22, pbx=p22x;
+  //    real x0 = myx0, x1 = myx1;
+
+  //    if (i != elem1) 
+  //    {
+  //      // We have moved to the next element from the first
+  //      a = -1.0;  // xi value
+  //      x0 = le*i; // x-value 
+  //      if( orderOfGalerkinProjection==2 )
+  //      {
+  //        pa = p11 + (p22-p11)*(x0-myx0)/dx12;
+  //      }
+  //      else
+  //      {
+  //        // -- evaluate an Hermite interpolant fit to (myx0,p11)--(myx1,p22) --
+  //        //         p11,p11x            p22,p22x
+  //        //           X-------+-----------X
+  //        //          myx0                myx1
+  //        //           -1      xi          +1
+  //        real xi = -1. + 2.*(x0-myx0)/dx12;
+  //        // ** CHECK ME ***
+  //        real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+  //        real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
+  //        real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+  //        real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
+	
+  //        real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
+  //        real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+  //        real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
+  //        real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+	
+  //        pa = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
+  //        pax = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x; 
+
+  //      }
+      
+  //    }
+  //    // -- right end is not on a node -- adjust pb,pbx --
+  //    if (i != elem2) 
+  //    {
+  //      b = 1.0;
+  //      x1 = le*(i+1);
+  //      if( orderOfGalerkinProjection==2 )
+  //      {
+  //        pb = p11 + (p22-p11)*(x1-myx0)/dx12;
+  //      }
+  //      else
+  //      {
+  //        // -- evaluate the Hermite interpolant --
+  //        real xi = -1. + 2.*(x1-myx0)/dx12;
+
+  //        real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+  //        real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
+  //        real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+  //        real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
+	
+  //        real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
+  //        real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+  //        real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
+  //        real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+
+  //        pb = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
+  //        pbx = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x; 
+  //      }
+  //    }
+    
+  //    // printF("--AF-- x0=%7.5f pa=%7.5f pax=%7.5f, x1=%7.5f pb=%7.5f pbx=%7.5f [a,b]=[%7.4f,%7.4f]\n",
+  //    //       x0,pa,pax,x1,pb,pbx,a,b);
+    
+  //    Index idx(i*2,4);
+  //    if (t1 > 0) 
+  //    { // Flip sign of force to account for the normal 
+  //      pa = -pa; pax = -pax;
+  //      pb = -pb; pbx = -pbx;
+  //    }
+    
+      
+  //    //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << 
+  //    //  p1 << " " << p2 << std::endl;
+  
+
+  //    if (fabs(b-a) > 1.0e-10)  // *WDH* FIX ME -- is this needed?
+  //    {
+  //      // -- compute (N,p)_[a,b] = int_a^b N(xi) p(xi) J dxi 
+  //      if( orderOfGalerkinProjection==2 )
+  //        computeProjectedForce(pa,pb, a,b, lt);
+  //      else
+  //        computeGalerkinProjection(pa,pax, pb,pbx,  a,b, lt);
+
+  //      //    std::cout << "a = " << a << " b = " << b << std::endl;
+  //      fc(idx) += lt;
+
+  //      real gradp = 1.0;
+  //      totalPressureForce += (lt(0)+lt(2));
+  //      totalPressureMoment += (lt(0)*(le*i-0.5*L)+lt(1)*gradp+lt(2)*(le*(i+1)-0.5*L) + lt(3)*gradp);
+  //    }
+  //    //printArray(lt,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
+
+  //  }
+}
+
+// =================================================================================================
+/// /brief Add to the element integral for a function f (defined on an adjacent fluid grid).
+/// /param x0 (input) : array of (undeformed) locations on the beam surface
+/// /param f(Ib1,Ib2,Ib3) (input) : function on the deformed surface
+/// /param normal (input) : normal to the deformed surface 
+/// /param Ib1,Ib2,Ib3 (input) : index of points on the boundary.
+/// /param fe(2*numElem+2) (input/output) : holds element integrals 
+// =================================================================================================
+void BeamModel::
+addToElementIntegral(const real & tf, const RealArray & x0, const RealArray & f, const RealArray & normal,  
+		     const Index & Ib1, const Index & Ib2,  const Index & Ib3, RealArray & fe, 
+		     bool addToForce /* = false */  )
+{
+  const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+  const int orderOfAccuracyForDerivative=orderOfGalerkinProjection;
+
+  // Jb1, Jb2, Jb3 : for looping over cells instead of grid points -- decrease by 1 along active axis
+
+  Index Jb1=Ib1, Jb2=Ib2, Jb3=Ib3;
+
+  Index Jgv[3], &Jg1=Jgv[0], &Jg2=Jgv[1], &Jg3=Jgv[2];
+  Jg1=Ib1, Jg2=Ib2, Jg3=Ib3;
+
+  int ia, ib; // index for boundary points
+  int iga, igb; // index for ghost points
+  int axis=-1, is1=0, is2=0, is3=0;
+  if( Jb1.getLength()>1 )
+  { // grid points on boundary are along axis=0
+    axis=0; is1=1;
+    ia=Ib1.getBase(); ib=Ib1.getBound();
+    Jb1=Range(Jb1.getBase(),Jb1.getBound()-1); // decrease length by 1
+    assert( Jb2.getLength()==1 );
+    Jg1=Range(Jg1.getBase()-1,Jg1.getBound()+1); // add ghost
+    iga = Jg1.getBase(); igb=Jg1.getBound();
+  }
+  else
+  { // grid points on boundary are along axis=1
+    axis=1; is2=1;
+    ia=Ib2.getBase(); ib=Ib2.getBound();
+    Jb2=Range(Jb2.getBase(),Jb2.getBound()-1); // decrease length by 1
+    assert( Jb1.getLength()==1 );
+    Jg2=Range(Jg2.getBase()-1,Jg2.getBound()+1); // add ghost
+    iga = Jg2.getBase(); igb=Jg2.getBound();
+  }
+  assert( axis>=0 );
+  
+  
+   // add ghost points to force vector so we can take derivatives for Hermite approx.
+  RealArray fg(Jgv[axis]);
+
+  int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+  FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  {
+    fg(iv[axis])= f(i1,i2,i3);
+  }
+  // extrapolate ghost
+  if( orderOfAccuracyForDerivative==4 && igb > iga+5 )
+  { // this is needed for fourth-order accuracy 
+    fg(iga)=5.*fg(iga+1)-10.*fg(iga+2)+10.*fg(iga+3)-5.*fg(iga+4)+fg(iga+5);
+    fg(igb)=5.*fg(igb-1)-10.*fg(igb-2)+10.*fg(igb-3)-5.*fg(igb-4)+fg(igb-5);
+  }
+  else if( orderOfAccuracyForDerivative==4 &&  igb > iga+4 )
+  {
+    fg(iga)=4.*fg(iga+1)-6.*fg(iga+2)+4.*fg(iga+3)-fg(iga+4);
+    fg(igb)=4.*fg(igb-1)-6.*fg(igb-2)+4.*fg(igb-3)-fg(igb-4);
+  }
+  else if( igb > iga+3 )
+  {
+    fg(iga)=3.*fg(iga+1)-3.*fg(iga+2)+fg(iga+3);
+    fg(igb)=3.*fg(igb-1)-3.*fg(igb-2)+fg(igb-3);
+  }
+  else
+  {
+    assert( igb> iga+2 );
+    fg(iga)=2.*fg(iga+1)-fg(iga+2);
+    fg(igb)=2.*fg(igb-1)-fg(igb-2);
+  }
+ 
+  if( false )
+  {
+    ::display(x0,"--BM-- addToElementIntegral: x0","%9.2e ");
+    ::display(fg,"--BM-- addToElementIntegral: fg","%9.2e ");
+  }
+  
+
+  // printF("--BM-- addToElementIntegral : tf=%9.3e (p1,p2)=(%8.2e,%8.2e)\n",tf,p1,p2);
+  real beamLength=L;
+  FOR_3(i1,i2,i3,Jb1,Jb2,Jb3)
+  {
+    const int i1p=i1+is1, i2p=i2+is2, i3p=i3+is3;
+    const int ii =iv[axis];
+    
+    // grid spacing for function f
+    // *wdh* 2015/03/01 const real dx = x0(ii+1)-x0(ii); 
+    const real dx = sqrt( SQR(x0(i1p,i2p,i3p,0)-x0(i1,i2,i3,0)) +
+                          SQR(x0(i1p,i2p,i3p,1)-x0(i1,i2,i3,1)) );
+
+    real f1x, f2x;
+    if( orderOfAccuracyForDerivative==2 )
+    {
+      f1x = (fg(iv[axis]+1)-fg(iv[axis]-1))/(2.*dx);
+      f2x = (fg(iv[axis]+2)-fg(iv[axis]  ))/(2.*dx);
+    }
+    else
+    {
+      int i=iv[axis];
+      if( i-2 >= iga && i+2 <= igb )
+	f1x = ( 8.*(fg(i+1)-fg(i-1)) - fg(i+2) +fg(i-2) )/(12.*dx);
+      else if( i==ia && i+4 <=igb )
+      { // fourth-order one-sided
+	f1x = ( -(25./12.)*fg(i) + 4.*fg(i+1) -3.*fg(i+2) + (4./3.)*fg(i+3) -.25*fg(i+4) )/dx;
+      }
+      else
+	f1x = (fg(i+1)-fg(i-1))/(2.*dx);
+      
+      i=iv[axis]+1;
+      if( i-2 >= iga && i+2 <= igb )
+	f2x = ( 8.*(fg(i+1)-fg(i-1)) - fg(i+2) +fg(i-2) )/(12.*dx);
+      else if( i==ib && i-4 >=iga )
+      { // fourth-order one-sided
+	f2x = -( -(25./12.)*fg(i) + 4.*fg(i-1) -3.*fg(i-2) + (4./3.)*fg(i-3) -.25*fg(i-4) )/dx;
+      }
+      else
+	f2x = (fg(i+1)-fg(i-1))/(2.*dx);
+    }
+    
+    if( false )
+      printF("--BM-- addForce: x0=[%8.2e,%8.2e] f1=%8.2e f1x=%8.2e, x0=[%8.2e,%8.2e] f2=%8.2e f2x=%8.2e\n",
+	     x0(i1,i2,i3,0),x0(i1,i2,i3,1),  fg(iv[axis]), f1x, 
+	     x0(i1p,i2p,i3p,0),x0(i1p,i2p,i3p,1), fg(iv[axis]+1), f2x );    
+
+    // new way
+    real xv1[2]={ x0(i1,i2,i3,0),x0(i1,i2,i3,1)},       nv1[2]={normal(i1,i2,i3,0), normal(i1,i2,i3,1)}; //
+    real xv2[2]={ x0(i1p,i2p,i3p,0),x0(i1p,i2p,i3p,1)}, nv2[2]={normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1)}; //
+
+    addToElementIntegral( tf,xv1,fg(iv[axis]),f1x,nv1, xv2,fg(iv[axis]+1),f2x,nv2,fe,addToForce );
+
+    // addForce(tf,
+    // 	     x0(i1,i2,i3,0), 
+    // 	     x0(i1,i2,i3,1),  fg(iv[axis]), f1x,
+    // 	     normal(i1,i2,i3,0), normal(i1,i2,i3,1),
+    // 	     x0(i1p,i2p,i3p,0), 
+    // 	     x0(i1p,i2p,i3p,1), fg(iv[axis]+1), f2x, 
+    // 	     normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1));
+  }
+  
+  if( false )
+  {
+    ::display(fe,sPrintF("--BM-- addToElementIntegral:END: : fe at t=%9.3e",tf),"%8.2e ");
+  }
+  
+
+}
+
+
+// =======================================================================================================
+/// \brief Add to the element integral for a function f.
+///
+///  Given values of a function (and optionally its derivative) at two points increment the element integrals
+///             int phi_i(x) f(x) dx 
+///             int psi_i(x) f(x) dx
+/// 
+///  /param tf (input) : current time
+///  /param x1[] (input) : location of point 1 (undeformed)
+///  /param f1,f1x  (input) : value of function and (optionally) the derivative at point 1.
+///  /param nv1[] (input) : normal at point 1 (unused?)
+///  /param fe(2*numElem+2) (input/output) : on input, the vector of current element integrals
+///  /param addToForce (input) : if true, we are adding to the force on the beam.
+// =========================================================================================================
+void BeamModel::
+addToElementIntegral( const real & tf,
+		      const real *x1, const real f1, const real f1x, const real *nv1, 
+		      const real *x2, const real f2, const real f2x, const real *nv2,
+		      RealArray & fe, bool addToForce /* = false */ )
+{
+
+  real x0_1=x1[0], y0_1=x1[1], p1=f1, p1x=f1x;
+  real x0_2=x2[0], y0_2=x2[1], p2=f2, p2x=f2x;
+
+  const int & current = dbase.get<int>("current"); 
+  RealArray & time = dbase.get<RealArray>("time");
   if( fabs(time(current)-tf) > 1.e-10*(1.+tf) )
   {
-    printF("--BM-- BeamModel::addForce:ERROR: tf=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
-        tf,time(current),current);
+    printF("--BM-- BeamModel::addToElementIntegral:ERROR: tf=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	   tf,time(current),current);
     OV_ABORT("ERROR");
   }
 
   int elem1,elem2;
   real eta1,eta2,t1,t2;
 
-  real p11,p22;
+  real p11, p22, p11x, p22x;
 
-  //std::cout << x0_1 << " " << p1 << std::endl;
-  
- // if (p1 != p1/* || p1 > 100.0*/) {
- //   //std::cout << "Found nan!" << std::endl;
- // }
-
-  //std::cout << getExactPressure(t,x0_1) << " " << p1 << std::endl;
-  //
-  
-  //p1 = getExactPressure(t,x0_1)*1000.0;
-  //p2 = getExactPressure(t,x0_2)*1000.0;
-  
-  
-
+  // (xll,yll) = point_1 - beam_0 
   real xll = x0_1-beamX0;
   real yll = y0_1-beamY0;
 
-  real xl = xll*initialBeamTangent[0]+yll*initialBeamTangent[1];
-  real yl = xll*initialBeamNormal[0]+yll*initialBeamNormal[1];
+  // (xl,yl) = relative coordinates along (rotated) beam 
+  real xl = xll*initialBeamTangent[0] + yll*initialBeamTangent[1];
+  real yl = xll* initialBeamNormal[0] + yll* initialBeamNormal[1];
 
+  // myx0 = relative beam coordinate in [0,L] of point_1
   real myx0 = xl;
 
+  // (xll,yll) = point_2 - beam_0
   xll = x0_2-beamX0;
   yll = y0_2-beamY0;
+  //  // (xl,yl) = relative coordinates along (rotated) beam 
+  xl = xll*initialBeamTangent[0] + yll*initialBeamTangent[1];
+  yl = xll* initialBeamNormal[0] + yll* initialBeamNormal[1];
 
-  xl = xll*initialBeamTangent[0]+yll*initialBeamTangent[1];
-  yl = xll*initialBeamNormal[0]+yll*initialBeamNormal[1];
-
+  // myx1 = relative beam coordinate in [0,L] of point_2
   real myx1 = xl;
 
-  if (myx1 > myx0) {
-
-    projectPoint(x0_1,y0_1,elem1, eta1,t1); 
-    projectPoint(x0_2,y0_2,elem2, eta2,t2);   
-    p11 = p1*pressureNorm;
-    p22 = p2*pressureNorm;
-  } else {
-
+  // point_1 lies in elem1, offset eta1 in [-1,1]
+  // point_2 lies in elem2, offset eta2 in [-1,1]
+  if (myx1 > myx0) 
+  {
+    projectPoint(x0_1,y0_1,elem1, eta1,t1);  // t1 = halfThickness
+    projectPoint(x0_2,y0_2,elem2, eta2,t2);  // t2 = halfThickness  
+    p11 = p1*pressureNorm;  p11x = p1x*pressureNorm; 
+    p22 = p2*pressureNorm;  p22x = p2x*pressureNorm;
+  } 
+  else 
+  {
     projectPoint(x0_1,y0_1,elem2, eta2,t2); 
     projectPoint(x0_2,y0_2,elem1, eta1,t1);  
-    p22 = p1*pressureNorm;
-    p11 = p2*pressureNorm; 
+    p22 = p1*pressureNorm; p22x = p1x*pressureNorm;
+    p11 = p2*pressureNorm; p11x = p2x*pressureNorm; 
     std::swap<real>(myx0,myx1);
   }
 
   //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << p1 << " " << p2 << std::endl;
 
-  real dx = fabs(myx0-myx1);
+  const real dx12 = max(fabs(myx0-myx1),REAL_MIN*100.); // distance between point_1 and point_2
 
+  const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
   
+  //                 elem1            elem2
+  //        +----------+--X------+-----X--+-----
+  //                      myx0        myx1
   RealArray lt(4);
   for (int i = elem1; i <= elem2; ++i) 
   {
 
-    real a = eta1,b = eta2;
-    real pa = p11, pb = p22;
+    real a = eta1, b = eta2;
+    real pa = p11, pax=p11x, pb = p22, pbx=p22x;
     real x0 = myx0, x1 = myx1;
-    if (i != elem1) {
-      a = -1.0;
-      x0 = le*i;
-      pa = p11 + (p22-p11)*(x0-myx0)/(dx);
+
+    if (i != elem1) 
+    {
+      // We have moved to the next element from the first
+      a = -1.0;  // xi value
+      x0 = le*i; // x-value 
+      if( orderOfGalerkinProjection==2 )
+      {
+	pa = p11 + (p22-p11)*(x0-myx0)/dx12;
+      }
+      else
+      {
+	// -- evaluate an Hermite interpolant fit to (myx0,p11)--(myx1,p22) --
+	//         p11,p11x            p22,p22x
+	//           X-------+-----------X
+	//          myx0                myx1
+	//           -1      xi          +1
+	real xi = -1. + 2.*(x0-myx0)/dx12;
+	// ** CHECK ME ***
+	real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+	real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
+	real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+	real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
+	
+	real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
+	real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+	real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
+	real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+	
+	pa = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
+	pax = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x; 
+
+      }
+      
     }
-    if (i != elem2) {
+    // -- right end is not on a node -- adjust pb,pbx --
+    if (i != elem2) 
+    {
       b = 1.0;
       x1 = le*(i+1);
-      pb = p11 + (p22-p11)*(x1-myx0)/(dx);
+      if( orderOfGalerkinProjection==2 )
+      {
+	pb = p11 + (p22-p11)*(x1-myx0)/dx12;
+      }
+      else
+      {
+	// -- evaluate the Hermite interpolant --
+	real xi = -1. + 2.*(x1-myx0)/dx12;
+
+	real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+	real N2 = .125*dx12*(1.-xi)*(1.-xi)*(1.+xi);
+	real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+	real N4 = .125*dx12*(1.+xi)*(1.+xi)*(xi-1.);
+	
+	real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx12);
+	real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+	real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx12) ;
+	real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+
+	pb = p11*N1 + p11x*N2 + p22*N3 + p22x*N4; 
+	pbx = p11*N1x + p11x*N2x + p22*N3x + p22x*N4x; 
+      }
     }
     
+    // printF("--AF-- x0=%7.5f pa=%7.5f pax=%7.5f, x1=%7.5f pb=%7.5f pbx=%7.5f [a,b]=[%7.4f,%7.4f]\n",
+    //       x0,pa,pax,x1,pb,pbx,a,b);
+    
     Index idx(i*2,4);
-    if (t1 > 0) 
-    { // *wdh* Turn this back on 2014/05/23
-      pa = -pa;
-      pb = -pb;
+    if( addToForce && t1 > 0 ) // t1 = halfThickness
+    { // Flip sign of force to account for the normal 
+      pa = -pa; pax = -pax;
+      pb = -pb; pbx = -pbx;
     }
     
       
     //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << 
     //  p1 << " " << p2 << std::endl;
   
+    if( false )
+      printF("--BM-- addToElementIntegral: x1=[%g,%g] x2=[_%g,%g] pa=%g, pax=%g, pb=%g, pbx=%g a=%g b=%g f1=%g f1x=%g f2=%g f2x=%g\n",
+	     x0_1,y0_1, x0_2,y0_2,pa,pax,pb,pbx,a,b,f1,f1x,f2,f2x );
 
-    if (fabs(b-a) > 1.0e-10)
+    if (fabs(b-a) > 1.0e-10)  // *WDH* FIX ME -- is this needed?
     {
       // -- compute (N,p)_[a,b] = int_a^b N(xi) p(xi) J dxi 
-      computeProjectedForce(pa,pb, a,b, lt);
-      //    std::cout << "a = " << a << " b = " << b << std::endl;
-      fc(idx) += lt;
+      if( orderOfGalerkinProjection==2 )
+	computeProjectedForce(pa,pb, a,b, lt);
+      else
+	computeGalerkinProjection(pa,pax, pb,pbx,  a,b, lt);
 
-      real gradp = 1.0;
-      totalPressureForce += (lt(0)+lt(2));
-      totalPressureMoment += (lt(0)*(le*i-0.5*L)+lt(1)*gradp+lt(2)*(le*(i+1)-0.5*L) + lt(3)*gradp);
+      //    std::cout << "a = " << a << " b = " << b << std::endl;
+      fe(idx) += lt;
+
+      if( addToForce )
+      {
+	// Is this needed?
+	real gradp = 1.0;
+	totalPressureForce += (lt(0)+lt(2));
+	totalPressureMoment += (lt(0)*(le*i-0.5*L)+lt(1)*gradp+lt(2)*(le*(i+1)-0.5*L) + lt(3)*gradp);
+      }
+      
     }
     //printArray(lt,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 
@@ -2526,6 +3751,520 @@ resetForce()
   totalPressureForce = 0.0;
   totalPressureMoment = 0.0;
 }
+
+
+// ===================================================================================================
+/// \brief  Return the nodal force values on the beam reference line. These are computed from
+///   the current local element force integrals: (phi_i,f) and (psi,f) 
+///  \param force (output) : force components on the beam reference-line.
+// ====================================================================================================
+void BeamModel::
+getForceOnBeam( const real t, RealArray & force )
+{
+
+  const int & current = dbase.get<int>("current"); 
+
+  RealArray & time = dbase.get<RealArray>("time");
+  std::vector<RealArray> & f = dbase.get<std::vector<RealArray> >("f"); // force in elemnt integral form 
+
+  RealArray & fc = f[current];  // force at current time
+  if( fabs(time(current)-t) > 1.e-10*(1.+t) )
+  {
+    printF("--BM-- BeamModel::getForceOnBeam:ERROR: t=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+	   t,time(current),current);
+    OV_ABORT("ERROR");
+  }
+
+  // On entry:
+  //    fc holds : (phi_i,f) (psi_i,f)
+
+  // Compute: 
+  //  force  = SUM_j {  f_j phi_j(x) + f_j' psi_j(x) }
+  // by solving
+  //     SUM_j {  f_j (phi_i(x),phi_j(x)) + f_j' (phi_i(x),psi_j(x)) }  = (phi_i,f)
+  //     SUM_j {  f_j (psi_i(x),phi_j(x)) + f_j' (psi_i(x),psi_j(x)) }  = (psi_i,f)
+
+  real le = L / numElem;
+  real le2 = le*le;
+  real le3 = le2*le;
+  RealArray elementMass(4,4);
+  
+  elementMass(0,0) = elementMass(2,2) = 13./35.*le;
+  elementMass(0,1) = elementMass(1,0) = 11./210.*le2;
+  elementMass(0,2) = elementMass(2,0) = 9./70.*le;
+  elementMass(0,3) = elementMass(3,0) = -13./420.*le2;
+  elementMass(1,1) = elementMass(3,3) = 1./105.*le3;
+  elementMass(1,2) = elementMass(2,1) = 13./420.*le2;
+  elementMass(1,3) = elementMass(3,1) = -1./140.*le3;
+  elementMass(3,2) = elementMass(2,3) = -11./210.*le2;
+
+  // ---- Boundary Conditions ----
+  BoundaryCondition bcLeftSave =bcLeft;  // save current 
+  BoundaryCondition bcRightSave=bcRight;
+
+  // We want no boundary conditions to be applied so set:
+  bcLeft=unknownBC;
+  bcRight=unknownBC;
+
+  // Note: We use a separate TridiagonalSolver for this Galerkin projection: 
+  RealArray ff(2*numElem+2);
+  real alpha=0., alphaB=0.; // coefficients of stiffness and damping matrices
+  solveBlockTridiagonal(elementMass, fc, ff, alpha,alphaB, "galerkinProjection" );
+
+  bcLeft =bcLeftSave;   // reset 
+  bcRight=bcRightSave; 
+
+
+  force.redim(numElem+1);
+  force=ff(Range(0,2*numElem,2));  // extract out nodal force values, every second value
+  
+  if( false )
+  {
+    ::display(force,sPrintF("--BM-- getForceOnBeam: force at t=%9.3e",t),"%8.2e ");
+  }
+  
+}
+
+
+
+// ================================================================================
+/// \brief Set the surface velocity to zero. (used to project the velocity) 
+// ================================================================================
+void BeamModel::
+resetSurfaceVelocity()
+{
+  if( !dbase.has_key("surfaceVelocity") )
+  {
+    RealArray & surfaceVelocity = dbase.put<RealArray>("surfaceVelocity");
+    surfaceVelocity.redim(2*numElem+2);
+  }
+  RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
+  surfaceVelocity=0.;
+}
+
+// ================================================================================
+/// \brief  Set the surface velocity (used to project the beam velocity)
+/// \param t (input) : set velocity at this time.
+/// \param x0 (input) : initial positions of the points on the beam surface. 
+/// \param vSurface (input) : values of the velocity on the surface
+/// \param normal (input) : normal to the surface (inward!) (currently not used?)
+/// \param Ib1,Ib2,Ib3 (input) : index values for points to assign. 
+// ================================================================================
+void BeamModel::
+setSurfaceVelocity(const real & t, const RealArray & x0, const RealArray & vSurface, 
+		   const RealArray & normal, const Index & Ib1, const Index & Ib2,  const Index & Ib3 )
+{
+  // *new way* 2015/01/13
+
+  RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
+
+  RealArray vDotN(Ib1,Ib2,Ib3);
+
+  // we transfer the normal component of the velocity -- here we use the initial beam normal vector *IS THIS RIGHT ?? **
+  vDotN(Ib1,Ib2,Ib3)= (vSurface(Ib1,Ib2,Ib3,0)*initialBeamNormal[0] +
+		       vSurface(Ib1,Ib2,Ib3,1)*initialBeamNormal[1] );
+
+  addToElementIntegral( t,x0,vDotN,normal,Ib1,Ib2,Ib3,surfaceVelocity );
+
+  return;
+
+  // if( false )
+  // {
+  //   //   ** OLD WAY **
+  //   // ---- THIS CODE IS VERY SIMILAR TO addForce : should combine somehow ----
+
+  //   // THIS CODE IS IN-EFFICIENT --> RE-WRITE
+
+  //   // Jb1, Jb2, Jb3 : for looping over cells instead of grid points -- decrease by 1 along active axis
+  //   Index Jb1=Ib1, Jb2=Ib2, Jb3=Ib3;
+  //   Index Jg1=Ib1, Jg2=Ib2, Jg3=Ib3;
+  //   int ia, ib; // index for boundary points
+  //   int iga, igb; // index for ghost points
+  //   int axis=-1, is1=0, is2=0, is3=0;
+  //   if( Jb1.getLength()>1 )
+  //   { // grid points on boundary are along axis=0
+  //     axis=0; is1=1;
+  //     ia=Ib1.getBase(); ib=Ib1.getBound();
+  //     Jb1=Range(Jb1.getBase(),Jb1.getBound()-1); // decrease length by 1
+  //     assert( Jb2.getLength()==1 );
+  //     Jg1=Range(Jg1.getBase()-1,Jg1.getBound()+1); // add ghost
+  //     iga = Jg1.getBase(); igb=Jg1.getBound();
+  //   }
+  //   else
+  //   { // grid points on boundary are along axis=1
+  //     axis=1; is2=1;
+  //     ia=Ib2.getBase(); ib=Ib2.getBound();
+  //     Jb2=Range(Jb2.getBase(),Jb2.getBound()-1); // decrease length by 1
+  //     assert( Jb1.getLength()==1 );
+  //     Jg2=Range(Jg2.getBase()-1,Jg2.getBound()+1); // add ghost
+  //     iga = Jg2.getBase(); igb=Jg2.getBound();
+  //   }
+  //   assert( axis>=0 );
+  
+  
+  //   const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+  //   const int orderOfAccuracyForDerivative=orderOfGalerkinProjection;
+
+  //   RealArray vDotN(Jg1,Jg2,Jg3); // add ghost
+
+  //   int iv[3], &i1=iv[0], &i2=iv[1], &i3=iv[2];
+  //   FOR_3D(i1,i2,i3,Ib1,Ib2,Ib3)
+  //   {
+  //     vDotN(iv[axis]) = (vSurface(i1,i2,i3,0)*initialBeamNormal[0]+
+  // 			 vSurface(i1,i2,i3,1)*initialBeamNormal[1] );
+  //     // vDotN(iv[axis]) = (vSurface(i1,i2,i3,0)*normal(i1,i2,i3,0)+
+  //     // 	               vSurface(i1,i2,i3,1)*normal(i1,i2,i3,1) );
+  //   }
+  //   // extrapolate ghost
+  //   if( orderOfAccuracyForDerivative==4 && igb > iga+5 )
+  //   { // this is needed for fourth-order accuracy 
+  //     vDotN(iga)=5.*vDotN(iga+1)-10.*vDotN(iga+2)+10.*vDotN(iga+3)-5.*vDotN(iga+4)+vDotN(iga+5);
+  //     vDotN(igb)=5.*vDotN(igb-1)-10.*vDotN(igb-2)+10.*vDotN(igb-3)-5.*vDotN(igb-4)+vDotN(igb-5);
+  //   }
+  //   else if( orderOfAccuracyForDerivative==4 &&  igb > iga+4 )
+  //   {
+  //     vDotN(iga)=4.*vDotN(iga+1)-6.*vDotN(iga+2)+4.*vDotN(iga+3)-vDotN(iga+4);
+  //     vDotN(igb)=4.*vDotN(igb-1)-6.*vDotN(igb-2)+4.*vDotN(igb-3)-vDotN(igb-4);
+  //   }
+  //   else if( igb > iga+3 )
+  //   {
+  //     vDotN(iga)=3.*vDotN(iga+1)-3.*vDotN(iga+2)+vDotN(iga+3);
+  //     vDotN(igb)=3.*vDotN(igb-1)-3.*vDotN(igb-2)+vDotN(igb-3);
+  //   }
+  //   else
+  //   {
+  //     assert( igb> iga+2 );
+  //     vDotN(iga)=2.*vDotN(iga+1)-vDotN(iga+2);
+  //     vDotN(igb)=2.*vDotN(igb-1)-vDotN(igb-2);
+  //   }
+  
+  
+  //   real beamLength=L;
+  //   const real dx = beamLength/numElem;  
+  //   FOR_3(i1,i2,i3,Jb1,Jb2,Jb3)
+  //   {
+  //     int i1p=i1+is1, i2p=i2+is2, i3p=i3+is3;
+  //     real v1x, v2x;
+  //     if( orderOfAccuracyForDerivative==2 )
+  //     {
+  // 	v1x = (vDotN(iv[axis]+1)-vDotN(iv[axis]-1))/(2.*dx);
+  // 	v2x = (vDotN(iv[axis]+2)-vDotN(iv[axis]  ))/(2.*dx);
+  //     }
+  //     else
+  //     {
+  // 	int i=iv[axis];
+  // 	if( i-2 >= iga && i+2 <= igb )
+  // 	  v1x = ( 8.*(vDotN(i+1)-vDotN(i-1)) - vDotN(i+2) +vDotN(i-2) )/(12.*dx);
+  // 	else if( i==ia && i+4 <=igb )
+  // 	{ // fourth-order one-sided
+  // 	  v1x = ( -(25./12.)*vDotN(i) + 4.*vDotN(i+1) -3.*vDotN(i+2) + (4./3.)*vDotN(i+3) -.25*vDotN(i+4) )/dx;
+  // 	}
+  // 	else
+  // 	  v1x = (vDotN(i+1)-vDotN(i-1))/(2.*dx);
+      
+  // 	i=iv[axis]+1;
+  // 	if( i-2 >= iga && i+2 <= igb )
+  // 	  v2x = ( 8.*(vDotN(i+1)-vDotN(i-1)) - vDotN(i+2) +vDotN(i-2) )/(12.*dx);
+  // 	else if( i==ib && i-4 >=iga )
+  // 	{ // fourth-order one-sided
+  // 	  v2x = -( -(25./12.)*vDotN(i) + 4.*vDotN(i-1) -3.*vDotN(i-2) + (4./3.)*vDotN(i-3) -.25*vDotN(i-4) )/dx;
+  // 	}
+  // 	else
+  // 	  v2x = (vDotN(i+1)-vDotN(i-1))/(2.*dx);
+  //     }
+    
+  //     printF("--BM-- setSurfaceVelocity: x0=[%8.2e,%8.2e] v1=%8.2e v1x=%8.2e, x0=[%8.2e,%8.2e] v2=%8.2e v2x=%8.2e\n",
+  // 	     x0(i1,i2,i3,0),x0(i1,i2,i3,1),  vDotN(iv[axis]), v1x, 
+  // 	     x0(i1p,i2p,i3p,0),x0(i1p,i2p,i3p,1), vDotN(iv[axis]+1), v2x );
+  //     setSurfaceVelocity(t,
+  // 			 x0(i1,i2,i3,0), 
+  // 			 x0(i1,i2,i3,1), vDotN(iv[axis]), v1x, 
+  // 			 normal(i1,i2,i3,0), normal(i1,i2,i3,1),
+  // 			 x0(i1p,i2p,i3p,0), 
+  // 			 x0(i1p,i2p,i3p,1), vDotN(iv[axis]+1), v2x, 
+  // 			 normal(i1p,i2p,i3p,0), normal(i1p,i2p,i3p,1));
+  //   }
+  
+  //   if( true )
+  //   {
+  //     RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
+
+  //     ::display(surfaceVelocity,sPrintF("--BM-- setSurfaceVelocity:END: : surfaceVelocity at t=%9.3e",t),"%8.2e ");
+
+  //   }
+  // }
+  
+}
+
+// ==========================================================================================================
+/// \brief Return the "surfaceVelocity" array (used for projecting the beam velocity in FSI simulations)
+// ==========================================================================================================
+const RealArray& BeamModel::
+getSurfaceVelocity() const
+{
+  return dbase.get<RealArray>("surfaceVelocity"); 
+}
+
+
+// ======================================================================================
+/// *THIS FUNCTION NOT USED ANYMORE*
+/// \brief  Set the surface velocity over an interval
+// undeformed location is X1 = (x0_1, y0_1), X2 = (x0_2, y0_2).
+// The velocity is v(X1) = v1, v(X2) = v2
+/// \param tf : set surface velocity at this time 
+/// \param  x0_1: undeformed location of the point on the surface of the beam (x1)  
+/// \param  y0_1: undeformed location of the point on the surface of the beam (y1)
+/// \param  v1:   velocity at the point (x1,y1)
+/// \param  v1x:   x-derivative of the velocity at the point (x1,y1) (for 4th-order projection)
+/// \param  nx_1: normal at x1 (x) [unused]
+/// \param  ny_1: normal at x1 (y) [unused]
+/// \param  x0_2: undeformed location of the point on the surface of the beam (x2)  
+/// \param  y0_2: undeformed location of the point on the surface of the beam (y2)  
+/// \param  v2:   velocity at the point (x2,y2)
+/// \param  vx2:  x-derivative of the  velocity at the point (x2,y2) (for 4th-order projection)
+/// \param  nx_2: normal at x2 (x) [unused]
+/// \param  ny_2: normal at x2 (y) [unused]
+//
+// ======================================================================================
+void BeamModel::
+setSurfaceVelocity( const real & tf,
+		    const real& x0_1, const real& y0_1,
+		    real v1, real v1x, const real& nx_1,const real& ny_1,
+		    const real& x0_2, const real& y0_2,
+		    real v2, real v2x, const real& nx_2,const real& ny_2)
+{
+
+  // new way *wdh* 2015/01/13
+  real x1[2]={ x0_1,y0_1}, nv1[2]={nx_1,ny_1}; //
+  real x2[2]={ x0_2,y0_2}, nv2[2]={nx_2,ny_2}; //
+
+  RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
+  addToElementIntegral( tf,x1,v1,v1x,nv1, x2,v2,v2x,nv2,surfaceVelocity );
+
+  // **OLD **
+
+  // // THIS FUNCTION IS ALMOST THE SAME AS ADDFORCE ** FIX ME**
+
+  // const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+  // const int & current = dbase.get<int>("current"); 
+
+  // RealArray & time = dbase.get<RealArray>("time");
+  // RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
+
+  // if( fabs(time(current)-tf) > 1.e-10*(1.+tf) )
+  // {
+  //   printF("--BM-- BeamModel::setSurfaceVelocity:ERROR: tf=%10.3e is not equal to time(current)=%10.3e, current=%i\n",
+  //       tf,time(current),current);
+  //   OV_ABORT("ERROR");
+  // }
+
+  // int elem1,elem2;
+  // real eta1,eta2,t1,t2;
+
+  // real v11,v22, v11x, v22x;
+
+
+  // real xll = x0_1-beamX0;
+  // real yll = y0_1-beamY0;
+
+  // real xl = xll*initialBeamTangent[0]+yll*initialBeamTangent[1];
+  // real yl = xll*initialBeamNormal[0]+yll*initialBeamNormal[1];
+
+  // real myx0 = xl;
+
+  // xll = x0_2-beamX0;
+  // yll = y0_2-beamY0;
+
+  // xl = xll*initialBeamTangent[0]+yll*initialBeamTangent[1];
+  // yl = xll*initialBeamNormal[0]+yll*initialBeamNormal[1];
+
+  // real myx1 = xl;
+
+  // if (myx1 > myx0) 
+  // {
+  //   projectPoint(x0_1,y0_1,elem1, eta1,t1); 
+  //   projectPoint(x0_2,y0_2,elem2, eta2,t2);   
+  //   v11 = v1; v11x=v1x;
+  //   v22 = v2; v22x=v2x;
+  // } 
+  // else 
+  // {
+  //   projectPoint(x0_1,y0_1,elem2, eta2,t2); 
+  //   projectPoint(x0_2,y0_2,elem1, eta1,t1);  
+  //   v22 = v1; v22x=v1x;
+  //   v11 = v2; v11x=v2x;
+  //   std::swap<real>(myx0,myx1);
+  // }
+
+  // //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << v1 << " " << v2 << std::endl;
+
+  // real dx = fabs(myx0-myx1);
+
+
+  // const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+
+  // RealArray lt(4);
+  // for (int i = elem1; i <= elem2; ++i) 
+  // {
+  //   real a = eta1, b = eta2;
+  //   real va = v11, vax=v11x, vb = v22, vbx=v22x;
+  //   real x0 = myx0, x1 = myx1;
+  //   if (i != elem1)
+  //   {
+  //     // estimate v at xi=x0 : 
+  //     a = -1.0;
+  //     x0 = le*i;
+      
+  //     if( orderOfGalerkinProjection==2 )
+  //     {
+  //       va = v11 + (v22-v11)*(x0-myx0)/(dx);
+  //     }
+  //     else
+  //     {
+  //       // -- evaluate the Hermite interpolant --
+  //       real xi = -1. + 2.*(x0-myx0)/le;
+
+  //       real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+  //       real N2 = .125*dx*(1.-xi)*(1.-xi)*(1.+xi);
+  //       real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+  //       real N4 = .125*dx*(1.+xi)*(1.+xi)*(xi-1.);
+	
+  //       real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx);
+  //       real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+  //       real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx) ;
+  //       real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+	
+  //       va = v11*N1 + v11x*N2 + v22*N3 + v22x*N4; 
+  //       vax = v11*N1x + v11x*N2x + v22*N3x + v22x*N4x; 
+
+  //       // vax = v11x + (v22x-v11x)*(x0-myx0)/(dx);
+  //     }
+      
+  //   }
+  //   if (i != elem2) 
+  //   {
+  //     b = 1.0;
+  //     x1 = le*(i+1);
+  //     if( orderOfGalerkinProjection==2 )
+  //     {
+  //       vb = v11 + (v22-v11)*(x1-myx0)/(dx);
+  //     }
+  //     else
+  //     {
+  //       // -- evaluate the Hermite interpolant --
+  //       real xi = -1. + 2.*(x1-myx0)/le;
+
+  //       real N1 = .25*(1.-xi)*(1.-xi)*(2.+xi);
+  //       real N2 = .125*dx*(1.-xi)*(1.-xi)*(1.+xi);
+  //       real N3 = .25*(1.+xi)*(1.+xi)*(2.-xi);
+  //       real N4 = .125*dx*(1.+xi)*(1.+xi)*(xi-1.);
+	
+  //       real N1x = ( .5*(xi-1.)*(2.+xi)  + .25*(1.-xi)*(1.-xi) )*(2./dx);
+  //       real N2x = ( .25*(xi-1.)*(1.+xi) + .125*(1.-xi)*(1.-xi) )*2.;
+  //       real N3x = ( .5*(1.+xi)*(2.-xi)  - .25*(1.+xi)*(1.+xi) )*(2./dx) ;
+  //       real N4x = ( .25*(1.+xi)*(xi-1.) + .125*(1.+xi)*(1.+xi) )*2.;
+
+  //       vb = v11*N1 + v11x*N2 + v22*N3 + v22x*N4; 
+  //       vbx = v11*N1x + v11x*N2x + v22*N3x + v22x*N4x; 
+  //       // vbx = v11x + (v22x-v11x)*(x1-myx0)/(dx);
+  //     }
+      
+  //   }
+    
+  //   Index idx(i*2,4);
+  //   if( FALSE && t1 > 0)   // TURN OFF FOR VELOCITY 
+  //   { 
+  //     va = -va; vax=-vax;
+  //     vb = -vb; vbx=-vbx;
+  //   }
+      
+  //   //std::cout << elem1 << " " << elem2 << " " << eta1 << " " << eta2 << " " << 
+  //   //  v1 << " " << v2 << std::endl;
+  
+    
+  //   if( fabs(b-a) > 1.0e-10 )  // *WDH* FIX ME -- is this needed?
+  //   {
+  //     // -- compute (N,p)_[a,b] = int_a^b N(xi) v(xi) J dxi 
+  //     if( orderOfGalerkinProjection==2 )
+  //       computeProjectedForce(va,vb, a,b, lt);
+  //     else
+  //       computeGalerkinProjection(va,vax, vb,vbx,  a,b, lt);
+        
+  //     //    std::cout << "a = " << a << " b = " << b << std::endl;
+  //     surfaceVelocity(idx) += lt;  
+  //   }
+
+  // }
+}
+
+
+// ===================================================================================================
+/// \brief  Project the current surface velocity onto the beam (and over-write current beam velocity)
+// ====================================================================================================
+void BeamModel::
+projectSurfaceVelocityOntoBeam( const real t )
+{
+
+  RealArray & surfaceVelocity = dbase.get<RealArray>("surfaceVelocity");
+
+  // On entry:
+  //   surfaceVelocity should hold the integrals (phi_i,v) (psi_i,v)
+
+  // Stage I: Compute the FEM  coefficients v_j and v_j' coefficients in
+  //       v = SUM_j {  v_j phi_j(x) + v_j' psi_j(x) }
+  // by solving
+  //     SUM_j {  v_j (phi_i(x),phi_j(x)) + v_j' (phi_i(x),psi_j(x)) }  = (phi_i,v)
+  //     SUM_j {  v_j (psi_i(x),phi_j(x)) + v_j' (psi_i(x),psi_j(x)) }  = (psi_i,v)
+
+  real le = L / numElem;
+  real le2 = le*le;
+  real le3 = le2*le;
+  RealArray elementMass(4,4);
+  
+  elementMass(0,0) = elementMass(2,2) = 13./35.*le;
+  elementMass(0,1) = elementMass(1,0) = 11./210.*le2;
+  elementMass(0,2) = elementMass(2,0) = 9./70.*le;
+  elementMass(0,3) = elementMass(3,0) = -13./420.*le2;
+  elementMass(1,1) = elementMass(3,3) = 1./105.*le3;
+  elementMass(1,2) = elementMass(2,1) = 13./420.*le2;
+  elementMass(1,3) = elementMass(3,1) = -1./140.*le3;
+  elementMass(3,2) = elementMass(2,3) = -11./210.*le2;
+
+  RealArray rhs;
+  if( dbase.get<bool>("fluidOnTwoSides") )
+    rhs=.5*surfaceVelocity;  // scale by .5 for two-sided fluid 
+  else
+    rhs=surfaceVelocity;
+
+  real alpha=0., alphaB=0.; // coefficients of stiffness and damping matrices
+
+  // Assign BC's on v (rhs)
+  RealArray uTemp(2*numElem+2), aTemp(2*numElem+2);
+  if( true )
+    assignBoundaryConditions( t, uTemp, rhs, aTemp );
+
+  // Note: We use a separate TridiagonalSolver for this Galerkin projection: 
+  solveBlockTridiagonal(elementMass, rhs, surfaceVelocity, alpha,alphaB, "galerkinProjection" );
+
+  std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+  const int & current = dbase.get<int>("current");
+
+  if( FALSE )
+  {
+    ::display(v[current],sPrintF("--BM-- projectSurfaceVelocityOntoBeam:END: : v[current] at t=%9.3e",t),"%8.2e ");
+
+    ::display(surfaceVelocity,sPrintF("--BM-- projectSurfaceVelocityOntoBeam: surfaceVelocity at t=%9.3e",t),"%8.2e ");
+    real maxErr = max(fabs(v[current]-surfaceVelocity));
+    printF("--BM-- projectSurfaceVelocityOntoBeam max-err=%8.2e\n",maxErr);
+
+  }
+
+  // Replace the current velocity DOF's 
+  v[current]=surfaceVelocity;
+
+}
+
+
 
 
 void BeamModel::recomputeNormalAndTangent() {
@@ -2582,37 +4321,37 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
 
       if( bc == clamped ) 
       {
-        // --- clamped BC ---
+	// --- clamped BC ---
 	if( twilightZone )
 	{
 	  g(0,side) = exact.gd(ntd,0,0,0, x,y,z,wc,t);  // Give w 
-          g(1,side) = exact.gd(ntd,1,0,0, x,y,z,wc,t);  // Give w.x 
+	  g(1,side) = exact.gd(ntd,1,0,0, x,y,z,wc,t);  // Give w.x 
 	}
 	else
 	{
-          g(0,side)=0.;
-          g(1,side)=0.;
+	  g(0,side)=0.;
+	  g(1,side)=0.;
 	}
       }
 
       else if( bc==pinned ) 
       {
-        // --- pinned BC ---
+	// --- pinned BC ---
 	if( twilightZone )
 	{
 	  g(0,side) = exact.gd(ntd,0,0,0, x,y,z,wc,t);  // Give w 
-          g(2,side) = exact.gd(ntd,2,0,0, x,y,z,wc,t);  // give EI*w.xx 
+	  g(2,side) = exact.gd(ntd,2,0,0, x,y,z,wc,t);  // give EI*w.xx 
 	}
 	else
 	{
-          g(0,side)=0.;
-          g(2,side)=0.;
+	  g(0,side)=0.;
+	  g(2,side)=0.;
 	}
       }
 
       else if( bc==freeBC ) 
       {
-        // --- free BC ---
+	// --- free BC ---
 	if( twilightZone )
 	{
 	  g(2,side) = exact.gd(ntd,2,0,0,  x,y,z,wc,t);   // Give EI*w_xx 
@@ -2620,12 +4359,12 @@ getBoundaryValues( const real t, RealArray & g, const int ntd /* = 0 */   )
 	}
 	else
 	{
-          g(2,side)=0.;
-          g(3,side)=0.;
+	  g(2,side)=0.;
+	  g(3,side)=0.;
 	}
       }
 
-      else if( bc==periodic )
+      else if( bc==periodic || bc==unknownBC || bc==internalForceBC )
       {
       }
       else
@@ -2654,7 +4393,7 @@ assignBoundaryConditions( real t, RealArray & u, RealArray & v, RealArray & a )
   {
     RealArray ue,ve,ae;
     bool assignExact=false;
-    if( bcLeft!=periodic && initialConditionOption=="travelingWaveFSI" )
+    if( bcLeft!=periodic && exactSolutionOption=="travelingWaveFSI" )
     {
       assignExact=true;
       getTravelingWaveFSI( t, ue, ve, ae  );  // this is inefficient
@@ -2802,27 +4541,62 @@ addInternalForces( const real t, RealArray & f )
 
     const real EI = elasticModulus*areaMomentOfInertia;
     const real & T = dbase.get<real>("tension");
+    const real & K0 = dbase.get<real>("K0");
+    const real & Kt = dbase.get<real>("Kt");
+    const real & Kxxt = dbase.get<real>("Kxxt");
 
-    RealArray utte(I1,I2,I3,1), uxxe(I1,I2,I3,1), uxxxxe(I1,I2,I3,1);
+    RealArray ue(I1,I2,I3,1), utte(I1,I2,I3,1), uxxe(I1,I2,I3,1), uxxxxe(I1,I2,I3,1);
     int isRectangular=0;
     const int wc=0;
+    exact.gd( ue     ,x,domainDimension,isRectangular,0,0,0,0,I1,I2,I3,wc,t );
     exact.gd( utte   ,x,domainDimension,isRectangular,2,0,0,0,I1,I2,I3,wc,t );
     exact.gd( uxxe   ,x,domainDimension,isRectangular,0,2,0,0,I1,I2,I3,wc,t );
     exact.gd( uxxxxe ,x,domainDimension,isRectangular,0,4,0,0,I1,I2,I3,wc,t );
 
-    // exact.gd( ve ,x,domainDimension,isRectangular,1,0,0,0,I1,I2,I3,wc,t );
-    // exact.gd( ae ,x,domainDimension,isRectangular,2,0,0,0,I1,I2,I3,wc,t );
-
-    // exact.gd( uxe,x,domainDimension,isRectangular,0,1,0,0,I1,I2,I3,wc,t );
-    // exact.gd( vxe,x,domainDimension,isRectangular,1,1,0,0,I1,I2,I3,wc,t );
-    // exact.gd( axe,x,domainDimension,isRectangular,2,1,0,0,I1,I2,I3,wc,t );
-
     // printF("-- BM -- addInternalForce: t=%9.3e max(fabs(f))=%8.2e, |utte|=%8.2e |u_xxxxe|=%8.2e\n",
     //        t,max(fabs(f)),max(fabs(utte)),max(fabs(uxxxxe)));
 
-    RealArray ftz(I1,I2,I3,1); 
-    ftz = (density*thickness)*utte - (T)*uxxe + (EI)*uxxxxe;
+    RealArray ftz(I1,I2,I3,1), ftzx(I1,I2,I3,1); 
+    ftz = (density*thickness)*utte + K0*ue - (T)*uxxe + (EI)*uxxxxe;
 
+    const int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+    if( orderOfGalerkinProjection==4 )
+    {
+      RealArray uxe(I1,I2,I3,1), uttxe(I1,I2,I3,1), uxxxe(I1,I2,I3,1), uxxxxxe(I1,I2,I3,1);
+      exact.gd( uxe     ,x,domainDimension,isRectangular,0,1,0,0,I1,I2,I3,wc,t );
+      exact.gd( uttxe   ,x,domainDimension,isRectangular,2,1,0,0,I1,I2,I3,wc,t );
+      exact.gd( uxxxe   ,x,domainDimension,isRectangular,0,3,0,0,I1,I2,I3,wc,t );
+      exact.gd( uxxxxxe ,x,domainDimension,isRectangular,0,5,0,0,I1,I2,I3,wc,t );
+
+      ftzx = (density*thickness)*uttxe + K0*uxe - (T)*uxxxe + (EI)*uxxxxxe;  // x-derivative of the TZ force
+    }
+    
+    if( Kt!=0. )
+    {
+      RealArray & ute = uxxe;  // re-use space
+      exact.gd( ute, x,domainDimension,isRectangular,1,0,0,0,I1,I2,I3,wc,t );
+      ftz += Kt*ute;
+      if( orderOfGalerkinProjection==4 )
+      {
+	RealArray & utxe = uxxe;  // re-use space
+	exact.gd( utxe, x,domainDimension,isRectangular,1,1,0,0,I1,I2,I3,wc,t );
+	ftzx += Kt*utxe;
+      }
+    }
+    if( Kxxt!=0. )
+    {
+      RealArray & utxxe = uxxe;  // re-use space
+      exact.gd( utxxe, x,domainDimension,isRectangular,1,2,0,0,I1,I2,I3,wc,t );
+      ftz += (-Kxxt)*utxxe;
+      if( orderOfGalerkinProjection==4 )
+      {
+	RealArray & utxxxe = uxxe;  // re-use space
+	exact.gd( utxxxe, x,domainDimension,isRectangular,1,3,0,0,I1,I2,I3,wc,t );
+	ftzx += (-Kxxt)*utxxxe;
+      }
+      
+    }
+    
     // ::display(utte,"utte","%8.2e ");
     // ::display(uxxe,"uxxe","%8.2e ");
     // ::display(ftz,"ftz","%8.2e ");
@@ -2830,7 +4604,13 @@ addInternalForces( const real t, RealArray & f )
     RealArray lt(4); // local traction
     for ( int i = 0; i<numElem; i++ )
     {
-      computeProjectedForce( ftz(i),ftz(i+1), -1.0,1.0, lt);
+      // computeProjectedForce( ftz(i),ftz(i+1), -1.0,1.0, lt);
+
+      if( orderOfGalerkinProjection==2 )
+        computeProjectedForce( ftz(i),ftz(i+1), -1.0,1.0, lt);
+      else
+        computeGalerkinProjection( ftz(i),ftzx(i), ftz(i+1),ftzx(i+1),   -1.0,1.0, lt);
+
       Index idx(i*2,4);
       f(idx) += lt;
     }
@@ -2882,6 +4662,10 @@ predictor(real tnp1, real dt )
   const bool & twilightZone = dbase.get<bool>("twilightZone");
   bool & refactor = dbase.get<bool>("refactor");
   const bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor");
+  const bool & relaxForce = dbase.get<bool>("relaxForce");
+
+  const bool addDampingMatrix = dbase.get<real>("Kt")!=0. || dbase.get<real>("Kxxt")!=0.;
+  const RealArray & elementB = dbase.get<RealArray>("elementB");
   
   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
   int & current = dbase.get<int>("current"); 
@@ -2917,13 +4701,13 @@ predictor(real tnp1, real dt )
     OV_ABORT("ERROR");
   }
 
-  real & dtOld = dbase.get<real>("dt"); 
+  const real dtOld = dbase.get<real>("dt"); 
   if( fabs(dt-dtOld) > REAL_EPSILON*10.*dt )
   {
     refactor=true;
     printF("-- BM -- predictor: dt has changed, dt=%9.3e, dtOld=%9.3e, will refactor.\n",dt,dtOld);
   }
-  dtOld=dt;
+  dbase.get<real>("dt")=dt; // adjust "dtOld"
 
   if( false && t<2.*dt )
   { 
@@ -2932,6 +4716,18 @@ predictor(real tnp1, real dt )
     ::display(x2,"x2","%8.2e ");
     ::display(v2,"v2","%8.2e ");
   }
+  if( debug & 4 )
+  {
+    ::display(f2(Range(0,2*numElem  ,2)),"BeamModel::predictor: RHS force f2(0:2:) BEFORE addInternalForces","%8.2e ");
+    ::display(f2(Range(1,2*numElem+1,2)),"BeamModel::predictor: RHS force f2(1:2:) BEFORE addInternalForces","%8.2e ");
+  }
+
+  if( true )
+  {
+    smooth( t-dt,x2, "u: predictor" );
+    smooth( t-dt,v2, "v: predictor" );
+  }
+  
 
   // add internalforces such as buoyancy and TZ forcing
   addInternalForces( t-dt, f2 );
@@ -2959,10 +4755,11 @@ predictor(real tnp1, real dt )
     refactor=true;          
 
     // compute acceleration at time tn=t-dt 
-    const real alpha=0.;  // coeff of K in  (M+alpha*K)*a = RHS
+    const real alpha =0.;  // coeff of K in  (M + alphaB*B + alpha*K)*a = RHS
+    const real alphaB=0.;  // coeff of B in  (M + alphaB*B + alpha*K)*a = RHS
     computeAcceleration(t-dt, x2,v2,f2, elementM, a2,
 			centerOfMassAcceleration, angularAcceleration,
-			dt, alpha );
+			dt, alpha,alphaB, "tridiagonalSolver" );
     refactor=true;          
     hasAcceleration = true;
   }
@@ -2993,29 +4790,54 @@ predictor(real tnp1, real dt )
       if( debug & 2 )
 	printF("--BM-- use implicit predictor tnp1=%8.2e\n",tnp1);
 
-      RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
+      RealArray A; 
+      A = elementM + (newmarkBeta*dt*dt)*elementK;
+      if( addDampingMatrix )
+      { // add damping matrix B 
+	A += (newmarkGamma*dt)*elementB;
+      }
+      
 
       real linaccel[2],omegadd;
       // compute acceleration at time t^{n+1}
-      const real alpha=newmarkBeta*dt*dt;  // coeff of K in A
+      const real alpha =newmarkBeta*dt*dt;  // coeff of K in A
+      const real alphaB=newmarkGamma*dt;    // coeff of B in A
 
       if( false ) // apply BC's to first-order predictor 
         assignBoundaryConditions( tnp1, dtilde,vtilde,a3 );
 
-      if( t>= .5*dt )
+      if( tnp1 >= 1.5*dt ) // *wdh* 2015/01/29 : NOTE: t==tnp1
       {
+        // -- we have 2 old forces available: f(tnp1-dt) and f(tnp1-2*dt) --
         RealArray & f1 = f[prev2];
-        f3=2.*f2-f1;            // extrapolate in time ** FIX ME for variable dt **
+        // f(t+dt) = f(t   ) + dt*f'            = f2 + dt*f'
+        // f(t+dt) = f(t-dtOld) + (dt+dtOld)*f' = f1 + dtp*f' 
+        real dtr=dt/dtOld;
+     
+        f3=(1.+dtr)*f2-dtr*f1;  // extrapolate in time (first order)
+        // f3=2.*f2-f1;            // extrapolate in time ** FIX ME for variable dt **
       }
       else
       {
+        // -- we only have 1 old forces at f(tnp1-dt)
         f3=f2; 
       }
       
-      computeAcceleration(tnp1, dtilde,vtilde,f3, A, a3,  linaccel,omegadd,dt, alpha, newmarkBeta, newmarkGamma);
+      computeAcceleration( tnp1, dtilde,vtilde,f3, A, a3,  linaccel,omegadd,dt, alpha, alphaB,"tridiagonalSolver" );
 
       v3 = vtilde + (newmarkGamma*dt)*a3;
       x3 = dtilde + (newmarkBeta*dt*dt)*a3;
+
+      if( false && t<=2.*dt )
+      {
+	printF("--BM-- predictor: tnp1=%9.3e\n",t,tnp1);
+	::display(f2,"f2","%8.2e ");
+	::display(f3,"f3","%8.2e ");
+	::display(v3,"v3","%8.2e ");
+	::display(a2,"a2","%8.2e ");
+	::display(a3,"a3","%8.2e ");
+      }
+      
 
       if( false )
       { // --- debug output ---
@@ -3053,8 +4875,14 @@ predictor(real tnp1, real dt )
   }
   
   // *wdh* aold = 0.0;
-  aold = a2;   // set aold to previous acceleration *wdh* 2014/06/19 
-
+  RealArray & fOld = dbase.get<RealArray>("fOld");
+  if( relaxForce )
+  {
+    aold = a2;   // set aold to previous acceleration *wdh* 2014/06/19 
+    fOld = f2;
+    // aold=0.;  // **** TEST
+  }
+  
   if( false ) // do not apply BC's to first-order predictor 
     assignBoundaryConditions( tnp1, dtilde,vtilde,a3 );
 
@@ -3109,6 +4937,11 @@ predictor(real tnp1, real dt )
   //printArray(x2,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 
   
+  // optionally smooth the solution:
+  //  smooth( tnp1,x3, "u: predictor" );
+  //   smooth( tnp1,v3, "v: predictor" );
+
+
   if( debug & 2 )
   {
     aString buff;
@@ -3117,11 +4950,6 @@ predictor(real tnp1, real dt )
   }
   
 
-  if( dbase.get<bool>("saveTipFile") )
-  {
-    output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  a3(numElem*2) << std::endl;
-  }
-  
 
   const bool & saveProfileFile = dbase.get<bool>("saveProfileFile");
 
@@ -3134,7 +4962,7 @@ predictor(real tnp1, real dt )
     setExactSolution(t,xtmp,vtmp,atmp);
 
     std::stringstream profname;
-    profname << "beam_profile" << time_step_num << ".txt";
+    profname << "beam_profile" << numberOfTimeSteps << ".txt";
     std::ofstream beam_profile(profname.str().c_str());
     for (int i = 0; i < 100; ++i) {
       
@@ -3171,11 +4999,37 @@ predictor(real tnp1, real dt )
 
   }
 
-  time_step_num++;
+  numberOfTimeSteps++;
 
   numCorrectorIterations = 0;
 
 }
+
+// =================================================================================
+/// \brief  Return the maximum relative correction for sub-iterations
+// =================================================================================
+real BeamModel::
+getMaximumRelativeCorrection() const
+{
+  return dbase.get<real>("maximumRelativeCorrection");
+}
+
+
+// ===================================================================================
+// \brief compute the 2-norm squared of a Hermite Grid function
+// ===================================================================================
+real BeamModel::
+norm( RealArray & u ) const
+{
+  real uNorm=0;
+  for (int i = 0; i < numElem; ++i) 
+  {
+    // norm of | a3 - aold |   *wdh: should we scale by dx ?  
+    uNorm += u(i*2)*u(i*2);
+  }
+  return uNorm;
+}
+
 
 // ===================================================================================
 /// \brief Apply the corrector at t^{n+1}
@@ -3196,7 +5050,10 @@ predictor(real tnp1, real dt )
 void BeamModel::
 corrector(real tnp1, real dt )
 {
+  const bool & relaxForce = dbase.get<bool>("relaxForce");
   const bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor");
+  const bool addDampingMatrix = dbase.get<real>("Kt")!=0. || dbase.get<real>("Kxxt")!=0.;
+  const RealArray & elementB = dbase.get<RealArray>("elementB");
   
   const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
   const int & current = dbase.get<int>("current"); 
@@ -3220,8 +5077,40 @@ corrector(real tnp1, real dt )
     OV_ABORT("ERROR");
   }
 
-  RealArray A = evaluate(elementM+newmarkBeta*dt*dt*elementK);
+  RealArray A;
+  A = elementM + (newmarkBeta*dt*dt)*elementK;
+  if( addDampingMatrix )
+  { // add damping matrix B 
+    A += (newmarkGamma*dt)*elementB;
+  }  
     
+  const bool & relaxCorrectionSteps=dbase.get<bool>("relaxCorrectionSteps");
+  const real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
+  const real & subIterationAbsoluteTolerance = dbase.get<real>("subIterationAbsoluteTolerance");
+  const real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
+  const bool & useAitkenAcceleration = dbase.get<bool>("useAitkenAcceleration");
+  real & maximumRelativeCorrection = dbase.get<real>("maximumRelativeCorrection"); 
+
+  // Traditional partitioned scheme: we under-relax the acceleration and iterate:
+  real omega = addedMassRelaxationFactor;
+
+  RealArray & fOld = dbase.get<RealArray>("fOld");
+  RealArray & fOlder = dbase.get<RealArray>("fOlder");
+  if( fOld.elementCount()==0 )
+  {
+    // This corrector may be called at t=0. -- in this case set the "old" force to be zero
+    fOld.redim(2*(numElem+1));
+    fOld=0.;
+  }
+  
+  if( relaxForce  )
+  {
+    // ::display(fOld,"fOld","%8.2e ");
+    // ::display(f3,"f3","%8.2e ");
+    f3 = omega*f3+(1.0-omega)*fOld; 
+    
+  }
+
   // add internalforces such as buoyance and TZ forcing
   addInternalForces( tnp1, f3 );
 
@@ -3238,7 +5127,8 @@ corrector(real tnp1, real dt )
   //   }
   // }
   
-  if (time_step_num == 1)  // *wdh* -- what is this ?
+  if( FALSE &&    // *wdh* 2015/03/10 
+      numberOfTimeSteps == 1 )  // *wdh* -- what is this ?
   {
     correctionHasConverged = true;
     centerOfMassAcceleration[0] = buoyantMass / totalMass * bodyForce[0];
@@ -3247,19 +5137,23 @@ corrector(real tnp1, real dt )
     return;
   }
 
-  real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
-  real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
-
-  real omega = addedMassRelaxationFactor;
 
   real linaccel[2],omegadd;
   // compute acceleration at time t^{n+1}
-  const real alpha=newmarkBeta*dt*dt;  // coeff of K in A
-  computeAcceleration(tnp1, dtilde,v3,f3, A, a3,  linaccel,omegadd,dt, alpha, newmarkBeta, newmarkGamma);
+  const real alpha=newmarkBeta*dt*dt;   // coeff of K in A
+  const real alphaB=newmarkGamma*dt;    // coeff of B in A
+  computeAcceleration(tnp1, dtilde,v3,f3, A, a3,  linaccel,omegadd,dt, alpha, alphaB,"tridiagonalSolver");
 
   //v3 = vtilde+newmarkGamma*dt*(myAcceleration-aold)*omega;
   //x3 = dtilde+newmarkBeta*dt*dt*(myAcceleration-aold)*omega;
 
+  // // under-relax the acceleration 
+  if( !relaxForce )
+  {
+    if( relaxCorrectionSteps )
+      a3 = omega*a3+(1.0-omega)*aold;    
+  }
+  
   v3 = vtilde+newmarkGamma*dt*a3;
   x3 = dtilde+newmarkBeta*dt*dt*a3;
 
@@ -3297,15 +5191,37 @@ corrector(real tnp1, real dt )
 
   //printArray(x3,0,1000,0,1000,0,1000,0,1000,0,1000,0,1000);
 
+  // --- Check for convergence of sub-iteration ---
 
-  correctionHasConverged = false;
-
-  RealArray tmp;
-  tmp = a3-aold;
-  double correction = 0.0;
-  for (int i = 0; i < numElem; ++i) 
+  real correction = 0.0;
+  if( relaxCorrectionSteps )
   {
-    correction += tmp(i*2)*tmp(i*2)/(le*le)+ tmp(i*2+1)*tmp(i*2+1);  // norm of | a3 - aold |   *wdh: should we scale by dx ?  
+    correctionHasConverged = false;
+    RealArray tmp;
+    if( relaxForce )
+      tmp = f3-fOld;
+    else
+      tmp = a3-aold;
+    // if( numCorrectorIterations==0 )
+    //   ::display(tmp,"--BM-- a3-aold : first correction","%8.2e ");
+    
+    if( true )
+    {
+      correction=norm(tmp); // no need to scale by dx since we compare to another unscaled norm
+    }
+    else
+    {
+      for (int i = 0; i < numElem; ++i) 
+      {
+	// norm of | a3 - aold |   *wdh: should we scale by dx ?  
+	correction += tmp(i*2)*tmp(i*2)/(le*le)+ tmp(i*2+1)*tmp(i*2+1);  
+      }
+    }
+    
+  }
+  else
+  {
+    correctionHasConverged = true;
   }
   
   if (allowsFreeMotion) 
@@ -3316,12 +5232,14 @@ corrector(real tnp1, real dt )
 
     tmpp[2] = old_rb_acceleration[2]-angularAcceleration;
 
-    for (int k = 0; k < 3; ++k)
-      correction += tmpp[k]*tmpp[k];
+    if( relaxCorrectionSteps )
+      for (int k = 0; k < 3; ++k)
+	correction += tmpp[k]*tmpp[k];
   }
 
-  // under-relax the acceleration 
-  a3 = omega*a3+(1.0-omega)*aold;    
+  // // under-relax the acceleration 
+  // if( relaxCorrectionSteps )
+  //   a3 = omega*a3+(1.0-omega)*aold;    
 
   if( allowsFreeMotion ) 
   {
@@ -3338,28 +5256,212 @@ corrector(real tnp1, real dt )
   }
     
   
+  if( relaxCorrectionSteps )
+  {
+    correction = sqrt(correction);
 
-  aold = a3; // aold holds current value of acceleration
+    if( numCorrectorIterations == 0 )
+    {
+      // *wdh* 2015/03/07 initialResidual = correction;
+      // initialResidual = sqrt(norm(aold));
+      initialResidual = sqrt(norm(f3));
+    }
+    
+    ++numCorrectorIterations;
+
   
-  correction = sqrt(correction);
+    // --- Here is the convergence test ---
+    // if (correction < initialResidual*subIterationConvergenceTolerance || correction < 1e-8)
+    //   correctionHasConverged = true;
+    maximumRelativeCorrection=correction/max(initialResidual,1.e-5);  // save current value
+    if( true && (debug & 2) )
+    {
+      printF("--BM-- TP-iteration: omega=%6.3f, correction=%i, rel-correction=%8.2e, tol=%8.2e\n",
+	     omega,numCorrectorIterations,maximumRelativeCorrection, subIterationConvergenceTolerance);
+    }
 
-  if (numCorrectorIterations == 0)
-    initialResidual = correction;
+    if( maximumRelativeCorrection < subIterationConvergenceTolerance || 
+        correction < subIterationAbsoluteTolerance )
+      correctionHasConverged = true;
 
-  ++numCorrectorIterations;
-
-  // std::cout << "correction value = " << correction << std::endl;
-  if (correction < initialResidual*subIterationConvergenceTolerance || correction < 1e-8)
-    correctionHasConverged = true;
+  }
 
   assignBoundaryConditions( t,x3,v3,a3 );
+
+  // optionally smooth the solution:
+  //  smooth( t,x3, "u: corrector" );
+  //  smooth( t,v3, "v: corrector" );
+
+  if( relaxForce )
+  {
+    // *** THIS DOES NOT WORK YET ***
+    // Steffensen's Method:
+    //   1. Choose x0
+    //   2. Compute x1, x2 from Fixed-Point iteration
+    //   3. Use Aitkens method to compute new x0
+    //   4. Repeat steps 2,3
+
+    // ***FIX ME -- This is not working yet ****
+    if( useAitkenAcceleration 
+        && numCorrectorIterations>1  // NOTE: numCorrectorIterations has been incremented already
+        // && numCorrectorIterations>10
+        && (numCorrectorIterations % 4)==0    // *try this*
+        && (numCorrectorIterations % 2)==0 )
+    {
+      // ::display(f3,"f3");
+      // ::display(fOld,"fOld");
+      // ::display(fOlder,"fOlder");
+
+      RealArray fNew, denom;
+      denom = f3 -2.*fOld + fOlder;    // watch out for denom = 0 ??
+      
+      fOlder = fOld;                   // save (not used?)
+      fNew = f3 - SQR(f3-fOld)/denom;  // Aitken value
+      f3 = .5*fNew + .5*f3;            // under-relax Aitken   
+      // f3=fNew; 
+      fOld = f3;                     
+    }
+    else
+    {
+      aold = a3; // aold holds current value of acceleration
+      fOlder = fOld;
+      fOld = f3;
+    }
+  }
   
+  // --- Output to the probe file ---
+  //  Only output the last correction step if we iterate
+  if( !relaxCorrectionSteps || correctionHasConverged ) 
+  {
+    const int & probeFileSaveFrequency = dbase.get<int>("probeFileSaveFrequency");
+    if( dbase.get<bool>("saveProbeFile") && 
+	((numberOfTimeSteps-1) % probeFileSaveFrequency)==0 )
+    {
+      FILE *probeFile = dbase.get<FILE*>("probeFile");
+      assert( probeFile!=NULL );
+
+      const real beamLength=L;
+      const real dx=beamLength/numElem;
+      int i1=numElem; // save tip for now
+      real xb = i1*dx; 
+      real yb = 0.;
+    
+      fPrintF(probeFile,"%16.10e %16.10e %16.10e %16.10e\n", t, x3(2*i1), v3(2*i1),a3(2*i1));
+      // output << t << " " <<  x3(numElem*2) << " " << v3(numElem*2) << " " <<  a3(numElem*2) << std::endl;
+    }
+  }
+  
+
   if( debug & 2 )
   {
     aString buff;
     getErrors( tnp1, x3,v3,a3,sPrintF(buff,"-- BM : after correct t=%9.3e",tnp1));
   }
+
 }
+
+// ====================================================================================
+/// \brief Smooth the Hermite solution with a fourth-order filter.
+/// \param t (input) : current time
+/// \param w (input/output) : Hermite solution to smooth (u or v)
+/// \param label (input) : label for debug output.
+// ====================================================================================
+void BeamModel::
+smooth( const real t, RealArray & w, const aString & label )
+{
+  const bool & smoothSolution = dbase.get<bool>("smoothSolution");
+
+  if( !smoothSolution )
+    return;
+  
+  const int & numberOfSmooths = dbase.get<int>("numberOfSmooths");
+
+  // const int & current = dbase.get<int>("current"); 
+  // std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement DOF 
+  // std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity DOF
+
+  // we need at least 3 elements to apply filter BC's 
+  assert( numElem >= 3 );
+
+  // add 2 ghost points so we add apply filter up to boundary if needed
+  int numberOfGhost = 2;  
+  int base =0, bound = numElem;
+  RealArray w1(Range(base-numberOfGhost,bound+numberOfGhost),2);  // compute filtered solution here 
+
+  // -- copy input into w1 
+  for( int i=base; i<=bound; i++ )
+  {
+    w1(i,0)= w(2*i  );    //  u (or v)
+    w1(i,1)= w(2*i+1);    //  u_x (or v_x)
+  }
+  
+  const bool isPeriodic = bcLeft==periodic;
+  
+  const real omega=.5; // smoothing parameter 
+  const real & dt = dbase.get<real>("dt"); 
+  if( t < 3.*dt )
+  {
+    printF("--BM-- smooth %s, numberOfSmooths=%i (4th order filter), omega=%9.3e isPeriodic=%i.\n",
+	   (const char*)label,numberOfSmooths,omega,(int)isPeriodic );
+	  
+  }
+
+  // I : smooth these points. Keep the boundary points fixed, except for periodic
+  const int i1a= isPeriodic ? base  : base+1;
+  const int i1b= isPeriodic ? bound : bound-1;
+  Range I(i1a,i1b); 
+  Range R2(0,1);
+
+  for( int smooth=0; smooth<numberOfSmooths; smooth++ )
+  {
+    // -- boundary conditions --
+    if( isPeriodic )
+    {
+      for( int g=1; g<=numberOfGhost; g++ )
+      {
+	w1(base -g,R2)=w1(bound-g,R2);
+	w1(bound+g,R2)=w1(base +g,R2);
+      }
+    }
+    else
+    {
+      // Assign Ghost -- just extrapolate for now
+      for( int side=0; side<=1; side++ )
+      {
+	int ib  = side==0 ? base : bound; // boundary point
+	int is = side==0 ? 1 : -1;
+	for( int g=1; g<=numberOfGhost; g++ )
+	{
+          int ig = ib - g*is; // ghost point 
+          // w1(ig,R2) = 4.*w1(ig+is,R2) -6.*w1(ig+2*is,R2) + 4.*w1(ig+3*is,R2) - w1(ig+4*is,R2);  
+          w1(ig,R2) = 3.*w1(ig+is,R2) - 3.*w1(ig+2*is,R2) + w1(ig+3*is,R2);
+          // w1(ig,R2) = 2.*w1(ig+is,R2) -w1(ig+2*is,R2);
+	}
+      }
+    }
+	    
+    // smooth interior: 
+    w1(I,R2)= w1(I,R2) + (omega/16.)*(-w1(I-2,R2) + 4.*w1(I-1,R2) -6.*w1(I,R2) + 4.*w1(I+1,R2) -w1(I+2,R2) );
+	      
+    if( isPeriodic )
+    {
+      w1(bound,R2)=w1(base,R2);
+    }
+	    
+  } // end smooths
+
+
+  // copy smoothed solution back to w
+  for( int i=0; i<=numElem; i++ )
+  {
+    w(2*i  ) = w1(i,0);
+    w(2*i+1) = w1(i,1);
+  }
+
+
+}
+
+
 
 // ====================================================================================
 /// \brief Return current position DOF's
@@ -3386,6 +5488,19 @@ velocity() const
   return v[current];
 }
 
+
+// ====================================================================================
+/// \brief Does the beam on fluid on both sides?
+// ====================================================================================
+bool BeamModel::
+hasFluidOnTwoSides() const
+{
+  return dbase.get<bool>("fluidOnTwoSides");
+}
+
+
+
+
 bool BeamModel::hasCorrectionConverged() const {
 
   //return true;
@@ -3394,12 +5509,15 @@ bool BeamModel::hasCorrectionConverged() const {
 
 
 
-
-
-void BeamModel::setAddedMassRelaxation(double omega) 
+// =================================================================================================
+/// \brief Set the relaxation factor when iterating to solve an coupled FSI problem
+// =================================================================================================
+void BeamModel::
+setAddedMassRelaxation(double omega) 
 {
-
   dbase.get<real>("addedMassRelaxationFactor") = omega;
+  printF("\n  @@@@@@@@@@ BeamModel:: set addedMassRelaxationFactor=%g @@@@@@@@\n",
+	 dbase.get<real>("addedMassRelaxationFactor"));
 }
 
 void BeamModel::setSubIterationConvergenceTolerance(double tol) 
@@ -3411,7 +5529,8 @@ void BeamModel::setSubIterationConvergenceTolerance(double tol)
 /// \brief  Compute errors in the solution (when the solution is known).
 // =================================================================================================
 int BeamModel::
-getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,const aString & label )
+getErrors( const real t, const RealArray & u, const RealArray & v, const RealArray & a,const aString & label,
+           FILE *file /* = stdout */ )
 {
 
   const real beamLength = L;
@@ -3419,34 +5538,78 @@ getErrors( const real t, const RealArray & u, const RealArray & v, const RealArr
   RealArray ue, ve, ae;
   getExactSolution( t, ue, ve, ae );
 
-  printF("-- BM -- %s: Errors at t=%9.3e:\n",(const char*)label,t);
-  real errMax=0., l2Err=0., yNorm=0.;
+  if( debug & 2 )
+    fPrintF(file,"-- BM -- %s: Errors at t=%9.3e:\n",(const char*)label,t);
+  real uErr=0., ul2err=0., uNorm=0.;
+  real vErr=0., vNorm;
   for( int i = 0; i <= numElem; ++i )
   {
     real xl = ( (real)i /numElem) *  beamLength;
 
     real we = ue(i*2);  // exact solution
-    real err = fabs( u(i*2) - we );
+    real erru = fabs( u(i*2) - we );
+      
+    uErr=max(uErr,erru);
+    ul2err += SQR(erru);
+    uNorm=uNorm+SQR(we);
 
-    real verr = fabs( v(i*2) - ve(i*2) );
+    real errv = fabs( v(i*2) - ve(i*2) );
+    vErr=max(vErr,errv);
+    vNorm=vNorm+SQR(ve(i*2));
 
     if( debug & 2 )
-      printF("-- BM -- t=%8.2e i=%3i u=%9.2e ue=%9.2e err=%9.2e, v=%9.2e ve=%9.2e err=%8.2e\n",t,i,u(2*i),we,err, v(2*i),ve(2*i),verr);
-      
-    errMax=max(errMax,err);
-    l2Err += SQR(err);
-    yNorm=yNorm+SQR(we);
+      printF("-- BM -- t=%8.2e i=%3i u=%9.2e ue=%9.2e err=%9.2e, v=%9.2e ve=%9.2e err=%8.2e\n",
+             t,i,u(2*i),we,erru, v(2*i),ve(2*i),errv);
 
   }
-  l2Err=sqrt(l2Err/(numElem+1));
-  yNorm=sqrt(yNorm/(numElem+1));
+  ul2err=sqrt(ul2err/(numElem+1));
+  uNorm=sqrt(uNorm/(numElem+1));
+  vNorm=sqrt(vNorm/(numElem+1));
 
-  printF("-- BM -- Summary: Error t=%9.3e : max=%8.2e, l2=%8.2e, l2-rel=%8.2e\n",t,errMax,l2Err,l2Err/max(1.e-12,yNorm));
+  fPrintF(file,"-- BM -- %s: Error t=%9.3e : uErr=(%8.2e,%8.2e)=(max,max/uNorm),"
+          " vErr=(%8.2e,%8.2e)=(max,max/vNorm) (steps=%i)\n",(const char*)label,t,
+          uErr,uErr/max(1.e-12,uNorm),
+          // ul2err,ul2err/max(1.e-12,uNorm),
+          vErr,vErr/(max(1.e-12,vNorm)),
+          numberOfTimeSteps);
+
+  FILE *checkFile = dbase.get<FILE*>("checkFile");
+  const int myid=max(0,Communication_Manager::My_Process_Number);
+  if( checkFile!=NULL && myid==0 )
+  {
+    const int numberOfComponentsToOutput=2;
+    fPrintF(checkFile,"%9.2e %i  ",t,numberOfComponentsToOutput);
+    fPrintF(checkFile,"%i %9.2e %10.3e  ",0,uErr,uNorm);
+    fPrintF(checkFile,"%i %9.2e %10.3e  ",1,vErr,vNorm);
+    fPrintF(checkFile,"\n");
+  }
+  
 
   return 0;
 }
 
+void BeamModel::
+printTimeStepInfo( FILE *file /*= stdout */ )
+//=================================================================================
+/// \brief  Print information about the current solution in a nicely formatted way
+//  ** This is a virtual function **
+//=================================================================================
+{
+  if( exactSolutionOption != "none" )
+  {
+    const int & numberOfTimeLevels = dbase.get<int>("numberOfTimeLevels");
+    const int & current = dbase.get<int>("current"); 
 
+    RealArray & time = dbase.get<RealArray>("time");
+    std::vector<RealArray> & u = dbase.get<std::vector<RealArray> >("u"); // displacement 
+    std::vector<RealArray> & v = dbase.get<std::vector<RealArray> >("v"); // velocity
+    std::vector<RealArray> & a = dbase.get<std::vector<RealArray> >("a"); // acceleration
+
+    aString label=name;
+    getErrors( time(current), u[current], v[current], a[current] ,label, file );
+  }
+  
+}
 
 // =================================================================================================
 /// \brief  Define the BeamModel parameters interactively.
@@ -3455,16 +5618,39 @@ int BeamModel::
 update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 {
 
-  real & tension = dbase.get<real>("tension");
+  real & tension = dbase.get<real>("tension"); // coefficient of w_xx
+  real & K0 = dbase.get<real>("K0");           //  coefficient of -w
+  real & Kt = dbase.get<real>("Kt");           //  coefficient of -w_t
+  real & Kxxt = dbase.get<real>("Kxxt");       //  coefficient of w_{xxt} 
+  real & ADxxt = dbase.get<real>("ADxxt");       //  coefficient of artificial dissipation
+
+  real & cfl = dbase.get<real>("cfl");  
+
   bool & useSecondOrderNewmarkPredictor = dbase.get<bool>("useSecondOrderNewmarkPredictor");
   bool & useNewTridiagonalSolver = dbase.get<bool>("useNewTridiagonalSolver");
+  bool & fluidOnTwoSides = dbase.get<bool>("fluidOnTwoSides");
+  int & orderOfGalerkinProjection = dbase.get<int>("orderOfGalerkinProjection");
+
+  bool & smoothSolution = dbase.get<bool>("smoothSolution");
+  int & numberOfSmooths = dbase.get<int>("numberOfSmooths");
   
+  real & signForNormal = dbase.get<real>("signForNormal");  // flip sign of normal using this parameter
+
+  // useSmallDeformationApproximation : adjust the beam surface acceleration and surface "internal force"
+  //    assuming small deformations
+  bool & useSmallDeformationApproximation = dbase.get<bool>("useSmallDeformationApproximation");
+
+
   bool & twilightZone = dbase.get<bool>("twilightZone");
   int & twilightZoneOption = dbase.get<int>("twilightZoneOption");
   int & degreeInTime = dbase.get<int>("degreeInTime");
   int & degreeInSpace = dbase.get<int>("degreeInSpace");
   real *trigFreq = dbase.get<real[4]>("trigFreq");
 
+  real & displacementScaleFactorForPlotting =  dbase.get<real>("displacementScaleFactorForPlotting");
+  aString & probeFileName = dbase.get<aString>("probeFileName");
+  int & probeFileSaveFrequency = dbase.get<int>("probeFileSaveFrequency");
+  
   GUIState gui;
   gui.setWindowTitle("Beam Model");
   gui.setExitCommand("exit", "continue");
@@ -3472,8 +5658,12 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
 
   aString prefix = ""; // prefix for commands to make them unique.
 
+  bool & relaxForce = dbase.get<bool>("relaxForce");
+  bool & relaxCorrectionSteps=dbase.get<bool>("relaxCorrectionSteps");
   real & subIterationConvergenceTolerance = dbase.get<real>("subIterationConvergenceTolerance");
   real & addedMassRelaxationFactor = dbase.get<real>("addedMassRelaxationFactor");
+  bool & useAitkenAcceleration = dbase.get<bool>("useAitkenAcceleration");
+
   bool & useImplicitPredictor = dbase.get<bool>("useImplicitPredictor");
 
   bool buildDialog=true;
@@ -3484,6 +5674,8 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     aString cmd[maxCommands];
 
     aString pbLabels[] = {"initial conditions...",
+                          "exact solution...",
+                          "show parameters",
     			  "help",
     			  ""};
 
@@ -3510,32 +5702,43 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     GUIState::addPrefix(twilightZoneOptions,"Twilight-zone: ",cmd,maxCommands);
     dialog.addOptionMenu( "Twilight-zone:", cmd, twilightZoneOptions, (int)twilightZoneOption );
 
-    aString exactOptions[] = { "none",
-			       "standing wave",
-			       "traveling wave FSI",
-			       "" };
+    // aString exactOptions[] = { "none",
+    // 			       "standing wave",
+    // 			       "traveling wave FSI",
+    // 			       "" };
 
-    GUIState::addPrefix(exactOptions,"Exact solution:",cmd,maxCommands);
-    dialog.addOptionMenu("Exact solution:",cmd,cmd,(exactSolutionOption=="none" ? 0 : 
-                          exactSolutionOption=="standingWave" ? 1 : 2) );
+    // GUIState::addPrefix(exactOptions,"Exact solution:",cmd,maxCommands);
+    // dialog.addOptionMenu("Exact solution:",cmd,cmd,(exactSolutionOption=="none" ? 0 : 
+    //                       exactSolutionOption=="standingWave" ? 1 : 2) );
 
 
     aString tbCommands[] = {"use exact solution",
                             "save profile file",
-                            "save tip file",
+                            "save probe file",
                             "twilight-zone",
                             "use second order Newmark predictor",
                             "use new tridiagonal solver",
                             "use implicit predictor",
+                            "fluid on two sides",
+                            "use small deformation approximation",
+                            "relax correction steps",
+                            "use Aitken acceleration",
+                            "smooth solution",
     			    ""};
-    int tbState[10];
+    int tbState[13];
     tbState[0] = useExactSolution;
     tbState[1] = dbase.get<bool>("saveProfileFile");
-    tbState[2] = dbase.get<bool>("saveTipFile");
+    tbState[2] = dbase.get<bool>("saveProbeFile");
     tbState[3] = twilightZone;
     tbState[4] = useSecondOrderNewmarkPredictor;
     tbState[5] = useNewTridiagonalSolver;
     tbState[6] = useImplicitPredictor;
+    tbState[7] = fluidOnTwoSides;
+    tbState[8] = useSmallDeformationApproximation;
+    tbState[9] = relaxCorrectionSteps;
+    tbState[10] = relaxForce;
+    tbState[11] = useAitkenAcceleration;
+    tbState[12] = smoothSolution;
     
     int numColumns=1;
     dialog.setToggleButtons(tbCommands, tbCommands, tbState, numColumns); 
@@ -3549,9 +5752,14 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     
     textLabels[nt] = "name:"; sPrintF(textStrings[nt], "%s",(const char*)name);  nt++; 
     textLabels[nt] = "number of elements:"; sPrintF(textStrings[nt], "%i",numElem);  nt++; 
+    textLabels[nt] = "cfl:"; sPrintF(textStrings[nt], "%g",cfl);  nt++; 
     textLabels[nt] = "area moment of inertia:"; sPrintF(textStrings[nt], "%g",areaMomentOfInertia);  nt++; 
     textLabels[nt] = "elastic modulus:"; sPrintF(textStrings[nt], "%g",elasticModulus);  nt++; 
     textLabels[nt] = "tension:"; sPrintF(textStrings[nt], "%g",tension);  nt++; 
+    textLabels[nt] = "K0:"; sPrintF(textStrings[nt], "%g",K0);  nt++; 
+    textLabels[nt] = "Kt:"; sPrintF(textStrings[nt], "%g",Kt);  nt++; 
+    textLabels[nt] = "Kxxt:"; sPrintF(textStrings[nt], "%g",Kxxt);  nt++; 
+    textLabels[nt] = "ADxxt:"; sPrintF(textStrings[nt], "%g",ADxxt);  nt++; 
     textLabels[nt] = "density:"; sPrintF(textStrings[nt], "%g",density);  nt++; 
     textLabels[nt] = "thickness:"; sPrintF(textStrings[nt], "%g",thickness);  nt++; 
     textLabels[nt] = "length:"; sPrintF(textStrings[nt], "%g",L);  nt++; 
@@ -3559,14 +5767,26 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     textLabels[nt] = "initial declination:"; sPrintF(textStrings[nt], "%g (degrees)",beamInitialAngle*180./Pi);  nt++; 
     textLabels[nt] = "position:"; sPrintF(textStrings[nt], "%g, %g, %g (x0,y0,z0)",beamX0,beamY0,beamZ0);  nt++; 
 
+    textLabels[nt] = "sign for normal:"; sPrintF(textStrings[nt], "%g (+1 or -1)",signForNormal);  nt++; 
     textLabels[nt] = "added mass relaxation:"; sPrintF(textStrings[nt], "%g",addedMassRelaxationFactor);  nt++; 
     textLabels[nt] = "added mass tol:"; sPrintF(textStrings[nt], "%g",subIterationConvergenceTolerance);  nt++; 
+
+    textLabels[nt] = "order of Galerkin projection:";  sPrintF(textStrings[nt],"%i",orderOfGalerkinProjection);  nt++; 
+
+    textLabels[nt] = "Newmark beta:"; sPrintF(textStrings[nt], "%g",newmarkBeta);  nt++; 
+    textLabels[nt] = "Newmark gamma:"; sPrintF(textStrings[nt], "%g",newmarkGamma);  nt++; 
 
     textLabels[nt] = "degree in space:";  sPrintF(textStrings[nt],"%i",degreeInSpace);  nt++; 
     textLabels[nt] = "degree in time:";  sPrintF(textStrings[nt],"%i",degreeInTime);  nt++; 
     textLabels[nt] = "trig frequencies:";  sPrintF(textStrings[nt],"%g, %g, %g, %g (ft,fx,fy,fz)",
 						 trigFreq[0],trigFreq[1],trigFreq[2],trigFreq[3]); nt++;
 
+    textLabels[nt] = "plotting scale factor:"; sPrintF(textStrings[nt], "%g",displacementScaleFactorForPlotting);  nt++; 
+
+    textLabels[nt] = "probe file name:"; sPrintF(textStrings[nt], "%s",(const char*)probeFileName);  nt++; 
+    textLabels[nt] = "probe file save frequency:"; sPrintF(textStrings[nt], "%i",probeFileSaveFrequency);  nt++; 
+
+    textLabels[nt] = "number of smooths:"; sPrintF(textStrings[nt], "%i",numberOfSmooths);  nt++; 
     textLabels[nt] = "debug:"; sPrintF(textStrings[nt], "%i",debug);  nt++; 
 
 
@@ -3599,22 +5819,72 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
     {
       break;
     }
+    else if( answer=="help" )
+    {
+      printF("The Beam model defines a generalized Euler-Bernoulli Beam.\n"
+             "For more information see the documentation `beamModel.pdf'.\n");
+    }
+    else if( answer=="show parameters" )
+    {
+      writeParameterSummary();
+    }
+    else if( answer=="exact solution..." )
+    {
+      chooseExactSolution( cg,gi );
+    }
     else if( answer=="initial conditions..." )
     {
       chooseInitialConditions( cg,gi );
     }
     else if( dialog.getTextValue(answer,"debug:","%i",debug) ){} //
     else if( dialog.getTextValue(answer,"name:","%s",name) ){} //
+    else if( dialog.getTextValue(answer,"probe file name:","%s",probeFileName) ){} //
+    else if( dialog.getTextValue(answer,"probe file save frequency:","%i",probeFileSaveFrequency) ){} //
+
     else if( dialog.getTextValue(answer,"number of elements:","%i",numElem) ){} //
+    else if( dialog.getTextValue(answer,"cfl:","%g",cfl) ){} //
 
     else if( dialog.getTextValue(answer,"area moment of inertia:","%g",areaMomentOfInertia) ){} //
 
     else if( dialog.getTextValue(answer,"elastic modulus:","%g",elasticModulus) ){} //
     else if( dialog.getTextValue(answer,"tension:","%g",tension) ){} //
+    else if( dialog.getTextValue(answer,"K0:","%g",K0) ){} //
+    else if( dialog.getTextValue(answer,"Kt:","%g",Kt) ){} //
+    else if( dialog.getTextValue(answer,"Kxxt:","%g",Kxxt) ){} //
+    else if( dialog.getTextValue(answer,"ADxxt:","%g",ADxxt) ){} //
     else if( dialog.getTextValue(answer,"density:","%g",density) ){} //
     else if( dialog.getTextValue(answer,"thickness:","%g",thickness) ){} //
     else if( dialog.getTextValue(answer,"length:","%g",L) ){} //
+    else if( dialog.getTextValue(answer,"plotting scale factor:","%g",displacementScaleFactorForPlotting) ){} //
     else if( dialog.getTextValue(answer,"pressure norm:","%g",pressureNorm) ){} //
+    else if( dialog.getTextValue(answer,"Newmark beta:","%g",newmarkBeta) ){} //
+    else if( dialog.getTextValue(answer,"Newmark gamma:","%g",newmarkGamma) ){} //
+    else if( dialog.getTextValue(answer,"sign for normal:","%g",signForNormal) )
+    {
+      if( signForNormal>0. )
+      {
+	signForNormal=1.;
+	printF("Setting signForNormal=%g (right-handed coordinate system: tangent X normal = +zHat\n",signForNormal);
+      }
+      else
+      {
+	signForNormal=-1.;
+	printF("Setting signForNormal=%g (left-handed coordinate system: tangent X normal = -zHat\n",signForNormal);
+      }
+      setDeclination(beamInitialAngle);  // recompute normal etc.
+    }
+    else if( dialog.getTextValue(answer,"order of Galerkin projection:","%g",orderOfGalerkinProjection) )
+    {
+      if( orderOfGalerkinProjection!=2 && orderOfGalerkinProjection!=4 )
+      {
+	printF("--BM-- Error: orderOfGalerkinProjection=%i is invalid, must be 2 or 4. \n",orderOfGalerkinProjection);
+      }
+      
+      printF("Setting the order of accuracy of the Galerkin projection =%i (e.g. for the force integral)\n",
+             orderOfGalerkinProjection);
+      
+    }
+
     else if( dialog.getTextValue(answer,"added mass relaxation:","%g",addedMassRelaxationFactor) )
     {
       printF("The relaxation parameter used in the fixed point iteration\n"
@@ -3633,6 +5903,11 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       printF("INFO: The beam will be inclined %8.4f degrees from the left end\n",beamInitialAngle*180./Pi);
       dialog.setTextLabel("initial declination:",sPrintF(buff,"%g, (degrees)",beamInitialAngle*180./Pi));
     } 
+
+    else if( dialog.getTextValue(answer,"number of smooths:","%i",numberOfSmooths) )
+    {  
+    } 
+
     else if( (len=answer.matches("position:")) )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e",&beamX0,&beamY0,&beamZ0);
@@ -3687,15 +5962,65 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       if( useExactSolution )
        initialConditionOption="oldTravelingWaveFsi";
     }
-    else if( dialog.getToggleValue(answer,"save profile file",dbase.get<bool>("saveProfileFile")) ){} // 
-    else if( dialog.getToggleValue(answer,"save tip file",dbase.get<bool>("saveTipFile")) )
+    else if( dialog.getToggleValue(answer,"use small deformation approximation",useSmallDeformationApproximation) )
     {
-      aString tipFileName = sPrintF(buff,"%s_tip.text",(const char*)name);
-      output.open(name);
-      printF("BeamModel: tip position info will be saved to file 'tip.txt'\n");
+      printF("useSmallDeformationApproximation=true : adjust the beam surface acceleration and"
+	     " surface 'internal force' assuming small deformations\n");
     }
+    else if( dialog.getToggleValue(answer,"save profile file",dbase.get<bool>("saveProfileFile")) ){} // 
+    else if( dialog.getToggleValue(answer,"save probe file",dbase.get<bool>("saveProbeFile")) )
+    {
+      if( dbase.get<bool>("saveProbeFile") )
+      {
+        FILE *& probeFile = dbase.get<FILE*>("probeFile");
+
+        // 	aString tipFileName = sPrintF(buff,"%sTip.text",(const char*)name);
+
+	probeFile = fopen((const char*)probeFileName,"w");
+	assert( probeFile!=NULL );
+
+	printF("BeamModel: tip position info will be saved to file '%s'\n",(const char*)probeFileName);
+
+        // Probe file header info:
+	// Get the current date
+	time_t *tp= new time_t;
+	time(tp);
+	// tm *ptm=localtime(tp);
+	const char *dateString = ctime(tp);
+
+        fPrintF(probeFile,"%% Probe file written from the BeamModel class: %s"
+	      	"%%       t       displacement       velocity      acceleration\n",dateString);
+	
+	delete tp;
+      }
+      
+    }
+    else if( dialog.getToggleValue(answer,"fluid on two sides",fluidOnTwoSides) ){}//
     else if( dialog.getToggleValue(answer,"twilight-zone",twilightZone) ){}//
     else if( dialog.getToggleValue(answer,"use implicit predictor",useImplicitPredictor) ){}//
+    else if( dialog.getToggleValue(answer,"relax force",relaxForce) )
+    {
+      if( relaxForce )
+	printF("--BM-- relax the force in the added mass iteration\n");
+      else
+	printF("--BM-- relax the acceleration in the added mass iteration\n");
+    }
+    
+    else if( dialog.getToggleValue(answer,"relax correction steps",relaxCorrectionSteps) )
+    {
+      printF(" The BeamModel correction steps can be relaxed. This may be necessary for 'light beams',\n"
+             " with FSI simulations using the traditional partitioned schemes.\n"
+	);
+    }
+    else if( dialog.getToggleValue(answer,"use Aitken acceleration",useAitkenAcceleration) )
+    {
+      if( useAitkenAcceleration )
+	printF(" Use Aitken acceleration to accelerate the correction sub-iterations used for light body FSI\n");
+      else
+	printF(" Do NOT use Aitken acceleration to accelerate the correction sub-iterations used for light body FSI\n");
+    }
+
+    else if( dialog.getToggleValue(answer,"smooth solution",smoothSolution) ){}//
 
     else if( len=answer.matches("Twilight-zone: ") )
     {
@@ -3716,23 +6041,23 @@ update(CompositeGrid & cg, GenericGraphicsInterface & gi )
       }
       dialog.getOptionMenu("Twilight-zone:").setCurrentChoice(name);
     }
-    else if( len=answer.matches("Exact solution:") )
-    {
-      aString option = answer(len,answer.length()-1);
-      if( option=="none" )
-	exactSolutionOption="none";
-      else if( option=="standing wave" )
-        exactSolutionOption="standingWave";
-      else if( option=="traveling wave FSI" )
-        exactSolutionOption="travelingWaveFSI";
-      else
-      {
-	printF("ERROR: unknown exact solution=[%s]\n",(const char*)option);
-	gi.stopReadingCommandFile();
-      }
-      printF("Setting exactSolutionOption=[%s]\n",(const char*)exactSolutionOption);
+    // else if( len=answer.matches("Exact solution:") )
+    // {
+    //   aString option = answer(len,answer.length()-1);
+    //   if( option=="none" )
+    // 	exactSolutionOption="none";
+    //   else if( option=="standing wave" )
+    //     exactSolutionOption="standingWave";
+    //   else if( option=="traveling wave FSI" )
+    //     exactSolutionOption="travelingWaveFSI";
+    //   else
+    //   {
+    // 	printF("ERROR: unknown exact solution=[%s]\n",(const char*)option);
+    // 	gi.stopReadingCommandFile();
+    //   }
+    //   printF("Setting exactSolutionOption=[%s]\n",(const char*)exactSolutionOption);
       
-    }
+    // }
     else if( len=answer.matches("trig frequencies:") )
     {
       sScanF(answer(len,answer.length()-1),"%e %e %e %e",&trigFreq[0],&trigFreq[1],&trigFreq[2],&trigFreq[3]);
@@ -4010,7 +6335,7 @@ void BeamModel::exactSolutionPressure(LocalReal x, LocalReal y,
 }
 
 void BeamModel::
-setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a) 
+setExactSolution(double t,RealArray& x, RealArray& v, RealArray& a) const
 {
   
   // printF("@@@BeamModel::setExactSolution exactSolutionScaleFactorFSI=%9.3e\n", dbase.get<OV_real>("exactSolutionScaleFactorFSI"));

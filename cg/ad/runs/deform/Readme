@@ -1,23 +1,44 @@
 
+This file contains examples of running cgad with deforming grids.
+
+
+==============================================================================================================
 ===== Sinusoid example : AD of a Gaussian pulse with a sinusoidal interface motion =============
  Horizontal interface: 
   Grid: 
     ogen -noplot freeSurfaceGrid2d -interp=e -factor=4 -ml=1 
   Cgad: 
     cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=sinusoid -kappa=.02 -ampy=.05 -tf=2. -tp=.01 -ic=pulse -tz=none -go=halt
+==============================================================================================================
 
 
+==============================================================================================================
 ==== Concentration example : surface motion depends on the solution =======
 
   Grid: 
     ogen -noplot freeSurfaceGrid2d -amp=0. -interp=e -factor=4 -ml=1 
   Cgad:
     cgad deformingSurface -g=freeSurfaceGrid2de4.order2.ml1 -motion=concentration -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pulse -a=0 -b=0 -bc=n -ts=im -go=halt
+==============================================================================================================
 
 
+==============================================================================================================
 ==== Deforming eye : specified motion =======
+
+---- two-sided eye : top deforms ---
+
+  Grids:
+    ogen -noplot eyeGrid2d -interp=e -factor=4
+    ogen -noplot eyeGrid2d -interp=e -factor=8
+  Cgad:
+    cgad deformingSurface -g=eyeGrid2de16.order2 -motion=deformingEye -kappa=.001 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=-.2 -y0=0 -bc=n -ts=im -ampb=-.4  -solver=best -show=deformingEye16.show -go=halt
+
+    cgad deformingSurface -g=eyeGrid2de8.order2 -motion=deformingEye -kappa=.005 -tf=1. -tp=.01 -tz=none -ic=pulse -alphaPulse=80. -x0=-.2 -y0=0 -bc=n -ts=im -ampb=-.4 -go=halt
+
+--- ellipse shaped eye -----
 
   Grid: 
     ogen -noplot deformingEyeGrid -interp=e -factor=4 
   Cgad:
-    cgad deformingSurface -g=eyeGride4.order2 -motion=deformingEye -kappa=.05 -tf=10. -tp=.05 -tz=none -ic=pulse  -x0=0 -y0=0 -bc=n -ts=im -go=halt
+    cgad deformingSurface -g=deformingEyeGride4.order2 -motion=deformingEye -eyeOption=1 -kappa=.01 -tf=1. -tp=.01 -tz=none -ic=pulse  -x0=-.25 -y0=-.25 -bc=n -ts=im -ampb=-.2 -go=halt
+==============================================================================================================

@@ -46,6 +46,10 @@ setupGridFunctions()
   numberOfGridFunctionsToUse=2;  // ********
   numberOfExtraFunctionsToUse=0;
 
+  const Parameters::ImplicitMethod & implicitMethod = parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+  const int & orderOfBDF= parameters.dbase.get<int>("orderOfBDF");
+  
+
   switch (parameters.dbase.get<Parameters::TimeSteppingMethod >("timeSteppingMethod"))
   {
   case Parameters::trapezoidal:
@@ -79,23 +83,36 @@ setupGridFunctions()
     break;
   case Parameters::implicit:
   case Parameters::steadyStateNewton:
+
     numberOfGridFunctionsToUse=2; 
-    if( parameters.isMovingGridProblem() || 
-	parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization )
-      numberOfGridFunctionsToUse=3;  // use one extra for moving grids *wdh* 040827 and one extra of factored scheme kkc 100104
-    if ( parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization )
-      {
-	numberOfExtraFunctionsToUse=2;
-	fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
-	fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.);  // work space
-      }
+
+    if( implicitMethod==Parameters::backwardDifferentiationFormula )
+    {
+      numberOfGridFunctionsToUse=orderOfBDF+1;  // check me 
+    }
+    else if( parameters.isMovingGridProblem() || 
+	     implicitMethod==Parameters::approximateFactorization )
+      // use one extra for moving grids *wdh* 040827 and one extra of factored scheme kkc 100104
+      numberOfGridFunctionsToUse=3;  
+
+    if( implicitMethod==Parameters::backwardDifferentiationFormula )
+    {  
+      numberOfExtraFunctionsToUse=1; 
+      fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
+    }
+    else if( implicitMethod==Parameters::approximateFactorization )
+    {
+      numberOfExtraFunctionsToUse=2;
+      fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
+      fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.);  // work space
+    }
     else
-      {
-	numberOfExtraFunctionsToUse=3;
-	fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
-	fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.); 
-	fn[2].updateToMatchGridFunction(solution.u); assign(fn[2],0.);   // holds explicit part of implicit terms
-      }
+    {
+      numberOfExtraFunctionsToUse=3;
+      fn[0].updateToMatchGridFunction(solution.u); assign(fn[0],0.);  // work space
+      fn[1].updateToMatchGridFunction(solution.u); assign(fn[1],0.); 
+      fn[2].updateToMatchGridFunction(solution.u); assign(fn[2],0.);   // holds explicit part of implicit terms
+    }
     break;
   case Parameters::steadyStateRungeKutta:
     numberOfGridFunctionsToUse=2; 
@@ -140,14 +157,15 @@ setupGridFunctions()
   printF(" +++++DomainSolver::setupGridFunctions: cg.numberOfComponentGrids=%i ++++++++++++++\n",
          cg.numberOfComponentGrids());
 
+  assert( numberOfGridFunctionsToUse<=maximumNumberOfGridFunctionsToUse );
+
   solution.u.setName("u");
   solution.setParameters(parameters);
   int c;
   for( c=0; c<parameters.dbase.get<int >("numberOfComponents"); c++ )
     solution.u.setName(parameters.dbase.get<aString* >("componentName")[c],c);
 
-  int i;
-  for( i=0; i<maximumNumberOfGridFunctionsToUse; i++ )
+  for( int i=0; i<maximumNumberOfGridFunctionsToUse; i++ )
     gf[i].transform=NULL;
 
   // holds grid velocity for moving grids:
@@ -182,10 +200,10 @@ setupGridFunctions()
 
     // ** gf[0].cg.reference(cg);
   
-    for( i=1; i<numberOfGridFunctionsToUse; i++ )
+    for( int i=1; i<numberOfGridFunctionsToUse; i++ )
       gf[i].cg=cg; 
     // holds grid velocity for moving grids:
-    for( i=0; i<numberOfGridFunctionsToUse; i++ )
+    for( int i=0; i<numberOfGridFunctionsToUse; i++ )
     {
       for( grid=0; grid<cg.numberOfComponentGrids(); grid++ )
       {
@@ -198,17 +216,17 @@ setupGridFunctions()
   }
   else
   {
-    for( i=1; i<numberOfGridFunctionsToUse; i++ )
+    for( int i=1; i<numberOfGridFunctionsToUse; i++ )
       gf[i].cg.reference(cg);
   }
   
-  for( i=1; i<numberOfGridFunctionsToUse; i++ )
+  for( int i=1; i<numberOfGridFunctionsToUse; i++ )
   {
     gf[i].updateToMatchGrid(gf[i].cg);  
   }
   
 
-  for( i=1; i<numberOfGridFunctionsToUse; i++ )
+  for( int i=1; i<numberOfGridFunctionsToUse; i++ )
   {
     gf[i].u.updateToMatchGrid(gf[i].cg,nullRange,nullRange,nullRange,parameters.dbase.get<int >("numberOfComponents")); 
     gf[i].u.setOperators( *solution.u.getOperators() ); 
@@ -318,7 +336,7 @@ initializeSolution()
 
     if( TRUE )
     {
-      // Initialize moving grids -- put his here since deforming grids may depend on the
+      // Initialize moving grids -- put this here since deforming grids may depend on the
       // initial conditions and/or known solution *wdh* 2014/07/11: 
       parameters.dbase.get<MovingGrids >("movingGrids").assignInitialConditions( gf[current] );
 

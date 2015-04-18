@@ -95,19 +95,21 @@ $grid
     exit
 * 
   boundary conditions
-    square(0,0)=noSlipWall, uniform(T=$Twall)
-    square(1,0)=noSlipWall, uniform(T=0.)
-    * adiabatic walls:
-*     square(0,1)=noSlipWall 
-    square(0,1)=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)
-    square(1,1)=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)
-*     $backGround(1,0)=outflow
-* ---- test: 
-*-     all=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)
-*-     bcNumber4=inflowWithVelocityGiven, uniform(p=1.,v=-.5,T=-1.)
-*-     bcNumber3=outflow
+    all=noSlipWall
+    bcNumber3=noSlipWall, uniform(T=$Twall)
+#     square(0,0)=noSlipWall, uniform(T=$Twall)
+#     square(1,0)=noSlipWall, uniform(T=0.)
+#     * adiabatic walls:
+# *     square(0,1)=noSlipWall 
+#     square(0,1)=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)
+#     square(1,1)=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)
+# *     $backGround(1,0)=outflow
+# * ---- test: 
+# *-     all=noSlipWall , mixedDerivative(0.*t+1.*t.n=0.)
+# *-     bcNumber4=inflowWithVelocityGiven, uniform(p=1.,v=-.5,T=-1.)
+# *-     bcNumber3=outflow
   done
-  allow user defined output 1
+#  allow user defined output 1
 * 
   initial conditions
   if( $tz eq "0" ){ $commands="uniform flow\n" . "p=1., u=0.\n" . "continue"; }else{ $commands="continue";}

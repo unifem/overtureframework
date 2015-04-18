@@ -2,7 +2,7 @@ include ../config/Makefile.$(VENDOR)
 
 current = .
 mapping = $(current)/../mapping
-ogshow = $(current)
+ogshow = $(current)/../ogshow
 hype = $(current)/../hype
 grid = $(current)/../grid
 

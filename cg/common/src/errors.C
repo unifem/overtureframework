@@ -52,9 +52,14 @@ determineErrors(realCompositeGridFunction & u,
   const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
   Index I1,I2,I3;
   
+  bool outputErrors = ( !parameters.dbase.get<bool >("twilightZoneFlow") &&  
+			!parameters.dbase.get<realCompositeGridFunction* >("pKnownSolution") );
+
+  if( debug() & 2 )
+    fPrintF(parameters.dbase.get<FILE* >("debugFile"),"--DS-- determineErrors: outputErrors=%i\n",(int)outputErrors);
+
   //  if( !parameters.dbase.get<bool >("twilightZoneFlow") &&  parameters.dbase.get<Parameters::KnownSolutionsEnum >("knownSolution")==Parameters::noKnownSolution )
-  if( !parameters.dbase.get<bool >("twilightZoneFlow") &&  
-      !parameters.dbase.get<realCompositeGridFunction* >("pKnownSolution") )
+  if( outputErrors )
   {
     if( label!=nullString && ( debug() & 2 || debug() & 8 )  )
     {

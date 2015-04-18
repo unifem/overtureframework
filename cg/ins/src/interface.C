@@ -33,6 +33,7 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
     int numberOfItems=0;
     const int numberOfDimensions = parameters.dbase.get<int>("numberOfDimensions");
 
+  // Here is the grid face on the interface: 
     const int grid=info.grid, side=info.side, axis=info.axis;
 
     IntegerArray & interfaceType = parameters.dbase.get<IntegerArray >("interfaceType");
@@ -51,15 +52,43 @@ getInterfaceDataOptions( GridFaceDescriptor & info, int & interfaceDataOptions )
     else if( interfaceType(side,axis,grid)==Parameters::tractionInterface ) 
     {
         const bool projectInterface = parameters.dbase.get<bool>("projectInterface");
+
+    // Boundary condition on the interrface: 
+    //   Use this to decide if the boundary is a velocity BC or a traction BC.
+        const int bc = gf[0].cg[grid].boundaryCondition(side,axis);
+        
         if( debug() & 2 )
             printP("*** Cgins:getInterfaceDataOptions: projectInterface = %i ***\n",projectInterface);
 
         if( !projectInterface )
         {
-      // When we don't use the interface projection we just need
-      // the position of the interface at a traction interface:
-            interfaceDataOptions=Parameters::positionInterfaceData;
-            numberOfItems+=numberOfDimensions;
+      // No interface projection:
+
+            if( bc==InsParameters::noSlipWall ||
+        	  bc==InsParameters::slipWall )
+            {
+	// For a velocity boundary we need the position of the interface from the
+        //    opposite domain (traditional scheme)
+      	interfaceDataOptions=Parameters::positionInterfaceData;
+      	numberOfItems+=numberOfDimensions;
+            }
+            else if( bc==InsParameters::freeSurfaceBoundaryCondition || 
+                              bc==InsParameters::tractionFree )
+            {
+        // For a traction boundary (or "freeSurface") we need the traction from the
+        //    opposite domain (traditional scheme)
+
+      	if( TRUE )
+        	  printP("*** Cgins:getInterfaceDataOptions: (grid,side,axis)=(%i,%i,%i) bc=%i (traction or freeSurface)\n",grid,side,axis,bc);
+
+      	interfaceDataOptions=Parameters::Parameters::tractionInterfaceData;
+      	numberOfItems+=numberOfDimensions;
+            }
+            else
+            {
+      	printP(" --Cgins-- getInterfaceDataOptions: ERROR: unexpected BC=%i for a traction interface\n",bc);
+            }
+            
         }
         else
         {

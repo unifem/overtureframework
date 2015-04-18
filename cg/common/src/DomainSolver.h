@@ -294,13 +294,15 @@ endTimeStep( real & t0, real & dt0, AdvanceOptions & advanceOptions );
 
 //  different implementations of endTimeStep:
 virtual int
+endTimeStepAF( real & t0, real & dt0, AdvanceOptions & advanceOptions );
+virtual int
+endTimeStepBDF( real & t0, real & dt0, AdvanceOptions & advanceOptions );
+virtual int
 endTimeStepFE( real & t0, real & dt0, AdvanceOptions & advanceOptions );
 virtual int
 endTimeStepIM( real & t0, real & dt0, AdvanceOptions & advanceOptions );
 virtual int
 endTimeStepPC( real & t0, real & dt0, AdvanceOptions & advanceOptions );
-virtual int
-endTimeStepAF( real & t0, real & dt0, AdvanceOptions & advanceOptions );
 
 
 virtual void 
@@ -507,14 +509,15 @@ initializeTimeStepping( real & t0, real & dt0 );
 
 //  different implementations of initializeTimeStepping: 
 virtual int 
+initializeTimeSteppingAF( real & t0, real & dt0 );
+virtual int 
+initializeTimeSteppingBDF( real & t0, real & dt0 );
+virtual int 
 initializeTimeSteppingFE( real & t0, real & dt0 );
 virtual int 
 initializeTimeSteppingIM( real & t0, real & dt0 );
 virtual int 
 initializeTimeSteppingPC( real & t0, real & dt0 );
-virtual int 
-initializeTimeSteppingAF( real & t0, real & dt0 );
-
 
 
 virtual int 
@@ -589,6 +592,9 @@ parabolicInflow(GridFunction & cgf );
 virtual int
 plot(const real & t, const int & optionIn, real & tFinal, int solutionToPlot=-1 );
 
+
+virtual int
+predictTimeIndependentVariables( const int numberOfTimeLevels, const int *gfIndex );
 
 virtual int 
 printMemoryUsage(FILE *file = stdout );
@@ -722,14 +728,15 @@ startTimeStep( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOpti
 
 //  different implementations of startTimeStep: 
 virtual int 
+startTimeStepAF( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions );
+virtual int 
+startTimeStepBDF( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions );
+virtual int 
 startTimeStepFE( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions );
 virtual int 
 startTimeStepIM( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions );
 virtual int 
 startTimeStepPC( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions );
-virtual int 
-startTimeStepAF( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOptions & advanceOptions );
-
 
 // 
 virtual void 
@@ -741,13 +748,20 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
 
 //  different implementations of takeTimeStep: 
 virtual int 
+takeTimeStepAF( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
+virtual int 
+takeTimeStepBDF( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
+virtual int 
 takeTimeStepFE( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
 virtual int 
 takeTimeStepIM( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
 virtual int 
 takeTimeStepPC( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
+
+// routine called by takeTimeStepBDF
 virtual int 
-takeTimeStepAF( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
+implicitTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
+
 
 virtual int 
 timeIndependentBoundaryConditions( GridFunction & cgf );
@@ -850,7 +864,7 @@ void writeParameterSummary( FILE * file );
 
 enum Dimensions
 {
-  maximumNumberOfGridFunctionsToUse=4,
+  maximumNumberOfGridFunctionsToUse=5,
   maximumNumberOfExtraFunctionsToUse=4
 };    
 

@@ -187,7 +187,8 @@ enum ImplicitMethod
   crankNicolson,
   lineImplicit,
   trapezoidal,
-  approximateFactorization
+  approximateFactorization,
+  backwardDifferentiationFormula
 };
 
 enum ImplicitOption
@@ -455,11 +456,11 @@ int getGridIsImplicit(int grid) const;
 
 // evaluate the known solution: (if there is one defined)
 virtual
-realCompositeGridFunction& getKnownSolution( CompositeGrid & cg, real t );
+realCompositeGridFunction& getKnownSolution( CompositeGrid & cg, real t, int numberOfTimeDerivatives = 0 );
 virtual
 realMappedGridFunction& getKnownSolution(real t, int grid,  
 					 const Index & I1, const Index &I2, const Index &I3, 
-					 bool initialCall=false );
+					 bool initialCall=false, int numberOfTimeDerivatives = 0 );
 
 virtual int 
 getMaterialParametersOption(const aString & answer,
@@ -614,8 +615,8 @@ int setTwilightZoneParameters(CompositeGrid & cg,
                               const aString & command =nullString,
 			      DialogData *interface=NULL );
   
-virtual
-int setUserBcType(int side, int axis,int grid, int bc); // for user defined BC's
+// virtual
+// int setUserBcType(int side, int axis,int grid, int bc); // for user defined BC's
 
 virtual
 int thereAreTimeDependentUserBoundaryConditions(const Index & side, 
@@ -655,8 +656,8 @@ int updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid 
 virtual
 bool useConservativeVariables(int grid=-1) const;  // if true we are using a solver that uses conservative variables
 
-virtual
-int userBcType(int side, int axis,int grid) const;
+// virtual
+// int userBcType(int side, int axis,int grid) const;
 
 virtual
 int userDefinedDeformingSurface( DeformingBodyMotion & deformingBody,

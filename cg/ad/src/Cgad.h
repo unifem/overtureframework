@@ -105,6 +105,10 @@ implicitSolve(const real & dt0,
 	      GridFunction & cgf1,
               GridFunction & cgf0);
 
+// routine called by takeTimeStepBDF
+virtual int 
+implicitTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
+
 virtual int
 interfaceRightHandSide( InterfaceOptionsEnum option, 
                         int interfaceDataOptions,
@@ -131,6 +135,9 @@ setupPde(aString & reactionName,bool restartChosen, IntegerArray & originalBound
 
 virtual int 
 setupUserDefinedInitialConditions();
+
+int 
+thinFilmSolver(  real & t0, real & dt0, int correction, AdvanceOptions & advanceOptions );
 
 virtual int
 updateGeometryArrays(GridFunction & cgf);

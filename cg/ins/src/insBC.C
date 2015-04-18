@@ -94,7 +94,8 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
     if( debug() & 4 )
     {
-        printF(">>>>> Cgins::applyBoundaryConditions <<<<<<<\n");
+        printF(">>>>> Cgins::applyBoundaryConditions  t=%9.3e <<<<<<<\n",t);
+        fPrintF(parameters.dbase.get<FILE* >("debugFile"),">>>>> Cgins::applyBoundaryConditions t=%9.3e <<<<<<<\n",t);
     }
     
 //   printF(" Cgins::applyBoundaryConditions **START**\n");
@@ -281,83 +282,29 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
 
 
   // =======================================================================================================
-  //  ** added mass algorithm **   -- put his here to start  2014/07/09
+  //  Project the velocity on the interface for FSI problems
   // =======================================================================================================
     const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
     const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
-    if( useAddedMassAlgorithm && projectAddedMassVelocity && parameters.gridIsMoving(grid) )
+    const bool & projectNormalComponentOfAddedMassVelocity =
+                              parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
+    const int initialConditionsAreBeingProjected = parameters.dbase.get<int>("initialConditionsAreBeingProjected");
+    if( useAddedMassAlgorithm && projectAddedMassVelocity && parameters.gridIsMoving(grid)
+              && !initialConditionsAreBeingProjected 
+              && t!=0.  // ****************************************** TEST ********************
+        )
     {
-        printF("--INS-- insBC: ADDED MASS ALGORITHM - project velocity at t=%8.2e\n",t);
-        BoundaryData::BoundaryDataArray & pBoundaryData = parameters.getBoundaryData(grid); // this will create the BDA if it is not there
-        std::vector<BoundaryData> & boundaryDataArray =parameters.dbase.get<std::vector<BoundaryData> >("boundaryData");
-        BoundaryData & bd = boundaryDataArray[grid];
-            
-    // -- extract parameters from any deforming solids ---
 
-        MovingGrids & movingGrids = parameters.dbase.get<MovingGrids >("movingGrids");
-            
-        if( bd.dbase.has_key("deformingBodyNumber") )
-        {
-            const real & fluidDensity = parameters.dbase.get<real >("fluidDensity");
-            assert( fluidDensity>0. );
+    // // TRY THIS: set no-slip walls before velocity projection
+    // if( assignNoSlipWall )
+    // {
+    //   if( !gridIsMoving )
+    //   {
+    // 	u.applyBoundaryCondition(V,dirichlet,noSlipWall,bcData,pBoundaryData,t,bcParams,grid);
+    //   }
+    // }
 
-            int (&deformingBodyNumber)[2][3] = bd.dbase.get<int[2][3]>("deformingBodyNumber");
-            Index Ib1,Ib2,Ib3;
-            for( int side=0; side<=1; side++ )
-            {
-      	for( int axis=0; axis<numberOfDimensions; axis++ )
-      	{
-        	  if( deformingBodyNumber[side][axis]>=0 )
-        	  {
-          	    int body=deformingBodyNumber[side][axis];
-          	    printF("--INS-- grid=%i, (side,axis)=(%i,%i) belongs to deforming body %i\n",grid,side,axis,body);
-
-          	    DeformingBodyMotion & deform = movingGrids.getDeformingBody(body);
-          	    real alpha=-1.;
-          	    if( deform.isBeamModel() )
-          	    {
-                                  
-            	      BeamModel & beamModel = deform.getBeamModel();
-
-            	      real beamMassPerUnitLength=-1.;
-            	      beamModel.getMassPerUnitLength( beamMassPerUnitLength );
-
-            	      real hf=10.; // fluid length scale -- Fix me 
-
-            	      alpha = 1./( 1. + beamMassPerUnitLength/(fluidDensity*hf) );
-
-            	      printF("--INSBC-- alpha=%8.2e, beamMassPerUnitLength = %8.2e, fluidDensity=%8.2e hf=%8.2e\n",
-                 		     alpha,beamMassPerUnitLength,fluidDensity,hf);
-            	      
-          	    }
-          	    else
-          	    {
-            	      OV_ABORT("finish me");
-          	    }
-          	    assert( alpha>0. );
-          	    getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
-          	    Range Rx=numberOfDimensions;
-#ifndef USE_PPP
-          	    RealArray vSolid(Ib1,Ib2,Ib3,Rx); // holds velocity of solid on the boundary
-          	    deform.getVelocityBC( t, grid, mg, Ib1,Ib2,Ib3, vSolid );
-
-	    // Below the velocity on the boundary is set equal to the gridVelocity: 
-            // Therefore we adjust the grid velocity
-
-	    // alpha=0.;  // *TESTING*
-          	    
-          	    gridVelocity(Ib1,Ib2,Ib3,Rx) = alpha*u(Ib1,Ib2,Ib3,V) + (1.-alpha)*vSolid(Ib1,Ib2,Ib3,Rx);
-#else
-                        OV_ABORT("FINISH ME FOR PARALLEL");
-#endif
-
-
-        	  }
-      	}
-            }
-      	
-
-        } // end if bd.dbase.has_key("deformingBodyNumber") )
+        projectInterfaceVelocity( t,u,gridVelocity,grid,dt );
             
     } // end if useAddedMass 
   // =======================================================================================================
@@ -1486,7 +1433,18 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     if( assignNoSlipWall )
     {
         if( gridIsMoving )
+        {
+            
             u.applyBoundaryCondition(V,dirichlet,noSlipWall,gridVelocity,t,bcParams);
+
+            if( false )
+            {
+      	display(u,"--insBC-- u after moving noSlipWall","%6.3f ");
+      	display(gridVelocity,"--insBC-- gridVelocity after moving noSlipWall","%6.3f ");
+            }
+            
+        }
+        
         else
         {
       // old: u.applyBoundaryCondition(V,dirichlet,noSlipWall,bcData,t,bcParams,grid);
@@ -2547,6 +2505,7 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     if( assignInflowWithPressureAndTangentialVelocityGiven )
     {
         u.applyBoundaryCondition(Rt,extrapolate,inflowWithPressureAndTangentialVelocityGiven,0.,t);
+    // u.applyBoundaryCondition(Rt,neumann,inflowWithPressureAndTangentialVelocityGiven,0.,t);
           if( assignTemperature )
           {
               FILE *& debugFile  =  parameters.dbase.get<FILE* >("debugFile");
@@ -2794,12 +2753,19 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
     
     if( assignNoSlipWall && orderOfAccuracy==2 )
     {
-    // noSlipWall:
+    // noSlipWall stage (2) : 
+
     // (1) set (u,v,w)=
     // (2) extrapolate (u,v,w,p)
+    //     Assign T: a0*T + a1*T_n  g 
     // (3) set div(u)=0. (done further below)
 
         u.applyBoundaryCondition(Rt,extrapolate,noSlipWall,0.,t);
+
+    // *** TEST***
+        if( FALSE && useAddedMassAlgorithm )
+            u.applyBoundaryCondition(V,neumann,noSlipWall,0.,t);
+        
 
     // extrapParams.dbase.get< >("orderOfExtrapolation")=4; // *****  why??
     // u.applyBoundaryCondition(V,extrapolate,noSlipWall,0.,t,extrapParams);
@@ -3107,6 +3073,12 @@ applyBoundaryConditions(const real & t, realMappedGridFunction & u,
             u.applyBoundaryCondition(V,generalizedDivergence,inflowWithVelocityGiven,0.,t);
         }
     
+        if( assignFreeSurfaceBoundaryCondition )
+        { // *wdh* 2014/12/24
+            u.applyBoundaryCondition(V,generalizedDivergence,freeSurfaceBoundaryCondition,0.,t);
+        }
+        
+
         if( !parameters.isAxisymmetric() )
         {
             if( assignNoSlipWall )

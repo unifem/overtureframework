@@ -245,6 +245,7 @@ class Ogmg
   
   realCompositeGridFunction *leftNullVector;
   bool leftNullVectorIsComputed;
+  bool rightNullVectorIsComputed;
   
   realCompositeGridFunction *v;    // for singular problems.
 
@@ -363,7 +364,7 @@ class Ogmg
   int initializeBoundaryConditions(realCompositeGridFunction & coeff);
   int initializeConstantCoefficients();
 
-  int createNullVector();
+  int createRightNullVector();
   int saveLeftNullVector();
   int readLeftNullVector();
   real rightNullVectorDotU( const int & level, const RealCompositeGridFunction & u );

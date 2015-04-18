@@ -3,7 +3,7 @@ SRC_FILES += TimeFunction.C MatrixMotion.C PistonMotion.C
 
 SRC_FILES +=  DeformingBodyMotion.C DeformingGrid.C ElasticFilament.C GridEvolution.C
 
-SRC_FILES += BeamModel.C beamInitialConditions.C NonlinearBeamModel.C
+SRC_FILES += BeamModel.C beamInitialConditions.C NonlinearBeamModel.C BeamFluidInterfaceData.C
 
 SRC_FILES += getTravelingWave.C TravelingWaveFsi.C
 

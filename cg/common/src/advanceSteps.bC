@@ -53,11 +53,13 @@ initializeTimeStepping( real & t0, real & dt0 )
   }
   else if( timeSteppingMethod==Parameters::implicit )
   {
-    const Parameters::ImplicitMethod &method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
-    if ( method != Parameters::approximateFactorization )
-      returnValue=initializeTimeSteppingIM( t0,dt0 );
-    else 
+    const Parameters::ImplicitMethod & method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
+    if ( method == Parameters::approximateFactorization )
       returnValue=initializeTimeSteppingAF( t0,dt0 );
+    else if( method == Parameters::backwardDifferentiationFormula )
+      returnValue=initializeTimeSteppingBDF( t0,dt0 );
+    else 
+      returnValue=initializeTimeSteppingIM( t0,dt0 );
   }
   else if( timeSteppingMethod==Parameters::adamsBashforth2 ||
            timeSteppingMethod==Parameters::adamsPredictorCorrector2 ||
@@ -112,10 +114,12 @@ startTimeStep( real & t0, real & dt0, int & currentGF, int & nextGF, AdvanceOpti
   else if( timeSteppingMethod==Parameters::implicit )
   {
     const Parameters::ImplicitMethod &method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
-    if ( method != Parameters::approximateFactorization )
-      returnValue=startTimeStepIM( t0,dt0,currentGF,nextGF,advanceOptions );
-    else
+    if ( method == Parameters::approximateFactorization )
       returnValue=startTimeStepAF( t0,dt0,currentGF,nextGF,advanceOptions );
+    else if( method == Parameters::backwardDifferentiationFormula )
+      returnValue=startTimeStepBDF( t0,dt0,currentGF,nextGF,advanceOptions );
+    else
+      returnValue=startTimeStepIM( t0,dt0,currentGF,nextGF,advanceOptions );
   }
   else if( timeSteppingMethod==Parameters::adamsBashforth2 ||
            timeSteppingMethod==Parameters::adamsPredictorCorrector2 ||
@@ -167,10 +171,12 @@ takeTimeStep( real & t0, real & dt0, int correction, AdvanceOptions & advanceOpt
   else if( timeSteppingMethod==Parameters::implicit )
   {
     const Parameters::ImplicitMethod &method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
-    if ( method != Parameters::approximateFactorization )
-      returnValue=takeTimeStepIM( t0,dt0,correction,advanceOptions );
-    else
+    if ( method == Parameters::approximateFactorization )
       returnValue=takeTimeStepAF( t0,dt0,correction,advanceOptions );
+    else if ( method == Parameters::backwardDifferentiationFormula )
+      returnValue=takeTimeStepBDF( t0,dt0,correction,advanceOptions );
+    else
+      returnValue=takeTimeStepIM( t0,dt0,correction,advanceOptions );
   }
   else if( timeSteppingMethod==Parameters::adamsBashforth2 ||
            timeSteppingMethod==Parameters::adamsPredictorCorrector2 ||
@@ -217,10 +223,12 @@ endTimeStep( real & t0, real & dt0, AdvanceOptions & advanceOptions )
   else if( timeSteppingMethod==Parameters::implicit )
   {
     const Parameters::ImplicitMethod &method = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
-    if ( method != Parameters::approximateFactorization )
-      returnValue=endTimeStepIM( t0,dt0,advanceOptions );
-    else
+    if ( method == Parameters::approximateFactorization )
       returnValue=endTimeStepAF( t0,dt0,advanceOptions );
+    else if ( method == Parameters::backwardDifferentiationFormula )
+      returnValue=endTimeStepBDF( t0,dt0,advanceOptions );
+    else
+      returnValue=endTimeStepIM( t0,dt0,advanceOptions );
   }
   else if( timeSteppingMethod==Parameters::adamsBashforth2 ||
            timeSteppingMethod==Parameters::adamsPredictorCorrector2 ||

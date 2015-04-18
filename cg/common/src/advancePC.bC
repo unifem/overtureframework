@@ -69,6 +69,9 @@ if( debug() & 4 || debug() & 64 )
   determineErrors( gf[mCur].u,gf[mCur].gridVelocity, gf[mCur].t, 0, error,
       sPrintF(" adams: errors in u at t=%e \n",gf[mCur].t) );
 
+  determineErrors( gf[mOld].u,gf[mOld].gridVelocity, gf[mOld].t, 0, error,
+      sPrintF(" adams: errors in uOld at t=%e \n",gf[mOld].t) );
+
 
   determineErrors( ua,gf[mCur].gridVelocity, t0, 1, error,
                    sPrintF(" adams: errors in ut (ua) at t=%e \n",t0) );
@@ -243,6 +246,8 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
     // **** To initialize the method we need to compute du/dt at times t and t-dt *****
 
     // this is a macro (pcMacros.h):
+    const int numberOfPastTimes=1;                            // PC needs u(t-dt)
+    const int numberOfPastTimeDerivatives=orderOfAccuracy-1;  // PC needs u_t(t-dt), u_t(t-2*dt), ...
     initializePredictorCorrector(adamsPC,gf[mab0].u);
     
   }
@@ -470,6 +475,8 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
     // ----------------- Moving Grids -----------------------
     // ------------------------------------------------------
     real tb=gf[mCur].t-dt1, tc=tb-dt2, td=tc-dt3; // check me 
+    const int numberOfPastTimes=0;
+    const int numberOfPastTimeDerivatives=predictorOrder-1; 
     moveTheGridsMacro(adamsPC,gf[mCur].u, predictorOrder,tb,ub,tc,uc,td,ud);
     
 
@@ -571,7 +578,7 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
     
 
 
-    outputDebugInfoAdamsAfterDuDt("After compute du/dt in predictor");
+    outputDebugInfoAdamsAfterDuDt("After_compute_du/dt_in_predictor");
 
     if( debug() & 64 )
     {
@@ -698,325 +705,17 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
     }
 
 
-    // -- new way -- *wdh* 100821
-    if( true )
+    // --- predict values for boundary conditions -- ( e.g. for fractional-step methods) ---
+    const int orderOfExtrapolation = orderOfPredictorCorrector==2 ? 3 : 4;
+    boundaryConditionPredictor( predictPressureAndVelocity,adamsData,orderOfExtrapolation,
+                                mNew,mCur,mOld,&ua,&ub,&uc,&ud );
+
+    if( debug() & 4 )
     {
-      const int orderOfExtrapolation = orderOfPredictorCorrector==2 ? 3 : 4;
-      boundaryConditionPredictor( predictPressureAndVelocity,adamsData,orderOfExtrapolation,
-                                  mNew,mCur,mOld,&ua,&ub,&uc,&ud );
+      label=sPrintF(" ***Adams PC: predictor: before interpolate t=%e\n",gf[mNew].t);
+      determineErrors( gf[mNew],label );
     }
-    else
-    { // ** OLD WAY
-    if( orderOfAccuracy==4 )
-    {
-      // ******************************************
-      // **********4th Order in Space**************
-      // ******************************************
-
-      if( debug() & 16  )
-      {
-	if( twilightZoneFlow() )
-	{
-	  gf[mNew].u.display(sPrintF("adamsPC: order4  gf[mNew].u before extrap p and u(ghost) (t=%8.2e)",
-				     gf[mNew].t),debugFile,"%8.5f ");
-	  determineErrors( gf[mNew],sPrintF(" ***Adams PC: before extrapolate t=%e\n",gf[mNew].t) );
-	}
-	
-	else
-	  outputSolution( gf[mNew].u,gf[mNew].t,sPrintF(" ***Adams PC: before extrapolate t=%e\n",gf[mNew].t) );
-      }
-
-      // -------------------------------------------------
-      // ---- extrapolate pressure in time for BC's ------
-      // -------------------------------------------------
-
-      if( debug () & 1 ) 
-        fPrintF(debugFile," Extrapolate the pressure to t=%e for fourth-order\n",gf[mNew].t);
-      const int & pc = parameters.dbase.get<int >("pc");
-      assert( pc>= 0 );
-      const int numberOfGhostLines=2;
-
-      const int orderOfExtrapForP=4;  // -1 : means use exact soln
-      const int orderOfExtrapForU=4; 
-
-
-      for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
-      {
-        // ***** only need near the boundary -> to compute grad p <- --- fix this ---
-        // We just need to extraolate grad(p) ON the boundary
-
-        MappedGrid & mg0=gf[mCur].cg[grid];
-        MappedGrid & mg1=gf[mNew].cg[grid];
-
-        realArray & u0=gf[mCur].u[grid];
-	realArray & u1=gf[mNew].u[grid];   // *** check this -- should be mOld ??
-
-        // get local serial arrays from parallel distributed arrays:
-	OV_GET_SERIAL_ARRAY(real,u0,u0Local);
-	OV_GET_SERIAL_ARRAY(real,u1,u1Local);
-	OV_GET_SERIAL_ARRAY(real,ua[grid],uaLocal);
-	OV_GET_SERIAL_ARRAY(real,ub[grid],ubLocal);
-        OV_GET_SERIAL_ARRAY(real,uc[grid],ucLocal);
-        OV_GET_SERIAL_ARRAY(real,ud[grid],udLocal);
-
-        const bool isRectangular = mg0.isRectangular();
-        OV_GET_SERIAL_ARRAY_CONDITIONAL(real,mg0.center(),x0Local,!isRectangular);
-        OV_GET_SERIAL_ARRAY_CONDITIONAL(real,mg1.center(),x1Local,!isRectangular);
-
-
-
-	const IntegerArray & gridIndexRange = mg0.gridIndexRange();
-
-	getIndex(gridIndexRange,I1,I2,I3,numberOfGhostLines);
-        bool ok = ParallelUtility::getLocalArrayBounds(u0,u0Local,I1,I2,I3); 
-	if( !ok ) continue;
-
-	
-        OGFunction & e = *parameters.dbase.get<OGFunction* >("exactSolution");
-
-        if( debug() & 2 && twilightZoneFlow() )
-	{
-
-	  // real errMax0 = max(fabs(u0(I1,I2,I3,pc)-e(mg0,I1,I2,I3,pc,t0)));
-	  // real errMax1 = max(fabs(u1(I1,I2,I3,pc)-e(mg1,I1,I2,I3,pc,t0-dt1)));
-
-          realSerialArray pe(I1,I2,I3);
-	  const int isRectangular=false;
-          e.gd( pe,x0Local,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t0);
-          real errMax0 = max(fabs(u0Local(I1,I2,I3,pc)-pe));
-
-          e.gd( pe,x1Local,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t0-dt1);
-          real errMax1 = max(fabs(u1Local(I1,I2,I3,pc)-pe));
-
-          if(orderOfExtrapForP<=2 )
-	  {
-	      fprintf(pDebugFile,"*** Before extrap p: error in p(t-dt1=%e)=%e error in p(t=%e)=%e\n"
-		    ,t0-dt1,errMax1,t0,errMax0);
-	  }
-	  else
-	  {
-	    // real errMax2 = max(fabs(ua[grid](I1,I2,I3,pc)-e(mg1,I1,I2,I3,pc,t0-dt1-dt2)));
-
-            e.gd( pe,x1Local,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t0-dt1-dt2);
-
-	    real errMax2 = max(fabs(uaLocal(I1,I2,I3,pc)-pe));
-	    fprintf(pDebugFile,"*** Before extrap p: err-p(t-dt1-dt2=%e)=%e err-p(t-dt1=%e)=%e err-p(t=%e)=%e\n"
-		    ,t0-dt1-dt2,errMax2,t0-dt1,errMax1,t0,errMax0);
-
-	    fprintf(pDebugFile,"*** Before extrap p: cex30,cex31,cex32=%16.14e, %16.14e, %16.14e\n",cex30,cex31,cex32);
-	    fprintf(pDebugFile,"*** Before extrap p: dt0,dt1,dt2=%16.14e, %16.14e, %16.14e\n",dt0,dt1,dt2);
-	    
-	  }
-	  
-	}
-	
-	if( orderOfPredictorCorrector==2 )
-	{
-	  // for the next time step ua should be equal to u1 of this time step
-	  // but ua of the next time step equals ub of the time step ... therefore save u1 in ub
-	  if( debug() & 8 )
-	    fPrintF(debugFile," *** advPC:Order4: extrap in time (3-points)\n");
-	    
-	  ubLocal(I1,I2,I3,pc)=u1Local(I1,I2,I3,pc);
-	  u1Local(I1,I2,I3,pc)=cex30*u0Local(I1,I2,I3,pc)+cex31*u1Local(I1,I2,I3,pc)+cex32*uaLocal(I1,I2,I3,pc);
-
-
-	  if( debug() & 8 )
-	    fPrintF(debugFile," *** advPC:Order4: extrap in time (3-points) DONE.\n");
-
-	  
-	}
-	else
-	{
-          if( orderOfExtrapForP==-1 )
-	  {
-	    assert( twilightZoneFlow() );
-	    // u1(I1,I2,I3,pc)=e(mg0,I1,I2,I3,pc,t0+dt0); // **** do this for now ****
-
-	    realSerialArray pe(I1,I2,I3);
-	    const int isRectangular=false;
-	    e.gd( pe,x0Local,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,pc,t0+dt0);
-	    u1Local(I1,I2,I3,pc)=pe;
-	    
-	  }
-	  else
-	  {
-            // for the next time step ua should be equal to u1 of this time step
-            // but ua of the next time step equals ud of this time step ... therefore save u1 in ud
-	    
-
-            udLocal(I1,I2,I3,pc)=u1Local(I1,I2,I3,pc);
-//            u1(I1,I2,I3,pc)=cex2a*u0(I1,I2,I3,pc)+cex2b*u1(I1,I2,I3,pc);
-//            u1(I1,I2,I3,pc)=cex30*u0(I1,I2,I3,pc)+cex31*u1(I1,I2,I3,pc)+cex32*ua[grid](I1,I2,I3,pc);
-	    
-	    
-            if( orderOfExtrapForP==2 )
-	    {
-	      u1Local(I1,I2,I3,pc)=cex2a*u0Local(I1,I2,I3,pc)+cex2b*u1Local(I1,I2,I3,pc);
-	    }
-            else if( orderOfExtrapForP==3 )
-	    {
-	      u1Local(I1,I2,I3,pc)=cex30*u0Local(I1,I2,I3,pc)+cex31*u1Local(I1,I2,I3,pc)+cex32*uaLocal(I1,I2,I3,pc);
-	    }
-	    else if( orderOfExtrapForP==4 )
-	    {
-              // 4th order extrap
-	      u1Local(I1,I2,I3,pc)=(cex40*u0Local(I1,I2,I3,pc)+
-				    cex41*u1Local(I1,I2,I3,pc)+
-				    cex42*uaLocal(I1,I2,I3,pc)+
-				    cex43*ubLocal(I1,I2,I3,pc));
-	    }
-	    else
-	    {
-	      u1Local(I1,I2,I3,pc)=(cex50*u0Local(I1,I2,I3,pc)+
-				    cex51*u1Local(I1,I2,I3,pc)+
-				    cex52*uaLocal(I1,I2,I3,pc)+
-				    cex53*ubLocal(I1,I2,I3,pc)+
-				    cex54*ucLocal(I1,I2,I3,pc));
-	    }
-	    
-
-            if( false )
-	    {
-	      real maxErr=max(fabs(u1(I1,I2,I3,pc)-e(mg0,I1,I2,I3,pc,t0+dt0)));
-	      fprintf(debugFile," $$$$ Max error in extrapolating p at t=%8.2e is %8.2e\n",t0+dt0,maxErr);
-	    
-	      // u1(I1,I2,I3,pc)=e(mg0,I1,I2,I3,pc,t0+dt0); // **** do this for now ****
-	    }
-	    
-	  }
-	  
-	}
-	
     
-        // We also extrapolate in time the ghost values of u -- used in the BC's
-	getIndex(gridIndexRange,I1,I2,I3,numberOfGhostLines);
-        Range V(parameters.dbase.get<int >("uc"),parameters.dbase.get<int >("uc")+numberOfDimensions-1);
-        int side,axis;
-        for( axis=0; axis<numberOfDimensions; axis++ )
-	{
-	  for( side=0; side<=1; side++ )
-	  {
-            const int is=1-2*side;
-            if( mg0.boundaryCondition(side,axis)>0 )
-	    {
-              // set the two ghost points
-              if( side==0 )
-  	        Iv[axis]=Range(gridIndexRange(side,axis)-2,gridIndexRange(side,axis)-1);
-	      else
-  	        Iv[axis]=Range(gridIndexRange(side,axis)+1,gridIndexRange(side,axis)+2);
-		
-	      bool ok = ParallelUtility::getLocalArrayBounds(u0,u0Local,I1,I2,I3);               
-	      if( !ok ) continue;
-
-	      if( orderOfPredictorCorrector==2 )
-	      {
-		// for the next time step ua should be equal to u1 of this time step
-		// but ua of the next time step equals ub of the time step ... therefore save u1 in ub
-		  
-		ubLocal(I1,I2,I3,V)=u1Local(I1,I2,I3,V);
-		u1Local(I1,I2,I3,V)=cex30*u0Local(I1,I2,I3,V)+cex31*u1Local(I1,I2,I3,V)+cex32*uaLocal(I1,I2,I3,V);
-
-	      }
-	      else // fourth order in time
-	      {
-                if( orderOfExtrapForU==-1 )
-		{
-		  assert( twilightZoneFlow() );
-		  // u1Local(I1,I2,I3,V)=e(mg0,I1,I2,I3,V,t0+dt0); // **** do this for now ****
-
-		  realSerialArray ue(I1,I2,I3,V);
-		  const int isRectangular=false;
-		  e.gd( ue,x0Local,numberOfDimensions,isRectangular,0,0,0,0,I1,I2,I3,V,t0+dt0);
-		  u1Local(I1,I2,I3,V)=ue;
-	    
-		}
-                else if( orderOfExtrapForU==2 )
-		{
-                  // printf(" $$$$ extrap u ghost at t=%8.2e $$$$$\n",gf[mNew].t);
-  		  udLocal(I1,I2,I3,V)=u1Local(I1,I2,I3,V);
-	  	  u1Local(I1,I2,I3,V)= cex2a*u0Local(I1,I2,I3,V)
-		                      +cex2b*u1Local(I1,I2,I3,V);
-		}
-                else if( orderOfExtrapForU==3 )
-		{
-                  // printf(" $$$$ extrap u ghost at t=%8.2e $$$$$\n",gf[mNew].t);
-  		  udLocal(I1,I2,I3,V)=u1Local(I1,I2,I3,V);
-	  	  u1Local(I1,I2,I3,V)= cex30*u0Local(I1,I2,I3,V)
-			              +cex31*u1Local(I1,I2,I3,V)
-		                      +cex32*uaLocal(I1,I2,I3,V);
-
-		}
-                else if( orderOfExtrapForU==4 )
-		{
-                  // printf(" $$$$ extrap u ghost at t=%8.2e $$$$$\n",gf[mNew].t);
-  		  udLocal(I1,I2,I3,V)=u1Local(I1,I2,I3,V);
-	  	  u1Local(I1,I2,I3,V)= cex40*u0Local(I1,I2,I3,V)
-			              +cex41*u1Local(I1,I2,I3,V)
-			              +cex42*uaLocal(I1,I2,I3,V)
-		                      +cex43*ubLocal(I1,I2,I3,V);
-		}
-                else if( orderOfExtrapForU==5 )
-		{
-                  // printf(" $$$$ extrap u ghost at t=%8.2e $$$$$\n",gf[mNew].t);
-
-  		  udLocal(I1,I2,I3,V)=u1Local(I1,I2,I3,V);
-	  	  u1Local(I1,I2,I3,V)= cex50*u0Local(I1,I2,I3,V)
-			              +cex51*u1Local(I1,I2,I3,V)
-			              +cex52*uaLocal(I1,I2,I3,V)
-			              +cex53*ubLocal(I1,I2,I3,V)
-		                      +cex54*ucLocal(I1,I2,I3,V);
-		}
-	      }
-	    }
-	  }
-	  // set back to gridIndexRange to avoid re-doing corners: *** is this ok for 3D ???
-	  Iv[axis]=Range(gridIndexRange(0,axis),gridIndexRange(1,axis));
-	}
-	
-
-	// we need initial guesses for \uv at all ghost points
-        // Could use div(u) here
-
-        // *** fix this ***
-//          Range V(parameters.dbase.get<int >("uc"),parameters.dbase.get<int >("uc")+numberOfDimensions-1);
-//          u1.applyBoundaryCondition(V,BCTypes::dirichlet,Parameters::noSlipWall,0,gf[mNew].t);
-
-//          BoundaryConditionParameters extrapParams;
-//  	extrapParams.dbase.get< >("ghostLineToAssign")=1;
-//  	extrapParams.dbase.get< >("orderOfExtrapolation")=orderOfAccuracy+1;
-//  	u1.applyBoundaryCondition(V,BCTypes::extrapolate,BCTypes::allBoundaries,0.,gf[mNew].t,extrapParams);
-
-//  	extrapParams.dbase.get< >("ghostLineToAssign")=2;
-//  	extrapParams.dbase.get< >("orderOfExtrapolation")=orderOfAccuracy+1; // 3;
-//  	u1.applyBoundaryCondition(V,BCTypes::extrapolate,BCTypes::allBoundaries,0.,gf[mNew].t,extrapParams);
-//          u1.finishBoundaryConditions();
-	
-        #ifndef USE_PPP
-        if( debug() & 2 && parameters.dbase.get<bool >("twilightZoneFlow") )
-	{
-	  getIndex(gridIndexRange,I1,I2,I3,numberOfGhostLines);
-	  real errMax0 = max(fabs(u1(I1,I2,I3,V)-e(mg1,I1,I2,I3,V,gf[mNew].t)));
-          if( parameters.dbase.get<int >("myid")==0 )
-	    fprintf(debugFile,"*** After extrap ghost error in uv(t=%e)=%e\n",gf[mNew].t,errMax0);
-	}
-	if( debug() & 8  && parameters.dbase.get<bool >("twilightZoneFlow") )
-	{
-          Range PV(parameters.dbase.get<int >("pc"),parameters.dbase.get<int >("uc")+numberOfDimensions-1);
-	  display(fabs(u1(I1,I2,I3,PV)-e(mg1,I1,I2,I3,PV,gf[mNew].t)),"ERROR after extrap ghost u in time",
-		  debugFile,"%8.2e ");
-	}
-        #endif
-	
-        // *set to true* u1(I1,I2,I3,pc)=e(gf[mNew].cg[grid],I1,I2,I3,pc,gf[mNew].t);
-	
-      }
-    } // end orderOfAccuracy==4 
-
-
-    }  // **END OLD WAY
-    
-
     if( debug() & 16  )
     {
       label=sPrintF(" ***Adams PC: predictor: before interpolate t=%e\n",gf[mNew].t);
@@ -1045,45 +744,65 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
 	::display(gf[mNew].u[grid],sPrintF(" ***Adams PC: after apply boundary conditions in predictor"
                    " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
     }
+    if( debug() & 4 )
+    {
+      label=sPrintF(" ***Adams PC: after apply boundary conditions in predictor t=%e\n",gf[mNew].t);
+      determineErrors( gf[mNew],label );
+    }
 
     cpu0=getCPU();
-    if( poisson!=NULL && poisson->isSolverIterative() && orderOfAccuracy!=4 )
+    //  ---- extrapolate time-independent variables (e.g. p) in time -----
+    //        e.g. needed for an initial guess for iterative solvers (or some added mass algorithms)
+    // *new way* *wdh* 2015/01/21 
+    const int numberOfTimeLevels=3;
+    const int gfIndex[numberOfTimeLevels]={mNew,mCur,mOld}; // 
+    predictTimeIndependentVariables( numberOfTimeLevels,gfIndex );
+
+/* ---
+    else
     {
-      // extrapolate p in time as an initial guess for iterative solvers
-      const int & pc = parameters.dbase.get<int >("pc");
-      assert( pc>= 0 );
-      for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+      // **OLD WAY**
+  
+      if( poisson!=NULL && poisson->isSolverIterative() && orderOfAccuracy!=4 )
       {
-	getIndex(gf[mCur].cg[grid].dimension(),I1,I2,I3);
-        // note that initially gf[mNew](.,.,.,pc) = p(t-dt)
-        // **** check this -- it's doesn't seem to make much difference whether we
-        // extrpolate or use the old value ??
-        #ifdef USE_PPP
+	// extrapolate p in time as an initial guess for iterative solvers
+	const int & pc = parameters.dbase.get<int >("pc");
+	assert( pc>= 0 );
+	for( grid=0; grid<gf[mCur].cg.numberOfComponentGrids(); grid++ )
+	{
+	  getIndex(gf[mCur].cg[grid].dimension(),I1,I2,I3);
+	  // note that initially gf[mNew](.,.,.,pc) = p(t-dt)
+	  // **** check this -- it's doesn't seem to make much difference whether we
+	  // extrpolate or use the old value ??
+#ifdef USE_PPP
 	  realSerialArray uNew; getLocalArrayWithGhostBoundaries(gf[mNew].u[grid],uNew);
 	  realSerialArray uCur; getLocalArrayWithGhostBoundaries(gf[mCur].u[grid],uCur);
 	  realSerialArray uOld; getLocalArrayWithGhostBoundaries(gf[mOld].u[grid],uOld);
           bool ok = ParallelUtility::getLocalArrayBounds(gf[mNew].u[grid],uNew,I1,I2,I3); 
           if( !ok ) continue;
-	#else
+#else
           const realSerialArray & uNew=gf[mNew].u[grid];
           const realSerialArray & uCur=gf[mCur].u[grid];
           const realSerialArray & uOld=gf[mOld].u[grid];
-        #endif
+#endif
 
-        uNew(I1,I2,I3,pc)=cex2a*uCur(I1,I2,I3,pc)+cex2b*uOld(I1,I2,I3,pc);
-       	//  gf[mNew].u[grid](I1,I2,I3,pc)=cex2a*gf[mCur].u[grid](I1,I2,I3,pc)+cex2b*gf[mOld].u[grid](I1,I2,I3,pc);
+	  uNew(I1,I2,I3,pc)=cex2a*uCur(I1,I2,I3,pc)+cex2b*uOld(I1,I2,I3,pc);
+	  //  gf[mNew].u[grid](I1,I2,I3,pc)=cex2a*gf[mCur].u[grid](I1,I2,I3,pc)+cex2b*gf[mOld].u[grid](I1,I2,I3,pc);
 
-	if( debug() & 4 )
-	{
-	  Range all;
-	  for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
-	    ::display(gf[mNew].u[grid](all,all,all,pc),sPrintF(" ***Adams PC: after extrap p in time"
-					       " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
-	}
+	  if( debug() & 4 )
+	  {
+	    Range all;
+	    for( grid=0; grid<gf[mNew].cg.numberOfComponentGrids(); grid++ )
+	      ::display(gf[mNew].u[grid](all,all,all,pc),sPrintF(" ***Adams PC: after extrap p in time"
+								 " t=%9.4e grid=%i\n",gf[mNew].t,grid),debugFile,"%10.7f ");
+	  }
 
 // **	gf[mNew].u[grid](I1,I2,I3,pc)=gf[mCur].u[grid](I1,I2,I3,pc);
+	}
       }
     }
+  ---- */
+   
     timing(parameters.dbase.get<int>("timeForAddUt"))+=getCPU()-cpu0;
 
     
@@ -1310,22 +1029,38 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
       updateSolutionDependentEquations=false;  // e.g. for variable density, do not update p eqn here 
       solveForTimeIndependentVariables( gf[mNew],updateSolutionDependentEquations ); 
 
-      // correct for forces on moving bodies if we have more corrections.
-      if( movingGridProblem() && (correction+1)<numberOfCorrections)
-      {
-	correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
+      // -- Correct for forces on moving bodies if we have more corrections --
+      //  *wdh* use macro: 2015/03/08
+      correctForMovingGridsMacro(PC);
+      if( movingGridCorrectionsHaveConverged )
+        break;
+      
+      // if( movingGridProblem() && (correction+1)<numberOfCorrections)
+      // {
+      // 	correctMovingGrids( t0,t0+dt0,gf[mCur],gf[mNew] ); 
 
-	// Check if the correction step has converged
-	bool isConverged = getMovingGridCorrectionHasConverged();
-	real delta = getMovingGridMaximumRelativeCorrection();
-	if( debug() & 1 )
-	{
-	  printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
-		 delta,correction+1,(int)isConverged);
-	}
-	if( isConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
-	  break;  // we have converged -- break from correction steps
-      }
+      // 	// Check if the correction step has converged
+      // 	movingGridCorrectionsHaveConverged = getMovingGridCorrectionHasConverged();
+      // 	real delta = getMovingGridMaximumRelativeCorrection();
+      // 	if( debug() & 2 )
+      // 	  printF("PC: moving grid correction step : delta =%8.2e (correction=%i, isConverged=%i)\n",
+      // 		 delta,correction+1,(int)movingGridCorrectionsHaveConverged);
+
+      // 	if( movingGridCorrectionsHaveConverged && (correction+1) >=minimumNumberOfPCcorrections )  // note correction+1 
+      // 	{
+      // 	  if( debug() & 1 )
+      // 	    printF("PC: moving grid correction step : sub-iterations converged after %i corrections, rel-err =%8.2e\n",
+      // 		   correction+1,delta);
+      // 	  break;  // we have converged -- break from correction steps
+      // 	}
+      // }
+      // if( (correction+1)==numberOfCorrections && !movingGridCorrectionsHaveConverged )
+      // {
+      //   real delta = getMovingGridMaximumRelativeCorrection();
+      // 	printF("PC:ERROR: moving grid corrections have not converged! numberOfCorrections=%i, rel-err =%8.2e\n",
+      // 		   correction+1,delta);
+      // }
+      
 
     
       if( debug() & 4 )
@@ -1374,9 +1109,16 @@ advanceAdamsPredictorCorrector( real & t0, real & dt0, int & numberOfSubSteps, i
     dtb=dt0;
     t0+=dt0;
 
-    if( (mst-1) % parameters.dbase.get<int >("frequencyToSaveSequenceInfo") == 0 )
-      saveSequenceInfo(t0,fn[nab1]);
+    // -- Save a pointer to the residual:  fn[nab1] is assumed to hold the latest "residual" (i.e. du/dt) ---
+    realCompositeGridFunction *& pResidual  = parameters.dbase.get<realCompositeGridFunction*>("pResidual"); // current residual
+    pResidual = &fn[nab1];
 
+    if( (mst-1) % parameters.dbase.get<int >("frequencyToSaveSequenceInfo") == 0 )
+    { // save residual in the sequence info (also output residual info if requested)
+      saveSequenceInfo(t0,*pResidual);
+      // saveSequenceInfo(t0,fn[nab1]);
+    }
+    
     // output( gf[mab0],initialStep+mst-1 ); // output to files, user defined output
     output( gf[mab0],parameters.dbase.get<int >("globalStepNumber")+1 ); // output to files, user defined output
 

@@ -78,17 +78,13 @@ getTimeStep( GridFunction & gf0 )
   
   if( parameters.dbase.get<bool >("adjustTimeStepForMovingBodies") && parameters.isMovingGridProblem() )
   {
-    real dtRB = parameters.dbase.get<MovingGrids >("movingGrids").getTimeStepForRigidBodies();
-    // dtRB*=.1;
+    real dtMove = parameters.dbase.get<MovingGrids >("movingGrids").getTimeStepForMovingBodies();
      
-    printf(" ========getTimeStep:  dt=%8.2e, dtRB=%8.2e =====\n",dtNew,dtRB);
-    if( dtRB>0. && dtRB<dtNew )
+    printF(" ========getTimeStep:  dt=%8.2e, dt-for-moving-bodies=%8.2e =====\n",dtNew,dtMove);
+    if( dtMove>0. && dtMove<dtNew )
     {
-      // dtRB=max(dtRB,dtNew*1.e-2);  // ****
-      
-
-      printf("+++++++ getTimeStep: decreasing dt for rigid bodies, dt=%8.2e -> dtRB=%8.2e +++++++\n",dtNew,dtRB);
-      dtNew=min(dtNew,dtRB);
+      printf("+++++++ getTimeStep: decreasing dt for moving-bodies, dt=%8.2e -> dtMove=%8.2e +++++++\n",dtNew,dtMove);
+      dtNew=min(dtNew,dtMove);
     }
     
   }
@@ -226,12 +222,50 @@ getTimeStep(MappedGrid & mg,
   }
   else if( timeSteppingMethod==Parameters::implicit )
   {
-    // the stability region for the implicit method:
-    // the stability region for 2nd order PECE: -2 on the Real axis, about 1.27 on the Im. axis
-    // but there is a bit of a cusp on the Re axis so go for -1.9 instead
-    dtNew= 1./SQRT( SQR(reLambda/1.8)+SQR(imLambda/1.27) );
-    
 
+    const Parameters::ImplicitMethod & implicitMethod = parameters.dbase.get<Parameters::ImplicitMethod>("implicitMethod");
+    if( implicitMethod==Parameters::backwardDifferentiationFormula )
+    {
+      const int & orderOfBDF = parameters.dbase.get<int>("orderOfBDF");      
+      // printF("--DS-- getTimeStep for BDF%i\n",orderOfBDF);
+
+      if( orderOfBDF==1 || orderOfBDF==2 )
+      {
+        // BDF1 and BDF2 are A-stable
+        dtNew= REAL_MAX/100.;  // no time-stepping limit
+      }
+      else if( orderOfBDF==3 )
+      {
+	// BDF 3 misses a portion of the imaginary axis from around .75 to 2.
+	if( reLambda<imLambda )
+	{
+	  printF("--DS-- getTimeStep WARNING: dt may be wrong for BDF3 -- *fix me*\n");
+	}
+	
+        dtNew= REAL_MAX/100.;   // *fix me*
+      }
+      else if( orderOfBDF==4 )
+      {
+	// BDF 4 misses a a region near the imaginary axis above .75 
+	  printF("--DS-- getTimeStep WARNING: dt may be wrong for BDF4 -- *fix me*\n");
+        dtNew= REAL_MAX/100.;   // *fix me*
+      }
+      else
+      {
+	OV_ABORT("ERROR: unexpected orderOfBDF");
+      }
+      
+
+    }
+    else
+    {
+      // the stability region for the implicit method:
+      // the stability region for 2nd order PECE: -2 on the Real axis, about 1.27 on the Im. axis
+      // but there is a bit of a cusp on the Re axis so go for -1.9 instead
+      dtNew= 1./SQRT( SQR(reLambda/1.8)+SQR(imLambda/1.27) );
+    
+    }
+  
     // * // the stability region for 2nd order AB: -1 on th Real axis, about .8 on the Im. axis
     // * dtNew= 1./SQRT( SQR(reLambda/1.)+SQR(imLambda/.8) ); 
   }

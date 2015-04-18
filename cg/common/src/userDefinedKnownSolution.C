@@ -60,6 +60,9 @@ int Parameters::
 getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
 			    const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives /* = 0 */ )
 {
+
+  // printF("--PAR-- getUserDefinedKnownSolution: START---\n");
+
   MappedGrid & mg = cg[grid];
 
   if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )

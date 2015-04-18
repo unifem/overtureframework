@@ -198,7 +198,7 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
 	  for( n=0; n<numberOfComponentsToOutput; n++)
 	    fprintf(file,"   err(%s)",(const char*)componentName[n]);
 	    fprintf(file,"    div   ");
-	  fprintf(file,"    uMax     dt       cpu\n");
+	    fprintf(file,"    uMax     dt       cpu    (%i steps)\n",parameters.dbase.get<int >("globalStepNumber")+1);
 	}
 	if( !parameters.isSteadyStateSolver() )
           fprintf(file," %7.3f",t);
@@ -232,7 +232,14 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
 	  fprintf(file," %10.3e  &",error(n));
 	fprintf(file,"\n");
       }
-    }
+
+      if( parameters.isMovingGridProblem() )
+      { // -- print time step info from any moving grids ---
+	parameters.dbase.get<MovingGrids >("movingGrids").printTimeStepInfo(file);
+      }
+
+    } // end for io
+    
 
 //      // print errors to the debug file
 //      fprintf(debugFile," >>> t = %10.3e, dt =%9.2e, cpu =%9.2e seconds \n",t,dt,cpuTime);
@@ -306,7 +313,13 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
 
       // *wdh* 030317 fprintf(file," maximum divergence on all interior points: divMax = %e \n",divMax);
       
-    }
+      if( parameters.isMovingGridProblem() )
+      { // -- print time step info from any moving grids ---
+	parameters.dbase.get<MovingGrids >("movingGrids").printTimeStepInfo(file);
+      }
+
+    } // end for io
+    
 
     // output results to the check file
     fprintf(checkFile,"%8.1e %i  ",t,numberOfComponentsToOutput);

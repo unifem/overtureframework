@@ -31,7 +31,8 @@ parallel = $(current)/../parallel
 VPATH = $(gf):$(grid):$(opsrc):$(mapping):$(ogshow):$(parallel)
 
 # NOTE: I had to put flibs last on the dec to move -L/usr/local/lib to the end (conflicted with hdf, opengl)
-FLIBS=   -L$(LAPACK) -llapack -lblas $(FORTRAN_LIBS) $(AppLibraries) 
+LAPACK_LIBS = -L$(LAPACK) -llapack -lblas 
+FLIBS=   $(FORTRAN_LIBS) $(AppLibraries) 
 ifeq ($(VENDOR),apple)
   # MAC: 
   FLIBS=   -llapack -lblas $(FORTRAN_LIBS) $(AppLibraries) -Wl-framework,Accelerate  -L/usr/local/gfortran/lib -lgfortran 
@@ -78,11 +79,12 @@ linkFiles:
 	ln -sf $(OvertureCheckout)/oges/PETScSolver.C .
 	ln -sf $(Overture)/include/derivMacroDefinitions.h .
 	ln -sf $(Overture)/include/defineParametricDerivMacros.h .
+	ln -sf doc/neumannEquationLineBC3d.h .
 
 # ../gf/doubleGridCollectionFunction.o \
 #       ../gf/doubleMappedGridFunction.o  ../gf/doubleCompositeGridFunction.o
 
-OGMG = Ogmg.o smooth.o defect.o fineToCoarse.o coarseToFine.o ogmgTests.o ogmgUtil.o lineSmooth.o \
+OGMG = Ogmg.o smooth.o defect.o fineToCoarse.o coarseToFine.o ogmgTests.o ogmgUtil.o lineSmooth.o  \
       boundaryConditions.o OgmgParameters.o operatorAveraging.o buildExtraLevels.o checkGrid.o displayMaskLaTeX.o \
       defectOpt.o smoothOpt.o singular.o averageOpt.o bcOpt.o predefined.o lineSmoothOpt.o smoothBoundary.o \
       assignBoundaryConditionCoefficients.o \
@@ -113,11 +115,11 @@ ogmg= ogmgt.o $(OGMG) $(OGES_PETSC)
 
 # NOTE: put libGL last for parallel or else function perm() from libGL is used by mistake by PARTI
 ogmgt: $(ogmg) linkFiles 
-	$(CC) $(CCFLAGS) -o ogmgt $(ogmg) $(CLIBS)  $(PETSC_LIBS) $(FLIBS) $(GLIBS)
+	$(CC) $(CCFLAGS) -o ogmgt $(ogmg) $(CLIBS_NoOgmg)  $(PETSC_LIBS) $(FLIBS) $(GLIBS) $(LAPACK_LIBS)
 
 # ogmgp= ogmgt.o $(OGMG) $(OGES_PETSC) ../gf/Interpolant.o
 # ogmgp: $(ogmgp)
-#	$(CC) $(CCFLAGS) -o ogmgp $(ogmgp) $(CLIBS)  $(PETSC_LIBS)  $(GLIBS) $(FLIBS)
+#	$(CC) $(CCFLAGS) -o ogmgp $(ogmgp) $(CLIBS_NoOgmg)  $(PETSC_LIBS)  $(GLIBS) $(FLIBS)
 
 
 

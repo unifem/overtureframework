@@ -190,6 +190,12 @@ writeParameterSummary( FILE * file )
     }
     
   }
+  const bool & implicitAdvection = parameters.dbase.get<bool >("implicitAdvection");
+  if( implicitAdvection )
+    fPrintF(file," Treat advection terms implicitly (when using implicit time-stepping).\n");
+  else
+    fPrintF(file," Treat advection terms explicitly (when using implicit time-stepping).\n");
+  
   fPrintF(file," thermalConductivity=%g\n",thermalConductivity);
 
 }

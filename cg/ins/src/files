@@ -6,7 +6,7 @@ SRC_FILES += Cgins.C project.C InsParameters.C ins.C insp.C pressureEquation.C d
              setupGridFunctions.C insAugmentedSolution.C viscoPlastic.C updateStateVariables.C \
              turbulenceModelVariables.C getModelVariables.C twoPhaseFlow.C interface.C  \
              PenaltySlipWallBC.C PenaltyWallFunction.C dbAccessCgins.C userDefinedInitialConditions.C \
-             userDefinedKnownSolution.C
+             userDefinedKnownSolution.C adjustPressureCoefficients.C projectInterfaceVelocity.C userDefinedBoundaryValues.C
 
 # C++ files to be always compiled optimized
 CSRCO += insFactors.C

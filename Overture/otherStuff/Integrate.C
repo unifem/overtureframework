@@ -2573,10 +2573,17 @@ computeLeftNullVector()
     // solver->setConjugateGradientPreconditioner(Oges::diagonal);
     // Oges::debug=7;
     solver->set(OgesParameters::THEtolerance,tolerance*numberOfGridPoints);
+
+    // *wdh* 2012/12/23 : use more ILU levels and allow more iterations
+    const int maxit=1000;  // this should depend on the number of points on the coarse grid!
+    solver->set(OgesParameters::THEmaximumNumberOfIterations,maxit);
+    solver->set(OgesParameters::THEnumberOfIncompleteLULevels,5);
   }    
 
   solver->set(OgesParameters::THEsolveForTranspose,true); // solve the transpose system (we want the left null vector)
   solver->set(OgesParameters::THEfixupRightHandSide,false);     // no need to zero out equations at special points.
+
+  solver->set(OgesParameters::THErescaleRowNorms,false);  // *wdh* 2014/12/22 do NOT rescale rows! fix for parallel
 
   bool solveSingularProblem=true;
 

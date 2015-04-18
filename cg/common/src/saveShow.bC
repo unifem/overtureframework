@@ -132,29 +132,53 @@ saveShow( GridFunction & gf0 )
     db.put((int)parameters.isMovingGridProblem(),"isMovingGridProblem");
     if( parameters.isMovingGridProblem() )
     {
-      printF("*** saveShow: Save the movingsGrids info\n");
-
+      printF("*** saveShow: Save the movingsGrids info... \n");
       // save info for moving grids
       parameters.dbase.get<MovingGrids >("movingGrids").put(db,"movingGrids");
-
     }
 
-    // --- Save body/boundary force regions in the first frame ---
-    if( numberSavedToShowFile==1 )
+    // --- Save body/boundary force regions in the first frame, if this is non a moving grid problem ---
+    //     For moving grids - save the regions in all frames (could do better) since we may
+    //     save moving grids as bodies
+    if( numberSavedToShowFile==1 ||  parameters.isMovingGridProblem() )
     {
+      // Save both moving grid bodies and body force regions as a "BodyForce"
+      // Note : for plotting purposes we save some moving grids (e.g. beams) as a "BodyForce"
+      std::vector<BodyForce*> movingBodies;
+      if( parameters.isMovingGridProblem() )
+         parameters.dbase.get<MovingGrids >("movingGrids").getBodies( movingBodies );
+      const int numberOfMovingBodies=movingBodies.size();
+
+      int numberOfBodyForceRegions = 0;
       if( parameters.dbase.get<bool >("turnOnBodyForcing") )
+	numberOfBodyForceRegions = parameters.dbase.get<std::vector<BodyForce*> >("bodyForcings").size();
+
+      const int totalNumberOfBodies=numberOfMovingBodies + numberOfBodyForceRegions;
+      // save the total number of bodies: 
+      db.put(totalNumberOfBodies,"numberOfBodyForceRegions");
+
+      if( totalNumberOfBodies>0 )
       {
-	// Here is the array of body forcings:
-	std::vector<BodyForce*> & bodyForcings =  parameters.dbase.get<std::vector<BodyForce*> >("bodyForcings");
-        // -- save the number of regions:
-        db.put((int)bodyForcings.size(),"numberOfBodyForceRegions");
-        
-	for( int bf=0; bf<bodyForcings.size(); bf++ )
+	for( int mb=0; mb<movingBodies.size(); mb++ )
 	{
-	  const BodyForce & bodyForce = *bodyForcings[bf];
-          bodyForce.put(db,sPrintF("BodyForce%i",bf));
+	  const BodyForce & bodyForce = *movingBodies[mb];
+	  bodyForce.put(db,sPrintF("BodyForce%i",mb));
+	}
+	for( int mb=0; mb<movingBodies.size(); mb++ )
+	  delete movingBodies[mb];
+
+	if( parameters.dbase.get<bool >("turnOnBodyForcing") )
+	{
+	  // Here is the array of body forcings:
+	  std::vector<BodyForce*> & bodyForcings =  parameters.dbase.get<std::vector<BodyForce*> >("bodyForcings");
+	  for( int bf=0; bf<bodyForcings.size(); bf++ )
+	  {
+	    const BodyForce & bodyForce = *bodyForcings[bf];
+	    bodyForce.put(db,sPrintF("BodyForce%i",bf+numberOfMovingBodies));
+	  }
 	}
       }
+      
       if( parameters.dbase.get<bool >("turnOnBoundaryForcing") )
       {
 	// Here is the array of boundary forcings:
@@ -168,15 +192,14 @@ saveShow( GridFunction & gf0 )
           boundaryForce.put(db,sPrintF("BoundaryForce%i",bf));
 	}
       }
+      else
+      {
+        db.put(0,"numberOfBoundaryForceRegions"); // there are no boundary force regions
+      }
       
-
-
     }
-    
-
 
   }
-  
 
 
   const bool saveAugmentedSolutionToShowFile = parameters.dbase.get<bool>("saveAugmentedSolutionToShowFile");

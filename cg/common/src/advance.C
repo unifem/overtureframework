@@ -116,6 +116,9 @@ advance(real & tFinal )
 
     Parameters::TimeSteppingMethod & timeSteppingMethod = 
                                               parameters.dbase.get<Parameters::TimeSteppingMethod>("timeSteppingMethod");
+    const Parameters::ImplicitMethod & implicitMethod = 
+        parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
+
     RealArray & timing = parameters.dbase.get<RealArray>("timing");
 
     real & tPrint = parameters.dbase.get<real >("tPrint");
@@ -294,9 +297,6 @@ advance(real & tFinal )
             
       // --- only change the time step if we exceed the cfl limit or we could increase the time step substantially --
 
-            const Parameters::ImplicitMethod & implicitMethod = 
-      	parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod");
-
             real ratio=dt/dtNew;
             if( step==0 || 
                     implicitMethod==Parameters::approximateFactorization || // *wdh* always change time step for AF scheme 2011/09/06
@@ -440,6 +440,7 @@ advance(real & tFinal )
             step+=numberOfSubSteps; numberOfStepsTaken+=numberOfSubSteps; 
       // parameters.dbase.get<int >("globalStepNumber")+=numberOfSubSteps; // this is done in the above routine
         }
+
     // *** scLC
 //     else if( timeSteppingMethod==Parameters::rKutta )
 //     {
@@ -447,13 +448,16 @@ advance(real & tFinal )
 //       step+=numberOfSubSteps; numberOfStepsTaken+=numberOfSubSteps; parameters.dbase.get<int >("globalStepNumber")+=numberOfSubSteps;
 //     }
     // *** ecLC
+
         else if( timeSteppingMethod==Parameters::implicit )
         {
-            if ( parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::trapezoidal )
+            if ( implicitMethod==Parameters::trapezoidal )
       	advanceTrapezoidal(t,dt,numberOfSubSteps,init,step);
             else
             {
-      	if( parameters.dbase.get<int >("useNewAdvanceStepsVersions") )
+      	if( parameters.dbase.get<int >("useNewAdvanceStepsVersions") ||
+                          implicitMethod==Parameters::approximateFactorization ||
+                          implicitMethod==Parameters::backwardDifferentiationFormula )
       	{ // here is the new way: 
         	  advanceImplicitMultiStepNew( t,dt, numberOfSubSteps,init,step );
       	}
@@ -466,6 +470,7 @@ advance(real & tFinal )
             step+=numberOfSubSteps; numberOfStepsTaken+=numberOfSubSteps; 
       // parameters.dbase.get<int >("globalStepNumber")+=numberOfSubSteps;
         }
+
         else if( timeSteppingMethod==Parameters::steadyStateNewton )
         {
             advanceNewton(t,dt,numberOfSubSteps,init,step);

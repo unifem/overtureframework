@@ -603,7 +603,7 @@ setPlotTitle(const real &t, const real &dt)
   const Parameters::TurbulenceModel & turbulenceModel = 
     parameters.dbase.get<Parameters::TurbulenceModel >("turbulenceModel");
   const int orderOfAccuracy = parameters.dbase.get<int >("orderOfAccuracy");
-  const int orderOfAccuracyInTime  = parameters.dbase.get<int>("orderOfTimeAccuracy");
+  const int orderOfTimeAccuracy  = parameters.dbase.get<int>("orderOfTimeAccuracy");
 
   Parameters::TimeSteppingMethod &timeSteppingMethod = 
              parameters.dbase.get<Parameters::TimeSteppingMethod>("timeSteppingMethod");
@@ -631,7 +631,7 @@ setPlotTitle(const real &t, const real &dt)
 
   aString buff;
   if( !parameters.isSteadyStateSolver() )
-    psp.set(GI_TOP_LABEL,sPrintF(buff,"%s%i%i: t=%6.2e,",(const char*)name,orderOfAccuracyInTime,orderOfAccuracy,t));
+    psp.set(GI_TOP_LABEL,sPrintF(buff,"%s%i%i: t=%6.2e,",(const char*)name,orderOfTimeAccuracy,orderOfAccuracy,t));
   else
     psp.set(GI_TOP_LABEL,sPrintF(buff,"%s%i: it=%i,",(const char*)name,orderOfAccuracy,parameters.dbase.get<int >("globalStepNumber")+1));
   aString label2;

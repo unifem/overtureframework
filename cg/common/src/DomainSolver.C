@@ -210,6 +210,12 @@ outputHeader()
 
     FILE *file = output==0 ? stdout : parameters.dbase.get<FILE* >("logFile");
 
+    if( parameters.isMovingGridProblem() )
+    { // Output headers for any moving bodies *wdh* 2015/03/06
+      fPrintF(file,"\n");
+      parameters.dbase.get<MovingGrids >("movingGrids").writeParameterSummary(file);
+    }
+
     aString fullPdeName=pdeName;
     if ( parameters.dbase.has_key("pdeNameModifier") )
       fullPdeName += ", "+parameters.dbase.get<aString>("pdeNameModifier");
@@ -1052,7 +1058,10 @@ initializeInterfaces(GridFunction & cgf)
 //  Overture::abort("error");
 }
 
-// this should be removed :
+//============================================================================================
+/// \brief This function is called from applyBoundaryConditions to assign some 
+/// interface conditions (e.g. velocity projection for beams) that are not handled by cgmp. 
+//============================================================================================
 int DomainSolver::
 assignInterfaceBoundaryConditions(GridFunction & cgf,
 				  const int & option /* =-1 */,
@@ -1152,7 +1161,10 @@ writeParameterSummary( FILE * file )
   
 
   if( parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::approximateFactorization )
-    fPrintF(file,", approximate factorization scheme.\n");
+    fPrintF(file," Approximate factorization scheme.\n");
+  else if( parameters.dbase.get<Parameters::ImplicitMethod >("implicitMethod")==Parameters::backwardDifferentiationFormula )
+    fPrintF(file," Backward differentiation formula scheme, order=%i (BDF%i).\n",
+	    parameters.dbase.get<int>("orderOfBDF"), parameters.dbase.get<int>("orderOfBDF"));
   else
     fPrintF(file,".\n");
   
@@ -1162,8 +1174,10 @@ writeParameterSummary( FILE * file )
       timeSteppingMethod==Parameters::adamsPredictorCorrector4 ||
       timeSteppingMethod==Parameters::variableTimeStepAdamsPredictorCorrector ||
       timeSteppingMethod==Parameters::implicit )
-    fPrintF(file," predictor order = %i (0=use default), useNewImplicitMethod=%i (1=eval RHS with implicit routines).\n",
-            parameters.dbase.get<int >("predictorOrder"),parameters.dbase.get<int>("useNewImplicitMethod"));
+    fPrintF(file," predictor order = %i (0=use default), useNewImplicitMethod=%i (1=eval RHS with implicit routines).\n"
+	    " number of corrections=%i. \n",
+            parameters.dbase.get<int >("predictorOrder"),parameters.dbase.get<int>("useNewImplicitMethod"),
+            parameters.dbase.get<int>("numberOfPCcorrections") );
 
   fPrintF(file," recompute dt at least every %i steps.\n",parameters.dbase.get<int >("maximumStepsBetweenComputingDt"));
   int & simulateGridMotion = parameters.dbase.get<int>("simulateGridMotion");
@@ -1340,15 +1354,15 @@ writeParameterSummary( FILE * file )
             parameters.dbase.get<int >("frequencyToUseFullUpdateForMovingGridGeneration"));
      
     fPrintF(file,"  Detect collisions is %s.\n",(parameters.dbase.get<bool>("detectCollisions") ? "on" : "off"));
-    fPrintF(file,"\n");
   }
   
   Parameters::ReferenceFrameEnum & referenceFrame = 
           parameters.dbase.get<Parameters::ReferenceFrameEnum>("referenceFrame");
-  fPrintF(file," The equations are solved in %s\n",
+  fPrintF(file,"  The equations are solved in %s\n",
 	  (referenceFrame==Parameters::fixedReferenceFrame ? "a fixed reference frame." :
 	   referenceFrame==Parameters::rigidBodyReferenceFrame ? "a rigid body reference frame." :
 	   "some other specified reference frame."));
+  fPrintF(file,"\n");
 
   if( parameters.dbase.get<bool >("adaptiveGridProblem") )
   {
@@ -1362,10 +1376,32 @@ writeParameterSummary( FILE * file )
             parameters.dbase.get<int >("orderOfAdaptiveGridInterpolation"));
   }
 
+  // *** ALL these parameters should be in the DeformingBody ****
   const bool & useAddedMassAlgorithm = parameters.dbase.get<bool>("useAddedMassAlgorithm");
+  const bool & useApproximateAMPcondition = parameters.dbase.get<bool>("useApproximateAMPcondition");
   const bool & projectAddedMassVelocity = parameters.dbase.get<bool>("projectAddedMassVelocity");
-  fPrintF(file," useAddedMassAlgorithm=%i. projectAddedMassVelocity=%i.\n",(int) useAddedMassAlgorithm,
-	  (int)projectAddedMassVelocity);
+  const bool & projectNormalComponentOfAddedMassVelocity =
+               parameters.dbase.get<bool>("projectNormalComponentOfAddedMassVelocity");
+  const bool & projectVelocityOnBeamEnds = parameters.dbase.get<bool>("projectVelocityOnBeamEnds");  
+  const bool & projectBeamVelocity = parameters.dbase.get<bool>("projectBeamVelocity");
+  const bool & smoothInterfaceVelocity = parameters.dbase.get<bool>("smoothInterfaceVelocity");
+  const int & numberOfInterfaceVelocitySmooths = parameters.dbase.get<int>("numberOfInterfaceVelocitySmooths");
+  const real & fluidAddedMassLengthScale =  parameters.dbase.get<real>("fluidAddedMassLengthScale");  
+
+  fPrintF(file," useAddedMassAlgorithm=%i, useApproximateAMPcondition=%i,\n"
+          " projectAddedMassVelocity=%i, projectNormalComponentOfAddedMassVelocity=%i,\n"
+          " projectVelocityOnBeamEnds=%i, projectBeamVelocity=%i, predicted pressure needed=%i,\n" 
+	  " smoothInterfaceVelocity=%i, numberOfInterfaceVelocitySmooths=%i, fluidAddedMassLengthScale=%9.3e.\n",
+          (int)useAddedMassAlgorithm,(int)useApproximateAMPcondition,(int)projectAddedMassVelocity,
+	  (int)projectNormalComponentOfAddedMassVelocity,(int)projectVelocityOnBeamEnds,(int)projectBeamVelocity,
+          (int)parameters.dbase.get<bool>("predictedPressureNeeded"),
+          (int)smoothInterfaceVelocity, numberOfInterfaceVelocitySmooths,
+	  fluidAddedMassLengthScale
+          );
+
+  const bool & useMovingGridSubIterations = parameters.dbase.get<bool>("useMovingGridSubIterations");
+  if( useMovingGridSubIterations )
+    fPrintF(file," useMovingGridSubIterations=%i (for FSI with light bodies)\n",(int)useMovingGridSubIterations);
 
 }
 

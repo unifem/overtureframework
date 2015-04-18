@@ -3,14 +3,11 @@
 #include "App.h"
 
 
-//\begin{>>CompositeGridSolverInclude.tex}{\subsection{printTimeStepInfo}} 
 void DomainSolver::
 printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
 //=================================================================================
-// /Description:
-//    Print information about the current solution in a nicely formatted way
+/// \brief  Print information about the current solution in a nicely formatted way
 //  ** This is a virtual function **
-//\end{CompositeGridSolverInclude.tex}  
 //=================================================================================
 {
   const int & numberOfComponents = parameters.dbase.get<int >("numberOfComponents");
@@ -81,7 +78,7 @@ printTimeStepInfo( const int & step, const real & t, const real & cpuTime )
 
 	  for( n=0; n<numberOfComponents; n++)
 	    fprintf(file,"   err(%s)",(const char*)parameters.dbase.get<aString* >("componentName")[n]);
-	  fprintf(file,"    uMax     dt       cpu    mem (Gb)\n");
+	  fprintf(file,"    uMax     dt       cpu    mem (Mb) (%i steps)\n",parameters.dbase.get<int >("globalStepNumber"));
 	}
 	if( !parameters.isSteadyStateSolver() )
           fprintf(file," %7.3f",t);

@@ -82,6 +82,9 @@ assignParameterValues(const aString & label, RealArray & values,
 virtual 
 int buildReactions();
 
+virtual int
+chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg);
+
 virtual int 
 conservativeToPrimitive(GridFunction & gf, int gridToConvert=-1, int fixupUnsedPoints=false);
 
@@ -109,7 +112,8 @@ int getNormalForce( realCompositeGridFunction & u, realSerialArray & normalForce
 
 virtual
 int getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
-				const Index & I1, const Index &I2, const Index &I3 );
+				const Index & I1, const Index &I2, const Index &I3, int numberOfTimeDerivatives = 0 );
+
 virtual bool 
 isMixedBC( int bc );
 

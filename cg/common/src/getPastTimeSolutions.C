@@ -58,12 +58,14 @@ getPastTimeSolutions( int current, int numberOfPast, int *previous  )
     assignInitialConditions(prev);
 
 
-    if( true && parameters.dbase.get<GUIState* >("runTimeDialog")!=NULL  )
+    if( (false || debug() & 16)  && parameters.dbase.get<GUIState* >("runTimeDialog")!=NULL  )
     {
       // -- optionally plot the solution and grid --
       // optionIn: 0=wait, 1=plot-and-wait, 2=plot-but-don't-wait
       int optionIn = 1;
       real tFinal=tPast+1;
+      printF(" --DS-- getPastTimeSolutions: plot past time solution at t=%9.3e\n",tPast);
+      
       plot(tPast, optionIn, tFinal, prev ); 
     }
     

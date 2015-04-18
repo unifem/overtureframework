@@ -27,14 +27,17 @@ for(i1=I1Base; i1<=I1Bound; i1++)
 
 int InsParameters::
 getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua, 
-			    const Index & I1, const Index &I2, const Index &I3 )
+			    const Index & I1, const Index &I2, const Index &I3, 
+                            int numberOfTimeDerivatives /* = 0 */ )
 // ==========================================================================================
 ///  \brief Evaluate a user defined known solution.
+/// \param numberOfTimeDerivatives (input) : number of time derivatives to evaluate (0 means evaluate the solution).
 // ==========================================================================================
 {
   MappedGrid & mg = cg[grid];
   const int numberOfDimensions = mg.numberOfDimensions();
     
+  // printF("--INSPAR-- getUserDefinedKnownSolution: START---\n");
 
   if( ! dbase.get<DataBase >("modelData").has_key("userDefinedKnownSolutionData") )
   {
@@ -226,6 +229,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
     double omega0=sqrt(E*Ioverb*k*k*k*k/(rhos*h));
     double what = 0.00001;  // not used 
 
+    assert( numberOfTimeDerivatives==0 );
+
     //double beta=1.0/nu*sqrt(E*Ioverb/(rhos*h));
     //std::complex<double> omegatilde(1.065048891,-5.642079778e-4);
     // std::cout << "t = " << t << std::endl;
@@ -279,6 +284,8 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
 
 
     // --- evaluate the boundary layer solution ----
+    assert( numberOfTimeDerivatives==0 );
+    
     int i1,i2,i3;
     FOR_3D(i1,i2,i3,I1,I2,I3)
     {
@@ -286,6 +293,95 @@ getUserDefinedKnownSolution(real t, CompositeGrid & cg, int grid, RealArray & ua
       profile.eval( xLocal(i1,i2,i3,0)+xOffset,xLocal(i1,i2,i3,1), ua(i1,i2,i3,uc), ua(i1,i2,i3,vc) );
       if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
     }
+  }
+  else if( userKnownSolution=="beamPiston" )
+  {
+    // ---- Beam Piston : beam adjacent to one or two fluid domains ----
+
+    // -- we could avoid building the vertex array on Cartesian grids ---
+    mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+    OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),xLocal);
+
+    // ** NOTE this solution appears in userDefinedKnownSolution.C and beamInitialConditions.C ***
+    const real & ya          = rpar[0];    
+    const real & yb          = rpar[1];    
+    const real & pa          = rpar[2];   
+    const real & pb          = rpar[3];   
+    const real & rhos        = rpar[4];    
+    const real & hs          = rpar[5];    
+    const real & fluidHeight = rpar[6];    
+    const real & K0          = rpar[7];    
+    const real & Kt          = rpar[8];    
+
+    const real dp = pa-pb;
+    // -- hard code these for now: **FIX ME**
+    const real rho=1;
+
+    
+    const real omega=sqrt(K0/(rhos*hs+rho*fluidHeight));
+    const real w    = (dp/K0)*(1. - cos(omega*t) );   // beam position y=w(t) 
+    const real wt   = (dp/K0)*omega*sin(omega*t);
+    const real wtt  = (dp/K0)*omega*omega*cos(omega*t);
+    const real dpdy =-rho*wtt;  // dp/dy = -rho*w_tt
+    
+    if( t <= dt )
+      printF("--UDKS-- eval beam piston solution at t=%9.3e, rhos*hs=%8.2e, rho*H=%8.2e, K0=%8.2e, pa=%g pb=%g w=%g wt=%g wtt=%g "
+             "dpdy=%g\n",t,rhos*hs,rho*fluidHeight,K0,pa,pb,w,wt,wtt,dpdy);
+
+    // --- evaluate the solution ----
+
+    // Note: When checking which side of the beam we are on do not use the y-location of
+    // ghost points since these may go to the opposiet side. Instead use the closest
+    // boundary point (i1a,i2a) computed below.
+    const IntegerArray & gid = cg[grid].gridIndexRange();
+    int i1,i2,i3;
+    if( numberOfTimeDerivatives==0 )
+    {
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+        const int i1a = max(gid(0,0),min(gid(0,1),i1));
+	const int i2a = max(gid(0,1),min(gid(1,1),i2));
+	
+	const real y0 = xLocal(i1a,i2a,i3,1);
+	const real y = xLocal(i1,i2,i3,1);
+	ua(i1,i2,i3,uc)=0.;
+	ua(i1,i2,i3,vc)=wt;
+	if( y0>w )
+	  ua(i1,i2,i3,pc)=pb + dpdy*( y-yb);   // upper fluid 
+	else 
+	  ua(i1,i2,i3,pc)=pa + dpdy*( y-ya);   // lower fluid 
+      
+	if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+      }
+    }
+    else if( numberOfTimeDerivatives==1 )
+    {
+      // return the time derivative of the solution
+      const real wttt  = -(dp/K0)*omega*omega*omega*sin(omega*t);
+      const real dpdyt =-rho*wttt;  // p_yyt = -rho*w_ttt
+
+      FOR_3D(i1,i2,i3,I1,I2,I3)
+      {
+        const int i1a = max(gid(0,0),min(gid(0,1),i1));
+	const int i2a = max(gid(0,1),min(gid(1,1),i2));
+
+	const real y0 = xLocal(i1a,i2a,i3,1);
+	const real y = xLocal(i1,i2,i3,1);
+	ua(i1,i2,i3,uc)=0.;
+	ua(i1,i2,i3,vc)=wtt;
+	if( y0>w )
+	  ua(i1,i2,i3,pc)=dpdyt*( y-yb);   // upper fluid 
+	else 
+	  ua(i1,i2,i3,pc)=dpdyt*( y-ya);   // lower fluid 
+      
+	if( numberOfDimensions==3 ) ua(i1,i2,i3,wc)=0.;
+      }
+    }
+    else
+    {
+      OV_ABORT("finish me");
+    }
+    
   }
   else 
   {
@@ -344,6 +440,7 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       "uniform flow INS", // for testing INS    
       "linear beam exact solution",
       "flat plate boundary layer",
+      "beam piston", // FSI solution for a beam and one or two adjacent fluid domains.
       "done",
       ""
     }; 
@@ -529,6 +626,31 @@ updateUserDefinedKnownSolution(GenericGraphicsInterface & gi, CompositeGrid & cg
       
     }
 
+    else if( answer=="beam piston" )
+    {
+      // ---- Beam Piston : beam adjacent to one or two fluid domains ----
+      userKnownSolution="beamPiston";
+      dbase.get<bool>("knownSolutionIsTimeDependent")=true; // known solution IS time dependent 
+      printF("The beam piston solution is an FSI solution for a horizontal beam adjacent to one or two fluid domains.\n"
+             " The vertical motion of the beam is of the form:\n"
+             "      y(t) = (dp/K0)*( 1 - cos(omega*t) )   (for an undamped beam, Kt=0)\n");
+      real & ya          = rpar[0];    
+      real & yb          = rpar[1];    
+      real & pa          = rpar[2];   
+      real & pb          = rpar[3];   
+      real & rhos        = rpar[4];    
+      real & hs          = rpar[5];    
+      real & fluidHeight = rpar[6];    
+      real & K0          = rpar[7];    
+      real & Kt          = rpar[8];    
+
+      gi.inputString(answer,sPrintF("Enter ya,yb,pa,pb,rhos,hs,fluidHeight,K0,Kt"));
+      sScanF(answer,"%e %e %e %e %e  %e %e %e %e %e %e %e %e",&ya,&yb,&pa,&pb,&rhos,&hs,&fluidHeight,&K0,&Kt);
+      printF("Setting ya=%g, yb=%g, pa=%g, pb=%g, rhos=%g, hs=%g, fluidHeight=%g, K0=%g, Kt=%g \n",
+               ya,yb,pa,pb,rhos,hs,fluidHeight,K0,Kt);   
+
+    }
+    
     else
     {
       printF("unknown response=[%s]\n",(const char*)answer);

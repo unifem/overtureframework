@@ -174,6 +174,8 @@ enum PositionConstraintEnum
 
   int momentumTransfer( real t, RealArray & v );
 
+  // print time step info
+  void printTimeStepInfo( FILE *file=stdout );
 
   // put to a data base file
   int put( GenericDataBase & dir, const aString & name) const;
@@ -216,6 +218,10 @@ enum PositionConstraintEnum
 
   // Return true if the added mass matrices are being used.
   bool useAddedMass() const;
+
+  // Write information about the moving grids
+  void writeParameterSummary( FILE *file= stdout );
+
 
   static int debug;               // debug flag
 

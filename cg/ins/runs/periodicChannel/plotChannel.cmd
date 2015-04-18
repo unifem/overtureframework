@@ -18,6 +18,8 @@
 #  plotStuff plotChannel -show="pChannel2db.show" -vorMin=-5. -vorMax=5. -name="pChannel256"
 #  plotStuff plotChannel -show="pChannel2dc.show" -vorMin=-5. -vorMax=5. -name="pChannel512"
 #  plotStuff plotChannel -show="pChannel2dd.show" -vorMin=-5. -vorMax=5. -name="pChannel1024"
+# 
+#  plotStuff plotChannel -show="pChannel4.show" -vorMin=-5. -vorMax=5. -name="pChannel4"
 # -- movie:
 #  plotStuff plotChannel -show="pChannel2dMovie.show" -vorMin=-5. -vorMax=5. -name="movie"
 #

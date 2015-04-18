@@ -6,30 +6,33 @@
 #include "App.h"
 #include "Controller.h"
 #include "BoundaryLayerProfile.h"
+#include "TimeFunction.h"
 
+// *OLD WAY*  2015/03/27 *WDH* 
 namespace
 {
-enum UserDefinedBoundaryConditions
-{
-  variableInflow,
-  timeDependentInflow,
-  perturbedShearFlow,
-  wallWithScalarFlux,
-  axisymmetricRotation,
-  linearRampInX,
-  linearRampInY,
-  ablProfile,
-  boundaryDataFromAFile, // reads probe bounding box data for e.g.
-  variableTemperature,
-  variableBoundaryValues,
-  inflowWithControl,
-  normalComponentOfVelocity,    // specify the normal component of the velocity at the boundary
-  cylindricalVelocity,          // specify cylindrical components of velocity (cr,vTheta,vPhi)
-  pressureProfile,              // for cgins, outflow pressure profile
-  knownSolutionValues,          // use boundary values from the known solution
-  flatPlateBoundaryLayerProfile,          // use a flat plate boundary layer profile
-  pressurePulse                 // for flow in a flexible channel
-};
+// enum UserDefinedBoundaryConditions
+// {
+//   variableInflow,
+//   timeDependentInflow,
+//   perturbedShearFlow,
+//   wallWithScalarFlux,
+//   axisymmetricRotation,
+//   linearRampInX,
+//   linearRampInY,
+//   ablProfile,
+//   boundaryDataFromAFile, // reads probe bounding box data for e.g.
+//   variableTemperature,
+//   variableBoundaryValues,
+//   inflowWithControl,
+//   normalComponentOfVelocity,    // specify the normal component of the velocity at the boundary
+//   cylindricalVelocity,          // specify cylindrical components of velocity (cr,vTheta,vPhi)
+//   pressureProfile,              // for cgins, outflow pressure profile
+//   knownSolutionValues,          // use boundary values from the known solution
+//   flatPlateBoundaryLayerProfile,          // use a flat plate boundary layer profile
+//   pressurePulse,                 // for flow in a flexible channel
+//   timeFunctionOption             // use time variations from TimeFunction class
+// };
  
 real Tcontrol=0., regionVolume=0.;  // **FIX ME**
 
@@ -72,9 +75,17 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
   assert( parameters.dbase.get<GenericGraphicsInterface* >("ps") !=NULL );
   GenericGraphicsInterface & gi = *parameters.dbase.get<GenericGraphicsInterface* >("ps");
 
+  const int numberOfComponents = dbase.get<int>("numberOfComponents");
 
-  printF("Choose boundary values for (side,axis,grid)=(%i,%i,%i) gridName=%s\n",side,axis,grid,
-	 (const char*)cg[grid].getName());
+  // *new* way *wdh* 2015/03/2
+  const aString userDefinedBoundaryValueName=sPrintF("userBV_G%i_S%i_A%i",grid,side,axis); // unique name for this (grid,side,axis)
+  if( !parameters.dbase.has_key(userDefinedBoundaryValueName) )
+    parameters.dbase.put<aString>(userDefinedBoundaryValueName)="none";
+
+  aString & userDefinedBoundaryValue = parameters.dbase.get<aString>(userDefinedBoundaryValueName);
+
+  printF("Choose boundary values for (side,axis,grid)=(%i,%i,%i) gridName=%s (userDefinedBoundaryValueName=%s)\n",side,axis,grid,
+	 (const char*)cg[grid].getName(),(const char*)userDefinedBoundaryValueName);
 
   aString menu[]=
   {
@@ -96,6 +107,7 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     "known solution",
     "flat plate boundary layer profile",
     "pressure pulse",
+    "time function option",
     "done",
     ""
   };
@@ -115,7 +127,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="variable inflow" )
     {
-      parameters.setUserBcType(side,axis,grid,variableInflow);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,variableInflow);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "variableInflow";
+      
       parameters.setBcIsTimeDependent(side,axis,grid,false);  // this condition is NOT time dependent
 
       gi.inputString(answer2,"Enter u,v,w");
@@ -137,7 +151,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="time dependent inflow" )
     {
-      parameters.setUserBcType(side,axis,grid,timeDependentInflow);  // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,timeDependentInflow);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "timeDependentInflow";
+
       parameters.setBcIsTimeDependent(side,axis,grid,true);      // this condition is time dependent
 
       gi.inputString(answer2,"Enter u,v,w");
@@ -159,7 +175,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }    
     else if( answer=="perturbed shear flow" )
     {
-      parameters.setUserBcType(side,axis,grid,perturbedShearFlow);  // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,perturbedShearFlow);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "perturbedShearFlow";
 
       gi.inputString(answer2,"Enter u1,u2,beta,y0,f0,amp");
       real u1=2., u2=1.,beta=50., y0=.5, f0=1., amp=0.;
@@ -185,7 +202,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="wall with scalar flux" )
     {
-      parameters.setUserBcType(side,axis,grid,wallWithScalarFlux);  // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,wallWithScalarFlux);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "wallWithScalarFlux";
 
       gi.inputString(answer2,"Enter amplitude,radius and position: amp,radius,x0,y0,z0");
       real amp=1.,radius=1.,x0=0.,y0=0.,z0=0;
@@ -211,7 +229,8 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="axisymmetric rotation" )
     {
-      parameters.setUserBcType(side,axis,grid,axisymmetricRotation);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,axisymmetricRotation);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "axisymmetricRotation";
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition is time dependent
 
       gi.inputString(answer2,"Enter d(omega)/dt, u, v, t, ramp time");
@@ -233,17 +252,19 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
       if ( te0<=0. && false) 
 	{
-	  parameters.dbase.get<RealArray>("bcData")(parameters.dbase.get<int >("numberOfComponents")+1,side,axis,grid) = 1;
+	  parameters.dbase.get<RealArray>("bcData")(numberOfComponents+1,side,axis,grid) = 1;
 	  cout<<"adiabatic wall on "<<side<<"  "<<axis<<endl;
 	}
 
     }    
     else if( answer=="linear ramp in x" )
     {
-      parameters.setUserBcType(side,axis,grid,linearRampInX);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,linearRampInX);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "linearRampInX";
+
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition is time dependent
 
-      RealArray values(dbase.get<int>("numberOfComponents")*3);
+      RealArray values(numberOfComponents*3);
       values = -1;
       for( ;; )
 	{
@@ -274,10 +295,12 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }    
     else if( answer=="linear ramp in y" )
     {
-      parameters.setUserBcType(side,axis,grid,linearRampInY);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,linearRampInY);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "linearRampInY";
+
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition is time dependent
 
-      RealArray values(dbase.get<int>("numberOfComponents")*3);
+      RealArray values(numberOfComponents*3);
       values = -1;
       for( ;; )
 	{
@@ -308,7 +331,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }    
     else if( answer=="abl profile" )
       {
-	parameters.setUserBcType(side,axis,grid,ablProfile);
+	// parameters.setUserBcType(side,axis,grid,ablProfile);
+        userDefinedBoundaryValue = "ablProfile";
+
 	parameters.setBcIsTimeDependent(side,axis,grid,false);
 
 	gi.inputString(answer2,"Enter u_ref, z_ref, alpha, d");
@@ -331,7 +356,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       }
     else if( answer=="boundary data from a file" )
     {
-      parameters.setUserBcType(side,axis,grid,boundaryDataFromAFile);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,boundaryDataFromAFile);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "boundaryDataFromAFile";
+
       parameters.setBcIsTimeDependent(side,axis,grid,true);  // this condition is time dependent
 
       // The ExternalBoundaryData class knows how to deal with external data formats
@@ -387,7 +414,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="variable temperature" )
     {
-      parameters.setUserBcType(side,axis,grid,variableTemperature);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,variableTemperature);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "variableTemperature";
+
       parameters.setBcIsTimeDependent(side,axis,grid,false);  // this condition is NOT time dependent
 
       gi.inputString(answer2,"Enter T1, T2, y0");
@@ -418,7 +447,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
 	OV_ABORT("ERROR");
       }
 
-      parameters.setUserBcType(side,axis,grid,inflowWithControl);  // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,inflowWithControl);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "inflowWithControl";
+
       parameters.setBcIsTimeDependent(side,axis,grid,true);      // this condition is time dependent
 
       gi.inputString(answer2,"Enter u,v,w (inflow values)");
@@ -479,7 +510,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
 
     else if( answer=="normal component of velocity" )
     {
-      parameters.setUserBcType(side,axis,grid,normalComponentOfVelocity);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,normalComponentOfVelocity);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "normalComponentOfVelocity";
+      
       parameters.setBcIsTimeDependent(side,axis,grid,false);      // this condition is NOT time dependent
 
       gi.inputString(answer2,"Enter un, T : the normal component of the velocity and the temperature (for Boussinesq).");
@@ -500,7 +533,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
 
     else if( answer=="cylindrical velocity" )
     {
-      parameters.setUserBcType(side,axis,grid,cylindricalVelocity);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,cylindricalVelocity);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "cylindricalVelocity";
+      
       parameters.setBcIsTimeDependent(side,axis,grid,false);      // this condition is NOT time dependent
 
       printF("Define the cylindrical components of velocity : (vr,vTheta,vPhi)=(radial,angular,axial)\n"
@@ -535,7 +570,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="pressure profile" )
     {
-      parameters.setUserBcType(side,axis,grid,pressureProfile);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,pressureProfile);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "pressureProfile";
+
       parameters.setBcIsTimeDependent(side,axis,grid,false);      // this condition is NOT time dependent
 
       printF("***userDefinedBoundaryValues:Define the pressure profile:\n"
@@ -557,7 +594,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="known solution" )
     {
-      parameters.setUserBcType(side,axis,grid,knownSolutionValues);    // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,knownSolutionValues);    // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "knownSolutionValues";
+      
       parameters.setBcIsTimeDependent(side,axis,grid,true);            // *FIX* ME 
 
       printF("***userDefinedBoundaryValues:set values according to the known solution\n");
@@ -565,7 +604,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="flat plate boundary layer profile" )
     {
-      parameters.setUserBcType(side,axis,grid,flatPlateBoundaryLayerProfile);  // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,flatPlateBoundaryLayerProfile);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "flatPlateBoundaryLayerProfile";
+
       parameters.setBcIsTimeDependent(side,axis,grid,false);      // this condition is NOT time dependent
 
       real U=1., xOffset=1., nuBL=parameters.dbase.get<real>("nu");
@@ -588,7 +629,9 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
     }
     else if( answer=="pressure pulse" )
     {
-      parameters.setUserBcType(side,axis,grid,pressurePulse);  // set the bcType to be a unique value.
+      // parameters.setUserBcType(side,axis,grid,pressurePulse);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "pressurePulse";
+
       parameters.setBcIsTimeDependent(side,axis,grid,true);      // this condition is time dependent
 
       printF("The pressure pulse is p = .5*pMax*[ 1 - cos(2*pi*t/tMax) ],  for 0 <=t<=tMax, p=0 other-wise\n");
@@ -604,6 +647,30 @@ chooseUserDefinedBoundaryValues(int side, int axis, int grid, CompositeGrid & cg
       RealArray values(2);
       values(0)=pMax;
       values(1)=tMax;
+      // save the parameters to be used when evaluating the time dependent BC's:
+      parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
+
+    }    
+    else if( answer=="time function option" )
+    {
+      // parameters.setUserBcType(side,axis,grid,timeFunctionOption);  // set the bcType to be a unique value.
+      userDefinedBoundaryValue = "timeFunctionOption";
+
+      parameters.setBcIsTimeDependent(side,axis,grid,true);      // this condition is time dependent
+
+      printF("--UBV-- Info: choose a time variation based from the TimeFunction class\n");
+
+      TimeFunction & timeFunction = dbase.put<TimeFunction>(sPrintF("timeFunctionG%iS%1iA%1i",grid,side,axis));
+      
+      // printF(" ---UBV-- bcType =%i\n",(int)parameters.bcType(side,axis,grid));
+      
+      timeFunction.update(gi);
+
+      // -- For uniform inflow grab the inflow values from the bcData array --
+      RealArray values(numberOfComponents);
+      RealArray & bcData = parameters.dbase.get<RealArray>("bcData");
+      for( int n=0; n<numberOfComponents; n++ )
+	values(n)=bcData(n,side,axis,grid);
       // save the parameters to be used when evaluating the time dependent BC's:
       parameters.setUserBoundaryConditionParameters(side,axis,grid,values);
 
@@ -655,6 +722,9 @@ userDefinedBoundaryValues(const real & t,
   CompositeGrid & cg = gf0.cg;
   MappedGrid & mg = *u.getMappedGrid();
 
+  const int numberOfDimensions = mg.numberOfDimensions();
+  const int numberOfComponents = parameters.dbase.get<int>("numberOfComponents");
+
   assert( side0>=-1 && side0<2 );
   assert( axis0>=-1 && axis0<parameters.dbase.get<int >("numberOfDimensions") );
   
@@ -665,7 +735,7 @@ userDefinedBoundaryValues(const real & t,
 
   int numberOfSidesAssigned=0;
 
-  Range C(0,parameters.dbase.get<int >("numberOfComponents")-1);
+  Range C(0,numberOfComponents-1);
   const int pc=parameters.dbase.get<int >("pc");
   const int uc=parameters.dbase.get<int >("uc");
   const int vc=parameters.dbase.get<int >("vc");
@@ -681,7 +751,6 @@ userDefinedBoundaryValues(const real & t,
   OV_GET_SERIAL_ARRAY(real,u,uLocal);
   int includeGhost=1;
  
-  const int numberOfDimensions = mg.numberOfDimensions();
   
   // -- Retrieve the known solution ----
   const Parameters::KnownSolutionsEnum & knownSolution = 
@@ -708,7 +777,14 @@ userDefinedBoundaryValues(const real & t,
   {
     for( int side=sideStart; side<=sideEnd; side++ )
     {
-      if( parameters.userBcType(side,axis,grid)==variableInflow )
+      const aString userDefinedBoundaryValueName=sPrintF("userBV_G%i_S%i_A%i",grid,side,axis); // unique name for this (grid,side,axis)
+      if( !parameters.dbase.has_key(userDefinedBoundaryValueName) )
+	continue; // no user defined option
+
+      const aString & userDefinedBoundaryValue = parameters.dbase.get<aString>(userDefinedBoundaryValueName);
+
+
+      if( userDefinedBoundaryValue=="variableInflow" )
       {
         RealArray values(3);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
@@ -737,7 +813,7 @@ userDefinedBoundaryValues(const real & t,
 	if( numberOfDimensions>2 )
 	  bd(Ib1,Ib2,Ib3,wc)=w0;
       }
-      else if( parameters.userBcType(side,axis,grid)==timeDependentInflow )
+      else if( userDefinedBoundaryValue=="timeDependentInflow" )
       {
 
         RealArray values(3);
@@ -800,7 +876,7 @@ userDefinedBoundaryValues(const real & t,
 	  
 	//	}
       }
-      else if( parameters.userBcType(side,axis,grid)==perturbedShearFlow )
+      else if( userDefinedBoundaryValue=="perturbedShearFlow" )
       {
 
 	// kkc 070130 BILL : this section of code does nothing if mg.bC != inflowWithVelocityGiven, so right now
@@ -880,7 +956,7 @@ userDefinedBoundaryValues(const real & t,
 	}
 	//	}
       }
-      else if( parameters.userBcType(side,axis,grid)==wallWithScalarFlux )
+      else if( userDefinedBoundaryValue=="wallWithScalarFlux" )
       {
         if( mg.boundaryCondition(side,axis)==Parameters::noSlipWall ||
             mg.boundaryCondition(side,axis)==Parameters::slipWall )
@@ -935,7 +1011,7 @@ userDefinedBoundaryValues(const real & t,
 	}
 
       }
-      else if( parameters.userBcType(side,axis,grid)==axisymmetricRotation )
+      else if( userDefinedBoundaryValue=="axisymmetricRotation" )
       {
         RealArray values(5);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
@@ -993,9 +1069,9 @@ userDefinedBoundaryValues(const real & t,
 	  }
 	}
       }
-      else if( parameters.userBcType(side,axis,grid)==linearRampInX )
+      else if( userDefinedBoundaryValue=="linearRampInX" )
       {
-        RealArray values(3*parameters.dbase.get<int >("numberOfComponents"));
+        RealArray values(3*numberOfComponents);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
         // printF("***userDefinedBoundaryValues: assign (side,axis,grid)=(%i,%i,%i) variableInflow force=%i, "
         //        "values=%f,%f,%f\n",side,axis,grid,(int)forcingType,values(0),values(1),values(2));
@@ -1020,7 +1096,7 @@ userDefinedBoundaryValues(const real & t,
         const RealArray & vertex = mg.vertex().getLocalArray();
 
 	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
-	for ( int c=0; c<parameters.dbase.get<int >("numberOfComponents"); c++ )
+	for ( int c=0; c<numberOfComponents; c++ )
 	{
 	  real f0 = values(3*c+0);
 	  real slope=values(3*c+1);
@@ -1039,9 +1115,9 @@ userDefinedBoundaryValues(const real & t,
 
 	}
       }
-      else if( parameters.userBcType(side,axis,grid)==linearRampInY )
+      else if( userDefinedBoundaryValue=="linearRampInY" )
       {
-        RealArray values(3*parameters.dbase.get<int >("numberOfComponents"));
+        RealArray values(3*numberOfComponents);
 	parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
         // printF("***userDefinedBoundaryValues: assign (side,axis,grid)=(%i,%i,%i) variableInflow force=%i, "
         //        "values=%f,%f,%f\n",side,axis,grid,(int)forcingType,values(0),values(1),values(2));
@@ -1066,7 +1142,7 @@ userDefinedBoundaryValues(const real & t,
         const RealArray & vertex = mg.vertex().getLocalArray();
 
 	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
-	for ( int c=0; c<parameters.dbase.get<int >("numberOfComponents"); c++ )
+	for ( int c=0; c<numberOfComponents; c++ )
 	{
 	  real f0 = values(3*c+0);
 	  real slope=values(3*c+1);
@@ -1085,7 +1161,7 @@ userDefinedBoundaryValues(const real & t,
 
 	}
       }
-      else if(parameters.userBcType(side,axis,grid)==ablProfile )
+      else if(userDefinedBoundaryValue=="ablProfile" )
       {
 
 	RealArray values(4);
@@ -1154,7 +1230,7 @@ userDefinedBoundaryValues(const real & t,
 
 
       }
-      else if( parameters.userBcType(side,axis,grid)==variableTemperature )
+      else if( userDefinedBoundaryValue=="variableTemperature" )
       {
 	// -- assign a variable T on a wall --
 
@@ -1203,14 +1279,14 @@ userDefinedBoundaryValues(const real & t,
 
 	}
       }
-      else if( parameters.userBcType(side,axis,grid)==boundaryDataFromAFile )
+      else if( userDefinedBoundaryValue=="boundaryDataFromAFile" )
       {
 	ExternalBoundaryData & ebd = *parameters.dbase.get<ExternalBoundaryData*>("externalBoundaryData");
 	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
 	ebd.getBoundaryData( t, cg, side, axis, grid, bd );
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==inflowWithControl )
+      else if( userDefinedBoundaryValue=="inflowWithControl" )
       {
 
         RealArray values(3);
@@ -1321,7 +1397,7 @@ userDefinedBoundaryValues(const real & t,
 	
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==normalComponentOfVelocity )
+      else if( userDefinedBoundaryValue=="normalComponentOfVelocity" )
       {
 	// -- assign the normal component of the velocity (and Temperature for Boussinesq) --
 
@@ -1358,7 +1434,7 @@ userDefinedBoundaryValues(const real & t,
 	  bd(Ib1,Ib2,Ib3,tc)=inflowTemperature;
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==cylindricalVelocity )
+      else if( userDefinedBoundaryValue=="cylindricalVelocity" )
       {
 	// -- assign the cylindrical components of velocity --
 
@@ -1441,7 +1517,7 @@ userDefinedBoundaryValues(const real & t,
 	}
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==pressureProfile )
+      else if( userDefinedBoundaryValue=="pressureProfile" )
       {
 	// -- define a pressure profile (e.g. for an outflow BC ----
 
@@ -1481,7 +1557,7 @@ userDefinedBoundaryValues(const real & t,
 	}
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==knownSolutionValues )
+      else if( userDefinedBoundaryValue=="knownSolutionValues" )
       {
 	// -- assign boundary values from the known solution ----
 
@@ -1544,7 +1620,7 @@ userDefinedBoundaryValues(const real & t,
 	}
 	
       }
-      else if( parameters.userBcType(side,axis,grid)==flatPlateBoundaryLayerProfile )
+      else if( userDefinedBoundaryValue=="flatPlateBoundaryLayerProfile" )
       {
 	// --- flat plat boundary layer profile ---
 
@@ -1611,7 +1687,7 @@ userDefinedBoundaryValues(const real & t,
 	
       }
 
-      else if( parameters.userBcType(side,axis,grid)==pressurePulse )
+      else if( userDefinedBoundaryValue=="pressurePulse" )
       {
 
         RealArray values(2);
@@ -1619,13 +1695,15 @@ userDefinedBoundaryValues(const real & t,
 	real pMax=values(0);
 	real tMax=values(1);
 
-        printF("--UBV-- t=%8.2e, assign (side,axis,grid)=(%i,%i,%i) pressure pulse force=%i, "
-               " pMax=%f, tMax=%f\n",t,side,axis,grid,(int)forcingType,pMax,tMax);
-
         getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
 	
 	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
 	if( !ok ) continue;  // no points on this processor
+
+        // -- we could avoid building the vertex array on Cartesian grids ---
+	mg.update(MappedGrid::THEvertex | MappedGrid::THEcenter);
+        OV_GET_SERIAL_ARRAY_CONST(real,mg.vertex(),x);
+
 
 	numberOfSidesAssigned++;
 
@@ -1633,15 +1711,32 @@ userDefinedBoundaryValues(const real & t,
         real factor=0.;
 	if( forcingType==computeForcing )
 	{
-          if( t>=0. && t<=tMax ) factor=.5*pMax*( 1.-cos(twoPi*t/tMax) );
+          if( t>=0. && t<=tMax )
+	  {
+	    // factor=.5*pMax*( 1.-cos(twoPi*t/tMax) );
+	    factor=pMax*sin(Pi*t/tMax);
+	  }
+	  
 	}
 	else 
 	{
           // supply the time derivative -- p.t is probably not needed 
-          if( t>=0. && t <= tMax ){  factor=.5*pMax*twoPi/tMax*sin(twoPi*t/tMax); }
+          if( t>=0. && t <= tMax )
+	  {  
+	    // factor=.5*pMax*twoPi/tMax*sin(twoPi*t/tMax); 
+	    factor=pMax*Pi/tMax*cos(Pi*t/tMax);
+	  }
+	  
 	}
 	
+	if( (debug() & 2 && t <= tMax) || t <= dt )
+	  printF("--UBV-- pressure pulse: t=%8.2e, assign (side,axis,grid)=(%i,%i,%i)  forceType=%i, "
+		 " pMax=%f, tMax=%f, p=%9.3e\n",t,side,axis,grid,(int)forcingType,pMax,tMax,factor);
+
+
         bd(Ib1,Ib2,Ib3,pc)= factor;  // pressure 
+        // bd(Ib1,Ib2,Ib3,pc)= factor*sin(2.*Pi*x(Ib1,Ib2,Ib3,0));  // pressure 
+        // bd(Ib1,Ib2,Ib3,pc)= pMax*sin(twoPi*t/tMax)*exp(-10.*SQR(x(Ib1,Ib2,Ib3,0)-.5));
 	
 	bd(Ib1,Ib2,Ib3,uc)=0.;
 	bd(Ib1,Ib2,Ib3,vc)=0.;
@@ -1651,6 +1746,55 @@ userDefinedBoundaryValues(const real & t,
 	  
 	//	}
       }
+
+      else if( userDefinedBoundaryValue=="timeFunctionOption" )
+      {
+	// Here is the time function associated with this grid (*fix me for AMR - use base grid)
+        TimeFunction & timeFunction = parameters.dbase.get<TimeFunction>(sPrintF("timeFunctionG%iS%1iA%1i",grid,side,axis));
+
+        getBoundaryIndex(mg.gridIndexRange(),side,axis,Ib1,Ib2,Ib3);
+	
+	bool ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ib1,Ib2,Ib3,includeGhost);
+	if( !ok ) continue;  // no points on this processor
+
+	numberOfSidesAssigned++;
+
+	RealArray & bd = parameters.getBoundaryData(side,axis,grid,mg);
+
+        // evaluate the time function
+	real f,ft;
+	timeFunction.eval(t,f,ft);
+        real factor = forcingType==computeForcing ? f : ft;
+  
+	if( t <= 5.*dt )
+	  printF("--UBV-- timeFunctionOption: t=%8.2e  assign (side,axis,grid)=(%i,%i,%i) f=%9.3e ft=%9.3e\n"
+		 ,t,side,axis,grid,f,ft);
+
+        // printF(" ---UBV-- bcType =%i\n",(int)parameters.bcType(side,axis,grid));
+
+	// The profile is saved in the ghost line of the "bd" array. (at least for parabolic -- *check me*)
+	if( parameters.bcType(side,axis,grid)==Parameters::parabolicInflowUserDefinedTimeDependence )
+	{
+	  Index Ig1,Ig2,Ig3;
+	  getGhostIndex(mg.gridIndexRange(),side,axis,Ig1,Ig2,Ig3);
+	  ok=ParallelUtility::getLocalArrayBounds(u,uLocal,Ig1,Ig2,Ig3,includeGhost);
+
+	  // ::display(bd(Ig1,Ig2,Ig3,uc)," parabolic profile","%8.2e ");
+
+	  Range C=numberOfComponents;
+	  // Give time dependence to the BC values
+	  if( true )
+	    bd(Ib1,Ib2,Ib3,C)= factor*bd(Ig1,Ig2,Ig3,C); // multiply fixed values stored in ghost points and save in boundary values
+	}
+	else
+	{ // *check me*
+	  RealArray values(numberOfComponents);
+	  parameters.getUserBoundaryConditionParameters(side,axis,grid,values);
+	  bd(Ib1,Ib2,Ib3,C)= factor*values(C);
+	}
+	
+      }
+
 
       else
       {

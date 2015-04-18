@@ -38,9 +38,13 @@ const int CG_ApproximateFactorization::parallelBC = -31415;
 
 
 // ===============================================================================
-//  MACRO:  Perform the initialization step for the PC method
-//
-//  /METHOD (input) : name of the method: adamsPC or implicitPC
+///  MACRO:  Perform the initialization step for the PC method
+///
+///  \METHOD (input) : name of the method: adamsPC or implicitPC
+///  Parameters:
+///   numberOfPastTimes (input) : method needs u(t-dt), ... u(t-n*dt), n=numberOfPastTimes  
+///   numberOfPastTimeDerivatives (input) : method needs u_t(t-dt), ..., u_t(t-m*dt) m=numberOfPastTimeDerivatives
+///
 // ===============================================================================
 
 
@@ -55,6 +59,17 @@ const int CG_ApproximateFactorization::parallelBC = -31415;
 //               If predictorOrder==2 then explosed points are filled in on ub.
 //               If predictorOrder==3 then explosed points are filled in on ub and uc.
 //               If predictorOrder==4 then explosed points are filled in on ub, uc and ud.
+// =======================================================================================================
+
+
+
+// =======================================================================================================
+//    Macro to correct for moving grids.
+// Arguments:
+//    METHOD : name of the calling function (for debug output)
+// Retrun:
+//   movingGridCorrectionsHaveConverged = true if this is a moving grid problem and the sub-iteration
+//             corrections have converged.
 // =======================================================================================================
 
 #ifdef USE_PPP

@@ -1,7 +1,8 @@
 SRC_FILES += Cgcns.C CnsParameters.C cns.C cnsBC.C implicit.C setUserDefinedParameters.C \
              updateStateVariables.C assignTestProblem.C conservativeToPrimitive.C printTimeStepInfo.C \
              setupPde.C timeSteppingDialog.C setupGridFunctions.C cnsAugmentedSolution.C inflowOutflowCoeff.f\
-             interface.C userDefinedEOS.C dbAccessCgcns.C userDefinedInitialConditions.C userDefinedKnownSolution.C
+             interface.C userDefinedEOS.C dbAccessCgcns.C userDefinedInitialConditions.C userDefinedKnownSolution.C \
+              userDefinedBoundaryValues.C
 
 SRC_FILES +=  getIntCgcns.f
 

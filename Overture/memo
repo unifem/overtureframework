@@ -61,6 +61,10 @@ Changes:
                   not particularly scalable. 
    o 2014/08/17 - The DataPointMapping now has an option to be evaluated underneath with a NurbsMapping - this
                   allows higher order accurate representations of the mapping.
+   o 2014/12/31 - bug fixed with hyperbolic grid generator - "match to mapping" boundary condition was broken
+                  when mapping was a side of an existing grid.
+   o 2015/03/27 - the userDefinedBoundaryValue routines have been changed a bit. There are now separate versions for
+                  each of the CG solvers -- Cgins, Cgcns, Cgad, etc.
 
 ==============================================================================================
 Overture.v25 - released  November 21, 2012

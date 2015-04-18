@@ -49,7 +49,7 @@ $deformingGrid="ice"; $deformFrequency=2.; $deformAmplitude=1.; $deformationType
 $tFinal=1.; $tPlot=.1; $cfl=.9; $nu=.05; $Prandtl=.72; $thermalExpansivity=.1; 
 $gravity = "1. 0. 0.";   # NOTE: gravity must be in the x-direction for axisymmetric
 * $gravity = "0. 0. 0."; 
-$model="ins"; $ts="adams PC"; $noplot=""; $implicitVariation="full"; $refactorFrequency=100; 
+$model="ins"; $ts="adams PC"; $noplot=""; $implicitVariation="viscous"; $refactorFrequency=100; 
 $debug = 0;   $maxIterations=100; $tol=1.e-16; $atol=1.e-16; 
 $tz = "none"; $degreex=2; $degreet=2; $fx=1.; $fy=1.; $fz=1.; $ft=1.; $dtMax=.5; 
 $order = 2; $fullSystem=0; $go="halt"; 
@@ -70,7 +70,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
  "iv=s"=>\$implicitVariation,"ad2=i"=>\$ad2,"ad22=f"=>\$ad22,"imp=f"=>\$implicitFactor,\
   "bc=s"=>\$bc,"dg=s"=>\$deformingGrid,"dt=s"=>\$deformationType,"da=f"=>\$deformAmplitude,"df=f"=>\$deformFrequency,\
   "rhoe=f"=>\$rhoe,"te=f"=>\$te,"ke=f"=>\$ke,"be=f"=>\$be,"ad2e=f"=>\$ad2e, "constantVolume=i"=>\$constantVolume,\
-  "volumePenalty=f"=>\$volumePenalty,"bc1=s"=>\$bc1,"pInflow=f"=>\$pInflow, "sbcl=s"=>\$sbcl, "sbcr=s"=>\$sbcr );
+  "volumePenalty=f"=>\$volumePenalty,"bc1=s"=>\$bc1,"pInflow=f"=>\$pInflow, "sbcl=s"=>\$sbcl, "sbcr=s"=>\$sbcr,\
+  "deformFrequency=f"=>\$deformFrequency );
 * -------------------------------------------------------------------------------------------------
 $kThermal=$nu/$Prandtl; 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -85,6 +86,14 @@ if( $implicitVariation eq "viscous" ){ $implicitVariation = "implicitViscous"; }
 elsif( $implicitVariation eq "adv" ){ $implicitVariation = "implicitAdvectionAndViscous"; }\
 elsif( $implicitVariation eq "full" ){ $implicitVariation = "implicitFullLinearized"; }\
 else{ $implicitVariation = "implicitFullLinearized"; }
+# 
+if( $ts eq "fe" ){ $ts="forward Euler";  }
+if( $ts eq "be" ){ $ts="backward Euler"; }
+if( $ts eq "im" ){ $ts="implicit";       }
+if( $ts eq "pc" ){ $ts="adams PC";       }
+if( $ts eq "mid"){ $ts="midpoint";       }  
+if( $ts eq "afs"){ $ts="approximate factorization"; $newts=1;}
+# 
 if( $project eq "1" ){ $project = "project initial conditions"; }else{ $project = "do not project initial conditions"; }
 if( $go eq "halt" ){ $go = "break"; }
 if( $go eq "og" ){ $go = "open graphics"; }

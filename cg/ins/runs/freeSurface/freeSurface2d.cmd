@@ -7,7 +7,7 @@
 #  cgins [-noplot] freeSurface2d -g=<name> -pGrad=<f> -surfaceTension=<f> -tf=<tFinal> -tp=<tPlot> ...
 #        -solver=<yale/best> -order=<2/4> -model=<ins/boussinesq> -ts=<implicit> -debug=<num> ..,
 #        -ad2=<0|1> -project=<0/1> -iv=[viscous/adv/full] -imp=<val> -rf=<val> ...
-#        -smoothSurface=[0|1] -numberOfSurfaceSmooths=<i>
+#        -smoothSurface=[0|1] -numberOfSurfaceSmooths=<i> -freeSurfaceOption=[none|tractionForce]
 #        -go=[run/halt/og]
 # 
 #  -surfaceTension : surface tension coefficient
@@ -31,8 +31,7 @@
 $grid="halfCylinder.hdf"; $backGround="backGround"; $bcn="noSlipWall"; $pGrad=0.; 
 $deformingGrid="ice"; $deformFrequency=2.; $deformAmplitude=1.; $deformationType="advect body"; 
 $tFinal=1.; $tPlot=.1; $cfl=.9; $nu=.05; $Prandtl=.72; $thermalExpansivity=.1; 
-$gravity = "1. 0. 0.";   # NOTE: gravity must be in the x-direction for axisymmetric
-# $gravity = "0. 0. 0."; 
+$gravity = "0. 0. 0."; 
 $model="ins"; $ts="adams PC"; $noplot=""; $implicitVariation="full"; $refactorFrequency=100; 
 $debug = 0;   $maxIterations=100; $tol=1.e-16; $atol=1.e-16; 
 $tz = "none"; $degreex=2; $degreet=2; $fx=1.; $fy=1.; $fz=1.; $ft=1.; $dtMax=.5; 
@@ -41,6 +40,7 @@ $solver="yale"; $rtol=1.e-4; $atol=1.e-6; $ogesDebug=0; $project=0; $cdv=1.; $ad
 $bc="a"; 
 $surfaceTension=.1; $pAtmosphere=0.;
 $smoothSurface=1; $numberOfSurfaceSmooths=3;
+$freeSurfaceOption="none"; 
 # 
 #
 # ----------------------------- get command line arguments ---------------------------------------
@@ -51,7 +51,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
  "iv=s"=>\$implicitVariation,"dtMax=f"=>\$dtMax,"ad2=i"=>\$ad2,"ad22=f"=>\$ad22,"imp=f"=>\$implicitFactor,\
   "bc=s"=>\$bc,"dg=s"=>\$deformingGrid,"dt=s"=>\$deformationType,"da=f"=>\$deformAmplitude,"df=f"=>\$deformFrequency,\
   "surfaceTension=f"=>\$surfaceTension,"pAtmosphere=f"=>\$pAtmosphere,"pGrad=f"=>\$pGrad,\
-  "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths );
+  "smoothSurface=i"=>\$smoothSurface,"numberOfSurfaceSmooths=i"=>\$numberOfSurfaceSmooths,\
+  "freeSurfaceOption=s"=>\$freeSurfaceOption );
 # -------------------------------------------------------------------------------------------------
 $kThermal=$nu/$Prandtl; 
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -131,7 +132,7 @@ $grid
   plot and always wait
  # no plotting
 #
-# Here is were we turn on gravity as a constant pressure gradient in the  negative y direction : 
+# Here is where we turn on gravity as a constant pressure gradient in the  negative y direction : 
 if( $pGrad != 0 ){ $cmds ="user defined forcing\n constant forcing\n 2 $pGrad\n  done\n exit";}else{ $cmds="*"; }
 $cmds
 #
@@ -168,6 +169,11 @@ $cmds
     #     all=slipWall, uniform(T=$T)
     # $backGround=slipWall
     bcNumber4=freeSurfaceBoundaryCondition
+# 
+     # pressure pulse: p = .5*pMax*[ 1 - cos(2*pi*t/tMax) ],  for 0 <=t<=tMax, p=0 other-wise
+    if( $freeSurfaceOption eq "tractionForce" ){ $cmd="bcNumber4=freeSurfaceBoundaryCondition, userDefinedBoundaryData\n pressure pulse\n   .1 1 \n  done"; }else{ $cmd="#"; }
+    $cmd
+# 
     # bcNumber1=inflowWithVelocityGiven, uniform(u=$u,T=0.)
     # bcNumber2=outflow
     # bcNumber1=symmetry

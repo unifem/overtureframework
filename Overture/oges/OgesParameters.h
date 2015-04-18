@@ -23,11 +23,12 @@ class OgesParameters
   {
     userDefined,
     laplaceEquation,
-    divScalarGradOperator,              // div( s(x) grad )
-    heatEquationOperator,               // I + c0*Delta
-    variableHeatEquationOperator,       // I + s(x)*Delta
-    divScalarGradHeatEquationOperator,  // I + div( s(x) grad )
-    secondOrderConstantCoefficients
+    divScalarGradOperator,               // div( s(x) grad )
+    heatEquationOperator,                // I + c0*Delta
+    variableHeatEquationOperator,        // I + s(x)*Delta
+    divScalarGradHeatEquationOperator,   // I + div( s(x) grad )
+    advectionDiffusionEquationOperator,  // I + a(x).grad +  div( s(x) grad )
+    secondOrderConstantCoefficients      // I + a(x).grad +  div( s(x) grad )
   };
 
   enum BoundaryConditionEnum  // these are possible boundary conditions for pre-defined equations.

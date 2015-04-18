@@ -6,13 +6,15 @@
 #  -tz=twfsi : traveling wave FSI-INS
 #  -standingFSI =1 : use standing traveling wave FSI-INS solution
 # 
-$nElem=11; $tf=.5; $tp=.05; $cfl=.5; $Em=1.; $tension=0.; $degreex=2; $degreet=2; $bc="c"; $tz="poly"; $useNewTri=1;
-$fx=2.; $ft=2; $debug=0; 
+$nElem=11; $tf=.5; $tp=.05; $cfl=.5; $Em=1.; $tension=0.; $K0=0.; $Kt=0.;  $Kxxt=0.; 
+$degreex=2; $degreet=2; $bc="c"; $tz="poly"; $useNewTri=1;
+$fx=2.; $ft=2; $debug=0; $orderOfProjection=2; 
 $rhos=100.; $hs=.1; $mu=.001; $standingFSI=0; 
 $go="halt";
 GetOptions( "nElem=i"=>\$nElem,"cfl=f"=>\$cfl,"Em=f"=>\$Em,"tension=f"=>\$tension,"degreet=i"=>\$degreet,\
             "degreex=i"=>\$degreex, "bc=s"=>\$bc, "tz=s"=>\$tz, "useNewTri=i"=>\$useNewTri,"standingFSI=i"=>\$standingFSI,\
-            "tf=f"=>\$tf,"tp=f"=>\$tp,"fx=f"=>\$fx,"ft=f"=>\$ft,"rhos=f"=>\$rhos,"hs=f"=>\$hs,"debug=i"=>\$debug,  "go=s"=>\$go );
+            "tf=f"=>\$tf,"tp=f"=>\$tp,"fx=f"=>\$fx,"ft=f"=>\$ft,"rhos=f"=>\$rhos,"hs=f"=>\$hs,"debug=i"=>\$debug,\
+            "K0=f"=>\$K0,"Kt=f"=>\$Kt,"Kxxt=f"=>\$Kxxt,"orderOfProjection=i"=>\$orderOfProjection,"go=s"=>\$go );
 # 
 if( $go eq "halt" ){ $go = "#"; }
 if( $go eq "og" ){ $go = "open graphics"; }
@@ -40,12 +42,17 @@ number of elements: $nElem
 area moment of inertia: 1.
 elastic modulus: $Em
 tension: $tension
+K0: $K0
+Kt: $Kt
+Kxxt: $Kxxt
 density: $rhos
 thickness: $hs
 length: 1
 debug: $debug 
 #
 use new tridiagonal solver $useNewTri
+#
+order of Galerkin projection: $orderOfProjection
 #
 degree in space: $degreex
 degree in time: $degreet
@@ -56,16 +63,20 @@ twilight-zone $tzToggle
 if( $tz eq "poly" ){ $cmd="Twilight-zone: polynomial"; }elsif( $tz eq "trig" ){ $cmd="Twilight-zone: trigonometric"; }else{ $cmd="#"; }
 $cmd
 # 
-#
-if( $tz eq "twfsi" ){ $cmd="Exact solution:traveling wave FSI"; }elsif( $tz eq "sw" ){ $cmd="Exact solution:standing wave"; }else{ $cmd="#"; }
-$cmd
-#
-initial conditions...
-  if( $tz eq "poly" || $tz eq "trig" ){ $cmd="twilight zone initial conditions"; }elsif( $tz eq "sw" ){ $cmd="standing wave\n  amplitude: 0.1\n wave number: 1"; }else{  $cmd="#"; }
+# Exact solution:
+exact solution...
   $rhosHs=$rhos*$hs;
   $Ts=$tension; # *$hs; 
-  if( $tz eq "twfsi" ){ $cmd="traveling wave FSI-INS\n  height: 1\n  length: 1\n kx: 1\n  amp, x0, t0: 0.1, 0, 0\n elastic shell density: $rhosHs\n  elastic shell tension: $Ts\n fluid density: 1\n fluid viscosity: $mu\n normal motion only 1\n standing wave solution $standingFSI\n# pause\n exit"; }
-# 
+  $cmd="#"; 
+  if( $tzToggle eq 1 ){ $cmd="Exact solution:twilight zone"; }
+  if( $tz eq "twfsi" ){ $cmd="Exact solution:traveling wave FSI"; }
+  if( $tz eq "sw" ){ $cmd="Exact solution:standing wave\n  amplitude: 0.1\n wave number: 1"; }
+  if( $tz eq "twfsi" ){ $cmd="Exact solution:traveling wave FSI-INS\n  height: 1\n  length: 1\n kx: 1\n  amp, x0, t0: 0.1, 0, 0\n elastic shell density: $rhosHs\n  elastic shell tension: $Ts\n fluid density: 1\n fluid viscosity: $mu\n normal motion only 1\n standing wave solution $standingFSI\n# pause\n exit"; }
+  $cmd
+exit
+#
+initial conditions...
+  if( $tz eq "poly" || $tz eq "trig" || $tz eq "sw" || $tz eq "twfsi" ){ $cmd="Initial conditions:exact solution"; }else{  $cmd="#"; }
   $cmd 
 #
   exit

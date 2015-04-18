@@ -19,13 +19,11 @@ addPrefix(const aString label[], const aString & prefix, aString cmd[], const in
 //===================================================================================
 
 
-//\begin{>>ParametersInclude.tex}{\subsection{Constructor}} 
+// ==================================================================================
+/// \brief Constructor.
+//===================================================================================
 AdParameters::
 AdParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
-// ==================================================================================
-//
-//\end{ParametersInclude.tex}
-//===================================================================================
 {
   int & numberOfComponents = dbase.get<int>("numberOfComponents"); 
   numberOfComponents=1;  // default
@@ -56,13 +54,23 @@ AdParameters(const int & numberOfDimensions0) : Parameters(numberOfDimensions0)
   }
   registerBC((int)mixedBoundaryCondition,"mixedBoundaryCondition");
 
+ if( !dbase.has_key("implicitAdvection") ) dbase.put<bool>("implicitAdvection")=false;
+
   // initialize the items that we time: 
   initializeTimings();
 }
 
+// ==================================================================================
+/// \brief Destructor. 
+//===================================================================================
 AdParameters::
 ~AdParameters()
 {
+  // -- delete work space created by the implicit time-stepping ---
+  if( dbase.has_key("varCoeff") )
+    delete dbase.get<realCompositeGridFunction*>("varCoeff"); 
+  if( dbase.has_key("advectionCoeff") )
+    delete dbase.get<realCompositeGridFunction*>("advectionCoeff"); 
 }
 
 int AdParameters::
@@ -357,7 +365,9 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
   if( executeCommand && command(0,prefix.length()-1)!=prefix && command!="build dialog" )
     return 1;
 
-  int & numberOfComponents     = dbase.get<int>("numberOfComponents");
+  int & numberOfComponents = dbase.get<int>("numberOfComponents");
+  bool & implicitAdvection = dbase.get<bool >("implicitAdvection");
+  
 
   std::vector<real> & kappa = dbase.get<std::vector<real> >("kappa");
   std::vector<real> & a = dbase.get<std::vector<real> >("a");
@@ -416,11 +426,12 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     // -- toggle buttons --
     aString tbLabels[] = {"variable diffusivity",
                           "variable advection", 
+                          "treat advection implicitly",
 			  ""};
     int tbState[3];
-    tbState[0] =  dbase.get<bool >("variableDiffusivity");
-    tbState[1] =  dbase.get<bool >("variableAdvection");
-    tbState[2]=0;
+    tbState[0] = dbase.get<bool >("variableDiffusivity");
+    tbState[1] = dbase.get<bool >("variableAdvection");
+    tbState[2] = implicitAdvection;
 
     int numColumns=1;
     addPrefix(tbLabels,prefix,cmd,maxCommands);
@@ -501,6 +512,14 @@ setPdeParameters(CompositeGrid & cg, const aString & command /* = nullString */,
     }
     else if( dialog.getToggleValue(answer,"variable diffusivity", dbase.get<bool >("variableDiffusivity")) ){}//
     else if( dialog.getToggleValue(answer,"variable advection", dbase.get<bool >("variableAdvection")) ){}//
+    else if( dialog.getToggleValue(answer,"treat advection implicitly",implicitAdvection) )
+    {
+      if( implicitAdvection )
+	printF("--AD-- INFO: advection terms will be treated IMPLICITLY when using implicit time stepping.\n");
+      else
+	printF("--AD-- INFO: advection terms will be treated EXPLICITLY when using implicit time stepping.\n");
+    }
+    
 
     else if( answer=="user defined coefficients" ) 
     {

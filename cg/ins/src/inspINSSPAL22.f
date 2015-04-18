@@ -3393,13 +3393,15 @@ c===============================================================================
           bc0=bc(side,axis)
           if( bc0.le.0 )then
             ! do nothing
-          else if( bc0.eq.outflow .or. bc0.eq.convectiveOutflow .or. 
-     & bc0.eq.tractionFree ) then
+          else if( bc0.eq.outflow .or. bc0.eq.convectiveOutflow ) then
             a1=bcData(pc+numberOfComponents*2,side,axis) ! coeff of p.n
             ! write(*,*) 'pressureBC opt: pc,nc,side,axis,a1=',pc,numberOfComponents,side,axis,a1
             if( a1.ne.0. ) then
               ! printf("**apply mixed BC on pressure rhs...\n");
-              if( addBoundaryForcing(side,axis).ne.0 )then ! *wdh* 2013/12/01
+              ! if( addBoundaryForcing(side,axis).ne.0 .and. initialConditionsAreBeingProjected.eq.0 )then ! *wdh* 2013/12/01
+              ! *wdh* 2014/11/21 - turn off RHS when projecting initial conditions:
+              if( addBoundaryForcing(side,axis).ne.0 .and. 
+     & initialConditionsAreBeingProjected.eq.0 )then
                ! write(*,'("inspf:INFO: set pressure profile at outflow")')
                if( useWhereMask.ne.0 )then
                  do i3=n3a,n3b
@@ -3455,7 +3457,10 @@ c===============================================================================
               end if
             else
               ! dirichlet :
-              if( addBoundaryForcing(side,axis).ne.0 )then ! *wdh* 2013/12/01
+              ! if( addBoundaryForcing(side,axis).ne.0 )then ! *wdh* 2013/12/01
+              ! *wdh* 2014/11/21 - turn off RHS when projecting initial conditions:
+              if( addBoundaryForcing(side,axis).ne.0 .and. 
+     & initialConditionsAreBeingProjected.eq.0 )then
                ! write(*,'("inspf:INFO: set pressure profile at outflow")')
                if( useWhereMask.ne.0 )then
                  do i3=n3a,n3b
@@ -3592,22 +3597,28 @@ c===============================================================================
                end do
              end if
             end if
-          else if( bc0.eq.freeSurfaceBoundaryCondition )then
-            ! Free surface boundary condition *wdh* 2012/11/23 **FINISH ME**
+          else if( bc0.eq.freeSurfaceBoundaryCondition .or. 
+     & bc0.eq.tractionFree )then
+            ! Free surface and tractionFree are really the same thing *wdh* 2014/12/17
               ! The free surface BC for pressure is
               !   p = p_a - n.sigma.n - surfaceTension * 2 *H 
               !   H = mean-curvature = .5( 1/R_1 + 1/R_2)
+              !       2 H = - div( normal )
               !
-              if( gridType.eq.rectangular )then
-                ! finish me 
-                stop 1185
+              if( addBoundaryForcing(side,axis).ne.0 .and. 
+     & initialConditionsAreBeingProjected.eq.0 )then
+                write(*,'(" --inspf-- add RHS to traction (or free 
+     & surface) BC")')
               end if
               do i3=n3a,n3b
               do i2=n2a,n2b
               do i1=n1a,n1b
                if( mask(i1,i2,i3).ne.0 )then
-                  ! -- Compute the mean curvature --
-                 if( surfaceTension.ne.0. )then
+                 ! FINISH ME -- ADD viscous stress contribution:
+                 ! -- Compute the mean curvature --
+                 !   Note: curvature is zero on a rectangular grid, so skip this part:
+                 if( surfaceTension.ne.0. .and. 
+     & gridType.ne.rectangular )then
                   if( nd.eq.2 )then
                     rxi= rsxy(i1,i2,i3,0,0)
                     ryi= rsxy(i1,i2,i3,0,1)
@@ -3659,6 +3670,12 @@ c===============================================================================
                   ! surfaceTension==0 : 
                   f(i1,i2,i3)= pAtmosphere
                 end if
+                 ! 2014/12/17 -- add forcing to traction BC
+                 if( addBoundaryForcing(side,axis).ne.0 .and. 
+     & initialConditionsAreBeingProjected.eq.0 )then
+                    f(i1,i2,i3)= f(i1,i2,i3) + bcf(side,axis,i1,i2,i3,
+     & pc)
+                 end if
                end if ! end if mask
               end do
               end do

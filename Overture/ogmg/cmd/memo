@@ -1,0 +1,3119 @@
+====== 2014/12/22 -- check singular problems again -- Kyle's trouble with periodic channel
+
+
+
+*BUG FIXED* Do not scale rows in PETScSolver
+
+NULL VECTOR NOT COMPUTED PROPERLY IN PARALLEL
+
+
+SIMPLER TEST: -- null vectors differ on ghost -- transpose problem ??
+
+mpiexec -np 1 $ogmgp singular -noplot -g=square8pn.order4.hdf -nullVector=square8pn.order4_NullVector_parallel.hdf >! sq8p.out
+ogmgt singular -noplot -g=square8pn.order4.hdf -nullVector=square8pn.order4_NullVector_serial.hdf -debug=7 >! sq8s.out
+
+
+mpiexec -np 1 $ogmgp singular -noplot -g=square16pn.order4.hdf -nullVector=square16pn.order4_NullVector_parallel.hdf >! sq16p.out
+
+ogmgt singular -noplot -g=square16pn.order4.hdf -nullVector=square16pn.order4_NullVector_serial.hdf >! sq16s.out
+
+
+
+
+
+**********************************
+**************** Grid:
+ogen -noplot channelArg -order=4 -factor=2 -ml=2
+channel2.order4.ml2.hdf
+
+
+PARALLEL + Parallel Null Vector
+mpiexec -np 4 $ogmgp -noplot singular -g=channel2.order4.ml2.hdf -nullVector=channel2NullVector.order4.ml2.parallel.hdf -sm=lz2 -maxit=8 -debug=3 -predefined=1 >! channel_parallelNullVector_np4.out
+
+PARALLEL + SERIAL Null Vector
+mpiexec -np 4 $ogmgp -noplot singular -g=channel2.order4.ml2.hdf -nullVector=channel2NullVector.order4.ml2.serial.hdf -sm=lz2 -maxit=8 -debug=3 -predefined=1 >! channel_serialNullVector_np4.out
+
+
+
+
+PREDEFINED:  good too
+ogmgt -noplot singular -g=channel2.order4.ml2.hdf -nullVector=channel2NullVector.order4.ml2.hdf -sm=lz2 -maxit=8 -debug=3 -predefined=1
+Iteration=1..8 : Total WU=4.89e+01, total res reduction=2.40e-10, ave CR=0.0627 ave ECR=0.636 np=1
+  MaxRes=4.80e-10, TR10=5.02e-03 (time to reduce residual by a factor of 10) TR10/(M/np)=4.84e-01
+
+
+ogmgt -noplot singular -g=channel2.order4.ml2.hdf -nullVector=channel2NullVector.order4.ml2.hdf -sm=lz2 -maxit=11 -debug=3 
+
+Iteration=1..11 : Total WU=6.62e+01, total res reduction=1.32e-11, ave CR=0.1026 ave ECR=0.685 np=1
+  MaxRes=2.65e-11, TR10=3.75e-03 (time to reduce residual by a factor of 10) TR10/(M/np)=3.62e-01
+
+
+
+
+===== 2013/11/29 -- check singular problems, 4th-order
+
+rm *NullVector*.hdf
+
+-- grid from the periodic channel runs: lz2 is good: 
+ogmgt -noplot singular -g=channel2.order4.ml2.hdf -nullVector=channel2NullVector.order4.ml2.hdf -sm=lz2 -debug=3 
+
+Iteration=1..10 : Total WU=6.04e+01, total res reduction=1.16e-10, ave CR=0.1015 ave ECR=0.685 np=1
+
+
+
+NOT-PERIODIC: sq32
+ogmgt -noplot singular -g=square32.order4.ng3.hdf -sm=rbj -nullVector=square32n.order4NullVector.hdf -predefined=0 -debug=3 >! junk32n.out
+
+NOT-PERIODIC: 
+ogmgt -noplot singular -g=square12.order4.ng3.hdf -sm=rbj -nullVector=square12n.order4NullVector.hdf -predefined=0 -debug=7 >! junk12n.out
+
+NOT-PERIODIC: 
+ogmgt -noplot singular -g=square32.order4.ng3.hdf -sm=rbj -nullVector=square32n.order4NullVector.hdf -predefined=0 -debug=3 >! junk32n.out
+
+SEMI-PERIODIC: 
+ogmgt -noplot singular -g=square12np.order4.hdf -sm=rbj -nullVector=square12np.order4NullVector.hdf -predefined=0 -debug=7 >! junk12np.out
+
+
+SEMI-PERIODIC: 
+ogmgt -noplot singular -g=square32np.order4.hdf -sm=rbj -nullVector=square32np.order4NullVector.hdf -predefined=0 -debug=7 >! junk32np.out
+
+
+ORDER=4: 
+rm square12p.order4NullVector.hdf 
+ogmgt -noplot singular -g=square12p.order4.hdf -sm=rbj -nullVector=square12p.order4NullVector.hdf -predefined=0 -debug=7 >! junk12.out
+
+ORDER=2: 
+ogmgt -noplot singular -g=square12p.order2.hdf -sm=rbj -nullVector=square12p.order2NullVector.hdf -predefined=0 -debug=7 >! junk12o2.out
+
+
+
+ogmgt -noplot singular -g=square12p.order4.hdf -sm=rbj -nullVector=square12p.order4NullVector.hdf -predefined=0
+
+ogmgt -noplot singular -g=square32p.order4.hdf -sm=rbj -nullVector=square32p.order4NullVector.hdf -predefined=0 -debug=3 >! junk32.out
+
+
+
+
+
+==== 2013/11/23-24 -- check singular solve for periodic channel grid
+
+
+ORDER=4: BAD
+ogmgt singular -noplot -g=square8.order4.hdf -nullVector=sq8Order4NullVector.hdf -predefined=0 -tz=trig -fx=2. -fy=2. -debug=7 > ! junk.out
+
+ORDER=2: OK
+ogmgt singular -noplot -g=square8.order2.hdf -nullVector=sq8Order2NullVector.hdf -predefined=0 -tz=trig -fx=2. -fy=2. -debug=7 > ! sq8.out
+
+
+
+4th-order: *BAD*
+ogmgt -noplot singular -g=channel2.order4.ml2 -fx=2. -fy=1. -sm=lz2 -nullVector=channel2.order4NullVector.hdf
+ Ogmg::cycle:level=0, it=1, WU= 8.51, defect=3.07e+01, defect/defectOld=15.362,  ECR0=   1.378 ***
+   ->solve: (level=0) it=1, l2NormResidual=3.07e+01 <? 2.23e-13 = resTol*l2Norm(f) + aTol=(1.0e-15)*(1.1e+00) + 2.2e-13
+  Ogmg::cycle:level=0, it=2, WU= 5.77, defect=2.82e+01, defect/defectOld= 0.919,  ECR0=   0.985 ***
+   ->solve: (level=0) it=2, l2NormResidual=2.82e+01 <? 2.23e-13 = resTol*l2Norm(f) + aTol=(1.0e-15)*(1.1e+00) + 2.2e-13
+  Ogmg::cycle:level=0, it=3, WU= 5.77, defect=2.82e+01, defect/defectOld= 1.000,  ECR0=   1.000 ***
+
+
+2nd-order OK: 
+ogmgt -noplot singular -g=channel2.order2.ml2 -fx=2. -fy=1. -sm=lz2 -nullVector=channel2.order2NullVector.hdf
+Iteration=1..10 : Total WU=6.36e+01, total res reduction=4.15e-12, ave CR=0.0727 ave ECR=0.662 np=1
+
+
+
+
+
+TROUBLE: 
+ogmgt singular -noplot -g=square8pn.order4.hdf -nullVector=sq8npNullVector.hdf -predefined=1 -tz=trig -fx=2. -fy=2. -debug=7 > ! junk.out
+
+ogmgt singular -noplot -g=square16pn.order4.hdf -sm=lz2 -bsm=lz2 -debug=7 -tz=trig -fx=2. -fy=2.
+
+ogmgt singular -noplot -g=square8pn.order4.hdf -nullVector=sq8npNullVector.hdf -predefined=1 -tz=trig -fx=2. -fy=2. -debug=3
+ogmgt singular -noplot -g=square16pn.order4.hdf -nullVector=sq16npNullVector.hdf  -tz=trig -fx=2. -fy=2. -debug=3
+
+
+
+TROUBLE: 
+ogmgt -noplot singular -g=channel1.order4.ml2.hdf -nullVector=channel1_NullVector.hdf -predefined=1 -debug=3 >! junk
+
+
+
+OK: lz2 : 
+ogmgt tz -noplot -g=channel1.order4.ml2.hdf -sm=lz2 -bsm=lz2 -debug=3 >! junk
+
+OK NOW (periodic TZ): 
+ogmgt tz -noplot -g=channel1.order4.ml2.hdf -autoChoose=1 -debug=3
+
+
+
+OK:
+ogmgt tz -noplot -g=periodicChannelGrid100.hdf -sm=lz2 -bsm=lz2 -debug=3
+
+
+OK NOW:
+ogmgt tz -noplot -g=periodicChannelGrid100.hdf -autoChoose=1 -debug=3
+
+
+*************** NOTE: ADJUST trig function so solution is PERIODIC!!
+
+
+Singular trouble: 
+ogmgt singular -noplot -g=square8pn.order4.hdf -debug=7 -tz=trig -fx=2. -fy=2. > ! junk.out
+
+ogmgt singular -noplot -g=square16pn.order4.hdf -sm=lz2 -bsm=lz2 -debug=7 -tz=trig -fx=2. -fy=2. >! junk.out
+
+ogmgt singular -noplot -g=square16pn.order4.hdf -debug=7 -tz=trig -fx=2. -fy=2. >! junk.out
+
+
+OK : solution must be periodic:
+ogmgt tz -noplot -g=square16pn.order4.hdf -sm=lz2 -bsm=lz2 -debug=3 -tz=trig -fx=2. -fy=2. >! junk.out
+
+TROUBLE: ..
+ogmgt tz -noplot -g=square16pn.order4.hdf -sm=lz2 -bsm=lz2 -debug=3 >! junk.out
+
+
+TROUBLE
+ogmgt tz -noplot -g=channel1.order4.ml2.hdf -autoChoose=1 -debug=7 -maxit=2
+
+ogmgt tz -noplot -g=channel1.order4.ml2.hdf -autoChoose=1 -debug=3
+
+
+periodic non-square : OK
+ogmgt tz -noplot -g=nonSquare16pn.order4.hdf -autoChoose=1 -debug=3
+
+periodic square OK: 
+ogmgt tz -noplot -g=square16pn.order4.hdf -autoChoose=1 -debug=3
+
+
+SINGULAR: 
+ogmgt -noplot singular -g=periodicChannelGrid100.hdf -nullVector=pc100_NullVector.hdf -predefined=1 -debug=3
+
+
+Dirichlet BCs':  TROUBLE
+ogmgt tz -noplot -g=periodicChannelGrid100.hdf -autoChoose=1 -debug=3
+
+
+--- 4TH ORDER periodic : TROUBLE
+ogmgt tz -noplot -g=channel2.order4.ml2.hdf -autoChoose=1 -debug=3
+
+---- 2nd ODRER:
+Singular: OK, but rates quite a bit worse 
+ogmgt -noplot singular -g=channel2.order2.ml2.hdf -nullVector=channel2_NullVector.hdf -predefined=1 -debug=3
+
+OK: 
+ogmgt tz -noplot -g=channel2.order2.ml2.hdf -autoChoose=1 -debug=3
+
+===== 2013/09/17 
+
+OK now: 
+mpirun -np 2 $ogmgp tz -noplot -g=channelWithBump2dGride5.order4.ml2 -numberOfParallelGhost=4 -autoChoose=1 -debug=3
+
+
+
+BUG FIXED: buildExtraLevelsNew.bf 
+
+
+
+TROUBLE: 
+mpirun -np 1 $ogmgp tz -noplot -g=channelWithBump2dGride5.order4.ml2 -numberOfParallelGhost=4 -autoChoose=1 -debug=3
+
+
+TROUBLE: invalid interpolation: 
+mpirun -np 1 $ogmgp tz -noplot -g=channelWithBump2dGride4.order4.ml2 -numberOfParallelGhost=4 -autoChoose=1 -debug=3
+
+
+OK: order=2
+mpirun -np 1 $ogmgp tz -noplot -g=channelWithBump2dGride5.order2.ml2 -numberOfParallelGhost=2 -autoChoose=1 -debug=3
+
+
+TROUBLE on level 3: 
+mpirun -np 2 $ogmgp tz -noplot -g=channelWithBump2dGride10.order4.ml3 -numberOfParallelGhost=4 -autoChoose=1 -debug=3
+
+OK:
+mpirun -np 1 $ogmgp tz -noplot -g=channelWithBump2dGride10.order4.ml3 -numberOfParallelGhost=4 -autoChoose=1 -debug=3
+
+==== 2013/09/01-05 -- more tests of parallel save/read
+
+mpirun -np 4 $ogmgp tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -read=cice32.order2.ml4.mg.hdf
+mpirun -np 4 $ogmgp tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -save=cice32.order2.ml4.mg.hdf
+
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice4.order2.ml3.hdf -autoChoose=1 -read=cice4.order2.ml3.mg.hdf
+mpirun -np 1 $ogmgp tz -noplot -g=cice4.order2.ml3.hdf -autoChoose=1 -save=cice4.order2.ml3.mg.hdf
+
+==== 2013/09/01 -- save/read MG levels:
+
+
+--- parallel read from paralell save: OK
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice2.order2.ml2.hdf -autoChoose=1 -read=cice2.order2.ml2.mg.hdf >! junk.ppread
+
+-- Save parallel: OK
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice2.order2.ml2.hdf -autoChoose=1 -save=cice2.order2.ml2.mg.hdf >! junk.psave
+
+
+-- Parallel, reading serial: OK, np=1,2,4
+ 
+mpirun -np 1 $ogmgp tz -noplot -g=cice2.order2.ml2.hdf -autoChoose=1 -read=cice2.order2.ml2.mg.serial.hdf >! junk.pread
+
+
+Serial first: OK
+
+ogmgt tz -noplot -g=cice2.order2.ml2.hdf -autoChoose=1 -read=cice2.order2.ml2.mg.serial.hdf >! junk.read
+ogmgt tz -noplot -g=cice2.order2.ml2.hdf -autoChoose=1 -save=cice2.order2.ml2.mg.serial.hdf >! junk.save
+
+==== 2013/08/27-31  TEST save/read the MG
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice2.order2.ml2.hdf -autoChoose=1 -read=cice2.order2.ml2.mg.hdf >! junk
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice2.order2.ml2.hdf -autoChoose=1 -save=cice2.order2.ml2.mg.hdf
+
+
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice4.order2.ml3.hdf -autoChoose=1 -read=cice4.order2.ml3.mg.serial.hdf
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice4.order2.ml3.hdf -autoChoose=1 -read=cice4.order2.ml3.mg.hdf
+mpirun -np 1 $ogmgp tz -noplot -g=cice4.order2.ml3.hdf -autoChoose=1 -save=cice4.order2.ml3.mg.hdf
+
+mpirun -tv -np 2 $ogmgp tz -noplot -g=cice4.order2.ml3.hdf -autoChoose=1 -read=cice4.order2.ml3.mg.hdf
+mpirun -np 2 $ogmgp tz -noplot -g=cice4.order2.ml3.hdf -autoChoose=1 -save=cice4.order2.ml3.mg.hdf
+
+
+mpirun -np 2 $ogmgp tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -read=cice32.order2.ml4.mg.hdf
+mpirun -np 2 $ogmgp tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -save=cice32.order2.ml4.mg.hdf
+
+mpirun -np 2 $ogmgp tz -noplot -g=square256.order2 -read=square256mg.order2.hdf
+mpirun -np 2 $ogmgp tz -noplot -g=square256.order2 -save=square256mg.order2.hdf
+
+
+
+TROUBLE: grid read in does not have same parallel distribution as main CG
+mpirun -tv -np 2 $ogmgp tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -read=cice32.order2.ml4.mg.hdf
+
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -read=cice32.order2.ml4.mg.hdf
+
+mpirun -np 1 $ogmgp tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -save=cice32.order2.ml4.mg.hdf
+
+
+ogmgt tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -read=cice32.order2.ml4.mg.hdf
+ogmgt tz -noplot -g=cice32.order2.ml4.hdf -autoChoose=1 -save=cice32.order2.ml4.mg.hdf
+
+
+mpirun -np 1 $ogmgp tz -noplot -g=square256.order2 -save=square256mg.order2.hdf
+
+
+ogmgt tz -noplot -g=square256.order2 -read=square256mg.order2.hdf
+
+ogmgt tz -noplot -g=square256.order2 -save=square256mg.order2.hdf
+
+
+
+
+==== 2012/08/17 
+
+COMPARE Ogmg to PETSc
+
+6.6M pts: 
+ogmgt tz -noplot -g=cice64.order4.ml5.hdf -levels=1 -rtol=.5e-10
+ogmgt tz -noplot -g=cice64.order4.ml5.hdf -maxit=7                  [total=18.2
+  total.................................1.61e+01  2.30e+00   100.00%
+  Iteration=1..7 : Total WU=2.96e+01, total res reduction=1.58e-08, ave CR=0.0769 ave ECR=0.545 np=1
+  MaxRes=1.73e-02, TR10=2.06e+00 (time to reduce residual by a factor of 10)
+ TOTAL (solve+initialize)..............1.82e+01  2.60e+00
+
+ogmgt tz -noplot -g=square2048.order4 -bsm=rb -levels=1 -rtol=.5e-10     [total=430.
+  Iteration=1..1 : Total WU=5.02e+00, total res reduction=5.55e-13, ave CR=0.0000 ave ECR=0.004 np=1
+    MaxRes=6.20e-06, TR10=3.40e+01 (time to reduce residual by a factor of 10)
+
+ogmgt tz -noplot -g=square2048.order4 -bsm=rb -nsm="2 1" -maxit=7      [total=7.0, MaxRes=3.96e-06
+
+ogmgt tz -noplot -g=square1024.order4 -debug=3 -levels=1 -rtol=.5e-10  [ total=68.8 TR10=5.52 maxDefect=9.58e-07
+ogmgt tz -noplot -g=square1024.order4 -bsm=rb -nsm="2 1" -maxit=7      [ total=1.9, TR10=1.52e-01, maxDefect=9.37e-07
+
+
+==== 2012/07/11 -- trouble with pillInABox
+
+
+ogmgt tz -noplot -g=pillInABoxGride4.order4.ml2 -autoChoose=1 -debug=3 -iluFill=15.
+
+
+[0] PCSetUp(): Setting up new PC
+[0] PetscDLLibrarySym(): Loading function MatOrdering_RCM from dynamic library ${PETSC_LIB_DIR}/libpetscmat
+[0] MatILUFactorSymbolic_SeqAIJ(): Reallocs 2 Fill ratio:given 3 needed 33.8277
+[0] MatILUFactorSymbolic_SeqAIJ(): Run with -[sub_]pc_factor_fill 33.8277 or use
+[0] MatILUFactorSymbolic_SeqAIJ(): PCFactorSetFill([sub]pc,33.8277);
+[0] MatILUFactorSymbolic_SeqAIJ(): for best performance.
+[0] Mat_CheckInode(): Found 31261 nodes out of 31793 rows. Not using Inode routines
+
+
+
+
+ogmgt tz -noplot -g=pillStep9.hdf -autoChoose=1 -debug=3
+
+
+==== 2012/07/09 SEE ALSO LC: runs/ogmg/sphereInABox/memo
+
+Results for IMOG paper: compare CR VS NP
+
+***********************************************************
+G16 : 270M pts sphereInABoxe16.order4.ml4.hdf
+
+srun -N4 -n64 -ppdebug  $ogmgp tz -noplot -g=sphereInABoxe16.order4.ml4 -autoChoose=1 -numParallelGhost=4 
+
+
+
+***********************************************************
+TRY THIS: (non-FIXED) INTERPOLATION IS MUCH CHEAPER
+G4 = 36M pts 
+srun -N1 -n4 -ppdebug  $ogmgp tz -noplot -g=sphereInABoxe8.order4.ml4 -autoChoose=1 -numParallelGhost=4 
+
+srun -N1 -n16 -ppdebug  $ogmgp tz -noplot -g=sphereInABoxe8.order4.ml4 -autoChoose=1 -numParallelGhost=4  >! sib8o4.n16
+
+=== NP=1 ===
+
+=== NP=2 ===
+
+=== NP=4 ===
+Iteration=1..10 : Total WU=5.13e+01, total res reduction=6.82e-13, ave CR=0.0607 ave ECR=0.579 np=4
+ total.................................7.28e+02  7.28e+01   100.00%
+
+
+=== NP=8 ===
+Iteration=1..10 : Total WU=5.13e+01, total res reduction=7.58e-13, ave CR=0.0614 ave ECR=0.581 np=8
+ total.................................4.91e+02  4.91e+01   100.00%
+
+=== NP=16 ===
+Iteration=1..10 : Total WU=5.13e+01, total res reduction=7.25e-13, ave CR=0.0611 ave ECR=0.580 np=16
+total.................................4.72e+02  4.72e+01   100.00%
+
+=== NP=32 ===
+Iteration=1..10 : Total WU=5.06e+01, total res reduction=7.79e-13, ave CR=0.0615 ave ECR=0.577 np=32
+total.................................1.45e+02  1.45e+01   100.00%
+
+=== NP=64 ===
+
+
+
+***********************************************************
+TRY THIS: (non-FIXED) INTERPOLATION IS MUCH CHEAPER
+G8 = 39M pts 
+srun -N1 -n4 -ppdebug  $ogmgp tz -noplot -g=sphereInABoxe4.order4.ml3 -autoChoose=1 -numParallelGhost=4 
+
+=== NP=1 ===
+Iteration=1..10 : Total WU=5.06e+01, total res reduction=7.43e-13, ave CR=0.0613 ave ECR=0.576 np=1
+ total.................................2.35e+02  2.35e+01   100.00%
+
+=== NP=2 ===
+Iteration=1..10 : Total WU=5.06e+01, total res reduction=7.30e-13, ave CR=0.0611 ave ECR=0.576 np=2
+ total.................................1.39e+02  1.39e+01   100.00%
+
+=== NP=4 ===
+Iteration=1..10 : Total WU=5.02e+01, total res reduction=2.13e-12, ave CR=0.0681 ave ECR=0.586 np=4
+total.................................6.47e+01  6.47e+00   100.00%
+
+
+=== NP=8 ===
+Iteration=1..10 : Total WU=5.08e+01, total res reduction=8.08e-13, ave CR=0.0618 ave ECR=0.578 np=8
+total.................................3.94e+01  3.94e+00   100.00%
+
+=== NP=16 ===
+Iteration=1..10 : Total WU=5.07e+01, total res reduction=1.01e-12, ave CR=0.0631 ave ECR=0.580 np=16
+total.................................2.56e+01  2.56e+00   100.00%
+
+=== NP=32 ===
+Iteration=1..10 : Total WU=5.07e+01, total res reduction=1.41e-12, ave CR=0.0653 ave ECR=0.584 np=32
+ total.................................1.51e+01  1.51e+00   100.00%
+
+=== NP=64 ===
+Iteration=1..10 : Total WU=5.08e+01, total res reduction=7.71e-13, 
+
+ave CR=0.0615 ave ECR=0.577 np=64
+total.................................1.39e+01  1.39e+00   100.00%
+ total.................................1.40e+01  1.40e+00   100.00%
+
+***********************************************************
+G8 = 39M pts  INTERPOLATION IS EXPENSIVE -- 50% !!
+ 
+srun -N1 -n4 -ppdebug  $ogmgp tz -noplot -g=sphereInABoxFixede8.order4.ml4 -autoChoose=1 -numParallelGhost=4
+
+
+=== NP=4 ===
+Iteration=1..10 : Total WU=5.00e+01, total res reduction=2.75e-09, ave CR=0.1393 ave ECR=0.674 np=4
+ total.................................2.20e+02  2.20e+01   100.00%
+
+=== NP=8 ===
+Iteration=1..10 : Total WU=5.00e+01, total res reduction=2.73e-09, ave CR=0.1392 ave ECR=0.674 np=8
+total.................................1.37e+02  1.37e+01   100.00%
+
+
+=== NP=16 ===
+Iteration=1..10 : Total WU=5.00e+01, total res reduction=2.79e-09, ave CR=0.1395 ave ECR=0.675 np=16
+ total.................................9.89e+01  9.89e+00   100.00%
+
+
+=== NP=32 ===
+
+=== NP=64 ===
+
+
+
+***********************************************************
+G4 = 5M pts  INTERPOLATION IS EXPENSIVE -- 50% !!
+srun -N1 -n4 -ppdebug  $ogmgp tz -noplot -g=sphereInABoxFixede4.order4.ml3 -autoChoose=1 -numParallelGhost=4 
+
+== NP=1 ==
+Iteration=1..10 : Total WU=4.93e+01, total res reduction=1.93e-09, ave CR=0.1344 ave ECR=0.666 np=1
+sum of above..........................7.25e+01  7.25e+00    99.54%
+HERA: total.................................8.62e+01  8.62e+00   100.00%
+
+=== NP=2 ====
+Iteration=1..10 : Total WU=4.93e+01, total res reduction=1.93e-09, ave CR=0.1344 ave ECR=0.666 np=2
+ sum of above..........................6.18e+01  6.18e+00   100.02%  
+HERA: total.................................6.52e+01  6.52e+00   100.00%
+
+=== NP=4 ===
+Iteration=1..10 : Total WU=4.93e+01, total res reduction=1.92e-09, ave CR=0.1344 ave ECR=0.666 np=4
+ sum of above..........................5.38e+01  5.38e+00   100.13%  
+HERA: total.................................3.59e+01  3.59e+00   100.00%
+
+=== NP=8 ===
+HERA: Iteration=1..10 : Total WU=4.93e+01, total res reduction=1.92e-09, ave CR=0.1344 ave ECR=0.666 np=8
+HERA:  total.................................2.52e+01  2.52e+00   100.00%
+
+
+=== NP=16 ===
+Iteration=1..10 : Total WU=4.93e+01, total res reduction=1.96e-09, ave CR=0.1347 ave ECR=0.666 np=16
+HERA: total.................................1.49e+01  1.49e+00   100.00%
+
+=== NP=32 ===
+Iteration=1..10 : Total WU=4.93e+01, total res reduction=1.99e-09, ave CR=0.1349 ave ECR=0.666 np=32
+total.................................1.12e+01  1.12e+00   100.00%
+
+=== NP=64 ===
+
+
+===== 2012/06/09
+
+
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=7 -numParallelGhost=4
+
+Iteration=1..7 : Total WU=8.09e+01, total res reduction=1.34e-09, ave CR=0.0540 ave ECR=0.777 np=1
+Iteration=1..7 : Total WU=8.46e+01, total res reduction=1.30e-09, ave CR=0.0538 ave ECR=0.785 np=2
+Iteration=1..7 : Total WU=8.70e+01, total res reduction=1.06e-09, ave CR=0.0522 ave ECR=0.788 np=4
+
+
+
+**** BUG FOUND -- fixed buildExtraLevelsNew.bC -- also need to run with 4 parallel ghost
+
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=7 -numParallelGhost=4
+
+
+mpirun -np 4 $ogmgp tz -plot -g=pump2dGride6.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=0 -option=cg -numParallelGhost=4
+
+===== 2012/06/08 -- TODO: add option to iterate on the parallel line smoothers
+
+mpirun -np 1 $ogmgp tz -plot -g=pump2dGride6.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=0 -option=cg
+
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride6.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=0 -option=cg > ! junkcg4
+
+
+COARSE GRID SOLVE -- NOT ACCURATE for np>1 !!!!!!
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=0 -option=cg > ! junkcg4
+
+
+TEST Smoother:
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=0 -option=sm
+
+Still troubles: defect large near center on backgground grid near the parallel boundary
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=7
+
+
+===== 2012/06/08 -- TODO: add option to iterate on the parallel line smoothers
+
+INCREASE ILS:
+mpirun -np 1 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=2 -ils=6 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=7
+ils=6: Iteration=1..7 : Total WU=8.14e+01, total res reduction=7.49e-10, ave CR=0.0497 ave ECR=0.773
+ils=5: Iteration=1..7 : Total WU=8.09e+01, total res reduction=1.34e-09, ave CR=0.0540 ave ECR=0.777
+
+
+mpirun -np 4 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -sm=alz -bsm=alz -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=4
+
+PLOT: 
+mpirun -np 4 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=4
+
+STILL TROUBLE WITH -np=4
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+np=1: Iteration=1..10 : Total WU=1.33e+02, total res reduction=4.25e-13, ave CR=0.0579 ave ECR=0.807
+np=2: Iteration=1..10 : Total WU=1.48e+02, total res reduction=3.98e-13, ave CR=0.0575 ave ECR=0.825
+np=4: **BAD**
+
+mpirun -np 1 $ogmgp tz -plot -g=wiggley8.order4 -sm=alz -bsm=alz -debug=3 -maxit=6 -levels=2 -bc1=n -bc3=n -bc4=n
+np=1: Iteration=1..6 : Total WU=3.21e+01, total res reduction=7.44e-08, ave CR=0.0649 ave ECR=0.600
+np=4: Iteration=1..6 : Total WU=3.21e+01, total res reduction=8.80e-07, ave CR=0.0979 ave ECR=0.648
+
+mpirun -np 1 $ogmgp tz -plot -g=wiggley8.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=6 -levels=2 -bc1=n -bc3=n -bc4=n
+np=1: Iteration=1..6 : Total WU=3.18e+01, total res reduction=3.10e-08, ave CR=0.0561 ave ECR=0.580
+np=2: Iteration=1..6 : Total WU=3.18e+01, total res reduction=6.77e-08, ave CR=0.0638 ave ECR=0.595
+np=4: Iteration=1..6 : Total WU=3.18e+01, total res reduction=6.56e-08, ave CR=0.0635 ave ECR=0.594
+
+== BUG FOUND === Ogmg::assignBCCoeff.C -- reset order to 4!
+
+
+mpirun -np 2 $ogmgp tz -plot -g=wiggley.5.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=2 -levels=2 -bc1=n -bc3=n -bc4=n
+
+
+SMOOTH ONLY: 
+mpirun -np 2 $ogmgp tz -plot -g=wiggley.5.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n -option=sm -maxit=0
+
+mpirun -np 2 $ogmgp tz -plot -g=wiggley.5.order4 -sm=lj2 -bsm=lj2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+
+
+WIGGLEY -- COARSER -- BAD
+mpirun -np 2 $ogmgp tz -plot -g=wiggley.5.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+
+mpirun -np 2 $ogmgp tz -plot -g=wiggley1.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+mpirun -np 2 $ogmgp tz -plot -g=wiggley2.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+
+
+
+WIGGLEY, order=2: OK
+mpirun -np 2 $ogmgp tz -plot -g=wiggley4.order2 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+
+
+BAD: lz1=OK (lz1 + np=4 ok)
+mpirun -np 2 $ogmgp tz -plot -g=wiggley4.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+Iteration=1..3 : Total WU=1.66e+01, total res reduction=1.49e+05, ave CR=53.0684 ave ECR=2.046
+
+
+WIGGLEY: -np2=BAD
+mpirun -np 2 $ogmgp tz -plot -g=wiggley8.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+Iteration=1..3 : Total WU=1.66e+01, total res reduction=8.17e+04, ave CR=43.3910 ave ECR=1.973
+
+
+WIGGLEY: -np1 OK, -np2=BAD
+mpirun -np 1 $ogmgp tz -plot -g=wiggley8.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+Iteration=1..3 : Total WU=1.66e+01, total res reduction=2.19e-04, ave CR=0.0603 ave ECR=0.603
+
+mpirun -np 5 $ogmgp tz -plot -g=wiggley8.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=3 -levels=2 -bc1=n -bc3=n -bc4=n
+
+-- defect has spikes along right edge at parallel boundaries:
+mpirun -np 5 $ogmgp tz -plot -g=square256.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=5 -levels=2 -bc1=n -bc3=n -bc4=n
+Iteration=1..5 : Total WU=3.05e+01, total res reduction=3.27e-06, ave CR=0.0799 ave ECR=0.661
+
+mpirun -np 1 $ogmgp tz -plot -g=square256.order4 -sm=lz2 -bsm=lz2 -debug=3 -maxit=5 -levels=2 -bc1=n -bc3=n -bc4=n
+Iteration=1..5 : Total WU=3.05e+01, total res reduction=5.11e-10, ave CR=0.0139 ave ECR=0.496
+
+
+
+rhombus: TROUBLE at corners:
+mpirun -np 4 $ogmgp tz -plot -g=rhombus8.order4.ml4 -sm=alz -bsm=alz -debug=3 -maxit=3 -levels=2 -bc1=n -bc2=n -bc3=n
+
+mpirun -np 4 $ogmgp tz -plot -g=square256.order4 -sm=alz -bsm=alz -debug=3 -maxit=3 -levels=2 -bc1=n -bc2=n -bc3=n
+
+mpirun -np 4 $ogmgp tz -plot -g=square256.order4 -sm=lz1 -bsm=lz1 -debug=3 -maxit=3 -levels=2 -bc1=n -bc2=n -bc3=n
+
+mpirun -np 4 $ogmgp tz -plot -g=square256.order4 -sm=lz1 -bsm=lz1 -debug=3 -maxit=3 -levels=2 -bc1=n -bc2=n
+
+mpirun -np 4 $ogmgp tz -plot -g=square32.order4 -sm=lz1 -bsm=lz1 -debug=3 -maxit=3 -levels=2
+
+mpirun -np 4 $ogmgp tz -plot -g=square32.order2 -sm=lz1 -bsm=lz1 -debug=3 -maxit=3 -levels=2
+
+
+===== 2012/06/07
+
+
+mpirun -np 4 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -sm=alz -bsm=alz -nsm="5 5" -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=4
+
+NOTE: dirichlet BC's converge very fast:
+mpirun -np 4 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -ssr=1 
+Iteration=1..10 : Total WU=9.93e+01, total res reduction=1.11e-14, ave CR=0.0402 ave ECR=0.724
+
+
+numParallelGhost - doesn't seem to help
+mpirun -np 4 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=3 -numParallelGhost=4
+
+mpirun -np 4 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=3
+
+-np=2,3 OK: grid=2 is on p=0
+mpirun -np 2 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=3
+mpirun -np 1 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 
+Iteration=1..10 : Total WU=1.33e+02, total res reduction=4.25e-13, ave CR=0.0579 ave ECR=0.807
+
+
+OLD VERSION: BAD TOO.
+mpirun -np 4 ../ogmgt tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+mpirun -np 4 $ogmgp tz -plot -g=square256.order2 -sm=alz -bsm=alz -debug=3 -bc1=n -bc2=n -bc3=n -bc5=n -maxit=6 -bls=1 [ CR=0.0304 ave ECR=0.523
+
+
+mpirun -np 4 $ogmgp tz -plot -g=square256.order2 -sm=alz -bsm=alz -debug=3 -bc1=n -bc2=n -bc3=n -bc5=n -maxit=6
+Iteration=1..6 : Total WU=3.24e+01, total res reduction=1.45e-10, ave CR=0.0229 ave ECR=0.497
+
+mpirun -np 4 $ogmgp tz -plot -g=square256.order2 -sm=alz -bsm=alz -debug=3 -bc1=n -bc2=n -bc3=n -bc5=n -maxit=3
+
+
+mpirun -np 4 $ogmgp tz -plot -g=cice16.order2.ml4 -sm=alz -bsm=alz -debug=3 -bc1=n -bc2=n -bc3=n -bc5=n -maxit=3
+
+mpirun -np 4 $ogmgp tz -plot -g=cice64.order2.ml5 -sm=alz -bsm=alz -debug=3 -bc1=n -bc3=n -bc5=n -maxit=5
+
+mpirun -np 4 $ogmgp tz -plot -g=cice2.order2.ml2 -sm=alz -bsm=alz -debug=3 -bc1=n -bc3=n -bc5=n -maxit=5
+
+OK: sm=rb
+mpirun -np 4 $ogmgp tz -plot -g=cice2.order2.ml2 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc5=n -maxit=5 [CR=0.0214
+
+mpirun -np 4 $ogmgp tz -plot -g=cice2.order2.ml2 -autoChoose=1 -debug=3 -bc1=n -bc2=n -bc3=n -bc4=n -maxit=5
+
+TROUBLE 
+mpirun -np 6 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -maxit=4
+
+TROUBLE -np 4 , Neumann BC's - diverges
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -ils=2 -bls=2 -sm=rb -bsm=rb -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+RB smoother converges:
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -sm=rb -bsm=rb -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+dirichlet BC OK
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 
+
+
+[CR1=0.0579, CR2=0.0575, CR4=
+mpirun -np 1 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+OK: not-predefined
+mpirun -np 4 $ogmgp tz -noplot -g=sib.bbmg -autoChoose=1 -predefined=0
+
+OK: np=1,2,4 (predefined)
+mpirun -np 1 $ogmgp tz -noplot -g=sib.bbmg -autoChoose=1 [CR=0.0278, CR=0.0288, CR=0.0335  np=1,2,4
+
+np=1,2 TROUBLE np=4 -- dur to non-predefined eqn's ??
+mpirun -np 1 $ogmgp noplot ../check/sib -debug=3 -autoChoose=1 [CR=0.0251, CR=0.0252, 
+
+mpirun -np 2 $ogmgp noplot ../check/sib -debug=3
+
+mpirun -np 1 $ogmgp tz -noplot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+
+==== 2012/06/05
+
+mpirun -np 1 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+valgrindebug $ogmgp -noplot $ogmg/cmd/tz -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+==== 2012/06/04
+
+SIMPLER:
+mpirun -np 1 $ogmgp tz -plot -g=cice2.order4.ml2 -autoChoose=1 -debug=3 
+
+TEST: FOURTH-ORDER -- TROUBLE:
+mpirun -np 1 $ogmgp tz -plot -g=pump2dGride8.order4.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 [CR=0.0579 ave ECR=0.810
+
+
+valgrindebug $ogmgp -noplot $ogmg/cmd/tz  -g=pump2dGride4.order2.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -ilu=5 -maxit=2
+
+
+autoChoose=2 : increase ILU levels on coarse grid
+mpirun -np 2 $ogmgp tz -noplot -g=pump2dGride16.order2.s8.ml2 -autoChoose=2 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -rtolcg=.01 [CR=0.0814 ave ECR=0.802 
+
+OK: but 
+mpirun -np 2 $ogmgp tz -noplot -g=pump2dGride16.order2.s8.ml2 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 [CR=0.0988 ave ECR=0.818
+direct solve on coarsest level........3.30e+01  3.30e+00    88.00%
+
+
+RERUN: CR=0.0991 ave ECR=0.818  -- OLD: CR=0.1213 ave ECR=0.832
+mpirun -np 1 $ogmgp tz -noplot -g=pump2dGride16.order2.s8.ml2 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 [CR=0.0991 ave ECR=0.818
+
+
+
+
+==== 2012/06/02
+
+mpirun -np 2 $ogmgp tz -plot -g=pump2dGride4.order2.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -ilu=5 -maxit=2
+
+mpirun -np 1 $ogmgp tz -plot -g=pump2dGride4.order2.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -ilu=5 -maxit=2
+
+
+----------------------------------------------------------------------------------
+ Point x=(6.497e-01,1.504e-01,0.000e+00) lies on grid=0 (name=background) at r=(6.612e-01,5.001e-01,-1.000e+00)
+ The closest grid point is (i1,i2,i3)=(41,33,0)
+.....................nearby mask values ..............................
+ mask: 1=interior, 2=ghost, -2,3=interiorBoundaryPoint, 4=hidden-by-refinement <0 =interp
+ ----------------------------------------------------------------------------------
+ Point (41,33,0) on grid 0 interpolates from grid 6 at r=(-0.000e+00,-0.000e+00,0.000e+00)
+ Interpolation pt 217, width=3, lower left corner of interp stencil=(-1,0,0)
+ grid=0 : background, (i1,i2,i3)=(41,33,0) x=(6.50000e-01,1.50000e-01,0.00000e+00), mask=-2147483648 decode=-1
+   mask(40:42,32,0) =   1   -1   -1
+   mask(40:42,33,0) =  -1   -1    0
+   mask(40:42,34,0) =   0    0    0
+
+
+
+
+mpirun -np 2 $ogmgp tz -plot -g=pump2dGride8.order2.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -ilu=5 -maxit=2
+
+
+==== 2012/06/01; Troubles with PUMP2D in parallel
+ 
+TROUBLE: PLOT MG levels in parallel: .. FIXED Plot bug
+
+mpirun -np 2 -gdb $ogmgp tz -plot -g=square64.order2 -autoChoose=1 -debug=3
+
+
+mpirun -np 2 $ogmgp tz -plot -g=pump2dGride8.order2.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -ilu=5 -maxit=5
+
+
+PLOT: 
+mpirun -np 2 $ogmgp tz -plot -g=pump2dGride16.order2.s8.ml2 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -ilu=5 -maxit=5
+
+mpirun -np 2 $ogmgp tz -noplot -g=pump2dGride16.order2.s8.ml2 -autoChoose=0 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 -ilu=7 -rtolcg=1.e-5
+
+>>>>>> Finer + -np=2   ***BAD***
+mpirun -np 2 $ogmgp tz -noplot -g=pump2dGride16.order2.s8.ml2 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 [CR=0.5388 ave ECR=0.946
+
+Solve: maximum defect at start=1.33e+04...
+  Ogmg::cycle:level=0, it=0, Initial defect =1.33e+04
+  Ogmg:smooth, level = 0, iteration=0, defect: (0=9.407e+01),(1=5.826e+03),(2=8.040e+03),(3=2.349e+03),(4=2.137e+03),(5=2.376e+03),(6=3.140e+03),(7=2.748e+03),(8=3.189e+03),(9=2.035e+03),(10=2.369e+02),max= 8.04e+03, [rate = 0.6037],
+  Ogmg:smooth, level = 0, iteration=1, defect: (0=8.784e+01),(1=2.480e+03),(2=5.108e+03),(3=1.753e+03),(4=1.598e+03),(5=1.792e+03),(6=2.359e+03),(7=1.974e+03),(8=2.396e+03),(9=1.438e+03),(10=1.912e+02),max= 5.11e+03, [rate = 0.6353],
+     Ogmg:smooth, level = 1, iteration=0, defect: (0=6.009e+01),(1=7.736e+02),(2=1.447e+03),(3=8.212e+02),(4=7.750e+02),(5=8.643e+02),(6=1.128e+03),(7=8.774e+02),(8=1.144e+03),(9=6.178e+02),(10=1.231e+02),max= 1.45e+03, [rate = 1.0014],
+     Ogmg:smooth, level = 1, iteration=1, defect: (0=7.182e+01),(1=3.148e+02),(2=1.089e+03),(3=7.159e+02),(4=7.032e+02),(5=7.773e+02),(6=1.004e+03),(7=7.437e+02),(8=1.017e+03),(9=5.328e+02),(10=1.101e+02),max= 1.09e+03, [rate = 0.7529],
+         Ogmg::cycle:level=2, it=1, WU= 3.00, defect=4.12e-01, defect/defectOld= 0.000,  ECR2=   0.031
+     Ogmg:smooth, level = 1, iteration=0, defect: (0=7.875e+02),(1=4.309e+01),(2=4.139e+02),(3=8.356e+01),(4=4.796e+02),(5=9.838e+01),(6=1.042e+02),(7=9.647e+01),(8=1.108e+02),(9=6.138e+01),(10=8.638e+00),max= 7.87e+02, [rate = 0.3432],
+     Ogmg::cycle:level=1, it=1, WU= 3.56, defect=7.87e+02, defect/defectOld= 0.059,  ECR1=   0.452
+  Ogmg:smooth, level = 0, iteration=0, defect: (0=1.382e+03),(1=3.707e+02),(2=1.893e+03),(3=2.973e+02),(4=1.595e+03),(5=3.336e+02),(6=3.456e+02),(7=3.856e+02),(8=3.889e+02),(9=2.188e+02),(10=1.090e+01),max= 1.89e+03, [rate = 0.2541],
+  Ogmg:smooth, level = 0, iteration=1, defect: (0=1.356e+03),(1=1.549e+02),(2=6.762e+02),(3=2.078e+02),(4=1.228e+03),(5=2.376e+02),(6=2.349e+02),(7=2.068e+02),(8=2.478e+02),(9=1.158e+02),(10=7.854e+00),max= 1.36e+03, [rate = 0.7165],
+  Ogmg:smooth, level = 0, iteration=2, defect: (0=1.055e+03),(1=4.888e+01),(2=3.251e+02),(3=1.543e+02),(4=7.275e+02),(5=1.767e+02),(6=1.807e+02),(7=1.520e+02),(8=1.901e+02),(9=8.153e+01),(10=6.573e+00),max= 1.05e+03, [rate = 0.7777],
+  Ogmg::cycle:level=0, it=1, WU=12.17, defect=1.05e+03, defect/defectOld= 0.079,  ECR0=   0.812 ***
+   ->solve: (level=0) it=1, l2NormResidual=1.05e+03 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+     Ogmg:smooth, level = 1, iteration=0, defect: (0=4.037e+02),(1=6.373e+01),(2=1.102e+02),(3=3.685e+01),(4=2.309e+01),(5=7.600e+01),(6=2.089e+01),(7=5.678e+01),(8=2.448e+01),(9=3.892e+01),(10=5.193e+00),max= 4.04e+02, [rate = 1.0357],
+     Ogmg:smooth, level = 1, iteration=1, defect: (0=2.786e+02),(1=2.851e+01),(2=8.686e+01),(3=2.760e+01),(4=1.708e+01),(5=4.805e+01),(6=1.379e+01),(7=3.050e+01),(8=1.605e+01),(9=2.168e+01),(10=4.460e+00),max= 2.79e+02, [rate = 0.6903],
+PETScEquationSolver:ERROR: Solution diverged! reason=-3 :
+     KSP_DIVERGED_NULL                = -2,
+     KSP_DIVERGED_ITS                 = -3,
+     KSP_DIVERGED_DTOL                = -4,
+     KSP_DIVERGED_BREAKDOWN           = -5,
+     KSP_DIVERGED_BREAKDOWN_BICG      = -6,
+     KSP_DIVERGED_NONSYMMETRIC        = -7,
+     KSP_DIVERGED_INDEFINITE_PC       = -8,
+     SP_DIVERGED_NAN                  = -9,
+     KSP_DIVERGED_INDEFINITE_MAT      = -10
+NOTE: to see more information turn on the '-info' PETSc option (e.g. in your .petscrc)
+NOTE 2: to avoid the divergence error '-4' you can set the Oges option 'maximum allowable increase in the residual'
+         Ogmg::cycle:level=2, it=1, WU= 3.00, defect=1.58e-01, defect/defectOld= 0.000,  ECR2=   0.053
+
+
+
+>>>>>>>> FINER -np=1 OK: .. better: 
+mpirun -np 1 $ogmgp tz -noplot -g=pump2dGride16.order2.s8.ml2 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1 [CR=0.1213 ave ECR=0.832
+
+
+--- real case : bcNumber2=outflow
+
+-AUTOCHOOSE=0 -- better? CR<1 
+mpirun -np 2 $ogmgp tz -noplot -g=pump2dGride4.order2.s8.ml1 -autoChoose=0 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+-AUTOCHOOSE=1 or 2 : CR is above and below 1!
+mpirun -np 2 $ogmgp tz -noplot -g=pump2dGride4.order2.s8.ml1 -autoChoose=1 -debug=3 -bc1=n -bc3=n -bc4=n -ssr=1
+
+ Ogmg::cycle:level=0, it=0, Initial defect =6.11e+02
+  Ogmg::cycle:level=0, it=1, WU=18.37, defect=8.72e+01, defect/defectOld= 0.143,  ECR0=   0.899 ***
+   ->solve: (level=0) it=1, l2NormResidual=8.72e+01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=2, WU=16.01, defect=3.05e+02, defect/defectOld= 3.497,  ECR0=   1.081 ***
+   ->solve: (level=0) it=2, l2NormResidual=3.05e+02 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=3, WU=18.13, defect=2.62e+01, defect/defectOld= 0.086,  ECR0=   0.873 ***
+   ->solve: (level=0) it=3, l2NormResidual=2.62e+01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=4, WU=18.33, defect=2.46e+01, defect/defectOld= 0.940,  ECR0=   0.997 ***
+   ->solve: (level=0) it=4, l2NormResidual=2.46e+01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=5, WU=19.51, defect=2.82e+00, defect/defectOld= 0.114,  ECR0=   0.895 ***
+   ->solve: (level=0) it=5, l2NormResidual=2.82e+00 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=6, WU=18.38, defect=1.04e+01, defect/defectOld= 3.693,  ECR0=   1.074 ***
+   ->solve: (level=0) it=6, l2NormResidual=1.04e+01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=7, WU=19.56, defect=7.09e-01, defect/defectOld= 0.068,  ECR0=   0.872 ***
+   ->solve: (level=0) it=7, l2NormResidual=7.09e-01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=8, WU=18.53, defect=5.00e+00, defect/defectOld= 7.045,  ECR0=   1.111 ***
+   ->solve: (level=0) it=8, l2NormResidual=5.00e+00 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=9, WU=19.66, defect=3.39e-01, defect/defectOld= 0.068,  ECR0=   0.872 ***
+   ->solve: (level=0) it=9, l2NormResidual=3.39e-01 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+  Ogmg::cycle:level=0, it=10, WU=18.52, defect=2.31e+00, defect/defectOld= 6.820,  ECR0=   1.109 ***
+   ->solve: (level=0) it=10, l2NormResidual=2.31e+00 <? 1.00e-10 = resTol*l2Norm(f) + aTol=(1.0e-14)*(1.0e+01) + 1.0e-10
+
+
+
+DIRICHLET BC:
+mpirun -np 4 $ogmgp tz -noplot -g=pump2dGride4.order2.s8.ml1 -autoChoose=1 -debug=3 [CR=0.0487 ave ECR=0.857
+
+
+mpirun -np 2 $ogmgp tz -noplot -g=pump2dGride4.order2.s8.ml1 -autoChoose=1 -debug=3 [CR=0.0482 ave ECR=0.853
+
+mpirun -np 1 $ogmgp tz -noplot -g=pump2dGride4.order2.s8.ml1 -autoChoose=1 -debug=3  [CR=0.0484 ave ECR=0.854
+
+
+
+==== 2012/05/06: REVISIT: TEST LOFTED BOX:
+
+FIXED BUG in Ogen
+
+ogmgt tz -noplot -g=loftedBoxe8.order4.ml3.hdf -autoChoose=2 -debug=3 
+
+
+INCREASE INTERP-BOUNDARY SMOOTHS: BETTER:
+ogmgt tz -noplot -g=loftedBoxe4.order4.ml2.hdf -autoChoose=2 -debug=3 
+Iteration=1..10 : Total WU=1.27e+02, total res reduction=9.17e-10, ave CR=0.1248 ave ECR=0.848
+
+
+OK: but defect is large near interp boundaries
+ogmgt tz -noplot -g=loftedBoxe4.order4.ml2.hdf -autoChoose=1 -debug=3 
+Iteration=1..10 : Total WU=5.97e+01, total res reduction=1.68e-06, ave CR=0.2646 ave ECR=0.800
+
+
+Converges OK: Still some errors from level 2 coarse grid
+ogmgt tz -noplot -g=loftedBoxe3.order4.ml2.hdf -autoChoose=1 -debug=3 
+
+ ***ERROR: unable to find a better grid to interpolate from!
+    grid=0 (backGround) iv=(7,6,6) interpoleeGrid=1 (refinementPatch) width=1 r=(0.232804,0.300000,0.300000) interpQuality=4
+ ***ERROR: unable to find a better grid to interpolate from!
+    grid=0 (backGround) iv=(8,6,6) interpoleeGrid=1 (refinementPatch) width=1 r=(0.306878,0.300000,0.300000) interpQuality=4
+ ***ERROR: unable to find a better grid to interpolate from!
+
+
+
+==== 2012/05/06: REVISIT: TEST LOFTED BOX:
+
+NEW LOFTED BOX -- replace normal mapping on ends
+
+1 3 10 1
+
+ogmgt tz -noplot -g=loftedBoxe3.order4.ml2noRefine.hdf -autoChoose=1 -debug=3  
+ERROR: level=0 grid=1 Discretization point (3,10,1) cannot be discretized
+ERROR: level=0 grid=1 Discretization point (57,10,1) cannot be discretized
+ERROR: level=0 grid=1 Discretization point (3,110,1) cannot be discretized
+ERROR: level=0 grid=1 Discretization point (57,110,1) cannot be discretized
+
+
+ogmgt tz -noplot -g=loftedBoxe3.order4.ml1noRefine.hdf -autoChoose=1 -debug=3 
+
+
+ERROR in COARSE GRID GEN:
+ogmgt tz -noplot -g=loftedBoxe8.order4.ml3 -autoChoose=1 -debug=3 
+
+
+ERROR in COARSE GRID GEN:
+ogmgt tz -noplot -g=loftedBoxe4.order4.ml2.hdf -autoChoose=1 -debug=3 
+
+OK: 
+ogmgt tz -noplot -g=loftedBoxe4.order4.ml1.hdf -autoChoose=1 -debug=3 
+
+ogmgt tz -noplot -g=loftedBoxe3.order4.ml1.hdf -autoChoose=1 -debug=3 
+
+ERROR in COARSE GRID GEN:
+ogmgt tz -noplot -g=loftedBoxe3.order4.ml2.hdf -autoChoose=1 -debug=3 
+
+ERROR: level=0 grid=2 Discretization point (3,10,1) cannot be discretized
+ERROR: level=0 grid=2 Discretization point (57,10,1) cannot be discretized
+ERROR: level=0 grid=2 Discretization point (3,110,1) cannot be discretized
+ERROR: level=0 grid=2 Discretization point (57,110,1) cannot be discretized
+
+
+OK:
+ogmgt tz -noplot -g=loftedBoxe4.order2.ml2 -autoChoose=1 -debug=3
+
+
+
+OK: but not great CR
+ogmgt tz -noplot -g=loftedBoxe4.order4.ml2.hdf -autoChoose=1 -debug=3 
+
+OK:
+ogmgt tz -noplot -g=loftedBoxe3.order4.ml1.hdf -autoChoose=1 -debug=3 
+
+OK: 
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2 -autoChoose=1 -debug=3 -ssr=1 
+
+
+==== 2012/05/06: REVISIT: TEST LOFTED BOX:
+
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2 -ssr=1 -maxit=0 -levels=2 -option=cg
+
+
+PLOT defect -- trouble in coarse grid solve
+ogmgt tz -plot -g=loftedBoxe2.order2.ml2 -autoChoose=1 -debug=3 -ssr=1 -levels=2 -maxit=9
+
+
+Better, but still poor:
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2 -autoChoose=1 -debug=3 -ssr=1 -levels=2 
+
+
+TURN OFF fourth-order DPM -- levels=2 OK 
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2noRefine -autoChoose=1 -debug=3 -ssr=1 -levels=2 
+
+
+No NURBS: trouble reading grid!
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2noRefine -maxit=2 -debug=3 -ssr=1 -maxit=0 -levels=2 -option=sm
+
+BAD: Smoother diverges on the fine level!
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2noRefine -maxit=2 -debug=3 -ssr=1 -maxit=0 -levels=2 -option=sm
+
+
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2noRefine -maxit=2 -debug=3 -ssr=1 -bsm=rb -sm=rb -levels=2 -nsm="10 10"
+
+
+==== 2012/05/02: TEST LOFTED BOX:
+
+TROUBLE: grids 3 and 4 : smoother diverges
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2 -maxit=2 -debug=3 -ssr=1 -bsm=rb -sm=rb -levels=2 -nsm="10 10"
+
+
+ML2: DIVERGES:
+ogmgt tz -noplot -g=loftedBoxe3.order2.ml2.hdf -autoChoose=1 -debug=3
+
+ML2: DIVERGES:
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml2 -autoChoose=1 -debug=3 -ssr=1
+
+ML1: OK: 
+ogmgt tz -noplot -g=loftedBoxe2.order2.ml1 -autoChoose=1 -debug=3
+
+**** 2012/05/02:
+
+TROUBLE with coarse grid gen in parallel:
+FAILS generating coarse grid:
+ogmgt tz -noplot -g=loftedBoxe4.order4.ml3.hdf -autoChoose=1 -debug=3
+
+
+
+**** 2012/04/04
+
+valgrindebug ../ogmgt tz -noplot -g=cice2.order2.ml2 -autoChoose=1 -debug=3
+
+
+
+**** 2012/04/03 
+  Does "oges smoother" still work?
+
+ogmgt tz -noplot -g=cice2.order2.ml2 -bsm=oges -sm=oges -debug=3 -ssr=1
+
+*** 2012/03/29
+
+ogmgt tz -noplot -g=cice2.order2.ml2 -autoChoose=1 -debug=3 -ssr=1
+
+-- test smoother: 
+ogmgt tz -noplot -g=cice2.order2.ml2 -autoChoose=1 -debug=3 -option=sm -maxit=0
+
+coarse to fine 
+ogmgt tz -noplot -g=cice2.order2.ml2 -autoChoose=1 -debug=3 -option=m -maxit=0
+
+sphereInABoxe2.order2.ml2.hdf
+
+
+*** 2012/03/18
+
+4 towers:
+ogmgt tz -noplot -g=windFarm4Towersi1.order2.ml1 -autoChoose=1 -debug=3
+
+
+2 towers, 3 blades each: 
+ogmgt tz -noplot -g=windFarm2Towersi2.order2.ml1 -autoChoose=1 -debug=3
+
+
+Some troubling generating the coarse grid, but runs OK.
+ogmgt tz -noplot -g=windFarm1Towersi2.order2.ml1 -autoChoose=1 -debug=3
+Iteration=1..10 : Total WU=6.03e+01, total res reduction=7.60e-12, ave CR=0.0773 ave ECR=0.654
+
+
+TRY THIS:
+ogmgt tz -noplot -g=windFarm2Towersi1.order2.ml2.hdf -autoChoose=1 -debug=3
+
+FAILS generating coarse grid:
+ogmgt tz -noplot -g=windFarm1Towersi1.order2.ml2.hdf -autoChoose=1 -levels=2 -debug=3
+
+
+
+*** 2012/03/17
+
+
+OK: 
+ogmgt tz -noplot -g=turbineAndTower1Bladese2.order2.ml1 -autoChoose=1 -debug=3
+Iteration=1..10 : Total WU=6.54e+01, total res reduction=8.49e-16, ave CR=0.0311 ave ECR=0.588
+
+OK: 
+ogmgt tz -noplot -g=loftedBoxi2.order2.ml1 -autoChoose=1 -debug=3 [OK: 
+Iteration=1..10 : Total WU=7.32e+01, total res reduction=5.20e-11, ave CR=0.0937 ave ECR=0.724
+
+
+TRY THIS: .. OK
+ogmgt tz -noplot -g=$s3/site300Gride4.order2.ml2 -autoChoose=0 -sm=rb -bsm=rb -debug=3 -ssr=1 -nsm="2 2"
+Iteration=1..10 : Total WU=7.29e+01, total res reduction=3.75e-09, ave CR=0.1437 ave ECR=0.766
+
+ogmgt tz -noplot -g=$s3/site300Gride4.order2.ml2 -autoChoose=1 -debug=3 -ssr=1
+Iteration=1..10 : Total WU=1.12e+02, total res reduction=6.57e-08, ave CR=0.1913 ave ECR=0.862
+
+
+PROBLEM FIXED WITH loftedBox grid -- Make the reference grid for sub-smooths a Cartesian grid if possible
+   Now the number of sub-iterations can increase on grid 1.
+
+Now OK: 
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -autoChoose=1 -debug=3
+Iteration=1..10 : Total WU=1.53e+02, total res reduction=1.60e-11, ave CR=0.0833 ave ECR=0.850
+
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -autoChoose=0 -sm=rb -bsm=rb -debug=3 -ssr=1 -nsm="2 2"
+Iteration=1..10 : Total WU=2.25e+02, total res reduction=9.23e-14, ave CR=0.0497 ave ECR=0.875
+
+*** 2012/03/16
+
+*REVISIT OGMG TROUBLES
+
+set ll = /home/henshaw.0/runs/cgins/livingLab
+
+
+POOR convergence on GRID=1 : why aren't there more sub-iterations on grid=1??
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -autoChoose=0 -sm=rb -bsm=rb -debug=3 -ssr=1 -nsm="2 2"
+
+  Ogmg:smooth, level = 0, iteration=0, defect: (0=8.692e-01),(1=1.303e+01),(2=3.593e-02),(3=3.558e-02),max= 1.30e+01, [rate = 0.6576],
+  Ogmg:smooth, level = 0, iteration=1, defect: (0=4.045e-01),(1=1.102e+01),(2=1.048e-02),(3=1.037e-02),max= 1.10e+01, [rate = 0.8461],
+  Ogmg:smooth, level = 0, iteration=2, defect: (0=3.169e-01),(1=1.254e+01),(2=7.041e-03),(3=7.072e-03),max= 1.25e+01, [rate = 1.1380],
+  Ogmg:smooth, level = 0, iteration=3, defect: (0=2.187e-01),(1=1.887e+01),(2=2.208e-03),(3=2.228e-03),max= 1.89e+01, [rate = 1.5040],
+
+
+
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -autoChoose=0  -sm=rb -bsm=rb -debug=3
+
+ALZ: NOT SO GOOD:
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -option=sm -autoChoose=0 -debug=3 -maxit=0 -sm=alz -bsm=alz
+
+RB OK:
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -option=sm -autoChoose=0 -debug=3 -maxit=0 -sm=rb -bsm=rb
+
+RBJ OK: 
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -option=sm -autoChoose=0 -debug=3 -maxit=0 -sm=rbj -bsm=rbj
+
+SMOOTHER not so good: (line smoothing being used)
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -option=sm -autoChoose=1 -debug=3 -maxit=0 
+
+
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -option=cf -autoChoose=1 -debug=3 -maxit=0 
+***************** test coarse to fine operator ******************
+==================== level = 0 ======================
+  Polynomial degree=0, maximum error in coarse to fine on grid=0 is 6.661338e-16
+  Polynomial degree=0, maximum error in coarse to fine on grid=1 is 6.661338e-16
+  Polynomial degree=0, maximum error in coarse to fine on grid=2 is 6.661338e-16
+  Polynomial degree=0, maximum error in coarse to fine on grid=3 is 4.440892e-16
+  Polynomial degree=1, maximum error in coarse to fine on grid=0 is 7.327736e-01
+  Polynomial degree=1, maximum error in coarse to fine on grid=1 is 8.277451e-01  ** * LOOKS BAD
+  Polynomial degree=1, maximum error in coarse to fine on grid=2 is 9.756380e-02
+  Polynomial degree=1, maximum error in coarse to fine on grid=3 is 9.747606e-02
+  Polynomial degree=2, maximum error in coarse to fine on grid=0 is 5.430591e+00
+  Polynomial degree=2, maximum error in coarse to fine on grid=1 is 6.277514e+00
+  Polynomial degree=2, maximum error in coarse to fine on grid=2 is 2.754272e-01
+  Polynomial degree=2, maximum error in coarse to fine on grid=3 is 2.754283e-01
+
+
+	
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -option=fc -autoChoose=1 -debug=3 -maxit=0 
+
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -option=cg -autoChoose=1 -debug=3
+
+Trouble: some cycles have an increase in residual
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -autoChoose=1 -debug=3
+
+
+
+
+
+*** 2012/03/11,13
+
+FINE-TO_COARSE AND COARSE-TO-FINE look wrong: 
+ogmgt tz -noplot -g=empireSmall4.hdf -option=fc -autoChoose=1 -tz=poly -degreex=1 -debug=3 -ssr=1
+ogmgt tz -noplot -g=empireSmall.hdf -option=fc -autoChoose=1 -tz=poly -degreex=1 -debug=3 -ssr=1
+
+
+Smooth-tests:
+ogmgt tz -noplot -g=empireSmall4.hdf -option=sm -autoChoose=1 -levels=2 -debug=3 -ssr=1
+
+
+TROUBLE: doesn't converge (valgrind ok)
+ogmgt tz -noplot -g=empireSmall4.hdf -autoChoose=1 -levels=2 -tz=poly -degreex=2 -debug=3
+
+
+# TEST CASE: AMR grids have non-zero base for indexRange
+ogmgt tz -noplot -g=empireSmall.hdf -autoChoose=1 -levels=3 -tz=poly -degreex=2 -debug=3 [OK
+ogmgt tz -noplot -g=empireSmall.hdf -autoChoose=1 -levels=2 -debug=7  [OK
+
+
+TROUBLE With shape-file to amr grid:
+ogmgt tz -noplot -g=empire.hdf -autoChoose=1 -debug=3 
+
+
+***** 2011/11/07
+
+-- singular problem:
+
+ogmgt tz -noplot -g=square64.order2 -bsm=alz -bc1=n -bc2=n -bc3=n -bc4=n -predefined=0 -adjustSingularEquations=1
+
+ogmgt tz -noplot -g=square64.order2 -bc1=n -bc2=n -bc3=n -bc4=n -predefined=0 -adjustSingularEquations=1
+
+teration=1..20 : Total WU=8.11e+01, total res reduction=2.85e-04, ave CR=0.6649 ave ECR=0.904
+
+
+
+-projectSingular=0 -adjustSingularEquations=1
+
+
+**** 2011/10/03
+
+-- trouble with site300 grid converging
+
+set s3 = /home/henshaw.0/runs/cgins/site300
+
+
+-- Smooth terrain -- this now works with dpm
+ogmgt tz -noplot -g=$s3/site300Gride4.order2.ml2 -autoChoose=1 -debug=3 -ssr=1
+Iteration=1..10 : Total WU=7.94e+01, total res reduction=6.57e-08, ave CR=0.1913 ave ECR=0.812
+
+
+-- *new* use nurbs for terrain before stretching 
+OK: 
+ogmgt tz -noplot -g=$s3/site300Gride4.order2.ml2 -autoChoose=1 -debug=3 -ssr=1
+
+OK: 
+ogmgt tz -noplot -g=$s3/site300Gride2.order2.ml1 -autoChoose=1 -debug=3
+Iteration=1..10 : Total WU=8.59e+01, total res reduction=1.86e-09, ave CR=0.1339 ave ECR=0.791
+
+
+** grid with no normal stretching: OK 
+ogmgt tz -noplot -g=$s3/site300Grid-noStretche4.order2.ml2 -autoChoose=0 -debug=3 -ssr=1 -rtolcg=1.e-5
+Iteration=1..10 : Total WU=3.96e+01, total res reduction=6.70e-06, ave CR=0.3038 ave ECR=0.740
+
+ogmgt tz -noplot -g=$s3/site300Grid-noStretche4.order2.ml2 -autoChoose=1 -debug=3 -ssr=1 -rtolcg=1.e-5
+Iteration=1..10 : Total WU=7.56e+01, total res reduction=5.62e-08, ave CR=0.1883 ave ECR=0.802
+
+*BAD* smooth on level=1 is bad
+ogmgt tz -noplot -g=$s3/site300Gride4.order2.ml2 -autoChoose=1 -debug=3 -ssr=1
+
+OK: 
+ogmgt tz -noplot -g=$s3/site300Gride2.order2.ml1 -autoChoose=1 -debug=3
+
+**** 2011/09/13
+
+set ll = /home/henshaw.0/runs/cgins/livingLab
+
+ogmgt tz -noplot -g=$ll/cloudGride4.order2.ml2 -autoChoose=1 -debug=3
+
+
+GOOD: (smoothedPolygon cloud)
+ogmgt tz -noplot -g=$ll/cloudGride2.order2.ml1 -autoChoose=1 -debug=3
+
+
+Trouble with 2 levels:
+ogmgt tz -noplot -g=$ll/loftedBoxe4.order2.ml2 -autoChoose=1 -debug=3
+
+
+OK: but convergence a bit non-uniform from cycle to cycle
+ogmgt tz -noplot -g=$ll/loftedBoxe4.order2.ml1 -autoChoose=1 -debug=3
+
+
+Trouble: some cycles have an increase in residual
+ogmgt tz -noplot -g=$ll/loftedBoxe2.order2.ml1 -autoChoose=1 -debug=3
+
+
+**** 2011/09/04 : Nan's in coarse grid generation:
+
+set site300 = /home/henshaw.0/runs/cgins/site300
+
+mpirun -np 1 $ogmgp tz -noplot -g=$site300/site300Grid2de4.order2.ml3 -autoChoose=1 -debug=3
+
+ogmgt tz -noplot -g=$site300/site300Grid2de4.order2.ml3 -autoChoose=1 -debug=3
+
+Ogmg:getInterpolationCoordinates:ERROR: Something is wrong here! nan's ?
+ grid=1, donor=2, jb=1 x=(1.952618e+02,3.031767e+02,0.000000e+00) -> r=(1.247629e-01,nan,-1.000000e+00)
+Ogmg:getInterpolationCoordinates:ERROR: Something is wrong here! nan's ?
+ grid=1, donor=2, jb=2 x=(3.124189e+02,3.031767e+02,0.000000e+00) -> r=(2.149289e-01,nan,-1.000000e+00)
+
+
+***** 2011/08/27  **BUG FOUND** --> setting interp pts in parllel ghost regions for the tridiagonal solver
+
+OK
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -autoChoose=1 -debug=3
+
+OK:
+mpirun -np 6 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.hype.ml1.hdf -autoChoose=1 -debug=3
+
+
+OK:
+mpirun -np 6 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.hype.ml1.hdf -bsm=lz1 -sm=lz1 -debug=3
+
+OK:
+mpirun -np 3 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -autoChoose=1 -debug=3 
+
+OK
+mpirun -np 7 $ogmgp tz -noplot -g=flatPlateWingGrid2de8.order2.ml2 -bsm=alz -sm=alz -debug=3
+
+OK NOW:
+mpirun -np 5 $ogmgp tz -noplot -maxit=5 -g=flatPlateWingGrid2de8.order2.ml2 -bsm=lz1 -sm=lz1 -debug=3
+
+OK Now:
+mpirun -np 2 $ogmgp tz -noplot -g=sbsmg -bsm=lz1 -sm=lz1 -maxit=3 -levels=2 -tz=poly -degreex=1 -debug=3
+
+
+
+*** 2011/08/26
+
+mpirun -np 2 $ogmgp tz -noplot -g=sbsmg -bsm=lz1 -sm=lz1 -maxit=3 -levels=2 -tz=poly -degreex=1 -debug=3
+
+
+*** 2011/08/25
+
+=== Try to reproduce the bug on two overlapping squares
+*** This Fails: 
+mpirun -np 2 $ogmgp tz -noplot -g=sbsmg -bsm=lz1 -sm=lz1 -maxit=3 -levels=2 -debug=3
+
+
+==== TRY a 2D flatPlate wing grid
+
+*** This doesn't converge:
+mpirun -np 5 $ogmgp tz -plot -maxit=5 -g=flatPlateWingGrid2de8.order2.ml2 -bsm=lz1 -sm=lz1 -debug=3
+
+-np=5 bad, cycle 5
+mpirun -np 5 $ogmgp tz -plot -maxit=5 -g=flatPlateWingGrid2de8.order2.ml2 -bsm=alz -sm=alz -debug=3
+
+BAD: residual blows up here: OK: -np=2,3,4
+mpirun -np 7 $ogmgp tz -noplot -g=flatPlateWingGrid2de8.order2.ml2 -bsm=alz -sm=alz -debug=3
+
+Ok -np=4, 5, 6
+mpirun -np 3 $ogmgp tz -noplot -g=flatPlateWingGrid2de8.order2.ml2 -autoChoose=1 -debug=3 
+
+
+===================================================
+==================================================
+
+
+
+==== residual blows up here:
+mpirun -np 3 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -autoChoose=1 -ssr=1 -debug=3 -maxit=4 -plot
+
+
+
+-- coarser grid:
+
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -maxit=0 -option=sm -autoChoose=1 -ssr=1 -debug=3 -nsm="10 1" -levels=2
+
+==============================================================================
+ **** Why does the defect jump: 
+-np=1 also has the defect jumping ??
+
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -maxit=0 -option=sm -bsm=alz -sm=alz -ssr=1 -debug=3 -nsm="10 1" -levels=2
+ Ogmg:smooth, level = 0, iteration=8, defect: (0=2.713e-02),(1=5.807e-02),(2=4.296e-02),(3=5.619e-02),max= 5.81e-02, [rate = 0.8925],
+  Ogmg:smooth, level = 0, iteration=9, defect: (0=2.282e-02),(1=5.006e-02),(2=3.672e-02),(3=5.655e-02),max= 5.65e-02, [rate = 0.9737],
+  Ogmg:smooth, level = 0, iteration=10, defect: (0=2.588e-02),(1=4.559e-02),(2=3.147e-02),(3=5.450e-02),max= 5.45e-02, [rate = 0.9638],
+ smoothTest: it=   22,  max(defect) = 5.4498e-02, defect/defectOld =  0.054
+  Ogmg:smooth, level = 0, iteration=0, defect: (0=1.970e+01),(1=3.208e-02),(2=3.610e-01),(3=4.569e-01),max= 1.97e+01, [rate = 10.0000],
+  Ogmg:smooth, level = 0, iteration=1, defect: (0=1.806e+01),(1=2.559e-02),(2=4.816e-01),(3=9.432e-01),max= 1.81e+01, [rate = 0.9168],
+  Ogmg:smooth, level = 0, iteration=2, defect: (0=1.807e+01),(1=4.765e-02),(2=3.515e-01),(3=4.089e-01),max= 1.81e+01, [rate = 1.0008],
+  Ogmg:smooth, level = 0, iteration=3, defect: (0=1.805e+01),(1=5.600e-02),(2=2.642e-01),(3=2.165e-01),max= 1.81e+01, [rate = 0.9989],
+  Ogmg:smooth, level = 0, iteration=4, defect: (0=1.804e+01),(1=5.471e-02),(2=1.966e-01),(3=1.368e-01),max= 1.80e+01, [rate = 0.9992],
+==============================================================================
+
+
+-- lz1 BAD:
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="10 1" -levels=2
+
+-- lz3 BAD:  NOTE: grid=0
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -maxit=0 -option=sm -bsm=lz3 -sm=lz3 -ssr=1 -debug=3 -nsm="10 1" -levels=2
+  Ogmg:smooth, level = 0, iteration=8, defect: (0=1.788e+01),(1=8.465e-06),(2=8.416e-06),(3=8.753e-06),max= 1.79e+01, [rate = 1.0000],
+  Ogmg:smooth, level = 0, iteration=9, defect: (0=1.788e+01),(1=8.025e-06),(2=8.009e-06),(3=8.329e-06),max= 1.79e+01, [rate = 1.0000],
+  Ogmg:smooth, level = 0, iteration=10, defect: (0=1.788e+01),(1=7.614e-06),(2=7.627e-06),(3=7.932e-06),max= 1.79e+01, [rate = 1.0000],
+ smoothTest: it=   24,  max(defect) = 1.7877e+01, defect/defectOld =  1.000
+
+
+-- lz2 OK:
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -maxit=0 -option=sm -bsm=lz2 -sm=lz2 -ssr=1 -debug=3 -nsm="10 1" -levels=2
+  Ogmg:smooth, level = 0, iteration=9, defect: (0=9.003e-06),(1=1.947e-05),(2=1.800e-05),(3=1.837e-05),max= 1.95e-05, [rate = 0.9525],
+  Ogmg:smooth, level = 0, iteration=10, defect: (0=8.574e-06),(1=1.854e-05),(2=1.713e-05),(3=1.749e-05),max= 1.85e-05, [rate = 0.9523],
+ smoothTest: it=   24,  max(defect) = 1.8544e-05, defect/defectOld =  0.639
+
+** BAD: residual blows up on grid=1
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe2.order2.ml1 -autoChoose=1 -ssr=1 -debug=3
+
+-np=5 : BAD, -np=4 OK
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe2.order2.ml1  -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+======== Parallel Distribution for level 0 (np=4)============
+ numberOfGrids=4, gridDistributionList.size()=0
+  grid=0: actual-processors=[0,3]
+  grid=1: actual-processors=[0,1]
+  grid=2: actual-processors=[3,3]
+  grid=3: actual-processors=[2,2]
+======== Parallel Distribution for level 0 (np=5)============
+ numberOfGrids=4, gridDistributionList.size()=0
+  grid=0: actual-processors=[0,4]
+  grid=1: actual-processors=[0,2]
+  grid=2: actual-processors=[4,4]
+  grid=3: actual-processors=[3,3]
+
+
+*** 2011/08/24 -- track down funny convergence error
+
+--- ** remove the outer box:
+
+ -np=2 OK -np=3 ok -np=4 OK, -np=5 BAD -np=6 OK
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe4.order2.ml2  -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+
+
+--- Wing grid by itself: Looks ok: -np 4 5 6
+mpirun -np 4 $ogmgp tz -noplot -g=fpwe4.order2.ml2 -sm=lz1 -ssr=1 -debug=3
+
+OK: -np=5 -np=6
+mpirun -np 5 $ogmgp tz -noplot -g=fpwe4.order2.ml2 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="10 1" -levels=2
+ smoothTest: it=   24,  max(defect) = 2.5757e-04, defect/defectOld =  0.669
+
+
+VERY SLOW convergence: but may be ok
+mpirun -np 2 $ogmgp tz -noplot -g=nonBoxTest.order2 -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="20 1" -levels=2
+
+** -sm=alz : Residual on grid=2 suddenly blows up 
+** -sm=lz1 : non convergence on grid=2
+** -sm=lj1 : non convergence on grid=2
+** -sm=rbj : OK total res reduction=2.06e-12, ave CR=0.0678 ave ECR=0.719
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -bsm=lj1 -sm=lj1 -ssr=1 -debug=3
+
+
+BAD; *** lj1 is bad too!  lz2=OK
+mpirun -np 6 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.hype.ml1.hdf -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+
+
+**THIS IS still bad: Coarser grid is BAD: -np=6:
+mpirun -np 6 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.hype.ml1.hdf -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+
+
+**************** One bug found -- variable omega in line smooth 3D not implemented *******************8
+
+
+# -2D version:
+This seems OK: 
+mpirun -np 5 $ogmgp tz -noplot -g=nonSquareTest.order2 -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="1 1" -levels=2
+
+
+
+# Here is a 1-way periodic box the same dimensions as grid=2 in flatPlateWingGride4.order2.hype.ml2.hdf
+
+** Note:  -sm=lj1 OK
+** This goes bad: -np=2 near end, -np=5 at start
+mpirun -np 5 $ogmgp tz -noplot -g=nonBoxTest.order2 -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="1 1" -levels=2
+
+mpirun -np 2 $ogmgp tz -noplot -g=nonBoxTest.order2 -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="5 1" -levels=2
+
+
+**BAD:*** smoother stops working after some iterations!
+mpirun -np 5 $ogmgp tz -noplot -g=nonBoxTest.order2 -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="40 1" -levels=2
+
+  Ogmg:smooth, level = 0, iteration=35, defect: (0=4.528e+01),max= 4.53e+01, [rate = 1.1346],
+  Ogmg:smooth, level = 0, iteration=36, defect: (0=5.102e+01),max= 5.10e+01, [rate = 1.1267],
+  Ogmg:smooth, level = 0, iteration=37, defect: (0=5.708e+01),max= 5.71e+01, [rate = 1.1187],
+  Ogmg:smooth, level = 0, iteration=38, defect: (0=6.338e+01),max= 6.34e+01, [rate = 1.1104],
+  Ogmg:smooth, level = 0, iteration=39, defect: (0=6.985e+01),max= 6.98e+01, [rate = 1.1020],
+  Ogmg:smooth, level = 0, iteration=40, defect: (0=7.636e+01),max= 7.64e+01, [rate = 1.0933],
+ smoothTest: it=    4,  max(defect) = 7.6360e+01, defect/defectOld = 31.557
+
+
+-np=10 5x2 BAD
+
+-np=8 procs=4x2 *OK*
+smoothTest: it=   24,  max(defect) = 9.8351e-01, defect/defectOld =  0.904
+
+-np=6 procs=[3x2] *OK* 
+
+-np=5 *BAD* procs=5x1
+
+
+-np=4 *OK* procs=2x2
+ smoothTest: it=   24,  max(defect) = 9.3830e-01, defect/defectOld =  0.906
+
+
+-np=3 : *OK*
+ smoothTest: it=   24,  max(defect) = 9.5765e-01, defect/defectOld =  0.902
+
+-np=2: *OK* procs=2x1
+ smoothTest: it=   24,  max(defect) = 9.3830e-01, defect/defectOld =  0.906
+
+
+
+
+** Trouble seems to be with -sm=lz1 on grid 2 (periodic in first direction)
+
+mpirun -np 5 $ogmgp tz -noplot -g=nonBox32.order2pdd -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="20 20" -levels=2
+
+-- TEST periodic box: OK, -np=8 : OK, 
+mpirun -np 4 $ogmgp tz -noplot -g=nonBox32.order2pdd -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 [ave CR=0.0691 ave ECR=0.510
+
+Coarser grid: smoother: -np=6 **BAD** smoothTest diverging, -np=4 OK, -np=5 BAD, -np=3 OK, -np=8 OK
+mpirun -np 6 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.hype.ml1.hdf -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3 -nsm="5 5"  
+
+Coarser grid is BAD: -np=6:
+mpirun -np 6 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.hype.ml1.hdf -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+
+-- test smoother
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -maxit=0 -option=sm -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+
+** VERY BAD: -np=1 OK, -np=2 OK
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -bsm=lz1 -sm=lz1 -ssr=1 -debug=3
+
+grid 2 : alz[1,1] alz[1,1] alz[1,1]  : FLWing 
+         bc=[periodic,periodic] [interp,interp] [dirichlet,interp] 
+         ave no. of subSmooths: l0= 3.3, l1= 3.6, l2= 0.0, 
+         gid=[0,104][0,72][0,16], gridPoints=176253 ( 18.73%).
+
+
+-- See flatPlateWingGrid.out
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -bsm=alz -sm=alz -ssr=1 -debug=3
+
+All RB smoothers OK: 
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -autoChoose=0 -debug=3
+
+TROUBLE here converging -- residual jumps at times
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -autoChoose=1 -debug=3
+
+
+*** 2011/08/23 -- test MG in parallel with a data-point mapping
+
+TROUBLE here converging
+mpirun -np 4 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -autoChoose=1 -debug=3
+
+OK: 
+mpirun -np 2 $ogmgp tz -noplot -g=flatPlateWingGride4.order2.hype.ml2.hdf -autoChoose=1 -debug=3
+
+
+WORKS NOW:  -np 4
+mpirun -np 2 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.hype.ml1 -autoChoose=1 -debug=3
+
+Nurbs OK:
+mpirun -np 2 $ogmgp tz -noplot -g=flatPlateWingGride2.order2.ml1 -autoChoose=1 -debug=3
+
+OK: (bug fixed in HyperbolicMapping.C) 
+mpirun -np 4 $ogmgp tz -noplot -g=cicHype -autoChoose=1 -debug=3 
+
+
+*************
+-- Can we solve the coarse grid by smoothing?
+
+OK
+mpirun -np 2 $ogmgp tz -noplot -g=sphereInABoxFixede4.order4.ml3 -autoChoose=1 -debug=3 -scg=1 [CR=0.1489 ave ECR=0.678
+
+mpirun -np 2 $ogmgp tz -noplot -g=box64.order2 -autoChoose=1 -debug=3 -scg=1 [OK
+
+mpirun -np 2 $ogmgp tz -noplot  -g=cice2.order4.ml3 -autoChoose=1 -debug=3 -scg=1 -cgsi=20 [CR=0.2687 ave ECR=0.815
+
+OK
+mpirun -np 2 $ogmgp tz -noplot -g=square64.order2 -autoChoose=1 -debug=3 -scg=1
+
+
+ogmgt tz -noplot -g=box64.order2 -autoChoose=1 -debug=3 -scg=1 [OK
+
+
+Better with more smooths but coarse-grid-solver = 82%
+ogmgt tz -noplot -g=cice2.order4.ml3 -autoChoose=1 -debug=3 -scg=1 -cgsi=50 [CR=0.0918 ave ECR=0.770
+ogmgt tz -noplot -g=cice2.order4.ml3 -autoChoose=1 -debug=3 -scg=1  [CR=0.3056 ave ECR=0.807
+ogmgt tz -noplot -g=cice2.order4.ml3 -autoChoose=1 -debug=3         [CR=0.0383 ave ECR=0.630
+
+OK:
+ogmgt tz -noplot -g=square64.order2 -autoChoose=1 -debug=3 -scg=1 [ CR=0.0122 ave ECR=0.454
+ogmgt tz -noplot -g=square64.order2 -autoChoose=1 -debug=3        [ CR=0.0122 ave ECR=0.455
+
+
+*** 2011/07/01 - trouble with turbine and towers not converging
+
+Finer grid: 21M pts --> trouble generating coarse levels
+ogmgt tz -noplot -g=turbineAndTower1Towerse4.order2.ml2.hdf -autoChoose=1 -debug=3
+
+Solve coarse grid by smoother: BAD: ??
+ogmgt tz -noplot -g=turbineAndTower1Towerse2.order2.ml1.hdf -autoChoose=1 -debug=3 -scg=1
+
+
+OK: -- coarse grid solve= 83% !!
+ogmgt tz -noplot -g=turbineAndTower1Towerse2.order2.ml1.hdf -autoChoose=1 -debug=3
+
+-- levels=2 OK:
+ogmgt tz -noplot -g=turbineTowere2.order2.ml2 -autoChoose=1 -debug=3 -levels=2 [OK
+
+Problem here tower only::
+ogmgt tz -noplot -g=turbineTowere2.order2.ml2 -autoChoose=1 -debug=3
+
+-- tower only: Ok
+ogmgt tz -noplot -g=turbineTower1Towerse1.order2.ml1 -autoChoose=1 -debug=3
+
+
+-- blade only: OK
+ogmgt tz -noplot -g=turbineBlade1Towerse1.order2.ml1 -autoChoose=1 -debug=3
+
+BAD: trouble with coarse grid generation --> tower the problem?
+ogmgt tz -noplot -g=turbineAndTower1Towerse2.order2.ml2 -autoChoose=1 -debug=3
+
+OK:
+ogmgt tz -noplot -g=turbineAndTower1Towerse1.order2.ml1.hdf -autoChoose=1 -debug=3
+
+
+**** 2011/06/16 : Kyle's bug from the 3d room (cgwind/runs/conference_room)
+
+ogen conference_room.ogen.cmd --factor=1 --order=2 --ml=3 noplot nopause
+--> room.ie.o2.mg3.f1.hdf
+
+
+-- Here are all Neumann and 1 mixed BC at outflow
+OK : but convergence not so great:
+mpirun -np 2 $ogmgp tz -noplot -g=room.ie.o2.mg3.f1.hdf -autoChoose=1 -bc1=n -bc2=n -bc3=m -bc4=n -bc5=n -debug=3 [ave CR=0.5666 ave ECR=0.913
+
+OK: Try Neumann BC's : -np 2 OK
+mpirun -np 1 $ogmgp tz -noplot -g=room.ie.o2.mg3.f1.hdf -autoChoose=1 -bc1=n -bc2=n -bc3=m -debug=3 
+
+OK: -np=2,4 OK
+ogmgt tz -noplot -g=room.ie.o2.mg3.f1.hdf -autoChoose=1 -debug=3 [ave CR=0.1752 ave ECR=0.828
+
+
+
+**** 2011/06/12 - check for bug with parallel
+
+
+mpirun -np 2 $ogmgp ./tz -noplot -g=stire8.order2.s4.ml2.hdf -autoChoose=1 -debug=3
+
+
+***** 2011/05/29
+
+cgins: MG did not converge for this grid: sphereTwoPatche1.order4.ml1
+
+TROUBLE HERE too with LINE SMOOTH: (autoChoose=1)
+ogmgt tz -noplot -g=sphereTwoPatche2.order4.ml2 -autoChoose=0 -bc1=n -bc2=m -maxit=25 -debug=3 
+
+
+OK: Red-black
+ogmgt tz -noplot -g=sphereTwoPatche1.order4.ml1 -autoChoose=0 -bc1=n -bc2=m -maxit=25 -debug=3 
+
+TROUBLE HERE: line-smooth bad??
+ogmgt tz -noplot -g=sphereTwoPatche1.order4.ml1 -autoChoose=1 -bc1=n -bc2=m -maxit=25 -debug=3 
+
+
+****** 2011/05/24
+
+
+OK:
+ogmgt tz -noplot -g=sibi1.order4.ml1 -autoChoose=1 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n -debug=3 
+
+# *** BAD: -predefined=0
+ogmgt tz -noplot -g=sibi1.order4.ml1 -autoChoose=1 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n -debug=3 -predefined=0 -ssr=1
+
+
+sibi1.order4.ml1
+
+
+********* 11/05/23
+
+-- cgins has troubles with MG for this grid: (errors large near corners on sphere surface )
+ogmgt tz -noplot -g=sibi1.order4.ml2 -autoChoose=1 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n -debug=3 [OK
+ 
+ogmgt tz -noplot -g=sibe2.order4.ml2 -autoChoose=1 -bc1=n -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n -debug=3 [OK
+
+
+********** trouble with sphere in a box on -np 8 : IB(i,0)<0
+
+BUG FIXED: buildExtraLevelsNew.bC and CanInterpolate.bC
+
+OK now::
+mpirun -np 4 $ogmgp ./tz -noplot -g=twoSpheresInAChannele2.order4.ml2.hdf -autoChoose=1 -debug=3
+
+OK: 
+mpirun -np 8 $ogmgp tz -noplot -g=sphereInABoxe1.order2.ml1 -autoChoose=1 -debug=3
+
+----------------
+
+BAD:
+mpirun -np 1 -gdb $ogmgp ./tz -noplot -g=twoSpheresInAChannele2.order4.ml2.hdf -autoChoose=1 -debug=7
+
+BAD:
+mpirun -np 8 $ogmgp tz -noplot -g=sphereInABoxe1.order2.ml1 -autoChoose=1 -debug=3
+
+OK:
+mpirun -np 4 $ogmgp tz -noplot -g=sphereInABoxe1.order2.ml1 -autoChoose=1 -debug=3
+
+
+
+
+**************
+*********** 2011/04/23
+
+mpirun -np 4 $ogmgp tz -noplot -g=tcilce16.order4.ml3 -autoChoose=1 -debug=3
+
+ogmgt tz -noplot -g=tcilce16.order4.ml3 -autoChoose=1 -debug=3
+
+ogmgt tz -noplot -g=tcilce64.order4.ml4 -autoChoose=1 -debug=3
+
+mpirun -np 1 $ogmgp tz -noplot -g=tcilce32.order4.ml4 -autoChoose=1 -debug=3
+
+****TROUBLE building coarse levels (although eventually works)
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml2.hdf -autoChoose=1 -debug=3
+
+****ERROR: 
+mpirun -np 1 $ogmgp tz -noplot -g=twoSpheresInAChannele2.order4.ml2.hdf -autoChoose=1 -debug=3
+
+Error occured in file buildExtraLevelsNew.C line 3852.
+finish me for this case: IB(i,0)<0
+
+
+
+**************
+*********** 2011/04/22
+  
+ogmgt tz -noplot -g=sibi1.order4.ml2 -autoChoose=1 -bc7=n -debug=3 [CR=0.1278 ave ECR=0.799
+
+
+mpirun -np 2 $ogmgp tz -noplot -g=sibe2.order2.ml2 -autoChoose=1 -debug=3 [CR=0.0578 ave ECR=0.677
+
+mpirun -np 2 $ogmgp tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4 -numParallelGhost=3 -autoChoose=1 -debug=3
+mpirun -np 2 $ogmgp tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4 -autoChoose=1 -debug=3                     [CR=0.0473 ave ECR=0.631
+
+
+**************
+*********** 2011/04/21
+
+Check Kyle's bug: (trouble forming coarse levels in parallel) --> Bug found: StretchMapping.C
+
+set ogmgp = /home/henshaw.0/junk/Overture/ogmg/ogmgt
+
+mpirun -np 4 $ogmgp tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4 -autoChoose=1 -debug=3 [CR=0.0453 ave ECR=0.630
+
+mpirun -np 4 -tv $ogmgp tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4 -autoChoose=1 -debug=3
+
+/usr/apps/totalview/r/toolworks/totalview.8.8.0-1/linux-x86-64/bin/totalview
+
+mpirun -np 4 -dbg=/usr/apps/totalview/r/toolworks/totalview.8.8.0-1/linux-x86-64/bin/totalview $ogmgp tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4  -autoChoose=1  -debug=3
+
+TROUBLE: with np=4:
+
+mpirun -np 4 $ogmgp tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4  -autoChoose=1  -debug=3
+
+
+OK: 
+mpirun -np 2 $ogmgp tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4  -autoChoose=1  -debug=3
+
+
+
+OK
+ogmgt tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4  -autoChoose=1  -debug=3 [CR=0.0376 ave ECR=0.652
+
+OK: 
+ogmgt tz -noplot -g=channelWithBump_3d.v3.e1.order4.ml4 -debug=3
+
+++++++ sib troubles:
+
+OK:
+ogmgt tz -noplot -g=sibe2.order4.ml2 -autoChoose=1 -bc7=n -debug=3 [CR=0.0887 ave ECR=0.658
+
+OK: 
+ogmgt tz -noplot -g=sphereInABoxe1.order4.ml2 -autoChoose=1 -bc7=n -debug=3 [OK CR=0.0762 ave ECR=0.625
+
+**** PROBLEMS: **NOTE** this grid had backup interpolation**
+ogmgt tz -noplot -g=sibe1.order4.ml2 -autoChoose=1 -bc7=n -debug=3 [FUNNY convergence
+
+OK: 
+ogmgt tz -noplot -g=sibe1.order4.ml2 -autoChoose=1  -debug=3 [OK CR=0.0716 ave ECR=0.752
+
+***** 
+
+
+
+
+--> ogmg.debug  NAN
+ogmgt tz -noplot -g=sbse1.order4 -bsm=lz2 -sm=lz2 -bc3=n -bc4=n -debug=7
+
+
+--> ogmg.debug
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz3 -sm=lz3 -bc5=n -debug=7 
+
+
+
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz3 -sm=lz3 -bc3=n -bc5=n -debug=3  [BAD
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz3 -sm=lz3 -bc3=n -bc6=n -debug=3  [BAD
+
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz3 -sm=lz3 -bc3=n -bc5=n -debug=3 -levels=2 [OK
+
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz3 -sm=lz3 -bc2=n -bc6=n -debug=3  [OK
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz3 -sm=lz3 -bc2=n -bc5=n -debug=3  [OK
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz3 -sm=lz3 -bc5=n        -debug=3  [OK
+
+
+OK:
+ogmgt tz -noplot -g=boxBesideBoxe1.order4.ml2 -bsm=lz2 -sm=lz2 -bc3=n -bc5=n -ssr=1 -debug=3  [CR=0.0909 ave ECR=0.587
+
+BAD: nan's
+ogmgt tz -noplot -g=boxBesideBoxe2.order4.ml2 -bsm=alz -sm=alz -bc3=n -bc5=n -ssr=1 -debug=3 [*BAD*
+
+ogmgt tz -noplot -g=nonBox16.order4 -bsm=lz3 -sm=lz3 -bc5=n -ssr=1 -debug=3 [CR=0.0643 ave ECR=0.496
+
+BAD: nan's right away: 
+ogmgt tz -noplot -g=sibe2.order4.ml2 -bsm=lz3 -sm=lz3 -bc7=n -ssr=1 -debug=3
+
+OK: rbj 
+ogmgt tz -noplot -g=sibe2.order4.ml2 -bsm=rbj -sm=rbj -bc7=n -ssr=1 -debug=3 [CR=0.2818 ave ECR=0.773
+
+nan's appear after 2 it's in smooth at level 1
+ogmgt tz -noplot -g=sibe2.order4.ml2 -autoChoose=1 -bc7=n -ssr=1 -debug=3
+
+
+ogmgt tz -noplot -g=nonSbse1.order4 -bc3=n  -bc4=n [CR=0.0929 ave ECR=0.644
+
+ogmgt tz -noplot -g=sbse1.order4 -bc3=n -bc4=n [ CR=0.0906 ave ECR=0.652
+
+
+*****  110320  ... THe coarse grid equations (or preconditioner) for a square or box may be singular 
+
+TROUBLE on coarse grid solver using old RB smoother!!
+ogmgt tz -noplot -g=square16.order2 -rb=old -ssr=1
+
+ogmgt tz -noplot -g=box16.order2 -rb=old
+ogmgt tz -noplot -g=box32 -rb=old
+
+TROUBLE: 
+ogmgt -noplot ../check/box
+
+ogmgt tz -noplot -g=sibe2.order4.ml2 -autoChoose=1 -bc7=n     [nan
+ogmgt tz -noplot -g=sibe2.order4.ml2 -autoChoose=1            [CR=0.0871 ave ECR=0.659
+
+Try a 2D case:
+
+OK: smoothed-polygon "stir" 
+ogmgt tz -noplot -g=squareAnnulus4.order4.ml2.hdf -autoChoose=1 -bc1=n -bc2=m [CR=0.1403 ave ECR=0.732
+
+
+
+
+
+Trouble:  loftedHalfBoxe2.order4.ml2
+
+2-levels OK: 
+ogmgt tz -noplot -g=loftedHalfBoxe2.order4.ml2 -autoChoose=1 -bc7=n -levels=2 [CR=0.2683 ave ECR=0.784
+
+ogmgt tz -noplot -g=loftedHalfBoxe4.order4.ml2 -autoChoose=1 -bc7=n [BAD - nans at it=3
+
+ogmgt tz -noplot -g=loftedHalfBoxe2.order4.ml2 -autoChoose=1 -bc7=n [BAD - nans
+
+order=2: OK
+ogmgt tz -noplot -g=loftedHalfBoxe2.order2.ml2 -autoChoose=1 -bc7=n [CR=0.1206 ave ECR=0.739
+
+
+orde=4 + Neumann : TROUBLE: nan's 
+ogmgt tz -noplot -g=loftedHalfBoxe2.order4.ml2 -autoChoose=1 -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n [
+
+ogmgt tz -noplot -g=loftedHalfBoxe2.order4.ml2 -autoChoose=1 -bc1=n -bc2=m -bc3=n -bc4=n [CR=0.1890 ave ECR=0.766
+
+ogmgt tz -noplot -g=loftedHalfBoxe2.order4.ml2 -autoChoose=1 [CR=0.2030 ave ECR=0.741
+
+ogmgt tz -noplot -g=loftedHalfBoxe2.order4.ml2 -bsm=rbj [CR=0.3469 ave ECR=0.766
+
+
+
+**** 110318 - check Kyle's problem : box + order 4 + ins type BCs
+
+=== Something funny with Kyle's grid: -> a0*p+a1*p.n  ==> a1 should scale with length of domain L 
+
+
+ogmgt tz -noplot -g=channel.ml3.e.f1.order4.nl11 -bsm=rbj -bc1=n -bc2=m -bc3=n -bc4=n 
+
+
+OK: -np 1,2, 4
+mpirun -np 1 $ogmgp tz -noplot -g=box64.order4 -bsm=rbj -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n [CR=0.1409 ave ECR=0.590
+
+mpirun -np 1 $ogmgp tz -noplot -g=box32.order4 -bsm=rbj  [CR=0.0541 ave ECR=0.459
+
+
+ogmgt tz -noplot -g=box64.order4 -bsm=rbj -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n   [CR=0.1409 ave ECR=0.590
+
+ogmgt tz -noplot -g=nonBox32.order4 -bsm=rbj -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n [CR=0.0871 ave ECR=0.521
+
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -bc1=n -bc2=m -bc3=n -bc4=n -bc5=n -bc6=n [CR=0.0948 ave ECR=0.533
+
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -bc1=n -bc2=m -bc3=n -bc4=n [CR=0.0642 ave ECR=0.489
+
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -bc1=n -bc2=m [CR=0.0549 ave ECR=0.460
+
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj [ CR=0.0541 ave ECR=0.459
+
+
+
+**** 110311
+
+mpirun -np 2 $ogmgp tz -noplot -g=rotatedBox32.order4.hdf -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.1181 ave ECR=0.572
+
+mpirun -np 2 $ogmgp tz -noplot -g=rhomboid2.order4.ml2 -bsm=lz1 -maxit=11 -bc1=n -bc2=m -eqn=heat [ave CR=0.1222 ave ECR=0.583
+
+
+mpirun -np 2 $ogmgp tz -noplot -g=square256.order4 -sm=rbj [CR=0.0545 ave ECR=0.491
+-eqn=heat
+mpirun -np 2 $ogmgp tz -noplot -g=cice2.order4.ml2 -sm=rbj -autoChoose=1 -eqn=heat -bc2=n -bc3=n -bc4=n [CR=0.3102 ave ECR=0.811
+mpirun -np 2 $ogmgp tz -noplot -g=cice2.order4.ml2 -sm=rbj -autoChoose=1 -eqn=heat [CR=0.0248 ave ECR=0.549
+
+
+
+**** 110310  -- add new convergence criteria
+
+ogmgt tz -noplot -g=square256.order4 -bsm=rbj 
+
+
+**** 110309:
+
+-- 3d tests of order=4 + Neumann BC + line solvers
+
+
+ogmgt tz -noplot -g=rhomboid2.order4.ml2 -bsm=lz1 -maxit=11 -bc1=n -bc2=m -eqn=heat [CR=0.0921 ave ECR=0.542
+ogmgt tz -noplot -g=rhomboid2.order4.ml2 -bsm=lz2 -maxit=11 -bc3=n -bc4=m -eqn=heat [CR=0.0963 ave ECR=0.548
+ogmgt tz -noplot -g=rhomboid2.order4.ml2 -bsm=lz3 -maxit=11 -bc5=n -bc6=m -eqn=heat [CR=0.1020 ave ECR=0.556
+
+FACTOR = 19.8/1.23 = 16.01
+ogmgt tz -noplot -g=rotatedBox32.order4.hdf -bsm=lz1 -maxit=11 -bc1=n -eqn=heat  [CR=0.0882 ave ECR=0.530
+Maximum error on grid:             box = 1.23e-05, max relative error=1.37e-05 (includes 0 ghost)
+
+
+ogmgt tz -noplot -g=rotatedBox16.order4.hdf -bsm=lz1 -maxit=11 -bc1=n -eqn=heat  [CR=0.0736 ave ECR=0.521
+ogmgt tz -noplot -g=rotatedBox16.order4.hdf -bsm=lz1 -maxit=11 -bc2=n -eqn=heat  [CR=0.0736 ave ECR=0.528
+ogmgt tz -noplot -g=rotatedBox16.order4.hdf -bsm=lz2 -maxit=11 -bc3=n -eqn=heat  [CR=0.0653 ave ECR=0.505
+ogmgt tz -noplot -g=rotatedBox16.order4.hdf -bsm=lz2 -maxit=11 -bc4=n -eqn=heat  [CR=0.0653 ave ECR=0.513
+ogmgt tz -noplot -g=rotatedBox16.order4.hdf -bsm=lz3 -maxit=11 -bc5=n -eqn=heat  [CR=0.0763 ave ECR=0.525
+ogmgt tz -noplot -g=rotatedBox16.order4.hdf -bsm=lz3 -maxit=11 -bc6=n -eqn=heat  [CR=0.0763 ave ECR=0.533
+
+Maximum error on grid:             box = 1.98e-04, max relative error=2.31e-04 (includes 0 ghost)
+
+
+OK: 
+ogmgt tz -noplot -g=box16.order4.hdf -bsm=lz1 -maxit=11 -bc1=n -eqn=heat  [CR=0.0457 ave ECR=0.523
+ogmgt tz -noplot -g=box16.order4.hdf -bsm=lz1 -maxit=11 -bc2=n -eqn=heat  [CR=0.0457 ave ECR=0.523
+ogmgt tz -noplot -g=box16.order4.hdf -bsm=lz2 -maxit=11 -bc3=n -eqn=heat  [CR=0.0457 ave ECR=0.523
+ogmgt tz -noplot -g=box16.order4.hdf -bsm=lz2 -maxit=11 -bc4=n -eqn=heat  [CR=0.0457 ave ECR=0.523
+ogmgt tz -noplot -g=box16.order4.hdf -bsm=lz3 -maxit=11 -bc5=n -eqn=heat  [CR=0.0457 ave ECR=0.523
+ogmgt tz -noplot -g=box16.order4.hdf -bsm=lz3 -maxit=11 -bc6=n -eqn=heat  [CR=0.0457 ave ECR=0.523
+
+Maximum error on grid:             box = 1.09e-04, max relative error=1.09e-04 (includes 0 ghost)
+
+
+BAD: -- but could be just the use of extrapolation with Neumann!
+ogmgt tz -noplot -g=box16.order4.hdf -bsm=alz -maxit=11 -bc1=n -bc3=n -bc5=n -eqn=heat  [CR=0.3868 ave ECR=0.818
+
+
+-- more tests:
+
+-- No line smooth: bad CR:
+ogmgt tz -noplot -g=rhombus4.order4.ml3 -maxit=11 -bc1=n -eqn=heat [ CR=0.2479 ave ECR=0.718
+
+
+ogmgt tz -noplot -g=nonSquare16.order4 -maxit=11 -bc1=n -eqn=heat  [CR=0.1534 ave ECR=0.655
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat  [CR=0.0524 ave ECR=0.561
+
+
+OK:
+ogmgt tz -noplot -g=rhombus4.order4.ml3 -bsm=lz1 -maxit=11 -bc2=n -eqn=heat  [CR=0.0656 ave ECR=0.559
+ogmgt tz -noplot -g=rhombus4.order4.ml3 -bsm=lz2 -maxit=11 -bc3=n -eqn=heat  [CR=0.0810 ave ECR=0.585
+ogmgt tz -noplot -g=rhombus4.order4.ml3 -bsm=lz2 -maxit=11 -bc4=n -eqn=heat  [CR=0.0782 ave ECR=0.581
+
+
+
+
+>>NOTE: We NEED extrap=5 for order=4 + Neumann (level=0)
+ ---> Fixed lineSmooth : added extrap5 (need to set RHS too since formula does not fit)
+
+
+ogmgt tz -noplot -g=rhombus4.order4.ml3 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0687 ave ECR=0.565
+Maximum error on grid:         rhombus = 4.69e-06, max relative error=4.69e-06 (includes 0 ghost)
+
+ogmgt tz -noplot -g=rhombus2.order4.ml2 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0601 ave ECR=0.569
+Maximum error on grid:         rhombus = 6.44e-05, max relative error=6.44e-05 (includes 0 ghost)
+
+
+----------------------------------------------
+Neumann: extrap=5 on l=0: Factor=14 (no line smooth)
+
+rhombus4.order4.ml3:
+Maximum error on grid:         rhombus = 4.69e-06, max relative error=4.69e-06 (includes 0 ghost)
+
+rhombus2.order4.ml2
+Maximum error on grid:         rhombus = 6.44e-05, max relative error=6.44e-05 (includes 0 ghost)
+
+>> Dirichlet: ... Factor=14.7
+
+rhombus4.order4.ml3:
+Maximum error on grid:         rhombus = 4.22e-06, max relative error=4.22e-06 (includes 0 ghost)
+
+rhombus2.order4.ml2
+Maximum error on grid:         rhombus = 6.19e-05, max relative error=6.19e-05
+
+
+>> Neumann : factor=8 
+
+-- l>1 use N2 on two lines
+
+ogmgt tz -noplot -g=rhombus4.order4.ml3 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0678 ave ECR=0.563
+Maximum error on grid:         rhombus = 1.04e-05, max relative error=1.04e-05 (includes 0 ghost)
+Maximum error on grid:         rhombus = 1.16e-04, max relative error=1.16e-04 (includes 1 ghost)
+Maximum error on grid:         rhombus = 7.22e-04, max relative error=7.22e-04 (includes 2 ghost)
+
+
+-- l>1 extrap second-ghost for Neumann:
+ogmgt tz -noplot -g=rhombus4.order4.ml3 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0724 ave ECR=0.571
+Maximum error on grid:         rhombus = 1.04e-05, max relative error=1.04e-05 (includes 0 ghost)
+Maximum error on grid:         rhombus = 1.16e-04, max relative error=1.16e-04 (includes 1 ghost)
+Maximum error on grid:         rhombus = 7.22e-04, max relative error=7.22e-04 (includes 2 ghost)
+
+
+
+
+ogmgt tz -noplot -g=rhombus2.order4.ml2 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0592 ave ECR=0.568
+
+Maximum error on grid:         rhombus = 7.86e-05, max relative error=7.86e-05 (includes 0 ghost)
+Maximum error on grid:         rhombus = 1.84e-03, max relative error=1.84e-03 (includes 1 ghost)
+Maximum error on grid:         rhombus = 1.14e-02, max relative error=1.14e-02 (includes 2 ghost)
+
+
+
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0522 ave ECR=0.561
+
+-- l>1 extrap second-ghost for Neumann:
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0524 ave ECR=0.561
+Maximum error on grid:          square = 1.10e-04, max relative error=1.10e-04 (includes 0 ghost)
+Maximum error on grid:          square = 2.26e-03, max relative error=2.26e-03 (includes 1 ghost)
+Maximum error on grid:          square = 1.02e-02, max relative error=1.02e-02 (includes 2 ghost)
+
+
+
+
+**** 110308 : back to fixing bugs in lineSmooth + Neumann + heat
+
+OK: 
+ogmgt tz -noplot -g=rotatedSquare16.order4 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0583 ave ECR=0.573
+ogmgt tz -noplot -g=rotatedSquare16.order4 -bsm=lz2 -maxit=11 -bc3=n -eqn=heat [CR=0.0583 ave ECR=0.573
+
+OK now: CR=0.0524 ave ECR=0.561
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat [CR=0.0524 ave ECR=0.561
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz1 -maxit=11 -bc2=n -eqn=heat [CR=0.0524 ave ECR=0.561
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz2 -maxit=11 -bc3=n -eqn=heat [CR=0.0524 ave ECR=0.561
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz2 -maxit=11 -bc4=n -eqn=heat [CR=0.0524 ave ECR=0.561
+
+
+
+**** 110223 - bug fixed lineSmooth + Neumann + heat
+
+Nan:
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat -debug=15 >! junk
+
+OK now : [CR=0.0529 ave ECR=0.601
+ogmgt tz -noplot -g=square16.order4 -bsm=lz1 -maxit=11 -bc1=n -eqn=heat -debug=15 >! junk
+
+
+***** 110222 - fix order 4 + neumann BC for heat eqn or general
+
+
+
++++ automatically adjust Neumann BC's for heat operator
+
+alz : trouble: nan's
+ogmgt tz -noplot -g=nonSquare16.order4 -bsm=lz1 -maxit=7 -bc1=n -eqn=heat 
+
+rbj: OK
+ogmgt tz -noplot -g=nonSquare128.order4 -bsm=rbj -maxit=7 -bc2=n -eqn=heat [CR=0.1727 ave ECR=0.654
+
+
+OK:
+ogmgt tz -noplot -g=square128.order4 -bsm=alz -maxit=7 -bc2=n -eqn=heat 
+
+OK:
+ogmgt tz -noplot -g=square128.order4 -bsm=rbj -maxit=7 -bc2=n -eqn=heat 
+
+
+ogmgt tz -noplot -g=square128.order4 -bsm=rbj -maxit=7 -bc1=n -bc2=d -bc3=n -bc4=n [CR=0.0461 ave ECR=0.476
+
+
+
+
+**** 110221 -- back to parallel tests
+
+cgins has trouble with -g="cice2.order4.ml2.hdf" and -ts=im
+
+-eqn=heat
+mpirun -np 2 $ogmgp tz -noplot -g=cice2.order4.ml2 -sm=rbj -autoChoose=1 -eqn=heat -bc2=n -bc3=n -bc4=n
+mpirun -np 2 $ogmgp tz -noplot -g=cice2.order4.ml2 -sm=rbj -autoChoose=1 -eqn=heat [CR=0.0248 ave ECR=0.542
+
+OK: np=1,2
+mpirun -np 1 $ogmgp tz -noplot -g=cice2.order4.ml2 -sm=rbj -autoChoose=1 [ CR=0.0330 ave ECR=0.580
+
+
+OK: CR=0.1679 ave ECR=0.758, np=1,2,4
+mpirun -np 1 $ogmgp tz -noplot -g=channelWithBumpe10.order2.ml3 -sm=rbj -autoChoose=1 -bc1=n -bc2=n -bc3=n -bc4=m
+
+OK: mp=1,4
+mpirun -np 1 $ogmgp tz -noplot -g=channelWithBumpe10.order2.ml3 -sm=rbj -autoChoose=1 [CR=0.0465 ave ECR=0.620
+
+OK: np=1,2,4
+mpirun -np 1 $ogmgp tz -noplot -g=channelWithBumpe10.order2.ml3 -debug=3 [CR=0.0857 ave ECR=0.647
+
+
+
+
+*** 110220 - fix lineSmooth + mixed-BC problem
+
+OK : Iteration=1..10 : Total WU=5.89e+01, total res reduction=4.22e-15, ave CR=0.0365 ave ECR=0.570
+ogmgt tz -noplot -g=square32.order2 -bsm=lz1 -debug=3 -bc1=m -bc2=m -bc3=n -predefined=0
+
+OK: Iteration=1..10 : Total WU=6.32e+01, total res reduction=4.03e-15, ave CR=0.0364 ave ECR=0.592
+ogmgt tz -noplot -g=square32.order2 -bsm=lz1 -debug=3 -bc1=m -bc2=m -bc3=n -predefined=1
+
+
+OK: level=0 : defect/defectOld =  0.640, leve=1 : defect/defectOld =  0.065
+ogmgt tz -noplot -g=box8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=0
+ogmgt tz -noplot -g=box8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc2=m -predefined=0 
+ogmgt tz -noplot -g=box8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc3=m -predefined=0 
+ogmgt tz -noplot -g=box8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc4=m -predefined=0 
+ogmgt tz -noplot -g=box8.order2 -maxit=0 -option=sm -sm=lz3 -debug=3 -bc5=m -predefined=0 
+ogmgt tz -noplot -g=box8.order2 -maxit=0 -option=sm -sm=lz3 -debug=3 -bc6=m -predefined=0 
+
+OK:
+ogmgt tz -noplot -g=nonBox8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=0
+ogmgt tz -noplot -g=nonBox8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc2=m -predefined=0 
+ogmgt tz -noplot -g=nonBox8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc3=m -predefined=0 
+ogmgt tz -noplot -g=nonBox8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc4=m -predefined=0 
+ogmgt tz -noplot -g=nonBox8.order2 -maxit=0 -option=sm -sm=lz3 -debug=3 -bc5=m -predefined=0 
+ogmgt tz -noplot -g=nonBox8.order2 -maxit=0 -option=sm -sm=lz3 -debug=3 -bc6=m -predefined=0 
+
+OK:
+ogmgt tz -noplot -g=rotatedBox8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=0
+ogmgt tz -noplot -g=rotatedBox8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc2=m -predefined=0 
+ogmgt tz -noplot -g=rotatedBox8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc3=m -predefined=0 
+ogmgt tz -noplot -g=rotatedBox8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc4=m -predefined=0 
+ogmgt tz -noplot -g=rotatedBox8.order2 -maxit=0 -option=sm -sm=lz3 -debug=3 -bc5=m -predefined=0 
+ogmgt tz -noplot -g=rotatedBox8.order2 -maxit=0 -option=sm -sm=lz3 -debug=3 -bc6=m -predefined=0 
+
+
+
+
+OK: level=0 : defect/defectOld =  0.642, leve=1 : defect/defectOld =  0.150
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=0
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc2=m -predefined=0 
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc3=m -predefined=0 
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc4=m -predefined=0 
+
+OK: 
+ogmgt tz -noplot -g=nonSquare8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=0 
+ogmgt tz -noplot -g=nonSquare8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc2=m -predefined=0 
+ogmgt tz -noplot -g=nonSquare8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc3=m -predefined=0 
+ogmgt tz -noplot -g=nonSquare8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc4=m -predefined=0 
+
+OK: 
+ogmgt tz -noplot -g=rotatedSquare8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=0 
+ogmgt tz -noplot -g=rotatedSquare8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc2=m -predefined=0 
+ogmgt tz -noplot -g=rotatedSquare8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc3=m -predefined=0 
+ogmgt tz -noplot -g=rotatedSquare8.order2 -maxit=0 -option=sm -sm=lz2 -debug=3 -bc4=m -predefined=0 
+
+
+
+**** 110218
+
+-predefined=0 BAD, -predefined=1 OK:
+ogmgt tz -noplot -g=square32.order2 -bsm=lz1 -debug=3 -bc1=m -bc2=m -bc3=n -predefined=0
+
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=0 [ BAD
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=m -predefined=1 [ OK 
+
+**** 110217
+
+  --> something broken with the mixed BC and line smoother!
+
+BAD: CR=0.8635 ave ECR=0.970,  -bc1=n GOOD
+mpirun -np 2 $ogmgp tz -noplot -g=channelWithBumpe10.order2.ml3 -sm=alz -debug=3 -predefined=0 -bc1=m 
+
+BAD: CR=0.8656 ave ECR=0.971
+ogmgt tz -noplot -g=channelWithBumpe10.order2.ml3 -sm=alz -debug=3 -predefined=0 -bc1=m 
+
+-bc1=m : BAD, -predefined=0/1 BAD
+-bc1=n : OK
+ogmgt tz -noplot -g=channelWithBumpe10.order2.ml3 -debug=3 -predefined=0 -bc1=m -autoChoose=1
+
+
+
+OK: CR=0.0730 ave ECR=0.541
+mpirun -np 2 $ogmgp tz -noplot -g=annulus.bbmg3 -sm=alz -debug=3 -bc1=m  -predefined=0
+
+
+-- line smooth tests:
+
+
+
+OK:   bc1=m : BAD
+ogmgt tz -noplot -g=annulus.bbmg3 -maxit=0 -option=sm -sm=lz2 -debug=3 -predefined=0 -bc1=m 
+
+OK:  - lz2, bc1=m : BAD
+mpirun -np 1 $ogmgp tz -noplot -g=annulus.bbmg3 -maxit=0 -option=sm -sm=lz1 -debug=3 -predefined=0 -bc1=n 
+
+
+
+TROUBLE: mixed BC and line smooth on coarse level:
+  - predefined=1 OK 
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -predefined=0 -bc1=m 
+
+
+TROUBLE: -predefined=0 (coarse level)
+mpirun -np 1 $ogmgp tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=n -bc2=m -bc3=n -predefined=0
+TROUBLE: -predefined=0  (coarse level)
+ogmgt tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=n -bc2=m -bc3=n -predefined=0
+
+
+OK:
+mpirun -np 1 $ogmgp tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3 -bc1=n -bc2=m -bc3=n
+
+OK:
+mpirun -np 1 $ogmgp tz -noplot -g=square8.order2 -maxit=0 -option=sm -sm=lz1 -debug=3  [ .543 and .077 
+
+alias ogmgt /home/henshaw.0/junk/Overture/ogmg/ogmgt
+ogmgt tz -noplot -g=square8 -maxit=0 -option=sm -sm=lz1 -debug=3  [ .543 and .077 
+
+
+
+----------------------
+
+OK: NO line smooth - CR=0.1569 ave ECR=0.701
+mpirun -np 2 $ogmgp -noplot tz -g=channelWithBumpe10.order2.ml3 -autoChoose=0 -debug=3 -bc3=m -bc1=n -bc2=n -bc4=n
+
+BAD: line smooth:
+mpirun -np 2 $ogmgp -noplot tz -g=channelWithBumpe10.order2.ml3 -autoChoose=1 -debug=3 -bc3=m -bc1=n -bc2=n -bc4=n
+
+OK:
+mpirun -np 2 $ogmgp -noplot tz -g=channelWithBumpe10.order2.ml3 -autoChoose=1 -debug=3  [CR=0.0467 ave ECR=0.620
+
+
+
+***** 110215
+
+mpirun -np 2 $ogmgp tz -g=sibe1.order2.ml2 -debug=3 -predefined=0 -autoChoose=1 -bc1=m -bc2=n -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n 
+
+mpirun -np 2 $ogmgp tz -g=sibe1.order2.ml2 -debug=3 -predefined=0 -autoChoose=1
+
+
+mpirun -np 2 $ogmgp tz -g=sibe2.order2.ml2 -debug=3 -predefined=0 -bc1=m -bc2=n -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n [OK CR=0.1581 ave ECR=0.780
+
+mpirun -np 2 $ogmgp tz -g=sibe2.order2.ml2 -debug=3 -predefined=0 -bc1=d -bc2=n -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n [OK CR=0.1068 ave ECR=0.736
+
+mpirun -np 2 $ogmgp tz -g=sibe2.order2.ml2 -debug=3 -predefined=0  [OK CR=0.0872 ave ECR=0.696
+
+mpirun -np 2 $ogmgp tz -g=sibe2.order2.ml2 -debug=3  [OK CR=0.0867 ave ECR=0.696
+
+
+
+***** 110214
+
+Ok: CR=0.1970 ave ECR=0.800
+ogmgt tz -noplot -g=loftedHalfBoxe2.order2.ml2 -debug=3 -autoChoose=1 -bc1=n -bc2=d -bc3=n -bc4=n -bc5=n -bc6=n -bc7=n
+
+ogmgt tz -noplot -g=loftedHalfBoxe2.order2.ml2 -debug=3 -autoChoose=1 [ CR=0.0952 ave ECR=0.714
+ogmgt tz -noplot -g=loftedHalfBoxe2.order2.ml2 -debug=3     [ CR=0.1527 ave ECR=0.643
+
+
+
+**** 110213 -- 
+
+
+ogmgt tz -noplot -g=square128.order4 -bsm=rb -nsm="2 1" -maxit=7 -bc1=d -bc2=n -bc3=n -bc4=n -eqn=heat [CR=0.0358 ave ECR=0.537
+
+ogmgt tz -noplot -g=square128.order4 -bsm=rb -nsm="2 1" -maxit=7 -bc1=d -bc2=n -bc3=n -bc4=n [CR=0.0179 ave ECR=0.472
+
+
+
+***** 110204
+
+-- valgrind parallel
+
+
+valgrindebug $ogmgp $ogmg/cmd/tz -noplot -g=cice4.order4.ml3 -sm=rbj -debug=3 
+mpirun -np 2 $ogmgp $ogmg/cmd/tz -noplot -g=cice4.order4.ml3 -sm=rbj -debug=3
+
+
+valgrindebug $ogmgp $ogmg/cmd/tz -noplot -g=cic.bbmg4 -sm=rbj -debug=3 
+
+
+
+****** 110203
+
+ogmgt tz -noplot -g=room2de8.order2.ml2 -autoSmooth=1
+
+ogmgt tz -noplot -g=room2de4.order2.ml2
+
+
+
+
+****** 100927  -- track down problem with order 4 + Np = 8 
+
+   === TROUBLE with red-Black-Jacobi !
+
+mpirun -np 1 $ogmgp tz -noplot -g=square32.order4 -sm=rbj -debug=7 -maxit=2 
+
+Np=1: 
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=1.13e-14, ave CR=0.0403 ave ECR=0.468 (RB)
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=2.36e-14, ave CR=0.0434 ave ECR=0.476 (RBJ)
+Np=2:
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=1.16e-14, ave CR=0.0404 ave ECR=0.468 (RB)
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=4.90e-11, ave CR=0.0931 ave ECR=0.570 (RBJ)
+Np=4
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=1.09e-14, ave CR=0.0402 ave ECR=0.467 (RB)
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=8.72e-09, ave CR=0.1563 ave ECR=0.645 (RBJ)
+Np=8:
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=1.12e-14, ave CR=0.0403 ave ECR=0.468 (RB)
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=1.59e-07, ave CR=0.2090 ave ECR=0.690 (RBJ)
+Iteration=1..10 : Total WU=4.23e+01, total res reduction=2.40e-14, ave CR=0.0434 ave ECR=0.476 (RBJ+BC at sub-steps)
+*** 100724 
+
+-- Change Ogmg to work when there is only one level
+
+
+ogmgt tz -noplot -g=square256.order4 -debug=3 -levels=1 
+ogmgt tz -noplot -g=square128.order4 -debug=3 -levels=1 
+
+ogmgt tz -noplot -g=square32.order4 -debug=3 -levels=1 -rtolcg=1.e-8 -maxit=1
+
+
+
+*** 100716  
+
+ogmgt tz -noplot -g=twoRhombus4.order4.ml3 -tz=poly -degreex=3 -maxit=15 -bsm=alz -debug=7  OK with debug=7 
+
+valgrind ../ogmgt tz -noplot -g=twoRhombus4.order4.ml3 -debug=3 -tz=poly -degreex=0 -maxit=15 -bsm=alz >&! junk2 [NAN ** but just because defect=0
+
+ogmgt tz -noplot -g=twoRhombus4.order4.ml3 -debug=3 -tz=poly -degreex=1 -maxit=15 -bsm=alz 
+ogmgt tz -noplot -g=twoRhombus4.order4.ml3 -debug=3 -tz=poly -degreex=0 -maxit=15 -bsm=alz [NAN
+
+ogmgt tz -noplot -g=sphereThreePatche4.order4.ml4.hdf -maxit=15 -bsm=alz [NAN's 
+
+ogmgt tz -noplot -g=sphereThreePatche1.order4.ml1.hdf -maxit=15 -bsm=alz
+
+ogmgt tz -noplot -g=twoSpheresInAChannele4.order4.ml4 -maxit=15 -autoChoose=1   [NAN's with alz, lz1 ok, lz2=ok, lz3=ok
+
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -maxit=15 -autoChoose=1   [ECR=0.752
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -maxit=15 -bsm=lz3        [ECR=0.795
+
+
+*BUG* Found -- set RHS=u at interp points in line smooth
+
+-- try two overlapping rhombusii:
+ogmgt tz -noplot -g=twoRhombus2.order4.ml2 -debug=3 -tz=poly -degreex=0 -maxit=15 -bsm=lz2 [STALLS
+
+
+ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz2 [ECR=0.726  -> ECR=0.715 (fixed line smooth bounds)
+
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz3 [ECR=0.660
+
+ogmgt tz -noplot -g=sphereThreePatche1.order4.ml1 -maxit=10 -bsm=lz3 >! junk
+ogmgt tz -noplot -g=sphereThreePatche1.order2.ml1 -maxit=10 -bsm=lz3 >! junk2
+
+ogmgt tz -noplot -g=sphereThreePatche1.order4.ml1 -maxit=15 -bsm=lz3 [stalls
+
+**** 100714: 
+
+tcmOrder4 sphereInABoxe4.order4.ml3 -solver=petsc -tol=1.e-5
+tcmOrder4 sphereInABoxe2.order4.ml2 -solver=petsc -tol=1.e-16   [Maximum error with dirichlet bc's= 3.966066e-03
+tcmOrder4 sphereInABoxe1.order4.ml1 -solver=petsc               [Maximum error with dirichlet bc's= 9.087618e-03
+
+-- stretchFactor=4:
+
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe4.order4.ml3 -maxit=15 [backGround = 3.04e-04
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe2.order4.ml2 -maxit=15 [southPole = 6.21e-04
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe1.order4.ml1 -maxit=15 [backGround = 1.38e-02
+
+----- stretchFactor=4:
+sphereInABoxe4.order4.ml3 : b=7.05
+
+ BOX:  grid spacing: [2.50e-02,2.50e-02,2.50e-02] [dx,dy,dz]
+
+ grid spacing: [2.40e-02,3.09e-02,3.93e-02] [min,ave,max] (r1)
+             : [2.40e-02,3.09e-02,3.93e-02] [min,ave,max] (r2)
+             : [6.25e-03,1.87e-02,2.81e-02] [min,ave,max] (r3)
+
+sphereInABoxe2.order4.ml2 : b=7.05
+
+ grid spacing: [4.37e-02,6.33e-02,9.14e-02] [min,ave,max] (r1)
+             : [4.37e-02,6.33e-02,9.14e-02] [min,ave,max] (r2)
+             : [1.25e-02,3.75e-02,5.62e-02] [min,ave,max] (r3)
+
+
+sphereInABoxe1.order4.ml1 :  b=7.05
+
+ grid spacing: [8.34e-02,1.49e-01,2.61e-01] [min,ave,max] (r1)
+             : [8.34e-02,1.49e-01,2.61e-01] [min,ave,max] (r2)
+             : [2.50e-02,7.50e-02,1.12e-01] [min,ave,max] (r3)
+
+---------------
+
+sphereInABox: -- minor stretch (stretchFactor=1.5, b=1.18)
+
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe4.order4.ml3 -maxit=15  [backGround = 3.23e-06
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe2.order4.ml2 -maxit=15  [backGround = 1.73e-04
+
+sphereInABox: -- no stretching : OK
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe4.order4.ml3 -maxit=15  [ECR=0.560, backGround = 3.09e-06
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe2.order4.ml2 -maxit=15  [ECR=0.684, backGround = 1.53e-04
+../ogmgt -noplot ../cmd/tz -g=sphereInABoxe1.order4.ml2 -maxit=15  [ECR=0.695, backGround = 1.41e-02
+
+sphereInABox -- trouble with finest grid 
+ogmgt -noplot ../cmd/tz -g=sphereInABoxe4.order4.ml3 -eqn=lap -predefined=1 -autoChoose=1 -maxit=15 [backGround = 3.04e-04
+
+ogmgt tz -noplot -g=sphereThreePatche4.order4.ml3 -maxit=15 [sphere1 = 5.19e-07
+ogmgt tz -noplot -g=sphereThreePatche2.order4.ml2 -maxit=15 [sphere1 = 8.09e-06
+ogmgt tz -noplot -g=sphereThreePatche1.order4.ml1 -maxit=15 [sphere1 = 1.10e-04
+
+
+-- three-patch spherical shell has same problem: 
+ogmgt tz -noplot -g=sphereThreePatche1.order4.ml1 -maxit=15 -bsm=lz3 [stalls
+ogmgt tz -noplot -g=sphereThreePatche2.order4.ml3 -maxit=15 -bsm=lz3 [stalls
+
+-- Neumann BC ok with lz3
+ogmgt tz -noplot -g=oneSphereInAChannele2.order4.ml3 -maxit=35 -bsm=lz3 -bc1=n [ECR=0.817
+
+ogmgt tz -noplot -g=oneSphereInAChannele2.order4.ml3 -maxit=15 -bsm=lz3 [stalls
+
+ogmgt tz -noplot -g=oneSphereInAChannele2.order4.ml3 -maxit=35 -bsm=lj3 [stalls
+
+
+-- 2nd-order ok: 
+ogmgt tz -noplot -g=oneSphereInAChannele2.order2.ml3 -maxit=15 -bsm=lz3 [ECR=0.649
+
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml2 -maxit=15 -bsm=lz3 [stalls
+
+ogmgt tz -noplot -g=sphereInABoxe2.order4.ml2 -maxit=15 -bsm=lz3 [ECR=0.722
+ogmgt tz -noplot -g=sphereInABoxe1.order4.ml2 -maxit=15 -bsm=lz3 [ECR=0.724
+
+ogmgt tz -noplot -g=sibe2.order4.ml3 -maxit=15 -bsm=lz3 [ECR=0.627
+
+
+OK: lz1, lz2, lz3, alz
+ogmgt tz -noplot -g=orthoSphere2.order4.ml2.hdf -tz=poly -maxit=15 -debug=3 -bsm=lz3 [ECR=0.579
+
+BAD:  lz3
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -maxit=15 -bsm=lz3  [STALLS
+
+OK: all grids are lz1
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -maxit=15 -bsm=lz1  [ECR=0.773
+
+OK: lz1, lz2, lz3
+ogmgt tz -noplot -g=nonCrossInBoxi4.order4.ml3.hdf -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz1 [ECR=0.580
+
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz1 [ECR=0.652
+
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz1 [ECR=0.653, exact
+
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -maxit=15 [ECR=0.762
+
+--- OK: also lz2, lz3, alz
+ogmgt tz -noplot -g=rhomboid2.order4 -maxit=10 -debug=3 -bsm=lz1 [ECR=0.496
+
+
+--- OK: also lz2, lz3, alz
+ogmgt tz -noplot -g=nonBox8.order4 -bsm=lz1 -maxit=10 -debug=3  [ECR=0.501
+
+--- OK: also lz2, lz3, alz
+ogmgt tz -noplot -g=box8.order4 -bsm=lz1 -maxit=10 -debug=3 [ECR=0.537
+
+
+--- residual stalls with line smooths: (alz + lz3)
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order4.ml3.hdf -autoChoose=1 -maxit=10 -rtolcg=1.e-6 -debug=3 -nsm="2 1" -ils=4 -bls=2   
+
+
+-- 2nd-order is ok: 
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -autoChoose=1 -maxit=10 -rtolcg=1.e-6 -debug=3 -nsm="2 1" -ils=2 -bls=2 [ave CR=0.0285 ave ECR=0.629
+
+
+
+
+*** 100713 : changed corner BC in coarse grid solve to taylor: 
+
+ -- this converges now: 
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -tz=poly -maxit=15 -degreex=3 -bc1=n -bc3=n -bc5=n -debug=3 [ECR=0.581
+
+*** 100705 : check order=4 opav=1 at corners:
+
+-- try using smoother for coarse grid solve: *** converges:
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -tz=poly -maxit=15 -degreex=3 -bc1=n -bc3=n -bc5=n -scg=1 -debug=3 -ssr=1
+
+
+ogmgt tz -noplot -g=box8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc3=n -bc4=n -bc5=n -levels=2 -cgSolver=yale -ogesDebug=63 -opav=1 > ! junk
+
+ogmgt tz -noplot -g=square8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc3=n -levels=2 -cgSolver=yale -ogesDebug=63 -opav=1 > ! junk
+
+
+*** 100705 *FIXED assignBoundaryConditionCoefficients and bcOpt for mixed/Neumann BC (order=4, level>0)
+
+ogmgt tz -noplot -g=rhomboid2.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc4=n -bc5=n -bc6=n -levels=2 -cgSolver=yale [exact
+
+ogmgt tz -noplot -g=rhombus2.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc4=n -levels=2 -cgSolver=yale [exact
+
+ogmgt tz -noplot -g=nonBox8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc4=n -levels=2 -cgSolver=yale [exact
+
+ogmgt tz -noplot -g=nonSquare8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc4=n -levels=2 -cgSolver=yale [exact
+
+
+ogmgt tz -noplot -g=box16.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc4=n -levels=2 -cgSolver=yale [exact
+
+ogmgt tz -noplot -g=square8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc2=n -bc4=n -levels=2 -cgSolver=yale [exact
+
+ogmgt tz -noplot -g=square8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -levels=2 -cgSolver=yale 
+
+ogmgt tz -noplot -g=square8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -levels=2 -cgSolver=yale -ogesDebug=63 -opav=0 > ! junk
+
+
+
+*** 100704 -- order 4 + Neumann : 
+
+   ****NOTE*** box32.order4 + N-N-N corner does converge if opav=0 *******************
+
+
+
+*** Coarse grid solve is NOT accurate degree=1 ******
+ogmgt tz -noplot -g=square8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc3=n -levels=2
+
+
+*** 100626 : look at 3d box Neumann Vertex problem
+
+Coarse grid solve test: -maxit=0 -option=cg 
+
+*** Coarse grid solve is NOT accurate degree=1 ******
+ogmgt tz -noplot -g=box8.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc3=n -bc5=n -levels=2
+
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -tz=poly -maxit=0 -option=cg -degreex=3 -bc1=n -bc3=n -bc5=n -levels=2
+
+ogmgt tz -noplot -g=square16.order4 -bsm=rbj -tz=poly -maxit=10 -degreex=3 -bc1=n -bc3=n [ECR=0.576
+ogmgt tz -noplot -g=square16.order4 -bsm=rbj -tz=poly -maxit=10 -degreex=3 -bc1=n        [ECR=0.542
+ogmgt tz -noplot -g=square16.order4 -bsm=rbj -tz=poly -maxit=10 -degreex=3               [ECR=0.493
+
+
+-- solve fine grid with smoother only:
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -tz=poly -maxit=15 -degreex=3 -bc1=n -bc3=n -bc5=n -levels=1 -scg=1 [
+
+** box32.order4 does NOT converge (-opav=0 OK)
+ogmgt tz -noplot -g=box32.order4 -bsm=rbj -tz=poly -maxit=15 -degreex=3 -bc1=n -bc3=n -bc5=n [
+ogmgt tz -noplot -g=box8.order4 -bsm=rbj -tz=poly -maxit=15 -degreex=3 -bc1=n -bc3=n -bc5=n [ECR=0.804
+
+ogmgt tz -noplot -g=box8.order4 -bsm=rbj -tz=poly -maxit=15 -degreex=3 -bc1=n -bc5=n [ECR=0.617, exact
+
+ogmgt tz -noplot -g=box8.order4 -bsm=rbj -tz=poly -maxit=15 -degreex=3 -bc1=n -bc3=n [ECR=0.614, exact
+
+ogmgt tz -noplot -g=box8.order4 -bsm=rbj -bc1=n  [ECR=0.541
+
+ogmgt tz -noplot -g=box8.order4 -bsm=rbj   [ECR=0.486
+
+
+**** 100626 - BUG fixed (neumann3d.maple) orthoSphere now 4th order
+              BUG fixed (neumann.maple) eliminate urr -- now lineSmooth BC agrees.
+
+ogmgt tz -noplot -g=orthoSphere1.order4.ml1.hdf -tz=poly -maxit=15 -debug=3 -bc5=n -bsm=lz3  [ECR=0.542
+ogmgt tz -noplot -g=orthoSphere1.order4.ml1.hdf -tz=poly -maxit=15 -debug=3 -bc3=n -bsm=lz2  [ECR=0.560
+ogmgt tz -noplot -g=orthoSphere1.order4.ml1.hdf -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1  [ECR=0.560
+
+ogmgt tz -noplot -g=rhomboid2.order4 -tz=poly -maxit=15 -debug=3 -degreex=0 -bc1=n  -bsm=lz1 [ECR=0.541, exact
+ogmgt tz -noplot -g=rhomboid2.order4 -tz=poly -maxit=15 -debug=3 -degreex=0 -bc1=n [exact
+
+
+***** 100623  - one bug fixed assignBCCoeff.C  &J3 = ...
+
+ogmgt tz -noplot -g=orthoSphere4.order4.ml3.hdf -tz=poly -maxit=15 -debug=3 -bc1=n > ! junk3 [err=2.93e-07
+
+ogmgt tz -noplot -g=orthoSphere2.order4.ml2.hdf -tz=poly -maxit=15 -debug=3 -bc1=n > ! junk2
+
+ogmgt tz -noplot -g=orthoSphere1.order4.ml1.hdf -tz=poly -maxit=15 -debug=3 -bc1=n >! junk
+
+ogmgt -noplot tz -g=orthoSphere2.order4.ml2 -autoChoose=1 -maxit=20 -bc1=n  [*TROUBLE -- nan : line smooth?
+
+ogmgt -noplot tz -g=rhomboid4.order4.ml3 -maxit=20 -bc1=n
+
+
+-- line smooth BC may not be exactly the same as the regular bc
+ogmgt tz -noplot -g=orthoSphere1.order4.ml1.hdf -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1 [*TROUBLE : CR=1
+
+-- Neumann BC: 2nd-order only?
+ogmgt tz -noplot -g=orthoSphere4.order4.ml3.hdf -tz=poly -maxit=15 -debug=3 -bc1=n [ECR=0.667, err=1.02e-05
+ogmgt tz -noplot -g=orthoSphere2.order4.ml2.hdf -tz=poly -maxit=15 -debug=3 -bc1=n [ECR=0.597, err=4.15e-05  extrap-> err=5.74e-06
+ogmgt tz -noplot -g=orthoSphere1.order4.ml1.hdf -tz=poly -maxit=15 -debug=3 -bc1=n [ECR=0.578, err=1.78e-04
+
+ogmgt tz -noplot -g=orthoSphere2.order4.ml2.hdf -tz=poly -maxit=15 -debug=3 [ECR=0.567, err=4.47e-06
+ogmgt tz -noplot -g=orthoSphere1.order4.ml1.hdf -tz=poly -maxit=15 -debug=3 [ECR=0.546, err=6.65e-05
+
+-- line smooth ok: 
+ogmgt tz -noplot -g=rhomboidEight.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bsm=lz1
+
+# N-N-N edge and corner: 
+ogmgt tz -noplot -g=rhomboidEight.order4 -tz=poly -maxit=35 -debug=3 -degreex=3 -bc1=n -bc3=n -bc5=n [ECR=0.820, exact 
+
+# -- N-N edge: 
+ogmgt tz -noplot -g=rhomboidEight.order4 -tz=poly -maxit=25 -debug=3 -degreex=3 -bc1=n -bc3=n [ECR=0.775, exact 
+
+ogmgt tz -noplot -g=rhomboidEight.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n   [exact, also bc2=n, ...
+
+ogmgt tz -noplot -g=rhomboidEight.order4 -tz=poly -maxit=10 -debug=3 -degreex=2 -bc1=n   [exact 
+
+
+# One level: solve with smoother:
+ogmgt tz -noplot -g=rhomboidFour.order4 -tz=poly -maxit=10 -debug=3 -degreex=0 -bc1=n -scg=1 >! junk
+
+ogmgt tz -noplot -g=rhomboidEight.order4 -tz=poly -maxit=10 -debug=3 -degreex=0 -bc1=n >! junk
+
+ogmgt tz -noplot -g=rhomboid1.order4 -tz=poly -maxit=10 -debug=3 -degreex=0 -bc1=n >! junk
+
+++ trouble near corners:
+ogmgt tz -noplot -g=rhomboid2.order4 -tz=poly -maxit=15 -debug=3 -degreex=0 -bc1=n [Not EXACT
+
+ogmgt tz -noplot -g=rhomboid1.order4 -tz=poly -maxit=15 -debug=3 -degreex=0 -bc1=n [Not EXACT
+
+ogmgt tz -noplot -g=rhomboid1.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=d [exact
+
+ogmgt tz -noplot -g=rhomboid2.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=d [exact
+
+
+NOTE: I think rhomboid8.order4.cmd generates a more general rhmboid than rhomboid.cmd -- many not be exact
+ogmgt tz -noplot -g=rhomboid8.order4 -tz=poly -maxit=15 -debug=3 -degreex=1 -bc1=n -bsm=lz1 [ Not EXACT
+ogmgt tz -noplot -g=rhomboid8.order4 -tz=poly -maxit=15 -debug=3 -degreex=1 -bc1=n          [ Not EXACT
+
+
+
+
+**** TEST *new* 3D order 4 line-smooth with neumann BC
+
+-- Curvilinear:
+
+ogmgt tz -noplot -g=nonBox8.order4 -tz=poly -maxit=2 -debug=15 -degreex=1 -bc1=n -bsm=lz1 >! junk
+
+ogmgt tz -noplot -g=rhomboid8.order4 -tz=poly -maxit=2 -debug=15 -degreex=1 -bc1=n -bsm=lz1 >! junk
+
+ogmgt tz -noplot -g=rhomboid1.order4 -tz=poly -maxit=2 -debug=7 -degreex=1 -bc1=n -bsm=lz1 >! junk
+
+ogmgt tz -noplot -g=rhomboid2.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bsm=lz1 [*TROUBLE* nan
+
+ogmgt tz -noplot -g=rotatedBox16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bc2=n -bsm=lz1  [ECR=0.497, exact
+ogmgt tz -noplot -g=rotatedBox16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc3=n -bc4=n -bsm=lz2  [ECR=0.503
+ogmgt tz -noplot -g=rotatedBox16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bc2=n -bsm=lz1  [ECR=0.497, exact
+
+ogmgt tz -noplot -g=nonBox16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc5=n -bc6=n -bsm=lz3   [ECR=0.495, exact
+ogmgt tz -noplot -g=nonBox16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc3=n -bc4=n -bsm=lz2   [ECR=0.508, exact
+ogmgt tz -noplot -g=nonBox16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bc2=n -bsm=lz1   [ECR=0.496, exact 
+
+-- Cartesian:
+ogmgt tz -noplot -g=box16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc5=n -bc6=n -bsm=lz3   [ECR=0.550, exact
+ogmgt tz -noplot -g=box16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc3=n -bc4=n -bsm=lz2   [ECR=0.553, exact
+ogmgt tz -noplot -g=box16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bc2=n -bsm=lz1   [ECR=0.550, exact
+
+ogmgt tz -noplot -g=box16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n     [ECR=0.555, exact
+
+
+**** 100621
+
+ogmgt tz -noplot -g=rhomboid2.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bsm=lz1
+
+ogmgt tz -noplot -g=rhomboid2.order2 -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1  [ECR=0.574, exact
+
+
+
+********* 100620 
+
+**BUG FIXED: fixed one-sided approx. in neumannEquationForcing.h
+
+ogmgt tz -noplot -g=rhombus2.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bsm=lz1 [ECR=0.631, exact 
+ogmgt tz -noplot -g=rhombus2.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n [ECR=0.600, exact 
+
+-- Order 4 + line-smooth + Neumann
+
+ogmgt tz -noplot -g=rhombus1.order4 -tz=poly -maxit=10 -debug=3 -degreex=0 -bc1=n >! junk
+
+ogmgt tz -noplot -g=rhombus2.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n [*NOT EXACT* ??
+
+ogmgt tz -noplot -g=rhombus2.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 [ECR=0.592, exact
+
+ogmgt tz -noplot -g=square16.order4 -tz=poly -maxit=15 -debug=3 -degreex=3 -bc1=n -bsm=lz1 [ECR=0.579, exact
+
+
+*** Is this converging to second-order accuracy ??
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -bc1=n -sm=lz3 -maxit=10 -debug=3 [ECR=0.638
+ogmgt tz -noplot -g=twoSpheresInAChannele1.order2.ml1.hdf -bc1=n -sm=lz3 -maxit=10 -debug=3 [ECR=0.688
+
+ogmgt tz -noplot -g=orthoSphereNurbs1.order2.ml1 -bc5=n -bsm=lz3 -maxit=10 -debug=3 [ECR=0.525
+
+
+ogmgt tz -noplot -g=rhomboid2.order2 -tz=poly -maxit=15 -debug=3 -bc3=n -bc4=n -bsm=lz2  [ECR=0.524, exact
+
+ogmgt tz -noplot -g=rhomboid2.order2 -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1  [ECR=0.574, exact
+
+ogmgt tz -noplot -g=rhombus2.order2 -tz=poly -maxit=15 -debug=3 -bc1=n -bc2=n -bsm=lz1  [ECR=0.586
+
+-----------
+
+ogmgt tz -noplot -g=rhomboid20 -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1 [ECR=0.517
+ogmgt tz -noplot -g=rhomboid20 -tz=poly -maxit=15 -debug=3  [ECR=0.538
+
+
+ogmgt tz -noplot -g=rhombus20 -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1 -levels=2 [ECR=0.592 
+
+
+-- No line smooth: 
+ogmgt tz -noplot -g=rhombus20 -tz=poly -maxit=30 -debug=3 -bc1=n [ECR=0.615, err= 1.23e-06
+
+ogmgt tz -noplot -g=rotatedSquare20 -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1  [ECR=0.559 exact
+
+----------------
+
+*Trouble here: ... BUG fixed -- don't use coeff viewpointer 
+
+** test smoother: BAD
+ogmgt tz -noplot -g=rotatedSquare20 -tz=poly -maxit=0 -option=sm -debug=3 -bc1=n -bsm=lz1 -levels=2
+
+ogmgt tz -noplot -g=rotatedSquare20 -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1 -levels=2 [*BAD* Should be exact
+
+ogmgt tz -noplot -g=rotatedSquare20 -tz=poly -maxit=15 -debug=3 -bc1=n -bsm=lz1 [*BAD* Should be exact
+
+
+ogmgt tz -noplot -g=rhombus20 -tz=poly -maxit=15 -debug=3 -bc1=n -bc3=n -bsm=lz1 [*BAD*
+
+
+ogmgt tz -noplot -g=rhombus20 -tz=poly -maxit=15 -debug=3 [ECR=0.609
+
+
+ogmgt tz -noplot -g=square16.order2 -bc1=n -debug=3 
+
+
+
+--- 100618 : test new lineSmoothRHS
+
+ogmgt tz -noplot -g=nonBox32.order2 -tz=poly -maxit=15 -bsm=lz1 -bc1=n -bc2=n -debug=3 [exact ECR=0.522
+
+ogmgt tz -noplot -g=box32.order2 -tz=poly -maxit=15 -bsm=lz1 -bc1=n -bc2=n -debug=3 [exact
+
+ogmgt tz -noplot -g=nonSquare16.order2 -tz=poly -maxit=15 -bsm=lz1 -bc1=n -bc2=n -debug=3 [exact
+
+ogmgt tz -noplot -g=nonSquare16.order2 -tz=poly -maxit=15 -bsm=lz1 -bc1=n -debug=3  [exact
+
+ogmgt tz -noplot -g=square16.order2 -tz=poly -maxit=15 -bsm=lz1 -bc1=n -debug=3 [OK
+
+
+
+--- 100617 Track down the bug with lz3 and twoSpheresInAChannel
+
+
+Only call finish BC --> converges 
+
+ogmgt tz -noplot -g=orthoSphereNurbs4.order2.ml1 -bc5=n -bsm=lz3 -maxit=15 -debug=3
+ogmgt tz -noplot -g=orthoSphereNurbs2.order2.ml1 -bc5=n -bsm=lz3 -maxit=15 -debug=3
+
+
+
+
+-- single ortho-sphere made from a nurbs: 
+ogmgt tz -noplot -g=orthoSphereNurbs1.order2.ml1 -bc5=n -bsm=lz3 -maxit=10 -debug=3  [***BAD***
+ogmgt tz -noplot -g=orthoSphereNurbs2.order2.ml1 -bc5=n -bsm=lz3 -maxit=10 -debug=3  [***BAD***
+
+-- single ortho-sphere
+ogmgt tz -noplot -g=orthoSphere2.order2.ml1 -bc5=n -bsm=lz3 -maxit=10 -debug=3 [ECR=0.514
+
+
+--> Some issue with NURBS mappings ???
+
+ -- ONE sphere in a channel NOT NURBS
+ogmgt tz -noplot -g=subSpheree1.order2.ml1.hdf -bc1=n -sm=lz3 -maxit=10 -debug=3 [OK: ECR=0.721
+
+
+-- test smoother
+ogmgt tz -noplot -g=oneSphereInAChannele1.order2.ml1.hdf -bc1=n -maxit=0 -option=sm -sm=lz3 -maxit=0 -debug=3
+
+ --ONE sphere in a channel:
+ogmgt tz -noplot -g=oneSphereInAChannele1.order2.ml1.hdf -bc1=n -sm=lz3 -maxit=10 -debug=3 [*BAD*
+
+ogmgt tz -noplot -g=twoSpheresInAChannele1.order2.ml1.hdf -bc1=n -sm=lz3 -maxit=10 -debug=3 [*BAD*
+
+-- sphereInABox: OK (3-patch sphere)
+
+valgrindebug ../ogmgt tz -noplot -g=sphereInABoxe1.order2.ml1 -bc1=n -sm=lz3 -maxit=10 -debug=3
+
+ogmgt tz -noplot -g=sphereInABoxe2.order2.ml2 -bc1=n -sm=lz3 -maxit=15 -debug=3 [ECR=0.569
+
+ogmgt tz -noplot -g=sphereInABoxe1.order2.ml1 -bc1=n -sm=lz3 -maxit=15 -debug=3 [OK: ECR=0.597
+
+
+ogmgt tz -noplot -g=sphereInABoxe1.order2.ml1 -sm=lz3 -maxit=10 -debug=3 [ECR=0.554
+
+
+-- bc=n on sphere surface OK: 
+ogmgt tz -noplot -g=quarterSpheree2.order2.ml2 -bc1=n -sm=lz3 -maxit=15 -rtolcg=1.e-6 -debug=3 [ECR=0.545
+ogmgt tz -noplot -g=quarterSpheree1.order2.ml1 -bc1=n -sm=lz3 -maxit=15 -rtolcg=1.e-6 -debug=3 [ECR=0.639
+
+ogmgt tz -noplot -g=quarterSpheree1.order2.ml1 -sm=lz3 -maxit=10 -rtolcg=1.e-6 -debug=3 [OK
+
+
+--- 100615
+
+**** fix bcOpt:
+
+-- new neumann, rectangular: BC: 
+
+FIXED BUGS with order=4 and line smooths:
+
+../ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz1 
+
+
+*** 100616 : FIX PROBLEMS HERE WITH LINE SOLVE 
+valgrindebug ../ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz1 
+
+
+ --Order=4:
+
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz1 [FIX ME
+
+ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz1 [SEG FAULT
+
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -bc1=n -bc2=n -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 [exact 
+
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -bc1=n -bc2=n -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 [exact 
+
+ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15   [OK, exact 
+ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15   [OK, exact 
+
+
+
+
+ --Order=2: 
+ogmgt tz -noplot -g=nonCrossInBoxi2.order2.ml2.hdf -bc1=n -bc2=n -bc5=n -bc6=n -tz=poly -degreex=2 -maxit=15 [OK, exact
+
+ogmgt tz -noplot -g=crossInBoxi2.order2.ml2.hdf -bc1=n -bc2=n -bc5=n -bc6=n -tz=poly -degreex=2 -maxit=15 [OK, exact
+
+ogmgt tz -noplot -g=crossInBoxi2.order2.ml2.hdf -bc1=n -bc2=n -bc3=n -bc4=n -tz=poly -degreex=2 -maxit=15 [OK
+
+ogmgt tz -noplot -g=crossInSquarei2.order2.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=2 -maxit=15  [OK
+
+ogmgt tz -noplot -g=crossInSquarei2.order2.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=2 -maxit=15 > ! junk
+
+ogmgt tz -noplot -g=sbs2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=2 -maxit=15 [OK
+
+ogmgt tz -noplot -g=nonCrossInSquarei2.order2.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=2 -maxit=15  [OK
+
+ogmgt tz -noplot -g=crossInSquarei2.order2.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=2 -maxit=15 -bsm=lz2 [OK
+
+ogmgt tz -noplot -g=square32.order2 -tz=poly -maxit=15 -bc1=n  [OK
+
+
+**************************
+
+ogmgt tz -noplot -g=crossInSquarei2.order2.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz2 [BAD****
+
+ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 -bsm=lz2  [SEG FAULT
+
+
+ogmgt tz -noplot -g=twoSpheresInAChannele1.order2.ml1.hdf -bc1=n -sm=lz3 -maxit=10 -rtolcg=1.e-6 -debug=3 [*BAD* lz1=ok
+
+ogmgt tz -noplot -g=twoSpheresInAChannele2.order2.ml2.hdf -bc1=n -sm=lz3 -maxit=10 -rtolcg=1.e-6 -debug=3 [*BAD*
+
+
+
+
+--- 100613
+
+
+ogmgt tz -noplot -g=nonCrossInBoxi4.order4.ml3 -bc1=n -bc2=n -bc5=n -bc6=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+
+ogmgt tz -noplot -g=nonCrossInBoxi2.order4.ml2 -bc1=n -bc2=n -bc5=n -bc6=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+ogmgt tz -noplot -g=nonCrossInBoxi2.order4.ml2 -bc1=n -bc2=n -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -bc1=n -bc2=n -bc5=n -bc6=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+ogmgt tz -noplot -g=crossInBoxi2.order4.ml2 -bc1=n -bc2=n -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+
+
+ogmgt tz -noplot -g=nonCrossInSquarei2.order4.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+ogmgt tz -noplot -g=nonCrossInSquarei2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-14
+
+ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc3=n -bc4=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+ogmgt tz -noplot -g=crossInSquarei2.order4.ml2 -bc1=n -bc2=n -debug=3 -tz=poly -degreex=3 -maxit=15 [OK 1e-13
+
+
+ogmgt tz -noplot -g=nonSbse1.order4 -bc3=n -bc4=n -levels=2 -debug=3 -tz=poly -degreex=3 -maxit=10 [OK 1e-11
+
+ogmgt tz -noplot -g=nonSquare10.order4 -bc=ddnd -levels=2 -debug=3 -tz=poly -degreex=2 -maxit=10 [OK
+
+ogmgt tz -noplot -g=nonSbse1.order4 -bc3=n -levels=2 -debug=3 -tz=poly -degreex=2 -maxit=10 [OK
+ogmgt tz -noplot -g=sbse1.order4 -bc3=n -levels=2 -debug=3 -tz=poly -degreex=2 -maxit=10 ["exact" 1.e-12
+
+
+--- 100609:
+
+Large errors at overlap for Neumann BC : 
+ogmgt tz -plot -g=channelWithBumpe10.order4.ml3 -autoChoose=0 -bc1=d -bc2=d -bc3=n -bc4=d -debug=3 
+
+
+
+*** 100606 -- does singular work with order=4?
+
+ogmgt -noplot singular -g=nonSquare10.order4.hdf -sm=rbj -nullVector=square10.order4NullVector.hdf -predefined=1 -levels=2
+
+ogmgt -noplot singular -g=nonSquare20.order4.hdf -sm=rbj -nullVector=square20.order4NullVector.hdf -predefined=1 -debug=3
+
+
+*** 100605
+
+mpirun -np 2 $ogmgp -noplot tz -g=square10 -bsm=lz1 -bc=dndd  [*BAD*
+
+mpirun -np 2 $ogmgp -noplot tz -g=square10 -bsm=lz1 -bc=nndd  [*BAD*
+mpirun -np 2 $ogmgp -noplot tz -g=square10 -bsm=lz1 -bc=nddd  [OK
+
+
+
+
+**BAD: 
+mpirun -np 2 $ogmgp -noplot singular -g=square10 -sm=lz1 -nullVector=square10Vector.hdf
+
+*** sm=rbj OK
+mpirun -np 4 $ogmgp -noplot singular -g=square10 -sm=rbj -nullVector=square10Vector.hdf
+
+
+mpirun -np 4 $ogmgp -noplot singular -g=square10 -sm=lz2 -nullVector=square10Vector.hdf  -maxit=2 -debug=7 >! junk4.out
+
+mpirun -np 4 $ogmgp -noplot singular -g=square10 -sm=lz2 -nullVector=square10Vector.hdf  [*BAD*
+mpirun -np 2 $ogmgp -noplot singular -g=square10 -sm=lz2 -nullVector=square10Vector.hdf  [ECR=.609
+mpirun -np 1 $ogmgp -noplot singular -g=square10 -sm=lz2 -nullVector=square10Vector.hdf  [ECR=.603
+
+
+-np2 ok, -np4=bad
+
+mpirun -np 4 $ogmgp -noplot singular -g=channel2.order2.ml2 -fx=2. -fy=1. -sm=lz2 -nullVector=channel2.order2NullVector.hdf -predefined=1
+
+
+** 100605 : Trouble with -predefined=0 and -np 2 --> BUG found, coeff.updateGhost in ogmgt
+
+mpirun -np 2 $ogmgp -noplot singular -g=square10 -sm=rbj -nullVector=square10NullVector.hdf -maxit=2 -predefined=0 -debug=7 >! junk.np2
+
+mpirun -np 1 $ogmgp -noplot singular -g=square10 -sm=rbj -nullVector=square10NullVector.hdf -maxit=2 -predefined=0 -debug=7 >! junk.np1
+
+
+
+=============================================================
+
+
+NOTE: This has good convergence:  (use boundary smoothing)
+
+ogmgt tz -noplot -g=box16.order4 -sm=rbj -bc=nnnndn -maxit=10 -opav=0 -bls=2 [CR=0.0751 ave ECR=0.508
+ogmgt tz -noplot -g=box16.order4 -sm=rbj -bc=nnnndn -maxit=10 -opav=0 -bls=0 [CR=0.1731 ave ECR=0.632
+
+
+
+-- set exact initial conditions:
+
+  -- test coarse grid solver
+
+-- 2D bad too: 
+  ogmgt tz -noplot -g=square16.order4 sm=rbj -maxit=0 -opav=0 -ic=1 -tz=poly -degreex=3 -option=cg -levels=2 -cgSolver=yale -bc=nddd 
+
+-- no opave
+  ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=0 -opav=0 -ic=1 -tz=poly -degreex=3 -option=cg -levels=2 -cgSolver=yale -bc=nnnndn  [Big errors, degree=1,2
+-- opav: 
+  ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=0 -opav=1 -ic=1 -tz=poly -degreex=3 -option=cg -levels=2 -cgSolver=yale -bc=nnnndn  [Big errors, degree=1,2
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=0 -opav=1 -ic=1 -tz=poly -degreex=3 -option=cg -levels=2 -cgSolver=yale -bc=nddd  [Errors are large (probably because symmetry BC is used instead of Neumann
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=0 -opav=1 -ic=1 -tz=poly -degreex=3 -option=cg -levels=2 -cgSolver=yale [ok
+
+  -- smoother looks ok. Resid increases after coarse grid correction
+
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=5 -opav=1 -ic=1 -tz=poly -degreex=3 -bc=nnnndn -ssr=1 -rtol=1.e-20 -atol=1.e-20 -nsm="10 1"
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=5 -opav=1 -ic=1 -tz=poly -degreex=3 -bc=nnnndn -ssr=1 -rtol=1.e-20 -atol=1.e-20  [ *DIVERGES*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=5 -opav=1 -ic=1 -tz=poly -degreex=3 -bc=nnnndn [exact
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=5 -opav=1 -ic=1 -tz=poly -degreex=3 [exact
+
+--------
+
+ogmgt tz -noplot -g=nonBox8.order4 sm=rbj -bc=ndndnd -maxit=5 -opav=1 -debug=7
+
+ogmgt tz -noplot -g=box8.order4 sm=rbj -bc=ndndnd -maxit=5 -opav=1 -debug=7
+
+
+---- 10/05/14 -- bug found (nsign in u(-1)=...)
+
+*** To fix: This is bad using opav=1 : 
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndndnd -maxit=10 -levels=2 [BAD
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnnndn -maxit=10 -levels=2 [BAD
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnnndn -maxit=10  [BAD
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnnndn -maxit=10 -opav=0 [OK, ECR=0.632, box = 5.44e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nmnnnn -maxit=10  [BAD
+
+
+--- 10/05/12 ** bug found : c0r not set (turned into a comment by bpp)
+
+ty=45, tx=45, tz=45 : 
+
+ogmgt tz -noplot -g=rotatedBox16.order4 sm=rbj -bc=dddddn -maxit=10 [OK: box = 5.66e-05
+
+ogmgt tz -noplot -g=rotatedBox16.order4 sm=rbj -bc=ddddnd -maxit=10 [OK
+
+ogmgt tz -noplot -g=rotatedBox16.order4 sm=rbj -bc=dndd -maxit=10 [OK: box = 5.66e-05
+
+ogmgt tz -noplot -g=nonBox16.order4 sm=rbj -bc=dndd -maxit=10 [OK
+
+ogmgt tz -noplot -g=rotatedBox16.order4 sm=rbj -bc=nddd -maxit=10  [ECR=0.555 box = 5.66e-05
+
+rotated box: 
+             ty=45, tx=45, tz=45 : ECR=0.555 box = 5.66e-05  -> 32: box = 3.72e-06  OK
+             ty=90, tx=90  : OK
+	     thetax=90:  ECR=0.540, box = 2.67e-05
+             tx=ty=tz=0 : ECR=0.540, box = 2.67e-05
+
+valgrind ../ogmgt tz -noplot -g=nonBox16.order4 sm=rbj -bc=nddd -maxit=5 
+
+ogmgt tz -noplot -g=nonBox64.order4 sm=rbj -bc=nddd -maxit=10 [ECR=0.530 box = 1.20e-07
+ogmgt tz -noplot -g=nonBox32.order4 sm=rbj -bc=nddd -maxit=10 [ECR=0.534 box = 1.85e-06
+ogmgt tz -noplot -g=nonBox16.order4 sm=rbj -bc=nddd -maxit=10 [ECR=0.540 box = 2.67e-05
+
+---- 10/05/11
+
+
+** try new 3d order4 curvilinear: 
+ogmgt tz -noplot -g=nonBox32.order4 sm=rbj -bc=nddd -maxit=10    [ ECR=0.696 box = 3.03e-06  **TROUBLE**
+
+ogmgt tz -noplot -g=nonBox16.order4 sm=rbj -bc=nddd -maxit=10 >! junk [ECR=0.540 box = 2.67e-05
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nddd -maxit=10            [ECR=0.546 box = 2.67e-05
+
+
+ogmgt tz -noplot -g=nonBox8.order4 sm=rbj -bc=ddddnd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 >! junk  box = 8.00e-04
+
+ogmgt tz -noplot -g=nonBox8.order4 sm=rbj -bc=ddnd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 >! junk  box = 8.02e-04
+
+ogmgt tz -noplot -g=nonBox8.order4 sm=rbj -bc=nddd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 >! junk
+
+ogmgt tz -noplot -g=nonBox16.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.556 box = 6.09e-05
+
+
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=dnnnnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 -opav=0  [ECR=0.622
+
+--------- 10/05/10 : Working on Neumann BC, 3D order4
+
+
+ogmgt tz -plot -g=box16.order4 sm=rbj -bc=ndnddn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 -opav=0 [OK ECR=0.621 box = 8.63e-05
+ogmgt tz -plot -g=box16.order4 sm=rbj -bc=ndnddn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*
+
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndnddn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndndnd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*   corner with n-n-n is bad
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnnndn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnndnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nndnnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=dnnnnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnddnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.602 box = 7.89e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ddnnnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.593 box = 8.14e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnnndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=.606 box = 7.26e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndnnnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=dnddnn -maxit=10 [ECR=0.570 box = 3.40e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=dndddn -maxit=10 [ECR=0.564 box = 3.40e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=dnddnd -maxit=10 [ECR=0.564 box = 3.40e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nnddnd -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndddnd -maxit=10 [ECR=0.587 box = 3.40e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndnnnd -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndnnnn -maxit=10 [ECR=*BAD*
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ddddnn -maxit=10 [ECR=0.527 box = 2.67e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=dddddn -maxit=10 [ECR=0.521
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ddddnd -maxit=10 [ECR=0.521
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndnn -maxit=10 [ECR=0.594 box = 3.40e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nddd -maxit=10 [ECR=0.546 box = 2.67e-05
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndnn -maxit=10
+
+
++++ test convergence with a few Neumann bc
+
+
+ogmgt tz -noplot -g=box32.order4 sm=rbj -bc=ndnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.587 box = 3.59e-06
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=ndnn -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.599 box = 7.29e-05
+
++++ another convergence test: 
+
+ogmgt tz -noplot -g=box64.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.547 box = 2.23e-07
+ogmgt tz -noplot -g=box32.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.548 box = 3.51e-06
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.556 box = 6.09e-05
+
+
++++ test convergence with on neumann BC: (note: default trig is too easy since u.n=0 on the boundaries)
+
+ogmgt tz -noplot -g=box64.order4 sm=rbj -bc=nddd -maxit=10  [ECR=0.541 box = 1.20e-07  (ratio=15.4)
+ogmgt tz -noplot -g=box32.order4 sm=rbj -bc=nddd -maxit=10  [ECR=0.543 box = 1.85e-06
+ogmgt tz -noplot -g=box16.order4 sm=rbj -bc=nddd -maxit=10  [ECR=0.546 box = 2.67e-05
+ogmgt tz -noplot -g=box16.order4 sm=rbj -maxit=10  [ECR=0.494
+
+
+ogmgt tz -noplot -g=box16.order4 sm=rbj -tz=poly -bc=nddd -maxit=10
+
+ogmgt tz -noplot -g=square16.order4 sm=rbj -tz=poly -bc=nddd -maxit=20
+
+
+=========  check 2D, order4:  (bug found in neumannEquationForcing.h)
+
+
+ogmgt tz -noplot -g=rotatedSquare64.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.551 square = square = 2.74e-07
+ogmgt tz -noplot -g=rotatedSquare32.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.544 square = square = 4.50e-06
+ogmgt tz -noplot -g=rotatedSquare16.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.557 square = 7.86e-05
+
+ogmgt tz -noplot -g=nonSquare64.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.531 square = 1.15e-07 factor=17
+ogmgt tz -noplot -g=nonSquare32.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.539 square = 1.96e-06 factor=17.6
+ogmgt tz -noplot -g=nonSquare16.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.554 square = 3.45e-05
+
+
+ogmgt tz -noplot -g=square64.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.529 square = 1.15e-07 factor=17
+ogmgt tz -noplot -g=square32.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.537 square = 1.96e-06 factor=17.6
+ogmgt tz -noplot -g=square16.order4 sm=rbj -bc=nndd -fx=1.2 -fy=.9 -fz=1.3 -maxit=10 [ECR=0.554 square = 3.45e-05
+
+
+
+
+------- 10/05/07:
+
+
+ogmgt tz -noplot -g=square64.order4 -predefined=1 -debug=3 -bc=nmnn -debug=3 -maxit=10  [ECR=0.673
+
+
+
+
+--- 10/05/07 : Neumann + order 4 
+
+
+ogmgt tz -noplot -g=square8.order4 -predefined=1 -debug=3 -bc=nmnn -debug=3 [ECR=0.691
+
+ogmgt tz -noplot -g=square16.order4 -predefined=1 -debug=3 -bc=nmnn -debug=3 [ECR=0.691
+
+ogmgt tz -noplot -g=square8.order4 -predefined=1 -debug=3 -bc=nmnn -debug=3 -bcOrder4=extrap [*NO Convergence*
+
+
+--- trouble: defect in corners is large
+ogmgt tz -noplot -g=square16.order4 -predefined=1 -debug=3 -bc=nmnn -bcOrder4=extrap -cgSolver=yale -debug=15 -ssr=1 >! junk   [
+
+-- try only one Neumann boundary
+ogmgt tz -noplot -g=square16.order4 -predefined=1 -debug=3 -bc=nddd -bcOrder4=extrap -cgSolver=yale -debug=3 -ssr=1 >! junk   [
+
+
+--- test smoother
+
+ogmgt tz -noplot -g=square16.order4 -predefined=1 -debug=3 -bc=nmnn -debug=3  -bcOrder4=extrap  -maxit=0 -option=sm 

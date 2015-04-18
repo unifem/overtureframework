@@ -36,6 +36,7 @@ ellipsoid.bbmg.hdf:; ${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/ellips
 
 box32.hdf:; ${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/box32.cmd
 
+cice2.order2.ml2.hdf:; ${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/cicArg -order=2 -interp=e -ml=2 -factor=2
 cice4.order4.ml3.hdf:; ${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/cicArg -order=4 -interp=e -ml=3 -factor=4
 
 sibe2.order4.ml3.hdf:; ${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/sibArg -order=4 -interp=e -factor=2 -ml=3
@@ -50,4 +51,4 @@ square32.order2.hdf:; ${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/squar
 square32.order4.ng3.hdf:; ${Overture}/bin/ogen -noplot ${Overture}/sampleGrids/squareArg -order=4 -nx=32 -numGhost=3
 
 # build grids that are used by the regression tests (and not already in Overture/sampleGrids)
-buildGrids: square64.order2.hdf cic.bbmg2.hdf rhombus2.order2.ml2.hdf rhomboid2.order2.ml2.hdf rhombus2.order4.ml2.hdf rhomboid2.order4.ml2.hdf valvee.hdf box32.hdf sib.bbmg.hdf ellipsoid.bbmg.hdf cice4.order4.ml3.hdf sibe2.order4.ml3.hdf square32p.order2.hdf square32p.order4.hdf square32np.order2.hdf square32np.order4.hdf square32.order2.hdf square32.order4.ng3.hdf
+buildGrids: square64.order2.hdf cic.bbmg2.hdf rhombus2.order2.ml2.hdf rhomboid2.order2.ml2.hdf rhombus2.order4.ml2.hdf rhomboid2.order4.ml2.hdf valvee.hdf box32.hdf sib.bbmg.hdf ellipsoid.bbmg.hdf cice2.order2.ml2.hdf cice4.order4.ml3.hdf sibe2.order4.ml3.hdf square32p.order2.hdf square32p.order4.hdf square32np.order2.hdf square32np.order4.hdf square32.order2.hdf square32.order4.ng3.hdf

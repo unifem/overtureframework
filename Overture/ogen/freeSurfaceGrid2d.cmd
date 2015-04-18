@@ -24,6 +24,10 @@
 #  ogen -noplot freeSurfaceGrid2d -interp=e -factor=16 -ml=3
 #  ogen -noplot freeSurfaceGrid2d -interp=e -factor=32 -ml=3
 #
+#  -- flat surface
+#   ogen -noplot freeSurfaceGrid2d -amp=0 -interp=e -factor=2 -ml=1
+#   ogen -noplot freeSurfaceGrid2d -amp=0 -interp=e -factor=4 -ml=1
+#   ogen -noplot freeSurfaceGrid2d -amp=0 -interp=e -factor=8 -ml=2
 #
 #
 $amp=.1; $freq=1.; $periodic="n"; 
@@ -47,6 +51,7 @@ $suffix = ".order$order";
 if( $periodic eq "p" ){ $suffix .= ".p"; }
 if( $ml ne 0 ){ $suffix .= ".ml$ml"; }
 $prefix = "freeSurfaceGrid2d"; 
+if( $amp eq 0 ){ $prefix .= "Flat"; }
 if( $name eq "" ){$name = $prefix . "$interp$factor" . $suffix . ".hdf";}
 #
 # -- convert a number so that it is a power of 2 plus 1 --
@@ -86,7 +91,7 @@ create mappings
     $n=21*$factor; 
     enter spline points
       $n 
-    $x0=0.; $y0=1.*$rad;
+    $x0=0.; $y0=0.;
     $commands="";
     for( $i=0; $i<$n; $i++ ){ $x=$xa+($xb-$xa)*$i/($n-1); $y=$amp*.5*(cos(2.*$pi*$freq*$x)-1.); \
                               $commands = $commands . "$x $y\n"; }

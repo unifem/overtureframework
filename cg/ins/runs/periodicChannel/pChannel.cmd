@@ -71,7 +71,12 @@ $grid="channel2.order2.ml2.hdf";
 $tf = 10;
 $tp = 0.1;
 $nu = 1e-3;
-$solver = "best"; $rtolp=1.e-4; $atolp=1.e-5;
+$solver = "best";
+$rtolp=1.e-4; $atolp=1.e-5;
+# --try increasing tols: 
+# $rtolp=1.e-3; $atolp=1.e-3;
+#
+#**  $rtolp=1.e-6; $atolp=1.e-7;
 $ts = "afs";
 $show = "";
 $u0 = 0; $u1 = 0; $up = 1; $upp=0.1;
@@ -88,6 +93,7 @@ $ml = 2;
 $ad2 = 0; $ad2l = 1; $ad2n = 1;
 $ad4 = 0; $ad4l = 1; $ad4n = 1;
 $cfl = 0.9;
+$slowStartSteps=-1; $slowStartCFL=.5; $slowStartRecomputeDt=50; $slowStartTime=-1.; $recomputeDt=10000;
 $restart=""; $restartSolution=-1;
 ##
 $useWallModel = 1;
@@ -97,12 +103,14 @@ $wallModel_includeAD = 0;
 $wallModel_parameters = "#";
 $wallModel_llyplus = 11;
 $bc = "wallModel";
+#
+$go="halt"; 
 ##
 $nullVector="channel3d.101.81.order4.ml2.nullVector.hdf";
 ##
 $cdv=1;  $cDt=.25;
 ## GET THE COMMAND LINE ARGUMENTS
-GetOptions("cfl=f"=>\$cfl,"ml=i"=>\$ml,"tf=f"=>\$tf,"tp=f"=>\$tp,"nu=f"=>\$nu,"solver=s"=>\$solver,"ts=s"=>\$ts,"show=s"=>\$show,"u0=f"=>\$u0,"u1=f"=>\$u1,"up=f"=>\$up,"pgf=f"=>\$pgf,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,"za=f"=>\$za,"zb=f"=>\$zb,"Nx=i"=>\$Nx,"Ny=i"=>\$Ny,"Nz=i"=>\$Nz,"ystr=f"=>\$ystr,"order=i"=>\$order,"ad2=i"=>\$ad2,"ad2l=f"=>\$ad2l,"ad2n=f"=>\$ad2n,"ad4=i"=>\$ad4,"ad4l=f"=>\$ad4l,"ad4n=f"=>\$ad4n,"wallModel=s"=>\$wallModel,"wallModelNoSlip=i"=>\$wallModel_noSlipWall,"wallModelIncludeAD=i"=>\$wallModel_includeAD,"wallModelParameters=f"=>\$wallModel_parameters,"useWallModel=i"=>\$useWallModel,"wallModelLinearLayerYPlus=f"=>\$wallModel_llyplus,"bc=s"=>\$bc,"upp=f"=>\$upp,"ax=f"=>\$ax, "ay=f"=>\$ay,"debug=i"=>\$debug,"nullVector=s"=>\$nullVector,"restart=s"=>\$restart,"restartSolution=i"=>\$restartSolution,"ogesDebug=i"=>\$ogesDebug,"ogmgDebug=i"=>\$ogmgDebug,"g=s"=>\$grid);
+GetOptions("cfl=f"=>\$cfl,"ml=i"=>\$ml,"tf=f"=>\$tf,"tp=f"=>\$tp,"nu=f"=>\$nu,"solver=s"=>\$solver,"ts=s"=>\$ts,"show=s"=>\$show,"u0=f"=>\$u0,"u1=f"=>\$u1,"up=f"=>\$up,"pgf=f"=>\$pgf,"xa=f"=>\$xa,"xb=f"=>\$xb,"ya=f"=>\$ya,"yb=f"=>\$yb,"za=f"=>\$za,"zb=f"=>\$zb,"Nx=i"=>\$Nx,"Ny=i"=>\$Ny,"Nz=i"=>\$Nz,"ystr=f"=>\$ystr,"order=i"=>\$order,"ad2=i"=>\$ad2,"ad2l=f"=>\$ad2l,"ad2n=f"=>\$ad2n,"ad4=i"=>\$ad4,"ad4l=f"=>\$ad4l,"ad4n=f"=>\$ad4n,"wallModel=s"=>\$wallModel,"wallModelNoSlip=i"=>\$wallModel_noSlipWall,"wallModelIncludeAD=i"=>\$wallModel_includeAD,"wallModelParameters=f"=>\$wallModel_parameters,"useWallModel=i"=>\$useWallModel,"wallModelLinearLayerYPlus=f"=>\$wallModel_llyplus,"bc=s"=>\$bc,"upp=f"=>\$upp,"ax=f"=>\$ax, "ay=f"=>\$ay,"debug=i"=>\$debug,"nullVector=s"=>\$nullVector,"restart=s"=>\$restart,"restartSolution=i"=>\$restartSolution,"ogesDebug=i"=>\$ogesDebug,"ogmgDebug=i"=>\$ogmgDebug,"g=s"=>\$grid,"slowStartSteps=i"=>\$slowStartSteps,"slowStartRecomputeDt=i"=>\$slowStartRecomputeDt,"slowStartCFL=f"=>\$slowStartCFL,"go=s"=>\$go);
 ##
 ## SETUP SOME PARAMETERS BASED ON THE INPUTS
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
@@ -115,6 +123,9 @@ if( $ts eq "afs"){ $ts="approximate factorization"; $newts = "use new advanceSte
 if( ($wallModel ne "simpleLogLaw") && ($wallModel ne "fixedUTau") ){$wallModel_parameters = "#";}
 $pressureGradient = $nu*$up*$pgf;
 #
+if( $go eq "halt" ){ $go = "break"; }
+if( $go eq "og" ){ $go = "open graphics"; }
+if( $go eq "run" || $go eq "go" ){ $go = "movie mode\n finish"; }
 #
 # GENERATE THE GRID (using either channel2d.ogen.cmd or channel3d.ogen.cmd)
 # $grid_script = $is3D ? "channel3d.ogen.cmd" : "channel2d.ogen.cmd";
@@ -145,6 +156,12 @@ choose grids for implicit
  all=implicit
 done
  cfl $cfl
+# 
+  slow start cfl $slowStartCFL
+  slow start steps $slowStartSteps
+  slow start recompute dt $slowStartRecomputeDt
+  slow start $slowStartTime   # (seconds)
+#
 maximum number of iterations for implicit interpolation
    10
 #
@@ -168,7 +185,11 @@ user defined forcing
 exit
 #
 pressure solver options
- $ogesSolver=$solver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels;
+ $ogesSolver=$solver; $ogesRtol=$rtolp; $ogesAtol=$atolp; $ogesIluLevels=$iluLevels; $ogmgMaxIterations=10; 
+ # $ogmgRtolcg=1.e-9; $ogmgAtolcg=1.e-9; # decrease coarse grid solve tol's for singular problems ?
+ # $ogmgDebug=3; 
+ define petscOption -ksp_monitor stdout
+ # $ogmgCoarseGridSolver="yale"; 
  include $ENV{CG}/ins/cmd/ogesOptions.h
  maximum allowable increase in the residual
     1e10
@@ -214,6 +235,23 @@ debug $debug
 #
 continue
 #
+$go
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+movie mode
+finish
+
+
+
+
+
+
+
 pause
 movie mode
 pause

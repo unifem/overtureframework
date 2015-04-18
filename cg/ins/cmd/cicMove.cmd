@@ -94,7 +94,7 @@
 #  mpirun -np 1 $cginsp -noplot cicMove -g=sise1.order2.ml2 -gridToMove="inner-square" -ts=pc -nu=.1 -freqFullUpdate=1 -tp=.05 -tf=.1 -go=go 
 #===============================================================
 #
-$grid="cic2.hdf"; $show = " "; $tFinal=5.; $tPlot=.1; $nu=.1; $cfl=.9; $memoryCheck=0;
+$grid="cic2.hdf"; $show = " "; $tFinal=5.; $tPlot=.1; $nu=.1; $cfl=.9; $memoryCheck=0; $flush=100; 
 $pGrad=0.; $bg="square"; $gridToMove="Annulus"; $move="shift"; $rate=1.; $simulateMotion=0; 
 # 
 $implicitVariation="viscous"; $refactorFrequency=100; $impGrids="all=explicit"; $impFactor=.5; 
@@ -109,6 +109,8 @@ $freqFullUpdate=10; # frequency for using full ogen update in moving grids
 $cdv=1.; $ad2=1; $ad21=1.; $ad22=1.; $ad4=0; $ad41=1.; $ad42=1.; 
 $rtolp=1.e-3; $atolp=1.e-4;  # tolerances for the pressure solve
 $rtol=1.e-4; $atol=1.e-5;    # tolerances for the implicit solver
+# For oscillate motion:
+$vx=0.; $vy=1.; $t0=.5;    $freq=.5; $amp=.25; 
 # -- for Kyle's AF scheme:
 $afit = 20;  # max iterations for AFS
 $aftol=1e-2;
@@ -127,7 +129,8 @@ GetOptions( "g=s"=>\$grid,"tf=f"=>\$tFinal,"degreex=i"=>\$degreex, "degreet=i"=>
  "rtol=f"=>\$rtol,"atol=f"=>\$atol,"rtolp=f"=>\$rtolp,"atolp=f"=>\$atolp,"restart=s"=>\$restart,"move=s"=>\$move,\
   "impFactor=f"=>\$impFactor,"freqFullUpdate=i"=>\$freqFullUpdate,"outflowOption=s"=>\$outflowOption,\
   "bg=s"=>\$bg,"gridToMove=s"=>\$gridToMove,"bcTop=s"=>\$bcTop,"ogesDebug=i"=>\$ogesDebug,"rate=f"=>\$rate,\
-  "ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,"newts=i"=>\$newts);
+  "ad4=i"=>\$ad4,"ad41=f"=>\$ad41,"ad42=f"=>\$ad42,"newts=i"=>\$newts,"flush=i"=>\$flush,\
+  "vx=f"=>\$vx,"vy=f"=>\$vy,"t0=f"=>\$t0,"freq=f"=>\$freq,"amp=f"=>\$amp );
 # -------------------------------------------------------------------------------------------------
 if( $solver eq "best" ){ $solver="choose best iterative solver"; }
 if( $solver eq "mg" ){ $solver="multigrid"; }
@@ -172,7 +175,7 @@ $cmd
    open
      $show
     frequency to flush
-      100
+      $flush
   exit  
 #
   turn off twilight zone
@@ -193,8 +196,8 @@ if( $move ne "0" ){ $cmd="turn on moving grids"; }else{ $cmd="#"; }
    if( $move eq "shift" || $move eq "0" ){ $cmd="translate\n 1. 0. 0.\n -.5"; }
    if( $move eq "rotate" ){ $cmd="rotate\n 0. 0. 0 \n $rate 0. "; }
    if( $move eq "matrix" ){ $cmd="matrix motion\n translate along a line\n point on line: .0 .0 0\n tangent to line: -1 0 0\n edit time function\n linear parameters: 0,.5 (a0,a1)\n exit\n exit"; }
-   $freq=.5; $amp=.25; $t0=0.; 
-   if( $move eq "oscillate" ){ $cmd="oscillate\n 1. 0. 0.\n $freq \n $amp \n  $t0"; }
+   # oscillate options:
+   if( $move eq "oscillate" ){ $cmd="oscillate\n $vx $vy 0.\n $freq \n $amp \n  $t0"; }
        $cmd
        $gridToMove
       done
@@ -273,7 +276,6 @@ if( $restart eq "" ){ $cmds = "uniform flow\n u=1., v=0., p=1."; }\
   else{ $cmds = "OBIC:show file name $restart\n OBIC:solution number -1 \n OBIC:assign solution from show file"; }
 # 
   initial conditions
-
     $cmds
   exit
 #

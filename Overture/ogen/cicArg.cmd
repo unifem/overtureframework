@@ -265,6 +265,7 @@ generate an overlapping grid
 #
 # save an overlapping grid
 save a grid (compressed)
+# printf(" name=$name\n");
 $name
 cic
 exit

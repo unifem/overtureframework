@@ -47,6 +47,8 @@
 
 --------- Things to do: -----------
 
+2015/04 : implement integration based on Galerkin approach and partition of unity functions.
+
 0802: Fix Integrate: assign weights at interior points that are far from interpolation boundaries. 
                      Currently we must have a boundary with no overlap where we set the exact weights.
 
@@ -59,6 +61,18 @@
 *****************************************
 
 --------- Things to do: -----------
+
+--------- Things done: ----------------
+
+
+*****************************************
+******** Overture/Mappings **************
+*****************************************
+
+--------- Things to do: -----------
+
+2015/04 : Finish modelBuilder doc's and put on web site.
+          Include Wiggley hull example from Mostafa?
 
 --------- Things done: ----------------
 

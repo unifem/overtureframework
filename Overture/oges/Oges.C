@@ -319,6 +319,11 @@ getUseThisGrid() const
 ///  \param bcData(0:*,side,axis,grid) : for a mixed boundary condition a(0)=bcData(0,side,axis,grid).
 ///        For extrapolation, orderOfExtrapolation=bcData(0,side,axis,grid) where 0 means use the default
 ///        of orderOfExtrapolation=orderOfAccuracy+1
+///  \param varCoeff (input) : optional input for variable diffusion s(x) in variableHeatEquationOperator,
+///               divScalarGradHeatEquationOperator or advectionDiffusionEquationOperator
+///  \param advectionCoeff (input) : optional input for variable coefficient a(x) in advectionDiffusionEquationOperator
+///           advectionCoeff(I1,I2,I3,n)
+///
 // ===========================================================================================================
 int Oges::
 setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation, 
@@ -326,7 +331,8 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
 				  const IntegerArray & boundaryConditions_,
 				  const RealArray & bcData_, 
                                   RealArray & constantCoeff,
-				  realCompositeGridFunction *varCoeff /* =NULL */ )
+				  realCompositeGridFunction *varCoeff /* =NULL */,
+				  realCompositeGridFunction *advectionCoeff /* =NULL */ )
 {
   equationToSolve=equation;
   boundaryConditions.redim(0);
@@ -544,7 +550,6 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
       else if( equation==OgesParameters::divScalarGradHeatEquationOperator )
       {
         // I + div( s(x) grad )
-        // I + div( s(x) grad )
         assert( varCoeff!=NULL );
         realMappedGridFunction & variableCoeff = (*varCoeff)[grid];
         op[grid].coefficients(MappedGridOperators::divergenceScalarGradient,coeff[grid],variableCoeff);
@@ -554,10 +559,49 @@ setEquationAndBoundaryConditions( OgesParameters::EquationEnum equation,
 
 	isSingular=false;
       }
+      else if( equation==OgesParameters::advectionDiffusionEquationOperator )
+      {
+        // I + a(x).grad + div( s(x) grad )
+
+        assert( varCoeff!=NULL );
+        realMappedGridFunction & variableCoeff = (*varCoeff)[grid];
+        op[grid].coefficients(MappedGridOperators::divergenceScalarGradient,coeff[grid],variableCoeff);
+
+        assert( advectionCoeff!=NULL );
+        realMappedGridFunction & advCoeff = (*advectionCoeff)[grid];
+
+        OV_GET_SERIAL_ARRAY(real,coeff[grid],coeffLocal);
+        OV_GET_SERIAL_ARRAY(real,advCoeff,advCoeffLocal);
+        OV_GET_SERIAL_ARRAY(int,c.mask(),maskLocal);
+
+        coeffLocal(md,all,all,all)+=1.; // add the Identity.
+
+	getIndex(c.dimension(),I1,I2,I3);
+	bool ok = ParallelUtility::getLocalArrayBounds(c.mask(),maskLocal,I1,I2,I3);
+	if( ok )
+	{
+	  realSerialArray xCoeff(M,I1,I2,I3);
+          advCoeffLocal.reshape(1,advCoeffLocal.dimension(0),advCoeffLocal.dimension(1),advCoeffLocal.dimension(2),advCoeffLocal.dimension(3));
+	  for( int dir=0; dir<numberOfDimensions; dir++ )
+	  {
+	    xCoeff=0.;
+            MappedGridOperators::derivativeTypes derivType = MappedGridOperators::derivativeTypes(MappedGridOperators::xDerivative+dir);
+	    op[grid].assignCoefficients(derivType,xCoeff,I1,I2,I3,0,0);  // coefficients for x, y or z derivative operator
+
+	    for( int m=M.getBase(); m<=M.getBound(); m++ )
+	      xCoeff(m,I1,I2,I3)*=advCoeffLocal(0,I1,I2,I3,dir);
+
+	    coeffLocal(M,I1,I2,I3)+=xCoeff;
+	  }
+	  advCoeffLocal.reshape(advCoeffLocal.dimension(1),advCoeffLocal.dimension(2),advCoeffLocal.dimension(3),advCoeffLocal.dimension(4));
+	}
+	
+	isSingular=false;
+      }
       else
       {
         printf("Oges::setEquationAndBoundaryConditions::ERROR: unknown equation=%i \n",(int)equation);
-        Overture::abort("error");
+        OV_ABORT("--OGES-- ERROR");
       }
       
       

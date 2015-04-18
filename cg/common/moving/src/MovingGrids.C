@@ -8,6 +8,7 @@
 #include "Ogshow.h"
 #include "DetectCollisions.h"
 #include "AnnulusMapping.h"
+#include "BodyForce.h"
 
 #include "MappingInformation.h"
 #include "GenericGraphicsInterface.h"
@@ -205,6 +206,26 @@ MovingGrids::
 }
 
 // =================================================================================
+/// \brief Write information about the moving grids.
+// =================================================================================
+void MovingGrids::
+writeParameterSummary( FILE *file /* =stdout */ )
+{
+  for( int b=0; b<numberOfMatrixMotionBodies; b++ )
+    matrixMotionBody[b]->writeParameterSummary(file);
+
+  for( int b=0; b<numberOfRigidBodies; b++ )
+    body[b]->writeParameterSummary(file);
+
+  for( int b=0; b<numberOfDeformingBodies; b++ )
+    deformingBodyList[b]->writeParameterSummary(file);
+
+}
+
+
+
+
+// =================================================================================
 /// \brief Assign initial conditions and past time state.
 /// \details This function is called by DomainSolver::initializeSolution()
 ///   The initial and past state for some deforming grids may depend on the
@@ -229,6 +250,19 @@ assignInitialConditions( GridFunction & cgf )
 }
 
 
+// =================================================================================
+/// \brief Print time step info
+// =================================================================================
+void MovingGrids::
+printTimeStepInfo( FILE *file /* =stdout */ )
+{
+  for( int b=0; b<numberOfDeformingBodies; b++ )
+  {
+    deformingBodyList[b]->printTimeStepInfo(file);
+  }
+}
+
+
 
 // =================================================================================
 /// \brief Return a pointer to the Integrate object.
@@ -245,7 +279,7 @@ getIntegrate() const
 ///    This is usually only an issue for "light" bodies. 
 // =================================================================================
 real MovingGrids::
-getMaximumRelativeCorrection()
+getMaximumRelativeCorrection() const
 {
   return maximumRelativeCorrection; 
 }
@@ -359,6 +393,31 @@ movingGridOptionName(MovingGridOption option) const
   }
 }
 
+// =======================================================================================
+/// /brief for plotting purposes return moving bodies as BodyForce objects (these are saved to the show file)
+/// /param movingBodies (output) : Moving bodies represented as BodyForce objects.
+//=========================================================================================
+int MovingGrids::
+getBodies( std::vector<BodyForce*> & movingBodies )
+{
+  // For now just save deforming bodies.
+  if ( numberOfDeformingBodies != 0) 
+  {
+    for( int b=0; b<numberOfDeformingBodies; b++ )
+    {
+       BodyForce *pbf = new BodyForce;
+       int assigned = deformingBodyList[b]->getBody( *pbf );
+       if( assigned )
+         movingBodies.push_back(pbf);
+       else
+         delete pbf;
+    }
+  }
+
+}
+
+
+
 //\begin{>>MovingGridsSolverInclude.tex}{\subsection{parameters}} 
 const RealArray & MovingGrids::
 getMoveParameters() const
@@ -458,25 +517,47 @@ getDeformingBody(const int bodyNumber)
 }
 
 
-//\begin{>>MovingGridsSolverInclude.tex}{\subsection{getTimeStepForRigidBodies}}
 real MovingGrids::
-getTimeStepForRigidBodies() const
+getTimeStepForMovingBodies() const
 // =======================================================================================
-// /Description:
-//     Return an estimate of the maximum time step allowed for integration of the equations
-//    of rigid bodies. Return -1. if no estimate is available. 
-//
-//\end{MovingGridsSolverInclude.tex}  
+/// \brief  Return an estimate of the maximum time step allowed for integration of the equations
+///    of all moving bodies. Return -1. if no estimate is available. 
+///
 //=========================================================================================
 {
   real dt=REAL_MAX; 
-  int b;
-  for( b=0; b<numberOfRigidBodies; b++ )
+
+  // dt for rigid bodies: 
+  real dtrb = getTimeStepForRigidBodies();
+
+  // dt for deforming: 
+  for( int b=0; b<numberOfDeformingBodies; b++ )
   {
-    real dtMax = body[b]->getTimeStepEstimate();  // this will return -1. if no estimate is available
-    dt=min(dtMax,dt);
+    real dtDeform = deformingBodyList[b]->getTimeStep(); // this will return -1. if no estimate is available
+    if( dtDeform>0. ) dt=min(dt,dtDeform);
   }
-  if( dt<=0. )
+  if( dt==REAL_MAX )
+    dt=-1.;
+
+  return dt;
+}
+
+
+real MovingGrids::
+getTimeStepForRigidBodies() const
+// =======================================================================================
+/// \brief  Return an estimate of the maximum time step allowed for integration of the equations
+///    of rigid bodies. Return -1. if no estimate is available. 
+///
+//=========================================================================================
+{
+  real dt=REAL_MAX; 
+  for( int b=0; b<numberOfRigidBodies; b++ )
+  {
+    real dtrb = body[b]->getTimeStepEstimate();  // this will return -1. if no estimate is available
+    if( dtrb>0. ) dt=min(dtrb,dt);
+  }
+  if( dt==REAL_MAX )
     dt=-1.;
   
   return dt;
@@ -1331,6 +1412,7 @@ correctGrids(const real t1,
     for( int b=0; b<numberOfDeformingBodies; b++ )
     {
       deformingBodyList[b]->correct( t1,t2,cgf1,cgf2 );
+      maximumRelativeCorrection = max(maximumRelativeCorrection,deformingBodyList[b]->getMaximumRelativeCorrection());
       correctionHasConverged = correctionHasConverged && deformingBodyList[b]->hasCorrectionConverged();
     }  
   }
@@ -1773,8 +1855,8 @@ getGridVelocity( GridFunction & gf0, const real & tGV )
 
 	}
 	
-        if( false )
-	  ::display(gridVelocity,sPrintF("--MvG-- MovingGrids(deformingBody): gridVelocity, t=%8.2e",tGV),"%6.3f ");  // *************************************
+        if( false ) // **** TEMP ********
+	  ::display(gridVelocity,sPrintF("--MvG-- MovingGrids(deformingBody): gridVelocity, t=%8.2e",tGV),"%6.3f "); 
 
 
 
@@ -2106,7 +2188,7 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 	// I1,I2,I3 from : getBoundaryIndex( c.extendedIndexRange(),side,axis,I1 ,I2 ,I3);     // boundary line    
 	realSerialArray boundaryAcceleration(I1,I2,I3, c.numberOfDimensions());
 	boundaryAcceleration  =  0.;
-	deformingBodyList[b]->getAccelerationBC( t0, grid, c ,I1,I2,I3, boundaryAcceleration  );
+	deformingBodyList[b]->getAccelerationBC( t0, grid, side, axis, c ,I1,I2,I3, boundaryAcceleration  );
 
 	if( false )
 	  ::display(boundaryAcceleration(I1,I2,I3,Range(0,1)),sPrintF("--MVG-- bcAcceleration t=%g ",t0),"%9.2e ");
@@ -2115,6 +2197,8 @@ gridAccelerationBC(const int grid, const int side, const int axis,
 	{
 	  fLocal(I1g,I2g,I3g)-=(normal(I1,I2,I3,0)*boundaryAcceleration(I1,I2,I3,0)+ 
 				normal(I1,I2,I3,1)*boundaryAcceleration(I1,I2,I3,1));
+
+	  // fLocal(I1g,I2g,I3g)-=boundaryAcceleration(I1,I2,I3,1);   // ********** TEST
 
 	  if( false )
 	    ::display(fLocal(I1g,I2g,I3g),sPrintF("--MVG-- f = f - n.boundaryAcceleration (rhs for pressure) t=%g",t0),"%9.2e ");
@@ -2547,7 +2631,7 @@ getBoundaryAcceleration( MappedGrid & c, realSerialArray & gtt, int grid, real t
 
 	  if( computeTwoTimeDerivatives )
 	  {
-            deformingBodyList[b]->getAccelerationBC( t0, grid, c, I1,I2,I3, gtt );
+            deformingBodyList[b]->getAccelerationBC( t0, grid, side, axis, c, I1,I2,I3, gtt );
 	  }
 	  if( computeThreeTimeDerivatives )
 	  {
@@ -3528,8 +3612,7 @@ moveDeformingBodies(const real & t1,
   Index Ib1,Ib2,Ib3;
 
   //..Loop through deformingBodies
-  int b;
-  for ( b=0; b<numberOfDeformingBodies; b++ )
+  for ( int b=0; b<numberOfDeformingBodies; b++ )
   {
     if( debug() & 4 ){ cout << "++ Looping: deformingBody b="<<b<<endl;}
     //
@@ -3562,6 +3645,22 @@ detectCollisions( GridFunction & cgf1 )
   assert( isInitialized );
   assert( integrate!=NULL );
   ::detectCollisions( cgf1.t,cgf1.cg,numberOfRigidBodies,body,integrate->getBodyDefinition(),parameters.dbase.get<real >("collisionDistance"));
+
+  return 0;
+}
+
+
+// ===============================================================================================
+/// \brief Project the interface velocity (for added mass schemes)
+// ===============================================================================================
+int MovingGrids::
+projectInterfaceVelocity( GridFunction & cgf )
+{
+
+  for ( int b=0; b<numberOfDeformingBodies; b++ )
+  {
+    deformingBodyList[b]->projectInterfaceVelocity( cgf );
+  }
 
   return 0;
 }
@@ -3787,16 +3886,14 @@ put( GenericDataBase & dir, const aString & name) const
   subDir.put(numberOfRigidBodyInfoNames,"numberOfRigidBodyInfoNames");
   subDir.put(rigidBodyInfoName,"rigidBodyInfoName",numberOfRigidBodyInfoNames);
 
-  // *** todo: deforming bodies ****
-
+  // *** deforming bodies ****
   subDir.put(numberOfDeformingBodies,"numberOfDeformingBodies"); 
-
-  if (numberOfDeformingBodies > 0) {
-    
+  if (numberOfDeformingBodies > 0) 
+  {
     for( int b=0; b<numberOfDeformingBodies; b++ )
-      {
-	deformingBodyList[b]->put(subDir,sPrintF("deformingBody%i",b));
-      }
+    {
+      deformingBodyList[b]->put(subDir,sPrintF("deformingBody%i",b));
+    }
   }
     
 
@@ -4671,7 +4768,7 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
 	const int side=boundary(0,f);
 	const int axis=boundary(1,f);
 	const int grid=boundary(2,f);
-	printF(" Add face (side,axis,grid)=(%i,%i,%i) to deforming body %i\n",side,axis,grid);
+	printF("--MVG-- Add face %i (side,axis,grid)=(%i,%i,%i) to deforming body %i\n",f,side,axis,grid,b);
 
 	// --- save the deforming body number in the BoundaryData so that we can look up information such 
 	//     as added-mass information
@@ -4683,6 +4780,8 @@ update( CompositeGrid & cg, GenericGraphicsInterface & gi )
 
 	if( !bd.dbase.has_key("deformingBodyNumber") )
 	{
+          printF("--MVG--add deformingBodyNumber to boundaryDataArray[grid=%i].dbase\n",grid);
+
 	  int (&deformingBodyNumber)[2][3] = bd.dbase.put<int[2][3]>("deformingBodyNumber");
 	  for( int s=0; s<=1; s++) for( int a=0; a<3; a++ ){ deformingBodyNumber[s][a]=-1; } // 
 	    
