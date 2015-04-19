@@ -4440,7 +4440,7 @@ update( GenericGraphicsInterface & gi )
 
 
   int nt=0;
-  textLabels[nt] = "body name:";  sPrintF(textStrings[nt],"%s",bodyName);  
+  textLabels[nt] = "body name:";  sPrintF(textStrings[nt],"%s",(const char*)bodyName);  
   nt++; 
 
   textLabels[nt] = "debug:";  sPrintF(textStrings[nt],"%i",debug);  
